@@ -8450,6 +8450,13 @@ CONFIG_PROBE_EVENTS
 	[subsys]
 	[must]
 	[function]
+CONFIG_PROCESS_RECLAIM
+	[arch] arm64
+	[plat] sharkl3,sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_PROC_FS
 	[arch] all
 	[plat] all
