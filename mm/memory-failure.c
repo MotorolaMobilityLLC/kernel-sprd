@@ -1376,7 +1376,11 @@ static bool hwpoison_user_mappings(struct page *p, unsigned long pfn,
 		collect_procs(hpage, &tokill, flags & MF_ACTION_REQUIRED);
 
 	if (!PageHuge(hpage)) {
+#ifdef CONFIG_PROCESS_RECLAIM
+		try_to_unmap(hpage, ttu, NULL);
+#else
 		try_to_unmap(hpage, ttu);
+#endif
 	} else {
 		if (!PageAnon(hpage)) {
 			/*
@@ -1388,12 +1392,20 @@ static bool hwpoison_user_mappings(struct page *p, unsigned long pfn,
 			 */
 			mapping = hugetlb_page_mapping_lock_write(hpage);
 			if (mapping) {
+#ifdef CONFIG_PROCESS_RECLAIM
+				try_to_unmap(hpage, ttu|TTU_RMAP_LOCKED, NULL);
+#else
 				try_to_unmap(hpage, ttu|TTU_RMAP_LOCKED);
+#endif
 				i_mmap_unlock_write(mapping);
 			} else
 				pr_info("Memory failure: %#lx: could not lock mapping for mapped huge page\n", pfn);
 		} else {
+#ifdef CONFIG_PROCESS_RECLAIM
+			try_to_unmap(hpage, ttu, NULL);
+#else
 			try_to_unmap(hpage, ttu);
+#endif
 		}
 	}
 

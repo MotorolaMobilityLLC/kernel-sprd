@@ -168,6 +168,14 @@ struct scan_control {
 
 	/* for recording the reclaimed slab by now */
 	struct reclaim_state reclaim_state;
+	/*
+	 * Reclaim pages from a vma. If the page is shared by other tasks
+	 * it is zapped from a vma without reclaim so it ends up remaining
+	 * on memory until last task zap it.
+	 */
+	#ifdef CONFIG_PROCESS_RECLAIM
+	struct vm_area_struct *target_vma;
+	#endif
 };
 
 #ifdef ARCH_HAS_PREFETCHW
@@ -1656,6 +1664,14 @@ retry:
 				flags |= TTU_SPLIT_HUGE_PMD;
 			if (!ignore_references)
 				trace_android_vh_page_trylock_set(page);
+		#ifdef CONFIG_PROCESS_RECLAIM
+			if (!try_to_unmap(page, flags, sc->target_vma)) {
+				stat->nr_unmap_fail += nr_pages;
+				if (!was_swapbacked && PageSwapBacked(page))
+					stat->nr_lazyfree_fail += nr_pages;
+				goto activate_locked;
+			}
+		#else
 			try_to_unmap(page, flags);
 			if (page_mapped(page)) {
 				stat->nr_unmap_fail += nr_pages;
@@ -1663,6 +1679,7 @@ retry:
 					stat->nr_lazyfree_fail += nr_pages;
 				goto activate_locked;
 			}
+		#endif
 		}
 
 		if (PageDirty(page)) {
@@ -1824,7 +1841,7 @@ free_it:
 		#ifdef CONFIG_PROCESS_RECLAIM
 		if (!pgdat)
 			dec_node_page_state(page, NR_ISOLATED_ANON +
-					page_is_file_cache(page));
+					page_is_file_lru(page));
 		#endif
 		continue;
 
@@ -1929,7 +1946,8 @@ unsigned int reclaim_clean_pages_from_list(struct zone *zone,
 }
 
 #ifdef CONFIG_PROCESS_RECLAIM
-unsigned long reclaim_pages_from_list(struct list_head *page_list)
+unsigned long reclaim_pages_from_list(struct list_head *page_list,
+					struct vm_area_struct *vma)
 {
 	struct scan_control sc = {
 		.gfp_mask = GFP_KERNEL,
@@ -1937,6 +1955,7 @@ unsigned long reclaim_pages_from_list(struct list_head *page_list)
 		.may_writepage = 1,
 		.may_unmap = 1,
 		.may_swap = 1,
+		.target_vma = vma,
 	};
 
 	unsigned long nr_reclaimed;

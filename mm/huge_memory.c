@@ -2309,7 +2309,11 @@ static void unmap_page(struct page *page)
 	if (PageAnon(page))
 		try_to_migrate(page, ttu_flags);
 	else
+#ifdef CONFIG_PROCESS_RECLAIM
+		try_to_unmap(page, ttu_flags | TTU_IGNORE_MLOCK, NULL);
+#else
 		try_to_unmap(page, ttu_flags | TTU_IGNORE_MLOCK);
+#endif
 
 	VM_WARN_ON_ONCE_PAGE(page_mapped(page), page);
 }
