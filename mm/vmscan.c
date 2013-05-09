@@ -1431,7 +1431,10 @@ retry:
 			goto keep;
 
 		VM_BUG_ON_PAGE(PageActive(page), page);
-
+	#ifdef CONFIG_PROCESS_RECLAIM
+		if (pgdat)
+			VM_BUG_ON_PAGE(page_pgdat(page) != pgdat, page);
+	#endif
 		nr_pages = compound_nr(page);
 
 		/* Account the number of base pages even though THP */
@@ -1673,9 +1676,16 @@ retry:
 			 * the rest of the LRU for clean pages and see
 			 * the same dirty pages again (PageReclaim).
 			 */
+		#ifdef CONFIG_PROCESS_RECLAIM
+			if (page_is_file_lru(page) &&
+			    (!current_is_kswapd() || !PageReclaim(page) ||
+			     (pgdat &&
+			     !test_bit(PGDAT_DIRTY, &pgdat->flags)))) {
+		#else
 			if (page_is_file_lru(page) &&
 			    (!current_is_kswapd() || !PageReclaim(page) ||
 			     !test_bit(PGDAT_DIRTY, &pgdat->flags))) {
+		#endif
 				/*
 				 * Immediately reclaim when written back.
 				 * Similar in principal to deactivate_page()
