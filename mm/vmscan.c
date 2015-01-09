@@ -1902,6 +1902,10 @@ unsigned int reclaim_clean_pages_from_list(struct zone *zone,
 	struct scan_control sc = {
 		.gfp_mask = GFP_KERNEL,
 		.may_unmap = 1,
+#ifdef CONFIG_PROCESS_RECLAIM
+		/* Doesn't allow to write out dirty page */
+		.may_writepage = 0,
+#endif
 	};
 	struct reclaim_stat stat;
 	unsigned int nr_reclaimed;
