@@ -138,7 +138,9 @@ extern int vfp_restore_user_hwstate(struct user_vfp *,
 #define TIF_SYSCALL_AUDIT	21	/* syscall auditing active */
 #define TIF_SYSCALL_TRACEPOINT	22	/* syscall tracepoint instrumentation */
 #define TIF_SECCOMP		23	/* seccomp syscall filtering active */
-
+#ifdef CONFIG_PROCESS_RECLAIM
+#define TIF_MM_RELEASED		24	/* task MM has been release */
+#endif
 
 #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
 #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)

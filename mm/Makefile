@@ -132,3 +132,4 @@ obj-$(CONFIG_IO_MAPPING) += io-mapping.o
 obj-$(CONFIG_HAVE_BOOTMEM_INFO_NODE) += bootmem_info.o
 obj-$(CONFIG_GENERIC_IOREMAP) += ioremap.o
 obj-$(CONFIG_E_SHOW_MEM) += emem.o
+obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
