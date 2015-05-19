@@ -30,6 +30,17 @@ config CONSOLE_LOGLEVEL_DEFAULT
 	  usage in the kernel. That is controlled by the MESSAGE_LOGLEVEL_DEFAULT
 	  option.
 
+config PRINTK_CPUID
+	bool "Show cpuid information on printks"
+	depends on PRINTK
+	help
+	  Selecting this option causes cpuid of the printk()
+	  messages to be added to the output of the syslog() system
+	  call and at the console.
+
+	  The behavior is also controlled by the kernel command line
+	  parameter printk.cpuid=1. See Documentation/kernel-parameters.txt
+
 config MESSAGE_LOGLEVEL_DEFAULT
 	int "Default message log level (1-7)"
 	range 1 7

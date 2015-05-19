@@ -359,6 +359,7 @@ struct printk_log {
 	u8 facility;		/* syslog facility */
 	u8 flags:5;		/* internal record flags */
 	u8 level:3;		/* syslog level */
+	u32 cpu;		/* the print cpu */
 }
 #ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
 __packed __aligned(4)
@@ -580,7 +581,7 @@ static u32 truncate_msg(u16 *text_len, u16 *trunc_msg_len,
 static int log_store(int facility, int level,
 		     enum log_flags flags, u64 ts_nsec,
 		     const char *dict, u16 dict_len,
-		     const char *text, u16 text_len)
+		     const char *text, u16 text_len, int cpu)
 {
 	struct printk_log *msg;
 	u32 size, pad_len;
@@ -621,6 +622,7 @@ static int log_store(int facility, int level,
 	msg->facility = facility;
 	msg->level = level & 7;
 	msg->flags = flags & 0x1f;
+	msg->cpu = cpu;
 	if (ts_nsec > 0)
 		msg->ts_nsec = ts_nsec;
 	else
@@ -1220,6 +1222,19 @@ static size_t print_time(u64 ts, char *buf)
 		       (unsigned long)ts, rem_nsec / 1000);
 }
 
+static bool printk_cpuid = IS_ENABLED(CONFIG_PRINTK_CPUID);
+module_param_named(cpuid, printk_cpuid, bool, S_IRUGO | S_IWUSR);
+
+static size_t print_cpu(u32 cpu, char *buf)
+{
+	if (!printk_cpuid)
+		return 0;
+
+	if (!buf)
+		return snprintf(NULL, 0, "c%d ", cpu);
+	return sprintf(buf, "c%d ", cpu);
+}
+
 static size_t print_prefix(const struct printk_log *msg, bool syslog, char *buf)
 {
 	size_t len = 0;
@@ -1240,6 +1255,7 @@ static size_t print_prefix(const struct printk_log *msg, bool syslog, char *buf)
 	}
 
 	len += print_time(msg->ts_nsec, buf ? buf + len : NULL);
+	len += print_cpu(msg->cpu, buf? buf+len:NULL);
 	return len;
 }
 
@@ -1603,6 +1619,7 @@ static struct cont {
 	u8 level;			/* log level of first message */
 	u8 facility;			/* log facility of first message */
 	enum log_flags flags;		/* prefix, newline flags */
+	u32 cpu;			/* the print cpu */
 } cont;
 
 static void cont_flush(void)
@@ -1611,7 +1628,7 @@ static void cont_flush(void)
 		return;
 
 	log_store(cont.facility, cont.level, cont.flags, cont.ts_nsec,
-		  NULL, 0, cont.buf, cont.len);
+		  NULL, 0, cont.buf, cont.len, cont.cpu);
 	cont.len = 0;
 }
 
@@ -1677,7 +1694,7 @@ static size_t log_output(int facility, int level, enum log_flags lflags, const c
 	}
 
 	/* Store it in the record log */
-	return log_store(facility, level, lflags, 0, dict, dictlen, text, text_len);
+	return log_store(facility, level, lflags, 0, dict, dictlen, text, text_len, smp_processor_id());
 }
 
 asmlinkage int vprintk_emit(int facility, int level,
