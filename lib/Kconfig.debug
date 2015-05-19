@@ -61,6 +61,17 @@ config CONSOLE_LOGLEVEL_QUIET
 	  will be used as the loglevel. IOW passing "quiet" will be the
 	  equivalent of passing "loglevel=<CONSOLE_LOGLEVEL_QUIET>"
 
+config PRINTK_CPUID
+	bool "Show cpuid information on printks"
+	depends on PRINTK
+	help
+	  Selecting this option causes cpuid of the printk()
+	  messages to be added to the output of the syslog() system
+	  call and at the console.
+
+	  The behavior is also controlled by the kernel command line
+	  parameter printk.cpuid=1. See Documentation/kernel-parameters.txt
+
 config MESSAGE_LOGLEVEL_DEFAULT
 	int "Default message log level (1-7)"
 	range 1 7
