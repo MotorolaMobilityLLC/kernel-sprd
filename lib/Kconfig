@@ -569,6 +569,14 @@ config ARCH_HAS_PMEM_API
 
 config ARCH_HAS_UACCESS_FLUSHCACHE
 	bool
+#
+# Enhanced show meminfo support is selected if needed
+#
+config E_SHOW_MEM
+	boolean "Enhanced show memory"
+	default y
+	help
+	  Enable mem info show for ION, GPU, ZRAM, Vmalloc etc.
 
 config STACKDEPOT
 	bool

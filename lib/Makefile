@@ -213,6 +213,8 @@ obj-$(CONFIG_FONT_SUPPORT) += fonts/
 
 obj-$(CONFIG_PRIME_NUMBERS) += prime_numbers.o
 
+obj-$(CONFIG_E_SHOW_MEM) += e_show_mem.o
+
 hostprogs-y	:= gen_crc32table
 clean-files	:= crc32table.h
 

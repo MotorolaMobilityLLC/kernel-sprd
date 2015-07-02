@@ -3097,6 +3097,13 @@ CONFIG_EXTRA_FIRMWARE
 	[subsys] core
 	[must] console
 	[function] External firmware blobs to build into the kernel binary, Set to "".
+CONFIG_E_SHOW_MEM
+	[arch] arm64
+	[plat] roc1,sharkl5
+	[field] make,code
+	[subsys] lib,mm
+	[must] console
+	[function] show enhanced meminfo.
 CONFIG_F2FS_CHECK_FS
 	[arch] all
 	[plat] all
