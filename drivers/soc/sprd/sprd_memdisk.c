@@ -177,7 +177,7 @@ static void *memdisk_ram_vmap(phys_addr_t start, size_t size,
 		phys_addr_t addr = page_start + i * PAGE_SIZE;
 		pages[i] = pfn_to_page(addr >> PAGE_SHIFT);
 	}
-	vaddr = vmap(pages, page_count, VM_MAP, prot);
+	vaddr = vm_map_ram(pages, page_count, -1, prot);
 	kfree(pages);
 
 	return vaddr;
@@ -224,6 +224,10 @@ static int memdisk_init(void)
 			  res.start, res.end);
 		memdisks[i].data =
 		    memdisk_ram_vmap(res.start, resource_size(&res), 1);
+		if (!memdisks[i].data) {
+			pr_notice("sprd memdisk%d map error!\n", i);
+			return -ENOMEM;
+		}
 		memdisks[i].size = resource_size(&res) / hardsect_size;
 		memdisk_setup_device(&memdisks[i], i);
 	}
