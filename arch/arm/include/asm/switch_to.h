@@ -23,9 +23,17 @@
  */
 extern struct task_struct *__switch_to(struct task_struct *, struct thread_info *, struct thread_info *);
 
+#if defined(CONFIG_SPRD_CPU_USAGE) && defined(CONFIG_SPRD_DEBUG)
+extern void sprd_update_cpu_usage(struct task_struct *prev,
+				  struct task_struct *next);
+#else
+#define sprd_update_cpu_usage(prev, next)
+#endif
+
 #define switch_to(prev,next,last)					\
 do {									\
 	__complete_pending_tlbi();					\
+	sprd_update_cpu_usage(prev, next);				\
 	last = __switch_to(prev,task_thread_info(prev), task_thread_info(next));	\
 } while (0)
 

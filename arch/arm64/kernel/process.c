@@ -416,6 +416,13 @@ static void entry_task_switch(struct task_struct *next)
 	__this_cpu_write(__entry_task, next);
 }
 
+#if defined(CONFIG_SPRD_CPU_USAGE) && defined(CONFIG_SPRD_DEBUG)
+extern void sprd_update_cpu_usage(struct task_struct *prev,
+				  struct task_struct *next);
+#else
+#define sprd_update_cpu_usage(prev, next)
+#endif
+
 /*
  * Thread switching.
  */
@@ -430,6 +437,7 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
 	contextidr_thread_switch(next);
 	entry_task_switch(next);
 	uao_thread_switch(next);
+	sprd_update_cpu_usage(prev, next);
 
 	/*
 	 * Complete any pending TLB or cache maintenance on this CPU in case
