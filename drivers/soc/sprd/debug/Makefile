@@ -3,3 +3,4 @@ obj-y	+= busmonitor/
 obj-y	+= dmc_mpu/
 obj-y	+= djtag/
 obj-$(CONFIG_SPRD_DEBUG)    += sprd_debugfs_frame.o
+obj-$(CONFIG_SPRD_EIRQSOFF)     += eirqsoff/
