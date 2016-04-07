@@ -30,6 +30,9 @@ void notrace start_eirqsoff_timing(void)
 	if (__this_cpu_read(eirqsoff_start_timestamp))
 		return;
 
+	if (oops_in_progress)
+		return;
+
 	__this_cpu_write(eirqsoff_start_timestamp, sched_clock());
 
 	__this_cpu_write(cpu_is_tracing, 1);
