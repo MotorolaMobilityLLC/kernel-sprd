@@ -1,3 +1,10 @@
 #
 # SPRD Soc drivers
 #
+config SPRD_MEMDISK
+	tristate "SPRD memdisk driver"
+	depends on ARCH_SPRD
+	help
+	  This option can support sprd memdisk driver, which can use a block of
+	  DDR memory as a disk. we can load the android image to this disk when
+	  mmc driver is not ready, for example in vdk and FPGA platform.
