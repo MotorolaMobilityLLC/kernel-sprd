@@ -1324,8 +1324,6 @@ static int dwc3_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto err1;
 
-	pm_runtime_forbid(dev);
-
 	ret = dwc3_alloc_event_buffers(dwc, DWC3_EVENT_BUFFERS_SIZE);
 	if (ret) {
 		dev_err(dwc->dev, "failed to allocate event buffers\n");
@@ -1467,8 +1465,17 @@ static int dwc3_runtime_checks(struct dwc3 *dwc)
 	switch (dwc->dr_mode) {
 	case USB_DR_MODE_PERIPHERAL:
 	case USB_DR_MODE_OTG:
+		/*
+		 * TODO: Originally we want to use connected flag to indicate
+		 * the cabel plugin or not. But from testing we did not receive
+		 * one disconnect event when cable plug out. So just leave this
+		 * check here to do in future.
+		 */
+#if 0
 		if (dwc->connected)
 			return -EBUSY;
+#endif
+
 		break;
 	case USB_DR_MODE_HOST:
 	default:
@@ -1554,6 +1561,9 @@ static int dwc3_suspend(struct device *dev)
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
 
+	if (pm_runtime_enabled(dev))
+		return 0;
+
 	ret = dwc3_suspend_common(dwc);
 	if (ret)
 		return ret;
@@ -1567,6 +1577,9 @@ static int dwc3_resume(struct device *dev)
 {
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
+
+	if (pm_runtime_enabled(dev))
+		return 0;
 
 	pinctrl_pm_select_default_state(dev);
 
