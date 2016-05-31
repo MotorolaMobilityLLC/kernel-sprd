@@ -223,7 +223,7 @@ static int memdisk_init(void)
 		pr_notice("memdisk %d res start 0x%llx,end 0x%llx\n", i,
 			  res.start, res.end);
 		memdisks[i].data =
-		    memdisk_ram_vmap(res.start, resource_size(&res), 1);
+		    memdisk_ram_vmap(res.start, resource_size(&res), 0);
 		if (!memdisks[i].data) {
 			pr_notice("sprd memdisk%d map error!\n", i);
 			return -ENOMEM;
