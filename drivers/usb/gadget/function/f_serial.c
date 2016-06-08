@@ -186,6 +186,58 @@ static void gser_disable(struct usb_function *f)
 
 /* serial function driver setup/binding */
 
+static void gser_setup_complete(struct usb_ep *ep, struct usb_request *req)
+{
+}
+
+/*
+ * To compatible with our company's usb-to-serial driver, we need to handle the
+ * request defining the bRequestType = 0x21 and bRequest = 0x22 to make the
+ * usb-to-serial driver work well.
+ */
+static int gser_setup(struct usb_function *f,
+		      const struct usb_ctrlrequest *ctrl)
+{
+	struct usb_composite_dev *cdev = f->config->cdev;
+	u16 w_length = le16_to_cpu(ctrl->wLength);
+	int value = -EOPNOTSUPP;
+
+	/* Handle Bulk-only class-specific requests */
+	if ((ctrl->bRequestType & USB_TYPE_MASK) == USB_TYPE_CLASS) {
+		switch (ctrl->bRequest) {
+		case 0x22:
+			value = 0;
+			break;
+		default:
+			break;
+		}
+	}
+
+	/* Respond with data transfer or status phase? */
+	if (value >= 0) {
+		int rc;
+
+		cdev->req->zero = value < w_length;
+		cdev->req->length = value;
+		cdev->req->complete = gser_setup_complete;
+		rc = usb_ep_queue(cdev->gadget->ep0, cdev->req, GFP_ATOMIC);
+		if (rc < 0)
+			dev_err(&cdev->gadget->dev,
+				"setup response queue error\n");
+	}
+
+	if (value == -EOPNOTSUPP) {
+		dev_warn(&cdev->gadget->dev,
+			 "unknown class-specific control req "
+			 "%02x.%02x v%04x i%04x l%u\n",
+			 ctrl->bRequestType, ctrl->bRequest,
+			 le16_to_cpu(ctrl->wValue), le16_to_cpu(ctrl->wIndex),
+			 le16_to_cpu(ctrl->wLength));
+	}
+
+	return value;
+}
+
 static int gser_bind(struct usb_configuration *c, struct usb_function *f)
 {
 	struct usb_composite_dev *cdev = c->cdev;
@@ -349,6 +401,7 @@ static struct usb_function *gser_alloc(struct usb_function_instance *fi)
 	gser->port.func.bind = gser_bind;
 	gser->port.func.unbind = gser_unbind;
 	gser->port.func.set_alt = gser_set_alt;
+	gser->port.func.setup = gser_setup;
 	gser->port.func.disable = gser_disable;
 	gser->port.func.free_func = gser_free;
 
