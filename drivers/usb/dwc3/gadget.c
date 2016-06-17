@@ -1984,6 +1984,13 @@ err0:
 
 static void __dwc3_gadget_stop(struct dwc3 *dwc)
 {
+	/*
+	 * The dwc3 device maybe enter suspend mode before UDC try to stop
+	 * gadget. So if the dwc3 device has been in suspend state, just return.
+	 */
+	if (pm_runtime_suspended(dwc->dev))
+		return;
+
 	dwc3_gadget_disable_irq(dwc);
 	__dwc3_gadget_ep_disable(dwc->eps[0]);
 	__dwc3_gadget_ep_disable(dwc->eps[1]);
