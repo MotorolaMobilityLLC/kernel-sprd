@@ -220,8 +220,14 @@ static int memdisk_init(void)
 			pr_notice("of_address_to_resource failed!\n");
 			return -EINVAL;
 		}
+
+#ifdef CONFIG_64BIT
 		pr_notice("memdisk %d res start 0x%llx,end 0x%llx\n", i,
 			  res.start, res.end);
+#else
+		pr_notice("memdisk %d res start 0x%x,end 0x%x\n", i,
+			  res.start, res.end);
+#endif
 		memdisks[i].data =
 		    memdisk_ram_vmap(res.start, resource_size(&res), 0);
 		if (!memdisks[i].data) {
