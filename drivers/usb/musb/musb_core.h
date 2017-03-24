@@ -458,6 +458,7 @@ struct musb {
 	 * buffering until we get it working.
 	 */
 	unsigned                double_buffer_not_ok:1;
+	unsigned		fixup_ep0fifo:1;
 
 	struct musb_hdrc_config *config;
 

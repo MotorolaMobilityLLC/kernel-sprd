@@ -1049,6 +1049,12 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	wakeup_source_init(&glue->wake_lock, "musb-sprd");
 	wakeup_source_init(&glue->pd_wake_lock, "musb-sprd-pd");
 
+	if (of_device_is_compatible(node, "sprd,sharkl5pro-musb")) {
+		struct musb *musb = platform_get_drvdata(glue->musb);
+
+		musb->fixup_ep0fifo = 1;
+	}
+
 	ret = sysfs_create_groups(&glue->dev->kobj, musb_sprd_groups);
 	if (ret)
 		dev_warn(glue->dev, "failed to create musb attributes\n");

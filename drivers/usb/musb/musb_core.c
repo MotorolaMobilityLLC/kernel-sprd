@@ -104,6 +104,7 @@
 
 #include "musb_core.h"
 #include "musb_trace.h"
+#include "sprd_musbhsdma.h"
 
 #define TA_WAIT_BCON(m) max_t(int, (m)->a_wait_bcon, OTG_TIME_A_WAIT_BCON)
 
@@ -123,6 +124,25 @@ MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:" MUSB_DRIVER_NAME);
 
+static void musb_dma_forceon(void __iomem *mregs)
+{
+	__raw_writel(0x0, mregs + MUSB_DMA_PAUSE);
+}
+
+static void musb_dma_forceoff(void __iomem *mregs)
+{
+	int cnt = 262144;
+	u32 pause;
+
+	/* usb workaround for lost 4 tx bytes.  cnt can't exceed 2^18 */
+	__raw_writel(0x1, mregs + MUSB_DMA_PAUSE);
+	do {
+		pause = __raw_readl(mregs + MUSB_DMA_PAUSE);
+		if (pause & 0x10000)
+			break;
+		 cpu_relax();
+	} while (cnt-- > 0);
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -329,6 +349,8 @@ static void musb_default_write_fifo(struct musb_hw_ep *hw_ep, u16 len,
 
 	if (unlikely(len == 0))
 		return;
+	if (musb->fixup_ep0fifo)
+		musb_dma_forceoff(musb->mregs);
 
 	prefetch((u8 *)src);
 
@@ -361,6 +383,9 @@ static void musb_default_write_fifo(struct musb_hw_ep *hw_ep, u16 len,
 		/* byte aligned */
 		iowrite8_rep(fifo, src, len);
 	}
+
+	if (musb->fixup_ep0fifo)
+		musb_dma_forceon(musb->mregs);
 }
 
 /*
@@ -373,6 +398,8 @@ static void musb_default_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 
 	if (unlikely(len == 0))
 		return;
+	if (musb->fixup_ep0fifo)
+		musb_dma_forceoff(musb->mregs);
 
 	dev_dbg(musb->controller, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
@@ -403,6 +430,9 @@ static void musb_default_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 		/* byte aligned */
 		ioread8_rep(fifo, dst, len);
 	}
+
+	if (musb->fixup_ep0fifo)
+		musb_dma_forceon(musb->mregs);
 }
 
 /*
