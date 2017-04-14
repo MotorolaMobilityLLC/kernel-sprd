@@ -11,6 +11,7 @@
 
 #define DEFAULT_WARNING_INTERVAL (30*NSEC_PER_MSEC)
 
+static DEFINE_PER_CPU(pid_t, stop_pid);
 static DEFINE_PER_CPU(unsigned long long, eirqsoff_start_timestamp);
 static DEFINE_PER_CPU(unsigned int, cpu_is_tracing);
 static unsigned long long __read_mostly warning_interval;
@@ -33,6 +34,7 @@ void notrace start_eirqsoff_timing(void)
 	if (oops_in_progress)
 		return;
 
+	__this_cpu_write(stop_pid, current->pid);
 	__this_cpu_write(eirqsoff_start_timestamp, sched_clock());
 
 	__this_cpu_write(cpu_is_tracing, 1);
@@ -53,18 +55,23 @@ void notrace stop_eirqsoff_timing(void)
 
 	__this_cpu_write(cpu_is_tracing, 0);
 
-	stop_timestamp = sched_clock();
+	if (!oops_in_progress) {
 
-	interval = stop_timestamp - __this_cpu_read(eirqsoff_start_timestamp);
+		stop_timestamp = sched_clock();
 
-	if (interval > warning_interval) {
-		pr_crit("irqsoff too long %lldus start %lldus pid %d\n",
-			  interval,
-			  __this_cpu_read(eirqsoff_start_timestamp),
-			  current->pid);
-		dump_stack();
+		interval = stop_timestamp
+			   - __this_cpu_read(eirqsoff_start_timestamp);
+
+		if (interval > warning_interval) {
+			pr_crit("irqsoff：Process %d detected Process %d disable interrupt"
+				 "%lldns from %lldns\n",
+				 current->pid,
+				 __this_cpu_read(stop_pid),
+				 interval,
+				 __this_cpu_read(eirqsoff_start_timestamp));
+			dump_stack();
+		}
 	}
-
 	__this_cpu_write(eirqsoff_start_timestamp, 0);
 }
 
