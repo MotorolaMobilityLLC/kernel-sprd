@@ -24,7 +24,7 @@ struct sprd_debug_regs_access {
 		"	lsl %3,%3,#2\n"		\
 		"	add %0,%0,%3\n"		\
 		"	mov %2, sp\n"		\
-		"	mov %1, x30\n"		\
+		"	ldr %1, [x29, #8]\n"	\
 		: "=&r" (cpu_id),		\
 		  "=&r" (lr),			\
 		  "=&r" (stack),		\
@@ -49,7 +49,7 @@ struct sprd_debug_regs_access {
 		"	lsl %3,%3,#2\n"			\
 		"	add %0,%0,%3\n"			\
 		"	mov %2, sp\n"			\
-		"	mov %1, x30\n"			\
+		"	ldr %1, [x29, #8]\n"		\
 		: "=&r" (cpu_id),			\
 		  "=&r" (lr),				\
 		  "=&r" (stack),			\
@@ -73,7 +73,7 @@ struct sprd_debug_regs_access {
 		"	ands %2, %2, #0xf\n"			\
 		"	lsl %2,%2,#2\n"				\
 		"	add %0,%0,%2\n"				\
-		"	mov %1, x30\n"				\
+		"	ldr %1, [x29, #8]\n"			\
 		: "=&r" (cpu_id), "=&r" (lr), "=&r" (tmp)	\
 		:						\
 		: "memory");					\
@@ -89,7 +89,7 @@ struct sprd_debug_regs_access {
 		"	mrc	p15, 0, %0, c0, c0, 5\n"	\
 		"	ands %0, %0, #0xf\n"			\
 		"	mov %2, r13\n"				\
-		"	mov %1, lr\n"				\
+		"	mov %1, pc\n"				\
 		: "=&r" (cpu_id), "=&r" (lr), "=&r" (stack)	\
 		:						\
 		: "memory");					\
@@ -107,7 +107,7 @@ struct sprd_debug_regs_access {
 		"	mrc	p15, 0, %0, c0, c0, 5\n"	\
 		"	ands %0, %0, #0xf\n"			\
 		"	mov %2, r13\n"				\
-		"	mov %1, lr\n"				\
+		"	mov %1, pc\n"				\
 		: "=&r" (cpu_id), "=&r" (lr), "=&r" (stack)	\
 		:						\
 		: "memory");					\
@@ -123,7 +123,7 @@ struct sprd_debug_regs_access {
 	asm volatile(						\
 		"	mrc	p15, 0, %0, c0, c0, 5\n"	\
 		"	ands %0, %0, #0xf\n"			\
-		"	mov %1, lr\n"				\
+		"	mov %1, pc\n"				\
 		: "=&r" (cpu_id), "=&r" (lr)			\
 		:						\
 		: "memory");					\
