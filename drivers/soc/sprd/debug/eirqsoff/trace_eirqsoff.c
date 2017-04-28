@@ -11,21 +11,37 @@
 
 #define DEFAULT_WARNING_INTERVAL (30*NSEC_PER_MSEC)
 
-static DEFINE_PER_CPU(pid_t, stop_pid);
-static DEFINE_PER_CPU(unsigned long long, eirqsoff_start_timestamp);
-static DEFINE_PER_CPU(unsigned int, cpu_is_tracing);
-static unsigned long long __read_mostly warning_interval;
 static int __read_mostly trace_ready;
+static DEFINE_PER_CPU(unsigned int, eirqsoff_is_tracing);
+static DEFINE_PER_CPU(unsigned long long, eirqsoff_start_timestamp);
 
-void notrace start_eirqsoff_timing(void)
+static DEFINE_PER_CPU(pid_t, eirqsoff_pid);
+static DEFINE_PER_CPU(unsigned long, eirqsoff_ip);
+static DEFINE_PER_CPU(unsigned long, eirqsoff_parent_ip);
+
+static unsigned long long __read_mostly warning_interval;
+
+#ifdef CONFIG_PREEMPT_TRACER
+static DEFINE_PER_CPU(unsigned int, epreempt_is_tracing);
+static DEFINE_PER_CPU(unsigned long long, epreempt_start_timestamp);
+
+static DEFINE_PER_CPU(pid_t, epreempt_pid);
+static DEFINE_PER_CPU(unsigned long, epreempt_ip);
+static DEFINE_PER_CPU(unsigned long, epreempt_parent_ip);
+
+static unsigned long long __read_mostly epreempt_interval;
+#endif
+
+void notrace start_eirqsoff_timing(unsigned long ip, unsigned long parent_ip)
 {
+
 	if (!irqs_disabled())
 		return;
 
 	if (current->pid == 0)
 		return;
 
-	if (__this_cpu_read(cpu_is_tracing))
+	if (__this_cpu_read(eirqsoff_is_tracing))
 		return;
 
 	if (__this_cpu_read(eirqsoff_start_timestamp))
@@ -34,14 +50,19 @@ void notrace start_eirqsoff_timing(void)
 	if (oops_in_progress)
 		return;
 
-	__this_cpu_write(stop_pid, current->pid);
+	__this_cpu_write(eirqsoff_pid, current->pid);
+	__this_cpu_write(eirqsoff_ip, ip);
+	__this_cpu_write(eirqsoff_parent_ip, parent_ip);
 	__this_cpu_write(eirqsoff_start_timestamp, sched_clock());
 
-	__this_cpu_write(cpu_is_tracing, 1);
+	__this_cpu_write(eirqsoff_is_tracing, 1);
+
 }
-void notrace stop_eirqsoff_timing(void)
+
+void notrace stop_eirqsoff_timing(unsigned long ip, unsigned long parent_ip)
 {
 	unsigned long long stop_timestamp;
+	unsigned long long start_timestamp;
 	long long interval;
 
 	if (!irqs_disabled())
@@ -50,31 +71,114 @@ void notrace stop_eirqsoff_timing(void)
 	if (unlikely(!trace_ready))
 		return;
 
-	if (!__this_cpu_read(cpu_is_tracing))
+	if (!__this_cpu_read(eirqsoff_is_tracing))
 		return;
 
-	__this_cpu_write(cpu_is_tracing, 0);
+	__this_cpu_write(eirqsoff_is_tracing, 0);
 
 	if (!oops_in_progress) {
 
 		stop_timestamp = sched_clock();
+		start_timestamp = __this_cpu_read(eirqsoff_start_timestamp);
 
-		interval = stop_timestamp
-			   - __this_cpu_read(eirqsoff_start_timestamp);
+		interval = stop_timestamp - start_timestamp;
 
 		if (interval > warning_interval) {
-			pr_crit("irqsoff：Process %d detected Process %d disable interrupt"
-				 "%lldns from %lldns\n",
-				 current->pid,
-				 __this_cpu_read(stop_pid),
-				 interval,
-				 __this_cpu_read(eirqsoff_start_timestamp));
+			pr_warn("irqsoff: Process %d detected Process %d disable interrupt "
+				"%lld.%lldms from %lld.%llds\n",
+				current->pid,
+				__this_cpu_read(eirqsoff_pid),
+				interval/NSEC_PER_MSEC,
+				interval%NSEC_PER_MSEC,
+				start_timestamp/NSEC_PER_SEC,
+				start_timestamp%NSEC_PER_SEC);
+			pr_warn("disable at:\n");
+			print_ip_sym(__this_cpu_read(eirqsoff_parent_ip));
+			print_ip_sym(__this_cpu_read(eirqsoff_ip));
 			dump_stack();
 		}
 	}
 	__this_cpu_write(eirqsoff_start_timestamp, 0);
 }
 
+
+#ifdef CONFIG_PREEMPT_TRACER
+void notrace start_epreempt_timing(unsigned long ip, unsigned long parent_ip)
+{
+
+	if (current->pid == 0)
+		return;
+
+	if (__this_cpu_read(eirqsoff_is_tracing))
+		return;
+
+	if (!preempt_count())
+		return;
+
+	if (__this_cpu_read(epreempt_is_tracing))
+		return;
+
+	if (__this_cpu_read(epreempt_start_timestamp))
+		return;
+
+	if (oops_in_progress)
+		return;
+
+	__this_cpu_write(epreempt_pid, current->pid);
+	__this_cpu_write(epreempt_ip, ip);
+	__this_cpu_write(epreempt_parent_ip, parent_ip);
+	__this_cpu_write(epreempt_start_timestamp, sched_clock());
+
+	__this_cpu_write(epreempt_is_tracing, 1);
+
+}
+
+
+void notrace stop_epreempt_timing(unsigned long ip, unsigned long parent_ip)
+{
+
+	unsigned long long stop_timestamp;
+	unsigned long long start_timestamp;
+	long long interval;
+
+	if (unlikely(!trace_ready))
+		return;
+
+	if (!__this_cpu_read(epreempt_is_tracing))
+		return;
+
+	if (!preempt_count())
+		return;
+
+	__this_cpu_write(epreempt_is_tracing, 0);
+
+	if (!oops_in_progress) {
+
+		stop_timestamp = sched_clock();
+		start_timestamp = __this_cpu_read(epreempt_start_timestamp);
+
+		interval = stop_timestamp - start_timestamp;
+
+		if (interval > epreempt_interval) {
+			pr_warn("irqsoff: Process %d detected Process %d disable preempt "
+				"%lld.%lldms from %lld.%llds\n",
+				current->pid,
+				 __this_cpu_read(epreempt_pid),
+				interval/NSEC_PER_MSEC,
+				interval%NSEC_PER_MSEC,
+				start_timestamp/NSEC_PER_SEC,
+				start_timestamp%NSEC_PER_SEC);
+			pr_warn("disable at:\n");
+			print_ip_sym(__this_cpu_read(epreempt_parent_ip));
+			print_ip_sym(__this_cpu_read(epreempt_ip));
+			dump_stack();
+		}
+	}
+	__this_cpu_write(epreempt_start_timestamp, 0);
+
+}
+
+#endif
 
 static int notrace eirqsoff_interval_show(struct seq_file *m, void *v)
 {
@@ -106,6 +210,9 @@ static ssize_t notrace eirqsoff_interval_write(struct file *filep,
 		return -EINVAL;
 
 	warning_interval = interval;
+#ifdef CONFIG_PREEMPT_TRACER
+	epreempt_interval = interval<<2;
+#endif
 
 	return len;
 }
@@ -124,9 +231,16 @@ static int __init trace_eirqsoff_init(void)
 
 	for_each_possible_cpu(cpu) {
 		per_cpu(eirqsoff_start_timestamp, cpu) = 0;
-		per_cpu(cpu_is_tracing, cpu) = 0;
+		per_cpu(eirqsoff_is_tracing, cpu) = 0;
+#ifdef CONFIG_PREEMPT_TRACER
+		per_cpu(epreempt_start_timestamp, cpu) = 0;
+		per_cpu(epreempt_is_tracing, cpu) = 0;
+#endif
 	}
 	warning_interval = DEFAULT_WARNING_INTERVAL;
+#ifdef CONFIG_PREEMPT_TRACER
+	epreempt_interval = DEFAULT_WARNING_INTERVAL<<2;
+#endif
 	trace_ready = 1;
 
 	debugfs_create_file("warning_interval",
@@ -137,4 +251,4 @@ static int __init trace_eirqsoff_init(void)
 	return 0;
 }
 
-subsys_initcall(trace_eirqsoff_init);
+fs_initcall(trace_eirqsoff_init);
