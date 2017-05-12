@@ -208,6 +208,7 @@ compact           	WO	trigger memory compaction
 debug_stat        	RO	this file is used for zram debugging purposes
 backing_dev	  	RW	set up backend storage for zram to write out
 idle		  	WO	mark allocated slot as idle
+use_dedup               RW      show and set deduplication feature
 ======================  ======  ===============================================
 
 
