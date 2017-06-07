@@ -20,3 +20,5 @@ source "crypto/Kconfig"
 source "lib/Kconfig"
 
 source "arch/um/Kconfig.debug"
+
+source "test/Kconfig"
