@@ -1818,8 +1818,9 @@ static int reclaim_pte_range(pmd_t *pmd, unsigned long addr,
 	int reclaimed = 0;
 
 	split_huge_pmd(vma, pmd, addr);
-	if (pmd_trans_unstable(pmd) || !rp->nr_to_reclaim)
+	if (pmd_trans_unstable(pmd) || (rp->is_task_anon && !rp->nr_to_reclaim))
 		return 0;
+
 cont:
 	isolated = 0;
 	pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
@@ -1840,8 +1841,15 @@ cont:
 				page_is_file_cache(page));
 		isolated++;
 		rp->nr_scanned++;
-		if ((isolated >= SWAP_CLUSTER_MAX) || !rp->nr_to_reclaim)
-			break;
+
+		if (rp->is_task_anon) {
+			if ((isolated >= SWAP_CLUSTER_MAX) ||
+				!rp->nr_to_reclaim)
+				break;
+		} else {
+			if (isolated >= SWAP_CLUSTER_MAX)
+				break;
+		}
 	}
 	pte_unmap_unlock(pte - 1, ptl);
 	reclaimed = reclaim_pages_from_list(&page_list, vma);
@@ -1850,8 +1858,13 @@ cont:
 	if (rp->nr_to_reclaim < 0)
 		rp->nr_to_reclaim = 0;
 
-	if (rp->nr_to_reclaim && (addr != end))
-		goto cont;
+	if (rp->is_task_anon) {
+		if (rp->nr_to_reclaim && (addr != end))
+			goto cont;
+	} else {
+		if (addr != end)
+			goto cont;
+	}
 
 	cond_resched();
 	return 0;
@@ -1883,6 +1896,7 @@ struct reclaim_param reclaim_task_anon(struct task_struct *task,
 	reclaim_walk.pmd_entry = reclaim_pte_range;
 
 	rp.nr_to_reclaim = nr_to_reclaim;
+	rp.is_task_anon = true;
 	reclaim_walk.private = &rp;
 
 	down_read(&mm->mmap_sem);
@@ -1922,6 +1936,8 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 	unsigned long start = 0;
 	unsigned long end = 0;
 	struct reclaim_param rp;
+
+	rp.is_task_anon = false;
 
 	memset(buffer, 0, sizeof(buffer));
 	if (count > sizeof(buffer) - 1)
