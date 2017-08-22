@@ -63,6 +63,15 @@ module_param_named(swap_eff_win, swap_eff_win, int, 0644);
 static int swap_opt_eff = 50;
 module_param_named(swap_opt_eff, swap_opt_eff, int, 0644);
 
+static unsigned long queue_work_time;
+module_param_named(queue_work_time, queue_work_time, ulong, 0444);
+
+static unsigned long swap_total_scan;
+static unsigned long swap_total_reclaim;
+module_param_named(swap_total_scan, swap_total_scan, ulong, 0444);
+module_param_named(swap_total_reclaim, swap_total_reclaim, ulong, 0444);
+
+
 static atomic_t skip_reclaim = ATOMIC_INIT(0);
 /* Not atomic since only a single instance of swap_fn run at a time */
 static int monitor_eff;
@@ -119,6 +128,8 @@ static void swap_fn(struct work_struct *work)
 	int total_reclaimed = 0;
 	int nr_to_reclaim;
 	int efficiency;
+
+	queue_work_time++;
 
 	rcu_read_lock();
 	for_each_process(tsk) {
@@ -193,14 +204,21 @@ static void swap_fn(struct work_struct *work)
 				nr_to_reclaim);
 		total_scan += rp.nr_scanned;
 		total_reclaimed += rp.nr_reclaimed;
+		swap_total_scan += rp.nr_scanned;
+		swap_total_reclaim += rp.nr_reclaimed;
 		put_task_struct(selected[si].p);
 	}
 
 	if (total_scan) {
 		efficiency = (total_reclaimed * 100) / total_scan;
 
+		pr_info("process reclaim scan %d reclaim %d efficiency %d\n",
+			total_scan, total_reclaimed, efficiency);
+
 		if (efficiency < swap_opt_eff) {
 			if (++monitor_eff == swap_eff_win) {
+				pr_info("PR low efficiency,skip %d reclaim\n",
+					swap_eff_win);
 				atomic_set(&skip_reclaim, swap_eff_win);
 				monitor_eff = 0;
 			}
@@ -225,12 +243,18 @@ static int vmpressure_notifier(struct notifier_block *nb,
 	if (!current_is_kswapd())
 		return 0;
 
-	if (atomic_dec_if_positive(&skip_reclaim) >= 0)
+	if (atomic_dec_if_positive(&skip_reclaim) >= 0) {
+		pr_info("process reclaim skip reclaim left %d\n",
+			atomic_read(&skip_reclaim));
 		return 0;
+	}
 
 	if ((pressure >= pressure_min) && (pressure < pressure_max))
-		if (!work_pending(&swap_work))
+		if (!work_pending(&swap_work)) {
+			pr_info("process reclaim queue work at vmpressure %lu\n",
+				pressure);
 			queue_work(system_unbound_wq, &swap_work);
+		}
 	return 0;
 }
 
