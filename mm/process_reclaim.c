@@ -28,6 +28,9 @@
 
 #define MAX_SWAP_TASKS SWAP_CLUSTER_MAX
 
+#define DEF_SWAP_HIGH_RATIO	85
+#define DEF_SWAP_LOW_RATION	65
+
 static void swap_fn(struct work_struct *work);
 DECLARE_WORK(swap_work, swap_fn);
 
@@ -71,6 +74,19 @@ static unsigned long swap_total_reclaim;
 module_param_named(swap_total_scan, swap_total_scan, ulong, 0444);
 module_param_named(swap_total_reclaim, swap_total_reclaim, ulong, 0444);
 
+/*
+ * Vmpressure process reclaim mustn't drain all swap area. So when
+ * SwapUsed ratio is less than swap_low_ratio, we reclaim per_swap_size
+ * each time. But when SwapUsed ratio is between swap_low_ratio and
+ * swap_high_ratio, we reclaim per_swap_size *
+ * (swap_high_ratio - SwapUsed ratio)/(swap_high_ratio - swap_low_ratio)
+ * each time.
+ */
+static int swap_high_ratio = DEF_SWAP_HIGH_RATIO;
+module_param_named(swap_high_ratio, swap_high_ratio, int, 0644);
+
+static int swap_low_ratio = DEF_SWAP_LOW_RATION;
+module_param_named(swap_low_ratio, swap_low_ratio, int, 0644);
 
 static atomic_t skip_reclaim = ATOMIC_INIT(0);
 /* Not atomic since only a single instance of swap_fn run at a time */
@@ -128,8 +144,30 @@ static void swap_fn(struct work_struct *work)
 	int total_reclaimed = 0;
 	int nr_to_reclaim;
 	int efficiency;
+	struct sysinfo info;
+	unsigned long swap_used_ratio;
+	unsigned long now_per_swap_size = per_swap_size;
 
 	queue_work_time++;
+
+	si_swapinfo(&info);
+	if (info.totalswap) {
+		swap_used_ratio =
+			100 * (info.totalswap - info.freeswap) / info.totalswap;
+		if (swap_used_ratio > swap_high_ratio) {
+			pr_info("PR, swap free is low, skip reclaim\n");
+			return;
+		} else if (swap_used_ratio <= swap_low_ratio)
+			now_per_swap_size = per_swap_size;
+		else {
+			now_per_swap_size = per_swap_size *
+				(swap_high_ratio - swap_used_ratio);
+			now_per_swap_size /= swap_high_ratio - swap_low_ratio;
+		}
+	}
+
+	if (now_per_swap_size < SWAP_CLUSTER_MAX)
+		return;
 
 	rcu_read_lock();
 	for_each_process(tsk) {
@@ -191,7 +229,7 @@ static void swap_fn(struct work_struct *work)
 
 	while (si--) {
 		nr_to_reclaim =
-			(selected[si].tasksize * per_swap_size) / total_sz;
+			(selected[si].tasksize * now_per_swap_size) / total_sz;
 		/* scan at least a page */
 		if (!nr_to_reclaim)
 			nr_to_reclaim = 1;
@@ -200,7 +238,7 @@ static void swap_fn(struct work_struct *work)
 
 		trace_process_reclaim(selected[si].tasksize,
 				selected[si].oom_score_adj, rp.nr_scanned,
-				rp.nr_reclaimed, per_swap_size, total_sz,
+				rp.nr_reclaimed, now_per_swap_size, total_sz,
 				nr_to_reclaim);
 		total_scan += rp.nr_scanned;
 		total_reclaimed += rp.nr_reclaimed;
