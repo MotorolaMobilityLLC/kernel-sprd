@@ -334,11 +334,13 @@ static void acc_complete_set_string(struct usb_ep *ep, struct usb_request *req)
 		if (length >= ACC_STRING_SIZE)
 			length = ACC_STRING_SIZE - 1;
 
-		spin_lock_irqsave(&dev->lock, flags);
-		memcpy(string_dest, req->buf, length);
-		/* ensure zero termination */
-		string_dest[length] = 0;
-		spin_unlock_irqrestore(&dev->lock, flags);
+		if (length > 0) {
+			spin_lock_irqsave(&dev->lock, flags);
+			memcpy(string_dest, req->buf, length);
+			/* ensure zero termination */
+			string_dest[length] = 0;
+			spin_unlock_irqrestore(&dev->lock, flags);
+		}
 	} else {
 		pr_err("unknown accessory string index %d\n",
 			dev->string_index);
@@ -599,6 +601,9 @@ requeue_req:
 	/* queue a request */
 	req = dev->rx_req[0];
 	req->length = count;
+	if (count < dev->ep_out->maxpacket)
+		req->length = dev->ep_out->maxpacket;
+
 	dev->rx_done = 0;
 	ret = usb_ep_queue(dev->ep_out, req, GFP_KERNEL);
 	if (ret < 0) {
