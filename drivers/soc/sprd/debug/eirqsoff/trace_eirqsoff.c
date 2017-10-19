@@ -63,7 +63,9 @@ void notrace stop_eirqsoff_timing(unsigned long ip, unsigned long parent_ip)
 {
 	unsigned long long stop_timestamp;
 	unsigned long long start_timestamp;
+	unsigned long long start_timestamp_ms;
 	long long interval;
+	long long interval_us;
 
 	if (!irqs_disabled())
 		return;
@@ -83,15 +85,18 @@ void notrace stop_eirqsoff_timing(unsigned long ip, unsigned long parent_ip)
 
 		interval = stop_timestamp - start_timestamp;
 
+		start_timestamp_ms = do_div(start_timestamp, NSEC_PER_SEC);
+		interval_us = do_div(interval, NSEC_PER_MSEC);
+
 		if (interval > warning_interval) {
 			pr_warn("irqsoff: Process %d detected Process %d disable interrupt "
-				"%lld.%lldms from %lld.%llds\n",
+				"%lld.%06lldms from %lld.%09llds\n",
 				current->pid,
 				__this_cpu_read(eirqsoff_pid),
-				interval/NSEC_PER_MSEC,
-				interval%NSEC_PER_MSEC,
-				start_timestamp/NSEC_PER_SEC,
-				start_timestamp%NSEC_PER_SEC);
+				interval,
+				interval_us,
+				start_timestamp,
+				start_timestamp_ms);
 			pr_warn("disable at:\n");
 			print_ip_sym(__this_cpu_read(eirqsoff_parent_ip));
 			print_ip_sym(__this_cpu_read(eirqsoff_ip));
@@ -139,7 +144,9 @@ void notrace stop_epreempt_timing(unsigned long ip, unsigned long parent_ip)
 
 	unsigned long long stop_timestamp;
 	unsigned long long start_timestamp;
+	unsigned long long start_timestamp_ms;
 	long long interval;
+	long long interval_us;
 
 	if (unlikely(!trace_ready))
 		return;
@@ -159,15 +166,18 @@ void notrace stop_epreempt_timing(unsigned long ip, unsigned long parent_ip)
 
 		interval = stop_timestamp - start_timestamp;
 
+		start_timestamp_ms = do_div(start_timestamp, NSEC_PER_SEC);
+		interval_us = do_div(interval, NSEC_PER_MSEC);
+
 		if (interval > epreempt_interval) {
 			pr_warn("irqsoff: Process %d detected Process %d disable preempt "
-				"%lld.%lldms from %lld.%llds\n",
+				"%lld.%06lldms from %lld.%09llds\n",
 				current->pid,
 				 __this_cpu_read(epreempt_pid),
-				interval/NSEC_PER_MSEC,
-				interval%NSEC_PER_MSEC,
-				start_timestamp/NSEC_PER_SEC,
-				start_timestamp%NSEC_PER_SEC);
+				interval,
+				interval_us,
+				start_timestamp,
+				start_timestamp_ms);
 			pr_warn("disable at:\n");
 			print_ip_sym(__this_cpu_read(epreempt_parent_ip));
 			print_ip_sym(__this_cpu_read(epreempt_ip));
