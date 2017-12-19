@@ -270,6 +270,9 @@ void dw_pcie_ep_exit(struct dw_pcie_ep *ep)
 {
 	struct pci_epc *epc = ep->epc;
 
+	pci_epc_mem_free_addr(epc, ep->msi_mem_phys, ep->msi_mem,
+			      epc->mem->page_size);
+
 	pci_epc_mem_exit(epc);
 }
 
@@ -339,6 +342,13 @@ int dw_pcie_ep_init(struct dw_pcie_ep *ep)
 	pci->iatu_unroll_enabled = dw_pcie_iatu_unroll_enabled(pci);
 	dev_dbg(pci->dev, "iATU unroll: %s\n",
 			pci->iatu_unroll_enabled ? "enabled" : "disabled");
+
+	ep->msi_mem = pci_epc_mem_alloc_addr(epc, &ep->msi_mem_phys,
+					     epc->mem->page_size);
+	if (!ep->msi_mem) {
+		dev_err(dev, "Failed to reserve memory for MSI\n");
+		return -ENOMEM;
+	}
 
 	ep->epc = epc;
 	epc_set_drvdata(epc, ep);
