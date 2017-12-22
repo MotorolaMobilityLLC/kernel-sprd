@@ -804,7 +804,7 @@ int of_get_flat_dt_subnode_by_name(unsigned long node, const char *uname)
 /**
  * of_get_flat_dt_root - find the root node in the flat blob
  */
-unsigned long __init of_get_flat_dt_root(void)
+unsigned long of_get_flat_dt_root(void)
 {
 	return 0;
 }
@@ -823,7 +823,7 @@ int __init of_get_flat_dt_size(void)
  * This function can be used within scan_flattened_dt callback to get
  * access to properties
  */
-const void *__init of_get_flat_dt_prop(unsigned long node, const char *name,
+const void *of_get_flat_dt_prop(unsigned long node, const char *name,
 				       int *size)
 {
 	return fdt_getprop(initial_boot_params, node, name, size);
@@ -863,6 +863,13 @@ struct fdt_scan_status {
 	int (*iterator)(unsigned long node, const char *uname, int depth, void *data);
 	void *data;
 };
+
+const char *of_flat_dt_get_cpuinfo_hw(void)
+{
+	unsigned long dt_root = of_get_flat_dt_root();
+
+	return of_get_flat_dt_prop(dt_root, "cpuinfo_hardware", NULL);
+}
 
 const char * __init of_flat_dt_get_machine_name(void)
 {
