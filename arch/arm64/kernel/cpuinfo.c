@@ -26,6 +26,7 @@
 #include <linux/elf.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
+#include <linux/of_fdt.h>
 #include <linux/personality.h>
 #include <linux/preempt.h>
 #include <linux/printk.h>
@@ -163,6 +164,9 @@ static int c_show(struct seq_file *m, void *v)
 		seq_printf(m, "CPU part\t: 0x%03x\n", MIDR_PARTNUM(midr));
 		seq_printf(m, "CPU revision\t: %d\n\n", MIDR_REVISION(midr));
 	}
+
+	if (of_flat_dt_get_cpuinfo_hw())
+		seq_printf(m, "Hardware\t: %s\n", of_flat_dt_get_cpuinfo_hw());
 
 	return 0;
 }
