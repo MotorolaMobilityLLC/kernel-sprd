@@ -1140,8 +1140,9 @@ static enum arch_timer_ppi_nr __init arch_timer_select_ppi(void)
 	if (!is_hyp_mode_available() && arch_timer_ppi[ARCH_TIMER_VIRT_PPI])
 		return ARCH_TIMER_VIRT_PPI;
 
-	if (IS_ENABLED(CONFIG_ARM64))
+	/* if (IS_ENABLED(CONFIG_ARM64))
 		return ARCH_TIMER_PHYS_NONSECURE_PPI;
+	*/
 
 	return ARCH_TIMER_PHYS_SECURE_PPI;
 }
