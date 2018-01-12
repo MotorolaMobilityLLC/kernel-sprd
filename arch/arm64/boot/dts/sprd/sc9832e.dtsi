@@ -1,0 +1,272 @@
+/*
+ * Spreadtrum SC9832e SoC DTS file
+ *
+ * Copyright (C) 2017, Spreadtrum Communications Inc.
+ *
+ * SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include "sharkle.dtsi" 
+
+/ {
+	cpus {
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		cpu-map {
+			cluster0 {
+				core0 {
+					cpu = <&CPU0>;
+				};
+				core1 {
+					cpu = <&CPU1>;
+				};
+				core2 {
+					cpu = <&CPU2>;
+				};
+				core3 {
+					cpu = <&CPU3>;
+				};
+			};
+		};
+
+		CPU0: cpu@000000 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53", "arm,armv8";
+			reg = <0x0 0x000000>;
+			enable-method = "psci";
+			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+		};
+
+		CPU1: cpu@000001 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53", "arm,armv8";
+			reg = <0x0 0x000001>;
+			enable-method = "psci";
+			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+		};
+
+		CPU2: cpu@000002 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53", "arm,armv8";
+			reg = <0x0 0x000002>;
+			enable-method = "psci";
+			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+		};
+		
+		CPU3: cpu@000003 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53", "arm,armv8";
+			reg = <0x0 0x000003>;
+			enable-method = "psci";
+			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+		};
+	};
+
+	idle-states{
+		entry-method = "arm,psci";
+
+		CORE_PD: core_pd {
+			compatible = "arm,idle-state";
+			entry-latency-us = <1000>;
+			exit-latency-us = <500>;
+			min-residency-us = <2500>;
+	/*		local-timer-stop;*/
+			arm,psci-suspend-param = <0x00010000>;
+		};
+		CLUSTER_PD: cluster_pd {
+			compatible = "arm,idle-state";
+			entry-latency-us = <0xffffffff>;
+			exit-latency-us = <0xffffffff>;
+			min-residency-us = <0xffffffff>;
+/*			local-timer-stop;*/
+			arm,psci-suspend-param = <0x01010000>;
+		};
+	};
+
+	gic: interrupt-controller@12001000 {
+		compatible = "arm,gic-400";
+		reg = <0 0x12001000 0 0x1000>,
+		      <0 0x12002000 0 0x2000>,
+		      <0 0x12004000 0 0x2000>,
+		      <0 0x12006000 0 0x2000>;
+		#interrupt-cells = <3>;
+		interrupt-controller;
+		interrupts = <GIC_PPI 9 (GIC_CPU_MASK_SIMPLE(4)
+					| IRQ_TYPE_LEVEL_HIGH)>;
+	};
+
+	psci {
+		compatible = "arm,psci-1.0";
+		method = "smc";
+	};
+
+	timer {
+		compatible = "arm,armv8-timer";
+		interrupts = <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(4)
+					| IRQ_TYPE_LEVEL_LOW)>,
+			<GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(4)
+					| IRQ_TYPE_LEVEL_LOW)>;
+	};
+
+	pmu {
+		compatible = "arm,cortex-a53-pmu", "arm,armv8-pmuv3";
+		interrupts = <GIC_SPI 92 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 93 IRQ_TYPE_LEVEL_LOW>,
+			     <GIC_SPI 94 IRQ_TYPE_LEVEL_LOW>,
+			     <GIC_SPI 95 IRQ_TYPE_LEVEL_LOW>;
+	};
+
+	soc {
+
+		funnel@01001000 {
+			compatible = "arm,coresight-funnel", "arm,primecell";
+			reg = <0 0x01001000 0 0x1000>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					funnel_soc_out_port: endpoint {
+						remote-endpoint = <&etb_in>;
+					};
+				};
+
+				port@1 {
+					reg = <0>;
+					funnel_soc_in_port: endpoint {
+						slave-mode;
+						remote-endpoint = <&funnel_core_out_port>;
+					};
+				};
+			};
+		};
+
+		tmc@01003000 {
+			compatible = "arm,coresight-tmc", "arm,primecell";
+			reg = <0 0x01003000 0 0x1000>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+			port {
+				etb_in: endpoint {
+					slave-mode;
+					remote-endpoint = <&funnel_soc_out_port>;
+				};
+			};
+		};
+	
+		funnel@01a00000 {
+			compatible = "arm,coresight-funnel", "arm,primecell";
+			reg = <0 0x01a00000 0 0x1000>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+	
+				/* funnel output port */
+				port@0 {
+					reg = <0>;
+					funnel_core_out_port: endpoint {
+						remote-endpoint = <&funnel_soc_in_port>;
+					};
+				};
+	
+				/* funnel input ports */
+				port@1 {
+					reg = <0>;
+					funnel_core_in_port0: endpoint {
+						slave-mode;
+						remote-endpoint = <&etm0_out>;
+					};
+				};
+	
+				port@2 {
+					reg = <1>;
+					funnel_core_in_port1: endpoint {
+						slave-mode;
+						remote-endpoint = <&etm1_out>;
+					};
+				};
+	
+				port@3 {
+					reg = <2>;
+					funnel_core_in_port2: endpoint {
+						slave-mode;
+						remote-endpoint = <&etm2_out>;
+					};
+				};
+	
+				port@4 {
+					reg = <3>;
+					funnel_core_in_port3: endpoint {
+						slave-mode;
+						remote-endpoint = <&etm3_out>;
+					};
+				};
+			};
+		};
+	
+		etm@01c40000 {
+			compatible = "arm,coresight-etm4x", "arm,primecell";
+			reg = <0 0x01c40000 0 0x1000>;
+			cpu = <&CPU0>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+			port {
+				etm0_out: endpoint {
+					remote-endpoint =
+						<&funnel_core_in_port0>;
+				};
+			};
+		};
+	
+		etm@01d40000 {
+			compatible = "arm,coresight-etm4x", "arm,primecell";
+			reg = <0 0x01d40000 0 0x1000>;
+			cpu = <&CPU1>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+			port {
+				etm1_out: endpoint {
+					remote-endpoint =
+						<&funnel_core_in_port1>;
+				};
+			};
+		};
+	
+		etm@01e40000 {
+			compatible = "arm,coresight-etm4x", "arm,primecell";
+			reg = <0 0x01e40000 0 0x1000>;
+			cpu = <&CPU2>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+
+			port {
+				etm2_out: endpoint {
+					remote-endpoint =
+						<&funnel_core_in_port2>;
+				};
+			};
+		};
+	
+		etm@01f40000 {
+			compatible = "arm,coresight-etm4x", "arm,primecell";
+			reg = <0 0x01f40000 0 0x1000>;
+			cpu = <&CPU3>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+
+			port {
+				etm3_out: endpoint {
+					remote-endpoint =
+						<&funnel_core_in_port3>;
+				};
+			};
+		};
+	};
+};
