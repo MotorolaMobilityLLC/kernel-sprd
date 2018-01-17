@@ -9,3 +9,4 @@ clk-sprd-y	+= pll.o
 
 ## SoC support
 obj-$(CONFIG_SPRD_SC9860_CLK)	+= sc9860-clk.o
+obj-$(CONFIG_SPRD_SC9832E_CLK)	+= sc9832e-clk.o
