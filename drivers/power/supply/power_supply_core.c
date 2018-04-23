@@ -1097,6 +1097,9 @@ __power_supply_register(struct device *parent,
 			return ERR_PTR(-EINVAL);
 	}
 
+	if (!desc || !desc->name || !desc->properties || !desc->num_properties)
+		return ERR_PTR(-EINVAL);
+
 	psy = kzalloc(sizeof(*psy), GFP_KERNEL);
 	if (!psy)
 		return ERR_PTR(-ENOMEM);
