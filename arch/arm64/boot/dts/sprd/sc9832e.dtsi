@@ -104,9 +104,9 @@
 
 	timer {
 		compatible = "arm,armv8-timer";
-		interrupts = <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(4)
+		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(4) /* Physical Secure PPI */
 					| IRQ_TYPE_LEVEL_LOW)>,
-			<GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(4)
+			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(4) /* Physical Non-Secure PPI */
 					| IRQ_TYPE_LEVEL_LOW)>;
 	};
 
