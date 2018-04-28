@@ -2,7 +2,8 @@
 dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			   sp9860g-1h10.dtb	\
 			   sp9832e-1h10.dtb	\
-			   sp9863a-1h10.dtb
+			   sp9863a-1h10.dtb	\
+			   up510-haps.dtb
 
 always		:= $(dtb-y)
 subdir-y	:= $(dts-dirs)
