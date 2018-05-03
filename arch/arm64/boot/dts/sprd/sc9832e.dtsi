@@ -36,7 +36,7 @@
 			compatible = "arm,cortex-a53", "arm,armv8";
 			reg = <0x0 0x000000>;
 			enable-method = "psci";
-			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+			/*cpu-idle-states = <&CORE_PD &CLUSTER_PD>;*/
 		};
 
 		CPU1: cpu@000001 {
@@ -44,7 +44,7 @@
 			compatible = "arm,cortex-a53", "arm,armv8";
 			reg = <0x0 0x000001>;
 			enable-method = "psci";
-			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+			/*cpu-idle-states = <&CORE_PD &CLUSTER_PD>;*/
 		};
 
 		CPU2: cpu@000002 {
@@ -52,37 +52,39 @@
 			compatible = "arm,cortex-a53", "arm,armv8";
 			reg = <0x0 0x000002>;
 			enable-method = "psci";
-			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+			/*cpu-idle-states = <&CORE_PD &CLUSTER_PD>;*/
 		};
-		
+
 		CPU3: cpu@000003 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a53", "arm,armv8";
 			reg = <0x0 0x000003>;
 			enable-method = "psci";
-			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+			/*cpu-idle-states = <&CORE_PD &CLUSTER_PD>;*/
 		};
 	};
 
 	idle-states{
 		entry-method = "arm,psci";
-
+/*
 		CORE_PD: core_pd {
 			compatible = "arm,idle-state";
 			entry-latency-us = <1000>;
 			exit-latency-us = <500>;
 			min-residency-us = <2500>;
-	/*		local-timer-stop;*/
+			local-timer-stop;
 			arm,psci-suspend-param = <0x00010000>;
 		};
+
 		CLUSTER_PD: cluster_pd {
 			compatible = "arm,idle-state";
 			entry-latency-us = <0xffffffff>;
 			exit-latency-us = <0xffffffff>;
 			min-residency-us = <0xffffffff>;
-/*			local-timer-stop;*/
+			local-timer-stop;
 			arm,psci-suspend-param = <0x01010000>;
 		};
+*/
 	};
 
 	gic: interrupt-controller@12001000 {
