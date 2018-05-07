@@ -18,6 +18,7 @@
 #include <linux/rcupdate_wait.h>
 
 #include <linux/blkdev.h>
+#include <linux/cpufreq_times.h>
 #include <linux/kprobes.h>
 #include <linux/mmu_context.h>
 #include <linux/module.h>
@@ -512,9 +513,9 @@ void resched_cpu(int cpu)
 	struct rq *rq = cpu_rq(cpu);
 	unsigned long flags;
 
-	if (!raw_spin_trylock_irqsave(&rq->lock, flags))
-		return;
-	resched_curr(rq);
+	raw_spin_lock_irqsave(&rq->lock, flags);
+	if (cpu_online(cpu) || cpu == smp_processor_id())
+		resched_curr(rq);
 	raw_spin_unlock_irqrestore(&rq->lock, flags);
 }
 
@@ -2083,7 +2084,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags,
 	p->state = TASK_WAKING;
 
 	if (p->in_iowait) {
-		delayacct_blkio_end();
+		delayacct_blkio_end(p);
 		atomic_dec(&task_rq(p)->nr_iowait);
 	}
 
@@ -2097,7 +2098,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags,
 #else /* CONFIG_SMP */
 
 	if (p->in_iowait) {
-		delayacct_blkio_end();
+		delayacct_blkio_end(p);
 		atomic_dec(&task_rq(p)->nr_iowait);
 	}
 
@@ -2155,7 +2156,7 @@ static void try_to_wake_up_local(struct task_struct *p, struct rq_flags *rf)
 		walt_update_task_ravg(p, rq, TASK_WAKE, wallclock, 0);
 
 		if (p->in_iowait) {
-			delayacct_blkio_end();
+			delayacct_blkio_end(p);
 			atomic_dec(&rq->nr_iowait);
 		}
 		ttwu_activate(rq, p, ENQUEUE_WAKEUP | ENQUEUE_NOCLOCK);
@@ -2220,6 +2221,10 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 #ifdef CONFIG_SCHEDSTATS
 	/* Even if schedstat is disabled, there should not be garbage */
 	memset(&p->se.statistics, 0, sizeof(p->se.statistics));
+#endif
+
+#ifdef CONFIG_CPU_FREQ_TIMES
+	cpufreq_task_times_init(p);
 #endif
 
 	RB_CLEAR_NODE(&p->dl.rb_node);

@@ -1047,6 +1047,8 @@ struct hfi1_devdata {
 	u64 z_send_schedule;
 
 	u64 __percpu *send_schedule;
+	/* number of reserved contexts for VNIC usage */
+	u16 num_vnic_contexts;
 	/* number of receive contexts in use by the driver */
 	u32 num_rcv_contexts;
 	/* number of pio send contexts in use by the driver */
@@ -1127,7 +1129,6 @@ struct hfi1_devdata {
 	u16 pcie_lnkctl;
 	u16 pcie_devctl2;
 	u32 pci_msix0;
-	u32 pci_lnkctl3;
 	u32 pci_tph2;
 
 	/*
@@ -1953,6 +1954,7 @@ void hfi1_verbs_unregister_sysfs(struct hfi1_devdata *dd);
 int qsfp_dump(struct hfi1_pportdata *ppd, char *buf, int len);
 
 int hfi1_pcie_init(struct pci_dev *pdev, const struct pci_device_id *ent);
+void hfi1_clean_up_interrupts(struct hfi1_devdata *dd);
 void hfi1_pcie_cleanup(struct pci_dev *pdev);
 int hfi1_pcie_ddinit(struct hfi1_devdata *dd, struct pci_dev *pdev);
 void hfi1_pcie_ddcleanup(struct hfi1_devdata *);
