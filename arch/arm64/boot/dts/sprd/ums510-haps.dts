@@ -12,7 +12,7 @@
 / {
 	model = "Spreadtrum UMS510 Haps board";
 
-	compatible = "sprd,up510-haps", "sprd,ums510";
+	compatible = "sprd,ums510";
 
 	sprd,sc-id = <510 1 0x20000>;
 
