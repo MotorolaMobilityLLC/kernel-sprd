@@ -209,4 +209,5 @@ source "drivers/tee/Kconfig"
 
 source "drivers/mux/Kconfig"
 
+source "drivers/trusty/Kconfig"
 endmenu

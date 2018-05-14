@@ -2911,6 +2911,11 @@ CONFIG_NVMEM=y
 # CONFIG_TEE is not set
 
 #
+# Trusty
+#
+# CONFIG_TRUSTY is not set
+
+#
 # Firmware Drivers
 #
 CONFIG_ARM_PSCI_FW=y
