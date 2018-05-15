@@ -18,8 +18,8 @@
 
 		ap-apb {
 			compatible = "simple-bus";
-			#address-cells = <1>;
-			#size-cells = <1>;
+			#address-cells = <2>;
+			#size-cells = <2>;
 			ranges = <0 0x0 0x70000000 0x10000000>;
 
 			uart0: serial@0 {
