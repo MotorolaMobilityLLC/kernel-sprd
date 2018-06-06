@@ -6,6 +6,7 @@
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/clock/sprd,sc9863a-clk.h>
 #include "sharkl3.dtsi"
 
 / {
@@ -153,7 +154,6 @@
 			     <GIC_PPI 14 IRQ_TYPE_LEVEL_HIGH>, /* Physical Non-Secure PPI */
 			     <GIC_PPI 11 IRQ_TYPE_LEVEL_HIGH>, /* Virtual PPI */
 			     <GIC_PPI 10 IRQ_TYPE_LEVEL_HIGH>; /* Hipervisor PPI */
-
 	};
 
 	pmu {
@@ -169,6 +169,56 @@
 	};
 
 	soc {
+		pmu_gate: pmu-gate {
+			compatible = "sprd,sc9863a-pmu-gate";
+			sprd,syscon = <&pmu_regs>; /* 0x402b0000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		pll: pll {
+			compatible = "sprd,sc9863a-pll";
+			sprd,syscon = <&anlg_phy_g2_regs>; /* 0x40353000 */
+			clocks = <&pmu_gate 0>;
+			#clock-cells = <1>;
+		};
+
+		mpll: mpll {
+			compatible = "sprd,sc9863a-mpll";
+			sprd,syscon = <&anlg_phy_g4_regs>; /* 0x40359000 */
+			clocks = <&pmu_gate 0>;
+			#clock-cells = <1>;
+		};
+
+		rpll: rpll {
+			compatible = "sprd,sc9863a-rpll";
+			sprd,syscon = <&anlg_phy_g5_regs>; /* 0x4035c000 */
+			clocks = <&pmu_gate 0>;
+			#clock-cells = <1>;
+		};
+
+		dpll: dpll {
+			compatible = "sprd,sc9863a-dpll";
+			sprd,syscon = <&anlg_phy_g7_regs>; /* 0x40363000 */
+			clocks = <&pmu_gate 0>;
+			#clock-cells = <1>;
+		};
+
+		ap_clk: clock-controller@402d0000 {
+			compatible = "sprd,sc9863a-ap-clk";
+			reg = <0 0x402d0000 0 0x400>;
+			clocks = <&ext_26m>, <&pll 0>,
+				 <&rpll 0>, <&dpll 0>;
+			#clock-cells = <1>;
+		};
+
+		apahb_gate: apahb-gate {
+			compatible = "sprd,sc9863a-apahb-gate";
+			sprd,syscon = <&ap_ahb_regs>; /* 0x20e00000 */
+			clocks = <&ap_clk 0>;
+			#clock-cells = <1>;
+		};
+
 		funnel@10001000 {
 			compatible = "arm,coresight-funnel", "arm,primecell";
 			reg = <0 0x10001000 0 0x1000>;
@@ -493,6 +543,27 @@
 				etm7_out: endpoint {
 					remote-endpoint = <&funnel_big_in_port3>;
 				};
+			};
+		};
+
+		ap-ahb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			sdio3: sdio@20600000 {
+				compatible  = "sprd,sdhc-r11";
+				reg = <0 0x20600000 0 0x1000>;
+				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+
+				clock-names = "sdio_clk", "sdio_clk_source",
+					      "sdio_ahb_enable";
+				clocks = <&ap_clk CLK_EMMC_2X>,
+					 <&rpll CLK_RPLL_390M>,
+					 <&apahb_gate CLK_EMMC_EB>;
+
+				status = "disabled";
 			};
 		};
 	};

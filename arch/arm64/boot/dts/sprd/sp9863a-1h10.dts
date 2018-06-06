@@ -39,3 +39,13 @@
 &uart1 {
 	status = "okay";
 };
+
+&sdio3 {
+	bus-width = <8>;
+	non-removable;
+	no-sdio;
+	no-sd;
+	cap-mmc-hw-reset;
+	sprd,name = "sdio_emmc";
+	status = "okay";
+};
