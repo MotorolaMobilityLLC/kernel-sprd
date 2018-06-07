@@ -568,6 +568,15 @@ config MMC_SDRICOH_CS
 	  To compile this driver as a module, choose M here: the
 	  module will be called sdricoh_cs.
 
+config MMC_SPRD_SDHCR11
+	tristate "Spreadtrum SDIO host Controller(IP version: R11P1) support"
+	depends on ARCH_SPRD
+	help
+	  This selects the SDIO Host Controller(R11P1) in spreadtrum platform.
+	  If you have a controller with this interface, say Y or M here.
+
+	  If unsure, say N.
+
 config MMC_TMIO_CORE
 	tristate
 
