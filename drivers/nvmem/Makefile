@@ -31,3 +31,5 @@ obj-$(CONFIG_NVMEM_VF610_OCOTP)	+= nvmem-vf610-ocotp.o
 nvmem-vf610-ocotp-y		:= vf610-ocotp.o
 obj-$(CONFIG_MESON_EFUSE)	+= nvmem_meson_efuse.o
 nvmem_meson_efuse-y		:= meson-efuse.o
+obj-$(CONFIG_SPRD_EFUSE)	+= nvmem_sprd_efuse.o
+nvmem_sprd_efuse-y		:= sprd_efuse.o

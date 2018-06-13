@@ -2904,6 +2904,7 @@ CONFIG_ANDROID_BINDER_DEVICES="binder,hwbinder,vndbinder"
 # CONFIG_LIBNVDIMM is not set
 CONFIG_DAX=y
 CONFIG_NVMEM=y
+# CONFIG_SPRD_EFUSE is not set
 # CONFIG_STM is not set
 # CONFIG_INTEL_TH is not set
 # CONFIG_FPGA is not set
