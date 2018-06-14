@@ -1,12 +1,13 @@
 /*
  * Spreadtrum SC9832e SoC DTS file
  *
- * Copyright (C) 2017, Spreadtrum Communications Inc.
+ * Copyright (C) 2018, Spreadtrum Communications Inc.
  *
  * SPDX-License-Identifier: (GPL-2.0+ OR MIT)
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/clock/sprd,sc9832e-clk.h>
 #include "sharkle.dtsi" 
 
 / {
@@ -125,6 +126,63 @@
 	};
 
 	soc {
+		pmu_gate: pmu-gate {
+			compatible = "sprd,sc9832e-pmu-gate";
+			sprd,syscon = <&pmu_apb_regs>; /* 0x402b0000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		pll: pll {
+			compatible = "sprd,sc9832e-pll";
+			sprd,syscon = <&anlg_phy_g1_regs>; /* 0x403c0000 */
+			clocks = <&pmu_gate CLK_ISPPLL_GATE>;
+			#clock-cells = <1>;
+		};
+
+		dpll: dpll {
+			compatible = "sprd,sc9832e-dpll";
+			sprd,syscon = <&anlg_phy_g2_regs>; /* 0x403d0000 */
+			clocks = <&pmu_gate CLK_DPLL_GATE>;
+			#clock-cells = <1>;
+		};
+
+		mpll: mpll {
+			compatible = "sprd,sc9832e-mpll";
+			sprd,syscon = <&anlg_phy_g4_regs>; /* 0x403f0000 */
+			clocks = <&pmu_gate CLK_MPLL_GATE>;
+			#clock-cells = <1>;
+		};
+
+		rpll: rpll {
+			compatible = "sprd,sc9832e-rpll";
+			sprd,syscon = <&anlg_phy_g6_regs>; /* 0x40410000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		ap_clk: clock-controller@21500000 {
+			compatible = "sprd,sc9832e-ap-clks";
+			reg = <0 0x21500000 0 0x400>;
+			clocks = <&ext_26m>, <&pll CLK_TWPLL>,
+				 <&rpll CLK_RPLL>;
+			#clock-cells = <1>;
+		};
+
+		aon_prediv: clock-controller@402d0000 {
+			compatible = "sprd,sc9832e-aon-prediv";
+			reg = <0 0x402d0000 0 0x400>;
+			clocks = <&ext_26m>, <&pll CLK_TWPLL>,
+				 <&rpll CLK_RPLL>, <&ap_clk CLK_AP_APB>;
+			#clock-cells = <1>;
+		};
+
+		apahb_gate: apahb-gate {
+			compatible = "sprd,sc9832e-apahb-gate";
+			sprd,syscon = <&ap_ahb_regs>; /* 0x20e00000 */
+			clocks = <&aon_prediv CLK_AP_AXI>;
+			#clock-cells = <1>;
+		};
 
 		funnel@01001000 {
 			compatible = "arm,coresight-funnel", "arm,primecell";
