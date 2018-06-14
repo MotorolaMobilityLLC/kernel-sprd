@@ -49,22 +49,195 @@
 				status = "disabled";
 			};
 
-			uart3: serial@300000 {
-				compatible = "sprd,ums510-uart",
-					     "sprd,sc9836-uart";
+			i2c0: i2c@300000 {
+				compatible = "sprd,sharkl5-i2c";
 				reg = <0x300000 0x100>;
-				interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
-				clocks = <&ext_26m>;
-				status = "disabled";
+				interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "i2c", "source", "enable";
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
 			};
 
-			uart4: serial@400000 {
-				compatible = "sprd,ums510-uart",
-					     "sprd,sc9836-uart";
+			i2c1: i2c@400000 {
+				compatible = "sprd,sharkl5-i2c";
 				reg = <0x400000 0x100>;
-				interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
-				clocks = <&ext_26m>;
-				status = "disabled";
+				interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "i2c", "source", "enable";
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+			i2c2: i2c@500000 {
+				compatible = "sprd,sharkl5-i2c";
+				reg = <0x500000 0x100>;
+				interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "i2c", "source", "enable";
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+			i2c3: i2c@600000 {
+				compatible = "sprd,sharkl5-i2c";
+				reg = <0x600000 0x100>;
+				interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "i2c", "source", "enable";
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+			i2c4: i2c@700000 {
+				compatible = "sprd,sharkl5-i2c";
+				reg = <0x700000 0x100>;
+				interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "i2c", "source", "enable";
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+		};
+
+		ap-ahb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			ap_dma: dma-controller@20000000 {
+				compatible = "sprd,sharkl5-dma";
+				reg = <0 0x20000000 0 0x4000>;
+				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
+				#dma-cells = <1>;
+				#dma-channels = <32>;
+				clock-names = "enable";
+			};
+		};
+
+		aon {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			eic_debounce: gpio@32000000 {
+				compatible = "sprd,sharkl5-eic-debounce";
+				reg = <0 0x32000000 0 0x80>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			eic_latch: gpio@32000080 {
+				compatible = "sprd,sharkl5-eic-latch";
+				reg = <0 0x32000080 0 0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			eic_async: gpio@320000a0 {
+				compatible = "sprd,sharkl5-eic-async";
+				reg = <0 0x320000a0 0 0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			eic_sync: gpio@320000c0 {
+				compatible = "sprd,sharkl5-eic-sync";
+				reg = <0 0x320000c0 0 0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			timer@32050000 {
+				compatible = "sprd,sharkl5-timer";
+				reg = <0 0x32050000 0 0x20>;
+				interrupts = <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&ext_32k>;
+			};
+
+			i2c5: i2c@32060000 {
+				compatible = "sprd,sharkl5-i2c";
+				reg = <0 0x32060000 0 0x1000>;
+				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "i2c", "source", "enable";
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+			ap_gpio: gpio@32070000 {
+				compatible = "sprd,sharkl5-gpio";
+				reg = <0 0x32070000 0 0x10000>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			adi_bus: spi@32100000 {
+				compatible = "sprd,sharkl5-adi";
+				reg = <0 0x32100000 0 0x100000>;
+				hwlocks = <&hwlock 0>;
+				hwlock-names = "adi";
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+			ap_efuse: efuse@32240000 {
+				compatible = "sprd,sharkl5-efuse";
+				reg = <0 0x32240000 0 0x10000>;
+				clock-names = "enable";
+				hwlocks = <&hwlock 8>;
+			};
+
+			watchdog@322f0000 {
+				compatible = "sprd,sharkl5-wdt";
+				reg = <0 0x322f0000 0 0x10000>;
+				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <12>;
+				clock-names = "enable", "rtc_enable";
+			};
+
+			pin_controller: pinctrl@32450000 {
+				compatible = "sprd,sharkl5-pinctrl";
+				reg = <0 0x32450000 0 0x10000>;
+			};
+
+			hwlock: hwspinlock@327f0000 {
+				compatible = "sprd,sharkl5-hwspinlock";
+				reg = <0 0x327f0000 0 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+			};
+		};
+
+		agcp {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			agcp_dma: dma-controller@33580000 {
+				compatible = "sprd,sharkl5-dma";
+				reg = <0 0x33580000 0 0x4000>;
+				#dma-cells = <1>;
+				#dma-channels = <32>;
+				clock-names = "enable", "ashb_eb";
 			};
 		};
 	};
@@ -74,5 +247,12 @@
 		#clock-cells = <0>;
 		clock-frequency = <26000000>;
 		clock-output-names = "ext-26m";
+	};
+
+	ext_32k: ext_32k {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <32768>;
+		clock-output-names = "ext-32k";
 	};
 };

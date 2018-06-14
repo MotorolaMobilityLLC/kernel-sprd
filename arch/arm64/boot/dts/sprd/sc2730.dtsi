@@ -1,0 +1,65 @@
+/*
+ * Spreadtrum SC2730 PMIC dts file
+ *
+ * Copyright (C) 2018, Spreadtrum Communications Inc.
+ *
+ * SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+ */
+
+&adi_bus {
+	sc2730_pmic: pmic@0 {
+		compatible = "sprd,sc2730";
+		reg = <0>;
+		spi-max-frequency = <26000000>;
+		interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		led-controller@180 {
+			compatible = "sprd,sc27xx-bltc", "sprd,sc2730-bltc";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			reg = <0x180>;
+
+			led@0 {
+				label = "red";
+				reg = <0x0>;
+			};
+
+			led@1 {
+				label = "green";
+				reg = <0x1>;
+			};
+
+			led@2 {
+				label = "blue";
+				reg = <0x2>;
+			};
+		};
+
+		rtc@200 {
+			compatible = "sprd,sc27xx-rtc", "sprd,sc2730-rtc";
+			reg = <0x200>;
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <1 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		pmic_eic: gpio@280 {
+			compatible = "sprd,sc27xx-eic", "sprd,sc2730-eic";
+			reg = <0x280>;
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <4 IRQ_TYPE_LEVEL_HIGH>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
+		vibrator@1b90 {
+			compatible = "sprd,sc27xx-vibrator", "sprd,sc2730-vibrator";
+			reg = <0x1b90>;
+		};
+	};
+};
