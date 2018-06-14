@@ -12,7 +12,7 @@
 #define	CLK_DPLL_GATE		2
 #define	CLK_LPLL_GATE		3
 #define	CLK_GPLL_GATE		4
-#define	CLK_PMU_APB_NUM		(CLK_GPLL_GATE + 1)
+#define	CLK_PMU_GATE_NUM	(CLK_GPLL_GATE + 1)
 
 #define	CLK_AUDIO_GATE		0
 #define CLK_RPLL		1
@@ -21,7 +21,7 @@
 #define CLK_RPLL_260M		4
 #define CLK_RPLL_195M		5
 #define CLK_RPLL_26M		6
-#define CLK_ANLG_PHY_G6_NUM	(CLK_RPLL_26M + 1)
+#define CLK_RPLL_NUM		(CLK_RPLL_26M + 1)
 
 #define CLK_TWPLL		0
 #define CLK_TWPLL_768M		1
@@ -49,13 +49,13 @@
 #define CLK_GPLL		23
 #define CLK_ISPPLL		24
 #define CLK_ISPPLL_468M		25
-#define CLK_ANLG_PHY_G1_NUM	(CLK_ISPPLL_468M + 1)
+#define CLK_PLL_NUM		(CLK_ISPPLL_468M + 1)
 
 #define CLK_DPLL		0
-#define CLK_ANLG_PHY_G2_NUM	(CLK_DPLL + 1)
+#define CLK_DPLL_NUM		(CLK_DPLL + 1)
 
 #define CLK_MPLL		0
-#define CLK_ANLG_PHY_G4_NUM	(CLK_MPLL + 1)
+#define CLK_MPLL_NUM		(CLK_MPLL + 1)
 
 #define	CLK_AP_APB		0
 #define	CLK_NANDC_ECC		1
@@ -130,6 +130,6 @@
 #define SDIO0_32K_EB		15
 #define SDIO1_32K_EB		16
 #define SDIO1_MCU		17
-#define CLK_AP_AHB_GATE_NUM	(SDIO1_MCU + 1)
+#define CLK_APAHB_GATE_NUM	(SDIO1_MCU + 1)
 
 #endif /* _DT_BINDINGS_CLK_SC9860_H_ */
