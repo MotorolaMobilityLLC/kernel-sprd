@@ -517,6 +517,9 @@ static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,sc9860-adi",
 	},
+	{
+		.compatible = "sprd,sharkl5-adi",
+	},
 	{ },
 };
 MODULE_DEVICE_TABLE(of, sprd_adi_of_match);
