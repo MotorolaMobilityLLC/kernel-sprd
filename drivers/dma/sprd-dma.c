@@ -999,6 +999,7 @@ static int sprd_dma_remove(struct platform_device *pdev)
 
 static const struct of_device_id sprd_dma_match[] = {
 	{ .compatible = "sprd,sc9860-dma", },
+	{ .compatible = "sprd,sharkl5-dma", },
 	{},
 };
 
