@@ -151,6 +151,7 @@ static int sprd_hwspinlock_remove(struct platform_device *pdev)
 
 static const struct of_device_id sprd_hwspinlock_of_match[] = {
 	{ .compatible = "sprd,hwspinlock-r3p0", },
+	{ .compatible = "sprd,sharkl5-hwspinlock", },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, sprd_hwspinlock_of_match);
