@@ -224,6 +224,7 @@ static int sc27xx_led_remove(struct platform_device *pdev)
 
 static const struct of_device_id sc27xx_led_of_match[] = {
 	{ .compatible = "sprd,sc2731-bltc", },
+	{ .compatible = "sprd,sc2730-bltc", },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, sc27xx_led_of_match);
