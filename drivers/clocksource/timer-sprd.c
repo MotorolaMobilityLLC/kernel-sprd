@@ -157,3 +157,4 @@ static int __init sprd_timer_init(struct device_node *np)
 }
 
 TIMER_OF_DECLARE(sc9860_timer, "sprd,sc9860-timer", sprd_timer_init);
+TIMER_OF_DECLARE(sc9860_timer, "sprd,sharkl5-timer", sprd_timer_init);
