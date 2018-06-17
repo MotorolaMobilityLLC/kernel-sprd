@@ -660,6 +660,22 @@ static const struct of_device_id sprd_eic_of_match[] = {
 		.data = &sc9860_eic_sync_data,
 	},
 	{
+		.compatible = "sprd,sharkl5-eic-debounce",
+		.data = &sc9860_eic_dbnc_data,
+	},
+	{
+		.compatible = "sprd,sharkl5-eic-latch",
+		.data = &sc9860_eic_latch_data,
+	},
+	{
+		.compatible = "sprd,sharkl5-eic-async",
+		.data = &sc9860_eic_async_data,
+	},
+	{
+		.compatible = "sprd,sharkl5-eic-sync",
+		.data = &sc9860_eic_sync_data,
+	},
+	{
 		/* end of list */
 	}
 };
