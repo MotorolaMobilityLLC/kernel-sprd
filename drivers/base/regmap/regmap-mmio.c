@@ -209,7 +209,43 @@ static void regmap_mmio_free_context(void *context)
 	kfree(context);
 }
 
-static const struct regmap_bus regmap_mmio = {
+static int sprd_regmap_mmio_update_bits(void *context, unsigned int reg,
+					unsigned int mask, unsigned int val)
+{
+	struct regmap_mmio_context *ctx = context;
+	unsigned int set, clr;
+	int __maybe_unused tmp;
+	int ret;
+
+	if (!IS_ERR(ctx->clk)) {
+		ret = clk_enable(ctx->clk);
+		if (ret < 0)
+			return ret;
+	}
+
+	set = val & mask;
+	clr = ~set & mask;
+
+	if (set)
+		writel(set, ctx->regs + reg + 0x1000);
+
+	if (clr)
+		writel(clr, ctx->regs + reg + 0x2000);
+
+#ifdef SPRD_REGMAP_DEBUG
+	tmp = readl(ctx->regs + reg);
+	if ((tmp & mask) != (val & mask))
+		panic("reg:0x%x mask:0x%x val:0x%x not support set/clr\n",
+		      reg, mask, val);
+#endif
+
+	if (!IS_ERR(ctx->clk))
+		clk_disable(ctx->clk);
+
+	return 0;
+}
+
+static struct regmap_bus regmap_mmio = {
 	.fast_io = true,
 	.reg_write = regmap_mmio_write,
 	.reg_read = regmap_mmio_read,
@@ -339,6 +375,9 @@ struct regmap *__regmap_init_mmio_clk(struct device *dev, const char *clk_id,
 	ctx = regmap_mmio_gen_context(dev, clk_id, regs, config);
 	if (IS_ERR(ctx))
 		return ERR_CAST(ctx);
+
+	if (!config->use_hwlock)
+		regmap_mmio.reg_update_bits = sprd_regmap_mmio_update_bits;
 
 	return __regmap_init(dev, &regmap_mmio, ctx, config,
 			     lock_key, lock_name);
