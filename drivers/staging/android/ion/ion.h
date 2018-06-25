@@ -30,6 +30,9 @@
 
 #include "../uapi/ion.h"
 
+#define IOMAP_MAX    16
+#define ion_phys_addr_t unsigned long
+
 /**
  * struct ion_platform_heap - defines a heap in the given platform
  * @type:	type of the heap from ion_heap_type enum
@@ -85,6 +88,7 @@ struct ion_buffer {
 	void *vaddr;
 	struct sg_table *sg_table;
 	struct list_head attachments;
+	int iomap_cnt[IOMAP_MAX];
 };
 void ion_buffer_destroy(struct ion_buffer *buffer);
 
@@ -130,6 +134,8 @@ struct ion_heap_ops {
 	int (*map_user)(struct ion_heap *mapper, struct ion_buffer *buffer,
 			struct vm_area_struct *vma);
 	int (*shrink)(struct ion_heap *heap, gfp_t gfp_mask, int nr_to_scan);
+	int (*phys)(struct ion_heap *heap, struct ion_buffer *buffer,
+		    ion_phys_addr_t *addr, size_t *len);
 };
 
 /**
@@ -358,4 +364,5 @@ long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 
 int ion_query_heaps(struct ion_heap_query *query);
 
+struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data);
 #endif /* _ION_H */

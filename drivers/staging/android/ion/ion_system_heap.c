@@ -359,7 +359,7 @@ static int ion_system_heap_create(void)
 	return 0;
 }
 device_initcall(ion_system_heap_create);
-
+/*
 static int ion_system_contig_heap_allocate(struct ion_heap *heap,
 					   struct ion_buffer *buffer,
 					   unsigned long len,
@@ -452,4 +452,4 @@ static int ion_system_contig_heap_create(void)
 	return 0;
 }
 device_initcall(ion_system_contig_heap_create);
-
+*/
