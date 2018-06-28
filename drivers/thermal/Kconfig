@@ -481,4 +481,13 @@ config UNIPHIER_THERMAL
 	  Enable this to plug in UniPhier on-chip PVT thermal driver into the
 	  thermal framework. The driver supports CPU thermal zone temperature
 	  reporting and a couple of trip points.
+
+config SPRD_THERMAL
+	tristate "Spreadtrum Soc Thermal Support"
+	depends on ARCH_SPRD || COMPILE_TEST
+	depends on THERMAL_OF
+	help
+	  Enable the spreadtrum soc thermal sensor dirver, which supports
+          thermal framework to get the temp of cpu/gpu thermal zone.
+
 endif

@@ -1,0 +1,46 @@
+= Spreadtrum thermal device tree bindings =
+
+Required properties:
+- compatible : "sprd,sharkl5-thermal"
+- reg : Address range of the thermal registers
+- clock-names: "enable" for thermal module enable clock.
+- clocks: Should contain a clock specifier for each entry in clock-names.
+- reg: sensor number.
+- nvmem-cells: A phandle to the calibration data provided by a nvmem device.
+- nvmem-cell-names: Should be "calibration"
+- sprd,ideal-k: ideal slope, according to thermal datasheet adc value conversion
+		temperature formula
+		T_final = ideal-k ratio * x - ideal-b + 16 - bin2dec(efuse[i:j]).
+- sprd,ideal-b: ideal offset, according to thermal datasheet adc value conversion
+		temperature formula
+		T_final = ideal-k ratio * x - ideal-b + 16 - bin2dec(efuse[i:j]).
+
+Example:
+
+	ap_thm: thermal@402f0000 {
+		compatible = "sprd,sharkl5-thermal";
+		reg = <0 0x402f0000 0 0x1000>;
+		clock-names = "enable";
+		clocks = <&clk_aon_apb_gates1 1>;
+		#thermal-sensor-cells = <1>;
+
+		cpu-sensor@0{
+			reg = <0>;
+			nvmem-cells = <&thermal_calib>;
+			nvmem-cell-names = "calibration";
+			sprd,ideal-k = <903>;
+			sprd,ideal-b = <71290>;
+		};
+
+		gpu-sensor@1{
+			reg = <1>;
+			nvmem-cells = <&thermal_calib>;
+			nvmem-cell-names = "calibration";
+			sprd,ideal-k = <903>;
+			sprd,ideal-b = <71290>;
+		};
+
+		.....
+		.....
+		.....
+	};
