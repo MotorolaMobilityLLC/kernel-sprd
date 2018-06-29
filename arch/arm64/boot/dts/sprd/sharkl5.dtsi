@@ -5,6 +5,9 @@
  * Copyright (C) 2018, Spreadtrum Communications Inc.
  */
 
+#include <dt-bindings/soc/sprd,sharkl5-regs.h>
+#include <dt-bindings/soc/sprd,sharkl5-mask.h>
+
 / {
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
@@ -18,16 +21,19 @@
 
 		ap_ahb_regs: syscon@20100000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x20100000 0 0x10000>;
 		};
 
 		aon_apb_regs: syscon@327d0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x327d0000 0 0x10000>;
 		};
 
 		pmu_apb_regs: syscon@327e0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x327e0000 0 0x10000>;
 		};
 

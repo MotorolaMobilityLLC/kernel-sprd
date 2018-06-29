@@ -5,6 +5,9 @@
  * Copyright (C) 2018, Spreadtrum Communications Inc.
  */
 
+#include <dt-bindings/soc/sprd,sharkl3-regs.h>
+#include <dt-bindings/soc/sprd,sharkl3-mask.h>
+
 / {
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
@@ -18,111 +21,133 @@
 
 		ap_ahb_regs: syscon@20e00000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x20e00000 0 0x10000>;
 		};
 
 		pub_apb_regs: syscon@300e0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x300e0000 0 0x10000>;
 		};
 
 		pub_ahb_regs: syscon@300f0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x300f0000 0 0x10000>;
 		};
 
 		aon_intc_regs: syscon@40200000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40200000 0 0x10000>;
 		};
 
 		pmu_regs: syscon@402b0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x402b0000 0 0x10000>;
 		};
 
 		aon_apb_regs: syscon@402e0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x402e0000 0 0x10000>;
 		};
 
 		anlg_phy_g1_regs: syscon@40350000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40350000 0 0x3000>;
 		};
 
 		anlg_phy_g2_regs: syscon@40353000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40353000 0 0x6000>;
 		};
 
 		anlg_phy_g4_regs: syscon@40359000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40359000 0 0x3000>;
 		};
 
 		anlg_phy_g5_regs: syscon@4035c000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x4035c000 0 0x3000>;
 		};
 
 		anlg_phy_g7_regs: syscon@40363000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40363000 0 0x3000>;
 		};
 
 		anlg_wrap_wcn_regs: syscon@40366000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40366000 0 0x3000>;
 		};
 
 		wcn_regs: syscon@403a0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x403a0000 0 0x10000>;
 		};
 
 		mm_ahb_regs: syscon@60800000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x60800000 0 0x10000>;
 		};
 
 		mm_vsp_ahb_regs: syscon@62000000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x62000000 0 0x10000>;
 		};
 
 		ap_apb_regs: syscon@71300000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x71300000 0 0x40000>;
 		};
 
 		ap_intc0_regs: syscon@40500000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40500000 0 0x10000>;
 		};
 
 		ap_intc1_regs: syscon@40510000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40510000 0 0x10000>;
 		};
 
 		ap_intc2_regs: syscon@40520000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40520000 0 0x10000>;
 		};
 
 		ap_intc3_regs: syscon@40530000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40530000 0 0x10000>;
 		};
 
 		ap_intc4_regs: syscon@40540000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40540000 0 0x10000>;
 		};
 
 		ap_intc5_regs: syscon@40550000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0 0x40550000 0 0x10000>;
 		};
 
