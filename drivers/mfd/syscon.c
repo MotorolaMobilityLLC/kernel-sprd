@@ -215,6 +215,71 @@ struct regmap *syscon_regmap_lookup_by_phandle(struct device_node *np,
 }
 EXPORT_SYMBOL_GPL(syscon_regmap_lookup_by_phandle);
 
+struct regmap *syscon_regmap_lookup_by_name(struct device_node *np,
+					const char *name)
+{
+	struct device_node *syscon_np;
+	struct of_phandle_args args;
+	struct regmap *regmap;
+	int index = 0;
+	int rc;
+
+	if (name)
+		index = of_property_match_string(np, "syscon-names", name);
+
+	if (index < 0)
+		return ERR_PTR(-EINVAL);
+
+	rc = of_parse_phandle_with_args(np, "syscons", "#syscon-cells", index,
+			&args);
+	if (rc)
+		return ERR_PTR(rc);
+
+	syscon_np = args.np;
+
+	if (!syscon_np)
+		return ERR_PTR(-ENODEV);
+
+	regmap = syscon_node_to_regmap(syscon_np);
+
+	of_node_put(syscon_np);
+
+	return regmap;
+}
+EXPORT_SYMBOL_GPL(syscon_regmap_lookup_by_name);
+
+int syscon_get_args_by_name(struct device_node *np,
+			const char *name,
+			int arg_count,
+			unsigned int *out_args)
+{
+	struct of_phandle_args args;
+	int index = 0;
+	int rc;
+
+	if (name)
+		index = of_property_match_string(np, "syscon-names", name);
+
+	if (index < 0)
+		return -EINVAL;
+
+	rc = of_parse_phandle_with_args(np, "syscons", "#syscon-cells", index,
+					&args);
+	if (rc)
+		return rc;
+
+	if (arg_count > args.args_count)
+		arg_count = args.args_count;
+
+	for (index = 0; index < arg_count; index++)
+		out_args[index] = args.args[index];
+
+	of_node_put(args.np);
+
+	return arg_count;
+}
+EXPORT_SYMBOL_GPL(syscon_get_args_by_name);
+
 static int syscon_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
