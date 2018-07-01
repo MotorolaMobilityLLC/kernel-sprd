@@ -568,3 +568,25 @@
 		};
 	};
 };
+
+/*&dpu {
+	sprd,dpi-clk-src = <153600000>;
+	clock-names = "clk_src_128m",
+			"clk_src_153m6",
+			"clk_src_384m",
+			"clk_dpu_core",
+			"clk_dpu_dpi",
+			"clk_aon_apb_disp_eb";
+
+	clocks = <&clk_twpll_128m>,
+		<&clk_twpll_153m6>,
+		<&clk_twpll_384m>,
+		<&clk_dpu>,
+		<&clk_dpu_dpi>,
+		<&clk_aon_top_gates 2>;
+};
+
+&dsi {
+	clock-names = "clk_aon_apb_disp_eb";
+	clocks = <&clk_aon_top_gates 2>;
+};*/
