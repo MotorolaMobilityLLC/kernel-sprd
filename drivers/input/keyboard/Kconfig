@@ -756,4 +756,14 @@ config KEYBOARD_BCM
 	  To compile this driver as a module, choose M here: the
 	  module will be called bcm-keypad.
 
+config KEYBOARD_SPRD
+        tristate "Spreadtrum keypad support"
+        depends on ARCH_SPRD
+        select INPUT_MATRIXKMAP
+        help
+          Say Y here if you want to use the sprd keypad.
+
+          To compile this driver as a module, choose M here: the
+          module will be called tiger_keypad.
+
 endif

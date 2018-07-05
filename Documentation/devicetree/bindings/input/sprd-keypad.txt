@@ -1,0 +1,97 @@
+* sprd's Keypad Controller device tree bindings
+
+sprd's Keypad controller is used to interface a SoC with a matrix-type
+keypad device. The keypad controller supports multiple row and column lines.
+A key can be placed at each intersection of a unique row and a unique column.
+The keypad controller can sense a key-press and key-release and report the
+event using a interrupt to the cpu.
+
+Required SoC Specific Properties:
+- compatible: should be one of the following
+  - "sprd,v0-keypad": For controllers compatible with keypad version 0
+    controller.
+  - "sprd,v1-keypad": For controllers compatible with keypad version 1
+    controller.
+
+- reg: physical base address of the controller and length of memory mapped
+  region.
+
+- interrupts: The interrupt number to the cpu.
+
+- sprd,glb-rst-off: Offset of AON APB RESET register which contains
+  keypad soft reset bit
+
+- sprd,glb-eb-off: Offset of AON APB EB register which contains keypad
+  enable bit
+
+- sprd,glb-rtc-eb-off: Offset of AON APB EB register which contains
+  keypad rtc enable bit
+
+- sprd,bit-kpd-soft-rst: Bit of keypad soft reset
+
+- sprd,bit-kpd-eb: Bit of keypad enable
+
+- sprd,bit-kpd-rtc-eb: Bit of keypad rtc enable
+
+
+Required Board Specific Properties:
+- sprd,num-rows: Number of row lines connected to the keypad
+  controller.
+
+- sprd,num-columns: Number of column lines connected to the
+  keypad controller.
+
+- Keys represented as child nodes: Each key connected to the keypad
+  controller is represented as a child node to the keypad controller
+  device node and should include the following properties.
+  - keypad,row: the row number to which the key is connected.
+  - keypad,column: the column number to which the key is connected.
+  - linux,code: the key-code to be reported when the key is pressed
+    and released.
+
+- pinctrl-0: Should specify pin control groups used for this controller.
+- pinctrl-names: Should contain only one value - "default".
+
+Optional Properties:
+- wakeup-source: use any event on keypad as wakeup event.
+(Legacy property supported: "linux,input-wakeup")
+
+Optional Properties specific to linux:
+- linux,repeat: enable autorepeat feature.
+
+
+Example:
+	keypad@40250000 {
+		compatible = "sprd,v1-keypad";
+		reg = 	<0x40250000 0x1000>;
+		sprd,syscon-enable = <&aon_apb_regs>;
+		sprd,glb-rst-off = <REG_AON_APB_APB_RST0>;
+		sprd,glb-eb-off = <REG_AON_APB_APB_EB0>;
+		sprd,glb-rtc-eb-off = <REG_AON_APB_APB_RTC_EB0>;
+		sprd,bit-kpd-soft-rst = <MASK_AON_APB_KPD_SOFT_RST>;
+		sprd,bit-kpd-eb = <MASK_AON_APB_KPD_EB>;
+		sprd,bit-kpd-rtc-eb = <MASK_AON_APB_KPD_RTC_EB>;
+		interrupts = <0 36 0x0>;
+		sprd,keypad-num-rows = <3>;
+		sprd,keypad-num-columns = <3>;
+		sprd,keypad-rows-choose-hw = <0x70000>;
+		sprd,keypad-cols-choose-hw = <0x700>;
+		sprd,debounce_time = <5>;
+		status = "ok";
+
+		key_1 {
+			keypad,row = <0>;
+			keypad,column = <0>;
+			linux,code = <1>;
+		};
+		key_2 {
+			keypad,row = <1>;
+			keypad,column = <0>;
+			linux,code = <2>;
+		};
+		key_3 {
+			keypad,row = <0>;
+			keypad,column = <2>;
+			linux,code = <3>;
+		};
+	};
