@@ -401,6 +401,7 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 {
 	struct sprd_dpu *dpu = data;
 	struct dpu_context *ctx = &dpu->ctx;
+	struct drm_device *drm = dpu->crtc.dev;
 	u32 int_mask = 0;
 
 	if (dpu->core && dpu->core->isr)
@@ -409,7 +410,7 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 	if (int_mask & DISPC_INT_ERR_MASK)
 		DRM_ERROR("Warning: dpu underflow (0x%x)!\n", int_mask);
 
-	if (int_mask & (DISPC_INT_DPI_VSYNC_MASK)) {
+	if ((int_mask & (DISPC_INT_DPI_VSYNC_MASK)) && drm->irq_enabled) {
 		drm_crtc_handle_vblank(&dpu->crtc);
 		dpu_crtc_finish_page_flip(dpu);
 	}
