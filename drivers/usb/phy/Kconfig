@@ -219,4 +219,12 @@ config DUAL_ROLE_USB_INTF
 	  this interface to expose it capabilities to the userspace
 	  and thereby allowing userspace to change the port mode.
 
+config SPRD_SHARKL3_USB2_PHY
+	tristate "Spreadtrum Sharkl3 USB2 PHY Driver"
+	select USB_PHY
+	help
+	  Enable this to support the SPRD SHARKL3 USB2 PHY that is part of SOC.
+	  This driver takes care of all the PHY functionality, normally paired with
+	  DesignWare USB20 (DRD) Controller.
+
 endmenu
