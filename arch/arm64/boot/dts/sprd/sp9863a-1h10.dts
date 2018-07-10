@@ -41,6 +41,10 @@
 	status = "okay";
 };
 
+&usb {
+	sprd,cable-detection-method = "typec";
+};
+
 &sdio3 {
 	bus-width = <8>;
 	non-removable;
