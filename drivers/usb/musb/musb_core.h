@@ -171,7 +171,7 @@ struct musb_io;
  * @phy_callback: optional callback function for the phy to call
  */
 struct musb_platform_ops {
-
+#define MUSB_DMA_SPRD		BIT(10)
 #define MUSB_G_NO_SKB_RESERVE	BIT(9)
 #define MUSB_DA8XX		BIT(8)
 #define MUSB_PRESERVE_SESSION	BIT(7)
@@ -220,6 +220,7 @@ struct musb_platform_ops {
 	void	(*post_root_reset_end)(struct musb *musb);
 	int	(*phy_callback)(enum musb_vbus_id_status status);
 	void	(*clear_ep_rxintr)(struct musb *musb, int epnum);
+	void	(*phy_set_emphasis)(struct musb *musb, bool enabled);
 };
 
 /*
@@ -282,8 +283,10 @@ struct musb_csr_regs {
 	/* FIFO registers */
 	u16 txmaxp, txcsr, rxmaxp, rxcsr;
 	u16 rxfifoadd, txfifoadd;
+	u16 s_rxfifoadd, s_txfifoadd;
 	u8 txtype, txinterval, rxtype, rxinterval;
 	u8 rxfifosz, txfifosz;
+	u8 s_rxfifosz, s_txfifosz;
 	u8 txfunaddr, txhubaddr, txhubport;
 	u8 rxfunaddr, rxhubaddr, rxhubport;
 };
@@ -451,12 +454,13 @@ struct musb {
 	 */
 	unsigned                double_buffer_not_ok:1;
 
-	const struct musb_hdrc_config *config;
+	struct musb_hdrc_config *config;
 
 	int			xceiv_old_state;
 #ifdef CONFIG_DEBUG_FS
 	struct dentry		*debugfs_root;
 #endif
+	int	shutdowning;
 };
 
 /* This must be included after struct musb is defined */
@@ -574,6 +578,12 @@ extern irqreturn_t musb_interrupt(struct musb *);
 
 extern void musb_hnp_stop(struct musb *musb);
 
+extern void musb_reset_all_fifo_2_default(struct musb *musb);
+
+extern void musb_reset_fifo_2_default(struct musb *musb, u8 epnum, u8 is_tx);
+
+extern void musb_force_single_fifo(struct musb *musb, u8 epnum, u8 is_tx);
+
 int musb_queue_resume_work(struct musb *musb,
 			   int (*callback)(struct musb *musb, void *data),
 			   void *data);
@@ -659,6 +669,13 @@ static inline void musb_platform_clear_ep_rxintr(struct musb *musb, int epnum)
 {
 	if (musb->ops->clear_ep_rxintr)
 		musb->ops->clear_ep_rxintr(musb, epnum);
+}
+
+
+static inline void musb_platform_emphasis_set(struct musb *musb, bool enabled)
+{
+	if (musb->ops->phy_set_emphasis)
+		musb->ops->phy_set_emphasis(musb, enabled);
 }
 
 /*

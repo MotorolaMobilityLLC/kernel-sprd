@@ -68,6 +68,12 @@ struct musb_hw_ep;
 #define	is_dma_capable()	(1)
 #endif
 
+#ifdef CONFIG_USB_SPRD_DMA
+#define	musb_dma_sprd(musb)		(musb->io.quirks & MUSB_DMA_SPRD)
+#else
+#define	musb_dma_sprd(musb)		0
+#endif
+
 #ifdef CONFIG_USB_UX500_DMA
 #define musb_dma_ux500(musb)		(musb->io.quirks & MUSB_DMA_UX500)
 #else

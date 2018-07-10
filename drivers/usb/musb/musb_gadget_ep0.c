@@ -341,24 +341,32 @@ __acquires(musb->lock)
 						/* TEST_J */
 						musb->test_mode_nr =
 							MUSB_TEST_J;
+						musb_platform_emphasis_set(
+							musb, false);
 						break;
 					case 2:
 						/* TEST_K */
 						pr_debug("TEST_K\n");
 						musb->test_mode_nr =
 							MUSB_TEST_K;
+						musb_platform_emphasis_set(
+							musb, false);
 						break;
 					case 3:
 						/* TEST_SE0_NAK */
 						pr_debug("TEST_SE0_NAK\n");
 						musb->test_mode_nr =
 							MUSB_TEST_SE0_NAK;
+						musb_platform_emphasis_set(
+							musb, false);
 						break;
 					case 4:
 						/* TEST_PACKET */
 						pr_debug("TEST_PACKET\n");
 						musb->test_mode_nr =
 							MUSB_TEST_PACKET;
+						musb_platform_emphasis_set(
+							musb, true);
 						break;
 
 					case 0xc0:
@@ -366,24 +374,32 @@ __acquires(musb->lock)
 						pr_debug("TEST_FORCE_HS\n");
 						musb->test_mode_nr =
 							MUSB_TEST_FORCE_HS;
+						musb_platform_emphasis_set(
+							musb, true);
 						break;
 					case 0xc1:
 						/* TEST_FORCE_FS */
 						pr_debug("TEST_FORCE_FS\n");
 						musb->test_mode_nr =
 							MUSB_TEST_FORCE_FS;
+						musb_platform_emphasis_set(
+							musb, true);
 						break;
 					case 0xc2:
 						/* TEST_FIFO_ACCESS */
 						pr_debug("TEST_FIFO_ACCESS\n");
 						musb->test_mode_nr =
 							MUSB_TEST_FIFO_ACCESS;
+						musb_platform_emphasis_set(
+							musb, true);
 						break;
 					case 0xc3:
 						/* TEST_FORCE_HOST */
 						pr_debug("TEST_FORCE_HOST\n");
 						musb->test_mode_nr =
 							MUSB_TEST_FORCE_HOST;
+						musb_platform_emphasis_set(
+							musb, true);
 						break;
 					default:
 						goto stall;

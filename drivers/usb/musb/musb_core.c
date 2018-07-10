@@ -513,6 +513,74 @@ static void musb_otg_timer_func(unsigned long data)
 	spin_unlock_irqrestore(&musb->lock, flags);
 }
 
+void musb_reset_fifo_2_default(struct musb *musb, u8 epnum, u8 is_tx)
+{
+	void __iomem *musb_base = musb->mregs;
+	struct musb_hw_ep	*hw_ep = musb->endpoints + epnum;
+	u8 index_bk = 0;
+
+	if (musb->dyn_fifo == 0 || !hw_ep)
+		return;
+
+	index_bk = musb_readb(musb_base, MUSB_INDEX);
+	musb_writeb(musb_base, MUSB_INDEX, epnum);
+	if (is_tx) {
+		musb_write_txfifosz(musb_base,
+			musb->context.index_regs[epnum].s_txfifosz);
+		musb_write_txfifoadd(musb_base,
+			musb->context.index_regs[epnum].s_txfifoadd);
+		hw_ep->tx_double_buffered =
+			!!(musb->context.index_regs[epnum].s_txfifosz
+				& MUSB_FIFOSZ_DPB);
+	} else {
+		musb_write_rxfifosz(musb_base,
+			musb->context.index_regs[epnum].s_rxfifosz);
+		musb_write_rxfifoadd(musb_base,
+			musb->context.index_regs[epnum].s_rxfifoadd);
+		hw_ep->rx_double_buffered =
+			!!(musb->context.index_regs[epnum].s_rxfifosz
+				& MUSB_FIFOSZ_DPB);
+	}
+
+	musb_writeb(musb_base, MUSB_INDEX, index_bk);
+}
+
+void musb_reset_all_fifo_2_default(struct musb *musb)
+{
+	int i;
+
+	for (i = 0; i < musb->config->num_eps; ++i) {
+		musb_reset_fifo_2_default(musb, i, 0);
+		musb_reset_fifo_2_default(musb, i, 1);
+	}
+}
+
+void musb_force_single_fifo(struct musb *musb, u8 epnum, u8 is_tx)
+{
+	void __iomem *musb_base = musb->mregs;
+	struct musb_hw_ep	*hw_ep = musb->endpoints + epnum;
+	u8 index_bk = 0;
+
+	if (musb->dyn_fifo == 0)
+		return;
+
+	index_bk = musb_readb(musb_base, MUSB_INDEX);
+	musb_writeb(musb_base, MUSB_INDEX, epnum);
+	if (is_tx) {
+		musb_write_txfifosz(musb_base,
+			musb->context.index_regs[epnum].s_txfifosz
+				& (~MUSB_FIFOSZ_DPB));
+		hw_ep->tx_double_buffered = 0;
+	} else {
+		musb_write_rxfifosz(musb_base,
+			musb->context.index_regs[epnum].s_rxfifosz
+				& (~MUSB_FIFOSZ_DPB));
+		hw_ep->rx_double_buffered = 0;
+	}
+
+	musb_writeb(musb_base, MUSB_INDEX, index_bk);
+}
+
 /*
  * Stops the HNP transition. Caller must take care of locking.
  */
@@ -906,7 +974,7 @@ b_host:
 	 */
 	if (int_usb & MUSB_INTR_RESET) {
 		handled = IRQ_HANDLED;
-		if (is_host_active(musb)) {
+		if ((devctl & MUSB_DEVCTL_HM) || is_host_active(musb)) {
 			/*
 			 * When BABBLE happens what we can depends on which
 			 * platform MUSB is running, because some platforms
@@ -916,7 +984,8 @@ b_host:
 			 * drop the session.
 			 */
 			dev_err(musb->controller, "Babble\n");
-			musb_recover_from_babble(musb);
+			if (is_host_active(musb))
+				musb_recover_from_babble(musb);
 		} else {
 			musb_dbg(musb, "BUS RESET as %s",
 				usb_otg_state_string(musb->xceiv->otg->state));
@@ -1049,7 +1118,6 @@ void musb_start(struct musb *musb)
 
 	musb_dbg(musb, "<== devctl %02x", devctl);
 
-	musb_enable_interrupts(musb);
 	musb_writeb(regs, MUSB_TESTMODE, 0);
 
 	power = MUSB_POWER_ISOUPDATE;
@@ -1081,6 +1149,7 @@ void musb_start(struct musb *musb)
 
 	musb_platform_enable(musb);
 	musb_writeb(regs, MUSB_DEVCTL, devctl);
+	musb_enable_interrupts(musb);
 }
 
 /*
@@ -1275,23 +1344,31 @@ fifo_setup(struct musb *musb, struct musb_hw_ep  *hw_ep,
 	case FIFO_TX:
 		musb_write_txfifosz(mbase, c_size);
 		musb_write_txfifoadd(mbase, c_off);
+		musb->context.index_regs[hw_ep->epnum].s_txfifosz = c_size;
+		musb->context.index_regs[hw_ep->epnum].s_txfifoadd = c_off;
 		hw_ep->tx_double_buffered = !!(c_size & MUSB_FIFOSZ_DPB);
 		hw_ep->max_packet_sz_tx = maxpacket;
 		break;
 	case FIFO_RX:
 		musb_write_rxfifosz(mbase, c_size);
 		musb_write_rxfifoadd(mbase, c_off);
+		musb->context.index_regs[hw_ep->epnum].s_rxfifosz = c_size;
+		musb->context.index_regs[hw_ep->epnum].s_rxfifoadd = c_off;
 		hw_ep->rx_double_buffered = !!(c_size & MUSB_FIFOSZ_DPB);
 		hw_ep->max_packet_sz_rx = maxpacket;
 		break;
 	case FIFO_RXTX:
 		musb_write_txfifosz(mbase, c_size);
 		musb_write_txfifoadd(mbase, c_off);
+		musb->context.index_regs[hw_ep->epnum].s_txfifosz = c_size;
+		musb->context.index_regs[hw_ep->epnum].s_txfifoadd = c_off;
 		hw_ep->rx_double_buffered = !!(c_size & MUSB_FIFOSZ_DPB);
 		hw_ep->max_packet_sz_rx = maxpacket;
 
 		musb_write_rxfifosz(mbase, c_size);
 		musb_write_rxfifoadd(mbase, c_off);
+		musb->context.index_regs[hw_ep->epnum].s_rxfifosz = c_size;
+		musb->context.index_regs[hw_ep->epnum].s_rxfifoadd = c_off;
 		hw_ep->tx_double_buffered = hw_ep->rx_double_buffered;
 		hw_ep->max_packet_sz_tx = maxpacket;
 
@@ -1982,7 +2059,7 @@ static void musb_recover_from_babble(struct musb *musb)
  */
 
 static struct musb *allocate_instance(struct device *dev,
-		const struct musb_hdrc_config *config, void __iomem *mbase)
+		struct musb_hdrc_config *config, void __iomem *mbase)
 {
 	struct musb		*musb;
 	struct musb_hw_ep	*ep;
@@ -2171,6 +2248,13 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 		status = -ENOMEM;
 		goto fail0;
 	}
+
+	/*
+	 * FIXME: we should set the dma operations firstly when calling
+	 * the dma function in arm64, otherwise dma_alloc_coherent will failed.
+	 */
+	if (get_dma_ops(musb->controller) == get_dma_ops(NULL))
+		musb->controller->dma_ops = get_dma_ops(dev->parent);
 
 	spin_lock_init(&musb->lock);
 	spin_lock_init(&musb->list_lock);
@@ -2673,6 +2757,9 @@ static int musb_suspend(struct device *dev)
 	unsigned long	flags;
 	int ret;
 
+	if (pm_runtime_suspended(dev))
+		return 0;
+
 	ret = pm_runtime_get_sync(dev);
 	if (ret < 0) {
 		pm_runtime_put_noidle(dev);
@@ -2728,6 +2815,9 @@ static int musb_resume(struct device *dev)
 	 * unconditionally.
 	 */
 
+	if (pm_runtime_suspended(dev))
+		return 0;
+
 	musb_restore_context(musb);
 
 	devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
@@ -2754,9 +2844,16 @@ static int musb_resume(struct device *dev)
 static int musb_runtime_suspend(struct device *dev)
 {
 	struct musb	*musb = dev_to_musb(dev);
+	u8 devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 
 	musb_save_context(musb);
 	musb->is_runtime_suspended = 1;
+
+	if ((musb->xceiv->otg->state != OTG_STATE_B_IDLE) &&
+		musb->g.state == USB_STATE_NOTATTACHED) {
+		musb_writeb(musb->mregs, MUSB_DEVCTL,
+			devctl & ~MUSB_DEVCTL_SESSION);
+	}
 
 	return 0;
 }
