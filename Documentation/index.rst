@@ -52,6 +52,9 @@ merged much easier.
    dev-tools/index
    doc-guide/index
    kernel-hacking/index
+   trace/index
+   maintainer/index
+   test/index
 
 Kernel API documentation
 ------------------------
