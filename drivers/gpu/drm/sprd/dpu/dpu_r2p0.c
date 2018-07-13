@@ -15,14 +15,7 @@
 #include <linux/delay.h>
 //#include <linux/sprd_ion.h>
 #include <linux/workqueue.h>
-//#include "sprd_dispc.h"
 #include "sprd_dpu.h"
-//#include "sprd_round_corner.h"
-
-#define sprd_dispc sprd_dpu
-#define dispc_context dpu_context
-#define dispc_core_ops dpu_core_ops
-#define dispc_core_ops_register dpu_core_ops_register
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -276,7 +269,7 @@ static struct gamma_lut gamma_copy;
 static struct hsv_lut hsv_copy;
 static u32 enhance_en;
 
-//static bool need_scale;
+static bool need_scale;
 //static bool is_scaling;
 static bool need_wait_te;
 static bool evt_update;
@@ -292,16 +285,14 @@ static int vsync_count;
 //module_param(wb_xfbc_en, int, 0644);
 //module_param(max_vsync_count, int, 0644);
 
-//static void dpu_enhance_reload(struct dispc_context *ctx);
-static void dpu_clean(struct dispc_context *ctx);
-//static void dpu_layer(struct dispc_context *ctx,
-//		    struct sprd_adf_hwlayer *hwlayer);
-static void dpu_layer(struct dispc_context *ctx,
+static void dpu_enhance_reload(struct dpu_context *ctx);
+static void dpu_clean(struct dpu_context *ctx);
+static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_dpu_layer *hwlayer);
-//static void dpu_write_back(struct dispc_context *ctx,
+//static void dpu_write_back(struct dpu_context *ctx,
 //		struct wb_region region[], u8 count);
 
-static u32 dpu_get_version(struct dispc_context *ctx)
+static u32 dpu_get_version(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
@@ -309,7 +300,7 @@ static u32 dpu_get_version(struct dispc_context *ctx)
 }
 
 #if 0
-static int dpu_parse_dt(struct dispc_context *ctx,
+static int dpu_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
 	int ret = 0;
@@ -327,7 +318,7 @@ static int dpu_parse_dt(struct dispc_context *ctx,
 		sprd_corner_hwlayer_init(ctx->panel->height,
 				ctx->panel->width, sprd_corner_radius);
 
-		/* change id value based on different dispc chip */
+		/* change id value based on different dpu chip */
 		corner_layer_top.hwlayer_id = 5;
 		corner_layer_bottom.hwlayer_id = 6;
 	}
@@ -336,7 +327,7 @@ static int dpu_parse_dt(struct dispc_context *ctx,
 }
 #endif
 
-static void check_mmu_isr(struct dispc_context *ctx, uint32_t reg_val)
+static void check_mmu_isr(struct dpu_context *ctx, uint32_t reg_val)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	uint32_t int_mask = (DISPC_INT_MMU_VAOR_RD_MASK |
@@ -362,7 +353,7 @@ static void check_mmu_isr(struct dispc_context *ctx, uint32_t reg_val)
 	}
 }
 
-static u32 dpu_isr(struct dispc_context *ctx)
+static u32 dpu_isr(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	u32 reg_val;
@@ -441,7 +432,7 @@ static u32 dpu_isr(struct dispc_context *ctx)
 	return reg_val;
 }
 
-static int32_t dpu_wait_stop_done(struct dispc_context *ctx)
+static int32_t dpu_wait_stop_done(struct dpu_context *ctx)
 {
 	int rc;
 
@@ -467,7 +458,7 @@ static int32_t dpu_wait_stop_done(struct dispc_context *ctx)
 	return 0;
 }
 
-static int32_t dpu_wait_update_done(struct dispc_context *ctx)
+static int32_t dpu_wait_update_done(struct dpu_context *ctx)
 {
 	int rc;
 
@@ -485,7 +476,7 @@ static int32_t dpu_wait_update_done(struct dispc_context *ctx)
 	return 0;
 }
 
-static void dpu_stop(struct dispc_context *ctx)
+static void dpu_stop(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
@@ -499,7 +490,7 @@ static void dpu_stop(struct dispc_context *ctx)
 	pr_info("dpu stop\n");
 }
 
-static void dpu_run(struct dispc_context *ctx)
+static void dpu_run(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
@@ -544,7 +535,7 @@ static void dpu_run(struct dispc_context *ctx)
 }
 
 #if 0
-static void dpu_write_back(struct dispc_context *ctx,
+static void dpu_write_back(struct dpu_context *ctx,
 		struct wb_region region[], u8 count)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -580,8 +571,8 @@ static void dpu_write_back(struct dispc_context *ctx,
 static void writeback_update_handler(struct work_struct *data)
 {
 	int ret;
-	struct dispc_context *ctx =
-		container_of(data, struct dispc_context, update_work);
+	struct dpu_context *ctx =
+		container_of(data, struct dpu_context, update_work);
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
 	ret = down_trylock(&ctx->refresh_lock);
@@ -593,15 +584,15 @@ static void writeback_update_handler(struct work_struct *data)
 		pr_debug("cannot acquire lock for wb_lock\n");
 }
 
-static int dpu_write_back_config(struct dispc_context *ctx)
+static int dpu_write_back_config(struct dpu_context *ctx)
 {
 	int ret;
 	static int need_config = 1;
 	struct panel_info *panel = ctx->panel;
 	u32 wb_addr_v;
 	size_t wb_buf_size;
-	struct sprd_dispc *dispc =
-		(struct sprd_dispc *)container_of(ctx, struct sprd_dispc, ctx);
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 
 	if (!need_config) {
 		pr_debug("write back has configed\n");
@@ -609,7 +600,7 @@ static int dpu_write_back_config(struct dispc_context *ctx)
 	}
 
 	wb_buf_size = XFBC8888_BUFFER_SIZE(panel->width, panel->height);
-	ret = sprd_dispc_wb_buf_alloc(dispc, ION_HEAP_ID_MASK_FB,
+	ret = sprd_dpu_wb_buf_alloc(dpu, ION_HEAP_ID_MASK_FB,
 					&wb_buf_size, &(wb_addr_v));
 	if (ret)
 		return -1;
@@ -628,29 +619,21 @@ static int dpu_write_back_config(struct dispc_context *ctx)
 
 	return 0;
 }
+#endif
 
-static int dpu_init(struct dispc_context *ctx)
+static int dpu_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	struct panel_info *panel = ctx->panel;
+	//struct panel_info *panel = ctx->panel;
 	static bool is_running = true;
 	u32 size;
-
-	if (reg == NULL) {
-		pr_err("dpu base address is null!");
-		return -1;
-	}
-
-	if (panel == NULL) {
-		pr_err("ctx->panel is null!");
-		return -1;
-	}
 
 	/* set bg color */
 	reg->bg_color = 0;
 
 	/* set dpu output size */
-	size = (panel->width & 0xffff) | ((panel->height) << 16);
+	//size = (panel->width & 0xffff) | ((panel->height) << 16);
+	size = (1920 << 16) | 1080;
 	reg->panel_size = size;
 	reg->blend_size = size;
 
@@ -678,9 +661,8 @@ static int dpu_init(struct dispc_context *ctx)
 
 	return 0;
 }
-#endif
 
-static void dpu_uninit(struct dispc_context *ctx)
+static void dpu_uninit(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
@@ -703,43 +685,12 @@ enum {
 	DPU_LAYER_FORMAT_MAX_TYPES,
 };
 
-#if 0
-/*
- * Because in OpenGL/PNG, the RGBA color stored in memory such that R
- * is at lowest address, G after it, B after that, and A last(the highest
- * address). Which is equivalent to ABGR in DRM format. That means the
- * color order in OpenGL(Android) is inverse in DRM(kernel).
- *
- * When the function implementBufferFormatConfig() was corrected in
- * vendor/sprd/modules/hwcomposer/SprdADFWrapper.cpp, the hal_to_drm_format()
- * could be removed.
- */
-static u32 hal_to_drm_format(u32 hal_format)
-{
-	switch (hal_format) {
-	case DRM_FORMAT_RGBA8888:
-		return DRM_FORMAT_ABGR8888;
-	case DRM_FORMAT_RGBX8888:
-		return DRM_FORMAT_XBGR8888;
-	case DRM_FORMAT_BGRA8888:
-		return DRM_FORMAT_ARGB8888;
-	case DRM_FORMAT_RGB888:
-		return DRM_FORMAT_BGR888;
-	default:
-		return hal_format;
-	}
-}
-#endif
-
 static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 {
 	int reg_val = 0;
 
 	/* layer enable */
 	reg_val |= BIT(0);
-
-	/* need to convert the HAL_PIXEL_FORMAT* to DRM_FORMAT* first */
-	//format = hal_to_drm_format(format);
 
 	switch (format) {
 	case DRM_FORMAT_BGRA8888:
@@ -855,7 +806,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 	return reg_val;
 }
 
-static void dpu_clean(struct dispc_context *ctx)
+static void dpu_clean(struct dpu_context *ctx)
 {
 	int i;
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -864,7 +815,7 @@ static void dpu_clean(struct dispc_context *ctx)
 		reg->layers[i].ctrl = 0;
 }
 
-static void dpu_bgcolor(struct dispc_context *ctx, u32 color)
+static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
@@ -875,71 +826,7 @@ static void dpu_bgcolor(struct dispc_context *ctx, u32 color)
 	dpu_clean(ctx);
 }
 
-#if 0
-static void dpu_layer(struct dispc_context *ctx,
-		    struct sprd_adf_hwlayer *hwlayer)
-{
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	struct layer_reg *layer;
-	u32 addr;
-	int size;
-	int offset;
-	int wd;
-	int i;
-
-	if (!reg)
-		return;
-
-	layer = &reg->layers[hwlayer->hwlayer_id];
-	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
-
-	if (hwlayer->start_w && hwlayer->start_h)
-		size = (hwlayer->start_w & 0xffff) | ((hwlayer->start_h) << 16);
-	else
-		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
-
-	if (adf_format_is_rgb(hwlayer->format))
-		wd = adf_format_bpp(hwlayer->format) / 8;
-	else
-		wd = adf_format_plane_cpp(hwlayer->format, 0);
-
-	for (i = 0; i < hwlayer->n_planes; i++) {
-		addr = hwlayer->iova_plane[i];
-
-		/* dpu r2p0 just support xfbc-rgb */
-		if (hwlayer->compression)
-			addr += hwlayer->header_size_r;
-
-		if (addr % 16)
-			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
-				i, addr);
-		layer->addr[i] = addr;
-	}
-
-	layer->pos = offset;
-	layer->size = size;
-	layer->crop_start = (hwlayer->start_y << 16) | hwlayer->start_x;
-	layer->alpha = hwlayer->alpha;
-
-	if (adf_format_num_planes(hwlayer->format) == 3)
-		/* UV pitch is 1/2 of Y pitch*/
-		layer->pitch = (hwlayer->pitch[0] / wd) |
-				(hwlayer->pitch[0] / wd << 15);
-	else
-		layer->pitch = hwlayer->pitch[0] / wd;
-
-	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-		hwlayer->compression);
-
-	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
-				hwlayer->dst_x, hwlayer->dst_y,
-				hwlayer->dst_w, hwlayer->dst_h);
-	pr_debug("start_x = %d, start_y = %d, start_w = %d, start_h = %d\n",
-				hwlayer->start_x, hwlayer->start_y,
-				hwlayer->start_w, hwlayer->start_h);
-}
-#endif
-static void dpu_layer(struct dispc_context *ctx,
+static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_dpu_layer *hwlayer)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -999,7 +886,7 @@ static void dpu_layer(struct dispc_context *ctx,
 }
 
 #if 0
-static void dpu_scaling(struct dispc_context *ctx,
+static void dpu_scaling(struct dpu_context *ctx,
 			struct sprd_adf_hwlayer *hwlayer)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -1050,7 +937,7 @@ static void dpu_scaling(struct dispc_context *ctx,
 #endif
 
 #if 0
-static void dpu_flip(struct dispc_context *ctx,
+static void dpu_flip(struct dpu_context *ctx,
 			struct sprd_restruct_config *config)
 {
 	int i;
@@ -1085,17 +972,23 @@ static void dpu_flip(struct dispc_context *ctx,
 	 */
 	dpu_scaling(ctx, hwlayer);
 }
+#endif
 
-static void dpu_dpi_init(struct dispc_context *ctx)
+static void dpu_dpi_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	struct panel_info *panel = ctx->panel;
+	//struct panel_info *panel = ctx->panel;
+	struct rgb_timing timing = {
+		.hfp = 176,
+		.hbp = 16,
+		.hsync = 10,
+		.vfp = 32,
+		.vbp = 32,
+		.vsync = 4,
+	};
 	struct rgb_timing *rgb;
 	u32 reg_val = 0;
 	u32 int_mask = 0;
-
-	if (!reg || !panel)
-		return;
 
 	int_mask |= (DISPC_INT_MMU_VAOR_RD_MASK |
 		DISPC_INT_MMU_VAOR_WR_MASK |
@@ -1111,7 +1004,8 @@ static void dpu_dpi_init(struct dispc_context *ctx)
 
 		reg->dpi_ctrl = reg_val;
 
-		rgb = &panel->rgb_timing;
+		//rgb = &panel->rgb_timing;
+		rgb = &timing;
 		/* set dpi timing */
 		reg->dpi_h_timing = (rgb->hsync << 0) |
 				(rgb->hbp << 8) |
@@ -1125,7 +1019,7 @@ static void dpu_dpi_init(struct dispc_context *ctx)
 		/* enable dpu DONE  INT */
 		int_mask |= DISPC_INT_DONE_MASK;
 		/* enable dpu dpi vsync */
-		int_mask |= DISPC_INT_DPI_VSYNC_MASK;
+		//int_mask |= DISPC_INT_DPI_VSYNC_MASK;
 		/* enable dpu TE INT */
 		int_mask |= DISPC_INT_TE_MASK;
 		/* enable underflow err INT */
@@ -1146,8 +1040,8 @@ static void dpu_dpi_init(struct dispc_context *ctx)
 		reg->dpu_cfg0 |= BIT(0);
 
 		/*te pol */
-		if (panel->te_pol == SPRD_POLARITY_NEG)
-			reg_val |= BIT(9);
+		//if (panel->te_pol == SPRD_POLARITY_NEG)
+		//	reg_val |= BIT(9);
 
 		/*use external te */
 		reg_val |= BIT(10);
@@ -1169,9 +1063,22 @@ static void dpu_dpi_init(struct dispc_context *ctx)
 		reg->dpu_int_en = int_mask;
 	}
 }
-#endif
 
-static void dpu_enhance_set(struct dispc_context *ctx, u32 id, void *param)
+static void enable_vsync(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+	reg->dpu_int_en |= DISPC_INT_DPI_VSYNC_MASK;
+}
+
+static void disable_vsync(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+	reg->dpu_int_en &= ~DISPC_INT_DPI_VSYNC_MASK;
+}
+
+static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct scale_cfg *scale;
@@ -1271,7 +1178,7 @@ static void dpu_enhance_set(struct dispc_context *ctx, u32 id, void *param)
 	enhance_en = reg->dpu_enhance_cfg;
 }
 
-static void dpu_enhance_get(struct dispc_context *ctx, u32 id, void *param)
+static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct scale_cfg *scale;
@@ -1377,11 +1284,10 @@ static void dpu_enhance_get(struct dispc_context *ctx, u32 id, void *param)
 	}
 }
 
-#if 0
-static void dpu_enhance_reload(struct dispc_context *ctx)
+static void dpu_enhance_reload(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	struct panel_info *panel = ctx->panel;
+	//struct panel_info *panel = ctx->panel;
 	struct scale_cfg *scale;
 	struct cm_cfg *cm;
 	struct slp_cfg *slp;
@@ -1395,8 +1301,10 @@ static void dpu_enhance_reload(struct dispc_context *ctx)
 	if (enhance_en & BIT(0)) {
 		scale = &scale_copy;
 		reg->blend_size = (scale->in_h << 16) | scale->in_w;
+		//pr_info("enhance scaling from %ux%u to %ux%u\n",
+		//	scale->in_w, scale->in_h, panel->width, panel->height);
 		pr_info("enhance scaling from %ux%u to %ux%u\n",
-			scale->in_w, scale->in_h, panel->width, panel->height);
+			scale->in_w, scale->in_h, 1080, 1920);
 	}
 
 	if (enhance_en & BIT(1)) {
@@ -1458,11 +1366,11 @@ static void dpu_enhance_reload(struct dispc_context *ctx)
 	reg->dpu_enhance_cfg = enhance_en;
 }
 
-static int dpu_modeset(struct dispc_context *ctx,
+static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	struct panel_info *panel = ctx->panel;
+	//struct panel_info *panel = ctx->panel;
 
 	if (!reg)
 		return -ENODEV;
@@ -1470,8 +1378,10 @@ static int dpu_modeset(struct dispc_context *ctx,
 	scale_copy.in_w = mode->hdisplay;
 	scale_copy.in_h = mode->vdisplay;
 
-	if ((mode->hdisplay != panel->width) ||
-	    (mode->vdisplay != panel->height))
+	//if ((mode->hdisplay != panel->width) ||
+	//    (mode->vdisplay != panel->height))
+	if ((mode->hdisplay != 1080) ||
+	    (mode->vdisplay != 1920))
 		need_scale = true;
 	else
 		need_scale = false;
@@ -1480,23 +1390,24 @@ static int dpu_modeset(struct dispc_context *ctx,
 
 	return 0;
 }
-#endif
 
-static struct dispc_core_ops dpu_r2p0_ops = {
+static struct dpu_core_ops dpu_r2p0_ops = {
 //	.parse_dt = dpu_parse_dt,
 	.version = dpu_get_version,
-//	.init = dpu_init,
+	.init = dpu_init,
 	.uninit = dpu_uninit,
 	.run = dpu_run,
 	.stop = dpu_stop,
 	.isr = dpu_isr,
-//	.ifconfig = dpu_dpi_init,
+	.ifconfig = dpu_dpi_init,
 //	.flip = dpu_flip,
 	.layer = dpu_layer,
 	.bg_color = dpu_bgcolor,
+	.enable_vsync = enable_vsync,
+	.disable_vsync = disable_vsync,
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
-//	.modeset = dpu_modeset,
+	.modeset = dpu_modeset,
 };
 
 static struct ops_entry entry = {
@@ -1504,9 +1415,9 @@ static struct ops_entry entry = {
 	.ops = &dpu_r2p0_ops,
 };
 
-static int __init dispc_core_register(void)
+static int __init dpu_core_register(void)
 {
-	return dispc_core_ops_register(&entry);
+	return dpu_core_ops_register(&entry);
 }
 
-subsys_initcall(dispc_core_register);
+subsys_initcall(dpu_core_register);

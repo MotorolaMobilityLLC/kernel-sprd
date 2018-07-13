@@ -28,7 +28,6 @@
 LIST_HEAD(dpu_core_head);
 LIST_HEAD(dpu_clk_head);
 LIST_HEAD(dpu_glb_head);
-LIST_HEAD(dpu_enc_head);
 
 static const u32 primary_fmts[] = {
 	DRM_FORMAT_RGB565, DRM_FORMAT_BGR565,
@@ -40,7 +39,7 @@ static const u32 primary_fmts[] = {
 static int dpu_plane_atomic_check(struct drm_plane *plane,
 				  struct drm_plane_state *state)
 {
-	DRM_INFO("drm_plane_helper_funcs->atomic_check()\n");
+	DRM_DEBUG("drm_plane_helper_funcs->atomic_check()\n");
 
 	return 0;
 }
@@ -54,7 +53,7 @@ static void dpu_plane_atomic_update(struct drm_plane *plane,
 	struct sprd_dpu *dpu = crtc_to_dpu(plane->state->crtc);
 	struct sprd_dpu_layer layer = {};
 
-	DRM_INFO("drm_plane_helper_funcs->atomic_update()\n");
+	DRM_DEBUG("drm_plane_helper_funcs->atomic_update()\n");
 
 	layer.index = 0;
 	layer.src_x = state->src_x >> 16;
@@ -85,7 +84,7 @@ static void dpu_plane_atomic_update(struct drm_plane *plane,
 static void dpu_plane_atomic_disable(struct drm_plane *plane,
 				     struct drm_plane_state *old_state)
 {
-	DRM_INFO("drm_plane_helper_funcs->atomic_disable()\n");
+	DRM_DEBUG("drm_plane_helper_funcs->atomic_disable()\n");
 }
 
 static const struct drm_plane_helper_funcs dpu_plane_helper_funcs = {
@@ -132,21 +131,21 @@ static struct drm_plane *dpu_primary_plane_init(struct drm_device *drm,
 static void dpu_crtc_atomic_enable(struct drm_crtc *crtc,
 				   struct drm_crtc_state *old_state)
 {
-	DRM_INFO("drm_crtc_helper_funcs->enable()\n");
+	DRM_DEBUG("drm_crtc_helper_funcs->enable()\n");
 	drm_crtc_vblank_on(crtc);
 }
 
 static void dpu_crtc_atomic_disable(struct drm_crtc *crtc,
 				    struct drm_crtc_state *old_state)
 {
-	DRM_INFO("drm_crtc_helper_funcs->disable()\n");
+	DRM_DEBUG("drm_crtc_helper_funcs->disable()\n");
 	drm_crtc_vblank_off(crtc);
 }
 
 static int dpu_crtc_atomic_check(struct drm_crtc *crtc,
 				 struct drm_crtc_state *state)
 {
-	DRM_INFO("drm_crtc_helper_funcs->atomic_check()\n");
+	DRM_DEBUG("drm_crtc_helper_funcs->atomic_check()\n");
 
 	/* do nothing */
 	return 0;
@@ -157,7 +156,7 @@ static void dpu_crtc_atomic_begin(struct drm_crtc *crtc,
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
-	DRM_INFO("drm_crtc_helper_funcs->atomic_begin()\n");
+	DRM_DEBUG("drm_crtc_helper_funcs->atomic_begin()\n");
 
 	if (crtc->state->event) {
 		crtc->state->event->pipe = drm_crtc_index(crtc);
@@ -175,21 +174,32 @@ static void dpu_crtc_atomic_flush(struct drm_crtc *crtc,
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
-	DRM_INFO("drm_crtc_helper_funcs->atomic_flush()\n");
+	DRM_DEBUG("drm_crtc_helper_funcs->atomic_flush()\n");
 
-	dpu->core->run(&dpu->ctx);
+	if (dpu->core && dpu->core->run)
+		dpu->core->run(&dpu->ctx);
 }
 
 static int dpu_crtc_enable_vblank(struct drm_crtc *crtc)
 {
+	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+
 	DRM_INFO("drm_crtc_funcs->enable_vblank()\n");
+
+	if (dpu->core && dpu->core->enable_vsync)
+		dpu->core->enable_vsync(&dpu->ctx);
 
 	return 0;
 }
 
 static void dpu_crtc_disable_vblank(struct drm_crtc *crtc)
 {
+	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+
 	DRM_INFO("drm_crtc_funcs->disable_vblank()\n");
+
+	if (dpu->core && dpu->core->disable_vsync)
+		dpu->core->disable_vsync(&dpu->ctx);
 }
 
 static const struct drm_crtc_helper_funcs dpu_crtc_helper_funcs = {
@@ -243,98 +253,6 @@ static int dpu_crtc_init(struct drm_device *drm, struct drm_crtc *crtc,
 	DRM_INFO("crtc init ok\n");
 	return 0;
 }
-
-#if 0
-static int calc_dpi_clk(struct sprd_dpu *dpu,
-			       u32 *new_pclk, u32 pclk_src,
-			       u32 new_val, int type)
-{
-	int divider;
-	u32 hpixels, vlines, pclk, fps;
-	struct panel_info *panel = dpu->ctx.panel;
-
-	pr_debug("%s: enter\n", __func__);
-	if (!panel) {
-		DRM_ERROR("No panel is specified!\n");
-		return -ENXIO;
-	}
-
-	if (dpu->ctx.if_type == SPRD_DISPC_IF_EDPI) {
-		DRM_ERROR("panel interface should be DPI\n");
-		return -EINVAL;
-	}
-
-	if ((new_val == 0) || (new_pclk == NULL) || (pclk_src == 0)) {
-		DRM_ERROR("input parameter is invalid\n");
-		return -EINVAL;
-	}
-
-	if (panel->type == SPRD_PANEL_TYPE_MIPI) {
-		struct rgb_timing *timing = &panel->rgb_timing;
-
-		hpixels = panel->width + timing->hsync +
-		    timing->hbp + timing->hfp;
-		vlines = panel->height + timing->vsync +
-		    timing->vbp + timing->vfp;
-	} else if (panel->type == SPRD_PANEL_TYPE_RGB
-		   || panel->type == SPRD_PANEL_TYPE_LVDS) {
-		struct rgb_timing *timing = &panel->rgb_timing;
-
-		hpixels = panel->width + timing->hsync +
-		    timing->hbp + timing->hfp;
-		vlines = panel->height + timing->vsync +
-		    timing->vbp + timing->vfp;
-	} else {
-		DRM_ERROR("[%s] unexpected panel type (%d)\n",
-		       __func__, panel->type);
-		return -EINVAL;
-	}
-
-	switch (type) {
-	case SPRD_FORCE_FPS:
-	case SPRD_DYNAMIC_FPS:
-		if (new_val < LCD_MIN_FPS || new_val > LCD_MAX_FPS) {
-			DRM_ERROR
-			    ("Unsupported FPS. fps range should be [%d, %d]\n",
-			     LCD_MIN_FPS, LCD_MAX_FPS);
-			return -EINVAL;
-		}
-		pclk = hpixels * vlines * new_val;
-		divider = ROUND(pclk_src, pclk);
-		*new_pclk = pclk_src / divider;
-		if (pclk_src % divider)
-			*new_pclk += 1;
-		/* Save the updated fps */
-		panel->fps = new_val;
-		break;
-
-	case SPRD_DYNAMIC_PCLK:
-		divider = ROUND(pclk_src, new_val);
-		pclk = pclk_src / divider;
-		fps = pclk / (hpixels * vlines);
-		if (fps < LCD_MIN_FPS || fps > LCD_MAX_FPS) {
-			DRM_ERROR
-			    ("Unsupported FPS. fps range should be [%d, %d]\n",
-			     LCD_MIN_FPS, LCD_MAX_FPS);
-			return -EINVAL;
-		}
-		*new_pclk = pclk;
-		/* Save the updated fps */
-		panel->fps = fps;
-		break;
-
-	case SPRD_FORCE_PCLK:
-		*new_pclk = new_val;
-		break;
-
-	default:
-		DRM_ERROR("This checked type is unsupported.\n");
-		*new_pclk = 0;
-		return -EINVAL;
-	}
-	return 0;
-}
-#endif
 
 static int dpu_clk_update(struct sprd_dpu *dpu,
 				u32 new_val, int howto)
@@ -401,16 +319,15 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 {
 	struct sprd_dpu *dpu = data;
 	struct dpu_context *ctx = &dpu->ctx;
-	struct drm_device *drm = dpu->crtc.dev;
 	u32 int_mask = 0;
 
 	if (dpu->core && dpu->core->isr)
 		int_mask = dpu->core->isr(ctx);
 
 	if (int_mask & DISPC_INT_ERR_MASK)
-		DRM_ERROR("Warning: dpu underflow (0x%x)!\n", int_mask);
+		DRM_ERROR("Warning: dpu underflow!\n");
 
-	if ((int_mask & (DISPC_INT_DPI_VSYNC_MASK)) && drm->irq_enabled) {
+	if (int_mask & DISPC_INT_DPI_VSYNC_MASK) {
 		drm_crtc_handle_vblank(&dpu->crtc);
 		dpu_crtc_finish_page_flip(dpu);
 	}

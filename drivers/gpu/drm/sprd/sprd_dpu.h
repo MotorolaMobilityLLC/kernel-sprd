@@ -151,6 +151,15 @@ struct dpu_capability {
 	enum drm_plane_type type;
 };
 
+struct rgb_timing {
+	uint16_t hfp;
+	uint16_t hbp;
+	uint16_t hsync;
+	uint16_t vfp;
+	uint16_t vbp;
+	uint16_t vsync;
+};
+
 struct dpu_context;
 
 struct dpu_core_ops {
@@ -243,8 +252,6 @@ static inline struct sprd_dpu *crtc_to_dpu(struct drm_crtc *crtc)
 	disp_ops_register(entry, &dpu_clk_head)
 #define dpu_glb_ops_register(entry) \
 	disp_ops_register(entry, &dpu_glb_head)
-#define dpu_enc_ops_register(entry) \
-	disp_ops_register(entry, &dpu_enc_head)
 
 #define dpu_core_ops_attach(str) \
 	disp_ops_attach(str, &dpu_core_head)
@@ -252,7 +259,5 @@ static inline struct sprd_dpu *crtc_to_dpu(struct drm_crtc *crtc)
 	disp_ops_attach(str, &dpu_clk_head)
 #define dpu_glb_ops_attach(str) \
 	disp_ops_attach(str, &dpu_glb_head)
-#define dpu_enc_ops_attach(str) \
-	disp_ops_attach(str, &dpu_enc_head)
 
 #endif
