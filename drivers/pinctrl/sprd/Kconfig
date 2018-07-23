@@ -18,3 +18,9 @@ config PINCTRL_SPRD_SC9860
 	depends on PINCTRL_SPRD
 	help
 	  Say Y here to enable Spreadtrum SC9860 pinctrl driver
+
+config PINCTRL_SPRD_SHARKL5
+        bool "Spreadtrum Sharkl5 pinctrl driver"
+        depends on PINCTRL_SPRD
+        help
+          Say Y here to enable Spreadtrum Sharkl5 pinctrl driver

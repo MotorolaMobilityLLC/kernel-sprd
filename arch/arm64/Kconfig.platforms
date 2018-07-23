@@ -212,6 +212,7 @@ config ARCH_TEGRA
 
 config ARCH_SPRD
 	bool "Spreadtrum SoC platform"
+	select PINCTRL
 	help
 	  Support for Spreadtrum ARM based SoCs
 

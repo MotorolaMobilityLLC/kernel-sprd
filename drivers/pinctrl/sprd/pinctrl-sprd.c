@@ -35,8 +35,6 @@
 #include "pinctrl-sprd.h"
 
 #define PINCTRL_BIT_MASK(width)		(~(~0UL << (width)))
-#define PINCTRL_REG_OFFSET		0x20
-#define PINCTRL_REG_MISC_OFFSET		0x4020
 #define PINCTRL_REG_LEN			0x4
 
 #define PIN_FUNC_MASK			(BIT(4) | BIT(5))
@@ -49,6 +47,7 @@
 #define PUBCP_SLEEP_MODE		BIT(14)
 #define TGLDSP_SLEEP_MODE		BIT(15)
 #define AGDSP_SLEEP_MODE		BIT(16)
+#define CM4_SLEEP_MODE			BIT(17)
 #define SLEEP_MODE_MASK			GENMASK(3, 0)
 #define SLEEP_MODE_SHIFT		13
 
@@ -89,6 +88,7 @@ enum pin_sleep_mode {
 	PUBCP_SLEEP = BIT(1),
 	TGLDSP_SLEEP = BIT(2),
 	AGDSP_SLEEP = BIT(3),
+	CM4_SLEEP = BIT(4),
 };
 
 enum pin_func_sel {
@@ -157,6 +157,8 @@ struct sprd_pinctrl {
 	struct pinctrl_dev *pctl;
 	void __iomem *base;
 	struct sprd_pinctrl_soc_info *info;
+	u32 common_pin_offset;
+	u32 misc_pin_offset;
 };
 
 enum sprd_pinconf_params {
@@ -464,7 +466,7 @@ static int sprd_pinconf_get(struct pinctrl_dev *pctldev, unsigned int pin_id,
 	if (pin->type == GLOBAL_CTRL_PIN &&
 	    param == SPRD_PIN_CONFIG_CONTROL) {
 		arg = reg;
-	} else if (pin->type == COMMON_PIN) {
+	} else if (pin->type == COMMON_PIN || pin->type == MISC_PIN) {
 		switch (param) {
 		case SPRD_PIN_CONFIG_SLEEP_MODE:
 			arg = (reg >> SLEEP_MODE_SHIFT) & SLEEP_MODE_MASK;
@@ -475,14 +477,6 @@ static int sprd_pinconf_get(struct pinctrl_dev *pctldev, unsigned int pin_id,
 		case PIN_CONFIG_OUTPUT:
 			arg = reg & SLEEP_OUTPUT_MASK;
 			break;
-		case PIN_CONFIG_SLEEP_HARDWARE_STATE:
-			arg = 0;
-			break;
-		default:
-			return -ENOTSUPP;
-		}
-	} else if (pin->type == MISC_PIN) {
-		switch (param) {
 		case PIN_CONFIG_DRIVE_STRENGTH:
 			arg = (reg >> DRIVE_STRENGTH_SHIFT) &
 				DRIVE_STRENGTH_MASK;
@@ -616,7 +610,7 @@ static int sprd_pinconf_set(struct pinctrl_dev *pctldev, unsigned int pin_id,
 		if (pin->type == GLOBAL_CTRL_PIN &&
 		    param == SPRD_PIN_CONFIG_CONTROL) {
 			val = arg;
-		} else if (pin->type == COMMON_PIN) {
+		} else if (pin->type == COMMON_PIN || pin->type == MISC_PIN) {
 			switch (param) {
 			case SPRD_PIN_CONFIG_SLEEP_MODE:
 				if (arg & AP_SLEEP)
@@ -649,13 +643,6 @@ static int sprd_pinconf_set(struct pinctrl_dev *pctldev, unsigned int pin_id,
 					shift = SLEEP_OUTPUT_SHIFT;
 				}
 				break;
-			case PIN_CONFIG_SLEEP_HARDWARE_STATE:
-				continue;
-			default:
-				return -ENOTSUPP;
-			}
-		} else if (pin->type == MISC_PIN) {
-			switch (param) {
 			case PIN_CONFIG_DRIVE_STRENGTH:
 				if (arg < 2 || arg > 60)
 					return -EINVAL;
@@ -1001,12 +988,12 @@ static int sprd_pinctrl_add_pins(struct sprd_pinctrl *sprd_pctl,
 			ctrl_pin++;
 		} else if (pin->type == COMMON_PIN) {
 			pin->reg = (unsigned long)sprd_pctl->base +
-				PINCTRL_REG_OFFSET + PINCTRL_REG_LEN *
+				sprd_pctl->common_pin_offset + PINCTRL_REG_LEN *
 				(i - ctrl_pin);
 			com_pin++;
 		} else if (pin->type == MISC_PIN) {
 			pin->reg = (unsigned long)sprd_pctl->base +
-				PINCTRL_REG_MISC_OFFSET + PINCTRL_REG_LEN *
+				sprd_pctl->misc_pin_offset + PINCTRL_REG_LEN *
 				(i - ctrl_pin - com_pin);
 		}
 	}
@@ -1023,7 +1010,9 @@ static int sprd_pinctrl_add_pins(struct sprd_pinctrl *sprd_pctl,
 
 int sprd_pinctrl_core_probe(struct platform_device *pdev,
 			    struct sprd_pins_info *sprd_soc_pin_info,
-			    int pins_cnt)
+			    int pins_cnt,
+			    u32 common_pin_offset,
+			    u32 misc_pin_offset)
 {
 	struct sprd_pinctrl *sprd_pctl;
 	struct sprd_pinctrl_soc_info *pinctrl_info;
@@ -1049,6 +1038,8 @@ int sprd_pinctrl_core_probe(struct platform_device *pdev,
 
 	sprd_pctl->info = pinctrl_info;
 	sprd_pctl->dev = &pdev->dev;
+	sprd_pctl->common_pin_offset = common_pin_offset;
+	sprd_pctl->misc_pin_offset = misc_pin_offset;
 	platform_set_drvdata(pdev, sprd_pctl);
 
 	ret = sprd_pinctrl_add_pins(sprd_pctl, sprd_soc_pin_info, pins_cnt);

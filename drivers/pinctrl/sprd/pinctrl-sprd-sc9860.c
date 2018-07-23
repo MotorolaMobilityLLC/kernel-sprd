@@ -17,6 +17,9 @@
 
 #include "pinctrl-sprd.h"
 
+#define	PINCTRL_REG_OFFSET		0x20
+#define	PINCTRL_REG_MISC_OFFSET		0x4020
+
 enum sprd_sc9860_pins {
 	/* pin global control register 0 */
 	SC9860_VIO28_0_IRTE = SPRD_PIN_INFO(0, GLOBAL_CTRL_PIN, 11, 1, 0),
@@ -933,7 +936,9 @@ static struct sprd_pins_info sprd_sc9860_pins_info[] = {
 static int sprd_pinctrl_probe(struct platform_device *pdev)
 {
 	return sprd_pinctrl_core_probe(pdev, sprd_sc9860_pins_info,
-				       ARRAY_SIZE(sprd_sc9860_pins_info));
+				       ARRAY_SIZE(sprd_sc9860_pins_info),
+				       PINCTRL_REG_OFFSET,
+				       PINCTRL_REG_MISC_OFFSET);
 }
 
 static const struct of_device_id sprd_pinctrl_of_match[] = {

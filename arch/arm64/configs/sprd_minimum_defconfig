@@ -1188,6 +1188,15 @@ CONFIG_VIRTIO_CONSOLE=y
 #
 # Enable PHYLIB and NETWORK_PHY_TIMESTAMPING to see the additional clocks.
 #
+CONFIG_PINCTRL=y
+
+#
+# Pin controllers
+#
+# CONFIG_DEBUG_PINCTRL is not set
+# CONFIG_PINCTRL_AMD is not set
+# CONFIG_PINCTRL_SINGLE is not set
+# CONFIG_PINCTRL_SPRD is not set
 CONFIG_GPIOLIB=y
 CONFIG_OF_GPIO=y
 # CONFIG_DEBUG_GPIO is not set
