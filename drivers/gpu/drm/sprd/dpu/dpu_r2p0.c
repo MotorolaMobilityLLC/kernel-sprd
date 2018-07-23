@@ -286,7 +286,7 @@ static int vsync_count;
 //module_param(max_vsync_count, int, 0644);
 
 static void dpu_enhance_reload(struct dpu_context *ctx);
-static void dpu_clean(struct dpu_context *ctx);
+static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_dpu_layer *hwlayer);
 //static void dpu_write_back(struct dpu_context *ctx,
@@ -403,7 +403,7 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		 * write back buffer, which is not we wanted.
 		 */
 		if (vsync_count > max_vsync_count) {
-			dpu_clean(ctx);
+			dpu_clean_all(ctx);
 			//dpu_layer(ctx, &wb_layer);
 			schedule_work(&ctx->update_work);
 			/*reg_val |= DISPC_INT_FENCE_SIGNAL_REQUEST;*/
@@ -644,7 +644,7 @@ static int dpu_init(struct dpu_context *ctx)
 	if (is_running)
 		is_running = false;
 	else
-		dpu_clean(ctx);
+		dpu_clean_all(ctx);
 
 	reg->mmu_en = 0;
 	reg->mmu_min_ppn1 = 0;
@@ -806,13 +806,19 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 	return reg_val;
 }
 
-static void dpu_clean(struct dpu_context *ctx)
+static void dpu_clean(struct dpu_context *ctx, u32 layer_id)
 {
-	int i;
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
+	reg->layers[layer_id].ctrl = 0;
+}
+
+static void dpu_clean_all(struct dpu_context *ctx)
+{
+	int i;
+
 	for (i = 0; i < 8; i++)
-		reg->layers[i].ctrl = 0;
+		dpu_clean(ctx, i);
 }
 
 static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
@@ -823,7 +829,7 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 		return;
 
 	reg->bg_color = color;
-	dpu_clean(ctx);
+	dpu_clean_all(ctx);
 }
 
 static void dpu_layer(struct dpu_context *ctx,
@@ -884,95 +890,6 @@ static void dpu_layer(struct dpu_context *ctx,
 				hwlayer->src_x, hwlayer->src_y,
 				hwlayer->src_w, hwlayer->src_h);
 }
-
-#if 0
-static void dpu_scaling(struct dpu_context *ctx,
-			struct sprd_adf_hwlayer *hwlayer)
-{
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	struct panel_info *panel = ctx->panel;
-
-	if (need_scale && (!is_scaling)) {
-		if ((hwlayer->dst_w != panel->width) &&
-		    (hwlayer->dst_h != panel->height)) {
-			reg->blend_size = (hwlayer->dst_h << 16) |
-					  hwlayer->dst_w;
-			reg->epf_epsilon = (epf.epsilon1 << 16) |
-					   epf.epsilon0;
-			reg->epf_gain0_3 = (epf.gain3 << 24) |
-					   (epf.gain2 << 16) |
-					   (epf.gain1 << 8) |
-					   epf.gain0;
-			reg->epf_gain4_7 = (epf.gain7 << 24) |
-					   (epf.gain6 << 16) |
-					   (epf.gain5 << 8) |
-					   epf.gain4;
-			reg->epf_diff = (epf.max_diff << 8) |
-					epf.min_diff;
-			reg->dpu_enhance_cfg |= (BIT(0) | BIT(1));
-			enhance_en |= (BIT(0) | BIT(1));
-			is_scaling = true;
-			pr_info("top layer is %d x %d, start scaling\n",
-				hwlayer->dst_w, hwlayer->dst_h);
-		} else
-			pr_info("top layer is %d x %d, no need to scale\n",
-				hwlayer->dst_w, hwlayer->dst_h);
-	}
-
-	if ((!need_scale) && is_scaling) {
-		if ((hwlayer->dst_w == panel->width) &&
-		    (hwlayer->dst_h == panel->height)) {
-			reg->blend_size = (panel->height << 16) |
-					  panel->width;
-			reg->dpu_enhance_cfg &= ~(BIT(0) | BIT(1));
-			enhance_en &= ~(BIT(0) | BIT(1));
-			is_scaling = false;
-			pr_info("top layer is %d x %d, stop scaling\n",
-				hwlayer->dst_w, hwlayer->dst_h);
-		} else
-			pr_info("top layer is %d x %d, keep scaling\n",
-				hwlayer->dst_w, hwlayer->dst_h);
-	}
-}
-#endif
-
-#if 0
-static void dpu_flip(struct dpu_context *ctx,
-			struct sprd_restruct_config *config)
-{
-	int i;
-	struct sprd_adf_hwlayer *hwlayer = NULL;
-
-	/* make sure the dpu is in stop status, sharkl3 edpi no shadow regs */
-	/* can only be updated in the rising edge of dpu_RUN bit */
-	if (ctx->if_type == SPRD_DISPC_IF_EDPI)
-		dpu_wait_stop_done(ctx);
-
-	vsync_count = 0;
-	if (max_vsync_count && (config->number_hwlayer > 1))
-		wb_en = true;
-	else
-		wb_en = false;
-
-	dpu_clean(ctx);
-
-	for (i = 0; i < config->number_hwlayer; i++) {
-		hwlayer = &config->hwlayers[i];
-		dpu_layer(ctx, hwlayer);
-	}
-
-	if (sprd_corner_support) {
-		dpu_layer(ctx, &corner_layer_top);
-		dpu_layer(ctx, &corner_layer_bottom);
-	}
-
-	/*
-	 * The scaling can only be triggered in bootanimation & Settings UI.
-	 * So just check the top layer size to enable/disable dpu scaling.
-	 */
-	dpu_scaling(ctx, hwlayer);
-}
-#endif
 
 static void dpu_dpi_init(struct dpu_context *ctx)
 {
@@ -1391,6 +1308,30 @@ static int dpu_modeset(struct dpu_context *ctx,
 	return 0;
 }
 
+static const u32 primary_fmts[] = {
+	DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888,
+	DRM_FORMAT_ARGB8888, DRM_FORMAT_ABGR8888,
+	DRM_FORMAT_RGBA8888, DRM_FORMAT_BGRA8888,
+	DRM_FORMAT_RGBX8888, DRM_FORMAT_BGRX8888,
+	DRM_FORMAT_RGB565, DRM_FORMAT_BGR565,
+	DRM_FORMAT_NV12, DRM_FORMAT_NV21,
+	DRM_FORMAT_NV16, DRM_FORMAT_NV61,
+	DRM_FORMAT_YUV420,
+};
+
+static int dpu_capability(struct dpu_context *ctx,
+			struct dpu_capability *cap)
+{
+	if (!cap)
+		return -EINVAL;
+
+	cap->max_layers = 6;
+	cap->fmts_ptr = primary_fmts;
+	cap->fmts_cnt = ARRAY_SIZE(primary_fmts);
+
+	return 0;
+}
+
 static struct dpu_core_ops dpu_r2p0_ops = {
 //	.parse_dt = dpu_parse_dt,
 	.version = dpu_get_version,
@@ -1400,8 +1341,9 @@ static struct dpu_core_ops dpu_r2p0_ops = {
 	.stop = dpu_stop,
 	.isr = dpu_isr,
 	.ifconfig = dpu_dpi_init,
-//	.flip = dpu_flip,
+	.capability = dpu_capability,
 	.layer = dpu_layer,
+	.clean = dpu_clean,
 	.bg_color = dpu_bgcolor,
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,

@@ -146,9 +146,9 @@ struct sprd_dpu_layer {
 };
 
 struct dpu_capability {
-	u32 *fmts;
-	u32 fmt_cnt;
-	enum drm_plane_type type;
+	u32 max_layers;
+	const u32 *fmts_ptr;
+	u32 fmts_cnt;
 };
 
 struct rgb_timing {
@@ -177,7 +177,10 @@ struct dpu_core_ops {
 	void (*write_back)(struct dpu_context *ctx, int enable);
 //	void (*flip)(struct dpu_context *ctx,
 //		struct sprd_restruct_config *config);
+	int (*capability)(struct dpu_context *ctx,
+			struct dpu_capability *cap);
 	void (*layer)(struct dpu_context *ctx, struct sprd_dpu_layer *layer);
+	void (*clean)(struct dpu_context *ctx, u32 layer_id);
 	void (*bg_color)(struct dpu_context *ctx, uint32_t color);
 	void (*enhance_set)(struct dpu_context *ctx, u32 id, void *param);
 	void (*enhance_get)(struct dpu_context *ctx, u32 id, void *param);

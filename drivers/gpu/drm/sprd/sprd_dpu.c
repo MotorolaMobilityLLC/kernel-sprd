@@ -25,6 +25,11 @@
 #include "sprd_drm.h"
 #include "sprd_dpu.h"
 
+struct sprd_plane {
+	struct drm_plane plane;
+	u32 index;
+};
+
 LIST_HEAD(dpu_core_head);
 LIST_HEAD(dpu_clk_head);
 LIST_HEAD(dpu_glb_head);
@@ -35,6 +40,11 @@ static const u32 primary_fmts[] = {
 	DRM_FORMAT_ARGB8888, DRM_FORMAT_ABGR8888,
 	DRM_FORMAT_RGBA8888, DRM_FORMAT_BGRA8888,
 };
+
+static inline struct sprd_plane *to_sprd_plane(struct drm_plane *plane)
+{
+	return container_of(plane, struct sprd_plane, plane);
+}
 
 static int dpu_plane_atomic_check(struct drm_plane *plane,
 				  struct drm_plane_state *state)
@@ -50,12 +60,13 @@ static void dpu_plane_atomic_update(struct drm_plane *plane,
 	struct drm_plane_state *state = plane->state;
 	struct drm_framebuffer *fb = plane->state->fb;
 	struct drm_gem_cma_object *gem;
+	struct sprd_plane *sp = to_sprd_plane(plane);
 	struct sprd_dpu *dpu = crtc_to_dpu(plane->state->crtc);
 	struct sprd_dpu_layer layer = {};
 
 	DRM_DEBUG("drm_plane_helper_funcs->atomic_update()\n");
 
-	layer.index = 0;
+	layer.index = sp->index;
 	layer.src_x = state->src_x >> 16;
 	layer.src_y = state->src_y >> 16;
 	layer.src_w = state->src_w >> 16;
@@ -84,7 +95,14 @@ static void dpu_plane_atomic_update(struct drm_plane *plane,
 static void dpu_plane_atomic_disable(struct drm_plane *plane,
 				     struct drm_plane_state *old_state)
 {
-	DRM_DEBUG("drm_plane_helper_funcs->atomic_disable()\n");
+	struct sprd_plane *sp = to_sprd_plane(plane);
+	struct sprd_dpu *dpu = crtc_to_dpu(old_state->crtc);
+
+	DRM_DEBUG("drm_plane_helper_funcs->atomic_disable(), layer_id = %u\n",
+		sp->index);
+
+	if (dpu->core && dpu->core->clean)
+		dpu->core->clean(&dpu->ctx, sp->index);
 }
 
 static const struct drm_plane_helper_funcs dpu_plane_helper_funcs = {
@@ -102,28 +120,43 @@ static const struct drm_plane_funcs dpu_plane_funcs = {
 	.atomic_destroy_state = drm_atomic_helper_plane_destroy_state,
 };
 
-static struct drm_plane *dpu_primary_plane_init(struct drm_device *drm,
-						struct sprd_dpu *dpu)
+static struct drm_plane *dpu_plane_init(struct drm_device *drm,
+					struct sprd_dpu *dpu)
 {
-	struct drm_plane *primary;
+	struct drm_plane *primary = NULL;
+	struct sprd_plane *sp = NULL;
+	struct dpu_capability cap = {};
 	int err;
+	int i;
 
-	primary = kzalloc(sizeof(*primary), GFP_KERNEL);
-	if (!primary)
-		return ERR_PTR(-ENOMEM);
+	if (dpu->core && dpu->core->capability)
+		dpu->core->capability(&dpu->ctx, &cap);
 
-	err = drm_universal_plane_init(drm, primary, 1, &dpu_plane_funcs,
-				       primary_fmts, ARRAY_SIZE(primary_fmts),
-				       NULL, DRM_PLANE_TYPE_PRIMARY, NULL);
-	if (err) {
-		kfree(primary);
-		DRM_ERROR("fail to init primary plane\n");
-		return ERR_PTR(err);
+	for (i = 0; i < cap.max_layers; i++) {
+
+		sp = kzalloc(sizeof(*sp), GFP_KERNEL);
+		if (!sp)
+			return ERR_PTR(-ENOMEM);
+
+		err = drm_universal_plane_init(drm, &sp->plane, 1,
+					       &dpu_plane_funcs, cap.fmts_ptr,
+					       cap.fmts_cnt, NULL,
+					       DRM_PLANE_TYPE_PRIMARY, NULL);
+		if (err) {
+			kfree(sp);
+			DRM_ERROR("fail to init primary plane\n");
+			return ERR_PTR(err);
+		}
+
+		drm_plane_helper_add(&sp->plane, &dpu_plane_helper_funcs);
+
+		sp->index = i;
+		if (i == 0)
+			primary = &sp->plane;
 	}
 
-	drm_plane_helper_add(primary, &dpu_plane_helper_funcs);
-
-	DRM_INFO("plane init ok\n");
+	if (sp)
+		DRM_INFO("dpu plane init ok\n");
 
 	return primary;
 }
@@ -360,18 +393,18 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 {
 	struct drm_device *drm = data;
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
-	struct drm_plane *primary;
+	struct drm_plane *plane;
 	int err;
 
 	DRM_INFO("component_ops->bind()\n");
 
-	primary = dpu_primary_plane_init(drm, dpu);
-	if (IS_ERR(primary)) {
-		err = PTR_ERR(primary);
-		goto cleanup;
+	plane = dpu_plane_init(drm, dpu);
+	if (IS_ERR_OR_NULL(plane)) {
+		err = PTR_ERR(plane);
+		return err;
 	}
 
-	err = dpu_crtc_init(drm, &dpu->crtc, primary);
+	err = dpu_crtc_init(drm, &dpu->crtc, plane);
 	if (err)
 		return err;
 
@@ -379,13 +412,8 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 	dpu_irq_request(dpu);
 
 	DRM_INFO("display controller init OK\n");
+
 	return 0;
-
-cleanup:
-	if (primary)
-		drm_plane_cleanup(primary);
-
-	return err;
 }
 
 static void sprd_dpu_unbind(struct device *dev, struct device *master,
