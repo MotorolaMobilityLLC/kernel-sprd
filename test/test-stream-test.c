@@ -12,7 +12,7 @@ struct test_stream_test_context {
 static void test_stream_test_add(struct test *test)
 {
 	struct test_stream_test_context *ctx = test->priv;
-	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct MOCK(test) *mock_test = NICE_MOCK(ctx->mock_test);
 	struct test_stream *stream = ctx->stream;
 
 	stream->add(stream, "Foo");
@@ -31,7 +31,7 @@ static void test_stream_test_add(struct test *test)
 static void test_stream_test_append(struct test *test)
 {
 	struct test_stream_test_context *ctx = test->priv;
-	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct MOCK(test) *mock_test = NICE_MOCK(ctx->mock_test);
 	struct test_stream *stream = ctx->stream;
 	struct test_stream *other_stream;
 
@@ -53,7 +53,7 @@ static void test_stream_test_append(struct test *test)
 static void test_stream_error_message_when_no_level_set(struct test *test)
 {
 	struct test_stream_test_context *ctx = test->priv;
-	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct MOCK(test) *mock_test = NICE_MOCK(ctx->mock_test);
 	struct test_stream *stream = ctx->stream;
 	struct test_stream *other_stream;
 
@@ -121,7 +121,7 @@ static void test_stream_test_commits_any_uncommitted_when_cleanup(
 		struct test *test)
 {
 	struct test_stream_test_context *ctx = test->priv;
-	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct MOCK(test) *mock_test = NICE_MOCK(ctx->mock_test);
 	struct test_stream *stream = ctx->stream;
 
 	stream->add(stream, "Hello World");
