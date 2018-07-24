@@ -244,6 +244,94 @@ static inline bool is_naggy_mock(struct mock *mock)
  */
 #define EXPECT_CALL(expectation_call) mock_master_##expectation_call
 
+/**
+ * Times() - sets the number of times a method is expected be called with the
+ *	matching parameters
+ * @times: the number of times expected
+ * @expectation: the expectation to set
+ *
+ * Return:
+ * the same &struct mock_expectation passed in
+ */
+static inline struct mock_expectation *Times(
+	int times,
+	struct mock_expectation *expectation
+) {
+	expectation->min_calls_expected = times;
+	expectation->max_calls_expected = times;
+	return expectation;
+}
+
+/**
+ * Never() - alias for Times(0)
+ * @expectation: the expectation to set
+ *
+ * Return:
+ * the same &struct mock_expectation passed in
+ */
+static inline struct mock_expectation *Never(
+	struct mock_expectation *expectation
+) {
+	return Times(0, expectation);
+}
+
+/**
+ * RetireOnSaturation() - sets the expectation to retire on saturation
+ * @expectation: the expectation to set
+ *
+ * Return:
+ * the same &struct mock_expectation passed in
+ */
+static inline struct mock_expectation *RetireOnSaturation(
+	struct mock_expectation *expectation
+) {
+	expectation->retire_on_saturation = true;
+	return expectation;
+}
+
+/**
+ * ActionOnMatch() - sets a action of the expectation when matched
+ * @expectation: the expectation to set the action of
+ * @action: action to perform when expectation matches
+ *
+ * Example:
+ *
+ * .. code-block:: c
+ *
+ *	ActionOnMatch(EXPECT_CALL(...), INVOKE_REAL(test, ...));
+ *
+ * Return:
+ * the same &struct mock_expectation passed in
+ */
+static inline struct mock_expectation *ActionOnMatch(
+	struct mock_expectation *expectation,
+	struct mock_action *action
+) {
+	expectation->action = action;
+	return expectation;
+}
+
+/**
+ * Returns() - sets a action of the expectation to return a value
+ * @expectation: the expectation to set the return value of
+ * @return_action: a return action
+ *
+ * Example:
+ *
+ * .. code-block:: c
+ *
+ *	Returns(EXPECT_CALL(...), int_return(test, 10));
+ *
+ * Return:
+ * the same &struct mock_expectation passed in
+ */
+static inline struct mock_expectation *Returns(
+	struct mock_expectation *expectation,
+	struct mock_action *return_action
+) {
+	return ActionOnMatch(expectation, return_action);
+}
+
 #define mock_get_ctrl_internal(mock_object) (&(mock_object)->ctrl)
 #define mock_get_ctrl(mock_object) mock_get_ctrl_internal(mock_object)
 

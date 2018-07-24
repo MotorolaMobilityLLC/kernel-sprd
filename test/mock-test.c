@@ -238,9 +238,8 @@ static void mock_test_naggy_no_expectations_no_fail(struct test *test)
 	mock_set_default_action(mock, "test_printk", test_printk,
 		int_return(trgt, -4));
 
-	expectation = EXPECT_CALL(fail(mock_get_ctrl(mock_test), any(test)));
-	expectation->min_calls_expected = 0;
-	expectation->max_calls_expected = 0;
+	expectation = Never(EXPECT_CALL(fail(mock_get_ctrl(mock_test),
+					     any(test))));
 
 	EXPECT_CALL(mock_vprintk(mock_get_ctrl(mock_test), any(test),
 		va_format_cmp(test, str_contains(test,
@@ -275,15 +274,12 @@ static void mock_test_nice_no_expectations_do_nothing(struct test *test)
 				test_printk,
 				int_return(trgt, -4));
 
-	expectation = EXPECT_CALL(fail(mock_get_ctrl(mock_test), any(test)));
-	expectation->min_calls_expected = 0;
-	expectation->max_calls_expected = 0;
+	expectation = Never(EXPECT_CALL(fail(mock_get_ctrl(mock_test),
+					     any(test))));
 
-	expectation = EXPECT_CALL(mock_vprintk(mock_get_ctrl(mock_test),
-					       any(test),
-					       any(test)));
-	expectation->min_calls_expected = 0;
-	expectation->max_calls_expected = 0;
+	expectation = Never(EXPECT_CALL(mock_vprintk(mock_get_ctrl(mock_test),
+						     any(test),
+						     any(test))));
 
 	mock->do_expect(mock,
 			"test_printk",
@@ -388,9 +384,8 @@ static void mock_test_validate_clears_expectations(struct test *test)
 	mock->type = MOCK_TYPE_STRICT;
 
 	/* If all goes well, the mock_test should not fail. */
-	expectation = EXPECT_CALL(fail(mock_get_ctrl(mock_test), any(test)));
-	expectation->min_calls_expected = 0;
-	expectation->max_calls_expected = 0;
+	expectation = Never(EXPECT_CALL(fail(mock_get_ctrl(mock_test),
+					     any(test))));
 
 	/* Add an arbitrary matcher for 0 calls */
 	expectation = mock_add_matcher(mock, "test_printk", test_printk,
