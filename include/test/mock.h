@@ -77,6 +77,13 @@ struct mock_expectation {
 	struct mock_matcher *matcher;
 	struct mock_method *method;
 	int times_called;
+	/* internal list of prerequisites */
+	struct list_head prerequisites;
+};
+
+struct mock_expectation_prereq_entry {
+	struct mock_expectation *expectation;
+	struct list_head node;
 };
 
 struct mock_method {
@@ -332,6 +339,30 @@ static inline struct mock_expectation *Returns(
 {
 	return ActionOnMatch(expectation, return_action);
 }
+
+/**
+ * InSequence() - defines an order for expectations to be matched
+ * @test: the test, used for internal resource allocations
+ * @first: the first &struct mock_expectation in the sequence
+ * @...: the rest of the expectations in order following
+ *
+ * Example:
+ *
+ * .. code-block:: c
+ *
+ *	struct mock_expectation *a = EXPECT_CALL(...);
+ *	struct mock_expectation *b = EXPECT_CALL(...);
+ *	struct mock_expectation *c = EXPECT_CALL(...);
+ *
+ *	InSequence(test, a, b, c);
+ *
+ * Return:
+ * 0 if everything was successful, otherwise a memory allocation error
+ */
+#define InSequence(test, first, ...) \
+	mock_in_sequence(test, first, __VA_ARGS__, 0)
+
+int mock_in_sequence(struct test *test, struct mock_expectation *first, ...);
 
 #define mock_get_ctrl_internal(mock_object) (&(mock_object)->ctrl)
 #define mock_get_ctrl(mock_object) mock_get_ctrl_internal(mock_object)

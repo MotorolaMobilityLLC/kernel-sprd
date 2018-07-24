@@ -38,29 +38,39 @@ static const void *mock_do_expect(struct mock *mock,
 				  const void **params,
 				  int len);
 
+static bool mock_is_expectation_satisfied(struct mock_expectation *expectation)
+{
+	return (expectation->min_calls_expected <= expectation->times_called &&
+		expectation->times_called <= expectation->max_calls_expected);
+}
+
+static void mock_write_expectation_unsatisfied_message(
+	struct mock_expectation *expectation,
+	struct test_stream *stream)
+{
+	stream->add(stream,
+		    "Expectation was not called the specified number of times:\n\t");
+	stream->add(stream,
+		    "Function: %s, min calls: %d, max calls: %d, actual calls: %d",
+		    expectation->method->method_name,
+		    expectation->min_calls_expected,
+		    expectation->max_calls_expected,
+		    expectation->times_called);
+}
+
 void mock_validate_expectations(struct mock *mock)
 {
 	struct mock_expectation *expectation, *expectation_safe;
 	struct mock_method *method;
 	struct test_stream *stream;
-	int times_called;
 
 	stream = test_new_stream(mock->test);
 	list_for_each_entry(method, &mock->methods, node) {
 		list_for_each_entry_safe(expectation, expectation_safe,
 					 &method->expectations, node) {
-			times_called = expectation->times_called;
-			if (!(expectation->min_calls_expected <= times_called &&
-			      times_called <= expectation->max_calls_expected)
-			    ) {
-				stream->add(stream,
-					    "Expectation was not called the specified number of times:\n\t");
-				stream->add(stream,
-					    "Function: %s, min calls: %d, max calls: %d, actual calls: %d",
-					    expectation->method->method_name,
-					    expectation->min_calls_expected,
-					    expectation->max_calls_expected,
-					    times_called);
+			if (!mock_is_expectation_satisfied(expectation)) {
+				mock_write_expectation_unsatisfied_message(
+					expectation, stream);
 				mock->test->fail(mock->test, stream);
 			}
 			list_del(&expectation->node);
@@ -203,6 +213,7 @@ struct mock_expectation *mock_add_matcher(struct mock *mock,
 	expectation->max_calls_expected = 1;
 	expectation->min_calls_expected = 1;
 
+	INIT_LIST_HEAD(&expectation->prerequisites);
 	ret = mock_add_expectation(mock, method_name, method_ptr, expectation);
 	if (ret < 0)
 		return NULL;
@@ -341,6 +352,61 @@ static void mock_add_method_expectation_error(struct test *test,
 		method->method_name, type_names, params, len);
 }
 
+static bool mock_are_prereqs_satisfied(struct mock_expectation *expectation,
+				       struct test_stream *stream)
+{
+	struct mock_expectation_prereq_entry *entry, *entry_safe;
+
+	list_for_each_entry_safe(entry, entry_safe,
+				 &expectation->prerequisites, node) {
+		if (!mock_is_expectation_satisfied(entry->expectation)) {
+			stream->add(stream,
+				    "Expectation %s matched but prerequisite expectation was not satisfied:\n",
+				    expectation->expectation_name);
+			mock_write_expectation_unsatisfied_message(
+				entry->expectation, stream);
+			return false;
+		}
+		/* Don't need to check satisfied prereq again. */
+		list_del(&entry->node);
+	}
+	return true;
+}
+
+/* Assumes that the var args are null terminated. */
+int mock_in_sequence(struct test *test, struct mock_expectation *first, ...)
+{
+	struct mock_expectation *prereq = first;
+	struct mock_expectation *curr = NULL;
+	struct mock_expectation_prereq_entry *entry;
+	va_list args;
+
+	va_start(args, first);
+
+	while ((curr = va_arg(args, struct mock_expectation*))) {
+		entry = test_kzalloc(test, sizeof(*entry), GFP_KERNEL);
+		if (!entry) {
+			va_end(args);
+			return -ENOMEM;
+		}
+		entry->expectation = prereq;
+		list_add_tail(&entry->node, &curr->prerequisites);
+		prereq = curr;
+	}
+	va_end(args);
+	return 0;
+}
+
+static inline bool does_mock_expectation_match_call(
+	struct mock_expectation *expectation,
+	struct test_stream *stream,
+	const void **params,
+	int len)
+{
+	return mock_match_params(expectation->matcher, stream, params, len) &&
+	       mock_are_prereqs_satisfied(expectation, stream);
+}
+
 static struct mock_expectation *mock_apply_expectations(
 		struct mock *mock,
 		struct mock_method *method,
@@ -382,7 +448,7 @@ static struct mock_expectation *mock_apply_expectations(
 
 		attempted_matching_stream->add(attempted_matching_stream,
 			"Tried expectation: %s, but\n", ret->expectation_name);
-		if (mock_match_params(ret->matcher,
+		if (does_mock_expectation_match_call(ret,
 			attempted_matching_stream, params, len)) {
 			/*
 			 * Matcher was found; we won't print, so clean up the
