@@ -75,6 +75,7 @@ struct mock_expectation {
 	const char *expectation_name;
 	struct list_head node;
 	struct mock_matcher *matcher;
+	struct mock_method *method;
 	int times_called;
 };
 

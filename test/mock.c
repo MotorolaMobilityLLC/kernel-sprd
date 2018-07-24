@@ -57,7 +57,7 @@ void mock_validate_expectations(struct mock *mock)
 					    "Expectation was not called the specified number of times:\n\t");
 				stream->add(stream,
 					    "Function: %s, min calls: %d, max calls: %d, actual calls: %d",
-					    method->method_name,
+					    expectation->method->method_name,
 					    expectation->min_calls_expected,
 					    expectation->max_calls_expected,
 					    times_called);
@@ -172,7 +172,7 @@ static int mock_add_expectation(struct mock *mock,
 	}
 
 	list_add_tail(&expectation->node, &method->expectations);
-
+	expectation->method = method;
 	return 0;
 }
 
