@@ -164,15 +164,13 @@ static struct drm_plane *dpu_plane_init(struct drm_device *drm,
 static void dpu_crtc_atomic_enable(struct drm_crtc *crtc,
 				   struct drm_crtc_state *old_state)
 {
-	DRM_DEBUG("drm_crtc_helper_funcs->enable()\n");
-	drm_crtc_vblank_on(crtc);
+	DRM_DEBUG("drm_crtc_helper_funcs->atomic_enable()\n");
 }
 
 static void dpu_crtc_atomic_disable(struct drm_crtc *crtc,
 				    struct drm_crtc_state *old_state)
 {
-	DRM_DEBUG("drm_crtc_helper_funcs->disable()\n");
-	drm_crtc_vblank_off(crtc);
+	DRM_DEBUG("drm_crtc_helper_funcs->atomic_disable()\n");
 }
 
 static int dpu_crtc_atomic_check(struct drm_crtc *crtc,
