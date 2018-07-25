@@ -768,6 +768,24 @@ void musb_rx_dma_sprd(struct dma_channel *dma_channel,
 		}
 	}
 }
+#else
+static int musb_tx_dma_set_mode_musb_tusb(struct dma_controller *dma,
+					  struct musb_hw_ep *hw_ep,
+					  struct musb_qh *qh,
+					  struct urb *urb,
+					  u32 offset,
+					  u32 *length,
+					  u8 *mode)
+{
+	return 0;
+}
+
+void musb_rx_dma_sprd(struct dma_channel *dma_channel,
+				  struct musb *musb, u8 epnum,
+				  struct musb_qh *qh,
+				  struct urb *urb,
+				  u32 offset, size_t len)
+{}
 #endif
 
 bool musb_tx_dma_program(struct dma_controller *dma,
