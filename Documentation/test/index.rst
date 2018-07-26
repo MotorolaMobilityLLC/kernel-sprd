@@ -8,6 +8,7 @@ KUnit - Unit Testing for the Linux Kernel
 	start
 	usage
 	api/index
+	faq
 
 What is KUnit?
 ==============
