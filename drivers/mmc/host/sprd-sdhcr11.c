@@ -65,7 +65,7 @@ static void dump_adma_info(struct sprd_sdhc_host *host)
 		desc_ptr = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_ADMA2_ADDR_L);
 	}
 
-	pr_info(" %s ADMA Err: 0x%08x EMMC_DEBUG0:0x%08x EMMC_DEBUG1:0x%08x \
+	pr_info("%s ADMA Err: 0x%08x EMMC_DEBUG0:0x%08x EMMC_DEBUG1:0x%08x \
 		EMMC_DEBUG2:0x%08x desc_ptr: 0x%llx\n",
 		host->device_name,
 		sprd_sdhc_readl(host, SPRD_SDHC_REG_ADMA_ERROR),
@@ -105,15 +105,15 @@ static void dump_adma_info(struct sprd_sdhc_host *host)
 
 		if (time_after(jiffies, start + HZ)) {
 			pr_err("%s %s ADMA error have no end desc\n",
-				__func__, host->device_name);
+			       __func__, host->device_name);
 			break;
 		}
 	}
 
 	desc_ptr = (u64)sprd_sdhc_readl(host,
-				SPRD_SDHC_REG_ADMA_PROCESS_H) << 32;
+			SPRD_SDHC_REG_ADMA_PROCESS_H) << 32;
 	desc_ptr |= sprd_sdhc_readl(host, SPRD_SDHC_REG_ADMA_PROCESS_L);
-	pr_info(" %s ADMA current ADMA  desc_ptr: 0x%llx\n",
+	pr_info("%s ADMA current ADMA  desc_ptr: 0x%llx\n",
 		host->device_name, desc_ptr);
 }
 
@@ -259,7 +259,7 @@ static void sprd_reset_ios(struct sprd_sdhc_host *host)
 	sprd_sdhc_set_64bit_addr(host, 1);
 #endif
 	sprd_sdhc_set_dll_backup(host, SPRD_SDHC_BIT_DLL_BAK |
-				    SPRD_SDHC_BIT_DLL_VAL);
+				       SPRD_SDHC_BIT_DLL_VAL);
 }
 
 static void sprd_get_rsp(struct sprd_sdhc_host *host)
@@ -563,7 +563,7 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 	u16 auto_cmd = SPRD_SDHC_BIT_ACMD_DIS;
 
 	pr_debug("%s(%s)  CMD%d, arg 0x%x, flag 0x%x\n", __func__,
-		host->device_name, cmd->opcode, cmd->arg, cmd->flags);
+		 host->device_name, cmd->opcode, cmd->arg, cmd->flags);
 	if (cmd->data)
 		pr_debug("%s(%s) block size %d, cnt %d\n", __func__,
 			host->device_name, cmd->data->blksz, cmd->data->blocks);
@@ -621,7 +621,7 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 			if (!host->mrq->sbc && SPRD_SDHC_FLAG_ENABLE_ACMD12)
 				auto_cmd = host->auto_cmd_mode;
 			else if (host->mrq->sbc &&
-				(host->flags & SPRD_AUTO_CMD23)) {
+				 (host->flags & SPRD_AUTO_CMD23)) {
 				auto_cmd = host->auto_cmd_mode;
 				sprd_sdhc_set_autocmd23(host);
 			}
@@ -665,9 +665,9 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 	host->int_come = 0;
 	sprd_sdhc_enable_int(host, flag);
 	pr_debug("sprd_sdhc %s CMD%d rsp:0x%x intflag:0x%x\n"
-		"if_mult:0x%x if_read:0x%x auto_cmd:0x%x if_dma:0x%x\n",
-		host->device_name, cmd->opcode, mmc_resp_type(cmd),
-		flag, if_mult, if_read, auto_cmd, if_dma);
+		 "if_mult:0x%x if_read:0x%x auto_cmd:0x%x if_dma:0x%x\n",
+		 host->device_name, cmd->opcode, mmc_resp_type(cmd),
+		 flag, if_mult, if_read, auto_cmd, if_dma);
 
 	/* adma need stric squence */
 	wmb();
@@ -949,8 +949,8 @@ static void sprd_sdhc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	 * so in following program we use auto cmd23 prior to auto cmd12
 	 */
 	pr_debug("%s(%s) CMD%d request %d %d %d\n", __func__,
-		host->device_name, mrq->cmd->opcode,
-		!!mrq->sbc, !!mrq->cmd, !!mrq->stop);
+		 host->device_name, mrq->cmd->opcode,
+		 !!mrq->sbc, !!mrq->cmd, !!mrq->stop);
 	host->auto_cmd_mode = SPRD_SDHC_BIT_ACMD_DIS;
 	if (!mrq->sbc && mrq->stop && SPRD_SDHC_FLAG_ENABLE_ACMD12) {
 		host->auto_cmd_mode = SPRD_SDHC_BIT_ACMD12;
@@ -1217,10 +1217,10 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		mmc->max_busy_timeout = (1 << 31) / (ios->clock / 1000);
 		if (ios->clock <= 400000)
 			sdhc_set_dll_invert(host, SPRD_SDHC_BIT_CMD_DLY_INV |
-					SPRD_SDHC_BIT_POSRD_DLY_INV, 1);
+					    SPRD_SDHC_BIT_POSRD_DLY_INV, 1);
 		else
 			sdhc_set_dll_invert(host, SPRD_SDHC_BIT_CMD_DLY_INV |
-					SPRD_SDHC_BIT_POSRD_DLY_INV, 0);
+					    SPRD_SDHC_BIT_POSRD_DLY_INV, 0);
 	}
 
 	if (ios->power_mode != host->ios.power_mode) {
@@ -1962,7 +1962,7 @@ static const struct dev_pm_ops sprd_sdhc_pmops = {
 };
 
 static const struct of_device_id sprd_sdhc_of_match[] = {
-	{.compatible = "sprd,sdhc-r11"},
+	{.compatible = "sprd,sdhc-r11p1"},
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, sprd_sdhc_of_match);
@@ -2016,7 +2016,7 @@ static int sprd_sdhc_probe(struct platform_device *pdev)
 	sprd_sdhc_set_64bit_addr(host, 0);
 #endif
 	sprd_sdhc_set_dll_backup(host, SPRD_SDHC_BIT_DLL_BAK |
-				 SPRD_SDHC_BIT_DLL_VAL);
+				       SPRD_SDHC_BIT_DLL_VAL);
 
 	pm_runtime_set_active(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);

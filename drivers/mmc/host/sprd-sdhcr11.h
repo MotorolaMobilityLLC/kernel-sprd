@@ -81,8 +81,8 @@ struct sprd_sdhc_host {
 	u8 *align_buffer;	/* Bounce buffer */
 	dma_addr_t adma_addr;	/* Mapped ADMA descr. table */
 	dma_addr_t align_addr;	/* Mapped bounce buffer */
-	size_t adma_table_sz;		/* ADMA descriptor table total size */
-	size_t adma_desc_sz;		/* Each ADMA descriptor size */
+	size_t adma_table_sz;	/* ADMA descriptor table total size */
+	size_t adma_desc_sz;	/* Each ADMA descriptor size */
 
 	struct pinctrl *pinctrl;
 	struct pinctrl_state *pins_uhs;
@@ -99,21 +99,24 @@ struct sprd_sdhc_host {
 	u16 auto_cmd_mode;
 
 	u32 flags;
-#define SPRD_HS400_TUNING	(1<<0)	/* Tuning for HS400 support emmc5.0 */
-#define SPRD_USE_ADMA		(1<<1)	/* Host is ADMA capable */
+/* Tuning for HS400 support emmc5.0 */
+#define SPRD_HS400_TUNING	(1<<0)
+/* Host is ADMA capable */
+#define SPRD_USE_ADMA		(1<<1)
 /* pinctrl used for vddsdio voltage switch */
 #define SPRD_PINCTRL_SWITCH_VOLTAGE (1<<3)
 /* pinctrl used for avoid sdio leak voltage */
 #define SPRD_PINCTRL_AVOID_LEAK_VOLTAGE (1<<4)
-#define SPRD_USE_64_BIT_DMA	(1<<5)	/* Use 64-bit DMA */
-#define SPRD_AUTO_CMD23	(1<<6)	/* Auto CMD23 support */
+/* Use 64-bit DMA */
+#define SPRD_USE_64_BIT_DMA	(1<<5)
+/* Auto CMD23 support */
+#define SPRD_AUTO_CMD23	(1<<6)
 };
 
 /* Controller flag */
 #define SPRD_SDHC_FLAG_ENABLE_ACMD12	0
 #define SPRD_SDHC_FLAG_ENABLE_ACMD23	0
 #define SPRD_SDHC_MAX_TIMEOUT		0x3
-
 
 /* ADMA2 32-bit DMA descriptor size */
 #define SPRD_ADMA2_32_DESC_SZ	8
@@ -155,8 +158,8 @@ struct sdhci_adma2_32_desc {
 
 /* Controller registers */
 #ifdef CONFIG_SPRD_REG_ACCESS_32BITS
-static  void sprd_sdhc_writeb(struct sprd_sdhc_host *host, u8 val,
-				  int reg)
+static void
+sprd_sdhc_writeb(struct sprd_sdhc_host *host, u8 val, int reg)
 {
 	uint32_t addr;
 	uint32_t value;
@@ -168,11 +171,10 @@ static  void sprd_sdhc_writeb(struct sprd_sdhc_host *host, u8 val,
 	value &= ~(0xFF << ofst);
 	value |= (val & 0xFF)<<ofst;
 	writel_relaxed(value, host->ioaddr + addr);
-
 }
 
-static  void sprd_sdhc_writew(struct sprd_sdhc_host *host, u16 val,
-				  int reg)
+static void
+sprd_sdhc_writew(struct sprd_sdhc_host *host, u16 val, int reg)
 {
 	uint32_t addr;
 	uint32_t value;
@@ -186,7 +188,7 @@ static  void sprd_sdhc_writew(struct sprd_sdhc_host *host, u16 val,
 	writel_relaxed(value, host->ioaddr + addr);
 }
 
-static  u8 sprd_sdhc_readb(struct sprd_sdhc_host *host, int reg)
+static u8 sprd_sdhc_readb(struct sprd_sdhc_host *host, int reg)
 {
 	uint32_t ofst;
 	u8  temp;
@@ -199,10 +201,9 @@ static  u8 sprd_sdhc_readb(struct sprd_sdhc_host *host, int reg)
 	temp = (u8)(value >> ofst);
 
 	return temp;
-
 }
 
-static  u16 sprd_sdhc_readw(struct sprd_sdhc_host *host, int reg)
+static u16 sprd_sdhc_readw(struct sprd_sdhc_host *host, int reg)
 {
 	uint32_t ofst;
 	u16  temp = 0;
@@ -218,14 +219,14 @@ static  u16 sprd_sdhc_readw(struct sprd_sdhc_host *host, int reg)
 }
 
 #else
-static inline void sprd_sdhc_writeb(struct sprd_sdhc_host *host, u8 val,
-				  int reg)
+static inline void
+sprd_sdhc_writeb(struct sprd_sdhc_host *host, u8 val, int reg)
 {
 	writeb_relaxed(val, host->ioaddr + reg);
 }
 
-static inline void sprd_sdhc_writew(struct sprd_sdhc_host *host, u16 val,
-				  int reg)
+static inline void
+sprd_sdhc_writew(struct sprd_sdhc_host *host, u16 val, int reg)
 {
 	writew_relaxed(val, host->ioaddr + reg);
 }
@@ -239,11 +240,10 @@ static inline u16 sprd_sdhc_readw(struct sprd_sdhc_host *host, int reg)
 {
 	return readw_relaxed(host->ioaddr + reg);
 }
-
 #endif
 
-static inline void sprd_sdhc_writel(struct sprd_sdhc_host *host, u32 val,
-				  int reg)
+static inline void
+sprd_sdhc_writel(struct sprd_sdhc_host *host, u32 val, int reg)
 {
 	writel_relaxed(val, host->ioaddr + reg);
 }
@@ -258,14 +258,14 @@ static inline u32 sprd_sdhc_readl(struct sprd_sdhc_host *host, int reg)
 #define SPRD_SDHC_REG_32_BLK_CNT	0x00
 #define SPRD_SDHC_REG_16_BLK_CNT	0x06
 
-static inline void sprd_sdhc_set_16_blk_cnt(struct sprd_sdhc_host *host,
-					  u32 blk_cnt)
+static inline void
+sprd_sdhc_set_16_blk_cnt(struct sprd_sdhc_host *host, u32 blk_cnt)
 {
 	sprd_sdhc_writew(host, (blk_cnt & 0xFFFF), SPRD_SDHC_REG_16_BLK_CNT);
 }
 
-static inline void sprd_sdhc_set_32_blk_cnt(struct sprd_sdhc_host *host,
-					  u32 blk_cnt)
+static inline void
+sprd_sdhc_set_32_blk_cnt(struct sprd_sdhc_host *host, u32 blk_cnt)
 {
 	sprd_sdhc_writel(host,
 			(blk_cnt & 0xFFFFFFFF),
@@ -274,8 +274,8 @@ static inline void sprd_sdhc_set_32_blk_cnt(struct sprd_sdhc_host *host,
 
 #define SPRD_SDHC_REG_16_BLK_SIZE	0x04
 
-static inline void sprd_sdhc_set_blk_size(struct sprd_sdhc_host *host,
-					u32 blk_size)
+static inline void
+sprd_sdhc_set_blk_size(struct sprd_sdhc_host *host, u32 blk_size)
 {
 	sprd_sdhc_writew(host,
 			(blk_size & 0xFFF) | 0x7000,
@@ -288,10 +288,9 @@ static inline void sprd_sdhc_set_blk_size(struct sprd_sdhc_host *host,
 #define SPRD_SDHC_BIT_ACMD12	0x01
 #define SPRD_SDHC_BIT_ACMD23	0x02
 
-static inline void sprd_sdhc_set_trans_mode(struct sprd_sdhc_host *host,
-					  u16 if_mult, u16 if_read,
-					  u16 auto_cmd,
-					  u16 if_blk_cnt, u16 if_dma)
+static inline void
+sprd_sdhc_set_trans_mode(struct sprd_sdhc_host *host, u16 if_mult, u16 if_read,
+			 u16 auto_cmd, u16 if_blk_cnt, u16 if_dma)
 {
 	sprd_sdhc_writew(host,
 			(((if_mult ? 1 : 0) << 5) |
@@ -321,8 +320,9 @@ static inline void sprd_sdhc_set_trans_mode(struct sprd_sdhc_host *host,
 	(SPRD_SDHC_BIT_CMD_INDEX_CHK | SPRD_SDHC_BIT_CMD_CRC_CHK | \
 	SPRD_SDHC_BIT_CMD_RSP_48_BUSY)
 
-static inline void sprd_sdhc_set_cmd(struct sprd_sdhc_host *host, u16 cmd,
-				   int if_has_data, u16 rsp_type)
+static inline void
+sprd_sdhc_set_cmd(struct sprd_sdhc_host *host, u16 cmd,
+		  int if_has_data, u16 rsp_type)
 {
 	sprd_sdhc_writew(host,
 			((cmd << 8) | ((if_has_data ? 1 : 0) << 5) | rsp_type),
@@ -331,11 +331,10 @@ static inline void sprd_sdhc_set_cmd(struct sprd_sdhc_host *host, u16 cmd,
 
 #define SPRD_SDHC_32_TR_MODE_AND_CMD	0x0C
 
-static inline void sprd_sdhc_set_trans_and_cmd(struct sprd_sdhc_host *host,
-					     int if_mult, int if_read,
-					     u16 auto_cmd, int if_blk_cnt,
-					     int if_dma, u32 cmd,
-					     int if_has_data, u32 rsp_type)
+static inline void
+sprd_sdhc_set_trans_and_cmd(struct sprd_sdhc_host *host, int if_mult,
+			    int if_read, u16 auto_cmd, int if_blk_cnt,
+			    int if_dma, u32 cmd, int if_has_data, u32 rsp_type)
 {
 	sprd_sdhc_writel(host,
 			(((if_mult ? 1 : 0) << 5) |
@@ -362,8 +361,8 @@ static inline void sprd_sdhc_set_trans_and_cmd(struct sprd_sdhc_host *host,
 #define SPRD_SDHC_BIT_64ADMA_MOD	0x18
 #define SPRD_SDHC_BIT_HISPD_MOD		0x04
 
-static inline void sprd_sdhc_set_buswidth(struct sprd_sdhc_host *host,
-					u32 buswidth)
+static inline void
+sprd_sdhc_set_buswidth(struct sprd_sdhc_host *host, u32 buswidth)
 {
 	u8 ctrl = 0;
 
@@ -464,8 +463,8 @@ static inline u32 sprd_sdhc_calc_div(u32 base_clk, u32 clk)
 	return div;
 }
 
-static inline void sprd_sdhc_clk_set_and_on(struct sprd_sdhc_host *host,
-					u32 div)
+static inline void
+sprd_sdhc_clk_set_and_on(struct sprd_sdhc_host *host, u32 div)
 {
 	u16 ctrl = 0;
 	unsigned long timeout;
@@ -493,10 +492,10 @@ static inline void sprd_sdhc_clk_set_and_on(struct sprd_sdhc_host *host,
 #define SPRD_SDHC_REG_8_TIMEOUT			0x2E
 #define SPRD_SDHC_DATA_TIMEOUT_MAX_VAL		0xe
 
-static inline u8 sprd_sdhc_calc_timeout(unsigned int clock,
-					   u8 timeout_value)
+static inline
+u8 sprd_sdhc_calc_timeout(unsigned int clock, u8 timeout_value)
 {
-	unsigned target_timeout, current_timeout;
+	unsigned int target_timeout, current_timeout;
 	u8 count;
 
 	count = 0;
@@ -510,6 +509,7 @@ static inline u8 sprd_sdhc_calc_timeout(unsigned int clock,
 	count--;
 	if (count >= 0xF)
 		count = 0xE;
+
 	return count;
 }
 
@@ -750,8 +750,8 @@ static inline void sprd_sdhc_set_adma2_len(struct sprd_sdhc_host *host)
 #define SPRD_SDHC_BIT_POSRD_DLY_INV		(1 << 21)
 #define SPRD_SDHC_BIT_NEGRD_DLY_INV		(1 << 29)
 
-static inline void sdhc_set_dll_invert(struct sprd_sdhc_host *host,
-	u32 mask, int enable)
+static inline void
+sdhc_set_dll_invert(struct sprd_sdhc_host *host, u32 mask, int enable)
 {
 	u32 dll_dly_offset;
 
@@ -771,8 +771,9 @@ static inline void sdhc_set_dll_invert(struct sprd_sdhc_host *host,
 static inline void sdhc_enable_auto_gate(struct sprd_sdhc_host *host)
 {
 	u32 val, mask;
+
 	mask = SPRD_SDHC_BIT_OUTR_CLK_AUTO_EN |
-		     SPRD_SDHC_BIT_INNR_CLK_AUTO_EN;
+	       SPRD_SDHC_BIT_INNR_CLK_AUTO_EN;
 
 	val = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_BUSY_POSI);
 
@@ -797,7 +798,8 @@ static inline void sdhc_enable_auto_gate(struct sprd_sdhc_host *host)
 #define SPRD_SDHC_BIT_DLL_BAK		(1 << 0)
 #define SPRD_SDHC_BIT_DLL_VAL		(1 << 1)
 
-static inline void sprd_sdhc_set_dll_backup(struct sprd_sdhc_host *host, u8 mask)
+static inline void
+sprd_sdhc_set_dll_backup(struct sprd_sdhc_host *host, u8 mask)
 {
 	u32 tmp;
 
