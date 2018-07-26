@@ -14,6 +14,15 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
+	aliases {
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c2 = &i2c2;
+		i2c3 = &i2c3;
+		i2c4 = &i2c4;
+		i2c5 = &i2c5;
+	};
+
 	soc: soc {
 		compatible = "simple-bus";
 		#address-cells = <2>;
@@ -80,50 +89,60 @@
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0x300000 0x100>;
 				interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "i2c", "source", "enable";
+				clock-names ="enable", "i2c", "source";
+				clocks = <&apapb_gate CLK_I2C0_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				status = "disabled";
 			};
 
 			i2c1: i2c@400000 {
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0x400000 0x100>;
 				interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "i2c", "source", "enable";
+				clock-names ="enable", "i2c", "source";
+				clocks = <&apapb_gate CLK_I2C1_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				status = "disabled";
 			};
 
 			i2c2: i2c@500000 {
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0x500000 0x100>;
 				interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "i2c", "source", "enable";
+				clock-names = "enable", "i2c", "source";
+				clocks = <&apapb_gate CLK_I2C2_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				status = "disabled";
 			};
 
 			i2c3: i2c@600000 {
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0x600000 0x100>;
 				interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "i2c", "source", "enable";
+				clock-names = "enable", "i2c", "source";
+				clocks = <&apapb_gate CLK_I2C3_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				status = "disabled";
 			};
 
 			i2c4: i2c@700000 {
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0x700000 0x100>;
 				interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "i2c", "source", "enable";
+				clock-names ="enable", "i2c", "source";
+				clocks = <&apapb_gate CLK_I2C4_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				status = "disabled";
 			};
 		};
 
@@ -207,10 +226,12 @@
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0 0x32060000 0 0x1000>;
 				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "i2c", "source", "enable";
+				clock-names = "enable", "i2c", "source";
+				clocks = <&aonapb_gate CLK_I2C_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				status = "disabled";
 			};
 
 			ap_gpio: gpio@32070000 {
