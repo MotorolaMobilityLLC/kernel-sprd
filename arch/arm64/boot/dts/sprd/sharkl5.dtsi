@@ -197,6 +197,12 @@
 				clocks = <&ext_32k>;
 			};
 
+			timer@32050020 {
+				compatible = "sprd,sharkl5-suspend-timer";
+				reg = <0 0x32050020 0 0x20>;
+				clocks = <&ext_32k>;
+			};
+
 			i2c5: i2c@32060000 {
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0 0x32060000 0 0x1000>;
