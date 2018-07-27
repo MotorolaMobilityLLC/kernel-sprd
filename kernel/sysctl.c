@@ -362,6 +362,15 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 	},
+	{
+		.procname       = "sched_walt_busy_threshold",
+		.data           = &walt_busy_threshold,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec_minmax,
+		.extra1         = &zero,
+		.extra2         = &one_hundred,
+	},
 #endif
 	{
 		.procname	= "sched_sync_hint_enable",

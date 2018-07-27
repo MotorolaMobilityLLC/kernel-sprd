@@ -5966,6 +5966,7 @@ void __init sched_init(void)
 		rq->cur_irqload = 0;
 		rq->avg_irqload = 0;
 		rq->irqload_ts = 0;
+		rq->is_busy = CPU_BUSY_CLR;
 #endif
 
 		INIT_LIST_HEAD(&rq->cfs_tasks);
