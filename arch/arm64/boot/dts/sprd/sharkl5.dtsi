@@ -7,6 +7,7 @@
 
 #include <dt-bindings/soc/sprd,sharkl5-regs.h>
 #include <dt-bindings/soc/sprd,sharkl5-mask.h>
+#include <dt-bindings/clock/sprd,sharkl5-clk.h>
 
 / {
 	interrupt-parent = <&gic>;
@@ -139,6 +140,7 @@
 				#dma-cells = <1>;
 				#dma-channels = <32>;
 				clock-names = "enable";
+				clocks = <&apahb_gate CLK_DMA_EB>;
 			};
 		};
 
@@ -229,6 +231,7 @@
 				reg = <0 0x32240000 0 0x10000>;
 				clock-names = "enable";
 				hwlocks = <&hwlock 8>;
+				clocks = <&aonapb_gate CLK_EFUSE_EB>;
 			};
 
 			watchdog@322f0000 {
@@ -237,6 +240,8 @@
 				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
 				timeout-sec = <12>;
 				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_APCPU_WDG_EB>,
+					<&aonapb_gate CLK_AP_WDG_RTC_EB>;
 			};
 
 			pin_controller: pinctrl@32450000 {
@@ -249,6 +254,7 @@
 				reg = <0 0x327f0000 0 0x10000>;
 				#hwlock-cells = <1>;
 				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
 		};
 
