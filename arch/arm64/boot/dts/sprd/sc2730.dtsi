@@ -57,6 +57,23 @@
 			#interrupt-cells = <2>;
 		};
 
+		efuse@300 {
+			compatible = "sprd,sc27xx-efuse", "sprd,sc2730-efuse";
+			reg = <0x300>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			hwlocks = <&hwlock 12>;
+		};
+
+		pmic_adc: adc@500 {
+			compatible = "sprd,sc27xx-adc", "sprd,sc2730-adc";
+			reg = <0x500>;
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
+			#io-channel-cells = <1>;
+			hwlocks = <&hwlock 4>;
+		};
+
 		vibrator@1b90 {
 			compatible = "sprd,sc27xx-vibrator", "sprd,sc2730-vibrator";
 			reg = <0x1b90>;
