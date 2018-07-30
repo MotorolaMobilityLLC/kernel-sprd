@@ -27,12 +27,42 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x0 0x80000000 0x0 0x80000000>;
+		reg = <0x0 0x80000000 0x0 0xc2c00000>;
 	};
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 maxcpus=1 init=/init root=/dev/ram0 rw androidboot.hardware=ums510_haps androidboot.selinux=permissive";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 maxcpus=1 init=/init root=/dev/memdisk.0 rootfstype=ext4 rw rootwait androidboot.hardware=ums510_haps androidboot.selinux=permissive";
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* must be 64M aligned */
+		sml_reserved: sml-mem@94000000{
+			reg = <0x0 0x94000000 0x0 0x00020000>;
+		};
+
+		tos_reserved: tos-mem@94020000{
+			reg = <0x0 0x94020000 0x0 0x01fe0000>;
+		};
+
+		tos_shm_reserved: sh-mem@96000000{
+			reg = <0x0 0x96000000 0x0 0x00100000>;
+		};
+
+		memdisk_reserved: memdisk@c0000000{
+			reg = <0x0 0xc0000000 0x0 0x50000000>,  /* system 1280M */
+				<0x1 0x10000000 0x0 0x20000000>, /* userdata 512M */
+				<0x1 0x30000000 0x0 0x12c00000>; /* vendor 300M */
+		};
+	};
+
+	sprd-memdisk {
+		compatible = "sprd,memdisk";
+		memory-region = <&memdisk_reserved>;
 	};
 
 	gpio-keys {
