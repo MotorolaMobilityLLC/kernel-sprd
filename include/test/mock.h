@@ -242,7 +242,7 @@ static inline bool is_naggy_mock(struct mock *mock)
  * A &struct mock_expectation representing the call expectation.
  * allowing additional conditions and actions to be specified.
  */
-#define EXPECT_CALL(expectation_call) mock_master_##expectation_call;
+#define EXPECT_CALL(expectation_call) mock_master_##expectation_call
 
 #define mock_get_ctrl_internal(mock_object) (&(mock_object)->ctrl)
 #define mock_get_ctrl(mock_object) mock_get_ctrl_internal(mock_object)
