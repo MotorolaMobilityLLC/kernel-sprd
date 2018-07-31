@@ -77,6 +77,8 @@ struct mock_expectation {
 	struct mock_matcher *matcher;
 	struct mock_method *method;
 	int times_called;
+	const char *file_name;
+	int line_no;
 	/* internal list of prerequisites */
 	struct list_head prerequisites;
 };
@@ -250,7 +252,18 @@ static inline bool is_naggy_mock(struct mock *mock)
  * A &struct mock_expectation representing the call expectation.
  * allowing additional conditions and actions to be specified.
  */
-#define EXPECT_CALL(expectation_call) mock_master_##expectation_call
+#define EXPECT_CALL(expectation_call) \
+	expect_call_wrapper(__FILE__, __LINE__, mock_master_##expectation_call)
+
+static inline struct mock_expectation *expect_call_wrapper(
+	const char *file_name,
+	int line_no,
+	struct mock_expectation *expectation)
+{
+	expectation->file_name = file_name;
+	expectation->line_no = line_no;
+	return expectation;
+}
 
 /**
  * Times() - sets the number of times a method is expected be called with the
