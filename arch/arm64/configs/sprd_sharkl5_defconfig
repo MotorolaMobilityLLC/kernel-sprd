@@ -2520,6 +2520,11 @@ CONFIG_ION=y
 # CONFIG_LTE_GDM724X is not set
 # CONFIG_LNET is not set
 # CONFIG_GS_FPGABOOT is not set
+
+#
+# SPRD Mailbox  modules
+#
+CONFIG_SPRD_MAILBOX=y
 # CONFIG_COMMON_CLK_XLNX_CLKWZRD is not set
 # CONFIG_MOST is not set
 # CONFIG_GREYBUS is not set

@@ -1,0 +1,14 @@
+
+menu "SPRD Mailbox  modules"
+
+config SPRD_MAILBOX
+	bool "Spreadtrum Mailbox IPI Arch"
+	default n
+	help
+	  Spreadtrum Mailbox is a framework to control
+	  hardware communication between on-chip processors
+	  through queued messages and interrupt driven
+	  signals.
+
+endmenu
+
