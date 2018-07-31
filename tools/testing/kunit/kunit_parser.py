@@ -37,12 +37,12 @@ def yellow(text):
 def green(text):
 	return '\033[1;32m' + text + RESET
 
-def print_with_timestamp(message):
-	print('[%s] %s' % (datetime.now().strftime('%H:%M:%S'), message))
+def timestamp(message):
+	return '[%s] %s' % (datetime.now().strftime('%H:%M:%S'), message)
 
-def print_log(log):
+def timestamp_log(log):
 	for m in log:
-		print_with_timestamp(m)
+		yield timestamp(m)
 
 def parse_run_tests(kernel_output):
 	test_case_output = re.compile('^kunit .*?: (.*)$')
@@ -68,18 +68,18 @@ def parse_run_tests(kernel_output):
 		log.clear()
 		total_tests.add(get_test_name(match))
 
-	print_with_timestamp(DIVIDER)
+	yield timestamp(DIVIDER)
 	try:
-		for line in isolate_kunit_output(kernel_output):
+		for line in kernel_output:
 			# Ignore module output:
 			if (test_module_success.match(line) or
 			test_module_fail.match(line)):
-				print_with_timestamp(DIVIDER)
+				yield timestamp(DIVIDER)
 				continue
 
 			match = re.match(test_case_success, line)
 			if match:
-				print_with_timestamp(green("[PASSED] ") +
+				yield timestamp(green("[PASSED] ") +
 						get_test_name(match))
 				end_one_test(match, current_case_log)
 				continue
@@ -89,20 +89,20 @@ def parse_run_tests(kernel_output):
 			# want to show and count it once.
 			if match and get_test_name(match) not in crashed_tests:
 				failed_tests.add(get_test_name(match))
-				print_with_timestamp(red("[FAILED] " +
+				yield timestamp(red("[FAILED] " +
 							get_test_name(match)))
-				print_log(map(yellow, current_case_log))
-				print_with_timestamp("")
+				yield from timestamp_log(map(yellow, current_case_log))
+				yield timestamp("")
 				end_one_test(match, current_case_log)
 				continue
 
 			match = re.match(test_case_crash, line)
 			if match:
 				crashed_tests.add(get_test_name(match))
-				print_with_timestamp(yellow("[CRASH] " +
+				yield timestamp(yellow("[CRASH] " +
 							get_test_name(match)))
-				print_log(current_case_log)
-				print_with_timestamp("")
+				yield from timestamp_log(current_case_log)
+				yield timestamp("")
 				end_one_test(match, current_case_log)
 				continue
 
@@ -114,21 +114,21 @@ def parse_run_tests(kernel_output):
 				current_case_log.append(line)
 	except KernelCrashException:
 		did_kernel_crash = True
-		print_with_timestamp(
+		yield timestamp(
 			red("The KUnit kernel crashed unexpectedly and was " +
 			    "unable to finish running tests!"))
-		print_with_timestamp(red("These are the logs from the most " +
+		yield timestamp(red("These are the logs from the most " +
 					 "recently running test:"))
-		print_with_timestamp(DIVIDER)
-		print_log(current_case_log)
-		print_with_timestamp(DIVIDER)
+		yield timestamp(DIVIDER)
+		yield from timestamp_log(current_case_log)
+		yield timestamp(DIVIDER)
 
 	fmt = green if (len(failed_tests) + len(crashed_tests) == 0
 			and not did_kernel_crash) else red
 	message = ("Before the crash:" if did_kernel_crash else
 		   "Testing complete.")
 
-	print_with_timestamp(
+	yield timestamp(
 		fmt(message + " %d tests run. %d failed. %d crashed." %
 		    (len(total_tests), len(failed_tests), len(crashed_tests))))
 

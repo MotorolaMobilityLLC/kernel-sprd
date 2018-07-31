@@ -22,34 +22,42 @@ parser.add_argument('--timeout', help='maximum number of seconds to allow for '
 		    metavar='timeout')
 
 cli_args = parser.parse_args()
-linux = kunit_kernel.LinuxSourceTree()
 
-config_start = time.time()
-success = linux.build_reconfig()
-config_end = time.time()
-if not success:
-	quit()
+def main(linux):
 
-kunit_parser.print_with_timestamp('Building KUnit Kernel ...')
+	config_start = time.time()
+	success = linux.build_reconfig()
+	config_end = time.time()
+	if not success:
+		return
 
-build_start = time.time()
-success = linux.build_um_kernel()
-build_end = time.time()
-if not success:
-	quit()
+	print(kunit_parser.timestamp('Building KUnit Kernel ...'))
 
-kunit_parser.print_with_timestamp('Starting KUnit Kernel ...')
-test_start = time.time()
+	build_start = time.time()
+	success = linux.build_um_kernel()
+	build_end = time.time()
+	if not success:
+		return
 
-if cli_args.raw_output:
-	kunit_parser.raw_output(linux.run_kernel(timeout=cli_args.timeout))
-else:
-	kunit_parser.parse_run_tests(linux.run_kernel(timeout=cli_args.timeout))
+	print(kunit_parser.timestamp('Starting KUnit Kernel ...'))
+	test_start = time.time()
 
-test_end = time.time()
+	if cli_args.raw_output:
+		kunit_parser.raw_output(
+			linux.run_kernel(timeout=cli_args.timeout))
+	else:
+		for line in kunit_parser.parse_run_tests(
+			kunit_parser.isolate_kunit_output(
+				linux.run_kernel(timeout=cli_args.timeout))):
+			print(line)
 
-kunit_parser.print_with_timestamp((
-	"Elapsed time: %.3fs total, %.3fs configuring, %.3fs " +
-	"building, %.3fs running.\n") % (test_end - config_start,
-	config_end - config_start, build_end - build_start,
-	test_end - test_start))
+	test_end = time.time()
+
+	print(kunit_parser.timestamp((
+		'Elapsed time: %.3fs total, %.3fs configuring, %.3fs ' +
+		'building, %.3fs running.\n') % (test_end - config_start,
+		config_end - config_start, build_end - build_start,
+		test_end - test_start)))
+
+if __name__ == '__main__':
+	main(kunit_kernel.LinuxSourceTree())
