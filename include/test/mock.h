@@ -256,8 +256,8 @@ static inline bool is_naggy_mock(struct mock *mock)
  */
 static inline struct mock_expectation *Times(
 	int times,
-	struct mock_expectation *expectation
-) {
+	struct mock_expectation *expectation)
+{
 	expectation->min_calls_expected = times;
 	expectation->max_calls_expected = times;
 	return expectation;
@@ -271,8 +271,8 @@ static inline struct mock_expectation *Times(
  * the same &struct mock_expectation passed in
  */
 static inline struct mock_expectation *Never(
-	struct mock_expectation *expectation
-) {
+	struct mock_expectation *expectation)
+{
 	return Times(0, expectation);
 }
 
@@ -284,8 +284,8 @@ static inline struct mock_expectation *Never(
  * the same &struct mock_expectation passed in
  */
 static inline struct mock_expectation *RetireOnSaturation(
-	struct mock_expectation *expectation
-) {
+	struct mock_expectation *expectation)
+{
 	expectation->retire_on_saturation = true;
 	return expectation;
 }
@@ -306,8 +306,8 @@ static inline struct mock_expectation *RetireOnSaturation(
  */
 static inline struct mock_expectation *ActionOnMatch(
 	struct mock_expectation *expectation,
-	struct mock_action *action
-) {
+	struct mock_action *action)
+{
 	expectation->action = action;
 	return expectation;
 }
@@ -328,8 +328,8 @@ static inline struct mock_expectation *ActionOnMatch(
  */
 static inline struct mock_expectation *Returns(
 	struct mock_expectation *expectation,
-	struct mock_action *return_action
-) {
+	struct mock_action *return_action)
+{
 	return ActionOnMatch(expectation, return_action);
 }
 
