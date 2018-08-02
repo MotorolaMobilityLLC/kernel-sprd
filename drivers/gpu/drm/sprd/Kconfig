@@ -9,3 +9,8 @@ config DRM_SPRD
 	help
 	  Choose this option if you have a Spreadtrum chipsets.
 	  If M is selected the module will be called sprd-drm.
+
+#
+#SPRD DRM GSP driver
+#
+source "drivers/gpu/drm/sprd/gsp/Kconfig"
