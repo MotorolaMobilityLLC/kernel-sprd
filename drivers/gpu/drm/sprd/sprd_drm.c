@@ -26,6 +26,8 @@
 #include <drm/drm_crtc_helper.h>
 
 #include "sprd_drm.h"
+#include "sprd_drm_gsp.h"
+#include <uapi/drm/sprd_drm_gsp.h>
 
 int sprd_drm_kms_cleanup(struct drm_device *drm)
 {
@@ -133,6 +135,14 @@ err_dc_cleanup:
 	return ret;
 }
 
+static const struct drm_ioctl_desc sprd_ioctls[] = {
+	DRM_IOCTL_DEF_DRV(SPRD_GSP_GET_CAPABILITY,
+		sprd_gsp_get_capability_ioctl,
+		DRM_AUTH | DRM_RENDER_ALLOW),
+	DRM_IOCTL_DEF_DRV(SPRD_GSP_TRIGGER, sprd_gsp_trigger_ioctl,
+			DRM_AUTH | DRM_RENDER_ALLOW),
+};
+
 static const struct file_operations sprd_drm_fops = {
 	.owner		= THIS_MODULE,
 	.open		= drm_open,
@@ -164,6 +174,8 @@ static struct drm_driver sprd_drm_drv = {
 	.gem_prime_vmap		= drm_gem_cma_prime_vmap,
 	.gem_prime_vunmap	= drm_gem_cma_prime_vunmap,
 	.gem_prime_mmap		= drm_gem_cma_prime_mmap,
+	.ioctls			= sprd_ioctls,
+	.num_ioctls		= ARRAY_SIZE(sprd_ioctls),
 
 	.name			= "sprd",
 	.desc			= "Spreadtrum SoCs' DRM Driver",
@@ -217,10 +229,95 @@ static int compare_of(struct device *dev, void *data)
 	return dev->of_node == np;
 }
 
+static int sprd_drm_component_probe(struct device *dev,
+			   const struct component_master_ops *m_ops)
+{
+	struct device_node *ep, *port, *remote;
+	struct component_match *match = NULL;
+	int i;
+
+	if (!dev->of_node)
+		return -EINVAL;
+
+	/*
+	 * Bind the crtc's ports first, so that drm_of_find_possible_crtcs()
+	 * called from encoder's .bind callbacks works as expected
+	 */
+	for (i = 0; ; i++) {
+		port = of_parse_phandle(dev->of_node, "ports", i);
+		if (!port)
+			break;
+
+		if (!of_device_is_available(port->parent)) {
+			of_node_put(port);
+			continue;
+		}
+
+		component_match_add(dev, &match, compare_of, port);
+		of_node_put(port);
+	}
+
+	if (i == 0) {
+		dev_err(dev, "missing 'ports' property\n");
+		return -ENODEV;
+	}
+
+	if (!match) {
+		dev_err(dev, "no available port\n");
+		return -ENODEV;
+	}
+
+	/*
+	 * For bound crtcs, bind the encoders attached to their remote endpoint
+	 */
+	for (i = 0; ; i++) {
+		port = of_parse_phandle(dev->of_node, "ports", i);
+		if (!port)
+			break;
+
+		if (!of_device_is_available(port->parent)) {
+			of_node_put(port);
+			continue;
+		}
+
+		for_each_child_of_node(port, ep) {
+			remote = of_graph_get_remote_port_parent(ep);
+			if (!remote || !of_device_is_available(remote)) {
+				of_node_put(remote);
+				continue;
+			} else if (!of_device_is_available(remote->parent)) {
+				dev_warn(dev, "parent device of %s is not available\n",
+					 remote->full_name);
+				of_node_put(remote);
+				continue;
+			}
+
+			component_match_add(dev, &match, compare_of, remote);
+			of_node_put(remote);
+		}
+		of_node_put(port);
+	}
+
+	for (i = 0; ; i++) {
+		port = of_parse_phandle(dev->of_node, "gsp", i);
+		if (!port)
+			break;
+
+		if (!of_device_is_available(port->parent)) {
+			of_node_put(port);
+			continue;
+		}
+
+		component_match_add(dev, &match, compare_of, port);
+		of_node_put(port);
+	}
+
+	return component_master_add_with_match(dev, m_ops, match);
+}
+
 static int sprd_drm_probe(struct platform_device *pdev)
 {
-	return drm_of_component_probe(&pdev->dev, compare_of,
-					&drm_component_ops);
+	return sprd_drm_component_probe(&pdev->dev, &drm_component_ops);
 }
 
 static int sprd_drm_remove(struct platform_device *pdev)

@@ -17,8 +17,8 @@
 #include <drm/drmP.h>
 //#include <linux/sprd_ion.h>
 
-#include "drm_crtc.h"
-#include "drm_fb_helper.h"
+#include <drm/drm_crtc.h>
+#include <drm/drm_fb_helper.h>
 
 #define MAX_CRTC	2
 

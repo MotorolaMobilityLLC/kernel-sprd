@@ -15,3 +15,5 @@ obj-y += dsi/
 obj-y += dphy/
 
 #obj-y += sharkl3/
+
+obj-$(CONFIG_DRM_SPRD_GSP) += gsp/

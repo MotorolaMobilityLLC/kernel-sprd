@@ -379,6 +379,9 @@ static int sprd_dsi_bind(struct device *dev, struct device *master, void *data)
 
 	DRM_INFO("component_ops->bind()\n");
 
+	if (IS_ERR_OR_NULL(data))
+		DRM_ERROR("sprd dsi bind null drm_device\n");
+
 	ret = sprd_drm_encoder_init(dev, drm, &dsi->encoder);
 	if (ret)
 		return ret;
