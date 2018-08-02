@@ -34,6 +34,7 @@
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
+		gsp = <&gsp>;
 	};
 
 	ddr_dfs: scene-frequency {
