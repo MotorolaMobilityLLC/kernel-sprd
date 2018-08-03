@@ -8,3 +8,5 @@ config SPRD_MEMDISK
 	  This option can support sprd memdisk driver, which can use a block of
 	  DDR memory as a disk. we can load the android image to this disk when
 	  mmc driver is not ready, for example in vdk and FPGA platform.
+
+source drivers/soc/sprd/iommu/Kconfig
