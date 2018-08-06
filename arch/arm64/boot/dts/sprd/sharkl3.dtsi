@@ -37,6 +37,20 @@
 			reg = <0 0x300f0000 0 0x10000>;
 		};
 
+		aon_mailbox: mailbox@400a0000 {
+			compatible = "sprd,mailbox";
+			reg = <0 0x400a0000 0 0x8000>,
+			      <0 0x400a8000 0 0x8000>;
+			syscons = <&aon_apb_regs 0x4 0x200000>;
+			syscon-names = "clk";
+			interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
+			sprd,sensor = <7>;
+			sprd,core-cnt = <8>;
+			sprd,version = <3>;
+		};
+
 		aon_intc_regs: syscon@40200000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
