@@ -1,0 +1,51 @@
+/*
+ * Spreadtrum Roc1 Haps board DTS file
+ *
+ * Copyright (C) 2018, Spreadtrum Communications Inc.
+ *
+ * This file is licensed under a dual GPLv2 or X11 license.
+ */
+/dts-v1/;
+
+#include "uc710haps.dtsi"
+#include "uc710haps-common.dtsi"
+
+/ {
+	model = "Spreadtrum UD710 Haps Board";
+
+	compatible = "sprd,ud710-haps", "sprd,ud710";
+
+	sprd,sc-id = <710 1 0x20000>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+	memory: memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0xc0000000>;
+	};
+
+	chosen {
+		stdout-path = &uart1;
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=8 maxcpus=1 init=/init root=/dev/memdisk.0 rootfstype=ext4 rw rootwait androidboot.hardware=ud710haps androidboot.selinux=permissive";
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		memdisk_reserved: memdisk@1,00000000{
+			reg = <0x0 0xc0000000 0x0 0x40000000>,	/* system 1024M*/
+				<0x1 0x00000000 0x0 0x20000000>, /* userdata 512M*/
+				<0x1 0x20000000 0x0 0x12c00000>; /* vendor 300M*/
+		};
+	};
+
+	sprd-memdisk {
+		compatible = "sprd,memdisk";
+		memory-region = <&memdisk_reserved>;
+	};
+};

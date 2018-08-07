@@ -1,0 +1,14 @@
+/*
+ * Spreadtrum UD710 board common DTS file
+ *
+ * Copyright (C) 2018, Spreadtrum Communications Inc.
+ *
+ * This file is licensed under a dual GPLv2 or X11 license.
+ */
+
+&uart0 {
+	status = "okay";
+};
+&uart1 {
+	status = "okay";
+};
