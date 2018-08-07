@@ -4,6 +4,7 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			   sp9832e-1h10.dtb	\
 			   sp9863a-1h10.dtb	\
 			   sp9863a-2h10.dtb	\
+			   ud710-haps.dtb	\
 			   ums510-haps.dtb
 
 always		:= $(dtb-y)
