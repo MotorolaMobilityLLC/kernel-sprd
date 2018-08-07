@@ -2,6 +2,7 @@
 #define _TEST_STRING_STREAM_H
 
 #include <linux/types.h>
+#include <linux/spinlock.h>
 #include <stdarg.h>
 
 struct string_stream_fragment {
@@ -13,6 +14,8 @@ struct string_stream {
 	size_t length;
 	struct list_head fragments;
 
+	/* length and fragments are protected by this lock */
+	struct spinlock lock;
 	int (*add)(struct string_stream *this, const char *fmt, ...);
 	int (*vadd)(struct string_stream *this, const char *fmt, va_list args);
 	char *(*get_string)(struct string_stream *this);

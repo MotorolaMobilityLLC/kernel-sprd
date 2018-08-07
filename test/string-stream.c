@@ -9,6 +9,7 @@ static int string_stream_vadd(struct string_stream *this,
 	struct string_stream_fragment *fragment;
 	int len;
 	va_list args_for_counting;
+	unsigned long flags;
 
 	/* Make a copy because `vsnprintf` could change it */
 	va_copy(args_for_counting, args);
@@ -22,15 +23,17 @@ static int string_stream_vadd(struct string_stream *this,
 	if (!fragment)
 		return -ENOMEM;
 
-	fragment->fragment = kmalloc(len + 1, GFP_KERNEL);
+	fragment->fragment = kmalloc(len, GFP_KERNEL);
 	if (!fragment->fragment) {
 		kfree(fragment);
 		return -ENOMEM;
 	}
 
 	len = vsnprintf(fragment->fragment, len, fmt, args);
+	spin_lock_irqsave(&this->lock, flags);
 	this->length += len;
 	list_add_tail(&fragment->node, &this->fragments);
+	spin_unlock_irqrestore(&this->lock, flags);
 	return 0;
 }
 
@@ -48,7 +51,9 @@ static int string_stream_add(struct string_stream *this, const char *fmt, ...)
 static void string_stream_clear(struct string_stream *this)
 {
 	struct string_stream_fragment *fragment, *fragment_safe;
+	unsigned long flags;
 
+	spin_lock_irqsave(&this->lock, flags);
 	list_for_each_entry_safe(fragment,
 				 fragment_safe,
 				 &this->fragments,
@@ -57,28 +62,38 @@ static void string_stream_clear(struct string_stream *this)
 		kfree(fragment->fragment);
 		kfree(fragment);
 	}
-
 	this->length = 0;
+	spin_unlock_irqrestore(&this->lock, flags);
 }
 
 static char *string_stream_get_string(struct string_stream *this)
 {
 	struct string_stream_fragment *fragment;
 	char *buf;
+	unsigned long flags;
 
 	buf = kzalloc(this->length + 1, GFP_KERNEL);
 	if (!buf)
 		return NULL;
 
-	list_for_each_entry(fragment, &this->fragments, node) {
+	spin_lock_irqsave(&this->lock, flags);
+	list_for_each_entry(fragment, &this->fragments, node)
 		strcat(buf, fragment->fragment);
-	}
+	spin_unlock_irqrestore(&this->lock, flags);
+
 	return buf;
 }
 
 static bool string_stream_is_empty(struct string_stream *this)
 {
-	return list_empty(&this->fragments);
+	bool is_empty;
+	unsigned long flags;
+
+	spin_lock_irqsave(&this->lock, flags);
+	is_empty = list_empty(&this->fragments);
+	spin_unlock_irqrestore(&this->lock, flags);
+
+	return is_empty;
 }
 
 void destroy_string_stream(struct string_stream *stream)
@@ -95,7 +110,7 @@ struct string_stream *new_string_stream(void)
 		return NULL;
 
 	INIT_LIST_HEAD(&stream->fragments);
-	stream->length = 0;
+	spin_lock_init(&stream->lock);
 	stream->add = string_stream_add;
 	stream->vadd = string_stream_vadd;
 	stream->get_string = string_stream_get_string;
