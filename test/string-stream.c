@@ -102,6 +102,14 @@ void destroy_string_stream(struct string_stream *stream)
 	kfree(stream);
 }
 
+static void string_stream_destroy(struct kref *kref)
+{
+	struct string_stream *stream = container_of(kref,
+						    struct string_stream,
+						    refcount);
+	destroy_string_stream(stream);
+}
+
 struct string_stream *new_string_stream(void)
 {
 	struct string_stream *stream = kzalloc(sizeof(*stream), GFP_KERNEL);
@@ -111,10 +119,21 @@ struct string_stream *new_string_stream(void)
 
 	INIT_LIST_HEAD(&stream->fragments);
 	spin_lock_init(&stream->lock);
+	kref_init(&stream->refcount);
 	stream->add = string_stream_add;
 	stream->vadd = string_stream_vadd;
 	stream->get_string = string_stream_get_string;
 	stream->clear = string_stream_clear;
 	stream->is_empty = string_stream_is_empty;
 	return stream;
+}
+
+void string_stream_get(struct string_stream *stream)
+{
+	kref_get(&stream->refcount);
+}
+
+int string_stream_put(struct string_stream *stream)
+{
+	return kref_put(&stream->refcount, &string_stream_destroy);
 }
