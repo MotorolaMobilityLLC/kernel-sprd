@@ -38,6 +38,4 @@ int sprd_ion_get_phys_addr(int fd, struct dma_buf *dmabuf,
 
 int sprd_ion_check_phys_addr(struct dma_buf *dmabuf);
 
-int sprd_ion_get_phys_addr_bydmabuf(int fd_buffer, struct dma_buf *dmabuf,
-				   unsigned long *phys_addr, size_t *size);
 #endif /* _SPRD_ION_H */

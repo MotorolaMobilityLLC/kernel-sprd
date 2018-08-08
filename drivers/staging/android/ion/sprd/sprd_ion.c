@@ -174,24 +174,27 @@ int sprd_ion_get_phys_addr(int fd, struct dma_buf *dmabuf,
 {
 	int ret = 0;
 	struct ion_buffer *buffer;
+	struct sg_table *table = NULL;
+	struct scatterlist *sgl = NULL;
 
 	buffer = get_ion_buffer(fd, dmabuf);
 	if (IS_ERR(buffer))
 		return PTR_ERR(buffer);
 
 	if (buffer->heap->type == ION_HEAP_TYPE_CARVEOUT) {
-		if (!buffer->heap->ops->phys) {
-			pr_err("%s: ion_phys is not implemented by this heap\n",
-			       __func__);
-			return -ENODEV;
+		table = buffer->sg_table;
+		if (table && table->sgl) {
+			sgl = table->sgl;
+		} else {
+			if (!table)
+				pr_err("invalid table\n");
+			else if (!table->sgl)
+				pr_err("invalid table->sgl\n");
+			return -EINVAL;
 		}
-		ret = buffer->heap->ops->phys(buffer->heap, buffer,
-						phys_addr,
-						size);
-		if (ret)
-			pr_err("%s, get phys error %d!\n", __func__, ret);
-		else
-			*phys_addr -= phys_offset;
+
+		*phys_addr = sg_phys(sgl) - phys_offset;
+		*size = buffer->size;
 	} else {
 		pr_err("%s, buffer heap type:%d error\n", __func__,
 		       buffer->heap->type);
@@ -235,41 +238,6 @@ int sprd_ion_check_phys_addr(struct dma_buf *dmabuf)
 #endif
 
 	return 0;
-}
-
-int sprd_ion_get_phys_addr_bydmabuf(int fd_buffer, struct dma_buf *dmabuf,
-				    unsigned long *phys_addr, size_t *size)
-{
-	int ret = 0;
-	struct ion_buffer *buffer;
-
-	if (IS_ERR_OR_NULL(dmabuf)) {
-		pr_err("%s, dmabuf=%p dma_buf_get error!\n", __func__, dmabuf);
-		return -1;
-	}
-
-	buffer = dmabuf->priv;
-	if (buffer->heap->type == ION_HEAP_TYPE_CARVEOUT) {
-		if (!buffer->heap->ops->phys) {
-			pr_err("%s: ion_phys is not implemented by this heap\n",
-			       __func__);
-			return -ENODEV;
-		}
-
-		ret = buffer->heap->ops->phys(buffer->heap, buffer,
-						phys_addr,
-						size);
-		if (ret)
-			pr_err("%s, get phys error %d!\n", __func__, ret);
-		else
-			*phys_addr -= phys_offset;
-	} else {
-		pr_err("%s, buffer heap type:%d error\n", __func__,
-		       buffer->heap->type);
-		return -EPERM;
-	}
-
-	return ret;
 }
 
 static struct ion_platform_heap *sprd_ion_parse_dt(struct platform_device *pdev)
