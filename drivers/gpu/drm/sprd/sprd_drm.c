@@ -29,6 +29,12 @@
 #include "sprd_drm_gsp.h"
 #include <uapi/drm/sprd_drm_gsp.h>
 
+#define DRIVER_NAME	"sprd"
+#define DRIVER_DESC	"Spreadtrum SoCs' DRM Driver"
+#define DRIVER_DATE	"20180501"
+#define DRIVER_MAJOR	1
+#define DRIVER_MINOR	0
+
 int sprd_drm_kms_cleanup(struct drm_device *drm)
 {
 	struct sprd_drm *sprd = drm->dev_private;
@@ -82,59 +88,6 @@ static void sprd_drm_mode_config_init(struct drm_device *drm)
 	drm->mode_config.funcs = &sprd_drm_mode_config_funcs;
 }
 
-static int sprd_drm_load(struct drm_device *drm, unsigned long flags)
-{
-	struct sprd_drm *sprd;
-	int ret;
-
-	DRM_INFO("drm_driver->load()\n");
-
-	sprd = devm_kzalloc(drm->dev, sizeof(*sprd), GFP_KERNEL);
-	if (!sprd)
-		return -ENOMEM;
-
-	drm->dev_private = sprd;
-	sprd->drm = drm;
-
-	sprd_drm_mode_config_init(drm);
-
-	/* bind and init sub drivers */
-	ret = component_bind_all(drm->dev, drm);
-	if (ret) {
-		DRM_ERROR("failed to bind all component.\n");
-		goto err_dc_cleanup;
-	}
-
-	/* vblank init */
-	ret = drm_vblank_init(drm, drm->mode_config.num_crtc);
-	if (ret) {
-		DRM_ERROR("failed to initialize vblank.\n");
-		goto err_unbind_all;
-	}
-	/* with irq_enabled = true, we can use the vblank feature. */
-	drm->irq_enabled = true;
-
-	/* reset all the states of crtc/plane/encoder/connector */
-	drm_mode_config_reset(drm);
-
-	/* init kms poll for handling hpd */
-	drm_kms_helper_poll_init(drm);
-
-	/* force detection after connectors init */
-	(void)drm_helper_hpd_irq_event(drm);
-
-	return 0;
-
-err_unbind_all:
-	component_unbind_all(drm->dev, drm);
-err_dc_cleanup:
-	drm_mode_config_cleanup(drm);
-	devm_kfree(drm->dev, sprd);
-	drm->dev_private = NULL;
-
-	return ret;
-}
-
 static const struct drm_ioctl_desc sprd_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(SPRD_GSP_GET_CAPABILITY,
 		sprd_gsp_get_capability_ioctl,
@@ -158,7 +111,6 @@ static const struct file_operations sprd_drm_fops = {
 static struct drm_driver sprd_drm_drv = {
 	.driver_features	= DRIVER_GEM | DRIVER_MODESET | DRIVER_PRIME |
 				  DRIVER_ATOMIC | DRIVER_HAVE_IRQ,
-	.load			= sprd_drm_load,
 	.fops			= &sprd_drm_fops,
 
 	.gem_free_object	= drm_gem_cma_free_object,
@@ -177,16 +129,17 @@ static struct drm_driver sprd_drm_drv = {
 	.ioctls			= sprd_ioctls,
 	.num_ioctls		= ARRAY_SIZE(sprd_ioctls),
 
-	.name			= "sprd",
-	.desc			= "Spreadtrum SoCs' DRM Driver",
-	.date			= "20180501",
-	.major			= 1,
-	.minor			= 0,
+	.name			= DRIVER_NAME,
+	.desc			= DRIVER_DESC,
+	.date			= DRIVER_DATE,
+	.major			= DRIVER_MAJOR,
+	.minor			= DRIVER_MINOR,
 };
 
 static int sprd_drm_bind(struct device *dev)
 {
 	struct drm_device *drm;
+	struct sprd_drm *sprd;
 	int err;
 
 	DRM_INFO("component_master_ops->bind()\n");
@@ -197,13 +150,53 @@ static int sprd_drm_bind(struct device *dev)
 
 	dev_set_drvdata(dev, drm);
 
+	sprd = devm_kzalloc(drm->dev, sizeof(*sprd), GFP_KERNEL);
+	if (!sprd) {
+		err = -ENOMEM;
+		goto err_free_drm;
+	}
+	drm->dev_private = sprd;
+
+	sprd_drm_mode_config_init(drm);
+
+	/* bind and init sub drivers */
+	err = component_bind_all(drm->dev, drm);
+	if (err) {
+		DRM_ERROR("failed to bind all component.\n");
+		goto err_dc_cleanup;
+	}
+
+	/* vblank init */
+	err = drm_vblank_init(drm, drm->mode_config.num_crtc);
+	if (err) {
+		DRM_ERROR("failed to initialize vblank.\n");
+		goto err_unbind_all;
+	}
+	/* with irq_enabled = true, we can use the vblank feature. */
+	drm->irq_enabled = true;
+
+	/* reset all the states of crtc/plane/encoder/connector */
+	drm_mode_config_reset(drm);
+
+	/* init kms poll for handling hpd */
+	drm_kms_helper_poll_init(drm);
+
+	/* force detection after connectors init */
+	(void)drm_helper_hpd_irq_event(drm);
+
 	err = drm_dev_register(drm, 0);
 	if (err < 0)
-		goto unref;
+		goto err_kms_helper_poll_fini;
 
 	return 0;
 
-unref:
+err_kms_helper_poll_fini:
+	drm_kms_helper_poll_fini(drm);
+err_unbind_all:
+	component_unbind_all(drm->dev, drm);
+err_dc_cleanup:
+	drm_mode_config_cleanup(drm);
+err_free_drm:
 	drm_dev_unref(drm);
 	return err;
 }
