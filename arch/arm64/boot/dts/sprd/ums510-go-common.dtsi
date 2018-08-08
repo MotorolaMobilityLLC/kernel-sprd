@@ -1,11 +1,9 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Spreadtrum Sharkl5 board common DTS file
+ * Spreadtrum Sharkl5 platform androig go common dtsi file
  *
  * Copyright (C) 2018, Spreadtrum Communications Inc.
- *
- * This file is licensed under a dual GPLv2 or X11 license.
  */
-
 
 / {
 	display-subsystem {
@@ -44,7 +42,7 @@
 		};
 
 		tos_reserved: tos-mem@94020000{
-			reg = <0x0 0x94020000 0x0 0x01fe0000>;
+			reg = <0x0 0x94020000 0x0 0x003e0000>;
 		};
 
 		/* Only used for iq, will be removed in normal mode by uboot */
@@ -53,9 +51,9 @@
 			reg = <0x0 0x98100000 0x0 0x4000000>;
 		};
 
-		fb_reserved: framebuffer-mem@fefc0000{
-			reg = <0x0 0xfefc0000 0x0 0x01000000>;
+		fb_reserved: framebuffer-mem@9e000000{
+			reg = <0x0 0x9e000000 0x0 0x01000000>;
 		};
 	};
-
 };
+

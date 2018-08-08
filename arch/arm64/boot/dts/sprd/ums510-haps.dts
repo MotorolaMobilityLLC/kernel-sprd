@@ -36,22 +36,13 @@
 		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 maxcpus=1 init=/init root=/dev/memdisk.0 rootfstype=ext4 rw rootwait androidboot.hardware=ums510_haps androidboot.selinux=permissive";
 	};
 
-	reserved-memory {
+	reserved_memory: reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
 
-		/* must be 64M aligned */
-		sml_reserved: sml-mem@94000000{
-			reg = <0x0 0x94000000 0x0 0x00020000>;
-		};
-
-		tos_reserved: tos-mem@94020000{
-			reg = <0x0 0x94020000 0x0 0x01fe0000>;
-		};
-
-		tos_shm_reserved: sh-mem@96000000{
-			reg = <0x0 0x96000000 0x0 0x00100000>;
+		fd_reserved: face-mem@fe5c0000{
+			reg = <0x0 0xfe5c0000 0x0 0x00a00000>;
 		};
 
 		memdisk_reserved: memdisk@c0000000{
