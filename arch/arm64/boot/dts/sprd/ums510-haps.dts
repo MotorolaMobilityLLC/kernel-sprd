@@ -11,6 +11,7 @@
 #include <dt-bindings/gpio/gpio.h>
 
 #include "ums510.dtsi"
+#include "ums510-common.dtsi"
 #include "sc2730.dtsi"
 
 / {
@@ -118,4 +119,48 @@
 			a8 = /bits/ 8 <0x5a>;
 		};
 	};
+};
+
+&dpu {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	panel {
+		compatible = "sprd,generic-mipi-panel";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
+
+		sprd,panel-name = "nt35597_mipi_2k_fpga";
+		sprd,lane-number = <4>;
+		sprd,width-mm = <68>;
+		sprd,height-mm = <121>;
+		display-timings {
+			clock-frequency = <600000>;
+			hactive = <720>;
+			vactive = <1280>;
+			hback-porch = <64>;
+			hfront-porch = <64>;
+			vback-porch = <5>;
+			vfront-porch = <15>;
+			hsync-len = <2>;
+			vsync-len = <2>;
+		};
+
+		port {
+			reg = <1>;
+			panel_in: endpoint {
+				remote-endpoint = <&dphy_out>;
+			};
+		};
+	};
+};
+
+&dphy {
+	status = "okay";
 };

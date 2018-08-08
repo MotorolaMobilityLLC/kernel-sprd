@@ -97,6 +97,22 @@
 		#size-cells = <0>;
 		reg = <0>;
 
+		sprd,panel-name = "truly_nt35695_mipi_fhd";
+		sprd,lane-number = <4>;
+		sprd,width-mm = <68>;
+		sprd,height-mm = <121>;
+		display-timings {
+			clock-frequency = <979800>;
+			hactive = <1080>;
+			vactive = <1920>;
+			hback-porch = <16>;
+			hfront-porch = <176>;
+			vback-porch = <32>;
+			vfront-porch = <32>;
+			hsync-len = <10>;
+			vsync-len = <4>;
+		};
+
 		port {
 			reg = <1>;
 			panel_in: endpoint {
