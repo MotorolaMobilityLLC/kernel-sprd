@@ -7,6 +7,9 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			   ud710-haps.dtb	\
 			   ums510-haps.dtb
 
-always		:= $(dtb-y)
+dtbo-$(CONFIG_ARCH_SPRD) += \
+	sp9863a-1h10-overlay.dtbo
+
+always		:= $(dtb-y) $(dtbo-y)
 subdir-y	:= $(dts-dirs)
-clean-files	:= *.dtb
+clean-files	:= *.dtb *.dtbo
