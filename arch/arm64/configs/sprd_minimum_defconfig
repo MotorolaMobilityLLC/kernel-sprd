@@ -897,6 +897,13 @@ CONFIG_VEXPRESS_SYSCFG=y
 # CONFIG_CXL_LIB is not set
 
 #
+# Spreadtrum WCN Device Drivers
+#
+# CONFIG_SC23XX is not set
+# CONFIG_WCN_BOOT is not set
+# CONFIG_WCN_UTILS is not set
+
+#
 # SCSI device support
 #
 CONFIG_SCSI_MOD=y

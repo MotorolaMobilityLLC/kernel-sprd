@@ -1,0 +1,82 @@
+#ifndef __WCN_DUMP_INTEGRATE_H__
+#define __WCN_DUMP_INTEGRATE_H__
+
+
+#define MDBG_SHARE_MEMORY_SIZE		(3*1024*1024)
+#define MDBG_CP_IRAM_DATA_NUM		8192
+#define DUMP_IRAM_START_ADDR		0x10000000
+#define DUMP_GNSS_IRAM_START_ADDR	0X18004000
+
+#define DUMP_STR_TYPE_DATA		0
+#define DUMP_STR_TYPE_REG		1
+
+#define WCN_CP2_STATUS_DUMP_REG	0x6a6b6c6d
+
+/* wcn registers start */
+#define DUMP_REG_BTWF_INTC_ADDR		0x40010000
+#define DUMP_REG_BTWF_INTC_LEN		0x38
+
+#define DUMP_REG_BTWF_SYSTEM_TIMER_ADDR		0x40020000
+#define DUMP_REG_BTWF_SYSTEM_TIMER_LEN		0x10
+
+#define DUMP_REG_BTWF_TIMER0_ADDR		0x40030000
+#define DUMP_REG_BTWF_TIMER0_LEN		0x20
+
+#define DUMP_REG_BTWF_TIMER1_ADDR		0x40030020
+#define DUMP_REG_BTWF_TIMER1_LEN		0x20
+
+#define DUMP_REG_BTWF_TIMER2_ADDR		0x40030040
+#define DUMP_REG_BTWF_TIMER2_LEN		0x20
+
+#define DUMP_REG_BTWF_WATCHDOG_ADDR		0x40040000
+#define DUMP_REG_BTWF_WATCHDOG_LEN		0x24
+
+#define DUMP_REG_BTWF_CTRL_ADDR		0x40060000
+#define DUMP_REG_BTWF_CTRL_LEN		0x300
+
+#define DUMP_REG_BTWF_DMA_CTRL_ADDR		0x60200000
+#define DUMP_REG_BTWF_DMA_CTRL_LEN		0x3000
+
+#define DUMP_REG_BTWF_AHB_CTRL_ADDR		0x60300000
+#define DUMP_REG_BTWF_AHB_CTRL_LEN		0x400
+
+#define DUMP_REG_COM_AHB_CTRL_ADDR		0xd0010000
+#define DUMP_REG_COM_AHB_CTRL_LEN		0xb4
+
+#define DUMP_REG_MANU_CLK_CTRL_ADDR		0xd0020800
+#define DUMP_REG_MANU_CLK_CTRL_LEN		0xc
+
+#define DUMP_REG_WIFI_ADDR		0x70000000
+#define DUMP_REG_WIFI_LEN		0x10000
+
+#define DUMP_REG_FM_ADDR		0x400b0000
+#define DUMP_REG_FM_LEN			0x850
+
+#define DUMP_REG_BT_CMD_ADDR	0x60700000
+#define DUMP_REG_BT_CMD_LEN		0x400
+
+#define DUMP_REG_BT_ADDR		0x60740000
+#define DUMP_REG_BT_LEN			0xa400
+/* wcn registers end */
+
+/* ap aon registers start */
+#define DUMP_REG_PMU_SLEEP_CTRL		0x402B00CC
+#define DUMP_REG_PMU_SLEEP_STATUS		0x402B00D4
+#define DUMP_REG_PMU_PD_WCN_SYS_CFG		0x402B0100
+#define DUMP_REG_PMU_PD_WIFI_WRAP_CFG		0x402B0104
+#define DUMP_REG_PMU_WCN_SYS_DSLP_ENA		0x402B0244
+#define DUMP_REG_PMU_WIFI_WRAP_DSLP_ENA		0x402B0248
+#define DUMP_REG_AON_APB_WCN_SYS_CFG2		0x402E057C
+/* ap aon registers end */
+
+#define DUMP_PACKET_SIZE	(1024)
+#define DUMP_WAIT_TIMEOUT	(100)
+#define DUMP_WAIT_COUNT	(80)
+
+typedef void (*gnss_dump_callback) (void);
+void mdbg_dump_gnss_register(
+			gnss_dump_callback callback_func, void *para);
+void mdbg_dump_gnss_unregister(void);
+int mdbg_snap_shoot_iram(void *buf);
+void mdbg_dump_mem(void);
+#endif
