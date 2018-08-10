@@ -1,0 +1,50 @@
+Spreadtrum SC2355 platform devices.
+
+This node provides properties for controlling the SPREADTRUM wireless device.
+
+Required properties:
+
+- compatible : Should be "sprd,marlin3".
+- m2-to-ap-coexist-gpios : sc2355 GPIO0, used for debug.
+- m2-wakeup-ap-gpios : sc2355 GPIO1, CP2 wake up AP for SDIO.
+- permit-ap-send-gpios : SC2355 GPIO2. permit ap send data to wcn chip.
+- wait-ge2 : used for GNSS download through SDIO, not use UART.
+- common-chip : BTWF and GNSS share the same chip_eb pin.
+- power-off : wcn chip default power on when the phone on.
+- adma-tx : supprt SDIO ADMA function in tx side.
+- adma-rx : supprt SDIO ADMA function in rx side.
+- pwrseq : SDIO's power sequencing.
+- post-power-on-delay-ms : delay value when power on/off.
+
+Optional properties:
+- vddio-supply = <&vddgen>: this supply is alway on.
+- power-off :SC2355 chip not power down.
+
+Example:
+
+	sprd_marlin3: sprd-marlin3 {
+		compatible = "sprd,marlin3";
+		m2-to-ap-coexist-gpios = <&ap_gpio 119 GPIO_ACTIVE_LOW>;
+		m2-wakeup-ap-gpios = <&ap_gpio 77 GPIO_ACTIVE_LOW>;
+		permit-ap-send-gpios = <&ap_gpio 69 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&ap_gpio 95 GPIO_ACTIVE_LOW>;
+		enable-gpios = <&ap_gpio 94 GPIO_ACTIVE_LOW>;
+		dvdd12-supply = <&vddcon>;
+		avdd12-supply = <&vddcon>;
+		avdd33-supply = <&vddwifipa>;
+		clock-names = "clk_32k","source","enable";
+		clocks = <&clk_aux0>,<&ext_32k>,
+			 <&clk_aon_apb_gates1 2>;
+		sdhci-name = <&sdio1>;
+		common-chip;
+		power-off;
+		wait-ge2;
+		adma-tx;
+		adma-rx;
+		pwrseq;
+		post-power-on-delay-ms = <20>;
+	};
+
+	gnss_common_ctl {
+		compatible = "sprd,gnss_common_ctl";
+	};
