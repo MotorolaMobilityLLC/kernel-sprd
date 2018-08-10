@@ -58,6 +58,15 @@
 		};
 	};
 
+	sprd_marlin3: sprd-marlin3 {
+		common-chip;
+		wait-ge2;
+		adma-tx;
+		adma-rx;
+		pwrseq;
+		post-power-on-delay-ms = <20>;
+	};
+
 };
 
 &uart0 {
