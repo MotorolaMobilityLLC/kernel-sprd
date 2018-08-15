@@ -20,55 +20,108 @@
 #include "gsp_debug.h"
 #include "gsp_layer.h"
 #include "gsp_sync.h"
+#include <linux/slab.h>
 
 #define GSP_FENCE_WAIT_TIMEOUT 3000/* ms */
 
-void gsp_sync_fence_signal(struct gsp_fence_data *data)
-{
+static const struct dma_fence_ops gsp_sync_fence_ops;
 
+static struct gsp_sync_timeline *gsp_sync_fence_to_timeline(
+							struct dma_fence *fence)
+{
+	BUG_ON(fence->ops != &gsp_sync_fence_ops);
+	return container_of(fence->lock, struct gsp_sync_timeline, fence_lock);
 }
 
-#if 0
-static int gsp_sync_sig_fence_create(
-				struct dma_fence **sig_fen,
-				unsigned int record)
+static const char *gsp_sync_fence_get_driver_name(
+				struct dma_fence *fence)
 {
-	int err;
-	struct sync_pt *pt;
+	struct gsp_sync_timeline *tl = gsp_sync_fence_to_timeline(fence);
+
+	return tl->driver_name;
+}
+
+static const char *gsp_sync_fence_get_timeline_name(
+				struct dma_fence *fence)
+{
+	struct gsp_sync_timeline *tl = gsp_sync_fence_to_timeline(fence);
+
+	return tl->timeline_name;
+}
+
+static bool gsp_sync_fence_enable_signaling(struct dma_fence *fence)
+{
+	return true;
+}
+
+static const struct dma_fence_ops gsp_sync_fence_ops = {
+	.get_driver_name = gsp_sync_fence_get_driver_name,
+	.get_timeline_name = gsp_sync_fence_get_timeline_name,
+	.enable_signaling = gsp_sync_fence_enable_signaling,
+	.wait = dma_fence_default_wait,
+};
+
+void gsp_sync_timeline_destroy(struct gsp_sync_timeline *obj)
+{
+	kfree(obj);
+	obj = NULL;
+}
+
+struct gsp_sync_timeline *gsp_sync_timeline_create(const char *name)
+{
+	struct gsp_sync_timeline *obj = NULL;
+
+	GSP_INFO("create timeline: %s\n", name);
+	obj = kzalloc(sizeof(struct gsp_sync_timeline), GFP_KERNEL);
+	if (IS_ERR_OR_NULL(obj)) {
+		GSP_ERR("gsp_sync_timeline allocated failed\n");
+		return NULL;
+	}
+
+
+	obj->fence_context = dma_fence_context_alloc(1);
+	spin_lock_init(&obj->fence_lock);
+	snprintf(obj->driver_name, sizeof(obj->timeline_name),
+			 "%s", name);
+	snprintf(obj->timeline_name, sizeof(obj->timeline_name),
+			 "%s_timeline", name);
+
+	return obj;
+}
+
+void gsp_sync_fence_signal(struct gsp_fence_data *data)
+{
+	if (data->sig_fen) {
+		dma_fence_signal(data->sig_fen);
+		dma_fence_put(data->sig_fen);
+	}
+}
+
+static int gsp_sync_sig_fence_create(struct gsp_sync_timeline *obj,
+				struct dma_fence **sig_fen)
+{
 	struct dma_fence *fence;
 
-	pt = gsp_sync_pt_create(obj, record);
-	if (pt == NULL) {
-		GSP_ERR("pt create failed\n");
-		err = -ENOMEM;
-		goto err;
-	}
-
-	fence = dma_fence_create("gsp", pt);
-
-	if (fence == NULL) {
+	fence = kzalloc(sizeof(*fence), GFP_KERNEL);
+	if (!fence) {
 		GSP_ERR("fence create failed\n");
-		sync_pt_free(pt);
-		err = -ENOMEM;
-		goto err;
+		return -ENOMEM;
 	}
+
+	dma_fence_init(fence, &gsp_sync_fence_ops, &obj->fence_lock,
+				   obj->fence_context, ++obj->fence_seqno);
 
 	/*store the new fence with the sig_fen pointer */
 	*sig_fen = fence;
 
 	return 0;
-
-err:
-	return err;
 }
-#endif
 
 int gsp_sync_sig_fd_copy_to_user(struct dma_fence *fence,
 				 int32_t __user *ufd)
 {
-	return 0;
-#if 0
-	int fd = get_unused_fd_flags(0);
+	struct sync_file *sync_file = NULL;
+	int fd  = get_unused_fd_flags(O_CLOEXEC);
 
 	if (fd < 0) {
 		GSP_ERR("fd overflow, fd: %d\n", fd);
@@ -80,7 +133,14 @@ int gsp_sync_sig_fd_copy_to_user(struct dma_fence *fence,
 		dma_fence_put(fence);
 		goto err;
 	}
-	dma_fence_install(fence, fd);
+
+	sync_file = sync_file_create(fence);
+	if (!sync_file) {
+		GSP_ERR("signal fence fd copy to user failed\n");
+		return -ENOMEM;
+	}
+
+	fd_install(fd, sync_file->file);
 
 	GSP_DEBUG("copy signal fd: %d to ufd: %p success\n", fd, ufd);
 	return 0;
@@ -88,14 +148,11 @@ int gsp_sync_sig_fd_copy_to_user(struct dma_fence *fence,
 err:
 	put_unused_fd(fd);
 	return -1;
-#endif
 }
 
 int gsp_sync_wait_fence_collect(struct dma_fence **wait_fen_arr,
 				uint32_t *count, int fd)
 {
-		return 0;
-#if 0
 	struct dma_fence *fence = NULL;
 	int ret = -1;
 
@@ -109,7 +166,7 @@ int gsp_sync_wait_fence_collect(struct dma_fence **wait_fen_arr,
 		return ret;
 	}
 
-	fence = dma_fence_fdget(fd);
+	fence = sync_file_get_fence(fd);
 	if (fence != NULL) {
 		/*store the wait fence at the wait_fen array */
 		wait_fen_arr[*count] = fence;
@@ -120,15 +177,12 @@ int gsp_sync_wait_fence_collect(struct dma_fence **wait_fen_arr,
 		GSP_ERR("wait fence get from fd: %d error\n", fd);
 
 	return ret;
-#endif
 }
 
 int gsp_sync_fence_process(struct gsp_layer *layer,
 			   struct gsp_fence_data *data,
 			   bool last)
 {
-	return 0;
-#if 0
 	int ret = 0;
 	int wait_fd = -1;
 	int share_fd = -1;
@@ -165,8 +219,7 @@ int gsp_sync_fence_process(struct gsp_layer *layer,
 		return ret;
 	}
 
-	ret = gsp_sync_sig_fence_create(&data->sig_fen,
-					data->record);
+	ret = gsp_sync_sig_fence_create(data->tl, &data->sig_fen);
 	if (ret < 0) {
 		GSP_ERR("create signal fence failed\n");
 		return ret;
@@ -180,29 +233,29 @@ int gsp_sync_fence_process(struct gsp_layer *layer,
 	ret = gsp_sync_sig_fd_copy_to_user(data->sig_fen, data->ufd);
 	if (ret < 0) {
 		GSP_ERR("copy signal fd to user failed\n");
+		dma_fence_put(data->sig_fen);
 		return ret;
 	}
 
 	return ret;
-#endif
 }
 
 void gsp_sync_fence_data_setup(struct gsp_fence_data *data,
+				struct gsp_sync_timeline *tl,
 			       int __user *ufd)
 {
-#if 0
-	if (IS_ERR_OR_NULL(data)) {
+	if (IS_ERR_OR_NULL(data) ||
+		IS_ERR_OR_NULL(tl)) {
 		GSP_ERR("sync fence data set up params error\n");
 		return;
 	}
 
+	data->tl = tl;
 	data->ufd = ufd;
-#endif
 }
 
 void gsp_sync_fence_free(struct gsp_fence_data *data)
 {
-#if 0
 	int i = 0;
 
 	/* free acuqire fence array */
@@ -219,14 +272,12 @@ void gsp_sync_fence_free(struct gsp_fence_data *data)
 
 	/* signal release fence */
 	if (data->sig_fen)
-		gsp_dma_fence_signal(data->tl);
-#endif
+		gsp_sync_fence_signal(data);
 }
 
 int gsp_sync_fence_wait(struct gsp_fence_data *data)
 {
-#if 0
-	int ret = 0;
+	signed long ret = 0;
 	int i = 0;
 
 	/* wait acuqire fence array */
@@ -236,19 +287,22 @@ int gsp_sync_fence_wait(struct gsp_fence_data *data)
 			continue;
 		}
 
-		ret = dma_fence_wait(data->wait_fen_arr[i],
-				      GSP_FENCE_WAIT_TIMEOUT);
-		if (ret) {
-			GSP_ERR("wait %d/%d fence failed\n",
-				i + 1, data->wait_cnt);
-			return ret;
+		/**
+		 * Returns -ERESTARTSYS if interrupted,
+		 * 0 if the wait timed out, or the
+		 * remaining timeout in jiffies on success.
+		 */
+		ret = dma_fence_wait_timeout(data->wait_fen_arr[i],
+				true, msecs_to_jiffies(GSP_FENCE_WAIT_TIMEOUT));
+		if (ret <= 0) {
+			GSP_ERR("wait %d/%d fence failed, ret:%ld\n",
+				i + 1, data->wait_cnt, ret);
+			return -1;
 		}
 		dma_fence_put(data->wait_fen_arr[i]);
 		data->wait_fen_arr[i] = NULL;
 	}
 	data->wait_cnt = 0;
 
-	return ret;
-#endif
 	return 0;
 }

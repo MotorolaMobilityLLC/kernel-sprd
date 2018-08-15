@@ -22,6 +22,14 @@
 #define GSP_WAIT_FENCE_TIMEOUT 3000/* 3000ms */
 #define GSP_WAIT_FENCE_MAX 8
 
+struct gsp_sync_timeline {
+	unsigned int fence_context;
+	spinlock_t fence_lock;
+	unsigned long fence_seqno;
+	char timeline_name[32];
+	char driver_name[32];
+};
+
 struct gsp_fence_data {
 
 	/* manage wait&sig sync fence */
@@ -31,15 +39,15 @@ struct gsp_fence_data {
 
 	/* judge handling fence or not */
 	int32_t __user *ufd;
-	unsigned int record;
+	struct gsp_sync_timeline *tl;
 };
 
 int gsp_sync_fence_process(struct gsp_layer *layer,
-			   struct gsp_fence_data *data,
-			   bool last);
+				struct gsp_fence_data *data,
+				bool last);
 
 void gsp_sync_fence_data_setup(struct gsp_fence_data *data,
-			       int __user *ufd);
+				struct gsp_sync_timeline *tl, int __user *ufd);
 
 void gsp_sync_fence_signal(struct gsp_fence_data *data);
 
@@ -47,4 +55,6 @@ void gsp_sync_fence_free(struct gsp_fence_data *data);
 
 int gsp_sync_fence_wait(struct gsp_fence_data *data);
 
+struct gsp_sync_timeline *gsp_sync_timeline_create(const char *name);
+void gsp_sync_timeline_destroy(struct gsp_sync_timeline *obj);
 #endif

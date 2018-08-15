@@ -807,6 +807,26 @@ void gsp_core_reset(struct gsp_core *core)
 	}
 }
 
+int gsp_core_create_timeline(struct gsp_core *core)
+{
+	struct gsp_sync_timeline *timeline = NULL;
+
+	if (gsp_core_verify(core)) {
+		GSP_ERR("create timeline with invalidate gsp\n");
+		return -1;
+	}
+
+	timeline = gsp_sync_timeline_create(core->name);
+	if (IS_ERR_OR_NULL(timeline)) {
+		GSP_ERR("sync timeline create failed\n");
+		return -1;
+	}
+
+	core->timeline = timeline;
+
+	return 0;
+}
+
 int gsp_core_init(struct gsp_core *core)
 {
 	int ret = -1;
@@ -834,6 +854,13 @@ int gsp_core_init(struct gsp_core *core)
 	if (ret) {
 		GSP_ERR("workqueue init failed\n");
 		core->wq = NULL;
+		return ret;
+	}
+
+	ret = gsp_core_create_timeline(core);
+	if (ret) {
+		GSP_ERR("gsp core[%d] create timeline failed\n",
+			gsp_core_to_id(core));
 		return ret;
 	}
 
@@ -881,6 +908,12 @@ int gsp_core_init(struct gsp_core *core)
 	return ret;
 }
 
+void gsp_core_timeline_destroy(struct gsp_core *core)
+{
+	if (core->timeline)
+		gsp_sync_timeline_destroy(core->timeline);
+}
+
 void gsp_core_deinit(struct gsp_core *core)
 {
 	if (IS_ERR_OR_NULL(core)) {
@@ -898,6 +931,7 @@ void gsp_core_deinit(struct gsp_core *core)
 
 	gsp_core_sysfs_destroy(core);
 
+	gsp_core_timeline_destroy(core);
 }
 
 void gsp_core_suspend(struct gsp_core *core)

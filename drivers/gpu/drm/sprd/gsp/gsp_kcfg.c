@@ -262,7 +262,7 @@ int gsp_kcfg_fence_process(struct gsp_kcfg *kcfg, int __user *ufd)
 	}
 
 	core = gsp_kcfg_to_core(kcfg);
-	gsp_sync_fence_data_setup(&kcfg->data, ufd);
+	gsp_sync_fence_data_setup(&kcfg->data, core->timeline, ufd);
 
 	for_each_gsp_layer(layer, kcfg) {
 		ret = gsp_sync_fence_process(layer, &kcfg->data, kcfg->last);

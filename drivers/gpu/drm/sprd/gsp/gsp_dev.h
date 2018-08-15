@@ -20,6 +20,7 @@
 
 struct gsp_core;
 struct gsp_dev;
+struct gsp_sync_timeline;
 
 #define for_each_gsp_core(core, gsp) \
 	list_for_each_entry((core), &(gsp)->cores, list)

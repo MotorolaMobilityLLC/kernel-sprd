@@ -130,6 +130,8 @@ struct gsp_core {
 	struct completion resume_done;
 	struct completion release_done;
 
+	struct gsp_sync_timeline *timeline;
+
 	size_t cfg_size;
 	/* to indicate whether core kthread priority is real-time */
 	bool rt;
