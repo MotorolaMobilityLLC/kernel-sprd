@@ -584,6 +584,8 @@ static int power_allocator_bind(struct thermal_zone_device *tz)
 					       control_temp, false);
 	}
 
+	tz->tzp->thm_enable = 1;
+	tz->tzp->reset_done = 0;
 	reset_pid_controller(params);
 
 	tz->governor_data = params;
@@ -616,6 +618,17 @@ static int power_allocator_throttle(struct thermal_zone_device *tz, int trip)
 	int ret;
 	int switch_on_temp, control_temp;
 	struct power_allocator_params *params = tz->governor_data;
+
+	if (!tz->tzp->thm_enable) {
+		if (!tz->tzp->reset_done) {
+			tz->passive = 0;
+			reset_pid_controller(params);
+			allow_maximum_power(tz);
+			tz->tzp->reset_done = 1;
+		}
+		return 0;
+	} else
+		tz->tzp->reset_done = 0;
 
 	/*
 	 * We get called for every trip point but we only need to do

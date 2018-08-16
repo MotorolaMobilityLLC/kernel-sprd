@@ -341,6 +341,8 @@ struct thermal_zone_params {
 	 * 		Used by thermal zone drivers (default 0).
 	 */
 	int offset;
+	int thm_enable;
+	int reset_done;
 };
 
 struct thermal_genl_event {
