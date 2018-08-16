@@ -464,6 +464,37 @@ static void thermal_zone_device_reset(struct thermal_zone_device *tz)
 		pos->initialized = false;
 }
 
+static int  thermal_temp_debug(struct thermal_zone_device *tz)
+{
+	int crit_temp, warn_temp;
+	int ret = -EPERM;
+	int count;
+	enum thermal_trip_type type;
+	int tz_temp;
+	struct thermal_zone_device *pos;
+
+	for (count = 0; count < tz->trips; count++) {
+		ret = tz->ops->get_trip_type(tz, count, &type);
+		if (!ret && type == THERMAL_TRIP_CRITICAL) {
+			ret = tz->ops->get_trip_temp(tz, count,
+				&crit_temp);
+			warn_temp = crit_temp - 10000;
+			if (!ret && tz->temperature > warn_temp) {
+				pr_info("warn: temperature reached %d\n",
+					tz->temperature);
+
+				list_for_each_entry(pos, &thermal_tz_list, node) {
+					thermal_zone_get_temp(pos, &tz_temp);
+					pr_info("tz=%s temp=%d\n", pos->type, tz_temp);
+				}
+			}
+			break;
+		}
+	}
+
+	return ret;
+}
+
 void thermal_zone_device_update(struct thermal_zone_device *tz,
 				enum thermal_notify_event event)
 {
@@ -476,6 +507,7 @@ void thermal_zone_device_update(struct thermal_zone_device *tz,
 		return;
 
 	update_temperature(tz);
+	thermal_temp_debug(tz);
 
 	thermal_zone_set_trips(tz);
 
