@@ -18,15 +18,16 @@
 #include <linux/of_platform.h>
 
 #include <drm/drmP.h>
-#include <drm/drm_of.h>
-#include <drm/drm_gem_cma_helper.h>
-#include <drm/drm_fb_cma_helper.h>
 #include <drm/drm_atomic.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
+#include <drm/drm_gem_cma_helper.h>
+#include <drm/drm_gem_framebuffer_helper.h>
+#include <drm/drm_of.h>
 
 #include "sprd_drm.h"
 #include "sprd_drm_gsp.h"
+#include "sprd_gem.h"
 #include <uapi/drm/sprd_drm_gsp.h>
 
 #define DRIVER_NAME	"sprd"
@@ -35,43 +36,8 @@
 #define DRIVER_MAJOR	1
 #define DRIVER_MINOR	0
 
-int sprd_drm_kms_cleanup(struct drm_device *drm)
-{
-	struct sprd_drm *sprd = drm->dev_private;
-
-	if (sprd->fbdev) {
-//		sprd_drm_fbdev_fini(drm);
-		sprd->fbdev = NULL;
-	}
-
-	drm_kms_helper_poll_fini(drm);
-	drm_atomic_helper_shutdown(drm);
-	drm_mode_config_cleanup(drm);
-	devm_kfree(drm->dev, sprd);
-	drm->dev_private = NULL;
-
-	return 0;
-}
-
-static void sprd_fbdev_output_poll_changed(struct drm_device *drm)
-{
-	struct sprd_drm *sprd = drm->dev_private;
-
-	DRM_INFO("drm_mode_config_funcs->output_poll_changed()\n");
-
-	//sprd_dsi_set_output_client(drm);
-
-	if (sprd->fbdev) {
-		DRM_INFO("call drm_fb_helper_hotplug_event()\n");
-		drm_fb_helper_hotplug_event(sprd->fbdev);
-	}
-//	else
-//		sprd->fbdev = sprd_drm_fbdev_init(drm);
-}
-
 static const struct drm_mode_config_funcs sprd_drm_mode_config_funcs = {
-	.fb_create = drm_fb_cma_create,
-	.output_poll_changed = sprd_fbdev_output_poll_changed,
+	.fb_create = drm_gem_fb_create,
 	.atomic_check = drm_atomic_helper_check,
 	.atomic_commit = drm_atomic_helper_commit,
 };
@@ -90,8 +56,8 @@ static void sprd_drm_mode_config_init(struct drm_device *drm)
 
 static const struct drm_ioctl_desc sprd_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(SPRD_GSP_GET_CAPABILITY,
-		sprd_gsp_get_capability_ioctl,
-		DRM_AUTH | DRM_RENDER_ALLOW),
+			sprd_gsp_get_capability_ioctl,
+			DRM_AUTH | DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(SPRD_GSP_TRIGGER, sprd_gsp_trigger_ioctl,
 			DRM_AUTH | DRM_RENDER_ALLOW),
 };
@@ -105,7 +71,7 @@ static const struct file_operations sprd_drm_fops = {
 	.poll		= drm_poll,
 	.read		= drm_read,
 	.llseek		= no_llseek,
-	.mmap		= drm_gem_cma_mmap,
+	.mmap		= sprd_gem_cma_mmap,
 };
 
 static struct drm_driver sprd_drm_drv = {
@@ -113,19 +79,14 @@ static struct drm_driver sprd_drm_drv = {
 				  DRIVER_ATOMIC | DRIVER_HAVE_IRQ,
 	.fops			= &sprd_drm_fops,
 
-	.gem_free_object	= drm_gem_cma_free_object,
 	.gem_vm_ops		= &drm_gem_cma_vm_ops,
-	.dumb_create		= drm_gem_cma_dumb_create_internal,
+	.gem_free_object	= sprd_gem_free_object,
+	.dumb_create		= sprd_gem_cma_dumb_create,
 
-	.prime_handle_to_fd	= drm_gem_prime_handle_to_fd,
 	.prime_fd_to_handle	= drm_gem_prime_fd_to_handle,
-	.gem_prime_export	= drm_gem_prime_export,
 	.gem_prime_import	= drm_gem_prime_import,
-	.gem_prime_get_sg_table = drm_gem_cma_prime_get_sg_table,
-	.gem_prime_import_sg_table = drm_gem_cma_prime_import_sg_table,
-	.gem_prime_vmap		= drm_gem_cma_prime_vmap,
-	.gem_prime_vunmap	= drm_gem_cma_prime_vunmap,
-	.gem_prime_mmap		= drm_gem_cma_prime_mmap,
+	.gem_prime_import_sg_table = sprd_gem_prime_import_sg_table,
+
 	.ioctls			= sprd_ioctls,
 	.num_ioctls		= ARRAY_SIZE(sprd_ioctls),
 

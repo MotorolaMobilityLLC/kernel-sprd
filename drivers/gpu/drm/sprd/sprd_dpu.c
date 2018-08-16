@@ -21,9 +21,11 @@
 #include <linux/of_address.h>
 #include <linux/of.h>
 #include <linux/of_irq.h>
+#include <drm/drm_gem_framebuffer_helper.h>
 
 #include "sprd_drm.h"
 #include "sprd_dpu.h"
+#include "sprd_gem.h"
 
 struct sprd_plane {
 	struct drm_plane plane;
@@ -33,13 +35,6 @@ struct sprd_plane {
 LIST_HEAD(dpu_core_head);
 LIST_HEAD(dpu_clk_head);
 LIST_HEAD(dpu_glb_head);
-
-static const u32 primary_fmts[] = {
-	DRM_FORMAT_RGB565, DRM_FORMAT_BGR565,
-	DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888,
-	DRM_FORMAT_ARGB8888, DRM_FORMAT_ABGR8888,
-	DRM_FORMAT_RGBA8888, DRM_FORMAT_BGRA8888,
-};
 
 static inline struct sprd_plane *to_sprd_plane(struct drm_plane *plane)
 {
@@ -59,10 +54,12 @@ static void dpu_plane_atomic_update(struct drm_plane *plane,
 {
 	struct drm_plane_state *state = plane->state;
 	struct drm_framebuffer *fb = plane->state->fb;
-	struct drm_gem_cma_object *gem;
+	struct drm_gem_object *obj;
+	struct sprd_gem_obj *sprd_gem;
 	struct sprd_plane *sp = to_sprd_plane(plane);
 	struct sprd_dpu *dpu = crtc_to_dpu(plane->state->crtc);
 	struct sprd_dpu_layer layer = {};
+	int i;
 
 	DRM_DEBUG("drm_plane_helper_funcs->atomic_update()\n");
 
@@ -77,16 +74,16 @@ static void dpu_plane_atomic_update(struct drm_plane *plane,
 	layer.dst_h = state->crtc_h;
 	layer.rotation = state->rotation;
 
-	gem = drm_fb_cma_get_gem_obj(fb, 0);
-	if (!gem) {
-		DRM_ERROR("drm_fb_cma_get_gem_obj() failed\n");
-		return;
-	}
-	layer.addr[0] = gem->paddr + fb->offsets[0];
-	layer.pitch[0] = fb->pitches[0];
 	layer.planes = fb->format->num_planes;
 	layer.format = fb->format->format;
 	layer.alpha = 0xff;
+
+	for (i = 0; i < layer.planes; i++) {
+		obj = drm_gem_fb_get_obj(fb, i);
+		sprd_gem = to_sprd_gem_obj(obj);
+		layer.addr[i] = sprd_gem->dma_addr + fb->offsets[i];
+		layer.pitch[i] = fb->pitches[i];
+	}
 
 	if (dpu->core && dpu->core->layer)
 		dpu->core->layer(&dpu->ctx, &layer);
@@ -390,6 +387,7 @@ static int dpu_irq_request(struct sprd_dpu *dpu)
 static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 {
 	struct drm_device *drm = data;
+	struct sprd_drm *sprd = drm->dev_private;
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
 	struct drm_plane *plane;
 	int err;
@@ -408,6 +406,8 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 
 	sprd_dpu_init(dpu);
 	dpu_irq_request(dpu);
+
+	sprd->dpu_dev = dev;
 
 	DRM_INFO("display controller init OK\n");
 
@@ -500,13 +500,13 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	if (!of_property_read_string(np, "sprd,ip", &str))
 		dpu->core = dpu_core_ops_attach(str);
 	else
-		DRM_ERROR("error: 'sprd,ip' was not found\n");
+		DRM_ERROR("sprd,ip was not found\n");
 
 	if (!of_property_read_string(np, "sprd,soc", &str)) {
 		dpu->clk = dpu_clk_ops_attach(str);
 		dpu->glb = dpu_glb_ops_attach(str);
 	} else
-		DRM_ERROR("error: 'sprd,soc' was not found\n");
+		DRM_ERROR("sprd,soc was not found\n");
 
 	if (dpu_context_init(dpu, np))
 		return -EINVAL;
