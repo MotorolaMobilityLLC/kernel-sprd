@@ -53,8 +53,8 @@
 			reg = <0x0 0x98100000 0x0 0x4000000>;
 		};
 
-		fb_reserved: framebuffer-mem@fefc0000{
-			reg = <0x0 0xfefc0000 0x0 0x01000000>;
+		fb_reserved: framebuffer-mem@befc0000{
+			reg = <0x0 0xbefc0000 0x0 0x01000000>;
 		};
 	};
 

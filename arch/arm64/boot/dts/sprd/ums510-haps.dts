@@ -41,8 +41,8 @@
 		#size-cells = <2>;
 		ranges;
 
-		fd_reserved: face-mem@fe5c0000{
-			reg = <0x0 0xfe5c0000 0x0 0x00a00000>;
+		fd_reserved: face-mem@be5c0000{
+			reg = <0x0 0xbe5c0000 0x0 0x00a00000>;
 		};
 
 		memdisk_reserved: memdisk@c0000000{
