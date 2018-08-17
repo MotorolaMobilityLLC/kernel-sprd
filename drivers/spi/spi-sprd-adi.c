@@ -54,7 +54,8 @@
  * ADI slave devices include RTC, ADC, regulator, charger, thermal and so on.
  * The slave devices address offset is always 0x8000 and size is 4K.
  */
-#define ADI_SLAVE_ADDR_SIZE		SZ_4K
+#define ADI_SLAVE_ADDR_SIZE		SZ_8K
+#define ADI_15BIT_SLAVE_OFFSET		0x20000
 #define ADI_SLAVE_OFFSET		0x8000
 
 /* Timeout (ms) for the trylock of hardware spinlocks */
@@ -112,6 +113,9 @@ struct sprd_adi {
 	unsigned long		slave_pbase;
 	struct notifier_block	restart_handler;
 };
+
+static u32 slave_offset_15bit = ADI_15BIT_SLAVE_OFFSET;
+static u32 slave_offset_12bit = ADI_SLAVE_OFFSET;
 
 static int sprd_adi_check_paddr(struct sprd_adi *sadi, u32 paddr)
 {
@@ -431,11 +435,18 @@ static int sprd_adi_probe(struct platform_device *pdev)
 	struct sprd_adi *sadi;
 	struct resource *res;
 	u32 num_chipselect;
+	const u32 *slave_offset;
 	int ret;
 
 	if (!np) {
 		dev_err(&pdev->dev, "can not find the adi bus node\n");
 		return -ENODEV;
+	}
+
+	slave_offset = of_device_get_match_data(&pdev->dev);
+	if (!slave_offset) {
+		dev_err(&pdev->dev, "no matching driver data found\n");
+		return -EINVAL;
 	}
 
 	pdev->id = of_alias_get_id(np, "spi");
@@ -455,8 +466,8 @@ static int sprd_adi_probe(struct platform_device *pdev)
 		goto put_ctlr;
 	}
 
-	sadi->slave_vbase = (unsigned long)sadi->base + ADI_SLAVE_OFFSET;
-	sadi->slave_pbase = res->start + ADI_SLAVE_OFFSET;
+	sadi->slave_vbase = (unsigned long)sadi->base + *slave_offset;
+	sadi->slave_pbase = res->start + *slave_offset;
 	sadi->ctlr = ctlr;
 	sadi->dev = &pdev->dev;
 	ret = of_hwspin_lock_get_id_byname(np, "adi");
@@ -513,9 +524,11 @@ static int sprd_adi_remove(struct platform_device *pdev)
 static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,sc9860-adi",
+		.data = &slave_offset_12bit,
 	},
 	{
 		.compatible = "sprd,sharkl5-adi",
+		.data = &slave_offset_15bit,
 	},
 	{ },
 };
