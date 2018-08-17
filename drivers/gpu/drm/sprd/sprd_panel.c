@@ -56,6 +56,7 @@ struct panel_info {
 	uint16_t height;
 	uint16_t width_mm;
 	uint16_t height_mm;
+	uint16_t frame_rate;
 
 	/* DPI specific parameters */
 	struct display_timing display_timing;
@@ -230,6 +231,12 @@ static struct panel_info *sprd_panel_parse_dt(struct device_node *np)
 	else
 		info->height_mm = 121;
 
+	rc = of_property_read_u32(np, "sprd,frame_rate", &temp);
+	if (!rc)
+		info->frame_rate = temp;
+	else
+		info->frame_rate = 60;
+
 	rc = of_property_read_string(np, "sprd,panel-name", &panel_name);
 	if (!rc)
 		info->lcd_name = panel_name;
@@ -257,6 +264,7 @@ static struct panel_info *sprd_panel_parse_dt(struct device_node *np)
 	DRM_INFO("lcd_name = %s\n", info->lcd_name);
 	DRM_INFO("lane_number = %d\n", info->lane_num);
 	DRM_INFO("phy_freq = %d\n", info->phy_freq);
+	DRM_INFO("frame_rate = %d\n", info->frame_rate);
 	DRM_INFO("resolution: %d x %d\n", info->width, info->height);
 
 	return info;
@@ -318,6 +326,7 @@ static int sprd_panel_probe(struct mipi_dsi_device *dsi)
 		info->video_mode.vback_porch;
 	info->drm_mode.width_mm = info->width_mm;
 	info->drm_mode.height_mm = info->height_mm;
+	info->drm_mode.vrefresh = info->frame_rate;
 
 	ret = mipi_dsi_attach(dsi);
 	if (ret) {
