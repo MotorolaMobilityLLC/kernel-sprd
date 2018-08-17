@@ -131,6 +131,7 @@
 		sprd,lane-number = <4>;
 		sprd,width-mm = <68>;
 		sprd,height-mm = <121>;
+		sprd,frame_rate = <3>;
 		display-timings {
 			clock-frequency = <600000>;
 			hactive = <720>;
