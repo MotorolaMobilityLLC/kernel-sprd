@@ -82,3 +82,8 @@
 		};
 	};
 };
+
+&sdio3 {
+	clock-names = "sdio_clk_source", "sdio_ahb_enable";
+	clocks = <&ext_26m>, <&apapb_gate 25>;
+};
