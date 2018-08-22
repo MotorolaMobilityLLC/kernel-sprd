@@ -147,7 +147,7 @@
 
 			sdio3: sdio@1400000 {
 				compatible = "sprd,sdhc-r11p1";
-				reg = <0 0x1400000 0 0x1000>;
+				reg = <0x1400000  0x1000>;
 				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
