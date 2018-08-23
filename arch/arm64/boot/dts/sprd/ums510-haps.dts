@@ -28,12 +28,12 @@
 
 	memory {
 		device_type = "memory";
-		reg = <0x0 0x80000000 0x0 0xc2c00000>;
+		reg = <0x0 0x80000000 0x0 0x80000000>;
 	};
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 maxcpus=1 init=/init root=/dev/memdisk.0 rootfstype=ext4 rw rootwait androidboot.hardware=ums510_haps androidboot.selinux=permissive";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 maxcpus=1 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 rw rootwait androidboot.hardware=ums510_haps androidboot.selinux=permissive";
 	};
 
 	reserved_memory: reserved-memory {
@@ -44,17 +44,6 @@
 		fd_reserved: face-mem@be5c0000{
 			reg = <0x0 0xbe5c0000 0x0 0x00a00000>;
 		};
-
-		memdisk_reserved: memdisk@c0000000{
-			reg = <0x0 0xc0000000 0x0 0x50000000>,  /* system 1280M */
-				<0x1 0x10000000 0x0 0x20000000>, /* userdata 512M */
-				<0x1 0x30000000 0x0 0x12c00000>; /* vendor 300M */
-		};
-	};
-
-	sprd-memdisk {
-		compatible = "sprd,memdisk";
-		memory-region = <&memdisk_reserved>;
 	};
 
 	gpio-keys {
