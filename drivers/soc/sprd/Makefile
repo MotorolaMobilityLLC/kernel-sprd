@@ -1,4 +1,5 @@
 obj-$(CONFIG_SPRD_MEMDISK)	+= sprd_memdisk.o
+obj-$(CONFIG_SPRD_7SRESET)	+= sprd_7sreset.o
 obj-$(CONFIG_SPRD_IOMMU)        += iommu/
 obj-y				+= modem/
 obj-y				+= domain/

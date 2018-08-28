@@ -1577,6 +1577,7 @@ CONFIG_CLKSRC_VERSATILE=y
 # Qualcomm SoC drivers
 #
 # CONFIG_SPRD_MEMDISK is not set
+# CONFIG_SPRD_7SRESET is not set
 # CONFIG_SPRD_IOMMU is not set
 
 #

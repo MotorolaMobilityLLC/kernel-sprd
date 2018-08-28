@@ -9,6 +9,12 @@ config SPRD_MEMDISK
 	  DDR memory as a disk. we can load the android image to this disk when
 	  mmc driver is not ready, for example in vdk and FPGA platform.
 
+config SPRD_7SRESET
+        tristate "Spreadtrum PMIC 7s reset driver"
+	depends on ARCH_SPRD || COMPILE_TEST
+        help
+          This driver support for 7Sreset of PMIC(2731,2730,2721)
+
 source drivers/soc/sprd/iommu/Kconfig
 source "drivers/soc/sprd/modem/Kconfig"
 source "drivers/soc/sprd/domain/Kconfig"

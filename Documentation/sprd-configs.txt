@@ -7996,6 +7996,13 @@ SPLIT_PTLOCK_CPUS
 	[subsys] mm
 	[must] busybox_console
 	[function] Set the number of startup ARM cores.
+SPRD_7SRESET
+	[arch] arm64
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] core
+	[must] user
+	[function] Spreadtrum hw 7s reset driver.
 SPRD_BUSMONITOR
 	[arch] all
 	[plat] sharkl5
