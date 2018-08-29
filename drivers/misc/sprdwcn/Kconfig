@@ -44,7 +44,7 @@ source "drivers/misc/sprdwcn/sdio/Kconfig"
 source "drivers/misc/sprdwcn/sleep/Kconfig"
 
 # sprd's PCIe device driver based on SC2355...,etc
-#source "drivers/misc/sprdwcn/pcie/Kconfig"
+source "drivers/misc/sprdwcn/pcie/Kconfig"
 
 # sprd's wcn platform driver based on SC2355/SC2342...,etc
 source "drivers/misc/sprdwcn/platform/Kconfig"
