@@ -583,6 +583,26 @@ static int sprd_dma_get_step(enum dma_slave_buswidth buswidth)
 	}
 }
 
+static int sprd_dma_get_data_format(u32 format)
+{
+	switch (format) {
+	case DMA_DATA_REVERSE_NONE:
+		return 0;
+
+	case DMA_DATA_REVERSE_1_BYTE:
+		return 3;
+
+	case DMA_DATA_REVERSE_2_BYTES:
+		return 2;
+
+	case DMA_DATA_REVERSE_2_BYTES | DMA_DATA_REVERSE_1_BYTE:
+		return 1;
+
+	default:
+		return -EINVAL;
+	}
+}
+
 static int sprd_dma_fill_desc(struct dma_chan *chan,
 			      struct sprd_dma_chn_hw *hw,
 			      unsigned int sglen, int sg_index,
@@ -595,7 +615,7 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 	struct sprd_dma_chn *schan = to_sprd_dma_chan(chan);
 	u32 req_mode = (flags >> SPRD_DMA_REQ_SHIFT) & SPRD_DMA_REQ_MODE_MASK;
 	u32 int_mode = flags & SPRD_DMA_INT_MASK;
-	int src_datawidth, dst_datawidth, src_step, dst_step;
+	int src_datawidth, dst_datawidth, src_step, dst_step, data_format;
 	u32 temp, fix_mode = 0, fix_en = 0;
 
 	if (dir == DMA_MEM_TO_DEV) {
@@ -657,11 +677,18 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 
 	hw->intc = int_mode | SPRD_DMA_CFG_ERR_INT_EN;
 
+	data_format = sprd_dma_get_data_format(slave_cfg->data_format);
+	if (data_format < 0) {
+		dev_err(sdev->dma_dev.dev, "invalid swidth format\n");
+		return data_format;
+	}
+
 	temp = src_datawidth << SPRD_DMA_SRC_DATAWIDTH_OFFSET;
 	temp |= dst_datawidth << SPRD_DMA_DES_DATAWIDTH_OFFSET;
 	temp |= req_mode << SPRD_DMA_REQ_MODE_OFFSET;
 	temp |= fix_mode << SPRD_DMA_FIX_SEL_OFFSET;
 	temp |= fix_en << SPRD_DMA_FIX_EN_OFFSET;
+	temp |= data_format << SPRD_DMA_SWT_MODE_OFFSET;
 	temp |= slave_cfg->src_maxburst & SPRD_DMA_FRG_LEN_MASK;
 	hw->frg_len = temp;
 

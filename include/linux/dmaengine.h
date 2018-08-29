@@ -314,6 +314,37 @@ enum dma_slave_buswidth {
 };
 
 /**
+ * enum dma_transfer_data_format - defines dma transfer data format
+ * dma controller could reverse input data from source to destination
+ * in bytes.
+ *
+ * @DMA_DATA_REVERSE_NONE: do not reverse data
+ * @DMA_DATA_REVERSE_1_BYTE: reverse 1 byte per 2 bytes
+ * @DMA_DATA_REVERSE_2_BYTES: reverse 2 byte per 4 bytes
+ * @DMA_DATA_REVERSE_4_BYTES: reserse 4 byte per 8 bytes
+ * For example:
+ * source data                format             destination data
+ * 0x0102              DMA_DATA_REVERSE_NONE        0x0102
+ * 0x0102              DMA_DATA_REVERSE_1_BYTE      0x0201
+ * 0x01020304          DMA_DATA_REVERSE_1_BYTE      0x02010403
+ * 0x01020304          DMA_DATA_REVERSE_2_BYTES     0x03040102
+ * 0x01020304          DMA_DATA_REVERSE_2_BYTES |   0x04030201
+ *                     DMA_DATA_REVERSE_1_BYTE
+ * 0x0102030405060708  DMA_DATA_REVERSE_4_BYTES     0x0506070801020304
+ * 0x0102030405060708  DMA_DATA_REVERSE_4_BYTES |   0x0708050603040102
+ *                     DMA_DATA_REVERSE_2_BYTES
+ * 0x0102030405060708  DMA_DATA_REVERSE_4_BYTES |   0x0807060504030201
+ *                     DMA_DATA_REVERSE_2_BYTES |
+ *                     DMA_DATA_REVERSE_1_BYTE
+ */
+enum dma_transfer_data_format {
+	DMA_DATA_REVERSE_NONE,
+	DMA_DATA_REVERSE_1_BYTE = BIT(0),
+	DMA_DATA_REVERSE_2_BYTES = BIT(1),
+	DMA_DATA_REVERSE_4_BYTES = BIT(2),
+};
+
+/**
  * struct dma_slave_config - dma slave channel runtime config
  * @direction: whether the data shall go in or out on this slave
  * channel, right now. DMA_MEM_TO_DEV and DMA_DEV_TO_MEM are
@@ -345,6 +376,7 @@ enum dma_slave_buswidth {
  * loops in this area in order to transfer the data.
  * @dst_port_window_size: same as src_port_window_size but for the destination
  * port.
+ * @data_format: It is data reverse format, refer to @dma_transfer_data_format.
  * @device_fc: Flow Controller Settings. Only valid for slave channels. Fill
  * with 'true' if peripheral should be flow controller. Direction will be
  * selected at Runtime.
@@ -374,6 +406,7 @@ struct dma_slave_config {
 	u32 dst_maxburst;
 	u32 src_port_window_size;
 	u32 dst_port_window_size;
+	u32 data_format;
 	bool device_fc;
 	unsigned int slave_id;
 };
