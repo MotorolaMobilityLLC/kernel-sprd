@@ -39,6 +39,11 @@ struct timing_delay_value {
 	u32 hs400es_dly;
 };
 
+struct ranges_t {
+	int start;
+	int end;
+};
+
 enum sprd_sdhci_cookie {
 	COOKIE_UNMAPPED,
 	COOKIE_MAPPED,
@@ -63,7 +68,10 @@ struct sprd_sdhc_host {
 	u32 base_clk;
 	u32 version;
 	u32 dll_dly;
+	u32 dll_cnt;
+	u32 mid_dll_cnt;
 	struct timing_delay_value *timing_dly;
+	struct ranges_t *ranges;
 
 	/* --extern resource getted by base resource-- */
 	uint64_t dma_mask;
