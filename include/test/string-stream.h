@@ -1,3 +1,11 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * C++ stream style string builder used in KUnit for building messages.
+ *
+ * Copyright (C) 2018, Google LLC.
+ * Author: Brendan Higgins <brendanhiggins@google.com>
+ */
+
 #ifndef _TEST_STRING_STREAM_H
 #define _TEST_STRING_STREAM_H
 

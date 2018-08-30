@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Mock IO functions.
+ *
+ * Copyright (C) 2018, Google LLC.
+ * Author: Brendan Higgins <brendanhiggins@google.com>
+ */
+
 #include <linux/mm.h>
 #include <linux/io.h>
 #include <linux/kernel.h>

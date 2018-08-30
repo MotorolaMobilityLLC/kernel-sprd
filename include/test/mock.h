@@ -1,3 +1,11 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Mocking API for KUnit.
+ *
+ * Copyright (C) 2018, Google LLC.
+ * Author: Brendan Higgins <brendanhiggins@google.com>
+ */
+
 #ifndef _TEST_MOCK_H
 #define _TEST_MOCK_H
 

@@ -1,4 +1,11 @@
 /* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Mock IO functions.
+ *
+ * Copyright (C) 2018, Google LLC.
+ * Author: Brendan Higgins <brendanhiggins@google.com>
+ */
+
 #ifndef _ASM_UM_IO_MOCK_H
 #define _ASM_UM_IO_MOCK_H
 

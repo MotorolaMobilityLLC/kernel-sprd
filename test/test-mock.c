@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * KUnit mock for struct test.
+ *
+ * Copyright (C) 2018, Google LLC.
+ * Author: Brendan Higgins <brendanhiggins@google.com>
+ */
+
 #include "test-mock.h"
 
 DEFINE_STRUCT_CLASS_MOCK_VOID_RETURN(METHOD(fail), CLASS(test),

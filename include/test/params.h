@@ -1,3 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Macros for parsing and manipulating parameter lists needed for generating
+ * mocks.
+ *
+ * Copyright (C) 2018, Google LLC.
+ * Author: Brendan Higgins <brendanhiggins@google.com>
+ */
+
 #ifndef _TEST_PARAMS_H
 #define _TEST_PARAMS_H
 
