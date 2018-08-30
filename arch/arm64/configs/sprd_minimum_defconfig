@@ -1570,6 +1570,11 @@ CONFIG_CLKSRC_VERSATILE=y
 #
 # CONFIG_SPRD_MEMDISK is not set
 # CONFIG_SPRD_IOMMU is not set
+
+#
+# SIPC modules
+#
+# CONFIG_SPRD_SIPC is not set
 # CONFIG_SUNXI_SRAM is not set
 # CONFIG_SOC_TI is not set
 # CONFIG_PM_DEVFREQ is not set

@@ -10,3 +10,4 @@ config SPRD_MEMDISK
 	  mmc driver is not ready, for example in vdk and FPGA platform.
 
 source drivers/soc/sprd/iommu/Kconfig
+source "drivers/soc/sprd/modem/Kconfig"
