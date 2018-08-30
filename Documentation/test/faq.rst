@@ -2,11 +2,6 @@
 Frequently Asked Questions
 =========================================
 
-.. toctree::
-	:maxdepth: 2
-
-	faq
-
 How is this different from Autotest, kselftest, etc?
 ====================================================
 KUnit is a unit testing framework. Autotest, kselftest (and some others) are
