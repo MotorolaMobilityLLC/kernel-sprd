@@ -524,10 +524,10 @@ static void mock_format_integer(struct mock_param_formatter *pformatter,
 }
 
 static struct mock_param_integer_formatter integer_formatters[] = {
-	INTEGER_FORMATTER_INIT(u8, "%PRIu8"),
-	INTEGER_FORMATTER_INIT(u16, "%PRIu16"),
-	INTEGER_FORMATTER_INIT(u32, "%PRIu32"),
-	INTEGER_FORMATTER_INIT(u64, "%PRIu64"),
+	INTEGER_FORMATTER_INIT(u8, "%hhu"),
+	INTEGER_FORMATTER_INIT(u16, "%hu"),
+	INTEGER_FORMATTER_INIT(u32, "%u"),
+	INTEGER_FORMATTER_INIT(u64, "%llu"),
 	INTEGER_FORMATTER_INIT(char, "%c"),
 	INTEGER_FORMATTER_INIT(unsigned char, "%hhu"),
 	INTEGER_FORMATTER_INIT(signed char, "%hhd"),
