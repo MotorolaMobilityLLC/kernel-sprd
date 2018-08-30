@@ -140,6 +140,9 @@ struct thermal_cooling_device_ops {
 			   struct thermal_zone_device *, unsigned long, u32 *);
 	int (*power2state)(struct thermal_cooling_device *,
 			   struct thermal_zone_device *, u32, unsigned long *);
+	int (*online_everything)(struct thermal_cooling_device *);
+	int (*update_max_freq)(struct thermal_cooling_device *,
+		struct thermal_zone_device *);
 };
 
 struct thermal_cooling_device {

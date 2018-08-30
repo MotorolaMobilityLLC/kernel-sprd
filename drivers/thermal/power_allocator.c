@@ -536,6 +536,23 @@ static void allow_maximum_power(struct thermal_zone_device *tz)
 		instance->cdev->updated = false;
 		mutex_unlock(&instance->cdev->lock);
 		thermal_cdev_update(instance->cdev);
+		if (instance->cdev->ops->online_everything)
+			instance->cdev->ops->online_everything(instance->cdev);
+	}
+	mutex_unlock(&tz->lock);
+}
+
+static void allow_maximum_freq(struct thermal_zone_device *tz)
+{
+	struct thermal_instance *instance;
+
+	mutex_lock(&tz->lock);
+	list_for_each_entry(instance, &tz->thermal_instances, tz_node) {
+		if (!cdev_is_power_actor(instance->cdev))
+			continue;
+
+		if (instance->cdev->ops->update_max_freq)
+			instance->cdev->ops->update_max_freq(instance->cdev, tz);
 	}
 	mutex_unlock(&tz->lock);
 }
@@ -619,6 +636,14 @@ static int power_allocator_throttle(struct thermal_zone_device *tz, int trip)
 	int switch_on_temp, control_temp;
 	struct power_allocator_params *params = tz->governor_data;
 
+	/*
+	 * We get called for every trip point but we only need to do
+	 * our calculations once
+	 */
+	if (trip != params->trip_max_desired_temperature)
+		return 0;
+
+	allow_maximum_freq(tz);
 	if (!tz->tzp->thm_enable) {
 		if (!tz->tzp->reset_done) {
 			tz->passive = 0;
@@ -629,13 +654,6 @@ static int power_allocator_throttle(struct thermal_zone_device *tz, int trip)
 		return 0;
 	} else
 		tz->tzp->reset_done = 0;
-
-	/*
-	 * We get called for every trip point but we only need to do
-	 * our calculations once
-	 */
-	if (trip != params->trip_max_desired_temperature)
-		return 0;
 
 	ret = tz->ops->get_trip_temp(tz, params->trip_switch_on,
 				     &switch_on_temp);
