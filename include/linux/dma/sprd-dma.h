@@ -3,9 +3,67 @@
 #ifndef _SPRD_DMA_H_
 #define _SPRD_DMA_H_
 
-#define SPRD_DMA_REQ_SHIFT 16
-#define SPRD_DMA_FLAGS(req_mode, int_type) \
-	((req_mode) << SPRD_DMA_REQ_SHIFT | (int_type))
+#define SPRD_DMA_REQ_SHIFT	8
+#define SPRD_DMA_TRG_MODE_SHIFT	16
+#define SPRD_DMA_CHN_MODE_SHIFT	24
+#define SPRD_DMA_FLAGS(chn_mode, trg_mode, req_mode, int_type) \
+	((chn_mode) << SPRD_DMA_CHN_MODE_SHIFT | \
+	(trg_mode) << SPRD_DMA_TRG_MODE_SHIFT | \
+	(req_mode) << SPRD_DMA_REQ_SHIFT | (int_type))
+
+/*
+ * enum sprd_dma_chn_mode: define the DMA channel mode
+ *
+ * The Spreadtrum DMA controller supports two stage channels mode,
+ * that means there are two dma channels, one for source channel,
+ * and another for destination channel. Each of the channel is
+ * independent, and has its own configurations, but if source
+ * channel transfer is done, which will trigger destination channel
+ * automatically by hardware signal.
+ *
+ * @SPRD_DMA_CHN_MODE_NONE: channel do not support two stage mode
+ * @SPRD_DMA_SRC_CHN0: channel used as source channel 0
+ * @SPRD_DMA_SRC_CHN1: channel used as source channel 1
+ * @SPRD_DMA_DST_CHN0: channel used as destination channel 0
+ * @SPRD_DMA_DST_CHN1: channel used as destination channel 1
+ *
+ * There are two source channels and two destination channels.
+ * Source channel request mode means the channel is used as the
+ * triggering channel in dma two stage channels mode.
+ * Destination channel request mode means the channel is used as the
+ * trigged channel in dma two stage channels mode.
+ */
+enum sprd_dma_chn_mode {
+	SPRD_DMA_CHN_MODE_NONE,
+	SPRD_DMA_SRC_CHN0,
+	SPRD_DMA_SRC_CHN1,
+	SPRD_DMA_DST_CHN0,
+	SPRD_DMA_DST_CHN1,
+};
+
+/*
+ * enum sprd_dma_trg_mode: define the DMA channel trigger mode
+ *
+ * Refer to "enum sprd_dma_chn_mode" of the description of DMA two
+ * stage channels mode.
+ *
+ * @SPRD_DMA_NO_TRG: channel do not support two stage mode
+ * @SPRD_DMA_FRAG_DONE_TRG: if source channel's fragment request is done,
+ * it will trigger destination channel
+ * @SPRD_DMA_BLOCK_DONE_TRG: if source channel's block request is done,
+ * it will trigger destination channel
+ * @SPRD_DMA_TRANS_DONE_TRG: if source channel's transfer request is done,
+ * it will trigger destination channel
+ * @SPRD_DMA_LIST_DONE_TRG: if source channel's link-list request is done,
+ * it will trigger destination channel
+ */
+enum sprd_dma_trg_mode {
+	SPRD_DMA_NO_TRG,
+	SPRD_DMA_FRAG_DONE_TRG,
+	SPRD_DMA_BLOCK_DONE_TRG,
+	SPRD_DMA_TRANS_DONE_TRG,
+	SPRD_DMA_LIST_DONE_TRG,
+};
 
 /*
  * enum sprd_dma_req_mode: define the DMA request mode
