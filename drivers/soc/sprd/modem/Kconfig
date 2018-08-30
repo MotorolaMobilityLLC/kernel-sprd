@@ -1,1 +1,3 @@
 source "drivers/soc/sprd/modem/sipc/Kconfig"
+source "drivers/soc/sprd/modem/cproc/Kconfig"
+source "drivers/soc/sprd/modem/iq/Kconfig"

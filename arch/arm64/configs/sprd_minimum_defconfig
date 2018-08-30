@@ -1575,6 +1575,12 @@ CONFIG_CLKSRC_VERSATILE=y
 # SIPC modules
 #
 # CONFIG_SPRD_SIPC is not set
+# CONFIG_SPRD_CPROC is not set
+
+#
+# SPRD IQ modules
+#
+# CONFIG_SPRD_IQ is not set
 # CONFIG_SUNXI_SRAM is not set
 # CONFIG_SOC_TI is not set
 # CONFIG_PM_DEVFREQ is not set
