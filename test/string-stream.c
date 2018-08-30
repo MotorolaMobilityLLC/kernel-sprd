@@ -77,16 +77,17 @@ static void string_stream_clear(struct string_stream *this)
 static char *string_stream_get_string(struct string_stream *this)
 {
 	struct string_stream_fragment *fragment;
+	size_t buf_len = this->length + 1; /* +1 for null byte. */
 	char *buf;
 	unsigned long flags;
 
-	buf = kzalloc(this->length + 1, GFP_KERNEL);
+	buf = kzalloc(buf_len, GFP_KERNEL);
 	if (!buf)
 		return NULL;
 
 	spin_lock_irqsave(&this->lock, flags);
 	list_for_each_entry(fragment, &this->fragments, node)
-		strcat(buf, fragment->fragment);
+		strlcat(buf, fragment->fragment, buf_len);
 	spin_unlock_irqrestore(&this->lock, flags);
 
 	return buf;
