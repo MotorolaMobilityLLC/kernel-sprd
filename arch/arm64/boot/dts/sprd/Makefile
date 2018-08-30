@@ -10,7 +10,8 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9863a-1h10-overlay.dtbo \
 	sp9863a-2h10-overlay.dtbo \
-	ums510-haps-overlay.dtbo
+	ums510-haps-overlay.dtbo \
+        ud710-haps-overlay.dtbo
 
 always		:= $(dtb-y) $(dtbo-y)
 subdir-y	:= $(dts-dirs)
