@@ -29,7 +29,7 @@ regular Kernel config, with the specific test targets as well.
 
 .. code-block:: bash
 
-	git clone -b kunit/alpha/master sso://team/kunit/kunitconfig $PATH_TO_KUNITCONFIG_REPO
+	git clone -b kunit/alpha/master https://kunit.googlesource.com/kunitconfig $PATH_TO_KUNITCONFIG_REPO
 	cd $PATH_TO_LINUX_REPO
 	ln -s $PATH_TO_KUNIT_CONFIG_REPO/kunitconfig kunitconfig
 
