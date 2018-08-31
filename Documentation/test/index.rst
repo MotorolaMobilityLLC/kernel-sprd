@@ -20,9 +20,9 @@ These tests are able to be run locally on a developer's workstation without a VM
 or special hardware.
 
 KUnit is heavily inspired by JUnit, Python's ``unittest.mock``, and
-Googletest/Googlemock for C++. They have the same structure for defining test
-suites and test cases. KUnit defines a way to mock out C style classes and
-functions and create expectations on methods called within the code under test.
+Googletest/Googlemock for C++; it provides many of the same features in a
+similar manner (mocking, spying, assertions, etc) in a way that makes sense
+with the Linux kernel's flavor of C.
 
 Get started now: :doc:`start`
 
