@@ -22,15 +22,6 @@
 #include "mux.h"
 #include "pll.h"
 
-static CLK_FIXED_FACTOR(fac_4m,		"fac-4m",	"ext-26m",
-			6, 1, 0);
-static CLK_FIXED_FACTOR(fac_2m,		"fac-2m",	"ext-26m",
-			13, 1, 0);
-static CLK_FIXED_FACTOR(fac_1m,		"fac-1m",	"ext-26m",
-			26, 1, 0);
-static CLK_FIXED_FACTOR(fac_250k,	"fac-250k",	"ext-26m",
-			104, 1, 0);
-
 /* ap ahb gates */
 static SPRD_SC_GATE_CLK(dsi_eb,		"dsi-eb",	"ext-26m", 0x0,
 		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
@@ -222,7 +213,7 @@ static SPRD_SC_GATE_CLK(ap_sdio2_rtc_eb, "ap-sdio2-rtc-eb", "ext-26m", 0x18,
 			       0x1000, BIT(17), 0, 0);
 static SPRD_SC_GATE_CLK(dsi_csi_test_eb, "dsi-csi-test-eb", "ext-26m", 0x138,
 			       0x1000, BIT(8), 0, 0);
-static SPRD_SC_GATE_CLK(djtag_tck_eb, "djtag-tck-eb", "ext-26m", 0x138,
+static SPRD_SC_GATE_CLK(djtag_tck_en, "djtag-tck-en", "ext-26m", 0x138,
 			       0x1000, BIT(9), 0, 0);
 static SPRD_SC_GATE_CLK(dphy_ref_eb, "dphy-ref-eb", "ext-26m", 0x138,
 			       0x1000, BIT(10), 0, 0);
@@ -347,7 +338,7 @@ static struct sprd_clk_common *sharkl5_aon_gate[] = {
 	&ap_sdio1_rtc_eb.common,
 	&ap_sdio2_rtc_eb.common,
 	&dsi_csi_test_eb.common,
-	&djtag_tck_eb.common,
+	&djtag_tck_en.common,
 	&dphy_ref_eb.common,
 	&dmc_ref_eb.common,
 	&otg_ref_eb.common,
@@ -617,8 +608,8 @@ static struct clk_hw_onecell_data sharkl5_apapb_gate_hws = {
 		[CLK_SDIO1_32K_EB]	= &sdio1_32k_eb.common.hw,
 		[CLK_SDIO2_32K_EB]	= &sdio2_32k_eb.common.hw,
 		[CLK_EMMC_EB]		= &emmc_32k_eb.common.hw,
-		[CLK_CE_SEC_EB]		= &ce_sec_eb.common.hw,
-		[CLK_CE_PUB_EB]		= &ce_pub_eb.common.hw,
+		[CLK_SEC_CE_EB]		= &ce_sec_eb.common.hw,
+		[CLK_PUB_CE_EB]		= &ce_pub_eb.common.hw,
 	},
 	.num	= CLK_AP_APB_GATE_NUM,
 };

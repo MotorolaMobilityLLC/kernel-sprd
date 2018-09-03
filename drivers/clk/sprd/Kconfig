@@ -21,4 +21,9 @@ config SPRD_SC9832E_CLK
 	tristate "Support for the Spreadtrum Sharkle clocks"
 	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
 	default ARM64 && ARCH_SPRD
+
+config SPRD_SHARKL5_CLK
+	tristate "Support for the Spreadtrum Sharkl5 clocks"
+	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
+	default ARM64 && ARCH_SPRD
 endif

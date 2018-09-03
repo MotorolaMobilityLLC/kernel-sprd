@@ -10,7 +10,7 @@
 #define CLK_DSI_EB		0
 #define CLK_DISPC_EB		1
 #define CLK_VSP_EB		2
-#define CLK_DMA_PUB_EN		3
+#define CLK_DMA_PUB_EB		3
 #define CLK_DMA_EB		4
 #define CLK_AP_AHB_GATE_NUM	(CLK_DMA_EB + 1)
 
@@ -82,7 +82,7 @@
 #define CLK_AC_WDG_RTC_EB	65
 #define CLK_AP_TMR0_RTC_EB	66
 #define CLK_AP_TMR1_RTC_EB	67
-#define CLK_AP_TRM2_RTC_EB	68
+#define CLK_AP_TMR2_RTC_EB	68
 #define CLK_DCXO_LC_RTC_EB	69
 #define CLK_BB_CAL_RTC_EB	70
 #define CLK_AP_EMMC_RTC_EB	71
@@ -120,7 +120,7 @@
 #define CLK_IIS1_EB		2
 #define CLK_IIS2_EB		3
 #define CLK_APB_REG_EB		4
-#define CLK_SPIO_EB		5
+#define CLK_SPI0_EB		5
 #define CLK_SPI1_EB		6
 #define CLK_SPI2_EB		7
 #define CLK_SPI3_EB		8
@@ -145,8 +145,8 @@
 #define CLK_SDIO1_32K_EB	27
 #define CLK_SDIO2_32K_EB	28
 #define CLK_EMMC_32K_EB		29
-#define CLK_CE_SEC_EB		30
-#define CLK_CE_PUB_EB		31
-#define CLK_AP_APB_GATE_NUM	(CE_PUB_EB + 1)
+#define CLK_SEC_CE_EB		30
+#define CLK_PUB_CE_EB		31
+#define CLK_AP_APB_GATE_NUM	(CLK_PUB_CE_EB + 1)
 
 #endif /* _DT_BINDINGS_CLK_SHARKL5_H_ */
