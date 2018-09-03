@@ -68,6 +68,7 @@
 #define SPRD_DMA_GLB_FRAG_DONE_TRG	BIT(16)
 #define SPRD_DMA_GLB_TRG_OFFSET		16
 #define SPRD_DMA_GLB_DEST_CHN_MASK	GENMASK(13, 8)
+#define SPRD_DMA_GLB_DEST_CHN_OFFSET	8
 #define SPRD_DMA_GLB_SRC_CHN_MASK	GENMASK(5, 0)
 
 /* SPRD_DMA_CHN_INTC register definition */
@@ -427,13 +428,15 @@ static int sprd_dma_set_2stage_config(struct sprd_dma_chn *schan)
 		break;
 
 	case SPRD_DMA_DST_CHN0:
-		val = chn & SPRD_DMA_GLB_DEST_CHN_MASK;
+		val = (chn << SPRD_DMA_GLB_DEST_CHN_OFFSET) &
+			SPRD_DMA_GLB_DEST_CHN_MASK;
 		val |= SPRD_DMA_GLB_2STAGE_EN;
 		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP1, val, val);
 		break;
 
 	case SPRD_DMA_DST_CHN1:
-		val = chn & SPRD_DMA_GLB_DEST_CHN_MASK;
+		val = (chn << SPRD_DMA_GLB_DEST_CHN_OFFSET) &
+			SPRD_DMA_GLB_DEST_CHN_MASK;
 		val |= SPRD_DMA_GLB_2STAGE_EN;
 		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP2, val, val);
 		break;
