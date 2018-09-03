@@ -1002,6 +1002,19 @@ static void musb_sprd_release_all_request(struct musb *musb)
 	}
 }
 
+#if defined(CONFIG_USB_SPRD_OFFLOAD)
+static inline void musb_sprd_offload_shutdown(struct musb *musb)
+{
+	void __iomem	*mbase = musb->mregs;
+
+	musb_writel(mbase, MUSB_AUDIO_IIS_DMA_CHN, 0);
+}
+#else
+static inline void musb_sprd_offload_shutdown(struct musb *musb)
+{
+}
+#endif
+
 static void musb_sprd_disable_all_interrupts(struct musb *musb)
 {
 	void __iomem	*mbase = musb->mregs;
@@ -1031,6 +1044,13 @@ static void musb_sprd_disable_all_interrupts(struct musb *musb)
 				CHN_USBRX_LAST_INT_CLR;
 		musb_writel(mbase, MUSB_DMA_CHN_INTR(i),
 			intr);
+	}
+
+	/* disable usb audio offload */
+	if (musb->is_offload) {
+		dev_dbg(musb->controller, "disable audio channel\n");
+		musb_sprd_offload_shutdown(musb);
+		musb->is_offload = 0;
 	}
 }
 

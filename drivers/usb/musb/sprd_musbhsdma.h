@@ -28,6 +28,53 @@
 #define MUSB_DMA_CHN_ADDR_H(n)		(0x1c18 + (n - 1) * 0x20)
 #define MUSB_DMA_CHN_REQ(n)		(0x1c1c + (n - 1) * 0x20)
 
+/*MUSB I2S control*/
+#define MUSB_AUDIO_IIS_CTL0		0x1404
+#define BIT_RTX_MD(x)			(((x) & 0x3) << 6)
+#define BIT_NG_TX			BIT(1)
+#define BIT_NG_RX			BIT(0)
+
+#define MUSB_AUDIO_IIS_CLKM		0x1420
+#define BIT_IIS_CLKM(x)		((x) & GENMASK(21, 0))
+
+#define MUSB_AUDIO_IIS_CLKN		0x1424
+#define BIT_IIS_CLKN(x)		((x) & GENMASK(21, 0))
+
+#define MUSB_AUDIO_IIS_DMA_INS		0x1428
+#define BIT_TX_FIFO_DEPTH(x)		(((x) & 0x3) << 30)
+#define BIT_RX_FIFO_DEPTH(x)		(((x) & 0x3) << 28)
+#define BIT_TX_ST_MO			BIT(23)
+#define BIT_RX_ST_MO			BIT(22)
+#define BIT_TX_LEFT_FIRST		BIT(21)
+#define BIT_RX_LEFT_FIRST		BIT(20)
+#define BIT_TX_SAMPLE_RATE(x)		(((x) & GENMASK(8, 0)) << 9)
+#define BIT_RX_SAMPLE_RATE(x)		((x) & GENMASK(8, 0))
+
+#define MUSB_AUDIO_IIS_DMA_CHN		0x142c
+#define BIT_CHN_AUDIO_EN(x)		BIT(x)
+
+#define MUSB_AUDIO_IIS_EN		0x1430
+#define BIT_TX_EMPTY_INT_MSK		BIT(13)
+#define BIT_RX_FULL_INT_MSK		BIT(12)
+#define BIT_TX_EMPTY_INT_CLR		BIT(11)
+#define BIT_RX_FULL_INT_CLR		BIT(10)
+#define BIT_TX_EMPTY_INT_EN		BIT(9)
+#define BIT_RX_FULL_INT_EN		BIT(8)
+#define BIT_IIS_SAMPLE_DEPTH		BIT(7)
+#define BIT_UNALIGN_OUT_EN		BIT(6)
+#define BIT_UNALIGN_IN_EN		BIT(5)
+#define BIT_IIS_HALT			BIT(4)
+#define BIT_IIS_START			BIT(3)
+#define BIT_EXT_IIS_MODE		BIT(2)
+#define BIT_IIS_TO_TXF_EN		BIT(1)
+#define BIT_IIS_FROM_RXF_EN		BIT(0)
+
+/*
+ * Usb audio clk_i2s is same as clk_utmi. clk_utmi is 30M when
+ * configured 16bit data width and 60M when configured 8bit.
+ */
+#define MUSB_IIS_CLKN	30000
+
 #define musb_read_dma_addr(mbase, bchannel)	\
 	musb_readl(mbase,	\
 		   MUSB_DMA_CHN_ADDR(bchannel))
@@ -60,7 +107,13 @@
 #define LISTNODE_NUM	2048
 #define LISTNODE_MASK	(LISTNODE_NUM - 1)
 
-#define MUSB_DMA_CHANNELS	30
+#define MUSB_DMA_CHANNELS	31
+
+enum {
+	IIS_WIDTH_16BIT,
+	IIS_WIDTH_24BIT,
+	IIS_WIDTH_MAX,
+};
 
 #ifdef CONFIG_64BIT
 #define ADDR_FLAG GENMASK(63, 28)

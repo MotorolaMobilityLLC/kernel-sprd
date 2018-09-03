@@ -279,6 +279,10 @@ struct hc_driver {
 	/* return current frame number */
 	int	(*get_frame_number) (struct usb_hcd *hcd);
 
+	/* usb audio offload */
+	void	(*offload_config)(struct usb_hcd *hcd, int ep_num, int mono,
+		int is_pcm_24, int width, int rate, int is_offload_mod);
+
 	/* manage i/o requests, device state */
 	int	(*urb_enqueue)(struct usb_hcd *hcd,
 				struct urb *urb, gfp_t mem_flags);

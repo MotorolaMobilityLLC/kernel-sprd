@@ -390,6 +390,7 @@ struct musb {
 	bool			session;
 	unsigned long		quirk_retries;
 	bool			is_host;
+	bool			is_offload;	/* i2s mode for usb audio */
 
 	int			a_wait_bcon;	/* VBUS timeout in msecs */
 	unsigned long		idle_timeout;	/* Next timeout in jiffies */
