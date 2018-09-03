@@ -361,6 +361,17 @@ static void sprd_dma_stop_and_disable(struct sprd_dma_chn *schan)
 	sprd_dma_disable_chn(schan);
 }
 
+static unsigned long sprd_dma_get_src_addr(struct sprd_dma_chn *schan)
+{
+	unsigned long addr, addr_high;
+
+	addr = readl(schan->chn_base + SPRD_DMA_CHN_SRC_ADDR);
+	addr_high = readl(schan->chn_base + SPRD_DMA_CHN_WARP_PTR) &
+		    SPRD_DMA_HIGH_ADDR_MASK;
+
+	return addr | (addr_high << SPRD_DMA_HIGH_ADDR_OFFSET);
+}
+
 static unsigned long sprd_dma_get_dst_addr(struct sprd_dma_chn *schan)
 {
 	unsigned long addr, addr_high;
@@ -593,6 +604,7 @@ static enum dma_status sprd_dma_tx_status(struct dma_chan *chan,
 					  struct dma_tx_state *txstate)
 {
 	struct sprd_dma_chn *schan = to_sprd_dma_chan(chan);
+	enum dma_transfer_direction direction = schan->slave_cfg.direction;
 	struct virt_dma_desc *vd;
 	unsigned long flags;
 	enum dma_status ret;
@@ -617,7 +629,10 @@ static enum dma_status sprd_dma_tx_status(struct dma_chan *chan,
 		else
 			pos = 0;
 	} else if (schan->cur_desc && schan->cur_desc->vd.tx.cookie == cookie) {
-		pos = sprd_dma_get_dst_addr(schan);
+		if (direction == DMA_DEV_TO_MEM)
+			pos = sprd_dma_get_dst_addr(schan);
+		else
+			pos = sprd_dma_get_src_addr(schan);
 	} else {
 		pos = 0;
 	}
