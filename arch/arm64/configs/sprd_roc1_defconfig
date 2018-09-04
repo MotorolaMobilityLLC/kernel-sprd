@@ -2817,6 +2817,7 @@ CONFIG_USB_CONFIGFS_F_HID=y
 #
 # USB Power Delivery and Type-C drivers
 #
+# CONFIG_USB_SC27XX_TYPEC is not set
 # CONFIG_TYPEC_UCSI is not set
 # CONFIG_USB_LED_TRIG is not set
 # CONFIG_USB_ULPI_BUS is not set

@@ -19,6 +19,13 @@ config TYPEC_WCOVE
 	  To compile this driver as module, choose M here: the module will be
 	  called typec_wcove
 
+config USB_SC27XX_TYPEC
+	tristate "Spreadtrum SC27XX Serials PMICs Typec Controller"
+	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	default n
+	help
+	  Select this when you want to enable Spreadtrum Type-C v1.1 module.
+
 source "drivers/usb/typec/ucsi/Kconfig"
 
 endmenu
