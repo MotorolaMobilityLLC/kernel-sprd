@@ -120,6 +120,10 @@
 			memory-region = <&fb_reserved>;
 		};
 	};
+
+	sprd-wlan {
+		compatible = "sprd,sc2355-wifi";
+	};
 };
 
 &uart0 {
