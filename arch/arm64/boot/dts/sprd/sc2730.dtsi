@@ -65,6 +65,13 @@
 			hwlocks = <&hwlock 12>;
 		};
 
+		pmic_typec: typec@380 {
+			compatible = "sprd,sc27xx-typec", "sprd,sc2730-typec";
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
+			reg = <0x380>;
+		};
+
 		pmic_adc: adc@500 {
 			compatible = "sprd,sc27xx-adc", "sprd,sc2730-adc";
 			reg = <0x500>;
