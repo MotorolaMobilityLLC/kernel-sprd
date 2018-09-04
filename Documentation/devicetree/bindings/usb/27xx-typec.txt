@@ -1,0 +1,20 @@
+Spreadtrum 27XX TYPEC device tree bindings
+================================================================
+
+Required properties:
+ - compatible: should be one of the following
+		"sprd,sc2730-typec"
+ - reg: physical base address of the musb and length of memory mapped region
+ - interrupt-parent: phandle for the Interrupt Controller
+ - interrupts: typec interrupt of the Interrupt Controller
+
+Example:
+-------
+Board specific DT entry:
+
+	pmic_typec: typec@380 {
+		compatible = "sprd,sc27xx-typec", "sprd,sc2730-typec";
+		interrupt-parent = <&sc2730_pmic>;
+		interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
+		reg = <0x380>;
+	};
