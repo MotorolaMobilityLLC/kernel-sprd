@@ -8962,6 +8962,13 @@ CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[subsys] misc
 	[must] console
 	[function] This function is used to enable mm power domain.
+CONFIG_SPRD_PMIC_SYSCON
+	[arch] all
+	[plat] sharkl5
+	[field] make,code
+	[subsys] soc
+	[must] debug
+	[function] This function is used to calibrate PMIC 26M.
 CONFIG_SPRD_PTM
 	[arch] all
 	[plat] sharkl5
