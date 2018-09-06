@@ -130,9 +130,6 @@ static void sprd_hsphy_emphasis_set(struct usb_phy *x, bool enabled)
 	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
 	u32 msk;
 
-	if (!phy)
-		return;
-
 	msk = MASK_ANLG_PHY_G4_ANALOG_USB20_USB20_TUNEHSAMP;
 	if (enabled)
 		regmap_update_bits(phy->ana_g4,
@@ -157,10 +154,11 @@ static int sprd_hsphy_init(struct usb_phy *x)
 
 	/* Turn On VDD */
 	regulator_set_voltage(phy->vdd, phy->vdd_vol, phy->vdd_vol);
-	ret = regulator_enable(phy->vdd);
-	if (ret)
-		return ret;
-
+	if (!regulator_is_enabled(phy->vdd)) {
+		ret = regulator_enable(phy->vdd);
+		if (ret)
+			return ret;
+	}
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB2,
 		MASK_AON_APB_OTG_REF_EB, MASK_AON_APB_OTG_REF_EB);
 
@@ -234,7 +232,8 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB2,
 		MASK_AON_APB_OTG_REF_EB, 0);
 
-	regulator_disable(phy->vdd);
+	if (regulator_is_enabled(phy->vdd))
+		regulator_disable(phy->vdd);
 
 	atomic_set(&phy->inited, 0);
 	atomic_set(&phy->reset, 0);
@@ -244,7 +243,8 @@ static int sprd_hsphy_post_init(struct usb_phy *x)
 {
 	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
 
-	regulator_disable(phy->vdd);
+	if (regulator_is_enabled(phy->vdd))
+		regulator_disable(phy->vdd);
 
 	return 0;
 }
