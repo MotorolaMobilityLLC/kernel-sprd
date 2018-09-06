@@ -74,7 +74,13 @@
 #define CLK_SDIO1_2X		2
 #define CLK_SDIO2_2X		3
 #define CLK_EMMC_2X		4
-#define CLK_AP_CLK_NUM		(CLK_EMMC_2X + 1)
+#define CLK_DPU			5
+#define CLK_DPU_DPI		6
+#define CLK_FAC_RCO25M		7
+#define CLK_FAC_RCO4M		8
+#define CLK_FAC_RCO2M		9
+#define CLK_AON_APB		10
+#define CLK_AP_CLK_NUM		(CLK_AON_APB + 1)
 
 #define CLK_OTG_EB		0
 #define CLK_DMA_EB		1
@@ -90,5 +96,14 @@
 #define CLK_SDIO2_32K_EB	11
 #define CLK_NANDC_26M_EB	12
 #define CLK_AP_AHB_GATE_NUM	(CLK_NANDC_26M_EB + 1)
+
+#define CLK_GNU_EB		0
+#define CLK_DISP_EB		1
+#define CLK_MM_EMC_EB		2
+#define CLK_POWER_CPU_EB	3
+#define CLK_I2C_EB		4
+#define CLK_MM_VSP_EMC_EB	5
+#define CLK_VSP_EB		6
+#define CLK_AON_TOP_GATE_NUM	(CLK_VSP_EB + 1)
 
 #endif /* _DT_BINDINGS_CLK_SC9860_H_ */

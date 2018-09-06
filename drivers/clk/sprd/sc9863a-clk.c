@@ -323,31 +323,63 @@ static SPRD_MUX_CLK(ap_axi, "ap-axi", ap_axi_parents, 0x2c8,
 static const char * const sdio_parents[] = { "ext-26m", "twpll-307m2",
 					     "twpll-384m", "rpll-390m",
 					     "dpll1-400m", "lpll-409m6" };
-static SPRD_MUX_CLK(sdio0_2x_clk, "sdio0-2x", sdio_parents, 0x2cc,
+static SPRD_MUX_CLK(sdio0_2x, "sdio0-2x", sdio_parents, 0x2cc,
 			0, 3, SC9863A_MUX_FLAG);
-static SPRD_MUX_CLK(sdio1_2x_clk, "sdio1-2x", sdio_parents, 0x2d4,
+static SPRD_MUX_CLK(sdio1_2x, "sdio1-2x", sdio_parents, 0x2d4,
 			0, 3, SC9863A_MUX_FLAG);
-static SPRD_MUX_CLK(sdio2_2x_clk, "sdio2-2x", sdio_parents, 0x2dc,
+static SPRD_MUX_CLK(sdio2_2x, "sdio2-2x", sdio_parents, 0x2dc,
 			0, 3, SC9863A_MUX_FLAG);
-static SPRD_MUX_CLK(emmc_2x_clk, "emmc-2x", sdio_parents, 0x2e4,
+static SPRD_MUX_CLK(emmc_2x, "emmc-2x", sdio_parents, 0x2e4,
 			0, 3, SC9863A_MUX_FLAG);
+
+static const char * const dpu_parents[] = { "twpll-153m6", "twpll-192m",
+					    "twpll-256m", "twpll-384m"};
+static SPRD_MUX_CLK(dpu_clk, "dpu", dpu_parents, 0x2f4,
+			0, 2, SC9863A_MUX_FLAG);
+
+static const char * const dpu_dpi_parents[] = { "twpll-128m", "twpll-153m6",
+					    "twpll-192m" };
+static SPRD_COMP_CLK(dpu_dpi,	"dpu-dpi", dpu_dpi_parents, 0x2f8,
+		     0, 2, 8, 4, 0);
+
+static CLK_FIXED_FACTOR(fac_rco_25m,	"rco-25m",	"ext-rc0-100m",
+			4, 1, 0);
+static CLK_FIXED_FACTOR(fac_rco_4m,	"rco-4m",	"ext-rc0-100m",
+			25, 1, 0);
+static CLK_FIXED_FACTOR(fac_rco_2m,	"rco-2m",	"ext-rc0-100m",
+			50, 1, 0);
+
+static const char * const aon_apb_parents[] = { "rco-4m",	"rco-25m",
+						"ext-26m",	"twpll-96m",
+						"ext-rco-100m",	"twpll-128m" };
+static SPRD_COMP_CLK(aon_apb, "aon-apb", aon_apb_parents, 0x224,
+		     0, 3, 8, 2, 0);
 
 static struct sprd_clk_common *sc9863a_ap_clks[] = {
 	/* address base is 0x402d0000 */
 	&ap_axi.common,
-	&sdio0_2x_clk.common,
-	&sdio1_2x_clk.common,
-	&sdio2_2x_clk.common,
-	&emmc_2x_clk.common,
+	&sdio0_2x.common,
+	&sdio1_2x.common,
+	&sdio2_2x.common,
+	&emmc_2x.common,
+	&dpu_clk.common,
+	&dpu_dpi.common,
+	&aon_apb.common,
 };
 
 static struct clk_hw_onecell_data sc9863a_ap_clk_hws = {
 	.hws	= {
-		[CLK_AP_AXI]	= &ap_axi.common.hw,
-		[CLK_SDIO0_2X]	= &sdio0_2x_clk.common.hw,
-		[CLK_SDIO1_2X]	= &sdio1_2x_clk.common.hw,
-		[CLK_SDIO2_2X]	= &sdio2_2x_clk.common.hw,
-		[CLK_EMMC_2X]	= &emmc_2x_clk.common.hw,
+		[CLK_AP_AXI]		= &ap_axi.common.hw,
+		[CLK_SDIO0_2X]		= &sdio0_2x.common.hw,
+		[CLK_SDIO1_2X]		= &sdio1_2x.common.hw,
+		[CLK_SDIO2_2X]		= &sdio2_2x.common.hw,
+		[CLK_EMMC_2X]		= &emmc_2x.common.hw,
+		[CLK_DPU]		= &dpu_clk.common.hw,
+		[CLK_DPU_DPI]		= &dpu_dpi.common.hw,
+		[CLK_FAC_RCO25M]	= &fac_rco_25m.hw,
+		[CLK_FAC_RCO4M]		= &fac_rco_4m.hw,
+		[CLK_FAC_RCO2M]		= &fac_rco_2m.hw,
+		[CLK_AON_APB]		= &aon_apb.common.hw,
 	},
 	.num	= CLK_AP_CLK_NUM,
 };
@@ -427,6 +459,51 @@ static const struct sprd_clk_desc sc9863a_apahb_gate_desc = {
 	.hw_clks	= &sc9863a_apahb_gate_hws,
 };
 
+static SPRD_SC_GATE_CLK(gpu_eb,		"gpu-eb",	"aon-apb", 0x50,
+		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(disp_eb,		"disp-eb",	"aon-apb", 0x50,
+		     0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_emc_eb,		"mm-emc-eb",	"aon-apb", 0x50,
+		     0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(power_cpu_eb,	"power-cpu-eb",	"aon-apb", 0x50,
+		     0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(hw_i2c_eb,		"hw-i2c-eb",	"aon-apb", 0x50,
+		     0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_vsp_emc_eb, "mm-vsp-emc-eb",	"aon-apb", 0x50,
+		     0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(vsp_eb,		"vsp-eb",	"aon-apb", 0x50,
+		     0x1000, BIT(15), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *sc9863a_aontop_gate_clks[] = {
+	/* address base is 0x40e00000 */
+	&gpu_eb.common,
+	&disp_eb.common,
+	&mm_emc_eb.common,
+	&power_cpu_eb.common,
+	&hw_i2c_eb.common,
+	&mm_vsp_emc_eb.common,
+	&vsp_eb.common,
+};
+
+static struct clk_hw_onecell_data sc9863a_aontop_gate_hws = {
+	.hws	= {
+		[CLK_GNU_EB]		= &gpu_eb.common.hw,
+		[CLK_DISP_EB]		= &disp_eb.common.hw,
+		[CLK_MM_EMC_EB]		= &mm_emc_eb.common.hw,
+		[CLK_POWER_CPU_EB]	= &power_cpu_eb.common.hw,
+		[CLK_I2C_EB]		= &hw_i2c_eb.common.hw,
+		[CLK_MM_VSP_EMC_EB]	= &mm_vsp_emc_eb.common.hw,
+		[CLK_VSP_EB]		= &vsp_eb.common.hw,
+	},
+	.num	= CLK_AON_TOP_GATE_NUM,
+};
+
+static const struct sprd_clk_desc sc9863a_aontop_gate_desc = {
+	.clk_clks	= sc9863a_aontop_gate_clks,
+	.num_clk_clks	= ARRAY_SIZE(sc9863a_aontop_gate_clks),
+	.hw_clks	= &sc9863a_aontop_gate_hws,
+};
+
 static const struct of_device_id sprd_sc9863a_clk_ids[] = {
 	{ .compatible = "sprd,sc9863a-pmu-gate",	/* 0x402b0000 */
 	  .data = &sc9863a_pmu_gate_desc },
@@ -442,6 +519,8 @@ static const struct of_device_id sprd_sc9863a_clk_ids[] = {
 	  .data = &sc9863a_ap_clk_desc },
 	{ .compatible = "sprd,sc9863a-apahb-gate",	/* 0x20e00000 */
 	  .data = &sc9863a_apahb_gate_desc },
+	{ .compatible = "sprd,sc9863a-aonapb-gate",	/* 0x40e00000 */
+	  .data = &sc9863a_aontop_gate_desc },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, sprd_sc9863a_clk_ids);
