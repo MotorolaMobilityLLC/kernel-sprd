@@ -18,7 +18,7 @@
 			/* 0xff is invaild register offset */
 			syscons = <&aon_apb_regs 0xff 0x0>,
 					<&pmu_apb_regs 0xff 0x100000>,
-					<&pmu_apb_regs 0x8c 0x1>,
+					<&aon_apb_regs 0x8c 0x1>,
 					<&aon_apb_regs 0xff 0x0>,
 					<&aon_apb_regs 0xff 0x0>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
@@ -27,8 +27,8 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 			/* segnr=1 */
-			/*TODO:ranges use to limit pm-sys & cali_lib memory region.it's not
-				standard use，need modify if possible*/
+			/*TODO: ranges use to limit pm-sys & cali_lib memory region. it's not
+				standard use, need modify if possible*/
 			ranges = <0x0 0x0 0x800000 0x3b000>,
 					<0x3b000 0x0 0x83b000 0x5000>;
 			pm-sys@0 {
@@ -53,7 +53,7 @@
 					<&aon_apb_regs 0xff 0x0>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
 						"sysreset", "getstatus";
-			reg = <0x0 0xf000 0x0 0x1000>;
+			reg = <0x0 0x4400 0x0 0x1000>;
 		};
 	};
 
