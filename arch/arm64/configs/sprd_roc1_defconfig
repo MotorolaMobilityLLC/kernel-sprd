@@ -3288,6 +3288,13 @@ CONFIG_SPRD_SIPC_MEM_CACHE_EN=y
 CONFIG_SPRD_CPROC=y
 
 #
+# SIPA modules
+#
+# CONFIG_SPRD_SIPA is not set
+# CONFIG_SIPA_TEST is not set
+# CONFIG_SPRD_PAM_IPA is not set
+
+#
 # SPRD IQ modules
 #
 CONFIG_SPRD_IQ=y

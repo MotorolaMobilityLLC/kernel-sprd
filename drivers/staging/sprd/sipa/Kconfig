@@ -1,0 +1,24 @@
+
+menu "SIPA modules"
+
+config SPRD_SIPA
+	bool "Sprd IPA"
+	default n
+	help
+	  SIPA is a module for spreadtrum ip packet accelator driver.
+
+config SPRD_SIPA_WCN
+	bool "Enable sipa for WCN"
+	default n
+	depends on SPRD_SIPA
+	help
+	  This option enables sipa interface for WCN.
+
+config SIPA_TEST
+	bool "Enable sipa test module"
+	default n
+	depends on SPRD_SIPA
+	help
+	  This option enables sipa test module.
+
+endmenu
