@@ -376,6 +376,8 @@ enum dma_transfer_data_format {
  * loops in this area in order to transfer the data.
  * @dst_port_window_size: same as src_port_window_size but for the destination
  * port.
+ * @step: The step that controller will skip after one buswidth data transfer
+ * done.
  * @data_format: It is data reverse format, refer to @dma_transfer_data_format.
  * @device_fc: Flow Controller Settings. Only valid for slave channels. Fill
  * with 'true' if peripheral should be flow controller. Direction will be
@@ -402,6 +404,7 @@ struct dma_slave_config {
 	phys_addr_t dst_addr;
 	enum dma_slave_buswidth src_addr_width;
 	enum dma_slave_buswidth dst_addr_width;
+	enum dma_slave_buswidth step;
 	u32 src_maxburst;
 	u32 dst_maxburst;
 	u32 src_port_window_size;
