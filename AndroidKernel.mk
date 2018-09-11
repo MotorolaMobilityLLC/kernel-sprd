@@ -33,16 +33,17 @@ $(KERNEL_OUT):
 	@echo "==== Start Kernel Compiling ... ===="
 	echo "KERNEL_REAL_PATH = $(KERNEL_REAL_PATH)"
 
-ifeq ($(strip $(BARD_TEE_CONFIG)),trusty)
-TARGET_DEVICE_TRUSTY_CONFIG := $(KERNEL_DIFF_CONFIG_ARCH)/trusty_diff_config
-endif
 
 #sharkle
 ifeq ($(strip $(BOARD_TEE_CONFIG)),trusty)
+ifneq ($(strip $(BOARD_TEE_64BIT)),)
 ifeq ($(strip $(BOARD_TEE_64BIT)),false)
 TARGET_DEVICE_TRUSTY_CONFIG := $(KERNEL_DIFF_CONFIG_ARCH)/trusty_aarch32_diff_config
 else
 TARGET_DEVICE_TRUSTY_CONFIG := $(KERNEL_DIFF_CONFIG_ARCH)/trusty_aarch64_diff_config
+endif
+else
+TARGET_DEVICE_TRUSTY_CONFIG := $(KERNEL_DIFF_CONFIG_ARCH)/trusty_diff_config
 endif
 endif
 

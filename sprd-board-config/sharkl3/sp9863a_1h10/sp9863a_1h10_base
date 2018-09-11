@@ -21,8 +21,8 @@ BOARD_TEE_CONFIG :=
 CHIPRAM_DDR_1G_LIMITED :=
 
 ifeq ($(strip $(BOARD_FEATUREPHONE_CONFIG)),true)
-export BOARD_TEE_64BIT :=
+BOARD_TEE_64BIT := false
 else
-export BOARD_TEE_64BIT ?= true
+BOARD_TEE_64BIT := true
 endif
 
