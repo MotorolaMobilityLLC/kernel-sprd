@@ -317,15 +317,15 @@
 
 					port@0 {
 						reg = <0>;
-						dsi_in: endpoint {
-							remote-endpoint = <&dpu_out>;
+						dsi_out: endpoint {
+							remote-endpoint = <&dphy_in>;
 						};
 					};
 
 					port@1 {
 						reg = <1>;
-						dsi_out: endpoint@1 {
-							remote-endpoint = <&dphy_in>;
+						dsi_in: endpoint {
+							remote-endpoint = <&dpu_out>;
 						};
 					};
 				};
@@ -343,19 +343,19 @@
 
 				//sprd,syscon-aon-apb = <&aon_apb_controller>;
 
-				/* input port*/
-				port@1 {
-					reg = <1>;
-					dphy_in: endpoint {
-						remote-endpoint = <&dsi_out>;
-					};
-				};
-
 				/* output port */
 				port@0 {
 					reg = <0>;
 					dphy_out: endpoint {
 						remote-endpoint = <&panel_in>;
+					};
+				};
+
+				/* input port*/
+				port@1 {
+					reg = <1>;
+					dphy_in: endpoint {
+						remote-endpoint = <&dsi_out>;
 					};
 				};
 			};

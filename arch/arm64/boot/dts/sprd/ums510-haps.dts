@@ -13,6 +13,7 @@
 #include "ums510.dtsi"
 #include "ums510-common.dtsi"
 #include "sc2730.dtsi"
+#include "lcd/lcd_nt35597_boe_mipi_hd.dtsi"
 
 / {
 	model = "Spreadtrum UMS510 Haps board";
@@ -166,22 +167,7 @@
 		#size-cells = <0>;
 		reg = <0>;
 
-		sprd,panel-name = "nt35597_mipi_2k_fpga";
-		sprd,lane-number = <4>;
-		sprd,width-mm = <68>;
-		sprd,height-mm = <121>;
-		sprd,frame_rate = <3>;
-		display-timings {
-			clock-frequency = <600000>;
-			hactive = <720>;
-			vactive = <1280>;
-			hback-porch = <64>;
-			hfront-porch = <64>;
-			vback-porch = <5>;
-			vfront-porch = <15>;
-			hsync-len = <2>;
-			vsync-len = <2>;
-		};
+		sprd,force-attached = "lcd_nt35597_boe_mipi_hd";
 
 		port {
 			reg = <1>;
@@ -190,6 +176,10 @@
 			};
 		};
 	};
+};
+
+&lcd_nt35597_hd_timing0 {
+	clock-frequency = <6500000>;
 };
 
 &dphy {

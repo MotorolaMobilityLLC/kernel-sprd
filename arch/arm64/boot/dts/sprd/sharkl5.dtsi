@@ -239,15 +239,15 @@
 
 					port@0 {
 						reg = <0>;
-						dsi_in: endpoint {
-							remote-endpoint = <&dpu_out>;
+						dsi_out: endpoint {
+							remote-endpoint = <&dphy_in>;
 						};
 					};
 
 					port@1 {
 						reg = <1>;
-						dsi_out: endpoint@1 {
-							remote-endpoint = <&dphy_in>;
+						dsi_in: endpoint {
+							remote-endpoint = <&dpu_out>;
 						};
 					};
 				};
