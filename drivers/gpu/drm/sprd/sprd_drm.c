@@ -103,7 +103,7 @@ static int sprd_drm_bind(struct device *dev)
 	struct sprd_drm *sprd;
 	int err;
 
-	DRM_INFO("component_master_ops->bind()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	drm = drm_dev_alloc(&sprd_drm_drv, dev);
 	if (IS_ERR(drm))
@@ -143,7 +143,7 @@ static int sprd_drm_bind(struct device *dev)
 	drm_kms_helper_poll_init(drm);
 
 	/* force detection after connectors init */
-	(void)drm_helper_hpd_irq_event(drm);
+	drm_helper_hpd_irq_event(drm);
 
 	err = drm_dev_register(drm, 0);
 	if (err < 0)
@@ -164,7 +164,7 @@ err_free_drm:
 
 static void sprd_drm_unbind(struct device *dev)
 {
-	DRM_INFO("component_master_ops->unbind()\n");
+	DRM_INFO("%s()\n", __func__);
 	drm_put_dev(dev_get_drvdata(dev));
 }
 
@@ -177,8 +177,7 @@ static int compare_of(struct device *dev, void *data)
 {
 	struct device_node *np = data;
 
-	if (!strcmp(np->name, "port"))
-		return true;
+	DRM_DEBUG("compare %s\n", np->full_name);
 
 	return dev->of_node == np;
 }
@@ -207,7 +206,7 @@ static int sprd_drm_component_probe(struct device *dev,
 			continue;
 		}
 
-		component_match_add(dev, &match, compare_of, port);
+		component_match_add(dev, &match, compare_of, port->parent);
 		of_node_put(port);
 	}
 
@@ -262,7 +261,7 @@ static int sprd_drm_component_probe(struct device *dev,
 			continue;
 		}
 
-		component_match_add(dev, &match, compare_of, port);
+		component_match_add(dev, &match, compare_of, port->parent);
 		of_node_put(port);
 	}
 

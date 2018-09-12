@@ -21,8 +21,7 @@
 #include <linux/kernel.h>
 #include <linux/wait.h>
 #include <linux/bug.h>
-
-//#include <linux/sprd_ion.h>
+#include <video/videomode.h>
 
 #include <drm/drmP.h>
 #include <drm/drm_crtc.h>
@@ -34,7 +33,6 @@
 #include <drm/drm_fb_cma_helper.h>
 
 #include "disp_lib.h"
-//#include "sprd_panel.h"
 
 #define DISPC_INT_DONE_MASK		BIT(0)
 #define DISPC_INT_TE_MASK		BIT(1)
@@ -66,16 +64,6 @@ enum {
 	SPRD_DISPC_IF_DPI,
 	SPRD_DISPC_IF_EDPI,
 	SPRD_DISPC_IF_LIMIT
-};
-
-enum {
-	SPRD_UNKNOWN = 0,
-	SPRD_DYNAMIC_PCLK = 0x1,
-	SPRD_DYNAMIC_FPS,
-	SPRD_DYNAMIC_MIPI_CLK,
-	SPRD_FORCE_FPS,
-	SPRD_FORCE_PCLK,
-	SPRD_MIPI_SSC,
 };
 
 enum {
@@ -151,15 +139,6 @@ struct dpu_capability {
 	u32 fmts_cnt;
 };
 
-struct rgb_timing {
-	uint16_t hfp;
-	uint16_t hbp;
-	uint16_t hsync;
-	uint16_t vfp;
-	uint16_t vbp;
-	uint16_t vsync;
-};
-
 struct dpu_context;
 
 struct dpu_core_ops {
@@ -210,6 +189,7 @@ struct dpu_glb_ops {
 struct dpu_context {
 	unsigned long base;
 	unsigned int  base_offset[2];
+	int irq;
 	bool is_inited;
 	bool is_stopped;
 	bool disable_flip;
@@ -221,7 +201,7 @@ struct dpu_context {
 	dma_addr_t dma_handle;
 //	struct ion_client *buffer_client;
 //	struct ion_handle *handle;
-	struct panel_info *panel;
+	struct videomode vm;
 	struct semaphore refresh_lock;
 	int  vsync_report_rate;
 	int  vsync_ratio_to_panel;
@@ -232,7 +212,6 @@ struct dpu_context {
 struct sprd_dpu {
 	struct device dev;
 	struct drm_crtc crtc;
-//	struct drm_plane primary;
 	struct dpu_context ctx;
 	struct dpu_core_ops *core;
 	struct dpu_clk_ops *clk;

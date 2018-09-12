@@ -15,6 +15,7 @@
 #ifndef _DISP_LIB_H_
 #define _DISP_LIB_H_
 
+#include <drm/drmP.h>
 #include <linux/list.h>
 
 struct ops_entry {
@@ -33,7 +34,8 @@ int str_to_u8_array(const char *p, unsigned int base, u8 array[]);
 void *disp_ops_attach(const char *str, struct list_head *head);
 int disp_ops_register(struct ops_entry *entry, struct list_head *head);
 
-struct device *dev_get_prev(struct device *dev);
-struct device *dev_get_next(struct device *dev);
+struct device *sprd_disp_pipe_get_by_port(struct device *dev, int port);
+struct device *sprd_disp_pipe_get_input(struct device *dev);
+struct device *sprd_disp_pipe_get_output(struct device *dev);
 
 #endif

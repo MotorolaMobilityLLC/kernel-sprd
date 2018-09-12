@@ -20,6 +20,7 @@
 #include <linux/of_irq.h>
 #include <linux/of_graph.h>
 
+#include "disp_lib.h"
 #include "sprd_dsi.h"
 #include "dsi/sprd_dsi_api.h"
 
@@ -36,16 +37,12 @@ LIST_HEAD(dsi_glb_head);
 static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
-//	struct sprd_dsi_hw_ctx *ctx = dsi->ctx;
-//	void __iomem *base = ctx->base;
 
-	DRM_INFO("drm_encoder_helper_funcs->disable()\n");
+	DRM_INFO("%s()\n", __func__);
 
-	/* turn off panel's backlight */
 	if (dsi->panel && drm_panel_disable(dsi->panel))
 		DRM_ERROR("failed to disable panel\n");
 
-	/* turn off panel */
 	if (dsi->panel && drm_panel_unprepare(dsi->panel))
 		DRM_ERROR("failed to unprepare panel\n");
 }
@@ -54,18 +51,14 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
-//	struct sprd_dsi_hw_ctx *ctx = dsi->ctx;
-//	int ret;
 
-	DRM_INFO("drm_encoder_helper_funcs->enable()\n");
+	DRM_INFO("%s()\n", __func__);
 
-	/* turn on panel */
 	if (dsi->panel && drm_panel_prepare(dsi->panel))
 		DRM_ERROR("failed to prepare panel\n");
 
 	/*sprd_dsi_set_mode(dsi, DSI_VIDEO_MODE);*/
 
-	/* turn on panel's back light */
 	if (dsi->panel && drm_panel_enable(dsi->panel))
 		DRM_ERROR("failed to enable panel\n");
 }
@@ -76,7 +69,8 @@ static void sprd_dsi_encoder_mode_set(struct drm_encoder *encoder,
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
 
-	DRM_INFO("drm_encoder_helper_funcs->mode_set()\n");
+	DRM_INFO("%s()\n", __func__);
+
 	drm_mode_copy(&dsi->cur_mode, adj_mode);
 }
 
@@ -84,8 +78,8 @@ static int sprd_dsi_encoder_atomic_check(struct drm_encoder *encoder,
 				    struct drm_crtc_state *crtc_state,
 				    struct drm_connector_state *conn_state)
 {
-	DRM_INFO("drm_encoder_helper_funcs->atomic_check()\n");
-	/* do nothing */
+	DRM_INFO("%s()\n", __func__);
+
 	return 0;
 }
 
@@ -100,19 +94,20 @@ static const struct drm_encoder_funcs sprd_encoder_funcs = {
 	.destroy = drm_encoder_cleanup,
 };
 
-static int sprd_drm_encoder_init(struct device *dev,
-			       struct drm_device *drm,
-			       struct drm_encoder *encoder)
+static int sprd_dsi_encoder_init(struct drm_device *drm,
+			       struct sprd_dsi *dsi)
 {
-	int ret;
+	struct drm_encoder *encoder = &dsi->encoder;
+	struct device *dev = dsi->host.dev;
 	u32 crtc_mask;
+	int ret;
 
 	crtc_mask = drm_of_find_possible_crtcs(drm, dev->of_node);
 	if (!crtc_mask) {
 		DRM_ERROR("failed to find crtc mask\n");
 		return -EINVAL;
 	}
-	DRM_INFO("find possible crtcs success: 0x%08x\n", crtc_mask);
+	DRM_INFO("find possible crtcs: 0x%08x\n", crtc_mask);
 
 	encoder->possible_crtcs = crtc_mask;
 	ret = drm_encoder_init(drm, encoder, &sprd_encoder_funcs,
@@ -124,43 +119,83 @@ static int sprd_drm_encoder_init(struct device *dev,
 
 	drm_encoder_helper_add(encoder, &sprd_encoder_helper_funcs);
 
-	DRM_INFO("encoder init ok\n");
 	return 0;
+}
+
+static int sprd_dsi_find_panel(struct sprd_dsi *dsi)
+{
+	struct device *dev = dsi->host.dev;
+	struct device_node *child, *lcds_node;
+	struct drm_panel *panel;
+
+	/* search /lcds child node first */
+	lcds_node = of_find_node_by_path("/lcds");
+	for_each_child_of_node(lcds_node, child) {
+		panel = of_drm_find_panel(child);
+		if (panel) {
+			dsi->panel = panel;
+			return 0;
+		}
+	}
+
+	/*
+	 * If /lcds child node search failed, we search
+	 * the child of dsi host node.
+	 */
+	for_each_child_of_node(dev->of_node, child) {
+		panel = of_drm_find_panel(child);
+		if (panel) {
+			dsi->panel = panel;
+			return 0;
+		}
+	}
+
+	DRM_ERROR("of_drm_find_panel() failed\n");
+	return -ENODEV;
 }
 
 static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 			   struct mipi_dsi_device *slave)
 {
 	struct sprd_dsi *dsi = host_to_dsi(host);
-	struct drm_connector *connector = &dsi->connector;
-	struct device_node *panel_node;
-	struct drm_panel *panel;
+	struct device_node *lcd_node;
+	struct device *dev;
+	u32 val;
 	int ret;
 
-	DRM_INFO("mipi_dsi_host_ops->attach()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	dsi->ctx.lanes = slave->lanes;
-//	dsi->ctx.format = slave->format;
-//	dsi->ctx.mode_flags = slave->mode_flags;
-//	dsi->ctx.phy_clock = slave->phy_clock;
+	dsi->ctx.format = slave->format;
+	dsi->ctx.mode_flags = slave->mode_flags;
 
-	/* parse panel endpoint */
-	panel_node = of_get_child_by_name(host->dev->of_node, "panel");
-	panel = of_drm_find_panel(panel_node);
-	if (!panel) {
-		DRM_ERROR("of_drm_find_panel() failed\n");
-		return -ENODEV;
-	}
-	dsi->panel = panel;
-
-	ret = drm_panel_attach(dsi->panel, connector);
-	if (ret) {
-		DRM_INFO("drm_panel_attach() failed\n");
+	ret = sprd_dsi_find_panel(dsi);
+	if (ret)
 		return ret;
-	}
 
-	if (dsi->connector.dev)
-		drm_helper_hpd_irq_event(dsi->connector.dev);
+	lcd_node = dsi->panel->dev->of_node;
+
+	/* set driver_data for dpu platform device */
+	dev = sprd_disp_pipe_get_input(host->dev);
+	if (dev)
+		dev_set_drvdata(dev, lcd_node);
+
+	/* set driver_data for dphy platform device */
+	dev = sprd_disp_pipe_get_output(host->dev);
+	if (dev)
+		dev_set_drvdata(dev, lcd_node);
+
+	ret = of_property_read_u32(lcd_node, "sprd,phy-bit-clock", &val);
+	if (!ret)
+		dsi->ctx.freq = val;
+	else
+		dsi->ctx.freq = 500000;
+
+	ret = of_property_read_u32(lcd_node, "sprd,phy-escape-clock", &val);
+	if (!ret)
+		dsi->ctx.esc_clk = val;
+	else
+		dsi->ctx.esc_clk = 20000;
 
 	return 0;
 }
@@ -168,7 +203,7 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 static int sprd_dsi_host_detach(struct mipi_dsi_host *host,
 			   struct mipi_dsi_device *slave)
 {
-	DRM_INFO("mipi_dsi_host_ops->detach()\n");
+	DRM_INFO("%s()\n", __func__);
 	/* do nothing */
 	return 0;
 }
@@ -200,28 +235,25 @@ static const struct mipi_dsi_host_ops sprd_dsi_host_ops = {
 	.transfer = sprd_dsi_host_transfer,
 };
 
-static int sprd_dsi_bridge_init(struct drm_device *drm, struct sprd_dsi *dsi)
+static int sprd_dsi_host_init(struct device *dev, struct sprd_dsi *dsi)
 {
-	struct drm_encoder *encoder = &dsi->encoder;
-	struct drm_bridge *bridge = dsi->bridge;
 	int ret;
 
-	ret = drm_bridge_attach(encoder, bridge, NULL);
-	if (ret) {
-		DRM_ERROR("failed to attach external bridge\n");
-		return ret;
-	}
+	dsi->host.dev = dev;
+	dsi->host.ops = &sprd_dsi_host_ops;
 
-	DRM_INFO("call drm_bridge_attach() ok\n");
+	ret = mipi_dsi_host_register(&dsi->host);
+	if (ret)
+		DRM_ERROR("failed to register dsi host\n");
 
-	return 0;
+	return ret;
 }
 
 static int sprd_dsi_connector_get_modes(struct drm_connector *connector)
 {
 	struct sprd_dsi *dsi = connector_to_dsi(connector);
 
-	DRM_INFO("drm_connector_helper_funcs->get_modes()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	return drm_panel_get_modes(dsi->panel);
 }
@@ -232,7 +264,7 @@ sprd_dsi_connector_mode_valid(struct drm_connector *connector,
 {
 	enum drm_mode_status mode_status = MODE_OK;
 
-	DRM_INFO("drm_connector_helper_funcs->mode_valid()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	return mode_status;
 }
@@ -242,7 +274,7 @@ sprd_dsi_connector_best_encoder(struct drm_connector *connector)
 {
 	struct sprd_dsi *dsi = connector_to_dsi(connector);
 
-	DRM_INFO("drm_connector_helper_funcs->best_encoder()\n");
+	DRM_INFO("%s()\n", __func__);
 	return &dsi->encoder;
 }
 
@@ -255,14 +287,14 @@ static struct drm_connector_helper_funcs sprd_dsi_connector_helper_funcs = {
 static enum drm_connector_status
 sprd_dsi_connector_detect(struct drm_connector *connector, bool force)
 {
-	DRM_INFO("drm_connector_funcs->detect()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	return connector_status_connected;
 }
 
 static void sprd_dsi_connector_destroy(struct drm_connector *connector)
 {
-	DRM_INFO("drm_connector_funcs->distory()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	drm_connector_unregister(connector);
 	drm_connector_cleanup(connector);
@@ -289,24 +321,55 @@ static int sprd_dsi_connector_init(struct drm_device *drm, struct sprd_dsi *dsi)
 				 &sprd_dsi_atomic_connector_funcs,
 				 DRM_MODE_CONNECTOR_DSI);
 	if (ret) {
-		DRM_INFO("drm_connector_init() failed\n");
+		DRM_ERROR("drm_connector_init() failed\n");
 		return ret;
 	}
 
 	drm_connector_helper_add(connector,
 				 &sprd_dsi_connector_helper_funcs);
 
-	drm_connector_register(connector);
+	drm_mode_connector_attach_encoder(connector, encoder);
 
-	ret = drm_mode_connector_attach_encoder(connector, encoder);
+	return 0;
+}
+
+static int sprd_dsi_bridge_attach(struct sprd_dsi *dsi)
+{
+	struct drm_encoder *encoder = &dsi->encoder;
+	struct drm_bridge *bridge = dsi->bridge;
+	struct device *dev = dsi->host.dev;
+	struct device_node *bridge_node;
+	int ret;
+
+	bridge_node = of_graph_get_remote_node(dev->of_node, 2, 0);
+	if (!bridge_node)
+		return 0;
+
+	bridge = of_drm_find_bridge(bridge_node);
+	if (!bridge) {
+		DRM_ERROR("of_drm_find_bridge() failed\n");
+		return -ENODEV;
+	}
+	dsi->bridge = bridge;
+
+	ret = drm_bridge_attach(encoder, bridge, NULL);
 	if (ret) {
-		DRM_INFO("drm_mode_connector_attach_encoder() failed\n");
+		DRM_ERROR("failed to attach external bridge\n");
 		return ret;
 	}
 
-	DRM_INFO("connector init ok\n");
-
 	return 0;
+}
+
+static int sprd_dsi_panel_attach(struct sprd_dsi *dsi)
+{
+	int ret;
+
+	ret = drm_panel_attach(dsi->panel, &dsi->connector);
+	if (ret)
+		DRM_ERROR("failed to attach panel to connector\n");
+
+	return ret;
 }
 
 static int sprd_dsi_glb_init(struct sprd_dsi *dsi)
@@ -377,43 +440,47 @@ static int sprd_dsi_bind(struct device *dev, struct device *master, void *data)
 	struct sprd_dsi *dsi = dev_get_drvdata(dev);
 	int ret;
 
-	DRM_INFO("component_ops->bind()\n");
-
-	if (IS_ERR_OR_NULL(data))
-		DRM_ERROR("sprd dsi bind null drm_device\n");
-
-	ret = sprd_drm_encoder_init(dev, drm, &dsi->encoder);
+	ret = sprd_dsi_encoder_init(drm, dsi);
 	if (ret)
-		return ret;
+		goto cleanup_host;
 
 	ret = sprd_dsi_connector_init(drm, dsi);
 	if (ret)
-		return ret;
+		goto cleanup_encoder;
 
-	if (dsi->bridge) {
-		DRM_INFO("start sprd dsi bridge init\n");
-		ret = sprd_dsi_bridge_init(drm, dsi);
-		if (ret)
-			return ret;
-	}
+	ret = sprd_dsi_bridge_attach(dsi);
+	if (ret)
+		goto cleanup_connector;
+
+	ret = sprd_dsi_panel_attach(dsi);
+	if (ret)
+		goto cleanup_connector;
 
 	ret = sprd_dsi_glb_init(dsi);
 	if (ret)
-		return ret;
+		goto cleanup_connector;
 
 	ret = sprd_dsi_irq_request(dsi);
 	if (ret)
-		return ret;
+		goto cleanup_connector;
 
-	DRM_INFO("sprd dsi bind ok\n");
 	return 0;
+
+cleanup_connector:
+	drm_connector_cleanup(&dsi->connector);
+cleanup_encoder:
+	drm_encoder_cleanup(&dsi->encoder);
+cleanup_host:
+	mipi_dsi_host_unregister(&dsi->host);
+	return ret;
 }
 
 static void sprd_dsi_unbind(struct device *dev,
 			struct device *master, void *data)
 {
 	/* do nothing */
-	DRM_INFO("component_ops->unbind()\n");
+	DRM_INFO("%s()\n", __func__);
+
 }
 
 static const struct component_ops dsi_component_ops = {
@@ -421,7 +488,7 @@ static const struct component_ops dsi_component_ops = {
 	.unbind	= sprd_dsi_unbind,
 };
 
-static int dsi_device_register(struct sprd_dsi *dsi,
+static int sprd_dsi_device_create(struct sprd_dsi *dsi,
 				struct device *parent)
 {
 	int ret;
@@ -439,9 +506,8 @@ static int dsi_device_register(struct sprd_dsi *dsi,
 	return ret;
 }
 
-static int dsi_context_init(struct sprd_dsi *dsi, struct device_node *np)
+static int sprd_dsi_context_init(struct sprd_dsi *dsi, struct device_node *np)
 {
-//	struct panel_info *panel = dsi->panel;
 	struct dsi_context *ctx = &dsi->ctx;
 	struct resource r;
 	u32 tmp;
@@ -478,10 +544,6 @@ static int dsi_context_init(struct sprd_dsi *dsi, struct device_node *np)
 	else
 		ctx->int1_mask = 0xffffffff;
 
-//	ctx->freq = panel->phy_freq;
-//	ctx->lanes = panel->lane_num;
-//	ctx->nc_clk_en = panel->nc_clk_en;
-
 	return 0;
 }
 
@@ -498,43 +560,28 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	dsi->host.dev = &pdev->dev;
-	dsi->host.ops = &sprd_dsi_host_ops;
-	ret = mipi_dsi_host_register(&dsi->host);
-	if (ret) {
-		DRM_ERROR("failed to register dsi host\n");
-		return ret;
-	}
-
 	if (!of_property_read_string(np, "sprd,ip", &str))
 		dsi->core = dsi_core_ops_attach(str);
 	else
-		DRM_ERROR("error: 'sprd,ip' was not found\n");
+		DRM_WARN("error: 'sprd,ip' was not found\n");
 
 	if (!of_property_read_string(np, "sprd,soc", &str))
 		dsi->glb = dsi_glb_ops_attach(str);
 	else
-		DRM_ERROR("error: 'sprd,soc' was not found\n");
+		DRM_WARN("error: 'sprd,soc' was not found\n");
 
-	if (dsi_context_init(dsi, np))
-		goto err;
+	ret = sprd_dsi_context_init(dsi, np);
+	if (ret)
+		return -EINVAL;
 
-	dsi_device_register(dsi, &pdev->dev);
+	sprd_dsi_device_create(dsi, &pdev->dev);
 	platform_set_drvdata(pdev, dsi);
 
-	ret = component_add(&pdev->dev, &dsi_component_ops);
-	if (ret) {
-		DRM_INFO("component_add() failed");
-		goto err;
-	}
+	ret = sprd_dsi_host_init(&pdev->dev, dsi);
+	if (ret)
+		return ret;
 
-	DRM_INFO("sprd dsi probe ok\n");
-	return 0;
-
-err:
-	mipi_dsi_host_unregister(&dsi->host);
-	DRM_ERROR("dsi probe failed\n");
-	return ret;
+	return component_add(&pdev->dev, &dsi_component_ops);
 }
 
 static int sprd_dsi_remove(struct platform_device *pdev)

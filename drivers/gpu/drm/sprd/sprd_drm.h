@@ -25,5 +25,4 @@ struct sprd_drm {
 	struct device *gsp_dev;
 };
 
-
 #endif /* _SPRD_DRM_H_ */

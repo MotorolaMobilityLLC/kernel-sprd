@@ -2,6 +2,7 @@
 #define _MIPI_DPHY_COMMON_H_
 
 #include <asm/types.h>
+#include <drm/drmP.h>
 #include <linux/device.h>
 #include <linux/mutex.h>
 #include <linux/of.h>
@@ -16,6 +17,7 @@ struct dphy_context {
 	unsigned long apbbase;
 	struct mutex hop_lock;
 	u32 freq;
+	u32 esc_clk;
 	u8 lanes;
 	u8 id;
 };

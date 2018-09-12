@@ -225,6 +225,7 @@ struct dsi_context {
 	int irq1;
 	/* D-PHY frequency */
 	u32 freq;
+	u32 esc_clk;
 	/* Number of lanes connected to controller - REQUIRED */
 	u8 lanes;
 	/* master or slave id */
@@ -236,6 +237,9 @@ struct dsi_context {
 
 	u32 int0_mask;
 	u32 int1_mask;
+
+	u32 format;
+	u32 mode_flags;
 };
 
 struct sprd_dsi {
@@ -250,6 +254,14 @@ struct sprd_dsi {
 	struct dsi_context ctx;
 	struct drm_display_mode cur_mode;
 };
+
+struct sprd_connector_state {
+	struct drm_connector_state base;
+	u32 phy_freq;
+};
+
+#define to_sprd_connector_state(s) \
+		container_of(s, struct sprd_connector_state, base)
 
 extern struct list_head dsi_core_head;
 extern struct list_head dsi_glb_head;

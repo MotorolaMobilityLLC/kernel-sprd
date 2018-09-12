@@ -624,7 +624,6 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 static int dpu_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	//struct panel_info *panel = ctx->panel;
 	static bool is_running = true;
 	u32 size;
 
@@ -632,8 +631,7 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->bg_color = 0;
 
 	/* set dpu output size */
-	//size = (panel->width & 0xffff) | ((panel->height) << 16);
-	size = (1920 << 16) | 1080;
+	size = (ctx->vm.vactive << 16) | ctx->vm.hactive;
 	reg->panel_size = size;
 	reg->blend_size = size;
 
@@ -894,16 +892,6 @@ static void dpu_layer(struct dpu_context *ctx,
 static void dpu_dpi_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	//struct panel_info *panel = ctx->panel;
-	struct rgb_timing timing = {
-		.hfp = 176,
-		.hbp = 16,
-		.hsync = 10,
-		.vfp = 32,
-		.vbp = 32,
-		.vsync = 4,
-	};
-	struct rgb_timing *rgb;
 	u32 reg_val = 0;
 	u32 int_mask = 0;
 
@@ -921,22 +909,20 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 
 		reg->dpi_ctrl = reg_val;
 
-		//rgb = &panel->rgb_timing;
-		rgb = &timing;
 		/* set dpi timing */
-		reg->dpi_h_timing = (rgb->hsync << 0) |
-				(rgb->hbp << 8) |
-				(rgb->hfp << 20);
-		reg->dpi_v_timing = (rgb->vsync << 0) |
-				(rgb->vbp << 8) |
-				(rgb->vfp << 20);
+		reg->dpi_h_timing = (ctx->vm.hsync_len << 0) |
+				    (ctx->vm.hback_porch << 8) |
+				    (ctx->vm.hfront_porch << 20);
+		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
+				    (ctx->vm.vback_porch << 8) |
+				    (ctx->vm.vfront_porch << 20);
 
 		/*enable dpu update done INT */
 		int_mask |= DISPC_INT_UPDATE_DONE_MASK;
 		/* enable dpu DONE  INT */
 		int_mask |= DISPC_INT_DONE_MASK;
 		/* enable dpu dpi vsync */
-		//int_mask |= DISPC_INT_DPI_VSYNC_MASK;
+		int_mask |= DISPC_INT_DPI_VSYNC_MASK;
 		/* enable dpu TE INT */
 		int_mask |= DISPC_INT_TE_MASK;
 		/* enable underflow err INT */
@@ -1204,7 +1190,6 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 static void dpu_enhance_reload(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	//struct panel_info *panel = ctx->panel;
 	struct scale_cfg *scale;
 	struct cm_cfg *cm;
 	struct slp_cfg *slp;
@@ -1218,10 +1203,8 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	if (enhance_en & BIT(0)) {
 		scale = &scale_copy;
 		reg->blend_size = (scale->in_h << 16) | scale->in_w;
-		//pr_info("enhance scaling from %ux%u to %ux%u\n",
-		//	scale->in_w, scale->in_h, panel->width, panel->height);
-		pr_info("enhance scaling from %ux%u to %ux%u\n",
-			scale->in_w, scale->in_h, 1080, 1920);
+		pr_info("enhance scaling from %ux%u to %ux%u\n", scale->in_w,
+			scale->in_h, ctx->vm.hactive, ctx->vm.vactive);
 	}
 
 	if (enhance_en & BIT(1)) {
@@ -1287,7 +1270,6 @@ static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	//struct panel_info *panel = ctx->panel;
 
 	if (!reg)
 		return -ENODEV;
@@ -1295,10 +1277,8 @@ static int dpu_modeset(struct dpu_context *ctx,
 	scale_copy.in_w = mode->hdisplay;
 	scale_copy.in_h = mode->vdisplay;
 
-	//if ((mode->hdisplay != panel->width) ||
-	//    (mode->vdisplay != panel->height))
-	if ((mode->hdisplay != 1080) ||
-	    (mode->vdisplay != 1920))
+	if ((mode->hdisplay != ctx->vm.hactive) ||
+	    (mode->vdisplay != ctx->vm.vactive))
 		need_scale = true;
 	else
 		need_scale = false;

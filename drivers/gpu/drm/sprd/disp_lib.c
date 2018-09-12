@@ -47,7 +47,7 @@ int str_to_u32_array(const char *p, unsigned int base, u32 array[])
 
 		ret = kstrtou32(str, base, &array[i]);
 		if (ret) {
-			pr_err("input format error\n");
+			DRM_ERROR("input format error\n");
 			break;
 		}
 
@@ -85,7 +85,7 @@ int str_to_u8_array(const char *p, unsigned int base, u8 array[])
 
 		ret = kstrtou8(str, base, &array[i]);
 		if (ret) {
-			pr_err("input format error\n");
+			DRM_ERROR("input format error\n");
 			break;
 		}
 
@@ -107,7 +107,7 @@ void *disp_ops_attach(const char *str, struct list_head *head)
 			return list->entry->ops;
 	}
 
-	pr_err("attach disp ops %s failed\n", str);
+	DRM_ERROR("attach disp ops %s failed\n", str);
 	return NULL;
 }
 EXPORT_SYMBOL_GPL(disp_ops_attach);
@@ -127,63 +127,48 @@ int disp_ops_register(struct ops_entry *entry, struct list_head *head)
 }
 EXPORT_SYMBOL_GPL(disp_ops_register);
 
-struct device *dev_get_prev(struct device *dev)
+struct device *sprd_disp_pipe_get_by_port(struct device *dev, int port)
 {
 	struct device_node *np = dev->of_node;
 	struct device_node *endpoint;
-	struct device_node *prev_node;
-	struct platform_device *prev_pdev;
+	struct device_node *remote_node;
+	struct platform_device *remote_pdev;
 
-	endpoint = of_graph_get_endpoint_by_regs(np, 1, 0);
+	endpoint = of_graph_get_endpoint_by_regs(np, port, 0);
 	if (!endpoint) {
-		pr_err("error: %s/port1/endpoint0 was not found\n", np->name);
+		DRM_ERROR("%s/port%d/endpoint0 was not found\n",
+			  np->full_name, port);
 		return NULL;
 	}
 
-	prev_node = of_graph_get_remote_port_parent(endpoint);
-	if (!prev_node) {
-		pr_err("error: device node was not found by endpoint0\n");
+	remote_node = of_graph_get_remote_port_parent(endpoint);
+	if (!remote_node) {
+		DRM_ERROR("device node was not found by endpoint0\n");
 		return NULL;
 	}
 
-	prev_pdev = of_find_device_by_node(prev_node);
-	if (prev_pdev == NULL) {
-		pr_err("find %s platform device failed\n", prev_node->name);
+	remote_pdev = of_find_device_by_node(remote_node);
+	if (remote_pdev == NULL) {
+		DRM_ERROR("find %s platform device failed\n",
+			  remote_node->full_name);
 		return NULL;
 	}
 
-	return &prev_pdev->dev;
+	return &remote_pdev->dev;
 }
-EXPORT_SYMBOL_GPL(dev_get_prev);
+EXPORT_SYMBOL_GPL(sprd_disp_pipe_get_by_port);
 
-struct device *dev_get_next(struct device *dev)
+struct device *sprd_disp_pipe_get_input(struct device *dev)
 {
-	struct device_node *np = dev->of_node;
-	struct device_node *endpoint;
-	struct device_node *next_node;
-	struct platform_device *next_pdev;
-
-	endpoint = of_graph_get_endpoint_by_regs(np, 0, 0);
-	if (!endpoint) {
-		pr_err("error: %s/port0/endpoint0 was not found\n", np->name);
-		return NULL;
-	}
-
-	next_node = of_graph_get_remote_port_parent(endpoint);
-	if (!next_node) {
-		pr_err("error: device node was not found by endpoint0\n");
-		return NULL;
-	}
-
-	next_pdev = of_find_device_by_node(next_node);
-	if (next_pdev == NULL) {
-		pr_err("find %s platform device failed\n", next_node->name);
-		return NULL;
-	}
-
-	return &next_pdev->dev;
+	return sprd_disp_pipe_get_by_port(dev, 1);
 }
-EXPORT_SYMBOL_GPL(dev_get_next);
+EXPORT_SYMBOL_GPL(sprd_disp_pipe_get_input);
+
+struct device *sprd_disp_pipe_get_output(struct device *dev)
+{
+	return sprd_disp_pipe_get_by_port(dev, 0);
+}
+EXPORT_SYMBOL_GPL(sprd_disp_pipe_get_output);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("leon.he@unisoc.com");

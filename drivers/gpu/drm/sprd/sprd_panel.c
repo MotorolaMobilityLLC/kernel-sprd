@@ -28,75 +28,98 @@
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_panel.h>
 
-static uint32_t lcd_id_from_uboot;
-static int __init lcd_id_get(char *str)
-{
-	int len = 0;
+enum {
+	CMD_CODE_INIT = 0,
+	CMD_CODE_SLEEP_IN,
+	CMD_CODE_SLEEP_OUT,
+	CMD_OLED_BRIGHTNESS,
+	CMD_OLED_REG_LOCK,
+	CMD_OLED_REG_UNLOCK,
+	CMD_CODE_RESERVED0,
+	CMD_CODE_RESERVED1,
+	CMD_CODE_RESERVED2,
+	CMD_CODE_RESERVED3,
+	CMD_CODE_RESERVED4,
+	CMD_CODE_RESERVED5,
+	CMD_CODE_MAX,
+};
 
-	if ((str != NULL) && (str[0] == 'I') && (str[1] == 'D'))
-		len = kstrtou32(str+2, 16, &lcd_id_from_uboot);
-	pr_info("LCD ID from uboot: 0x%x\n", lcd_id_from_uboot);
-	return 0;
-}
-__setup("lcd_id=", lcd_id_get);
-
-struct rgb_timing {
-	uint16_t hfp;
-	uint16_t hbp;
-	uint16_t hsync;
-	uint16_t vfp;
-	uint16_t vbp;
-	uint16_t vsync;
+struct dsi_cmd_desc {
+	uint8_t data_type;
+	uint8_t wait;
+	uint8_t wc_h;
+	uint8_t wc_l;
+	uint8_t payload[];
 };
 
 struct panel_info {
 	/* common parameters */
-	const char *lcd_name;
-	uint16_t width;
-	uint16_t height;
-	uint16_t width_mm;
-	uint16_t height_mm;
-	uint16_t frame_rate;
-
-	/* DPI specific parameters */
-	struct display_timing display_timing;
-	struct rgb_timing rgb_timing;
-	struct videomode video_mode;
-	struct drm_display_mode drm_mode;
+	//const char *name;
+	struct device_node *of_node;
+	struct drm_display_mode mode;
+	const void *cmds[CMD_CODE_MAX];
+	int cmds_len[CMD_CODE_MAX];
 
 	/* MIPI DSI specific parameters */
-	uint32_t phy_freq;
-	uint8_t lane_num;
+	u32 format;
+	u32 lanes;
+	u32 mode_flags;
 };
 
 struct sprd_panel {
+	struct device dev;
 	struct drm_panel base;
-	struct mipi_dsi_device *dsi;
-	struct panel_info *info;
+	struct mipi_dsi_device *slave;
+	struct panel_info info;
 
 	bool prepared;
 	bool enabled;
 };
 
-static int nt35695_power(int on)
+const char *lcd_name;
+static int __init lcd_name_get(char *str)
 {
+	if (str != NULL)
+		lcd_name = str;
+	DRM_INFO("lcd name from uboot: %s\n", lcd_name);
 	return 0;
 }
+__setup("lcd_name=", lcd_name_get);
 
 static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
 {
 	return container_of(panel, struct sprd_panel, base);
 }
 
+static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
+				const void *data, int size)
+{
+	const struct dsi_cmd_desc *cmds = data;
+	u16 len;
+
+	if ((cmds == NULL) || (dsi == NULL))
+		return -EINVAL;
+
+	while (size > 0) {
+		len = (cmds->wc_h << 8) | cmds->wc_l;
+		mipi_dsi_generic_write(dsi, cmds->payload, len);
+		if (cmds->wait)
+			msleep(cmds->wait);
+		cmds = (const struct dsi_cmd_desc *)(cmds->payload + len);
+		size -= len;
+	}
+
+	return 0;
+}
+
 static int sprd_panel_unprepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
 
-	DRM_INFO("drm_panel_funcs->unprepare()\n");
+	DRM_INFO("%s()\n", __func__);
+
 	if (!panel->prepared)
 		return 0;
-
-	nt35695_power(false);
 
 	panel->prepared = false;
 
@@ -106,16 +129,11 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 static int sprd_panel_prepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
-	int ret = 0;
 
-	DRM_INFO("drm_panel_funcs->prepare()\n");
+	DRM_INFO("%s()\n", __func__);
+
 	if (panel->prepared)
 		return 0;
-
-	nt35695_power(true);
-
-	if (ret < 0)
-		return ret;
 
 	panel->prepared = true;
 
@@ -125,16 +143,15 @@ static int sprd_panel_prepare(struct drm_panel *p)
 static int sprd_panel_disable(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
-	int ret = 0;
 
-	DRM_INFO("drm_panel_funcs->disable()\n");
+	DRM_INFO("%s()\n", __func__);
+
 	if (!panel->enabled)
 		return 0;
 
-//	mipi_panel_sleep_in(panel);
-
-	if (ret < 0)
-		return ret;
+	sprd_panel_send_cmds(panel->slave,
+			     panel->info.cmds[CMD_CODE_SLEEP_IN],
+			     panel->info.cmds_len[CMD_CODE_SLEEP_IN]);
 
 	panel->enabled = false;
 
@@ -145,12 +162,14 @@ static int sprd_panel_enable(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
 
-	DRM_INFO("drm_panel_funcs->enable()\n");
+	DRM_INFO("%s()\n", __func__);
+
 	if (panel->enabled)
 		return 0;
 
-	/* init the panel */
-//	mipi_panel_init(panel);
+	sprd_panel_send_cmds(panel->slave,
+			     panel->info.cmds[CMD_CODE_INIT],
+			     panel->info.cmds_len[CMD_CODE_INIT]);
 
 	panel->enabled = true;
 
@@ -162,23 +181,24 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 	struct drm_display_mode *mode;
 	struct sprd_panel *panel = to_sprd_panel(p);
 
-	DRM_INFO("drm_panel_funcs->get_modes()\n");
+	DRM_INFO("%s()\n", __func__);
 
-	mode = drm_mode_duplicate(p->drm, &panel->info->drm_mode);
+	mode = drm_mode_duplicate(p->drm, &panel->info.mode);
 	if (!mode) {
 		DRM_ERROR("failed to add mode %ux%ux@%u\n",
-			  panel->info->drm_mode.hdisplay,
-			  panel->info->drm_mode.vdisplay,
-			  panel->info->drm_mode.vrefresh);
+			  panel->info.mode.hdisplay,
+			  panel->info.mode.vdisplay,
+			  panel->info.mode.vrefresh);
 		return -ENOMEM;
 	}
 
 	drm_mode_set_name(mode);
 
+	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
 	drm_mode_probed_add(p->connector, mode);
 
-	p->connector->display_info.width_mm = panel->info->drm_mode.width_mm;
-	p->connector->display_info.height_mm = panel->info->drm_mode.width_mm;
+	p->connector->display_info.width_mm = panel->info.mode.width_mm;
+	p->connector->display_info.height_mm = panel->info.mode.width_mm;
 
 	return 1;
 }
@@ -191,166 +211,188 @@ static const struct drm_panel_funcs sprd_panel_funcs = {
 	.unprepare = sprd_panel_unprepare,
 };
 
-static struct panel_info *sprd_panel_parse_dt(struct device_node *np)
+static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 {
 	int rc;
-	unsigned int temp;
-	struct panel_info *info;
-	const char *panel_name;
-	int panel_id = lcd_id_from_uboot;
+	u32 val;
+	struct device_node *lcd_node;
+	struct panel_info *info = &panel->info;
+	int bytes;
+	const void *p;
+	const char *str;
+	char lcd_path[60];
 
-	if (!of_property_read_u32(np, "force-id", &temp)) {
-		DRM_ERROR("warning: use force id 0x%x\n", temp);
-		panel_id = temp;
+	rc = of_property_read_string(np, "sprd,force-attached", &str);
+	if (!rc)
+		lcd_name = str;
+
+	sprintf(lcd_path, "/lcds/%s", lcd_name);
+	lcd_node = of_find_node_by_path(lcd_path);
+	if (!lcd_node) {
+		DRM_ERROR("%pOF: could not find %s node\n", np, lcd_name);
+		return -ENODEV;
 	}
+	info->of_node = lcd_node;
 
-	if (panel_id == 0) {
-		DRM_ERROR("LCD_ID from uboot is 0, enter Calibration Mode\n");
-		return NULL;
-	}
-
-	info = kzalloc(sizeof(struct panel_info), GFP_KERNEL);
-	if (info == NULL)
-		return NULL;
-
-	rc = of_property_read_u32(np, "sprd,lane-number", &temp);
-	if (!rc)
-		info->lane_num = temp;
-	else
-		info->lane_num = 4;
-
-	rc = of_property_read_u32(np, "sprd,width-mm", &temp);
-	if (!rc)
-		info->width_mm = temp;
-	else
-		info->width_mm = 68;
-
-	rc = of_property_read_u32(np, "sprd,height-mm", &temp);
-	if (!rc)
-		info->height_mm = temp;
-	else
-		info->height_mm = 121;
-
-	rc = of_property_read_u32(np, "sprd,frame_rate", &temp);
-	if (!rc)
-		info->frame_rate = temp;
-	else
-		info->frame_rate = 60;
-
-	rc = of_property_read_string(np, "sprd,panel-name", &panel_name);
-	if (!rc)
-		info->lcd_name = panel_name;
-
-	if (of_get_display_timing(np, "display-timings",
-				  &info->display_timing))
-		DRM_ERROR("get display timing failed\n");
+	if (of_property_read_bool(lcd_node, "sprd,dsi-command-mode"))
+		info->mode_flags = 0;
+	else if (of_property_read_bool(lcd_node, "sprd,dsi-video-burst-mode"))
+		info->mode_flags = MIPI_DSI_MODE_VIDEO |
+				   MIPI_DSI_MODE_VIDEO_BURST;
+	else if (of_property_read_bool(lcd_node,
+			"sprd,dsi-video-non-burst-sync-event-mode"))
+		info->mode_flags = MIPI_DSI_MODE_VIDEO;
+	else if (of_property_read_bool(lcd_node,
+			"sprd,dsi-video-non-burst-sync-pulse-mode"))
+		info->mode_flags = MIPI_DSI_MODE_VIDEO |
+				   MIPI_DSI_MODE_VIDEO_SYNC_PULSE;
 	else {
-		struct display_timing *dt = &info->display_timing;
-		struct rgb_timing *t = &info->rgb_timing;
-
-		t->hfp = dt->hfront_porch.typ;
-		t->hbp = dt->hback_porch.typ;
-		t->hsync = dt->hsync_len.typ;
-
-		t->vfp = dt->vfront_porch.typ;
-		t->vbp = dt->vback_porch.typ;
-		t->vsync = dt->vsync_len.typ;
-
-		info->phy_freq = dt->pixelclock.typ;
-		info->width = dt->hactive.typ;
-		info->height = dt->vactive.typ;
+		DRM_ERROR("dsi work mode is not found! use video mode\n");
+		info->mode_flags = MIPI_DSI_MODE_VIDEO |
+				   MIPI_DSI_MODE_VIDEO_BURST;
 	}
 
-	DRM_INFO("lcd_name = %s\n", info->lcd_name);
-	DRM_INFO("lane_number = %d\n", info->lane_num);
-	DRM_INFO("phy_freq = %d\n", info->phy_freq);
-	DRM_INFO("frame_rate = %d\n", info->frame_rate);
-	DRM_INFO("resolution: %d x %d\n", info->width, info->height);
+	if (of_property_read_bool(lcd_node, "sprd,dsi-non-continuous-clock"))
+		info->mode_flags |= MIPI_DSI_CLOCK_NON_CONTINUOUS;
 
-	return info;
-}
+	rc = of_property_read_u32(lcd_node, "sprd,dsi-lane-number", &val);
+	if (!rc)
+		info->lanes = val;
+	else
+		info->lanes = 4;
 
-static int sprd_panel_probe(struct mipi_dsi_device *dsi)
-{
-	int ret;
-	struct device *dev = &dsi->dev;
-	struct sprd_panel *panel;
-	struct panel_info *info;
+	rc = of_property_read_string(lcd_node, "sprd,dsi-color-format", &str);
+	if (rc)
+		info->format = MIPI_DSI_FMT_RGB888;
+	else if (!strcmp(str, "rgb888"))
+		info->format = MIPI_DSI_FMT_RGB888;
+	else if (!strcmp(str, "rgb666"))
+		info->format = MIPI_DSI_FMT_RGB666;
+	else if (!strcmp(str, "rgb666_packed"))
+		info->format = MIPI_DSI_FMT_RGB666_PACKED;
+	else if (!strcmp(str, "rgb565"))
+		info->format = MIPI_DSI_FMT_RGB565;
+	else
+		DRM_ERROR("dsi-color-format (%s) is not supported\n", str);
 
-	panel = devm_kzalloc(dev, sizeof(struct sprd_panel), GFP_KERNEL);
-	if (!panel)
-		return -ENOMEM;
+	rc = of_property_read_u32(lcd_node, "sprd,width-mm", &val);
+	if (!rc)
+		info->mode.width_mm = val;
+	else
+		info->mode.width_mm = 68;
 
-	info = sprd_panel_parse_dt(dev->of_node);
-	if (info == NULL) {
-		DRM_ERROR("parse panel info failed\n");
-		return -EINVAL;
+	rc = of_property_read_u32(lcd_node, "sprd,height-mm", &val);
+	if (!rc)
+		info->mode.height_mm = val;
+	else
+		info->mode.height_mm = 121;
+
+	p = of_get_property(lcd_node, "sprd,initial-command", &bytes);
+	if (p) {
+		info->cmds[CMD_CODE_INIT] = p;
+		info->cmds_len[CMD_CODE_INIT] = bytes;
+	} else
+		DRM_ERROR("can't find sprd,initial-command property\n");
+
+	p = of_get_property(lcd_node, "sprd,sleep-in-command", &bytes);
+	if (p) {
+		info->cmds[CMD_CODE_SLEEP_IN] = p;
+		info->cmds_len[CMD_CODE_SLEEP_IN] = bytes;
+	} else
+		DRM_ERROR("can't find sprd,sleep-in-command property\n");
+
+	p = of_get_property(lcd_node, "sprd,sleep-out-command", &bytes);
+	if (p) {
+		info->cmds[CMD_CODE_SLEEP_OUT] = p;
+		info->cmds_len[CMD_CODE_SLEEP_OUT] = bytes;
+	} else
+		DRM_ERROR("can't find sprd,sleep-out-command property\n");
+
+	rc = of_get_drm_display_mode(lcd_node, &info->mode, 0,
+				     OF_USE_NATIVE_MODE);
+	if (rc) {
+		DRM_ERROR("get display timing failed\n");
+		return rc;
 	}
 
-	panel->info = info;
-	panel->dsi = dsi;
-	drm_panel_init(&panel->base);
+	info->mode.vrefresh = drm_mode_vrefresh(&info->mode);
 
-	panel->base.dev = dev;
-	panel->base.funcs = &sprd_panel_funcs;
-	ret = drm_panel_add(&panel->base);
-	if (ret) {
-		DRM_INFO("drm_panel_add() failed\n");
-		return ret;
-	}
-
-	dsi->mode_flags = MIPI_DSI_MODE_VIDEO |
-			  MIPI_DSI_MODE_VIDEO_SYNC_PULSE |
-			  MIPI_DSI_MODE_VIDEO_BURST |
-			  MIPI_DSI_MODE_VIDEO_HSE |
-			  MIPI_DSI_CLOCK_NON_CONTINUOUS |
-			  MIPI_DSI_MODE_LPM;
-	dsi->format = MIPI_DSI_FMT_RGB888;
-	dsi->lanes = info->lane_num;
-
-	videomode_from_timing(&info->display_timing, &info->video_mode);
-	info->drm_mode.clock = info->video_mode.pixelclock;
-	info->drm_mode.hdisplay = info->video_mode.hactive;
-	info->drm_mode.hsync_start = info->drm_mode.hdisplay +
-		info->video_mode.hfront_porch;
-	info->drm_mode.hsync_end = info->drm_mode.hsync_start +
-		info->video_mode.hsync_len;
-	info->drm_mode.htotal = info->drm_mode.hsync_end +
-		info->video_mode.hback_porch;
-	info->drm_mode.vdisplay = info->video_mode.vactive;
-	info->drm_mode.vsync_start = info->drm_mode.vdisplay +
-		info->video_mode.vfront_porch;
-	info->drm_mode.vsync_end = info->drm_mode.vsync_start +
-		info->video_mode.vsync_len;
-	info->drm_mode.vtotal = info->drm_mode.vsync_end +
-		info->video_mode.vback_porch;
-	info->drm_mode.width_mm = info->width_mm;
-	info->drm_mode.height_mm = info->height_mm;
-	info->drm_mode.vrefresh = info->frame_rate;
-
-	ret = mipi_dsi_attach(dsi);
-	if (ret) {
-		DRM_ERROR("failed to attach dsi to host\n");
-		drm_panel_remove(&panel->base);
-		return ret;
-	}
-
-	mipi_dsi_set_drvdata(dsi, panel);
-
-	DRM_INFO("panel probe ok\n");
 	return 0;
 }
 
-static int sprd_panel_remove(struct mipi_dsi_device *dsi)
+static int sprd_panel_device_create(struct device *parent,
+				    struct sprd_panel *panel)
 {
-	struct sprd_panel *panel = mipi_dsi_get_drvdata(dsi);
+	//panel->dev.class = display_class;
+	panel->dev.parent = parent;
+	panel->dev.of_node = panel->info.of_node;
+	dev_set_name(&panel->dev, "panel0");
+	dev_set_drvdata(&panel->dev, panel);
+
+	return device_register(&panel->dev);
+}
+
+static int sprd_panel_probe(struct mipi_dsi_device *slave)
+{
 	int ret;
+	struct sprd_panel *panel;
+
+	panel = devm_kzalloc(&slave->dev, sizeof(*panel), GFP_KERNEL);
+	if (!panel)
+		return -ENOMEM;
+
+	ret = sprd_panel_parse_dt(slave->dev.of_node, panel);
+	if (ret) {
+		DRM_ERROR("parse panel info failed\n");
+		return ret;
+	}
+
+	ret = sprd_panel_device_create(&slave->dev, panel);
+	if (ret) {
+		DRM_ERROR("panel device create failed\n");
+		return ret;
+	}
+
+	panel->base.dev = &panel->dev;
+	panel->base.funcs = &sprd_panel_funcs;
+	drm_panel_init(&panel->base);
+
+	ret = drm_panel_add(&panel->base);
+	if (ret) {
+		DRM_ERROR("drm_panel_add() failed\n");
+		return ret;
+	}
+
+	slave->lanes = panel->info.lanes;
+	slave->format = panel->info.format;
+	slave->mode_flags = panel->info.mode_flags;
+
+	ret = mipi_dsi_attach(slave);
+	if (ret) {
+		DRM_ERROR("failed to attach dsi panel to host\n");
+		drm_panel_remove(&panel->base);
+		return ret;
+	}
+	panel->slave = slave;
+	panel->enabled = true;
+
+	mipi_dsi_set_drvdata(slave, panel);
+
+	return 0;
+}
+
+static int sprd_panel_remove(struct mipi_dsi_device *slave)
+{
+	struct sprd_panel *panel = mipi_dsi_get_drvdata(slave);
+	int ret;
+
+	DRM_INFO("%s()\n", __func__);
 
 	ret = sprd_panel_disable(&panel->base);
 	if (ret < 0)
 		DRM_ERROR("failed to disable panel: %d\n", ret);
 
-	ret = mipi_dsi_detach(dsi);
+	ret = mipi_dsi_detach(slave);
 	if (ret < 0)
 		DRM_ERROR("failed to detach from DSI host: %d\n", ret);
 
@@ -360,9 +402,9 @@ static int sprd_panel_remove(struct mipi_dsi_device *dsi)
 	return 0;
 }
 
-static void sprd_panel_shutdown(struct mipi_dsi_device *dsi)
+static void sprd_panel_shutdown(struct mipi_dsi_device *slave)
 {
-	struct sprd_panel *panel = mipi_dsi_get_drvdata(dsi);
+	struct sprd_panel *panel = mipi_dsi_get_drvdata(slave);
 
 	sprd_panel_disable(&panel->base);
 }

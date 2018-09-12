@@ -36,6 +36,9 @@ LIST_HEAD(dpu_core_head);
 LIST_HEAD(dpu_clk_head);
 LIST_HEAD(dpu_glb_head);
 
+static int sprd_dpu_init(struct sprd_dpu *dpu);
+static int sprd_dpu_uninit(struct sprd_dpu *dpu);
+
 static inline struct sprd_plane *to_sprd_plane(struct drm_plane *plane)
 {
 	return container_of(plane, struct sprd_plane, plane);
@@ -44,7 +47,7 @@ static inline struct sprd_plane *to_sprd_plane(struct drm_plane *plane)
 static int dpu_plane_atomic_check(struct drm_plane *plane,
 				  struct drm_plane_state *state)
 {
-	DRM_DEBUG("drm_plane_helper_funcs->atomic_check()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	return 0;
 }
@@ -61,7 +64,7 @@ static void dpu_plane_atomic_update(struct drm_plane *plane,
 	struct sprd_dpu_layer layer = {};
 	int i;
 
-	DRM_DEBUG("drm_plane_helper_funcs->atomic_update()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	layer.index = sp->index;
 	layer.src_x = state->src_x >> 16;
@@ -95,8 +98,7 @@ static void dpu_plane_atomic_disable(struct drm_plane *plane,
 	struct sprd_plane *sp = to_sprd_plane(plane);
 	struct sprd_dpu *dpu = crtc_to_dpu(old_state->crtc);
 
-	DRM_DEBUG("drm_plane_helper_funcs->atomic_disable(), layer_id = %u\n",
-		sp->index);
+	DRM_INFO("%s() layer_id = %u\n", __func__, sp->index);
 
 	if (dpu->core && dpu->core->clean)
 		dpu->core->clean(&dpu->ctx, sp->index);
@@ -161,19 +163,50 @@ static struct drm_plane *dpu_plane_init(struct drm_device *drm,
 static void dpu_crtc_atomic_enable(struct drm_crtc *crtc,
 				   struct drm_crtc_state *old_state)
 {
-	DRM_DEBUG("drm_crtc_helper_funcs->atomic_enable()\n");
+	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+	struct videomode *vm = &dpu->ctx.vm;
+
+	DRM_INFO("%s()\n", __func__);
+
+	if (dpu->ctx.is_inited)
+		return;
+
+	if ((crtc->mode.hdisplay == crtc->mode.htotal) ||
+	    (crtc->mode.vdisplay == crtc->mode.vtotal))
+		dpu->ctx.if_type = SPRD_DISPC_IF_EDPI;
+	else
+		dpu->ctx.if_type = SPRD_DISPC_IF_DPI;
+
+	vm->pixelclock = crtc->mode.clock;
+	vm->hactive = crtc->mode.hdisplay;
+	vm->hfront_porch = crtc->mode.hsync_start - crtc->mode.hdisplay;
+	vm->hsync_len = crtc->mode.hsync_end - crtc->mode.hsync_start;
+	vm->hback_porch = crtc->mode.htotal - crtc->mode.hsync_end;
+	vm->vactive = crtc->mode.vdisplay;
+	vm->vfront_porch = crtc->mode.vsync_start - crtc->mode.vdisplay;
+	vm->vsync_len = crtc->mode.vsync_end - crtc->mode.vsync_start;
+	vm->vback_porch = crtc->mode.vtotal - crtc->mode.vsync_end;
+
+	sprd_dpu_init(dpu);
 }
 
 static void dpu_crtc_atomic_disable(struct drm_crtc *crtc,
 				    struct drm_crtc_state *old_state)
 {
-	DRM_DEBUG("drm_crtc_helper_funcs->atomic_disable()\n");
+	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+
+	DRM_INFO("%s()\n", __func__);
+
+	if (!dpu->ctx.is_inited)
+		return;
+
+	sprd_dpu_uninit(dpu);
 }
 
 static int dpu_crtc_atomic_check(struct drm_crtc *crtc,
 				 struct drm_crtc_state *state)
 {
-	DRM_DEBUG("drm_crtc_helper_funcs->atomic_check()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	/* do nothing */
 	return 0;
@@ -184,7 +217,7 @@ static void dpu_crtc_atomic_begin(struct drm_crtc *crtc,
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
-	DRM_DEBUG("drm_crtc_helper_funcs->atomic_begin()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	if (crtc->state->event) {
 		crtc->state->event->pipe = drm_crtc_index(crtc);
@@ -202,7 +235,10 @@ static void dpu_crtc_atomic_flush(struct drm_crtc *crtc,
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
-	DRM_DEBUG("drm_crtc_helper_funcs->atomic_flush()\n");
+	DRM_INFO("%s()\n", __func__);
+
+	if (!dpu->ctx.is_inited)
+		return;
 
 	if (dpu->core && dpu->core->run)
 		dpu->core->run(&dpu->ctx);
@@ -212,7 +248,7 @@ static int dpu_crtc_enable_vblank(struct drm_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
-	DRM_INFO("drm_crtc_funcs->enable_vblank()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	if (dpu->core && dpu->core->enable_vsync)
 		dpu->core->enable_vsync(&dpu->ctx);
@@ -224,7 +260,7 @@ static void dpu_crtc_disable_vblank(struct drm_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
-	DRM_INFO("drm_crtc_funcs->disable_vblank()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	if (dpu->core && dpu->core->disable_vsync)
 		dpu->core->disable_vsync(&dpu->ctx);
@@ -278,28 +314,11 @@ static int dpu_crtc_init(struct drm_device *drm, struct drm_crtc *crtc,
 
 	drm_crtc_helper_add(crtc, &dpu_crtc_helper_funcs);
 
-	DRM_INFO("crtc init ok\n");
+	DRM_INFO("%s() ok\n", __func__);
 	return 0;
 }
 
-static int dpu_clk_update(struct sprd_dpu *dpu,
-				u32 new_val, int howto)
-{
-	int err;
-	struct dpu_context *ctx = &dpu->ctx;
-
-	if (dpu->clk && dpu->clk->update) {
-		err = dpu->clk->update(ctx, DISPC_CLK_ID_DPI, 153600000);
-		if (err) {
-			DRM_ERROR("Failed to set pixel clock.\n");
-			return err;
-		}
-	}
-
-	return 0;
-}
-
-static int32_t sprd_dpu_init(struct sprd_dpu *dpu)
+static int sprd_dpu_init(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
 
@@ -312,19 +331,36 @@ static int32_t sprd_dpu_init(struct sprd_dpu *dpu)
 		dpu->clk->init(ctx);
 	if (dpu->clk && dpu->clk->enable)
 		dpu->clk->enable(ctx);
-
-	dpu_clk_update(dpu, 60, SPRD_FORCE_FPS);
+	if (dpu->clk && dpu->clk->update)
+		dpu->clk->update(ctx, DISPC_CLK_ID_DPI,
+				 ctx->vm.pixelclock);
 
 	if (dpu->core && dpu->core->init)
 		dpu->core->init(ctx);
 	if (dpu->core && dpu->core->ifconfig)
 		dpu->core->ifconfig(ctx);
-
-	/* for zebu/vdk, refresh immediately */
 	if (dpu->core && dpu->core->run)
 		dpu->core->run(ctx);
 
 	ctx->is_inited = true;
+
+	return 0;
+}
+
+static int sprd_dpu_uninit(struct sprd_dpu *dpu)
+{
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (dpu->core && dpu->core->uninit)
+		dpu->core->uninit(ctx);
+	if (dpu->clk && dpu->clk->disable)
+		dpu->clk->disable(ctx);
+	if (dpu->glb && dpu->glb->disable)
+		dpu->glb->disable(ctx);
+	if (dpu->glb && dpu->glb->power)
+		dpu->glb->power(ctx, false);
+
+	ctx->is_inited = false;
 
 	return 0;
 }
@@ -355,7 +391,7 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 	if (int_mask & DISPC_INT_ERR_MASK)
 		DRM_ERROR("Warning: dpu underflow!\n");
 
-	if (int_mask & DISPC_INT_DPI_VSYNC_MASK) {
+	if ((int_mask & DISPC_INT_DPI_VSYNC_MASK) && ctx->is_inited) {
 		drm_crtc_handle_vblank(&dpu->crtc);
 		dpu_crtc_finish_page_flip(dpu);
 	}
@@ -380,6 +416,7 @@ static int dpu_irq_request(struct sprd_dpu *dpu)
 		DRM_ERROR("error: dpu request irq failed\n");
 		return -EINVAL;
 	}
+	dpu->ctx.irq = irq_num;
 
 	return 0;
 }
@@ -392,7 +429,7 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 	struct drm_plane *plane;
 	int err;
 
-	DRM_INFO("component_ops->bind()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	plane = dpu_plane_init(drm, dpu);
 	if (IS_ERR_OR_NULL(plane)) {
@@ -404,12 +441,9 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 	if (err)
 		return err;
 
-	sprd_dpu_init(dpu);
 	dpu_irq_request(dpu);
 
 	sprd->dpu_dev = dev;
-
-	DRM_INFO("display controller init OK\n");
 
 	return 0;
 }
@@ -419,7 +453,7 @@ static void sprd_dpu_unbind(struct device *dev, struct device *master,
 {
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
 
-	DRM_INFO("component_ops->unbind()\n");
+	DRM_INFO("%s()\n", __func__);
 
 	drm_crtc_cleanup(&dpu->crtc);
 }
@@ -429,10 +463,28 @@ static const struct component_ops dpu_component_ops = {
 	.unbind = sprd_dpu_unbind,
 };
 
-static int dpu_context_init(struct sprd_dpu *dpu,
+static int sprd_dpu_device_create(struct sprd_dpu *dpu,
+				struct device *parent)
+{
+	int err;
+
+//	dpu->dev.class = display_class;
+	dpu->dev.parent = parent;
+	dpu->dev.of_node = parent->of_node;
+	dev_set_name(&dpu->dev, "dpu");
+	dev_set_drvdata(&dpu->dev, dpu);
+
+	err = device_register(&dpu->dev);
+	if (err)
+		DRM_ERROR("dpu device register failed\n");
+
+	return err;
+}
+
+static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 				struct device_node *np)
 {
-	uint32_t temp;
+	u32 temp;
 	struct resource r;
 	struct dpu_context *ctx = &dpu->ctx;
 
@@ -462,36 +514,25 @@ static int dpu_context_init(struct sprd_dpu *dpu,
 	sema_init(&ctx->refresh_lock, 1);
 	init_waitqueue_head(&ctx->wait_queue);
 
-	ctx->if_type = SPRD_DISPC_IF_DPI;
 	ctx->vsync_report_rate = 60;
 	ctx->vsync_ratio_to_panel = 1;
 
 	return 0;
 }
 
-static int dpu_device_register(struct sprd_dpu *dpu,
-				struct device *parent)
-{
-	int err;
-
-//	dpu->dev.class = display_class;
-	dpu->dev.parent = parent;
-	dpu->dev.of_node = parent->of_node;
-	dev_set_name(&dpu->dev, "dpu");
-	dev_set_drvdata(&dpu->dev, dpu);
-
-	err = device_register(&dpu->dev);
-	if (err)
-		DRM_ERROR("dpu device register failed\n");
-
-	return err;
-}
-
 static int sprd_dpu_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
+	struct device_node *lcd_node;
 	struct sprd_dpu *dpu;
 	const char *str;
+	int ret;
+
+	lcd_node = platform_get_drvdata(pdev);
+	if (!lcd_node) {
+		DRM_INFO("panel is not attached, dpu probe deferred\n");
+		return -EPROBE_DEFER;
+	}
 
 	dpu = devm_kzalloc(&pdev->dev, sizeof(*dpu), GFP_KERNEL);
 	if (!dpu)
@@ -500,18 +541,19 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	if (!of_property_read_string(np, "sprd,ip", &str))
 		dpu->core = dpu_core_ops_attach(str);
 	else
-		DRM_ERROR("sprd,ip was not found\n");
+		DRM_WARN("sprd,ip was not found\n");
 
 	if (!of_property_read_string(np, "sprd,soc", &str)) {
 		dpu->clk = dpu_clk_ops_attach(str);
 		dpu->glb = dpu_glb_ops_attach(str);
 	} else
-		DRM_ERROR("sprd,soc was not found\n");
+		DRM_WARN("sprd,soc was not found\n");
 
-	if (dpu_context_init(dpu, np))
-		return -EINVAL;
+	ret = sprd_dpu_context_init(dpu, np);
+	if (ret)
+		return ret;
 
-	dpu_device_register(dpu, &pdev->dev);
+	sprd_dpu_device_create(dpu, &pdev->dev);
 //	sprd_dpu_sysfs_init(&dpu->dev);
 //	dpu_notifier_register(dpu);
 	platform_set_drvdata(pdev, dpu);
@@ -519,8 +561,6 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 //	pm_runtime_set_active(&pdev->dev);
 //	pm_runtime_get_noresume(&pdev->dev);
 //	pm_runtime_enable(&pdev->dev);
-
-	DRM_INFO("dpu driver probe success\n");
 
 	return component_add(&pdev->dev, &dpu_component_ops);
 }

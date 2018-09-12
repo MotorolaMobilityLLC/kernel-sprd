@@ -81,7 +81,7 @@ static const struct regmap_config word_config = {
 	.reg_stride = 4,
 };
 
-static int dphy_regmap_init(struct sprd_dphy *dphy)
+static int sprd_dphy_regmap_init(struct sprd_dphy *dphy)
 {
 	struct dphy_context *ctx = &dphy->ctx;
 	struct regmap *regmap;
@@ -94,31 +94,13 @@ static int dphy_regmap_init(struct sprd_dphy *dphy)
 					  dphy, &byte_config);
 
 	if (IS_ERR(regmap)) {
-		pr_err("dphy regmap init failed\n");
+		DRM_ERROR("dphy regmap init failed\n");
 		return PTR_ERR(regmap);
 	}
 
 	ctx->regmap = regmap;
 
 	return 0;
-}
-
-static int dphy_device_register(struct sprd_dphy *dphy,
-				struct device *parent)
-{
-	int ret;
-
-//	dphy->dev.class = display_class;
-	dphy->dev.parent = parent;
-	dphy->dev.of_node = parent->of_node;
-	dev_set_name(&dphy->dev, "dphy");
-	dev_set_drvdata(&dphy->dev, dphy);
-
-	ret = device_register(&dphy->dev);
-	if (ret)
-		pr_err("dphy device register failed\n");
-
-	return ret;
 }
 
 static int sprd_dphy_resume(struct sprd_dphy *dphy)
@@ -132,7 +114,7 @@ static int sprd_dphy_resume(struct sprd_dphy *dphy)
 
 	ret = sprd_dphy_configure(dphy);
 	if (ret) {
-		pr_err("sprd dphy init failed\n");
+		DRM_ERROR("sprd dphy init failed\n");
 		return -EINVAL;
 	}
 
@@ -146,7 +128,7 @@ static int sprd_dphy_suspend(struct sprd_dphy *dphy)
 
 	ret = sprd_dphy_close(dphy);
 	if (ret)
-		pr_err("sprd dphy close failed\n");
+		DRM_ERROR("sprd dphy close failed\n");
 
 	if (dphy->glb && dphy->glb->disable)
 		dphy->glb->disable(&dphy->ctx);
@@ -157,8 +139,26 @@ static int sprd_dphy_suspend(struct sprd_dphy *dphy)
 	return ret;
 }
 
-static int dphy_context_init(struct sprd_dphy *dphy,
-				struct device_node *np)
+static int sprd_dphy_device_create(struct sprd_dphy *dphy,
+				   struct device *parent)
+{
+	int ret;
+
+//	dphy->dev.class = display_class;
+	dphy->dev.parent = parent;
+	dphy->dev.of_node = parent->of_node;
+	dev_set_name(&dphy->dev, "dphy");
+	dev_set_drvdata(&dphy->dev, dphy);
+
+	ret = device_register(&dphy->dev);
+	if (ret)
+		DRM_ERROR("dphy device register failed\n");
+
+	return ret;
+}
+
+static int sprd_dphy_context_init(struct sprd_dphy *dphy,
+				  struct device_node *np)
 {
 	struct resource r;
 	uint32_t tmp;
@@ -166,18 +166,15 @@ static int dphy_context_init(struct sprd_dphy *dphy,
 	if (dphy->glb && dphy->glb->parse_dt)
 		dphy->glb->parse_dt(&dphy->ctx, np);
 
-//	dphy->ctx.freq = dphy->panel->phy_freq;
-//	dphy->ctx.lanes = dphy->panel->lane_num;
-
 	if (!of_address_to_resource(np, 0, &r)) {
 		dphy->ctx.ctrlbase = (unsigned long)
 		    ioremap_nocache(r.start, resource_size(&r));
 		if (dphy->ctx.ctrlbase == 0) {
-			pr_err("dphy ctrlbase ioremap failed\n");
+			DRM_ERROR("dphy ctrlbase ioremap failed\n");
 			return -EFAULT;
 		}
 	} else {
-		pr_err("parse dphy ctrl reg base failed\n");
+		DRM_ERROR("parse dphy ctrl reg base failed\n");
 		return -EINVAL;
 	}
 
@@ -186,59 +183,77 @@ static int dphy_context_init(struct sprd_dphy *dphy,
 		dphy->ctx.apbbase = (unsigned long)
 		    ioremap_nocache(r.start, resource_size(&r));
 		if (dphy->ctx.apbbase == 0) {
-			pr_err("dphy apbbase ioremap failed\n");
+			DRM_ERROR("dphy apbbase ioremap failed\n");
 			return -EFAULT;
 		}
 	}
 
 	if (!of_property_read_u32(np, "dev-id", &tmp))
 		dphy->ctx.id = tmp;
+
 	mutex_init(&dphy->ctx.hop_lock);
+
 	return 0;
 }
 
 static int sprd_dphy_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
+	struct device_node *lcd_node;
 	struct sprd_dphy *dphy;
 	struct device *dsi_dev;
 	const char *str;
+	u32 val;
+	int ret;
 
-	dphy = kzalloc(sizeof(struct sprd_dphy), GFP_KERNEL);
+	lcd_node = platform_get_drvdata(pdev);
+	if (!lcd_node) {
+		DRM_INFO("panel is not attached, dphy probe deferred\n");
+		return -EPROBE_DEFER;
+	}
+
+	dphy = devm_kzalloc(&pdev->dev, sizeof(*dphy), GFP_KERNEL);
 	if (!dphy)
 		return -ENOMEM;
 
-//	dphy->panel = platform_get_drvdata(pdev);
-//	if (dphy->panel == NULL) {
-//		pr_err("error: dphy->panel is null\n");
-//		goto err;
-//	}
-	dsi_dev = dev_get_prev(&pdev->dev);
+	dsi_dev = sprd_disp_pipe_get_input(&pdev->dev);
 	if (!dsi_dev)
-		goto err;
-//	dev_set_drvdata(dsi_dev, dphy->panel);
+		return -ENODEV;
 
 	if (!of_property_read_string(dsi_dev->of_node, "sprd,ip", &str))
 		dphy->ppi = dphy_ppi_ops_attach(str);
 	else
-		pr_err("error: dphy ppi ops parse failed\n");
+		DRM_WARN("dphy ppi ops parse failed\n");
 
 	if (!of_property_read_string(np, "sprd,ip", &str))
 		dphy->pll = dphy_pll_ops_attach(str);
 	else
-		pr_err("error: dphy pll ops parse failed\n");
+		DRM_WARN("dphy pll ops parse failed\n");
 
 	if (!of_property_read_string(np, "sprd,soc", &str))
 		dphy->glb = dphy_glb_ops_attach(str);
 	else
-		pr_err("error: dphy glb ops parse failed\n");
+		DRM_WARN("dphy glb ops parse failed\n");
 
-	if (dphy_context_init(dphy, pdev->dev.of_node))
-		goto err;
+	ret = sprd_dphy_context_init(dphy, pdev->dev.of_node);
+	if (ret)
+		return ret;
 
-	dphy_device_register(dphy, &pdev->dev);
+	ret = of_property_read_u32(lcd_node, "sprd,phy-bit-clock", &val);
+	if (!ret)
+		dphy->ctx.freq = val;
+	else
+		dphy->ctx.freq = 500000;
+
+	ret = of_property_read_u32(lcd_node, "sprd,phy-escape-clock", &val);
+	if (!ret)
+		dphy->ctx.esc_clk = val;
+	else
+		dphy->ctx.esc_clk = 20000;
+
+	sprd_dphy_device_create(dphy, &pdev->dev);
 //	sprd_dphy_sysfs_init(&dphy->dev);
-	dphy_regmap_init(dphy);
+	sprd_dphy_regmap_init(dphy);
 	platform_set_drvdata(pdev, dphy);
 
 //	pm_runtime_set_active(&pdev->dev);
@@ -248,19 +263,13 @@ static int sprd_dphy_probe(struct platform_device *pdev)
 	pr_info("dphy driver probe success\n");
 
 	return 0;
-
-err:
-	kfree(dphy);
-	return -ENODEV;
 }
 
 static int dphy_runtime_resume(struct device *dev)
 {
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
-	struct device *next = dev_get_next(dev);
 
 	sprd_dphy_resume(dphy);
-	pm_runtime_get_sync(next);
 
 	return 0;
 }
@@ -268,9 +277,7 @@ static int dphy_runtime_resume(struct device *dev)
 static int dphy_runtime_suspend(struct device *dev)
 {
 	struct sprd_dphy *dphy = dev_get_drvdata(dev);
-	struct device *next = dev_get_next(dev);
 
-	pm_runtime_put_sync(next);
 	sprd_dphy_suspend(dphy);
 
 	return 0;
