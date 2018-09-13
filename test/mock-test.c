@@ -578,6 +578,38 @@ static void mock_test_in_sequence_no_a_fail(struct test *test)
 	mock->do_expect(mock, "c", mock_stub, param_type, c_params, param_len);
 }
 
+static void mock_test_in_sequence_retire_on_saturation(struct test *test)
+{
+	struct mock_test_context *ctx = test->priv;
+	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct test *trgt = mock_get_trgt(mock_test);
+	struct mock *mock = ctx->mock;
+
+	struct mock_param_matcher *a_matchers[] = { int_eq(trgt, 1) };
+	struct mock_param_matcher *b_matchers[] = { int_eq(trgt, 2) };
+	struct mock_param_matcher *c_matchers[] = { int_eq(trgt, 3) };
+
+	struct mock_expectation *c = mock_add_matcher(mock, "c", mock_stub,
+                c_matchers, param_len);
+	struct mock_expectation *b = mock_add_matcher(mock, "b", mock_stub,
+                b_matchers, param_len);
+	struct mock_expectation *a_1 = mock_add_matcher(mock, "a", mock_stub,
+                a_matchers, param_len);
+        struct mock_expectation *a_2 = mock_add_matcher(mock, "a", mock_stub,
+                a_matchers, param_len);
+
+	InSequence(test, a_1, b, a_2, c);
+
+	Never(EXPECT_CALL(fail(mock_get_ctrl(mock_test), any(test))));
+
+        mock->do_expect(mock, "a", mock_stub, param_type, a_params, param_len);
+	mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+        mock->do_expect(mock, "a", mock_stub, param_type, a_params, param_len);
+	mock->do_expect(mock, "c", mock_stub, param_type, c_params, param_len);
+
+        mock_validate_expectations(mock);
+}
+
 void *do_mocked_fail(struct mock_action *this, const void **params, int len)
 {
 	static const int ret;
@@ -639,6 +671,7 @@ static struct test_case mock_test_cases[] = {
 	TEST_CASE(mock_test_in_sequence_abc_success),
 	TEST_CASE(mock_test_in_sequence_bac_success),
 	TEST_CASE(mock_test_in_sequence_no_a_fail),
+        TEST_CASE(mock_test_in_sequence_retire_on_saturation),
 	{},
 };
 

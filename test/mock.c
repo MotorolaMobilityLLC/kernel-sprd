@@ -392,7 +392,10 @@ int mock_in_sequence(struct test *test, struct mock_expectation *first, ...)
 
 	va_start(args, first);
 
+        RetireOnSaturation(first);
+
 	while ((curr = va_arg(args, struct mock_expectation*))) {
+                RetireOnSaturation(curr);
 		entry = test_kzalloc(test, sizeof(*entry), GFP_KERNEL);
 		if (!entry) {
 			va_end(args);
