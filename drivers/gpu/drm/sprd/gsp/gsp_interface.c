@@ -21,6 +21,7 @@
 #include "gsp_interface.h"
 #include "gsp_interface/gsp_interface_sharkl3.h"
 #include "gsp_interface/gsp_interface_sharkl5.h"
+#include "gsp_interface/gsp_interface_roc1.h"
 
 static struct gsp_interface_ops gsp_interface_sharkl3_ops = {
 	.parse_dt = gsp_interface_sharkl3_parse_dt,
@@ -40,6 +41,16 @@ static struct gsp_interface_ops gsp_interface_sharkl5_ops = {
 	.unprepare = gsp_interface_sharkl5_unprepare,
 	.reset = gsp_interface_sharkl5_reset,
 	.dump = gsp_interface_sharkl5_dump,
+};
+
+static struct gsp_interface_ops gsp_interface_roc1_ops = {
+	.parse_dt = gsp_interface_roc1_parse_dt,
+	.init = gsp_interface_roc1_init,
+	.deinit = gsp_interface_roc1_deinit,
+	.prepare = gsp_interface_roc1_prepare,
+	.unprepare = gsp_interface_roc1_unprepare,
+	.reset = gsp_interface_roc1_reset,
+	.dump = gsp_interface_roc1_dump,
 };
 
 int gsp_interface_is_attached(struct gsp_interface *interface)
@@ -101,6 +112,15 @@ int gsp_interface_attach(struct gsp_interface **interface,
 		}
 		memset(*interface, 0, sizeof(struct gsp_interface_sharkl5));
 		(*interface)->ops = &gsp_interface_sharkl5_ops;
+	}  else if (strcmp(GSP_ROC1, name) == 0) {
+		*interface = kzalloc(sizeof(struct gsp_interface_roc1),
+				     GFP_KERNEL);
+		if (IS_ERR_OR_NULL(*interface)) {
+			GSP_ERR("alloc interface[%s] failed\n", name);
+			goto error;
+		}
+		memset(*interface, 0, sizeof(struct gsp_interface_roc1));
+		(*interface)->ops = &gsp_interface_roc1_ops;
 	} else {/* can add other interface with "else if" */
 		GSP_WARN("no match interface for gsp\n");
 		goto error;

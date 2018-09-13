@@ -31,6 +31,7 @@
 #include "gsp_workqueue.h"
 #include "gsp_r6p0/gsp_r6p0_core.h"
 #include "gsp_lite_r3p0/gsp_lite_r3p0_core.h"
+#include "gsp_r7p0/gsp_r7p0_core.h"
 #include <linux/compat.h>
 
 #include <linux/component.h>
@@ -67,11 +68,27 @@ static struct gsp_core_ops gsp_lite_r3p0_core_ops = {
 	.dump = gsp_lite_r3p0_core_dump,
 };
 
+static struct gsp_core_ops gsp_r7p0_core_ops = {
+	.parse_dt = gsp_r7p0_core_parse_dt,
+	.alloc = gsp_r7p0_core_alloc,
+	.init = gsp_r7p0_core_init,
+	.copy = gsp_r7p0_core_copy_cfg,
+	.trigger = gsp_r7p0_core_trigger,
+	.release = gsp_r7p0_core_release,
+	.enable = gsp_r7p0_core_enable,
+	.disable = gsp_r7p0_core_disable,
+	.intercept = gsp_r7p0_core_intercept,
+	.reset = gsp_r7p0_core_reset,
+	.dump = gsp_r7p0_core_dump,
+};
+
 static struct of_device_id gsp_dt_ids[] = {
 	{.compatible = "sprd,gsp-r6p0-sharkl3",
 	 .data = (void *)&gsp_r6p0_core_ops},
 	{.compatible = "sprd,gsp-lite_r3p0-sharkl5",
 	 .data = (void *)&gsp_lite_r3p0_core_ops},
+	{.compatible = "sprd,gsp-r7p0-roc1",
+	 .data = (void *)&gsp_r7p0_core_ops},
 	{},
 };
 MODULE_DEVICE_TABLE(of, gsp_dt_ids);
