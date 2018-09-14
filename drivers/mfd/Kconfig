@@ -322,6 +322,18 @@ config MFD_DA9150
 	  Additional drivers must be enabled in order to use the specific
 	  features of the device.
 
+config MFD_SC2703
+	tristate "Spreadtrum Communications SC2703 PMIC"
+	depends on ARCH_SPRD || COMPILE_TEST
+	depends on I2C
+	select MFD_CORE
+	select REGMAP_I2C
+	select REGMAP_IRQ
+	help
+	  This adds support for the SC2703 PMIC. This driver provides
+	  common support for accessing the device. Additional drivers must be
+	  enabled in order to use the specific features of the device.
+
 config MFD_DLN2
 	tristate "Diolan DLN2 support"
 	select MFD_CORE
