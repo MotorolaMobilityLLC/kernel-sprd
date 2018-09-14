@@ -610,4 +610,12 @@ config CHARGER_RT9455
 	help
 	  Say Y to enable support for Richtek RT9455 battery charger.
 
+config CHARGER_SC2703
+	tristate "Spreadtrum Communications SC2703 Charger support"
+	depends on MFD_SC2703 || COMPILE_TEST
+	help
+	  Say Y here to enable support for charger unit of the SC2703 Charger.
+	  This driver can also be built as a module. If so, the module will be
+	  called sc2703-charger.
+
 endif # POWER_SUPPLY
