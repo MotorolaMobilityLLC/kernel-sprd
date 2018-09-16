@@ -37,17 +37,6 @@
 
 #define update_work	wb_work
 
-enum {
-	/* no blending */
-	HWC_BLENDING_NONE     = 0x0100,
-
-	/* ONE / ONE_MINUS_SRC_ALPHA */
-	HWC_BLENDING_PREMULT  = 0x0105,
-
-	/* SRC_ALPHA / ONE_MINUS_SRC_ALPHA */
-	HWC_BLENDING_COVERAGE = 0x0405
-};
-
 struct layer_reg {
 	u32 addr[4];
 	u32 ctrl;
@@ -782,16 +771,16 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 	}
 
 	switch (blending) {
-	case HWC_BLENDING_NONE:
+	case DRM_MODE_BLEND_PIXEL_NONE:
 		/* don't do blending, maybe RGBX */
 		/* alpha mode select - layer alpha */
 		reg_val |= BIT(2);
 		break;
-	case HWC_BLENDING_COVERAGE:
+	case DRM_MODE_BLEND_COVERAGE:
 		/*Normal mode*/
 		reg_val &= (~BIT(16));
 		break;
-	case HWC_BLENDING_PREMULT:
+	case DRM_MODE_BLEND_PREMULTI:
 		/*Pre-mult mode*/
 		reg_val |= BIT(16);
 		break;

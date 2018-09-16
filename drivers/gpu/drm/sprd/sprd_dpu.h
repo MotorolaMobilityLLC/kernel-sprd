@@ -34,6 +34,10 @@
 
 #include "disp_lib.h"
 
+#define DRM_MODE_BLEND_PREMULTI		2
+#define DRM_MODE_BLEND_COVERAGE		1
+#define DRM_MODE_BLEND_PIXEL_NONE	0
+
 #define DISPC_INT_DONE_MASK		BIT(0)
 #define DISPC_INT_TE_MASK		BIT(1)
 #define DISPC_INT_ERR_MASK		BIT(2)
