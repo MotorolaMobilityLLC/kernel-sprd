@@ -618,4 +618,11 @@ config CHARGER_SC2703
 	  This driver can also be built as a module. If so, the module will be
 	  called sc2703-charger.
 
+config CHARGER_SC2731
+	tristate "Spreadtrum SC2731 charger driver"
+	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	help
+	 Say Y here to enable support for battery charging with SC2731
+	 PMIC chips.
+
 endif # POWER_SUPPLY
