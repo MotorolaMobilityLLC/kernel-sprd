@@ -11,3 +11,4 @@ config SPRD_MEMDISK
 
 source drivers/soc/sprd/iommu/Kconfig
 source "drivers/soc/sprd/modem/Kconfig"
+source "drivers/soc/sprd/domain/Kconfig"

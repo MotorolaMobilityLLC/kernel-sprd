@@ -2634,6 +2634,7 @@ CONFIG_SPRD_CPROC=y
 # SPRD IQ modules
 #
 CONFIG_SPRD_IQ=y
+# CONFIG_DISP_PM_DOMAIN_SHARKL3 is not set
 # CONFIG_SUNXI_SRAM is not set
 # CONFIG_SOC_TI is not set
 # CONFIG_PM_DEVFREQ is not set
