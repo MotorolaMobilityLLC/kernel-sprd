@@ -76,3 +76,23 @@
 	};
 
 };
+
+&sdio0 {
+	clock-names = "sdio_clk_source", "sdio_ahb_enable";
+	clocks = <&ext_26m>, <&apapb_gate 22>;
+};
+
+&sdio1 {
+	clock-names = "sdio_clk_source", "sdio_ahb_enable";
+	clocks = <&ext_26m>, <&apapb_gate 23>;
+};
+
+&sdio2 {
+	clock-names = "sdio_clk_source", "sdio_ahb_enable";
+	clocks = <&ext_26m>, <&apapb_gate 24>;
+};
+
+&sdio3 {
+	clock-names = "sdio_clk_source", "sdio_ahb_enable";
+	clocks = <&ext_26m>, <&apapb_gate 25>;
+};
