@@ -208,11 +208,8 @@ void test_install_initcall(struct test_initcall *initcall);
  * information.
  */
 #define module_test(module) \
-		static int module_test_init##module(void) \
-		{ \
-			return test_run_tests(&module); \
-		} \
-		late_initcall(module_test_init##module)
+		static struct test_module *__test_module_##module __used       \
+	__attribute__((__section__(".test_modules"))) = &module
 
 /**
  * test_alloc_resource() - Allocates a *test managed resource*.
