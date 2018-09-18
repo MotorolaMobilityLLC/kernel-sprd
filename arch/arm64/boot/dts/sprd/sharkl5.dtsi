@@ -176,13 +176,13 @@
 
 		ap-ahb {
 			compatible = "simple-bus";
-			#address-cells = <2>;
-			#size-cells = <2>;
-			ranges;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0 0x20000000 0x10000000>;
 
-			ap_dma: dma-controller@20000000 {
+			ap_dma: dma-controller@0 {
 				compatible = "sprd,sharkl5-dma";
-				reg = <0 0x20000000 0 0x4000>;
+				reg = <0 0x4000>;
 				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
 				#dma-channels = <32>;
@@ -190,9 +190,9 @@
 				clocks = <&apahb_gate CLK_DMA_EB>;
 			};
 
-			dpu: dpu@20300000 {
+			dpu: dpu@300000 {
 				compatible = "sprd,display-processor";
-				reg = <0x0 0x20300000 0x0 0x1000>;
+				reg = <0x300000 0x1000>;
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 
@@ -210,10 +210,10 @@
 				};
 			};
 
-			iommu_dispc: iommu@20300000 {
+			iommu_dispc: iommu@300000 {
 				compatible = "sprd,iommuexl5-dispc";
-				reg = <0x0 0x20300000 0x0 0x800>,
-				      <0x0 0x20300800 0x0 0x80>;
+				reg = <0x300000 0x800>,
+				      <0x300800 0x80>;
 				iova-base = <0x0 0x30000000>;
 				iova-size = <0x0 0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -221,9 +221,9 @@
 				#iommu-cells = <0>;
 			};
 
-			dsi: dsi@20400000 {
+			dsi: dsi@400000 {
 				compatible = "sprd,dsi-host";
-				reg = <0x0 0x20400000 0x0 0x1000>;
+				reg = <0x400000 0x1000>;
 				interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
@@ -257,7 +257,7 @@
 				compatible = "sprd,dsi-phy";
 				#address-cells = <1>;
 				#size-cells = <0>;
-				reg = <0x0 0x20400000 0x0 0x1000>;
+				reg = <0x400000 0x1000>;
 				status = "disabled";
 
 				sprd,ip = "sprd,megacores-sharkl5";
@@ -286,18 +286,18 @@
 
 		aon {
 			compatible = "simple-bus";
-			#address-cells = <2>;
-			#size-cells = <2>;
-			ranges;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0 0x30000000 0x3000000>;
 
-			eic_debounce: gpio@32000000 {
+			eic_debounce: gpio@2000000 {
 				compatible = "sprd,sharkl5-eic-debounce";
-				reg = <0 0x32000000 0 0x80>,
-				      <0 0x32010000 0 0x80>,
-				      <0 0x32020000 0 0x80>,
-				      <0 0x32030000 0 0x80>,
-				      <0 0x32230000 0 0x80>,
-				      <0 0x32270000 0 0x80>;
+				reg = <0x2000000 0x80>,
+				      <0x2010000 0x80>,
+				      <0x2020000 0x80>,
+				      <0x2030000 0x80>,
+				      <0x2230000 0x80>,
+				      <0x2270000 0x80>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -305,14 +305,14 @@
 				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
-			eic_latch: gpio@32000080 {
+			eic_latch: gpio@2000080 {
 				compatible = "sprd,sharkl5-eic-latch";
-				reg = <0 0x32000080 0 0x20>,
-				      <0 0x32010080 0 0x20>,
-				      <0 0x32020080 0 0x20>,
-				      <0 0x32030080 0 0x20>,
-				      <0 0x32230080 0 0x20>,
-				      <0 0x32270080 0 0x20>;
+				reg = <0x2000080 0x20>,
+				      <0x2010080 0x20>,
+				      <0x2020080 0x20>,
+				      <0x2030080 0x20>,
+				      <0x2230080 0x20>,
+				      <0x2270080 0x20>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -320,14 +320,14 @@
 				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
-			eic_async: gpio@320000a0 {
+			eic_async: gpio@20000a0 {
 				compatible = "sprd,sharkl5-eic-async";
-				reg = <0 0x320000a0 0 0x20>,
-				      <0 0x320100a0 0 0x20>,
-				      <0 0x320200a0 0 0x20>,
-				      <0 0x320300a0 0 0x20>,
-				      <0 0x322300a0 0 0x20>,
-				      <0 0x322700a0 0 0x20>;
+				reg = <0x20000a0 0x20>,
+				      <0x20100a0 0x20>,
+				      <0x20200a0 0x20>,
+				      <0x20300a0 0x20>,
+				      <0x22300a0 0x20>,
+				      <0x22700a0 0x20>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -335,14 +335,14 @@
 				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
-			eic_sync: gpio@320000c0 {
+			eic_sync: gpio@20000c0 {
 				compatible = "sprd,sharkl5-eic-sync";
-				reg = <0 0x320000c0 0 0x20>,
-				      <0 0x320100c0 0 0x20>,
-				      <0 0x320200c0 0 0x20>,
-				      <0 0x320300c0 0 0x20>,
-				      <0 0x322300c0 0 0x20>,
-				      <0 0x322700c0 0 0x20>;
+				reg = <0x20000c0 0x20>,
+				      <0x20100c0 0x20>,
+				      <0x20200c0 0x20>,
+				      <0x20300c0 0x20>,
+				      <0x22300c0 0x20>,
+				      <0x22700c0 0x20>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -350,22 +350,22 @@
 				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
-			timer@32050000 {
+			timer@2050000 {
 				compatible = "sprd,sharkl5-timer";
-				reg = <0 0x32050000 0 0x20>;
+				reg = <0x2050000 0x20>;
 				interrupts = <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_32k>;
 			};
 
-			timer@32050020 {
+			timer@2050020 {
 				compatible = "sprd,sharkl5-suspend-timer";
-				reg = <0 0x32050020 0 0x20>;
+				reg = <0x2050020 0x20>;
 				clocks = <&ext_32k>;
 			};
 
-			i2c5: i2c@32060000 {
+			i2c5: i2c@2060000 {
 				compatible = "sprd,sharkl5-i2c";
-				reg = <0 0x32060000 0 0x1000>;
+				reg = <0x2060000 0x1000>;
 				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "i2c", "source";
 				clocks = <&aonapb_gate CLK_I2C_EB>;
@@ -375,9 +375,9 @@
 				status = "disabled";
 			};
 
-			ap_gpio: gpio@32070000 {
+			ap_gpio: gpio@2070000 {
 				compatible = "sprd,sharkl5-gpio";
-				reg = <0 0x32070000 0 0x10000>;
+				reg = <0x2070000 0x10000>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -385,10 +385,10 @@
 				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
-			aon_mailbox: mailbox@320a0000 {
+			aon_mailbox: mailbox@20a0000 {
 				compatible = "sprd,mailbox";
-				reg = <0 0x320a0000 0 0x8000>,
-				      <0 0x320a8000 0 0x8000>;
+				reg = <0x20a0000 0x8000>,
+				      <0x20a8000 0x8000>;
 				syscons = <&aon_apb_regs 0x4 0x4>;
 				syscon-names = "clk";
 				interrupts = <GIC_SPI 82 IRQ_TYPE_LEVEL_HIGH>,
@@ -399,26 +399,26 @@
 				sprd,version = <3>;
 			};
 
-			adi_bus: spi@32100000 {
+			adi_bus: spi@2100000 {
 				compatible = "sprd,sharkl5-adi";
-				reg = <0 0x32100000 0 0x100000>;
+				reg = <0x2100000 0x100000>;
 				hwlocks = <&hwlock 0>;
 				hwlock-names = "adi";
 				#address-cells = <1>;
 				#size-cells = <0>;
 			};
 
-			ap_efuse: efuse@32240000 {
+			ap_efuse: efuse@2240000 {
 				compatible = "sprd,sharkl5-efuse";
-				reg = <0 0x32240000 0 0x10000>;
+				reg = <0x2240000 0x10000>;
 				clock-names = "enable";
 				hwlocks = <&hwlock 8>;
 				clocks = <&aonapb_gate CLK_EFUSE_EB>;
 			};
 
-			watchdog@322f0000 {
+			watchdog@22f0000 {
 				compatible = "sprd,sharkl5-wdt";
-				reg = <0 0x322f0000 0 0x10000>;
+				reg = <0x22f0000 0x10000>;
 				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
 				timeout-sec = <12>;
 				clock-names = "enable", "rtc_enable";
@@ -426,14 +426,14 @@
 					<&aonapb_gate CLK_AP_WDG_RTC_EB>;
 			};
 
-			pin_controller: pinctrl@32450000 {
+			pin_controller: pinctrl@2450000 {
 				compatible = "sprd,sharkl5-pinctrl";
-				reg = <0 0x32450000 0 0x10000>;
+				reg = <0x2450000 0x10000>;
 			};
 
-			hwlock: hwspinlock@327f0000 {
+			hwlock: hwspinlock@27f0000 {
 				compatible = "sprd,sharkl5-hwspinlock";
-				reg = <0 0x327f0000 0 0x10000>;
+				reg = <0x27f0000 0x10000>;
 				#hwlock-cells = <1>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
@@ -442,13 +442,13 @@
 
 		agcp {
 			compatible = "simple-bus";
-			#address-cells = <2>;
-			#size-cells = <2>;
-			ranges;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0 0x33000000 0xd000000>;
 
 			agcp_dma: dma-controller@33580000 {
 				compatible = "sprd,sharkl5-dma";
-				reg = <0 0x33580000 0 0x4000>;
+				reg = <0x580000 0x4000>;
 				#dma-cells = <1>;
 				#dma-channels = <32>;
 				clock-names = "enable", "ashb_eb";
