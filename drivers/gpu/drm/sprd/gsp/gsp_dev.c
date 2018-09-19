@@ -788,11 +788,13 @@ static int gsp_dev_probe(struct platform_device *pdev)
 
 	gsp_dev_set(gsp, pdev);
 
+#if 0
 	pm_runtime_set_active(&pdev->dev);
 	pm_runtime_set_autosuspend_delay(&pdev->dev, PM_RUNTIME_DELAY_MS);
 	pm_runtime_use_autosuspend(&pdev->dev);
 
 	pm_runtime_enable(&pdev->dev);
+#endif
 
 	GSP_INFO("probe success\n");
 

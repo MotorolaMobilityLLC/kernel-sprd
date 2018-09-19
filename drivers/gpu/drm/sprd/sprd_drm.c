@@ -261,7 +261,7 @@ static int sprd_drm_component_probe(struct device *dev,
 			continue;
 		}
 
-		component_match_add(dev, &match, compare_of, port->parent);
+		component_match_add(dev, &match, compare_of, port);
 		of_node_put(port);
 	}
 
