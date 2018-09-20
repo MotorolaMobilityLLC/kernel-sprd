@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Spreadtrum Communications Inc.
+ * Copyright (C) 2018 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -13,77 +13,104 @@
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
-#include <linux/mfd/syscon/sprd/sharkl3/glb.h>
 #include <linux/regmap.h>
 
 #include "sprd_dphy.h"
 
-static struct dphy_glb_context {
-	struct regmap *aon_apb;
-} dphy_glb_ctx;
+struct glb_ctrl {
+	struct regmap *regmap;
+	u32 reg;
+	u32 mask;
+};
 
+struct glb_ctrl enable;
+struct glb_ctrl power_s;
+struct glb_ctrl power_l;
+struct glb_ctrl power_iso;
 
 static int dphy_glb_parse_dt(struct dphy_context *ctx,
 				struct device_node *np)
 {
-	struct dphy_glb_context *glb_ctx = &dphy_glb_ctx;
+	int ret;
+	u32 args[2];
 
-	glb_ctx->aon_apb = syscon_regmap_lookup_by_phandle(np,
-					    "sprd,syscon-aon-apb");
-	if (IS_ERR_OR_NULL(glb_ctx->aon_apb))
-		pr_err("error: parse syscon-aon-apb failed\n");
+	enable.regmap = syscon_regmap_lookup_by_name(np, "enable");
+	if (IS_ERR(enable.regmap))
+		pr_warn("failed to get syscon-name: enable\n");
+
+	ret = syscon_get_args_by_name(np, "enable", 2, args);
+	if (ret == 2) {
+		enable.reg = args[0];
+		enable.mask = args[1];
+	} else
+		pr_warn("failed to get args for syscon-name enable\n");
+
+	power_s.regmap = syscon_regmap_lookup_by_name(np, "power_small");
+	if (IS_ERR(power_s.regmap))
+		pr_warn("failed to get syscon-name: power_small\n");
+
+	ret = syscon_get_args_by_name(np, "power_small", 2, args);
+	if (ret == 2) {
+		power_s.reg = args[0];
+		power_s.mask = args[1];
+	} else
+		pr_warn("failed to get args for syscon-name power_small\n");
+
+	power_l.regmap = syscon_regmap_lookup_by_name(np, "power_large");
+	if (IS_ERR(power_l.regmap))
+		pr_warn("failed to get syscon-name: power_large\n");
+
+	ret = syscon_get_args_by_name(np, "power_large", 2, args);
+	if (ret == 2) {
+		power_l.reg = args[0];
+		power_l.mask = args[1];
+	} else
+		pr_warn("failed to get args for syscon-name power_large\n");
+
+	power_iso.regmap = syscon_regmap_lookup_by_name(np, "power_iso");
+	if (IS_ERR(power_iso.regmap))
+		pr_warn("failed to get syscon-name: power_iso\n");
+
+	ret = syscon_get_args_by_name(np, "power_iso", 2, args);
+	if (ret == 2) {
+		power_iso.reg = args[0];
+		power_iso.mask = args[1];
+	} else
+		pr_warn("failed to get args for syscon-name power_iso\n");
 
 	return 0;
 }
 
 static void dphy_glb_enable(struct dphy_context *ctx)
 {
-	struct dphy_glb_context *glb_ctx = &dphy_glb_ctx;
-
-	regmap_update_bits(glb_ctx->aon_apb, REG_AON_APB_APB_EB2,
-		BIT_AON_APB_DPHY_REF_EB | BIT_AON_APB_DPHY_CFG_EB,
-		BIT_AON_APB_DPHY_REF_EB | BIT_AON_APB_DPHY_CFG_EB);
+	regmap_update_bits(enable.regmap, enable.reg,
+			enable.mask, enable.mask);
 }
 
 static void dphy_glb_disable(struct dphy_context *ctx)
 {
-	struct dphy_glb_context *glb_ctx = &dphy_glb_ctx;
-
-	regmap_update_bits(glb_ctx->aon_apb,
-		REG_AON_APB_APB_EB2,
-		BIT_AON_APB_DPHY_REF_EB |
-		BIT_AON_APB_DPHY_CFG_EB,
-		(unsigned int)
-		(~(BIT_AON_APB_DPHY_REF_EB |
-		BIT_AON_APB_DPHY_CFG_EB)));
+	regmap_update_bits(enable.regmap, enable.reg,
+			enable.mask, (u32)~enable.mask);
 }
 
 static void dphy_power_domain(struct dphy_context *ctx, int enable)
 {
-	struct dphy_glb_context *glb_ctx = &dphy_glb_ctx;
-
 	if (enable) {
-		regmap_update_bits(glb_ctx->aon_apb,
-			REG_AON_APB_PWR_CTRL, BIT_AON_APB_MIPI_DSI_PS_PD_S,
-			(unsigned int)(~BIT_AON_APB_MIPI_DSI_PS_PD_S));
+		regmap_update_bits(power_s.regmap, power_s.reg,
+				power_s.mask, (u32)~power_s.mask);
 		udelay(10);
-		regmap_update_bits(glb_ctx->aon_apb,
-			REG_AON_APB_PWR_CTRL, BIT_AON_APB_MIPI_DSI_PS_PD_L,
-			(unsigned int)(~BIT_AON_APB_MIPI_DSI_PS_PD_L));
-		regmap_update_bits(glb_ctx->aon_apb,
-			REG_AON_APB_PWR_CTRL, BIT_AON_APB_MIPI_DSI_ISO_SW_EN,
-			(unsigned int)(~BIT_AON_APB_MIPI_DSI_ISO_SW_EN));
+		regmap_update_bits(power_l.regmap, power_l.reg,
+				power_l.mask, (u32)~power_l.mask);
+		regmap_update_bits(power_iso.regmap, power_iso.reg,
+				power_iso.mask, (u32)~power_iso.mask);
 	} else {
-		regmap_update_bits(glb_ctx->aon_apb,
-			REG_AON_APB_PWR_CTRL, BIT_AON_APB_MIPI_DSI_ISO_SW_EN,
-			BIT_AON_APB_MIPI_DSI_ISO_SW_EN);
-		regmap_update_bits(glb_ctx->aon_apb,
-			REG_AON_APB_PWR_CTRL, BIT_AON_APB_MIPI_DSI_PS_PD_S,
-			BIT_AON_APB_MIPI_DSI_PS_PD_S);
+		regmap_update_bits(power_iso.regmap, power_iso.reg,
+				power_iso.mask, power_iso.mask);
+		regmap_update_bits(power_s.regmap, power_s.reg,
+				power_s.mask, power_s.mask);
 		udelay(10);
-		regmap_update_bits(glb_ctx->aon_apb,
-			REG_AON_APB_PWR_CTRL, BIT_AON_APB_MIPI_DSI_PS_PD_L,
-			BIT_AON_APB_MIPI_DSI_PS_PD_L);
+		regmap_update_bits(power_l.regmap, power_l.reg,
+				power_l.mask, power_l.mask);
 	}
 }
 
@@ -106,6 +133,6 @@ static int __init dphy_glb_register(void)
 
 subsys_initcall(dphy_glb_register);
 
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("leon.he@spreadtrum.com");
 MODULE_DESCRIPTION("sprd sharkl3 dphy global AHB regs low-level config");

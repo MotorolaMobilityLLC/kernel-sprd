@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Spreadtrum Communications Inc.
+ * Copyright (C) 2018 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -15,7 +15,6 @@
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
-#include <linux/mfd/syscon/sprd/sharkl3/glb.h>
 #include <linux/regmap.h>
 
 #include "sprd_dpu.h"
@@ -23,6 +22,8 @@
 static struct dpu_clk_context {
 	struct clk *clk_src_128m;
 	struct clk *clk_src_153m6;
+	struct clk *clk_src_192m;
+	struct clk *clk_src_256m;
 	struct clk *clk_src_384m;
 	struct clk *clk_dpu_core;
 	struct clk *clk_dpu_dpi;
@@ -31,18 +32,56 @@ static struct dpu_clk_context {
 static struct dpu_glb_context {
 	struct clk *clk_aon_apb_disp_eb;
 	struct regmap *aon_apb;
+	u32 reg;
+	u32 mask;
 } dpu_glb_ctx;
+
+
+static const u32 dpu_core_clk[] = {
+	153600000,
+	192000000,
+	256000000,
+	384000000
+};
+
+static const u32 dpi_clk_src[] = {
+	128000000,
+	153600000,
+	192000000
+};
+
+static struct clk *val_to_clk(struct dpu_clk_context *ctx, u32 val)
+{
+	switch (val) {
+	case 128000000:
+		return ctx->clk_src_128m;
+	case 153600000:
+		return ctx->clk_src_153m6;
+	case 192000000:
+		return ctx->clk_src_192m;
+	case 256000000:
+		return ctx->clk_src_256m;
+	case 384000000:
+		return ctx->clk_src_384m;
+	default:
+		pr_err("invalid clock value %u\n", val);
+		return NULL;
+	}
+}
 
 static int dpu_clk_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
-	int ret;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 
 	clk_ctx->clk_src_128m =
 		of_clk_get_by_name(np, "clk_src_128m");
 	clk_ctx->clk_src_153m6 =
 		of_clk_get_by_name(np, "clk_src_153m6");
+	clk_ctx->clk_src_192m =
+		of_clk_get_by_name(np, "clk_src_192m");
+	clk_ctx->clk_src_256m =
+		of_clk_get_by_name(np, "clk_src_256m");
 	clk_ctx->clk_src_384m =
 		of_clk_get_by_name(np, "clk_src_384m");
 	clk_ctx->clk_dpu_core =
@@ -60,6 +99,16 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 		clk_ctx->clk_src_153m6 = NULL;
 	}
 
+	if (IS_ERR(clk_ctx->clk_src_192m)) {
+		pr_warn("read clk_src_192m failed\n");
+		clk_ctx->clk_src_192m = NULL;
+	}
+
+	if (IS_ERR(clk_ctx->clk_src_256m)) {
+		pr_warn("read clk_src_256m failed\n");
+		clk_ctx->clk_src_256m = NULL;
+	}
+
 	if (IS_ERR(clk_ctx->clk_src_384m)) {
 		pr_warn("read clk_src_384m failed\n");
 		clk_ctx->clk_src_384m = NULL;
@@ -75,28 +124,65 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 		clk_ctx->clk_dpu_dpi = NULL;
 	}
 
-	ret = of_property_read_u32(np, "sprd,dpi-clk-src", &ctx->dpi_clk_src);
-	if (ret) {
-		pr_warn("read sprd,dpi-clk-src failed");
-		ctx->dpi_clk_src = 128000000;
-	}
-	pr_info("the dpi clock source from dts is %d\n", ctx->dpi_clk_src);
-
 	return 0;
+}
+
+static u32 calc_dpu_core_clk(u32 pclk)
+{
+	int i;
+
+	pclk *= 2;
+
+	for (i = 0; i < ARRAY_SIZE(dpu_core_clk); i++) {
+		if (pclk <= dpu_core_clk[i])
+			return dpu_core_clk[i];
+	}
+
+	pr_err("calc DPU_CORE_CLK failed, use default\n");
+	return 256000000;
+}
+
+static u32 calc_dpi_clk_src(u32 pclk)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(dpi_clk_src); i++) {
+		if ((dpi_clk_src[i] % pclk) == 0)
+			return dpi_clk_src[i];
+	}
+
+	pr_err("calc DPI_CLK_SRC failed, use default\n");
+	return 128000000;
 }
 
 static int dpu_clk_init(struct dpu_context *ctx)
 {
 	int ret;
+	u32 dpu_core_val;
+	u32 dpi_src_val;
+	struct clk *clk_src;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 
-	ret = clk_set_parent(clk_ctx->clk_dpu_core, clk_ctx->clk_src_384m);
+	dpu_core_val = calc_dpu_core_clk(ctx->vm.pixelclock);
+	dpi_src_val = calc_dpi_clk_src(ctx->vm.pixelclock);
+
+	pr_info("DPU_CORE_CLK = %u, DPI_CLK_SRC = %u\n",
+		dpu_core_val, dpi_src_val);
+	pr_info("dpi clock is %lu\n", ctx->vm.pixelclock);
+
+	clk_src = val_to_clk(clk_ctx, dpu_core_val);
+	ret = clk_set_parent(clk_ctx->clk_dpu_core, clk_src);
 	if (ret)
 		pr_warn("set dpu core clk source failed\n");
 
-	ret = clk_set_parent(clk_ctx->clk_dpu_dpi, clk_ctx->clk_src_153m6);
+	clk_src = val_to_clk(clk_ctx, dpi_src_val);
+	ret = clk_set_parent(clk_ctx->clk_dpu_dpi, clk_src);
 	if (ret)
 		pr_warn("set dpi clk source failed\n");
+
+	ret = clk_set_rate(clk_ctx->clk_dpu_dpi, ctx->vm.pixelclock);
+	if (ret)
+		pr_err("dpu update dpi clk rate failed\n");
 
 	return ret;
 }
@@ -135,40 +221,25 @@ static int dpu_clk_disable(struct dpu_context *ctx)
 	return 0;
 }
 
-static int dpu_clk_update(struct dpu_context *ctx, int clk_id, int val)
-{
-	int ret;
-	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
-
-	switch (clk_id) {
-	case DISPC_CLK_ID_CORE:
-		pr_err("dpu core clk doesn't support update\n");
-		break;
-
-	case DISPC_CLK_ID_DPI:
-		pr_info("dpi_clk = %d\n", val);
-		ret = clk_set_rate(clk_ctx->clk_dpu_dpi, val);
-		if (ret)
-			pr_err("dpu update dbi clk rate fail\n");
-		break;
-
-	default:
-		pr_err("clk id %d doesn't support\n", clk_id);
-		break;
-	}
-
-	return 0;
-}
-
 static int dpu_glb_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
 	struct dpu_glb_context *glb_ctx = &dpu_glb_ctx;
+	u32 args[2];
+	int ret;
 
-	glb_ctx->aon_apb = syscon_regmap_lookup_by_phandle(np,
-					    "sprd,syscon-aon-apb");
-	if (IS_ERR(glb_ctx->aon_apb))
-		pr_warn("parse syscon-aon-apb failed\n");
+	glb_ctx->aon_apb = syscon_regmap_lookup_by_name(np, "reset");
+	if (IS_ERR(glb_ctx->aon_apb)) {
+		pr_warn("failed to get syscon-name: reset\n");
+		return PTR_ERR(glb_ctx->aon_apb);
+	}
+
+	ret = syscon_get_args_by_name(np, "reset", 2, args);
+	if (ret == 2) {
+		glb_ctx->reg = args[0];
+		glb_ctx->mask = args[1];
+	} else
+		pr_warn("failed to get syscon args for reset\n");
 
 	glb_ctx->clk_aon_apb_disp_eb =
 		of_clk_get_by_name(np, "clk_aon_apb_disp_eb");
@@ -203,18 +274,16 @@ static void dpu_reset(struct dpu_context *ctx)
 {
 	struct dpu_glb_context *glb_ctx = &dpu_glb_ctx;
 
-	regmap_update_bits(glb_ctx->aon_apb,
-		    REG_AON_APB_APB_RST1, BIT_AON_APB_DISP_SOFT_RST,
-		    BIT_AON_APB_DISP_SOFT_RST);
+	regmap_update_bits(glb_ctx->aon_apb, glb_ctx->reg,
+			   glb_ctx->mask, glb_ctx->mask);
 	udelay(10);
-	regmap_update_bits(glb_ctx->aon_apb,
-		    REG_AON_APB_APB_RST1, BIT_AON_APB_DISP_SOFT_RST,
-		    (unsigned int)(~BIT_AON_APB_DISP_SOFT_RST));
+	regmap_update_bits(glb_ctx->aon_apb, glb_ctx->reg,
+			   glb_ctx->mask, (u32)~glb_ctx->mask);
 }
 
 static void dpu_power_domain(struct dpu_context *ctx, int enable)
 {
-	/* The dpu power domain code is in video/disp_pw_domain. */
+	/* The dpu power domain code is in drivers/soc/sprd/domain/. */
 }
 
 static struct dpu_clk_ops dpu_clk_ops = {
@@ -222,7 +291,6 @@ static struct dpu_clk_ops dpu_clk_ops = {
 	.init = dpu_clk_init,
 	.enable = dpu_clk_enable,
 	.disable = dpu_clk_disable,
-	.update = dpu_clk_update,
 };
 
 static struct dpu_glb_ops dpu_glb_ops = {
@@ -252,6 +320,6 @@ static int __init dpu_glb_register(void)
 
 subsys_initcall(dpu_glb_register);
 
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("leon.he@spreadtrum.com");
 MODULE_DESCRIPTION("sprd sharkl3 dpu global and clk regs config");
