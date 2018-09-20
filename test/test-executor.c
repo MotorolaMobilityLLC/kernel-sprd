@@ -18,7 +18,8 @@ static bool test_run_all_tests(void)
 	return !has_test_failed;
 }
 
-static int test_executor_init(void)
+
+int test_executor_init(void)
 {
 	if (test_run_all_tests())
 		return 0;
@@ -26,4 +27,3 @@ static int test_executor_init(void)
 		return -EFAULT;
 }
 
-late_initcall(test_executor_init);

@@ -187,6 +187,8 @@ int test_init_test(struct test *test, const char *name);
 
 int test_run_tests(struct test_module *module);
 
+int test_executor_init(void);
+
 void test_install_initcall(struct test_initcall *initcall);
 
 #define test_pure_initcall(fn) postcore_initcall(fn)
