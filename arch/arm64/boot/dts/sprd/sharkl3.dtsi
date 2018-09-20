@@ -279,7 +279,9 @@
 				sprd,ip = "dpu-r2p0";
 				sprd,soc = "sharkl3";
 
-				//sprd,syscon-aon-apb = <&aon_apb_controller>;
+				syscons = <&aon_apb_regs REG_AON_APB_APB_RST1
+					MASK_AON_APB_DISP_SOFT_RST>;
+				syscon-names = "reset";
 
 				dpu_port: port {
 					dpu_out: endpoint {
@@ -318,7 +320,9 @@
 				sprd,ip = "sprd,dsi-ctrl", "r3p0";
 				sprd,soc = "sharkl3";
 
-				//sprd,syscon-aon-apb = <&aon_apb_controller>;
+				syscons = <&aon_apb_regs REG_AON_APB_JVL_DUMMY
+					0x04>;
+				syscon-names = "reset";
 
 				ports {
 					#address-cells = <1>;
@@ -350,7 +354,17 @@
 				sprd,ip = "sprd,megacores-sharkle";
 				sprd,soc = "sharkl3";
 
-				//sprd,syscon-aon-apb = <&aon_apb_controller>;
+				syscons = <&aon_apb_regs REG_AON_APB_APB_EB2
+					(MASK_AON_APB_DPHY_REF_EB |
+					 MASK_AON_APB_DPHY_CFG_EB)>,
+					<&aon_apb_regs REG_AON_APB_PWR_CTRL
+					MASK_AON_APB_MIPI_DSI_PS_PD_S>,
+					<&aon_apb_regs REG_AON_APB_PWR_CTRL
+					MASK_AON_APB_MIPI_DSI_PS_PD_L>,
+					<&aon_apb_regs REG_AON_APB_PWR_CTRL
+					MASK_AON_APB_MIPI_DSI_ISO_SW_EN>;
+				syscon-names = "enable", "power_small",
+						"power_large", "power_iso";
 
 				/* output port */
 				port@0 {

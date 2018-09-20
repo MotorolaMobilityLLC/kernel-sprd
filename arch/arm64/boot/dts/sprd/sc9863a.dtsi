@@ -565,24 +565,27 @@
 	};
 };
 
-/*&dpu {
-	sprd,dpi-clk-src = <153600000>;
+&dpu {
 	clock-names = "clk_src_128m",
 			"clk_src_153m6",
+			"clk_src_192m",
+			"clk_src_256m",
 			"clk_src_384m",
 			"clk_dpu_core",
 			"clk_dpu_dpi",
 			"clk_aon_apb_disp_eb";
 
-	clocks = <&clk_twpll_128m>,
-		<&clk_twpll_153m6>,
-		<&clk_twpll_384m>,
-		<&clk_dpu>,
-		<&clk_dpu_dpi>,
-		<&clk_aon_top_gates 2>;
+	clocks = <&pll CLK_TWPLL_128M>,
+		<&pll CLK_TWPLL_153M6>,
+		<&pll CLK_TWPLL_192M>,
+		<&pll CLK_TWPLL_256M>,
+		<&pll CLK_TWPLL_384M>,
+		<&ap_clk CLK_DPU>,
+		<&ap_clk CLK_DPU_DPI>,
+		<&aontop_gate CLK_MM_EMC_EB>;
 };
 
 &dsi {
 	clock-names = "clk_aon_apb_disp_eb";
-	clocks = <&clk_aon_top_gates 2>;
-};*/
+	clocks = <&aontop_gate CLK_MM_EMC_EB>;
+};
