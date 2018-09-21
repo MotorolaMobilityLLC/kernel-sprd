@@ -168,12 +168,21 @@ static const struct of_device_id ufs_sprd_of_match[] = {
 	{},
 };
 
+static const struct dev_pm_ops ufs_sprd_pm_ops = {
+	.suspend = ufshcd_pltfrm_suspend,
+	.resume = ufshcd_pltfrm_resume,
+	.runtime_suspend = ufshcd_pltfrm_runtime_suspend,
+	.runtime_resume = ufshcd_pltfrm_runtime_resume,
+	.runtime_idle = ufshcd_pltfrm_runtime_idle,
+};
+
 static struct platform_driver ufs_sprd_pltform = {
 	.probe = ufs_sprd_probe,
 	.remove = ufs_sprd_remove,
 	.shutdown = ufshcd_pltfrm_shutdown,
 	.driver = {
 		.name = "ufshcd-sprd",
+		.pm = &ufs_sprd_pm_ops,
 		.of_match_table = of_match_ptr(ufs_sprd_of_match),
 	},
 };
