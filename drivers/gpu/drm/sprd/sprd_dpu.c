@@ -94,8 +94,8 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	layer.alpha = s->alpha;
 	layer.blending = s->blend_mode;
 
-	DRM_DEBUG("%s() alpha = %u, blending = %u\n", __func__,
-		layer.alpha, layer.blending);
+	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u\n",
+		  __func__, layer.alpha, layer.blending, layer.rotation);
 
 	for (i = 0; i < layer.planes; i++) {
 		obj = drm_gem_fb_get_obj(fb, i);
@@ -320,7 +320,6 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 				   struct drm_crtc_state *old_state)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
-	struct videomode *vm = &dpu->ctx.vm;
 
 	DRM_INFO("%s()\n", __func__);
 
@@ -333,15 +332,7 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 	else
 		dpu->ctx.if_type = SPRD_DISPC_IF_DPI;
 
-	vm->pixelclock = crtc->mode.clock;
-	vm->hactive = crtc->mode.hdisplay;
-	vm->hfront_porch = crtc->mode.hsync_start - crtc->mode.hdisplay;
-	vm->hsync_len = crtc->mode.hsync_end - crtc->mode.hsync_start;
-	vm->hback_porch = crtc->mode.htotal - crtc->mode.hsync_end;
-	vm->vactive = crtc->mode.vdisplay;
-	vm->vfront_porch = crtc->mode.vsync_start - crtc->mode.vdisplay;
-	vm->vsync_len = crtc->mode.vsync_end - crtc->mode.vsync_start;
-	vm->vback_porch = crtc->mode.vtotal - crtc->mode.vsync_end;
+	drm_display_mode_to_videomode(&crtc->mode, &dpu->ctx.vm);
 
 	sprd_dpu_init(dpu);
 }
