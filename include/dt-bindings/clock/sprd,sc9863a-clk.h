@@ -69,18 +69,20 @@
 #define CLK_MPLL2_675M		3
 #define CLK_ANLG_PHY_G4_NUM	(CLK_MPLL2_675M + 1)
 
-#define CLK_AP_AXI		0
-#define CLK_SDIO0_2X		1
-#define CLK_SDIO1_2X		2
-#define CLK_SDIO2_2X		3
-#define CLK_EMMC_2X		4
-#define CLK_DPU			5
-#define CLK_DPU_DPI		6
-#define CLK_FAC_RCO25M		7
-#define CLK_FAC_RCO4M		8
-#define CLK_FAC_RCO2M		9
-#define CLK_AON_APB		10
-#define CLK_AP_CLK_NUM		(CLK_AON_APB + 1)
+#define CLK_FAC_RCO25M		0
+#define CLK_FAC_RCO4M		1
+#define CLK_FAC_RCO2M		2
+#define CLK_AON_APB		3
+#define CLK_AP_AXI		4
+#define CLK_SDIO0_2X		5
+#define CLK_SDIO1_2X		6
+#define CLK_SDIO2_2X		7
+#define CLK_EMMC_2X		8
+#define CLK_DPU			9
+#define CLK_DPU_DPI		10
+#define CLK_GPU_CORE		11
+#define CLK_GPU_SOC		12
+#define CLK_AP_CLK_NUM		(CLK_GPU_SOC + 1)
 
 #define CLK_OTG_EB		0
 #define CLK_DMA_EB		1
@@ -104,6 +106,6 @@
 #define CLK_I2C_EB		4
 #define CLK_MM_VSP_EMC_EB	5
 #define CLK_VSP_EB		6
-#define CLK_AON_TOP_GATE_NUM	(CLK_VSP_EB + 1)
+#define CLK_AON_APB_GATE_NUM	(CLK_VSP_EB + 1)
 
 #endif /* _DT_BINDINGS_CLK_SC9860_H_ */
