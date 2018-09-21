@@ -471,7 +471,7 @@
 		clock-output-names = "clk_pad";
 	};
 
-	ext_rco_100m: ext_rco_100m {
+	ext_rco_100m: ext-rco-100m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
 		clock-frequency = <100000000>;

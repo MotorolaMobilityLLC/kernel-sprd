@@ -224,12 +224,12 @@
 		apahb_gate: apahb-gate {
 			compatible = "sprd,sc9863a-apahb-gate";
 			sprd,syscon = <&ap_ahb_regs>; /* 0x20e00000 */
-			clocks = <&ap_clk 0>;
+			clocks = <&ap_clk CLK_AP_AXI>;
 			#clock-cells = <1>;
 		};
 
-		aontop_gate: aontop-gate {
-			compatible = "sprd,sc9863a-aontop-gate";
+		aonapb_gate: aonapb-gate {
+			compatible = "sprd,sc9863a-aonapb-gate";
 			sprd,syscon = <&aon_apb_regs>; /* 0x40e00000 */
 			clocks = <&ap_clk CLK_AON_APB>;
 			#clock-cells = <1>;
@@ -582,10 +582,10 @@
 		<&pll CLK_TWPLL_384M>,
 		<&ap_clk CLK_DPU>,
 		<&ap_clk CLK_DPU_DPI>,
-		<&aontop_gate CLK_MM_EMC_EB>;
+		<&aonapb_gate CLK_MM_EMC_EB>;
 };
 
 &dsi {
 	clock-names = "clk_aon_apb_disp_eb";
-	clocks = <&aontop_gate CLK_MM_EMC_EB>;
+	clocks = <&aonapb_gate CLK_MM_EMC_EB>;
 };
