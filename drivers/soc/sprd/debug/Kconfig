@@ -1,0 +1,9 @@
+config SPRD_LOOK_AT
+	bool "Sprdtrum lookat tool support"
+	depends on SPRD_DEBUG
+	default n
+	help
+	  this macro is for lookat driver, lookat is a debug tool that is used to
+	  view the content of arm/arm64 of the address space through usb port,
+	  such as the register of each module, DDR address space, etc.
+	  When in doubt, say n

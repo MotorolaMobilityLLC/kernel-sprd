@@ -12,3 +12,11 @@ config SPRD_MEMDISK
 source drivers/soc/sprd/iommu/Kconfig
 source "drivers/soc/sprd/modem/Kconfig"
 source "drivers/soc/sprd/domain/Kconfig"
+
+config SPRD_DEBUG
+	tristate "Spreadtrum debug module"
+	depends on ARCH_SPRD
+	help
+	  Say y here to enable Debug support.
+
+source "drivers/soc/sprd/debug/Kconfig"
