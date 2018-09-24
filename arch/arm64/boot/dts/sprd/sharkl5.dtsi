@@ -193,6 +193,9 @@
 			dpu: dpu@300000 {
 				compatible = "sprd,display-processor";
 				reg = <0x300000 0x1000>;
+				syscons = <&ap_ahb_regs REG_AP_AHB_AHB_RST
+					MASK_AP_AHB_DISPC_SOFT_RST>;
+				syscon-names = "reset";
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 
@@ -200,8 +203,6 @@
 
 				sprd,ip = "dpu-lite-r2p0";
 				sprd,soc = "sharkl5";
-
-				//sprd,syscon-aon-apb = <&aon_apb_controller>;
 
 				dpu_port: port {
 					dpu_out: endpoint {
@@ -224,14 +225,15 @@
 			dsi: dsi@400000 {
 				compatible = "sprd,dsi-host";
 				reg = <0x400000 0x1000>;
+				syscons = <&ap_ahb_regs REG_AP_AHB_AHB_RST
+					MASK_AP_AHB_DSI_SOFT_RST>;
+				syscon-names = "reset";
 				interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 
 				sprd,ip = "sprd,dsi-ctrl", "r3p0";
 				sprd,soc = "sharkl5";
-
-				//sprd,syscon-aon-apb = <&aon_apb_controller>;
 
 				ports {
 					#address-cells = <1>;
@@ -258,12 +260,18 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 				reg = <0x400000 0x1000>;
+				syscons = <&ap_ahb_regs
+					REG_AP_AHB_MISC_CKG_EN
+					(MASK_AP_AHB_DPHY_REF_CKG_EN |
+					MASK_AP_AHB_DPHY_CFG_CKG_EN)>,
+					<&pmu_apb_regs
+					REG_PMU_APB_ANALOG_PHY_PD_CFG
+					MASK_PMU_APB_DSI_PD_REG>;
+				syscon-names = "enable", "power";
 				status = "disabled";
 
 				sprd,ip = "sprd,megacores-sharkl5";
 				sprd,soc = "sharkl5";
-
-				//sprd,syscon-aon-apb = <&aon_apb_controller>;
 
 				/* output port */
 				port@0 {
