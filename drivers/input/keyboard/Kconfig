@@ -666,6 +666,16 @@ config KEYBOARD_SPEAR
 	  To compile this driver as a module, choose M here: the
 	  module will be called spear-keboard.
 
+config KEYBOARD_SPRD
+	tristate "Spreadtrum keyboard support"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select INPUT_MATRIXKMAP
+	help
+	  Say Y here if you want to use the SPRD keyboard.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called sprd-keypad.
+
 config KEYBOARD_TC3589X
 	tristate "TC3589X Keypad support"
 	depends on MFD_TC3589X
