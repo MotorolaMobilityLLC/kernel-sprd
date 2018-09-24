@@ -41,6 +41,7 @@
 #include <linux/timer.h>
 #include <linux/freezer.h>
 #include <linux/compat.h>
+#include <linux/delay.h>
 
 #include <linux/uaccess.h>
 
@@ -173,6 +174,9 @@ struct hrtimer_clock_base *lock_hrtimer_base(const struct hrtimer *timer,
 			raw_spin_unlock_irqrestore(&base->cpu_base->lock, *flags);
 		}
 		cpu_relax();
+#ifndef CONFIG_ARM64_LSE_ATOMICS
+		ndelay(TIMER_LOCK_TIGHT_LOOP_DELAY_NS);
+#endif
 	}
 }
 
@@ -1295,8 +1299,12 @@ int hrtimer_cancel(struct hrtimer *timer)
 	do {
 		ret = hrtimer_try_to_cancel(timer);
 
-		if (ret < 0)
+		if (ret < 0) {
 			hrtimer_cancel_wait_running(timer);
+#ifndef CONFIG_ARM64_LSE_ATOMICS
+			ndelay(TIMER_LOCK_TIGHT_LOOP_DELAY_NS);
+#endif
+		}
 	} while (ret < 0);
 	return ret;
 }
