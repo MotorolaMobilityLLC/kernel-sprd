@@ -21,6 +21,13 @@ config TEST_TEST
 	help
 	  Enables KUnit test to test KUnit.
 
+config TEST_DEATH_TEST
+	bool "(Expert) KUnit death test for KUnit"
+	depends on TEST
+	help
+	  Enables KUnit test to test KUnit death test feature. This test is not
+	  hermetic and can cause other tests to misbehave.
+
 config EXAMPLE_TEST
 	bool "Example test for KUnit"
 	depends on TEST
