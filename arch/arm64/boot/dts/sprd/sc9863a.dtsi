@@ -565,6 +565,15 @@
 	};
 };
 
+&gpu {
+	clocks = <&aonapb_gate CLK_GNU_EB>,
+	<&ap_clk CLK_GPU_CORE>,<&ap_clk CLK_GPU_SOC>,
+	<&pll CLK_TWPLL_153M6>, <&pll CLK_TWPLL_192M>,
+	<&pll CLK_TWPLL_256M>, <&pll CLK_TWPLL_307M2>,
+	<&pll CLK_TWPLL_384M>, <&pll CLK_TWPLL_512M>,
+	<&pll CLK_GPLL>;
+	};
+
 &dpu {
 	clock-names = "clk_src_128m",
 			"clk_src_153m6",
