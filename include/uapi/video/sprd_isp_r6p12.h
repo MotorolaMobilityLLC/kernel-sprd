@@ -34,7 +34,7 @@
 
 #define ISP_PDAF_STATIS_BUF_SIZE           BUF_ALIGN(0x98000)
 #define ISP_PDAF_STATIS_BUF_NUM            4
-#define ISP_EBD_STATIS_BUF_SIZE            BUF_ALIGN(1024)
+#define ISP_EBD_STATIS_BUF_SIZE            BUF_ALIGN(0x400*15)
 #define ISP_EBD_STATIS_BUF_NUM             4
 #define ISP_HIST_ITEMS                     256
 /* 256 * 8 byte=0x800*/
@@ -1864,8 +1864,7 @@ enum isp_statis_valid_type {
 
 struct isp_statis_buf_input {
 	uint32_t buf_size;
-	uint32_t hist_buf_size;
-	uint32_t dcam_buf_size;
+	uint32_t dcam_stat_buf_size;
 	uint32_t buf_num;
 	unsigned long phy_addr;
 	unsigned long vir_addr;
