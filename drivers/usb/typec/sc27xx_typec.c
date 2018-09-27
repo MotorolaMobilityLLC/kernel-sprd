@@ -12,8 +12,11 @@
 #include <linux/usb/typec.h>
 #include <linux/spinlock.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/extcon.h>
 #include <linux/kernel.h>
+#include <linux/nvmem-consumer.h>
+#include <linux/slab.h>
 
 #define SC27XX_TYPEC_REG(n)			(sc->base + (n))
 
@@ -25,6 +28,7 @@
 #define SC27XX_INT_RAW			SC27XX_TYPEC_REG(0x14)
 #define SC27XX_INT_MASK			SC27XX_TYPEC_REG(0x18)
 #define SC27XX_STATUS			SC27XX_TYPEC_REG(0x1c)
+#define SC27XX_RTRIM			SC27XX_TYPEC_REG(0x3c)
 
 /* SC27XX_TYPEC MODE */
 #define SC27XX_MODE_SNK			0
@@ -46,6 +50,14 @@
 
 #define SC27XX_STATE_MASK		GENMASK(4, 0)
 #define SC27XX_EVENT_MASK		GENMASK(9, 0)
+
+#define SC27XX_EFUSE_SHIFT_DEFAULT	6
+#define SC2730_EFUSE_SHIFT		0
+
+#define SC27XX_CC1_MASK(n)		GENMASK((n) + 9, (n) + 5)
+#define SC27XX_CC2_MASK(n)		GENMASK((n) + 4, (n))
+#define SC27XX_CC1_SHIFT(n)		(5 + (n))
+#define SC27XX_CC2_SHIFT		5
 
 enum sc27xx_typec_connection_state {
 	SC27XX_DETACHED_SNK,
@@ -256,13 +268,52 @@ static const u32 sc27xx_typec_cable[] = {
 	EXTCON_NONE,
 };
 
+static int sc27xx_typec_get_efuse(struct sc27xx_typec *sc)
+{
+	struct nvmem_cell *cell;
+	int calib_data = 0;
+	void *buf;
+	size_t len;
+
+	cell = nvmem_cell_get(sc->dev, "cc_calib");
+	if (IS_ERR(cell))
+		return PTR_ERR(cell);
+
+	buf = nvmem_cell_read(cell, &len);
+	nvmem_cell_put(cell);
+
+	if (IS_ERR(buf))
+		return PTR_ERR(buf);
+
+	memcpy(&calib_data, buf, min(len, sizeof(u32)));
+	kfree(buf);
+
+	return calib_data;
+}
+
+static int typec_set_rtrim(struct sc27xx_typec *sc, unsigned long efuse_offset)
+{
+	int calib_data = sc27xx_typec_get_efuse(sc);
+	u32 rtrim;
+
+	if (calib_data < 0)
+		return calib_data;
+
+	rtrim = (calib_data & SC27XX_CC1_MASK(efuse_offset)) >> SC27XX_CC1_SHIFT(efuse_offset);
+	rtrim |= ((calib_data & SC27XX_CC2_MASK(efuse_offset)) >> efuse_offset) << SC27XX_CC2_SHIFT;
+
+	return regmap_write(sc->regmap, SC27XX_RTRIM, rtrim);
+}
+
 static int sc27xx_typec_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct device_node *node = pdev->dev.of_node;
 	struct sc27xx_typec *sc;
+	unsigned long data;
 	int ret;
 
+	data = (unsigned long)of_device_get_match_data(dev);
 	sc = devm_kzalloc(&pdev->dev, sizeof(*sc), GFP_KERNEL);
 	if (!sc)
 		return -ENOMEM;
@@ -310,6 +361,12 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	ret = typec_set_rtrim(sc, data);
+	if (ret < 0) {
+		dev_err(sc->dev, "failed to set typec rtrim %d\n", ret);
+		goto error;
+	}
+
 	ret = devm_request_threaded_irq(sc->dev, sc->irq, NULL,
 					sc27xx_typec_interrupt,
 					IRQF_EARLY_RESUME | IRQF_ONESHOT,
@@ -342,7 +399,7 @@ static int sc27xx_typec_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id typec_sprd_match[] = {
-	{.compatible = "sprd,sc2730-typec"},
+	{.compatible = "sprd,sc2730-typec", .data = (void *)SC2730_EFUSE_SHIFT},
 	{},
 };
 MODULE_DEVICE_TABLE(of, typec_sprd_match);
