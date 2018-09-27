@@ -30,39 +30,6 @@ struct ion_device *idev;
 EXPORT_SYMBOL(idev);
 static int num_heaps;
 static struct ion_heap **heaps;
-static u32 phys_offset;
-
-#ifndef CONFIG_64BIT
-static unsigned long user_va2pa(struct mm_struct *mm, unsigned long addr)
-{
-	pgd_t *pgd = pgd_offset(mm, addr);
-	unsigned long pa = 0;
-	pud_t *pud;
-	pmd_t *pmd;
-	pte_t *ptep, pte;
-
-	if (pgd_none(*pgd))
-		return 0;
-
-	pud = pud_offset(pgd, addr);
-
-	if (pud_none(*pud))
-		return 0;
-
-	pmd = pmd_offset(pud, addr);
-
-	if (pmd_none(*pmd))
-		return 0;
-
-	ptep = pte_offset_map(pmd, addr);
-	pte = *ptep;
-	if (pte_present(pte))
-		pa = pte_val(pte) & PAGE_MASK;
-	pte_unmap(ptep);
-
-	return pa;
-}
-#endif
 
 static struct ion_buffer *get_ion_buffer(int fd, struct dma_buf *dmabuf)
 {
@@ -193,7 +160,7 @@ int sprd_ion_get_phys_addr(int fd, struct dma_buf *dmabuf,
 			return -EINVAL;
 		}
 
-		*phys_addr = sg_phys(sgl) - phys_offset;
+		*phys_addr = sg_phys(sgl);
 		*size = buffer->size;
 	} else {
 		pr_err("%s, buffer heap type:%d error\n", __func__,
@@ -204,38 +171,64 @@ int sprd_ion_get_phys_addr(int fd, struct dma_buf *dmabuf,
 	return ret;
 }
 
-int sprd_ion_check_phys_addr(struct dma_buf *dmabuf)
+int sprd_ion_get_phys_addr_by_db(struct dma_buf *dmabuf,
+				 unsigned long *phys_addr,
+				 size_t *size)
 {
+	struct ion_buffer *buffer;
 	struct sg_table *table = NULL;
 	struct scatterlist *sgl = NULL;
 
-	if (dmabuf && dmabuf->priv) {
-		table = ((struct ion_buffer *)(dmabuf->priv))->priv_virt;
+	if (!dmabuf)
+		return -EINVAL;
+
+	buffer = dmabuf->priv;
+	if (IS_ERR_OR_NULL(buffer))
+		return PTR_ERR(buffer);
+
+	if (buffer->heap->type == ION_HEAP_TYPE_CARVEOUT) {
+		table = buffer->sg_table;
+		if (table && table->sgl) {
+			sgl = table->sgl;
+		} else {
+			if (!table)
+				pr_err("invalid table\n");
+			else if (!table->sgl)
+				pr_err("invalid table->sgl\n");
+			return -EINVAL;
+		}
+
+		*phys_addr = sg_phys(sgl);
+		*size = buffer->size;
 	} else {
-		if (!dmabuf)
-			pr_err("invalid dmabuf\n");
-		else if (!dmabuf->priv)
-			pr_err("invalid dmabuf->priv\n");
-
-		return -1;
-	}
-	if (table && table->sgl) {
-		sgl = table->sgl;
-	} else {
-		if (!table)
-			pr_err("invalid table\n");
-		else if (!table->sgl)
-			pr_err("invalid table->sgl\n");
-
-		return -1;
+		pr_err("%s, buffer heap type:%d error\n", __func__,
+		       buffer->heap->type);
+		return -EPERM;
 	}
 
-#ifdef CONFIG_DEBUG_SG
-	if (sgl->sg_magic != SG_MAGIC) {
-		pr_err("the sg_magic isn't right, 0x%lx!\n", sgl->sg_magic);
-		return -1;
-	}
-#endif
+	return 0;
+}
+
+void *sprd_ion_map_kernel(struct dma_buf *dmabuf, unsigned long offset)
+{
+	void *vaddr;
+
+	if (!dmabuf)
+		return ERR_PTR(-EINVAL);
+
+	dmabuf->ops->begin_cpu_access(dmabuf, DMA_BIDIRECTIONAL);
+	vaddr = dmabuf->ops->map(dmabuf, offset);
+
+	return vaddr;
+}
+
+int sprd_ion_unmap_kernel(struct dma_buf *dmabuf, unsigned long offset)
+{
+	if (!dmabuf)
+		return -EINVAL;
+
+	dmabuf->ops->unmap(dmabuf, offset, NULL);
+	dmabuf->ops->end_cpu_access(dmabuf, DMA_BIDIRECTIONAL);
 
 	return 0;
 }
@@ -251,12 +244,6 @@ static struct ion_platform_heap *sprd_ion_parse_dt(struct platform_device *pdev)
 	const char *name;
 	u32 out_values[4];
 	struct device_node *np_memory;
-
-	ret = of_property_read_u32(parent, "phys-offset", &phys_offset);
-	if (ret)
-		phys_offset = 0;
-	else
-		pr_info("%s: phys_offset=0x%x\n", __func__, phys_offset);
 
 	for_each_child_of_node(parent, child)
 		num_heaps++;
@@ -351,33 +338,6 @@ out:
 	return ERR_PTR(ret);
 }
 
-#ifdef CONFIG_E_SHOW_MEM
-static int ion_e_show_mem_handler(struct notifier_block *nb,
-				  unsigned long val, void *data)
-{
-	int i;
-	enum e_show_mem_type type = (enum e_show_mem_type)val;
-	unsigned long total_used = 0;
-
-	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	pr_info("Enhanced Mem-info :ION\n");
-	for (i = 0; i < num_heaps; i++) {
-		if (type != E_SHOW_MEM_BASIC ||
-		    heaps[i]->type == ION_HEAP_TYPE_SYSTEM ||
-		    heaps[i]->type == ION_HEAP_TYPE_SYSTEM_CONTIG) {
-			ion_debug_heap_show_printk(heaps[i], type, &total_used);
-		}
-	}
-
-	pr_info("Total allocated from Buddy: %lu kB\n", total_used / 1024);
-	return 0;
-}
-
-static struct notifier_block ion_e_show_mem_notifier = {
-	.notifier_call = ion_e_show_mem_handler,
-};
-#endif
-
 static int sprd_ion_probe(struct platform_device *pdev)
 {
 	int i = 0, ret = -1;
@@ -443,9 +403,6 @@ out1:
 
 static int sprd_ion_remove(struct platform_device *pdev)
 {
-#ifdef CONFIG_E_SHOW_MEM
-	unregister_e_show_mem_notifier(&ion_e_show_mem_notifier);
-#endif
 	kfree(heaps);
 
 	return 0;

@@ -36,6 +36,11 @@ void sprd_ion_put_dma(void *buf, int id);
 int sprd_ion_get_phys_addr(int fd, struct dma_buf *dmabuf,
 				unsigned long *phys_addr, size_t *size);
 
-int sprd_ion_check_phys_addr(struct dma_buf *dmabuf);
+int sprd_ion_get_phys_addr_by_db(struct dma_buf *dmabuf,
+				 unsigned long *phys_addr,
+				 size_t *size);
 
+void *sprd_ion_map_kernel(struct dma_buf *dmabuf, unsigned long offset);
+
+int sprd_ion_unmap_kernel(struct dma_buf *dmabuf, unsigned long offset);
 #endif /* _SPRD_ION_H */

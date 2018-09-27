@@ -233,6 +233,8 @@ int ion_alloc(size_t len,
 	      unsigned int heap_id_mask,
 	      unsigned int flags);
 
+int ion_phys(int fd, unsigned long *phys_addr, size_t *size);
+
 /**
  * ion_heap_init_shrinker
  * @heap:		the heap
@@ -361,6 +363,9 @@ int ion_page_pool_shrink(struct ion_page_pool *pool, gfp_t gfp_mask,
 long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 
 int ion_query_heaps(struct ion_heap_query *query);
+struct dma_buf *ion_new_alloc(size_t len, unsigned int heap_id_mask,
+			      unsigned int flags);
+int ion_free(struct dma_buf *dmabuf);
 
 struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data);
 #endif /* _ION_H */

@@ -14,6 +14,7 @@
  */
 
 #include <linux/kernel.h>
+#include <linux/dma-buf.h>
 #include <linux/file.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
@@ -23,6 +24,7 @@
 union ion_ioctl_arg {
 	struct ion_allocation_data allocation;
 	struct ion_heap_query query;
+	struct ion_phy_data phy;
 };
 
 static int validate_ioctl_arg(unsigned int cmd, union ion_ioctl_arg *arg)
@@ -94,8 +96,18 @@ long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		break;
 	}
+	case ION_IOC_PHY:
+	{
+		int fd = data.phy.fd;
+
+		ret = ion_phys(fd, (unsigned long *)&data.phy.addr,
+			      (size_t *)&data.phy.len);
+		break;
+	}
 	case ION_IOC_HEAP_QUERY:
 		ret = ion_query_heaps(&data.query);
+		break;
+	case ION_IOC_VERSION:
 		break;
 	default:
 		return -ENOTTY;

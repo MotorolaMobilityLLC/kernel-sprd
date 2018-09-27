@@ -452,6 +452,97 @@ int ion_alloc(size_t len, unsigned int heap_id_mask, unsigned int flags)
 	return fd;
 }
 
+int ion_phys(int fd, unsigned long *phys_addr, size_t *size)
+{
+	int ret = 0;
+	struct dma_buf *dmabuf;
+	struct ion_buffer *buffer;
+
+	dmabuf = dma_buf_get(fd);
+	if (!IS_ERR_OR_NULL(dmabuf)) {
+		buffer = (struct ion_buffer *)(dmabuf->priv);
+
+		*phys_addr = sg_phys(buffer->sg_table->sgl);
+		*size = buffer->size;
+	} else {
+		ret = -EPERM;
+	}
+	dma_buf_put(dmabuf);
+
+	return ret;
+}
+
+struct dma_buf *ion_new_alloc(size_t len, unsigned int heap_id_mask,
+			      unsigned int flags)
+{
+	struct ion_device *dev = internal_dev;
+	struct ion_buffer *buffer = NULL;
+	struct ion_heap *heap;
+	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
+	struct dma_buf *dmabuf;
+
+	pr_debug("%s: len %zu heap_id_mask %u flags %x\n", __func__,
+		 len, heap_id_mask, flags);
+	/*
+	 * traverse the list of heaps available in this system in priority
+	 * order.  If the heap type is supported by the client, and matches the
+	 * request of the caller allocate from it.  Repeat until allocate has
+	 * succeeded or all heaps have been tried
+	 */
+	len = PAGE_ALIGN(len);
+
+	if (!len)
+		return ERR_PTR(-EINVAL);
+
+	down_read(&dev->lock);
+	plist_for_each_entry(heap, &dev->heaps, node) {
+		/* if the caller didn't specify this heap id */
+		if (!((1 << heap->id) & heap_id_mask))
+			continue;
+		buffer = ion_buffer_create(heap, dev, len, flags);
+		if (!IS_ERR(buffer))
+			break;
+	}
+	up_read(&dev->lock);
+
+	if (!buffer)
+		return ERR_PTR(-ENODEV);
+
+	if (IS_ERR(buffer))
+		return (struct dma_buf *)buffer;
+
+	exp_info.ops = &dma_buf_ops;
+	exp_info.size = buffer->size;
+	exp_info.flags = O_RDWR;
+	exp_info.priv = buffer;
+
+	dmabuf = dma_buf_export(&exp_info);
+	if (IS_ERR(dmabuf))
+		_ion_buffer_destroy(buffer);
+
+	return dmabuf;
+}
+EXPORT_SYMBOL(ion_new_alloc);
+
+int ion_free(struct dma_buf *dmabuf)
+{
+	struct ion_buffer *buffer;
+
+	if (!dmabuf) {
+		pr_err("%s: invalid dmabuf\n", __func__);
+		return -EINVAL;
+	}
+
+	buffer = dmabuf->priv;
+	if (!buffer) {
+		pr_err("%s: invalid ionbuffer\n", __func__);
+		return -EINVAL;
+	}
+
+	return dmabuf->file->f_op->release(NULL, dmabuf->file);
+}
+EXPORT_SYMBOL(ion_free);
+
 int ion_query_heaps(struct ion_heap_query *query)
 {
 	struct ion_device *dev = internal_dev;
