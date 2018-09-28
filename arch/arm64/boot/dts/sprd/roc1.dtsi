@@ -167,30 +167,30 @@
 				status = "disabled";
 			};
 
-			sdio3: sdio@1400000 {
+			sdio3: sdio@71400000 {
 				compatible = "sprd,sdhc-r11p1";
-				reg = <0x1400000 0x1000>;
+				reg = <0 0x71400000 0 0x1000>;
 				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
 
-			sdio0: sdio@1100000 {
+			sdio0: sdio@71100000 {
 				compatible = "sprd,sdhc-r11p1";
-				reg = <0x1100000 0x1000>;
+				reg = <0 0x71100000  0 0x1000>;
 				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
 
-			sdio1: sdio@1200000 {
+			sdio1: sdio@71200000 {
 				compatible = "sprd,sdhc-r11p1";
-				reg = <0x1200000 0x1000>;
+				reg = <0 0x71200000 0 0x1000>;
 				interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
 
-			sdio2: sdio@1300000 {
+			sdio2: sdio@71300000 {
 				compatible = "sprd,sdhc-r11p1";
-				reg = <0x1300000 0x1000>;
+				reg = <0 0x71300000 0 0x1000>;
 				interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
