@@ -147,21 +147,21 @@
 
 		ap-apb {
 			compatible = "simple-bus";
-			#address-cells = <1>;
-			#size-cells = <1>;
-			ranges = <0 0 0x70000000 0x10000000>;
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
 
-			uart0: serial@0 {
+			uart0: serial@70000000 {
 				compatible = "sprd,sc9836-uart";
-				reg = <0x0 0x100>;
+				reg = <0 0x70000000 0 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart1: serial@100000 {
+			uart1: serial@70100000 {
 				compatible = "sprd,sc9836-uart";
-				reg = <0x100000 0x100>;
+				reg = <0 0x70100000 0 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";

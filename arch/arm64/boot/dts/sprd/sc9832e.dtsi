@@ -335,13 +335,13 @@
 
 		ap-ahb {
 			compatible = "simple-bus";
-			#address-cells = <1>;
-			#size-cells = <1>;
-			ranges = <0 0x0 0x20000000 0x10000000>;
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
 
-			sdio3: sdio@600000 {
+			sdio3: sdio@20600000 {
 				compatible  = "sprd,sdhc-r11";
-				reg = <0x600000 0x1000>;
+				reg = <0 0x20600000 0 0x1000>;
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
 
 				clock-names = "sdio_clk", "sdio_clk_source",
