@@ -2,7 +2,9 @@ Spreadtrum Generic USB PHY
 ===========================================================
 
 Required properties:
-  - compatible: must be "sprd,sharkl3-phy"
+  - compatible: should be one of following:
+    "sprd,sharkl3-phy",
+    "sprd,roc1-phy"
   - reg: must be the PHY controller base address
   - reg-names: "phy_glb_regs" for the usb phy global register
   - sprd,syscon-enables: specify the handle for aon apb syscon

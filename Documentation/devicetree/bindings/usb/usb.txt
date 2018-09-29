@@ -2,7 +2,9 @@ Spreadtrum Generic MUSB driver
 ================================================================
 
 Required properties:
- - compatible: should be “sprd,sharkl3-musb”
+ - compatible: should be one of the followings:
+   "sprd,sharkl3-musb",
+   "sprd,roc1-musb"
  - reg: physical base address of the musb and length of memory mapped region
  - interrupts: interrupt number for the musb controller
  - interrupt-names: corresponding interrupt names for the interrupts
