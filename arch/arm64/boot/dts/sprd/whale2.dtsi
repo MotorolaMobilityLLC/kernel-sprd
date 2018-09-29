@@ -21,39 +21,39 @@
 			compatible = "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges = <0 0x0 0x70000000 0x10000000>;
+			ranges;
 
-			uart0: serial@0 {
+			uart0: serial@70000000 {
 				compatible = "sprd,sc9860-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x0 0x100>;
+				reg = <0x70000000 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart1: serial@100000 {
+			uart1: serial@70100000 {
 				compatible = "sprd,sc9860-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x100000 0x100>;
+				reg = <0x70100000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart2: serial@200000 {
+			uart2: serial@70200000 {
 				compatible = "sprd,sc9860-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x200000 0x100>;
+				reg = <0x70200000 0x100>;
 				interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart3: serial@300000 {
+			uart3: serial@70300000 {
 				compatible = "sprd,sc9860-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x300000 0x100>;
+				reg = <0x70300000 0x100>;
 				interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";

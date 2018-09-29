@@ -56,38 +56,38 @@
 			compatible = "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges = <0 0x0 0x70000000 0x10000000>;
+			ranges;
 
-			uart0: serial@0 {
+			uart0: serial@70000000 {
 				compatible = "sprd,ums510-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x0 0x100>;
+				reg = <0x70000000 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart1: serial@100000 {
+			uart1: serial@70100000 {
 				compatible = "sprd,ums510-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x100000 0x100>;
+				reg = <0x70100000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart2: serial@200000 {
+			uart2: serial@70200000 {
 				compatible = "sprd,ums510-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x200000 0x100>;
+				reg = <0x70200000 0x100>;
 				interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			i2c0: i2c@300000 {
+			i2c0: i2c@70300000 {
 				compatible = "sprd,sharkl5-i2c";
-				reg = <0x300000 0x100>;
+				reg = <0x70300000 0x100>;
 				interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names ="enable", "i2c", "source";
 				clocks = <&apapb_gate CLK_I2C0_EB>;
@@ -97,9 +97,9 @@
 				status = "disabled";
 			};
 
-			i2c1: i2c@400000 {
+			i2c1: i2c@70400000 {
 				compatible = "sprd,sharkl5-i2c";
-				reg = <0x400000 0x100>;
+				reg = <0x70400000 0x100>;
 				interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names ="enable", "i2c", "source";
 				clocks = <&apapb_gate CLK_I2C1_EB>;
@@ -109,9 +109,9 @@
 				status = "disabled";
 			};
 
-			i2c2: i2c@500000 {
+			i2c2: i2c@70500000 {
 				compatible = "sprd,sharkl5-i2c";
-				reg = <0x500000 0x100>;
+				reg = <0x70500000 0x100>;
 				interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "i2c", "source";
 				clocks = <&apapb_gate CLK_I2C2_EB>;
@@ -121,9 +121,9 @@
 				status = "disabled";
 			};
 
-			i2c3: i2c@600000 {
+			i2c3: i2c@70600000 {
 				compatible = "sprd,sharkl5-i2c";
-				reg = <0x600000 0x100>;
+				reg = <0x70600000 0x100>;
 				interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "i2c", "source";
 				clocks = <&apapb_gate CLK_I2C3_EB>;
@@ -133,9 +133,9 @@
 				status = "disabled";
 			};
 
-			i2c4: i2c@700000 {
+			i2c4: i2c@70700000 {
 				compatible = "sprd,sharkl5-i2c";
-				reg = <0x700000 0x100>;
+				reg = <0x70700000 0x100>;
 				interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names ="enable", "i2c", "source";
 				clocks = <&apapb_gate CLK_I2C4_EB>;
@@ -145,30 +145,30 @@
 				status = "disabled";
 			};
 
-			sdio3: sdio@1400000 {
+			sdio3: sdio@71400000 {
 				compatible = "sprd,sdhc-r11p1";
-				reg = <0x1400000  0x1000>;
+				reg = <0x71400000  0x1000>;
 				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
 
-			sdio0: sdio@1100000 {
+			sdio0: sdio@71100000 {
 				compatible = "sprd,sdhc-r11p1";
-				reg = <0x110000 0x1000>;
+				reg = <0x71100000 0x1000>;
 				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
 
-			sdio1: sdio@1200000 {
+			sdio1: sdio@71200000 {
 				compatible = "sprd,sdhc-r11p1";
-				reg = <0x120000 0x1000>;
+				reg = <0x71200000 0x1000>;
 				interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
 
-			sdio2: sdio@1300000 {
+			sdio2: sdio@71300000 {
 				compatible = "sprd,sdhc-r11p1";
-				reg = <0x130000 0x1000>;
+				reg = <0x71300000 0x1000>;
 				interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};

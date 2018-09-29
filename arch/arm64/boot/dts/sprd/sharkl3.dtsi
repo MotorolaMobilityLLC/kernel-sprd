@@ -178,48 +178,48 @@
 			compatible = "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges = <0 0x0 0x70000000 0x10000000>;
+			ranges;
 
-			uart0: serial@0 {
+			uart0: serial@70000000 {
 				compatible = "sprd,sc9863-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x0 0x100>;
+				reg = <0x70000000 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart1: serial@100000 {
+			uart1: serial@70100000 {
 				compatible = "sprd,sc9863-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x100000 0x100>;
+				reg = <0x70100000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart2: serial@200000 {
+			uart2: serial@70200000 {
 				compatible = "sprd,sc9863-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x200000 0x100>;
+				reg = <0x70200000 0x100>;
 				interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart3: serial@300000 {
+			uart3: serial@70300000 {
 				compatible = "sprd,sc9863-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x300000 0x100>;
+				reg = <0x70300000 0x100>;
 				interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart4: serial@400000 {
+			uart4: serial@70400000 {
 				compatible = "sprd,sc9863-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x400000 0x100>;
+				reg = <0x70400000 0x100>;
 				interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
 				status = "disabled";
@@ -230,11 +230,11 @@
 			compatible = "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges = <0 0x0 0x20000000 0x10000000>;
+			ranges;
 
-			usb: usb@200000 {
+			usb: usb@20200000 {
 				compatible = "sprd,sharkl3-musb";
-				reg = <0x200000 0x2000>;
+				reg = <0x20200000 0x2000>;
 				interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "mc";
 				clocks = <&apahb_gate CLK_OTG_EB>;
@@ -245,9 +245,9 @@
 				dr-mode = "peripheral";
 			};
 
-			hsphy: hsphy@e00000 {
+			hsphy: hsphy@20e00000 {
 				compatible = "sprd,sharkl3-phy";
-				reg = <0xe00000 0x3030>;
+				reg = <0x20e00000 0x3030>;
 				reg-names = "phy_glb_regs";
 				sprd,syscon-enable = <&aon_apb_regs>;
 				sprd,syscon-apahb = <&ap_ahb_regs>;
@@ -256,9 +256,9 @@
 				#phy-cells = <0>;
 			};
 
-			sdio3: sdio@600000 {
+			sdio3: sdio@20600000 {
 				compatible  = "sprd,sdhc-r11p1";
-				reg = <0x600000 0x1000>;
+				reg = <0x20600000 0x1000>;
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
 
 				clock-names = "sdio_clk", "sdio_clk_source",
@@ -275,11 +275,11 @@
 			compatible = "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges = <0 0x0 0x60000000 0x10000000>;
+			ranges;
 
-			dpu: dpu@3000000 {
+			dpu: dpu@63000000 {
 				compatible = "sprd,display-processor";
-				reg = <0x3000000 0x1000>;
+				reg = <0x63000000 0x1000>;
 				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 
@@ -299,19 +299,19 @@
 				};
 			};
 
-			gsp_core0: gsp@3000000 {
+			gsp_core0: gsp@63000000 {
 				compatible = "sprd,gsp-core";
-				reg = <0x3000000 0x2000>;
+				reg = <0x63000000 0x2000>;
 				core-id = <0>;
 				kcfg-num = <16>;
 				interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
 				iommus = <&iommu_dispc>;
 			};
 
-			iommu_dispc: iommu@3000000 {
+			iommu_dispc: iommu@63000000 {
 				compatible = "sprd,iommuexl3-dispc";
-				reg = <0x3000000 0x800>,
-				      <0x3000800 0x80>;
+				reg = <0x63000000 0x800>,
+				      <0x63000800 0x80>;
 				iova-base = <0x30000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -319,9 +319,9 @@
 				#iommu-cells = <0>;
 			};
 
-			dsi: dsi@3100000 {
+			dsi: dsi@63100000 {
 				compatible = "sprd,dsi-host";
-				reg = <0x3100000 0x1000>;
+				reg = <0x63100000 0x1000>;
 				interrupts = <GIC_SPI 48 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
@@ -357,7 +357,7 @@
 				compatible = "sprd,dsi-phy";
 				#address-cells = <1>;
 				#size-cells = <0>;
-				reg = <0x3100000 0x1000>;
+				reg = <0x63100000 0x1000>;
 				status = "disabled";
 
 				sprd,ip = "sprd,megacores-sharkle";

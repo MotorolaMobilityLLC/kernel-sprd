@@ -47,13 +47,13 @@
 
 		ap-ahb {
 			compatible = "simple-bus";
-			#address-cells = <1>;
-			#size-cells = <1>;
-			ranges = <0 0x0 0x20000000 0x10000000>;
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
 
-			dpu: dpu@300000 {
+			dpu: dpu@20300000 {
 				compatible = "sprd,display-processor";
-				reg = <0x300000 0x1000>;
+				reg = <0 0x20300000 0 0x1000>;
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 
@@ -71,10 +71,10 @@
 				};
 			};
 
-			iommu_dispc: iommu@300000 {
+			iommu_dispc: iommu@20300000 {
 				compatible = "sprd,iommuexroc1-dispc";
-				reg = <0x300000 0x800>,
-				      <0x300800 0x80>;
+				reg = <0 0x20300000 0 0x800>,
+				      <0 0x20300800 0 0x80>;
 				iova-base = <0x30000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -82,9 +82,9 @@
 				#iommu-cells = <0>;
 			};
 
-			dsi: dsi@400000 {
+			dsi: dsi@20400000 {
 				compatible = "sprd,dsi-host";
-				reg = <0x400000 0x1000>;
+				reg = <0 0x20400000 0 0x1000>;
 				interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
@@ -118,7 +118,7 @@
 				compatible = "sprd,dsi-phy";
 				#address-cells = <1>;
 				#size-cells = <0>;
-				reg = <0x400000 0x1000>;
+				reg = <0 0x20400000 0 0x1000>;
 				status = "disabled";
 
 				sprd,ip = "sprd,megacores-sharkl5";
