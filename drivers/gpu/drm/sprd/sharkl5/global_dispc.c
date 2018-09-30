@@ -106,11 +106,15 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 	clk_dpu_dpi =
 		of_clk_get_by_name(np, "clk_dpu_dpi");
 
-	if (IS_ERR(clk_dpu_core))
+	if (IS_ERR(clk_dpu_core)) {
+		clk_dpu_core = NULL;
 		pr_warn("read clk_dpu_core failed\n");
+	}
 
-	if (IS_ERR(clk_dpu_dpi))
+	if (IS_ERR(clk_dpu_dpi)) {
+		clk_dpu_dpi = NULL;
 		pr_warn("read clk_dpu_dpi failed\n");
+	}
 
 	return 0;
 }
