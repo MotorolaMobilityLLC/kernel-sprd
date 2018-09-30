@@ -82,6 +82,17 @@
 				#iommu-cells = <0>;
 			};
 
+			iommu_ai: iommu@6fe00000 {
+				compatible = "sprd,iommuexroc1-ai";
+				reg = <0 0x6fe00000 0 0x800>,
+				      <0 0x6fd08004 0 0x80>;
+				iova-base = <0x30000000>;
+				iova-size = <0x20000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
 			dsi: dsi@20400000 {
 				compatible = "sprd,dsi-host";
 				reg = <0 0x20400000 0 0x1000>;
