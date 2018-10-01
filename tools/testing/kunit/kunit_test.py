@@ -150,5 +150,15 @@ class KUnitParserTest(unittest.TestCase):
 			result)
 		file.close()
 
+	def test_timed_out_test(self):
+		timed_out_log = get_absolute_path(
+			'test_data/test_is_test_passed-timed_out.log')
+		file = open(timed_out_log)
+		result = kunit_parser.parse_run_tests(file.readlines())
+		self.assertContains(
+			'Before timing out: 3 tests run. 0 failed. 0 crashed.',
+			result)
+		file.close()
+
 if __name__ == '__main__':
 	unittest.main()

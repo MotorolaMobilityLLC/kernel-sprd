@@ -50,8 +50,13 @@ class LinuxSourceTreeOperations(object):
 			stdin=subprocess.PIPE,
 			stdout=subprocess.PIPE,
 			stderr=subprocess.PIPE)
-		process.wait(timeout=timeout)
-		return process
+		timed_out = False
+		try:
+			process.wait(timeout=timeout)
+		except subprocess.TimeoutExpired:
+			process.terminate()
+			timed_out = True
+		return process, timed_out
 
 
 class LinuxSourceTree(object):
@@ -115,8 +120,11 @@ class LinuxSourceTree(object):
 
 	def run_kernel(self, args=[], timeout=None):
 		args.extend(['mem=256M'])
-		process = self._ops.linux_bin(args, timeout)
+		process, timed_out = self._ops.linux_bin(args, timeout)
 		with open('test.log', 'w') as f:
 			for line in process.stdout:
 				f.write(line.rstrip().decode('ascii') + '\n')
 				yield line.rstrip().decode('ascii')
+			if timed_out:
+				f.write('Timeout Reached - Process Terminated\n')
+				yield 'Timeout Reached - Process Terminated\n'

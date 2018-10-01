@@ -63,6 +63,7 @@ def parse_run_tests(kernel_output):
 
 	current_case_log = []
 	did_kernel_crash = False
+	did_timeout = False
 
 	def end_one_test(match, log):
 		log.clear()
@@ -106,6 +107,11 @@ def parse_run_tests(kernel_output):
 				end_one_test(match, current_case_log)
 				continue
 
+			if line == 'Timeout Reached - Process Terminated\n':
+				yield timestamp(red("[TIMED-OUT] Process Terminated"))
+				did_timeout = True
+				break
+
 			# Strip off the `kunit module-name:` prefix
 			match = re.match(test_case_output, line)
 			if match:
@@ -124,9 +130,12 @@ def parse_run_tests(kernel_output):
 		yield timestamp(DIVIDER)
 
 	fmt = green if (len(failed_tests) + len(crashed_tests) == 0
-			and not did_kernel_crash) else red
-	message = ("Before the crash:" if did_kernel_crash else
-		   "Testing complete.")
+			and not did_kernel_crash and not did_timeout) else red
+	message = "Testing complete."
+	if did_kernel_crash:
+		message = "Before the crash:"
+	elif did_timeout:
+		message = "Before timing out:"
 
 	yield timestamp(
 		fmt(message + " %d tests run. %d failed. %d crashed." %
