@@ -610,6 +610,154 @@ static void mock_test_in_sequence_retire_on_saturation(struct test *test)
         mock_validate_expectations(mock);
 }
 
+static void mock_test_atleast(struct test *test)
+{
+	struct mock_test_context *ctx = test->priv;
+	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct test *trgt = mock_get_trgt(mock_test);
+	struct mock *mock = ctx->mock;
+
+	struct mock_param_matcher *a_matchers[] = { int_eq(trgt, 1) };
+	struct mock_param_matcher *b_matchers[] = { int_eq(trgt, 2) };
+
+        struct mock_expectation *a = mock_add_matcher(mock, "a", mock_stub,
+                a_matchers, param_len);
+	struct mock_expectation *b = mock_add_matcher(mock, "b", mock_stub,
+                b_matchers, param_len);
+
+        AtLeast(2, a);
+        AtLeast(1, b);
+	Never(EXPECT_CALL(fail(mock_get_ctrl(mock_test), any(test))));
+
+        mock->do_expect(mock, "a", mock_stub, param_type, a_params, param_len);
+	mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+        mock->do_expect(mock, "a", mock_stub, param_type, a_params, param_len);
+        mock->do_expect(mock, "a", mock_stub, param_type, a_params, param_len);
+
+        mock_validate_expectations(mock);
+}
+
+static void mock_test_atleast_fail(struct test *test)
+{
+	struct mock_test_context *ctx = test->priv;
+	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct test *trgt = mock_get_trgt(mock_test);
+	struct mock *mock = ctx->mock;
+
+	struct mock_param_matcher *b_matchers[] = { int_eq(trgt, 2) };
+
+        struct mock_expectation *b = mock_add_matcher(mock, "b", mock_stub,
+                b_matchers, param_len);
+
+        AtLeast(2, b);
+        EXPECT_CALL(fail(mock_get_ctrl(mock_test), any(test)));
+
+	mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+
+        mock_validate_expectations(mock);
+}
+
+static void mock_test_atmost(struct test *test)
+{
+	struct mock_test_context *ctx = test->priv;
+	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct test *trgt = mock_get_trgt(mock_test);
+	struct mock *mock = ctx->mock;
+
+	struct mock_param_matcher *a_matchers[] = { int_eq(trgt, 1) };
+	struct mock_param_matcher *b_matchers[] = { int_eq(trgt, 2) };
+	struct mock_param_matcher *c_matchers[] = { int_eq(trgt, 3) };
+
+        struct mock_expectation *a = mock_add_matcher(mock, "a", mock_stub,
+                a_matchers, param_len);
+        struct mock_expectation *b = mock_add_matcher(mock, "b", mock_stub,
+                b_matchers, param_len);
+	struct mock_expectation *c = mock_add_matcher(mock, "c", mock_stub,
+                c_matchers, param_len);
+
+        AtMost(2, a);
+        AtMost(1, b);
+        AtMost(2, c);
+	Never(EXPECT_CALL(fail(mock_get_ctrl(mock_test), any(test))));
+
+        mock->do_expect(mock, "a", mock_stub, param_type, a_params, param_len);
+        mock->do_expect(mock, "a", mock_stub, param_type, a_params, param_len);
+	mock->do_expect(mock, "c", mock_stub, param_type, c_params, param_len);
+
+        mock_validate_expectations(mock);
+}
+
+static void mock_test_atmost_fail(struct test *test)
+{
+	struct mock_test_context *ctx = test->priv;
+	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct test *trgt = mock_get_trgt(mock_test);
+	struct mock *mock = ctx->mock;
+
+	struct mock_param_matcher *b_matchers[] = { int_eq(trgt, 2) };
+
+        struct mock_expectation *b = mock_add_matcher(mock, "b", mock_stub,
+                b_matchers, param_len);
+
+        AtMost(2, b);
+        EXPECT_CALL(fail(mock_get_ctrl(mock_test), any(test)));
+
+	mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+        mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+	mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+
+        mock_validate_expectations(mock);
+}
+
+static void mock_test_between(struct test *test)
+{
+	struct mock_test_context *ctx = test->priv;
+	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct test *trgt = mock_get_trgt(mock_test);
+	struct mock *mock = ctx->mock;
+
+	struct mock_param_matcher *b_matchers[] = { int_eq(trgt, 2) };
+
+        struct mock_expectation *b = mock_add_matcher(mock, "b", mock_stub,
+                b_matchers, param_len);
+
+        Between(2, 4, b);
+        Never(EXPECT_CALL(fail(mock_get_ctrl(mock_test), any(test))));
+
+	mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+        mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+	mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+
+        mock_validate_expectations(mock);
+}
+
+static void mock_test_between_fail(struct test *test)
+{
+	struct mock_test_context *ctx = test->priv;
+	struct MOCK(test) *mock_test = ctx->mock_test;
+	struct test *trgt = mock_get_trgt(mock_test);
+	struct mock *mock = ctx->mock;
+
+	struct mock_param_matcher *a_matchers[] = { int_eq(trgt, 1) };
+	struct mock_param_matcher *b_matchers[] = { int_eq(trgt, 2) };
+
+        struct mock_expectation *a = mock_add_matcher(mock, "a", mock_stub,
+                a_matchers, param_len);
+        struct mock_expectation *b = mock_add_matcher(mock, "b", mock_stub,
+                b_matchers, param_len);
+
+        Between(2, 3, a);
+        Between(1, 2, b);
+        Times(2, EXPECT_CALL(fail(mock_get_ctrl(mock_test), any(test))));
+
+	mock->do_expect(mock, "a", mock_stub, param_type, a_params, param_len);
+	mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+        mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+	mock->do_expect(mock, "b", mock_stub, param_type, b_params, param_len);
+
+        mock_validate_expectations(mock);
+}
+
 void *do_mocked_fail(struct mock_action *this, const void **params, int len)
 {
 	static const int ret;
@@ -672,7 +820,13 @@ static struct test_case mock_test_cases[] = {
 	TEST_CASE(mock_test_in_sequence_bac_success),
 	TEST_CASE(mock_test_in_sequence_no_a_fail),
         TEST_CASE(mock_test_in_sequence_retire_on_saturation),
-	{},
+        TEST_CASE(mock_test_atleast),
+        TEST_CASE(mock_test_atleast_fail),
+        TEST_CASE(mock_test_atmost),
+        TEST_CASE(mock_test_atmost_fail),
+        TEST_CASE(mock_test_between),
+        TEST_CASE(mock_test_between_fail),
+        {},
 };
 
 static struct test_module mock_test_module = {

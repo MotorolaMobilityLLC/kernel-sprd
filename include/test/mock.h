@@ -292,6 +292,62 @@ static inline struct mock_expectation *Times(
 }
 
 /**
+ * AtLeast() - sets the minimum number of times a method is expected to be
+ *	called with matching parameters
+ * @times: the minimum number of times expected
+ * @expectation: the expectation to set
+ *
+ * Return:
+ * the same &struct mock_expectation passed in
+ */
+static inline struct mock_expectation *AtLeast(
+        int times,
+	struct mock_expectation *expectation)
+{
+	expectation->min_calls_expected = times;
+	expectation->max_calls_expected = INT_MAX;
+	return expectation;
+}
+
+/**
+ * AtMost() - sets the maximum number of times a method is expected to be
+ *	called with matching parameters
+ * @times: the maximum number of times expected
+ * @expectation: the expectation to set
+ *
+ * Return:
+ * the same &struct mock_expectation passed in
+ */
+static inline struct mock_expectation *AtMost(
+        int times,
+	struct mock_expectation *expectation)
+{
+	expectation->min_calls_expected = 0;
+	expectation->max_calls_expected = times;
+	return expectation;
+}
+
+/**
+ * Between() - sets the minimum and maximum number of times a method is
+ *	expected to be called with matching parameters
+ * @min_times: the minimum number of times expected
+ * @max_times: the maximum number of times expected
+ * @expectation: the expectation to set
+ *
+ * Return:
+ * the same &struct mock_expectation passed in
+ */
+static inline struct mock_expectation *Between(
+        int min_times,
+        int max_times,
+	struct mock_expectation *expectation)
+{
+	expectation->min_calls_expected = min_times;
+	expectation->max_calls_expected = max_times;
+	return expectation;
+}
+
+/**
  * Never() - alias for Times(0)
  * @expectation: the expectation to set
  *
