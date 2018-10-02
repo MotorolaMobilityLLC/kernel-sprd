@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import unittest
+from unittest import mock
 
 import tempfile, shutil # Handling test_tmpdir
 
@@ -159,6 +160,52 @@ class KUnitParserTest(unittest.TestCase):
 			'Before timing out: 3 tests run. 0 failed. 0 crashed.',
 			result)
 		file.close()
+
+class StrContains(str):
+	def __eq__(self, other):
+		return self in other
+
+class KUnitMainTest(unittest.TestCase):
+	def setUp(self):
+		self.print_patch = mock.patch('builtins.print')
+		self.print_mock = self.print_patch.start()
+		self.linux_source_mock = mock.Mock()
+		self.linux_source_mock.build_reconfig = mock.Mock()
+		self.linux_source_mock.run_kernel = mock.Mock(return_value=[
+				'console 0 enabled',
+				'List of all partitions:'])
+
+	def tearDown(self):
+		self.print_patch.stop()
+
+	def test_run_passes_args_pass(self):
+		kunit.main(['run'], self.linux_source_mock)
+		assert self.linux_source_mock.build_reconfig.call_count == 1
+		assert self.linux_source_mock.run_kernel.call_count == 1
+		self.print_mock.assert_any_call(StrContains('Testing complete.'))
+
+	def test_run_passes_args_fail(self):
+		self.linux_source_mock.run_kernel = mock.Mock(return_value=[])
+		kunit.main(['run'], self.linux_source_mock)
+		assert self.linux_source_mock.build_reconfig.call_count == 1
+		assert self.linux_source_mock.run_kernel.call_count == 1
+		self.print_mock.assert_any_call(StrContains('Before the crash:'))
+
+	def test_run_raw_output(self):
+		self.linux_source_mock.run_kernel = mock.Mock(return_value=[])
+		kunit.main(['run', '--raw_output'], self.linux_source_mock)
+		assert self.linux_source_mock.build_reconfig.call_count == 1
+		assert self.linux_source_mock.run_kernel.call_count == 1
+		for kall in self.print_mock.call_args_list:
+			assert kall != mock.call(StrContains('Testing complete.'))
+			assert kall != mock.call(StrContains('Before the crash:'))
+
+	def test_run_timeout(self):
+		timeout = 3453
+		kunit.main(['run', '--timeout', str(timeout)], self.linux_source_mock)
+		assert self.linux_source_mock.build_reconfig.call_count == 1
+		self.linux_source_mock.run_kernel.assert_called_once_with(timeout=timeout)
+		self.print_mock.assert_any_call(StrContains('Testing complete.'))
 
 if __name__ == '__main__':
 	unittest.main()

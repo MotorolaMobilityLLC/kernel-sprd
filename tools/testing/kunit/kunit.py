@@ -12,20 +12,7 @@ import kunit_config
 import kunit_kernel
 import kunit_parser
 
-parser = argparse.ArgumentParser(description='Runs KUnit tests.')
-
-parser.add_argument('--raw_output', help='don\'t format output from kernel',
-		    action='store_true')
-
-parser.add_argument('--timeout', help='maximum number of seconds to allow for '
-		    'all tests to run. This does not include time taken to '
-		    'build the tests.', type=int, default=300,
-		    metavar='timeout')
-
-cli_args = parser.parse_args()
-
-def main(linux):
-
+def run_tests(cli_args, linux):
 	config_start = time.time()
 	success = linux.build_reconfig()
 	config_end = time.time()
@@ -49,16 +36,43 @@ def main(linux):
 	else:
 		for line in kunit_parser.parse_run_tests(
 			kunit_parser.isolate_kunit_output(
-				linux.run_kernel(timeout=cli_args.timeout))):
+				linux.run_kernel(
+					timeout=cli_args.timeout))):
 			print(line)
 
 	test_end = time.time()
 
 	print(kunit_parser.timestamp((
 		'Elapsed time: %.3fs total, %.3fs configuring, %.3fs ' +
-		'building, %.3fs running.\n') % (test_end - config_start,
-		config_end - config_start, build_end - build_start,
-		test_end - test_start)))
+		'building, %.3fs running.\n') % (
+				test_end - config_start,
+				config_end - config_start,
+				build_end - build_start,
+				test_end - test_start)))
+
+def main(argv, linux=kunit_kernel.LinuxSourceTree()):
+	parser = argparse.ArgumentParser(
+			description='Helps writing and running KUnit tests.')
+	subparser = parser.add_subparsers(dest='subcommand')
+
+	run_parser = subparser.add_parser('run', help='Runs KUnit tests.')
+	run_parser.add_argument('--raw_output', help='don\'t format output from kernel',
+				action='store_true')
+
+	run_parser.add_argument('--timeout',
+				help='maximum number of seconds to allow for all tests '
+				'to run. This does not include time taken to build the '
+				'tests.',
+				type=int,
+				default=300,
+				metavar='timeout')
+
+	cli_args = parser.parse_args(argv)
+
+	if cli_args.subcommand == 'run':
+		run_tests(cli_args, linux)
+	else:
+		parser.print_help()
 
 if __name__ == '__main__':
-	main(kunit_kernel.LinuxSourceTree())
+	main(sys.argv[1:])
