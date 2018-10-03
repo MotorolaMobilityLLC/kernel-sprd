@@ -44,6 +44,13 @@ enum {
 	CMD_CODE_MAX,
 };
 
+enum {
+	SPRD_DSI_MODE_CMD = 0,
+	SPRD_DSI_MODE_VIDEO_BURST,
+	SPRD_DSI_MODE_VIDEO_SYNC_PULSE,
+	SPRD_DSI_MODE_VIDEO_SYNC_EVENT,
+};
+
 struct dsi_cmd_desc {
 	uint8_t data_type;
 	uint8_t wait;
@@ -234,19 +241,19 @@ static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 	}
 	info->of_node = lcd_node;
 
-	if (of_property_read_bool(lcd_node, "sprd,dsi-command-mode"))
-		info->mode_flags = 0;
-	else if (of_property_read_bool(lcd_node, "sprd,dsi-video-burst-mode"))
-		info->mode_flags = MIPI_DSI_MODE_VIDEO |
-				   MIPI_DSI_MODE_VIDEO_BURST;
-	else if (of_property_read_bool(lcd_node,
-			"sprd,dsi-video-non-burst-sync-event-mode"))
-		info->mode_flags = MIPI_DSI_MODE_VIDEO;
-	else if (of_property_read_bool(lcd_node,
-			"sprd,dsi-video-non-burst-sync-pulse-mode"))
-		info->mode_flags = MIPI_DSI_MODE_VIDEO |
-				   MIPI_DSI_MODE_VIDEO_SYNC_PULSE;
-	else {
+	rc = of_property_read_u32(lcd_node, "sprd,dsi-work-mode", &val);
+	if (!rc) {
+		if (val == SPRD_DSI_MODE_CMD)
+			info->mode_flags = 0;
+		else if (val == SPRD_DSI_MODE_VIDEO_BURST)
+			info->mode_flags = MIPI_DSI_MODE_VIDEO |
+					   MIPI_DSI_MODE_VIDEO_BURST;
+		else if (val == SPRD_DSI_MODE_VIDEO_SYNC_PULSE)
+			info->mode_flags = MIPI_DSI_MODE_VIDEO |
+					   MIPI_DSI_MODE_VIDEO_SYNC_PULSE;
+		else if (val == SPRD_DSI_MODE_VIDEO_SYNC_EVENT)
+			info->mode_flags = MIPI_DSI_MODE_VIDEO;
+	} else {
 		DRM_ERROR("dsi work mode is not found! use video mode\n");
 		info->mode_flags = MIPI_DSI_MODE_VIDEO |
 				   MIPI_DSI_MODE_VIDEO_BURST;
