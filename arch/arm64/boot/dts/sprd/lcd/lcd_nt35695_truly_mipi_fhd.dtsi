@@ -9,7 +9,7 @@
 / { lcds {
 	lcd_nt35695_truly_mipi_fhd: lcd_nt35695_truly_mipi_fhd {
 
-		sprd,dsi-video-burst-mode;
+		sprd,dsi-work-mode = <1>; /* video burst mode*/
 		sprd,dsi-lane-number = <4>;
 		sprd,dsi-color-format = "rgb888";
 
