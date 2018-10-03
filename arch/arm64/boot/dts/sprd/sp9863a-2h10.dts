@@ -106,8 +106,6 @@
 		#size-cells = <0>;
 		reg = <0>;
 
-		sprd,force-attached = "lcd_nt35532_truly_mipi_fhd";
-
 		port {
 			reg = <1>;
 			panel_in: endpoint {
