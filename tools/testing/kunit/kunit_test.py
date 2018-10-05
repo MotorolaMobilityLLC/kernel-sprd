@@ -207,5 +207,25 @@ class KUnitMainTest(unittest.TestCase):
 		self.linux_source_mock.run_kernel.assert_called_once_with(timeout=timeout)
 		self.print_mock.assert_any_call(StrContains('Testing complete.'))
 
+	def test_new_no_namespace(self):
+		kunit.main(['new', '--path', 'drivers/i2c/busses/i2c-aspeed.c'], self.linux_source_mock)
+		assert self.linux_source_mock.build_reconfig.call_count == 0
+		assert self.linux_source_mock.run_kernel.call_count == 0
+		self.print_mock.assert_any_call(StrContains('i2c_aspeed'))
+		for kall in self.print_mock.call_args_list:
+			assert kall != mock.call(StrContains('aspeed_i2c'))
+
+	def test_new_with_namespace(self):
+		namespace_prefix = 'aspeed_i2c'
+		kunit.main([
+				'new',
+				'--path', 'drivers/i2c/busses/i2c-aspeed.c',
+				'--namespace_prefix', namespace_prefix],
+			   self.linux_source_mock)
+		assert self.linux_source_mock.build_reconfig.call_count == 0
+		assert self.linux_source_mock.run_kernel.call_count == 0
+		self.print_mock.assert_any_call(StrContains('i2c-aspeed'))
+		self.print_mock.assert_any_call(StrContains('aspeed_i2c'))
+
 if __name__ == '__main__':
 	unittest.main()

@@ -10,6 +10,7 @@ import time
 
 import kunit_config
 import kunit_kernel
+import kunit_new_template
 import kunit_parser
 
 def run_tests(cli_args, linux):
@@ -50,6 +51,11 @@ def run_tests(cli_args, linux):
 				build_end - build_start,
 				test_end - test_start)))
 
+def print_test_skeletons(cli_args):
+	kunit_new_template.create_skeletons_from_path(
+			cli_args.path,
+			namespace_prefix=cli_args.namespace_prefix)
+
 def main(argv, linux=kunit_kernel.LinuxSourceTree()):
 	parser = argparse.ArgumentParser(
 			description='Helps writing and running KUnit tests.')
@@ -67,9 +73,22 @@ def main(argv, linux=kunit_kernel.LinuxSourceTree()):
 				default=300,
 				metavar='timeout')
 
+	new_parser = subparser.add_parser(
+			'new',
+			help='Prints out boilerplate for writing new tests.')
+	new_parser.add_argument('--path',
+				help='Path of source file to be tested.',
+				type=str,
+				required=True)
+	new_parser.add_argument('--namespace_prefix',
+				help='Namespace of the code to be tested.',
+				type=str)
+
 	cli_args = parser.parse_args(argv)
 
-	if cli_args.subcommand == 'run':
+	if cli_args.subcommand == 'new':
+		print_test_skeletons(cli_args)
+	elif cli_args.subcommand == 'run':
 		run_tests(cli_args, linux)
 	else:
 		parser.print_help()
