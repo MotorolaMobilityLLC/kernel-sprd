@@ -54,7 +54,8 @@ def run_tests(cli_args, linux):
 def print_test_skeletons(cli_args):
 	kunit_new_template.create_skeletons_from_path(
 			cli_args.path,
-			namespace_prefix=cli_args.namespace_prefix)
+			namespace_prefix=cli_args.namespace_prefix,
+			print_test_only=cli_args.print_test_only)
 
 def main(argv, linux=kunit_kernel.LinuxSourceTree()):
 	parser = argparse.ArgumentParser(
@@ -83,6 +84,10 @@ def main(argv, linux=kunit_kernel.LinuxSourceTree()):
 	new_parser.add_argument('--namespace_prefix',
 				help='Namespace of the code to be tested.',
 				type=str)
+	new_parser.add_argument('--print_test_only',
+				help='Skip Kconfig and Makefile while printing sample '
+				'test.',
+				action='store_true')
 
 	cli_args = parser.parse_args(argv)
 

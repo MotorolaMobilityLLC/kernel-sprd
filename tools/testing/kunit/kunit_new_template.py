@@ -48,7 +48,7 @@ def namespace_prefix_from_path(path):
 	file_name = os.path.basename(path)
 	return os.path.splitext(file_name)
 
-def create_skeletons_from_path(path, namespace_prefix=None):
+def create_skeletons_from_path(path, namespace_prefix=None, print_test_only=False):
 	dir_name, file_name = os.path.split(path)
 	file_prefix, _ = os.path.splitext(file_name)
 	test_path = os.path.join(dir_name, file_prefix + '-test.c')
@@ -58,6 +58,8 @@ def create_skeletons_from_path(path, namespace_prefix=None):
 	skeletons = create_skeletons(namespace_prefix, test_object_file)
 	print('### In ' + test_path)
 	print(skeletons.test_skeleton)
+	if print_test_only:
+		return
 	print('### In Kconfig')
 	print(skeletons.kconfig_skeleton)
 	print('### In Makefile')
