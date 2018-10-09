@@ -160,6 +160,8 @@ sprd_plane_atomic_duplicate_state(struct drm_plane *plane)
 
 	WARN_ON(s->state.plane != plane);
 
+	s->alpha = 255;
+
 	return &s->state;
 }
 
