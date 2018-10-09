@@ -1,0 +1,228 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Unisoc Sharkl5 platform DTS file
+ *
+ * Copyright (C) 2018, Unisoc Communications Inc.
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+
+#include "ums510.dtsi"
+#include "ums510-common.dtsi"
+#include "sc2730.dtsi"
+#include "lcd/lcd_nt35597_boe_mipi_hd.dtsi"
+
+/ {
+	model = "Unisoc UMS510 1H10 board";
+
+	compatible = "sprd,ums510";
+
+	sprd,sc-id = <510 1 0x20000>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x80000000>;
+	};
+
+	chosen {
+		stdout-path = &uart1;
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 maxcpus=1 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 rw rootwait androidboot.hardware=ums510_1h10 androidboot.selinux=permissive";
+	};
+
+	reserved_memory: reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		smem_reserved: sipc-mem@87800000{
+			reg = <0x0 0x87800000 0x0 0x00800000>;
+		};
+
+		cp_reserved: cp-modem@89600000 {
+			reg = <0x0 0x89600000 0x0 0x05A00000>;
+		};
+
+		/* Only used for iq, will be removed in normal mode by uboot */
+		iq_reserved: iq-mem@98100000{
+			compatible = "sprd,iq-mem";
+			reg = <0x0 0x98100000 0x0 0x4000000>;
+		};
+
+		fd_reserved: face-mem@be5c0000{
+			reg = <0x0 0xbe5c0000 0x0 0x00a00000>;
+		};
+	};
+
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		key-volumedown {
+			label = "Volume Down Key";
+			linux,code = <KEY_VOLUMEDOWN>;
+			gpios = <&eic_debounce 2 GPIO_ACTIVE_LOW>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+
+		key-volumeup {
+			label = "Volume Up Key";
+			linux,code = <KEY_VOLUMEUP>;
+			gpios = <&pmic_eic 10 GPIO_ACTIVE_HIGH>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+
+		key-power {
+			label = "Power Key";
+			linux,code = <KEY_POWER>;
+			gpios = <&pmic_eic 1 GPIO_ACTIVE_HIGH>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+	};
+
+	ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		heap@1 {
+			reg = <1>;
+			label = "carveout_mm";
+			type = <2>;
+		};
+
+		heap@2 {
+			reg = <2>;
+			label = "carveout_overlay";
+			type = <2>;
+			memory-region = <&overlay_reserved>;
+		};
+
+		heap@3 {
+			reg = <3>;
+			label = "carveout_fb";
+			type = <2>;
+			memory-region = <&fb_reserved>;
+		};
+	};
+
+	sprd-wlan {
+		compatible = "sprd,sc2355-wifi";
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&i2c3 {
+	status = "okay";
+
+	adaptive-touchscreen@38 {
+		compatible = "adaptive-touchscreen";
+		reg = <0x38>;
+		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
+			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		controller = "focaltech,FT5436";
+		virtualkeys = <580 60 1320 60 45
+			172 360 1320 60 45
+			158 600 1320 60 45>;
+		private-data {
+			a8 = /bits/ 8 <0x5a>;
+		};
+	};
+};
+
+&dpu {
+	status = "okay";
+};
+
+&iommu_dispc {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	panel {
+		compatible = "sprd,generic-mipi-panel";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
+
+		sprd,force-attached = "lcd_nt35597_boe_mipi_hd";
+
+		port {
+			reg = <1>;
+			panel_in: endpoint {
+				remote-endpoint = <&dphy_out>;
+			};
+		};
+	};
+};
+
+&lcd_nt35597_hd_timing0 {
+	clock-frequency = <6500000>;
+};
+
+&dphy {
+	status = "okay";
+};
+
+&sdio0 {
+	bus-width = <4>;
+	sprd,name = "sdio_sd";
+	sprd,sdio-adma;
+	no-sdio;
+	no-mmc;
+	status = "disabled";
+};
+
+&sdio1 {
+	bus-width = <4>;
+	sprd,name = "sdio_wifi";
+	sprd,sdio-adma;
+	no-sd;
+	no-mmc;
+	status = "disabled";
+};
+
+&sdio2 {
+	bus-width = <4>;
+	sprd,name = "sdio_wifi";
+	sprd,sdio-adma;
+	no-sd;
+	no-mmc;
+	status = "disabled";
+};
+
+&sdio3 {
+	bus-width = <8>;
+	non-removable;
+	cap-mmc-hw-reset;
+	sprd,name = "sdio_emmc";
+	no-sdio;
+	no-sd;
+	status = "okay";
+};
