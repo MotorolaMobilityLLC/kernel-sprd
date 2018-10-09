@@ -22,7 +22,8 @@ dict_project={
         's9863a1h10_Tsc-userdebug'		: { 'path' : 'sprd-board-config/sharkl3/sp9863a_1h10/', },
 
 	#sharkl5
-	'ums510_haps_native-userdebug'		: { 'path' : 'sprd-board-config/ums510/ums510_haps/', },
+	'ums510_haps_native-userdebug'		: { 'path' : 'sprd-board-config/sharkl5/ums510_haps/', },
+	'ums510_1h10_native-userdebug'		: { 'path' : 'sprd-board-config/sharkl5/ums510_1h10/', },
 
 }
 
