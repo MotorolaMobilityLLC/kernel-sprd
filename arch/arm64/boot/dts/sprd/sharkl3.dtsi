@@ -282,6 +282,7 @@
 				reg = <0x63000000 0x1000>;
 				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
+				iommus = <&iommu_dispc>;
 
 				dma-coherent;
 
