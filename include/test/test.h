@@ -187,7 +187,14 @@ int test_init_test(struct test *test, const char *name);
 
 int test_run_tests(struct test_module *module);
 
+#if IS_ENABLED(CONFIG_TEST)
 int test_executor_init(void);
+#else
+static inline int test_executor_init(void)
+{
+	return 0;
+}
+#endif
 
 void test_install_initcall(struct test_initcall *initcall);
 
