@@ -45,6 +45,12 @@
 			reg = <0 0x323b0000 0 0x10000>;
 		};
 
+		ai_apb_regs: syscon@6fd00000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x6fd00000 0 0x4000>;
+		};
+
 		ap_apb_regs: syscon@71000000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
@@ -238,6 +244,33 @@
 				reg = <0 0x71300000 0 0x1000>;
 				interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
+			};
+		};
+
+		ap-axi {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			ipu0: ipu@6fc00000 {
+				compatible = "img,ax21xx-nna";
+				reg = <0 0x6fc00000 0 0x10000>;
+				interrupts = <GIC_SPI 132 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "ai_powervr";
+			};
+			ipu1: ipu@6fe00000 {
+				compatible = "cambricon,1h16-ipu";
+				reg = <0 0x6fd08000 0 0x80>,
+					<0 0x6fe00000 0 0x1000>,
+					<0 0x6fe40000 0 0x1000>,
+					<0 0x6ff00000 0 0x1000>;
+				reg-names = "ai_iommu", "ipu_regs",
+					"ipu_timer", "boot_iram";
+				interrupts = <GIC_SPI 133 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 134 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "ai_cambricon", "ai_mmu";
+				iommus = <&iommu_ai>;
 			};
 		};
 	};
