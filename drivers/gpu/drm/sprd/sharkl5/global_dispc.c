@@ -176,12 +176,12 @@ static int dpu_clk_disable(struct dpu_context *ctx)
 	clk_disable_unprepare(clk_dpu_core);
 
 	list_for_each_entry(clk_ctx, &dpi_clk_list, head) {
-		if (!strcmp(clk_ctx->name, "clk_src_96m"))
+		if (clk_ctx->name && !strcmp(clk_ctx->name, "clk_src_96m"))
 			clk_set_parent(clk_dpu_dpi, clk_ctx->source);
 	}
 
 	list_for_each_entry(clk_ctx, &dpu_clk_list, head) {
-		if (!strcmp(clk_ctx->name, "clk_src_153m6"))
+		if (clk_ctx->name && !strcmp(clk_ctx->name, "clk_src_153m6"))
 			clk_set_parent(clk_dpu_core, clk_ctx->source);
 	}
 

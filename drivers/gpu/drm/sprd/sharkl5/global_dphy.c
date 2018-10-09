@@ -32,8 +32,10 @@ static int dphy_glb_parse_dt(struct dphy_context *ctx,
 	int ret;
 
 	ctx_enable.regmap = syscon_regmap_lookup_by_name(np, "enable");
-	if (IS_ERR(ctx_enable.regmap))
+	if (IS_ERR(ctx_enable.regmap)) {
 		pr_warn("failed to map dphy glb reg: enable\n");
+		return PTR_ERR(ctx_enable.regmap);
+	}
 
 	ret = syscon_get_args_by_name(np, "enable", 2, syscon_args);
 	if (ret == 2) {
@@ -43,8 +45,10 @@ static int dphy_glb_parse_dt(struct dphy_context *ctx,
 		pr_warn("failed to parse dphy glb reg: enable\n");
 
 	ctx_power.regmap = syscon_regmap_lookup_by_name(np, "power");
-	if (IS_ERR(ctx_power.regmap))
+	if (IS_ERR(ctx_power.regmap)) {
 		pr_warn("failed to map dphy glb reg: power\n");
+		return PTR_ERR(ctx_power.regmap);
+	}
 
 	ret = syscon_get_args_by_name(np, "power", 2, syscon_args);
 	if (ret == 2) {
