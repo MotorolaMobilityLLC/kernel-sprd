@@ -297,6 +297,10 @@ static int alarmtimer_suspend(struct device *dev)
 	now = rtc_tm_to_ktime(tm);
 	now = ktime_add(now, min);
 
+	tm = rtc_ktime_to_tm(now);
+	pr_info("Suspend alarm: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900,
+		tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+
 	/* Set alarm, if in the past reject suspend briefly to handle */
 	ret = rtc_timer_start(rtc, &rtctimer, now, 0);
 	if (ret < 0)
@@ -314,6 +318,74 @@ static int alarmtimer_resume(struct device *dev)
 	return 0;
 }
 
+void alarmtimer_shutdown(struct platform_device *pdev)
+{
+	ktime_t min = 0, early = ktime_set(120, 0), now;
+	int ret, alarm_type = ALARM_NUMTYPE, i;
+	struct rtc_device *rtc;
+	struct rtc_wkalrm alarm;
+	unsigned long flags;
+	struct rtc_time tm;
+
+	rtc = alarmtimer_get_rtcdev();
+	/* If we have no rtcdev, just return */
+	if (!rtc)
+		return;
+
+	/* Find the soonest timer to expire */
+	for (i = ALARM_POWERON; i < ALARM_NUMTYPE; i++) {
+		struct alarm_base *base = &alarm_bases[i];
+		struct timerqueue_node *next;
+		ktime_t delta;
+
+		spin_lock_irqsave(&base->lock, flags);
+		next = timerqueue_getnext(&base->timerqueue);
+		spin_unlock_irqrestore(&base->lock, flags);
+		if (!next)
+			continue;
+
+		delta = ktime_sub(next->expires, base->gettime());
+		if (i == ALARM_POWEROFF_ALARM &&
+		    ktime_compare(delta, early) <= 0) {
+			pr_info("Poweroff alarm is less than two minutes.\n");
+		} else if (!min || ktime_compare(delta, min) <= 0) {
+			min = delta;
+			alarm_type = i;
+		}
+	}
+
+	if (min == 0) {
+		pr_info("No poweroff alarm found\n");
+		alarm.enabled = 0;
+		ret = rtc_set_alarm(rtc, &alarm);
+		if (ret)
+			pr_err("Power off alarm setting error %d\n", ret);
+		return;
+	} else if (ktime_to_ms(min) < 10 * MSEC_PER_SEC) {
+		pr_warn("Don't need to set poweroff alarm due to less than 10s\n");
+		return;
+	}
+
+	/* Setup an rtc timer to fire that far in the future */
+	rtc_read_time(rtc, &tm);
+	now = rtc_tm_to_ktime(tm);
+	now = ktime_add(now, min);
+
+	if (alarm_type == ALARM_POWEROFF_ALARM)
+		now = ktime_sub(now, early);
+
+	tm = rtc_ktime_to_tm(now);
+	pr_info("Poweroff alarm: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900,
+		tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+	alarm.time = tm;
+	alarm.enabled = 1;
+
+	ret = rtc_set_alarm(rtc, &alarm);
+	if (ret < 0)
+		pr_err("Power off alarm setting error %d\n", ret);
+}
+
 #else
 static int alarmtimer_suspend(struct device *dev)
 {
@@ -323,6 +395,11 @@ static int alarmtimer_suspend(struct device *dev)
 static int alarmtimer_resume(struct device *dev)
 {
 	return 0;
+}
+
+void alarmtimer_shutdown(struct platform_device *pdev)
+{
+       return;
 }
 #endif
 
@@ -521,11 +598,25 @@ static void alarmtimer_freezerset(ktime_t absexp, enum alarmtimer_type type)
  */
 static enum alarmtimer_type clock2alarm(clockid_t clockid)
 {
-	if (clockid == CLOCK_REALTIME_ALARM)
+	switch (clockid) {
+	case CLOCK_REALTIME_ALARM:
 		return ALARM_REALTIME;
-	if (clockid == CLOCK_BOOTTIME_ALARM)
+
+	case CLOCK_BOOTTIME_ALARM:
 		return ALARM_BOOTTIME;
-	return -1;
+
+	case CLOCK_POWEROFF_WAKE:
+		return ALARM_POWEROFF;
+
+	case CLOCK_POWERON_WAKE:
+		return ALARM_POWERON;
+
+	case CLOCK_POWEROFF_ALARM:
+		return ALARM_POWEROFF_ALARM;
+
+	default:
+		return -1;
+	}
 }
 
 /**
@@ -852,7 +943,8 @@ static struct platform_driver alarmtimer_driver = {
 	.driver = {
 		.name = "alarmtimer",
 		.pm = &alarmtimer_pm_ops,
-	}
+	},
+	.shutdown = alarmtimer_shutdown,
 };
 
 /**
@@ -874,6 +966,12 @@ static int __init alarmtimer_init(void)
 	alarm_bases[ALARM_REALTIME].gettime = &ktime_get_real;
 	alarm_bases[ALARM_BOOTTIME].base_clockid = CLOCK_BOOTTIME;
 	alarm_bases[ALARM_BOOTTIME].gettime = &ktime_get_boottime;
+	alarm_bases[ALARM_POWEROFF].base_clockid = CLOCK_REALTIME;
+	alarm_bases[ALARM_POWEROFF].gettime = &ktime_get_real;
+	alarm_bases[ALARM_POWERON].base_clockid = CLOCK_REALTIME;
+	alarm_bases[ALARM_POWERON].gettime = &ktime_get_real;
+	alarm_bases[ALARM_POWEROFF_ALARM].base_clockid = CLOCK_REALTIME;
+	alarm_bases[ALARM_POWEROFF_ALARM].gettime = &ktime_get_real;
 	for (i = 0; i < ALARM_NUMTYPE; i++) {
 		timerqueue_init_head(&alarm_bases[i].timerqueue);
 		spin_lock_init(&alarm_bases[i].lock);
