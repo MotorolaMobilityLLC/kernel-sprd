@@ -5,8 +5,23 @@ import subprocess
 import os
 
 import kunit_config
+import kunit_parser
 
 KCONFIG_PATH = '.config'
+
+from collections import namedtuple
+
+ConfigResult = namedtuple('ConfigResult', ['status','info'])
+
+BuildResult = namedtuple('BuildResult', ['status','info'])
+
+class ConfigStatus(object):
+	SUCCESS = 'SUCCESS'
+	FAILURE = 'FAILURE'
+
+class BuildStatus(object):
+	SUCCESS = 'SUCCESS'
+	FAILURE = 'FAILURE'
 
 class ConfigError(Exception):
 	"""Represents an error trying to configure the Linux kernel."""
@@ -56,16 +71,22 @@ class LinuxSourceTreeOperations(object):
 		except subprocess.TimeoutExpired:
 			process.terminate()
 			timed_out = True
-		return process, timed_out
+		output, _ = process.communicate()
+		output = output.decode('ascii')
 
+		if timed_out:
+			output += kunit_parser.TIMED_OUT_LOG_ENTRY + '\n'
+
+		return output
 
 class LinuxSourceTree(object):
 	"""Represents a Linux kernel source tree with KUnit tests."""
 
-	def __init__(self):
-		self._kconfig = kunit_config.Kconfig()
-		self._kconfig.read_from_file('kunitconfig')
-		self._ops = LinuxSourceTreeOperations()
+	def __init__(self,
+			     kconfig_provider=kunit_config.KunitConfigProvider(),
+				 linux_build_operations=LinuxSourceTreeOperations()):
+		self._kconfig = kconfig_provider.get_kconfig()
+		self._ops = linux_build_operations
 
 	def clean(self):
 		try:
@@ -81,13 +102,14 @@ class LinuxSourceTree(object):
 			self._ops.make_olddefconfig()
 		except ConfigError as e:
 			logging.error(e)
-			return False
+			return ConfigResult(ConfigStatus.FAILURE, e.message)
 		validated_kconfig = kunit_config.Kconfig()
 		validated_kconfig.read_from_file(KCONFIG_PATH)
 		if not self._kconfig.is_subset_of(validated_kconfig):
-			logging.error('Provided Kconfig is not contained in validated .config!')
-			return False
-		return True
+			message = 'Provided Kconfig is not contained in validated .config!'
+			logging.error(message)
+			return ConfigResult(ConfigStatus.FAILURE, message)
+		return ConfigResult(ConfigStatus.SUCCESS, 'Build config!')
 
 	def build_reconfig(self):
 		"""Creates a new .config if it is not a subset of the kunitconfig."""
@@ -99,7 +121,7 @@ class LinuxSourceTree(object):
 				os.remove(KCONFIG_PATH)
 				return self.build_config()
 			else:
-				return True
+				return ConfigResult(ConfigStatus.SUCCESS, 'Already built.')
 		else:
 			print('Generating .config ...')
 			return self.build_config()
@@ -110,21 +132,19 @@ class LinuxSourceTree(object):
 			self._ops.make()
 		except (ConfigError, BuildError) as e:
 			logging.error(e)
-			return False
+			return BuildResult(BuildStatus.FAILURE, e.message)
 		used_kconfig = kunit_config.Kconfig()
 		used_kconfig.read_from_file(KCONFIG_PATH)
 		if not self._kconfig.is_subset_of(used_kconfig):
-			logging.error('Provided Kconfig is not contained in final config!')
-			return False
-		return True
+			message = 'Provided Kconfig is not contained in final config!'
+			logging.error(message)
+			return BuildResult(BuildStatus.FAILURE, message)
+		return BuildResult(BuildStatus.SUCCESS, 'Built kernel!')
 
 	def run_kernel(self, args=[], timeout=None):
 		args.extend(['mem=256M'])
-		process, timed_out = self._ops.linux_bin(args, timeout)
+		raw_log = self._ops.linux_bin(args, timeout)
 		with open('test.log', 'w') as f:
-			for line in process.stdout:
-				f.write(line.rstrip().decode('ascii') + '\n')
-				yield line.rstrip().decode('ascii')
-			if timed_out:
-				f.write('Timeout Reached - Process Terminated\n')
-				yield 'Timeout Reached - Process Terminated\n'
+			for line in raw_log.split('\n'):
+				f.write(line.rstrip() + '\n')
+				yield line.rstrip()

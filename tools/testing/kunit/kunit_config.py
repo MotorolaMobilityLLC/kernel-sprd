@@ -58,3 +58,10 @@ class Kconfig(object):
 	def read_from_file(self, path: str) -> None:
 		with open(path, 'r') as f:
 			self.parse_from_string(f.read())
+
+class KunitConfigProvider(object):
+
+  def get_kconfig(self) -> Kconfig:
+    kconfig = Kconfig()
+    kconfig.read_from_file('kunitconfig')
+    return kconfig

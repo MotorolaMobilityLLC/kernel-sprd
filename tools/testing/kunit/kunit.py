@@ -13,34 +13,47 @@ import kunit_kernel
 import kunit_new_template
 import kunit_parser
 
-def run_tests(cli_args, linux):
+from collections import namedtuple
+
+KunitRequest = namedtuple('KunitRequest', ['raw_output','timeout'])
+
+KunitResult = namedtuple('KunitResult', ['status','result'])
+
+class KunitStatus(object):
+	SUCCESS = 'SUCCESS'
+	CONFIG_FAILURE = 'CONFIG_FAILURE'
+	BUILD_FAILURE = 'BUILD_FAILURE'
+	TEST_FAILURE = 'TEST_FAILURE'
+
+def run_tests(linux: kunit_kernel.LinuxSourceTree,
+	      request: KunitRequest) -> KunitResult:
 	config_start = time.time()
-	success = linux.build_reconfig()
+	config_result = linux.build_reconfig()
 	config_end = time.time()
-	if not success:
-		return
+	if config_result.status != kunit_kernel.ConfigStatus.SUCCESS:
+		return KunitResult(KunitStatus.CONFIG_FAILURE, config_result)
 
 	print(kunit_parser.timestamp('Building KUnit Kernel ...'))
 
 	build_start = time.time()
-	success = linux.build_um_kernel()
+	build_result = linux.build_um_kernel()
 	build_end = time.time()
-	if not success:
-		return
+	if build_result.status != kunit_kernel.BuildStatus.SUCCESS:
+		return KunitResult(KunitStatus.BUILD_FAILURE, build_result)
 
 	print(kunit_parser.timestamp('Starting KUnit Kernel ...'))
 	test_start = time.time()
 
-	if cli_args.raw_output:
+	test_result = kunit_parser.TestResult(kunit_parser.TestStatus.SUCCESS,
+					      [],
+					      'Tests not Parsed.')
+	if request.raw_output:
 		kunit_parser.raw_output(
-			linux.run_kernel(timeout=cli_args.timeout))
+			linux.run_kernel(timeout=request.timeout))
 	else:
-		for line in kunit_parser.parse_run_tests(
-			kunit_parser.isolate_kunit_output(
-				linux.run_kernel(
-					timeout=cli_args.timeout))):
-			print(line)
-
+		test_result = kunit_parser.parse_run_tests(
+				kunit_parser.isolate_kunit_output(
+				  linux.run_kernel(timeout=request.timeout)))
 	test_end = time.time()
 
 	print(kunit_parser.timestamp((
@@ -51,13 +64,18 @@ def run_tests(cli_args, linux):
 				build_end - build_start,
 				test_end - test_start)))
 
+	if test_result.status != kunit_parser.TestStatus.SUCCESS:
+		return KunitResult(KunitStatus.TEST_FAILURE, test_result)
+	else:
+		return KunitResult(KunitStatus.SUCCESS, test_result)
+
 def print_test_skeletons(cli_args):
 	kunit_new_template.create_skeletons_from_path(
 			cli_args.path,
 			namespace_prefix=cli_args.namespace_prefix,
 			print_test_only=cli_args.print_test_only)
 
-def main(argv, linux=kunit_kernel.LinuxSourceTree()):
+def main(argv, linux):
 	parser = argparse.ArgumentParser(
 			description='Helps writing and running KUnit tests.')
 	subparser = parser.add_subparsers(dest='subcommand')
@@ -94,9 +112,10 @@ def main(argv, linux=kunit_kernel.LinuxSourceTree()):
 	if cli_args.subcommand == 'new':
 		print_test_skeletons(cli_args)
 	elif cli_args.subcommand == 'run':
-		run_tests(cli_args, linux)
+		request = KunitRequest(cli_args.raw_output, cli_args.timeout)
+		run_tests(linux, request)
 	else:
 		parser.print_help()
 
 if __name__ == '__main__':
-	main(sys.argv[1:])
+	main(sys.argv[1:], kunit_kernel.LinuxSourceTree())

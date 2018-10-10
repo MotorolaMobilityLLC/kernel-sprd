@@ -9,6 +9,7 @@ import os
 
 import kunit_config
 import kunit_parser
+import kunit_kernel
 import kunit
 
 test_tmpdir = ''
@@ -104,9 +105,9 @@ class KUnitParserTest(unittest.TestCase):
 			'test_data/test_is_test_passed-all_passed.log')
 		file = open(all_passed_log)
 		result = kunit_parser.parse_run_tests(file.readlines())
-		self.assertContains(
-			'Testing complete. 3 tests run. 0 failed. 0 crashed.',
-			result)
+		self.assertEqual(
+			kunit_parser.TestStatus.SUCCESS,
+			result.status)
 		file.close()
 
 	def test_parse_failed_test_log(self):
@@ -114,9 +115,9 @@ class KUnitParserTest(unittest.TestCase):
 			'test_data/test_is_test_passed-failure.log')
 		file = open(failed_log)
 		result = kunit_parser.parse_run_tests(file.readlines())
-		self.assertContains(
-			'Testing complete. 3 tests run. 1 failed. 0 crashed.',
-			result)
+		self.assertEqual(
+			kunit_parser.TestStatus.FAILURE,
+			result.status)
 		file.close()
 
 	def test_broken_test(self):
@@ -125,9 +126,9 @@ class KUnitParserTest(unittest.TestCase):
 		file = open(broken_log)
 		result = kunit_parser.parse_run_tests(
 			kunit_parser.isolate_kunit_output(file.readlines()))
-		self.assertContains(
-			'Before the crash: 3 tests run. 0 failed. 0 crashed.',
-			result)
+		self.assertEqual(
+			kunit_parser.TestStatus.KERNEL_CRASHED,
+			result.status)
 		file.close()
 
 	def test_no_tests(self):
@@ -136,9 +137,10 @@ class KUnitParserTest(unittest.TestCase):
 		file = open(empty_log)
 		result = kunit_parser.parse_run_tests(
 			kunit_parser.isolate_kunit_output(file.readlines()))
-		self.assertContains(
-			'Testing complete. 0 tests run. 0 failed. 0 crashed.',
-			result)
+		self.assertEqual(0, len(result.modules))
+		self.assertEqual(
+			kunit_parser.TestStatus.SUCCESS,
+			result.status)
 		file.close()
 
 	def test_crashed_test(self):
@@ -146,9 +148,9 @@ class KUnitParserTest(unittest.TestCase):
 			'test_data/test_is_test_passed-crash.log')
 		file = open(crashed_log)
 		result = kunit_parser.parse_run_tests(file.readlines())
-		self.assertContains(
-			'Testing complete. 3 tests run. 0 failed. 1 crashed.',
-			result)
+		self.assertEqual(
+			kunit_parser.TestStatus.TEST_CRASHED,
+			result.status)
 		file.close()
 
 	def test_timed_out_test(self):
@@ -156,9 +158,9 @@ class KUnitParserTest(unittest.TestCase):
 			'test_data/test_is_test_passed-timed_out.log')
 		file = open(timed_out_log)
 		result = kunit_parser.parse_run_tests(file.readlines())
-		self.assertContains(
-			'Before timing out: 3 tests run. 0 failed. 0 crashed.',
-			result)
+		self.assertEqual(
+			kunit_parser.TestStatus.TIMED_OUT,
+			result.status)
 		file.close()
 
 class StrContains(str):
@@ -170,7 +172,12 @@ class KUnitMainTest(unittest.TestCase):
 		self.print_patch = mock.patch('builtins.print')
 		self.print_mock = self.print_patch.start()
 		self.linux_source_mock = mock.Mock()
-		self.linux_source_mock.build_reconfig = mock.Mock()
+		self.linux_source_mock.build_reconfig = mock.Mock(
+			return_value=kunit_kernel.ConfigResult(
+							kunit_kernel.ConfigStatus.SUCCESS, ''))
+		self.linux_source_mock.build_um_kernel = mock.Mock(
+			return_value=kunit_kernel.BuildResult(
+							kunit_kernel.BuildStatus.SUCCESS, ''))
 		self.linux_source_mock.run_kernel = mock.Mock(return_value=[
 				'console 0 enabled',
 				'List of all partitions:'])
