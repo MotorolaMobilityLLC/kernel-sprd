@@ -13,9 +13,6 @@ list_configs=[]
 flag_modify=0
 tool_name=sys.argv[0][2:-3]
 
-all_plat="sharkl3,sharkle,sharkle32,sharklefp,pike2"
-all_arch="arm,arm64"
-
 d_defconfig_path={
         'pike2':{'defconfig':kernel_path+'arch/arm/configs/sprd_pike2_defconfig', 'diffconfig':kernel_path+'sprd-diffconfig/pike2'},
         'sharkle32':{'defconfig':kernel_path+'arch/arm/configs/sprd_sharkle_defconfig', 'diffconfig':kernel_path+'sprd-diffconfig/sharkle'},
@@ -241,18 +238,13 @@ def help_info():
     print("Project must be one or more of {}".format(list(d_defconfig_path)))
 
 def aiaiai_check_parameters2():
+    print("========BEGIN========")
     old_path=os.getcwd()
     d_del_config={}
     d_add_config={}
 
     #get the kernel path
     kernel_path=old_path[:-13]
-
-    print("========BEGIN==========")
-    print("EMERG: ONLY FOR TEST.")
-    print("======== END ==========")
-
-#    os.chdir(kernel_path)
 
     os.system("git show HEAD -1 > lastest.diff")
 
@@ -290,17 +282,12 @@ def aiaiai_check_parameters2():
         if d_add_config[lines]['arch'] not in d_sprdconfig[lines]['arch']:
             if d_sprdconfig[lines]['arch'] == 'all':
                 continue
-            new_lines=d_sprdconfig[lines]['arch']+','+d_add_config[lines]['arch']
-            print("EMERG: ADD: " + lines + " [arch] " + d_sprdconfig[lines]['arch'] + " --> [arch] " + new_lines)
-            new_lines=""
+            print("EMERG: ADD: Need add [arch] " + d_add_config[lines]['arch'])
 
         if d_add_config[lines]['plat'] not in d_sprdconfig[lines]['plat']:
             if d_sprdconfig[lines]['plat'] == 'all':
                 continue
-            new_lines=d_sprdconfig[lines]['plat']+','+d_add_config[lines]['plat']
-            print("EMERG: ADD: " + lines + " [plat] " + d_sprdconfig[lines]['plat'] + " --> [plat] " + new_lines)
-            new_lines=""
-
+            print("EMERG: ADD: Need add [plat] " + d_add_config[lines]['plat'])
 
     for lines in list(d_del_config):
         if lines not in d_sprdconfig:
@@ -308,29 +295,25 @@ def aiaiai_check_parameters2():
 
         if d_del_config[lines]['arch'] not in d_sprdconfig[lines]['arch']:
             if d_sprdconfig[lines]['arch'] == 'all':
-                for i in range(len(all_arch)):
-                    if d_del_config[lines]['arch'] != all_arch[i]:
-                        new_lines=new_lines+all_arch[i]
-                print("EMERG: DEL: " + lines + " [arch] " + d_sprdconfig[lines]['arch'] + " --> [arch] " + new_lines)
-            new_lines=""
+                print("EMERG: DEL: Need del " + lines + " [arch] " + d_del_config[lines]['arch'])
         else:
             for i in range(len(d_sprdconfig[lines]['arch'].split(","))):
-                if d_del_config[lines]['arch'] != d_sprdconfig[lines]['arch'].split(",").pop(i):
-                    new_lines=new_lines+d_sprdconfig[lines]['arch'].split(",").pop(i)
-            print("EMERG: DEL: " + lines + " [arch] " + d_sprdconfig[lines]['arch'] + " --> [arch] " + new_lines)
+                if d_del_config[lines]['arch'] == d_sprdconfig[lines]['arch'].split(",").pop(i):
+                    print("EMERG: DEL: Need del " + lines + " [arch] " + d_del_config[lines]['arch'])
 
         if d_del_config[lines]['plat'] not in d_sprdconfig[lines]['plat']:
             if d_sprdconfig[lines]['plat'] == 'all':
-                for i in range(len(all_plat)):
-                    if d_del_config[lines]['plat'] != all_plat[i]:
-                        new_lines=new_lines+all_plat[i]
-                print("EMERG: DEL: " + lines + " [plat] " + d_sprdconfig[lines]['plat'] + " --> [plat] " + new_lines)
-            new_lines=""
+                print("EMERG: DEL: Need del " + lines + " [plat] " + d_del_config[lines]['plat'])
         else:
             for i in range(len(d_sprdconfig[lines]['plat'].split(","))):
-                if d_del_config[lines]['plat'] != d_sprdconfig[lines]['plat'].split(",").pop(i):
-                    new_lines=new_lines+d_sprdconfig[lines]['plat'].split(",").pop(i)
-            print("EMERG: DEL: " + lines + " [plat] " + d_sprdconfig[lines]['plat'] + " --> [plat] " + new_lines)
+                if d_del_config[lines]['plat'] == d_sprdconfig[lines]['plat'].split(",").pop(i):
+                    print("EMERG: DEL: Need del " + lines + " [plat] " + d_del_config[lines]['plat'])
+
+    print("=========END=========")
+
+def clean():
+    os.system("rm -rf *.diff")
+    os.system("rm -rf *.txt")
 
 def main():
     create_defconfig_dict()
@@ -374,6 +357,7 @@ def main():
         elif sys.argv[1] == 'aiaiai':
             if len(sys.argv) == 2:
                 aiaiai_check_parameters2()
+                clean()
             else:
                 print("PARAMETERS ERROR:")
                 print("./sprd_check-config_check.py aiaiai")
@@ -387,6 +371,7 @@ def main():
     elif len(sys.argv) == 1:
         configs_check()
     output_allconfigs()
+
 
 
 if __name__ == '__main__':
