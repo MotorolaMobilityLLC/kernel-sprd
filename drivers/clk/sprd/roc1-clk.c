@@ -643,3 +643,44 @@ static const struct sprd_clk_desc roc1_apapb_gate_desc = {
 	.num_clk_clks	= ARRAY_SIZE(roc1_apapb_gate),
 	.hw_clks	= &roc1_apapb_gate_hws,
 };
+
+static const struct of_device_id sprd_roc1_clk_ids[] = {
+	{ .compatible = "sprd,roc1-apahb-gate",	/* 0x20100000 */
+	  .data = &roc1_apahb_gate_desc },
+	{ .compatible = "sprd,roc1-aon-gate",	/* 0x327d0000 */
+	  .data = &roc1_aon_gate_desc },
+	{ .compatible = "sprd,roc1-apapb-gate",	/* 0x71000000 */
+	  .data = &roc1_apapb_gate_desc },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, sprd_roc1_clk_ids);
+
+static int roc1_clk_probe(struct platform_device *pdev)
+{
+	const struct of_device_id *match;
+	const struct sprd_clk_desc *desc;
+
+	match = of_match_node(sprd_roc1_clk_ids, pdev->dev.of_node);
+	if (!match) {
+		pr_err("%s: of_match_node() failed", __func__);
+		return -ENODEV;
+	}
+
+	desc = match->data;
+	sprd_clk_regmap_init(pdev, desc);
+
+	return sprd_clk_probe(&pdev->dev, desc->hw_clks);
+}
+
+static struct platform_driver roc1_clk_driver = {
+	.probe	= roc1_clk_probe,
+	.driver	= {
+		.name	= "roc1-clk",
+		.of_match_table	= sprd_roc1_clk_ids,
+	},
+};
+module_platform_driver(roc1_clk_driver);
+
+MODULE_DESCRIPTION("Spreadtrum Roc1 Clock Driver");
+MODULE_LICENSE("GPL v2");
+MODULE_ALIAS("platform:roc1-clk");
