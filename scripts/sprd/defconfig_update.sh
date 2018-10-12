@@ -1,5 +1,9 @@
 #!/bin/bash
 
+SRC_PATH="`dirname $0`/../.."
+
+cd $SRC_PATH
+
 DEFCONF_ARM64=`find arch/arm64/configs/ -name sprd_\*_defconfig -printf "%f\n"`
 
 export ARCH=arm64
