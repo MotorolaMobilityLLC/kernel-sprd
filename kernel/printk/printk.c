@@ -1650,6 +1650,7 @@ static bool cont_add(int facility, int level, enum log_flags flags, const char *
 		cont.owner = current;
 		cont.ts_nsec = local_clock();
 		cont.flags = flags;
+		cont.cpu = smp_processor_id();
 	}
 
 	memcpy(cont.buf + cont.len, text, len);
