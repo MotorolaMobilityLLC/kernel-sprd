@@ -1486,6 +1486,7 @@ struct pdaf_addr_info {
 
 struct pdaf_ppi_info {
 	struct isp_img_size block_size;
+	uint32_t pd_pos_size;
 	uint32_t pattern_pixel_is_right[PDAF_PPI_NUM];
 	uint32_t pattern_pixel_row[PDAF_PPI_NUM];
 	uint32_t pattern_pixel_col[PDAF_PPI_NUM];
