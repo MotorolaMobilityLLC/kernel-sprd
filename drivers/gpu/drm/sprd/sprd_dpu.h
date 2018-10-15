@@ -246,4 +246,7 @@ static inline struct sprd_dpu *crtc_to_dpu(struct drm_crtc *crtc)
 #define dpu_glb_ops_attach(str) \
 	disp_ops_attach(str, &dpu_glb_head)
 
+int sprd_dpu_run(struct sprd_dpu *dpu);
+int sprd_dpu_stop(struct sprd_dpu *dpu);
+
 #endif

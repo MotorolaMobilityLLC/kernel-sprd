@@ -318,15 +318,11 @@ static struct drm_plane *sprd_plane_init(struct drm_device *drm,
 	return primary;
 }
 
-static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
-				   struct drm_crtc_state *old_state)
+static void sprd_crtc_mode_set_nofb(struct drm_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
 	DRM_INFO("%s()\n", __func__);
-
-	if (dpu->ctx.is_inited)
-		return;
 
 	if ((crtc->mode.hdisplay == crtc->mode.htotal) ||
 	    (crtc->mode.vdisplay == crtc->mode.vtotal))
@@ -335,8 +331,18 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 		dpu->ctx.if_type = SPRD_DISPC_IF_DPI;
 
 	drm_display_mode_to_videomode(&crtc->mode, &dpu->ctx.vm);
+}
+
+static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
+				   struct drm_crtc_state *old_state)
+{
+	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+
+	DRM_INFO("%s()\n", __func__);
 
 	sprd_dpu_init(dpu);
+
+	drm_crtc_vblank_on(crtc);
 }
 
 static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
@@ -346,8 +352,7 @@ static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 
 	DRM_INFO("%s()\n", __func__);
 
-	if (!dpu->ctx.is_inited)
-		return;
+	drm_crtc_vblank_off(crtc);
 
 	sprd_dpu_uninit(dpu);
 }
@@ -357,25 +362,13 @@ static int sprd_crtc_atomic_check(struct drm_crtc *crtc,
 {
 	DRM_DEBUG("%s()\n", __func__);
 
-	/* do nothing */
 	return 0;
 }
 
 static void sprd_crtc_atomic_begin(struct drm_crtc *crtc,
 				  struct drm_crtc_state *old_state)
 {
-	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
-
 	DRM_DEBUG("%s()\n", __func__);
-
-	if (crtc->state->event) {
-		crtc->state->event->pipe = drm_crtc_index(crtc);
-
-		WARN_ON(drm_crtc_vblank_get(crtc) != 0);
-
-		dpu->event = crtc->state->event;
-		crtc->state->event = NULL;
-	}
 }
 
 static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
@@ -383,14 +376,19 @@ static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
 
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+	struct drm_device *drm = dpu->crtc.dev;
 
 	DRM_DEBUG("%s()\n", __func__);
 
-	if (!dpu->ctx.is_inited)
-		return;
-
-	if (dpu->core && dpu->core->run)
+	if (dpu->core && dpu->core->run && !dpu->ctx.is_stopped)
 		dpu->core->run(&dpu->ctx);
+
+	spin_lock_irq(&drm->event_lock);
+	if (crtc->state->event) {
+		drm_crtc_send_vblank_event(crtc, crtc->state->event);
+		crtc->state->event = NULL;
+	}
+	spin_unlock_irq(&drm->event_lock);
 }
 
 static int sprd_crtc_enable_vblank(struct drm_crtc *crtc)
@@ -416,6 +414,7 @@ static void sprd_crtc_disable_vblank(struct drm_crtc *crtc)
 }
 
 static const struct drm_crtc_helper_funcs sprd_crtc_helper_funcs = {
+	.mode_set_nofb	= sprd_crtc_mode_set_nofb,
 	.atomic_check	= sprd_crtc_atomic_check,
 	.atomic_begin	= sprd_crtc_atomic_begin,
 	.atomic_flush	= sprd_crtc_atomic_flush,
@@ -467,9 +466,42 @@ static int sprd_crtc_init(struct drm_device *drm, struct drm_crtc *crtc,
 	return 0;
 }
 
+int sprd_dpu_run(struct sprd_dpu *dpu)
+{
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!ctx->is_stopped)
+		return 0;
+
+	if (dpu->core && dpu->core->run)
+		dpu->core->run(ctx);
+
+	ctx->is_stopped = false;
+
+	return 0;
+}
+
+int sprd_dpu_stop(struct sprd_dpu *dpu)
+{
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (ctx->is_stopped)
+		return 0;
+
+	if (dpu->core && dpu->core->stop)
+		dpu->core->stop(ctx);
+
+	ctx->is_stopped = true;
+
+	return 0;
+}
+
 static int sprd_dpu_init(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
+
+	if (dpu->ctx.is_inited)
+		return 0;
 
 	if (dpu->glb && dpu->glb->power)
 		dpu->glb->power(ctx, true);
@@ -480,16 +512,11 @@ static int sprd_dpu_init(struct sprd_dpu *dpu)
 		dpu->clk->init(ctx);
 	if (dpu->clk && dpu->clk->enable)
 		dpu->clk->enable(ctx);
-	if (dpu->clk && dpu->clk->update)
-		dpu->clk->update(ctx, DISPC_CLK_ID_DPI,
-				 ctx->vm.pixelclock);
 
 	if (dpu->core && dpu->core->init)
 		dpu->core->init(ctx);
 	if (dpu->core && dpu->core->ifconfig)
 		dpu->core->ifconfig(ctx);
-	if (dpu->core && dpu->core->run)
-		dpu->core->run(ctx);
 
 	ctx->is_inited = true;
 
@@ -499,6 +526,9 @@ static int sprd_dpu_init(struct sprd_dpu *dpu)
 static int sprd_dpu_uninit(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->ctx.is_inited)
+		return 0;
 
 	if (dpu->core && dpu->core->uninit)
 		dpu->core->uninit(ctx);
@@ -514,20 +544,6 @@ static int sprd_dpu_uninit(struct sprd_dpu *dpu)
 	return 0;
 }
 
-static void sprd_crtc_finish_page_flip(struct sprd_dpu *dpu)
-{
-	struct drm_device *drm = dpu->crtc.dev;
-	unsigned long flags;
-
-	spin_lock_irqsave(&drm->event_lock, flags);
-	if (dpu->event) {
-		drm_crtc_send_vblank_event(&dpu->crtc, dpu->event);
-		drm_crtc_vblank_put(&dpu->crtc);
-		dpu->event = NULL;
-	}
-	spin_unlock_irqrestore(&drm->event_lock, flags);
-}
-
 static irqreturn_t sprd_dpu_isr(int irq, void *data)
 {
 	struct sprd_dpu *dpu = data;
@@ -540,10 +556,10 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 	if (int_mask & DISPC_INT_ERR_MASK)
 		DRM_ERROR("Warning: dpu underflow!\n");
 
-	if ((int_mask & DISPC_INT_DPI_VSYNC_MASK) && ctx->is_inited) {
+	if ((int_mask & DISPC_INT_DPI_VSYNC_MASK) && ctx->is_inited)
 		drm_crtc_handle_vblank(&dpu->crtc);
-		sprd_crtc_finish_page_flip(dpu);
-	}
+
+	//sprd_crtc_finish_page_flip(dpu);
 
 	return IRQ_HANDLED;
 }
@@ -658,8 +674,6 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 		return -EFAULT;
 	}
 
-	ctx->is_stopped = true;
-	ctx->disable_flip = false;
 	sema_init(&ctx->refresh_lock, 1);
 	init_waitqueue_head(&ctx->wait_queue);
 

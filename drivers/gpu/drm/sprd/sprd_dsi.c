@@ -21,6 +21,7 @@
 #include <linux/of_graph.h>
 
 #include "disp_lib.h"
+#include "sprd_dpu.h"
 #include "sprd_dsi.h"
 #include "dsi/sprd_dsi_api.h"
 
@@ -37,12 +38,17 @@ LIST_HEAD(dsi_glb_head);
 static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
+	struct sprd_dpu *dpu = crtc_to_dpu(encoder->crtc);
 
 	DRM_INFO("%s()\n", __func__);
 
+	sprd_dpu_stop(dpu);
+
+	sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
+	sprd_dsi_lp_cmd_enable(dsi, true);
+
 	if (dsi->panel && drm_panel_disable(dsi->panel))
 		DRM_ERROR("failed to disable panel\n");
-
 	if (dsi->panel && drm_panel_unprepare(dsi->panel))
 		DRM_ERROR("failed to unprepare panel\n");
 }
@@ -51,16 +57,20 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
+	struct sprd_dpu *dpu = crtc_to_dpu(encoder->crtc);
 
 	DRM_INFO("%s()\n", __func__);
 
+	sprd_dsi_lp_cmd_enable(dsi, true);
+
 	if (dsi->panel && drm_panel_prepare(dsi->panel))
 		DRM_ERROR("failed to prepare panel\n");
-
-	/*sprd_dsi_set_mode(dsi, DSI_VIDEO_MODE);*/
-
 	if (dsi->panel && drm_panel_enable(dsi->panel))
 		DRM_ERROR("failed to enable panel\n");
+
+	sprd_dsi_set_work_mode(dsi, DSI_MODE_VIDEO);
+
+	sprd_dpu_run(dpu);
 }
 
 static void sprd_dsi_encoder_mode_set(struct drm_encoder *encoder,
