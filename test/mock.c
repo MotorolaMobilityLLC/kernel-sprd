@@ -459,7 +459,8 @@ static struct mock_expectation *mock_apply_expectations(
 		expectations_all_saturated = false;
 
 		attempted_matching_stream->add(attempted_matching_stream,
-			"Tried expectation: %s, but\n", ret->expectation_name);
+			"Tried expectation: %s at %s:%d, but\n",
+			ret->expectation_text, ret->file_name, ret->line_no);
 		if (does_mock_expectation_match_call(ret,
 			attempted_matching_stream, params, len)) {
 			/*
