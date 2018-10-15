@@ -113,7 +113,7 @@ static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 		if (cmds->wait)
 			msleep(cmds->wait);
 		cmds = (const struct dsi_cmd_desc *)(cmds->payload + len);
-		size -= len;
+		size -= (len + 4);
 	}
 
 	return 0;
