@@ -103,6 +103,14 @@ enum sprd_dma_req_mode {
  * is done.
  * @SPRD_DMA_CFGERR_INT: configure error interrupt when configuration is
  * incorrect.
+ * @SPRD_DMA_SRC_CHN0_INT: interrupt occurred when source channel0
+ * transfer is done.
+ * @SPRD_DMA_SRC_CHN1_INT: interrupt occurred when source channel1
+ * transfer is done.
+ * @SPRD_DMA_DST_CHN0_INT: interrupt occurred when destination channel0
+ * transfer is done.
+ * @SPRD_DMA_DST_CHN1_INT: interrupt occurred when destination channel1
+ * transfer is done.
  */
 enum sprd_dma_int_type {
 	SPRD_DMA_NO_INT,
@@ -114,6 +122,10 @@ enum sprd_dma_int_type {
 	SPRD_DMA_TRANS_BLK_INT,
 	SPRD_DMA_LIST_INT,
 	SPRD_DMA_CFGERR_INT,
+	SPRD_DMA_SRC_CHN0_INT,
+	SPRD_DMA_SRC_CHN1_INT,
+	SPRD_DMA_DST_CHN0_INT,
+	SPRD_DMA_DST_CHN1_INT,
 };
 
 /*
