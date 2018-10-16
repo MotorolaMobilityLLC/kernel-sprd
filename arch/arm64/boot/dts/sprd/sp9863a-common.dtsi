@@ -57,18 +57,47 @@
 		#size-cells = <2>;
 		ranges;
 
+		pstore: pstore@877c0000 {
+			reg = <0x0 0x877c0000 0x0 0x00040000>;
+		};
+
 		smem_reserved: sipc-mem@87800000{
 			reg = <0x0 0x87800000 0x0 0x00800000>;
+		};
+
+		wcn_reserved: wcn-mem@88000000{
+			reg = <0x0 0x88000000 0x0 0x00300000>;
+		};
+
+		gnss_reserved: gnss-mem@88300000 {
+			reg = <0x0 0x88300000 0x0 0x0015a800>;
 		};
 
 		cp_reserved: cp-modem@89600000 {
 			reg = <0x0 0x89600000 0x0 0x05850000>;
 		};
 
+		/* must be 64M aligned */
+		sml_reserved: sml-mem@94000000{
+			reg = <0x0 0x94000000 0x0 0x00020000>;
+		};
+
+		tos_reserved: tos-mem@94020000{
+			reg = <0x0 0x94020000 0x0 0x01fe0000>;
+		};
+
+		tos_shm_reserved: sh-mem@96000000{
+			reg = <0x0 0x96000000 0x0 0x00100000>;
+		};
+
 		/* Only used for iq, will be removed in normal mode by uboot */
 		iq_reserved: iq-mem@98100000{
 			compatible = "sprd,iq-mem";
 			reg = <0x0 0x98100000 0x0 0x4000000>;
+		};
+
+		camera_reserved: camera@9c600000{
+			reg = <0x0 0x9c600000 0x0 0x00a00000>;
 		};
 
 		fb_reserved: framebuffer@9d000000{
