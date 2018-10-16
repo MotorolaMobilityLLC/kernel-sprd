@@ -95,6 +95,14 @@
 		};
 	};
 
+	gsp: sprd-gsp {
+		compatible = "sprd,gsp-lite_r3p0-sharkl5";
+		name = "sprd-gsp";
+		core-cnt = <1>;
+		io-cnt = <7>;
+		cores = <&gsp_core0>;
+	};
+
 	ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
