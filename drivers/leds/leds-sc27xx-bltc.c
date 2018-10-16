@@ -270,7 +270,8 @@ out:
 	return err;
 }
 
-static int sc27xx_led_register(struct device *dev, struct sc27xx_led_priv *priv)
+static int sc27xx_led_register(struct device *dev, struct sc27xx_led_priv *priv,
+				const struct sc27xx_led_data *data)
 {
 	int i, err;
 
