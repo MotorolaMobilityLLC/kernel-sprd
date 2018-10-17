@@ -160,6 +160,20 @@
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
 		};
+
+		audcpapb_gate: audcpapb-gate {
+			compatible = "sprd,sharkl5-apapb-gate";
+			sprd,syscon = <&audcp_apb_regs>; /* 0x3350d000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		audcpahb_gate: audcpahb-gate {
+			compatible = "sprd,sharkl5-apahb-gate";
+			sprd,syscon = <&audcp_ahb_regs>; /* 0x335e0000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
 	};
 };
 
