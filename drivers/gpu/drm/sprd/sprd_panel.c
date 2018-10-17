@@ -71,6 +71,7 @@ struct panel_info {
 	u32 format;
 	u32 lanes;
 	u32 mode_flags;
+	bool use_dcs;
 };
 
 struct sprd_panel {
@@ -101,6 +102,7 @@ static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
 static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 				const void *data, int size)
 {
+	struct sprd_panel *panel = mipi_dsi_get_drvdata(dsi);
 	const struct dsi_cmd_desc *cmds = data;
 	u16 len;
 
@@ -109,7 +111,12 @@ static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 
 	while (size > 0) {
 		len = (cmds->wc_h << 8) | cmds->wc_l;
-		mipi_dsi_generic_write(dsi, cmds->payload, len);
+
+		if (panel->info.use_dcs)
+			mipi_dsi_dcs_write_buffer(dsi, cmds->payload, len);
+		else
+			mipi_dsi_generic_write(dsi, cmds->payload, len);
+
 		if (cmds->wait)
 			msleep(cmds->wait);
 		cmds = (const struct dsi_cmd_desc *)(cmds->payload + len);
@@ -293,6 +300,11 @@ static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 		info->mode.height_mm = val;
 	else
 		info->mode.height_mm = 121;
+
+	if (of_property_read_bool(lcd_node, "sprd,use-dcs-write"))
+		info->use_dcs = true;
+	else
+		info->use_dcs = false;
 
 	p = of_get_property(lcd_node, "sprd,initial-command", &bytes);
 	if (p) {
