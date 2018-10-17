@@ -1087,6 +1087,8 @@
 				#dma-cells = <1>;
 				#dma-channels = <32>;
 				clock-names = "enable", "ashb_eb";
+				clocks = <&audcpahb_gate CLK_AUDCP_DMA_AP_EB>,
+					 <&audcpahb_gate CLK_AUDCP_DMA_AP_ASHB_EB>;
 			};
 		};
 
