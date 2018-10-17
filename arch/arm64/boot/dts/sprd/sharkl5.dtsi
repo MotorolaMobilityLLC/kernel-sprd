@@ -100,6 +100,18 @@
 			reg = <0 0x327e0000 0 0x10000>;
 		};
 
+		audcp_apb_regs: syscon@0x3350d000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x3350d000 0 0x1000>;
+		};
+
+		audcp_ahb_regs: syscon@0x335e0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x335e0000 0 0x1000>;
+		};
+
 		ap_apb_regs: syscon@71000000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
