@@ -49,7 +49,6 @@ struct sprd_glue {
 	struct clk		*clk;
 	struct phy		*phy;
 	struct usb_phy		*xceiv;
-	const char		*cable_detect;
 
 	enum usb_dr_mode		dr_mode;
 	enum usb_dr_mode		wq_mode;
@@ -789,13 +788,6 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		pdata.mode = MUSB_PORT_MODE_DUAL_ROLE;
 	else
 		dev_err(&pdev->dev, "Invalid or missing 'dr_mode' property\n");
-
-	ret = of_property_read_string(node, "sprd,cable-detection-method",
-			&glue->cable_detect);
-	if (ret) {
-		dev_err(dev, "fail to get cable detection method\n");
-		return ret;
-	}
 
 	glue->clk = devm_clk_get(dev, "core_clk");
 	if (IS_ERR(glue->clk)) {
