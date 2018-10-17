@@ -230,8 +230,15 @@
 
 		aonapb_gate: aonapb-gate {
 			compatible = "sprd,sc9863a-aonapb-gate";
-			sprd,syscon = <&aon_apb_regs>; /* 0x40e00000 */
+			sprd,syscon = <&aon_apb_regs>; /* 0x402e0000 */
 			clocks = <&ap_clk CLK_AON_APB>;
+			#clock-cells = <1>;
+		};
+
+		vspahb_gate: vspahb-gate {
+			compatible = "sprd,sc9863a-vspahb-gate";
+			sprd,syscon = <&mm_vsp_ahb_regs>; /* 0x62000000 */
+			clocks = <&ap_clk CLK_MM_AHB>;
 			#clock-cells = <1>;
 		};
 
