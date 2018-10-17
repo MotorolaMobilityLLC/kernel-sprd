@@ -735,31 +735,31 @@ static inline bool dsi_hal_is_tx_cmd_fifo_empty(struct sprd_dsi *dsi)
 }
 
 static inline
-bool dsi_hal_wait_tx_payload_fifo_available(struct sprd_dsi *dsi)
+bool dsi_hal_wait_tx_payload_fifo_empty(struct sprd_dsi *dsi)
 {
 	int timeout;
 
 	for (timeout = 0; timeout < 5000; timeout++) {
-		if (!dsi_hal_is_tx_payload_fifo_full(dsi))
+		if (dsi_hal_is_tx_payload_fifo_empty(dsi))
 			return true;
 		udelay(1);
 	}
 
-	pr_err("tx payload fifo is full\n");
+	pr_err("tx payload fifo is not empty\n");
 	return false;
 }
 
-static inline bool dsi_hal_wait_tx_cmd_fifo_available(struct sprd_dsi *dsi)
+static inline bool dsi_hal_wait_tx_cmd_fifo_empty(struct sprd_dsi *dsi)
 {
 	int timeout;
 
 	for (timeout = 0; timeout < 5000; timeout++) {
-		if (!dsi_hal_is_tx_cmd_fifo_full(dsi))
+		if (dsi_hal_is_tx_cmd_fifo_empty(dsi))
 			return true;
 		udelay(1);
 	}
 
-	pr_err("tx cmd fifo is full\n");
+	pr_err("tx cmd fifo is not empty\n");
 	return false;
 }
 

@@ -380,14 +380,14 @@ int sprd_dsi_wr_pkt(struct sprd_dsi *dsi, u8 vc, u8 type,
 		return -EINVAL;
 
 	/* 1st: for long packet, must config payload first */
+	if (!dsi_hal_wait_tx_payload_fifo_empty(dsi))
+		return -1;
+
 	if (len > 2) {
 		for (i = 0; i < len; i += j) {
 			payload = 0;
 			for (j = 0; (j < 4) && ((j + i) < (len)); j++)
 				payload |= param[i + j] << (j * 8);
-
-			if (!dsi_hal_wait_tx_payload_fifo_available(dsi))
-				return -1;
 
 			dsi_hal_set_packet_payload(dsi, payload);
 		}
@@ -399,7 +399,7 @@ int sprd_dsi_wr_pkt(struct sprd_dsi *dsi, u8 vc, u8 type,
 	}
 
 	/* 2nd: then set packet header */
-	if (!dsi_hal_wait_tx_cmd_fifo_available(dsi))
+	if (!dsi_hal_wait_tx_cmd_fifo_empty(dsi))
 		return -EINVAL;
 
 	dsi_hal_set_packet_header(dsi, vc, type, wc_lsbyte, wc_msbyte);
@@ -436,7 +436,7 @@ int sprd_dsi_rd_pkt(struct sprd_dsi *dsi, u8 vc, u8 type,
 		return -EINVAL;
 
 	/* 1st: send read command to peripheral */
-	if (!dsi_hal_wait_tx_cmd_fifo_available(dsi))
+	if (!dsi_hal_wait_tx_cmd_fifo_empty(dsi))
 		return -EINVAL;
 
 	dsi_hal_set_packet_header(dsi, vc, type, lsb_byte, msb_byte);
