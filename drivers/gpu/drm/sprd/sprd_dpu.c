@@ -31,6 +31,9 @@ struct sprd_plane {
 	struct drm_plane plane;
 	struct drm_property *alpha_property;
 	struct drm_property *blend_mode_property;
+	struct drm_property *fbc_hsize_r_property;
+	struct drm_property *fbc_hsize_y_property;
+	struct drm_property *fbc_hsize_uv_property;
 	u32 index;
 };
 
@@ -38,6 +41,9 @@ struct sprd_plane_state {
 	struct drm_plane_state state;
 	u8 alpha;
 	u8 blend_mode;
+	u32 fbc_hsize_r;
+	u32 fbc_hsize_y;
+	u32 fbc_hsize_uv;
 };
 
 LIST_HEAD(dpu_core_head);
@@ -93,6 +99,10 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	layer.format = fb->format->format;
 	layer.alpha = s->alpha;
 	layer.blending = s->blend_mode;
+	layer.xfbc = fb->modifier;
+	layer.header_size_r = s->fbc_hsize_r;
+	layer.header_size_y = s->fbc_hsize_y;
+	layer.header_size_uv = s->fbc_hsize_uv;
 
 	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u\n",
 		  __func__, layer.alpha, layer.blending, layer.rotation);
@@ -189,6 +199,12 @@ static int sprd_plane_atomic_set_property(struct drm_plane *plane,
 		s->alpha = val;
 	else if (property == p->blend_mode_property)
 		s->blend_mode = val;
+	else if (property == p->fbc_hsize_r_property)
+		s->fbc_hsize_r = val;
+	else if (property == p->fbc_hsize_y_property)
+		s->fbc_hsize_y = val;
+	else if (property == p->fbc_hsize_uv_property)
+		s->fbc_hsize_uv = val;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -211,6 +227,12 @@ static int sprd_plane_atomic_get_property(struct drm_plane *plane,
 		*val = s->alpha;
 	else if (property == p->blend_mode_property)
 		*val = s->blend_mode;
+	else if (property == p->fbc_hsize_r_property)
+		*val = s->fbc_hsize_r;
+	else if (property == p->fbc_hsize_y_property)
+		*val = s->fbc_hsize_y;
+	else if (property == p->fbc_hsize_uv_property)
+		*val = s->fbc_hsize_uv;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -254,6 +276,28 @@ static int sprd_plane_create_properties(struct sprd_plane *p, int index)
 	drm_object_attach_property(&p->plane.base, prop,
 				   DRM_MODE_BLEND_PIXEL_NONE);
 	p->blend_mode_property = prop;
+
+	/* create fbc header size property */
+	prop = drm_property_create_range(p->plane.dev, 0,
+			"FBC header size RGB", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&p->plane.base, prop, 0);
+	p->fbc_hsize_r_property = prop;
+
+	prop = drm_property_create_range(p->plane.dev, 0,
+			"FBC header size Y", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&p->plane.base, prop, 0);
+	p->fbc_hsize_y_property = prop;
+
+	prop = drm_property_create_range(p->plane.dev, 0,
+			"FBC header size UV", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&p->plane.base, prop, 0);
+	p->fbc_hsize_uv_property = prop;
 
 	return 0;
 }
