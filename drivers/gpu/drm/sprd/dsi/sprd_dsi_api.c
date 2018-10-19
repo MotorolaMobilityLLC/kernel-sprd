@@ -12,9 +12,7 @@
  */
 
 #include <linux/delay.h>
-#include <linux/irqreturn.h>
 
-#include "sprd_dsi_api.h"
 #include "sprd_dsi_hal.h"
 
 static u16 calc_bytes_per_pixel_x100(int coding)
@@ -108,26 +106,34 @@ static u16 round_video_size(int coding, u16 video_size)
 	return video_size;
 }
 
-/*
- * unc:sprd_dsi_set_lp_clock
- * esc:in low-power mode, max PHY frequency should smaller than 20MHz,
- *     in synopsys IP, low-power clock divide from high-speed clock,
- *     this function is designed to adapt low-power clock to various
- * high-speed clock.
- *
- *     rithmetic:
- *     Fhs : high-speed frequence
- *     Flp : low-power frequence
- *     div : dsi_hal_tx_escape_division() param, byte clock unit.
- *     because of the 20MHz demand, Flp == Fhs/(div*8) <= 20 MHz,
- * here 500000 present 500MHz, so MHz equal 1000
- *     so div >= { Fhs/(20Mhz*8) == Fhs/(20000*8) == (Fhs>>4)/10000 }
- */
+#define SPRD_MIPI_DSI_FMT_DSC 0xff
+static u32 fmt_to_coding(u32 fmt)
+{
+	switch (fmt) {
+	case MIPI_DSI_FMT_RGB565:
+		return COLOR_CODE_16BIT_CONFIG1;
+	case MIPI_DSI_FMT_RGB666_PACKED:
+		return COLOR_CODE_18BIT_CONFIG1;
+	case MIPI_DSI_FMT_RGB666:
+	case MIPI_DSI_FMT_RGB888:
+		return COLOR_CODE_24BIT;
+	case SPRD_MIPI_DSI_FMT_DSC:
+		return COLOR_CODE_COMPRESSTION;
+	default:
+		DRM_ERROR("Unsupported format (%d)\n", fmt);
+		return COLOR_CODE_24BIT;
+	}
+}
+
+#define ns_to_cycle(ns, byte_clk) \
+	DIV_ROUND_UP((ns) * (byte_clk), 1000000)
 
 int sprd_dsi_init(struct sprd_dsi *dsi)
 {
 	int div;
 	struct dsi_context *ctx = &dsi->ctx;
+	u16 max_rd_time;
+	u16 data_hs2lp, data_lp2hs, clk_hs2lp, clk_lp2hs;
 
 	dsi_hal_power_en(dsi, 0);
 	dsi_hal_int0_mask(dsi, 0xffffffff);
@@ -140,12 +146,22 @@ int sprd_dsi_init(struct sprd_dsi *dsi)
 	dsi_hal_bta_en(dsi, 1);
 	dsi_hal_video_vcid(dsi, 0);
 	dsi_hal_rx_vcid(dsi, 0);
-	dsi_hal_nc_clk_en(dsi, ctx->nc_clk_en);
-	dsi_hal_max_read_time(dsi, ctx->max_rd_time);
 
-	div = ((ctx->freq >> 4) + 9999) / 10000;
+	div = DIV_ROUND_UP(ctx->byte_clk, ctx->esc_clk);
 	dsi_hal_tx_escape_division(dsi, div);
-	pr_info("escape clk div = %d\n", div);
+	pr_info("escape clock divider = %d\n", div);
+
+	max_rd_time = ns_to_cycle(ctx->max_rd_time, ctx->byte_clk);
+	dsi_hal_max_read_time(dsi, max_rd_time);
+
+	data_hs2lp = ns_to_cycle(ctx->data_hs2lp, ctx->byte_clk);
+	data_lp2hs = ns_to_cycle(ctx->data_lp2hs, ctx->byte_clk);
+	clk_hs2lp = ns_to_cycle(ctx->clk_hs2lp, ctx->byte_clk);
+	clk_lp2hs = ns_to_cycle(ctx->clk_lp2hs, ctx->byte_clk);
+	dsi_hal_datalane_hs2lp_config(dsi, data_hs2lp);
+	dsi_hal_datalane_lp2hs_config(dsi, data_lp2hs);
+	dsi_hal_clklane_hs2lp_config(dsi, clk_hs2lp);
+	dsi_hal_clklane_lp2hs_config(dsi, clk_lp2hs);
 
 	dsi_hal_power_en(dsi, 1);
 
@@ -177,53 +193,55 @@ int sprd_dsi_uninit(struct sprd_dsi *dsi)
  * @param param pointer to video stream-to-send information
  * @return error code
  */
-int sprd_dsi_dpi_video(struct sprd_dsi *dsi, struct dpi_video_param *param)
+int sprd_dsi_dpi_video(struct sprd_dsi *dsi)
 {
-	u16 Bpp_x100 = 0;
-	u16 video_size = 0;
-	u32 ratio_x1000 = 0;
+	u16 Bpp_x100;
+	u16 video_size;
+	u32 ratio_x1000;
 	u16 null_pkt_size = 0;
-	u8 video_size_step = 1;
-	u32 hs_to = 0;
-	u32 total_bytes = 0;
-	u32 bytes_per_chunk = 0;
+	u8 video_size_step;
+	u32 hs_to;
+	u32 total_bytes;
+	u32 bytes_per_chunk;
 	u32 chunks = 0;
 	u32 bytes_left = 0;
-	u32 chunk_overhead = 0;
+	u32 chunk_overhead;
 	const u8 pkt_header = 6;
-	int div = 0;
+	u8 coding;
+	int div;
+	u16 hline;
+	struct dsi_context *ctx = &dsi->ctx;
+	struct videomode *vm = &dsi->ctx.vm;
 
-	video_size = round_video_size(param->coding, param->hact);
-	Bpp_x100 = calc_bytes_per_pixel_x100(param->coding);
-	video_size_step = calc_video_size_step(param->coding);
-	ratio_x1000 = param->byte_clk * 1000 / param->pixel_clk;
+	coding = fmt_to_coding(ctx->format);
+	video_size = round_video_size(coding, vm->hactive);
+	Bpp_x100 = calc_bytes_per_pixel_x100(coding);
+	video_size_step = calc_video_size_step(coding);
+	ratio_x1000 = ctx->byte_clk * 1000 / (vm->pixelclock / 1000);
+	hline = vm->hactive + vm->hsync_len + vm->hfront_porch +
+		vm->hback_porch;
 
 	dsi_hal_power_en(dsi, 0);
-	dsi_hal_dpi_frame_ack_en(dsi, param->frame_ack_en);
-	dsi_hal_dpi_color_coding(dsi, param->coding);
-	dsi_hal_dpi_video_burst_mode(dsi, param->burst_mode);
-	dsi_hal_dpi_sig_delay(dsi, 95 * param->hline * ratio_x1000 / 100000);
-	dsi_hal_dpi_hline_time(dsi, param->hline * ratio_x1000 / 1000);
-	dsi_hal_dpi_hsync_time(dsi, param->hsync * ratio_x1000 / 1000);
-	dsi_hal_dpi_hbp_time(dsi, param->hbp * ratio_x1000 / 1000);
-	dsi_hal_dpi_vact(dsi, param->vact);
-	dsi_hal_dpi_vfp(dsi, param->vfp);
-	dsi_hal_dpi_vbp(dsi, param->vbp);
-	dsi_hal_dpi_vsync(dsi, param->vsync);
+	dsi_hal_dpi_frame_ack_en(dsi, ctx->frame_ack_en);
+	dsi_hal_dpi_color_coding(dsi, coding);
+	dsi_hal_dpi_video_burst_mode(dsi, ctx->burst_mode);
+	dsi_hal_dpi_sig_delay(dsi, 95 * hline * ratio_x1000 / 100000);
+	dsi_hal_dpi_hline_time(dsi, hline * ratio_x1000 / 1000);
+	dsi_hal_dpi_hsync_time(dsi, vm->hsync_len * ratio_x1000 / 1000);
+	dsi_hal_dpi_hbp_time(dsi, vm->hback_porch * ratio_x1000 / 1000);
+	dsi_hal_dpi_vact(dsi, vm->vactive);
+	dsi_hal_dpi_vfp(dsi, vm->vfront_porch);
+	dsi_hal_dpi_vbp(dsi, vm->vback_porch);
+	dsi_hal_dpi_vsync(dsi, vm->vsync_len);
 	dsi_hal_dpi_hporch_lp_en(dsi, 1);
 	dsi_hal_dpi_vporch_lp_en(dsi, 1);
-	dsi_hal_dpi_hsync_pol(dsi, param->hsync_pol);
-	dsi_hal_dpi_vsync_pol(dsi, param->vsync_pol);
-	dsi_hal_dpi_data_en_pol(dsi, param->de_pol);
-	dsi_hal_dpi_color_mode_pol(dsi, param->color_mode_pol);
-	dsi_hal_dpi_shut_down_pol(dsi, param->shut_down_pol);
+	dsi_hal_dpi_hsync_pol(dsi, 0);
+	dsi_hal_dpi_vsync_pol(dsi, 0);
+	dsi_hal_dpi_data_en_pol(dsi, 0);
+	dsi_hal_dpi_color_mode_pol(dsi, 0);
+	dsi_hal_dpi_shut_down_pol(dsi, 0);
 
-	dsi_hal_datalane_hs2lp_config(dsi, param->data_hs2lp);
-	dsi_hal_datalane_lp2hs_config(dsi, param->data_lp2hs);
-	dsi_hal_clklane_hs2lp_config(dsi, param->clk_hs2lp);
-	dsi_hal_clklane_lp2hs_config(dsi, param->clk_lp2hs);
-
-	hs_to = (param->hline * param->vact) + (2 * Bpp_x100) / 100;
+	hs_to = (hline * vm->vactive) + (2 * Bpp_x100) / 100;
 	for (div = 0x80; (div < hs_to) && (div > 2); div--) {
 		if ((hs_to % div) == 0) {
 			dsi_hal_timeout_clock_division(dsi, div);
@@ -233,7 +251,7 @@ int sprd_dsi_dpi_video(struct sprd_dsi *dsi, struct dpi_video_param *param)
 		}
 	}
 
-	if (param->burst_mode == VIDEO_BURST_WITH_SYNC_PULSES) {
+	if (ctx->burst_mode == VIDEO_BURST_WITH_SYNC_PULSES) {
 		dsi_hal_dpi_video_packet_size(dsi, video_size);
 		dsi_hal_dpi_null_packet_size(dsi, 0);
 		dsi_hal_dpi_chunk_num(dsi, 0);
@@ -242,11 +260,11 @@ int sprd_dsi_dpi_video(struct sprd_dsi *dsi, struct dpi_video_param *param)
 		null_pkt_size = 0;
 
 		/* bytes to be sent - first as one chunk */
-		bytes_per_chunk = param->hact * Bpp_x100 / 100 + pkt_header;
+		bytes_per_chunk = vm->hactive * Bpp_x100 / 100 + pkt_header;
 
 		/* hline total bytes from the DPI interface */
-		total_bytes = (param->hline - param->hsync - param->hbp) *
-					ratio_x1000 / param->lanes / 1000;
+		total_bytes = (vm->hactive + vm->hfront_porch) *
+				ratio_x1000 / ctx->lanes / 1000;
 
 		/* check if the pixels actually fit on the DSI link */
 		if (total_bytes < bytes_per_chunk) {
@@ -261,13 +279,13 @@ int sprd_dsi_dpi_video(struct sprd_dsi *dsi, struct dpi_video_param *param)
 
 			/* multi packets */
 			for (video_size = video_size_step;
-			     video_size < param->hact;
+			     video_size < vm->hactive;
 			     video_size += video_size_step) {
 
-				if (param->hact * 1000 / video_size % 1000)
+				if (vm->hactive * 1000 / video_size % 1000)
 					continue;
 
-				chunks = param->hact / video_size;
+				chunks = vm->hactive / video_size;
 				bytes_per_chunk = Bpp_x100 * video_size / 100
 						  + pkt_header;
 				if (total_bytes >= (bytes_per_chunk * chunks)) {
@@ -292,7 +310,7 @@ int sprd_dsi_dpi_video(struct sprd_dsi *dsi, struct dpi_video_param *param)
 			chunks = 1;
 
 			/* must be a multiple of 4 except 18 loosely */
-			for (video_size = param->hact;
+			for (video_size = vm->hactive;
 			    (video_size % video_size_step) != 0;
 			     video_size++)
 				;
@@ -303,50 +321,38 @@ int sprd_dsi_dpi_video(struct sprd_dsi *dsi, struct dpi_video_param *param)
 		dsi_hal_dpi_chunk_num(dsi, chunks);
 	}
 
-	dsi_hal_int0_mask(dsi, dsi->ctx.int0_mask);
-	dsi_hal_int1_mask(dsi, dsi->ctx.int1_mask);
+	dsi_hal_int0_mask(dsi, ctx->int0_mask);
+	dsi_hal_int1_mask(dsi, ctx->int1_mask);
 	dsi_hal_power_en(dsi, 1);
 
 	return 0;
 }
 
-int sprd_dsi_edpi_video(struct sprd_dsi *dsi, struct edpi_video_param *param)
+int sprd_dsi_edpi_video(struct sprd_dsi *dsi)
 {
 	const u32 fifo_depth = 1096;
 	const u32 word_length = 4;
+	struct dsi_context *ctx = &dsi->ctx;
+	u32 hactive = ctx->vm.hactive;
 	u32 Bpp_x100;
 	u32 max_fifo_len;
+	u8 coding;
 
-	Bpp_x100 = calc_bytes_per_pixel_x100(param->coding);
+	coding = fmt_to_coding(ctx->format);
+	Bpp_x100 = calc_bytes_per_pixel_x100(coding);
 	max_fifo_len = word_length * fifo_depth * 100 / Bpp_x100;
 
 	dsi_hal_power_en(dsi, 0);
-	dsi_hal_dpi_color_coding(dsi, param->coding);
-	dsi_hal_tear_effect_ack_en(dsi, param->te);
+	dsi_hal_dpi_color_coding(dsi, coding);
+	dsi_hal_tear_effect_ack_en(dsi, ctx->te_ack_en);
 
-	if (max_fifo_len > param->hact)
-		dsi_hal_edpi_max_pkt_size(dsi, param->hact);
+	if (max_fifo_len > hactive)
+		dsi_hal_edpi_max_pkt_size(dsi, hactive);
 	else
 		dsi_hal_edpi_max_pkt_size(dsi, max_fifo_len);
 
-	dsi_hal_int0_mask(dsi, dsi->ctx.int0_mask);
-	dsi_hal_int1_mask(dsi, dsi->ctx.int1_mask);
-	dsi_hal_power_en(dsi, 1);
-
-	return 0;
-}
-
-int sprd_dsi_htime_update(struct sprd_dsi *dsi, struct dpi_video_param *param)
-{
-	u32 ratio_x1000 = 0;
-
-	ratio_x1000 = param->byte_clk * 1000 / param->pixel_clk;
-
-	dsi_hal_power_en(dsi, 0);
-	dsi_hal_dpi_sig_delay(dsi, 95 * param->hline * ratio_x1000 / 100000);
-	dsi_hal_dpi_hline_time(dsi, param->hline * ratio_x1000 / 1000);
-	dsi_hal_dpi_hsync_time(dsi, param->hsync * ratio_x1000 / 1000);
-	dsi_hal_dpi_hbp_time(dsi, param->hbp * ratio_x1000 / 1000);
+	dsi_hal_int0_mask(dsi, ctx->int0_mask);
+	dsi_hal_int1_mask(dsi, ctx->int1_mask);
 	dsi_hal_power_en(dsi, 1);
 
 	return 0;
@@ -485,12 +491,17 @@ int sprd_dsi_get_work_mode(struct sprd_dsi *dsi)
 		return DSI_MODE_VIDEO;
 }
 
-void sprd_dsi_lp_cmd_enable(struct sprd_dsi *dsi, int enable)
+void sprd_dsi_lp_cmd_enable(struct sprd_dsi *dsi, bool enable)
 {
 	if (dsi_hal_is_cmd_mode(dsi))
 		dsi_hal_cmd_mode_lp_cmd_en(dsi, enable);
 	else
 		dsi_hal_video_mode_lp_cmd_en(dsi, enable);
+}
+
+void sprd_dsi_nc_clk_en(struct sprd_dsi *dsi, bool enable)
+{
+	dsi_hal_nc_clk_en(dsi, enable);
 }
 
 void sprd_dsi_state_reset(struct sprd_dsi *dsi)

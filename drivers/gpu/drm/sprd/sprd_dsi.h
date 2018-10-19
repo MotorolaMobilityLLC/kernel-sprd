@@ -16,6 +16,7 @@
 
 #include <linux/of.h>
 #include <linux/device.h>
+#include <video/videomode.h>
 
 #include <drm/drm_of.h>
 #include <drm/drm_crtc_helper.h>
@@ -57,81 +58,48 @@ enum dsi_color_coding {
 	COLOR_CODE_MAX
 };
 
-struct dpi_video_param {
-	/* Number of lanes used to send current video */
-	u8  lanes;
-	/* Virtual channel number to send this video stream */
-	u8  channel;
-	/* burst or non-burst mode */
-	u8 burst_mode;
-	/* Maximum byte clock cycles for data lanes from HS to LP */
-	u8 data_hs2lp;
-	/* Maximum byte clock cycles for data lanes from LP to HS */
-	u8 data_lp2hs;
-	/* Maximum byte clock cycles for clk lanes from HS to LP */
-	u8 clk_hs2lp;
-	/* Maximum byte clock cycles for clk lanes from LP to HS */
-	u8 clk_lp2hs;
-	/* Enable receiving of ack packets */
-	int frame_ack_en;
-	/* Byte (lane) clock [KHz] */
-	u32 byte_clk;
-	/* Pixel (DPI) Clock [KHz]*/
-	u32 pixel_clk;
-	/* Colour coding - BPP and Pixel configuration */
-	u8 coding;
-	/* Is 18-bit loosely packets (valid only when BPP == 18) */
-	int is_18_loosely;
-	/* the polarity of dpicolorm pin - Synopsys Only */
-	int color_mode_pol;
-	/* the polarity of dpishutdn pin - Synopsys Only */
-	int shut_down_pol;
-	/* the polarity of dpidaten pin - Synopsys Only */
-	int de_pol;
-	/* the polarity of dpihsync pin - Synopsys Only */
-	int hsync_pol;
-	/* the polarity of dpivsync pin - Synopsys Only */
-	int vsync_pol;
-	/* Horizontal resolution or Active Pixels */
-	u16 hact;
-	/* Horizontal Sync Pixels */
-	u16 hsync;
-	/* Horizontal back porch pixels */
-	u16 hbp;
-	/* Total Horizontal pixels */
-	u16 hline;
-	/* Vertical active lines (resolution) */
-	u16 vact;
-	/* Vertical sync lines */
-	u16 vsync;
-	/* Vertical back porch lines */
-	u16 vbp;
-	/* Vertical front porch lines */
-	u16 vfp;
-};
-
-struct edpi_video_param {
-	/* virtual channel */
+struct dsi_context {
+	unsigned long base;
+	u8 id;
 	u8 channel;
-	/* Commands to be sent in high speed or low power */
-	int lp;
-	/* Colour coding - BPP and Pixel configuration */
-	u8 coding;
-	/* Top horizontal pixel position in the display */
-	u16 hstart;
-	/* Left most line position in the display */
-	u16 vstart;
-	/* Horizontal resolution or Active Pixels */
-	u16 hact;
-	/* Vertical active lines (resolution) */
-	u16 vact;
-	/* Whether Tearing effect should be requested */
-	int te;
-	/* packet size of write memory command */
-	u16 pkt_size;
+	u8 lanes;
+	u32 format;
+	u8 work_mode;
+	u8 burst_mode;
+	struct videomode vm;
+
+	int irq0;
+	int irq1;
+	u32 int0_mask;
+	u32 int1_mask;
+	bool is_inited;
+
+	/* byte clock [KHz] */
+	u32 byte_clk;
+	/* escape clock [KHz] */
+	u32 esc_clk;
+
+	/* maximum time (ns) for data lanes from HS to LP */
+	u16 data_hs2lp;
+	/* maximum time (ns) for data lanes from LP to HS */
+	u16 data_lp2hs;
+	/* maximum time (ns) for clk lanes from HS to LP */
+	u16 clk_hs2lp;
+	/* maximum time (ns) for clk lanes from LP to HS */
+	u16 clk_lp2hs;
+	/* maximum time (ns) for BTA operation - REQUIRED */
+	u16 max_rd_time;
+
+	/* is 18-bit loosely packets (valid only when BPP == 18) */
+	bool is_18_loosely;
+	/* enable receiving frame ack packets - for video mode */
+	bool frame_ack_en;
+	/* enable receiving tear effect ack packets - for cmd mode */
+	bool te_ack_en;
+	/* enable non coninuous clock for energy saving */
+	bool nc_clk_en;
 };
 
-struct dsi_context;
 struct dsi_core_ops {
 	bool (*check_version)(struct dsi_context *ctx);
 	void (*power_en)(struct dsi_context *ctx, int enable);
@@ -218,30 +186,6 @@ struct dsi_glb_ops {
 	void (*power)(struct dsi_context *ctx, int enable);
 };
 
-struct dsi_context {
-	/* Physical base address of controller - REQUIRED */
-	unsigned long base;
-	int irq0;
-	int irq1;
-	/* D-PHY frequency */
-	u32 freq;
-	u32 esc_clk;
-	/* Number of lanes connected to controller - REQUIRED */
-	u8 lanes;
-	/* master or slave id */
-	u8 id;
-	/* Maximum byte clock cycles for BTA operation - REQUIRED */
-	u16 max_rd_time;
-	/* Enable non coninuous clock for energy saving */
-	int nc_clk_en;
-
-	u32 int0_mask;
-	u32 int1_mask;
-
-	u32 format;
-	u32 mode_flags;
-};
-
 struct sprd_dsi {
 	struct device dev;
 	struct mipi_dsi_host host;
@@ -253,7 +197,6 @@ struct sprd_dsi {
 	struct dsi_core_ops *core;
 	struct dsi_glb_ops *glb;
 	struct dsi_context ctx;
-	struct drm_display_mode cur_mode;
 };
 
 struct sprd_connector_state {

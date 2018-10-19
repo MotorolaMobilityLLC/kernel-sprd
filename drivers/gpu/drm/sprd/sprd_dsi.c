@@ -11,10 +11,7 @@
  *GNU General Public License for more details.
  */
 
-#include <linux/clk.h>
 #include <linux/component.h>
-#include <linux/gpio/consumer.h>
-#include <linux/iopoll.h>
 #include <video/mipi_display.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
@@ -36,6 +33,70 @@
 LIST_HEAD(dsi_core_head);
 LIST_HEAD(dsi_glb_head);
 
+static int sprd_dsi_resume(struct sprd_dsi *dsi)
+{
+	if (dsi->glb && dsi->glb->power)
+		dsi->glb->power(&dsi->ctx, true);
+	if (dsi->glb && dsi->glb->enable)
+		dsi->glb->enable(&dsi->ctx);
+	if (dsi->glb && dsi->glb->reset)
+		dsi->glb->reset(&dsi->ctx);
+
+	sprd_dsi_init(dsi);
+
+	if (dsi->ctx.work_mode == DSI_MODE_VIDEO)
+		sprd_dsi_dpi_video(dsi);
+	else
+		sprd_dsi_edpi_video(dsi);
+
+	DRM_INFO("dsi resume OK\n");
+	return 0;
+}
+
+static int sprd_dsi_suspend(struct sprd_dsi *dsi)
+{
+	sprd_dsi_uninit(dsi);
+
+	if (dsi->glb && dsi->glb->disable)
+		dsi->glb->disable(&dsi->ctx);
+	if (dsi->glb && dsi->glb->power)
+		dsi->glb->power(&dsi->ctx, false);
+
+	DRM_INFO("dsi suspend OK\n");
+	return 0;
+}
+
+static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
+{
+	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
+	struct sprd_dpu *dpu = crtc_to_dpu(encoder->crtc);
+	static bool is_enabled = true;
+
+	DRM_INFO("%s()\n", __func__);
+
+	if (is_enabled) {
+		is_enabled = false;
+		return;
+	}
+
+	sprd_dsi_resume(dsi);
+
+	sprd_dsi_lp_cmd_enable(dsi, true);
+
+	if (dsi->panel) {
+		drm_panel_prepare(dsi->panel);
+		drm_panel_enable(dsi->panel);
+	}
+
+	sprd_dsi_set_work_mode(dsi, dsi->ctx.work_mode);
+	sprd_dsi_state_reset(dsi);
+
+	if (dsi->ctx.nc_clk_en)
+		sprd_dsi_nc_clk_en(dsi, true);
+
+	sprd_dpu_run(dpu);
+}
+
 static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
@@ -48,30 +109,12 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 	sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
 	sprd_dsi_lp_cmd_enable(dsi, true);
 
-	if (dsi->panel && drm_panel_disable(dsi->panel))
-		DRM_ERROR("failed to disable panel\n");
-	if (dsi->panel && drm_panel_unprepare(dsi->panel))
-		DRM_ERROR("failed to unprepare panel\n");
-}
+	if (dsi->panel) {
+		drm_panel_disable(dsi->panel);
+		drm_panel_unprepare(dsi->panel);
+	}
 
-
-static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
-{
-	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
-	struct sprd_dpu *dpu = crtc_to_dpu(encoder->crtc);
-
-	DRM_INFO("%s()\n", __func__);
-
-	sprd_dsi_lp_cmd_enable(dsi, true);
-
-	if (dsi->panel && drm_panel_prepare(dsi->panel))
-		DRM_ERROR("failed to prepare panel\n");
-	if (dsi->panel && drm_panel_enable(dsi->panel))
-		DRM_ERROR("failed to enable panel\n");
-
-	sprd_dsi_set_work_mode(dsi, DSI_MODE_VIDEO);
-
-	sprd_dpu_run(dpu);
+	sprd_dsi_suspend(dsi);
 }
 
 static void sprd_dsi_encoder_mode_set(struct drm_encoder *encoder,
@@ -82,7 +125,7 @@ static void sprd_dsi_encoder_mode_set(struct drm_encoder *encoder,
 
 	DRM_INFO("%s()\n", __func__);
 
-	drm_mode_copy(&dsi->cur_mode, adj_mode);
+	drm_display_mode_to_videomode(mode, &dsi->ctx.vm);
 }
 
 static int sprd_dsi_encoder_atomic_check(struct drm_encoder *encoder,
@@ -169,6 +212,7 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 			   struct mipi_dsi_device *slave)
 {
 	struct sprd_dsi *dsi = host_to_dsi(host);
+	struct dsi_context *ctx = &dsi->ctx;
 	struct device_node *lcd_node;
 	struct device *dev;
 	u32 val;
@@ -177,9 +221,23 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 	DRM_INFO("%s()\n", __func__);
 
 	dsi->slave = slave;
-	dsi->ctx.lanes = slave->lanes;
-	dsi->ctx.format = slave->format;
-	dsi->ctx.mode_flags = slave->mode_flags;
+	ctx->lanes = slave->lanes;
+	ctx->format = slave->format;
+
+	if (slave->mode_flags & MIPI_DSI_MODE_VIDEO)
+		ctx->work_mode = DSI_MODE_VIDEO;
+	else
+		ctx->work_mode = DSI_MODE_CMD;
+
+	if (slave->mode_flags & MIPI_DSI_MODE_VIDEO_BURST)
+		ctx->burst_mode = VIDEO_BURST_WITH_SYNC_PULSES;
+	else if (slave->mode_flags & MIPI_DSI_MODE_VIDEO_SYNC_PULSE)
+		ctx->burst_mode = VIDEO_NON_BURST_WITH_SYNC_PULSES;
+	else
+		ctx->burst_mode = VIDEO_NON_BURST_WITH_SYNC_EVENTS;
+
+	if (slave->mode_flags & MIPI_DSI_CLOCK_NON_CONTINUOUS)
+		ctx->nc_clk_en = true;
 
 	ret = sprd_dsi_find_panel(dsi);
 	if (ret)
@@ -199,15 +257,15 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 
 	ret = of_property_read_u32(lcd_node, "sprd,phy-bit-clock", &val);
 	if (!ret)
-		dsi->ctx.freq = val;
+		ctx->byte_clk = val / 8;
 	else
-		dsi->ctx.freq = 500000;
+		ctx->byte_clk = 500000 / 8;
 
 	ret = of_property_read_u32(lcd_node, "sprd,phy-escape-clock", &val);
 	if (!ret)
-		dsi->ctx.esc_clk = val;
+		ctx->esc_clk = val > 20000 ? 20000 : val;
 	else
-		dsi->ctx.esc_clk = 20000;
+		ctx->esc_clk = 20000;
 
 	return 0;
 }
@@ -540,6 +598,26 @@ static int sprd_dsi_context_init(struct sprd_dsi *dsi, struct device_node *np)
 
 	if (!of_property_read_u32(np, "dev-id", &tmp))
 		ctx->id = tmp;
+
+	if (!of_property_read_u32(np, "sprd,data-hs2lp", &tmp))
+		ctx->data_hs2lp = tmp;
+	else
+		ctx->data_hs2lp = 120;
+
+	if (!of_property_read_u32(np, "sprd,data-lp2hs", &tmp))
+		ctx->data_lp2hs = tmp;
+	else
+		ctx->data_lp2hs = 500;
+
+	if (!of_property_read_u32(np, "sprd,clk-hs2lp", &tmp))
+		ctx->clk_hs2lp = tmp;
+	else
+		ctx->clk_hs2lp = 4;
+
+	if (!of_property_read_u32(np, "sprd,clk-lp2hs", &tmp))
+		ctx->clk_lp2hs = tmp;
+	else
+		ctx->clk_lp2hs = 15;
 
 	if (!of_property_read_u32(np, "sprd,max-read-time", &tmp))
 		ctx->max_rd_time = tmp;
