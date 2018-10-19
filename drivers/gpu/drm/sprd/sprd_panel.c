@@ -32,6 +32,8 @@
 #include "dsi/sprd_dsi_api.h"
 #include "sysfs/sysfs_display.h"
 
+#define SPRD_MIPI_DSI_FMT_DSC 0xff
+
 const char *lcd_name;
 static int __init lcd_name_get(char *str)
 {
@@ -234,6 +236,8 @@ static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 		info->format = MIPI_DSI_FMT_RGB666_PACKED;
 	else if (!strcmp(str, "rgb565"))
 		info->format = MIPI_DSI_FMT_RGB565;
+	else if (!strcmp(str, "dsc"))
+		info->format = SPRD_MIPI_DSI_FMT_DSC;
 	else
 		DRM_ERROR("dsi-color-format (%s) is not supported\n", str);
 
