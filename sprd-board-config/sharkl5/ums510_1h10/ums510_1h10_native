@@ -4,4 +4,6 @@ else
 include  $(KERNEL_PATH)/sprd-board-config/sharkl5/ums510_1h10/ums510_1h10_base
 endif
 
+KERNEL_DEFCONFIG := sprd_all_defconfig
+
 

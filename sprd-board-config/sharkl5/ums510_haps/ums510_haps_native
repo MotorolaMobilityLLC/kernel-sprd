@@ -5,4 +5,5 @@ include  $(KERNEL_PATH)/sprd-board-config/sharkl5/ums510_haps/ums510_haps_base
 endif
 
 BOARD_TEE_CONFIG := trusty
+KERNEL_DEFCONFIG := sprd_all_defconfig
 
