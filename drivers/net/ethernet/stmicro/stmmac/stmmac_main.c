@@ -51,7 +51,7 @@
 #include <linux/of_mdio.h>
 #include "dwmac1000.h"
 
-#define STMMAC_ALIGN(x)	L1_CACHE_ALIGN(x)
+#define	STMMAC_ALIGN(x)		__ALIGN_KERNEL(x, SMP_CACHE_BYTES)
 #define	TSO_MAX_BUFF_SIZE	(SZ_16K - 1)
 
 /* Module parameters */
@@ -914,6 +914,7 @@ static void stmmac_check_pcs_mode(struct stmmac_priv *priv)
 static int stmmac_init_phy(struct net_device *dev)
 {
 	struct stmmac_priv *priv = netdev_priv(dev);
+	u32 tx_cnt = priv->plat->tx_queues_to_use;
 	struct phy_device *phydev;
 	char phy_id_fmt[MII_BUS_ID_SIZE + 3];
 	char bus_id[MII_BUS_ID_SIZE];
@@ -953,6 +954,15 @@ static int stmmac_init_phy(struct net_device *dev)
 		(max_speed < 1000 && max_speed > 0))
 		phydev->advertising &= ~(SUPPORTED_1000baseT_Half |
 					 SUPPORTED_1000baseT_Full);
+
+	/*
+	 * Half-duplex mode not supported with multiqueue
+	 * half-duplex can only works with single queue
+	 */
+	if (tx_cnt > 1)
+		phydev->supported &= ~(SUPPORTED_1000baseT_Half |
+				       SUPPORTED_100baseT_Half |
+				       SUPPORTED_10baseT_Half);
 
 	/*
 	 * Broken HW is sometimes missing the pull-up resistor on the
@@ -2180,8 +2190,7 @@ static int stmmac_init_dma_engine(struct stmmac_priv *priv)
 						    priv->plat->dma_cfg,
 						    tx_q->dma_tx_phy, chan);
 
-			tx_q->tx_tail_addr = tx_q->dma_tx_phy +
-				    (DMA_TX_SIZE * sizeof(struct dma_desc));
+			tx_q->tx_tail_addr = tx_q->dma_tx_phy;
 			priv->hw->dma->set_tx_tail_ptr(priv->ioaddr,
 						       tx_q->tx_tail_addr,
 						       chan);
@@ -2953,6 +2962,7 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	netdev_tx_sent_queue(netdev_get_tx_queue(dev, queue), skb->len);
 
+	tx_q->tx_tail_addr = tx_q->dma_tx_phy + (tx_q->cur_tx * sizeof(*desc));
 	priv->hw->dma->set_tx_tail_ptr(priv->ioaddr, tx_q->tx_tail_addr,
 				       queue);
 
@@ -3168,9 +3178,11 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	if (priv->synopsys_id < DWMAC_CORE_4_00)
 		priv->hw->dma->enable_dma_transmission(priv->ioaddr);
-	else
+	else {
+		tx_q->tx_tail_addr = tx_q->dma_tx_phy + (tx_q->cur_tx * sizeof(*desc));
 		priv->hw->dma->set_tx_tail_ptr(priv->ioaddr, tx_q->tx_tail_addr,
 					       queue);
+	}
 
 	return NETDEV_TX_OK;
 
