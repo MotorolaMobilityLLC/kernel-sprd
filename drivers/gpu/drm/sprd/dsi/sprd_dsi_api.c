@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Spreadtrum Communications Inc.
+ * Copyright (C) 2018 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -13,9 +13,8 @@
 
 #include <linux/delay.h>
 #include <linux/irqreturn.h>
-//#include <video/mipi_display.h>
 
-//#include "sprd_dsi_api.h"
+#include "sprd_dsi_api.h"
 #include "sprd_dsi_hal.h"
 
 static u16 calc_bytes_per_pixel_x100(int coding)

@@ -28,61 +28,9 @@
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_panel.h>
 
-enum {
-	CMD_CODE_INIT = 0,
-	CMD_CODE_SLEEP_IN,
-	CMD_CODE_SLEEP_OUT,
-	CMD_OLED_BRIGHTNESS,
-	CMD_OLED_REG_LOCK,
-	CMD_OLED_REG_UNLOCK,
-	CMD_CODE_RESERVED0,
-	CMD_CODE_RESERVED1,
-	CMD_CODE_RESERVED2,
-	CMD_CODE_RESERVED3,
-	CMD_CODE_RESERVED4,
-	CMD_CODE_RESERVED5,
-	CMD_CODE_MAX,
-};
-
-enum {
-	SPRD_DSI_MODE_CMD = 0,
-	SPRD_DSI_MODE_VIDEO_BURST,
-	SPRD_DSI_MODE_VIDEO_SYNC_PULSE,
-	SPRD_DSI_MODE_VIDEO_SYNC_EVENT,
-};
-
-struct dsi_cmd_desc {
-	uint8_t data_type;
-	uint8_t wait;
-	uint8_t wc_h;
-	uint8_t wc_l;
-	uint8_t payload[];
-};
-
-struct panel_info {
-	/* common parameters */
-	//const char *name;
-	struct device_node *of_node;
-	struct drm_display_mode mode;
-	const void *cmds[CMD_CODE_MAX];
-	int cmds_len[CMD_CODE_MAX];
-
-	/* MIPI DSI specific parameters */
-	u32 format;
-	u32 lanes;
-	u32 mode_flags;
-	bool use_dcs;
-};
-
-struct sprd_panel {
-	struct device dev;
-	struct drm_panel base;
-	struct mipi_dsi_device *slave;
-	struct panel_info info;
-
-	bool prepared;
-	bool enabled;
-};
+#include "sprd_panel.h"
+#include "dsi/sprd_dsi_api.h"
+#include "sysfs/sysfs_display.h"
 
 const char *lcd_name;
 static int __init lcd_name_get(char *str)
@@ -342,7 +290,7 @@ static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 static int sprd_panel_device_create(struct device *parent,
 				    struct sprd_panel *panel)
 {
-	//panel->dev.class = display_class;
+	panel->dev.class = display_class;
 	panel->dev.parent = parent;
 	panel->dev.of_node = panel->info.of_node;
 	dev_set_name(&panel->dev, "panel0");
@@ -395,6 +343,7 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 	panel->slave = slave;
 	panel->enabled = true;
 
+	sprd_panel_sysfs_init(&panel->dev);
 	mipi_dsi_set_drvdata(slave, panel);
 
 	return 0;

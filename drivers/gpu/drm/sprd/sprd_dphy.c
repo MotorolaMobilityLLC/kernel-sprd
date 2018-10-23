@@ -25,7 +25,7 @@
 #include <linux/slab.h>
 
 #include "sprd_dphy.h"
-//#include "sysfs/sysfs_display.h"
+#include "sysfs/sysfs_display.h"
 
 LIST_HEAD(dphy_pll_head);
 LIST_HEAD(dphy_ppi_head);
@@ -144,7 +144,7 @@ static int sprd_dphy_device_create(struct sprd_dphy *dphy,
 {
 	int ret;
 
-//	dphy->dev.class = display_class;
+	dphy->dev.class = display_class;
 	dphy->dev.parent = parent;
 	dphy->dev.of_node = parent->of_node;
 	dev_set_name(&dphy->dev, "dphy");
@@ -252,7 +252,7 @@ static int sprd_dphy_probe(struct platform_device *pdev)
 		dphy->ctx.esc_clk = 20000;
 
 	sprd_dphy_device_create(dphy, &pdev->dev);
-//	sprd_dphy_sysfs_init(&dphy->dev);
+	sprd_dphy_sysfs_init(&dphy->dev);
 	sprd_dphy_regmap_init(dphy);
 	platform_set_drvdata(pdev, dphy);
 

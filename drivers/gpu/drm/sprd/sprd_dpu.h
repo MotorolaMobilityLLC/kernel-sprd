@@ -221,6 +221,7 @@ struct sprd_dpu {
 	struct dpu_clk_ops *clk;
 	struct dpu_glb_ops *glb;
 	struct drm_pending_vblank_event *event;
+	struct notifier_block nb;
 };
 
 extern struct list_head dpu_core_head;

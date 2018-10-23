@@ -14,6 +14,7 @@ obj-y += disp_lib.o
 obj-y += dpu/
 obj-y += dsi/
 obj-y += dphy/
+obj-y += sysfs/
 
 obj-y += sharkl3/
 obj-y += sharkl5/

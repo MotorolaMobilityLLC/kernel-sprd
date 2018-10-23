@@ -16,13 +16,6 @@ int sprd_dsi_wr_pkt(struct sprd_dsi *dsi, u8 vc, u8 type,
 int sprd_dsi_rd_pkt(struct sprd_dsi *dsi, u8 vc, u8 type,
 			u8 msb_byte, u8 lsb_byte,
 			u8 *buffer, u8 bytes_to_read);
-//int sprd_dsi_gen_write(struct sprd_dsi *dsi, u8 *param, u16 len);
-//int sprd_dsi_gen_read(struct sprd_dsi *dsi, u8 *param, u16 len,
-//						u8 *buf, u8 count);
-//int sprd_dsi_dcs_write2(struct sprd_dsi *dsi, u8 *param, u16 len);
-//int sprd_dsi_dcs_read2(struct sprd_dsi *dsi, u8 param, u8 *buf, u8 count);
-//int sprd_dsi_force_write(struct sprd_dsi *dsi, u8 type, u8 *param, u16 len);
-//int sprd_dsi_set_max_return_size(struct sprd_dsi *dsi, u16 size);
 void sprd_dsi_set_work_mode(struct sprd_dsi *dsi, u8 mode);
 int sprd_dsi_get_work_mode(struct sprd_dsi *dsi);
 void sprd_dsi_lp_cmd_enable(struct sprd_dsi *dsi, int enable);

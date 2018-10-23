@@ -24,6 +24,7 @@
 #include "sprd_dpu.h"
 #include "sprd_dsi.h"
 #include "dsi/sprd_dsi_api.h"
+#include "sysfs/sysfs_display.h"
 
 #define encoder_to_dsi(encoder) \
 	container_of(encoder, struct sprd_dsi, encoder)
@@ -175,6 +176,7 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 
 	DRM_INFO("%s()\n", __func__);
 
+	dsi->slave = slave;
 	dsi->ctx.lanes = slave->lanes;
 	dsi->ctx.format = slave->format;
 	dsi->ctx.mode_flags = slave->mode_flags;
@@ -503,7 +505,7 @@ static int sprd_dsi_device_create(struct sprd_dsi *dsi,
 {
 	int ret;
 
-//	dsi->dev.class = display_class;
+	dsi->dev.class = display_class;
 	dsi->dev.parent = parent;
 	dsi->dev.of_node = parent->of_node;
 	dev_set_name(&dsi->dev, "dsi");
@@ -585,6 +587,7 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 		return -EINVAL;
 
 	sprd_dsi_device_create(dsi, &pdev->dev);
+	sprd_dsi_sysfs_init(&dsi->dev);
 	platform_set_drvdata(pdev, dsi);
 
 	ret = sprd_dsi_host_init(&pdev->dev, dsi);

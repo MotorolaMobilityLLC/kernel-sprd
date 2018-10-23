@@ -245,6 +245,7 @@ struct dsi_context {
 struct sprd_dsi {
 	struct device dev;
 	struct mipi_dsi_host host;
+	struct mipi_dsi_device *slave;
 	struct drm_encoder encoder;
 	struct drm_connector connector;
 	struct drm_bridge *bridge;

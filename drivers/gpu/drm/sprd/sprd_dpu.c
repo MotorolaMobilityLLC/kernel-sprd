@@ -26,6 +26,7 @@
 #include "sprd_drm.h"
 #include "sprd_dpu.h"
 #include "sprd_gem.h"
+#include "sysfs/sysfs_display.h"
 
 struct sprd_plane {
 	struct drm_plane plane;
@@ -525,6 +526,16 @@ int sprd_dpu_run(struct sprd_dpu *dpu)
 	return 0;
 }
 
+void sprd_dpu_bgcolor(struct sprd_dpu *dpu)
+{
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (ctx->is_stopped)
+		return;
+
+	dpu->core->bg_color(ctx, 0);
+}
+
 int sprd_dpu_stop(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
@@ -677,7 +688,7 @@ static int sprd_dpu_device_create(struct sprd_dpu *dpu,
 {
 	int err;
 
-//	dpu->dev.class = display_class;
+	dpu->dev.class = display_class;
 	dpu->dev.parent = parent;
 	dpu->dev.of_node = parent->of_node;
 	dev_set_name(&dpu->dev, "dpu");
@@ -761,8 +772,7 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 		return ret;
 
 	sprd_dpu_device_create(dpu, &pdev->dev);
-//	sprd_dpu_sysfs_init(&dpu->dev);
-//	dpu_notifier_register(dpu);
+	sprd_dpu_sysfs_init(&dpu->dev);
 	platform_set_drvdata(pdev, dpu);
 
 //	pm_runtime_set_active(&pdev->dev);
