@@ -85,10 +85,11 @@ void notrace stop_eirqsoff_timing(unsigned long ip, unsigned long parent_ip)
 
 		interval = stop_timestamp - start_timestamp;
 
-		start_timestamp_ms = do_div(start_timestamp, NSEC_PER_SEC);
-		interval_us = do_div(interval, NSEC_PER_MSEC);
-
 		if (interval > warning_interval) {
+
+			start_timestamp_ms = do_div(start_timestamp, NSEC_PER_SEC);
+			interval_us = do_div(interval, NSEC_PER_MSEC);
+
 			pr_warn("irqsoff: Process %d detected Process %d disable interrupt "
 				"%lld.%06lldms from %lld.%09llds\n",
 				current->pid,
@@ -160,16 +161,16 @@ void notrace stop_epreempt_timing(unsigned long ip, unsigned long parent_ip)
 	__this_cpu_write(epreempt_is_tracing, 0);
 
 	if (!oops_in_progress) {
-
 		stop_timestamp = sched_clock();
 		start_timestamp = __this_cpu_read(epreempt_start_timestamp);
 
 		interval = stop_timestamp - start_timestamp;
 
-		start_timestamp_ms = do_div(start_timestamp, NSEC_PER_SEC);
-		interval_us = do_div(interval, NSEC_PER_MSEC);
-
 		if (interval > epreempt_interval) {
+
+			start_timestamp_ms = do_div(start_timestamp, NSEC_PER_SEC);
+			interval_us = do_div(interval, NSEC_PER_MSEC);
+
 			pr_warn("irqsoff: Process %d detected Process %d disable preempt "
 				"%lld.%06lldms from %lld.%09llds\n",
 				current->pid,
