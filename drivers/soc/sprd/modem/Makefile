@@ -4,3 +4,4 @@
 obj-$(CONFIG_SPRD_SIPC)		+= sipc/
 obj-$(CONFIG_SPRD_CPROC)	+= cproc/
 obj-$(CONFIG_SPRD_IQ)		+= iq/
+obj-$(CONFIG_SPRD_HW_DEVICE_DVFS_CP)	+= dvfs/
