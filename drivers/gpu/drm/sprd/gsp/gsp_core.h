@@ -21,10 +21,10 @@
 #include <drm/gsp_cfg.h>
 
 #define GSP_CORE_SUSPEND_WAIT 3000 /* 3000 ms */
-#define GSP_CORE_RESUME_WAIT  3000 /* 3000 ms */
+#define GSP_CORE_RESUME_WAIT 3000 /* 3000 ms */
 #define GSP_CORE_RELEASE_WAIT 3000 /* 3000 ms */
-#define PM_RUNTIME_DELAY_MS   1000
-#define GSP_CORE_TIMER_OUT    1000 /* 1000 ms */
+#define PM_RUNTIME_DELAY_MS 1000
+#define GSP_CORE_TIMER_OUT 2800 /* 2800 ms */
 
 
 struct gsp_core_ops;

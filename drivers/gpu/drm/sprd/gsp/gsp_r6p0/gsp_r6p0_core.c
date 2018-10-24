@@ -487,7 +487,26 @@ static void gsp_r6p0_int_clear_and_disable(struct gsp_core *core)
 	gsp_int_mask.INT_GERR_CLR = 1;
 	gsp_core_reg_update(R6P0_GSP_INT(core->base),
 			gsp_int_value.value, gsp_int_mask.value);
+}
 
+static void gsp_r6p0_int_clear(struct gsp_core *core)
+{
+	struct R6P0_GSP_INT_REG gsp_int_value;
+	struct R6P0_GSP_INT_REG gsp_int_mask;
+
+	if (IS_ERR_OR_NULL(core)) {
+		GSP_ERR("r6p0 interrupt clear with null core\n");
+		return;
+	}
+
+	gsp_int_value.value = 0;
+	gsp_int_value.INT_GSP_CLR = 1;
+	gsp_int_value.INT_GERR_CLR = 1;
+	gsp_int_mask.value = 0;
+	gsp_int_mask.INT_GSP_CLR = 1;
+	gsp_int_mask.INT_GERR_CLR = 1;
+	gsp_core_reg_update(R6P0_GSP_INT(core->base),
+			gsp_int_value.value, gsp_int_mask.value);
 }
 
 static void gsp_r6p0_coef_cache_init(struct gsp_r6p0_core *core)
@@ -624,21 +643,6 @@ static void gsp_r6p0_core_irq_enable(struct gsp_core *core)
 			gsp_int_value.value, gsp_int_mask.value);
 }
 
-static void gsp_r6p0_core_irq_disable(struct gsp_core *core)
-{
-	struct R6P0_GSP_INT_REG gsp_int_value;
-	struct R6P0_GSP_INT_REG gsp_int_mask;
-
-	gsp_int_value.value = 0;
-	gsp_int_value.INT_GSP_EN = 0;
-	gsp_int_value.INT_GERR_EN = 0;
-	gsp_int_mask.value = 0;
-	gsp_int_mask.INT_GSP_EN = 0x1;
-	gsp_int_mask.INT_GERR_EN = 0x1;
-	gsp_core_reg_update(R6P0_GSP_INT(core->base),
-			gsp_int_value.value, gsp_int_mask.value);
-}
-
 static irqreturn_t gsp_r6p0_core_irq_handler(int irq, void *data)
 {
 	struct gsp_core *core = NULL;
@@ -667,7 +671,6 @@ static irqreturn_t gsp_r6p0_core_irq_handler(int irq, void *data)
 	}
 
 	gsp_r6p0_int_clear_and_disable(core);
-
 	gsp_core_state_set(core, CORE_STATE_IRQ_HANDLED);
 	kthread_queue_work(&core->kworker, &core->release);
 
@@ -705,6 +708,7 @@ exit:
 	struct gsp_r6p0_core *core = NULL;
 
 	core = (struct gsp_r6p0_core *)c;
+	gsp_r6p0_int_clear(c);
 	gsp_r6p0_core_irq_enable(c);
 	return 0;
 }
@@ -714,7 +718,7 @@ void gsp_r6p0_core_disable(struct gsp_core *c)
 	struct gsp_r6p0_core *core = NULL;
 
 	core = (struct gsp_r6p0_core *)c;
-	gsp_r6p0_core_irq_disable(c);
+	gsp_r6p0_int_clear_and_disable(c);
 	/*clk_disable_unprepare(core->dpu_clk);*/
 }
 

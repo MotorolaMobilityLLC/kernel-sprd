@@ -22,7 +22,7 @@
 #include "gsp_sync.h"
 #include <linux/slab.h>
 
-#define GSP_FENCE_WAIT_TIMEOUT 3000/* ms */
+#define GSP_FENCE_WAIT_TIMEOUT 2900/* ms */
 
 static const struct dma_fence_ops gsp_sync_fence_ops;
 
