@@ -10,7 +10,7 @@
 / { lcds {
 	lcd_r61350_truly_mipi_hd: lcd_r61350_truly_mipi_hd {
 
-		sprd,dsi-video-burst-mode;
+		sprd,dsi-work-mode = <1>; /* video burst mode*/
 		sprd,dsi-lane-number = <4>;
 		sprd,dsi-color-format = "rgb888";
 
