@@ -429,6 +429,14 @@ config GPIO_SPRD
 	help
 	  Say yes here to support Spreadtrum GPIO device.
 
+config GPIO_PLUS_SPRD
+	tristate "Spreadtrum GPIO PLUS support"
+	depends on ARCH_SPRD || COMPILE_TEST
+	depends on OF_GPIO
+	select GPIOLIB_IRQCHIP
+	help
+	  Say yes here to support Spreadtrum GPIO PLUS device.
+
 config GPIO_STA2X11
 	bool "STA2x11/ConneXt GPIO support"
 	depends on MFD_STA2X11
