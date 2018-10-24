@@ -356,10 +356,6 @@ void alarmtimer_shutdown(struct platform_device *pdev)
 
 	if (min == 0) {
 		pr_info("No poweroff alarm found\n");
-		alarm.enabled = 0;
-		ret = rtc_set_alarm(rtc, &alarm);
-		if (ret)
-			pr_err("Power off alarm setting error %d\n", ret);
 		return;
 	} else if (ktime_to_ms(min) < 10 * MSEC_PER_SEC) {
 		pr_warn("Don't need to set poweroff alarm due to less than 10s\n");
