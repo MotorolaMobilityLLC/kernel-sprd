@@ -3,8 +3,6 @@
 FN="$2"
 SCR_PATH="`dirname $0`/.."
 
-echo "==== create user kernel configs ===="
-
 for line in `cat "$FN"`
 do
 prefix=`expr substr "$line" 1 3`
