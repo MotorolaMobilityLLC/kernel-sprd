@@ -598,6 +598,7 @@ void rtc_handle_legacy_irq(struct rtc_device *rtc, int num, int mode)
 	/* mark one irq of the appropriate mode */
 	spin_lock_irqsave(&rtc->irq_lock, flags);
 	rtc->irq_data = (rtc->irq_data + (num << 8)) | (RTC_IRQF|mode);
+	rtc->flags |= mode;
 	spin_unlock_irqrestore(&rtc->irq_lock, flags);
 
 	/* call the task func */
