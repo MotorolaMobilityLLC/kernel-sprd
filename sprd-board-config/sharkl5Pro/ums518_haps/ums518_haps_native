@@ -1,0 +1,5 @@
+ifdef BUILD_FROM_KERNEL
+include sprd-board-config/sharkl5Pro/ums518_haps/ums518_haps_base
+else
+include  $(KERNEL_PATH)/sprd-board-config/sharkl5Pro/ums518_haps/ums518_haps_base
+endif
