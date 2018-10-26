@@ -681,6 +681,107 @@ static const struct sprd_clk_desc sc9863a_vspahb_gate_desc = {
 	.hw_clks	= &sc9863a_vspahb_gate_hws,
 };
 
+static SPRD_SC_GATE_CLK(sim0_eb,	"sim0-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(iis0_eb,	"iis0-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(iis1_eb,	"iis1-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(iis2_eb,	"iis2-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(spi0_eb,	"spi0-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(spi1_eb,	"spi1-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(spi2_eb,	"spi2-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(i2c0_eb,	"i2c0-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(i2c1_eb,	"i2c1-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(i2c2_eb,	"i2c2-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(i2c3_eb,	"i2c3-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(i2c4_eb,	"i2c4-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(uart0_eb,	"uart0-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(13), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(uart1_eb,	"uart1-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(uart2_eb,	"uart2-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(15), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(uart3_eb,	"uart3-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(16), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(uart4_eb,	"uart4-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(17), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(sim0_32k_eb,	"sim0_32k-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(18), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(spi3_eb,	"spi3-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(19), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(i2c5_eb,	"i2c5-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(20), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(i2c6_eb,	"i2c6-eb",	"ext-26m", 0x0,
+		     0x1000, BIT(21), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *sc9863a_apapb_gate[] = {
+	/* address base is 0x71300000 */
+	&sim0_eb.common,
+	&iis0_eb.common,
+	&iis1_eb.common,
+	&iis2_eb.common,
+	&spi0_eb.common,
+	&spi1_eb.common,
+	&spi2_eb.common,
+	&i2c0_eb.common,
+	&i2c1_eb.common,
+	&i2c2_eb.common,
+	&i2c3_eb.common,
+	&i2c4_eb.common,
+	&uart0_eb.common,
+	&uart1_eb.common,
+	&uart2_eb.common,
+	&uart3_eb.common,
+	&uart4_eb.common,
+	&sim0_32k_eb.common,
+	&spi3_eb.common,
+	&i2c5_eb.common,
+	&i2c6_eb.common,
+};
+
+static struct clk_hw_onecell_data sc9863a_apapb_gate_hws = {
+	.hws	= {
+		[CLK_SIM0_EB]		= &sim0_eb.common.hw,
+		[CLK_IIS0_EB]		= &iis0_eb.common.hw,
+		[CLK_IIS1_EB]		= &iis1_eb.common.hw,
+		[CLK_IIS2_EB]		= &iis2_eb.common.hw,
+		[CLK_SPI0_EB]		= &spi0_eb.common.hw,
+		[CLK_SPI1_EB]		= &spi1_eb.common.hw,
+		[CLK_SPI2_EB]		= &spi2_eb.common.hw,
+		[CLK_I2C0_EB]		= &i2c0_eb.common.hw,
+		[CLK_I2C1_EB]		= &i2c1_eb.common.hw,
+		[CLK_I2C2_EB]		= &i2c2_eb.common.hw,
+		[CLK_I2C3_EB]		= &i2c3_eb.common.hw,
+		[CLK_I2C4_EB]		= &i2c4_eb.common.hw,
+		[CLK_UART0_EB]		= &uart0_eb.common.hw,
+		[CLK_UART1_EB]		= &uart1_eb.common.hw,
+		[CLK_UART2_EB]		= &uart2_eb.common.hw,
+		[CLK_UART3_EB]		= &uart3_eb.common.hw,
+		[CLK_UART4_EB]		= &uart4_eb.common.hw,
+		[CLK_SIM0_32K_EB]	= &sim0_32k_eb.common.hw,
+		[CLK_SPI3_EB]		= &spi3_eb.common.hw,
+		[CLK_I2C5_EB]		= &i2c5_eb.common.hw,
+		[CLK_I2C6_EB]		= &i2c6_eb.common.hw,
+	},
+	.num	= CLK_AP_APB_GATE_NUM,
+};
+
+static const struct sprd_clk_desc sc9863a_apapb_gate_desc = {
+	.clk_clks	= sc9863a_apapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(sc9863a_apapb_gate),
+	.hw_clks	= &sc9863a_apapb_gate_hws,
+};
+
 static const struct of_device_id sprd_sc9863a_clk_ids[] = {
 	{ .compatible = "sprd,sc9863a-pmu-gate",	/* 0x402b0000 */
 	  .data = &sc9863a_pmu_gate_desc },
@@ -700,6 +801,8 @@ static const struct of_device_id sprd_sc9863a_clk_ids[] = {
 	  .data = &sc9863a_aonapb_gate_desc },
 	{ .compatible = "sprd,sc9863a-vspahb-gate",	/* 0x62000000 */
 	  .data = &sc9863a_vspahb_gate_desc },
+	{ .compatible = "sprd,sc9863a-apapb-gate",	/* 0x71300000 */
+	  .data = &sc9863a_apapb_gate_desc },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, sprd_sc9863a_clk_ids);
