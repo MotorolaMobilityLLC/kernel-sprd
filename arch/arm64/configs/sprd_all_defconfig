@@ -4079,7 +4079,7 @@ CONFIG_ANDROID_BINDER_DEVICES="binder,hwbinder,vndbinder"
 CONFIG_DAX=y
 CONFIG_NVMEM=y
 # CONFIG_SPRD_EFUSE is not set
-# CONFIG_SC27XX_EFUSE is not set
+CONFIG_SC27XX_EFUSE=y
 # CONFIG_STM is not set
 # CONFIG_INTEL_TH is not set
 # CONFIG_FPGA is not set
