@@ -26,6 +26,7 @@
 #include <drm/drm_panel.h>
 
 #include "disp_lib.h"
+#include "sprd_dphy.h"
 
 #define DSI_INT_STS_NEED_SOFT_RESET	BIT(0)
 #define DSI_INT_STS_NEED_HARD_RESET	BIT(1)
@@ -194,6 +195,7 @@ struct sprd_dsi {
 	struct drm_connector connector;
 	struct drm_bridge *bridge;
 	struct drm_panel *panel;
+	struct sprd_dphy *phy;
 	struct dsi_core_ops *core;
 	struct dsi_glb_ops *glb;
 	struct dsi_context ctx;

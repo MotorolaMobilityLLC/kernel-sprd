@@ -80,6 +80,7 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 	}
 
 	sprd_dsi_resume(dsi);
+	sprd_dphy_resume(dsi->phy);
 
 	sprd_dsi_lp_cmd_enable(dsi, true);
 
@@ -93,6 +94,8 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 
 	if (dsi->ctx.nc_clk_en)
 		sprd_dsi_nc_clk_en(dsi, true);
+	else
+		sprd_dphy_hs_clk_en(dsi->phy, true);
 
 	sprd_dpu_run(dpu);
 }
@@ -114,6 +117,7 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 		drm_panel_unprepare(dsi->panel);
 	}
 
+	sprd_dphy_suspend(dsi->phy);
 	sprd_dsi_suspend(dsi);
 }
 
@@ -208,6 +212,25 @@ static int sprd_dsi_find_panel(struct sprd_dsi *dsi)
 	return -ENODEV;
 }
 
+static int sprd_dsi_phy_attach(struct sprd_dsi *dsi)
+{
+	struct device *dev;
+
+	dev = sprd_disp_pipe_get_output(&dsi->dev);
+	if (!dev)
+		return -ENODEV;
+
+	dsi->phy = dev_get_drvdata(dev);
+	if (!dsi->phy) {
+		DRM_ERROR("dsi attach phy failed\n");
+		return -EINVAL;
+	}
+
+	dsi->phy->ctx.lanes = dsi->ctx.lanes;
+
+	return 0;
+}
+
 static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 			   struct mipi_dsi_device *slave)
 {
@@ -239,6 +262,10 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 	if (slave->mode_flags & MIPI_DSI_CLOCK_NON_CONTINUOUS)
 		ctx->nc_clk_en = true;
 
+	ret = sprd_dsi_phy_attach(dsi);
+	if (ret)
+		return ret;
+
 	ret = sprd_dsi_find_panel(dsi);
 	if (ret)
 		return ret;
@@ -250,16 +277,14 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 	if (dev)
 		dev_set_drvdata(dev, lcd_node);
 
-	/* set driver_data for dphy platform device */
-	dev = sprd_disp_pipe_get_output(host->dev);
-	if (dev)
-		dev_set_drvdata(dev, lcd_node);
-
 	ret = of_property_read_u32(lcd_node, "sprd,phy-bit-clock", &val);
-	if (!ret)
+	if (!ret) {
+		dsi->phy->ctx.freq = val;
 		ctx->byte_clk = val / 8;
-	else
+	} else {
+		dsi->phy->ctx.freq = 500000;
 		ctx->byte_clk = 500000 / 8;
+	}
 
 	ret = of_property_read_u32(lcd_node, "sprd,phy-escape-clock", &val);
 	if (!ret)

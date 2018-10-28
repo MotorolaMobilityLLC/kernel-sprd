@@ -21,7 +21,6 @@
 #include <linux/of_platform.h>
 #include <linux/pm_runtime.h>
 #include <linux/platform_device.h>
-#include <linux/spinlock.h>
 #include <linux/slab.h>
 
 #include "sprd_dphy.h"
@@ -31,8 +30,7 @@ LIST_HEAD(dphy_pll_head);
 LIST_HEAD(dphy_ppi_head);
 LIST_HEAD(dphy_glb_head);
 
-static int regmap_tst_io_write(void *context, unsigned int reg,
-				       unsigned int val)
+static int regmap_tst_io_write(void *context, u32 reg, u32 val)
 {
 	struct sprd_dphy *dphy = context;
 
@@ -46,8 +44,7 @@ static int regmap_tst_io_write(void *context, unsigned int reg,
 	return 0;
 }
 
-static int regmap_tst_io_read(void *context, unsigned int reg,
-				      unsigned int *val)
+static int regmap_tst_io_read(void *context, u32 reg, u32 *val)
 {
 	struct sprd_dphy *dphy = context;
 	int ret;
@@ -103,7 +100,7 @@ static int sprd_dphy_regmap_init(struct sprd_dphy *dphy)
 	return 0;
 }
 
-static int sprd_dphy_resume(struct sprd_dphy *dphy)
+int sprd_dphy_resume(struct sprd_dphy *dphy)
 {
 	int ret;
 
@@ -118,11 +115,11 @@ static int sprd_dphy_resume(struct sprd_dphy *dphy)
 		return -EINVAL;
 	}
 
-	pr_info("dphy resume OK\n");
+	DRM_INFO("dphy resume OK\n");
 	return ret;
 }
 
-static int sprd_dphy_suspend(struct sprd_dphy *dphy)
+int sprd_dphy_suspend(struct sprd_dphy *dphy)
 {
 	int ret;
 
@@ -135,7 +132,7 @@ static int sprd_dphy_suspend(struct sprd_dphy *dphy)
 	if (dphy->glb && dphy->glb->power)
 		dphy->glb->power(&dphy->ctx, false);
 
-	pr_info("dphy suspend OK\n");
+	DRM_INFO("dphy suspend OK\n");
 	return ret;
 }
 
@@ -161,7 +158,7 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 				  struct device_node *np)
 {
 	struct resource r;
-	uint32_t tmp;
+	u32 tmp;
 
 	if (dphy->glb && dphy->glb->parse_dt)
 		dphy->glb->parse_dt(&dphy->ctx, np);
@@ -179,7 +176,7 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 	}
 
 	if (!of_address_to_resource(np, 1, &r)) {
-		pr_info("this dphy has apb reg base\n");
+		DRM_INFO("this dphy has apb reg base\n");
 		dphy->ctx.apbbase = (unsigned long)
 		    ioremap_nocache(r.start, resource_size(&r));
 		if (dphy->ctx.apbbase == 0) {
@@ -199,18 +196,10 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 static int sprd_dphy_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
-	struct device_node *lcd_node;
 	struct sprd_dphy *dphy;
 	struct device *dsi_dev;
 	const char *str;
-	u32 val;
 	int ret;
-
-	lcd_node = platform_get_drvdata(pdev);
-	if (!lcd_node) {
-		DRM_INFO("panel is not attached, dphy probe deferred\n");
-		return -EPROBE_DEFER;
-	}
 
 	dphy = devm_kzalloc(&pdev->dev, sizeof(*dphy), GFP_KERNEL);
 	if (!dphy)
@@ -239,18 +228,6 @@ static int sprd_dphy_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	ret = of_property_read_u32(lcd_node, "sprd,phy-bit-clock", &val);
-	if (!ret)
-		dphy->ctx.freq = val;
-	else
-		dphy->ctx.freq = 500000;
-
-	ret = of_property_read_u32(lcd_node, "sprd,phy-escape-clock", &val);
-	if (!ret)
-		dphy->ctx.esc_clk = val;
-	else
-		dphy->ctx.esc_clk = 20000;
-
 	sprd_dphy_device_create(dphy, &pdev->dev);
 	sprd_dphy_sysfs_init(&dphy->dev);
 	sprd_dphy_regmap_init(dphy);
@@ -260,7 +237,7 @@ static int sprd_dphy_probe(struct platform_device *pdev)
 //	pm_runtime_get_noresume(&pdev->dev);
 //	pm_runtime_enable(&pdev->dev);
 
-	pr_info("dphy driver probe success\n");
+	DRM_INFO("dphy driver probe success\n");
 
 	return 0;
 }

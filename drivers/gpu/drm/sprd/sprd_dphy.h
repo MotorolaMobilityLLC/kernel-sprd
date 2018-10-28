@@ -1,5 +1,5 @@
-#ifndef _MIPI_DPHY_COMMON_H_
-#define _MIPI_DPHY_COMMON_H_
+#ifndef _SPRD_DPHY_H_
+#define _SPRD_DPHY_H_
 
 #include <asm/types.h>
 #include <drm/drmP.h>
@@ -9,7 +9,6 @@
 #include <linux/regmap.h>
 
 #include "disp_lib.h"
-//#include "sprd_panel.h"
 
 struct dphy_context {
 	struct regmap *regmap;
@@ -17,7 +16,6 @@ struct dphy_context {
 	unsigned long apbbase;
 	struct mutex hop_lock;
 	u32 freq;
-	u32 esc_clk;
 	u8 lanes;
 	u8 id;
 };
@@ -72,7 +70,6 @@ struct sprd_dphy {
 	struct dphy_ppi_ops *ppi;
 	struct dphy_pll_ops *pll;
 	struct dphy_glb_ops *glb;
-//	struct panel_info *panel;
 };
 
 extern struct list_head dphy_pll_head;
@@ -93,6 +90,9 @@ extern struct list_head dphy_glb_head;
 #define dphy_glb_ops_attach(str) \
 	disp_ops_attach(str, &dphy_glb_head)
 
+int sprd_dphy_resume(struct sprd_dphy *dphy);
+int sprd_dphy_suspend(struct sprd_dphy *dphy);
+
 int sprd_dphy_configure(struct sprd_dphy *dphy);
 void sprd_dphy_reset(struct sprd_dphy *dphy);
 void sprd_dphy_shutdown(struct sprd_dphy *dphy);
@@ -106,4 +106,4 @@ void sprd_dphy_hs_clk_en(struct sprd_dphy *dphy, int enable);
 void sprd_dphy_test_write(struct sprd_dphy *dphy, u8 address, u8 data);
 u8 sprd_dphy_test_read(struct sprd_dphy *dphy, u8 address);
 
-#endif /* _MIPI_DPHY_COMMON_H_ */
+#endif /* _SPRD_DPHY_H_ */
