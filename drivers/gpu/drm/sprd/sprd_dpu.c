@@ -554,6 +554,7 @@ int sprd_dpu_stop(struct sprd_dpu *dpu)
 static int sprd_dpu_init(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
+	static bool is_running = true;
 
 	if (dpu->ctx.is_inited)
 		return 0;
@@ -562,6 +563,11 @@ static int sprd_dpu_init(struct sprd_dpu *dpu)
 		dpu->glb->power(ctx, true);
 	if (dpu->glb && dpu->glb->enable)
 		dpu->glb->enable(ctx);
+
+	if (is_running)
+		is_running = false;
+	else if (dpu->glb && dpu->glb->reset)
+		dpu->glb->reset(ctx);
 
 	if (dpu->clk && dpu->clk->init)
 		dpu->clk->init(ctx);
