@@ -48,7 +48,7 @@
 				     <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
 			sprd,sensor = <7>;
 			sprd,core-cnt = <8>;
-			sprd,version = <3>;
+			sprd,version = <0x102>;
 		};
 
 		aon_intc_regs: syscon@40200000 {
