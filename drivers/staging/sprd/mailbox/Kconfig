@@ -10,5 +10,21 @@ config SPRD_MAILBOX
 	  through queued messages and interrupt driven
 	  signals.
 
+config SPRD_MAILBOX_R1P2
+	bool "Spreadtrum Mailbox R1P2 Version"
+        default n
+	depends on SPRD_MAILBOX
+	help
+	  This feature be opened indicate that the mailbox
+	  module will use the mailbox r1p2 version.
+
+config SPRD_MAILBOX_R2P0
+	bool "Spreadtrum Mailbox R2P0 Version"
+        default n
+	depends on SPRD_MAILBOX
+	help
+	  This feature be opened indicate that the mailbox
+	  module will use the mailbox r2p0 version.
+
 endmenu
 

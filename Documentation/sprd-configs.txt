@@ -8905,6 +8905,13 @@ SPRD_MAILBOX
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sprd mailbox module.
+SPRD_MAILBOX_R1P2
+	[arch] all
+	[plat] all
+	[field] make, code
+	[subsys] staging
+	[must] user
+	[function] This function is used to enable sprd mailbox r1p2 version.
 SPRD_MEMDISK
 	[arch] all
 	[plat] sharkl3,sharkl5
