@@ -565,6 +565,8 @@ static SPRD_SC_GATE_CLK(mm_vsp_emc_eb, "mm-vsp-emc-eb",	"aon-apb", 0x50,
 		     0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(vsp_eb,		"vsp-eb",	"aon-apb", 0x50,
 		     0x1000, BIT(16), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(splk_eb,	"splk-eb",	"aon-apb", 0x0,
+		     0x1000, BIT(22), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *sc9863a_aonapb_gate_clks[] = {
 	/* address base is 0x402e0000 */
@@ -601,6 +603,7 @@ static struct sprd_clk_common *sc9863a_aonapb_gate_clks[] = {
 	&hw_i2c_eb.common,
 	&mm_vsp_emc_eb.common,
 	&vsp_eb.common,
+	&splk_eb.common,
 };
 
 static struct clk_hw_onecell_data sc9863a_aonapb_gate_hws = {
@@ -638,6 +641,7 @@ static struct clk_hw_onecell_data sc9863a_aonapb_gate_hws = {
 		[CLK_I2C_EB]		= &hw_i2c_eb.common.hw,
 		[CLK_MM_VSP_EMC_EB]	= &mm_vsp_emc_eb.common.hw,
 		[CLK_VSP_EB]		= &vsp_eb.common.hw,
+		[CLK_SPLK_EB]		= &splk_eb.common.hw,
 	},
 	.num	= CLK_AON_APB_GATE_NUM,
 };

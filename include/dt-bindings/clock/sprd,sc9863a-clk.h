@@ -136,7 +136,8 @@
 #define CLK_I2C_EB		30
 #define CLK_MM_VSP_EMC_EB	31
 #define CLK_VSP_EB		32
-#define CLK_AON_APB_GATE_NUM	(CLK_VSP_EB + 1)
+#define CLK_SPLK_EB		33
+#define CLK_AON_APB_GATE_NUM	(CLK_SPLK_EB + 1)
 
 #define CLK_VCKG_EB		0
 #define CLK_VVSP_EB		1
