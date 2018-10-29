@@ -298,6 +298,23 @@
 				#interrupt-cells = <2>;
 				interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>;
 			};
+
+			hwlock: hwspinlock@40060000 {
+				compatible = "sprd,hwspinlock-r3p0";
+				reg = <0x40060000 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
+
+			adi_bus: spi@41800000 {
+				compatible = "sprd,sc9860-adi", "sprd,sharkl3-adi";
+				reg = <0x41800000 0x200000>;
+				hwlocks = <&hwlock 0>;
+				hwlock-names = "adi";
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
 		};
 
 		mm {
