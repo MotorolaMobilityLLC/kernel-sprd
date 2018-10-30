@@ -86,6 +86,12 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	struct sprd_dpu_layer layer = {};
 	int i;
 
+	if (!dpu->ctx.is_inited) {
+		DRM_DEBUG("DPU is power off, layer %u update ignore\n",
+			  p->index);
+		return;
+	}
+
 	layer.index = p->index;
 	layer.src_x = state->src_x >> 16;
 	layer.src_y = state->src_y >> 16;
@@ -124,6 +130,12 @@ static void sprd_plane_atomic_disable(struct drm_plane *plane,
 {
 	struct sprd_plane *p = to_sprd_plane(plane);
 	struct sprd_dpu *dpu = crtc_to_dpu(old_state->crtc);
+
+	if (!dpu->ctx.is_inited) {
+		DRM_DEBUG("DPU is power off, layer %u disable ignore\n",
+			  p->index);
+		return;
+	}
 
 	DRM_DEBUG("%s() layer_id = %u\n", __func__, p->index);
 
@@ -425,7 +437,7 @@ static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
 
 	DRM_DEBUG("%s()\n", __func__);
 
-	if (dpu->core && dpu->core->run && !dpu->ctx.is_stopped)
+	if (dpu->core && dpu->core->run && dpu->ctx.is_inited)
 		dpu->core->run(&dpu->ctx);
 
 	spin_lock_irq(&drm->event_lock);
