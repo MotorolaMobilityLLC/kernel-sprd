@@ -1222,6 +1222,7 @@ CONFIG_MEMORY_STATE_TIME=y
 # CONFIG_CXL_BASE is not set
 # CONFIG_CXL_AFU_DRIVER_OPS is not set
 # CONFIG_CXL_LIB is not set
+# CONFIG_SPRD_VSP is not set
 
 #
 # Spreadtrum WCN Device Drivers

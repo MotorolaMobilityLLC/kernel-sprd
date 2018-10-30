@@ -539,6 +539,7 @@ source "drivers/misc/mic/Kconfig"
 source "drivers/misc/genwqe/Kconfig"
 source "drivers/misc/echo/Kconfig"
 source "drivers/misc/cxl/Kconfig"
+source "drivers/misc/sprd_vsp/Kconfig"
 source "drivers/misc/sprdwcn/Kconfig"
 source "drivers/misc/sprd_camera/Kconfig"
 endmenu

@@ -1,0 +1,217 @@
+/*
+ * Copyright (C) 2015--2016 Spreadtrum Communications Inc.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include <linux/delay.h>
+#include <linux/errno.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/mfd/syscon.h>
+#include <linux/module.h>
+#include <linux/mutex.h>
+#include <linux/regmap.h>
+#include <dt-bindings/soc/sprd,sharkl3-regs.h>
+#include <linux/slab.h>
+#include <linux/types.h>
+#include <uapi/video/sprd_vsp_pw_domain.h>
+#include "vsp_common.h"
+
+struct vsp_pw_domain_info_t *vsp_pw_domain_info;
+
+static int is_vsp_domain_power_on(void)
+{
+	int power_count = 0;
+	int ins_count = 0;
+
+	for (ins_count = 0; ins_count < VSP_PW_DOMAIN_COUNT_MAX; ins_count++) {
+		power_count +=
+		    vsp_pw_domain_info->pw_vsp_info[ins_count].pw_count;
+	}
+
+	return (power_count > 0) ? 1 : 0;
+}
+
+#define __SPRD_VSP_TIMEOUT            (30 * 1000)
+
+int vsp_pw_on(u8 client)
+{
+	int ret = 0;
+	u32 power_state1, power_state2, power_state3;
+	unsigned long timeout = jiffies + msecs_to_jiffies(__SPRD_VSP_TIMEOUT);
+	u32 read_count = 0;
+
+	pr_info("vsp_pw_domain:vsp_pw_on Enter client %d\n", client);
+	if (client >= VSP_PW_DOMAIN_COUNT_MAX) {
+		pr_err("vsp_pw_domain:vsp_pw_on with error client\n");
+		return -1;
+	}
+
+	mutex_lock(&vsp_pw_domain_info->client_lock);
+
+	if (is_vsp_domain_power_on() == 0) {
+
+		ret = regmap_update_bits(gpr_pmu_apb,
+				REG_PMU_APB_PD_MM_VSP_CFG,
+				BIT_PMU_APB_PD_MM_VSP_AUTO_SHUTDOWN_EN,
+				(unsigned int)
+				(~BIT_PMU_APB_PD_MM_VSP_AUTO_SHUTDOWN_EN));
+		if (ret) {
+			pr_err("regmap_update_bits failed %s, %d\n",
+				__func__, __LINE__);
+			goto pw_on_exit;
+		}
+
+		ret = regmap_update_bits(gpr_pmu_apb,
+			REG_PMU_APB_PD_MM_VSP_CFG,
+			BIT_PMU_APB_PD_MM_VSP_FORCE_SHUTDOWN,
+			(unsigned int)(~BIT_PMU_APB_PD_MM_VSP_FORCE_SHUTDOWN));
+		if (ret) {
+			pr_err("regmap_update_bits failed %s, %d\n",
+				__func__, __LINE__);
+			goto pw_on_exit;
+		}
+
+		do {
+			cpu_relax();
+			udelay(300);
+			read_count++;
+
+			regmap_read(gpr_pmu_apb,
+						REG_PMU_APB_PWR_STATUS5_DBG,
+						&power_state1);
+			power_state1 &= BIT_PMU_APB_PD_MM_VSP_STATE(0x1F);
+			regmap_read(gpr_pmu_apb,
+						REG_PMU_APB_PWR_STATUS5_DBG,
+						&power_state2);
+			power_state2 &= BIT_PMU_APB_PD_MM_VSP_STATE(0x1F);
+			regmap_read(gpr_pmu_apb,
+						REG_PMU_APB_PWR_STATUS5_DBG,
+						&power_state3);
+			power_state3 &= BIT_PMU_APB_PD_MM_VSP_STATE(0x1F);
+
+			WARN_ON(time_after(jiffies, timeout));
+		} while ((power_state1 && read_count < 100)
+			 || (power_state1 != power_state2)
+			 || (power_state2 != power_state3));
+
+		if (power_state1) {
+			pr_err("vsp_pw_domain:vsp_pw_on set failed 0x%x\n",
+			       power_state1);
+			mutex_unlock(&vsp_pw_domain_info->client_lock);
+			return -1;
+		}
+		pr_info("vsp_pw_domain:vsp_pw_on set OK\n");
+	} else {
+		pr_info("vsp_pw_domain:vsp_domain is already power on\n");
+	}
+
+	vsp_pw_domain_info->pw_vsp_info[client].pw_state = VSP_PW_DOMAIN_ON;
+	vsp_pw_domain_info->pw_vsp_info[client].pw_count++;
+
+pw_on_exit:
+	mutex_unlock(&vsp_pw_domain_info->client_lock);
+	return ret;
+}
+EXPORT_SYMBOL(vsp_pw_on);
+
+int vsp_pw_off(u8 client)
+{
+	int ret = 0;
+	unsigned int vsp_fencing_status = 0;
+
+	pr_info("vsp_pw_domain: vsp_pw_off Enter client %d\n", client);
+	if (client >= VSP_PW_DOMAIN_COUNT_MAX) {
+		pr_err("vsp_pw_domain:vsp_pw_off with error client\n");
+		return -1;
+	}
+	mutex_lock(&vsp_pw_domain_info->client_lock);
+
+	if (vsp_pw_domain_info->pw_vsp_info[client].pw_count >= 1) {
+
+		vsp_pw_domain_info->pw_vsp_info[client].pw_count--;
+		if (vsp_pw_domain_info->pw_vsp_info[client].pw_count == 0) {
+			vsp_pw_domain_info->pw_vsp_info[client].pw_state =
+			    VSP_PW_DOMAIN_OFF;
+		}
+
+		if (is_vsp_domain_power_on() == 0) {
+
+			vsp_fencing_status++;
+
+			ret = regmap_update_bits(gpr_pmu_apb,
+				REG_PMU_APB_PD_MM_VSP_CFG,
+				BIT_PMU_APB_PD_MM_VSP_AUTO_SHUTDOWN_EN,
+				(unsigned int)
+				(~BIT_PMU_APB_PD_MM_VSP_AUTO_SHUTDOWN_EN));
+
+			if (ret) {
+				pr_err("regmap_update_bits failed %s, %d\n",
+					__func__, __LINE__);
+				goto pw_off_exit;
+			}
+
+			ret = regmap_update_bits(gpr_pmu_apb,
+				REG_PMU_APB_PD_MM_VSP_CFG,
+				BIT_PMU_APB_PD_MM_VSP_FORCE_SHUTDOWN,
+				BIT_PMU_APB_PD_MM_VSP_FORCE_SHUTDOWN);
+			if (ret) {
+				pr_err("regmap_update_bits failed %s, %d\n",
+					__func__, __LINE__);
+				goto pw_off_exit;
+			}
+
+			pr_info("vsp_pw_domain:vsp_pw_off set OK\n");
+		}
+	} else {
+		vsp_pw_domain_info->pw_vsp_info[client].pw_count = 0;
+		vsp_pw_domain_info->pw_vsp_info[client].pw_state =
+		    VSP_PW_DOMAIN_OFF;
+		pr_info("vsp_pw_domain:vsp_domain is already power off\n");
+	}
+
+pw_off_exit:
+
+	mutex_unlock(&vsp_pw_domain_info->client_lock);
+	return ret;
+}
+EXPORT_SYMBOL(vsp_pw_off);
+
+int vsp_core_pw_on(void)
+{
+	return 0;
+}
+EXPORT_SYMBOL(vsp_core_pw_on);
+
+int vsp_core_pw_off(void)
+{
+	return 0;
+}
+EXPORT_SYMBOL(vsp_core_pw_off);
+
+static int __init vsp_pw_domain_init(void)
+{
+	int i = 0;
+
+	pr_info("vsp_pw_domain: vsp_pw_domain_init\n");
+	vsp_pw_domain_info =
+	    kmalloc(sizeof(struct vsp_pw_domain_info_t), GFP_KERNEL);
+
+	for (i = 0; i < VSP_PW_DOMAIN_COUNT_MAX; i++) {
+		vsp_pw_domain_info->pw_vsp_info[i].pw_state = VSP_PW_DOMAIN_OFF;
+		vsp_pw_domain_info->pw_vsp_info[i].pw_count = 0;
+	}
+	mutex_init(&vsp_pw_domain_info->client_lock);
+
+	return 0;
+}
+
+fs_initcall(vsp_pw_domain_init);
