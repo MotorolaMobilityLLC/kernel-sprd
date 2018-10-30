@@ -288,7 +288,6 @@ static int sprd_efuse_prog(struct sprd_efuse *efuse, int blk, bool doub,
 
 	ret = sprd_efuse_raw_prog(efuse, blk, doub, lock, val);
 
-disable_clk:
 	clk_disable(efuse->clk);
 unlock_hwlock:
 	sprd_efuse_unlock(efuse);
@@ -350,8 +349,8 @@ static int sprd_efuse_probe(struct platform_device *pdev)
 	mutex_init(&efuse->mutex);
 	efuse->dev = &pdev->dev;
 
-	econfig.stride = 4;
-	econfig.word_size = 4;
+	econfig.stride = 1;
+	econfig.word_size = 1;
 	econfig.read_only = false;
 	econfig.name = "sprd-efuse";
 	econfig.size = SPRD_EFUSE_BLOCK_MAX * SPRD_EFUSE_BLOCK_WIDTH;
