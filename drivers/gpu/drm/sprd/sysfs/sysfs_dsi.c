@@ -28,18 +28,6 @@ static uint8_t input_len;
 static uint8_t read_buf[64];
 static uint8_t lp_cmd_en = true;
 
-static ssize_t phy_freq_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct sprd_dsi *dsi = dev_get_drvdata(dev);
-	int ret;
-
-	ret = snprintf(buf, PAGE_SIZE, "%u\n", dsi->ctx.freq * 1000);
-
-	return ret;
-}
-static DEVICE_ATTR_RO(phy_freq);
-
 /*
  * usage:
  *	(1) echo reg count > gen_read
@@ -438,7 +426,6 @@ static ssize_t resume_store(struct device *dev,
 static DEVICE_ATTR_WO(resume);
 
 static struct attribute *dsi_attrs[] = {
-	&dev_attr_phy_freq.attr,
 	&dev_attr_gen_read.attr,
 	&dev_attr_gen_write.attr,
 	&dev_attr_dcs_read.attr,
