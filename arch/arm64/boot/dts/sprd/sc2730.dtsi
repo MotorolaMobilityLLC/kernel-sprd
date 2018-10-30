@@ -63,6 +63,14 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 			hwlocks = <&hwlock 12>;
+			/* Data cells */
+			adc_bcal: calib@0 {
+				reg = <0x12 0x2>;
+			};
+
+			adc_scal: calib@1 {
+				reg = <0x13 0x2>;
+			};
 		};
 
 		pmic_typec: typec@380 {
@@ -72,13 +80,15 @@
 			reg = <0x380>;
 		};
 
-		pmic_adc: adc@500 {
+		pmic_adc: adc@504 {
 			compatible = "sprd,sc27xx-adc", "sprd,sc2730-adc";
-			reg = <0x500>;
+			reg = <0x504>;
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
 			#io-channel-cells = <1>;
 			hwlocks = <&hwlock 4>;
+			nvmem-cells = <&adc_bcal>, <&adc_scal>;
+			nvmem-cell-names = "big_scale_calib", "small_scale_calib";
 		};
 
 		vibrator@1b90 {
