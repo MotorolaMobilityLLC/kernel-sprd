@@ -408,6 +408,18 @@
 				#iommu-cells = <0>;
 			};
 
+			vsp: video-codec@62200000{
+				compatible = "sprd,sharkl3-vsp";
+				reg = <0x62200000 0xc000>;
+				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+				syscons = <&pmu_regs REG_AON_APB_JVL_DUMMY 0x04>,
+					<&aon_apb_regs REG_AON_APB_JVL_DUMMY 0x04>,
+					<&mm_vsp_ahb_regs REG_AON_APB_JVL_DUMMY 0x04>;
+				syscon-names = "pmu_apb", "aon_apb", "mm_ahb";
+				/*iommus = <&iommu_vsp>;*/
+				status = "disabled";
+			};
+
 			dsi: dsi@63100000 {
 				compatible = "sprd,dsi-host";
 				reg = <0x63100000 0x1000>;

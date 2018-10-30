@@ -612,3 +612,26 @@
 	clock-names = "clk_aon_apb_disp_eb";
 	clocks = <&aonapb_gate CLK_DISP_EB>;
 };
+
+&vsp {
+	clock-names = "clk_mm_eb",
+			"clk_ahb_gate_vsp_eb",
+			"clk_vsp_ckg",
+			"clk_axi_gate_vsp",
+			"clk_vsp_ahb_mmu_eb",
+			"clk_ahb_vsp",
+			"clk_ahb_vsp_parent",
+			"clk_emc_vsp",
+			"clk_emc_vsp_parent",
+			"clk_vsp";
+	clocks = <&aonapb_gate CLK_MM_VSP_EB>,
+			<&aonapb_gate CLK_MM_VSP_EMC_EB>,
+			<&aonapb_gate CLK_VSP_EB>,
+			<&vspahb_gate CLK_VCKG_EB>,
+			<&vspahb_gate CLK_VVSP_EB>,
+			<&ap_clk CLK_MM_VAHB>,
+			<&pll CLK_TWPLL_153M6>,
+			<&ap_clk CLK_MM_VEMC>,
+			<&pll CLK_ISPPLL_468M>,
+			<&ap_clk CLK_VSP>;
+};
