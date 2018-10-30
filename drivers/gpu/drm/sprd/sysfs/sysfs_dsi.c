@@ -28,6 +28,95 @@ static uint8_t input_len;
 static uint8_t read_buf[64];
 static uint8_t lp_cmd_en = true;
 
+static ssize_t phy_freq_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int ret;
+	int freq;
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	ret = kstrtoint(buf, 10, &freq);
+	if (ret) {
+		pr_err("Invalid input freq\n");
+		return -EINVAL;
+	}
+
+	if (freq == dsi->phy->ctx.freq) {
+		pr_info("input freq is the same as old\n");
+		return count;
+	}
+
+	pr_info("input freq is %d\n", freq);
+
+	dsi->phy->ctx.freq = freq;
+	dsi->ctx.byte_clk = freq / 8;
+
+	return count;
+}
+
+static ssize_t phy_freq_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int ret;
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	ret = snprintf(buf, PAGE_SIZE, "%u Kbps\n", dsi->phy->ctx.freq);
+
+	return ret;
+}
+static DEVICE_ATTR_RW(phy_freq);
+
+static ssize_t byte_clk_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int ret;
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	ret = snprintf(buf, PAGE_SIZE, "%u KHz\n", dsi->ctx.byte_clk);
+
+	return ret;
+}
+static DEVICE_ATTR_RO(byte_clk);
+
+static ssize_t escape_clk_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	int ret;
+	int esc_clk;
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	ret = kstrtoint(buf, 10, &esc_clk);
+	if (ret) {
+		pr_err("Invalid input clock value\n");
+		return -EINVAL;
+	}
+
+	if (esc_clk == dsi->ctx.esc_clk) {
+		pr_info("input clock is the same as old\n");
+		return count;
+	}
+
+	pr_info("input clock value is %d\n", esc_clk);
+
+	dsi->ctx.esc_clk = esc_clk;
+
+	return count;
+}
+
+static ssize_t escape_clk_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int ret;
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	ret = snprintf(buf, PAGE_SIZE, "%u KHz\n", dsi->ctx.esc_clk);
+
+	return ret;
+}
+static DEVICE_ATTR_RW(escape_clk);
+
 /*
  * usage:
  *	(1) echo reg count > gen_read
@@ -426,6 +515,9 @@ static ssize_t resume_store(struct device *dev,
 static DEVICE_ATTR_WO(resume);
 
 static struct attribute *dsi_attrs[] = {
+	&dev_attr_phy_freq.attr,
+	&dev_attr_byte_clk.attr,
+	&dev_attr_escape_clk.attr,
 	&dev_attr_gen_read.attr,
 	&dev_attr_gen_write.attr,
 	&dev_attr_dcs_read.attr,
