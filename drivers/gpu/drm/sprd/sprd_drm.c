@@ -81,7 +81,7 @@ static struct drm_driver sprd_drm_drv = {
 	.fops			= &sprd_drm_fops,
 
 	.gem_vm_ops		= &drm_gem_cma_vm_ops,
-	.gem_free_object	= sprd_gem_free_object,
+	.gem_free_object_unlocked	= sprd_gem_free_object,
 	.dumb_create		= sprd_gem_cma_dumb_create,
 
 	.prime_fd_to_handle	= drm_gem_prime_fd_to_handle,
