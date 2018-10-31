@@ -427,12 +427,149 @@
 				#size-cells = <0>;
 			};
 
+			ap_thm0: thermal@32200000 {
+				compatible = "sprd,sharkl5-thermal";
+				reg = <0 0x32200000 0 0x10000>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM0_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&thm0_sign>, <&thm0_ratio>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal";
+
+				prometheus0-sensor@0{
+					reg = <0>;
+					nvmem-cells = <&thm0_sen0>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				ank1-sensor@1{
+					reg = <1>;
+					nvmem-cells = <&thm0_sen1>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				ank2-sensor@2{
+					reg = <2>;
+					nvmem-cells = <&thm0_sen2>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				prometheus1-sensor@3{
+					reg = <3>;
+					nvmem-cells = <&thm0_sen3>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+			};
+
+			ap_thm1: thermal@32210000 {
+				compatible = "sprd,sharkl5-thermal";
+				reg = <0 0x32210000 0 0x10000>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM1_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&thm1_sign>, <&thm1_ratio>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal";
+
+				cputop-sensor@0{
+					reg = <0>;
+					nvmem-cells = <&thm1_sen0>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				ank0-sensor@1{
+					reg = <1>;
+					nvmem-cells = <&thm1_sen1>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+			};
+
+			ap_thm2: thermal@32220000 {
+				compatible = "sprd,sharkl5-thermal";
+				reg = <0 0x32220000 0 0x10000>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM2_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&thm2_sign>, <&thm2_ratio>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal";
+
+				gpu-sensor@0{
+					reg = <0>;
+					nvmem-cells = <&thm2_sen0>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+			};
+
 			ap_efuse: efuse@32240000 {
 				compatible = "sprd,sharkl5-efuse";
 				reg = <0 0x32240000 0 0x10000>;
 				clock-names = "enable";
 				hwlocks = <&hwlock 8>;
 				clocks = <&aonapb_gate CLK_EFUSE_EB>;
+
+				thm0_sign: thm0-sign@56{
+					reg = <0x56 0x4>;
+					bits = <0 1>;
+				};
+
+				thm0_ratio: thm0-ratio@56{
+					reg = <0x56 0x4>;
+					bits = <1 7>;
+				};
+
+				thm0_sen0: thm0-sen0@56{
+					reg = <0x56 0x4>;
+					bits = <8 8>;
+				};
+
+				thm0_sen1: thm0-sen1@58{
+					reg = <0x58 0x4>;
+					bits = <8 8>;
+				};
+
+				thm0_sen2: thm0-sen2@58{
+					reg = <0x58 0x4>;
+					bits = <0 8>;
+				};
+
+				thm0_sen3: thm0-sen3@58{
+					reg = <0x58 0x4>;
+					bits = <24 8>;
+				};
+
+				thm1_sign: thm1-sign@57{
+					reg = <0x57 0x4>;
+					bits = <0 1>;
+				};
+
+				thm1_ratio: thm1-ratio@57{
+					reg = <0x57 0x4>;
+					bits = <1 7>;
+				};
+
+				thm1_sen0: thm1-sen0@57{
+					reg = <0x57 0x4>;
+					bits = <8 8>;
+				};
+
+				thm1_sen1: thm1-sen1@58{
+					reg = <0x58 0x4>;
+					bits = <16 8>;
+				};
+
+				thm2_sign: thm2-sign@57{
+					reg = <0x57 0x4>;
+					bits = <16 1>;
+				};
+
+				thm2_ratio: thm2-ratio@57{
+					reg = <0x57 0x4>;
+					bits = <17 7>;
+				};
+
+				thm2_sen0: thm2-sen0@57{
+					reg = <0x57 0x4>;
+					bits = <24 8>;
+				};
 			};
 
 			watchdog@322f0000 {
