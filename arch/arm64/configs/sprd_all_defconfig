@@ -3773,7 +3773,7 @@ CONFIG_IIO=y
 # CONFIG_MCP320X is not set
 # CONFIG_MCP3422 is not set
 # CONFIG_NAU7802 is not set
-# CONFIG_SC27XX_ADC is not set
+CONFIG_SC27XX_ADC=y
 # CONFIG_TI_ADC081C is not set
 # CONFIG_TI_ADC0832 is not set
 # CONFIG_TI_ADC084S021 is not set
