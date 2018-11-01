@@ -298,14 +298,14 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sprd_efuse *efuse = context;
 
-	return sprd_efuse_raw_read(efuse, offset, val, true);
+	return sprd_efuse_raw_read(efuse, offset, val, false);
 }
 
 static int sprd_efuse_write(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sprd_efuse *efuse = context;
 
-	return sprd_efuse_prog(efuse, offset, true, false, val);
+	return sprd_efuse_prog(efuse, offset, false, false, val);
 }
 
 static int sprd_efuse_probe(struct platform_device *pdev)
