@@ -63,7 +63,8 @@
 					     "sprd,sc9836-uart";
 				reg = <0x70000000 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
-				clocks = <&ext_26m>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&apapb_gate CLK_UART0_EB>;
 				status = "disabled";
 			};
 
@@ -72,7 +73,8 @@
 					     "sprd,sc9836-uart";
 				reg = <0x70100000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
-				clocks = <&ext_26m>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&apapb_gate CLK_UART1_EB>;
 				status = "disabled";
 			};
 
