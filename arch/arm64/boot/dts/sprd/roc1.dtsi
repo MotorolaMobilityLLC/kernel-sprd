@@ -202,6 +202,76 @@
 			#size-cells = <2>;
 			ranges;
 
+			pam_ipa: pam-ipa@21140000 {
+				compatible = "sprd,pam-ipa";
+				reg = <0 0x21140000 0 0x100>;
+				reg-names = "pam-ipa-base";
+
+				sprd,cp-ul-intr-to-ap = <0>;
+				sprd,cp-ul-threshold = <1>;
+				sprd,cp-ul-timeout = <5>;
+				sprd,cp-ul-flowctrl-mode = <1>;
+				sprd,cp-ul-enter-flowctrl-watermark = <0x10>;
+				sprd,cp-ul-exit-flowctrl-watermark = <0x04>;
+				sprd,cp-dl-intr-to-ap = <0>;
+				sprd,cp-dl-threshold = <0x10>;
+				sprd,cp-dl-timeout = <0>;
+				sprd,cp-dl-flowctrl-mode = <0>;
+				sprd,cp-dl-enter-flowctrl-watermark = <0x24>;
+				sprd,cp-dl-exit-flowctrl-watermark = <0x04>;
+				sprd,pam-ipa-hw-ver = <1>;
+				sprd,pam-ipa-hw-mode = <0>;
+			};
+
+			ipa_local: ipa@21180000 {
+				compatible = "sprd,sipa";
+				reg = <0 0x21180000 0 0x00001000>,
+					<0 0x21040000 0 0x00000140>,
+					<0 0x20b10000 0 0x00040000>;
+				reg-names = "glb-base", "ipa-sys", "iram-base";
+				interrupts = <GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "local_ipa_irq";
+
+				sprd,sipa-bypass-mode = <0>;
+
+				sprd,usb-dl-tx = <1 1024>;
+				sprd,usb-dl-rx = <1 1024>;
+				sprd,usb-ul-tx = <1 1024>;
+				sprd,usb-ul-rx = <1 1024>;
+				sprd,cp-dl-tx = <1 1024>;
+				sprd,cp-dl-rx = <1 1024>;
+				sprd,cp-ul-tx = <1 1024>;
+				sprd,cp-ul-rx = <1 1024>;
+				sprd,wifi-dl-tx = <1 1024>;
+				sprd,wifi-dl-rx = <1 1024>;
+				sprd,wifi-ul-tx = <1 1024>;
+				sprd,wifi-ul-rx = <1 1024>;
+				sprd,ap-eth-dl-tx = <0 1024>;
+				sprd,ap-eth-dl-rx = <0 1024>;
+				sprd,ap-eth-ul-tx = <0 1024>;
+				sprd,ap-eth-ul-rx = <0 1024>;
+				sprd,ap-ip-dl-tx = <0 1024>;
+				sprd,ap-ip-dl-rx = <0 1024>;
+				sprd,ap-ip-ul-tx = <0 1024>;
+				sprd,ap-ip-ul-rx = <0 1024>;
+				sprd,ap-pcie0-dl-tx = <0 256>;
+				sprd,ap-pcie0-dl-rx = <0 256>;
+				sprd,ap-pcie0-ul-tx = <0 256>;
+				sprd,ap-pcie0-ul-rx = <0 256>;
+				sprd,ap-pcie1-dl-tx = <0 256>;
+				sprd,ap-pcie1-dl-rx = <0 256>;
+				sprd,ap-pcie1-ul-tx = <0 256>;
+				sprd,ap-pcie1-ul-rx = <0 256>;
+				sprd,ap-pcie2-dl-tx = <0 0>;
+				sprd,ap-pcie2-dl-rx = <0 0>;
+				sprd,ap-pcie2-ul-tx = <0 0>;
+				sprd,ap-pcie2-ul-rx = <0 0>;
+				sprd,ap-pcie3-dl-tx = <0 0>;
+				sprd,ap-pcie3-dl-rx = <0 0>;
+				sprd,ap-pcie3-ul-tx = <0 0>;
+				sprd,ap-pcie3-ul-rx = <0 0>;
+			};
+
 			uart0: serial@70000000 {
 				compatible = "sprd,sc9836-uart";
 				reg = <0 0x70000000 0 0x100>;
@@ -280,7 +350,5 @@
 		clock-frequency = <26000000>;
 		clock-output-names = "ext-26m";
 	};
-
-
 };
 
