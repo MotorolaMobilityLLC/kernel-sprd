@@ -68,7 +68,7 @@
 
 #define ADI_FIFO_DRAIN_TIMEOUT		1000
 #define ADI_READ_TIMEOUT		2000
-#define REG_ADDR_LOW_MASK		GENMASK(14, 0)
+#define REG_ADDR_LOW_MASK		GENMASK(16, 0)
 #define RDBACK_ADDR_OFFSET		2
 
 /* Registers definitions for PMIC watchdog controller */
