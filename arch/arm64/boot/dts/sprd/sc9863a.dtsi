@@ -605,10 +605,10 @@
 		<&pll CLK_TWPLL_384M>,
 		<&ap_clk CLK_DPU>,
 		<&ap_clk CLK_DPU_DPI>,
-		<&aonapb_gate CLK_MM_EMC_EB>;
+		<&aonapb_gate CLK_DISP_EB>;
 };
 
 &dsi {
 	clock-names = "clk_aon_apb_disp_eb";
-	clocks = <&aonapb_gate CLK_MM_EMC_EB>;
+	clocks = <&aonapb_gate CLK_DISP_EB>;
 };
