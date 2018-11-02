@@ -219,7 +219,10 @@ static int sprd_efuse_raw_prog(struct sprd_efuse *efuse, u32 blk, bool doub,
 	 * we should lock this efuse block to avoid programming again.
 	 */
 	ret = readl(efuse->base + SPRD_EFUSE_NS_ERR_FLAG);
-	if (!ret) {
+	if (ret) {
+		dev_err(efuse->dev, "error status %d of block %d\n", ret, blk);
+		ret = -EINVAL;
+	} else {
 		sprd_efuse_set_prog_lock(efuse, lock);
 		writel(*data, efuse->base + SPRD_EFUSE_MEM(blk));
 		sprd_efuse_set_prog_lock(efuse, false);
@@ -265,6 +268,10 @@ static int sprd_efuse_raw_read(struct sprd_efuse *efuse, int blk, u32 *val,
 	 * some errors occured.
 	 */
 	ret = readl(efuse->base + SPRD_EFUSE_NS_ERR_FLAG);
+	if (ret) {
+		dev_err(efuse->dev, "error status %d of block %d\n", ret, blk);
+		ret = -EINVAL;
+	}
 	writel(SPRD_ERR_CLR_MASK, efuse->base + SPRD_EFUSE_NS_FLAG_CLR);
 
 	clk_disable(efuse->clk);
