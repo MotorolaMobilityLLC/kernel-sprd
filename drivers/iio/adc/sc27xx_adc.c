@@ -57,6 +57,9 @@
 /* Maximum ADC channel number */
 #define SC27XX_ADC_CHANNEL_MAX		32
 
+/* Timeout (ms) for ADC data conversion according to ADC datasheet */
+#define SC27XX_ADC_RDY_TIMEOUT	100
+
 /* ADC voltage ratio definition */
 #define SC27XX_VOLT_RATIO(n, d)		\
 	(((n) << SC27XX_RATIO_NUMERATOR_OFFSET) | (d))
@@ -340,7 +343,12 @@ static int sc27xx_adc_read(struct sc27xx_adc_data *data, int channel,
 	if (ret)
 		goto disable_adc;
 
-	wait_for_completion(&data->completion);
+	ret = wait_for_completion_timeout(&data->completion,
+					  msecs_to_jiffies(SC27XX_ADC_RDY_TIMEOUT));
+	if (!ret) {
+		dev_err(data->dev, "read adc timeout\n");
+		ret = -ETIMEDOUT;
+	}
 
 disable_adc:
 	regmap_update_bits(data->regmap, data->base + SC27XX_ADC_CTL,
