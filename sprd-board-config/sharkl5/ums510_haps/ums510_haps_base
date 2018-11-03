@@ -12,10 +12,6 @@ KERNEL_DIFF_CONFIG_COMMON := $(KERNEL_PATH)/sprd-diffconfig/sharkl5/common
 KERNEL_CROSS_COMPILE = $(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
 endif
 
-#DTS
-TARGET_DTB := ums510-haps
-TARGET_DTBO := ums510-haps-overlay
-
 BOARD_WCN_CONFIG :=
 BOARD_EXT_PMIC_CONFIG :=
 PRODUCT_GO_DEVICE :=

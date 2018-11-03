@@ -4,6 +4,10 @@ else
 include  $(KERNEL_PATH)/sprd-board-config/sharkl5/ums510_1h10/ums510_1h10_base
 endif
 
+#DEFCONFIG
 KERNEL_DEFCONFIG := sprd_all_defconfig
 
+#DTS
+TARGET_DTB := ums510-1h10
+TARGET_DTBO := ums510-1h10-overlay
 

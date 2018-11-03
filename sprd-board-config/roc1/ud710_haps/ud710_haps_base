@@ -12,13 +12,7 @@ else
 KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/KERNEL
 KERNEL_DIFF_CONFIG_ARCH := $(KERNEL_PATH)/sprd-diffconfig/roc1/$(TARGET_KERNEL_ARCH)
 KERNEL_DIFF_CONFIG_COMMON := $(KERNEL_PATH)/sprd-diffconfig/roc1/common
-
-#KERNEL DEFCONFIG
 KERNEL_CROSS_COMPILE = $(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
-
-#DTS
-TARGET_DTB := ud710-haps
-TARGET_DTBO := ud710-haps-overlay
 
 endif
 
