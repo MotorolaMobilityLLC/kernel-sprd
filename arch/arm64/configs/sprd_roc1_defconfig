@@ -3180,6 +3180,16 @@ CONFIG_ION_SPRD=y
 # SPRD Mailbox  modules
 #
 CONFIG_SPRD_MAILBOX=y
+
+#
+# SIPA modules
+#
+# CONFIG_SPRD_SIPA is not set
+
+#
+# SIPA modules
+#
+# CONFIG_SPRD_PAM_IPA is not set
 # CONFIG_COMMON_CLK_XLNX_CLKWZRD is not set
 # CONFIG_FB_TFT is not set
 # CONFIG_MOST is not set
@@ -3286,13 +3296,6 @@ CONFIG_SPRD_SIPC_SPOOL=y
 CONFIG_SPRD_SIPC_ZERO_COPY_SIPX=y
 CONFIG_SPRD_SIPC_MEM_CACHE_EN=y
 CONFIG_SPRD_CPROC=y
-
-#
-# SIPA modules
-#
-# CONFIG_SPRD_SIPA is not set
-# CONFIG_SIPA_TEST is not set
-# CONFIG_SPRD_PAM_IPA is not set
 
 #
 # SPRD IQ modules

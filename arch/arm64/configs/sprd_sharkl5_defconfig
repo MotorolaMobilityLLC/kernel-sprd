@@ -2533,6 +2533,16 @@ CONFIG_ION=y
 # SPRD Mailbox  modules
 #
 CONFIG_SPRD_MAILBOX=y
+
+#
+# SIPA modules
+#
+# CONFIG_SPRD_SIPA is not set
+
+#
+# SIPA modules
+#
+# CONFIG_SPRD_PAM_IPA is not set
 # CONFIG_COMMON_CLK_XLNX_CLKWZRD is not set
 # CONFIG_MOST is not set
 # CONFIG_GREYBUS is not set

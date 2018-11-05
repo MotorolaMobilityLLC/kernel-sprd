@@ -3562,6 +3562,16 @@ CONFIG_ION_SPRD=y
 # SPRD Mailbox  modules
 #
 CONFIG_SPRD_MAILBOX=y
+
+#
+# SIPA modules
+#
+# CONFIG_SPRD_SIPA is not set
+
+#
+# SIPA modules
+#
+# CONFIG_SPRD_PAM_IPA is not set
 # CONFIG_COMMON_CLK_XLNX_CLKWZRD is not set
 # CONFIG_FB_TFT is not set
 # CONFIG_WILC1000_SDIO is not set
