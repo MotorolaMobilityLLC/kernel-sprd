@@ -11,3 +11,5 @@ KERNEL_DEFCONFIG := sprd_all_defconfig
 TARGET_DTB := ums510-1h10
 TARGET_DTBO := ums510-1h10-overlay
 
+BOARD_TEE_CONFIG := trusty
+
