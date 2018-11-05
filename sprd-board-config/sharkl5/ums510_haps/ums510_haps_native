@@ -7,7 +7,7 @@ endif
 BOARD_TEE_CONFIG := trusty
 
 #DEFCONFIG
-KERNEL_DEFCONFIG := sprd_all_defconfig
+KERNEL_DEFCONFIG := sprd_sharkl5_defconfig
 
 #DTS
 TARGET_DTB := ums510-haps

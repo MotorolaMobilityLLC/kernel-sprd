@@ -10,7 +10,6 @@ d_diffconfig={}
 not_defined=0
 config_path="Documentation/sprd-configs.txt"
 list_configs=[]
-flag_modify=0
 tool_name=sys.argv[0][2:-3]
 kernel_version=''
 
@@ -26,7 +25,6 @@ d_defconfig_path={
             'sharklefp':{'defconfig':'arch/arm/configs/sprd_sharkle_fp_defconfig', 'diffconfig':'sprd-diffconfig/sharkle', 'arch':'arm'},
         },
         'kernel4.14':{
-            'sharkl3':{'defconfig':'arch/arm64/configs/sprd_all_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3','arch':'arm64'},
             'roc1':{'defconfig':'arch/arm64/configs/sprd_roc1_defconfig', 'diffconfig':'sprd-diffconfig/roc1','arch':'arm64'},
             'sharkl5':{'defconfig':'arch/arm64/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm64'},
         },
@@ -181,40 +179,27 @@ def create_defconfig_dict():
             f_defconfig.close()
 
 def configs_check():
-    # Check config need modify and output to file named sprd_configs_modified.txt.
-    file_name=tmp_path+'sprd_configs_modified.txt'
-    if os.path.exists(file_name):
-        os.remove(file_name)
-    f=open(file_name,'a')
-
-    f.write("Need add to sprd-configs.txt\n")
     l_defproject=list(d_defconfig)
     l_defproject.sort()
 
     for key_defproject in l_defproject:
-        f.write(key_defproject + ":\n")
         l_defconfig=list(d_defconfig[key_defproject])
         l_defconfig.sort()
-
 
         for key_defconfig in l_defconfig:
             if key_defconfig not in d_sprdconfig:
                 if d_defconfig[key_defproject][key_defconfig] == 'y':
-                    if flag_modify == 1:
-                        d_sprdconfig[key_defconfig]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
-                    else:
-                        f.write("{}: {}\n".format(key_defconfig, d_defconfig[key_defproject][key_defconfig]))
+                    d_sprdconfig[key_defconfig]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
 
-        l_diffconfig=list(d_diffconfig)
-        for key_diffconfig in l_diffconfig:
-            if key_diffconfig in d_sprdconfig:
-                continue
-            d_sprdconfig[key_diffconfig]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
 
-        f.write("\n")
+    l_diffconfig=list(d_diffconfig)
+    for key_diffconfig in l_diffconfig:
+        if key_diffconfig in d_sprdconfig:
+            continue
+        d_sprdconfig[key_diffconfig]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
 
-    f.write("=====================================================\n")
-    f.write("Need delete from sprd-configs.txt\n")
+
+    #print allconfigs and status defined in Documentation/sprd-configs.txt
     file_name=tmp_path+'allconfig_status.txt'
     if os.path.exists(file_name):
         os.remove(file_name)
@@ -222,32 +207,25 @@ def configs_check():
     l_sprdconfig=list(d_sprdconfig)
     l_sprdconfig.sort()
     for key_sprdconfig in l_sprdconfig:
-        notset_num=0
-        set_num=0
-        str_tmp=[]
+        tmp_str=''
 
         f_all.write(key_sprdconfig+" : \t")
         for key_defproject in l_defproject:
-            if key_sprdconfig not in d_defconfig[key_defproject]:
-                notset_num += 1
-            elif  d_defconfig[key_defproject][key_sprdconfig] == 'n':
-                notset_num += 1
-            else:
-                set_num += 1
-                f_all.write(key_defproject+",")
-        f_all.write("\n")
+            if key_sprdconfig in d_defconfig[key_defproject] and d_defconfig[key_defproject][key_sprdconfig] != 'n':
+                tmp_str = tmp_str + key_defproject+","
+
+        f_all.write(tmp_str + "\n")
 
         if key_sprdconfig in d_diffconfig:
             continue
-        if notset_num == len(sys.argv)-2:
-            if flag_modify == 1:
-                del d_sprdconfig[key_sprdconfig]
-            else:
-                f.write(key_sprdconfig+'\n')
+
+        if tmp_str == '':
+            del d_sprdconfig[key_sprdconfig]
 
     f_all.close()
-    f.close()
 
+
+#print all config defined in Documentation/sprd-configs.txt
 def output_allconfigs():
     file_name=tmp_path + 'all_sprdconfigs.txt'
     if os.path.exists(file_name):
@@ -345,6 +323,7 @@ def aiaiai_check():
 
     for lines in list(d_del_config):
         if lines not in d_sprdconfig:
+
             continue
 
         if d_sprdconfig[lines]['plat'] == d_del_config[lines]['plat']:
@@ -383,7 +362,6 @@ def update_sprd_configs():
     print("Current kernel information\n[arch]:{}\n[plat]:{}".format(all_arch,all_plat))
 
     configs_resort()
-    l_defconfig = list(d_defconfig).sort()
     for key in d_sprdconfig:
         tmp_arch=''
         tmp_plat=''
@@ -401,7 +379,7 @@ def update_sprd_configs():
                     tmp_arch = tmp_arch + d_defconfig_path[kernel_version][project]['arch'] + ','
 
         #TODO Doesn't check diffconfig
-        if key in d_diffconfig:
+        if key in d_diffconfig and tmp_plat == '':
             continue
 
         #write current status to dict d_sprdconfig
@@ -474,8 +452,6 @@ def main():
                         help_info()
                         return
 
-            global flag_modify
-            flag_modify=1
             configs_check()
             configs_resort()
         elif sys.argv[1] == 'help':
@@ -490,6 +466,7 @@ def main():
         elif sys.argv[1] == 'incomplete':
             incomplete_item()
         elif sys.argv[1] == 'update':
+            configs_check()
             update_sprd_configs()
         else:
             print("PARAMETERS ERROR:")

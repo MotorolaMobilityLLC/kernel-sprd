@@ -5,13 +5,6 @@
 	[subsys] core
 	[must] console
 	[function] Support 64 bit system.
-9P_FS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 ADVISE_SYSCALLS
 	[arch] all
 	[plat] all
@@ -58,13 +51,6 @@ ANDROID_BINDER_IPC
 	[must] console
 	[function] vts require. Binder is used in Android for both communication
 			between processes, and remote method invocation.
-ANDROID_PARANOID_NETWORK
-	[arch] all
-	[plat] sharkl5
-	[field] menu,code
-	[subsys] net
-	[must] user
-	[function] specified config for android
 ANON_INODES
 	[arch] all
 	[plat] all
@@ -129,13 +115,6 @@ ARCH_HAS_GCOV_PROFILE_ALL
 	[subsys] core
 	[must] console
 	[function] Enable kernel support GCOV_PROFILE_ALL.
-ARCH_HAS_GIGANTIC_PAGE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 ARCH_HAS_HOLES_MEMORYMODEL
 	[arch] all
 	[plat] all
@@ -431,13 +410,6 @@ ARM64_ERRATUM_832075
 	[subsys] 
 	[must] 
 	[function] 
-ARM64_ERRATUM_834220
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 ARM64_ERRATUM_843419
 	[arch] all
 	[plat] all
@@ -564,7 +536,7 @@ ARM_ARCH_TIMER_OOL_WORKAROUND
 	[function] 
 ARM_CPUIDLE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] cpuidle
 	[must] user
@@ -585,11 +557,11 @@ ARM_GIC_MAX_NR
 	[function] 
 ARM_GIC_V2M
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] core
-	[must] console
-	[function] Support for ARM GIC_V2M. Select by IF PCI_MSI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 ARM_GIC_V3
 	[arch] all
 	[plat] all
@@ -599,11 +571,11 @@ ARM_GIC_V3
 	[function] Enable kernel support ARM GIC V3.
 ARM_GIC_V3_ITS
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] core
-	[must] console
-	[function] Support for ARM GIC_V3_ITS. Select by IF  PCI_MSI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 ARM_PMU
 	[arch] all
 	[plat] all
@@ -682,41 +654,27 @@ AUDIT_WATCH
 	[subsys] 
 	[must] 
 	[function] 
-AUTOFS4_FS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 BACKLIGHT_CLASS_DEVICE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] video
 	[must] home
 	[function] Backlight sysfs and core driver.
 BACKLIGHT_LCD_SUPPORT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] video
 	[must] home
 	[function] Enable display backlight driver.
 BACKLIGHT_PWM
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] video
 	[must] home
 	[function] Enable pwm backlight driver.
-BALLOON_COMPACTION
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 BASE_FULL
 	[arch] all
 	[plat] all
@@ -742,7 +700,7 @@ BCMA_POSSIBLE
 	[function] Broadcom specific AMBA
 BINARY_PRINTF
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -784,7 +742,7 @@ BLK_DEV
 	[function] Support block devices.
 BLK_DEV_DM
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] md
 	[must] none
@@ -792,7 +750,7 @@ BLK_DEV_DM
 		   It works by allowing people to specify mappings for ranges of logical sectors.
 BLK_DEV_DM_BUILTIN
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] md
 	[must] none
@@ -806,7 +764,7 @@ BLK_DEV_INITRD
 	[function] vts require, Initial RAM filesystem and RAM disk (initramfs/initrd) support.
 BLK_DEV_IO_TRACE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -856,7 +814,7 @@ BLK_DEV_SD
 	[function] This macro is to support host udisk function.
 BLK_MQ_PCI
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
@@ -916,14 +874,14 @@ BPF
 	[function] Enable kernel support Berkeley Packet Filter.
 BPF_EVENTS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 BPF_SYSCALL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -940,7 +898,7 @@ BQL
 		hardware without sacrificing throughput.
 BRANCH_PROFILE_NONE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] core
 	[must] debug
@@ -998,27 +956,6 @@ BUILD_BIN2C
 	[must] user
 	[function] vts require, Enable file format exchange from BIN to C.
 		   enable by IKCONFIG
-CAVIUM_ERRATUM_22375
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-CAVIUM_ERRATUM_23154
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-CAVIUM_ERRATUM_27456
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 CAVIUM_ERRATUM_30115
 	[arch] all
 	[plat] all
@@ -1026,17 +963,9 @@ CAVIUM_ERRATUM_30115
 	[subsys] 
 	[must] 
 	[function] 
-CC_OPTIMIZE_FOR_PERFORMANCE
-	[arch] all
-	[plat] sharkl5
-	[field] menu
-	[subsys] build
-	[must] user
-	[function] This is the default optimization level for the kernel, building
-		with the "-O2" compiler flag for best performance and most helpful compile-time warnings.
 CC_OPTIMIZE_FOR_SIZE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] soc
 	[must] user
@@ -1058,46 +987,46 @@ CC_STACKPROTECTOR_STRONG
 	[function] Functions will have the stack-protector canary logic added.
 CFG80211
 	[arch] all
-	[plat] sharkl3
-	[field] code, menu,make
-	[subsys] wireless
-	[must] user
-	[function] is the Linux wireless LAN (802.11) configuration API
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 CFG80211_CERTIFICATION_ONUS
 	[arch] all
-	[plat] sharkl3
-	[field] menu
-	[subsys] net
-	[must] user
-	[function] Give support to CFG80211_REG_CELLULAR_HINTS.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 CFG80211_CRDA_SUPPORT
 	[arch] all
-	[plat] sharkl3
-	[field] code
-	[subsys] wireless
-	[must] user
-	[function] Central Regulatory Domain Agent
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 CFG80211_DEFAULT_PS
 	[arch] all
-	[plat] sharkl3
-	[field] code
-	[subsys] wireless
-	[must] user
-	[function] Enables powersave mode by default
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 CFG80211_INTERNAL_REGDB
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] wireless
-	[must] user
-	[function] is regulatory rules database used by Linux.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 CFG80211_REG_CELLULAR_HINTS
 	[arch] all
-	[plat] sharkl3
-	[field] code
-	[subsys] net
-	[must] user
-	[function] Give top priority to country code from SIM card.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 CGROUPS
 	[arch] all
 	[plat] all
@@ -1109,7 +1038,7 @@ CGROUPS
 		Cpusets, CFS, memory controls or device isolation.
 CGROUP_BPF
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -1136,13 +1065,6 @@ CGROUP_FREEZER
 	[subsys] core
 	[must] user
 	[function] Freezer cgroup subsystem(vts require)
-CGROUP_HUGETLB
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 CGROUP_SCHED
 	[arch] all
 	[plat] all
@@ -1152,7 +1074,7 @@ CGROUP_SCHED
 	[function] Group CPU scheduler(vts require)
 CLEANCACHE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] memory
 	[must] user
@@ -1165,13 +1087,6 @@ CLKDEV_LOOKUP
 	[must] user
 	[function] This macro is used to provide interfaces
 			for clock customer.
-CLK_SP810
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 CLONE_BACKWARDS
 	[arch] all
 	[plat] all
@@ -1180,41 +1095,6 @@ CLONE_BACKWARDS
 	[must] console
 	[function] Architecture has tls passed as the 4th argument of clone(2),
 		not the 5th one.
-CMA
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-CMA_ALIGNMENT
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-CMA_AREAS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-CMA_SIZE_MBYTES
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-CMA_SIZE_SEL_MBYTES
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 CMDLINE
 	[arch] all
 	[plat] all
@@ -1236,20 +1116,6 @@ COMMON_CLK
 	[subsys] arch
 	[must] console
 	[function] Clock driver needs common clock framework.
-COMMON_CLK_VERSATILE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-COMMON_CLK_XGENE
-	[arch] all
-	[plat] sharkl5
-	[field] none
-	[subsys] none
-	[must] none
-	[function] none
 COMPACTION
 	[arch] all
 	[plat] all
@@ -1297,16 +1163,9 @@ CONSOLE_LOGLEVEL_DEFAULT
 	[subsys] 
 	[must] 
 	[function] 
-CONSOLE_TRANSLATIONS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 CONTEXT_SWITCH_TRACER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -1320,14 +1179,14 @@ COREDUMP
 	[function] Enable core dump support.
 CORESIGHT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] kernel core
 	[must] debug
 	[function] This function is used to enable coresight architecture.
 CORESIGHT_LINKS_AND_SINKS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] kernel core
 	[must] debug
@@ -1335,14 +1194,14 @@ CORESIGHT_LINKS_AND_SINKS
 		   modules.
 CORESIGHT_LINK_AND_SINK_TMC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] kernel core
 	[must] debug
 	[function] This function is used to enable coresight etb module.
 CORESIGHT_SOURCE_ETM4X
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] kernel core
 	[must] debug
@@ -1356,21 +1215,21 @@ CP15_BARRIER_EMULATION
 	[function] Emulate CP15 Barrier instructions.
 CPUFREQ_DT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 CPUFREQ_DT_PLATDEV
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 CPUSETS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -1398,13 +1257,6 @@ CPU_FREQ_GOV_PERFORMANCE
 	[subsys] cpufreq
 	[must] user
 	[function] enable performance as an available governor
-CPU_FREQ_GOV_POWERSAVE
-	[arch] all
-	[plat] sharkl5
-	[field] make,code
-	[subsys] cpufreq
-	[must] user
-	[function] enable powersave as an available governor
 CPU_FREQ_GOV_USERSPACE
 	[arch] all
 	[plat] all
@@ -1421,28 +1273,28 @@ CPU_FREQ_STAT
 	[function] statistical information for dvfs
 CPU_IDLE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] cpuidle
 	[must] console
 	[function] CPU idle PM support.
 CPU_IDLE_GOV_LADDER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] cpuidle
 	[must] console
 	[function] Ladder governor (for periodic timer tick).
 CPU_IDLE_GOV_MENU
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] cpuidle
 	[must] user
 	[function] Menu governor (for tickless system).
 CPU_IDLE_MULTIPLE_DRIVERS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -1464,7 +1316,7 @@ CPU_RMAP
 			objects with CPU affinities.
 CPU_THERMAL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -1499,7 +1351,7 @@ CRC7
 	[function] Support CRC7.
 CRC_CCITT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] core
 	[must] console
@@ -1660,14 +1512,14 @@ CRYPTO_CBC
 	[function] CBC support.
 CRYPTO_CMAC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] crypto
 	[must] none
 	[function] tristate "CMAC support"(Cipher-based Message Authentication Code).
 CRYPTO_CRC32
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] security
 	[must] user
@@ -1688,14 +1540,14 @@ CRYPTO_CRYPTD
 	[function] Cryptographic API
 CRYPTO_CTR
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] crypto
 	[must] none
 	[function] tristate "CTR support"(Counter mode).
 CRYPTO_CTS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] crypto
 	[must] none
@@ -1821,7 +1673,7 @@ CRYPTO_KPP2
 	[function] 
 CRYPTO_LZO
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] crypto
 	[must] none
@@ -1849,7 +1701,7 @@ CRYPTO_MANAGER_DISABLE_TESTS
 	[function] Disable run-time self tests.
 CRYPTO_MD4
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] security
 	[must] user
@@ -1898,7 +1750,7 @@ CRYPTO_RNG_DEFAULT
 	[function] Selected by other configs.
 CRYPTO_SEQIV
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] crypto
 	[must] none
@@ -1947,14 +1799,14 @@ CRYPTO_SIMD
 	[function] 
 CRYPTO_TWOFISH
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] crypto
 	[must] user
 	[function] make twofish driver to be compiled for sd card requirement.
 CRYPTO_TWOFISH_COMMON
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -1968,7 +1820,7 @@ CRYPTO_WORKQUEUE
 	[function] Selected by other configs.
 CRYPTO_XTS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] crypto
 	[must] none
@@ -1983,7 +1835,7 @@ CUSE
 	[function] tristate "Character device in Userspace support".
 DAX
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -2011,7 +1863,7 @@ DEBUG_FS
 	[function] Support Debug Filesystem.
 DEBUG_GPIO
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] debug
 	[must] debug
@@ -2030,13 +1882,6 @@ DEBUG_KERNEL
 	[subsys] core
 	[must] debug
 	[function] Enable kernel debug.
-DEBUG_MEMORY_INIT
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 DECOMPRESS_BZIP2
 	[arch] all
 	[plat] all
@@ -2151,31 +1996,28 @@ DETECT_HUNG_TASK
 	[function] Detect hung task.
 DEVFREQ_GOV_SIMPLE_ONDEMAND
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] devfreq
 	[must] home
 	[function] Support gpu dfs/dvfs logic.
 DEVFREQ_GOV_SPRD_SCENE
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] devfreq
-	[must] none
-	[function] Sprd govanor can selected by Sprd_auto_dfs driver.
-		   Userspace set scene to this govanor and then govnor send freq
-		   request to driver.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 DEVFREQ_SPRD_AUTO_DFS
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] devfreq
-	[must] none
-	[function] This function is used to enable ddr auto dfs function
-		   on DDRC v1 and and later version
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 DEVPORT
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
@@ -2196,11 +2038,11 @@ DEVTMPFS_MOUNT
 	[function] Automount devtmpfs at /dev, after the kernel mounted the rootfs.
 DISP_PM_DOMAIN_SHARKL3
 	[arch] all
-	[plat] sharkl3
-	[field] make
-	[subsys] video
-	[must] home
-	[function] SPRD display PM Generic Domain for SharkL3
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 DMADEVICES
 	[arch] all
 	[plat] all
@@ -2208,13 +2050,6 @@ DMADEVICES
 	[subsys] dma
 	[must] none
 	[function] Support DMA devices.
-DMA_CMA
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 DMA_ENGINE
 	[arch] all
 	[plat] all
@@ -2245,7 +2080,7 @@ DMA_VIRTUAL_CHANNELS
 	[function] 
 DM_BUFIO
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] md
 	[must] none
@@ -2254,7 +2089,7 @@ DM_BUFIO
 		   writes.
 DM_CRYPT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] md
 	[must] none
@@ -2262,14 +2097,14 @@ DM_CRYPT
 		   transparently encrypts the data on it.
 DM_UEVENT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] crypto
 	[must] user
 	[function] make DM driver to be compiled for sd card requirement.
 DM_VERITY
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] md
 	[must] none
@@ -2277,14 +2112,14 @@ DM_VERITY
 		   Verity target one function in The device mapper.
 DM_VERITY_FEC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] md
 	[must] none
 	[function] Depends on DM_VERITY, add forward error correction support to dm-verity.
 DM_VERITY_HASH_PREFETCH_MIN_SIZE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] md
 	[must] none
@@ -2300,13 +2135,6 @@ DNOTIFY
 		   events to user-space.  There exist superior
 		   alternatives, but some applications may still rely on
 		   dnotify.
-DNS_RESOLVER
-	[arch] all
-	[plat] sharkl5
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[function] depends on NET && KEYS, support for the DNS Resolver key type
 DQL
 	[arch] all
 	[plat] all
@@ -2324,91 +2152,91 @@ DRAGONRISE_FF
 	[function] 
 DRM
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] gpu
 	[must] home
 	[function] Direct Rendering Manager (XFree86 4.1.0 and higher DRI support)
 DRM_BRIDGE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] gpu
 	[must] home
 	[function] Display Interface Bridges
 DRM_FBDEV_EMULATION
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 DRM_FBDEV_OVERALLOC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 DRM_GEM_CMA_HELPER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 DRM_KMS_CMA_HELPER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 DRM_KMS_FB_HELPER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 DRM_KMS_HELPER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 DRM_MIPI_DSI
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 DRM_PANEL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 DRM_PANEL_BRIDGE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 DRM_SPRD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 DRM_SPRD_GSP
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
@@ -2429,14 +2257,14 @@ DTC
 	[function] Support the device-tree-compiler.
 DT_IDLE_STATES
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] cpuidle
 	[must] user
 	[function] This macro is used to open cpuidle and light sleep function.
 DUAL_ROLE_USB_INTF
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] usb
 	[must] user
@@ -2464,7 +2292,7 @@ DUMMY_CONSOLE_ROWS
 	[function] 
 DYNAMIC_DEBUG
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core,usb
 	[must] debug
@@ -2499,7 +2327,7 @@ ELF_CORE
 	[function] Enable support for generating core dumps. Disabling saves about 4k.
 EMBEDDED
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] user
@@ -2520,7 +2348,7 @@ ENABLE_WARN_DEPRECATED
 	[function] Enable __deprecated logic.
 ENCRYPTED_KEYS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] security
 	[must] none
@@ -2534,7 +2362,7 @@ EPOLL
 	[function] Enable eventpoll support.
 ETHERNET
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
@@ -2548,25 +2376,18 @@ EVENTFD
 	[function] Enable eventfd() system call.
 EVENT_TRACING
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] core
 	[must] debug
 	[function] The main swtich butten for event ftrace.
 EXPERT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] console
 	[function] Configure standard kernel features (expert users).
-EXPORTFS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 EXT2_FS
 	[arch] all
 	[plat] all
@@ -2576,7 +2397,7 @@ EXT2_FS
 	[function] 
 EXT2_FS_XATTR
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -2590,7 +2411,7 @@ EXT3_FS
 	[function] 
 EXT4_ENCRYPTION
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] fs
 	[must] none
@@ -2604,7 +2425,7 @@ EXT4_FS
 	[function] ext4 filesystem
 EXT4_FS_ENCRYPTION
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] fs
 	[must] none
@@ -2621,14 +2442,14 @@ EXT4_FS_SECURITY
 		   file security labels in the ext4 filesystem.
 EXTCON
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 EXTCON_USB_GPIO
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -2642,49 +2463,49 @@ EXTRA_FIRMWARE
 	[function] External firmware blobs to build into the kernel binary, Set to "".
 F2FS_CHECK_FS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] fs
 	[must] user
 	[function] Enable F2FS consistency checking feature.
 F2FS_FS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] fs
 	[must] user
 	[function] Enable f2fs file system.
 F2FS_FS_ENCRYPTION
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] fs
 	[must] none
 	[function] Enable encryption of f2fs files and directories.
 F2FS_FS_SECURITY
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] fs
 	[must] user
 	[function] Enable F2FS Security Labels.
 F2FS_FS_XATTR
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] fs
 	[must] user
 	[function] Enable F2FS extended attributes.
 F2FS_IO_TRACE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] fs
 	[must] debug
 	[function] Enable F2FS IO tracer.
 F2FS_STAT_FS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] fs
 	[must] user
@@ -2733,84 +2554,77 @@ FAT_FS
 	[function] Fat filesystem.
 FB
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] user
 	[function] vts function
 FB_CFB_COPYAREA
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 FB_CFB_FILLRECT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 FB_CFB_IMAGEBLIT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 FB_CMDLINE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] video
 	[must] home
 	[function] framebuffer cmdline support and vts function
 FB_DEFERRED_IO
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 FB_NOTIFY
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 FB_SYS_COPYAREA
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 FB_SYS_FILLRECT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 FB_SYS_FOPS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 FB_SYS_IMAGEBLIT
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-FHANDLE
-	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -2891,7 +2705,7 @@ FSNOTIFY
 	[function] File status changed notify function
 FS_ENCRYPTION
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] fs
 	[must] none
@@ -2913,35 +2727,35 @@ FS_POSIX_ACL
 	[function] POSIX Access Control Lists (ACLs) support.
 FTRACE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] core
 	[must] debug
 	[function] Tracers
 FTRACE_SYSCALLS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code,make
 	[subsys] core
 	[must] debug
 	[function] Trace syscalls.
 FUNCTION_GRAPH_TRACER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
 	[function] Trace function graph.
 FUNCTION_PROFILER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
 	[function] Trace function profiler.
 FUNCTION_TRACER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -2978,14 +2792,14 @@ FW_LOADER
 	[function] Userspace firmware loading support.
 FW_LOADER_USER_HELPER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] console
 	[function] select by FW_LOADER_USER_HELPER_FALLBACK.
 FW_LOADER_USER_HELPER_FALLBACK
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] console
@@ -3121,19 +2935,18 @@ GENERIC_IRQ_SHOW_LEVEL
 	[function] Print level/edge extra information.
 GENERIC_MSI_IRQ
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] core
-	[must] user
-	[function] Generic MSI interrupt support. Select by PCI_MSI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 GENERIC_MSI_IRQ_DOMAIN
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] core
-	[must] user
-	[function] Generic MSI hierarchical interrupt domain support.
-		   Select by PCI_MSI_IRQ_DOMAIN.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 GENERIC_NET_UTILS
 	[arch] all
 	[plat] all
@@ -3157,14 +2970,14 @@ GENERIC_PHY
 	[function] 
 GENERIC_PINCONF
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] pinctrl
 	[must] user
 	[function] Generic pin configuration support.
 GENERIC_PINMUX_FUNCTIONS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -3206,14 +3019,14 @@ GENERIC_TIME_VSYSCALL
 	[function] select by others.
 GENERIC_TRACER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] core
 	[must] debug
 	[function] Enable/disalbe generic tracer.
 GLOB
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -3234,26 +3047,12 @@ GPIOLIB_IRQCHIP
 	[function] 
 GPIO_EIC_SPRD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
-GPIO_GENERIC
-	[arch] all
-	[plat] sharkl5
-	[field] make,code
-	[subsys] gpio
-	[must] user
-	[function] Generic gpio support
-GPIO_GENERIC_PLATFORM
-	[arch] all
-	[plat] sharkl5
-	[field] make,code
-	[subsys] gpio
-	[must] user
-	[function] Generic gpio support
-GPIO_PL061
+GPIO_PLUS_SPRD
 	[arch] all
 	[plat] sharkl5
 	[field] 
@@ -3262,7 +3061,7 @@ GPIO_PL061
 	[function] 
 GPIO_PMIC_EIC_SPRD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -3276,25 +3075,11 @@ GPIO_SPRD
 	[function] Generic gpio support
 GPIO_SYSFS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] gpio
 	[must] user
 	[function] Generic gpio sysfs support
-GPIO_XGENE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-GRACE_PERIOD
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 GREENASIA_FF
 	[arch] all
 	[plat] all
@@ -3353,11 +3138,11 @@ HAS_IOMEM
 	[function] 
 HAS_IOPORT_MAP
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] core
-	[must] console
-	[function] Support standard I/O routines.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 HAVE_ALIGNED_STRUCT_PAGE
 	[arch] all
 	[plat] all
@@ -3652,55 +3437,6 @@ HAVE_KRETPROBES
 	[subsys] core
 	[must] console
 	[function] Enable the kernel support KRETPROBES item.
-HAVE_KVM_ARCH_TLB_FLUSH_ALL
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-HAVE_KVM_CPU_RELAX_INTERCEPT
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-HAVE_KVM_EVENTFD
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-HAVE_KVM_IRQCHIP
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-HAVE_KVM_IRQFD
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-HAVE_KVM_IRQ_ROUTING
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-HAVE_KVM_MSI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 HAVE_MEMBLOCK
 	[arch] all
 	[plat] all
@@ -3724,7 +3460,7 @@ HAVE_MOD_ARCH_SPECIFIC
 	[function] Enable the arch uses struct mod_arch_specific to store data.
 HAVE_NET_DSA
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] meun
 	[subsys] net
 	[must] user
@@ -3797,7 +3533,7 @@ HAVE_VIRT_CPU_ACCOUNTING_GEN
 		no races in concurrent read/write of cputime_t.
 HDMI
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] gpu
 	[must] home
@@ -3928,13 +3664,6 @@ HID_HOLTEK
 	[subsys] 
 	[must] 
 	[function] 
-HID_ITE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 HID_KENSINGTON
 	[arch] all
 	[plat] all
@@ -4043,20 +3772,6 @@ HID_PETALYNX
 HID_PICOLCD
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-HID_PICOLCD_CIR
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-HID_PICOLCD_LEDS
-	[arch] all
-	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
@@ -4215,20 +3930,6 @@ HOTPLUG_CPU
 	[subsys] cpuhotplug
 	[must] user
 	[function] Enable arm/arm64 cpuhotplug/SMP function
-HUGETLBFS
-	[arch] all
-	[plat] sharkl5
-	[field] make,code
-	[subsys] fs
-	[must] user
-	[function] Hugetlbpage support.
-HUGETLB_PAGE
-	[arch] all
-	[plat] sharkl5
-	[field] make,code
-	[subsys] fs
-	[must] user
-	[function] Hugetlbpage support.
 HVC_DRIVER
 	[arch] all
 	[plat] all
@@ -4238,14 +3939,14 @@ HVC_DRIVER
 	[function] 
 HWSPINLOCK
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] hwspinlock
 	[must] home
 	[function] support Hardware Spinlock device.
 HWSPINLOCK_SPRD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] hwspinlock
 	[must] home
@@ -4287,7 +3988,7 @@ I2C
 	[function] I2C support.
 I2C_ALGOBIT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] i2c
 	[must] user
@@ -4301,7 +4002,7 @@ I2C_BOARDINFO
 	[function] I2C boardinfo interface
 I2C_CHARDEV
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] i2c
 	[must] user
@@ -4329,7 +4030,7 @@ I2C_SPRD
 	[function] Enable i2c that support hw channel
 IIO
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] iio
 	[must] user
@@ -4442,7 +4143,7 @@ INET_ESP
 	[function] vts require, Support for IPsec ESP.
 INET_RAW_DIAG
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -4612,7 +4313,7 @@ INPUT_MOUSEDEV_SCREEN_Y
 	[function] Vertical screen resolution
 INPUT_SC27XX_VIBRA
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
@@ -4626,7 +4327,7 @@ INPUT_TABLET
 	[function] 
 INPUT_TOUCHSCREEN
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] input
 	[must] user
@@ -4668,21 +4369,21 @@ ION
 	[function] An memory allocator for android.
 ION_CARVEOUT_HEAP
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 ION_SPRD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] ion
 	[must] home
 	[function] This macro is to enable sprd-specific ion features.
 ION_SYSTEM_HEAP
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -4726,7 +4427,7 @@ IP6_NF_MANGLE
 		which can effect how the packet is routed.
 IP6_NF_MATCH_RPFILTER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] net
 	[must] user
@@ -4976,33 +4677,6 @@ IP_NF_TARGET_REJECT
 	[function] vts require, The REJECT target allows a filtering rule to specify that an ICMP
 		error should be issued in response to an incoming packet, rather
 		than silently being dropped.
-IP_PNP
-	[arch] all
-	[plat] sharkl5
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[function] This enables automatic configuration of IP addresses of devices and
-		of the routing table during kernel boot, based on either information
-		supplied on the kernel command line or by BOOTP or RARP protocols.
-		You need to say Y only for diskless machines requiring network
-		access to boot (in which case you want to say Y to "Root file system
-		on NFS" as well), because all other machines configure the network
-		in their startup scripts.
-IP_PNP_BOOTP
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-IP_PNP_DHCP
-	[arch] all
-	[plat] sharkl5
-	[field] menu,code
-	[subsys] net
-	[must] user
-	[function]  DHCP support
 IRQCHIP
 	[arch] all
 	[plat] all
@@ -5012,7 +4686,7 @@ IRQCHIP
 	[function] Support chip irq.
 IRQSOFF_TRACER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -5026,7 +4700,7 @@ IRQ_DOMAIN
 	[function] irq domain support.
 IRQ_DOMAIN_DEBUG
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] interrupt
 	[must] debug
@@ -5161,7 +4835,7 @@ KALLSYMS
 	[function] load all symbols for debugging/ksymoops
 KALLSYMS_ALL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -5187,13 +4861,6 @@ KERNFS
 	[subsys] fs
 	[must] busybox_console
 	[function] Kernfs support.
-KEYBOARD_ATKBD
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 KEYBOARD_GPIO
 	[arch] all
 	[plat] all
@@ -5222,55 +4889,6 @@ KSM
 	[subsys] mm
 	[must] busybox_console
 	[function] Enable KSM for page merging.
-KVM
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-KVM_ARM_HOST
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-KVM_ARM_PMU
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-KVM_COMPAT
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-KVM_GENERIC_DIRTYLOG_READ_PROTECT
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-KVM_MMIO
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-KVM_VFIO
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 LEDS_CLASS
 	[arch] all
 	[plat] all
@@ -5278,7 +4896,7 @@ LEDS_CLASS
 	[subsys] leds
 	[must] user
 	[function] LED Class Support
-LEDS_SYSCON
+LEDS_SC27XX_BLTC
 	[arch] all
 	[plat] sharkl5
 	[field] 
@@ -5292,20 +4910,13 @@ LEDS_TRIGGERS
 	[subsys] leds
 	[must] unknown
 	[function] LED Trigger support
-LEDS_TRIGGER_CPU
+LEDS_TRIGGER_PATTERN
 	[arch] all
 	[plat] sharkl5
-	[field] menu,make
-	[subsys] leds
-	[must] unknown
-	[function] LED CPU Trigger
-LEDS_TRIGGER_HEARTBEAT
-	[arch] all
-	[plat] sharkl5
-	[field] menu,make
-	[subsys] leds
-	[must] unknown
-	[function] LED Heartbeat Trigger
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 LIBCRC32C
 	[arch] all
 	[plat] all
@@ -5329,14 +4940,7 @@ LOCALVERSION
 	[function] Local version - append to kernel release. Set to "".
 LOCALVERSION_AUTO
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-LOCKD
-	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -5348,13 +4952,6 @@ LOCKDEP_SUPPORT
 	[subsys] core
 	[must] debug
 	[function] Enable kernel support lockup.
-LOCKD_V4
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 LOCK_SPIN_ON_OWNER
 	[arch] all
 	[plat] all
@@ -5421,7 +5018,7 @@ LZ4_DECOMPRESS
 	[function] uncompress algorithm.
 LZO_COMPRESS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] lib
 	[must] busybox_console
@@ -5435,7 +5032,7 @@ LZO_DECOMPRESS
 	[function] uncompress algorithm.
 MAC80211_STA_HASH_MAX_SIZE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] mac80211
 	[must] user
@@ -5477,7 +5074,7 @@ MAY_USE_DEVLINK
 	[function] 
 MD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] md
 	[must] user
@@ -5521,20 +5118,6 @@ MEMCG_SWAP_ENABLED
 	[subsys] mm
 	[must] none
 	[function] Memory Resource Controller Swap Extension enabled by default
-MEMORY_BALLOON
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-MEMORY_ISOLATION
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 MEMORY_STATE_TIME
 	[arch] all
 	[plat] all
@@ -5542,13 +5125,6 @@ MEMORY_STATE_TIME
 	[subsys] mm
 	[must] console
 	[function] Memory time statistics exported to /sys/kernel/memory_state_time.
-MEMTEST
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 MESSAGE_LOGLEVEL_DEFAULT
 	[arch] all
 	[plat] all
@@ -5557,22 +5133,22 @@ MESSAGE_LOGLEVEL_DEFAULT
 	[must] console
 	[function] Default message log level (1-7), set to 4.
 MFD_CORE
-	[arch] arm64
-	[plat] roc1,sharkl3,
+	[arch] all
+	[plat] all
 	[field] make,code
 	[subsys] mfd
 	[must] user
 	[function] Support for mfd device management
 MFD_SC2703
-	[arch] arm64
-	[plat] sharkl3,
-	[field] make,code
-	[subsys] power
-	[must] user
-	[function] Support for sc2703 charger management
+	[arch] all
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 MFD_SC27XX_PMIC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -5594,7 +5170,7 @@ MIGRATION
 		while the virtual addresses are not changed.
 MISC_FILESYSTEMS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] fs
 	[must] user
@@ -5607,13 +5183,6 @@ MMC
 	[subsys] mmc
 	[must] user
 	[function] MMC/SD/SDIO card support
-MMC_ARMMMCI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 MMC_BLOCK
 	[arch] all
 	[plat] all
@@ -5628,51 +5197,9 @@ MMC_BLOCK_MINORS
 	[subsys] mmc
 	[must] user
 	[function] Number of minors per block device
-MMC_DW
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-MMC_DW_EXYNOS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-MMC_DW_PLTFM
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-MMC_SDHCI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-MMC_SDHCI_PLTFM
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-MMC_SPI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 MMC_SPRD_SDHCR11
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] mmc
 	[must] user
@@ -5685,13 +5212,6 @@ MMU
 	[must] console
 	[function] Select if you want MMU-based virtualised addressing space
 			support by paged memory management.
-MMU_NOTIFIER
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 MODULES
 	[arch] all
 	[plat] all
@@ -5724,7 +5244,7 @@ MODULE_UNLOAD
 		   and the next load will be successful.
 MODVERSIONS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -5802,7 +5322,7 @@ NET
 	[function] vts require, support for net
 NETDEVICES
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu,code
 	[subsys] net
 	[must] user
@@ -6007,15 +5527,6 @@ NETFILTER_XT_MATCH_QUOTA2
 	[subsys] net
 	[must] user
 	[function] vts require, "quota2" match support
-NETFILTER_XT_MATCH_QUOTA2_LOG
-	[arch] all
-	[plat] sharkl5
-	[field] menu
-	[subsys] net
-	[must] user
-	[function] This option adds an "L2TP" match, which allows you to
-		  his option allows `quota2' to log ONCE when a
-		  quota limit.
 NETFILTER_XT_MATCH_STATE
 	[arch] all
 	[plat] all
@@ -6180,23 +5691,9 @@ NETWORK_SECMARK
 	[subsys] net
 	[must] user
 	[function] This enables security marking of network packets, similar to nfmark, but designated for security purposes.
-NET_9P
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_9P_VIRTIO
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 NET_CADENCE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
@@ -6227,7 +5724,7 @@ NET_CLS_U32
 	[function] vts require, Say Y here to be able to classify packets using a universal 32bit pieces based comparison scheme.
 NET_CORE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] net
 	[must] user
@@ -6296,14 +5793,7 @@ NET_KEY
 		They are required if you are going to use IPsec tools ported from KAME.
 NET_NS
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_PACKET_ENGINE
-	[arch] all
-	[plat] sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -6344,380 +5834,205 @@ NET_SCH_HTB
 	[must] user
 	[function] vts require, Say Y here if you want to use the Hierarchical Token Buckets (HTB)
 		packet scheduling algorithm
-NET_VENDOR_3COM
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 NET_VENDOR_8390
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_ADAPTEC
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_AGERE
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_ALACRITECH
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_ALTEON
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_AMAZON
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_AMD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_AQUANTIA
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_ARC
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_ATHEROS
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_BROADCOM
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_BROCADE
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_CAVIUM
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_CHELSIO
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_CISCO
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_DEC
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_DLINK
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_EMULEX
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_EXAR
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_EZCHIP
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_HISILICON
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_HP
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_HUAWEI
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_I825XX
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_INTEL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_MARVELL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_MELLANOX
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_MICREL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_MICROCHIP
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_MYRI
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_NATSEMI
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_NETRONOME
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_NVIDIA
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_OKI
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_QLOGIC
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_QUALCOMM
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_RDC
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_REALTEK
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_RENESAS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_ROCKER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_SAMSUNG
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_SEEQ
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_SILAN
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_SIS
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_SMSC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_SOLARFLARE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_STMICRO
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_SUN
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_SYNOPSYS
 	[arch] all
-	[plat] roc1,sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_TEHUTI
-	[arch] all
-	[plat] sharkl3
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NET_VENDOR_TI
-	[arch] all
-	[plat] sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_VIA
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 NET_VENDOR_WIZNET
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] roc1
 	[field] 
 	[subsys] 
 	[must] 
@@ -6729,48 +6044,6 @@ NEW_LEDS
 	[subsys] leds
 	[must] user
 	[function] LED Support
-NFS_COMMON
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NFS_FS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NFS_USE_KERNEL_DNS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NFS_V2
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NFS_V3
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-NFS_V4
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 NF_CONNTRACK
 	[arch] all
 	[plat] all
@@ -7097,12 +6370,11 @@ NF_REJECT_IPV6
 	[function] support for ipv6 rejecting in netfilter
 NL80211_TESTMODE
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] wireless
-	[must] user
-	[function] helps implementing things like factory calibration or
-			validation tools for wireless chips
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 NLATTR
 	[arch] all
 	[plat] all
@@ -7122,7 +6394,7 @@ NLS
 		   to use native languages (NCP, SMB).
 NLS_ASCII
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] fs
 	[must] user
@@ -7151,14 +6423,14 @@ NLS_ISO8859_1
 		   European Languages).
 NLS_UTF8
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] fs
 	[must] user
 	[function] Character sets. UTF-8.
 NOP_TRACER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -7193,7 +6465,7 @@ NO_HZ_IDLE
 	[function] Idle dynticks system (tickless idle).
 NO_IOPORT_MAP
 	[arch] all
-	[plat] roc1,sharkl5
+	[plat] roc1
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -7228,11 +6500,11 @@ OF_ADDRESS
 	[function] Support OF set address.
 OF_ADDRESS_PCI
 	[arch] all
-	[plat] sharkl3
-	[field] code
-	[subsys] of
-	[must] user
-	[function] Select by IF PCI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 OF_EARLY_FLATTREE
 	[arch] all
 	[plat] all
@@ -7263,25 +6535,25 @@ OF_IRQ
 	[function] Support OpenFirmware irq.
 OF_NET
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] of
 	[must] console
 	[function] Support OpenFirmware net.
 OF_PCI
 	[arch] all
-	[plat] sharkl3
-	[field] make
-	[subsys] of
-	[must] user
-	[function] OpenFirmware PCI bus accessors.Select by IF PCI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 OF_PCI_IRQ
 	[arch] all
-	[plat] sharkl3
-	[field] make
-	[subsys] of
-	[must] user
-	[function] OpenFirmware PCI IRQ routing.Select by IF PCI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 OF_RESERVED_MEM
 	[arch] all
 	[plat] all
@@ -7289,13 +6561,6 @@ OF_RESERVED_MEM
 	[subsys] of
 	[must] console
 	[function] Support Openfirmware reserved memory.
-OID_REGISTRY
-	[arch] all
-	[plat] sharkl5
-	[field] menu
-	[subsys] security
-	[must] user
-	[function] needed by other configs
 OLD_SIGSUSPEND3
 	[arch] all
 	[plat] all
@@ -7319,7 +6584,7 @@ PAGE_COUNTER
 	[function] The cgroup-memory subsystem is related.
 PANIC_ON_OOPS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] core
 	[must] debug
@@ -7354,60 +6619,60 @@ PARTITION_PERCPU
 	[function] 
 PCI
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] pci
-	[must] user
-	[function] Enables support for PCI bus system.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PCI_BUS_ADDR_T_64BIT
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] pci
-	[must] user
-	[function] Select by IF PCI && (ARCH_DMA_ADDR_T_64BIT || 64BIT).
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PCI_DOMAINS
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] pci
-	[must] user
-	[function] Select by IF PCI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PCI_DOMAINS_GENERIC
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] pci
-	[must] user
-	[function] Select by IF PCI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PCI_MSI
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] pci
-	[must] user
-	[function] This allows device drivers to enable MSI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PCI_MSI_IRQ_DOMAIN
 	[arch] all
-	[plat] sharkl3
-	[field] code
-	[subsys] pci
-	[must] user
-	[function] Select by IF PCI_MSI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PCI_QUIRKS
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] pci
-	[must] user
-	[function] Select by IF PCI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PCI_SYSCALL
 	[arch] all
-	[plat] sharkl3
-	[field] make
-	[subsys] pci
-	[must] user
-	[function] Select by IF PCI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PERF_EVENTS
 	[arch] all
 	[plat] all
@@ -7445,7 +6710,7 @@ PID_NS
 	[function] 
 PINCONF
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] pinctrl
 	[must] user
@@ -7459,21 +6724,21 @@ PINCTRL
 	[function] Support pin configuration controllers.
 PINCTRL_SPRD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu,make
 	[subsys] pinctrl
 	[must] user
 	[function] Spreadtrum pinctrl driver.
 PINCTRL_SPRD_SHARKL5
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 PINMUX
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] pinctrl
 	[must] user
@@ -7508,35 +6773,35 @@ PM_DEBUG
 	[function] Power management debug switch
 PM_DEVFREQ
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] devfreq
 	[must] none
 	[function] Generic Dynamic Voltage and Frequency Scaling (DVFS) support
 PM_GENERIC_DOMAINS
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] device power
-	[must] user
-	[function] common driver of device power domain
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PM_GENERIC_DOMAINS_OF
 	[arch] all
-	[plat] sharkl3
-	[field] code
-	[subsys] device power
-	[must] user
-	[function] Device Tree based PM domain
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PM_GENERIC_DOMAINS_SLEEP
 	[arch] all
-	[plat] sharkl3
-	[field] code
-	[subsys] power
-	[must] user
-	[function] without using except defconfig_update.sh checking
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PM_OPP
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] power
 	[must] user
@@ -7571,7 +6836,7 @@ PM_WAKELOCKS
 	[function] vts require, User space wakeup sources interface
 PM_WAKELOCKS_GC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] power
 	[must] user
@@ -7583,20 +6848,6 @@ PM_WAKELOCKS_LIMIT
 	[subsys] power
 	[must] user
 	[function] Maximum number of user space wakeup sources (0 = no limit)
-POSIX_MQUEUE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-POSIX_MQUEUE_SYSCTL
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 POSIX_TIMERS
 	[arch] all
 	[plat] all
@@ -7611,20 +6862,6 @@ POWER_RESET
 	[subsys] reset
 	[must] user
 	[function] Provides a number of drivers which either reset a complete board.
-POWER_RESET_SYSCON
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] reboot
-	[must] user
-	[function] Generic Syscon Reboot Driver
-POWER_RESET_XGENE
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] reboot
-	[must] user
-	[function] X-Gene SoC Reboot Driver
 POWER_SUPPLY
 	[arch] all
 	[plat] all
@@ -7634,7 +6871,7 @@ POWER_SUPPLY
 	[function] This allows power supply monitoring by userspace via sysfs.
 PPP
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] net
 	[must] user
@@ -7642,7 +6879,7 @@ PPP
 		  2. vts require
 PPP_BSDCOMP
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] net
 	[must] user
@@ -7651,7 +6888,7 @@ PPP_BSDCOMP
 		  packet before it is sent over the wire. 2. vts require
 PPP_DEFLATE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] net
 	[must] user
@@ -7661,7 +6898,7 @@ PPP_DEFLATE
 		  2. vts require
 PPP_MPPE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] net
 	[must] user
@@ -7681,13 +6918,6 @@ PREEMPT_COUNT
 	[subsys] sched
 	[must] user
 	[function] Statistics count of preempt.
-PREEMPT_NOTIFIERS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 PREEMPT_RCU
 	[arch] all
 	[plat] all
@@ -7711,7 +6941,7 @@ PRINTK
 	[function] Enable support for printk.
 PRINTK_CPUID
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -7725,7 +6955,7 @@ PRINTK_SAFE_LOG_BUF_SHIFT
 	[function] 
 PRINTK_TIME
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -7739,7 +6969,7 @@ PRINT_QUOTA_WARNING
 	[function] 
 PROBE_EVENTS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -7762,7 +6992,7 @@ PROC_PAGE_MONITOR
 		   /proc/pid/pagemap,/proc/kpagecount, and /proc/kpageflags
 PROC_PID_CPUSET
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] console
@@ -7790,21 +7020,21 @@ PROFILING
 	[function] vts require, Profiling support.
 PWM
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] pwm
 	[must] home
 	[function] PWM device core driver.
 PWM_SPRD
 	[arch] all
-	[plat] sharkl3
-	[field] make
-	[subsys] pwm
-	[must] home
-	[function] Enable SPRD specific pwm driver.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 PWM_SYSFS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] pwm
 	[must] debug
@@ -7839,7 +7069,7 @@ QCOM_QDF2400_ERRATUM_0065
 	[function] 
 QFMT_V2
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] fs
 	[must] user
@@ -7860,18 +7090,11 @@ QUOTACTL
 	[function] Quota support
 QUOTA_TREE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] fs
 	[must] user
 	[function] Generic support for tree structured quota files.
-RADIX_TREE_MULTIORDER
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 RANDOMIZE_BASE
 	[arch] all
 	[plat] all
@@ -7880,19 +7103,12 @@ RANDOMIZE_BASE
 	[must] console
 	[function] Randomize the address of the kernel image.
 RANDOMIZE_MODULE_REGION_FULL
-	[arch] arm64
-	[plat] sharkl5,roc1,sharkl3,
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] arch
 	[must] console
 	[function] Randomize the module region independently from the core kernel.
-RAS
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] arch
-	[must] console
-	[function] Reliability, Availability and Serviceability (RAS) features.
 RATIONAL
 	[arch] all
 	[plat] all
@@ -7989,14 +7205,14 @@ RD_XZ
 	[function] 
 REED_SOLOMON
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] core
 	[must] user
 	[function] Support for reed solomon.
 REED_SOLOMON_DEC8
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] core
 	[must] user
@@ -8017,7 +7233,7 @@ REGMAP_I2C
 	[function] Support iic regmap.
 REGMAP_IRQ
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu,make
 	[subsys] core
 	[must] user
@@ -8036,23 +7252,9 @@ REGMAP_SPI
 	[subsys] core
 	[must] user
 	[function] Support spi regmap.
-REGULATOR
-	[arch] all
-	[plat] sharkl5
-	[field] make,code
-	[subsys] regulator
-	[must] user
-	[function] Generic Voltage and Current Regulator support.
-REGULATOR_FIXED_VOLTAGE
-	[arch] all
-	[plat] sharkl5
-	[field] make,code
-	[subsys] regulator
-	[must] user
-	[function] This driver provides support for fixed voltage regulators
 RELAY
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] core
 	[must] debug
@@ -8086,25 +7288,18 @@ RFS_ACCEL
 		directly to a CPU local to the thread consuming the data.
 RING_BUFFER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] core
 	[must] debug
 	[function] Necessary for ftrace, used for save data.
 RING_BUFFER_ALLOW_SWAP
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] debug
 	[function] Exchange two cpu ring buffer.
-ROOT_NFS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 RPS
 	[arch] all
 	[plat] all
@@ -8130,7 +7325,7 @@ RTC_CLASS
 	[function] Generic RTC class support.
 RTC_DRV_SC27XX
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -8241,20 +7436,34 @@ SBITMAP
 	[must] 
 	[function] 
 SC2355
-	[arch] arm64
-	[plat] roc1,sharkl3,
+	[arch] all
+	[plat] all
 	[field] menu
 	[subsys] wcn
 	[must] user
 	[function] This function is used to support wcn sc2355 chip
 SC23XX
-	[arch] arm64
-	[plat] roc1,sharkl3,
+	[arch] all
+	[plat] all
 	[field] menu
 	[subsys] msic
 	[must] user
 	[function] This function is used to support wcn sc23xx chip
 		For pike2, this must be enable for buletooth.
+SC27XX_ADC
+	[arch] all
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
+SC27XX_EFUSE
+	[arch] all
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 SCHEDSTATS
 	[arch] all
 	[plat] all
@@ -8299,7 +7508,7 @@ SCHED_MC
 	[function] Multi-core scheduler support
 SCHED_TRACER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -8326,8 +7535,8 @@ SCSI_MOD
 	[must] user
 	[function] SCSI module support
 SDIOHAL
-	[arch] arm64
-	[plat] roc1,sharkl3,
+	[arch] all
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -8366,7 +7575,7 @@ SECURITY
 	[function] vts require
 SECURITYFS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -8420,20 +7629,6 @@ SELECT_MEMORY_MODEL
 	[subsys] mm
 	[must] busybox_console
 	[function] The choice of the memory model depends on the ARCH_SELECT_MEMORY_MODEL.
-SERIAL_AMBA_PL011
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-SERIAL_AMBA_PL011_CONSOLE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 SERIAL_CORE
 	[arch] all
 	[plat] all
@@ -8469,20 +7664,6 @@ SERIAL_SPRD_CONSOLE
 	[subsys] uart
 	[must] busybox_console
 	[function] Support for early debug console using Spreadtrum's serial
-SERIAL_XILINX_PS_UART
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-SERIAL_XILINX_PS_UART_CONSOLE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 SERIO
 	[arch] all
 	[plat] all
@@ -8490,13 +7671,6 @@ SERIO
 	[subsys] tty
 	[must] console
 	[function] Serial I/O support.
-SERIO_AMBAKMI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 SERIO_LIBPS2
 	[arch] all
 	[plat] all
@@ -8551,7 +7725,7 @@ SLAB_MERGE_DEFAULT
 	[function] 
 SLHC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] net
 	[must] user
@@ -8580,7 +7754,7 @@ SLUB_DEBUG
 	[function] Increase debug efficiency for memory covered issue
 SLUB_DEBUG_ON
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] mm
 	[must] debug
@@ -8588,7 +7762,7 @@ SLUB_DEBUG_ON
 		   depends on SLUB && SLUB_DEBUG
 SLUB_STATS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] mm
 	[must] debug
@@ -8631,7 +7805,7 @@ SND_HDA_PREALLOC_SIZE
 	[function] Pre-allocated buffer size for HD-audio driver
 SND_HWDEP
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] snd-usb-audio
 	[must] debug
@@ -8639,21 +7813,21 @@ SND_HWDEP
 		   support USB Audio/MIDI driver.
 SND_JACK
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] sound
 	[must] user
 	[function] This macro is selected when using headphone
 SND_JACK_INPUT_DEV
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 SND_PCI
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
@@ -8688,25 +7862,18 @@ SND_RAWMIDI
 	[function] sound Rawmidi interface
 SND_SOC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] sound
 	[must] user
 	[function] ALSA for SoC audio support
 SND_SOC_I2C_AND_SPI
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] enable I2C and SPI bus for audio codec
-SND_SPI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 SND_SUPPORT_OLD_API
 	[arch] all
 	[plat] all
@@ -8730,7 +7897,7 @@ SND_USB
 	[function] This macro is used to support USB sound devices
 SND_USB_AUDIO
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] snd
 	[must] debug
@@ -8744,7 +7911,7 @@ SND_VERBOSE_PROCFS
 	[function] Verbose procfs contents
 SOCK_CGROUP_DATA
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -8809,7 +7976,7 @@ SPI
 	[function] SPI support
 SPI_BITBANG
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] spi
 	[must] user
@@ -8821,23 +7988,16 @@ SPI_MASTER
 	[subsys] spi
 	[must] user
 	[function] SPI Master Support
-SPI_PL022
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] spi
-	[must] user
-	[function] This selects the ARM(R) AMBA(R) PrimeCell PL022 SSP controller.
 SPI_SPRD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] spi
 	[must] user
 	[function] Enable spreadtrum SPI controller
 SPI_SPRD_ADI
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu,make
 	[subsys] spi
 	[must] user
@@ -8877,9 +8037,16 @@ SPRD_DMA
 	[subsys] dma
 	[must] none
 	[function] Support Spreadtrum DMA.
+SPRD_EFUSE
+	[arch] all
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 SPRD_IOMMU
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] soc
 	[must] home
@@ -8914,7 +8081,7 @@ SPRD_MAILBOX_R1P2
 	[function] This function is used to enable sprd mailbox r1p2 version.
 SPRD_MEMDISK
 	[arch] all
-	[plat] sharkl3,sharkl5
+	[plat] sharkl5
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -8956,11 +8123,11 @@ SPRD_SC9863A_CLK
 	[function] 
 SPRD_SHARKL3_USB2_PHY
 	[arch] all
-	[plat] sharkl3
-	[field] make
-	[subsys] usb
-	[must] user
-	[function] sharkl3 phy driver
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 SPRD_SHARKL5_CLK
 	[arch] all
 	[plat] all
@@ -9019,7 +8186,7 @@ SSB_POSSIBLE
 	[function] Support for SSB(Sonics Silicon Backplane).
 STACKTRACE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] debug
 	[must] console
@@ -9033,7 +8200,7 @@ STACKTRACE_SUPPORT
 	[function] Keep stack trace of persistent data block lock holders.
 STACK_TRACER
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code,make
 	[subsys] core
 	[must] debug
@@ -9062,20 +8229,6 @@ STRICT_KERNEL_RWX
 STRICT_MODULE_RWX
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-SUNRPC
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-SUNRPC_GSS
-	[arch] all
-	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
@@ -9117,7 +8270,7 @@ SWP_EMULATION
 	[function] Emulate SWP/SWPB instructions.
 SYNC_FILE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -9138,7 +8291,7 @@ SYSCTL_EXCEPTION_TRACE
 	[function] Enable support for /proc/sys/debug/exception-trace.
 SYSCTL_SYSCALL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] console
@@ -9214,13 +8367,6 @@ TASKS_RCU
 	[subsys] 
 	[must] 
 	[function] 
-TASK_DELAY_ACCT
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 TASK_IO_ACCOUNTING
 	[arch] all
 	[plat] all
@@ -9279,18 +8425,11 @@ THERMAL
 	[function] kernel thermal core framework
 THERMAL_DEFAULT_GOV_POWER_ALLOCATOR
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] thermal
 	[must] user
 	[function] Set default thermal governor as power allocator.
-THERMAL_DEFAULT_GOV_STEP_WISE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 THERMAL_EMERGENCY_POWEROFF_DELAY_MS
 	[arch] all
 	[plat] all
@@ -9300,7 +8439,7 @@ THERMAL_EMERGENCY_POWEROFF_DELAY_MS
 	[function] 
 THERMAL_GOV_POWER_ALLOCATOR
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -9321,7 +8460,7 @@ THERMAL_OF
 	[function] kernel thermal core framework
 THERMAL_WRITABLE_TRIPS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -9402,63 +8541,63 @@ TMPFS_XATTR
 	[function] Tmpfs extended attributes.
 TOUCHSCREEN_ADAPTIVE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu,make
 	[subsys] input
 	[must] user
 	[function] adaptive touchscreen driver
 TOUCHSCREEN_ADAPTIVE_VENDOR_FOCALTECH
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] input
 	[must] unknown
 	[function] This macro is to control the TP driver compilation.
 TOUCHSCREEN_PROPERTIES
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu,make
 	[subsys] input
 	[must] unknown
 	[function] touchscreen of interface
 TRACEPOINTS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] core
 	[must] debug
 	[function] Place an empty function call at each tracepoint site.
 TRACER_MAX_TRACE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] debug
 	[function] Maxsize of trace, Maxsize report of sched, irq, trace.
 TRACER_SNAPSHOT
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] debug
 	[function] Create a snapshot trace buffer
 TRACER_SNAPSHOT_PER_CPU_SWAP
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] core
 	[must] debug
 	[function] Allow snapshot to swap per CPU
 TRACE_CLOCK
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] core
 	[must] debug
 	[function] Report clock of trace.
 TRACE_IRQFLAGS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -9472,14 +8611,14 @@ TRACE_IRQFLAGS_SUPPORT
 	[function] Support irq flags trace.
 TRACING
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] debug
 	[function] To avoid circular dependencies to accomplish the hiding of the automatic options.
 TRACING_EVENTS_GPIO
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -9491,27 +8630,6 @@ TRACING_SUPPORT
 	[subsys] core
 	[must] debug
 	[function] Minsize of trace in arch, if enable ftrace, this is necessary.
-TRANSPARENT_HUGEPAGE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-TRANSPARENT_HUGEPAGE_ALWAYS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-TRANSPARENT_HUGE_PAGECACHE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 TREE_SRCU
 	[arch] all
 	[plat] all
@@ -9528,21 +8646,21 @@ TTY
 	[function] Enable TTY
 TUN
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu,make,code
 	[subsys] net
 	[must] user
 	[function] vts require, Universal TUN/TAP device driver support
 TYPEC
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 TYPEC_UCSI
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
@@ -9577,7 +8695,7 @@ UID16
 	[function] Enable 16-bit UID system calls.
 UID_SYS_STATS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] fs
 	[must] user
@@ -9612,14 +8730,14 @@ UNMAP_KERNEL_AT_EL0
 	[function] meltdown/spectre fix
 UPROBES
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 UPROBE_EVENTS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -9633,7 +8751,7 @@ USB
 	[function] USB Core files and filesystem
 USB_ACM
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] usb
 	[must] unknown
@@ -9668,7 +8786,7 @@ USB_CONFIGFS
 	[function] A Linux USB "gadget" can be set up through configfs.
 USB_CONFIGFS_ACM
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] config
 	[subsys] usb
 	[must] user
@@ -9696,7 +8814,7 @@ USB_CONFIGFS_F_FS
 	[function] Function filesystem (FunctionFS)
 USB_CONFIGFS_F_HID
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] config
 	[subsys] usb
 	[must] user
@@ -9710,42 +8828,42 @@ USB_CONFIGFS_F_MIDI
 	[function] The MIDI Function acts as a USB Audio device.
 USB_CONFIGFS_F_MTP
 	[arch] all
-	[plat] sharkl3
-	[field] menu
-	[subsys] usb
-	[must] user
-	[function] USB gadget MTP support.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 USB_CONFIGFS_F_PTP
 	[arch] all
-	[plat] sharkl3
-	[field] menu
-	[subsys] usb
-	[must] user
-	[function] USB gadget PTP support.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 USB_CONFIGFS_F_VSERIAL
 	[arch] all
-	[plat] sharkl3
-	[field] config
-	[subsys] usb
-	[must] user
-	[function] This macro is to support vendor serial.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 USB_CONFIGFS_MASS_STORAGE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] config
 	[subsys] usb
 	[must] user
 	[function] This macro is to support USB Mass storage.
 USB_CONFIGFS_OBEX
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] config
 	[subsys] usb
 	[must] unknown
 	[function] This macro is to support Object Exchange Model (CDC OBEX).
 USB_CONFIGFS_SERIAL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] config
 	[subsys] usb
 	[must] user
@@ -9780,11 +8898,11 @@ USB_EHCI_HCD_PLATFORM
 	[function] This macro is to support Generic EHCI driver for a platform device.
 USB_EHCI_PCI
 	[arch] all
-	[plat] sharkl3
-	[field] make,code
-	[subsys] usb
-	[must] user
-	[function]  Default y, depends on PCI.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 USB_EHCI_TT_NEWSCHED
 	[arch] all
 	[plat] all
@@ -9801,7 +8919,7 @@ USB_F_ACC
 	[function] USB gadget Accessory support
 USB_F_ACM
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] usb
 	[must] user
@@ -9822,14 +8940,14 @@ USB_F_FS
 	[function] Function filesystem (FunctionFS)
 USB_F_HID
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] config
 	[subsys] usb
 	[must] user
 	[function] This macro is to support usb host function.
 USB_F_MASS_STORAGE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] usb
 	[must] user
@@ -9843,39 +8961,39 @@ USB_F_MIDI
 	[function] The MIDI Function acts as a USB Audio device.
 USB_F_MTP
 	[arch] all
-	[plat] sharkl3
-	[field] make
-	[subsys] usb
-	[must] user
-	[function] USB gadget MTP support.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 USB_F_OBEX
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] usb
 	[must] unknown
 	[function] This macro is to support Object Exchange Model (CDC OBEX).
 USB_F_PTP
 	[arch] all
-	[plat] sharkl3
-	[field] make
-	[subsys] usb
-	[must] user
-	[function] USB gadget PTP support.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 USB_F_SERIAL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] usb
 	[must] user
 	[function] USB gadget SERIAL support.
 USB_F_VSERIAL
 	[arch] all
-	[plat] sharkl3
-	[field] make
-	[subsys] usb
-	[must] user
-	[function] USB gadget VSERIAL support.
+	[plat] sharkl5
+	[field] 
+	[subsys] 
+	[must] 
+	[function] 
 USB_GADGET
 	[arch] all
 	[plat] all
@@ -9885,7 +9003,7 @@ USB_GADGET
 	[function] USB Gadget Support
 USB_GADGET_DEBUG_FILES
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] config
 	[subsys] usb
 	[must] user
@@ -9918,27 +9036,6 @@ USB_HIDDEV
 	[subsys] usb
 	[must] user
 	[function] /dev/hiddev raw HID device support
-USB_ISP1760
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] usb
-	[must] unknown
-	[function] ISP1760 USB host controller
-USB_ISP1760_HCD
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] usb
-	[must] unknown
-	[function] ISP1760 USB host controller
-USB_ISP1760_HOST_ROLE
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] usb
-	[must] unknown
-	[function] ISP1760 USB host controller
 USB_LIBCOMPOSITE
 	[arch] all
 	[plat] all
@@ -9948,35 +9045,35 @@ USB_LIBCOMPOSITE
 	[function] composite based drivers
 USB_MON
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] config
 	[subsys] usb
 	[must] user
 	[function] This macro is to suppor usb monitor peripheral.
 USB_MUSB_DUAL_ROLE
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] usb
 	[must] user
 	[function] USB Dual Role mode support.
 USB_MUSB_HDRC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] usb
 	[must] user
 	[function] This macro is to support Inventra Highspeed Dual Role Controller (TI, ADI, AW, ...).
 USB_MUSB_SPRD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] usb
 	[must] user
 	[function] This macro is to suppor SPRD platforms musb driver.
 USB_NET_DRIVERS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -9990,7 +9087,7 @@ USB_OHCI_HCD
 	[function] This macro is to support OHCI HCD (USB 1.1).
 USB_OHCI_HCD_PCI
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
@@ -10018,42 +9115,42 @@ USB_OTG_WAKELOCK
 	[function] This macro is to hold a wakelock when USB connected.
 USB_PCI
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 USB_PHY
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] usb
 	[must] user
 	[function] This macro is to support USB Physical Layer drivers.
 USB_SC27XX_TYPEC
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 USB_SERIAL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] usb
 	[must] unknown
 	[function] USB serial mode on host mode
 USB_SPRD_DMA
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] usb
 	[must] user
 	[function] This macro is to support SPRD DMA mode.
 USB_SPRD_DMA_V3
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] usb
 	[must] user
@@ -10072,34 +9169,13 @@ USB_SUPPORT
 	[subsys] usb
 	[must] user
 	[function] This option adds core support for Universal Serial Bus (USB).
-USB_ULPI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-USB_ULPI_VIEWPORT
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 USB_U_SERIAL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] usb
 	[must] user
 	[function] u_serial.c -- utilities for USB gadget "serial port"/TTY support
-USELIB
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 VFAT_FS
 	[arch] all
 	[plat] all
@@ -10110,21 +9186,21 @@ VFAT_FS
 		   systems with long filenames.
 VGA_ARB
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 VGA_ARB_MAX_GPUS
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 VIDEOMODE_HELPERS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] video
 	[must] home
@@ -10139,20 +9215,6 @@ VIRTIO
 		  the virtio bus, such as CONFIG_VIRTIO_PCI,
 		  CONFIG_VIRTIO_MMIO, CONFIG_LGUEST, CONFIG_RPMSG
 		  or CONFIG_S390_GUEST.
-VIRTIO_BALLOON
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-VIRTIO_BLK
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 VIRTIO_CONSOLE
 	[arch] all
 	[plat] all
@@ -10168,13 +9230,6 @@ VIRTIO_MMIO
 	[must] user
 	[function] This drivers provides support for memory mapped
 		  virtio platform device driver.
-VIRTUALIZATION
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 VMAP_STACK
 	[arch] all
 	[plat] all
@@ -10196,72 +9251,58 @@ VT
 	[subsys] 
 	[must] 
 	[function] 
-VT_CONSOLE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-VT_CONSOLE_SLEEP
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 WATCHDOG
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] user
 	[function] Generic Watchdog Controller support.
 WATCHDOG_HANDLE_BOOT_ENABLED
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WCN_BOOT
-	[arch] arm64
-	[plat] roc1,sharkl3,
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] wcn
 	[must] user
 	[function] wcn boot up for 2355 chip.
 WCN_PCIE
 	[arch] all
-	[plat] sharkl3
+	[plat] sharkl5
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WCN_SLP
-	[arch] arm64
-	[plat] roc1,sharkl3,
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] wcn
 	[must] user
 	[function] wcn sleep and wakeup for 2355 chip
 WCN_UTILS
-	[arch] arm64
-	[plat] roc1,sharkl3,
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] wcn
 	[must] user
 	[function] debug tool for wcn chip
 WIRELESS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] wireless
 	[must] user
 	[function] wireless support
 WLAN
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] menu
 	[subsys] net
 	[must] user
@@ -10270,112 +9311,112 @@ WLAN
 		on them refer to the wireless wiki:
 WLAN_VENDOR_ADMTEK
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_ATH
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_ATMEL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_BROADCOM
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_CISCO
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_INTEL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_INTERSIL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_MARVELL
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_MEDIATEK
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_QUANTENNA
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_RALINK
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_REALTEK
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_RSI
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_ST
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_TI
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
 	[function] 
 WLAN_VENDOR_ZYDAS
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] 
 	[subsys] 
 	[must] 
@@ -10476,7 +9517,7 @@ XZ_DEC_X86
 	[function] 
 ZBUD
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make,code
 	[subsys] memory
 	[must] ZCACHE feature
@@ -10504,7 +9545,7 @@ ZONE_DMA
 	[function] Dma zone.
 ZRAM
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] block
 	[must] user
@@ -10513,7 +9554,7 @@ ZRAM
 		   which is equivalent to increasing the size of available memory.
 ZSMALLOC
 	[arch] all
-	[plat] roc1,sharkl3
+	[plat] all
 	[field] make
 	[subsys] mm
 	[must] user
