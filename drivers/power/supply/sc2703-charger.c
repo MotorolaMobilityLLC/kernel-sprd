@@ -761,6 +761,45 @@ static const struct power_supply_desc sc2703_charger_desc = {
 	.property_is_writeable	= sc2703_charger_property_is_writeable,
 };
 
+static int sc2703_charger_detect_status(struct sc2703_charger_info *info)
+{
+	unsigned int min, max;
+	int ret = 0;
+
+	/*
+	 * If the USB charger status has been USB_CHARGER_PRESENT before
+	 * registering the notifier, we should start to charge with getting
+	 * the charge current.
+	 */
+	if (info->usb_phy->chg_state != USB_CHARGER_PRESENT)
+		return 0;
+
+	usb_phy_get_charger_current(info->usb_phy, &min, &max);
+
+	mutex_lock(&info->lock);
+
+	if (info->charging)
+		goto out;
+
+	ret = sc2703_charger_set_limit_current(info, min);
+	if (ret)
+		goto out;
+
+	ret = sc2703_charger_set_current(info, min);
+	if (ret)
+		goto out;
+
+	ret = sc2703_charger_start_charge(info);
+	if (ret)
+		goto out;
+
+	info->charging = true;
+
+out:
+	mutex_unlock(&info->lock);
+	return ret;
+}
+
 static int sc2703_charger_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -804,6 +843,13 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to register notifier:%d\n", ret);
+		return ret;
+	}
+
+	ret = sc2703_charger_detect_status(info);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to detect charger status\n");
+		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return ret;
 	}
 
