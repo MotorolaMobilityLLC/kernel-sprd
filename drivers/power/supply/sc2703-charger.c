@@ -14,7 +14,7 @@
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
-#include <linux/mfd/sc2703/registers.h>
+#include <linux/mfd/sc2703_regs.h>
 #include <linux/usb/phy.h>
 
 #define SC2703_BATTERY_NAME		"sc27xx-fgu"
@@ -120,7 +120,7 @@ static int sc2703_charger_hw_init(struct sc2703_charger_info *info)
 
 	/* Set charge termination voltage */
 	if (vol_val > SC2703_VBAT_CHG_MAX)
-		vol_val = SC2703_VBAT_CHG_MAX
+		vol_val = SC2703_VBAT_CHG_MAX;
 
 	ret = regmap_update_bits(info->regmap, SC2703_CHG_CTRL_A,
 				 SC2703_VBAT_CHG_MASK, vol_val);
