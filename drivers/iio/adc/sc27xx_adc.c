@@ -348,6 +348,8 @@ static int sc27xx_adc_read(struct sc27xx_adc_data *data, int channel,
 	if (!ret) {
 		dev_err(data->dev, "read adc timeout\n");
 		ret = -ETIMEDOUT;
+	} else {
+		ret = 0;
 	}
 
 disable_adc:
