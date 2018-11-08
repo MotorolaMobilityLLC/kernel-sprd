@@ -120,8 +120,6 @@ struct sprd_thermal_sensor {
 	u32 ideal_k;
 	u32 ideal_b;
 	u32 cal_blk;
-	u32 dt_offset;
-	u32 ratio_offset;
 	u32 ratio_sign;
 	bool ready;
 	int cal_slope;
@@ -135,6 +133,24 @@ struct sprd_thermal_data {
 	struct clk *clk;
 	struct list_head senlist;
 	void __iomem *regbase;
+	u32 ratio_off;
+	u32 ratio_sign;
+	const struct sprd_thm_variant_data *var_data;
+};
+
+/*
+ * Since different sprd thermal series can have different
+ * ideal_k and ideal_b, we should save ideal_k and ideal_b
+ * in the device data structure.
+ */
+struct sprd_thm_variant_data {
+	u32 ideal_k;
+	u32 ideal_b;
+};
+
+static const struct sprd_thm_variant_data sharkl5_data = {
+	.ideal_k = 262,
+	.ideal_b = 66400,
 };
 
 static inline void sprd_thm_update_bits(void __iomem *reg, u32 mask, u32 val)
@@ -147,31 +163,47 @@ static inline void sprd_thm_update_bits(void __iomem *reg, u32 mask, u32 val)
 	writel(tmp, reg);
 }
 
-static int sprd_thm_sen_efuse_cal(struct sprd_thermal_sensor *sen)
+static int sprd_thm_cal_read(struct device *dev, const char *cell_id, u32 *val)
 {
-	int ratio_offset, ratio_sign, ret;
-	u32 cdata;
+	struct nvmem_cell *cell;
+	void *buf;
+	size_t len;
+
+	cell = nvmem_cell_get(dev, cell_id);
+	if (IS_ERR(cell))
+		return PTR_ERR(cell);
+
+	buf = nvmem_cell_read(cell, &len);
+	if (IS_ERR(buf)) {
+		nvmem_cell_put(cell);
+		return PTR_ERR(buf);
+	}
+
+	memcpy(val, buf, sizeof(*val));
+
+	kfree(buf);
+	nvmem_cell_put(cell);
+	return 0;
+}
+
+static int sprd_thm_sen_efuse_cal(struct sprd_thermal_data *thm,
+				  struct sprd_thermal_sensor *sen)
+{
+	int ret;
 	/*
 	 * According to thermal datasheet calibration offset
 	 * default val is 64, ratio val default is 1000.
 	 */
 	int dt_offset = 64, ratio = 1000;
-	int k = sen->ideal_k;
-	int b = sen->ideal_b;
 
-	ret = nvmem_cell_read_u32(sen->dev, "calibration", &cdata);
+	ret = sprd_thm_cal_read(sen->dev, "sen_delta_cal", &dt_offset);
 	if (ret)
 		return ret;
 
-	if (cdata)
-		dt_offset = (cdata >> sen->dt_offset) & 0x7f;
-
-	ratio_offset = (cdata >> sen->ratio_offset) & 0x7f;
-	ratio_sign = (cdata >> sen->ratio_sign) & 0x1;
-	if (ratio_sign == 1)
-		ratio = 1000 - ratio_offset;
+	if (thm->ratio_sign == 1)
+		ratio = 1000 - thm->ratio_off;
 	else
-		ratio = 1000 + ratio_offset;
+		ratio = 1000 + thm->ratio_off;
 
 	/*
 	 * According to the ideal slope K and ideal offset B, combined with
@@ -180,8 +212,12 @@ static int sprd_thm_sen_efuse_cal(struct sprd_thermal_sensor *sen)
 	 * k_cal =(k * ratio)/1000.
 	 * b_cal = b + (dt_offset - 64) * 500.
 	 */
-	sen->cal_slope = (k * ratio) / 1000;
-	sen->cal_offset = b + (dt_offset - 64) * 500;
+	sen->cal_slope = (thm->var_data->ideal_k * ratio) / 1000;
+	if (dt_offset)
+		sen->cal_offset = thm->var_data->ideal_b +
+			(dt_offset - 64) * 500;
+	else
+		sen->cal_offset = thm->var_data->ideal_b;
 
 	dev_info(sen->dev, "sen id = %d, cal =%d,offset =%d\n", sen->id,
 		 sen->cal_slope, sen->cal_offset);
@@ -386,27 +422,6 @@ static const struct thermal_zone_of_device_ops sprd_thm_ops = {
 	.get_temp = sprd_thm_temp_read,
 };
 
-static int sprd_thm_sen_parse_dt(struct platform_device *pdev,
-				 struct device_node *np,
-				 struct sprd_thermal_sensor *sen)
-{
-	int ret;
-
-	ret = of_property_read_u32(np, "sprd,ideal-k", &sen->ideal_k);
-	if (ret) {
-		dev_err(&pdev->dev, "parse sprd,ideal-k err\n");
-		return ret;
-	}
-
-	ret = of_property_read_u32(np, "sprd,ideal-b", &sen->ideal_b);
-	if (ret) {
-		dev_err(&pdev->dev, "parse sprd,ideal-b err\n");
-		return ret;
-	}
-
-	return 0;
-};
-
 static int sprd_thm_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -415,12 +430,20 @@ static int sprd_thm_probe(struct platform_device *pdev)
 	struct sprd_thermal_sensor *sen;
 	struct sprd_thermal_sensor *temp, *pos;
 	struct resource *res;
+	const struct sprd_thm_variant_data *pdata;
 	int ret;
+
+	pdata = of_device_get_match_data(&pdev->dev);
+	if (!pdata) {
+		dev_err(&pdev->dev, "No matching driver data found\n");
+		return -EINVAL;
+	}
 
 	thm = devm_kzalloc(&pdev->dev, sizeof(*thm), GFP_KERNEL);
 	if (!thm)
 		return -ENOMEM;
 
+	thm->var_data = pdata;
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	thm->regbase = devm_ioremap_resource(&pdev->dev, res);
 	if (!thm->regbase)
@@ -441,6 +464,14 @@ static int sprd_thm_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&thm->senlist);
 	sprd_thm_para_config(thm);
 
+	ret = sprd_thm_cal_read(&pdev->dev, "thm_sign_cal", &thm->ratio_sign);
+	if (ret)
+		goto disable_clk;
+
+	ret = sprd_thm_cal_read(&pdev->dev, "thm_ratio_cal", &thm->ratio_off);
+	if (ret)
+		goto disable_clk;
+
 	for_each_child_of_node(np, sen_child) {
 		sen = devm_kzalloc(&pdev->dev, sizeof(*sen), GFP_KERNEL);
 		if (!sen) {
@@ -454,10 +485,6 @@ static int sprd_thm_probe(struct platform_device *pdev)
 			goto disable_clk;
 		}
 
-		ret = sprd_thm_sen_parse_dt(pdev, sen_child, sen);
-		if (ret)
-			goto disable_clk;
-
 		ret = sprd_thm_sen_config(sen);
 		if (ret)
 			goto disable_clk;
@@ -466,7 +493,7 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		sen->base = thm->regbase;
 		sen->dev = &pdev->dev;
 
-		ret = sprd_thm_sen_efuse_cal(sen);
+		ret = sprd_thm_sen_efuse_cal(thm, sen);
 		if (ret) {
 			dev_err(&pdev->dev, "efuse cal analysis failed");
 			goto disable_clk;
@@ -594,7 +621,7 @@ static int sprd_thm_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id thermal_of_match[] = {
-	{ .compatible = "sprd,sharkl5-thermal" },
+	{ .compatible = "sprd,sharkl5-thermal", .data = &sharkl5_data},
 	{ },
 };
 
