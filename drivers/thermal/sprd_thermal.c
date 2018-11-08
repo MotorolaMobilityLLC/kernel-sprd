@@ -7,8 +7,10 @@
 #include <linux/iopoll.h>
 #include <linux/module.h>
 #include <linux/nvmem-consumer.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/thermal.h>
+#include <linux/slab.h>
 
 #define SPRD_THM_CTL			0x0
 #define SPRD_THM_INT_EN			0x4
@@ -76,7 +78,7 @@
 /* bits definitions for register SPRD_THM_INTERNAL_STS1 */
 #define SPRD_THM_TEMPER_RDY		BIT(0)
 
-#define SPRD_DET_PERIOD0		x800
+#define SPRD_DET_PERIOD			0x800
 #define SPRD_DET_PERIOD_MASK		GENMASK(19, 0)
 #define SPRD_MON_MODE			0x7
 #define SPRD_MON_MODE_MASK		GENMASK(0, 3)
@@ -103,7 +105,7 @@
 #define SPRD_THM_TEMP_READY_TIMEOUT	600000
 
 struct sprd_thermal_sensor {
-	struct thermal_zone_device *thm_dev;
+	struct thermal_zone_device *thmzone_dev;
 	struct device *dev;
 	struct list_head node;
 	void __iomem *base;
@@ -147,7 +149,7 @@ static inline void sprd_thm_update_bits(void __iomem *reg, u32 mask, u32 val)
 
 static int sprd_thm_sen_efuse_cal(struct sprd_thermal_sensor *sen)
 {
-	int ratio_offset, ratio_sign ret;
+	int ratio_offset, ratio_sign, ret;
 	u32 cdata;
 	/*
 	 * According to thermal datasheet calibration offset
@@ -157,7 +159,7 @@ static int sprd_thm_sen_efuse_cal(struct sprd_thermal_sensor *sen)
 	int k = sen->ideal_k;
 	int b = sen->ideal_b;
 
-	ret = nvmem_cell_read_u32(&sen->dev, "calibration", &cdata);
+	ret = nvmem_cell_read_u32(sen->dev, "calibration", &cdata);
 	if (ret)
 		return ret;
 
@@ -181,8 +183,8 @@ static int sprd_thm_sen_efuse_cal(struct sprd_thermal_sensor *sen)
 	sen->cal_slope = (k * ratio) / 1000;
 	sen->cal_offset = b + (dt_offset - 64) * 500;
 
-	dev_info("sen id = %d, cal =%d,offset =%d\n", sen->id, sen->cal_slope,
-		 sen->cal_offset);
+	dev_info(sen->dev, "sen id = %d, cal =%d,offset =%d\n", sen->id,
+		 sen->cal_slope, sen->cal_offset);
 	return 0;
 }
 
@@ -385,7 +387,8 @@ static const struct thermal_zone_of_device_ops sprd_thm_ops = {
 };
 
 static int sprd_thm_sen_parse_dt(struct platform_device *pdev,
-				 struct device_node *np)
+				 struct device_node *np,
+				 struct sprd_thermal_sensor *sen)
 {
 	int ret;
 
@@ -435,6 +438,7 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	INIT_LIST_HEAD(&thm->senlist);
 	sprd_thm_para_config(thm);
 
 	for_each_child_of_node(np, sen_child) {
@@ -450,7 +454,7 @@ static int sprd_thm_probe(struct platform_device *pdev)
 			goto disable_clk;
 		}
 
-		ret = sprd_thm_sen_parse_dt(pdev, sen_child);
+		ret = sprd_thm_sen_parse_dt(pdev, sen_child, sen);
 		if (ret)
 			goto disable_clk;
 
@@ -536,10 +540,11 @@ static int sprd_thm_hw_resume(struct sprd_thermal_data *thm)
 	return sprd_thm_wait_temp_ready(thm);
 }
 
-static int sprd_thm_suspend(struct device *dev)
+static int sprd_thm_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	struct sprd_thermal_data *thm = dev_get_drvdata(dev);
+	struct sprd_thermal_data *thm = dev_get_drvdata(&pdev->dev);
 	struct sprd_thermal_sensor *sen, *temp;
+	int ret;
 
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node)
 		sen->ready = false;
@@ -550,9 +555,9 @@ static int sprd_thm_suspend(struct device *dev)
 	return ret;
 }
 
-static int sprd_thm_resume(struct device *dev)
+static int sprd_thm_resume(struct platform_device *pdev)
 {
-	struct sprd_thermal_data *thm = dev_get_drvdata(dev);
+	struct sprd_thermal_data *thm = dev_get_drvdata(&pdev->dev);
 	struct sprd_thermal_sensor *sen, *temp;
 	int ret;
 
@@ -579,7 +584,8 @@ static int sprd_thm_remove(struct platform_device *pdev)
 	struct sprd_thermal_sensor *sen, *temp;
 
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
-		devm_thermal_zone_of_sensor_unregister(sen->thmzone_dev);
+		devm_thermal_zone_of_sensor_unregister(&pdev->dev,
+						       sen->thmzone_dev);
 	}
 
 	clk_disable_unprepare(thm->clk);
