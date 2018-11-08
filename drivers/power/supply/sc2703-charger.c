@@ -605,6 +605,94 @@ static int sc2703_charger_get_status(struct sc2703_charger_info *info)
 	return ret;
 }
 
+static int sc2703_charger_get_health(struct sc2703_charger_info *info,
+				     u32 *health)
+{
+	struct regmap *regmap = info->regmap;
+	u8 status[4];
+	int ret;
+
+	ret = regmap_bulk_read(regmap, SC2703_STATUS_A, status,
+			       ARRAY_SIZE(status));
+	if (ret)
+		return ret;
+
+	switch (status[3] & SC2703_S_CHG_STAT_MASK) {
+	case SC2703_S_CHG_STAT_FAULT_L2:
+		if (status[0] & SC2703_S_VIN_UV_MASK)
+			*health = POWER_SUPPLY_HEALTH_DEAD;
+		else if (status[0] & SC2703_S_VIN_OV_MASK)
+			*health = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
+		else if (status[1] & SC2703_S_TJUNC_CRIT_MASK)
+			*health = POWER_SUPPLY_HEALTH_OVERHEAT;
+		else if (status[3] & SC2703_S_VSYS_OV_MASK)
+			*health = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
+		else
+			*health = POWER_SUPPLY_HEALTH_GOOD;
+
+		break;
+	default:
+		*health = POWER_SUPPLY_HEALTH_GOOD;
+		break;
+	}
+
+	return 0;
+}
+
+static int sc2703_charger_get_online(struct sc2703_charger_info *info,
+				     u32 *online)
+{
+	struct regmap *regmap = info->regmap;
+	u32 status;
+	int ret;
+
+	ret = regmap_read(regmap, SC2703_STATUS_D, &status);
+	if (ret)
+		return ret;
+
+	/* Check for fault states where DCDC is disabled */
+	if ((status & SC2703_S_CHG_STAT_MASK) == SC2703_S_CHG_STAT_FAULT_L2) {
+		*online = 0;
+	} else if ((status & SC2703_S_CHG_STAT_MASK) == SC2703_S_CHG_STAT_DCDC_OFF) {
+		u32 dcdc_sts;
+
+		/* If DCDC not enabled for charging, check for reverse boost */
+		ret = regmap_read(regmap, SC2703_DCDC_CTRL_A, &dcdc_sts);
+		if (ret)
+			return ret;
+
+		if (!(dcdc_sts & SC2703_OTG_EN_MASK))
+			*online = 0;
+		else
+			*online = 1;
+	} else {
+		/* DCDC must be enabled so report on-line */
+		*online = 1;
+	}
+
+	return 0;
+}
+
+static int sc2703_charger_set_status(struct sc2703_charger_info *info, u32 val)
+{
+	struct regmap *regmap = info->regmap;
+	u32 chg_en;
+
+	switch (val) {
+	case POWER_SUPPLY_STATUS_CHARGING:
+		chg_en = SC2703_CHG_EN_MASK;
+		break;
+	case POWER_SUPPLY_STATUS_NOT_CHARGING:
+		chg_en = 0;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return regmap_update_bits(regmap, SC2703_DCDC_CTRL_A,
+				  SC2703_CHG_EN_MASK, chg_en);
+}
+
 static int sc2703_charger_usb_change(struct notifier_block *nb,
 				     unsigned long limit, void *data)
 {
@@ -646,7 +734,7 @@ static int sc2703_charger_usb_get_property(struct power_supply *psy,
 {
 	struct sc2703_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
-	u32 cur;
+	u32 cur, online, health;
 
 	mutex_lock(&info->lock);
 
@@ -680,6 +768,31 @@ static int sc2703_charger_usb_get_property(struct power_supply *psy,
 
 			val->intval = cur;
 		}
+		break;
+
+	case POWER_SUPPLY_PROP_ONLINE:
+		if (!info->charging) {
+			val->intval = 0;
+		} else {
+			ret = sc2703_charger_get_online(info, &online);
+			if (ret)
+				goto out;
+
+			val->intval = online;
+		}
+		break;
+
+	case POWER_SUPPLY_PROP_HEALTH:
+		if (info->charging) {
+			val->intval = 0;
+		} else {
+			ret = sc2703_charger_get_health(info, &health);
+			if (ret)
+				goto out;
+
+			val->intval = health;
+		}
+
 		break;
 
 	default:
@@ -719,6 +832,12 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "set input current limit failed\n");
 		break;
 
+	case POWER_SUPPLY_PROP_STATUS:
+		ret = sc2703_charger_set_status(info, val->intval);
+		if (ret < 0)
+			dev_err(info->dev, "set charge status failed\n");
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -735,6 +854,7 @@ static int sc2703_charger_property_is_writeable(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+	case POWER_SUPPLY_PROP_STATUS:
 		ret = 1;
 		break;
 
@@ -749,6 +869,8 @@ static enum power_supply_property sc2703_usb_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
+	POWER_SUPPLY_PROP_ONLINE,
+	POWER_SUPPLY_PROP_HEALTH,
 };
 
 static const struct power_supply_desc sc2703_charger_desc = {
