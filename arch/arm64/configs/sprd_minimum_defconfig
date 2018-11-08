@@ -902,6 +902,7 @@ CONFIG_VEXPRESS_SYSCFG=y
 # CONFIG_SC23XX is not set
 # CONFIG_WCN_BOOT is not set
 # CONFIG_WCN_UTILS is not set
+# CONFIG_SPRD_MM_PW_DOMAIN_R6P0 is not set
 
 #
 # SCSI device support

@@ -8086,6 +8086,13 @@ SPRD_MEMDISK
 	[subsys] core
 	[must] console
 	[function] Support for memdisk. Enable on haps bringup, Disable on chipback.
+SPRD_MM_PW_DOMAIN_R6P0
+	[arch] all
+	[plat] sharkl5
+	[field] make,code
+	[subsys] misc
+	[must] console
+	[function] This function is used to enable mm power domain.
 SPRD_ROC1_CLK
 	[arch] all
 	[plat] all
