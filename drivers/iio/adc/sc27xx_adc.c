@@ -696,6 +696,7 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 	sc27xx_data->dev = &pdev->dev;
 	sc27xx_data->var_data = pdata;
 
+	sc27xx_data->var_data->init_scale(sc27xx_data);
 	ret = sc27xx_adc_enable(sc27xx_data);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to enable ADC module\n");
