@@ -126,6 +126,9 @@ static void usb_phy_notify_charger_work(struct work_struct *work)
 
 	switch (usb_phy->chg_state) {
 	case USB_CHARGER_PRESENT:
+		if (usb_phy->chg_type == UNKNOWN_TYPE)
+			usb_phy->chg_type = usb_phy->charger_detect(usb_phy);
+
 		usb_phy_get_charger_current(usb_phy, &min, &max);
 
 		atomic_notifier_call_chain(&usb_phy->notifier, max, usb_phy);
@@ -295,9 +298,7 @@ void usb_phy_set_charger_state(struct usb_phy *usb_phy,
 		return;
 
 	usb_phy->chg_state = state;
-	if (usb_phy->chg_state == USB_CHARGER_PRESENT)
-		usb_phy->chg_type = usb_phy->charger_detect(usb_phy);
-	else
+	if (usb_phy->chg_state != USB_CHARGER_PRESENT)
 		usb_phy->chg_type = UNKNOWN_TYPE;
 
 	schedule_work(&usb_phy->chg_work);
