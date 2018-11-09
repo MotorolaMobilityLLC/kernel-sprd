@@ -248,9 +248,9 @@ static int sc27xx_typec_enable(struct sc27xx_typec *sc)
 }
 
 static const u32 sc27xx_typec_cable[] = {
-	EXTCON_NONE,
 	EXTCON_USB,
 	EXTCON_USB_HOST,
+	EXTCON_NONE,
 };
 
 static int sc27xx_typec_probe(struct platform_device *pdev)
