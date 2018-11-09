@@ -71,8 +71,13 @@ static const struct sprd_clk_desc sc9863a_pmu_gate_desc = {
 	.hw_clks        = &sc9863a_pmu_gate_hws,
 };
 
-static const u64 itable[5] = {4, 1000000000, 1200000000,
-			      1400000000, 1600000000};
+static const struct freq_table ftable[5] = {
+	{ .ibias = 0, .max_freq = 1000000000 },
+	{ .ibias = 1, .max_freq = 1200000000 },
+	{ .ibias = 2, .max_freq = 1400000000 },
+	{ .ibias = 3, .max_freq = 1600000000 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
+};
 
 static const struct clk_bit_field f_twpll[PLL_FACT_MAX] = {
 	{ .shift = 95,	.width = 1 },	/* lock_done	*/
@@ -88,7 +93,7 @@ static const struct clk_bit_field f_twpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* postdiv	*/
 };
 static SPRD_PLL_WITH_ITABLE_1K(twpll_clk, "twpll", "ext-26m", 0x4,
-				   3, itable, f_twpll, 240);
+				   3, ftable, f_twpll, 240);
 static CLK_FIXED_FACTOR(twpll_768m, "twpll-768m", "twpll", 2, 1, 0);
 static CLK_FIXED_FACTOR(twpll_384m, "twpll-384m", "twpll", 4, 1, 0);
 static CLK_FIXED_FACTOR(twpll_192m, "twpll-192m", "twpll", 8, 1, 0);
@@ -123,7 +128,7 @@ static const struct clk_bit_field f_lpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* postdiv	*/
 };
 static SPRD_PLL_WITH_ITABLE_1K(lpll_clk, "lpll", "lpll-gate", 0x20,
-				   3, itable, f_lpll, 240);
+				   3, ftable, f_lpll, 240);
 static CLK_FIXED_FACTOR(lpll_409m6, "lpll-409m6", "lpll", 3, 1, 0);
 static CLK_FIXED_FACTOR(lpll_245m76, "lpll-245m76", "lpll", 5, 1, 0);
 
@@ -141,12 +146,12 @@ static const struct clk_bit_field f_gpll[PLL_FACT_MAX] = {
 	{ .shift = 48,	.width = 1 },	/* postdiv	*/
 };
 static SPRD_PLL_WITH_ITABLE_K_FVCO(gpll_clk, "gpll", "gpll-gate", 0x38,
-				   3, itable, f_gpll, 240,
+				   3, ftable, f_gpll, 240,
 				   1000, 1000, 1, 400000000);
 
 #define f_isppll f_gpll
 static SPRD_PLL_WITH_ITABLE_1K(isppll_clk, "isppll", "isppll-gate", 0x50,
-				   3, itable, f_isppll, 240);
+				   3, ftable, f_isppll, 240);
 static CLK_FIXED_FACTOR(isppll_468m, "isppll-468m", "isppll", 2, 1, 0);
 
 static struct sprd_clk_common *sc9863a_pll_clks[] = {
@@ -197,16 +202,22 @@ static const struct sprd_clk_desc sc9863a_pll_desc = {
 };
 
 #define f_mpll f_gpll
-static const u64 itable_mpll[6] = {5, 1000000000, 1200000000, 1400000000,
-				   1600000000, 1800000000};
+static const struct freq_table ftable_mpll[6] = {
+	{ .ibias = 0, .max_freq = 1000000000 },
+	{ .ibias = 1, .max_freq = 1200000000 },
+	{ .ibias = 2, .max_freq = 1400000000 },
+	{ .ibias = 3, .max_freq = 1600000000 },
+	{ .ibias = 4, .max_freq = 1800000000 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
+};
 static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll0_clk, "mpll0", "mpll0-gate", 0x0,
-				   3, itable_mpll, f_mpll, 240,
+				   3, ftable_mpll, f_mpll, 240,
 				   1000, 1000, 1, 1000000000);
 static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll1_clk, "mpll1", "mpll1-gate", 0x18,
-				   3, itable_mpll, f_mpll, 240,
+				   3, ftable_mpll, f_mpll, 240,
 				   1000, 1000, 1, 1000000000);
 static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll2_clk, "mpll2", "mpll2-gate", 0x30,
-				   3, itable_mpll, f_mpll, 240,
+				   3, ftable_mpll, f_mpll, 240,
 				   1000, 1000, 1, 1000000000);
 static CLK_FIXED_FACTOR(mpll2_675m, "mpll2-675m", "mpll2", 2, 1, 0);
 
@@ -239,7 +250,7 @@ static SPRD_SC_GATE_CLK(audio_gate,	"audio-gate",	"ext-26m", 0x4,
 
 #define f_rpll f_lpll
 static SPRD_PLL_WITH_ITABLE_1K(rpll_clk, "rpll", "ext-26m", 0x10,
-				   3, itable, f_rpll, 240);
+				   3, ftable, f_rpll, 240);
 
 static CLK_FIXED_FACTOR(rpll_390m, "rpll-390m", "rpll", 2, 1, 0);
 static CLK_FIXED_FACTOR(rpll_260m, "rpll-260m", "rpll", 3, 1, 0);
@@ -271,12 +282,18 @@ static const struct sprd_clk_desc sc9863a_rpll_desc = {
 };
 
 #define f_dpll f_lpll
-static const u64 itable_dpll[5] = {4, 1211000000, 1320000000, 1570000000,
-				   1866000000};
+static const struct freq_table ftable_dpll[5] = {
+	{ .ibias = 0, .max_freq = 1211000000 },
+	{ .ibias = 1, .max_freq = 1320000000 },
+	{ .ibias = 2, .max_freq = 1570000000 },
+	{ .ibias = 3, .max_freq = 1866000000 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
+};
+
 static SPRD_PLL_WITH_ITABLE_1K(dpll0_clk, "dpll0", "dpll0-gate", 0x0,
-				   3, itable_dpll, f_dpll, 240);
+				   3, ftable_dpll, f_dpll, 240);
 static SPRD_PLL_WITH_ITABLE_1K(dpll1_clk, "dpll1", "dpll1-gate", 0x18,
-				   3, itable_dpll, f_dpll, 240);
+				   3, ftable_dpll, f_dpll, 240);
 
 static CLK_FIXED_FACTOR(dpll0_933m, "dpll0-933m", "dpll0", 2, 1, 0);
 static CLK_FIXED_FACTOR(dpll0_622m3, "dpll0-622m", "dpll0", 3, 1, 0);

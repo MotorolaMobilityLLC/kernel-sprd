@@ -83,15 +83,15 @@ static unsigned long pll_get_refin(const struct sprd_pll *pll)
 	return refin[refin_id];
 }
 
-static u32 pll_get_ibias(u64 rate, const u64 *table)
+static u32 pll_get_ibias(u64 rate, const struct freq_table *table)
 {
-	u32 i, num = table[0];
+	u32 i;
 
-	for (i = 1; i < num + 1; i++)
-		if (rate <= table[i])
+	for (i = 0; table[i].ibias < INVALID_MAX_IBIAS; i++)
+		if (rate <= table[i].max_freq)
 			break;
 
-	return (i == num + 1) ? num : i;
+	return table[i].ibias;
 }
 
 static unsigned long _sprd_pll_recalc_rate(const struct sprd_pll *pll,
@@ -203,7 +203,7 @@ static int _sprd_pll_set_rate(const struct sprd_pll *pll,
 	cfg[index].val |= (kint << shift) & mask;
 	cfg[index].msk |= mask;
 
-	ibias_val = pll_get_ibias(fvco, pll->itable);
+	ibias_val = pll_get_ibias(fvco, pll->ftable);
 
 	mask = pmask(pll, PLL_IBIAS);
 	index = pindex(pll, PLL_IBIAS);

@@ -59,7 +59,12 @@ static const struct sprd_clk_desc sc9832e_pmu_gate_desc = {
 	.hw_clks        = &sc9832e_pmu_gate_hws,
 };
 
-static const u64 itable[4] = {3, 936000000, 1248000000, 1600000000};
+static const struct freq_table ftable[4] = {
+	{ .ibias = 0, .max_freq = 936000000 },
+	{ .ibias = 1, .max_freq = 1248000000 },
+	{ .ibias = 2, .max_freq = 1600000000 },
+	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
+};
 
 static const struct clk_bit_field f_twpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* lock_done	*/
@@ -75,7 +80,7 @@ static const struct clk_bit_field f_twpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* postdiv	*/
 };
 static SPRD_PLL_WITH_ITABLE_1K(twpll_clk, "twpll", "ext-26m", 0xc,
-				   2, itable, f_twpll, 240);
+				   2, ftable, f_twpll, 240);
 static CLK_FIXED_FACTOR(twpll_768m, "twpll-768m", "twpll", 2, 1, 0);
 static CLK_FIXED_FACTOR(twpll_384m, "twpll-384m", "twpll", 4, 1, 0);
 static CLK_FIXED_FACTOR(twpll_192m, "twpll-192m", "twpll", 8, 1, 0);
@@ -98,7 +103,7 @@ static CLK_FIXED_FACTOR(twpll_19m2, "twpll-19m2", "twpll", 80, 1, 0);
 
 #define f_lpll f_twpll
 static SPRD_PLL_WITH_ITABLE_1K(lpll_clk, "lpll", "lpll-gate", 0x1c,
-				   2, itable, f_lpll, 240);
+				   2, ftable, f_lpll, 240);
 static CLK_FIXED_FACTOR(lpll_409m6, "lpll-409m6", "lpll", 3, 1, 0);
 static CLK_FIXED_FACTOR(lpll_245m76, "lpll-245m76", "lpll", 5, 1, 0);
 
@@ -116,7 +121,7 @@ static const struct clk_bit_field f_gpll[PLL_FACT_MAX] = {
 	{ .shift = 64,	.width = 1 },	/* postdiv	*/
 };
 static SPRD_PLL_WITH_ITABLE_K_FVCO(gpll_clk, "gpll", "gpll-gate", 0x2c,
-				   3, itable, f_gpll, 240,
+				   3, ftable, f_gpll, 240,
 				   1000, 1000, 1, 400000000);
 
 static const struct clk_bit_field f_isppll[PLL_FACT_MAX] = {
@@ -133,7 +138,7 @@ static const struct clk_bit_field f_isppll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* postdiv	*/
 };
 static SPRD_PLL_WITH_ITABLE_1K(isppll_clk, "isppll", "isppll-gate", 0x3c,
-				   2, itable, f_isppll, 240);
+				   2, ftable, f_isppll, 240);
 static CLK_FIXED_FACTOR(isppll_468m, "isppll-468m", "isppll", 2, 1, 0);
 
 static struct sprd_clk_common *sc9832e_pll_clks[] = {
@@ -197,7 +202,7 @@ static const struct clk_bit_field f_dpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* postdiv	*/
 };
 static SPRD_PLL_WITH_ITABLE_1K(dpll_clk, "dpll", "dpll-gate", 0x0,
-				   2, itable, f_dpll, 240);
+				   2, ftable, f_dpll, 240);
 
 static struct sprd_clk_common *sc9832e_dpll_clks[] = {
 	/* address base is 0x403d0000 */
@@ -221,7 +226,7 @@ static const struct sprd_clk_desc sc9832e_dpll_desc = {
 
 #define f_mpll f_twpll
 static SPRD_PLL_WITH_ITABLE_1K(mpll_clk, "mpll", "mpll-gate", 0x0,
-				   2, itable, f_mpll, 240);
+				2, ftable, f_mpll, 240);
 
 static struct sprd_clk_common *sc9832e_mpll_clks[] = {
 	/* address base is 0x403f0000 */
@@ -260,7 +265,7 @@ static const struct clk_bit_field f_rpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* postdiv	*/
 };
 static SPRD_PLL_WITH_ITABLE_1K(rpll_clk, "rpll", "ext-26m", 0x14,
-				   2, itable, f_rpll, 240);
+				   2, ftable, f_rpll, 240);
 
 static SPRD_SC_GATE_CLK(rpll_d1_en,	"rpll-d1-en",	"rpll", 0x1c,
 		     0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);

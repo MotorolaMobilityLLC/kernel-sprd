@@ -10,6 +10,9 @@
 
 #include "common.h"
 
+#define INVALID_MAX_IBIAS		0xFF
+#define INVALID_MAX_FREQ		0xFFFFFFFF
+
 struct reg_cfg {
 	u32 val;
 	u32 msk;
@@ -18,6 +21,11 @@ struct reg_cfg {
 struct clk_bit_field {
 	u8 shift;
 	u8 width;
+};
+
+struct freq_table {
+	u32 ibias;
+	u64 max_freq;
 };
 
 enum {
@@ -41,8 +49,7 @@ enum {
  *
  * @reg:	registers used to set the configuration of pll clock,
  *		reg[0] shows how many registers this pll clock uses.
- * @itable:	pll ibias table, itable[0] means how many items this
- *		table includes
+ * @ftable:	pll freq table
  * @udelay	delay time after setting rate
  * @factors	used to calculate the pll clock rate
  * @fvco:	fvco threshold rate
@@ -50,7 +57,7 @@ enum {
  */
 struct sprd_pll {
 	u32 regs_num;
-	const u64 *itable;
+	const struct freq_table *ftable;
 	const struct clk_bit_field *factors;
 	u16 udelay;
 	u16 k1;
@@ -62,11 +69,11 @@ struct sprd_pll {
 };
 
 #define SPRD_PLL_WITH_ITABLE_K_FVCO(_struct, _name, _parent, _reg,	\
-				    _regs_num, _itable, _factors,	\
+				    _regs_num, _ftable, _factors,	\
 				    _udelay, _k1, _k2, _fflag, _fvco)	\
 	struct sprd_pll _struct = {					\
 		.regs_num	= _regs_num,				\
-		.itable		= _itable,				\
+		.ftable		= _ftable,				\
 		.factors	= _factors,				\
 		.udelay		= _udelay,				\
 		.k1		= _k1,					\
@@ -84,16 +91,16 @@ struct sprd_pll {
 	}
 
 #define SPRD_PLL_WITH_ITABLE_K(_struct, _name, _parent, _reg,		\
-			       _regs_num, _itable, _factors,		\
+			       _regs_num, _ftable, _factors,		\
 			       _udelay, _k1, _k2)			\
 	SPRD_PLL_WITH_ITABLE_K_FVCO(_struct, _name, _parent, _reg,	\
-				    _regs_num, _itable, _factors,	\
+				    _regs_num, _ftable, _factors,	\
 				    _udelay, _k1, _k2, 0, 0)
 
 #define SPRD_PLL_WITH_ITABLE_1K(_struct, _name, _parent, _reg,		\
-				_regs_num, _itable, _factors, _udelay)	\
+				_regs_num, _ftable, _factors, _udelay)	\
 	SPRD_PLL_WITH_ITABLE_K_FVCO(_struct, _name, _parent, _reg,	\
-				    _regs_num, _itable, _factors,	\
+				    _regs_num, _ftable, _factors,	\
 				    _udelay, 1000, 1000, 0, 0)
 
 static inline struct sprd_pll *hw_to_sprd_pll(struct clk_hw *hw)
