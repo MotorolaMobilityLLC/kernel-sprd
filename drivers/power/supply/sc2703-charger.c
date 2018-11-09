@@ -693,6 +693,13 @@ static int sc2703_charger_set_status(struct sc2703_charger_info *info, u32 val)
 				  SC2703_CHG_EN_MASK, chg_en);
 }
 
+static int sc2703_charger_feed_watchdog(struct sc2703_charger_info *info,
+					u32 val)
+{
+	return regmap_update_bits(info->regmap, SC2703_CHG_TIMER_CTRL_B,
+				  SC2703_TIMER_LOAD_MASK, val);
+}
+
 static int sc2703_charger_usb_change(struct notifier_block *nb,
 				     unsigned long limit, void *data)
 {
@@ -838,6 +845,12 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "set charge status failed\n");
 		break;
 
+	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
+		ret = sc2703_charger_feed_watchdog(info, val->intval);
+		if (ret < 0)
+			dev_err(info->dev, "feed charger watchdog failed\n");
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -854,6 +867,7 @@ static int sc2703_charger_property_is_writeable(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
 	case POWER_SUPPLY_PROP_STATUS:
 		ret = 1;
 		break;
@@ -871,6 +885,7 @@ static enum power_supply_property sc2703_usb_props[] = {
 	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_HEALTH,
+	POWER_SUPPLY_PROP_FEED_WATCHDOG,
 };
 
 static const struct power_supply_desc sc2703_charger_desc = {
