@@ -76,6 +76,7 @@ struct sc27xx_typec {
 	struct extcon_dev *edev;
 
 	enum sc27xx_typec_connection_state state;
+	enum sc27xx_typec_connection_state pre_state;
 	struct typec_port *port;
 	struct typec_partner *partner;
 	struct typec_capability typec_cap;
@@ -121,9 +122,11 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 
 	switch (sc->state) {
 	case SC27XX_ATTACHED_SNK:
+		sc->pre_state = SC27XX_ATTACHED_SNK;
 		extcon_set_state_sync(sc->edev, EXTCON_USB, true);
 		break;
 	case SC27XX_ATTACHED_SRC:
+		sc->pre_state = SC27XX_ATTACHED_SRC;
 		extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, true);
 		break;
 	default:
@@ -142,7 +145,7 @@ static void sc27xx_typec_disconnect(struct sc27xx_typec *sc, u32 status)
 	typec_set_data_role(sc->port, TYPEC_DEVICE);
 	typec_set_vconn_role(sc->port, TYPEC_SINK);
 
-	switch (sc->state) {
+	switch (sc->pre_state) {
 	case SC27XX_ATTACHED_SNK:
 		extcon_set_state_sync(sc->edev, EXTCON_USB, false);
 		break;
