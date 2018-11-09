@@ -94,34 +94,6 @@
 		sprd,mapping-offs = <0x0>;
 	};
 
-	gpio-keys {
-		compatible = "gpio-keys";
-
-		key-volumedown {
-			label = "Volume Down Key";
-			linux,code = <KEY_VOLUMEDOWN>;
-			gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
-			debounce-interval = <2>;
-			wakeup-source;
-		};
-
-		key-volumeup {
-			label = "Volume Up Key";
-			linux,code = <KEY_VOLUMEUP>;
-			gpios = <&pmic_eic 4 GPIO_ACTIVE_LOW>;
-			debounce-interval = <2>;
-			wakeup-source;
-		};
-
-		key-power {
-			label = "Power Key";
-			linux,code = <KEY_POWER>;
-			gpios = <&pmic_eic 1 GPIO_ACTIVE_LOW>;
-			debounce-interval = <2>;
-			wakeup-source;
-		};
-	};
-
 	ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
@@ -164,24 +136,6 @@
 
 &uart1 {
 	status = "okay";
-};
-
-&i2c3 {
-	status = "okay";
-
-	adaptive-touchscreen@38 {
-		compatible = "adaptive-touchscreen";
-		reg = <0x38>;
-		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
-			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
-		controller = "focaltech,FT5436";
-		virtualkeys = <580 60 1320 60 45
-			172 360 1320 60 45
-			158 600 1320 60 45>;
-		private-data {
-			a8 = /bits/ 8 <0x5a>;
-		};
-	};
 };
 
 &dpu {
