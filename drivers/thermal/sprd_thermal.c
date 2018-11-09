@@ -163,13 +163,13 @@ static inline void sprd_thm_update_bits(void __iomem *reg, u32 mask, u32 val)
 	writel(tmp, reg);
 }
 
-static int sprd_thm_cal_read(struct device *dev, const char *cell_id, u32 *val)
+static int sprd_thm_cal_read(struct device_node *np, const char *cell_id, u32 *val)
 {
 	struct nvmem_cell *cell;
 	void *buf;
 	size_t len;
 
-	cell = nvmem_cell_get(dev, cell_id);
+	cell = of_nvmem_cell_get(np, cell_id);
 	if (IS_ERR(cell))
 		return PTR_ERR(cell);
 
@@ -186,7 +186,8 @@ static int sprd_thm_cal_read(struct device *dev, const char *cell_id, u32 *val)
 	return 0;
 }
 
-static int sprd_thm_sen_efuse_cal(struct sprd_thermal_data *thm,
+static int sprd_thm_sen_efuse_cal(struct device_node *np,
+				  struct sprd_thermal_data *thm,
 				  struct sprd_thermal_sensor *sen)
 {
 	int ret;
@@ -196,7 +197,7 @@ static int sprd_thm_sen_efuse_cal(struct sprd_thermal_data *thm,
 	 */
 	int dt_offset = 64, ratio = 1000;
 
-	ret = sprd_thm_cal_read(sen->dev, "sen_delta_cal", &dt_offset);
+	ret = sprd_thm_cal_read(np, "sen_delta_cal", &dt_offset);
 	if (ret)
 		return ret;
 
@@ -464,11 +465,11 @@ static int sprd_thm_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&thm->senlist);
 	sprd_thm_para_config(thm);
 
-	ret = sprd_thm_cal_read(&pdev->dev, "thm_sign_cal", &thm->ratio_sign);
+	ret = sprd_thm_cal_read(np, "thm_sign_cal", &thm->ratio_sign);
 	if (ret)
 		goto disable_clk;
 
-	ret = sprd_thm_cal_read(&pdev->dev, "thm_ratio_cal", &thm->ratio_off);
+	ret = sprd_thm_cal_read(np, "thm_ratio_cal", &thm->ratio_off);
 	if (ret)
 		goto disable_clk;
 
@@ -493,7 +494,7 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		sen->base = thm->regbase;
 		sen->dev = &pdev->dev;
 
-		ret = sprd_thm_sen_efuse_cal(thm, sen);
+		ret = sprd_thm_sen_efuse_cal(sen_child, thm, sen);
 		if (ret) {
 			dev_err(&pdev->dev, "efuse cal analysis failed");
 			goto disable_clk;
