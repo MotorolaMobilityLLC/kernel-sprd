@@ -43,8 +43,10 @@ struct sc2703_charger_info {
 	struct usb_phy *usb_phy;
 	struct notifier_block usb_notify;
 	struct power_supply *psy_usb;
+	struct work_struct work;
 	struct mutex lock;
 	bool charging;
+	u32 limit;
 };
 
 /* sc2703 input limit current, Milliamp */
@@ -700,22 +702,21 @@ static int sc2703_charger_feed_watchdog(struct sc2703_charger_info *info,
 				  SC2703_TIMER_LOAD_MASK, val);
 }
 
-static int sc2703_charger_usb_change(struct notifier_block *nb,
-				     unsigned long limit, void *data)
+static void sc2703_charger_work(struct work_struct *data)
 {
 	struct sc2703_charger_info *info =
-		container_of(nb, struct sc2703_charger_info, usb_notify);
-	int ret = 0;
+		container_of(data, struct sc2703_charger_info, work);
+	int ret;
 
 	mutex_lock(&info->lock);
 
-	if (limit > 0) {
+	if (info->limit > 0 && !info->charging) {
 		/* set current limitation and start to charge */
-		ret = sc2703_charger_set_limit_current(info, limit);
+		ret = sc2703_charger_set_limit_current(info, info->limit);
 		if (ret)
 			goto out;
 
-		ret = sc2703_charger_set_current(info, limit);
+		ret = sc2703_charger_set_current(info, info->limit);
 		if (ret)
 			goto out;
 
@@ -724,7 +725,7 @@ static int sc2703_charger_usb_change(struct notifier_block *nb,
 			goto out;
 
 		info->charging = true;
-	} else {
+	} else if (!info->limit && info->charging) {
 		/* Stop charging */
 		info->charging = false;
 		sc2703_charger_stop_charge(info);
@@ -732,7 +733,18 @@ static int sc2703_charger_usb_change(struct notifier_block *nb,
 
 out:
 	mutex_unlock(&info->lock);
-	return ret;
+}
+
+static int sc2703_charger_usb_change(struct notifier_block *nb,
+				     unsigned long limit, void *data)
+{
+	struct sc2703_charger_info *info =
+		container_of(nb, struct sc2703_charger_info, usb_notify);
+
+	info->limit = limit;
+
+	schedule_work(&info->work);
+	return NOTIFY_OK;
 }
 
 static int sc2703_charger_usb_get_property(struct power_supply *psy,
@@ -898,10 +910,9 @@ static const struct power_supply_desc sc2703_charger_desc = {
 	.property_is_writeable	= sc2703_charger_property_is_writeable,
 };
 
-static int sc2703_charger_detect_status(struct sc2703_charger_info *info)
+static void sc2703_charger_detect_status(struct sc2703_charger_info *info)
 {
 	unsigned int min, max;
-	int ret = 0;
 
 	/*
 	 * If the USB charger status has been USB_CHARGER_PRESENT before
@@ -909,32 +920,12 @@ static int sc2703_charger_detect_status(struct sc2703_charger_info *info)
 	 * the charge current.
 	 */
 	if (info->usb_phy->chg_state != USB_CHARGER_PRESENT)
-		return 0;
+		return;
 
 	usb_phy_get_charger_current(info->usb_phy, &min, &max);
 
-	mutex_lock(&info->lock);
-
-	if (info->charging)
-		goto out;
-
-	ret = sc2703_charger_set_limit_current(info, min);
-	if (ret)
-		goto out;
-
-	ret = sc2703_charger_set_current(info, min);
-	if (ret)
-		goto out;
-
-	ret = sc2703_charger_start_charge(info);
-	if (ret)
-		goto out;
-
-	info->charging = true;
-
-out:
-	mutex_unlock(&info->lock);
-	return ret;
+	info->limit = min;
+	schedule_work(&info->work);
 }
 
 static int sc2703_charger_probe(struct platform_device *pdev)
@@ -951,6 +942,7 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 
 	mutex_init(&info->lock);
 	info->dev = &pdev->dev;
+	INIT_WORK(&info->work, sc2703_charger_work);
 
 	info->regmap = dev_get_regmap(pdev->dev.parent, NULL);
 	if (!info->regmap) {
@@ -983,12 +975,7 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	ret = sc2703_charger_detect_status(info);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to detect charger status\n");
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
-		return ret;
-	}
+	sc2703_charger_detect_status(info);
 
 	return 0;
 }
