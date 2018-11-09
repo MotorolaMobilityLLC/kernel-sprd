@@ -168,6 +168,11 @@
 					<3765000 25>, <3750000 20>, <3726000 15>,
 					<3687000 10>, <3658000 5>, <3400000 0>;
 	};
+
+	gnss-common-ctl {
+		compatible = "sprd,gnss-common-ctl";
+		sprd,name = "gnss-common-ctl";
+	};
 };
 
 &uart0 {

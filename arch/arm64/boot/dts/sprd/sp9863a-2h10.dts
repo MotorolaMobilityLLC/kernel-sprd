@@ -67,6 +67,11 @@
 		post-power-on-delay-ms = <20>;
 	};
 
+	gnss-common-ctl {
+		compatible = "sprd,gnss-common-ctl";
+		sprd,name = "gnss-common-ctl";
+	};
+
 };
 
 &uart0 {
