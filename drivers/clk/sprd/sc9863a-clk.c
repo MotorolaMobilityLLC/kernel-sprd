@@ -554,7 +554,7 @@ static SPRD_SC_GATE_CLK(serdes_dphy_eb,	"serdes-dphy-eb",	"aon-apb",
 static SPRD_SC_GATE_CLK(gpu_eb,		"gpu-eb",	"aon-apb", 0x50,
 		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(disp_eb,		"disp-eb",	"aon-apb", 0x50,
-		     0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+		     0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(mm_emc_eb,		"mm-emc-eb",	"aon-apb", 0x50,
 		     0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(power_cpu_eb,	"power-cpu-eb",	"aon-apb", 0x50,
