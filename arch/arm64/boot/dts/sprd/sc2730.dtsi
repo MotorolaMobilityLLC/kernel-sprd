@@ -91,6 +91,11 @@
 			nvmem-cell-names = "big_scale_calib", "small_scale_calib";
 		};
 
+		syscon@1800 {
+			compatible = "sprd,sc27xx-syscon";
+			reg = <0x1800>;
+		};
+
 		vibrator@1b90 {
 			compatible = "sprd,sc27xx-vibrator", "sprd,sc2730-vibrator";
 			reg = <0x1b90>;
