@@ -2253,7 +2253,6 @@ static int musb_schedule(
 		else
 			diff = hw_ep->max_packet_sz_tx;
 
-		diff = diff * 4;
 		diff -= (qh->maxpacket * qh->hb_mult);
 
 		if (diff >= 0 && best_diff > diff) {
