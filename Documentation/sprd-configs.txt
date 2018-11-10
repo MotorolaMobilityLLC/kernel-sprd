@@ -7262,6 +7262,13 @@ RESET_CONTROLLER
 	[subsys] core
 	[must] user
 	[function] Generic Reset Controller support.
+RFKILL
+        [arch] all
+        [plat] all
+        [field] menu,make
+        [subsys] arm64
+        [must] user
+        [function] Support for set bluetooth power
 RFS_ACCEL
 	[arch] all
 	[plat] all
