@@ -254,6 +254,14 @@ config REGULATOR_DA9211
 	  step down converter 12A or 16A DC-DC Buck controlled through an I2C
 	  interface.
 
+config REGULATOR_SC2703
+	tristate "Powerventure Semiconductor SC2703 regulator"
+	depends on I2C
+	select REGMAP_I2C
+	help
+	  Say y here to support the BUCK regulator found on
+	  Powerventure Semiconductor SC2703L/P.
+
 config REGULATOR_DBX500_PRCMU
 	bool
 

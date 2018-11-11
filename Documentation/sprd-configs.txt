@@ -7252,6 +7252,27 @@ REGMAP_SPI
 	[subsys] core
 	[must] user
 	[function] Support spi regmap.
+REGULATOR
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] regulator
+	[must] user
+	[function] Support regulator core.
+REGULATOR_SC2703
+	[arch] all
+	[plat] all
+	[field] menu,code
+	[subsys] regulator
+	[must] user
+	[function] SUPPORT SC2703 regulator function.
+REGULATOR_SC2730
+	[arch] all
+	[plat] all
+	[field] menu,code
+	[subsys] regulator
+	[must] user
+	[function] SUPPORT SC2730 regulator function.
 RELAY
 	[arch] all
 	[plat] all
