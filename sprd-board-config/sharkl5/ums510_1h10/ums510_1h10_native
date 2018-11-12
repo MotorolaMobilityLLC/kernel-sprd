@@ -5,7 +5,7 @@ include  $(KERNEL_PATH)/sprd-board-config/sharkl5/ums510_1h10/ums510_1h10_base
 endif
 
 #DEFCONFIG
-KERNEL_DEFCONFIG := sprd_all_defconfig
+KERNEL_DEFCONFIG := sprd_sharkl5_defconfig
 
 #DTS
 TARGET_DTB := ums510-1h10
