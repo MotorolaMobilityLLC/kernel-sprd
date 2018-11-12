@@ -15,7 +15,7 @@
 #define SC2731_RGB_CTRL		0xebc
 #define SC2730_MODULE_EN0       0x1808
 #define SC2730_CLK_EN0          0x1810
-#define SC2730_RGB_CTRL         0x1B80
+#define SC2730_RGB_CTRL         0
 #define SC2721_MODULE_EN0       0xc08
 #define SC2721_CLK_EN0          0xc10
 #define SC2721_RGB_CTRL         0xea0
@@ -23,6 +23,7 @@
 #define SC27XX_BLTC_EN		BIT(9)
 #define SC27XX_RTC_EN		BIT(7)
 #define SC27XX_RGB_PD		BIT(0)
+#define SC2730_RGB_PD		BIT(12)
 
 /* Breathing light controller register definition */
 #define SC27XX_LEDS_CTRL	0x00
@@ -94,9 +95,11 @@ static const struct sc27xx_led_data sc2721_data = {
 #define to_sc27xx_led(ldev) \
 	container_of(ldev, struct sc27xx_led, ldev)
 
-static int sc27xx_led_init(struct regmap *regmap, const struct sc27xx_led_data *data)
+static int sc27xx_led_init(struct sc27xx_led_priv *priv, const struct sc27xx_led_data *data)
 {
 	int err;
+	struct regmap *regmap = priv->regmap;
+	u32 ctrl_base = priv->base + SC27XX_LEDS_CTRL;
 
 	err = regmap_update_bits(regmap, data->module_en, SC27XX_BLTC_EN,
 				 SC27XX_BLTC_EN);
@@ -107,6 +110,9 @@ static int sc27xx_led_init(struct regmap *regmap, const struct sc27xx_led_data *
 				 SC27XX_RTC_EN);
 	if (err)
 		return err;
+
+	if (!data->rgb_ctrl)
+		return regmap_update_bits(regmap, ctrl_base, SC2730_RGB_PD, 0);
 
 	return regmap_update_bits(regmap, data->rgb_ctrl, SC27XX_RGB_PD, 0);
 }
@@ -275,7 +281,7 @@ static int sc27xx_led_register(struct device *dev, struct sc27xx_led_priv *priv,
 {
 	int i, err;
 
-	err = sc27xx_led_init(priv->regmap, data);
+	err = sc27xx_led_init(priv, data);
 	if (err)
 		return err;
 
