@@ -4,6 +4,7 @@ Spreadtrum Generic USB PHY
 Required properties:
   - compatible: should be one of following:
     "sprd,sharkl3-phy",
+    "sprd,sharkl5-phy",
     "sprd,roc1-phy"
   - reg: must be the PHY controller base address
   - reg-names: "phy_glb_regs" for the usb phy global register

@@ -35,6 +35,12 @@
 			reg = <0 0x20100000 0 0x10000>;
 		};
 
+		anlg_phy_g2_regs: syscon@323b0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x323b0000 0 0x10000>;
+		};
+
 		aon_apb_regs: syscon@327d0000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
@@ -580,6 +586,14 @@
 					<&aonapb_gate CLK_AP_WDG_RTC_EB>;
 			};
 
+			hsphy: hsphy@323b0000 {
+				compatible = "sprd,sharkl5-phy";
+				sprd,syscon-enable = <&aon_apb_regs>;
+				sprd,syscon-anag2 = <&anlg_phy_g2_regs>;
+				sprd,vdd-voltage = <3300000>;
+				#phy-cells = <0>;
+			};
+
 			pin_controller: pinctrl@32450000 {
 				compatible = "sprd,sharkl5-pinctrl";
 				reg = <0 0x32450000 0 0x10000>;
@@ -591,6 +605,18 @@
 				#hwlock-cells = <1>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
+
+			usb: usb@5fff0000 {
+				compatible = "sprd,sharkl5-musb";
+				reg = <0 0x5fff0000 0 0x2000>;
+				interrupts = <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "mc";
+				clocks = <&aonapb_gate CLK_OTG_UTMI_EB>;
+				clock-names = "core_clk";
+				usb-phy = <&hsphy>;
+				phy-names = "usb";
+				dr-mode = "peripheral";
 			};
 		};
 

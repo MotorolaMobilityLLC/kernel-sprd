@@ -259,3 +259,15 @@
 	no-sd;
 	status = "okay";
 };
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+};
+
+&usb {
+	extcon = <&pmic_typec>;
+};
+
+&pmic_typec {
+	status = "okay";
+};
