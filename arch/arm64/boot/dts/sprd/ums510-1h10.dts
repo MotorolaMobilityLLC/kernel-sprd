@@ -279,3 +279,51 @@
 &pwms {
 	status = "okay";
 };
+
+&dcam {
+	status = "okay";
+};
+
+&isp {
+	status = "okay";
+};
+
+&fd {
+	status = "okay";
+};
+
+&cpp {
+	status = "okay";
+};
+
+&csi0 {
+	status = "okay";
+};
+
+&csi1 {
+	status = "okay";
+};
+
+&csi2 {
+	status = "okay";
+};
+
+&mipi_csi_phy0 {
+	status = "okay";
+};
+
+&mipi_csi_phy1 {
+	status = "okay";
+};
+
+&mipi_csi_phy2 {
+	status = "okay";
+};
+
+&mipi_csi_phy1_m {
+	status = "okay";
+};
+
+&mipi_csi_phy1_s {
+	status = "okay";
+};
