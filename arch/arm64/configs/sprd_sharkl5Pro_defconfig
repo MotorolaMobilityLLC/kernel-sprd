@@ -1513,6 +1513,7 @@ CONFIG_I2C_HELPER_AUTO=y
 # CONFIG_I2C_SIMTEC is not set
 CONFIG_I2C_SPRD=y
 # CONFIG_I2C_XILINX is not set
+# CONFIG_I2C_SPRD_HW is not set
 
 #
 # External I2C/SMBus adapter drivers
