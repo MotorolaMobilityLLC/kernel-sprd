@@ -105,6 +105,8 @@ static int sc2703_charger_hw_init(struct sc2703_charger_info *info)
 					SC2703_CHG_B_VSTEP,
 					SC2703_VBAT_CHG_DEFAULT,
 					"vbat-chg");
+
+		power_supply_put_battery_info(info->psy_usb, &bat_info);
 	}
 
 	/* Set charge termination current */
