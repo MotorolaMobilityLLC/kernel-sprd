@@ -8128,13 +8128,13 @@ SPRD_SC9863A_CLK
 	[subsys] 
 	[must] 
 	[function] 
-SPRD_SHARKL3_USB2_PHY
+SPRD_SHARKL5_USB2_PHY
 	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] all
+	[field] code
+	[subsys] usb
+	[must] user
+	[function] usb phy init
 SPRD_SHARKL5_CLK
 	[arch] all
 	[plat] all
@@ -8897,6 +8897,27 @@ USB_CONFIGFS_UEVENT
 	[subsys] usb
 	[must] user
 	[function] Uevent notification of Gadget state.
+USB_CONFIGFS_RNDIS
+	[arch] all
+	[plat] all
+	[field] code
+	[subsys] usb
+	[must] user
+	[function] This macro is to support RNDIS
+USB_F_RNDIS
+	[arch] all
+	[plat] all
+	[field] code
+	[subsys] usb
+	[must] user
+	[function] RNDIS function
+USB_U_ETHER
+	[arch] all
+	[plat] all
+	[field] code
+	[subsys] usb
+	[must] user
+	[function] RNDIS function
 USB_DEFAULT_PERSIST
 	[arch] all
 	[plat] all
