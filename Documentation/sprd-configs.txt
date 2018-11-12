@@ -8458,6 +8458,21 @@ THERMAL_OF
 	[subsys] thermal
 	[must] user
 	[function] kernel thermal core framework
+SPRD_THERMAL
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] thermal
+	[must] user
+	[function] This function is used to config thermal moudle.
+GENERIC_ADC_THERMAL
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] thermal
+	[must] user
+	[function] This function is used to config thermal moudle to get
+		   adc sensor temperature.
 THERMAL_WRITABLE_TRIPS
 	[arch] all
 	[plat] all
