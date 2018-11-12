@@ -4029,6 +4029,13 @@ I2C_SPRD
 	[subsys] i2c
 	[must] user
 	[function] Enable i2c that support hw channel
+I2C_SPRD_HW
+	[arch] all
+	[plat] all
+	[field] menu
+	[subsys] i2c
+	[must] user
+	[function] Enable i2c which support hw channel
 IIO
 	[arch] all
 	[plat] all
