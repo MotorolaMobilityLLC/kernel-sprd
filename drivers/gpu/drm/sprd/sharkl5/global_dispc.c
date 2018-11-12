@@ -121,9 +121,9 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 
 static int dpu_clk_init(struct dpu_context *ctx)
 {
-	int ret;
 	struct dpu_clk_context *clk_ctx = NULL;
-	unsigned int dpi_clk_rate;
+	unsigned int dpi_clk_rate = 0;
+	int ret = 0;
 
 	list_for_each_entry(clk_ctx, &dpi_clk_list, head) {
 		if ((clk_ctx->rate % ctx->vm.pixelclock) == 0) {
