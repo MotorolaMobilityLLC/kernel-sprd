@@ -4,9 +4,6 @@ else
 include  $(KERNEL_PATH)/sprd-board-config/sharkl3/sp9863a_1h10/sp9863a_1h10_base
 endif
 
-
 BOARD_FINGERPRINT_CONFIG := sunwave
 BOARD_TEE_CONFIG := trusty
-CHIPRAM_DDR_1G_LIMITED :=
-
 
