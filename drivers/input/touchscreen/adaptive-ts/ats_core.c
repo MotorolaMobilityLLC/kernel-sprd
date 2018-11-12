@@ -952,6 +952,8 @@ static int ts_suspend(struct platform_device *pdev, pm_message_t state)
 	/* clear report data */
 	ts_clear_points(pdata);
 
+	pdata->suspend = true;
+
 	return 0;
 }
 
@@ -986,6 +988,8 @@ static int ts_resume(struct platform_device *pdev)
 	if (ts_get_mode(pdata, TSMODE_IRQ_MODE)
 		&& !ts_get_mode(pdata, TSMODE_IRQ_STATUS))
 		ts_enable_irq(pdata, true);
+
+	pdata->suspend = false;
 
 	return 0;
 }
@@ -1510,6 +1514,30 @@ static struct device_attribute dev_attr_debug_level = {
 	.store = ts_debug_level_store,
 };
 
+static ssize_t ts_suspend_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct ts_data *pdata = platform_get_drvdata(to_platform_device(dev));
+
+	return sprintf(buf, "%s\n",
+		pdata->suspend ? "true" : "false");
+}
+
+static ssize_t ts_suspend_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct ts_data *pdata = platform_get_drvdata(to_platform_device(dev));
+
+	if ((buf[0] == '1') && !pdata->suspend)
+		ts_suspend(to_platform_device(dev), PMSG_SUSPEND);
+	else if ((buf[0] == '0') && pdata->suspend)
+		ts_resume(to_platform_device(dev));
+
+	return count;
+}
+
+static DEVICE_ATTR_RW(ts_suspend);
+
 static struct attribute *ts_debug_attrs[] = {
 	&dev_attr_debug_level.attr,
 	&dev_attr_mode.attr,
@@ -1523,6 +1551,7 @@ static struct attribute *ts_debug_attrs[] = {
 	&dev_attr_vendor_name.attr,
 	&dev_attr_controller_info.attr,
 	&dev_attr_ui_info.attr,
+	&dev_attr_ts_suspend.attr,
 	NULL,
 };
 

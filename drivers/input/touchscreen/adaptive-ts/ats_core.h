@@ -196,6 +196,8 @@ enum ts_stashed_status {
  * stashed_points : stashed points to filter changed fields when using type B
  *                : store every point and use slot as array index, we assume
  *                : slot for reported points range from 0 to TS_MAX_POINTS
+ * suspend        : track lcd backlight status to do suspend and resume
+ *                : following display
  *
  */
 struct ts_data {
@@ -232,6 +234,7 @@ struct ts_data {
 	 */
 	struct ts_point stashed_points[TS_MAX_POINTS]; /* TODO need two buffer? */
 	enum ts_stashed_status stashed_status[TS_MAX_POINTS];
+	bool suspend;
 };
 
 
