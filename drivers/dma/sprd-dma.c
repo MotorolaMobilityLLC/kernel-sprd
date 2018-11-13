@@ -965,6 +965,14 @@ sprd_dma_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
 		schan->linklist.wrap_ptr = 0;
 	}
 
+	chn_mode = (flags >> SPRD_DMA_CHN_MODE_SHIFT) & SPRD_DMA_CHN_MODE_MASK;
+	if (chn_mode) {
+		schan->chn_mode = chn_mode;
+		schan->trg_mode = (flags >> SPRD_DMA_TRG_MODE_SHIFT)
+			& SPRD_DMA_TRG_MODE_MASK;
+		schan->int_type = flags & SPRD_DMA_INT_TYPE_MASK;
+	}
+
 	sdesc = kzalloc(sizeof(*sdesc), GFP_NOWAIT);
 	if (!sdesc)
 		return NULL;
@@ -994,14 +1002,6 @@ sprd_dma_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
 			kfree(sdesc);
 			return NULL;
 		}
-	}
-
-	chn_mode = (flags >> SPRD_DMA_CHN_MODE_SHIFT) & SPRD_DMA_CHN_MODE_MASK;
-	if (chn_mode) {
-		schan->chn_mode = chn_mode;
-		schan->trg_mode = (flags >> SPRD_DMA_TRG_MODE_SHIFT)
-			& SPRD_DMA_TRG_MODE_MASK;
-		schan->int_type = flags & SPRD_DMA_INT_TYPE_MASK;
 	}
 
 	ret = sprd_dma_fill_desc(chan, &sdesc->chn_hw, 0, 0, src, dst, len,
