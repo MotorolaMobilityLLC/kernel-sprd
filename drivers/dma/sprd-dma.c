@@ -101,6 +101,7 @@
 /* DMA_CHN_WARP_* register definition */
 #define SPRD_DMA_HIGH_ADDR_MASK		GENMASK(31, 28)
 #define SPRD_DMA_LOW_ADDR_MASK		GENMASK(31, 0)
+#define SPRD_DMA_WRAP_ADDR_MASK		GENMASK(27, 0)
 #define SPRD_DMA_HIGH_ADDR_OFFSET	4
 
 /* SPRD_DMA_CHN_INTC register definition */
@@ -120,6 +121,8 @@
 #define SPRD_DMA_SWT_MODE_OFFSET	26
 #define SPRD_DMA_REQ_MODE_OFFSET	24
 #define SPRD_DMA_REQ_MODE_MASK		GENMASK(1, 0)
+#define SPRD_DMA_WRAP_SEL_DEST		BIT(23)
+#define SPRD_DMA_WRAP_EN		BIT(22)
 #define SPRD_DMA_FIX_SEL_OFFSET		21
 #define SPRD_DMA_FIX_EN_OFFSET		20
 #define SPRD_DMA_LLIST_END		BIT(19)
@@ -811,6 +814,8 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 	temp |= dst_datawidth << SPRD_DMA_DES_DATAWIDTH_OFFSET;
 	temp |= req_mode << SPRD_DMA_REQ_MODE_OFFSET;
 	temp |= fix_mode << SPRD_DMA_FIX_SEL_OFFSET;
+	temp |= schan->linklist.wrap_ptr ?
+		SPRD_DMA_WRAP_EN | SPRD_DMA_WRAP_SEL_DEST : 0;
 	temp |= fix_en << SPRD_DMA_FIX_EN_OFFSET;
 	temp |= data_format << SPRD_DMA_SWT_MODE_OFFSET;
 	temp |= slave_cfg->src_maxburst & SPRD_DMA_FRG_LEN_MASK;
@@ -839,6 +844,12 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 		 * configuration's physical address.
 		 */
 		hw->llist_ptr = schan->linklist.phy_addr + temp;
+		/* Notice! It only supports linklist dest wrap. */
+		if (schan->linklist.wrap_ptr) {
+			hw->wrap_ptr |= schan->linklist.wrap_ptr &
+				SPRD_DMA_WRAP_ADDR_MASK;
+			hw->wrap_to |= dst & SPRD_DMA_WRAP_ADDR_MASK;
+		}
 	} else {
 		hw->llist_ptr = 0;
 	}
@@ -947,9 +958,11 @@ sprd_dma_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
 
 		schan->linklist.phy_addr = ll_cfg->phy_addr;
 		schan->linklist.virt_addr = ll_cfg->virt_addr;
+		schan->linklist.wrap_ptr = ll_cfg->wrap_ptr;
 	} else {
 		schan->linklist.phy_addr = 0;
 		schan->linklist.virt_addr = 0;
+		schan->linklist.wrap_ptr = 0;
 	}
 
 	sdesc = kzalloc(sizeof(*sdesc), GFP_NOWAIT);

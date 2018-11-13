@@ -132,6 +132,9 @@ enum sprd_dma_int_type {
  * struct sprd_dma_linklist - DMA link-list address structure
  * @virt_addr: link-list virtual address to configure link-list node
  * @phy_addr: link-list physical address to link DMA transfer
+ * @wrap_ptr: wrap address for wrap mode, if transfer address is equal
+ * to the wrap address, the current destination address will wrap to
+ * the destination initial configuration address.
  *
  * The Spreadtrum DMA controller supports the link-list mode, that means slaves
  * can supply several groups configurations (each configuration represents one
@@ -195,6 +198,7 @@ enum sprd_dma_int_type {
 struct sprd_dma_linklist {
 	unsigned long virt_addr;
 	phys_addr_t phy_addr;
+	phys_addr_t wrap_ptr;
 };
 
 #endif
