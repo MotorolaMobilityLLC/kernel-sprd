@@ -654,11 +654,10 @@ int mock_in_sequence(struct test *test, struct mock_expectation *first, ...);
 						 param_type_names,	       \
 						 params,		       \
 						 ARRAY_SIZE(params));	       \
-			ASSERT_NOT_ERR_OR_NULL(mock->test, retval);	       \
 			if (!retval) {					       \
-				test_info(mock->test,			       \
-					  "no action installed for "#name);    \
-				BUG();					       \
+				ASSERT_FAILURE(mock->test, "mock " #name       \
+					       " expects to return a value,"   \
+					       " but none is provided.");      \
 			}						       \
 			RETURN(return_type, retval);			       \
 		}
