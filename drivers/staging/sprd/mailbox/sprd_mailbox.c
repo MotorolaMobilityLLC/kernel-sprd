@@ -381,6 +381,11 @@ int  mbox_init_debugfs(void *root)
 	if (!root)
 		return -ENXIO;
 
+	if (!mbox_ops) {
+		pr_err("mbox:ERR on line %d!\n", __LINE__);
+		return -EPROBE_DEFER;
+	}
+
 	debugfs_create_file("mbox", S_IRUGO,
 			    (struct dentry *)root,
 			    NULL,
