@@ -21,6 +21,7 @@
 #include <linux/of_address.h>
 #include <linux/of.h>
 #include <linux/of_irq.h>
+#include <linux/pm_runtime.h>
 #include <drm/drm_gem_framebuffer_helper.h>
 
 #include "sprd_drm.h"
@@ -397,6 +398,8 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 
 	DRM_INFO("%s()\n", __func__);
 
+	pm_runtime_get_sync(dpu->dev.parent);
+
 	sprd_dpu_init(dpu);
 
 	drm_crtc_vblank_on(crtc);
@@ -412,6 +415,8 @@ static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 	drm_crtc_vblank_off(crtc);
 
 	sprd_dpu_uninit(dpu);
+
+	pm_runtime_put(dpu->dev.parent);
 }
 
 static int sprd_crtc_atomic_check(struct drm_crtc *crtc,
@@ -793,9 +798,7 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	sprd_dpu_sysfs_init(&dpu->dev);
 	platform_set_drvdata(pdev, dpu);
 
-//	pm_runtime_set_active(&pdev->dev);
-//	pm_runtime_get_noresume(&pdev->dev);
-//	pm_runtime_enable(&pdev->dev);
+	pm_runtime_enable(&pdev->dev);
 
 	return component_add(&pdev->dev, &dpu_component_ops);
 }

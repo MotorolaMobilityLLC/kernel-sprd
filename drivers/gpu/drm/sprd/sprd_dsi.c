@@ -16,6 +16,7 @@
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/of_graph.h>
+#include <linux/pm_runtime.h>
 
 #include "disp_lib.h"
 #include "sprd_dpu.h"
@@ -79,6 +80,8 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 		return;
 	}
 
+	pm_runtime_get_sync(dsi->dev.parent);
+
 	sprd_dsi_resume(dsi);
 	sprd_dphy_resume(dsi->phy);
 
@@ -119,6 +122,8 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 
 	sprd_dphy_suspend(dsi->phy);
 	sprd_dsi_suspend(dsi);
+
+	pm_runtime_put(dsi->dev.parent);
 }
 
 static void sprd_dsi_encoder_mode_set(struct drm_encoder *encoder,
@@ -696,6 +701,8 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 	ret = sprd_dsi_host_init(&pdev->dev, dsi);
 	if (ret)
 		return ret;
+
+	pm_runtime_enable(&pdev->dev);
 
 	return component_add(&pdev->dev, &dsi_component_ops);
 }
