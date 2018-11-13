@@ -421,8 +421,6 @@
 			adi_bus: spi@32100000 {
 				compatible = "sprd,sharkl5-adi";
 				reg = <0 0x32100000 0 0x100000>;
-				hwlocks = <&hwlock 0>;
-				hwlock-names = "adi";
 				#address-cells = <1>;
 				#size-cells = <0>;
 			};
