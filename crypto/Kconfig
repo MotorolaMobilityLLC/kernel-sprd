@@ -1324,32 +1324,6 @@ config CRYPTO_SALSA20
 	  The Salsa20 stream cipher algorithm is designed by Daniel J.
 	  Bernstein <djb@cr.yp.to>. See <http://cr.yp.to/snuffle.html>
 
-config CRYPTO_SALSA20_586
-	tristate "Salsa20 stream cipher algorithm (i586)"
-	depends on (X86 || UML_X86) && !64BIT
-	select CRYPTO_BLKCIPHER
-	help
-	  Salsa20 stream cipher algorithm.
-
-	  Salsa20 is a stream cipher submitted to eSTREAM, the ECRYPT
-	  Stream Cipher Project. See <http://www.ecrypt.eu.org/stream/>
-
-	  The Salsa20 stream cipher algorithm is designed by Daniel J.
-	  Bernstein <djb@cr.yp.to>. See <http://cr.yp.to/snuffle.html>
-
-config CRYPTO_SALSA20_X86_64
-	tristate "Salsa20 stream cipher algorithm (x86_64)"
-	depends on (X86 || UML_X86) && 64BIT
-	select CRYPTO_BLKCIPHER
-	help
-	  Salsa20 stream cipher algorithm.
-
-	  Salsa20 is a stream cipher submitted to eSTREAM, the ECRYPT
-	  Stream Cipher Project. See <http://www.ecrypt.eu.org/stream/>
-
-	  The Salsa20 stream cipher algorithm is designed by Daniel J.
-	  Bernstein <djb@cr.yp.to>. See <http://cr.yp.to/snuffle.html>
-
 config CRYPTO_CHACHA20
 	tristate "ChaCha20 cipher algorithm"
 	select CRYPTO_BLKCIPHER
@@ -1493,20 +1467,6 @@ config CRYPTO_SERPENT_AVX2_X86_64
 
 	  See also:
 	  <http://www.cl.cam.ac.uk/~rja14/serpent.html>
-
-config CRYPTO_SPECK
-	tristate "Speck cipher algorithm"
-	select CRYPTO_ALGAPI
-	help
-	  Speck is a lightweight block cipher that is tuned for optimal
-	  performance in software (rather than hardware).
-
-	  Speck may not be as secure as AES, and should only be used on systems
-	  where AES is not fast enough.
-
-	  See also: <https://eprint.iacr.org/2013/404.pdf>
-
-	  If unsure, say N.
 
 config CRYPTO_TEA
 	tristate "TEA, XTEA and XETA cipher algorithms"
@@ -1676,6 +1636,15 @@ config CRYPTO_LZ4HC
 	select LZ4_DECOMPRESS
 	help
 	  This is the LZ4 high compression mode algorithm.
+
+config CRYPTO_ZSTD
+	tristate "Zstd compression algorithm"
+	select CRYPTO_ALGAPI
+	select CRYPTO_ACOMP2
+	select ZSTD_COMPRESS
+	select ZSTD_DECOMPRESS
+	help
+	  This is the zstd algorithm.
 
 comment "Random Number Generation"
 
