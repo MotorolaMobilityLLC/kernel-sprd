@@ -30,8 +30,9 @@
 #include <asm/pgalloc.h>
 #include <linux/slab.h>
 
-#define ADI_ADDR_SIZE	0x10000
-#define ADI_OFFSET	0x8000
+#define ADI_15BIT_OFFSET		0x20000
+#define ADI_OFFSET			0x8000
+#define ADI_ADDR_SIZE			0x10000
 
 #define LOOKAT_RWPV			(1<<0)
 #define LOOKAT_INPUT_OUTPUT_DATA	(1<<1)
@@ -64,6 +65,7 @@ struct lookat {
 	struct regmap *regmap;
 	struct lookat_request request;
 	struct list_head request_list;
+	u32 slave_offset;
 };
 
 static struct lookat lookat_desc;
@@ -75,11 +77,13 @@ static int sprd_is_adi_vaddr(unsigned long vaddr)
 
 static int sprd_adi_p2v(unsigned long paddr, unsigned long *vaddr)
 {
-	if ((paddr < (adi_phy_base + ADI_OFFSET))
-			|| paddr > (adi_phy_base + ADI_ADDR_SIZE))
+	u32 offset = lookat_desc.slave_offset;
+
+	if ((paddr < (adi_phy_base + offset))
+			|| paddr > (adi_phy_base + offset + ADI_ADDR_SIZE))
 		return -EINVAL;
 
-	*vaddr = paddr - adi_phy_base - ADI_OFFSET;
+	*vaddr = paddr - adi_phy_base - offset;
 
 	return 0;
 }
@@ -156,6 +160,7 @@ static int sprd_write_pa(unsigned long paddr, const unsigned long or_val,
 {
 	void *addr;
 	unsigned long val;
+
 	pr_debug("%s 0x%lx, 0x%lx, 0x%x\n", __func__, paddr, or_val, clear_msk);
 	addr = __va(paddr);
 	if (!virt_addr_valid(addr)) {
@@ -175,7 +180,7 @@ static int sprd_write_pa(unsigned long paddr, const unsigned long or_val,
 					    clear_msk);
 			iounmap(io_addr);
 		}
-	} else{
+	} else {
 		val = *(unsigned long *) addr;
 		*(unsigned long *) addr = ((val & ~clear_msk) | or_val);
 
@@ -187,6 +192,7 @@ static int sprd_write_pa(unsigned long paddr, const unsigned long or_val,
 static int queue_add_element(unsigned long raw_cmd)
 {
 	struct lookat_request *request;
+
 	request = kzalloc(sizeof(struct lookat_request), GFP_KERNEL);
 	if (!request)
 		return -ENOMEM;
@@ -344,6 +350,11 @@ static int __init lookat_debug_init(void)
 	if (!regmap_np)
 		goto error_pmic_node;
 
+	if (of_device_is_compatible(regmap_np->parent, "sprd,sc2730"))
+		lookat_desc.slave_offset = ADI_15BIT_OFFSET;
+	else
+		lookat_desc.slave_offset = ADI_OFFSET;
+
 	pdev_regmap = of_find_device_by_node(regmap_np);
 	if (!pdev_regmap)
 		goto error_find_device;
@@ -371,5 +382,5 @@ error_pmic_node:
 	return -ENODEV;
 }
 
-module_init(lookat_debug_init);
+late_initcall_sync(lookat_debug_init);
 MODULE_LICENSE("GPL v2");
