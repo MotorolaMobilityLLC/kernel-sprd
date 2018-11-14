@@ -18,11 +18,11 @@
 #include <linux/device.h>
 #include <video/videomode.h>
 
-#include <drm/drm_of.h>
-#include <drm/drm_crtc_helper.h>
+#include <drm/drmP.h>
 #include <drm/drm_mipi_dsi.h>
-#include <drm/drm_encoder_slave.h>
-#include <drm/drm_atomic_helper.h>
+#include <drm/drm_encoder.h>
+#include <drm/drm_connector.h>
+#include <drm/drm_bridge.h>
 #include <drm/drm_panel.h>
 
 #include "disp_lib.h"
@@ -200,14 +200,6 @@ struct sprd_dsi {
 	struct dsi_glb_ops *glb;
 	struct dsi_context ctx;
 };
-
-struct sprd_connector_state {
-	struct drm_connector_state base;
-	u32 phy_freq;
-};
-
-#define to_sprd_connector_state(s) \
-		container_of(s, struct sprd_connector_state, base)
 
 extern struct list_head dsi_core_head;
 extern struct list_head dsi_glb_head;

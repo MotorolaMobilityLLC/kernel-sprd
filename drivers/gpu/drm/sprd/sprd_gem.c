@@ -11,8 +11,6 @@
  * GNU General Public License for more details.
  */
 
-#include <drm/drmP.h>
-#include <drm/drm_gem.h>
 #include <linux/dma-buf.h>
 
 #if IS_ENABLED(CONFIG_SPRD_IOMMU)

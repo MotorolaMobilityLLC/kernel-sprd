@@ -11,12 +11,15 @@
  *GNU General Public License for more details.
  */
 
+#include <drm/drm_atomic_helper.h>
+#include <drm/drm_crtc_helper.h>
+#include <drm/drm_of.h>
 #include <linux/component.h>
-#include <video/mipi_display.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/of_graph.h>
 #include <linux/pm_runtime.h>
+#include <video/mipi_display.h>
 
 #include "disp_lib.h"
 #include "sprd_dpu.h"

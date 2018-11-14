@@ -14,9 +14,11 @@
 #ifndef _SPRD_PANEL_H_
 #define _SPRD_PANEL_H_
 
+#include <drm/drmP.h>
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_panel.h>
+#include <linux/of.h>
 
 enum {
 	CMD_CODE_INIT = 0,

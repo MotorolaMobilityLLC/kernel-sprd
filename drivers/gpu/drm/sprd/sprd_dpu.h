@@ -25,12 +25,8 @@
 
 #include <drm/drmP.h>
 #include <drm/drm_crtc.h>
-#include <drm/drm_crtc_helper.h>
-#include <drm/drm_atomic.h>
-#include <drm/drm_atomic_helper.h>
-#include <drm/drm_plane_helper.h>
-#include <drm/drm_gem_cma_helper.h>
-#include <drm/drm_fb_cma_helper.h>
+#include <drm/drm_fourcc.h>
+#include <drm/drm_vblank.h>
 
 #include "disp_lib.h"
 
@@ -50,40 +46,11 @@
 /* NOTE: this mask is not a realy dpu interrupt mask */
 #define DISPC_INT_FENCE_SIGNAL_REQUEST	BIT(31)
 
-#define ROUND(a, b) (((a) + (b) / 2) / (b))
-
-enum {
-	NORMAL_MODE = 0,
-	FULL_MODE,
-	MIXED_MODE
-};
-
-enum {
-	SIZE_64 = 0,
-	SIZE_128
-};
-
 enum {
 	SPRD_DISPC_IF_DBI = 0,
 	SPRD_DISPC_IF_DPI,
 	SPRD_DISPC_IF_EDPI,
 	SPRD_DISPC_IF_LIMIT
-};
-
-enum {
-	SPRD_DATA_TYPE_YUV422 = 0x00,
-	SPRD_DATA_TYPE_YUV420 = 0x01,
-	SPRD_DATA_TYPE_YUV400 = 0x02,
-	SPRD_DATA_TYPE_RGB888 = 0x03,
-	SPRD_DATA_TYPE_RGB666 = 0x04,
-	SPRD_DATA_TYPE_RGB565 = 0x05,
-	SPRD_DATA_TYPE_RGB555 = 0x06,
-	SPRD_DATA_TYPE_COMPRESSED = 0x07,
-	SPRD_DATA_TYPE_YUV422_3P = 0x08,
-	SPRD_DATA_TYPE_YUV420_3P = 0x09,
-	SPRD_DATA_TYPE_RGB888_PACK = 0x0A,
-	SPRD_DATA_TYPE_AFBC_888 = 0x0B,
-	SPRD_DATA_TYPE_LIMIT
 };
 
 enum {

@@ -11,18 +11,15 @@
  *GNU General Public License for more details.
  */
 
-#include <linux/bitops.h>
-#include <linux/clk.h>
+#include <drm/drm_atomic_helper.h>
+#include <drm/drm_crtc_helper.h>
+#include <drm/drm_plane_helper.h>
+#include <drm/drm_gem_framebuffer_helper.h>
 #include <linux/component.h>
-#include <video/display_timing.h>
-#include <linux/mfd/syscon.h>
-#include <linux/regmap.h>
-#include <linux/reset.h>
-#include <linux/of_address.h>
 #include <linux/of.h>
+#include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/pm_runtime.h>
-#include <drm/drm_gem_framebuffer_helper.h>
 
 #include "sprd_drm.h"
 #include "sprd_dpu.h"

@@ -14,13 +14,12 @@
 #ifndef _SPRD_DRM_H_
 #define _SPRD_DRM_H_
 
+#include <drm/drmP.h>
+#include <drm/drm_atomic.h>
+
 struct sprd_drm {
 	struct drm_device *drm;
-	struct {
-		struct drm_atomic_state *state;
-		struct work_struct work;
-		struct mutex lock;
-	} commit;
+	struct drm_atomic_state *state;
 	struct device *dpu_dev;
 	struct device *gsp_dev;
 };

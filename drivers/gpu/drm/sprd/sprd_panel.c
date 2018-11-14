@@ -13,20 +13,9 @@
 
 #include <linux/module.h>
 #include <linux/of.h>
-#include <linux/gpio/consumer.h>
 #include <video/mipi_display.h>
-#include <video/videomode.h>
-#include <video/display_timing.h>
 #include <video/of_display_timing.h>
-
-#include <linux/regulator/consumer.h>
-#include <linux/regulator/driver.h>
-#include <linux/regulator/machine.h>
-
-#include <drm/drmP.h>
-#include <drm/drm_crtc.h>
-#include <drm/drm_mipi_dsi.h>
-#include <drm/drm_panel.h>
+#include <video/videomode.h>
 
 #include "sprd_panel.h"
 #include "dsi/sprd_dsi_api.h"
