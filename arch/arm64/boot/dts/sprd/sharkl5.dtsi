@@ -22,6 +22,10 @@
 		i2c3 = &i2c3;
 		i2c4 = &i2c4;
 		i2c5 = &i2c5;
+		spi0 = &spi0;
+		spi1 = &spi1;
+		spi2 = &spi2;
+		spi3 = &spi3;
 	};
 
 	soc: soc {
@@ -155,6 +159,54 @@
 				clock-names ="enable", "i2c", "source";
 				clocks = <&apapb_gate CLK_I2C4_EB>;
 				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			spi0: spi@70800000{
+				compatible = "sprd,sc9860-spi",
+					     "sprd,sharkl5-spi";
+				reg = <0x70800000 0x1000>;
+				interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable", "spi", "source";
+				clocks = <&apapb_gate CLK_SPI0_EB>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			spi1: spi@70900000{
+				compatible = "sprd,sc9860-spi",
+					     "sprd,sharkl5-spi";
+				reg = <0x70900000 0x1000>;
+				interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable", "spi", "source";
+				clocks = <&apapb_gate CLK_SPI1_EB>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			spi2: spi@70a00000{
+				compatible = "sprd,sc9860-spi",
+					     "sprd,sharkl5-spi";
+				reg = <0x70a00000 0x1000>;
+				interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable", "spi", "source";
+				clocks = <&apapb_gate CLK_SPI2_EB>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			spi3: spi@70b00000{
+				compatible = "sprd,sc9860-spi",
+					     "sprd,sharkl5-spi";
+				reg = <0x70b00000 0x1000>;
+				interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable", "spi", "source";
+				clocks = <&apapb_gate CLK_SPI3_EB>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
