@@ -453,4 +453,15 @@ static struct platform_driver sprd_hsphy_driver = {
 	},
 };
 
-module_platform_driver(sprd_hsphy_driver);
+static int __init sprd_hsphy_driver_init(void)
+{
+	return platform_driver_register(&sprd_hsphy_driver);
+}
+
+static void __exit sprd_hsphy_driver_exit(void)
+{
+	platform_driver_unregister(&sprd_hsphy_driver);
+}
+
+late_initcall(sprd_hsphy_driver_init);
+module_exit(sprd_hsphy_driver_exit);

@@ -366,7 +366,7 @@ static void __exit sc27xx_typec_exit(void)
 	platform_driver_unregister(&sc27xx_typec_driver);
 }
 
-late_initcall_sync(sc27xx_typec_init);
+module_init(sc27xx_typec_init);
 module_exit(sc27xx_typec_exit);
 
 MODULE_LICENSE("GPL v2");
