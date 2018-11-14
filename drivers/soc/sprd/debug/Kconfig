@@ -1,3 +1,4 @@
+source "drivers/soc/sprd/debug/dmc_mpu/Kconfig"
 config SPRD_LOOK_AT
 	bool "Sprdtrum lookat tool support"
 	depends on SPRD_DEBUG

@@ -8058,6 +8058,20 @@ SPRD_DMA
 	[subsys] dma
 	[must] none
 	[function] Support Spreadtrum DMA.
+SPRD_DMC_MPU_CORE
+	[arch] all
+	[plat] sharkl5, sharkl3
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Enable MPU core function
+SPRD_DMC_MPU
+	[arch] all
+	[plat] sharkl5, sharkl3
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Enable MPU R4P0 debug function
 SPRD_EFUSE
 	[arch] all
 	[plat] sharkl5
