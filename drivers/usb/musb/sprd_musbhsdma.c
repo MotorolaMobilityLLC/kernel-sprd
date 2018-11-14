@@ -700,7 +700,7 @@ static int sprd_dma_channel_program(struct dma_channel *channel,
 		musb_channel->node_num = 0;
 		musb_host_listnodes(musb_channel, dma_addr, len);
 	}
-	dev_info(musb->controller,
+	dev_dbg(musb->controller,
 		"ep%d-%s  dma_addr 0x%x length %d, list 0x%x\n",
 		musb_channel->ep_num,
 		musb_channel->transmit ? "Tx" : "Rx",

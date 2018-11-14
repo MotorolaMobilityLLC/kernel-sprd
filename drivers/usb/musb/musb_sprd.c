@@ -820,7 +820,8 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	if (of_property_read_bool(node, "extcon")) {
 		glue->edev = extcon_get_edev_by_phandle(glue->dev, 0);
 		if (IS_ERR(glue->edev)) {
-			dev_err(dev, "failed to  find gpio extcon device.\n");
+			ret = PTR_ERR(glue->edev);
+			dev_err(dev, "failed to find gpio extcon device.\n");
 			goto err_glue_musb;
 		}
 		glue->vbus_nb.notifier_call = musb_sprd_vbus_notifier;
