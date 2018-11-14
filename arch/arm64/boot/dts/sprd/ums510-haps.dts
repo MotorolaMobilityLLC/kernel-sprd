@@ -10,8 +10,8 @@
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
 
-#include "ums510.dtsi"
-#include "ums510-common.dtsi"
+#include "ums510-haps.dtsi"
+#include "ums510-haps-common.dtsi"
 #include "sc2730.dtsi"
 #include "lcd/lcd_nt35597_boe_mipi_hd.dtsi"
 

@@ -15,6 +15,7 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9863a-2h10-overlay.dtbo \
 	ums510-haps-overlay.dtbo \
 	ums510-1h10-overlay.dtbo \
+	ums510-haps-overlay.dtbo \
         ud710-haps-overlay.dtbo \
         ud710-orca-haps-overlay.dtbo \
 	ums518-haps-overlay.dtbo
