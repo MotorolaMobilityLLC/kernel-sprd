@@ -30,6 +30,8 @@ DTB_OBJS := $(addprefix $(obj)/dts/,$(DTB_LIST))
 
 $(obj)/Image: vmlinux FORCE
 	$(call if_changed,objcopy)
+	@/usr/bin/size vmlinux
+	@/bin/grep module_layout Module.symvers	|| echo "NULL module_layout version!"
 
 $(obj)/Image.bz2: $(obj)/Image FORCE
 	$(call if_changed,bzip2)
