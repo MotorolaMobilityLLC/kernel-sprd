@@ -249,7 +249,7 @@
 					<GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 
-				sprd,ip = "sprd,dsi-ctrl", "r3p0";
+				sprd,ip = "sprd,dsi-ctrl", "r3p1";
 				sprd,soc = "sharkl5";
 
 				ports {
