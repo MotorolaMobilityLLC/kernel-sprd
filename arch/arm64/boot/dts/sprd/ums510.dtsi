@@ -9,7 +9,7 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include "sharkl5.dtsi"
 #include "ums510-modem.dtsi"
-
+#include "ums510-qos.dtsi"
 / {
 	cpus {
 		#address-cells = <2>;
