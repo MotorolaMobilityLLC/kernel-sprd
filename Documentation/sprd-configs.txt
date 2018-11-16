@@ -51,6 +51,13 @@ ANDROID_BINDER_IPC
 	[must] console
 	[function] vts require. Binder is used in Android for both communication
 			between processes, and remote method invocation.
+ANDROID_PARANOID_NETWORK
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 ANON_INODES
 	[arch] all
 	[plat] all
@@ -61,10 +68,10 @@ ANON_INODES
 ARCH_CLOCKSOURCE_DATA
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_DMA_ADDR_T_64BIT
 	[arch] all
 	[plat] all
@@ -82,17 +89,17 @@ ARCH_HAS_CACHE_LINE_SIZE
 ARCH_HAS_DEBUG_VIRTUAL
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_HAS_DEVMEM_IS_ALLOWED
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_HAS_ELF_RANDOMIZE
 	[arch] all
 	[plat] all
@@ -104,10 +111,10 @@ ARCH_HAS_ELF_RANDOMIZE
 ARCH_HAS_FORTIFY_SOURCE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_HAS_GCOV_PROFILE_ALL
 	[arch] all
 	[plat] all
@@ -125,17 +132,17 @@ ARCH_HAS_HOLES_MEMORYMODEL
 ARCH_HAS_KCOV
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_HAS_SET_MEMORY
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_HAS_SG_CHAIN
 	[arch] all
 	[plat] all
@@ -146,17 +153,17 @@ ARCH_HAS_SG_CHAIN
 ARCH_HAS_STRICT_KERNEL_RWX
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_HAS_STRICT_MODULE_RWX
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_HAS_TICK_BROADCAST
 	[arch] all
 	[plat] all
@@ -167,10 +174,10 @@ ARCH_HAS_TICK_BROADCAST
 ARCH_HAS_UBSAN_SANITIZE_ALL
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_HIBERNATION_POSSIBLE
 	[arch] all
 	[plat] all
@@ -230,10 +237,10 @@ ARCH_PHYS_ADDR_T_64BIT
 ARCH_PROC_KCORE_TEXT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_SELECT_MEMORY_MODEL
 	[arch] all
 	[plat] all
@@ -279,24 +286,24 @@ ARCH_SUPPORTS_DEBUG_PAGEALLOC
 ARCH_SUPPORTS_LTO_CLANG
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_SUPPORTS_MEMORY_FAILURE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_SUPPORTS_NUMA_BALANCING
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARCH_SUPPORTS_UPROBES
 	[arch] all
 	[plat] all
@@ -357,10 +364,10 @@ ARM64_4K_PAGES
 ARM64_CONT_SHIFT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARM64_CRYPTO
 	[arch] all
 	[plat] all
@@ -405,11 +412,11 @@ ARM64_ERRATUM_827319
 	[function] Work around for Arm Cortex-A53 erratum problem.
 ARM64_ERRATUM_832075
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARM64_ERRATUM_843419
 	[arch] all
 	[plat] all
@@ -427,10 +434,10 @@ ARM64_ERRATUM_845719
 ARM64_ERRATUM_858921
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARM64_HW_AFDBM
 	[arch] all
 	[plat] all
@@ -456,10 +463,10 @@ ARM64_MODULE_PLTS
 ARM64_PAGE_SHIFT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARM64_PAN
 	[arch] all
 	[plat] all
@@ -468,6 +475,13 @@ ARM64_PAN
 	[must] user
 	[function] Privileged Access Never (PAN; part of the ARMv8.1 Extensions)
 			prevents the kernel or hypervisor from accessing user-space (EL0) memory directly.
+ARM64_SSBD
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARM64_UAO
 	[arch] all
 	[plat] all
@@ -492,10 +506,10 @@ ARM64_VA_BITS_39
 ARM64_VHE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARMV8_DEPRECATED
 	[arch] all
 	[plat] all
@@ -530,10 +544,10 @@ ARM_ARCH_TIMER_EVTSTREAM
 ARM_ARCH_TIMER_OOL_WORKAROUND
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARM_CPUIDLE
 	[arch] all
 	[plat] all
@@ -551,17 +565,10 @@ ARM_GIC
 ARM_GIC_MAX_NR
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-ARM_GIC_V2M
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ARM_GIC_V3
 	[arch] all
 	[plat] all
@@ -569,13 +576,6 @@ ARM_GIC_V3
 	[subsys] core
 	[must] console
 	[function] Enable kernel support ARM GIC V3.
-ARM_GIC_V3_ITS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 ARM_PMU
 	[arch] all
 	[plat] all
@@ -615,10 +615,10 @@ AUDIT
 AUDITSYSCALL
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 AUDIT_ARCH_COMPAT_GENERIC
 	[arch] all
 	[plat] all
@@ -643,17 +643,17 @@ AUDIT_GENERIC
 AUDIT_TREE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 AUDIT_WATCH
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 BACKLIGHT_CLASS_DEVICE
 	[arch] all
 	[plat] all
@@ -729,10 +729,10 @@ BITREVERSE
 BLK_DEBUG_FS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 BLK_DEV
 	[arch] all
 	[plat] all
@@ -764,7 +764,7 @@ BLK_DEV_INITRD
 	[function] vts require, Initial RAM filesystem and RAM disk (initramfs/initrd) support.
 BLK_DEV_IO_TRACE
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -812,27 +812,20 @@ BLK_DEV_SD
 	[subsys] usb
 	[must] user
 	[function] This macro is to support host udisk function.
-BLK_MQ_PCI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 BLK_MQ_VIRTIO
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 BLK_SCSI_REQUEST
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 BLOCK
 	[arch] all
 	[plat] all
@@ -875,17 +868,17 @@ BPF
 BPF_EVENTS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 BPF_SYSCALL
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 BQL
 	[arch] all
 	[plat] all
@@ -906,17 +899,17 @@ BRANCH_PROFILE_NONE
 BSD_PROCESS_ACCT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 BSD_PROCESS_ACCT_V3
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 BUG
 	[arch] all
 	[plat] all
@@ -958,11 +951,11 @@ BUILD_BIN2C
 		   enable by IKCONFIG
 CAVIUM_ERRATUM_30115
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CC_OPTIMIZE_FOR_SIZE
 	[arch] all
 	[plat] all
@@ -988,45 +981,45 @@ CC_STACKPROTECTOR_STRONG
 CFG80211
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CFG80211_CERTIFICATION_ONUS
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CFG80211_CRDA_SUPPORT
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CFG80211_DEFAULT_PS
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CFG80211_INTERNAL_REGDB
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CFG80211_REG_CELLULAR_HINTS
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CGROUPS
 	[arch] all
 	[plat] all
@@ -1039,10 +1032,10 @@ CGROUPS
 CGROUP_BPF
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CGROUP_CPUACCT
 	[arch] all
 	[plat] all
@@ -1054,10 +1047,10 @@ CGROUP_CPUACCT
 CGROUP_DEBUG
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CGROUP_FREEZER
 	[arch] all
 	[plat] all
@@ -1072,6 +1065,13 @@ CGROUP_SCHED
 	[subsys] sched
 	[must] user
 	[function] Group CPU scheduler(vts require)
+CHARGER_SC2703
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] power
+	[must] user
+	[function] This function is used to enable charg
 CLEANCACHE
 	[arch] all
 	[plat] all
@@ -1104,11 +1104,11 @@ CMDLINE
 	[function] Default kernel command string. Set to NULL.
 CMDLINE_FROM_BOOTLOADER
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 COMMON_CLK
 	[arch] all
 	[plat] all
@@ -1144,7 +1144,7 @@ COMPAT_OLD_SIGACTION
 	[field] code
 	[subsys] core
 	[must] Enable kernel support compat old signal action.
-	[function] 
+	[function]
 CONFIGFS_FS
 	[arch] all
 	[plat] all
@@ -1159,10 +1159,10 @@ CONFIGFS_FS
 CONSOLE_LOGLEVEL_DEFAULT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONTEXT_SWITCH_TRACER
 	[arch] all
 	[plat] all
@@ -1216,17 +1216,17 @@ CP15_BARRIER_EMULATION
 CPUFREQ_DT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CPUFREQ_DT_PLATDEV
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CPUSETS
 	[arch] all
 	[plat] all
@@ -1246,10 +1246,10 @@ CPU_FREQ
 CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CPU_FREQ_GOV_PERFORMANCE
 	[arch] all
 	[plat] all
@@ -1295,10 +1295,10 @@ CPU_IDLE_GOV_MENU
 CPU_IDLE_MULTIPLE_DRIVERS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CPU_PM
 	[arch] all
 	[plat] all
@@ -1387,10 +1387,10 @@ CRYPTO
 CRYPTO_ACOMP2
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CRYPTO_AEAD
 	[arch] all
 	[plat] all
@@ -1415,10 +1415,10 @@ CRYPTO_AES
 CRYPTO_AES_ARM64
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CRYPTO_AES_ARM64_CE
 	[arch] all
 	[plat] all
@@ -1569,10 +1569,10 @@ CRYPTO_DES
 CRYPTO_DEV_VIRTIO
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CRYPTO_DRBG
 	[arch] all
 	[plat] all
@@ -1611,10 +1611,10 @@ CRYPTO_ECHAINIV
 CRYPTO_ENGINE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CRYPTO_GF128MUL
 	[arch] all
 	[plat] all
@@ -1667,10 +1667,10 @@ CRYPTO_JITTERENTROPY
 CRYPTO_KPP2
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CRYPTO_LZO
 	[arch] all
 	[plat] all
@@ -1779,10 +1779,10 @@ CRYPTO_SHA256
 CRYPTO_SHA256_ARM64
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CRYPTO_SHA2_ARM64_CE
 	[arch] all
 	[plat] all
@@ -1793,10 +1793,10 @@ CRYPTO_SHA2_ARM64_CE
 CRYPTO_SIMD
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 CRYPTO_TWOFISH
 	[arch] all
 	[plat] all
@@ -1836,10 +1836,10 @@ CUSE
 DAX
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DCACHE_WORD_ACCESS
 	[arch] all
 	[plat] all
@@ -1863,7 +1863,7 @@ DEBUG_FS
 	[function] Support Debug Filesystem.
 DEBUG_GPIO
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make,code
 	[subsys] debug
 	[must] debug
@@ -1898,11 +1898,11 @@ DECOMPRESS_GZIP
 	[function] Support kernel decompress gzip.
 DECOMPRESS_LZ4
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 DECOMPRESS_LZMA
 	[arch] all
 	[plat] all
@@ -1912,18 +1912,18 @@ DECOMPRESS_LZMA
 	[function] Support lzma decompress format.
 DECOMPRESS_LZO
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 DECOMPRESS_XZ
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 DEFAULT_CFQ
 	[arch] all
 	[plat] all
@@ -2004,24 +2004,17 @@ DEVFREQ_GOV_SIMPLE_ONDEMAND
 DEVFREQ_GOV_SPRD_SCENE
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DEVFREQ_SPRD_AUTO_DFS
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-DEVPORT
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DEVTMPFS
 	[arch] all
 	[plat] all
@@ -2039,10 +2032,10 @@ DEVTMPFS_MOUNT
 DISP_PM_DOMAIN_SHARKL3
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DMADEVICES
 	[arch] all
 	[plat] all
@@ -2074,10 +2067,10 @@ DMA_SHARED_BUFFER
 DMA_VIRTUAL_CHANNELS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DM_BUFIO
 	[arch] all
 	[plat] all
@@ -2145,11 +2138,11 @@ DQL
 		without allowing the queue to be starved.
 DRAGONRISE_FF
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM
 	[arch] all
 	[plat] all
@@ -2167,80 +2160,80 @@ DRM_BRIDGE
 DRM_FBDEV_EMULATION
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM_FBDEV_OVERALLOC
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM_GEM_CMA_HELPER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM_KMS_CMA_HELPER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM_KMS_FB_HELPER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM_KMS_HELPER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM_MIPI_DSI
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM_PANEL
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM_PANEL_BRIDGE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM_SPRD
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DRM_SPRD_GSP
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 DST_CACHE
 	[arch] all
 	[plat] all
@@ -2271,25 +2264,25 @@ DUAL_ROLE_USB_INTF
 	[function] This macro is to support generic DUAL ROLE sysfs interface.
 DUMMY_CONSOLE
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 DUMMY_CONSOLE_COLUMNS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 DUMMY_CONSOLE_ROWS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 DYNAMIC_DEBUG
 	[arch] all
 	[plat] all
@@ -2314,10 +2307,10 @@ EFI_PARTITION
 ELFCORE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ELF_CORE
 	[arch] all
 	[plat] all
@@ -2332,6 +2325,13 @@ EMBEDDED
 	[subsys] core
 	[must] user
 	[function] vts require, Embedded system.
+ENABLE_DEFAULT_TRACERS
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 ENABLE_MUST_CHECK
 	[arch] all
 	[plat] all
@@ -2363,10 +2363,10 @@ EPOLL
 ETHERNET
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 EVENTFD
 	[arch] all
 	[plat] all
@@ -2391,24 +2391,24 @@ EXPERT
 EXT2_FS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 EXT2_FS_XATTR
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 EXT3_FS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 EXT4_ENCRYPTION
 	[arch] all
 	[plat] all
@@ -2443,17 +2443,17 @@ EXT4_FS_SECURITY
 EXTCON
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 EXTCON_USB_GPIO
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 EXTRA_FIRMWARE
 	[arch] all
 	[plat] all
@@ -2463,7 +2463,7 @@ EXTRA_FIRMWARE
 	[function] External firmware blobs to build into the kernel binary, Set to "".
 F2FS_CHECK_FS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code
 	[subsys] fs
 	[must] user
@@ -2498,7 +2498,7 @@ F2FS_FS_XATTR
 	[function] Enable F2FS extended attributes.
 F2FS_IO_TRACE
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make,code
 	[subsys] fs
 	[must] debug
@@ -2562,24 +2562,24 @@ FB
 FB_CFB_COPYAREA
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 FB_CFB_FILLRECT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 FB_CFB_IMAGEBLIT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 FB_CMDLINE
 	[arch] all
 	[plat] all
@@ -2590,45 +2590,45 @@ FB_CMDLINE
 FB_DEFERRED_IO
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 FB_NOTIFY
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 FB_SYS_COPYAREA
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 FB_SYS_FILLRECT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 FB_SYS_FOPS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 FB_SYS_IMAGEBLIT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 FIB_RULES
 	[arch] all
 	[plat] all
@@ -2691,11 +2691,11 @@ FREEZER
 		   during hibernation or system-wide suspend
 FSL_ERRATUM_A008585
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 FSNOTIFY
 	[arch] all
 	[plat] all
@@ -2734,28 +2734,35 @@ FTRACE
 	[function] Tracers
 FTRACE_SYSCALLS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code,make
 	[subsys] core
 	[must] debug
 	[function] Trace syscalls.
+FUEL_GAUGE_SC27XX
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 FUNCTION_GRAPH_TRACER
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code
 	[subsys] core
 	[must] debug
 	[function] Trace function graph.
 FUNCTION_PROFILER
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code
 	[subsys] core
 	[must] debug
 	[function] Trace function profiler.
 FUNCTION_TRACER
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code
 	[subsys] core
 	[must] debug
@@ -2779,10 +2786,10 @@ FUTEX
 FUTEX_PI
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 FW_LOADER
 	[arch] all
 	[plat] all
@@ -2806,6 +2813,14 @@ FW_LOADER_USER_HELPER_FALLBACK
 	[function] This option enables / disables the invocation of user-helper
 		(e.g. udev) for loading firmware files as a fallback after the
 		direct file loading in kernel fails.
+GENERIC_ADC_THERMAL
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] thermal
+	[must] user
+	[function] This function is used to config thermal moudle to get
+		   adc sensor temperature.
 GENERIC_ALLOCATOR
 	[arch] all
 	[plat] all
@@ -2816,10 +2831,10 @@ GENERIC_ALLOCATOR
 GENERIC_ARCH_TOPOLOGY
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 GENERIC_BUG
 	[arch] all
 	[plat] all
@@ -2901,10 +2916,10 @@ GENERIC_IO
 GENERIC_IRQ_EFFECTIVE_AFF_MASK
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 GENERIC_IRQ_MIGRATION
 	[arch] all
 	[plat] all
@@ -2933,20 +2948,6 @@ GENERIC_IRQ_SHOW_LEVEL
 	[subsys] core
 	[must] console
 	[function] Print level/edge extra information.
-GENERIC_MSI_IRQ
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-GENERIC_MSI_IRQ_DOMAIN
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 GENERIC_NET_UTILS
 	[arch] all
 	[plat] all
@@ -2964,10 +2965,10 @@ GENERIC_PCI_IOMAP
 GENERIC_PHY
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 GENERIC_PINCONF
 	[arch] all
 	[plat] all
@@ -2978,10 +2979,10 @@ GENERIC_PINCONF
 GENERIC_PINMUX_FUNCTIONS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 GENERIC_SCHED_CLOCK
 	[arch] all
 	[plat] all
@@ -3019,7 +3020,7 @@ GENERIC_TIME_VSYSCALL
 	[function] select by others.
 GENERIC_TRACER
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] menu
 	[subsys] core
 	[must] debug
@@ -3027,10 +3028,10 @@ GENERIC_TRACER
 GLOB
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 GPIOLIB
 	[arch] all
 	[plat] all
@@ -3041,31 +3042,31 @@ GPIOLIB
 GPIOLIB_IRQCHIP
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 GPIO_EIC_SPRD
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 GPIO_PLUS_SPRD
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 GPIO_PMIC_EIC_SPRD
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 GPIO_SPRD
 	[arch] all
 	[plat] roc1
@@ -3082,18 +3083,18 @@ GPIO_SYSFS
 	[function] Generic gpio sysfs support
 GREENASIA_FF
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 GRO_CELLS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 HANDLE_DOMAIN_IRQ
 	[arch] all
 	[plat] all
@@ -3111,10 +3112,10 @@ HARDENED_USERCOPY
 HARDEN_BRANCH_PREDICTOR
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 HARDIRQS_SW_RESEND
 	[arch] all
 	[plat] all
@@ -3135,14 +3136,7 @@ HAS_IOMEM
 	[field] make,code
 	[subsys] busybox_console
 	[must] Provide a facility for active usages of device memory to block pmem device unbind.
-	[function] 
-HAS_IOPORT_MAP
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[function]
 HAVE_ALIGNED_STRUCT_PAGE
 	[arch] all
 	[plat] all
@@ -3245,10 +3239,10 @@ HAVE_ARCH_TRANSPARENT_HUGEPAGE
 HAVE_ARCH_VMAP_STACK
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 HAVE_ARM_SMCCC
 	[arch] all
 	[plat] all
@@ -3383,10 +3377,10 @@ HAVE_FUNCTION_TRACER
 HAVE_GCC_PLUGINS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 HAVE_GENERIC_DMA_COHERENT
 	[arch] all
 	[plat] all
@@ -3397,10 +3391,10 @@ HAVE_GENERIC_DMA_COHERENT
 HAVE_GENERIC_GUP
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 HAVE_HARDENED_USERCOPY_ALLOCATOR
 	[arch] all
 	[plat] all
@@ -3554,88 +3548,88 @@ HIDRAW
 	[function] raw hid device support
 HID_A4TECH
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_ACRUX
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_ACRUX_FF
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_APPLE
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_BELKIN
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_CHERRY
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_CHICONY
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_CYPRESS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_DRAGONRISE
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_ELECOM
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_EMS_FF
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_EZKEY
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_GENERIC
 	[arch] all
 	[plat] all
@@ -3645,270 +3639,270 @@ HID_GENERIC
 	[function] Generic HID driver
 HID_GREENASIA
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_GYRATION
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_HOLTEK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_KENSINGTON
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_KEYTOUCH
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_KYE
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_LCPOWER
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_LOGITECH
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_LOGITECH_DJ
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_LOGITECH_HIDPP
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_MAGICMOUSE
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_MICROSOFT
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_MONTEREY
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_MULTITOUCH
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_NTRIG
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_ORTEK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_PANTHERLORD
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_PETALYNX
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_PICOLCD
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_PRIMAX
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_PRODIKEYS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_ROCCAT
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_SAITEK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_SAMSUNG
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_SMARTJOYPLUS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_SONY
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_SPEEDLINK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_SUNPLUS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_THRUSTMASTER
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_TIVO
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_TOPSEED
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_TWINHAN
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_UCLOGIC
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_WACOM
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_WALTOP
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_WIIMOTE
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_ZEROPLUS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HID_ZYDACRON
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HIGH_RES_TIMERS
 	[arch] all
 	[plat] all
@@ -3918,11 +3912,18 @@ HIGH_RES_TIMERS
 	[function] vts require, High Resolution Timer Support.
 HISILICON_ERRATUM_161010101
 	[arch] all
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
+HOLES_IN_ZONE
+	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 HOTPLUG_CPU
 	[arch] all
 	[plat] all
@@ -3933,10 +3934,10 @@ HOTPLUG_CPU
 HVC_DRIVER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 HWSPINLOCK
 	[arch] all
 	[plat] all
@@ -3953,11 +3954,11 @@ HWSPINLOCK_SPRD
 	[function] support the Spreadtrum Hardware Spinlock device.
 HW_CONSOLE
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 HW_PERF_EVENTS
 	[arch] all
 	[plat] all
@@ -4144,10 +4145,10 @@ INET_ESP
 INET_RAW_DIAG
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 INET_TCP_DIAG
 	[arch] all
 	[plat] all
@@ -4223,10 +4224,10 @@ INPUT_EVDEV
 INPUT_FF_MEMLESS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 INPUT_GPIO
 	[arch] all
 	[plat] all
@@ -4293,10 +4294,10 @@ INPUT_MOUSEDEV
 INPUT_MOUSEDEV_PSAUX
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 INPUT_MOUSEDEV_SCREEN_X
 	[arch] all
 	[plat] all
@@ -4314,17 +4315,17 @@ INPUT_MOUSEDEV_SCREEN_Y
 INPUT_SC27XX_VIBRA
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 INPUT_TABLET
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 INPUT_TOUCHSCREEN
 	[arch] all
 	[plat] all
@@ -4370,10 +4371,10 @@ ION
 ION_CARVEOUT_HEAP
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 ION_SPRD
 	[arch] all
 	[plat] all
@@ -4384,10 +4385,10 @@ ION_SPRD
 ION_SYSTEM_HEAP
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 IOSCHED_CFQ
 	[arch] all
 	[plat] all
@@ -4686,7 +4687,7 @@ IRQCHIP
 	[function] Support chip irq.
 IRQSOFF_TRACER
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code
 	[subsys] core
 	[must] debug
@@ -4718,7 +4719,7 @@ IRQ_FORCED_THREADING
 	[field] code
 	[subsys] interrupt
 	[must] console
-	[function] 
+	[function]
 IRQ_WORK
 	[arch] all
 	[plat] all
@@ -4729,66 +4730,66 @@ IRQ_WORK
 IR_JVC_DECODER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 IR_MCE_KBD_DECODER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 IR_NEC_DECODER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 IR_RC5_DECODER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 IR_RC6_DECODER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 IR_SANYO_DECODER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 IR_SHARP_DECODER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 IR_SONY_DECODER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 IR_XMP_DECODER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 JBD2
 	[arch] all
 	[plat] all
@@ -4801,24 +4802,24 @@ JBD2
 JOYSTICK_XPAD
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 JOYSTICK_XPAD_FF
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 JOYSTICK_XPAD_LEDS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 JUMP_LABEL
 	[arch] all
 	[plat] all
@@ -4843,10 +4844,10 @@ KALLSYMS_ALL
 KALLSYMS_BASE_RELATIVE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 KERNEL_MODE_NEON
 	[arch] all
 	[plat] all
@@ -4896,27 +4897,13 @@ LEDS_CLASS
 	[subsys] leds
 	[must] user
 	[function] LED Class Support
-LEDS_SC27XX_BLTC
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 LEDS_TRIGGERS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] menu
 	[subsys] leds
 	[must] unknown
 	[function] LED Trigger support
-LEDS_TRIGGER_PATTERN
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 LIBCRC32C
 	[arch] all
 	[plat] all
@@ -4940,11 +4927,11 @@ LOCALVERSION
 	[function] Local version - append to kernel release. Set to "".
 LOCALVERSION_AUTO
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 LOCKDEP_SUPPORT
 	[arch] all
 	[plat] all
@@ -4962,25 +4949,25 @@ LOCK_SPIN_ON_OWNER
 		lock implementations.
 LOGIG940_FF
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 LOGIRUMBLEPAD2_FF
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 LOGITECH_FF
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 LOG_BUF_SHIFT
 	[arch] all
 	[plat] all
@@ -5005,13 +4992,13 @@ LSM_MMAP_MIN_ADDR
 LTO_NONE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 LZ4_DECOMPRESS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make,code
 	[subsys] lib
 	[must] busybox_console
@@ -5054,24 +5041,24 @@ MAGIC_SYSRQ_DEFAULT_ENABLE
 MAGIC_SYSRQ_SERIAL
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 MANDATORY_FILE_LOCKING
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 MAY_USE_DEVLINK
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 MD
 	[arch] all
 	[plat] all
@@ -5084,10 +5071,10 @@ MD
 MEDIA_SUPPORT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 MEMBARRIER
 	[arch] all
 	[plat] all
@@ -5142,31 +5129,17 @@ MFD_CORE
 MFD_SC2703
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 MFD_SC27XX_PMIC
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-CHARGER_SC2703
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] power
-	[must] user
-	[function] This function is used to enable charg
-FUEL_GAUGE_SC27XX
-	[arch] all
-	[plat] all
-	[field] make
-	[subsys] power
-	[must] user
-	[function] This function is used to enable fuel gauge
+	[field]
+	[subsys]
+	[must]
+	[function]
 MFD_SYSCON
 	[arch] all
 	[plat] all
@@ -5266,17 +5239,17 @@ MODVERSIONS
 MQ_IOSCHED_DEADLINE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 MQ_IOSCHED_KYBER
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 MSDOS_FS
 	[arch] all
 	[plat] all
@@ -5693,11 +5666,11 @@ NETFILTER_XT_TARGET_TRACE
 		  those traverse the tables, chains, rules. 2. vts require
 NETWORK_FILESYSTEMS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 NETWORK_SECMARK
 	[arch] all
 	[plat] all
@@ -5708,10 +5681,10 @@ NETWORK_SECMARK
 NET_CADENCE
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_CLS
 	[arch] all
 	[plat] all
@@ -5807,11 +5780,11 @@ NET_KEY
 		They are required if you are going to use IPsec tools ported from KAME.
 NET_NS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_RX_BUSY_POLL
 	[arch] all
 	[plat] all
@@ -5851,206 +5824,206 @@ NET_SCH_HTB
 NET_VENDOR_8390
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_ALACRITECH
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_AMAZON
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_AMD
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_AQUANTIA
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_ARC
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_BROADCOM
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_EZCHIP
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_HISILICON
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_HUAWEI
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_I825XX
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_INTEL
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_MARVELL
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_MELLANOX
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_MICREL
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_MICROCHIP
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_NATSEMI
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_NETRONOME
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_QUALCOMM
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_RENESAS
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_ROCKER
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_SAMSUNG
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_SEEQ
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_SMSC
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_SOLARFLARE
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_STMICRO
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_SYNOPSYS
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_VIA
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NET_VENDOR_WIZNET
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NEW_LEDS
 	[arch] all
 	[plat] all
@@ -6385,10 +6358,10 @@ NF_REJECT_IPV6
 NL80211_TESTMODE
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 NLATTR
 	[arch] all
 	[plat] all
@@ -6479,7 +6452,7 @@ NO_HZ_IDLE
 	[function] Idle dynticks system (tickless idle).
 NO_IOPORT_MAP
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -6494,10 +6467,10 @@ NR_CPUS
 NVMEM
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 OF
 	[arch] all
 	[plat] all
@@ -6512,13 +6485,6 @@ OF_ADDRESS
 	[subsys] of
 	[must] console
 	[function] Support OF set address.
-OF_ADDRESS_PCI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 OF_EARLY_FLATTREE
 	[arch] all
 	[plat] all
@@ -6554,20 +6520,6 @@ OF_NET
 	[subsys] of
 	[must] console
 	[function] Support OpenFirmware net.
-OF_PCI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-OF_PCI_IRQ
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 OF_RESERVED_MEM
 	[arch] all
 	[plat] all
@@ -6619,74 +6571,25 @@ PANIC_TIMEOUT
 	[function] Machine restart if kernel panic.
 PANTHERLORD_FF
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 PARTITION_PERCPU
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-PCI
+	[field]
+	[subsys]
+	[must]
+	[function]
+PELT_UTIL_HALFLIFE_32
 	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-PCI_BUS_ADDR_T_64BIT
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-PCI_DOMAINS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-PCI_DOMAINS_GENERIC
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-PCI_MSI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-PCI_MSI_IRQ_DOMAIN
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-PCI_QUIRKS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-PCI_SYSCALL
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
 PERF_EVENTS
 	[arch] all
 	[plat] all
@@ -6711,17 +6614,17 @@ PHYS_ADDR_T_64BIT
 PHY_XGENE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 PID_NS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 PINCONF
 	[arch] all
 	[plat] all
@@ -6746,10 +6649,10 @@ PINCTRL_SPRD
 PINCTRL_SPRD_SHARKL5
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 PINMUX
 	[arch] all
 	[plat] all
@@ -6795,24 +6698,24 @@ PM_DEVFREQ
 PM_GENERIC_DOMAINS
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 PM_GENERIC_DOMAINS_OF
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 PM_GENERIC_DOMAINS_SLEEP
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 PM_OPP
 	[arch] all
 	[plat] all
@@ -6865,10 +6768,10 @@ PM_WAKELOCKS_LIMIT
 POSIX_TIMERS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 POWER_RESET
 	[arch] all
 	[plat] all
@@ -6963,10 +6866,10 @@ PRINTK_CPUID
 PRINTK_SAFE_LOG_BUF_SHIFT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 PRINTK_TIME
 	[arch] all
 	[plat] all
@@ -6977,17 +6880,17 @@ PRINTK_TIME
 PRINT_QUOTA_WARNING
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 PROBE_EVENTS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 PROC_FS
 	[arch] all
 	[plat] all
@@ -7042,10 +6945,10 @@ PWM
 PWM_SPRD
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 PWM_SYSFS
 	[arch] all
 	[plat] all
@@ -7055,32 +6958,32 @@ PWM_SYSFS
 	[function] Create pwm sysfs file for userspace.
 QCOM_FALKOR_ERRATUM_1003
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 QCOM_FALKOR_ERRATUM_1009
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 QCOM_FALKOR_ERRATUM_E1041
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 QCOM_QDF2400_ERRATUM_0065
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 QFMT_V2
 	[arch] all
 	[plat] all
@@ -7142,10 +7045,10 @@ RCU_CPU_STALL_TIMEOUT
 RCU_NEED_SEGCBLIST
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 RCU_STALL_COMMON
 	[arch] all
 	[plat] all
@@ -7157,24 +7060,24 @@ RCU_STALL_COMMON
 RC_CORE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 RC_DECODERS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 RC_MAP
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 RD_BZIP2
 	[arch] all
 	[plat] all
@@ -7191,11 +7094,11 @@ RD_GZIP
 	[function] CtsLiblogTestCases testcase needed, Support initial ramdisks compressed using gzip.
 RD_LZ4
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 RD_LZMA
 	[arch] all
 	[plat] all
@@ -7205,18 +7108,18 @@ RD_LZMA
 	[function] Support initial ramdisks compressed using LZMA.
 RD_LZO
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 RD_XZ
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 REED_SOLOMON
 	[arch] all
 	[plat] all
@@ -7268,21 +7171,21 @@ REGMAP_SPI
 	[function] Support spi regmap.
 REGULATOR
 	[arch] all
-	[plat] all
+	[plat] sharkl5
 	[field] menu,make
 	[subsys] regulator
 	[must] user
 	[function] Support regulator core.
 REGULATOR_SC2703
 	[arch] all
-	[plat] all
+	[plat] sharkl5
 	[field] menu,code
 	[subsys] regulator
 	[must] user
 	[function] SUPPORT SC2703 regulator function.
 REGULATOR_SC2730
 	[arch] all
-	[plat] all
+	[plat] sharkl5
 	[field] menu,code
 	[subsys] regulator
 	[must] user
@@ -7361,10 +7264,10 @@ RTC_CLASS
 RTC_DRV_SC27XX
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 RTC_HCTOSYS
 	[arch] all
 	[plat] all
@@ -7382,10 +7285,10 @@ RTC_HCTOSYS_DEVICE
 RTC_I2C_AND_SPI
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 RTC_INTF_DEV
 	[arch] all
 	[plat] all
@@ -7417,10 +7320,10 @@ RTC_LIB
 RTC_NVMEM
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 RTC_SYSTOHC
 	[arch] all
 	[plat] all
@@ -7466,10 +7369,10 @@ RWSEM_XCHGADD_ALGORITHM
 SBITMAP
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SC2355
 	[arch] all
 	[plat] all
@@ -7488,17 +7391,17 @@ SC23XX
 SC27XX_ADC
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SC27XX_EFUSE
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SCHEDSTATS
 	[arch] all
 	[plat] all
@@ -7509,10 +7412,10 @@ SCHEDSTATS
 SCHED_AUTOGROUP
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SCHED_DEBUG
 	[arch] all
 	[plat] all
@@ -7543,7 +7446,7 @@ SCHED_MC
 	[function] Multi-core scheduler support
 SCHED_TRACER
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -7572,10 +7475,10 @@ SCSI_MOD
 SDIOHAL
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SECCOMP
 	[arch] all
 	[plat] all
@@ -7611,10 +7514,10 @@ SECURITY
 SECURITYFS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SECURITY_NETWORK
 	[arch] all
 	[plat] all
@@ -7724,10 +7627,10 @@ SETEND_EMULATION
 SG_POOL
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SHMEM
 	[arch] all
 	[plat] all
@@ -7754,10 +7657,10 @@ SLABINFO
 SLAB_MERGE_DEFAULT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SLHC
 	[arch] all
 	[plat] all
@@ -7805,11 +7708,11 @@ SLUB_STATS
 		  behavior
 SMARTJOYPLUS_FF
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 SMP
 	[arch] all
 	[plat] all
@@ -7856,17 +7759,10 @@ SND_JACK
 SND_JACK_INPUT_DEV
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-SND_PCI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SND_PCM
 	[arch] all
 	[plat] all
@@ -7947,10 +7843,10 @@ SND_VERBOSE_PROCFS
 SOCK_CGROUP_DATA
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SOUND
 	[arch] all
 	[plat] all
@@ -8047,10 +7943,10 @@ SPLIT_PTLOCK_CPUS
 SPRD_COMMON_CLK
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SPRD_CPROC
 	[arch] all
 	[plat] all
@@ -8072,27 +7968,27 @@ SPRD_DMA
 	[subsys] dma
 	[must] none
 	[function] Support Spreadtrum DMA.
-SPRD_DMC_MPU_CORE
-	[arch] all
-	[plat] sharkl5, sharkl3
-	[field] make
-	[subsys] debug
-	[must] debug
-	[function] Enable MPU core function
 SPRD_DMC_MPU
 	[arch] all
-	[plat] sharkl5, sharkl3
+	[plat] sharkl5
 	[field] make
 	[subsys] debug
 	[must] debug
 	[function] Enable MPU R4P0 debug function
+SPRD_DMC_MPU_CORE
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Enable MPU core function
 SPRD_EFUSE
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SPRD_IOMMU
 	[arch] all
 	[plat] all
@@ -8110,10 +8006,10 @@ SPRD_IQ
 SPRD_LOOK_AT
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SPRD_MAILBOX
 	[arch] all
 	[plat] all
@@ -8144,53 +8040,53 @@ SPRD_MM_PW_DOMAIN_R6P0
 	[function] This function is used to enable mm power domain.
 SPRD_ROC1_CLK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 SPRD_ROC1_USB2_PHY
 	[arch] all
 	[plat] roc1
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SPRD_SC9832E_CLK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 SPRD_SC9860_CLK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 SPRD_SC9863A_CLK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-SPRD_SHARKL5_USB2_PHY
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
+SPRD_SHARKL5_CLK
 	[arch] all
 	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
+SPRD_SHARKL5_USB2_PHY
+	[arch] all
+	[plat] sharkl5
 	[field] code
 	[subsys] usb
 	[must] user
 	[function] usb phy init
-SPRD_SHARKL5_CLK
-	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 SPRD_SIPC
 	[arch] all
 	[plat] all
@@ -8226,6 +8122,13 @@ SPRD_SIPC_ZERO_COPY_SIPX
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sipx function between modem and AP.
+SPRD_THERMAL
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] thermal
+	[must] user
+	[function] This function is used to config thermal moudle.
 SRCU
 	[arch] all
 	[plat] all
@@ -8256,7 +8159,7 @@ STACKTRACE_SUPPORT
 	[function] Keep stack trace of persistent data block lock holders.
 STACK_TRACER
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code,make
 	[subsys] core
 	[must] debug
@@ -8278,17 +8181,17 @@ STANDALONE
 STRICT_KERNEL_RWX
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 STRICT_MODULE_RWX
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SUSPEND
 	[arch] all
 	[plat] all
@@ -8327,10 +8230,10 @@ SWP_EMULATION
 SYNC_FILE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 SYSCTL
 	[arch] all
 	[plat] all
@@ -8377,38 +8280,38 @@ SYS_SUPPORTS_HUGETLBFS
 TABLET_USB_ACECAD
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 TABLET_USB_AIPTEK
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 TABLET_USB_GTCO
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 TABLET_USB_HANWANG
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 TABLET_USB_KBTAB
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 TASKSTATS
 	[arch] all
 	[plat] all
@@ -8419,10 +8322,10 @@ TASKSTATS
 TASKS_RCU
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 TASK_IO_ACCOUNTING
 	[arch] all
 	[plat] all
@@ -8489,10 +8392,10 @@ THERMAL_DEFAULT_GOV_POWER_ALLOCATOR
 THERMAL_EMERGENCY_POWEROFF_DELAY_MS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 THERMAL_GOV_POWER_ALLOCATOR
 	[arch] all
 	[plat] all
@@ -8514,21 +8417,6 @@ THERMAL_OF
 	[subsys] thermal
 	[must] user
 	[function] kernel thermal core framework
-SPRD_THERMAL
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] thermal
-	[must] user
-	[function] This function is used to config thermal moudle.
-GENERIC_ADC_THERMAL
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] thermal
-	[must] user
-	[function] This function is used to config thermal moudle to get
-		   adc sensor temperature.
 THERMAL_WRITABLE_TRIPS
 	[arch] all
 	[plat] all
@@ -8539,10 +8427,10 @@ THERMAL_WRITABLE_TRIPS
 THIN_ARCHIVES
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 THREAD_INFO_IN_TASK
 	[arch] all
 	[plat] all
@@ -8577,17 +8465,17 @@ TIMERFD
 TIMER_OF
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 TIMER_PROBE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 TMPFS
 	[arch] all
 	[plat] all
@@ -8638,6 +8526,13 @@ TRACEPOINTS
 	[subsys] core
 	[must] debug
 	[function] Place an empty function call at each tracepoint site.
+TRACEPOINT_BENCHMARK
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 TRACER_MAX_TRACE
 	[arch] all
 	[plat] all
@@ -8666,9 +8561,16 @@ TRACE_CLOCK
 	[subsys] core
 	[must] debug
 	[function] Report clock of trace.
+TRACE_EVAL_MAP_FILE
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 TRACE_IRQFLAGS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code
 	[subsys] core
 	[must] debug
@@ -8704,10 +8606,10 @@ TRACING_SUPPORT
 TREE_SRCU
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 TTY
 	[arch] all
 	[plat] all
@@ -8725,17 +8627,17 @@ TUN
 TYPEC
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 TYPEC_UCSI
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 UEVENT_HELPER
 	[arch] all
 	[plat] all
@@ -8802,17 +8704,17 @@ UNMAP_KERNEL_AT_EL0
 UPROBES
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 UPROBE_EVENTS
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 USB
 	[arch] all
 	[plat] all
@@ -8900,24 +8802,24 @@ USB_CONFIGFS_F_MIDI
 USB_CONFIGFS_F_MTP
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 USB_CONFIGFS_F_PTP
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 USB_CONFIGFS_F_VSERIAL
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 USB_CONFIGFS_MASS_STORAGE
 	[arch] all
 	[plat] all
@@ -8932,6 +8834,13 @@ USB_CONFIGFS_OBEX
 	[subsys] usb
 	[must] unknown
 	[function] This macro is to support Object Exchange Model (CDC OBEX).
+USB_CONFIGFS_RNDIS
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] usb
+	[must] user
+	[function] This macro is to support RNDIS
 USB_CONFIGFS_SERIAL
 	[arch] all
 	[plat] all
@@ -8946,27 +8855,6 @@ USB_CONFIGFS_UEVENT
 	[subsys] usb
 	[must] user
 	[function] Uevent notification of Gadget state.
-USB_CONFIGFS_RNDIS
-	[arch] all
-	[plat] all
-	[field] code
-	[subsys] usb
-	[must] user
-	[function] This macro is to support RNDIS
-USB_F_RNDIS
-	[arch] all
-	[plat] all
-	[field] code
-	[subsys] usb
-	[must] user
-	[function] RNDIS function
-USB_U_ETHER
-	[arch] all
-	[plat] all
-	[field] code
-	[subsys] usb
-	[must] user
-	[function] RNDIS function
 USB_DEFAULT_PERSIST
 	[arch] all
 	[plat] all
@@ -8988,13 +8876,6 @@ USB_EHCI_HCD_PLATFORM
 	[subsys] usb
 	[must] user
 	[function] This macro is to support Generic EHCI driver for a platform device.
-USB_EHCI_PCI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 USB_EHCI_TT_NEWSCHED
 	[arch] all
 	[plat] all
@@ -9054,10 +8935,10 @@ USB_F_MIDI
 USB_F_MTP
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 USB_F_OBEX
 	[arch] all
 	[plat] all
@@ -9068,10 +8949,17 @@ USB_F_OBEX
 USB_F_PTP
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
+USB_F_RNDIS
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] usb
+	[must] user
+	[function] RNDIS function
 USB_F_SERIAL
 	[arch] all
 	[plat] all
@@ -9082,10 +8970,10 @@ USB_F_SERIAL
 USB_F_VSERIAL
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 USB_GADGET
 	[arch] all
 	[plat] all
@@ -9137,7 +9025,7 @@ USB_LIBCOMPOSITE
 	[function] composite based drivers
 USB_MON
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] config
 	[subsys] usb
 	[must] user
@@ -9165,11 +9053,11 @@ USB_MUSB_SPRD
 	[function] This macro is to suppor SPRD platforms musb driver.
 USB_NET_DRIVERS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 USB_OHCI_HCD
 	[arch] all
 	[plat] all
@@ -9177,13 +9065,6 @@ USB_OHCI_HCD
 	[subsys] usb
 	[must] user
 	[function] This macro is to support OHCI HCD (USB 1.1).
-USB_OHCI_HCD_PCI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 USB_OHCI_HCD_PLATFORM
 	[arch] all
 	[plat] all
@@ -9205,13 +9086,6 @@ USB_OTG_WAKELOCK
 	[subsys] usb
 	[must] user
 	[function] This macro is to hold a wakelock when USB connected.
-USB_PCI
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 USB_PHY
 	[arch] all
 	[plat] all
@@ -9222,10 +9096,10 @@ USB_PHY
 USB_SC27XX_TYPEC
 	[arch] all
 	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 USB_SERIAL
 	[arch] all
 	[plat] all
@@ -9261,6 +9135,13 @@ USB_SUPPORT
 	[subsys] usb
 	[must] user
 	[function] This option adds core support for Universal Serial Bus (USB).
+USB_U_ETHER
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] usb
+	[must] user
+	[function] RNDIS function
 USB_U_SERIAL
 	[arch] all
 	[plat] all
@@ -9276,20 +9157,6 @@ VFAT_FS
 	[must] user
 	[function] This option provides support for normal Windows file
 		   systems with long filenames.
-VGA_ARB
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
-VGA_ARB_MAX_GPUS
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 VIDEOMODE_HELPERS
 	[arch] all
 	[plat] all
@@ -9310,10 +9177,10 @@ VIRTIO
 VIRTIO_CONSOLE
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 VIRTIO_MMIO
 	[arch] all
 	[plat] all
@@ -9325,10 +9192,10 @@ VIRTIO_MMIO
 VMAP_STACK
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 VM_EVENT_COUNTERS
 	[arch] all
 	[plat] all
@@ -9338,11 +9205,11 @@ VM_EVENT_COUNTERS
 	[function] Enable VM event counters for /proc/vmstat.
 VT
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WATCHDOG
 	[arch] all
 	[plat] all
@@ -9353,10 +9220,10 @@ WATCHDOG
 WATCHDOG_HANDLE_BOOT_ENABLED
 	[arch] all
 	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[field]
+	[subsys]
+	[must]
+	[function]
 WCN_BOOT
 	[arch] all
 	[plat] all
@@ -9364,13 +9231,6 @@ WCN_BOOT
 	[subsys] wcn
 	[must] user
 	[function] wcn boot up for 2355 chip.
-WCN_PCIE
-	[arch] all
-	[plat] sharkl5
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
 WCN_SLP
 	[arch] all
 	[plat] all
@@ -9403,116 +9263,116 @@ WLAN
 		on them refer to the wireless wiki:
 WLAN_VENDOR_ADMTEK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_ATH
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_ATMEL
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_BROADCOM
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_CISCO
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_INTEL
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_INTERSIL
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_MARVELL
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_MEDIATEK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_QUANTENNA
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_RALINK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_REALTEK
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_RSI
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_ST
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_TI
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 WLAN_VENDOR_ZYDAS
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 XFRM
 	[arch] all
 	[plat] all
@@ -9553,60 +9413,60 @@ XPS
 		/sys/class/net/<dev>/queues/tx-<n>/xps_cpus
 XZ_DEC
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 XZ_DEC_ARM
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 XZ_DEC_ARMTHUMB
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 XZ_DEC_BCJ
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 XZ_DEC_IA64
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 XZ_DEC_POWERPC
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 XZ_DEC_SPARC
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 XZ_DEC_X86
 	[arch] all
-	[plat] all
-	[field] 
-	[subsys] 
-	[must] 
-	[function] 
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 ZBUD
 	[arch] all
 	[plat] all
