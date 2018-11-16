@@ -40,7 +40,7 @@
 };
 
 
-&i2c3 {
+&i2c2 {
 	status = "okay";
 
 	adaptive-touchscreen@38 {
