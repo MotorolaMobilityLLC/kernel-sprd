@@ -5,6 +5,7 @@
  * Copyright (C) 2018, Spreadtrum Communications Inc.
  */
 
+#include <dt-bindings/clock/sprd,sharkl5-clk.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include "sharkl5.dtsi"
 #include "ums510-modem.dtsi"
