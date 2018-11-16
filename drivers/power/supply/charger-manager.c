@@ -2418,12 +2418,11 @@ static int charger_extcon_init(struct charger_manager *cm,
 	 * cable (e.g., TA, USB, MHL, Dock).
 	 */
 	cable->nb.notifier_call = charger_extcon_notifier;
-	ret = extcon_register_interest(&cable->extcon_dev,
-			cable->extcon_name, cable->name, &cable->nb);
-	if (ret < 0) {
-		pr_info("Cannot register extcon_dev for %s(cable: %s)\n",
-			cable->extcon_name, cable->name);
-	}
+	ret = devm_extcon_register_notifier(cm->dev, cable->extcon_dev,
+					    EXTCON_USB, &cable->nb);
+	if (ret < 0)
+		dev_err(cm->dev, "Cannot register extcon_dev for (cable: %s)\n",
+			cable->name);
 
 	return ret;
 }
@@ -3102,6 +3101,97 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 	}
 }
 
+static int charger_extcon_data_init(struct charger_cable *cables,
+				    const struct device_node *_child)
+{
+	if (of_property_read_bool(_child, "extcon")) {
+		struct device_node *extcon_np;
+
+		extcon_np = of_parse_phandle(_child, "extcon", 0);
+		if (!extcon_np)
+			return -ENODEV;
+
+		cables->extcon_dev = extcon_find_edev_by_node(extcon_np);
+		of_node_put(extcon_np);
+		if (IS_ERR(cables->extcon_dev))
+			return -ENODEV;
+
+	}
+
+	return 0;
+}
+
+static int charger_regualtors_data_init(struct charger_desc *desc, struct device *dev)
+{
+	struct device_node *np = dev->of_node;
+	int ret;
+
+	desc->num_charger_regulators = of_get_child_count(np);
+	if (desc->num_charger_regulators) {
+		struct charger_regulator *chg_regs;
+		struct device_node *child;
+
+		chg_regs = devm_kcalloc(dev,
+					desc->num_charger_regulators,
+					sizeof(*chg_regs),
+					GFP_KERNEL);
+		if (!chg_regs)
+			return -ENOMEM;
+
+		desc->charger_regulators = chg_regs;
+
+		desc->sysfs_groups = devm_kcalloc(dev,
+					desc->num_charger_regulators + 1,
+					sizeof(*desc->sysfs_groups),
+					GFP_KERNEL);
+		if (!desc->sysfs_groups)
+			return -ENOMEM;
+
+		for_each_child_of_node(np, child) {
+			struct charger_cable *cables;
+			struct device_node *_child;
+
+			of_property_read_string(child, "cm-regulator-name",
+					&chg_regs->regulator_name);
+
+			/* charger cables */
+			chg_regs->num_cables = of_get_child_count(child);
+			if (chg_regs->num_cables) {
+				cables = devm_kcalloc(dev,
+						      chg_regs->num_cables,
+						      sizeof(*cables),
+						      GFP_KERNEL);
+				if (!cables) {
+					of_node_put(child);
+					return -ENOMEM;
+				}
+
+				chg_regs->cables = cables;
+
+				for_each_child_of_node(child, _child) {
+					of_property_read_string(_child,
+					"cm-cable-name", &cables->name);
+					of_property_read_u32(_child,
+					"cm-cable-min",
+					&cables->min_uA);
+					of_property_read_u32(_child,
+					"cm-cable-max",
+					&cables->max_uA);
+
+					ret = charger_extcon_data_init(cables, _child);
+					if (ret)
+						return ret;
+
+					cables++;
+				}
+			}
+			chg_regs++;
+		}
+	}
+
+	return 0;
+}
+
 static struct charger_desc *of_cm_parse_desc(struct device *dev)
 {
 	struct charger_desc *desc;
@@ -3204,66 +3294,10 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 		return ERR_PTR(ret);
 
 	/* battery charger regualtors */
-	desc->num_charger_regulators = of_get_child_count(np);
-	if (desc->num_charger_regulators) {
-		struct charger_regulator *chg_regs;
-		struct device_node *child;
+	ret = charger_regualtors_data_init(desc, dev);
+	if (ret)
+		return ERR_PTR(ret);
 
-		chg_regs = devm_kcalloc(dev,
-					desc->num_charger_regulators,
-					sizeof(*chg_regs),
-					GFP_KERNEL);
-		if (!chg_regs)
-			return ERR_PTR(-ENOMEM);
-
-		desc->charger_regulators = chg_regs;
-
-		desc->sysfs_groups = devm_kcalloc(dev,
-					desc->num_charger_regulators + 1,
-					sizeof(*desc->sysfs_groups),
-					GFP_KERNEL);
-		if (!desc->sysfs_groups)
-			return ERR_PTR(-ENOMEM);
-
-		for_each_child_of_node(np, child) {
-			struct charger_cable *cables;
-			struct device_node *_child;
-
-			of_property_read_string(child, "cm-regulator-name",
-					&chg_regs->regulator_name);
-
-			/* charger cables */
-			chg_regs->num_cables = of_get_child_count(child);
-			if (chg_regs->num_cables) {
-				cables = devm_kcalloc(dev,
-						      chg_regs->num_cables,
-						      sizeof(*cables),
-						      GFP_KERNEL);
-				if (!cables) {
-					of_node_put(child);
-					return ERR_PTR(-ENOMEM);
-				}
-
-				chg_regs->cables = cables;
-
-				for_each_child_of_node(child, _child) {
-					of_property_read_string(_child,
-					"cm-cable-name", &cables->name);
-					of_property_read_string(_child,
-					"cm-cable-extcon",
-					&cables->extcon_name);
-					of_property_read_u32(_child,
-					"cm-cable-min",
-					&cables->min_uA);
-					of_property_read_u32(_child,
-					"cm-cable-max",
-					&cables->max_uA);
-					cables++;
-				}
-			}
-			chg_regs++;
-		}
-	}
 	return desc;
 }
 
@@ -3551,7 +3585,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 	struct charger_desc *desc = cm_get_drv_data(pdev);
 	struct charger_manager *cm;
 	int ret, i = 0;
-	int j = 0;
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
 	struct power_supply_config psy_cfg = {};
@@ -3794,19 +3827,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 	return 0;
 
 err_reg_extcon:
-	for (i = 0; i < desc->num_charger_regulators; i++) {
-		struct charger_regulator *charger;
-
-		charger = &desc->charger_regulators[i];
-		for (j = 0; j < charger->num_cables; j++) {
-			struct charger_cable *cable = &charger->cables[j];
-			/* Remove notifier block if only edev exists */
-			if (cable->extcon_dev.edev)
-				extcon_unregister_interest(&cable->extcon_dev);
-		}
-
+	for (i = 0; i < desc->num_charger_regulators; i++)
 		regulator_put(desc->charger_regulators[i].consumer);
-	}
 
 	power_supply_unregister(cm->charger_psy);
 
@@ -3818,7 +3840,6 @@ static int charger_manager_remove(struct platform_device *pdev)
 	struct charger_manager *cm = platform_get_drvdata(pdev);
 	struct charger_desc *desc = cm->desc;
 	int i = 0;
-	int j = 0;
 
 	/* Remove from the list */
 	mutex_lock(&cm_list_mtx);
@@ -3830,15 +3851,6 @@ static int charger_manager_remove(struct platform_device *pdev)
 	cancel_delayed_work_sync(&cm->cap_update_work);
 	if (cm->track.cap_tracking)
 		cancel_delayed_work_sync(&cm->track.track_capacity_work);
-
-	for (i = 0 ; i < desc->num_charger_regulators ; i++) {
-		struct charger_regulator *charger
-				= &desc->charger_regulators[i];
-		for (j = 0 ; j < charger->num_cables ; j++) {
-			struct charger_cable *cable = &charger->cables[j];
-			extcon_unregister_interest(&cable->extcon_dev);
-		}
-	}
 
 	for (i = 0 ; i < desc->num_charger_regulators ; i++)
 		regulator_put(desc->charger_regulators[i].consumer);

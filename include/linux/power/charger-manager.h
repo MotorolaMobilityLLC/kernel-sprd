@@ -82,8 +82,7 @@ struct charger_cable {
 	const char *name;
 
 	/* The charger-manager use Extcon framework */
-	struct extcon_specific_cable_nb extcon_dev;
-
+	struct extcon_dev *extcon_dev;
 	struct notifier_block nb;
 
 	/* The state of charger cable */
@@ -95,8 +94,8 @@ struct charger_cable {
 	 * Set min/max current of regulator to protect over-current issue
 	 * according to a kind of charger cable when cable is attached.
 	 */
-	int min_uA;
-	int max_uA;
+	u32 min_uA;
+	u32 max_uA;
 
 	struct charger_manager *cm;
 };
