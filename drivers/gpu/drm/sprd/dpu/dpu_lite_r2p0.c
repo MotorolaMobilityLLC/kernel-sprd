@@ -123,11 +123,14 @@ struct dpu_reg {
 	u32 reserved_0x03A8_0x03AC[2];
 	u32 dpu_fbc_cfg0;
 	u32 dpu_fbc_cfg1;
-	u32 reserved_0x03B8_0x03EC[14];
+	u32 dpu_fbc_cfg2;
+	u32 reserved_0x03BC_0x03EC[13];
 	u32 rf_ram_addr;
 	u32 rf_ram_rdata_low;
 	u32 rf_ram_rdata_high;
-	u32 reserved_0x03FC_0x07FC[257];
+	u32 reserved_0x03FC;
+	u32 cabc_hist[16];
+	u32 reserved_0x0440_0x07FC[240];
 	u32 mmu_en;
 	u32 mmu_update;
 	u32 mmu_min_vpn;
@@ -174,7 +177,9 @@ struct enhance_module {
 	u32 cm_en: 1;
 	u32 slp_en: 1;
 	u32 gamma_en: 1;
-	u32 blp_en: 1;
+	u32 ltm_en: 1;
+	u32 slp_mask_en: 1;
+	u32 cabc_en: 1;
 };
 
 struct scale_cfg {
@@ -240,6 +245,11 @@ struct slp_cfg {
 	u8 second_bright_factor;
 	u8 first_percent_th;
 	u8 first_max_bright_th;
+	u16 low_clip;
+	u16 high_clip;
+	u16 step_clip;
+	u16 mask_height;
+	u16 dummy;
 };
 
 static struct epf_cfg epf = {
@@ -1046,6 +1056,11 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 				slp->brightness;
 		reg->slp_cfg1 = (slp->first_max_bright_th << 8) |
 				slp->first_percent_th;
+		reg->slp_cfg2 = (slp->step_clip << 24) |
+				(slp->high_clip << 12) |
+				slp->low_clip;
+		reg->slp_cfg3 = (slp->dummy << 12) |
+				slp->mask_height;
 		reg->dpu_enhance_cfg |= BIT(4);
 		pr_info("enhance slp set\n");
 		break;
@@ -1158,6 +1173,15 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		val = reg->slp_cfg1;
 		slp->first_percent_th = val;
 		slp->first_max_bright_th = val >> 8;
+
+		val = reg->slp_cfg2;
+		slp->low_clip = val;
+		slp->high_clip = val >> 12;
+		slp->step_clip = val >> 24;
+
+		val = reg->slp_cfg3;
+		slp->mask_height = val;
+		slp->dummy = val >> 12;
 		pr_info("enhance slp get\n");
 		break;
 	case ENHANCE_CFG_ID_GAMMA:
@@ -1175,6 +1199,14 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		}
 		dpu_run(ctx);
 		pr_info("enhance gamma get\n");
+		break;
+	case ENHANCE_CFG_ID_CABC:
+		p32 = param;
+		for (i = 0; i < 16; i++) {
+			*p32++ = reg->cabc_hist[i];
+			udelay(1);
+		}
+		pr_info("enhance cabc get\n");
 		break;
 	default:
 		break;
