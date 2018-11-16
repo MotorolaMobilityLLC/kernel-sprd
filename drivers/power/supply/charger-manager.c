@@ -348,6 +348,32 @@ static bool is_polling_required(struct charger_manager *cm)
 	return false;
 }
 
+static int try_charger_enable_by_psy(struct charger_manager *cm, bool enable)
+{
+	struct charger_desc *desc = cm->desc;
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, err;
+
+	for (i = 0; desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		val.intval = enable;
+		err = power_supply_set_property(psy, POWER_SUPPLY_PROP_STATUS,
+						&val);
+		power_supply_put(psy);
+		if (err)
+			return err;
+	}
+
+	return 0;
+}
+
 /**
  * try_charger_enable - Enable/Disable chargers altogether
  * @cm: the Charger Manager representing the battery.
@@ -378,6 +404,10 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		cm->charging_start_time = ktime_to_ms(ktime_get());
 		cm->charging_end_time = 0;
 
+		err = try_charger_enable_by_psy(cm, enable);
+		if (!err)
+			goto out;
+
 		for (i = 0 ; i < desc->num_charger_regulators ; i++) {
 			if (desc->charger_regulators[i].externally_control)
 				continue;
@@ -395,6 +425,10 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		 */
 		cm->charging_start_time = 0;
 		cm->charging_end_time = ktime_to_ms(ktime_get());
+
+		err = try_charger_enable_by_psy(cm, enable);
+		if (!err)
+			goto out;
 
 		for (i = 0 ; i < desc->num_charger_regulators ; i++) {
 			if (desc->charger_regulators[i].externally_control)
@@ -422,6 +456,7 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		}
 	}
 
+out:
 	if (!err)
 		cm->charger_enabled = enable;
 
