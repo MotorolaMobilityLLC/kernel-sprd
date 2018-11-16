@@ -1242,12 +1242,11 @@ static int charger_extcon_init(struct charger_manager *cm,
 	 */
 	INIT_WORK(&cable->wq, charger_extcon_work);
 	cable->nb.notifier_call = charger_extcon_notifier;
-	ret = extcon_register_interest(&cable->extcon_dev,
-			cable->extcon_name, cable->name, &cable->nb);
-	if (ret < 0) {
-		pr_info("Cannot register extcon_dev for %s(cable: %s)\n",
-			cable->extcon_name, cable->name);
-	}
+	ret = devm_extcon_register_notifier(cm->dev, cable->extcon_dev,
+					    EXTCON_USB, &cable->nb);
+	if (ret < 0)
+		dev_err(cm->dev, "Cannot register extcon_dev for (cable: %s)\n",
+			cable->name);
 
 	return ret;
 }
@@ -1620,15 +1619,25 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 				for_each_child_of_node(child, _child) {
 					of_property_read_string(_child,
 					"cm-cable-name", &cables->name);
-					of_property_read_string(_child,
-					"cm-cable-extcon",
-					&cables->extcon_name);
 					of_property_read_u32(_child,
 					"cm-cable-min",
 					&cables->min_uA);
 					of_property_read_u32(_child,
 					"cm-cable-max",
 					&cables->max_uA);
+
+					if (of_property_read_bool(_child, "extcon")) {
+						struct device_node *np;
+
+						np = of_parse_phandle(_child, "extcon", 0);
+						if (!np)
+							return ERR_PTR(-ENODEV);
+
+						cables->extcon_dev = extcon_find_edev_by_node(np);
+						of_node_put(np);
+						if (IS_ERR(cables->extcon_dev))
+							return ERR_PTR(PTR_ERR(cables->extcon_dev));
+					}
 					cables++;
 				}
 			}
@@ -1656,7 +1665,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 	struct charger_desc *desc = cm_get_drv_data(pdev);
 	struct charger_manager *cm;
 	int ret, i = 0;
-	int j = 0;
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
 	struct power_supply_config psy_cfg = {};
@@ -1852,19 +1860,8 @@ err_reg_sysfs:
 				&charger->attr_g);
 	}
 err_reg_extcon:
-	for (i = 0; i < desc->num_charger_regulators; i++) {
-		struct charger_regulator *charger;
-
-		charger = &desc->charger_regulators[i];
-		for (j = 0; j < charger->num_cables; j++) {
-			struct charger_cable *cable = &charger->cables[j];
-			/* Remove notifier block if only edev exists */
-			if (cable->extcon_dev.edev)
-				extcon_unregister_interest(&cable->extcon_dev);
-		}
-
+	for (i = 0; i < desc->num_charger_regulators; i++)
 		regulator_put(desc->charger_regulators[i].consumer);
-	}
 
 	power_supply_unregister(cm->charger_psy);
 
@@ -1876,7 +1873,6 @@ static int charger_manager_remove(struct platform_device *pdev)
 	struct charger_manager *cm = platform_get_drvdata(pdev);
 	struct charger_desc *desc = cm->desc;
 	int i = 0;
-	int j = 0;
 
 	/* Remove from the list */
 	mutex_lock(&cm_list_mtx);
@@ -1885,15 +1881,6 @@ static int charger_manager_remove(struct platform_device *pdev)
 
 	cancel_work_sync(&setup_polling);
 	cancel_delayed_work_sync(&cm_monitor_work);
-
-	for (i = 0 ; i < desc->num_charger_regulators ; i++) {
-		struct charger_regulator *charger
-				= &desc->charger_regulators[i];
-		for (j = 0 ; j < charger->num_cables ; j++) {
-			struct charger_cable *cable = &charger->cables[j];
-			extcon_unregister_interest(&cable->extcon_dev);
-		}
-	}
 
 	for (i = 0 ; i < desc->num_charger_regulators ; i++)
 		regulator_put(desc->charger_regulators[i].consumer);

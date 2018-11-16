@@ -11,7 +11,7 @@ Required properties :
 	- cm-regulator-name : name of charger regulator
 	- subnode <cable> :
 		- cm-cable-name : name of charger cable
-		- cm-cable-extcon : name of extcon dev
+		- extcon : phandles to external connector devices
 (optional)	- cm-cable-min : minimum current of cable
 (optional)	- cm-cable-max : maximum current of cable
 
@@ -66,13 +66,13 @@ Example :
 			cm-regulator-name = "chg-reg";
 			cable@0 {
 				cm-cable-name = "USB";
-				cm-cable-extcon = "extcon-dev.0";
+				extcon = <&extcon_usb>;
 				cm-cable-min = <475000>;
 				cm-cable-max = <500000>;
 			};
 			cable@1 {
 				cm-cable-name = "TA";
-				cm-cable-extcon = "extcon-dev.0";
+				extcon = <&extcon_usb>;
 				cm-cable-min = <650000>;
 				cm-cable-max = <675000>;
 			};

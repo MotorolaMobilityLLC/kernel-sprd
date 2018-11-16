@@ -66,7 +66,7 @@ struct charger_cable {
 	const char *name;
 
 	/* The charger-manager use Extcon framework */
-	struct extcon_specific_cable_nb extcon_dev;
+	struct extcon_dev *extcon_dev;
 	struct work_struct wq;
 	struct notifier_block nb;
 
