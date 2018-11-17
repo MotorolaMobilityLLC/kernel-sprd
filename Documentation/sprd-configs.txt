@@ -6786,6 +6786,13 @@ POWER_RESET
 	[subsys] reset
 	[must] user
 	[function] Provides a number of drivers which either reset a complete board.
+POWER_RESET_SC27XX
+	[arch] all
+	[plat] all
+	[field] make,code
+	[subsys] reset
+	[must] user
+	[function] Spreadtrum system reboot interface.
 POWER_SUPPLY
 	[arch] all
 	[plat] all

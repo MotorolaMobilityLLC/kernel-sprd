@@ -6,16 +6,24 @@
 
 #include <linux/cpu.h>
 #include <linux/kernel.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
 #include <linux/regmap.h>
 #include <linux/syscore_ops.h>
 
-#define SC27XX_PWR_PD_HW	0xc2c
+#define SC2721_PWR_PD_HW	0xc20
+#define SC2730_PWR_PD_HW	0x1820
+#define SC2731_PWR_PD_HW	0xc2c
 #define SC27XX_PWR_OFF_EN	BIT(0)
 
-static struct regmap *regmap;
+struct sc27xx_poweroff_data {
+	u32 sc27xx_poweroff_reg;
+};
 
+static struct regmap *regmap;
+const struct sc27xx_poweroff_data *pdata;
 /*
  * On Spreadtrum platform, we need power off system through external SC27xx
  * series PMICs, and it is one similar SPI bus mapped by regmap to access PMIC,
@@ -40,11 +48,29 @@ static struct syscore_ops poweroff_syscore_ops = {
 
 static void sc27xx_poweroff_do_poweroff(void)
 {
-	regmap_write(regmap, SC27XX_PWR_PD_HW, SC27XX_PWR_OFF_EN);
+	regmap_write(regmap, pdata->sc27xx_poweroff_reg, SC27XX_PWR_OFF_EN);
 }
+
+static const struct sc27xx_poweroff_data sc2721_data = {
+	.sc27xx_poweroff_reg = SC2721_PWR_PD_HW,
+};
+
+static const struct sc27xx_poweroff_data sc2730_data = {
+	.sc27xx_poweroff_reg = SC2730_PWR_PD_HW,
+};
+
+static const struct sc27xx_poweroff_data sc2731_data = {
+	.sc27xx_poweroff_reg = SC2731_PWR_PD_HW,
+};
 
 static int sc27xx_poweroff_probe(struct platform_device *pdev)
 {
+	pdata = of_device_get_match_data(&pdev->dev);
+	if (!pdata) {
+		dev_err(&pdev->dev, "No matching driver data found\n");
+		return -EINVAL;
+	}
+
 	if (regmap)
 		return -EINVAL;
 
@@ -57,10 +83,18 @@ static int sc27xx_poweroff_probe(struct platform_device *pdev)
 	return 0;
 }
 
+static const struct of_device_id sc27xx_poweroff_of_match[] = {
+	{ .compatible = "sprd,sc2721-poweroff", .data = &sc2721_data},
+	{ .compatible = "sprd,sc2730-poweroff", .data = &sc2730_data},
+	{ .compatible = "sprd,sc2731-poweroff", .data = &sc2731_data},
+	{ }
+};
+
 static struct platform_driver sc27xx_poweroff_driver = {
 	.probe = sc27xx_poweroff_probe,
 	.driver = {
 		.name = "sc27xx-poweroff",
+		.of_match_table = sc27xx_poweroff_of_match,
 	},
 };
 builtin_platform_driver(sc27xx_poweroff_driver);
