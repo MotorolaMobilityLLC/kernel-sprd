@@ -356,6 +356,11 @@
 			};
 		};
 
+		poweroff@1820 {
+			compatible = "sprd,sc27xx-poweroff", "sprd,sc2730-poweroff";
+			reg = <0x1820>;
+		};
+
 		vibrator@1b90 {
 			compatible = "sprd,sc27xx-vibrator", "sprd,sc2730-vibrator";
 			reg = <0x1b90>;

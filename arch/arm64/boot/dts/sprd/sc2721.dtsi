@@ -50,6 +50,11 @@
 			#interrupt-cells = <2>;
 		};
 
+		poweroff@c20 {
+			compatible = "sprd,sc27xx-poweroff", "sprd,sc2721-poweroff";
+			reg = <0xc20>;
+		};
+
 		vibrator@eb4 {
 			compatible = "sprd,sc27xx-vibrator", "sprd,sc2721-vibrator";
 			reg = <0xeb4>;
