@@ -70,9 +70,58 @@
 	};
 
 	soc {
+		pmu_gate: pmu-gate {
+			compatible = "sprd,sharkl5-pmu-gate";
+			sprd,syscon = <&pmu_apb_regs>; /* 0x327e0000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		dpll0: dpll0 {
+			compatible = "sprd,sharkl5-g0-pll";
+			sprd,syscon = <&anlg_phy_g0_regs>; /* 0x32390000 */
+			clocks = <&pmu_gate CLK_DPLL0_GATE>;
+			#clock-cells = <1>;
+		};
+
+		mpll1: mpll1 {
+			compatible = "sprd,sharkl5-g2-pll";
+			sprd,syscon = <&anlg_phy_g2_regs>; /* 0x323b0000 */
+			clocks = <&pmu_gate CLK_MPLL1>;
+			#clock-cells = <1>;
+		};
+
+		pll1: pll1 {
+			compatible = "sprd,sharkl5-g3-pll";
+			sprd,syscon = <&anlg_phy_g3_regs>; /* 0x323c0000 */
+			clocks = <&pmu_gate 0>;
+			#clock-cells = <1>;
+		};
+
+		pll2: pll2 {
+			compatible = "sprd,sharkl5-gc-pll";
+			sprd,syscon = <&anlg_phy_gc_regs>; /* 0x323e0000 */
+			clocks = <&pmu_gate 0>;
+			#clock-cells = <1>;
+		};
+
 		apahb_gate: apahb-gate {
 			compatible = "sprd,sharkl5-apahb-gate";
 			sprd,syscon = <&ap_ahb_regs>; /* 0x20100000 */
+			clocks = <&aonapb_gate CLK_AP_AXI_EN>;
+			#clock-cells = <1>;
+		};
+
+		ap_clk: clock-controller@20200000 {
+			compatible = "sprd,sharkl5-apapb-clk";
+			reg = <0 0x20200000 0 0x1000>;
+			clocks = <&apapb_gate CLK_APB_REG_EB>;
+			#clock-cells = <1>;
+		};
+
+		aon_clk: clock-controller@32080200 {
+			compatible = "sprd,sharkl5-aonapb-clk";
+			reg = <0 0x32080200 0 0x1000>;
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
 		};
@@ -81,6 +130,27 @@
 			compatible = "sprd,sharkl5-aon-gate";
 			sprd,syscon = <&aon_apb_regs>; /* 0x327d0000 */
 			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		mm_clk: clock-controller@62100000 {
+			compatbile = "sprd,sharkl5-mm-clk";
+			reg = <0 0x62100000 0 0x1000>;
+			clocks = <&aonapb_gate CLK_MM_EB>;
+			#clock-cells = <1>;
+		};
+
+		gpu_clk: gpu-clk {
+			compatible = "sprd,sharkl5-gpu-clk";
+			sprd,syscon = <&gpu_apb_regs>;
+			clocks = <&aon_clk CLK_AP_MM>;
+			#clock-cells = <1>;
+		};
+
+		mm_gate: clock-controller@62200000 {
+			compatible = "sprd,sharkl5-mm-gate-clk";
+			sprd,syscon = <&mm_ahb_regs>;
+			clocks = <&aonapb_gate CLK_MM_EB>;
 			#clock-cells = <1>;
 		};
 
