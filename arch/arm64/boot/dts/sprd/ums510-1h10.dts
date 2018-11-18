@@ -262,3 +262,16 @@
 &pmic_fgu {
 	monitored-battery = <&bat>;
 };
+
+&i2c5 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	sc2703_chg: charger@4c {
+		compatible = "sprd,sc2703-charger";
+		reg = <0x4c>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&pmic_typec>;
+	};
+};
