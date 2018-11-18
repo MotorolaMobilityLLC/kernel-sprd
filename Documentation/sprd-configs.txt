@@ -5160,6 +5160,13 @@ CHARGER_SC2703
 	[subsys] power
 	[must] user
 	[function] This function is used to enable charg
+FUEL_GAUGE_SC27XX
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] power
+	[must] user
+	[function] This function is used to enable fuel gauge
 MFD_SYSCON
 	[arch] all
 	[plat] all
