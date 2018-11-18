@@ -128,6 +128,23 @@
 	sprd-wlan {
 		compatible = "sprd,sc2355-wifi";
 	};
+
+	bat: battery {
+		compatible = "simple-battery";
+		charge-full-design-microamp-hours = <2780000>;
+		charge-term-current-microamp = <120000>;
+		constant_charge_voltage_max_microvolt = <4350000>;
+		factory-internal-resistance-micro-ohms = <320000>;
+		voltage-min-design-microvolt = <3450000>;
+		ocv-capacity-celsius = <20>;
+		ocv-capacity-table-0 = <4360000 100>, <4249000 95>, <4189000 90>,
+					<4033000 85>, <4081000 80>, <4034000 75>,
+					<3991000 70>, <3953000 65>, <3910000 60>,
+					<3866000 55>, <3836000 50>, <3813000 45>,
+					<3795000 40>, <3782000 35>, <3774000 30>,
+					<3765000 25>, <3750000 20>, <3726000 15>,
+					<3687000 10>, <3658000 5>, <3400000 0>;
+	};
 };
 
 &uart0 {
@@ -219,4 +236,8 @@
 
 &pmic_typec {
 	status = "okay";
+};
+
+&pmic_fgu {
+	monitored-battery = <&bat>;
 };

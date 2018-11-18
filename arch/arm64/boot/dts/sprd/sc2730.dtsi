@@ -71,6 +71,11 @@
 			adc_scal: calib@1 {
 				reg = <0x13 0x2>;
 			};
+
+			fgu_calib: calib@3 {
+				reg = <0x3 0x2>;
+				bits = <0 9>;
+			};
 		};
 
 		pmic_typec: typec@380 {
@@ -89,6 +94,18 @@
 			hwlocks = <&hwlock 4>;
 			nvmem-cells = <&adc_bcal>, <&adc_scal>;
 			nvmem-cell-names = "big_scale_calib", "small_scale_calib";
+		};
+
+		pmic_fgu: fgu@c00 {
+			compatible = "sprd,sc27xx-fgu", "sprd,sc2730-fgu";
+			reg = <0xc00>;
+			bat-detect-gpio = <&pmic_eic 3 GPIO_ACTIVE_HIGH>;
+			nvmem-cell-names = "fgu_calib";
+			nvmem-cells = <&fgu_calib>;
+			io-channels = <&pmic_adc 0>;
+			io-channel-names = "bat-temp";
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <3 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
 		syscon@1800 {
