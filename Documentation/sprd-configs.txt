@@ -5153,6 +5153,13 @@ MFD_SC27XX_PMIC
 	[subsys] 
 	[must] 
 	[function] 
+CHARGER_SC2703
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] power
+	[must] user
+	[function] This function is used to enable charg
 MFD_SYSCON
 	[arch] all
 	[plat] all
