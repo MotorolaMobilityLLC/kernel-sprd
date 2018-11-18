@@ -8,6 +8,7 @@
 #include <linux/module.h>
 #include <linux/nvmem-consumer.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
@@ -769,7 +770,7 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 }
 
 static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
-			      struct sc27xx_fgu_variant_data *pdata)
+			      const struct sc27xx_fgu_variant_data *pdata)
 {
 	struct power_supply_battery_info info = { };
 	struct power_supply_battery_ocv_table *table;
@@ -919,7 +920,7 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	pdata = of_device_get_match_data(&pdev->dev);
-	if (!data->info) {
+	if (!pdata) {
 		dev_err(&pdev->dev, "no matching driver data found\n");
 		return -EINVAL;
 	}
