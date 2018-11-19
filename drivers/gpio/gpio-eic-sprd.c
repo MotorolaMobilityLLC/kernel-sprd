@@ -125,7 +125,7 @@ static const struct sprd_eic_variant_data soc_name##_eic_sync_data = {	\
 }
 
 SPRD_EIC_VAR_DATA(sc9860, SPRD_EIC_PER_BANK_NR);
-SPRD_EIC_VAR_DATA(sharkl5, SPRD_EIC_PER_BANK_NR * 6);
+SPRD_EIC_VAR_DATA(sharkl5, SPRD_EIC_PER_BANK_NR * 2);
 
 static const char *sprd_eic_label_name[SPRD_EIC_MAX] = {
 	"eic-debounce", "eic-latch", "eic-async",
