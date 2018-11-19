@@ -46,10 +46,46 @@
 			reg = <0 0x31050000 0 0x10000>;
 		};
 
+		anlg_phy_g0_regs: syscon@32390000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x32390000 0 0x10000>;
+		};
+
+		anlg_phy_g1_regs: syscon@323a0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x323a0000 0 0x10000>;
+		};
+
 		anlg_phy_g2_regs: syscon@323b0000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
 			reg = <0 0x323b0000 0 0x10000>;
+		};
+
+		anlg_phy_g3_regs: syscon@323c0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x323c0000 0 0x10000>;
+		};
+
+		anlg_phy_g4_regs: syscon@323d0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x323d0000 0 0x10000>;
+		};
+
+		anlg_phy_g10_regs: syscon@323f0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x323f0000 0 0x10000>;
+		};
+
+		anlg_phy_gc_regs: syscon@323e0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x323e0000 0 0x10000>;
 		};
 
 		aon_apb_regs: syscon@327d0000 {
@@ -66,7 +102,56 @@
 
 		ap_apb_regs: syscon@71000000 {
 			compatible = "syscon";
-			reg = <0 0x71000000 0 0x100000>;
+			#syscon-cells = <2>;
+			reg = <0 0x71000000 0 0x10000>;
+		};
+
+		gpu_apb_regs: syscon@60100000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x60100000 0 0x10000>;
+		};
+
+		mm_ahb_regs: syscon@62200000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x62200000 0 0x100000>;
+		};
+
+		ap_intc0_regs: syscon@32310000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x32310000 0 0x10000>;
+		};
+
+		ap_intc1_regs: syscon@32320000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x32320000 0 0x10000>;
+		};
+
+		ap_intc2_regs: syscon@32330000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x32330000 0 0x10000>;
+		};
+
+		ap_intc3_regs: syscon@32340000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x32340000 0 0x10000>;
+		};
+
+		ap_intc4_regs: syscon@32350000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x32350000 0 0x10000>;
+		};
+
+		ap_intc5_regs: syscon@32360000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x32360000 0 0x10000>;
 		};
 
 		ap-apb {
