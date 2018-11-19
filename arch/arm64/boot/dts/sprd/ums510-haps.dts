@@ -153,6 +153,11 @@
 		sprd,name = "ttyBT";
 	};
 
+	sprd-fm {
+		compatible = "sprd,marlin3-fm";
+		sprd,name = "sprd-fm";
+	};
+
 	sprd-wlan {
 		compatible = "sprd,sc2355-wifi";
 	};
