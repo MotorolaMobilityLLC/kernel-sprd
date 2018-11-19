@@ -37,3 +37,6 @@ config REGMAP_MMIO
 
 config REGMAP_IRQ
 	bool
+
+config SPRD_REGMAP_DEBUG
+	bool "Spreadtrum syscon regmap debug"

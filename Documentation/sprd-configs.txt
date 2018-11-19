@@ -7211,6 +7211,13 @@ REGMAP_SPI
 	[subsys] core
 	[must] user
 	[function] Support spi regmap.
+SPRD_REGMAP_DEBUG
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] core
+	[must] user
+	[function] Spreadtrum syscon regmap debug.
 REGULATOR
 	[arch] all
 	[plat] sharkl5
