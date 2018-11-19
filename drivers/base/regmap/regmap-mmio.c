@@ -232,7 +232,7 @@ static int sprd_regmap_mmio_update_bits(void *context, unsigned int reg,
 	if (clr)
 		writel(clr, ctx->regs + reg + 0x2000);
 
-#ifdef SPRD_REGMAP_DEBUG
+#ifdef CONFIG_SPRD_REGMAP_DEBUG
 	tmp = readl(ctx->regs + reg);
 	if ((tmp & mask) != (val & mask))
 		panic("reg:0x%x mask:0x%x val:0x%x not support set/clr\n",
