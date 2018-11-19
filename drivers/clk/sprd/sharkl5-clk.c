@@ -313,36 +313,8 @@ static SPRD_PLL_WITH_ITABLE_K_FVCO(cppll_clk, "cppll", "cppll-gate", 0x60,
 static struct sprd_clk_common *sharkl5_gc_pll_clks[] = {
 	/* address base is 0x323e0000 */
 	&twpll_clk.common,
-#if 0
-	&twpll_768m.common,
-	&twpll_384m.common,
-	&twpll_192m.common,
-	&twpll_96m.common,
-	&twpll_48m.common,
-	&twpll_24m.common,
-	&twpll_12m.common,
-	&twpll_512m.common,
-	&twpll_256m.common,
-	&twpll_128m.common,
-	&twpll_64m.common,
-	&twpll_307m2.common,
-	&twpll_219m4.common,
-	&twpll_170m6.common,
-	&twpll_153m6.common,
-	&twpll_76m8.common,
-	&twpll_51m2.common,
-	&twpll_38m4.common,
-	&twpll_19m2.common,
-#endif
 	&lpll_clk.common,
-#if 0
-	&lpll_409m6.common,
-	&lpll_245m76.common,
-#endif
 	&isppll_clk.common,
-#if 0
-	&isppll_468m.common,
-#endif
 	&gpll_clk.common,
 	&cppll_clk.common,
 };
@@ -945,6 +917,103 @@ static struct sprd_clk_desc sharkl5_mm_clk_desc = {
 	.clk_clks	= sharkl5_mm_clk,
 	.num_clk_clks	= ARRAY_SIZE(sharkl5_mm_clk),
 	.hw_clks	= &sharkl5_mm_clk_hws,
+};
+
+static SPRD_SC_GATE_CLK(mm_cpp_eb, "mm-cpp-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_jpg_eb, "mm-jpg-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_dcam_eb, "mm-dcam-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_isp_eb, "mm-isp-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_csi2_eb, "mm-csi2-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_csi1_eb, "mm-csi1-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_csi0_eb, "mm-csi0-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_ckg_eb, "mm-ckg-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_isp_ahb_eb, "mm-isp-ahb-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_dvfs_eb, "mm-dvfs-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_fd_eb, "mm-fd-eb", "mm_ahb_clk", 0x0,
+		     0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_sensor2_en, "mm-sensor2-en", "mm_ahb_clk", 0x8,
+		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_sensor1_en, "mm-sensor1-en", "mm_ahb_clk", 0x8,
+		     0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_sensor0_en, "mm-sensor0-en", "mm_ahb_clk", 0x8,
+		     0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_mipi_csi2_en, "mm-mipi-csi2-en", "mm_ahb_clk", 0x8,
+		     0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_mipi_csi1_en, "mm-mipi-csi1-en", "mm_ahb_clk", 0x8,
+		     0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_mipi_csi0_en, "mm-mipi-csi0-en", "mm_ahb_clk", 0x8,
+		     0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_dcam_axi_en, "mm-dcam-axi-en", "mm_ahb_clk", 0x8,
+		     0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_isp_axi_en, "mm-isp-axi-en", "mm_ahb_clk", 0x8,
+		     0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(mm_cphy_en, "mm-cphy-en", "mm_ahb_clk", 0x8,
+		     0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *sharkl5_mm_gate_clk[] = {
+	/* address base is 0x62200000 */
+	&mm_cpp_eb.common,
+	&mm_jpg_eb.common,
+	&mm_dcam_eb.common,
+	&mm_isp_eb.common,
+	&mm_csi2_eb.common,
+	&mm_csi1_eb.common,
+	&mm_csi0_eb.common,
+	&mm_ckg_eb.common,
+	&mm_isp_ahb_eb.common,
+	&mm_dvfs_eb.common,
+	&mm_fd_eb.common,
+	&mm_sensor2_en.common,
+	&mm_sensor1_en.common,
+	&mm_sensor0_en.common,
+	&mm_mipi_csi2_en.common,
+	&mm_mipi_csi1_en.common,
+	&mm_mipi_csi0_en.common,
+	&mm_dcam_axi_en.common,
+	&mm_isp_axi_en.common,
+	&mm_cphy_en.common,
+};
+
+static struct clk_hw_onecell_data sharkl5_mm_gate_clk_hws = {
+	.hws	= {
+		[CLK_MM_CPP_EB] = &mm_cpp_eb.common.hw,
+		[CLK_MM_JPG_EB] = &mm_jpg_eb.common.hw,
+		[CLK_MM_DCAM_EB] = &mm_dcam_eb.common.hw,
+		[CLK_MM_ISP_EB] = &mm_isp_eb.common.hw,
+		[CLK_MM_CSI2_EB] = &mm_csi2_eb.common.hw,
+		[CLK_MM_CSI1_EB] = &mm_csi1_eb.common.hw,
+		[CLK_MM_CSI0_EB] = &mm_csi0_eb.common.hw,
+		[CLK_MM_CKG_EB] = &mm_ckg_eb.common.hw,
+		[CLK_ISP_AHB_EB] = &mm_isp_ahb_eb.common.hw,
+		[CLK_MM_DVFS_EB] = &mm_dvfs_eb.common.hw,
+		[CLK_MM_FD_EB] = &mm_fd_eb.common.hw,
+		[CLK_MM_SENSOR2_EB] = &mm_sensor2_en.common.hw,
+		[CLK_MM_SENSOR1_EB] = &mm_sensor1_en.common.hw,
+		[CLK_MM_SENSOR0_EB] = &mm_sensor0_en.common.hw,
+		[CLK_MM_MIPI_CSI2_EB] = &mm_mipi_csi2_en.common.hw,
+		[CLK_MM_MIPI_CSI1_EB] = &mm_mipi_csi1_en.common.hw,
+		[CLK_MM_MIPI_CSI0_EB] = &mm_mipi_csi0_en.common.hw,
+		[CLK_DCAM_AXI_EB] = &mm_dcam_axi_en.common.hw,
+		[CLK_ISP_AXI_EB] = &mm_isp_axi_en.common.hw,
+		[CLK_MM_CPHY_EB] = &mm_cphy_en.common.hw,
+	},
+	.num	= CLK_MM_GATE_CLK_NUM,
+};
+
+static struct sprd_clk_desc sharkl5_mm_gate_clk_desc = {
+	.clk_clks	= sharkl5_mm_gate_clk,
+	.num_clk_clks	= ARRAY_SIZE(sharkl5_mm_gate_clk),
+	.hw_clks	= &sharkl5_mm_gate_clk_hws,
 };
 
 /* ap ahb gates */
@@ -1564,8 +1633,14 @@ static const struct of_device_id sprd_sharkl5_clk_ids[] = {
 	  .data = &sharkl5_g3_pll_desc },
 	{ .compatible = "sprd,sharkl5-gc-pll",		/* 0x323e0000 */
 	  .data = &sharkl5_gc_pll_desc },
+#if 0
+	{ .compatible = "sprd,sharkl5-gpu-clk",		/* 0x60100000 */
+	  .data = &sharkl5_gpu_clk },
+#endif
 	{ .compatible = "sprd,sharkl5-mm-clk",		/* 0x62100000 */
 	  .data = &sharkl5_mm_clk_desc },
+	{ .compatible = "sprd,sharkl5-mm-gate-clk",	/* 0x62200000 */
+	  .data = &sharkl5_mm_gate_clk_desc },
 	{ .compatible = "sprd,sharkl5-apapb-gate",	/* 0x71000000 */
 	  .data = &sharkl5_apapb_gate_desc },
 	{ }
