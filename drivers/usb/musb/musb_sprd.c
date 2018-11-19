@@ -494,6 +494,17 @@ static int musb_sprd_suspend_child(struct device *dev, void *data)
 	return 0;
 }
 
+static bool musb_sprd_is_connect_host(struct sprd_glue *glue)
+{
+	struct usb_phy *usb_phy = glue->xceiv;
+	enum usb_charger_type type = usb_phy->charger_detect(usb_phy);
+
+	if (type == SDP_TYPE || type == CDP_TYPE)
+		return true;
+
+	return false;
+}
+
 static __init int musb_sprd_charger_mode(char *str)
 {
 	if (strcmp(str, "charger"))
@@ -555,7 +566,8 @@ static void sprd_musb_work(struct work_struct *work)
 		 * If the charger type is not SDP or CDP type, it does
 		 * not need to resume the device, just charging.
 		 */
-		if (glue->dr_mode == USB_DR_MODE_PERIPHERAL || boot_charging) {
+		if ((glue->dr_mode == USB_DR_MODE_PERIPHERAL &&
+			!musb_sprd_is_connect_host(glue)) || boot_charging) {
 			spin_lock_irqsave(&glue->lock, flags);
 			glue->charging_mode = true;
 			spin_unlock_irqrestore(&glue->lock, flags);
