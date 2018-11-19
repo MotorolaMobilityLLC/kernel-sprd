@@ -324,12 +324,8 @@
 
 			eic_debounce: gpio@32000000 {
 				compatible = "sprd,sharkl5-eic-debounce";
-				reg = <0 0x32000000 0 0x80>,
-				      <0 0x32010000 0 0x80>,
-				      <0 0x32020000 0 0x80>,
-				      <0 0x32030000 0 0x80>,
-				      <0 0x32230000 0 0x80>,
-				      <0 0x32270000 0 0x80>;
+				reg = <0 0x32020000 0 0x80>,
+				      <0 0x32030000 0 0x80>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -339,12 +335,8 @@
 
 			eic_latch: gpio@32000080 {
 				compatible = "sprd,sharkl5-eic-latch";
-				reg = <0 0x32000080 0 0x20>,
-				      <0 0x32010080 0 0x20>,
-				      <0 0x32020080 0 0x20>,
-				      <0 0x32030080 0 0x20>,
-				      <0 0x32230080 0 0x20>,
-				      <0 0x32270080 0 0x20>;
+				reg = <0 0x32020080 0 0x20>,
+				      <0 0x32030080 0 0x20>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -354,12 +346,8 @@
 
 			eic_async: gpio@320000a0 {
 				compatible = "sprd,sharkl5-eic-async";
-				reg = <0 0x320000a0 0 0x20>,
-				      <0 0x320100a0 0 0x20>,
-				      <0 0x320200a0 0 0x20>,
-				      <0 0x320300a0 0 0x20>,
-				      <0 0x322300a0 0 0x20>,
-				      <0 0x322700a0 0 0x20>;
+				reg = <0 0x320200a0 0 0x20>,
+				      <0 0x320300a0 0 0x20>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -369,12 +357,8 @@
 
 			eic_sync: gpio@320000c0 {
 				compatible = "sprd,sharkl5-eic-sync";
-				reg = <0 0x320000c0 0 0x20>,
-				      <0 0x320100c0 0 0x20>,
-				      <0 0x320200c0 0 0x20>,
-				      <0 0x320300c0 0 0x20>,
-				      <0 0x322300c0 0 0x20>,
-				      <0 0x322700c0 0 0x20>;
+				reg = <0 0x320200c0 0 0x20>,
+				      <0 0x320300c0 0 0x20>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
