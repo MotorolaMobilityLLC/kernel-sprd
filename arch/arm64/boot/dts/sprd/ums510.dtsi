@@ -182,3 +182,75 @@
 	clock-names = "sdio_clk_source", "sdio_ahb_enable";
 	clocks = <&ext_26m>, <&apapb_gate 25>;
 };
+
+&uart0 {
+	clock-names = "enable", "uart", "source";
+	clocks = <&apapb_gate CLK_UART0_EB>,
+		 <&ap_clk CLK_AP_UART0>, <&ext_26m>;
+};
+
+&uart1 {
+	clock-names = "enable", "uart", "source";
+	clocks = <&apapb_gate CLK_UART1_EB>,
+		 <&ap_clk CLK_AP_UART1>, <&ext_26m>;
+};
+
+&uart2 {
+	clock-names = "enable", "uart", "source";
+	clocks = <&apapb_gate CLK_UART2_EB>,
+		 <&ap_clk CLK_AP_UART2>, <&ext_26m>;
+};
+
+&i2c0 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C0_EB>,
+		 <&ap_clk CLK_AP_I2C0>, <&ext_26m>;
+};
+
+&i2c1 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C1_EB>,
+		 <&ap_clk CLK_AP_I2C1>, <&ext_26m>;
+};
+
+&i2c2 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C2_EB>,
+		 <&ap_clk CLK_AP_I2C2>, <&ext_26m>;
+};
+
+&i2c3 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C3_EB>,
+		 <&ap_clk CLK_AP_I2C3>, <&ext_26m>;
+};
+
+&i2c4 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C4_EB>,
+		 <&ap_clk CLK_AP_I2C4>, <&ext_26m>;
+};
+
+&spi0 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI0_EB>,
+		 <&ap_clk CLK_AP_SPI0>, <&pll2 CLK_TWPLL_192M>;
+};
+
+&spi1 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI1_EB>,
+		 <&ap_clk CLK_AP_SPI1>, <&pll2 CLK_TWPLL_192M>;
+};
+
+&spi2 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI2_EB>,
+		 <&ap_clk CLK_AP_SPI2>, <&pll2 CLK_TWPLL_192M>;
+};
+
+&spi3 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI3_EB>,
+		 <&ap_clk CLK_AP_SPI3>, <&pll2 CLK_TWPLL_192M>;
+};

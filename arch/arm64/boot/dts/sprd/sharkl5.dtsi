@@ -165,8 +165,6 @@
 					     "sprd,sc9836-uart";
 				reg = <0 0x70000000 0 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "uart", "source";
-				clocks = <&apapb_gate CLK_UART0_EB>;
 				status = "disabled";
 			};
 
@@ -175,8 +173,6 @@
 					     "sprd,sc9836-uart";
 				reg = <0 0x70100000 0 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "uart", "source";
-				clocks = <&apapb_gate CLK_UART1_EB>;
 				status = "disabled";
 			};
 
@@ -185,7 +181,6 @@
 					     "sprd,sc9836-uart";
 				reg = <0 0x70200000 0 0x100>;
 				interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
-				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
@@ -193,8 +188,6 @@
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0 0x70300000 0 0x100>;
 				interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names ="enable", "i2c", "source";
-				clocks = <&apapb_gate CLK_I2C0_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -205,8 +198,6 @@
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0 0x70400000 0 0x100>;
 				interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names ="enable", "i2c", "source";
-				clocks = <&apapb_gate CLK_I2C1_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -217,8 +208,6 @@
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0 0x70500000 0 0x100>;
 				interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "i2c", "source";
-				clocks = <&apapb_gate CLK_I2C2_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -229,8 +218,6 @@
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0 0x70600000 0 0x100>;
 				interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "i2c", "source";
-				clocks = <&apapb_gate CLK_I2C3_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -241,8 +228,6 @@
 				compatible = "sprd,sharkl5-i2c";
 				reg = <0 0x70700000 0 0x100>;
 				interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names ="enable", "i2c", "source";
-				clocks = <&apapb_gate CLK_I2C4_EB>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -254,8 +239,6 @@
 					     "sprd,sharkl5-spi";
 				reg = <0 0x70800000 0 0x1000>;
 				interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "spi", "source";
-				clocks = <&apapb_gate CLK_SPI0_EB>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -266,8 +249,6 @@
 					     "sprd,sharkl5-spi";
 				reg = <0 0x70900000 0 0x1000>;
 				interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "spi", "source";
-				clocks = <&apapb_gate CLK_SPI1_EB>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -278,8 +259,6 @@
 					     "sprd,sharkl5-spi";
 				reg = <0 0x70a00000 0 0x1000>;
 				interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "spi", "source";
-				clocks = <&apapb_gate CLK_SPI2_EB>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -290,8 +269,6 @@
 					     "sprd,sharkl5-spi";
 				reg = <0 0x70b00000 0 0x1000>;
 				interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "spi", "source";
-				clocks = <&apapb_gate CLK_SPI3_EB>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -521,7 +498,7 @@
 				reg = <0 0x32060000 0 0x1000>;
 				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "source", "enable", "i2c",
-					"clk_hw_i2c";
+						"clk_hw_i2c";
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
