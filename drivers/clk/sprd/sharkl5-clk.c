@@ -291,6 +291,7 @@ static CLK_FIXED_FACTOR(twpll_19m2, "twpll-19m2", "twpll", 80, 1, 0);
 static SPRD_PLL_WITH_ITABLE_K_FVCO(lpll_clk, "lpll", "lpll-gate", 0x18,
 				   3, ftable, f_lpll, 240,
 				   1000, 1000, 1, 750000000);
+static CLK_FIXED_FACTOR(lpll_614m4, "lpll-614m4", "lpll", 2, 1, 0);
 static CLK_FIXED_FACTOR(lpll_409m6, "lpll-409m6", "lpll", 3, 1, 0);
 static CLK_FIXED_FACTOR(lpll_245m76, "lpll-245m76", "lpll", 5, 1, 0);
 
@@ -342,6 +343,7 @@ static struct clk_hw_onecell_data sharkl5_gc_pll_hws = {
 		[CLK_TWPLL_38M4]	= &twpll_38m4.hw,
 		[CLK_TWPLL_19M2]	= &twpll_19m2.hw,
 		[CLK_LPLL]		= &lpll_clk.common.hw,
+		[CLK_LPLL_614M4]	= &lpll_614m4.hw,
 		[CLK_LPLL_409M6]	= &lpll_409m6.hw,
 		[CLK_LPLL_245M76]	= &lpll_245m76.hw,
 		[CLK_ISPPLL]		= &isppll_clk.common.hw,
@@ -815,6 +817,56 @@ static struct sprd_clk_desc sharkl5_aon_apb_desc = {
 	.hw_clks	= &sharkl5_aon_apb_hws,
 };
 
+/* gpu clocks */
+static SPRD_GATE_CLK(gpu_core_gate, "gpu-core-gate", "ap-mm-clk", 0x4,
+			BIT(0), 0, 0);
+
+static const char * const gpu_parents[] = { "ext-26m", "twpll-384m",
+					"twpll-512m", "twpll-768m",
+					"lpll-614m4", "clk_gpll" };
+static SPRD_COMP_CLK(gpu_core_clk, "gpu-core-clk", gpu_parents, 0x4,
+		     4, 3, 8, 3, 0);
+
+static SPRD_GATE_CLK(gpu_mem_gate, "gpu-mem-gate", "ap-mm-clk", 0x8,
+			BIT(0), 0, 0);
+
+static SPRD_COMP_CLK(gpu_mem_clk, "gpu-mem-clk", gpu_parents, 0x8,
+		     4, 3, 8, 3, 0);
+
+static SPRD_GATE_CLK(gpu_sys_gate, "gpu-sys-gate", "ap-mm-clk", 0xc,
+			BIT(0), 0, 0);
+
+static SPRD_DIV_CLK(gpu_sys_clk, "gpu-sys-clk", "gpu-mem-clk", 0xc,
+		    4, 3, 0);
+
+static struct sprd_clk_common *sharkl5_gpu_clk[] = {
+	/* address base is 0x60100000 */
+	&gpu_core_gate.common,
+	&gpu_core_clk.common,
+	&gpu_mem_gate.common,
+	&gpu_mem_clk.common,
+	&gpu_sys_gate.common,
+	&gpu_sys_clk.common,
+};
+
+static struct clk_hw_onecell_data sharkl5_gpu_clk_hws = {
+	.hws	= {
+		[CLK_GPU_CORE_EB] = &gpu_core_gate.common.hw,
+		[CLK_GPU_CORE] = &gpu_core_clk.common.hw,
+		[CLK_GPU_MEM_EB] = &gpu_mem_gate.common.hw,
+		[CLK_GPU_MEM] = &gpu_mem_clk.common.hw,
+		[CLK_GPU_SYS_EB] = &gpu_sys_gate.common.hw,
+		[CLK_GPU_SYS] = &gpu_sys_clk.common.hw,
+	},
+	.num	= CLK_GPU_CLK_NUM,
+};
+
+static struct sprd_clk_desc sharkl5_gpu_clk_desc = {
+	.clk_clks	= sharkl5_gpu_clk,
+	.num_clk_clks	= ARRAY_SIZE(sharkl5_gpu_clk),
+	.hw_clks	= &sharkl5_gpu_clk_hws,
+};
+
 /* mm clocks */
 static const char * const mm_ahb_parents[] = { "ext-26m", "twpll-96m",
 					       "twpll-128m", "twpll-153m6" };
@@ -866,13 +918,13 @@ static const char * const isp_parents[] = { "twpll-256m", "twpll-307m2",
 static SPRD_MUX_CLK(isp_clk, "isp-clk", isp_parents, 0x48,
 			0, 2, SHARKL5_MUX_FLAG);
 
-static SPRD_GATE_CLK(mipi_csi0, "mipi_csi0", "mm-ahb-clk", 0x4c,
+static SPRD_GATE_CLK(mipi_csi0, "mipi-csi0", "mm-ahb-clk", 0x4c,
 			BIT(16), 0, 0);
 
-static SPRD_GATE_CLK(mipi_csi1, "mipi_csi1", "mm-ahb-clk", 0x50,
+static SPRD_GATE_CLK(mipi_csi1, "mipi-csi1", "mm-ahb-clk", 0x50,
 			BIT(16), 0, 0);
 
-static SPRD_GATE_CLK(mipi_csi2, "mipi_csi2", "mm-ahb-clk", 0x54,
+static SPRD_GATE_CLK(mipi_csi2, "mipi-csi2", "mm-ahb-clk", 0x54,
 			BIT(16), 0, 0);
 
 static struct sprd_clk_common *sharkl5_mm_clk[] = {
@@ -1633,10 +1685,8 @@ static const struct of_device_id sprd_sharkl5_clk_ids[] = {
 	  .data = &sharkl5_g3_pll_desc },
 	{ .compatible = "sprd,sharkl5-gc-pll",		/* 0x323e0000 */
 	  .data = &sharkl5_gc_pll_desc },
-#if 0
 	{ .compatible = "sprd,sharkl5-gpu-clk",		/* 0x60100000 */
-	  .data = &sharkl5_gpu_clk },
-#endif
+	  .data = &sharkl5_gpu_clk_desc },
 	{ .compatible = "sprd,sharkl5-mm-clk",		/* 0x62100000 */
 	  .data = &sharkl5_mm_clk_desc },
 	{ .compatible = "sprd,sharkl5-mm-gate-clk",	/* 0x62200000 */

@@ -54,12 +54,13 @@
 #define CLK_TWPLL_38M4			18
 #define CLK_TWPLL_19M2			19
 #define CLK_LPLL			20
-#define CLK_LPLL_409M6			21
-#define CLK_LPLL_245M76			22
-#define CLK_ISPPLL			23
-#define CLK_ISPPLL_468M			24
-#define CLK_GPLL			25
-#define CLK_CPPLL			26
+#define CLK_LPLL_614M4			21
+#define CLK_LPLL_409M6			22
+#define CLK_LPLL_245M76			23
+#define CLK_ISPPLL			24
+#define CLK_ISPPLL_468M			25
+#define CLK_GPLL			26
+#define CLK_CPPLL			27
 #define CLK_ANLG_PHY_GC_NUM		(CLK_CPPLL + 1)
 
 #define CLK_AP_APB			0
@@ -317,5 +318,13 @@
 #define CLK_SEC_CE_EB			30
 #define CLK_PUB_CE_EB			31
 #define CLK_AP_APB_GATE_NUM		(CLK_PUB_CE_EB + 1)
+
+#define CLK_GPU_CORE_EB			0
+#define CLK_GPU_CORE			1
+#define CLK_GPU_MEM_EB			2
+#define CLK_GPU_MEM			3
+#define CLK_GPU_SYS_EB			4
+#define CLK_GPU_SYS			5
+#define CLK_GPU_CLK_NUM			(CLK_GPU_SYS + 1)
 
 #endif /* _DT_BINDINGS_CLK_SHARKL5_H_ */
