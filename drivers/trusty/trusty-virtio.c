@@ -329,9 +329,9 @@ static struct virtqueue *_find_vq(struct virtio_device *vdev,
 	/* save vring address to shared structure */
 	tvr->vr_descr->da = (u32)pa;
 #ifdef CONFIG_PHYS_ADDR_T_64BIT
-		high_4bytes = (u32)(pa >> 32);
+	high_4bytes = (u32)(pa >> 32);
 #else
-		high_4bytes = 0;
+	high_4bytes = 0;
 #endif
 	/* da field is only 32 bit wide. Use previously unused 'reserved' field
 	 * to store top 32 bits of 64-bit address
