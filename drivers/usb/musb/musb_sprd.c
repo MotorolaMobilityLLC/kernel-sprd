@@ -25,6 +25,7 @@
 #include <linux/of_gpio.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/regulator/consumer.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/usb.h>
@@ -49,6 +50,7 @@ struct sprd_glue {
 	struct clk		*clk;
 	struct phy		*phy;
 	struct usb_phy		*xceiv;
+	struct regulator	*vbus;
 
 	enum usb_dr_mode		dr_mode;
 	enum usb_dr_mode		wq_mode;
@@ -598,6 +600,16 @@ static void sprd_musb_work(struct work_struct *work)
 			goto end;
 		}
 
+		if (glue->dr_mode == USB_DR_MODE_HOST &&
+			!regulator_is_enabled(glue->vbus)) {
+			ret = regulator_enable(glue->vbus);
+			if (ret) {
+				dev_err(glue->dev,
+					"Failed to enable vbus: %d\n", ret);
+				goto end;
+			}
+		}
+
 		ret = device_for_each_child(glue->dev, NULL,
 			musb_sprd_resume_child);
 		if (ret) {
@@ -643,6 +655,16 @@ static void sprd_musb_work(struct work_struct *work)
 			cnt = 10;
 			while (musb->shutdowning && cnt-- > 0)
 				msleep(50);
+		}
+
+		if (glue->dr_mode == USB_DR_MODE_HOST &&
+			regulator_is_enabled(glue->vbus)) {
+			ret = regulator_disable(glue->vbus);
+			if (ret) {
+				dev_err(glue->dev,
+					"Failed to disable vbus: %d\n", ret);
+				goto end;
+			}
 		}
 
 		musb->shutdowning = 0;
@@ -809,6 +831,13 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	if (ret) {
 		dev_err(dev, "clk_prepare_enable(glue->clk) failed\n");
 		return ret;
+	}
+
+	glue->vbus = devm_regulator_get(dev, "vbus");
+	if (IS_ERR(glue->vbus)) {
+		ret = PTR_ERR(glue->vbus);
+		dev_err(dev, "unable to get vbus supply\n");
+		goto err_core_clk;
 	}
 
 	glue->xceiv = devm_usb_get_phy_by_phandle(&pdev->dev, "usb-phy", 0);
