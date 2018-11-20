@@ -227,12 +227,15 @@
 };
 
 &sdio0 {
+	vmmc-supply = <&vddsdcore>;
+	vqmmc-supply = <&vddsdio>;
+	voltage-ranges = <3000 3000>;
 	bus-width = <4>;
 	sprd,name = "sdio_sd";
 	sprd,sdio-adma;
 	no-sdio;
 	no-mmc;
-	status = "disabled";
+	status = "okay";
 };
 
 &sdio1 {
@@ -241,19 +244,12 @@
 	sprd,sdio-adma;
 	no-sd;
 	no-mmc;
-	status = "disabled";
-};
-
-&sdio2 {
-	bus-width = <4>;
-	sprd,name = "sdio_wifi";
-	sprd,sdio-adma;
-	no-sd;
-	no-mmc;
-	status = "disabled";
+	status = "okay";
 };
 
 &sdio3 {
+	vmmc-supply = <&vddemmccore>;
+	voltage-ranges = <3000 3000>;
 	bus-width = <8>;
 	non-removable;
 	cap-mmc-hw-reset;
