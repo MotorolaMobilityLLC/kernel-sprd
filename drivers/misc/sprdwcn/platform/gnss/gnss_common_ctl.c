@@ -65,8 +65,9 @@ enum gnss_status_e {
 	GNSS_STATUS_MAX,
 };
 
+unsigned int gnssver = 0x22;
 static const struct of_device_id gnss_common_ctl_of_match[] = {
-	{.compatible = "sprd,gnss_common_ctl", .data = (void *)0x22},
+	{.compatible = "sprd,gnss-common-ctl", .data = (void *)&gnssver},
 	{},
 };
 
@@ -415,7 +416,7 @@ static int gnss_common_ctl_remove(struct platform_device *pdev)
 }
 static struct platform_driver gnss_common_ctl_drv = {
 	.driver = {
-		   .name = "gnss_common_ctl",
+		   .name = "gnss-common-ctl",
 		   .owner = THIS_MODULE,
 		   .of_match_table = of_match_ptr(gnss_common_ctl_of_match),
 		   },
