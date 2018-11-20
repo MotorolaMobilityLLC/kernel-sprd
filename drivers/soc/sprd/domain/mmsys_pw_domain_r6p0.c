@@ -34,16 +34,13 @@
 
 
 static const char * const tb_name[] = {
-	"chip_id0", "chip_id1",
-	"force_shutdown", "shutdown_en", /* clear */
+	"chip_id0",
+	"chip_id1",
+	"force_shutdown",
+	"shutdown_en", /* clear */
 	"power_state", /* on: 0; off:7 */
-	"ckg_eb",
-	"cphy_ckg_eb",
-	"qos_ar", "qos_aw",
-
-	/* whole register,ahb_eb,rst,ckg_eb */
-	"ahb_rst",
-	"ahb_ckg_eb",
+	"qos_ar",
+	"qos_aw",
 
 };
 enum  {
@@ -52,14 +49,8 @@ enum  {
 	_e_force_shutdown,
 	_e_shutdown_en,
 	_e_power_state,
-	_e_ckg_eb,
-	_e_cphy_ckg_eb,
 	_e_qos_ar,
 	_e_qos_aw,
-
-	/* whole register,ahb_eb,rst,ckg_eb */
-	_e_ahb_rst,
-	_e_ahb_ckg_eb,
 };
 
 struct register_gpr {
@@ -77,10 +68,12 @@ struct mmsys_power_info {
 	struct register_gpr regs[sizeof(tb_name) / sizeof(void *)];
 
 	struct clk *mm_eb;
+	struct clk *mm_ahb_eb;
 	struct clk *ahb_clk;
 	struct clk *ahb_clk_parent;
 	struct clk *ahb_clk_default;
 
+	struct clk *mm_mtx_eb;
 	struct clk *mtx_clk;
 	struct clk *mtx_clk_parent;
 	struct clk *mtx_clk_default;
@@ -88,7 +81,8 @@ struct mmsys_power_info {
 
 /* L5 */
 #define PD_MM_DOWN_FLAG			(0x7 << 16)
-
+#define ARQOS_THRESHOLD			0x0D
+#define AWQOS_THRESHOLD			0x0D
 static struct mmsys_power_info *pw_info;
 #ifndef TEST_ON_HAPS
 #define TEST_ON_HAPS /* on haps, will remove this after bringup */
@@ -122,6 +116,13 @@ static void write_hwaddress_mask(unsigned int addr, unsigned int mask,
 }
 #else
 
+static void regmap_update_bits_mmsys(struct register_gpr *p, uint32_t val)
+{
+	if ((!p) || (!(p->gpr)))
+		return;
+	regmap_update_bits(p->gpr, p->reg, p->mask, val);
+}
+
 /* The position first bit is 1 from low */
 static int lsb_bit1(uint32_t tmp)
 {
@@ -150,6 +151,18 @@ static int lsb_bit1(uint32_t tmp)
 }
 #endif
 
+static int regmap_read_mmsys(struct register_gpr *p, uint32_t *val)
+{
+	int ret = 0;
+
+	if ((!p) || (!(p->gpr)) || (!val))
+		return -1;
+	ret = regmap_read(p->gpr, p->reg, val);
+	if (!ret)
+		*val &= (uint32_t)p->mask;
+
+	return ret;
+}
 
 static int check_drv_init(void)
 {
@@ -159,12 +172,14 @@ static int check_drv_init(void)
 		ret = -1;
 	if (atomic_read(&pw_info->inited) == 0)
 		ret = -2;
+
 	return ret;
 }
 
 static int mmsys_power_init(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
+	struct device_node *np_qos;
 	struct regmap *tregmap;
 	uint32_t syscon_args[2];
 	const char *pname;
@@ -182,15 +197,16 @@ static int mmsys_power_init(struct platform_device *pdev)
 		pname = tb_name[i];
 		tregmap =  syscon_regmap_lookup_by_name(np, pname);
 		if (IS_ERR(tregmap)) {
-			pr_err("Read DTS %s regmap fail\n", pname);
-			return -ENODEV;
+			/* domain work normal when remove some item from dts */
+			pr_warn("Read DTS %s regmap fail\n", pname);
+			continue;
 		}
 		ret = syscon_get_args_by_name(np, pname, 2, syscon_args);
 		if (ret != 2) {
-			pr_err("Read DTS %s args fail, ret = %d\n", pname, ret);
-			return -ENODEV;
+			pr_warn("Read DTS %s args fail, ret = %d\n",
+				pname, ret);
+			continue;
 		}
-		ret = 0;
 		pw_info->regs[i].gpr = tregmap;
 		pw_info->regs[i].reg = syscon_args[0];
 		pw_info->regs[i].mask = syscon_args[1];
@@ -198,57 +214,86 @@ static int mmsys_power_init(struct platform_device *pdev)
 			pw_info->regs[i].gpr, pw_info->regs[i].reg,
 			pw_info->regs[i].mask);
 	}
-	/* read qos ar aw */
-	ret = of_property_read_u32_index(np, "mm_qos", 0, &pw_info->mm_qos_ar);
-	if (ret) {
-		/* set ar default */
-		pw_info->mm_qos_ar = 0xD;
-		pr_info("read qos ar fail, default %d\n", pw_info->mm_qos_ar);
-	}
-	ret = of_property_read_u32_index(np, "mm_qos", 1, &pw_info->mm_qos_aw);
-	if (ret) {
-		/* set aw default */
-		pw_info->mm_qos_aw = 0xD;
-		pr_info("read qos aw fail, default %d\n", pw_info->mm_qos_aw);
+	np_qos = of_parse_phandle(np, "sprd,qos-thres", 0);
+	if (!IS_ERR_OR_NULL(np_qos)) {
+		/* read qos ar aw */
+		ret = of_property_read_u32(np_qos, "arqos-threshold",
+			&pw_info->mm_qos_ar);
+		if (ret) {
+			pw_info->mm_qos_ar = ARQOS_THRESHOLD;
+			pr_warn("read arqos-threshold fail, default %d\n",
+				pw_info->mm_qos_ar);
+		}
+		ret = of_property_read_u32(np_qos, "awqos-threshold",
+			&pw_info->mm_qos_aw);
+		if (ret) {
+			pw_info->mm_qos_aw = AWQOS_THRESHOLD;
+			pr_warn("read awqos-threshold fail, default %d\n",
+				pw_info->mm_qos_aw);
+		}
+	} else {
+		pw_info->mm_qos_ar = ARQOS_THRESHOLD;
+		pw_info->mm_qos_aw = AWQOS_THRESHOLD;
+		pr_warn("read mm qos threshold fail, default[%x %x]\n",
+			pw_info->mm_qos_ar, pw_info->mm_qos_aw);
 	}
 
-	/* read mm ahb clk */
+	ret = 0;
+#ifndef	TEST_ON_HAPS
+	/* read clk */
 	pw_info->mm_eb = devm_clk_get(&pdev->dev, "mm_eb");
 	if (IS_ERR(pw_info->mm_eb)) {
-		ret = PTR_ERR(pw_info->mm_eb);
-		pr_err("Get mm_eb clk fail, ret %d\n", ret);
-		return ret;
+		pr_err("Get mm_eb clk fail, ret %d\n",
+			(int)PTR_ERR(pw_info->mm_eb));
+		ret |= BIT(0);
 	}
-	pw_info->ahb_clk = devm_clk_get(&pdev->dev, "mm_ahb_eb");
+	pw_info->mm_ahb_eb = devm_clk_get(&pdev->dev, "mm_ahb_eb");
+	if (IS_ERR(pw_info->mm_ahb_eb)) {
+		pr_err("Get mm_ahb_eb clk fail, ret %d\n",
+			(int)PTR_ERR(pw_info->mm_ahb_eb));
+		ret |= BIT(1);
+	}
+	pw_info->ahb_clk = devm_clk_get(&pdev->dev, "clk_mm_ahb");
 	if (IS_ERR(pw_info->ahb_clk)) {
-		ret = PTR_ERR(pw_info->ahb_clk);
-		pr_err("Get mm_ahb_eb clk fail, ret %d\n", ret);
-		return ret;
+		pr_err("Get clk_mm_ahb clk fail, ret %d\n",
+			(int)PTR_ERR(pw_info->ahb_clk));
+		ret |= BIT(2);
 	}
 	pw_info->ahb_clk_parent = devm_clk_get(&pdev->dev, "clk_mm_ahb_parent");
 	if (IS_ERR(pw_info->ahb_clk_parent)) {
-		ret = PTR_ERR(pw_info->ahb_clk_parent);
-		pr_err("Get mm_ahb_eb clk fail, ret %d\n", ret);
-		return ret;
+		pr_err("Get mm_ahb_eb clk fail, ret %d\n",
+			(int)PTR_ERR(pw_info->ahb_clk_parent));
+		ret |= BIT(3);
 	}
 	pw_info->ahb_clk_default = pw_info->ahb_clk_parent;
 	/* read mm mtx clk */
-	pw_info->mtx_clk = devm_clk_get(&pdev->dev, "mm_mtx_eb");
-	if (IS_ERR(pw_info->mtx_clk)) {
-		ret = PTR_ERR(pw_info->mtx_clk);
-		pr_err("Get mm_mtx_eb clk fail, ret %d\n", ret);
-		return -ENODEV;
+	pw_info->mm_mtx_eb = devm_clk_get(&pdev->dev, "mm_mtx_eb");
+	if (IS_ERR(pw_info->mm_mtx_eb)) {
+		pr_err("Get mm_mtx_eb clk fail, ret %d\n",
+			(int)PTR_ERR(pw_info->mm_mtx_eb));
+		ret |= BIT(4);
 	}
+	pw_info->mtx_clk = devm_clk_get(&pdev->dev, "clk_mm_mtx");
+	if (IS_ERR(pw_info->mtx_clk)) {
+		pr_err("Get mm_mtx_eb clk fail, ret %d\n",
+			(int)PTR_ERR(pw_info->mtx_clk));
+		ret |= BIT(5);
+		}
 	pw_info->mtx_clk_parent = devm_clk_get(&pdev->dev, "clk_mm_mtx_parent");
 	if (IS_ERR(pw_info->mtx_clk_parent)) {
-		ret = PTR_ERR(pw_info->mtx_clk_parent);
-		pr_err("Get mm_mtx_eb clk fail, ret %d\n", ret);
-		return -ENODEV;
+		pr_err("Get mm_mtx_eb clk fail, ret %d\n",
+			(int)PTR_ERR(pw_info->mtx_clk_parent));
+		ret |= BIT(6);
 	}
 	pw_info->mtx_clk_default = pw_info->mtx_clk_parent;
-
-	atomic_set(&pw_info->inited, 1);
-	pr_info("Read DTS OK\n");
+#endif
+	if (ret) {
+		atomic_set(&pw_info->inited, 0);
+		pr_err("ret = 0x%x\n", ret);
+	} else {
+		atomic_set(&pw_info->inited, 1);
+		pr_info("Read DTS OK\n");
+	}
 
 	return ret;
 }
@@ -281,51 +326,41 @@ int sprd_cam_pw_on(void)
 	unsigned int power_state2;
 	unsigned int power_state3;
 	unsigned int read_count = 0;
-	unsigned int val = 0;
 
-	pr_debug("E\n");
-	if (check_drv_init())
+	ret = check_drv_init();
+	if (ret) {
+		pr_info("uses: %d, cb: %p, ret %d\n",
+			atomic_read(&pw_info->users_pw),
+			__builtin_return_address(0), ret);
 		return -ENODEV;
+	}
 
 	mutex_lock(&pw_info->mlock);
-
 	if (atomic_inc_return(&pw_info->users_pw) == 1) {
 		/* clear force shutdown */
-		regmap_update_bits(pw_info->regs[_e_force_shutdown].gpr,
-			pw_info->regs[_e_force_shutdown].reg,
-			pw_info->regs[_e_force_shutdown].mask,
-			0);
+		regmap_update_bits_mmsys(&pw_info->regs[_e_force_shutdown], 0);
 		/* power on */
-		regmap_update_bits(pw_info->regs[_e_shutdown_en].gpr,
-			pw_info->regs[_e_shutdown_en].reg,
-			pw_info->regs[_e_shutdown_en].mask,
-			0);
+		regmap_update_bits_mmsys(&pw_info->regs[_e_shutdown_en], 0);
 
 		do {
 			cpu_relax();
 			usleep_range(300, 350);
 			read_count++;
 
-			ret = regmap_read(pw_info->regs[_e_power_state].gpr,
-					pw_info->regs[_e_power_state].reg,
-					&val);
+			ret = regmap_read_mmsys(&pw_info->regs[_e_power_state],
+					&power_state1);
 			if (ret)
 				goto err_pw_on;
-			power_state1 = val & pw_info->regs[_e_power_state].mask;
 
-			ret = regmap_read(pw_info->regs[_e_power_state].gpr,
-					pw_info->regs[_e_power_state].reg,
-					&val);
+			ret = regmap_read_mmsys(&pw_info->regs[_e_power_state],
+					&power_state2);
 			if (ret)
 				goto err_pw_on;
-			power_state2 = val & pw_info->regs[_e_power_state].mask;
 
-			ret = regmap_read(pw_info->regs[_e_power_state].gpr,
-					pw_info->regs[_e_power_state].reg,
-					&val);
+			ret = regmap_read_mmsys(&pw_info->regs[_e_power_state],
+					&power_state3);
 			if (ret)
 				goto err_pw_on;
-			power_state3 = val & pw_info->regs[_e_power_state].mask;
 
 		} while ((power_state1 && read_count < 10) ||
 				(power_state1 != power_state2) ||
@@ -366,23 +401,22 @@ int sprd_cam_pw_off(void)
 	unsigned int power_state2;
 	unsigned int power_state3;
 	unsigned int read_count = 0;
-	unsigned int val = 0;
 
-	pr_debug("E\n");
-	if (check_drv_init())
+	ret = check_drv_init();
+	if (ret) {
+		pr_err("uses: %d, cb: %p, ret %d\n",
+			atomic_read(&pw_info->users_pw),
+			__builtin_return_address(0), ret);
 		return -ENODEV;
+	}
 
 	mutex_lock(&pw_info->mlock);
 	if (atomic_dec_return(&pw_info->users_pw) == 0) {
 		/* set 1 to shutdown */
-		regmap_update_bits(pw_info->regs[_e_shutdown_en].gpr,
-			pw_info->regs[_e_shutdown_en].reg,
-			pw_info->regs[_e_shutdown_en].mask,
+		regmap_update_bits_mmsys(&pw_info->regs[_e_shutdown_en],
 			~((uint32_t)0));
 		/* force shutdown */
-		regmap_update_bits(pw_info->regs[_e_force_shutdown].gpr,
-			pw_info->regs[_e_force_shutdown].reg,
-			pw_info->regs[_e_force_shutdown].mask,
+		regmap_update_bits_mmsys(&pw_info->regs[_e_force_shutdown],
 			~((uint32_t)0));
 
 		do {
@@ -390,26 +424,20 @@ int sprd_cam_pw_off(void)
 			usleep_range(300, 350);
 			read_count++;
 
-			ret = regmap_read(pw_info->regs[_e_power_state].gpr,
-					pw_info->regs[_e_power_state].reg,
-					&val);
+			ret = regmap_read_mmsys(&pw_info->regs[_e_power_state],
+					&power_state1);
 			if (ret)
 				goto err_pw_off;
-			power_state1 = val & pw_info->regs[_e_power_state].mask;
 
-			ret = regmap_read(pw_info->regs[_e_power_state].gpr,
-					pw_info->regs[_e_power_state].reg,
-					&val);
+			ret = regmap_read_mmsys(&pw_info->regs[_e_power_state],
+					&power_state2);
 			if (ret)
 				goto err_pw_off;
-			power_state2 = val & pw_info->regs[_e_power_state].mask;
 
-			ret = regmap_read(pw_info->regs[_e_power_state].gpr,
-					pw_info->regs[_e_power_state].reg,
-					&val);
+			ret = regmap_read_mmsys(&pw_info->regs[_e_power_state],
+					&power_state3);
 			if (ret)
 				goto err_pw_off;
-			power_state3 = val & pw_info->regs[_e_power_state].mask;
 
 		} while (((power_state1 != PD_MM_DOWN_FLAG) &&
 			(read_count < 10)) ||
@@ -455,8 +483,13 @@ int sprd_cam_domain_eb(void)
 	uint32_t tmp = 0;
 	int ret = 0;
 
-	if (check_drv_init())
+	ret = check_drv_init();
+	if (ret) {
+		pr_err("uses: %d, cb: %p, ret %d\n",
+			atomic_read(&pw_info->users_pw),
+			__builtin_return_address(0), ret);
 		return -ENODEV;
+	}
 
 	pr_debug("clk users count:%d, cb: %p\n",
 		atomic_read(&pw_info->users_clk),
@@ -465,8 +498,10 @@ int sprd_cam_domain_eb(void)
 	mutex_lock(&pw_info->mlock);
 
 	if (atomic_inc_return(&pw_info->users_clk) == 1) {
-		/* mm bus enable */
+		/* enable */
 		clk_prepare_enable(pw_info->mm_eb);
+		clk_prepare_enable(pw_info->mm_ahb_eb);
+		clk_prepare_enable(pw_info->mm_mtx_eb);
 		/* ahb clk */
 		clk_set_parent(pw_info->ahb_clk, pw_info->ahb_clk_parent);
 		clk_prepare_enable(pw_info->ahb_clk);
@@ -474,28 +509,13 @@ int sprd_cam_domain_eb(void)
 		clk_set_parent(pw_info->mtx_clk, pw_info->mtx_clk_parent);
 		clk_prepare_enable(pw_info->mtx_clk);
 
-		/* cam CKG enable, L5:0x62200000.b7
-		 * as before, maybe should be removed
-		 */
-		regmap_update_bits(pw_info->regs[_e_ckg_eb].gpr,
-			pw_info->regs[_e_ckg_eb].reg,
-			pw_info->regs[_e_ckg_eb].mask, ~0);
-		/* cphy ckg enable, L5:0x62200008.b8 */
-		regmap_update_bits(pw_info->regs[_e_cphy_ckg_eb].gpr,
-			pw_info->regs[_e_cphy_ckg_eb].reg,
-			pw_info->regs[_e_cphy_ckg_eb].mask, ~0);
-
 		/* Qos ar */
 		tmp = pw_info->mm_qos_ar;
-		regmap_update_bits(pw_info->regs[_e_qos_ar].gpr,
-			pw_info->regs[_e_qos_ar].reg,
-			pw_info->regs[_e_qos_ar].mask,
+		regmap_update_bits_mmsys(&pw_info->regs[_e_qos_ar],
 			tmp << lsb_bit1(pw_info->regs[_e_qos_ar].mask));
 		/* Qos aw */
 		tmp = pw_info->mm_qos_aw;
-		regmap_update_bits(pw_info->regs[_e_qos_aw].gpr,
-			pw_info->regs[_e_qos_aw].reg,
-			pw_info->regs[_e_qos_aw].mask,
+		regmap_update_bits_mmsys(&pw_info->regs[_e_qos_aw],
 			tmp << lsb_bit1(pw_info->regs[_e_qos_aw].mask));
 	}
 	mutex_unlock(&pw_info->mlock);
@@ -515,34 +535,28 @@ int sprd_cam_domain_disable(void)
 
 	return 0;
 #else /* #elif */
-	if (check_drv_init())
-		return -ENODEV;
+	int ret = 0;
+
+	ret = check_drv_init();
+	if (ret) {
+		pr_err("cb: %p, inited %d\n",
+			__builtin_return_address(0), ret);
+	}
 
 	pr_info("clk users count: %d, cb: %p\n",
 		atomic_read(&pw_info->users_clk),
 		__builtin_return_address(0));
-
 	mutex_lock(&pw_info->mlock);
-
 	if (atomic_dec_return(&pw_info->users_clk) == 0) {
-		/* cam CKG disable */
-		regmap_update_bits(pw_info->regs[_e_ckg_eb].gpr,
-			pw_info->regs[_e_ckg_eb].reg,
-			pw_info->regs[_e_ckg_eb].mask, 0);
-		/* cphy ckg disable */
-		regmap_update_bits(pw_info->regs[_e_cphy_ckg_eb].gpr,
-			pw_info->regs[_e_cphy_ckg_eb].reg,
-			pw_info->regs[_e_cphy_ckg_eb].mask, 0);
-
-		/* no need update qos */
-
 		/* ahb clk */
 		clk_set_parent(pw_info->ahb_clk, pw_info->ahb_clk_default);
 		clk_disable_unprepare(pw_info->ahb_clk);
 		/* mm mtx clk */
 		clk_set_parent(pw_info->mtx_clk, pw_info->mtx_clk_default);
 		clk_disable_unprepare(pw_info->mtx_clk);
-		/* mm disable */
+		/* disable */
+		clk_disable_unprepare(pw_info->mm_mtx_eb);
+		clk_disable_unprepare(pw_info->mm_ahb_eb);
 		clk_disable_unprepare(pw_info->mm_eb);
 	}
 	mutex_unlock(&pw_info->mlock);
@@ -560,13 +574,11 @@ uint32_t sprd_chip_id0(void)
 	if (check_drv_init())
 		return tmp;
 	mutex_lock(&pw_info->mlock);
-	ret = regmap_read(pw_info->regs[_e_chip_id0].gpr,
-		pw_info->regs[_e_chip_id0].reg, &tmp);
+	ret = regmap_read_mmsys(&pw_info->regs[_e_chip_id0], &tmp);
 	if (ret) {
 		pr_err("read id0 fail\n");
 		tmp = 0;
 	}
-	tmp &= pw_info->regs[_e_chip_id0].mask;
 	mutex_unlock(&pw_info->mlock);
 
 	return tmp;
@@ -581,13 +593,11 @@ uint32_t sprd_chip_id1(void)
 	if (check_drv_init())
 		return tmp;
 	mutex_lock(&pw_info->mlock);
-	ret = regmap_read(pw_info->regs[_e_chip_id1].gpr,
-		pw_info->regs[_e_chip_id1].reg, &tmp);
+	ret = regmap_read_mmsys(&pw_info->regs[_e_chip_id1], &tmp);
 	if (ret) {
 		pr_err("read id0 fail\n");
 		tmp = 0;
 	}
-	tmp &= pw_info->regs[_e_chip_id1].mask;
 	mutex_unlock(&pw_info->mlock);
 
 	return tmp;
@@ -605,9 +615,6 @@ static int mmpw_probe(struct platform_device *pdev)
 		pr_err("power init fail\n");
 		return -ENODEV;
 	}
-
-	platform_set_drvdata(pdev, pw_info);
-
 	pr_info(",OK\n");
 
 	return ret;
@@ -632,8 +639,8 @@ static struct platform_driver mmpw_driver = {
 	.probe = mmpw_probe,
 	.remove = mmpw_remove,
 	.driver = {
-			.name = "mmsys-power",
-			.of_match_table = of_match_ptr(mmpw_match_table),
+		.name = "mmsys-power",
+		.of_match_table = of_match_ptr(mmpw_match_table),
 	},
 };
 

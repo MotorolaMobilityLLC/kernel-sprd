@@ -1,5 +1,0 @@
-
-config SPRD_MM_PW_DOMAIN_R6P0
-	bool "Unisoc Camera Power Domain r6p0"
-	help
-		This is a power domain driver for cam sys.

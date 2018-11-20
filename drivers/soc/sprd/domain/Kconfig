@@ -4,3 +4,9 @@ config DISP_PM_DOMAIN_SHARKL3
 	help
 	  When you select this feature, it will enable the pm generic
 	  power domain for SharkL3 display module.
+
+config SPRD_MM_PW_DOMAIN_R6P0
+	bool "Unisoc MM System Power Domain r6p0"
+	help
+	  This is a power domain driver for mm sys.
+
