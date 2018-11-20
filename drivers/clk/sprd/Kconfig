@@ -27,6 +27,11 @@ config SPRD_SHARKL5_CLK
 	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
 	default ARM64 && ARCH_SPRD
 
+config SPRD_SHARKL5PRO_CLK
+	tristate "Support for the Spreadtrum Sharkl5Pro clocks"
+	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
+	default ARM64 && ARCH_SPRD
+
 config SPRD_ROC1_CLK
 	tristate "Support for the Spreadtrum ROC1 clocks"
 	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST

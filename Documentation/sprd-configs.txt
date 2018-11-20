@@ -8152,7 +8152,14 @@ SPRD_SC9863A_CLK
 	[function]
 SPRD_SHARKL5_CLK
 	[arch] all
-	[plat] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
+SPRD_SHARKL5PRO_CLK
+	[arch] all
+	[plat] sharkl5pro
 	[field]
 	[subsys]
 	[must]
