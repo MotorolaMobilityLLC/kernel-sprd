@@ -13,6 +13,8 @@
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
+#include <linux/regulator/driver.h>
+#include <linux/regulator/machine.h>
 #include <linux/slab.h>
 #include <linux/mfd/sc2703_regs.h>
 #include <linux/usb/phy.h>
@@ -930,6 +932,126 @@ static void sc2703_charger_detect_status(struct sc2703_charger_info *info)
 	schedule_work(&info->work);
 }
 
+#ifdef CONFIG_REGULATOR
+static int sc2703_charger_vbus_is_enabled(struct regulator_dev *dev)
+{
+	struct sc2703_charger_info *info = rdev_get_drvdata(dev);
+	int ret;
+	u32 val;
+
+	ret = regmap_read(info->regmap, SC2703_DCDC_CTRL_A, &val);
+	if (ret) {
+		dev_err(info->dev, "failed to get sc2703 otg status.\n");
+		return ret;
+	}
+	val &= SC2703_OTG_EN_MASK;
+
+	return val;
+}
+
+static int sc2703_charger_enable_otg(struct regulator_dev *dev)
+{
+	struct sc2703_charger_info *info = rdev_get_drvdata(dev);
+	int ret;
+
+	/* Unlock 2703 test mode */
+	ret = regmap_update_bits(info->regmap, SC2703_REG_UNLOCK,
+				 SC2703_CHG_REG_MASK_ALL,
+				 SC2703_REG_UNLOCK_VAL);
+	if (ret) {
+		dev_err(info->dev,
+			"failed to unlock sc2703 test mode.\n");
+		return ret;
+	}
+
+	/* Enable charge buck */
+	ret = regmap_update_bits(info->regmap, SC2703_CHG_BUCK_SWITCH,
+				 SC2703_CHG_REG_MASK_ALL,
+				 SC2703_CHG_REG_DISABLE_VAL);
+	if (ret) {
+		dev_err(info->dev,
+			"failed to disable sc2703 charge buck.\n");
+		return ret;
+	}
+
+	/* Lock 2703 test mode */
+	ret = regmap_update_bits(info->regmap, SC2703_REG_UNLOCK,
+				 SC2703_CHG_REG_MASK_ALL,
+				 SC2703_CHG_REG_DISABLE_VAL);
+	if (ret) {
+		dev_err(info->dev,
+			"failed to lock sc2703 test mode.\n");
+		return ret;
+	}
+
+	/* Enable 2703 otg mode */
+	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
+				 SC2703_OTG_EN_MASK,
+				 SC2703_OTG_EN_MASK);
+	if (ret)
+		dev_err(info->dev,
+			"failed to enable sc2703 otg.\n");
+
+	return ret;
+}
+
+static int sc2703_charger_disable_otg(struct regulator_dev *dev)
+{
+	struct sc2703_charger_info *info = rdev_get_drvdata(dev);
+	int ret;
+
+	/* Disable 2703 otg mode */
+	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
+				 SC2703_OTG_EN_MASK, 0);
+	if (ret)
+		dev_err(info->dev,
+			"Failed to disable sc2703 otg ret.\n");
+
+	return 0;
+}
+
+static const struct regulator_ops sc2703_charger_vbus_ops = {
+	.enable = sc2703_charger_enable_otg,
+	.disable = sc2703_charger_disable_otg,
+	.is_enabled = sc2703_charger_vbus_is_enabled,
+};
+
+static const struct regulator_desc sc2703_charger_vbus_desc = {
+	.name = "otg-vbus",
+	.of_match = "otg-vbus",
+	.type = REGULATOR_VOLTAGE,
+	.owner = THIS_MODULE,
+	.ops = &sc2703_charger_vbus_ops,
+	.fixed_uV = 5000000,
+	.n_voltages = 1,
+};
+
+static int
+sc2703_charger_register_vbus_regulator(struct sc2703_charger_info *info)
+{
+	struct regulator_config cfg = { };
+	struct regulator_dev *reg;
+	int ret = 0;
+
+	cfg.dev = info->dev;
+	cfg.driver_data = info;
+	reg = devm_regulator_register(info->dev,
+				      &sc2703_charger_vbus_desc, &cfg);
+	if (IS_ERR(reg)) {
+		ret = PTR_ERR(reg);
+		dev_err(info->dev, "Can't register regulator:%d\n", ret);
+	}
+
+	return ret;
+}
+#else
+static int
+sc2703_charger_register_vbus_regulator(struct sc2703_charger_info *info)
+{
+	return 0;
+}
+#endif
+
 static int sc2703_charger_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -964,6 +1086,12 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 	ret = sc2703_charger_hw_init(info);
 	if (ret)
 		return ret;
+
+	ret = sc2703_charger_register_vbus_regulator(info);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to register vbus regulator.\n");
+		return ret;
+	}
 
 	info->usb_phy = devm_usb_get_phy_by_phandle(&pdev->dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {

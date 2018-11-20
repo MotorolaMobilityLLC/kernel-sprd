@@ -4,7 +4,7 @@ Required properties:
  - compatible: Should be "sprd,sc2703-charger".
  - reg: Address offset of charger register.
  - phys: Contains a phandle to the USB phy.
-
+ - vddvbus: Provide a handle to the usb module to operate vbus otg.
 Optional Properties:
 - monitored-battery: phandle of battery characteristics devicetree node.
   The charger uses the following battery properties:
@@ -26,4 +26,8 @@ Example:
 		reg = <0x4c>;
 		phys = <&ssphy>;
 		monitored-battery = <&bat>;
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
+			regulator-ramp-delay = <25000>;
+		};
 	};
