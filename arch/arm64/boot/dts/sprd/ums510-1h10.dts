@@ -278,5 +278,9 @@
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&pmic_typec>;
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
+			regulator-ramp-delay = <25000>;
+		};
 	};
 };
