@@ -402,6 +402,7 @@ CONFIG_ARCH_SPRD=y
 #
 # DesignWare PCI Core Support
 #
+# CONFIG_PCIE_SPRD is not set
 
 #
 # PCI Endpoint

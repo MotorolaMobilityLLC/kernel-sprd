@@ -499,6 +499,7 @@ CONFIG_ARM_ERRATA_643719=y
 #
 # DesignWare PCI Core Support
 #
+# CONFIG_PCIE_SPRD is not set
 
 #
 # PCI Endpoint

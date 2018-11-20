@@ -27,3 +27,7 @@ obj-$(CONFIG_PCIE_KIRIN) += pcie-kirin.o
 # depending on whether ACPI, the DT driver, or both are enabled.
 
 obj-$(CONFIG_ARM64) += pcie-hisi.o
+
+ifneq ($(filter y,$(CONFIG_PCIE_SPRD_HOST) $(CONFIG_PCIE_SPRD_EP)),)
+	obj-$(CONFIG_PCIE_SPRD) += pcie-sprd.o
+endif

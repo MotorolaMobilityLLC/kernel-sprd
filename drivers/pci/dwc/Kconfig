@@ -169,4 +169,39 @@ config PCIE_KIRIN
 	  Say Y here if you want PCIe controller support
 	  on HiSilicon Kirin series SoCs.
 
+config PCIE_SPRD
+	bool "Spreadtrum PCIe controller"
+	depends on ARCH_SPRD
+	help
+	 Some spreadtrum SoCs have two PCIe controller: One is gen2, and
+	 the other one is gen3. while other spreadtrum SoCs have only one
+	 PCIe controller which can be configured as a Endpoint(EP) or
+	 Root complex(RC).
+	 In order to enable host-specific features PCIE_SPRD_HOST must be
+	 selected and in order to enable device-specific features PCIE_SPRD_EP
+	 must be selected, which uses the DesignWare core.
+
+if PCIE_SPRD
+
+config PCIE_SPRD_HOST
+	bool "Spreadtrum PCIe Host Mode"
+	depends on ARCH_SPRD
+	depends on PCI
+	select PCIEPORTBUS
+	select PCIE_DW_HOST
+	help
+	 Say Y here if you want PCIe controller to work in host(RC) mode on
+	 Spreadtrum SoC
+
+config PCIE_SPRD_EP
+	bool "Spreadtrum PCIe Endpoint Mode"
+	depends on ARCH_SPRD
+	depends on PCI_ENDPOINT
+	select PCIE_DW_EP
+	help
+	 Say Y here if you want PCIe controller to work in Endpoint mode on
+	 Spreadtrum SoC
+
+endif
+
 endmenu
