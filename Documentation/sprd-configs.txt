@@ -2138,11 +2138,11 @@ DQL
 		without allowing the queue to be starved.
 DRAGONRISE_FF
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] DragonRise Inc. force feedback
 DRM
 	[arch] all
 	[plat] all
@@ -3083,11 +3083,11 @@ GPIO_SYSFS
 	[function] Generic gpio sysfs support
 GREENASIA_FF
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] GreenAsia (Product ID 0x12) force feedback support
 GRO_CELLS
 	[arch] all
 	[plat] all
@@ -3548,88 +3548,95 @@ HIDRAW
 	[function] raw hid device support
 HID_A4TECH
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function]  A4 tech mice
 HID_ACRUX
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] ACRUX game controller support
 HID_ACRUX_FF
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] ACRUX force feedback support
 HID_APPLE
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Apple {i,Power,Mac}Books
+HID_BATTERY_STRENGTH
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Battery level reporting for HID devices
 HID_BELKIN
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Belkin Flip KVM and Wireless keyboard
 HID_CHERRY
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Cherry Cymotion keyboard
 HID_CHICONY
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Chicony devices
 HID_CYPRESS
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Cypress mouse and barcode readers
 HID_DRAGONRISE
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] DragonRise Inc. game controller
 HID_ELECOM
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] ELECOM BM084 bluetooth mouse
 HID_EMS_FF
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] EMS Production Inc. force feedback support
 HID_EZKEY
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Ezkey BTC 8193 keyboard
 HID_GENERIC
 	[arch] all
 	[plat] all
@@ -3639,270 +3646,270 @@ HID_GENERIC
 	[function] Generic HID driver
 HID_GREENASIA
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] GreenAsia (Product ID 0x12) game controller support
 HID_GYRATION
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Gyration remote control
 HID_HOLTEK
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Holtek HID devices
 HID_KENSINGTON
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Kensington Slimblade Trackball
 HID_KEYTOUCH
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Keytouch HID devices
 HID_KYE
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] KYE/Genius devices
 HID_LCPOWER
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] LC-Power RC1000MCE RF remote control
 HID_LOGITECH
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Logitech devices
 HID_LOGITECH_DJ
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Logitech Unifying receivers full support
 HID_LOGITECH_HIDPP
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Logitech HID++ devices support
 HID_MAGICMOUSE
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Apple Magic Mouse/Trackpad multi-touch support
 HID_MICROSOFT
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Microsoft non-fully HID-compliant devices
 HID_MONTEREY
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Monterey Genius KB29E keyboard
 HID_MULTITOUCH
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] HID Multitouch panels
 HID_NTRIG
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] N-Trig touch screen
 HID_ORTEK
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Ortek wireless keyboard and mouse trackpad
 HID_PANTHERLORD
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Pantherlord/GreenAsia game controller
 HID_PETALYNX
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Petalynx Maxter remote control
 HID_PICOLCD
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] PicoLCD (graphic version)
 HID_PRIMAX
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Primax non-fully HID-compliant devices
 HID_PRODIKEYS
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Prodikeys PC-MIDI Keyboard support
 HID_ROCCAT
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Roccat device support
 HID_SAITEK
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Saitek non-fully HID-compliant devices
 HID_SAMSUNG
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Samsung InfraRed remote control or keyboards
 HID_SMARTJOYPLUS
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] SmartJoy PLUS PS2/USB adapter support
 HID_SONY
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Sony PS2/3/4 accessories
 HID_SPEEDLINK
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Speedlink VAD Cezanne mouse support
 HID_SUNPLUS
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Sunplus wireless desktop
 HID_THRUSTMASTER
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] ThrustMaster devices support
 HID_TIVO
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] TiVo Slide Bluetooth remote control support
 HID_TOPSEED
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] TopSeed remote control
 HID_TWINHAN
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Twinhan IR remote control
 HID_UCLOGIC
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Support for UC-Logic and Huion tablets
 HID_WACOM
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Wacom Intuos/Graphire tablet support (USB)
 HID_WALTOP
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Support for Waltop tablets
 HID_WIIMOTE
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Nintendo Wii / Wii U peripherals
 HID_ZEROPLUS
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Zeroplus based game controller support
 HID_ZYDACRON
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Zydacron remote control support
 HIGH_RES_TIMERS
 	[arch] all
 	[plat] all
@@ -4321,18 +4328,18 @@ INPUT_MOUSEDEV_SCREEN_Y
 	[function] Vertical screen resolution
 INPUT_SC27XX_VIBRA
 	[arch] all
-	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] input
+	[must] user
+	[function] Spreadtrum sc27xx vibrator support
 INPUT_TABLET
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu
+	[subsys] input
+	[must] user
+	[function] Tablets support
 INPUT_TOUCHSCREEN
 	[arch] all
 	[plat] all
@@ -4904,13 +4911,27 @@ LEDS_CLASS
 	[subsys] leds
 	[must] user
 	[function] LED Class Support
+LEDS_SC27XX_BLTC
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] led
+	[must] user
+	[function] LED support for the SC27xx breathing light controller
 LEDS_TRIGGERS
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] menu
 	[subsys] leds
 	[must] unknown
 	[function] LED Trigger support
+LEDS_TRIGGER_PATTERN
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] led
+	[must] user
+	[function] LED Pattern Trigger
 LIBCRC32C
 	[arch] all
 	[plat] all
@@ -4956,25 +4977,32 @@ LOCK_SPIN_ON_OWNER
 		lock implementations.
 LOGIG940_FF
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Logitech Flight System G940 force feedback support
 LOGIRUMBLEPAD2_FF
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Logitech force feedback support (variant 2)
 LOGITECH_FF
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Logitech force feedback support
+LOGIWHEELS_FF
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Logitech wheels configuration and force feedback support
 LOG_BUF_SHIFT
 	[arch] all
 	[plat] all
@@ -6578,11 +6606,11 @@ PANIC_TIMEOUT
 	[function] Machine restart if kernel panic.
 PANTHERLORD_FF
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] Pantherlord force feedback support
 PARTITION_PERCPU
 	[arch] all
 	[plat] all
@@ -7722,11 +7750,11 @@ SLUB_STATS
 		  behavior
 SMARTJOYPLUS_FF
 	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[function] SmartJoy PLUS PS2/USB adapter force feedback support
 SMP
 	[arch] all
 	[plat] all
@@ -8294,38 +8322,38 @@ SYS_SUPPORTS_HUGETLBFS
 TABLET_USB_ACECAD
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu,make
+	[subsys] input
+	[must] user
+	[function] Acecad Flair tablet support (USB)
 TABLET_USB_AIPTEK
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu,make
+	[subsys] input
+	[must] user
+	[function] Aiptek 6000U/8000U and Genius G_PEN tablet support (USB)
 TABLET_USB_GTCO
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu,make
+	[subsys] input
+	[must] user
+	[function] GTCO CalComp/InterWrite USB Support
 TABLET_USB_HANWANG
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu,make
+	[subsys] input
+	[must] user
+	[function] Hanwang Art Master III tablet support (USB)
 TABLET_USB_KBTAB
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu,make
+	[subsys] input
+	[must] user
+	[function] KB Gear JamStudio tablet support (USB)
 TASKSTATS
 	[arch] all
 	[plat] all
