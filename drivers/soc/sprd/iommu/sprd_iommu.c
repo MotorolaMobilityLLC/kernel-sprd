@@ -467,6 +467,7 @@ int sprd_iommu_attach_device(struct device *dev)
 
 	return err;
 }
+EXPORT_SYMBOL(sprd_iommu_attach_device);
 
 int sprd_iommu_dettach_device(struct device *dev)
 {
@@ -597,6 +598,7 @@ out:
 	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
 	return ret;
 }
+EXPORT_SYMBOL(sprd_iommu_map);
 
 int sprd_iommu_unmap(struct device *dev, struct sprd_iommu_unmap_data *data)
 {
@@ -678,6 +680,7 @@ out:
 	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
 	return ret;
 }
+EXPORT_SYMBOL(sprd_iommu_unmap);
 
 int sprd_iommu_unmap_orphaned(struct sprd_iommu_unmap_data *data)
 {
