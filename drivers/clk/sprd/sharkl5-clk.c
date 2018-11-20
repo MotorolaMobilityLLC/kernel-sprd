@@ -1601,7 +1601,7 @@ static struct clk_hw_onecell_data sharkl5_apapb_gate_hws = {
 		[CLK_SDIO0_32K_EB]	= &sdio0_32k_eb.common.hw,
 		[CLK_SDIO1_32K_EB]	= &sdio1_32k_eb.common.hw,
 		[CLK_SDIO2_32K_EB]	= &sdio2_32k_eb.common.hw,
-		[CLK_EMMC_EB]		= &emmc_32k_eb.common.hw,
+		[CLK_EMMC_32K_EB]	= &emmc_32k_eb.common.hw,
 		[CLK_SEC_CE_EB]		= &ce_sec_eb.common.hw,
 		[CLK_PUB_CE_EB]		= &ce_pub_eb.common.hw,
 	},
