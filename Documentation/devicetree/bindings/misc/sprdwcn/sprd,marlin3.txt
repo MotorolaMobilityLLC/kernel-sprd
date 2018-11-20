@@ -45,6 +45,6 @@ Example:
 		post-power-on-delay-ms = <20>;
 	};
 
-	gnss_common_ctl {
-		compatible = "sprd,gnss_common_ctl";
+	gnss-common-ctl {
+		compatible = "sprd,gnss-common-ctl";
 	};
