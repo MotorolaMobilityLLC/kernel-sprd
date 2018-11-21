@@ -13,7 +13,7 @@ static void sdiohal_rx_adapt_set_dtbs(unsigned int len)
 	unsigned int off;
 
 	if (len == 0) {
-		p_data->dtbs = 2048;
+		p_data->dtbs = MAX_PAC_SIZE;
 		return;
 	}
 
@@ -157,7 +157,8 @@ static int sdiohal_rx_buf_parser(char *data_buf, int valid_len)
 			p_data->frag_ctl.pagecnt_bias--;
 
 			sdiohal_list_check(data_list, __func__, SDIOHAL_READ);
-			sdiohal_print_list_data(data_list, __func__);
+			sdiohal_print_list_data(data_list, __func__,
+						SDIOHAL_DATA_LEVEL);
 
 			sdiohal_data_list_assignment(data_list->mbuf_head,
 				puh, channel);
@@ -206,6 +207,8 @@ int sdiohal_rx_thread(void *data)
 			sdiohal_rx_wait();
 		else
 			sdiohal_rx_down();
+		if (p_data->exit_flag)
+			break;
 
 		getnstimeofday(&p_data->tm_end_irq);
 		sdiohal_pr_perf("rx sch time:%ld\n",
@@ -213,7 +216,7 @@ int sdiohal_rx_thread(void *data)
 			- timespec_to_ns(&p_data->tm_begin_irq)));
 
 		sdiohal_resume_wait();
-		sdiohal_cp_rx_wakeup();
+		sdiohal_cp_rx_wakeup(PACKER_RX);
 
 read_again:
 		getnstimeofday(&tm_begin);
@@ -297,7 +300,7 @@ submit_list:
 		if (rx_dtbs > 0)
 			goto read_again;
 
-		sdiohal_cp_rx_sleep();
+		sdiohal_cp_rx_sleep(PACKER_RX);
 		sdiohal_unlock_rx_ws();
 		if (!p_data->debug_iq)
 			sdiohal_enable_rx_irq();

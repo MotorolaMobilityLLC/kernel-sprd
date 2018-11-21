@@ -29,15 +29,9 @@
 
 #include "bus_common.h"
 #include "sdiohal.h"
-#ifdef CONFIG_WCN_SLP
-#include "../sleep/sdio_int.h"
-#endif
 
 #define CP_GPIO1_REG 0x40840014
 #define CP_PIN_FUNC_WPU BIT(8)
-
-#define CP_GPIO1_DATA_BASE 0x40804000
-#define CP_GPIO1_BIT BIT(1)
 
 static int (*scan_card_notify)(void);
 static struct sdiohal_data_t *sdiohal_data;
@@ -89,13 +83,21 @@ static void sdiohal_abort(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	int err;
+	unsigned char val;
 
 	sdiohal_info("%s\n", __func__);
-	dump_stack();
 
 	sdio_claim_host(p_data->sdio_func[FUNC_0]);
+
+	val = sdio_readb(p_data->sdio_func[FUNC_0], 0x0, &err);
+	sdiohal_info("before abort, SDIO_VER_CCCR:0x%x\n", val);
+
 	sdio_writeb(p_data->sdio_func[FUNC_0], VAL_ABORT_TRANS,
 		SDIOHAL_CCCR_ABORT, &err);
+
+	val = sdio_readb(p_data->sdio_func[FUNC_0], 0x0, &err);
+	sdiohal_info("after abort, SDIO_VER_CCCR:0x%x\n", val);
+
 	sdio_release_host(p_data->sdio_func[FUNC_0]);
 }
 
@@ -477,6 +479,75 @@ exit:
 	return err;
 }
 
+static char *sdiohal_haddr[8] = {
+	"cm4d",
+	"cm4i",
+	"cm4s",
+	"dmaw",
+	"dmar",
+	"aon_to_ahb",
+	"axi_to_ahb",
+	"hready_status",
+};
+
+void sdiohal_dump_aon_reg(void)
+{
+	unsigned char reg_buf[16];
+	unsigned char i, j, val = 0;
+
+	sdiohal_info("sdio dump_aon_reg entry\n");
+	for (i = 0; i <= CP_128BIT_SIZE; i++) {
+		sdiohal_aon_readb(CP_PMU_STATUS + i, &reg_buf[i]);
+		sdiohal_info("pmu sdio status:[0x%x]:0x%x\n",
+			     CP_PMU_STATUS + i, reg_buf[i]);
+	}
+
+	for (i = 0; i < 8; i++) {
+		sdiohal_aon_readb(CP_SWITCH_SGINAL, &val);
+		val &= ~BIT(4);
+		sdiohal_aon_writeb(CP_SWITCH_SGINAL, val);
+
+		/* bit3:0 bt wifi sys, 1:gnss sys */
+		val &= ~(BIT(0) | BIT(1) | BIT(2) | BIT(3));
+		val |= i;
+		sdiohal_aon_writeb(CP_SWITCH_SGINAL, val);
+
+		val |= BIT(4);
+		sdiohal_aon_writeb(CP_SWITCH_SGINAL, val);
+
+		for (j = 0; j < CP_HREADY_SIZE; j++) {
+			sdiohal_aon_readb(CP_BUS_HREADY + j, &reg_buf[j]);
+			sdiohal_info("%s haddr %d:[0x%x]:0x%x\n",
+				     sdiohal_haddr[i], i,
+				     CP_BUS_HREADY + j, reg_buf[j]);
+		}
+	}
+
+	/*
+	 * check hready_status, if bt hung the bus, reset it.
+	 * BIT(2):bt2 hready out
+	 * BIT(3):bt2 hready
+	 * BIT(4):bt1 hready out
+	 * BIT(5):bt1 hready
+	 */
+	val = (reg_buf[0] & (BIT(2) | BIT(3) | BIT(4) | BIT(5)));
+	sdiohal_info("val:0x%x\n", val);
+	if (val != 0xf) {
+		sdiohal_aon_readb(CP_RESET_SLAVE, &val);
+		val |=  BIT(5) | BIT(6);
+		sdiohal_aon_writeb(CP_RESET_SLAVE, val);
+
+		for (i = 0; i < CP_HREADY_SIZE; i++) {
+			sdiohal_aon_readb(CP_BUS_HREADY + i, &reg_buf[i]);
+			sdiohal_info("after reset hready status:[0x%x]:0x%x\n",
+				     CP_BUS_HREADY + i, reg_buf[i]);
+		}
+	}
+
+	sdiohal_info("sdio dump_aon_reg end\n\n");
+}
+EXPORT_SYMBOL_GPL(sdiohal_dump_aon_reg);
+
 int sdiohal_writel(unsigned int system_addr, void *buf)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
@@ -489,10 +560,13 @@ int sdiohal_writel(unsigned int system_addr, void *buf)
 	}
 
 	sdiohal_resume_check();
+	sdiohal_cp_tx_wakeup(DT_WRITEL);
 	sdiohal_op_enter();
+
 	ret = sdiohal_dt_set_addr(system_addr);
 	if (ret != 0) {
 		sdiohal_op_leave();
+		sdiohal_cp_tx_sleep(DT_WRITEL);
 		return ret;
 	}
 
@@ -501,9 +575,14 @@ int sdiohal_writel(unsigned int system_addr, void *buf)
 		*(unsigned int *)buf, SDIOHAL_DT_MODE_ADDR, &ret);
 
 	sdio_release_host(p_data->sdio_func[FUNC_1]);
-	if (ret != 0)
-		sdiohal_abort();
 	sdiohal_op_leave();
+	sdiohal_cp_tx_sleep(DT_WRITEL);
+
+	if (ret != 0) {
+		sdiohal_err("dt writel fail ret:%d\n", ret);
+		sdiohal_dump_aon_reg();
+		sdiohal_abort();
+	}
 
 	return ret;
 }
@@ -513,58 +592,101 @@ int sdiohal_readl(unsigned int system_addr, void *buf)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	int ret = 0;
 
-	sdiohal_info("%s\n", __func__);
 	if (unlikely(p_data->carddetect_indicator != true)) {
 		sdiohal_err("%s line %d not have card\n", __func__, __LINE__);
 		return -ENODEV;
 	}
 
 	sdiohal_resume_check();
+	sdiohal_cp_rx_wakeup(DT_READL);
 	sdiohal_op_enter();
 	ret = sdiohal_dt_set_addr(system_addr);
 	if (ret != 0) {
 		sdiohal_op_leave();
+		sdiohal_cp_rx_sleep(DT_READL);
 		return ret;
 	}
 
 	sdio_claim_host(p_data->sdio_func[FUNC_1]);
+
 	*(unsigned int *)buf = sdio_readl(p_data->sdio_func[FUNC_1],
 					  SDIOHAL_DT_MODE_ADDR, &ret);
 
 	sdio_release_host(p_data->sdio_func[FUNC_1]);
-	if (ret != 0)
-		sdiohal_abort();
 	sdiohal_op_leave();
+	sdiohal_cp_rx_sleep(DT_READL);
+	if (ret != 0) {
+		sdiohal_err("dt readl fail ret:%d\n", ret);
+		sdiohal_dump_aon_reg();
+		sdiohal_abort();
+	}
 
 	return ret;
+}
+
+static unsigned int max_bytes(struct sdio_func *func)
+{
+	unsigned int mval =	func->card->host->max_blk_size;
+/* TODO : for look for new interface to SDIO */
+#if 0
+	if (mmc_blksz_for_byte_mode(func->card))
+		mval = min(mval, func->cur_blksize);
+	else
+		mval = min(mval, func->max_blksize);
+
+	if (mmc_card_broken_byte_mode_512(func->card))
+		return min(mval, 511u);
+#endif
+	return min(mval, 512u); /* maximum size for byte mode */
 }
 
 int sdiohal_dt_write(unsigned int system_addr,
 			    void *buf, unsigned int len)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	unsigned int remainder = len;
+	unsigned int trans_len;
 	int ret = 0;
 
-	sdiohal_info("%s\n", __func__);
 	if (unlikely(p_data->carddetect_indicator != true)) {
 		sdiohal_err("%s line %d not have card\n", __func__, __LINE__);
 		return -ENODEV;
 	}
 
 	sdiohal_resume_check();
+	sdiohal_cp_tx_wakeup(DT_WRITE);
 	sdiohal_op_enter();
+
 	ret = sdiohal_dt_set_addr(system_addr);
 	if (ret != 0) {
 		sdiohal_op_leave();
+		sdiohal_cp_tx_sleep(DT_WRITE);
 		return ret;
 	}
+
 	sdio_claim_host(p_data->sdio_func[FUNC_1]);
-	ret = sdio_memcpy_toio(p_data->sdio_func[FUNC_1],
-					  SDIOHAL_DT_MODE_ADDR, buf, len);
+	while (remainder > 0) {
+		if (remainder >= p_data->sdio_func[FUNC_1]->cur_blksize)
+			trans_len = p_data->sdio_func[FUNC_1]->cur_blksize;
+		else
+			trans_len = min(remainder,
+					max_bytes(p_data->sdio_func[FUNC_1]));
+		ret = sdio_memcpy_toio(p_data->sdio_func[FUNC_1],
+				       SDIOHAL_DT_MODE_ADDR, buf, trans_len);
+		if (ret)
+			break;
+
+		remainder -= trans_len;
+		buf += trans_len;
+	}
 	sdio_release_host(p_data->sdio_func[FUNC_1]);
-	if (ret != 0)
-		sdiohal_abort();
 	sdiohal_op_leave();
+	sdiohal_cp_tx_sleep(DT_WRITE);
+	if (ret != 0) {
+		sdiohal_err("dt write fail ret:%d\n", ret);
+		sdiohal_dump_aon_reg();
+		sdiohal_abort();
+	}
 
 	return ret;
 }
@@ -573,28 +695,48 @@ int sdiohal_dt_read(unsigned int system_addr, void *buf,
 			   unsigned int len)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	unsigned int remainder = len;
+	unsigned int trans_len;
 	int ret = 0;
 
-	sdiohal_info("%s\n", __func__);
 	if (unlikely(p_data->carddetect_indicator != true)) {
 		sdiohal_err("%s line %d not have card\n", __func__, __LINE__);
 		return -ENODEV;
 	}
 
 	sdiohal_resume_check();
+	sdiohal_cp_rx_wakeup(DT_READ);
 	sdiohal_op_enter();
 	ret = sdiohal_dt_set_addr(system_addr);
 	if (ret != 0) {
+		sdiohal_cp_rx_sleep(DT_READ);
 		sdiohal_op_leave();
 		return ret;
 	}
+
 	sdio_claim_host(p_data->sdio_func[FUNC_1]);
-	ret = sdio_memcpy_fromio(p_data->sdio_func[FUNC_1],
-					  (unsigned char *)buf, 0x0f, len);
+	while (remainder > 0) {
+		if (remainder >= p_data->sdio_func[FUNC_1]->cur_blksize)
+			trans_len = p_data->sdio_func[FUNC_1]->cur_blksize;
+		else
+			trans_len = min(remainder,
+					max_bytes(p_data->sdio_func[FUNC_1]));
+		ret = sdio_memcpy_fromio(p_data->sdio_func[FUNC_1],
+					 buf, SDIOHAL_DT_MODE_ADDR, trans_len);
+		if (ret)
+			break;
+
+		remainder -= trans_len;
+		buf += trans_len;
+	}
 	sdio_release_host(p_data->sdio_func[FUNC_1]);
-	if (ret != 0)
-		sdiohal_abort();
 	sdiohal_op_leave();
+	sdiohal_cp_rx_sleep(DT_READ);
+	if (ret != 0) {
+		sdiohal_err("dt read fail ret:%d\n", ret);
+		sdiohal_dump_aon_reg();
+		sdiohal_abort();
+	}
 
 	return ret;
 }
@@ -776,13 +918,13 @@ static int sdiohal_host_irq_init(unsigned int irq_gpio_num)
 	int ret;
 
 	sdiohal_info("%s enter\n", __func__);
-#if 0
+
 	ret = gpio_request(irq_gpio_num, "sdiohal_gpio");
 	if (ret < 0) {
 		sdiohal_err("req gpio irq = %d fail!!!", irq_gpio_num);
 		return ret;
 	}
-#endif
+
 	ret = gpio_direction_input(irq_gpio_num);
 	if (ret < 0) {
 		sdiohal_err("gpio:%d input set fail!!!", irq_gpio_num);
@@ -819,7 +961,8 @@ static int sdiohal_get_dev_func(struct sdio_func *func)
 
 static struct mmc_host *sdiohal_dev_get_host(struct device_node *np_node)
 {
-	struct sprd_sdhc_host *host;
+	void *drv_data;
+	struct mmc_host *host_mmc;
 	struct platform_device *pdev;
 
 	pdev = of_find_device_by_node(np_node);
@@ -828,13 +971,21 @@ static struct mmc_host *sdiohal_dev_get_host(struct device_node *np_node)
 		return NULL;
 	}
 
-	host = platform_get_drvdata(pdev);
-	if (host == NULL) {
-		sdiohal_err("sdio dev get drvdata failed!!!");
+	drv_data = platform_get_drvdata(pdev);
+	if (drv_data == NULL) {
+		sdiohal_err("sdio dev get drv data failed!!!");
 		return NULL;
 	}
 
-	return container_of((void *)host, struct mmc_host, private);
+	host_mmc = drv_data;
+	sdiohal_info("host_mmc:%p private data:0x%lx containerof:%p\n",
+		     host_mmc, *(host_mmc->private),
+		     container_of(drv_data, struct mmc_host, private));
+
+	if (*(host_mmc->private) == (unsigned long)host_mmc)
+		return host_mmc;
+	else
+		return container_of(drv_data, struct mmc_host, private);
 }
 
 static int sdiohal_parse_dt(void)
@@ -842,8 +993,6 @@ static int sdiohal_parse_dt(void)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	struct device_node *np;
 	struct device_node *sdio_node;
-	enum of_gpio_flags of_flags;
-	/* unsigned long flag = GPIOF_DIR_IN; */
 
 	np = of_find_node_by_name(NULL, "sprd-marlin3");
 	if (!np) {
@@ -866,13 +1015,7 @@ static int sdiohal_parse_dt(void)
 	sdiohal_info("%s sdio pwrseq status:%d\n",
 		     __func__, p_data->pwrseq_disable);
 
-	p_data->gpio_num = of_get_named_gpio_flags(np,
-				"m2-wakeup-ap-gpios", 0, &of_flags);
-
-	if (gpio_is_valid(p_data->gpio_num))
-
-		if (gpio_request_one(p_data->gpio_num, GPIOF_IN, "SDIORXWAKE"))
-			return -1;
+	p_data->gpio_num = of_get_named_gpio(np, "m2-wakeup-ap-gpios", 0);
 
 	sdio_node = of_parse_phandle(np, "sdhci-name", 0);
 	if (sdio_node == NULL) {
@@ -976,39 +1119,11 @@ static int sdiohal_set_cp_pin_status(void)
 	sdiohal_readl(CP_GPIO1_REG, &reg_value);
 	sdiohal_info("reg_value: 0x%x\n", reg_value);
 	reg_value &= ~(CP_PIN_FUNC_WPU);
-	reg_value |= (1<<7);
 	sdiohal_writel(CP_GPIO1_REG, &reg_value);
 
 	sdiohal_readl(CP_GPIO1_REG, &reg_value);
 	sdiohal_info("reg_value: 0x%x\n", reg_value);
 
-	/* gpio set low*/
-	sdiohal_readl(CP_GPIO1_DATA_BASE + 0x04, &reg_value);
-	sdiohal_info("reg_value 0x04: 0x%x\n", reg_value);
-	reg_value |= (1<<1);
-	sdiohal_writel(CP_GPIO1_DATA_BASE + 0x04, &reg_value);
-
-	sdiohal_readl(CP_GPIO1_DATA_BASE + 0x04, &reg_value);
-	sdiohal_info("reg_value 0x04: 0x%x\n", reg_value);
-
-
-	sdiohal_readl(CP_GPIO1_DATA_BASE + 0x08, &reg_value);
-	sdiohal_info("reg_value 0x08: 0x%x\n", reg_value);
-	reg_value |= (1<<1);
-	sdiohal_writel(CP_GPIO1_DATA_BASE + 0x08, &reg_value);
-
-	sdiohal_readl(CP_GPIO1_DATA_BASE, &reg_value);
-	sdiohal_info("reg_value 0x08: 0x%x\n", reg_value);
-
-
-	sdiohal_readl(CP_GPIO1_DATA_BASE + 0x0, &reg_value);
-	sdiohal_info("reg_value 0x0: 0x%x\n", reg_value);
-	reg_value &= ~(CP_PIN_FUNC_WPU);
-	reg_value |= (1<<1);
-	sdiohal_writel(CP_GPIO1_DATA_BASE, &reg_value);
-
-	sdiohal_readl(CP_GPIO1_DATA_BASE, &reg_value);
-	sdiohal_info("reg_value 0x0: 0x%x\n", reg_value);
 	return 0;
 }
 
@@ -1018,8 +1133,15 @@ int sdiohal_runtime_get(void)
 
 	int ret;
 
-	if (p_data->pwrseq_disable)
+	sdiohal_info("%s entry\n", __func__);
+	if (!p_data)
+		return -ENODEV;
+
+	if (p_data->pwrseq_disable) {
+		if (p_data->irq_num != 0)
+			enable_irq(p_data->irq_num);
 		return 0;
+	}
 
 	ret = pm_runtime_get_sync(&p_data->sdio_func[FUNC_1]->dev);
 	if (ret < 0) {
@@ -1040,7 +1162,7 @@ int sdiohal_runtime_get(void)
 	sdiohal_info("enable func1 ok!!!");
 	sdiohal_set_cp_pin_status();
 	sdiohal_enable_slave_irq();
-	sdiohal_enable_rx_irq();
+	enable_irq(p_data->irq_num);
 	sdiohal_info("sdihal: %s ret:%d\n", __func__, ret);
 
 	return ret;
@@ -1051,11 +1173,15 @@ int sdiohal_runtime_put(void)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
 	sdiohal_info("%s\n", __func__);
-	if (p_data->pwrseq_disable)
-		return 0;
+
+	if (!p_data)
+		return -ENODEV;
 
 	if (p_data->irq_num != 0)
 		disable_irq(p_data->irq_num);
+
+	if (p_data->pwrseq_disable)
+		return 0;
 
 	return pm_runtime_put_sync(&p_data->sdio_func[FUNC_1]->dev);
 }
@@ -1101,7 +1227,6 @@ static int sdiohal_probe(struct sdio_func *func,
 	p_data->card_dump_flag = false;
 
 	sdiohal_set_cp_pin_status();
-	msleep(5000);
 
 	ret = request_irq(p_data->irq_num, sdiohal_irq_handler,
 			  IRQF_TRIGGER_HIGH | IRQF_NO_SUSPEND,
@@ -1111,9 +1236,7 @@ static int sdiohal_probe(struct sdio_func *func,
 		return ret;
 	}
 
-	if (!p_data->pwrseq_disable)
-		disable_irq(p_data->irq_num);
-
+	disable_irq(p_data->irq_num);
 	complete(&p_data->scan_done);
 
 	/* calling rescan callback to inform download */
@@ -1134,10 +1257,8 @@ static void sdiohal_remove(struct sdio_func *func)
 
 	p_data->carddetect_indicator = false;
 
-	if (p_data->irq_num != 0) {
-		disable_irq(p_data->irq_num);
+	if (p_data->irq_num != 0)
 		free_irq(p_data->irq_num, &func->dev);
-	}
 }
 
 static void sdiohal_launch_thread(void)

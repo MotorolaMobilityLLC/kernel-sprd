@@ -3,12 +3,15 @@
 
 #include "mdbg_type.h"
 
+#define WCN_LOG_MAX_MINOR 2
+
 struct mdbg_device_t {
 	int			open_count;
 	struct mutex		mdbg_lock;
 	wait_queue_head_t	rxwait;
-	struct wcnlog_dev *dev;
+	struct wcnlog_dev *dev[WCN_LOG_MAX_MINOR];
 	struct ring_device *ring_dev;
+	bool exit_flag;
 };
 
 extern struct mdbg_device_t	*mdbg_dev;

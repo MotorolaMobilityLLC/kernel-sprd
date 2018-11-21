@@ -46,16 +46,12 @@ static int wcn_op_read(struct wcn_op_attr_t wcn_op_attr, unsigned int *pval)
 	if (unlikely(marlin_get_download_status() != true))
 		return -EIO;
 
-	slp_mgr_drv_sleep(DBG_TOOL, false);
-	slp_mgr_wakeup(DBG_TOOL);
 	ret = sprdwcn_bus_direct_read(wcn_op_attr.addr, pval,
 					wcn_op_attr.length);
 	if (ret < 0) {
 		pr_err("%s read reg error:%d\n", __func__, ret);
 		return ret;
 	}
-
-	slp_mgr_drv_sleep(DBG_TOOL, true);
 
 	return 0;
 }
@@ -67,15 +63,12 @@ static int wcn_op_write(struct wcn_op_attr_t wcn_op_attr)
 	if (unlikely(marlin_get_download_status() != true))
 		return -EIO;
 
-	slp_mgr_drv_sleep(DBG_TOOL, false);
-	slp_mgr_wakeup(DBG_TOOL);
 	ret = sprdwcn_bus_direct_write(wcn_op_attr.addr,
 		&wcn_op_attr.val, wcn_op_attr.length);
 	if (ret < 0) {
 		pr_err("%s write reg error:%d\n", __func__, ret);
 		return ret;
 	}
-	slp_mgr_drv_sleep(DBG_TOOL, true);
 
 	return 0;
 }

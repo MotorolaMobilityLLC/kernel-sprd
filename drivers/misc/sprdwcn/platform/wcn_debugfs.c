@@ -47,8 +47,7 @@ static ssize_t read_wcn_reg(struct file *file, char __user *user_buf,
 		WCN_ERR("reg value copy's ret value is -eFAULT\n");
 		return -EFAULT;
 	}
-	slp_mgr_drv_sleep(DBG_TOOL, false);
-	slp_mgr_wakeup(DBG_TOOL);
+
 	/* rw_direct SDIO */
 	if (reg_rd.rw_extended == 0) {
 		for (i = 0; i < reg_rd.len; i++)
@@ -66,7 +65,7 @@ static ssize_t read_wcn_reg(struct file *file, char __user *user_buf,
 			break;
 		}
 	}
-	slp_mgr_drv_sleep(DBG_TOOL, true);
+
 
 	if (copy_to_user(user_buf, &reg_rd, sizeof(reg_rd))) {
 		WCN_ERR("reg copy_to_user ret value is -eFAULT\n");
@@ -87,8 +86,7 @@ static ssize_t write_wcn_reg(struct file *file, const char __user *user_buf,
 		WCN_ERR("%s copy's ret value is -eFAULT\n", __func__);
 		return -EFAULT;
 	}
-	slp_mgr_drv_sleep(DBG_TOOL, false);
-	slp_mgr_wakeup(DBG_TOOL);
+
 	/* rw_direct SDIO */
 	if (reg_wr.rw_extended == 0) {
 		for (i = 0; i < reg_wr.len; i++)
@@ -106,7 +104,7 @@ static ssize_t write_wcn_reg(struct file *file, const char __user *user_buf,
 			break;
 		}
 	}
-	slp_mgr_drv_sleep(DBG_TOOL, true);
+
 
 	return count;
 

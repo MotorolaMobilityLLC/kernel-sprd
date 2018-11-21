@@ -43,22 +43,6 @@ static struct chn_info_t *chn_info(void)
 	return &g_chn_info;
 }
 
-static int chn_lock_init(void)
-{
-	struct chn_info_t *chn_inf = chn_info();
-	static bool lock_flag;
-	int channel;
-
-	if (lock_flag)
-		return 0;
-
-	for (channel = 0; channel < CHN_MAX_NUM; channel++)
-		mutex_init(&chn_inf->callback_lock[channel]);
-	lock_flag = true;
-
-	return 0;
-}
-
 static int buf_list_check(struct buffer_pool_t *pool,
 			  struct mbuf_t *head, struct mbuf_t *tail, int num)
 {
@@ -120,11 +104,13 @@ static int buf_pool_init(struct buffer_pool_t *pool, int size, int payload)
 	pool->size = size;
 	pool->payload = payload;
 	spin_lock_init(&(pool->lock));
-	pool->mem = kmalloc((sizeof(struct mbuf_t) + payload) * size,
+	pool->mem = kzalloc((sizeof(struct mbuf_t) + payload) * size,
 			    GFP_KERNEL);
+	if (!pool->mem)
+		return -ENOMEM;
+
 	pr_info("mbuf_pool->mem:0x%lx\n",
 		(unsigned long)virt_to_phys(pool->mem));
-	memset(pool->mem, 0x00, (sizeof(struct mbuf_t) + payload) * size);
 	pool->head = (struct mbuf_t *) (pool->mem);
 	for (i = 0, mbuf = (struct mbuf_t *)(pool->head);
 	     i < (size - 1); i++) {
@@ -156,6 +142,7 @@ static int buf_pool_deinit(struct buffer_pool_t *pool)
 	memset(pool->mem, 0x00,
 	       (sizeof(struct mbuf_t) + pool->payload) * pool->size);
 	kfree(pool->mem);
+	pool->mem = NULL;
 
 	return 0;
 }
@@ -238,7 +225,7 @@ int bus_chn_init(struct mchn_ops_t *ops, int hif_type)
 		return -1;
 	}
 
-	chn_lock_init();
+	mutex_init(&chn_inf->callback_lock[ops->channel]);
 	mutex_lock(&chn_inf->callback_lock[ops->channel]);
 	ops->hif_type = hif_type;
 	chn_inf->ops[ops->channel] = ops;
@@ -269,6 +256,7 @@ int bus_chn_deinit(struct mchn_ops_t *ops)
 		ret = buf_pool_deinit(&(chn_inf->pool[ops->channel]));
 	chn_inf->ops[ops->channel] = NULL;
 	mutex_unlock(&chn_inf->callback_lock[ops->channel]);
+	mutex_destroy(&chn_inf->callback_lock[ops->channel]);
 
 	pr_info("[-]%s(%d)\n", __func__, ops->channel);
 
@@ -278,6 +266,9 @@ EXPORT_SYMBOL(bus_chn_deinit);
 
 struct mchn_ops_t *chn_ops(int channel)
 {
+	if (channel >= CHN_MAX_NUM || channel < 0)
+		return NULL;
+
 	return g_chn_info.ops[channel];
 }
 EXPORT_SYMBOL(chn_ops);
@@ -294,6 +285,12 @@ int module_ops_register(struct sprdwcn_bus_ops *ops)
 	return 0;
 }
 EXPORT_SYMBOL(module_ops_register);
+
+void module_ops_unregister(void)
+{
+	wcn_bus_ops = NULL;
+}
+EXPORT_SYMBOL(module_ops_unregister);
 
 struct sprdwcn_bus_ops *get_wcn_bus_ops(void)
 {

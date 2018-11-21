@@ -92,6 +92,8 @@ struct sprdwcn_bus_ops {
 	/* For sdio: TX(send data) and RX(give back list to SDIO) */
 	int (*push_list)(int chn, struct mbuf_t *head,
 			 struct mbuf_t *tail, int num);
+	int (*push_list_direct)(int chn, struct mbuf_t *head,
+			 struct mbuf_t *tail, int num);
 
 	/*
 	 * for pcie
@@ -140,6 +142,7 @@ struct sprdwcn_bus_ops {
 };
 
 extern void module_bus_init(void);
+extern void module_bus_deinit(void);
 extern struct sprdwcn_bus_ops *get_wcn_bus_ops(void);
 
 static inline
@@ -220,6 +223,18 @@ int sprdwcn_bus_push_list(int chn, struct mbuf_t *head,
 		return 0;
 
 	return bus_ops->push_list(chn, head, tail, num);
+}
+
+static inline
+int sprdwcn_bus_push_list_direct(int chn, struct mbuf_t *head,
+				 struct mbuf_t *tail, int num)
+{
+	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
+
+	if (!bus_ops || !bus_ops->push_list_direct)
+		return 0;
+
+	return bus_ops->push_list_direct(chn, head, tail, num);
 }
 
 static inline
@@ -428,79 +443,16 @@ void sprdwcn_bus_remove_card(void)
 }
 
 static inline
-int sprdwcn_bus_register_pt_rx_process(unsigned int type,
-				unsigned int subtype, void *func)
-{
-	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
-
-	if (!bus_ops || !bus_ops->register_pt_rx_process)
-		return 0;
-
-	return bus_ops->register_pt_rx_process(type, subtype, func);
-}
-
-static inline
-int sprdwcn_bus_register_pt_tx_release(unsigned int type,
-				unsigned int subtype, void *func)
-{
-	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
-
-	if (!bus_ops || !bus_ops->register_pt_tx_release)
-		return 0;
-
-	return bus_ops->register_pt_tx_release(type, subtype, func);
-}
-
-static inline
-int sprdwcn_bus_pt_write(void *buf, unsigned int len,
-			 unsigned int type,
-			 unsigned int subtype)
-{
-	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
-
-	if (!bus_ops || !bus_ops->pt_write)
-		return 0;
-
-	return bus_ops->pt_write(buf, len, type, subtype);
-}
-
-static inline
-int sprdwcn_bus_pt_read_release(unsigned int fifo_id)
-{
-	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
-
-	if (!bus_ops || !bus_ops->pt_read_release)
-		return 0;
-
-	return bus_ops->pt_read_release(fifo_id);
-}
-
-static inline
-int sprdwcn_bus_driver_register(void)
-{
-	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
-
-	if (!bus_ops || !bus_ops->driver_register)
-		return 0;
-
-	return bus_ops->driver_register();
-}
-
-static inline
-void sprdwcn_bus_driver_unregister(void)
-{
-	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
-
-	if (!bus_ops || !bus_ops->driver_unregister)
-		return;
-
-	bus_ops->driver_unregister();
-}
-
-static inline
 int wcn_bus_init(void)
 {
 	module_bus_init();
 	return 0;
 }
+
+static inline
+void wcn_bus_deinit(void)
+{
+	module_bus_deinit();
+}
+
 #endif

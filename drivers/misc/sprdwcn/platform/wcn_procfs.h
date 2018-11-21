@@ -13,4 +13,5 @@ void proc_fs_exit(void);
 int get_loopcheck_status(void);
 void wakeup_loopcheck_int(void);
 void loopcheck_first_boot_clear(void);
+void loopcheck_first_boot_set(void);
 #endif

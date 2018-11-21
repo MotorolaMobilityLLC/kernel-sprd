@@ -7,13 +7,18 @@
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <misc/wcn_bus.h>
+#ifdef CONFIG_WCN_SLP
+#include "../sleep/sdio_int.h"
+#include "../sleep/slp_mgr.h"
+#endif
 
 #define PERFORMANCE_COUNT 100
 #define SDIOHAL_PRINTF_LEN (10)
-#define SDIOHAL_NORMAL_LEVEL 0x01
-#define SDIOHAL_LIST_LEVEL 0x02
-#define SDIOHAL_DATA_LEVEL 0x04
-#define SDIOHAL_PERF_LEVEL 0x08
+#define SDIOHAL_NORMAL_LEVEL (0x01)
+#define SDIOHAL_DEBUG_LEVEL (0x02)
+#define SDIOHAL_LIST_LEVEL (0x04)
+#define SDIOHAL_DATA_LEVEL (0x08)
+#define SDIOHAL_PERF_LEVEL (0x10)
 
 #define sdiohal_info(fmt, args...) \
 	pr_info("sdiohal:" fmt, ## args)
@@ -23,17 +28,21 @@
 #ifdef CONFIG_DEBUG_FS
 extern long int sdiohal_log_level;
 
-#define sdiohal_debug(fmt, args...) \
+#define sdiohal_normal(fmt, args...) \
 	do { if (sdiohal_log_level & SDIOHAL_NORMAL_LEVEL) \
 		sdiohal_info(fmt, ## args); \
 	} while (0)
-#define sdiohal_pr_list(fmt, args...) \
-	do { if (sdiohal_log_level & SDIOHAL_LIST_LEVEL) \
+#define sdiohal_debug(fmt, args...) \
+	do { if (sdiohal_log_level & SDIOHAL_DEBUG_LEVEL) \
+		sdiohal_info(fmt, ## args); \
+	} while (0)
+#define sdiohal_pr_list(loglevel, fmt, args...) \
+	do { if (sdiohal_log_level & loglevel) \
 		sdiohal_info(fmt, ## args); \
 	} while (0)
 #define sdiohal_pr_data(level, prefix_str, prefix_type, \
-	rowsize, groupsize, buf, len, ascii) \
-	do { if (sdiohal_log_level & SDIOHAL_DATA_LEVEL) \
+			rowsize, groupsize, buf, len, ascii, loglevel) \
+	do { if (sdiohal_log_level & loglevel) \
 		print_hex_dump(level, prefix_str, prefix_type, \
 			rowsize, groupsize, buf, len, ascii); \
 	} while (0)
@@ -42,10 +51,11 @@ extern long int sdiohal_log_level;
 		trace_printk(fmt, ## args); \
 	} while (0)
 #else
+#define sdiohal_normal(fmt, args...)
 #define sdiohal_debug(fmt, args...)
-#define sdiohal_pr_list(fmt, args...)
+#define sdiohal_pr_list(loglevel, fmt, args...)
 #define	sdiohal_pr_data(level, prefix_str, prefix_type, \
-		rowsize, groupsize, buf, len, ascii)
+			rowsize, groupsize, buf, len, ascii, loglevel)
 #define sdiohal_pr_perf(fmt, args...)
 #endif
 
@@ -136,6 +146,14 @@ extern long int sdiohal_log_level;
 #define SDIOHAL_ALIGN_BLK(a) (((a)%SDIOHAL_BLK_SIZE) ? \
 	(((a)/SDIOHAL_BLK_SIZE + 1)*SDIOHAL_BLK_SIZE) : (a))
 
+#define CP_PMU_STATUS	(0x140)
+#define CP_128BIT_SIZE	(0xf)
+#define CP_SWITCH_SGINAL (0x1a4)
+#define CP_RESET_SLAVE  (0x1a8)
+#define CP_BUS_HREADY	(0x144)
+#define CP_HREADY_SIZE	(0x4)
+#define SDIO_VER_CCCR (0X0)
+
 struct sdiohal_frag_mg {
 	struct page_frag frag;
 	unsigned int pagecnt_bias;
@@ -167,17 +185,23 @@ struct sdiohal_sendbuf_t {
 };
 
 struct sdiohal_data_t {
+	struct task_struct *tx_thread;
+	struct task_struct *rx_thread;
 	struct completion tx_completed;
 	struct completion rx_completed;
 	struct wakeup_source tx_ws;
 	atomic_t tx_wake_flag;
+	atomic_t tx_wake_cp_count[SUBSYS_MAX];
 	struct wakeup_source rx_ws;
 	atomic_t rx_wake_flag;
-	struct mutex sleep_mutex;
+	atomic_t rx_wake_cp_count[SUBSYS_MAX];
+	struct mutex xmit_lock;
+	struct mutex xmit_sdma;
 	spinlock_t tx_spinlock;
 	spinlock_t rx_spinlock;
 	atomic_t flag_resume;
 	atomic_t tx_mbuf_num;
+	bool exit_flag;
 	/* adma enable:1, disable:0 */
 	bool adma_tx_enable;
 	bool adma_rx_enable;
@@ -257,21 +281,23 @@ void sdiohal_callback_unlock(struct mutex *mutex);
 
 /* for sleep */
 #ifdef CONFIG_WCN_SLP
-void sdiohal_cp_tx_sleep(void);
-void sdiohal_cp_tx_wakeup(void);
-void sdiohal_cp_rx_sleep(void);
-void sdiohal_cp_rx_wakeup(void);
+void sdiohal_cp_tx_sleep(enum slp_subsys subsys);
+void sdiohal_cp_tx_wakeup(enum slp_subsys subsys);
+void sdiohal_cp_rx_sleep(enum slp_subsys subsys);
+void sdiohal_cp_rx_wakeup(enum slp_subsys subsys);
 #else
-#define sdiohal_cp_tx_sleep() do {} while (0)
-#define sdiohal_cp_tx_wakeup() do {} while (0)
-#define sdiohal_cp_rx_sleep() do {} while (0)
-#define sdiohal_cp_rx_wakeup() do {} while (0)
+#define sdiohal_cp_tx_sleep(args...) do {} while (0)
+#define sdiohal_cp_tx_wakeup(args...) do {} while (0)
+#define sdiohal_cp_rx_sleep(args...) do {} while (0)
+#define sdiohal_cp_rx_wakeup(args...) do {} while (0)
 #endif
 
 void sdiohal_resume_check(void);
 void sdiohal_resume_wait(void);
 void sdiohal_op_enter(void);
 void sdiohal_op_leave(void);
+void sdiohal_sdma_enter(void);
+void sdiohal_sdma_leave(void);
 void sdiohal_channel_to_hwtype(int inout, int chn,
 	unsigned int *type, unsigned int *subtype);
 int sdiohal_hwtype_to_channel(int inout, unsigned int type,
@@ -280,7 +306,8 @@ int sdiohal_hwtype_to_channel(int inout, unsigned int type,
 /* for list manger */
 bool sdiohal_is_tx_list_empty(void);
 int sdiohal_tx_packer(struct sdiohal_sendbuf_t *send_buf,
-	struct sdiohal_list_t *data_list, struct mbuf_t *mbuf_node);
+		      struct sdiohal_list_t *data_list,
+		      struct mbuf_t *mbuf_node);
 int sdiohal_tx_set_eof(struct sdiohal_sendbuf_t *send_buf,
 	unsigned char *eof_buf);
 void sdiohal_tx_list_enq(int channel, struct mbuf_t *head,
@@ -296,6 +323,7 @@ struct sdiohal_list_t *sdiohal_get_rx_channel_list(int channel);
 void *sdiohal_get_rx_free_buf(void);
 void sdiohal_tx_init_retrybuf(void);
 int sdiohal_misc_init(void);
+void sdiohal_misc_deinit(void);
 
 /* sdiohal main.c */
 void sdiohal_sdio_tx_status(void);
@@ -304,6 +332,7 @@ int sdiohal_sdio_pt_write(unsigned char *src, unsigned int datalen);
 int sdiohal_sdio_pt_read(unsigned char *src, unsigned int datalen);
 int sdiohal_adma_pt_write(struct sdiohal_list_t *data_list);
 int sdiohal_adma_pt_read(struct sdiohal_list_t *data_list);
+int sdiohal_tx_data_list_send(struct sdiohal_list_t *data_list);
 void sdiohal_enable_rx_irq(void);
 
 /* for debugfs */
@@ -314,20 +343,23 @@ void sdiohal_debug_deinit(void);
 
 
 void sdiohal_print_list_data(struct sdiohal_list_t *data_list,
-			     const char *func);
+			     const char *func, int loglevel);
 void sdiohal_print_mbuf_data(int channel, struct mbuf_t *head,
-			     struct mbuf_t *tail, int num, const char *func);
+			     struct mbuf_t *tail, int num, const char *func,
+			     int loglevel);
 
 void sdiohal_list_check(struct sdiohal_list_t *data_list,
 			const char *func, bool dir);
 void sdiohal_mbuf_list_check(int channel, struct mbuf_t *head,
 			     struct mbuf_t *tail, int num,
-			     const char *func, bool dir);
+			     const char *func, bool dir, int loglevel);
 
 int sdiohal_init(void);
 void sdiohal_exit(void);
 int sdiohal_list_push(int chn, struct mbuf_t *head,
 		      struct mbuf_t *tail, int num);
+int sdiohal_list_direct_write(int channel, struct mbuf_t *head,
+			      struct mbuf_t *tail, int num);
 
 /* driect mode,reg access.etc */
 int sdiohal_dt_read(unsigned int addr, void *buf, unsigned int len);
@@ -336,6 +368,7 @@ int sdiohal_aon_readb(unsigned int addr, unsigned char *val);
 int sdiohal_aon_writeb(unsigned int addr, unsigned char val);
 int sdiohal_writel(unsigned int system_addr, void *buf);
 int sdiohal_readl(unsigned int system_addr, void *buf);
+void sdiohal_dump_aon_reg(void);
 
 /* for dumpmem */
 unsigned int sdiohal_get_carddump_status(void);

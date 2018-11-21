@@ -50,6 +50,7 @@ struct mdbg_proc_t {
 	struct mdbg_proc_entry		loopcheck;
 	struct mdbg_proc_entry		at_cmd;
 	struct mdbg_proc_entry		snap_shoot;
+	struct mutex		mutex;
 	char write_buf[MDBG_WRITE_SIZE];
 	int fail_count;
 	bool first_boot;
@@ -320,11 +321,11 @@ static ssize_t mdbg_proc_read(struct file *filp,
 			}
 		}
 		if (marlin_get_module_status() == 1) {
-			if (!mdbg_proc->first_boot) {
+			if (mdbg_proc->first_boot) {
 				if (copy_to_user((void __user *)buf,
 					"loopcheck_ack", 13))
 					WCN_ERR("loopcheck first error\n");
-				mdbg_proc->first_boot = true;
+				loopcheck_first_boot_clear();
 				WCN_INFO("CP power on first time\n");
 				len = 13;
 			} else if (mdbg_rx_count_change()) {
@@ -599,10 +600,13 @@ static ssize_t mdbg_proc_write(struct file *filp,
 #else
 	if (strncmp(mdbg_proc->write_buf, "dumpmem", 7) == 0) {
 		sprdwcn_bus_set_carddump_status(true);
+
+		mutex_lock(&mdbg_proc->mutex);
 		marlin_set_sleep(MARLIN_MDBG, FALSE);
 		marlin_set_wakeup(MARLIN_MDBG);
 		mdbg_dump_mem();
 		marlin_set_sleep(MARLIN_MDBG, TRUE);
+		mutex_unlock(&mdbg_proc->mutex);
 		return count;
 	}
 
@@ -617,6 +621,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		WCN_INFO("fail_count is value %d\n", mdbg_proc->fail_count);
 		WCN_INFO("fail_reset is value %d\n", flag_reset);
 		mdbg_proc->fail_count = 0;
+		sprdwcn_bus_set_carddump_status(false);
 		if (marlin_reset_func != NULL)
 			marlin_reset_func(marlin_callback_para);
 		return count;
@@ -626,6 +631,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		WCN_INFO("marlin gnss need reset\n");
 		WCN_INFO("fail_count is value %d\n", mdbg_proc->fail_count);
 		mdbg_proc->fail_count = 0;
+		sprdwcn_bus_set_carddump_status(false);
 		marlin_chip_en(false, true);
 		if (marlin_reset_func != NULL)
 			marlin_reset_func(marlin_callback_para);
@@ -780,7 +786,7 @@ int proc_fs_init(void)
 	if (!mdbg_proc)
 		return -ENOMEM;
 
-	mdbg_proc->dir_name = "mdbg1";
+	mdbg_proc->dir_name = "mdbg";
 	mdbg_proc->procdir = proc_mkdir(mdbg_proc->dir_name, NULL);
 
 	mdbg_proc->assert.name = "assert";
@@ -819,6 +825,7 @@ int proc_fs_init(void)
 	init_completion(&mdbg_proc->at_cmd.completed);
 	init_waitqueue_head(&mdbg_proc->assert.rxwait);
 	init_waitqueue_head(&mdbg_proc->loopcheck.rxwait);
+	mutex_init(&mdbg_proc->mutex);
 
 	if (mdbg_memory_alloc() < 0)
 		return -ENOMEM;
@@ -829,6 +836,7 @@ int proc_fs_init(void)
 void proc_fs_exit(void)
 {
 	mdbg_memory_free();
+	mutex_destroy(&mdbg_proc->mutex);
 	mdbg_fs_channel_destroy();
 	remove_proc_entry(mdbg_proc->snap_shoot.name, mdbg_proc->procdir);
 	remove_proc_entry(mdbg_proc->assert.name, mdbg_proc->procdir);
@@ -842,7 +850,6 @@ void proc_fs_exit(void)
 
 int get_loopcheck_status(void)
 {
-	WCN_INFO("loopcheck fail_count %d\n", mdbg_proc->fail_count);
 	return mdbg_proc->fail_count;
 }
 
@@ -854,4 +861,9 @@ void wakeup_loopcheck_int(void)
 void loopcheck_first_boot_clear(void)
 {
 	mdbg_proc->first_boot = false;
+}
+
+void loopcheck_first_boot_set(void)
+{
+	mdbg_proc->first_boot = true;
 }

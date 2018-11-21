@@ -47,7 +47,6 @@ bool mdbg_rx_count_change(void)
 
 int mdbg_read_release(unsigned int fifo_id)
 {
-	sprdwcn_bus_pt_read_release(fifo_id);
 	return 0;
 }
 
@@ -71,7 +70,7 @@ static long int mdbg_comm_write(char *buf,
 		WCN_ERR("WCN module have not open\n");
 		return -EIO;
 	}
-	send_buf = kzalloc(len + PUB_HEAD_RSV, GFP_KERNEL);
+	send_buf = kzalloc(len + PUB_HEAD_RSV + 1, GFP_KERNEL);
 	if (!send_buf)
 		return -ENOMEM;
 	memcpy(send_buf + PUB_HEAD_RSV, buf, len);
@@ -187,6 +186,7 @@ long int mdbg_send(char *buf, long int len, unsigned int subtype)
 
 	return sent_size;
 }
+EXPORT_SYMBOL_GPL(mdbg_send);
 
 long int mdbg_receive(void *buf, long int len)
 {
@@ -212,6 +212,11 @@ int mdbg_tx_cb(int channel, struct mbuf_t *head,
 static void mdbg_pt_ring_reg(void)
 {
 	sprdwcn_bus_chn_init(&mdbg_ringc_ops);
+}
+
+static void mdbg_pt_ring_unreg(void)
+{
+	sprdwcn_bus_chn_deinit(&mdbg_ringc_ops);
 }
 
 int mdbg_ring_init(void)
@@ -248,6 +253,7 @@ void mdbg_ring_remove(void)
 	struct ring_rx_data *pos, *next;
 
 	MDBG_FUNC_ENTERY;
+	mdbg_pt_ring_unreg();
 	wakeup_source_destroy(&ring_dev->rw_wake_lock);
 	mdbg_ring_destroy(ring_dev->ring);
 	tasklet_kill(&ring_dev->rx_task);

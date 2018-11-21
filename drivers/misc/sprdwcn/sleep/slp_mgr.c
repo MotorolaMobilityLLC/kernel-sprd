@@ -29,9 +29,10 @@
 #include <linux/spinlock.h>
 
 #include <misc/wcn_bus.h>
-
+#include "../sdio/sdiohal.h"
 #include "slp_mgr.h"
 #include "slp_sdio.h"
+#include "wcn_glb.h"
 
 static struct slp_mgr_t slp_mgr;
 
@@ -48,8 +49,7 @@ void slp_mgr_drv_sleep(enum slp_subsys subsys, bool enable)
 	else
 		slp_mgr.active_module |= (BIT(subsys));
 	if ((slp_mgr.active_module == 0) &&
-		(subsys > PACKER_RX)) {
-		SLP_MGR_INFO("dt done,allow sleep\n");
+		(subsys > PACKER_DT_RX)) {
 		slp_allow_sleep();
 		atomic_set(&(slp_mgr.cp2_state), STAY_SLPING);
 	}
@@ -58,27 +58,28 @@ void slp_mgr_drv_sleep(enum slp_subsys subsys, bool enable)
 
 int slp_mgr_wakeup(enum slp_subsys subsys)
 {
-	int ret = 0;
-
+	int rty_cnt = 0;
+	unsigned char slp_sts;
 	mutex_lock(&(slp_mgr.wakeup_lock));
-
 	if (STAY_SLPING == (atomic_read(&(slp_mgr.cp2_state)))) {
-
-		SLP_MGR_INFO("subsys-%d wakeup", subsys);
-
-		ret = ap_wakeup_cp();
-
-		/* for wakup success */
-		ret = wait_for_completion_timeout(&(
-				slp_mgr.wakeup_ack_completion),
-					msecs_to_jiffies(3000));
-		if (ret == 0) {
-			SLP_MGR_ERR("wakeup fail, ret-%d !!!!", ret);
-			/* avoid re-call wakeup api after wakeup fail */
-			atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);
-			mutex_unlock(&(slp_mgr.wakeup_lock));
-			return -ETIMEDOUT;
-		}
+		ap_wakeup_cp();
+		do {
+			sprdwcn_bus_aon_readb(REG_BTWF_SLP_STS, &slp_sts);
+			slp_sts &= 0xF0;
+			if ((slp_sts != BTWF_IN_DEEPSLEEP) &&
+			   (slp_sts != BTWF_IN_DEEPSLEEP_XLT_ON))
+				break;
+			SLP_MGR_INFO("slp_sts-0x%x", slp_sts);
+			rty_cnt++;
+			if (rty_cnt == WAKEUP_RTY_CNT) {
+				atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);
+				SLP_MGR_INFO("wakeup fail, slp_sts-0x%x",
+					slp_sts);
+				sdiohal_dump_aon_reg();
+				mutex_unlock(&(slp_mgr.wakeup_lock));
+				return -1;
+			}
+		} while (rty_cnt < WAKEUP_RTY_CNT);
 
 		atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);
 	}
@@ -86,6 +87,13 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 	mutex_unlock(&(slp_mgr.wakeup_lock));
 
 	return 0;
+}
+
+/* called after chip power on, and reset sleep status */
+void slp_mgr_reset(void)
+{
+	atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);
+	reinit_completion(&(slp_mgr.wakeup_ack_completion));
 }
 
 int slp_mgr_init(void)

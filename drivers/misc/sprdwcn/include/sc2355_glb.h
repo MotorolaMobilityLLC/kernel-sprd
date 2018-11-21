@@ -1,7 +1,7 @@
 #include <linux/kernel.h>
 #include "../sleep/slp_mgr.h"
-//#include "mem_pd_mgr.h"
-//#include "rdc_debug.h"
+#include "mem_pd_mgr.h"
+#include "rdc_debug.h"
 
 /* log buf size */
 #define MDBG_RX_RING_SIZE		(64*1024)
@@ -13,8 +13,7 @@
 /* set sdio higher priority to visit iram */
 #define M6_TO_S0_HIGH_PRIORITY 0X80000000
 
-//#define PACKET_SIZE		(32*1024)
-#define PACKET_SIZE		(256)
+#define PACKET_SIZE		(32*1024)
 /* time out in waiting wifi to come up */
 #define POWERUP_WAIT_MS	30000
 #define POWERUP_DELAY		200
@@ -22,11 +21,13 @@
 
 #define FIRMWARE_MAX_SIZE 0xf0c00
 #define WIFI_REG 0x60300004
-#define CHIPID_REG 0x603003fc
+#define CHIPID_REG 0x4083c208
 #define CALI_REG 0x70040000
 #define CALI_OFSET_REG 0x70040010
-#define MARLIN2_AA_CHIPID 0x23490000
-#define MARLIN2_AB_CHIPID 0x23490001
+#define MARLIN_AA_CHIPID 0x23550000
+#define MARLIN_AB_CHIPID 0x23550001
+#define MARLIN_AC_CHIPID 0x23550002
+#define MARLIN_AD_CHIPID 0x23550003
 
 #define CARD_DETECT_WAIT_MS	3000
 #define DCACHE_CMD_ISSUE_START 0X80000000
@@ -74,15 +75,55 @@
 #define WIFI_EN					BIT(5)
 #define WIFI_MAC_EN				BIT(9)
 #define WIFI_ALL_EN		(WIFI_EN | WIFI_MAC_EN)
+#define CLK_CTRL0			0x4083c040
+#define APLL_PDN			(1 << 0)
+#define BPLL_PDN			(1 << 1)
 
+/* for BT */
+#define BT_ACC_ADDR			(0x40240000)
+#define BT_ACC_SIZE			(0x8d8)
+#define BT_JAL_ADDR			(0x40246000)
+#define BT_JAL_SIZE			(0x738)
+#define BT_HAB_ADDR			(0x40248000)
+#define BT_HAB_SIZE			(0xA0)
+#define BT_LEJAL_ADDR			(0x4024A000)
+#define BT_LEJAL_SIZE			(0x21C)
+#define BT_MODEM_ADDR			(0x4024F000)
+#define BT_MODEM_SIZE			(0x300)
+/* for BT (HW DEC and BB) Buffer */
+#define HCI_ARM_WR_RD_MODE		(0x40240600)
+#define HCI_ARM_WR_RD_VALUE		(0xFFFF)
+
+#define BT_CMD_BUF_ADDR		(0x40200000)
+#define BT_CMD_BUF_SIZE		(0x200)
+#define BT_EVENT_BUF_ADDR		(0x40204000)
+#define BT_EVENT_BUF_SIZE		(0x200)
+#define BT_LMP_TX_BUF_ADDR		(0x40208000)
+#define BT_LMP_TX_BUF_SIZE		(0x12A4)
+#define BT_LMP_RX_BUF_ADDR		(0x40200C00)
+#define BT_LMP_RX_BUF_SIZE		(0xB744)
+#define BT_ACL_TX_BUF_ADDR		(0x40210000)
+#define BT_ACL_TX_BUF_SIZE		(0x3000)
+#define BT_ACL_RX_BUF_ADDR		(0x40214000)
+#define BT_ACL_RX_BUF_SIZE		(0x3000)
+#define BT_SCO_TX_BUF_ADDR		(0x40218000)
+#define BT_SCO_TX_BUF_SIZE		(0x2D0)
+#define BT_SCO_RX_BUF_ADDR		(0x4021C000)
+#define BT_SCO_RX_BUF_SIZE		(0x5C0)
+#define BT_BB_TX_BUF_ADDR		(0x40241000)
+#define BT_BB_TX_BUF_SIZE		(0x400)
+#define BT_BB_RX_BUF_ADDR		(0x40242000)
+#define BT_BB_RX_BUF_SIZE		(0x400)
 
 #define DUMP_BT_ADDR			(0)
 #define DUMP_BT_ADDR_SIZE		(0)
 /* for fm */
-#define DUMP_FM_ADDR			0x40980000
-#define DUMP_FM_ADDR_SIZE		0x238
-#define DUMP_FM_RDS_ADDR		0x40980800
-#define DUMP_FM_RDS_ADDR_SIZE		0x4c
+#define DUMP_FM1_ADDR			(0x40098000)
+#define DUMP_FM1_ADDR_SIZE		(0x238)
+#define DUMP_FM_RDS_ADDR		(0x40098800)
+#define DUMP_FM_RDS_ADDR_SIZE		(0x4c)
+#define DUMP_FM_ADDR			(0x40098000)
+#define DUMP_FM_ADDR_SIZE		(0xabc)
 
 #define DUMP_INTC_ADDR			(0)
 #define DUMP_SYSTIMER_ADDR		(0)
@@ -93,11 +134,24 @@
 #define DUMP_BT_CMD_ADDR		0
 #define DUMP_BT_CMD_ADDR_SIZE	0
 
+/* For TOP */
+#define AON_AHB_ADDR			(0x40880000)
+#define AON_AHB_SIZE			(0x54)
+#define AON_APB_ADDR			(0x4083C000)
+#define AON_APB_SIZE			(0x354)
+#define BTWF_AHB_ADDR			(0x40130000)
+#define BTWF_AHB_SIZE			(0x400)
+#define BTWF_APB_ADDR			(0x40880000)
+#define BTWF_APB_SIZE			(0x28C)
+#define AON_CLK_ADDR			(0x40844200)
+#define AON_CLK_SIZE			(0x144)
+#define PRE_DIV_CLK_ADDR		(0x40844000)
+#define PRE_DIV_CLK_SIZE		(0x48)
 
 #define DUMP_APB_ADDR			(0)
 #define DUMP_DMA_ADDR			(0)
 #define DUMP_AHB_ADDR			(0)
-#define DUMP_REG_SIZE			0X10000
+#define DUMP_REG_SIZE			(0X10000)
 
 #define SMP_HEADERFLAG 0X7E7E7E7E
 #define SMP_RESERVEDFLAG 0X5A5A
@@ -171,5 +225,35 @@
 #define GNSS_SS_POWER_DOWN	BIT(2)/* NO USE */
 #define CHIP_DEEP_SLP_EN	BIT(1)
 
+#define SYNC_ADDR		0x405F0BB0
+#define SYNC_IN_PROGRESS	0xF0F0F0F0
+#define SYNC_CALI_WAITING	0xF0F0F0F1
+#define SYNC_CALI_WRITE_DONE	0xF0F0F0F2
+#define SYNC_ALL_FINISHED	0xF0F0F0FF
+#define CHIP_SLP_REG		(AON_APB_BASE_ADDR + 0X000c)
+#define GNSS_SS_PWRON_FINISH	BIT(12)
+
 #define CGM_GNSS_FAKE_CFG (0x40844200 + 0X0104)
 #define CGM_GNSS_FAKE_SEL 0x3
+
+/* for sleep/wakeup */
+#define REG_CP_SLP_CTL		0x1a2
+#define REG_AP_INT_CP0		0x1b0
+#define REG_PUB_INT_EN0		0x1c0
+#define REG_PUB_INT_CLR0	0x1d0
+#define REG_PUB_INT_STS0	0x1f0
+/* BIT4~7, if value 0, stand for in deepsleep */
+#define REG_BTWF_SLP_STS	0x148
+#define BTWF_IN_DEEPSLEEP	0x0
+/* fm playing in deep, and xtl on */
+#define BTWF_IN_DEEPSLEEP_XLT_ON	0x30
+
+/* For power save */
+#define REG_WIFI_MEM_CFG1	0x4083c130
+#define FORCE_SHUTDOWN_BTRAM	BIT(22)
+
+/* For FM Spue freq */
+#define FM_REG_SPUR_FEQ1_ADDR			0x40098104
+#define FM_DISABLE_SPUR_REMOVE_VALUE		0x06DC063C
+#define FM_ENABLE_SPUR_REMOVE_FREQ2_VALUE	0x06DCAB7C
+

@@ -2,6 +2,7 @@
 #define __SLP_SDIO_H__
 
 #include "sdio_int.h"
+#include "wcn_glb.h"
 
 union CP_SLP_CTL_REG {
 	unsigned char reg;

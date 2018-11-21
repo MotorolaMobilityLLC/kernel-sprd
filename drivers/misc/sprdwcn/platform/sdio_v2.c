@@ -83,6 +83,11 @@ static int sdio_module_init(void)
 	return 0;
 }
 
+static void sdio_module_deinit(void)
+{
+	kfree(sdio_chn_info);
+}
+
 static unsigned int sdio_tx_cb(void *addr)
 {
 	int chn;
@@ -382,4 +387,11 @@ void module_bus_init(void)
 	module_ops_register(&sdiom_bus_ops);
 }
 EXPORT_SYMBOL(module_bus_init);
+
+void module_bus_deinit(void)
+{
+	module_ops_unregister();
+	sdio_module_deinit();
+}
+EXPORT_SYMBOL(module_bus_deinit);
 

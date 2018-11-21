@@ -1,11 +1,8 @@
 #include "bus_common.h"
 #include "sdiohal.h"
-#ifdef CONFIG_WCN_SLP
-#include "../sleep/slp_mgr.h"
-#endif
 
 void sdiohal_print_list_data(struct sdiohal_list_t *data_list,
-			     const char *func)
+			     const char *func, int loglevel)
 {
 	struct mbuf_t *node;
 	int i;
@@ -24,14 +21,16 @@ void sdiohal_print_list_data(struct sdiohal_list_t *data_list,
 			break;
 		print_len = node->len + SDIO_PUB_HEADER_SIZE;
 		sdiohal_pr_data(KERN_WARNING, print_str,
-			DUMP_PREFIX_NONE, 16, 1, node->buf,
-			(print_len < SDIOHAL_PRINTF_LEN ?
-			print_len : SDIOHAL_PRINTF_LEN), true);
+				DUMP_PREFIX_NONE, 16, 1, node->buf,
+				(print_len < SDIOHAL_PRINTF_LEN ?
+				print_len : SDIOHAL_PRINTF_LEN), true,
+				loglevel);
 	}
 }
 
 void sdiohal_print_mbuf_data(int channel, struct mbuf_t *head,
-			     struct mbuf_t *tail, int num, const char *func)
+			     struct mbuf_t *tail, int num, const char *func,
+			     int loglevel)
 {
 	struct mbuf_t *node;
 	int i;
@@ -51,9 +50,10 @@ void sdiohal_print_mbuf_data(int channel, struct mbuf_t *head,
 			break;
 		print_len = node->len + SDIO_PUB_HEADER_SIZE;
 		sdiohal_pr_data(KERN_WARNING, print_str,
-			DUMP_PREFIX_NONE, 16, 1, node->buf,
-			(print_len < SDIOHAL_PRINTF_LEN ?
-			print_len : SDIOHAL_PRINTF_LEN), true);
+				DUMP_PREFIX_NONE, 16, 1, node->buf,
+				(print_len < SDIOHAL_PRINTF_LEN ?
+				print_len : SDIOHAL_PRINTF_LEN), true,
+				loglevel);
 	}
 }
 
@@ -68,12 +68,15 @@ void sdiohal_list_check(struct sdiohal_list_t *data_list,
 		return;
 	}
 
-	sdiohal_pr_list("%s dir:%s data_list:%p node_num:%d,\n",
-		      func, dir ? "tx" : "rx", data_list, data_list->node_num);
+	sdiohal_pr_list(SDIOHAL_LIST_LEVEL,
+			"%s dir:%s data_list:%p node_num:%d,\n",
+			func, dir ? "tx" : "rx", data_list,
+			data_list->node_num);
 	node = data_list->mbuf_head;
 	for (i = 0; i < data_list->node_num; i++, node = node->next) {
 		WARN_ON(!node);
-		sdiohal_pr_list("%s node:%p buf:%p\n", func, node, node->buf);
+		sdiohal_pr_list(SDIOHAL_LIST_LEVEL, "%s node:%p buf:%p\n",
+				func, node, node->buf);
 	}
 
 	if (node) {
@@ -84,7 +87,7 @@ void sdiohal_list_check(struct sdiohal_list_t *data_list,
 
 void sdiohal_mbuf_list_check(int channel, struct mbuf_t *head,
 			     struct mbuf_t *tail, int num,
-			     const char *func, bool dir)
+			     const char *func, bool dir, int loglevel)
 {
 	struct mbuf_t *node;
 	int i;
@@ -94,12 +97,13 @@ void sdiohal_mbuf_list_check(int channel, struct mbuf_t *head,
 		return;
 	}
 
-	sdiohal_pr_list("%s dir:%s,channel:%d head:%p tail:%p num:%d\n",
+	sdiohal_pr_list(loglevel, "%s dir:%s chn:%d head:%p tail:%p num:%d\n",
 			func, dir ? "tx" : "rx", channel, head, tail, num);
 	node = head;
 	for (i = 0; i < num; i++, node = node->next) {
 		WARN_ON(!node);
-		sdiohal_pr_list("%s node:%p buf:%p\n", func, node, node->buf);
+		sdiohal_pr_list(SDIOHAL_LIST_LEVEL, "%s node:%p buf:%p\n",
+				func, node, node->buf);
 	}
 
 	if (node) {
@@ -160,16 +164,17 @@ static void sdiohal_completion_init(void)
 	init_completion(&p_data->scan_done);
 }
 
-/* for wakeup event*/
 void sdiohal_lock_tx_ws(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
-	if (atomic_read(&p_data->flag_suspending) ||
-		atomic_read(&p_data->tx_wake_flag))
+	if (atomic_read(&p_data->flag_suspending))
 		return;
 
-	atomic_set(&p_data->tx_wake_flag, 1);
+	sdiohal_atomic_add(1, &p_data->tx_wake_flag);
+	if (atomic_read(&p_data->tx_wake_flag) > 1)
+		return;
+
 	__pm_stay_awake(&p_data->tx_ws);
 }
 
@@ -177,10 +182,10 @@ void sdiohal_unlock_tx_ws(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
-	if (!atomic_read(&p_data->tx_wake_flag))
+	sdiohal_atomic_sub(1, &p_data->tx_wake_flag);
+	if (atomic_read(&p_data->tx_wake_flag))
 		return;
 
-	atomic_set(&p_data->tx_wake_flag, 0);
 	__pm_relax(&p_data->tx_ws);
 }
 
@@ -230,6 +235,15 @@ static void sdiohal_wakelock_init(void)
 	wakeup_source_init(&p_data->scan_ws, "sdiohal_scan_wakelock");
 }
 
+void sdiohal_wakelock_deinit(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	wakeup_source_trash(&p_data->tx_ws);
+	wakeup_source_trash(&p_data->rx_ws);
+	wakeup_source_trash(&p_data->scan_ws);
+}
+
 /* for callback */
 void sdiohal_callback_lock(struct mutex *callback_mutex)
 {
@@ -251,7 +265,17 @@ static void sdiohal_callback_lock_init(void)
 		mutex_init(&chn_callback[channel]);
 }
 
-static void sdiohal_spinlock_init(void)
+void sdiohal_callback_lock_deinit(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	struct mutex *chn_callback = p_data->callback_lock;
+	int channel;
+
+	for (channel = 0; channel < SDIO_CHANNEL_NUM; channel++)
+		mutex_destroy(&chn_callback[channel]);
+}
+
+void sdiohal_spinlock_init(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
@@ -261,30 +285,60 @@ static void sdiohal_spinlock_init(void)
 
 /* for sleep */
 #ifdef CONFIG_WCN_SLP
-void sdiohal_cp_tx_sleep(void)
+void sdiohal_cp_tx_sleep(enum slp_subsys subsys)
 {
-	sdiohal_debug("%s enter\n", __func__);
-	slp_mgr_drv_sleep(PACKER_TX, true);
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	sdiohal_debug("%s subsys:%d count:%d\n",
+		      __func__, subsys,
+		      atomic_read(&p_data->tx_wake_cp_count[subsys]));
+
+	sdiohal_atomic_sub(1, &p_data->tx_wake_cp_count[subsys]);
+	if (atomic_read(&p_data->tx_wake_cp_count[subsys]))
+		return;
+
+	slp_mgr_drv_sleep(subsys, true);
 }
 
-void sdiohal_cp_tx_wakeup(void)
+void sdiohal_cp_tx_wakeup(enum slp_subsys subsys)
 {
-	sdiohal_debug("%s enter\n", __func__);
-	slp_mgr_drv_sleep(PACKER_TX, false);
-	slp_mgr_wakeup(PACKER_TX);
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	sdiohal_debug("%s subsys:%d count:%d\n",
+		      __func__, subsys,
+		      atomic_read(&p_data->tx_wake_cp_count[subsys]));
+
+	sdiohal_atomic_add(1, &p_data->tx_wake_cp_count[subsys]);
+	slp_mgr_drv_sleep(subsys, false);
+	slp_mgr_wakeup(subsys);
 }
 
-void sdiohal_cp_rx_sleep(void)
+void sdiohal_cp_rx_sleep(enum slp_subsys subsys)
 {
-	sdiohal_debug("%s enter\n", __func__);
-	slp_mgr_drv_sleep(PACKER_RX, true);
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	sdiohal_debug("%s subsys:%d count:%d\n",
+		      __func__, subsys,
+		      atomic_read(&p_data->rx_wake_cp_count[subsys]));
+
+	sdiohal_atomic_sub(1, &p_data->rx_wake_cp_count[subsys]);
+	if (atomic_read(&p_data->rx_wake_cp_count[subsys]))
+		return;
+
+	slp_mgr_drv_sleep(subsys, true);
 }
 
-void sdiohal_cp_rx_wakeup(void)
+void sdiohal_cp_rx_wakeup(enum slp_subsys subsys)
 {
-	sdiohal_debug("%s enter\n", __func__);
-	slp_mgr_drv_sleep(PACKER_RX, false);
-	slp_mgr_wakeup(PACKER_RX);
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	sdiohal_debug("%s subsys:%d count:%d\n",
+		      __func__, subsys,
+		      atomic_read(&p_data->rx_wake_cp_count[subsys]));
+
+	sdiohal_atomic_add(1, &p_data->rx_wake_cp_count[subsys]);
+	slp_mgr_drv_sleep(subsys, false);
+	slp_mgr_wakeup(subsys);
 }
 #endif
 
@@ -317,34 +371,51 @@ void sdiohal_op_enter(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
-	mutex_lock(&p_data->sleep_mutex);
+	mutex_lock(&p_data->xmit_lock);
 }
 
 void sdiohal_op_leave(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
-	mutex_unlock(&p_data->sleep_mutex);
+	mutex_unlock(&p_data->xmit_lock);
 }
 
-static void sdiohal_sleep_flag_init(void)
+void sdiohal_sdma_enter(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	mutex_lock(&p_data->xmit_sdma);
+}
+
+void sdiohal_sdma_leave(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	mutex_unlock(&p_data->xmit_sdma);
+}
+
+void sdiohal_mutex_init(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	mutex_init(&p_data->xmit_lock);
+	mutex_init(&p_data->xmit_sdma);
+}
+
+void sdiohal_mutex_deinit(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	mutex_destroy(&p_data->xmit_lock);
+	mutex_destroy(&p_data->xmit_sdma);
+}
+
+void sdiohal_sleep_flag_init(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
 	atomic_set(&p_data->flag_resume, 1);
-}
-
-static void sdiohal_sleep_mutex_init(void)
-{
-	struct sdiohal_data_t *p_data = sdiohal_get_data();
-
-	mutex_init(&p_data->sleep_mutex);
-}
-
-static void sdiohal_sleep_init(void)
-{
-	sdiohal_sleep_flag_init();
-	sdiohal_sleep_mutex_init();
 }
 
 void sdiohal_channel_to_hwtype(int inout, int channel,
@@ -384,7 +455,8 @@ bool sdiohal_is_tx_list_empty(void)
 }
 
 int sdiohal_tx_packer(struct sdiohal_sendbuf_t *send_buf,
-		    struct sdiohal_list_t *data_list, struct mbuf_t *mbuf_node)
+		      struct sdiohal_list_t *data_list,
+		      struct mbuf_t *mbuf_node)
 {
 	if ((!send_buf) || (!data_list) || (!mbuf_node))
 		return -EINVAL;
@@ -560,10 +632,11 @@ int sdiohal_tx_list_denq(struct sdiohal_list_t *data_list)
 			continue;
 
 		sdiohal_list_check(tx_list, __func__, SDIOHAL_WRITE);
-		sdiohal_print_list_data(tx_list, __func__);
+		sdiohal_print_list_data(tx_list, __func__,
+					SDIOHAL_NORMAL_LEVEL);
 
-		channel = sdiohal_hwtype_to_channel(inout,
-			tx_list->type, tx_list->subtype);
+		channel = sdiohal_hwtype_to_channel(inout, tx_list->type,
+						    tx_list->subtype);
 		if (channel >= SDIO_CHN_TX_NUM) {
 			sdiohal_err("%s tx pop channel error:%d\n",
 				__func__, channel);
@@ -577,25 +650,26 @@ int sdiohal_tx_list_denq(struct sdiohal_list_t *data_list)
 		sdiohal_mbuf_list_check(channel, tx_list->mbuf_head,
 					tx_list->mbuf_tail,
 					tx_list->node_num,
-					__func__, SDIOHAL_WRITE);
+					__func__, SDIOHAL_WRITE,
+					SDIOHAL_NORMAL_LEVEL);
 		if (sdiohal_ops && sdiohal_ops->pop_link) {
-			sdiohal_ops->pop_link(channel,
-				tx_list->mbuf_head, tx_list->mbuf_tail,
-				tx_list->node_num);
+			sdiohal_ops->pop_link(channel, tx_list->mbuf_head,
+					      tx_list->mbuf_tail,
+					      tx_list->node_num);
 		} else
 			sdiohal_err("%s no tx ops channel:%d\n",
-				__func__, channel);
+				    __func__, channel);
 
 		tx_list->node_num = 0;
 		sdiohal_callback_unlock(&chn_callback[channel]);
 
 		getnstimeofday(&tm_end);
-		time_total_ns += timespec_to_ns(&tm_end) -
-				timespec_to_ns(&tm_begin);
+		time_total_ns += timespec_to_ns(&tm_end)
+			- timespec_to_ns(&tm_begin);
 		times_count++;
 		if (!(times_count % PERFORMANCE_COUNT)) {
 			sdiohal_pr_perf("tx pop callback,avg time:%ld\n",
-				(time_total_ns / PERFORMANCE_COUNT));
+					(time_total_ns / PERFORMANCE_COUNT));
 			time_total_ns = 0;
 			times_count = 0;
 		}
@@ -628,13 +702,14 @@ int sdiohal_rx_list_dispatch(void)
 			continue;
 
 		sdiohal_list_check(rx_list, __func__, SDIOHAL_READ);
-		sdiohal_print_list_data(rx_list, __func__);
+		sdiohal_print_list_data(rx_list, __func__,
+					SDIOHAL_NORMAL_LEVEL);
 
-		channel = sdiohal_hwtype_to_channel(inout,
-			rx_list->type, rx_list->subtype);
+		channel = sdiohal_hwtype_to_channel(inout, rx_list->type,
+						    rx_list->subtype);
 		if (channel >= SDIO_CHANNEL_NUM) {
 			sdiohal_err("%s rx pop channel error:%d\n",
-			__func__, channel);
+				    __func__, channel);
 			continue;
 		}
 
@@ -645,16 +720,18 @@ int sdiohal_rx_list_dispatch(void)
 		sdiohal_mbuf_list_check(channel, rx_list->mbuf_head,
 					rx_list->mbuf_tail,
 					rx_list->node_num,
-					__func__, SDIOHAL_READ);
+					__func__, SDIOHAL_READ,
+					SDIOHAL_NORMAL_LEVEL);
 		if (sdiohal_ops && sdiohal_ops->pop_link) {
-			sdiohal_ops->pop_link(channel,
-				rx_list->mbuf_head, rx_list->mbuf_tail,
-				rx_list->node_num);
+			sdiohal_ops->pop_link(channel, rx_list->mbuf_head,
+					      rx_list->mbuf_tail,
+					      rx_list->node_num);
 		} else {
 			sdiohal_err("%s no rx ops channel:%d\n",
 				__func__, channel);
 			sdiohal_rx_list_free(rx_list->mbuf_head,
-				rx_list->mbuf_tail, rx_list->node_num);
+					     rx_list->mbuf_tail,
+					     rx_list->node_num);
 		}
 		rx_list->node_num = 0;
 		sdiohal_callback_unlock(&chn_callback[channel]);
@@ -925,6 +1002,33 @@ static void sdiohal_rx_buf_init(void)
 	sdiohal_alloc_rx_mbuf_nodes(SDIOHAL_RX_NODE_NUM);
 }
 
+static int sdiohal_free_rx_mbuf_nodes(int num)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	struct mbuf_t *mbuf_node = NULL, *mbuf_temp = NULL;
+	int i;
+
+	mbuf_temp = p_data->list_rx_buf.mbuf_head;
+	for (i = 0; i < num; i++) {
+		if (mbuf_temp->next)
+			mbuf_node = mbuf_temp->next;
+		mbuf_temp->next = NULL;
+		kfree(mbuf_temp);
+		mbuf_temp = mbuf_node;
+	}
+
+	p_data->list_rx_buf.mbuf_head = NULL;
+	p_data->list_rx_buf.mbuf_tail = NULL;
+	p_data->list_rx_buf.node_num = 0;
+
+	return 0;
+}
+
+static void sdiohal_rx_buf_deinit(void)
+{
+	sdiohal_free_rx_mbuf_nodes(SDIOHAL_RX_NODE_NUM);
+}
+
 int sdiohal_list_push(int channel, struct mbuf_t *head,
 		      struct mbuf_t *tail, int num)
 {
@@ -944,8 +1048,11 @@ int sdiohal_list_push(int channel, struct mbuf_t *head,
 		return -ENODEV;
 
 	sdiohal_mbuf_list_check(channel, head, tail, num, __func__,
-				channel < SDIO_CHN_TX_NUM ?
-				SDIOHAL_WRITE : SDIOHAL_READ);
+				(channel < SDIO_CHN_TX_NUM ?
+				SDIOHAL_WRITE : SDIOHAL_READ),
+				(channel < SDIO_CHN_TX_NUM ?
+				SDIOHAL_NORMAL_LEVEL :
+				SDIOHAL_LIST_LEVEL));
 	if ((channel < 0) || (channel >= SDIO_CHANNEL_NUM) ||
 		(!head) || (!tail) || (num <= 0)) {
 		sdiohal_err("%s Invalid argument\n", __func__);
@@ -963,7 +1070,8 @@ int sdiohal_list_push(int channel, struct mbuf_t *head,
 	}
 
 	if (channel < SDIO_CHN_TX_NUM) {
-		sdiohal_print_mbuf_data(channel, head, tail, num, __func__);
+		sdiohal_print_mbuf_data(channel, head, tail, num,
+					__func__, SDIOHAL_DATA_LEVEL);
 		sdiohal_tx_list_enq(channel, head, tail, num);
 
 		getnstimeofday(&tm_end);
@@ -981,6 +1089,33 @@ int sdiohal_list_push(int channel, struct mbuf_t *head,
 		sdiohal_tx_up();
 	} else
 		sdiohal_rx_list_free(head, tail, num);
+
+	return 0;
+}
+
+int sdiohal_list_direct_write(int channel, struct mbuf_t *head,
+			      struct mbuf_t *tail, int num)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	struct sdiohal_list_t data_list;
+
+	sdiohal_lock_tx_ws();
+	sdiohal_resume_check();
+	sdiohal_cp_tx_wakeup(PACKER_DT_TX);
+	sdiohal_tx_fill_puh(channel, head, tail, num);
+
+	data_list.mbuf_head = head;
+	data_list.mbuf_tail = tail;
+	data_list.node_num = num;
+	data_list.mbuf_tail->next = NULL;
+
+	if (p_data->adma_tx_enable)
+		sdiohal_adma_pt_write(&data_list);
+	else
+		sdiohal_tx_data_list_send(&data_list);
+
+	sdiohal_cp_tx_sleep(PACKER_DT_TX);
+	sdiohal_unlock_tx_ws();
 
 	return 0;
 }
@@ -1023,6 +1158,27 @@ static int sdiohal_list_init(void)
 	return 0;
 }
 
+static void sdiohal_list_deinit(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	unsigned int channel = 0;
+	struct list_head *pos, *next;
+
+	for (channel = 0; channel < SDIO_TX_LIST_NUM; channel++) {
+		list_for_each_safe(pos, next, &p_data->list_tx[channel]->head) {
+			list_del_init(pos);
+		}
+		kfree(p_data->list_tx[channel]);
+	}
+
+	for (channel = 0; channel < SDIO_RX_LIST_NUM; channel++) {
+		list_for_each_safe(pos, next, &p_data->list_rx[channel]->head) {
+			list_del_init(pos);
+		}
+		kfree(p_data->list_rx[channel]);
+	}
+}
+
 static int sdiohal_tx_sendbuf_init(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
@@ -1033,6 +1189,15 @@ static int sdiohal_tx_sendbuf_init(void)
 		return -ENOMEM;
 
 	return 0;
+}
+
+static void sdiohal_tx_sendbuf_deinit(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	kfree(p_data->send_buf.buf);
+	p_data->send_buf.buf = NULL;
+	p_data->send_buf.retry_buf = NULL;
 }
 
 void sdiohal_tx_init_retrybuf(void)
@@ -1063,6 +1228,13 @@ static int sdiohal_eof_buf_init(void)
 	return 0;
 }
 
+static void sdiohal_eof_buf_deinit(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	kfree(p_data->eof_buf);
+}
+
 static int sdiohal_dtbs_buf_init(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
@@ -1077,6 +1249,25 @@ static int sdiohal_dtbs_buf_init(void)
 	return 0;
 }
 
+static int sdiohal_dtbs_buf_deinit(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+	int order;
+
+	if (!p_data->dtbs_buf)
+		return -ENOMEM;
+
+#if (BITS_PER_LONG > 32) || (PAGE_SIZE >= 65536)
+	order = SDIOHAL_FRAG_PAGE_MAX_ORDER;
+#else
+	order = SDIOHAL_FRAG_PAGE_MAX_ORDER_32_BIT;
+#endif
+	free_pages((unsigned long)p_data->dtbs_buf, order);
+	p_data->dtbs_buf = NULL;
+
+	return 0;
+}
+
 int sdiohal_misc_init(void)
 {
 	int ret = 0;
@@ -1085,7 +1276,8 @@ int sdiohal_misc_init(void)
 	sdiohal_wakelock_init();
 	sdiohal_callback_lock_init();
 	sdiohal_spinlock_init();
-	sdiohal_sleep_init();
+	sdiohal_sleep_flag_init();
+	sdiohal_mutex_init();
 	sdiohal_rx_buf_init();
 	sdiohal_dtbs_buf_init();
 	ret = sdiohal_list_init();
@@ -1096,4 +1288,16 @@ int sdiohal_misc_init(void)
 	ret = sdiohal_eof_buf_init();
 
 	return ret;
+}
+
+void sdiohal_misc_deinit(void)
+{
+	sdiohal_eof_buf_deinit();
+	sdiohal_tx_sendbuf_deinit();
+	sdiohal_list_deinit();
+	sdiohal_dtbs_buf_deinit();
+	sdiohal_rx_buf_deinit();
+	sdiohal_mutex_deinit();
+	sdiohal_callback_lock_deinit();
+	sdiohal_wakelock_deinit();
 }

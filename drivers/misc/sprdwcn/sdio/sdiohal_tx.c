@@ -86,13 +86,14 @@ static int sdiohal_send(struct sdiohal_sendbuf_t *send_buf,
 	return ret;
 }
 
-static int sdiohal_tx_data_list_send(struct sdiohal_list_t *data_list)
+int sdiohal_tx_data_list_send(struct sdiohal_list_t *data_list)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	struct mbuf_t *mbuf_node;
 	unsigned int i;
 	int ret = 0;
 
+	sdiohal_sdma_enter();
 	sdiohal_list_check(data_list, __func__, SDIOHAL_WRITE);
 	mbuf_node = data_list->mbuf_head;
 	for (i = 0; i < data_list->node_num;
@@ -123,6 +124,7 @@ static int sdiohal_tx_data_list_send(struct sdiohal_list_t *data_list)
 			data_list->node_num);
 
 	p_data->send_buf.used_len = 0;
+	sdiohal_sdma_leave();
 
 	return ret;
 }
@@ -139,6 +141,8 @@ int sdiohal_tx_thread(void *data)
 	while (1) {
 		/* Wait the semaphore */
 		sdiohal_tx_down();
+		if (p_data->exit_flag)
+			break;
 
 		getnstimeofday(&p_data->tm_end_sch);
 		sdiohal_pr_perf("tx sch time:%ld\n",
@@ -149,7 +153,7 @@ int sdiohal_tx_thread(void *data)
 		sdiohal_resume_wait();
 
 		/* wakeup cp */
-		sdiohal_cp_tx_wakeup();
+		sdiohal_cp_tx_wakeup(PACKER_TX);
 
 		while (!sdiohal_is_tx_list_empty()) {
 			getnstimeofday(&tm_begin);
@@ -173,7 +177,7 @@ int sdiohal_tx_thread(void *data)
 			}
 		}
 
-		sdiohal_cp_tx_sleep();
+		sdiohal_cp_tx_sleep(PACKER_TX);
 		sdiohal_unlock_tx_ws();
 	}
 

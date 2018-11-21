@@ -43,6 +43,7 @@
 #include "wcn_dump.h"
 #include "wcn_log.h"
 #include "wcn_procfs.h"
+#include "wcn_gnss.h"
 #include "mdbg_type.h"
 #include "../include/wcn_glb_reg.h"
 
@@ -51,6 +52,28 @@
 #endif
 static char BTWF_FIRMWARE_PATH[255];
 static char GNSS_FIRMWARE_PATH[255];
+
+struct wcn_sync_info_t {
+	unsigned int init_status;
+	unsigned int mem_pd_bt_start_addr;
+	unsigned int mem_pd_bt_end_addr;
+	unsigned int mem_pd_wifi_start_addr;
+	unsigned int mem_pd_wifi_end_addr;
+	unsigned int prj_type;
+	unsigned short tsx_dac_data;
+	unsigned short rsved;
+} __packed;
+
+struct tsx_data {
+	u32 flag; /* cali flag ref */
+	u16 dac; /* AFC cali data */
+	u16 reserved;
+};
+
+struct tsx_cali {
+	u32 init_flag;
+	struct tsx_data tsxdata;
+};
 
 struct marlin_device {
 	int coexist;
@@ -89,6 +112,10 @@ struct marlin_device {
 	int first_power_on_flag;
 	unsigned char download_finish_flag;
 	int loopcheck_status_change;
+	struct wcn_sync_info_t sync_f;
+	struct tsx_cali tsxcali;
+	char *btwf_path;
+	char *gnss_path;
 };
 
 struct wifi_calibration {
@@ -103,6 +130,7 @@ marlin_reset_callback marlin_reset_func;
 void *marlin_callback_para;
 
 static struct marlin_device *marlin_dev;
+struct sprdwcn_gnss_ops *gnss_ops;
 
 unsigned char  flag_reset;
 char functionmask[8];
@@ -117,12 +145,17 @@ static unsigned int marlin2_clk_wait_reg;
 #define IMG_HEAD_MAGIC "WCNM"
 #define IMG_MARLINAA_TAG "MLAA"
 #define IMG_MARLINAB_TAG "MLAB"
+#define IMG_MARLINAC_TAG "MLAC"
 #define MARLIN2_AA	1
 #define MARLIN2_AB	2
 #define MARLIN2_AA_CHIP 0x23490000
 #define MARLIN_MASK 0x27F
 #define GNSS_MASK 0x080
 #define AUTO_RUN_MASK 0X100
+
+#define AFC_CALI_FLAG 0x54463031 /* cali flag */
+#define AFC_CALI_READ_FINISH 0x12121212
+#define WCN_AFC_CALI_PATH "/productinfo/wcn/tsx_bt_data.txt"
 
 /* #define E2S(x) { case x: return #x; } */
 
@@ -181,6 +214,68 @@ const char *strno(int subsys)
 /* #undef E2S */
 }
 
+/* tsx/dac init */
+int marlin_tsx_cali_data_read(struct tsx_data *p_tsx_data)
+{
+	u32 size = 0;
+	u32 read_len = 0;
+	struct file *file;
+	loff_t offset = 0;
+	char *pdata;
+
+	file = filp_open(WCN_AFC_CALI_PATH, O_RDONLY, 0);
+	if (IS_ERR(file)) {
+		WCN_ERR("open file error\n");
+		return -1;
+	}
+	WCN_INFO("open image "WCN_AFC_CALI_PATH" successfully\n");
+
+	/* read file to buffer */
+	size = sizeof(struct tsx_data);
+	pdata = (char *)p_tsx_data;
+	do {
+		read_len = kernel_read(file, pdata, size, &offset);
+		if (read_len > 0) {
+			size -= read_len;
+			pdata += read_len;
+		}
+	} while ((read_len > 0) && (size > 0));
+	fput(file);
+	WCN_INFO("After read, data =%p dac value %02x\n", pdata,
+			 p_tsx_data->dac);
+
+	return 0;
+}
+
+static u16 marlin_tsx_cali_data_get(void)
+{
+	int ret;
+
+	WCN_INFO("tsx cali init flag %d\n", marlin_dev->tsxcali.init_flag);
+
+	if (marlin_dev->tsxcali.init_flag == AFC_CALI_READ_FINISH)
+		return marlin_dev->tsxcali.tsxdata.dac;
+
+	ret = marlin_tsx_cali_data_read(&marlin_dev->tsxcali.tsxdata);
+	marlin_dev->tsxcali.init_flag = AFC_CALI_READ_FINISH;
+	if (ret != 0) {
+		marlin_dev->tsxcali.tsxdata.dac = 0xffff;
+		WCN_INFO("tsx cali read fail! default 0xffff\n");
+		return marlin_dev->tsxcali.tsxdata.dac;
+	}
+
+	if (marlin_dev->tsxcali.tsxdata.flag != AFC_CALI_FLAG) {
+		marlin_dev->tsxcali.tsxdata.dac = 0xffff;
+		WCN_INFO("tsx cali flag fail! default 0xffff\n");
+		return marlin_dev->tsxcali.tsxdata.dac;
+	}
+	WCN_INFO("dac flag %d value:0x%x\n",
+			    marlin_dev->tsxcali.tsxdata.flag,
+			    marlin_dev->tsxcali.tsxdata.dac);
+
+	return marlin_dev->tsxcali.tsxdata.dac;
+}
+
 static int marlin_judge_imagepack(char *buffer)
 {
 	int ret;
@@ -216,19 +311,19 @@ static struct imageinfo *marlin_judge_images(char *buffer)
 		return NULL;
 	}
 
-	if (chip_id == MARLIN2_AA_CHIPID) {
-		WCN_INFO("%s marlin2 is AA !!!!\n",  __func__);
+	if (chip_id == MARLIN_AC_CHIPID || chip_id == MARLIN_AD_CHIPID) {
+		WCN_INFO("%s marlin is AC(AD) !!!!\n",  __func__);
 		memcpy(imginfo, (buffer + sizeof(struct head)),
 			sizeof(struct imageinfo));
-		if (!strncmp(IMG_MARLINAA_TAG, imginfo->tag, 4)) {
+		if (!strncmp(IMG_MARLINAC_TAG, imginfo->tag, 4)) {
 			WCN_INFO("marlin imginfo1 type is %s in the func %s:\n",
 				imginfo->tag, __func__);
 			return imginfo;
 		}
-		WCN_ERR("Marlin can't find marlin AA image!!!\n");
+		WCN_ERR("Marlin can't find marlin AC(AD) image!!!\n");
 		vfree(imginfo);
 		return NULL;
-	} else if (chip_id == MARLIN2_AB_CHIPID) {
+	} else if (chip_id == MARLIN_AB_CHIPID) {
 		WCN_INFO("%s marlin is AB !!!!\n", __func__);
 		memcpy(imginfo,
 			buffer + sizeof(struct imageinfo) + sizeof(struct head),
@@ -242,7 +337,7 @@ static struct imageinfo *marlin_judge_images(char *buffer)
 		vfree(imginfo);
 		return NULL;
 	}
-	WCN_ERR("Marlin can't find marlin AB or AA image!!!\n");
+	WCN_ERR("Marlin can't find marlin AB or AC(AD) image!!!\n");
 	vfree(imginfo);
 
 	return NULL;
@@ -299,6 +394,8 @@ static char *btwf_load_firmware_data(unsigned long int imag_size)
 	} while ((read_len > 0) && (size > 0));
 	fput(file);
 	WCN_INFO("%s finish read_Len:%d\n", __func__, read_len);
+	if (read_len <= 0)
+		return NULL;
 
 	return data;
 }
@@ -364,6 +461,23 @@ static int marlin_download_from_partition(void)
 	return 0;
 }
 
+int wcn_gnss_ops_register(struct sprdwcn_gnss_ops *ops)
+{
+	if (gnss_ops) {
+		WARN_ON(1);
+		return -EBUSY;
+	}
+
+	gnss_ops = ops;
+
+	return 0;
+}
+
+void wcn_gnss_ops_unregister(void)
+{
+	gnss_ops = NULL;
+}
+
 static char *gnss_load_firmware_data(unsigned long int imag_size)
 {
 	int read_len, size, i, opn_num_max = 15;
@@ -373,6 +487,10 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 	loff_t pos = 0;
 
 	MDBG_LOG("%s entry\n", __func__);
+	if (gnss_ops && (gnss_ops->set_file_path))
+		gnss_ops->set_file_path(&GNSS_FIRMWARE_PATH[0]);
+	else
+		WCN_ERR("%s gnss_ops set_file_path error\n", __func__);
 	file = filp_open(GNSS_FIRMWARE_PATH, O_RDONLY, 0);
 	for (i = 1; i <= opn_num_max; i++) {
 		if (IS_ERR(file)) {
@@ -407,6 +525,8 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 	} while ((read_len > 0) && (size > 0));
 	fput(file);
 	WCN_INFO("%s finish read_Len:%d\n", __func__, read_len);
+	if (read_len <= 0)
+		return NULL;
 
 	return data;
 }
@@ -491,40 +611,7 @@ static int gnss_download_firmware(void)
 
 	return 0;
 }
-/* release CPU */
-static int marlin_start_run(void)
-{
-	int ret = 0;
-	unsigned int ss_val;
 
-	WCN_INFO("%s\n", __func__);
-
-	sdio_pub_int_btwf_en0();
-
-	ret = sprdwcn_bus_reg_read(CP_RESET_REG, &ss_val, 4);
-	if (ret < 0) {
-		WCN_ERR("%s read reset reg error:%d\n", __func__, ret);
-		return ret;
-	}
-	WCN_INFO("%s read reset reg val:0x%x\n", __func__, ss_val);
-
-	ss_val &= (~0) - 1;
-	WCN_INFO("after do %s reset reg val:0x%x\n", __func__, ss_val);
-	ret = sprdwcn_bus_reg_write(CP_RESET_REG, &ss_val, 4);
-	if (ret < 0) {
-		WCN_ERR("%s write reset reg error:%d\n", __func__, ret);
-		return ret;
-	}
-
-	ret = sprdwcn_bus_reg_read(CP_RESET_REG, &ss_val, 4);
-	if (ret < 0) {
-		WCN_ERR("%s read reset reg error:%d\n", __func__, ret);
-		return ret;
-	}
-	WCN_INFO("%s reset reg val:0x%x\n", __func__, ss_val);
-
-	return ret;
-}
 /* BT WIFI FM download */
 static int btwifi_download_firmware(void)
 {
@@ -578,16 +665,10 @@ static int marlin_parse_dt(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
 	struct regmap *pmu_apb_gpr;
-	enum of_gpio_flags of_flags;
 	int ret;
 
 	if (!marlin_dev)
 		return -1;
-
-	marlin_dev->int_ap = of_get_named_gpio_flags(np,
-			"m2-to-ap-irq-gpios", 0, &of_flags);
-	if (!gpio_is_valid(marlin_dev->int_ap))
-		return -EINVAL;
 
 	marlin_dev->coexist = of_get_named_gpio(np,
 			"m2-to-ap-coexist-gpios", 0);
@@ -667,6 +748,24 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		WCN_ERR("gpio_rst request err: %d\n",
 				marlin_dev->int_ap);
 
+	WCN_INFO("BTWF_FIRMWARE_PATH len=%ld\n", strlen(BTWF_FIRMWARE_PATH));
+	ret = of_property_read_string(np, "sprd,btwf-file-name",
+				      (const char **)&marlin_dev->btwf_path);
+	if (!ret) {
+		WCN_INFO("btwf firmware name:%s\n", marlin_dev->btwf_path);
+		strcpy(BTWF_FIRMWARE_PATH, marlin_dev->btwf_path);
+		WCN_INFO("BTWG path is %s\n", BTWF_FIRMWARE_PATH);
+	}
+
+	WCN_INFO("BTWF_FIRMWARE_PATH2 len=%ld\n", strlen(BTWF_FIRMWARE_PATH));
+
+	ret = of_property_read_string(np, "sprd,gnss-file-name",
+				      (const char **)&marlin_dev->gnss_path);
+	if (!ret) {
+		WCN_INFO("gnss firmware name:%s\n", marlin_dev->gnss_path);
+		strcpy(GNSS_FIRMWARE_PATH, marlin_dev->gnss_path);
+	}
+
 	if (of_property_read_bool(np, "sprd,no-power-off")) {
 		WCN_INFO("wcn config is no power down\n");
 		marlin_dev->no_power_off = true;
@@ -699,6 +798,18 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	return 0;
 }
 
+static int marlin_gpio_free(struct platform_device *pdev)
+{
+	if (!marlin_dev)
+		return -1;
+
+	gpio_free(marlin_dev->reset);
+	gpio_free(marlin_dev->chip_en);
+	gpio_free(marlin_dev->int_ap);
+
+	return 0;
+}
+
 static int marlin_clk_enable(bool enable)
 {
 	int ret = 0;
@@ -724,8 +835,6 @@ static int marlin_digital_power_enable(bool enable)
 		return 0;
 
 	if (enable) {
-		gpio_direction_output(marlin_dev->reset, 0);
-
 		regulator_set_voltage(marlin_dev->dvdd12,
 					      1200000, 1200000);
 		ret = regulator_enable(marlin_dev->dvdd12);
@@ -751,20 +860,6 @@ static int marlin_analog_power_enable(bool enable)
 			if (regulator_is_enabled(marlin_dev->avdd12))
 				ret =
 				regulator_disable(marlin_dev->avdd12);
-		}
-	}
-
-	if (marlin_dev->avdd33 != NULL) {
-		WCN_INFO("%s 3v3 %d\n", __func__, enable);
-		msleep(20);
-		if (enable) {
-			regulator_set_voltage(marlin_dev->avdd33,
-			3300000, 3300000);
-			ret = regulator_enable(marlin_dev->avdd33);
-		} else {
-			if (regulator_is_enabled(marlin_dev->avdd33))
-				ret =
-				regulator_disable(marlin_dev->avdd33);
 		}
 	}
 
@@ -836,14 +931,131 @@ void marlin_read_cali_data(void)
 		return;
 	}
 
+	sprdwcn_bus_runtime_get();
+
 	complete(&marlin_dev->download_done);
 }
 
 static int marlin_write_cali_data(void)
 {
-	complete(&marlin_dev->download_done);/* temp */
+	int ret = 0, init_state = 0, cali_data_offset = 0;
+	int i = 0;
 
-	return 0; /* temp */
+	WCN_INFO("tsx_dac_data:%d\n", marlin_dev->tsxcali.tsxdata.dac);
+	cali_data_offset = (unsigned long)(&(marlin_dev->sync_f.tsx_dac_data))
+		- (unsigned long)(&(marlin_dev->sync_f));
+	WCN_INFO("cali_data_offset:0x%x\n", cali_data_offset);
+
+	do {
+		i++;
+		ret = sprdwcn_bus_reg_read(SYNC_ADDR, &init_state, 4);
+		if (ret < 0) {
+			WCN_ERR("%s marlin3 read SYNC_ADDR error:%d\n",
+				__func__, ret);
+			return ret;
+		}
+		WCN_INFO("%s sync init_state:0x%x\n", __func__, init_state);
+
+		if (init_state != SYNC_CALI_WAITING)
+			msleep(20);
+		/* wait cp in the state of waiting cali data */
+		else {
+			/* write cali data to cp */
+			marlin_dev->sync_f.tsx_dac_data =
+					marlin_dev->tsxcali.tsxdata.dac;
+			ret = sprdwcn_bus_direct_write(SYNC_ADDR +
+					cali_data_offset,
+					&(marlin_dev->sync_f.tsx_dac_data), 2);
+			if (ret < 0) {
+				WCN_ERR("write cali data error:%d\n", ret);
+				return ret;
+			}
+
+			/* tell cp2 can handle cali data */
+			init_state = SYNC_CALI_WRITE_DONE;
+			ret = sprdwcn_bus_reg_write(SYNC_ADDR, &init_state, 4);
+			if (ret < 0) {
+				WCN_ERR("write cali_done flag error:%d\n", ret);
+				return ret;
+			}
+
+			i = 0;
+			WCN_INFO("marlin_write_cali_data finish\n");
+			return ret;
+		}
+
+		if (i > 10)
+			i = 0;
+	} while (i);
+
+	return ret;
+}
+
+/* release CPU */
+static int marlin_start_run(void)
+{
+	int ret = 0;
+	unsigned int ss_val;
+
+	WCN_INFO("%s\n", __func__);
+
+	marlin_tsx_cali_data_get();
+#ifdef CONFIG_WCN_SLP
+	sdio_pub_int_btwf_en0();
+	/* after chip power on, reset sleep status */
+	slp_mgr_reset();
+#endif
+
+	ret = sprdwcn_bus_reg_read(CP_RESET_REG, &ss_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read reset reg error:%d\n", __func__, ret);
+		return ret;
+	}
+	WCN_INFO("%s read reset reg val:0x%x\n", __func__, ss_val);
+	ss_val &= (~0) - 1;
+	WCN_INFO("after do %s reset reg val:0x%x\n", __func__, ss_val);
+	ret = sprdwcn_bus_reg_write(CP_RESET_REG, &ss_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s write reset reg error:%d\n", __func__, ret);
+		return ret;
+	}
+
+	ret = sprdwcn_bus_reg_read(CP_RESET_REG, &ss_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read reset reg error:%d\n", __func__, ret);
+		return ret;
+	}
+	WCN_INFO("%s reset reg val:0x%x\n", __func__, ss_val);
+
+	return ret;
+}
+
+static int check_cp_ready(void)
+{
+	int ret = 0;
+	int i = 0;
+
+	do {
+		i++;
+		ret = sprdwcn_bus_direct_read(SYNC_ADDR,
+			&(marlin_dev->sync_f), sizeof(struct wcn_sync_info_t));
+		if (ret < 0) {
+			WCN_ERR("%s marlin3 read SYNC_ADDR error:%d\n",
+				__func__, ret);
+			return ret;
+		}
+		WCN_INFO("%s sync val:0x%x, prj_type val:0x%x\n", __func__,
+				marlin_dev->sync_f.init_status,
+				marlin_dev->sync_f.prj_type);
+		if (marlin_dev->sync_f.init_status == SYNC_IN_PROGRESS)
+			msleep(20);
+		if (marlin_dev->sync_f.init_status == SYNC_ALL_FINISHED)
+			i = 0;
+		if (i > 4)
+			i = 0;
+	} while (i);
+
+	return 0;
 }
 
 static int gnss_start_run(void)
@@ -852,9 +1064,9 @@ static int gnss_start_run(void)
 	unsigned int temp;
 
 	WCN_INFO("gnss start run enter ");
-
+#ifdef CONFIG_WCN_SLP
 	sdio_pub_int_gnss_en0();
-
+#endif
 	ret = sprdwcn_bus_reg_read(GNSS_CP_RESET_REG, &temp, 4);
 	if (ret < 0) {
 		WCN_ERR("%s marlin3_gnss read reset reg error:%d\n",
@@ -935,8 +1147,103 @@ void marlin_chip_en(bool enable, bool reset)
 }
 EXPORT_SYMBOL_GPL(marlin_chip_en);
 
-static void check_need_loopcheck_or_not(void)
+int set_cp_mem_status(int subsys, int val)
 {
+	int ret;
+	unsigned int temp_val;
+
+	ret = sprdwcn_bus_reg_read(REG_WIFI_MEM_CFG1, &temp_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read wifimem_cfg1 error:%d\n", __func__, ret);
+		return ret;
+	}
+	WCN_INFO("%s read btram poweron(bit22)val:0x%x\n", __func__, temp_val);
+
+	if ((subsys == MARLIN_BLUETOOTH) && (val == 1)) {
+		temp_val = temp_val & (~FORCE_SHUTDOWN_BTRAM);
+		WCN_INFO("wr btram poweron(bit22) val:0x%x\n", temp_val);
+		ret = sprdwcn_bus_reg_write(REG_WIFI_MEM_CFG1, &temp_val, 4);
+		if (ret < 0) {
+			WCN_ERR("write wifimem_cfg1 reg error:%d\n", ret);
+			return ret;
+		}
+		return 0;
+	} else if (test_bit(MARLIN_BLUETOOTH, &marlin_dev->power_state) &&
+		   (subsys != MARLIN_BLUETOOTH))
+		return 0;
+
+	temp_val = temp_val | FORCE_SHUTDOWN_BTRAM;
+	WCN_INFO(" shut down btram(bit22) val:0x%x\n", temp_val);
+	ret = sprdwcn_bus_reg_write(REG_WIFI_MEM_CFG1, &temp_val, 4);
+	if (ret < 0) {
+		WCN_ERR("write wifimem_cfg1 reg error:%d\n", ret);
+		return ret;
+	}
+
+	return ret;
+}
+
+int enable_spur_remove(void)
+{
+	int ret;
+	unsigned int temp_val;
+
+	temp_val = FM_ENABLE_SPUR_REMOVE_FREQ2_VALUE;
+	ret = sprdwcn_bus_reg_write(FM_REG_SPUR_FEQ1_ADDR, &temp_val, 4);
+	if (ret < 0) {
+		WCN_ERR("write FM_REG_SPUR reg error:%d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+int disable_spur_remove(void)
+{
+	int ret;
+	unsigned int temp_val;
+
+	temp_val = FM_DISABLE_SPUR_REMOVE_VALUE;
+	ret = sprdwcn_bus_reg_write(FM_REG_SPUR_FEQ1_ADDR, &temp_val, 4);
+	if (ret < 0) {
+		WCN_ERR("write disable FM_REG_SPUR reg error:%d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+void set_fm_supe_freq(int subsys, int val, unsigned long sub_state)
+{
+	switch (subsys) {
+	case MARLIN_FM:
+		if (test_bit(MARLIN_GNSS, &sub_state) && (val == 1))
+			enable_spur_remove();
+		else
+			disable_spur_remove();
+		break;
+	case MARLIN_GNSS:
+		if (test_bit(MARLIN_FM, &sub_state) && (val == 1))
+			enable_spur_remove();
+		else
+			disable_spur_remove();
+		break;
+	default:
+		break;
+	}
+}
+
+/*
+ * MARLIN_GNSS no need loopcheck action
+ * MARLIN_AUTO no need loopcheck action
+ */
+static void power_state_notify_or_not(int subsys, int poweron)
+{
+	if (poweron == 1) {
+		set_cp_mem_status(subsys, poweron);
+		set_fm_supe_freq(subsys, poweron, marlin_dev->power_state);
+	}
+
 	if ((test_bit(MARLIN_BLUETOOTH, &marlin_dev->power_state) +
 		test_bit(MARLIN_FM, &marlin_dev->power_state) +
 		test_bit(MARLIN_WIFI, &marlin_dev->power_state) +
@@ -964,6 +1271,9 @@ static int find_firmware_path(void)
 {
 	int ret;
 	int pre_len;
+
+	if (strlen(BTWF_FIRMWARE_PATH) != 0)
+		return 0;
 
 	ret = parse_firmware_path(BTWF_FIRMWARE_PATH);
 	if (ret != 0) {
@@ -1003,11 +1313,12 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 {
 	if (btwifi_download_firmware() == 0 &&
 		marlin_start_run() == 0) {
-		mem_pd_save_bin();
 		marlin_write_cali_data();
-		return;
+		mem_pd_save_bin();
+		check_cp_ready();
+		complete(&marlin_dev->download_done);
 	}
-
+	sprdwcn_bus_runtime_get();
 }
 
 static void sdio_scan_card(void)
@@ -1018,6 +1329,79 @@ static void sdio_scan_card(void)
 		msecs_to_jiffies(CARD_DETECT_WAIT_MS)) == 0)
 		WCN_ERR("wait SDIO rescan card time out\n");
 
+}
+
+/* for example: wifipa bound XTLEN3 */
+int pmic_bound_xtl_assert(unsigned int enable)
+{
+/* TODO: for sharkl5 update PMIC driver */
+#if 0
+	unsigned int val;
+
+	regmap_read(reg_map, ANA_REG_GLB_LDO_XTL_EN10, &val);
+	WCN_INFO("%s:%d, XTL_EN10 =0x%x\n", __func__, enable, val);
+	regmap_update_bits(reg_map,
+			   ANA_REG_GLB_LDO_XTL_EN10,
+			   BIT_LDO_WIFIPA_EXT_XTL3_EN,
+			   enable);
+	regmap_read(reg_map, ANA_REG_GLB_LDO_XTL_EN10, &val);
+	WCN_INFO("after XTL_EN10 =0x%x\n", val);
+#endif
+	return 0;
+}
+
+void wifipa_enable(int enable)
+{
+	int ret = -1;
+
+	if (marlin_dev->avdd33) {
+		WCN_INFO("marlin_analog_power_enable 3v3 %d\n", enable);
+		msleep(20);
+		if (enable) {
+			if (regulator_is_enabled(marlin_dev->avdd33))
+				return;
+			regulator_set_voltage(marlin_dev->avdd33,
+					      3300000, 3300000);
+			ret = regulator_enable(marlin_dev->avdd33);
+			if (ret)
+				WCN_ERR("fail to enable wifipa\n");
+		} else {
+			if (regulator_is_enabled(marlin_dev->avdd33)) {
+				ret =
+				regulator_disable(marlin_dev->avdd33);
+				if (ret)
+					WCN_ERR("fail to disable wifipa\n");
+				WCN_INFO(" wifi pa disable\n");
+			}
+		}
+	}
+}
+
+
+void set_wifipa_status(int subsys, int val)
+{
+	if (val == 1) {
+		if (((subsys == MARLIN_BLUETOOTH) || (subsys == MARLIN_WIFI)) &&
+		    ((marlin_dev->power_state & 0x5) == 0)) {
+			wifipa_enable(1);
+			pmic_bound_xtl_assert(1);
+		}
+
+		if (((subsys != MARLIN_BLUETOOTH) && (subsys != MARLIN_WIFI)) &&
+		    ((marlin_dev->power_state & 0x5) == 0)) {
+			wifipa_enable(0);
+			pmic_bound_xtl_assert(0);
+		}
+
+	} else {
+		if (((subsys == MARLIN_BLUETOOTH) &&
+		     ((marlin_dev->power_state & 0x4) == 0)) ||
+		    ((subsys == MARLIN_WIFI) &&
+		     ((marlin_dev->power_state & 0x1) == 0))) {
+			wifipa_enable(0);
+			pmic_bound_xtl_assert(0);
+		}
+	}
 }
 
 /*
@@ -1036,24 +1420,27 @@ static int chip_power_on(int subsys)
 	msleep(20);
 	chip_reset_release(1);
 	marlin_analog_power_enable(true);
-	sprdwcn_bus_driver_register();
 	sdio_scan_card();
+	loopcheck_first_boot_set();
+	chip_poweroff_deinit();
+	sdio_pub_int_poweron(true);
 
 	return 0;
 }
 
 static int chip_power_off(int subsys)
 {
-	sprdwcn_bus_driver_unregister();
 	marlin_clk_enable(false);
+	marlin_chip_en(false, false);
 	marlin_digital_power_enable(false);
 	marlin_analog_power_enable(false);
-	marlin_chip_en(false, false);
 	chip_reset_release(0);
 	marlin_dev->wifi_need_download_ini_flag = 0;
 	chip_poweroff_deinit();
 	marlin_dev->power_state = 0;
 	sprdwcn_bus_remove_card();
+	loopcheck_first_boot_clear();
+	sdio_pub_int_poweron(false);
 
 	return 0;
 }
@@ -1061,7 +1448,7 @@ static int chip_power_off(int subsys)
 static int gnss_powerdomain_open(void)
 {
 	/* add by this. */
-	int ret = 0;
+	int ret = 0, retry_cnt = 0;
 	unsigned int temp;
 
 	WCN_INFO("%s\n", __func__);
@@ -1093,6 +1480,20 @@ static int gnss_powerdomain_open(void)
 		return ret;
 	}
 
+	/* wait gnss sys power on finish */
+	do {
+		usleep_range(3000, 6000);
+
+		ret = sprdwcn_bus_reg_read(CHIP_SLP_REG, &temp, 4);
+		if (ret < 0) {
+			WCN_ERR("%s read CHIP_SLP_REG err:%d\n", __func__, ret);
+			return ret;
+		}
+
+		WCN_INFO("%s CHIP_SLP_REG:0x%x\n", __func__, temp);
+		retry_cnt++;
+	} while ((!(temp & GNSS_SS_PWRON_FINISH)) && (retry_cnt < 3));
+
 	return 0;
 }
 
@@ -1104,8 +1505,6 @@ static int gnss_powerdomain_close(void)
 
 	WCN_INFO("%s\n", __func__);
 
-	slp_mgr_drv_sleep(DOWNLOAD, false);
-	slp_mgr_wakeup(DOWNLOAD);
 	ret = sprdwcn_bus_reg_read(PD_GNSS_SS_AON_CFG4, &temp, 4);
 	if (ret < 0) {
 		WCN_ERR("read PD_GNSS_SS_AON_CFG4 err:%d\n", ret);
@@ -1120,7 +1519,6 @@ static int gnss_powerdomain_close(void)
 		WCN_ERR("write PD_GNSS_SS_AON_CFG4 err:%d\n", ret);
 		return ret;
 	}
-	slp_mgr_drv_sleep(DOWNLOAD, true);
 
 	return 0;
 }
@@ -1157,6 +1555,9 @@ static int marlin_set_power(int subsys, int val)
 			marlin_dev->power_state, strno(subsys), val);
 	init_completion(&marlin_dev->download_done);
 	init_completion(&marlin_dev->gnss_download_done);
+
+	set_wifipa_status(subsys, val);
+
 	/*  power on */
 	if (val) {
 		/*
@@ -1182,6 +1583,11 @@ static int marlin_set_power(int subsys, int val)
 			WCN_INFO("gnss auto download finished and run ok\n");
 
 			WCN_INFO("gnss start to backup calidata\n");
+			if (gnss_ops && (gnss_ops->backup_data))
+				gnss_ops->backup_data();
+			else
+				WCN_ERR("%s gnss_ops backup_data error\n",
+					__func__);
 
 			WCN_INFO("then marlin start to download\n");
 			schedule_work(&marlin_dev->download_wq);
@@ -1197,9 +1603,12 @@ static int marlin_set_power(int subsys, int val)
 
 			marlin_dev->first_power_on_flag = 2;
 			mutex_unlock(&marlin_dev->power_lock);
-			if (subsys == WCN_AUTO)
+			power_state_notify_or_not(subsys, val);
+			if (subsys == WCN_AUTO) {
 				marlin_set_power(WCN_AUTO, false);
-			goto check_loopcheck;
+				return 0;
+			}
+			return 0;
 		}
 		/* 2. the second time, WCN_AUTO coming */
 		else if (subsys == WCN_AUTO) {
@@ -1220,11 +1629,11 @@ static int marlin_set_power(int subsys, int val)
 		else if ((((marlin_dev->power_state) & AUTO_RUN_MASK) != 0)
 			|| (((marlin_dev->power_state) & GNSS_MASK) != 0)) {
 			WCN_INFO("GNSS and marlin have ready\n");
+			if (((marlin_dev->power_state) & MARLIN_MASK) == 0)
+				loopcheck_first_boot_set();
 			set_bit(subsys, &marlin_dev->power_state);
 
-			mutex_unlock(&marlin_dev->power_lock);
-
-			goto check_loopcheck;
+			goto check_power_state_notify;
 		}
 		/* 4. when GNSS close, marlin open.
 		 *	  ->  subsys=gps,GNSS download
@@ -1233,15 +1642,11 @@ static int marlin_set_power(int subsys, int val)
 			if ((subsys == MARLIN_GNSS) || (subsys == WCN_AUTO)) {
 				WCN_INFO("BTWF ready, GPS start to download\n");
 				set_bit(subsys, &marlin_dev->power_state);
-				slp_mgr_drv_sleep(DOWNLOAD, false);
-				slp_mgr_wakeup(DOWNLOAD);
 				gnss_powerdomain_open();
 
 				schedule_work(&marlin_dev->gnss_dl_wq);
 				timeleft = wait_for_completion_timeout(
-					&marlin_dev->gnss_download_done,
-					10 * HZ);
-				slp_mgr_drv_sleep(DOWNLOAD, true);
+					&marlin_dev->gnss_download_done, 10*HZ);
 				if (!timeleft) {
 					WCN_ERR("GNSS download timeout\n");
 					goto out;
@@ -1253,9 +1658,7 @@ static int marlin_set_power(int subsys, int val)
 				WCN_INFO("marlin have open, GNSS is closed\n");
 				set_bit(subsys, &marlin_dev->power_state);
 
-				mutex_unlock(&marlin_dev->power_lock);
-
-				goto check_loopcheck;
+				goto check_power_state_notify;
 			}
 		}
 		/* 5. when GNSS close, marlin close.no module to power on */
@@ -1311,16 +1714,15 @@ static int marlin_set_power(int subsys, int val)
 			}
 		}
 		/* power on together's Action */
-		check_need_loopcheck_or_not();
+		power_state_notify_or_not(subsys, val);
 
 		WCN_INFO("wcn chip power on and run finish: [%s]\n",
 				  strno(subsys));
 	/* power off */
 	} else {
 		if (marlin_dev->power_state == 0) {
-			mutex_unlock(&marlin_dev->power_lock);
 
-			goto check_loopcheck;
+			goto check_power_state_notify;
 		}
 
 		if (flag_reset)
@@ -1335,18 +1737,17 @@ static int marlin_set_power(int subsys, int val)
 					clear_bit(subsys,
 						&marlin_dev->power_state);
 				}
-				mutex_unlock(&marlin_dev->power_lock);
+
 				MDBG_LOG("marlin reset flag_reset:%d\n",
 					flag_reset);
 
-				goto check_loopcheck;
+				goto check_power_state_notify;
 			}
 		}
 
 		if (!marlin_dev->download_finish_flag) {
-			mutex_unlock(&marlin_dev->power_lock);
 
-			goto check_loopcheck;
+			goto check_power_state_notify;
 		}
 
 		clear_bit(subsys, &marlin_dev->power_state);
@@ -1354,13 +1755,16 @@ static int marlin_set_power(int subsys, int val)
 			WCN_INFO("can not power off, other module is on\n");
 			if (subsys == MARLIN_GNSS)
 				gnss_powerdomain_close();
-			mutex_unlock(&marlin_dev->power_lock);
-			goto check_loopcheck;
+
+			goto check_power_state_notify;
 		}
 
-		check_need_loopcheck_or_not();
+		set_cp_mem_status(subsys, val);
+		set_fm_supe_freq(subsys, val, marlin_dev->power_state);
+		power_state_notify_or_not(subsys, val);
 
 		WCN_INFO("wcn chip start power off!\n");
+		sprdwcn_bus_runtime_put();
 		chip_power_off(subsys);
 		WCN_INFO("marlin power off!\n");
 		marlin_dev->download_finish_flag = 0;
@@ -1374,7 +1778,8 @@ static int marlin_set_power(int subsys, int val)
 	return 0;
 
 out:
-	sprdwcn_bus_driver_unregister();
+	sprdwcn_bus_runtime_put();
+	chip_poweroff_deinit();
 	marlin_clk_enable(false);
 	marlin_digital_power_enable(false);
 	marlin_analog_power_enable(false);
@@ -1384,8 +1789,11 @@ out:
 
 	return -1;
 
-check_loopcheck:
-	check_need_loopcheck_or_not();
+check_power_state_notify:
+	power_state_notify_or_not(subsys, val);
+	WCN_INFO("mutex_unlock\n");
+	mutex_unlock(&marlin_dev->power_lock);
+
 	return 0;
 
 }
@@ -1447,10 +1855,24 @@ int is_first_power_on(enum marlin_sub_sys subsys)
 }
 EXPORT_SYMBOL_GPL(is_first_power_on);
 
+int cali_ini_need_download(enum marlin_sub_sys subsys)
+{
+	unsigned int pd_wifi_st = 0;
+
+	pd_wifi_st = mem_pd_wifi_state();
+	if ((marlin_dev->wifi_need_download_ini_flag == 1) || pd_wifi_st) {
+		WCN_INFO("%s return 1\n", __func__);
+		return 1;	/* the first */
+	} else
+		return 0;	/* not the first */
+}
+EXPORT_SYMBOL_GPL(cali_ini_need_download);
+
 int marlin_set_wakeup(enum marlin_sub_sys subsys)
 {
 	int ret = 0;	/* temp */
 
+	return 0;
 	if (unlikely(marlin_dev->download_finish_flag != true))
 		return -1;
 
@@ -1460,6 +1882,8 @@ EXPORT_SYMBOL_GPL(marlin_set_wakeup);
 
 int marlin_set_sleep(enum marlin_sub_sys subsys, bool enable)
 {
+	return 0;	/* temp */
+
 	if (unlikely(marlin_dev->download_finish_flag != true))
 		return -1;
 
@@ -1486,11 +1910,15 @@ EXPORT_SYMBOL_GPL(marlin_reset_reg);
 int start_marlin(u32 subsys)
 {
 	WCN_INFO("%s [%s]\n", __func__, strno(subsys));
-	if (sprdwcn_bus_get_carddump_status() != 0)
+	if (sprdwcn_bus_get_carddump_status() != 0) {
+		WCN_ERR("%s SDIO card dump\n", __func__);
 		return -1;
+	}
 
-	if (get_loopcheck_status())
+	if (get_loopcheck_status()) {
+		WCN_ERR("%s loopcheck status is fail\n", __func__);
 		return -1;
+	}
 
 	if (subsys == MARLIN_WIFI) {
 		/* not need write cali */
@@ -1509,11 +1937,16 @@ EXPORT_SYMBOL_GPL(start_marlin);
 
 int stop_marlin(u32 subsys)
 {
-	if (sprdwcn_bus_get_carddump_status() != 0)
-		return 0;
+	if (sprdwcn_bus_get_carddump_status() != 0) {
+		WCN_ERR("%s SDIO card dump\n", __func__);
+		return -1;
+	}
 
-	if (get_loopcheck_status())
-		return 0;
+	if (get_loopcheck_status()) {
+		WCN_ERR("%s loopcheck status is fail\n", __func__);
+		return -1;
+	}
+
 	mem_pd_mgr(subsys, false);
 	return marlin_set_power(subsys, false);
 }
@@ -1559,11 +1992,13 @@ static int marlin_probe(struct platform_device *pdev)
 	sprdwcn_bus_register_rescan_cb(marlin_scan_finish);
 	sdio_pub_int_init(marlin_dev->int_ap);
 	mem_pd_init();
+#ifdef CONFIG_WCN_SLP
 	slp_mgr_init();
+#endif
 	proc_fs_init();
 	log_dev_init();
 	wcn_op_init();
-	WCN_INFO("wcn_op_init!\n");
+	flag_reset = 0;
 
 	INIT_WORK(&marlin_dev->download_wq, pre_btwifi_download_sdio);
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);
@@ -1579,31 +2014,44 @@ static int marlin_probe(struct platform_device *pdev)
 
 static int  marlin_remove(struct platform_device *pdev)
 {
-	mutex_lock(&marlin_dev->power_lock);
-	if (marlin_dev->power_state != 0) {
-		WCN_INFO("marlin some subsys power is on, warning!\n");
-		mutex_unlock(&marlin_dev->power_lock);
-		return -1;
-	}
-	mutex_unlock(&marlin_dev->power_lock);
 	cancel_work_sync(&marlin_dev->download_wq);
 	cancel_work_sync(&marlin_dev->gnss_dl_wq);
 	cancel_delayed_work_sync(&marlin_dev->power_wq);
-	sdio_pub_int_deinit();
-	mem_pd_exit();
-	slp_mgr_deinit();
-	gpio_free(marlin_dev->reset);
-	gpio_free(marlin_dev->chip_en);
-	gpio_free(marlin_dev->int_ap);
+	wcn_op_exit();
 	log_dev_exit();
 	proc_fs_exit();
-	wcn_op_exit();
-
+	sdio_pub_int_deinit();
+	mem_pd_exit();
 	sprdwcn_bus_deinit();
+	if (marlin_dev->power_state != 0) {
+		WCN_INFO("marlin some subsys power is on, warning!\n");
+		wifipa_enable(0);
+		pmic_bound_xtl_assert(0);
+		marlin_chip_en(false, false);
+	}
+	wcn_bus_deinit();
+#ifdef CONFIG_WCN_SLP
+	slp_mgr_deinit();
+#endif
+	marlin_gpio_free(pdev);
+	mutex_destroy(&marlin_dev->power_lock);
 	devm_kfree(&pdev->dev, marlin_dev->write_buffer);
 	devm_kfree(&pdev->dev, marlin_dev);
 
+	WCN_INFO("remove ok!\n");
+
 	return 0;
+}
+
+static void marlin_shutdown(struct platform_device *pdev)
+{
+	if (marlin_dev->power_state != 0) {
+		WCN_INFO("marlin some subsys power is on, warning!\n");
+		wifipa_enable(0);
+		pmic_bound_xtl_assert(0);
+		marlin_chip_en(false, false);
+	}
+	WCN_INFO("%s end\n", __func__);
 }
 
 static int marlin_suspend(struct device *dev)
@@ -1657,6 +2105,7 @@ static struct platform_driver marlin_driver = {
 	},
 	.probe = marlin_probe,
 	.remove = marlin_remove,
+	.shutdown = marlin_shutdown,
 };
 
 static int __init marlin_init(void)

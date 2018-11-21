@@ -458,8 +458,10 @@ static void sdiohal_tx_test_init(void)
 
 	for (chn = 0; chn < chn_num; chn++) {
 		tx_test_ops = kzalloc(sizeof(struct mchn_ops_t), GFP_KERNEL);
-		if (!tx_test_ops)
+		if (!tx_test_ops) {
+			sdiohal_err("sdio tx test,alloc mem fail\n");
 			return;
+		}
 
 		tx_test_ops->channel = chn + chn_num;
 		tx_test_ops->hif_type = HW_TYPE_SDIO;
@@ -850,7 +852,7 @@ static ssize_t at_cmd_write(struct file *filp,
 	}
 
 	if (strncmp(buf + PUB_HEAD_RSV, "sdio_int", 8) == 0) {
-		long int_bitmap;
+		unsigned long int int_bitmap;
 		unsigned int addr;
 
 		if (strncmp(buf + PUB_HEAD_RSV, "sdio_int_rx", 11) == 0)
@@ -1018,8 +1020,14 @@ void sdiohal_debug_init(void)
 	/* create debugfs */
 	debug_root = debugfs_create_dir("sdiohal_debug", NULL);
 	for (i = 0; i < ARRAY_SIZE(entry_table); i++) {
-		debugfs_create_file(entry_table[i].name, 0444,
-			debug_root, NULL, entry_table[i].file_ops);
+		if (!debugfs_create_file(entry_table[i].name, 0444,
+					 debug_root, NULL,
+					 entry_table[i].file_ops)) {
+			sdiohal_err("%s debugfs_create_file[%d] fail!!\n",
+				    __func__, i);
+			debugfs_remove_recursive(debug_root);
+			return;
+		}
 	}
 
 	at_cmd_init();
@@ -1027,6 +1035,7 @@ void sdiohal_debug_init(void)
 
 void sdiohal_debug_deinit(void)
 {
+	debugfs_remove_recursive(debug_root);
 	at_cmd_deinit();
 }
 

@@ -3,7 +3,8 @@
 #
 menu "Spreadtrum WCN Device Drivers"
 config SC23XX
-	tristate "SC23XX Chip Support"
+	bool "SC23XX chip Support"
+	#depends on MMC
 	default n
 	help
 	  This is support wcn chip for spreadtrum.

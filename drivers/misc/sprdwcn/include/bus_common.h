@@ -11,4 +11,5 @@ int buf_list_free(int chn, struct mbuf_t *head,
 		  struct mbuf_t *tail, int num);
 struct mchn_ops_t *chn_ops(int channel);
 int module_ops_register(struct sprdwcn_bus_ops *ops);
+void module_ops_unregister(void);
 #endif

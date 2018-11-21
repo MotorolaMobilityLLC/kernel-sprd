@@ -36,17 +36,20 @@
 #include "mdbg_type.h"
 #include "wcn_parn_parser.h"
 
-
 #define ROOT_PATH "/"
 #define ETC_PATH "/etc"
-#define FSTAB_PATH "/etc/fstab"
+#define VENDOR_ETC_PATH "/vendor/etc"
+#define ETC_FSTAB "/etc/fstab"
+#define FSTAB_PATH_NUM 3
 #define CONF_COMMENT '#'
 #define CONF_LF '\n'
 #define CONF_DELIMITERS " =\n\r\t"
 #define CONF_VALUES_DELIMITERS "=\n\r\t"
 #define CONF_MAX_LINE_LEN 255
-static const char *prefix = "fstab.";
-static char FSTAB_NAME[255];
+static const char *prefix = "fstab.s";
+static char fstab_name[128];
+static char fstab_dir[FSTAB_PATH_NUM][32] = {
+			ROOT_PATH, ETC_PATH, VENDOR_ETC_PATH};
 
 static char *fgets(char *buf, int buf_len, struct file *fp)
 {
@@ -85,12 +88,12 @@ static int load_fstab_conf(const char *p_path, char *WCN_PATH)
 
 	match_flag = false;
 	p = line;
-	pr_info("Attempt to load conf from %s\n", p_path);
+	WCN_INFO("Attempt to load conf from %s\n", p_path);
 
 	p_file = filp_open(p_path, O_RDONLY, 0);
 	if (IS_ERR(p_file)) {
-		pr_err("%s open file %s error not find\n",
-			p_path, __func__);
+		WCN_ERR("open file %s error not find\n",
+			p_path);
 		return PTR_ERR(p_file);
 	}
 
@@ -102,7 +105,6 @@ static int load_fstab_conf(const char *p_path, char *WCN_PATH)
 
 		p = line;
 		p_name = strsep(&p, CONF_DELIMITERS);
-		pr_info("wcn p_name %s\n", p_name);
 		if (p_name != NULL) {
 			temp = strstr(p_name, "userdata");
 			if (temp != NULL) {
@@ -141,9 +143,9 @@ static int find_callback(struct dir_context *ctx, const char *name, int namlen,
 
 	tmp = prefixcmp(name, prefix);
 	if (tmp == 0) {
-		snprintf(FSTAB_NAME, strlen(name)+2, "/%s", name);
-		FSTAB_NAME[strlen(name)+3] = '\0';
-		WCN_INFO("FSTAB_NAME is %s\n", FSTAB_NAME);
+		if (sizeof(fstab_name) > strlen(fstab_name) + strlen(name) + 2)
+			strcat(fstab_name, name);
+		WCN_INFO("full fstab name %s\n", fstab_name);
 	}
 
 	return 0;
@@ -153,36 +155,40 @@ static struct dir_context ctx =  {
 	.actor = find_callback,
 };
 
-int parse_firmware_path(char *FIRMWARE_PATH)
+int parse_firmware_path(char *firmware_path)
 {
-	u32 ret;
+	u32 ret = -1;
+	u32 loop;
 	struct file *file1;
 
 	WCN_INFO("%s entry\n", __func__);
-
-	file1 = filp_open(ROOT_PATH, O_DIRECTORY, 0);
-	if (IS_ERR(file1)) {
-		pr_err("%s open dir %s error: %d\n",
-			__func__, ROOT_PATH, IS_ERR(file1));
-		return PTR_ERR(file1);
-	}
-
-	iterate_dir(file1, &ctx);
-	fput(file1);
-	ret = load_fstab_conf(FSTAB_NAME, FIRMWARE_PATH);
-	pr_info("%s %d ret %d\n", __func__, __LINE__, ret);
-	if (ret != 0) {
+	for (loop = 0; loop < FSTAB_PATH_NUM; loop++) {
 		file1 = NULL;
-		file1 = filp_open(ETC_PATH, O_DIRECTORY, 0);
+		WCN_DEBUG("dir:%s: loop:%d\n", fstab_dir[loop], loop);
+		file1 = filp_open(fstab_dir[loop], O_DIRECTORY, 0);
 		if (IS_ERR(file1)) {
-			pr_err("%s open file %s error\n", ETC_PATH, __func__);
-			return PTR_ERR(file1);
+			WCN_ERR("%s open error:%d\n",
+				fstab_dir[loop], IS_ERR(file1));
+			continue;
 		}
+		memset(fstab_name, 0, sizeof(fstab_name));
+		strncpy(fstab_name, fstab_dir[loop], sizeof(fstab_dir[loop]));
+		if (strlen(fstab_name) > 1)
+			fstab_name[strlen(fstab_name)] = '/';
 		iterate_dir(file1, &ctx);
 		fput(file1);
-		ret = load_fstab_conf(FSTAB_NAME, FIRMWARE_PATH);
-		if (ret != 0)
-			ret = load_fstab_conf(FSTAB_PATH, FIRMWARE_PATH);
+		ret = load_fstab_conf(fstab_name, firmware_path);
+		WCN_INFO("%s:load conf ret %d\n", fstab_dir[loop], ret);
+		if (!ret) {
+			WCN_INFO("[%s]:%s\n", fstab_name, firmware_path);
+			return 0;
+		}
+	}
+	/* for yunos */
+	ret = load_fstab_conf(ETC_FSTAB, firmware_path);
+	if (!ret) {
+		WCN_INFO(ETC_FSTAB":%s !\n", firmware_path);
+		return 0;
 	}
 
 	return ret;

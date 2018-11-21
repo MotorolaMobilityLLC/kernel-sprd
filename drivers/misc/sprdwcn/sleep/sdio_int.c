@@ -12,6 +12,9 @@
 #include <misc/wcn_bus.h>
 
 #include "sdio_int.h"
+#include "slp_mgr.h"
+#include "slp_sdio.h"
+#include "wcn_glb.h"
 #include "../sdio/sdiohal.h"
 
 struct sdio_int_t sdio_int = {0};
@@ -37,13 +40,26 @@ void sdio_record_power_notify(bool notify_cb_sts)
 
 void sdio_wait_pub_int_done(void)
 {
+	struct slp_mgr_t *slp_mgr;
 	int wait_cnt = 0;
 
+	slp_mgr = slp_get_info();
+
 	if (sdio_power_notify) {
+		/* enter suspend, means no tx data to cp2, so set sleep */
+		mutex_lock(&(slp_mgr->drv_slp_lock));
+		if (atomic_read(&(slp_mgr->cp2_state)) == STAY_AWAKING) {
+			SLP_MGR_INFO("allow sleep1\n");
+			slp_allow_sleep();
+			atomic_set(&(slp_mgr->cp2_state), STAY_SLPING);
+		}
+		mutex_unlock(&(slp_mgr->drv_slp_lock));
+
+		/* wait pub_int handle finish */
 		while ((atomic_read(&flag_pub_int_done) == 0) &&
-				(wait_cnt < 10)) {
+		       (wait_cnt < 10)) {
 			wait_cnt++;
-			SLP_MGR_INFO("pub int not finish");
+			SLP_MGR_INFO("wait pub_int_done:%d", wait_cnt);
 			usleep_range(1500, 3000);
 		}
 		SLP_MGR_INFO("flag_pub_int_done-%d",
@@ -56,17 +72,19 @@ EXPORT_SYMBOL(sdio_wait_pub_int_done);
 static int pub_int_handle_thread(void *data)
 {
 	union PUB_INT_STS0_REG pub_int_sts0 = {0};
-	int bit_num;
+	int bit_num, ret;
 
 	while (!kthread_should_stop()) {
 		wait_for_completion(&(sdio_int.pub_int_completion));
 
-		sprdwcn_bus_aon_readb(sdio_int.pub_int_sts0,
+		ret = sprdwcn_bus_aon_readb(sdio_int.pub_int_sts0,
 			&(pub_int_sts0.reg));
-		SLP_MGR_INFO("PUB_INT_STS0-0x%x\n",
-				pub_int_sts0.reg);
-
-		sdio_pub_int_clr0(pub_int_sts0.reg);
+		/* sdio cmd52 fail, it should be chip power off */
+		if (ret < 0)
+			SLP_MGR_INFO("sdio cmd52 fail, ret-%d", ret);
+		else {
+			SLP_MGR_INFO("PUB_INT_STS0-0x%x\n", pub_int_sts0.reg);
+			sdio_pub_int_clr0(pub_int_sts0.reg);
 
 		bit_num = 0;
 		do {
@@ -76,13 +94,15 @@ static int pub_int_handle_thread(void *data)
 			}
 			bit_num++;
 		} while (bit_num < PUB_INT_MAX);
+		}
 
 		if (sdio_power_notify)
 			atomic_set(&flag_pub_int_done, 1);
 		else
 			__pm_relax(&(sdio_int.pub_int_wakelock));
 
-		enable_irq(sdio_int.pub_int_num);
+		if (atomic_read(&(sdio_int.chip_power_on)))
+			enable_irq(sdio_int.pub_int_num);
 	}
 
 	return 0;
@@ -139,7 +159,7 @@ static int sdio_pub_int_register(int irq)
 	}
 
 	sdio_int.pub_int_num = gpio_to_irq(irq);
-//#if 0
+
 	ret = request_irq(sdio_int.pub_int_num,
 			pub_int_isr,
 			IRQF_TRIGGER_HIGH | IRQF_NO_SUSPEND,
@@ -149,7 +169,10 @@ static int sdio_pub_int_register(int irq)
 		SLP_MGR_ERR("req irq-%d err!!!", sdio_int.pub_int_num);
 		return ret;
 	}
-//#endif
+
+	/* enable interrupt when chip power on */
+	disable_irq(sdio_int.pub_int_num);
+
 	return ret;
 }
 
@@ -205,9 +228,8 @@ int sdio_pub_int_btwf_en0(void)
 
 	sprdwcn_bus_aon_readb(sdio_int.pub_int_en0, &(reg_int_en.reg));
 
-	reg_int_en.bit.mem_save_bin = 1;
-	reg_int_en.bit.wakeup_ack = 1;
 	reg_int_en.bit.req_slp = 1;
+	reg_int_en.bit.mem_save_bin = 1;
 	reg_int_en.bit.wifi_open = 1;
 	reg_int_en.bit.bt_open = 1;
 	reg_int_en.bit.wifi_close = 1;
@@ -236,6 +258,18 @@ int sdio_pub_int_gnss_en0(void)
 }
 EXPORT_SYMBOL(sdio_pub_int_gnss_en0);
 
+void sdio_pub_int_poweron(bool state)
+{
+	atomic_set(&(sdio_int.chip_power_on), state);
+
+	if (state)
+		enable_irq(sdio_int.pub_int_num);
+	else {
+		disable_irq(sdio_int.pub_int_num);
+		reinit_completion(&(sdio_int.pub_int_completion));
+	}
+}
+EXPORT_SYMBOL(sdio_pub_int_poweron);
 
 int sdio_pub_int_init(int irq)
 {

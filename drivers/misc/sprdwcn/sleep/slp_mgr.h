@@ -27,14 +27,11 @@
 #define SLP_MGR_DBG(fmt, args...)	\
 	pr_debug(SLP_MGR_HEADER fmt "\n", ## args)
 
-/* wakeup status */
-#define	WAKE_START		0
-#define	WAKE_TIMEOUT	1
-#define	WAKE_SUCCESS	2
-
 /* cp2 sleep status */
 #define	STAY_SLPING		0
 #define	STAY_AWAKING	1
+
+#define	WAKEUP_RTY_CNT	10
 
 struct slp_mgr_t {
 	struct mutex    drv_slp_lock;
@@ -47,7 +44,12 @@ struct slp_mgr_t {
 enum slp_subsys {
 	PACKER_TX = 0,
 	PACKER_RX,
-	DOWNLOAD,
+	PACKER_DT_TX,
+	PACKER_DT_RX,
+	DT_WRITEL,
+	DT_READL,
+	DT_WRITE,
+	DT_READ,
 	DBG_TOOL,
 	SUBSYS_MAX,
 };
@@ -60,5 +62,6 @@ int slp_mgr_init(void);
 int slp_mgr_deinit(void);
 void slp_mgr_drv_sleep(enum slp_subsys subsys, bool enable);
 int slp_mgr_wakeup(enum slp_subsys subsys);
+void slp_mgr_reset(void);
 
 #endif

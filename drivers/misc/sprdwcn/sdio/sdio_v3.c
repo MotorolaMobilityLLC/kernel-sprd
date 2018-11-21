@@ -169,6 +169,12 @@ static int sdio_list_push(int chn, struct mbuf_t *head,
 	return sdiohal_list_push(chn, head, tail, num);
 }
 
+static int sdio_list_push_direct(int chn, struct mbuf_t *head,
+				 struct mbuf_t *tail, int num)
+{
+	return sdiohal_list_direct_write(chn, head, tail, num);
+}
+
 static int sdio_chn_init(struct mchn_ops_t *ops)
 {
 	return bus_chn_init(ops, HW_TYPE_SDIO);
@@ -249,6 +255,7 @@ static struct sprdwcn_bus_ops sdiohal_bus_ops = {
 	.list_alloc = sdio_buf_list_alloc,
 	.list_free = sdio_buf_list_free,
 	.push_list = sdio_list_push,
+	.push_list_direct = sdio_list_push_direct,
 	.direct_read = sdio_direct_read,
 	.direct_write = sdio_direct_write,
 	.readbyte = sdio_readbyte,
@@ -283,3 +290,8 @@ void module_bus_init(void)
 }
 EXPORT_SYMBOL(module_bus_init);
 
+void module_bus_deinit(void)
+{
+	module_ops_unregister();
+}
+EXPORT_SYMBOL(module_bus_deinit);

@@ -27,8 +27,10 @@ wait_queue_head_t	mdbg_wait;
 
 int wake_up_log_wait(void)
 {
-	wake_up_interruptible(&mdbg_dev->rxwait);
-	wake_up_interruptible(&mdbg_wait);
+	if (!mdbg_dev->exit_flag) {
+		wake_up_interruptible(&mdbg_dev->rxwait);
+		wake_up_interruptible(&mdbg_wait);
+	}
 
 	return 0;
 }
@@ -53,6 +55,12 @@ static int wcnlog_open(struct inode *inode, struct file *filp)
 	int major = imajor(inode);
 
 	WCN_INFO("minor=%d,minor1=%d,major=%d\n", minor, minor1, major);
+
+	if (mdbg_dev->exit_flag) {
+		WCN_ERR("%s exit!\n", __func__);
+		return -EIO;
+	}
+
 	dev = container_of(inode->i_cdev, struct wcnlog_dev, cdev);
 	filp->private_data = dev;
 
@@ -86,6 +94,11 @@ static ssize_t wcnlog_read(struct file *filp,
 	int rval;
 	static unsigned int dum_send_size;
 	struct wcnlog_dev *dev = filp->private_data;
+
+	if (mdbg_dev->exit_flag) {
+		WCN_ERR("%s exit!\n", __func__);
+		return -EIO;
+	}
 
 	if (filp->f_flags & O_NONBLOCK)
 		timeout = 0;
@@ -150,7 +163,12 @@ static ssize_t wcnlog_write(struct file *filp,
 	long int sent_size = 0;
 	char *p_data = NULL;
 
-	WCN_INFO("%s count=%ld\n", __func__, count);
+	if (mdbg_dev->exit_flag) {
+		WCN_ERR("%s exit!\n", __func__);
+		return -EIO;
+	}
+
+	WCN_INFO("%s count=%ld\n", __func__, (long int)count);
 	if (count > MDBG_WRITE_SIZE) {
 		WCN_ERR("mdbg_write count > MDBG_WRITE_SIZE\n");
 		return -ENOMEM;
@@ -176,7 +194,12 @@ static unsigned int wcnlog_poll(struct file *filp, poll_table *wait)
 {
 	unsigned int mask = 0;
 
-	WCN_DEBUG("%s\n", __func__);
+	MDBG_LOG("%s\n", __func__);
+	if ((!mdbg_dev) || (mdbg_dev->exit_flag)) {
+		WCN_INFO("%s exit!\n", __func__);
+		mask |= POLLIN | POLLERR;
+		return mask;
+	}
 	poll_wait(filp, &mdbg_dev->rxwait, wait);
 	if (mdbg_content_len() > 0)
 		mask |= POLLIN | POLLRDNORM;
@@ -186,6 +209,11 @@ static unsigned int wcnlog_poll(struct file *filp, poll_table *wait)
 
 static long wcnlog_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
+	if (mdbg_dev->exit_flag) {
+		WCN_ERR("%s exit!\n", __func__);
+		return -EIO;
+	}
+
 	return 0;
 }
 
@@ -229,10 +257,10 @@ int log_cdev_init(void)
 {
 	int ret = -1;
 	int	i;
+	int iflag = -1;
 	dev_t devno;
 
-	struct wcnlog_dev *dev = NULL;
-	int malloc_size = WCN_LOG_MAX_MINOR * sizeof(struct wcnlog_dev);
+	struct wcnlog_dev *dev[WCN_LOG_MAX_MINOR] = {NULL};
 
 	WCN_INFO("%s\n", __func__);
 	wcnlog_class = class_create(THIS_MODULE, "slog_wcn");
@@ -255,38 +283,46 @@ int log_cdev_init(void)
 		return ret;
 	}
 
-	dev = kmalloc(malloc_size, GFP_KERNEL);
-	if (!dev) {
-		ret = -ENOMEM;
-		goto fail_malloc;
+	for (i = 0; i < WCN_LOG_MAX_MINOR; i++) {
+		dev[i] = kmalloc(sizeof(struct wcnlog_dev), GFP_KERNEL);
+		if (!dev[i]) {
+			WCN_ERR("failed alloc mem!\n");
+			continue;
+		}
+		iflag = 1;
+		ret = wcnlog_register_device(dev[i], i);
+		if (ret != 0) {
+			kfree(dev[i]);
+			dev[i] = NULL;
+			continue;
+		}
+		mdbg_dev->dev[i] = dev[i];
+	}
+	/* kmalloc fail */
+	if (iflag == -1) {
+		unregister_chrdev_region(devno, 1);
+		ret = -1;
 	}
 
-	for (i = 0; i < WCN_LOG_MAX_MINOR; i++)
-		wcnlog_register_device(&dev[i], i);
-	mdbg_dev->dev = dev;
-
-	return 0;
-
-fail_malloc:
-	unregister_chrdev_region(devno, 1);
 	return ret;
 }
 
 int log_cdev_exit(void)
 {
-	struct wcnlog_dev *dev;
+	struct wcnlog_dev *dev[WCN_LOG_MAX_MINOR];
 	int i;
 
-	if (!mdbg_dev->dev)
-		return 0;
-
-	dev = mdbg_dev->dev;
+	WCN_INFO("log_cdev_exit\n");
 
 	for (i = 0; i < WCN_LOG_MAX_MINOR; i++) {
-		device_destroy(wcnlog_class, (&(dev[i].cdev))->dev);
-		cdev_del(&(dev[i].cdev));
+		dev[i] = mdbg_dev->dev[i];
+		if (!dev[i])
+			continue;
+		device_destroy(wcnlog_class, (&(dev[i]->cdev))->dev);
+		cdev_del(&(dev[i]->cdev));
+		kfree(dev[i]);
+		dev[i] = NULL;
 	}
-	kfree(dev);
 
 	class_destroy(wcnlog_class);
 
@@ -313,12 +349,14 @@ int log_dev_init(void)
 		return -ENOMEM;
 
 	log_cdev_init();
+	mdbg_dev->exit_flag = 0;
 
 	return 0;
 }
 
 int log_dev_exit(void)
 {
+	mdbg_dev->exit_flag = 1;
 	log_cdev_exit();
 
 	/* free for old mdbg_dev */

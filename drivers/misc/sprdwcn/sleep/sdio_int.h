@@ -11,11 +11,6 @@
 #define SLP_MGR_DBG(fmt, args...)	\
 	pr_debug(SLP_MGR_HEADER fmt "\n", ## args)
 
-#define	REG_CP_SLP_CTL		0x1a2
-#define REG_AP_INT_CP0		0x1b0
-#define REG_PUB_INT_EN0		0x1c0
-#define REG_PUB_INT_CLR0	0x1d0
-#define REG_PUB_INT_STS0	0x1f0
 
 extern struct sdio_int_t sdio_int;
 
@@ -107,6 +102,8 @@ struct sdio_int_t {
 	struct wakeup_source pub_int_wakelock;
 	struct completion pub_int_completion;
 	unsigned int pub_int_num;
+	/* 1: power on, 0: power off */
+	atomic_t chip_power_on;
 };
 
 /* add start, for power save handle */
@@ -121,9 +118,7 @@ int sdio_pub_int_btwf_en0(void);
 int sdio_pub_int_gnss_en0(void);
 int sdio_pub_int_regcb(enum PUB_INT_BIT bit,
 		PUB_INT_ISR isr_handler);
+void sdio_pub_int_poweron(bool state);
 int sdio_pub_int_init(int irq);
 int sdio_pub_int_deinit(void);
-int slp_test_init(void);
-int wcn_op_init(void);
-void wcn_op_exit(void);
 #endif
