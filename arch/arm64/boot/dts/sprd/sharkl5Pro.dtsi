@@ -5,6 +5,7 @@
  * Copyright (C) 2018, Unisoc Communications Inc.
  */
 
+#include <dt-bindings/clock/sprd,sharkl5pro-clk.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 
 / {
@@ -17,6 +18,12 @@
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
+
+		ap_apb_regs: syscon@71000000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x71000000 0 0x10000>;
+		};
 
 		ap-apb {
 			compatible = "simple-bus";
