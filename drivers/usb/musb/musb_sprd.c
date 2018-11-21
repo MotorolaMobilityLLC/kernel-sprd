@@ -833,18 +833,21 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	glue->vbus = devm_regulator_get(dev, "vbus");
-	if (IS_ERR(glue->vbus)) {
-		ret = PTR_ERR(glue->vbus);
-		dev_err(dev, "unable to get vbus supply\n");
-		goto err_core_clk;
-	}
-
 	glue->xceiv = devm_usb_get_phy_by_phandle(&pdev->dev, "usb-phy", 0);
 	if (IS_ERR(glue->xceiv)) {
 		ret = PTR_ERR(glue->xceiv);
 		dev_err(&pdev->dev, "Error getting usb-phy %d\n", ret);
 		goto err_core_clk;
+	}
+
+	if (pdata.mode == MUSB_PORT_MODE_HOST ||
+		pdata.mode == MUSB_PORT_MODE_DUAL_ROLE) {
+		glue->vbus = devm_regulator_get(dev, "vbus");
+		if (IS_ERR(glue->vbus)) {
+			ret = PTR_ERR(glue->vbus);
+			dev_err(dev, "unable to get vbus supply %d\n", ret);
+			goto err_core_clk;
+		}
 	}
 
 	wakeup_source_init(&glue->wake_lock, "musb-sprd");
