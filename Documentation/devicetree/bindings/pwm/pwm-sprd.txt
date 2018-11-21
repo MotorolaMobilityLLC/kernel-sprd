@@ -28,7 +28,7 @@ See pwm.txt in this directory for a description of the cells format.
 More information refer to <Documention/devicetree/bindings/pwm.txt>.
 
 Example:
-	pwms: pwm@32260000{
+	pwms: pwm@32260000 {
 		compatible = "sprd,sharkl5-pwm";
 		reg = <0 0x32260000 0 0x10000>;
 		clock-names = "clk_parent",
@@ -37,9 +37,9 @@ Example:
 			"clk_pwm2", "clk_pwm2_eb",
 			"clk_pwm3", "clk_pwm3_eb";
 		clocks = <&ext_26m>,
-			<&clk_pwm0>, <&aonapb_gate CLK_PWM0_EB>,
-			<&clk_pwm1>, <&aonapb_gate CLK_PWM1_EB>,
-			<&clk_pwm2>, <&aonapb_gate CLK_PWM2_EB>,
-			<&clk_pwm3>, <&aonapb_gate CLK_PWM3_EB>;
+			<&aon_clk CLK_PWM0>, <&aonapb_gate CLK_PWM0_EB>,
+			<&aon_clk CLK_PWM1>, <&aonapb_gate CLK_PWM1_EB>,
+			<&aon_clk CLK_PWM2>, <&aonapb_gate CLK_PWM2_EB>,
+			<&aon_clk CLK_PWM3>, <&aonapb_gate CLK_PWM3_EB>;
 		#pwm-cells = <2>;
-	}
+	};
