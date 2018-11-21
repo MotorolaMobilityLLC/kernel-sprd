@@ -360,6 +360,130 @@ static struct sprd_clk_desc sharkl5_gc_pll_desc = {
 	.hw_clks	= &sharkl5_gc_pll_hws,
 };
 
+/* audcp apb gates */
+static SPRD_SC_GATE_CLK(audcp_wdg_eb,	"audcp-wdg-eb",	"ext-26m", 0x0,
+		     0x100, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_rtc_wdg_eb, "audcp-rtc-wdg-eb", "ext-26m", 0x0,
+		     0x100, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_tmr0_eb,	"audcp-tmr0-eb", "ext-26m", 0x0,
+		     0x100, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_tmr1_eb,	"audcp-tmr1-eb", "ext-26m", 0x0,
+		     0x100, BIT(6), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *sharkl5_audcpapb_gate[] = {
+	/* address base is 0x3350d000 */
+	&audcp_wdg_eb.common,
+	&audcp_rtc_wdg_eb.common,
+	&audcp_tmr0_eb.common,
+	&audcp_tmr1_eb.common,
+};
+
+static struct clk_hw_onecell_data sharkl5_audcpapb_gate_hws = {
+	.hws	= {
+		[CLK_AUDCP_WDG_EB]	= &audcp_wdg_eb.common.hw,
+		[CLK_AUDCP_RTC_WDG_EB]	= &audcp_rtc_wdg_eb.common.hw,
+		[CLK_AUDCP_TMR0_EB]	= &audcp_tmr0_eb.common.hw,
+		[CLK_AUDCP_TMR1_EB]	= &audcp_tmr1_eb.common.hw,
+	},
+	.num	= CLK_AUDCP_APB_GATE_NUM,
+};
+
+static const struct sprd_clk_desc sharkl5_audcpapb_gate_desc = {
+	.clk_clks	= sharkl5_audcpapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(sharkl5_audcpapb_gate),
+	.hw_clks	= &sharkl5_audcpapb_gate_hws,
+};
+
+/* audcp ahb gates */
+static SPRD_SC_GATE_CLK(audcp_iis0_eb, "audcp-iis0-eb", "ext-26m", 0x0,
+		     0x100, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_iis1_eb, "audcp-iis1-eb", "ext-26m", 0x0,
+		     0x100, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_iis2_eb, "audcp-iis2-eb", "ext-26m", 0x0,
+		     0x100, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_uart_eb,	"audcp-uart-eb", "ext-26m", 0x0,
+		     0x100, BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_dma_cp_eb, "audcp-dma-cp-eb", "ext-26m", 0x0,
+		     0x100, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_dma_ap_eb, "audcp-dma-ap-eb", "ext-26m", 0x0,
+		     0x100, BIT(6), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_src48k_eb, "audcp-src48k-eb", "ext-26m", 0x0,
+		     0x100, BIT(10), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_mcdt_eb,  "audcp-mcdt-eb", "ext-26m", 0x0,
+		     0x100, BIT(12), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_vbcifd_eb, "audcp-vbcifd-eb", "ext-26m", 0x0,
+		     0x100, BIT(13), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_vbc_eb,   "audcp-vbc-eb", "ext-26m", 0x0,
+		     0x100, BIT(14), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_splk_eb,  "audcp-splk-eb", "ext-26m", 0x0,
+		     0x100, BIT(15), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_icu_eb,   "audcp-icu-eb", "ext-26m", 0x0,
+		     0x100, BIT(16), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(dma_ap_ashb_eb, "dma-ap-ashb-eb", "ext-26m", 0x0,
+		     0x100, BIT(17), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(dma_cp_ashb_eb, "dma-cp-ashb-eb", "ext-26m", 0x0,
+		     0x100, BIT(18), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_aud_eb,   "audcp-aud-eb", "ext-26m", 0x0,
+		     0x100, BIT(19), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_vbc_26m_eb, "audcp-vbc-26m-eb", "ext-26m", 0x0,
+		     0x100, BIT(21), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_tmr_26m_eb, "audcp-tmr-26m-eb", "ext-26m", 0x0,
+		     0x100, BIT(22), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_dvfs_ashb_eb, "audcp-dvfs-ashb-eb", "ext-26m", 0x0,
+		     0x100, BIT(23), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *sharkl5_audcpahb_gate[] = {
+	/* address base is 0x335e0000 */
+	&audcp_iis0_eb.common,
+	&audcp_iis1_eb.common,
+	&audcp_iis2_eb.common,
+	&audcp_uart_eb.common,
+	&audcp_dma_cp_eb.common,
+	&audcp_dma_ap_eb.common,
+	&audcp_src48k_eb.common,
+	&audcp_mcdt_eb.common,
+	&audcp_vbcifd_eb.common,
+	&audcp_vbc_eb.common,
+	&audcp_splk_eb.common,
+	&audcp_icu_eb.common,
+	&dma_ap_ashb_eb.common,
+	&dma_cp_ashb_eb.common,
+	&audcp_aud_eb.common,
+	&audcp_vbc_26m_eb.common,
+	&audcp_tmr_26m_eb.common,
+	&audcp_dvfs_ashb_eb.common,
+};
+
+static struct clk_hw_onecell_data sharkl5_audcpahb_gate_hws = {
+	.hws	= {
+		[CLK_AUDCP_IIS0_EB]	= &audcp_iis0_eb.common.hw,
+		[CLK_AUDCP_IIS1_EB]	= &audcp_iis1_eb.common.hw,
+		[CLK_AUDCP_IIS2_EB]	= &audcp_iis2_eb.common.hw,
+		[CLK_AUDCP_UART_EB]	= &audcp_uart_eb.common.hw,
+		[CLK_AUDCP_DMA_CP_EB]	= &audcp_dma_cp_eb.common.hw,
+		[CLK_AUDCP_DMA_AP_EB]	= &audcp_dma_ap_eb.common.hw,
+		[CLK_AUDCP_SRC48K_EB]	= &audcp_src48k_eb.common.hw,
+		[CLK_AUDCP_MCDT_EB]	= &audcp_mcdt_eb.common.hw,
+		[CLK_AUDCP_VBCIFD_EB]	= &audcp_vbcifd_eb.common.hw,
+		[CLK_AUDCP_VBC_EB]	= &audcp_vbc_eb.common.hw,
+		[CLK_AUDCP_SPLK_EB]	= &audcp_splk_eb.common.hw,
+		[CLK_AUDCP_ICU_EB]	= &audcp_icu_eb.common.hw,
+		[CLK_AUDCP_DMA_AP_ASHB_EB] = &dma_ap_ashb_eb.common.hw,
+		[CLK_AUDCP_DMA_CP_ASHB_EB] = &dma_cp_ashb_eb.common.hw,
+		[CLK_AUDCP_AUD_EB]	= &audcp_aud_eb.common.hw,
+		[CLK_AUDCP_VBC_24M_EB]	= &audcp_vbc_26m_eb.common.hw,
+		[CLK_AUDCP_TMR_26M_EB]	= &audcp_tmr_26m_eb.common.hw,
+		[CLK_AUDCP_DVFS_ASHB_EB] = &audcp_dvfs_ashb_eb.common.hw,
+	},
+	.num	= CLK_AUDCP_AHB_GATE_NUM,
+};
+
+static const struct sprd_clk_desc sharkl5_audcpahb_gate_desc = {
+	.clk_clks	= sharkl5_audcpahb_gate,
+	.num_clk_clks	= ARRAY_SIZE(sharkl5_audcpahb_gate),
+	.hw_clks	= &sharkl5_audcpahb_gate_hws,
+};
+
 #define SHARKL5_MUX_FLAG	\
 	(CLK_GET_RATE_NOCACHE | CLK_SET_RATE_NO_REPARENT)
 
@@ -1685,6 +1809,10 @@ static const struct of_device_id sprd_sharkl5_clk_ids[] = {
 	  .data = &sharkl5_g3_pll_desc },
 	{ .compatible = "sprd,sharkl5-gc-pll",		/* 0x323e0000 */
 	  .data = &sharkl5_gc_pll_desc },
+	{ .compatible = "sprd,sharkl5-audcpapb-gate",	/* 0x3305d000 */
+	  .data = &sharkl5_audcpapb_gate_desc },
+	{ .compatible = "sprd,sharkl5-audcpahb-gate",	/* 0x335e0000 */
+	  .data = &sharkl5_audcpahb_gate_desc },
 	{ .compatible = "sprd,sharkl5-gpu-clk",		/* 0x60100000 */
 	  .data = &sharkl5_gpu_clk_desc },
 	{ .compatible = "sprd,sharkl5-mm-clk",		/* 0x62100000 */
