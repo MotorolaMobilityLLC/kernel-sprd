@@ -12,6 +12,7 @@
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
+#include <linux/power/charger-manager.h>
 #include <linux/regmap.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
@@ -737,6 +738,7 @@ static void sc2703_charger_work(struct work_struct *data)
 
 out:
 	mutex_unlock(&info->lock);
+	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
 }
 
 static int sc2703_charger_usb_change(struct notifier_block *nb,
