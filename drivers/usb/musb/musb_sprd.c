@@ -385,18 +385,8 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 			return 0;
 		}
 
-		if (glue->dr_mode != USB_DR_MODE_UNKNOWN) {
-			glue->vbus_active = 0;
-			glue->wq_mode = USB_DR_MODE_PERIPHERAL;
-			queue_work(system_unbound_wq, &glue->work);
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_info(glue->dev, "missed disconnect event when GPIO device connect.\n");
-			return 0;
-		}
-
 		glue->vbus_active = 1;
-		glue->dr_mode = USB_DR_MODE_PERIPHERAL;
-		glue->wq_mode = USB_DR_MODE_UNKNOWN;
+		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
 		spin_unlock_irqrestore(&glue->lock, flags);
 		dev_info(glue->dev,
@@ -411,7 +401,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		}
 
 		glue->vbus_active = 0;
-		glue->wq_mode = USB_DR_MODE_UNKNOWN;
+		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
 		spin_unlock_irqrestore(&glue->lock, flags);
 		dev_info(glue->dev,
@@ -437,7 +427,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 		}
 
 		glue->vbus_active = 1;
-		glue->dr_mode = USB_DR_MODE_HOST;
+		glue->wq_mode = USB_DR_MODE_HOST;
 		queue_work(system_unbound_wq, &glue->work);
 		spin_unlock_irqrestore(&glue->lock, flags);
 		dev_info(glue->dev,
@@ -452,6 +442,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 		}
 
 		glue->vbus_active = 0;
+		glue->wq_mode = USB_DR_MODE_HOST;
 		queue_work(system_unbound_wq, &glue->work);
 		spin_unlock_irqrestore(&glue->lock, flags);
 		dev_info(glue->dev,
