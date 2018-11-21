@@ -113,7 +113,7 @@
 		};
 
 		ap_clk: clock-controller@20200000 {
-			compatible = "sprd,sharkl5-apapb-clk";
+			compatible = "sprd,sharkl5-ap-clk";
 			reg = <0 0x20200000 0 0x1000>;
 			clocks = <&apapb_gate CLK_APB_REG_EB>;
 			#clock-cells = <1>;
