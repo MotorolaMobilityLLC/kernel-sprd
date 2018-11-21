@@ -424,7 +424,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 static int musb_sprd_id_notifier(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
-	struct sprd_glue *glue = container_of(nb, struct sprd_glue, vbus_nb);
+	struct sprd_glue *glue = container_of(nb, struct sprd_glue, id_nb);
 	unsigned long flags;
 
 	if (event) {
