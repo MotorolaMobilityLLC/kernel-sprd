@@ -14,6 +14,8 @@ Required properties:
  - clock-names: Should contain "core_clk"
  - usb-phy: phandle for the PHY device
  - dr-mode: Should be "peripheral"
+ - extcon: Should be "pmic_typec"
+ - vbus-supply: Should be "vddvbus" which is provided by charger
 
 Example:
 -------
@@ -30,4 +32,6 @@ Board specific DT entry:
 		usb-phy = <&hsphy>;
 		phy-names = "usb";
 		dr-mode = "peripheral";
+		extcon = <&pmic_typec>;
+		vbus-supply = <&vddvbus>;
 	};
