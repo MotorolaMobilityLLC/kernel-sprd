@@ -400,8 +400,6 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 
 	sprd_dpu_init(dpu);
 	sprd_iommu_restore(&dpu->dev);
-
-	drm_crtc_vblank_on(crtc);
 }
 
 static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
@@ -410,8 +408,6 @@ static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
 	DRM_INFO("%s()\n", __func__);
-
-	drm_crtc_vblank_off(crtc);
 
 	sprd_dpu_uninit(dpu);
 
@@ -539,6 +535,8 @@ int sprd_dpu_run(struct sprd_dpu *dpu)
 
 	ctx->is_stopped = false;
 
+	drm_crtc_vblank_on(&dpu->crtc);
+
 	return 0;
 }
 
@@ -563,6 +561,9 @@ int sprd_dpu_stop(struct sprd_dpu *dpu)
 		dpu->core->stop(ctx);
 
 	ctx->is_stopped = true;
+
+	drm_crtc_handle_vblank(&dpu->crtc);
+	drm_crtc_vblank_off(&dpu->crtc);
 
 	return 0;
 }
@@ -635,8 +636,6 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 
 	if ((int_mask & DISPC_INT_DPI_VSYNC_MASK) && ctx->is_inited)
 		drm_crtc_handle_vblank(&dpu->crtc);
-
-	//sprd_crtc_finish_page_flip(dpu);
 
 	return IRQ_HANDLED;
 }
