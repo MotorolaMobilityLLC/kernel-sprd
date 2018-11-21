@@ -8017,6 +8017,20 @@ SPRD_DEBUG
 	[subsys] soc
 	[must] debug
 	[function] Enable/disable sprd debug function.
+SPRD_DJTAG
+	[arch] arm64
+	[plat] sharkl3 sharkl5
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Enable Djtag function
+SPRD_DJTAG_CORE
+	[arch] arm64
+	[plat] sharkl3 sharkl5
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Enable Djtag core function
 SPRD_DMA
 	[arch] all
 	[plat] all
