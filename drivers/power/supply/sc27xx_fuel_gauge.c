@@ -486,9 +486,10 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_TEMP:
 		ret = sc27xx_fgu_get_temp(data, &value);
-		if (ret)
+		if (ret < 0)
 			goto error;
 
+		ret = 0;
 		val->intval = value;
 		break;
 
