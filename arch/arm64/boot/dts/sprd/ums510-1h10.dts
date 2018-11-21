@@ -190,6 +190,12 @@
 			regulator-name = "vddvbus";
 		};
 	};
+
+	flash: sc2703-flash@4a {
+		compatible = "sprd,sc2703-flash";
+		reg = <0x4a>;
+		flash-chip-en-gpios = <&ap_gpio 137 0>;
+	};
 };
 
 &dpu {

@@ -9,6 +9,13 @@
 	fragment {
 		target-path = "/";
 		__overlay__ {
+			flash_lcd: flash-lcd {
+				compatible = "sprd,lcd-flash";
+				sprd,dpu = <&dpu>;
+				sprd,backlight = <&pwm_backlight>;
+				status = "okay";
+			};
+
 			gpio-keys {
 				compatible = "gpio-keys";
 
