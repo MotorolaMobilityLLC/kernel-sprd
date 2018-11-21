@@ -119,9 +119,9 @@
 			#clock-cells = <1>;
 		};
 
-		aon_clk: clock-controller@32080200 {
+		aon_clk: clock-controller@32080000 {
 			compatible = "sprd,sharkl5-aonapb-clk";
-			reg = <0 0x32080200 0 0x1000>;
+			reg = <0 0x32080000 0 0x1000>;
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
 		};
