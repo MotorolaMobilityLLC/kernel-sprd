@@ -7218,6 +7218,13 @@ SPRD_REGMAP_DEBUG
 	[subsys] core
 	[must] user
 	[function] Spreadtrum syscon regmap debug.
+SPRD_WATCHDOG
+	[arch] all
+	[plat] all
+	[field] menu,code
+	[subsys] core
+	[must] user
+	[function] Spreadtrum watchdog driver.
 REGULATOR
 	[arch] all
 	[plat] sharkl5
@@ -9266,6 +9273,13 @@ WATCHDOG
 	[subsys] core
 	[must] user
 	[function] Generic Watchdog Controller support.
+WATCHDOG_CORE
+	[arch] all
+	[plat] all
+	[field] make,code
+	[subsys] core
+	[must] user
+	[function] Generic Watchdog Core sys support.
 WATCHDOG_HANDLE_BOOT_ENABLED
 	[arch] all
 	[plat] all
