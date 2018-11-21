@@ -20,17 +20,73 @@
 				core0 {
 					cpu = <&CPU0>;
 				};
+				core1 {
+					cpu = <&CPU1>;
+				};
+				core2 {
+					cpu = <&CPU2>;
+				};
 			};
-
+			cluster1 {
+				core0 {
+					cpu = <&CPU3>;
+				};
+			};
 		};
 
 		CPU0: cpu@0 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a55","arm,armv8";
 			reg = <0x0 0x0>;
-			enable-method = "spin-table";
+			enable-method = "psci";
+			cpu-idle-states = <&LIT_CORE_PD>;
 		};
+		CPU1: cpu@100 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a55","arm,armv8";
+			reg = <0x0 0x100>;
+			enable-method = "psci";
+			cpu-idle-states = <&LIT_CORE_PD>;
+		};
+		CPU2: cpu@200 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a55","arm,armv8";
+			reg = <0x0 0x200>;
+			enable-method = "psci";
+			cpu-idle-states = <&LIT_CORE_PD>;
+		};
+		CPU3: cpu@300 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a75","arm,armv8";
+			reg = <0x0 0x300>;
+			enable-method = "psci";
+			cpu-idle-states = <&BIG_CORE_PD>;
+		};
+	};
 
+	psci {
+		compatible = "arm,psci-0.2";
+		method = "smc";
+	};
+
+	idle-states {
+		entry-method = "arm,psci";
+		LIT_CORE_PD: lit_core_pd {
+			compatible = "arm,idle-state";
+			entry-latency-us = <0xffffffff>;
+			exit-latency-us = <0xffffffff>;
+			min-residency-us = <0xffffffff>;
+			local-timer-stop;
+			arm,psci-suspend-param = <0x00010000>;
+		};
+		BIG_CORE_PD: big_core_pd {
+			compatible = "arm,idle-state";
+			entry-latency-us = <0xffffffff>;
+			exit-latency-us = <0xffffffff>;
+			min-residency-us = <0xffffffff>;
+			local-timer-stop;
+			arm,psci-suspend-param = <0x00010000>;
+		};
 	};
 
 	gic: interrupt-controller@12000000 {
