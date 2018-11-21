@@ -8038,6 +8038,13 @@ SPRD_DMA
 	[subsys] dma
 	[must] none
 	[function] Support Spreadtrum DMA.
+SPRD_BUSMONITOR
+	[arch] arm64
+	[plat] sharkl5, sharkl3
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Enable busmonitor core function
 SPRD_DMC_MPU
 	[arch] all
 	[plat] sharkl5

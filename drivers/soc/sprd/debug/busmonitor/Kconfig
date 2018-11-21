@@ -1,0 +1,5 @@
+config SPRD_BUSMONITOR
+	bool "Spreadtrum BUS Monitor Support"
+	depends on SPRD_DEBUG
+	help
+	  Say Y here to support BUS monitor.
