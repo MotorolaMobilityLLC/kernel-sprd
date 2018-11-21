@@ -20,6 +20,7 @@
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/pm_runtime.h>
+#include <linux/sprd_iommu.h>
 
 #include "sprd_drm.h"
 #include "sprd_dpu.h"
@@ -398,6 +399,7 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 	pm_runtime_get_sync(dpu->dev.parent);
 
 	sprd_dpu_init(dpu);
+	sprd_iommu_restore(&dpu->dev);
 
 	drm_crtc_vblank_on(crtc);
 }
