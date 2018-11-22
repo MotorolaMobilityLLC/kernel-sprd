@@ -104,9 +104,11 @@ struct sc27xx_fgu_data {
 	int max_volt;
 	int min_volt;
 	int table_len;
+	int temp_table_len;
 	int cur_1000ma_adc;
 	int vol_1000mv_adc;
 	struct power_supply_battery_ocv_table *cap_table;
+	struct power_supply_vol_temp_table *temp_table;
 };
 
 struct sc27xx_fgu_variant_data {
@@ -409,9 +411,41 @@ static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
 	return 0;
 }
 
+static int sc27xx_fgu_vol_to_temp(struct power_supply_vol_temp_table *table,
+				  int table_len, int vol)
+{
+	int i, temp;
+
+	for (i = 0; i < table_len; i++)
+		if (vol > table[i].vol)
+			break;
+
+	if (i > 0 && i < table_len) {
+		int tmp;
+
+		tmp = (table[i - 1].temp - table[i].temp) * (vol - table[i].vol);
+		tmp /= table[i - 1].vol - table[i].vol;
+		temp = tmp + table[i].temp;
+	} else if (i == 0) {
+		temp = table[0].temp;
+	} else {
+		temp = table[table_len - 1].temp;
+	}
+
+	return (temp - 1000) / 10;
+}
+
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 {
-	return iio_read_channel_processed(data->channel, temp);
+	int vol, ret;
+
+	ret = iio_read_channel_processed(data->channel, &vol);
+	if (ret < 0)
+		return ret;
+
+	*temp = sc27xx_fgu_vol_to_temp(data->temp_table,
+				       data->temp_table_len, vol * 1000);
+	return 0;
 }
 
 static int sc27xx_fgu_get_health(struct sc27xx_fgu_data *data, int *health)
@@ -800,6 +834,16 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 				       data->table_len * sizeof(*table),
 				       GFP_KERNEL);
 	if (!data->cap_table) {
+		power_supply_put_battery_info(data->battery, &info);
+		return -ENOMEM;
+	}
+
+	data->temp_table_len = info.temp_table_size;
+	data->temp_table = devm_kmemdup(data->dev, info.temp_table,
+					data->temp_table_len *
+					sizeof(struct power_supply_vol_temp_table),
+					GFP_KERNEL);
+	if (!data->temp_table) {
 		power_supply_put_battery_info(data->battery, &info);
 		return -ENOMEM;
 	}
