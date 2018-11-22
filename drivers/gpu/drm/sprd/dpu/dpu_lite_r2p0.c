@@ -252,6 +252,13 @@ struct slp_cfg {
 	u16 dummy;
 };
 
+struct dpu_cfg1 {
+	u8 arqos_low;
+	u8 arqos_high;
+	u8 awqos_low;
+	u8 awqos_high;
+};
+
 static struct epf_cfg epf = {
 	.epsilon0 = 30,
 	.epsilon1 = 1000,
@@ -266,6 +273,14 @@ static struct epf_cfg epf = {
 	.max_diff = 80,
 	.min_diff = 40,
 };
+
+static struct dpu_cfg1 qos_cfg = {
+	.arqos_low = 0x1,
+	.arqos_high = 0x7,
+	.awqos_low = 0x1,
+	.awqos_high = 0x7,
+};
+
 static struct scale_cfg scale_copy;
 static struct cm_cfg cm_copy;
 static struct slp_cfg slp_copy;
@@ -303,33 +318,38 @@ static u32 dpu_get_version(struct dpu_context *ctx)
 	return reg->dpu_version;
 }
 
-#if 0
 static int dpu_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
 	int ret = 0;
+	struct device_node *qos_np = NULL;
 
-	ret = of_property_read_u32(np, "sprd,corner-radius",
-					&sprd_corner_radius);
-	if (!ret) {
-		sprd_corner_support = 1;
-		pr_info("round corner support, radius = %d.\n",
-					sprd_corner_radius);
-	} else
-		return 0;
+	qos_np = of_parse_phandle(np, "sprd,qos", 0);
+	if (!qos_np)
+		pr_warn("can't find dpu qos cfg node\n");
 
-	if (sprd_corner_support) {
-		sprd_corner_hwlayer_init(ctx->panel->height,
-				ctx->panel->width, sprd_corner_radius);
+	ret = of_property_read_u8(qos_np, "arqos-low",
+					&qos_cfg.arqos_low);
+	if (ret)
+		pr_warn("read arqos-low failed, use default\n");
 
-		/* change id value based on different dpu chip */
-		corner_layer_top.hwlayer_id = 5;
-		corner_layer_bottom.hwlayer_id = 6;
-	}
+	ret = of_property_read_u8(qos_np, "arqos-high",
+					&qos_cfg.arqos_high);
+	if (ret)
+		pr_warn("read arqos-high failed, use default\n");
 
-	return 0;
+	ret = of_property_read_u8(qos_np, "awqos-low",
+					&qos_cfg.awqos_low);
+	if (ret)
+		pr_warn("read awqos_low failed, use default\n");
+
+	ret = of_property_read_u8(qos_np, "awqos-high",
+					&qos_cfg.awqos_high);
+	if (ret)
+		pr_warn("read awqos-high failed, use default\n");
+
+	return ret;
 }
-#endif
 
 static void check_mmu_isr(struct dpu_context *ctx, uint32_t reg_val)
 {
@@ -640,7 +660,10 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->blend_size = size;
 
 	reg->dpu_cfg0 = 0;
-	reg->dpu_cfg1 = 0x004466da;
+	reg->dpu_cfg1 = (qos_cfg.awqos_high << 12) |
+		(qos_cfg.awqos_low << 8) |
+		(qos_cfg.arqos_high << 4) |
+		(qos_cfg.arqos_low) | BIT(18) | BIT(22);
 	reg->dpu_cfg2 = 0;
 
 	if (is_running)
@@ -1339,7 +1362,7 @@ static int dpu_capability(struct dpu_context *ctx,
 }
 
 static struct dpu_core_ops dpu_lite_r2p0_ops = {
-//	.parse_dt = dpu_parse_dt,
+	.parse_dt = dpu_parse_dt,
 	.version = dpu_get_version,
 	.init = dpu_init,
 	.uninit = dpu_uninit,

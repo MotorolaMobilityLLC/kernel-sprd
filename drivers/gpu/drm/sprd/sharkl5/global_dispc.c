@@ -24,6 +24,12 @@ static LIST_HEAD(dpi_clk_list);
 
 static struct clk *clk_dpu_core;
 static struct clk *clk_dpu_dpi;
+static struct clk *clk_ap_ahb_disp_eb;
+
+static struct qos_thres {
+	u8 awqos_thres;
+	u8 arqos_thres;
+} qos_cfg;
 
 struct dpu_clk_context {
 	struct list_head head;
@@ -52,9 +58,8 @@ static struct dpu_glb_context {
 	unsigned int enable_reg;
 	unsigned int mask_bit;
 
-	struct clk *clk_ap_ahb_disp_eb;
 	struct regmap *regmap;
-} dpu_glb_ctx;
+} ctx_reset, ctx_qos;
 
 static int dpu_clk_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
@@ -105,6 +110,8 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 		of_clk_get_by_name(np, "clk_dpu_core");
 	clk_dpu_dpi =
 		of_clk_get_by_name(np, "clk_dpu_dpi");
+	clk_ap_ahb_disp_eb =
+		of_clk_get_by_name(np, "clk_ap_ahb_disp_eb");
 
 	if (IS_ERR(clk_dpu_core)) {
 		clk_dpu_core = NULL;
@@ -114,6 +121,11 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 	if (IS_ERR(clk_dpu_dpi)) {
 		clk_dpu_dpi = NULL;
 		pr_warn("read clk_dpu_dpi failed\n");
+	}
+
+	if (IS_ERR(clk_ap_ahb_disp_eb)) {
+		clk_ap_ahb_disp_eb = NULL;
+		pr_warn("read clk_ap_ahb_disp_eb failed\n");
 	}
 
 	return 0;
@@ -191,30 +203,51 @@ static int dpu_clk_disable(struct dpu_context *ctx)
 static int dpu_glb_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
-	struct dpu_glb_context *glb_ctx = &dpu_glb_ctx;
 	unsigned int syscon_args[2];
+	struct device_node *qos_np = NULL;
 	int ret;
 
-	glb_ctx->regmap = syscon_regmap_lookup_by_name(np, "reset");
-	if (IS_ERR(glb_ctx->regmap)) {
-		pr_warn("failed to map dpu glb reg\n");
-		return PTR_ERR(glb_ctx->regmap);
+	ctx_reset.regmap = syscon_regmap_lookup_by_name(np, "reset");
+	if (IS_ERR(ctx_reset.regmap)) {
+		pr_warn("failed to map dpu glb reg: reset\n");
+		return PTR_ERR(ctx_reset.regmap);
 	}
 
 	ret = syscon_get_args_by_name(np, "reset", 2, syscon_args);
 	if (ret == 2) {
-		glb_ctx->enable_reg = syscon_args[0];
-		glb_ctx->mask_bit = syscon_args[1];
+		ctx_reset.enable_reg = syscon_args[0];
+		ctx_reset.mask_bit = syscon_args[1];
 	} else {
-		pr_warn("failed to parse dpu glb reg\n");
+		pr_warn("failed to parse dpu glb reg: reset\n");
 	}
 
-	glb_ctx->clk_ap_ahb_disp_eb =
-		of_clk_get_by_name(np, "clk_ap_ahb_disp_eb");
-	if (IS_ERR(glb_ctx->clk_ap_ahb_disp_eb)) {
-		pr_warn("read clk_ap_ahb_disp_eb failed\n");
-		glb_ctx->clk_ap_ahb_disp_eb = NULL;
+	ctx_qos.regmap = syscon_regmap_lookup_by_name(np, "qos");
+	if (IS_ERR(ctx_qos.regmap)) {
+		pr_warn("failed to map dpu glb reg: qos\n");
+		return PTR_ERR(ctx_qos.regmap);
 	}
+
+	ret = syscon_get_args_by_name(np, "qos", 2, syscon_args);
+	if (ret == 2) {
+		ctx_qos.enable_reg = syscon_args[0];
+		ctx_qos.mask_bit = syscon_args[1];
+	} else {
+		pr_warn("failed to parse dpu glb reg: qos\n");
+	}
+
+	qos_np = of_parse_phandle(np, "sprd,qos", 0);
+	if (!qos_np)
+		pr_warn("can't find dpu qos cfg node\n");
+
+	ret = of_property_read_u8(qos_np, "awqos-threshold",
+					&qos_cfg.awqos_thres);
+	if (ret)
+		pr_warn("read awqos-threshold failed, use default\n");
+
+	ret = of_property_read_u8(qos_np, "arqos-threshold",
+					&qos_cfg.arqos_thres);
+	if (ret)
+		pr_warn("read arqos-threshold failed, use default\n");
 
 	return 0;
 }
@@ -222,9 +255,8 @@ static int dpu_glb_parse_dt(struct dpu_context *ctx,
 static void dpu_glb_enable(struct dpu_context *ctx)
 {
 	int ret;
-	struct dpu_glb_context *glb_ctx = &dpu_glb_ctx;
 
-	ret = clk_prepare_enable(glb_ctx->clk_ap_ahb_disp_eb);
+	ret = clk_prepare_enable(clk_ap_ahb_disp_eb);
 	if (ret) {
 		pr_err("enable clk_aon_apb_disp_eb failed!\n");
 		return;
@@ -233,24 +265,28 @@ static void dpu_glb_enable(struct dpu_context *ctx)
 
 static void dpu_glb_disable(struct dpu_context *ctx)
 {
-	struct dpu_glb_context *glb_ctx = &dpu_glb_ctx;
-
-	clk_disable_unprepare(glb_ctx->clk_ap_ahb_disp_eb);
+	clk_disable_unprepare(clk_ap_ahb_disp_eb);
 }
 
 static void dpu_reset(struct dpu_context *ctx)
 {
-	struct dpu_glb_context *glb_ctx = &dpu_glb_ctx;
-
-	regmap_update_bits(glb_ctx->regmap,
-		    glb_ctx->enable_reg,
-		    glb_ctx->mask_bit,
-		    glb_ctx->mask_bit);
+	regmap_update_bits(ctx_reset.regmap,
+		    ctx_reset.enable_reg,
+		    ctx_reset.mask_bit,
+		    ctx_reset.mask_bit);
 	udelay(10);
-	regmap_update_bits(glb_ctx->regmap,
-		    glb_ctx->enable_reg,
-		    glb_ctx->mask_bit,
-		    (unsigned int)(~glb_ctx->mask_bit));
+	regmap_update_bits(ctx_reset.regmap,
+		    ctx_reset.enable_reg,
+		    ctx_reset.mask_bit,
+		    (unsigned int)(~ctx_reset.mask_bit));
+}
+
+static void dpu_power_domain(struct dpu_context *ctx, int enable)
+{
+	regmap_update_bits(ctx_qos.regmap,
+		    ctx_qos.enable_reg,
+		    ctx_qos.mask_bit,
+		    (qos_cfg.awqos_thres | qos_cfg.arqos_thres << 4));
 }
 
 static struct dpu_clk_ops dpu_clk_ops = {
@@ -265,6 +301,7 @@ static struct dpu_glb_ops dpu_glb_ops = {
 	.reset = dpu_reset,
 	.enable = dpu_glb_enable,
 	.disable = dpu_glb_disable,
+	.power = dpu_power_domain,
 };
 
 static struct ops_entry clk_entry = {
