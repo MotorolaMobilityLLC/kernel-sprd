@@ -204,9 +204,10 @@ static void rfkill_any_led_trigger_event(void)
 	schedule_work(&rfkill_any_work);
 }
 
-static void rfkill_any_led_trigger_activate(struct led_classdev *led_cdev)
+static int rfkill_any_led_trigger_activate(struct led_classdev *led_cdev)
 {
 	rfkill_any_led_trigger_event();
+	return 0;
 }
 
 static int rfkill_any_led_trigger_register(void)
