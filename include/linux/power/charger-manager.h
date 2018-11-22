@@ -201,6 +201,9 @@ struct charger_desc {
 
 	u32 charging_max_duration_ms;
 	u32 discharging_max_duration_ms;
+
+	u32 charge_voltage_max;
+	u32 charge_voltage_drop;
 };
 
 #define PSY_NAME_MAX	30

@@ -28,6 +28,8 @@ Optional properties :
 	-hot : critical hot temperature of battery for charging
 	-temp-diff : temperature difference to allow recharging
  - cm-dis/charging-max = limits of charging duration
+ - cm-charge-voltage-max: maximum charge voltage in microVolts
+ - cm-charge-voltage-drop: drop voltage in microVolts to allow recharging
 
 Example :
 	charger-manager@0 {
@@ -61,6 +63,8 @@ Example :
 		cm-charging-max = <18000000>;
 		/* Allow discharging for 2hr */
 		cm-discharging-max = <7200000>;
+		cm-charge-voltage-max = <6500000>;
+		cm-charge-voltage-drop = <700000>;
 
 		regulator@0 {
 			cm-regulator-name = "chg-reg";

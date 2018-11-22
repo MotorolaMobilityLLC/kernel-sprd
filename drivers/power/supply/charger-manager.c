@@ -738,6 +738,47 @@ static int cm_check_thermal_status(struct charger_manager *cm)
 	return ret;
 }
 
+static int cm_check_charge_voltage(struct charger_manager *cm)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *fuel_gauge;
+	union power_supply_propval val;
+	int ret, charge_vol;
+
+	if (!desc->charge_voltage_max || !desc->charge_voltage_drop)
+		return -EINVAL;
+
+	fuel_gauge = power_supply_get_by_name(desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge,
+				POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+				&val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	charge_vol = val.intval;
+
+	if (cm->charger_enabled && charge_vol > desc->charge_voltage_max) {
+		dev_info(cm->dev, "Charging voltage is larger than %d\n",
+			 desc->charge_voltage_max);
+		uevent_notify(cm, "Discharging");
+		try_charger_enable(cm, false);
+		return 0;
+	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
+		   charge_vol <= (desc->charge_voltage_max - desc->charge_voltage_drop)) {
+		dev_info(cm->dev, "Charging voltage is less than %d, recharging\n",
+			 desc->charge_voltage_max - desc->charge_voltage_drop);
+		uevent_notify(cm, "Recharging");
+		try_charger_enable(cm, true);
+		return 0;
+	}
+
+	return -EINVAL;
+}
+
 /**
  * _cm_monitor - Monitor the temperature and return true for exceptions.
  * @cm: the Charger Manager representing the battery.
@@ -763,7 +804,12 @@ static bool _cm_monitor(struct charger_manager *cm)
 		cm->emergency_stop = temp_alrt;
 		if (!try_charger_enable(cm, false))
 			uevent_notify(cm, default_event_names[temp_alrt]);
-
+	/*
+	 * Check if the charge voltage is in the normal range.
+	 */
+	} else if (!cm->emergency_stop && !cm_check_charge_voltage(cm)) {
+		dev_info(cm->dev,
+			"Stop charging/Recharging due to charge voltage changes\n");
 	/*
 	 * Check whole charging duration and discharing duration
 	 * after full-batt.
@@ -1619,6 +1665,10 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 				&desc->charging_max_duration_ms);
 	of_property_read_u32(np, "cm-discharging-max",
 				&desc->discharging_max_duration_ms);
+	of_property_read_u32(np, "cm-charge-voltage-max",
+			     &desc->charge_voltage_max);
+	of_property_read_u32(np, "cm-charge-voltage-drop",
+			     &desc->charge_voltage_drop);
 
 	/* battery charger regualtors */
 	desc->num_charger_regulators = of_get_child_count(np);
@@ -1791,6 +1841,12 @@ static int charger_manager_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "Cannot limit charging duration checking mechanism to prevent overcharge/overheat and control discharging duration\n");
 		desc->charging_max_duration_ms = 0;
 		desc->discharging_max_duration_ms = 0;
+	}
+
+	if (!desc->charge_voltage_max || !desc->charge_voltage_drop) {
+		dev_info(&pdev->dev, "Cannot validate charge voltage\n");
+		desc->charge_voltage_max = 0;
+		desc->charge_voltage_drop = 0;
 	}
 
 	platform_set_drvdata(pdev, cm);
