@@ -2327,7 +2327,7 @@ EMBEDDED
 	[function] vts require, Embedded system.
 ENABLE_DEFAULT_TRACERS
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field]
 	[subsys]
 	[must]
@@ -3053,13 +3053,6 @@ GPIO_EIC_SPRD
 	[subsys]
 	[must]
 	[function]
-GPIO_PLUS_SPRD
-	[arch] all
-	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
 GPIO_PMIC_EIC_SPRD
 	[arch] all
 	[plat] all
@@ -3069,7 +3062,7 @@ GPIO_PMIC_EIC_SPRD
 	[function]
 GPIO_SPRD
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] make,code
 	[subsys] gpio
 	[must] user
@@ -6816,7 +6809,7 @@ POWER_RESET
 	[function] Provides a number of drivers which either reset a complete board.
 POWER_RESET_SC27XX
 	[arch] all
-	[plat] all
+	[plat] sharkl5
 	[field] make,code
 	[subsys] reset
 	[must] user
@@ -6977,6 +6970,20 @@ PROFILING
 	[subsys] core
 	[must] console
 	[function] vts require, Profiling support.
+PSTORE
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
+PSTORE_ZLIB_COMPRESS
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 PWM
 	[arch] all
 	[plat] all
@@ -7211,20 +7218,6 @@ REGMAP_SPI
 	[subsys] core
 	[must] user
 	[function] Support spi regmap.
-SPRD_REGMAP_DEBUG
-	[arch] all
-	[plat] sharkl5
-	[field] menu,code
-	[subsys] core
-	[must] user
-	[function] Spreadtrum syscon regmap debug.
-SPRD_WATCHDOG
-	[arch] all
-	[plat] all
-	[field] menu,code
-	[subsys] core
-	[must] user
-	[function] Spreadtrum watchdog driver.
 REGULATOR
 	[arch] all
 	[plat] sharkl5
@@ -7996,6 +7989,13 @@ SPLIT_PTLOCK_CPUS
 	[subsys] mm
 	[must] busybox_console
 	[function] Set the number of startup ARM cores.
+SPRD_BUSMONITOR
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Enable busmonitor core function
 SPRD_COMMON_CLK
 	[arch] all
 	[plat] all
@@ -8018,15 +8018,15 @@ SPRD_DEBUG
 	[must] debug
 	[function] Enable/disable sprd debug function.
 SPRD_DJTAG
-	[arch] arm64
-	[plat] sharkl3 sharkl5
+	[arch] all
+	[plat] sharkl5
 	[field] make
 	[subsys] debug
 	[must] debug
 	[function] Enable Djtag function
 SPRD_DJTAG_CORE
-	[arch] arm64
-	[plat] sharkl3 sharkl5
+	[arch] all
+	[plat] sharkl5
 	[field] make
 	[subsys] debug
 	[must] debug
@@ -8038,13 +8038,6 @@ SPRD_DMA
 	[subsys] dma
 	[must] none
 	[function] Support Spreadtrum DMA.
-SPRD_BUSMONITOR
-	[arch] arm64
-	[plat] sharkl5, sharkl3
-	[field] make
-	[subsys] debug
-	[must] debug
-	[function] Enable busmonitor core function
 SPRD_DMC_MPU
 	[arch] all
 	[plat] sharkl5
@@ -8115,6 +8108,13 @@ SPRD_MM_PW_DOMAIN_R6P0
 	[subsys] misc
 	[must] console
 	[function] This function is used to enable mm power domain.
+SPRD_REGMAP_DEBUG
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] core
+	[must] user
+	[function] Spreadtrum syscon regmap debug.
 SPRD_ROC1_CLK
 	[arch] all
 	[plat] roc1
@@ -8206,6 +8206,13 @@ SPRD_THERMAL
 	[subsys] thermal
 	[must] user
 	[function] This function is used to config thermal moudle.
+SPRD_WATCHDOG
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] core
+	[must] user
+	[function] Spreadtrum watchdog driver.
 SRCU
 	[arch] all
 	[plat] all
@@ -9296,7 +9303,7 @@ WATCHDOG
 	[function] Generic Watchdog Controller support.
 WATCHDOG_CORE
 	[arch] all
-	[plat] all
+	[plat] sharkl5
 	[field] make,code
 	[subsys] core
 	[must] user

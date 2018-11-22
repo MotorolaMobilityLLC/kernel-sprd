@@ -17,14 +17,15 @@ all_arch=[]
 all_plat=[]
 l_sprdconfig=[]
 l_defproject=[]
+l_diffconfig=[]
 
 d_defconfig_path={
         'kernel4.4':{
             'pike2':{'defconfig':'arch/arm/configs/sprd_pike2_defconfig', 'diffconfig':'sprd-diffconfig/pike2', 'arch':'arm'},
-            'sharkle_32':{'defconfig':'arch/arm/configs/sprd_sharkle_defconfig', 'diffconfig':'sprd-diffconfig/sharkle', 'arch':'arm'},
+            'sharkle32':{'defconfig':'arch/arm/configs/sprd_sharkle_defconfig', 'diffconfig':'sprd-diffconfig/sharkle', 'arch':'arm'},
             'sharkl3':{'defconfig':'arch/arm64/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3', 'arch':'arm64'},
             'sharkle':{'defconfig':'arch/arm64/configs/sprd_sharkle_defconfig', 'diffconfig':'sprd-diffconfig/sharkle', 'arch':'arm64'},
-            'sharklefp':{'defconfig':'arch/arm/configs/sprd_sharkle_fp_defconfig', 'diffconfig':'sprd-diffconfig/sharkle', 'arch':'arm'},
+            'sharkle32_fp':{'defconfig':'arch/arm/configs/sprd_sharkle_fp_defconfig', 'diffconfig':'sprd-diffconfig/sharkle', 'arch':'arm'},
             'sharkl3_32':{'defconfig':'arch/arm/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3', 'arch':'arm'},
         },
         'kernel4.14':{
@@ -56,11 +57,14 @@ def add_diffconfig_to_dictconfig():
                                 tmp_arch = apath.split("/").pop(2)
                                 tmp_plat = apath.split("/").pop(1)
                                 if tmp_arch == 'arm' and tmp_plat == 'sharkle':
-                                    tmp_plat = 'sharkle_32'
+                                    tmp_plat = 'sharkle32'
                                 elif tmp_arch == 'arm' and tmp_plat == 'sharkl3':
                                     tmp_plat = 'sharkl3_32'
 
-                                d_diffconfig[lines[j][11:-1]]={
+                                if lines[j][11:-1] in d_diffconfig:
+                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + "," + tmp_plat
+                                else:
+                                    d_diffconfig[lines[j][11:-1]]={
                                         'arch': tmp_arch,
                                         'plat': tmp_plat,
                                         'field':'',
@@ -87,22 +91,90 @@ def add_diffconfig_to_dictconfig():
                         if 'ADD:' in lines[j] or 'MOD:' in lines[j]:
                             tmp_arch = apath.split("/").pop(2)
                             tmp_plat = apath.split("/").pop(1)
+
                             if tmp_arch == 'arm' and tmp_plat == 'sharkle':
-                                tmp_plat = 'sharkle_32'
+                                file_name = apath.split("/").pop()
+                                if 'mocor5' in file_name or 'kaios' in file_name:
+                                    tmp_plat = 'sharkle32_fp'
+                                else:
+                                    tmp_plat = 'sharkle32'
                             elif tmp_arch == 'arm' and tmp_plat == 'sharkl3':
                                 tmp_plat = 'sharkl3_32'
+                            elif tmp_plat == 'pike2':
+                                tmp_arch = 'arm'
+                            elif tmp_arch == 'common' and tmp_plat == 'sharkle':
+                                if lines[j][11:-1] not in d_diffconfig:
+                                    d_diffconfig[lines[j][11:-1]]={
+                                        'arch': 'arm,arm64',
+                                        'plat': 'sharkle,sharkle32',
+                                        'field':'',
+                                        'subsys':'',
+                                        'must':'',
+                                        'function':''
+                                        }
+                                    continue
+                                if 'sharkle' not in d_diffconfig[lines[j][11:-1]]['plat']:
+                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + 'sharkle,'
+                                if 'sharkle32' not in d_diffconfig[lines[j][11:-1]]['plat']:
+                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + 'sharkle32,'
 
-                            d_diffconfig[lines[j][11:-1]]={
-                                    'arch': tmp_arch,
-                                    'plat': tmp_plat,
+                                if 'arm' not in d_diffconfig[lines[j][11:-1]]['arch']:
+                                    d_diffconfig[lines[j][11:-1]]['arch'] = d_diffconfig[lines[j][11:-1]]['arch'] + 'arm,'
+                                if 'arm64' not in d_diffconfig[lines[j][11:-1]]['arch']:
+                                    d_diffconfig[lines[j][11:-1]]['arch'] = d_diffconfig[lines[j][11:-1]]['arch'] + 'arm64,'
+                                continue
+
+                            elif tmp_arch == 'common' and tmp_plat == 'sharkl3':
+                                if lines[j][11:-1] not in d_diffconfig:
+                                    d_diffconfig[lines[j][11:-1]]={
+                                        'arch': 'arm,arm64,',
+                                        'plat': 'sharkl3,sharkl3_32',
+                                        'field':'',
+                                        'subsys':'',
+                                        'must':'',
+                                        'function':''
+                                        }
+                                    continue
+                                if 'sharkl3' not in d_diffconfig[lines[j][11:-1]]['plat']:
+                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + 'sharkl3,'
+                                if 'sharkl3_32' not in d_diffconfig[lines[j][11:-1]]['plat']:
+                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + 'sharkl3_32,'
+
+                                if 'arm' not in d_diffconfig[lines[j][11:-1]]['arch']:
+                                    d_diffconfig[lines[j][11:-1]]['arch'] = d_diffconfig[lines[j][11:-1]]['arch'] + 'arm,'
+                                if 'arm64' not in d_diffconfig[lines[j][11:-1]]['arch']:
+                                    d_diffconfig[lines[j][11:-1]]['arch'] = d_diffconfig[lines[j][11:-1]]['arch'] + 'arm64,'
+                                continue
+
+                            if tmp_arch == 'common':
+                                tmp_arch = 'arm64'
+
+                            if lines[j][11:-1] in d_diffconfig:
+                                if tmp_arch not in d_diffconfig[lines[j][11:-1]]['arch']:
+                                    d_diffconfig[lines[j][11:-1]]['arch'] = d_diffconfig[lines[j][11:-1]]['arch'] + tmp_arch + ','
+                                if tmp_plat not in d_diffconfig[lines[j][11:-1]]['plat']:
+                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + tmp_plat + ','
+                            else:
+                                d_diffconfig[lines[j][11:-1]]={
+                                    'arch': tmp_arch + ',',
+                                    'plat': tmp_plat + ',',
                                     'field':'',
                                     'subsys':'',
                                     'must':'',
                                     'function':''
                                     }
+#                            print(d_diffconfig[lines[j][11:-1]]['plat'])
                     f.close
 
 def create_sprdconfigs_dict():
+
+    # if defconfig has new config, add it into d_sprdconfig
+    for key_defplat in d_defconfig:
+        for key_defconfig in d_defconfig[key_defplat]:
+            if d_defconfig[key_defplat][key_defconfig] == 'y' and key_defconfig not in d_sprdconfig:
+                d_sprdconfig[key_defconfig]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
+
+    # create the d_sprdconfig by Documantation/sprdconfigs.txt
     f_sprdconfig = open(config_path)
     lines = f_sprdconfig.readlines()
     for i in range(len(lines)):
@@ -244,7 +316,6 @@ def configs_check():
                     d_sprdconfig[key_defconfig]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
 
 
-    l_diffconfig=list(d_diffconfig)
     for key_diffconfig in l_diffconfig:
         if key_diffconfig in d_sprdconfig:
             continue
@@ -346,9 +417,9 @@ def aiaiai_check():
 
             if plat == "sharkle" and arch == "arm":
                 if change_file == "sprd_sharkle_fp_defconfig":
-                    plat="sharklefp"
+                    plat="sharkle32_fp"
                 else:
-                    plat="sharkle_32"
+                    plat="sharkle32"
             if plat == "sharkl3" and arch =="arm":
                 continue
 
@@ -432,7 +503,7 @@ def update_sprd_configs():
     print_support_arch_plat()
 
     configs_resort()
-    for key in d_sprdconfig:
+    for key in l_sprdconfig:
         tmp_arch=''
         tmp_plat=''
         for project in l_defproject:
@@ -447,7 +518,28 @@ def update_sprd_configs():
                     tmp_arch = tmp_arch + d_defconfig_path[kernel_version][project]['arch'] + ','
 
         #TODO Doesn't check diffconfig
-        if key in d_diffconfig and tmp_plat == '':
+        if key in d_diffconfig:
+            if d_diffconfig[key]['arch'] not in tmp_arch:
+                tmp_arch = tmp_arch + d_diffconfig[key]['arch'] + ","
+
+            if d_diffconfig[key]['plat'] not in tmp_plat:
+                tmp_plat = tmp_plat + d_diffconfig[key]['plat'] + ","
+
+            tmp_arch_sort=''
+            for i in range(len(tmp_arch[:-1].split(","))):
+                if tmp_arch[:-1].split(",").pop(i) not in tmp_arch_sort:
+                    tmp_arch_sort = tmp_arch_sort + tmp_arch[:-1].split(",").pop(i) + ','
+
+            tmp_plat_sort=''
+            for i in range(len(tmp_plat[:-1].split(","))):
+                if tmp_plat[:-1].split(",").pop(i) not in tmp_plat_sort:
+                    tmp_plat_sort = tmp_plat_sort + tmp_plat[:-1].split(",").pop(i) + ','
+
+            tmp_arch = tmp_arch_sort
+            tmp_plat = tmp_plat_sort
+
+        # if tmp_plat == '' means this config don't need any more.
+        if tmp_plat == '':
             continue
 
         #write current status to dict d_sprdconfig
@@ -476,7 +568,9 @@ def prepare_info_first():
     global kernel_version
     kernel_version = 'kernel' + version[:-1] + '.' + patchlevel[:-1]
 
-    for key in d_defconfig_path[kernel_version]:
+    l_defconfig_path = list(d_defconfig_path[kernel_version])
+    l_defconfig_path.sort()
+    for key in l_defconfig_path:
         all_plat.append(key)
 
         if d_defconfig_path[kernel_version][key]['arch'] not in all_arch:
@@ -490,6 +584,10 @@ def prepare_info_second():
     global l_defproject
     l_defproject=list(d_defconfig)
     l_defproject.sort()
+
+    global l_diffconfig
+    l_diffconfig=list(d_diffconfig)
+    l_diffconfig.sort()
 
 def main():
     folder = os.path.exists(tmp_path)
