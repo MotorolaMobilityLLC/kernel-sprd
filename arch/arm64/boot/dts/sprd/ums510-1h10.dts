@@ -27,7 +27,7 @@
 		serial1 = &uart1;
 	};
 
-	memory {
+	memory: memory {
 		device_type = "memory";
 		reg = <0x0 0x80000000 0x0 0x80000000>;
 	};
@@ -76,6 +76,11 @@
 		fd_reserved: face-mem@be5c0000{
 			reg = <0x0 0xbe5c0000 0x0 0x00a00000>;
 		};
+	};
+
+	sprd-sysdump {
+		memory-region = <&memory>;
+		memory-region-re = <&cp_reserved>, <&smem_reserved>;
 	};
 
 	sprd-iq {
