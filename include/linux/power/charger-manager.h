@@ -140,6 +140,7 @@ struct charger_regulator {
  *	fullbatt_vchkdrop_ms, CM will restart charging.
  * @fullbatt_uV: voltage in microvolt
  *	If VBATT >= fullbatt_uV, it is assumed to be full.
+ * @fullbatt_uA: battery current in microamp
  * @fullbatt_soc: state of Charge in %
  *	If state of Charge >= fullbatt_soc, it is assumed to be full.
  * @fullbatt_full_capacity: full capacity measure
@@ -177,6 +178,7 @@ struct charger_desc {
 	unsigned int fullbatt_vchkdrop_ms;
 	unsigned int fullbatt_vchkdrop_uV;
 	unsigned int fullbatt_uV;
+	unsigned int fullbatt_uA;
 	unsigned int fullbatt_soc;
 	unsigned int fullbatt_full_capacity;
 

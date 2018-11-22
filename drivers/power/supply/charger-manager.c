@@ -169,6 +169,35 @@ static bool is_ext_pwr_online(struct charger_manager *cm)
 	return online;
 }
 
+ /**
+ * get_batt_uA - Get the current level of the battery
+ * @cm: the Charger Manager representing the battery.
+ * @uA: the current level returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_batt_uA(struct charger_manager *cm, int *uA)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge,
+					POWER_SUPPLY_PROP_CURRENT_NOW, &val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	*uA = val.intval;
+	return 0;
+}
+
+/**
 /**
  * get_batt_uV - Get the voltage level of the battery
  * @cm: the Charger Manager representing the battery.
@@ -277,7 +306,7 @@ static bool is_full_charged(struct charger_manager *cm)
 	struct power_supply *fuel_gauge;
 	bool is_full = false;
 	int ret = 0;
-	int uV;
+	int uV, uA;
 
 	/* If there is no battery, it cannot be charged */
 	if (!is_batt_present(cm))
@@ -303,8 +332,16 @@ static bool is_full_charged(struct charger_manager *cm)
 	if (desc->fullbatt_uV > 0) {
 		ret = get_batt_uV(cm, &uV);
 		if (!ret && uV >= desc->fullbatt_uV) {
-			is_full = true;
-			goto out;
+			if (desc->fullbatt_uA > 0) {
+				ret = get_batt_uA(cm, &uA);
+				if (!ret && uA >= desc->fullbatt_uA) {
+					is_full = true;
+					goto out;
+				}
+			} else {
+				is_full = true;
+				goto out;
+			}
 		}
 	}
 
@@ -1544,6 +1581,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	of_property_read_u32(np, "cm-fullbatt-vchkdrop-volt",
 					&desc->fullbatt_vchkdrop_uV);
 	of_property_read_u32(np, "cm-fullbatt-voltage", &desc->fullbatt_uV);
+	of_property_read_u32(np, "cm-fullbatt-current", &desc->fullbatt_uA);
 	of_property_read_u32(np, "cm-fullbatt-soc", &desc->fullbatt_soc);
 	of_property_read_u32(np, "cm-fullbatt-capacity",
 					&desc->fullbatt_full_capacity);
@@ -1698,6 +1736,10 @@ static int charger_manager_probe(struct platform_device *pdev)
 	if (desc->fullbatt_uV == 0) {
 		dev_info(&pdev->dev, "Ignoring full-battery voltage threshold as it is not supplied\n");
 	}
+
+	if (desc->fullbatt_uA == 0)
+		dev_info(&pdev->dev, "Ignoring full-battery current threshold as it is not supplied\n");
+
 	if (!desc->fullbatt_vchkdrop_ms || !desc->fullbatt_vchkdrop_uV) {
 		dev_info(&pdev->dev, "Disabling full-battery voltage drop checking mechanism as it is not supplied\n");
 		desc->fullbatt_vchkdrop_ms = 0;
