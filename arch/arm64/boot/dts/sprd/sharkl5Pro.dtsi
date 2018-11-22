@@ -19,6 +19,18 @@
 		#size-cells = <2>;
 		ranges;
 
+		ap_ahb_regs: syscon@20100000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x20100000 0 0x10000>;
+		};
+
+		aon_apb_regs: syscon@327d0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x327d0000 0 0x10000>;
+		};
+
 		ap_apb_regs: syscon@71000000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;

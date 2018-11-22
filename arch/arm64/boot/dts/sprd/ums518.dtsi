@@ -58,6 +58,20 @@
 	};
 
 	soc {
+		apahb_gate: apahb-gate {
+			compatible = "sprd,sharkl5pro-apahb-gate";
+			sprd,syscon = <&ap_ahb_regs>; /* 0x20100000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		aonapb_gate: aonapb-gate {
+			compatible = "sprd,sharkl5pro-aon-gate";
+			sprd,syscon = <&aon_apb_regs>; /* 0x327d0000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
 		apapb_gate: apapb-gate {
 			compatible = "sprd,sharkl5pro-apapb-gate";
 			sprd,syscon = <&ap_apb_regs>; /* 0x71000000 */
