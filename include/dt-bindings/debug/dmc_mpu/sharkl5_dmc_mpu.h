@@ -1,4 +1,7 @@
-#include "common.h"
+#ifndef __DT_BINDINGS_DEBUG_SHARKL5_DMC_MPU_H__
+#define __DT_BINDINGS_DEBUG_SHARKL5_DMC_MPU_H__
+
+#include "../common.h"
 
 /* list master id */
 
@@ -83,3 +86,5 @@
 #define USBOTG			0xf1
 #define TMC			0xf2
 #define SP_CM4			0xf3
+
+#endif /* __DT_BINDINGS_DEBUG_SHARKL5_DMC_MPU_H__ */

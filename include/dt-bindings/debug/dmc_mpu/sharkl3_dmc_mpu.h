@@ -1,4 +1,7 @@
-#include "common.h"
+#ifndef __DT_BINDINGS_DEBUG_SHARKL3_DMC_MPU_H__
+#define __DT_BINDINGS_DEBUG_SHARKL3_DMC_MPU_H__
+
+#include "../common.h"
 
 /* list master id */
 
@@ -72,3 +75,5 @@
 #define AON_WCN			0xd6
 #define AON_CM4			0xd7
 #define AON_ETR			0xc7
+
+#endif/* __DT_BINDINGS_DEBUG_SHARKL3_DMC_MPU_H__ */

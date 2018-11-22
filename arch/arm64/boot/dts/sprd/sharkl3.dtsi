@@ -7,7 +7,7 @@
 
 #include <dt-bindings/soc/sprd,sharkl3-regs.h>
 #include <dt-bindings/soc/sprd,sharkl3-mask.h>
-#include <dt-bindings/dmc_mpu/sharkl3_dmc_mpu.h>
+#include <dt-bindings/debug/dmc_mpu/sharkl3_dmc_mpu.h>
 
 / {
 	interrupt-parent = <&gic>;
