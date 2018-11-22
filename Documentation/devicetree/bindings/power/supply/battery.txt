@@ -34,6 +34,9 @@ Optional Properties:
    for each of the battery capacity lookup table. The first temperature value
    specifies the OCV table 0, and the second temperature value specifies the
    OCV table 1, and so on.
+ - voltage-temp-table: An array providing the voltage in microvolt and
+   corresponding temperature in degree Celsius, which is used to look up the
+   temperature by one voltage value.
 
 Battery properties are named, where possible, for the corresponding
 elements in enum power_supply_property, defined in
@@ -59,6 +62,7 @@ Example:
 		ocv-capacity-table-0 = <4185000 100>, <4113000 95>, <4066000 90>, ...;
 		ocv-capacity-table-1 = <4200000 100>, <4185000 95>, <4113000 90>, ...;
 		ocv-capacity-table-2 = <4250000 100>, <4200000 95>, <4185000 90>, ...;
+		voltage-temp-table = <1052000 100>, <953000 90>, <858000 80>, ...;
 	};
 
 	charger: charger@11 {
