@@ -9,8 +9,8 @@ Required properties:
   "sprd,sc2731-fgu".
 - reg: The address offset of fuel gauge unit.
 - battery-detect-gpios: GPIO for battery detection.
-- io-channels: Specify the IIO ADC channel to get temperature.
-- io-channel-names: Should be "bat-temp".
+- io-channels: Specify the IIO ADC channels to get temperature and charge voltage.
+- io-channel-names: Should be "bat-temp" and "charge-vol"
 - nvmem-cells: A phandle to the calibration cells provided by eFuse device.
 - nvmem-cell-names: Should be "fgu_calib".
 - monitored-battery: Phandle of battery characteristics devicetree node.
