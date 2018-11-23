@@ -345,6 +345,15 @@ static const char * const aon_apb_parents[] = { "rco-4m",	"rco-25m",
 static SPRD_COMP_CLK(aon_apb, "aon-apb", aon_apb_parents, 0x224,
 		     0, 3, 8, 2, 0);
 
+static const char * const pwm_parents[] = { "clk-32k", "rpll-26m",
+					"ext-26m", "twpll-48m" };
+static SPRD_MUX_CLK(pwm0_clk, "pwm0-clk", pwm_parents, 0x23c,
+			0, 2, SC9863A_MUX_FLAG);
+static SPRD_MUX_CLK(pwm1_clk, "pwm1-clk", pwm_parents, 0x240,
+			0, 2, SC9863A_MUX_FLAG);
+static SPRD_MUX_CLK(pwm2_clk, "pwm2-clk", pwm_parents, 0x244,
+			0, 2, SC9863A_MUX_FLAG);
+
 static const char * const ap_axi_parents[] = { "ext-26m", "twpll-76m8",
 					       "twpll-128m", "twpll-256m" };
 static SPRD_MUX_CLK(ap_axi, "ap-axi", ap_axi_parents, 0x2c8,
@@ -403,6 +412,9 @@ static SPRD_MUX_CLK(clk_vsp, "vsp", vsp_parents, 0x380,
 static struct sprd_clk_common *sc9863a_ap_clks[] = {
 	/* address base is 0x402d0000 */
 	&aon_apb.common,
+	&pwm0_clk.common,
+	&pwm1_clk.common,
+	&pwm2_clk.common,
 	&ap_axi.common,
 	&sdio0_2x.common,
 	&sdio1_2x.common,
@@ -424,6 +436,9 @@ static struct clk_hw_onecell_data sc9863a_ap_clk_hws = {
 		[CLK_FAC_RCO4M]		= &fac_rco_4m.hw,
 		[CLK_FAC_RCO2M]		= &fac_rco_2m.hw,
 		[CLK_AON_APB]		= &aon_apb.common.hw,
+		[CLK_PWM0]		= &pwm0_clk.common.hw,
+		[CLK_PWM1]		= &pwm1_clk.common.hw,
+		[CLK_PWM2]		= &pwm2_clk.common.hw,
 		[CLK_AP_AXI]		= &ap_axi.common.hw,
 		[CLK_SDIO0_2X]		= &sdio0_2x.common.hw,
 		[CLK_SDIO1_2X]		= &sdio1_2x.common.hw,
@@ -516,6 +531,14 @@ static const struct sprd_clk_desc sc9863a_apahb_gate_desc = {
 	.hw_clks	= &sc9863a_apahb_gate_hws,
 };
 
+static SPRD_SC_GATE_CLK(pwm0_eb,	"pwm0-eb",	"aon-apb", 0x0,
+		     0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pwm1_eb,	"pwm1-eb",	"aon-apb", 0x0,
+		     0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pwm2_eb,	"pwm2-eb",	"aon-apb", 0x0,
+		     0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(splk_eb,	"splk-eb",	"aon-apb", 0x0,
+		     0x1000, BIT(22), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(pmu_eb,		"pmu-eb",		"aon-apb",
 			0x4, 0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(thm_eb,		"thm-eb",		"aon-apb",
@@ -582,11 +605,13 @@ static SPRD_SC_GATE_CLK(mm_vsp_emc_eb, "mm-vsp-emc-eb",	"aon-apb", 0x50,
 		     0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(vsp_eb,		"vsp-eb",	"aon-apb", 0x50,
 		     0x1000, BIT(16), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(splk_eb,	"splk-eb",	"aon-apb", 0x0,
-		     0x1000, BIT(22), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *sc9863a_aonapb_gate_clks[] = {
 	/* address base is 0x402e0000 */
+	&pwm0_eb.common,
+	&pwm1_eb.common,
+	&pwm2_eb.common,
+	&splk_eb.common,
 	&pmu_eb.common,
 	&thm_eb.common,
 	&aux0_eb.common,
@@ -620,11 +645,14 @@ static struct sprd_clk_common *sc9863a_aonapb_gate_clks[] = {
 	&hw_i2c_eb.common,
 	&mm_vsp_emc_eb.common,
 	&vsp_eb.common,
-	&splk_eb.common,
 };
 
 static struct clk_hw_onecell_data sc9863a_aonapb_gate_hws = {
 	.hws	= {
+		[CLK_PWM0_EB]		= &pwm0_eb.common.hw,
+		[CLK_PWM1_EB]		= &pwm1_eb.common.hw,
+		[CLK_PWM2_EB]		= &pwm2_eb.common.hw,
+		[CLK_SPLK_EB]		= &splk_eb.common.hw,
 		[CLK_PMU_EB]		= &pmu_eb.common.hw,
 		[CLK_THM_EB]		= &thm_eb.common.hw,
 		[CLK_AUX0_EB]		= &aux0_eb.common.hw,
@@ -658,7 +686,6 @@ static struct clk_hw_onecell_data sc9863a_aonapb_gate_hws = {
 		[CLK_I2C_EB]		= &hw_i2c_eb.common.hw,
 		[CLK_MM_VSP_EMC_EB]	= &mm_vsp_emc_eb.common.hw,
 		[CLK_VSP_EB]		= &vsp_eb.common.hw,
-		[CLK_SPLK_EB]		= &splk_eb.common.hw,
 	},
 	.num	= CLK_AON_APB_GATE_NUM,
 };
