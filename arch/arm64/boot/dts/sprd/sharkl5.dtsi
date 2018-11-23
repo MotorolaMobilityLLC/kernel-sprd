@@ -320,6 +320,20 @@
 					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI0_CKG_EN>,
 					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>;
 				syscon-names = "csi_dhpy_c_sel", "csi_eb", "csi_rst", "csi_ckg_en", "cphy_ckg_en";
+				clock-names = "csi_eb",
+					"mipi_csi_eb",
+					"mipi_csi_src",
+					"mipi_csi_48m",
+					"mipi_csi_96m",
+					"mipi_csi_153m6",
+					"mipi_csi_192m";
+				clocks = <&mm_gate CLK_MM_CSI0_EB>,
+				       <&mm_gate CLK_MM_MIPI_CSI0_EB>,
+				       <&mm_clk CLK_MIPI_CSI0>,
+				       <&mm_clk CLK_TWPLL_48M>,
+				       <&mm_clk CLK_TWPLL_96M>,
+				       <&mm_clk CLK_TWPLL_153M6>,
+				       <&mm_clk CLK_TWPLL_192M>;
 				sprd,csi-id = <0>;
 				sprd,dcam-id = <0>;
 				sprd,ip-version = <0x200>;
@@ -342,6 +356,20 @@
 					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI1_CKG_EN>,
 					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>;
 				syscon-names = "csi_dhpy_c_sel", "csi_eb", "csi_rst", "csi_en", "cphy_ckg_en";
+				clock-names = "csi_eb",
+					"mipi_csi_eb",
+					"mipi_csi_src",
+					"mipi_csi_48m",
+					"mipi_csi_96m",
+					"mipi_csi_153m6",
+					"mipi_csi_192m";
+				clocks = <&mm_gate CLK_MM_CSI1_EB>,
+				       <&mm_gate CLK_MM_MIPI_CSI1_EB>,
+				       <&mm_clk CLK_MIPI_CSI1>,
+				       <&mm_clk CLK_TWPLL_48M>,
+				       <&mm_clk CLK_TWPLL_96M>,
+				       <&mm_clk CLK_TWPLL_153M6>,
+				       <&mm_clk CLK_TWPLL_192M>;
 				sprd,csi-id = <1>;
 				sprd,dcam-id = <1>;
 				sprd,ip-version = <0x200>;
@@ -363,6 +391,20 @@
 					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>;
 				syscon-names = "csi_dhpy_c_sel", "csi_eb", "csi_rst",
 						"csi_en", "cphy_ckg_en";
+				clock-names = "csi_eb",
+					"mipi_csi_eb",
+					"mipi_csi_src",
+					"mipi_csi_48m",
+					"mipi_csi_96m",
+					"mipi_csi_153m6",
+					"mipi_csi_192m";
+				clocks = <&mm_gate CLK_MM_CSI2_EB>,
+				       <&mm_gate CLK_MM_MIPI_CSI2_EB>,
+				       <&mm_clk CLK_MIPI_CSI2>,
+				       <&mm_clk CLK_TWPLL_48M>,
+				       <&mm_clk CLK_TWPLL_96M>,
+				       <&mm_clk CLK_TWPLL_153M6>,
+				       <&mm_clk CLK_TWPLL_192M>;
 				sprd,csi-id = <2>;
 				sprd,dcam-id = <2>;
 				sprd,ip-version = <0x200>;

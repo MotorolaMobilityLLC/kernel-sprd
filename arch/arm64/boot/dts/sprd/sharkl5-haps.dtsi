@@ -134,21 +134,6 @@
 					<&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_MM_TOP_STATE>,
 					<&mm_ahb_regs REG_MM_AHB_MM_QOS MASK_MM_AHB_AR_QOS_THRESHOLD_MM>,
 					<&mm_ahb_regs REG_MM_AHB_MM_QOS MASK_MM_AHB_AW_QOS_THRESHOLD_MM>;
-
-				clock-names = "mm_eb",
-					"mm_ahb_eb",
-					"clk_mm_ahb",
-					"clk_mm_ahb_parent",
-					"mm_mtx_eb",
-					"clk_mm_mtx",
-					"clk_mm_mtx_parent";
-				clocks = <&aonapb_gate CLK_MM_EB>,
-					<&mm_gate CLK_MM_CKG_EB>,
-					<&mm_clk CLK_MM_AHB>,
-					<&mm_clk CLK_TWPLL_153M6>,
-					<&mm_gate CLK_ISP_AHB_EB>, /* TBC */
-					<&mm_clk CLK_MM_MTX>,
-					<&mm_clk CLK_ISPPLL_468M>;
 				mm_qos = <0x0D 0x0D>; /* AR, AW */
 			};
 			mipi_csi_phy0: mipi-csi-phy0 {
@@ -329,34 +314,6 @@
 				interrupt-names = "dcam0",
 							"dcam1",
 							"dcam2";
-				clock-names = "dcam_eb",
-					"dcam_clk",
-					"dcam_clk_192m",
-					"dcam_clk_256m",
-					"dcam_clk_307m2",
-					"dcam_clk_384m",
-					"dcam_clk_parent",
-					"dcam_axi_eb",
-					"dcam_axi_clk",
-					"dcam_axi_clk_192m",
-					"dcam_axi_clk_256m",
-					"dcam_axi_clk_307m2",
-					"dcam_axi_clk_384m",
-					"dcam_axi_clk_parent";
-				clocks = <&mm_gate CLK_MM_DCAM_EB>,
-					<&mm_clk CLK_DCAM_IF>,
-					<&mm_clk CLK_TWPLL_192M>,
-					<&mm_clk CLK_TWPLL_256M>,
-					<&mm_clk CLK_TWPLL_307M2>,
-					<&mm_clk CLK_TWPLL_384M>,
-					<&mm_clk CLK_TWPLL_384M>,
-					<&mm_gate CLK_DCAM_AXI_EB>,
-					<&mm_clk CLK_DCAM_AXI>,
-					<&mm_clk CLK_TWPLL_192M>,
-					<&mm_clk CLK_TWPLL_256M>,
-					<&mm_clk CLK_TWPLL_307M2>,
-					<&mm_clk CLK_TWPLL_384M>,
-					<&mm_clk CLK_TWPLL_384M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
@@ -370,22 +327,6 @@
 				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>;
 				interrupts_name = "ispch0", "ispch1";
-				clock-names = "isp_eb",
-					"isp_axi_eb", /* no need read, TBC */
-					"isp_clk",
-					"isp_clk_256m",
-					"isp_clk_307m2",
-					"isp_clk_384m",
-					"isp_clk_468m",
-					"isp_clk_parent";
-				clocks = <&mm_gate CLK_MM_ISP_EB>,
-					<&mm_gate CLK_ISP_AHB_EB>,
-					<&mm_clk CLK_ISP>,
-					<&mm_clk CLK_TWPLL_256M>,
-					<&mm_clk CLK_TWPLL_307M2>,
-					<&mm_clk CLK_TWPLL_384M>,
-					<&mm_clk CLK_ISPPLL_468M>,
-					<&mm_clk CLK_ISPPLL_468M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp-count = <1>;
 				/*iommus = <&iommu_isp>;*/
@@ -397,14 +338,6 @@
 				reg = <0 0x62a00000 0 0x100000>;
 				interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
 				interrupts_name = "fdraw";
-				clock-names = "fd_eb",
-					"fd_axi_eb", /* no need read, TBC */
-					"fd_clk",
-					"fd_clk_parent";
-				clocks = <&mm_gate CLK_MM_FD_EB>,
-					<&mm_gate CLK_MM_ISP_EB>,
-					<&mm_clk CLK_FD>,
-					<&mm_clk CLK_TWPLL_384M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				/*iommus = <&iommu_fd>;*/
 				status = "disabled";
@@ -414,14 +347,6 @@
 				compatible = "sprd,cpp";
 				reg = <0 0x62800000 0 0x1000>;
 				interrupts = <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "cpp_eb",
-					"cpp_axi_eb", /* no need read, TBC */
-					"cpp_clk",
-					"cpp_clk_parent";
-				clocks = <&mm_gate CLK_MM_CPP_EB>,
-					<&mm_gate CLK_MM_ISP_EB>,
-					<&mm_clk CLK_CPP>,
-					<&mm_clk CLK_TWPLL_307M2>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				/*iommus = <&iommu_cpp>;*/
 				status = "disabled";
