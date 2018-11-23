@@ -54,10 +54,10 @@ CONFIG_ANDROID_BINDER_IPC
 CONFIG_ANDROID_PARANOID_NETWORK
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu,code
+	[subsys] net
+	[must] user
+	[function] specified config for android
 CONFIG_ANON_INODES
 	[arch] all
 	[plat] all
@@ -591,6 +591,17 @@ CONFIG_ASHMEM
 	[subsys] mm
 	[must] busybox_console
 	[function] Enable the Anonymous Shared Memory Subsystem,vts require.
+CONFIG_ASN1
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] security
+	[must] user
+	[function] Build a simple ASN.1 grammar compiler that produces
+        a bytecode output that can be interpreted by
+        the ASN.1 stream decoder and used to inform
+        it as to what tags are to be expected in a stream
+        and what functions  to call on what tags.
 CONFIG_ASSOCIATIVE_ARRAY
 	[arch] all
 	[plat] all
@@ -598,6 +609,20 @@ CONFIG_ASSOCIATIVE_ARRAY
 	[subsys] core
 	[must] console
 	[function] Generic associative array.
+CONFIG_ASYMMETRIC_KEY_TYPE
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] security
+	[must] user
+	[function] Asymmetric (public-key cryptographic) key type, following pixel2.
+CONFIG_ASYMMETRIC_PUBLIC_KEY_SUBTYPE
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] security
+	[must] user
+	[function] Asymmetric public-key crypto algorithm subtype
 CONFIG_AUDIT
 	[arch] all
 	[plat] all
@@ -757,7 +782,7 @@ CONFIG_BLK_DEV_INITRD
 	[function] vts require, Initial RAM filesystem and RAM disk (initramfs/initrd) support.
 CONFIG_BLK_DEV_IO_TRACE
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -844,6 +869,20 @@ CONFIG_BOOTPARAM_HUNG_TASK_PANIC_VALUE
 	[subsys] core
 	[must] debug
 	[function] Trigger kernel panic when detect hung task.
+CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC_VALUE
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] core
+	[must] debug
+	[function] Trigger kernel panic when detect soft-lockup.
 CONFIG_BOUNCE
 	[arch] all
 	[plat] all
@@ -860,7 +899,7 @@ CONFIG_BPF
 	[function] Enable kernel support Berkeley Packet Filter.
 CONFIG_BPF_EVENTS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field]
 	[subsys]
 	[must]
@@ -974,45 +1013,45 @@ CONFIG_CC_STACKPROTECTOR_STRONG
 CONFIG_CFG80211
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] code, menu,make
+	[subsys] wireless
+	[must] user
+	[function] is the Linux wireless LAN (802.11) configuration API
 CONFIG_CFG80211_CERTIFICATION_ONUS
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] Give support to CFG80211_REG_CELLULAR_HINTS.
 CONFIG_CFG80211_CRDA_SUPPORT
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] code
+	[subsys] wireless
+	[must] user
+	[function] Central Regulatory Domain Agent
 CONFIG_CFG80211_DEFAULT_PS
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] code
+	[subsys] wireless
+	[must] user
+	[function] Enables powersave mode by default
 CONFIG_CFG80211_INTERNAL_REGDB
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] wireless
+	[must] user
+	[function] is regulatory rules database used by Linux.
 CONFIG_CFG80211_REG_CELLULAR_HINTS
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] code
+	[subsys] net
+	[must] user
+	[function] Give top priority to country code from SIM card.
 CONFIG_CGROUPS
 	[arch] all
 	[plat] all
@@ -1040,10 +1079,10 @@ CONFIG_CGROUP_CPUACCT
 CONFIG_CGROUP_DEBUG
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] code
+	[subsys] core
+	[must] debug
+	[function] Exports useful debugging information about the cgroups framework. Disabled on featurephone.
 CONFIG_CGROUP_FREEZER
 	[arch] all
 	[plat] all
@@ -1095,6 +1134,13 @@ CONFIG_CLONE_BACKWARDS
 	[must] console
 	[function] Architecture has tls passed as the 4th argument of clone(2),
 		not the 5th one.
+CONFIG_CLZ_TAB
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] security
+	[must] user
+	[function] selected by MPILIB
 CONFIG_CMDLINE
 	[arch] all
 	[plat] all
@@ -1447,6 +1493,13 @@ CONFIG_CRYPTO_AES_ARM64_NEON_BLK
 	[subsys] security
 	[must] user
 	[function] AES in ECB/CBC/CTR/XTS modes using NEON instructions.
+CONFIG_CRYPTO_AKCIPHER
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] security
+	[must] user
+	[function] selected by other configs.
 CONFIG_CRYPTO_AKCIPHER2
 	[arch] all
 	[plat] all
@@ -1659,6 +1712,13 @@ CONFIG_CRYPTO_HASH2
 	[subsys] security
 	[must] user
 	[function] Selected by other configs.
+CONFIG_CRYPTO_HASH_INFO
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] security
+	[must] user
+	[function] hash info symbol
 CONFIG_CRYPTO_HMAC
 	[arch] all
 	[plat] all
@@ -1806,6 +1866,14 @@ CONFIG_CRYPTO_SHA2_ARM64_CE
 	[subsys] security
 	[must] user
 	[function] SHA-224/SHA-256 digest algorithm (ARMv8 Crypto Extensions).
+CONFIG_CRYPTO_SHA512
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] security
+	[must] user
+	[function] SHA512 secure hash standard (DFIPS 180-2). New feature on Android P.
+        If don't enable this, when luncher boot the screen will print error info. eg.Bug 980109
 CONFIG_CRYPTO_SIMD
 	[arch] all
 	[plat] all
@@ -1898,6 +1966,13 @@ CONFIG_DEBUG_KERNEL
 	[subsys] core
 	[must] debug
 	[function] Enable kernel debug.
+CONFIG_DEBUG_PERF_USE_VMALLOC
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_DECOMPRESS_BZIP2
 	[arch] all
 	[plat] all
@@ -2020,17 +2095,20 @@ CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND
 CONFIG_DEVFREQ_GOV_SPRD_SCENE
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] devfreq
+	[must] none
+	[function] Sprd govanor can selected by Sprd_auto_dfs driver.
+		   Userspace set scene to this govanor and then govnor send freq
+		   request to driver.
 CONFIG_DEVFREQ_SPRD_AUTO_DFS
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] devfreq
+	[must] none
+	[function] This function is used to enable ddr auto dfs function
+		   on DDRC v1 and and later version
 CONFIG_DEVTMPFS
 	[arch] all
 	[plat] all
@@ -2112,6 +2190,13 @@ CONFIG_DM_VERITY
 	[must] none
 	[function] Depends on BLK_DEV_DM, This device-mapper target creates a read-only device.
 		   Verity target one function in The device mapper.
+CONFIG_DM_VERITY_AVB
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] md
+	[must] none
+	[function] Depends on DM_VERITY, Enables Android Verified Boot platform-specific error behavior.
 CONFIG_DM_VERITY_FEC
 	[arch] all
 	[plat] all
@@ -2137,6 +2222,13 @@ CONFIG_DNOTIFY
 		   events to user-space.  There exist superior
 		   alternatives, but some applications may still rely on
 		   dnotify.
+CONFIG_DNS_RESOLVER
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] depends on NET && KEYS, support for the DNS Resolver key type
 CONFIG_DQL
 	[arch] all
 	[plat] all
@@ -2271,6 +2363,14 @@ CONFIG_DUAL_ROLE_USB_INTF
 	[subsys] usb
 	[must] user
 	[function] This macro is to support generic DUAL ROLE sysfs interface.
+CONFIG_DUMMY
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] Dummy net driver support:This is essentially a bit-bucket device (i.e. traffic you send to
+		this device is consigned into oblivion) with a configurable IP address.
 CONFIG_DUMMY_CONSOLE
 	[arch] all
 	[plat] roc1
@@ -2299,6 +2399,27 @@ CONFIG_DYNAMIC_DEBUG
 	[subsys] core,usb
 	[must] debug
 	[function] Enable/disalbe dynamic debug function.
+CONFIG_DYNAMIC_FTRACE
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] core
+	[must] user
+	[function] Enable/disable function tracing dynamically.
+CONFIG_EDAC
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] core
+	[must] console
+	[function] EDAC (Error Detection And Correction) reporting.
+CONFIG_EDAC_LEGACY_SYSFS
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] core
+	[must] console
+	[function] EDAC legacy sysfs.
 CONFIG_EDAC_SUPPORT
 	[arch] all
 	[plat] all
@@ -2337,10 +2458,10 @@ CONFIG_EMBEDDED
 CONFIG_ENABLE_DEFAULT_TRACERS
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make
+	[subsys] trace
+	[must] user
+	[function] cts require, enable tracer config
 CONFIG_ENABLE_MUST_CHECK
 	[arch] all
 	[plat] all
@@ -2472,7 +2593,7 @@ CONFIG_EXTRA_FIRMWARE
 	[function] External firmware blobs to build into the kernel binary, Set to "".
 CONFIG_F2FS_CHECK_FS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code
 	[subsys] fs
 	[must] user
@@ -2654,6 +2775,13 @@ CONFIG_FIRMWARE_IN_KERNEL
 	[subsys] core
 	[must] console
 	[function] Include in-kernel firmware blobs in kernel binary.
+CONFIG_FIXED_PHY
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_FIX_EARLYCON_MEM
 	[arch] all
 	[plat] all
@@ -2734,6 +2862,13 @@ CONFIG_FTRACE
 	[subsys] core
 	[must] debug
 	[function] Tracers
+CONFIG_FTRACE_MCOUNT_RECORD
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] core
+	[must] debug
+	[function] Trace mcount record.
 CONFIG_FTRACE_SYSCALLS
 	[arch] all
 	[plat] roc1
@@ -2750,21 +2885,21 @@ CONFIG_FUEL_GAUGE_SC27XX
 	[function]
 CONFIG_FUNCTION_GRAPH_TRACER
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
 	[function] Trace function graph.
 CONFIG_FUNCTION_PROFILER
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
 	[function] Trace function profiler.
 CONFIG_FUNCTION_TRACER
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -3022,7 +3157,7 @@ CONFIG_GENERIC_TIME_VSYSCALL
 	[function] select by others.
 CONFIG_GENERIC_TRACER
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] menu
 	[subsys] core
 	[must] debug
@@ -3977,11 +4112,18 @@ CONFIG_HZ
 	[function] HZ must be set for different plat.
 CONFIG_HZ_100
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] menu
 	[subsys] time
 	[must] console
 	[function] All product on sprd plat used HZ_100 unless sharkl3.
+CONFIG_HZ_250
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] time
+	[must] console
+	[function] HZ_250 showes good interactive responsiveness on sprd plat
 CONFIG_I2C
 	[arch] all
 	[plat] all
@@ -4157,6 +4299,13 @@ CONFIG_INET6_XFRM_TUNNEL
 	[subsys] net
 	[must] user
 	[function] supoort for ipv6 tunnel
+CONFIG_INET_AH
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] It is AH transformation, it supports for IPsec AH.
 CONFIG_INET_DIAG
 	[arch] all
 	[plat] all
@@ -4179,6 +4328,15 @@ CONFIG_INET_ESP
 	[subsys] net
 	[must] user
 	[function] vts require, Support for IPsec ESP.
+CONFIG_INET_IPCOMP
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] It is IPComp transformation, supports for IP Payload
+		  Compression Protocol (IPComp) (RFC3173), typically
+		  needed for IPsec.
 CONFIG_INET_RAW_DIAG
 	[arch] all
 	[plat] all
@@ -4201,6 +4359,14 @@ CONFIG_INET_TUNNEL
 	[subsys] net
 	[must] user
 	[function] support for tunnel
+CONFIG_INET_UDP_DIAG
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] Support for UDP socket monitoring interface used by
+		  the ss tool.
 CONFIG_INET_XFRM_MODE_BEET
 	[arch] all
 	[plat] all
@@ -4222,6 +4388,13 @@ CONFIG_INET_XFRM_MODE_TUNNEL
 	[subsys] net
 	[must] user
 	[function] vts require, Support for IPsec tunnel mode.
+CONFIG_INET_XFRM_TUNNEL
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] It supports IPsec tunnel mode.
 CONFIG_INITRAMFS_SOURCE
 	[arch] all
 	[plat] all
@@ -4261,10 +4434,10 @@ CONFIG_INPUT_EVDEV
 CONFIG_INPUT_FF_MEMLESS
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu,make
+	[subsys] input
+	[must] user
+	[function] Support for memoryless force-feedback devices
 CONFIG_INPUT_GPIO
 	[arch] all
 	[plat] all
@@ -4463,6 +4636,15 @@ CONFIG_IP6_NF_MANGLE
 	[function] vts require, This option adds a `mangle' table to iptables: see the man page for
 		iptables(8).  This table is used for various packet alterations
 		which can effect how the packet is routed.
+CONFIG_IP6_NF_MATCH_EUI64
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This module performs checking on the IPv6 source address
+		  Compares the last 64 bits with the EUI64 (delivered from\
+		  the MAC address) address.
 CONFIG_IP6_NF_MATCH_RPFILTER
 	[arch] all
 	[plat] all
@@ -4471,6 +4653,13 @@ CONFIG_IP6_NF_MATCH_RPFILTER
 	[must] user
 	[function] This option allows you to match packets whose replies
 		  would go out via the interface the packet came in.
+CONFIG_IP6_NF_NAT
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_IP6_NF_RAW
 	[arch] all
 	[plat] all
@@ -4479,6 +4668,41 @@ CONFIG_IP6_NF_RAW
 	[must] user
 	[function] vts require, This option adds a `raw' table to ip6tables. This table is the very
 		first in the netfilter framework and hooks in at the PREROUTING and OUTPUT chains.
+CONFIG_IP6_NF_SECURITY
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option adds a `security' table to iptables, for use with Mandatory Access Control (MAC) policy.
+CONFIG_IP6_NF_TARGET_HL
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This is a backwards-compatible option for the user's
+		  convenience (e.g. when running oldconfig). It selects
+		  CONFIG_NETFILTER_XT_TARGET_HL.
+CONFIG_IP6_NF_TARGET_MASQUERADE
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] Masquerading is a special case of NAT: all outgoing
+		  connections are changed to seem to come from a
+		  particular interface's address, and if the interface
+		  goes down, those connections are lost.
+CONFIG_IP6_NF_TARGET_NPT
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option adds the `SNPT' and `DNPT' target, which
+		  perform stateless IPv6-to-IPv6 Network Prefix
+		  Translation per RFC 6296.
 CONFIG_IP6_NF_TARGET_REJECT
 	[arch] all
 	[plat] all
@@ -4487,6 +4711,15 @@ CONFIG_IP6_NF_TARGET_REJECT
 	[must] user
 	[function] vts require, The REJECT target allows a filtering rule to specify that an ICMPv6
 		error should be issued in response to an incoming packet, rather than silently being dropped.
+CONFIG_IP6_NF_TARGET_SYNPROXY
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This enables the `nat' table in ip6tables.
+		  This allows masquerading, port forwarding and other
+		  forms of full Network Address Port Translation.
 CONFIG_IPV6
 	[arch] all
 	[plat] all
@@ -4548,6 +4781,30 @@ CONFIG_IPV6_SIT
 	[function] This driver implements encapsulation of IPv6
 		into IPv4 packets. This is useful if you want to connect two IPv6
 		networks over an IPv4-only path.
+CONFIG_IPV6_SUBTREES
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] net
+	[must] user
+	[function] IPv6: source address based routing
+CONFIG_IPV6_TUNNEL
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make,code
+	[subsys] net
+	[must] user
+	[function] Support for IPv6-in-IPv6 and IPv4-in-IPv6 tunnels described in RFC 2473.
+CONFIG_IPV6_VTI
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function]  This can be used with xfrm mode tunnel to give
+		the notion of a secure tunnel for IPSEC and then use routing protocol
+		on top.
+		If don't enable this config, the phone will have the internal problem.
 CONFIG_IP_ADVANCED_ROUTER
 	[arch] all
 	[plat] all
@@ -4647,6 +4904,14 @@ CONFIG_IP_NF_MATCH_ECN
 	[must] user
 	[function] 1. This is a backwards-compat option for the user's
 		  convenience(e.g. when running oldconfig). 2. vts require
+CONFIG_IP_NF_MATCH_RPFILTER
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] This option allows you to match packets whose replies would
+		go out via the interface the packet came in.
 CONFIG_IP_NF_MATCH_TTL
 	[arch] all
 	[plat] all
@@ -4679,6 +4944,14 @@ CONFIG_IP_NF_SECURITY
 	[must] user
 	[function] vts require, This option adds a `security' table to iptables, for use
 		with Mandatory Access Control (MAC) policy.
+CONFIG_IP_NF_TARGET_ECN
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option adds a `ECN' target, which can be used in
+		  the iptables mangle table.
 CONFIG_IP_NF_TARGET_MASQUERADE
 	[arch] all
 	[plat] all
@@ -4715,6 +4988,59 @@ CONFIG_IP_NF_TARGET_REJECT
 	[function] vts require, The REJECT target allows a filtering rule to specify that an ICMP
 		error should be issued in response to an incoming packet, rather
 		than silently being dropped.
+CONFIG_IP_NF_TARGET_SYNPROXY
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] depends on NF_CONNTRACK && NETFILTER_ADVANCED, allows you to intercept TCP connections and
+		establish them using syncookies before they are passed on to the server. This allows to avoid conntrack and server resource usage
+		during SYN-flood attacks.
+CONFIG_IP_NF_TARGET_TTL
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This is a backwards-compatible option for the user's
+		  convenience (e.g. when running oldconfig). It selects
+		  CONFIG_NETFILTER_XT_TARGET_HL.
+CONFIG_IP_PNP
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] This enables automatic configuration of IP addresses of devices and
+		of the routing table during kernel boot, based on either information
+		supplied on the kernel command line or by BOOTP or RARP protocols.
+		You need to say Y only for diskless machines requiring network
+		access to boot (in which case you want to say Y to "Root file system
+		on NFS" as well), because all other machines configure the network
+		in their startup scripts.
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_IP_PNP_DHCP
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] net
+	[must] user
+	[function] DHCP support
+CONFIG_IP_ROUTE_VERBOSE
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] net
+	[must] user
+	[function] the kernel will print verbose messages regarding the routing, for example warnings about
+		received packets which look strange and could be evidence of an
+		attack or a misconfigured system somewhere. The information is
+		handled by the klogd daemon which is responsible for kernel messages
+		("man klogd").
 CONFIG_IRQCHIP
 	[arch] all
 	[plat] all
@@ -4724,7 +5050,7 @@ CONFIG_IRQCHIP
 	[function] Support chip irq.
 CONFIG_IRQSOFF_TRACER
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -4927,6 +5253,13 @@ CONFIG_KSM
 	[subsys] mm
 	[must] busybox_console
 	[function] Enable KSM for page merging.
+CONFIG_L2TP
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] Support for L2tp.
 CONFIG_LEDS_CLASS
 	[arch] all
 	[plat] all
@@ -4990,6 +5323,13 @@ CONFIG_LOCKDEP_SUPPORT
 	[subsys] core
 	[must] debug
 	[function] Enable kernel support lockup.
+CONFIG_LOCKUP_DETECTOR
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] core
+	[must] debug
+	[function] enable kernel soft lockup and hard lockup
 CONFIG_LOCK_SPIN_ON_OWNER
 	[arch] all
 	[plat] all
@@ -5126,6 +5466,20 @@ CONFIG_MD
 	[function] The device mapper is a framework provided by the Linux kernel.
 		   for mapping physical block devices onto higher-level virtual block devices.
 		   must enable when DM_VERIFY function enable.
+CONFIG_MDIO_BUS
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_MDIO_DEVICE
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_MEDIA_SUPPORT
 	[arch] all
 	[plat] all
@@ -5187,10 +5541,10 @@ CONFIG_MFD_CORE
 CONFIG_MFD_SC2703
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] power
+	[must] user
+	[function] Support for sc2703 charger management
 CONFIG_MFD_SC27XX_PMIC
 	[arch] all
 	[plat] all
@@ -5281,7 +5635,7 @@ CONFIG_MODULES_USE_ELF_RELA
 		relocations will give an error.
 CONFIG_MODULE_UNLOAD
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code
 	[subsys] core
 	[must] user
@@ -5289,11 +5643,18 @@ CONFIG_MODULE_UNLOAD
 		   and the next load will be successful.
 CONFIG_MODVERSIONS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] vts require, Module versioning support.
+CONFIG_MPILIB
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] security
+	[must] user
+	[function] needed by other configs
 CONFIG_MQ_IOSCHED_DEADLINE
 	[arch] all
 	[plat] all
@@ -5414,6 +5775,14 @@ CONFIG_NETFILTER_NETLINK_QUEUE
 	[subsys] net
 	[must] user
 	[function] support for queueing packets via NFNETLINK.
+CONFIG_NETFILTER_SYNPROXY
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] The SYNPROXY target allows you to intercept TCP connections and establish them using syncookies before they are passed on to the
+		server. This allows to avoid conntrack and server resource usage during SYN-flood attacks.
 CONFIG_NETFILTER_XTABLES
 	[arch] all
 	[plat] all
@@ -5438,6 +5807,14 @@ CONFIG_NETFILTER_XT_MARK
 	[subsys] net
 	[must] user
 	[function] nfmark target and match support
+CONFIG_NETFILTER_XT_MATCH_ADDRTYPE
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option allows you to match what routing thinks of
+		  an address, eg. UNICAST, LOCAL, BROADCAST, ...
 CONFIG_NETFILTER_XT_MATCH_COMMENT
 	[arch] all
 	[plat] all
@@ -5445,6 +5822,15 @@ CONFIG_NETFILTER_XT_MATCH_COMMENT
 	[subsys] net
 	[must] user
 	[function] vts require, This option adds a `comment' dummy-match, which allows you to put comments in your iptables ruleset.
+CONFIG_NETFILTER_XT_MATCH_CONNBYTES
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option adds a `connbytes' match, which allows
+		  you to match the number of bytes and/or packets for
+		  each direction within a connection.
 CONFIG_NETFILTER_XT_MATCH_CONNLIMIT
 	[arch] all
 	[plat] all
@@ -5477,6 +5863,14 @@ CONFIG_NETFILTER_XT_MATCH_ECN
 	[must] user
 	[function] This option adds an "ECN" match, which allows you to
 		  match against the IPv4 and TCP header ECN fields.
+CONFIG_NETFILTER_XT_MATCH_ESP
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] This match extension allows you to match a range of
+		  SPIs inside ESP header of IPSec packets.
 CONFIG_NETFILTER_XT_MATCH_HASHLIMIT
 	[arch] all
 	[plat] all
@@ -5508,6 +5902,14 @@ CONFIG_NETFILTER_XT_MATCH_HL
 	[function] HL matching allows you to match packets based on the
 		  hoplimit in the IPv6 header, or the time-to-live field in
 		  the IPv4 header of the packet.
+CONFIG_NETFILTER_XT_MATCH_IPCOMP
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This match extension allows you to match a range of
+		  CPIs(16 bits) inside IPComp header of IPSec packets.
 CONFIG_NETFILTER_XT_MATCH_IPRANGE
 	[arch] all
 	[plat] all
@@ -5515,6 +5917,14 @@ CONFIG_NETFILTER_XT_MATCH_IPRANGE
 	[subsys] net
 	[must] user
 	[function] vts require, "iprange" address range match support
+CONFIG_NETFILTER_XT_MATCH_L2TP
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option adds an "L2TP" match, which allows you to
+		  match against L2TP protocol header fields.
 CONFIG_NETFILTER_XT_MATCH_LENGTH
 	[arch] all
 	[plat] all
@@ -5544,6 +5954,13 @@ CONFIG_NETFILTER_XT_MATCH_MARK
 	[subsys] net
 	[must] user
 	[function] vts require, "mark" match support
+CONFIG_NETFILTER_XT_MATCH_MULTIPORT
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] "multiport" Multiple port match support
 CONFIG_NETFILTER_XT_MATCH_PKTTYPE
 	[arch] all
 	[plat] all
@@ -5572,6 +5989,24 @@ CONFIG_NETFILTER_XT_MATCH_QUOTA2
 	[subsys] net
 	[must] user
 	[function] vts require, "quota2" match support
+CONFIG_NETFILTER_XT_MATCH_QUOTA2_LOG
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option adds an "L2TP" match, which allows you to
+		  his option allows `quota2' to log ONCE when a
+		  quota limit.
+CONFIG_NETFILTER_XT_MATCH_SCTP
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] With this option enabled, you will be able to use the
+		  `sctp' match in order to match on SCTP source/destination
+		  portsand SCTP chunk types.NETFILTER_XT_MATCH_SOCKET.
 CONFIG_NETFILTER_XT_MATCH_STATE
 	[arch] all
 	[plat] all
@@ -5593,6 +6028,15 @@ CONFIG_NETFILTER_XT_MATCH_STRING
 	[subsys] net
 	[must] user
 	[function] vts require,"string" match support
+CONFIG_NETFILTER_XT_MATCH_TCPMSS
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option adds a `tcpmss' match, which allows you to
+		  examine the MSS value of TCP SYN packets, which control
+		  the maximum packet size for that connection.
 CONFIG_NETFILTER_XT_MATCH_TIME
 	[arch] all
 	[plat] all
@@ -5642,6 +6086,27 @@ CONFIG_NETFILTER_XT_TARGET_CONNSECMARK
 		  packets to connections, and restores security markings from
 		  connections to packets (if the packets are not already marked).
 		  2. vts require
+CONFIG_NETFILTER_XT_TARGET_DSCP
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option adds a `DSCP' target, which allows you to
+		   manipulate the IPv4/IPv6 header DSCP field
+		   (differentiated services codepoint).
+		   The DSCP field can have any value between 0x0 and
+		   0x3f inclusive.
+		   It also adds the "TOS" target, which allows you to
+CONFIG_NETFILTER_XT_TARGET_HL
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option adds the "HL" (for IPv6) and "TTL"
+		  (for IPv4) targets, which enable the user to change the
+		  hoplimit/time-to-live value of the IP header.
 CONFIG_NETFILTER_XT_TARGET_IDLETIMER
 	[arch] all
 	[plat] all
@@ -5649,6 +6114,13 @@ CONFIG_NETFILTER_XT_TARGET_IDLETIMER
 	[subsys] net
 	[must] user
 	[function] vts require, IDLETIMER target support
+CONFIG_NETFILTER_XT_TARGET_LOG
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] LOG target support. 3. Disabled on featurephone.
 CONFIG_NETFILTER_XT_TARGET_MARK
 	[arch] all
 	[plat] all
@@ -5705,6 +6177,15 @@ CONFIG_NETFILTER_XT_TARGET_TCPMSS
 	[function] vts require, "TCPMSS" target support: This option adds a `TCPMSS' target, which allows you to alter the
 		MSS value of TCP SYN packets, to control the maximum size for that
 		connection (usually limiting it to your outgoing interface's MTU minus 40).
+CONFIG_NETFILTER_XT_TARGET_TEE
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] This option adds a "TEE" target with which a packet
+		  can be cloned and this clone be rerouted to
+		  another nexthop.
 CONFIG_NETFILTER_XT_TARGET_TPROXY
 	[arch] all
 	[plat] all
@@ -5760,6 +6241,14 @@ CONFIG_NET_CLS_ACT
 		get attached to classifiers and are invoked after a successful
 		classification. They are used to overwrite the classification
 		result, instantly drop or redirect packets, etc.
+CONFIG_NET_CLS_FW
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] This option enable you to classify packets according
+		  to netfilter/firewall marks.
 CONFIG_NET_CLS_U32
 	[arch] all
 	[plat] all
@@ -5821,6 +6310,22 @@ CONFIG_NET_INGRESS
 	[subsys] net
 	[must] user
 	[function] Support for classifying packets from ingress
+CONFIG_NET_IPGRE_DEMUX
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] his is helper module to demultiplex GRE packets on GRE version field criteria.
+		Required by ip_gre and pptp modules.
+CONFIG_NET_IPVTI
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] Support for Virtual (secure) IP tunneling:This can be used with xfrm mode tunnel to give
+		If don't enable this config, the phone will have the internal problem.
 CONFIG_NET_IP_TUNNEL
 	[arch] all
 	[plat] all
@@ -5879,6 +6384,13 @@ CONFIG_NET_SCH_HTB
 	[must] user
 	[function] vts require, Say Y here if you want to use the Hierarchical Token Buckets (HTB)
 		packet scheduling algorithm
+CONFIG_NET_UDP_TUNNEL
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] Support for UDP Tunneling Protocol
 CONFIG_NET_VENDOR_8390
 	[arch] all
 	[plat] roc1
@@ -6219,6 +6731,14 @@ CONFIG_NF_CONNTRACK_SECMARK
 	[must] user
 	[function] 1. The SECMARK target allows security marking of network
 		  packets, for use with security subsystems. 2. vts require
+CONFIG_NF_CONNTRACK_SIP
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] Support sip protocol on a connection
+		  tracking/NATing firewall.
 CONFIG_NF_CONNTRACK_TFTP
 	[arch] all
 	[plat] all
@@ -6236,6 +6756,16 @@ CONFIG_NF_CT_NETLINK
 	[subsys] net
 	[must] user
 	[function] vts require, support for a netlink-based userspace interface
+CONFIG_NF_CT_NETLINK_TIMEOUT
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] This option enables support for connection tracking
+		  timeout fine-grain tuning. This allows you to attach
+		  specific timeout, policies to flows, instead of using
+		  the global timeout policy.
 CONFIG_NF_CT_PROTO_DCCP
 	[arch] all
 	[plat] all
@@ -6290,6 +6820,45 @@ CONFIG_NF_DEFRAG_IPV6
 	[function] Netfilter connection tracking requires all IPv6 packets to be defragmented.
 		Both the socket match and the TPROXY target depend on this functionality, so
 		this patch separates the Netfilter IPv6 defrag hooks into a separate module.
+CONFIG_NF_DUP_IPV4
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] This option adds a "TEE" target with which a packet
+		  can be cloned and this clone be rerouted to another
+		  nexthop.
+CONFIG_NF_DUP_IPV6
+	[arch] all
+	[plat] sharkl5
+	[field] make,code
+	[subsys] net
+	[must] user
+	[function] This option enables the nf_dup_ipv6 core, which
+		  duplicates an IPv6 packet to be rerouted to another
+		  destination.
+CONFIG_NF_LOG_COMMON
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] Support for logging
+CONFIG_NF_LOG_IPV4
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] Support for IPv4 packet logging
+CONFIG_NF_LOG_IPV6
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] Support for IPv6 packet logging
 CONFIG_NF_NAT
 	[arch] all
 	[plat] all
@@ -6327,6 +6896,14 @@ CONFIG_NF_NAT_IPV4
 	[function] The IPv4 NAT option allows masquerading, port forwarding and other
 		forms of full Network Address Port Translation. This can be
 		controlled by iptables or nft.
+CONFIG_NF_NAT_IPV6
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] depends on NF_CONNTRACK_IPV6 & NETFILTER_ADVANCED, The IPv6 NAT option allows masquerading, port forwarding and other
+		forms of full Network Address Port Translation. This can be controlled by iptables or nft.
 CONFIG_NF_NAT_IRC
 	[arch] all
 	[plat] all
@@ -6342,6 +6919,15 @@ CONFIG_NF_NAT_MASQUERADE_IPV4
 	[must] user
 	[function] This is the kernel functionality to provide NAT in the masquerade
 		flavour (automatic source address selection).
+CONFIG_NF_NAT_MASQUERADE_IPV6
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] net
+	[must] user
+	[function] This is the kernel functionality to provide NAT in
+		  the masquerade flavour (automatic source address
+		  selection).
 CONFIG_NF_NAT_NEEDED
 	[arch] all
 	[plat] all
@@ -6392,6 +6978,14 @@ CONFIG_NF_NAT_REDIRECT
 	[subsys] net
 	[must] user
 	[function] IPv4/IPv6 redirect support
+CONFIG_NF_NAT_SIP
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] Support SIP protocol on a connection
+		  tracking/NATing firewall.
 CONFIG_NF_NAT_TFTP
 	[arch] all
 	[plat] all
@@ -6416,10 +7010,11 @@ CONFIG_NF_REJECT_IPV6
 CONFIG_NL80211_TESTMODE
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] wireless
+	[must] user
+	[function] helps implementing things like factory calibration or
+			validation tools for wireless chips
 CONFIG_NLATTR
 	[arch] all
 	[plat] all
@@ -6571,6 +7166,13 @@ CONFIG_OF_IRQ
 	[subsys] of
 	[must] console
 	[function] Support OpenFirmware irq.
+CONFIG_OF_MDIO
+	[arch] all
+	[plat] sharkl5
+	[field] make,code
+	[subsys] core
+	[must] console
+	[function] Support MDIO.
 CONFIG_OF_NET
 	[arch] all
 	[plat] all
@@ -6585,6 +7187,13 @@ CONFIG_OF_RESERVED_MEM
 	[subsys] of
 	[must] console
 	[function] Support Openfirmware reserved memory.
+CONFIG_OID_REGISTRY
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] security
+	[must] user
+	[function] needed by other configs
 CONFIG_OLD_SIGSUSPEND3
 	[arch] all
 	[plat] all
@@ -6655,6 +7264,13 @@ CONFIG_PERF_EVENTS
 	[subsys] core
 	[must] console
 	[function] Kernel performance events and counters.
+CONFIG_PERF_USE_VMALLOC
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] core
+	[must] console
+	[function] Enable kernel support Performance Counters for Linux.
 CONFIG_PGTABLE_LEVELS
 	[arch] all
 	[plat] all
@@ -6662,6 +7278,15 @@ CONFIG_PGTABLE_LEVELS
 	[subsys] mm
 	[must] console
 	[function] Set the page table level.
+CONFIG_PHYLIB
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make,code
+	[subsys] net
+	[must] user
+	[function] Ethernet controllers are usually attached to PHY
+		devices.  This option provides infrastructure for
+		managing PHY devices.
 CONFIG_PHYS_ADDR_T_64BIT
 	[arch] all
 	[plat] all
@@ -6838,6 +7463,32 @@ CONFIG_PPP
 	[must] user
 	[function] 1. PPP (Point to Point Protocol) is a newer and better SLIP.
 		  2. vts require
+CONFIG_PPPOE
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] Support for PPP over Ethernet.
+CONFIG_PPPOL2TP
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] Support for PPP-over-L2TP socket family. L2TP is a protocol
+		used by ISPs and enterprises to tunnel PPP traffic over UDP
+		tunnels. L2TP is replacing PPTP for VPN uses.
+CONFIG_PPP_ASYNC
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] Say Y (or M) here if you want to be able to use PPP over standard
+		asynchronous serial ports, such as COM1 or COM2 on a PC.  If you use
+		a modem (not a synchronous or ISDN modem) to contact your ISP, you
+		need this option.
 CONFIG_PPP_BSDCOMP
 	[arch] all
 	[plat] all
@@ -6857,6 +7508,18 @@ CONFIG_PPP_DEFLATE
 		  uses the Deflate algorithm (the same algorithm that gzip uses)
 		  to compress each PPP packet before it is sent over the wire.
 		  2. vts require
+CONFIG_PPP_FILTER
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] net
+	[must] user
+	[function] Say Y here if you want to be able to filter the packets passing over
+		PPP interfaces.  This allows you to control which packets count as
+		activity (i.e. which packets will reset the idle timer or bring up
+		a demand-dialed link) and which packets are to be dropped entirely.
+		You need to say Y here if you wish to use the pass-filter and
+		active-filter options to pppd.
 CONFIG_PPP_MPPE
 	[arch] all
 	[plat] all
@@ -6865,6 +7528,20 @@ CONFIG_PPP_MPPE
 	[must] user
 	[function] 1.  Support for the MPPE Encryption protocol, as employed by the
 		  Microsoft Point-to-Point Tunneling Protocol. 2. vts require
+CONFIG_PPP_MULTILINK
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] net
+	[must] user
+	[function] PPP multilink support
+CONFIG_PPTP
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] depends on PPP && NET_IPGRE_DEMUX, Support for PPP over IPv4.(Point-to-Point Tunneling Protocol)
 CONFIG_PREEMPT
 	[arch] all
 	[plat] all
@@ -6886,6 +7563,13 @@ CONFIG_PREEMPT_RCU
 	[subsys] core
 	[must] console
 	[function] vts require, Enable kernel support rcu preempt.
+CONFIG_PREEMPT_TRACER
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] core
+	[must] user
+	[function] Preemption-off Latency Tracer.
 CONFIG_PREVENT_FIRMWARE_BUILD
 	[arch] all
 	[plat] all
@@ -6923,7 +7607,7 @@ CONFIG_PRINTK_TIME
 	[function] Add time stamp in kernel log.
 CONFIG_PROBE_EVENTS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field]
 	[subsys]
 	[must]
@@ -6975,10 +7659,31 @@ CONFIG_PROFILING
 CONFIG_PSTORE
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] code
+	[subsys] fs
+	[must] user
+	[function] CtsLiblogTestCases testcase needed. Disabled on featurephone.
+CONFIG_PSTORE_CONSOLE
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] fs
+	[must] user
+	[function] CtsLiblogTestCases testcase needed
+CONFIG_PSTORE_PMSG
+	[arch] all
+	[plat] sharkl5
+	[field] code
+	[subsys] fs
+	[must] user
+	[function] CtsLiblogTestCases testcase needed
+CONFIG_PSTORE_RAM
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] fs
+	[must] user
+	[function] CtsLiblogTestCases testcase needed
 CONFIG_PSTORE_ZLIB_COMPRESS
 	[arch] all
 	[plat] all
@@ -6996,10 +7701,10 @@ CONFIG_PWM
 CONFIG_PWM_SPRD
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make
+	[subsys] pwm
+	[must] home
+	[function] Enable SPRD specific pwm driver.
 CONFIG_PWM_SYSFS
 	[arch] all
 	[plat] all
@@ -7084,6 +7789,13 @@ CONFIG_RANDOMIZE_MODULE_REGION_FULL
 	[subsys] arch
 	[must] console
 	[function] Randomize the module region independently from the core kernel.
+CONFIG_RAS
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] arch
+	[must] console
+	[function] Reliability, Availability and Serviceability (RAS) features.
 CONFIG_RATIONAL
 	[arch] all
 	[plat] all
@@ -7192,6 +7904,13 @@ CONFIG_REED_SOLOMON_DEC8
 	[subsys] core
 	[must] user
 	[function] Support reed solomon dec8.
+CONFIG_REED_SOLOMON_ENC8
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] lib
+	[must] user
+	[function] CtsLiblogTestCases testcase needed
 CONFIG_REGMAP
 	[arch] all
 	[plat] all
@@ -7982,6 +8701,13 @@ CONFIG_SOCK_CGROUP_DATA
 	[subsys]
 	[must]
 	[function]
+CONFIG_SOFTLOCKUP_DETECTOR
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SOUND
 	[arch] all
 	[plat] all
@@ -8267,10 +8993,10 @@ CONFIG_SPRD_ROC1_USB2_PHY
 CONFIG_SPRD_SENSOR_HUB
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make
+	[subsys] iio
+	[must] user
+	[function] enable sensor hub driver built in kernel
 CONFIG_SPRD_SHARKL5_CLK
 	[arch] all
 	[plat] sharkl5
@@ -8447,6 +9173,13 @@ CONFIG_SWIOTLB
 	[subsys] core
 	[must] console
 	[function] Enable kernel support switch IO TLB.
+CONFIG_SWPHY
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SWP_EMULATION
 	[arch] all
 	[plat] all
@@ -8454,6 +9187,13 @@ CONFIG_SWP_EMULATION
 	[subsys] core
 	[must] console
 	[function] Emulate SWP/SWPB instructions.
+CONFIG_SW_SYNC
+	[arch] all
+	[plat] sharkl5
+	[field] make,code
+	[subsys] core
+	[must] console
+	[function] Support Software synchronization objects.
 CONFIG_SYNC_FILE
 	[arch] all
 	[plat] all
@@ -8461,6 +9201,13 @@ CONFIG_SYNC_FILE
 	[subsys]
 	[must]
 	[function]
+CONFIG_SYN_COOKIES
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] SYN cookies provide protection against SYN flooding attack.
 CONFIG_SYSCTL
 	[arch] all
 	[plat] all
@@ -8574,6 +9321,13 @@ CONFIG_TCP_CONG_CUBIC
 	[subsys] net
 	[must] user
 	[function] This is version 2.0 of BIC-TCP which uses a cubic growth function among other techniques.
+CONFIG_TCP_MD5SIG
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] net
+	[must] user
+	[function] Giving MD5 protection to TCP sessions
 CONFIG_TEXTSEARCH
 	[arch] all
 	[plat] all
@@ -8753,13 +9507,6 @@ CONFIG_TRACEPOINTS
 	[subsys] core
 	[must] debug
 	[function] Place an empty function call at each tracepoint site.
-CONFIG_TRACEPOINT_BENCHMARK
-	[arch] all
-	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_TRACER_MAX_TRACE
 	[arch] all
 	[plat] all
@@ -8788,16 +9535,9 @@ CONFIG_TRACE_CLOCK
 	[subsys] core
 	[must] debug
 	[function] Report clock of trace.
-CONFIG_TRACE_EVAL_MAP_FILE
-	[arch] all
-	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_TRACE_IRQFLAGS
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] debug
@@ -8818,7 +9558,7 @@ CONFIG_TRACING
 	[function] To avoid circular dependencies to accomplish the hiding of the automatic options.
 CONFIG_TRACING_EVENTS_GPIO
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] code
 	[subsys] core
 	[must] debug
@@ -8937,14 +9677,14 @@ CONFIG_UNMAP_KERNEL_AT_EL0
 	[function] meltdown/spectre fix
 CONFIG_UPROBES
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_UPROBE_EVENTS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field]
 	[subsys]
 	[must]
@@ -9043,24 +9783,24 @@ CONFIG_USB_CONFIGFS_F_MIDI
 CONFIG_USB_CONFIGFS_F_MTP
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu
+	[subsys] usb
+	[must] user
+	[function] USB gadget MTP support.
 CONFIG_USB_CONFIGFS_F_PTP
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu
+	[subsys] usb
+	[must] user
+	[function] USB gadget PTP support.
 CONFIG_USB_CONFIGFS_F_VSERIAL
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] config
+	[subsys] usb
+	[must] user
+	[function] This macro is to support vendor serial.
 CONFIG_USB_CONFIGFS_MASS_STORAGE
 	[arch] all
 	[plat] all
@@ -9183,10 +9923,10 @@ CONFIG_USB_F_MIDI
 CONFIG_USB_F_MTP
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make
+	[subsys] usb
+	[must] user
+	[function] USB gadget MTP support.
 CONFIG_USB_F_OBEX
 	[arch] all
 	[plat] all
@@ -9197,10 +9937,10 @@ CONFIG_USB_F_OBEX
 CONFIG_USB_F_PTP
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make
+	[subsys] usb
+	[must] user
+	[function] USB gadget PTP support.
 CONFIG_USB_F_RNDIS
 	[arch] all
 	[plat] sharkl5
@@ -9218,10 +9958,10 @@ CONFIG_USB_F_SERIAL
 CONFIG_USB_F_VSERIAL
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make
+	[subsys] usb
+	[must] user
+	[function] USB gadget VSERIAL support.
 CONFIG_USB_GADGET
 	[arch] all
 	[plat] all
@@ -9437,6 +10177,13 @@ CONFIG_VIRTIO_MMIO
 	[must] user
 	[function] This drivers provides support for memory mapped
 		  virtio platform device driver.
+CONFIG_VIRTIO_NET
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] It is the virtual network driver for virtio.
 CONFIG_VMAP_STACK
 	[arch] all
 	[plat] all
@@ -9628,6 +10375,13 @@ CONFIG_WLAN_VENDOR_ZYDAS
 	[subsys]
 	[must]
 	[function]
+CONFIG_X509_CERTIFICATE_PARSER
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] security
+	[must] user
+	[function] X.509 certificate parser
 CONFIG_XFRM
 	[arch] all
 	[plat] all
@@ -9649,6 +10403,24 @@ CONFIG_XFRM_IPCOMP
 	[subsys] net
 	[must] user
 	[function] support for ip comparing
+CONFIG_XFRM_STATISTICS
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] This statistics is to show statistics about transformation
+		   factor at packet processing for developer.It is used for
+		   vowifi.
+CONFIG_XFRM_SUB_POLICY
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] Support sub policy for developers. By using sub policy with
+		   main one, two policies can be applied to the same packet at
+		   once. It is used for vowifi.
 CONFIG_XFRM_USER
 	[arch] all
 	[plat] all
