@@ -194,11 +194,11 @@ static int sprd_pwm_probe(struct platform_device *pdev)
 	if (IS_ERR(spc->mmio_base))
 		return PTR_ERR(spc->mmio_base);
 
+	platform_set_drvdata(pdev, spc);
+
 	ret = sprd_pwm_clk_init(pdev);
 	if (ret)
 		return ret;
-
-	platform_set_drvdata(pdev, spc);
 
 	spc->chip.dev = &pdev->dev;
 	spc->chip.ops = &sprd_pwm_ops;
