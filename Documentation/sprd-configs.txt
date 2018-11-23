@@ -8227,6 +8227,13 @@ CONFIG_SPRD_REGMAP_DEBUG
 	[subsys] core
 	[must] user
 	[function] Spreadtrum syscon regmap debug.
+CONFIG_SPRD_PTM
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Support Spreadtrum PTM.
 CONFIG_SPRD_ROC1_CLK
 	[arch] all
 	[plat] roc1

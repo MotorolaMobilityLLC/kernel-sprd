@@ -26,3 +26,4 @@ config SPRD_DEBUG
 	  Say y here to enable Debug support.
 
 source "drivers/soc/sprd/debug/Kconfig"
+source "drivers/soc/sprd/performance/Kconfig"
