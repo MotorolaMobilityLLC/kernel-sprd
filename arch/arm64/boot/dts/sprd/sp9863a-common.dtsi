@@ -8,6 +8,7 @@
 
 #include "sc9863a-modem.dtsi"
 #include "sc2721.dtsi"
+#include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
 	firmware {

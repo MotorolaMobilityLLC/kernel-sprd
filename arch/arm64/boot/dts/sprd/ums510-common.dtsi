@@ -6,6 +6,7 @@
  * This file is licensed under a dual GPLv2 or X11 license.
  */
 
+#include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
 	firmware {
