@@ -1078,6 +1078,69 @@
 				#pwm-cells = <2>;
 			};
 
+			topdvfs_controller: topdvfsctrl@322A0000 {
+				compatible = "sprd,sharkl5-topdvfs";
+				sprd,syscon-enable = <&aon_apb_regs>;
+				reg = <0 0x322A0000 0 0x8000>;
+			};
+
+			cpudvfs_dev: cpudvfs_dev@322A8000 {
+				compatible = "sprd,sharkl5-cpudvfs";
+				sprd,syscon-enable = <&aon_apb_regs>;
+				topdvfs-controller = <&topdvfs_controller>;
+				reg = <0 0x322A8000 0 0x1000>;
+
+				lit-core-dvfs-tbl = <
+					0 0 0 0 0 0 0
+					1 1 0 0 1 1 1
+					2 1 0 1 2 2 2
+					3 0 0 2 3 2 3
+					3 0 1 2 4 3 4
+					1 0 0 3 5 4 4
+					3 0 2 4 6 4 4
+					2 0 0 5 7 4 4
+					3 0 3 6 8 4 5
+					3 0 4 7 9 5 5
+				>;
+				big-core-dvfs-tbl = <
+					0 0 0 0 0 0 0
+					1 0 0 0 3 3 4
+					3 0 0 1 5 4 4
+					2 0 0 2 6 4 4
+					3 0 1 3 7 4 5
+					3 0 2 4 8 4 5
+					3 0 3 5 9 5 5
+				>;
+				scu-dvfs-tbl = <
+					0 0 0 0 0
+					3 0 1 0 0
+					3 0 1 1 1
+					2 0 1 0 2
+					3 0 1 2 2
+					3 0 1 3 3
+					3 0 1 4 4
+					3 0 1 5 5
+					3 0 1 6 6
+					3 0 1 7 7
+				>;
+				periph-dvfs-tbl = <
+					0 0 0
+					1 0 0
+					2 1 1
+					3 1 2
+					2 0 3
+					3 0 7
+				>;
+				gic-dvfs-tbl = <
+					0 0 0
+					1 0 0
+					2 1 1
+					3 1 2
+					2 0 2
+					3 0 3
+				>;
+			};
+
 			watchdog@322f0000 {
 				compatible = "sprd,sharkl5-wdt";
 				reg = <0 0x322f0000 0 0x10000>;
