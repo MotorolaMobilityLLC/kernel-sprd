@@ -31,6 +31,7 @@
 
 struct sprd_pwm_chip {
 	void __iomem *mmio_base;
+	int num_pwms;
 	struct clk *clk_pwm[NUM_PWM];
 	struct clk *clk_eb[NUM_PWM];
 	struct pwm_chip chip;
@@ -155,6 +156,9 @@ static int sprd_pwm_clk_init(struct platform_device *pdev)
 		snprintf(clk_name, sizeof(clk_name) - 1, PWM_CLK"%d", i);
 		spc->clk_pwm[i] = devm_clk_get(&pdev->dev, clk_name);
 		if (IS_ERR(spc->clk_pwm[i])) {
+			if (PTR_ERR(spc->clk_pwm[i]) == -ENOENT)
+				break;
+
 			dev_err(&pdev->dev, "get clk %d failed\n", i);
 			return PTR_ERR(spc->clk_pwm[i]);
 		}
@@ -169,6 +173,8 @@ static int sprd_pwm_clk_init(struct platform_device *pdev)
 
 		clk_set_parent(spc->clk_pwm[i], clk_parent);
 	}
+
+	spc->num_pwms = i;
 
 	return 0;
 }
@@ -203,7 +209,7 @@ static int sprd_pwm_probe(struct platform_device *pdev)
 	spc->chip.dev = &pdev->dev;
 	spc->chip.ops = &sprd_pwm_ops;
 	spc->chip.base = -1;
-	spc->chip.npwm = NUM_PWM;
+	spc->chip.npwm = spc->num_pwms;
 
 	ret = pwmchip_add(&spc->chip);
 	if (ret < 0) {
@@ -219,7 +225,7 @@ static int sprd_pwm_remove(struct platform_device *pdev)
 	struct sprd_pwm_chip *spc = platform_get_drvdata(pdev);
 	int i;
 
-	for (i = 0; i < NUM_PWM; i++)
+	for (i = 0; i < spc->num_pwms; i++)
 		pwm_disable(&spc->chip.pwms[i]);
 
 	return pwmchip_remove(&spc->chip);
