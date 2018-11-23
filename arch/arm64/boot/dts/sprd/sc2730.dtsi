@@ -76,6 +76,10 @@
 				reg = <0x3 0x2>;
 				bits = <0 9>;
 			};
+
+			cc_cal: calib@d {
+				reg = <0xd 0x2>;
+			};
 		};
 
 		pmic_typec: typec@380 {
@@ -83,6 +87,8 @@
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 			reg = <0x380>;
+			nvmem-cells = <&cc_cal>;
+			nvmem-cell-names = "cc_calib";
 		};
 
 		pmic_adc: adc@504 {
