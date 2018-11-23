@@ -7,6 +7,7 @@ tmp_path="./tmp_config_check/"
 d_sprdconfig={}
 d_defconfig={}
 d_diffconfig={}
+d_corrected_config={}
 not_defined=0
 config_path="Documentation/sprd-configs.txt"
 list_configs=[]
@@ -163,7 +164,6 @@ def add_diffconfig_to_dictconfig():
                                     'must':'',
                                     'function':''
                                     }
-#                            print(d_diffconfig[lines[j][11:-1]]['plat'])
                     f.close
 
 def create_sprdconfigs_dict():
@@ -402,46 +402,124 @@ def aiaiai_check():
     file_name=tmp_path+"lastest.diff"
     os.system("git show HEAD -1 > " + file_name)
 
+    for key in l_sprdconfig:
+        tmp_arch=''
+        tmp_plat=''
+        for project in l_defproject:
+            if key in d_defconfig[project]:
+
+                if d_defconfig[project][key] == 'y' or d_defconfig[project][key] == 'm':
+                    tmp_plat = tmp_plat + project + ','
+                else:
+                    continue
+
+                if d_defconfig_path[kernel_version][project]['arch'] not in tmp_arch.split(','):
+                    tmp_arch = tmp_arch + d_defconfig_path[kernel_version][project]['arch'] + ','
+
+        #TODO Doesn't check diffconfig
+        if key in d_diffconfig:
+            if d_diffconfig[key]['arch'] not in tmp_arch:
+                tmp_arch = tmp_arch + d_diffconfig[key]['arch'] + ","
+
+            if d_diffconfig[key]['plat'] not in tmp_plat:
+                tmp_plat = tmp_plat + d_diffconfig[key]['plat'] + ","
+
+            tmp_arch_sort=''
+            for i in range(len(tmp_arch[:-1].split(","))):
+                if tmp_arch[:-1].split(",").pop(i) not in tmp_arch_sort.split(","):
+                    tmp_arch_sort = tmp_arch_sort + tmp_arch[:-1].split(",").pop(i) + ','
+
+            tmp_plat_sort=''
+            l_tmp_plat = tmp_plat[:-1].split(",")
+            l_tmp_plat.sort()
+            for i in range(len(tmp_plat[:-1].split(","))):
+                if tmp_plat[:-1].split(",").pop(i) not in tmp_plat_sort.split(","):
+                    tmp_plat_sort = tmp_plat_sort + tmp_plat[:-1].split(",").pop(i) + ','
+
+            tmp_arch = tmp_arch_sort
+            tmp_plat = tmp_plat_sort
+
+            tmp_plat_sort=''
+            l_tmp_plat = tmp_plat[:-1].split(",")
+            l_tmp_plat.sort()
+            for i in range(len(l_tmp_plat)):
+                if l_tmp_plat[i] not in tmp_plat_sort.split(","):
+                    tmp_plat_sort = tmp_plat_sort + l_tmp_plat[i] + ','
+
+            tmp_arch = tmp_arch_sort
+            tmp_plat = tmp_plat_sort
+
+            # if tmp_plat == '' means this config don't need any more.
+            if tmp_plat == '':
+                continue
+
+        d_corrected_config[key]={ 'arch':'','plat':''}
+        #write current status to dict d_sprdconfig
+        if len(tmp_arch[:-1].split(",")) == len(all_arch):
+            d_corrected_config[key]['arch'] = 'all'
+        else:
+            d_corrected_config[key]['arch'] = tmp_arch[:-1]
+
+        if len(tmp_plat[:-1].split(",")) == len(all_plat):
+            d_corrected_config[key]['plat'] = 'all'
+        else:
+            d_corrected_config[key]['plat'] = tmp_plat[:-1]
+
     f_diff = open(file_name, 'r')
     f_diff_lines=f_diff.readlines()
     for i in range(len(f_diff_lines)):
         if "diff --git" in f_diff_lines[i]:
-            if "defconfig" not in f_diff_lines[i]:
-                continue
-            arch = f_diff_lines[i].split(" ").pop(2).split("/").pop(2)
-            change_file = f_diff_lines[i].split(" ").pop(2).split("/").pop(4)
-            plat = change_file.split("_").pop(1)
+            if "sprd-configs.txt" in f_diff_lines[i]:
+                l_corrected_config = list(d_corrected_config)
+                l_corrected_config.sort()
+                for key in l_corrected_config:
+                    if key in d_sprdconfig:
+                        if d_corrected_config[key]['arch'] != d_sprdconfig[key]['arch']:
+                            print("ERROR: DOC: Value is different between code and sprd-configs.txt. " + \
+                                    " CONFIG:" + key + \
+                                    " CODE:[arch]:" + d_corrected_config[key]['arch'] + \
+                                    " DOC:[arch]:" + d_sprdconfig[key]['arch'])
+                        elif d_corrected_config[key]['plat'] != d_sprdconfig[key]['plat']:
+                            print("ERROR: DOC: Value is different between code and sprd-configs.txt." + \
+                                    " CONFIG:" + key + \
+                                    " CODE:[plat]:" + d_corrected_config[key]['plat'] + \
+                                    " DOC:[plat]:" + d_sprdconfig[key]['plat'])
 
-            if plat not in d_defconfig_path[kernel_version]:
-                continue
+            elif "defconfig" in f_diff_lines[i]:
+                arch = f_diff_lines[i].split(" ").pop(2).split("/").pop(2)
+                change_file = f_diff_lines[i].split(" ").pop(2).split("/").pop(4)
+                plat = change_file.split("_").pop(1)
 
-            if plat == "sharkle" and arch == "arm":
-                if change_file == "sprd_sharkle_fp_defconfig":
-                    plat="sharkle32_fp"
-                else:
-                    plat="sharkle32"
-            if plat == "sharkl3" and arch =="arm":
-                continue
+                if plat not in d_defconfig_path[kernel_version]:
+                    continue
 
-            i = i + 5
-            while True:
-                if "diff --git" in f_diff_lines[i]:
-                    break
-                if i < len(f_diff_lines):
-                    if "@@" in f_diff_lines[i]:
+                if plat == "sharkle" and arch == "arm":
+                    if change_file == "sprd_sharkle_fp_defconfig":
+                        plat="sharkle32_fp"
+                    else:
+                        plat="sharkle32"
+                if plat == "sharkl3" and arch =="arm":
+                    continue
+
+                i = i + 5
+                while True:
+                    if "diff --git" in f_diff_lines[i]:
+                        break
+                    if i < len(f_diff_lines):
+                        if "@@" in f_diff_lines[i]:
+                            i = i+1
+                            continue
+                        if '+' in f_diff_lines[i]:
+                            for j in range(len(f_diff_lines[i].split(" "))):
+                                if "CONFIG" in f_diff_lines[i].split(" ").pop(j):
+                                    if "is not set" in f_diff_lines[i]:
+                                        if f_diff_lines[i].split(" ").pop(j)[7:] not in d_diffconfig:
+                                            d_del_config[f_diff_lines[i].split(" ").pop(j)[7:]]={'arch':arch,'plat':plat}
+                                    elif "=y" in f_diff_lines[i] or "=m" in f_diff_lines[i]:
+                                        d_add_config[f_diff_lines[i].split(" ").pop(j)[8:-3]]={'arch':arch,'plat':plat}
                         i = i+1
-                        continue
-                    if '+' in f_diff_lines[i]:
-                        for j in range(len(f_diff_lines[i].split(" "))):
-                            if "CONFIG" in f_diff_lines[i].split(" ").pop(j):
-                                if "is not set" in f_diff_lines[i]:
-                                    if f_diff_lines[i].split(" ").pop(j)[7:] not in d_diffconfig:
-                                        d_del_config[f_diff_lines[i].split(" ").pop(j)[7:]]={'arch':arch,'plat':plat}
-                                elif "=y" in f_diff_lines[i] or "=m" in f_diff_lines[i]:
-                                    d_add_config[f_diff_lines[i].split(" ").pop(j)[8:-3]]={'arch':arch,'plat':plat}
-                    i = i+1
-                else:
-                    break
+                    else:
+                        break
 
     for lines in d_add_config:
         if lines not in d_sprdconfig:
@@ -503,6 +581,7 @@ def update_sprd_configs():
     print_support_arch_plat()
 
     configs_resort()
+
     for key in l_sprdconfig:
         tmp_arch=''
         tmp_plat=''
@@ -527,13 +606,15 @@ def update_sprd_configs():
 
             tmp_arch_sort=''
             for i in range(len(tmp_arch[:-1].split(","))):
-                if tmp_arch[:-1].split(",").pop(i) not in tmp_arch_sort:
+                if tmp_arch[:-1].split(",").pop(i) not in tmp_arch_sort.split(","):
                     tmp_arch_sort = tmp_arch_sort + tmp_arch[:-1].split(",").pop(i) + ','
 
             tmp_plat_sort=''
-            for i in range(len(tmp_plat[:-1].split(","))):
-                if tmp_plat[:-1].split(",").pop(i) not in tmp_plat_sort:
-                    tmp_plat_sort = tmp_plat_sort + tmp_plat[:-1].split(",").pop(i) + ','
+            l_tmp_plat = tmp_plat[:-1].split(",")
+            l_tmp_plat.sort()
+            for i in range(len(l_tmp_plat)):
+                if l_tmp_plat[i] not in tmp_plat_sort.split(","):
+                    tmp_plat_sort = tmp_plat_sort + l_tmp_plat[i] + ','
 
             tmp_arch = tmp_arch_sort
             tmp_plat = tmp_plat_sort
@@ -542,16 +623,21 @@ def update_sprd_configs():
         if tmp_plat == '':
             continue
 
+        d_corrected_config[key]={ 'arch':'','plat':''}
         #write current status to dict d_sprdconfig
         if len(tmp_arch[:-1].split(",")) == len(all_arch):
             d_sprdconfig[key]['arch'] = 'all'
+            d_corrected_config[key]['arch'] = 'all'
         else:
             d_sprdconfig[key]['arch'] = tmp_arch[:-1]
+            d_corrected_config[key]['arch'] = tmp_arch[:-1]
 
         if len(tmp_plat[:-1].split(",")) == len(all_plat):
             d_sprdconfig[key]['plat'] = 'all'
+            d_corrected_config[key]['plat'] = 'all'
         else:
             d_sprdconfig[key]['plat'] = tmp_plat[:-1]
+            d_corrected_config[key]['plat'] = tmp_plat[:-1]
 
     # regenerate sprd-configs.txt with dict d_sprdconfig
     configs_resort()

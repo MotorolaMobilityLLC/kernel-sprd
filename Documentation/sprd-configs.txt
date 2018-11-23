@@ -550,7 +550,7 @@ ARM_ARCH_TIMER_OOL_WORKAROUND
 	[function]
 ARM_CPUIDLE
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make,code
 	[subsys] cpuidle
 	[must] user
@@ -1273,28 +1273,28 @@ CPU_FREQ_STAT
 	[function] statistical information for dvfs
 CPU_IDLE
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make,code
 	[subsys] cpuidle
 	[must] console
 	[function] CPU idle PM support.
 CPU_IDLE_GOV_LADDER
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make
 	[subsys] cpuidle
 	[must] console
 	[function] Ladder governor (for periodic timer tick).
 CPU_IDLE_GOV_MENU
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make,code
 	[subsys] cpuidle
 	[must] user
 	[function] Menu governor (for tickless system).
 CPU_IDLE_MULTIPLE_DRIVERS
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field]
 	[subsys]
 	[must]
@@ -2250,7 +2250,7 @@ DTC
 	[function] Support the device-tree-compiler.
 DT_IDLE_STATES
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make,code
 	[subsys] cpuidle
 	[must] user
@@ -8129,37 +8129,9 @@ SPRD_ROC1_USB2_PHY
 	[subsys]
 	[must]
 	[function]
-SPRD_SC9832E_CLK
-	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-SPRD_SC9860_CLK
-	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-SPRD_SC9863A_CLK
-	[arch] all
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 SPRD_SHARKL5_CLK
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
-SPRD_SHARKL5PRO_CLK
-	[arch] all
-	[plat] sharkl5pro
 	[field]
 	[subsys]
 	[must]
