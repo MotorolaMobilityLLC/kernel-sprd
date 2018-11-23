@@ -686,7 +686,7 @@
 				reg = <0 0x20000000 0 0x4000>;
 				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
-				#dma-channels = <32>;
+				#dma-channels = <28>;
 				clock-names = "enable";
 				clocks = <&apahb_gate CLK_DMA_EB>;
 			};
@@ -1176,6 +1176,7 @@
 			agcp_dma: dma-controller@33580000 {
 				compatible = "sprd,sharkl5-dma";
 				reg = <0 0x33580000 0 0x4000>;
+				interrupts = <GIC_SPI 180 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
 				#dma-channels = <32>;
 				clock-names = "enable", "ashb_eb";
