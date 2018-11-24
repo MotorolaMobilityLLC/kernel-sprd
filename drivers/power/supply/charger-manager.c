@@ -779,6 +779,48 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 	return -EINVAL;
 }
 
+static int cm_check_charge_health(struct charger_manager *cm)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int health = POWER_SUPPLY_HEALTH_UNKNOWN;
+	int ret, i;
+
+	for (i = 0; desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_HEALTH,
+						&val);
+		power_supply_put(psy);
+		if (ret)
+			return ret;
+		health = val.intval;
+	}
+
+	if (health == POWER_SUPPLY_HEALTH_UNKNOWN)
+		return -ENODEV;
+
+	if (cm->charger_enabled && health != POWER_SUPPLY_HEALTH_GOOD) {
+		dev_info(cm->dev, "Charging health is not good\n");
+		uevent_notify(cm, "Discharging");
+		try_charger_enable(cm, false);
+		return 0;
+	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
+		health == POWER_SUPPLY_HEALTH_GOOD) {
+		dev_info(cm->dev, "Charging health is recover good\n");
+		uevent_notify(cm, "Recharging");
+		try_charger_enable(cm, true);
+		return 0;
+	}
+
+	return -EINVAL;
+}
 /**
  * _cm_monitor - Monitor the temperature and return true for exceptions.
  * @cm: the Charger Manager representing the battery.
@@ -810,6 +852,12 @@ static bool _cm_monitor(struct charger_manager *cm)
 	} else if (!cm->emergency_stop && !cm_check_charge_voltage(cm)) {
 		dev_info(cm->dev,
 			"Stop charging/Recharging due to charge voltage changes\n");
+	/*
+	 * Check if the charge health is in the normal mode.
+	 */
+	} else if (!cm->emergency_stop && !cm_check_charge_health(cm)) {
+		dev_info(cm->dev,
+			"Stop charging/Recharging due to charge health changes\n");
 	/*
 	 * Check whole charging duration and discharing duration
 	 * after full-batt.
