@@ -159,6 +159,7 @@ struct charger_regulator {
  * @temp_min : Minimum battery temperature for charging.
  * @temp_max : Maximum battery temperature for charging.
  * @temp_diff : Temperature difference to restart charging.
+ * @cap : Battery capacity report to user space.
  * @measure_battery_temp:
  *	true: measure battery temperature
  *	false: measure ambient temperature
@@ -169,6 +170,20 @@ struct charger_regulator {
  *	Maximum possible duration for discharging with charger cable
  *	after full-batt. If discharging duration exceed 'discharging
  *	max_duration_ms', cm start charging.
+ * @charger_status: Recording state of charge
+ * @trigger_cnt: The number of times the battery is fully charged
+ * @cap_one_time: The percentage of electricity is not
+ *	allowed to change by 1% in cm->desc->cap_one_time
+ * @trickle_time_out: If 99% lasts longer than it , will force set full statu
+ * @trickle_time: Record the charging time when battery
+ *	capacity is larger than 99%.
+ * @trickle_start_time: Record current time when battery capacity is 99%
+ * @update_capacity_time: Record the battery capacity update time
+ * @last_query_time: Record last time enter cm_batt_works
+ * @force_set_full: The flag is indicate whether
+ *	there is a mandatory setting of full status
+ * @shutdown_voltage: If it has dropped more than shutdown_voltage,
+ *	the phone will automatically shut down
  */
 struct charger_desc {
 	const char *psy_name;
@@ -198,6 +213,7 @@ struct charger_desc {
 	int temp_max;
 	int temp_diff;
 
+	int cap;
 	bool measure_battery_temp;
 
 	u32 charging_max_duration_ms;
@@ -205,6 +221,21 @@ struct charger_desc {
 
 	u32 charge_voltage_max;
 	u32 charge_voltage_drop;
+
+	int charger_status;
+	int trigger_cnt;
+
+	u32 cap_one_time;
+
+	u32 trickle_time_out;
+	u64 trickle_time;
+	u64 trickle_start_time;
+
+	u64 update_capacity_time;
+	u64 last_query_time;
+
+	bool force_set_full;
+	u32 shutdown_voltage;
 };
 
 #define PSY_NAME_MAX	30
@@ -244,7 +275,7 @@ struct charger_manager {
 
 	unsigned long fullbatt_vchk_jiffies_at;
 	struct delayed_work fullbatt_vchk_work;
-
+	struct delayed_work cap_update_work;
 	int emergency_stop;
 
 	char psy_name_buf[PSY_NAME_MAX + 1];

@@ -30,7 +30,9 @@ Optional properties :
  - cm-dis/charging-max = limits of charging duration
  - cm-charge-voltage-max: maximum charge voltage in microVolts
  - cm-charge-voltage-drop: drop voltage in microVolts to allow recharging
-
+ - cm-shutdown-voltage: drop voltage in microVolts to allow shutdown
+ - cm-tickle-time-out: when 99% of the time is exceeded, it will be forced to 100%
+ - cm-one-cap-time: how much time to allow capacity change
 Example :
 	charger-manager@0 {
 		compatible = "charger-manager";
@@ -65,6 +67,9 @@ Example :
 		cm-discharging-max = <7200000>;
 		cm-charge-voltage-max = <6500000>;
 		cm-charge-voltage-drop = <700000>;
+		cm-shutdown-voltage = <3100000>;
+		cm-tickle-time-out = <1500>;
+		cm-one-cap-time = <30>;
 
 		regulator@0 {
 			cm-regulator-name = "chg-reg";

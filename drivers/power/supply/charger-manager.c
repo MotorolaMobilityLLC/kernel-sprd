@@ -19,6 +19,7 @@
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 #include <linux/rtc.h>
+#include <linux/reboot.h>
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 #include <linux/platform_device.h>
@@ -34,6 +35,8 @@
  */
 #define CM_DEFAULT_RECHARGE_TEMP_DIFF	50
 #define CM_DEFAULT_CHARGE_TEMP_MAX	500
+#define CM_CAP_CYCLE_TRACK_TIME		15
+#define CM_UVLO_OFFSET			50000
 
 static const char * const default_event_names[] = {
 	[CM_EVENT_UNKNOWN] = "Unknown",
@@ -198,7 +201,7 @@ static int get_batt_uA(struct charger_manager *cm, int *uA)
 }
 
 /**
-/**
+ *
  * get_batt_uV - Get the voltage level of the battery
  * @cm: the Charger Manager representing the battery.
  * @uV: the voltage level returned.
@@ -223,6 +226,62 @@ static int get_batt_uV(struct charger_manager *cm, int *uV)
 		return ret;
 
 	*uV = val.intval;
+	return 0;
+}
+/*
+ * get_batt_ocv - Get the battery ocv
+ * level of the battery.
+ * @cm: the Charger Manager representing the battery.
+ * @uV: the voltage level returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_batt_ocv(struct charger_manager *cm, int *ocv)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge,
+				POWER_SUPPLY_PROP_VOLTAGE_OCV, &val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	*ocv = val.intval;
+	return 0;
+}
+
+/**
+ * get_batt_cap - Get the cap level of the battery
+ * @cm: the Charger Manager representing the battery.
+ * @uV: the cap level returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_batt_cap(struct charger_manager *cm, int *cap)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge,
+				POWER_SUPPLY_PROP_CAPACITY, &val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	*cap = val.intval;
 	return 0;
 }
 
@@ -334,10 +393,11 @@ static bool is_full_charged(struct charger_manager *cm)
 		if (!ret && uV >= desc->fullbatt_uV) {
 			if (desc->fullbatt_uA > 0) {
 				ret = get_batt_uA(cm, &uA);
-				if (!ret && uA >= desc->fullbatt_uA) {
+				if (!ret && uA <= desc->fullbatt_uA && ++desc->trigger_cnt > 1) {
+					desc->trigger_cnt = 0;
 					is_full = true;
-					goto out;
 				}
+				goto out;
 			} else {
 				is_full = true;
 				goto out;
@@ -1719,6 +1779,9 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	of_property_read_u32(np, "cm-fullbatt-soc", &desc->fullbatt_soc);
 	of_property_read_u32(np, "cm-fullbatt-capacity",
 					&desc->fullbatt_full_capacity);
+	of_property_read_u32(np, "cm-shutdown-voltage", &desc->shutdown_voltage);
+	of_property_read_u32(np, "cm-tickle-time-out", &desc->trickle_time_out);
+	of_property_read_u32(np, "cm-one-cap-time", &desc->cap_one_time);
 
 	of_property_read_u32(np, "cm-battery-stat", &battery_stat);
 	desc->battery_present = battery_stat;
@@ -1834,6 +1897,178 @@ static enum alarmtimer_restart cm_timer_func(struct alarm *alarm, ktime_t now)
 {
 	cm_timer_set = false;
 	return ALARMTIMER_NORESTART;
+}
+
+static void cm_batt_works(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct charger_manager *cm = container_of(dwork,
+				struct charger_manager, cap_update_work);
+	struct timespec64 cur_time;
+	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
+	int period_time, flush_time;
+
+	ret = get_batt_uV(cm, &batt_uV);
+	if (ret) {
+		dev_err(cm->dev, "get_batt_uV error.\n");
+		return;
+	}
+
+	ret = get_batt_ocv(cm, &batt_ocV);
+	if (ret) {
+		dev_err(cm->dev, "get_batt_ocV error.\n");
+		return;
+	}
+
+	ret = get_batt_uA(cm, &bat_uA);
+	if (ret) {
+		dev_err(cm->dev, "get bat_uA error.\n");
+		return;
+	}
+
+	ret = get_batt_cap(cm, &fuel_cap);
+	if (ret) {
+		dev_err(cm->dev, "get fuel_cap error.\n");
+		return;
+	}
+
+	cur_time = ktime_to_timespec64(ktime_get_boottime());
+
+	if (is_full_charged(cm))
+		chg_sts = POWER_SUPPLY_STATUS_FULL;
+	else if (is_charging(cm))
+		chg_sts = POWER_SUPPLY_STATUS_CHARGING;
+	else if (is_ext_pwr_online(cm))
+		chg_sts = POWER_SUPPLY_STATUS_NOT_CHARGING;
+	else
+		chg_sts = POWER_SUPPLY_STATUS_DISCHARGING;
+
+	/*
+	 * Record the charging time when battery
+	 * capacity is larger than 99%.
+	 */
+	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING) {
+		if (cm->desc->cap >= 99) {
+			cm->desc->trickle_time =
+				cur_time.tv_sec - cm->desc->trickle_start_time;
+		} else {
+			cm->desc->trickle_start_time = cur_time.tv_sec;
+			cm->desc->trickle_time = 0;
+		}
+	} else {
+		cm->desc->trickle_start_time = cur_time.tv_sec;
+		cm->desc->trickle_time = cm->desc->trickle_time_out +
+				cm->desc->cap_one_time;
+	}
+
+	flush_time = cur_time.tv_sec - cm->desc->update_capacity_time;
+	period_time = cur_time.tv_sec - cm->desc->last_query_time;
+	cm->desc->last_query_time = cur_time.tv_sec;
+
+	if (cm->desc->force_set_full)
+		cm->desc->charger_status = POWER_SUPPLY_STATUS_FULL;
+	else
+		cm->desc->charger_status = chg_sts;
+
+	switch (cm->desc->charger_status) {
+	case POWER_SUPPLY_STATUS_CHARGING:
+		if (fuel_cap < cm->desc->cap) {
+			if (bat_uA >= 0) {
+				fuel_cap = cm->desc->cap;
+			} else {
+				/*
+				 * The percentage of electricity is not
+				 * allowed to change by 1% in cm->desc->cap_one_time.
+				 */
+				if (period_time < cm->desc->cap_one_time)
+					fuel_cap = cm->desc->cap - 1;
+				/*
+				 * If wake up from long sleep mode,
+				 * will make a percentage compensation based on time.
+				 */
+				if ((cm->desc->cap - fuel_cap) >=
+				    (flush_time / cm->desc->cap_one_time))
+					fuel_cap = cm->desc->cap -
+						flush_time / cm->desc->cap_one_time;
+			}
+		} else if (fuel_cap > cm->desc->cap) {
+			if (period_time < cm->desc->cap_one_time)
+				fuel_cap = cm->desc->cap + 1;
+			if ((fuel_cap - cm->desc->cap) >=
+			    (flush_time / cm->desc->cap_one_time))
+				fuel_cap = cm->desc->cap +
+					flush_time / cm->desc->cap_one_time;
+		}
+
+		if (cm->desc->cap != 100 && fuel_cap >= 100)
+			fuel_cap = 99;
+		/*
+		 * Record 99% of the charging time.
+		 * if it is greater than 1500s,
+		 * it will be mandatory to display 100%,
+		 * but the background is still charging.
+		 */
+		if (cm->desc->cap >= 99 &&
+		    cm->desc->trickle_time >= cm->desc->trickle_time_out &&
+		    cm->desc->trickle_time_out > 0) {
+			cm->desc->force_set_full = true;
+			cm->desc->charger_status = POWER_SUPPLY_STATUS_FULL;
+		}
+
+		break;
+
+	case POWER_SUPPLY_STATUS_NOT_CHARGING:
+	case POWER_SUPPLY_STATUS_DISCHARGING:
+		/*
+		 * In not charging status,
+		 * the cap is not allowed to increase.
+		 */
+		if (fuel_cap >= cm->desc->cap) {
+			fuel_cap = cm->desc->cap;
+		} else {
+			if (period_time < cm->desc->cap_one_time)
+				fuel_cap = cm->desc->cap - 1;
+			/*
+			 * If wake up from long sleep mode,
+			 * will make a percentage compensation based on time.
+			 */
+			if ((cm->desc->cap - fuel_cap) >=
+			    (flush_time / cm->desc->cap_one_time))
+				fuel_cap = cm->desc->cap -
+					flush_time / cm->desc->cap_one_time;
+		}
+		break;
+
+	case POWER_SUPPLY_STATUS_FULL:
+		cm->desc->update_capacity_time = cur_time.tv_sec;
+		if ((batt_ocV < (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 150000))
+		    && (bat_uA < 0)) {
+			cm->desc->charger_status = POWER_SUPPLY_STATUS_CHARGING;
+			cm->desc->force_set_full = false;
+		}
+
+		if (fuel_cap != 100)
+			fuel_cap = 100;
+
+		break;
+	default:
+		break;
+	}
+
+	if (batt_uV <= cm->desc->shutdown_voltage - CM_UVLO_OFFSET) {
+		dev_err(cm->dev, "WARN: batt_uV less than uvlo, will shutdown\n");
+		orderly_poweroff(true);
+	}
+
+	if (fuel_cap != cm->desc->cap) {
+		cm->desc->cap = fuel_cap;
+		cm->desc->update_capacity_time = cur_time.tv_sec;
+		power_supply_changed(cm->charger_psy);
+	}
+
+	queue_delayed_work(system_power_efficient_wq,
+			   &cm->cap_update_work,
+			   CM_CAP_CYCLE_TRACK_TIME * HZ);
 }
 
 static int charger_manager_probe(struct platform_device *pdev)
@@ -1989,6 +2224,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	power_supply_put(fuel_gauge);
 
 	INIT_DELAYED_WORK(&cm->fullbatt_vchk_work, fullbatt_vchk);
+	INIT_DELAYED_WORK(&cm->cap_update_work, cm_batt_works);
 
 	cm->charger_psy = power_supply_register(&pdev->dev,
 						&cm->charger_psy_desc,
@@ -2034,6 +2270,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	cm_monitor();
 
 	schedule_work(&setup_polling);
+	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME * HZ);
 
 	return 0;
 
@@ -2067,6 +2304,7 @@ static int charger_manager_remove(struct platform_device *pdev)
 
 	cancel_work_sync(&setup_polling);
 	cancel_delayed_work_sync(&cm_monitor_work);
+	cancel_delayed_work_sync(&cm->cap_update_work);
 
 	for (i = 0 ; i < desc->num_charger_regulators ; i++)
 		regulator_put(desc->charger_regulators[i].consumer);
@@ -2107,6 +2345,7 @@ static int cm_suspend_prepare(struct device *dev)
 		cancel_work_sync(&setup_polling);
 		cancel_delayed_work_sync(&cm_monitor_work);
 		cancel_delayed_work(&cm->fullbatt_vchk_work);
+		cancel_delayed_work_sync(&cm->cap_update_work);
 	}
 
 	return 0;
@@ -2130,6 +2369,9 @@ static void cm_suspend_complete(struct device *dev)
 	}
 
 	_cm_monitor(cm);
+	queue_delayed_work(system_power_efficient_wq,
+			   &cm->cap_update_work,
+			   CM_CAP_CYCLE_TRACK_TIME * HZ);
 
 	/* Re-enqueue delayed work (fullbatt_vchk_work) */
 	if (cm->fullbatt_vchk_jiffies_at) {
