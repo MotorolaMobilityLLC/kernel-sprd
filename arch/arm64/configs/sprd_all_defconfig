@@ -4059,6 +4059,11 @@ CONFIG_SC27XX_ADC=y
 # CONFIG_TMP007 is not set
 # CONFIG_TSYS01 is not set
 # CONFIG_TSYS02D is not set
+
+#
+# Spreadtrum Sensor Hub
+#
+# CONFIG_SPRD_SENSOR_HUB is not set
 # CONFIG_NTB is not set
 # CONFIG_VME_BUS is not set
 CONFIG_PWM=y
