@@ -436,8 +436,16 @@ static const struct sprd_vsp_cfg_data sharkl3_vsp_data = {
 	.reset_mask = BIT(2),
 };
 
+static const struct sprd_vsp_cfg_data sharkl5_vsp_data = {
+	.version = SHARKL5,
+	.max_freq_level = 4,
+	.softreset_reg_offset = 0x4,
+	.reset_mask = BIT(13)|BIT(11),
+};
+
 static const struct of_device_id of_match_table_vsp[] = {
 	{.compatible = "sprd,sharkl3-vsp", .data = &sharkl3_vsp_data},
+	{.compatible = "sprd,sharkl5-vsp", .data = &sharkl5_vsp_data},
 	{},
 };
 
