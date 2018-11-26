@@ -35,6 +35,7 @@ struct sprd_pwm_chip {
 	int num_pwms;
 	struct clk *clk_pwm[NUM_PWM];
 	struct clk *clk_eb[NUM_PWM];
+	bool eb_enabled[NUM_PWM];
 	struct pwm_chip chip;
 };
 
@@ -61,10 +62,13 @@ static int sprd_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	u64 clk_rate, div, val;
 	int rc, prescale, level;
 
-	rc = clk_prepare_enable(spc->clk_eb[pwm->hwpwm]);
-	if (rc) {
-		dev_err(chip->dev, "enable pwm%u failed\n", pwm->hwpwm);
-		return rc;
+	if (!spc->eb_enabled[pwm->hwpwm]) {
+		rc = clk_prepare_enable(spc->clk_eb[pwm->hwpwm]);
+		if (rc) {
+			dev_err(chip->dev, "enable pwm%u failed\n", pwm->hwpwm);
+			return rc;
+		}
+		spc->eb_enabled[pwm->hwpwm] = true;
 	}
 
 	level = duty_ns * PWM_MOD_MAX / period_ns;
@@ -93,8 +97,6 @@ static int sprd_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	sprd_pwm_writel(spc, pwm->hwpwm, PWM_PAT_HIGH, PWM_REG_MSK);
 	sprd_pwm_writel(spc, pwm->hwpwm, PWM_PRESCALE, prescale);
 
-	clk_disable_unprepare(spc->clk_eb[pwm->hwpwm]);
-
 	return rc;
 }
 
@@ -104,16 +106,20 @@ static int sprd_pwm_enable(struct pwm_chip *chip, struct pwm_device *pwm)
 		struct sprd_pwm_chip, chip);
 	int rc;
 
-	rc = clk_prepare_enable(spc->clk_eb[pwm->hwpwm]);
-	if (rc) {
-		dev_err(chip->dev, "enable pwm%u failed\n", pwm->hwpwm);
-		return rc;
+	if (!spc->eb_enabled[pwm->hwpwm]) {
+		rc = clk_prepare_enable(spc->clk_eb[pwm->hwpwm]);
+		if (rc) {
+			dev_err(chip->dev, "enable pwm%u failed\n", pwm->hwpwm);
+			return rc;
+		}
+		spc->eb_enabled[pwm->hwpwm] = true;
 	}
 
 	rc = clk_prepare_enable(spc->clk_pwm[pwm->hwpwm]);
 	if (rc) {
 		dev_err(chip->dev, "enable pwm%u clock failed\n", pwm->hwpwm);
 		clk_disable_unprepare(spc->clk_eb[pwm->hwpwm]);
+		spc->eb_enabled[pwm->hwpwm] = false;
 		return rc;
 	}
 
@@ -129,7 +135,10 @@ static void sprd_pwm_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 
 	sprd_pwm_writel(spc, pwm->hwpwm, PWM_ENABLE, 0);
 	clk_disable_unprepare(spc->clk_pwm[pwm->hwpwm]);
-	clk_disable_unprepare(spc->clk_eb[pwm->hwpwm]);
+	if (spc->eb_enabled[pwm->hwpwm]) {
+		clk_disable_unprepare(spc->clk_eb[pwm->hwpwm]);
+		spc->eb_enabled[pwm->hwpwm] = false;
+	}
 }
 
 static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
@@ -143,7 +152,19 @@ static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 
 	rc = clk_prepare_enable(spc->clk_eb[pwm->hwpwm]);
 	if (rc) {
-		dev_err(chip->dev, "enable pwm%u eb failed\n", pwm->hwpwm);
+		dev_err(chip->dev,
+				"enable pwm%u eb failed\n",
+				pwm->hwpwm);
+		return;
+	}
+	spc->eb_enabled[pwm->hwpwm] = true;
+	rc = clk_prepare_enable(spc->clk_pwm[pwm->hwpwm]);
+	if (rc) {
+		clk_disable_unprepare(spc->clk_eb[pwm->hwpwm]);
+		spc->eb_enabled[pwm->hwpwm] = false;
+		dev_err(chip->dev,
+				"enable pwm%u clk failed\n",
+				pwm->hwpwm);
 		return;
 	}
 
@@ -177,8 +198,11 @@ static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 	state->enabled = !!enabled;
 
 out:
-	if (!enabled)
+	if (!enabled) {
+		clk_disable_unprepare(spc->clk_pwm[pwm->hwpwm]);
 		clk_disable_unprepare(spc->clk_eb[pwm->hwpwm]);
+		spc->eb_enabled[pwm->hwpwm] = false;
+	}
 }
 
 static const struct pwm_ops sprd_pwm_ops = {
