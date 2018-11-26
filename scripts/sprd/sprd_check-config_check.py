@@ -62,10 +62,10 @@ def add_diffconfig_to_dictconfig():
                                 elif tmp_arch == 'arm' and tmp_plat == 'sharkl3':
                                     tmp_plat = 'sharkl3_32'
 
-                                if lines[j][11:-1] in d_diffconfig:
-                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + "," + tmp_plat
+                                if lines[j][4:-1] in d_diffconfig:
+                                    d_diffconfig[lines[j][4:-1]]['plat'] = d_diffconfig[lines[j][4:-1]]['plat'] + "," + tmp_plat
                                 else:
-                                    d_diffconfig[lines[j][11:-1]]={
+                                    d_diffconfig[lines[j][4:-1]]={
                                         'arch': tmp_arch,
                                         'plat': tmp_plat,
                                         'field':'',
@@ -104,8 +104,8 @@ def add_diffconfig_to_dictconfig():
                             elif tmp_plat == 'pike2':
                                 tmp_arch = 'arm'
                             elif tmp_arch == 'common' and tmp_plat == 'sharkle':
-                                if lines[j][11:-1] not in d_diffconfig:
-                                    d_diffconfig[lines[j][11:-1]]={
+                                if lines[j][4:-1] not in d_diffconfig:
+                                    d_diffconfig[lines[j][4:-1]]={
                                         'arch': 'arm,arm64',
                                         'plat': 'sharkle,sharkle32',
                                         'field':'',
@@ -114,20 +114,20 @@ def add_diffconfig_to_dictconfig():
                                         'function':''
                                         }
                                     continue
-                                if 'sharkle' not in d_diffconfig[lines[j][11:-1]]['plat']:
-                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + 'sharkle,'
-                                if 'sharkle32' not in d_diffconfig[lines[j][11:-1]]['plat']:
-                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + 'sharkle32,'
+                                if 'sharkle' not in d_diffconfig[lines[j][4:-1]]['plat']:
+                                    d_diffconfig[lines[j][4:-1]]['plat'] = d_diffconfig[lines[j][4:-1]]['plat'] + 'sharkle,'
+                                if 'sharkle32' not in d_diffconfig[lines[j][4:-1]]['plat']:
+                                    d_diffconfig[lines[j][4:-1]]['plat'] = d_diffconfig[lines[j][4:-1]]['plat'] + 'sharkle32,'
 
-                                if 'arm' not in d_diffconfig[lines[j][11:-1]]['arch']:
-                                    d_diffconfig[lines[j][11:-1]]['arch'] = d_diffconfig[lines[j][11:-1]]['arch'] + 'arm,'
-                                if 'arm64' not in d_diffconfig[lines[j][11:-1]]['arch']:
-                                    d_diffconfig[lines[j][11:-1]]['arch'] = d_diffconfig[lines[j][11:-1]]['arch'] + 'arm64,'
+                                if 'arm' not in d_diffconfig[lines[j][4:-1]]['arch']:
+                                    d_diffconfig[lines[j][4:-1]]['arch'] = d_diffconfig[lines[j][4:-1]]['arch'] + 'arm,'
+                                if 'arm64' not in d_diffconfig[lines[j][4:-1]]['arch']:
+                                    d_diffconfig[lines[j][4:-1]]['arch'] = d_diffconfig[lines[j][4:-1]]['arch'] + 'arm64,'
                                 continue
 
                             elif tmp_arch == 'common' and tmp_plat == 'sharkl3':
-                                if lines[j][11:-1] not in d_diffconfig:
-                                    d_diffconfig[lines[j][11:-1]]={
+                                if lines[j][4:-1] not in d_diffconfig:
+                                    d_diffconfig[lines[j][4:-1]]={
                                         'arch': 'arm,arm64,',
                                         'plat': 'sharkl3,sharkl3_32',
                                         'field':'',
@@ -136,27 +136,27 @@ def add_diffconfig_to_dictconfig():
                                         'function':''
                                         }
                                     continue
-                                if 'sharkl3' not in d_diffconfig[lines[j][11:-1]]['plat']:
-                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + 'sharkl3,'
-                                if 'sharkl3_32' not in d_diffconfig[lines[j][11:-1]]['plat']:
-                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + 'sharkl3_32,'
+                                if 'sharkl3' not in d_diffconfig[lines[j][4:-1]]['plat']:
+                                    d_diffconfig[lines[j][4:-1]]['plat'] = d_diffconfig[lines[j][4:-1]]['plat'] + 'sharkl3,'
+                                if 'sharkl3_32' not in d_diffconfig[lines[j][4:-1]]['plat']:
+                                    d_diffconfig[lines[j][4:-1]]['plat'] = d_diffconfig[lines[j][4:-1]]['plat'] + 'sharkl3_32,'
 
-                                if 'arm' not in d_diffconfig[lines[j][11:-1]]['arch']:
-                                    d_diffconfig[lines[j][11:-1]]['arch'] = d_diffconfig[lines[j][11:-1]]['arch'] + 'arm,'
-                                if 'arm64' not in d_diffconfig[lines[j][11:-1]]['arch']:
-                                    d_diffconfig[lines[j][11:-1]]['arch'] = d_diffconfig[lines[j][11:-1]]['arch'] + 'arm64,'
+                                if 'arm' not in d_diffconfig[lines[j][4:-1]]['arch']:
+                                    d_diffconfig[lines[j][4:-1]]['arch'] = d_diffconfig[lines[j][4:-1]]['arch'] + 'arm,'
+                                if 'arm64' not in d_diffconfig[lines[j][4:-1]]['arch']:
+                                    d_diffconfig[lines[j][4:-1]]['arch'] = d_diffconfig[lines[j][4:-1]]['arch'] + 'arm64,'
                                 continue
 
                             if tmp_arch == 'common':
                                 tmp_arch = 'arm64'
 
-                            if lines[j][11:-1] in d_diffconfig:
-                                if tmp_arch not in d_diffconfig[lines[j][11:-1]]['arch']:
-                                    d_diffconfig[lines[j][11:-1]]['arch'] = d_diffconfig[lines[j][11:-1]]['arch'] + tmp_arch + ','
-                                if tmp_plat not in d_diffconfig[lines[j][11:-1]]['plat']:
-                                    d_diffconfig[lines[j][11:-1]]['plat'] = d_diffconfig[lines[j][11:-1]]['plat'] + tmp_plat + ','
+                            if lines[j][4:-1] in d_diffconfig:
+                                if tmp_arch not in d_diffconfig[lines[j][4:-1]]['arch']:
+                                    d_diffconfig[lines[j][4:-1]]['arch'] = d_diffconfig[lines[j][4:-1]]['arch'] + tmp_arch + ','
+                                if tmp_plat not in d_diffconfig[lines[j][4:-1]]['plat']:
+                                    d_diffconfig[lines[j][4:-1]]['plat'] = d_diffconfig[lines[j][4:-1]]['plat'] + tmp_plat + ','
                             else:
-                                d_diffconfig[lines[j][11:-1]]={
+                                d_diffconfig[lines[j][4:-1]]={
                                     'arch': tmp_arch + ',',
                                     'plat': tmp_plat + ',',
                                     'field':'',
@@ -168,32 +168,46 @@ def add_diffconfig_to_dictconfig():
 
 def create_sprdconfigs_dict():
 
-    # if defconfig has new config, add it into d_sprdconfig
-    for key_defplat in d_defconfig:
-        for key_defconfig in d_defconfig[key_defplat]:
-            if d_defconfig[key_defplat][key_defconfig] == 'y' and key_defconfig not in d_sprdconfig:
-                d_sprdconfig[key_defconfig]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
+    global d_sprdconfig
 
-    # create the d_sprdconfig by Documantation/sprdconfigs.txt
-    f_sprdconfig = open(config_path)
+    f_sprdconfig = open(config_path,'r')
     lines = f_sprdconfig.readlines()
     for i in range(len(lines)):
-        if "\t" not in lines[i]:
+        if lines[i][:7] == "CONFIG_":
             config_name=lines[i][:-1]
             d_sprdconfig[config_name]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
             if i+6 < len(lines):
                 if "[arch]" in lines[i+1]:
-                    d_sprdconfig[config_name]['arch']=lines[i+1][8:-1]
+                    if lines[i+1][-7:-1] == '[arch]':
+                        d_sprdconfig[config_name]['arch']=''
+                    else:
+                        d_sprdconfig[config_name]['arch']=lines[i+1].split('[arch] ').pop()[:-1]
                 if "[plat]" in lines[i+2]:
-                    d_sprdconfig[config_name]['plat']=lines[i+2][8:-1]
+                    if lines[i+2][-7:-1] == '[plat]':
+                        d_sprdconfig[config_name]['plat']=''
+                    else:
+                        d_sprdconfig[config_name]['plat']=lines[i+2].split('[plat] ').pop()[:-1]
                 if "[field]" in lines[i+3]:
-                    d_sprdconfig[config_name]['field']=lines[i+3][9:-1]
+                    if lines[i+3][-8:-1] == '[field]':
+                        d_sprdconfig[config_name]['field']=''
+                    else:
+                        d_sprdconfig[config_name]['field']=lines[i+3].split('[field] ').pop()[:-1]
                 if "[subsys]" in lines[i+4]:
-                    d_sprdconfig[config_name]['subsys']=lines[i+4][10:-1]
+                    if lines[i+4][-9:-1] == '[subsys]':
+                        d_sprdconfig[config_name]['subsys']=''
+                    else:
+                        d_sprdconfig[config_name]['subsys']=lines[i+4].split('[subsys] ').pop()[:-1]
                 if "[must]" in lines[i+5]:
-                    d_sprdconfig[config_name]['must']=lines[i+5][8:-1]
+                    if lines[i+5][-7:-1] == '[must]':
+                        d_sprdconfig[config_name]['must']=''
+                    else:
+                        d_sprdconfig[config_name]['must']=lines[i+5].split('[must] ').pop()[:-1]
                 if "[function]" in lines[i+6]:
-                    d_sprdconfig[config_name]['function']=lines[i+6][12:-1]
+                    if lines[i+6][-11:-1] == '[function]':
+                        d_sprdconfig[config_name]['function']=''
+                    else:
+                        d_sprdconfig[config_name]['function']=lines[i+6].split('[function] ').pop()[:-1]
+
                     for j in range(15):
                         if i+7+j >= len(lines):
                             break
@@ -203,6 +217,13 @@ def create_sprdconfigs_dict():
     add_diffconfig_to_dictconfig()
     f_sprdconfig.close()
 
+    # if defconfig has new config, add it into d_sprdconfig
+    for key_defplat in d_defconfig:
+        for key_defconfig in d_defconfig[key_defplat]:
+            if d_defconfig[key_defplat][key_defconfig] == 'y' and key_defconfig not in d_sprdconfig:
+                d_sprdconfig[key_defconfig]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
+
+    # create the d_sprdconfig by Documentation/sprdconfigs.txt
 def print_incomplete_info(file_name):
     print('All configs           : ',len(d_sprdconfig))
     print('Not completed configs : ',not_defined)
@@ -283,10 +304,10 @@ def create_defconfig_dict():
 
                 for j in range(len(lines)):
                     if '=' in lines[j]:
-                        config_name=lines[j].split('=')[0][7:]
+                        config_name=lines[j].split('=')[0]
                         d_defconfig[sys.argv[i+2]][config_name]='y'
                     elif 'is not set' in lines[j]:
-                        config_name=lines[j].split(' ')[1][7:]
+                        config_name=lines[j].split(' ')[1]
                         d_defconfig[sys.argv[i+2]][config_name]='n'
                 f_defconfig.close()
     else:
@@ -298,10 +319,10 @@ def create_defconfig_dict():
 
             for j in range(len(lines)):
                 if '=' in lines[j]:
-                    config_name=lines[j].split('=')[0][7:]
+                    config_name=lines[j].split('=')[0]
                     d_defconfig[key][config_name]='y'
                 elif 'is not set' in lines[j]:
-                    config_name=lines[j].split(' ')[1][7:]
+                    config_name=lines[j].split(' ')[1]
                     d_defconfig[key][config_name]='n'
             f_defconfig.close()
 
@@ -382,25 +403,20 @@ def sprdconfigs_check():
         for i in range(len(d_sprdconfig[key]['arch'].split(','))):
             if d_sprdconfig[key]['arch'].split(',').pop(i) != 'all' and\
                 d_sprdconfig[key]['arch'].split(',').pop(i) not in all_arch:
-                print("ERROR : ARCHERR: The arch must be one of " + str(all_arch)[:-1] + ", 'all']. Need modify " +\
+                print("ERROR: arch: The arch must be one of " + str(all_arch)[:-1] + ", 'all']. Need modify " +\
                     key + " [arch] : " + d_sprdconfig[key]['arch'].split(',').pop(i))
                 ret = -1
 
         for i in range(len(d_sprdconfig[key]['plat'].split(','))):
             if d_sprdconfig[key]['plat'].split(',').pop(i) != 'all' and\
                 d_sprdconfig[key]['plat'].split(',').pop(i) not in all_plat:
-                print("ERROR : PLATERR: The plat must be one of " + str(all_plat)[:-1] + ", 'all']. Need modify " +\
+                print("ERROR: plat: The plat must be one of " + str(all_plat)[:-1] + ", 'all']. Need modify " +\
                     key + " [plat] : " + d_sprdconfig[key]['plat'].split(',').pop(i))
                 ret = -1
     return ret
 
-def aiaiai_check():
-    print("========BEGIN========")
-    d_del_config={}
-    d_add_config={}
-
-    file_name=tmp_path+"lastest.diff"
-    os.system("git show HEAD -1 > " + file_name)
+def create_corrected_dict():
+    global d_corrected_config
 
     for key in l_sprdconfig:
         tmp_arch=''
@@ -465,6 +481,14 @@ def aiaiai_check():
         else:
             d_corrected_config[key]['plat'] = tmp_plat[:-1]
 
+def aiaiai_check():
+    print("========BEGIN========")
+    d_del_config={}
+    d_add_config={}
+
+    file_name=tmp_path+"lastest.diff"
+    os.system("git show HEAD -1 > " + file_name)
+
     f_diff = open(file_name, 'r')
     f_diff_lines=f_diff.readlines()
     for i in range(len(f_diff_lines)):
@@ -475,12 +499,12 @@ def aiaiai_check():
                 for key in l_corrected_config:
                     if key in d_sprdconfig:
                         if d_corrected_config[key]['arch'] != d_sprdconfig[key]['arch']:
-                            print("ERROR: DOC: Value is different between code and sprd-configs.txt. " + \
+                            print("ERROR: doc: Value is different between code and sprd-configs.txt. " + \
                                     " CONFIG:" + key + \
                                     " CODE:[arch]:" + d_corrected_config[key]['arch'] + \
                                     " DOC:[arch]:" + d_sprdconfig[key]['arch'])
                         elif d_corrected_config[key]['plat'] != d_sprdconfig[key]['plat']:
-                            print("ERROR: DOC: Value is different between code and sprd-configs.txt." + \
+                            print("ERROR: doc: Value is different between code and sprd-configs.txt." + \
                                     " CONFIG:" + key + \
                                     " CODE:[plat]:" + d_corrected_config[key]['plat'] + \
                                     " DOC:[plat]:" + d_sprdconfig[key]['plat'])
@@ -513,29 +537,29 @@ def aiaiai_check():
                             for j in range(len(f_diff_lines[i].split(" "))):
                                 if "CONFIG" in f_diff_lines[i].split(" ").pop(j):
                                     if "is not set" in f_diff_lines[i]:
-                                        if f_diff_lines[i].split(" ").pop(j)[7:] not in d_diffconfig:
-                                            d_del_config[f_diff_lines[i].split(" ").pop(j)[7:]]={'arch':arch,'plat':plat}
+                                        if f_diff_lines[i].split(" ").pop(j) not in d_diffconfig:
+                                            d_del_config[f_diff_lines[i].split(" ").pop(j)]={'arch':arch,'plat':plat}
                                     elif "=y" in f_diff_lines[i] or "=m" in f_diff_lines[i]:
-                                        d_add_config[f_diff_lines[i].split(" ").pop(j)[8:-3]]={'arch':arch,'plat':plat}
+                                        d_add_config[f_diff_lines[i].split(" ").pop(j)[1:-3]]={'arch':arch,'plat':plat}
                         i = i+1
                     else:
                         break
 
     for lines in d_add_config:
         if lines not in d_sprdconfig:
-            print("ERROR: NEW: Need create new item to Documentation/sprd-configs.txt. " + lines)
+            print("ERROR: new: Need create new item to Documentation/sprd-configs.txt. " + lines)
             continue
 
         if d_add_config[lines]['arch'] not in d_sprdconfig[lines]['arch']:
             if d_sprdconfig[lines]['arch'] == 'all':
                 continue
-            print("ERROR: ADD: Need add " + lines + " to Documentation/sprd-configs.txt. Should add: [arch] "\
+            print("ERROR: add: Need add " + lines + " to Documentation/sprd-configs.txt. Should add: [arch] "\
                     + d_add_config[lines]['arch'] + "\t Current status: [arch] " + d_sprdconfig[lines]['arch'])
 
         if d_add_config[lines]['plat'] not in d_sprdconfig[lines]['plat']:
             if d_sprdconfig[lines]['plat'] == 'all':
                 continue
-            print("ERROR: ADD: Need add " + lines + " to Documentation/sprd-configs.txt. Should add: [plat] "\
+            print("ERROR: add: Need add " + lines + " to Documentation/sprd-configs.txt. Should add: [plat] "\
                     + d_add_config[lines]['plat'] + "\t Current status: [plat] " + d_sprdconfig[lines]['plat'])
 
     for lines in list(d_del_config):
@@ -543,7 +567,7 @@ def aiaiai_check():
             continue
 
         if d_sprdconfig[lines]['plat'] == d_del_config[lines]['plat']:
-            print("ERROR: DEL: Need del " + lines + " from Documentation/sprd-configs.txt.")
+            print("ERROR: del: Need del " + lines + " from Documentation/sprd-configs.txt.")
             break
 
         if d_sprdconfig[lines]['plat'] != 'all':
@@ -561,11 +585,11 @@ def aiaiai_check():
                 unexisted_plat_num = unexisted_plat_num + 1
 
             if unexisted_plat_num == all_plat_num:
-                print("ERROR: DEL: Need del " + lines + " from Documentation/sprd-configs.txt. Should delete: [arch] "\
+                print("ERROR: del: Need del " + lines + " from Documentation/sprd-configs.txt. Should delete: [arch] "\
                         + d_del_config[lines]['arch'] + "\t Current status: [arch] " + d_sprdconfig[lines]['arch'])
 
         if d_sprdconfig[lines]['plat'] == 'all' or d_del_config[lines]['plat'] in d_sprdconfig[lines]['plat'].split(","):
-            print("ERROR: DEL: Need del " + lines + " from Documentation/sprd-configs.txt. Should delete: [plat] "\
+            print("ERROR: del: Need del " + lines + " from Documentation/sprd-configs.txt. Should delete: [plat] "\
                     + d_del_config[lines]['plat'] + "\t Current status: [plat] " + d_sprdconfig[lines]['plat'])
 
     print("=========END=========")
@@ -623,21 +647,16 @@ def update_sprd_configs():
         if tmp_plat == '':
             continue
 
-        d_corrected_config[key]={ 'arch':'','plat':''}
         #write current status to dict d_sprdconfig
         if len(tmp_arch[:-1].split(",")) == len(all_arch):
             d_sprdconfig[key]['arch'] = 'all'
-            d_corrected_config[key]['arch'] = 'all'
         else:
             d_sprdconfig[key]['arch'] = tmp_arch[:-1]
-            d_corrected_config[key]['arch'] = tmp_arch[:-1]
 
         if len(tmp_plat[:-1].split(",")) == len(all_plat):
             d_sprdconfig[key]['plat'] = 'all'
-            d_corrected_config[key]['plat'] = 'all'
         else:
             d_sprdconfig[key]['plat'] = tmp_plat[:-1]
-            d_corrected_config[key]['plat'] = tmp_plat[:-1]
 
     # regenerate sprd-configs.txt with dict d_sprdconfig
     configs_resort()
@@ -682,6 +701,8 @@ def main():
     prepare_info_first()
     create_defconfig_dict()
     create_sprdconfigs_dict()
+    create_corrected_dict()
+
     prepare_info_second()
 
     if len(sys.argv) > 1:
