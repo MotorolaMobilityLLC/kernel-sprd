@@ -1000,16 +1000,16 @@ static int sdiohal_parse_dt(void)
 		return -1;
 	}
 
-	if (of_get_property(np, "adma_tx_enable", NULL))
+	if (of_get_property(np, "adma_tx", NULL))
 		p_data->adma_tx_enable = true;
 
-	if (of_get_property(np, "adma_rx_enable", NULL))
+	if (of_get_property(np, "adma_rx", NULL))
 		p_data->adma_rx_enable = true;
 
 	sdiohal_info("adma enable tx:%d, rx:%d\n",
 		p_data->adma_tx_enable, p_data->adma_rx_enable);
 
-	if (of_get_property(np, "pwrseq_disable", NULL))
+	if (of_get_property(np, "pwrseq", NULL))
 		p_data->pwrseq_disable = true;
 
 	sdiohal_info("%s sdio pwrseq status:%d\n",
