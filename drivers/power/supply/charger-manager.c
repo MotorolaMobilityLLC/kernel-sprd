@@ -1452,6 +1452,40 @@ static ssize_t charger_state_show(struct device *dev,
 	return sprintf(buf, "%s\n", state ? "enabled" : "disabled");
 }
 
+static ssize_t charger_stop_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct charger_regulator *charger
+		= container_of(attr, struct charger_regulator,
+			       attr_stop_charge);
+	bool is_chg;
+
+	is_chg = is_charging(charger->cm);
+
+	return sprintf(buf, "%s\n", is_chg);
+}
+
+static ssize_t charger_stop_store(struct device *dev,
+				struct device_attribute *attr, char *buf,
+				size_t count)
+{
+	struct charger_regulator *charger
+		= container_of(attr, struct charger_regulator,
+					attr_stop_charge);
+	struct charger_manager *cm = charger->cm;
+	int enable_chg, ret;
+
+	ret = sscanf(buf, "%d", &enable_chg);
+	if (!ret)
+		return -EINVAL;
+
+	ret = try_charger_enable(cm, enable_chg);
+	if (ret)
+		return ret;
+
+	return count;
+}
+
 static ssize_t charger_externally_control_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -1566,6 +1600,12 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 		charger->attr_state.attr.name = "state";
 		charger->attr_state.attr.mode = 0444;
 		charger->attr_state.show = charger_state_show;
+
+		sysfs_attr_init(&charger->attr_stop_charge.attr);
+		charger->attr_stop_charge.attr.name = "stop_charge";
+		charger->attr_stop_charge.attr.mode = 0644;
+		charger->attr_stop_charge.show = charger_stop_show;
+		charger->attr_stop_charge.store = charger_stop_store;
 
 		sysfs_attr_init(&charger->attr_externally_control.attr);
 		charger->attr_externally_control.attr.name
