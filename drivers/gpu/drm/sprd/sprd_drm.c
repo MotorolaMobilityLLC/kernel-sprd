@@ -32,6 +32,10 @@
 #define DRIVER_MAJOR	1
 #define DRIVER_MINOR	0
 
+static const struct drm_mode_config_helper_funcs sprd_drm_mode_config_helper = {
+	.atomic_commit_tail = drm_atomic_helper_commit_tail_rpm,
+};
+
 static const struct drm_mode_config_funcs sprd_drm_mode_config_funcs = {
 	.fb_create = drm_gem_fb_create,
 	.atomic_check = drm_atomic_helper_check,
@@ -49,6 +53,7 @@ static void sprd_drm_mode_config_init(struct drm_device *drm)
 	drm->mode_config.allow_fb_modifiers = true;
 
 	drm->mode_config.funcs = &sprd_drm_mode_config_funcs;
+	drm->mode_config.helper_private = &sprd_drm_mode_config_helper;
 }
 
 static const struct drm_ioctl_desc sprd_ioctls[] = {

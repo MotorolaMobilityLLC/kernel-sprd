@@ -406,12 +406,20 @@ static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 				    struct drm_crtc_state *old_state)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+	struct drm_device *drm = dpu->crtc.dev;
 
 	DRM_INFO("%s()\n", __func__);
 
 	sprd_dpu_uninit(dpu);
 
 	pm_runtime_put(dpu->dev.parent);
+
+	spin_lock_irq(&drm->event_lock);
+	if (crtc->state->event) {
+		drm_crtc_send_vblank_event(crtc, crtc->state->event);
+		crtc->state->event = NULL;
+	}
+	spin_unlock_irq(&drm->event_lock);
 }
 
 static int sprd_crtc_atomic_check(struct drm_crtc *crtc,
