@@ -804,6 +804,20 @@
 				};
 			};
 
+			vsp: video-codec@20500000{
+				compatible = "sprd,sharkl5-vsp";
+				reg = <0 0x20500000 0 0xc000>;
+				interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
+
+				syscons = <&ap_ahb_regs REG_AP_AHB_AHB_RST
+					(MASK_AP_AHB_VPP_SOFT_RST |
+					MASK_AP_AHB_VSP_GLOBAL_SOFT_RST)>;
+				syscon-names = "reset";
+
+				/*iommus = <&iommu_vsp>;*/
+				status = "disabled";
+			};
+
 		};
 
 		aon {
