@@ -26,6 +26,7 @@
 #define PWM_ENABLE	0x18
 #define PWM_VERSION	0x1c
 
+#define BIT_ENABLE	BIT(0)
 #define PWM_CLK_PARENT	"clk_parent"
 #define PWM_CLK		"clk_pwm"
 
@@ -131,10 +132,60 @@ static void sprd_pwm_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 	clk_disable_unprepare(spc->clk_eb[pwm->hwpwm]);
 }
 
+static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
+			struct pwm_state *state)
+{
+	int rc, duty_ns, period_ns;
+	u32 enabled, duty, prescale;
+	u64 clk_rate, val;
+	struct sprd_pwm_chip *spc = container_of(chip,
+		struct sprd_pwm_chip, chip);
+
+	rc = clk_prepare_enable(spc->clk_eb[pwm->hwpwm]);
+	if (rc) {
+		dev_err(chip->dev, "enable pwm%u eb failed\n", pwm->hwpwm);
+		return;
+	}
+
+	duty = sprd_pwm_readl(spc, pwm->hwpwm, PWM_DUTY) & PWM_REG_MSK;
+	prescale = sprd_pwm_readl(spc, pwm->hwpwm, PWM_PRESCALE) & PWM_REG_MSK;
+	enabled = sprd_pwm_readl(spc, pwm->hwpwm, PWM_ENABLE) & BIT_ENABLE;
+
+	clk_rate = clk_get_rate(spc->clk_pwm[pwm->hwpwm]);
+	if (!clk_rate) {
+		dev_err(chip->dev, "get pwm%d clk rate failed\n", pwm->hwpwm);
+		goto out;
+	}
+
+	/*
+	 * Find pv, dc and prescale to suit duty_ns and period_ns.
+	 * This is done according to formulas described below:
+	 *
+	 * period_ns = 10^9 * (PRESCALE + 1) * PV / PWM_CLK_RATE
+	 * duty_ns = 10^9 * (PRESCALE + 1) * DC / PWM_CLK_RATE
+	 *
+	 * PV = (PWM_CLK_RATE * period_ns) / (10^9 * (PRESCALE + 1))
+	 * DC = (PWM_CLK_RATE * duty_ns) / (10^9 * (PRESCALE + 1))
+	 */
+	val = (prescale + 1) * 1000000000 * PWM_MOD_MAX;
+	period_ns = div64_u64(val, clk_rate);
+	val = (prescale + 1) * 1000000000 * duty;
+	duty_ns = div64_u64(val, clk_rate);
+
+	state->period = period_ns;
+	state->duty_cycle = duty_ns;
+	state->enabled = !!enabled;
+
+out:
+	if (!enabled)
+		clk_disable_unprepare(spc->clk_eb[pwm->hwpwm]);
+}
+
 static const struct pwm_ops sprd_pwm_ops = {
 	.config = sprd_pwm_config,
 	.enable = sprd_pwm_enable,
 	.disable = sprd_pwm_disable,
+	.get_state = sprd_pwm_get_state,
 	.owner = THIS_MODULE,
 };
 
