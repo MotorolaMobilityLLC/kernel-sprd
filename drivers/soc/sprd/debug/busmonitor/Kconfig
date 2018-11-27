@@ -3,3 +3,9 @@ config SPRD_BUSMONITOR
 	depends on SPRD_DEBUG
 	help
 	  Say Y here to support BUS monitor.
+
+config SPRD_APB_BUSMONITOR
+	bool "Spreadtrum APB BUS Monitor Support"
+	depends on SPRD_DEBUG
+	help
+	  Say Y here to support APB BUS monitor.

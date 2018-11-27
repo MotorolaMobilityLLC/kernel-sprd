@@ -8557,6 +8557,13 @@ CONFIG_SPRD_BUSMONITOR
 	[subsys] debug
 	[must] debug
 	[function] Enable busmonitor core function
+CONFIG_SPRD_APB_BUSMONITOR
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Enable APB busmonitor function
 CONFIG_SPRD_CLUSTER0_THERMAL
 	[arch] all
 	[plat] sharkl5
