@@ -338,7 +338,7 @@ static void check_mmu_isr(struct dpu_context *ctx, uint32_t reg_val)
 			reg->mmu_vaor_addr_wr);
 		pr_err("BUG: iommu failure at %s:%d/%s()!\n",
 			__FILE__, __LINE__, __func__);
-		panic("iommu panic\n");
+		/* panic("iommu panic\n"); */
 	}
 }
 
