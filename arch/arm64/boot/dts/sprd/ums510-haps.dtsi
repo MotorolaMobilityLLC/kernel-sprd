@@ -8,6 +8,7 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include "sharkl5-haps.dtsi"
 #include "ums510-haps-modem.dtsi"
+#include "ums510-qos.dtsi"
 
 / {
 	cpus {

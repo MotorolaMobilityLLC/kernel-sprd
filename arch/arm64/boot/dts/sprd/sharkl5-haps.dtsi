@@ -498,8 +498,11 @@
 				compatible = "sprd,display-processor";
 				reg = <0x0 0x20300000 0x0 0x1000>;
 				syscons = <&ap_ahb_regs REG_AP_AHB_AHB_RST
-					MASK_AP_AHB_DISPC_SOFT_RST>;
-				syscon-names = "reset";
+					MASK_AP_AHB_DISPC_SOFT_RST>,
+					<&ap_ahb_regs REG_AP_AHB_AP_QOS2
+					(MASK_AP_AHB_ARQOS_THRESHHOLD_DISP |
+					MASK_AP_AHB_AWQOS_THRESHHOLD_DISP)>;
+				syscon-names = "reset", "qos";
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 
@@ -507,6 +510,7 @@
 
 				sprd,ip = "dpu-lite-r2p0";
 				sprd,soc = "sharkl5";
+				sprd,qos = <&dpu_qos>;
 
 				dpu_port: port {
 					dpu_out: endpoint {
