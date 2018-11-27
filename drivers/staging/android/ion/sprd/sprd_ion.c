@@ -106,6 +106,7 @@ int sprd_ion_get_buffer(int fd, struct dma_buf *dmabuf,
 
 	return 0;
 }
+EXPORT_SYMBOL(sprd_ion_get_buffer);
 
 int sprd_ion_get_sg(void *buf, struct sg_table **table)
 {
@@ -170,6 +171,7 @@ int sprd_ion_get_phys_addr(int fd, struct dma_buf *dmabuf,
 
 	return ret;
 }
+EXPORT_SYMBOL(sprd_ion_get_phys_addr);
 
 int sprd_ion_get_phys_addr_by_db(struct dma_buf *dmabuf,
 				 unsigned long *phys_addr,
@@ -208,6 +210,7 @@ int sprd_ion_get_phys_addr_by_db(struct dma_buf *dmabuf,
 
 	return 0;
 }
+EXPORT_SYMBOL(sprd_ion_get_phys_addr_by_db);
 
 void *sprd_ion_map_kernel(struct dma_buf *dmabuf, unsigned long offset)
 {
@@ -221,6 +224,7 @@ void *sprd_ion_map_kernel(struct dma_buf *dmabuf, unsigned long offset)
 
 	return vaddr;
 }
+EXPORT_SYMBOL(sprd_ion_map_kernel);
 
 int sprd_ion_unmap_kernel(struct dma_buf *dmabuf, unsigned long offset)
 {
@@ -232,6 +236,7 @@ int sprd_ion_unmap_kernel(struct dma_buf *dmabuf, unsigned long offset)
 
 	return 0;
 }
+EXPORT_SYMBOL(sprd_ion_unmap_kernel);
 
 static struct ion_platform_heap *sprd_ion_parse_dt(struct platform_device *pdev)
 {
