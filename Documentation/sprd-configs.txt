@@ -2739,6 +2739,13 @@ CONFIG_FUEL_GAUGE_SC27XX
 	[subsys]
 	[must]
 	[function]
+CONFIG_CHARGER_MANAGER
+	[arch] all
+	[plat] sharkl5
+	[field] make,code
+	[subsys] power
+	[must] user
+	[function] Manage battery capacity and monitor charge status
 CONFIG_FUNCTION_GRAPH_TRACER
 	[arch] all
 	[plat] roc1
