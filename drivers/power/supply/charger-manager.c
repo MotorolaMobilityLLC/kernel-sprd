@@ -2094,31 +2094,9 @@ static int cm_suspend_noirq(struct device *dev)
 	return 0;
 }
 
-static bool cm_need_to_awake(void)
-{
-	struct charger_manager *cm;
-
-	if (cm_timer)
-		return false;
-
-	mutex_lock(&cm_list_mtx);
-	list_for_each_entry(cm, &cm_list, entry) {
-		if (is_charging(cm)) {
-			mutex_unlock(&cm_list_mtx);
-			return true;
-		}
-	}
-	mutex_unlock(&cm_list_mtx);
-
-	return false;
-}
-
 static int cm_suspend_prepare(struct device *dev)
 {
 	struct charger_manager *cm = dev_get_drvdata(dev);
-
-	if (cm_need_to_awake())
-		return -EBUSY;
 
 	if (!cm_suspended)
 		cm_suspended = true;
