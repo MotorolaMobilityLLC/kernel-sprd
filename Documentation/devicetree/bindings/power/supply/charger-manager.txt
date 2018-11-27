@@ -33,6 +33,7 @@ Optional properties :
  - cm-shutdown-voltage: drop voltage in microVolts to allow shutdown
  - cm-tickle-time-out: when 99% of the time is exceeded, it will be forced to 100%
  - cm-one-cap-time: how much time to allow capacity change
+ - cm-wdt-interval: the interval to feed charger watchdog
 Example :
 	charger-manager@0 {
 		compatible = "charger-manager";
@@ -70,6 +71,7 @@ Example :
 		cm-shutdown-voltage = <3100000>;
 		cm-tickle-time-out = <1500>;
 		cm-one-cap-time = <30>;
+		cm-wdt-interval = <60>;
 
 		regulator@0 {
 			cm-regulator-name = "chg-reg";

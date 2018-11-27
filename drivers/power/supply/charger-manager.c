@@ -881,6 +881,35 @@ static int cm_check_charge_health(struct charger_manager *cm)
 
 	return -EINVAL;
 }
+
+static int cm_feed_watchdog(struct charger_manager *cm)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int err, i;
+
+	if (!cm->desc->wdt_interval)
+		return 0;
+
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		val.intval = cm->desc->wdt_interval;
+		err = power_supply_set_property(psy,
+						POWER_SUPPLY_PROP_FEED_WATCHDOG,
+						&val);
+		power_supply_put(psy);
+		if (err)
+			return err;
+	}
+
+	return 0;
+}
 /**
  * _cm_monitor - Monitor the temperature and return true for exceptions.
  * @cm: the Charger Manager representing the battery.
@@ -890,12 +919,17 @@ static int cm_check_charge_health(struct charger_manager *cm)
  */
 static bool _cm_monitor(struct charger_manager *cm)
 {
-	int temp_alrt;
+	int temp_alrt, ret;
 
 	temp_alrt = cm_check_thermal_status(cm);
 
 	/* It has been stopped already */
 	if (temp_alrt && cm->emergency_stop)
+		return false;
+
+	/* Feed the charger watchdog if necessary */
+	ret = cm_feed_watchdog(cm);
+	if (ret)
 		return false;
 
 	/*
@@ -1782,6 +1816,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	of_property_read_u32(np, "cm-shutdown-voltage", &desc->shutdown_voltage);
 	of_property_read_u32(np, "cm-tickle-time-out", &desc->trickle_time_out);
 	of_property_read_u32(np, "cm-one-cap-time", &desc->cap_one_time);
+	of_property_read_u32(np, "cm-wdt-interval", &desc->wdt_interval);
 
 	of_property_read_u32(np, "cm-battery-stat", &battery_stat);
 	desc->battery_present = battery_stat;

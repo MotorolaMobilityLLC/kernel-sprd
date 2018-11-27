@@ -184,6 +184,7 @@ struct charger_regulator {
  *	there is a mandatory setting of full status
  * @shutdown_voltage: If it has dropped more than shutdown_voltage,
  *	the phone will automatically shut down
+ * @wdt_interval: Watch dog time pre-load value
  */
 struct charger_desc {
 	const char *psy_name;
@@ -236,6 +237,8 @@ struct charger_desc {
 
 	bool force_set_full;
 	u32 shutdown_voltage;
+
+	u32 wdt_interval;
 };
 
 #define PSY_NAME_MAX	30
