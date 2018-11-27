@@ -296,6 +296,23 @@
 			#size-cells = <1>;
 			ranges;
 
+			pwms: pwm@40260000 {
+				compatible = "sprd,sharkl3-pwm", "sprd,sharkl5-pwm";
+				reg = <0x40260000 0x10000>;
+				clock-names = "clk_parent",
+					"clk_pwm0", "clk_pwm0_eb",
+					"clk_pwm1", "clk_pwm1_eb",
+					"clk_pwm2", "clk_pwm2_eb";
+				clocks = <&ext_26m>,
+					<&ap_clk CLK_PWM0>,
+					<&aonapb_gate CLK_PWM0_EB>,
+					<&ap_clk CLK_PWM1>,
+					<&aonapb_gate CLK_PWM1_EB>,
+					<&ap_clk CLK_PWM2>,
+					<&aonapb_gate CLK_PWM2_EB>;
+				#pwm-cells = <2>;
+			};
+
 			ap_gpio: gpio-controller@402c0000 {
 				compatible = "sprd,sharkl3-gpio-plus";
 				reg = <0x402c0000 0x1000>;
