@@ -161,6 +161,7 @@ struct dpu_glb_ops {
 struct dpu_context {
 	unsigned long base;
 	unsigned int  base_offset[2];
+	const char *version;
 	int irq;
 	bool is_inited;
 	bool is_stopped;

@@ -794,9 +794,10 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	if (!dpu)
 		return -ENOMEM;
 
-	if (!of_property_read_string(np, "sprd,ip", &str))
+	if (!of_property_read_string(np, "sprd,ip", &str)) {
 		dpu->core = dpu_core_ops_attach(str);
-	else
+		dpu->ctx.version = str;
+	} else
 		DRM_WARN("sprd,ip was not found\n");
 
 	if (!of_property_read_string(np, "sprd,soc", &str)) {

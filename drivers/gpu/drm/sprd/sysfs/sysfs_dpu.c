@@ -192,12 +192,26 @@ static ssize_t wr_regs_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(wr_regs);
 
+static ssize_t dpu_version_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	int ret;
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	ret = snprintf(buf, PAGE_SIZE, "%s\n", ctx->version);
+
+	return ret;
+}
+static DEVICE_ATTR_RO(dpu_version);
+
 static struct attribute *dpu_attrs[] = {
 	&dev_attr_run.attr,
 	&dev_attr_bg_color.attr,
 	&dev_attr_actual_fps.attr,
 	&dev_attr_regs_offset.attr,
 	&dev_attr_wr_regs.attr,
+	&dev_attr_dpu_version.attr,
 	NULL,
 };
 static const struct attribute_group dpu_group = {
