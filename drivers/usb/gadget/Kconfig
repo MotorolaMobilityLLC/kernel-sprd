@@ -230,6 +230,9 @@ config USB_F_ACC
 config USB_F_VSERIAL
 	tristate
 
+config USB_F_MBIM
+        tristate
+
 # this first set of drivers all depend on bulk-capable hardware.
 
 config USB_CONFIGFS
@@ -541,6 +544,13 @@ config USB_CONFIGFS_F_VSERIAL
 	select USB_F_VSERIAL
 	help
 	  USB gadget vendor serial support
+
+config USB_CONFIGFS_F_MBIM
+	bool "USB MBIM function"
+	depends on USB_CONFIGFS
+	select USB_F_MBIM
+	help
+	  USB gadget mbim function support
 
 choice
 	tristate "USB Gadget precomposed configurations"

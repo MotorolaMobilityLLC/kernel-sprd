@@ -60,3 +60,5 @@ usb_f_accessory-y               := f_accessory.o
 obj-$(CONFIG_USB_F_ACC)         += usb_f_accessory.o
 obj-$(CONFIG_USB_F_VSERIAL)	+= usb_f_vser.o
 usb_f_vser-y			:= f_vserial.o
+obj-$(CONFIG_USB_F_MBIM)	+= usb_f_mbim.o
+usb_f_mbim-y			:= f_mbim.o
