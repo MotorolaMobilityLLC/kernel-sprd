@@ -44,6 +44,10 @@
 		gsp = <&gsp>;
 	};
 
+	sprd-sensorhub {
+		compatible = "sprd,sharkl5-sensorhub";
+	};
+
 	thermal-zones {
 
 		prometheus0_thmzone: prometheus0-thmzone {
