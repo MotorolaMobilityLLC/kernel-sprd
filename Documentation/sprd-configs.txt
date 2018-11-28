@@ -2463,7 +2463,7 @@ CONFIG_EXTRA_FIRMWARE
 	[function] External firmware blobs to build into the kernel binary, Set to "".
 CONFIG_F2FS_CHECK_FS
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] code
 	[subsys] fs
 	[must] user
@@ -2496,13 +2496,6 @@ CONFIG_F2FS_FS_XATTR
 	[subsys] fs
 	[must] user
 	[function] Enable F2FS extended attributes.
-CONFIG_F2FS_IO_TRACE
-	[arch] all
-	[plat] roc1
-	[field] make,code
-	[subsys] fs
-	[must] debug
-	[function] Enable F2FS IO tracer.
 CONFIG_F2FS_STAT_FS
 	[arch] all
 	[plat] all
@@ -6912,13 +6905,6 @@ CONFIG_PRINTK_TIME
 	[subsys] core
 	[must] debug
 	[function] Add time stamp in kernel log.
-CONFIG_PRINT_QUOTA_WARNING
-	[arch] all
-	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_PROBE_EVENTS
 	[arch] all
 	[plat] all
@@ -7047,6 +7033,13 @@ CONFIG_QUOTA
 	[subsys] fs
 	[must] none
 	[function] Quota support,set per user limits for disk usage
+CONFIG_QUOTA_NETLINK_INTERFACE
+	[arch] all
+	[plat] all
+	[field] menu
+	[subsys] fs
+	[must] none
+	[function] Report quota messages through netlink interface
 CONFIG_QUOTACTL
 	[arch] all
 	[plat] all
@@ -7535,6 +7528,13 @@ CONFIG_SCSI_MOD
 	[subsys] scsi
 	[must] user
 	[function] SCSI module support
+CONFIG_SDCARD_FS
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] fs
+	[must] user
+	[function] This function is used to open sdcardfs feature
 CONFIG_SDIOHAL
 	[arch] all
 	[plat] all
