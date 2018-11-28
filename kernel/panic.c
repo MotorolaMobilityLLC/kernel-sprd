@@ -121,6 +121,11 @@ void nmi_panic(struct pt_regs *regs, const char *msg)
 }
 EXPORT_SYMBOL(nmi_panic);
 
+#ifdef CONFIG_SPRD_SYSDUMP
+	extern void sysdump_enter(int enter_id,
+				const char *reason,
+				struct pt_regs *regs);
+#endif
 /**
  *	panic - halt the system
  *	@fmt: The text string to print
@@ -180,7 +185,9 @@ void panic(const char *fmt, ...)
 	if (!test_taint(TAINT_DIE) && oops_in_progress <= 1)
 		dump_stack();
 #endif
-
+#ifdef CONFIG_SPRD_SYSDUMP
+	sysdump_enter(0, buf, NULL);
+#else
 	/*
 	 * If we have crashed and we have a crash kernel loaded let it handle
 	 * everything else.
@@ -207,7 +214,7 @@ void panic(const char *fmt, ...)
 		 */
 		crash_smp_send_stop();
 	}
-
+#endif
 	/*
 	 * Run any panic handlers, including those that might need to
 	 * add information to the kmsg dump output.

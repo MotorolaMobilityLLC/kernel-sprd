@@ -1,6 +1,7 @@
 source "drivers/soc/sprd/debug/djtag/Kconfig"
 source "drivers/soc/sprd/debug/busmonitor/Kconfig"
 source "drivers/soc/sprd/debug/dmc_mpu/Kconfig"
+source "drivers/soc/sprd/debug/sysdump/Kconfig"
 config SPRD_LOOK_AT
 	bool "Sprdtrum lookat tool support"
 	depends on SPRD_DEBUG
