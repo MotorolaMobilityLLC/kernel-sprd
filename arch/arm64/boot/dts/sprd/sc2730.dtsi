@@ -108,8 +108,8 @@
 			bat-detect-gpio = <&pmic_eic 3 GPIO_ACTIVE_HIGH>;
 			nvmem-cell-names = "fgu_calib";
 			nvmem-cells = <&fgu_calib>;
-			io-channels = <&pmic_adc 0>;
-			io-channel-names = "bat-temp";
+			io-channels = <&pmic_adc 0>, <&pmic_adc 14>;
+			io-channel-names = "bat-temp", "charge-vol";
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <3 IRQ_TYPE_LEVEL_HIGH>;
 		};
