@@ -113,6 +113,10 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u\n",
 		  __func__, layer.alpha, layer.blending, layer.rotation);
 
+	DRM_DEBUG("%s() xfbc = %u, hsize_r = %u, hsize_y = %u, hsize_uv = %u\n",
+		  __func__, layer.xfbc, layer.header_size_r,
+		  layer.header_size_y, layer.header_size_uv);
+
 	for (i = 0; i < layer.planes; i++) {
 		obj = drm_gem_fb_get_obj(fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
@@ -171,6 +175,7 @@ static struct drm_plane_state *
 sprd_plane_atomic_duplicate_state(struct drm_plane *plane)
 {
 	struct sprd_plane_state *s;
+	struct sprd_plane_state *old_state = to_sprd_plane_state(plane->state);
 
 	DRM_DEBUG("%s()\n", __func__);
 
@@ -182,7 +187,11 @@ sprd_plane_atomic_duplicate_state(struct drm_plane *plane)
 
 	WARN_ON(s->state.plane != plane);
 
-	s->alpha = 255;
+	s->alpha = old_state->alpha;
+	s->blend_mode = old_state->blend_mode;
+	s->fbc_hsize_r = old_state->fbc_hsize_r;
+	s->fbc_hsize_y = old_state->fbc_hsize_y;
+	s->fbc_hsize_uv = old_state->fbc_hsize_uv;
 
 	return &s->state;
 }
