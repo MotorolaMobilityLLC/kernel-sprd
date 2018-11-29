@@ -60,8 +60,8 @@ static void mock_write_expectation_unsatisfied_message(
 		    "%s:%d - Expectation was not called the specified number of times:\n\t",
 		    expectation->file_name, expectation->line_no);
 	stream->add(stream,
-		    "Function: %s, min calls: %d, max calls: %d, actual calls: %d",
-		    expectation->method->method_name,
+		    "Expectation: %s,\n\tmin calls: %d, max calls: %d, actual calls: %d",
+                    expectation->expectation_text,
 		    expectation->min_calls_expected,
 		    expectation->max_calls_expected,
 		    expectation->times_called);
