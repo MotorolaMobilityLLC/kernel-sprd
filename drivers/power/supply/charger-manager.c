@@ -1556,11 +1556,11 @@ static ssize_t charger_stop_show(struct device *dev,
 
 	is_chg = is_charging(charger->cm);
 
-	return sprintf(buf, "%s\n", is_chg);
+	return sprintf(buf, "%d\n", is_chg);
 }
 
 static ssize_t charger_stop_store(struct device *dev,
-				struct device_attribute *attr, char *buf,
+				struct device_attribute *attr, const char *buf,
 				size_t count)
 {
 	struct charger_regulator *charger
