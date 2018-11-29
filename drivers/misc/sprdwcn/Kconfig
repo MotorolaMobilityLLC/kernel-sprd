@@ -29,13 +29,13 @@ config SC2355
 	  If you want to use sc2355 chip of spreadtrum.
 	  Please say "y".
 
-config SC2366
-	tristate "SC2366 chip Support"
+config UMW2652
+	tristate "UMW2652 chip Support"
 	depends on SC23XX
 	default n
 	help
 	  This is support wcn chip for spreadtrum.
-	  If you want to use sc2366 chip of spreadtrum.
+	  If you want to use umw2652 chip of spreadtrum.
 	  Please say "y".
 
 # sprd's SDIO device driver based on SC2355...,etc

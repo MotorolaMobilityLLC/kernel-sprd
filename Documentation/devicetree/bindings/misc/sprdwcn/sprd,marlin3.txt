@@ -1,4 +1,6 @@
 Spreadtrum SC2355 platform devices.
+Spreadtrum UMW2652 platform devices.
+UMW2652 is the little of SC2355.
 
 This node provides properties for controlling the SPREADTRUM wireless device.
 

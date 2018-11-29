@@ -1,3 +1,6 @@
+#ifndef __SC2355_GLB_H__
+#define __SC2355_GLB_H__
+
 #include <linux/kernel.h>
 #include "../sleep/slp_mgr.h"
 #include "mem_pd_mgr.h"
@@ -267,3 +270,4 @@
 #define tsx_mode		BIT(15)
 #define SPI_BIT31		BIT(31)
 
+#endif

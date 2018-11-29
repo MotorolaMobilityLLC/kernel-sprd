@@ -7464,6 +7464,13 @@ CONFIG_SBITMAP
 	[subsys]
 	[must]
 	[function]
+CONFIG_UMW2652
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] wcn
+	[must] user
+	[function] This function is used to support wcn umw2652 chip
 CONFIG_SC2355
 	[arch] all
 	[plat] all

@@ -59,6 +59,21 @@ struct mem_pd_t {
 	struct mem_pd_debug_t mem_pd_debug;
 	unsigned int cp_mem_all_off;
 };
+
+struct mem_pd_meminfo_t {
+	unsigned int wifi_begin_addr;
+	unsigned int wifi_end_addr;
+	unsigned int wifi_size;
+	unsigned int bt_begin_addr;
+	unsigned int bt_end_addr;
+	unsigned int bt_size;
+	unsigned int wifi_iram_mask;
+	unsigned int wifi_dram_mask;
+	unsigned int bt_iram_mask;
+	unsigned int bt_dram_mask;
+	unsigned int chip_id;
+};
+
 unsigned int mem_pd_wifi_state(void);
 int chip_poweroff_deinit(void);
 int inform_cp_wifi_download(void);
@@ -66,4 +81,5 @@ int mem_pd_mgr(enum marlin_sub_sys subsys, int val);
 int mem_pd_save_bin(void);
 int mem_pd_init(void);
 int mem_pd_exit(void);
+unsigned int marlin_get_wcn_chipid(void);
 #endif

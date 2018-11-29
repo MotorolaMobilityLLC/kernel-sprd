@@ -228,7 +228,7 @@ struct wcn_dump_mem_reg {
  */
 static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	/* IRAM + DRAM */
-	{1, 0x100000, 0xf0c00},
+	{1, 0x100000, FIRMWARE_MAX_SIZE},
 	/* top */
 	{1, 0x40880000, 0x54}, /* AON_AHB */
 	{1, 0x4083C000, 0x354}, /* AON_APB */
@@ -419,6 +419,89 @@ static int cp_dcache_clean_invalid_all(void)
 }
 
 /* select aon_apb_dap DAP(Debug Access Port) */
+#ifdef CONFIG_UMW2652
+void dap_sel_btwf_lite(void)
+{
+	int ret;
+	unsigned int reg_val;
+
+	ret = sprdwcn_bus_reg_read(DAP_CTRL, &reg_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read DJTAG_DAP_SEL error:%d\n", __func__, ret);
+		WCN_INFO("dt fail,start reset pin!\n");
+		ret = marlin_reset_reg();
+		if (ret < 0) {
+			WCN_ERR("dt fail,reset pin fail!\n");
+			return;
+		}
+		ret = sprdwcn_bus_reg_read(DAP_CTRL, &reg_val, 4);
+		if (ret < 0) {
+			WCN_ERR("after reset,dt read still fail!\n");
+			return;
+		}
+	}
+	MDBG_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
+
+	reg_val |= CM4_DAP_SEL_BTWF_LITE;
+	ret = sprdwcn_bus_reg_write(DAP_CTRL, &reg_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s write DJTAG_DAP_SEL error:%d\n", __func__, ret);
+		return;
+	}
+	MDBG_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
+
+	ret = sprdwcn_bus_reg_read(DAP_CTRL, &reg_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read2 DJTAG_DAP_SEL error:%d\n", __func__, ret);
+		return;
+	}
+	MDBG_LOG("%s 2:DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
+}
+
+/* select aon_apb_dap DAP(Debug Access Port) */
+void dap_sel_default_lite(void)
+{
+	int ret;
+	unsigned int reg_val;
+
+	reg_val = 0;
+	ret = sprdwcn_bus_reg_write(DAP_CTRL, &reg_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s write DJTAG_DAP_SEL error:%d\n", __func__, ret);
+		return;
+	}
+}
+
+/* enable aon_apb_dap_en */
+void apb_eb_lite(void)
+{
+	int ret;
+	unsigned int reg_val;
+
+	ret = sprdwcn_bus_reg_read(APB_ENB1, &reg_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read APB_EB error:%d\n", __func__, ret);
+		return;
+	}
+	MDBG_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
+
+	reg_val |= DBG_CM4_EB;
+	ret = sprdwcn_bus_reg_write(APB_ENB1, &reg_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s write APB_EB error:%d\n", __func__, ret);
+		return;
+	}
+	MDBG_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
+
+	ret = sprdwcn_bus_reg_read(APB_ENB1, &reg_val, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read2 APB_EB error:%d\n", __func__, ret);
+		return;
+	}
+	MDBG_LOG("%s 2:APB_EB:0x%x\n", __func__, reg_val);
+}
+#else
+/* select aon_apb_dap DAP(Debug Access Port) */
 static void dap_sel_btwf(void)
 {
 	int ret;
@@ -427,7 +510,7 @@ static void dap_sel_btwf(void)
 	ret = sprdwcn_bus_reg_read(DJTAG_DAP_SEL, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read DJTAG_DAP_SEL error:%d\n", __func__, ret);
-		WCN_INFO("dt fail,start reset pin!\n");
+		WCN_ERR("dt fail,start reset pin!\n");
 		ret = marlin_reset_reg();
 		if (ret < 0) {
 			WCN_ERR("dt fail,reset pin fail!\n");
@@ -465,10 +548,8 @@ static void dap_sel_default(void)
 
 	reg_val = 0;
 	ret = sprdwcn_bus_reg_write(DJTAG_DAP_SEL, &reg_val, 4);
-	if (ret < 0) {
+	if (ret < 0)
 		WCN_ERR("%s write DJTAG_DAP_SEL error:%d\n", __func__, ret);
-		return;
-	}
 }
 
 /* disable aon_apb_dap_rst */
@@ -528,6 +609,7 @@ static void apb_eb(void)
 	}
 	MDBG_LOG("%s 2:APB_EB:0x%x\n", __func__, reg_val);
 }
+#endif
 
 static void check_dap_is_ok(void)
 {
@@ -681,9 +763,14 @@ static void write_core_reg_value(unsigned int reg_index, unsigned int value)
 
 void sprdwcn_bus_armreg_write(unsigned int reg_index, unsigned int value)
 {
+#ifdef CONFIG_UMW2652
+	dap_sel_btwf_lite();
+	apb_eb_lite();
+#else
 	dap_sel_btwf();
 	apb_rst();
 	apb_eb();
+#endif
 	check_dap_is_ok();
 	hold_btwf_core();
 	set_debug_mode();
@@ -692,8 +779,10 @@ void sprdwcn_bus_armreg_write(unsigned int reg_index, unsigned int value)
 	/* make sure btwf core can run */
 	release_btwf_core();
 
+#ifndef CONFIG_UMW2652
 	/* make sure JTAG can connect dap */
 	dap_sel_default();
+#endif
 }
 
 /* Debug Core register Data Register */
@@ -739,9 +828,14 @@ static int dump_arm_reg(void)
 	}
 
 	memset(p, 0, 19 * 4);
+#ifdef CONFIG_UMW2652
+	dap_sel_btwf_lite();
+	apb_eb_lite();
+#else
 	dap_sel_btwf();
 	apb_rst();
 	apb_eb();
+#endif
 	check_dap_is_ok();
 	hold_btwf_core();
 	set_debug_mode();
@@ -755,8 +849,10 @@ static int dump_arm_reg(void)
 
 	WCN_INFO("------------[ ARM END ]------------\n");
 	kfree(p);
+#ifndef CONFIG_UMW2652
 	/* make sure JTAG can connect dap */
 	dap_sel_default();
+#endif
 
 	return 0;
 }

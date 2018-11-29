@@ -7,7 +7,14 @@
 #include "wcn_txrx.h"
 #include "wcn_log.h"
 
+#ifdef CONFIG_SC2355
 #include "sc2355_glb.h"
 #include "wcn_dump.h"
+#endif
+
+#ifdef CONFIG_UMW2652
+#include "umw2652_glb.h"
+#include "wcn_dump.h"
+#endif
 
 #endif

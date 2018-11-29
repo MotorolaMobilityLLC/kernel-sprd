@@ -14,6 +14,12 @@
 #include "sc2342_glb.h"
 #endif
 
+#ifdef CONFIG_SC2355
 #include "sc2355_glb.h"
+#endif
+
+#ifdef CONFIG_UMW2652
+#include "umw2652_glb.h"
+#endif
 
 #endif

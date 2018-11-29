@@ -174,16 +174,21 @@ struct imageinfo {
 
 static unsigned long int chip_id;
 
-static void marlin_get_wcn_chipid(void)
+unsigned int marlin_get_wcn_chipid(void)
 {
 	int ret;
+
+	if (unlikely(chip_id != 0))
+		return chip_id;
 
 	ret = sprdwcn_bus_reg_read(CHIPID_REG, &chip_id, 4);
 	if (ret < 0) {
 		WCN_ERR("marlin read chip ID fail\n");
-		return;
+		return 0;
 	}
 	WCN_INFO("marlin: chipid=%lx, %s\n", chip_id, __func__);
+
+	return chip_id;
 }
 
 /* get the subsys string */
@@ -1230,6 +1235,9 @@ int set_cp_mem_status(int subsys, int val)
 	int ret;
 	unsigned int temp_val;
 
+#ifdef CONFIG_UMW2652
+	return 0;
+#endif
 	ret = sprdwcn_bus_reg_read(REG_WIFI_MEM_CFG1, &temp_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read wifimem_cfg1 error:%d\n", __func__, ret);
@@ -2065,6 +2073,9 @@ static int marlin_probe(struct platform_device *pdev)
 	init_completion(&ge2_completion);
 	init_completion(&marlin_dev->carddetect_done);
 
+#ifdef CONFIG_WCN_SLP
+	slp_mgr_init();
+#endif
 	/* register ops */
 	wcn_bus_init();
 	/* sdiom_init or pcie_init */
@@ -2072,9 +2083,6 @@ static int marlin_probe(struct platform_device *pdev)
 	sprdwcn_bus_register_rescan_cb(marlin_scan_finish);
 	sdio_pub_int_init(marlin_dev->int_ap);
 	mem_pd_init();
-#ifdef CONFIG_WCN_SLP
-	slp_mgr_init();
-#endif
 	proc_fs_init();
 	log_dev_init();
 	wcn_op_init();

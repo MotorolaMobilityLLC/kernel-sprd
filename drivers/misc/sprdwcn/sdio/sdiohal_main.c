@@ -1111,6 +1111,9 @@ static int sdiohal_set_cp_pin_status(void)
 {
 	int reg_value;
 
+#ifdef CONFIG_UMW2652
+	return 0;
+#endif
 	/*
 	 * Because of cp pin pull up on default, It's lead to
 	 * the sdio mistaken interruption before cp run,
