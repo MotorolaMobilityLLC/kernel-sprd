@@ -310,6 +310,19 @@ struct power_supply_vol_temp_table {
 	int temp;	/* celsius */
 };
 
+struct power_supply_charge_current {
+	int sdp_limit;
+	int sdp_cur;
+	int dcp_limit;
+	int dcp_cur;
+	int cdp_limit;
+	int cdp_cur;
+	int aca_limit;
+	int aca_cur;
+	int unknown_limit;
+	int unknown_cur;
+};
+
 #define POWER_SUPPLY_OCV_TEMP_MAX 20
 
 /*
@@ -335,6 +348,7 @@ struct power_supply_battery_info {
 	int ocv_table_size[POWER_SUPPLY_OCV_TEMP_MAX];
 	struct power_supply_vol_temp_table *temp_table;
 	int temp_table_size;
+	struct power_supply_charge_current cur;
 };
 
 extern struct atomic_notifier_head power_supply_notifier;

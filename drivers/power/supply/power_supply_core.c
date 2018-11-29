@@ -583,6 +583,16 @@ int power_supply_get_battery_info(struct power_supply *psy,
 	info->factory_internal_resistance_uohm  = -EINVAL;
 	info->temp_table = NULL;
 	info->temp_table_size = -EINVAL;
+	info->cur.sdp_cur = -EINVAL;
+	info->cur.sdp_limit = -EINVAL;
+	info->cur.dcp_cur = -EINVAL;
+	info->cur.dcp_limit = -EINVAL;
+	info->cur.cdp_cur = -EINVAL;
+	info->cur.cdp_limit = -EINVAL;
+	info->cur.aca_cur = -EINVAL;
+	info->cur.aca_limit = -EINVAL;
+	info->cur.unknown_cur = -EINVAL;
+	info->cur.unknown_limit = -EINVAL;
 
 	for (index = 0; index < POWER_SUPPLY_OCV_TEMP_MAX; index++) {
 		info->ocv_table[index]       = NULL;
@@ -628,6 +638,26 @@ int power_supply_get_battery_info(struct power_supply *psy,
 			     &info->constant_charge_voltage_max_uv);
 	of_property_read_u32(battery_np, "factory-internal-resistance-micro-ohms",
 			     &info->factory_internal_resistance_uohm);
+	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 0,
+				   &info->cur.sdp_cur);
+	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 1,
+				   &info->cur.sdp_limit);
+	of_property_read_u32_index(battery_np, "charge-dcp-current-microamp", 0,
+				   &info->cur.dcp_cur);
+	of_property_read_u32_index(battery_np, "charge-dcp-current-microamp", 1,
+				   &info->cur.dcp_limit);
+	of_property_read_u32_index(battery_np, "charge-cdp-current-microamp", 0,
+				   &info->cur.cdp_cur);
+	of_property_read_u32_index(battery_np, "charge-cdp-current-microamp", 1,
+				   &info->cur.cdp_limit);
+	of_property_read_u32_index(battery_np, "charge-aca-current-microamp", 0,
+				   &info->cur.aca_cur);
+	of_property_read_u32_index(battery_np, "charge-aca-current-microamp", 1,
+				   &info->cur.aca_limit);
+	of_property_read_u32_index(battery_np, "charge-unknown-current-microamp", 0,
+				   &info->cur.unknown_cur);
+	of_property_read_u32_index(battery_np, "charge-unknown-current-microamp", 1,
+				   &info->cur.unknown_limit);
 
 	len = of_property_count_u32_elems(battery_np, "ocv-capacity-celsius");
 	if (len < 0 && len != -EINVAL) {
