@@ -51,6 +51,10 @@
 #define CP_MEM_OFFSET 0X00100000/* 32k */
 #define DRAM_ADD 0X40580000
 
+#define REGS_SPINLOCK_BASE 0X40850000
+#define REG_SPINLOCK_SPINLOCKSTS_I (REGS_SPINLOCK_BASE + 0X0800)
+#define UNLOCK_TOKEN (0X55AA10C5)
+#define SPINLOCKSTS(I)  (REG_SPINLOCK_SPINLOCKSTS_I + 4 * (I))
 static struct mem_pd_t mem_pd;
 
 /* return 0, no download ini; return 1, need download ini */
@@ -65,6 +69,44 @@ unsigned int mem_pd_wifi_state(void)
 	return ret;
 }
 
+unsigned int mem_pd_spinlock_lock(int id)
+{
+	int ret = 0;
+	int i = 0;
+	unsigned int reg_val = 0;
+
+	do {
+		i++;
+		ret = sprdwcn_bus_reg_read(SPINLOCKSTS(id), &reg_val, 4);
+		if (!(ret == 0)) {
+			MEM_PD_MGR_INFO(" sdiohal_dt_read lock error !");
+			return ret;
+		}
+		if (reg_val == 0)
+			break;
+		if (i > 200) {
+			i = 0;
+			MEM_PD_MGR_INFO("get spinlock time out\n");
+		}
+	} while (i);
+
+	return 0;
+}
+
+unsigned int mem_pd_spinlock_unlock(int id)
+{
+	int ret = 0;
+	unsigned int reg_val = UNLOCK_TOKEN;
+
+	ret = sprdwcn_bus_reg_write(SPINLOCKSTS(id),  &reg_val, 4);
+	if (!(ret == 0)) {
+		MEM_PD_MGR_INFO(" dt_write lock error !");
+		return ret;
+	}
+
+	return 0;
+}
+
 /* bit_start FORCE SHUTDOWN IRAM [16...31]*32K=512K
  * and bit_start++ bit_cnt how many 32k
  */
@@ -76,12 +118,15 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 
 	/* unsigned int mem_pd_power_delay; */
 	MEM_PD_MGR_INFO("%s", __func__);
+	/* get the lock to write the register, use spinlock id=0 */
+	mem_pd_spinlock_lock(0);
 	/* CP reset write 1, mask mem CGG reg */
 	/* should write 0 */
 	switch (subsys) {
 	case MARLIN_WIFI:
 		if (val) {
 			if (mem_pd.wifi_state == THREAD_DELETE) {
+				mem_pd_spinlock_unlock(0);
 				MEM_PD_MGR_INFO("wifi_state=0, forbid on");
 				return ret;
 			}
@@ -89,8 +134,9 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG1;
 			ret = sprdwcn_bus_reg_read(wif_bt_mem_cfg, &reg_val, 4);
 			if (!(ret == 0)) {
+				mem_pd_spinlock_unlock(0);
 				MEM_PD_MGR_INFO(" sdiohal_dt_read error !");
-					return ret;
+				return ret;
 			}
 			if (reg_val & (0xE0000000)) {
 				/* val =1 ,powerdown */
@@ -99,6 +145,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 				ret = sprdwcn_bus_reg_write(
 				wif_bt_mem_cfg, &reg_val, 4);
 				if (!(ret == 0)) {
+					mem_pd_spinlock_unlock(0);
 					MEM_PD_MGR_INFO("dt_write error !");
 					return ret;
 				}
@@ -109,6 +156,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 			ret = sprdwcn_bus_reg_read(
 				wif_bt_mem_cfg, &reg_val, 4);
 			if (!(ret == 0)) {
+				mem_pd_spinlock_unlock(0);
 				MEM_PD_MGR_INFO("sdiohal_dt_read error !");
 				return ret;
 			}
@@ -119,6 +167,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 				ret = sprdwcn_bus_reg_write(
 				wif_bt_mem_cfg, &reg_val, 4);
 				if (!(ret == 0)) {
+					mem_pd_spinlock_unlock(0);
 					MEM_PD_MGR_INFO("dt_write error !");
 					return ret;
 				}
@@ -126,6 +175,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 			MEM_PD_MGR_INFO("wifi drammem power on");
 		} else {
 			if (mem_pd.wifi_state == THREAD_CREATE) {
+				mem_pd_spinlock_unlock(0);
 				MEM_PD_MGR_INFO("wifi_state=1, forbid off");
 				return ret;
 			}
@@ -134,6 +184,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 			ret = sprdwcn_bus_reg_read(
 				wif_bt_mem_cfg, &reg_val, 4);
 			if (!(ret == 0)) {
+				mem_pd_spinlock_unlock(0);
 				MEM_PD_MGR_INFO("dt read error !");
 				return ret;
 			}
@@ -144,6 +195,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 				ret = sprdwcn_bus_reg_write(
 				wif_bt_mem_cfg, &reg_val, 4);
 				if (!(ret == 0)) {
+					mem_pd_spinlock_unlock(0);
 					MEM_PD_MGR_INFO("dt write error !");
 					return ret;
 				}
@@ -153,6 +205,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG3;
 			ret = sprdwcn_bus_reg_read(wif_bt_mem_cfg, &reg_val, 4);
 			if (!(ret == 0)) {
+				mem_pd_spinlock_unlock(0);
 				MEM_PD_MGR_INFO(" sdio read error !");
 				return ret;
 			}
@@ -163,6 +216,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 				ret = sprdwcn_bus_reg_write(
 					wif_bt_mem_cfg, &reg_val, 4);
 				if (!(ret == 0)) {
+					mem_pd_spinlock_unlock(0);
 					MEM_PD_MGR_INFO("dt write error !");
 					return ret;
 				}
@@ -173,6 +227,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 	case MARLIN_BLUETOOTH:
 		if (val) {
 			if (mem_pd.bt_state == THREAD_DELETE) {
+				mem_pd_spinlock_unlock(0);
 				MEM_PD_MGR_INFO("bt_state=0, forbid on");
 				return ret;
 			}
@@ -180,6 +235,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG1;
 			ret = sprdwcn_bus_reg_read(wif_bt_mem_cfg, &reg_val, 4);
 			if (!(ret == 0)) {
+				mem_pd_spinlock_unlock(0);
 				MEM_PD_MGR_INFO(" sdio dt read error !");
 				return ret;
 			}
@@ -189,6 +245,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 				ret = sprdwcn_bus_reg_write(
 					wif_bt_mem_cfg, &reg_val, 4);
 				if (!(ret == 0)) {
+					mem_pd_spinlock_unlock(0);
 					MEM_PD_MGR_INFO(" error !");
 					return ret;
 				}
@@ -196,6 +253,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 			MEM_PD_MGR_INFO("bt irampower on 32*7k");
 		} else {
 			if (mem_pd.bt_state == THREAD_CREATE) {
+				mem_pd_spinlock_unlock(0);
 				MEM_PD_MGR_INFO("bt_state=1, forbid off");
 				return ret;
 			}
@@ -203,6 +261,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 			wif_bt_mem_cfg = REG_AON_APB_BTWF_MEM_CGG1;
 			ret = sprdwcn_bus_reg_read(wif_bt_mem_cfg, &reg_val, 4);
 			if (!(ret == 0)) {
+				mem_pd_spinlock_unlock(0);
 				MEM_PD_MGR_INFO(" error !");
 				return ret;
 			}
@@ -214,6 +273,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 				ret = sprdwcn_bus_reg_write(
 				wif_bt_mem_cfg, &reg_val, 4);
 				if (!(ret == 0)) {
+					mem_pd_spinlock_unlock(0);
 					MEM_PD_MGR_INFO(" error !");
 					return ret;
 				}
@@ -224,6 +284,7 @@ static int mem_pd_power_switch(enum marlin_sub_sys subsys, int val)
 	default:
 	break;
 	}
+	mem_pd_spinlock_unlock(0);
 
 	return 0;
 }
