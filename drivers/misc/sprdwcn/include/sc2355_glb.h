@@ -141,7 +141,7 @@
 #define AON_APB_SIZE			(0x354)
 #define BTWF_AHB_ADDR			(0x40130000)
 #define BTWF_AHB_SIZE			(0x400)
-#define BTWF_APB_ADDR			(0x40880000)
+#define BTWF_APB_ADDR			(0x40088000)
 #define BTWF_APB_SIZE			(0x28C)
 #define AON_CLK_ADDR			(0x40844200)
 #define AON_CLK_SIZE			(0x144)
@@ -256,4 +256,14 @@
 #define FM_REG_SPUR_FEQ1_ADDR			0x40098104
 #define FM_DISABLE_SPUR_REMOVE_VALUE		0x06DC063C
 #define FM_ENABLE_SPUR_REMOVE_FREQ2_VALUE	0x06DCAB7C
+
+/*
+ * For SPI interface
+ * bit[15]:1'b0: TCXO mode, outside clock
+ * bit[15]:1'b1: Crystal/TSX mode
+ */
+#define SPI_BASE_ADDR		0x408a0000
+#define AD_DCXO_BONDING_OPT	0x5030
+#define tsx_mode		BIT(15)
+#define SPI_BIT31		BIT(31)
 

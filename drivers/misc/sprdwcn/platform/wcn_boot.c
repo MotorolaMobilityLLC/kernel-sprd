@@ -90,7 +90,8 @@ struct marlin_device {
 	struct regulator *avdd18;
 	/* for wifi PA, BT TX RX */
 	struct regulator *avdd33;
-	/* struct regulator *vdd18; */
+	/* for internal 26M clock */
+	struct regulator *dcxo18;
 	struct clk *clk_32k;
 
 	struct clk *clk_parent;
@@ -714,6 +715,10 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	if (IS_ERR(marlin_dev->avdd33))
 		WCN_ERR("Get regulator of avdd33 error!\n");
 
+	marlin_dev->dcxo18 = devm_regulator_get(&pdev->dev, "dcxo18");
+	if (IS_ERR(marlin_dev->dcxo18))
+		WCN_ERR("Get regulator of dcxo18 error!\n");
+
 	marlin_dev->clk_32k = devm_clk_get(&pdev->dev, "clk_32k");
 	if (IS_ERR(marlin_dev->clk_32k)) {
 		WCN_ERR("can't get wcn clock dts config: clk_32k\n");
@@ -821,6 +826,32 @@ static int marlin_clk_enable(bool enable)
 	} else {
 		clk_disable_unprepare(marlin_dev->clk_enable);
 		clk_disable_unprepare(marlin_dev->clk_32k);
+	}
+
+	return ret;
+}
+
+static int marlin_avdd18_dcxo_enable(bool enable)
+{
+	int ret = 0;
+
+	WCN_INFO("avdd18_dcxo enable 1v8 %d\n", enable);
+	if (!marlin_dev->dcxo18)
+		return 0;
+
+	if (enable) {
+		if (regulator_is_enabled(marlin_dev->dcxo18))
+			return 0;
+		regulator_set_voltage(marlin_dev->dcxo18, 1800000, 1800000);
+		ret = regulator_enable(marlin_dev->dcxo18);
+		if (ret)
+			WCN_ERR("fail to enable avdd18_dcxo\n");
+	} else {
+		if (regulator_is_enabled(marlin_dev->dcxo18)) {
+			ret = regulator_disable(marlin_dev->dcxo18);
+			if (ret)
+				WCN_ERR("fail to disable avdd18_dcxo\n");
+		}
 	}
 
 	return ret;
@@ -987,6 +1018,53 @@ static int marlin_write_cali_data(void)
 		if (i > 10)
 			i = 0;
 	} while (i);
+
+	return ret;
+}
+
+static int spi_read_rf_reg(unsigned int addr, unsigned int *data)
+{
+	unsigned int reg_data = 0;
+	int ret;
+
+	reg_data = ((addr & 0x7fff) << 16) | SPI_BIT31;
+	ret = sprdwcn_bus_reg_write(SPI_BASE_ADDR, &reg_data, 4);
+	if (ret < 0) {
+		WCN_ERR("write SPI RF reg error:%d\n", ret);
+		return ret;
+	}
+
+	usleep_range(4000, 6000);
+
+	ret = sprdwcn_bus_reg_read(SPI_BASE_ADDR, &reg_data, 4);
+	if (ret < 0) {
+		WCN_ERR("read SPI RF reg error:%d\n", ret);
+		return ret;
+	}
+	*data = reg_data & 0xffff;
+
+	return 0;
+}
+
+static int check_cp_clock_mode(void)
+{
+	int ret = 0;
+	unsigned int temp_val;
+
+	WCN_INFO("%s\n", __func__);
+
+	ret = spi_read_rf_reg(AD_DCXO_BONDING_OPT, &temp_val);
+	if (ret < 0) {
+		WCN_ERR("read AD_DCXO_BONDING_OPT error:%d\n", ret);
+		return ret;
+	}
+	WCN_INFO("read AD_DCXO_BONDING_OPT val:0x%x\n", temp_val);
+	if ((temp_val & tsx_mode) == tsx_mode) {
+		WCN_INFO("clock mode: TSX\n");
+	} else {
+		WCN_INFO("clock mode: TCXO, outside clock\n");
+		marlin_avdd18_dcxo_enable(false);
+	}
 
 	return ret;
 }
@@ -1313,6 +1391,7 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 {
 	if (btwifi_download_firmware() == 0 &&
 		marlin_start_run() == 0) {
+		check_cp_clock_mode();
 		marlin_write_cali_data();
 		mem_pd_save_bin();
 		check_cp_ready();
@@ -1413,7 +1492,7 @@ void set_wifipa_status(int subsys, int val)
  */
 static int chip_power_on(int subsys)
 {
-
+	marlin_avdd18_dcxo_enable(true);
 	marlin_clk_enable(true);
 	marlin_digital_power_enable(true);
 	marlin_chip_en(true, false);
@@ -1430,6 +1509,7 @@ static int chip_power_on(int subsys)
 
 static int chip_power_off(int subsys)
 {
+	marlin_avdd18_dcxo_enable(false);
 	marlin_clk_enable(false);
 	marlin_chip_en(false, false);
 	marlin_digital_power_enable(false);

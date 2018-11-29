@@ -233,7 +233,7 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{1, 0x40880000, 0x54}, /* AON_AHB */
 	{1, 0x4083C000, 0x354}, /* AON_APB */
 	{1, 0x40130000, 0x400}, /* BTWF_AHB */
-	{1, 0x40880000, 0x28c}, /* BTWF_APB */
+	{1, 0x40088000, 0x28c}, /* BTWF_APB */
 	{1, 0x40844200, 0x144}, /* AON_CLK */
 	{1, 0x40844000, 0x48}, /* PRE_DIV_CLK */
 	/* SDIO regs */
