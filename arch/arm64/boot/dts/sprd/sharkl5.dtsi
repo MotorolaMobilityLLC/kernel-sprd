@@ -175,21 +175,16 @@
 
 			mm_domain: mm_domain {
 				compatible = "sprd,mm-domain";
-				syscon-names = "chip_id0",
-					"chip_id1",
-					"force_shutdown",
+				syscon-names = "force_shutdown",
 					"shutdown_en",
 					"power_state",
-					"mm_qos_ar",
-					"mm_qos_aw";
-				syscons = <&aon_apb_regs REG_AON_APB_AON_CHIP_ID0 MASK_AON_APB_AON_CHIP_ID0>,
-					<&aon_apb_regs REG_AON_APB_AON_CHIP_ID1 MASK_AON_APB_AON_CHIP_ID1>,
-					<&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
+					"qos_ar",
+					"qos_aw";
+				syscons = <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
 					<&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>,
 					<&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_MM_TOP_STATE>,
 					<&mm_ahb_regs REG_MM_AHB_MM_QOS MASK_MM_AHB_AR_QOS_THRESHOLD_MM>,
 					<&mm_ahb_regs REG_MM_AHB_MM_QOS MASK_MM_AHB_AW_QOS_THRESHOLD_MM>;
-
 				clock-names = "mm_eb",
 					"mm_ahb_eb",
 					"clk_mm_ahb",
@@ -200,11 +195,11 @@
 				clocks = <&aonapb_gate CLK_MM_EB>,
 					<&mm_gate CLK_MM_CKG_EB>,
 					<&mm_clk CLK_MM_AHB>,
-					<&mm_clk CLK_TWPLL_153M6>,
+					<&pll2 CLK_TWPLL_153M6>,
 					<&mm_gate CLK_ISP_AHB_EB>, /* TBC */
 					<&mm_clk CLK_MM_MTX>,
-					<&mm_clk CLK_ISPPLL_468M>;
-				mm_qos = <0x0D 0x0D>; /* AR, AW */
+					<&pll2 CLK_ISPPLL_468M>;
+				mm_qos_threshold = <&mm_qos_threshold>;
 			};
 			mipi_csi_phy0: mipi-csi-phy0 {
 				compatible = "sprd,mipi-csi-phy";
@@ -234,10 +229,10 @@
 						MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>,
 					<&anlg_phy_g10_regs
 						REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-						MASK_ANLG_PHY_G10_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
+						MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
 					<&anlg_phy_g10_regs
 						REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-						MASK_ANLG_PHY_G10_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
+						MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
 				syscon-names = "iso_sw_en", "csi_mode_sel", "ps_pd_l", "ps_pd_s";
 				sprd,phyid = <1>;
 				sprd,phyname = "2p2";
@@ -255,10 +250,10 @@
 						MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>,
 					<&anlg_phy_g10_regs
 						REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-						MASK_ANLG_PHY_G10_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
+						MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
 					<&anlg_phy_g10_regs
 						REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-						MASK_ANLG_PHY_G10_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
+						MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
 				syscon-names = "iso_sw_en", "csi_mode_sel", "ps_pd_l", "ps_pd_s";
 				sprd,phyid = <3>;
 				sprd,phyname = "2p2_m";
@@ -275,10 +270,10 @@
 						MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>,
 					<&anlg_phy_g10_regs
 						REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-						MASK_ANLG_PHY_G10_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
+						MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
 					<&anlg_phy_g10_regs
 						REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-						MASK_ANLG_PHY_G10_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
+						MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
 				syscon-names = "iso_sw_en", "csi_mode_sel", "ps_pd_l", "ps_pd_s";
 				sprd,phyid = <4>;
 				sprd,phyname = "2p2_s";
@@ -324,8 +319,15 @@
 					<&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_CSI0_EB>,
 					<&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_MIPI_CSI0_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI0_CKG_EN>,
-					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>;
-				syscon-names = "csi_dhpy_c_sel", "csi_eb", "csi_rst", "csi_ckg_en", "cphy_ckg_en";
+					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>,
+					<&aon_apb_regs REG_AON_APB_CGM_CLK_TOP_REG1 MASK_AON_APB_CGM_CPHY_CFG_EN>;
+				syscon-names = "csi_dhpy_c_sel",
+					"csi_eb",
+					"csi_rst",
+					"csi_ckg_en",
+					"cphy_ckg_en",
+					"cphy_cfg_en";
+
 				clock-names = "csi_eb",
 					"mipi_csi_eb",
 					"mipi_csi_src",
@@ -336,10 +338,10 @@
 				clocks = <&mm_gate CLK_MM_CSI0_EB>,
 				       <&mm_gate CLK_MM_MIPI_CSI0_EB>,
 				       <&mm_clk CLK_MIPI_CSI0>,
-				       <&mm_clk CLK_TWPLL_48M>,
-				       <&mm_clk CLK_TWPLL_96M>,
-				       <&mm_clk CLK_TWPLL_153M6>,
-				       <&mm_clk CLK_TWPLL_192M>;
+				       <&pll2 CLK_TWPLL_48M>,
+				       <&pll2 CLK_TWPLL_96M>,
+				       <&pll2 CLK_TWPLL_153M6>,
+				       <&pll2 CLK_TWPLL_192M>;
 				sprd,csi-id = <0>;
 				sprd,dcam-id = <0>;
 				sprd,ip-version = <0x200>;
@@ -360,8 +362,14 @@
 					<&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_CSI1_EB>,
 					<&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_MIPI_CSI1_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI1_CKG_EN>,
-					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>;
-				syscon-names = "csi_dhpy_c_sel", "csi_eb", "csi_rst", "csi_en", "cphy_ckg_en";
+					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>,
+					<&aon_apb_regs REG_AON_APB_CGM_CLK_TOP_REG1 MASK_AON_APB_CGM_CPHY_CFG_EN>;
+				syscon-names = "csi_dhpy_c_sel",
+					"csi_eb",
+					"csi_rst",
+					"csi_ckg_en",
+					"cphy_ckg_en",
+					"cphy_cfg_en";
 				clock-names = "csi_eb",
 					"mipi_csi_eb",
 					"mipi_csi_src",
@@ -372,10 +380,10 @@
 				clocks = <&mm_gate CLK_MM_CSI1_EB>,
 				       <&mm_gate CLK_MM_MIPI_CSI1_EB>,
 				       <&mm_clk CLK_MIPI_CSI1>,
-				       <&mm_clk CLK_TWPLL_48M>,
-				       <&mm_clk CLK_TWPLL_96M>,
-				       <&mm_clk CLK_TWPLL_153M6>,
-				       <&mm_clk CLK_TWPLL_192M>;
+				       <&pll2 CLK_TWPLL_48M>,
+				       <&pll2 CLK_TWPLL_96M>,
+				       <&pll2 CLK_TWPLL_153M6>,
+				       <&pll2 CLK_TWPLL_192M>;
 				sprd,csi-id = <1>;
 				sprd,dcam-id = <1>;
 				sprd,ip-version = <0x200>;
@@ -394,9 +402,14 @@
 					<&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_CSI2_EB>,
 					<&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_MIPI_CSI2_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI2_CKG_EN>,
-					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>;
-				syscon-names = "csi_dhpy_c_sel", "csi_eb", "csi_rst",
-						"csi_en", "cphy_ckg_en";
+					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>,
+					<&aon_apb_regs REG_AON_APB_CGM_CLK_TOP_REG1 MASK_AON_APB_CGM_CPHY_CFG_EN>;
+				syscon-names = "csi_dhpy_c_sel",
+					"csi_eb",
+					"csi_rst",
+					"csi_ckg_en",
+					"cphy_ckg_en",
+					"cphy_cfg_en";
 				clock-names = "csi_eb",
 					"mipi_csi_eb",
 					"mipi_csi_src",
@@ -407,10 +420,10 @@
 				clocks = <&mm_gate CLK_MM_CSI2_EB>,
 				       <&mm_gate CLK_MM_MIPI_CSI2_EB>,
 				       <&mm_clk CLK_MIPI_CSI2>,
-				       <&mm_clk CLK_TWPLL_48M>,
-				       <&mm_clk CLK_TWPLL_96M>,
-				       <&mm_clk CLK_TWPLL_153M6>,
-				       <&mm_clk CLK_TWPLL_192M>;
+				       <&pll2 CLK_TWPLL_48M>,
+				       <&pll2 CLK_TWPLL_96M>,
+				       <&pll2 CLK_TWPLL_153M6>,
+				       <&pll2 CLK_TWPLL_192M>;
 				sprd,csi-id = <2>;
 				sprd,dcam-id = <2>;
 				sprd,ip-version = <0x200>;
@@ -448,22 +461,23 @@
 					"dcam_axi_clk_parent";
 				clocks = <&mm_gate CLK_MM_DCAM_EB>,
 					<&mm_clk CLK_DCAM_IF>,
-					<&mm_clk CLK_TWPLL_192M>,
-					<&mm_clk CLK_TWPLL_256M>,
-					<&mm_clk CLK_TWPLL_307M2>,
-					<&mm_clk CLK_TWPLL_384M>,
-					<&mm_clk CLK_TWPLL_384M>,
+					<&pll2 CLK_TWPLL_192M>,
+					<&pll2 CLK_TWPLL_256M>,
+					<&pll2 CLK_TWPLL_307M2>,
+					<&pll2 CLK_TWPLL_384M>,
+					<&pll2 CLK_TWPLL_384M>,
 					<&mm_gate CLK_DCAM_AXI_EB>,
 					<&mm_clk CLK_DCAM_AXI>,
-					<&mm_clk CLK_TWPLL_192M>,
-					<&mm_clk CLK_TWPLL_256M>,
-					<&mm_clk CLK_TWPLL_307M2>,
-					<&mm_clk CLK_TWPLL_384M>,
-					<&mm_clk CLK_TWPLL_384M>;
+					<&pll2 CLK_TWPLL_192M>,
+					<&pll2 CLK_TWPLL_256M>,
+					<&pll2 CLK_TWPLL_307M2>,
+					<&pll2 CLK_TWPLL_384M>,
+					<&pll2 CLK_TWPLL_384M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
 				/*iommus = <&iommu_dcam>;*/
+				dcam_qos = <&dcam_qos>;
 				status = "disabled";
 			};
 
@@ -484,14 +498,15 @@
 				clocks = <&mm_gate CLK_MM_ISP_EB>,
 					<&mm_gate CLK_ISP_AHB_EB>,
 					<&mm_clk CLK_ISP>,
-					<&mm_clk CLK_TWPLL_256M>,
-					<&mm_clk CLK_TWPLL_307M2>,
-					<&mm_clk CLK_TWPLL_384M>,
-					<&mm_clk CLK_ISPPLL_468M>,
-					<&mm_clk CLK_ISPPLL_468M>;
+					<&pll2 CLK_TWPLL_256M>,
+					<&pll2 CLK_TWPLL_307M2>,
+					<&pll2 CLK_TWPLL_384M>,
+					<&pll2 CLK_ISPPLL_468M>,
+					<&pll2 CLK_ISPPLL_468M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp-count = <1>;
 				/*iommus = <&iommu_isp>;*/
+				isp_qos = <&isp_qos>;
 				status = "disabled";
 			};
 
@@ -507,9 +522,10 @@
 				clocks = <&mm_gate CLK_MM_FD_EB>,
 					<&mm_gate CLK_MM_ISP_EB>,
 					<&mm_clk CLK_FD>,
-					<&mm_clk CLK_TWPLL_384M>;
+					<&pll2 CLK_TWPLL_384M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				/*iommus = <&iommu_fd>;*/
+				fd_qos = <&fd_qos>;
 				status = "disabled";
 			};
 
@@ -524,9 +540,10 @@
 				clocks = <&mm_gate CLK_MM_CPP_EB>,
 					<&mm_gate CLK_MM_ISP_EB>,
 					<&mm_clk CLK_CPP>,
-					<&mm_clk CLK_TWPLL_307M2>;
+					<&pll2 CLK_TWPLL_307M2>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				/*iommus = <&iommu_cpp>;*/
+				cpp_qos = <&cpp_qos>;
 				status = "disabled";
 			};
 
