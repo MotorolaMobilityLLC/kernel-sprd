@@ -1,0 +1,48 @@
+* Spreadtrum headset driver
+
+This node models spreadtrum headset driver
+
+Required properties:
+
+- compatible : "sprd,headset",
+- sprd,jack-type: headset jack type, normal open/close
+- io-channels: adc channel used to read headset adc
+- io-channel-names: adc channel name
+- gpios: TOP EIC GPIO
+- sprd,debounce-interval: headset plugin/plugout debounce time
+- gpio-names: the GPIO name of TOP EIC
+- sprd,adc-threshold-3pole-detect: threshold value to distinguish 3 pole or 4 pole
+- sprd,adc-gnd: GND adc value
+- sprd,stable-value: stable adc value
+- sprd,coefficient: coefficient used to calculate voltage
+- sprd,irq-threshold-button: button threshold value
+- nvmem-cells: cells used to read efuse value
+- nvmem-cell-names: names of cells
+- sprd,headset-button: headset key
+- adc-min: minimum adc value of a headset key
+- adc-max: maximum adc value of a headset key
+- code: headset key ID
+
+Example:
+sprd_headset: sprd-headset {
+		compatible = "sprd,headset";
+		sprd,jack-type = <0>;
+		io-channels = <&pmic_adc 20>;
+		io-channel-names = "headmic_in_little";
+		gpios = <&pmic_eic 6 GPIO_ACTIVE_HIGH>;
+		sprd,debounce-interval = <10>;
+		gpio-names = "aud_int_all";
+		sprd,adc-threshold-3pole-detect = <3054>;
+		sprd,adc-gnd = <336>;
+		sprd,stable-value = <2223>;
+		sprd,coefficient = <906270>;
+		sprd,irq-threshold-button = <5>;
+		nvmem-cells = <&headset_adc_fir>, <&headset_adc_sec>;
+		nvmem-cell-names = "hp_adc_fir_calib", "hp_adc_sec_calib";
+
+		sprd,headset-button@0 {
+			adc-min = <0>;
+			adc-max = <399>;
+			code = <226>;
+		};
+	};

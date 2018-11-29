@@ -36,6 +36,15 @@
 #define EP_FLAG_RUNNING		1
 #define EP_FLAG_STOPPING	2
 
+void sprd_musb_i2s_config(int ep_num, int mono,
+	int is_pcm_24, int width, int rate, int is_offload_mod)
+	__attribute__((weak, alias("__sprd_musb_i2s_config")));
+static void __sprd_musb_i2s_config(int ep_num, int mono,
+	int is_pcm_24, int width, int rate, int is_offload_mod)
+{
+	pr_debug("%s\n", __func__);
+}
+
 /*
  * snd_usb_endpoint is a model that abstracts everything related to an
  * USB endpoint and its streaming.
@@ -917,6 +926,45 @@ int snd_usb_endpoint_set_params(struct snd_usb_endpoint *ep,
 	return err;
 }
 
+enum {
+	USB_AUD_IIS_WIDTH_16,
+	USB_AUD_IIS_WIDTH_24,
+};
+
+/*
+ * @return: 0 not offload mod, 1 offload mod
+ */
+static int sprd_usb_audio_offload_check(struct snd_usb_audio *chip,
+	int stream)
+{
+	int is_offload_mod;
+
+	if (stream != SNDRV_PCM_STREAM_PLAYBACK ||
+		stream != SNDRV_PCM_STREAM_CAPTURE) {
+		is_offload_mod = 0;
+		pr_err("%s invalid stream %d\n", __func__, stream);
+		goto out;
+	}
+
+	if (!chip) {
+		pr_err("%s chip is null stream =%d\n", __func__, stream);
+		is_offload_mod = 0;
+		return 0;
+	}
+	if (chip->usb_aud_ofld_en[SNDRV_PCM_STREAM_PLAYBACK] &&
+		chip->usb_aud_ofld_en[SNDRV_PCM_STREAM_CAPTURE])
+		is_offload_mod = 1;
+	else
+		is_offload_mod = 0;
+out:
+	pr_info("%s stream=%s, ply %d, cap %d\n", __func__,
+		stream == SNDRV_PCM_STREAM_PLAYBACK ? "playback" : "capture",
+		chip->usb_aud_ofld_en[SNDRV_PCM_STREAM_PLAYBACK],
+		chip->usb_aud_ofld_en[SNDRV_PCM_STREAM_CAPTURE]);
+
+	return is_offload_mod;
+}
+
 /**
  * snd_usb_endpoint_start: start an snd_usb_endpoint
  *
@@ -934,9 +982,52 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 {
 	int err;
 	unsigned int i;
+			struct snd_usb_substream *subs = ep->data_subs;
+			int is_mono;
+			int is_pcm_24bit;
+			int is_offload_mod;
+			int iis_width;
+			int ofld_rate;
 
 	if (atomic_read(&ep->chip->shutdown))
 		return -EBADFD;
+
+	if (!subs) {
+		pr_err("%s invalid data_subs\n", __func__);
+		return -EINVAL;
+	}
+	iis_width = USB_AUD_IIS_WIDTH_24;
+	ofld_rate = 48;
+	switch (subs->channels) {
+	case 2:
+		is_mono = false;
+		break;
+	case 1:
+		is_mono = true;
+		break;
+	default:
+		is_mono = false;
+		pr_err("%s invalid channel %d\n", __func__, subs->channels);
+		break;
+	}
+	/* pcm fmt */
+	switch (subs->pcm_format) {
+	case SNDRV_PCM_FORMAT_S16_LE:
+		is_pcm_24bit = 0;
+		break;
+	case SNDRV_PCM_FORMAT_S24_LE:
+		is_pcm_24bit = 1;
+		break;
+	default:
+		is_pcm_24bit = 0;
+		pr_err("%s unknown pcm format %d\n",
+				__func__, subs->pcm_format);
+		break;
+	}
+
+	pr_info("%s channels = %d, %s, %s",
+		__func__, subs->channels, is_mono ? "is mono" : "is stereo",
+		is_pcm_24bit ? "pcm 24" : "pcm 16bit");
 
 	/* already running? */
 	if (++ep->use_count != 1)
@@ -968,6 +1059,12 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 
 		return 0;
 	}
+	pr_info("%s config usb i2s\n", __func__);
+	is_offload_mod = sprd_usb_audio_offload_check(ep->chip,
+			subs->direction);
+	if (is_offload_mod)
+		sprd_musb_i2s_config(ep->ep_num, is_mono, is_pcm_24bit,
+			iis_width, 48, is_offload_mod);
 
 	for (i = 0; i < ep->nurbs; i++) {
 		struct urb *urb = ep->urb[i].urb;

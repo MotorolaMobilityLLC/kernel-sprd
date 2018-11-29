@@ -80,6 +80,14 @@
 			cc_cal: calib@d {
 				reg = <0xd 0x2>;
 			};
+
+			headset_adc_fir: calib@14 {
+				reg = <0x14 0x2>;
+			};
+
+			headset_adc_sec: calib@16 {
+				reg = <0x16 0x2>;
+			};
 		};
 
 		pmic_typec: typec@380 {
@@ -112,6 +120,15 @@
 			io-channel-names = "bat-temp", "charge-vol";
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <3 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		sprd_audio_codec_ana: audio-codec@1000 {
+			compatible = "sprd,sc2730-audio-codec",
+				"sprd,sc27xx-audio-codec";
+			#sound-dai-cells = <1>;
+			reg = <0x1000>;
+			sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+			status = "disabled";
 		};
 
 		syscon@1800 {

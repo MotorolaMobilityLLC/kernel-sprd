@@ -102,7 +102,7 @@
 			reg = <0x0 0x80000000 0x0 0x00001000>;
 		};
 
-		aduio_reserved: audio-mem@87400000{
+		audio_reserved: audio-mem@87400000{
 			reg = <0x0 0x87400000 0x0 0x00400000>;
 		};
 

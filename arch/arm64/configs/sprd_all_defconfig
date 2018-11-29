@@ -1308,6 +1308,11 @@ CONFIG_WCN_BOOT=y
 CONFIG_WCN_UTILS=y
 
 #
+# Spreadtrum Audio Assistant Modules
+#
+# CONFIG_SPRD_AUDIO_MCDT is not set
+
+#
 # SCSI device support
 #
 CONFIG_SCSI_MOD=y
@@ -2713,6 +2718,7 @@ CONFIG_SND_SOC=y
 #
 # CONFIG_SND_SOC_XTFPGA_I2S is not set
 # CONFIG_ZX_TDM is not set
+# CONFIG_SND_SOC_SPRD is not set
 CONFIG_SND_SOC_I2C_AND_SPI=y
 
 #

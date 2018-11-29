@@ -52,6 +52,7 @@
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/initval.h>
+#include <sound/soc.h>
 
 #include "usbaudio.h"
 #include "card.h"
@@ -526,6 +527,100 @@ get_alias_quirk(struct usb_device *dev, unsigned int id)
 	return NULL;
 }
 
+static int sprd_usb_offload_enable_get(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_usb_audio *chip = snd_kcontrol_chip(kcontrol);
+	struct soc_mixer_control *mc =
+		(struct soc_mixer_control *)kcontrol->private_value;
+	int stream = mc->shift;
+
+	if (!chip) {
+		pr_err("%s chip is null\n", __func__);
+		return 0;
+	}
+	if (stream > SNDRV_PCM_STREAM_LAST) {
+		pr_err("%s invalid pcm stream %d", __func__, stream);
+		return 0;
+	}
+
+	ucontrol->value.integer.value[0] = chip->usb_aud_ofld_en[stream];
+	pr_info("%s audio usb offload %s %s\n", __func__,
+		(stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture",
+		chip->usb_aud_ofld_en[stream] ? "ON" : "OFF");
+
+	return 0;
+}
+
+static int sprd_usb_offload_enable_put(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_usb_audio *chip = snd_kcontrol_chip(kcontrol);
+	struct soc_mixer_control *mc =
+	(struct soc_mixer_control *)kcontrol->private_value;
+	int stream = mc->shift;
+	int max = mc->max;
+	int val;
+
+	if (!chip) {
+		pr_err("%s chip is null\n", __func__);
+		return 0;
+	}
+	if (stream > SNDRV_PCM_STREAM_LAST) {
+		pr_err("%s invalid pcm stream %d", __func__, stream);
+		return 0;
+	}
+	val = ucontrol->value.integer.value[0];
+	if (val > max) {
+		pr_err("val is invalid\n");
+		return -EINVAL;
+	}
+	chip->usb_aud_ofld_en[stream] = val;
+	pr_info("%s audio usb offload %s %s, val=%#x\n", __func__,
+		(stream == SNDRV_PCM_STREAM_PLAYBACK) ? "playback" : "capture",
+		chip->usb_aud_ofld_en[stream] ? "ON" : "OFF",
+		chip->usb_aud_ofld_en[stream]);
+
+	return 0;
+}
+
+static struct snd_kcontrol_new sprd_controls[] = {
+	SOC_SINGLE_EXT("USB_AUD_OFLD_P_EN", SND_SOC_NOPM,
+		SNDRV_PCM_STREAM_PLAYBACK, 1, 0,
+		sprd_usb_offload_enable_get,
+		sprd_usb_offload_enable_put),
+	SOC_SINGLE_EXT("USB_AUD_OFLD_C_EN", SND_SOC_NOPM,
+		SNDRV_PCM_STREAM_CAPTURE, 1, 0,
+		sprd_usb_offload_enable_get,
+		sprd_usb_offload_enable_put),
+	{},
+};
+
+static int sprd_usb_control_add(struct snd_usb_audio *chip)
+{
+	int ret = 0;
+	int i = 0;
+
+	if (!chip) {
+		pr_err("%s failed chip is null\n", __func__);
+		return -EINVAL;
+	}
+
+	while (sprd_controls[i].name) {
+		ret = snd_ctl_add(chip->card, snd_ctl_new1(&sprd_controls[i],
+				chip));
+		if (ret < 0) {
+			dev_err(&chip->dev->dev, "cannot add control.\n");
+			return ret;
+		}
+		i++;
+	}
+
+	return 0;
+}
+
+
+
 /*
  * probe the active usb device
  *
@@ -600,6 +695,7 @@ static int usb_audio_probe(struct usb_interface *intf,
 			err = -ENODEV;
 			goto __error;
 		}
+		sprd_usb_control_add(chip);
 	}
 	dev_set_drvdata(&dev->dev, chip);
 

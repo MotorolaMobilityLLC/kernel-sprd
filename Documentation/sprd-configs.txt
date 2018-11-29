@@ -7832,6 +7832,13 @@ CONFIG_SND
 	[subsys] sound
 	[must] user
 	[function] enable Advanced Linux Sound Architecture
+CONFIG_SND_COMPRESS_OFFLOAD
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] audio compress offload support
 CONFIG_SND_DRIVERS
 	[arch] all
 	[plat] all
@@ -7839,6 +7846,13 @@ CONFIG_SND_DRIVERS
 	[subsys] sound
 	[must] user
 	[function] audio moudle base config
+CONFIG_SND_DYNAMIC_MINORS
+	[arch] all
+	[plat] all
+	[field] code
+	[subsys] sound
+	[must] user
+	[function] sound support dynamic device allocation
 CONFIG_SND_HDA_PREALLOC_SIZE
 	[arch] all
 	[plat] all
@@ -7868,6 +7882,13 @@ CONFIG_SND_JACK_INPUT_DEV
 	[subsys]
 	[must]
 	[function]
+CONFIG_SND_MAX_CARDS
+	[arch] all
+	[plat] all
+	[field] code
+	[subsys] sound
+	[must] user
+	[function] support max 32 device
 CONFIG_SND_PCM
 	[arch] all
 	[plat] all
@@ -7903,6 +7924,13 @@ CONFIG_SND_SOC
 	[subsys] sound
 	[must] user
 	[function] ALSA for SoC audio support
+CONFIG_SND_SOC_COMPRESS
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] sound support compress
 CONFIG_SND_SOC_I2C_AND_SPI
 	[arch] all
 	[plat] all
@@ -7910,6 +7938,34 @@ CONFIG_SND_SOC_I2C_AND_SPI
 	[subsys] sound
 	[must] user
 	[function] enable I2C and SPI bus for audio codec
+CONFIG_SND_SOC_SPRD
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] snd soc common code
+CONFIG_SND_SOC_SPRD_CODEC_SC2730
+	[arch] all
+	[plat] sharkl5
+	[field] make, code
+	[subsys] sound
+	[must] user
+	[function] snd codec dai
+CONFIG_SND_SOC_SPRD_VBC_V4
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] snd soc cpu dai
+CONFIG_SND_SOC_SPRD_VBC_V4_SC2730
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] snd soc machine code
 CONFIG_SND_SUPPORT_OLD_API
 	[arch] all
 	[plat] all
@@ -8073,6 +8129,41 @@ CONFIG_SPRD_CPROC
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sprd cproc module for modem boot.
+CONFIG_SPRD_AUDIO_AGDSP_ACCESS
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] audio dsp access
+CONFIG_SPRD_AUDIO_DSP_DUMP
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] audio dsp memory and log dump
+CONFIG_SPRD_AUDIO_MEMORY_MANAGER
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] audio memory allocation
+CONFIG_SPRD_AUDIO_SIPC
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] sound communication with audio dsp
+CONFIG_SPRD_AUDIO_MCDT
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] sound data transmission channel with dsp
 CONFIG_SPRD_DEBUG
 	[arch] all
 	[plat] all

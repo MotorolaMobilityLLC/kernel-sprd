@@ -1,0 +1,1 @@
+source "sound/soc/sprd/codec/sprd/sc2730/Kconfig"

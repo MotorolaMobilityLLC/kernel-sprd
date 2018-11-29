@@ -12,6 +12,7 @@
 
 #include "ums510.dtsi"
 #include "ums510-common.dtsi"
+#include "sprd-sound-fe-be.dtsi"
 #include "sc2730.dtsi"
 #include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
 
@@ -226,6 +227,10 @@
 		compatible = "sprd,gnss-common-ctl";
 		sprd,name = "gnss-common-ctl";
 	};
+
+	audio-mem-mgr {
+		memory-region = <&audio_reserved>;
+	};
 };
 
 &uart0 {
@@ -407,5 +412,20 @@
 };
 
 &mipi_csi_phy1_s {
+	status = "okay";
+};
+
+&sprd_headset {
+	status = "okay";
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	hp-use-inter-pa = <1>;
+	fixed-sample-rate = <48000 48000 48000>;
+	digital-codec = <&sprd_audio_codec_dig>;
+};
+
+&sound_vbc_v4_sprd_codec {
 	status = "okay";
 };

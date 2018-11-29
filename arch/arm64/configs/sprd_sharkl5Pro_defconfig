@@ -1216,6 +1216,11 @@ CONFIG_MEMORY_STATE_TIME=y
 # CONFIG_WCN_UTILS is not set
 
 #
+# Spreadtrum Audio Assistant Modules
+#
+# CONFIG_SPRD_AUDIO_MCDT is not set
+
+#
 # SCSI device support
 #
 CONFIG_SCSI_MOD=y

@@ -26,9 +26,7 @@
 #define USB_ID_VENDOR(id) ((id) >> 16)
 #define USB_ID_PRODUCT(id) ((u16)(id))
 
-/*
- *
- */
+#define SPRD_AUD_PCM_STREAM_MAX 2
 
 struct snd_usb_audio {
 	int index;
@@ -61,6 +59,7 @@ struct snd_usb_audio {
 	bool autoclock;			/* from the 'autoclock' module param */
 
 	struct usb_host_interface *ctrl_intf;	/* the audio control interface */
+	int usb_aud_ofld_en[SPRD_AUD_PCM_STREAM_MAX];
 };
 
 #define usb_audio_err(chip, fmt, args...) \
