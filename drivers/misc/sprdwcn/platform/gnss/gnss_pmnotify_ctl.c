@@ -21,7 +21,7 @@
 #include <linux/module.h>
 #include <linux/miscdevice.h>
 #include <linux/major.h>
-#include <misc/marlin_platform.h>
+#include <linux/marlin_platform.h>
 #include <linux/of.h>
 #include <linux/of_gpio.h>
 #include <linux/of_device.h>
@@ -33,8 +33,9 @@
 #include <linux/timer.h>
 #include <linux/types.h>
 #include <linux/uaccess.h>
+#include <linux/wakelock.h>
 #include <linux/wait.h>
-
+#include "gnss_common.h"
 #define GNSS_DATA_MAX_LEN	16
 
 struct sprd_gnss {
@@ -46,6 +47,7 @@ struct sprd_gnss {
 };
 
 static struct sprd_gnss gnss_dev;
+static int gnss_delay_cancel;
 
 static int gnss_pmnotify_ctl_open(struct inode *inode, struct file *filp)
 {
@@ -60,19 +62,19 @@ static int gnss_pmnotify_ctl_release(struct inode *inode, struct file *filp)
 static int gnss_pm_notify(struct notifier_block *nb,
 			  unsigned long event, void *dummy)
 {
-	pr_info("%s event:%ld\n", __func__, event);
+	int i = 10;
 
-	switch (event) {
-	case PM_SUSPEND_PREPARE:
+	if (event == PM_SUSPEND_PREPARE) {
 		gnss_dev.gnss_flag_sleep = true;
-		gnss_dev.gnss_flag_resume = false;
-		break;
-	case PM_POST_SUSPEND:
-		gnss_dev.gnss_flag_resume = true;
+		wake_up_interruptible(&gnss_dev.gnss_sleep_wait);
+		gnss_delay_cancel = 0;
+		while (gnss_delay_ctl() && (i--) &&
+				(gnss_delay_cancel != 1)) {
+			mdelay(2);
+		}
+	} else
 		gnss_dev.gnss_flag_sleep = false;
-		break;
-	}
-	wake_up_interruptible(&gnss_dev.gnss_sleep_wait);
+	pr_info("%s event:%ld\n", __func__, event);
 
 	return NOTIFY_OK;
 }
@@ -86,21 +88,8 @@ static unsigned int gnss_pmnotify_ctl_poll(struct file *filp, poll_table *wait)
 	unsigned int mask = 0;
 
 	poll_wait(filp, &gnss_dev.gnss_sleep_wait, wait);
-	if (gnss_dev.gnss_flag_sleep) {
-		pr_info("%s gnss_flag_sleep:%d\n",
-			__func__, gnss_dev.gnss_flag_sleep);
-		gnss_dev.gnss_flag_sleep = false;
-		memcpy(gnss_dev.gnss_status, "gnss_sleep ", GNSS_DATA_MAX_LEN);
+	if (gnss_dev.gnss_flag_sleep == true)
 		mask |= POLLIN | POLLRDNORM;
-	}
-
-	if (gnss_dev.gnss_flag_resume) {
-		pr_info("%s gnss_flag_resume:%d\n",
-			__func__, gnss_dev.gnss_flag_resume);
-		gnss_dev.gnss_flag_resume = false;
-		memcpy(gnss_dev.gnss_status, "gnss_resume", GNSS_DATA_MAX_LEN);
-		mask |= POLLIN | POLLRDNORM;
-	}
 
 	return mask;
 }
@@ -108,13 +97,9 @@ static unsigned int gnss_pmnotify_ctl_poll(struct file *filp, poll_table *wait)
 static ssize_t gnss_pmnotify_ctl_read(struct file *filp,
 			  char __user *buf, size_t count, loff_t *pos)
 {
-	if (count < GNSS_DATA_MAX_LEN)
-		return -EINVAL;
+	gnss_delay_cancel = 1;
 
-	if (copy_to_user(buf, gnss_dev.gnss_status, GNSS_DATA_MAX_LEN))
-		return -EFAULT;
-
-	return count;
+	return (gnss_dev.gnss_flag_sleep == true) ? 1:0;
 }
 
 static const struct file_operations gnss_pmnotify_ctl_fops = {
@@ -135,7 +120,7 @@ static int __init gnss_pmnotify_ctl_init(void)
 {
 	int err = 0;
 
-	pr_info("%s\n", __func__);
+	pr_info("gnss_pmnotify_ctl_init\n");
 	err = misc_register(&gnss_pmnotify_ctl_device);
 	if (err)
 		pr_err("gnss_pmnotify_ctl_device add failed!!!\n");

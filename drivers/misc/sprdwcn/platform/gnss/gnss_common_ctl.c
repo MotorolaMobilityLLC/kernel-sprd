@@ -19,7 +19,7 @@
 #endif
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <misc/marlin_platform.h>
+#include <linux/marlin_platform.h>
 #include <linux/mfd/sprd/pmic_glb_reg.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
@@ -30,8 +30,9 @@
 #include <linux/regmap.h>
 #include <linux/slab.h>
 #include <linux/sysfs.h>
-#include <misc/wcn_bus.h>
+#include <soc/sprd/wcn_bus.h>
 
+#include "../wcn_gnss.h"
 #include "../../include/wcn_glb_reg.h"
 #include "gnss_common.h"
 #include "gnss_dump.h"
@@ -64,8 +65,20 @@ enum gnss_status_e {
 	GNSS_STATUS_POWERON_GOING,
 	GNSS_STATUS_MAX,
 };
+#ifdef CONFIG_SC2342_INTEG
+enum gnss_cp_status_subtype {
+	GNSS_CP_STATUS_CALI = 1,
+	GNSS_CP_STATUS_INIT = 2,
+	GNSS_CP_STATUS_INIT_DONE = 3,
+	GNSS_CP_STATUS_IDLEOFF = 4,
+	GNSS_CP_STATUS_IDLEON = 5,
+	GNSS_CP_STATUS_SLEEP = 6,
+	GNSS_CP_STATUS__MAX,
+};
 
 unsigned int gnssver = 0x22;
+struct completion gnss_dump_complete;
+#endif
 static const struct of_device_id gnss_common_ctl_of_match[] = {
 	{.compatible = "sprd,gnss-common-ctl", .data = (void *)&gnssver},
 	{},
@@ -77,6 +90,7 @@ struct gnss_cali {
 	u32 *cali_data;
 };
 static struct gnss_cali gnss_cali_data;
+static u32 gnss_efuse_data[3];
 
 
 #ifdef GNSSDEBUG
@@ -98,52 +112,96 @@ static int gnss_cali_init(void)
 
 	#ifdef GNSSDEBUG
 	init_completion(&marlin_dev.gnss_cali_done);
-	sdio_pub_int_regcb(GNSS_CALI_DONE, (PUB_INT_ISR)gnss_cali_done_isr);
+	sdio_pub_int_RegCb(GNSS_CALI_DONE, (PUB_INT_ISR)gnss_cali_done_isr);
 	#endif
+
 	return 0;
 }
 
-static int gnss_write_cali_data(void)
+int gnss_write_cali_data(void)
 {
+	GNSSCOMM_INFO("gnss write calidata, flag %d\n",
+			gnss_cali_data.cali_done);
 	if (gnss_cali_data.cali_done) {
 		sprdwcn_bus_direct_write(GNSS_CALI_ADDRESS,
 			gnss_cali_data.cali_data, GNSS_CALI_DATA_SIZE);
 	}
-	GNSSCOMM_INFO("gnss write calidata successful\n");
 	return 0;
+}
+
+int gnss_write_efuse_data(void)
+{
+	GNSSCOMM_INFO("%s flag %d\n", __func__,	gnss_cali_data.cali_done);
+	if (gnss_cali_data.cali_done)
+		sprdwcn_bus_direct_write(GNSS_EFUSE_ADDRESS,
+					 &gnss_efuse_data[0],
+					 GNSS_EFUSE_DATA_SIZE);
+
+	return 0;
+}
+
+int gnss_write_data(void)
+{
+	int ret = 0;
+
+	gnss_write_cali_data();
+	ret = gnss_write_efuse_data();
+
+	return ret;
 }
 
 int gnss_backup_cali(void)
 {
-
-#ifdef GNSSDEBUG
-	int i = 0;
-#endif
+	int i = 10;
+	int tempvalue = 0;
 
 	if (!gnss_cali_data.cali_done) {
 		GNSSCOMM_INFO("%s begin\n", __func__);
-#ifdef GNSSDEBUG
 		if (gnss_cali_data.cali_data != NULL) {
-			do {
+			while (i--) {
 				sprdwcn_bus_direct_read(GNSS_CALI_ADDRESS,
 					gnss_cali_data.cali_data,
 					GNSS_CALI_DATA_SIZE);
-				msleep(50);
-				if (i == 10)
-					break;
-				i++;
-				GNSSCOMM_INFO(" cali time out i = %d\n", i);
-			} while (*(gnss_cali_data.cali_data) !=
-				GNSS_CALI_DONE_FLAG)
+				tempvalue = *(gnss_cali_data.cali_data);
+				GNSSCOMM_ERR(" cali %d time, value is 0x%x\n",
+							i, tempvalue);
+				if (tempvalue != GNSS_CALI_DONE_FLAG) {
+					msleep(100);
+					continue;
+				}
+				GNSSCOMM_INFO(" cali success\n");
+				gnss_cali_data.cali_done = true;
+				break;
+			}
 		}
-#endif
-		gnss_cali_data.cali_done = true;
-	}
-	GNSSCOMM_INFO("gnss backup calidata successful\n");
+	} else
+		GNSSCOMM_INFO(" no need back again\n");
 
 	return 0;
 }
 
+int gnss_backup_efuse(void)
+{
+	if (gnss_cali_data.cali_done) { /* efuse data is ok when cali done */
+		sprdwcn_bus_direct_read(GNSS_EFUSE_ADDRESS,
+					&gnss_efuse_data[0],
+					GNSS_EFUSE_DATA_SIZE);
+		GNSSCOMM_ERR("%s 0x%x\n", __func__, gnss_efuse_data[0]);
+	} else
+		GNSSCOMM_INFO("%s no need back again\n", __func__);
+
+	return 0;
+}
+
+int gnss_backup_data(void)
+{
+	int ret;
+
+	gnss_backup_cali();
+	ret = gnss_backup_efuse();
+
+	return ret;
+}
 #endif
 
 static void gnss_power_on(bool enable)
@@ -153,9 +211,6 @@ static void gnss_power_on(bool enable)
 	GNSSCOMM_INFO("%s:enable=%d,current gnss_status=%d\n", __func__,
 			enable, gnss_common_ctl_dev.gnss_status);
 	if (enable && gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWEROFF) {
-#ifndef CONFIG_SC2342_INTEG
-		gnss_write_cali_data();
-#endif
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWERON_GOING;
 		ret = start_marlin(gnss_common_ctl_dev.gnss_subsys);
 		if (ret != 0)
@@ -250,12 +305,64 @@ static ssize_t gnss_subsys_show(struct device *dev,
 
 static DEVICE_ATTR_RW(gnss_subsys);
 
+#ifdef CONFIG_SC2342_INTEG
+static int gnss_status_get(void)
+{
+	phys_addr_t phy_addr;
+	u32 magic_value;
+
+	phy_addr = wcn_get_gnss_base_addr() + GNSS_STATUS_OFFSET;
+	wcn_read_data_from_phy_addr(phy_addr, &magic_value, sizeof(u32));
+	GNSSCOMM_INFO("[%s] magic_value=%d\n", __func__, magic_value);
+
+	return magic_value;
+}
+
+void gnss_dump_mem_ctrl_co(void)
+{
+	char flag = 0; /* 0: default, all, 1: only data, pmu, aon */
+	unsigned int temp_status = 0;
+	static char dump_flag;
+
+	GNSSCOMM_INFO("[%s], flag is %d\n", __func__, dump_flag);
+	if (dump_flag == 1)
+		return;
+	dump_flag = 1;
+	temp_status = gnss_common_ctl_dev.gnss_status;
+	if ((temp_status == GNSS_STATUS_POWERON_GOING) ||
+		((temp_status == GNSS_STATUS_POWERON) &&
+		(gnss_status_get() != GNSS_CP_STATUS_SLEEP))) {
+		flag = (temp_status == GNSS_STATUS_POWERON) ? 0 : 1;
+		gnss_dump_mem(flag);
+		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_ASSERT;
+	}
+	complete(&gnss_dump_complete);
+}
+#else
+int gnss_dump_mem_ctrl(void)
+{
+	int ret = -1;
+	static char dump_flag;
+
+	GNSSCOMM_INFO("[%s], flag is %d\n", __func__, dump_flag);
+	if (dump_flag == 1)
+		return 0;
+	dump_flag = 1;
+	if (gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWERON) {
+		ret = gnss_dump_mem(0);
+		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_ASSERT;
+	}
+
+	return ret;
+}
+#endif
 static ssize_t gnss_dump_store(struct device *dev,
 				  struct device_attribute *attr,
 				  const char *buf, size_t count)
 {
 	unsigned long set_value;
-	int ret = 0;
+	int ret = -1;
+	int temp = 0;
 
 	if (kstrtoul(buf, GNSS_MAX_STRING_LEN, &set_value)) {
 		GNSSCOMM_ERR("%s, store string is too long\n", __func__);
@@ -263,12 +370,21 @@ static ssize_t gnss_dump_store(struct device *dev,
 	}
 	GNSSCOMM_INFO("%s,%lu\n", __func__, set_value);
 	if (set_value == 1) {
-		ret = gnss_dump_mem();
-		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_ASSERT;
-		if (!ret)
+#ifdef CONFIG_SC2342_INTEG
+		temp = wait_for_completion_timeout(&gnss_dump_complete,
+						   msecs_to_jiffies(6000));
+		GNSSCOMM_INFO("%s exit %d\n", __func__,
+			      jiffies_to_msecs(temp));
+		if (temp > 0)
 			ret = GNSS_DUMP_DATA_SUCCESS;
 		else
-			ret = -1;
+			gnss_dump_mem_ctrl_co();
+#else
+		temp = gnss_dump_mem_ctrl();
+		GNSSCOMM_INFO("%s exit temp %d\n", __func__, temp);
+		if (temp == 0)
+			ret = GNSS_DUMP_DATA_SUCCESS;
+#endif
 	} else
 		count = -EINVAL;
 
@@ -334,6 +450,11 @@ static ssize_t gnss_regwrite_store(struct device *dev,
 static DEVICE_ATTR_WO(gnss_regwrite);
 #endif
 
+bool gnss_delay_ctl(void)
+{
+	return (gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWERON);
+}
+
 static struct attribute *gnss_common_ctl_attrs[] = {
 	&dev_attr_gnss_power_enable.attr,
 	&dev_attr_gnss_dump.attr,
@@ -356,6 +477,14 @@ static struct miscdevice gnss_common_ctl_miscdev = {
 	.name = "gnss_common_ctl",
 	.fops = NULL,
 };
+
+#ifndef CONFIG_SC2342_INTEG
+struct sprdwcn_gnss_ops gnss_common_ctl_ops = {
+	.backup_data = gnss_backup_data,
+	.write_data = gnss_write_data,
+	.set_file_path = gnss_file_path_set
+};
+#endif
 
 static int gnss_common_ctl_probe(struct platform_device *pdev)
 {
@@ -399,6 +528,14 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 		goto err_attr_failed;
 	}
 
+#ifdef CONFIG_SC2342_INTEG
+	/* register dump callback func for mdbg */
+	mdbg_dump_gnss_register(gnss_dump_mem_ctrl_co, NULL);
+	init_completion(&gnss_dump_complete);
+#else
+	wcn_gnss_ops_register(&gnss_common_ctl_ops);
+#endif
+
 	return 0;
 
 err_attr_failed:
@@ -408,6 +545,9 @@ err_attr_failed:
 
 static int gnss_common_ctl_remove(struct platform_device *pdev)
 {
+#ifndef CONFIG_SC2342_INTEG
+	wcn_gnss_ops_unregister();
+#endif
 	sysfs_remove_group(&gnss_common_ctl_miscdev.this_device->kobj,
 				&gnss_common_ctl_group);
 

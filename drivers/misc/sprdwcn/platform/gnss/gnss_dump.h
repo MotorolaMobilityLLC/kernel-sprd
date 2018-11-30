@@ -46,18 +46,22 @@
 #define DUMP_WCN_CP_CLK_CORE_ADDR	0xD0020000
 #define DUMP_WCN_CP_CLK_LEN		0x100
 /* cp reg end */
+
+#define ANLG_WCN_WRITE_ADDR 0XFF4
+#define ANLG_WCN_READ_ADDR 0XFFC
+
 #else
 #define GNSS_DRAM_ADDR      0x40a80000
 #define GNSS_DRAM_SIZE      0x30000
 #define GNSS_TE_MEM         0x40e40000
 #define GNSS_TE_MEM_SIZE    0x30000
-#define GNSS_BASE_AON_APB   0x4283c000
+#define GNSS_BASE_AON_APB   0x4083c000
 #define GNSS_BASE_AON_APB_SIZE 0x354
-#define CTL_BASE_AON_CLOCK  0x42844200
+#define CTL_BASE_AON_CLOCK  0x40844200
 #define CTL_BASE_AON_CLOCK_SIZE  0x144
 
 
 #endif
-int gnss_dump_mem(void);
+int gnss_dump_mem(char flag);
 
 #endif

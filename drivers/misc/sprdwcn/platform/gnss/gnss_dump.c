@@ -17,7 +17,7 @@
 #include <linux/gnss.h>
 #endif
 #include <linux/kthread.h>
-#include <misc/marlin_platform.h>
+#include <linux/marlin_platform.h>
 #include <linux/printk.h>
 #include <linux/sdiom_rx_api.h>
 #include <linux/sdiom_tx_api.h>
@@ -26,7 +26,7 @@
 #include <linux/syscalls.h>
 #include <linux/unistd.h>
 #include <linux/wait.h>
-#include <misc/wcn_bus.h>
+#include <soc/sprd/wcn_bus.h>
 
 #include "wcn_glb.h"
 #include "gnss_common.h"
@@ -39,7 +39,7 @@
 
 static struct file *gnss_dump_file;
 static	loff_t pos;
-#define GNSS_MEMDUMP_PATH			"/data/gnss/gnssdump.mem"
+#define GNSS_MEMDUMP_PATH			"/data/vendor/gnss/gnssdump.mem"
 
 #ifndef CONFIG_SC2342_INTEG
 struct gnss_mem_dump {
@@ -97,6 +97,7 @@ static struct regmap_dump gnss_sharkl3_ap_reg[] = {
 	{REGMAP_PMU_APB, 0x0108}, /* REG_PMU_APB_PD_GNSS_WRAP_CFG */
 };
 #define GNSS_DUMP_REG_NUMBER 8
+static char gnss_dump_level; /* 0: default, all, 1: only data, pmu, aon */
 
 #endif
 
@@ -104,7 +105,7 @@ static int gnss_creat_gnss_dump_file(void)
 {
 	gnss_dump_file = filp_open(GNSS_MEMDUMP_PATH,
 		O_RDWR | O_CREAT | O_TRUNC, 0666);
-	GNSSDUMP_INFO("%s entry\n", __func__);
+	GNSSDUMP_ERR("gnss_creat_gnss_dump_file entry\n");
 	if (IS_ERR(gnss_dump_file)) {
 		GNSSDUMP_ERR("%s error is %p\n",
 			__func__, gnss_dump_file);
@@ -122,7 +123,7 @@ static void gnss_write_data_to_phy_addr(phys_addr_t phy_addr,
 {
 	void *virt_addr;
 
-	GNSSDUMP_INFO("%s entry\n", __func__);
+	GNSSDUMP_ERR("gnss_write_data_to_phy_addr entry\n");
 	virt_addr = shmem_ram_vmap_nocache(phy_addr, size);
 	if (virt_addr) {
 		memcpy(virt_addr, src_data, size);
@@ -136,7 +137,7 @@ static void gnss_read_data_from_phy_addr(phys_addr_t phy_addr,
 {
 	void *virt_addr;
 
-	GNSSDUMP_INFO("%s\n", __func__);
+	GNSSDUMP_ERR("gnss_read_data_from_phy_addr\n");
 	virt_addr = shmem_ram_vmap_nocache(phy_addr, size);
 	if (virt_addr) {
 		memcpy(tar_data, virt_addr, size);
@@ -152,7 +153,7 @@ static void gnss_hold_cpu(void)
 	phys_addr_t base_addr;
 	int i = 0;
 
-	GNSSDUMP_INFO("%s entry\n", __func__);
+	GNSSDUMP_ERR("gnss_hold_cpu entry\n");
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
 		regmap = wcn_get_gnss_regmap(REGMAP_WCN_REG);
 	else
@@ -169,6 +170,10 @@ static void gnss_hold_cpu(void)
 	base_addr = wcn_get_gnss_base_addr();
 	gnss_write_data_to_phy_addr(base_addr + GNSS_CACHE_FLAG_ADDR,
 		(void *)&value, 4);
+
+	value = 0;
+	wcn_regmap_raw_write_bit(regmap, 0X20, value);
+	wcn_regmap_raw_write_bit(regmap, 0X24, value);
 	while (i < 3) {
 		gnss_read_data_from_phy_addr(base_addr + GNSS_CACHE_FLAG_ADDR,
 			(void *)&value, 4);
@@ -181,9 +186,6 @@ static void gnss_hold_cpu(void)
 		GNSSDUMP_ERR("%s gnss cache failed value %d\n", __func__,
 			value);
 
-	value = 0;
-	wcn_regmap_raw_write_bit(regmap, 0X20, value);
-	wcn_regmap_raw_write_bit(regmap, 0X24, value);
 	msleep(200);
 }
 
@@ -209,6 +211,7 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 			O_RDWR | O_CREAT | O_APPEND, 0666);
 		if (IS_ERR(gnss_dump_file)) {
 			GNSSDUMP_ERR("%s  open file mem error\n", __func__);
+			kfree(buf);
 			return PTR_ERR(gnss_dump_file);
 		}
 	}
@@ -216,20 +219,24 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 	iram_buffer = vmalloc(len);
 	if (!iram_buffer) {
 		GNSSDUMP_ERR("%s vmalloc iram_buffer error\n", __func__);
+		kfree(buf);
 		return -ENOMEM;
 	}
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
-		regmap = wcn_get_gnss_regmap(REGMAP_WCN_REG);
-	else
-		regmap = wcn_get_gnss_regmap(REGMAP_ANLG_WRAP_WCN);
-	wcn_regmap_raw_write_bit(regmap, 0XFF4, addr);
-	for (i = 0; i < len / 4; i++) {
-		ptr = buf + i * 4;
-		wcn_regmap_read(regmap, 0XFFC, (u32 *)ptr);
-	}
-
 	memset(iram_buffer, 0, len);
-	memcpy(iram_buffer, buf, len);
+
+	/* can't op cp reg when level is 1, just record 0 to buffer */
+	if (gnss_dump_level == 0) {
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
+			regmap = wcn_get_gnss_regmap(REGMAP_WCN_REG);
+		else
+			regmap = wcn_get_gnss_regmap(REGMAP_ANLG_WRAP_WCN);
+		wcn_regmap_raw_write_bit(regmap, ANLG_WCN_WRITE_ADDR, addr);
+		for (i = 0; i < len / 4; i++) {
+			ptr = buf + i * 4;
+			wcn_regmap_read(regmap, ANLG_WCN_READ_ADDR, (u32 *)ptr);
+		}
+		memcpy(iram_buffer, buf, len);
+	}
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 	pos = gnss_dump_file->f_pos;
@@ -239,10 +246,12 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 	vfree(iram_buffer);
 	set_fs(fs);
 	if (ret != len) {
-		GNSSDUMP_ERR("%s failed size is %ld\n", __func__, ret);
+		GNSSDUMP_ERR("gnss_dump_cp_register_data failed  size is %ld\n",
+			ret);
 		return -1;
 	}
-	GNSSDUMP_INFO("%s finish size is  %ld\n", __func__, ret);
+	GNSSDUMP_INFO("gnss_dump_cp_register_data finish  size is  %ld\n",
+		ret);
 
 	return ret;
 }
@@ -367,7 +376,7 @@ static int gnss_dump_share_memory(u32 len)
 
 	if (len == 0)
 		return -1;
-	GNSSDUMP_INFO("%s\n", __func__);
+	GNSSDUMP_INFO("gnss_dump_share_memory\n");
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 	base_addr = wcn_get_gnss_base_addr();
@@ -441,21 +450,26 @@ static int gnss_ext_hold_cpu(void)
 	ret = sprdwcn_bus_reg_write(REG_GNSS_APB_MCU_AP_RST + GNSS_SET_OFFSET,
 		&temp, 4);
 	if (ret < 0) {
-		GNSSDUMP_ERR("%s marlin3_gnss write reset reg error:%d\n",
-			__func__, ret);
+		GNSSDUMP_ERR("%s write reset reg error:%d\n", __func__, ret);
 		return ret;
 	}
+	temp = GNSS_ARCH_EB_REG_BYPASS;
+	ret = sprdwcn_bus_reg_write(GNSS_ARCH_EB_REG + GNSS_SET_OFFSET,
+				    &temp, 4);
+	if (ret < 0)
+		GNSSDUMP_ERR("%s write bypass reg error:%d\n", __func__, ret);
+
 	return ret;
 }
 
 static int gnss_ext_dump_data(unsigned int start_addr, int len)
 {
 	u8 *buf = NULL;
-	int ret = 0;
+	int ret = 0, count = 0, trans = 0;
 	mm_segment_t fs;
 
 	GNSSDUMP_INFO("%s, addr:%x,len:%d\n", __func__, start_addr, len);
-	buf = kzalloc(len, GFP_KERNEL);
+	buf = kzalloc(DUMP_PACKET_SIZE, GFP_KERNEL);
 	if (!buf) {
 		GNSSDUMP_ERR("%s kzalloc buf error\n", __func__);
 		return -ENOMEM;
@@ -472,18 +486,23 @@ static int gnss_ext_dump_data(unsigned int start_addr, int len)
 	}
 	fs = get_fs();
 	set_fs(KERNEL_DS);
-	ret = sprdwcn_bus_direct_read(start_addr, buf, len);
-	if (ret < 0) {
-		GNSSDUMP_ERR("%s dump memory error:%d\n", __func__, ret);
-		goto dump_data_done;
-	}
-	pos = gnss_dump_file->f_pos;
-	ret = vfs_write(gnss_dump_file, buf, len, &pos);
-	gnss_dump_file->f_pos = pos;
-	if (ret != len) {
-		GNSSDUMP_ERR("%s failed size is %d, ret %d\n", __func__,
-					len, ret);
-		goto dump_data_done;
+	while (count < len) {
+		trans = (len - count) > DUMP_PACKET_SIZE ?
+				 DUMP_PACKET_SIZE : (len - count);
+		ret = sprdwcn_bus_direct_read(start_addr + count, buf, trans);
+		if (ret < 0) {
+			GNSSDUMP_ERR("%s read error:%d\n", __func__, ret);
+			goto dump_data_done;
+		}
+		count += trans;
+		pos = gnss_dump_file->f_pos;
+		ret = vfs_write(gnss_dump_file, buf, trans, &pos);
+		gnss_dump_file->f_pos = pos;
+		if (ret != trans) {
+			GNSSDUMP_ERR("%s failed size is %d, ret %d\n", __func__,
+				      len, ret);
+			goto dump_data_done;
+		}
 	}
 	GNSSDUMP_INFO("%s finish %d\n", __func__, len);
 	ret = 0;
@@ -512,17 +531,16 @@ static int gnss_ext_dump_mem(void)
 			GNSSDUMP_ERR("%s dumpdata i %d error\n", __func__, i);
 			break;
 		}
-
 	if (gnss_dump_file != NULL)
 		filp_close(gnss_dump_file, NULL);
-
 	return ret;
 }
 #endif
 
-int gnss_dump_mem(void)
+int gnss_dump_mem(char flag)
 {
 #ifdef CONFIG_SC2342_INTEG
+	gnss_dump_level = flag;
 	return gnss_integrated_dump_mem();
 #else
 	return gnss_ext_dump_mem();
