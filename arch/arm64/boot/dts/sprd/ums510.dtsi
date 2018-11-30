@@ -41,6 +41,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
+			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 		};
 		CPU1: cpu@100 {
 			device_type = "cpu";
@@ -49,6 +50,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
+			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 		};
 		CPU2: cpu@200 {
 			device_type = "cpu";
@@ -57,6 +59,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
+			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 		};
 		CPU3: cpu@300 {
 			device_type = "cpu";
@@ -65,6 +68,74 @@
 			enable-method = "psci";
 			cpu-idle-states = <&BIG_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus1>;
+			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
+		};
+	};
+
+	energy-costs {
+		CPU_COST_0: core-cost0 {
+			busy-cost-data = <
+				164	44		//614MHz
+				206	68		//768MHz
+				307	99		//1144MHz
+				329	117		//1229MHz
+				397	150		//1482MHz
+				412	171		//1536MHz
+				460	207		//1716MHz
+				488	241		//1820MHz
+			>;
+			idle-cost-data = <
+				37		/* ACTIVE-IDLE */
+				37		/* WFI */
+				0		/* CORE_PD */
+			>;
+		};
+		CPU_COST_1: core-cost1 {
+			busy-cost-data = <
+				621	412		//1229MHz
+				748	539		//1482MHz
+				776	623		//1536MHz
+				880	771		//1742MHz
+				945	912		//1872MHz
+				1024	1083		//2028MHz
+			>;
+			idle-cost-data = <
+				116		/* ACTIVE-IDLE */
+				116		/* WFI */
+				0		/* CORE_PD */
+			>;
+		};
+		CLUSTER_COST_0: cluster-cost0 {
+			busy-cost-data = <
+				164	0		//614MHz
+				206	0		//768MHz
+				307	0		//1144MHz
+				329	0		//1229MHz
+				397	0		//1482MHz
+				412	0		//1536MHz
+				460	0		//1716MHz
+				488	0		//1820MHz
+			>;
+			idle-cost-data = <
+				0		/* ACTIVE-IDLE */
+				0		/* WFI */
+				0		/* CORE_PD */
+			>;
+		};
+		CLUSTER_COST_1: cluster-cost1 {
+			busy-cost-data = <
+				621	45		//1229MHz
+				748	59		//1482MHz
+				776	70		//1536MHz
+				880	83		//1742MHz
+				945	98		//1872MHz
+				1024	112		//2028MHz
+			>;
+			idle-cost-data = <
+				14		/* ACTIVE-IDLE */
+				14		/* WFI */
+				14		/* CORE_PD */
+			>;
 		};
 	};
 
