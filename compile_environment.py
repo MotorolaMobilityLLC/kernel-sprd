@@ -27,6 +27,9 @@ dict_project={
 
 	#sharkl5Pro
 	'ums518_haps_native-userdebug'		: { 'path' : 'sprd-board-config/sharkl5Pro/ums518_haps/', },
+
+	#roc1-3h10
+	'ud710_3h10_native-userdebug'		: { 'path' : 'sprd-board-config/roc1/ud710_3h10/', },
 }
 
 print_head="""
