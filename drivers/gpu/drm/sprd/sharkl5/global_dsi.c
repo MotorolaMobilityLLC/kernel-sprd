@@ -18,39 +18,39 @@
 
 #include "sprd_dsi.h"
 
+static struct clk *clk_ap_ahb_dsi_eb;
+
 static struct dsi_glb_context {
 	unsigned int ctrl_reg;
 	unsigned int ctrl_mask;
 
-	struct clk *clk;
 	struct regmap *regmap;
-} dsi_glb_ctx;
+} ctx_reset;
 
 
 static int dsi_glb_parse_dt(struct dsi_context *ctx,
 				struct device_node *np)
 {
-	struct dsi_glb_context *glb_ctx = &dsi_glb_ctx;
 	unsigned int syscon_args[2];
 	int ret;
 
-	glb_ctx->clk =
-		of_clk_get_by_name(np, "clk_aon_apb_disp_eb");
-	if (IS_ERR(glb_ctx->clk)) {
-		pr_warn("read clk_aon_apb_disp_eb failed\n");
-		glb_ctx->clk = NULL;
+	clk_ap_ahb_dsi_eb =
+		of_clk_get_by_name(np, "clk_ap_ahb_dsi_eb");
+	if (IS_ERR(clk_ap_ahb_dsi_eb)) {
+		pr_warn("read clk_ap_ahb_dsi_eb failed\n");
+		clk_ap_ahb_dsi_eb = NULL;
 	}
 
-	glb_ctx->regmap = syscon_regmap_lookup_by_name(np, "reset");
-	if (IS_ERR(glb_ctx->regmap)) {
+	ctx_reset.regmap = syscon_regmap_lookup_by_name(np, "reset");
+	if (IS_ERR(ctx_reset.regmap)) {
 		pr_warn("failed to map dsi glb reg\n");
-		return PTR_ERR(glb_ctx->regmap);
+		return PTR_ERR(ctx_reset.regmap);
 	}
 
 	ret = syscon_get_args_by_name(np, "reset", 2, syscon_args);
 	if (ret == 2) {
-		glb_ctx->ctrl_reg = syscon_args[0];
-		glb_ctx->ctrl_mask = syscon_args[1];
+		ctx_reset.ctrl_reg = syscon_args[0];
+		ctx_reset.ctrl_mask = syscon_args[1];
 	} else {
 		pr_warn("failed to parse dsi glb reg\n");
 	}
@@ -61,33 +61,28 @@ static int dsi_glb_parse_dt(struct dsi_context *ctx,
 static void dsi_glb_enable(struct dsi_context *ctx)
 {
 	int ret;
-	struct dsi_glb_context *glb_ctx = &dsi_glb_ctx;
 
-	ret = clk_prepare_enable(glb_ctx->clk);
+	ret = clk_prepare_enable(clk_ap_ahb_dsi_eb);
 	if (ret)
-		pr_err("enable clk_aon_apb_disp_eb failed!\n");
+		pr_err("enable clk_ap_ahb_dsi_eb failed!\n");
 }
 
 static void dsi_glb_disable(struct dsi_context *ctx)
 {
-	struct dsi_glb_context *glb_ctx = &dsi_glb_ctx;
-
-	clk_disable_unprepare(glb_ctx->clk);
+	clk_disable_unprepare(clk_ap_ahb_dsi_eb);
 }
 
 static void dsi_reset(struct dsi_context *ctx)
 {
-	struct dsi_glb_context *glb_ctx = &dsi_glb_ctx;
-
-	regmap_update_bits(glb_ctx->regmap,
-			glb_ctx->ctrl_reg,
-			glb_ctx->ctrl_mask,
-			glb_ctx->ctrl_mask);
+	regmap_update_bits(ctx_reset.regmap,
+			ctx_reset.ctrl_reg,
+			ctx_reset.ctrl_mask,
+			ctx_reset.ctrl_mask);
 	udelay(10);
-	regmap_update_bits(glb_ctx->regmap,
-			glb_ctx->ctrl_reg,
-			glb_ctx->ctrl_mask,
-			(unsigned int)(~glb_ctx->ctrl_mask));
+	regmap_update_bits(ctx_reset.regmap,
+			ctx_reset.ctrl_reg,
+			ctx_reset.ctrl_mask,
+			(unsigned int)(~ctx_reset.ctrl_mask));
 }
 
 static struct dsi_glb_ops dsi_glb_ops = {
