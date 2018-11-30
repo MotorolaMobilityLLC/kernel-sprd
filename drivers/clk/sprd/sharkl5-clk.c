@@ -300,6 +300,7 @@ static SPRD_PLL_WITH_ITABLE_K_FVCO(isppll_clk, "isppll", "isppll-gate", 0x30,
 				   3, ftable, f_isppll, 240,
 				   1000, 1000, 1, 750000000);
 static CLK_FIXED_FACTOR(isppll_468m, "isppll-468m", "isppll", 2, 1, 0);
+static CLK_FIXED_FACTOR(isppll_78m, "isppll-78m", "isppll", 12, 1, 0);
 
 #define f_gpll f_twpll
 static SPRD_PLL_WITH_ITABLE_K_FVCO(gpll_clk, "gpll", "gpll-gate", 0x48,
@@ -348,6 +349,7 @@ static struct clk_hw_onecell_data sharkl5_gc_pll_hws = {
 		[CLK_LPLL_245M76]	= &lpll_245m76.hw,
 		[CLK_ISPPLL]		= &isppll_clk.common.hw,
 		[CLK_ISPPLL_468M]	= &isppll_468m.hw,
+		[CLK_ISPPLL_78M]	= &isppll_78m.hw,
 		[CLK_GPLL]		= &gpll_clk.common.hw,
 		[CLK_CPPLL]		= &cppll_clk.common.hw,
 	},

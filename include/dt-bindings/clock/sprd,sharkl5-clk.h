@@ -59,8 +59,9 @@
 #define CLK_LPLL_245M76			23
 #define CLK_ISPPLL			24
 #define CLK_ISPPLL_468M			25
-#define CLK_GPLL			26
-#define CLK_CPPLL			27
+#define CLK_ISPPLL_78M			26
+#define CLK_GPLL			27
+#define CLK_CPPLL			28
 #define CLK_ANLG_PHY_GC_NUM		(CLK_CPPLL + 1)
 
 #define CLK_AP_APB			0
