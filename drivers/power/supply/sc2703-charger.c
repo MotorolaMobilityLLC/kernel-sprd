@@ -19,6 +19,7 @@
 #include <linux/slab.h>
 #include <linux/mfd/sc2703_regs.h>
 #include <linux/usb/phy.h>
+#include <uapi/linux/usb/charger.h>
 
 #define SC2703_BATTERY_NAME		"sc27xx-fgu"
 #define SC2703_EVENT_CLR_MASK		GENMASK(7, 0)
@@ -46,6 +47,7 @@ struct sc2703_charger_info {
 	struct usb_phy *usb_phy;
 	struct notifier_block usb_notify;
 	struct power_supply *psy_usb;
+	struct power_supply_charge_current cur;
 	struct work_struct work;
 	struct mutex lock;
 	bool charging;
@@ -93,7 +95,24 @@ static int sc2703_charger_hw_init(struct sc2703_charger_info *info)
 		 */
 		cur_val = 0x0;
 		vol_val = 0x14;
+		info->cur.sdp_limit = 500000;
+		info->cur.sdp_cur = 500000;
+		info->cur.dcp_limit = 5000000;
+		info->cur.dcp_cur = 500000;
+		info->cur.cdp_limit = 5000000;
+		info->cur.cdp_cur = 1500000;
+		info->cur.unknown_limit = 5000000;
+		info->cur.unknown_cur = 500000;
 	} else {
+		info->cur.sdp_limit = bat_info.cur.sdp_limit;
+		info->cur.sdp_cur = bat_info.cur.sdp_cur;
+		info->cur.dcp_limit = bat_info.cur.dcp_limit;
+		info->cur.dcp_cur = bat_info.cur.dcp_cur;
+		info->cur.cdp_limit = bat_info.cur.cdp_limit;
+		info->cur.cdp_cur = bat_info.cur.cdp_cur;
+		info->cur.unknown_limit = bat_info.cur.unknown_limit;
+		info->cur.unknown_cur = bat_info.cur.unknown_cur;
+
 		cur_val = sc2703_charger_of_prop_range(info->dev,
 					bat_info.charge_term_current_ua,
 					100000, 450000, 50000,
@@ -504,9 +523,6 @@ sc2703_charger_set_current(struct sc2703_charger_info *info, u32 val)
 {
 	u32 reg;
 
-	/* mA to uA */
-	val *= 1000;
-
 	if (val < SC2703_CHG_B_IMIN)
 		val = SC2703_CHG_B_IMIN;
 	else if (val > SC2703_CHG_B_IMAX)
@@ -543,7 +559,6 @@ sc2703_charger_set_limit_current(struct sc2703_charger_info *info, u32 val)
 	u32 limit_index;
 	int i;
 
-	val *= 1000;
 	for (i = 1; i < ARRAY_SIZE(sc2703_limit_current); ++i)
 		if (val < sc2703_limit_current[i])
 			break;
@@ -711,17 +726,35 @@ static void sc2703_charger_work(struct work_struct *data)
 {
 	struct sc2703_charger_info *info =
 		container_of(data, struct sc2703_charger_info, work);
-	int ret;
+	int limit_cur, cur, ret;
 
 	mutex_lock(&info->lock);
 
 	if (info->limit > 0 && !info->charging) {
 		/* set current limitation and start to charge */
-		ret = sc2703_charger_set_limit_current(info, info->limit);
+		switch (info->usb_phy->chg_type) {
+		case SDP_TYPE:
+			limit_cur = info->cur.sdp_limit;
+			cur = info->cur.sdp_cur;
+			break;
+		case DCP_TYPE:
+			limit_cur = info->cur.dcp_limit;
+			cur = info->cur.dcp_cur;
+			break;
+		case CDP_TYPE:
+			limit_cur = info->cur.cdp_limit;
+			cur = info->cur.cdp_cur;
+			break;
+		default:
+			limit_cur = info->cur.unknown_limit;
+			cur = info->cur.unknown_cur;
+		}
+
+		ret = sc2703_charger_set_limit_current(info, limit_cur);
 		if (ret)
 			goto out;
 
-		ret = sc2703_charger_set_current(info, info->limit);
+		ret = sc2703_charger_set_current(info, cur);
 		if (ret)
 			goto out;
 
