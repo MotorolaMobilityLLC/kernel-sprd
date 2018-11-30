@@ -1928,12 +1928,6 @@ static inline struct charger_desc *cm_get_drv_data(struct platform_device *pdev)
 	return dev_get_platdata(&pdev->dev);
 }
 
-static enum alarmtimer_restart cm_timer_func(struct alarm *alarm, ktime_t now)
-{
-	cm_timer_set = false;
-	return ALARMTIMER_NORESTART;
-}
-
 static void cm_batt_works(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -2134,7 +2128,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 		cm_timer = devm_kzalloc(cm->dev, sizeof(*cm_timer), GFP_KERNEL);
 		if (!cm_timer)
 			return -ENOMEM;
-		alarm_init(cm_timer, ALARM_BOOTTIME, cm_timer_func);
+		alarm_init(cm_timer, ALARM_BOOTTIME, NULL);
 	}
 
 	/*
@@ -2399,7 +2393,8 @@ static void cm_suspend_complete(struct device *dev)
 		alarm_cancel(cm_timer);
 		cm_timer_set = false;
 		remain = alarm_expires_remaining(cm_timer);
-		cm_suspend_duration_ms -= ktime_to_ms(remain);
+		if (remain > 0)
+			cm_suspend_duration_ms -= ktime_to_ms(remain);
 		schedule_work(&setup_polling);
 	}
 
