@@ -4,7 +4,7 @@
  *
  * Copyright (c) 2018 Dialog Semiconductor.
  */
-
+#include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -40,6 +40,9 @@
 #define SC2703_CHG_B_VMIN		3800000
 #define SC2703_CHG_B_VSTEP		20000
 #define SC2703_CHG_B_VMAX		4800000
+#define SC2703_OTG_RETRY_TIMES		10
+#define SC2703_OTG_VALID_MS		100
+#define SC2703_OTG_NORMAL_VALID_MS	1500
 
 struct sc2703_charger_info {
 	struct device *dev;
@@ -52,6 +55,7 @@ struct sc2703_charger_info {
 	struct mutex lock;
 	bool charging;
 	u32 limit;
+	struct delayed_work otg_work;
 };
 
 /* sc2703 input limit current, Milliamp */
@@ -1014,13 +1018,26 @@ static int sc2703_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	/* Set dc-dc output limit cur 500ma in reverse boost mode */
+	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_B,
+				 SC2703_IIN_REV_LIM_MASK, 0);
+	if (ret) {
+		dev_err(info->dev,
+			"Failed to set dc-dc output current limit:%d\n", ret);
+		return ret;
+	}
 	/* Enable 2703 otg mode */
 	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
 				 SC2703_OTG_EN_MASK,
 				 SC2703_OTG_EN_MASK);
-	if (ret)
+	if (ret) {
 		dev_err(info->dev,
 			"failed to enable sc2703 otg.\n");
+		return ret;
+	}
+
+	schedule_delayed_work(&info->otg_work,
+			      msecs_to_jiffies(SC2703_OTG_VALID_MS));
 
 	return ret;
 }
@@ -1030,6 +1047,8 @@ static int sc2703_charger_disable_otg(struct regulator_dev *dev)
 	struct sc2703_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 
+	cancel_delayed_work_sync(&info->otg_work);
+
 	/* Disable 2703 otg mode */
 	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
 				 SC2703_OTG_EN_MASK, 0);
@@ -1038,6 +1057,109 @@ static int sc2703_charger_disable_otg(struct regulator_dev *dev)
 			"Failed to disable sc2703 otg ret.\n");
 
 	return 0;
+}
+
+static bool sc2703_charger_otg_is_valid(struct sc2703_charger_info *info)
+{
+	u32 otg_state, otg_event;
+	int ret;
+
+	ret = regmap_read(info->regmap, SC2703_DCDC_CTRL_A, &otg_state);
+	if (ret)
+		return false;
+	ret = regmap_read(info->regmap, SC2703_EVENT_C, &otg_event);
+	if (ret)
+		return false;
+
+	otg_state = otg_state & SC2703_OTG_EN_MASK;
+	otg_event = otg_event & (SC2703_E_LOWBAT_MASK |
+		SC2703_E_IIN_REV_LIM_MAX_MASK | SC2703_E_IIN_REV_LIM_MASK |
+		SC2703_E_VIN_REV_SHORT_MASK);
+	if (!otg_state || otg_event) {
+		dev_err(info->dev,
+			"otg_state=%x, raw_st=%x\n", otg_state, otg_event);
+		return false;
+	}
+
+	return true;
+}
+
+static void sc2703_charger_otg_restart(struct sc2703_charger_info *info)
+{
+	int ret;
+
+	/* Disable 2703 otg */
+	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
+		SC2703_OTG_EN_MASK, 0);
+	if (ret) {
+		dev_err(info->dev, "Failed to disable otg:%d\n", ret);
+		return;
+	}
+
+	/* Clear 2703_event_c */
+	ret = regmap_update_bits(info->regmap, SC2703_EVENT_C,
+		SC2703_E_LOWBAT_MASK | SC2703_E_IIN_REV_LIM_MAX_MASK
+		| SC2703_E_IIN_REV_LIM_MASK | SC2703_E_VIN_REV_SHORT_MASK,
+		SC2703_E_LOWBAT_MASK | SC2703_E_IIN_REV_LIM_MAX_MASK |
+		SC2703_E_IIN_REV_LIM_MASK | SC2703_E_VIN_REV_SHORT_MASK);
+	if (ret) {
+		dev_err(info->dev, "Failed to clear 2703_event_c:%d\n", ret);
+		return;
+	}
+
+	/* Set dc-dc output limit cur 500ma in reverse boost mode */
+	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_B,
+				 SC2703_IIN_REV_LIM_MASK, 0);
+	if (ret) {
+		dev_err(info->dev,
+			"Failed to set dc-dc output current limit:%d\n", ret);
+		return;
+	}
+
+	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
+				 SC2703_OTG_EN_MASK, SC2703_OTG_EN_MASK);
+	if (ret)
+		dev_err(info->dev, "Failed to enable otg:%d\n", ret);
+}
+
+static void sc2703_charger_otg_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct sc2703_charger_info *info = container_of(dwork,
+			struct sc2703_charger_info, otg_work);
+	bool otg_valid = sc2703_charger_otg_is_valid(info);
+	int ret, retry = 0;
+
+	if (otg_valid)
+		goto out;
+
+	do {
+		sc2703_charger_otg_restart(info);
+		/*
+		 * Enable 2703 otg function must be separated by
+		 * 100ms, otherwise OTG restart will fail.
+		 */
+		msleep(100);
+		otg_valid = sc2703_charger_otg_is_valid(info);
+	} while (!otg_valid && retry++ < SC2703_OTG_RETRY_TIMES);
+
+	if (retry >= SC2703_OTG_RETRY_TIMES) {
+		dev_err(info->dev, "Restart OTG failed\n");
+		return;
+	}
+
+out:
+	/* Set dc-dc output limit cur 2000ma in reverse boost mode */
+	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_B,
+				 SC2703_IIN_REV_LIM_MASK,
+				 0x04 << SC2703_IIN_REV_LIM_SHIFT);
+	if (ret) {
+		dev_err(info->dev,
+			"Failed to set dc-dc 2000ma limit cur:%d\n", ret);
+		return;
+	}
+	schedule_delayed_work(&info->otg_work,
+			      msecs_to_jiffies(SC2703_OTG_NORMAL_VALID_MS));
 }
 
 static const struct regulator_ops sc2703_charger_vbus_ops = {
@@ -1139,6 +1261,7 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 		return ret;
 
 	sc2703_charger_detect_status(info);
+	INIT_DELAYED_WORK(&info->otg_work, sc2703_charger_otg_work);
 
 	return 0;
 }
