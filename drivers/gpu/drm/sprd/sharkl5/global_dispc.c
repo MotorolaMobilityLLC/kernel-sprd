@@ -134,7 +134,8 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 static int dpu_clk_init(struct dpu_context *ctx)
 {
 	struct dpu_clk_context *clk_ctx = NULL;
-	unsigned int dpi_clk_rate = 0;
+	u32 dpu_core_rate = 0;
+	u32 dpi_clk_rate = 0;
 	int ret = 0;
 
 	list_for_each_entry(clk_ctx, &dpi_clk_list, head) {
@@ -150,12 +151,17 @@ static int dpu_clk_init(struct dpu_context *ctx)
 	list_for_each_entry(clk_ctx, &dpu_clk_list, head) {
 		/* Dpu clk must be greater than dpi clk */
 		if (clk_ctx->rate > dpi_clk_rate * 2) {
+			dpu_core_rate = clk_ctx->rate;
 			ret = clk_set_parent(clk_dpu_core, clk_ctx->source);
 			if (ret)
 				pr_warn("set dpu core clk source failed\n");
 			break;
 		}
 	}
+
+	pr_info("DPU_CORE_CLK = %u, DPI_CLK_SRC = %u\n",
+		dpu_core_rate, dpi_clk_rate);
+	pr_info("dpi clock is %lu\n", ctx->vm.pixelclock);
 
 	return ret;
 }
