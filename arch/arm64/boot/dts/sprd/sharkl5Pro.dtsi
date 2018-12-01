@@ -5,6 +5,8 @@
  * Copyright (C) 2018, Unisoc Communications Inc.
  */
 
+#include <dt-bindings/soc/sprd,sharkl5pro-regs.h>
+#include <dt-bindings/soc/sprd,sharkl5pro-mask.h>
 #include <dt-bindings/clock/sprd,sharkl5pro-clk.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 
