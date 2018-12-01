@@ -2,6 +2,7 @@
 
 import os
 import sys
+import csv
 
 tmp_path="./tmp_config_check/"
 d_sprdconfig={}
@@ -527,9 +528,9 @@ def aiaiai_check():
 
                 i = i + 5
                 while True:
-                    if "diff --git" in f_diff_lines[i]:
-                        break
                     if i < len(f_diff_lines):
+                        if "diff --git" in f_diff_lines[i]:
+                            break
                         if "@@" in f_diff_lines[i]:
                             i = i+1
                             continue
@@ -661,6 +662,65 @@ def update_sprd_configs():
     # regenerate sprd-configs.txt with dict d_sprdconfig
     configs_resort()
 
+def scan():
+    l_corrected_config = list(d_corrected_config)
+    l_corrected_config.sort()
+
+    str_all_arm_plat=''
+    str_all_arm64_plat=''
+
+    for key_project in l_defproject:
+        if d_defconfig_path[kernel_version][key_project]['arch'] == 'arm':
+            str_all_arm_plat = str_all_arm_plat + key_project + ','
+        elif d_defconfig_path[kernel_version][key_project]['arch'] == 'arm64':
+            str_all_arm64_plat = str_all_arm64_plat + key_project + ','
+
+    str_all_arm_plat = str_all_arm_plat[:-1]
+    str_all_arm64_plat = str_all_arm64_plat[:-1]
+
+    csv_filename = "config_plat_scan.csv"
+    if os.path.exists(csv_filename):
+        os.remove(csv_filename)
+    csv_fd = open(csv_filename, 'a+')
+    csv_writer=csv.writer(csv_fd)
+    csv_writer.writerow(["Config name", "Enalbe arch", "Current enable plats", "ARM lack plat", "ARM64 lack plat"])
+    for key_config in l_corrected_config:
+        for key_arch in range(len(d_corrected_config[key_config]['arch'].split(","))):
+            str_lack_arm=""
+            str_lack_arm64=""
+            l_write=[]
+            if d_corrected_config[key_config]['arch'] == 'all':
+                if d_corrected_config[key_config]['plat'] == 'all':
+                    continue
+                for i in range(len(str_all_arm_plat.split(","))):
+                    if str_all_arm_plat.split(",").pop(i) not in d_corrected_config[key_config]['plat'].split(","):
+                        str_lack_arm = str_lack_arm + str_all_arm_plat.split(",").pop(i) + ","
+                        continue
+                for i in range(len(str_all_arm64_plat.split(","))):
+                    if str_all_arm64_plat.split(",").pop(i) not in d_corrected_config[key_config]['plat'].split(","):
+                        str_lack_arm64 = str_lack_arm64 + str_all_arm64_plat.split(",").pop(i) + ","
+                        continue
+                if str_lack_arm != "" and str_lack_arm64 != "":
+                    l_write = [key_config, d_corrected_config[key_config]['arch'], d_corrected_config[key_config]['plat'], str_lack_arm[:-1], str_lack_arm64[:-1]]
+                    csv_writer.writerow(l_write)
+            elif d_corrected_config[key_config]['arch'] == 'arm':
+                for i in range(len(str_all_arm_plat.split(","))):
+                    if str_all_arm_plat.split(",").pop(i) not in d_corrected_config[key_config]['plat'].split(","):
+                        str_lack_arm = str_lack_arm + str_all_arm_plat.split(",").pop(i) + ","
+                        continue
+                if str_lack_arm != "":
+                    l_write = [key_config, d_corrected_config[key_config]['arch'], d_corrected_config[key_config]['plat'], str_lack_arm[:-1], ""]
+                    csv_writer.writerow(l_write)
+            elif d_corrected_config[key_config]['arch'] == 'arm64':
+                for i in range(len(str_all_arm64_plat.split(","))):
+                    if str_all_arm64_plat.split(",").pop(i) not in d_corrected_config[key_config]['plat'].split(","):
+                        str_lack_arm64 = str_lack_arm64 + str_all_arm64_plat.split(",").pop(i) + ","
+                        continue
+                if str_lack_arm64 != "":
+                    l_write = [key_config, d_corrected_config[key_config]['arch'], d_corrected_config[key_config]['plat'], "", str_lack_arm64[:-1]]
+                    csv_writer.writerow(l_write)
+    csv_fd.close()
+
 def prepare_info_first():
     f = open("Makefile", 'r')
     lines = f.readlines()
@@ -701,9 +761,9 @@ def main():
     prepare_info_first()
     create_defconfig_dict()
     create_sprdconfigs_dict()
+    prepare_info_second()
     create_corrected_dict()
 
-    prepare_info_second()
 
     if len(sys.argv) > 1:
         if sys.argv[1] == 'allconfigs':
@@ -757,6 +817,8 @@ def main():
             update_sprd_configs()
         elif sys.argv[1] == 'support':
             print_support_arch_plat()
+        elif sys.argv[1] == 'scan':
+            scan()
         else:
             print("PARAMETERS ERROR:")
             help_info()

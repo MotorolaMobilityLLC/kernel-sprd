@@ -1065,6 +1065,13 @@ CONFIG_CGROUP_SCHED
 	[subsys] sched
 	[must] user
 	[function] Group CPU scheduler(vts require)
+CONFIG_CHARGER_MANAGER
+	[arch] all
+	[plat] sharkl5
+	[field] make,code
+	[subsys] power
+	[must] user
+	[function] Manage battery capacity and monitor charge status
 CONFIG_CHARGER_SC2703
 	[arch] all
 	[plat] sharkl5
@@ -2739,13 +2746,6 @@ CONFIG_FUEL_GAUGE_SC27XX
 	[subsys]
 	[must]
 	[function]
-CONFIG_CHARGER_MANAGER
-	[arch] all
-	[plat] sharkl5
-	[field] make,code
-	[subsys] power
-	[must] user
-	[function] Manage battery capacity and monitor charge status
 CONFIG_FUNCTION_GRAPH_TRACER
 	[arch] all
 	[plat] roc1
@@ -4045,7 +4045,7 @@ CONFIG_IIO
 	[function] enable industrial io system built in kernel
 CONFIG_IIO_BUFFER
 	[arch] all
-	[plat] all
+	[plat] sharkl5
 	[field] make
 	[subsys] iio
 	[must] user
@@ -6993,14 +6993,14 @@ CONFIG_PROFILING
 	[function] vts require, Profiling support.
 CONFIG_PSTORE
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_PSTORE_ZLIB_COMPRESS
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field]
 	[subsys]
 	[must]
@@ -7068,13 +7068,6 @@ CONFIG_QUOTA
 	[subsys] fs
 	[must] none
 	[function] Quota support,set per user limits for disk usage
-CONFIG_QUOTA_NETLINK_INTERFACE
-	[arch] all
-	[plat] all
-	[field] menu
-	[subsys] fs
-	[must] none
-	[function] Report quota messages through netlink interface
 CONFIG_QUOTACTL
 	[arch] all
 	[plat] all
@@ -7082,6 +7075,13 @@ CONFIG_QUOTACTL
 	[subsys] fs
 	[must] none
 	[function] Quota support
+CONFIG_QUOTA_NETLINK_INTERFACE
+	[arch] all
+	[plat] all
+	[field] menu
+	[subsys] fs
+	[must] none
+	[function] Report quota messages through netlink interface
 CONFIG_QUOTA_TREE
 	[arch] all
 	[plat] all
@@ -7464,13 +7464,6 @@ CONFIG_SBITMAP
 	[subsys]
 	[must]
 	[function]
-CONFIG_UMW2652
-	[arch] all
-	[plat] sharkl5
-	[field] menu
-	[subsys] wcn
-	[must] user
-	[function] This function is used to support wcn umw2652 chip
 CONFIG_SC2355
 	[arch] all
 	[plat] all
@@ -7848,7 +7841,7 @@ CONFIG_SND_DRIVERS
 	[function] audio moudle base config
 CONFIG_SND_DYNAMIC_MINORS
 	[arch] all
-	[plat] all
+	[plat] sharkl5
 	[field] code
 	[subsys] sound
 	[must] user
@@ -7884,7 +7877,7 @@ CONFIG_SND_JACK_INPUT_DEV
 	[function]
 CONFIG_SND_MAX_CARDS
 	[arch] all
-	[plat] all
+	[plat] sharkl5
 	[field] code
 	[subsys] sound
 	[must] user
@@ -7926,7 +7919,7 @@ CONFIG_SND_SOC
 	[function] ALSA for SoC audio support
 CONFIG_SND_SOC_COMPRESS
 	[arch] all
-	[plat] all
+	[plat] sharkl5
 	[field] make
 	[subsys] sound
 	[must] user
@@ -8108,6 +8101,41 @@ CONFIG_SPRD_7SRESET
 	[subsys] core
 	[must] user
 	[function] Spreadtrum hw 7s reset driver.
+CONFIG_SPRD_AUDIO_AGDSP_ACCESS
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] audio dsp access
+CONFIG_SPRD_AUDIO_DSP_DUMP
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] audio dsp memory and log dump
+CONFIG_SPRD_AUDIO_MCDT
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] sound data transmission channel with dsp
+CONFIG_SPRD_AUDIO_MEMORY_MANAGER
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] audio memory allocation
+CONFIG_SPRD_AUDIO_SIPC
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] sound
+	[must] user
+	[function] sound communication with audio dsp
 CONFIG_SPRD_BUSMONITOR
 	[arch] all
 	[plat] sharkl5
@@ -8129,41 +8157,6 @@ CONFIG_SPRD_CPROC
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sprd cproc module for modem boot.
-CONFIG_SPRD_AUDIO_AGDSP_ACCESS
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] sound
-	[must] user
-	[function] audio dsp access
-CONFIG_SPRD_AUDIO_DSP_DUMP
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] sound
-	[must] user
-	[function] audio dsp memory and log dump
-CONFIG_SPRD_AUDIO_MEMORY_MANAGER
-	[arch] all
-	[plat] all
-	[field] make
-	[subsys] sound
-	[must] user
-	[function] audio memory allocation
-CONFIG_SPRD_AUDIO_SIPC
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] sound
-	[must] user
-	[function] sound communication with audio dsp
-CONFIG_SPRD_AUDIO_MCDT
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] sound
-	[must] user
-	[function] sound data transmission channel with dsp
 CONFIG_SPRD_DEBUG
 	[arch] all
 	[plat] all
@@ -8283,13 +8276,6 @@ CONFIG_SPRD_ROC1_USB2_PHY
 	[subsys]
 	[must]
 	[function]
-CONFIG_SPRD_SHARKL5_CLK
-	[arch] all
-	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_SPRD_SENSOR_HUB
 	[arch] all
 	[plat] sharkl5
@@ -8297,6 +8283,13 @@ CONFIG_SPRD_SENSOR_HUB
 	[subsys] iio
 	[must] user
 	[function] enable sensor hub driver built in kernel
+CONFIG_SPRD_SHARKL5_CLK
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_SHARKL5_USB2_PHY
 	[arch] all
 	[plat] sharkl5
@@ -8897,6 +8890,13 @@ CONFIG_UID_SYS_STATS
 	[subsys] fs
 	[must] user
 	[function] vts require, Per-UID statistics
+CONFIG_UMW2652
+	[arch] all
+	[plat] sharkl5
+	[field] menu
+	[subsys] wcn
+	[must] user
+	[function] This function is used to support wcn umw2652 chip
 CONFIG_UNINLINE_SPIN_UNLOCK
 	[arch] all
 	[plat] all
