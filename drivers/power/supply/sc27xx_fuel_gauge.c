@@ -86,6 +86,8 @@
  * @table_len: the capacity table length
  * @cur_1000ma_adc: ADC value corresponding to 1000 mA
  * @vol_1000mv_adc: ADC value corresponding to 1000 mV
+ * @calib_resist_real: the real resistance of coulomb counter chip in microohms
+ * @calib_resist_spec: the specification resistance of coulomb counter chip in microohms
  * @cap_table: capacity table with corresponding ocv
  */
 struct sc27xx_fgu_data {
@@ -109,6 +111,8 @@ struct sc27xx_fgu_data {
 	int temp_table_len;
 	int cur_1000ma_adc;
 	int vol_1000mv_adc;
+	int calib_resist_real;
+	int calib_resist_spec;
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_vol_temp_table *temp_table;
 };
@@ -823,7 +827,9 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 	 */
 	cal_4200mv = (calib_data & 0x1ff) + 6963 - 4096 - 256;
 	data->vol_1000mv_adc = DIV_ROUND_CLOSEST(cal_4200mv * 10, 42);
-	data->cur_1000ma_adc = data->vol_1000mv_adc * 4;
+	data->cur_1000ma_adc =
+		DIV_ROUND_CLOSEST(data->vol_1000mv_adc * 4 * data->calib_resist_real,
+				  data->calib_resist_spec);
 
 	kfree(buf);
 	return 0;
@@ -1004,6 +1010,22 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	ret = device_property_read_u32(&pdev->dev, "reg", &data->base);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to get fgu address\n");
+		return ret;
+	}
+
+	ret = device_property_read_u32(&pdev->dev,
+				       "sprd,calib-resistance-real",
+				       &data->calib_resist_real);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to get fgu real calibration resistance\n");
+		return ret;
+	}
+
+	ret = device_property_read_u32(&pdev->dev,
+				       "sprd,calib-resistance-spec",
+				       &data->calib_resist_spec);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to get fgu specification calibration resistance\n");
 		return ret;
 	}
 

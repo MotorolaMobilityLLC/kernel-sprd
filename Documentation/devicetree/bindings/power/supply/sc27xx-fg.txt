@@ -11,6 +11,10 @@ Required properties:
 - battery-detect-gpios: GPIO for battery detection.
 - io-channels: Specify the IIO ADC channels to get temperature and charge voltage.
 - io-channel-names: Should be "bat-temp" and "charge-vol"
+- sprd,calib-resistance-real: The real resistance of coulomb counter chip in microohms
+  is used to calibrate cur_1000ma_adc.
+- sprd,calib-resistance-spec: The specification resistance of coulomb counter chip in microohms
+  is used to calibrate cur_1000ma_adc.
 - nvmem-cells: A phandle to the calibration cells provided by eFuse device.
 - nvmem-cell-names: Should be "fgu_calib".
 - monitored-battery: Phandle of battery characteristics devicetree node.
@@ -52,5 +56,7 @@ Example:
 			nvmem-cells = <&fgu_calib>;
 			nvmem-cell-names = "fgu_calib";
 			monitored-battery = <&bat>;
+			sprd,calib-resistance-real = <21500>;
+			sprd,calib-resistance-spec = <20000>;
 		};
 	};
