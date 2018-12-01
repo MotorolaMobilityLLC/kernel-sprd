@@ -2036,13 +2036,6 @@ CONFIG_DEVTMPFS_MOUNT
 	[subsys] core
 	[must] console
 	[function] Automount devtmpfs at /dev, after the kernel mounted the rootfs.
-CONFIG_DISP_PM_DOMAIN_SHARKL3
-	[arch] all
-	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_DMADEVICES
 	[arch] all
 	[plat] all
@@ -6751,27 +6744,6 @@ CONFIG_PM_DEVFREQ
 	[subsys] devfreq
 	[must] none
 	[function] Generic Dynamic Voltage and Frequency Scaling (DVFS) support
-CONFIG_PM_GENERIC_DOMAINS
-	[arch] all
-	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_PM_GENERIC_DOMAINS_OF
-	[arch] all
-	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_PM_GENERIC_DOMAINS_SLEEP
-	[arch] all
-	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_PM_OPP
 	[arch] all
 	[plat] all
