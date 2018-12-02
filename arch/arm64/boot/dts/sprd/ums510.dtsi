@@ -20,12 +20,14 @@
 				core0 {
 					cpu = <&CPU0>;
 				};
+/*
 				core1 {
 					cpu = <&CPU1>;
 				};
 				core2 {
 					cpu = <&CPU2>;
 				};
+*/
 			};
 			cluster1 {
 				core0 {
@@ -42,6 +44,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
+/*
 		CPU1: cpu@100 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a55","arm,armv8";
@@ -58,6 +61,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
+*/
 		CPU3: cpu@300 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a75","arm,armv8";
