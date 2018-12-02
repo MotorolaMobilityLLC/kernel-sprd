@@ -53,8 +53,7 @@
 
 #define AUDIO_VBC_SHM_MAX		6
 
-//#define CMD_SEND_TIMEOUT msecs_to_jiffies(3000)
-#define CMD_SEND_TIMEOUT (-1)
+#define CMD_SEND_TIMEOUT msecs_to_jiffies(3000)
 
 
 struct sprd_audio_sharemem {
