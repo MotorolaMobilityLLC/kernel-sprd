@@ -249,6 +249,20 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
+	sc2703_pmic: pmic@4C {
+		compatible = "sprd,sc2703";
+		reg = <0x4c>;
+		sc2703-charger {
+			compatible = "sprd,sc2703-charger";
+			phys = <&hsphy>;
+			monitored-battery = <&bat>;
+			extcon = <&pmic_typec>;
+			vddvbus:otg-vbus {
+				regulator-name = "vddvbus";
+			};
+		};
+	};
+
 	ext_pmic: sc2703-buck@49 {
 		compatible = "sprd,sc2703-buck";
 		reg = <0x49>;
@@ -263,17 +277,6 @@
 		regulator-max-microamp = <10800000>;
 		regulator-boot-on;
 		regulator-always-on;
-	};
-
-	sc2703_chg: charger@4c {
-		compatible = "sprd,sc2703-charger";
-		reg = <0x4c>;
-		phys = <&hsphy>;
-		monitored-battery = <&bat>;
-		extcon = <&pmic_typec>;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
-		};
 	};
 
 	flash: sc2703-flash@4a {
