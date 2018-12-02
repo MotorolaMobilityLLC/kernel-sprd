@@ -2177,7 +2177,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 		if (!psy) {
 			dev_err(&pdev->dev, "Cannot find power supply \"%s\"\n",
 				desc->psy_charger_stat[i]);
-			return -ENODEV;
+			return -EPROBE_DEFER;
 		}
 		power_supply_put(psy);
 	}
