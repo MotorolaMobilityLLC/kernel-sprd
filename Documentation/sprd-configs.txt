@@ -503,13 +503,6 @@ CONFIG_ARM64_VA_BITS_39
 	[subsys] core
 	[must] console
 	[function] Defined how many bits virtual address the kernel used.
-CONFIG_ARM64_VHE
-	[arch] all
-	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_ARMV8_DEPRECATED
 	[arch] all
 	[plat] all
