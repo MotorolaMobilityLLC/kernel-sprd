@@ -3,6 +3,7 @@
  * Copyright (C) 2018 Spreadtrum Communications Inc.
  */
 
+#include <linux/debugfs.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
@@ -191,6 +192,8 @@ enum sc2730_regulator_id {
 	SC2730_LDO_VDDKPLED,
 };
 
+static struct dentry *debugfs_root;
+
 static const struct regulator_ops sc2730_regu_linear_ops = {
 	.enable = regulator_enable_regmap,
 	.disable = regulator_disable_regmap,
@@ -357,6 +360,81 @@ static struct regulator_desc regulators[] = {
 			   3750000, 0),
 };
 
+static int debugfs_enable_get(void *data, u64 *val)
+{
+	struct regulator_dev *rdev = data;
+
+	if (rdev && rdev->desc->ops->is_enabled)
+		*val = rdev->desc->ops->is_enabled(rdev);
+	else
+		*val = ~0ULL;
+	return 0;
+}
+
+static int debugfs_enable_set(void *data, u64 val)
+{
+	struct regulator_dev *rdev = data;
+
+	if (rdev && rdev->desc->ops->enable && rdev->desc->ops->disable) {
+		if (val)
+			rdev->desc->ops->enable(rdev);
+		else
+			rdev->desc->ops->disable(rdev);
+	}
+
+	return 0;
+}
+
+static int debugfs_voltage_get(void *data, u64 *val)
+{
+	int sel, ret;
+	struct regulator_dev *rdev = data;
+
+	sel = rdev->desc->ops->get_voltage_sel(rdev);
+	if (sel < 0)
+		return sel;
+	ret = rdev->desc->ops->list_voltage(rdev, sel);
+
+	*val = ret / 1000;
+
+	return 0;
+}
+
+static int debugfs_voltage_set(void *data, u64 val)
+{
+	int selector;
+	struct regulator_dev *rdev = data;
+
+	val = val * 1000;
+	selector = regulator_map_voltage_linear(rdev,
+						val - rdev->desc->uV_step / 2,
+						val + rdev->desc->uV_step / 2);
+
+	return rdev->desc->ops->set_voltage_sel(rdev, selector);
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(fops_enable,
+			debugfs_enable_get, debugfs_enable_set, "%llu\n");
+DEFINE_SIMPLE_ATTRIBUTE(fops_ldo,
+			debugfs_voltage_get, debugfs_voltage_set, "%llu\n");
+
+static void sc2730_regulator_debugfs_init(struct regulator_dev *rdev)
+{
+
+	debugfs_root = debugfs_create_dir(rdev->desc->name, NULL);
+
+	if (IS_ERR_OR_NULL(debugfs_root)) {
+		dev_warn(&rdev->dev, "Failed to create debugfs directory\n");
+		rdev->debugfs = NULL;
+		return;
+	}
+
+	debugfs_create_file("enable", S_IRUGO | S_IWUSR,
+			    debugfs_root, rdev, &fops_enable);
+	debugfs_create_file("voltage", S_IRUGO | S_IWUSR,
+			    debugfs_root, rdev, &fops_ldo);
+}
+
 static int sc2730_regulator_unlock(struct regmap *regmap)
 {
 	return regmap_write(regmap, SC2730_PWR_WR_PROT,
@@ -393,8 +471,15 @@ static int sc2730_regulator_probe(struct platform_device *pdev)
 				regulators[i].name);
 			return PTR_ERR(rdev);
 		}
+		sc2730_regulator_debugfs_init(rdev);
 	}
 
+	return 0;
+}
+
+static int sc2730_regulator_remove(struct platform_device *pdev)
+{
+	debugfs_remove_recursive(debugfs_root);
 	return 0;
 }
 
@@ -403,6 +488,7 @@ static struct platform_driver sc2730_regulator_driver = {
 		.name = "sc27xx-regulator",
 	},
 	.probe = sc2730_regulator_probe,
+	.remove = sc2730_regulator_remove,
 };
 
 module_platform_driver(sc2730_regulator_driver);
