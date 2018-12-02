@@ -247,7 +247,7 @@ static int sc2703_charger_hw_init(struct sc2703_charger_info *info)
 
 	/* enable the watchdog timer */
 	ret = regmap_update_bits(info->regmap, SC2703_CONF_A,
-				 SC2703_WD_EN_MASK, SC2703_WD_EN_MASK);
+				 SC2703_WD_EN_MASK, 0);
 	if (ret) {
 		dev_err(info->dev,
 			 "Failed to enable the watchdog timer:%d\n", ret);
