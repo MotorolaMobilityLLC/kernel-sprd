@@ -1078,9 +1078,12 @@ static bool sprd_dma_filter_fn(struct dma_chan *chan, void *param)
 {
 	struct sprd_dma_chn *schan = to_sprd_dma_chan(chan);
 	struct sprd_dma_dev *sdev = to_sprd_dma_dev(&schan->vc.chan);
-	u32 req = *(u32 *)param;
+	struct of_phandle_args *dma_spec =
+		container_of(param, struct of_phandle_args, args);
+	u32 req = dma_spec->args[0];
 
-	if (req < sdev->total_chns)
+	if (chan->device->dev->of_node == dma_spec->np &&
+	    req < sdev->total_chns)
 		return req == schan->chn_num + 1;
 	else
 		return false;
