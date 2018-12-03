@@ -452,6 +452,37 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 	return 0;
 }
 
+static void musb_sprd_detect_cable(struct sprd_glue *glue)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&glue->lock, flags);
+	if (extcon_get_state(glue->edev, EXTCON_USB) == true) {
+		if (glue->vbus_active == 1) {
+			spin_unlock_irqrestore(&glue->lock, flags);
+			dev_info(glue->dev,
+				"ignore device connection detected from VBUS GPIO.\n");
+			return;
+		}
+
+		glue->vbus_active = 1;
+		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
+		queue_work(system_unbound_wq, &glue->work);
+	} else if (extcon_get_state(glue->edev, EXTCON_USB_HOST) == true) {
+		if (glue->vbus_active == 1) {
+			spin_unlock_irqrestore(&glue->lock, flags);
+			dev_info(glue->dev,
+				"ignore host connection detected from ID GPIO.\n");
+			return;
+		}
+
+		glue->vbus_active = 1;
+		glue->wq_mode = USB_DR_MODE_HOST;
+		queue_work(system_unbound_wq, &glue->work);
+	}
+	spin_unlock_irqrestore(&glue->lock, flags);
+}
+
 static int musb_sprd_resume_child(struct device *dev, void *data)
 {
 	int ret;
@@ -904,6 +935,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
+	musb_sprd_detect_cable(glue);
 
 	return 0;
 
