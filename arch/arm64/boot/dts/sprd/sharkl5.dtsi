@@ -304,6 +304,12 @@
 				status = "disabled";
 			};
 
+			gpu: gpu@60000000 {
+				compatible = "sprd,rogue";
+				reg = <0x0 0x60000000 0x0 0x100000>;
+				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
 			csi0: csi00@62300000 {
 				compatible = "sprd,csi-regs0";
 				reg = <0 0x62300000 0 0x1000>;
