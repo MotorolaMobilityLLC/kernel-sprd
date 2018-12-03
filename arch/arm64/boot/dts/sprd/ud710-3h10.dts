@@ -1,5 +1,5 @@
 /*
- * Spreadtrum Roc1 Haps board DTS file
+ * Spreadtrum Roc1 board DTS file
  *
  * Copyright (C) 2018, Spreadtrum Communications Inc.
  *
@@ -59,12 +59,6 @@
 		log {
 			compatible = "android,trusty-log-v1";
 		};
-	};
-
-	reserved-memory {
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
 	};
 };
 
