@@ -1338,7 +1338,7 @@
 
 			dmc_mpu: dmc-mpu@31030000 {
 				compatible = "sprd,sharkl5-dmc-mpu";
-				reg = <0 31030000 0 0x10000>;
+				reg = <0 0x31030000 0 0x10000>;
 				interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
 				syscon-names = "irq_clr", "irq_en";
 				syscons = <&pub_apb_regs
