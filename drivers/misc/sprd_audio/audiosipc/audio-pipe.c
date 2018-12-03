@@ -141,10 +141,10 @@ static int aud_pipe_release(struct inode *inode, struct file *filp)
 	if (aud_pipe_dev->openned) {
 		aud_pipe_dev->openned--;
 		if (aud_pipe_dev->openned == 0) {
-			ret = aud_ipc_ch_close(AMSG_CH_DSP_ASSERT_CTL);
+			ret = aud_ipc_ch_close(aud_pipe_dev->channel);
 			if (ret != 0) {
 				pr_err("%s, Failed to close channel(%d)\n",
-					__func__, AMSG_CH_DSP_ASSERT_CTL);
+					__func__, aud_pipe_dev->channel);
 			}
 			if (aud_pipe_dev->tmp_buffer)
 				vfree(aud_pipe_dev->tmp_buffer);
@@ -297,7 +297,7 @@ static const struct file_operations audio_pipe_fops = {
 static const struct of_device_id audio_pipe_match_table[] = {
 	{.compatible = "sprd,audio_pipe_voice",
 		.data = (void *)SPRD_PIPE_VOICE},
-	{.compatible = "audio_pipe_effect",
+	{.compatible = "sprd,audio_pipe_effect",
 		.data = (void *)SPRD_PIPE_EFFECT},
 	{.compatible = "sprd,audio_pipe_recordproc",
 		.data = (void *)SPRD_PIPE_RECORD_PROCESS},
@@ -333,11 +333,11 @@ static int aud_pipe_parse_dt(struct device *dev,
 		break;
 	case SPRD_PIPE_EFFECT:
 		strncpy(aud_pipe_dev->device_name,
-			"sprd,audio_pipe_effect", SPRD_PIPE_NAME_MAX);
+			"audio_pipe_effect", SPRD_PIPE_NAME_MAX);
 		break;
 	case SPRD_PIPE_RECORD_PROCESS:
 		strncpy(aud_pipe_dev->device_name,
-			"sprd,audio_pipe_recordproc", SPRD_PIPE_NAME_MAX);
+			"audio_pipe_recordproc", SPRD_PIPE_NAME_MAX);
 		break;
 	default:
 		ret = -EINVAL;
