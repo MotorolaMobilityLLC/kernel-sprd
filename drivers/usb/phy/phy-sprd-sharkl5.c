@@ -159,7 +159,8 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	reg = msk = MASK_AON_APB_OTG_UTMI_EB;
 	ret |= regmap_update_bits(phy->hsphy_glb,
 		REG_AON_APB_APB_EB1, msk, reg);
-	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN;
+	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN |
+		MASK_AON_APB_CGM_DPHY_REF_EN;
 	ret |= regmap_update_bits(phy->hsphy_glb,
 		REG_AON_APB_CGM_REG1, msk, reg);
 
@@ -230,7 +231,8 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		msk, reg);
 
 	/* usb cgm ref */
-	msk = MASK_AON_APB_CGM_OTG_REF_EN;
+	msk = MASK_AON_APB_CGM_OTG_REF_EN |
+		MASK_AON_APB_CGM_DPHY_REF_EN;
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
 
 	regulator_disable(phy->vdd);
@@ -383,7 +385,8 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	/* enable usb module */
 	reg = msk = (MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB);
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, reg);
-	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN;
+	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN |
+		MASK_AON_APB_CGM_DPHY_REF_EN;
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, reg);
 
 	/* usb power down */
