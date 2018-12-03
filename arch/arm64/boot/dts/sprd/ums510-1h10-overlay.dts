@@ -29,7 +29,7 @@
 				key-volumeup {
 					label = "Volume Up Key";
 					linux,code = <KEY_VOLUMEUP>;
-					gpios = <&pmic_eic 4 GPIO_ACTIVE_LOW>;
+					gpios = <&pmic_eic 4 GPIO_ACTIVE_HIGH>;
 					debounce-interval = <2>;
 					wakeup-source;
 				};
