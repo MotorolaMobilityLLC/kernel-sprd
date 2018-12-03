@@ -700,16 +700,11 @@ static int sc2703_charger_set_status(struct sc2703_charger_info *info, u32 val)
 	struct regmap *regmap = info->regmap;
 	u32 chg_en;
 
-	switch (val) {
-	case POWER_SUPPLY_STATUS_CHARGING:
-		chg_en = SC2703_CHG_EN_MASK;
-		break;
-	case POWER_SUPPLY_STATUS_NOT_CHARGING:
+	if (!val)
 		chg_en = 0;
-		break;
-	default:
-		return -EINVAL;
-	}
+	else
+		chg_en = SC2703_CHG_EN_MASK;
+
 
 	return regmap_update_bits(regmap, SC2703_DCDC_CTRL_A,
 				  SC2703_CHG_EN_MASK, chg_en);
