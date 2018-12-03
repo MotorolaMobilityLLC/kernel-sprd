@@ -4,7 +4,6 @@
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/scatterlist.h>
-#include <linux/sched.h>
 #include <linux/slab.h>
 #include <misc/wcn_bus.h>
 #ifdef CONFIG_WCN_SLP
@@ -191,10 +190,12 @@ struct sdiohal_data_t {
 	struct completion rx_completed;
 	struct wakeup_source tx_ws;
 	atomic_t tx_wake_flag;
-	atomic_t tx_wake_cp_count[SUBSYS_MAX];
 	struct wakeup_source rx_ws;
 	atomic_t rx_wake_flag;
+#ifdef CONFIG_WCN_SLP
+	atomic_t tx_wake_cp_count[SUBSYS_MAX];
 	atomic_t rx_wake_cp_count[SUBSYS_MAX];
+#endif
 	struct mutex xmit_lock;
 	struct mutex xmit_sdma;
 	spinlock_t tx_spinlock;
@@ -384,5 +385,7 @@ int sdiohal_runtime_put(void);
 void sdiohal_register_scan_notify(void *func);
 int sdiohal_scan_card(void);
 void sdiohal_remove_card(void);
+
+extern int mmc_detect_card_removed(struct mmc_host *host);
 
 #endif

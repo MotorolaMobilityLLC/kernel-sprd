@@ -624,20 +624,31 @@ int sdiohal_readl(unsigned int system_addr, void *buf)
 	return ret;
 }
 
+static int sdiohal_blksz_for_byte_mode(const struct mmc_card *c)
+{
+	return c->quirks & MMC_QUIRK_BLKSZ_FOR_BYTE_MODE;
+}
+
+static int sdiohal_card_broken_byte_mode_512(
+	const struct mmc_card *c)
+{
+	return c->quirks & MMC_QUIRK_BROKEN_BYTE_MODE_512;
+}
+
 static unsigned int max_bytes(struct sdio_func *func)
 {
-	unsigned int mval =	func->card->host->max_blk_size;
-/* TODO : for look for new interface to SDIO */
-#if 0
-	if (mmc_blksz_for_byte_mode(func->card))
+	unsigned int mval = func->card->host->max_blk_size;
+
+	if (sdiohal_blksz_for_byte_mode(func->card))
 		mval = min(mval, func->cur_blksize);
 	else
 		mval = min(mval, func->max_blksize);
 
-	if (mmc_card_broken_byte_mode_512(func->card))
+	if (sdiohal_card_broken_byte_mode_512(func->card))
 		return min(mval, 511u);
-#endif
-	return min(mval, 512u); /* maximum size for byte mode */
+
+	/* maximum size for byte mode */
+	return min(mval, 512u);
 }
 
 int sdiohal_dt_write(unsigned int system_addr,
@@ -788,8 +799,7 @@ void sdiohal_remove_card(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
-	/* mmc_card_set_removed(p_data->sdio_dev_host->card); */
-	mmc_detect_change(p_data->sdio_dev_host, 0);
+	mmc_detect_card_removed(p_data->sdio_dev_host);
 }
 
 int sdiohal_scan_card(void)
@@ -1331,7 +1341,6 @@ int sdiohal_init(void)
 	sdiohal_launch_thread();
 	sdiohal_host_irq_init(p_data->gpio_num);
 	p_data->flag_init = true;
-
 
 #ifdef CONFIG_DEBUG_FS
 	sdiohal_debug_init();

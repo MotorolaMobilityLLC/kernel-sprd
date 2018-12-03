@@ -1,3 +1,5 @@
+#include <uapi/linux/sched/types.h>
+
 #include "sdiohal.h"
 
 #define SDIOHAL_TX_RETRY_MAX 3
@@ -24,8 +26,8 @@ static void sdiohal_tx_retrybuf_left(unsigned int suc_pac_cnt)
 				SDIOHAL_ALIGN_4BYTE(puh->len);
 
 			/* pointer to next packet */
-			p += sizeof(struct sdio_puh_t)
-				+ SDIOHAL_ALIGN_4BYTE(puh->len);
+			p += sizeof(struct sdio_puh_t) +
+				SDIOHAL_ALIGN_4BYTE(puh->len);
 			puh = (struct sdio_puh_t *)p;
 			p_data->send_buf.retry_buf = (unsigned char *)p;
 		} else
@@ -133,10 +135,13 @@ int sdiohal_tx_thread(void *data)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	struct sdiohal_list_t data_list;
-	/* struct sched_param param; */
+	struct sched_param param;
 	struct timespec tm_begin, tm_end;
 	static long time_total_ns;
 	static int times_count;
+
+	param.sched_priority = SDIO_TX_TASK_PRIO;
+	sched_setscheduler(current, SCHED_FIFO, &param);
 
 	while (1) {
 		/* Wait the semaphore */
@@ -146,8 +151,8 @@ int sdiohal_tx_thread(void *data)
 
 		getnstimeofday(&p_data->tm_end_sch);
 		sdiohal_pr_perf("tx sch time:%ld\n",
-			(long)(timespec_to_ns(&p_data->tm_end_sch)
-			- timespec_to_ns(&p_data->tm_begin_sch)));
+			(long)(timespec_to_ns(&p_data->tm_end_sch) -
+			timespec_to_ns(&p_data->tm_begin_sch)));
 
 		sdiohal_lock_tx_ws();
 		sdiohal_resume_wait();
