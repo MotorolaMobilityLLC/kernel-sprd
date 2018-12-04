@@ -284,7 +284,7 @@
 		};
 
 		mm_clk: clock-controller@62100000 {
-			compatbile = "sprd,sharkl5-mm-clk";
+			compatible = "sprd,sharkl5-mm-clk";
 			reg = <0 0x62100000 0 0x1000>;
 			clocks = <&aonapb_gate CLK_MM_EB>;
 			#clock-cells = <1>;
