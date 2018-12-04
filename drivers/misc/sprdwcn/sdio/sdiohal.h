@@ -6,6 +6,8 @@
 #include <linux/scatterlist.h>
 #include <linux/slab.h>
 #include <misc/wcn_bus.h>
+#include <uapi/linux/sched/types.h>
+
 #ifdef CONFIG_WCN_SLP
 #include "../sleep/sdio_int.h"
 #include "../sleep/slp_mgr.h"

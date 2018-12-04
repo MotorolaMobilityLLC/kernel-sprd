@@ -1,5 +1,3 @@
-#include <uapi/linux/sched/types.h>
-
 #include "sdiohal.h"
 
 #define SDIOHAL_TX_RETRY_MAX 3

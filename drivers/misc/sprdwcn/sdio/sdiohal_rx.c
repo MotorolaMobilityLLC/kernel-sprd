@@ -1,5 +1,3 @@
-#include <uapi/linux/sched/types.h>
-
 #include "sdiohal.h"
 
 static unsigned int sdiohal_rx_adapt_get(void)
