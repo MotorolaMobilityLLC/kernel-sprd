@@ -48,7 +48,7 @@
 		compatible = "sprd,sharkl5-sensorhub";
 	};
 
-	thermal-zones {
+	thm_zone: thermal-zones {
 
 		prometheus0_thmzone: prometheus0-thmzone {
 			polling-delay-passive = <0>;
