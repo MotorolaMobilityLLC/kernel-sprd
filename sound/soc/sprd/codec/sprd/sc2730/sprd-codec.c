@@ -1661,14 +1661,10 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_SUPPLY_S("CLK_DIG_6M5", 1, SOC_REG(ANA_CLK0),
 			CLK_DIG_6M5_EN_S, 0, NULL, 0),
 /* DCL clock */
-	SND_SOC_DAPM_SUPPLY_S("DCL_EN", 3, SOC_REG(ANA_DCL1),
-			DCL_EN_S, 0,
-			audio_dcl_event,
-			SND_SOC_DAPM_POST_PMU),
-	SND_SOC_DAPM_SUPPLY_S("DIG_CLK_INTC", 5, SOC_REG(ANA_DCL1),
-			DIG_CLK_INTC_EN_S, 0, NULL, 0),
-	SND_SOC_DAPM_SUPPLY_S("DIG_CLK_HID", 5, SOC_REG(ANA_DCL1),
-			DIG_CLK_HID_EN_S, 0, NULL, 0),
+	SND_SOC_DAPM_REGULATOR_SUPPLY("DCL", 0, 0),
+	SND_SOC_DAPM_REGULATOR_SUPPLY("DIG_CLK_INTC", 0, 0),
+
+	SND_SOC_DAPM_REGULATOR_SUPPLY("DIG_CLK_HID", 0, 0),
 	SND_SOC_DAPM_SUPPLY_S("DIG_CLK_CFGA_PRT", 5, SOC_REG(ANA_DCL1),
 			DIG_CLK_CFGA_PRT_EN_S, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY_S("DIG_CLK_PABST", 5, SOC_REG(ANA_DCL1),
@@ -1680,7 +1676,8 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_SUPPLY_S("DIG_CLK_FGU", 5, SOC_REG(ANA_DCL1),
 			DIG_CLK_FGU_EN_S, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY_S("DIG_CLK_DRV_SOFT", 5, SOC_REG(ANA_DCL1),
-			DIG_CLK_DRV_SOFT_EN_S, 0, NULL, 0),
+			DIG_CLK_DRV_SOFT_EN_S, 0,
+			audio_dcl_event, SND_SOC_DAPM_POST_PMU),
 	SND_SOC_DAPM_SUPPLY_S("DIG_CLK_PA", 5, SOC_REG(ANA_DCL1),
 			DIG_CLK_PA_EN_S, 0, NULL, 0),
 /* ADC CLK */
@@ -1980,12 +1977,12 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADC_IBIAS", NULL, "ADC_VREF_BUF"},
 
 	{"CLK_DAC", NULL, "CLK_DIG_6M5"},
-	{"CLK_DAC", NULL, "DCL_EN"},
+	{"CLK_DAC", NULL, "DCL"},
 	{"CLK_DAC", NULL, "DIG_CLK_DRV_SOFT"},
 	{"CLK_DAC", NULL, "Digital Power"},
 
 	{"CLK_ADC", NULL, "CLK_DIG_6M5"},
-	{"CLK_ADC", NULL, "DCL_EN"},
+	{"CLK_ADC", NULL, "DCL"},
 	{"CLK_ADC", NULL, "DIG_CLK_DRV_SOFT"},
 	{"CLK_ADC", NULL, "Digital Power"},
 	{"CLK_ADC", NULL, "ADC_IBIAS"},

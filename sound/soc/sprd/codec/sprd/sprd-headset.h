@@ -114,6 +114,24 @@ struct sprd_headset_power {
 	struct regulator *bg;
 	struct regulator *bias;
 	struct regulator *vb;
+	struct regulator *dcl;
+	struct regulator *dig_clk_intc;
+	struct regulator *dig_clk_hid;
+	struct regulator *clk_dcl_32k;
+	/*
+	 * Some regulators are used both in codec and headset.
+	 * It is difficult to make enable/disable calling in pair.
+	 * Add mark to record the status to make sure enable/disable
+	 * calling in pair.
+	 */
+	bool head_mic_en;
+	bool bg_en;
+	bool bias_en;
+	bool vb_en;
+	bool dcl_en;
+	bool dig_clk_intc_en;
+	bool dig_clk_hid_en;
+	bool clk_dcl_32k_en;
 };
 
 struct sprd_headset {
