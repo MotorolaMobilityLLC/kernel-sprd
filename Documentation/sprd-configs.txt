@@ -8304,6 +8304,14 @@ CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sipx function between modem and AP.
+CONFIG_SPRD_SYSDUMP
+        [arch] all
+        [plat] sharkl5
+        [field] make,code
+        [subsys] soc
+        [must] user
+        [function] This function is used to enable sprd sysdump feature
+                   that dump the DDR except reserved memory.
 CONFIG_SPRD_THERMAL
 	[arch] all
 	[plat] sharkl5

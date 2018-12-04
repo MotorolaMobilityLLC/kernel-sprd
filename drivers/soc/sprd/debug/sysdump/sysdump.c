@@ -66,7 +66,7 @@
 
 #define DUMP_REGS_SIZE min(sizeof(elf_gregset_t), sizeof(struct pt_regs))
 
-#define ANA_RST_STATUS_OFFSET (0x3ac) //pmic rst status register offset
+#define ANA_RST_STATUS_OFFSET (0x1bac) //pmic rst status register offset
 #define HWRST_STATUS_SYSDUMP  (0x200)
 
 typedef char note_buf_t[SYSDUMP_NOTE_BYTES];
@@ -799,7 +799,7 @@ void sysdump_sysctl_exit(void)
 	crypto_free_shash(desc.tfm);
 }
 
-module_init(sysdump_sysctl_init);
+late_initcall(sysdump_sysctl_init);
 module_exit(sysdump_sysctl_exit);
 
 MODULE_AUTHOR("Jianjun.He <jianjun.he@spreadtrum.com>");
