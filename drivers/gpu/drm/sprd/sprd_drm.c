@@ -272,6 +272,12 @@ static int sprd_drm_component_probe(struct device *dev,
 
 static int sprd_drm_probe(struct platform_device *pdev)
 {
+	int ret;
+
+	ret = dma_set_mask_and_coherent(&pdev->dev, ~0);
+	if (ret)
+		DRM_ERROR("dma_set_mask_and_coherent failed (%d)\n", ret);
+
 	return sprd_drm_component_probe(&pdev->dev, &drm_component_ops);
 }
 
