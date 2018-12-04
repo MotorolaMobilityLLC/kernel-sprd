@@ -34,8 +34,6 @@
 
 
 static const char * const tb_name[] = {
-	"chip_id0",
-	"chip_id1",
 	"force_shutdown",
 	"shutdown_en", /* clear */
 	"power_state", /* on: 0; off:7 */
@@ -44,10 +42,8 @@ static const char * const tb_name[] = {
 
 };
 enum  {
-	_e_chip_id0 = 0,
-	_e_chip_id1,
 	_e_force_shutdown,
-	_e_shutdown_en,
+	_e_auto_shutdown,
 	_e_power_state,
 	_e_qos_ar,
 	_e_qos_aw,
@@ -64,7 +60,7 @@ struct mmsys_power_info {
 	atomic_t users_pw;
 	atomic_t users_clk;
 	atomic_t inited;
-	uint32_t mm_qos_ar, mm_qos_aw;
+	uint8_t mm_qos_ar, mm_qos_aw;
 	struct register_gpr regs[sizeof(tb_name) / sizeof(void *)];
 
 	struct clk *mm_eb;
@@ -79,47 +75,16 @@ struct mmsys_power_info {
 	struct clk *mtx_clk_default;
 };
 
-/* L5 */
 #define PD_MM_DOWN_FLAG			(0x7 << 16)
 #define ARQOS_THRESHOLD			0x0D
 #define AWQOS_THRESHOLD			0x0D
 static struct mmsys_power_info *pw_info;
-#ifndef TEST_ON_HAPS
-#define TEST_ON_HAPS /* on haps, will remove this after bringup */
-#endif
-/* test on haps */
-#if    (defined(TEST_ON_HAPS))
-static unsigned int read_hwaddress(unsigned int addr)
-{
-	void __iomem *io_tmp = NULL;
-	unsigned int val;
-
-	io_tmp = ioremap_nocache(addr, 0x4);
-	val = __raw_readl(io_tmp);
-	iounmap(io_tmp);
-
-	return val;
-}
-
-static void write_hwaddress_mask(unsigned int addr, unsigned int mask,
-				unsigned int val)
-{
-	void __iomem *io_tmp = NULL;
-	unsigned int tmp;
-
-	io_tmp = ioremap_nocache(addr, 0x4);
-	tmp = __raw_readl(io_tmp);
-	val = (val & mask) | (tmp & (~mask));
-	__raw_writel(val, io_tmp);
-	val = __raw_readl(io_tmp);
-	iounmap(io_tmp);
-}
-#else
 
 static void regmap_update_bits_mmsys(struct register_gpr *p, uint32_t val)
 {
 	if ((!p) || (!(p->gpr)))
 		return;
+
 	regmap_update_bits(p->gpr, p->reg, p->mask, val);
 }
 
@@ -149,7 +114,6 @@ static int lsb_bit1(uint32_t tmp)
 
 	return num;
 }
-#endif
 
 static int regmap_read_mmsys(struct register_gpr *p, uint32_t *val)
 {
@@ -196,7 +160,7 @@ static int mmsys_power_init(struct platform_device *pdev)
 	for (i = 0; i < ARRAY_SIZE(tb_name); i++) {
 		pname = tb_name[i];
 		tregmap =  syscon_regmap_lookup_by_name(np, pname);
-		if (IS_ERR(tregmap)) {
+		if (IS_ERR_OR_NULL(tregmap)) {
 			/* domain work normal when remove some item from dts */
 			pr_warn("Read DTS %s regmap fail\n", pname);
 			continue;
@@ -214,17 +178,17 @@ static int mmsys_power_init(struct platform_device *pdev)
 			pw_info->regs[i].gpr, pw_info->regs[i].reg,
 			pw_info->regs[i].mask);
 	}
-	np_qos = of_parse_phandle(np, "sprd,qos-thres", 0);
+	np_qos = of_parse_phandle(np, "mm_qos_threshold", 0);
 	if (!IS_ERR_OR_NULL(np_qos)) {
 		/* read qos ar aw */
-		ret = of_property_read_u32(np_qos, "arqos-threshold",
+		ret = of_property_read_u8(np_qos, "arqos-threshold",
 			&pw_info->mm_qos_ar);
 		if (ret) {
 			pw_info->mm_qos_ar = ARQOS_THRESHOLD;
 			pr_warn("read arqos-threshold fail, default %d\n",
 				pw_info->mm_qos_ar);
 		}
-		ret = of_property_read_u32(np_qos, "awqos-threshold",
+		ret = of_property_read_u8(np_qos, "awqos-threshold",
 			&pw_info->mm_qos_aw);
 		if (ret) {
 			pw_info->mm_qos_aw = AWQOS_THRESHOLD;
@@ -239,54 +203,52 @@ static int mmsys_power_init(struct platform_device *pdev)
 	}
 
 	ret = 0;
-#ifndef	TEST_ON_HAPS
 	/* read clk */
-	pw_info->mm_eb = devm_clk_get(&pdev->dev, "mm_eb");
-	if (IS_ERR(pw_info->mm_eb)) {
+	pw_info->mm_eb = of_clk_get_by_name(np, "mm_eb");
+	if (IS_ERR_OR_NULL(pw_info->mm_eb)) {
 		pr_err("Get mm_eb clk fail, ret %d\n",
 			(int)PTR_ERR(pw_info->mm_eb));
 		ret |= BIT(0);
 	}
-	pw_info->mm_ahb_eb = devm_clk_get(&pdev->dev, "mm_ahb_eb");
-	if (IS_ERR(pw_info->mm_ahb_eb)) {
+	pw_info->mm_ahb_eb = of_clk_get_by_name(np, "mm_ahb_eb");
+	if (IS_ERR_OR_NULL(pw_info->mm_ahb_eb)) {
 		pr_err("Get mm_ahb_eb clk fail, ret %d\n",
 			(int)PTR_ERR(pw_info->mm_ahb_eb));
 		ret |= BIT(1);
 	}
-	pw_info->ahb_clk = devm_clk_get(&pdev->dev, "clk_mm_ahb");
-	if (IS_ERR(pw_info->ahb_clk)) {
+	pw_info->ahb_clk = of_clk_get_by_name(np, "clk_mm_ahb");
+	if (IS_ERR_OR_NULL(pw_info->ahb_clk)) {
 		pr_err("Get clk_mm_ahb clk fail, ret %d\n",
 			(int)PTR_ERR(pw_info->ahb_clk));
 		ret |= BIT(2);
 	}
-	pw_info->ahb_clk_parent = devm_clk_get(&pdev->dev, "clk_mm_ahb_parent");
-	if (IS_ERR(pw_info->ahb_clk_parent)) {
+	pw_info->ahb_clk_parent = of_clk_get_by_name(np, "clk_mm_ahb_parent");
+	if (IS_ERR_OR_NULL(pw_info->ahb_clk_parent)) {
 		pr_err("Get mm_ahb_eb clk fail, ret %d\n",
 			(int)PTR_ERR(pw_info->ahb_clk_parent));
 		ret |= BIT(3);
 	}
-	pw_info->ahb_clk_default = pw_info->ahb_clk_parent;
+	pw_info->ahb_clk_default = clk_get_parent(pw_info->ahb_clk);
 	/* read mm mtx clk */
-	pw_info->mm_mtx_eb = devm_clk_get(&pdev->dev, "mm_mtx_eb");
-	if (IS_ERR(pw_info->mm_mtx_eb)) {
+	pw_info->mm_mtx_eb = of_clk_get_by_name(np, "mm_mtx_eb");
+	if (IS_ERR_OR_NULL(pw_info->mm_mtx_eb)) {
 		pr_err("Get mm_mtx_eb clk fail, ret %d\n",
 			(int)PTR_ERR(pw_info->mm_mtx_eb));
 		ret |= BIT(4);
 	}
-	pw_info->mtx_clk = devm_clk_get(&pdev->dev, "clk_mm_mtx");
-	if (IS_ERR(pw_info->mtx_clk)) {
-		pr_err("Get mm_mtx_eb clk fail, ret %d\n",
+	pw_info->mtx_clk = of_clk_get_by_name(np, "clk_mm_mtx");
+	if (IS_ERR_OR_NULL(pw_info->mtx_clk)) {
+		pr_err("Get clk_mm_mtx clk fail, ret %d\n",
 			(int)PTR_ERR(pw_info->mtx_clk));
 		ret |= BIT(5);
 		}
-	pw_info->mtx_clk_parent = devm_clk_get(&pdev->dev, "clk_mm_mtx_parent");
-	if (IS_ERR(pw_info->mtx_clk_parent)) {
-		pr_err("Get mm_mtx_eb clk fail, ret %d\n",
+	pw_info->mtx_clk_parent = of_clk_get_by_name(np, "clk_mm_mtx_parent");
+	if (IS_ERR_OR_NULL(pw_info->mtx_clk_parent)) {
+		pr_err("Get clk_mm_mtx_parent clk fail, ret %d\n",
 			(int)PTR_ERR(pw_info->mtx_clk_parent));
 		ret |= BIT(6);
 	}
-	pw_info->mtx_clk_default = pw_info->mtx_clk_parent;
-#endif
+	pw_info->mtx_clk_default = clk_get_parent(pw_info->mtx_clk);
 	if (ret) {
 		atomic_set(&pw_info->inited, 0);
 		pr_err("ret = 0x%x\n", ret);
@@ -310,17 +272,6 @@ static int mmsys_power_deinit(struct platform_device *pdev)
 
 int sprd_cam_pw_on(void)
 {
-#if	defined(TEST_ON_HAPS)
-	mutex_lock(&pw_info->mlock);
-	if (atomic_inc_return(&pw_info->users_pw) == 1) {
-		/* pmu */
-		write_hwaddress_mask(0x327E0024, BIT(24) | BIT(25), 0);
-		usleep_range(500, 1000);
-	}
-	mutex_unlock(&pw_info->mlock);
-
-	return 0;
-#else /* #elif */
 	int ret = 0;
 	unsigned int power_state1;
 	unsigned int power_state2;
@@ -340,7 +291,7 @@ int sprd_cam_pw_on(void)
 		/* clear force shutdown */
 		regmap_update_bits_mmsys(&pw_info->regs[_e_force_shutdown], 0);
 		/* power on */
-		regmap_update_bits_mmsys(&pw_info->regs[_e_shutdown_en], 0);
+		regmap_update_bits_mmsys(&pw_info->regs[_e_auto_shutdown], 0);
 
 		do {
 			cpu_relax();
@@ -387,15 +338,11 @@ err_pw_on:
 
 	return ret;
 
-#endif
 }
 EXPORT_SYMBOL(sprd_cam_pw_on);
 
 int sprd_cam_pw_off(void)
 {
-#if	defined(TEST_ON_HAPS)
-	return 0;
-#else /* #elif */
 	int ret = 0;
 	unsigned int power_state1;
 	unsigned int power_state2;
@@ -412,10 +359,9 @@ int sprd_cam_pw_off(void)
 
 	mutex_lock(&pw_info->mlock);
 	if (atomic_dec_return(&pw_info->users_pw) == 0) {
+		/* 1:auto shutdown en, shutdown with ap; 0: control by b25 */
+		regmap_update_bits_mmsys(&pw_info->regs[_e_auto_shutdown], 0);
 		/* set 1 to shutdown */
-		regmap_update_bits_mmsys(&pw_info->regs[_e_shutdown_en],
-			~((uint32_t)0));
-		/* force shutdown */
 		regmap_update_bits_mmsys(&pw_info->regs[_e_force_shutdown],
 			~((uint32_t)0));
 
@@ -443,43 +389,33 @@ int sprd_cam_pw_off(void)
 			(read_count < 10)) ||
 				(power_state1 != power_state2) ||
 				(power_state2 != power_state3));
-
 		if (power_state1 != PD_MM_DOWN_FLAG) {
-			pr_err("power off failed 0x%x\n", power_state1);
+			pr_err("failed, power_state1=0x%x\n", power_state1);
 			ret = -1;
 			goto err_pw_off;
 		}
 	}
 	mutex_unlock(&pw_info->mlock);
 	/* if count == 0, other using */
-	pr_info("Done, uses: %d, read count %d, cb: %p\n",
-		atomic_read(&pw_info->users_pw), read_count,
+	pr_info("Done, state: 0x%x, read count %d, cb: %p\n",
+		power_state1, read_count,
 		__builtin_return_address(0));
 
 	return 0;
 
 err_pw_off:
 	mutex_unlock(&pw_info->mlock);
-	pr_err("power off failed, ret: %d, count: %d!\n", ret, read_count);
+	pr_err("failed, ret: %d, count: %d, cb: %p\n", ret, read_count,
+		__builtin_return_address(0));
 
 	return ret;
 
-#endif
 }
 EXPORT_SYMBOL(sprd_cam_pw_off);
 
 
 int sprd_cam_domain_eb(void)
 {
-#if	defined(TEST_ON_HAPS)
-	/* aon */
-	write_hwaddress_mask(0x327d0000, BIT(9), BIT(9));
-
-	write_hwaddress_mask(0x62200000, 0x3FC, 0x3FC); /* D2:D9 */
-	write_hwaddress_mask(0x62200008, 0xF8, 0xF8); /* D3:D7 */
-
-	return 0;
-#else /* #elif */
 	uint32_t tmp = 0;
 	int ret = 0;
 
@@ -491,7 +427,7 @@ int sprd_cam_domain_eb(void)
 		return -ENODEV;
 	}
 
-	pr_debug("clk users count:%d, cb: %p\n",
+	pr_info("clk users count:%d, cb: %p\n",
 		atomic_read(&pw_info->users_clk),
 		__builtin_return_address(0));
 
@@ -521,20 +457,11 @@ int sprd_cam_domain_eb(void)
 	mutex_unlock(&pw_info->mlock);
 
 	return 0;
-#endif
 }
 EXPORT_SYMBOL(sprd_cam_domain_eb);
 
 int sprd_cam_domain_disable(void)
 {
-#if	defined(TEST_ON_HAPS)
-	uint32_t t = 0;
-
-	t = read_hwaddress(0x62200000);
-	pr_debug("mm ahb [0x62200000] = 0x%x\n", t);
-
-	return 0;
-#else /* #elif */
 	int ret = 0;
 
 	ret = check_drv_init();
@@ -562,47 +489,8 @@ int sprd_cam_domain_disable(void)
 	mutex_unlock(&pw_info->mlock);
 
 	return 0;
-#endif
 }
 EXPORT_SYMBOL(sprd_cam_domain_disable);
-
-uint32_t sprd_chip_id0(void)
-{
-	uint32_t tmp = 0;
-	int ret = 0;
-
-	if (check_drv_init())
-		return tmp;
-	mutex_lock(&pw_info->mlock);
-	ret = regmap_read_mmsys(&pw_info->regs[_e_chip_id0], &tmp);
-	if (ret) {
-		pr_err("read id0 fail\n");
-		tmp = 0;
-	}
-	mutex_unlock(&pw_info->mlock);
-
-	return tmp;
-}
-EXPORT_SYMBOL(sprd_chip_id0);
-
-uint32_t sprd_chip_id1(void)
-{
-	uint32_t tmp = 0;
-	int ret = 0;
-
-	if (check_drv_init())
-		return tmp;
-	mutex_lock(&pw_info->mlock);
-	ret = regmap_read_mmsys(&pw_info->regs[_e_chip_id1], &tmp);
-	if (ret) {
-		pr_err("read id0 fail\n");
-		tmp = 0;
-	}
-	mutex_unlock(&pw_info->mlock);
-
-	return tmp;
-}
-EXPORT_SYMBOL(sprd_chip_id1);
 
 static int mmpw_probe(struct platform_device *pdev)
 {
@@ -615,7 +503,7 @@ static int mmpw_probe(struct platform_device *pdev)
 		pr_err("power init fail\n");
 		return -ENODEV;
 	}
-	pr_info(",OK\n");
+	pr_info("OK\n");
 
 	return ret;
 }
@@ -659,7 +547,7 @@ static void __exit mmpw_exit(void)
 	platform_driver_unregister(&mmpw_driver);
 }
 
-subsys_initcall(mmpw_init)
+module_init(mmpw_init)
 module_exit(mmpw_exit)
 
 
