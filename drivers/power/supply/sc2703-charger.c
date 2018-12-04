@@ -594,41 +594,10 @@ sc2703_charger_get_limit_current(struct sc2703_charger_info *info, u32 *cur)
 
 static int sc2703_charger_get_status(struct sc2703_charger_info *info)
 {
-	u32 status[4];
-	int ret;
-
-	ret = regmap_bulk_read(info->regmap, SC2703_STATUS_A, status,
-			       ARRAY_SIZE(status));
-	if (ret)
-		return POWER_SUPPLY_STATUS_UNKNOWN;
-
-	/* If wall charger not connected, we're definitely discharging */
-	if (!(status[0] & SC2703_S_ADP_DET_MASK))
+	if (info->charging == true)
+		return POWER_SUPPLY_STATUS_CHARGING;
+	else
 		return POWER_SUPPLY_STATUS_DISCHARGING;
-
-	switch (status[3] & SC2703_S_CHG_STAT_MASK) {
-	case SC2703_S_CHG_STAT_DCDC_OFF:
-	case SC2703_S_CHG_STAT_FAULT_L2:
-		ret = POWER_SUPPLY_STATUS_DISCHARGING;
-		break;
-	case SC2703_S_CHG_STAT_FAULT_L1:
-		ret = POWER_SUPPLY_STATUS_NOT_CHARGING;
-		break;
-	case SC2703_S_CHG_STAT_PRE:
-	case SC2703_S_CHG_STAT_CC:
-	case SC2703_S_CHG_STAT_CV:
-	case SC2703_S_CHG_STAT_TOP_OFF:
-		ret = POWER_SUPPLY_STATUS_CHARGING;
-		break;
-	case SC2703_S_CHG_STAT_FULL:
-		ret = POWER_SUPPLY_STATUS_FULL;
-		break;
-	default:
-		ret = POWER_SUPPLY_STATUS_UNKNOWN;
-		break;
-	}
-
-	return ret;
 }
 
 static int sc2703_charger_get_health(struct sc2703_charger_info *info,
@@ -668,33 +637,10 @@ static int sc2703_charger_get_health(struct sc2703_charger_info *info,
 static int sc2703_charger_get_online(struct sc2703_charger_info *info,
 				     u32 *online)
 {
-	struct regmap *regmap = info->regmap;
-	u32 status;
-	int ret;
-
-	ret = regmap_read(regmap, SC2703_STATUS_D, &status);
-	if (ret)
-		return ret;
-
-	/* Check for fault states where DCDC is disabled */
-	if ((status & SC2703_S_CHG_STAT_MASK) == SC2703_S_CHG_STAT_FAULT_L2) {
-		*online = 0;
-	} else if ((status & SC2703_S_CHG_STAT_MASK) == SC2703_S_CHG_STAT_DCDC_OFF) {
-		u32 dcdc_sts;
-
-		/* If DCDC not enabled for charging, check for reverse boost */
-		ret = regmap_read(regmap, SC2703_DCDC_CTRL_A, &dcdc_sts);
-		if (ret)
-			return ret;
-
-		if (!(dcdc_sts & SC2703_OTG_EN_MASK))
-			*online = 0;
-		else
-			*online = 1;
-	} else {
-		/* DCDC must be enabled so report on-line */
-		*online = 1;
-	}
+	if (info->charging)
+		*online = true;
+	else
+		*online = false;
 
 	return 0;
 }
