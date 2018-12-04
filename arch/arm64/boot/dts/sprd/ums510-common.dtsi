@@ -137,6 +137,10 @@
 			reg = <0x0 0x9F000000 0x0 0x4000>;
 		};
 
+		mm_reserved: mm-mem@a0dc0000{
+			reg = <0x0 0xa0dc0000 0x0 0x1c000000>;
+		};
+
 		overlay_reserved: overlay-mem@bcdc0000{
 			reg = <0x0 0xbcdc0000 0x0 0x01800000>;
 		};

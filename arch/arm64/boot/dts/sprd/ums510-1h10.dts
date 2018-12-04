@@ -99,6 +99,7 @@
 			reg = <1>;
 			label = "carveout_mm";
 			type = <2>;
+			memory-region = <&mm_reserved>;
 		};
 
 		heap@2 {
