@@ -208,3 +208,5 @@ TIMER_OF_DECLARE(sc9860_timer, "sprd,sc9860-timer", sprd_timer_init);
 TIMER_OF_DECLARE(sc9860_persistent_timer, "sprd,sc9860-suspend-timer",
 		 sprd_suspend_timer_init);
 TIMER_OF_DECLARE(sc9860_timer, "sprd,sharkl5-timer", sprd_timer_init);
+TIMER_OF_DECLARE(sharkl5_persistent_timer, "sprd,sharkl5-suspend-timer",
+		 sprd_suspend_timer_init);
