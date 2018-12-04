@@ -862,6 +862,16 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		goto err_core_clk;
 	}
 
+	if (pdata.mode == MUSB_PORT_MODE_HOST ||
+		pdata.mode == MUSB_PORT_MODE_DUAL_ROLE) {
+		glue->vbus = devm_regulator_get(dev, "vbus");
+		if (IS_ERR(glue->vbus)) {
+			ret = PTR_ERR(glue->vbus);
+			dev_err(dev, "unable to get vbus supply %d\n", ret);
+			goto err_core_clk;
+		}
+	}
+
 	wakeup_source_init(&glue->wake_lock, "musb-sprd");
 	spin_lock_init(&glue->lock);
 	INIT_WORK(&glue->work, sprd_musb_work);
