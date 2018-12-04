@@ -2494,6 +2494,8 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 	if (!found_power_supply)
 		return;
 
+	power_supply_changed(cm->charger_psy);
+
 	switch (type) {
 	case CM_EVENT_BATT_FULL:
 		fullbatt_handler(cm);
