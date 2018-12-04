@@ -1226,6 +1226,8 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	platform_set_drvdata(pdev, info);
+
 	ret = sc2703_charger_register_vbus_regulator(info);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to register vbus regulator.\n");
