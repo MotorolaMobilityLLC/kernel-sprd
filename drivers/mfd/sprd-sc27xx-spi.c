@@ -232,7 +232,7 @@ static int sprd_pmic_probe(struct spi_device *spi)
 		return ret;
 	}
 
-	ret = devm_mfd_add_devices(&spi->dev, PLATFORM_DEVID_AUTO,
+	ret = devm_mfd_add_devices(&spi->dev, PLATFORM_DEVID_NONE,
 				   sprd_pmic_devs, ARRAY_SIZE(sprd_pmic_devs),
 				   NULL, 0,
 				   regmap_irq_get_domain(ddata->irq_data));
