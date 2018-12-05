@@ -146,6 +146,11 @@ struct pa_setting {
 	int set;
 };
 
+static int sprd_ctrl_put_volsw(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol);
+static int sprd_ctrl_get_volsw(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol);
+
 static unsigned long sprd_codec_dp_base;
 
 /*
@@ -242,11 +247,11 @@ static const struct soc_enum codec_info_enum =
 
 #define SPRD_CODEC_PGA_M(xname, xreg, xshift, max, tlv_array) \
 	SOC_SINGLE_EXT_TLV(xname, xreg, xshift, max, 0, \
-		snd_soc_dapm_get_volsw, snd_soc_dapm_put_volsw, tlv_array)
+		sprd_ctrl_get_volsw, sprd_ctrl_put_volsw, tlv_array)
 
 #define SPRD_CODEC_PGA_MAX_INVERT(xname, xreg, xshift, max, tlv_array) \
 	SOC_SINGLE_EXT_TLV(xname, xreg, xshift, max, 1, \
-		snd_soc_dapm_get_volsw, snd_soc_dapm_put_volsw, tlv_array)
+		sprd_ctrl_get_volsw, sprd_ctrl_put_volsw, tlv_array)
 
 #define SPRD_CODEC_MIXER(xname, xreg, xshift)\
 	SOC_SINGLE_EXT(xname, xreg, xshift, 1, 0, \
@@ -440,6 +445,42 @@ static void sprd_codec_wait(u32 wait_time)
 		usleep_range(wait_time * 1000, wait_time * 1000 + 200);
 	else
 		msleep(wait_time);
+}
+
+static int sprd_ctrl_get_volsw(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dapm_context *dapm =
+		 snd_soc_dapm_kcontrol_dapm(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(dapm);
+	struct soc_mixer_control *mc =
+		(struct soc_mixer_control *)kcontrol->private_value;
+	unsigned int mask = BIT(fls(mc->max)) - 1;
+	unsigned int val;
+
+	val = snd_soc_read(codec, mc->reg);
+	val = (val >> mc->shift) & mask;
+
+	ucontrol->value.integer.value[0] = val;
+	return 0;
+}
+
+static int sprd_ctrl_put_volsw(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dapm_context *dapm =
+		 snd_soc_dapm_kcontrol_dapm(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(dapm);
+	struct soc_mixer_control *mc =
+		(struct soc_mixer_control *)kcontrol->private_value;
+	unsigned int mask = BIT(fls(mc->max)) - 1;
+	unsigned int val = ucontrol->value.integer.value[0];
+
+	snd_soc_update_bits(codec, mc->reg,
+		mask << mc->shift,
+		val << mc->shift);
+
+	return 0;
 }
 
 static inline void sprd_codec_vcm_v_sel(struct snd_soc_codec *codec, int v_sel)
