@@ -74,9 +74,13 @@ static int ion_carveout_heap_allocate(struct ion_heap *heap,
 
 	paddr = ion_carveout_allocate(heap, size);
 	if (paddr == ION_CARVEOUT_ALLOCATE_FAIL) {
+		pr_err("%s: failed to alloc heap id: %u, size: %lu\n",
+		       __func__, heap->id, size);
 		ret = -ENOMEM;
 		goto err_free_table;
 	}
+	pr_info("%s: heap id: %u, paddr: 0x%llx, size: %lu\n",
+		__func__, heap->id, paddr, size);
 
 	sg_set_page(table->sgl, pfn_to_page(PFN_DOWN(paddr)), size, 0);
 	buffer->sg_table = table;
@@ -102,6 +106,8 @@ static void ion_carveout_heap_free(struct ion_buffer *buffer)
 	ion_carveout_free(heap, paddr, buffer->size);
 	sg_free_table(table);
 	kfree(table);
+	pr_info("%s: heap id: %u, paddr: 0x%llx, size: %zu\n",
+		__func__, heap->id, paddr, buffer->size);
 }
 
 static struct ion_heap_ops carveout_heap_ops = {
