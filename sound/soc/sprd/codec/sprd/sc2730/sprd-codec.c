@@ -514,7 +514,7 @@ static void sprd_das_dc_os_set(struct snd_soc_codec *codec, int offset)
 
 	mask = DAS_OS(0xFFFF);
 	val = DAS_OS(offset);
-	snd_soc_update_bits(codec, SOC_REG(ANA_CDC1), mask, val);
+	snd_soc_update_bits(codec, SOC_REG(ANA_CDC6), mask, val);
 }
 
 static void load_ocp_pfw_cfg(struct sprd_codec_priv *sprd_codec)
