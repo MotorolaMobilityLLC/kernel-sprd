@@ -735,8 +735,8 @@
 				compatible = "sprd,iommuexl5-dispc";
 				reg = <0x0 0x20300000 0x0 0x800>,
 				      <0x0 0x20300800 0x0 0x80>;
-				iova-base = <0x0 0x30000000>;
-				iova-size = <0x0 0x10000000>;
+				iova-base = <0x30000000>;
+				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
