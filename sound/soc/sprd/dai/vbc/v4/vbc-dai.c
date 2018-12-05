@@ -1170,6 +1170,22 @@ u32 get_watermark(int fifo_id, int watermark_type)
 	return watermark;
 }
 
+static void ap_vbc_ad_src_set(int en, unsigned int rate)
+{
+	int mode = rate_to_src_mode(rate);
+
+	vbc_phy_audply_set_src_mode(en, mode);
+}
+
+static bool ap_ad_src_check(int scene_id, int stream)
+{
+	if (stream == SNDRV_PCM_STREAM_CAPTURE &&
+		scene_id == VBC_DAI_ID_NORMAL_AP01)
+		return true;
+
+	return false;
+}
+
 /* ap_startup, ap_shutdown ignore */
 static int ap_hw_params(struct vbc_codec_priv *vbc_codec,
 	int scene_id, int stream, int vbc_chan, u32 rate, int data_fmt)
@@ -1177,6 +1193,7 @@ static int ap_hw_params(struct vbc_codec_priv *vbc_codec,
 	int fifo_id;
 	int watermark_type;
 	int watermark;
+	bool use_ad_src;
 
 	if (!vbc_codec)
 		return 0;
@@ -1192,6 +1209,11 @@ static int ap_hw_params(struct vbc_codec_priv *vbc_codec,
 	ap_vbc_data_format_set(fifo_id, data_fmt);
 	set_kctrl_vbc_dac_iis_wd(vbc_codec, VBC_DA0, data_fmt);
 	set_kctrl_vbc_dac_iis_wd(vbc_codec, VBC_DA1, data_fmt);
+	use_ad_src = ap_ad_src_check(scene_id, stream);
+	if (use_ad_src) {
+		ap_vbc_ad_src_set(1, rate);
+		pr_info("%s vbc ap src set rate %u\n", __func__, rate);
+	}
 
 	/* vbc_dsp_hw_params need not call in normal scene*/
 	agdsp_access_disable();

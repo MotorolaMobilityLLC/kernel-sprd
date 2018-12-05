@@ -40,7 +40,6 @@
 /* ap control reg address */
 #define REG_VBC_AUDPLY_FIFO_CTRL 0x0020
 #define REG_VBC_AUDRCD_FIFO_CTRL 0x0024
-/* REG_VBC_AUD_SRC_CTRL reserved */
 #define REG_VBC_AUD_SRC_CTRL 0x0028
 #define REG_VBC_AUD_EN 0x002c
 #define REG_VBC_AUD_CLR 0x0030
@@ -92,6 +91,10 @@ BIT(3) | BIT(4) | BIT(5) | BIT(6) | BIT(7))
 	AUDRCD01_FIFO_EMPTY_LVL_MASK)
 #define BIT_GET_RF_AUDRCD_FIFO_EMPTY_LVL(x) ((x) & GENMASK(8, 0))
 
+/* bits definitions for register REG_VBC_AUD_SRC_CTRL */
+#define AUDPLY_AP01_SRC_MODE_MASK GENMASK(7, 4)
+#define AUDPLY_AP_SRC_MODE(x) (x << 4)
+
 /* bits definitions for register REG_VBC_AUD_EN */
 #define BIT_RF_AUDRCD_AP_FIFO3_EN BIT(15)
 #define BIT_RF_AUDRCD_AP_FIFO2_EN BIT(14)
@@ -101,6 +104,8 @@ BIT(3) | BIT(4) | BIT(5) | BIT(6) | BIT(7))
 #define BIT_RF_AUDPLY_AP_FIFO2_EN BIT(10)
 #define BIT_RF_AUDPLY_AP_FIFO1_EN BIT(9)
 #define BIT_RF_AUDPLY_AP_FIFO0_EN BIT(8)
+#define BIT_AP01_RCD_SRC_EN_0 BIT(2)
+#define BIT_AP01_RCD_SRC_EN_1 BIT(3)
 
 /* bits definitions for register REG_VBC_AUD_CLR */
 #define BITS_RF_AUD23_INT_CLR(_X_) ((_X_) << 8 & (BIT(8) | BIT(9)))
@@ -1402,6 +1407,7 @@ const char *ap_vbc_chan_id2name(int chan_id);
 int ap_vbc_fifo_enable(int fifo_id, int chan, int enable);
 void ap_vbc_fifo_clear(int fifo_id);
 void ap_vbc_aud_dma_chn_en(int fifo_id, int vbc_chan, int enable);
+void vbc_phy_audply_set_src_mode(int en, int mode);
 
 /********************************************************************
  * dsp phy define interface

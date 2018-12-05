@@ -590,6 +590,25 @@ void ap_vbc_aud_dma_chn_en(int fifo_id, int vbc_chan, int enable)
 		ap_vbc_chan_id2name(vbc_chan), enable);
 }
 
+void vbc_phy_audply_set_src_mode(int en, int mode)
+{
+	u32 reg;
+	u32 val;
+	u32 mask = AUDPLY_AP01_SRC_MODE_MASK;
+
+	reg = REG_VBC_AUD_SRC_CTRL;
+	val = AUDPLY_AP_SRC_MODE(mode);
+	ap_vbc_reg_update(reg, val, mask);
+	reg = REG_VBC_AUD_EN;
+	mask = BIT_AP01_RCD_SRC_EN_0 | BIT_AP01_RCD_SRC_EN_1;
+	if (en)
+		val = mask;
+	else
+		val = 0;
+
+	ap_vbc_reg_update(reg, val, mask);
+}
+
 /*********************************************************
  *********************************************************
  * dsp phy define
