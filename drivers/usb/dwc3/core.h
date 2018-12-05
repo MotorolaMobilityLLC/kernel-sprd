@@ -808,6 +808,8 @@ struct dwc3_scratchpad_array {
  * @phys_ready: flag to indicate that PHYs are ready
  * @ulpi: pointer to ulpi interface
  * @ulpi_ready: flag to indicate that ULPI is initialized
+ * @pam: pointer to PAM which is used to transfer network data,
+ *		it is not a PHY but uses the same structure as PHY.
  * @isoch_delay: wValue from Set Isochronous Delay request;
  * @u2sel: parameter from Set SEL request.
  * @u2pel: parameter from Set SEL request.
@@ -894,6 +896,7 @@ struct dwc3 {
 	struct resource		xhci_resources[DWC3_XHCI_RESOURCES_NUM];
 
 	struct dwc3_event_buffer *ev_buf;
+	struct dwc3_event_buffer **ev_bufs_ex;
 	struct dwc3_ep		*eps[DWC3_ENDPOINTS_NUM];
 
 	struct usb_gadget	gadget;
@@ -910,6 +913,8 @@ struct dwc3 {
 	struct ulpi		*ulpi;
 	bool			ulpi_ready;
 
+	struct usb_phy		*pam;
+
 	void __iomem		*regs;
 	size_t			regs_size;
 
@@ -923,6 +928,7 @@ struct dwc3 {
 	u32			fladj;
 	u32			irq_gadget;
 	u32			nr_scratch;
+	u32			num_ev_bufs_ex;
 	u32			u1u2;
 	u32			maximum_speed;
 

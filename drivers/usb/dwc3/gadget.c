@@ -29,6 +29,7 @@
 
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
+#include <linux/usb/pam.h>
 
 #include "debug.h"
 #include "core.h"
@@ -599,6 +600,14 @@ static int dwc3_gadget_set_ep_config(struct dwc3 *dwc, struct dwc3_ep *dep,
 		dep->interval = 1 << (desc->bInterval - 1);
 	}
 
+	/* Workaround for SPRD PAMU3 ep intnum mapping */
+	if (dep->endpoint.uether) {
+		if (dep->direction)
+			params.param1 |= DWC3_DEPCFG_INT_NUM(1);
+		else
+			params.param1 |= DWC3_DEPCFG_INT_NUM(2);
+	}
+
 	return dwc3_send_gadget_ep_cmd(dep, DWC3_DEPCMD_SETEPCONFIG, &params);
 }
 
@@ -817,6 +826,10 @@ static int dwc3_gadget_ep_enable(struct usb_ep *ep,
 	ret = __dwc3_gadget_ep_enable(dep, false, false);
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
+	/* Workaround for SPRD PAMU3 ep intnum mapping */
+	if (ep->uether)
+		usb_phy_post_init(dwc->pam);
+
 	return ret;
 }
 
@@ -834,6 +847,10 @@ static int dwc3_gadget_ep_disable(struct usb_ep *ep)
 
 	dep = to_dwc3_ep(ep);
 	dwc = dep->dwc;
+
+	/* Workaround for SPRD PAMU3 ep intnum mapping */
+	if (ep->uether)
+		usb_phy_set_suspend(dwc->pam);
 
 	if (dev_WARN_ONCE(dwc->dev, !(dep->flags & DWC3_EP_ENABLED),
 					"%s is already disabled\n",

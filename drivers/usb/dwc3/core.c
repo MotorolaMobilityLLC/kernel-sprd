@@ -40,6 +40,7 @@
 #include <linux/usb/gadget.h>
 #include <linux/usb/of.h>
 #include <linux/usb/otg.h>
+#include <linux/usb/pam.h>
 
 #include "core.h"
 #include "gadget.h"
@@ -262,6 +263,9 @@ done:
 	if (dwc3_is_usb31(dwc))
 		msleep(50);
 
+	/* Pam init after core reset */
+	usb_phy_init(dwc->pam);
+
 	return 0;
 }
 
@@ -339,10 +343,16 @@ static struct dwc3_event_buffer *dwc3_alloc_one_event_buffer(struct dwc3 *dwc,
 static void dwc3_free_event_buffers(struct dwc3 *dwc)
 {
 	struct dwc3_event_buffer	*evt;
+	int i;
 
-	evt = dwc->ev_buf;
-	if (evt)
-		dwc3_free_one_event_buffer(dwc, evt);
+	for (i = 0; i <= dwc->num_ev_bufs_ex; i++) {
+		if (i == 0)
+			evt = dwc->ev_buf;
+		else
+			evt = dwc->ev_bufs_ex[i - 1];
+		if (evt)
+			dwc3_free_one_event_buffer(dwc, evt);
+	}
 }
 
 /**
@@ -356,13 +366,29 @@ static void dwc3_free_event_buffers(struct dwc3 *dwc)
 static int dwc3_alloc_event_buffers(struct dwc3 *dwc, unsigned length)
 {
 	struct dwc3_event_buffer *evt;
+	int num;
+	int i;
 
-	evt = dwc3_alloc_one_event_buffer(dwc, length);
-	if (IS_ERR(evt)) {
-		dev_err(dwc->dev, "can't allocate event buffer\n");
-		return PTR_ERR(evt);
+	num = DWC3_NUM_INT(dwc->hwparams.hwparams1);
+	dwc->num_ev_bufs_ex = num - 1;
+
+	dwc->ev_bufs_ex = devm_kzalloc(dwc->dev,
+			sizeof(*dwc->ev_bufs_ex) * dwc->num_ev_bufs_ex,
+			GFP_KERNEL);
+	if (!dwc->ev_bufs_ex)
+		return -ENOMEM;
+
+	for (i = 0; i < num; i++) {
+		evt = dwc3_alloc_one_event_buffer(dwc, length);
+		if (IS_ERR(evt)) {
+			dev_err(dwc->dev, "can't allocate event buffer\n");
+			return PTR_ERR(evt);
+		}
+		if (i == 0)
+			dwc->ev_buf = evt;
+		else
+			dwc->ev_bufs_ex[i - 1] = evt;
 	}
-	dwc->ev_buf = evt;
 
 	return 0;
 }
@@ -376,16 +402,27 @@ static int dwc3_alloc_event_buffers(struct dwc3 *dwc, unsigned length)
 static int dwc3_event_buffers_setup(struct dwc3 *dwc)
 {
 	struct dwc3_event_buffer	*evt;
+	int n;
 
-	evt = dwc->ev_buf;
-	evt->lpos = 0;
-	dwc3_writel(dwc->regs, DWC3_GEVNTADRLO(0),
-			lower_32_bits(evt->dma));
-	dwc3_writel(dwc->regs, DWC3_GEVNTADRHI(0),
-			upper_32_bits(evt->dma));
-	dwc3_writel(dwc->regs, DWC3_GEVNTSIZ(0),
-			DWC3_GEVNTSIZ_SIZE(evt->length));
-	dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(0), 0);
+	for (n = 0; n <= dwc->num_ev_bufs_ex; n++) {
+		if (n == 0) {
+			evt = dwc->ev_buf;
+		} else {
+			evt = dwc->ev_bufs_ex[n - 1];
+			dev_dbg(dwc->dev, "Extended event buf %p dma %08llx length %d\n",
+					evt->buf, (unsigned long long) evt->dma,
+					evt->length);
+		}
+		evt->lpos = 0;
+
+		dwc3_writel(dwc->regs, DWC3_GEVNTADRLO(n),
+				lower_32_bits(evt->dma));
+		dwc3_writel(dwc->regs, DWC3_GEVNTADRHI(n),
+				upper_32_bits(evt->dma));
+		dwc3_writel(dwc->regs, DWC3_GEVNTSIZ(n),
+				DWC3_GEVNTSIZ_SIZE(evt->length));
+		dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(n), 0);
+	}
 
 	return 0;
 }
@@ -393,16 +430,22 @@ static int dwc3_event_buffers_setup(struct dwc3 *dwc)
 static void dwc3_event_buffers_cleanup(struct dwc3 *dwc)
 {
 	struct dwc3_event_buffer	*evt;
+	int n;
 
-	evt = dwc->ev_buf;
+	for (n = 0; n <= dwc->num_ev_bufs_ex; n++) {
+		if (n == 0)
+			evt = dwc->ev_buf;
+		else
+			evt = dwc->ev_bufs_ex[n - 1];
 
-	evt->lpos = 0;
+		evt->lpos = 0;
 
-	dwc3_writel(dwc->regs, DWC3_GEVNTADRLO(0), 0);
-	dwc3_writel(dwc->regs, DWC3_GEVNTADRHI(0), 0);
-	dwc3_writel(dwc->regs, DWC3_GEVNTSIZ(0), DWC3_GEVNTSIZ_INTMASK
-			| DWC3_GEVNTSIZ_SIZE(0));
-	dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(0), 0);
+		dwc3_writel(dwc->regs, DWC3_GEVNTADRLO(n), 0);
+		dwc3_writel(dwc->regs, DWC3_GEVNTADRHI(n), 0);
+		dwc3_writel(dwc->regs, DWC3_GEVNTSIZ(n), DWC3_GEVNTSIZ_INTMASK
+				| DWC3_GEVNTSIZ_SIZE(0));
+		dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(n), 0);
+	}
 }
 
 static int dwc3_alloc_scratch_buffers(struct dwc3 *dwc)
@@ -765,6 +808,9 @@ static void dwc3_core_setup_global_control(struct dwc3 *dwc)
 
 static int dwc3_core_get_phy(struct dwc3 *dwc);
 static int dwc3_core_ulpi_init(struct dwc3 *dwc);
+#ifdef CONFIG_USB_PAM
+static int dwc3_core_get_pam(struct dwc3 *dwc);
+#endif
 
 /**
  * dwc3_core_init - Low-level initialization of DWC3 Core
@@ -813,6 +859,12 @@ static int dwc3_core_init(struct dwc3 *dwc)
 			goto err0a;
 		dwc->phys_ready = true;
 	}
+
+#ifdef CONFIG_USB_PAM
+	ret = dwc3_core_get_pam(dwc);
+	if (ret)
+		goto err0;
+#endif
 
 	ret = dwc3_core_soft_reset(dwc);
 	if (ret)
@@ -962,6 +1014,38 @@ static int dwc3_core_get_phy(struct dwc3 *dwc)
 
 	return 0;
 }
+
+#ifdef CONFIG_USB_PAM
+static int dwc3_core_get_pam(struct dwc3 *dwc)
+{
+	struct device		*dev = dwc->dev;
+	struct device_node	*node = dev->of_node;
+	int ret;
+
+	if (node)
+		dwc->pam = devm_usb_get_phy_by_phandle(dev, "usb-pam", 0);
+	else
+		dwc->pam = devm_usb_get_phy(dev, USB_PAM_TYPE_USB3);
+
+	if (IS_ERR(dwc->pam)) {
+		ret = PTR_ERR(dwc->pam);
+		switch (ret) {
+		case -ENXIO:
+		case -ENODEV:
+			dwc->pam = NULL;
+			ret = 0;
+			break;
+		case -EPROBE_DEFER:
+			break;
+		default:
+			dev_err(dev, "no usb pam configured\n");
+			break;
+		}
+	}
+
+	return ret;
+}
+#endif
 
 static int dwc3_core_init_mode(struct dwc3 *dwc)
 {
