@@ -8241,6 +8241,13 @@ CONFIG_SPRD_ROC1_USB2_PHY
 	[subsys]
 	[must]
 	[function]
+CONFIG_SPRD_SENSOR_HUB
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_SHARKL5_CLK
 	[arch] all
 	[plat] sharkl5
@@ -8974,6 +8981,13 @@ CONFIG_USB_CONFIGFS_F_HID
 	[subsys] usb
 	[must] user
 	[function] This macro is to support HID function.
+CONFIG_USB_CONFIGFS_F_MBIM
+	[arch] all
+	[plat] roc1
+	[field] code
+	[subsys] usb
+	[must] user
+	[function] USB gadget function Mobile Broadband Interface..
 CONFIG_USB_CONFIGFS_F_MIDI
 	[arch] all
 	[plat] all
@@ -9037,13 +9051,6 @@ CONFIG_USB_CONFIGFS_UEVENT
 	[subsys] usb
 	[must] user
 	[function] Uevent notification of Gadget state.
-CONFIG_USB_CONFIGFS_F_MBIM
-	[arch] all
-	[plat] roc1
-	[field] code
-	[subsys] usb
-	[must] user
-	[function] USB gadget function Mobile Broadband Interface..
 CONFIG_USB_DEFAULT_PERSIST
 	[arch] all
 	[plat] all
@@ -9114,6 +9121,13 @@ CONFIG_USB_F_MASS_STORAGE
 	[subsys] usb
 	[must] user
 	[function] This macro is to support USB Mass storage.
+CONFIG_USB_F_MBIM
+	[arch] all
+	[plat] roc1
+	[field] make
+	[subsys] usb
+	[must] user
+	[function] USB gadget mbim function
 CONFIG_USB_F_MIDI
 	[arch] all
 	[plat] all
@@ -9163,13 +9177,6 @@ CONFIG_USB_F_VSERIAL
 	[subsys]
 	[must]
 	[function]
-CONFIG_USB_F_MBIM
-	[arch] all
-	[plat] roc1
-	[field] make
-	[subsys] usb
-	[must] user
-	[function] USB gadget mbim function
 CONFIG_USB_GADGET
 	[arch] all
 	[plat] all
