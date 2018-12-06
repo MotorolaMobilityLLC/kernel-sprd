@@ -17,16 +17,14 @@
 #include <linux/gnss.h>
 #endif
 #include <linux/kthread.h>
-#include <linux/marlin_platform.h>
 #include <linux/printk.h>
-#include <linux/sdiom_rx_api.h>
-#include <linux/sdiom_tx_api.h>
 #include <linux/sipc.h>
 #include <linux/slab.h>
 #include <linux/syscalls.h>
 #include <linux/unistd.h>
 #include <linux/wait.h>
-#include <soc/sprd/wcn_bus.h>
+#include <misc/marlin_platform.h>
+#include <misc/wcn_bus.h>
 
 #include "wcn_glb.h"
 #include "gnss_common.h"
@@ -496,7 +494,7 @@ static int gnss_ext_dump_data(unsigned int start_addr, int len)
 		}
 		count += trans;
 		pos = gnss_dump_file->f_pos;
-		ret = vfs_write(gnss_dump_file, buf, trans, &pos);
+		ret = vfs_write(gnss_dump_file, (const char *)buf, trans, &pos);
 		gnss_dump_file->f_pos = pos;
 		if (ret != trans) {
 			GNSSDUMP_ERR("%s failed size is %d, ret %d\n", __func__,

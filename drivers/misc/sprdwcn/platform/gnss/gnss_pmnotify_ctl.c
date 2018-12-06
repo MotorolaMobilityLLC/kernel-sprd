@@ -21,7 +21,6 @@
 #include <linux/module.h>
 #include <linux/miscdevice.h>
 #include <linux/major.h>
-#include <linux/marlin_platform.h>
 #include <linux/of.h>
 #include <linux/of_gpio.h>
 #include <linux/of_device.h>
@@ -33,8 +32,8 @@
 #include <linux/timer.h>
 #include <linux/types.h>
 #include <linux/uaccess.h>
-#include <linux/wakelock.h>
 #include <linux/wait.h>
+#include <misc/marlin_platform.h>
 #include "gnss_common.h"
 #define GNSS_DATA_MAX_LEN	16
 

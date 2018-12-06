@@ -19,8 +19,6 @@
 #endif
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/marlin_platform.h>
-#include <linux/mfd/sprd/pmic_glb_reg.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -30,7 +28,8 @@
 #include <linux/regmap.h>
 #include <linux/slab.h>
 #include <linux/sysfs.h>
-#include <soc/sprd/wcn_bus.h>
+#include <misc/marlin_platform.h>
+#include <misc/wcn_bus.h>
 
 #include "../wcn_gnss.h"
 #include "../../include/wcn_glb_reg.h"
@@ -76,9 +75,9 @@ enum gnss_cp_status_subtype {
 	GNSS_CP_STATUS__MAX,
 };
 
-unsigned int gnssver = 0x22;
 struct completion gnss_dump_complete;
 #endif
+static unsigned int gnssver = 0x22;
 static const struct of_device_id gnss_common_ctl_of_match[] = {
 	{.compatible = "sprd,gnss-common-ctl", .data = (void *)&gnssver},
 	{},
@@ -118,7 +117,7 @@ static int gnss_cali_init(void)
 	return 0;
 }
 
-int gnss_write_cali_data(void)
+static int gnss_write_cali_data(void)
 {
 	GNSSCOMM_INFO("gnss write calidata, flag %d\n",
 			gnss_cali_data.cali_done);
@@ -129,7 +128,7 @@ int gnss_write_cali_data(void)
 	return 0;
 }
 
-int gnss_write_efuse_data(void)
+static int gnss_write_efuse_data(void)
 {
 	GNSSCOMM_INFO("%s flag %d\n", __func__,	gnss_cali_data.cali_done);
 	if (gnss_cali_data.cali_done)
@@ -150,7 +149,7 @@ int gnss_write_data(void)
 	return ret;
 }
 
-int gnss_backup_cali(void)
+static int gnss_backup_cali(void)
 {
 	int i = 10;
 	int tempvalue = 0;
@@ -180,7 +179,7 @@ int gnss_backup_cali(void)
 	return 0;
 }
 
-int gnss_backup_efuse(void)
+static int gnss_backup_efuse(void)
 {
 	if (gnss_cali_data.cali_done) { /* efuse data is ok when cali done */
 		sprdwcn_bus_direct_read(GNSS_EFUSE_ADDRESS,
@@ -339,7 +338,7 @@ void gnss_dump_mem_ctrl_co(void)
 	complete(&gnss_dump_complete);
 }
 #else
-int gnss_dump_mem_ctrl(void)
+static int gnss_dump_mem_ctrl(void)
 {
 	int ret = -1;
 	static char dump_flag;
@@ -479,7 +478,7 @@ static struct miscdevice gnss_common_ctl_miscdev = {
 };
 
 #ifndef CONFIG_SC2342_INTEG
-struct sprdwcn_gnss_ops gnss_common_ctl_ops = {
+static struct sprdwcn_gnss_ops gnss_common_ctl_ops = {
 	.backup_data = gnss_backup_data,
 	.write_data = gnss_write_data,
 	.set_file_path = gnss_file_path_set
@@ -557,7 +556,6 @@ static int gnss_common_ctl_remove(struct platform_device *pdev)
 static struct platform_driver gnss_common_ctl_drv = {
 	.driver = {
 		   .name = "gnss-common-ctl",
-		   .owner = THIS_MODULE,
 		   .of_match_table = of_match_ptr(gnss_common_ctl_of_match),
 		   },
 	.probe = gnss_common_ctl_probe,

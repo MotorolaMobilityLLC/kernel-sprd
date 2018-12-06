@@ -1,9 +1,10 @@
 obj-$(CONFIG_WCN_BOOT) := marlin.o
-
-#marlin-c-objs += gnss/gnss_common_ctl.o
-#marlin-c-objs += gnss/gnss_pmnotify_ctl.o
-#marlin-c-objs += gnss/gnss_dbg.o
-#marlin-c-objs += gnss/gnss_dump.o
+# enable gnss mode
+marlin-c-objs += gnss/gnss_common_ctl.o
+marlin-c-objs += gnss/gnss_pmnotify_ctl.o
+marlin-c-objs += gnss/gnss_dbg.o
+marlin-c-objs += gnss/gnss_dump.o
+#end
 marlin-c-objs += wcn_boot.o
 marlin-c-objs += wcn_dump.o
 marlin-c-objs += bufring.o
