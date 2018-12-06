@@ -393,7 +393,7 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 	ret = sprd_pcm_preallocate_dma_ddr32_buffer(pcm,
 		substream->stream);
 	rtd->dma_cfg_array = devm_kzalloc(dev, hw_chan * ((
-		runtime->hw.periods_max * sizeof(struct sprd_dma_linklist))
+		runtime->hw.periods_max * sizeof(struct scatterlist))
 		+ sizeof(struct sprd_dma_cfg)), GFP_KERNEL);
 	if (!rtd->dma_cfg_array)
 		goto err;

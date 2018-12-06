@@ -673,7 +673,7 @@ int compr_stream_config_dma1(struct snd_compr_stream *substream,
 
 	cfg_ptr = kzalloc(
 		sizeof(struct sprd_dma_cfg)
-		+ sizeof(struct sprd_dma_linklist) * period_cnt,
+		+ sizeof(struct scatterlist) * period_cnt,
 		GFP_KERNEL);
 
 	if (!cfg_ptr) {
@@ -683,7 +683,7 @@ int compr_stream_config_dma1(struct snd_compr_stream *substream,
 	}
 	memset(cfg_ptr, 0,
 		sizeof(struct sprd_dma_cfg)
-		+ sizeof(struct sprd_dma_linklist) * period_cnt * period_cnt);
+		+ sizeof(struct scatterlist) * period_cnt * period_cnt);
 
 	cfg_ptr->sg = (struct scatterlist *)((u8 *) &
 		(cfg_ptr->sg) + sizeof(void *));
@@ -833,7 +833,7 @@ int compr_stream_config_dma0(struct snd_compr_stream *substream,
 
 	dma_config_ptr = kzalloc(
 		sizeof(struct sprd_dma_cfg)
-		+ sizeof(struct sprd_dma_linklist) *
+		+ sizeof(struct scatterlist) *
 		(SPRD_COMPR_DMA_DESC_SIZE /
 		DMA_LINKLIST_CFG_NODE_SIZE),
 		GFP_KERNEL);
@@ -845,7 +845,7 @@ int compr_stream_config_dma0(struct snd_compr_stream *substream,
 	}
 	memset(dma_config_ptr, 0,
 		sizeof(struct sprd_dma_cfg)
-			+ sizeof(struct sprd_dma_linklist) *
+			+ sizeof(struct scatterlist) *
 			(SPRD_COMPR_DMA_DESC_SIZE /
 			DMA_LINKLIST_CFG_NODE_SIZE));
 	dma_config_ptr->sg = (struct scatterlist *)((u8 *) &
