@@ -1167,7 +1167,6 @@ static int gnss_start_run(void)
 				__func__, ret);
 		return ret;
 	}
-	complete(&marlin_dev->gnss_download_done);	/* temp */
 
 	return ret;
 }
@@ -1384,6 +1383,9 @@ static int find_firmware_path(void)
 
 static void pre_gnss_download_firmware(struct work_struct *work)
 {
+	static int cali_flag;
+	int ret;
+
 	/* ./fstab.xxx is prevent for user space progress */
 	if (marlin_dev->first_power_on_flag == 1)
 		find_firmware_path();
@@ -1402,6 +1404,22 @@ static void pre_gnss_download_firmware(struct work_struct *work)
 	if (gnss_start_run() != 0)
 		WCN_ERR("gnss start run fail\n");
 
+	if (cali_flag == 0) {
+		WCN_INFO("gnss start to backup calidata\n");
+		if (gnss_ops && gnss_ops->backup_data) {
+			ret = gnss_ops->backup_data();
+			if (ret == 0)
+				cali_flag = 1;
+		} else
+			WCN_ERR("%s gnss_ops backup_data error\n", __func__);
+	} else {
+		WCN_INFO("gnss wait boot finish\n");
+		if (gnss_ops && gnss_ops->wait_gnss_boot)
+			gnss_ops->wait_gnss_boot();
+		else
+			WCN_ERR("%s gnss_ops wait boot error\n", __func__);
+	}
+	complete(&marlin_dev->gnss_download_done);
 }
 
 static void pre_btwifi_download_sdio(struct work_struct *work)
@@ -1687,13 +1705,6 @@ static int marlin_set_power(int subsys, int val)
 				goto out;
 			}
 			WCN_INFO("gnss auto download finished and run ok\n");
-
-			WCN_INFO("gnss start to backup calidata\n");
-			if (gnss_ops && (gnss_ops->backup_data))
-				gnss_ops->backup_data();
-			else
-				WCN_ERR("%s gnss_ops backup_data error\n",
-					__func__);
 
 			WCN_INFO("then marlin start to download\n");
 			schedule_work(&marlin_dev->download_wq);

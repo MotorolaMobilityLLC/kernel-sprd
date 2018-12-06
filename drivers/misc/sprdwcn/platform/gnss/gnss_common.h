@@ -52,6 +52,16 @@
 #endif
 
 #define GNSS_EFUSE_DATA_SIZE 0xc
+
+/*  GNSS assert workaround */
+#ifdef CONFIG_UMW2652
+#define GNSS_BOOTSTATUS_ADDRESS  0x40aabf6c
+#else
+#define GNSS_BOOTSTATUS_ADDRESS  0x40aaff6c
+#endif
+#define GNSS_BOOTSTATUS_SIZE     0x4
+#define GNSS_BOOTSTATUS_MAGIC    0x12345678
+
 /* end: address map on gnss side */
 
 int gnss_write_data(void);

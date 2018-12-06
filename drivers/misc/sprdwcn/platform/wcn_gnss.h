@@ -17,6 +17,7 @@ struct sprdwcn_gnss_ops {
 	int (*backup_data)(void);
 	int (*write_data)(void);
 	void (*set_file_path)(char *buf);
+	int (*wait_gnss_boot)(void);
 };
 
 int wcn_gnss_ops_register(struct sprdwcn_gnss_ops *ops);

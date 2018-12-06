@@ -181,15 +181,18 @@ static int gnss_backup_cali(void)
 
 static int gnss_backup_efuse(void)
 {
+	int ret = 1;
+
 	if (gnss_cali_data.cali_done) { /* efuse data is ok when cali done */
 		sprdwcn_bus_direct_read(GNSS_EFUSE_ADDRESS,
 					&gnss_efuse_data[0],
 					GNSS_EFUSE_DATA_SIZE);
+		ret = 0;
 		GNSSCOMM_ERR("%s 0x%x\n", __func__, gnss_efuse_data[0]);
 	} else
 		GNSSCOMM_INFO("%s no need back again\n", __func__);
 
-	return 0;
+	return ret;
 }
 
 int gnss_backup_data(void)
@@ -198,6 +201,29 @@ int gnss_backup_data(void)
 
 	gnss_backup_cali();
 	ret = gnss_backup_efuse();
+
+	return ret;
+}
+
+static int gnss_boot_wait(void)
+{
+	int ret = -1;
+	u32 magic_value;
+	int i = 125;
+
+	while (i--) {
+		sprdwcn_bus_direct_read(GNSS_BOOTSTATUS_ADDRESS, &magic_value,
+					GNSS_BOOTSTATUS_SIZE);
+		GNSSCOMM_ERR("boot read %d time, value is 0x%x\n",
+			     i, magic_value);
+		if (magic_value != GNSS_BOOTSTATUS_MAGIC) {
+			msleep(20);
+			continue;
+		}
+		ret = 0;
+		GNSSCOMM_INFO("boot read success\n");
+		break;
+	}
 
 	return ret;
 }
@@ -396,11 +422,10 @@ static ssize_t gnss_status_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
 	int i = 0;
+	unsigned int status = gnss_common_ctl_dev.gnss_status;
 
-	GNSSCOMM_INFO("%s\n", __func__);
-
-	i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
-			gnss_common_ctl_dev.gnss_status);
+	GNSSCOMM_INFO("%s: %d\n", __func__, status);
+	i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", status);
 
 	return i;
 }
@@ -520,7 +545,8 @@ static struct miscdevice gnss_common_ctl_miscdev = {
 static struct sprdwcn_gnss_ops gnss_common_ctl_ops = {
 	.backup_data = gnss_backup_data,
 	.write_data = gnss_write_data,
-	.set_file_path = gnss_file_path_set
+	.set_file_path = gnss_file_path_set,
+	.wait_gnss_boot = gnss_boot_wait
 };
 #endif
 
