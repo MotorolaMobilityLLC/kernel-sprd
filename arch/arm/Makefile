@@ -313,6 +313,15 @@ endif
 # Build the DT binary blobs if we have OF configured
 ifeq ($(CONFIG_USE_OF),y)
 KBUILD_DTBS := dtbs
+BUILD_DTC_PATH = $(subst $\",,$(CONFIG_BUILD_ARM_DTC))
+ifneq ($(BUILD_DTC_PATH),)
+    DTC = $(BUILD_DTC_PATH)
+endif
+
+BUILD_DTC_FLAGS = $(subst $\",,$(CONFIG_BUILD_ARM_DTC_FLAGS))
+ifneq ($(BUILD_DTC_FLAGS),)
+    DTC_FLAGS += $(BUILD_DTC_FLAGS)
+endif
 endif
 
 all:	$(notdir $(KBUILD_IMAGE)) $(KBUILD_DTBS)

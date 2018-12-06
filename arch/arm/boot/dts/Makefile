@@ -1069,6 +1069,12 @@ dtb-$(CONFIG_ARCH_ZX) += zx296702-ad1.dtb
 dtb-$(CONFIG_ARCH_ASPEED) += aspeed-bmc-opp-palmetto.dtb \
 	aspeed-bmc-opp-romulus.dtb \
 	aspeed-ast2500-evb.dtb
+
+dtb-$(CONFIG_ARCH_SPRD) += \
+	ums510-1h10-go.dtb
+
+dtbo-$(CONFIG_ARCH_SPRD) += \
+	ums510-1h10-go-overlay.dtbo
 endif
 
 dtstree		:= $(srctree)/$(src)
@@ -1076,13 +1082,13 @@ dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(wildcard $(dts
 
 DTB_NAMES := $(subst $\",,$(CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE_NAMES))
 ifneq ($(DTB_NAMES),)
-DTB_LIST := $(addsuffix .dtb,$(DTB_NAMES))
+DTB_LIST := $(addsuffix .dtb,$(DTB_NAMES)) $(dtbo-y)
 else
-DTB_LIST := $(dtb-y)
+DTB_LIST := $(dtb-y) $(dtbo-y)
 endif
 
 targets += dtbs dtbs_install
 targets += $(DTB_LIST)
 
 always		:= $(DTB_LIST)
-clean-files	:= *.dtb
+clean-files	:= *.dtb *.dtbo
