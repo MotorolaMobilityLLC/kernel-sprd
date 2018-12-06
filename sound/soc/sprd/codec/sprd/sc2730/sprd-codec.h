@@ -936,9 +936,9 @@
 #define HPRCV_OPA_RF1        BIT(11)
 #define HPRCV_OPA_IF1        BIT(10)
 #define HPRCV_OPA_IF2        BIT(9)
-#define HPRCV_OPA_IF3(x)     (((x) & GENMASK(1, 0)) << 5)
+#define HPRCV_OPA_IF3(x)     (((x) & GENMASK(3, 0)) << 5)
 #define HPBUF_IBIAS_SEL(x)   (((x) & GENMASK(1, 0)) << 3)
-#define HPBUF_OPA_IF3(x)     (((x) & GENMASK(1, 0)))
+#define HPBUF_OPA_IF3(x)     (((x) & GENMASK(2, 0)))
 
 /*
  * Register Name   : AUD_CFGA_RF_ANA_CDC12
@@ -953,7 +953,7 @@
 #define CP_HPEN_DLY_T(x)    (((x) & GENMASK(1, 0)) << 5)
 #define DRV_CPDLY_PD        BIT(4)
 #define DRV_SOFT_EN         BIT(3)
-#define DRV_SOFT_T(x)       (((x) & GENMASK(1, 0)))
+#define DRV_SOFT_T(x)       (((x) & GENMASK(2, 0)))
 
 /*
  * Register Name   : AUD_CFGA_RF_ANA_CDC13
@@ -962,7 +962,7 @@
  */
 
 #define HPRCV_OPA_GM_COMP_EN        BIT(7)
-#define HPRCV_OPA_GM_COMP(x)        (((x) & GENMASK(1, 0)) << 4)
+#define HPRCV_OPA_GM_COMP(x)        (((x) & GENMASK(2, 0)) << 4)
 #define HPRCV_OPA_IBIAS_MODE_SEL    BIT(3)
 #define HPRCV_DCCALI_IBIAS_MODE_SEL BIT(2)
 #define HPRCV_OPA_IBIAS_LN_TUNE(x)  (((x) & GENMASK(1, 0)))
@@ -1013,7 +1013,7 @@
  * Description     : ANA_CDC17
  */
 
-#define PA_RSV(x)        (((x) & GENMASK(5, 0)) << 11)
+#define PA_RSV(x)        (((x) & GENMASK(4, 0)) << 11)
 #define PA_DEGSEL(x)     (((x) & GENMASK(1, 0)) << 9)
 #define PA_DEG_DIFF_EN   BIT(8)
 #define PA_SS_EN         BIT(7)
@@ -1031,8 +1031,8 @@
 #define PA_DPOP_LOOP_MOD_SEL  BIT(14)
 #define PA_DPOP_IBSEL         BIT(13)
 #define PA_DPOP_T2(x)         (((x) & GENMASK(2, 0)) << 10)
-#define PA_DCCAL_H_LIMIT(x)   (((x) & GENMASK(5, 0)) << 5)
-#define PA_DCCAL_L_LIMIT(x)   (((x) & GENMASK(5, 0)))
+#define PA_DCCAL_H_LIMIT(x)   (((x) & GENMASK(4, 0)) << 5)
+#define PA_DCCAL_L_LIMIT(x)   (((x) & GENMASK(4, 0)))
 
 /*
  * Register Name   : AUD_CFGA_RF_ANA_CDC19
@@ -1098,7 +1098,7 @@
 #define HEDET_BDET_REF_SEL(x)  (((x) & GENMASK(2, 0)) << 8)
 #define HEDET_GDET_EN          BIT(7)
 #define HEDET_GDET_REF_SEL(x)  (((x) & GENMASK(2, 0)) << 4)
-#define HEDET_GDET_I_SEL(x)    (((x) & GENMASK(2, 0)))
+#define HEDET_GDET_I_SEL(x)    (((x) & GENMASK(3, 0)))
 
 /*
  * Register Name   : AUD_CFGA_RF_ANA_HDT1
@@ -1108,7 +1108,7 @@
 
 #define HEDET_PLGPD_EN        BIT(13)
 #define HEDET_LDET_CMP_SEL    BIT(12)
-#define HEDET_LDET_I_SEL(x)   (((x) & GENMASK(2, 0)) << 8)
+#define HEDET_LDET_I_SEL(x)   (((x) & GENMASK(3, 0)) << 8)
 #define HEDET_LDRVEN_SEL      BIT(7)
 #define HEDET_LDRV_EN         BIT(6)
 #define HEDET_HPL_PULLD_EN    BIT(5)
@@ -1143,7 +1143,7 @@
 #define HEDET_V2AD_EN           BIT(6)
 #define HEDET_V2AD_SCALE_SEL    BIT(5)
 #define HEDET_V2AD_SWAP         BIT(4)
-#define HEDET_V2AD_CH_SEL(x)    (((x) & GENMASK(2, 0)))
+#define HEDET_V2AD_CH_SEL(x)    (((x) & GENMASK(3, 0)))
 
 /*
  * Register Name   : AUD_CFGA_RF_ANA_HDT4
@@ -1163,7 +1163,7 @@
  * Description     : ANA_IMPD0
  */
 
-#define IMPD_CH_SEL(x)        (((x) & GENMASK(2, 0)) << 8)
+#define IMPD_CH_SEL(x)        (((x) & GENMASK(3, 0)) << 8)
 #define IMPD_ADC_EN           BIT(7)
 #define IMPD_ADC_CHOP_EN      BIT(6)
 #define IMPD_ADC_RST          BIT(5)
@@ -1217,7 +1217,7 @@
  * Description     : ANA_IMPD4
  */
 
-#define IMPD_BIST_ADC_DATO(x)     (((x) & GENMASK(7, 0)))
+#define IMPD_BIST_ADC_DATO(x)     (((x) & GENMASK(9, 0)))
 
 /*
  * Register Name   : AUD_CFGA_RF_ANA_RSV5
@@ -1285,7 +1285,7 @@
  */
 
 #define FGU_DIG_EN           BIT(14)
-#define FGU_CNT_NUM_SEL(x)   (((x) & GENMASK(11, 0)) << 12)
+#define FGU_CNT_NUM_SEL(x)   (((x) & GENMASK(1, 0)) << 12)
 #define FGU_V_UNIT(x)        (((x) & GENMASK(11, 0)))
 
 /*
@@ -1586,7 +1586,7 @@
  */
 
 #define PA_VCM_BYP_EN       BIT(12)
-#define PA_DPOP_IL(x)       (((x) & GENMASK(15, 0)))
+#define PA_DPOP_IL(x)       (((x) & GENMASK(11, 0)))
 
 /*
  * Register Name   : AUD_CFGA_RF_ANA_STS0
