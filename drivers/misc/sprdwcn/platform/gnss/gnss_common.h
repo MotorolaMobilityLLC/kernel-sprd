@@ -30,6 +30,8 @@
 #define REG_GNSS_APB_MCU_AP_RST        (GNSS_APB_BASE + 0x0280) /* s/c */
 #define BIT_GNSS_APB_MCU_AP_RST_SOFT    (1<<0)    /* bit0 */
 
+#define GNSS_INDIRECT_OP_REG		0x40b20000
+
 #define GNSS_AHB_BASE			   0x40b18000
 #define GNSS_ARCH_EB_REG		   (GNSS_AHB_BASE + 0x084)
 #define GNSS_ARCH_EB_REG_BYPASS    (1<<1)
