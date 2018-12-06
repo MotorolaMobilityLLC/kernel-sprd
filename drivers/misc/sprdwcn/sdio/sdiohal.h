@@ -208,7 +208,7 @@ struct sdiohal_data_t {
 	/* adma enable:1, disable:0 */
 	bool adma_tx_enable;
 	bool adma_rx_enable;
-	bool pwrseq_disable;
+	bool pwrseq_enable;
 	/* dedicated int1 is reusable with wifi analog iq monitor */
 	bool debug_iq;
 

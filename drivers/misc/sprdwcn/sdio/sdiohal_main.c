@@ -1010,20 +1010,20 @@ static int sdiohal_parse_dt(void)
 		return -1;
 	}
 
-	if (of_get_property(np, "adma_tx", NULL))
+	if (of_get_property(np, "adma-tx", NULL))
 		p_data->adma_tx_enable = true;
 
-	if (of_get_property(np, "adma_rx", NULL))
+	if (of_get_property(np, "adma-rx", NULL))
 		p_data->adma_rx_enable = true;
 
 	sdiohal_info("adma enable tx:%d, rx:%d\n",
 		p_data->adma_tx_enable, p_data->adma_rx_enable);
 
 	if (of_get_property(np, "pwrseq", NULL))
-		p_data->pwrseq_disable = true;
+		p_data->pwrseq_enable = true;
 
-	sdiohal_info("%s sdio pwrseq status:%d\n",
-		     __func__, p_data->pwrseq_disable);
+	sdiohal_info("%s sdio pwrseq enable:%d\n",
+		     __func__, p_data->pwrseq_enable);
 
 	p_data->gpio_num = of_get_named_gpio(np, "m2-wakeup-ap-gpios", 0);
 
@@ -1150,7 +1150,7 @@ int sdiohal_runtime_get(void)
 	if (!p_data)
 		return -ENODEV;
 
-	if (p_data->pwrseq_disable) {
+	if (!p_data->pwrseq_enable) {
 		if (p_data->irq_num != 0)
 			enable_irq(p_data->irq_num);
 		return 0;
@@ -1193,7 +1193,7 @@ int sdiohal_runtime_put(void)
 	if (p_data->irq_num != 0)
 		disable_irq(p_data->irq_num);
 
-	if (p_data->pwrseq_disable)
+	if (!p_data->pwrseq_enable)
 		return 0;
 
 	return pm_runtime_put_sync(&p_data->sdio_func[FUNC_1]->dev);
@@ -1218,7 +1218,7 @@ static int sdiohal_probe(struct sdio_func *func,
 	}
 	sdiohal_info("get func ok\n");
 
-	if (p_data->pwrseq_disable) {
+	if (!p_data->pwrseq_enable) {
 		/* Enable Function 1 */
 		sdio_claim_host(p_data->sdio_func[FUNC_1]);
 		ret = sdio_enable_func(p_data->sdio_func[FUNC_1]);

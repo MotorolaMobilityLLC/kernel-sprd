@@ -105,7 +105,7 @@ struct marlin_device {
 	struct delayed_work power_wq;
 	struct work_struct download_wq;
 	struct work_struct gnss_dl_wq;
-	bool no_power_off;
+	bool keep_power_on;
 	bool wait_ge2_disabled;
 	bool is_btwf_in_sysfs;
 	bool is_gnss_in_sysfs;
@@ -692,12 +692,12 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		return -EINVAL;
 
 	marlin_dev->reset = of_get_named_gpio(np,
-			"rstn-gpios", 0);
+			"reset-gpios", 0);
 	if (!gpio_is_valid(marlin_dev->reset))
 		return -EINVAL;
 
 	marlin_dev->chip_en = of_get_named_gpio(np,
-			"chip-en-gpios", 0);
+			"enable-gpios", 0);
 	if (!gpio_is_valid(marlin_dev->chip_en))
 		return -EINVAL;
 
@@ -709,7 +709,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	marlin_dev->dvdd12 = devm_regulator_get(&pdev->dev, "dvdd12");
 	if (IS_ERR(marlin_dev->dvdd12)) {
 		WCN_ERR("Get regulator of dvdd12 error!\n");
-		return -1;
+		WCN_ERR("Maybe share the power with mem\n");
 	}
 
 	marlin_dev->avdd12 = devm_regulator_get(&pdev->dev, "avdd12");
@@ -776,9 +776,9 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		strcpy(GNSS_FIRMWARE_PATH, marlin_dev->gnss_path);
 	}
 
-	if (of_property_read_bool(np, "sprd,no-power-off")) {
-		WCN_INFO("wcn config is no power down\n");
-		marlin_dev->no_power_off = true;
+	if (of_property_read_bool(np, "keep-power-on")) {
+		WCN_INFO("wcn config keep power on\n");
+		marlin_dev->keep_power_on = true;
 	}
 
 	if (of_property_read_bool(np, "sprd,wait-ge2-disabled")) {
@@ -1068,7 +1068,9 @@ static int check_cp_clock_mode(void)
 		WCN_INFO("clock mode: TSX\n");
 	} else {
 		WCN_INFO("clock mode: TCXO, outside clock\n");
+#ifndef CONFIG_UMW2652
 		marlin_avdd18_dcxo_enable(false);
+#endif
 	}
 
 	return ret;
@@ -1613,7 +1615,7 @@ static int gnss_powerdomain_close(void)
 
 int open_power_ctl(void)
 {
-	marlin_dev->no_power_off = false;
+	marlin_dev->keep_power_on = false;
 	clear_bit(WCN_AUTO, &marlin_dev->power_state);
 
 	return 0;
@@ -1700,7 +1702,7 @@ static int marlin_set_power(int subsys, int val)
 		}
 		/* 2. the second time, WCN_AUTO coming */
 		else if (subsys == WCN_AUTO) {
-			if (marlin_dev->no_power_off) {
+			if (marlin_dev->keep_power_on) {
 				WCN_INFO("have power on, no action\n");
 				set_bit(subsys, &marlin_dev->power_state);
 			}
@@ -1816,7 +1818,7 @@ static int marlin_set_power(int subsys, int val)
 		if (flag_reset)
 			marlin_dev->power_state = 0;
 
-		if (marlin_dev->no_power_off) {
+		if (marlin_dev->keep_power_on) {
 			if (!flag_reset) {
 				if (subsys != WCN_AUTO) {
 					/* in order to not download again */
@@ -1890,7 +1892,7 @@ void marlin_power_off(enum marlin_sub_sys subsys)
 {
 	WCN_INFO("%s all\n", __func__);
 
-	marlin_dev->no_power_off = false;
+	marlin_dev->keep_power_on = false;
 	set_bit(subsys, &marlin_dev->power_state);
 	marlin_set_power(subsys, false);
 }
