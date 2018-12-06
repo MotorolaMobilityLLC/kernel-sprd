@@ -128,15 +128,18 @@
 		avdd12-supply = <&vddwcn>;
 		avdd33-supply = <&vddwifipa>;
 		dcxo18-supply = <&vddsim2>;
-		clock-names = "clk_32k";
-		clocks = <&aonapb_gate CLK_AUX0>;
+
+		clock-names = "clk_32k","source","enable";
+		clocks = <&aon_clk CLK_AUX0>,
+			 <&ext_26m>,
+			 <&aonapb_gate CLK_AUX0_EB>;
+
 		sdhci-name = <&sdio1>;
 		sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/wcnmodem";
 		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
-		common_chip;
-		adma_tx;
-		adma_rx;
-		pwrseq;
+		keep-power-on;
+		adma-tx;
+		adma-rx;
 		post-power-on-delay-ms = <20>;
 	};
 
