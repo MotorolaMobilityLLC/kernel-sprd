@@ -113,7 +113,9 @@ def main(argv, linux):
 		print_test_skeletons(cli_args)
 	elif cli_args.subcommand == 'run':
 		request = KunitRequest(cli_args.raw_output, cli_args.timeout)
-		run_tests(linux, request)
+		result = run_tests(linux, request)
+		if result.status == KunitStatus.TEST_FAILURE:
+			sys.exit(1)
 	else:
 		parser.print_help()
 
