@@ -99,3 +99,7 @@
 		};
 	};
 };
+
+&panel {
+	sprd,backlight = <&pwm_backlight>;
+};
