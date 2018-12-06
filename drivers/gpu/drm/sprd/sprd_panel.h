@@ -70,6 +70,7 @@ struct sprd_panel {
 	struct drm_panel base;
 	struct mipi_dsi_device *slave;
 	struct panel_info info;
+	struct backlight_device *backlight;
 
 	bool prepared;
 	bool enabled;

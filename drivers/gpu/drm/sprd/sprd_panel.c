@@ -296,6 +296,7 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 {
 	int ret;
 	struct sprd_panel *panel;
+	struct device_node *bl_node;
 
 	panel = devm_kzalloc(&slave->dev, sizeof(*panel), GFP_KERNEL);
 	if (!panel)
@@ -306,6 +307,23 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 		DRM_ERROR("parse panel info failed\n");
 		return ret;
 	}
+
+	bl_node = of_parse_phandle(slave->dev.of_node,
+					"sprd,backlight", 0);
+	if (bl_node) {
+		panel->backlight = of_find_backlight_by_node(bl_node);
+		of_node_put(bl_node);
+
+		if (panel->backlight) {
+			panel->backlight->props.state &= ~BL_CORE_FBBLANK;
+			panel->backlight->props.power = FB_BLANK_UNBLANK;
+			backlight_update_status(panel->backlight);
+		} else {
+			DRM_WARN("backlight is not ready, panel probe deferred\n");
+			return -EPROBE_DEFER;
+		}
+	} else
+		DRM_WARN("backlight node not found\n");
 
 	ret = sprd_panel_device_create(&slave->dev, panel);
 	if (ret) {
@@ -338,6 +356,8 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 
 	sprd_panel_sysfs_init(&panel->dev);
 	mipi_dsi_set_drvdata(slave, panel);
+
+	DRM_INFO("panel driver probe success\n");
 
 	return 0;
 }
