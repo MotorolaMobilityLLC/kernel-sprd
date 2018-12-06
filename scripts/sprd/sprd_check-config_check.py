@@ -525,6 +525,8 @@ def aiaiai_check():
                         plat="sharkle32"
                 if plat == "sharkl3" and arch =="arm":
                     continue
+                if plat == "sharkl5" and arch =="arm":
+                    continue
 
                 i = i + 5
                 while True:
