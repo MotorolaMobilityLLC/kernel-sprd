@@ -8,6 +8,7 @@
 /dts-v1/;
 
 #include "ums518.dtsi"
+#include "ums518-haps-common.dtsi"
 
 / {
 	model = "Unisoc UMS518 Haps board";
@@ -41,6 +42,36 @@
 				<0x1 0x20000000 0x0 0x6400000>, /* userdata */
 				<0x1 0x30000000 0x0 0x12c00000>; /* vendor */
 		};
+
+		fb_reserved: framebuffer-mem@befc0000{
+			reg = <0x0 0xbefc0000 0x0 0x01000000>;
+		};
+	};
+
+	ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		heap@1 {
+			reg = <1>;
+			label = "carveout_mm";
+			type = <2>;
+		};
+
+		heap@2 {
+			reg = <2>;
+			label = "carveout_overlay";
+			type = <2>;
+			/* memory-region = <&overlay_reserved>;*/
+		};
+
+		heap@3 {
+			reg = <3>;
+			label = "carveout_fb";
+			type = <2>;
+			memory-region = <&fb_reserved>;
+		};
 	};
 
 	sprd-memdisk {
@@ -54,5 +85,35 @@
 };
 
 &uart1 {
+	status = "okay";
+};
+
+&dpu {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	panel {
+		compatible = "sprd,generic-mipi-panel";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
+
+		sprd,force-attached = "lcd_dummy_mipi_hd";
+
+		port {
+			reg = <1>;
+			panel_in: endpoint {
+				remote-endpoint = <&dphy_out>;
+			};
+		};
+	};
+};
+
+&dphy {
 	status = "okay";
 };
