@@ -8220,13 +8220,6 @@ CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[subsys] misc
 	[must] console
 	[function] This function is used to enable mm power domain.
-CONFIG_SPRD_REGMAP_DEBUG
-	[arch] all
-	[plat] sharkl5
-	[field] menu,code
-	[subsys] core
-	[must] user
-	[function] Spreadtrum syscon regmap debug.
 CONFIG_SPRD_PTM
 	[arch] all
 	[plat] sharkl5
@@ -8234,6 +8227,13 @@ CONFIG_SPRD_PTM
 	[subsys] debug
 	[must] debug
 	[function] Support Spreadtrum PTM.
+CONFIG_SPRD_REGMAP_DEBUG
+	[arch] all
+	[plat] sharkl5
+	[field] menu,code
+	[subsys] core
+	[must] user
+	[function] Spreadtrum syscon regmap debug.
 CONFIG_SPRD_ROC1_CLK
 	[arch] all
 	[plat] roc1
@@ -8319,6 +8319,13 @@ CONFIG_SPRD_THERMAL
 	[subsys] thermal
 	[must] user
 	[function] This function is used to config thermal moudle.
+CONFIG_SPRD_TIMER
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] timer
+	[must] console
+	[function] Support for Spreadtrum ARM based SoCs.
 CONFIG_SPRD_WATCHDOG
 	[arch] all
 	[plat] sharkl5

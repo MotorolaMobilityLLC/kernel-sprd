@@ -214,6 +214,7 @@ config ARCH_TEGRA
 config ARCH_SPRD
 	bool "Spreadtrum SoC platform"
 	select PINCTRL
+	select SPRD_TIMER
 	help
 	  Support for Spreadtrum ARM based SoCs
 
