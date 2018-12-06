@@ -814,6 +814,8 @@ source "arch/arm/mach-socfpga/Kconfig"
 
 source "arch/arm/mach-spear/Kconfig"
 
+source "arch/arm/mach-sprd/Kconfig"
+
 source "arch/arm/mach-sti/Kconfig"
 
 source "arch/arm/mach-stm32/Kconfig"
@@ -1877,6 +1879,12 @@ config BUILD_ARM_APPENDED_DTB_IMAGE_NAMES
 	help
 	  Space separated list of names of dtbs to append when
 	  building a concatenated zImage-dtb.
+
+config BUILD_ARM_DTC
+	string "dtc to use"
+
+config BUILD_ARM_DTC_FLAGS
+	string "extra dtc flags"
 
 # Compressed boot loader in ROM.  Yes, we really want to ask about
 # TEXT and BSS so we preserve their values in the config files.
