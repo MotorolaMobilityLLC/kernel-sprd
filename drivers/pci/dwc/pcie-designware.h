@@ -90,12 +90,16 @@
 #define PCIE_ATU_UNR_LOWER_TARGET	0x14
 #define PCIE_ATU_UNR_UPPER_TARGET	0x18
 
-/* Register address builder */
+/*
+ * Register address builder.
+ * Different vendors may be have different offset address.
+ * The iATU Unroll register offset address is 0x18000 in unisoc SoCs.
+ */
 #define PCIE_GET_ATU_OUTB_UNR_REG_OFFSET(region)	\
-			((0x3 << 20) | ((region) << 9))
+			((0x3 << 15) | ((region) << 9))
 
 #define PCIE_GET_ATU_INB_UNR_REG_OFFSET(region)				\
-			((0x3 << 20) | ((region) << 9) | (0x1 << 8))
+			((0x3 << 15) | ((region) << 9) | (0x1 << 8))
 
 #define MSI_MESSAGE_CONTROL		0x52
 #define MSI_CAP_MMC_SHIFT		1
