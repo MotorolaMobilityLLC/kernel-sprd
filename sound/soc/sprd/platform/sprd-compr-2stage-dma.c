@@ -174,6 +174,8 @@ struct sprd_compr_rtd {
 	u32 drain_ready;
 	u32 next_track;
 
+	bool dma_paused;
+
 	atomic_t start;
 	atomic_t eos;
 	atomic_t drain;
@@ -1013,7 +1015,7 @@ static int compr_stream_hw_free(struct snd_compr_stream *cstream)
 
 	audio_mem_unmap(srtd->iram_buff);
 	srtd->iram_buff = 0;
-
+	srtd->dma_paused = false;
 #ifdef CONFIG_SPRD_COMPR_CM4_WAKE_UP
 	mutex_lock(&g_lock);
 	compr_cb_data = NULL;
@@ -1056,18 +1058,26 @@ static int compr_stream_trigger(struct snd_compr_stream *substream, int cmd)
 				params->frag_len,
 				params->tran_len / params->frag_len);
 			srtd->next_track = 0;
+			srtd->dma_paused = false;
 		}
-		for (i = s - 1; i >= 0; i--) {
-			if (srtd->dma_tx_des[i]) {
-				srtd->cookie[i] =
-					dmaengine_submit(srtd->dma_tx_des[i]);
+		if (srtd->dma_paused == true) {
+			for (i = s - 1; i >= 0; i--) {
+				if (srtd->dma_chn[i])
+					dmaengine_resume(srtd->dma_chn[i]);
+			}
+			srtd->dma_paused = false;
+		} else {
+			for (i = s - 1; i >= 0; i--) {
+				if (srtd->dma_tx_des[i]) {
+					srtd->cookie[i] =
+						dmaengine_submit(srtd->dma_tx_des[i]);
+				}
+			}
+			for (i = s - 1; i >= 0; i--) {
+				if (srtd->dma_chn[i])
+					dma_async_issue_pending(srtd->dma_chn[i]);
 			}
 		}
-		for (i = s - 1; i >= 0; i--) {
-			if (srtd->dma_chn[i])
-				dma_async_issue_pending(srtd->dma_chn[i]);
-		}
-
 #if COMPR_DUMP_MEM_DEBUG
 		timer_init();
 #endif
@@ -1082,6 +1092,7 @@ static int compr_stream_trigger(struct snd_compr_stream *substream, int cmd)
 			if (srtd->dma_chn[i])
 				dmaengine_pause(srtd->dma_chn[i]);
 		}
+		srtd->dma_paused = true;
 #if COMPR_DUMP_MEM_DEBUG
 		timer_exit();
 #endif
@@ -1185,6 +1196,7 @@ static int sprd_platform_compr_open(struct snd_compr_stream *cstream)
 	srtd->sample_rate = 44100;
 	srtd->num_channels = 2;
 	srtd->hw_chan = 1;
+	srtd->dma_paused = false;
 
 	runtime->private_data = srtd;
 
