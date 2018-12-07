@@ -20,6 +20,10 @@
 
 #define SIPA_DEF_OFFSET	64
 
+#define SIPA_RECV_EVT (SIPA_HAL_INTR_BIT | \
+			SIPA_HAL_TX_FIFO_THRESHOLD_SW | SIPA_HAL_DELAY_TIMER)
+
+
 enum flow_ctrl_mode_e {
 	flow_ctrl_rx_empty,
 	flow_ctrl_tx_full,

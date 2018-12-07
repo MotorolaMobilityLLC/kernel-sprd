@@ -45,8 +45,6 @@
 #define SIPA_RECV_BUF_LEN     1600
 #define SIPA_RECV_RSVD_LEN     64
 
-#define SIPA_RECV_EVT (SIPA_HAL_INTR_BIT | \
-			SIPA_HAL_TX_FIFO_THRESHOLD_SW | SIPA_HAL_DELAY_TIMER)
 
 int put_recv_array_node(struct sipa_skb_array *p,
 						struct sk_buff *skb, dma_addr_t dma_addr)
@@ -280,6 +278,7 @@ void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 	sipa_open_common_fifo(receiver->ctx->hdl,
 						  receiver->ep->recv_fifo.idx,
 						  &attr,
+						  true,
 						  sipa_receiver_notify_cb, receiver);
 
 	/* reserve space for dma flushing cache issue */

@@ -107,7 +107,7 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 	struct sipa_skb_sender *sender;
 
 	for (i = 0; i < SIPA_NIC_MAX; i++) {
-		if ((s_spia_nic_statics[i].src_mask & src) &&
+		if ((s_spia_nic_statics[i].src_mask & (1 << src)) &&
 			netid == s_spia_nic_statics[i].netid) {
 			nic_id = i;
 			break;

@@ -298,6 +298,7 @@ EXPORT_SYMBOL(sipa_sys_init);
 int sipa_open_common_fifo(sipa_hal_hdl hdl,
 						  enum sipa_cmn_fifo_index fifo,
 						  struct sipa_comm_fifo_params *attr,
+						  bool force_sw_intr,
 						  sipa_hal_notify_cb cb,
 						  void *priv)
 {
@@ -319,7 +320,7 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 			fifo_cfg[fifo].is_pam,
 			fifo_cfg[fifo].is_recv);
 	hal_cfg->fifo_ops.open(fifo, fifo_cfg, NULL);
-	if (fifo_cfg[fifo].is_pam) {
+	if (!force_sw_intr && fifo_cfg[fifo].is_pam) {
 		hal_cfg->fifo_ops.set_hw_interrupt_threshold(
 			fifo, fifo_cfg, 1, attr->tx_intr_threshold, NULL);
 		hal_cfg->fifo_ops.set_hw_interrupt_timeout(
@@ -665,6 +666,15 @@ static int ep_recv_thread_func(void *data)
 
 	return 0;
 }
+
+void sipa_test_enable_periph_int_to_sw(void)
+{
+
+	sipa_hal_ctx[0].glb_ops.map_interrupt_src_en(
+		sipa_hal_ctx[0].phy_virt_res.glb_base, 1, 0x3FFFF);
+
+}
+EXPORT_SYMBOL(sipa_test_enable_periph_int_to_sw);
 
 void ipa_test_init_callback(void)
 {

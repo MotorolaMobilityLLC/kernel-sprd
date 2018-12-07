@@ -61,7 +61,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.relate_ep = SIPA_EP_USB,
 		.src_id = SIPA_TERM_USB,
 		.dst_id = SIPA_TERM_AP_ETH,
-		.is_to_ipa = 0,
+		.is_to_ipa = 1,
 		.is_pam = 1,
 	},
 	{
@@ -196,7 +196,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.relate_ep = SIPA_EP_USB,
 		.src_id = SIPA_TERM_USB,
 		.dst_id = SIPA_TERM_AP_ETH,
-		.is_to_ipa = 1,
+		.is_to_ipa = 0,
 		.is_pam = 1,
 	},
 	{
@@ -381,9 +381,11 @@ int sipa_pam_connect(const struct sipa_connect_params *in,
 
 	sipa_open_common_fifo(ep->sipa_ctx->hdl, ep->send_fifo.idx,
 						  &ep->send_fifo_param,
+						  false,
 						  (sipa_hal_notify_cb)ep->send_notify, ep);
 	sipa_open_common_fifo(ep->sipa_ctx->hdl, ep->recv_fifo.idx,
 						  &ep->recv_fifo_param,
+						  false,
 						  (sipa_hal_notify_cb)ep->recv_notify, ep);
 
 	if (ep->send_fifo_param.data_ptr) {
@@ -483,34 +485,36 @@ static int sipa_parse_dts_configuration(
 	cfg->phy_virt_res.glb_base = devm_ioremap_nocache(
 									 &pdev->dev, resource->start, resource_size(resource));
 
-	/* get IPA sys register base  address */
-	resource = platform_get_resource_byname(pdev,
-											IORESOURCE_MEM,
-											"ipa-sys");
-	if (!resource) {
-		pr_err("%s :get resource failed for glb-base!\n",
-			   __func__);
-		return -ENODEV;
-	}
-	memcpy(&cfg->phy_virt_res.sys_res,
-		   resource,
-		   sizeof(struct resource));
-	cfg->phy_virt_res.sys_base = devm_ioremap_nocache(
-									 &pdev->dev, resource->start, resource_size(resource));
+	if (!cfg->is_remote) {
+		/* get IPA sys register base  address */
+		resource = platform_get_resource_byname(pdev,
+												IORESOURCE_MEM,
+												"ipa-sys");
+		if (!resource) {
+			pr_err("%s :get resource failed for glb-base!\n",
+				   __func__);
+			return -ENODEV;
+		}
+		memcpy(&cfg->phy_virt_res.sys_res,
+			   resource,
+			   sizeof(struct resource));
+		cfg->phy_virt_res.sys_base = devm_ioremap_nocache(
+										 &pdev->dev, resource->start, resource_size(resource));
 
-	/* get IPA iram base  address */
-	resource = platform_get_resource_byname(pdev,
-											IORESOURCE_MEM,
-											"iram-base");
-	if (!resource) {
-		pr_err("%s :get resource failed for iram-base!\n", __func__);
-		return -ENODEV;
+		/* get IPA iram base  address */
+		resource = platform_get_resource_byname(pdev,
+												IORESOURCE_MEM,
+												"iram-base");
+		if (!resource) {
+			pr_err("%s :get resource failed for iram-base!\n", __func__);
+			return -ENODEV;
+		}
+		memcpy(&cfg->phy_virt_res.iram_res,
+			   resource,
+			   sizeof(struct resource));
+		cfg->phy_virt_res.iram_base = devm_ioremap_nocache(
+										  &pdev->dev, resource->start, resource_size(resource));
 	}
-	memcpy(&cfg->phy_virt_res.iram_res,
-		   resource,
-		   sizeof(struct resource));
-	cfg->phy_virt_res.iram_base = devm_ioremap_nocache(
-									  &pdev->dev, resource->start, resource_size(resource));
 
 	/* get IRQ numbers */
 	if (cfg->is_remote) {
@@ -759,32 +763,11 @@ static int create_sipa_eps(struct sipa_plat_drv_cfg *cfg,
 	return 0;
 }
 
-static int sipa_init(struct sipa_context **ipa_pp,
-					 struct sipa_plat_drv_cfg *cfg,
-					 struct device *ipa_dev)
+static int sipa_create_skb_xfer(struct sipa_context *ipa,
+								struct sipa_plat_drv_cfg *cfg)
 {
 	int ret = 0;
-	struct sipa_context *ipa = NULL;
 
-	ipa = kzalloc(sizeof(struct sipa_context), GFP_KERNEL);
-	if (!ipa) {
-		pr_err("sipa_init: kzalloc err.\n");
-		return -ENOMEM;
-	}
-
-	ipa->pdev = ipa_dev;
-	ipa->bypass_mode = cfg->is_bypass;
-
-	ipa->hdl = sipa_hal_init(ipa_dev, cfg);
-
-	/* ipa sys init */
-
-	/* init sipa eps */
-	ret = create_sipa_eps(cfg, ipa);
-	if (ret) {
-		ret = -EFAULT;
-		goto ep_fail;
-	}
 
 	ret = create_sipa_skb_sender(ipa,
 								 s_sipa_ctrl.eps[SIPA_EP_AP_ETH],
@@ -820,8 +803,6 @@ static int sipa_init(struct sipa_context **ipa_pp,
 		goto receiver_fail;
 	}
 
-	*ipa_pp = ipa;
-
 	return 0;
 
 receiver_fail:
@@ -844,7 +825,51 @@ sender_fail:
 		s_sipa_ctrl.sender[SIPA_PKT_ETH] = NULL;
 	}
 
-ep_fail:
+	return ret;
+}
+static int sipa_init(struct sipa_context **ipa_pp,
+					 struct sipa_plat_drv_cfg *cfg,
+					 struct device *ipa_dev)
+{
+	int ret = 0;
+	struct sipa_context *ipa = NULL;
+
+	ipa = kzalloc(sizeof(struct sipa_context), GFP_KERNEL);
+	if (!ipa) {
+		pr_err("sipa_init: kzalloc err.\n");
+		return -ENOMEM;
+	}
+
+	ipa->pdev = ipa_dev;
+	ipa->is_remote = cfg->is_remote;
+	ipa->bypass_mode = cfg->is_bypass;
+
+	ipa->hdl = sipa_hal_init(ipa_dev, cfg);
+
+
+	/* init sipa eps */
+	ret = create_sipa_eps(cfg, ipa);
+	if (ret) {
+		ret = -EFAULT;
+		goto fail;
+	}
+
+	/* init sipa skb transfer layer */
+	if (!ipa->is_remote) {
+		ret = sipa_create_skb_xfer(ipa, cfg);
+		if (ret) {
+			ret = -EFAULT;
+			goto fail;
+		}
+	}
+
+	*ipa_pp = ipa;
+
+	return 0;
+
+
+
+fail:
 
 	destroy_sipa_eps(cfg, ipa);
 
@@ -887,11 +912,14 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		return ret;
 	}
 
-	ret = sipa_sys_init(cfg);
-	if (ret) {
-		pr_err("sipa: sipa_hal_init failed %d\n", ret);
-		return ret;
+	if (!is_remote) {
+		ret = sipa_sys_init(cfg);
+		if (ret) {
+			pr_err("sipa: sipa_hal_init failed %d\n", ret);
+			return ret;
+		}
 	}
+
 
 	ret = sipa_init(&s_sipa_ctrl.ctx[is_remote], cfg, dev);
 	if (ret) {

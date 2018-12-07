@@ -17,4 +17,6 @@
 
 int sipa_loop_test_start(void);
 extern void ipa_test_init_callback(void);
+extern void sipa_test_enable_periph_int_to_sw(void);
+
 #endif /* _SIPA_TEST_H_ */

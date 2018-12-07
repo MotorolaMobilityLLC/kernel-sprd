@@ -192,7 +192,7 @@ int sipa_loop_test_start(void)
 
 	pr_info("%s probe_cnt = %d\n", __func__, probe_cnt);
 
-	ret = sipa_nic_open((1 << SIPA_TERM_VCP), 0, loop_test_notify_cb, NULL);
+	ret = sipa_nic_open(SIPA_TERM_VCP, 0, loop_test_notify_cb, NULL);
 	if (ret < 0) {
 		pr_info("%s sipa nic open failed\n", __func__);
 		return ret;
@@ -234,4 +234,4 @@ int sipa_loop_test_end(void)
 	return 0;
 }
 
-late_initcall(sipa_loop_test_start);
+//late_initcall(sipa_loop_test_start);
