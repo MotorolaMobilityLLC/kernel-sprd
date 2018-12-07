@@ -507,7 +507,7 @@ static void sprd_dma_start(struct sprd_dma_chn *schan)
 	if (!vd)
 		return;
 
-	list_del(&vd->node);
+	list_del_init(&vd->node);
 	schan->cur_desc = to_sprd_dma_desc(vd);
 	if (schan->chn_mode && sprd_dma_set_2stage_config(schan))
 		return;
