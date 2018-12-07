@@ -212,7 +212,7 @@ def create_sprdconfigs_dict():
                     for j in range(15):
                         if i+7+j >= len(lines):
                             break
-                        if "\t" not in lines[i+7+j]:
+                        if lines[i+7+j][:7] == "CONFIG_":
                             break
                         d_sprdconfig[config_name]['function']+='\n'+lines[i+7+j][:-1]
     add_diffconfig_to_dictconfig()

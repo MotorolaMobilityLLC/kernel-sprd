@@ -1615,6 +1615,15 @@ CONFIG_CRYPTO_ENGINE
 	[subsys]
 	[must]
 	[function]
+CONFIG_CRYPTO_GCM
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] security
+	[must] user
+	[function] Support for Galois/Counter Mode (GCM) and Galois Message
+        Authentication Code (GMAC). Required for IPSec. The new feature on androidp.
+        If don't enable this, when luncher boot the screen will print error info. eg.Bug 980109
 CONFIG_CRYPTO_GF128MUL
 	[arch] all
 	[plat] all
@@ -1622,6 +1631,13 @@ CONFIG_CRYPTO_GF128MUL
 	[subsys] crypto
 	[must] none
 	[function] Efficient table driven implementation of multiplications in the field GF(2^128).
+CONFIG_CRYPTO_GHASH
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] security
+	[must] user
+	[function] GHASH is message digest algorithm for GCM (Galois/Counter Mode).
 CONFIG_CRYPTO_GHASH_ARM64_CE
 	[arch] all
 	[plat] all
@@ -8305,13 +8321,13 @@ CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[must] user
 	[function] This function is used to enable sipx function between modem and AP.
 CONFIG_SPRD_SYSDUMP
-        [arch] all
-        [plat] sharkl5
-        [field] make,code
-        [subsys] soc
-        [must] user
-        [function] This function is used to enable sprd sysdump feature
-                   that dump the DDR except reserved memory.
+	[arch] all
+	[plat] sharkl5
+	[field] make,code
+	[subsys] soc
+	[must] user
+	[function] This function is used to enable sprd sysdump feature
+        that dump the DDR except reserved memory.
 CONFIG_SPRD_THERMAL
 	[arch] all
 	[plat] sharkl5
@@ -8326,6 +8342,13 @@ CONFIG_SPRD_TIMER
 	[subsys] timer
 	[must] console
 	[function] Support for Spreadtrum ARM based SoCs.
+CONFIG_SPRD_VSP
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_WATCHDOG
 	[arch] all
 	[plat] sharkl5
