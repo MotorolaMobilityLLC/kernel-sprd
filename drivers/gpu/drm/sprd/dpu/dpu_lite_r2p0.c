@@ -351,14 +351,26 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 	return ret;
 }
 
-static void check_mmu_isr(struct dpu_context *ctx, uint32_t reg_val)
+static void dpu_dump(struct dpu_context *ctx)
+{
+	u32 *reg = (u32 *)ctx->base;
+	int i;
+
+	pr_info("      0          4          8          C\n");
+	for (i = 0; i < 256; i += 4) {
+		pr_info("%04x: 0x%08x 0x%08x 0x%08x 0x%08x\n",
+			i * 4, reg[i], reg[i + 1], reg[i + 2], reg[i + 3]);
+	}
+}
+
+static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	uint32_t int_mask = (DISPC_INT_MMU_VAOR_RD_MASK |
+	u32 mmu_mask = DISPC_INT_MMU_VAOR_RD_MASK |
 			DISPC_INT_MMU_VAOR_WR_MASK |
 			DISPC_INT_MMU_INV_RD_MASK |
-			DISPC_INT_MMU_INV_WR_MASK);
-	uint32_t val = reg_val & int_mask;
+			DISPC_INT_MMU_INV_WR_MASK;
+	u32 val = reg_val & mmu_mask;
 
 	if (val) {
 		pr_err("--- iommu interrupt err: 0x%04x ---\n", val);
@@ -373,14 +385,19 @@ static void check_mmu_isr(struct dpu_context *ctx, uint32_t reg_val)
 			reg->mmu_vaor_addr_wr);
 		pr_err("BUG: iommu failure at %s:%d/%s()!\n",
 			__FILE__, __LINE__, __func__);
+
+		dpu_dump(ctx);
+
 		/* panic("iommu panic\n"); */
 	}
+
+	return val;
 }
 
 static u32 dpu_isr(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	u32 reg_val;
+	u32 reg_val, int_mask = 0;
 
 	if (!reg) {
 		pr_err("invalid reg\n");
@@ -388,11 +405,10 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	}
 
 	reg_val = reg->dpu_int_sts;
-	reg->dpu_int_clr = reg_val;
 
 	/*disable err interrupt */
 	if (reg_val & DISPC_INT_ERR_MASK)
-		reg->dpu_int_en &= ~DISPC_INT_ERR_MASK;
+		int_mask |= DISPC_INT_ERR_MASK;
 
 	/*dpu update done isr */
 	if (reg_val & DISPC_INT_UPDATE_DONE_MASK) {
@@ -444,14 +460,21 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	}
 
 	/* dpu ifbc payload error isr */
-	if (reg_val & DISPC_INT_FBC_PLD_ERR_MASK)
+	if (reg_val & DISPC_INT_FBC_PLD_ERR_MASK) {
+		int_mask |= DISPC_INT_FBC_PLD_ERR_MASK;
 		pr_err("dpu ifbc payload error\n");
+	}
 
 	/* dpu ifbc header error isr */
-	if (reg_val & DISPC_INT_FBC_HDR_ERR_MASK)
+	if (reg_val & DISPC_INT_FBC_HDR_ERR_MASK) {
+		int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
 		pr_err("dpu ifbc header error\n");
+	}
 
-	check_mmu_isr(ctx, reg_val);
+	int_mask |= check_mmu_isr(ctx, reg_val);
+
+	reg->dpu_int_clr = reg_val;
+	reg->dpu_int_en &= ~int_mask;
 
 	return reg_val;
 }
@@ -538,8 +561,17 @@ static void dpu_run(struct dpu_context *ctx)
 			dpu_wait_update_done(ctx);
 		}
 
-		/* if the underflow err was disabled in isr, re-enable it */
-		reg->dpu_int_en |= DISPC_INT_ERR_MASK;
+		/*
+		 * If the following interrupt was disabled in isr,
+		 * re-enable it.
+		 */
+		reg->dpu_int_en |= DISPC_INT_ERR_MASK |
+				DISPC_INT_FBC_PLD_ERR_MASK |
+				DISPC_INT_FBC_HDR_ERR_MASK |
+				DISPC_INT_MMU_VAOR_RD_MASK |
+				DISPC_INT_MMU_VAOR_WR_MASK |
+				DISPC_INT_MMU_INV_RD_MASK |
+				DISPC_INT_MMU_INV_WR_MASK;
 
 	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
 
