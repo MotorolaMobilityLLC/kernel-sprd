@@ -131,7 +131,7 @@
 
 		clock-names = "clk_32k","source","enable";
 		clocks = <&aon_clk CLK_AUX0>,
-			 <&ext_26m>,
+			 <&ext_32k>,
 			 <&aonapb_gate CLK_AUX0_EB>;
 
 		sdhci-name = <&sdio1>;
