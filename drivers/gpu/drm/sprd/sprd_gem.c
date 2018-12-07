@@ -91,7 +91,7 @@ int sprd_gem_cma_dumb_create(struct drm_file *file_priv, struct drm_device *drm,
 		return PTR_ERR(sprd_gem);
 
 	sprd_gem->vaddr = dma_alloc_writecombine(drm->dev, args->size,
-			&sprd_gem->dma_addr, GFP_KERNEL | __GFP_NOWARN);
+			&sprd_gem->dma_addr, GFP_KERNEL | __GFP_NOWARN | GFP_DMA);
 	if (!sprd_gem->vaddr) {
 		DRM_ERROR("failed to allocate buffer with size %llu\n",
 			  args->size);
