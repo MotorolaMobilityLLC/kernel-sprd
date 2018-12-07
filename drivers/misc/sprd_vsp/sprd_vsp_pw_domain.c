@@ -25,6 +25,7 @@
 #include <uapi/video/sprd_vsp_pw_domain.h>
 #include "vsp_common.h"
 
+
 struct vsp_pw_domain_info_t *vsp_pw_domain_info;
 
 static int is_vsp_domain_power_on(void)
@@ -49,31 +50,38 @@ int vsp_pw_on(u8 client)
 	unsigned long timeout = jiffies + msecs_to_jiffies(__SPRD_VSP_TIMEOUT);
 	u32 read_count = 0;
 
-	pr_info("vsp_pw_domain:vsp_pw_on Enter client %d\n", client);
+	pr_info("vsp_pw_domain:%s Enter client %d\n", __func__, client);
 	if (client >= VSP_PW_DOMAIN_COUNT_MAX) {
-		pr_err("vsp_pw_domain:vsp_pw_on with error client\n");
+		pr_err("vsp_pw_domain:%s with error client\n", __func__);
 		return -1;
 	}
 
 	mutex_lock(&vsp_pw_domain_info->client_lock);
 
+	if (regs[PMU_VSP_AUTO_SHUTDOWN].gpr == NULL) {
+		pr_info("vsp_pw_domain: skip power on\n");
+		ret = -1;
+		goto pw_on_exit;
+	}
 	if (is_vsp_domain_power_on() == 0) {
 
-		ret = regmap_update_bits(gpr_pmu_apb,
-				REG_PMU_APB_PD_MM_VSP_CFG,
-				BIT_PMU_APB_PD_MM_VSP_AUTO_SHUTDOWN_EN,
+		ret = regmap_update_bits(regs[PMU_VSP_AUTO_SHUTDOWN].gpr,
+				regs[PMU_VSP_AUTO_SHUTDOWN].reg,
+				regs[PMU_VSP_AUTO_SHUTDOWN].mask,
 				(unsigned int)
-				(~BIT_PMU_APB_PD_MM_VSP_AUTO_SHUTDOWN_EN));
+				(~regs[PMU_VSP_AUTO_SHUTDOWN].mask));
+
 		if (ret) {
 			pr_err("regmap_update_bits failed %s, %d\n",
 				__func__, __LINE__);
 			goto pw_on_exit;
 		}
 
-		ret = regmap_update_bits(gpr_pmu_apb,
-			REG_PMU_APB_PD_MM_VSP_CFG,
-			BIT_PMU_APB_PD_MM_VSP_FORCE_SHUTDOWN,
-			(unsigned int)(~BIT_PMU_APB_PD_MM_VSP_FORCE_SHUTDOWN));
+		ret = regmap_update_bits(regs[PMU_VSP_FORCE_SHUTDOWN].gpr,
+			regs[PMU_VSP_FORCE_SHUTDOWN].reg,
+			regs[PMU_VSP_FORCE_SHUTDOWN].mask,
+			(unsigned int)(~regs[PMU_VSP_FORCE_SHUTDOWN].mask));
+
 		if (ret) {
 			pr_err("regmap_update_bits failed %s, %d\n",
 				__func__, __LINE__);
@@ -85,18 +93,18 @@ int vsp_pw_on(u8 client)
 			udelay(300);
 			read_count++;
 
-			regmap_read(gpr_pmu_apb,
-						REG_PMU_APB_PWR_STATUS5_DBG,
+			regmap_read(regs[PMU_PWR_STATUS].gpr,
+						regs[PMU_PWR_STATUS].reg,
 						&power_state1);
-			power_state1 &= BIT_PMU_APB_PD_MM_VSP_STATE(0x1F);
-			regmap_read(gpr_pmu_apb,
-						REG_PMU_APB_PWR_STATUS5_DBG,
+			power_state1 &= regs[PMU_PWR_STATUS].mask;
+			regmap_read(regs[PMU_PWR_STATUS].gpr,
+						regs[PMU_PWR_STATUS].reg,
 						&power_state2);
-			power_state2 &= BIT_PMU_APB_PD_MM_VSP_STATE(0x1F);
-			regmap_read(gpr_pmu_apb,
-						REG_PMU_APB_PWR_STATUS5_DBG,
+			power_state2 &= regs[PMU_PWR_STATUS].mask;
+			regmap_read(regs[PMU_PWR_STATUS].gpr,
+						regs[PMU_PWR_STATUS].reg,
 						&power_state3);
-			power_state3 &= BIT_PMU_APB_PD_MM_VSP_STATE(0x1F);
+			power_state3 &= regs[PMU_PWR_STATUS].mask;
 
 			WARN_ON(time_after(jiffies, timeout));
 		} while ((power_state1 && read_count < 100)
@@ -104,12 +112,12 @@ int vsp_pw_on(u8 client)
 			 || (power_state2 != power_state3));
 
 		if (power_state1) {
-			pr_err("vsp_pw_domain:vsp_pw_on set failed 0x%x\n",
+			pr_err("vsp_pw_domain:%s set failed 0x%x\n", __func__,
 			       power_state1);
 			mutex_unlock(&vsp_pw_domain_info->client_lock);
 			return -1;
 		}
-		pr_info("vsp_pw_domain:vsp_pw_on set OK\n");
+		pr_info("vsp_pw_domain:%s set OK\n", __func__);
 	} else {
 		pr_info("vsp_pw_domain:vsp_domain is already power on\n");
 	}
@@ -126,14 +134,19 @@ EXPORT_SYMBOL(vsp_pw_on);
 int vsp_pw_off(u8 client)
 {
 	int ret = 0;
-	unsigned int vsp_fencing_status = 0;
 
-	pr_info("vsp_pw_domain: vsp_pw_off Enter client %d\n", client);
+	pr_info("vsp_pw_domain: %s Enter client %d\n", __func__, client);
 	if (client >= VSP_PW_DOMAIN_COUNT_MAX) {
-		pr_err("vsp_pw_domain:vsp_pw_off with error client\n");
+		pr_err("vsp_pw_domain:%s with error client\n", __func__);
 		return -1;
 	}
 	mutex_lock(&vsp_pw_domain_info->client_lock);
+
+	if (regs[PMU_VSP_AUTO_SHUTDOWN].gpr == NULL) {
+		pr_info("vsp_pw_domain: skip power off\n");
+		ret = -1;
+		goto pw_off_exit;
+	}
 
 	if (vsp_pw_domain_info->pw_vsp_info[client].pw_count >= 1) {
 
@@ -145,13 +158,12 @@ int vsp_pw_off(u8 client)
 
 		if (is_vsp_domain_power_on() == 0) {
 
-			vsp_fencing_status++;
-
-			ret = regmap_update_bits(gpr_pmu_apb,
-				REG_PMU_APB_PD_MM_VSP_CFG,
-				BIT_PMU_APB_PD_MM_VSP_AUTO_SHUTDOWN_EN,
+			ret = regmap_update_bits(
+				regs[PMU_VSP_AUTO_SHUTDOWN].gpr,
+				regs[PMU_VSP_AUTO_SHUTDOWN].reg,
+				regs[PMU_VSP_AUTO_SHUTDOWN].mask,
 				(unsigned int)
-				(~BIT_PMU_APB_PD_MM_VSP_AUTO_SHUTDOWN_EN));
+				(~regs[PMU_VSP_AUTO_SHUTDOWN].mask));
 
 			if (ret) {
 				pr_err("regmap_update_bits failed %s, %d\n",
@@ -159,17 +171,19 @@ int vsp_pw_off(u8 client)
 				goto pw_off_exit;
 			}
 
-			ret = regmap_update_bits(gpr_pmu_apb,
-				REG_PMU_APB_PD_MM_VSP_CFG,
-				BIT_PMU_APB_PD_MM_VSP_FORCE_SHUTDOWN,
-				BIT_PMU_APB_PD_MM_VSP_FORCE_SHUTDOWN);
+			ret = regmap_update_bits(
+				regs[PMU_VSP_FORCE_SHUTDOWN].gpr,
+				regs[PMU_VSP_FORCE_SHUTDOWN].reg,
+				regs[PMU_VSP_FORCE_SHUTDOWN].mask,
+				regs[PMU_VSP_FORCE_SHUTDOWN].mask);
+
 			if (ret) {
 				pr_err("regmap_update_bits failed %s, %d\n",
 					__func__, __LINE__);
 				goto pw_off_exit;
 			}
 
-			pr_info("vsp_pw_domain:vsp_pw_off set OK\n");
+			pr_info("vsp_pw_domain:%s set OK\n", __func__);
 		}
 	} else {
 		vsp_pw_domain_info->pw_vsp_info[client].pw_count = 0;
@@ -185,23 +199,11 @@ pw_off_exit:
 }
 EXPORT_SYMBOL(vsp_pw_off);
 
-int vsp_core_pw_on(void)
-{
-	return 0;
-}
-EXPORT_SYMBOL(vsp_core_pw_on);
-
-int vsp_core_pw_off(void)
-{
-	return 0;
-}
-EXPORT_SYMBOL(vsp_core_pw_off);
-
 static int __init vsp_pw_domain_init(void)
 {
 	int i = 0;
 
-	pr_info("vsp_pw_domain: vsp_pw_domain_init\n");
+	pr_info("vsp_pw_domain: %s\n", __func__);
 	vsp_pw_domain_info =
 	    kmalloc(sizeof(struct vsp_pw_domain_info_t), GFP_KERNEL);
 

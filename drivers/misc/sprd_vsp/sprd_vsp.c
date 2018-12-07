@@ -59,14 +59,22 @@
 static unsigned long sprd_vsp_phys_addr;
 static void __iomem *sprd_vsp_base;
 static void __iomem *vsp_glb_reg_base;
-static unsigned int vsp_softreset_reg_offset;
-static unsigned int vsp_reset_mask;
+
 static struct vsp_dev_t vsp_hw_dev;
 static struct wakeup_source vsp_wakelock;
 static atomic_t vsp_instance_cnt = ATOMIC_INIT(0);
+static char *vsp_clk_src[] = {
+	"clk_src_96m",
+	"clk_src_128m",
+	"clk_src_153m6",
+	"clk_src_192m",
+	"clk_src_256m",
+	"clk_src_307m2",
+	"clk_src_384m"
+};
 
-static struct clock_name_map_t clock_name_map[SPRD_VSP_CLK_LEVEL_NUM];
-
+static struct clock_name_map_t clock_name_map[ARRAY_SIZE(vsp_clk_src)];
+static struct vsp_qos_cfg qos_cfg;
 static int max_freq_level = SPRD_VSP_CLK_LEVEL_NUM;
 
 static irqreturn_t vsp_isr(int irq, void *data);
@@ -83,7 +91,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	struct vsp_fh *vsp_fp = filp->private_data;
 
 	if (vsp_fp == NULL) {
-		pr_err("vsp_ioctl error occurred, vsp_fp == NULL\n");
+		pr_err("%s error occurred, vsp_fp == NULL\n", __func__);
 		return -EINVAL;
 	}
 
@@ -186,29 +194,28 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case VSP_RESET:
 		pr_debug("vsp ioctl VSP_RESET\n");
 
-		ret = regmap_update_bits(gpr_mm_ahb, vsp_softreset_reg_offset,
-				   vsp_reset_mask, vsp_reset_mask);
+		ret = regmap_update_bits(regs[RESET].gpr, regs[RESET].reg,
+				   regs[RESET].mask, regs[RESET].mask);
 		if (ret) {
 			pr_err("regmap_update_bits failed %s, %d\n",
 				__func__, __LINE__);
 			break;
 		}
 
-		ret = regmap_update_bits(gpr_mm_ahb, vsp_softreset_reg_offset,
-				   vsp_reset_mask, 0);
+		ret = regmap_update_bits(regs[RESET].gpr, regs[RESET].reg,
+				   regs[RESET].mask, 0);
 		if (ret) {
 			pr_err("regmap_update_bits failed %s, %d\n",
 				__func__, __LINE__);
 		}
 
-		if ((vsp_hw_dev.version == SHARKL2
-			|| vsp_hw_dev.version == ISHARKL2
-			|| vsp_hw_dev.version == SHARKLJ1
-			|| vsp_hw_dev.version == SHARKLE
-			|| vsp_hw_dev.version == PIKE2
-			|| vsp_hw_dev.version == SHARKL3)
+		if ((vsp_hw_dev.version == SHARKL3
+			|| vsp_hw_dev.version == SHARKL5)
 			&& vsp_hw_dev.iommu_exist_flag)
 			sprd_iommu_restore(vsp_hw_dev.vsp_dev);
+
+		writel_relaxed((qos_cfg.awqos << 8) | qos_cfg.arqos_high,
+			(vsp_glb_reg_base + qos_cfg.reg_offset));
 
 		break;
 
@@ -216,8 +223,9 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		pr_debug("vsp ioctl VSP_HW_INFO\n");
 
-		//regmap_read(gpr_aon_apb, REG_AON_APB_APB_EB0, &mm_eb_reg);
-		regmap_read(gpr_aon_apb, 0x0000, &mm_eb_reg);
+		regmap_read(regs[VSP_DOMAIN_EB].gpr, regs[VSP_DOMAIN_EB].reg,
+					&mm_eb_reg);
+		mm_eb_reg &= regs[VSP_DOMAIN_EB].mask;
 
 		put_user(mm_eb_reg, (int __user *)arg);
 
@@ -320,7 +328,7 @@ static irqreturn_t vsp_isr(int irq, void *data)
 	struct vsp_fh *vsp_fp = vsp_hw_dev.vsp_fp;
 
 	if (vsp_fp == NULL) {
-		pr_err("vsp_isr error occurred, vsp_fp == NULL\n");
+		pr_err("%s error occurred, vsp_fp == NULL\n", __func__);
 		return IRQ_NONE;
 	}
 
@@ -386,7 +394,7 @@ static irqreturn_t vsp_isr(int irq, void *data)
 	}
 
 	if ((int_status & 0x3c37) == 0) {
-		pr_info("vsp_isr IRQ_NONE int_status 0x%x", int_status);
+		pr_info("%s IRQ_NONE int_status 0x%x", __func__, int_status);
 		return IRQ_NONE;
 	}
 
@@ -432,15 +440,12 @@ static irqreturn_t vsp_isr(int irq, void *data)
 static const struct sprd_vsp_cfg_data sharkl3_vsp_data = {
 	.version = SHARKL3,
 	.max_freq_level = 5,
-	.softreset_reg_offset = 0x4,
-	.reset_mask = BIT(2),
 };
 
 static const struct sprd_vsp_cfg_data sharkl5_vsp_data = {
 	.version = SHARKL5,
-	.max_freq_level = 4,
-	.softreset_reg_offset = 0x4,
-	.reset_mask = BIT(13)|BIT(11),
+	.max_freq_level = 3,
+	.qos_reg_offset = 0x1f8,
 };
 
 static const struct of_device_id of_match_table_vsp[] = {
@@ -453,13 +458,14 @@ static int vsp_parse_dt(struct platform_device *pdev)
 {
 	struct device *dev = &(pdev->dev);
 	struct device_node *np = dev->of_node;
-	struct device_node *vsp_clk_np = NULL;
+	struct device_node *qos_np = NULL;
 	struct resource *res;
-	int i, clk_count = 0;
-	const char *clk_name;
-	const char *clk_compitale = "sprd,muxed-clock";
+	int i, ret, j = 0;
+	char *pname;
+	struct regmap *tregmap;
+	uint32_t syscon_args[2];
 
-	pr_info("vsp_parse_dt called !\n");
+	pr_info("%s called !\n", __func__);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
@@ -480,9 +486,8 @@ static int vsp_parse_dt(struct platform_device *pdev)
 
 	vsp_hw_dev.version = vsp_hw_dev.vsp_cfg_data->version;
 	max_freq_level = vsp_hw_dev.vsp_cfg_data->max_freq_level;
-	vsp_softreset_reg_offset =
-	    vsp_hw_dev.vsp_cfg_data->softreset_reg_offset;
-	vsp_reset_mask = vsp_hw_dev.vsp_cfg_data->reset_mask;
+	qos_cfg.reg_offset =
+	    vsp_hw_dev.vsp_cfg_data->qos_reg_offset;
 
 	vsp_hw_dev.irq = platform_get_irq(pdev, 0);
 	vsp_hw_dev.dev_np = np;
@@ -491,52 +496,74 @@ static int vsp_parse_dt(struct platform_device *pdev)
 	pr_info("vsp: irq = 0x%x, version = 0x%0x\n", vsp_hw_dev.irq,
 		vsp_hw_dev.version);
 
-	gpr_aon_apb =
-	    syscon_regmap_lookup_by_name(np, "aon_apb");
-	if (IS_ERR(gpr_aon_apb))
-		pr_err("%s:failed to find vsp,aon_apb\n", __func__);
-
-	gpr_mm_ahb = syscon_regmap_lookup_by_name(np, "mm_ahb");
-	if (IS_ERR(gpr_mm_ahb))
-		pr_err("%s:failed to find vsp,mm_ahb\n", __func__);
-
-	gpr_pmu_apb = syscon_regmap_lookup_by_name(np,
-			"pmu_apb");
-	if (IS_ERR(gpr_pmu_apb))
-		pr_err("%s:failed to find vsp,pmu_apb\n", __func__);
-
-	for_each_compatible_node(vsp_clk_np, NULL, clk_compitale) {
-		if (of_property_read_string_index
-		    (vsp_clk_np, "clock-output-names", 0, &clk_name) < 0)
+	for (i = 0; i < ARRAY_SIZE(tb_name); i++) {
+		pname = tb_name[i];
+		tregmap = syscon_regmap_lookup_by_name(np, pname);
+		if (IS_ERR(tregmap)) {
+			pr_err("Read Vsp Dts %s regmap fail\n",
+				pname);
+			regs[i].gpr = NULL;
+			regs[i].reg = 0x0;
+			regs[i].mask = 0x0;
 			continue;
-		if (!strcmp(clk_name, "clk_vsp")) {
-			pr_info("clk [%s], device node: %p\n", clk_name,
-				vsp_clk_np);
-			break;
 		}
+
+		ret = syscon_get_args_by_name(np, pname, 2, syscon_args);
+		if (ret != 2) {
+			pr_err("Read Vsp Dts %s args fail, ret = %d\n",
+				pname, ret);
+			continue;
+		}
+		regs[i].gpr = tregmap;
+		regs[i].reg = syscon_args[0];
+		regs[i].mask = syscon_args[1];
+		pr_info("VSP syscon[%s]%p, offset 0x%x, mask 0x%x\n",
+			pname, regs[i].gpr, regs[i].reg, regs[i].mask);
 	}
 
-	clk_count = of_clk_get_parent_count(vsp_clk_np);
-	if (clk_count != max_freq_level) {
-		pr_err("failed to get vsp clock count\n");
-		//return -EINVAL;
-	}
 
-	for (i = 0; i < clk_count; i++) {
+	for (i = 0; i < ARRAY_SIZE(vsp_clk_src); i++) {
 		struct clk *clk_parent;
-		char *name_parent;
 		unsigned long frequency;
 
-		name_parent = (char *)of_clk_get_parent_name(vsp_clk_np, i);
-		clk_parent = of_clk_get(vsp_clk_np, i);
+		clk_parent = of_clk_get_by_name(np, vsp_clk_src[i]);
+		if (IS_ERR_OR_NULL(clk_parent)) {
+			pr_info("clk %s not found,continue to find next clock\n",
+				vsp_clk_src[i]);
+			continue;
+		}
 		frequency = clk_get_rate(clk_parent);
-		pr_info("vsp clk in dts file: clk[%d] = (%ld, %s)\n", i,
-			frequency, name_parent);
 
-		clock_name_map[i].name = name_parent;
-		clock_name_map[i].freq = frequency;
-		clock_name_map[i].clk_parent = clk_parent;
+		clock_name_map[j].name = vsp_clk_src[i];
+		clock_name_map[j].freq = frequency;
+		clock_name_map[j].clk_parent = clk_parent;
+
+		pr_info("vsp clk in dts file: clk[%d] = (%ld, %s)\n", j,
+			frequency, clock_name_map[j].name);
+		j++;
 	}
+
+	qos_np = of_parse_phandle(np, "sprd,qos", 0);
+	if (!qos_np)
+		pr_warn("can't find vsp qos cfg node\n");
+
+	ret = of_property_read_u8(qos_np, "awqos",
+					&qos_cfg.awqos);
+	if (ret)
+		pr_warn("read awqos_low failed, use default\n");
+
+	ret = of_property_read_u8(qos_np, "arqos-low",
+					&qos_cfg.arqos_low);
+	if (ret)
+		pr_warn("read arqos-low failed, use default\n");
+
+	ret = of_property_read_u8(qos_np, "arqos-high",
+					&qos_cfg.arqos_high);
+	if (ret)
+		pr_warn("read arqos-high failed, use default\n");
+
+	pr_info("%x, %x, %x, %x", qos_cfg.awqos, qos_cfg.arqos_high,
+		qos_cfg.arqos_low, qos_cfg.reg_offset);
 
 	vsp_hw_dev.iommu_exist_flag =
 		(sprd_iommu_attach_device(vsp_hw_dev.vsp_dev) == 0) ? 1 : 0;
@@ -565,7 +592,7 @@ static int vsp_open(struct inode *inode, struct file *filp)
 	struct vsp_fh *vsp_fp = kmalloc(sizeof(struct vsp_fh), GFP_KERNEL);
 	int instance_cnt = atomic_read(&vsp_instance_cnt);
 
-	pr_info("vsp_open called %p,vsp_instance_cnt %d\n",
+	pr_info("%s called %p,vsp_instance_cnt %d\n", __func__,
 		vsp_fp, instance_cnt);
 
 	if (vsp_fp == NULL) {
@@ -583,13 +610,13 @@ static int vsp_open(struct inode *inode, struct file *filp)
 
 	ret = vsp_pw_on(VSP_PW_DOMAIN_VSP);
 	if (ret != 0) {
-		pr_info("vsp_open: vsp power on failed %d !\n", ret);
+		pr_info("%s: vsp power on failed %d !\n", __func__, ret);
 		return ret;
 	}
 
 	atomic_inc_return(&vsp_instance_cnt);
 
-	pr_info("vsp_open: ret %d\n", ret);
+	pr_info("%s: ret %d\n", __func__, ret);
 
 	return ret;
 }
@@ -600,11 +627,11 @@ static int vsp_release(struct inode *inode, struct file *filp)
 	int instance_cnt = atomic_read(&vsp_instance_cnt);
 
 	if (vsp_fp == NULL) {
-		pr_err("vsp_release error occurred, vsp_fp == NULL\n");
+		pr_err("%s error occurred, vsp_fp == NULL\n", __func__);
 		return -EINVAL;
 	}
 
-	pr_info("vsp_release: instance_cnt %d\n", instance_cnt);
+	pr_info("%s: instance_cnt %d\n", __func__, instance_cnt);
 
 	atomic_dec_return(&vsp_instance_cnt);
 	codec_instance_count[vsp_fp->codec_id]--;
@@ -623,11 +650,9 @@ static int vsp_release(struct inode *inode, struct file *filp)
 		pr_err("error occurred and up vsp_mutex\n");
 		up(&vsp_hw_dev.vsp_mutex);
 	}
-	if (vsp_hw_dev.version == IWHALE2)
-		vsp_core_pw_off();
 	vsp_pw_off(VSP_PW_DOMAIN_VSP);
 
-	pr_info("vsp_release %p\n", vsp_fp);
+	pr_info("%s %p\n", __func__, vsp_fp);
 	kfree(filp->private_data);
 	filp->private_data = NULL;
 
@@ -658,7 +683,7 @@ static int vsp_probe(struct platform_device *pdev)
 	struct device_node *node = pdev->dev.of_node;
 	const struct of_device_id *of_id;
 
-	pr_info("vsp_probe called !\n");
+	pr_info("%s called !\n", __func__);
 
 	of_id = of_match_node(of_match_table_vsp, node);
 	if (of_id)
@@ -732,13 +757,13 @@ errout:
 
 static int vsp_remove(struct platform_device *pdev)
 {
-	pr_info("vsp_remove called !\n");
+	pr_info("%s called !\n", __func__);
 
 	misc_deregister(&vsp_dev);
 
 	free_irq(vsp_hw_dev.irq, &vsp_hw_dev);
 
-	pr_info("vsp_remove Success !\n");
+	pr_info("%s Success !\n", __func__);
 	return 0;
 }
 

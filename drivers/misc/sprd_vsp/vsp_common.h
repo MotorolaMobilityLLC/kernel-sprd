@@ -4,10 +4,6 @@
 #include <linux/semaphore.h>
 #include <uapi/video/sprd_vsp.h>
 
-extern struct regmap *gpr_aon_apb;
-extern struct regmap *gpr_mm_ahb;
-extern struct regmap *gpr_pmu_apb;
-extern struct regmap *gpr_com_pmu_apb;
 extern unsigned int codec_instance_count[VSP_CODEC_INSTANCE_COUNT_MAX];
 
 struct vsp_fh {
@@ -23,8 +19,7 @@ struct vsp_fh {
 struct sprd_vsp_cfg_data {
 	unsigned int version;
 	unsigned int max_freq_level;
-	unsigned int softreset_reg_offset;
-	unsigned int reset_mask;
+	unsigned int qos_reg_offset;
 };
 
 struct vsp_dev_t {
@@ -61,6 +56,33 @@ struct clock_name_map_t {
 	unsigned long freq;
 	char *name;
 	struct clk *clk_parent;
+};
+enum {
+	PMU_VSP_AUTO_SHUTDOWN = 0,
+	PMU_VSP_FORCE_SHUTDOWN,
+	PMU_PWR_STATUS,
+	VSP_DOMAIN_EB,
+	RESET
+};
+struct register_gpr {
+	struct regmap *gpr;
+	uint32_t reg;
+	uint32_t mask;
+};
+static char *tb_name[] = {
+	"pmu_vsp_auto_shutdown",
+	"pmu_vsp_force_shutdown",
+	"pmu_pwr_status",
+	"vsp_domain_eb",
+	"reset"
+};
+extern struct register_gpr regs[ARRAY_SIZE(tb_name)];
+
+struct vsp_qos_cfg {
+	u8 awqos;
+	u8 arqos_high;
+	u8 arqos_low;
+	unsigned int reg_offset;
 };
 
 struct clk *vsp_get_clk_src_name(struct clock_name_map_t clock_name_map[],
