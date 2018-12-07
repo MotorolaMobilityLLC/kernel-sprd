@@ -11,6 +11,7 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/backlight.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <video/mipi_display.h>
