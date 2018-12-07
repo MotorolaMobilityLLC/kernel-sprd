@@ -7,6 +7,7 @@ config DRM_SPRD
 	select DRM_MIPI_DSI
 	select DRM_PANEL
 	select VIDEOMODE_HELPERS
+	select BACKLIGHT_CLASS_DEVICE
 	help
 	  Choose this option if you have a Spreadtrum chipsets.
 	  If M is selected the module will be called sprd-drm.
