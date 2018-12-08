@@ -504,8 +504,10 @@ EXPORT_SYMBOL(headset_register_notifier);
 
 int headset_unregister_notifier(struct notifier_block *nb)
 {
-	if (nb == NULL)
+	if (nb == NULL) {
+		pr_err("%s nb NULL error\n", __func__);
 		return -1;
+	}
 
 	return blocking_notifier_chain_unregister(&hp_chain_list, nb);
 }
@@ -893,13 +895,9 @@ static int headset_get_adc_value(struct iio_channel *chan)
 
 	/* head buffer not swap */
 	headset_reg_clr_bits(ANA_HDT3, HEDET_V2AD_SWAP);
-	pr_info("%s, not swap ANA_HDT3(00DC) %x\n",
-		__func__, headset_reg_value_read(ANA_HDT3));
 	adc_value = headset_wrap_sci_adc_get(chan);
 	/* head buffer swap input */
 	headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_SWAP);
-	pr_info("%s,is swap ANA_HDT3(00DC) %x\n",
-		__func__, headset_reg_value_read(ANA_HDT3));
 	adc_value = headset_wrap_sci_adc_get(chan) + adc_value;
 	pr_info("%s, adc_value is %d\n", __func__, adc_value/2);
 
@@ -933,9 +931,8 @@ void headset_hmicbias_polling_enable(bool enable, bool force_disable)
 		headset_reg_clr_bits(ANA_HID0, HID_EN);
 		sprd_headset_power_regulator_set(
 			SPRD_AUDIO_POWER_DIG_CLK_HID, false);
-		pr_debug("%s DCL1(0100) %x\n", __func__,
-			headset_reg_value_read(ANA_DCL1));
-		pr_info("%s force to disable polling\n", __func__);
+		pr_debug("%s force to disable polling, DCL1(0100) %x\n",
+			__func__, headset_reg_value_read(ANA_DCL1));
 	}
 	if (hdst->plug_state_last == 0) {
 		pr_err("%s no headset insert!\n", __func__);
@@ -947,8 +944,8 @@ void headset_hmicbias_polling_enable(bool enable, bool force_disable)
 		return;
 	}
 
-	pr_info("%s set polling to %s: DCL1(0100) %x, CLK0(0068) %x, HID0(0144) %x\n",
-		__func__, enable ? "enable" : "disable",
+	pr_info("%s set polling to %s, current_polling_state %d: DCL1(0100) %x, CLK0(0068) %x, HID0(0144) %x\n",
+		__func__, enable ? "enable" : "disable", current_polling_state,
 		headset_reg_value_read(ANA_DCL1),
 		headset_reg_value_read(ANA_CLK0),
 		headset_reg_value_read(ANA_HID0));
@@ -976,7 +973,7 @@ void headset_hmicbias_polling_enable(bool enable, bool force_disable)
 		}
 	}
 	mutex_unlock(&hdst->hmicbias_polling_lock);
-	pr_info("%s polling: DCL1(0100) %x, CLK0(0068) %x, HID0(0144) %x\n",
+	pr_debug("%s polling: DCL1(0100) %x, CLK0(0068) %x, HID0(0144) %x\n",
 		__func__, headset_reg_value_read(ANA_DCL1),
 		headset_reg_value_read(ANA_CLK0),
 		headset_reg_value_read(ANA_HID0));
@@ -995,7 +992,7 @@ headset_type_detect_through_mdet(void)
 	int check_times = 600;/* only used in test, haps is very slow */
 
 	pr_info("%s enter\n", __func__);
-	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
+	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 
 	/* need to disable/enable irq 10 in this func? i am not sure */
 	headset_eic_enable(10, 0);
@@ -1076,7 +1073,7 @@ headset_type_detect_all(int insert_all_val_last)
 	 */
 	sprd_msleep(4);
 
-	pr_info("%s, get adc value of headmic in little scale\n", __func__);
+	pr_debug("%s, get adc value of headmic in little scale\n", __func__);
 
 	headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_EN);
 	/* 0 little, 1 large */
@@ -1086,8 +1083,9 @@ headset_type_detect_all(int insert_all_val_last)
 	adc_mic_average = headset_get_adc_value(adc_chan);
 	adc_mic_ideal = headset_adc_get_ideal(adc_mic_average,
 						pdata->coefficient);
-	pr_info("%s, adc_value: adc_mic_average %d, ideal_value: adc_mic_ideal %d\n",
-		__func__, adc_mic_average, adc_mic_ideal);
+	pr_info("%s, adc_value: adc_mic_average %d, ideal_value: adc_mic_ideal %d, V_ideal %d\n",
+		__func__, adc_mic_average, adc_mic_ideal,
+		adc_mic_ideal * 125 / 4095);
 	if (adc_mic_ideal >= 0)
 		adc_mic_average = adc_mic_ideal;
 
@@ -1102,8 +1100,9 @@ headset_type_detect_all(int insert_all_val_last)
 	/* si.chen say here could calculate voltage like mic */
 	adc_left_ideal = headset_adc_get_ideal(adc_left_average,
 			pdata->coefficient);
-	pr_info("%s adc_value: adc_left_average = %d, ideal_value: adc_left_ideal %d\n",
-		__func__, adc_left_average, adc_left_ideal);
+	pr_info("%s adc_value: adc_left_average = %d, ideal_value: adc_left_ideal %d, V_ideal %d\n",
+		__func__, adc_left_average, adc_left_ideal,
+		adc_left_ideal * 125 / 4095);
 	if (-1 == adc_left_ideal)
 		return HEADSET_TYPE_ERR;
 
@@ -1215,23 +1214,23 @@ static void headset_mic_work_func(struct work_struct *work)
 	}
 	val = headset_eic_get_irq_status(11);
 	if (val == 0) {
-		pr_info("%s fatal error, irq 11 invalid, INT8(220.MIS) %x\n",
+		pr_err("%s fatal error, irq 11 invalid, INT8(220.MIS) %x\n",
 			__func__, val);
 		return;
 	}
 
-	pr_info("%s in, mic irq status %d\n", __func__,
+	pr_debug("%s in, mic irq status %d\n", __func__,
 		headset_eic_get_irq_status(HDST_EIC_MDET));
 	mdet_insert_status =
 		headset_eic_get_insert_status(HDST_INSERT_BIT_MDET);
 	if (mdet_insert_status != hdst->mdet_val_last) {
-		pr_info("%s check debounce failed\n", __func__);
+		pr_err("%s check debounce failed\n", __func__);
 		return;
 	}
 	/* 0==mic irq not triggered, 1==mic triggered */
 	if (mdet_insert_status == 1)
 		hdst->mic_irq_trigged = 1;
-	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
+	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 
 	headset_eic_enable(11, 0);
 	headset_eic_clear_irq(11);
@@ -1275,19 +1274,19 @@ static void headset_button_work_func(struct work_struct *work)
 		headset_eic_get_insert_status(HDST_INSERT_BIT_BDET);
 
 	if (headset_eic_get_insert_status(15) == 0) {
-		pr_info("%s: button is invalid! STS0 0x%x\n",
+		pr_err("%s: button is invalid! STS0 0x%x\n",
 			__func__, headset_reg_value_read(ANA_STS0));
 		goto out;
 	}
 	button_bit_value_current =
 		headset_eic_get_insert_status(HDST_INSERT_BIT_BDET);
 	if (button_bit_value_current != hdst->bdet_val_last) {
-		pr_info("%s software debounce error\n", __func__);
+		pr_err("%s software debounce error\n", __func__);
 		goto out;
 	}
 
 	if (val != headset_eic_get_irq_status(HDST_EIC_BDET)) {
-		pr_info("%s check debounce failed\n", __func__);
+		pr_err("%s check debounce failed\n", __func__);
 		goto out;
 	}
 
@@ -1319,14 +1318,13 @@ static void headset_button_work_func(struct work_struct *work)
 					__func__);
 				goto out;
 			}
-			pr_info("%s in button press\n", __func__);
 			adc_ideal = headset_adc_get_ideal(adc_mic_average,
 						pdata->coefficient);
-			pr_info("adc_value: adc_mic_average=%d, ideal_value: adc_ideal=%d\n",
-				adc_mic_average, adc_ideal);
+			pr_info("adc_value: adc_mic_average=%d, ideal_value: adc_ideal=%d, V_ideal %d\n",
+				adc_mic_average, adc_ideal,
+				adc_ideal * 125 / 4095);
 			if (adc_ideal >= 0)
 				adc_mic_average = adc_ideal;
-			pr_info("adc_mic_average = %d\n", adc_mic_average);
 			hdst->btns_pressed |=
 				headset_adc_to_button(adc_mic_average);
 		}
@@ -1342,7 +1340,6 @@ static void headset_button_work_func(struct work_struct *work)
 				hdst->btns_pressed);
 		}
 	} else if (btn_irq_trig_level == 0) {/* released */
-		pr_info("%s %d, in button release\n", __func__, __LINE__);
 		if (hdst->btn_state_last == 1) {
 			headset_jack_report(hdst, &hdst->btn_jack,
 				0, hdst->btns_pressed);
@@ -1377,7 +1374,6 @@ static void headset_process_for_4pole(enum sprd_headset_type headset_type)
 	if ((headset_type == HEADSET_4POLE_NOT_NORMAL)
 	    && (pdata->gpio_switch == 0)) {
 		headset_eic_enable(15, 0);
-		pr_info("%s micbias power off for 4 pole abnormal\n", __func__);
 		headmicbias_power_on(hdst, 0);
 		pr_info("HEADSET_4POLE_NOT_NORMAL is not supported %s\n",
 			"by your hardware! so disable the button irq!");
@@ -1403,7 +1399,7 @@ static void headset_process_for_4pole(enum sprd_headset_type headset_type)
 		headset_eic_trig_irq(15);/* trig bdet */
 	}
 	if (hdst->re_detect == true) {
-		pr_debug("%s report for 4p re_detect\n", __func__);
+		pr_warn("%s report for 4p re_detect\n", __func__);
 		headset_jack_report(hdst, &hdst->hdst_jack,
 			0, SPRD_HEADSET_JACK_MASK);
 
@@ -1489,7 +1485,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		if (pdata->jack_type == JACK_TYPE_NO) {
 			headset_reg_set_bits(ANA_HDT1, HEDET_PLGPD_EN);
 			headset_reg_set_bits(ANA_HDT2, HEDET_LDETL_FLT_EN);
-			pr_info("filter detect_l ANA_HDT2 0x%04x\n",
+			pr_debug("filter detect_l HDT2 0x%04x\n",
 				headset_reg_value_read(ANA_HDT2));
 		} else if (pdata->jack_type == JACK_TYPE_NC) {
 			/* step 3 */
@@ -1532,7 +1528,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		pr_info("%s headphone is plugout???\n", __func__);
 		plug_state_current = 0;
 	} else {
-		pr_info("%s fatal error, re-trig insert_all irq again\n",
+		pr_err("%s fatal error, re-trig insert_all irq again\n",
 			__func__);
 		headset_eic_clear_irq(10);
 		headset_eic_intc_clear(1);
@@ -1641,15 +1637,11 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			}
 
 			hdst->report = 1;
-
-			pr_info("micbias power off for 3pole\n");
 			if (hdst->re_detect == false)
 				headmicbias_power_on(hdst, 0);
 			pr_info("%s headphone plug in\n", __func__);
 		} else
 			headset_process_for_4pole(headset_type);
-
-		pr_info("%s %d,\n",	__func__, __LINE__);
 
 		/*something after headset type detection over*/
 		if (pdata->jack_type == JACK_TYPE_NC) {
@@ -1661,7 +1653,6 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			usleep_range(50, 60); /* Wait for 50us */
 			headset_reg_set_bits(ANA_HDT1, HEDET_PLGPD_EN);
 		}
-		pr_info("%s %d,\n",	__func__, __LINE__);
 
 		if (pdata->do_fm_mute)
 			vbc_close_fm_dggain(false);
@@ -1680,7 +1671,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		headmicbias_power_on(hdst, 0);
 		times = 0;
 		times_1 = 0;
-		pr_info("%s micbias power off for plug out  times %d\n",
+		pr_info("%s micbias power off for plug out, times %d\n",
 			__func__, times);
 
 		headset_eic_enable(10, 0);
@@ -1750,7 +1741,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		times_1 = 0;
 		hdst->re_detect = false;
 		hdst->report = 0;
-		pr_info("%s times %d irq_detect must be enabled anyway!!\n",
+		pr_info("%s times %d irq_detect must be enabled anyway! micbias power off\n",
 			__func__, times);
 		headmicbias_power_on(hdst, 0);
 		headset_eic_set_trig_level(16, 1);
@@ -1758,13 +1749,12 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		headset_eic_clear_irq(16);
 		headset_eic_intc_clear(0);
 		headset_internal_eic_entry_init();
-		pr_info("%s micbias power off for irq_error\n", __func__);
 		goto out;
 	}
 out:
 	headset_reg_clr_bits(ANA_HDT2, HEDET_LDETL_FLT_EN);
-	pr_info("%s HDT0(00D0) 0x%x,plug_state_last %d\n", __func__,
-		headset_reg_value_read(ANA_HDT0), hdst->plug_state_last);
+	pr_info("%s HDT2(00D8) 0x%x,plug_state_last %d\n", __func__,
+		headset_reg_value_read(ANA_HDT2), hdst->plug_state_last);
 	/*
 	 * I think if in hdst->re_detect == true and times < 10,
 	 * we dont need to run following
@@ -1772,7 +1762,6 @@ out:
 	if (hdst->plug_state_last == 0) {
 		headset_scale_set(0);/* default value is 0, doc don't refer */
 		headmicbias_power_on(hdst, 0);/* doc don't refer */
-		pr_info("%s micbias power off end\n", __func__);
 		/* doc don't refer */
 		sprd_headset_power_regulator_set(SPRD_AUDIO_POWER_BIAS, false);
 		/* doc don't refer */
@@ -1809,12 +1798,12 @@ static void headset_ldetl_work_func(struct work_struct *work)
 
 	pr_info("%s enter\n", __func__);
 	if ((power->head_mic == NULL) || (power->bias == NULL)) {
-		pr_info("sprd_headset_power_init fail 0\n");
+		pr_err("sprd_headset_power_init fail 0\n");
 		goto out;
 	}
 	val = headset_eic_get_irq_status(12);
 	if (val == 0) {
-		pr_info("%s fatal error, irq 12 invalid, INT8(220.MIS) %x\n",
+		pr_err("%s fatal error, irq 12 invalid, INT8(220.MIS) %x\n",
 			__func__, val);
 		headset_eic_clear_irq(12);
 		headset_eic_intc_clear(1);
@@ -1826,7 +1815,7 @@ static void headset_ldetl_work_func(struct work_struct *work)
 	sprd_msleep(20);
 	ldetl_data_current = headset_eic_get_irq_data(12);
 	if (ldetl_data_last != ldetl_data_current) {
-		pr_info("%s check debounce failed\n", __func__);
+		pr_err("%s check debounce failed\n", __func__);
 		headset_eic_clear_irq(12);
 		headset_eic_intc_clear(1);
 		headset_eic_intc_clear(0);
@@ -1846,7 +1835,7 @@ static void headset_ldetl_work_func(struct work_struct *work)
 		hdst->ldetl_plug_in = 0;
 		pr_info("%s ldetl trig level is low, plugout?\n", __func__);
 	} else {
-		pr_info("%s fatal error, re-trig ldetl irq again\n", __func__);
+		pr_err("%s fatal error, re-trig ldetl irq again\n", __func__);
 		headset_eic_clear_irq(12);
 		headset_eic_intc_clear(1);
 		headset_eic_intc_clear(0);
@@ -1892,7 +1881,7 @@ static void headset_ldetl_work_func(struct work_struct *work)
 		}
 		pr_info("%s check_times %d\n", __func__, check_times);
 		if (check_times == 0) {
-			pr_info("%s failed to wait insert_all irq, trig ldetl again\n",
+			pr_err("%s failed to wait insert_all irq, trig ldetl again\n",
 				__func__);
 			headset_eic_clear_irq(12);
 			headset_eic_intc_clear(1);
@@ -1980,7 +1969,7 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 		goto out;
 	}
 	if ((power->head_mic == NULL) || (power->bias == NULL)) {
-		pr_info("sprd_headset_power_init fail 0\n");
+		pr_err("sprd_headset_power_init fail 0\n");
 		goto out;
 	}
 
@@ -2244,7 +2233,7 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 	/* try to close polling, I am not sure whether need this here */
 	headset_hmicbias_polling_enable(false, true);
 
-	pr_debug("%s ANA_HID0(0144) %x, ANA_DCL1(0100) %x\n",
+	pr_debug("%s HID0(0144) %x, DCL1(0100) %x\n",
 		__func__, headset_reg_value_read(ANA_HID0),
 		headset_reg_value_read(ANA_DCL1));
 
@@ -2374,7 +2363,6 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 			pdata->gpios[HDST_GPIO_AUD_DET_INT_ALL]);
 		goto failed_to_request_int_all_irq;
 	}
-	pr_info("%s devm_request_threaded_irq successful\n", __func__);
 	/*can't call this after request irq */
 	/*enable_irq(hdst->irq_detect_int_all);*/
 
@@ -2495,8 +2483,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 		pdata->dbnc_times[type] = val;
 
 		pr_info("use GPIO_%u for '%s', debounce: %u\n",
-			pdata->gpios[type],
-			name,
+			pdata->gpios[type], name,
 			pdata->dbnc_times[type]);
 	}
 
@@ -2621,8 +2608,8 @@ int sprd_headset_probe(struct platform_device *pdev)
 		ret = devm_gpio_request(dev,
 			pdata->gpio_switch, "headset_switch");
 		if (ret < 0) {
-			pr_err("failed to request GPIO_%d(headset_switch)\n",
-				pdata->gpio_switch);
+			pr_err("%s failed to request GPIO_%d(headset_switch)\n",
+				__func__, pdata->gpio_switch);
 			return ret;
 		}
 	} else
@@ -2634,8 +2621,8 @@ int sprd_headset_probe(struct platform_device *pdev)
 
 		ret = devm_gpio_request(dev, pdata->gpios[type], name);
 		if (ret < 0) {
-			pr_err("failed to request GPIO_%d(%s)\n",
-				pdata->gpios[type], name);
+			pr_err("%s failed to request GPIO_%d(%s)\n",
+				__func__, pdata->gpios[type], name);
 			return ret;
 		}
 		pr_debug("%s name %s, gpio %d\n", __func__,
@@ -2645,7 +2632,7 @@ int sprd_headset_probe(struct platform_device *pdev)
 	/* Get the adc channels of headset. */
 	hdst->adc_chan = iio_channel_get(dev, "headmic_in_little");
 	if (IS_ERR(hdst->adc_chan)) {
-		pr_err("failed to get headmic in adc channel!\n");
+		pr_err("%s failed to get headmic in adc channel!\n", __func__);
 		return PTR_ERR(hdst->adc_chan);
 	}
 	hdst->report = 0;
@@ -2702,11 +2689,11 @@ static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient)
 
 	divisor = (u32)(denominator);
 	dividend = (u64)(numerator);
-	pr_info("%s divisor=%u, dividend=%llu\n", __func__, divisor, dividend);
+	pr_debug("%s divisor=%u, dividend=%llu\n", __func__, divisor, dividend);
 
 	do_div(dividend, divisor);
 	adc_ideal = (u32)dividend;
-	pr_info("%s adc_mic=%d, adc_ideal=%d\n", __func__, adc_mic, adc_ideal);
+	pr_debug("%s adc_mic=%d, adc_ideal=%d\n", __func__, adc_mic, adc_ideal);
 
 	return adc_ideal;
 }
