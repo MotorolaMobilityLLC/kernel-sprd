@@ -1219,14 +1219,14 @@
 				compatible = "sprd,sharkl5-pinctrl";
 				reg = <0 0x32450000 0 0x10000>;
 
-				vbc_iis3_0: iis-matrix-cfg-inf0@a {
+				vbc_iis3_0: iis-matrix-cfg-inf0@e {
 					pins = "SHARKL5_IIS_INF0_SYS_SEL";
-					sprd,control = <0xa>;
+					sprd,control = <0xe>;
 				};
 
-				vbc_iism0_0: iis-matrix-cfg-inf0@d {
+				vbc_iism0_0: iis-matrix-cfg-inf0@f {
 					pins = "SHARKL5_IIS_INF0_SYS_SEL";
-					sprd,control = <0xd>;
+					sprd,control = <0xf>;
 				};
 
 				vbc_iis_to_pad: vbc-iis-inf-sys@0 {
