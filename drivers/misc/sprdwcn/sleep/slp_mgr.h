@@ -31,8 +31,6 @@
 #define	STAY_SLPING		0
 #define	STAY_AWAKING	1
 
-#define	WAKEUP_RTY_CNT	100
-
 struct slp_mgr_t {
 	struct mutex    drv_slp_lock;
 	struct mutex    wakeup_lock;

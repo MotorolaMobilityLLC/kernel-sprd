@@ -58,14 +58,21 @@ void slp_mgr_drv_sleep(enum slp_subsys subsys, bool enable)
 
 int slp_mgr_wakeup(enum slp_subsys subsys)
 {
-	int rty_cnt = 0;
 	unsigned char slp_sts;
+	int ret;
+	ktime_t time_end;
 
 	mutex_lock(&(slp_mgr.wakeup_lock));
 	if (STAY_SLPING == (atomic_read(&(slp_mgr.cp2_state)))) {
 		ap_wakeup_cp();
-		do {
-			sprdwcn_bus_aon_readb(REG_BTWF_SLP_STS, &slp_sts);
+		time_end = ktime_add_ms(ktime_get(), 5);
+		while (1) {
+			ret = sprdwcn_bus_aon_readb(REG_BTWF_SLP_STS, &slp_sts);
+			if (ret < 0) {
+				SLP_MGR_ERR("read slp sts err:%d", ret);
+				usleep_range(40, 80);
+				goto try_timeout;
+			}
 			slp_sts &= 0xF0;
 			if ((slp_sts != BTWF_IN_DEEPSLEEP) &&
 #ifdef CONFIG_UMW2652
@@ -75,9 +82,8 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 #endif
 			   (slp_sts != BTWF_IN_DEEPSLEEP_XLT_ON))
 				break;
-			SLP_MGR_INFO("slp_sts-0x%x", slp_sts);
-			rty_cnt++;
-			if (rty_cnt == WAKEUP_RTY_CNT) {
+try_timeout:
+			if (ktime_after(ktime_get(), time_end)) {
 				atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);
 				SLP_MGR_INFO("wakeup fail, slp_sts-0x%x",
 					slp_sts);
@@ -85,7 +91,7 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 				mutex_unlock(&(slp_mgr.wakeup_lock));
 				return -1;
 			}
-		} while (rty_cnt < WAKEUP_RTY_CNT);
+		}
 
 		atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);
 	}
