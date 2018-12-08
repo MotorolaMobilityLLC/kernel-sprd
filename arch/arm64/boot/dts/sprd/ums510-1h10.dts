@@ -498,6 +498,11 @@
 	status = "okay";
 };
 
+&jpg {
+
+	status = "okay";
+};
+
 &dcam {
 	status = "okay";
 };

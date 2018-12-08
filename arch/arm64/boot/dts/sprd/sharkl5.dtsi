@@ -429,6 +429,24 @@
 				sprd,ip-version = <0x200>;
 				status = "disable";
 			};
+
+			jpg: jpg-codec@62700000{
+				compatible = "sprd,sharkl5-jpg";
+				reg = <0 0x62700000 0 0xc000>;
+				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
+
+				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
+						MASK_MM_AHB_JPG_SOFT_RST>,
+					<&aon_apb_regs
+						REG_AON_APB_APB_EB0
+						MASK_AON_APB_MM_EB>;
+				syscon-names = "reset",
+					"aon_apb_eb";
+				jpg_qos = <&jpg_qos>;
+				/*iommus = <&iommu_jpg>;*/
+				status = "disabled";
+			};
+
 			dcam: dcam@62900000 {
 				compatible = "sprd,dcam";
 				reg = <0 0x62900000 0 0x1000>,

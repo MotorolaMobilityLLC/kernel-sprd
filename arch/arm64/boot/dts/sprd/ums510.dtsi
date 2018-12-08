@@ -461,3 +461,20 @@
 			<&pll2 CLK_TWPLL_384M>,
 			<&ap_clk CLK_VSP>;
 };
+
+&jpg {
+	clock-names = "jpg_domain_eb",
+			"jpg_dev_eb",
+			"jpg_ckg_eb",
+			"jpg_clk",
+			"clk_src_128m",
+			"clk_src_192m",
+			"clk_src_256m";
+	clocks = <&aonapb_gate CLK_MM_EB>,
+			<&mm_gate CLK_MM_JPG_EB>,
+			<&mm_gate CLK_MM_CKG_EB>,
+			<&mm_clk CLK_JPG>,
+			<&pll2 CLK_TWPLL_128M>,
+			<&pll2 CLK_TWPLL_192M>,
+			<&pll2 CLK_TWPLL_256M>;
+};
