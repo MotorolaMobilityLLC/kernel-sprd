@@ -10539,3 +10539,10 @@ CONFIG_ZSMALLOC
 	[must] user
 	[function] The Zsmalloc allocator attempts to store multiple
 		   objects of the same size on a composite page
+CONFIG_SPRD_JPG
+        [arch] all
+        [plat] sharkl5
+        [field] menu,make,code
+        [subsys] misc
+        [must] user
+        [function] The JPG is the hardware accelerator for jpeg standard image compression.

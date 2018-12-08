@@ -1,0 +1,2 @@
+config SPRD_JPG
+	tristate "SPRD jpg driver"
