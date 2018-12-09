@@ -2245,6 +2245,12 @@ static int charger_manager_probe(struct platform_device *pdev)
 		cm->charger_psy_desc.num_properties++;
 	}
 
+	ret = get_batt_cap(cm, &cm->desc->cap);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to get initial battery capacity\n");
+		return ret;
+	}
+
 	ret = cm_init_thermal_data(cm, fuel_gauge);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to initialize thermal data\n");
