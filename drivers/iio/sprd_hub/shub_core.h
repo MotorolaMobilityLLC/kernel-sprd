@@ -191,11 +191,12 @@ struct shub_data {
 	struct sensor_log_control log_control;
 	struct workqueue_struct *driver_wq;
 	struct delayed_work delay_work;
+	struct delayed_work download_firmware_work;
 	atomic_t delay;
-	struct work_struct download_work;
 	struct work_struct savecalifile_work;
 	struct notifier_block early_suspend;
 	int is_sensorhub;
+	s16 version;
 };
 extern struct shub_data *g_sensor;
 /*hw sensor id*/

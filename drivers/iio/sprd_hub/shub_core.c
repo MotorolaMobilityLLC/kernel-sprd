@@ -824,10 +824,8 @@ static ssize_t reader_enable_store(struct device *dev, struct device_attribute *
 }
 static DEVICE_ATTR_RW(reader_enable);
 
-static void shub_download_work(struct work_struct *work)
+static void shub_download_calibration_data_work(struct shub_data *sensor)
 {
-	struct shub_data *sensor = container_of(work,
-		struct shub_data, download_work);
 	int i;
 	int ret;
 
@@ -847,12 +845,10 @@ static void shub_download_work(struct work_struct *work)
 	}
 }
 
-static ssize_t op_download_show(struct device *dev,
-	struct device_attribute *attr, char *buf)
+static void shub_get_version_at_boot_time(struct shub_data *sensor)
 {
-	struct shub_data *sensor = dev_get_drvdata(dev);
 	u8 data[4];
-	int16_t version = -1, i;
+	s16 version, i;
 
 	for (i = 0; i < 300; i++) {
 		if (sensor->mcu_mode == SHUB_BOOT) {
@@ -861,13 +857,14 @@ static ssize_t op_download_show(struct device *dev,
 				data, 4) >= 0) {
 				sensor->mcu_mode = SHUB_OPDOWNLOAD;
 				version = ((u16)data[1]) << 8 | (u16)data[0];
-				dev_info(dev,
+				dev_info(&sensor->sensor_pdev->dev,
 					"CM4 Version:%d(M:%u,D:%u,V:%u,SV:%u)\n",
 					data[3], data[2], data[1],
 					data[0], version);
+				sensor->version = version;
 				break;
 			} else {
-				dev_warn(dev,
+				dev_warn(&sensor->sensor_pdev->dev,
 					"Get Version Fail retry %d times\n",
 					i + 1);
 				msleep(1000);
@@ -876,19 +873,41 @@ static ssize_t op_download_show(struct device *dev,
 		}
 	}
 	if (i == 300) {
-		dev_err(dev, "Get Version Fail, cm4 or hub is not up.\n");
-		return sprintf(buf, "%d %d\n", version, -1);
+		queue_delayed_work(sensor->driver_wq,
+				   &sensor->download_firmware_work,
+				   msecs_to_jiffies(500));
+		dev_err(&sensor->sensor_pdev->dev,
+				"Get Version Fail, cm4 or hub is not up.\n");
 	}
+}
+
+static void shub_download_firmware(struct work_struct *work)
+{
+	struct shub_data *sensor = container_of((struct delayed_work *)work,
+		struct shub_data, download_firmware_work);
+
+	shub_get_version_at_boot_time(sensor);
 
 	if (sensor->mcu_mode == SHUB_OPDOWNLOAD) {
 		shub_download_opcodefile(sensor);
 		sensor->mcu_mode = SHUB_NORMAL;
-		schedule_work(&sensor->download_work);
+		shub_download_calibration_data_work(sensor);
 		cancel_delayed_work_sync(&sensor->delay_work);
 		queue_delayed_work(sensor->driver_wq, &sensor->delay_work, 0);
 	}
 
-	return sprintf(buf, "%d %u\n", version, data[0]);
+	return;
+}
+
+static ssize_t op_download_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct shub_data *sensor = dev_get_drvdata(dev);
+
+	queue_delayed_work(sensor->driver_wq,
+					   &sensor->download_firmware_work, 0);
+
+	return sprintf(buf, "%d\n", sensor->version);
 }
 static DEVICE_ATTR_RO(op_download);
 
@@ -2135,11 +2154,11 @@ static int shub_probe(struct platform_device *pdev)
 	if (error != 0)
 		goto err_free_mem;
 
-	INIT_WORK(&mcu->download_work, shub_download_work);
 	INIT_WORK(&mcu->savecalifile_work, shub_save_calibration_data);
 	wakeup_source_init(&sensorhub_wake_lock, "sensorhub_wake_lock");
-	/* send system_time */
+	/* init time sync and download firmware work */
 	INIT_DELAYED_WORK(&mcu->delay_work, shub_synctime_work);
+	INIT_DELAYED_WORK(&mcu->download_firmware_work, shub_download_firmware);
 	mcu->driver_wq = create_singlethread_workqueue("sensorhub_daemon");
 	if (!mcu->driver_wq) {
 		error = -ENOMEM;
