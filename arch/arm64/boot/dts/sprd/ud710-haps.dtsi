@@ -8,6 +8,7 @@
 
 #include <dt-bindings/clock/sprd,roc1-clk.h>
 #include "roc1-haps.dtsi"
+#include "ud710-haps-modem.dtsi"
 
 / {
 
