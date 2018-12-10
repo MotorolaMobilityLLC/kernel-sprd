@@ -101,11 +101,7 @@ static int tp_tx_cnt;
 static int tp_tx_flag;
 static int tp_tx_buf_cnt = TP_TX_BUF_CNT;
 static int tp_tx_buf_len = TP_TX_BUF_LEN;
-#ifdef CONFIG_SPRD_DEBUG
-long int sdiohal_log_level = SDIOHAL_NORMAL_LEVEL;
-#else
 long int sdiohal_log_level;
-#endif
 
 #if TCP_TEST_RX
 struct completion tp_rx_completed;
