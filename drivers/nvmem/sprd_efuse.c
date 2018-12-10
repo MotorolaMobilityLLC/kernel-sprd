@@ -68,8 +68,9 @@
 #define SPRD_EFUSE_MAGIC_NUMBER		0x8810
 
 /* Block number and block width (bytes) definitions */
-#define SPRD_EFUSE_BLOCK_MAX		32
+#define SPRD_EFUSE_BLOCK_MAX		96
 #define SPRD_EFUSE_BLOCK_WIDTH		4
+#define SPRD_EFUSE_BLOCK_START		72
 
 /* Timeout (ms) for the trylock of hardware spinlocks */
 #define SPRD_EFUSE_HWLOCK_TIMEOUT	5000
@@ -304,8 +305,14 @@ unlock_hwlock:
 static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sprd_efuse *efuse = context;
+	u32 index = offset / SPRD_EFUSE_BLOCK_WIDTH;
 
-	return sprd_efuse_raw_read(efuse, offset, val, false);
+	/* efuse has two parts secure efuse block and public efuse block.
+	 * public eFuse starts at SPRD_EFUSE_BLOCK_STAR block.
+	 */
+	index += SPRD_EFUSE_BLOCK_START;
+
+	return sprd_efuse_raw_read(efuse, index, val, false);
 }
 
 static int sprd_efuse_write(void *context, u32 offset, void *val, size_t bytes)
@@ -322,6 +329,7 @@ static int sprd_efuse_probe(struct platform_device *pdev)
 	struct nvmem_config econfig = { };
 	struct resource *res;
 	struct sprd_efuse *efuse;
+	u32 blk_num = SPRD_EFUSE_BLOCK_MAX - SPRD_EFUSE_BLOCK_START;
 	int ret;
 
 	efuse = devm_kzalloc(&pdev->dev, sizeof(*efuse), GFP_KERNEL);
@@ -360,7 +368,7 @@ static int sprd_efuse_probe(struct platform_device *pdev)
 	econfig.word_size = 1;
 	econfig.read_only = false;
 	econfig.name = "sprd-efuse";
-	econfig.size = SPRD_EFUSE_BLOCK_MAX * SPRD_EFUSE_BLOCK_WIDTH;
+	econfig.size = blk_num * SPRD_EFUSE_BLOCK_WIDTH;
 	econfig.reg_read = sprd_efuse_read;
 	econfig.reg_write = sprd_efuse_write;
 	econfig.priv = efuse;
