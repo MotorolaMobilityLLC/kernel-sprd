@@ -140,7 +140,7 @@ static int dpu_clk_init(struct dpu_context *ctx)
 
 	list_for_each_entry(clk_ctx, &dpi_clk_list, head) {
 		if ((clk_ctx->rate % ctx->vm.pixelclock) == 0) {
-			dpi_clk_rate = clk_ctx->rate;
+			dpi_clk_rate = ctx->vm.pixelclock;
 			ret = clk_set_parent(clk_dpu_dpi, clk_ctx->source);
 			if (ret)
 				pr_warn("set dpi clk source failed\n");
@@ -150,7 +150,7 @@ static int dpu_clk_init(struct dpu_context *ctx)
 
 	list_for_each_entry(clk_ctx, &dpu_clk_list, head) {
 		/* Dpu clk must be greater than dpi clk */
-		if (clk_ctx->rate > dpi_clk_rate * 2) {
+		if (dpi_clk_rate * 2 <= clk_ctx->rate) {
 			dpu_core_rate = clk_ctx->rate;
 			ret = clk_set_parent(clk_dpu_core, clk_ctx->source);
 			if (ret)
