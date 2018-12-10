@@ -152,7 +152,7 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 	drm_mode_probed_add(p->connector, mode);
 
 	p->connector->display_info.width_mm = panel->info.mode.width_mm;
-	p->connector->display_info.height_mm = panel->info.mode.width_mm;
+	p->connector->display_info.height_mm = panel->info.mode.height_mm;
 
 	return 1;
 }

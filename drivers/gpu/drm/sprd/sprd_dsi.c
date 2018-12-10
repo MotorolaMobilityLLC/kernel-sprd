@@ -78,12 +78,12 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 
 	DRM_INFO("%s()\n", __func__);
 
+	pm_runtime_get_sync(dsi->dev.parent);
+
 	if (is_enabled) {
 		is_enabled = false;
 		return;
 	}
-
-	pm_runtime_get_sync(dsi->dev.parent);
 
 	sprd_dsi_resume(dsi);
 	sprd_dphy_resume(dsi->phy);
