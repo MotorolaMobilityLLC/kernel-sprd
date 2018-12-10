@@ -2140,7 +2140,7 @@ static int shub_probe(struct platform_device *pdev)
 	wakeup_source_init(&sensorhub_wake_lock, "sensorhub_wake_lock");
 	/* send system_time */
 	INIT_DELAYED_WORK(&mcu->delay_work, shub_synctime_work);
-	mcu->driver_wq = create_singlethread_workqueue("shub_synctime");
+	mcu->driver_wq = create_singlethread_workqueue("sensorhub_daemon");
 	if (!mcu->driver_wq) {
 		error = -ENOMEM;
 		goto err_free_mem;
