@@ -9,6 +9,9 @@ obj-y := sprd_drm.o \
 	sprd_dphy.o \
 	sprd_panel.o
 
+obj-y += dummy/dummy_crtc.o
+obj-y += dummy/dummy_connector.o
+
 obj-y += disp_lib.o
 
 obj-y += dpu/
