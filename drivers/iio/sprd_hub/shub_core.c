@@ -1314,7 +1314,6 @@ static ssize_t calibrator_data_show(struct device *dev,
 				   struct device_attribute *attr, char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
-	u8 cal_data[CALIBRATION_DATA_LENGTH] = { 0 };
 	int err, i, n = 0;
 
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
@@ -1324,7 +1323,7 @@ static ssize_t calibrator_data_show(struct device *dev,
 
 	err = shub_sipc_read(sensor,
 		SHUB_GET_CALIBRATION_DATA_SUBTYPE,
-		cal_data, CALIBRATION_DATA_LENGTH);
+		sensor->calibrated_data, CALIBRATION_DATA_LENGTH);
 	if (err < 0) {
 		dev_info(dev, " Read CalibratorData Fail\n");
 		return err;
@@ -1334,7 +1333,6 @@ static ssize_t calibrator_data_show(struct device *dev,
 		       sensor->cal_id, sensor->cal_type);
 	if (sensor->cal_cmd == CALIB_DATA_READ) {
 		/* debuginfor(cal_data,CALIBRATION_DATA_LENGTH); */
-		sensor->calibrated_data = cal_data;
 		sensor->cal_savests = 1;
 		schedule_work(&sensor->savecalifile_work);
 		while (sensor->cal_savests == 1) {
@@ -1347,10 +1345,10 @@ static ssize_t calibrator_data_show(struct device *dev,
 		return sprintf(buf, "%d\n", err);
 	}
 	if (sensor->cal_cmd == CALIB_CHECK_STATUS)
-		return sprintf(buf, "%d\n", cal_data[0]);
+		return sprintf(buf, "%d\n", sensor->calibrated_data[0]);
 
 	for (i = 0; i < CALIBRATION_DATA_LENGTH; i++)
-		n += sprintf(buf + n, "%d ", cal_data[i]);
+		n += sprintf(buf + n, "%d ", sensor->calibrated_data[i]);
 	return n;
 }
 

@@ -154,7 +154,7 @@ struct shub_data {
 	int cal_type;
 	int cal_id;
 	int golden_sample;
-	char *calibrated_data;
+	char calibrated_data[CALIBRATION_DATA_LENGTH];
 	int cal_savests;
 	s32 iio_data[6];
 	struct iio_dev *indio_dev;
