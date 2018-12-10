@@ -765,12 +765,12 @@ static void shub_synctimestamp(struct shub_data *sensor)
 static void shub_synctime_work(struct work_struct *work)
 {
 	struct shub_data *sensor = container_of((struct delayed_work *)work,
-		struct shub_data, delay_work);
+		struct shub_data, time_sync_work);
 
 	shub_synctimestamp(sensor);
 	atomic_set(&sensor->delay, SYNC_TIME_DELAY_MS);
 	queue_delayed_work(sensor->driver_wq,
-		&sensor->delay_work,
+		&sensor->time_sync_work,
 		msecs_to_jiffies(atomic_read(&sensor->delay)));
 }
 
@@ -892,8 +892,10 @@ static void shub_download_firmware(struct work_struct *work)
 		shub_download_opcodefile(sensor);
 		sensor->mcu_mode = SHUB_NORMAL;
 		shub_download_calibration_data_work(sensor);
-		cancel_delayed_work_sync(&sensor->delay_work);
-		queue_delayed_work(sensor->driver_wq, &sensor->delay_work, 0);
+		/* start time sync */
+		cancel_delayed_work_sync(&sensor->time_sync_work);
+		queue_delayed_work(sensor->driver_wq,
+				   &sensor->time_sync_work, 0);
 	}
 
 	return;
@@ -1807,13 +1809,14 @@ static int shub_notifier_fn(struct notifier_block *nb,
 
 	switch (action) {
 	case PM_SUSPEND_PREPARE:
-		cancel_delayed_work_sync(&sensor->delay_work);
+		cancel_delayed_work_sync(&sensor->time_sync_work);
 		shub_synctimestamp(sensor);
 		shub_send_ap_status(sensor, SHUB_SLEEP);
 		break;
 	case PM_POST_SUSPEND:
 		shub_send_ap_status(sensor, SHUB_NORMAL);
-		queue_delayed_work(sensor->driver_wq, &sensor->delay_work, 0);
+		queue_delayed_work(sensor->driver_wq,
+				   &sensor->time_sync_work, 0);
 		break;
 	default:
 		break;
@@ -2155,7 +2158,7 @@ static int shub_probe(struct platform_device *pdev)
 	INIT_WORK(&mcu->savecalifile_work, shub_save_calibration_data);
 	wakeup_source_init(&sensorhub_wake_lock, "sensorhub_wake_lock");
 	/* init time sync and download firmware work */
-	INIT_DELAYED_WORK(&mcu->delay_work, shub_synctime_work);
+	INIT_DELAYED_WORK(&mcu->time_sync_work, shub_synctime_work);
 	INIT_DELAYED_WORK(&mcu->download_firmware_work, shub_download_firmware);
 	mcu->driver_wq = create_singlethread_workqueue("sensorhub_daemon");
 	if (!mcu->driver_wq) {

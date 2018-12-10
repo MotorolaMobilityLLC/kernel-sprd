@@ -190,7 +190,7 @@ struct shub_data {
 		enum shub_subtype_id subtype,  u8 *buff, u32 len);
 	struct sensor_log_control log_control;
 	struct workqueue_struct *driver_wq;
-	struct delayed_work delay_work;
+	struct delayed_work time_sync_work;
 	struct delayed_work download_firmware_work;
 	atomic_t delay;
 	struct work_struct savecalifile_work;
