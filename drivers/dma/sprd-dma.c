@@ -698,6 +698,49 @@ static int sprd_dma_get_step(enum dma_slave_buswidth buswidth)
 	}
 }
 
+static int sprd_dma_get_int_mode(unsigned long flags)
+{
+	u32 int_mode = flags & SPRD_DMA_INT_TYPE_MASK;
+
+	switch (int_mode) {
+	case SPRD_DMA_NO_INT:
+		return 0;
+
+	case SPRD_DMA_FRAG_INT:
+		return SPRD_DMA_FRAG_INT_EN;
+
+	case SPRD_DMA_BLK_INT:
+		return SPRD_DMA_BLK_INT_EN;
+
+	case SPRD_DMA_BLK_FRAG_INT:
+		return SPRD_DMA_BLK_INT_EN | SPRD_DMA_FRAG_INT_EN;
+
+	case SPRD_DMA_TRANS_INT:
+		return SPRD_DMA_TRANS_INT_EN;
+
+	case SPRD_DMA_TRANS_FRAG_INT:
+		return SPRD_DMA_TRANS_INT_EN | SPRD_DMA_FRAG_INT_EN;
+
+	case SPRD_DMA_TRANS_BLK_INT:
+		return SPRD_DMA_TRANS_INT_EN | SPRD_DMA_BLK_INT_EN;
+
+	case SPRD_DMA_LIST_INT:
+		return SPRD_DMA_LIST_INT_EN;
+
+	case SPRD_DMA_CFGERR_INT:
+		return SPRD_DMA_CFG_ERR_INT_EN;
+
+	case SPRD_DMA_SRC_CHN0_INT:
+	case SPRD_DMA_SRC_CHN1_INT:
+	case SPRD_DMA_DST_CHN0_INT:
+	case SPRD_DMA_DST_CHN1_INT:
+		return SPRD_DMA_TRANS_INT_EN;
+
+	default:
+		return -EINVAL;
+	}
+}
+
 static int sprd_dma_get_data_format(u32 format)
 {
 	switch (format) {
@@ -730,8 +773,7 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 	struct sprd_dma_chn *schan = to_sprd_dma_chan(chan);
 	enum sprd_dma_chn_mode chn_mode = schan->chn_mode;
 	u32 req_mode = (flags >> SPRD_DMA_REQ_SHIFT) & SPRD_DMA_REQ_MODE_MASK;
-	u32 int_mode = flags & SPRD_DMA_INT_MASK;
-	int src_datawidth, dst_datawidth, src_step, dst_step, data_format;
+	int int_mode, src_datawidth, dst_datawidth, src_step, dst_step, data_format;
 	u32 temp, fix_mode = 0, fix_en = 0;
 
 	if (dir == DMA_MEM_TO_DEV) {
@@ -802,6 +844,11 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 			fix_mode = 0;
 	}
 
+	int_mode = sprd_dma_get_int_mode(flags);
+	if (int_mode < 0) {
+		dev_err(sdev->dma_dev.dev, "invalid interrupt mode\n");
+		return int_mode;
+	}
 	hw->intc = int_mode | SPRD_DMA_CFG_ERR_INT_EN;
 
 	data_format = sprd_dma_get_data_format(slave_cfg->data_format);
