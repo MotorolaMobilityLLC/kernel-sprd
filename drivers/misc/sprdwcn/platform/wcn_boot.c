@@ -1646,8 +1646,6 @@ static int marlin_set_power(int subsys, int val)
 	init_completion(&marlin_dev->download_done);
 	init_completion(&marlin_dev->gnss_download_done);
 
-	set_wifipa_status(subsys, val);
-
 	/*  power on */
 	if (val) {
 		/*
@@ -1659,6 +1657,7 @@ static int marlin_set_power(int subsys, int val)
 			WCN_INFO("the first power on start\n");
 
 			chip_power_on(subsys);
+			set_wifipa_status(subsys, val);
 			set_bit(subsys, &marlin_dev->power_state);
 
 			WCN_INFO("GNSS start to auto download\n");
@@ -1704,6 +1703,7 @@ static int marlin_set_power(int subsys, int val)
 		else if (subsys == WCN_AUTO) {
 			if (marlin_dev->keep_power_on) {
 				WCN_INFO("have power on, no action\n");
+				set_wifipa_status(subsys, val);
 				set_bit(subsys, &marlin_dev->power_state);
 			}
 
@@ -1721,6 +1721,7 @@ static int marlin_set_power(int subsys, int val)
 			WCN_INFO("GNSS and marlin have ready\n");
 			if (((marlin_dev->power_state) & MARLIN_MASK) == 0)
 				loopcheck_first_boot_set();
+			set_wifipa_status(subsys, val);
 			set_bit(subsys, &marlin_dev->power_state);
 
 			goto check_power_state_notify;
@@ -1731,6 +1732,7 @@ static int marlin_set_power(int subsys, int val)
 		else if (((marlin_dev->power_state) & MARLIN_MASK) != 0) {
 			if ((subsys == MARLIN_GNSS) || (subsys == WCN_AUTO)) {
 				WCN_INFO("BTWF ready, GPS start to download\n");
+				set_wifipa_status(subsys, val);
 				set_bit(subsys, &marlin_dev->power_state);
 				gnss_powerdomain_open();
 
@@ -1746,6 +1748,7 @@ static int marlin_set_power(int subsys, int val)
 
 			} else {
 				WCN_INFO("marlin have open, GNSS is closed\n");
+				set_wifipa_status(subsys, val);
 				set_bit(subsys, &marlin_dev->power_state);
 
 				goto check_power_state_notify;
@@ -1755,6 +1758,7 @@ static int marlin_set_power(int subsys, int val)
 		else {
 			WCN_INFO("no module to power on, start to power on\n");
 			chip_power_on(subsys);
+			set_wifipa_status(subsys, val);
 			set_bit(subsys, &marlin_dev->power_state);
 
 			/* 5.1 first download marlin, and then download gnss */
@@ -1840,6 +1844,7 @@ static int marlin_set_power(int subsys, int val)
 			goto check_power_state_notify;
 		}
 
+		set_wifipa_status(subsys, val);
 		clear_bit(subsys, &marlin_dev->power_state);
 		if (marlin_dev->power_state != 0) {
 			WCN_INFO("can not power off, other module is on\n");
