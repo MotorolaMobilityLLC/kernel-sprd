@@ -8345,10 +8345,10 @@ CONFIG_SPRD_TIMER
 CONFIG_SPRD_VSP
 	[arch] all
 	[plat] sharkl5
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code,menu
+	[subsys] misc
+	[must] user
+	[function] The VSP is a video CODEC accelerator.
 CONFIG_SPRD_WATCHDOG
 	[arch] all
 	[plat] sharkl5
