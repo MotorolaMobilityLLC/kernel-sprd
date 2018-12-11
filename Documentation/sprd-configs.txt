@@ -8893,6 +8893,13 @@ CONFIG_SPRD_DEBUG
 	[subsys] soc
 	[must] debug
 	[function] Enable/disable sprd debug function.
+CONFIG_SPRD_POWER_DEBUG
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] soc
+	[must] debug
+	[function] Enable/disable sprd power debug function.
 CONFIG_SPRD_DJTAG
 	[arch] all
 	[plat] sharkl5
