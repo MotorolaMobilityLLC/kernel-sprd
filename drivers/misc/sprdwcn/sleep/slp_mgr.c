@@ -60,6 +60,7 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 {
 	unsigned char slp_sts;
 	int ret;
+	int do_dump = 0;
 	ktime_t time_end;
 
 	mutex_lock(&(slp_mgr.wakeup_lock));
@@ -83,7 +84,7 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 			   (slp_sts != BTWF_IN_DEEPSLEEP_XLT_ON))
 				break;
 try_timeout:
-			if (ktime_after(ktime_get(), time_end)) {
+			if (do_dump) {
 				atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);
 				SLP_MGR_INFO("wakeup fail, slp_sts-0x%x",
 					slp_sts);
@@ -91,6 +92,8 @@ try_timeout:
 				mutex_unlock(&(slp_mgr.wakeup_lock));
 				return -1;
 			}
+			if (ktime_after(ktime_get(), time_end))
+				do_dump = 1;
 		}
 
 		atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);
