@@ -685,7 +685,7 @@ int compr_stream_config_dma1(struct snd_compr_stream *substream,
 	}
 	memset(cfg_ptr, 0,
 		sizeof(struct sprd_dma_cfg)
-		+ sizeof(struct scatterlist) * period_cnt * period_cnt);
+		+ sizeof(struct scatterlist) * period_cnt);
 
 	cfg_ptr->sg = (struct scatterlist *)((u8 *) &
 		(cfg_ptr->sg) + sizeof(void *));
