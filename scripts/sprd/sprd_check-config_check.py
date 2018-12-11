@@ -104,6 +104,8 @@ def add_diffconfig_to_dictconfig():
                                 tmp_plat = 'sharkl3_32'
                             elif tmp_plat == 'pike2':
                                 tmp_arch = 'arm'
+                            elif tmp_arch == 'arm' and tmp_plat == 'sharkl5':
+                                continue
                             elif tmp_arch == 'common' and tmp_plat == 'sharkle':
                                 if lines[j][4:-1] not in d_diffconfig:
                                     d_diffconfig[lines[j][4:-1]]={
