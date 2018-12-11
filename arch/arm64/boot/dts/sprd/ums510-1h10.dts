@@ -65,20 +65,6 @@
 		};
 	};
 
-	reserved_memory: reserved-memory {
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-
-		smem_reserved: sipc-mem@87800000{
-			reg = <0x0 0x87800000 0x0 0x00800000>;
-		};
-
-		fd_reserved: face-mem@be5c0000{
-			reg = <0x0 0xbe5c0000 0x0 0x00a00000>;
-		};
-	};
-
 	sprd-sysdump {
 		memory-region = <&memory>;
 		memory-region-re = <&ddrbist_reserved>, <&cp_reserved>, <&smem_reserved>;
@@ -259,6 +245,16 @@
 						104880 75
 						114889 57
 						124872 43 >;
+	};
+};
+
+&reserved_memory {
+	mm_reserved: mm-mem@a0dc0000 {
+		reg = <0x0 0xa0dc0000 0x0 0x1c000000>;
+	};
+
+	overlay_reserved: overlay-mem@bcdc0000 {
+		reg = <0x0 0xbcdc0000 0x0 0x01800000>;
 	};
 };
 
