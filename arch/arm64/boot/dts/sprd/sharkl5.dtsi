@@ -1048,67 +1048,67 @@
 				clocks = <&aonapb_gate CLK_EFUSE_EB>;
 
 				thm0_sign: thm0-sign@56{
-					reg = <0x56 0x4>;
+					reg = <0x38 0x4>;
 					bits = <0 1>;
 				};
 
 				thm0_ratio: thm0-ratio@56{
-					reg = <0x56 0x4>;
+					reg = <0x38 0x4>;
 					bits = <1 7>;
 				};
 
 				thm0_sen0: thm0-sen0@56{
-					reg = <0x56 0x4>;
+					reg = <0x38 0x4>;
 					bits = <8 8>;
 				};
 
 				thm0_sen1: thm0-sen1@58{
-					reg = <0x58 0x4>;
+					reg = <0x40 0x4>;
 					bits = <8 8>;
 				};
 
 				thm0_sen2: thm0-sen2@58{
-					reg = <0x58 0x4>;
+					reg = <0x40 0x4>;
 					bits = <0 8>;
 				};
 
 				thm0_sen3: thm0-sen3@58{
-					reg = <0x58 0x4>;
+					reg = <0x40 0x4>;
 					bits = <24 8>;
 				};
 
 				thm1_sign: thm1-sign@57{
-					reg = <0x57 0x4>;
+					reg = <0x3c 0x4>;
 					bits = <0 1>;
 				};
 
 				thm1_ratio: thm1-ratio@57{
-					reg = <0x57 0x4>;
+					reg = <0x3c 0x4>;
 					bits = <1 7>;
 				};
 
 				thm1_sen0: thm1-sen0@57{
-					reg = <0x57 0x4>;
+					reg = <0x3c 0x4>;
 					bits = <8 8>;
 				};
 
 				thm1_sen1: thm1-sen1@58{
-					reg = <0x58 0x4>;
+					reg = <0x40 0x4>;
 					bits = <16 8>;
 				};
 
 				thm2_sign: thm2-sign@57{
-					reg = <0x57 0x4>;
+					reg = <0x3c 0x4>;
 					bits = <16 1>;
 				};
 
 				thm2_ratio: thm2-ratio@57{
-					reg = <0x57 0x4>;
+					reg = <0x3c 0x4>;
 					bits = <17 7>;
 				};
 
 				thm2_sen0: thm2-sen0@57{
-					reg = <0x57 0x4>;
+					reg = <0x3c 0x4>;
 					bits = <24 8>;
 				};
 			};
