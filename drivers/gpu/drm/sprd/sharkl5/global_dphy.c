@@ -83,6 +83,13 @@ static void dphy_power_domain(struct dphy_context *ctx, int enable)
 			ctx_power.ctrl_reg,
 			ctx_power.ctrl_mask,
 			(unsigned int)(~ctx_power.ctrl_mask));
+
+		/* Dphy has a random wakeup failed after poweron,
+		 * this will caused testclr reset failed and
+		 * writing pll configuration parameter failed.
+		 * Delay 100us after dphy poweron, waiting for pll is stable.
+		 */
+		udelay(100);
 	} else {
 		regmap_update_bits(ctx_power.regmap,
 			ctx_power.ctrl_reg,
