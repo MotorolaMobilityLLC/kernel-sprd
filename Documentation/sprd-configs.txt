@@ -1902,6 +1902,13 @@ CONFIG_CRYPTO_WORKQUEUE
 	[subsys] security
 	[must] user
 	[function] Selected by other configs.
+CONFIG_CRYPTO_XCBC
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] crypto
+	[must] user
+	[function] Support CRYPTO_XCBC.
 CONFIG_CRYPTO_XTS
 	[arch] all
 	[plat] all
@@ -7344,6 +7351,13 @@ CONFIG_PINMUX
 	[subsys] pinctrl
 	[must] user
 	[function] Support pin multiplexing controllers.
+CONFIG_PKCS7_MESSAGE_PARSER
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] crypto
+	[must]  user
+	[function] Support PKCS7_MESSAGE_PARSER.
 CONFIG_PM
 	[arch] all
 	[plat] all
@@ -9265,6 +9279,20 @@ CONFIG_SYSFS_SYSCALL
 	[subsys] fs
 	[must] console
 	[function] Support sysfs system call.
+CONFIG_SYSTEM_TRUSTED_KEYRING
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] crypto
+	[must] user
+	[function] support SYSTEM_TRUSTED_KEYRING.
+CONFIG_SYSTEM_TRUSTED_KEYS
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] crypto
+	[must] user
+	[function] Support SYSTEM_TRUSTED_KEYS.
 CONFIG_SYS_SUPPORTS_HUGETLBFS
 	[arch] all
 	[plat] all
