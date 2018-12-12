@@ -248,6 +248,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	 * battery capacity as the initial battery capacity. Otherwise we should
 	 * re-calculate the initial battery capacity.
 	 */
+	is_first_poweron = true;
 	if (!is_first_poweron) {
 		ret = sc27xx_fgu_read_last_cap(data, cap);
 		if (ret)
