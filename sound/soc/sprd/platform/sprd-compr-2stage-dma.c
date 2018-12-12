@@ -882,7 +882,7 @@ int compr_stream_config_dma0(struct snd_compr_stream *substream,
 			audio_addr_ap2dsp(IRAM_OFFLOAD, dma_src_phys, 0);
 		dma_config_ptr->config.direction = DMA_DEV_TO_MEM;
 	}
-#if defined(CONFIG_SPRD_COMPR_CM4_WAKE_UP) || defined(COMPR_DUMP_MEM_DEBUG)
+#if defined(CONFIG_SPRD_COMPR_CM4_WAKE_UP)
 	dma_config_ptr->dma_config_flag = SPRD_DMA_FLAGS(SPRD_DMA_SRC_CHN1,
 				SPRD_DMA_TRANS_DONE_TRG, SPRD_DMA_FRAG_REQ,
 				SPRD_DMA_TRANS_INT);
