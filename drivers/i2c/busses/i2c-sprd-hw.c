@@ -213,7 +213,12 @@ static void sprd_i2c_hw_clear_ack(struct sprd_i2c_hw *i2c_dev)
 	writel(tmp & ~I2C_RX_ACK, i2c_dev->base + I2C_STATUS);
 }
 
-static void sprd_i2c_hw_check_noack(struct sprd_i2c_hw *i2c_dev)
+static void sprd_i2c_hw_reset_fifo(struct sprd_i2c_hw *i2c_dev)
+{
+	writel(I2C_RST, i2c_dev->base + ADDR_RST);
+}
+
+static int sprd_i2c_hw_check_noack(struct sprd_i2c_hw *i2c_dev)
 {
 	u32 tmp = readl(i2c_dev->base + I2C_STATUS);
 
@@ -222,7 +227,12 @@ static void sprd_i2c_hw_check_noack(struct sprd_i2c_hw *i2c_dev)
 			 "i2c report last time: no ack error !\n");
 		sprd_i2c_hw_dump_reg(i2c_dev);
 		writel(tmp & ~I2C_RX_ACK, i2c_dev->base + I2C_STATUS);
+		sprd_i2c_hw_reset_fifo(i2c_dev);
+
+		return -EIO;
 	}
+
+	return 0;
 }
 
 static int sprd_i2c_hw_readbyte(struct sprd_i2c_hw *i2c_dev, u8 *buf, u32 len)
@@ -253,13 +263,16 @@ static int sprd_i2c_hw_handle_msg(struct i2c_adapter *i2c_adap,
 				  struct i2c_msg *pmsg)
 {
 	struct sprd_i2c_hw *i2c_dev = i2c_adap->algo_data;
+	int ret;
 
 	i2c_dev->msg = pmsg;
 	i2c_dev->buf = pmsg->buf;
 	i2c_dev->count = pmsg->len;
 	i2c_dev->err = 0;
 
-	sprd_i2c_hw_check_noack(i2c_dev);
+	ret = sprd_i2c_hw_check_noack(i2c_dev);
+	if (ret)
+		return ret;
 
 	if (i2c_dev->count > 2) {
 		dev_err(&i2c_dev->adap.dev,
@@ -277,6 +290,7 @@ static int sprd_i2c_hw_handle_msg(struct i2c_adapter *i2c_adap,
 
 	/* Transmission is done and clear ack */
 	sprd_i2c_hw_clear_ack(i2c_dev);
+	sprd_i2c_hw_reset_fifo(i2c_dev);
 
 	return i2c_dev->err;
 }
