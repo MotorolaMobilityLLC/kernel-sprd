@@ -1392,6 +1392,12 @@ static void pre_gnss_download_firmware(struct work_struct *work)
 		return;
 	}
 
+	if (gnss_ops && (gnss_ops->write_data)) {
+		if (gnss_ops->write_data() != 0)
+			return;
+	} else
+		WCN_ERR("%s gnss_ops write_data error\n", __func__);
+
 	if (gnss_start_run() != 0)
 		WCN_ERR("gnss start run fail\n");
 
