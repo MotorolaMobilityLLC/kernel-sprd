@@ -1207,8 +1207,6 @@ static int ap_hw_params(struct vbc_codec_priv *vbc_codec,
 			     DEFAULT_RATE) & ~BIT(0);
 	ap_vbc_set_watermark(fifo_id, watermark_type, watermark);
 	ap_vbc_data_format_set(fifo_id, data_fmt);
-	set_kctrl_vbc_dac_iis_wd(vbc_codec, VBC_DA0, data_fmt);
-	set_kctrl_vbc_dac_iis_wd(vbc_codec, VBC_DA1, data_fmt);
 	use_ad_src = ap_ad_src_check(scene_id, stream);
 	if (use_ad_src) {
 		ap_vbc_ad_src_set(1, rate);
