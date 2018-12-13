@@ -1283,17 +1283,17 @@
 						"AP", "WTLCP", "AUDCP", "PUBCP",
 						"USBOTG", "CM4";
 					sprd,bm-type =
-						<AXI>, <AXI>, <AXI>, <AXI>,
+						<AXI>, <AXI>, <AXI>,
 						<AXI>, <AXI>, <AXI>;
 					sprd,bm-dap = <0>, <1>, <2>, <3>,
 						<4>, <5>;
 					sprd,bm-config =
+						<ENABLE MON_WRITE MON_INSIDE>,
+						<ENABLE MON_WRITE MON_INSIDE>,
+						<ENABLE MON_WRITE MON_INSIDE>,
+						<ENABLE MON_WRITE MON_INSIDE>,
 						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>;
+						<ENABLE MON_WRITE MON_INSIDE>;
 					sprd,bm-id =
 						<DISABLE 0 AXIID>,
 						<DISABLE 0 AXIID>,
@@ -1302,8 +1302,12 @@
 						<DISABLE 0 AXIID>,
 						<DISABLE 0 AXIID>;
 					sprd,bm-ranges =
-						<0 0>, <0 0>, <0 0>,
-						<0 0>, <0 0>, <0 0>;
+						<0x327d0000 0x327d0018>,
+						<0x327d0000 0x327d0018>,
+						<0x327d0000 0x327d0018>,
+						<0x027d0000 0x027d0018>,
+						<0 0>,
+						<0x327d0000 0x327d0018>;
 				};
 			};
 
