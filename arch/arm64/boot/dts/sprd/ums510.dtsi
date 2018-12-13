@@ -330,7 +330,7 @@
 &sdio0 {
 	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
 	clocks = <&ap_clk CLK_SDIO0_2X>,
-		 <&pll1 CLK_RPLL_390M>,
+		 <&pll1 CLK_RPLL>,
 		 <&apapb_gate CLK_SDIO0_EB>;
 };
 
@@ -344,7 +344,7 @@
 &sdio3 {
 	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
 	clocks = <&ap_clk CLK_EMMC_2X>,
-		 <&pll1 CLK_RPLL_390M>,
+		 <&pll1 CLK_RPLL>,
 		 <&apapb_gate CLK_EMMC_EB>;
 };
 

@@ -27,10 +27,9 @@
 #define CLK_ANLG_PHY_G2_NUM		(CLK_MPLL1 + 1)
 
 #define CLK_RPLL			0
-#define CLK_RPLL_390M			1
-#define CLK_AUDIO_GATE			2
-#define CLK_MPLL0			3
-#define CLK_MPLL2			4
+#define CLK_AUDIO_GATE			1
+#define CLK_MPLL0			2
+#define CLK_MPLL2			3
 #define CLK_ANLG_PHY_G3_NUM		(CLK_MPLL2 + 1)
 
 #define CLK_TWPLL			0
