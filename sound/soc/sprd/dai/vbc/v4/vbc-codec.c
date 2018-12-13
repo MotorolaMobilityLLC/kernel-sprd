@@ -3553,16 +3553,6 @@ static int vbc_codec_soc_remove(struct snd_soc_codec *codec)
 	return 0;
 }
 
-static const struct snd_soc_dapm_widget sprd_vbc_dapm_widgets[] = {
-	/* for vbc dump endpoint */
-	SND_SOC_DAPM_INPUT("VBC_DUMP_INPUT"),
-};
-
-static const struct snd_soc_dapm_route sprd_vbc_route[] = {
-	/* vbc dump */
-	{"BE_DAI_DUMP_C", NULL, "VBC_DUMP_INPUT"},
-};
-
 struct snd_soc_codec_driver sprd_vbc_codec = {
 	.probe = vbc_codec_soc_probe,
 	.remove = vbc_codec_soc_remove,
@@ -3571,10 +3561,6 @@ struct snd_soc_codec_driver sprd_vbc_codec = {
 	.reg_word_size = sizeof(u16),
 	.reg_cache_step = 2,
 	.component_driver = {
-		.dapm_widgets = sprd_vbc_dapm_widgets,
-		.num_dapm_widgets = ARRAY_SIZE(sprd_vbc_dapm_widgets),
-		.dapm_routes = sprd_vbc_route,
-		.num_dapm_routes = ARRAY_SIZE(sprd_vbc_route),
 		.controls = vbc_codec_snd_controls,
 		.num_controls = ARRAY_SIZE(vbc_codec_snd_controls),
 	}

@@ -1107,10 +1107,10 @@ static struct snd_soc_dai_driver sprd_fe_dais[FE_DAI_ID_MAX] = {
 		},
 		.ops = &sprd_fe_dai_ops,
 	},
-	/*17 FE_DAI_BTCAP_AP_C */
+	/*17 FE_DAI_ID_BTSCO_CAP_AP */
 	{
-		.id = FE_DAI_ID_DUMP,
-		.name = TO_STRING(FE_DAI_ID_DUMP),
+		.id = FE_DAI_ID_BTSCO_CAP_AP,
+		.name = TO_STRING(FE_DAI_ID_BTSCO_CAP_AP),
 		.probe = fe_dai_probe,
 		.capture = {
 			.stream_name = "FE_DAI_BTCAP_AP_C",
