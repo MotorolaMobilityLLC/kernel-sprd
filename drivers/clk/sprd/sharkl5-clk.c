@@ -201,7 +201,6 @@ static struct clk_bit_field f_pll[PLL_FACT_MAX] = {
 static SPRD_PLL_WITH_ITABLE_K_FVCO(rpll_clk, "rpll", "rpll-gate", 0x0,
 				   3, ftable, f_rpll, 240,
 				   1000, 1000, 1, 750000000);
-static CLK_FIXED_FACTOR(rpll_390m, "rpll-390m", "rpll", 2, 1, 0);
 
 static SPRD_SC_GATE_CLK(audio_gate,	"audio-gate",	"ext-26m", 0x24,
 		     0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
@@ -239,7 +238,6 @@ static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll2_clk, "mpll2", "mpll2-gate", 0x9c,
 static struct sprd_clk_common *sharkl5_g3_pll_clks[] = {
 	/* address base is 0x323c0000 */
 	&rpll_clk.common,
-	/*&rpll_390m.common,*/
 	&audio_gate.common,
 	&mpll0_clk.common,
 	&mpll2_clk.common,
@@ -248,7 +246,6 @@ static struct sprd_clk_common *sharkl5_g3_pll_clks[] = {
 static struct clk_hw_onecell_data sharkl5_g3_pll_hws = {
 	.hws	= {
 		[CLK_RPLL]		= &rpll_clk.common.hw,
-		[CLK_RPLL_390M]		= &rpll_390m.hw,
 		[CLK_AUDIO_GATE]	= &audio_gate.common.hw,
 		[CLK_MPLL0]		= &mpll0_clk.common.hw,
 		[CLK_MPLL2]		= &mpll2_clk.common.hw,
@@ -550,7 +547,7 @@ static SPRD_MUX_CLK(ap_ce_clk, "ap-ce-clk", ap_ce_parents, 0x64,
 
 static const char * const sdio_parents[] = { "ext-1m", "ext-26m",
 					     "twpll-307m2", "twpll-384m",
-					     "rpll-390m", "lpll-409m6" };
+					     "rpll", "lpll-409m6" };
 static SPRD_MUX_CLK(sdio0_2x_clk, "sdio0-2x", sdio_parents, 0x7c,
 			0, 3, SHARKL5_MUX_FLAG);
 static SPRD_MUX_CLK(sdio1_2x_clk, "sdio1-2x", sdio_parents, 0x84,
@@ -811,7 +808,7 @@ static SPRD_MUX_CLK(ap_mm_clk, "ap-mm-clk", ap_mm_parents, 0x2f4,
 
 static const char * const sdio2_2x_parents[] = { "ext-1m", "ext-26m",
 					"twpll-307m2", "twpll-384m",
-					"rpll-390m", "lpll-409m6" };
+					"rpll", "lpll-409m6" };
 static SPRD_MUX_CLK(sdio2_2x_clk, "sdio2-2x-clk", sdio2_2x_parents, 0x2f8,
 			0, 3, SHARKL5_MUX_FLAG);
 
@@ -949,7 +946,7 @@ static SPRD_GATE_CLK(gpu_core_gate, "gpu-core-gate", "ap-mm-clk", 0x4,
 
 static const char * const gpu_parents[] = { "ext-26m", "twpll-384m",
 					"twpll-512m", "twpll-768m",
-					"lpll-614m4", "clk_gpll" };
+					"lpll-614m4", "gpll" };
 static SPRD_COMP_CLK(gpu_core_clk, "gpu-core-clk", gpu_parents, 0x4,
 		     4, 3, 8, 3, 0);
 
