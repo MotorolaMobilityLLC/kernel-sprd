@@ -1057,12 +1057,18 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 
 		return 0;
 	}
-	pr_info("%s config usb i2s\n", __func__);
 	is_offload_mod = sprd_usb_audio_offload_check(ep->chip,
 			subs->direction);
-	if (is_offload_mod)
+	if (is_offload_mod) {
+		pr_info("%s usb enter offload mode config usb i2s %s, %s, %s, %s\n",
+			__func__, subs->direction ? "capture" : "playback",
+			is_mono ? "mono" : "stereo",
+			is_pcm_24bit ? "data 24bit" : "data 16bit",
+			iis_width == USB_AUD_IIS_WIDTH_24 ?
+			"iis width 24bit" : "iis width 16bit");
 		sprd_musb_i2s_config(ep->ep_num, is_mono, is_pcm_24bit,
 			iis_width, 48, is_offload_mod);
+	}
 
 	for (i = 0; i < ep->nurbs; i++) {
 		struct urb *urb = ep->urb[i].urb;
