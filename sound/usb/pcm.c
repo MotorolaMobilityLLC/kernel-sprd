@@ -92,7 +92,7 @@ static snd_pcm_uframes_t snd_usb_pcm_pointer(struct snd_pcm_substream *substream
 
 static int sprd_usb_aud_ofld_en(struct snd_usb_audio *chip, int stream)
 {
-	if (stream != SNDRV_PCM_STREAM_PLAYBACK ||
+	if (stream != SNDRV_PCM_STREAM_PLAYBACK &&
 		stream != SNDRV_PCM_STREAM_CAPTURE) {
 		pr_err("%s invalid stream %d\n", __func__, stream);
 		return 0;

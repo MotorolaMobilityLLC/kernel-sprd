@@ -939,7 +939,7 @@ static int sprd_usb_audio_offload_check(struct snd_usb_audio *chip,
 {
 	int is_offload_mod;
 
-	if (stream != SNDRV_PCM_STREAM_PLAYBACK ||
+	if (stream != SNDRV_PCM_STREAM_PLAYBACK &&
 		stream != SNDRV_PCM_STREAM_CAPTURE) {
 		is_offload_mod = 0;
 		pr_err("%s invalid stream %d\n", __func__, stream);
@@ -951,16 +951,14 @@ static int sprd_usb_audio_offload_check(struct snd_usb_audio *chip,
 		is_offload_mod = 0;
 		return 0;
 	}
-	if (chip->usb_aud_ofld_en[SNDRV_PCM_STREAM_PLAYBACK] &&
-		chip->usb_aud_ofld_en[SNDRV_PCM_STREAM_CAPTURE])
+	if (chip->usb_aud_ofld_en[stream])
 		is_offload_mod = 1;
 	else
 		is_offload_mod = 0;
 out:
-	pr_info("%s stream=%s, ply %d, cap %d\n", __func__,
-		stream == SNDRV_PCM_STREAM_PLAYBACK ? "playback" : "capture",
-		chip->usb_aud_ofld_en[SNDRV_PCM_STREAM_PLAYBACK],
-		chip->usb_aud_ofld_en[SNDRV_PCM_STREAM_CAPTURE]);
+	pr_info("%s usb stream=%s, enter offload mode %d\n", __func__,
+		stream ? "capture" : "playback",
+		chip->usb_aud_ofld_en[stream]);
 
 	return is_offload_mod;
 }
