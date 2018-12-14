@@ -101,8 +101,7 @@ static int pub_int_handle_thread(void *data)
 		else
 			__pm_relax(&(sdio_int.pub_int_wakelock));
 
-		if (atomic_read(&(sdio_int.chip_power_on)))
-			enable_irq(sdio_int.pub_int_num);
+		enable_irq(sdio_int.pub_int_num);
 	}
 
 	return 0;
@@ -264,10 +263,8 @@ void sdio_pub_int_poweron(bool state)
 
 	if (state)
 		enable_irq(sdio_int.pub_int_num);
-	else {
+	else
 		disable_irq(sdio_int.pub_int_num);
-		reinit_completion(&(sdio_int.pub_int_completion));
-	}
 }
 EXPORT_SYMBOL(sdio_pub_int_poweron);
 
