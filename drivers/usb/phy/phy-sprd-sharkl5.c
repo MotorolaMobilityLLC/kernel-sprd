@@ -39,7 +39,8 @@ struct sprd_hsphy {
 	atomic_t		inited;
 };
 
-#define TUNEHSAMP_2_6MA (2 << 25)
+#define TUNEHSAMP_2_6MA		(3 << 25)
+#define TFREGRES_TUNE_VALUE	(0x14 << 19)
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 {
@@ -193,6 +194,18 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	reg = msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_DATABUS16_8;
 	ret |= regmap_update_bits(phy->ana_g2,
 		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1,
+		msk, reg);
+
+	reg = TUNEHSAMP_2_6MA;
+	msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEHSAMP;
+	ret |= regmap_update_bits(phy->ana_g2,
+		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
+		msk, reg);
+
+	reg = TFREGRES_TUNE_VALUE;
+	msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_TFREGRES;
+	ret |= regmap_update_bits(phy->ana_g2,
+		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
 		msk, reg);
 
 	if (!atomic_read(&phy->reset)) {
