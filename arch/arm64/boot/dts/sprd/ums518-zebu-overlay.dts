@@ -1,0 +1,9 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	dtbo: dtbo {
+		compatible = "sprd,dtbo-test";
+		reg = <0x11>;
+	};
+};

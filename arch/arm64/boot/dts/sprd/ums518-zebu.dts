@@ -1,0 +1,119 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Unisoc Sharkl5Pro platform DTS file
+ *
+ * Copyright (C) 2018, Unisoc Communications Inc.
+ */
+
+/dts-v1/;
+
+#include "sharkl5pro-zebu.dtsi"
+#include "ums518-zebu-common.dtsi"
+
+/ {
+	model = "sharkl5pro zebu board";
+
+	compatible = "sprd,ums518-zebu";
+
+	sprd,sc-id = <9862 1 0x20000>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x1 0x00000000>;
+	};
+
+	chosen {
+		stdout-path = &uart0;
+		bootargs = "earlycon loglevel=1 skip_initramfs init=/init root=/dev/memdisk.0 rootfstype=ext4 rw rootwait androidboot.hardware=sharkl5pro_zebu androidboot.selinux=permissive";
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		memdisk_reserved: memdisk@100000000{
+				reg = <0x1 0x00000000 0x0 0x48000000>,   /* system 1152M */
+				<0x0 0xc0000000 0x0 0x21000000>,      /* vendor 512M */
+				<0x0 0xe0000000 0x0 0x21000000>,      /* userdata 512M */
+				<0x1 0x48100000 0x0 0x11300000>;      /* cache 275M */
+		};
+		fb_reserved: framebuffer@18a800000{
+				reg = <0x0 0x8a800000 0x0 0x2fd0000>;
+		};
+	};
+
+	ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		heap@1 {
+			reg = <1>;
+			label = "carveout_mm";
+			type = <2>;
+		};
+
+		heap@2 {
+			reg = <2>;
+			label = "carveout_overlay";
+			type = <2>;
+			/* memory-region = <&overlay_reserved>;*/
+		};
+
+		heap@3 {
+			reg = <3>;
+			label = "carveout_fb";
+			type = <2>;
+			memory-region = <&fb_reserved>;
+		};
+	};
+
+	sprd-memdisk {
+		compatible = "sprd,memdisk";
+		memory-region = <&memdisk_reserved>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&dpu {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	panel {
+		compatible = "sprd,generic-mipi-panel";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
+
+		sprd,force-attached = "lcd_dummy_mipi_hd";
+
+		port {
+			reg = <1>;
+			panel_in: endpoint {
+				remote-endpoint = <&dphy_out>;
+			};
+		};
+	};
+};
+
+&dphy {
+	status = "okay";
+};
