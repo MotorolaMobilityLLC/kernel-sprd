@@ -293,10 +293,6 @@ static const struct snd_kcontrol_new dac_pga_controls[] = {
 		SOC_REG(ANA_CDC5), DA_IG_S, 2, dac_tlv),
 };
 
-static const struct snd_kcontrol_new spk_pa_config_controls[] = {
-	SPRD_CODEC_MIXER("Inter PA Config", SND_SOC_NOPM, 0),
-};
-
 /* ADCL Mixer */
 static const struct snd_kcontrol_new adcl_mixer_controls[] = {
 	SPRD_CODEC_MIXER("MainMICADCL Switch", SOC_REG(ANA_CDC1), SMIC1PGAL_S),
@@ -1846,7 +1842,7 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 		&spkr_mixer_controls[0],
 		ARRAY_SIZE(spkr_mixer_controls)),
 	SND_SOC_DAPM_PGA_E("SPK PA", SND_SOC_NOPM, 0, 0,
-		spk_pa_config_controls, 1,
+		NULL, 0,
 		spk_pa_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_MIXER("ISNS Mixer", SOC_REG(ANA_CDC21), PA_ISNS_EN_S, 0,
@@ -2176,6 +2172,51 @@ static int sprd_codec_info_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+
+static int sprd_codec_inter_pa_get(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct soc_mixer_control *mc =
+	    (struct soc_mixer_control *)kcontrol->private_value;
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+	int max = mc->max;
+	unsigned int invert = mc->invert;
+
+	ucontrol->value.integer.value[0] = sprd_codec->inter_pa.value;
+
+	if (invert) {
+		ucontrol->value.integer.value[0] =
+		    max - ucontrol->value.integer.value[0];
+	}
+
+	return 0;
+}
+
+static int sprd_codec_inter_pa_put(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct soc_mixer_control *mc =
+	    (struct soc_mixer_control *)kcontrol->private_value;
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+	int max = mc->max;
+	unsigned int mask = BIT(fls(max)) - 1;
+	unsigned int invert = mc->invert;
+	unsigned int val;
+
+	sp_asoc_pr_info("Config inter PA 0x%lx\n",
+			ucontrol->value.integer.value[0]);
+
+	val = ucontrol->value.integer.value[0] & mask;
+	if (invert)
+		val = max - val;
+
+	sprd_codec->inter_pa.value = val;
+
+	return 0;
+}
+
 static int sprd_codec_dac_lrclk_sel_get(struct snd_kcontrol *kcontrol,
 				      struct snd_ctl_elem_value *ucontrol)
 {
@@ -2337,7 +2378,8 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 
 	SOC_ENUM_EXT("Aud Codec Info", codec_info_enum,
 		sprd_codec_info_get, NULL),
-
+	SOC_SINGLE_EXT("Inter PA Config", 0, 0, INT_MAX, 0,
+		sprd_codec_inter_pa_get, sprd_codec_inter_pa_put),
 	SOC_ENUM_EXT("DAC LRCLK Select", lrclk_sel_enum,
 		sprd_codec_dac_lrclk_sel_get,
 		sprd_codec_dac_lrclk_sel_put),
