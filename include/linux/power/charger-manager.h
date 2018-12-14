@@ -124,7 +124,7 @@ struct charger_regulator {
 	struct device_attribute attr_state;
 	struct device_attribute attr_stop_charge;
 	struct device_attribute attr_externally_control;
-	struct attribute *attrs[4];
+	struct attribute *attrs[5];
 
 	struct charger_manager *cm;
 };

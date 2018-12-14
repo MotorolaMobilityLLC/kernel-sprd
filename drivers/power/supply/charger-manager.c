@@ -920,6 +920,12 @@ static int cm_feed_watchdog(struct charger_manager *cm)
 static bool _cm_monitor(struct charger_manager *cm)
 {
 	int temp_alrt, ret;
+	int i;
+
+	for (i = 0; i < cm->desc->num_charger_regulators; i++) {
+		if (cm->desc->charger_regulators[i].externally_control)
+			return false;
+	}
 
 	temp_alrt = cm_check_thermal_status(cm);
 
@@ -1552,11 +1558,11 @@ static ssize_t charger_stop_show(struct device *dev,
 	struct charger_regulator *charger
 		= container_of(attr, struct charger_regulator,
 			       attr_stop_charge);
-	bool is_chg;
+	bool stop_charge;
 
-	is_chg = is_charging(charger->cm);
+	stop_charge = is_charging(charger->cm);
 
-	return sprintf(buf, "%d\n", is_chg);
+	return sprintf(buf, "%d\n", !stop_charge);
 }
 
 static ssize_t charger_stop_store(struct device *dev,
@@ -1567,15 +1573,30 @@ static ssize_t charger_stop_store(struct device *dev,
 		= container_of(attr, struct charger_regulator,
 					attr_stop_charge);
 	struct charger_manager *cm = charger->cm;
-	int enable_chg, ret;
+	int stop_charge, ret;
 
-	ret = sscanf(buf, "%d", &enable_chg);
+	ret = sscanf(buf, "%d", &stop_charge);
 	if (!ret)
 		return -EINVAL;
 
-	ret = try_charger_enable(cm, enable_chg);
-	if (ret)
-		return ret;
+	if (!is_ext_pwr_online(cm))
+		return -EINVAL;
+
+	if (!stop_charge) {
+		ret = try_charger_enable(cm, true);
+		if (ret) {
+			dev_err(cm->dev, "failed to start charger.\n");
+			return ret;
+		}
+		charger->externally_control = false;
+	} else {
+		ret = try_charger_enable(cm, false);
+		if (ret) {
+			dev_err(cm->dev, "failed to stop charger.\n");
+			return ret;
+		}
+		charger->externally_control = true;
+	}
 
 	return count;
 }
@@ -1681,7 +1702,8 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 		charger->attrs[0] = &charger->attr_name.attr;
 		charger->attrs[1] = &charger->attr_state.attr;
 		charger->attrs[2] = &charger->attr_externally_control.attr;
-		charger->attrs[3] = NULL;
+		charger->attrs[3] = &charger->attr_stop_charge.attr;
+		charger->attrs[4] = NULL;
 		charger->attr_g.name = str;
 		charger->attr_g.attrs = charger->attrs;
 
