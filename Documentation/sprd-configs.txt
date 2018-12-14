@@ -5635,19 +5635,20 @@ CONFIG_MODULES_USE_ELF_RELA
 		relocations will give an error.
 CONFIG_MODULE_UNLOAD
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] code
 	[subsys] core
 	[must] user
-	[function]  vts require, Let the kernel uninstall the wi-fi,
-		   and the next load will be successful.
+	[function] The loaded module can be uninstalled. If don't enable this, when
+	    luncher boot the screen will print error info. eg.Bug 983051.
 CONFIG_MODVERSIONS
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] console
-	[function] vts require, Module versioning support.
+	[function] Support module version check. If don't enable this, when luncher
+	     boot the screen will print error info. eg.Bug 983051.
 CONFIG_MPILIB
 	[arch] all
 	[plat] sharkl5
