@@ -1048,36 +1048,40 @@ static int compr_stream_trigger(struct snd_compr_stream *substream, int cmd)
 	 * case SNDRV_PCM_TRIGGER_RESUME:
 	 * case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 	 */
-		if (srtd->next_track) {
+		if (srtd->next_track || srtd->dma_paused == true) {
 			struct sprd_compr_dma_params *params;
-
+			for (i = 0; i < srtd->dma_stage; i++)
+				if (srtd->dma_chn[i]) {
+					dma_release_channel(srtd->dma_chn[i]);
+					srtd->dma_chn[i] = 0;
+				}
 			params = &srtd->params;
-			compr_stream_config_dma0(substream,
-				params->frag_len);
 			compr_stream_config_dma1(substream,
 				params->frag_len,
 				params->tran_len / params->frag_len);
+			compr_stream_config_dma0(substream,
+				params->frag_len);
 			srtd->next_track = 0;
 			srtd->dma_paused = false;
 		}
-		if (srtd->dma_paused == true) {
-			for (i = s - 1; i >= 0; i--) {
-				if (srtd->dma_chn[i])
-					dmaengine_resume(srtd->dma_chn[i]);
-			}
-			srtd->dma_paused = false;
-		} else {
-			for (i = s - 1; i >= 0; i--) {
-				if (srtd->dma_tx_des[i]) {
-					srtd->cookie[i] =
-						dmaengine_submit(srtd->dma_tx_des[i]);
+
+		for (i = s - 1; i >= 0; i--) {
+			if (srtd->dma_tx_des[i]) {
+				srtd->cookie[i] =
+					dmaengine_submit(srtd->dma_tx_des[i]);
+				ret = dma_submit_error(srtd->cookie[i]);
+				if (ret) {
+					pr_err("dmaengine_submit error:%d,i:%d\n",
+						ret, i);
+					return ret;
 				}
 			}
-			for (i = s - 1; i >= 0; i--) {
-				if (srtd->dma_chn[i])
-					dma_async_issue_pending(srtd->dma_chn[i]);
-			}
 		}
+		for (i = s - 1; i >= 0; i--) {
+			if (srtd->dma_chn[i])
+				dma_async_issue_pending(srtd->dma_chn[i]);
+		}
+
 #if COMPR_DUMP_MEM_DEBUG
 		timer_init();
 #endif
@@ -1341,15 +1345,15 @@ static int sprd_platform_compr_set_params(struct snd_compr_stream *cstream,
 		return result;
 	}
 
-	result = compr_stream_hw_params0(cstream, params);
-	if (result) {
-		sp_asoc_pr_info("compr_stream_hw_params0 error %d\n", result);
-		return result;
-	}
-
 	result = compr_stream_hw_params1(cstream, params);
 	if (result) {
 		sp_asoc_pr_info("compr_stream_hw_params1 error %d\n", result);
+		return result;
+	}
+
+	result = compr_stream_hw_params0(cstream, params);
+	if (result) {
+		sp_asoc_pr_info("compr_stream_hw_params0 error %d\n", result);
 		return result;
 	}
 
@@ -1469,11 +1473,13 @@ static int sprd_platform_compr_trigger(
 		if (result < 0)
 			goto out_ops;
 
-		if (cstream->direction == SND_COMPRESS_PLAYBACK)
+		if (cstream->direction == SND_COMPRESS_PLAYBACK) {
 			mcdt_da_fifo_clr(MCDT_CHN_COMPR);
-		else
+			mcdt_dac_dma_disable(MCDT_CHN_COMPR);
+		} else {
 			mcdt_ad_fifo_clr(MCDT_CHN_COMPR);
-
+			mcdt_adc_dma_disable(MCDT_CHN_COMPR);
+		}
 		mutex_unlock(&dev_ctrl->mutex);
 
 		break;
