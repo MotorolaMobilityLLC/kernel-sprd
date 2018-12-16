@@ -11,6 +11,7 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
+#include <linux/power/charger-manager.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
 
@@ -1083,6 +1084,11 @@ static irqreturn_t sc27xx_fgu_bat_detection(int irq, void *dev_id)
 	mutex_unlock(&data->lock);
 
 	power_supply_changed(data->battery);
+
+	cm_notify_event(data->battery,
+			data->bat_present ? CM_EVENT_BATT_IN : CM_EVENT_BATT_OUT,
+			NULL);
+
 	return IRQ_HANDLED;
 }
 
