@@ -442,7 +442,11 @@ static int sprd_crtc_atomic_check(struct drm_crtc *crtc,
 static void sprd_crtc_atomic_begin(struct drm_crtc *crtc,
 				  struct drm_crtc_state *old_state)
 {
+	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+
 	DRM_DEBUG("%s()\n", __func__);
+
+	down(&dpu->ctx.refresh_lock);
 }
 
 static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
@@ -456,6 +460,8 @@ static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
 
 	if (dpu->core && dpu->core->run && dpu->ctx.is_inited)
 		dpu->core->run(&dpu->ctx);
+
+	up(&dpu->ctx.refresh_lock);
 
 	spin_lock_irq(&drm->event_lock);
 	if (crtc->state->event) {
@@ -649,10 +655,16 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 		int_mask = dpu->core->isr(ctx);
 
 	if (int_mask & DISPC_INT_ERR_MASK)
-		DRM_ERROR("Warning: dpu underflow!\n");
+		DRM_WARN("Warning: dpu underflow!\n");
 
 	if ((int_mask & DISPC_INT_DPI_VSYNC_MASK) && ctx->is_inited)
 		drm_crtc_handle_vblank(&dpu->crtc);
+
+	/* give a new chance for write back */
+	if (int_mask & DISPC_INT_WB_FAIL_MASK) {
+		DRM_WARN("Warning: dpu write back fail!\n");
+		drm_crtc_vblank_on(&dpu->crtc);
+	}
 
 	return IRQ_HANDLED;
 }
