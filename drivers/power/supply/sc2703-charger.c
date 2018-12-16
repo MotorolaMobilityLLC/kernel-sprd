@@ -70,6 +70,31 @@ static int sc2703_limit_current[] = {
 	3000000,
 };
 
+static bool sc2703_charger_is_bat_present(struct sc2703_charger_info *info)
+{
+	struct power_supply *psy;
+	union power_supply_propval val;
+	bool present = false;
+	int ret;
+
+	psy = power_supply_get_by_name(SC2703_BATTERY_NAME);
+	if (!psy) {
+		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
+		return present;
+	}
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT,
+					&val);
+	if (ret == 0 && val.intval)
+		present = true;
+	power_supply_put(psy);
+
+	if (ret)
+		dev_err(info->dev,
+			"Failed to get property of present:%d\n", ret);
+
+	return present;
+}
+
 static u32 sc2703_charger_of_prop_range(struct device *dev, u32 val, u32 min,
 				       u32 max, u32 step, u32 default_val,
 				       const char *name)
@@ -456,26 +481,11 @@ static int sc2703_charger_start_charge(struct sc2703_charger_info *info)
 
 static void sc2703_charger_stop_charge(struct sc2703_charger_info *info)
 {
-	struct power_supply *psy;
-	union power_supply_propval data;
-	int bat_present, ret;
+	bool present;
+	int ret;
 
-	psy = power_supply_get_by_name(SC2703_BATTERY_NAME);
-	if (!psy) {
-		dev_err(info->dev, "Failed to get psy of sc27xx_fgu:%d\n", ret);
-		return;
-	}
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT,
-					&data);
-	power_supply_put(psy);
-	if (ret) {
-		dev_err(info->dev,
-			"Failed to get property of present:%d\n", ret);
-		return;
-	}
-
-	bat_present = data.intval;
-	if (bat_present) {
+	present = sc2703_charger_is_bat_present(info);
+	if (present) {
 		ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
 					 SC2703_CHG_EN_MASK |
 					 SC2703_DCDC_EN_MASK, 0);
@@ -672,10 +682,12 @@ static void sc2703_charger_work(struct work_struct *data)
 	struct sc2703_charger_info *info =
 		container_of(data, struct sc2703_charger_info, work);
 	int limit_cur, cur, ret;
+	bool present;
 
 	mutex_lock(&info->lock);
 
-	if (info->limit > 0 && !info->charging) {
+	present = sc2703_charger_is_bat_present(info);
+	if (info->limit > 0 && !info->charging && present) {
 		/* set current limitation and start to charge */
 		switch (info->usb_phy->chg_type) {
 		case SDP_TYPE:
