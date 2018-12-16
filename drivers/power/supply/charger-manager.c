@@ -494,6 +494,8 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		if (cm->emergency_stop)
 			return -EAGAIN;
 
+		if (!is_batt_present(cm))
+			return 0;
 		/*
 		 * Save start time of charging to limit
 		 * maximum possible charging time.
@@ -1125,9 +1127,12 @@ static void battout_handler(struct charger_manager *cm)
 
 	if (!is_batt_present(cm)) {
 		dev_emerg(cm->dev, "Battery Pulled Out!\n");
+		try_charger_enable(cm, false);
 		uevent_notify(cm, default_event_names[CM_EVENT_BATT_OUT]);
 	} else {
-		uevent_notify(cm, "Battery Reinserted?");
+		dev_emerg(cm->dev, "Battery Pulled in!\n");
+		try_charger_enable(cm, true);
+		uevent_notify(cm, default_event_names[CM_EVENT_BATT_IN]);
 	}
 }
 
@@ -2512,7 +2517,9 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 	mutex_lock(&cm_list_mtx);
 	list_for_each_entry(cm, &cm_list, entry) {
 		if (match_string(cm->desc->psy_charger_stat, -1,
-				 psy->desc->name) >= 0) {
+				 psy->desc->name) >= 0 ||
+				 match_string(&cm->desc->psy_fuel_gauge,
+					      -1, psy->desc->name) >= 0) {
 			found_power_supply = true;
 			break;
 		}
@@ -2522,16 +2529,14 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 	if (!found_power_supply)
 		return;
 
-	power_supply_changed(cm->charger_psy);
-
 	switch (type) {
 	case CM_EVENT_BATT_FULL:
 		fullbatt_handler(cm);
 		break;
+	case CM_EVENT_BATT_IN:
 	case CM_EVENT_BATT_OUT:
 		battout_handler(cm);
 		break;
-	case CM_EVENT_BATT_IN:
 	case CM_EVENT_EXT_PWR_IN_OUT ... CM_EVENT_CHG_START_STOP:
 		misc_event_handler(cm, type);
 		break;
@@ -2543,6 +2548,8 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 		dev_err(cm->dev, "%s: type not specified\n", __func__);
 		break;
 	}
+
+	power_supply_changed(cm->charger_psy);
 }
 EXPORT_SYMBOL_GPL(cm_notify_event);
 
