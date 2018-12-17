@@ -1174,6 +1174,12 @@ endmenu
 
 menu "Kernel Features"
 
+config AARCH32_SHOW_AARCH64_CPUINFO
+	bool "Show cpuinfo ARMV8"
+	default y
+	help
+	  This option show cpuinfo ARMV8.
+
 config HAVE_SMP
 	bool
 	help
