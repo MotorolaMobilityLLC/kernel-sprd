@@ -650,7 +650,7 @@ static void fullbatt_vchk(struct work_struct *work)
 	struct charger_manager *cm = container_of(dwork,
 			struct charger_manager, fullbatt_vchk_work);
 	struct charger_desc *desc = cm->desc;
-	int batt_uV, err, diff;
+	int batt_ocv, err, diff;
 
 	/* remove the appointment for fullbatt_vchk */
 	cm->fullbatt_vchk_jiffies_at = 0;
@@ -658,19 +658,19 @@ static void fullbatt_vchk(struct work_struct *work)
 	if (!desc->fullbatt_vchkdrop_uV || !desc->fullbatt_vchkdrop_ms)
 		return;
 
-	err = get_batt_uV(cm, &batt_uV);
+	err = get_batt_ocv(cm, &batt_ocv);
 	if (err) {
-		dev_err(cm->dev, "%s: get_batt_uV error(%d)\n", __func__, err);
+		dev_err(cm->dev, "%s: get_batt_ocV error(%d)\n", __func__, err);
 		return;
 	}
 
-	diff = desc->fullbatt_uV - batt_uV;
+	diff = desc->fullbatt_uV - batt_ocv;
 	if (diff < 0)
 		return;
 
 	dev_info(cm->dev, "VBATT dropped %duV after full-batt\n", diff);
 
-	if (diff > desc->fullbatt_vchkdrop_uV) {
+	if (diff >= desc->fullbatt_vchkdrop_uV) {
 		try_charger_restart(cm);
 		uevent_notify(cm, "Recharging");
 	}
