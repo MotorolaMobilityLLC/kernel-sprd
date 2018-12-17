@@ -39,6 +39,7 @@
 #include <linux/bitops.h>
 #include <linux/init_task.h>
 #include <linux/uaccess.h>
+#include <linux/avc_backtrace.h>
 
 #include "internal.h"
 #include "mount.h"
@@ -312,6 +313,11 @@ static int acl_permission_check(struct inode *inode, int mask)
 	 */
 	if ((mask & ~mode & (MAY_READ | MAY_WRITE | MAY_EXEC)) == 0)
 		return 0;
+#ifdef CONFIG_SECURITY_SELINUX
+	if (avc_backtrace_enable == 1)
+		pr_err("check supplement group pid:%d comm:%s, uid:%d, gid:%d \n",
+		current->pid, current->comm, inode->i_uid.val, inode->i_gid.val);
+#endif
 	return -EACCES;
 }
 
