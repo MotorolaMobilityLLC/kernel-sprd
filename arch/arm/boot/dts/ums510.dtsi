@@ -11,6 +11,8 @@
 #include "ums510-modem.dtsi"
 #include "ums510-qos.dtsi"
 / {
+	cpuinfo_hardware = "Unisoc UMS510";
+
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
