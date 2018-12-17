@@ -205,6 +205,8 @@ source "drivers/fpga/Kconfig"
 
 source "drivers/fsi/Kconfig"
 
+source "drivers/cpuhotplug/Kconfig"
+
 source "drivers/tee/Kconfig"
 
 source "drivers/mux/Kconfig"

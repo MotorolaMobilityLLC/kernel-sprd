@@ -2868,6 +2868,11 @@ CONFIG_NVMEM=y
 # FSI support
 #
 # CONFIG_FSI is not set
+
+#
+# CPU Hotplug and touchboost scaling
+#
+# CONFIG_SPRD_CPU_HOTPLUG_GOV is not set
 # CONFIG_TEE is not set
 
 #

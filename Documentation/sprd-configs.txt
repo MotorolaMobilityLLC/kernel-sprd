@@ -8865,6 +8865,13 @@ CONFIG_SPRD_CPROC
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sprd cproc module for modem boot.
+CONFIG_SPRD_CPU_HOTPLUG_GOV
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] cpu hotplug
+	[must] user
+	[function] Enable cpu hotplug based on PM_QoS for IPA, powerhint and etc.
 CONFIG_SPRD_DEBUG
 	[arch] all
 	[plat] all
@@ -8928,6 +8935,13 @@ CONFIG_SPRD_IQ
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable wcdma iq log function.
+CONFIG_SPRD_JPG
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make,code
+	[subsys] misc
+	[must] user
+	[function] The JPG is the hardware accelerator for jpeg standard image compression.
 CONFIG_SPRD_LOOK_AT
 	[arch] all
 	[plat] all
@@ -10505,10 +10519,3 @@ CONFIG_ZSMALLOC
 	[must] user
 	[function] The Zsmalloc allocator attempts to store multiple
 		   objects of the same size on a composite page
-CONFIG_SPRD_JPG
-        [arch] all
-        [plat] sharkl5
-        [field] menu,make,code
-        [subsys] misc
-        [must] user
-        [function] The JPG is the hardware accelerator for jpeg standard image compression.
