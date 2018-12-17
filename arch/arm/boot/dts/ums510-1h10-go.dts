@@ -35,7 +35,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 rw rootwait androidboot.hardware=ums510_1h10 androidboot.selinux=permissive";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 rw rootwait androidboot.hardware=ums510_1h10 maxcpus=1 androidboot.selinux=permissive";
 	};
 
 	ipi: interrupt-controller {
@@ -65,23 +65,9 @@
 		};
 	};
 
-	reserved_memory: reserved-memory {
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges;
-
-		smem_reserved: sipc-mem@87800000{
-			reg = <0x87800000 0x00800000>;
-		};
-
-		fd_reserved: face-mem@be5c0000{
-			reg = <0xbe5c0000 0x00a00000>;
-		};
-	};
-
 	sprd-sysdump {
 		memory-region = <&memory>;
-		memory-region-re = <&cp_reserved>, <&smem_reserved>;
+		memory-region-re = <&ddrbist_reserved>, <&cp_reserved>, <&smem_reserved>;
 	};
 
 	sprd-iq {
@@ -93,12 +79,13 @@
 	ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
-		#size-cells = <1>;
+		#size-cells = <0>;
 
 		heap@1 {
 			reg = <1>;
 			label = "carveout_mm";
 			type = <2>;
+			memory-region = <&mm_reserved>;
 		};
 
 		heap@2 {
@@ -127,15 +114,16 @@
 		avdd12-supply = <&vddwcn>;
 		avdd33-supply = <&vddwifipa>;
 		dcxo18-supply = <&vddsim2>;
-		clock-names = "clk_32k";
-		clocks = <&aonapb_gate CLK_AUX0>;
+		clock-names = "clk_32k","source","enable";
+		clocks = <&aon_clk CLK_AUX0>,
+			 <&ext_32k>,
+			 <&aonapb_gate CLK_AUX0_EB>;
+
 		sdhci-name = <&sdio1>;
 		sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/wcnmodem";
 		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
-		common_chip;
-		adma_tx;
-		adma_rx;
-		pwrseq;
+		adma-tx;
+		adma-rx;
 		post-power-on-delay-ms = <20>;
 	};
 
@@ -162,7 +150,7 @@
 		voltage-min-design-microvolt = <3450000>;
 		ocv-capacity-celsius = <20>;
 		ocv-capacity-table-0 = <4360000 100>, <4249000 95>, <4189000 90>,
-					<4033000 85>, <4081000 80>, <4034000 75>,
+					<4133000 85>, <4081000 80>, <4034000 75>,
 					<3991000 70>, <3953000 65>, <3910000 60>,
 					<3866000 55>, <3836000 50>, <3813000 45>,
 					<3795000 40>, <3782000 35>, <3774000 30>,
@@ -259,6 +247,16 @@
 	};
 };
 
+&reserved_memory {
+	mm_reserved: mm-mem@a0dc0000 {
+		reg = <0xa0dc0000 0x1c000000>;
+	};
+
+	overlay_reserved: overlay-mem@bcdc0000 {
+		reg = <0xbcdc0000 0x01800000>;
+	};
+};
+
 &thm_zone {
 	bd_thmzone: board-thmzone {
 		polling-delay-passive = <0>;
@@ -277,6 +275,90 @@
 
 &uart1 {
 	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};
+
+&i2c0 {
+	status = "okay";
+
+	sensor_main: sensor-main@20 {
+		compatible = "sprd,sensor-main";
+		reg = <0x20>;
+
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR0>,<&mm_gate CLK_MM_SENSOR0_EB>,
+			<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+			<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama0>;
+		vddcamd-supply = <&vddcamd0>;
+		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <0>;
+		csi = <&csi0>;
+		reset-gpios = <&ap_gpio 44 0>;
+		power-down-gpios = <&ap_gpio 46 0>;
+		mipi-switch-en-gpios = <&ap_gpio 55 0>;
+		/* 0:front, 1:main sensor */
+		mipi-switch-mode-gpios = <&ap_gpio 156 0>;
+
+		status = "okay";
+	};
+};
+
+&i2c1 {
+	status = "okay";
+
+	sensor_sub: sensor-sub@20 {
+		compatible = "sprd,sensor-sub";
+		reg = <0x20>;
+
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+			<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+			<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama0>;
+		vddcamd-supply = <&vddcamd0>;
+		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <0>;
+		csi = <&csi0>;
+		reset-gpios = <&ap_gpio 41 0>;
+		power-down-gpios = <&ap_gpio 40 0>;
+		mipi-switch-en-gpios = <&ap_gpio 55 0>;
+		/* 0:front, 1:main sensor */
+		mipi-switch-mode-gpios = <&ap_gpio 156 0>;
+
+		status = "okay";
+	};
+
+	sensor_main2: sensor-main2@6c {
+		compatible = "sprd,sensor-main2";
+		reg = <0x6c>;
+
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+			<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+			<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama1>;
+		vddcamd-supply = <&vddcamd1>;
+		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <3>;
+		csi = <&csi1>;
+		reset-gpios = <&ap_gpio 45 0>;
+		power-down-gpios = <&ap_gpio 47 0>;
+
+		status = "okay";
+	};
 };
 
 &i2c5 {
@@ -331,12 +413,12 @@
 &dsi {
 	status = "okay";
 	#address-cells = <1>;
-	#size-cells = <1>;
+	#size-cells = <0>;
 
-	panel {
+	panel: panel {
 		compatible = "sprd,generic-mipi-panel";
 		#address-cells = <1>;
-		#size-cells = <1>;
+		#size-cells = <0>;
 		reg = <0>;
 
 		sprd,force-attached = "lcd_r61350_truly_mipi_hd";
@@ -401,6 +483,10 @@
 	status = "okay";
 };
 
+&vddldo0 {
+	regulator-always-on;
+};
+
 &pmic_fgu {
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-real = <21500>;
@@ -408,6 +494,15 @@
 };
 
 &pwms {
+	status = "okay";
+};
+
+&vsp {
+	status = "okay";
+};
+
+&jpg {
+
 	status = "okay";
 };
 

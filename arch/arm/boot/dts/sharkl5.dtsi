@@ -175,16 +175,12 @@
 
 			mm_domain: mm_domain {
 				compatible = "sprd,mm-domain";
-				syscon-names = "chip_id0",
-					"chip_id1",
-					"force_shutdown",
+				syscon-names = "force_shutdown",
 					"shutdown_en",
 					"power_state",
 					"qos_ar",
 					"qos_aw";
-				syscons = <&aon_apb_regs REG_AON_APB_AON_CHIP_ID0 MASK_AON_APB_AON_CHIP_ID0>,
-					<&aon_apb_regs REG_AON_APB_AON_CHIP_ID1 MASK_AON_APB_AON_CHIP_ID1>,
-					<&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
+				syscons = <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
 					<&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>,
 					<&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_MM_TOP_STATE>,
 					<&mm_ahb_regs REG_MM_AHB_MM_QOS MASK_MM_AHB_AR_QOS_THRESHOLD_MM>,
@@ -433,6 +429,24 @@
 				sprd,ip-version = <0x200>;
 				status = "disable";
 			};
+
+			jpg: jpg-codec@62700000{
+				compatible = "sprd,sharkl5-jpg";
+				reg = <0 0x62700000 0 0xc000>;
+				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
+
+				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
+						MASK_MM_AHB_JPG_SOFT_RST>,
+					<&aon_apb_regs
+						REG_AON_APB_APB_EB0
+						MASK_AON_APB_MM_EB>;
+				syscon-names = "reset",
+					"aon_apb_eb";
+				jpg_qos = <&jpg_qos>;
+				/*iommus = <&iommu_jpg>;*/
+				status = "disabled";
+			};
+
 			dcam: dcam@62900000 {
 				compatible = "sprd,dcam";
 				reg = <0x62900000 0x1000>,
@@ -707,7 +721,7 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 			ranges;
-			/*
+
 			ap_dma: dma-controller@20000000 {
 				compatible = "sprd,sharkl5-dma";
 				reg = <0x20000000 0x4000>;
@@ -717,7 +731,7 @@
 				clock-names = "enable";
 				clocks = <&apahb_gate CLK_DMA_EB>;
 			};
-			*/
+
 			dpu: dpu@20300000 {
 				compatible = "sprd,display-processor";
 				reg = <0x0 0x20300000 0x0 0x1000>;
@@ -839,10 +853,28 @@
 
 				syscons = <&ap_ahb_regs REG_AP_AHB_AHB_RST
 					(MASK_AP_AHB_VPP_SOFT_RST |
-					MASK_AP_AHB_VSP_GLOBAL_SOFT_RST)>;
-				syscon-names = "reset";
+					MASK_AP_AHB_VSP_GLOBAL_SOFT_RST)>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PD_AP_VSP_CFG
+					MASK_PMU_APB_PD_AP_VSP_FORCE_SHUTDOWN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PD_AP_VSP_CFG
+					MASK_PMU_APB_PD_AP_VSP_AUTO_SHUTDOWN_EN>
+					,
+					<&pmu_apb_regs
+					REG_PMU_APB_PWR_STATUS0_DBG
+					MASK_PMU_APB_PD_AP_VSP_STATE>,
+					<&aon_apb_regs
+					REG_AON_APB_APB_EB1
+					MASK_AON_APB_AP_SYST_EB>;
+				syscon-names = "reset",
+					"pmu_vsp_force_shutdown",
+					"pmu_vsp_auto_shutdown",
+					"pmu_pwr_status",
+					"vsp_domain_eb";
 
 				/*iommus = <&iommu_vsp>;*/
+				sprd,qos = <&vsp_qos>;
 				status = "disabled";
 			};
 
@@ -857,7 +889,9 @@
 			eic_debounce: gpio@32000000 {
 				compatible = "sprd,sharkl5-eic-debounce";
 				reg = <0x32020000 0x80>,
-				      <0x32030000 0x80>;
+				      <0x32030000 0x80>,
+				      <0x32230000 0x80>,
+				      <0x32270000 0x80>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -868,7 +902,9 @@
 			eic_latch: gpio@32000080 {
 				compatible = "sprd,sharkl5-eic-latch";
 				reg = <0x32020080 0x20>,
-				      <0x32030080 0x20>;
+				      <0x32030080 0x20>,
+				      <0x32230080 0x20>,
+				      <0x32270080 0x20>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -879,7 +915,9 @@
 			eic_async: gpio@320000a0 {
 				compatible = "sprd,sharkl5-eic-async";
 				reg = <0x320200a0 0x20>,
-				      <0x320300a0 0x20>;
+				      <0x320300a0 0x20>,
+				      <0x322300a0 0x20>,
+				      <0x322700a0 0x20>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -890,7 +928,9 @@
 			eic_sync: gpio@320000c0 {
 				compatible = "sprd,sharkl5-eic-sync";
 				reg = <0x320200c0 0x20>,
-				      <0x320300c0 0x20>;
+				      <0x320300c0 0x20>,
+				      <0x322300c0 0x20>,
+				      <0x322700c0 0x20>;
 				gpio-controller;
 				#gpio-cells = <2>;
 				interrupt-controller;
@@ -1205,14 +1245,14 @@
 				compatible = "sprd,sharkl5-pinctrl";
 				reg = <0x32450000 0x10000>;
 
-				vbc_iis3_0: iis-matrix-cfg-inf0@a {
+				vbc_iis3_0: iis-matrix-cfg-inf0@e {
 					pins = "SHARKL5_IIS_INF0_SYS_SEL";
-					sprd,control = <0xa>;
+					sprd,control = <0xe>;
 				};
 
-				vbc_iism0_0: iis-matrix-cfg-inf0@d {
+				vbc_iism0_0: iis-matrix-cfg-inf0@f {
 					pins = "SHARKL5_IIS_INF0_SYS_SEL";
-					sprd,control = <0xd>;
+					sprd,control = <0xf>;
 				};
 
 				vbc_iis_to_pad: vbc-iis-inf-sys@0 {
@@ -1251,17 +1291,17 @@
 						"AP", "WTLCP", "AUDCP", "PUBCP",
 						"USBOTG", "CM4";
 					sprd,bm-type =
-						<AXI>, <AXI>, <AXI>, <AXI>,
+						<AXI>, <AXI>, <AXI>,
 						<AXI>, <AXI>, <AXI>;
 					sprd,bm-dap = <0>, <1>, <2>, <3>,
 						<4>, <5>;
 					sprd,bm-config =
+						<ENABLE MON_WRITE MON_INSIDE>,
+						<ENABLE MON_WRITE MON_INSIDE>,
+						<ENABLE MON_WRITE MON_INSIDE>,
+						<ENABLE MON_WRITE MON_INSIDE>,
 						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>;
+						<ENABLE MON_WRITE MON_INSIDE>;
 					sprd,bm-id =
 						<DISABLE 0 AXIID>,
 						<DISABLE 0 AXIID>,
@@ -1270,8 +1310,12 @@
 						<DISABLE 0 AXIID>,
 						<DISABLE 0 AXIID>;
 					sprd,bm-ranges =
-						<0 0>, <0 0>, <0 0>,
-						<0 0>, <0 0>, <0 0>;
+						<0x327d0000 0x327d0018>,
+						<0x327d0000 0x327d0018>,
+						<0x327d0000 0x327d0018>,
+						<0x027d0000 0x027d0018>,
+						<0 0>,
+						<0x327d0000 0x327d0018>;
 				};
 			};
 
@@ -1421,20 +1465,37 @@
 					<DISABLE MON_INSIDE MON_WRITE>,
 					<DISABLE MON_INSIDE MON_WRITE>;
 				sprd,id-config =
-					<MPUID 0xffff>, <MPUID 0xffff>,
-					<MPUID 0xffff>, <MPUID 0xffff>,
-					<MPUID 0xffff>, <MPUID 0xffff>,
-					<MPUID 0xffff>, <MPUID 0xffff>,
-					<MPUID 0xffff>, <MPUID 0xffff>,
-					<MPUID 0xffff>, <MPUID 0xffff>,
-					<MPUID 0xffff>, <MPUID 0xffff>,
-					<MPUID 0xffff>, <MPUID 0xffff>;
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>;
 				sprd,port-map = <0>, <1>, <2>, <3>, <4>,
 						<5>, <6>, <0>, <0>, <0>,
 						<0>, <0>, <0>, <0>, <0>,
 						<0>;
 				sprd,ddr-offset = <0x80000000>;
 				status = "disabled";
+			};
+
+			ptm_trace: ptm@31060000 {
+				compatible = "sprd,sharkl5-ptm";
+				reg = <0x0 0x31060000 0x0 0x10000>,
+					<0x0 0x3c002000 0x0 0x1000>,
+					<0x0 0x3c003000 0x0 0x1000>,
+					<0x0 0x3c006000 0x0 0x1000>;
+				interrupts = <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "clk_cs","cs_src";
+				clocks = <&aon_clk CLK_CSSYS>,
+					<&pll2 CLK_TWPLL_153M6>;
+				sprd,funnel-port = <3>;
+				sprd,ddr-chn = <7>;
+				sprd,chn-name = "CPU", "GPU", "DPU/DCAM",
+					"ISP", "AP/VSP/AON", "WTLCP",
+					"PUBCP/AUDCP";
 			};
 		};
 	};

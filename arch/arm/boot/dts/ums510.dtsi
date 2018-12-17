@@ -20,14 +20,12 @@
 				core0 {
 					cpu = <&CPU0>;
 				};
-/*
 				core1 {
 					cpu = <&CPU1>;
 				};
 				core2 {
 					cpu = <&CPU2>;
 				};
-*/
 			};
 			cluster1 {
 				core0 {
@@ -44,7 +42,6 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
-/*
 		CPU1: cpu@100 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a55","arm,armv8";
@@ -61,7 +58,6 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
-*/
 		CPU3: cpu@300 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a75","arm,armv8";
@@ -198,7 +194,7 @@
 		v2m_0: v2m@0 {
 			compatible = "arm,gic-v2m-frame";
 			msi-controller;
-			reg = <0 0 0x1000>;
+			reg = <0 0x1000>;
 		};
 	};
 
@@ -450,6 +446,31 @@
 };
 
 &vsp {
-	clock-names = "clk_ahb_gate_vsp_eb";
-	clocks = <&apahb_gate 2>;
+	clock-names = "clk_ahb_gate_vsp_eb",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_384m",
+			"clk_vsp";
+	clocks = <&apahb_gate CLK_VSP_EB>,
+			<&pll2 CLK_TWPLL_256M>,
+			<&pll2 CLK_TWPLL_307M2>,
+			<&pll2 CLK_TWPLL_384M>,
+			<&ap_clk CLK_VSP>;
+};
+
+&jpg {
+	clock-names = "jpg_domain_eb",
+			"jpg_dev_eb",
+			"jpg_ckg_eb",
+			"jpg_clk",
+			"clk_src_128m",
+			"clk_src_192m",
+			"clk_src_256m";
+	clocks = <&aonapb_gate CLK_MM_EB>,
+			<&mm_gate CLK_MM_JPG_EB>,
+			<&mm_gate CLK_MM_CKG_EB>,
+			<&mm_clk CLK_JPG>,
+			<&pll2 CLK_TWPLL_128M>,
+			<&pll2 CLK_TWPLL_192M>,
+			<&pll2 CLK_TWPLL_256M>;
 };

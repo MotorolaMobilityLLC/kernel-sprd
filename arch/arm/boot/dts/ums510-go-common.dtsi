@@ -50,7 +50,7 @@
 
 	thm_zone: thermal-zones {
 
-		prometheus0_thmzone: prometheus0-thmzone {
+		prometheus_thmzone: prometheus-thmzone {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&ap_thm0 0>;
@@ -68,13 +68,13 @@
 			thermal-sensors = <&ap_thm0 2>;
 		};
 
-		prometheus1_thmzone: prometheus1-thmzone {
+		prometheus0_thmzone: prometheus0-thmzone {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&ap_thm0 3>;
 		};
 
-		cputop_thmzone: cputop-thmzone {
+		ank_thmzone: ank-thmzone {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&ap_thm1 0>;
@@ -94,7 +94,7 @@
 	};
 
 	reserved_memory: reserved-memory {
-		#address-cells = <2>;
+		#address-cells = <1>;
 		#size-cells = <1>;
 		ranges;
 
@@ -135,10 +135,6 @@
 
 		pstore: pstore@9f000000{
 			reg = <0x9F000000 0x4000>;
-		};
-
-		overlay_reserved: overlay-mem@bcdc0000{
-			reg = <0xbcdc0000 0x01800000>;
 		};
 
 		fb_reserved: framebuffer-mem@befc0000{
