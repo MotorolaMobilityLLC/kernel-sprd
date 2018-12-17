@@ -26,6 +26,7 @@
 #include <linux/kernel_stat.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
+#include <linux/pm_qos.h>
 #include <linux/slab.h>
 #include <linux/suspend.h>
 #include <linux/syscore_ops.h>
@@ -1081,9 +1082,18 @@ static void handle_update(struct work_struct *work)
 	cpufreq_update_policy(cpu);
 }
 
+static int pm_qos_clusterx_freq_handler(struct notifier_block *nb,
+		unsigned long val, void *v)
+{
+	struct cpufreq_policy *policy = container_of(nb, struct cpufreq_policy, pm_qos_freq_nb);
+
+	return cpufreq_driver_target(policy, policy->target_freq, CPUFREQ_RELATION_L);
+}
+
 static struct cpufreq_policy *cpufreq_policy_alloc(unsigned int cpu)
 {
 	struct cpufreq_policy *policy;
+	int cluster_id;
 	int ret;
 
 	policy = kzalloc(sizeof(*policy), GFP_KERNEL);
@@ -1114,6 +1124,27 @@ static struct cpufreq_policy *cpufreq_policy_alloc(unsigned int cpu)
 	INIT_WORK(&policy->update, handle_update);
 
 	policy->cpu = cpu;
+	cluster_id = topology_physical_package_id(policy->cpu);
+	switch (cluster_id) {
+	case CPU_CLUSTER0:
+		policy->pm_qos_freq_nb = (struct notifier_block){
+			.notifier_call = pm_qos_clusterx_freq_handler,
+		};
+		pm_qos_add_notifier(PM_QOS_CLUSTER0_FREQ_MAX, &policy->pm_qos_freq_nb);
+		pm_qos_add_notifier(PM_QOS_CLUSTER0_FREQ_MIN, &policy->pm_qos_freq_nb);
+		break;
+	case CPU_CLUSTER1:
+		policy->pm_qos_freq_nb = (struct notifier_block){
+			.notifier_call = pm_qos_clusterx_freq_handler,
+		};
+		pm_qos_add_notifier(PM_QOS_CLUSTER1_FREQ_MAX, &policy->pm_qos_freq_nb);
+		pm_qos_add_notifier(PM_QOS_CLUSTER1_FREQ_MIN, &policy->pm_qos_freq_nb);
+		break;
+	default:
+		pr_warn("more cluster id is not support yet!\n");
+		break;
+	}
+
 	return policy;
 
 err_free_real_cpus:
@@ -1154,6 +1185,7 @@ static void cpufreq_policy_free(struct cpufreq_policy *policy)
 {
 	unsigned long flags;
 	int cpu;
+	int cluster_id;
 
 	/* Remove policy from list */
 	write_lock_irqsave(&cpufreq_driver_lock, flags);
@@ -1162,6 +1194,21 @@ static void cpufreq_policy_free(struct cpufreq_policy *policy)
 	for_each_cpu(cpu, policy->related_cpus)
 		per_cpu(cpufreq_cpu_data, cpu) = NULL;
 	write_unlock_irqrestore(&cpufreq_driver_lock, flags);
+
+	cluster_id = topology_physical_package_id(policy->cpu);
+	switch (cluster_id) {
+	case CPU_CLUSTER0:
+		pm_qos_remove_notifier(PM_QOS_CLUSTER0_FREQ_MAX, &policy->pm_qos_freq_nb);
+		pm_qos_remove_notifier(PM_QOS_CLUSTER0_FREQ_MIN, &policy->pm_qos_freq_nb);
+		break;
+	case CPU_CLUSTER1:
+		pm_qos_remove_notifier(PM_QOS_CLUSTER1_FREQ_MAX, &policy->pm_qos_freq_nb);
+		pm_qos_remove_notifier(PM_QOS_CLUSTER1_FREQ_MIN, &policy->pm_qos_freq_nb);
+		break;
+	default:
+		pr_warn("more cluster id is not support yet!\n");
+		break;
+	};
 
 	cpufreq_policy_put_kobj(policy);
 	free_cpumask_var(policy->real_cpus);
@@ -1521,6 +1568,21 @@ unsigned int cpufreq_quick_get_max(unsigned int cpu)
 	return ret_freq;
 }
 EXPORT_SYMBOL(cpufreq_quick_get_max);
+
+unsigned int cpufreq_quick_get_target(unsigned int cpu)
+{
+	struct cpufreq_policy *policy;
+	unsigned int ret_freq = 0;
+
+	policy = cpufreq_cpu_get(cpu);
+	if (policy) {
+		ret_freq = policy->target_freq;
+		cpufreq_cpu_put(policy);
+	}
+
+	return ret_freq;
+}
+EXPORT_SYMBOL(cpufreq_quick_get_target);
 
 static unsigned int __cpufreq_get(struct cpufreq_policy *policy)
 {
@@ -1951,9 +2013,25 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 {
 	unsigned int old_target_freq = target_freq;
 	int index;
+	unsigned int qos_max_freq, qos_min_freq;
+	unsigned int cluster_id;
+
+	policy->target_freq = target_freq;
 
 	if (cpufreq_disabled())
 		return -ENODEV;
+
+	/* Make sure that target freq is within qos request range */
+	cluster_id = topology_physical_package_id(policy->cpu);
+	if (CPU_CLUSTER0 == cluster_id) {
+		qos_max_freq = pm_qos_request(PM_QOS_CLUSTER0_FREQ_MAX);
+		qos_min_freq = pm_qos_request(PM_QOS_CLUSTER0_FREQ_MIN);
+	} else if (CPU_CLUSTER1 == cluster_id) {
+		qos_max_freq = pm_qos_request(PM_QOS_CLUSTER1_FREQ_MAX);
+		qos_min_freq = pm_qos_request(PM_QOS_CLUSTER1_FREQ_MIN);
+	} else
+		pr_warn("more cluster id is not support yet!\n");
+	target_freq = clamp_val(target_freq, qos_min_freq, qos_max_freq);
 
 	/* Make sure that target_freq is within supported range */
 	target_freq = clamp_val(target_freq, policy->min, policy->max);
