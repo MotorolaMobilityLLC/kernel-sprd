@@ -29,7 +29,7 @@
 
 	chosen {
 		stdout-path = &uart0;
-		bootargs = "earlycon loglevel=1 skip_initramfs init=/init root=/dev/memdisk.0 rootfstype=ext4 rw rootwait androidboot.hardware=sharkl5pro_zebu androidboot.selinux=permissive";
+		bootargs = "earlycon loglevel=1 skip_initramfs init=/init root=/dev/memdisk.0 rootfstype=ext4 rw rootwait androidboot.hardware=ums518_zebu androidboot.selinux=permissive";
 	};
 
 	reserved-memory {
