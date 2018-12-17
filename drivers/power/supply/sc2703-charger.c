@@ -657,17 +657,20 @@ static int sc2703_charger_get_online(struct sc2703_charger_info *info,
 
 static int sc2703_charger_set_status(struct sc2703_charger_info *info, u32 val)
 {
-	struct regmap *regmap = info->regmap;
-	u32 chg_en;
+	int ret = 0;
 
-	if (!val)
-		chg_en = 0;
-	else
-		chg_en = SC2703_CHG_EN_MASK;
+	if (!val && info->charging) {
+		sc2703_charger_stop_charge(info);
+		info->charging = false;
+	} else if (!info->charging) {
+		ret = sc2703_charger_start_charge(info);
+		if (ret)
+			dev_err(info->dev, "start charge failed\n");
+		else
+			info->charging = true;
+	}
 
-
-	return regmap_update_bits(regmap, SC2703_DCDC_CTRL_A,
-				  SC2703_CHG_EN_MASK, chg_en);
+	return ret;
 }
 
 static int sc2703_charger_feed_watchdog(struct sc2703_charger_info *info,
