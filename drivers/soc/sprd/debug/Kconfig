@@ -12,6 +12,13 @@ config SPRD_LOOK_AT
 	  such as the register of each module, DDR address space, etc.
 	  When in doubt, say n
 
+config SPRD_CPU_USAGE
+	bool "open sprd cpu rate compute"
+	depends on SPRD_DEBUG
+	default y
+	help
+	  CPU usage statistics
+
 config SPRD_EIRQSOFF
 	bool "spreadtrum IRQ disable time debug"
 	depends on IRQSOFF_TRACER && SPRD_DEBUG

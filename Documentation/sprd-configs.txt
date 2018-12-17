@@ -8935,6 +8935,13 @@ CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[subsys] cpu hotplug
 	[must] user
 	[function] Enable cpu hotplug based on PM_QoS for IPA, powerhint and etc.
+CONFIG_SPRD_CPU_USAGE
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] This function is used to record cpu usage for each cpu.
 CONFIG_SPRD_DEBUG
 	[arch] all
 	[plat] all
