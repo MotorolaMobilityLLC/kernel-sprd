@@ -753,6 +753,7 @@
 				sprd,ip = "dpu-lite-r2p0";
 				sprd,soc = "sharkl5";
 				sprd,qos = <&dpu_qos>;
+				sprd,wb-memory = <&wb_reserved>;
 
 				dpu_port: port {
 					dpu_out: endpoint {
