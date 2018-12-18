@@ -11,15 +11,6 @@ sharkl3 configs file architecture
         =======>||if (BOARD_TEE_CONFIG == trusty)
                 ||{
                 ||        kernel/sprd-diffconfig/sharkl3/arm64/trusty_diff_config
-                ||
-                ||        if (BOARD_FINGERPRINT_CONFIG == microarray)
-                ||        {
-                ||                kernel/sprd-diffconfig/sharkl3/common/microarray_diff_config
-                ||        }
-                ||        else if (BOARD_FINGERPRINT_CONFIG == sunwave)
-                ||        {
-                ||                kernel/sprd-diffconfig/sharkl3/common/sunwave
-                ||        }
                 ||}
                 =======>||if (BOARD_WCN_CONFIG == ext)
                         ||{

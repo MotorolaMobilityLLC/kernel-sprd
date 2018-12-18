@@ -52,22 +52,6 @@ ifeq ($(strip $(BOARD_EXT_PMIC_CONFIG)),SC2703)
 TARGET_DEVICE_EXT_PMIC_CONFIG := $(KERNEL_DIFF_CONFIG_COMMON)/ext_pmic_sc2703_diff_config
 endif
 
-ifeq ($(strip $(BOARD_FINGERPRINT_CONFIG)),sunwave)
-TARGET_DEVICE_SUNWAVE_CONFIG := $(KERNEL_DIFF_CONFIG_COMMON)/sunwave_diff_config
-endif
-
-ifeq ($(strip $(BOARD_FINGERPRINT_CONFIG)),microarray)
-TARGET_DEVICE_MICROARRAY_CONFIG := $(KERNEL_DIFF_CONFIG_COMMON)/microarray_diff_config
-endif
-
-ifeq ($(strip $(BOARD_FINGERPRINT_CONFIG)),chipone)
-TARGET_DEVICE_CHIPONE_CONFIG := $(KERNEL_DIFF_CONFIG)/chipone_diff_config
-endif
-
-ifeq ($(strip $(BOARD_FINGERPRINT_CONFIG)),goodix)
-TARGET_DEVICE_GOODIX_CONFIG := $(KERNEL_DIFF_CONFIG)/goodix_diff_config
-endif
-
 ifeq ($(strip $(BOARD_WCN_CONFIG)),ext)
 TARGET_DEVICE_WCN_CONFIG := $(KERNEL_DIFF_CONFIG_COMMON)/wcn_ext_diff_config
 endif
@@ -104,22 +88,6 @@ endif
 
 ifeq ($(strip $(BOARD_EXT_PMIC_CONFIG)),SC2703)
 	$(call sprd_create_user_config, $(KERNEL_CONFIG), $(TARGET_DEVICE_EXT_PMIC_CONFIG))
-endif
-
-ifeq ($(strip $(BOARD_FINGERPRINT_CONFIG)),sunwave)
-	$(call sprd_create_user_config, $(KERNEL_CONFIG), $(TARGET_DEVICE_SUNWAVE_CONFIG))
-endif
-
-ifeq ($(strip $(BOARD_FINGERPRINT_CONFIG)),microarray)
-	$(call sprd_create_user_config, $(KERNEL_CONFIG), $(TARGET_DEVICE_MICROARRAY_CONFIG))
-endif
-
-ifeq ($(strip $(BOARD_FINGERPRINT_CONFIG)),chipone)
-	$(call sprd_create_user_config, $(KERNEL_CONFIG), $(TARGET_DEVICE_CHIPONE_CONFIG))
-endif
-
-ifeq ($(strip $(BOARD_FINGERPRINT_CONFIG)),chipone)
-	$(call sprd_create_user_config, $(KERNEL_CONFIG), $(TARGET_DEVICE_GOODIX_CONFIG))
 endif
 
 ifeq ($(strip $(BOARD_WCN_CONFIG)),ext)
