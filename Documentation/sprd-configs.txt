@@ -1111,6 +1111,13 @@ CONFIG_CHARGER_SC2731
 	[subsys]
 	[must]
 	[function]
+CONFIG_FAST_CHARGER_SC2730
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] power
+	[must] user
+	[function] This function is used to enable fast charger
 CONFIG_CLEANCACHE
 	[arch] all
 	[plat] all
