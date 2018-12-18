@@ -5983,6 +5983,13 @@ CONFIG_NETFILTER_XT_MATCH_POLICY
 	[subsys] net
 	[must] user
 	[function] vts require, IPsec "policy" match support
+CONFIG_NETFILTER_XT_MATCH_QTAGUID
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] vts require,"quota, tag, owner" match and stats support
 CONFIG_NETFILTER_XT_MATCH_QUOTA
 	[arch] all
 	[plat] all
@@ -6006,6 +6013,13 @@ CONFIG_NETFILTER_XT_MATCH_QUOTA2_LOG
 	[function] This option adds an "L2TP" match, which allows you to
 		  his option allows `quota2' to log ONCE when a
 		  quota limit.
+CONFIG_NETFILTER_XT_MATCH_SOCKET
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] vts require, "socket" match support
 CONFIG_NETFILTER_XT_MATCH_SCTP
 	[arch] all
 	[plat] sharkl5
@@ -6059,6 +6073,13 @@ CONFIG_NETFILTER_XT_MATCH_U32
 	[subsys] net
 	[must] user
 	[function] vts require, "u32" match support
+CONFIG_NETFILTER_XT_MATCH_BPF
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] vts require, "bpf" match support
 CONFIG_NETFILTER_XT_NAT
 	[arch] all
 	[plat] all
@@ -6676,6 +6697,20 @@ CONFIG_NF_CONNTRACK_IPV6
 	[subsys] net
 	[must] user
 	[function] vts require, IPv6 connection tracking support
+CONFIG_NF_SOCKET_IPV4
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] vts require, IPv4 connection socket support
+CONFIG_NF_SOCKET_IPV6
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] vts require, IPv6 connection socket support
 CONFIG_NF_CONNTRACK_IRC
 	[arch] all
 	[plat] all
@@ -9103,6 +9138,20 @@ CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sipx function between modem and AP.
+CONFIG_SPRD_SIPC_SETH
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] This driver supports the Spreadtrum Ethernet based on share memory.
+CONFIG_SPRD_SIPC_SETH_RAWIP
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function]  Support using zero copy rawip transfer
 CONFIG_SPRD_SOC_THERMAL
 	[arch] all
 	[plat] sharkl5
