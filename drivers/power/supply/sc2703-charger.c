@@ -723,7 +723,7 @@ static void sc2703_charger_work(struct work_struct *data)
 			goto out;
 
 		info->charging = true;
-	} else if (!info->limit && info->charging) {
+	} else if ((!info->limit && info->charging) || !present) {
 		/* Stop charging */
 		info->charging = false;
 		sc2703_charger_stop_charge(info);
