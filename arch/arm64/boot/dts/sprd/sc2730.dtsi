@@ -103,6 +103,14 @@
 			nvmem-cell-names = "cc_calib";
 		};
 
+		pmic_fchg: fchg@400 {
+			compatible = "sprd,sc27xx-fast-chg", "sprd,sc2730-fast-charger";
+			reg = <0x400>;
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <5 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
+		};
+
 		pmic_adc: adc@504 {
 			compatible = "sprd,sc27xx-adc", "sprd,sc2730-adc";
 			reg = <0x504>;

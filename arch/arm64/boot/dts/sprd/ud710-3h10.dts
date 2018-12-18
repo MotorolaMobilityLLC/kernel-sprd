@@ -261,3 +261,9 @@
 	sprd,calib-resistance-real = <20000>;
 	sprd,calib-resistance-spec = <20000>;
 };
+
+&pmic_fchg {
+	sprd,input-voltage-microvolt = <9000000>;
+	phys = <&hsphy>;
+	status = "okay";
+};
