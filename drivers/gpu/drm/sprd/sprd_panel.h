@@ -18,7 +18,9 @@
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_panel.h>
+#include <linux/backlight.h>
 #include <linux/of.h>
+#include <linux/regulator/consumer.h>
 
 enum {
 	CMD_CODE_INIT = 0,
@@ -44,17 +46,30 @@ enum {
 };
 
 struct dsi_cmd_desc {
-	uint8_t data_type;
-	uint8_t wait;
-	uint8_t wc_h;
-	uint8_t wc_l;
-	uint8_t payload[];
+	u8 data_type;
+	u8 wait;
+	u8 wc_h;
+	u8 wc_l;
+	u8 payload[];
+};
+
+struct gpio_timing {
+	u32 gpio;
+	u32 level;
+	u32 delay;
+};
+
+struct power_sequence {
+	u32 items;
+	struct gpio_timing *timing;
 };
 
 struct panel_info {
 	/* common parameters */
 	struct device_node *of_node;
 	struct drm_display_mode mode;
+	struct power_sequence pwr_on_seq;
+	struct power_sequence pwr_off_seq;
 	const void *cmds[CMD_CODE_MAX];
 	int cmds_len[CMD_CODE_MAX];
 
@@ -71,9 +86,7 @@ struct sprd_panel {
 	struct mipi_dsi_device *slave;
 	struct panel_info info;
 	struct backlight_device *backlight;
-
-	bool prepared;
-	bool enabled;
+	struct regulator *supply;
 };
 
 #endif

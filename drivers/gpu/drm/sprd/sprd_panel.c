@@ -11,7 +11,7 @@
  * GNU General Public License for more details.
  */
 
-#include <linux/backlight.h>
+#include <linux/gpio.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <video/mipi_display.h>
@@ -66,16 +66,29 @@ static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 	return 0;
 }
 
+static void sprd_panel_power_ctrl(struct power_sequence *seq)
+{
+	u32 items, i;
+	struct gpio_timing *timing;
+
+	items = seq->items;
+	timing = seq->timing;
+
+	for (i = 0; i < items; i++) {
+		gpio_direction_output(timing[i].gpio, timing[i].level);
+		mdelay(timing[i].delay);
+	}
+}
+
 static int sprd_panel_unprepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
 
 	DRM_INFO("%s()\n", __func__);
 
-	if (!panel->prepared)
-		return 0;
+	sprd_panel_power_ctrl(&panel->info.pwr_off_seq);
 
-	panel->prepared = false;
+	regulator_disable(panel->supply);
 
 	return 0;
 }
@@ -83,13 +96,15 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 static int sprd_panel_prepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
+	int ret;
 
 	DRM_INFO("%s()\n", __func__);
 
-	if (panel->prepared)
-		return 0;
+	ret = regulator_enable(panel->supply);
+	if (ret < 0)
+		DRM_ERROR("enable lcd regulator failed\n");
 
-	panel->prepared = true;
+	sprd_panel_power_ctrl(&panel->info.pwr_on_seq);
 
 	return 0;
 }
@@ -100,14 +115,9 @@ static int sprd_panel_disable(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
-	if (!panel->enabled)
-		return 0;
-
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_CODE_SLEEP_IN],
 			     panel->info.cmds_len[CMD_CODE_SLEEP_IN]);
-
-	panel->enabled = false;
 
 	return 0;
 }
@@ -118,14 +128,9 @@ static int sprd_panel_enable(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
-	if (panel->enabled)
-		return 0;
-
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_CODE_INIT],
 			     panel->info.cmds_len[CMD_CODE_INIT]);
-
-	panel->enabled = true;
 
 	return 0;
 }
@@ -164,6 +169,71 @@ static const struct drm_panel_funcs sprd_panel_funcs = {
 	.prepare = sprd_panel_prepare,
 	.unprepare = sprd_panel_unprepare,
 };
+
+static int sprd_panel_gpio_request(struct power_sequence *seq)
+{
+	u32 items;
+	struct gpio_timing *timing;
+	int i;
+
+	items = seq->items;
+	timing = seq->timing;
+
+	for (i = 0; i < items; i++)
+		gpio_request(timing[i].gpio, NULL);
+
+	return 0;
+}
+
+static int of_parse_power_seq(struct device_node *np,
+				struct panel_info *info)
+{
+	struct property *prop;
+	int bytes, rc;
+	u32 *p;
+
+	prop = of_find_property(np, "sprd,power-on-sequence", &bytes);
+	if (!prop) {
+		DRM_ERROR("sprd,power-on-sequence property not found\n");
+		return -EINVAL;
+	}
+
+	p = kzalloc(bytes, GFP_KERNEL);
+	if (!p)
+		return -ENOMEM;
+	rc = of_property_read_u32_array(np, "sprd,power-on-sequence",
+					p, bytes / 4);
+	if (rc) {
+		DRM_ERROR("parse sprd,power-on-sequence failed\n");
+		kfree(p);
+		return rc;
+	}
+
+	info->pwr_on_seq.items = bytes / 12;
+	info->pwr_on_seq.timing = (struct gpio_timing *)p;
+
+	prop = of_find_property(np, "sprd,power-off-sequence", &bytes);
+	if (!prop) {
+		DRM_ERROR("sprd,power-off-sequence property not found");
+		return -EINVAL;
+	}
+
+	p = kzalloc(bytes, GFP_KERNEL);
+	if (!p)
+		return -ENOMEM;
+	rc = of_property_read_u32_array(np, "sprd,power-off-sequence",
+					p, bytes / 4);
+	if (rc) {
+		DRM_ERROR("parse sprd,power-off-sequence failed\n");
+		kfree(p);
+		return rc;
+	}
+
+	info->pwr_off_seq.items = bytes / 12;
+	info->pwr_off_seq.timing = (struct gpio_timing *)p;
+
+	return 0;
+}
 
 static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 {
@@ -248,6 +318,12 @@ static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 	else
 		info->use_dcs = false;
 
+	rc = of_parse_power_seq(lcd_node, info);
+	if (!rc)
+		sprd_panel_gpio_request(&info->pwr_off_seq);
+	else
+		DRM_ERROR("parse lcd power sequence failed\n");
+
 	p = of_get_property(lcd_node, "sprd,initial-command", &bytes);
 	if (p) {
 		info->cmds[CMD_CODE_INIT] = p;
@@ -303,12 +379,6 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 	if (!panel)
 		return -ENOMEM;
 
-	ret = sprd_panel_parse_dt(slave->dev.of_node, panel);
-	if (ret) {
-		DRM_ERROR("parse panel info failed\n");
-		return ret;
-	}
-
 	bl_node = of_parse_phandle(slave->dev.of_node,
 					"sprd,backlight", 0);
 	if (bl_node) {
@@ -325,6 +395,16 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 		}
 	} else
 		DRM_WARN("backlight node not found\n");
+
+	panel->supply = devm_regulator_get(&slave->dev, "power");
+	if (IS_ERR(panel->supply))
+		DRM_ERROR("get lcd regulator failed\n");
+
+	ret = sprd_panel_parse_dt(slave->dev.of_node, panel);
+	if (ret) {
+		DRM_ERROR("parse panel info failed\n");
+		return ret;
+	}
 
 	ret = sprd_panel_device_create(&slave->dev, panel);
 	if (ret) {
@@ -353,7 +433,6 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 		return ret;
 	}
 	panel->slave = slave;
-	panel->enabled = true;
 
 	sprd_panel_sysfs_init(&panel->dev);
 	mipi_dsi_set_drvdata(slave, panel);
