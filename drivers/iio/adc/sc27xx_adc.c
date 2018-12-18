@@ -58,7 +58,7 @@
 #define SC27XX_ADC_CHANNEL_MAX		32
 
 /* Timeout (ms) for ADC data conversion according to ADC datasheet */
-#define SC27XX_ADC_RDY_TIMEOUT	100
+#define SC27XX_ADC_RDY_TIMEOUT	1000
 
 /* ADC voltage ratio definition */
 #define SC27XX_VOLT_RATIO(n, d)		\
