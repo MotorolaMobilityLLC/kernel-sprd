@@ -8865,6 +8865,20 @@ CONFIG_SPRD_BUSMONITOR
 	[subsys] debug
 	[must] debug
 	[function] Enable busmonitor core function
+CONFIG_SPRD_CLUSTER0_THERMAL
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] thermal
+	[must] user
+	[function] enable virtual sensor driver for cluster0
+CONFIG_SPRD_CLUSTER1_THERMAL
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] thermal
+	[must] user
+	[function] enable virtual sensor driver for cluster1
 CONFIG_SPRD_COMMON_CLK
 	[arch] all
 	[plat] all
@@ -8893,13 +8907,6 @@ CONFIG_SPRD_DEBUG
 	[subsys] soc
 	[must] debug
 	[function] Enable/disable sprd debug function.
-CONFIG_SPRD_POWER_DEBUG
-	[arch] all
-	[plat] sharkl5
-	[field] make
-	[subsys] soc
-	[must] debug
-	[function] Enable/disable sprd power debug function.
 CONFIG_SPRD_DJTAG
 	[arch] all
 	[plat] sharkl5
@@ -9005,6 +9012,13 @@ CONFIG_SPRD_PMIC_SYSCON
 	[subsys] soc
 	[must] debug
 	[function] This function is used to calibrate PMIC 26M.
+CONFIG_SPRD_POWER_DEBUG
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] soc
+	[must] debug
+	[function] Enable/disable sprd power debug function.
 CONFIG_SPRD_PTM
 	[arch] all
 	[plat] sharkl5
@@ -9089,6 +9103,13 @@ CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sipx function between modem and AP.
+CONFIG_SPRD_SOC_THERMAL
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] thermal
+	[must] user
+	[function] enable virtual sensor for soc
 CONFIG_SPRD_SYSDUMP
 	[arch] all
 	[plat] sharkl5
