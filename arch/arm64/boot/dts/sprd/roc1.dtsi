@@ -314,6 +314,13 @@
 				sprd,version = <3>;
 			};
 
+			adi_bus: spi@32100000 {
+				compatible = "sprd,sharkl5-adi", "sprd,roc1-adi";
+				reg = <0 0x32100000 0 0x100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
 			pin_controller: pinctrl@3243c000 {
 				compatible = "sprd,roc1-pinctrl";
 				reg = <0 0x3243c000 0 0x20000>;
