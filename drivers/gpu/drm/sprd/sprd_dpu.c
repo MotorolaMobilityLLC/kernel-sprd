@@ -741,7 +741,7 @@ static int sprd_dpu_device_create(struct sprd_dpu *dpu,
 	dpu->dev.class = display_class;
 	dpu->dev.parent = parent;
 	dpu->dev.of_node = parent->of_node;
-	dev_set_name(&dpu->dev, "dpu");
+	dev_set_name(&dpu->dev, "dispc%d", dpu->ctx.id);
 	dev_set_drvdata(&dpu->dev, dpu);
 
 	err = device_register(&dpu->dev);
