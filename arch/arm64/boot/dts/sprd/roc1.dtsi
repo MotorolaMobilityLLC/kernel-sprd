@@ -313,6 +313,11 @@
 				sprd,core-cnt = <7>;
 				sprd,version = <3>;
 			};
+
+			pin_controller: pinctrl@3243c000 {
+				compatible = "sprd,roc1-pinctrl";
+				reg = <0 0x3243c000 0 0x20000>;
+			};
 		};
 
 		ap-apb {
