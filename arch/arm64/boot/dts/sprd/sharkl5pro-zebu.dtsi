@@ -195,6 +195,11 @@
 		};
 	};
 
+	psci {
+		compatible = "arm,psci-0.2";
+		method = "smc";
+	};
+
 	idle-states {
 		entry-method = "arm,psci";
 		CORE_SLEEP_0: core-sleep-0 {
