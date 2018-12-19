@@ -6,4 +6,5 @@ obj-$(CONFIG_SPRD_PMIC_SYSCON)	+= sprd_pmic_syscon.o
 obj-y				+= modem/
 obj-y				+= domain/
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/
+obj-$(CONFIG_SPRD_SYSDUMP)      += debug/sysdump/
 obj-y				+= performance/
