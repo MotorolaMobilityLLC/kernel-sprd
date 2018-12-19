@@ -254,7 +254,6 @@
 			hsphy: hsphy@20100000 {
 				compatible = "sprd,roc1-phy";
 				sprd,syscon-enable = <&aon_apb_regs>;
-				sprd,syscon-apahb = <&ap_ahb_regs>;
 				sprd,syscon-anag3 = <&anlg_phy_g3_regs>;
 				sprd,vdd-voltage = <3300000>;
 				#phy-cells = <0>;
