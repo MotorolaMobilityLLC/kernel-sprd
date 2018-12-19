@@ -162,7 +162,38 @@ static const struct of_device_id sprd_iommu_ids[] = {
 	  .data = (void *)(IOMMU_EXROC1_EPP)},
 
 	{ .compatible = "sprd,iommuexroc1-edp",
+
 	  .data = (void *)(IOMMU_EXROC1_EDP)},
+
+	{ .compatible = "sprd,iommuvaul5p-dispc",
+	   .data = (void *)(IOMMU_VAUL5P_DISP)},
+
+	{ .compatible = "sprd,iommuvaul5p-vsp",
+	   .data = (void *)(IOMMU_VAUL5P_VSP)},
+
+	{ .compatible = "sprd,iommuvaul5p-dcam",
+	   .data = (void *)(IOMMU_VAUL5P_DCAM)},
+
+	{ .compatible = "sprd,iommuvaul5p-isp",
+	   .data = (void *)(IOMMU_VAUL5P_ISP)},
+
+	{ .compatible = "sprd,iommuvaul5p-cpp",
+	   .data = (void *)(IOMMU_VAUL5P_CPP)},
+
+	{ .compatible = "sprd,iommuvaul5p-jpg",
+	   .data = (void *)(IOMMU_VAUL5P_JPG)},
+
+	{ .compatible = "sprd,iommuvaul5p-fd",
+	  .data = (void *)(IOMMU_VAUL5P_FD)},
+
+	{ .compatible = "sprd,iommuvaul5p-ai",
+	  .data = (void *)(IOMMU_VAUL5P_AI)},
+
+	{ .compatible = "sprd,iommuvaul5p-epp",
+	  .data = (void *)(IOMMU_VAUL5P_EPP)},
+
+	{ .compatible = "sprd,iommuvaul5p-edp",
+	  .data = (void *)(IOMMU_VAUL5P_EDP)},
 };
 
 static struct platform_driver iommu_driver = {
@@ -1077,6 +1108,45 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 
 		break;
 	}
+	/*for roc1 iommu*/
+	case IOMMU_VAUL5P_VSP:
+	case IOMMU_VAUL5P_DCAM:
+	case IOMMU_VAUL5P_CPP:
+	case IOMMU_VAUL5P_JPG:
+	case IOMMU_VAUL5P_DISP:
+	case IOMMU_VAUL5P_ISP:
+	case IOMMU_VAUL5P_FD:
+	case IOMMU_VAUL5P_AI:
+	case IOMMU_VAUL5P_EPP:
+	case IOMMU_VAUL5P_EDP:
+	{
+		pdata->iommuex_rev = 12;
+		iommu_dev->ops = &sprd_iommuvau_hw_ops;
+		if (pdata->id == IOMMU_VAUL5P_DISP)
+			pdata->id = IOMMU_EX_DISP;
+		else if (pdata->id == IOMMU_VAUL5P_VSP)
+			pdata->id = IOMMU_EX_VSP;
+		else if (pdata->id == IOMMU_VAUL5P_DCAM)
+			pdata->id = IOMMU_EX_DCAM;
+		else if (pdata->id == IOMMU_VAUL5P_ISP)
+			pdata->id = IOMMU_EX_NEWISP;
+		else if (pdata->id == IOMMU_VAUL5P_CPP)
+			pdata->id = IOMMU_EX_CPP;
+		else if (pdata->id == IOMMU_VAUL5P_JPG)
+			pdata->id = IOMMU_EX_JPG;
+		else if (pdata->id == IOMMU_VAUL5P_FD)
+			pdata->id = IOMMU_EX_FD;
+		else if (pdata->id == IOMMU_VAUL5P_AI)
+			pdata->id = IOMMU_EX_AI;
+		else if (pdata->id == IOMMU_VAUL5P_EPP)
+			pdata->id = IOMMU_EX_EPP;
+		else if (pdata->id == IOMMU_VAUL5P_EDP)
+			pdata->id = IOMMU_EX_EDP;
+
+
+		break;
+	}
+
 	default:
 	{
 		IOMMU_ERR("unknown iommu id %d\n", pdata->id);

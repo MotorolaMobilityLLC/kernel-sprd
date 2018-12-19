@@ -1,16 +1,6 @@
-#include "sprd_iommuex_hal_register.h"
+#include "sprd_iommuvau_hal_register.h"
 
-bool mmu_ex_check_en(ulong ctrl_base_addr, u32 iommu_id)
-{
-	ulong reg_addr = ctrl_base_addr;
-
-	if (iommu_id == IOMMU_EX_ISP)
-		reg_addr += 0x20;
-
-	return (reg_read_dword(reg_addr) & 0x1) ? true : false;
-}
-
-void mmu_ex_enable(ulong ctrl_base_addr, u32 iommu_id, u32 mmu_enable)
+void mmu_vau_enable(ulong ctrl_base_addr, u32 iommu_id, u32 mmu_enable)
 {
 	ulong reg_addr = ctrl_base_addr;
 
@@ -21,13 +11,13 @@ void mmu_ex_enable(ulong ctrl_base_addr, u32 iommu_id, u32 mmu_enable)
 }
 
 /*
-* sharkl3 dpu register is shadowed to internal ram, so we have to set
-* vaorbypass, clkgate and enable in a single function.
-*/
-void mmu_ex_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
+ * sharkl3 dpu register is shadowed to internal ram, so we have to set
+ * vaorbypass, clkgate and enable in a single function.
+ */
+void mmu_vau_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 	u32 iommu_id)
 {
-	ulong reg_addr = ctrl_base_addr;
+	ulong reg_addr = ctrl_base_addr + MMU_EN;
 	u32  reg_value = 0;
 
 	if (iommu_id == IOMMU_EX_ISP) {
@@ -38,32 +28,33 @@ void mmu_ex_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 		reg_write_dword(reg_addr, 0);
 		reg_addr += 0xC;
 		reg_value = reg_read_dword(reg_addr);
-		reg_write_dword(reg_addr, reg_value | 0x1);
-	} else if (iommu_id == IOMMU_EX_DCAM || iommu_id == IOMMU_EX_NEWISP ||
-		   iommu_id == IOMMU_EX_VSP || iommu_id == IOMMU_EX_JPG ||
-		   iommu_id == IOMMU_EX_CPP) {
+		reg_write_dword(reg_addr, reg_addr | 0x1);
+	} else if (iommu_id == IOMMU_EX_DCAM  || iommu_id == IOMMU_EX_VSP ||
+		iommu_id == IOMMU_EX_JPG || iommu_id == IOMMU_EX_CPP) {
 		reg_value = reg_read_dword(reg_addr);
-		reg_write_dword(reg_addr, reg_value | 0x3);
+		reg_write_dword(reg_addr, reg_addr | 0x3);
 	} else {
 		reg_value = reg_read_dword(reg_addr);
-		reg_write_dword(reg_addr, reg_value | 0x13);
+		reg_write_dword(reg_addr, reg_addr | 0x13);
 	}
 
 }
 
 
-void mmu_ex_clock_gate_enable(ulong ctrl_base_addr, u32 cg_enable)
+void mmu_vau_clock_gate_enable(ulong ctrl_base_addr, u32 cg_enable)
 {
 	ulong reg_addr = ctrl_base_addr;
 
 	putbit(reg_addr, cg_enable, 1);
 }
 
-void mmu_ex_vaout_bypass_enable(ulong ctrl_base_addr, u32 iommu_id,
+
+void mmu_vau_vaout_bypass_enable(ulong ctrl_base_addr, u32 iommu_id,
 		u32 iommu_type, bool vaor_bp_en)
 {
 	ulong reg_addr = ctrl_base_addr;
 	u32 reg_value;
+
 	if (iommu_id == IOMMU_EX_ISP) {
 		/*just isp need write and read*/
 		reg_value = vaor_bp_en ? 0xffffffff : 0x0;
@@ -80,7 +71,7 @@ void mmu_ex_vaout_bypass_enable(ulong ctrl_base_addr, u32 iommu_id,
 }
 
 /*just isp_iommu need,be similar to update*/
-void mmuex_tlb_enable(ulong ctrl_base_addr, u32 r_enable, u32 w_enable)
+void mmuvau_tlb_enable(ulong ctrl_base_addr, u32 r_enable, u32 w_enable)
 {
 	ulong reg_addr = ctrl_base_addr + 0x18;
 
@@ -97,7 +88,7 @@ void mmuex_tlb_enable(ulong ctrl_base_addr, u32 r_enable, u32 w_enable)
 }
 
 /*just isp_iommu need,be similar to update*/
-void mmu_ex_tlb_update(ulong ctrl_base_addr, enum sprd_iommu_ch_type ch_type,
+void mmu_vau_tlb_update(ulong ctrl_base_addr, enum sprd_iommu_ch_type ch_type,
 		       u32 ch_id)
 {
 	ulong reg_addr = ctrl_base_addr;
@@ -120,13 +111,14 @@ void mmu_ex_tlb_update(ulong ctrl_base_addr, enum sprd_iommu_ch_type ch_type,
 	reg_write_dword(reg_addr, new_value);
 }
 
-void mmu_ex_update(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
+void mmu_vau_update(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
 {
 	ulong reg_addr = ctrl_base_addr + UPDATE_OFFSET;
+
 	reg_write_dword(reg_addr, 0xffffffff);
 }
 
-void mmu_ex_first_vpn(ulong ctrl_base_addr, u32 iommu_id, u32 vp_addr)
+void mmu_vau_first_vpn(ulong ctrl_base_addr, u32 iommu_id, u32 vp_addr)
 {
 	ulong reg_addr = ctrl_base_addr;
 
@@ -138,14 +130,14 @@ void mmu_ex_first_vpn(ulong ctrl_base_addr, u32 iommu_id, u32 vp_addr)
 	reg_write_dword(reg_addr, (vp_addr >> MMU_MAPING_PAGESIZE_SHIFFT));
 }
 
-void mmu_ex_vpn_range(ulong ctrl_base_addr, u32 iommu_id, u32 vp_range)
+void mmu_vau_vpn_range(ulong ctrl_base_addr, u32 iommu_id, u32 vp_range)
 {
 	ulong reg_addr = ctrl_base_addr + VPN_RANGE_OFFSET;
 
 	reg_write_dword(reg_addr, vp_range);
 }
 
-void mmu_ex_first_ppn(ulong ctrl_base_addr, u32 iommu_id, ulong pp_addr)
+void mmu_vau_first_ppn(ulong ctrl_base_addr, u32 iommu_id, ulong pp_addr)
 {
 	ulong reg_addr = ctrl_base_addr;
 
@@ -164,14 +156,14 @@ void mmu_ex_first_ppn(ulong ctrl_base_addr, u32 iommu_id, ulong pp_addr)
 }
 
 /*just isp_iommu need,max is 256K*/
-void mmuex_pagetable_size(ulong ctrl_base_addr, ulong pt_size)
+void mmuvau_pagetable_size(ulong ctrl_base_addr, ulong pt_size)
 {
 	ulong reg_addr = ctrl_base_addr + 0x30;
 
 	reg_write_dword(reg_addr, pt_size & 0x3ffff);
 }
 
-void mmu_ex_default_ppn(ulong ctrl_base_addr, u32 iommu_id, ulong pp_addr)
+void mmu_vau_default_ppn(ulong ctrl_base_addr, u32 iommu_id, ulong pp_addr)
 {
 	ulong reg_addr = ctrl_base_addr;
 
@@ -183,7 +175,7 @@ void mmu_ex_default_ppn(ulong ctrl_base_addr, u32 iommu_id, ulong pp_addr)
 	reg_write_dword(reg_addr, (pp_addr >> MMU_MAPING_PAGESIZE_SHIFFT));
 }
 
-void mmu_ex_pt_update_arqos(ulong ctrl_base_addr, u32 arqos)
+void mmu_vau_pt_update_arqos(ulong ctrl_base_addr, u32 arqos)
 {
 	ulong reg_addr = ctrl_base_addr + PT_UPDATE_QOS_OFFSET;
 
@@ -191,7 +183,7 @@ void mmu_ex_pt_update_arqos(ulong ctrl_base_addr, u32 arqos)
 }
 
 /*1M align*/
-void mmu_ex_mini_ppn1(ulong ctrl_base_addr, u32 iommu_id, ulong ppn1)
+void mmu_vau_mini_ppn1(ulong ctrl_base_addr, u32 iommu_id, ulong ppn1)
 {
 	ulong reg_addr = 0;
 
@@ -203,7 +195,7 @@ void mmu_ex_mini_ppn1(ulong ctrl_base_addr, u32 iommu_id, ulong ppn1)
 	reg_write_dword(reg_addr, (ppn1 >> 20));
 }
 
-void mmu_ex_ppn1_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn1_range)
+void mmu_vau_ppn1_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn1_range)
 {
 	ulong reg_addr = 0;
 
@@ -215,7 +207,7 @@ void mmu_ex_ppn1_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn1_range)
 	reg_write_dword(reg_addr, (ppn1_range >> 20));
 }
 
-void mmu_ex_mini_ppn2(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2)
+void mmu_vau_mini_ppn2(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2)
 {
 	ulong reg_addr = 0;
 
@@ -227,7 +219,7 @@ void mmu_ex_mini_ppn2(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2)
 	reg_write_dword(reg_addr, (ppn2 >> 20));
 }
 
-void mmu_ex_ppn2_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2_range)
+void mmu_vau_ppn2_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2_range)
 {
 	ulong reg_addr = 0;
 
@@ -239,7 +231,7 @@ void mmu_ex_ppn2_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2_range)
 	reg_write_dword(reg_addr, (ppn2_range >> 20));
 }
 
-void mmu_ex_reg_authority(ulong ctrl_base_addr, u32 iommu_id, ulong reg_ctrl)
+void mmu_vau_reg_authority(ulong ctrl_base_addr, u32 iommu_id, ulong reg_ctrl)
 {
 	ulong reg_addr = ctrl_base_addr;
 
@@ -251,7 +243,7 @@ void mmu_ex_reg_authority(ulong ctrl_base_addr, u32 iommu_id, ulong reg_ctrl)
 	putbit(reg_addr, reg_ctrl, 0);
 }
 
-void mmu_ex_write_pate_totable(ulong pgt_base_addr,
+void mmu_vau_write_pate_totable(ulong pgt_base_addr,
 	u32 entry_index, u32 ppn_addr)
 {
 	ulong pgt_addr = pgt_base_addr + entry_index * 4;
@@ -259,7 +251,7 @@ void mmu_ex_write_pate_totable(ulong pgt_base_addr,
 	reg_write_dword(pgt_addr, ppn_addr);
 }
 
-u32 mmu_ex_read_page_entry(ulong page_table_addr, u32 entry_index)
+u32 mmu_vau_read_page_entry(ulong page_table_addr, u32 entry_index)
 {
 	ulong reg_addr = page_table_addr + entry_index * 4;
 	u32 phy_addr = 0;
@@ -268,7 +260,7 @@ u32 mmu_ex_read_page_entry(ulong page_table_addr, u32 entry_index)
 	return phy_addr;
 }
 
-void mmu_ex_frc_copy(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
+void mmu_vau_frc_copy(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
 {
 	ulong reg_addr;
 
@@ -277,3 +269,11 @@ void mmu_ex_frc_copy(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
 		putbit(reg_addr, 1, 0);
 	}
 }
+
+void mmu_vau_int_enable(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
+{
+	ulong reg_addr = ctrl_base_addr + MMU_INT_EN;
+
+	reg_write_dword(reg_addr, 0xff);
+}
+

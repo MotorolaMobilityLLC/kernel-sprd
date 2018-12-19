@@ -8,9 +8,8 @@
 /*Declares a handle to the iommu object*/
 SPRD_DECLARE_HANDLE(sprd_iommu_hdl);
 
-extern struct sprd_iommu_func_tbl iommu_func_tbl;
-extern struct sprd_iommu_func_tbl iommupf_func_tbl;
 extern struct sprd_iommu_func_tbl iommuex_func_tbl;
+extern struct sprd_iommu_func_tbl iommuvau_func_tbl;
 
 /********************************************************
 * @enum SPRDChannelType
@@ -31,6 +30,7 @@ enum sprd_iommu_type {
 	SPRD_IOMMUEX_SHARKL3,
 	SPRD_IOMMUEX_SHARKL5,
 	SPRD_IOMMUEX_ROC1,
+	SPRD_IOMMUVAU_SHARKL5P,
 	SPRD_IOMMU_NOT_SUPPORT,
 };
 

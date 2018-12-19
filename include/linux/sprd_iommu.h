@@ -249,11 +249,21 @@ enum IOMMU_ID {
 	IOMMU_EXROC1_AI,
 	IOMMU_EXROC1_EPP,
 	IOMMU_EXROC1_EDP,
+	/*for sharkl5pro*/
+	IOMMU_VAUL5P_VSP,
+	IOMMU_VAUL5P_DCAM,
+	IOMMU_VAUL5P_CPP,
+	IOMMU_VAUL5P_JPG,
+	IOMMU_VAUL5P_DISP,
+	IOMMU_VAUL5P_ISP,
+	IOMMU_VAUL5P_FD,
+	IOMMU_VAUL5P_AI,
+	IOMMU_VAUL5P_EPP,
+	IOMMU_VAUL5P_EDP,
 	IOMMU_MAX,
 };
-extern struct sprd_iommu_ops sprd_iommu_hw_ops;
-extern struct sprd_iommu_ops sprd_iommupf_hw_ops;
 extern struct sprd_iommu_ops sprd_iommuex_hw_ops;
+extern struct sprd_iommu_ops sprd_iommuvau_hw_ops;
 
 #define IOMMU_TAG "[iommu]"
 
