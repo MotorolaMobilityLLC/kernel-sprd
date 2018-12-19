@@ -147,3 +147,7 @@
 	};
 
 };
+
+&adi_bus {
+	sprd,hw-channels = <30 0x1820>;
+};
