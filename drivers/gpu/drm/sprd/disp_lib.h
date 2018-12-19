@@ -28,8 +28,10 @@ struct ops_list {
 	struct ops_entry *entry;
 };
 
-int str_to_u32_array(const char *p, unsigned int base, u32 array[]);
-int str_to_u8_array(const char *p, unsigned int base, u8 array[]);
+int str_to_u32_array(const char *p, u32 base, u32 array[]);
+int str_to_u8_array(const char *p, u32 base, u8 array[]);
+int dump_bmp32(const char *p, u32 width, u32 height,
+		bool bgra, const char *filename);
 
 void *disp_ops_attach(const char *str, struct list_head *head);
 int disp_ops_register(struct ops_entry *entry, struct list_head *head);
