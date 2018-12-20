@@ -439,6 +439,10 @@
 };
 
 &sdio0 {
+	 cd-gpios = <&eic_async 19 0>;
+};
+
+&sdio0 {
 	sprd,sdr104-dly = <0x86 0x6e 0x70 0x70>;
 	sprd,sdr50-dly = <0x7f 0x7f 0xf6 0xf6>;
 	vmmc-supply = <&vddsdcore>;
