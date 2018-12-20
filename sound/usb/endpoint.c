@@ -20,6 +20,7 @@
 #include <linux/ratelimit.h>
 #include <linux/usb.h>
 #include <linux/usb/audio.h>
+#include <linux/usb/hcd.h>
 #include <linux/slab.h>
 
 #include <sound/core.h>
@@ -35,15 +36,6 @@
 
 #define EP_FLAG_RUNNING		1
 #define EP_FLAG_STOPPING	2
-
-void sprd_musb_i2s_config(int ep_num, int mono,
-	int is_pcm_24, int width, int rate, int is_offload_mod)
-	__attribute__((weak, alias("__sprd_musb_i2s_config")));
-static void __sprd_musb_i2s_config(int ep_num, int mono,
-	int is_pcm_24, int width, int rate, int is_offload_mod)
-{
-	pr_debug("%s\n", __func__);
-}
 
 /*
  * snd_usb_endpoint is a model that abstracts everything related to an
@@ -980,12 +972,13 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 {
 	int err;
 	unsigned int i;
-			struct snd_usb_substream *subs = ep->data_subs;
-			int is_mono;
-			int is_pcm_24bit;
-			int is_offload_mod;
-			int iis_width;
-			int ofld_rate;
+	struct snd_usb_substream *subs = ep->data_subs;
+	struct usb_hcd *hcd = bus_to_hcd(subs->dev->bus);
+	int is_mono;
+	int is_pcm_24bit;
+	int is_offload_mod;
+	int iis_width;
+	int ofld_rate;
 
 	if (atomic_read(&ep->chip->shutdown))
 		return -EBADFD;
@@ -1066,8 +1059,8 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 			is_pcm_24bit ? "data 24bit" : "data 16bit",
 			iis_width == USB_AUD_IIS_WIDTH_24 ?
 			"iis width 24bit" : "iis width 16bit");
-		sprd_musb_i2s_config(ep->ep_num, is_mono, is_pcm_24bit,
-			iis_width, 48, is_offload_mod);
+		hcd->driver->offload_config(hcd, ep->ep_num, is_mono,
+			is_pcm_24bit, iis_width, 48, is_offload_mod);
 	}
 
 	for (i = 0; i < ep->nurbs; i++) {
