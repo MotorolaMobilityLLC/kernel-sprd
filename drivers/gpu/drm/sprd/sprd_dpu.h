@@ -126,8 +126,8 @@ struct dpu_core_ops {
 	uint32_t (*isr)(struct dpu_context *ctx);
 	void (*ifconfig)(struct dpu_context *ctx);
 	void (*write_back)(struct dpu_context *ctx, int enable);
-//	void (*flip)(struct dpu_context *ctx,
-//		struct sprd_restruct_config *config);
+	void (*flip)(struct dpu_context *ctx,
+		     struct sprd_dpu_layer layers[], u8 count);
 	int (*capability)(struct dpu_context *ctx,
 			struct dpu_capability *cap);
 	void (*layer)(struct dpu_context *ctx, struct sprd_dpu_layer *layer);
@@ -191,6 +191,8 @@ struct sprd_dpu {
 	struct dpu_glb_ops *glb;
 	struct drm_pending_vblank_event *event;
 	struct notifier_block nb;
+	struct sprd_dpu_layer *layers;
+	u8 pending_planes;
 };
 
 extern struct list_head dpu_core_head;

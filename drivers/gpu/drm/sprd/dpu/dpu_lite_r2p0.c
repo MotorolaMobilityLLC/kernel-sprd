@@ -410,7 +410,6 @@ static u32 dpu_isr(struct dpu_context *ctx)
 
 	/* dpu stop done isr */
 	if (reg_val & DISPC_INT_DONE_MASK) {
-		ctx->is_stopped = true;
 		evt_stop = true;
 		wake_up_interruptible_all(&ctx->wait_queue);
 	}
@@ -455,22 +454,19 @@ static int32_t dpu_wait_stop_done(struct dpu_context *ctx)
 {
 	int rc;
 
-	/* if this function was called more than once without */
-	/* calling dpu_run() in the middle, return directly */
-	if (ctx->is_stopped && (!evt_stop)) {
-		pr_info("dpu has already stopped!\n");
+	if (ctx->is_stopped)
 		return 0;
-	}
 
-	/*wait for stop done interrupt*/
+	/* wait for stop done interrupt */
 	rc = wait_event_interruptible_timeout(ctx->wait_queue, evt_stop,
 					       msecs_to_jiffies(500));
 	evt_stop = false;
 
+	ctx->is_stopped = true;
+
 	if (!rc) {
 		/* time out */
 		pr_err("dpu wait for stop done time out!\n");
-		ctx->is_stopped = true;
 		return -1;
 	}
 
@@ -516,46 +512,22 @@ static void dpu_run(struct dpu_context *ctx)
 	if (!reg)
 		return;
 
-	evt_update = false;
+	reg->dpu_ctrl |= BIT(0);
 
-	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
-		if (ctx->is_stopped) {
-			/* dpu run */
-			reg->dpu_ctrl |= BIT(0);
+	ctx->is_stopped = false;
 
-			ctx->is_stopped = false;
-			pr_info("dpu run\n");
-		} else {
-			/*dpu register update trigger*/
-			reg->dpu_ctrl |= BIT(2);
+	pr_info("dpu run\n");
 
-			/*make sure all the regs are updated to the shadow*/
-			dpu_wait_update_done(ctx);
-		}
-
+	if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
 		/*
-		 * If the following interrupt was disabled in isr,
-		 * re-enable it.
+		 * If the panel read GRAM speed faster than
+		 * DSI write GRAM speed, it will display some
+		 * mass on screen when backlight on. So wait
+		 * a TE period after flush the GRAM.
 		 */
-		reg->dpu_int_en |= DISPC_INT_ERR_MASK |
-				DISPC_INT_FBC_PLD_ERR_MASK |
-				DISPC_INT_FBC_HDR_ERR_MASK |
-				DISPC_INT_MMU_VAOR_RD_MASK |
-				DISPC_INT_MMU_VAOR_WR_MASK |
-				DISPC_INT_MMU_INV_RD_MASK |
-				DISPC_INT_MMU_INV_WR_MASK;
-
-	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
-
-		/* dpu run */
-		reg->dpu_ctrl |= BIT(0);
-		ctx->is_stopped = false;
 		if (need_wait_te) {
-		/* when backlight on, read ram speed exceed write may */
-		/* display some mass on screen */
-			pr_info("dpu first run need wait te\n");
 			dpu_wait_stop_done(ctx);
-			/*wait te*/
+			/* wait for TE again */
 			mdelay(20);
 			need_wait_te = false;
 		}
@@ -964,6 +936,54 @@ static void dpu_layer(struct dpu_context *ctx,
 	pr_debug("start_x = %d, start_y = %d, start_w = %d, start_h = %d\n",
 				hwlayer->src_x, hwlayer->src_y,
 				hwlayer->src_w, hwlayer->src_h);
+}
+
+static void dpu_flip(struct dpu_context *ctx,
+		     struct sprd_dpu_layer layers[], u8 count)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	int i;
+
+	/*
+	 * Make sure the dpu is in stop status. DPU_LITE_R2P0 has no shadow
+	 * registers in EDPI mode. So the config registers can only be
+	 * updated in the rising edge of DPU_RUN bit.
+	 */
+	if (ctx->if_type == SPRD_DISPC_IF_EDPI)
+		dpu_wait_stop_done(ctx);
+
+	/* disable all the layers */
+	dpu_clean_all(ctx);
+
+	/* start configure dpu layers */
+	for (i = 0; i < count; i++)
+		dpu_layer(ctx, &layers[i]);
+
+	/* update trigger and wait */
+	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
+		if (!ctx->is_stopped) {
+			reg->dpu_ctrl |= BIT(2);
+			dpu_wait_update_done(ctx);
+		}
+
+		reg->dpu_int_en |= DISPC_INT_ERR_MASK;
+
+	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
+		reg->dpu_ctrl |= BIT(0);
+
+		ctx->is_stopped = false;
+	}
+
+	/*
+	 * If the following interrupt was disabled in isr,
+	 * re-enable it.
+	 */
+	reg->dpu_int_en |= DISPC_INT_FBC_PLD_ERR_MASK |
+			   DISPC_INT_FBC_HDR_ERR_MASK |
+			   DISPC_INT_MMU_VAOR_RD_MASK |
+			   DISPC_INT_MMU_VAOR_WR_MASK |
+			   DISPC_INT_MMU_INV_RD_MASK |
+			   DISPC_INT_MMU_INV_WR_MASK;
 }
 
 static void dpu_dpi_init(struct dpu_context *ctx)
@@ -1431,6 +1451,7 @@ static struct dpu_core_ops dpu_lite_r2p0_ops = {
 	.capability = dpu_capability,
 	.layer = dpu_layer,
 	.clean = dpu_clean,
+	.flip = dpu_flip,
 	.bg_color = dpu_bgcolor,
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,

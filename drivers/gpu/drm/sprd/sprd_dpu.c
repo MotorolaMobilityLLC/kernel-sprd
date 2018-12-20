@@ -82,7 +82,7 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	struct sprd_plane *p = to_sprd_plane(plane);
 	struct sprd_plane_state *s = to_sprd_plane_state(state);
 	struct sprd_dpu *dpu = crtc_to_dpu(plane->state->crtc);
-	struct sprd_dpu_layer layer = {};
+	struct sprd_dpu_layer *layer = &dpu->layers[p->index];
 	int i;
 
 	if (!dpu->ctx.is_inited) {
@@ -91,59 +91,58 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 		return;
 	}
 
-	layer.index = p->index;
-	layer.src_x = state->src_x >> 16;
-	layer.src_y = state->src_y >> 16;
-	layer.src_w = state->src_w >> 16;
-	layer.src_h = state->src_h >> 16;
-	layer.dst_x = state->crtc_x;
-	layer.dst_y = state->crtc_y;
-	layer.dst_w = state->crtc_w;
-	layer.dst_h = state->crtc_h;
-	layer.rotation = state->rotation;
-	layer.planes = fb->format->num_planes;
-	layer.format = fb->format->format;
-	layer.alpha = s->alpha;
-	layer.blending = s->blend_mode;
-	layer.xfbc = fb->modifier;
-	layer.header_size_r = s->fbc_hsize_r;
-	layer.header_size_y = s->fbc_hsize_y;
-	layer.header_size_uv = s->fbc_hsize_uv;
+	layer->index = p->index;
+	layer->src_x = state->src_x >> 16;
+	layer->src_y = state->src_y >> 16;
+	layer->src_w = state->src_w >> 16;
+	layer->src_h = state->src_h >> 16;
+	layer->dst_x = state->crtc_x;
+	layer->dst_y = state->crtc_y;
+	layer->dst_w = state->crtc_w;
+	layer->dst_h = state->crtc_h;
+	layer->rotation = state->rotation;
+	layer->planes = fb->format->num_planes;
+	layer->format = fb->format->format;
+	layer->alpha = s->alpha;
+	layer->blending = s->blend_mode;
+	layer->xfbc = fb->modifier;
+	layer->header_size_r = s->fbc_hsize_r;
+	layer->header_size_y = s->fbc_hsize_y;
+	layer->header_size_uv = s->fbc_hsize_uv;
 
 	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u\n",
-		  __func__, layer.alpha, layer.blending, layer.rotation);
+		  __func__, layer->alpha, layer->blending, layer->rotation);
 
 	DRM_DEBUG("%s() xfbc = %u, hsize_r = %u, hsize_y = %u, hsize_uv = %u\n",
-		  __func__, layer.xfbc, layer.header_size_r,
-		  layer.header_size_y, layer.header_size_uv);
+		  __func__, layer->xfbc, layer->header_size_r,
+		  layer->header_size_y, layer->header_size_uv);
 
-	for (i = 0; i < layer.planes; i++) {
+	for (i = 0; i < layer->planes; i++) {
 		obj = drm_gem_fb_get_obj(fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		layer.addr[i] = sprd_gem->dma_addr + fb->offsets[i];
-		layer.pitch[i] = fb->pitches[i];
+		layer->addr[i] = sprd_gem->dma_addr + fb->offsets[i];
+		layer->pitch[i] = fb->pitches[i];
 	}
 
-	if (dpu->core && dpu->core->layer)
-		dpu->core->layer(&dpu->ctx, &layer);
+	dpu->pending_planes++;
 }
 
 static void sprd_plane_atomic_disable(struct drm_plane *plane,
 				     struct drm_plane_state *old_state)
 {
 	struct sprd_plane *p = to_sprd_plane(plane);
-	struct sprd_dpu *dpu = crtc_to_dpu(old_state->crtc);
 
-	if (!dpu->ctx.is_inited) {
-		DRM_DEBUG("DPU is power off, layer %u disable ignore\n",
-			  p->index);
-		return;
-	}
-
+	/*
+	 * NOTE:
+	 * The dpu->core->flip() will disable all the planes each time.
+	 * So there is no need to impliment the atomic_disable() function.
+	 * But this function can not be removed, because it will change
+	 * to call atomic_update() callback instead. Which will cause
+	 * kernel panic in sprd_plane_atomic_update().
+	 *
+	 * We do nothing here but just print a debug log.
+	 */
 	DRM_DEBUG("%s() layer_id = %u\n", __func__, p->index);
-
-	if (dpu->core && dpu->core->clean)
-		dpu->core->clean(&dpu->ctx, p->index);
 }
 
 static void sprd_plane_reset(struct drm_plane *plane)
@@ -352,6 +351,11 @@ static struct drm_plane *sprd_plane_init(struct drm_device *drm,
 	if (dpu->core && dpu->core->capability)
 		dpu->core->capability(&dpu->ctx, &cap);
 
+	dpu->layers = kcalloc(cap.max_layers,
+				  sizeof(struct sprd_dpu_layer), GFP_KERNEL);
+	if (!dpu->layers)
+		return ERR_PTR(-ENOMEM);
+
 	for (i = 0; i < cap.max_layers; i++) {
 
 		p = kzalloc(sizeof(*p), GFP_KERNEL);
@@ -446,7 +450,9 @@ static void sprd_crtc_atomic_begin(struct drm_crtc *crtc,
 
 	DRM_DEBUG("%s()\n", __func__);
 
-	down(&dpu->ctx.refresh_lock);
+	memset(dpu->layers, 0, sizeof(*dpu->layers) * dpu->pending_planes);
+
+	dpu->pending_planes = 0;
 }
 
 static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
@@ -458,10 +464,11 @@ static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
 
 	DRM_DEBUG("%s()\n", __func__);
 
-	if (dpu->core && dpu->core->run && dpu->ctx.is_inited)
-		dpu->core->run(&dpu->ctx);
-
-	up(&dpu->ctx.refresh_lock);
+	if (dpu->core && dpu->core->flip && dpu->pending_planes) {
+		down(&dpu->ctx.refresh_lock);
+		dpu->core->flip(&dpu->ctx, dpu->layers, dpu->pending_planes);
+		up(&dpu->ctx.refresh_lock);
+	}
 
 	spin_lock_irq(&drm->event_lock);
 	if (crtc->state->event) {
