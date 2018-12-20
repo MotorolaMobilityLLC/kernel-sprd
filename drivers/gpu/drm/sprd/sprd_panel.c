@@ -13,6 +13,7 @@
 
 #include <linux/gpio.h>
 #include <linux/module.h>
+#include <linux/pm_runtime.h>
 #include <linux/of.h>
 #include <video/mipi_display.h>
 #include <video/of_display_timing.h>
@@ -449,9 +450,8 @@ static int sprd_panel_remove(struct mipi_dsi_device *slave)
 
 	DRM_INFO("%s()\n", __func__);
 
-	ret = sprd_panel_disable(&panel->base);
-	if (ret < 0)
-		DRM_ERROR("failed to disable panel: %d\n", ret);
+	sprd_panel_disable(&panel->base);
+	sprd_panel_unprepare(&panel->base);
 
 	ret = mipi_dsi_detach(slave);
 	if (ret < 0)
@@ -467,7 +467,13 @@ static void sprd_panel_shutdown(struct mipi_dsi_device *slave)
 {
 	struct sprd_panel *panel = mipi_dsi_get_drvdata(slave);
 
+	if (pm_runtime_suspended(slave->host->dev)) {
+		DRM_WARN("dsi is not initialized\n");
+		return;
+	}
+
 	sprd_panel_disable(&panel->base);
+	sprd_panel_unprepare(&panel->base);
 }
 
 static const struct of_device_id panel_of_match[] = {
