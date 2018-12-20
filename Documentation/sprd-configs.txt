@@ -798,9 +798,9 @@ CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] arm64
 	[plat] sharkl5
 	[field] make
-	[subsys] 	[subsys]cpufreq
-	[must] 	[must]user
-	[function] 	[function]Enable apcpu hardware dvfs function.
+	[subsys] cpufreq
+	[must] user
+	[function] Enable apcpu hardware dvfs function.
 CONFIG_ARM_THUMB
 	[arch] arm
 	[plat] sharkl5_32
@@ -2966,6 +2966,27 @@ CONFIG_EVENT_TRACING
 	[subsys] core
 	[must] debug
 	[function] The main swtich butten for event ftrace.
+CONFIG_EXFAT_FS
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] fs
+	[must]
+	[function] exfat filesystem.
+CONFIG_EXFAT_VIRTUAL_XATTR
+	[arch] all
+	[plat] all
+	[field] code
+	[subsys] fs
+	[must]
+	[function] exfat support extended attribute.
+CONFIG_EXFAT_VIRTUAL_XATTR_SELINUX_LABEL
+	[arch] all
+	[plat] all
+	[field] code
+	[subsys] fs
+	[must]
+	[function] exfat selinux label for sdcardf.
 CONFIG_EXPERT
 	[arch] all
 	[plat] all
@@ -9802,7 +9823,7 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[field] make
 	[subsys] devfreq
 	[must] user
-	[function] 	[function]Enable device dvfs function.
+	[function] Enable device dvfs function.
 CONFIG_SPRD_VSP
 	[arch] all
 	[plat] all
