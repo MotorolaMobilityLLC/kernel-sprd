@@ -301,7 +301,7 @@
 
 			gpu: gpu@60000000 {
 				compatible = "sprd,rogue";
-				reg = <0x0 0x60000000 0x0 0x100000>;
+				reg = <0x60000000 0x100000>;
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
@@ -734,7 +734,7 @@
 
 			dpu: dpu@20300000 {
 				compatible = "sprd,display-processor";
-				reg = <0x0 0x20300000 0x0 0x1000>;
+				reg = <0x20300000 0x1000>;
 				syscons = <&ap_ahb_regs REG_AP_AHB_AHB_RST
 					MASK_AP_AHB_DISPC_SOFT_RST>,
 					<&ap_ahb_regs REG_AP_AHB_AP_QOS2
@@ -769,8 +769,8 @@
 
 			iommu_dispc: iommu@20300000 {
 				compatible = "sprd,iommuexl5-dispc";
-				reg = <0x0 0x20300000 0x0 0x800>,
-				      <0x0 0x20300800 0x0 0x80>;
+				reg = <0x20300000 0x800>,
+				      <0x20300800 0x80>;
 				iova-base = <0x30000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -780,7 +780,7 @@
 
 			dsi: dsi@20400000 {
 				compatible = "sprd,dsi-host";
-				reg = <0x0 0x20400000 0x0 0x1000>;
+				reg = <0x20400000 0x1000>;
 				syscons = <&ap_ahb_regs REG_AP_AHB_AHB_RST
 					MASK_AP_AHB_DSI_SOFT_RST>;
 				syscon-names = "reset";
@@ -815,7 +815,7 @@
 				compatible = "sprd,dsi-phy";
 				#address-cells = <1>;
 				#size-cells = <0>;
-				reg = <0x0 0x20400000 0x0 0x1000>;
+				reg = <0x20400000 0x1000>;
 				syscons = <&ap_ahb_regs
 					REG_AP_AHB_MISC_CKG_EN
 					(MASK_AP_AHB_DPHY_REF_CKG_EN |
@@ -1483,10 +1483,10 @@
 
 			ptm_trace: ptm@31060000 {
 				compatible = "sprd,sharkl5-ptm";
-				reg = <0x0 0x31060000 0x0 0x10000>,
-					<0x0 0x3c002000 0x0 0x1000>,
-					<0x0 0x3c003000 0x0 0x1000>,
-					<0x0 0x3c006000 0x0 0x1000>;
+				reg = <0x31060000 0x10000>,
+					<0x3c002000 0x1000>,
+					<0x3c003000 0x1000>,
+					<0x3c006000 0x1000>;
 				interrupts = <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "clk_cs","cs_src";
 				clocks = <&aon_clk CLK_CSSYS>,
