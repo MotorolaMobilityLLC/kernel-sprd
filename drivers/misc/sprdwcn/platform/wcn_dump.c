@@ -239,10 +239,10 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	/* SDIO regs */
 	{1, 0x40140000, 0x10000}, /* SDIO regs */
 	/* WIFI regs */
-	{1, 0x400f0000, 0x108}, /* WIFI_AON_MAC */
+	{1, 0x400f0000, WIFI_AON_MAC_SIZE}, /* WIFI_AON_MAC */
 	{1, 0x400f1000, 0xD100}, /* WIFI_RTN_PD_MAC */
-	{1, 0x40300000, 0x58000}, /* WIFI_352K_RAM */
-	{1, 0x400a0000, 0x4c}, /* Wifi_glb_reg */
+	{1, 0x40300000, WIFI_RAM_SIZE}, /* WIFI_352K/298K_RAM */
+	{1, 0x400a0000, WIFI_GLB_REG_SIZE}, /* Wifi_glb_reg */
 	{1, 0x400b0000, 0x388}, /* Wifi_phy_top_reg */
 	{1, 0x400b1000, 0x154}, /* Wifi_phy_tx11a_reg */
 	{1, 0x400b2000, 0xa8c}, /* Wifi_phy_rx11a_reg */
@@ -252,11 +252,11 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	/* FM regs */
 	{1, 0x40098000, 0xabc}, /* fm + rds */
 	/* Bluetooth (HW DEC and BB) Buffer regs */
-	{1, 0x40240000, 0x8d8}, /* BT_ACC */
+	{1, 0x40240000, BT_ACC_SIZE}, /* BT_ACC */
 	{1, 0x40246000, 0x738}, /* BT_JAL */
 	{1, 0x40248000, 0xA0},  /* BT_HAB */
 	{1, 0x4024A000, 0x21C},  /* BT_LEJAL */
-	{1, 0x4024F000, 0x300},  /* BT_MODEM */
+	{1, 0x4024F000, BT_MODEM_SIZE},  /* BT_MODEM */
 	{1, 0x40200000, 0x200}, /* BT_CMD_BUF */
 	{1, 0x40204000, 0x200}, /* BT_EVENT_BUF */
 	{1, 0x40208000, 0x12A4},  /* BT_LMP_TX_BUF */

@@ -270,4 +270,9 @@
 #define tsx_mode		BIT(15)
 #define SPI_BIT31		BIT(31)
 
+/* for debug dump */
+#define WIFI_AON_MAC_SIZE	0x108
+#define WIFI_RAM_SIZE		0x58000
+#define WIFI_GLB_REG_SIZE	0x4c
+
 #endif
