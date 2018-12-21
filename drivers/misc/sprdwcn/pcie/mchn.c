@@ -185,11 +185,21 @@ EXPORT_SYMBOL(mchn_hw_req_push_link);
 
 int mchn_hw_cb_in_irq(int chn)
 {
+	if (!g_mchn.ops[chn]) {
+		PCIE_ERR("%s: chn=%d is not register\n", __func__, chn);
+		return -1;
+	}
+
 	return g_mchn.ops[chn]->cb_in_irq;
 }
 
 int mchn_hw_max_pending(int chn)
 {
+	if (!g_mchn.ops[chn]) {
+		PCIE_ERR("%s: chn=%d is not register\n", __func__, chn);
+		return -1;
+	}
+
 	return g_mchn.ops[chn]->max_pending;
 }
 

@@ -24,6 +24,10 @@ static int sprd_pcie_msi_irq(int irq, void *arg)
 {
 	struct wcn_pcie_info *priv = arg;
 
+	/*
+	 * priv->irq : the first msi irq
+	 * irq: the current irq
+	 */
 	irq -= priv->irq;
 	msi_irq_handle(irq);
 

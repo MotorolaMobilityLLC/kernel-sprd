@@ -628,7 +628,7 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 		return ERROR;
 	}
 
-	PCIE_INFO("%s(chn=%d, head=0x%p, tail=0x%p, num=%d) err\n",
+	PCIE_INFO("%s(chn=%d, head=0x%p, tail=0x%p, num=%d)\n",
 		  __func__, chn, head, tail, num);
 
 	spin_lock_irqsave(edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p,
@@ -968,6 +968,7 @@ int legacy_irq_handle(int data)
 {
 	unsigned long irq_flags;
 	int chn, discard;
+	int ret = 0;
 	unsigned int dma_int_mask_status;
 	union dma_chn_int_reg dma_int;
 	struct isr_msg_queue msg = { 0 };
@@ -1022,8 +1023,12 @@ int legacy_irq_handle(int data)
 						(unsigned char *)(&msg));
 					set_wcnevent(&(edma->isr_func
 								.q.event));
-				} else
-					hisrfunc(&msg);
+				} else if (mchn_hw_cb_in_irq(chn) == -1) {
+					ret = -1;
+					break;
+				}
+
+				hisrfunc(&msg);
 			}
 			break;
 		case ONE_LINK_MODE:
@@ -1060,9 +1065,9 @@ int legacy_irq_handle(int data)
 			break;
 		}
 	}
-	local_irq_restore(*((unsigned long *)irq_flags));
+	local_irq_restore(irq_flags);
 
-	return 0;
+	return ret;
 }
 
 int msi_irq_handle(int irq)
@@ -1106,11 +1111,17 @@ int msi_irq_handle(int irq)
 	}
 	if (mchn_hw_cb_in_irq(chn) == 0) {
 		enqueue(&(edma->isr_func.q), (unsigned char *)(&msg));
+		PCIE_INFO(" callback not in irq\n");
 		set_wcnevent(&(edma->isr_func.q.event));
-	} else
-		hisrfunc(&msg);
+	} else if (mchn_hw_cb_in_irq(chn) == -1) {
+		local_irq_restore(irq_flags);
+		return -1;
+	}
 
-	local_irq_restore(*((unsigned long *)irq_flags));
+	PCIE_INFO("callback in irq\n");
+	hisrfunc(&msg);
+
+	local_irq_restore(irq_flags);
 
 	return 0;
 }
