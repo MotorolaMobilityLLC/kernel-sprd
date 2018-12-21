@@ -7750,7 +7750,7 @@ CONFIG_PWM
 	[function] PWM device core driver.
 CONFIG_PWM_SPRD
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] make
 	[subsys] pwm
 	[must] home
