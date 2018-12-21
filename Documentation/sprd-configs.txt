@@ -10152,6 +10152,27 @@ CONFIG_USB_MUSB_SPRD
 	[subsys] usb
 	[must] user
 	[function] This macro is to suppor SPRD platforms musb driver.
+CONFIG_USB_DWC3
+	[arch] all
+	[plat] roc1
+	[field] make
+	[subsys] usb
+	[must] user
+	[function] This macro is to support DWC3 USB driver.
+CONFIG_USB_DWC3_DUAL_ROLE
+	[arch] all
+	[plat] roc1
+	[field] make
+	[subsys] usb
+	[must] user
+	[function] DWC3 USB Dual Role mode support.
+CONFIG_USB_DWC3_OF_SIMPLE
+	[arch] all
+	[plat] roc1
+	[field] make
+	[subsys] usb
+	[must] user
+	[function] Support USB2/3 functionality in simple SoC integrations.
 CONFIG_USB_NET_DRIVERS
 	[arch] all
 	[plat] roc1
