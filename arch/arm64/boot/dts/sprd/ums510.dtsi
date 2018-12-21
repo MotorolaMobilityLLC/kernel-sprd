@@ -30,7 +30,7 @@
 				};
 			};
 			cluster1 {
-				core3 {
+				core0 {
 					cpu = <&CPU3>;
 				};
 			};
