@@ -80,7 +80,7 @@ static int ion_carveout_heap_allocate(struct ion_heap *heap,
 		goto err_free_table;
 	}
 	pr_info("%s: heap id: %u, paddr: 0x%llx, size: %lu\n",
-		__func__, heap->id, paddr, size);
+		__func__, heap->id, (u64)paddr, size);
 
 	sg_set_page(table->sgl, pfn_to_page(PFN_DOWN(paddr)), size, 0);
 	buffer->sg_table = table;
@@ -107,7 +107,7 @@ static void ion_carveout_heap_free(struct ion_buffer *buffer)
 	sg_free_table(table);
 	kfree(table);
 	pr_info("%s: heap id: %u, paddr: 0x%llx, size: %zu\n",
-		__func__, heap->id, paddr, buffer->size);
+		__func__, heap->id, (u64)paddr, buffer->size);
 }
 
 static struct ion_heap_ops carveout_heap_ops = {

@@ -333,7 +333,7 @@ static struct ion_platform_heap *sprd_ion_parse_dt(struct platform_device *pdev)
 			__func__, i,
 			ion_heaps[i].name,
 			ion_heaps[i].type,
-			ion_heaps[i].base,
+			(u64)(ion_heaps[i].base),
 			ion_heaps[i].size);
 		++i;
 	}
