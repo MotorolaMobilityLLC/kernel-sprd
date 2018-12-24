@@ -596,7 +596,7 @@ static void headset_eic_intc_clear(int clear_mark)
 		headset_reg_write_force(ANA_INT33, 0x0, 0xFFFF);
 		usleep_range(2000, 2500);
 	}
-	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
+	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 }
 
 void headset_eic_intc_clear_test(void)
@@ -615,15 +615,15 @@ static void headset_eic_clear_irq(uint irq_bit)
 	} else if (irq_bit != 0) {
 		/* clear reg0x21c, reg 0x220 */
 		headset_reg_set_bits(ANA_INT9, BIT(irq_bit));
-		pr_info("%s clear irq_bit %d\n", __func__, irq_bit);
+		pr_debug("%s clear irq_bit %d\n", __func__, irq_bit);
 	}
-	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
+	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 }
 
 static void headset_eic_trig_irq(uint irq_bit)
 {
 	headset_reg_set_bits(ANA_INT10, BIT(irq_bit));
-	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
+	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 }
 
 static void headset_eic_enable(uint irq_bit, int enable)
@@ -637,13 +637,13 @@ static void headset_eic_enable(uint irq_bit, int enable)
 			EIC_DBNC_IE(0xFFFF));
 		pr_info("%s enable all internal eic\n", __func__);
 	} else if (enable == 0) {
-		pr_info("%s disable irq_bit %d\n", __func__, irq_bit);
+		pr_debug("%s disable irq_bit %d\n", __func__, irq_bit);
 		headset_reg_clr_bits(ANA_INT6, BIT(irq_bit));
 	} else if (enable == 1) {
-		pr_info("%s enable irq_bit %d\n", __func__, irq_bit);
+		pr_debug("%s enable irq_bit %d\n", __func__, irq_bit);
 		headset_reg_set_bits(ANA_INT6, BIT(irq_bit));
 	}
-	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
+	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 }
 
 static void headset_internal_eic_entry_init(void)
@@ -670,7 +670,7 @@ static unsigned int headset_eic_get_insert_status(unsigned int bit_check)
 	/* headset insert */
 	bit_status = (BIT(15) & headset_reg_value_read(ANA_STS0)) > 0;
 	if (bit_check == 15) {
-		pr_info("%s headphone %s insert\n", __func__,
+		pr_debug("%s headphone %s insert\n", __func__,
 			bit_status ? "is" : "not");
 		return bit_status;
 		}
@@ -678,11 +678,11 @@ static unsigned int headset_eic_get_insert_status(unsigned int bit_check)
 	if ((bit_status == 1) && (bit_check != 15)) {
 		bit_status =
 			(BIT(bit_check) & headset_reg_value_read(ANA_STS0)) > 0;
-		pr_info("%s headphone is insert, %d bit is %s\n", __func__,
+		pr_debug("%s headphone is insert, %d bit is %s\n", __func__,
 			bit_check, bit_status ? "high" : "low");
 		return bit_status;
 	}
-	pr_info("%s headphone not insert, return 0 instead\n",
+	pr_err("%s headphone not insert, return 0 instead\n",
 		__func__);
 	return 0;
 }
@@ -693,7 +693,7 @@ static unsigned int headset_eic_get_irq_status(unsigned int bit_irq)
 
 	bit_status =
 		(BIT(bit_irq) & headset_reg_value_read(ANA_INT8)) > 0;
-	pr_info("%s eic irq %d %s active\n", __func__,
+	pr_debug("%s eic irq %d %s active\n", __func__,
 		bit_irq, bit_status ? "is" : "not");
 	return bit_status;
 }
@@ -723,11 +723,11 @@ static void headset_eic_set_trig_level(uint irq_bit, uint trig_level)
 
 	last_trig_level = (BIT(irq_bit) & headset_reg_value_read(ANA_INT5)) > 0;
 	if (last_trig_level == trig_level) {
-		pr_info("%s irq_bit %d trig level is %s already, needn't to set\n",
+		pr_debug("%s irq_bit %d trig level is %s already, needn't to set\n",
 			__func__, irq_bit, last_trig_level ? "high" : "low");
 		return;
 	}
-	pr_info("%s set irq_bit %d trig level to %s\n",
+	pr_debug("%s set irq_bit %d trig level to %s\n",
 			__func__, irq_bit, trig_level ? "high" : "low");
 	if (trig_level == 1)
 		headset_reg_set_bits(ANA_INT5, BIT(irq_bit));
@@ -741,7 +741,7 @@ static unsigned int headset_eic_get_trig_level(uint bit_check)
 
 	bit_status =
 		(BIT(bit_check) & headset_reg_value_read(ANA_INT5)) > 0;
-	pr_info("%s bit %d trig level is %s\n", __func__,
+	pr_debug("%s bit %d trig level is %s\n", __func__,
 		bit_check, bit_status ? "high" : "low");
 	return bit_status;
 }
@@ -752,7 +752,7 @@ static unsigned int headset_eic_get_irq_data(uint bit_check)
 
 	bit_status =
 		(BIT(bit_check) & headset_reg_value_read(ANA_INT0)) > 0;
-	pr_info("%s bit %d is %s\n", __func__, bit_check,
+	pr_debug("%s bit %d is %s\n", __func__, bit_check,
 		bit_status ? "high" : "low");
 	return bit_status;
 }
@@ -1977,11 +1977,6 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 		gpio_get_value(pdata->gpios[HDST_GPIO_AUD_DET_INT_ALL]);
 
 	headset_reg_read(ANA_STS0, &val);
-	/* the gpio value is changed at later, I don't know why */
-	pr_info("%s: detect_int_all, IRQ_%d(GPIO_%d) %d, STS0(184) %x\n",
-		__func__, hdst->irq_detect_int_all,
-		pdata->gpios[HDST_GPIO_AUD_DET_INT_ALL],
-		hdst->gpio_detect_int_all_last, val);
 
 	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 
@@ -2061,9 +2056,6 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 			hdst->plug_state_last, hdst->ldetl_plug_in);
 	}
 	if (val & BIT(15)) {/* bdet */
-		pr_info("%s in bdet\n", __func__);
-
-		/* I am not sure the new func is right or not */
 		__pm_wakeup_event(&hdst->btn_wakelock, msecs_to_jiffies(2000));
 		ret = cancel_delayed_work(&hdst->btn_work);
 		queue_delayed_work(hdst->btn_work_q,
@@ -2072,8 +2064,7 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 	}
 
 out:
-	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
-	pr_info("%s exit\n", __func__);
+	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 
 	return IRQ_HANDLED;
 }
