@@ -146,7 +146,7 @@ void mmu_ex_first_ppn(ulong ctrl_base_addr, u32 iommu_id, ulong pp_addr)
 		reg_write_dword(reg_addr, pp_addr & 0xfffff000);
 		/*higher bits of pagetable base addr*/
 		reg_addr += 0x4;
-		reg_write_dword(reg_addr, (pp_addr >> 32) & 0xff);
+		reg_write_dword(reg_addr, ((u64)pp_addr >> 32) & 0xff);
 	} else {
 		reg_addr += FIRST_PPN_OFFSET;
 		reg_write_dword(reg_addr,
