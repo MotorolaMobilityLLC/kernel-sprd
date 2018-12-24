@@ -254,6 +254,20 @@
 			reg = <0 0x71000000 0 0x100000>;
 		};
 
+		mm {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			gpu: gpu@60000000 {
+				compatible = "sprd,rogue";
+				reg = <0x0 0x60000000 0x0 0x100000>;
+				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+		};
+
 		ap-ahb {
 			compatible = "simple-bus";
 			#address-cells = <2>;
