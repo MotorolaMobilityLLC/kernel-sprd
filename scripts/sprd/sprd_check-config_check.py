@@ -507,7 +507,6 @@ def aiaiai_check():
                         if "diff --git" in f_diff_lines[i]:
                             break
                         if "@@" in f_diff_lines[i]:
-                            i = i+1
                             continue
                         if '+' in f_diff_lines[i]:
                             if "CONFIG" in f_diff_lines[i].split(":").pop():
@@ -571,7 +570,6 @@ def aiaiai_check():
                         if "diff --git" in f_diff_lines[i]:
                             break
                         if "@@" in f_diff_lines[i]:
-                            i = i+1
                             continue
                         if '+' in f_diff_lines[i]:
                             for j in range(len(f_diff_lines[i].split(" "))):
