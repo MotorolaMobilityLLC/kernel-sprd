@@ -60,9 +60,9 @@ static const struct sprd_clk_desc sc9832e_pmu_gate_desc = {
 };
 
 static const struct freq_table ftable[4] = {
-	{ .ibias = 0, .max_freq = 936000000 },
-	{ .ibias = 1, .max_freq = 1248000000 },
-	{ .ibias = 2, .max_freq = 1600000000 },
+	{ .ibias = 0, .max_freq = 936000000ULL },
+	{ .ibias = 1, .max_freq = 1248000000ULL },
+	{ .ibias = 2, .max_freq = 1600000000ULL },
 	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
 };
 

@@ -86,10 +86,10 @@ static struct sprd_clk_desc sharkl5_pmu_gate_desc = {
 
 /* pll clock at g0 */
 static struct freq_table dpll0_ftable[5] = {
-	{ .ibias = 2, .max_freq = 1173000000 },
-	{ .ibias = 3, .max_freq = 1475000000 },
-	{ .ibias = 4, .max_freq = 1855000000 },
-	{ .ibias = 5, .max_freq = 1866000000 },
+	{ .ibias = 2, .max_freq = 1173000000ULL },
+	{ .ibias = 3, .max_freq = 1475000000ULL },
+	{ .ibias = 4, .max_freq = 1855000000ULL },
+	{ .ibias = 5, .max_freq = 1866000000ULL },
 	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
 };
 
@@ -129,12 +129,12 @@ static struct sprd_clk_desc sharkl5_g0_pll_desc = {
 
 /* pll clock at g2 */
 static struct freq_table mpll_ftable[7] = {
-	{ .ibias = 1, .max_freq = 1400000000 },
-	{ .ibias = 2, .max_freq = 1600000000 },
-	{ .ibias = 3, .max_freq = 1800000000 },
-	{ .ibias = 4, .max_freq = 2000000000 },
-	{ .ibias = 5, .max_freq = 2200000000 },
-	{ .ibias = 6, .max_freq = 2500000000 },
+	{ .ibias = 1, .max_freq = 1400000000ULL },
+	{ .ibias = 2, .max_freq = 1600000000ULL },
+	{ .ibias = 3, .max_freq = 1800000000ULL },
+	{ .ibias = 4, .max_freq = 2000000000ULL },
+	{ .ibias = 5, .max_freq = 2200000000ULL },
+	{ .ibias = 6, .max_freq = 2500000000ULL },
 	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
 };
 
@@ -175,11 +175,11 @@ static struct sprd_clk_desc sharkl5_g2_pll_desc = {
 
 /* pll at g3 */
 static struct freq_table ftable[6] = {
-	{ .ibias = 2, .max_freq = 900000000 },
-	{ .ibias = 3, .max_freq = 1100000000 },
-	{ .ibias = 4, .max_freq = 1300000000 },
-	{ .ibias = 5, .max_freq = 1500000000 },
-	{ .ibias = 6, .max_freq = 1600000000 },
+	{ .ibias = 2, .max_freq = 900000000ULL },
+	{ .ibias = 3, .max_freq = 1100000000ULL },
+	{ .ibias = 4, .max_freq = 1300000000ULL },
+	{ .ibias = 5, .max_freq = 1500000000ULL },
+	{ .ibias = 6, .max_freq = 1600000000ULL },
 	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
 };
 
@@ -223,11 +223,11 @@ static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll0_clk, "mpll0", "mpll0-gate", 0x54,
 				   1000, 1000, 1, 1200000000);
 
 static struct freq_table mpll2_ftable[6] = {
-	{ .ibias = 0, .max_freq = 1200000000 },
-	{ .ibias = 1, .max_freq = 1400000000 },
-	{ .ibias = 2, .max_freq = 1600000000 },
-	{ .ibias = 3, .max_freq = 1800000000 },
-	{ .ibias = 4, .max_freq = 2000000000 },
+	{ .ibias = 0, .max_freq = 1200000000ULL },
+	{ .ibias = 1, .max_freq = 1400000000ULL },
+	{ .ibias = 2, .max_freq = 1600000000ULL },
+	{ .ibias = 3, .max_freq = 1800000000ULL },
+	{ .ibias = 4, .max_freq = 2000000000ULL },
 	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
 };
 

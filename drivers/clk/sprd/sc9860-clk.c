@@ -119,17 +119,17 @@ static const struct sprd_clk_desc sc9860_pmu_gate_desc = {
 
 /* GPLL/LPLL/DPLL/RPLL/CPLL */
 static const struct freq_table ftable1[4] = {
-	{ .ibias = 0, .max_freq = 780000000 },
-	{ .ibias = 1, .max_freq = 988000000 },
-	{ .ibias = 2, .max_freq = 1196000000 },
+	{ .ibias = 0, .max_freq = 780000000ULL },
+	{ .ibias = 1, .max_freq = 988000000ULL },
+	{ .ibias = 2, .max_freq = 1196000000ULL },
 	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
 };
 
 /* TWPLL/MPLL0/MPLL1 */
 static const struct freq_table ftable2[4] = {
-	{ .ibias = 0, .max_freq = 1638000000 },
-	{ .ibias = 1, .max_freq = 2080000000 },
-	{ .ibias = 2, .max_freq = 2600000000 },
+	{ .ibias = 0, .max_freq = 1638000000ULL },
+	{ .ibias = 1, .max_freq = 2080000000ULL },
+	{ .ibias = 2, .max_freq = 2600000000ULL },
 	{ .ibias = INVALID_MAX_IBIAS, .max_freq = INVALID_MAX_FREQ },
 };
 
