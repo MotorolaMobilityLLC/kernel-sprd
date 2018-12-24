@@ -64,6 +64,8 @@ static bool etm4_arch_supported(u8 arch)
 	switch (arch) {
 	case ETM_ARCH_V4:
 		break;
+	case ETM_ARCH_V4_2:
+		break;
 	default:
 		return false;
 	}
@@ -1061,9 +1063,11 @@ err_arch_supported:
 
 static const struct amba_id etm4_ids[] = {
 	ETM4x_AMBA_ID(0x000bb95d),		/* Cortex-A53 */
+	ETM4x_AMBA_ID(0x000bbd05),		/* Cortex-A55 Ananke */
 	ETM4x_AMBA_ID(0x000bb95e),		/* Cortex-A57 */
 	ETM4x_AMBA_ID(0x000bb95a),		/* Cortex-A72 */
 	ETM4x_AMBA_ID(0x000bb959),		/* Cortex-A73 */
+	ETM4x_AMBA_ID(0x000bbd0a),		/* Cortex-A75 Promethus */
 	ETM4x_AMBA_ID(0x000bb9da),		/* Cortex-A35 */
 	{},
 };
