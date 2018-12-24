@@ -11,9 +11,8 @@
  * GNU General Public License for more details.
  */
 
-//#include "ion.h"
 #include <linux/delay.h>
-//#include <linux/sprd_ion.h>
+#include <linux/wait.h>
 #include <linux/workqueue.h>
 #include "sprd_dpu.h"
 
@@ -320,9 +319,10 @@ static struct gamma_lut gamma_copy;
 static struct hsv_lut hsv_copy;
 static u32 enhance_en;
 
+static DECLARE_WAIT_QUEUE_HEAD(wait_queue);
+static bool panel_ready = true;
 static bool need_scale;
 //static bool is_scaling;
-static bool need_wait_te;
 static bool evt_update;
 static bool evt_stop;
 static int wb_en;
@@ -378,7 +378,7 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 }
 #endif
 
-static void check_mmu_isr(struct dpu_context *ctx, uint32_t reg_val)
+static void check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 {
 }
 
@@ -387,27 +387,22 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	u32 reg_val;
 
-	if (!reg) {
-		pr_err("invalid reg\n");
-		return 0;
-	}
-
 	reg_val = reg->dpu_int_sts;
 	reg->dpu_int_clr = reg_val;
 
-	/*disable err interrupt */
+	/* disable err interrupt */
 	if (reg_val & DISPC_INT_ERR_MASK)
 		reg->dpu_int_en &= ~DISPC_INT_ERR_MASK;
 
-	/*dpu update done isr */
+	/* dpu update done isr */
 	if (reg_val & DISPC_INT_UPDATE_DONE_MASK) {
 		evt_update = true;
-		wake_up_interruptible_all(&ctx->wait_queue);
+		wake_up_interruptible_all(&wait_queue);
 	}
 
-	/*dpu vsync isr */
+	/* dpu vsync isr */
 	if (reg_val & DISPC_INT_DPI_VSYNC_MASK) {
-		/*write back feature*/
+		/* write back feature */
 		if (vsync_count == max_vsync_count && wb_en) {
 			//dpu_write_back(ctx, region, 1);
 			schedule_work(&ctx->update_work);
@@ -418,7 +413,7 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	/* dpu stop done isr */
 	if (reg_val & DISPC_INT_DONE_MASK) {
 		evt_stop = true;
-		wake_up_interruptible_all(&ctx->wait_queue);
+		wake_up_interruptible_all(&wait_queue);
 	}
 
 	/* dpu write back done isr */
@@ -460,7 +455,7 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	return reg_val;
 }
 
-static int32_t dpu_wait_stop_done(struct dpu_context *ctx)
+static int dpu_wait_stop_done(struct dpu_context *ctx)
 {
 	int rc;
 
@@ -468,7 +463,7 @@ static int32_t dpu_wait_stop_done(struct dpu_context *ctx)
 		return 0;
 
 	/* wait for stop done interrupt */
-	rc = wait_event_interruptible_timeout(ctx->wait_queue, evt_stop,
+	rc = wait_event_interruptible_timeout(wait_queue, evt_stop,
 					       msecs_to_jiffies(500));
 	evt_stop = false;
 
@@ -483,12 +478,12 @@ static int32_t dpu_wait_stop_done(struct dpu_context *ctx)
 	return 0;
 }
 
-static int32_t dpu_wait_update_done(struct dpu_context *ctx)
+static int dpu_wait_update_done(struct dpu_context *ctx)
 {
 	int rc;
 
-	/*wait for reg update done interrupt*/
-	rc = wait_event_interruptible_timeout(ctx->wait_queue, evt_update,
+	/* wait for reg update done interrupt */
+	rc = wait_event_interruptible_timeout(wait_queue, evt_update,
 					       msecs_to_jiffies(500));
 	evt_update = false;
 
@@ -505,9 +500,6 @@ static void dpu_stop(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	if (!reg)
-		return;
-
 	if (ctx->if_type == SPRD_DISPC_IF_DPI)
 		reg->dpu_ctrl |= BIT(1);
 
@@ -518,9 +510,6 @@ static void dpu_stop(struct dpu_context *ctx)
 static void dpu_run(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-
-	if (!reg)
-		return;
 
 	reg->dpu_ctrl |= BIT(0);
 
@@ -535,11 +524,11 @@ static void dpu_run(struct dpu_context *ctx)
 		 * mass on screen when backlight on. So wait
 		 * a TE period after flush the GRAM.
 		 */
-		if (need_wait_te) {
+		if (!panel_ready) {
 			dpu_wait_stop_done(ctx);
-			/*wait for TE again */
+			/* wait for TE again */
 			mdelay(20);
-			need_wait_te = false;
+			panel_ready = true;
 		}
 	}
 }
@@ -674,12 +663,10 @@ static void dpu_uninit(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	if (!reg)
-		return;
-
 	reg->dpu_int_en = 0;
 	reg->dpu_int_clr = 0xff;
-	need_wait_te = true;
+
+	panel_ready = false;
 }
 
 enum {
@@ -814,30 +801,33 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 	return reg_val;
 }
 
-static void dpu_clean(struct dpu_context *ctx, u32 layer_id)
-{
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-
-	reg->layers[layer_id].ctrl = 0;
-}
-
 static void dpu_clean_all(struct dpu_context *ctx)
 {
 	int i;
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
 	for (i = 0; i < 8; i++)
-		dpu_clean(ctx, i);
+		reg->layers[i].ctrl = 0;
 }
 
 static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	if (!reg)
-		return;
+	if (ctx->if_type == SPRD_DISPC_IF_EDPI)
+		dpu_wait_stop_done(ctx);
 
 	reg->bg_color = color;
+
 	dpu_clean_all(ctx);
+
+	if ((ctx->if_type == SPRD_DISPC_IF_DPI) && !ctx->is_stopped) {
+		reg->dpu_ctrl |= BIT(2);
+		dpu_wait_update_done(ctx);
+	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
+		reg->dpu_ctrl |= BIT(0);
+		ctx->is_stopped = false;
+	}
 }
 
 static void dpu_layer(struct dpu_context *ctx,
@@ -845,14 +835,8 @@ static void dpu_layer(struct dpu_context *ctx,
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct layer_reg *layer;
-	u32 addr;
-	int size;
-	int offset;
-	int wd;
+	u32 addr, size, offset, wd;
 	int i;
-
-	if (!reg)
-		return;
 
 	layer = &reg->layers[hwlayer->index];
 	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
@@ -950,22 +934,14 @@ static void dpu_flip(struct dpu_context *ctx,
 static void dpu_dpi_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	u32 reg_val = 0;
 	u32 int_mask = 0;
 
-	int_mask |= (DISPC_INT_MMU_VAOR_RD_MASK |
-		DISPC_INT_MMU_VAOR_WR_MASK |
-		DISPC_INT_MMU_INV_RD_MASK |
-		DISPC_INT_MMU_INV_WR_MASK);
-
 	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
-		/*use dpi as interface */
-		reg->dpu_cfg0 &= ~(BIT(0));
+		/* use dpi as interface */
+		reg->dpu_cfg0 &= ~BIT(0);
 
 		/* disable Halt function for SPRD DSI */
-		/* reg_val |= BIT(16); */
-
-		reg->dpi_ctrl = reg_val;
+		reg->dpi_ctrl &= ~BIT(16);
 
 		/* set dpi timing */
 		reg->dpi_h_timing = (ctx->vm.hsync_len << 0) |
@@ -975,7 +951,7 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 				    (ctx->vm.vback_porch << 8) |
 				    (ctx->vm.vfront_porch << 20);
 
-		/*enable dpu update done INT */
+		/* enable dpu update done INT */
 		int_mask |= DISPC_INT_UPDATE_DONE_MASK;
 		/* enable dpu DONE  INT */
 		int_mask |= DISPC_INT_DONE_MASK;
@@ -989,40 +965,37 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		int_mask |= DISPC_INT_WB_DONE_MASK;
 		/* enable write back fail INT */
 		int_mask |= DISPC_INT_WB_FAIL_MASK;
-		/* enable ifbc payload error INT */
-		int_mask |= DISPC_INT_FBC_PLD_ERR_MASK;
-		/* enable ifbc header error INT */
-		int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
-
-		reg->dpu_int_en = int_mask;
 
 	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
-		/*use edpi as interface */
+		/* use edpi as interface */
 		reg->dpu_cfg0 |= BIT(0);
 
-		/*te pol */
-		//if (panel->te_pol == SPRD_POLARITY_NEG)
-		//	reg_val |= BIT(9);
+		/* use external te */
+		reg->dpi_ctrl |= BIT(10);
 
-		/*use external te */
-		reg_val |= BIT(10);
+		/* enable te */
+		reg->dpi_ctrl |= BIT(8);
 
-		/*enable te */
-		reg_val |= BIT(8);
-
-		reg->dpi_ctrl = reg_val;
-
-		/* enable dpu DONE  INT */
+		/* enable stop DONE INT */
 		int_mask |= DISPC_INT_DONE_MASK;
-		/* enable DISPC TE  INT for edpi*/
+		/* enable TE INT */
 		int_mask |= DISPC_INT_TE_MASK;
-		/* enable ifbc payload error INT */
-		int_mask |= DISPC_INT_FBC_PLD_ERR_MASK;
-		/* enable ifbc header error INT */
-		int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
-
-		reg->dpu_int_en = int_mask;
 	}
+
+	/* enable ifbc payload error INT */
+	int_mask |= DISPC_INT_FBC_PLD_ERR_MASK;
+	/* enable ifbc header error INT */
+	int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
+	/* enable iommu va out of range read error INT */
+	int_mask |= DISPC_INT_MMU_VAOR_RD_MASK;
+	/* enable iommu va out of range write error INT */
+	int_mask |= DISPC_INT_MMU_VAOR_WR_MASK;
+	/* enable iommu invalid read error INT */
+	int_mask |= DISPC_INT_MMU_INV_RD_MASK;
+	/* enable iommu invalid write error INT */
+	int_mask |= DISPC_INT_MMU_INV_WR_MASK;
+
+	reg->dpu_int_en = int_mask;
 }
 
 static void enable_vsync(struct dpu_context *ctx)
@@ -1050,8 +1023,8 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	u32 *p;
 	int i;
 
-	if (!reg)
-		return;
+	if (ctx->if_type == SPRD_DISPC_IF_EDPI)
+		dpu_wait_stop_done(ctx);
 
 	switch (id) {
 	case ENHANCE_CFG_ID_ENABLE:
@@ -1132,9 +1105,18 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	}
 
-	/* update trigger */
-	reg->dpu_ctrl |= BIT(2);
-	dpu_wait_update_done(ctx);
+	if ((ctx->if_type == SPRD_DISPC_IF_DPI) && !ctx->is_stopped) {
+		reg->dpu_ctrl |= BIT(2);
+		dpu_wait_update_done(ctx);
+	} else if ((ctx->if_type == SPRD_DISPC_IF_EDPI) && panel_ready) {
+		/*
+		 * In EDPI mode, we need to wait panel initializatin
+		 * completed. Otherwise, the dpu enhance settings may
+		 * start before panel initialization.
+		 */
+		reg->dpu_ctrl |= BIT(0);
+		ctx->is_stopped = false;
+	}
 
 	enhance_en = reg->dpu_enhance_cfg;
 }
@@ -1148,9 +1130,6 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 	struct gamma_lut *gamma;
 	u32 *p32;
 	int i, val;
-
-	if (!reg)
-		return;
 
 	switch (id) {
 	case ENHANCE_CFG_ID_ENABLE:
@@ -1255,9 +1234,6 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	struct hsv_lut *hsv;
 	int i;
 
-	if (!reg)
-		return;
-
 	if (enhance_en & BIT(0)) {
 		scale = &scale_copy;
 		reg->blend_size = (scale->in_h << 16) | scale->in_w;
@@ -1327,11 +1303,6 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-
-	if (!reg)
-		return -ENODEV;
-
 	scale_copy.in_w = mode->hdisplay;
 	scale_copy.in_h = mode->vdisplay;
 
@@ -1380,8 +1351,6 @@ static struct dpu_core_ops dpu_r4p0_ops = {
 	.isr = dpu_isr,
 	.ifconfig = dpu_dpi_init,
 	.capability = dpu_capability,
-	.layer = dpu_layer,
-	.clean = dpu_clean,
 	.flip = dpu_flip,
 	.bg_color = dpu_bgcolor,
 	.enable_vsync = enable_vsync,

@@ -19,7 +19,6 @@
 #include <linux/platform_device.h>
 #include <linux/device.h>
 #include <linux/kernel.h>
-#include <linux/wait.h>
 #include <linux/bug.h>
 #include <video/videomode.h>
 
@@ -116,23 +115,21 @@ struct dpu_context;
 struct dpu_core_ops {
 	int (*parse_dt)(struct dpu_context *ctx,
 			struct device_node *np);
-	uint32_t (*version)(struct dpu_context *ctx);
+	u32 (*version)(struct dpu_context *ctx);
 	int (*init)(struct dpu_context *ctx);
 	void (*uninit)(struct dpu_context *ctx);
 	void (*run)(struct dpu_context *ctx);
 	void (*stop)(struct dpu_context *ctx);
 	void (*disable_vsync)(struct dpu_context *ctx);
 	void (*enable_vsync)(struct dpu_context *ctx);
-	uint32_t (*isr)(struct dpu_context *ctx);
+	u32 (*isr)(struct dpu_context *ctx);
 	void (*ifconfig)(struct dpu_context *ctx);
 	void (*write_back)(struct dpu_context *ctx, int enable);
 	void (*flip)(struct dpu_context *ctx,
 		     struct sprd_dpu_layer layers[], u8 count);
 	int (*capability)(struct dpu_context *ctx,
 			struct dpu_capability *cap);
-	void (*layer)(struct dpu_context *ctx, struct sprd_dpu_layer *layer);
-	void (*clean)(struct dpu_context *ctx, u32 layer_id);
-	void (*bg_color)(struct dpu_context *ctx, uint32_t color);
+	void (*bg_color)(struct dpu_context *ctx, u32 color);
 	void (*enhance_set)(struct dpu_context *ctx, u32 id, void *param);
 	void (*enhance_get)(struct dpu_context *ctx, u32 id, void *param);
 	int (*modeset)(struct dpu_context *ctx,
@@ -160,25 +157,16 @@ struct dpu_glb_ops {
 
 struct dpu_context {
 	unsigned long base;
-	unsigned int  base_offset[2];
+	u32 base_offset[2];
 	const char *version;
 	int irq;
+	u8 if_type;
+	u8 id;
 	bool is_inited;
 	bool is_stopped;
 	bool disable_flip;
-	uint32_t id;
-	uint16_t if_type;
-	uint32_t dpi_clk_src;
-	void *logo_vaddr;
-	size_t logo_size;
-	dma_addr_t dma_handle;
-//	struct ion_client *buffer_client;
-//	struct ion_handle *handle;
 	struct videomode vm;
 	struct semaphore refresh_lock;
-	int  vsync_report_rate;
-	int  vsync_ratio_to_panel;
-	wait_queue_head_t wait_queue;
 	struct work_struct wb_work;
 };
 
@@ -189,8 +177,6 @@ struct sprd_dpu {
 	struct dpu_core_ops *core;
 	struct dpu_clk_ops *clk;
 	struct dpu_glb_ops *glb;
-	struct drm_pending_vblank_event *event;
-	struct notifier_block nb;
 	struct sprd_dpu_layer *layers;
 	u8 pending_planes;
 };

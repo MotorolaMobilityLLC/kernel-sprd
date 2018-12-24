@@ -85,12 +85,6 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	struct sprd_dpu_layer *layer = &dpu->layers[p->index];
 	int i;
 
-	if (!dpu->ctx.is_inited) {
-		DRM_DEBUG("DPU is power off, layer %u update ignore\n",
-			  p->index);
-		return;
-	}
-
 	layer->index = p->index;
 	layer->src_x = state->src_x >> 16;
 	layer->src_y = state->src_y >> 16;
@@ -345,20 +339,19 @@ static struct drm_plane *sprd_plane_init(struct drm_device *drm,
 	struct drm_plane *primary = NULL;
 	struct sprd_plane *p = NULL;
 	struct dpu_capability cap = {};
-	int err;
-	int i;
+	int err, i;
 
 	if (dpu->core && dpu->core->capability)
 		dpu->core->capability(&dpu->ctx, &cap);
 
-	dpu->layers = kcalloc(cap.max_layers,
+	dpu->layers = devm_kcalloc(drm->dev, cap.max_layers,
 				  sizeof(struct sprd_dpu_layer), GFP_KERNEL);
 	if (!dpu->layers)
 		return ERR_PTR(-ENOMEM);
 
 	for (i = 0; i < cap.max_layers; i++) {
 
-		p = kzalloc(sizeof(*p), GFP_KERNEL);
+		p = devm_kzalloc(drm->dev, sizeof(*p), GFP_KERNEL);
 		if (!p)
 			return ERR_PTR(-ENOMEM);
 
@@ -367,7 +360,6 @@ static struct drm_plane *sprd_plane_init(struct drm_device *drm,
 					       cap.fmts_cnt, NULL,
 					       DRM_PLANE_TYPE_PRIMARY, NULL);
 		if (err) {
-			kfree(p);
 			DRM_ERROR("fail to init primary plane\n");
 			return ERR_PTR(err);
 		}
@@ -557,40 +549,50 @@ int sprd_dpu_run(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
 
-	if (!ctx->is_stopped)
+	down(&ctx->refresh_lock);
+
+	if (!ctx->is_inited) {
+		DRM_ERROR("dpu is not initialized\n");
+		up(&ctx->refresh_lock);
+		return -EINVAL;
+	}
+
+	if (!ctx->is_stopped) {
+		up(&ctx->refresh_lock);
 		return 0;
+	}
 
 	if (dpu->core && dpu->core->run)
 		dpu->core->run(ctx);
 
-	ctx->is_stopped = false;
+	up(&ctx->refresh_lock);
 
 	drm_crtc_vblank_on(&dpu->crtc);
 
 	return 0;
 }
 
-void sprd_dpu_bgcolor(struct sprd_dpu *dpu)
-{
-	struct dpu_context *ctx = &dpu->ctx;
-
-	if (ctx->is_stopped)
-		return;
-
-	dpu->core->bg_color(ctx, 0);
-}
-
 int sprd_dpu_stop(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
 
-	if (ctx->is_stopped)
+	down(&ctx->refresh_lock);
+
+	if (!ctx->is_inited) {
+		DRM_ERROR("dpu is not initialized\n");
+		up(&ctx->refresh_lock);
+		return -EINVAL;
+	}
+
+	if (ctx->is_stopped) {
+		up(&ctx->refresh_lock);
 		return 0;
+	}
 
 	if (dpu->core && dpu->core->stop)
 		dpu->core->stop(ctx);
 
-	ctx->is_stopped = true;
+	up(&ctx->refresh_lock);
 
 	drm_crtc_handle_vblank(&dpu->crtc);
 	drm_crtc_vblank_off(&dpu->crtc);
@@ -772,7 +774,7 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 	if (dpu->glb && dpu->glb->parse_dt)
 		dpu->glb->parse_dt(&dpu->ctx, np);
 
-	if (!of_property_read_u32(np, "dev-id", &temp))
+	if (!of_property_read_u32(np, "sprd,dev-id", &temp))
 		ctx->id = temp;
 
 	if (of_address_to_resource(np, 0, &r)) {
@@ -787,10 +789,6 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 	}
 
 	sema_init(&ctx->refresh_lock, 1);
-	init_waitqueue_head(&ctx->wait_queue);
-
-	ctx->vsync_report_rate = 60;
-	ctx->vsync_ratio_to_panel = 1;
 
 	return 0;
 }

@@ -90,7 +90,6 @@ static ssize_t bg_color_store(struct device *dev,
 		return -EINVAL;
 	}
 	dpu->core->bg_color(ctx, bg_color);
-	dpu->core->run(ctx);
 	up(&ctx->refresh_lock);
 
 	return count;
