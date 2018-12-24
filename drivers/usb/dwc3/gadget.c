@@ -850,7 +850,7 @@ static int dwc3_gadget_ep_disable(struct usb_ep *ep)
 
 	/* Workaround for SPRD PAMU3 ep intnum mapping */
 	if (ep->uether)
-		usb_phy_set_suspend(dwc->pam);
+		usb_phy_set_suspend(dwc->pam, 1);
 
 	if (dev_WARN_ONCE(dwc->dev, !(dep->flags & DWC3_EP_ENABLED),
 					"%s is already disabled\n",
