@@ -97,6 +97,8 @@ static inline int check_stable_address_space(struct mm_struct *mm)
 
 void __oom_reap_task_mm(struct mm_struct *mm);
 
+extern void mark_oom_victim(struct task_struct *tsk);
+
 extern unsigned long oom_badness(struct task_struct *p,
 		struct mem_cgroup *memcg, const nodemask_t *nodemask,
 		unsigned long totalpages);

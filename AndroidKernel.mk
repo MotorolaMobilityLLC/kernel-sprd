@@ -60,6 +60,10 @@ ifeq ($(strip $(BOARD_WCN_CONFIG)),built-in)
 TARGET_DEVICE_WCN_CONFIG := $(KERNEL_DIFF_CONFIG_COMMON)/wcn_built_in_diff_config
 endif
 
+ifeq ($(strip $(PRODUCT_GO_DEVICE)),true)
+TARGET_GO_DEVICE_CONFIG := $(KERNEL_DIFF_CONFIG_ARCH)/go_google_diff_config
+endif
+
 ifeq ($(TARGET_BUILD_VARIANT),user)
 DEBUGMODE := BUILD=no
 USER_CONFIG := $(TARGET_OUT)/dummy

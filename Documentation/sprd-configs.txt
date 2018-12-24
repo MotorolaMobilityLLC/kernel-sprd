@@ -75,17 +75,25 @@ CONFIG_ANDROID_BINDER_IPC
 CONFIG_ANDROID_LOW_MEMORY_KILLER
 	[arch] arm
 	[plat] sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] mm
+	[must] unknown
+	[function] Registers processes to be killed when low memory conditions,
+		    this is useful in android-go.
+CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
+	[arch] arm
+	[plat] sharkl5_32
+	[field] code
+	[subsys] mm
+	[must] unknown
+	[function] Threshold table in lowmemorykiller.
 CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINFO
 	[arch] arm
 	[plat] sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] code
+	[subsys] mm
+	[must] debug
+	[function] Show memory information when lmk kills process
 CONFIG_ANDROID_PARANOID_NETWORK
 	[arch] all
 	[plat] all
@@ -6447,6 +6455,13 @@ CONFIG_MSDOS_PARTITION
 	[subsys] fs
 	[must] none
 	[function] depends on PARTITION_ADVANCED
+CONFIG_MULTIPLE_OOM_KILLER
+	[arch] arm
+	[plat] sharkl5_32
+	[field] code
+	[subsys] mm
+	[must] unknown
+	[function] lmk can kill multiple processes
 CONFIG_MULTIUSER
 	[arch] all
 	[plat] all
@@ -7828,10 +7843,10 @@ CONFIG_OLD_SIGSUSPEND3
 CONFIG_OOM_NOTIFIER
 	[arch] arm
 	[plat] sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] code
+	[subsys] mm
+	[must] unknown
+	[function] Using a Android-Style oom-killer instead of linux's native OOM_killer
 CONFIG_OUTER_CACHE
 	[arch] arm
 	[plat] sharkl5_32
@@ -10052,6 +10067,13 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[subsys] devfreq
 	[must] user
 	[function] Enable device dvfs function.
+CONFIG_SPRD_USB3_PHY
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_VSP
 	[arch] all
 	[plat] all
@@ -10904,6 +10926,13 @@ CONFIG_USB_DWC3_OF_SIMPLE
 	[subsys] usb
 	[must] user
 	[function] Support USB2/3 functionality in simple SoC integrations.
+CONFIG_USB_DWC3_SPRD
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_USB_EHCI_HCD
 	[arch] all
 	[plat] all
