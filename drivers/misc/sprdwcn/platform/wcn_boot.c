@@ -1586,9 +1586,10 @@ static int gnss_powerdomain_open(void)
 			return ret;
 		}
 
-		WCN_INFO("%s CHIP_SLP_REG:0x%x\n", __func__, temp);
+		WCN_INFO("%s CHIP_SLP:0x%x,bit12,13 need 1\n", __func__, temp);
 		retry_cnt++;
-	} while ((!(temp & GNSS_SS_PWRON_FINISH)) && (retry_cnt < 3));
+	} while ((!(temp & GNSS_SS_PWRON_FINISH)) &&
+		 (!(temp & GNSS_PWR_FINISH)) && (retry_cnt < 3));
 
 	return 0;
 }
