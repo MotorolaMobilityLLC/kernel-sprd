@@ -7374,11 +7374,18 @@ CONFIG_PINCTRL_SPRD
 	[function] Spreadtrum pinctrl driver.
 CONFIG_PINCTRL_SPRD_SHARKL5
 	[arch] all
-	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] sharkl5
+	[field] menu,make,code
+	[subsys] pinctrl
+	[must] user
+	[function] Spreadtrum Sharkl5 pinctrl driver
+CONFIG_PINCTRL_SPRD_ROC1
+	[arch] all
+	[plat] roc1
+	[field] menu,make,code
+	[subsys] pinctrl
+	[must] user
+	[function] Spreadtrum Roc1 pinctrl driver
 CONFIG_PINMUX
 	[arch] all
 	[plat] all
