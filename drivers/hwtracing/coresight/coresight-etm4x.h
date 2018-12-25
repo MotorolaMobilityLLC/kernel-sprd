@@ -297,6 +297,8 @@ struct etmv4_config {
  * @base:       Memory mapped base address for this component.
  * @dev:        The device entity associated to this component.
  * @csdev:      Component vitals needed by the framework.
+ * @clk_cs:     The coresight clock.
+ * @clk_cs_src: The coresight source clock.
  * @spinlock:   Only one at a time pls.
  * @mode:	This tracer's mode, i.e sysFS, Perf or disabled.
  * @cpu:        The cpu this component is affined to.
@@ -353,6 +355,8 @@ struct etmv4_drvdata {
 	void __iomem			*base;
 	struct device			*dev;
 	struct coresight_device		*csdev;
+	struct clk			*clk_cs;
+	struct clk			*clk_cs_src;
 	spinlock_t			spinlock;
 	local_t				mode;
 	int				cpu;

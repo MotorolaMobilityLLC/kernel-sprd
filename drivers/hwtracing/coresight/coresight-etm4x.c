@@ -92,6 +92,13 @@ static void etm4_enable_hw(void *info)
 	struct etmv4_drvdata *drvdata = info;
 	struct etmv4_config *config = &drvdata->config;
 
+	/* set cs clock as the max one */
+	if (clk_set_parent(drvdata->clk_cs, drvdata->clk_cs_src))
+		return;
+
+	if (clk_prepare_enable(drvdata->clk_cs))
+		return;
+
 	CS_UNLOCK(drvdata->base);
 
 	etm4_os_unlock(drvdata);
@@ -338,6 +345,9 @@ static void etm4_disable_hw(void *info)
 	writel_relaxed(control, drvdata->base + TRCPRGCTLR);
 
 	CS_LOCK(drvdata->base);
+
+	/* unprepare cs clock */
+	clk_disable_unprepare(drvdata->clk_cs);
 
 	dev_dbg(drvdata->dev, "cpu: %d disable smp call done\n", drvdata->cpu);
 }
@@ -983,6 +993,19 @@ static int etm4_probe(struct amba_device *adev, const struct amba_id *id)
 		return PTR_ERR(base);
 
 	drvdata->base = base;
+
+	/* get coresight and timestamp clock source */
+	drvdata->clk_cs = devm_clk_get(dev, "clk_cs");
+	if (IS_ERR(drvdata->clk_cs)) {
+		drvdata->clk_cs = NULL;
+		dev_warn(dev, "There is no etm clock.\n");
+	}
+
+	drvdata->clk_cs_src = devm_clk_get(dev, "cs_src");
+	if (IS_ERR(drvdata->clk_cs_src)) {
+		drvdata->clk_cs_src = NULL;
+		dev_warn(dev, "There is no etm source clock.\n");
+	}
 
 	spin_lock_init(&drvdata->spinlock);
 
