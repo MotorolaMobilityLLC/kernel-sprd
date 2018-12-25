@@ -1215,6 +1215,13 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		host->data_timeout_val = sprd_sdhc_calc_timeout(ios->clock,
 						SPRD_SDHC_MAX_TIMEOUT);
 		mmc->max_busy_timeout = (1 << 31) / (ios->clock / 1000);
+
+		if (ios->clock <= 400000) {
+			host->dll_dly = 0;
+			sprd_sdhc_writel(host, host->dll_dly,
+					 SPRD_SDHC_REG_32_DLL_DLY);
+		}
+
 		if (ios->clock <= 400000 || ios->timing == MMC_TIMING_SD_HS ||
 		    ios->clock == MMC_TIMING_MMC_HS)
 			sdhc_set_dll_invert(host, SPRD_SDHC_BIT_CMD_DLY_INV |
