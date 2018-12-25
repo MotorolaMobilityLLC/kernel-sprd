@@ -109,7 +109,7 @@ static ssize_t wcnlog_read(struct file *filp,
 	WCN_DEBUG("%s z=%d,major=%d,minor = %d\n", __func__, dev->cdev.dev,
 		MAJOR(dev->cdev.dev), MINOR(dev->cdev.dev));
 	/* count :100K-log, 32K-mem ;cat :4096 */
-	WCN_DEBUG("%s len = %ld\n", __func__, count);
+	WCN_DEBUG("%s len = %ld\n", __func__, (long)count);
 	if ((functionmask[7] & CP2_FLAG_YLOG) == 1)
 		return -EIO;
 

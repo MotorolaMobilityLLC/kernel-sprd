@@ -193,8 +193,8 @@ static void mdbg_clear_log(void)
 	if (mdbg_dev->ring_dev->ring->rp
 		!= mdbg_dev->ring_dev->ring->wp) {
 		WCN_INFO("log:%ld left in ringbuf not read\n",
-			mdbg_dev->ring_dev->ring->wp
-		- mdbg_dev->ring_dev->ring->rp);
+			 (long)(mdbg_dev->ring_dev->ring->wp
+		- mdbg_dev->ring_dev->ring->rp));
 		mdbg_ring_clear(mdbg_dev->ring_dev->ring);
 	}
 }

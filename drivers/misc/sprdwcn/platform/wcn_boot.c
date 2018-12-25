@@ -758,7 +758,8 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		WCN_ERR("gpio_rst request err: %d\n",
 				marlin_dev->int_ap);
 
-	WCN_INFO("BTWF_FIRMWARE_PATH len=%ld\n", strlen(BTWF_FIRMWARE_PATH));
+	WCN_INFO("BTWF_FIRMWARE_PATH len=%ld\n",
+		 (long)strlen(BTWF_FIRMWARE_PATH));
 	ret = of_property_read_string(np, "sprd,btwf-file-name",
 				      (const char **)&marlin_dev->btwf_path);
 	if (!ret) {
@@ -767,7 +768,8 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		WCN_INFO("BTWG path is %s\n", BTWF_FIRMWARE_PATH);
 	}
 
-	WCN_INFO("BTWF_FIRMWARE_PATH2 len=%ld\n", strlen(BTWF_FIRMWARE_PATH));
+	WCN_INFO("BTWF_FIRMWARE_PATH2 len=%ld\n",
+		 (long)strlen(BTWF_FIRMWARE_PATH));
 
 	ret = of_property_read_string(np, "sprd,gnss-file-name",
 				      (const char **)&marlin_dev->gnss_path);
