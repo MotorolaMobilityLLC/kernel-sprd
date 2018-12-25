@@ -153,9 +153,13 @@
 	};
 
 	sprd-seth {
-		compatible = "sprd,seth";
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
 
-		seth@0 {
+		seth_ch7: seth@0 {
+			compatible = "sprd,seth";
 			sprd,name = "seth_lte0";
 			sprd,dst = <5>;
 			sprd,channel = <7>;
@@ -163,7 +167,8 @@
 			sprd,poolsize = <16>;
 		};
 
-		seth@1 {
+		seth_ch8: seth@1 {
+			compatible = "sprd,seth";
 			sprd,name = "seth_lte1";
 			sprd,dst = <5>;
 			sprd,channel = <8>;
@@ -171,7 +176,8 @@
 			sprd,poolsize = <16>;
 		};
 
-		seth@2 {
+		seth_ch9: seth@2 {
+			compatible = "sprd,seth";
 			sprd,name = "seth_lte2";
 			sprd,dst = <5>;
 			sprd,channel = <9>;
@@ -179,7 +185,8 @@
 			sprd,poolsize = <16>;
 		};
 
-		seth@3 {
+		seth_ch18: seth@3 {
+			compatible = "sprd,seth";
 			sprd,name = "seth_lte3";
 			sprd,dst = <5>;
 			sprd,channel = <18>;
@@ -187,7 +194,8 @@
 			sprd,poolsize = <16>;
 		};
 
-		seth@4 {
+		seth_ch19: seth@4 {
+			compatible = "sprd,seth";
 			sprd,name = "seth_lte4";
 			sprd,dst = <5>;
 			sprd,channel = <19>;
@@ -195,7 +203,8 @@
 			sprd,poolsize = <16>;
 		};
 
-		seth@5 {
+		seth_ch29: seth@5 {
+			compatible = "sprd,seth";
 			sprd,name = "seth_lte5";
 			sprd,dst = <5>;
 			sprd,channel = <20>;
@@ -203,7 +212,8 @@
 			sprd,poolsize = <16>;
 		};
 
-		seth@6 {
+		seth_ch24: seth@6 {
+			compatible = "sprd,seth";
 			sprd,name = "seth_lte6";
 			sprd,dst = <5>;
 			sprd,channel = <24>;
@@ -211,7 +221,8 @@
 			sprd,poolsize = <16>;
 		};
 
-		seth@7 {
+		seth_ch25: seth@7 {
+			compatible = "sprd,seth";
 			sprd,name = "seth_lte7";
 			sprd,dst = <5>;
 			sprd,channel = <25>;
