@@ -64,8 +64,8 @@ void notrace stop_eirqsoff_timing(unsigned long ip, unsigned long parent_ip)
 	unsigned long long stop_timestamp;
 	unsigned long long start_timestamp;
 	unsigned long long start_timestamp_ms;
-	long long interval;
-	long long interval_us;
+	unsigned long long interval;
+	unsigned long long interval_us;
 
 	if (!irqs_disabled())
 		return;
@@ -146,8 +146,8 @@ void notrace stop_epreempt_timing(unsigned long ip, unsigned long parent_ip)
 	unsigned long long stop_timestamp;
 	unsigned long long start_timestamp;
 	unsigned long long start_timestamp_ms;
-	long long interval;
-	long long interval_us;
+	unsigned long long interval;
+	unsigned long long interval_us;
 
 	if (unlikely(!trace_ready))
 		return;
