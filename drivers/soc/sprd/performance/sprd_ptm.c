@@ -38,6 +38,7 @@ static const struct of_device_id sprd_ptm_of_match[] = {
 	{ .compatible = "sprd,sharkle-ptm", .data = &ptm_v1_data},
 	{ .compatible = "sprd,sharkl3-ptm", .data = &ptm_v2_data},
 	{ .compatible = "sprd,sharkl5-ptm", .data = &ptm_v2_data},
+	{ .compatible = "sprd,roc1-ptm", .data = &ptm_v2_data},
 	{ },
 };
 static struct attribute_group ptm_legacy_group;
