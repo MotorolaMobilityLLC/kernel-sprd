@@ -723,17 +723,7 @@ static int seth_parse_dt(struct seth_init_data **init, struct device *dev)
 	*init = pdata;
 	return 0;
 error:
-	kfree(pdata);
-	*init = NULL;
 	return ret;
-}
-
-static inline void seth_destroy_pdata(struct seth_init_data **init)
-{
-	struct seth_init_data *pdata = *init;
-
-	kfree(pdata);
-	*init = NULL;
 }
 
 static void seth_setup(struct net_device *dev)
@@ -776,7 +766,6 @@ static int seth_probe(struct platform_device *pdev)
 		seth_setup);
 
 	if (!netdev) {
-		seth_destroy_pdata(&pdata);
 		dev_err(&pdev->dev, "alloc_netdev() failed.\n");
 		return -ENOMEM;
 	}
@@ -829,7 +818,6 @@ static int seth_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "create sblock failed (%d)\n", ret);
 		netif_napi_del(&seth->napi);
 		free_netdev(netdev);
-		seth_destroy_pdata(&pdata);
 		return ret;
 	}
 
@@ -844,7 +832,6 @@ static int seth_probe(struct platform_device *pdev)
 		netif_napi_del(&seth->napi);
 		free_netdev(netdev);
 		SBLOCK_DESTROY(pdata->dst, pdata->channel);
-		seth_destroy_pdata(&pdata);
 		return ret;
 	}
 
@@ -855,7 +842,6 @@ static int seth_probe(struct platform_device *pdev)
 		netif_napi_del(&seth->napi);
 		free_netdev(netdev);
 		SBLOCK_DESTROY(pdata->dst, pdata->channel);
-		seth_destroy_pdata(&pdata);
 		return ret;
 	}
 
@@ -877,7 +863,6 @@ static int seth_remove(struct platform_device *pdev)
 	del_timer_sync(&seth->rx_timer);
 	del_timer_sync(&seth->tx_timer);
 	SBLOCK_DESTROY(pdata->dst, pdata->channel);
-	seth_destroy_pdata(&pdata);
 	unregister_netdev(seth->netdev);
 	free_netdev(seth->netdev);
 
