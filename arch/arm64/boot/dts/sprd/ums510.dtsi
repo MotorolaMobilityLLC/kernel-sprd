@@ -109,14 +109,14 @@
 		};
 		CLUSTER_COST_0: cluster-cost0 {
 			busy-cost-data = <
-				164	0		//614MHz
-				206	0		//768MHz
-				307	0		//1144MHz
-				329	0		//1229MHz
-				397	0		//1482MHz
-				412	0		//1536MHz
-				460	0		//1716MHz
-				488	0		//1820MHz
+				164	1		//614MHz
+				206	2		//768MHz
+				307	3		//1144MHz
+				329	4		//1229MHz
+				397	5		//1482MHz
+				412	6		//1536MHz
+				460	7		//1716MHz
+				488	8		//1820MHz
 			>;
 			idle-cost-data = <
 				0		/* ACTIVE-IDLE */
