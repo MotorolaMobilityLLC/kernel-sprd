@@ -2481,6 +2481,7 @@ static int sprd_codec_pcm_hw_params(struct snd_pcm_substream *substream,
 				    struct snd_pcm_hw_params *params,
 				    struct snd_soc_dai *dai)
 {
+	int mask = 0xf, shift = 0;
 	struct snd_soc_codec *codec = dai->codec;
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 	u32 *fixed_rate = sprd_codec->fixed_sample_rate;
@@ -2489,17 +2490,24 @@ static int sprd_codec_pcm_hw_params(struct snd_pcm_substream *substream,
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		sprd_codec->da_sample_val = fixed_rate[CODEC_PATH_DA] ?
 			fixed_rate[CODEC_PATH_DA] : rate;
+		sprd_codec_set_sample_rate(codec,
+			sprd_codec->da_sample_val, mask, shift);
 		sp_asoc_pr_info("Playback rate is [%u]\n",
 			sprd_codec->da_sample_val);
 	} else {
 		if (dai->id != SPRD_CODEC_IIS1_ID) {
 			sprd_codec->ad_sample_val = fixed_rate[CODEC_PATH_AD] ?
 				fixed_rate[CODEC_PATH_AD] : rate;
+			sprd_codec_set_ad_sample_rate(codec,
+				sprd_codec->ad_sample_val, mask, shift);
 			sp_asoc_pr_info("Capture rate is [%u]\n",
 				sprd_codec->ad_sample_val);
 		} else {
 			sprd_codec->ad1_sample_val = fixed_rate[CODEC_PATH_AD1]
 				? fixed_rate[CODEC_PATH_AD1] : rate;
+			sprd_codec_set_ad_sample_rate(codec,
+				sprd_codec->ad1_sample_val,
+				ADC1_SRC_N_MASK, ADC1_SRC_N);
 			sp_asoc_pr_info("Capture(ADC1) rate is [%u]\n",
 				sprd_codec->ad1_sample_val);
 		}
