@@ -1603,6 +1603,8 @@ static ssize_t charger_stop_store(struct device *dev,
 		charger->externally_control = true;
 	}
 
+	power_supply_changed(cm->charger_psy);
+
 	return count;
 }
 
