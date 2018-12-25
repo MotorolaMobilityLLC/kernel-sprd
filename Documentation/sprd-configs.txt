@@ -4189,7 +4189,7 @@ CONFIG_I2C_SPRD
 	[function] Enable i2c that support hw channel
 CONFIG_I2C_SPRD_HW
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] menu
 	[subsys] i2c
 	[must] user
