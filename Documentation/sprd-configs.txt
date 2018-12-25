@@ -9033,6 +9033,20 @@ CONFIG_SPRD_EFUSE
 	[subsys]
 	[must]
 	[function]
+CONFIG_SPRD_IMS_BRIDGE
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] net
+	[must] user
+	[function] Add ims_bridge kernel module to compile.
+CONFIG_SPRD_IMS_BRIDGE_TEST
+	[arch] all
+	[plat] all
+	[field] make, code
+	[subsys] net
+	[must] user
+	[function] Add ims_bridged kernel test module to compile.
 CONFIG_SPRD_IOMMU
 	[arch] all
 	[plat] all
