@@ -3332,13 +3332,13 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 		     VBC_MUX_IIS_RX_ADC0],
 		     vbc_get_iis_rx_width_sel, vbc_put_iis_rx_width_sel),
 	SOC_ENUM_EXT("VBC_IIS_RX1_WD_SEL", vbc_iis_rx_wd_enum[
-		     VBC_MUX_IIS_RX_ADC0],
+		     VBC_MUX_IIS_RX_ADC1],
 		     vbc_get_iis_rx_width_sel, vbc_put_iis_rx_width_sel),
 	SOC_ENUM_EXT("VBC_IIS_RX2_WD_SEL", vbc_iis_rx_wd_enum[
-		     VBC_MUX_IIS_RX_ADC0],
+		     VBC_MUX_IIS_RX_ADC2],
 		     vbc_get_iis_rx_width_sel, vbc_put_iis_rx_width_sel),
 	SOC_ENUM_EXT("VBC_IIS_RX3_WD_SEL", vbc_iis_rx_wd_enum[
-		     VBC_MUX_IIS_RX_ADC0],
+		     VBC_MUX_IIS_RX_ADC3],
 		     vbc_get_iis_rx_width_sel, vbc_put_iis_rx_width_sel),
 	/* IIS RX/TX LR_MOD */
 	SOC_ENUM_EXT("VBC_IIS_TX0_LRMOD_SEL", vbc_iis_tx_lr_mod_enum[
