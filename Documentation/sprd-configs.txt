@@ -9070,7 +9070,7 @@ CONFIG_SPRD_POWER_DEBUG
 	[function] Enable/disable sprd power debug function.
 CONFIG_SPRD_PTM
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] make
 	[subsys] debug
 	[must] debug
