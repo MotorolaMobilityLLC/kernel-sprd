@@ -265,18 +265,20 @@ static int sprd_drm_component_probe(struct device *dev,
 		of_node_put(port);
 	}
 
-	for (i = 0; ; i++) {
-		port = of_parse_phandle(dev->of_node, "gsp", i);
-		if (!port)
-			break;
+	if (IS_ENABLED(CONFIG_DRM_SPRD_GSP)) {
+		for (i = 0; ; i++) {
+			port = of_parse_phandle(dev->of_node, "gsp", i);
+			if (!port)
+				break;
 
-		if (!of_device_is_available(port->parent)) {
+			if (!of_device_is_available(port->parent)) {
+				of_node_put(port);
+				continue;
+			}
+
+			component_match_add(dev, &match, compare_of, port);
 			of_node_put(port);
-			continue;
 		}
-
-		component_match_add(dev, &match, compare_of, port);
-		of_node_put(port);
 	}
 
 	return component_master_add_with_match(dev, m_ops, match);
