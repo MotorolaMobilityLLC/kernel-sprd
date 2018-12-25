@@ -829,7 +829,7 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 
 	mutex_lock(&info->lock);
 
-	if (!info->charging) {
+	if (!info->charging && psp != POWER_SUPPLY_PROP_STATUS) {
 		mutex_unlock(&info->lock);
 		return -ENODEV;
 	}
