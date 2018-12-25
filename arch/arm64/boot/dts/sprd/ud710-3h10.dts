@@ -265,6 +265,13 @@
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <9000000>;
 	phys = <&hsphy>;
+};
+
+&vsp {
+	status = "okay";
+};
+
+&jpg {
 	status = "okay";
 };
 
