@@ -1272,7 +1272,7 @@ static void headset_button_work_func(struct work_struct *work)
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
 	int button_bit_value_current, adc_mic_average = 0, btn_irq_trig_level,
-		adc_ideal, adc_array[ADC_READ_REPET];
+		adc_ideal, temp, adc_array[ADC_READ_REPET];
 	unsigned int val;
 	struct iio_channel *chan;
 	u32 did_times = 0;
@@ -1338,16 +1338,49 @@ static void headset_button_work_func(struct work_struct *work)
 				HEDET_V2AD_CH_SEL(0xF));
 			get_button_adc_value(chan, adc_array, ADC_READ_REPET,
 				&did_times);
-			adc_mic_average /= ADC_READ_REPET;
-			if (-1 == adc_mic_average) {
-				pr_info("%s software debounce check fail\n",
+			pr_debug("DCL1(100) %x, HDT0(D0) %x, HDT1(D4) %x, HDT2(D8) %x, CLK0(68) %x, HID0(144) %x, HID1(148) %x, HID2(14C) %x, HID3(150) %x, HID4(154) %x",
+				headset_reg_value_read(ANA_DCL1),
+				headset_reg_value_read(ANA_HDT0),
+				headset_reg_value_read(ANA_HDT1),
+				headset_reg_value_read(ANA_HDT2),
+				headset_reg_value_read(ANA_CLK0),
+				headset_reg_value_read(ANA_HID0),
+				headset_reg_value_read(ANA_HID1),
+				headset_reg_value_read(ANA_HID2),
+				headset_reg_value_read(ANA_HID3),
+				headset_reg_value_read(ANA_HID4));
+			if (did_times == 0) {
+				pr_err("%s button press invalid, did_times 0\n",
 					__func__);
-				goto out;
+				adc_mic_average = 4095;
+				goto error1;
 			}
+			if (did_times != ADC_READ_REPET)
+				pr_err("%s key released before reading adc complete, did_times %d\n",
+				__func__, did_times);
+			for (temp = 0; temp < did_times; temp++) {
+				adc_mic_average += adc_array[temp];
+				pr_debug("%s, adc_array[%d] %d\n", __func__,
+					temp, adc_array[temp]);
+			}
+
+			adc_mic_average /= did_times;
+			if (adc_mic_average < 0) {
+				pr_err("%s adc error, adc_mic_average %d\n",
+					__func__, adc_mic_average);
+				/*
+				 * When adc value is negative, it is invalid,
+				 * set a useless value to it, like 4095 in
+				 * buttons.
+				 */
+				adc_mic_average = 4095;
+			}
+error1:
 			adc_ideal = headset_adc_get_ideal(adc_mic_average,
 						pdata->coefficient);
-			pr_info("adc_value: adc_mic_average=%d, ideal_value: adc_ideal=%d, V_ideal %d\n",
-				adc_mic_average, adc_ideal,
+			pr_info("%s adc_mic_average %d, adc_ideal=%d, V_ideal %s %d\n",
+				__func__, adc_mic_average, adc_ideal,
+				(adc_mic_average >= 4095) ? "outrange!" : "",
 				adc_ideal * 125 / 4095);
 			if (adc_ideal >= 0)
 				adc_mic_average = adc_ideal;
