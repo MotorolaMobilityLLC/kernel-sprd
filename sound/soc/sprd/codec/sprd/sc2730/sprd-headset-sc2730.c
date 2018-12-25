@@ -904,6 +904,32 @@ static int headset_get_adc_value(struct iio_channel *chan)
 	return adc_value/2;
 }
 
+static void get_button_adc_value(struct iio_channel *chan, int *adc_array,
+	u32 loop_times, u32 *did_times)
+{
+	int adc_value, i = 0, insert_state_1, insert_state_2;
+
+	while (i < loop_times) {
+		insert_state_1 =
+			headset_eic_get_insert_status(HDST_INSERT_BIT_BDET);
+		/* head buffer not swap */
+		headset_reg_clr_bits(ANA_HDT3, HEDET_V2AD_SWAP);
+		adc_value = headset_wrap_sci_adc_get(chan);
+		/* head buffer swap input */
+		headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_SWAP);
+		adc_value = headset_wrap_sci_adc_get(chan) + adc_value;
+		insert_state_2 =
+			headset_eic_get_insert_status(HDST_INSERT_BIT_BDET);
+		if (insert_state_1 == 0 || insert_state_2 == 0) {
+			pr_err("%s key released! i %d, insert_state_1 %d, insert_state_2 %d\n",
+				__func__, i, insert_state_1, insert_state_2);
+			*did_times = i;
+			return;
+		}
+		adc_array[i++] = adc_value / 2;
+	}
+	*did_times = ADC_READ_REPET;
+}
 /*
  * I hope this func called by sprd_codec_soc_suspend -- true
  * sprd_codec_soc_resume -- false
@@ -1245,10 +1271,11 @@ static void headset_button_work_func(struct work_struct *work)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
-	int button_bit_value_current, adc_mic_average, btn_irq_trig_level,
-		adc_ideal, temp;
+	int button_bit_value_current, adc_mic_average = 0, btn_irq_trig_level,
+		adc_ideal, adc_array[ADC_READ_REPET];
 	unsigned int val;
 	struct iio_channel *chan;
+	u32 did_times = 0;
 
 	if (!hdst || !pdata) {
 		pr_err("%s: sprd_hdst(%p) or pdata(%p) is NULL!\n",
@@ -1309,9 +1336,8 @@ static void headset_button_work_func(struct work_struct *work)
 			headset_reg_clr_bits(ANA_HDT3, HEDET_V2AD_SCALE_SEL);
 			headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0),
 				HEDET_V2AD_CH_SEL(0xF));
-			for (temp = 0; temp < ADC_READ_REPET; temp++)
-				adc_mic_average += headset_get_adc_value(chan);
-
+			get_button_adc_value(chan, adc_array, ADC_READ_REPET,
+				&did_times);
 			adc_mic_average /= ADC_READ_REPET;
 			if (-1 == adc_mic_average) {
 				pr_info("%s software debounce check fail\n",
