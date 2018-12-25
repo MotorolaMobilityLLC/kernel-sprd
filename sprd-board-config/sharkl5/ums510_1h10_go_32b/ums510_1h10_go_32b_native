@@ -6,7 +6,6 @@ endif
 
 BOARD_TEE_CONFIG := trusty
 BOARD_TEE_64BIT := true
-BOARD_WCN_CONFIG := built-in
 
 #DEFCONFIG
 KERNEL_DEFCONFIG := sprd_sharkl5_defconfig
