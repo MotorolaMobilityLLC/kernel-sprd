@@ -723,7 +723,7 @@
 				};
 
 				port@1 {
-					reg = <0>;
+					reg = <1>;
 					funnel_soc_in_port: endpoint {
 						slave-mode;
 						remote-endpoint = <&etf_out>;
