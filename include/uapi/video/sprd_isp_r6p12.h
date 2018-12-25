@@ -1590,6 +1590,7 @@ struct isp_dev_rgb_gain_info {
 	uint32_t r_gain;
 	uint32_t g_gain;
 	uint32_t b_gain;
+	uint32_t reserv;
 };
 
 struct isp_dev_rgb_dither_info {
