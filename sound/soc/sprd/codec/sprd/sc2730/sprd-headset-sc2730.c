@@ -46,7 +46,7 @@
 #define SPRD_BUTTON_JACK_MASK (SND_JACK_BTN_0 | SND_JACK_BTN_1 | \
 	SND_JACK_BTN_2 | SND_JACK_BTN_3 | SND_JACK_BTN_4)
 
-#define ADC_READ_REPET 4
+#define ADC_READ_REPET 2
 #define CHIP_ID_2720 0x2720
 #define CHIP_ID_2730 0x2730
 
@@ -550,7 +550,7 @@ static int headset_wrap_sci_adc_get(struct iio_channel *chan)
 		average += val;
 		count++;
 		pr_debug("%s count %d,val %d, average %d\n",
-			__func__, count, val, average);
+			__func__, count, val, average / count);
 	}
 
 	average /= SCI_ADC_GET_VALUE_COUNT;
