@@ -39,7 +39,6 @@
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
-		gsp = <&gsp>;
 	};
 
 	reserved-memory {
