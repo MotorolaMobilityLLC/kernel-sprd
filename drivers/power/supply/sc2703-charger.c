@@ -647,7 +647,7 @@ static int sc2703_charger_get_health(struct sc2703_charger_info *info,
 static int sc2703_charger_get_online(struct sc2703_charger_info *info,
 				     u32 *online)
 {
-	if (info->charging)
+	if (info->limit)
 		*online = true;
 	else
 		*online = false;
@@ -789,15 +789,12 @@ static int sc2703_charger_usb_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_ONLINE:
-		if (!info->charging) {
-			val->intval = 0;
-		} else {
-			ret = sc2703_charger_get_online(info, &online);
-			if (ret)
-				goto out;
+		ret = sc2703_charger_get_online(info, &online);
+		if (ret)
+			goto out;
 
-			val->intval = online;
-		}
+		val->intval = online;
+
 		break;
 
 	case POWER_SUPPLY_PROP_HEALTH:
