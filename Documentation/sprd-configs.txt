@@ -9734,14 +9734,14 @@ CONFIG_TUN
 	[function] vts require, Universal TUN/TAP device driver support
 CONFIG_TYPEC
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_TYPEC_UCSI
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field]
 	[subsys]
 	[must]
@@ -10182,7 +10182,7 @@ CONFIG_USB_PHY
 	[function] This macro is to support USB Physical Layer drivers.
 CONFIG_USB_SC27XX_TYPEC
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field]
 	[subsys]
 	[must]
