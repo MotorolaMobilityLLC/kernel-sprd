@@ -62,6 +62,11 @@
 		};
 	};
 
+	sprd-sysdump {
+		memory-region = <&memory>;
+		memory-region-re = <&ddrbist_reserved>, <&cp_reserved>, <&smem_reserved>;
+	};
+
 	sprd_marlin3: sprd-marlin3 {
 		permit-ap-send-gpios = <&ap_gpio 69 0>;
 		m2-to-ap-irq-gpios = <&ap_gpio 96 0>;

@@ -52,6 +52,10 @@
 						<32 223 2>;
 		};
 
+	sprd-sysdump {
+		memory-region = <&memory>;
+		memory-region-re = <&ddrbist_reserved>, <&cp_reserved>, <&smem_reserved>;
+	};
 		virtio {
 			compatible = "android,trusty-virtio-v1";
 		};

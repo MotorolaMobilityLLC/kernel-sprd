@@ -46,6 +46,10 @@
 		#size-cells = <2>;
 		ranges;
 
+		ddrbist_reserved: ddrbist-mem@80000000{
+			reg = <0x0 0x80000000 0x0 0x00000080>;
+		};
+
 		smem_reserved: sipc-mem@87800000{
 			reg = <0x0 0x87800000 0x0 0x00800000>;
 		};
