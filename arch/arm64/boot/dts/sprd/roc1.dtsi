@@ -251,6 +251,16 @@
 			#size-cells = <2>;
 			ranges;
 
+			ap_dma: dma-controller@20000000 {
+				compatible = "sprd,roc1-dma";
+				reg = <0 0x20000000 0 0x4000>;
+				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
+				#dma-cells = <1>;
+				#dma-channels = <28>;
+				clock-names = "enable";
+				clocks = <&apahb_gate CLK_DMA_PUB_EB>;
+			};
+
 			hsphy: hsphy@20100000 {
 				compatible = "sprd,roc1-phy";
 				sprd,syscon-enable = <&aon_apb_regs>;
@@ -687,6 +697,22 @@
 				reg = <0 0x71300000 0 0x1000>;
 				interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
+			};
+		};
+
+		agcp {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			agcp_dma: dma-controller@33580000 {
+				compatible = "sprd,roc1-dma";
+				reg = <0 0x33580000 0 0x4000>;
+				interrupts = <GIC_SPI 180 IRQ_TYPE_LEVEL_HIGH>;
+				#dma-cells = <1>;
+				#dma-channels = <32>;
+				clock-names = "enable", "ashb_eb";
 			};
 		};
 
