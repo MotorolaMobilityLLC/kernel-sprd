@@ -67,7 +67,6 @@ struct charger_cable {
 
 	/* The charger-manager use Extcon framework */
 	struct extcon_dev *extcon_dev;
-	struct work_struct wq;
 	struct notifier_block nb;
 
 	/* The state of charger cable */
