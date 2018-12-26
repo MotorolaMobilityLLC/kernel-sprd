@@ -2729,7 +2729,7 @@ static void sprd_codec_proc_read(struct snd_info_entry *entry,
 	}
 	agdsp_access_disable();
 
-	snd_iprintf(buffer, "%s analog part(0x403C8700)\n",
+	snd_iprintf(buffer, "%s analog part\n",
 		codec->component.name);
 	for (reg = SPRD_CODEC_AP_BASE;
 			reg < SPRD_CODEC_AP_END; reg += 0x10) {
@@ -2745,15 +2745,15 @@ static void sprd_codec_proc_read(struct snd_info_entry *entry,
 	/* For AUDIF registers
 	 * 0x5c0 = 0x700 - 0x140;
 	 */
-	snd_iprintf(buffer, "%s audif(0x403C8140)\n", codec->component.name);
-	for (reg = SPRD_CODEC_AP_BASE; reg < 0x20 + SPRD_CODEC_AP_BASE;
+	snd_iprintf(buffer, "%s audif\n", codec->component.name);
+	for (reg = CTL_BASE_AUD_TOPA_RF; reg < 0x30 + CTL_BASE_AUD_TOPA_RF;
 			reg += 0x10) {
 		snd_iprintf(buffer, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
-			(unsigned int)(reg - SPRD_CODEC_AP_BASE)
-			, arch_audio_codec_read(reg + 0x00 - 0x5c0)
-			, arch_audio_codec_read(reg + 0x04 - 0x5c0)
-			, arch_audio_codec_read(reg + 0x08 - 0x5c0)
-			, arch_audio_codec_read(reg + 0x0C - 0x5c0)
+			(unsigned int)(reg - CTL_BASE_AUD_TOPA_RF)
+			, arch_audio_codec_read(reg + 0x00)
+			, arch_audio_codec_read(reg + 0x04)
+			, arch_audio_codec_read(reg + 0x08)
+			, arch_audio_codec_read(reg + 0x0C)
 		);
 	}
 }
