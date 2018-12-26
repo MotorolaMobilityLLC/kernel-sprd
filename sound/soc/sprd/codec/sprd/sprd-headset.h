@@ -88,6 +88,7 @@ struct sprd_headset_platform_data {
 	u32 gpios[HDST_GPIO_AUD_MAX];
 	u32 dbnc_times[HDST_GPIO_AUD_MAX]; /* debounce times */
 	u32 irq_trigger_levels[HDST_GPIO_AUD_MAX];
+	u32 threshold_3pole;/* adc threshold value of 3pole headset  */
 #else
 	u32 gpios[HDST_GPIO_MAX];
 	u32 dbnc_times[HDST_GPIO_MAX]; /* debounce times */

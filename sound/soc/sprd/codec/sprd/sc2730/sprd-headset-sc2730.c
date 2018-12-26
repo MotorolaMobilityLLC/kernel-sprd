@@ -1132,16 +1132,17 @@ headset_type_detect_all(int insert_all_val_last)
 	if (-1 == adc_left_ideal)
 		return HEADSET_TYPE_ERR;
 
-	pr_info("%s sprd_one_half_adc_gnd %d, adc_threshold_3pole_detect %d,sprd_adc_gnd %d\n",
-		__func__, pdata->sprd_one_half_adc_gnd,
-		pdata->adc_threshold_3pole_detect, pdata->sprd_adc_gnd);
+	pr_info("%s sprd_half_adc_gnd %d, sprd_adc_gnd %d,sprd_one_half_adc_gnd %d, threshold_3pole %d\n",
+		__func__, pdata->sprd_half_adc_gnd,
+		pdata->sprd_adc_gnd, pdata->sprd_one_half_adc_gnd,
+		pdata->threshold_3pole);
 
 	if (adc_left_ideal <= pdata->sprd_one_half_adc_gnd) {
 		/* (2) */
-		if (adc_mic_average <= pdata->adc_threshold_3pole_detect)
+		if (adc_mic_average <= pdata->threshold_3pole)
 			return HEADSET_NO_MIC;
 		/* (3) */
-		if (adc_mic_average > pdata->adc_threshold_3pole_detect) {
+		if (adc_mic_average > pdata->threshold_3pole) {
 			/*
 			 *4 pole normal type is divided into 4 types:
 			 * A: 4 pole normal headphone,
@@ -2537,10 +2538,10 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 			pdata->dbnc_times[type]);
 	}
 
-	ret = of_property_read_u32(np, "sprd,adc-threshold-3pole-detect",
-		&pdata->adc_threshold_3pole_detect);
+	ret = of_property_read_u32(np, "sprd,3pole-adc-threshold",
+		&pdata->threshold_3pole);
 	if (ret) {
-		pr_err("%s: fail to get adc-threshold-3pole-detect\n",
+		pr_err("%s: fail to get 3pole-adc-threshold\n",
 			__func__);
 		return -ENXIO;
 	}
@@ -2553,10 +2554,10 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 		return -ENXIO;
 	}
 
-	ret = of_property_read_u32(np, "sprd,stable-value",
-		&pdata->sprd_stable_value);
+	ret = of_property_read_u32(np, "sprd,half-adc-gnd",
+		&pdata->sprd_half_adc_gnd);
 	if (ret) {
-		pr_err("%s: fail to get stable-value\n",
+		pr_err("%s: fail to get half-adc-gnd\n",
 			__func__);
 		return -ENXIO;
 	}
@@ -2576,14 +2577,13 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 		return -ENXIO;
 	}
 
-	pdata->sprd_half_adc_gnd = pdata->sprd_adc_gnd >> 1;
 	pdata->sprd_one_half_adc_gnd = pdata->sprd_adc_gnd +
 					pdata->sprd_half_adc_gnd;
-	pr_info("half_adc_gnd=%u, one_half_adc_gnd=%u, sprd_adc_gnd=%u",
+	pr_info("half_adc_gnd %u, one_half_adc_gnd %u, sprd_adc_gnd %u",
 		pdata->sprd_half_adc_gnd, pdata->sprd_one_half_adc_gnd,
 		pdata->sprd_adc_gnd);
-	pr_info("adc_threshold_3pole_detect=%u, sprd_stable_value=%u, coefficient %u, irq_threshold_button %u",
-		pdata->adc_threshold_3pole_detect, pdata->sprd_stable_value,
+	pr_info("threshold_3pole %u, sprd_half_adc_gnd %u, coefficient %u, irq_threshold_button %u",
+		pdata->threshold_3pole, pdata->sprd_half_adc_gnd,
 		pdata->coefficient, pdata->irq_threshold_button);
 
 	pdata->do_fm_mute = !of_property_read_bool(np, "sprd,no-fm-mute");
