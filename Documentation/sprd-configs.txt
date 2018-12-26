@@ -8005,21 +8005,28 @@ CONFIG_REGMAP_SPI
 	[function] Support spi regmap.
 CONFIG_REGULATOR
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] menu,make
 	[subsys] regulator
 	[must] user
 	[function] Support regulator core.
+CONFIG_REGULATOR_DA9211
+	[arch] all
+	[plat] roc1
+	[field] menu,code
+	[subsys] regulator
+	[must] user
+	[function] SUPPORT DA9211 regulator function.
 CONFIG_REGULATOR_SC2703
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] menu,code
 	[subsys] regulator
 	[must] user
 	[function] SUPPORT SC2703 regulator function.
 CONFIG_REGULATOR_SC2730
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] menu,code
 	[subsys] regulator
 	[must] user
@@ -8860,7 +8867,7 @@ CONFIG_SPLIT_PTLOCK_CPUS
 	[function] Set the number of startup ARM cores.
 CONFIG_SPRD_7SRESET
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] menu,code
 	[subsys] core
 	[must] user
@@ -9070,7 +9077,7 @@ CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[function] This function is used to enable mm power domain.
 CONFIG_SPRD_PMIC_SYSCON
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] make,code
 	[subsys] soc
 	[must] debug
@@ -9218,7 +9225,7 @@ CONFIG_SPRD_VSP
 	[function] The VSP is a video CODEC accelerator.
 CONFIG_SPRD_WATCHDOG
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] menu,code
 	[subsys] core
 	[must] user
@@ -10355,7 +10362,7 @@ CONFIG_WATCHDOG
 	[function] Generic Watchdog Controller support.
 CONFIG_WATCHDOG_CORE
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] user
