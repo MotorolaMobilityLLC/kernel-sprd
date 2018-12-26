@@ -1193,6 +1193,43 @@ static void headset_button_release_verify(void)
 	}
 }
 
+static void headset_removed_verify(void)
+{
+	struct sprd_headset *hdst = sprd_hdst;
+	struct sprd_headset_platform_data *pdata = hdst ? &hdst->pdata : NULL;
+	int plug_state_current = 0;
+	bool trig_level, hw_insert_status;
+
+	trig_level = headset_eic_get_trig_level(HDST_EIC_INSERT_ALL);
+	hw_insert_status =
+		headset_eic_get_insert_status(HDST_INSERT_BIT_INSERT_ALL);
+	if (trig_level && hw_insert_status)
+		plug_state_current = 1;
+	/* Hardware is plugging in, but software was plugged, clean SW status */
+	if ((plug_state_current && 1 == hdst->plug_state_last) ||
+		(trig_level && hdst->report == 1)) {
+		pr_warn("%s headset removed but not reported, do %s plug out\n",
+			__func__, hdst->headphone ? "headphone" : "headset");
+		headset_eic_enable(HDST_EIC_MDET, 0);
+		headset_eic_enable(HDST_EIC_MDET, 0);
+		headmicbias_power_on(hdst, 0);
+		headset_button_release_verify();
+		hdst->hdst_status &= ~SPRD_HEADSET_JACK_MASK;
+		headset_jack_report(hdst, &hdst->hdst_jack,
+			0, SPRD_HEADSET_JACK_MASK);
+		headset_hmicbias_polling_enable(false, true);
+		hdst->plug_state_last = 0;
+		hdst->report = 0;
+		hdst->re_detect = false;
+
+		if (pdata->jack_type == JACK_TYPE_NO) {
+			headset_eic_set_trig_level(HDST_EIC_LDETL, 0);
+			headset_reg_write(ANA_HDT2, HEDET_LDETL_REF_SEL(0x3),
+				HEDET_LDETL_REF_SEL(0x7));
+		}
+	}
+}
+
 static enum snd_jack_types headset_adc_to_button(int adc_mic)
 {
 	struct sprd_headset *hdst = sprd_hdst;
@@ -1796,6 +1833,12 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		hdst->report = 0;
 		pr_info("%s times %d irq_detect must be enabled anyway! micbias power off\n",
 			__func__, times);
+		/*
+		 * When status is wrong, checking Whether the hardware state
+		 * is corresponds to the software. If status conflict, software
+		 * status should be clean.
+		 */
+		headset_removed_verify();
 		headmicbias_power_on(hdst, 0);
 		headset_eic_set_trig_level(16, 1);
 		headset_eic_enable(16, 0);
@@ -2035,6 +2078,11 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 
 	if ((BIT(14) & headset_reg_value_read(ANA_INT34)) == 0) {
 		pr_err("%s: error, intc is not active\n", __func__);
+
+		headset_eic_intc_clear(1);
+		headset_eic_clear_irq(HDST_EIC_MAX);
+		headset_eic_intc_clear(0);
+		headset_internal_eic_entry_init();
 		return IRQ_HANDLED;
 	}
 
@@ -2049,12 +2097,11 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 		pr_err("%s: no active interrupt at all!\n", __func__);
 		pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 
-		headset_eic_clear_irq(HDST_EIC_MAX);
 		headset_eic_intc_clear(1);
+		headset_eic_clear_irq(HDST_EIC_MAX);
 		headset_eic_intc_clear(0);
 		headset_internal_eic_entry_init();
 		pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
-
 		return IRQ_HANDLED;
 	}
 	/* I think this need place at the begain of this func to clear intc */
