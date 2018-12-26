@@ -1560,6 +1560,7 @@ int
 composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 {
 	struct usb_composite_dev	*cdev = get_gadget_data(gadget);
+	struct usb_configuration        *c = NULL;
 	struct usb_request		*req = cdev->req;
 	int				value = -EOPNOTSUPP;
 	int				status = 0;
@@ -1638,8 +1639,18 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 		case USB_DT_STRING:
 			value = get_string(cdev, req->buf,
 					w_index, w_value & 0xff);
-			if (value >= 0)
+			if (value >= 0) {
 				value = min(w_length, (u16) value);
+			} else if (cdev->desc.bcdDevice == 0xffff) {
+				list_for_each_entry(c, &cdev->configs, list) {
+					list_for_each_entry(f, &c->functions, list) {
+						if (f->req_match &&
+							f->req_match(f, ctrl, false))
+							goto try_fun_setup;
+					}
+				}
+				f = NULL;
+			}
 			break;
 		case USB_DT_BOS:
 			if (gadget_is_superspeed(gadget) ||
