@@ -553,6 +553,10 @@ static void print_threads_usage(struct seq_file *p, ulong id)
 
 	read_lock(&tasklist_lock);
 	do_each_thread(gp, pp) {
+		/* the stack of ZO task was freed */
+		if (pp->stack == NULL)
+			continue;
+
 		buffer = T_BUFF(pp);
 		if (buffer->index != global_id)
 			cpu_threadinfo_clean(buffer);
