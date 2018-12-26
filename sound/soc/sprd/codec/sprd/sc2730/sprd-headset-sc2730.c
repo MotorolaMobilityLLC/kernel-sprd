@@ -1137,45 +1137,38 @@ headset_type_detect_all(int insert_all_val_last)
 		pdata->sprd_adc_gnd, pdata->sprd_one_half_adc_gnd,
 		pdata->threshold_3pole);
 
-	if (adc_left_ideal <= pdata->sprd_one_half_adc_gnd) {
-		/* (2) */
-		if (adc_mic_average <= pdata->threshold_3pole)
-			return HEADSET_NO_MIC;
-		/* (3) */
-		if (adc_mic_average > pdata->threshold_3pole) {
-			/*
-			 *4 pole normal type is divided into 4 types:
-			 * A: 4 pole normal headphone,
-			 * B: 4 pole normal for selfie stick,
-			 * C: 4 pole normal which is not totally inserted with
-			 * MIC floating, can be regarded as 3 pole headphone,
-			 * D: 4 pole normal for selfie stick which is not
-			 * totally inserted or it is 4 pole floating.
-			 */
-			val =
-			headset_eic_get_insert_status(HDST_INSERT_BIT_MDET);
-			pr_info("%s %d, adc_left_ideal %d, adc_mic_average %d, val %d\n",
-				__func__, __LINE__, adc_left_ideal,
-				adc_mic_average, val);
-			/* type A */
-			if (val != 0 && adc_left_ideal < pdata->sprd_adc_gnd)
-				return HEADSET_4POLE_NORMAL;
-			/* type B */
-			if (val != 0 && adc_left_ideal > pdata->sprd_adc_gnd)
-				return HEADSET_4POLE_NORMAL;
-			/* type C */
-			if (val == 0 && adc_left_ideal < pdata->sprd_adc_gnd)
-				return headset_type_detect_through_mdet();
-			/* type D */
-			if (val == 0 && adc_left_ideal > pdata->sprd_adc_gnd)
-				return headset_type_detect_through_mdet();
-		}
-	} else if  (ABS(adc_mic_average - adc_left_ideal) <
-	/* need using ABS? the document don't refer this, I am not sure */
-						pdata->sprd_adc_gnd)
-		return HEADSET_4POLE_NOT_NORMAL;/* (1) */
-	else
-		return HEADSET_TYPE_ERR;/* (1) */
+	if (adc_left_ideal > pdata->sprd_adc_gnd &&
+		adc_mic_ideal - adc_left_ideal < pdata->sprd_adc_gnd)
+		return HEADSET_4POLE_NOT_NORMAL;
+	else if (adc_left_ideal > pdata->sprd_adc_gnd &&
+		adc_mic_ideal - adc_left_ideal >= pdata->sprd_adc_gnd)
+		return HEADSET_TYPE_ERR;
+	else if (adc_left_ideal < pdata->sprd_adc_gnd &&
+		adc_mic_ideal < pdata->threshold_3pole)
+		return HEADSET_NO_MIC;
+	else if (adc_left_ideal < pdata->sprd_adc_gnd &&
+		adc_mic_ideal >= pdata->threshold_3pole) {
+		val = headset_eic_get_insert_status(HDST_INSERT_BIT_MDET);
+		pr_debug("%s val %d\n", __func__, val);
+		if (val != 0 && adc_left_ideal < pdata->sprd_half_adc_gnd)
+			return HEADSET_4POLE_NORMAL;
+		/* selfie stick */
+		else if (val != 0 && adc_left_ideal >= pdata->sprd_half_adc_gnd)
+			return HEADSET_4POLE_NORMAL;
+		/*
+		 * 4 pole normal type with mic floating
+		 * can be treated as 3 pole headphone
+		 */
+		else if (val == 0 && adc_left_ideal < pdata->sprd_half_adc_gnd)
+			return headset_type_detect_through_mdet();
+		/*
+		 * 4 pole normal which is not totally inserted.
+		 * 4 pole normal for selfie stick which is not
+		 * totally inserted or it is 4 pole floating.
+		 */
+		else if (val == 0 && adc_left_ideal >= pdata->sprd_half_adc_gnd)
+			return headset_type_detect_through_mdet();
+	}
 
 	return HEADSET_TYPE_ERR;
 }
