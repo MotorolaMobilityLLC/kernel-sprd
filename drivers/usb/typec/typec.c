@@ -805,6 +805,17 @@ static const char * const typec_port_types_drp[] = {
 	[TYPEC_PORT_DRP] = "[dual] source sink",
 };
 
+static const char * const typec_supported_modes_types[] = {
+	[TYPEC_PORT_DFP] = "dfp",
+	[TYPEC_PORT_UFP] = "ufp",
+	[TYPEC_PORT_DRP] = "ufp dfp",
+};
+
+static const char * const typec_mode_type[] = {
+	[TYPEC_DEVICE]	= "ufp",
+	[TYPEC_HOST]	= "dfp",
+};
+
 static ssize_t
 preferred_role_store(struct device *dev, struct device_attribute *attr,
 		     const char *buf, size_t size)
@@ -901,6 +912,19 @@ static ssize_t data_role_show(struct device *dev,
 	return sprintf(buf, "[%s]\n", typec_data_roles[port->data_role]);
 }
 static DEVICE_ATTR_RW(data_role);
+
+static ssize_t mode_show(struct device *dev,
+			      struct device_attribute *attr, char *buf)
+{
+	struct typec_port *port = to_typec_port(dev);
+
+	if (port->cap->type == TYPEC_PORT_DRP)
+		return sprintf(buf, "%s\n", port->data_role == TYPEC_HOST ?
+			       "dfp" : "ufp");
+
+	return sprintf(buf, "%s\n", typec_mode_type[port->data_role]);
+}
+static DEVICE_ATTR_RO(mode);
 
 static ssize_t power_role_store(struct device *dev,
 				struct device_attribute *attr,
@@ -1009,6 +1033,17 @@ port_type_show(struct device *dev, struct device_attribute *attr,
 	return sprintf(buf, "[%s]\n", typec_port_types[port->cap->type]);
 }
 static DEVICE_ATTR_RW(port_type);
+
+static ssize_t
+supported_modes_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	struct typec_port *port = to_typec_port(dev);
+
+	return sprintf(buf, "%s\n", typec_supported_modes_types[port->cap->type]);
+}
+static DEVICE_ATTR_RO(supported_modes);
+
 
 static const char * const typec_pwr_opmodes[] = {
 	[TYPEC_PWR_MODE_USB]	= "default",
@@ -1120,6 +1155,8 @@ static struct attribute *typec_attrs[] = {
 	&dev_attr_usb_typec_revision.attr,
 	&dev_attr_vconn_source.attr,
 	&dev_attr_port_type.attr,
+	&dev_attr_mode.attr,
+	&dev_attr_supported_modes.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(typec);
