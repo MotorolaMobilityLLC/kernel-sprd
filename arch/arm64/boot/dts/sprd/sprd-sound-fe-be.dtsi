@@ -13,10 +13,10 @@
 		 */
 		sprd,debounce-interval = <10>;
 		gpio-names = "aud_int_all";
-		sprd,adc-threshold-3pole-detect = <3054>;
-		sprd,adc-gnd = <336>;
-		sprd,stable-value = <2223>;
-		sprd,coefficient = <906270>;
+		sprd,3pole-adc-threshold = <2950>;
+		sprd,adc-gnd = <328>;
+		sprd,half-adc-gnd = <131>;
+		sprd,coefficient = <884520>;
 		sprd,irq-threshold-button = <5>;
 		nvmem-cells = <&headset_adc_fir>, <&headset_adc_sec>;
 		nvmem-cell-names = "hp_adc_fir_calib", "hp_adc_sec_calib";
@@ -24,18 +24,18 @@
 		sprd,headset-button@0 {
 			/* media */
 			adc-min = <0>;
-			adc-max = <399>;
+			adc-max = <543>;
 			code = <226>;
 		};
 		sprd,headset-button@1 {
 			/* volume up */
-			adc-min = <400>;
-			adc-max = <999>;
+			adc-min = <544>;
+			adc-max = <1097>;
 			code = <115>;
 		};
 		sprd,headset-button@2 {
 			/* volume down */
-			adc-min = <1000>;
+			adc-min = <1097>;
 			adc-max =<2400>;
 			code = <114>;
 		};

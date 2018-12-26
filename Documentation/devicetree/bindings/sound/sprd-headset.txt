@@ -11,9 +11,9 @@ Required properties:
 - gpios: TOP EIC GPIO
 - sprd,debounce-interval: headset plugin/plugout debounce time
 - gpio-names: the GPIO name of TOP EIC
-- sprd,adc-threshold-3pole-detect: threshold value to distinguish 3 pole or 4 pole
+- sprd,3pole-adc-threshold: threshold value to distinguish 3 pole or 4 pole
 - sprd,adc-gnd: GND adc value
-- sprd,stable-value: stable adc value
+- sprd,half-adc-gnd: half of GND adc value
 - sprd,coefficient: coefficient used to calculate voltage
 - sprd,irq-threshold-button: button threshold value
 - nvmem-cells: cells used to read efuse value
@@ -32,9 +32,9 @@ sprd_headset: sprd-headset {
 		gpios = <&pmic_eic 6 GPIO_ACTIVE_HIGH>;
 		sprd,debounce-interval = <10>;
 		gpio-names = "aud_int_all";
-		sprd,adc-threshold-3pole-detect = <3054>;
+		sprd,3pole-adc-threshold = <3054>;
 		sprd,adc-gnd = <336>;
-		sprd,stable-value = <2223>;
+		sprd,half-adc-gnd = <131>;
 		sprd,coefficient = <906270>;
 		sprd,irq-threshold-button = <5>;
 		nvmem-cells = <&headset_adc_fir>, <&headset_adc_sec>;
