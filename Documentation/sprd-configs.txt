@@ -1362,7 +1362,7 @@ CONFIG_CPU_RMAP
 			objects with CPU affinities.
 CONFIG_CPU_THERMAL
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -5823,6 +5823,13 @@ CONFIG_NETFILTER_XT_MATCH_ADDRTYPE
 	[must] user
 	[function] This option allows you to match what routing thinks of
 		  an address, eg. UNICAST, LOCAL, BROADCAST, ...
+CONFIG_NETFILTER_XT_MATCH_BPF
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] vts require, "bpf" match support
 CONFIG_NETFILTER_XT_MATCH_COMMENT
 	[arch] all
 	[plat] all
@@ -6013,13 +6020,6 @@ CONFIG_NETFILTER_XT_MATCH_QUOTA2_LOG
 	[function] This option adds an "L2TP" match, which allows you to
 		  his option allows `quota2' to log ONCE when a
 		  quota limit.
-CONFIG_NETFILTER_XT_MATCH_SOCKET
-	[arch] all
-	[plat] all
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[function] vts require, "socket" match support
 CONFIG_NETFILTER_XT_MATCH_SCTP
 	[arch] all
 	[plat] sharkl5
@@ -6029,6 +6029,13 @@ CONFIG_NETFILTER_XT_MATCH_SCTP
 	[function] With this option enabled, you will be able to use the
 		  `sctp' match in order to match on SCTP source/destination
 		  portsand SCTP chunk types.NETFILTER_XT_MATCH_SOCKET.
+CONFIG_NETFILTER_XT_MATCH_SOCKET
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] vts require, "socket" match support
 CONFIG_NETFILTER_XT_MATCH_STATE
 	[arch] all
 	[plat] all
@@ -6073,13 +6080,6 @@ CONFIG_NETFILTER_XT_MATCH_U32
 	[subsys] net
 	[must] user
 	[function] vts require, "u32" match support
-CONFIG_NETFILTER_XT_MATCH_BPF
-	[arch] all
-	[plat] all
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[function] vts require, "bpf" match support
 CONFIG_NETFILTER_XT_NAT
 	[arch] all
 	[plat] all
@@ -6697,20 +6697,6 @@ CONFIG_NF_CONNTRACK_IPV6
 	[subsys] net
 	[must] user
 	[function] vts require, IPv6 connection tracking support
-CONFIG_NF_SOCKET_IPV4
-	[arch] all
-	[plat] all
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[function] vts require, IPv4 connection socket support
-CONFIG_NF_SOCKET_IPV6
-	[arch] all
-	[plat] all
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[function] vts require, IPv6 connection socket support
 CONFIG_NF_CONNTRACK_IRC
 	[arch] all
 	[plat] all
@@ -7050,6 +7036,20 @@ CONFIG_NF_REJECT_IPV6
 	[subsys] net
 	[must] user
 	[function] support for ipv6 rejecting in netfilter
+CONFIG_NF_SOCKET_IPV4
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] vts require, IPv4 connection socket support
+CONFIG_NF_SOCKET_IPV6
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] vts require, IPv6 connection socket support
 CONFIG_NL80211_TESTMODE
 	[arch] all
 	[plat] sharkl5
@@ -7372,13 +7372,6 @@ CONFIG_PINCTRL_SPRD
 	[subsys] pinctrl
 	[must] user
 	[function] Spreadtrum pinctrl driver.
-CONFIG_PINCTRL_SPRD_SHARKL5
-	[arch] all
-	[plat] sharkl5
-	[field] menu,make,code
-	[subsys] pinctrl
-	[must] user
-	[function] Spreadtrum Sharkl5 pinctrl driver
 CONFIG_PINCTRL_SPRD_ROC1
 	[arch] all
 	[plat] roc1
@@ -7386,6 +7379,13 @@ CONFIG_PINCTRL_SPRD_ROC1
 	[subsys] pinctrl
 	[must] user
 	[function] Spreadtrum Roc1 pinctrl driver
+CONFIG_PINCTRL_SPRD_SHARKL5
+	[arch] all
+	[plat] sharkl5
+	[field] menu,make,code
+	[subsys] pinctrl
+	[must] user
+	[function] Spreadtrum Sharkl5 pinctrl driver
 CONFIG_PINMUX
 	[arch] all
 	[plat] all
@@ -8935,6 +8935,20 @@ CONFIG_SPRD_CPROC
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sprd cproc module for modem boot.
+CONFIG_SPRD_CPU_COOLING
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] thermal
+	[must] user
+	[function] sprd thermal policy
+CONFIG_SPRD_CPU_COOLING_DEVICE
+	[arch] all
+	[plat] sharkl5
+	[field] make
+	[subsys] thermal
+	[must] user
+	[function] sprd cpu power model
 CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[arch] all
 	[plat] sharkl5
@@ -9131,6 +9145,20 @@ CONFIG_SPRD_SIPC_MEM_CACHE_EN
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sipx share memmory cache.
+CONFIG_SPRD_SIPC_SETH
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] This driver supports the Spreadtrum Ethernet based on share memory.
+CONFIG_SPRD_SIPC_SETH_RAWIP
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function]  Support using zero copy rawip transfer
 CONFIG_SPRD_SIPC_SPIPE
 	[arch] all
 	[plat] all
@@ -9152,20 +9180,6 @@ CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sipx function between modem and AP.
-CONFIG_SPRD_SIPC_SETH
-	[arch] all
-	[plat] all
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[function] This driver supports the Spreadtrum Ethernet based on share memory.
-CONFIG_SPRD_SIPC_SETH_RAWIP
-	[arch] all
-	[plat] all
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[function]  Support using zero copy rawip transfer
 CONFIG_SPRD_SOC_THERMAL
 	[arch] all
 	[plat] sharkl5
@@ -9527,7 +9541,7 @@ CONFIG_THERMAL_GOV_POWER_ALLOCATOR
 	[function] Power allocator thermal governor.
 CONFIG_THERMAL_GOV_STEP_WISE
 	[arch] all
-	[plat] all
+	[plat] roc1
 	[field] make
 	[subsys] thermal
 	[must] user

@@ -32,7 +32,10 @@
 #include <linux/cpu.h>
 #include <linux/platform_device.h>
 #include <linux/pm_opp.h>
+
+#if defined(CONFIG_OTP_SPRD_AP_EFUSE)
 #include <linux/sprd_otp.h>
+#endif
 
 #ifdef CONFIG_OF
 #include <linux/of_device.h>

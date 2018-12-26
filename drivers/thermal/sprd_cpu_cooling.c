@@ -15,7 +15,11 @@
 #include <linux/module.h>
 #include <linux/thermal.h>
 #include <linux/cpufreq.h>
+
+#ifdef CONFIG_ARM_SPRD_CPUFREQ
 #include <linux/sprd-cpufreq.h>
+#endif
+
 #include <linux/err.h>
 #include <linux/pm_opp.h>
 #include <linux/slab.h>
@@ -1243,14 +1247,16 @@ static int update_dyn_freq_table(struct cpufreq_cooling_device *cpufreq_device)
 static int cpufreq_update_max_freq(struct thermal_cooling_device *cdev,
 					struct thermal_zone_device *tz)
 {
-	unsigned int allow_max_freq;
+	unsigned int allow_max_freq = 0;
 	struct cpufreq_cooling_device *cpufreq_device = cdev->devdata;
 	unsigned int cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 
+#ifdef CONFIG_ARM_SPRD_CPUFREQ
 	allow_max_freq = sprd_cpufreq_update_opp(cpu, tz->temperature);
+#endif
+
 	pr_debug("cpu%u allow_max_freq:%u curr_max_freq:%u\n", cpu,
 				allow_max_freq, cpufreq_device->curr_max_freq);
-
 	if (allow_max_freq) {
 		cpufreq_device->curr_max_freq = allow_max_freq;
 		update_dyn_freq_table(cpufreq_device);
@@ -1264,7 +1270,7 @@ static int cpufreq_update_max_freq(struct thermal_cooling_device *cdev,
 	return 0;
 }
 /* Bind cpufreq callbacks to thermal cooling device ops */
-static const struct thermal_cooling_device_ops cpufreq_cooling_ops = {
+static struct thermal_cooling_device_ops cpufreq_cooling_ops = {
 	.get_max_state = cpufreq_get_max_state,
 	.get_cur_state = cpufreq_get_cur_state,
 	.set_cur_state = cpufreq_set_cur_state,
