@@ -12,6 +12,7 @@
  */
 
 #include <linux/dma-buf.h>
+#include <linux/pm_runtime.h>
 
 #if IS_ENABLED(CONFIG_SPRD_IOMMU)
 #include <linux/sprd_iommu.h>
@@ -62,11 +63,15 @@ void sprd_gem_free_object(struct drm_gem_object *obj)
 			struct sprd_iommu_unmap_data iommu_data = {};
 			struct sprd_drm *sprd = obj->dev->dev_private;
 
-			iommu_data.iova_size = obj->size;
-			iommu_data.iova_addr = sprd_gem->dma_addr;
-			iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
+			if (pm_runtime_suspended(sprd->dpu_dev))
+				DRM_DEBUG("dpu is powered off\n");
+			else {
+				iommu_data.iova_size = obj->size;
+				iommu_data.iova_addr = sprd_gem->dma_addr;
+				iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 
-			sprd_iommu_unmap(sprd->dpu_dev, &iommu_data);
+				sprd_iommu_unmap(sprd->dpu_dev, &iommu_data);
+			}
 		}
 #endif
 		drm_prime_gem_destroy(obj, sprd_gem->sgtb);
@@ -195,14 +200,18 @@ struct drm_gem_object *sprd_gem_prime_import_sg_table(struct drm_device *drm,
 		struct sprd_drm *sprd = drm->dev_private;
 		int ret;
 
-		iommu_data.buf = attach->dmabuf->priv;
-		iommu_data.iova_size = attach->dmabuf->size;
-		iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
+		if (pm_runtime_suspended(sprd->dpu_dev))
+			DRM_DEBUG("dpu is powered off\n");
+		else {
+			iommu_data.buf = attach->dmabuf->priv;
+			iommu_data.iova_size = attach->dmabuf->size;
+			iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 
-		ret = sprd_iommu_map(sprd->dpu_dev, &iommu_data);
-		if (ret) {
-			DRM_ERROR("failed to get iommu address\n");
-			return ERR_PTR(-EINVAL);
+			ret = sprd_iommu_map(sprd->dpu_dev, &iommu_data);
+			if (ret) {
+				DRM_ERROR("failed to get iommu address\n");
+				return ERR_PTR(-EINVAL);
+			}
 		}
 
 		sprd_gem->dma_addr = iommu_data.iova_addr;

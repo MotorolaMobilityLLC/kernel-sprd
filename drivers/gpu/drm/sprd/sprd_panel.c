@@ -13,7 +13,6 @@
 
 #include <linux/gpio.h>
 #include <linux/module.h>
-#include <linux/pm_runtime.h>
 #include <linux/of.h>
 #include <video/mipi_display.h>
 #include <video/of_display_timing.h>
@@ -463,19 +462,6 @@ static int sprd_panel_remove(struct mipi_dsi_device *slave)
 	return 0;
 }
 
-static void sprd_panel_shutdown(struct mipi_dsi_device *slave)
-{
-	struct sprd_panel *panel = mipi_dsi_get_drvdata(slave);
-
-	if (pm_runtime_suspended(slave->host->dev)) {
-		DRM_WARN("dsi is not initialized\n");
-		return;
-	}
-
-	sprd_panel_disable(&panel->base);
-	sprd_panel_unprepare(&panel->base);
-}
-
 static const struct of_device_id panel_of_match[] = {
 	{ .compatible = "sprd,generic-mipi-panel", },
 	{ }
@@ -489,7 +475,6 @@ static struct mipi_dsi_driver sprd_panel_driver = {
 	},
 	.probe = sprd_panel_probe,
 	.remove = sprd_panel_remove,
-	.shutdown = sprd_panel_shutdown,
 };
 module_mipi_dsi_driver(sprd_panel_driver);
 

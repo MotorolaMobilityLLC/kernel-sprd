@@ -304,6 +304,13 @@ static int sprd_drm_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void sprd_drm_shutdown(struct platform_device *pdev)
+{
+	struct drm_device *drm = platform_get_drvdata(pdev);
+
+	drm_atomic_helper_shutdown(drm);
+}
+
 static const struct of_device_id drm_match_table[] = {
 	{ .compatible = "sprd,display-subsystem",},
 	{},
@@ -313,6 +320,7 @@ MODULE_DEVICE_TABLE(of, drm_match_table);
 static struct platform_driver sprd_drm_driver = {
 	.probe = sprd_drm_probe,
 	.remove = sprd_drm_remove,
+	.shutdown = sprd_drm_shutdown,
 	.driver = {
 		.name = "sprd-drm-drv",
 		.of_match_table = drm_match_table,
