@@ -424,7 +424,7 @@ static SPRD_SC_GATE_CLK(dma_cp_ashb_eb, "dma-cp-ashb-eb", "ext-26m", 0x0,
 		     0x100, BIT(18), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_aud_eb,   "audcp-aud-eb", "ext-26m", 0x0,
 		     0x100, BIT(19), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(audcp_vbc_26m_eb, "audcp-vbc-26m-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(audcp_vbc_24m_eb, "audcp-vbc-24m-eb", "ext-26m", 0x0,
 		     0x100, BIT(21), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_tmr_26m_eb, "audcp-tmr-26m-eb", "ext-26m", 0x0,
 		     0x100, BIT(22), CLK_IGNORE_UNUSED, 0);
@@ -448,7 +448,7 @@ static struct sprd_clk_common *sharkl5_audcpahb_gate[] = {
 	&dma_ap_ashb_eb.common,
 	&dma_cp_ashb_eb.common,
 	&audcp_aud_eb.common,
-	&audcp_vbc_26m_eb.common,
+	&audcp_vbc_24m_eb.common,
 	&audcp_tmr_26m_eb.common,
 	&audcp_dvfs_ashb_eb.common,
 };
@@ -470,7 +470,7 @@ static struct clk_hw_onecell_data sharkl5_audcpahb_gate_hws = {
 		[CLK_AUDCP_DMA_AP_ASHB_EB] = &dma_ap_ashb_eb.common.hw,
 		[CLK_AUDCP_DMA_CP_ASHB_EB] = &dma_cp_ashb_eb.common.hw,
 		[CLK_AUDCP_AUD_EB]	= &audcp_aud_eb.common.hw,
-		[CLK_AUDCP_VBC_24M_EB]	= &audcp_vbc_26m_eb.common.hw,
+		[CLK_AUDCP_VBC_24M_EB]	= &audcp_vbc_24m_eb.common.hw,
 		[CLK_AUDCP_TMR_26M_EB]	= &audcp_tmr_26m_eb.common.hw,
 		[CLK_AUDCP_DVFS_ASHB_EB] = &audcp_dvfs_ashb_eb.common.hw,
 	},
@@ -749,7 +749,7 @@ static SPRD_MUX_CLK(debug_ts_clk, "debug-ts-clk", debug_ts_parents, 0x294,
 static SPRD_GATE_CLK(dsi_test_s, "dsi-test-s", "aon-apb-clk", 0x298,
 		     BIT(16), 0, 0);
 
-static const char * const djtag_tck_parents[] = { "rco-100m", "ext-26m" };
+static const char * const djtag_tck_parents[] = { "rco-4m", "ext-26m" };
 static SPRD_MUX_CLK(djtag_tck_clk, "djtag-tck-clk", djtag_tck_parents, 0x2b4,
 			0, 1, SHARKL5_MUX_FLAG);
 
@@ -757,7 +757,7 @@ static SPRD_GATE_CLK(djtag_tck_hw, "djtag-tck-hw", "aon-apb-clk", 0x2b8,
 		     BIT(16), 0, 0);
 
 static const char * const aon_tmr_parents[] = { "rco-4m", "rco-25m",
-						"ext_26m" };
+						"ext-26m" };
 static SPRD_MUX_CLK(aon_tmr_clk, "aon-tmr-clk", aon_tmr_parents, 0x2c0,
 			0, 2, SHARKL5_MUX_FLAG);
 
@@ -788,7 +788,7 @@ static SPRD_MUX_CLK(otg_ref_clk, "otg-ref-clk", otg_ref_parents, 0x2e0,
 			0, 1, SHARKL5_MUX_FLAG);
 
 static const char * const cssys_parents[] = { "rco-25m", "ext-26m", "rco-100m",
-					"twpll-153m6", "twpll-384", "twpll-512m" };
+					"twpll-153m6", "twpll-384m", "twpll-512m" };
 static SPRD_COMP_CLK(cssys_clk,	"cssys-clk",	cssys_parents, 0x2e4,
 		     0, 3, 8, 2, 0);
 static SPRD_DIV_CLK(cssys_pub_clk, "cssys-pub-clk", "cssys-clk", 0x2e8,
@@ -945,8 +945,8 @@ static SPRD_GATE_CLK(gpu_core_gate, "gpu-core-gate", "ap-mm-clk", 0x4,
 			BIT(0), 0, 0);
 
 static const char * const gpu_parents[] = { "ext-26m", "twpll-384m",
-					"twpll-512m", "twpll-768m",
-					"lpll-614m4", "gpll" };
+					"twpll-512m", "lpll-614m4",
+					"twpll-768m", "gpll" };
 static SPRD_COMP_CLK(gpu_core_clk, "gpu-core-clk", gpu_parents, 0x4,
 		     4, 3, 8, 3, 0);
 
@@ -1808,7 +1808,7 @@ static const struct of_device_id sprd_sharkl5_clk_ids[] = {
 	  .data = &sharkl5_g3_pll_desc },
 	{ .compatible = "sprd,sharkl5-gc-pll",		/* 0x323e0000 */
 	  .data = &sharkl5_gc_pll_desc },
-	{ .compatible = "sprd,sharkl5-audcpapb-gate",	/* 0x3305d000 */
+	{ .compatible = "sprd,sharkl5-audcpapb-gate",	/* 0x3350d000 */
 	  .data = &sharkl5_audcpapb_gate_desc },
 	{ .compatible = "sprd,sharkl5-audcpahb-gate",	/* 0x335e0000 */
 	  .data = &sharkl5_audcpahb_gate_desc },
