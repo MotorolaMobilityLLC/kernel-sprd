@@ -109,3 +109,9 @@
 &panel {
 	sprd,backlight = <&pwm_backlight>;
 };
+
+&ddr_dfs {
+	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+		"camhigh", "camveryhigh";
+	sprd-freq = <933 256 256 384 512 933>;
+};

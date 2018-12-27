@@ -51,6 +51,12 @@
 		gsp = <&gsp>;
 	};
 
+	ddr_dfs: scene-frequency {
+		compatible = "sprd,dfs";
+		freq-num = <7>;
+		backdoor = <1200>;
+	};
+
 	sprd-sensorhub {
 		compatible = "sprd,sharkl5-sensorhub";
 	};
