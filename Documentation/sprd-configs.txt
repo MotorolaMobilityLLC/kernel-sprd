@@ -9126,7 +9126,7 @@ CONFIG_SPRD_PTM
 	[function] Support Spreadtrum PTM.
 CONFIG_SPRD_REGMAP_DEBUG
 	[arch] all
-	[plat] sharkl5
+	[plat] roc1
 	[field] menu,code
 	[subsys] core
 	[must] user
