@@ -921,37 +921,39 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 			 * packets in double buffering
 			 * case
 			 */
-			if (!hw_ep->tx_double_buffered)
-				musb_h_tx_flush_fifo(hw_ep);
+			if (!musb_dma_sprd(musb)) {
+				if (!hw_ep->tx_double_buffered)
+					musb_h_tx_flush_fifo(hw_ep);
 
-			/*
-			 * We must not clear the DMAMODE bit before or in
-			 * the same cycle with the DMAENAB bit, so we clear
-			 * the latter first...
-			 */
-			csr &= ~(MUSB_TXCSR_H_NAKTIMEOUT
-					| MUSB_TXCSR_AUTOSET
-					| MUSB_TXCSR_DMAENAB
-					| MUSB_TXCSR_FRCDATATOG
-					| MUSB_TXCSR_H_RXSTALL
-					| MUSB_TXCSR_H_ERROR
-					| MUSB_TXCSR_TXPKTRDY
+				/*
+				 * We must not clear the DMAMODE bit before or in
+				 * the same cycle with the DMAENAB bit, so we clear
+				 * the latter first...
+				 */
+				csr &= ~(MUSB_TXCSR_H_NAKTIMEOUT
+						| MUSB_TXCSR_AUTOSET
+						| MUSB_TXCSR_DMAENAB
+						| MUSB_TXCSR_FRCDATATOG
+						| MUSB_TXCSR_H_RXSTALL
+						| MUSB_TXCSR_H_ERROR
+						| MUSB_TXCSR_TXPKTRDY
 					);
-			csr |= MUSB_TXCSR_MODE;
+				csr |= MUSB_TXCSR_MODE;
 
-			if (!hw_ep->tx_double_buffered) {
-				if (usb_gettoggle(urb->dev, qh->epnum, 1))
-					csr |= MUSB_TXCSR_H_WR_DATATOGGLE
-						| MUSB_TXCSR_H_DATATOGGLE;
-				else
-					csr |= MUSB_TXCSR_CLRDATATOG;
+				if (!hw_ep->tx_double_buffered) {
+					if (usb_gettoggle(urb->dev, qh->epnum, 1))
+						csr |= MUSB_TXCSR_H_WR_DATATOGGLE
+							| MUSB_TXCSR_H_DATATOGGLE;
+					else
+						csr |= MUSB_TXCSR_CLRDATATOG;
+				}
+
+				musb_writew(epio, MUSB_TXCSR, csr);
+				/* REVISIT may need to clear FLUSHFIFO ... */
+				csr &= ~MUSB_TXCSR_DMAMODE;
+				musb_writew(epio, MUSB_TXCSR, csr);
+				csr = musb_readw(epio, MUSB_TXCSR);
 			}
-
-			musb_writew(epio, MUSB_TXCSR, csr);
-			/* REVISIT may need to clear FLUSHFIFO ... */
-			csr &= ~MUSB_TXCSR_DMAMODE;
-			musb_writew(epio, MUSB_TXCSR, csr);
-			csr = musb_readw(epio, MUSB_TXCSR);
 		} else {
 			/* endpoint 0: just flush */
 			musb_h_ep0_flush_fifo(hw_ep);
