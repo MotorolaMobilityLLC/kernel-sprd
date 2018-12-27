@@ -287,6 +287,14 @@
 				sprd,core-cnt = <7>;
 				sprd,version = <3>;
 			};
+
+			hwlock: hwspinlock@32500000 {
+				compatible = "sprd,roc1-hwspinlock";
+				reg = <0 0x32500000 0 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
 		};
 
 		ap-apb {
