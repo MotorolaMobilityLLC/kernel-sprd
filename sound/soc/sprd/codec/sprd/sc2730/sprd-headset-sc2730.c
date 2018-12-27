@@ -2812,8 +2812,8 @@ static int headset_adc_cal_from_efuse(struct platform_device *pdev)
 	} else if (adie_chip_id == CHIP_ID_2730) {
 		adc_cal_headset.A = (delta[0] - 128) * 4 + 336;
 		adc_cal_headset.B =  (delta[1] - 128) * 4 + 3357;
-		adc_cal_headset.E1 = delta[2] * 2 + 2500;
-		adc_cal_headset.E2 = delta[3] * 4 + 1300;
+		adc_cal_headset.E1 = delta[2] * 2 + 2400;
+		adc_cal_headset.E2 = delta[3] * 4 + 1500;
 	} else {
 		adc_cal_headset.A = (delta[0] - 128) * 4 + 336;
 		adc_cal_headset.B =  (delta[1] - 128) * 4 + 3357;
