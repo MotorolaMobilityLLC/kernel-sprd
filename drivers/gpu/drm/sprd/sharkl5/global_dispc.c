@@ -289,10 +289,12 @@ static void dpu_reset(struct dpu_context *ctx)
 
 static void dpu_power_domain(struct dpu_context *ctx, int enable)
 {
-	regmap_update_bits(ctx_qos.regmap,
-		    ctx_qos.enable_reg,
-		    ctx_qos.mask_bit,
-		    (qos_cfg.awqos_thres | qos_cfg.arqos_thres << 4));
+	if (enable)
+		regmap_update_bits(ctx_qos.regmap,
+			    ctx_qos.enable_reg,
+			    ctx_qos.mask_bit,
+			    qos_cfg.awqos_thres |
+			    qos_cfg.arqos_thres << 4);
 }
 
 static struct dpu_clk_ops dpu_clk_ops = {
