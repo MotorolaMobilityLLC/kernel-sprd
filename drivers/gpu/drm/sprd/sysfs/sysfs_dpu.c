@@ -15,7 +15,11 @@
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/sysfs.h>
+#include <linux/timer.h>
+#include <linux/timex.h>
+#include <linux/rtc.h>
 
+#include "disp_lib.h"
 #include "sprd_dpu.h"
 #include "sprd_panel.h"
 #include "sysfs_display.h"
@@ -204,6 +208,43 @@ static ssize_t dpu_version_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(dpu_version);
 
+static ssize_t wb_debug_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+	u32 paddr;
+	void *vaddr = NULL;
+	char filename[128];
+	struct timex txc;
+	struct rtc_time tm;
+
+	if (!ctx->is_inited) {
+		pr_err("dpu is not initialized\n");
+		return -EINVAL;
+	}
+
+	if (dpu->core && dpu->core->wb_debug) {
+		dpu->core->wb_debug(ctx, &paddr, true);
+		vaddr = __va(paddr);
+	} else
+		return -ENXIO;
+
+	/* FIXME: wait for writeback done isr */
+	mdelay(50);
+
+	do_gettimeofday(&(txc.time));
+	rtc_time_to_tm(txc.time.tv_sec, &tm);
+	sprintf(filename, "/data/dump/wb_%d-%d-%dT%d%d%d.bmp",
+			tm.tm_year + 1900, tm.tm_mon, tm.tm_mday, tm.tm_hour,
+			tm.tm_min, tm.tm_sec);
+
+	dump_bmp32(vaddr, ctx->vm.hactive, ctx->vm.vactive, true, filename);
+
+	return 0;
+}
+static DEVICE_ATTR_RO(wb_debug);
+
 static struct attribute *dpu_attrs[] = {
 	&dev_attr_run.attr,
 	&dev_attr_bg_color.attr,
@@ -211,6 +252,7 @@ static struct attribute *dpu_attrs[] = {
 	&dev_attr_regs_offset.attr,
 	&dev_attr_wr_regs.attr,
 	&dev_attr_dpu_version.attr,
+	&dev_attr_wb_debug.attr,
 	NULL,
 };
 static const struct attribute_group dpu_group = {
