@@ -86,12 +86,12 @@ static inline unsigned long unalign_copy_from_user(void *to,
 }
 static inline void *unalign_memcpy(void *to, const void *from, size_t n)
 {
-	memcpy(to, from, n);
+	return memcpy(to, from, n);
 }
 
 static inline void *unalign_memset(void *s, int c, size_t count)
 {
-	memset(s, c, count);
+	return memset(s, c, count);
 }
 #endif
 

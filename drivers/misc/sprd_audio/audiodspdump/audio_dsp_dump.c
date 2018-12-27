@@ -326,9 +326,9 @@ static ssize_t audio_dsp_read(struct file *filp,
 			rdsize = (audio_buf->usedmem_size - pos) < read_count ?
 				(audio_buf->usedmem_size - pos) : read_count;
 			if (unalign_copy_to_user(buf, (void *)
-						 ((size_t)
+						 ((unsigned long)
 						  (audio_buf->dump_mem_addr_v) +
-						  pos), rdsize)) {
+						 (unsigned long)pos), rdsize)) {
 				pr_err("dsp_log_read: failed to copy to user!\n");
 				ret = -EFAULT;
 				goto fail;
@@ -421,7 +421,7 @@ static ssize_t audio_dsp_write(struct file *filp,
 	}
 
 	wrsize = (blk.length > len ? len : blk.length);
-	pr_info("%s: sblock_write: blk_len %d, count %ld, wsize %d\n",
+	pr_info("%s: sblock_write: blk_len %d, count %zd, wsize %d\n",
 		__func__, blk.length, len, wrsize);
 	if (unalign_copy_from_user(blk.addr, buf + pos, wrsize)) {
 		pr_err("%s: sblock_write: failed to copy from user!\n",
@@ -438,7 +438,7 @@ static ssize_t audio_dsp_write(struct file *filp,
 		pr_err("%s: sblock_write: failed to send block!", __func__);
 	}
 
-	pr_info("%s: sblock_write len= %lu, ret= %d\n", __func__, len, ret);
+	pr_info("%s: sblock_write len= %zu, ret= %d\n", __func__, len, ret);
 
 	return count - len;
 }

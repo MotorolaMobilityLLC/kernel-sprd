@@ -385,9 +385,9 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 		(unsigned long)rtd->dma_cfg_virt[1],
 		(unsigned long)rtd->dma_cfg_phy[1]);
 
-	pr_info("runtime->hw.periods_max*(sizeof(struct sprd_dma_cfg)=%ld,",
+	pr_info("runtime->hw.periods_max*(sizeof(struct sprd_dma_cfg)=%zd,",
 		runtime->hw.periods_max*(sizeof(struct sprd_dma_cfg)));
-	pr_info("sizeof(struct sprd_dma_cfg) = %ld, size_inout=%u\n",
+	pr_info("sizeof(struct sprd_dma_cfg) = %zd, size_inout=%u\n",
 		sizeof(struct sprd_dma_cfg), size_inout);
 	/*pmc dma data*/
 	ret = sprd_pcm_preallocate_dma_ddr32_buffer(pcm,
@@ -881,15 +881,15 @@ static int sprd_pcm_config_dma(struct snd_pcm_substream *substream,
 				(unsigned long)audio_addr_ap2dsp(DDR32,
 				(rtd->dma_cfg_phy[i]), 0);
 
-		pr_info("src_dw=%d, dst_dw=%d frag=%lx, burst:%d, slave_id=%d, step=%d, ll_cfg_virt_addr=%p, ll_cfg_phy_addr=%p ,dst_addr:%p, src_addr:%p,chan=%d\n",
+		pr_info("src_dw=%d, dst_dw=%d frag=%lx, burst:%d, slave_id=%d, step=%d, ll_cfg_virt_addr=%p, ll_cfg_phy_addr=%ld ,dst_addr:%ld, src_addr:%ld,chan=%d\n",
 			(int)cfg->config.src_addr_width,
 			(int)cfg->config.dst_addr_width,
 			cfg->dma_config_flag,
 			(int)cfg->config.src_maxburst, cfg->config.slave_id,
 			(int)cfg->config.step, (void *)cfg->ll_cfg.virt_addr,
-			(void *)cfg->ll_cfg.phy_addr,
-			(void *)cfg->config.dst_addr,
-			(void *)cfg->config.src_addr, i);
+			(unsigned long)cfg->ll_cfg.phy_addr,
+			(unsigned long)cfg->config.dst_addr,
+			(unsigned long)cfg->config.src_addr, i);
 	}
 
 	do {
@@ -1243,7 +1243,7 @@ static snd_pcm_uframes_t sprd_pcm_pointer(struct snd_pcm_substream *substream)
 		now_pointer = sprd_pcm_dma_get_addr(rtd->dma_chn[0],
 					rtd->cookie[0], substream);
 		if (debug_pointer_log)
-			pr_info("now_pointer 1:%zu,dsp:%lx\n",
+			pr_info("now_pointer 1:%zu,dsp:%zx\n",
 				(size_t)now_pointer,
 				(size_t)audio_addr_ap2dsp(tranf,
 				now_pointer, 1));
@@ -1252,14 +1252,14 @@ static snd_pcm_uframes_t sprd_pcm_pointer(struct snd_pcm_substream *substream)
 			- runtime->dma_addr;
 		bytes_of_pointer = now_pointer;
 		if (debug_pointer_log)
-			pr_info("now_pointer 2:%lx,runtime->dma_addr:%lx\n",
+			pr_info("now_pointer 2:%zx,runtime->dma_addr:%zx\n",
 				(size_t)now_pointer, (size_t)runtime->dma_addr);
 	}
 	if (rtd->dma_chn[1]) {
 		now_pointer = sprd_pcm_dma_get_addr(rtd->dma_chn[1],
 					rtd->cookie[1], substream);
 		if (debug_pointer_log)
-			pr_info("now_pointer 21:%zu,dsp:%lx\n",
+			pr_info("now_pointer 21:%zu,dsp:%zx\n",
 				(size_t)now_pointer,
 				(size_t)audio_addr_ap2dsp(tranf,
 				now_pointer, 1));
@@ -1269,7 +1269,7 @@ static snd_pcm_uframes_t sprd_pcm_pointer(struct snd_pcm_substream *substream)
 			runtime->dma_addr -
 			rtd->dma_addr_offset;
 		if (debug_pointer_log)
-			pr_info("now_pointer 22:%lx,runtime->dma_addr:%lx\n",
+			pr_info("now_pointer 22:%zx,runtime->dma_addr:%zx\n",
 				(size_t)now_pointer, (size_t)runtime->dma_addr);
 		if (!bytes_of_pointer)
 			bytes_of_pointer = now_pointer;
@@ -1286,17 +1286,17 @@ static snd_pcm_uframes_t sprd_pcm_pointer(struct snd_pcm_substream *substream)
 					bytes_of_pointer, now_pointer) << shift;
 		}
 		if (debug_pointer_log)
-			pr_info("now_pointer 31:%lx\n", (size_t)now_pointer);
+			pr_info("now_pointer 31:%zx\n", (size_t)now_pointer);
 	}
 	normal_dma_protect_spin_unlock(substream);
 	x = bytes_to_frames(runtime, bytes_of_pointer);
 	if (debug_pointer_log)
-		pr_info("x:%lx\n", (size_t)x);
+		pr_info("x:%zx\n", (size_t)x);
 
 	if (x == runtime->buffer_size)
 		x = 0;
 	if (debug_pointer_log)
-		pr_info("x out:%lx\n", (size_t)x);
+		pr_info("x out:%zx\n", (size_t)x);
 	return x;
 }
 

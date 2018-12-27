@@ -193,7 +193,7 @@ static int audio_sipc_create(int target_id)
 	smsg_rxsize = smsg_txsize;
 	smsg_txaddr = smsg_base_v;
 	smsg_rxaddr = smsg_base_v + smsg_txsize;
-	pr_info("%s: ioremap txbuf: vbase=%#lx, pbase=0x%x, size=0x%x\n",
+	pr_info("%s: ioremap txbuf: vbase=%#zx, pbase=0x%x, size=0x%x\n",
 		__func__, smsg_txaddr, smsg_base_p, smsg_txsize);
 
 	s_sipc_inst.dst = AUD_IPC_AGDSP;
@@ -369,7 +369,7 @@ u32 aud_ipc_dump(void *buf, u32 buf_bytes)
 		if (sipc->block_param[i].size) {
 			if ((bytes + sipc->block_param[i].size) < buf_bytes) {
 				unalign_memcpy((char *)buf + bytes,
-					(void *)sipc->block_param[i].addr_v,
+			(void *)(unsigned long)sipc->block_param[i].addr_v,
 					sipc->block_param[i].size);
 				bytes += sipc->block_param[i].size;
 			}
@@ -667,7 +667,7 @@ int aud_send_block_param(uint16_t channel, int id, int stream, u32 cmd,
 		return -1;
 	}
 	/* write cmd para */
-	unalign_memcpy((void *)block_param->addr_v, buf, n);
+	unalign_memcpy((void *)(unsigned long)block_param->addr_v, buf, n);
 	sharemem_info.id = id;
 	sharemem_info.type = type;
 	sharemem_info.phy_iram_addr = block_param->addr_p;
@@ -724,7 +724,8 @@ int aud_recv_block_param(uint16_t channel, int id, int stream,
 				__func__, cmd, ret);
 		return -1;
 	}
-	unalign_memcpy(buf, (void *)block_param->addr_v, block_param->size);
+	unalign_memcpy(buf, (void *)(unsigned long)block_param->addr_v,
+		block_param->size);
 
 	return 0;
 }

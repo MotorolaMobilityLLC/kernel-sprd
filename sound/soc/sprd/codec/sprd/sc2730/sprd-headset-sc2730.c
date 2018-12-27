@@ -2736,9 +2736,8 @@ EXPORT_SYMBOL(sprd_headset_probe);
 
 static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient)
 {
-	int64_t numerator, denominator, exp1, exp2, exp3, exp4;
-	u32 divisor, adc_ideal, a, b, e1, e2;
-	u64 dividend;
+	s64 numerator, denominator, exp1, exp2, exp3, exp4;
+	int adc_ideal, a, b, e1, e2;
 
 	if (adc_cal_headset.cal_type != SPRD_HEADSET_AUXADC_CAL_DO) {
 		pr_warn("%s efuse A,B,E hasn't been calculated!\n", __func__);
@@ -2759,31 +2758,14 @@ static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient)
 	exp3 = 2400 * (int64_t)e1 * ((int64_t)b - (int64_t)a);
 	exp4 = 100 * exp2 * ((int64_t)e1 - (int64_t)e2 - 1200);
 
-	pr_debug("exp1=%lld, exp2=%lld, exp3=%lld, exp4=%lld\n",
+	pr_debug("exp1 %lld, exp2 %lld, exp3 %lld, exp4 %lld\n",
 		exp1, exp2, exp3, exp4);
 	denominator = exp3 + exp4;
 	numerator = coefficient * (exp1 + 1200) * exp2;
-	pr_debug("denominator=%lld, numerator=%lld\n",
+	pr_debug("denominator %lld, numerator %lld\n",
 			denominator, numerator);
-
-	/*
-	 * enable the denominator * 0.01
-	 * numerator * 0.01 at the same time
-	 * for do_div() argument divisor is u32
-	 * and dividend is u64 but divsor is over 32bit
-	 */
-	do_div(denominator, 100);
-	do_div(numerator, 100);
-	pr_debug("%s denominator=%lld, numerator=%lld\n",
-			__func__, denominator, numerator);
-
-	divisor = (u32)(denominator);
-	dividend = (u64)(numerator);
-	pr_debug("%s divisor=%u, dividend=%llu\n", __func__, divisor, dividend);
-
-	do_div(dividend, divisor);
-	adc_ideal = (u32)dividend;
-	pr_debug("%s adc_mic=%d, adc_ideal=%d\n", __func__, adc_mic, adc_ideal);
+	adc_ideal = div64_s64(numerator, denominator);
+	pr_debug("%s adc_mic %d, adc_ideal %d\n", __func__, adc_mic, adc_ideal);
 
 	return adc_ideal;
 }

@@ -149,7 +149,7 @@ struct sprd_compr_rtd {
 	struct snd_compr_params codec_param;
 
 	u32 info_paddr;
-	uint64_t info_vaddr;
+	unsigned long info_vaddr;
 	u32 info_size;
 
 	int stream_id;
@@ -454,7 +454,7 @@ static int sprd_compr_config_sprd_rtd(struct sprd_compr_rtd *srtd,
 			SPRD_COMPR_INFO_SIZE -
 			SPRD_COMPR_DMA_DESC_SIZE);
 	srtd->dma_cfg_virt[0] =
-		(void *)((unsigned long long)srtd->iram_buff +
+		(void *)((unsigned long)srtd->iram_buff +
 			(srtd->dma_cfg_phy[0] - iram_addr));
 
 	/* stage 1 */
@@ -474,7 +474,7 @@ static int sprd_compr_config_sprd_rtd(struct sprd_compr_rtd *srtd,
 	srtd->dma_cfg_phy[1] = audio_addr_ap2dsp(DDR32, srtd->buffer_paddr +
 						 buffer_size, 0);
 	srtd->dma_cfg_virt[1] =
-		(void *)((unsigned long long)srtd->buffer + buffer_size);
+		(void *)((unsigned long)srtd->buffer + buffer_size);
 
 	srtd->info_size = SPRD_COMPR_INFO_SIZE;
 	/*srtd->info_paddr = srtd->dma_cfg_phy[0] + SPRD_COMPR_DMA_DESC_SIZE;*/
@@ -483,7 +483,7 @@ static int sprd_compr_config_sprd_rtd(struct sprd_compr_rtd *srtd,
 	srtd->info_paddr = srtd->dma_cfg_phy[0] + SPRD_COMPR_DMA_DESC_SIZE;
 
 	srtd->info_vaddr =
-		(uint64_t)srtd->dma_cfg_virt[0] +
+		(unsigned long)srtd->dma_cfg_virt[0] +
 		SPRD_COMPR_DMA_DESC_SIZE;
 
 	srtd->dma_cb_data = kzalloc(
@@ -763,10 +763,10 @@ int compr_stream_config_dma1(struct snd_compr_stream *substream,
 		"totsize=%zu, period=%zu, srtd->dma_tx_des[0]=0x%p\n",
 		totsize, period, srtd->dma_tx_des[0]);
 	pr_info("cfg_ptr->ll_cfg.phy_addr:%p,src:%p,dst:%p,wrap_ptr:%p,dma_chan:%d\n",
-		(void *)cfg_ptr->ll_cfg.phy_addr,
-		(void *)cfg_ptr->config.src_addr,
-		(void *)cfg_ptr->config.dst_addr,
-		(void *)cfg_ptr->ll_cfg.wrap_ptr,
+		(void *)(unsigned long)cfg_ptr->ll_cfg.phy_addr,
+		(void *)(unsigned long)cfg_ptr->config.src_addr,
+		(void *)(unsigned long)cfg_ptr->config.dst_addr,
+		(void *)(unsigned long)cfg_ptr->ll_cfg.wrap_ptr,
 		dma_chn_request->chan_id);
 	kfree(cfg_ptr);
 	goto ok_go_out;
@@ -947,11 +947,11 @@ int compr_stream_config_dma0(struct snd_compr_stream *substream,
 			hw_req_id,
 			srtd->dma_tx_des[0],
 			srtd->iram_paddr,
-			(void *)dma_config_ptr->config.dst_addr,
-			(void *)dma_config_ptr->config.src_addr,
+			(void *)(unsigned long)dma_config_ptr->config.dst_addr,
+			(void *)(unsigned long)dma_config_ptr->config.src_addr,
 			dma_chn_request->chan_id);
 	pr_info("dma_config_ptr->ll_cfg.phy_addr:%p\n",
-		(void *)dma_config_ptr->ll_cfg.phy_addr);
+		(void *)(unsigned long)dma_config_ptr->ll_cfg.phy_addr);
 	kfree(dma_config_ptr);
 	goto ok_go_out;
 
