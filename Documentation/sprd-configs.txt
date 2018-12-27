@@ -8902,7 +8902,7 @@ CONFIG_SPRD_AUDIO_SIPC
 	[function] sound communication with audio dsp
 CONFIG_SPRD_BUSMONITOR
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] make
 	[subsys] debug
 	[must] debug
@@ -8972,14 +8972,14 @@ CONFIG_SPRD_DEBUG
 	[function] Enable/disable sprd debug function.
 CONFIG_SPRD_DJTAG
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] make
 	[subsys] debug
 	[must] debug
 	[function] Enable Djtag function
 CONFIG_SPRD_DJTAG_CORE
 	[arch] all
-	[plat] sharkl5
+	[plat] all
 	[field] make
 	[subsys] debug
 	[must] debug
