@@ -4,7 +4,7 @@ else
 include $(KERNEL_PATH)/sprd-board-config/sharkl5/ums510_1h10_go_32b/ums510_1h10_go_32b_base
 endif
 
-BOARD_TEE_CONFIG :=
+BOARD_TEE_CONFIG := trusty
 BOARD_TEE_64BIT := true
 
 #DEFCONFIG
