@@ -560,6 +560,21 @@ static void dpu_write_back(struct dpu_context *ctx,
 	pr_debug("write back trigger\n");
 }
 
+static void dpu_write_back_debug(struct dpu_context *ctx,
+				u32 *paddr, bool enable)
+{
+	*paddr = wb_layer.addr[0];
+
+	if (enable) {
+		wb_en = false;
+		wb_xfbc_en = false;
+		dpu_write_back(ctx, 1, enable);
+	} else {
+		wb_en = true;
+		wb_xfbc_en = true;
+	}
+}
+
 static void dpu_wb_flip_work(struct work_struct *data)
 {
 	int ret;
@@ -1421,6 +1436,7 @@ static struct dpu_core_ops dpu_lite_r2p0_ops = {
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,
+	.wb_debug = dpu_write_back_debug,
 };
 
 static struct ops_entry entry = {
