@@ -60,6 +60,33 @@ static ssize_t run_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(run);
 
+static ssize_t refresh_store(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	down(&ctx->refresh_lock);
+
+	pr_info("[drm] %s()\n", __func__);
+
+	if (!ctx->is_inited) {
+		pr_err("dpu is powered off\n");
+		up(&ctx->refresh_lock);
+		return -1;
+	}
+
+	ctx->disable_flip = false;
+
+	dpu->core->flip(ctx, dpu->layers, dpu->pending_planes);
+
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+static DEVICE_ATTR_WO(refresh);
+
 static ssize_t bg_color_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -81,6 +108,8 @@ static ssize_t bg_color_store(struct device *dev,
 	if (!dpu->core->bg_color)
 		return -EIO;
 
+	pr_info("[drm] %s()\n", __func__);
+
 	ret = kstrtou32(buf, 16, &bg_color);
 	if (ret) {
 		pr_err("Invalid input\n");
@@ -88,17 +117,34 @@ static ssize_t bg_color_store(struct device *dev,
 	}
 
 	down(&ctx->refresh_lock);
+
 	if (!ctx->is_inited) {
 		pr_err("dpu is not initialized\n");
 		up(&ctx->refresh_lock);
 		return -EINVAL;
 	}
+
+	ctx->disable_flip = true;
 	dpu->core->bg_color(ctx, bg_color);
+
 	up(&ctx->refresh_lock);
 
 	return count;
 }
 static DEVICE_ATTR_RW(bg_color);
+
+static ssize_t disable_flip_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	int ret;
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	ret = snprintf(buf, PAGE_SIZE, "%d\n", ctx->disable_flip);
+
+	return ret;
+}
+static DEVICE_ATTR_RO(disable_flip);
 
 static ssize_t actual_fps_show(struct device *dev,
 			struct device_attribute *attr,
@@ -247,7 +293,9 @@ static DEVICE_ATTR_RO(wb_debug);
 
 static struct attribute *dpu_attrs[] = {
 	&dev_attr_run.attr,
+	&dev_attr_refresh.attr,
 	&dev_attr_bg_color.attr,
+	&dev_attr_disable_flip.attr,
 	&dev_attr_actual_fps.attr,
 	&dev_attr_regs_offset.attr,
 	&dev_attr_wr_regs.attr,

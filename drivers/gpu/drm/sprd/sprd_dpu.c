@@ -442,6 +442,8 @@ static void sprd_crtc_atomic_begin(struct drm_crtc *crtc,
 
 	DRM_DEBUG("%s()\n", __func__);
 
+	down(&dpu->ctx.refresh_lock);
+
 	memset(dpu->layers, 0, sizeof(*dpu->layers) * dpu->pending_planes);
 
 	dpu->pending_planes = 0;
@@ -456,11 +458,11 @@ static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
 
 	DRM_DEBUG("%s()\n", __func__);
 
-	if (dpu->core && dpu->core->flip && dpu->pending_planes) {
-		down(&dpu->ctx.refresh_lock);
+	if (dpu->core && dpu->core->flip &&
+	    dpu->pending_planes && !dpu->ctx.disable_flip)
 		dpu->core->flip(&dpu->ctx, dpu->layers, dpu->pending_planes);
-		up(&dpu->ctx.refresh_lock);
-	}
+
+	up(&dpu->ctx.refresh_lock);
 
 	spin_lock_irq(&drm->event_lock);
 	if (crtc->state->event) {
