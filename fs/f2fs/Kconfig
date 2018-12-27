@@ -95,6 +95,16 @@ config F2FS_IO_TRACE
 
 	  If unsure, say N.
 
+config F2FS_RESERVE_SPACE_FILTER
+	bool "F2FS Reserve Space Filter"
+	depends on F2FS_FS
+	default n
+	help
+		Support for reserve space black and white list filter feature.
+		If you say Y here, it will enable the feature.
+
+		If don't need, say N.
+
 config F2FS_FAULT_INJECTION
 	bool "F2FS fault injection facility"
 	depends on F2FS_FS

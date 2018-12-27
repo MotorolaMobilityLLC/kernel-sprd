@@ -102,6 +102,10 @@ extern char *f2fs_fault_name[FAULT_MAX];
 #define F2FS_MOUNT_INLINE_XATTR_SIZE	0x00800000
 #define F2FS_MOUNT_RESERVE_ROOT		0x01000000
 
+#ifdef CONFIG_F2FS_RESERVE_SPACE_FILTER
+#define F2FS_RESERVE_BLOCKS		51200
+#endif
+
 #define F2FS_OPTION(sbi)	((sbi)->mount_opt)
 #define clear_opt(sbi, option)	(F2FS_OPTION(sbi).opt &= ~F2FS_MOUNT_##option)
 #define set_opt(sbi, option)	(F2FS_OPTION(sbi).opt |= F2FS_MOUNT_##option)
@@ -1664,7 +1668,12 @@ static inline bool __allow_reserved_blocks(struct f2fs_sb_info *sbi,
 		return false;
 	if (IS_NOQUOTA(inode))
 		return true;
+#ifdef CONFIG_F2FS_RESERVE_SPACE_FILTER
+	if (uid_eq(F2FS_OPTION(sbi).s_resuid, current_fsuid()) ||
+			check_have_permission(0))
+#else
 	if (uid_eq(F2FS_OPTION(sbi).s_resuid, current_fsuid()))
+#endif
 		return true;
 	if (!gid_eq(F2FS_OPTION(sbi).s_resgid, GLOBAL_ROOT_GID) &&
 					in_group_p(F2FS_OPTION(sbi).s_resgid))

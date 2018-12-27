@@ -2962,6 +2962,14 @@ CONFIG_EXT4_FS_SECURITY
 		   models implemented by security modules like SELinux.
 		   This option enables an extended attribute handler for
 		   file security labels in the ext4 filesystem.
+CONFIG_EXT4_RESERVE_SPACE_FILTER
+	[arch] all
+	[plat] all
+	[field] make,code
+	[subsys] fs
+	[must] user
+	[function] Support for reserve space black and white list filter
+		   feature.
 CONFIG_EXTCON
 	[arch] all
 	[plat] all
@@ -3018,6 +3026,13 @@ CONFIG_F2FS_FS_XATTR
 	[subsys] fs
 	[must] user
 	[function] Enable F2FS extended attributes.
+CONFIG_F2FS_RESERVE_SPACE_FILTER
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkle,sharkle32
+	[field] make,code
+	[subsys] fs
+	[must] none
+	[function] Enable f2fs reserve space.
 CONFIG_F2FS_STAT_FS
 	[arch] all
 	[plat] all
