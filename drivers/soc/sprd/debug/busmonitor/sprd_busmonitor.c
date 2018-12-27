@@ -625,6 +625,7 @@ static SIMPLE_DEV_PM_OPS(sprd_bm_pm_ops, NULL,
 static const struct of_device_id sprd_bm_of_match[] = {
 	{ .compatible = "sprd,sharkl3-busmonitor", },
 	{ .compatible = "sprd,sharkl5-busmonitor", },
+	{ .compatible = "sprd,roc1-busmonitor", },
 	{ /* sentinel */ },
 };
 
