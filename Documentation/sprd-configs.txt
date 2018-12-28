@@ -446,6 +446,13 @@ CONFIG_ARM64_HW_AFDBM
 	[must] user
 	[function] The ARMv8.1 architecture extensions introduce support for
 			hardware updates of the access and dirty information in page.
+CONFIG_ARM64_LSE_ATOMICS
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_ARM64_MODULE_CMODEL_LARGE
 	[arch] all
 	[plat] all
@@ -2600,7 +2607,7 @@ CONFIG_EXTRA_FIRMWARE
 	[function] External firmware blobs to build into the kernel binary, Set to "".
 CONFIG_F2FS_CHECK_FS
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] code
 	[subsys] fs
 	[must] user
@@ -8068,6 +8075,13 @@ CONFIG_RFKILL_LEDS
 	[subsys]
 	[must]
 	[function]
+CONFIG_RFKILL_PM
+	[arch] all
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_RFS_ACCEL
 	[arch] all
 	[plat] all
@@ -9260,7 +9274,7 @@ CONFIG_STACKTRACE_SUPPORT
 	[function] Keep stack trace of persistent data block lock holders.
 CONFIG_STACK_TRACER
 	[arch] all
-	[plat] roc1
+	[plat] all
 	[field] code,make
 	[subsys] core
 	[must] debug
@@ -9984,6 +9998,27 @@ CONFIG_USB_DEFAULT_PERSIST
 	[subsys] usb
 	[must] user
 	[function] Enable USB persist by default for PM.
+CONFIG_USB_DWC3
+	[arch] all
+	[plat] roc1
+	[field] make
+	[subsys] usb
+	[must] user
+	[function] This macro is to support DWC3 USB driver.
+CONFIG_USB_DWC3_DUAL_ROLE
+	[arch] all
+	[plat] roc1
+	[field] make
+	[subsys] usb
+	[must] user
+	[function] DWC3 USB Dual Role mode support.
+CONFIG_USB_DWC3_OF_SIMPLE
+	[arch] all
+	[plat] roc1
+	[field] make
+	[subsys] usb
+	[must] user
+	[function] Support USB2/3 functionality in simple SoC integrations.
 CONFIG_USB_EHCI_HCD
 	[arch] all
 	[plat] all
@@ -10159,27 +10194,6 @@ CONFIG_USB_MUSB_SPRD
 	[subsys] usb
 	[must] user
 	[function] This macro is to suppor SPRD platforms musb driver.
-CONFIG_USB_DWC3
-	[arch] all
-	[plat] roc1
-	[field] make
-	[subsys] usb
-	[must] user
-	[function] This macro is to support DWC3 USB driver.
-CONFIG_USB_DWC3_DUAL_ROLE
-	[arch] all
-	[plat] roc1
-	[field] make
-	[subsys] usb
-	[must] user
-	[function] DWC3 USB Dual Role mode support.
-CONFIG_USB_DWC3_OF_SIMPLE
-	[arch] all
-	[plat] roc1
-	[field] make
-	[subsys] usb
-	[must] user
-	[function] Support USB2/3 functionality in simple SoC integrations.
 CONFIG_USB_NET_DRIVERS
 	[arch] all
 	[plat] roc1
