@@ -1358,7 +1358,7 @@ CONFIG_CHARGER_FAN54015
 	[function]
 CONFIG_CHARGER_MANAGER
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] power
 	[must] user
@@ -8705,13 +8705,6 @@ CONFIG_SCHEDSTATS
 	[subsys] sched
 	[must] user
 	[function] Collect scheduler statistics
-CONFIG_SCHED_AUTOGROUP
-	[arch] all
-	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_SCHED_DEBUG
 	[arch] all
 	[plat] all
@@ -9327,6 +9320,13 @@ CONFIG_SPRD_7SRESET
 	[subsys] core
 	[must] user
 	[function] Spreadtrum hw 7s reset driver.
+CONFIG_SPRD_APB_BUSMONITOR
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Enable APB busmonitor function
 CONFIG_SPRD_AUDIO_AGDSP_ACCESS
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -9369,13 +9369,6 @@ CONFIG_SPRD_BUSMONITOR
 	[subsys] debug
 	[must] debug
 	[function] Enable busmonitor core function
-CONFIG_SPRD_APB_BUSMONITOR
-	[arch] all
-	[plat] all
-	[field] make
-	[subsys] debug
-	[must] debug
-	[function] Enable APB busmonitor function
 CONFIG_SPRD_CLUSTER0_THERMAL
 	[arch] all
 	[plat] sharkl5,sharkl5_32
