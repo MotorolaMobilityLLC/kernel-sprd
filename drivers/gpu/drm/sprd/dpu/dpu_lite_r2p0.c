@@ -183,11 +183,11 @@ struct scale_cfg {
 struct epf_cfg {
 	u16 epsilon0;
 	u16 epsilon1;
-	s8 gain0;
+	u8 gain0;
 	u8 gain1;
 	u8 gain2;
 	u8 gain3;
-	s8 gain4;
+	u8 gain4;
 	u8 gain5;
 	u8 gain6;
 	u8 gain7;
@@ -279,6 +279,7 @@ static struct cm_cfg cm_copy;
 static struct slp_cfg slp_copy;
 static struct gamma_lut gamma_copy;
 static struct hsv_lut hsv_copy;
+static struct epf_cfg epf_copy;
 static u32 enhance_en;
 
 static DECLARE_WAIT_QUEUE_HEAD(wait_queue);
@@ -983,6 +984,16 @@ static void dpu_flip(struct dpu_context *ctx,
 			   DISPC_INT_MMU_INV_WR_MASK;
 }
 
+static void dpu_epf_set(struct dpu_reg *reg, struct epf_cfg *epf)
+{
+	reg->epf_epsilon = (epf->epsilon1 << 16) | epf->epsilon0;
+	reg->epf_gain0_3 = (epf->gain3 << 24) | (epf->gain2 << 16) |
+			   (epf->gain1 << 8) | epf->gain0;
+	reg->epf_gain4_7 = (epf->gain7 << 24) | (epf->gain6 << 16) |
+			   (epf->gain5 << 8) | epf->gain4;
+	reg->epf_diff = (epf->max_diff << 8) | epf->min_diff;
+}
+
 static void dpu_dpi_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -1076,6 +1087,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	struct slp_cfg *slp;
 	struct gamma_lut *gamma;
 	struct hsv_lut *hsv;
+	struct epf_cfg *epf_slp;
 	u32 *p;
 	int i;
 
@@ -1161,6 +1173,13 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		}
 		reg->dpu_enhance_cfg |= BIT(5);
 		pr_info("enhance gamma set\n");
+		break;
+	case ENHANCE_CFG_ID_EPF:
+		memcpy(&epf_copy, param, sizeof(epf_copy));
+		epf_slp = &epf_copy;
+		dpu_epf_set(reg, epf_slp);
+		reg->dpu_enhance_cfg |= BIT(1);
+		pr_info("enhance epf set\n");
 		break;
 	default:
 		break;
