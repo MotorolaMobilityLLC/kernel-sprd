@@ -27,6 +27,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
+#include <linux/nvmem-consumer.h>
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
@@ -213,6 +214,7 @@ struct sprd_codec_priv {
 	u32 startup_cnt;
 	struct mutex digital_enable_mutex;
 	u32 digital_enable_count;
+	u32 aud_pabst_vcal;
 };
 
 
@@ -443,6 +445,31 @@ static void sprd_codec_wait(u32 wait_time)
 		msleep(wait_time);
 }
 
+static int sprd_codec_read_efuse(struct platform_device *pdev,
+					const char *cell_name, u32 *data)
+{
+	struct nvmem_cell *cell;
+	u32 calib_data = 0;
+	void *buf;
+	size_t len;
+
+	cell = nvmem_cell_get(&pdev->dev, cell_name);
+	if (IS_ERR(cell))
+		return PTR_ERR(cell);
+
+	buf = nvmem_cell_read(cell, &len);
+	nvmem_cell_put(cell);
+
+	if (IS_ERR(buf))
+		return PTR_ERR(buf);
+
+	memcpy(&calib_data, buf, min(len, sizeof(u32)));
+	*data = calib_data;
+	kfree(buf);
+
+	return 0;
+}
+
 static int sprd_ctrl_get_volsw(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
@@ -603,6 +630,8 @@ static void sprd_codec_pa_boost(struct snd_soc_codec *codec, int pa_d_en)
 {
 	int mask;
 	int value;
+	int i = 0, state = 0;
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 
 	mask = PABST_WR_PROT_VALUE(0xFFFF);
 	value = 0x3FA1;
@@ -621,13 +650,39 @@ static void sprd_codec_pa_boost(struct snd_soc_codec *codec, int pa_d_en)
 		snd_soc_update_bits(codec, SOC_REG(ANA_CLK0), mask, mask);
 		mask = PA_VCM_BYP_SEL;
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC15), mask, mask);
+		snd_soc_update_bits(codec, SOC_REG(ANA_PMU6),
+			PABST_V_INIT(0xffff), 0);
+
+		/* set vcal */
+		mask = PABST_V_CAL(0xffff);
+		value = PABST_V_CAL(sprd_codec->aud_pabst_vcal >> 10);
+		snd_soc_update_bits(codec, SOC_REG(ANA_PMU4), mask, value);
+
+		mask = PABST_V(0xffff) | PABST_VADJ_TRIG;
+		 /* defaut is 0x5A->6v, 0x49 ->5.5v */
+		value = PABST_V(0x49) | PABST_VADJ_TRIG;
+		snd_soc_update_bits(codec, SOC_REG(ANA_PMU6), mask, value);
 		mask = PABST_EN;
 		snd_soc_update_bits(codec, SOC_REG(ANA_PMU20), mask, mask);
+
+		/* wait time is about 16ms per ASIC requirement */
+		sprd_codec_wait(10);
+		while (i++ < 10) {
+			state = snd_soc_read(codec, SOC_REG(ANA_STS8)) &
+				PABST_SOFT_DVLD;
+			if (state)
+				break;
+			sprd_codec_wait(1);
+		}
 	} else {
 		mask = PA_VCM_BYP_SEL;
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC15), mask, 0);
 		mask = PABST_EN;
 		snd_soc_update_bits(codec, SOC_REG(ANA_PMU20), mask, 0);
+		mask = CLK_PABST_EN | CLK_PABST_32K_EN;
+		snd_soc_update_bits(codec, SOC_REG(ANA_CLK0), mask, 0);
+		mask = DIG_CLK_PABST_EN;
+		snd_soc_update_bits(codec, SOC_REG(ANA_DCL1), mask, 0);
 	}
 }
 
@@ -3376,6 +3431,14 @@ static int sprd_codec_probe(struct platform_device *pdev)
 		return -EPROBE_DEFER;
 	}
 	platform_set_drvdata(dig_pdev, sprd_codec);
+
+	ret = sprd_codec_read_efuse(pdev, "aud_pabst_vcal_efuse",
+		&sprd_codec->aud_pabst_vcal);
+	if (ret) {
+		pr_err("%s:read pa_bst_vcal failed!\n", __func__);
+		return ret;
+	}
+
 	ret = sprd_codec_dig_probe(dig_pdev);
 	if (ret < 0) {
 		pr_err("%s: digital probe failed!\n", __func__);
