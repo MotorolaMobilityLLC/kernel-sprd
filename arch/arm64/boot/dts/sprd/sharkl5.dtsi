@@ -305,7 +305,29 @@
 			gpu: gpu@60000000 {
 				compatible = "sprd,rogue";
 				reg = <0x0 0x60000000 0x0 0x100000>;
+				syscons = <&pmu_apb_regs REG_PMU_APB_PD_GPU_TOP_CFG0
+					MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>,
+				  <&pmu_apb_regs REG_PMU_APB_PD_GPU_RGX_DUST_CFG0
+					MASK_PMU_APB_PD_GPU_RGX_DUST_FORCE_SHUTDOWN>;
+				syscon-names = "top_force_shutdown",
+					"rgx_dust_force_shutdown";
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+
+				sprd,dvfs-lists = <
+					/* kHz   mV      idx div */
+					384000  700000    6    1
+					512000  750000    7    1
+					614400  750000    8    1
+					768000  800000    9    1
+					800000  800000    10   1
+					>;
+				sprd,dvfs-default = <0>;
+				sprd,dvfs-scene-extreme = <2>;
+				sprd,dvfs-scene-high = <1>;
+				sprd,dvfs-scene-medium = <1>;
+				sprd,dvfs-scene-low = <0>;
+				sprd,dvfs-range-max = <2>;
+				sprd,dvfs-range-min = <0>;
 			};
 
 			csi0: csi00@62300000 {
