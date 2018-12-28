@@ -16,12 +16,14 @@
 #include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 #include <linux/usb/otg.h>
 #include <linux/usb/phy.h>
+#include <linux/power/sc2730-usb-charger.h>
 #include <dt-bindings/soc/sprd,roc1-mask.h>
 #include <dt-bindings/soc/sprd,roc1-regs.h>
 
@@ -31,16 +33,15 @@ struct sprd_hsphy {
 	void __iomem		*base;
 	struct regulator	*vdd;
 	struct regmap           *hsphy_glb;
-	struct regmap           *apahb;
-	struct regmap           *ana_g2;
 	struct regmap           *ana_g3;
-	struct regmap           *ana_g4;
+	struct regmap           *pmic;
 	u32			vdd_vol;
 	atomic_t		reset;
 	atomic_t		inited;
 };
 
-#define TUNEHSAMP_2_6MA (2 << 25)
+#define TUNEHSAMP_2_6MA		(3 << 25)
+#define TFREGRES_TUNE_VALUE	(0x14 << 19)
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 {
@@ -140,22 +141,23 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	}
 
 	/* Turn On VDD */
-	regulator_set_voltage(phy->vdd, phy->vdd_vol, phy->vdd_vol);
-	ret = regulator_enable(phy->vdd);
-	if (ret)
-		return ret;
+	if (phy->vdd) {
+		regulator_set_voltage(phy->vdd, phy->vdd_vol, phy->vdd_vol);
+		if (!regulator_is_enabled(phy->vdd)) {
+			ret = regulator_enable(phy->vdd);
+			if (ret)
+				return ret;
+		}
+	}
+	/* enable otg utmi and analog */
+	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB |
+		MASK_AON_APB_CKG_EB;
+	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1,
+				 msk, reg);
 
-	/* Enable USB UTMI controller */
-	reg = msk = MASK_AON_APB_OTG_UTMI_EB;
-	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, reg);
-
-	/* Enable USB PHY controller */
-	reg = msk = MASK_AON_APB_OTG_PHY_EB;
-	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, reg);
-
-	/* enable cgm otg ref */
 	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN;
-	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, reg);
+	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1,
+				 msk, reg);
 
 	/* USB PHY power */
 	reg = msk = MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S |
@@ -180,14 +182,24 @@ static int sprd_hsphy_init(struct usb_phy *x)
 			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1,
 			msk, reg);
 
+	reg = TUNEHSAMP_2_6MA;
+	msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_TUNEHSAMP;
+	ret |= regmap_update_bits(phy->ana_g3,
+			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING,
+			msk, reg);
+
+	reg = TFREGRES_TUNE_VALUE;
+	msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_TFREGRES;
+	ret |= regmap_update_bits(phy->ana_g3,
+			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING,
+			msk, reg);
+
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
 		atomic_set(&phy->reset, 1);
 	}
 
 	atomic_set(&phy->inited, 1);
-	regmap_read(phy->hsphy_glb, REG_AON_APB_CGM_REG1, &reg);
-
 	return ret;
 }
 
@@ -218,7 +230,16 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 	msk = MASK_AON_APB_CGM_OTG_REF_EN;
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
 
-	regulator_disable(phy->vdd);
+	/* disable otg utmi and analog */
+	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB |
+		MASK_AON_APB_CKG_EB;
+	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, 0);
+
+	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN;
+	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
+
+	if (phy->vdd && regulator_is_enabled(phy->vdd))
+		regulator_disable(phy->vdd);
 
 	atomic_set(&phy->inited, 0);
 	atomic_set(&phy->reset, 0);
@@ -274,8 +295,32 @@ static struct attribute *usb_hsphy_attrs[] = {
 };
 ATTRIBUTE_GROUPS(usb_hsphy);
 
+static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
+				unsigned long event, void *data)
+{
+	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
+
+	if (event)
+		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
+	else
+		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
+
+	return 0;
+}
+
+static enum usb_charger_type sprd_hsphy_charger_detect(struct usb_phy *x)
+{
+	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
+
+	if (!phy->pmic)
+		return UNKNOWN_TYPE;
+	return sc27xx_charger_detect(phy->pmic);
+}
+
 static int sprd_hsphy_probe(struct platform_device *pdev)
 {
+	struct device_node *regmap_np;
+	struct platform_device *regmap_pdev;
 	struct sprd_hsphy *phy;
 	struct device *dev = &pdev->dev;
 	int ret, reg, msk;
@@ -285,36 +330,47 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (!phy)
 		return -ENOMEM;
 
+	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
+	if (!regmap_np) {
+		dev_warn(dev, "unable to get syscon node\n");
+	} else {
+		regmap_pdev = of_find_device_by_node(regmap_np);
+		if (!regmap_pdev) {
+			of_node_put(regmap_np);
+			dev_warn(dev, "unable to get syscon platform device\n");
+			phy->pmic = NULL;
+		} else {
+			phy->pmic = dev_get_regmap(regmap_pdev->dev.parent, NULL);
+			if (!phy->pmic)
+				dev_warn(dev, "unable to get pmic regmap device\n");
+		}
+	}
 	ret = of_property_read_u32(dev->of_node, "sprd,vdd-voltage",
 				   &phy->vdd_vol);
 	if (ret < 0) {
-		dev_err(dev, "unable to read ssphy vdd voltage\n");
-		return ret;
+		dev_warn(dev, "unable to read ssphy vdd voltage\n");
+		phy->vdd_vol = 3300000;
 	}
 
 	phy->vdd = devm_regulator_get(dev, "vdd");
 	if (IS_ERR(phy->vdd)) {
 		dev_err(dev, "unable to get ssphy vdd supply\n");
-		return PTR_ERR(phy->vdd);
+		phy->vdd = NULL;
 	}
 
-	ret = regulator_set_voltage(phy->vdd, phy->vdd_vol, phy->vdd_vol);
-	if (ret < 0) {
-		dev_err(dev, "fail to set ssphy vdd voltage at %dmV\n",
-			phy->vdd_vol);
-		return ret;
+	if (phy->vdd) {
+		ret = regulator_set_voltage(phy->vdd, phy->vdd_vol,
+					phy->vdd_vol);
+		if (ret < 0) {
+			dev_err(dev, "fail to set ssphy vdd voltage at %dmV\n",
+				phy->vdd_vol);
+			return ret;
+		}
 	}
 
 	otg = devm_kzalloc(&pdev->dev, sizeof(*otg), GFP_KERNEL);
 	if (!otg)
 		return -ENOMEM;
-
-	phy->apahb = syscon_regmap_lookup_by_phandle(dev->of_node,
-				 "sprd,syscon-apahb");
-	if (IS_ERR(phy->apahb)) {
-		dev_err(&pdev->dev, "ap USB apahb syscon failed!\n");
-		return PTR_ERR(phy->apahb);
-	}
 
 	phy->ana_g3 = syscon_regmap_lookup_by_phandle(dev->of_node,
 				 "sprd,syscon-anag3");
@@ -330,11 +386,20 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		return PTR_ERR(phy->hsphy_glb);
 	}
 
-	/* enable usb module */
-	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB;
-	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, reg);
+	/* select the AON-SYS USB controller */
+	msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
+	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL,
+				 msk, 0);
+
+	/* enable otg utmi and analog */
+	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB
+		| MASK_AON_APB_OTG_PHY_EB | MASK_AON_APB_CKG_EB;
+	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1,
+				 msk, reg);
+
 	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN;
-	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, reg);
+	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1,
+				 msk, reg);
 
 	/* usb power down */
 	reg = msk = MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S |
@@ -354,6 +419,8 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->phy.set_vbus = sprd_hostphy_set;
 	phy->phy.set_emphasis = sprd_hsphy_emphasis_set;
 	phy->phy.type = USB_PHY_TYPE_USB2;
+	phy->phy.vbus_nb.notifier_call = sprd_hsphy_vbus_notify;
+	phy->phy.charger_detect = sprd_hsphy_charger_detect;
 	otg->usb_phy = &phy->phy;
 
 	platform_set_drvdata(pdev, phy);
@@ -400,4 +467,15 @@ static struct platform_driver sprd_hsphy_driver = {
 	},
 };
 
-module_platform_driver(sprd_hsphy_driver);
+static int __init sprd_hsphy_driver_init(void)
+{
+	return platform_driver_register(&sprd_hsphy_driver);
+}
+
+static void __exit sprd_hsphy_driver_exit(void)
+{
+	platform_driver_unregister(&sprd_hsphy_driver);
+}
+
+late_initcall(sprd_hsphy_driver_init);
+module_exit(sprd_hsphy_driver_exit);
