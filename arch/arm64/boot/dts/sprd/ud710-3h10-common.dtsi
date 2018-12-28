@@ -41,6 +41,105 @@
 		ports = <&dpu_port>;
 	};
 
+	thm_zone: thermal-zones {
+
+		bigcore6a7_thmzone: bigcore6a7-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm0 0>;
+		};
+
+		bigcore4_thmzone: bigcore4-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm0 1>;
+		};
+
+		bigcore5_thmzone: bigcore5-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm0 2>;
+		};
+
+		bigcore6_thmzone: bigcore6-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm0 3>;
+		};
+
+		bigcore7_thmzone: bigcore7-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm0 4>;
+		};
+
+		ai0_thmzone: ank-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm1 0>;
+		};
+
+		ai1_thmzone: ank0-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm1 1>;
+		};
+
+		gpu0_thmzone: gpu0-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm2 0>;
+		};
+
+		mm_thmzone: mm-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm2 1>;
+		};
+
+		cputop0_thmzone: cputop0-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm3 0>;
+		};
+
+		littlecore0_thmzone: littlecore0-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm3 1>;
+		};
+
+		littlecore1_thmzone: littlecore1-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm3 2>;
+		};
+
+		littlecore2_thmzone: littlecore2-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm3 3>;
+		};
+
+		littlecore3_thmzone: littlecore3-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm3 4>;
+		};
+
+		cputop1_thmzone: cputop1-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm3 5>;
+		};
+
+		gpu1_thmzone: gpu1-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&ap_thm3 6>;
+		};
+	};
+
 	reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
