@@ -39,6 +39,7 @@ usb3: usb3@20f00000 {
 		interrupts = <GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "irq";
 		usb-phy = <&ssphy>, <&ssphy>;
+		usb-pam = <&pamu3>;
 		phy_type = "utmi_wide";
 		dr_mode = "peripheral";
 		snps,usb3-u1u2-disable;

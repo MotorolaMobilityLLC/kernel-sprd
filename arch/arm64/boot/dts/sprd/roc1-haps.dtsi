@@ -216,6 +216,7 @@
 					interrupts = <GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>;
 					interrupt-names = "irq";
 					usb-phy = <&ssphy>, <&ssphy>;
+					usb-pam = <&pamu3>;
 					phy_type = "utmi_wide";
 					dr_mode = "peripheral";
 					snps,usb3-u1u2-disable;
@@ -225,6 +226,16 @@
 					snps,ep_out_aligned_size_quirk;
 					snps,disconnect_event_quirk;
 				};
+			};
+
+			pamu3: pamu3@21100000 {
+				compatible = "sprd,roc1-pamu3";
+				reg = <0 0x21100000 0 0x10000>,
+					<0 0x20f00000 0 0x100000>;
+				reg-names = "pamu3_glb_regs",
+					"dwc3_core_regs";
+				sprd,syscon-ipa-ahb = <&ipa_ahb_regs>;
+				status = "disabled";
 			};
 
 			ssphy: ssphy@40400000 {
