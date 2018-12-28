@@ -754,7 +754,7 @@ static void shub_synctimestamp(struct shub_data *sensor)
 		return;
 	get_monotonic_boottime(&kt);
 	k_timestamp = timespec_to_ns(&kt);
-	do_div(k_timestamp, 1000000);
+	div_s64(k_timestamp, 1000000);
 	shub_send_command(sensor,
 		HANDLE_MAX,
 		SHUB_SET_TIMESYNC_SUBTYPE,
