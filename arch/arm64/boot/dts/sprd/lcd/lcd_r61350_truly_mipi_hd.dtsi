@@ -14,7 +14,7 @@
 		sprd,dsi-lane-number = <4>;
 		sprd,dsi-color-format = "rgb888";
 
-		sprd,phy-bit-clock = <500000>;	/* kbps */
+		sprd,phy-bit-clock = <600000>;	/* kbps */
 		sprd,phy-escape-clock = <20000>;/* kHz */
 
 		sprd,width-mm = <68>;
@@ -88,13 +88,13 @@
 
 		display-timings {
 			timing0 {
-				clock-frequency = <64000000>;
+				clock-frequency = <76800000>;
 				hactive = <720>;
 				vactive = <1280>;
 				hback-porch = <80>;
 				hfront-porch = <80>;
 				vback-porch = <13>;
-				vfront-porch = <16>;
+				vfront-porch = <127>;
 				hsync-len = <20>;
 				vsync-len = <2>;
 			};
