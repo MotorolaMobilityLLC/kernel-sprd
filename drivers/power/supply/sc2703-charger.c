@@ -70,6 +70,10 @@ static int sc2703_limit_current[] = {
 	3000000,
 };
 
+static const char * const sc2703_fast_charger_supply_name[] = {
+	"sc2730_fast_charger",
+};
+
 static bool sc2703_charger_is_bat_present(struct sc2703_charger_info *info)
 {
 	struct power_supply *psy;
@@ -141,6 +145,8 @@ static int sc2703_charger_hw_init(struct sc2703_charger_info *info)
 		info->cur.cdp_cur = bat_info.cur.cdp_cur;
 		info->cur.unknown_limit = bat_info.cur.unknown_limit;
 		info->cur.unknown_cur = bat_info.cur.unknown_cur;
+		info->cur.fchg_limit = bat_info.cur.fchg_limit;
+		info->cur.fchg_cur = bat_info.cur.fchg_cur;
 
 		cur_val = sc2703_charger_of_prop_range(info->dev,
 					bat_info.charge_term_current_ua,
@@ -680,6 +686,38 @@ static int sc2703_charger_feed_watchdog(struct sc2703_charger_info *info,
 				  SC2703_TIMER_LOAD_MASK, val);
 }
 
+static bool sc2703_charger_is_support_fchg(struct sc2703_charger_info *info)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	u32 ic_version;
+	int charger_type, ret, i;
+
+	ret = regmap_read(info->regmap, SC2703_IC_VERSION_INFO, &ic_version);
+	if (ret) {
+		dev_err(info->dev, "read ic version info failed\n");
+		return false;
+	}
+
+	if (ic_version != SC2703_SUPPORT_FCHG)
+		return false;
+
+	for (i = 0; i < ARRAY_SIZE(sc2703_fast_charger_supply_name); i++) {
+		psy = power_supply_get_by_name(sc2703_fast_charger_supply_name[i]);
+		if (!psy)
+			continue;
+
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CHARGE_TYPE,
+						&val);
+		power_supply_put(psy);
+		if (ret)
+			return false;
+		charger_type = val.intval;
+	}
+
+	return charger_type == POWER_SUPPLY_CHARGE_TYPE_FAST;
+}
+
 static void sc2703_charger_work(struct work_struct *data)
 {
 	struct sc2703_charger_info *info =
@@ -708,6 +746,11 @@ static void sc2703_charger_work(struct work_struct *data)
 		default:
 			limit_cur = info->cur.unknown_limit;
 			cur = info->cur.unknown_cur;
+		}
+
+		if (sc2703_charger_is_support_fchg(info)) {
+			limit_cur = info->cur.fchg_limit;
+			cur = info->cur.fchg_cur;
 		}
 
 		ret = sc2703_charger_set_limit_current(info, limit_cur);
