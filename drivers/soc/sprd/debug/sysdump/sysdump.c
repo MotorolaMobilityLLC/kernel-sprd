@@ -429,6 +429,9 @@ void sysdump_enter(int enter_id, const char *reason, struct pt_regs *regs)
 				mdelay(3000);
 			}
 		}
+		memset(g_ktxt_hash_data, 0x55, SHA1_DIGEST_SIZE);
+		desc.tfm = crypto_alloc_shash("sha1", 0, CRYPTO_ALG_ASYNC);
+		crypto_shash_init(&desc);
 	}
 
 	/* this should before smp_send_stop() to make sysdump_ipi enable */
@@ -775,11 +778,11 @@ int sysdump_sysctl_init(void)
 	if (!sysdump_proc)
 		return -ENOMEM;
 
-	sprd_sysdump_init = 1;
-
 	memset(g_ktxt_hash_data, 0x55, SHA1_DIGEST_SIZE);
 	desc.tfm = crypto_alloc_shash("sha1", 0, CRYPTO_ALG_ASYNC);
 	crypto_shash_init(&desc);
+
+	sprd_sysdump_init = 1;
 
 	sprd_sysdump_enable_prepare();
 #if defined(CONFIG_SPRD_DEBUG)
