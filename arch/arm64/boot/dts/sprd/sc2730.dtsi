@@ -81,6 +81,10 @@
 				reg = <0x1a 0x2>;
 			};
 
+			aud_pabst_vcal: calib@20 {
+				reg = <0x20 0x2>;
+			};
+
 			headset_adc_fir: calib@14 {
 				reg = <0x28 0x2>;
 			};
@@ -128,6 +132,8 @@
 			#sound-dai-cells = <1>;
 			reg = <0x1000>;
 			sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+			nvmem-cells = <&aud_pabst_vcal>;
+			nvmem-cell-names = "aud_pabst_vcal_efuse";
 			status = "disabled";
 		};
 
