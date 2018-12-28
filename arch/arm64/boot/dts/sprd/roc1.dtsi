@@ -795,6 +795,16 @@
 				#size-cells = <0>;
 			};
 
+			watchdog@322f0000 {
+				compatible = "sprd,sharkl5-wdt";
+				reg = <0 0x322f0000 0 0x10000>;
+				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <12>;
+				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_APCPU_WDG_EB>,
+					<&aonapb_gate CLK_AP_WDG_RTC_EB>;
+			};
+
 			i2c6: i2c@32370000 {
 				compatible = "sprd,roc1-hw-i2c";
 				reg = <0 0x32370000 0 0x1000>;
