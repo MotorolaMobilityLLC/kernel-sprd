@@ -857,14 +857,14 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		ret = dwc3_core_get_phy(dwc);
 		if (ret)
 			goto err0a;
-		dwc->phys_ready = true;
-	}
 
 #ifdef CONFIG_USB_PAM
-	ret = dwc3_core_get_pam(dwc);
-	if (ret)
-		goto err0;
+		ret = dwc3_core_get_pam(dwc);
+		if (ret)
+			goto err0a;
 #endif
+		dwc->phys_ready = true;
+	}
 
 	ret = dwc3_core_soft_reset(dwc);
 	if (ret)
@@ -1020,7 +1020,7 @@ static int dwc3_core_get_pam(struct dwc3 *dwc)
 {
 	struct device		*dev = dwc->dev;
 	struct device_node	*node = dev->of_node;
-	int ret;
+	int ret = 0;
 
 	if (node)
 		dwc->pam = devm_usb_get_phy_by_phandle(dev, "usb-pam", 0);
