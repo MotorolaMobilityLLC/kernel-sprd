@@ -952,6 +952,9 @@ static void dpu_flip(struct dpu_context *ctx,
 	if (ctx->if_type == SPRD_DISPC_IF_EDPI)
 		dpu_wait_stop_done(ctx);
 
+	/* reset the bgcolor to black */
+	reg->bg_color = 0;
+
 	/* disable all the layers */
 	dpu_clean_all(ctx);
 
@@ -1077,7 +1080,7 @@ static void disable_vsync(struct dpu_context *ctx)
 	reg->dpu_int_en &= ~DISPC_INT_DPI_VSYNC_MASK;
 
 	/* enable writeback when vblank disable */
-	if (wb_en && !ctx->is_stopped)
+	if (wb_en && !ctx->is_stopped && !ctx->disable_flip)
 		dpu_write_back(ctx, 1, false);
 }
 
