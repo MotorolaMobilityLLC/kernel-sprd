@@ -321,6 +321,8 @@ struct power_supply_charge_current {
 	int aca_cur;
 	int unknown_limit;
 	int unknown_cur;
+	int fchg_limit;
+	int fchg_cur;
 };
 
 #define POWER_SUPPLY_OCV_TEMP_MAX 20
