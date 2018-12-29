@@ -34,7 +34,7 @@ enum tipc_chan_event {
 struct tipc_chan_ops {
 	void (*handle_event)(void *cb_arg, int event);
 	struct tipc_msg_buf *(*handle_msg)(void *cb_arg,
-					   struct tipc_msg_buf *mb, u16 flags);
+					   struct tipc_msg_buf *mb);
 	void (*handle_release)(void *cb_arg);
 };
 
@@ -44,7 +44,7 @@ struct tipc_chan *tipc_create_channel(struct device *dev,
 
 int tipc_chan_connect(struct tipc_chan *chan, const char *port);
 
-int tipc_chan_queue_msg(struct tipc_chan *chan, struct list_head *msg_buf_list);
+int tipc_chan_queue_msg(struct tipc_chan *chan, struct tipc_msg_buf *mb);
 
 int tipc_chan_shutdown(struct tipc_chan *chan);
 
