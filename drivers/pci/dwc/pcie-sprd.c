@@ -15,6 +15,7 @@
 
 #include <linux/clk.h>
 #include <linux/interrupt.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 
 #include "pcie-designware.h"
