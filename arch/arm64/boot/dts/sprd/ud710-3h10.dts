@@ -75,6 +75,10 @@
 		m2-to-ap-irq-gpios = <&ap_gpio 96 0>;
 		rstn-gpios = <&ap_gpio 126 0>;
 		chip-en-gpios = <&ap_gpio 77 0>;
+		dvdd12-supply = <&vddmem>;
+		avdd12-supply = <&vddgen1>;
+		avdd33-supply = <&vddwifipa>;
+		dcxo18-supply = <&vddldo0>;
 		common_chip_en;
 		sprd,wait-ge2-disabled;
 		adma_tx_enable;
