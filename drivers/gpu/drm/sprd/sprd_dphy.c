@@ -144,7 +144,7 @@ static int sprd_dphy_device_create(struct sprd_dphy *dphy,
 	dphy->dev.class = display_class;
 	dphy->dev.parent = parent;
 	dphy->dev.of_node = parent->of_node;
-	dev_set_name(&dphy->dev, "dphy");
+	dev_set_name(&dphy->dev, "dphy%d", dphy->ctx.id);
 	dev_set_drvdata(&dphy->dev, dphy);
 
 	ret = device_register(&dphy->dev);
