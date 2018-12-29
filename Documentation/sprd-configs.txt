@@ -9481,6 +9481,13 @@ CONFIG_SPRD_EFUSE
 	[subsys] nvmem
 	[must] home
 	[function] get sprdtrum soc series efuse value
+CONFIG_SPRD_CACHE_EFUSE
+	[arch] all
+	[plat] sharkl5
+	[field]make
+	[subsys] nvmem
+	[must] home
+	[function] get sprdtrum soc series efuse value using pre-reading mechanism
 CONFIG_SPRD_IMS_BRIDGE
 	[arch] all
 	[plat] all
