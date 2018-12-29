@@ -471,10 +471,12 @@ static int dpu_wait_update_done(struct dpu_context *ctx)
 {
 	int rc;
 
+	/* clear the event flag before wait */
+	evt_update = false;
+
 	/* wait for reg update done interrupt */
 	rc = wait_event_interruptible_timeout(wait_queue, evt_update,
 					       msecs_to_jiffies(500));
-	evt_update = false;
 
 	if (!rc) {
 		/* time out */
