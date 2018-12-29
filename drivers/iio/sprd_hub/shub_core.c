@@ -24,6 +24,8 @@
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/sched.h>
+#include <linux/ktime.h>
+#include <linux/timekeeping.h>
 #include <uapi/linux/sched/types.h>
 
 #include <linux/sipc.h>
@@ -747,14 +749,12 @@ static void shub_send_ap_status(struct shub_data *sensor, u8 status)
 
 static void shub_synctimestamp(struct shub_data *sensor)
 {
-	struct timespec kt;
 	s64 k_timestamp;
 
 	if (sensor->mcu_mode != SHUB_NORMAL)
 		return;
-	get_monotonic_boottime(&kt);
-	k_timestamp = timespec_to_ns(&kt);
-	div_s64(k_timestamp, 1000000);
+
+	k_timestamp = ktime_to_ms(ktime_get_boottime());
 	shub_send_command(sensor,
 		HANDLE_MAX,
 		SHUB_SET_TIMESYNC_SUBTYPE,
