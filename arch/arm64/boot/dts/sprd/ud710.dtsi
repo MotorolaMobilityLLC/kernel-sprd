@@ -119,10 +119,136 @@
 			#clock-cells = <1>;
 		};
 
+		ap_clk: clock-controller@20200000 {
+			compatible = "sprd,roc1-ap-clk";
+			reg = <0 0x20200000 0 0x1000>;
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		ipa_gate: ipa-gate {
+			compatible = "sprd,roc1-ipa-gate";
+			sprd,syscon = <&ipa_ahb_regs>;
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		ipa_clk: clock-controller@21050000 {
+			compatible = "sprd,roc1-ipa-clk";
+			reg = <0 0x21050000 0 0x1000>;
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		aon_clk: clock-controller@32080000 {
+			compatible = "sprd,roc1-aonapb-clk";
+			reg = <0 0x32080000 0 0x1000>;
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
 		aonapb_gate: aonapb-gate {
 			compatible = "sprd,roc1-aon-gate";
 			sprd,syscon = <&aon_apb_regs>; /* 0x32090000 */
 			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		pmu_gate: pmu-gate {
+			compatible = "sprd,roc1-pmu-gate";
+			sprd,syscon = <&pmu_apb_regs>; /* 0x32280000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		dpll: dpll {
+			compatible = "sprd,roc1-g0-pll";
+			reg = <0 0x32390000 0 0x3000>; /* 0x32390000 */
+			clocks = <&aon_clk CLK_ANALOG_IO_APB>;
+			#clock-cells = <1>;
+		};
+
+		mpll1: mpll1 {
+			compatible = "sprd,roc1-g4-pll";
+			sprd,syscon = <&anlg_phy_g4_regs>; /* 0x323c0000 */
+			clocks = <&aon_clk CLK_ANALOG_IO_APB>;
+			#clock-cells = <1>;
+		};
+
+		ana_g5_clk: ana-g5-clk {
+			compatible = "sprd,roc1-g5-pll";
+			sprd,syscon = <&anlg_phy_g5_regs>; /* 0x323d0000 */
+			clocks = <&aon_clk CLK_ANALOG_IO_APB>;
+			#clock-cells = <1>;
+		};
+
+		mpll2: mpll2 {
+			compatible = "sprd,roc1-g9-pll";
+			reg = <0 0x32410000 0 0x3000>; /* 0x32410000 */
+			clocks = <&aon_clk CLK_ANALOG_IO_APB>;
+			#clock-cells = <1>;
+		};
+
+		g12_pll: g12-pll {
+			compatible = "sprd,roc1-g12-pll";
+			reg = <0 0x32414000 0 0x3000>; /* 0x32414000 */
+			clocks = <&aon_clk CLK_ANALOG_IO_APB>;
+			#clock-cells = <1>;
+		};
+
+		mpll0: mpll0 {
+			compatible = "sprd,roc1-g17-pll";
+			reg = <0 0x32418000 0 0x3000>; /* 0x32418000 */
+			clocks = <&aon_clk CLK_ANALOG_IO_APB>;
+			#clock-cells = <1>;
+		};
+
+		audcpapb_gate: audcpapb-gate {
+			compatible = "sprd,roc1-audcpapb-gate";
+			sprd,syscon = <&audcp_apb_regs>; /* 0x3350d000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		audcpahb_gate: audcpahb-gate {
+			compatible = "sprd,roc1-audcpahb-gate";
+			sprd,syscon = <&audcp_ahb_regs>; /* 0x335e0000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		gpu_clk: gpu-clk {
+			compatible = "sprd,roc1-gpu-clk";
+			sprd,syscon = <&gpu_apb_regs>;	/* 0x60100000 */
+			clocks = <&aon_clk CLK_AP_GPU>;
+			#clock-cells = <1>;
+		};
+
+		mm_clk: clock-controller@62100000 {
+			compatible = "sprd,roc1-mm-clk";
+			reg = <0 0x62100000 0 0x1000>;
+			clocks = <&aonapb_gate CLK_MM_EB>;
+			#clock-cells = <1>;
+		};
+
+		mm_gate: mm-gate {
+			compatible = "sprd,roc1-mm-gate-clk";
+			sprd,syscon = <&mm_ahb_regs>;
+			clocks = <&aonapb_gate CLK_MM_EB>;
+			#clock-cells = <1>;
+		};
+
+		ai_gate: ai-gate {
+			compatible = "sprd,roc1-ai-gate-clk";
+			sprd,syscon = <&ai_apb_regs>;
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		ai_clk: clock-controller@6fd04000 {
+			compatible = "sprd,roc1-ai-clk";
+			reg = <0 0x6fd04000 0 0x1000>;
+			clocks = <&aonapb_gate CLK_AP_AI>;
 			#clock-cells = <1>;
 		};
 
