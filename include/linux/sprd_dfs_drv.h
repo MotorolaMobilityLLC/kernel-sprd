@@ -30,4 +30,6 @@ extern int set_overflow(unsigned int value, unsigned int sel);
 extern int set_underflow(unsigned int value, unsigned int sel);
 extern int get_scene_info(char **name, unsigned int *freq,
 			unsigned int *count, int index);
+extern int set_backdoor(void);
+extern int reset_backdoor(void);
 #endif

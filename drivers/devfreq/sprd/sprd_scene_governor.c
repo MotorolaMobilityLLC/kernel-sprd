@@ -30,8 +30,7 @@
 
 #include "sprd_dfs_trace.h"
 
-#define DFS_LCD_CALLBACK 1
-
+static int backdoor_status;
 static int trace_poll_time;
 static void trace_poll_callback(struct work_struct *work);
 static DECLARE_DELAYED_WORK(trace_poll_work, trace_poll_callback);
@@ -418,6 +417,43 @@ static ssize_t scene_dfs_status_show(struct device *dev,
 	return count;
 }
 
+static ssize_t backdoor_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", backdoor_status);
+}
+
+static ssize_t backdoor_store(struct device *dev,
+					struct device_attribute *attr,
+					const char *buf, size_t count)
+{
+	int err;
+	int backdoor;
+
+	err = sscanf(buf, "%d\n", &backdoor);
+	if (err < 1) {
+		dev_err(dev, "set backdoor err: %d", err);
+		return count;
+	}
+
+	if (backdoor_status == backdoor)
+		return count;
+
+	if (backdoor == 1)
+		err = set_backdoor();
+	else if (backdoor == 0)
+		err = reset_backdoor();
+	else
+		err = -EINVAL;
+
+	if (err)
+		pr_err("%s: set backdoor fail: %d", __func__, err);
+	else
+		backdoor_status  = backdoor;
+
+	return count;
+}
+
 static ssize_t trace_poll_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -475,6 +511,8 @@ static DEVICE_ATTR(scene_boost_dfs, 0220,
 	NULL, scene_boost_dfs_store);
 static DEVICE_ATTR(scene_dfs_list, 0444,
 	scene_dfs_status_show, NULL);
+static DEVICE_ATTR(backdoor, 0664,
+	backdoor_show, backdoor_store);
 static DEVICE_ATTR(trace_poll, 0664,
 	trace_poll_show, trace_poll_store);
 
@@ -492,6 +530,7 @@ static struct attribute *dev_entries[] = {
 	&dev_attr_exit_scene.attr,
 	&dev_attr_scene_boost_dfs.attr,
 	&dev_attr_scene_dfs_list.attr,
+	&dev_attr_backdoor.attr,
 	&dev_attr_trace_poll.attr,
 	NULL,
 };
@@ -559,6 +598,7 @@ struct devfreq_governor devfreq_sprd_gov = {
 static int __init devfreq_sprd_gov_init(void)
 {
 	trace_poll_time = 0;
+	backdoor_status = 0;
 	return devfreq_add_governor(&devfreq_sprd_gov);
 }
 subsys_initcall(devfreq_sprd_gov_init);

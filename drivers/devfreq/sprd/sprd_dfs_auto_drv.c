@@ -98,6 +98,7 @@ struct dfs_data {
 	struct scene_freq *scenes;
 	unsigned int last_scene;
 	unsigned int force_freq;
+	unsigned int backdoor_freq;
 	unsigned int init_done;
 };
 
@@ -380,6 +381,22 @@ int force_freq_request(unsigned int freq)
 		g_dfs_data->force_freq = freq;
 	mutex_unlock(&g_dfs_data->sync_mutex);
 	return err;
+}
+
+int set_backdoor(void)
+{
+	if (g_dfs_data->backdoor_freq == 0)
+		return -EINVAL;
+
+	return force_freq_request(g_dfs_data->backdoor_freq);
+}
+
+int reset_backdoor(void)
+{
+	if (g_dfs_data->backdoor_freq == 0)
+		return -EINVAL;
+
+	return dfs_auto_enable();
 }
 
 int get_dfs_status(unsigned int *data)
@@ -700,6 +717,13 @@ static int dfs_auto_freq_probe(struct platform_device *pdev)
 	data->scene_num = scene_num;
 	spin_lock_init(&data->lock);
 	mutex_init(&data->sync_mutex);
+
+	err = of_property_read_u32(dev->of_node, "backdoor",
+					&data->backdoor_freq);
+	if (err != 0) {
+		pr_err("failed read freqnum\n");
+		data->backdoor_freq = 0;
+	}
 
 	err = of_property_read_u32_array(dev->of_node, "overflow",
 					data->overflow, freq_num);
