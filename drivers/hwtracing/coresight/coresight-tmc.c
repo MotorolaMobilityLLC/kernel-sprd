@@ -427,7 +427,12 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 		goto out;
 	}
 
-	drvdata->miscdev.name = pdata->name;
+	/* fix etb dev name as "/dev/etb" for modem */
+	if (strstr(pdata->name, "etb"))
+		drvdata->miscdev.name = "etb";
+	else
+		drvdata->miscdev.name = pdata->name;
+
 	drvdata->miscdev.minor = MISC_DYNAMIC_MINOR;
 	drvdata->miscdev.fops = &tmc_fops;
 	ret = misc_register(&drvdata->miscdev);
