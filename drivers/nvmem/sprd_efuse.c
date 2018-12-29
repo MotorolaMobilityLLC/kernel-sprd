@@ -75,12 +75,35 @@
 /* Timeout (ms) for the trylock of hardware spinlocks */
 #define SPRD_EFUSE_HWLOCK_TIMEOUT	5000
 
+/*
+ * Since different sprd chip can have different block max,
+ * we should save address in the device data structure.
+ */
+struct sprd_efuse_variant_data {
+	u32 blk_max;
+	u32 blk_start;
+	bool blk_double;
+};
+
 struct sprd_efuse {
 	struct device *dev;
 	struct clk *clk;
 	struct hwspinlock *hwlock;
 	struct mutex mutex;
 	void __iomem *base;
+	const struct sprd_efuse_variant_data *var_data;
+};
+
+static const struct sprd_efuse_variant_data sharkl5_data = {
+	.blk_max = 96,
+	.blk_start = 72,
+	.blk_double = 0,
+};
+
+static const struct sprd_efuse_variant_data roc1_data = {
+	.blk_max = 79,
+	.blk_start = 37,
+	.blk_double = 1,
 };
 
 static int sprd_efuse_lock(struct sprd_efuse *efuse)
@@ -305,14 +328,15 @@ unlock_hwlock:
 static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sprd_efuse *efuse = context;
+	bool blk_double = efuse->var_data->blk_double;
 	u32 index = offset / SPRD_EFUSE_BLOCK_WIDTH;
 
 	/* efuse has two parts secure efuse block and public efuse block.
 	 * public eFuse starts at SPRD_EFUSE_BLOCK_STAR block.
 	 */
-	index += SPRD_EFUSE_BLOCK_START;
+	index += efuse->var_data->blk_start;
 
-	return sprd_efuse_raw_read(efuse, index, val, false);
+	return sprd_efuse_raw_read(efuse, index, val, blk_double);
 }
 
 static int sprd_efuse_write(void *context, u32 offset, void *val, size_t bytes)
@@ -329,8 +353,15 @@ static int sprd_efuse_probe(struct platform_device *pdev)
 	struct nvmem_config econfig = { };
 	struct resource *res;
 	struct sprd_efuse *efuse;
-	u32 blk_num = SPRD_EFUSE_BLOCK_MAX - SPRD_EFUSE_BLOCK_START;
+	const struct sprd_efuse_variant_data *pdata;
+	u32 blk_num;
 	int ret;
+
+	pdata = of_device_get_match_data(&pdev->dev);
+	if (!pdata) {
+		dev_err(&pdev->dev, "No matching driver data found\n");
+		return -EINVAL;
+	}
 
 	efuse = devm_kzalloc(&pdev->dev, sizeof(*efuse), GFP_KERNEL);
 	if (!efuse)
@@ -363,6 +394,8 @@ static int sprd_efuse_probe(struct platform_device *pdev)
 
 	mutex_init(&efuse->mutex);
 	efuse->dev = &pdev->dev;
+	efuse->var_data = pdata;
+	blk_num = efuse->var_data->blk_max - efuse->var_data->blk_start;
 
 	econfig.stride = 1;
 	econfig.word_size = 1;
@@ -400,7 +433,8 @@ static int sprd_efuse_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id sprd_efuse_of_match[] = {
-	{ .compatible = "sprd,sharkl5-efuse" },
+	{ .compatible = "sprd,sharkl5-efuse", .data = &sharkl5_data},
+	{ .compatible = "sprd,roc1-efuse", .data = &roc1_data},
 	{ }
 };
 
