@@ -355,11 +355,6 @@ static ssize_t gamma_write(struct file *fp, struct kobject *kobj,
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
-	if (!ctx->is_inited) {
-		pr_err("dpu is not initialized\n");
-		up(&ctx->refresh_lock);
-		return -EINVAL;
-	}
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_GAMMA, buf);
 	up(&ctx->refresh_lock);
 
@@ -412,11 +407,6 @@ static ssize_t slp_write(struct file *fp, struct kobject *kobj,
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
-	if (!ctx->is_inited) {
-		pr_err("dpu is not initialized\n");
-		up(&ctx->refresh_lock);
-		return -EINVAL;
-	}
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_SLP, buf);
 	up(&ctx->refresh_lock);
 
@@ -469,11 +459,6 @@ static ssize_t cm_write(struct file *fp, struct kobject *kobj,
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
-	if (!ctx->is_inited) {
-		pr_err("dpu is not initialized\n");
-		up(&ctx->refresh_lock);
-		return -EINVAL;
-	}
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CM, buf);
 	up(&ctx->refresh_lock);
 
@@ -526,11 +511,6 @@ static ssize_t epf_write(struct file *fp, struct kobject *kobj,
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
-	if (!ctx->is_inited) {
-		pr_err("dpu is not initialized\n");
-		up(&ctx->refresh_lock);
-		return -EINVAL;
-	}
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_EPF, buf);
 	up(&ctx->refresh_lock);
 
@@ -584,11 +564,6 @@ static ssize_t hsv_write(struct file *fp, struct kobject *kobj,
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
-	if (!ctx->is_inited) {
-		pr_err("dpu is not initialized\n");
-		up(&ctx->refresh_lock);
-		return -EINVAL;
-	}
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_HSV, buf);
 	up(&ctx->refresh_lock);
 
@@ -634,11 +609,6 @@ static ssize_t scl_store(struct device *dev,
 		return -EIO;
 
 	down(&ctx->refresh_lock);
-	if (!ctx->is_inited) {
-		pr_err("dpu is not initialized\n");
-		up(&ctx->refresh_lock);
-		return -EINVAL;
-	}
 	str_to_u32_array(buf, 10, param);
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_SCL, param);
 	up(&ctx->refresh_lock);
@@ -663,11 +633,6 @@ static ssize_t enable_write(struct file *fp, struct kobject *kobj,
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
-	if (!ctx->is_inited) {
-		pr_err("dpu is not initialized\n");
-		up(&ctx->refresh_lock);
-		return -EINVAL;
-	}
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_ENABLE, buf);
 	up(&ctx->refresh_lock);
 
@@ -691,11 +656,6 @@ static ssize_t disable_write(struct file *fp, struct kobject *kobj,
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
-	if (!ctx->is_inited) {
-		pr_err("dpu is not initialized\n");
-		up(&ctx->refresh_lock);
-		return -EINVAL;
-	}
 	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_DISABLE, buf);
 	up(&ctx->refresh_lock);
 

@@ -1084,6 +1084,65 @@ static void disable_vsync(struct dpu_context *ctx)
 		dpu_write_back(ctx, 1, false);
 }
 
+static void dpu_enhance_backup(u32 id, void *param)
+{
+	u32 *p;
+
+	switch (id) {
+	case ENHANCE_CFG_ID_ENABLE:
+		p = param;
+		enhance_en |= *p;
+		pr_info("enhance module enable backup: 0x%x\n", *p);
+		break;
+	case ENHANCE_CFG_ID_DISABLE:
+		p = param;
+		/* disable slp */
+		if (*p & BIT(4)) {
+			if (!(enhance_en & BIT(0))) {
+				*p |= BIT(1);
+				pr_info("enhance module epf need to be disabled\n");
+			}
+		}
+		enhance_en &= ~(*p);
+		pr_info("enhance module disable backup: 0x%x\n", *p);
+		break;
+	case ENHANCE_CFG_ID_SCL:
+		memcpy(&scale_copy, param, sizeof(scale_copy));
+		if (!(enhance_en & BIT(4)))
+			enhance_en |= BIT(1);
+		enhance_en |= BIT(0);
+		pr_info("enhance scaling backup\n");
+		break;
+	case ENHANCE_CFG_ID_HSV:
+		memcpy(&hsv_copy, param, sizeof(hsv_copy));
+		enhance_en |= BIT(2);
+		pr_info("enhance hsv backup\n");
+		break;
+	case ENHANCE_CFG_ID_CM:
+		memcpy(&cm_copy, param, sizeof(cm_copy));
+		enhance_en |= BIT(3);
+		pr_info("enhance cm backup\n");
+		break;
+	case ENHANCE_CFG_ID_SLP:
+		memcpy(&slp_copy, param, sizeof(slp_copy));
+		enhance_en |= BIT(4);
+		pr_info("enhance slp backup\n");
+		break;
+	case ENHANCE_CFG_ID_GAMMA:
+		memcpy(&gamma_copy, param, sizeof(gamma_copy));
+		enhance_en |= BIT(5);
+		pr_info("enhance gamma backup\n");
+		break;
+	case ENHANCE_CFG_ID_EPF:
+		memcpy(&epf_copy, param, sizeof(epf_copy));
+		enhance_en |= BIT(1);
+		pr_info("enhance epf backup\n");
+		break;
+	default:
+		break;
+	}
+}
+
 static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -1095,6 +1154,11 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	struct epf_cfg *epf_slp;
 	u32 *p;
 	int i;
+
+	if (!ctx->is_inited) {
+		dpu_enhance_backup(id, param);
+		return;
+	}
 
 	if (ctx->if_type == SPRD_DISPC_IF_EDPI)
 		dpu_wait_stop_done(ctx);
