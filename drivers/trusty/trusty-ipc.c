@@ -57,6 +57,10 @@
 					     compat_uptr_t)
 #endif
 
+/* This marks a data msg received as continuing via the next field. */
+#define TIPC_DATA_MSG_F_NEXT	1
+
+
 struct tipc_virtio_dev;
 
 struct tipc_dev_config {
@@ -306,6 +310,9 @@ static struct tipc_msg_buf *_vds_get_txbuf(struct tipc_virtio_dev *vds)
 
 static void vds_put_txbuf(struct tipc_virtio_dev *vds, struct tipc_msg_buf *mb)
 {
+	if (!vds)
+		return;
+
 	mutex_lock(&vds->lock);
 	_put_txbuf_locked(vds, mb);
 	wake_up_interruptible(&vds->sendq);
@@ -316,6 +323,9 @@ static struct tipc_msg_buf *vds_get_txbuf(struct tipc_virtio_dev *vds,
 					  long timeout)
 {
 	struct tipc_msg_buf *mb;
+
+	if (!vds)
+		return ERR_PTR(-EINVAL);
 
 	mb = _vds_get_txbuf(vds);
 
@@ -357,17 +367,45 @@ static struct tipc_msg_buf *vds_get_txbuf(struct tipc_virtio_dev *vds,
 }
 
 static int vds_queue_txbuf(struct tipc_virtio_dev *vds,
-			   struct tipc_msg_buf *mb)
+			   struct list_head *msg_buf_list)
 {
 	int err;
-	struct scatterlist sg;
+	struct scatterlist *sg;
 	bool need_notify = false;
+	struct list_head *pos;
+	struct tipc_msg_buf *mb;
+	int num = 0;
+
+	if (!vds)
+		return -EINVAL;
+
+	if (list_empty(msg_buf_list))
+		return -EINVAL;
 
 	mutex_lock(&vds->lock);
 	if (vds->state == VDS_ONLINE) {
-		sg_init_one(&sg, mb->buf_va, mb->wpos);
-		err = virtqueue_add_outbuf(vds->txvq, &sg, 1, mb, GFP_KERNEL);
+		sg = kcalloc(vds->msg_buf_max_cnt, sizeof(*sg), GFP_KERNEL);
+		if (!sg) {
+			err = -ENOMEM;
+			mutex_unlock(&vds->lock);
+			goto err_out;
+		}
+		sg_init_table(sg, vds->msg_buf_max_cnt);
+		list_for_each(pos, msg_buf_list) {
+			mb = list_entry(pos, struct tipc_msg_buf, node);
+			sg_set_buf(&(sg[num++]), mb->buf_va, mb->wpos);
+		}
+		sg_mark_end(&(sg[num-1]));
+		dev_dbg(&vds->vdev->dev, "%s: add %d scatterlist to out vring,data=0x%lx\n",
+			       __func__, num, (long)msg_buf_list);
+		list_for_each(pos, msg_buf_list) {
+		dev_dbg(&vds->vdev->dev, "%s: pos1,pos=0x%lx\n",
+			       __func__, (long)pos);
+		}
+		err = virtqueue_add_outbuf(vds->txvq, sg, num,
+				msg_buf_list, GFP_KERNEL);
 		need_notify = virtqueue_kick_prepare(vds->txvq);
+		kfree(sg);
 	} else {
 		err = -ENODEV;
 	}
@@ -375,9 +413,13 @@ static int vds_queue_txbuf(struct tipc_virtio_dev *vds,
 
 	if (need_notify)
 		virtqueue_notify(vds->txvq);
+	dev_dbg(&vds->vdev->dev, "%s: need_notify=%d\n",
+					   __func__, need_notify);
 
+err_out:
 	return err;
 }
+
 
 static int vds_add_channel(struct tipc_virtio_dev *vds,
 			   struct tipc_chan *chan)
@@ -540,14 +582,26 @@ EXPORT_SYMBOL(tipc_chan_put_txbuf);
 int tipc_chan_queue_msg(struct tipc_chan *chan, struct tipc_msg_buf *mb)
 {
 	int err;
+	struct list_head *msg_buf_list;
 
 	mutex_lock(&chan->lock);
 	switch (chan->state) {
 	case TIPC_CONNECTED:
+		msg_buf_list = kzalloc(sizeof(*msg_buf_list), GFP_KERNEL);
+		if (!msg_buf_list) {
+			err = -ENOMEM;
+			mutex_unlock(&chan->lock);
+			pr_err("%s: failed to allocate msg_buf_list(%d)\n",
+			       __func__, err);
+			return err;
+		}
+		INIT_LIST_HEAD(msg_buf_list);
 		fill_msg_hdr(mb, chan->local, chan->remote);
-		err = vds_queue_txbuf(chan->vds, mb);
+		list_add_tail(&mb->node, msg_buf_list);
+		err = vds_queue_txbuf(chan->vds, msg_buf_list);
 		if (err) {
 			/* this should never happen */
+			kfree(msg_buf_list);
 			pr_err("%s: failed to queue tx buffer (%d)\n",
 			       __func__, err);
 		}
@@ -570,16 +624,62 @@ int tipc_chan_queue_msg(struct tipc_chan *chan, struct tipc_msg_buf *mb)
 EXPORT_SYMBOL(tipc_chan_queue_msg);
 
 
+int tipc_chan_queue_msg_list(struct tipc_chan *chan, struct list_head *msg_buf_list)
+{
+	int err;
+	struct tipc_msg_buf *mb;
+
+	mutex_lock(&chan->lock);
+	switch (chan->state) {
+	case TIPC_CONNECTED:
+		mb = list_first_entry(msg_buf_list,
+				      struct tipc_msg_buf, node);
+		fill_msg_hdr(mb, chan->local, chan->remote);
+		err = vds_queue_txbuf(chan->vds, msg_buf_list);
+		if (err) {
+			/* this should never happen */
+			pr_err("%s: failed to queue tx buffer (%d)\n",
+			       __func__, err);
+		}
+		break;
+	case TIPC_DISCONNECTED:
+	case TIPC_CONNECTING:
+		err = -ENOTCONN;
+		break;
+	case TIPC_STALE:
+		err = -ESHUTDOWN;
+		break;
+	default:
+		err = -EBADFD;
+		pr_err("%s: unexpected channel state %d\n",
+		       __func__, chan->state);
+	}
+	mutex_unlock(&chan->lock);
+	return err;
+}
+EXPORT_SYMBOL(tipc_chan_queue_msg_list);
+
+
 int tipc_chan_connect(struct tipc_chan *chan, const char *name)
 {
 	int err;
 	struct tipc_ctrl_msg *msg;
 	struct tipc_conn_req_body *body;
 	struct tipc_msg_buf *txbuf;
+	struct list_head *msg_buf_list;
+
+	msg_buf_list = kzalloc(sizeof(*msg_buf_list), GFP_KERNEL);
+	if (!msg_buf_list) {
+		err = -ENOMEM;
+		goto err_out;
+	}
+	INIT_LIST_HEAD(msg_buf_list);
 
 	txbuf = vds_get_txbuf(chan->vds, TXBUF_TIMEOUT);
-	if (IS_ERR(txbuf))
+	if (IS_ERR(txbuf)) {
+		kfree(msg_buf_list);
 		return PTR_ERR(txbuf);
+	}
 
 	/* reserve space for connection request control message */
 	msg = mb_put_data(txbuf, sizeof(*msg) + sizeof(*body));
@@ -599,7 +699,10 @@ int tipc_chan_connect(struct tipc_chan *chan, const char *name)
 		strcpy(chan->srv_name, body->name);
 
 		fill_msg_hdr(txbuf, chan->local, TIPC_CTRL_ADDR);
-		err = vds_queue_txbuf(chan->vds, txbuf);
+		list_add_tail(&txbuf->node, msg_buf_list);
+		pr_debug("%s: queue tx buffer (0x%lx)\n",
+			       __func__, (long)txbuf->buf_pa);
+		err = vds_queue_txbuf(chan->vds, msg_buf_list);
 		if (err) {
 			/* this should never happen */
 			pr_err("%s: failed to queue tx buffer (%d)\n",
@@ -634,7 +737,7 @@ int tipc_chan_connect(struct tipc_chan *chan, const char *name)
 
 	if (txbuf)
 		tipc_chan_put_txbuf(chan, txbuf); /* discard it */
-
+err_out:
 	return err;
 }
 EXPORT_SYMBOL(tipc_chan_connect);
@@ -645,11 +748,21 @@ int tipc_chan_shutdown(struct tipc_chan *chan)
 	struct tipc_ctrl_msg *msg;
 	struct tipc_disc_req_body *body;
 	struct tipc_msg_buf *txbuf = NULL;
+	struct list_head *msg_buf_list;
+
+	msg_buf_list = kzalloc(sizeof(*msg_buf_list), GFP_KERNEL);
+	if (!msg_buf_list) {
+		err = -ENOMEM;
+		goto err_out;
+	}
+	INIT_LIST_HEAD(msg_buf_list);
 
 	/* get tx buffer */
 	txbuf = vds_get_txbuf(chan->vds, TXBUF_TIMEOUT);
-	if (IS_ERR(txbuf))
+	if (IS_ERR(txbuf)) {
+		kfree(msg_buf_list);
 		return PTR_ERR(txbuf);
+	}
 
 	mutex_lock(&chan->lock);
 	if (chan->state == TIPC_CONNECTED || chan->state == TIPC_CONNECTING) {
@@ -662,7 +775,8 @@ int tipc_chan_shutdown(struct tipc_chan *chan)
 		body->target = chan->remote;
 
 		fill_msg_hdr(txbuf, chan->local, TIPC_CTRL_ADDR);
-		err = vds_queue_txbuf(chan->vds, txbuf);
+		list_add_tail(&txbuf->node, msg_buf_list);
+		err = vds_queue_txbuf(chan->vds, msg_buf_list);
 		if (err) {
 			/* this should never happen */
 			pr_err("%s: failed to queue tx buffer (%d)\n",
@@ -678,7 +792,7 @@ int tipc_chan_shutdown(struct tipc_chan *chan)
 		/* release buffer */
 		tipc_chan_put_txbuf(chan, txbuf);
 	}
-
+err_out:
 	return err;
 }
 EXPORT_SYMBOL(tipc_chan_shutdown);
@@ -691,9 +805,14 @@ void tipc_chan_destroy(struct tipc_chan *chan)
 EXPORT_SYMBOL(tipc_chan_destroy);
 
 /***************************************************************************/
+enum tipc_msg_state {
+	TIPC_DATA_MSG_INIT = 0,
+	TIPC_DATA_MSG_READY,
+};
 
 struct tipc_dn_chan {
 	int state;
+	enum tipc_msg_state msg_state;
 	struct mutex lock; /* protects rx_msg_queue list and channel state */
 	struct tipc_chan *chan;
 	wait_queue_head_t readq;
@@ -732,7 +851,9 @@ static int dn_wait_for_reply(struct tipc_dn_chan *dn, int timeout)
 	return ret;
 }
 
-struct tipc_msg_buf *dn_handle_msg(void *data, struct tipc_msg_buf *rxbuf)
+
+struct tipc_msg_buf *dn_handle_msg(void *data,
+		struct tipc_msg_buf *rxbuf, u16 flag)
 {
 	struct tipc_dn_chan *dn = data;
 	struct tipc_msg_buf *newbuf = rxbuf;
@@ -744,7 +865,11 @@ struct tipc_msg_buf *dn_handle_msg(void *data, struct tipc_msg_buf *rxbuf)
 		if (newbuf) {
 			/* queue an old buffer and return a new one */
 			list_add_tail(&rxbuf->node, &dn->rx_msg_queue);
-			wake_up_interruptible(&dn->readq);
+
+			if (!(flag & TIPC_DATA_MSG_F_NEXT)) {
+				wake_up_interruptible(&dn->readq);
+				dn->msg_state = TIPC_DATA_MSG_READY;
+			}
 		} else {
 			/*
 			 * return an old buffer effectively discarding
@@ -877,6 +1002,7 @@ static int tipc_open(struct inode *inode, struct file *filp)
 	INIT_LIST_HEAD(&dn->rx_msg_queue);
 
 	dn->state = TIPC_DISCONNECTED;
+	dn->msg_state = TIPC_DATA_MSG_INIT;
 
 	dn->chan = vds_create_channel(vds, &_dn_ops, dn);
 	if (IS_ERR(dn->chan)) {
@@ -982,8 +1108,12 @@ static ssize_t tipc_read_iter(struct kiocb *iocb, struct iov_iter *iter)
 	struct tipc_msg_buf *mb;
 	struct file *filp = iocb->ki_filp;
 	struct tipc_dn_chan *dn = filp->private_data;
+	size_t read_buf_size;
+	size_t copyed_len = 0;
 
 	mutex_lock(&dn->lock);
+
+	read_buf_size = iov_iter_count(iter);
 
 	while (list_empty(&dn->rx_msg_queue)) {
 		if (dn->state != TIPC_CONNECTED) {
@@ -1009,23 +1139,51 @@ static ssize_t tipc_read_iter(struct kiocb *iocb, struct iov_iter *iter)
 		mutex_lock(&dn->lock);
 	}
 
-	mb = list_first_entry(&dn->rx_msg_queue, struct tipc_msg_buf, node);
+	while (dn->msg_state != TIPC_DATA_MSG_READY) {
+		if (dn->state != TIPC_CONNECTED) {
+			if (dn->state == TIPC_CONNECTING)
+				ret = -ENOTCONN;
+			else if (dn->state == TIPC_DISCONNECTED)
+				ret = -ENOTCONN;
+			else if (dn->state == TIPC_STALE)
+				ret = -ESHUTDOWN;
+			else
+				ret = -EBADFD;
+			goto out;
+		}
+		mutex_unlock(&dn->lock);
 
-	len = mb_avail_data(mb);
-	if (len > iov_iter_count(iter)) {
-		ret = -EMSGSIZE;
-		goto out;
+		if (wait_event_interruptible(dn->readq, _got_rx(dn)))
+			return -ERESTARTSYS;
+
+		mutex_lock(&dn->lock);
 	}
 
-	if (copy_to_iter(mb_get_data(mb, len), len, iter) != len) {
-		ret = -EFAULT;
-		goto out;
+	while (!(list_empty(&dn->rx_msg_queue))) {
+
+		mb = list_first_entry(&dn->rx_msg_queue,
+				struct tipc_msg_buf, node);
+
+		len = mb_avail_data(mb);
+		if (len > (read_buf_size - copyed_len)) {
+			ret = -EMSGSIZE;
+			pr_info("%s error Len %zd > (%zd-%zd)\n", __func__,
+					len, read_buf_size, copyed_len);
+			goto out;
+		}
+
+		if (copy_to_iter(mb_get_data(mb, len), len, iter) != len) {
+			ret = -EFAULT;
+			goto out;
+		}
+
+		copyed_len += len;
+		list_del(&mb->node);
+		tipc_chan_put_rxbuf(dn->chan, mb);
 	}
 
-	ret = len;
-	list_del(&mb->node);
-	tipc_chan_put_rxbuf(dn->chan, mb);
-
+	ret = copyed_len;
+	dn->msg_state = TIPC_DATA_MSG_INIT;
 out:
 	mutex_unlock(&dn->lock);
 	return ret;
@@ -1034,43 +1192,87 @@ out:
 static ssize_t tipc_write_iter(struct kiocb *iocb, struct iov_iter *iter)
 {
 	ssize_t ret;
-	size_t len;
+	size_t total_len;
 	long timeout = TXBUF_TIMEOUT;
 	struct tipc_msg_buf *txbuf = NULL;
 	struct file *filp = iocb->ki_filp;
 	struct tipc_dn_chan *dn = filp->private_data;
+	size_t copyed_len = 0, len_to_copy;
+	struct list_head *msg_buf_list;
+	struct list_head *pos, *pos_next;
+
+	mutex_lock(&dn->lock);
+
+	msg_buf_list = kzalloc(sizeof(*msg_buf_list), GFP_KERNEL);
+	if (!msg_buf_list) {
+		ret = -ENOMEM;
+		goto err_out;
+	}
+	INIT_LIST_HEAD(msg_buf_list);
 
 	if (filp->f_flags & O_NONBLOCK)
 		timeout = 0;
 
-	txbuf = tipc_chan_get_txbuf_timeout(dn->chan, timeout);
-	if (IS_ERR(txbuf))
-		return PTR_ERR(txbuf);
-
 	/* message length */
-	len = iov_iter_count(iter);
+	total_len = iov_iter_count(iter);
 
-	/* check available space */
-	if (len > mb_avail_space(txbuf)) {
-		ret = -EMSGSIZE;
-		goto err_out;
-	}
+	while (copyed_len < total_len) {
 
-	/* copy in message data */
-	if (copy_from_iter(mb_put_data(txbuf, len), len, iter) != len) {
-		ret = -EFAULT;
-		goto err_out;
+		if (copyed_len != 0)
+			timeout = 0;
+
+		txbuf = tipc_chan_get_txbuf_timeout(dn->chan, timeout);
+		if (IS_ERR(txbuf)) {
+			if (copyed_len == 0) {
+				ret = -ENOMEM;
+				goto err_out;
+			} else {
+				break;
+			}
+		}
+		/*only the first one need msghdr*/
+		if (copyed_len != 0)
+			mb_reset(txbuf);
+
+		len_to_copy = min(total_len - copyed_len,
+				mb_avail_space(txbuf));
+		/* copy in message data */
+		if (copy_from_iter(mb_put_data(txbuf, len_to_copy),
+					len_to_copy, iter) != len_to_copy) {
+			ret = -EFAULT;
+			goto err_out;
+		}
+		dev_dbg(&dn->chan->vds->vdev->dev,
+				"%s: txbuf->pa= 0x%lx\n",
+				__func__, (long)txbuf->buf_pa);
+
+		copyed_len += len_to_copy;
+		list_add_tail(&txbuf->node, msg_buf_list);
 	}
 
 	/* queue message */
-	ret = tipc_chan_queue_msg(dn->chan, txbuf);
+	ret = tipc_chan_queue_msg_list(dn->chan, msg_buf_list);
 	if (ret)
 		goto err_out;
 
-	return len;
+	mutex_unlock(&dn->lock);
+
+	return copyed_len;
 
 err_out:
-	tipc_chan_put_txbuf(dn->chan, txbuf);
+	if (msg_buf_list) {
+		list_for_each_safe(pos, pos_next, msg_buf_list) {
+			txbuf = list_entry(pos, struct tipc_msg_buf, node);
+			if (txbuf) {
+				list_del(&txbuf->node);
+				tipc_chan_put_txbuf(dn->chan, txbuf);
+			}
+		}
+		kfree(msg_buf_list);
+	}
+
+	mutex_unlock(&dn->lock);
+
 	return ret;
 }
 
@@ -1398,12 +1600,11 @@ static void _handle_ctrl_msg(struct tipc_virtio_dev *vds,
 	}
 }
 
-static int _handle_rxbuf(struct tipc_virtio_dev *vds,
+static struct tipc_msg_buf *_handle_rxbuf(struct tipc_virtio_dev *vds,
 			 struct tipc_msg_buf *rxbuf, size_t rxlen)
 {
-	int err;
-	struct scatterlist sg;
 	struct tipc_msg_hdr *msg;
+	struct tipc_msg_buf *newbuf = rxbuf;
 	struct device *dev = &vds->vdev->dev;
 
 	/* message sanity check */
@@ -1441,40 +1642,95 @@ static int _handle_rxbuf(struct tipc_virtio_dev *vds,
 		chan = vds_lookup_channel(vds, msg->dst);
 		if (chan) {
 			/* handle it */
-			rxbuf = chan->ops->handle_msg(chan->ops_arg, rxbuf);
-			BUG_ON(!rxbuf);
+			newbuf = chan->ops->handle_msg(chan->ops_arg,
+					rxbuf, msg->flags);
+
+			BUG_ON(!newbuf);
 			kref_put(&chan->refcount, _free_chan);
 		}
 	}
 
 drop_it:
-	/* add the buffer back to the virtqueue */
-	sg_init_one(&sg, rxbuf->buf_va, rxbuf->buf_sz);
-	err = virtqueue_add_inbuf(vds->rxvq, &sg, 1, rxbuf, GFP_KERNEL);
-	if (err < 0) {
-		dev_err(dev, "failed to add a virtqueue buffer: %d\n", err);
-		return err;
-	}
-
-	return 0;
+	return newbuf;
 }
 
 static void _rxvq_cb(struct virtqueue *rxvq)
 {
-	unsigned int len;
+	unsigned int len = 0;
 	struct tipc_msg_buf *mb;
 	unsigned int msg_cnt = 0;
 	struct tipc_virtio_dev *vds = rxvq->vdev->priv;
 
-	while ((mb = virtqueue_get_buf(rxvq, &len)) != NULL) {
-		if (_handle_rxbuf(vds, mb, len))
-			break;
-		msg_cnt++;
-	}
+	struct list_head *msg_buf_list;
+	struct list_head *pos, *pos_next;
+	unsigned int one_time_processed_len = 0;
+	unsigned int rxvq_num = virtqueue_get_vring_size(rxvq);
+	struct scatterlist *sg;
+	int err, i = 0;
 
-	/* tell the other size that we added rx buffers */
-	if (msg_cnt)
-		virtqueue_kick(rxvq);
+	mutex_lock(&vds->lock);
+	while ((msg_buf_list = virtqueue_get_buf(rxvq, &len)) != NULL) {
+
+		dev_dbg(&rxvq->vdev->dev,
+				"%s: received %d bytes from trusty\n",
+				__func__, len);
+
+		sg = kcalloc(rxvq_num, sizeof(*sg), GFP_KERNEL);
+		if (!sg) {
+			err = -ENOMEM;
+			goto err_sg;
+		}
+
+		list_for_each_safe(pos, pos_next, msg_buf_list) {
+			mb = list_entry(pos, struct tipc_msg_buf, node);
+
+			if (len > 0) {
+				list_del(&mb->node);
+				if (len > mb->buf_sz) {
+					one_time_processed_len = mb->buf_sz;
+				} else {
+					one_time_processed_len = len;
+				}
+
+				mutex_unlock(&vds->lock);
+
+				mb = _handle_rxbuf(vds, mb,
+						one_time_processed_len);
+
+				mutex_lock(&vds->lock);
+				list_add_tail(&mb->node, msg_buf_list);
+				len -= one_time_processed_len;
+				msg_cnt++;
+			} else {
+				break;
+			}
+		}
+
+		i = 0;
+		sg_init_table(sg, rxvq_num);
+		list_for_each(pos,  msg_buf_list) {
+			mb = list_entry(pos, struct tipc_msg_buf, node);
+			sg_set_buf(&(sg[i++]), mb->buf_va, mb->buf_sz);
+		}
+		sg_mark_end(&(sg[i-1]));
+
+		err = virtqueue_add_inbuf(vds->rxvq,
+				sg, rxvq_num, msg_buf_list, GFP_KERNEL);
+		WARN_ON(err); /* sanity check; this can't really happen */
+		kfree(sg);
+
+		if (msg_cnt)
+			virtqueue_kick(rxvq);
+
+		msg_cnt = 0;
+	}
+	mutex_unlock(&vds->lock);
+
+	return;
+
+err_sg:
+	mutex_unlock(&vds->lock);
+	WARN_ON(err);
 }
 
 static void _txvq_cb(struct virtqueue *txvq)
@@ -1483,13 +1739,21 @@ static void _txvq_cb(struct virtqueue *txvq)
 	struct tipc_msg_buf *mb;
 	bool need_wakeup = false;
 	struct tipc_virtio_dev *vds = txvq->vdev->priv;
+	struct list_head *msg_buf_list;
+	struct list_head *pos, *pos_next;
 
 	dev_dbg(&txvq->vdev->dev, "%s\n", __func__);
 
 	/* detach all buffers */
 	mutex_lock(&vds->lock);
-	while ((mb = virtqueue_get_buf(txvq, &len)) != NULL)
-		need_wakeup |= _put_txbuf_locked(vds, mb);
+	while ((msg_buf_list = virtqueue_get_buf(txvq, &len)) != NULL) {
+		list_for_each_safe(pos, pos_next, msg_buf_list) {
+			mb = list_entry(pos, struct tipc_msg_buf, node);
+			list_del(&mb->node);
+			need_wakeup |= _put_txbuf_locked(vds, mb);
+		}
+		kfree(msg_buf_list);
+	}
 	mutex_unlock(&vds->lock);
 
 	if (need_wakeup) {
@@ -1504,6 +1768,11 @@ static int tipc_virtio_probe(struct virtio_device *vdev)
 	struct tipc_virtio_dev *vds;
 	struct tipc_dev_config config;
 	struct virtqueue *vqs[2];
+	struct list_head *msg_buf_list;
+	struct list_head *pos, *pos_next;
+	struct tipc_msg_buf *mb;
+	struct scatterlist *sg;
+	int rxvq_num;
 	vq_callback_t *vq_cbs[] = {_rxvq_cb, _txvq_cb};
 	const char *vq_names[] = { "rx", "tx" };
 
@@ -1550,22 +1819,42 @@ static int tipc_virtio_probe(struct virtio_device *vdev)
 	vds->msg_buf_max_sz = config.msg_buf_max_size;
 	vds->msg_buf_max_cnt = virtqueue_get_vring_size(vds->txvq);
 
+	msg_buf_list = kzalloc(sizeof(*msg_buf_list), GFP_KERNEL);
+	if (!msg_buf_list) {
+		err = -ENOMEM;
+		goto err_find_vqs;
+	}
+	INIT_LIST_HEAD(msg_buf_list);
+	rxvq_num = virtqueue_get_vring_size(vds->rxvq);
 	/* set up the receive buffers */
-	for (i = 0; i < virtqueue_get_vring_size(vds->rxvq); i++) {
-		struct scatterlist sg;
+	for (i = 0; i < rxvq_num; i++) {
 		struct tipc_msg_buf *rxbuf;
 
 		rxbuf = _alloc_msg_buf(vds->msg_buf_max_sz);
 		if (!rxbuf) {
 			dev_err(&vdev->dev, "failed to allocate rx buffer\n");
 			err = -ENOMEM;
-			goto err_free_rx_buffers;
+			goto err_free_msg_buf_list;
 		}
-
-		sg_init_one(&sg, rxbuf->buf_va, rxbuf->buf_sz);
-		err = virtqueue_add_inbuf(vds->rxvq, &sg, 1, rxbuf, GFP_KERNEL);
-		WARN_ON(err); /* sanity check; this can't really happen */
+		list_add_tail(&rxbuf->node, msg_buf_list);
 	}
+
+	sg = kcalloc(rxvq_num, sizeof(*sg), GFP_KERNEL);
+	if (!sg) {
+		err = -ENOMEM;
+		goto err_free_rx_buffers;
+	}
+	sg_init_table(sg, rxvq_num);
+	i = 0;
+	list_for_each(pos, msg_buf_list) {
+		mb = list_entry(pos, struct tipc_msg_buf, node);
+		sg_set_buf(&(sg[i++]), mb->buf_va, mb->buf_sz);
+	}
+	sg_mark_end(&(sg[i-1]));
+	err = virtqueue_add_inbuf(vds->rxvq,
+			sg, rxvq_num, msg_buf_list, GFP_KERNEL);
+	WARN_ON(err); /* sanity check; this can't really happen */
+	kfree(sg);
 
 	vdev->priv = vds;
 	vds->state = VDS_OFFLINE;
@@ -1575,6 +1864,17 @@ static int tipc_virtio_probe(struct virtio_device *vdev)
 
 err_free_rx_buffers:
 	_cleanup_vq(vds->rxvq);
+err_free_msg_buf_list:
+	if (msg_buf_list) {
+		list_for_each_safe(pos, pos_next, msg_buf_list) {
+			mb = list_entry(pos, struct tipc_msg_buf, node);
+			if (mb) {
+				list_del(&mb->node);
+				_free_msg_buf(mb);
+			}
+		}
+		kfree(msg_buf_list);
+	}
 err_find_vqs:
 	kref_put(&vds->refcount, _free_vds);
 	return err;
