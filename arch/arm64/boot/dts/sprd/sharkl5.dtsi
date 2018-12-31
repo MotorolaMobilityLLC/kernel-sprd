@@ -531,6 +531,7 @@
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
 				iommus = <&iommu_dcam>;
+				sprd,project-id = <0>;
 				dcam_qos = <&dcam_qos>;
 				status = "disabled";
 			};
