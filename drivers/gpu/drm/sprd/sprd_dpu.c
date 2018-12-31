@@ -476,7 +476,7 @@ static int sprd_crtc_enable_vblank(struct drm_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
-	DRM_INFO("%s()\n", __func__);
+	DRM_DEBUG("%s()\n", __func__);
 
 	if (dpu->core && dpu->core->enable_vsync)
 		dpu->core->enable_vsync(&dpu->ctx);
@@ -488,7 +488,7 @@ static void sprd_crtc_disable_vblank(struct drm_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
-	DRM_INFO("%s()\n", __func__);
+	DRM_DEBUG("%s()\n", __func__);
 
 	if (dpu->core && dpu->core->disable_vsync)
 		dpu->core->disable_vsync(&dpu->ctx);
