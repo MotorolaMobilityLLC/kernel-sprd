@@ -899,6 +899,9 @@ static void dpu_flip(struct dpu_context *ctx,
 	if (ctx->if_type == SPRD_DISPC_IF_EDPI)
 		dpu_wait_stop_done(ctx);
 
+	/* reset the bgcolor to black */
+	reg->bg_color = 0;
+
 	/* disable all the layers */
 	dpu_clean_all(ctx);
 
