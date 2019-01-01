@@ -5,6 +5,25 @@
 #include <uapi/video/sprd_vsp.h>
 
 extern unsigned int codec_instance_count[VSP_CODEC_INSTANCE_COUNT_MAX];
+#define VSP_MINOR MISC_DYNAMIC_MINOR
+#define VSP_AQUIRE_TIMEOUT_MS	500
+#define VSP_INIT_TIMEOUT_MS	200
+#define DEFAULT_FREQ_DIV	0x0
+
+#define ARM_INT_STS_OFF		0x10
+#define ARM_INT_MASK_OFF	0x14
+#define ARM_INT_CLR_OFF		0x18
+#define ARM_INT_RAW_OFF		0x1c
+
+#define VSP_INT_STS_OFF		0x0
+#define VSP_INT_MASK_OFF	0x04
+#define VSP_INT_CLR_OFF		0x08
+#define VSP_INT_RAW_OFF		0x0c
+
+#define VSP_MMU_INT_STS_OFF	0x60
+#define VSP_MMU_INT_MASK_OFF	0x6c
+#define VSP_MMU_INT_CLR_OFF	0x64
+#define VSP_MMU_INT_RAW_OFF	0x68
 
 struct vsp_fh {
 	int is_vsp_aquired;
@@ -102,4 +121,9 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 		 struct vsp_iommu_map_data *mapdata, void __user *arg);
 int vsp_free_iova(struct vsp_dev_t *vsp_hw_dev,
 		  struct vsp_iommu_map_data *ummapdata);
+
+int handle_vsp_interrupt(struct vsp_dev_t *vsp_hw_dev, int *status,
+	void __iomem *sprd_vsp_base, void __iomem *vsp_glb_reg_base);
+void clr_vsp_interrupt_mask(struct vsp_dev_t *vsp_hw_dev,
+	void __iomem *sprd_vsp_base, void __iomem *vsp_glb_reg_base);
 #endif

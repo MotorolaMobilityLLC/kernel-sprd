@@ -42,20 +42,6 @@
 #include "vsp_common.h"
 #include "sprd_dvfs_vsp.h"
 
-#define VSP_MINOR MISC_DYNAMIC_MINOR
-#define VSP_AQUIRE_TIMEOUT_MS 500
-#define VSP_INIT_TIMEOUT_MS 200
-#define DEFAULT_FREQ_DIV 0x0
-
-#define ARM_INT_STS_OFF                 0x10
-#define ARM_INT_MASK_OFF                0x14
-#define ARM_INT_CLR_OFF                 0x18
-#define ARM_INT_RAW_OFF                 0x1C
-
-#define VSP_INT_STS_OFF         0x0
-#define VSP_INT_MASK_OFF        0x04
-#define VSP_INT_CLR_OFF         0x08
-#define VSP_INT_RAW_OFF         0x0c
 
 static unsigned long sprd_vsp_phys_addr;
 static void __iomem *sprd_vsp_base;
@@ -136,12 +122,14 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case VSP_DISABLE:
 		pr_debug("vsp ioctl VSP_DISABLE\n");
-		if (vsp_hw_dev.iommu_exist_flag)
-			sprd_iommu_suspend(vsp_hw_dev.vsp_dev);
-		if (vsp_fp->is_clock_enabled == 1)
+		if (vsp_fp->is_clock_enabled == 1) {
+			if (vsp_hw_dev.iommu_exist_flag)
+				sprd_iommu_suspend(vsp_hw_dev.vsp_dev);
+			clr_vsp_interrupt_mask(&vsp_hw_dev,
+				sprd_vsp_base, vsp_glb_reg_base);
+			vsp_fp->is_clock_enabled = 0;
 			vsp_clk_disable(&vsp_hw_dev);
-
-		vsp_fp->is_clock_enabled = 0;
+		}
 		__pm_relax(&vsp_wakelock);
 		break;
 
@@ -187,11 +175,9 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				vsp_fp->vsp_int_status |= (1 << 31);
 				ret = -ETIMEDOUT;
 				/* clear vsp int */
-				writel_relaxed((1 << 1) | (1 << 2) | (1 << 4) |
-					(1 << 5),
-					(vsp_glb_reg_base + VSP_INT_CLR_OFF));
-				writel_relaxed((1 << 0) | (1 << 1) | (1 << 2),
-					(sprd_vsp_base + ARM_INT_CLR_OFF));
+				clr_vsp_interrupt_mask(&vsp_hw_dev,
+					sprd_vsp_base,
+					vsp_glb_reg_base);
 			} else {
 				ret = 0;
 			}
@@ -336,8 +322,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 static irqreturn_t vsp_isr(int irq, void *data)
 {
-	int i, int_status;
-	int ret = 0;		/* 0xff : invalid */
+	int ret, status = 0;
 	struct vsp_fh *vsp_fp = vsp_hw_dev.vsp_fp;
 
 	if (vsp_fp == NULL) {
@@ -350,99 +335,14 @@ static irqreturn_t vsp_isr(int irq, void *data)
 		return IRQ_HANDLED;
 	}
 
-	/* check which module occur interrupt and clear coresponding bit */
-	int_status = readl_relaxed(vsp_glb_reg_base + VSP_INT_STS_OFF);
-	if ((int_status >> 0) & 0x1) {
-		/* BSM_BUF_OVF DONE */
-		writel_relaxed((1 << 0), (vsp_glb_reg_base + VSP_INT_CLR_OFF));
-		ret |= (1 << 0);
-	}
-	if ((int_status >> 1) & 0x1) {
-		/* VLC SLICE DONE */
-		writel_relaxed((1 << 1), (vsp_glb_reg_base + VSP_INT_CLR_OFF));
-		ret |= (1 << 1);
-	}
-	if ((int_status >> 2) & 0x1) {
-		/* MBW SLICE DONE */
-		writel_relaxed((1 << 2), (vsp_glb_reg_base + VSP_INT_CLR_OFF));
-		ret |= (1 << 2);
-	}
-	if ((int_status >> 4) & 0x1) {
-		/* VLD ERR */
-		writel_relaxed((1 << 4), (vsp_glb_reg_base + VSP_INT_CLR_OFF));
-		ret |= (1 << 4);
-	}
-	if ((int_status >> 5) & 0x1) {
-		/* TIMEOUT ERR */
-		writel_relaxed((1 << 5), (vsp_glb_reg_base + VSP_INT_CLR_OFF));
-		ret |= (1 << 5);
-	}
-	if ((int_status >> 10) & 0x1) {
-		/* VA OUT OF RANGE READ ERR */
-		pr_err("vsp iommu va out of range read error, addr: 0x%x\n",
-			readl_relaxed(vsp_glb_reg_base + 0x158));
-		writel_relaxed((1 << 10), (vsp_glb_reg_base + VSP_INT_CLR_OFF));
-		ret |= (1 << 10);
-	}
-	if ((int_status >> 11) & 0x1) {
-		/* VA OUT OF RANGE WRITE ERR */
-		pr_err("vsp iommu va out of range write error, addr: 0x%x\n",
-			readl_relaxed(vsp_glb_reg_base + 0x15c));
-		writel_relaxed((1 << 11), (vsp_glb_reg_base + VSP_INT_CLR_OFF));
-		ret |= (1 << 11);
-	}
-	if ((int_status >> 12) & 0x1) {
-		/* INVALID READ ERR */
-		pr_err("vsp iommu invalid read error, addr: 0x%x\n",
-			readl_relaxed(vsp_glb_reg_base + 0x160));
-		writel_relaxed((1 << 12), (vsp_glb_reg_base + VSP_INT_CLR_OFF));
-		ret |= (1 << 12);
-	}
-	if ((int_status >> 13) & 0x1) {
-		/* INVALID WRITE ERR */
-		pr_err("vsp iommu invalid write error, addr: 0x%x\n",
-			readl_relaxed(vsp_glb_reg_base + 0x164));
-		writel_relaxed((1 << 13), (vsp_glb_reg_base + VSP_INT_CLR_OFF));
-		ret |= (1 << 13);
-	}
-
-	if ((int_status & 0x3c37) == 0) {
-		pr_info("%s IRQ_NONE int_status 0x%x", __func__, int_status);
+	/* check which module occur interrupt and clear corresponding bit */
+	ret = handle_vsp_interrupt(&vsp_hw_dev, &status,
+		sprd_vsp_base, vsp_glb_reg_base);
+	if (ret == IRQ_NONE)
 		return IRQ_NONE;
-	}
-
-	if (int_status & 0x1400) {
-		pr_info("vsp_fp %p", vsp_fp);
-		pr_err("vsp iommu error int_status 0x%x\n", int_status);
-		for (i = 0x140; i <= 0x19c; i += 4)
-			pr_info("addr 0x%x is 0x%x\n", i,
-				readl_relaxed(vsp_glb_reg_base + i));
-		WARN_ON(1);
-	}
-
-	if (int_status & 0x2800) {
-		pr_info("vsp_fp %p", vsp_fp);
-		pr_err("fatal vsp iommu error int_status 0x%x\n", int_status);
-		for (i = 0x140; i <= 0x19c; i += 4)
-			pr_info("addr 0x%x is 0x%x\n", i,
-				readl_relaxed(vsp_glb_reg_base + i));
-		BUG_ON(1);
-	}
-
-	/* clear VSP accelerator interrupt bit */
-	if (vsp_hw_dev.version == SHARKL3 || vsp_hw_dev.version == IWHALE2) {
-		/* DO NOTHING*/
-	} else {
-		int_status = readl_relaxed(sprd_vsp_base + ARM_INT_STS_OFF);
-		if ((int_status >> 2) & 0x1) {
-			/* VSP ACC INT */
-			writel_relaxed((1 << 2),
-				(sprd_vsp_base + ARM_INT_CLR_OFF));
-		}
-	}
 
 	if (vsp_fp != NULL) {
-		vsp_fp->vsp_int_status = ret;
+		vsp_fp->vsp_int_status = status;
 		vsp_fp->condition_work = 1;
 		wake_up_interruptible(&vsp_fp->wait_queue_work);
 	}
@@ -664,8 +564,8 @@ static int vsp_release(struct inode *inode, struct file *filp)
 		pr_err("error occurred and close clock\n");
 		if (vsp_hw_dev.iommu_exist_flag)
 			sprd_iommu_suspend(vsp_hw_dev.vsp_dev);
-		vsp_clk_disable(&vsp_hw_dev);
 		vsp_fp->is_clock_enabled = 0;
+		vsp_clk_disable(&vsp_hw_dev);
 	}
 
 	if (vsp_fp->is_vsp_aquired) {
