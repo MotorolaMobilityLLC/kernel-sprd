@@ -267,3 +267,13 @@
 	phys = <&hsphy>;
 	status = "okay";
 };
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&pmic_typec>;
+};
+
+&usb {
+	extcon = <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
+};
