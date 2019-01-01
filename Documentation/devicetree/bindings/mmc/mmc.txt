@@ -53,6 +53,10 @@ Optional properties:
 - no-sdio: controller is limited to send sdio cmd during initialization
 - no-sd: controller is limited to send sd cmd during initialization
 - no-mmc: controller is limited to send mmc cmd during initialization
+- syscons: register of fast hotplug in apb bus.Such as detect pin's status
+  when card insert,protect enable bit,debounc enable bit,and debounc counter
+  of hotplug detect clock cycle.
+- syscon-names: names of syscons.
 
 *NOTE* on CD and WP polarity. To use common for all SD/MMC host controllers line
 polarity properties, we have to fix the meaning of the "normal" and "inverted"
@@ -153,7 +157,14 @@ mmc3: mmc@01c12000 {
 	bus-width = <4>;
 	non-removable;
 	mmc-pwrseq = <&sdhci0_pwrseq>
-
+	syscons = <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PRESENT_32K>,
+		   <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PROTECT_32K>,
+		   <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_EN_32K>,
+		   <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_THD_32K>;
+	 syscon-names = "sd_detect_pol",
+			"sd_hotplug_protect_en",
+			"sd_hotplug_debounce_en",
+			"sd_hotplug_debounce_cn";
 	brcmf: bcrmf@1 {
 		reg = <1>;
 		compatible = "brcm,bcm43xx-fmac";
