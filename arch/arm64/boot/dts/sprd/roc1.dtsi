@@ -909,6 +909,14 @@
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
+
+			apb_bm: apb-busmonitor@32540000 {
+				compatible = "sprd,roc1-apb-busmonitor";
+				reg = <0 0x32540000 0 0x1000>;
+				interrupts = <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,target-addr = <0 0>;
+				sprd,target-data = <0 0>;
+			};
 		};
 
 		pub {
