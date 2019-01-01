@@ -16,16 +16,20 @@
 
 #include <linux/clk.h>
 #include <linux/compiler.h>
+#include <linux/gpio/consumer.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
+#include <linux/mfd/syscon.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/slot-gpio.h>
+#include <linux/of.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/scatterlist.h>
 #include <linux/types.h>
 #include <linux/interrupt.h>
+#include <linux/regmap.h>
 
 /* Controller block structure */
 struct timing_delay_value {
@@ -48,6 +52,12 @@ enum sprd_sdhci_cookie {
 	COOKIE_UNMAPPED,
 	COOKIE_MAPPED,
 	COOKIE_GIVEN,
+};
+
+struct register_hotplug {
+	struct regmap *regmap;
+	u32 reg;
+	u32 mask;
 };
 
 struct sprd_sdhc_host {
@@ -81,6 +91,7 @@ struct sprd_sdhc_host {
 	struct clk *sdio_ckg;
 	struct clk *sdio_1x_ckg;
 	struct clk *clk_source;
+	struct clk *sdio_hp_det_clk;
 	struct tasklet_struct finish_tasklet;
 	struct timer_list timer;
 
@@ -107,6 +118,11 @@ struct sprd_sdhc_host {
 	u16 auto_cmd_mode;
 
 	u32 flags;
+	bool detect_gpio_polar;
+	struct register_hotplug reg_detect_polar;
+	struct register_hotplug reg_protect_enable;
+	struct register_hotplug reg_debounce_en;
+	struct register_hotplug reg_debounce_cn;
 /* Tuning for HS400 support emmc5.0 */
 #define SPRD_HS400_TUNING	(1<<0)
 /* Host is ADMA capable */

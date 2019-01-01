@@ -1692,11 +1692,53 @@ static const struct mmc_host_ops sprd_sdhc_ops = {
 	.hs400_enhanced_strobe = sprd_sdhc_hs400_enhanced_strobe,
 };
 
+static int sprd_get_fast_hotplug_reg(struct device_node *np,
+	struct register_hotplug *reg, const char *name)
+{
+	struct regmap *regmap;
+	u32 syscon_args[2];
+	int ret;
+
+	regmap = syscon_regmap_lookup_by_name(np, name);
+	if (IS_ERR(regmap)) {
+		pr_warn("read sdio fast hotplug %s regmap fail\n", name);
+		reg->regmap = NULL;
+		reg->reg = 0x0;
+		reg->mask = 0x0;
+		return 0;
+	}
+
+	ret = syscon_get_args_by_name(np, name, 2, syscon_args);
+	if (ret < 0)
+		return ret;
+	else if (ret != 2) {
+		pr_err("read sdio dts %s fail,ret = %d\n", name, ret);
+		return -EINVAL;
+	}
+	reg->regmap = regmap;
+	reg->reg = syscon_args[0];
+	reg->mask = syscon_args[1];
+	return 0;
+}
+
+static void sprd_get_fast_hotplug_info(struct device_node *np,
+	struct sprd_sdhc_host *host)
+{
+	sprd_get_fast_hotplug_reg(np, &host->reg_detect_polar,
+		"sd_detect_pol");
+	sprd_get_fast_hotplug_reg(np, &host->reg_protect_enable,
+		"sd_hotplug_protect_en");
+	sprd_get_fast_hotplug_reg(np, &host->reg_debounce_en,
+		"sd_hotplug_debounce_en");
+	sprd_get_fast_hotplug_reg(np, &host->reg_debounce_cn,
+		"sd_hotplug_debounce_cn");
+}
 static int sprd_get_dt_resource(struct platform_device *pdev,
 		struct sprd_sdhc_host *host)
 {
 	struct device_node *np = pdev->dev.of_node;
 	int ret = 0;
+	enum of_gpio_flags flags;
 
 	host->res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!host->res)
@@ -1743,6 +1785,13 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 		host->sdio_ahb = NULL;
 	}
 
+	host->sdio_hp_det_clk = devm_clk_get(&pdev->dev, "sdio_hp_det_clk");
+	if (IS_ERR(host->sdio_hp_det_clk)) {
+		dev_warn(&pdev->dev,
+			"sdio can't get clock info: sdio_hp_det_clk\n");
+		host->sdio_hp_det_clk = NULL;
+	}
+
 	host->sdio_ckg = devm_clk_get(&pdev->dev, "sdio_2x_eb");
 	if (IS_ERR(host->sdio_ckg)) {
 		dev_err(&pdev->dev,
@@ -1773,10 +1822,13 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 		dev_info(&pdev->dev, "find sdio-adma\n");
 	}
 
-	host->detect_gpio = of_get_named_gpio(np, "cd-gpios", 0);
-	if (!gpio_is_valid(host->detect_gpio))
+	host->detect_gpio = of_get_named_gpio_flags(np, "cd-gpios", 0, &flags);
+	if (!gpio_is_valid(host->detect_gpio)) {
 		host->detect_gpio = -1;
-
+	} else {
+		sprd_get_fast_hotplug_info(np, host);
+		host->detect_gpio_polar = flags;
+	}
 	if (sprd_get_delay_value(pdev))
 		goto out;
 
@@ -2053,6 +2105,40 @@ static const struct of_device_id sprd_sdhc_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, sprd_sdhc_of_match);
 
+static void sprd_sdhc_fast_hotplug_disable(struct sprd_sdhc_host *host)
+{
+	regmap_update_bits(host->reg_protect_enable.regmap,
+		host->reg_protect_enable.reg,
+		host->reg_protect_enable.mask, 0);
+}
+
+static void sprd_sdhc_fast_hotplug_enable(struct sprd_sdhc_host *host)
+{
+	int debounce_counter = 3;
+
+	regmap_update_bits(host->reg_protect_enable.regmap,
+		host->reg_protect_enable.reg,
+		host->reg_protect_enable.mask,
+		host->reg_protect_enable.mask);
+	regmap_update_bits(host->reg_debounce_en.regmap,
+		host->reg_debounce_en.reg,
+		host->reg_debounce_en.mask,
+		host->reg_debounce_en.mask);
+	regmap_update_bits(host->reg_debounce_cn.regmap,
+		host->reg_debounce_cn.reg,
+		host->reg_debounce_cn.mask,
+		debounce_counter << 16);
+	if (host->detect_gpio_polar)
+		regmap_update_bits(host->reg_detect_polar.regmap,
+			host->reg_detect_polar.reg,
+			host->reg_detect_polar.mask, 0);
+	else
+		regmap_update_bits(host->reg_detect_polar.regmap,
+			host->reg_detect_polar.reg,
+			host->reg_detect_polar.mask,
+			host->reg_detect_polar.mask);
+}
+
 static int sprd_sdhc_probe(struct platform_device *pdev)
 {
 	struct mmc_host *mmc;
@@ -2088,11 +2174,19 @@ static int sprd_sdhc_probe(struct platform_device *pdev)
 
 	clk_prepare_enable(host->clk);
 	clk_prepare_enable(host->sdio_ahb);
+	clk_prepare_enable(host->sdio_hp_det_clk);
 	if (host->sdio_ckg)
 		clk_prepare_enable(host->sdio_ckg);
 	if (host->sdio_1x_ckg)
 		clk_prepare_enable(host->sdio_1x_ckg);
 	sprd_reset_ios(host);
+	if (host->reg_detect_polar.regmap &&
+		host->reg_protect_enable.regmap &&
+		host->reg_detect_polar.regmap &&
+		host->reg_protect_enable.regmap)
+		sprd_sdhc_fast_hotplug_enable(host);
+	else if (host->reg_protect_enable.regmap)
+		sprd_sdhc_fast_hotplug_disable(host);
 
 	sprd_set_mmc_struct(host, mmc);
 	host->version = sprd_sdhc_readw(host, SPRD_SDHC_REG_16_HOST_VER);
