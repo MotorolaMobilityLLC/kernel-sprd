@@ -62,6 +62,9 @@ static int sprd_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	u64 clk_rate, div, val;
 	int rc, prescale, level;
 
+	if (!duty_ns)
+		return 0;
+
 	if (!spc->eb_enabled[pwm->hwpwm]) {
 		rc = clk_prepare_enable(spc->clk_eb[pwm->hwpwm]);
 		if (rc) {
