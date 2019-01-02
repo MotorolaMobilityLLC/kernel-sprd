@@ -210,7 +210,7 @@
 	status = "okay";
 };
 
-&i2c5 {
+&aon_i2c1 {
 	status = "okay";
 	clock-frequency = <400000>;
 

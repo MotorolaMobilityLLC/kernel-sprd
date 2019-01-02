@@ -24,8 +24,8 @@
 		i2c2 = &i2c2;
 		i2c3 = &i2c3;
 		i2c4 = &i2c4;
-		i2c5 = &i2c5;
-		i2c6 = &i2c6;
+		i2c5 = &aon_i2c0;
+		i2c6 = &aon_i2c1;
 		spi0 = &spi0;
 		spi1 = &spi1;
 		spi2 = &spi2;
@@ -637,7 +637,7 @@
 				clocks = <&ext_32k>;
 			};
 
-			i2c5: i2c@32060000 {
+			aon_i2c0: i2c@32060000 {
 				compatible = "sprd,roc1-hw-i2c";
 				reg = <0 0x32060000 0 0x1000>;
 				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
@@ -987,7 +987,7 @@
 					<&aonapb_gate CLK_AC_WDG_RTC_EB>;
 			};
 
-			i2c6: i2c@32370000 {
+			aon_i2c1: i2c@32370000 {
 				compatible = "sprd,roc1-hw-i2c";
 				reg = <0 0x32370000 0 0x1000>;
 				interrupts = <GIC_SPI 131 IRQ_TYPE_LEVEL_HIGH>;
