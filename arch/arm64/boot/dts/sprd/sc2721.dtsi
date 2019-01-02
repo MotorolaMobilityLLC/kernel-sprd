@@ -71,6 +71,19 @@
 			adc_scal: calib@26 {
 				reg = <0x26 0x2>;
 			};
+
+			cc_cal: calib@1a {
+				reg = <0x1a 0x2>;
+			};
+		};
+
+		pmic_typec: typec@380 {
+			compatible = "sprd,sc27xx-typec", "sprd,sc2721-typec";
+			interrupt-parent = <&sc2721_pmic>;
+			interrupts = <10 IRQ_TYPE_LEVEL_HIGH>;
+			reg = <0x380>;
+			nvmem-cells = <&cc_cal>;
+			nvmem-cell-names = "cc_calib";
 		};
 
 		pmic_adc: adc@400 {

@@ -160,6 +160,18 @@
 	regulator-always-on;
 };
 
+&hsphy {
+	extcon = <&pmic_typec>;
+};
+
+&usb {
+	extcon = <&pmic_typec>;
+};
+
+&pmic_typec {
+	status = "okay";
+};
+
 &dpu {
 	status = "okay";
 };
