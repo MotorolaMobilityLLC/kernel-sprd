@@ -33,6 +33,7 @@ d_defconfig_path={
         'kernel4.14':{
             'roc1':{'defconfig':'arch/arm64/configs/sprd_roc1_defconfig', 'diffconfig':'sprd-diffconfig/roc1','arch':'arm64'},
             'sharkl5':{'defconfig':'arch/arm64/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm64'},
+            'sharkl5_32':{'defconfig':'arch/arm/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm'},
         },
 }
 
@@ -105,7 +106,7 @@ def add_diffconfig_to_dictconfig():
                             elif tmp_plat == 'pike2':
                                 tmp_arch = 'arm'
                             elif tmp_arch == 'arm' and tmp_plat == 'sharkl5':
-                                continue
+                                tmp_plat = 'sharkl5_32'
                             elif tmp_arch == 'common' and tmp_plat == 'sharkle':
                                 if lines[j][4:-1] not in d_diffconfig:
                                     d_diffconfig[lines[j][4:-1]]={
@@ -149,8 +150,28 @@ def add_diffconfig_to_dictconfig():
                                 if 'arm64' not in d_diffconfig[lines[j][4:-1]]['arch'].split(','):
                                     d_diffconfig[lines[j][4:-1]]['arch'] = d_diffconfig[lines[j][4:-1]]['arch'] + 'arm64,'
                                 continue
+                            elif tmp_arch == 'common' and tmp_plat == 'sharkl5':
+                                if lines[j][4:-1] not in d_diffconfig:
+                                    d_diffconfig[lines[j][4:-1]]={
+                                        'arch': 'arm,arm64,',
+                                        'plat': 'sharkl5,sharkl5_32,',
+                                        'field':'',
+                                        'subsys':'',
+                                        'must':'',
+                                        'function':''
+                                        }
+                                    continue
+                                if 'sharkl5' not in d_diffconfig[lines[j][4:-1]]['plat'].split(','):
+                                    d_diffconfig[lines[j][4:-1]]['plat'] = d_diffconfig[lines[j][4:-1]]['plat'] + 'sharkl5,'
+                                if 'sharkl5_32' not in d_diffconfig[lines[j][4:-1]]['plat'].split(','):
+                                    d_diffconfig[lines[j][4:-1]]['plat'] = d_diffconfig[lines[j][4:-1]]['plat'] + 'sharkl5_32,'
 
-                            if tmp_arch == 'common':
+                                if 'arm' not in d_diffconfig[lines[j][4:-1]]['arch'].split(','):
+                                    d_diffconfig[lines[j][4:-1]]['arch'] = d_diffconfig[lines[j][4:-1]]['arch'] + 'arm,'
+                                if 'arm64' not in d_diffconfig[lines[j][4:-1]]['arch'].split(','):
+                                    d_diffconfig[lines[j][4:-1]]['arch'] = d_diffconfig[lines[j][4:-1]]['arch'] + 'arm64,'
+                                continue
+                            elif tmp_arch == 'common' and tmp_plat == 'roc1':
                                 tmp_arch = 'arm64'
 
                             if lines[j][4:-1] in d_diffconfig:
@@ -560,9 +581,9 @@ def aiaiai_check():
                     else:
                         plat="sharkle32"
                 if plat == "sharkl3" and arch =="arm":
-                    continue
+                    plat="sharkl3_32"
                 if plat == "sharkl5" and arch =="arm":
-                    continue
+                    plat="sharkl5_32"
 
                 while True:
                     i = i+1
