@@ -100,7 +100,7 @@ static int sprd_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	sprd_pwm_writel(spc, pwm->hwpwm, PWM_PAT_HIGH, PWM_REG_MSK);
 	sprd_pwm_writel(spc, pwm->hwpwm, PWM_PRESCALE, prescale);
 
-	return rc;
+	return 0;
 }
 
 static int sprd_pwm_enable(struct pwm_chip *chip, struct pwm_device *pwm)
