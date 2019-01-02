@@ -589,23 +589,27 @@
 	status = "okay";
 };
 
-&mipi_csi_phy0 {
+&mipi_csi_phy {
 	status = "okay";
 };
 
-&mipi_csi_phy1 {
+&csi_phy0{
 	status = "okay";
 };
 
-&mipi_csi_phy2 {
+&csi_phy1{
 	status = "okay";
 };
 
-&mipi_csi_phy1_m {
+&csi_phy2{
 	status = "okay";
 };
 
-&mipi_csi_phy1_s {
+&csi_phy3{
+	status = "okay";
+};
+
+&csi_phy4{
 	status = "okay";
 };
 

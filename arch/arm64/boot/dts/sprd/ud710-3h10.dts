@@ -256,6 +256,85 @@
 	};
 };
 
+&i2c0 {
+	status = "okay";
+	sensor_main: sensor-main@20 {
+		compatible = "sprd,sensor-main";
+		reg = <0x20>;
+		/* TODO enable when these nodes available */
+		/*vddio-supply = <&vddcamio>;
+		 *vddcama-supply = <&vddcama0>;
+		 *vddcamd-supply = <&vddcamd0>;
+		 *vddcammot-supply = <&vddcammot>;
+		 */
+		sprd,phyid = <0>;
+		csi = <&csi0>;
+		reset-gpios = <&ap_gpio 44 0>;
+		power-down-gpios = <&ap_gpio 46 0>;
+		mipi-switch-en-gpios = <&ap_gpio 54 0>;
+		mipi-switch-mode-gpios = <&ap_gpio 156 0>;
+
+		status = "okay";
+	};
+};
+
+&dcam {
+	status = "okay";
+};
+
+&isp {
+	status = "okay";
+};
+
+&fd{
+	status = "okay";
+};
+
+&csi0{
+	status = "okay";
+};
+
+&csi1{
+	status = "okay";
+};
+
+&csi2{
+	status = "okay";
+};
+
+/*&iommu_dcam {
+ *	status = "okay";
+ *};
+ *
+ *&iommu_isp {
+ *	status = "okay";
+ *};
+ */
+
+&mipi_csi_phy {
+	status = "okay";
+};
+
+&csi_phy0{
+	status = "okay";
+};
+
+&csi_phy1{
+	status = "okay";
+};
+
+&csi_phy3{
+	status = "okay";
+};
+
+&csi_phy4{
+	status = "okay";
+};
+
+&csi_phy5{
+	status = "okay";
+};
+
 &pmic_fgu {
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-real = <20000>;
