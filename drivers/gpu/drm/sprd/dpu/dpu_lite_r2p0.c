@@ -1171,6 +1171,10 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
+		if (*p & BIT(4)) {
+			*p |= BIT(1);
+			pr_info("enhance module disable epf\n");
+		}
 		reg->dpu_enhance_cfg &= ~(*p);
 		pr_info("enhance module disable: 0x%x\n", *p);
 		break;
