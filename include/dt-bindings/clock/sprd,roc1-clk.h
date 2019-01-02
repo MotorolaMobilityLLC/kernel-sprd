@@ -184,6 +184,13 @@
 #define CLK_AUDCP_DVFS_ASHB_EB		18
 #define CLK_AUDCP_AHB_GATE_NUM		(CLK_AUDCP_DVFS_ASHB_EB + 1)
 
+#define CLK_AI_TOP_APB_EB	0
+#define CLK_AI_DVFS_APB_EB	1
+#define CLK_AI_MMU_APB_EB	2
+#define CLK_AI_CAMBRICON_EB	3
+#define CLK_AI_POWERVR_EB	4
+#define CLK_AI_GATE_NUM		(CLK_AI_POWERVR_EB + 1)
+
 #define CLK_CAMBRICON		0
 #define CLK_POWERVR		1
 #define CLK_AI_MTX		2
@@ -202,6 +209,26 @@
 #define CLK_AP_AHB_CKG_EB	7
 #define CLK_BUSM_CLK_EB		8
 #define CLK_AP_AHB_GATE_NUM     (CLK_BUSM_CLK_EB + 1)
+
+#define CLK_IPA_USB_EB		0
+#define CLK_IPA_USB_SUSPEND_EB	1
+#define CLK_IPA_USB_REF_EB	2
+#define CLK_IPA_TOP_EB		3
+#define CLK_PAM_USB_EB		4
+#define CLK_PAM_IPA_EB		5
+#define CLK_PAM_WIFI_EB		6
+#define CLK_IPA_PCIE3_EB	7
+#define CLK_IPA_PCIE2_EB	8
+#define CLK_BP_PAM_U3_EB	9
+#define CLK_BP_PAM_IPA_EB	10
+#define CLK_BP_PAM_TOP_EB	11
+#define CLK_IPA_INTC_EB		12
+#define CLK_IPA_BM_DBG_EB	13
+#define CLK_IPA_UART_EB		14
+#define CLK_IPA_TIMER_EB	15
+#define CLK_IPA_WDG_EB		16
+#define CLK_IPA_CM4_EB		17
+#define CLK_IPA_GATE_NUM	(CLK_IPA_CM4_EB + 1)
 
 #define CLK_IPA_CORE		0
 #define CLK_IPA_MTX		1

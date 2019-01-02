@@ -648,6 +648,96 @@ static struct sprd_clk_desc roc1_ap_clk_desc = {
 	.hw_clks	= &roc1_ap_clk_hws,
 };
 
+/* ipa gate */
+static SPRD_SC_GATE_CLK(ipa_usb_eb, "ipa-usb-eb", "ext-26m", 0x0,
+		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_usb_suspend_eb, "ipa-usb-suspend-eb", "ext-26m",
+		     0x0, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_usb_ref_eb, "ipa-usb-ref-eb", "ext-26m", 0x0,
+		     0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_top_eb, "ipa-top-eb", "ext-26m", 0x0,
+		     0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pam_usb_eb, "pam-usb-eb", "ext-26m", 0x0,
+		     0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pam_ipa_eb, "pam-ipa-eb", "ext-26m", 0x0,
+		     0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pam_wifi_eb, "pam-wifi-eb", "ext-26m", 0x0,
+		     0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_pcie3_eb, "ipa-pcie3-eb", "ext-26m", 0x0,
+		     0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_pcie2_eb, "ipa-pcie2-eb", "ext-26m", 0x0,
+		     0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(bp_pam_u3_eb, "bp-pam-u3-eb", "ext-26m", 0x0,
+		     0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(bp_pam_ipa_eb, "bp-pam-ipa-eb", "ext-26m", 0x0,
+		     0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(bp_pam_top_eb, "bp-pam-top-eb", "ext-26m", 0x0,
+		     0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_intc_eb, "ipa-intc-eb", "ext-26m", 0x0,
+		     0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_bm_dbg_eb, "ipa-bm-dbg-eb", "ext-26m", 0x0,
+		     0x1000, BIT(13), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_uart_eb, "ipa-uart-eb", "ext-26m", 0x0,
+		     0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_timer_eb, "ipa-timer-eb", "ext-26m", 0x0,
+		     0x1000, BIT(15), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_wdg_eb, "ipa-wdg-eb", "ext-26m", 0x0,
+		     0x1000, BIT(16), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_cm4_eb, "ipa-cm4-eb", "ext-26m", 0x0,
+		     0x1000, BIT(17), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *roc1_ipa_gate_clks[] = {
+	/* address base is 0x21040000 */
+	&ipa_usb_eb.common,
+	&ipa_usb_suspend_eb.common,
+	&ipa_usb_ref_eb.common,
+	&ipa_top_eb.common,
+	&pam_usb_eb.common,
+	&pam_ipa_eb.common,
+	&pam_wifi_eb.common,
+	&ipa_pcie3_eb.common,
+	&ipa_pcie2_eb.common,
+	&bp_pam_u3_eb.common,
+	&bp_pam_ipa_eb.common,
+	&bp_pam_top_eb.common,
+	&ipa_intc_eb.common,
+	&ipa_bm_dbg_eb.common,
+	&ipa_uart_eb.common,
+	&ipa_timer_eb.common,
+	&ipa_wdg_eb.common,
+	&ipa_cm4_eb.common,
+};
+
+static struct clk_hw_onecell_data roc1_ipa_gate_clk_hws = {
+	.hws	= {
+		[CLK_IPA_USB_EB] = &ipa_usb_eb.common.hw,
+		[CLK_IPA_USB_SUSPEND_EB] = &ipa_usb_suspend_eb.common.hw,
+		[CLK_IPA_USB_REF_EB] = &ipa_usb_ref_eb.common.hw,
+		[CLK_IPA_TOP_EB] = &ipa_top_eb.common.hw,
+		[CLK_PAM_USB_EB] = &pam_usb_eb.common.hw,
+		[CLK_PAM_IPA_EB] = &pam_ipa_eb.common.hw,
+		[CLK_PAM_WIFI_EB] = &pam_wifi_eb.common.hw,
+		[CLK_IPA_PCIE3_EB] = &ipa_pcie3_eb.common.hw,
+		[CLK_IPA_PCIE2_EB] = &ipa_pcie2_eb.common.hw,
+		[CLK_BP_PAM_U3_EB] = &bp_pam_u3_eb.common.hw,
+		[CLK_BP_PAM_IPA_EB] = &bp_pam_ipa_eb.common.hw,
+		[CLK_BP_PAM_TOP_EB] = &bp_pam_top_eb.common.hw,
+		[CLK_IPA_INTC_EB] = &ipa_intc_eb.common.hw,
+		[CLK_IPA_BM_DBG_EB] = &ipa_bm_dbg_eb.common.hw,
+		[CLK_IPA_UART_EB] = &ipa_uart_eb.common.hw,
+		[CLK_IPA_TIMER_EB] = &ipa_timer_eb.common.hw,
+		[CLK_IPA_WDG_EB] = &ipa_wdg_eb.common.hw,
+		[CLK_IPA_CM4_EB] = &ipa_cm4_eb.common.hw,
+	},
+	.num	= CLK_IPA_GATE_NUM,
+};
+
+static struct sprd_clk_desc roc1_ipa_gate_desc = {
+	.clk_clks	= roc1_ipa_gate_clks,
+	.num_clk_clks	= ARRAY_SIZE(roc1_ipa_gate_clks),
+	.hw_clks	= &roc1_ipa_gate_clk_hws,
+};
+
 /* ipa clocks */
 static const char * const ipa_core_parents[] = { "ext-26m", "twpll-192m",
 					       "twpll-384m", "twpll-409m6" };
@@ -682,7 +772,7 @@ static SPRD_COMP_CLK(ipa_uart_clk, "ipa-uart-clk", ipa_uart_parents, 0x4c,
 		     0, 1, 8, 3, 0);
 
 static struct sprd_clk_common *roc1_ipa_clks[] = {
-	/* address base is 0x20200000 */
+	/* address base is 0x21050000 */
 	&ipa_core_clk.common,
 	&ipa_mtx_clk.common,
 	&ipa_apb_clk.common,
@@ -1421,8 +1511,45 @@ static struct sprd_clk_desc roc1_mm_gate_clk_desc = {
 	.hw_clks	= &roc1_mm_gate_clk_hws,
 };
 
+/* ai gate */
+static SPRD_SC_GATE_CLK(ai_top_apb_eb, "ai-top-apb-eb", "ext-26m", 0x0,
+		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ai_dvfs_apb_eb, "ai-dvfs-apb-eb", "ext-26m", 0x0,
+		     0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ai_mmu_apb_eb, "ai-mmu-apb-eb", "ext-26m", 0x0,
+		     0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ai_cambricon_eb, "ai-cambricon-eb", "ext-26m", 0x0,
+		     0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ai_powervr_eb, "ai-powervr-eb", "ext-26m", 0x0,
+		     0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *roc1_ai_gate[] = {
+	/* address base is 0x6fd00000 */
+	&ai_top_apb_eb.common,
+	&ai_dvfs_apb_eb.common,
+	&ai_mmu_apb_eb.common,
+	&ai_cambricon_eb.common,
+	&ai_powervr_eb.common,
+};
+
+static struct clk_hw_onecell_data roc1_ai_gate_hws = {
+	.hws	= {
+		[CLK_AI_TOP_APB_EB] = &ai_top_apb_eb.common.hw,
+		[CLK_AI_DVFS_APB_EB] = &ai_dvfs_apb_eb.common.hw,
+		[CLK_AI_MMU_APB_EB] = &ai_mmu_apb_eb.common.hw,
+		[CLK_AI_CAMBRICON_EB] = &ai_cambricon_eb.common.hw,
+		[CLK_AI_POWERVR_EB] = &ai_powervr_eb.common.hw,
+	},
+	.num	= CLK_AI_GATE_NUM,
+};
+
+static struct sprd_clk_desc roc1_ai_gate_desc = {
+	.clk_clks	= roc1_ai_gate,
+	.num_clk_clks	= ARRAY_SIZE(roc1_ai_gate),
+	.hw_clks	= &roc1_ai_gate_hws,
+};
+
 /* ai clocks */
-/* ?????clk_1000m which pll? */
 static const char * const cambricon_clk_parents[] = { "twpll-512m",
 					"twpll-768m", "apll" };
 static SPRD_COMP_CLK(cambricon_clk, "cambricon-clk",
@@ -2102,6 +2229,8 @@ static const struct of_device_id sprd_roc1_clk_ids[] = {
 	  .data = &roc1_apahb_gate_desc },
 	{ .compatible = "sprd,roc1-ap-clk",	/* 0x20200000 */
 	  .data = &roc1_ap_clk_desc },
+	{ .compatible = "sprd,roc1-ipa-gate",	/* 0x21040000 */
+	  .data = &roc1_ipa_gate_desc },
 	{ .compatible = "sprd,roc1-ipa-clk",	/* 0x21050000 */
 	  .data = &roc1_ipa_clk_desc },
 	{ .compatible = "sprd,roc1-aonapb-clk",	/* 0x32080000 */
@@ -2130,6 +2259,8 @@ static const struct of_device_id sprd_roc1_clk_ids[] = {
 	  .data = &roc1_mm_clk_desc },
 	{ .compatible = "sprd,roc1-mm-gate-clk",	/* 0x62200000 */
 	  .data = &roc1_mm_gate_clk_desc },
+	{ .compatible = "sprd,roc1-ai-gate-clk",	/* 0x6fd00000 */
+	  .data = &roc1_ai_gate_desc },
 	{ .compatible = "sprd,roc1-ai-clk",	/* 0x6fd04000 */
 	  .data = &roc1_ai_desc },
 	{ .compatible = "sprd,roc1-aon-gate",	/* 0x32090000 */
