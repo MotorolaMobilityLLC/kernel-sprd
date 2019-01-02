@@ -273,6 +273,7 @@ static int sc27xx_efuse_remove(struct platform_device *pdev)
 static const struct of_device_id sc27xx_efuse_of_match[] = {
 	{ .compatible = "sprd,sc2731-efuse", .data = &sc2731_edata},
 	{ .compatible = "sprd,sc2730-efuse", .data = &sc2730_edata},
+	{ .compatible = "sprd,sc2721-efuse", .data = &sc2731_edata},
 	{ }
 };
 
