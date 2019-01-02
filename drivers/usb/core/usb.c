@@ -463,12 +463,12 @@ static void usb_dev_complete(struct device *dev)
 
 static int usb_dev_suspend(struct device *dev)
 {
-	return usb_suspend(dev, PMSG_SUSPEND);
+	return 0;
 }
 
 static int usb_dev_resume(struct device *dev)
 {
-	return usb_resume(dev, PMSG_RESUME);
+	return 0;
 }
 
 static int usb_dev_freeze(struct device *dev)
