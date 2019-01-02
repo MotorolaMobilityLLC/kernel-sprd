@@ -251,6 +251,16 @@
 			#size-cells = <1>;
 			ranges;
 
+			ap_dma: dma-controller@20100000 {
+				compatible = "sprd,sharkl3-dma";
+				reg = <0x20100000 0x4000>;
+				interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
+				#dma-cells = <1>;
+				#dma-channels = <28>;
+				clock-names = "enable";
+				clocks = <&apahb_gate CLK_DMA_EB>;
+			};
+
 			usb: usb@20200000 {
 				compatible = "sprd,sharkl3-musb";
 				reg = <0x20200000 0x2000>;
@@ -295,6 +305,15 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 			ranges;
+
+			aon_dma: dma-controller@40100000 {
+				compatible = "sprd,sharkl3-dma";
+				reg = <0x40100000 0x4000>;
+				#dma-cells = <1>;
+				#dma-channels = <9>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_AON_DMA_EB>;
+			};
 
 			pwms: pwm@40260000 {
 				compatible = "sprd,sharkl3-pwm", "sprd,sharkl5-pwm";
