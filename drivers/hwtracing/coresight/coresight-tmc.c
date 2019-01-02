@@ -427,9 +427,9 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 		goto out;
 	}
 
-	/* fix etb dev name as "/dev/etb" for modem */
+	/* fix etb dev name as "/dev/tmc_etb" for modem */
 	if (strstr(pdata->name, "etb"))
-		drvdata->miscdev.name = "etb";
+		drvdata->miscdev.name = "tmc_etb";
 	else
 		drvdata->miscdev.name = pdata->name;
 
