@@ -2022,7 +2022,8 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 {
 	unsigned int old_target_freq = target_freq;
 	int index;
-	unsigned int qos_max_freq, qos_min_freq;
+	unsigned int qos_max_freq = PM_QOS_FREQ_MAX_DEFAULT_VALUE;
+	unsigned int qos_min_freq = PM_QOS_FREQ_MIN_DEFAULT_VALUE;
 	unsigned int cluster_id;
 
 	policy->target_freq = target_freq;
