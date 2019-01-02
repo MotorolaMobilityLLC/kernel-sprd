@@ -1075,14 +1075,15 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 			prepare_inbound_urb(ep, urb->context);
 		}
 
+		set_bit(i, &ep->active_mask);
 		err = usb_submit_urb(urb, GFP_ATOMIC);
 		if (err < 0) {
+			clear_bit(i, &ep->active_mask);
 			usb_audio_err(ep->chip,
 				"cannot submit urb %d, error %d: %s\n",
 				i, err, usb_error_string(err));
 			goto __error;
 		}
-		set_bit(i, &ep->active_mask);
 	}
 
 	return 0;
