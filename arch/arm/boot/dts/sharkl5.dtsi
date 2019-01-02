@@ -1288,7 +1288,7 @@
 				timeout-sec = <12>;
 				clock-names = "enable", "rtc_enable";
 				clocks = <&aonapb_gate CLK_APCPU_WDG_EB>,
-					<&aonapb_gate CLK_AP_WDG_RTC_EB>;
+					<&aonapb_gate CLK_AC_WDG_RTC_EB>;
 			};
 
 			hsphy: hsphy@323b0000 {
