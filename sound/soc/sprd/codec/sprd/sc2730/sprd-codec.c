@@ -537,10 +537,10 @@ static int sprd_mixer_put(struct snd_kcontrol *kcontrol,
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
-	unsigned int val = !!ucontrol->value.integer.value[0];
+	unsigned int val;
 
-	val = val << mc->shift;
-	if (val)
+	val = 1 << mc->shift;
+	if (ucontrol->value.integer.value[0])
 		sprd_codec->dac_switch |= val;
 	else
 		sprd_codec->dac_switch &= ~val;
