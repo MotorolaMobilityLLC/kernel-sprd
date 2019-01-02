@@ -86,7 +86,6 @@
 			reg = <1>;
 			label = "carveout_mm";
 			type = <2>;
-			memory-region = <&mm_reserved>;
 		};
 
 		heap@2 {
@@ -250,10 +249,6 @@
 };
 
 &reserved_memory {
-	mm_reserved: mm-mem@a0dc0000 {
-		reg = <0x0 0xa0dc0000 0x0 0x1c000000>;
-	};
-
 	overlay_reserved: overlay-mem@bcdc0000 {
 		reg = <0x0 0xbcdc0000 0x0 0x01800000>;
 	};
@@ -414,6 +409,30 @@
 };
 
 &iommu_dispc {
+	status = "okay";
+};
+
+&iommu_dcam{
+	status = "okay";
+};
+
+&iommu_isp{
+	status = "okay";
+};
+
+&iommu_jpg{
+	status = "okay";
+};
+
+&iommu_cpp{
+	status = "okay";
+};
+
+&iommu_vsp{
+	status = "okay";
+};
+
+&iommu_fd{
 	status = "okay";
 };
 
