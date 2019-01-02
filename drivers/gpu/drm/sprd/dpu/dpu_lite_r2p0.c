@@ -587,6 +587,7 @@ static void dpu_wb_flip_work(struct work_struct *data)
 
 	ret = down_trylock(&ctx->refresh_lock);
 	if (ret != 1) {
+		dpu_clean_all(ctx);
 		dpu_layer(ctx, &wb_layer);
 		reg->dpu_ctrl |= BIT(2);
 		dpu_wait_update_done(ctx);
