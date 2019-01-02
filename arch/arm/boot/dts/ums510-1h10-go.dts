@@ -85,14 +85,12 @@
 			reg = <1>;
 			label = "carveout_mm";
 			type = <2>;
-			memory-region = <&mm_reserved>;
 		};
 
 		heap@2 {
 			reg = <2>;
 			label = "carveout_overlay";
 			type = <2>;
-			memory-region = <&overlay_reserved>;
 		};
 
 		heap@3 {
@@ -245,16 +243,6 @@
 						104880 75
 						114889 57
 						124872 43 >;
-	};
-};
-
-&reserved_memory {
-	mm_reserved: mm-mem@a0dc0000 {
-		reg = <0xa0dc0000 0x1c000000>;
-	};
-
-	overlay_reserved: overlay-mem@bcdc0000 {
-		reg = <0xbcdc0000 0x01800000>;
 	};
 };
 
