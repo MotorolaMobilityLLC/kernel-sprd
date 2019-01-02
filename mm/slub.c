@@ -706,6 +706,7 @@ void object_err(struct kmem_cache *s, struct page *page,
 {
 	slab_bug(s, "%s", reason);
 	print_trailer(s, page, object);
+	panic("Slub overwritten in %s ", __func__);
 }
 
 static __printf(3, 4) void slab_err(struct kmem_cache *s, struct page *page,
@@ -719,6 +720,7 @@ static __printf(3, 4) void slab_err(struct kmem_cache *s, struct page *page,
 	va_end(args);
 	slab_bug(s, "%s", buf);
 	print_page_info(page);
+	panic("Slub overwritten in %s ", __func__);
 	dump_stack();
 }
 
@@ -766,6 +768,7 @@ static int check_bytes_and_report(struct kmem_cache *s, struct page *page,
 	pr_err("INFO: 0x%p-0x%p. First byte 0x%x instead of 0x%x\n",
 					fault, end - 1, fault[0], value);
 	print_trailer(s, page, object);
+	panic("Slub overwritten in %s ", __func__);
 
 	restore_bytes(s, what, value, fault, end);
 	return 0;
