@@ -421,7 +421,7 @@
 			};
 
 			adi_bus: spi@41800000 {
-				compatible = "sprd,sc9860-adi", "sprd,sharkl3-adi";
+				compatible = "sprd,sharkl3-adi";
 				reg = <0x41800000 0x200000>;
 				hwlocks = <&hwlock 0>;
 				hwlock-names = "adi";
