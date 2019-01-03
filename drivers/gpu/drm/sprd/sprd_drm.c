@@ -70,10 +70,8 @@ static void sprd_drm_mode_config_init(struct drm_device *drm)
 
 static const struct drm_ioctl_desc sprd_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(SPRD_GSP_GET_CAPABILITY,
-			sprd_gsp_get_capability_ioctl,
-			DRM_AUTH | DRM_RENDER_ALLOW),
-	DRM_IOCTL_DEF_DRV(SPRD_GSP_TRIGGER, sprd_gsp_trigger_ioctl,
-			DRM_AUTH | DRM_RENDER_ALLOW),
+			sprd_gsp_get_capability_ioctl, 0),
+	DRM_IOCTL_DEF_DRV(SPRD_GSP_TRIGGER, sprd_gsp_trigger_ioctl, 0),
 };
 
 static const struct file_operations sprd_drm_fops = {
