@@ -1871,8 +1871,8 @@ static const char * const vbc_iis_lr_mod_txt[LR_MOD_MAX] = {
 
 static const struct soc_enum vbc_iis_tx_lr_mod_enum[VBC_MUX_IIS_TX_ID_MAX] = {
 	SPRD_VBC_ENUM(VBC_MUX_IIS_TX_DAC0, IIS_WD_MAX, vbc_iis_lr_mod_txt),
-	SPRD_VBC_ENUM(VBC_MUX_IIS_TX_DAC0, IIS_WD_MAX, vbc_iis_lr_mod_txt),
-	SPRD_VBC_ENUM(VBC_MUX_IIS_TX_DAC0, IIS_WD_MAX, vbc_iis_lr_mod_txt),
+	SPRD_VBC_ENUM(VBC_MUX_IIS_TX_DAC1, IIS_WD_MAX, vbc_iis_lr_mod_txt),
+	SPRD_VBC_ENUM(VBC_MUX_IIS_TX_DAC2, IIS_WD_MAX, vbc_iis_lr_mod_txt),
 };
 
 static int vbc_get_iis_tx_lr_mod_sel(struct snd_kcontrol *kcontrol,
