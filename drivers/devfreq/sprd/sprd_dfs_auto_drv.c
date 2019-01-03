@@ -82,6 +82,27 @@ enum dfs_slave_cmd {
 	DFS_RET_INVALID_CMD	= 0x0F0F
 };
 
+enum vote_mode {
+	MODE_FREQ,
+	MODE_BW,
+	MODE_MAX
+};
+
+enum vote_master {
+	DFS_MASTER_NULL,
+	DFS_MASTER_DPU,
+	DFS_MASTER_DCAM,
+	DFS_MASTER_PUBCP,
+	DFS_MASTER_WTLCP,
+	DFS_MASTER_WTLCP1,
+	DFS_MASTER_AGCP,
+	DFS_MASTER_SW,
+	DFS_MASTER_MAX
+};
+
+static unsigned int last_scene_freq[MODE_MAX][DFS_MASTER_MAX];
+#define last_vote(magic) (last_scene_freq[magic>>8 & 0xf][magic & 0xff])
+
 
 struct dfs_data {
 	struct device *dev;
@@ -96,7 +117,6 @@ struct dfs_data {
 	unsigned int *underflow;
 	unsigned int scene_num;
 	struct scene_freq *scenes;
-	unsigned int last_scene;
 	unsigned int force_freq;
 	unsigned int backdoor_freq;
 	unsigned int init_done;
@@ -224,7 +244,6 @@ static int dfs_msg(unsigned int *data, unsigned int value,
 	return err;
 }
 
-
 int dfs_enable(void)
 {
 	int err = 0;
@@ -296,7 +315,7 @@ static void del_scene(struct scene_freq *scene)
 	spin_unlock(&g_dfs_data->lock);
 }
 
-static int send_scene_request(void)
+static int send_scene_request(unsigned int magic)
 {
 	unsigned int target_freq = 0;
 	struct scene_freq *scene;
@@ -308,15 +327,17 @@ static int send_scene_request(void)
 	scene = g_dfs_data->scenes;
 	for (i = 0; i < g_dfs_data->scene_num; i++) {
 		if ((scene[i].scene_count > 0) &&
-				(scene[i].scene_freq > target_freq)) {
+				(scene[i].scene_freq > target_freq) &&
+				(scene[i].vote_magic == magic)) {
 			target_freq = scene[i].scene_freq;
 		}
 	}
 	mutex_lock(&g_dfs_data->sync_mutex);
-	if ((target_freq != 0) && (target_freq != g_dfs_data->last_scene)) {
-		err = dfs_msg(&data, target_freq, DFS_CMD_NORMAL, 500);
+	if (target_freq != last_vote(magic)) {
+		err = dfs_msg(&data, (target_freq | (magic << 16)),
+			DFS_CMD_NORMAL, 500);
 		if (err == 0)
-			g_dfs_data->last_scene = target_freq;
+			last_vote(magic) = target_freq;
 	} else {
 		err = 0;
 	}
@@ -340,7 +361,7 @@ int scene_dfs_request(char *scenario)
 	}
 	add_scene(scene);
 	trace_sprd_scene(scene, 1);
-	err = send_scene_request();
+	err = send_scene_request(scene->vote_magic);
 	return err;
 }
 EXPORT_SYMBOL(scene_dfs_request);
@@ -361,7 +382,7 @@ int scene_exit(char *scenario)
 	}
 	del_scene(scene);
 	trace_sprd_scene(scene, 0);
-	err = send_scene_request();
+	err = send_scene_request(scene->vote_magic);
 	return err;
 }
 EXPORT_SYMBOL(scene_exit);
@@ -458,7 +479,7 @@ int get_ap_freq(unsigned int *data)
 		return -ENOENT;
 	if (g_dfs_data->init_done != 1)
 		return -ENOENT;
-	*data = g_dfs_data->last_scene;
+	*data = last_vote(0);
 	return 0;
 }
 
@@ -536,7 +557,7 @@ int get_scene_num(unsigned int *data)
 }
 
 int get_scene_info(char **name, unsigned int *freq,
-			unsigned int *count, int index)
+			unsigned int *count, unsigned int *magic, int index)
 {
 	struct scene_freq *scene;
 
@@ -548,6 +569,7 @@ int get_scene_info(char **name, unsigned int *freq,
 	*name = scene->scene_name;
 	*freq = scene->scene_freq;
 	*count = scene->scene_count;
+	*magic = scene->vote_magic;
 	return 0;
 }
 
@@ -744,6 +766,10 @@ static int dfs_auto_freq_probe(struct platform_device *pdev)
 				"sprd-freq", i, &data->scenes[i].scene_freq);
 		if (err)
 			goto err_data;
+		err = of_property_read_u32_index(dev->of_node,
+				"scene-magic", i, &data->scenes[i].vote_magic);
+		if (err)
+			data->scenes[i].vote_magic = 0;
 		data->scenes[i].scene_count = 0;
 	}
 	platform_set_drvdata(pdev, data);

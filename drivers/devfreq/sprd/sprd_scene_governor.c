@@ -402,6 +402,7 @@ static ssize_t scene_dfs_status_show(struct device *dev,
 	char *name;
 	unsigned int freq;
 	unsigned int num;
+	unsigned int magic;
 
 	int i, err;
 
@@ -409,10 +410,11 @@ static ssize_t scene_dfs_status_show(struct device *dev,
 	if (err < 0)
 		scene_num = 0;
 	for (i = 0; i < scene_num; i++) {
-		err = get_scene_info(&name, &freq, &num, i);
+		err = get_scene_info(&name, &freq, &num, &magic, i);
 		if (err == 0)
-			count += sprintf(&buf[count], "%s freq %u count %u\n",
-					name, freq, num);
+			count += sprintf(&buf[count],
+				"%s freq %u  magic 0x%x count %u\n",
+				name, freq, magic, num);
 	}
 	return count;
 }

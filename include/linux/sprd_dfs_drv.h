@@ -4,6 +4,7 @@
 struct scene_freq {
 	char *scene_name;
 	unsigned int scene_freq;
+	unsigned int vote_magic;
 	int scene_count;
 };
 
@@ -29,7 +30,7 @@ extern int get_scene_num(unsigned int *data);
 extern int set_overflow(unsigned int value, unsigned int sel);
 extern int set_underflow(unsigned int value, unsigned int sel);
 extern int get_scene_info(char **name, unsigned int *freq,
-			unsigned int *count, int index);
+			unsigned int *count, unsigned int *magic, int index);
 extern int set_backdoor(void);
 extern int reset_backdoor(void);
 #endif
