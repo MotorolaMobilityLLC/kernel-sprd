@@ -991,6 +991,41 @@
 	};
 };
 
+&i2c0 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C0_EB>;
+};
+
+&i2c1 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C1_EB>;
+};
+
+&i2c2 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C2_EB>;
+};
+
+&i2c3 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C3_EB>;
+};
+
+&i2c4 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C4_EB>;
+};
+
+&i2c5 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C5_EB>;
+};
+
+&i2c6 {
+	clock-names ="enable", "i2c", "source";
+	clocks = <&apapb_gate CLK_I2C6_EB>;
+};
+
 &gpu {
 	clocks = <&aonapb_gate CLK_GNU_EB>,
 	<&aon_clk CLK_GPU_CORE>,<&aon_clk CLK_GPU_SOC>,
