@@ -86,7 +86,11 @@ static struct sprd_iommu_list_data sprd_iommu_list[SPRD_IOMMU_MAX] = {
 	   .enabled = false,
 	   .iommu_dev = NULL},
 
-	{ .iommu_id = SPRD_IOMMU_VDSP,
+	{ .iommu_id = SPRD_IOMMU_EPP,
+	   .enabled = false,
+	   .iommu_dev = NULL},
+
+	{ .iommu_id = SPRD_IOMMU_EDP,
 	   .enabled = false,
 	   .iommu_dev = NULL},
 };
@@ -154,8 +158,11 @@ static const struct of_device_id sprd_iommu_ids[] = {
 	{ .compatible = "sprd,iommuexroc1-ai",
 	  .data = (void *)(IOMMU_EXROC1_AI)},
 
-	{ .compatible = "sprd,iommuexroc1-vdsp",
-	  .data = (void *)(IOMMU_EXROC1_VDSP)},
+	{ .compatible = "sprd,iommuexroc1-epp",
+	  .data = (void *)(IOMMU_EXROC1_EPP)},
+
+	{ .compatible = "sprd,iommuexroc1-edp",
+	  .data = (void *)(IOMMU_EXROC1_EPP)},
 };
 
 static struct platform_driver iommu_driver = {
@@ -1015,9 +1022,10 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	case IOMMU_EXROC1_ISP:
 	case IOMMU_EXROC1_FD:
 	case IOMMU_EXROC1_AI:
-	case IOMMU_EXROC1_VDSP:
+	case IOMMU_EXROC1_EPP:
+	case IOMMU_EXROC1_EDP:
 	{
-		pdata->iommuex_rev = 10;
+		pdata->iommuex_rev = 11;
 		iommu_dev->ops = &sprd_iommuex_hw_ops;
 		if (pdata->id == IOMMU_EXROC1_DISP)
 			pdata->id = IOMMU_EX_DISP;
@@ -1035,8 +1043,10 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 			pdata->id = IOMMU_EX_FD;
 		else if (pdata->id == IOMMU_EXROC1_AI)
 			pdata->id = IOMMU_EX_AI;
-		else if (pdata->id == IOMMU_EXROC1_VDSP)
-			pdata->id = IOMMU_EX_VDSP;
+		else if (pdata->id == IOMMU_EXROC1_EPP)
+			pdata->id = IOMMU_EX_EPP;
+		else if (pdata->id == IOMMU_EXROC1_EDP)
+			pdata->id = IOMMU_EX_EDP;
 
 		break;
 	}
