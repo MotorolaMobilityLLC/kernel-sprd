@@ -1147,6 +1147,11 @@ static void misc_event_handler(struct charger_manager *cm,
 	if (cm_suspended)
 		device_set_wakeup_capable(cm->dev, true);
 
+	if (is_ext_pwr_online(cm))
+		try_charger_enable(cm, true);
+	else
+		try_charger_enable(cm, false);
+
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		schedule_work(&setup_polling);
 	uevent_notify(cm, default_event_names[type]);
