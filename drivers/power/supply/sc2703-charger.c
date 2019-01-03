@@ -282,7 +282,7 @@ static int sc2703_charger_hw_init(struct sc2703_charger_info *info)
 
 	/* enable the watchdog timer */
 	ret = regmap_update_bits(info->regmap, SC2703_CONF_A,
-				 SC2703_WD_EN_MASK, 0);
+				 SC2703_WD_EN_MASK, SC2703_WD_EN_MASK);
 	if (ret) {
 		dev_err(info->dev,
 			 "Failed to enable the watchdog timer:%d\n", ret);
@@ -682,8 +682,13 @@ static int sc2703_charger_set_status(struct sc2703_charger_info *info, u32 val)
 static int sc2703_charger_feed_watchdog(struct sc2703_charger_info *info,
 					u32 val)
 {
-	return regmap_update_bits(info->regmap, SC2703_CHG_TIMER_CTRL_B,
-				  SC2703_TIMER_LOAD_MASK, val);
+	int ret;
+
+	ret = regmap_write(info->regmap, SC2703_CHG_TIMER_CTRL_B, val);
+	if (ret)
+		dev_err(info->dev, "feed watchdog failed\n");
+
+	return ret;
 }
 
 static bool sc2703_charger_is_support_fchg(struct sc2703_charger_info *info)
