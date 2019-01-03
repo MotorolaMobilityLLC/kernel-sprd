@@ -1,5 +1,4 @@
 #include "../sipa_hal_priv.h"
-#include "sipa_sys_phy.h"
 
 static u32 sipa_sys_hal_module_soft_rst(
 	void __iomem *reg_base,

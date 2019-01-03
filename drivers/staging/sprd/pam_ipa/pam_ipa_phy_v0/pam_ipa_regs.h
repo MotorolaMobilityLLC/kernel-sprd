@@ -117,12 +117,6 @@
 
 #define PAM_IPA_COMMON_FIFO_OFFSET				(0xFCl)
 
-#define PAM_IPA_DDR_MAP_OFFSET_L				(0x00004000l)
-#define PAM_IPA_DDR_MAP_OFFSET_H				(0x00000000l)
-
-#define PAM_IPA_PCIE_RC_BASE_L					(0x00000000l)
-#define PAM_IPA_PCIE_RC_BASE_H					(0x00000000l)
-
 static inline u32 pam_ipa_phy_init_pcie_ul_fifo_base(
 	void __iomem *reg_base,
 	u32 free_addrl, u32 free_addrh,

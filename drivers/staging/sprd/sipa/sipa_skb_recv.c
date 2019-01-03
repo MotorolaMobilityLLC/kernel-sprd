@@ -71,6 +71,11 @@ int get_recv_array_node(struct sipa_skb_array *p,
 		pos = p->rp & (p->depth -1);
 		*skb = p->array[pos].skb;
 		*dma_addr = p->array[pos].dma_addr;
+		/*
+		* Ensure that we remove the item from the fifo before
+		* we update the fifo rp.
+		*/
+		smp_wmb();
 		p->rp++;
 		return 0;
 	} else {
@@ -81,6 +86,7 @@ int get_recv_array_node(struct sipa_skb_array *p,
 struct sk_buff *alloc_recv_skb(u32 req_len, u8 rsvd)
 {
 	struct sk_buff *skb;
+	u32 hr;
 
 	skb = __dev_alloc_skb(req_len + rsvd, GFP_KERNEL | GFP_DMA);
 	if (!skb) {
@@ -89,7 +95,9 @@ struct sk_buff *alloc_recv_skb(u32 req_len, u8 rsvd)
 	}
 
 	/* save skb ptr to skb->data */
-	skb_reserve(skb, rsvd);
+	hr = skb_headroom(skb);
+	if (hr < rsvd)
+		skb_reserve(skb, rsvd - hr);
 
 	return skb;
 }
@@ -108,10 +116,11 @@ void fill_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt)
 		if (skb) {
 			unsigned long flags;
 
+			skb_put(skb, SIPA_RECV_BUF_LEN);
 			dma_addr = dma_map_single(receiver->ctx->pdev,
-									  skb_put(skb, SIPA_RECV_BUF_LEN + receiver->rsvd),
-									  SIPA_RECV_BUF_LEN + receiver->rsvd,
-									  DMA_FROM_DEVICE);
+						  skb->head,
+						  SIPA_RECV_BUF_LEN + skb_headroom(skb),
+						  DMA_FROM_DEVICE);
 
 			spin_lock_irqsave(&receiver->lock, flags);
 
@@ -119,8 +128,8 @@ void fill_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt)
 								skb, dma_addr);
 
 			item.addr = dma_addr;
-			item.len = skb->len - SIPA_DEF_OFFSET;
-			item.offset = SIPA_DEF_OFFSET;
+			item.len = skb->len;
+			item.offset = skb_headroom(skb);
 			item.dst = receiver->ep->recv_fifo.dst_id;
 			item.src = receiver->ep->recv_fifo.src_id;
 			item.intr = 0;
@@ -196,6 +205,7 @@ static int do_recv(struct sipa_skb_receiver *receiver)
 {
 	int ret;
 	dma_addr_t addr;
+	struct iphdr *iph;
 	struct sk_buff *recv_skb = NULL;
 	struct sipa_hal_fifo_item item;
 
@@ -205,16 +215,56 @@ static int do_recv(struct sipa_skb_receiver *receiver)
 	if (ret)
 		return ret;
 
+	pr_debug("sipa_skb_receiver do_recv:%d, item addr:0x%x, len:%d, offset:%d, src:%d, dst:%d\n",
+		receiver->ep->recv_fifo.idx,
+		((u32)(item.addr & 0x00000000FFFFFFFF)),
+		item.len,
+		item.offset,
+		item.src,
+		item.dst);
+
 	ret = get_recv_array_node(&receiver->recv_array, &recv_skb, &addr);
 	if (ret) {
 		pr_err("do_recv recv addr:0x%llx, butrecv_array is empty\n",
 			   item.addr);
+		return -ERANGE;
 	} else if (addr != item.addr) {
 		pr_err("do_recv recv addr:0x%llx, but recv_array addr:0x%llx not equal\n",
 			   item.addr, addr);
+		return -EFAULT;
 	}
 
-	recv_skb->data_len = item.len;
+	dma_unmap_single(receiver->ctx->pdev,
+			 addr,
+			 SIPA_RECV_BUF_LEN + receiver->rsvd,
+			 DMA_FROM_DEVICE);
+
+	skb_trim(recv_skb, item.len);
+
+	pr_debug("do_recv recv_skb->len %d recv_skb->data_len %d recv_skb->truesize %d\n",
+		recv_skb->len,
+		recv_skb->data_len,
+		recv_skb->truesize);
+
+	skb_reset_network_header(recv_skb);
+
+	iph = ip_hdr(recv_skb);
+
+	pr_debug("do_recv recv_skb %p head %p data %p tail %p end %p\n",
+		recv_skb,
+		recv_skb->head,
+		recv_skb->data,
+		skb_tail_pointer(recv_skb),
+		skb_end_pointer(recv_skb));
+
+	if (iph != NULL)
+		pr_info("do_recv - iph version %d tot_len %d srcip %pI4 dstip %pI4 ttl %d\n",
+			iph->version,
+			iph->tot_len,
+			&iph->saddr,
+			&iph->daddr,
+			iph->ttl);
+
 	dispath_to_nic(receiver, &item, recv_skb);
 
 	return 0;
@@ -258,7 +308,7 @@ void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 	struct sipa_comm_fifo_params attr;
 
 	attr.tx_intr_delay_us = 0;
-	attr.tx_intr_threshold = 32;
+	attr.tx_intr_threshold = 8;
 	attr.flowctrl_in_tx_full = false;
 	attr.flow_ctrl_cfg = flow_ctrl_rx_empty;
 	attr.flow_ctrl_irq_mode = enter_exit_flow_ctrl;

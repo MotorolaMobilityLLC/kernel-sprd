@@ -19,6 +19,7 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/mfd/syscon.h>
 #include <linux/io.h>
 #include <linux/cdev.h>
 
@@ -328,20 +329,9 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 };
 
 struct sipa_control s_sipa_ctrl;
-static struct sipa_plat_drv_cfg s_sipa_cfg[2];
+static struct sipa_plat_drv_cfg s_sipa_cfg;
 
 static const struct file_operations sipa_local_drv_fops = {
-	.owner = THIS_MODULE,
-	.open = NULL,
-	.read = NULL,
-	.write = NULL,
-	.unlocked_ioctl = NULL,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl = NULL,
-#endif
-};
-
-static const struct file_operations sipa_remote_drv_fops = {
 	.owner = THIS_MODULE,
 	.open = NULL,
 	.read = NULL,
@@ -397,8 +387,7 @@ int sipa_pam_connect(const struct sipa_connect_params *in,
 		}
 	}
 
-	sipa_hal_init_pam_param(ep->sipa_ctx->is_remote,
-							ep->send_fifo.idx, ep->recv_fifo.idx, out);
+	sipa_hal_init_pam_param(ep->send_fifo.idx, ep->recv_fifo.idx, out);
 
 	return 0;
 }
@@ -468,6 +457,7 @@ static int sipa_parse_dts_configuration(
 {
 	int i, ret;
 	u32 fifo_info[2];
+	u32 reg_info[2];
 	struct resource *resource;
 
 	/* get IPA global register base  address */
@@ -479,102 +469,28 @@ static int sipa_parse_dts_configuration(
 			   __func__);
 		return -ENODEV;
 	}
-	memcpy(&cfg->phy_virt_res.glb_res,
-		   resource,
-		   sizeof(struct resource));
-	cfg->phy_virt_res.glb_base = devm_ioremap_nocache(
-									 &pdev->dev, resource->start, resource_size(resource));
+	cfg->glb_phy = resource->start;
+	cfg->glb_size = resource_size(resource);
 
-	if (!cfg->is_remote) {
-		/* get IPA sys register base  address */
-		resource = platform_get_resource_byname(pdev,
-												IORESOURCE_MEM,
-												"ipa-sys");
-		if (!resource) {
-			pr_err("%s :get resource failed for glb-base!\n",
-				   __func__);
-			return -ENODEV;
-		}
-		memcpy(&cfg->phy_virt_res.sys_res,
-			   resource,
-			   sizeof(struct resource));
-		cfg->phy_virt_res.sys_base = devm_ioremap_nocache(
-										 &pdev->dev, resource->start, resource_size(resource));
-
-		/* get IPA iram base  address */
-		resource = platform_get_resource_byname(pdev,
-												IORESOURCE_MEM,
-												"iram-base");
-		if (!resource) {
-			pr_err("%s :get resource failed for iram-base!\n", __func__);
-			return -ENODEV;
-		}
-		memcpy(&cfg->phy_virt_res.iram_res,
-			   resource,
-			   sizeof(struct resource));
-		cfg->phy_virt_res.iram_base = devm_ioremap_nocache(
-										  &pdev->dev, resource->start, resource_size(resource));
+	/* get IPA iram base  address */
+	resource = platform_get_resource_byname(pdev,
+											IORESOURCE_MEM,
+											"iram-base");
+	if (!resource) {
+		pr_err("%s :get resource failed for iram-base!\n", __func__);
+		return -ENODEV;
 	}
+	cfg->iram_phy = resource->start;
+	cfg->iram_size = resource_size(resource);
 
 	/* get IRQ numbers */
-	if (cfg->is_remote) {
-
-		/* ctrl0-tx */
-		resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ,
-												"ctrl0-tx");
-
-		cfg->ctrl_tx_intr0 = resource->start;
-
-		/* ctrl0-flow */
-		resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ,
-												"ctrl0-flow");
-
-		cfg->ctrl_flowctrl_intr0 = resource->start;
-
-		/* ctrl1-tx */
-		resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ,
-												"ctrl1-tx");
-
-		cfg->ctrl_tx_intr1 = resource->start;
-
-		/* ctrl1-flow */
-		resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ,
-												"ctrl1-flow");
-
-		cfg->ctrl_flowctrl_intr1 = resource->start;
-
-		/* ctrl2-tx */
-		resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ,
-												"ctrl2-tx");
-
-		cfg->ctrl_tx_intr2 = resource->start;
-
-		/* ctrl2-flow */
-		resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ,
-												"ctrl2-flow");
-
-		cfg->ctrl_flowctrl_intr2 = resource->start;
-
-		/* ctrl3-tx */
-		resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ,
-												"ctrl3-tx");
-
-		cfg->ctrl_tx_intr3 = resource->start;
-
-		/* ctrl3-flow */
-		resource = platform_get_resource_byname(pdev, IORESOURCE_IRQ,
-												"ctrl3-flow");
-
-		cfg->ctrl_flowctrl_intr3 = resource->start;
-	} else {
-		cfg->ipa_intr = platform_get_irq_byname(pdev, "local_ipa_irq");
-		if (cfg->ipa_intr == -ENXIO) {
-			pr_err("%s :get ipa-irq fail!\n",
-				   __func__);
-			return -ENODEV;
-		}
-		pr_info("ipa intr num = %d\n", cfg->ipa_intr);
+	cfg->ipa_intr = platform_get_irq_byname(pdev, "local_ipa_irq");
+	if (cfg->ipa_intr == -ENXIO) {
+		pr_err("%s :get ipa-irq fail!\n",
+			   __func__);
+		return -ENODEV;
 	}
+	pr_info("ipa intr num = %d\n", cfg->ipa_intr);
 
 	/* get IPA bypass mode */
 	ret = of_property_read_u32(pdev->dev.of_node,
@@ -586,6 +502,41 @@ static int sipa_parse_dts_configuration(
 	else
 		pr_debug("%s : using bypass mode =%d", __func__,
 				 cfg->is_bypass);
+
+	/* get enable register informations */
+	cfg->enable_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
+													  "enable");
+	if (IS_ERR(cfg->enable_regmap)) {
+		pr_err("%s :get enable regmap fail!\n", __func__);
+	}
+
+	ret = syscon_get_args_by_name(pdev->dev.of_node,
+								  "enable", 2,
+								  reg_info);
+	if (ret < 0 || ret != 2)
+		pr_warn("%s :get enable register info fail!\n", __func__);
+	else {
+		cfg->enable_reg = reg_info[0];
+		cfg->enable_mask = reg_info[1];
+	}
+
+	/* get wakeup register informations */
+	cfg->wakeup_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
+													  "wakeup");
+	if (IS_ERR(cfg->wakeup_regmap)) {
+		pr_err("%s :get wakeup regmap fail!\n", __func__);
+	}
+
+	ret = syscon_get_args_by_name(pdev->dev.of_node,
+								  "wakeup", 2,
+								  reg_info);
+
+	if (ret < 0 || ret != 2)
+		pr_warn("%s :get wakeup register info fail!\n", __func__);
+	else {
+		cfg->wakeup_reg = reg_info[0];
+		cfg->wakeup_mask = reg_info[1];
+	}
 
 	/* get IPA fifo memory settings */
 	for (i = 0; i < SIPA_FIFO_MAX; i++) {
@@ -631,10 +582,7 @@ static int ipa_pre_init(struct sipa_plat_drv_cfg *cfg)
 {
 	int ret;
 
-	if (cfg->is_remote)
-		cfg->name = DRV_REMOTE_NAME;
-	else
-		cfg->name = DRV_LOCAL_NAME;
+	cfg->name = DRV_LOCAL_NAME;
 
 	cfg->class = class_create(THIS_MODULE, cfg->name);
 	ret = alloc_chrdev_region(&cfg->dev_num, 0, 1, cfg->name);
@@ -643,19 +591,11 @@ static int ipa_pre_init(struct sipa_plat_drv_cfg *cfg)
 		return -1;
 	}
 
-	if (cfg->is_remote) {
-		cfg->dev = device_create(cfg->class, NULL, cfg->dev_num,
-								 cfg, DRV_REMOTE_NAME);
-		cdev_init(&cfg->cdev, &sipa_remote_drv_fops);
-		cfg->cdev.owner = THIS_MODULE;
-		cfg->cdev.ops = &sipa_remote_drv_fops;
-	} else {
-		cfg->dev = device_create(cfg->class, NULL, cfg->dev_num,
-								 cfg, DRV_LOCAL_NAME);
-		cdev_init(&cfg->cdev, &sipa_local_drv_fops);
-		cfg->cdev.owner = THIS_MODULE;
-		cfg->cdev.ops = &sipa_remote_drv_fops;
-	}
+	cfg->dev = device_create(cfg->class, NULL, cfg->dev_num,
+							 cfg, DRV_LOCAL_NAME);
+	cdev_init(&cfg->cdev, &sipa_local_drv_fops);
+	cfg->cdev.owner = THIS_MODULE;
+	cfg->cdev.ops = &sipa_local_drv_fops;
 
 	ret = cdev_add(&cfg->cdev, cfg->dev_num, 1);
 	if (ret) {
@@ -841,11 +781,13 @@ static int sipa_init(struct sipa_context **ipa_pp,
 	}
 
 	ipa->pdev = ipa_dev;
-	ipa->is_remote = cfg->is_remote;
 	ipa->bypass_mode = cfg->is_bypass;
 
 	ipa->hdl = sipa_hal_init(ipa_dev, cfg);
-
+	if (ipa->hdl) {
+		dev_err(ipa_dev, "sipa_hal_init fail!\n");
+		return -ENODEV;
+	}
 
 	/* init sipa eps */
 	ret = create_sipa_eps(cfg, ipa);
@@ -855,7 +797,7 @@ static int sipa_init(struct sipa_context **ipa_pp,
 	}
 
 	/* init sipa skb transfer layer */
-	if (!ipa->is_remote) {
+	if (!ipa->bypass_mode) {
 		ret = sipa_create_skb_xfer(ipa, cfg);
 		if (ret) {
 			ret = -EFAULT;
@@ -883,7 +825,6 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 	int ret;
 	struct device *dev = &pdev_p->dev;
 	struct sipa_plat_drv_cfg *cfg;
-	int is_remote = 0;
 	/*
 	* SIPA probe function can be called for multiple times as the same probe
 	* function handles multiple compatibilities
@@ -891,14 +832,8 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 	pr_debug("sipa: IPA driver probing started for %s\n",
 			 pdev_p->dev.of_node->name);
 
-	if (of_device_is_compatible(dev->of_node, "sprd,remote-sipa")) {
-		is_remote = 1;
-	}
-
-	cfg = &s_sipa_cfg[is_remote];
+	cfg = &s_sipa_cfg;
 	memset(cfg, 0, sizeof(*cfg));
-
-	cfg->is_remote = is_remote;
 
 	ret = sipa_parse_dts_configuration(pdev_p, cfg);
 	if (ret) {
@@ -912,16 +847,19 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		return ret;
 	}
 
-	if (!is_remote) {
-		ret = sipa_sys_init(cfg);
-		if (ret) {
-			pr_err("sipa: sipa_hal_init failed %d\n", ret);
-			return ret;
-		}
+	ret = sipa_force_wakeup(cfg);
+	if (ret) {
+		pr_err("sipa: sipa_hal_init failed %d\n", ret);
+		return ret;
 	}
 
+	ret = sipa_set_enabled(cfg);
+	if (ret) {
+		pr_err("sipa: sipa_hal_init failed %d\n", ret);
+		return ret;
+	}
 
-	ret = sipa_init(&s_sipa_ctrl.ctx[is_remote], cfg, dev);
+	ret = sipa_init(&s_sipa_ctrl.ctx, cfg, dev);
 	if (ret) {
 		pr_err("sipa: sipa_init failed %d\n", ret);
 		return ret;

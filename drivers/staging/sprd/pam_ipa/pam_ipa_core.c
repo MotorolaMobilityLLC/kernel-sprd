@@ -10,10 +10,18 @@
 #include <linux/of_reserved_mem.h>
 #include <linux/dma-mapping.h>
 #include <linux/skbuff.h>
-
+#include <linux/regmap.h>
+#include <linux/mfd/syscon.h>
 #include "pam_ipa_core.h"
+#include "../sipa_delegate/sipa_delegate.h"
 
 #define DRV_NAME "sprd-pam-ipa"
+
+#define PAM_IPA_DDR_MAP_OFFSET_L				0x0
+#define PAM_IPA_DDR_MAP_OFFSET_H				0x2
+
+#define PAM_IPA_PCIE_RC_BASE_L					0x0
+#define PAM_IPA_PCIE_RC_BASE_H					0x0
 
 u32 pam_buf_index;
 
@@ -116,6 +124,8 @@ static int pam_ipa_parse_dts_configuration(
 	struct platform_device *pdev,
 	struct pam_ipa_cfg_tag *cfg)
 {
+	int ret;
+	u32 reg_info[2];
 	struct resource *resource;
 
 	/* get IPA global register base  address */
@@ -132,6 +142,22 @@ static int pam_ipa_parse_dts_configuration(
 										 resource_size(resource));
 	memcpy(&cfg->pam_ipa_res, resource,
 		   sizeof(struct resource));
+
+	/* get enable register informations */
+	cfg->enable_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
+			     "enable");
+	if (IS_ERR(cfg->enable_regmap))
+		pr_warn("%s :get enable regmap fail!\n", __func__);
+
+	ret = syscon_get_args_by_name(pdev->dev.of_node,
+				      "enable", 2,
+				      reg_info);
+	if (ret < 0 || ret != 2)
+		pr_warn("%s :get enable register info fail!\n", __func__);
+	else {
+		cfg->enable_reg = reg_info[0];
+		cfg->enable_mask = reg_info[1];
+	}
 
 	of_property_read_u32(pdev->dev.of_node,
 						 "sprd,cp-ul-intr-to-ap",
@@ -199,8 +225,12 @@ static int pam_ipa_plat_drv_probe(struct platform_device *pdev_p)
 	pam_ipa_parse_dts_configuration(pdev_p, cfg);
 
 	pam_ipa_init_api(&cfg->hal_ops);
-	cfg->pcie_offset = cfg->hal_ops.get_ddr_mapping();
-	cfg->pcie_rc_base = cfg->hal_ops.get_pcie_rc_base();
+	cfg->pcie_offset = PAM_IPA_STI_64BIT(
+				   PAM_IPA_DDR_MAP_OFFSET_L,
+				   PAM_IPA_DDR_MAP_OFFSET_H);
+	cfg->pcie_rc_base = PAM_IPA_STI_64BIT(
+				    PAM_IPA_PCIE_RC_BASE_L,
+				    PAM_IPA_PCIE_RC_BASE_H);
 
 	pam_ipa_alloc_skb_buf(&pdev_p->dev, cfg);
 
@@ -216,14 +246,13 @@ static int pam_ipa_plat_drv_probe(struct platform_device *pdev_p)
 						   &cfg->local_cfg);
 	if (ret)
 		pr_err("[PAM_IPA] local ipa not ready\n");
-#if 0
+
 	cfg->pam_remote_param.id = SIPA_EP_REMOTE_PCIE;
-	ret = sipa_pam_connect(&cfg->pam_remote_param,
-						   &cfg->remote_cfg);
+	ret = modem_sipa_connect(&cfg->remote_cfg);
 	if (ret)
 		pr_err("[PAM_IPA] remote ipa not ready\n");
-#endif
-	//pam_ipa_init(cfg);
+
+	pam_ipa_init(cfg);
 
 	return 0;
 }

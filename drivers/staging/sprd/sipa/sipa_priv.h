@@ -16,6 +16,7 @@
 #include <linux/sipa.h>
 #include <linux/interrupt.h>
 #include <linux/cdev.h>
+#include <linux/regmap.h>
 #include "sipa_hal.h"
 
 #define SIPA_DEF_OFFSET	64
@@ -34,17 +35,6 @@ enum flow_ctrl_irq_e {
 	enter_flow_ctrl,
 	exit_flow_ctrl,
 	enter_exit_flow_ctrl,
-};
-
-struct sipa_plat_drv_res {
-	void __iomem *glb_base;
-	void __iomem *iram_base;
-	void __iomem *sys_base;
-	struct resource glb_res;
-	struct resource iram_res;
-	struct resource sys_res;
-
-	u64 iram_allocated_size;
 };
 
 struct sipa_common_fifo_info {
@@ -98,7 +88,14 @@ struct sipa_plat_drv_cfg {
 	struct device *dev;
 	struct cdev cdev;
 
-	int is_remote;
+	struct regmap *enable_regmap;
+	u32 enable_reg;
+	u32 enable_mask;
+
+	struct regmap *wakeup_regmap;
+	u32 wakeup_reg;
+	u32 wakeup_mask;
+
 	int ipa_intr;
 
 	u32 ctrl_tx_intr0;
@@ -114,7 +111,11 @@ struct sipa_plat_drv_cfg {
 	u32 fifo_iram_size;
 	u32 fifo_ddr_size;
 
-	struct sipa_plat_drv_res phy_virt_res;
+	phys_addr_t glb_phy;
+	resource_size_t glb_size;
+	phys_addr_t iram_phy;
+	resource_size_t iram_size;
+
 	struct sipa_common_fifo_cfg common_fifo_cfg[SIPA_FIFO_MAX];
 };
 
@@ -221,7 +222,7 @@ struct sipa_skb_receiver {
 
 struct sipa_control {
 	/* IPA hw contxt */
-	struct sipa_context *ctx[2];
+	struct sipa_context *ctx;
 	struct sipa_endpoint *eps[SIPA_EP_MAX];
 
 	/* IPA NIC interface */

@@ -116,12 +116,25 @@ struct sipa_hal_fifo_item {
 	u32 err_code;
 };
 
+struct sipa_reg_res_tag {
+	void __iomem *glb_base;
+	void __iomem *iram_base;
+	phys_addr_t glb_phy;
+	phys_addr_t iram_phy;
+	resource_size_t glb_size;
+	resource_size_t iram_size;
+
+	u64 iram_allocated_size;
+};
+
 struct sipa_plat_drv_cfg;
 
 sipa_hal_hdl sipa_hal_init(struct device *dev,
 						   struct sipa_plat_drv_cfg *cfg);
 
-int sipa_sys_init(struct sipa_plat_drv_cfg *cfg);
+int sipa_set_enabled(struct sipa_plat_drv_cfg *cfg);
+
+int sipa_force_wakeup(struct sipa_plat_drv_cfg *cfg);
 
 int sipa_open_common_fifo(sipa_hal_hdl hdl,
 						  enum sipa_cmn_fifo_index fifo,
@@ -156,8 +169,7 @@ bool sipa_hal_is_rx_fifo_empty(sipa_hal_hdl hdl,
 bool sipa_hal_is_tx_fifo_empty(sipa_hal_hdl hdl,
 							   enum sipa_cmn_fifo_index fifo);
 
-int sipa_hal_init_pam_param(int is_remote,
-							enum sipa_cmn_fifo_index dl_idx,
+int sipa_hal_init_pam_param(enum sipa_cmn_fifo_index dl_idx,
 							enum sipa_cmn_fifo_index ul_idx,
 							struct sipa_to_pam_info *out);
 

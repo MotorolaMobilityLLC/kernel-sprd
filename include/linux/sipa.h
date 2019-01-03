@@ -192,8 +192,7 @@ struct sipa_pam_attrs {
 	u64 rx_fifo_base_addr;
 	u64 tx_fifo_base_addr;
 
-	u64 rx_fifo_sts_addr;
-	u64 tx_fifo_sts_addr;
+	u64 fifo_sts_addr;
 };
 
 enum sipa_nic_id

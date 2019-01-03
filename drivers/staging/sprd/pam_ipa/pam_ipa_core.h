@@ -8,11 +8,11 @@
 #define PAM_FREE_FIFO_SIZE	1024
 
 #define PAM_IPA_GET_LOW32(val) \
-			((u32)(val & 0x00000000FFFFFFFF))
+			((u32)((val) & 0x00000000FFFFFFFF))
 #define PAM_IPA_GET_HIGH32(val) \
-			((u32)((val >> 32) & 0x00000000FFFFFFFF))
+			((u32)(((val) >> 32) & 0x00000000FFFFFFFF))
 #define PAM_IPA_STI_64BIT(l_val, h_val) \
-			((u64)(l_val | ((u64)h_val << 32)))
+			((u64)((l_val) | ((u64)(h_val) << 32)))
 
 struct pam_ipa_hal_proc_tag {
 	u32 (*init_pcie_ul_fifo_base)(
@@ -57,13 +57,15 @@ struct pam_ipa_hal_proc_tag {
 	u32 (*stop)(void __iomem *reg_base);
 	u32 (*resume)(void __iomem *reg_base, u32 flag);
 
-	u64 (*get_ddr_mapping)(void);
-	u64 (*get_pcie_rc_base)(void);
 };
 
 struct pam_ipa_cfg_tag {
 	void __iomem *reg_base;
 	struct resource pam_ipa_res;
+
+	struct regmap *enable_regmap;
+	u32 enable_reg;
+	u32 enable_mask;
 
 	u32 connect;
 	u64 pcie_offset;
@@ -88,5 +90,6 @@ struct pam_ipa_cfg_tag {
 
 extern u32 pam_ipa_init_api(struct pam_ipa_hal_proc_tag *ops);
 extern u32 pam_ipa_init(struct pam_ipa_cfg_tag *cfg);
+extern int pam_ipa_set_enabled(struct pam_ipa_cfg_tag *cfg);
 
 #endif

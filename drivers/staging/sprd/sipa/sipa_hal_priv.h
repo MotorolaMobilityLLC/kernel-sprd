@@ -54,17 +54,6 @@ struct sipa_node_description_tag {
 	u32 reserved : 22;
 } __attribute__((__packed__));
 
-struct sipa_reg_res_tag {
-	void __iomem *glb_base;
-	void __iomem *iram_base;
-	void __iomem *sys_base;
-	struct resource glb_res;
-	struct resource iram_res;
-	struct resource sys_res;
-
-	u64 iram_allocated_size;
-};
-
 struct sipa_cmn_fifo_tag {
 	u32 depth;
 	u32 wr;
@@ -261,7 +250,6 @@ struct sipa_hal_context {
 	const char *name;
 	struct device *dev;
 
-	int is_remote;
 	u32 ipa_intr;
 
 	u32 ctrl_tx_intr0;

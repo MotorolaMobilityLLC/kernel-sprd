@@ -114,7 +114,7 @@ int sipa_usb_dl_test_start(void)
 
 	sipa_test_enable_periph_int_to_sw();
 
-	ret = create_sipa_periph_sender(s_sipa_ctrl.ctx[0],
+	ret = create_sipa_periph_sender(s_sipa_ctrl.ctx,
 									s_sipa_ctrl.eps[SIPA_EP_VCP],
 									SIPA_PKT_IP,
 									&s_usb_dl_test.cp_sender);
@@ -124,7 +124,7 @@ int sipa_usb_dl_test_start(void)
 	}
 
 
-	ret = create_sipa_periph_receiver(s_sipa_ctrl.ctx[0],
+	ret = create_sipa_periph_receiver(s_sipa_ctrl.ctx,
 									  s_sipa_ctrl.eps[SIPA_EP_USB],
 									  dispatch_recv,
 									  &s_usb_dl_test.usb_receiver);

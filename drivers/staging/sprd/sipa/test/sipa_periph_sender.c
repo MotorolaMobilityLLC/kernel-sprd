@@ -105,7 +105,7 @@ void sipa_periph_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 {
 	struct sipa_periph_sender *sender = (struct sipa_periph_sender *)priv;
 
-	pr_info("sipa sender recv evt:0x%x\n", (u32)evt);
+	pr_debug("sipa_periph_sender recv evt:0x%x\n", (u32)evt);
 
 	if (evt & SIPA_HAL_TXFIFO_OVERFLOW) {
 		pr_err("sipa overflow on ep:%d\n", sender->ep->id);
@@ -197,6 +197,14 @@ int sipa_periph_send_data(struct sipa_periph_sender *sender,
 	item.dst = dst;
 	item.src = sender->ep->send_fifo.src_id;
 
+	pr_debug("sipa_periph_send_data :%d, item addr:0x%x, len:%d, offset:%d, src:%d, dst:%d\n",
+				sender->ep->send_fifo.idx,
+				((u32)(dma_addr & 0x00000000FFFFFFFF)),
+				item.len,
+				item.offset,
+				item.src,
+				item.dst);
+
 	spin_lock_irqsave(&sender->lock, flags);
 
 	list_add_tail(&node->list, &sender->sending_list);
@@ -226,7 +234,7 @@ int sipa_periph_sender_init(struct sipa_periph_sender *sender)
 		return -ENOMEM;
 	}
 
-	attr.tx_intr_delay_us = 3000;
+	attr.tx_intr_delay_us = 0;
 	attr.tx_intr_threshold = sender->left_cnt / 4;
 	attr.flow_ctrl_cfg = 0;
 	attr.flowctrl_in_tx_full = true;

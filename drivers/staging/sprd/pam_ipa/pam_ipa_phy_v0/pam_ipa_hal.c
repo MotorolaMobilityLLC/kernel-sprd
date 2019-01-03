@@ -1,4 +1,5 @@
 #include <linux/kernel.h>
+#include <linux/regmap.h>
 #include <linux/sipa.h>
 
 #include "pam_ipa_regs.h"
@@ -238,18 +239,6 @@ static u32 pam_ipa_hal_resume(
 	return ret;
 }
 
-u64 pam_ipa_get_ddr_map_offset(void)
-{
-	return PAM_IPA_STI_64BIT(PAM_IPA_DDR_MAP_OFFSET_L,
-							 PAM_IPA_DDR_MAP_OFFSET_H);
-}
-
-u64 pam_ipa_get_pcie_rc_base(void)
-{
-	return PAM_IPA_STI_64BIT(PAM_IPA_PCIE_RC_BASE_L,
-							 PAM_IPA_PCIE_RC_BASE_H);
-}
-
 u32 pam_ipa_init_api(
 	struct pam_ipa_hal_proc_tag *ops)
 {
@@ -280,16 +269,31 @@ u32 pam_ipa_init_api(
 	ops->resume
 		= pam_ipa_hal_resume;
 
-	ops->get_ddr_mapping = pam_ipa_get_ddr_map_offset;
-
-	ops->get_pcie_rc_base = pam_ipa_get_pcie_rc_base;
 
 	return TRUE;
 }
 
+int pam_ipa_set_enabled(struct pam_ipa_cfg_tag *cfg)
+{
+	int ret = 0;
+
+	if (cfg->enable_regmap) {
+		ret = regmap_update_bits(cfg->enable_regmap,
+						   cfg->enable_reg,
+						   cfg->enable_mask,
+						   cfg->enable_mask);
+		if (ret < 0)
+			pr_warn("%s: regmap update bits failed", __func__);
+	}
+	return ret;
+}
+EXPORT_SYMBOL(pam_ipa_set_enabled);
+
 u32 pam_ipa_init(struct pam_ipa_cfg_tag *cfg)
 {
 	u32 ret;
+
+	pam_ipa_set_enabled(cfg);
 
 	pam_ipa_hal_init_pcie_dl_fifo_base(
 		cfg->reg_base,
@@ -321,31 +325,31 @@ u32 pam_ipa_init(struct pam_ipa_cfg_tag *cfg)
 
 	pam_ipa_hal_init_pcie_dl_fifo_sts_addr(
 		cfg->reg_base,
-		PAM_IPA_GET_LOW32(cfg->remote_cfg.dl_fifo.tx_fifo_sts_addr),
-		PAM_IPA_GET_HIGH32(cfg->remote_cfg.dl_fifo.tx_fifo_sts_addr),
-		PAM_IPA_GET_LOW32(cfg->remote_cfg.dl_fifo.rx_fifo_sts_addr),
-		PAM_IPA_GET_HIGH32(cfg->remote_cfg.dl_fifo.rx_fifo_sts_addr));
+		PAM_IPA_GET_LOW32(cfg->remote_cfg.dl_fifo.fifo_sts_addr),
+		PAM_IPA_GET_HIGH32(cfg->remote_cfg.dl_fifo.fifo_sts_addr),
+		PAM_IPA_GET_LOW32(cfg->remote_cfg.dl_fifo.fifo_sts_addr),
+		PAM_IPA_GET_HIGH32(cfg->remote_cfg.dl_fifo.fifo_sts_addr));
 
 	pam_ipa_hal_init_pcie_ul_fifo_sts_addr(
 		cfg->reg_base,
-		PAM_IPA_GET_LOW32(cfg->remote_cfg.ul_fifo.rx_fifo_sts_addr),
-		PAM_IPA_GET_HIGH32(cfg->remote_cfg.ul_fifo.rx_fifo_sts_addr),
-		PAM_IPA_GET_LOW32(cfg->remote_cfg.ul_fifo.tx_fifo_sts_addr),
-		PAM_IPA_GET_HIGH32(cfg->remote_cfg.ul_fifo.tx_fifo_sts_addr));
+		PAM_IPA_GET_LOW32(cfg->remote_cfg.ul_fifo.fifo_sts_addr),
+		PAM_IPA_GET_HIGH32(cfg->remote_cfg.ul_fifo.fifo_sts_addr),
+		PAM_IPA_GET_LOW32(cfg->remote_cfg.ul_fifo.fifo_sts_addr),
+		PAM_IPA_GET_HIGH32(cfg->remote_cfg.ul_fifo.fifo_sts_addr));
 
 	pam_ipa_hal_init_wiap_dl_fifo_sts_addr(
 		cfg->reg_base,
-		PAM_IPA_GET_LOW32(cfg->local_cfg.dl_fifo.tx_fifo_sts_addr),
-		PAM_IPA_GET_HIGH32(cfg->local_cfg.dl_fifo.tx_fifo_sts_addr),
-		PAM_IPA_GET_LOW32(cfg->local_cfg.dl_fifo.rx_fifo_sts_addr),
-		PAM_IPA_GET_HIGH32(cfg->local_cfg.dl_fifo.rx_fifo_sts_addr));
+		PAM_IPA_GET_LOW32(cfg->local_cfg.dl_fifo.fifo_sts_addr),
+		PAM_IPA_GET_HIGH32(cfg->local_cfg.dl_fifo.fifo_sts_addr),
+		PAM_IPA_GET_LOW32(cfg->local_cfg.dl_fifo.fifo_sts_addr),
+		PAM_IPA_GET_HIGH32(cfg->local_cfg.dl_fifo.fifo_sts_addr));
 
 	pam_ipa_hal_init_wiap_ul_fifo_sts_addr(
 		cfg->reg_base,
-		PAM_IPA_GET_LOW32(cfg->local_cfg.ul_fifo.rx_fifo_sts_addr),
-		PAM_IPA_GET_HIGH32(cfg->local_cfg.ul_fifo.rx_fifo_sts_addr),
-		PAM_IPA_GET_LOW32(cfg->local_cfg.ul_fifo.tx_fifo_sts_addr),
-		PAM_IPA_GET_HIGH32(cfg->local_cfg.ul_fifo.tx_fifo_sts_addr));
+		PAM_IPA_GET_LOW32(cfg->local_cfg.ul_fifo.fifo_sts_addr),
+		PAM_IPA_GET_HIGH32(cfg->local_cfg.ul_fifo.fifo_sts_addr),
+		PAM_IPA_GET_LOW32(cfg->local_cfg.ul_fifo.fifo_sts_addr),
+		PAM_IPA_GET_HIGH32(cfg->local_cfg.ul_fifo.fifo_sts_addr));
 
 	pam_ipa_hal_set_ddr_mapping(
 		cfg->reg_base,
