@@ -840,6 +840,27 @@
 				};
 			};
 
+			pwms: pwm@32260000 {
+				compatible = "sprd,sharkl5-pwm", "sprd,roc1-pwm";
+				reg = <0 0x32260000 0 0x10000>;
+				status = "disabled";
+				clock-names = "clk_parent",
+					"clk_pwm0", "clk_pwm0_eb",
+					"clk_pwm1", "clk_pwm1_eb",
+					"clk_pwm2", "clk_pwm2_eb",
+					"clk_pwm3", "clk_pwm3_eb";
+				clocks = <&ext_26m>,
+					<&aon_clk CLK_AON_PWM0>,
+					<&aonapb_gate CLK_PWM0_EB>,
+					<&aon_clk CLK_AON_PWM1>,
+					<&aonapb_gate CLK_PWM1_EB>,
+					<&aon_clk CLK_AON_PWM2>,
+					<&aonapb_gate CLK_PWM2_EB>,
+					<&aon_clk CLK_AON_PWM3>,
+					<&aonapb_gate CLK_PWM3_EB>;
+				#pwm-cells = <2>;
+			};
+
 			usb: usb@0x5fff0000 {
 				compatible = "sprd,roc1-musb";
 				reg = <0 0x5fff0000 0 0x2000>;

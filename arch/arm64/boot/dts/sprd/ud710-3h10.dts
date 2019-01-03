@@ -275,6 +275,10 @@
 	status = "okay";
 };
 
+&pwms {
+	status = "okay";
+};
+
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&pmic_typec>;
