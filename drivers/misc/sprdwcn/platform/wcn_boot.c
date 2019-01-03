@@ -106,7 +106,7 @@ struct marlin_device {
 	struct work_struct download_wq;
 	struct work_struct gnss_dl_wq;
 	bool keep_power_on;
-	bool wait_ge2_disabled;
+	bool wait_ge2;
 	bool is_btwf_in_sysfs;
 	bool is_gnss_in_sysfs;
 	int wifi_need_download_ini_flag;
@@ -126,7 +126,7 @@ struct wifi_calibration {
 
 static struct wifi_calibration wifi_data;
 struct completion ge2_completion;
-static int first_call_flag;
+static int first_call_flag = 1;
 marlin_reset_callback marlin_reset_func;
 void *marlin_callback_para;
 
@@ -633,7 +633,7 @@ static int btwifi_download_firmware(void)
 
 	WCN_INFO("marlin %s from /system/etc/firmware/ start!\n", __func__);
 	buf = marlin_dev->write_buffer;
-	err = request_firmware(&firmware, "wcnmodem.bin", NULL);
+	err = request_firmware_direct(&firmware, "wcnmodem.bin", NULL);
 	if (err < 0) {
 		WCN_ERR("no find wcnmodem.bin errno:(%d)(ignore!!)\n", err);
 		marlin_dev->is_btwf_in_sysfs = true;
@@ -783,9 +783,9 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		marlin_dev->keep_power_on = true;
 	}
 
-	if (of_property_read_bool(np, "sprd,wait-ge2-disabled")) {
-		WCN_INFO("this is marlin3, not need wait gps ready\n");
-		marlin_dev->wait_ge2_disabled = true;
+	if (of_property_read_bool(np, "wait-ge2")) {
+		WCN_INFO("wait-ge2 need wait gps ready\n");
+		marlin_dev->wait_ge2 = true;
 	}
 
 	pmu_apb_gpr = syscon_regmap_lookup_by_phandle(np,
@@ -1635,8 +1635,7 @@ static int marlin_set_power(int subsys, int val)
 
 	mutex_lock(&marlin_dev->power_lock);
 
-	if (!marlin_dev->wait_ge2_disabled) {
-		first_call_flag++;
+	if (marlin_dev->wait_ge2) {
 		if (first_call_flag == 1) {
 			WCN_INFO("(marlin2+ge2)waiting ge2 download finish\n");
 			timeleft
@@ -1644,8 +1643,8 @@ static int marlin_set_power(int subsys, int val)
 				&ge2_completion, 12*HZ);
 			if (!timeleft)
 				WCN_ERR("wait ge2 timeout\n");
+			first_call_flag = 2;
 		}
-		first_call_flag = 2;
 	}
 
 	WCN_INFO("marlin power state:%lx, subsys: [%s] power %d\n",
