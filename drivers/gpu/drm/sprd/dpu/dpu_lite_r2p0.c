@@ -779,7 +779,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 		break;
 	case DRM_FORMAT_BGR565:
 		/* rb switch */
-		reg_val |= BIT(10);
+		reg_val |= BIT(12);
 	case DRM_FORMAT_RGB565:
 		if (compression)
 			/* XFBC-RGB565 */
