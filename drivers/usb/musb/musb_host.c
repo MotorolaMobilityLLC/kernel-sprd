@@ -2258,6 +2258,9 @@ static int musb_schedule(
 		else
 			diff = hw_ep->max_packet_sz_tx;
 
+		dev_dbg(musb->controller, "%s%d fifo %d MPS*MULT  %d*%d\n",
+			is_in ? "EPIN_" : "EPOUT_", epnum, diff,
+			qh->maxpacket, qh->hb_mult);
 		diff -= (qh->maxpacket * qh->hb_mult);
 
 		if (diff >= 0 && best_diff > diff) {

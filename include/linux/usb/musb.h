@@ -62,6 +62,7 @@ struct musb_hdrc_eps_bits {
 
 struct musb_hdrc_config {
 	struct musb_fifo_cfg	*fifo_cfg;	/* board fifo configuration */
+	struct musb_fifo_cfg	*host_fifo_cfg;	/* host mode fifo setting */
 	unsigned		fifo_cfg_size;	/* size of the fifo configuration */
 
 	/* MUSB configuration-specific details */

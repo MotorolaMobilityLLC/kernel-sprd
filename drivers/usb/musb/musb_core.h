@@ -581,8 +581,6 @@ extern void musb_hnp_stop(struct musb *musb);
 
 extern void musb_reset_all_fifo_2_default(struct musb *musb);
 
-extern void musb_reset_fifo_2_default(struct musb *musb, u8 epnum, u8 is_tx);
-
 extern void musb_force_single_fifo(struct musb *musb, u8 epnum, u8 is_tx);
 
 int musb_queue_resume_work(struct musb *musb,

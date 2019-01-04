@@ -513,48 +513,6 @@ static void musb_otg_timer_func(unsigned long data)
 	spin_unlock_irqrestore(&musb->lock, flags);
 }
 
-void musb_reset_fifo_2_default(struct musb *musb, u8 epnum, u8 is_tx)
-{
-	void __iomem *musb_base = musb->mregs;
-	struct musb_hw_ep	*hw_ep = musb->endpoints + epnum;
-	u8 index_bk = 0;
-
-	if (musb->dyn_fifo == 0 || !hw_ep)
-		return;
-
-	index_bk = musb_readb(musb_base, MUSB_INDEX);
-	musb_writeb(musb_base, MUSB_INDEX, epnum);
-	if (is_tx) {
-		musb_write_txfifosz(musb_base,
-			musb->context.index_regs[epnum].s_txfifosz);
-		musb_write_txfifoadd(musb_base,
-			musb->context.index_regs[epnum].s_txfifoadd);
-		hw_ep->tx_double_buffered =
-			!!(musb->context.index_regs[epnum].s_txfifosz
-				& MUSB_FIFOSZ_DPB);
-	} else {
-		musb_write_rxfifosz(musb_base,
-			musb->context.index_regs[epnum].s_rxfifosz);
-		musb_write_rxfifoadd(musb_base,
-			musb->context.index_regs[epnum].s_rxfifoadd);
-		hw_ep->rx_double_buffered =
-			!!(musb->context.index_regs[epnum].s_rxfifosz
-				& MUSB_FIFOSZ_DPB);
-	}
-
-	musb_writeb(musb_base, MUSB_INDEX, index_bk);
-}
-
-void musb_reset_all_fifo_2_default(struct musb *musb)
-{
-	int i;
-
-	for (i = 0; i < musb->config->num_eps; ++i) {
-		musb_reset_fifo_2_default(musb, i, 0);
-		musb_reset_fifo_2_default(musb, i, 1);
-	}
-}
-
 void musb_force_single_fifo(struct musb *musb, u8 epnum, u8 is_tx)
 {
 	void __iomem *musb_base = musb->mregs;
@@ -1398,6 +1356,8 @@ static int ep_config_from_table(struct musb *musb)
 	if (musb->config->fifo_cfg) {
 		cfg = musb->config->fifo_cfg;
 		n = musb->config->fifo_cfg_size;
+		if (is_host_active(musb))
+			cfg = musb->config->host_fifo_cfg;
 		goto done;
 	}
 
@@ -1473,6 +1433,11 @@ done:
 	return 0;
 }
 
+void musb_reset_all_fifo_2_default(struct musb *musb)
+{
+	pr_debug("set %s FIFO setting\n", is_host_active(musb) ? "Host" : "Device");
+	ep_config_from_table(musb);
+}
 
 /*
  * ep_config_from_hw - when MUSB_C_DYNFIFO_DEF is false
