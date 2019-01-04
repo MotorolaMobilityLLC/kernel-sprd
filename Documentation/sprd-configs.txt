@@ -8480,6 +8480,13 @@ CONFIG_REGULATOR_SC2703
 	[subsys] regulator
 	[must] user
 	[function] SUPPORT SC2703 regulator function.
+CONFIG_REGULATOR_SC2721
+	[arch] all
+	[plat] all
+	[field] menu,code
+	[subsys] regulator
+	[must] user
+	[function] SUPPORT SC2721 regulator function.
 CONFIG_REGULATOR_SC2730
 	[arch] all
 	[plat] all
