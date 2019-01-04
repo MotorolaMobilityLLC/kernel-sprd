@@ -841,11 +841,15 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 		reg_val |= BIT(2);
 		break;
 	case DRM_MODE_BLEND_COVERAGE:
-		/*Normal mode*/
+		/* alpha mode select - combo alpha */
+		reg_val |= BIT(3);
+		/* blending mode select - normal mode */
 		reg_val &= (~BIT(16));
 		break;
 	case DRM_MODE_BLEND_PREMULTI:
-		/*Pre-mult mode*/
+		/* alpha mode select - combo alpha */
+		reg_val |= BIT(3);
+		/* blending mode select - pre-mult mode */
 		reg_val |= BIT(16);
 		break;
 	default:
