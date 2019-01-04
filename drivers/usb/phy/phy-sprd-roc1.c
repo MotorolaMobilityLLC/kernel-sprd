@@ -352,7 +352,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		phy->vdd_vol = 3300000;
 	}
 
-	phy->vdd = devm_regulator_get(dev, "vdd");
+	phy->vdd = devm_regulator_get_optional(dev, "vdd");
 	if (IS_ERR(phy->vdd)) {
 		dev_err(dev, "unable to get ssphy vdd supply\n");
 		phy->vdd = NULL;
@@ -360,7 +360,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 
 	if (phy->vdd) {
 		ret = regulator_set_voltage(phy->vdd, phy->vdd_vol,
-					phy->vdd_vol);
+					    phy->vdd_vol);
 		if (ret < 0) {
 			dev_err(dev, "fail to set ssphy vdd voltage at %dmV\n",
 				phy->vdd_vol);
