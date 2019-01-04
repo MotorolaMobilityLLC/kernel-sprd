@@ -30,3 +30,9 @@ config PINCTRL_SPRD_ROC1
 	depends on PINCTRL_SPRD
 	help
 	  Say Y here to enable Spreadtrum Roc1 pinctrl driver
+
+config PINCTRL_SPRD_SHARKL3
+	bool "Spreadtrum Sharkl3 pinctrl driver"
+	depends on PINCTRL_SPRD
+	help
+	  Say Y here to enable Spreadtrum Sharkl3 pinctrl driver
