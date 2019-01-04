@@ -393,7 +393,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 
 	/* enable otg utmi and analog */
 	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB
-		| MASK_AON_APB_OTG_PHY_EB | MASK_AON_APB_CKG_EB;
+		| MASK_AON_APB_CKG_EB;
 	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1,
 				 msk, reg);
 
