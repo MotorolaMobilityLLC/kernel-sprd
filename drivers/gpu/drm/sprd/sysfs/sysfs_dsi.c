@@ -392,6 +392,136 @@ static ssize_t lp_cmd_en_show(struct device *dev,
 }
 static DEVICE_ATTR_RW(lp_cmd_en);
 
+static ssize_t hs2lp_datalane_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+	u32 val;
+
+	if (kstrtouint(buf, 0, &val)) {
+		pr_err("invalid input for hs2lp datalane\n");
+		return -EINVAL;
+	}
+
+	dsi->ctx.data_hs2lp = val;
+
+	return count;
+}
+
+static ssize_t hs2lp_datalane_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u ns\n", dsi->ctx.data_hs2lp);
+}
+static DEVICE_ATTR_RW(hs2lp_datalane);
+
+static ssize_t hs2lp_clklane_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+	u32 val;
+
+	if (kstrtouint(buf, 0, &val)) {
+		pr_err("invalid input for hs2lp clklane\n");
+		return -EINVAL;
+	}
+
+	dsi->ctx.clk_hs2lp = val;
+
+	return count;
+}
+
+static ssize_t hs2lp_clklane_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u ns\n", dsi->ctx.clk_hs2lp);
+}
+static DEVICE_ATTR_RW(hs2lp_clklane);
+
+static ssize_t lp2hs_datalane_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+	u32 val;
+
+	if (kstrtouint(buf, 0, &val)) {
+		pr_err("invalid input for lp2hs datalane\n");
+		return -EINVAL;
+	}
+
+	dsi->ctx.data_lp2hs = val;
+
+	return count;
+}
+
+static ssize_t lp2hs_datalane_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u ns\n", dsi->ctx.data_lp2hs);
+}
+static DEVICE_ATTR_RW(lp2hs_datalane);
+
+static ssize_t lp2hs_clklane_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+	u32 val;
+
+	if (kstrtouint(buf, 0, &val)) {
+		pr_err("invalid input for lp2hs clklane\n");
+		return -EINVAL;
+	}
+
+	dsi->ctx.clk_lp2hs = val;
+
+	return count;
+}
+
+static ssize_t lp2hs_clklane_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u ns\n", dsi->ctx.clk_lp2hs);
+}
+static DEVICE_ATTR_RW(lp2hs_clklane);
+
+static ssize_t max_read_time_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+	u32 val;
+
+	if (kstrtouint(buf, 0, &val)) {
+		pr_err("invalid input for max read time\n");
+		return -EINVAL;
+	}
+
+	dsi->ctx.max_rd_time = val;
+
+	return count;
+}
+
+static ssize_t max_read_time_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct sprd_dsi *dsi = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u ns\n", dsi->ctx.max_rd_time);
+}
+static DEVICE_ATTR_RW(max_read_time);
+
 static ssize_t int0_mask_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
@@ -524,6 +654,11 @@ static struct attribute *dsi_attrs[] = {
 	&dev_attr_dcs_write.attr,
 	&dev_attr_work_mode.attr,
 	&dev_attr_lp_cmd_en.attr,
+	&dev_attr_hs2lp_datalane.attr,
+	&dev_attr_hs2lp_clklane.attr,
+	&dev_attr_lp2hs_datalane.attr,
+	&dev_attr_lp2hs_clklane.attr,
+	&dev_attr_max_read_time.attr,
 	&dev_attr_int0_mask.attr,
 	&dev_attr_int1_mask.attr,
 	&dev_attr_state_reset.attr,
