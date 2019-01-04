@@ -18,6 +18,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 #include <linux/device.h>
+#include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/io.h>
 #include <linux/of.h>
@@ -25,6 +26,7 @@
 #include <linux/regmap.h>
 #include <linux/usb/phy.h>
 #include <linux/usb/otg.h>
+#include <linux/power/sc2721-usb-charger.h>
 #include <dt-bindings/soc/sprd,sharkl3-mask.h>
 #include <dt-bindings/soc/sprd,sharkl3-regs.h>
 
@@ -37,6 +39,7 @@ struct sprd_hsphy {
 	struct regmap           *apahb;
 	struct regmap           *ana_g2;
 	struct regmap           *ana_g4;
+	struct regmap           *pmic;
 	u32			vdd_vol;
 	atomic_t		reset;
 	atomic_t		inited;
@@ -284,14 +287,35 @@ static struct attribute *usb_hsphy_attrs[] = {
 };
 ATTRIBUTE_GROUPS(usb_hsphy);
 
+static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
+				  unsigned long event, void *data)
+{
+	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
+
+	if (event)
+		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
+	else
+		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
+
+	return 0;
+}
+
+static enum usb_charger_type sprd_hsphy_charger_detect(struct usb_phy *x)
+{
+	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
+
+	return sc27xx_charger_detect(phy->pmic);
+}
+
 static int sprd_hsphy_probe(struct platform_device *pdev)
 {
+	struct device_node *regmap_np;
+	struct platform_device *regmap_pdev;
 	struct sprd_hsphy *phy;
 	struct device *dev = &pdev->dev;
 	struct resource *res;
 	int ret;
 	struct usb_otg *otg;
-
 	phy = devm_kzalloc(dev, sizeof(*phy), GFP_KERNEL);
 	if (!phy)
 		return -ENOMEM;
@@ -306,6 +330,25 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->base = devm_ioremap_nocache(dev, res->start, resource_size(res));
 	if (IS_ERR(phy->base))
 		return PTR_ERR(phy->base);
+
+	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
+	if (!regmap_np) {
+		dev_err(dev, "unable to get syscon node\n");
+		return -ENODEV;
+	}
+
+	regmap_pdev = of_find_device_by_node(regmap_np);
+	if (!regmap_pdev) {
+		of_node_put(regmap_np);
+		dev_err(dev, "unable to get syscon platform device\n");
+		return -ENODEV;
+	}
+
+	phy->pmic = dev_get_regmap(regmap_pdev->dev.parent, NULL);
+	if (!phy->pmic) {
+		dev_err(dev, "unable to get pmic regmap device\n");
+		return -ENODEV;
+	}
 
 	ret = of_property_read_u32(dev->of_node, "sprd,vdd-voltage",
 				   &phy->vdd_vol);
@@ -379,6 +422,8 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->phy.set_vbus = sprd_hostphy_set;
 	phy->phy.set_emphasis = sprd_hsphy_emphasis_set;
 	phy->phy.type = USB_PHY_TYPE_USB2;
+	phy->phy.vbus_nb.notifier_call = sprd_hsphy_vbus_notify;
+	phy->phy.charger_detect = sprd_hsphy_charger_detect;
 	otg->usb_phy = &phy->phy;
 
 	platform_set_drvdata(pdev, phy);
@@ -425,4 +470,15 @@ static struct platform_driver sprd_hsphy_driver = {
 	},
 };
 
-module_platform_driver(sprd_hsphy_driver);
+static int __init sprd_hsphy_driver_init(void)
+{
+	return platform_driver_register(&sprd_hsphy_driver);
+}
+
+static void __exit sprd_hsphy_driver_exit(void)
+{
+	platform_driver_unregister(&sprd_hsphy_driver);
+}
+
+late_initcall(sprd_hsphy_driver_init);
+module_exit(sprd_hsphy_driver_exit);
