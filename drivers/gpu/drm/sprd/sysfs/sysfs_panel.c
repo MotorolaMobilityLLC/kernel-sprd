@@ -189,6 +189,164 @@ static ssize_t vporch_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(vporch);
 
+static ssize_t esd_check_enable_show(struct device *dev,
+			       struct device_attribute *attr,
+			       char *buf)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u\n", panel->info.esd_check_en);
+}
+
+static ssize_t esd_check_enable_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+	struct panel_info *info = &panel->info;
+	int enable;
+
+	if (kstrtoint(buf, 10, &enable)) {
+		pr_err("invalid input for esd check enable\n");
+		return -EINVAL;
+	}
+
+	if (enable) {
+		info->esd_check_en = true;
+		if (!pm_runtime_suspended(panel->slave->host->dev) &&
+		    !panel->esd_work_pending) {
+			pr_info("schedule esd work\n");
+			schedule_delayed_work(&panel->esd_work,
+			      msecs_to_jiffies(info->esd_check_period));
+			panel->esd_work_pending = true;
+		}
+	} else {
+		if (panel->esd_work_pending) {
+			pr_info("cancel esd work\n");
+			cancel_delayed_work_sync(&panel->esd_work);
+			panel->esd_work_pending = false;
+		}
+		info->esd_check_en = false;
+	}
+
+	return count;
+
+}
+static DEVICE_ATTR_RW(esd_check_enable);
+
+static ssize_t esd_check_mode_show(struct device *dev,
+			       struct device_attribute *attr,
+			       char *buf)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u\n", panel->info.esd_check_mode);
+}
+
+static ssize_t esd_check_mode_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+	u32 mode;
+
+	if (kstrtouint(buf, 10, &mode)) {
+		pr_err("invalid input for esd check mode\n");
+		return -EINVAL;
+	}
+
+	panel->info.esd_check_mode = mode;
+
+	return count;
+
+}
+static DEVICE_ATTR_RW(esd_check_mode);
+
+static ssize_t esd_check_period_show(struct device *dev,
+			       struct device_attribute *attr,
+			       char *buf)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%u\n", panel->info.esd_check_period);
+}
+
+static ssize_t esd_check_period_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+	u32 period;
+
+	if (kstrtouint(buf, 10, &period)) {
+		pr_err("invalid input for esd check period\n");
+		return -EINVAL;
+	}
+
+	panel->info.esd_check_period = period;
+
+	return count;
+
+}
+static DEVICE_ATTR_RW(esd_check_period);
+
+static ssize_t esd_check_register_show(struct device *dev,
+			       struct device_attribute *attr,
+			       char *buf)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "0x%02x\n", panel->info.esd_check_reg);
+}
+
+static ssize_t esd_check_register_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+	u32 reg;
+
+	if (kstrtouint(buf, 16, &reg)) {
+		pr_err("invalid input for esd check register\n");
+		return -EINVAL;
+	}
+
+	panel->info.esd_check_reg = reg;
+
+	return count;
+
+}
+static DEVICE_ATTR_RW(esd_check_register);
+
+static ssize_t esd_check_value_show(struct device *dev,
+			       struct device_attribute *attr,
+			       char *buf)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "0x%02x\n",
+			panel->info.esd_check_val);
+}
+
+static ssize_t esd_check_value_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+	u32 value;
+
+	if (kstrtouint(buf, 16, &value)) {
+		pr_err("invalid input for esd check value\n");
+		return -EINVAL;
+	}
+
+	panel->info.esd_check_val = value;
+
+	return count;
+
+}
+static DEVICE_ATTR_RW(esd_check_value);
+
 static ssize_t suspend_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
@@ -215,6 +373,11 @@ static struct attribute *panel_attrs[] = {
 	&dev_attr_screen_size.attr,
 	&dev_attr_hporch.attr,
 	&dev_attr_vporch.attr,
+	&dev_attr_esd_check_enable.attr,
+	&dev_attr_esd_check_mode.attr,
+	&dev_attr_esd_check_period.attr,
+	&dev_attr_esd_check_register.attr,
+	&dev_attr_esd_check_value.attr,
 	&dev_attr_suspend.attr,
 	&dev_attr_resume.attr,
 	NULL,
