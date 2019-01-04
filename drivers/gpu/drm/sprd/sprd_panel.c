@@ -11,6 +11,7 @@
  * GNU General Public License for more details.
  */
 
+#include <drm/drm_atomic_helper.h>
 #include <linux/gpio.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -115,6 +116,19 @@ static int sprd_panel_disable(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
+	/*
+	 * FIXME:
+	 * The cancel work should be executed before DPU stop,
+	 * otherwise the esd check will be failed if the DPU
+	 * stopped in video mode and the DSI has not change to
+	 * CMD mode yet. Since there is no VBLANK timing for
+	 * LP cmd transmission.
+	 */
+	if (panel->esd_work_pending) {
+		cancel_delayed_work_sync(&panel->esd_work);
+		panel->esd_work_pending = false;
+	}
+
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_CODE_SLEEP_IN],
 			     panel->info.cmds_len[CMD_CODE_SLEEP_IN]);
@@ -131,6 +145,12 @@ static int sprd_panel_enable(struct drm_panel *p)
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_CODE_INIT],
 			     panel->info.cmds_len[CMD_CODE_INIT]);
+
+	if (panel->info.esd_check_en) {
+		schedule_delayed_work(&panel->esd_work,
+				      msecs_to_jiffies(1000));
+		panel->esd_work_pending = true;
+	}
 
 	return 0;
 }
@@ -169,6 +189,60 @@ static const struct drm_panel_funcs sprd_panel_funcs = {
 	.prepare = sprd_panel_prepare,
 	.unprepare = sprd_panel_unprepare,
 };
+
+static int sprd_panel_esd_check(struct sprd_panel *panel)
+{
+	struct panel_info *info = &panel->info;
+	u8 read_val = 0;
+
+	/* FIXME: we should enable HS cmd tx here */
+	mipi_dsi_set_maximum_return_packet_size(panel->slave, 1);
+	mipi_dsi_dcs_read(panel->slave, info->esd_check_reg,
+			  &read_val, 1);
+
+	/*
+	 * TODO:
+	 * Should we support multi-registers check in the future?
+	 */
+	if (read_val != info->esd_check_val) {
+		DRM_ERROR("esd check failed, read value = 0x%02x\n",
+			  read_val);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static void sprd_panel_esd_work_func(struct work_struct *work)
+{
+	struct sprd_panel *panel = container_of(work, struct sprd_panel,
+						esd_work.work);
+	struct panel_info *info = &panel->info;
+	int ret;
+
+	/*
+	 * TODO:
+	 * Currently, we just supprot esd_check_mode = 0, which
+	 * is DDIC status register check. Please add TE check
+	 * support for esd_check_mode = 1 in the future.
+	 */
+	ret = sprd_panel_esd_check(panel);
+	if (ret) {
+		const struct drm_encoder_helper_funcs *funcs;
+		struct drm_encoder *encoder;
+
+		encoder = panel->base.connector->encoder;
+		funcs = encoder->helper_private;
+		panel->esd_work_pending = false;
+
+		DRM_INFO("====== esd recovery start ========\n");
+		funcs->disable(encoder);
+		funcs->enable(encoder);
+		DRM_INFO("======= esd recovery end =========\n");
+	} else
+		schedule_delayed_work(&panel->esd_work,
+			msecs_to_jiffies(info->esd_check_period));
+}
 
 static int sprd_panel_gpio_request(struct power_sequence *seq)
 {
@@ -237,11 +311,10 @@ static int of_parse_power_seq(struct device_node *np,
 
 static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 {
-	int rc;
 	u32 val;
 	struct device_node *lcd_node;
 	struct panel_info *info = &panel->info;
-	int bytes;
+	int bytes, rc;
 	const void *p;
 	const char *str;
 	char lcd_path[60];
@@ -312,6 +385,34 @@ static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 		info->mode.height_mm = val;
 	else
 		info->mode.height_mm = 121;
+
+	rc = of_property_read_u32(lcd_node, "sprd,esd-check-enable", &val);
+	if (!rc)
+		info->esd_check_en = val;
+
+	rc = of_property_read_u32(lcd_node, "sprd,esd-check-mode", &val);
+	if (!rc)
+		info->esd_check_mode = val;
+	else
+		info->esd_check_mode = 1;
+
+	rc = of_property_read_u32(lcd_node, "sprd,esd-check-period", &val);
+	if (!rc)
+		info->esd_check_period = val;
+	else
+		info->esd_check_period = 1000;
+
+	rc = of_property_read_u32(lcd_node, "sprd,esd-check-register", &val);
+	if (!rc)
+		info->esd_check_reg = val;
+	else
+		info->esd_check_reg = 0x0A;
+
+	rc = of_property_read_u32(lcd_node, "sprd,esd-check-value", &val);
+	if (!rc)
+		info->esd_check_val = val;
+	else
+		info->esd_check_val = 0x9C;
 
 	if (of_property_read_bool(lcd_node, "sprd,use-dcs-write"))
 		info->use_dcs = true;
@@ -400,6 +501,8 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 	if (IS_ERR(panel->supply))
 		DRM_ERROR("get lcd regulator failed\n");
 
+	INIT_DELAYED_WORK(&panel->esd_work, sprd_panel_esd_work_func);
+
 	ret = sprd_panel_parse_dt(slave->dev.of_node, panel);
 	if (ret) {
 		DRM_ERROR("parse panel info failed\n");
@@ -436,6 +539,19 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 
 	sprd_panel_sysfs_init(&panel->dev);
 	mipi_dsi_set_drvdata(slave, panel);
+
+	/*
+	 * FIXME:
+	 * The esd check work should not be scheduled in probe
+	 * function. It should be scheduled in the enable()
+	 * callback function. But the dsi encoder will not call
+	 * drm_panel_enable() the first time in encoder_enable().
+	 */
+	if (panel->info.esd_check_en) {
+		schedule_delayed_work(&panel->esd_work,
+				      msecs_to_jiffies(2000));
+		panel->esd_work_pending = true;
+	}
 
 	DRM_INFO("panel driver probe success\n");
 

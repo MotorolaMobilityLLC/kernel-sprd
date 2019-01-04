@@ -21,6 +21,7 @@
 #include <linux/backlight.h>
 #include <linux/of.h>
 #include <linux/regulator/consumer.h>
+#include <linux/workqueue.h>
 
 enum {
 	CMD_CODE_INIT = 0,
@@ -73,6 +74,13 @@ struct panel_info {
 	const void *cmds[CMD_CODE_MAX];
 	int cmds_len[CMD_CODE_MAX];
 
+	/* esd check parameters*/
+	bool esd_check_en;
+	u8 esd_check_mode;
+	u16 esd_check_period;
+	u32 esd_check_reg;
+	u32 esd_check_val;
+
 	/* MIPI DSI specific parameters */
 	u32 format;
 	u32 lanes;
@@ -87,6 +95,8 @@ struct sprd_panel {
 	struct panel_info info;
 	struct backlight_device *backlight;
 	struct regulator *supply;
+	struct delayed_work esd_work;
+	bool esd_work_pending;
 };
 
 #endif
