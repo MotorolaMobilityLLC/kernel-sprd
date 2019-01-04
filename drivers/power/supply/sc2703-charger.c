@@ -32,6 +32,7 @@
 #define SC2703_S_CHG_STAT_FAULT_L2	0x7
 #define SC2703_E_VBAT_OV_SHIFT		6
 #define SC2703_E_VBAT_OV_MASK		BIT(6)
+#define BIT_DP_DM_BC_ENB		BIT(0)
 
 #define SC2703_CHG_B_IMIN		500000
 #define SC2703_CHG_B_ISTEP		50000
@@ -56,6 +57,8 @@ struct sc2703_charger_info {
 	bool charging;
 	u32 limit;
 	struct delayed_work otg_work;
+	struct regmap *pmic;
+	u32 charger_detect;
 };
 
 /* sc2703 input limit current, Milliamp */
@@ -994,6 +997,18 @@ static int sc2703_charger_enable_otg(struct regulator_dev *dev)
 	struct sc2703_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 
+	/*
+	 * Disable charger detection function in case
+	 * affecting the OTG timing sequence.
+	 */
+	ret = regmap_update_bits(info->pmic, info->charger_detect,
+				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+	if (ret) {
+		dev_err(info->dev,
+			"failed to disable bc1.2 detect function.\n");
+		return ret;
+	}
+
 	/* Unlock 2703 test mode */
 	ret = regmap_update_bits(info->regmap, SC2703_REG_UNLOCK,
 				 SC2703_CHG_REG_MASK_ALL,
@@ -1058,9 +1073,20 @@ static int sc2703_charger_disable_otg(struct regulator_dev *dev)
 	/* Disable 2703 otg mode */
 	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
 				 SC2703_OTG_EN_MASK, 0);
-	if (ret)
+	if (ret) {
 		dev_err(info->dev,
 			"Failed to disable sc2703 otg ret.\n");
+		return ret;
+	}
+
+	/* Enable charger detection function to identify the charger type */
+	ret = regmap_update_bits(info->pmic, info->charger_detect,
+				 BIT_DP_DM_BC_ENB, 0);
+	if (ret) {
+		dev_err(info->dev,
+			"failed to enable bc1.2 detect function.\n");
+		return ret;
+	}
 
 	return 0;
 }
@@ -1214,8 +1240,10 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct device_node *np = pdev->dev.of_node;
+	struct device_node *regmap_np;
 	struct sc2703_charger_info *info;
 	struct power_supply_config charger_cfg = { };
+	struct platform_device *regmap_pdev;
 	int ret;
 
 	info = devm_kzalloc(dev, sizeof(*info), GFP_KERNEL);
@@ -1244,6 +1272,31 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(&pdev->dev, "failed to find USB phy\n");
 		return PTR_ERR(info->usb_phy);
+	}
+
+	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
+	if (!regmap_np) {
+		dev_err(&pdev->dev, "unable to get syscon node\n");
+		return -ENODEV;
+	}
+
+	ret = of_property_read_u32_index(regmap_np, "reg", 1, &info->charger_detect);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to get charger_detect\n");
+		return -EINVAL;
+	}
+
+	regmap_pdev = of_find_device_by_node(regmap_np);
+	if (!regmap_pdev) {
+		of_node_put(regmap_np);
+		dev_err(&pdev->dev, "unable to get syscon platform device\n");
+		return -ENODEV;
+	}
+
+	info->pmic = dev_get_regmap(regmap_pdev->dev.parent, NULL);
+	if (!info->pmic) {
+		dev_err(&pdev->dev, "unable to get pmic regmap device\n");
+		return -ENODEV;
 	}
 
 	info->usb_notify.notifier_call = sc2703_charger_usb_change;
