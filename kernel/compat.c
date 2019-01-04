@@ -440,7 +440,6 @@ long compat_get_bitmap(unsigned long *mask, const compat_ulong_t __user *umask,
 	if (!access_ok(VERIFY_READ, umask, bitmap_size / 8))
 		return -EFAULT;
 
-	user_access_begin();
 	while (nr_compat_longs > 1) {
 		compat_ulong_t l1, l2;
 		unsafe_get_user(l1, umask++, Efault);
@@ -470,7 +469,6 @@ long compat_put_bitmap(compat_ulong_t __user *umask, unsigned long *mask,
 	if (!access_ok(VERIFY_WRITE, umask, bitmap_size / 8))
 		return -EFAULT;
 
-	user_access_begin();
 	while (nr_compat_longs > 1) {
 		unsigned long m = *mask++;
 		unsafe_put_user((compat_ulong_t)m, umask++, Efault);
