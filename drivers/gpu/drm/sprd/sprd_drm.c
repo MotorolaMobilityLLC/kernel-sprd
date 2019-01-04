@@ -310,6 +310,11 @@ static void sprd_drm_shutdown(struct platform_device *pdev)
 {
 	struct drm_device *drm = platform_get_drvdata(pdev);
 
+	if (!drm) {
+		DRM_WARN("drm device is not available, no shutdown\n");
+		return;
+	}
+
 	drm_atomic_helper_shutdown(drm);
 }
 
