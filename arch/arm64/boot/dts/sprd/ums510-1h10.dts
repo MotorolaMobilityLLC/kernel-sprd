@@ -78,7 +78,7 @@
 		sprd,mapping-offs = <0x0>;
 	};
 
-	ion {
+	ion: ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
 		#size-cells = <0>;

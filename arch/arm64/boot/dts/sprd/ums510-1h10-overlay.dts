@@ -93,6 +93,15 @@
 	};
 };
 
+&ion {
+	heap@4 {
+		reg = <4>;
+		label = "carveout_fd";
+		type = <2>;
+		memory-region = <&fd_reserved>;
+	};
+};
+
 &i2c3 {
 	status = "okay";
 
