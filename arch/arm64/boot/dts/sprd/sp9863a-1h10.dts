@@ -140,6 +140,26 @@
 	sprd,cable-detection-method = "typec";
 };
 
+&vdd18 {
+	regulator-always-on;
+};
+
+&vddrf18 {
+	regulator-always-on;
+};
+
+&vddrf125 {
+	regulator-always-on;
+};
+
+&vddldomem {
+	regulator-always-on;
+};
+
+&vddemmccore {
+	regulator-always-on;
+};
+
 &sdio3 {
 	bus-width = <8>;
 	non-removable;
