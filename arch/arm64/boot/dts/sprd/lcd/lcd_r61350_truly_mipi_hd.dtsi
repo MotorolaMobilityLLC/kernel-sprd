@@ -20,7 +20,11 @@
 		sprd,width-mm = <68>;
 		sprd,height-mm = <121>;
 
-		sprd,esd-check-mode = <3>;
+		sprd,esd-check-enable = <0>;
+		sprd,esd-check-mode = <0>;
+		sprd,esd-check-period = <1000>;
+		sprd,esd-check-register = <0x0A>;
+		sprd,esd-check-value = <0x9C>;
 
 		sprd,power-on-sequence = <
 					50  1  5
