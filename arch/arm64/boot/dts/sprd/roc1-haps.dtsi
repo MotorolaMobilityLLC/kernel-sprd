@@ -146,7 +146,7 @@
 			};
 
 			ssphy: ssphy@40400000 {
-				compatible = "sprd,ssphy";
+				compatible = "sprd,roc1-ssphy";
 				reg = <0 0x40400000 0 0x100000>;
 				reg-names = "phy_glb_regs";
 				sprd,syscon-aon_apb = <&aon_apb_regs>;
