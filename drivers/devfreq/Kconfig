@@ -118,6 +118,14 @@ config ARM_TEGRA_DEVFREQ
 	  It reads ACTMON counters of memory controllers and adjusts the
 	  operating frequencies and voltages with OPP support.
 
+config SPRD_TOP_DVFS_DEVFREQ
+	bool "Sprd Top-DVFS DEVFREQ Driver"
+	default n
+	help
+	  This adds the top dvfs driver for the Sprdtrum Sharkl5 family SOCs.
+	  It accomplishes some necessory initialization which is required by
+	  subsys hardware dvfs.
+
 config ARM_RK3399_DMC_DEVFREQ
 	tristate "ARM RK3399 DMC DEVFREQ Driver"
 	depends on ARCH_ROCKCHIP

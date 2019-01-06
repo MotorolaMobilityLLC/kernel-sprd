@@ -1527,14 +1527,14 @@ CONFIG_CP15_BARRIER_EMULATION
 	[function] Emulate CP15 Barrier instructions.
 CONFIG_CPUFREQ_DT
 	[arch] all
-	[plat] all
+	[plat] roc1,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_CPUFREQ_DT_PLATDEV
 	[arch] all
-	[plat] all
+	[plat] roc1,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -9384,6 +9384,13 @@ CONFIG_SPRD_BUSMONITOR
 	[subsys] debug
 	[must] debug
 	[function] Enable busmonitor core function
+CONFIG_SPRD_CACHE_EFUSE
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field] 	[field]make
+	[subsys] nvmem
+	[must] home
+	[function] get sprdtrum soc series efuse value using pre-reading mechanism
 CONFIG_SPRD_CLUSTER0_THERMAL
 	[arch] all
 	[plat] sharkl5,sharkl5_32
@@ -9489,13 +9496,6 @@ CONFIG_SPRD_EFUSE
 	[subsys] nvmem
 	[must] home
 	[function] get sprdtrum soc series efuse value
-CONFIG_SPRD_CACHE_EFUSE
-	[arch] all
-	[plat] sharkl5
-	[field]make
-	[subsys] nvmem
-	[must] home
-	[function] get sprdtrum soc series efuse value using pre-reading mechanism
 CONFIG_SPRD_IMS_BRIDGE
 	[arch] all
 	[plat] all
