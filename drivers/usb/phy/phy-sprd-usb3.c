@@ -20,12 +20,14 @@
 #include <linux/kernel.h>
 #include <linux/err.h>
 #include <linux/of.h>
+#include <linux/io.h>
 #include <linux/delay.h>
 #include <linux/regmap.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
 #include <linux/usb/phy.h>
+#include <linux/mfd/syscon.h>
 #include <linux/power/sc2730-usb-charger.h>
 #include <dt-bindings/soc/sprd,roc1-mask.h>
 #include <dt-bindings/soc/sprd,roc1-regs.h>
@@ -96,16 +98,25 @@ static inline void sprd_ssphy_reset_core(struct sprd_ssphy *phy)
 {
 	u32 reg, msk;
 
+	/* Purpose: To soft-reset USB control */
+	reg = msk = MASK_IPA_AHB_USB_SOFT_RST | MASK_IPA_AHB_PAM_U3_SOFT_RST;
+	regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_IPA_RST, msk, reg);
+
 	/* Reset PHY */
 	reg = msk = MASK_AON_APB_OTG_PHY_SOFT_RST |
 			 MASK_AON_APB_OTG_UTMI_SOFT_RST;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_RST1,
 		msk, reg);
-
-	/* USB PHY reset need to delay 20ms~30ms */
+	/*
+	 *Reset signal should hold on for a while
+	 *to issue resret process reliable.
+	 */
 	usleep_range(20000, 30000);
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_RST1,
-		msk, 0);
+	reg = msk = MASK_IPA_AHB_USB_SOFT_RST | MASK_IPA_AHB_PAM_U3_SOFT_RST;
+	regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_IPA_RST, msk, 0);
+	reg = msk = MASK_AON_APB_OTG_PHY_SOFT_RST |
+			 MASK_AON_APB_OTG_UTMI_SOFT_RST;
+	regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_RST1, msk, 0);
 }
 
 /* Reset USB Core */
@@ -124,7 +135,7 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	int	ret;
 
 	if (atomic_read(&phy->inited)) {
-		dev_dbg(x->dev, "%s is already inited!\n", __func__);
+		dev_info(x->dev, "%s is already inited!\n", __func__);
 		return 0;
 	}
 
@@ -190,18 +201,6 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	reg = msk = MASK_IPA_AHB_USB_EB | MASK_IPA_AHB_USB_SUSPEND_EB
 		| MASK_IPA_AHB_USB_REF_EB;
 	ret |= regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_IPA_EB, msk, reg);
-
-	/* Purpose: To soft-reset USB control */
-	reg = msk = MASK_IPA_AHB_USB_SOFT_RST | MASK_IPA_AHB_PAM_U3_SOFT_RST
-		| MASK_IPA_AHB_PAM_IPA_SOFT_RST | MASK_IPA_AHB_IPA_SOFT_RST;
-	ret |= regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_IPA_RST, msk, reg);
-
-	/*
-	 *Reset signal should hold on for a while
-	 *to issue resret process reliable.
-	 */
-	usleep_range(20000, 30000);
-	ret |= regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_IPA_RST, msk, 0);
 
 	/* enable USB2 PHY 16bit */
 	reg = msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_DATABUS16_8;
