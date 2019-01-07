@@ -653,23 +653,24 @@
 };
 
 &sdio0 {
-	clock-names = "sdio_clk_source", "sdio_ahb_enable";
-	clocks = <&ext_26m>, <&apapb_gate 22>;
+	clock-names = "sdio_clk", "sdio_clk_source","sdio_ahb_enable";
+	clocks = <&ap_clk CLK_AP_SDIO0_2X>,
+		 <&ana_g5_clk CLK_RPLL>,
+		 <&apapb_gate CLK_SDIO0_EB>;
 };
 
 &sdio1 {
-	clock-names = "sdio_clk_source", "sdio_ahb_enable";
-	clocks = <&ext_26m>, <&apapb_gate 23>;
-};
-
-&sdio2 {
-	clock-names = "sdio_clk_source", "sdio_ahb_enable";
-	clocks = <&ext_26m>, <&apapb_gate 24>;
+	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
+	clocks = <&ap_clk CLK_AP_SDIO1_2X>,
+		 <&g12_pll CLK_LPLL_409M6>,
+		 <&apapb_gate CLK_SDIO1_EB>;
 };
 
 &sdio3 {
-	clock-names = "sdio_clk_source", "sdio_ahb_enable";
-	clocks = <&ext_26m>, <&apapb_gate 25>;
+	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
+	clocks = <&ap_clk CLK_AP_EMMC_2X>,
+		 <&ana_g5_clk CLK_RPLL>,
+		 <&apapb_gate CLK_EMMC_EB>;
 };
 
 &i2c0 {
