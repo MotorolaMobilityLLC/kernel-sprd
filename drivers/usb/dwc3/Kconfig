@@ -106,4 +106,13 @@ config USB_DWC3_ST
 	  inside (i.e. STiH407).
 	  Say 'Y' or 'M' if you have one such device.
 
+config USB_DWC3_SPRD
+	tristate "Unisoc USB3.0 Platforms"
+	depends on ARCH_SPRD || COMPILE_TEST
+	default USB_DWC3
+	help
+	  which can be configured for device-only, host-only and Dual-Role
+	  operation.
+	  Say 'Y' or 'M' if you have one such device.
+
 endif
