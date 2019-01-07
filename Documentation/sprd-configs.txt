@@ -11273,22 +11273,22 @@ CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED
 	[must]
 	[function]
 CONFIG_WATCHDOG_PRETIMEOUT_DEFAULT_GOV_PANIC
-	[arch] arm64
-	[plat] roc1
+	[arch] all
+	[plat] all
 	[field] menu,code
 	[subsys] core
 	[must] user
 	[function] watchdog pretimeout default gov panic
 CONFIG_WATCHDOG_PRETIMEOUT_GOV
-	[arch] arm64
-	[plat] roc1
+	[arch] all
+	[plat] all
 	[field] menu,code
 	[subsys] core
 	[must] user
 	[function] watchdog pretimeout gov
 CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC
-	[arch] arm64
-	[plat] roc1
+	[arch] all
+	[plat] all
 	[field] menu,code
 	[subsys] core
 	[must] user
