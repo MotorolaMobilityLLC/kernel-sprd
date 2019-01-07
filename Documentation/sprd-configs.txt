@@ -787,6 +787,13 @@ CONFIG_ARM_PSCI_FW
 	[must] user
 	[function] hotplug with security depend on PSCI_FW,
 		   enable it to support hotplug
+CONFIG_ARM_SPRD_HW_CPUFREQ
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys]cpufreq
+	[must]user
+	[function]Enable apcpu hardware dvfs function.
 CONFIG_ARM_THUMB
 	[arch] arm
 	[plat] sharkl5_32
@@ -9707,6 +9714,13 @@ CONFIG_SPRD_TIMER
 	[subsys] timer
 	[must] console
 	[function] Support for Spreadtrum ARM based SoCs.
+CONFIG_SPRD_TOP_DVFS_DEVFREQ
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] devfreq
+	[must] user
+	[function]Enable device dvfs function.
 CONFIG_SPRD_VSP
 	[arch] all
 	[plat] all
