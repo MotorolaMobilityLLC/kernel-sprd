@@ -1420,11 +1420,17 @@ static int adcl_event(struct snd_soc_dapm_widget *w,
 		 * and 1 state should keep 20 cycle of 6.5M clock at least.
 		 */
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC0), ADL_RST, 0);
+		udelay(4);
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC0), ADL_RST, ADL_RST);
+		udelay(4);
 		break;
 	case SND_SOC_DAPM_POST_PMU:
-		/* maybe need sleep for a while here to reach 20 cycle.*/
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC0), ADL_RST, 0);
+		/*
+		 * wait 60ms is by experience for the POP,
+		 * the duration of POP is about 70ms.
+		 */
+		sprd_codec_wait(60);
 		break;
 	default:
 		WARN_ON(1);
@@ -1448,11 +1454,22 @@ static int adcr_event(struct snd_soc_dapm_widget *w,
 			ADR_CLK_RST, ADR_CLK_RST);
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC0), ADR_CLK_RST, 0);
 
+		/*
+		 * ADL_RST should keep be 0-1-0,
+		 * and 1 state should keep 20 cycle of 6.5M clock at least.
+		 */
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC0), ADR_RST, 0);
+		udelay(4);
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC0), ADR_RST, ADR_RST);
+		udelay(4);
 		break;
 	case SND_SOC_DAPM_POST_PMU:
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC0), ADR_RST, 0);
+		/*
+		 * wait 60ms is by experience for the POP,
+		 * the duration of POP is about 70ms.
+		 */
+		sprd_codec_wait(60);
 		break;
 	default:
 		WARN_ON(1);
