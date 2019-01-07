@@ -89,6 +89,13 @@
 	msr	daifclr, #(8 | 2)
 	.endm
 
+/* Enable debug exceptions, SError and interrupts.
+ *
+ */
+	.macro	enable_dbg_err_irq
+	msr	daifclr, #(8 | 4 | 2)
+	.endm
+
 /*
  * SMP data memory barrier
  */
