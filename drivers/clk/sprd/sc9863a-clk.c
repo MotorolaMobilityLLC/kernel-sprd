@@ -360,7 +360,7 @@ static SPRD_MUX_CLK(sdio2_32k_clk, "sdio2-32k-clk", nandc_26m_parents, 0x3c,
 			0, 1, SC9863A_MUX_FLAG);
 
 static SPRD_GATE_CLK(otg_utmi, "otg-utmi", "aon-apb-clk", 0x40,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static const char * const ap_uart_parents[] = { "ext-26m", "twpll-48m",
 					"twpll-51m2", "twpll-96m" };
@@ -903,35 +903,35 @@ static const struct sprd_clk_desc sc9863a_aon_clk_desc = {
 };
 
 static SPRD_SC_GATE_CLK(otg_eb, "otg-eb", "ap-axi", 0x0, 0x1000,
-			BIT(4), 0, 0);
+			BIT(4), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dma_eb, "dma-eb", "ap-axi", 0x0, 0x1000,
-			BIT(5), 0, 0);
+			BIT(5), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ce_eb, "ce-eb", "ap-axi", 0x0, 0x1000,
-			BIT(6), 0, 0);
+			BIT(6), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(nandc_eb, "nandc-eb", "ap-axi", 0x0, 0x1000,
-			BIT(7), 0, 0);
+			BIT(7), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sdio0_eb, "sdio0-eb", "ap-axi", 0x0, 0x1000,
-			BIT(8), 0, 0);
+			BIT(8), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sdio1_eb, "sdio1-eb", "ap-axi", 0x0, 0x1000,
-			BIT(9), 0, 0);
+			BIT(9), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sdio2_eb, "sdio2-eb", "ap-axi", 0x0, 0x1000,
-			BIT(10), 0, 0);
+			BIT(10), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(emmc_eb, "emmc-eb", "ap-axi", 0x0, 0x1000,
-			BIT(11), 0, 0);
+			BIT(11), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(emmc_32k_eb, "emmc-32k-eb", "ap-axi", 0x0, 0x1000,
-			BIT(27), 0, 0);
+			BIT(27), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sdio0_32k_eb, "sdio0-32k-eb", "ap-axi", 0x0, 0x1000,
-			BIT(28), 0, 0);
+			BIT(28), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sdio1_32k_eb, "sdio1-32k-eb", "ap-axi", 0x0, 0x1000,
-			BIT(29), 0, 0);
+			BIT(29), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sdio2_32k_eb, "sdio2-32k-eb", "ap-axi", 0x0, 0x1000,
-			BIT(30), 0, 0);
+			BIT(30), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(nandc_26m_eb, "nandc-26m-eb", "ap-axi", 0x0, 0x1000,
-			BIT(31), 0, 0);
+			BIT(31), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dma_eb2, "dma-eb2", "ap-axi", 0x18, 0x1000,
-			BIT(0), 0, 0);
+			BIT(0), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ce_eb2, "ce-eb2", "ap-axi", 0x18, 0x1000,
-			BIT(1), 0, 0);
+			BIT(1), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *sc9863a_apahb_gate_clks[] = {
 	/* address base is 0x20e00000 */
@@ -1422,17 +1422,17 @@ static const struct sprd_clk_desc sc9863a_aonapb_gate_desc = {
 
 /* mm gate clocks */
 static SPRD_SC_GATE_CLK(mahb_ckg_eb, "mahb-ckg-eb", "mm-ahb", 0x0, 0x1000,
-			BIT(0), 0, 0);
+			BIT(0), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(mdcam_eb, "mdcam-eb", "mm-ahb", 0x0, 0x1000,
-			BIT(1), 0, 0);
+			BIT(1), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(misp_eb, "misp-eb", "mm-ahb", 0x0, 0x1000,
-			BIT(2), 0, 0);
+			BIT(2), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(mahbcsi_eb, "mahbcsi-eb", "mm-ahb", 0x0, 0x1000,
-			BIT(3), 0, 0);
+			BIT(3), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(mcsi_s_eb, "mcsi-s-eb", "mm-ahb", 0x0, 0x1000,
-			BIT(4), 0, 0);
+			BIT(4), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(mcsi_t_eb, "mcsi-t-eb", "mm-ahb", 0x0, 0x1000,
-			BIT(5), 0, 0);
+			BIT(5), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *sc9863a_mm_gate_clks[] = {
 	/* address base is 0x60800000 */
@@ -1464,11 +1464,11 @@ static const struct sprd_clk_desc sc9863a_mm_gate_desc = {
 
 /* mm clocks */
 static SPRD_GATE_CLK(mipi_csi_clk, "mipi-csi-clk", "mm-ahb", 0x20,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 static SPRD_GATE_CLK(mipi_csi_s_clk, "mipi-csi-s-clk", "mm-ahb", 0x24,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 static SPRD_GATE_CLK(mipi_csi_m_clk, "mipi-csi-m-clk", "mm-ahb", 0x28,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *sc9863a_mm_clk_clks[] = {
 	/* address base is 0x60900000 */
@@ -1494,13 +1494,13 @@ static const struct sprd_clk_desc sc9863a_mm_clk_desc = {
 
 /* vsp gate clocks */
 static SPRD_SC_GATE_CLK(vckg_eb, "vckg-eb", "mm-ahb", 0x0, 0x1000,
-			BIT(0), 0, 0);
+			BIT(0), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(vvsp_eb, "vvsp-eb", "mm-ahb", 0x0, 0x1000,
-			BIT(1), 0, 0);
+			BIT(1), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(vjpg_eb, "vjpg-eb", "mm-ahb", 0x0, 0x1000,
-			BIT(2), 0, 0);
+			BIT(2), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(vcpp_eb, "vcpp-eb", "mm-ahb", 0x0, 0x1000,
-			BIT(3), 0, 0);
+			BIT(3), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *sc9863a_vspahb_gate_clks[] = {
 	/* address base is 0x62000000 */
