@@ -7,7 +7,7 @@
 #include <linux/sched.h>
 #include <linux/sched/clock.h>
 #include <linux/uaccess.h>
-#include "../sprd_debugfs.h"
+#include "../../sprd_debugfs.h"
 
 #define DEFAULT_WARNING_INTERVAL (30*NSEC_PER_MSEC)
 

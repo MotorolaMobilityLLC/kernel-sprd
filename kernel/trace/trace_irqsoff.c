@@ -14,7 +14,7 @@
 #include <linux/module.h>
 #include <linux/ftrace.h>
 
-#include <../../drivers/soc/sprd/debug/eirqsoff/trace_eirqsoff.h>
+#include <../../drivers/soc/sprd/debug/irq/eirqsoff/trace_eirqsoff.h>
 
 #include "trace.h"
 
