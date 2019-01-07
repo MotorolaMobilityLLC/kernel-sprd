@@ -256,7 +256,7 @@ static inline int sprd_headset_probe(struct platform_device *pdev)
 #endif
 
 #if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
-void headset_hmicbias_polling_enable(bool enable, bool force_disable);
+void headset_set_audio_state(bool enable);
 #endif
 
 #endif

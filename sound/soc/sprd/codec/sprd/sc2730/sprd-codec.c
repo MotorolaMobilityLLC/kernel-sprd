@@ -2678,10 +2678,12 @@ static int sprd_codec_pcm_hw_startup(struct snd_pcm_substream *substream,
 	struct sprd_codec_priv *sprd_codec =
 		snd_soc_codec_get_drvdata(dai->codec);
 
+	/* notify only once */
+	if (sprd_codec->startup_cnt == 0)
+		headset_set_audio_state(true);
 	sprd_codec->startup_cnt++;
 	sp_asoc_pr_dbg("%s, startup_cnt=%d\n",
 		__func__, sprd_codec->startup_cnt);
-	headset_hmicbias_polling_enable(false, false);
 	return 0;
 }
 
@@ -2693,9 +2695,10 @@ static void sprd_codec_pcm_hw_shutdown(struct snd_pcm_substream *substream,
 
 	if (sprd_codec->startup_cnt > 0)
 		sprd_codec->startup_cnt--;
+	if (sprd_codec->startup_cnt == 0)
+		headset_set_audio_state(false);
 	sp_asoc_pr_dbg("%s, startup_cnt=%d\n",
 		__func__, sprd_codec->startup_cnt);
-	headset_hmicbias_polling_enable(true, false);
 }
 
 static irqreturn_t sprd_codec_dp_irq(int irq, void *dev_id)
@@ -2745,7 +2748,6 @@ static int sprd_codec_soc_suspend(struct snd_soc_codec *codec)
 			sp_asoc_pr_info("%s, set mode ret=%d", __func__, ret);
 			return ret;
 		}
-		headset_hmicbias_polling_enable(true, false);
 	} else {
 		sp_asoc_pr_info("%s ignored\n", __func__);
 	}
@@ -2767,7 +2769,6 @@ static int sprd_codec_soc_resume(struct snd_soc_codec *codec)
 			sp_asoc_pr_info("%s, set mode ret=%d", __func__, ret);
 			return ret;
 		}
-		headset_hmicbias_polling_enable(false, false);
 	}
 	return 0;
 }

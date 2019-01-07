@@ -1005,6 +1005,11 @@ void headset_hmicbias_polling_enable(bool enable, bool force_disable)
 		headset_reg_value_read(ANA_HID0));
 }
 
+void headset_set_audio_state(bool on)
+{
+	headset_hmicbias_polling_enable(!on, false);
+}
+
 static enum sprd_headset_type
 headset_type_detect_through_mdet(void)
 {
