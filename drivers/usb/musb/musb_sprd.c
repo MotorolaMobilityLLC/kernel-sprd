@@ -911,6 +911,27 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	INIT_WORK(&glue->work, sprd_musb_work);
 	INIT_DELAYED_WORK(&glue->recover_work, sprd_musb_recover_work);
 
+	platform_set_drvdata(pdev, glue);
+
+	pdata.platform_ops = &sprd_musb_ops;
+	pdata.config = &sprd_musb_hdrc_config;
+	memset(&pinfo, 0, sizeof(pinfo));
+	pinfo.name = "musb-hdrc";
+	pinfo.id = PLATFORM_DEVID_AUTO;
+	pinfo.parent = &pdev->dev;
+	pinfo.res = pdev->resource;
+	pinfo.num_res = pdev->num_resources;
+	pinfo.data = &pdata;
+	pinfo.size_data = sizeof(pdata);
+	pinfo.dma_mask = sprd_device_dma_mask;
+
+	glue->musb = platform_device_register_full(&pinfo);
+	if (IS_ERR(glue->musb)) {
+		ret = PTR_ERR(glue->musb);
+		dev_err(&pdev->dev, "Error registering musb dev: %d\n", ret);
+		goto err_core_clk;
+	}
+
 	/*  GPIOs now */
 	glue->vbus_irq = -1;
 	glue->dev = &pdev->dev;
@@ -942,26 +963,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		}
 	}
 
-	platform_set_drvdata(pdev, glue);
 
-	pdata.platform_ops = &sprd_musb_ops;
-	pdata.config = &sprd_musb_hdrc_config;
-	memset(&pinfo, 0, sizeof(pinfo));
-	pinfo.name = "musb-hdrc";
-	pinfo.id = PLATFORM_DEVID_AUTO;
-	pinfo.parent = &pdev->dev;
-	pinfo.res = pdev->resource;
-	pinfo.num_res = pdev->num_resources;
-	pinfo.data = &pdata;
-	pinfo.size_data = sizeof(pdata);
-	pinfo.dma_mask = sprd_device_dma_mask;
-
-	glue->musb = platform_device_register_full(&pinfo);
-	if (IS_ERR(glue->musb)) {
-		ret = PTR_ERR(glue->musb);
-		dev_err(&pdev->dev, "Error registering musb dev: %d\n", ret);
-		return ret;
-	}
 
 	ret = sysfs_create_groups(&glue->dev->kobj, musb_sprd_groups);
 	if (ret)
@@ -979,7 +981,7 @@ err_extcon_vbus:
 					&glue->vbus_nb);
 
 err_glue_musb:
-	platform_device_put(glue->musb);
+	platform_device_unregister(glue->musb);
 
 err_core_clk:
 	clk_disable_unprepare(glue->clk);
