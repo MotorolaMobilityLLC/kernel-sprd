@@ -5302,6 +5302,16 @@ CONFIG_IP6_NF_TARGET_SYNPROXY
 	[function] This enables the `nat' table in ip6tables.
 		  This allows masquerading, port forwarding and other
 		  forms of full Network Address Port Translation.
+CONFIG_IP6_NF_VOWIFI_DEC_TCPDUMP
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] to debug for decode ipsec pkt for software engineer.
+		Use this module,the esp pkt which apk allowed, will be
+		save in the tcpdump with its original message.The module will
+		save the ipv6 esp pkt.
 CONFIG_IPV6
 	[arch] all
 	[plat] all
@@ -5588,6 +5598,15 @@ CONFIG_IP_NF_TARGET_TTL
 	[function] This is a backwards-compatible option for the user's
 		  convenience (e.g. when running oldconfig). It selects
 		  CONFIG_NETFILTER_XT_TARGET_HL.
+CONFIG_IP_NF_VOWIFI_DEC_TCPDUMP
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] net
+	[must] user
+	[function] to debug for decode ipsec pkt for software engineer.Use this module,
+		the esp pkt which apk allowed, will be save in the tcpdump with its
+		original message.The module will save the ipv4 esp pkt.
 CONFIG_IP_PNP
 	[arch] all
 	[plat] all

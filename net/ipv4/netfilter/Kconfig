@@ -266,6 +266,17 @@ config IP_NF_TARGET_SYNPROXY
 
 	  To compile it as a module, choose M here. If unsure, say N.
 
+config IP_NF_VOWIFI_DEC_TCPDUMP
+	tristate "vowifi decoding pkts and save them with tcpdump"
+	depends on IP_NF_FILTER
+	help
+	  This IP_NF_VOWIFI_DEC_TCPDUMP module to debug for decode ipsec pkt
+	  for software engineer.Use this module,the esp pkt which apk allowed,
+	  will be save in the tcpdump with its original message.The module will
+	  save the ipv4 esp pkt.
+
+	  If unsure, say N.
+
 # NAT + specific targets: nf_conntrack
 config IP_NF_NAT
 	tristate "iptables NAT support"

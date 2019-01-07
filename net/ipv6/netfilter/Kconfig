@@ -253,6 +253,17 @@ config IP6_NF_FILTER
 
 	  To compile it as a module, choose M here.  If unsure, say N.
 
+config IP6_NF_VOWIFI_DEC_TCPDUMP
+	tristate "vowifi decoding pkts and save them with tcpdump in ipv6"
+	depends on IP6_NF_FILTER
+	help
+	  This IP6_NF_VOWIFI_DEC_TCPDUMP module to debug for decode ipsec pkt
+          for software engineer.Use this module,the esp pkt which apk allowed,
+          will be save in the tcpdump with its original message.The module will
+          save the ipv6 esp pkt.
+
+          To compile it as a module, choose Y here. If unsure, say N.
+
 config IP6_NF_TARGET_REJECT
 	tristate "REJECT target support"
 	depends on IP6_NF_FILTER
