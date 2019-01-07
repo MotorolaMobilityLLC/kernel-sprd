@@ -42,12 +42,12 @@
 			reg = <0x0 0xc0000000 0x0 0x60000000>;  /* system 1536M */
 		};
 
-		userdata_memdisk_reserved: userdata_memdisk_reserved@110000000{
-			reg = <0x1 0x10000000 0x0 0x20000000>; /* userdata 512M */
+		userdata_memdisk_reserved: userdata_memdisk_reserved@120000000{
+			reg = <0x1 0x20000000 0x0 0x20000000>; /* userdata 512M */
 		};
 
-		vendor_memdisk_reserved: vendor_memdisk_reserved@130000000{
-			reg = <0x1 0x30000000 0x0 0x12c00000>; /* vendor 300M */
+		vendor_memdisk_reserved: vendor_memdisk_reserved@140000000{
+			reg = <0x1 0x40000000 0x0 0x12c00000>; /* vendor 300M */
 		};
 	};
 
@@ -56,17 +56,17 @@
 
 		system {
 			memory-region = <&system_memdisk_reserved>;
-			label = "system";
+			label = "memdisk0p1";
 		};
 
 		userdata {
 			memory-region = <&userdata_memdisk_reserved>;
-			label = "userdata";
+			label = "memdisk0p2";
 		};
 
 		vendor {
 			memory-region = <&vendor_memdisk_reserved>;
-			label = "vendor";
+			label = "memdisk0p3";
 		};
 	};
 };
