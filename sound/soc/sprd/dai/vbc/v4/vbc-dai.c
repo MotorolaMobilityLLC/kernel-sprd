@@ -5711,6 +5711,7 @@ static int vbc_drv_remove(struct platform_device *pdev)
 #ifdef CONFIG_OF
 static const struct of_device_id vbc_of_match[] = {
 	{.compatible = "sprd,sharkl5-vbc",},
+	{.compatible = "sprd,roc1-vbc",},
 	{},
 };
 

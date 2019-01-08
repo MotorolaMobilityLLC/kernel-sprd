@@ -1608,6 +1608,7 @@ static int sprd_soc_platform_remove(struct platform_device *pdev)
 #ifdef CONFIG_OF
 static const struct of_device_id sprd_pcm_of_match[] = {
 	{.compatible = "sprd,sharkl5-pcm-platform",},
+	{.compatible = "sprd,roc1-pcm-platform",},
 	{},
 };
 
