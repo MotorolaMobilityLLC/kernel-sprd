@@ -155,6 +155,8 @@ struct sprd_headset {
 	struct wakeup_source det_all_wakelock;
 	struct wakeup_source btn_wakelock;
 	struct wakeup_source ldetl_wakelock;
+	bool audio_on;
+	bool btn_detecting;
 #else
 	struct work_struct btn_work;
 	struct work_struct fc_work; /* for fast charge */

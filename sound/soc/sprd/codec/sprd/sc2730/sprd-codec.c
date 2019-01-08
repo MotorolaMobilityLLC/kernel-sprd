@@ -2731,45 +2731,19 @@ static struct snd_soc_dai_ops sprd_codec_dai_ops = {
 static int sprd_codec_soc_suspend(struct snd_soc_codec *codec)
 {
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
-	struct regulator *regu = sprd_codec->head_mic;
-	int ret = 0;
 
 	sp_asoc_pr_info("%s, startup_cnt=%d\n",
 		__func__, sprd_codec->startup_cnt);
 
-	/*
-	 * yintang: Now only hmic bias sleep, but BG is also need to sleep
-	 * TBD
-	 */
-	if (regu && regulator_is_enabled(regu) &&
-		sprd_codec->startup_cnt == 0) {
-		ret = regulator_set_mode(regu, REGULATOR_MODE_STANDBY);
-		if (ret < 0) {
-			sp_asoc_pr_info("%s, set mode ret=%d", __func__, ret);
-			return ret;
-		}
-	} else {
-		sp_asoc_pr_info("%s ignored\n", __func__);
-	}
 	return 0;
 }
 
 static int sprd_codec_soc_resume(struct snd_soc_codec *codec)
 {
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
-	struct regulator *regu = sprd_codec->head_mic;
-	int ret = 0;
 
 	sp_asoc_pr_info("%s, startup_cnt=%d\n",
 		__func__, sprd_codec->startup_cnt);
-
-	if (regu && regulator_is_enabled(regu)) {
-		ret = regulator_set_mode(regu, REGULATOR_MODE_NORMAL);
-		if (ret < 0) {
-			sp_asoc_pr_info("%s, set mode ret=%d", __func__, ret);
-			return ret;
-		}
-	}
 	return 0;
 }
 #else
