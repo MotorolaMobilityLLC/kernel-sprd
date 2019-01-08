@@ -476,7 +476,7 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 		phy->vdd_vol = 3300;
 	}
 
-	phy->vdd = devm_regulator_get(dev, "vdd");
+	phy->vdd = devm_regulator_get_optional(dev, "vdd");
 	if (IS_ERR(phy->vdd)) {
 		dev_warn(dev, "unable to get ssphy vdd supply\n");
 		phy->vdd = NULL;
