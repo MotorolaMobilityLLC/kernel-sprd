@@ -6,3 +6,9 @@ endif
 
 BOARD_TEE_CONFIG := trusty
 
+#DEFCONFIG
+KERNEL_DEFCONFIG := sprd_sharkl3_defconfig
+
+#DTS
+TARGET_DTB := sp9863a-1h10
+TARGET_DTBO := sp9863a-1h10-overlay
