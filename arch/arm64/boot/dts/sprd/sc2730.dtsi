@@ -74,7 +74,6 @@
 
 			fgu_calib: calib@3 {
 				reg = <0x6 0x2>;
-				bits = <0 9>;
 			};
 
 			cc_cal: calib@d {
