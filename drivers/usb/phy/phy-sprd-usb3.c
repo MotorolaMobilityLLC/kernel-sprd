@@ -398,11 +398,15 @@ static enum usb_charger_type sprd_ssphy_charger_detect(struct usb_phy *x)
 {
 	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
 
+	if (!phy->pmic)
+		return UNKNOWN_TYPE;
 	return sc27xx_charger_detect(phy->pmic);
 }
 
 static int sprd_ssphy_probe(struct platform_device *pdev)
 {
+	struct device_node *regmap_np;
+	struct platform_device *regmap_pdev;
 	struct sprd_ssphy *phy;
 	struct device *dev = &pdev->dev;
 	struct resource *res;
@@ -412,6 +416,22 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	phy = devm_kzalloc(dev, sizeof(*phy), GFP_KERNEL);
 	if (!phy)
 		return -ENOMEM;
+
+	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
+	if (!regmap_np) {
+		dev_warn(dev, "unable to get syscon node\n");
+	} else {
+		regmap_pdev = of_find_device_by_node(regmap_np);
+		if (!regmap_pdev) {
+			of_node_put(regmap_np);
+			dev_warn(dev, "unable to get syscon platform device\n");
+			phy->pmic = NULL;
+		} else {
+			phy->pmic = dev_get_regmap(regmap_pdev->dev.parent, NULL);
+			if (!phy->pmic)
+				dev_warn(dev, "unable to get pmic regmap device\n");
+		}
+	}
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM,
 					   "phy_glb_regs");
@@ -467,6 +487,15 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 			dev_warn(dev, "fail to set ssphy vdd voltage:%dmV\n",
 				phy->vdd_vol);
 		}
+	}
+
+	if (！phy->pmic) {
+		/*
+		 * USB PHY must init before DWC3 phy setup in haps,
+		 * otherwise dwc3 phy setting will be cleared
+		 * because IPA_ATH_USB_RESET  reset dwc3 PHY setting.
+		 */
+		sprd_ssphy_init(&phy->phy);
 	}
 
 	/* enable otg utmi and analog */
