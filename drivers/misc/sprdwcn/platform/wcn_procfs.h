@@ -14,4 +14,5 @@ int get_loopcheck_status(void);
 void wakeup_loopcheck_int(void);
 void loopcheck_first_boot_clear(void);
 void loopcheck_first_boot_set(void);
+int prepare_free_buf(int chn, int size, int num);
 #endif

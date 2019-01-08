@@ -34,6 +34,10 @@ struct mchn_ops_t {
 	int rx_threshold;
 	/* tx timeout */
 	int timeout;
+	/* callback in top tophalf */
+	int cb_in_irq;
+	/* pending link num */
+	int max_pending;
 	/*
 	 * pop link list, (1)chn id, (2)mbuf link head
 	 * (3) mbuf link tail (4)number of node

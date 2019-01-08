@@ -693,7 +693,7 @@ mem_pd_err:
 
 		return -1;
 }
-int chip_poweroff_deinit(void)
+int mem_pd_poweroff_deinit(void)
 {
 	if (mem_pd.cp_version)
 		return 0;

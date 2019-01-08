@@ -39,6 +39,7 @@
 #include <misc/wcn_bus.h>
 #include "wcn_op.h"
 #include "wcn_parn_parser.h"
+#include "pcie_boot.h"
 #include "rdc_debug.h"
 #include "wcn_dump.h"
 #include "wcn_log.h"
@@ -1409,13 +1410,16 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 		marlin_start_run() == 0) {
 		check_cp_clock_mode();
 		marlin_write_cali_data();
+#ifndef CONFIG_WCN_PCIE
 		mem_pd_save_bin();
+#endif
 		check_cp_ready();
 		complete(&marlin_dev->download_done);
 	}
 	sprdwcn_bus_runtime_get();
 }
 
+#ifndef CONFIG_WCN_PCIE
 static void sdio_scan_card(void)
 {
 	init_completion(&marlin_dev->carddetect_done);
@@ -1425,6 +1429,7 @@ static void sdio_scan_card(void)
 		WCN_ERR("wait SDIO rescan card time out\n");
 
 }
+#endif
 
 /* for example: wifipa bound XTLEN3 */
 int pmic_bound_xtl_assert(unsigned int enable)
@@ -1515,10 +1520,12 @@ static int chip_power_on(int subsys)
 	msleep(20);
 	chip_reset_release(1);
 	marlin_analog_power_enable(true);
+#ifndef CONFIG_WCN_PCIE
 	sdio_scan_card();
 	loopcheck_first_boot_set();
-	chip_poweroff_deinit();
+	mem_pd_poweroff_deinit();
 	sdio_pub_int_poweron(true);
+#endif
 
 	return 0;
 }
@@ -1532,11 +1539,15 @@ static int chip_power_off(int subsys)
 	marlin_analog_power_enable(false);
 	chip_reset_release(0);
 	marlin_dev->wifi_need_download_ini_flag = 0;
-	chip_poweroff_deinit();
 	marlin_dev->power_state = 0;
+#ifndef CONFIG_WCN_PCIE
+	mem_pd_poweroff_deinit();
 	sprdwcn_bus_remove_card();
+#endif
 	loopcheck_first_boot_clear();
+#ifndef CONFIG_WCN_PCIE
 	sdio_pub_int_poweron(false);
+#endif
 
 	return 0;
 }
@@ -1880,7 +1891,9 @@ static int marlin_set_power(int subsys, int val)
 
 out:
 	sprdwcn_bus_runtime_put();
-	chip_poweroff_deinit();
+#ifndef CONFIG_WCN_PCIE
+	mem_pd_poweroff_deinit();
+#endif
 	marlin_clk_enable(false);
 	marlin_digital_power_enable(false);
 	marlin_analog_power_enable(false);
@@ -1958,14 +1971,16 @@ EXPORT_SYMBOL_GPL(is_first_power_on);
 
 int cali_ini_need_download(enum marlin_sub_sys subsys)
 {
+#ifndef CONFIG_WCN_PCIE
 	unsigned int pd_wifi_st = 0;
 
 	pd_wifi_st = mem_pd_wifi_state();
 	if ((marlin_dev->wifi_need_download_ini_flag == 1) || pd_wifi_st) {
 		WCN_INFO("%s return 1\n", __func__);
 		return 1;	/* the first */
-	} else
-		return 0;	/* not the first */
+	}
+#endif
+	return 0;	/* not the first */
 }
 EXPORT_SYMBOL_GPL(cali_ini_need_download);
 
@@ -2010,6 +2025,19 @@ EXPORT_SYMBOL_GPL(marlin_reset_reg);
 
 int start_marlin(u32 subsys)
 {
+#ifdef CONFIG_WCN_PCIE
+	WCN_INFO("%s [%s],power_status=%ld\n", __func__, strno(subsys),
+		 marlin_dev->power_state);
+	if (marlin_dev->download_finish_flag == 1) {
+		WCN_INFO("firmware have download\n");
+		return 0;
+	}
+	set_bit(subsys, &marlin_dev->power_state);
+	pcie_boot(subsys);
+	marlin_dev->download_finish_flag = 1;
+
+	return 0;
+#else
 	WCN_INFO("%s [%s]\n", __func__, strno(subsys));
 	if (sprdwcn_bus_get_carddump_status() != 0) {
 		WCN_ERR("%s SDIO card dump\n", __func__);
@@ -2033,11 +2061,13 @@ int start_marlin(u32 subsys)
 	marlin_set_power(subsys, true);
 
 	return mem_pd_mgr(subsys, true);
+#endif
 }
 EXPORT_SYMBOL_GPL(start_marlin);
 
 int stop_marlin(u32 subsys)
 {
+#ifndef CONFIG_WCN_PCIE
 	if (sprdwcn_bus_get_carddump_status() != 0) {
 		WCN_ERR("%s SDIO card dump\n", __func__);
 		return -1;
@@ -2050,6 +2080,10 @@ int stop_marlin(u32 subsys)
 
 	mem_pd_mgr(subsys, false);
 	return marlin_set_power(subsys, false);
+#else
+	clear_bit(subsys, &marlin_dev->power_state);
+	return 0;
+#endif
 }
 EXPORT_SYMBOL_GPL(stop_marlin);
 
@@ -2094,19 +2128,26 @@ static int marlin_probe(struct platform_device *pdev)
 	/* sdiom_init or pcie_init */
 	sprdwcn_bus_preinit();
 	sprdwcn_bus_register_rescan_cb(marlin_scan_finish);
+#ifndef CONFIG_WCN_PCIE
 	sdio_pub_int_init(marlin_dev->int_ap);
 	mem_pd_init();
 	proc_fs_init();
 	log_dev_init();
 	wcn_op_init();
+#endif
 	flag_reset = 0;
+#ifdef CONFIG_WCN_PCIE
+	chip_power_on(WCN_AUTO);
+#endif
 
 	INIT_WORK(&marlin_dev->download_wq, pre_btwifi_download_sdio);
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);
 
 	INIT_DELAYED_WORK(&marlin_dev->power_wq, marlin_power_wq);
+#ifndef CONFIG_WCN_PCIE
 	schedule_delayed_work(&marlin_dev->power_wq,
 			      msecs_to_jiffies(3500));
+#endif
 
 	WCN_INFO("%s ok!\n", __func__);
 
@@ -2121,8 +2162,10 @@ static int  marlin_remove(struct platform_device *pdev)
 	wcn_op_exit();
 	log_dev_exit();
 	proc_fs_exit();
+#ifndef CONFIG_WCN_PCIE
 	sdio_pub_int_deinit();
 	mem_pd_exit();
+#endif
 	sprdwcn_bus_deinit();
 	if (marlin_dev->power_state != 0) {
 		WCN_INFO("marlin some subsys power is on, warning!\n");
@@ -2215,7 +2258,12 @@ static int __init marlin_init(void)
 
 	return platform_driver_register(&marlin_driver);
 }
+
+#ifdef CONFIG_WCN_PCIE
+device_initcall(marlin_init);
+#else
 late_initcall(marlin_init);
+#endif
 
 static void __exit marlin_exit(void)
 {

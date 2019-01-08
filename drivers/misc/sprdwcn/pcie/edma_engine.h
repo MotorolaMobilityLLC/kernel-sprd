@@ -84,8 +84,8 @@ struct cpdu_head {
 	(!((unsigned long)(a) ^ (unsigned long)(b))) :	\
 	(!(((unsigned long)(a) ^ (unsigned long)(b)) & 0xFFFFFFFFFF)))
 
-struct mch_buf {
-	struct mch_buf *next;
+struct mbuf_t {
+	struct mbuf_t *next;
 	unsigned char *buf;
 	unsigned short len;
 	unsigned short rsvd;
@@ -398,4 +398,6 @@ int mchn_hw_max_pending(int chn);
 int edma_tp_count(int chn, void *head, void *tail, int num);
 void *mpool_malloc(int len);
 int mpool_free(void);
+void *pcie_alloc_memory(int len);
+int delete_queue(struct msg_q *q);
 #endif

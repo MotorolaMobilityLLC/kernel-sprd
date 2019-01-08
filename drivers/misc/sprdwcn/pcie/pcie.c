@@ -10,15 +10,27 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/interrupt.h>
 #include <linux/msi.h>
 #include <linux/pci.h>
 #include <linux/pci_ids.h>
-#include <misc/mchn.h>
+#include <misc/wcn_bus.h>
 
 #include "edma_engine.h"
 #include "ioctl.h"
+#include "mchn.h"
 #include "pcie.h"
 #include "pcie_dbg.h"
+#include "wcn_log.h"
+#include "wcn_op.h"
+#include "wcn_procfs.h"
+
+static struct wcn_pcie_info *g_pcie_dev;
+
+struct wcn_pcie_info *get_wcn_device_info(void)
+{
+	return g_pcie_dev;
+}
 
 static int sprd_pcie_msi_irq(int irq, void *arg)
 {
@@ -271,6 +283,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	if (!priv)
 		return -ENOMEM;
 
+	g_pcie_dev = priv;
 	priv->dev = pdev;
 	pci_set_drvdata(pdev, priv);
 
@@ -412,6 +425,9 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 		return ret;
 	edma_init(priv);
 	dbg_attach_bus(priv);
+	proc_fs_init();
+	log_dev_init();
+	wcn_op_init();
 	PCIE_INFO("%s ok\n", __func__);
 
 	return 0;
@@ -425,7 +441,7 @@ err_out:
 static int sprd_ep_suspend(struct device *dev)
 {
 	int ret;
-	struct mchn_ops *ops;
+	struct mchn_ops_t *ops;
 	int chn;
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct wcn_pcie_info *priv = pci_get_drvdata(pdev);
@@ -462,7 +478,7 @@ static int sprd_ep_suspend(struct device *dev)
 static int sprd_ep_resume(struct device *dev)
 {
 	int ret;
-	struct mchn_ops *ops;
+	struct mchn_ops_t *ops;
 	int chn;
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct wcn_pcie_info *priv = pci_get_drvdata(pdev);
@@ -500,7 +516,7 @@ static int sprd_ep_resume(struct device *dev)
 	return 0;
 }
 
-struct dev_pm_ops sprd_ep_pm_ops = {
+const struct dev_pm_ops sprd_ep_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(sprd_ep_suspend, sprd_ep_resume)
 };
 

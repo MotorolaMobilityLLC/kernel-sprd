@@ -114,4 +114,5 @@ unsigned char *obreg_base(struct wcn_pcie_info *priv, char region);
 int pcie_config_read(struct wcn_pcie_info *priv, int offset, char *buf,
 		     int len);
 int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar, unsigned int addr);
+struct wcn_pcie_info *get_wcn_device_info(void);
 #endif

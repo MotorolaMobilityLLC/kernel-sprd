@@ -75,7 +75,7 @@ struct mem_pd_meminfo_t {
 };
 
 unsigned int mem_pd_wifi_state(void);
-int chip_poweroff_deinit(void);
+int mem_pd_poweroff_deinit(void);
 int inform_cp_wifi_download(void);
 int mem_pd_mgr(enum marlin_sub_sys subsys, int val);
 int mem_pd_save_bin(void);

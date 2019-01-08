@@ -11,19 +11,20 @@
  */
 
 #include <linux/delay.h>
-#include <misc/mchn.h>
+#include <misc/wcn_bus.h>
 
 #include "edma_engine.h"
+#include "mchn.h"
 #include "pcie_dbg.h"
 #include "pcie.h"
 
 #define TX 1
 #define RX 0
 
-int hisrfunc_debug;
-int hisrfunc_line;
-int hisrfunc_last_msg;
-struct edma_info g_edma = { 0 };
+static int hisrfunc_debug;
+static int hisrfunc_line;
+static int hisrfunc_last_msg;
+static struct edma_info g_edma = { 0 };
 
 static unsigned char *mpool_buffer;
 static struct dma_buf mpool_dm = {0};
@@ -351,7 +352,7 @@ static int dscr_zero(struct desc *dscr)
 	return 0;
 }
 
-static int dscr_link_mbuf(int inout, struct desc *dscr, struct mch_buf *mbuf)
+static int dscr_link_mbuf(int inout, struct desc *dscr, struct mbuf_t *mbuf)
 {
 	if (inout == TX) {
 		dscr->rf_chn_data_src_addr_low =
@@ -396,7 +397,7 @@ int dscr_link_cpdu(int inout, struct desc *dscr, struct cpdu_head *cpdu)
 static int edma_pop_link(int chn, struct desc *__head, struct desc *__tail,
 		  void **head__, void **tail__, int *node)
 {
-	struct mch_buf *mbuf = NULL;
+	struct mbuf_t *mbuf = NULL;
 	struct desc *dscr = __head;
 	struct edma_info *edma = edma_info();
 
@@ -416,15 +417,16 @@ static int edma_pop_link(int chn, struct desc *__head, struct desc *__tail,
 					       .irq_spinlock_p,
 					       edma->chn_sw[chn].dscr_ring.lock
 					       .flag);
-			return ERROR;
+			return -1;
 		}
 		if (dscr_polling(dscr, 500000)) {
-			PCIE_ERR("%s(%d, 0x%p, 0x%p, 0x%p) polling\n",
+			PCIE_ERR("%s(%d, 0x%p, 0x%p, 0x%p) polling err\n",
 				 __func__, chn, __head, __tail, dscr);
 			spin_unlock_irqrestore(edma->chn_sw[chn].dscr_ring.lock
 					       .irq_spinlock_p,
 					       edma->chn_sw[chn].dscr_ring.lock
 					       .flag);
+			return -1;
 		}
 
 		if (*head__) {
@@ -441,7 +443,7 @@ static int edma_pop_link(int chn, struct desc *__head, struct desc *__tail,
 					       edma->chn_sw[chn].dscr_ring.lock
 					       .flag);
 
-			return ERROR;
+			return -1;
 		}
 		mbuf->len = dscr->chn_trans_len.bit.rf_chn_trsc_len;
 
@@ -608,7 +610,7 @@ int edma_none_link_copy(int chn, addr_t *dst, addr_t *src, unsigned short len,
 int edma_push_link(int chn, void *head, void *tail, int num)
 {
 	int i, j, inout;
-	struct mch_buf *mbuf;
+	struct mbuf_t *mbuf;
 	struct cpdu_head *cpdu;
 	struct desc *last = NULL;
 	union dma_chn_cfg_reg dma_cfg;
@@ -618,14 +620,14 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 	if ((head == NULL) || (tail == NULL) || (num == 0)) {
 		PCIE_ERR("%s(%d, 0x%p, 0x%p, %d) err\n", __func__,
 				chn, head, tail, num);
-		return ERROR;
+		return -1;
 	}
 	if (num > edma->chn_sw[chn].dscr_ring.free) {
 		PCIE_INFO("%s@%d err,chn:%d num:%d free:%d\n",
 			  __func__, __LINE__, chn, num,
 			  edma->chn_sw[chn].dscr_ring.free);
 		/* dscr not enough */
-		return ERROR;
+		return -1;
 	}
 
 	PCIE_INFO("%s(chn=%d, head=0x%p, tail=0x%p, num=%d)\n",
@@ -1113,6 +1115,8 @@ int msi_irq_handle(int irq)
 		enqueue(&(edma->isr_func.q), (unsigned char *)(&msg));
 		PCIE_INFO(" callback not in irq\n");
 		set_wcnevent(&(edma->isr_func.q.event));
+		local_irq_restore(irq_flags);
+		return 0;
 	} else if (mchn_hw_cb_in_irq(chn) == -1) {
 		local_irq_restore(irq_flags);
 		return -1;
@@ -1377,11 +1381,11 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 int edma_tp_count(int chn, void *head, void *tail, int num)
 {
 	int i, dt;
-	struct mch_buf *mbuf;
+	struct mbuf_t *mbuf;
 	static int bytecount;
 	static struct timeval start_time, time;
 
-	for (i = 0, mbuf = (struct mch_buf *)head; i < num; i++) {
+	for (i = 0, mbuf = (struct mbuf_t *)head; i < num; i++) {
 		do_gettimeofday(&time);
 		if (bytecount == 0)
 			start_time = time;

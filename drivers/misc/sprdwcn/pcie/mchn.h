@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2019 Spreadtrum Communications Inc.
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
@@ -17,8 +17,6 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
-
-#include <misc/wcn_bus.h>
 
 #define HW_TYPE_SDIO 0
 #define HW_TYPE_PCIE 1

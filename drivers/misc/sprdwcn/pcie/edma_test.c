@@ -12,6 +12,7 @@
 
 #include <misc/mchn.h>
 #include "edma_engine.h"
+#include "mchn.h"
 #include "pcie.h"
 
 #define TX_CHN (0)
@@ -25,8 +26,8 @@ struct cfg_e {
 };
 
 struct test_link {
-	struct mch_buf  *head;
-	struct mch_buf  *tail;
+	struct mbuf_t  *head;
+	struct mbuf_t  *tail;
 	int      num;
 	int      chn;
 };
@@ -35,7 +36,7 @@ struct loopback {
 	struct cfg_e  cfg;
 	int    seq;
 	int    loop;
-	struct mchn_ops ops[16];
+	struct mchn_ops_t ops[16];
 	struct test_link link[8][2];
 
 };
@@ -43,7 +44,7 @@ struct loopback g_lo;
 
 int cfg[] = {3, 1024, 2, 0, 1, 2, 3};
 
-static struct mchn_ops *lo_ops(int chn)
+static struct mchn_ops_t *lo_ops(int chn)
 {
 	struct loopback *lo = &g_lo;
 
@@ -72,7 +73,7 @@ static int lo_buf_alloc(int chn, int size, int num)
 {
 	int ret, i;
 	struct dma_buf dm = {0};
-	struct mch_buf *mbuf, *head, *tail;
+	struct mbuf_t *mbuf, *head, *tail;
 	struct edma_info *edma = edma_info();
 
 	ret = mbuf_link_alloc(chn, &head, &tail, &num);
@@ -93,7 +94,7 @@ static int lo_buf_alloc(int chn, int size, int num)
 	return ret;
 }
 
-static int lo_tx_pop(int chn, struct mch_buf *head, struct mch_buf *tail,
+static int lo_tx_pop(int chn, struct mbuf_t *head, struct mbuf_t *tail,
 		     int num)
 {
 	struct loopback *lo = &g_lo;
@@ -115,8 +116,8 @@ static int lo_tx_pop(int chn, struct mch_buf *head, struct mch_buf *tail,
 static int lo_push(int chn)
 {
 	int num, ret, i, j;
-	struct mchn_ops *ops = lo_ops(chn);
-	struct mch_buf *head, *tail, *mbuf;
+	struct mchn_ops_t *ops = lo_ops(chn);
+	struct mbuf_t *head, *tail, *mbuf;
 	struct loopback *lo = &g_lo;
 
 	num = ops->pool_size;
@@ -133,7 +134,7 @@ static int lo_push(int chn)
 	return ret;
 }
 
-static int lo_rx_push(int chn, struct mch_buf **head, struct mch_buf **tail,
+static int lo_rx_push(int chn, struct mbuf_t **head, struct mbuf_t **tail,
 		      int *num)
 {
 	int ret = mbuf_link_alloc(chn, head, tail, num);
@@ -141,14 +142,14 @@ static int lo_rx_push(int chn, struct mch_buf **head, struct mch_buf **tail,
 	return ret;
 }
 
-static int lo_rx_pop(int chn, struct mch_buf *head, struct mch_buf *tail,
+static int lo_rx_pop(int chn, struct mbuf_t *head, struct mbuf_t *tail,
 		     int num)
 {
 	int i, pos;
 	unsigned char string[128];
-	struct mch_buf *tx_mbuf, *rx_mbuf;
+	struct mbuf_t *tx_mbuf, *rx_mbuf;
 	struct loopback *lo = &g_lo;
-	struct mchn_ops *ops = lo_ops(chn);
+	struct mchn_ops_t *ops = lo_ops(chn);
 	struct test_link *tx_link = &(lo->link[lo_index(chn)][TX_CHN]);
 	struct test_link *rx_link = &(lo->link[lo_index(chn)][RX_CHN]);
 
@@ -213,7 +214,7 @@ static int lo_tx_complete(int chn, int timeout)
 int lo_init(void)
 {
 	int i, tx_chn, rx_chn;
-	struct mchn_ops *ops;
+	struct mchn_ops_t *ops;
 	struct loopback *lo = &g_lo;
 
 	PCIE_INFO("[+]%s\n", __func__);

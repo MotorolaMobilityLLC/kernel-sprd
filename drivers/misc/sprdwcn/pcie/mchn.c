@@ -10,9 +10,10 @@
  * GNU General Public License for more details.
  */
 
-#include <misc/mchn.h>
+#include <misc/wcn_bus.h>
 
 #include "edma_engine.h"
+#include "mchn.h"
 
 static struct mchn_info_t g_mchn;
 
@@ -21,16 +22,16 @@ struct mchn_info_t *mchn_info(void)
 	return &g_mchn;
 }
 
-struct mchn_ops *mchn_ops(int channel)
+struct mchn_ops_t *mchn_ops(int channel)
 {
 	return g_mchn.ops[channel];
 }
 
-int mbuf_link_alloc(int chn, struct mch_buf **head, struct mch_buf **tail,
+int mbuf_link_alloc(int chn, struct mbuf_t **head, struct mbuf_t **tail,
 		    int *num)
 {
 	int i;
-	struct mch_buf *cur, *head__, *tail__ = NULL;
+	struct mbuf_t *cur, *head__, *tail__ = NULL;
 	struct mchn_info_t *mchn = mchn_info();
 	struct buffer_pool *pool = &(mchn->chn_public[chn].pool);
 
@@ -65,7 +66,7 @@ int mbuf_link_alloc(int chn, struct mch_buf **head, struct mch_buf **tail,
 }
 EXPORT_SYMBOL(mbuf_link_alloc);
 
-int mbuf_link_free(int chn, struct mch_buf *head, struct mch_buf *tail, int num)
+int mbuf_link_free(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 {
 	struct mchn_info_t *mchn = mchn_info();
 	struct buffer_pool *pool = &(mchn->chn_public[chn].pool);
@@ -90,26 +91,26 @@ EXPORT_SYMBOL(mbuf_link_free);
 int mbuf_pool_init(struct buffer_pool *pool, int size, int payload)
 {
 	int i;
-	struct mch_buf *mbuf, *next;
+	struct mbuf_t *mbuf, *next;
 
 	pool->size = size;
 	pool->payload = payload;
 	spin_lock_init(&(pool->lock));
-	pool->mem = kmalloc((sizeof(struct mch_buf) + payload) * size,
+	pool->mem = kmalloc((sizeof(struct mbuf_t) + payload) * size,
 			     GFP_KERNEL);
 	PCIE_INFO("mbuf_pool->mem:0x%lx\n",
 		(unsigned long)virt_to_phys(pool->mem));
-	memset(pool->mem, 0x00, (sizeof(struct mch_buf) + payload) * size);
-	pool->head = (struct mch_buf *) (pool->mem);
-	for (i = 0, mbuf = (struct mch_buf *) (pool->head);
+	memset(pool->mem, 0x00, (sizeof(struct mbuf_t) + payload) * size);
+	pool->head = (struct mbuf_t *) (pool->mem);
+	for (i = 0, mbuf = (struct mbuf_t *) (pool->head);
 	     i < (size - 1); i++) {
 		mbuf->seq = i;
 		PCIE_INFO("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
 			(unsigned long)mbuf,
 			(unsigned long)virt_to_phys(mbuf));
-		next = (struct mch_buf *) ((char *)mbuf +
-			sizeof(struct mch_buf) + payload);
-		mbuf->buf = (char *)mbuf + sizeof(struct mch_buf);
+		next = (struct mbuf_t *) ((char *)mbuf +
+			sizeof(struct mbuf_t) + payload);
+		mbuf->buf = (char *)mbuf + sizeof(struct mbuf_t);
 		mbuf->len = payload;
 		mbuf->next = next;
 		mbuf = next;
@@ -118,7 +119,7 @@ int mbuf_pool_init(struct buffer_pool *pool, int size, int payload)
 		(unsigned long)mbuf,
 		(unsigned long)virt_to_phys(mbuf));
 	mbuf->seq = i;
-	mbuf->buf = (char *)mbuf + sizeof(struct mch_buf);
+	mbuf->buf = (char *)mbuf + sizeof(struct mbuf_t);
 	mbuf->len = payload;
 	mbuf->next = NULL;
 	pool->free = size;
@@ -129,7 +130,7 @@ int mbuf_pool_init(struct buffer_pool *pool, int size, int payload)
 
 int mbuf_pool_deinit(struct buffer_pool *pool)
 {
-	memset(pool->mem, 0x00, (sizeof(struct mch_buf) +
+	memset(pool->mem, 0x00, (sizeof(struct mbuf_t) +
 	       pool->payload) * pool->size);
 	kfree(pool->mem);
 
@@ -147,8 +148,8 @@ int mchn_hw_pop_link(int chn, void *head, void *tail, int num)
 	if (mchn->ops[chn]->hif_type == HW_TYPE_PCIE)
 		edma_tp_count(chn, head, tail, num);
 
-	return mchn->ops[chn]->pop_link(chn, (struct mch_buf *)head,
-					(struct mch_buf *)tail, num);
+	return mchn->ops[chn]->pop_link(chn, (struct mbuf_t *)head,
+					(struct mbuf_t *)tail, num);
 }
 EXPORT_SYMBOL(mchn_hw_pop_link);
 
@@ -168,7 +169,7 @@ EXPORT_SYMBOL(mchn_hw_tx_complete);
 int mchn_hw_req_push_link(int chn, int need)
 {
 	int ret;
-	struct mch_buf *head = NULL, *tail = NULL;
+	struct mbuf_t *head = NULL, *tail = NULL;
 	struct mchn_info_t *mchn = mchn_info();
 
 	if (mchn->ops[chn] == NULL)
@@ -203,7 +204,7 @@ int mchn_hw_max_pending(int chn)
 	return g_mchn.ops[chn]->max_pending;
 }
 
-int mchn_push_link(int chn, struct mch_buf *head, struct mch_buf *tail, int num)
+int mchn_push_link(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 {
 	int ret = -1;
 	struct mchn_info_t *mchn = mchn_info();
@@ -233,8 +234,8 @@ int mchn_push_link(int chn, struct mch_buf *head, struct mch_buf *tail, int num)
 }
 EXPORT_SYMBOL(mchn_push_link);
 
-int mchn_push_link_wait_complete(int chn, struct mch_buf *head,
-				 struct mch_buf *tail, int num, int timeout)
+int mchn_push_link_wait_complete(int chn, struct mbuf_t *head,
+				 struct mbuf_t *tail, int num, int timeout)
 {
 	int ret = -1;
 	struct mchn_info_t *mchn = mchn_info();
@@ -258,7 +259,7 @@ int mchn_push_link_wait_complete(int chn, struct mch_buf *head,
 }
 EXPORT_SYMBOL(mchn_push_link_wait_complete);
 
-int mchn_init(struct mchn_ops *ops)
+int mchn_init(struct mchn_ops_t *ops)
 {
 	int ret = -1;
 	struct mchn_info_t *mchn = mchn_info();
@@ -294,7 +295,7 @@ int mchn_init(struct mchn_ops *ops)
 }
 EXPORT_SYMBOL(mchn_init);
 
-int mchn_deinit(struct mchn_ops *ops)
+int mchn_deinit(struct mchn_ops_t *ops)
 {
 	int ret = 0;
 	struct mchn_info_t *mchn = mchn_info();
