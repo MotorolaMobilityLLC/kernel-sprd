@@ -3028,7 +3028,7 @@ CONFIG_F2FS_FS_XATTR
 	[function] Enable F2FS extended attributes.
 CONFIG_F2FS_RESERVE_SPACE_FILTER
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkle,sharkle32
+	[plat] all
 	[field] make,code
 	[subsys] fs
 	[must] none
