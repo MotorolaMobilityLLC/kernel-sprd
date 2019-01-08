@@ -25,10 +25,13 @@
 #include <linux/delay.h>
 #include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
+#include <linux/regmap.h>
+#include <linux/mfd/syscon.h>
 
-#include <linux/usb/sprd_usb.h>
 #include <linux/usb/pam.h>
 #include <linux/sipa.h>
+#include <dt-bindings/soc/sprd,roc1-mask.h>
+#include <dt-bindings/soc/sprd,roc1-regs.h>
 #include "sprd-pamu3.h"
 
 /* PAMU3 default xmit code values used for command entry */
@@ -60,6 +63,7 @@ struct sprd_pamu3 {
 	void __iomem        *base;
 	void __iomem        *dwc3_dma;
 	void __iomem        *dwc3_base;
+	struct regmap		*ipa_ahb;
 
 	struct pamu3_dwc3_trb		*tx_trb_pool;
 	struct pamu3_dwc3_trb		*rx_trb_pool;
@@ -299,6 +303,13 @@ static int sprd_pamu3_init(struct usb_phy *x)
 	struct sprd_pamu3 *pamu3 = container_of(x, struct sprd_pamu3, pam);
 	u64 temp;
 	u32 reg;
+	int ret;
+
+	/* Enable ipa pamu3 */
+	ret = regmap_update_bits(pamu3->ipa_ahb, REG_IPA_AHB_IPA_EB,
+			MASK_IPA_AHB_PAM_USB_EB, MASK_IPA_AHB_PAM_USB_EB);
+	if (ret)
+		return ret;
 
 	/* Event buffer regs */
 	reg = readl_relaxed(pamu3->dwc3_base + REG_DWC3_GEVNTADRLO(1));
@@ -506,6 +517,13 @@ static int sprd_pamu3_probe(struct platform_device *pdev)
 			IORESOURCE_MEM, "dwc3_core_regs");
 	if (!res) {
 		dev_err(dev, "missing DWC3 core registers resource\n");
+		return -ENODEV;
+	}
+
+	pamu3->ipa_ahb = syscon_regmap_lookup_by_phandle(dev->of_node,
+						"sprd,syscon-ipa-ahb");
+	if (!pamu3->ipa_ahb) {
+		dev_err(dev, "failed to map ipa ahb registers (via syscon)\n");
 		return -ENODEV;
 	}
 
