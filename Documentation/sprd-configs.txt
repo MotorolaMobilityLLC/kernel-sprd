@@ -660,6 +660,13 @@ CONFIG_ARM_ARCH_TIMER_OOL_WORKAROUND
 	[subsys]
 	[must]
 	[function]
+CONFIG_ARM_CPUIDLE
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] cpuidle
+	[must] user
+	[function] Enable arm/arm64 cpuidle driver
 CONFIG_ARM_CPU_SUSPEND
 	[arch] arm
 	[plat] sharkl5_32
@@ -1681,6 +1688,27 @@ CONFIG_CPU_HAS_ASID
 	[subsys]
 	[must]
 	[function]
+CONFIG_CPU_IDLE
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] cpuidle
+	[must] console
+	[function] CPU idle pm support.
+CONFIG_CPU_IDLE_GOV_MENU
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] cpuidle
+	[must] user
+	[function] Menu governor (for tickless system).
+CONFIG_CPU_IDLE_MULTIPLE_DRIVERS
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] cpuidle
+	[must] user
+	[function] Support for multiple idle drivers.
 CONFIG_CPU_PABRT_V7
 	[arch] arm
 	[plat] sharkl5_32
@@ -2769,6 +2797,13 @@ CONFIG_DTC
 	[subsys] core
 	[must] console
 	[function] Support the device-tree-compiler.
+CONFIG_DT_IDLE_STATES
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] cpuidle
+	[must] user
+	[function] This macro is used to open cpuidle and light sleep function.
 CONFIG_DUAL_ROLE_USB_INTF
 	[arch] all
 	[plat] all
