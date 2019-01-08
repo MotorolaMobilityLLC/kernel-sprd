@@ -795,11 +795,13 @@ int sdiohal_aon_writeb(unsigned int addr, unsigned char val)
 	return err;
 }
 
+#define WCN_SDIO_CARD_REMOVED	BIT(4)
 void sdiohal_remove_card(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
-	mmc_detect_card_removed(p_data->sdio_dev_host);
+	p_data->sdio_dev_host->card->state |= WCN_SDIO_CARD_REMOVED;
+	mmc_detect_change(p_data->sdio_dev_host, 0);
 }
 
 int sdiohal_scan_card(void)
