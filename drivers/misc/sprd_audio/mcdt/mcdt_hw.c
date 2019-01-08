@@ -1292,6 +1292,7 @@ static int mcdt_probe(struct platform_device *pdev)
 
 static const struct of_device_id mcdt_of_match[] = {
 	{.compatible = "sprd,sharkl5-mcdt", },
+	{.compatible = "sprd,roc1-mcdt", },
 	{ }
 };
 static struct platform_driver mcdt_driver = {

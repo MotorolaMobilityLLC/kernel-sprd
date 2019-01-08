@@ -972,6 +972,8 @@ static const struct of_device_id audio_mem_match_table[] = {
 	 .data = (void *)PLATFORM_WHALE2},
 	{.compatible = "sprd,audio-mem-sharkl5",
 	 .data = (void *)PLATFORM_SHARKL5},
+	{.compatible = "sprd,audio-mem-roc1",
+	 .data = (void *)PLATFORM_SHARKL5},
 	{},
 };
 
