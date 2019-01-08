@@ -42,6 +42,10 @@
 		gsp = <&gsp>;
 	};
 
+	sprd-sensorhub {
+		compatible = "sprd,roc1-sensorhub";
+	};
+
 	thm_zone: thermal-zones {
 
 		bigcore6a7_thmzone: bigcore6a7-thmzone {
