@@ -1,6 +1,7 @@
 source "drivers/soc/sprd/debug/djtag/Kconfig"
 source "drivers/soc/sprd/debug/busmonitor/Kconfig"
 
+source "drivers/soc/sprd/debug/irq/Kconfig"
 config SPRD_LAST_REGS
 	bool "SPRD last regs access"
 	depends on SPRD_DEBUG
@@ -26,7 +27,3 @@ config SPRD_CPU_USAGE
 	help
 	  CPU usage statistics
 
-config SPRD_EIRQSOFF
-	bool "spreadtrum IRQ disable time debug"
-	depends on IRQSOFF_TRACER && SPRD_DEBUG
-	default y

@@ -791,9 +791,9 @@ CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] arm64
 	[plat] sharkl5
 	[field] make
-	[subsys]cpufreq
-	[must]user
-	[function]Enable apcpu hardware dvfs function.
+	[subsys] 	[subsys]cpufreq
+	[must] 	[must]user
+	[function] 	[function]Enable apcpu hardware dvfs function.
 CONFIG_ARM_THUMB
 	[arch] arm
 	[plat] sharkl5_32
@@ -9727,7 +9727,7 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[field] make
 	[subsys] devfreq
 	[must] user
-	[function]Enable device dvfs function.
+	[function] 	[function]Enable device dvfs function.
 CONFIG_SPRD_VSP
 	[arch] all
 	[plat] all
