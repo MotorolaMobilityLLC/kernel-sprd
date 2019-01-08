@@ -28,6 +28,7 @@
 #include <linux/regmap.h>
 #include <linux/mfd/syscon.h>
 
+#include <linux/usb/phy.h>
 #include <linux/usb/pam.h>
 #include <linux/sipa.h>
 #include <dt-bindings/soc/sprd,roc1-mask.h>
@@ -544,20 +545,26 @@ static int sprd_pamu3_probe(struct platform_device *pdev)
 			pamu3->dev, sizeof(struct pamu3_dwc3_trb) *
 			PAMU3_RX_TRB_NUM,
 			&pamu3->rx_trb_pool_dma, GFP_KERNEL);
-	if (!pamu3->rx_trb_pool)
+	if (!pamu3->rx_trb_pool)  {
+		ret = -ENOMEM;
 		goto err;
+	}
 
 	pamu3->rndis_header_buf = dma_alloc_coherent(pamu3->dev,
 			PAMU3_RNDIS_HEADER_SIZE,
 			&pamu3->rndis_header_buf_dma, GFP_KERNEL);
-	if (!pamu3->rndis_header_buf)
+	if (!pamu3->rndis_header_buf) {
+		ret = -ENOMEM;
 		goto err;
+	}
 
 	pamu3->rx_max_buf = dma_alloc_coherent(pamu3->dev,
 			PAMU3_RX_TRBBUF_SIZE * PAMU3_RX_TRBBUF_NUM,
 			&pamu3->rx_max_buf_dma, GFP_KERNEL);
-	if (!pamu3->rx_max_buf)
+	if (!pamu3->rx_max_buf) {
+		ret = -ENOMEM;
 		goto err;
+	}
 
 	platform_set_drvdata(pdev, pamu3);
 	pamu3->pam.dev = dev;
@@ -570,11 +577,18 @@ static int sprd_pamu3_probe(struct platform_device *pdev)
 
 	pamu3->pam.type = USB_PAM_TYPE_USB3;
 
+	ret = usb_add_phy_dev(&pamu3->pam);
+	if (ret) {
+		dev_err(dev, "fail to add usb pam\n");
+		goto err;
+	}
+
 	ret = sysfs_create_groups(&dev->kobj, usb_pamu3_groups);
 	if (ret)
 		dev_warn(dev, "failed to create usb pamu3 attributes\n");
 
 	return 0;
+
 err:
 	if (pamu3->tx_trb_pool)
 		dma_free_coherent(pamu3->dev,
@@ -588,7 +602,7 @@ err:
 		dma_free_coherent(pamu3->dev, PAMU3_RNDIS_HEADER_SIZE,
 			pamu3->rndis_header_buf, pamu3->rndis_header_buf_dma);
 
-	return -ENOMEM;
+	return ret;
 }
 
 static int sprd_pamu3_remove(struct platform_device *pdev)
