@@ -1,0 +1,43 @@
+/ {
+	isp_dvfs: isp-dvfs {
+		compatible = "sprd,sharkl5-hwdvfs-isp";
+		status = "disabled";
+		sprd,dvfs-work-index-def = <1>;
+	};
+	cpp_dvfs: cpp-dvfs {
+		compatible = "sprd,sharkl5-hwdvfs-cpp";
+		status = "disabled";
+		sprd,dvfs-work-index-def = <1>;
+	};
+	jpg_dvfs: jpg-dvfs {
+		compatible = "sprd,sharkl5-hwdvfs-jpg";
+		status = "disabled";
+		sprd,dvfs-work-index-def = <1>;
+	};
+	fd_dvfs: fd-dvfs {
+		compatible = "sprd,sharkl5-hwdvfs-fd";
+		status = "disabled";
+		sprd,dvfs-work-index-def = <2>;
+	};
+	mtx_dvfs: mtx-dvfs {
+		compatible = "sprd,sharkl5-hwdvfs-mtx";
+		status = "disabled";
+		sprd,dvfs-auto-tune = <1>;
+		sprd,dvfs-work-index-def = <3>;
+	};
+	dcam_if_dvfs: dcam-if-dvfs {
+		compatible = "sprd,sharkl5-hwdvfs-dcam-if";
+		status = "disabled";
+		sprd,dvfs-work-index-def = <5>;
+	};
+	dcam_axi_dvfs: dcam-axi-dvfs {
+		compatible = "sprd,sharkl5-hwdvfs-dcam-axi";
+		status = "disabled";
+		sprd,dvfs-auto-tune = <1>;
+		sprd,dvfs-work-index-def = <2>;
+	};
+	mmsys_dvfs: mmsys-dvfs {
+		compatible = "sprd,sharkl5-hwdvfs-mmsys";
+		status = "disabled";
+	};
+};

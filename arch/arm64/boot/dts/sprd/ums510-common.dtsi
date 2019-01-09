@@ -8,7 +8,7 @@
 
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include <dt-bindings/thermal/thermal.h>
-
+#include "ums510-mm-dvfs.dtsi"
 / {
 	aliases {
 		cooling-device0 = &cluster0_cooling;
