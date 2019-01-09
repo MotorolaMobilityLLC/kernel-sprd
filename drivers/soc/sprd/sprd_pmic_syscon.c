@@ -115,7 +115,7 @@ static int sprd_pmic_glb_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	ret = of_property_read_u32(np, "reg", &sc27xx_glb->base);
+	ret = of_property_read_u32_index(np, "reg", 0, &sc27xx_glb->base);
 	if (ret) {
 		dev_err(dev, "get base register failed\n");
 		return -EINVAL;
