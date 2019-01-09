@@ -38,7 +38,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/printk.h>
 #include "sprd-cpufreqhw.h"
-#include "sprd-hwdvfs.h"
+#include "sprd-hwdvfs-normal.h"
 
 static const struct of_device_id sprd_cpudvfs_of_match[] = {
 	{

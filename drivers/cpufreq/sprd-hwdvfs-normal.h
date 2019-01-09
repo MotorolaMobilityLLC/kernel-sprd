@@ -9,8 +9,8 @@
  * updated at 2018-03-22 11:21:44
  *
  */
-#ifndef SPRD_HWDVFS_H
-#define SPRD_HWDVFS_H
+#ifndef SPRD_HWDVFS_NORMAL_H
+#define SPRD_HWDVFS_NORMAL_H
 
 enum sprd_cpudvfs_type {
 	UNKNOWN_CPUFREQHW,

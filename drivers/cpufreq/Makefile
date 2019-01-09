@@ -88,7 +88,8 @@ obj-$(CONFIG_ACPI_CPPC_CPUFREQ) += cppc_cpufreq.o
 obj-$(CONFIG_MACH_MVEBU_V7)		+= mvebu-cpufreq.o
 
 
-obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ) += sprd-cpufreqhw.o sprd-hwdvfs.o sprd-sysfs.o sprd-cpufreq-common.o
+obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ) += sprd-cpufreqhw.o sprd-cpufreq-common.o
+obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL) += sprd-hwdvfs-normal.o sprd-sysfs-normal.o
 ##################################################################################
 # PowerPC platform drivers
 obj-$(CONFIG_CPU_FREQ_CBE)		+= ppc-cbe-cpufreq.o

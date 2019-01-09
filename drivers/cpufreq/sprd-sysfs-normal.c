@@ -18,7 +18,7 @@
 #include <linux/sched.h>
 #include <linux/printk.h>
 #include <linux/cpufreq.h>
-#include "sprd-hwdvfs.h"
+#include "sprd-hwdvfs-normal.h"
 
 struct cpudvfs_archdata *gpdev;
 
