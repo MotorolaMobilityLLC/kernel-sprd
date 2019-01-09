@@ -11,6 +11,7 @@
 
 #include "ud710.dtsi"
 #include "ud710-common.dtsi"
+#include "sprd-sound-fe-be.dtsi"
 #include "sc2730.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 
@@ -170,6 +171,10 @@
 		compatible = "sprd,mtty";
 		sprd,name = "ttyBT";
 	};
+
+	audio-mem-mgr {
+		memory-region = <&audio_reserved>;
+	};
 };
 
 &dpu {
@@ -259,4 +264,19 @@
 &usb {
 	extcon = <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
+};
+
+&sprd_headset {
+	status = "okay";
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	hp-use-inter-pa = <1>;
+	fixed-sample-rate = <48000 48000 48000>;
+	digital-codec = <&sprd_audio_codec_dig>;
+};
+
+&sound_vbc_v4_sprd_codec {
+	status = "okay";
 };

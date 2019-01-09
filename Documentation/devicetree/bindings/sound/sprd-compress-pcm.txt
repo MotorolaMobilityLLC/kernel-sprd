@@ -5,7 +5,7 @@ This node models spreadtrum sound compress offload platform driver
 Required properties:
 
 this node allow sound use sound offload platform driver
-- compatible : "sprd,sharkl5-compress-platform"
+- compatible : "sprd,sharkl5-compress-platform", "sprd,roc1-compress-platform"
 - dmas : compress used dma channels
 - dma-names : dma names of dma channels
 - #sound-dai-cells : only support 0, it means use default

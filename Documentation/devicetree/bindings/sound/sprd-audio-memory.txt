@@ -4,7 +4,7 @@ This node models spreadtrum sound audio memory manager driver
 
 Required properties:
 
-- compatible : "sprd,audio-mem-sharkl5", "sprd,audio-mem-sharkl2", "sprd,audio-mem-whale2"
+- compatible : "sprd,audio-mem-sharkl5", "sprd,audio-mem-sharkl2", "sprd,audio-mem-whale2", "sprd,audio-mem-roc1"
 - ddr32-ap-dsp-map-offset : ddr address mapping offset between ap and audio co-processor
 - sprd,ddr32-dma : ddr used by dma
 - sprd,ddr32-dspmemdump : ddr used by audio co-processor dump
