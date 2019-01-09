@@ -43,6 +43,7 @@
 /* Block number and block width (bytes) definitions */
 #define SC27XX_EFUSE_BLOCK_MAX		32
 #define SC27XX_EFUSE_BLOCK_WIDTH	2
+#define SC27XX_EFUSE_BLOCK_SIZE	(SC27XX_EFUSE_BLOCK_WIDTH * BITS_PER_BYTE)
 
 /* Timeout (ms) for the trylock of hardware spinlocks */
 #define SC27XX_EFUSE_HWLOCK_TIMEOUT	5000
@@ -126,6 +127,7 @@ static int sc27xx_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sc27xx_efuse *efuse = context;
 	u32 buf, index = offset / SC27XX_EFUSE_BLOCK_WIDTH;
+	u32 blk_offset = (offset % SC27XX_EFUSE_BLOCK_WIDTH) * BITS_PER_BYTE;
 	int ret;
 
 	if (index >= SC27XX_EFUSE_BLOCK_MAX || bytes > SC27XX_EFUSE_BLOCK_WIDTH)
@@ -190,8 +192,10 @@ disable_efuse:
 unlock_efuse:
 	sc27xx_efuse_unlock(efuse);
 
-	if (!ret)
-		memcpy(val, &buf, bytes);
+	if (!ret) {
+		buf >>= blk_offset;
+		memcpy(val, &buf, SC27XX_EFUSE_BLOCK_SIZE);
+	}
 
 	return ret;
 }

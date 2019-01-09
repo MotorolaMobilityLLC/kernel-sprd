@@ -70,6 +70,7 @@
 /* Block number and block width (bytes) definitions */
 #define SPRD_EFUSE_BLOCK_MAX		96
 #define SPRD_EFUSE_BLOCK_WIDTH		4
+#define SPRD_EFUSE_BLOCK_SIZE		(SPRD_EFUSE_BLOCK_WIDTH * BITS_PER_BYTE)
 #define SPRD_EFUSE_BLOCK_START		72
 
 /* Timeout (ms) for the trylock of hardware spinlocks */
@@ -329,14 +330,22 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sprd_efuse *efuse = context;
 	bool blk_double = efuse->var_data->blk_double;
-	u32 index = offset / SPRD_EFUSE_BLOCK_WIDTH;
+	u32 data, index = offset / SPRD_EFUSE_BLOCK_WIDTH;
+	u32 blk_offset = (offset % SPRD_EFUSE_BLOCK_WIDTH) * BITS_PER_BYTE;
+	int ret;
 
 	/* efuse has two parts secure efuse block and public efuse block.
 	 * public eFuse starts at SPRD_EFUSE_BLOCK_STAR block.
 	 */
 	index += efuse->var_data->blk_start;
 
-	return sprd_efuse_raw_read(efuse, index, val, blk_double);
+	ret = sprd_efuse_raw_read(efuse, index, &data, blk_double);
+	if (!ret) {
+		data >>= blk_offset;
+		memcpy(val, &data, SPRD_EFUSE_BLOCK_SIZE);
+	}
+
+	return ret;
 }
 
 static int sprd_efuse_write(void *context, u32 offset, void *val, size_t bytes)

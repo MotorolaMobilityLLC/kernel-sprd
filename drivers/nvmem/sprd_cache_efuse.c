@@ -15,7 +15,7 @@
 #include <linux/vmalloc.h>
 
 #define SPRD_EFUSE_BLOCK_WIDTH	4
-
+#define SPRD_EFUSE_BLOCK_SIZE	(SPRD_EFUSE_BLOCK_WIDTH * BITS_PER_BYTE)
 /*
  * Since different sprd chip can have different block max,
  * we should save address in the device data structure.
@@ -121,15 +121,21 @@ static int sprd_efuse_raw_read(struct sprd_efuse *efuse, int index, u32 *val)
 static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sprd_efuse *efuse = context;
-	u32 index = offset / SPRD_EFUSE_BLOCK_WIDTH;
+	u32 data, index = offset / SPRD_EFUSE_BLOCK_WIDTH;
+	u32 blk_offset = (offset % SPRD_EFUSE_BLOCK_WIDTH) * BITS_PER_BYTE;
 	int ret;
 
 	if (index < efuse->var_data->blk_start || index > efuse->var_data->blk_max)
 		return -EINVAL;
 
 	mutex_lock(&efuse->mutex);
-	ret = sprd_efuse_raw_read(efuse, index, val);
+	ret = sprd_efuse_raw_read(efuse, index, &data);
 	mutex_unlock(&efuse->mutex);
+
+	if (!ret) {
+		data >>= blk_offset;
+		memcpy(val, &data, SPRD_EFUSE_BLOCK_SIZE);
+	}
 
 	return ret;
 }
