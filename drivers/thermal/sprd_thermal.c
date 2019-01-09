@@ -179,7 +179,7 @@ static int sprd_thm_cal_read(struct device_node *np, const char *cell_id, u32 *v
 		return PTR_ERR(buf);
 	}
 
-	memcpy(val, buf, sizeof(*val));
+	memcpy(val, buf, min(len, sizeof(u32)));
 
 	kfree(buf);
 	nvmem_cell_put(cell);
