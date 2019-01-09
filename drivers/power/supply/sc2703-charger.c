@@ -782,6 +782,8 @@ static void sc2703_charger_work(struct work_struct *data)
 
 out:
 	mutex_unlock(&info->lock);
+	dev_info(info->dev, "battery present = %d, charger type = %d\n",
+		 present, info->usb_phy->chg_type);
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
 }
 
