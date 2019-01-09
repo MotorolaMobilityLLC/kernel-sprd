@@ -156,10 +156,6 @@
 	regulator-always-on;
 };
 
-&vddemmccore {
-	regulator-always-on;
-};
-
 &hsphy {
 	extcon = <&pmic_typec>;
 };
@@ -225,6 +221,22 @@
 &spi0 {
 	/*used for fingerprint sensor*/
 	status = "okay";
+};
+
+&i2c7 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	fan53555_dcdc: regulator@60 {
+		compatible = "fcs,fan53555";
+		reg = <0x60>;
+		regulator-name = "fan53555";
+		regulator-min-microvolt = <603000>;
+		regulator-max-microvolt = <1411000>;
+		regulator-ramp-delay = <64000>;
+		regulator-always-on;
+		fcs,suspend-voltage-selector = <1>;
+	};
 };
 
 &vsp {
