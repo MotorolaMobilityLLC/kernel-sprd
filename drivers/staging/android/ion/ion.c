@@ -82,7 +82,8 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 {
 	struct ion_buffer *buffer;
 	struct sg_table *table;
-	int ret;
+	int i, ret;
+	struct scatterlist *sg;
 
 	buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);
 	if (!buffer)
@@ -116,6 +117,10 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 	buffer->dev = dev;
 	buffer->size = len;
 	INIT_LIST_HEAD(&buffer->attachments);
+	for_each_sg(buffer->sg_table->sgl, sg, buffer->sg_table->nents, i) {
+		sg_dma_address(sg) = sg_phys(sg);
+		sg_dma_len(sg) = sg->length;
+	}
 	mutex_init(&buffer->lock);
 	mutex_lock(&dev->buffer_lock);
 	ion_buffer_add(dev, buffer);
@@ -316,6 +321,11 @@ static int ion_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 static void ion_dma_buf_release(struct dma_buf *dmabuf)
 {
 	struct ion_buffer *buffer = dmabuf->priv;
+	struct dma_buf_attachment *attachment =
+		(struct dma_buf_attachment *)(buffer->priv_virt);
+
+	ion_dma_buf_detatch(dmabuf, attachment);
+	kfree(attachment);
 
 	_ion_buffer_destroy(buffer);
 }
@@ -403,6 +413,8 @@ int ion_alloc(size_t len, unsigned int heap_id_mask, unsigned int flags)
 	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
 	int fd;
 	struct dma_buf *dmabuf;
+	struct dma_buf_attachment *attachment;
+	struct ion_dma_buf_attachment *a;
 
 	pr_debug("%s: len %zu heap_id_mask %u flags %x\n", __func__,
 		 len, heap_id_mask, flags);
@@ -445,6 +457,23 @@ int ion_alloc(size_t len, unsigned int heap_id_mask, unsigned int flags)
 		return PTR_ERR(dmabuf);
 	}
 
+	attachment = kzalloc(sizeof(*attachment), GFP_KERNEL);
+	if (!attachment) {
+		_ion_buffer_destroy(buffer);
+		return -ENOMEM;
+	}
+
+	buffer->priv_virt = (void *)attachment;
+	ion_dma_buf_attach(dmabuf, buffer->dev->dev.this_device, attachment);
+
+	if (!(flags & ION_FLAG_CACHED)) {
+		list_for_each_entry(a, &buffer->attachments, list) {
+			dma_sync_sg_for_device(a->dev, a->table->sgl,
+					    a->table->nents,
+					    DMA_BIDIRECTIONAL);
+		}
+	}
+
 	fd = dma_buf_fd(dmabuf, O_CLOEXEC);
 	if (fd < 0)
 		dma_buf_put(dmabuf);
@@ -480,6 +509,8 @@ struct dma_buf *ion_new_alloc(size_t len, unsigned int heap_id_mask,
 	struct ion_heap *heap;
 	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
 	struct dma_buf *dmabuf;
+	struct dma_buf_attachment *attachment;
+	struct ion_dma_buf_attachment *a;
 
 	pr_debug("%s: len %zu heap_id_mask %u flags %x\n", __func__,
 		 len, heap_id_mask, flags);
@@ -519,6 +550,23 @@ struct dma_buf *ion_new_alloc(size_t len, unsigned int heap_id_mask,
 	dmabuf = dma_buf_export(&exp_info);
 	if (IS_ERR(dmabuf))
 		_ion_buffer_destroy(buffer);
+
+	attachment = kzalloc(sizeof(*attachment), GFP_KERNEL);
+	if (!attachment) {
+		_ion_buffer_destroy(buffer);
+		return (struct dma_buf *)-ENOMEM;
+	}
+	buffer->priv_virt = (void *)attachment;
+	ion_dma_buf_attach(dmabuf, buffer->dev->dev.this_device, attachment);
+
+	if (!(flags & ION_FLAG_CACHED)) {
+		list_for_each_entry(a, &buffer->attachments, list) {
+			dma_sync_sg_for_device(a->dev, a->table->sgl,
+				a->table->nents,
+				DMA_BIDIRECTIONAL);
+		}
+	}
+
 
 	return dmabuf;
 }
@@ -694,6 +742,8 @@ static int ion_device_create(void)
 	idev->dev.fops = &ion_fops;
 	idev->dev.parent = NULL;
 	ret = misc_register(&idev->dev);
+	arch_setup_dma_ops(idev->dev.this_device, 0,
+			   DMA_BIT_MASK(64), NULL, false);
 	if (ret) {
 		pr_err("ion: failed to register misc device.\n");
 		kfree(idev);
