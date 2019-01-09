@@ -784,7 +784,7 @@ static int sipa_init(struct sipa_context **ipa_pp,
 	ipa->bypass_mode = cfg->is_bypass;
 
 	ipa->hdl = sipa_hal_init(ipa_dev, cfg);
-	if (ipa->hdl) {
+	if (!ipa->hdl) {
 		dev_err(ipa_dev, "sipa_hal_init fail!\n");
 		return -ENODEV;
 	}
