@@ -86,16 +86,6 @@
 	sprd,cable-detection-method = "typec";
 };
 
-&sdio3 {
-	bus-width = <8>;
-	non-removable;
-	no-sdio;
-	no-sd;
-	cap-mmc-hw-reset;
-	sprd,name = "sdio_emmc";
-	status = "okay";
-};
-
 &dpu {
 	status = "okay";
 };
