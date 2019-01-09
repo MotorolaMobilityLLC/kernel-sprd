@@ -149,6 +149,8 @@ static inline bool imsbr_in_lte2wifi(int simcard)
 
 void imsbr_set_callstate(enum imsbr_call_state state, u32 simcard);
 
+void imsbr_set_calltype(enum imsbr_call_type type, u32 simcard);
+
 bool imsbr_tuple_validate(const char *msg, struct imsbr_tuple *tuple);
 
 void imsbr_flow_add(struct nf_conntrack_tuple *nft, u16 flow_type,

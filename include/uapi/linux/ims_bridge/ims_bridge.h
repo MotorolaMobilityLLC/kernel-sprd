@@ -25,6 +25,21 @@ enum imsbr_call_state {
 	__IMSBR_CALLS_MAX
 };
 
+/**
+ * enum imsbr_call_type
+ *
+ * @IMSBR_AUDIO_CALL: audio call
+ * @IMSBR_VIDEO_CALL: videio call
+ *
+ */
+enum imsbr_call_type {
+	IMSBR_CALL_TYPE_UNSPEC,
+	IMSBR_NONE_CALL,
+	IMSBR_AUDIO_CALL,
+	IMSBR_VIDEO_CALL,
+	__IMSBR_CALL_TYPE_MAX
+};
+
 #define IMSBR_GENL_NAME		"imsbr"
 #define IMSBR_GENL_VERSION	0x1
 
@@ -44,6 +59,7 @@ union imsbr_inet_addr {
  * @IMSBR_MEDIA_RTP_VIDEO: rtp video flow
  * @IMSBR_MEDIA_RTCP_AUDIO: rtcp audio flow
  * @IMSBR_MEDIA_RTCP_VIDEO: rtcp video flow
+ * @IMSBR_MEDIA_IKE: ike flow
  *
  */
 enum imsbr_media_types {
@@ -53,6 +69,7 @@ enum imsbr_media_types {
 	IMSBR_MEDIA_RTP_VIDEO,
 	IMSBR_MEDIA_RTCP_AUDIO,
 	IMSBR_MEDIA_RTCP_VIDEO,
+	IMSBR_MEDIA_IKE,
 	__IMSBR_MEDIA_MAX
 };
 
@@ -104,8 +121,12 @@ struct imsbr_tuple {
 enum imsbr_attrs {
 	IMSBR_A_UNSPEC,
 	IMSBR_A_CALL_STATE,
+	IMSBR_A_CALL_TYPE,
 	IMSBR_A_TUPLE,
 	IMSBR_A_SIMCARD,
+	IMSBR_A_LOCALMAC,
+	IMSBR_A_REMOTEADDR,
+	IMSBR_A_ISV4,
 	__IMSBR_A_MAX
 };
 
@@ -114,9 +135,12 @@ enum imsbr_attrs {
 enum imsbr_commands {
 	IMSBR_C_UNSPEC,
 	IMSBR_C_CALL_STATE,
+	IMSBR_C_CALL_TYPE,
 	IMSBR_C_ADD_TUPLE,
 	IMSBR_C_DEL_TUPLE,
 	IMSBR_C_RESET_TUPLE,
+	IMSBR_C_SEND_LOCALMAC,
+	IMSBR_C_SEND_REMOTEMAC,
 	__IMSBR_C_MAX
 };
 

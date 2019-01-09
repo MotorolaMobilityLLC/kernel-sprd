@@ -152,6 +152,11 @@ static unsigned int nf_imsbr_input(void *priv,
 	if (!flow)
 		return NF_ACCEPT;
 
+	/* c2k: downlink ike pkt always go to ap socket */
+	if (flow->media_type == IMSBR_MEDIA_IKE) {
+		pr_info("input skb=%p is ike pkt, go to ap socket\n", skb);
+		return NF_ACCEPT;
+	}
 	/* Considering handover, link_type maybe LINK_AP or LINK_CP, meanwhile
 	 * socket_type maybe SOCKET_AP or SOCKET_CP.
 	 *
@@ -187,6 +192,12 @@ static unsigned int nf_imsbr_output(void *priv,
 	flow = imsbr_flow_match(&nft);
 	if (!flow)
 		return NF_ACCEPT;
+
+	/* c2k: downlink ike pkt always go to ap socket */
+	if (flow->media_type == IMSBR_MEDIA_IKE) {
+		pr_info("output skb=%p is ike pkt, go to wlan0\n", skb);
+		return NF_ACCEPT;
+	}
 
 	/* This means the packet was relayed from CP, so there's no need to
 	 * have a further check!

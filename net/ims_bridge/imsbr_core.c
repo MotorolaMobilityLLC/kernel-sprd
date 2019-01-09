@@ -322,6 +322,8 @@ static char *imsbr_media_type2str(u8 media_type)
 		return "rtcp-audio";
 	case IMSBR_MEDIA_RTCP_VIDEO:
 		return "rtcp-video";
+	case IMSBR_MEDIA_IKE:
+		return "ike";
 	default:
 		return "unknown";
 	}
@@ -520,6 +522,18 @@ static char *imsbr_calls2cmd(enum imsbr_call_state state)
 	}
 }
 
+static char *imsbr_calltype2cmd(enum imsbr_call_type type)
+{
+	switch (type) {
+	case IMSBR_AUDIO_CALL:
+		return "call-audio";
+	case IMSBR_VIDEO_CALL:
+		return "call-video";
+	default:
+		return "call-none";
+	}
+}
+
 static void imsbr_trigger_handover(enum imsbr_ho_types type, u32 simcard)
 {
 	struct sblock blk;
@@ -603,6 +617,18 @@ void imsbr_set_callstate(enum imsbr_call_state state, u32 simcard)
 		imsbr_ho_type2cmd(curr_ho),
 		imsbr_ho_type2cmd(new_ho),
 		simcard);
+}
+
+void imsbr_set_calltype(enum imsbr_call_type type, u32 simcard)
+{
+	struct sblock blk;
+	char *cmd;
+
+	cmd = imsbr_calltype2cmd(type);
+	if (imsbr_build_cmd(cmd, &blk, &simcard, sizeof(simcard)))
+		return;
+
+	imsbr_sblock_send(&imsbr_ctrl, &blk, sizeof(simcard));
 }
 
 #ifdef CONFIG_PROC_FS
