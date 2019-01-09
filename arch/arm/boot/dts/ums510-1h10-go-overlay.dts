@@ -15,6 +15,11 @@
 				status = "okay";
 			};
 
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&eic_async 13 0>;
+			};
+
 			gpio-keys {
 				compatible = "gpio-keys";
 
