@@ -249,8 +249,8 @@ void usb_phy_get_charger_current(struct usb_phy *usb_phy,
 		*max = usb_phy->chg_cur.aca_max;
 		break;
 	default:
-		*min = 0;
-		*max = 0;
+		*min = usb_phy->chg_cur.sdp_min;
+		*max = usb_phy->chg_cur.sdp_max;
 		break;
 	}
 }
