@@ -1627,18 +1627,25 @@ CONFIG_CPU_FREQ
 	[function] enable cpufreq
 CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	[arch] all
-	[plat] all
+	[plat] roc1,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
+CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
+	[arch] arm64
+	[plat] sharkl5
+	[field] make,code
+	[subsys] cpufreq
+	[must] user
+	[function] Enable schedutil as a default governor
 CONFIG_CPU_FREQ_GOV_ATTR_SET
-	[arch] arm
-	[plat] sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field] make,code
+	[subsys] cpufreq
+	[must] user
+	[function] Enable cpufreq governor sysfs interface
 CONFIG_CPU_FREQ_GOV_PERFORMANCE
 	[arch] all
 	[plat] all
@@ -1654,8 +1661,8 @@ CONFIG_CPU_FREQ_GOV_POWERSAVE
 	[must]
 	[function]
 CONFIG_CPU_FREQ_GOV_SCHEDUTIL
-	[arch] arm
-	[plat] sharkl5_32
+	[arch] all
+	[plat] sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -2519,6 +2526,13 @@ CONFIG_DEFAULT_TCP_CONG
 	[subsys] net
 	[must] user
 	[function] default algorithm of congestion control
+CONFIG_DEFAULT_USE_ENERGY_AWARE
+	[arch] arm64
+	[plat] sharkl5
+	[field] make,code
+	[subsys] sched
+	[must] user
+	[function] Enable EAS feature for schedule
 CONFIG_DEFCONFIG_LIST
 	[arch] all
 	[plat] all
@@ -8823,6 +8837,13 @@ CONFIG_SCHED_TRACER
 	[subsys] core
 	[must] debug
 	[function] Scheduling Latency Tracer
+CONFIG_SCHED_TUNE
+	[arch] arm64
+	[plat] sharkl5
+	[field] make,code
+	[subsys] sched
+	[must] user
+	[function] Enable boost for fair sched class tasks
 CONFIG_SCSI
 	[arch] all
 	[plat] all
