@@ -2393,6 +2393,13 @@ CONFIG_DEBUG_BUGVERBOSE
 	[subsys] core
 	[must] debug
 	[function] For debug bugverbose.
+CONFIG_DEBUG_DRIVER
+	[arch] arm64
+	[plat] sharkl5
+	[field] make,code
+	[subsys] core
+	[must] debug
+	[function] Enable the device debug information.
 CONFIG_DEBUG_FS
 	[arch] all
 	[plat] all
@@ -8534,13 +8541,6 @@ CONFIG_REGULATOR_SC2703
 	[subsys] regulator
 	[must] user
 	[function] SUPPORT SC2703 regulator function.
-CONFIG_REGULATOR_SC2721
-	[arch] all
-	[plat] all
-	[field] menu,code
-	[subsys] regulator
-	[must] user
-	[function] SUPPORT SC2721 regulator function.
 CONFIG_REGULATOR_SC2730
 	[arch] all
 	[plat] all
@@ -9121,8 +9121,8 @@ CONFIG_SND_ARM
 	[must]
 	[function]
 CONFIG_SND_COMPRESS_OFFLOAD
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5_32
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
@@ -9213,8 +9213,8 @@ CONFIG_SND_SOC
 	[must] user
 	[function] ALSA for SoC audio support
 CONFIG_SND_SOC_COMPRESS
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5_32
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
@@ -9227,29 +9227,29 @@ CONFIG_SND_SOC_I2C_AND_SPI
 	[must] user
 	[function] enable I2C and SPI bus for audio codec
 CONFIG_SND_SOC_SPRD
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5_32
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] snd soc common code
 CONFIG_SND_SOC_SPRD_CODEC_SC2730
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5_32
+	[arch] all
+	[plat] all
 	[field] make, code
 	[subsys] sound
 	[must] user
 	[function] snd codec dai
 CONFIG_SND_SOC_SPRD_VBC_V4
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5_32
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] snd soc cpu dai
 CONFIG_SND_SOC_SPRD_VBC_V4_SC2730
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5_32
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
@@ -9411,15 +9411,15 @@ CONFIG_SPRD_APB_BUSMONITOR
 	[must] debug
 	[function] Enable APB busmonitor function
 CONFIG_SPRD_AUDIO_AGDSP_ACCESS
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5_32
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] audio dsp access
 CONFIG_SPRD_AUDIO_DSP_DUMP
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5_32
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
@@ -9432,15 +9432,15 @@ CONFIG_SPRD_AUDIO_MCDT
 	[must] user
 	[function] sound data transmission channel with dsp
 CONFIG_SPRD_AUDIO_MEMORY_MANAGER
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5_32
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] audio memory allocation
 CONFIG_SPRD_AUDIO_SIPC
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5_32
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
