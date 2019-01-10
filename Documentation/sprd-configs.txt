@@ -801,6 +801,13 @@ CONFIG_ARM_SPRD_HW_CPUFREQ
 	[subsys] cpufreq
 	[must] user
 	[function] Enable apcpu hardware dvfs function.
+CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] cpufreq
+	[must] user
+	[function] Enable apcpu hardware dvfs function in sharkl5 family SOCs.
 CONFIG_ARM_THUMB
 	[arch] arm
 	[plat] sharkl5_32

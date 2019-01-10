@@ -302,6 +302,27 @@ config ARM_SPRD_HW_CPUFREQ
 	  This driver enables hardware to adjust the voltage and frequency
 	  automatically for every cpu in different cpu clusters. Enable this in
 	  order to use sprd hardware dvfs driver on all platforms that contains
-	  hardware dvfs IP, like sharkl5.
+	  hardware dvfs IP, such as sharkl3 and sharkl5.
 
 	  If in doubt, say N.
+
+config ARM_SPRD_HW_CPUFREQ_SHARKL3
+	tristate "Sprd apcpu hardware dvfs driver for sharkl3 platform"
+	depends on ARM_SPRD_HW_CPUFREQ
+	default n
+	help
+	 This driver enable hardware to adjust the voltage and frequency
+	 automatically for DSU cluster and cores in sharkl3 platorm.
+
+	 If in doubt, say N.
+
+config ARM_SPRD_HW_CPUFREQ_NORMAL
+	tristate "Sprd apcpu hardware dvfs driver for sharkl5 family SOCs"
+	depends on ARM_SPRD_HW_CPUFREQ
+	default n
+	help
+	 This driver enable hardware to adjust the voltage and frequency
+	 automatically for DSU cluster and cores in sharkl5 and the platforms
+	 whose apcpu hardware DVFS IP is similar to sharkl5.
+
+	 If in doubt, say N.
