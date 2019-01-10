@@ -628,6 +628,14 @@ static void headset_eic_enable(uint irq_bit, int enable)
 	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 }
 
+static void headset_ldetl_filter_enable(bool enable)
+{
+	if (enable)
+		headset_reg_set_bits(ANA_HDT2, HEDET_LDETL_FLT_EN);
+	else
+		headset_reg_clr_bits(ANA_HDT2, HEDET_LDETL_FLT_EN);
+}
+
 static void headset_internal_eic_entry_init(void)
 {
 	struct sprd_headset *hdst = sprd_hdst;
@@ -826,7 +834,7 @@ static void headset_button_irq_threshold(int enable)
 	}
 
 	audio_head_sbut = pdata->irq_threshold_button;
-	msk = HEDET_BDET_REF_SEL(0x3);
+	msk = HEDET_BDET_REF_SEL(0x7);
 	/*
 	 * according to si.chen's email, it is set in initial, we don't to
 	 * set or care this, (so here use default value, 0.8V)
@@ -1134,10 +1142,10 @@ headset_type_detect_all(int insert_all_val_last)
 		pdata->threshold_3pole);
 
 	if (adc_left_ideal > pdata->sprd_adc_gnd &&
-		adc_mic_ideal - adc_left_ideal < pdata->sprd_adc_gnd)
+		ABS(adc_mic_ideal - adc_left_ideal) < pdata->sprd_adc_gnd)
 		return HEADSET_4POLE_NOT_NORMAL;
 	else if (adc_left_ideal > pdata->sprd_adc_gnd &&
-		adc_mic_ideal - adc_left_ideal >= pdata->sprd_adc_gnd)
+		ABS(adc_mic_ideal - adc_left_ideal) >= pdata->sprd_adc_gnd)
 		return HEADSET_TYPE_ERR;
 	else if (adc_left_ideal < pdata->sprd_adc_gnd &&
 		adc_mic_ideal < pdata->threshold_3pole)
@@ -1438,8 +1446,8 @@ error1:
 		hdst->btns_pressed &= ~SPRD_BUTTON_JACK_MASK;
 	}
 out:
-	headset_eic_intc_clear(0);
 	headset_eic_clear_irq(15);
+	headset_eic_intc_clear(0);
 	headset_eic_enable(15, 1);
 	headset_eic_trig_irq(15);
 	/* wake_unlock(&hdst->btn_wakelock); */
@@ -1513,6 +1521,14 @@ static void headset_fc_work_func(struct work_struct *work)
 		fast_charge_finished = true;
 	} else
 		pr_info("Wait for headphone fast charging aborted.\n");
+}
+
+static void headset_reinit_all_eic(void)
+{
+	headset_eic_clear_irq(HDST_EIC_MAX);
+	headset_eic_set_trig_level(HDST_EIC_MAX, true);
+	headset_eic_enable(HDST_EIC_MAX, false);
+	headset_eic_intc_clear(0);
 }
 
 static void headset_detect_all_work_func(struct work_struct *work)
@@ -1638,8 +1654,6 @@ static void headset_detect_all_work_func(struct work_struct *work)
 
 	if ((1 == plug_state_current && 0 == hdst->plug_state_last) ||
 	  (hdst->re_detect == true && detect_value == true)) {
-		/* need move this to a better place? */
-		headset_eic_set_trig_level(10, 0);
 		headset_type =
 			headset_type_detect_all(hdst->insert_all_val_last);
 		pr_info("%s headset_type  %d\n", __func__, headset_type);
@@ -1698,6 +1712,11 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			break;
 		}
 
+		/*
+		 * invert trig level after type detect over, because it
+		 * may need redetect at that time.
+		 */
+		headset_eic_set_trig_level(HDST_EIC_INSERT_ALL, false);
 		times = 0;
 		hdst->det_err_cnt = 0;
 		if (headset_type == HEADSET_NO_MIC ||
@@ -1867,6 +1886,14 @@ out:
 		 */
 		headset_button_irq_threshold(0);
 		hdst->mic_irq_trigged = 0;
+	}
+	if (times >= 10) {
+		times = 0;
+		headset_eic_enable(HDST_EIC_MAX, 0);
+		headset_eic_clear_irq(HDST_EIC_MAX);
+		headset_eic_set_trig_level(HDST_EIC_MAX, 1);
+		headset_eic_intc_clear(0);
+		headset_internal_eic_entry_init();
 	}
 	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 
@@ -2043,6 +2070,52 @@ static void headset_reg_dump_func(struct work_struct *work)
 			&hdst->reg_dump_work, msecs_to_jiffies(500));
 }
 
+/*
+ * Check whether exsit software status of headset pluged in and button,
+ * pressed. If exsit, clean them.
+ */
+static void headset_force_remove_sw_plugin_status(void)
+{
+	struct sprd_headset *hdst = sprd_hdst;
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+
+	if (hdst->plug_state_last == 1) {
+		pr_info("%s headset removed but not reported, do %s plug out\n",
+			__func__, hdst->headphone ? "headphone" : "headset");
+		headset_eic_enable(HDST_EIC_MDET, false);
+		headset_eic_enable(HDST_EIC_BDET, false);
+		sprd_headset_power_regulator_set(SPRD_AUDIO_POWER_HEADMICBIAS,
+			false);
+		headset_button_release_verify();
+		hdst->hdst_status &= ~SPRD_HEADSET_JACK_MASK;
+		headset_jack_report(hdst, &hdst->hdst_jack,
+			0, SPRD_HEADSET_JACK_MASK);
+		headset_hmicbias_polling_enable(false, true);
+		hdst->plug_state_last = 0;
+		hdst->report = 0;
+		hdst->re_detect = false;
+
+		if (pdata->jack_type == JACK_TYPE_NO) {
+			headset_eic_set_trig_level(HDST_EIC_LDETL, false);
+			headset_reg_write(ANA_HDT2, HEDET_LDETL_REF_SEL(0x3),
+				HEDET_LDETL_REF_SEL(0x7));
+		}
+		headset_reinit_all_eic();
+	}
+
+	headset_ldetl_filter_enable(false);
+
+	if (hdst->plug_state_last == 0) {
+		headset_scale_set(0);
+		sprd_headset_power_regulator_set(SPRD_AUDIO_POWER_HEADMICBIAS,
+			false);
+		if (pdata->jack_type == JACK_TYPE_NO)
+			sprd_headset_power_regulator_set(SPRD_AUDIO_POWER_BIAS,
+				false);
+		headset_button_irq_threshold(0);
+	}
+}
+
 static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 {
 	struct sprd_headset *hdst = dev;
@@ -2075,11 +2148,8 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 
 	if ((BIT(14) & headset_reg_value_read(ANA_INT34)) == 0) {
 		pr_err("%s: error, intc is not active\n", __func__);
-
-		headset_eic_intc_clear(1);
-		headset_eic_clear_irq(HDST_EIC_MAX);
-		headset_eic_intc_clear(0);
 		headset_internal_eic_entry_init();
+		irq_set_irq_type(hdst->irq_detect_int_all, IRQF_TRIGGER_HIGH);
 		return IRQ_HANDLED;
 	}
 
@@ -2095,8 +2165,9 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 		pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 
 		headset_eic_intc_clear(1);
-		headset_eic_clear_irq(HDST_EIC_MAX);
 		headset_eic_intc_clear(0);
+		headset_force_remove_sw_plugin_status();
+		irq_set_irq_type(hdst->irq_detect_int_all, IRQF_TRIGGER_HIGH);
 		headset_internal_eic_entry_init();
 		pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
 		return IRQ_HANDLED;
