@@ -115,6 +115,10 @@
 		};
 	};
 
+	sprd-sensorhub {
+		compatible = "sprd,sharkl3-sensorhub";
+	};
+
 };
 
 &adi_bus {
