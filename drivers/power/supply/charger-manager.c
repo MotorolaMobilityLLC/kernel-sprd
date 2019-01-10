@@ -932,8 +932,11 @@ static bool _cm_monitor(struct charger_manager *cm)
 	temp_alrt = cm_check_thermal_status(cm);
 
 	/* It has been stopped already */
-	if (temp_alrt && cm->emergency_stop)
+	if (temp_alrt && cm->emergency_stop) {
+		dev_warn(cm->dev,
+			 "emergency stop, temperature alert = %d\n", temp_alrt);
 		return false;
+	}
 
 	/* Feed the charger watchdog if necessary */
 	ret = cm_feed_watchdog(cm);
@@ -965,7 +968,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 	 * after full-batt.
 	 */
 	} else if (!cm->emergency_stop && check_charging_duration(cm)) {
-		dev_dbg(cm->dev,
+		dev_info(cm->dev,
 			"Charging/Discharging duration is out of range\n");
 	/*
 	 * Check dropped voltage of battery. If battery voltage is more
@@ -1958,6 +1961,11 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
+	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
+		 "capacity = %d, charger status = %d, force set full = %d\n",
+		 batt_uV, batt_ocV, bat_uA, fuel_cap, cm->desc->charger_status,
+		 cm->desc->force_set_full);
+
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
 		if (fuel_cap < cm->desc->cap) {
@@ -2047,6 +2055,9 @@ static void cm_batt_works(struct work_struct *work)
 		dev_err(cm->dev, "WARN: batt_uV less than uvlo, will shutdown\n");
 		orderly_poweroff(true);
 	}
+
+	dev_info(cm->dev, "battery cap = %d, charger manager cap = %d\n",
+		 fuel_cap, cm->desc->cap);
 
 	if (fuel_cap != cm->desc->cap) {
 		cm->desc->cap = fuel_cap;
