@@ -532,6 +532,16 @@
 				status = "disabled";
 			};
 
+			watchdog@40310000 {
+				compatible = "sprd,sharkl3-wdt";
+				reg = <0x40310000 0x1000>;
+				interrupts = <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <30>;
+				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_CA53_WDG_EB>,
+					<&aonapb_gate CLK_CA53_WDG_RTC_EB>;
+			};
+
 			djtag: djtag@40340000 {
 				compatible = "sprd,djtag";
 				reg = <0x40340000 0x1000>;
