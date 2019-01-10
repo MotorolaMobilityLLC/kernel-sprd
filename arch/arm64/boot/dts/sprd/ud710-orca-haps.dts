@@ -71,6 +71,11 @@
 		compatible = "sprd,mtty";
 		sprd,name = "ttyBT";
 	};
+
+	sprd-fm {
+		compatible = "sprd,marlin3-fm";
+		sprd,name = "sprd-fm";
+	};
 };
 
 &sdio0 {
