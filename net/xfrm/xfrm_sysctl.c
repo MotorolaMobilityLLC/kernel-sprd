@@ -10,6 +10,10 @@ static void __net_init __xfrm_sysctl_init(struct net *net)
 	net->xfrm.sysctl_aevent_rseqth = XFRM_AE_SEQT_SIZE;
 	net->xfrm.sysctl_larval_drop = 1;
 	net->xfrm.sysctl_acq_expires = 30;
+#ifdef CONFIG_XFRM_FRAGMENT
+	/*default is close.*/
+	net->xfrm.enable_xfrm_fragment = 0;
+#endif
 }
 
 #ifdef CONFIG_SYSCTL
@@ -38,6 +42,17 @@ static struct ctl_table xfrm_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec
 	},
+#ifdef CONFIG_XFRM_FRAGMENT
+	/*Add this parameter is for control the vowifi fragment module.
+	 *junjie.wang@spreadtrum.com@20160510
+	 */
+	{
+		.procname	= "xfrm_vowifi_fragment",
+		.maxlen		= sizeof(int),
+		.mode		= 0666,
+		.proc_handler	= proc_dointvec
+	},
+#endif
 	{}
 };
 
@@ -54,6 +69,9 @@ int __net_init xfrm_sysctl_init(struct net *net)
 	table[1].data = &net->xfrm.sysctl_aevent_rseqth;
 	table[2].data = &net->xfrm.sysctl_larval_drop;
 	table[3].data = &net->xfrm.sysctl_acq_expires;
+#ifdef CONFIG_XFRM_FRAGMENT
+	table[4].data = &net->xfrm.enable_xfrm_fragment;
+#endif
 
 	/* Don't export sysctls to unprivileged users */
 	if (net->user_ns != &init_user_ns)

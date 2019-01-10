@@ -69,6 +69,102 @@ int xfrm6_transport_finish(struct sk_buff *skb, int async)
 	return -1;
 }
 
+#ifdef CONFIG_XFRM_FRAGMENT
+/* If it's a keepalive packet, then just eat it.
+ * If it's an encapsulated packet, then pass it to the
+ * IPsec xfrm input.
+ * Returns 0 if skb passed to xfrm or was dropped.
+ * Returns >0 if skb should be passed to UDP.
+ * Returns <0 if skb should be resubmitted (-ret is protocol)
+ */
+int xfrm6_udp_encap_rcv(struct sock *sk, struct sk_buff *skb)
+{
+	struct udp_sock *up = udp_sk(sk);
+	struct udphdr *uh;
+	struct ipv6hdr *ip6h;
+	int iphlen, len;
+	__u8 *udpdata;
+	__be32 *udpdata32;
+	__u16 encap_type = up->encap_type;
+
+	/* if this is not encapsulated socket, then just return now */
+	if (!encap_type)
+		return 1;
+	/* If this is a paged skb, make sure we pull up
+	 * whatever data we need to look at.
+	 */
+	len = skb->len - sizeof(struct udphdr);
+	if (!pskb_may_pull(skb, sizeof(struct udphdr) + min(len, 8)))
+		return 1;
+
+	/* Now we can get the pointers */
+	uh = udp_hdr(skb);
+	udpdata = (__u8 *)uh + sizeof(struct udphdr);
+	udpdata32 = (__be32 *)udpdata;
+
+	switch (encap_type) {
+	default:
+	case UDP_ENCAP_ESPINUDP:
+	case UDP_ENCAP_ESPINUDP_V6:
+		/* Check if this is a keepalive packet.  If so, eat it. */
+		if (len == 1 && udpdata[0] == 0xff) {
+			goto drop;
+		} else if (len > sizeof(struct ip_esp_hdr) &&
+			udpdata32[0] != 0) {
+			/* ESP Packet without Non-ESP header */
+			len = sizeof(struct udphdr);
+		} else {
+			/* Must be an IKE packet.. pass it through */
+			return 1;
+		}
+		break;
+	case UDP_ENCAP_ESPINUDP_NON_IKE:
+		/* Check if this is a keepalive packet.  If so, eat it. */
+		if (len == 1 && udpdata[0] == 0xff) {
+			goto drop;
+		} else if (len > 2 * sizeof(u32) + sizeof(struct ip_esp_hdr) &&
+			   udpdata32[0] == 0 && udpdata32[1] == 0) {
+			/* ESP Packet with Non-IKE marker */
+			len = sizeof(struct udphdr) + 2 * sizeof(u32);
+		} else {
+			/* Must be an IKE packet.. pass it through */
+			return 1;
+		}
+		break;
+	}
+
+	/* At this point we are sure that this is an ESPinUDP packet,
+	 * so we need to remove 'len' bytes from the packet (the UDP
+	 * header and optional ESP marker bytes) and then modify the
+	 * protocol to ESP, and then call into the transform receiver.
+	 */
+	if (skb_unclone(skb, GFP_ATOMIC))
+		goto drop;
+
+	/* Now we can update and verify the packet length... */
+	ip6h = ipv6_hdr(skb);
+	iphlen = sizeof(struct ipv6hdr);
+	if (skb->len < iphlen + len) {
+		/* packet is too small!?! */
+		goto drop;
+	}
+
+	/* pull the data buffer up to the ESP header and set the
+	 * transport header to point to ESP.  Keep UDP on the stack
+	 * for later.
+	 */
+	__skb_pull(skb, len);
+	skb_reset_transport_header(skb);
+
+	/* process ESP */
+	return xfrm6_rcv_encap(skb, IPPROTO_ESP, 0, encap_type);
+
+drop:
+	kfree_skb(skb);
+	return 0;
+}
+#endif
+
 int xfrm6_rcv_tnl(struct sk_buff *skb, struct ip6_tnl *t)
 {
 	return xfrm6_rcv_spi(skb, skb_network_header(skb)[IP6CB(skb)->nhoff],

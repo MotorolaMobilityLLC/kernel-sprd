@@ -55,6 +55,11 @@ struct esp_skb_cb {
 
 static u32 esp6_get_mtu(struct xfrm_state *x, int mtu);
 
+#ifdef CONFIG_XFRM_FRAGMENT
+extern void udp6_set_csum(bool nocheck, struct sk_buff *skb,
+			  const struct in6_addr *saddr,
+			  const struct in6_addr *daddr, int len);
+#endif
 /*
  * Allocate an AEAD request structure with extra space for SG and IV.
  *
@@ -216,6 +221,49 @@ static void esp_output_fill_trailer(u8 *tail, int tfclen, int plen, __u8 proto)
 	tail[plen - 1] = proto;
 }
 
+#ifdef CONFIG_XFRM_FRAGMENT
+static void esp6_output_udp_encap(struct xfrm_state *x,
+				  struct sk_buff *skb,
+				  struct esp_info *esp)
+{
+	/* this is non-NULL only with UDP Encapsulation */
+	struct xfrm_encap_tmpl *encap = x->encap;
+	struct udphdr *uh;
+	__be32 *udpdata32;
+	__be16 sport, dport;
+	int encap_type;
+	struct ip_esp_hdr *esph = esp->esph;
+
+	spin_lock_bh(&x->lock);
+	sport = encap->encap_sport;
+	dport = encap->encap_dport;
+	encap_type = encap->encap_type;
+	spin_unlock_bh(&x->lock);
+
+	uh = (struct udphdr *)esph;
+	uh->source = sport;
+	uh->dest = dport;
+	uh->len = htons(skb->len - skb_transport_offset(skb));
+	uh->check = 0;
+
+	switch (encap_type) {
+	default:
+	case UDP_ENCAP_ESPINUDP_V6:
+	case UDP_ENCAP_ESPINUDP:
+		esph = (struct ip_esp_hdr *)(uh + 1);
+		break;
+	case UDP_ENCAP_ESPINUDP_NON_IKE:
+		udpdata32 = (__be32 *)(uh + 1);
+		udpdata32[0] = 0;
+		udpdata32[1] = 0;
+		esph = (struct ip_esp_hdr *)(udpdata32 + 2);
+		break;
+	}
+	*skb_mac_header(skb) = IPPROTO_UDP;
+	esp->esph = esph;
+}
+#endif
+
 int esp6_output_head(struct xfrm_state *x, struct sk_buff *skb, struct esp_info *esp)
 {
 	u8 *tail;
@@ -291,7 +339,12 @@ cow:
 skip_cow:
 	esp_output_fill_trailer(tail, esp->tfclen, esp->plen, esp->proto);
 	pskb_put(skb, trailer, tailen);
-
+#ifdef CONFIG_XFRM_FRAGMENT
+	esp->esph = ip_esp_hdr(skb);
+	/* this is non-NULL only with UDP Encapsulation */
+	if (x->encap)
+		esp6_output_udp_encap(x, skb, esp);
+#endif
 out:
 	return nfrags;
 }
@@ -339,8 +392,12 @@ int esp6_output_tail(struct xfrm_state *x, struct sk_buff *skb, struct esp_info 
 	else
 		dsg = &sg[esp->nfrags];
 
+#ifdef CONFIG_XFRM_FRAGMENT
+	esph = esp_output_set_esn(skb, x, esp->esph, seqhi);
+	esp->esph = esph;
+#else
 	esph = esp_output_set_esn(skb, x, ip_esp_hdr(skb), seqhi);
-
+#endif
 	sg_init_table(sg, esp->nfrags);
 	err = skb_to_sgvec(skb, sg,
 		           (unsigned char *)esph - skb->data,
@@ -410,6 +467,30 @@ int esp6_output_tail(struct xfrm_state *x, struct sk_buff *skb, struct esp_info 
 
 error_free:
 	kfree(tmp);
+#ifdef CONFIG_XFRM_FRAGMENT
+	if (x->encap ? (x->encap->encap_type == UDP_ENCAP_ESPINUDP_V6 ||
+			x->encap->encap_type == UDP_ENCAP_ESPINUDP) : 0) {
+		/*check do udp checksum*/
+		struct ipv6hdr *ip6hdr;
+		struct udphdr *uh;
+
+		ip6hdr = ipv6_hdr(skb);
+		if (ip6hdr->nexthdr == NEXTHDR_UDP) {
+			uh = (struct udphdr *)((char *)ip6hdr +
+					       sizeof(struct ipv6hdr));
+			skb_pull(skb, sizeof(struct ipv6hdr));
+			skb_reset_transport_header(skb);
+			uh = udp_hdr(skb);
+
+			udp6_set_csum(0, skb,
+				      (struct in6_addr *)&ip6hdr->saddr,
+				      (struct in6_addr *)&ip6hdr->daddr,
+				      skb->len);
+
+			skb_push(skb, sizeof(struct ipv6hdr));
+		}
+	}
+#endif
 error:
 	return err;
 }
@@ -451,7 +532,11 @@ static int esp6_output(struct xfrm_state *x, struct sk_buff *skb)
 	if (esp.nfrags < 0)
 		return esp.nfrags;
 
+#ifdef CONFIG_XFRM_FRAGMENT
+	esph = esp.esph;
+#else
 	esph = ip_esp_hdr(skb);
+#endif
 	esph->spi = x->id.spi;
 
 	esph->seq_no = htonl(XFRM_SKB_CB(skb)->seq.output.low);
@@ -868,10 +953,10 @@ static int esp6_init_state(struct xfrm_state *x)
 	struct crypto_aead *aead;
 	u32 align;
 	int err;
-
+#ifndef CONFIG_XFRM_FRAGMENT
 	if (x->encap)
 		return -EINVAL;
-
+#endif
 	x->data = NULL;
 
 	if (x->aead)
@@ -900,6 +985,25 @@ static int esp6_init_state(struct xfrm_state *x)
 	default:
 		goto error;
 	}
+
+#ifdef CONFIG_XFRM_FRAGMENT
+	if (x->encap) {
+		struct xfrm_encap_tmpl *encap = x->encap;
+
+		switch (encap->encap_type) {
+		default:
+			goto error;
+		case UDP_ENCAP_ESPINUDP:
+		case UDP_ENCAP_ESPINUDP_V6:
+			x->props.header_len += sizeof(struct udphdr);
+			break;
+		case UDP_ENCAP_ESPINUDP_NON_IKE:
+			x->props.header_len += (sizeof(struct udphdr) +
+						2 * sizeof(u32));
+			break;
+		}
+	}
+#endif
 
 	align = ALIGN(crypto_aead_blocksize(aead), 4);
 	x->props.trailer_len = align + 1 + crypto_aead_authsize(aead);

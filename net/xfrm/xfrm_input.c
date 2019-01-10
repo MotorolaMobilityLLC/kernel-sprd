@@ -427,6 +427,9 @@ resume:
 		x->curlft.bytes += skb->len;
 		x->curlft.packets++;
 
+		/*latest use time for sprd vowifi*/
+		x->lastused = ktime_get_real_seconds();
+
 		spin_unlock(&x->lock);
 
 		XFRM_MODE_SKB_CB(skb)->protocol = nexthdr;

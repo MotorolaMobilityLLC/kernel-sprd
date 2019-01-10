@@ -39,5 +39,6 @@ struct udphdr {
 #define UDP_ENCAP_L2TPINUDP	3 /* rfc2661 */
 #define UDP_ENCAP_GTP0		4 /* GSM TS 09.60 */
 #define UDP_ENCAP_GTP1U		5 /* 3GPP TS 29.060 */
+#define UDP_ENCAP_ESPINUDP_V6	16 /*support esp in udp in ipv6*/
 
 #endif /* _UAPI_LINUX_UDP_H */

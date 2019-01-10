@@ -166,7 +166,14 @@ int xfrm6_extract_header(struct sk_buff *skb)
 	XFRM_MODE_SKB_CB(skb)->optlen = 0;
 	memcpy(XFRM_MODE_SKB_CB(skb)->flow_lbl, iph->flow_lbl,
 	       sizeof(XFRM_MODE_SKB_CB(skb)->flow_lbl));
+#ifdef CONFIG_XFRM_FRAGMENT
+	if (iph->version == 0x04) {
+		/*maybe inner is ipv4*/
+		struct iphdr *iphv4 = ip_hdr(skb);
 
+		XFRM_MODE_SKB_CB(skb)->tos = iphv4->tos;
+	}
+#endif
 	return 0;
 }
 

@@ -63,6 +63,25 @@ int xfrm6_rcv_cb(struct sk_buff *skb, u8 protocol, int err)
 }
 EXPORT_SYMBOL(xfrm6_rcv_cb);
 
+#ifdef CONFIG_XFRM_FRAGMENT
+int xfrm6_rcv_encap(struct sk_buff *skb, int nexthdr, __be32 spi,
+		    int encap_type)
+{
+	XFRM_TUNNEL_SKB_CB(skb)->tunnel.ip6 = NULL;
+	XFRM_SPI_SKB_CB(skb)->family = AF_INET6;
+	XFRM_SPI_SKB_CB(skb)->daddroff = offsetof(struct ipv6hdr, daddr);
+
+	if ((xfrm_input(skb, nexthdr, spi, encap_type)) != -EINVAL)
+		return 0;
+
+	icmpv6_send(skb, ICMPV6_DEST_UNREACH, ICMPV6_PORT_UNREACH, 0);
+
+	kfree_skb(skb);
+	return 0;
+}
+EXPORT_SYMBOL(xfrm6_rcv_encap);
+#endif
+
 static int xfrm6_esp_rcv(struct sk_buff *skb)
 {
 	int ret;

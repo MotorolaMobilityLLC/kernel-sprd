@@ -11479,6 +11479,15 @@ CONFIG_XFRM_ALGO
 	[subsys] net
 	[must] user
 	[function] support for xfrm algorithum
+CONFIG_XFRM_FRAGMENT
+	[arch] arm64
+	[plat] sharkl5
+	[field] menu
+	[subsys] net
+	[must] user
+	[function] Support pkt fragment in ip layer before esp. By using this
+		   one,control parameter will be set to one. It is only for
+		   sprd until now. It is used for vowifi.
 CONFIG_XFRM_IPCOMP
 	[arch] all
 	[plat] all
