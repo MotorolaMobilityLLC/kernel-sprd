@@ -383,6 +383,7 @@ static const struct dev_pm_ops sprd_wdt_pm_ops = {
 static const struct of_device_id sprd_wdt_match_table[] = {
 	{ .compatible = "sprd,sp9860-wdt", },
 	{ .compatible = "sprd,sharkl5-wdt", },
+	{ .compatible = "sprd,sharkl3-wdt", },
 	{ .compatible = "sprd,roc1-wdt", },
 	{},
 };

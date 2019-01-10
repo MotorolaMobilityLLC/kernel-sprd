@@ -3,6 +3,7 @@ Spreadtrum SoCs Watchdog timer
 Required properties:
 - compatible: should be one of following:
 	"sprd,sp9860-wdt",
+	"sprd,sharkl3-wdt",
 	"sprd,sharkl5-wdt",
 	"sprd,roc1-wdt".
 - reg : Specifies base physical address and size of the registers.
