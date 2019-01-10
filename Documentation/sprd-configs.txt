@@ -9832,6 +9832,27 @@ CONFIG_SPRD_WATCHDOG
 	[subsys] core
 	[must] user
 	[function] Spreadtrum watchdog driver.
+CONFIG_WATCHDOG_PRETIMEOUT_GOV
+	[arch] arm64
+	[plat] roc1
+	[field] menu,code
+	[subsys]core
+	[must]user
+	[function] watchdog pretimeout gov
+CONFIG_WATCHDOG_PRETIMEOUT_DEFAULT_GOV_PANIC
+	[arch] arm64
+	[plat] roc1
+	[field] menu,code
+	[subsys]core
+	[must]user
+	[function]watchdog pretimeout default gov panic
+CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC
+	[arch] arm64
+	[plat] roc1
+	[field]menu,code
+	[subsys]core
+	[must]user
+	[function]watchdog pretimeout gov panic
 CONFIG_SRCU
 	[arch] all
 	[plat] all
