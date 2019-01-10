@@ -1,0 +1,83 @@
+Documentation/sprd-configs.txt填写说明
+
+参与当前kernel统计的项目可以通过执行脚本来查看
+例如:
+	kernel4.14$ ./scripts/sprd/sprd_check-config_check.py support
+	Current kernel information
+	[arch]:['arm64', 'arm']
+	[plat]:['roc1', 'sharkl5', 'sharkl5_32']
+	表明当前kernel统计的架构有arm64,arm, 若是全部支持则需填all
+	表明当前kernel统计的项目有roc1,sharkl5,sharkl5_32, 若是全部支持则需填all
+
+例子:
+	SPRD_SIPC_SWCNBLK
+		[arch] arm,arm64
+		[plat] sharkle32,sharkle,pike2
+		[field] make,code
+		[subsys] sipc
+		[must] user
+		[function] This function is used to enable wcnblk function for wifi ht.
+
+说明:
+	1921行  宏名(不含CONFIG_ ),按字母排序,顶头排列。
+	1922-1927行  描述项,tab开头。每行总体不能超过75字符,超过需要折行。折行和上一行"]"后第一个字符对齐。
+	(注意: 因为此文件内容将由程序自动读取,请按格式规范填写,以免造成不必要的麻烦,延误合入时间)
+
+[arch]
+	Ø 选项: < arm | arm64 | x86 [ , ..... ] >  |  < all > (多选用","分隔,如arm,arm64; all只能独立使用)
+	Ø 描述目的: 是否和体系架构相关。
+	Ø 检查规则: 当发现有提交在描述之外的体系架构打开此宏,则对该笔提交aiaiai -1。
+	Ø 填写说明: 填写宏所涉及的cpu体系架构。注意: 大部分位于{kernel_source}/arch目录之外的宏,都应该填写all,即与体系架构无关。除少数例外,见下例。
+
+	例1: BIA_THERMAL, 位于drivers/thermal却和x86 SoC有着某种必然联系,而且绝无可能用在其他cpu,因此应填写x86。
+	例2: TRUSTY, 位于driver/trusty,是基于ARM64的安全方案,应填写arm64.
+
+[plat]
+	选项: < pike2 | sharkl3 | sharkl3_32 | sharkle | sharkle32 | sharkle32_fp | sharkl5 | sharkl5_32 > [ , ..... ] >  |  < all >
+		(多选用","分隔,如sharkl3,sharkle32,sharkle; all只能独立使用)
+	Ø 描述目的: 实际应用在哪个展讯SoC项目上。
+	Ø 检查规则: 当发现有提交在描述之外的平台打开此宏,则对该笔提交aiaiai -1。
+	Ø 填写说明: 填写使用该宏的SoC平台。
+
+[field]
+	Ø 选项: < make | code | make,code >  | < menu > (menu只能独立使用)
+	Ø 描述目的: 描述宏的作用区域。
+	Ø 检查规则: 当发现有提交在所描述作用区域之外使用此宏,则对该笔提交aiaiai -1,目前未检查。
+	Ø 填写说明: 填写该宏的作用域。
+
+	menu指仅在Kconfig文件中使用; make指只在Makefile中使用(一般用来控制编译);code指在.c代码或.h头文件中引用。
+
+[subsys]
+	Ø 选项:   < "subsystem tag" > | < core >  (core只能独立使用)
+	Ø 描述目的: 描述宏所归属的子系统。
+	Ø 检查规则: 当发现有提交在所描述子系统目录之外使用此宏,则对该笔提交aiaiai -1,目前未检查。
+	Ø 填写说明: 填写该宏所属子系统名称。
+
+	Subsystem tag参照http://10.0.93.106/tags.html中的第一级tag确定。
+	Core: 不属于任何子系统的基本功能。
+
+[must]
+	Ø 选项: 类型1: busybox_console | android_console | home | user(含vts/cts必须项)
+		类型2:debug
+		类型3:smart_low_memory, feature_low_memory
+		类型4:unknown
+	Ø 描述目的: 描述宏的功能用法。
+	Ø 检查规则: 当发现提交的使用方法与描述相违背,则对该笔提交aiaiai -1,目前未检查。
+	Ø 填写说明: 填写该宏在哪一种场景必须打开,否则会产生问题。
+		类型1选项说明:
+			busybox_console表示该宏是启动到busybox console的必要条件;
+			android_console表示该宏是启动到android console的必要条件,但不是进入busybox console的必要条件;
+			home表示该宏是启动到android home screen的必要条件,但不是进入busybox console及android console的必要条件;
+			user表示正常用户版本所应包含的宏,但不是进入busybox console、android console及home的必要条件;
+		类型2选项说明:
+			debug指调试类选项,关闭不会影响user版功能 (不论实际是否在user版打开,比如SYSDUMP,应填写debug);
+		类型3选项说明:
+			smart_low_memory表示该宏是low memory smart phone必须项。
+			feature_low_memory表示该宏是low memory feature phone 必须项。
+		类型4选项说明:
+			unknown表示该宏无法从前面类型找到匹配定义,可根据实际情况选则,非关键项。
+	备注:开发者若需要添加新类型,请与nianfu.bai/orson.zhai/ruifeng.zhang联系。
+
+[function]
+	Ø 填写说明: 宏功能(feature)的简要概述,及对上述属性未尽事宜进行补充描述。比如vts,cts所对应的andorid版本号等。
+	如果对应展讯项目备案的feature,可在此注明。
