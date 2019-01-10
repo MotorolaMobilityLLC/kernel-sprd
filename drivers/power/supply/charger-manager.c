@@ -1162,10 +1162,8 @@ static int charger_get_property(struct power_supply *psy,
 		union power_supply_propval *val)
 {
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
-	struct charger_desc *desc = cm->desc;
 	struct power_supply *fuel_gauge = NULL;
 	int ret = 0;
-	int uV;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
@@ -1211,46 +1209,7 @@ static int charger_get_property(struct power_supply *psy,
 			val->intval = 100;
 			break;
 		}
-
-		fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
-		if (!fuel_gauge) {
-			ret = -ENODEV;
-			break;
-		}
-
-		ret = power_supply_get_property(fuel_gauge,
-					POWER_SUPPLY_PROP_CAPACITY, val);
-		if (ret)
-			break;
-
-		if (val->intval > 100) {
-			val->intval = 100;
-			break;
-		}
-		if (val->intval < 0)
-			val->intval = 0;
-
-		/* Do not adjust SOC when charging: voltage is overrated */
-		if (is_charging(cm))
-			break;
-
-		/*
-		 * If the capacity value is inconsistent, calibrate it base on
-		 * the battery voltage values and the thresholds given as desc
-		 */
-		ret = get_batt_uV(cm, &uV);
-		if (ret) {
-			/* Voltage information not available. No calibration */
-			ret = 0;
-			break;
-		}
-
-		if (desc->fullbatt_uV > 0 && uV >= desc->fullbatt_uV &&
-		    !is_charging(cm)) {
-			val->intval = 100;
-			break;
-		}
-
+		val->intval = cm->desc->cap;
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
 		if (is_ext_pwr_online(cm))
@@ -1958,6 +1917,8 @@ static void cm_batt_works(struct work_struct *work)
 		dev_err(cm->dev, "get fuel_cap error.\n");
 		return;
 	}
+	if (fuel_cap > 100)
+		fuel_cap = 100;
 
 	cur_time = ktime_to_timespec64(ktime_get_boottime());
 
