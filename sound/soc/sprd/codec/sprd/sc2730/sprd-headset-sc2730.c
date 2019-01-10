@@ -749,6 +749,7 @@ static void headset_detect_reg_init(void)
 	headset_reg_set_bits(ANA_HDT0, HEDET_GDET_EN);
 	headset_reg_set_bits(ANA_HDT2, HEDET_MDET_EN);
 	headset_reg_set_bits(ANA_HDT1, HEDET_PLGPD_EN);
+	headset_reg_write(ANA_PMU2, BIAS_RSV1(0x1), BIAS_RSV1(0xF));
 
 	/* enable INTC bit14(irq 14) */
 	headset_reg_set_bits(ANA_INT32, ANA_INT_EN);
@@ -771,7 +772,7 @@ static void headset_detect_reg_init(void)
 	headset_eic_clear_irq(HDST_EIC_MAX);
 	headset_reg_write(ANA_INT26, EIC10_DBNC_CTRL(0x4002),
 		EIC10_DBNC_CTRL(0xFFFF));
-	headset_reg_write(ANA_INT27, EIC11_DBNC_CTRL(0x4002),
+	headset_reg_write(ANA_INT27, EIC11_DBNC_CTRL(0x4032),
 		EIC11_DBNC_CTRL(0xFFFF));
 	headset_reg_write(ANA_INT28, EIC12_DBNC_CTRL(0x4002),
 		EIC12_DBNC_CTRL(0xFFFF));
@@ -1010,8 +1011,7 @@ headset_type_detect_through_mdet(void)
 	 * according to si.chen's email, need 100~200ms at least to
 	 * wait now for try
 	 */
-	/* int check_times = 20; */
-	int check_times = 600;/* only used in test, haps is very slow */
+	int check_times = 300;
 
 	pr_info("%s enter\n", __func__);
 	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
@@ -1261,37 +1261,32 @@ static void headset_mic_work_func(struct work_struct *work)
 	struct sprd_headset *hdst = sprd_hdst;
 	int val, mdet_insert_status;
 
-	if (!hdst) {
-		pr_err("%s: sprd_hdset is NULL!\n", __func__);
-		return;
-	}
-	val = headset_eic_get_irq_status(11);
-	if (val == 0) {
-		pr_err("%s fatal error, irq 11 invalid, INT8(220.MIS) %x\n",
-			__func__, val);
-		return;
-	}
-
-	pr_debug("%s in, mic irq status %d\n", __func__,
-		headset_eic_get_irq_status(HDST_EIC_MDET));
 	mdet_insert_status =
 		headset_eic_get_insert_status(HDST_INSERT_BIT_MDET);
-	if (mdet_insert_status != hdst->mdet_val_last) {
-		pr_err("%s check debounce failed\n", __func__);
-		return;
-	}
+
 	/* 0==mic irq not triggered, 1==mic triggered */
 	if (mdet_insert_status == 1)
 		hdst->mic_irq_trigged = 1;
-	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34, T35);
+	else
+		goto out;
 
-	headset_eic_enable(11, 0);
-	headset_eic_clear_irq(11);
+	headset_eic_enable(HDST_EIC_MDET, 0);
+	headset_eic_clear_irq(HDST_EIC_MDET);
 	headset_eic_intc_clear(0);
 
 	headset_reg_read(ANA_STS0, &val);
 	pr_info("%s: mic_irq_trigged %d, ANA_STS0 = 0x%x\n",
 		__func__, hdst->mic_irq_trigged, val);
+	return;
+
+out:
+	pr_err("%s invalid, mdet_insert_status %d\n",
+		__func__, mdet_insert_status);
+	/* enable and trig MDET irq again */
+	headset_eic_clear_irq(HDST_EIC_MDET);
+	headset_eic_enable(HDST_EIC_MDET, 1);
+	headset_eic_intc_clear(0);
+	headset_eic_trig_irq(HDST_EIC_MDET);
 }
 
 static void headset_button_work_func(struct work_struct *work)
