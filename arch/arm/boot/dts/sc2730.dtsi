@@ -74,7 +74,6 @@
 
 			fgu_calib: calib@3 {
 				reg = <0x6 0x2>;
-				bits = <0 9>;
 			};
 
 			cc_cal: calib@d {
@@ -101,6 +100,14 @@
 			reg = <0x380>;
 			nvmem-cells = <&cc_cal>;
 			nvmem-cell-names = "cc_calib";
+		};
+
+		pmic_fchg: fchg@400 {
+			compatible = "sprd,sc27xx-fast-chg", "sprd,sc2730-fast-charger";
+			reg = <0x400>;
+			interrupt-parent = <&sc2730_pmic>;
+			interrupts = <5 IRQ_TYPE_LEVEL_HIGH>;
+			status = "disabled";
 		};
 
 		pmic_adc: adc@504 {
@@ -139,7 +146,7 @@
 
 		syscon@1800 {
 			compatible = "sprd,sc27xx-syscon";
-			reg = <0x1800>;
+			reg = <0x1800>, <0x1ba0>;
 		};
 
 		power-controller@1800 {
