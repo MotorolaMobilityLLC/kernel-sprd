@@ -1124,9 +1124,9 @@ headset_type_detect_all(int insert_all_val_last)
 	adc_mic_average = headset_get_adc_value(adc_chan);
 	adc_mic_ideal = headset_adc_get_ideal(adc_mic_average,
 						pdata->coefficient);
-	pr_info("%s, adc_value: adc_mic_average %d, ideal_value: adc_mic_ideal %d, V_ideal %d\n",
+	pr_info("%s, adc_value: adc_mic_average %d, ideal_value: adc_mic_ideal %d, V_ideal %d mV\n",
 		__func__, adc_mic_average, adc_mic_ideal,
-		adc_mic_ideal * 125 / 4095);
+		adc_mic_ideal * 1250 / 4095);
 	if (adc_mic_ideal >= 0)
 		adc_mic_average = adc_mic_ideal;
 
@@ -1141,9 +1141,9 @@ headset_type_detect_all(int insert_all_val_last)
 	/* si.chen say here could calculate voltage like mic */
 	adc_left_ideal = headset_adc_get_ideal(adc_left_average,
 			pdata->coefficient);
-	pr_info("%s adc_value: adc_left_average = %d, ideal_value: adc_left_ideal %d, V_ideal %d\n",
+	pr_info("%s adc_value: adc_left_average = %d, ideal_value: adc_left_ideal %d, V_ideal %d mV\n",
 		__func__, adc_left_average, adc_left_ideal,
-		adc_left_ideal * 125 / 4095);
+		adc_left_ideal * 1250 / 4095);
 	if (-1 == adc_left_ideal)
 		return HEADSET_TYPE_ERR;
 
@@ -1436,10 +1436,10 @@ static void headset_button_work_func(struct work_struct *work)
 error1:
 			adc_ideal = headset_adc_get_ideal(adc_mic_average,
 						pdata->coefficient);
-			pr_info("%s adc_mic_average %d, adc_ideal=%d, V_ideal %s %d\n",
+			pr_info("%s adc_mic_average %d, adc_ideal=%d, V_ideal %s %d mV\n",
 				__func__, adc_mic_average, adc_ideal,
 				(adc_mic_average >= 4095) ? "outrange!" : "",
-				adc_ideal * 125 / 4095);
+				adc_ideal * 1250 / 4095);
 			if (adc_ideal >= 0)
 				adc_mic_average = adc_ideal;
 			hdst->btns_pressed |=
