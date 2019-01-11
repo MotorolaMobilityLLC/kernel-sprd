@@ -12,7 +12,7 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/debug/busmonitor/busmonitor.h>
 #include <dt-bindings/debug/dmc_mpu/roc1_dmc_mpu.h>
-
+#include "roc1-qos.dtsi"
 / {
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
