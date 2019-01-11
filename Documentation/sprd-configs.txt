@@ -11091,12 +11091,12 @@ CONFIG_WLAN
 		device drivers. For a complete list of drivers and documentation
 		on them refer to the wireless wiki:
 CONFIG_WQ_POWER_EFFICIENT_DEFAULT
-	[arch] arm
-	[plat] sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field] code
+	[subsys] power
+	[must] user
+	[function] power efficient work queue
 CONFIG_X509_CERTIFICATE_PARSER
 	[arch] all
 	[plat] all
