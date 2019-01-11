@@ -180,6 +180,22 @@
 			reg = <0 0x64020000 0 0x10000>;
 		};
 
+		ap-ahb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			ap_dma: dma-controller@21000000 {
+				compatible = "sprd,orca-dma";
+				reg = <0 0x21000000 0 0x4000>;
+				interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
+				#dma-cells = <1>;
+				#dma-channels = <28>;
+				clock-names = "enable";
+			};
+		};
+
 		ap-apb {
 			compatible = "simple-bus";
 
