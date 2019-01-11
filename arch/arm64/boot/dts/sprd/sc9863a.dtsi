@@ -1109,7 +1109,7 @@
 
 &sdio3 {
 	clock-names = "sdio_clk", "sdio_clk_source", "sdio_ahb_enable";
-	clocks = <&ap_clk CLK_EMMC_2X>,
+	clocks = <&aon_clk CLK_EMMC_2X>,
 		 <&rpll CLK_RPLL_390M>,
 		 <&apahb_gate CLK_EMMC_EB>;
 };
