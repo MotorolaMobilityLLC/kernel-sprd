@@ -356,10 +356,31 @@ static void wcn_dump_cp_register(struct wcn_dump_mem_reg *mem)
 	}
 }
 
+#define  CACHE_STATUS_OFFSET  32
+#define  CACHE_START_OFFSET    36
+#define  CACHE_END_OFFSET       40
+#define  DCACHE_BLOCK_NUM       7
+struct cache_block_config {
+	unsigned int reg_addr;
+	unsigned int reg_value;
+};
+
+static struct cache_block_config s_cache_block_config[] = {
+		{DCACHE_REG_BASE+4, 0x100000},
+		{DCACHE_REG_BASE+8, 0x1E6000},
+		{DCACHE_REG_BASE+12, 0x200000},
+		{DCACHE_REG_BASE+16, 0x230000},
+		{DCACHE_REG_BASE+20, 0x240000},
+		{DCACHE_REG_BASE+24, 0x250000},
+		{DCACHE_REG_BASE+28, 0x260000},
+};
+
 static int cp_dcache_clean_invalid_all(void)
 {
 	int ret;
+	unsigned int cp_cache_status;
 	unsigned int reg_val = 0;
+	int i;
 
 	/*
 	 * 1.AP write DCACHE REG CMD by sdio dt mode
@@ -370,15 +391,58 @@ static int cp_dcache_clean_invalid_all(void)
 	 *   cache_debug mode must be set normal mode.
 	 *   cache_size set 32K
 	 */
+	ret =  sprdwcn_bus_reg_read(SYNC_ADDR + CACHE_STATUS_OFFSET,
+				    &cp_cache_status, 4);
+	if (!(ret == 0)) {
+		pr_info("Marlin3_Dcache status sdiohal_dt_read error !\n");
+		return ret;
+	}
 	ret = sprdwcn_bus_reg_read(DCACHE_REG_ENABLE, &reg_val, 4);
 	if (!(ret == 0)) {
 		pr_info("Marlin3_Dcache REG sdiohal_dt_read error !\n");
 		return ret;
 	}
-	if (!(reg_val & DCACHE_ENABLE_MASK)) {
+	if (!(reg_val & DCACHE_ENABLE_MASK) && !cp_cache_status) {
 		WCN_INFO("CP DCACHE DISENABLE\n");
 		return ret;
 	}
+
+	if (cp_cache_status && !(reg_val & DCACHE_ENABLE_MASK)) {
+		/* need config cache as resetpin */
+		WCN_INFO("Config cache as pull reset pin");
+		ret = sprdwcn_bus_reg_read(SYNC_ADDR + CACHE_START_OFFSET,
+					  &(s_cache_block_config[0].reg_value),
+					  4);
+		if (!(ret == 0)) {
+			pr_info("Marlin3_Dcache startaddr sdiohal_dt_read error !\n");
+			return ret;
+		}
+		ret = sprdwcn_bus_reg_read(SYNC_ADDR + CACHE_END_OFFSET,
+					  &(s_cache_block_config[1].reg_value),
+					  4);
+		if (!(ret == 0)) {
+			pr_info("Marlin3_Dcache endaddr sdiohal_dt_read error !\n");
+			return ret;
+		}
+		ret = sprdwcn_bus_reg_read(DCACHE_CFG0, &reg_val, 4);
+		if (!(ret == 0)) {
+			pr_info("Marlin3_Dcache REG sdiohal_dt_read error !\n");
+			return ret;
+		}
+		reg_val |= 0x30000002;
+		/* cache set 32k, write allocate mode */
+		ret = sprdwcn_bus_reg_write(DCACHE_CFG0, &reg_val, 4);
+		/* config block addr */
+		for (i = 0; i < DCACHE_BLOCK_NUM; i++)
+			sprdwcn_bus_reg_write(s_cache_block_config[i].reg_addr,
+					   &(s_cache_block_config[i].reg_value),
+					   4);
+		/* enable dcache block 1 */
+		reg_val = 0x2;
+		sprdwcn_bus_reg_write(DCACHE_REG_ENABLE, &reg_val, 4);
+	}
+	if (!cp_cache_status && (reg_val & DCACHE_ENABLE_MASK))
+		WCN_INFO("cp_cache_status is not the same with reg status\n");
 	WCN_INFO("CP DCACHE ENABLE\n");
 	ret = sprdwcn_bus_reg_read(DCACHE_CFG0, &reg_val, 4);
 	if (!(ret == 0)) {
@@ -405,6 +469,7 @@ static int cp_dcache_clean_invalid_all(void)
 		DCACHE_CMD_CFG2_MASK);
 	ret = sprdwcn_bus_reg_write(DCACHE_CMD_CFG2, &reg_val, 4);
 	/* cmd excuting */
+	udelay(200);
 	ret = sprdwcn_bus_reg_read(DCACHE_INT_RAW_STS, &reg_val, 4);
 	/* read raw */
 	if ((reg_val & 0X00000001) == 0) {
