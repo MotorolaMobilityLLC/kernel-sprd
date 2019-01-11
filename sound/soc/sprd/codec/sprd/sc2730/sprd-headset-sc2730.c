@@ -1055,6 +1055,16 @@ headset_type_detect_through_mdet(void)
 	return headset_type;
 }
 
+/*
+ * Si.chen ask to set val like this:
+ * 0x3 for 3 pole and selfie stick,
+ * 0x1 for 4 pole normal
+ */
+static void headset_ldetl_ref_sel(unsigned int val)
+{
+	headset_reg_write(ANA_HDT2, val, HEDET_LDETL_REF_SEL(0x7));
+}
+
 static enum sprd_headset_type
 headset_type_detect_all(int insert_all_val_last)
 {
@@ -1063,6 +1073,7 @@ headset_type_detect_all(int insert_all_val_last)
 	int adc_mic_average, adc_mic_ideal, adc_left_average,
 		adc_left_ideal, val;
 	struct iio_channel *adc_chan = hdst->adc_chan;
+	enum sprd_headset_type headset_type;
 
 	DEBUG_LOG;
 
@@ -1142,36 +1153,51 @@ headset_type_detect_all(int insert_all_val_last)
 		pdata->threshold_3pole);
 
 	if (adc_left_ideal > pdata->sprd_adc_gnd &&
-		ABS(adc_mic_ideal - adc_left_ideal) < pdata->sprd_adc_gnd)
+		ABS(adc_mic_ideal - adc_left_ideal) < pdata->sprd_adc_gnd) {
+		headset_ldetl_ref_sel(1);
 		return HEADSET_4POLE_NOT_NORMAL;
-	else if (adc_left_ideal > pdata->sprd_adc_gnd &&
+	} else if (adc_left_ideal > pdata->sprd_adc_gnd &&
 		ABS(adc_mic_ideal - adc_left_ideal) >= pdata->sprd_adc_gnd)
 		return HEADSET_TYPE_ERR;
 	else if (adc_left_ideal < pdata->sprd_adc_gnd &&
-		adc_mic_ideal < pdata->threshold_3pole)
+		adc_mic_ideal < pdata->threshold_3pole) {
+		headset_ldetl_ref_sel(3);
 		return HEADSET_NO_MIC;
-	else if (adc_left_ideal < pdata->sprd_adc_gnd &&
+	} else if (adc_left_ideal < pdata->sprd_adc_gnd &&
 		adc_mic_ideal >= pdata->threshold_3pole) {
 		val = headset_eic_get_insert_status(HDST_INSERT_BIT_MDET);
 		pr_debug("%s val %d\n", __func__, val);
-		if (val != 0 && adc_left_ideal < pdata->sprd_half_adc_gnd)
+		if (val != 0 && adc_left_ideal < pdata->sprd_half_adc_gnd) {
+			headset_ldetl_ref_sel(1);
 			return HEADSET_4POLE_NORMAL;
-		/* selfie stick */
-		else if (val != 0 && adc_left_ideal >= pdata->sprd_half_adc_gnd)
+		} else if (val != 0 &&
+			adc_left_ideal >= pdata->sprd_half_adc_gnd) {
+			/* selfie stick */
+			headset_ldetl_ref_sel(3);
 			return HEADSET_4POLE_NORMAL;
-		/*
-		 * 4 pole normal type with mic floating
-		 * can be treated as 3 pole headphone
-		 */
-		else if (val == 0 && adc_left_ideal < pdata->sprd_half_adc_gnd)
-			return headset_type_detect_through_mdet();
-		/*
-		 * 4 pole normal which is not totally inserted.
-		 * 4 pole normal for selfie stick which is not
-		 * totally inserted or it is 4 pole floating.
-		 */
-		else if (val == 0 && adc_left_ideal >= pdata->sprd_half_adc_gnd)
-			return headset_type_detect_through_mdet();
+		} else if (val == 0 &&
+			adc_left_ideal < pdata->sprd_half_adc_gnd) {
+			/*
+			 * 4 pole normal type with mic floating
+			 * can be treated as 3 pole headphone
+			 */
+			headset_type = headset_type_detect_through_mdet();
+			if (headset_type == HEADSET_4POLE_NORMAL)
+				headset_ldetl_ref_sel(1);
+			else
+				headset_ldetl_ref_sel(3);
+			return headset_type;
+		} else if (val == 0 &&
+			adc_left_ideal >= pdata->sprd_half_adc_gnd) {
+			/*
+			 * 4 pole normal which is not totally inserted.
+			 * 4 pole normal for selfie stick which is not
+			 * totally inserted or it is 4 pole floating.
+			 */
+			headset_type = headset_type_detect_through_mdet();
+			headset_ldetl_ref_sel(3);
+			return headset_type;
+		}
 	}
 
 	return HEADSET_TYPE_ERR;
@@ -1226,11 +1252,9 @@ static void headset_removed_verify(void)
 		hdst->report = 0;
 		hdst->re_detect = false;
 
-		if (pdata->jack_type == JACK_TYPE_NO) {
+		if (pdata->jack_type == JACK_TYPE_NO)
 			headset_eic_set_trig_level(HDST_EIC_LDETL, 0);
-			headset_reg_write(ANA_HDT2, HEDET_LDETL_REF_SEL(0x3),
-				HEDET_LDETL_REF_SEL(0x7));
-		}
+		headset_ldetl_ref_sel(3);
 	}
 }
 
@@ -1472,10 +1496,6 @@ static void headset_process_for_4pole(enum sprd_headset_type headset_type)
 			"by your hardware! so disable the button irq!");
 	} else {
 		headset_eic_set_trig_level(15, 1);
-		/* config LDETL REF for plug-out pop */
-		if (pdata->jack_type == JACK_TYPE_NO)
-			headset_reg_write(ANA_HDT2, HEDET_LDETL_REF_SEL(0x1),
-			HEDET_LDETL_REF_SEL(0x7));
 		headset_reg_clr_bits(ANA_HDT2, HEDET_LDETL_FLT_EN);
 		/* set threshold and HEDET_BDET_EN */
 		headset_button_irq_threshold(1);
@@ -1831,12 +1851,11 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			headset_eic_set_trig_level(12, 0);
 			headset_eic_enable(12, 1);
 			headset_eic_trig_irq(12);
-			headset_reg_write(ANA_HDT2, HEDET_LDETL_REF_SEL(0x3),
-				HEDET_LDETL_REF_SEL(0x7));
 		} else if (pdata->jack_type == JACK_TYPE_NC) {
 			headset_eic_enable(10, 1);
 			headset_eic_trig_irq(10);
 		}
+		headset_ldetl_ref_sel(3);
 
 		pr_info("%s ANA_HDT2 0x%04x\n", __func__,
 			headset_reg_value_read(ANA_HDT2));
@@ -2095,11 +2114,9 @@ static void headset_force_remove_sw_plugin_status(void)
 		hdst->report = 0;
 		hdst->re_detect = false;
 
-		if (pdata->jack_type == JACK_TYPE_NO) {
+		if (pdata->jack_type == JACK_TYPE_NO)
 			headset_eic_set_trig_level(HDST_EIC_LDETL, false);
-			headset_reg_write(ANA_HDT2, HEDET_LDETL_REF_SEL(0x3),
-				HEDET_LDETL_REF_SEL(0x7));
-		}
+		headset_ldetl_ref_sel(3);
 		headset_reinit_all_eic();
 	}
 
