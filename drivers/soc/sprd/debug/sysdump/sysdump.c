@@ -66,8 +66,11 @@
 
 #define DUMP_REGS_SIZE min(sizeof(elf_gregset_t), sizeof(struct pt_regs))
 
-#define ANA_RST_STATUS_OFFSET (0x1bac) //pmic rst status register offset
+#define ANA_RST_STATUS_OFFSET_2730 (0x1bac) /* pmic 2730 rst status register offset */
 #define HWRST_STATUS_SYSDUMP  (0x200)
+#define ANA_RST_STATUS_OFFSET_2721 (0xed8)  /* pmic 2721 rst status register offset */
+static unsigned int pmic_reg;
+
 
 typedef char note_buf_t[SYSDUMP_NOTE_BYTES];
 
@@ -699,6 +702,14 @@ static int sprd_sysdump_enable_prepare(void)
 		goto error_pmic_node;
 	}
 
+	if (of_device_is_compatible(regmap_np->parent, "sprd,sc2721")) {
+		pmic_reg = ANA_RST_STATUS_OFFSET_2721;
+		pr_emerg(" detect pmic is sc2721 ,offset = 0x%x !!!\n", pmic_reg);
+	} else {
+		pmic_reg = ANA_RST_STATUS_OFFSET_2730;
+		pr_emerg(" detect pmic is sc2730 ,offset = 0x%x !!!\n", pmic_reg);
+	}
+
 	pdev_regmap = of_find_device_by_node(regmap_np);
 	if (!pdev_regmap) {
 		pr_emerg("of_find_device_by_node failed!!!\n");
@@ -713,7 +724,6 @@ static int sprd_sysdump_enable_prepare(void)
 
 	of_node_put(regmap_np);
 	pr_emerg("%s ok\n", __func__);
-
 	return 0;
 
 error_find_device:
@@ -726,23 +736,24 @@ static int set_sysdump_enable(int on)
 {
 	unsigned int val = 0;
 
+
 	if (!regmap) {
 		pr_emerg("can not %s sysdump because of regmap is NULL\n", on ? "enable" : "disable");
 		return -1;
 	}
 
-	regmap_read(regmap, ANA_RST_STATUS_OFFSET, &val);
+	regmap_read(regmap, pmic_reg, &val);
 	pr_emerg("set_sysdump_enable: get rst mode  value is = %x\n", val);
 
 	if (on) {
 		pr_emerg("set_sysdump_enable: enable sysdump!\n");
 		val |= HWRST_STATUS_SYSDUMP;
-		regmap_write(regmap, ANA_RST_STATUS_OFFSET, val);
+		regmap_write(regmap, pmic_reg, val);
 		sysdump_status = 1;
 	} else {
 		pr_emerg("set_sysdump_disable: disable sysdump!\n");
 		val &= ~(HWRST_STATUS_SYSDUMP);
-		regmap_write(regmap, ANA_RST_STATUS_OFFSET, val);
+		regmap_write(regmap, pmic_reg, val);
 		sysdump_status = 0;
 	}
 
@@ -802,7 +813,7 @@ void sysdump_sysctl_exit(void)
 	crypto_free_shash(desc.tfm);
 }
 
-late_initcall(sysdump_sysctl_init);
+late_initcall_sync(sysdump_sysctl_init);
 module_exit(sysdump_sysctl_exit);
 
 MODULE_AUTHOR("Jianjun.He <jianjun.he@spreadtrum.com>");
