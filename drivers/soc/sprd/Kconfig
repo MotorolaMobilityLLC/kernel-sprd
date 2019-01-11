@@ -45,3 +45,4 @@ config SPRD_POWER_DEBUG
 
 source "drivers/soc/sprd/debug/Kconfig"
 source "drivers/soc/sprd/performance/Kconfig"
+source "drivers/soc/sprd/pub/Kconfig"

@@ -9756,6 +9756,13 @@ CONFIG_SPRD_DMA
 	[subsys] dma
 	[must] none
 	[function] Support Spreadtrum DMA.
+CONFIG_SPRD_DMC_DRV
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field] make
+	[subsys] debug
+	[must] debug
+	[function] Enable DMC core debug function, for example ddr info and pub monitor function
 CONFIG_SPRD_DMC_MPU
 	[arch] all
 	[plat] all
