@@ -7,7 +7,7 @@
 
 /dts-v1/;
 
-#include "ums518.dtsi"
+#include "ums518-haps.dtsi"
 #include "ums518-haps-common.dtsi"
 
 / {
