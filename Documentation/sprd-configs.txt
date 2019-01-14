@@ -10012,10 +10012,10 @@ CONFIG_SPRD_WATCHDOG
 CONFIG_SPRD_WATCHDOG_SYS
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] watchdog
+	[must] user
+	[function] add ap sys watchdog.
 CONFIG_SRCU
 	[arch] all
 	[plat] all
