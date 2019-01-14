@@ -9,6 +9,10 @@
 
 #include "sc9863a.dtsi"
 #include "sp9863a-common.dtsi"
+#include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_nt35532_truly_mipi_fhd.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
 
 / {
 	model = "Spreadtrum SC9863A-2H10 Board";
@@ -20,9 +24,10 @@
 	aliases {
 		serial0 = &uart0;
 		serial1 = &uart1;
+		i2c3 = &i2c3;
 	};
 
-	memory {
+	memory: memory {
 		device_type = "memory";
 		reg = <0x0 0x80000000 0x0 0x80000000>;
 	};
@@ -30,6 +35,34 @@
 	chosen {
 		stdout-path = &uart1;
 		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.selinux=permissive androidboot.hardware=s9863a2h10";
+	};
+
+	ipi: interrupt-controller {
+		compatible = "android,CustomIPI";
+		#interrupt-cells = <1>;
+		interrupt-controller;
+	};
+
+	trusty {
+		compatible = "android,trusty-smc-v1";
+
+		irq {
+			compatible = "android,trusty-irq-v1";
+			interrupt-templates = <&ipi 0>,
+						<&gic 1 GIC_PPI 0>,
+						<&gic 1 GIC_SPI 0>;
+			interrupt-ranges = < 0  15 0>,
+						<16  31 1>,
+						<32 223 2>;
+		};
+
+		virtio {
+			compatible = "android,trusty-virtio-v1";
+		};
+
+		log {
+			compatible = "android,trusty-log-v1";
+		};
 	};
 
 	ion {
@@ -72,6 +105,34 @@
 		sprd,name = "gnss-common-ctl";
 	};
 
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		key-volumedown {
+			label = "Volume Down Key";
+			linux,code = <KEY_VOLUMEDOWN>;
+			gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+
+		key-volumeup {
+			label = "Volume Up Key";
+			linux,code = <KEY_VOLUMEUP>;
+			gpios = <&pmic_eic 10 GPIO_ACTIVE_HIGH>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+
+		key-power {
+			label = "Power Key";
+			linux,code = <KEY_POWER>;
+			gpios = <&pmic_eic 1 GPIO_ACTIVE_LOW>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+	};
+
 };
 
 &uart0 {
@@ -86,7 +147,43 @@
 	sprd,cable-detection-method = "typec";
 };
 
+&vdd18 {
+	regulator-always-on;
+};
+
+&vddrf18 {
+	regulator-always-on;
+};
+
+&vddrf125 {
+	regulator-always-on;
+};
+
+&vddldomem {
+	regulator-always-on;
+};
+
+&vddemmccore {
+	regulator-always-on;
+};
+
+&hsphy {
+	extcon = <&pmic_typec>;
+};
+
+&usb {
+	extcon = <&pmic_typec>;
+};
+
+&pmic_typec {
+	status = "okay";
+};
+
 &dpu {
+	status = "okay";
+};
+
+&iommu_dispc {
 	status = "okay";
 };
 
@@ -111,5 +208,32 @@
 };
 
 &dphy {
+	status = "okay";
+};
+
+&i2c3 {
+	status = "okay";
+
+	adaptive-touchscreen@38 {
+		compatible = "adaptive-touchscreen";
+		reg = <0x38>;
+		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
+			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		controller = "focaltech,FT5436";
+		virtualkeys = <580 60 1320 60 45
+			172 360 1320 60 45
+			158 600 1320 60 45>;
+		private-data {
+			a8 = /bits/ 8 <0x5a>;
+		};
+	};
+};
+
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
+&vsp {
 	status = "okay";
 };
