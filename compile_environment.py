@@ -14,8 +14,9 @@ dict_project={
 
 	#sharkle
         'sp9832e_1h10_native-userdebug'		: { 'path' : 'sprd-board-config/sharkle/sp9832e_1h10/', },
-        'sp9832e_10c20_native-userdebug'		: { 'path' : 'sprd-board-config/sharkle/sp9832e_10c20/', },
+        'sp9832e_10c20_native-userdebug'	: { 'path' : 'sprd-board-config/sharkle/sp9832e_10c20/', },
         'sp9832e_1h10_gofu-userdebug'		: { 'path' : 'sprd-board-config/sharkle/sp9832e_1h10_go/', },
+	'sp9832ep_haps_native-userdebug'	: { 'path' : 'sprd-board-config/sharkle/sp9832ep_haps/', },
 
 	#sharkl3
         's9863a1h10_Natv-userdebug'		: { 'path' : 'sprd-board-config/sharkl3/sp9863a_1h10/', },
