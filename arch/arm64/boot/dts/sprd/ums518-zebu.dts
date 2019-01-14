@@ -82,6 +82,39 @@
 		};
 	};
 
+	gpu: gpu@60000000 {
+		 compatible = "sprd,mali-midgard";
+		 reg = <0 0x60000000 0 0x4000>;
+		 interrupts = <0 60 0x4>,
+			<0 60 0x4>,
+			<0 60 0x4>;
+
+		 interrupt-names = "JOB",
+			 "MMU",
+			 "GPU";
+
+		 operating-points = <
+			 // kHz    uV
+			 850000    0
+			 768000    0
+			 512000    0
+			 >;
+		 sprd,dfs-lists = <
+			 // kHz idx div
+			 512000 2   1
+			 768000 3   1
+			 850000 4   1
+			 >;
+
+		 sprd,dfs-default = <2>;
+		 prd,dfs-scene-extreme = <2>;
+		 sprd,dfs-scene-high = <1>;
+		 sprd,dfs-scene-medium = <1>;
+		 sprd,dfs-scene-low = <0>;
+		 sprd,dfs-range-max = <2>;
+		 sprd,dfs-range-min = <0>;
+	 };
+
 	ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
