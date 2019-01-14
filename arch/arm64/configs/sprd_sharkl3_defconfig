@@ -3833,9 +3833,12 @@ CONFIG_EXTCON=y
 CONFIG_EXTCON_USB_GPIO=y
 # CONFIG_MEMORY is not set
 CONFIG_IIO=y
-# CONFIG_IIO_BUFFER is not set
+CONFIG_IIO_BUFFER=y
+# CONFIG_IIO_BUFFER_CB is not set
+CONFIG_IIO_KFIFO_BUF=y
 # CONFIG_IIO_CONFIGFS is not set
-# CONFIG_IIO_TRIGGER is not set
+CONFIG_IIO_TRIGGER=y
+CONFIG_IIO_CONSUMERS_PER_TRIGGER=2
 # CONFIG_IIO_SW_DEVICE is not set
 # CONFIG_IIO_SW_TRIGGER is not set
 
@@ -4091,6 +4094,12 @@ CONFIG_SC27XX_ADC=y
 #
 
 #
+# Triggers - standalone
+#
+# CONFIG_IIO_INTERRUPT_TRIGGER is not set
+# CONFIG_IIO_SYSFS_TRIGGER is not set
+
+#
 # Digital potentiometers
 #
 # CONFIG_DS1803 is not set
@@ -4147,7 +4156,7 @@ CONFIG_SC27XX_ADC=y
 #
 # Spreadtrum Sensor Hub
 #
-# CONFIG_SPRD_SENSOR_HUB is not set
+CONFIG_SPRD_SENSOR_HUB=y
 # CONFIG_NTB is not set
 # CONFIG_VME_BUS is not set
 CONFIG_PWM=y
