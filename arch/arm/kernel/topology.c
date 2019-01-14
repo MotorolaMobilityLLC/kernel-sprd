@@ -461,6 +461,4 @@ void __init init_cpu_topology(void)
 		reset_cpu_topology();
 	else
 		set_sched_topology(arm_topology);
-
-	init_sched_energy_costs();
 }
