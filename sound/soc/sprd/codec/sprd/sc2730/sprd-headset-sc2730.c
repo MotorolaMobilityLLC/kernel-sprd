@@ -1492,6 +1492,7 @@ static void headset_process_for_4pole(enum sprd_headset_type headset_type)
 	    && (pdata->gpio_switch == 0)) {
 		headset_eic_enable(15, 0);
 		headmicbias_power_on(hdst, 0);
+		hdst->hdst_status = SND_JACK_HEADPHONE;
 		pr_info("HEADSET_4POLE_NOT_NORMAL is not supported %s\n",
 			"by your hardware! so disable the button irq!");
 	} else {
@@ -1501,11 +1502,11 @@ static void headset_process_for_4pole(enum sprd_headset_type headset_type)
 		headset_button_irq_threshold(1);
 		headset_eic_enable(15, 1);
 		headset_eic_trig_irq(15);
+		hdst->hdst_status = SND_JACK_HEADSET;
 		if (!hdst->audio_on)
 			headset_hmicbias_polling_enable(true, false);
 	}
 
-	hdst->hdst_status = SND_JACK_HEADSET;
 	if (hdst->report == 0) {
 		pr_debug("%s report for 4p\n", __func__);
 		headset_jack_report(hdst, &hdst->hdst_jack,
