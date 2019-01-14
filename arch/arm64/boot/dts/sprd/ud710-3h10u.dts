@@ -177,6 +177,10 @@
 	};
 };
 
+&sdio3 {
+	status = "disabled";
+};
+
 &dpu {
 	status = "okay";
 };
