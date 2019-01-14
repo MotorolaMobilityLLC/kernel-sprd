@@ -88,7 +88,8 @@ enum {
 	SPRD_CODEC_DA_EN_ORDER = 103,
 	SPRD_CODEC_DC_OS_SWITCH_ORDER = 104,
 	SPRD_CODEC_DC_OS_ORDER = 105,
-	SPRD_CODEC_MIXER_ORDER = 106,/* Must be the last one */
+	SPRD_CODEC_RCV_DEPOP_ORDER = 106,
+	SPRD_CODEC_MIXER_ORDER = 110,/* Must be the last one */
 };
 
 enum {
@@ -1310,8 +1311,8 @@ static int rcv_depop_event(struct snd_soc_dapm_widget *w,
 	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
 	u32 val = 0;
 	u32 state;
-	int ret;
-	int i;
+	int ret = 0;
+	int i = 0;
 
 	sp_asoc_pr_dbg("%s Event is %s\n", __func__, get_event_name(event));
 	if (on) {
@@ -1320,21 +1321,25 @@ static int rcv_depop_event(struct snd_soc_dapm_widget *w,
 		ret = snd_soc_update_bits(codec, SOC_REG(ANA_DCL6),
 			0xFF, val);
 
-		i = 0;
-		while (i++ < 20) {
-			sprd_codec_wait(10);
-			state = snd_soc_read(codec, SOC_REG(ANA_STS1)) &
-				(RCV_DPOP_DVLD);
-			if (state)
-				break;
-		}
-		if (i >= 20)
-			sp_asoc_pr_info("%s Dpop failed!\n", __func__);
-		else
-			sp_asoc_pr_info("%s Dpop sucessed! i=%d\n",
-				__func__, i);
+		/* wait 1ms by guidline */
+		sprd_codec_wait(1);
 	}
+
 	update_switch(codec, SDALRCV, on);
+	/* totally wait about 100ms by guidline */
+	sprd_codec_wait(60);
+	while (i++ < 10) {
+		sprd_codec_wait(10);
+		state = snd_soc_read(codec, SOC_REG(ANA_STS1)) &
+			RCV_DPOP_DVLD;
+		if ((on && state) || (!on && !state))
+			break;
+	}
+	if (i >= 10)
+		sp_asoc_pr_info("%s Dpop failed!\n", __func__);
+	else
+		sp_asoc_pr_info("%s Dpop sucessed! i=%d\n",
+			__func__, i);
 
 	return ret;
 }
@@ -2041,7 +2046,7 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 
 /* EAR */
-	SND_SOC_DAPM_PGA_S("RCV DEPOP", SPRD_CODEC_DEPOP_ORDER,
+	SND_SOC_DAPM_PGA_S("RCV DEPOP", SPRD_CODEC_RCV_DEPOP_ORDER,
 		SND_SOC_NOPM,
 		0, 0, rcv_depop_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_PRE_PMD),
