@@ -313,13 +313,9 @@ int host_cluster_auto_tuning_enable(void *clu, bool enable)
 		ret = regmap_update_bits(pdev->topdvfs_map, addr1, bit1, ~bit1);
 		if (ret)
 			return ret;
-	} else {
-		ret = regmap_update_bits(pdev->topdvfs_map, addr0, bit0, bit0);
-		if (ret)
-			return ret;
-		ret = regmap_update_bits(pdev->topdvfs_map, addr1, bit1, bit1);
-			return ret;
 	}
+
+	/* Nothing to do when enable is false */
 
 	return 0;
 }
