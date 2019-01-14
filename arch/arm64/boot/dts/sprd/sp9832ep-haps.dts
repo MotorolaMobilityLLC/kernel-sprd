@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Unisoc Sharkler platform DTS file
+ *
+ * Copyright (C) 2018, Unisoc Communications Inc.
+ */
+
+/dts-v1/;
+
+#include "sc9832ep-haps.dtsi"
+
+/ {
+	model = "Unisoc SP9832EP Haps board";
+
+	compatible = "sprd,sp9832ep";
+
+	sprd,sc-id = <518 1 0x20000>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x1 0x00000000>;
+	};
+
+	chosen {
+		stdout-path = &uart1;
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 maxcpus=1 init=/init root=/dev/memdisk.0 rootfstype=ext4 rw rootwait androidboot.hardware=sp9832ep_haps androidboot.selinux=permissive";
+	};
+
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		memdisk_reserved: memdisk@0,c0000000{
+			reg = <0x0 0xc0000000 0x0 0x5AA00000>,  /* system */
+				<0x1 0x20000000 0x0 0x6400000>, /* userdata */
+				<0x1 0x30000000 0x0 0x12c00000>; /* vendor */
+		};
+	};
+
+	sprd-memdisk {
+		compatible = "sprd,memdisk";
+		memory-region = <&memdisk_reserved>;
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
