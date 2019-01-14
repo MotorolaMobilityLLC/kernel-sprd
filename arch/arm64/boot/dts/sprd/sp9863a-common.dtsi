@@ -125,6 +125,17 @@
 	sprd,hw-channels = <33 0x8c20>, <35 0x8cc4>, <36 0x8cd0>, <19 0x8c44>, <20 0x8c44>, <21 0x8c44>, <22 0x8c44>;
 };
 
+&sdio0 {
+	vmmc-supply = <&vddsdcore>;
+	vqmmc-supply = <&vddsdio>;
+	voltage-ranges = <3000 3000>;
+	bus-width = <4>;
+	sprd,name = "sdio_sd";
+	no-sdio;
+	no-mmc;
+	status = "okay";
+};
+
 &sdio3 {
 	vmmc-supply = <&vddemmccore>;
 	voltage-ranges = <3000 3000>;

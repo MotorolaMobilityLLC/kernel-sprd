@@ -1107,6 +1107,13 @@
 	<&ap_clk CLK_AP_SPI3>, <&pll CLK_TWPLL_192M>;
 };
 
+&sdio0 {
+	clock-names = "sdio_clk", "sdio_clk_source", "sdio_ahb_enable";
+	clocks = <&aon_clk CLK_SDIO0_2X>,
+		 <&rpll CLK_RPLL_390M>,
+		 <&apahb_gate CLK_SDIO0_EB>;
+};
+
 &sdio3 {
 	clock-names = "sdio_clk", "sdio_clk_source", "sdio_ahb_enable";
 	clocks = <&aon_clk CLK_EMMC_2X>,
