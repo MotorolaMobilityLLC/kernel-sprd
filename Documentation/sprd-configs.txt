@@ -1648,15 +1648,15 @@ CONFIG_CPU_FREQ
 	[must] user
 	[function] enable cpufreq
 CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
-	[arch] all
-	[plat] roc1,sharkl5_32
+	[arch] arm64
+	[plat] roc1
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
-	[arch] arm64
-	[plat] sharkl5
+	[arch] all
+	[plat] sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
@@ -2549,8 +2549,8 @@ CONFIG_DEFAULT_TCP_CONG
 	[must] user
 	[function] default algorithm of congestion control
 CONFIG_DEFAULT_USE_ENERGY_AWARE
-	[arch] arm64
-	[plat] sharkl5
+	[arch] all
+	[plat] sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] sched
 	[must] user
@@ -9002,8 +9002,8 @@ CONFIG_SCHED_TRACER
 	[must] debug
 	[function] Scheduling Latency Tracer
 CONFIG_SCHED_TUNE
-	[arch] arm64
-	[plat] sharkl5
+	[arch] all
+	[plat] sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] sched
 	[must] user
