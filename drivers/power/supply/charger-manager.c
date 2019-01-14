@@ -1167,6 +1167,7 @@ static int charger_get_property(struct power_supply *psy,
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
 	struct power_supply *fuel_gauge = NULL;
 	int ret = 0;
+	int i;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
@@ -1251,6 +1252,44 @@ static int charger_get_property(struct power_supply *psy,
 			val->intval = 0;
 		}
 		break;
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
+		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+			psy = power_supply_get_by_name(
+					cm->desc->psy_charger_stat[i]);
+			if (!psy) {
+				dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+					cm->desc->psy_charger_stat[i]);
+				continue;
+			}
+
+			ret = power_supply_get_property(psy,
+				POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT, val);
+			power_supply_put(psy);
+			if (ret) {
+				dev_err(cm->dev, "set charge current failed\n");
+				continue;
+			}
+		}
+		break;
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+			psy = power_supply_get_by_name(
+					cm->desc->psy_charger_stat[i]);
+			if (!psy) {
+				dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+					cm->desc->psy_charger_stat[i]);
+				continue;
+			}
+
+			ret = power_supply_get_property(psy,
+				POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, val);
+			power_supply_put(psy);
+			if (ret) {
+				dev_err(cm->dev, "set charge limit current failed\n");
+				continue;
+			}
+		}
+		break;
 	default:
 		return -EINVAL;
 	}
@@ -1259,6 +1298,83 @@ static int charger_get_property(struct power_supply *psy,
 	return ret;
 }
 
+static int
+charger_set_property(struct power_supply *psy,
+		     enum power_supply_property psp,
+		     const union power_supply_propval *val)
+{
+	struct charger_manager *cm = power_supply_get_drvdata(psy);
+	int ret = 0;
+	int i;
+
+	if (!is_ext_pwr_online(cm))
+		return -ENODEV;
+
+	switch (psp) {
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
+		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+			psy = power_supply_get_by_name(
+					cm->desc->psy_charger_stat[i]);
+			if (!psy) {
+				dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+					cm->desc->psy_charger_stat[i]);
+				continue;
+			}
+
+			ret = power_supply_set_property(psy,
+				POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT, val);
+			power_supply_put(psy);
+			if (ret) {
+				dev_err(cm->dev, "set charge current failed\n");
+				continue;
+			}
+		}
+		break;
+
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+			psy = power_supply_get_by_name(
+					cm->desc->psy_charger_stat[i]);
+			if (!psy) {
+				dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+					cm->desc->psy_charger_stat[i]);
+				continue;
+			}
+
+			ret = power_supply_set_property(psy,
+				POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, val);
+			power_supply_put(psy);
+			if (ret) {
+				dev_err(cm->dev, "set charge limit current failed\n");
+				continue;
+			}
+		}
+		break;
+
+	default:
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
+static int charger_property_is_writeable(struct power_supply *psy,
+					 enum power_supply_property psp)
+{
+	int ret;
+
+	switch (psp) {
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		ret = 1;
+		break;
+
+	default:
+		ret = 0;
+	}
+
+	return ret;
+}
 #define NUM_CHARGER_PSY_OPTIONAL	(4)
 static enum power_supply_property default_charger_props[] = {
 	/* Guaranteed to provide */
@@ -1269,6 +1385,8 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
+	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
+	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
 	/*
 	 * Optional properties are:
 	 * POWER_SUPPLY_PROP_CHARGE_NOW,
@@ -1284,6 +1402,8 @@ static const struct power_supply_desc psy_default = {
 	.properties = default_charger_props,
 	.num_properties = ARRAY_SIZE(default_charger_props),
 	.get_property = charger_get_property,
+	.set_property = charger_set_property,
+	.property_is_writeable	= charger_property_is_writeable,
 	.no_thermal = true,
 };
 
