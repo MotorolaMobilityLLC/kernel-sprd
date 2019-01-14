@@ -716,6 +716,14 @@ CONFIG_ARM_GIC_MAX_NR
 	[subsys]
 	[must]
 	[function]
+CONFIG_ARM_GIC_V2M
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Support for Message Signal Interrupts for system that
+		   implement ARM Generic Interrupt Controller: GICv2m.
 CONFIG_ARM_GIC_V3
 	[arch] all
 	[plat] all
@@ -723,6 +731,13 @@ CONFIG_ARM_GIC_V3
 	[subsys] core
 	[must] console
 	[function] Enable kernel support ARM GIC V3.
+CONFIG_ARM_GIC_V3_ITS
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Support GIC_V3_ITS, depend on PCI and PCI_MSI.
 CONFIG_ARM_HAS_SG_CHAIN
 	[arch] arm
 	[plat] sharkl5_32
@@ -1082,6 +1097,13 @@ CONFIG_BLK_DEV_SD
 	[subsys] usb
 	[must] user
 	[function] This macro is to support host udisk function.
+CONFIG_BLK_MQ_PCI
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Provide a default queue mapping for pci device.
 CONFIG_BLK_MQ_VIRTIO
 	[arch] all
 	[plat] all
@@ -1110,10 +1132,10 @@ CONFIG_BLOCK
 CONFIG_BLOCK_COMPAT
 	[arch] arm64
 	[plat] roc1,sharkl5
-	[field] make
-	[subsys] block
-	[must] busybox_console
-	[function] block_dev support compat_ioctl func.
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_BOOTPARAM_HUNG_TASK_PANIC_VALUE
 	[arch] all
 	[plat] all
@@ -2578,6 +2600,13 @@ CONFIG_DEVFREQ_SPRD_AUTO_DFS
 	[must] none
 	[function] This function is used to enable ddr auto dfs function
 		   on DDRC v1 and and later version
+CONFIG_DEVPORT
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] char
+	[must] user
+	[function] Suppot /dev/port character device.Depend on ISA and PCI.
 CONFIG_DEVTMPFS
 	[arch] all
 	[plat] all
@@ -3597,6 +3626,20 @@ CONFIG_GENERIC_IRQ_SHOW_LEVEL
 	[subsys] core
 	[must] console
 	[function] Print level/edge extra information.
+CONFIG_GENERIC_MSI_IRQ
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] msi
+	[must] user
+	[function] Generic MSI interrupt support.
+CONFIG_GENERIC_MSI_IRQ_DOMAIN
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] msi
+	[must] user
+	[function] Generic MSI interrupt domain support.
 CONFIG_GENERIC_NET_UTILS
 	[arch] all
 	[plat] all
@@ -3794,8 +3837,8 @@ CONFIG_HAS_IOMEM
 	[must] Provide a facility for active usages of device memory to block pmem device unbind.
 	[function]
 CONFIG_HAS_IOPORT_MAP
-	[arch] arm
-	[plat] sharkl5_32
+	[arch] all
+	[plat] roc1,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -7637,7 +7680,7 @@ CONFIG_NO_HZ_IDLE
 	[function] Idle dynticks system (tickless idle).
 CONFIG_NO_IOPORT_MAP
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] sharkl5
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -7670,6 +7713,13 @@ CONFIG_OF_ADDRESS
 	[subsys] of
 	[must] console
 	[function] Support OF set address.
+CONFIG_OF_ADDRESS_PCI
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] make,code
+	[function] PCI bus specific translator.
 CONFIG_OF_EARLY_FLATTREE
 	[arch] all
 	[plat] all
@@ -7712,6 +7762,20 @@ CONFIG_OF_NET
 	[subsys] of
 	[must] console
 	[function] Support OpenFirmware net.
+CONFIG_OF_PCI
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] OpenFirmware pci bus accessors.
+CONFIG_OF_PCI_IRQ
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] OpenFirmware PCI IRQ routing helpers.
 CONFIG_OF_RESERVED_MEM
 	[arch] all
 	[plat] all
@@ -7824,6 +7888,113 @@ CONFIG_PARTITION_PERCPU
 	[subsys]
 	[must]
 	[function]
+CONFIG_PCI
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Enable support for PCI bus system.
+CONFIG_PCIEPORTBUS
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Enable PCI Express Port Bus support.
+CONFIG_PCIE_DW
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Enable Synopsys DesignWare PCIe host controller driver.
+CONFIG_PCIE_DW_HOST
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Enable Synopsys DesignWare PCIe host controller driver.
+CONFIG_PCIE_PME
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] PCI Express Native PME support.
+CONFIG_PCIE_SPRD
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Support Spreadtrum PCIe controller driver(RC and EP).
+CONFIG_PCIE_SPRD_HOST
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Support Spreadtrum PCIe host controller driver(only for RC).
+CONFIG_PCI_BUS_ADDR_T_64BIT
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Support 64 bit PCI address.
+CONFIG_PCI_DEBUG
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] PCI core can produce a bunch of debug messages to the
+		   system log.
+CONFIG_PCI_DOMAINS
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Support PCI domain.
+CONFIG_PCI_DOMAINS_GENERIC
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Generic implementation for PCI domain support.
+CONFIG_PCI_MSI
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] Allow device driver to enable MSI(Message Signaled Interrupts).
+	[function]
+CONFIG_PCI_MSI_IRQ_DOMAIN
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Support MSI IRQ domain.
+CONFIG_PCI_QUIRKS
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Enable workarounds for various PCI chipset bugs/quirks.
+CONFIG_PCI_SYSCALL
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] For architectures where we want to allow direct access to
+		   the PCI config stuff.
 CONFIG_PELT_UTIL_HALFLIFE_32
 	[arch] all
 	[plat] all
