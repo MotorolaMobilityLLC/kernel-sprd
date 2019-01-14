@@ -3822,6 +3822,13 @@ CONFIG_HARDIRQS_SW_RESEND
 	[subsys] interrupt
 	[must] console
 	[function] Support hardware irqs resend by software.
+CONFIG_HARDLOCKUP_DETECTOR_OTHER_CPU
+	[arch] all
+	[plat] all
+	[field]
+	[subsys] watchdog
+	[must]
+	[function] check the hrtimer irqs of the next cpu
 CONFIG_HAS_DMA
 	[arch] all
 	[plat] all
