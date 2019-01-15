@@ -1151,8 +1151,9 @@ int mdbg_dump_mem(void)
 
 	if (DUMP_WIFI_AON_MAC_ADDR)
 		count = mdbg_dump_data(DUMP_WIFI_AON_MAC_ADDR,
-						"start_dump_wifi_aon_reg",
-		DUMP_WIFI_AON_MAC_ADDR_SIZE, strlen("start_dump_wifi_aon_reg"));
+				       "start_dump_wifi_aon_reg",
+					WIFI_AON_MAC_SIZE,
+					strlen("start_dump_wifi_aon_reg"));
 
 
 	if (DUMP_WIFI_RTN_PD_MAC_ADDR)
@@ -1164,7 +1165,7 @@ int mdbg_dump_mem(void)
 	if (DUMP_WIFI_352K_RAM_ADDR) {
 		count = mdbg_dump_data(DUMP_WIFI_352K_RAM_ADDR,
 				       "start_dump_wifi_352K_RAM_reg",
-				       DUMP_WIFI_352K_RAM_ADDR_SIZE,
+				       WIFI_RAM_SIZE,
 				       strlen("start_dump_wifi_352K_RAM_reg"));
 		WCN_INFO("mdbg dump wifi %ld ok!\n", count);
 	}
