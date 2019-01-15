@@ -45,6 +45,12 @@
 	};
 };
 
+&reserved_memory {
+	fd_reserved: fd-mem@fbdc0000 {
+		reg = <0x0 0xfbdc0000 0x0 0x01e00000>;
+	};
+};
+
 &i2c3 {
 	status = "okay";
 

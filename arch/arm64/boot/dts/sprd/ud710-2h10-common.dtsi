@@ -203,10 +203,6 @@
 			reg = <0x0 0x9f000000 0x0 0x00040000>;
 		};
 
-		fd_reserved: fd-mem@fbdc0000 {
-			reg = <0x0 0xfbdc0000 0x0 0x01e00000>;
-		};
-
 		fb_reserved: framebuffer-mem@fdbc0000 {
 			reg = <0x0 0xfdbc0000 0x0 0x01b00000>;
 		};
