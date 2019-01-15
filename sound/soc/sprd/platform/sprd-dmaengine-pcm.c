@@ -111,6 +111,7 @@ struct sprd_runtime_data {
 	int burst_len;
 	int hw_chan;
 	int dma_pos_pre[2];
+	int dma_pos_wrapped[2];
 	int interleaved;
 	int cb_called;
 #ifdef CONFIG_SND_VERBOSE_PROCFS
@@ -1228,9 +1229,8 @@ static snd_pcm_uframes_t sprd_pcm_pointer(struct snd_pcm_substream *substream)
 	struct sprd_runtime_data *rtd = runtime->private_data;
 	snd_pcm_uframes_t x;
 	int now_pointer;
-	int bytes_of_pointer = 0;
+	int bytes_of_pointer = -1;
 	int shift = 1;
-	int sel_max = 0;
 	enum AUDIO_MEM_TYPE_E tranf = rtd->transform_type;
 	struct audio_pm_dma *pm_dma;
 
@@ -1271,14 +1271,24 @@ static snd_pcm_uframes_t sprd_pcm_pointer(struct snd_pcm_substream *substream)
 		if (debug_pointer_log)
 			pr_info("now_pointer 22:%zx,runtime->dma_addr:%zx\n",
 				(size_t)now_pointer, (size_t)runtime->dma_addr);
-		if (!bytes_of_pointer)
+		if (bytes_of_pointer == -1) {
 			bytes_of_pointer = now_pointer;
-		else {
-			sel_max = (bytes_of_pointer < rtd->dma_pos_pre[0]);
-			sel_max ^= (now_pointer < rtd->dma_pos_pre[1]);
+		} else {
+			if (!rtd->dma_pos_wrapped[0] &&
+				bytes_of_pointer < rtd->dma_pos_pre[0])
+				rtd->dma_pos_wrapped[0] = 1;
+			if (!rtd->dma_pos_wrapped[1] && now_pointer < rtd->dma_pos_pre[1])
+				rtd->dma_pos_wrapped[1] = 1;
+
+			if (rtd->dma_pos_wrapped[0] &&
+				rtd->dma_pos_wrapped[1]) {
+				rtd->dma_pos_wrapped[0] = 0;
+				rtd->dma_pos_wrapped[1] = 0;
+			}
+
 			rtd->dma_pos_pre[0] = bytes_of_pointer;
 			rtd->dma_pos_pre[1] = now_pointer;
-			if (sel_max)
+			if (rtd->dma_pos_wrapped[0] != rtd->dma_pos_wrapped[1])
 				bytes_of_pointer = max(
 					bytes_of_pointer, now_pointer) << shift;
 			else

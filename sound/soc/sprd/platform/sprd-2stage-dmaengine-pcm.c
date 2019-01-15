@@ -124,6 +124,7 @@ struct sprd_runtime_data {
 	int burst_len;
 	int hw_chan;
 	int dma_pos_pre[2];
+	int dma_pos_wrapped[2];
 	int interleaved;
 	int cb_called;
 #ifdef CONFIG_SND_VERBOSE_PROCFS
@@ -2932,9 +2933,8 @@ sprd_pcm_pointer_1stage(struct snd_pcm_substream *substream)
 	struct sprd_runtime_data *rtd = runtime->private_data;
 	snd_pcm_uframes_t x = 0;
 	int now_pointer;
-	int bytes_of_pointer = 0;
+	int bytes_of_pointer = -1;
 	int shift = 1;
-	int sel_max = 0;
 	struct snd_soc_pcm_runtime *srtd = substream->private_data;
 
 	if (sprd_is_dfm(srtd->cpu_dai) || sprd_is_vaudio(srtd->cpu_dai)) {
@@ -2955,14 +2955,24 @@ sprd_pcm_pointer_1stage(struct snd_pcm_substream *substream)
 		now_pointer = sprd_pcm_dma_get_addr(rtd->dma_chn[1],
 						    rtd->cookie[1], substream) -
 		    runtime->dma_addr - rtd->dma_addr_offset;
-		if (!bytes_of_pointer) {
+		if (bytes_of_pointer == -1) {
 			bytes_of_pointer = now_pointer;
 		} else {
-			sel_max = (bytes_of_pointer < rtd->dma_pos_pre[0]);
-			sel_max ^= (now_pointer < rtd->dma_pos_pre[1]);
+			if (!rtd->dma_pos_wrapped[0] &&
+				bytes_of_pointer < rtd->dma_pos_pre[0])
+				rtd->dma_pos_wrapped[0] = 1;
+			if (!rtd->dma_pos_wrapped[1] && now_pointer < rtd->dma_pos_pre[1])
+				rtd->dma_pos_wrapped[1] = 1;
+
+			if (rtd->dma_pos_wrapped[0] &&
+				rtd->dma_pos_wrapped[1]) {
+				rtd->dma_pos_wrapped[0] = 0;
+				rtd->dma_pos_wrapped[1] = 0;
+			}
+
 			rtd->dma_pos_pre[0] = bytes_of_pointer;
 			rtd->dma_pos_pre[1] = now_pointer;
-			if (sel_max) {
+			if (rtd->dma_pos_wrapped[0] != rtd->dma_pos_wrapped[1]) {
 				bytes_of_pointer =
 				    max(bytes_of_pointer, now_pointer) << shift;
 			} else {
