@@ -211,6 +211,8 @@ struct sprd_codec_priv {
 	u16 dac_switch;
 	u16 adc_switch;
 	u32 aud_pabst_vcal;
+	u32 neg_cp_efuse;
+	u32 fgu_4p2_efuse;
 };
 
 
@@ -1621,6 +1623,7 @@ static int cp_event(struct snd_soc_dapm_widget *w,
 				struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 	u32 neg_cp = 0;
 	int ret = 0;
 
@@ -1632,12 +1635,10 @@ static int cp_event(struct snd_soc_dapm_widget *w,
 			CP_POS_SOFT_EN, CP_POS_SOFT_EN);
 
 		/* CP negative power on */
-		/* neg_cp = sprd_pmic_efuse_bits_read(xxxx, 8);yintang marked */
-		/* yintang: temp value */
-		neg_cp = 0xE1;
+		neg_cp = sprd_codec->neg_cp_efuse >> 8;
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL14),
 			CP_NEG_HV(0xFFFF), CP_NEG_HV(neg_cp));
-		neg_cp = (neg_cp * 1.15) / 1.65;
+		neg_cp = (neg_cp * 115) / 165;
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL14),
 			CP_NEG_LV(0xFFFF), CP_NEG_LV(neg_cp));
 
@@ -3536,6 +3537,16 @@ static int sprd_codec_probe(struct platform_device *pdev)
 	cp_short_check(sprd_codec);
 	spk_pa_short_check(sprd_codec);
 	load_ocp_pfw_cfg(sprd_codec);
+
+	ret = sprd_codec_read_efuse(pdev, "neg_cp_efuse",
+					&sprd_codec->neg_cp_efuse);
+	if (ret)
+		sprd_codec->neg_cp_efuse = 0xe1;
+	ret = sprd_codec_read_efuse(pdev, "fgu_4p2_efuse",
+					&sprd_codec->fgu_4p2_efuse);
+	if (ret)
+		sprd_codec->fgu_4p2_efuse = 0;
+
 	return 0;
 }
 
