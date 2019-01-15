@@ -44,6 +44,9 @@ static const struct of_device_id sprd_cpudvfs_of_match[] = {
 	{
 		.compatible = "sprd,sharkl5-cpudvfs",
 	},
+	{
+		.compatible = "sprd,roc1-cpudvfs",
+	},
 };
 MODULE_DEVICE_TABLE(of, sprd_cpudvfs_of_match);
 
@@ -65,6 +68,7 @@ static int cpudvfs_i2c_probe(struct i2c_client *client,
 
 static const struct of_device_id cpudvfs_i2c_of_match[] = {
 	{.compatible = "sprd,cpudvfs-regulator-sharkl5",},
+	{.compatible = "sprd,cpudvfs-regulator-roc1",},
 	{},
 };
 MODULE_DEVICE_TABLE(of, cpudvfs_i2c_of_match);
