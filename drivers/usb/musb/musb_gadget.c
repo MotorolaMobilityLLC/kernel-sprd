@@ -1227,7 +1227,16 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 	request->epnum = musb_ep->current_epnum;
 	request->tx = musb_ep->is_in;
 
-	map_dma_buffer(request, musb, musb_ep);
+	if (request->tx) {
+		status = usb_gadget_map_request_by_dev(musb->g.dev.parent,
+				req, (int)(request->tx));
+		if (status) {
+			musb_dbg(musb, "failed to map request\n");
+			return status;
+		}
+	} else {
+		map_dma_buffer(request, musb, musb_ep);
+	}
 
 	spin_lock_irqsave(&musb->lock, lockflags);
 
@@ -1781,6 +1790,7 @@ int musb_gadget_setup(struct musb *musb)
 	musb->g.ops = &musb_gadget_operations;
 	musb->g.max_speed = USB_SPEED_HIGH;
 	musb->g.speed = USB_SPEED_UNKNOWN;
+	musb->g.sg_supported = true;
 
 	MUSB_DEV_MODE(musb);
 	musb->xceiv->otg->state = OTG_STATE_B_IDLE;
