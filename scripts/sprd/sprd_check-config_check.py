@@ -327,7 +327,11 @@ def configs_check():
     for key_diffconfig in l_diffconfig:
         if key_diffconfig in d_sprdconfig:
             continue
-        d_sprdconfig[key_diffconfig]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
+        d_sprdconfig[key_diffconfig]=d_diffconfig[key_diffconfig]
+
+    global l_sprdconfig
+    l_sprdconfig=list(d_sprdconfig)
+    l_sprdconfig.sort()
 
 
     #print allconfigs and status defined in Documentation/sprd-configs.txt
@@ -599,20 +603,16 @@ def aiaiai_check():
             break
 
         if d_sprdconfig[lines]['plat'] != 'all':
-            all_plat_num = 0
             unexisted_plat_num = 0
             for key in d_defconfig_path[kernel_version]:
-                if d_defconfig_path[kernel_version][key]['arch'] == d_del_config[lines]['arch']:
-                    all_plat_num = all_plat_num + 1
-
-                    if key not in d_sprdconfig[lines]['plat'].split(","):
-                        unexisted_plat_num = unexisted_plat_num + 1
-                        continue
+                if key not in d_sprdconfig[lines]['plat'].split(","):
+                    unexisted_plat_num = unexisted_plat_num + 1
+                    continue
 
             if d_del_config[lines]['plat'] in d_sprdconfig[lines]['plat'].split(","):
                 unexisted_plat_num = unexisted_plat_num + 1
 
-            if unexisted_plat_num == all_plat_num:
+            if unexisted_plat_num == len(all_plat):
                 print("ERROR: del: Need del " + lines + " from Documentation/sprd-configs.txt. Should delete: [arch] "\
                         + d_del_config[lines]['arch'] + "\t Current status: [arch] " + d_sprdconfig[lines]['arch'])
 
@@ -648,7 +648,6 @@ def update_sprd_configs():
                 if d_defconfig_path[kernel_version][project]['arch'] not in tmp_arch.split(','):
                     tmp_arch = tmp_arch + d_defconfig_path[kernel_version][project]['arch'] + ','
 
-        #TODO Doesn't check diffconfig
         if key in d_diffconfig:
             if d_diffconfig[key]['arch'] not in tmp_arch:
                 tmp_arch = tmp_arch + d_diffconfig[key]['arch'] + ","
