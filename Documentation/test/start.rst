@@ -19,7 +19,7 @@ The wrapper can be run with:
 
 .. code-block:: bash
 
-	 ./tools/testing/kunit/kunit.py
+	 ./tools/testing/kunit/kunit.py run
 
 Creating a kunitconfig
 ======================
