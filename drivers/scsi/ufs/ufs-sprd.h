@@ -14,8 +14,19 @@
 #ifndef _UFS_SPRD_H_
 #define _UFS_SPRD_H_
 
+struct syscon_ufs {
+	struct regmap *regmap;
+	u32 reg;
+	u32 mask;
+};
+
 struct ufs_sprd_host {
 	struct ufs_hba *hba;
+	void __iomem *ufsutp_reg;
+	void __iomem *unipro_reg;
+	struct syscon_ufs aon_apb_ufs_en;
+	struct syscon_ufs ap_apb_ufs_en;
+	struct syscon_ufs ap_apb_ufs_rst;
 };
 
 #endif/* _UFS_SPRD_H_ */

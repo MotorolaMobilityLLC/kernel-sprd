@@ -11,21 +11,108 @@
  * GNU General Public License for more details.
  */
 
-#include <linux/time.h>
+#include <linux/delay.h>
+#include <linux/mfd/syscon.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
+#include <linux/regmap.h>
+#include <linux/time.h>
 
 #include "ufshcd.h"
 #include "ufshcd-pltfrm.h"
-#include "unipro.h"
-#include "ufs-sprd.h"
 #include "ufshci.h"
+#include "ufs-sprd.h"
 #include "ufs_quirks.h"
+#include "unipro.h"
+
+static int ufs_sprd_get_syscon_reg(struct device_node *np,
+	struct syscon_ufs *reg, const char *name)
+{
+	struct regmap *regmap;
+	u32 syscon_args[2];
+	int ret;
+
+	regmap = syscon_regmap_lookup_by_name(np, name);
+	if (IS_ERR(regmap)) {
+		pr_err("read ufs syscon %s regmap fail\n", name);
+		reg->regmap = NULL;
+		reg->reg = 0x0;
+		reg->mask = 0x0;
+		return -EINVAL;
+	}
+
+	ret = syscon_get_args_by_name(np, name, 2, syscon_args);
+	if (ret < 0)
+		return ret;
+	else if (ret != 2) {
+		pr_err("read ufs syscon %s fail,ret = %d\n", name, ret);
+		return -EINVAL;
+	}
+	reg->regmap = regmap;
+	reg->reg = syscon_args[0];
+	reg->mask = syscon_args[1];
+
+	return 0;
+}
+
+void ufs_sprd_reset(struct ufs_sprd_host *host)
+{
+	int val = 0;
+
+	/* TODO: Temporary codes. Ufs reset will be simple in next IP version */
+	val = readl(host->unipro_reg + 0x3c);
+	writel(0x35000000 | val, host->unipro_reg + 0x3c);
+	msleep(100);
+	writel((~0x35000000) & val, host->unipro_reg + 0x3c);
+
+	val = readl(host->unipro_reg + 0x40);
+	writel(1 | val, host->unipro_reg + 0x40);
+	msleep(100);
+	writel((~1) & val, host->unipro_reg + 0x40);
+
+	val = readl(host->unipro_reg + 0x84);
+	writel(2 | val, host->unipro_reg + 0x84);
+	msleep(100);
+	writel((~2) & val, host->unipro_reg + 0x84);
+
+	val = readl(host->unipro_reg + 0xc0);
+	writel(0x10 | val, host->unipro_reg + 0xc0);
+	msleep(100);
+	writel((~0x10) & val, host->unipro_reg + 0xc0);
+
+	val = readl(host->unipro_reg + 0xd0);
+	writel(4 | val, host->unipro_reg + 0xd0);
+	msleep(100);
+	writel((~4) & val, host->unipro_reg + 0xd0);
+
+	val = readl(host->ufsutp_reg + 0x100);
+	writel(3 | val, host->ufsutp_reg + 0x100);
+	msleep(100);
+	writel((~3) & val, host->ufsutp_reg + 0x100);
+
+	val = readl(host->hba->mmio_base + 0xb0);
+	writel(0x10001000 | val, host->hba->mmio_base + 0xb0);
+	msleep(100);
+	writel((~0x10001000) & val, host->hba->mmio_base + 0xb0);
+
+	regmap_update_bits(host->ap_apb_ufs_rst.regmap,
+			   host->ap_apb_ufs_rst.reg,
+			   host->ap_apb_ufs_rst.mask,
+			   host->ap_apb_ufs_rst.mask);
+	msleep(100);
+	regmap_update_bits(host->ap_apb_ufs_rst.regmap,
+			   host->ap_apb_ufs_rst.reg,
+			   host->ap_apb_ufs_rst.mask,
+			   0);
+}
 
 static int ufs_sprd_init(struct ufs_hba *hba)
 {
 	struct device *dev = hba->dev;
+	struct platform_device *pdev = to_platform_device(dev);
 	struct ufs_sprd_host *host;
+	struct resource *res;
+	int ret = 0;
 
 	host = devm_kzalloc(dev, sizeof(*host), GFP_KERNEL);
 	if (!host)
@@ -33,6 +120,74 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	host->hba = hba;
 	ufshcd_set_variant(hba, host);
+
+	/* map ufsutp_reg */
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ufsutp_reg");
+	if (!res) {
+		dev_err(dev, "Missing ufs utp register resource\n");
+		return -ENODEV;
+	}
+	host->ufsutp_reg = devm_ioremap_nocache(dev, res->start,
+						resource_size(res));
+	if (IS_ERR(host->ufsutp_reg)) {
+		dev_err(dev, "%s: could not map ufsutp_reg, err %ld\n",
+			__func__, PTR_ERR(host->ufsutp_reg));
+		host->ufsutp_reg = NULL;
+		return -ENODEV;
+	}
+	pr_info("ufsutp_reg vit=0x%llx, phy=0x%llx, len=0x%llx\n",
+		(u64) res->start,
+		(u64) host->ufsutp_reg,
+		(u64) resource_size(res));
+
+	/* map unipro_reg */
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "unipro_reg");
+	if (!res) {
+		dev_err(dev, "Missing unipro register resource\n");
+		return -ENODEV;
+	}
+	host->unipro_reg = devm_ioremap_nocache(dev, res->start,
+						resource_size(res));
+	if (IS_ERR(host->unipro_reg)) {
+		dev_err(dev, "%s: could not map unipro_reg, err %ld\n",
+			__func__, PTR_ERR(host->unipro_reg));
+		host->unipro_reg = NULL;
+		return -ENODEV;
+	}
+	pr_info("unipro_reg vit=0x%llx, phy=0x%llx, len=0x%llx\n",
+		(u64) res->start,
+		(u64) host->unipro_reg,
+		(u64) resource_size(res));
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->aon_apb_ufs_en,
+				      "aon_apb_ufs_en");
+	if (ret < 0)
+		return -ENODEV;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->ap_apb_ufs_en,
+				      "ap_apb_ufs_en");
+	if (ret < 0)
+		return -ENODEV;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->ap_apb_ufs_rst,
+				      "ap_apb_ufs_rst");
+	if (ret < 0)
+		return -ENODEV;
+
+	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION;
+	hba->quirks |= UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
+
+	regmap_update_bits(host->ap_apb_ufs_en.regmap,
+			   host->ap_apb_ufs_en.reg,
+			   host->ap_apb_ufs_en.mask,
+			   host->ap_apb_ufs_en.mask);
+
+	regmap_update_bits(host->aon_apb_ufs_en.regmap,
+			   host->aon_apb_ufs_en.reg,
+			   host->aon_apb_ufs_en.mask,
+			   host->aon_apb_ufs_en.mask);
+
+	ufs_sprd_reset(host);
 
 	return 0;
 }
@@ -76,6 +231,18 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 
 	switch (status) {
 	case PRE_CHANGE:
+		/*
+		 * Some UFS devices (and may be host) have issues if LCC is
+		 * enabled. So we are setting PA_Local_TX_LCC_Enable to 0
+		 * before link startup which will make sure that both host
+		 * and device TX LCC are disabled once link startup is
+		 * completed.
+		 */
+		if (ufshcd_get_local_unipro_ver(hba) != UFS_UNIPRO_VER_1_41)
+			err = ufshcd_dme_set(hba,
+					UIC_ARG_MIB(PA_LOCAL_TX_LCC_ENABLE),
+					0);
+
 		break;
 	case POST_CHANGE:
 		break;
@@ -98,6 +265,14 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		err = -EINVAL;
 		goto out;
 	}
+
+	dev_req_params->gear_rx = UFS_PWM_G1;
+	dev_req_params->gear_tx = UFS_PWM_G1;
+	dev_req_params->lane_rx = 1;
+	dev_req_params->lane_tx = 1;
+	dev_req_params->pwr_rx = SLOWAUTO_MODE;
+	dev_req_params->pwr_tx = SLOWAUTO_MODE;
+	dev_req_params->hs_rate = 0;
 
 	switch (status) {
 	case PRE_CHANGE:
