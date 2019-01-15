@@ -286,8 +286,8 @@ int sipa_set_enabled(struct sipa_plat_drv_cfg *cfg)
 {
 	int ret = 0;
 
-	if (cfg->enable_regmap) {
-		ret = regmap_update_bits(cfg->enable_regmap,
+	if (cfg->sys_regmap) {
+		ret = regmap_update_bits(cfg->sys_regmap,
 						   cfg->enable_reg,
 						   cfg->enable_mask,
 						   cfg->enable_mask);

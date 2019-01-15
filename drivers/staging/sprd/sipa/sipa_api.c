@@ -19,6 +19,7 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/of_device.h>
 #include <linux/mfd/syscon.h>
 #include <linux/io.h>
 #include <linux/cdev.h>
@@ -26,6 +27,7 @@
 #include "sipa_api.h"
 #include "sipa_priv.h"
 #include "sipa_hal.h"
+#include "sipa_debug.h"
 
 #ifdef CONFIG_SIPA_TEST
 #include "test/sipa_test.h"
@@ -329,7 +331,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 };
 
 struct sipa_control s_sipa_ctrl;
-static struct sipa_plat_drv_cfg s_sipa_cfg;
+struct sipa_plat_drv_cfg s_sipa_cfg;
 
 static const struct file_operations sipa_local_drv_fops = {
 	.owner = THIS_MODULE,
@@ -459,7 +461,15 @@ static int sipa_parse_dts_configuration(
 	u32 fifo_info[2];
 	u32 reg_info[2];
 	struct resource *resource;
+	const struct sipa_register_data *pdata;
 
+	/* get IPA  global  register  offset */
+	pdata = of_device_get_match_data(&pdev->dev);
+	if (!pdata) {
+		dev_err(&pdev->dev, "No matching driver data found\n");
+		return -EINVAL;
+	}
+	cfg->debugfs_data = pdata;
 	/* get IPA global register base  address */
 	resource = platform_get_resource_byname(pdev,
 											IORESOURCE_MEM,
@@ -504,11 +514,10 @@ static int sipa_parse_dts_configuration(
 				 cfg->is_bypass);
 
 	/* get enable register informations */
-	cfg->enable_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
-													  "enable");
-	if (IS_ERR(cfg->enable_regmap)) {
-		pr_err("%s :get enable regmap fail!\n", __func__);
-	}
+	cfg->sys_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
+						       "enable");
+	if (IS_ERR(cfg->sys_regmap))
+		pr_err("%s :get sys regmap fail!\n", __func__);
 
 	ret = syscon_get_args_by_name(pdev->dev.of_node,
 								  "enable", 2,
@@ -864,12 +873,25 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		pr_err("sipa: sipa_init failed %d\n", ret);
 		return ret;
 	}
-
+	sipa_init_debugfs(cfg);
 	return ret;
 }
 
+/* Since different sipa of orca/roc1 series can have different register
+ * offset address and register , we should save offset and names
+ * in the device data structure.
+ */
+static struct sipa_register_data roc1_defs_data = {
+	.ahb_reg = sipa_roc1_ahb_regmap,
+};
+
+static struct sipa_register_data orca_defs_data = {
+	.ahb_reg = sipa_orca_ahb_regmap,
+};
+
 static struct of_device_id sipa_plat_drv_match[] = {
-	{ .compatible = "sprd,sipa", },
+	{ .compatible = "sprd,roc1-sipa", .data = &roc1_defs_data },
+	{ .compatible = "sprd,orca-sipa", .data = &orca_defs_data },
 	{ .compatible = "sprd,remote-sipa", },
 	{}
 };

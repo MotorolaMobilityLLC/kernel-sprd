@@ -88,7 +88,7 @@ struct sipa_plat_drv_cfg {
 	struct device *dev;
 	struct cdev cdev;
 
-	struct regmap *enable_regmap;
+	struct regmap *sys_regmap;
 	u32 enable_reg;
 	u32 enable_mask;
 
@@ -115,7 +115,10 @@ struct sipa_plat_drv_cfg {
 	resource_size_t glb_size;
 	phys_addr_t iram_phy;
 	resource_size_t iram_size;
-
+#ifdef CONFIG_DEBUG_FS
+	struct dentry *debugfs_root;
+	const void *debugfs_data;
+#endif
 	struct sipa_common_fifo_cfg common_fifo_cfg[SIPA_FIFO_MAX];
 };
 
