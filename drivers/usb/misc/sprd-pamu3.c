@@ -215,22 +215,22 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 	writel_relaxed(value, pamu3->base + PAM_U3_ULFIFOFREE_ADDRH);
 
 	/* IPA common FIFOs registers */
-	value = pamu3->sipa_info.dl_fifo.tx_fifo_sts_addr &
+	value = pamu3->sipa_info.dl_fifo.fifo_sts_addr &
 			PAMU3_MASK_LOWADDR32;
 	writel_relaxed(value, pamu3->base + PAM_U3_DLGETIPAFIFO_ADDRL);
 	writel_relaxed(0, pamu3->base + PAM_U3_DLGETIPAFIFO_ADDRH);
 
-	value = pamu3->sipa_info.dl_fifo.rx_fifo_sts_addr &
+	value = pamu3->sipa_info.dl_fifo.fifo_sts_addr &
 			PAMU3_MASK_LOWADDR32;
 	writel_relaxed(value, pamu3->base + PAM_U3_DLPUTIPAFIFO_ADDRL);
 	writel_relaxed(0, pamu3->base + PAM_U3_DLPUTIPAFIFO_ADDRH);
 
-	value = pamu3->sipa_info.ul_fifo.tx_fifo_sts_addr &
+	value = pamu3->sipa_info.ul_fifo.fifo_sts_addr &
 			PAMU3_MASK_LOWADDR32;
 	writel_relaxed(value, pamu3->base + PAM_U3_ULGETIPAFIFO_ADDRL);
 	writel_relaxed(0, pamu3->base + PAM_U3_ULGETIPAFIFO_ADDRH);
 
-	value = pamu3->sipa_info.ul_fifo.rx_fifo_sts_addr &
+	value = pamu3->sipa_info.ul_fifo.fifo_sts_addr &
 			PAMU3_MASK_LOWADDR32;
 	writel_relaxed(value, pamu3->base + PAM_U3_ULPUTIPAFIFO_ADDRL);
 	writel_relaxed(0, pamu3->base + PAM_U3_ULPUTIPAFIFO_ADDRH);
