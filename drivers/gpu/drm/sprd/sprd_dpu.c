@@ -16,6 +16,7 @@
 #include <drm/drm_plane_helper.h>
 #include <drm/drm_gem_framebuffer_helper.h>
 #include <linux/component.h>
+#include <linux/dma-buf.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
@@ -62,6 +63,102 @@ static inline struct
 sprd_plane_state *to_sprd_plane_state(const struct drm_plane_state *state)
 {
 	return container_of(state, struct sprd_plane_state, state);
+}
+
+static int sprd_dpu_iommu_map(struct device *dev,
+				struct sprd_gem_obj *sprd_gem)
+{
+	struct dma_buf *dma_buf;
+	struct sprd_iommu_map_data iommu_data = {};
+
+	if (sprd_gem->dma_addr)
+		return 0;
+
+	dma_buf = sprd_gem->base.import_attach->dmabuf;
+	iommu_data.buf = dma_buf->priv;
+	iommu_data.iova_size = dma_buf->size;
+	iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
+
+	if (sprd_iommu_map(dev, &iommu_data)) {
+		DRM_ERROR("failed to map iommu address\n");
+		return -EINVAL;
+	}
+
+	sprd_gem->dma_addr = iommu_data.iova_addr;
+
+	return 0;
+}
+
+static void sprd_dpu_iommu_unmap(struct device *dev,
+				struct sprd_gem_obj *sprd_gem)
+{
+	if (sprd_gem->sgtb && sprd_gem->sgtb->nents > 1) {
+		struct sprd_iommu_unmap_data iommu_data = {};
+
+		iommu_data.iova_size = sprd_gem->base.size;
+		iommu_data.iova_addr = sprd_gem->dma_addr;
+		iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
+
+		sprd_iommu_unmap(dev, &iommu_data);
+	}
+}
+
+static int sprd_plane_prepare_fb(struct drm_plane *plane,
+				struct drm_plane_state *new_state)
+{
+	struct drm_plane_state *curr_state = plane->state;
+	struct drm_framebuffer *fb;
+	struct drm_gem_object *obj;
+	struct sprd_gem_obj *sprd_gem;
+	struct sprd_dpu *dpu;
+	int i;
+
+	if ((curr_state->fb == new_state->fb) || !new_state->fb)
+		return 0;
+
+	fb = new_state->fb;
+	dpu = crtc_to_dpu(new_state->crtc);
+
+	if (!dpu->ctx.is_inited) {
+		DRM_WARN("dpu has already powered off\n");
+		return 0;
+	}
+
+	for (i = 0; i < fb->format->num_planes; i++) {
+		obj = drm_gem_fb_get_obj(fb, i);
+		sprd_gem = to_sprd_gem_obj(obj);
+		sprd_dpu_iommu_map(&dpu->dev, sprd_gem);
+	}
+
+	return 0;
+}
+
+static void sprd_plane_cleanup_fb(struct drm_plane *plane,
+				struct drm_plane_state *old_state)
+{
+	struct drm_plane_state *curr_state = plane->state;
+	struct drm_framebuffer *fb;
+	struct drm_gem_object *obj;
+	struct sprd_gem_obj *sprd_gem;
+	struct sprd_dpu *dpu;
+	int i;
+
+	if ((curr_state->fb == old_state->fb) || !old_state->fb)
+		return;
+
+	fb = old_state->fb;
+	dpu = crtc_to_dpu(old_state->crtc);
+
+	if (!dpu->ctx.is_inited) {
+		DRM_WARN("dpu has already powered off\n");
+		return;
+	}
+
+	for (i = 0; i < fb->format->num_planes; i++) {
+		obj = drm_gem_fb_get_obj(fb, i);
+		sprd_gem = to_sprd_gem_obj(obj);
+		sprd_dpu_iommu_unmap(&dpu->dev, sprd_gem);
+	}
 }
 
 static int sprd_plane_atomic_check(struct drm_plane *plane,
@@ -317,6 +414,8 @@ static int sprd_plane_create_properties(struct sprd_plane *p, int index)
 }
 
 static const struct drm_plane_helper_funcs sprd_plane_helper_funcs = {
+	.prepare_fb = sprd_plane_prepare_fb,
+	.cleanup_fb = sprd_plane_cleanup_fb,
 	.atomic_check = sprd_plane_atomic_check,
 	.atomic_update = sprd_plane_atomic_update,
 	.atomic_disable = sprd_plane_atomic_disable,
@@ -407,6 +506,33 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 	sprd_iommu_restore(&dpu->dev);
 }
 
+static void sprd_crtc_wait_last_commit_complete(struct drm_crtc *crtc)
+{
+	struct drm_crtc_commit *commit;
+	int ret, i = 0;
+
+	spin_lock(&crtc->commit_lock);
+	list_for_each_entry(commit, &crtc->commit_list, commit_entry) {
+		i++;
+		/* skip the first entry, that's the current commit */
+		if (i == 2)
+			break;
+	}
+	if (i == 2)
+		drm_crtc_commit_get(commit);
+	spin_unlock(&crtc->commit_lock);
+
+	if (i != 2)
+		return;
+
+	ret = wait_for_completion_interruptible_timeout(&commit->cleanup_done,
+							HZ);
+	if (ret == 0)
+		DRM_WARN("wait last commit completion timed out\n");
+
+	drm_crtc_commit_put(commit);
+}
+
 static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 				    struct drm_crtc_state *old_state)
 {
@@ -414,6 +540,8 @@ static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 	struct drm_device *drm = dpu->crtc.dev;
 
 	DRM_INFO("%s()\n", __func__);
+
+	sprd_crtc_wait_last_commit_complete(crtc);
 
 	sprd_dpu_uninit(dpu);
 

@@ -14,10 +14,6 @@
 #include <linux/dma-buf.h>
 #include <linux/pm_runtime.h>
 
-#if IS_ENABLED(CONFIG_SPRD_IOMMU)
-#include <linux/sprd_iommu.h>
-#endif
-
 #include "sprd_drm.h"
 #include "sprd_gem.h"
 
@@ -54,28 +50,13 @@ void sprd_gem_free_object(struct drm_gem_object *obj)
 {
 	struct sprd_gem_obj *sprd_gem = to_sprd_gem_obj(obj);
 
+	DRM_DEBUG("gem = %p\n", obj);
+
 	if (sprd_gem->vaddr)
 		dma_free_writecombine(obj->dev->dev, obj->size,
 				      sprd_gem->vaddr, sprd_gem->dma_addr);
-	else if (sprd_gem->sgtb) {
-#if IS_ENABLED(CONFIG_SPRD_IOMMU)
-		if (sprd_gem->sgtb->nents > 1) {
-			struct sprd_iommu_unmap_data iommu_data = {};
-			struct sprd_drm *sprd = obj->dev->dev_private;
-
-			if (pm_runtime_suspended(sprd->dpu_dev))
-				DRM_DEBUG("dpu is powered off\n");
-			else {
-				iommu_data.iova_size = obj->size;
-				iommu_data.iova_addr = sprd_gem->dma_addr;
-				iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
-
-				sprd_iommu_unmap(sprd->dpu_dev, &iommu_data);
-			}
-		}
-#endif
+	else if (sprd_gem->sgtb)
 		drm_prime_gem_destroy(obj, sprd_gem->sgtb);
-	}
 
 	drm_gem_object_release(obj);
 
@@ -192,31 +173,10 @@ struct drm_gem_object *sprd_gem_prime_import_sg_table(struct drm_device *drm,
 	if (IS_ERR(sprd_gem))
 		return ERR_CAST(sprd_gem);
 
+	DRM_DEBUG("gem = %p\n", &sprd_gem->base);
+
 	if (sgtb->nents == 1)
 		sprd_gem->dma_addr = sg_dma_address(sgtb->sgl);
-	else {
-#if IS_ENABLED(CONFIG_SPRD_IOMMU)
-		struct sprd_iommu_map_data iommu_data = {};
-		struct sprd_drm *sprd = drm->dev_private;
-		int ret;
-
-		if (pm_runtime_suspended(sprd->dpu_dev))
-			DRM_DEBUG("dpu is powered off\n");
-		else {
-			iommu_data.buf = attach->dmabuf->priv;
-			iommu_data.iova_size = attach->dmabuf->size;
-			iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
-
-			ret = sprd_iommu_map(sprd->dpu_dev, &iommu_data);
-			if (ret) {
-				DRM_ERROR("failed to get iommu address\n");
-				return ERR_PTR(-EINVAL);
-			}
-		}
-
-		sprd_gem->dma_addr = iommu_data.iova_addr;
-#endif
-	}
 
 	sprd_gem->sgtb = sgtb;
 
