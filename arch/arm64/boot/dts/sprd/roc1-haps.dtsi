@@ -502,10 +502,22 @@
 				status = "disabled";
 			};
 
+			iommu_vdsp_edp: iommu_edp@78000000 {
+				compatible = "sprd,iommuexroc1-edp";
+				reg = <0 0x78000000 0 0x401600>,
+					<0 0x20700004 0 0x60>;
+				iova-base = <0x70000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
 			vdsp: vdsp@78000000{
 				compatible = "sprd,roc1-vdsp";
 				reg = <0 0x78000000 0 0x401600>,
 					<0 0x20800000 0 0x100>;
+				iommus = <&iommu_vdsp_edp>;
 				syscons = <&pmu_apb_regs
 					REG_PMU_APB_PD_AP_VDSP_CFG
 					MASK_PMU_APB_PD_AP_VDSP_FORCE_SHUTDOWN>,
@@ -558,6 +570,7 @@
 				interrupts = <GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				sprd,soc = "roc1";
+				sprd,vdsp-memory = <&vdsp_reserved>;
 			  };
 		};
 
