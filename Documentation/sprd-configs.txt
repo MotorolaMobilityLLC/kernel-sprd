@@ -319,8 +319,8 @@ CONFIG_ARCH_OPTIONAL_KERNEL_RWX_DEFAULT
 	[must]
 	[function]
 CONFIG_ARCH_PHYS_ADDR_T_64BIT
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1,sharkl5
 	[field] code
 	[subsys] core
 	[must] console
@@ -767,13 +767,6 @@ CONFIG_ARM_L1_CACHE_SHIFT
 	[must]
 	[function]
 CONFIG_ARM_L1_CACHE_SHIFT_6
-	[arch] arm
-	[plat] sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_ARM_LPAE
 	[arch] arm
 	[plat] sharkl5_32
 	[field]
@@ -3943,8 +3936,8 @@ CONFIG_HAVE_ARCH_TRACEHOOK
 	[must] console
 	[function] Enable kernel support trace hook.
 CONFIG_HAVE_ARCH_TRANSPARENT_HUGEPAGE
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1,sharkl5
 	[field] menu
 	[subsys] mm
 	[must] console
@@ -4130,8 +4123,8 @@ CONFIG_HAVE_GENERIC_DMA_COHERENT
 	[must] busybox_console
 	[function] Dma allocator.
 CONFIG_HAVE_GENERIC_GUP
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1,sharkl5
 	[field]
 	[subsys]
 	[must]
@@ -4292,8 +4285,8 @@ CONFIG_HAVE_PROC_CPU
 	[must]
 	[function]
 CONFIG_HAVE_RCU_TABLE_FREE
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1,sharkl5
 	[field] code
 	[subsys] core
 	[must] console
@@ -8033,8 +8026,8 @@ CONFIG_PHYLIB
 		devices.  This option provides infrastructure for
 		managing PHY devices.
 CONFIG_PHYS_ADDR_T_64BIT
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1,sharkl5
 	[field] menu
 	[subsys] mm
 	[must] busybox_console
@@ -10213,8 +10206,8 @@ CONFIG_SYS_SUPPORTS_APM_EMULATION
 	[must]
 	[function]
 CONFIG_SYS_SUPPORTS_HUGETLBFS
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1,sharkl5
 	[field] code
 	[subsys] fs
 	[must] android4.4
