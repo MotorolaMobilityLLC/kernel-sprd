@@ -235,6 +235,17 @@
 				};
 			};
 
+			iommu_dispc: iommu@20300000 {
+				compatible = "sprd,iommuvaul5p-dispc";
+				reg = <0x0 0x20300000 0x0 0x800>,
+				      <0x0 0x20300800 0x0 0x80>;
+				iova-base = <0x30000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
 			dsi: dsi@20400000 {
 				compatible = "sprd,dsi-host";
 				reg = <0x0 0x20400000 0x0 0x1000>;
