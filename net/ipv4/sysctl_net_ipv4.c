@@ -16,6 +16,7 @@
 #include <linux/slab.h>
 #include <linux/nsproxy.h>
 #include <linux/swap.h>
+#include <linux/inet.h>
 #include <net/snmp.h>
 #include <net/icmp.h>
 #include <net/ip.h>
@@ -45,7 +46,7 @@ static int tcp_syn_retries_min = 1;
 static int tcp_syn_retries_max = MAX_TCP_SYNCNT;
 static int ip_ping_group_range_min[] = { 0, 0 };
 static int ip_ping_group_range_max[] = { GID_T_MAX, GID_T_MAX };
-
+static char ip_addr_pc[INET_ADDRSTRLEN];
 /* obsolete */
 static int sysctl_tcp_low_latency __read_mostly;
 
@@ -1175,6 +1176,13 @@ static struct ctl_table ipv4_net_table[] = {
 		.maxlen		= sizeof(int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec
+	},
+	{
+		.procname	= "ip_addr_pc",
+		.data		= ip_addr_pc,
+		.maxlen		= INET_ADDRSTRLEN,
+		.mode		= 0644,
+		.proc_handler	= proc_dostring,
 	},
 	{ }
 };
