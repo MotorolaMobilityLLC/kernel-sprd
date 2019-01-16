@@ -76,6 +76,7 @@ int sprd_ion_is_reserved(int fd, struct dma_buf *dmabuf, bool *reserved)
 
 	return 0;
 }
+EXPORT_SYMBOL(sprd_ion_is_reserved);
 
 int sprd_ion_get_sg_table(int fd, struct dma_buf *dmabuf,
 			  struct sg_table **table, size_t *size)
