@@ -1,0 +1,35 @@
+
+config SPRD_CAMERA
+	tristate "Spreadtrum Camera Driver"
+	depends on ARCH_SPRD && ION_SPRD
+	help
+	    This is a camera driver for Spreadtrum SOCs.
+
+source "drivers/misc/sprd_camera/dcam/Kconfig"
+source "drivers/misc/sprd_camera/isp/Kconfig"
+source "drivers/misc/sprd_camera/cpp/Kconfig"
+source "drivers/misc/sprd_camera/sensor/Kconfig"
+source "drivers/misc/sprd_camera/common/Kconfig"
+source "drivers/misc/sprd_camera/flash/Kconfig"
+source "drivers/misc/sprd_camera/cam_sl5_roc1/Kconfig"
+
+config SPRD_CAM_PIP_VIV
+	bool "Spreadtrum Camera double dcam/isp Driver"
+	depends on SPRD_CAMERA
+	help
+	    run two dcam and isp same time
+
+config ISP_CPP_COWORK_SUPPORT
+	bool "Spreadtrum Camera isp cpp cowork support"
+	depends on SPRD_CAMERA
+	help
+	    use CPP and ISP together to support 4x
+
+config SPRD_CAMERA_DCAM_IF_R5P0_ISP_R6P12
+    bool "Spreadtrum Camera DCAM IF R5P0 ISP R6P12"
+    depends on SPRD_CAMERA
+    help
+        This is SPRD_CAMERA_DCAM_IF_R5P0_ISP_R6P12 driver
+	for Spreadtrum SOCs and sharkl3, when you want to use
+	this configuration, please to read spec and driver code,
+        they can help you to use dcam r5p0 isp r6p12 driver

@@ -1,0 +1,48 @@
+
+config SPRD_CAMERA_CSI_11A
+    bool "Spreadtrum Camera Intel DPHY DWC_HOST1.11A"
+    depends on SPRD_CAMERA
+    help
+        This is a CSI conecting intel DPHY driver for Spreadtrum SOCs.
+
+config SPRD_CAMERA_CSI_R1P0
+    bool "Spreadtrum Camera Synopsys DPHY R1P0"
+    depends on SPRD_CAMERA
+    help
+        This is a CSI conecting synopsys DPHY driver for Spreadtrum SOCs.
+
+config SPRD_CAMERA_CSI_RECEIVER_R1P0
+    bool "Spreadtrum Camera Sprd CSI2 RECEIVER R1P0"
+    depends on SPRD_CAMERA
+    help
+        This is a CSI conecting synopsys DPHY driver for Spreadtrum SOCs.
+
+config SPRD_CAMERA_CSI_RECEIVER_R2P0
+    bool "Spreadtrum Camera Sprd CSI2 RECEIVER R2P0"
+    depends on SPRD_CAMERA
+    help
+        This is a CSI conecting synopsys DPHY driver for Spreadtrum SOCs.
+
+config SPRD_CAMERA_CSI_RECEIVER_R2P1
+    bool "Spreadtrum Camera Sprd CSI2 RECEIVER R2P1"
+    depends on SPRD_CAMERA
+    help
+        This is a CSI conecting synopsys DPHY driver for Spreadtrum SOCs.
+
+config SPRD_CAMERA_CSI_R2P0
+    bool "Spreadtrum Camera CSI2 R2P0"
+    depends on SPRD_CAMERA
+    help
+        This is a CSI conecting synopsys DPHY driver for Spreadtrum SOCs.
+
+config SPRD_CAMERA_CSI_R2P0V2
+    bool "Spreadtrum Camera CSI2 R2P0 Version 2.0"
+    depends on SPRD_CAMERA
+    help
+        This is a CSI conecting synopsys DPHY driver for Spreadtrum SOCs.
+
+config SPRD_CAMERA_CSI_DWC_11A
+    bool "Spreadtrum Camera Intel DPHY DWC_HOST1.11A"
+    depends on SPRD_CAMERA
+    help
+        This is a CSI conecting intel DPHY driver for Spreadtrum SOCs.

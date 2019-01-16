@@ -1,0 +1,54 @@
+
+config SPRD_CAMERA_CPP_R1P0
+	bool "Spreadtrum Camera CPP R1P0 Driver"
+	depends on SPRD_CAMERA
+	help
+	    Support for CPP on Spreadtrum SOCs, it is used for image rotation
+	    and scaling when using camera.
+
+config SPRD_CAMERA_CPP_LITE_R1P0
+	bool "Spreadtrum Camera CPP LITE R1P0 Driver"
+	depends on SPRD_CAMERA
+	help
+	    Support for CPP on Spreadtrum SOCs,
+		it is used for image rotation and scaling when using camera.
+		lite r1p0 cpp support four path
+		preview, recording, capture, rotation
+
+config SPRD_CAMERA_CPP_LITE_R2P0
+	bool "Spreadtrum Camera CPP LITE R2P0 Driver"
+	depends on SPRD_CAMERA
+	help
+	    Support for CPP on Spreadtrum SOCs, it is used for image rotation
+	    and scaling when using camera.
+
+config SPRD_CAMERA_CPP_R2P0
+	bool "Spreadtrum Camera iwhale2 CPP VERSION R2P0"
+	depends on SPRD_CAMERA
+	help
+	    Support for CPP on Spreadtrum SOCs, it is used for image rotation
+	    and scaling when using camera.
+
+config SPRD_CAMERA_CPP_LITE_R3P0
+	bool "Spreadtrum Camera CPP LITE R3P0 Driver"
+	depends on SPRD_CAMERA
+	help
+	    Support for CPP on Spreadtrum SOCs, it is used for image rotation
+	    and scaling when using camera.
+
+config SPRD_CAMERA_CPP_LITE_R4P0
+	bool "Spreadtrum Camera CPP LITE R4P0 Driver"
+	depends on SPRD_CAMERA
+	help
+	    Support for CPP on Spreadtrum SOCs,
+	    it is used for image rotation scaling and dma  when using camera.
+	    lite r4p0 cpp support three application scene:
+	    capture thumbnail, video call and 3dnr.
+
+config SPRD_CAMERA_CPP_DCAM_R6P0
+        bool "Spreadtrum Camera pike2 CPP VERSION DCAM_R6P0"
+        depends on SPRD_CAMERA
+        help
+            Support for CPP on Spreadtrum SOCs, it is used for image rotation
+            and scaling when using camera.
+

@@ -1,0 +1,18 @@
+
+config FLASH_SC2721
+	bool "Spreadtrum SC2721 flash Driver"
+	depends on PMIC_SC2721
+	help
+	    new flash driver
+
+config FLASH_RGB_SC2721
+	bool "Spreadtrum Camera flash rgb Driver"
+	depends on PMIC_SC2721
+	help
+	    new rgb flash driver
+
+config FLASH_SC2703
+	bool "Spreadtrum SC2703 flash Driver"
+	depends on MFD_SC2703
+	help
+	    new flash driver
