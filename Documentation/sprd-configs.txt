@@ -72,6 +72,20 @@ CONFIG_ANDROID_BINDER_IPC
 	[must] console
 	[function] vts require. Binder is used in Android for both communication
 			between processes, and remote method invocation.
+CONFIG_ANDROID_LOW_MEMORY_KILLER
+	[arch] arm
+	[plat] sharkl5_32
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINFO
+	[arch] arm
+	[plat] sharkl5_32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_ANDROID_PARANOID_NETWORK
 	[arch] all
 	[plat] all
@@ -960,6 +974,13 @@ CONFIG_BACKLIGHT_PWM
 	[subsys] video
 	[must] home
 	[function] Enable pwm backlight driver.
+CONFIG_BACKLIGHT_SC2703
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_BASE_FULL
 	[arch] all
 	[plat] all
@@ -3323,6 +3344,13 @@ CONFIG_FIX_EARLYCON_MEM
 	[subsys] core
 	[must] console
 	[function] IF MMU, enable kernel support earlycon fixmap.
+CONFIG_FLASH_SC2703
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_FLATMEM
 	[arch] arm
 	[plat] sharkl5_32
@@ -7811,6 +7839,13 @@ CONFIG_OLD_SIGSUSPEND3
 	[subsys] core
 	[must] console
 	[function] Even weirder antique ABI - three-argument sigsuspend(2).
+CONFIG_OOM_NOTIFIER
+	[arch] arm
+	[plat] sharkl5_32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_OUTER_CACHE
 	[arch] arm
 	[plat] sharkl5_32
@@ -8965,6 +9000,13 @@ CONFIG_SBITMAP
 	[subsys]
 	[must]
 	[function]
+CONFIG_SC2342_INTEG
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SC2355
 	[arch] all
 	[plat] all
@@ -9898,7 +9940,7 @@ CONFIG_SPRD_ROC1_USB2_PHY
 	[function]
 CONFIG_SPRD_SENSOR_HUB
 	[arch] all
-	[plat] all
+	[plat] sharkl5,sharkl5_32
 	[field] make
 	[subsys] iio
 	[must] user
@@ -10016,6 +10058,13 @@ CONFIG_SPRD_WATCHDOG
 	[subsys] core
 	[must] user
 	[function] Spreadtrum watchdog driver.
+CONFIG_SPRD_WATCHDOG_SYS
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SRCU
 	[arch] all
 	[plat] all
@@ -10547,6 +10596,34 @@ CONFIG_TRACING_SUPPORT
 	[must] debug
 	[function] Minsize of trace in arch, if enable ftrace, this is necessary.
 CONFIG_TREE_SRCU
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_TRUSTY
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_TRUSTY_LOG
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_TRUSTY_VIRTIO
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_TRUSTY_VIRTIO_IPC
 	[arch] all
 	[plat] all
 	[field]
@@ -11223,6 +11300,20 @@ CONFIG_WCN_BOOT
 	[subsys] wcn
 	[must] user
 	[function] wcn boot up for 2355 chip.
+CONFIG_WCN_PLATFORM
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_WCN_SIPC
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_WCN_SLP
 	[arch] all
 	[plat] all
@@ -11402,6 +11493,13 @@ CONFIG_ZRAM
 	[function] SWAP partition based on RAM is used to access the compressed anon page
 		   to avoid the influence of IO speed restriction on the system,
 		   which is equivalent to increasing the size of available memory.
+CONFIG_ZRAM_LZ4_COMPRESS
+	[arch] arm
+	[plat] sharkl5_32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_ZSMALLOC
 	[arch] all
 	[plat] all
