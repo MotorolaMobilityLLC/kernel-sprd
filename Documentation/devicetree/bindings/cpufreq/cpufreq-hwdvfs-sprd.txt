@@ -222,13 +222,16 @@ Node cpudvfs_dev
 						register whose offset is 0x30.
 
 Optional properties:
-- None
+- dcdc-cpu0-supply: A phandle to the regulator for power domain dcdc-cpu0
+- dcdc-sram-supply: A phandle to the regulator for power domain dcdc-sram
 
 Example 1: Example for topdvfs_controller
 ---------
 topdvfs_controller: topdvfsctrl@322A0000 {
 	compatible = "sprd,sharkl5-topdvfs", "syscon";
 	sprd,syscon-enable = <&aon_apb_regs>;
+	dcdc-cpu0-supply = <&vddcpu>;
+	dcdc-sram-supply = <&vddsram>;
 	module-enable-cfg = <0x4 7>;
 	reg = <0 0x322A0000 0 0x8000>;
 	cpu-dcdc-cells = <&dcdc_cpu0>;

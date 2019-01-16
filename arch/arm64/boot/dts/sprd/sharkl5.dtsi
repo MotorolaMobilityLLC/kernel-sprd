@@ -1343,6 +1343,8 @@
 			cpudvfs_dev: cpudvfs-dev@322A8000 {
 				compatible = "sprd,sharkl5-cpudvfs";
 				sprd,syscon-enable = <&aon_apb_regs>;
+				dcdc-cpu0-supply = <&vddcpu>;
+				dcdc-sram-supply = <&vddsram>;
 				module-enable-cfg = <0x4 7>;
 				topdvfs-controller = <&topdvfs_controller>;
 				reg = <0 0x322A8000 0 0x1000>;
