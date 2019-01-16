@@ -221,6 +221,10 @@ struct cpudvfs_archdata {
 	struct regmap *aon_apb_reg_base;
 	void __iomem *membase;
 	struct device_node *topdvfs_of_node;
+	struct regulator *dcdc_cpu0_regu;
+	struct regulator *dcdc_sram_regu;
+	int dcdc_cpu0_resume_volt;
+	int dcdc_sram_resume_volt;
 	struct regmap *topdvfs_map;
 	struct device_node *of_node;
 	struct dvfs_cluster *phost_cluster;

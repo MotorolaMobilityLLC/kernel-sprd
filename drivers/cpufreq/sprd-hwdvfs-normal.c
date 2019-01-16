@@ -2224,11 +2224,94 @@ static int sprd_cpudvfs_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int sprd_cpudvfs_set_voltage(struct device *dev,
+				    struct regulator **dcdc_regu,
+				    const char *dcdc_name, u32 target_volt,
+				    int *resume_volt)
+{
+	struct regulator *regu = *dcdc_regu;
+	int ret, curr_volt;
+
+	if (!regu) {
+		regu = devm_regulator_get(dev, dcdc_name);
+		if (IS_ERR(regu)) {
+			dev_err(dev, "failed to get '%s-supply'\n", dcdc_name);
+			devm_regulator_put(regu);
+			return PTR_ERR(regu);
+		}
+		*dcdc_regu = regu;
+	}
+
+	if (resume_volt) {
+		curr_volt = regulator_get_voltage(regu);
+		if (curr_volt < 0) {
+			dev_err(dev, "failed to get current voltage for %s\n",
+			       dcdc_name);
+			devm_regulator_put(regu);
+			return curr_volt;
+		}
+
+		*resume_volt = curr_volt;
+	}
+
+	ret = regulator_set_voltage(regu, target_volt, target_volt);
+	if (ret) {
+		dev_err(dev, "failed to set suspend voltage for '%s-supply'\n",
+			dcdc_name);
+		devm_regulator_put(regu);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int sprd_cpudvfs_cache_workaround(struct device *dev)
+{
+	struct sprd_cpudvfs_device *platdev = dev_get_drvdata(dev);
+	struct cpudvfs_archdata *pdev =
+				(struct cpudvfs_archdata *)platdev->archdata;
+
+	/* Fix dcdc-sram to 1.1v*/
+	return sprd_cpudvfs_set_voltage(dev, &pdev->dcdc_sram_regu,
+					"dcdc-sram", 1100000,
+					&pdev->dcdc_sram_resume_volt);
+}
+
+static int sprd_cpudvfs_recover_voltage(struct device *dev)
+{
+	struct sprd_cpudvfs_device *platdev = dev_get_drvdata(dev);
+	struct cpudvfs_archdata *pdev =
+				(struct cpudvfs_archdata *)platdev->archdata;
+
+	/* Recover dcdc-sram to the value before deep sleep */
+	return sprd_cpudvfs_set_voltage(dev, &pdev->dcdc_sram_regu,
+					"dcdc-sram",
+					pdev->dcdc_sram_resume_volt,
+					NULL);
+}
+
+#ifdef CONFIG_PM_SLEEP
+static int sprd_cpudvfs_suspend(struct device *dev)
+{
+	return sprd_cpudvfs_cache_workaround(dev);
+}
+
+static int sprd_cpudvfs_resume(struct device *dev)
+{
+	return sprd_cpudvfs_recover_voltage(dev);
+}
+#endif
+
+static const struct dev_pm_ops sprd_cpudvfs_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(sprd_cpudvfs_suspend, sprd_cpudvfs_resume)
+};
+
 static struct platform_driver sprd_cpudvfs_driver = {
 	.probe = sprd_cpudvfs_probe,
 	.remove = sprd_cpudvfs_remove,
 	.driver = {
 		.name = "sprd_cpudvfs",
+		.pm = &sprd_cpudvfs_pm_ops,
 		.of_match_table = sprd_cpudvfs_of_match,
 	},
 };
