@@ -9099,6 +9099,13 @@ CONFIG_SCSI_DMA
 	[subsys] scsi
 	[must] user
 	[function] SCSI device dma support
+CONFIG_SCSI_LOWLEVEL
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SCSI_MOD
 	[arch] all
 	[plat] all
@@ -9106,6 +9113,27 @@ CONFIG_SCSI_MOD
 	[subsys] scsi
 	[must] user
 	[function] SCSI module support
+CONFIG_SCSI_UFSHCD
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_SCSI_UFSHCD_PLATFORM
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_SCSI_UFS_SPRD
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SDCARD_FS
 	[arch] all
 	[plat] all
