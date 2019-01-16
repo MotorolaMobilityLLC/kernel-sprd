@@ -33,6 +33,8 @@ dict_project={
 	#roc1-3h10
 	'ud710_3h10_native-userdebug'		: { 'path' : 'sprd-board-config/roc1/ud710_3h10/', },
 	'ud710_3h10u_native-userdebug'		: { 'path' : 'sprd-board-config/roc1/ud710_3h10u/', },
+	#orca-1h10
+	'udx710_1h10_native-userdebug'           : { 'path' : 'sprd-board-config/roc1/udx710_1h10/', },
 }
 
 print_head="""

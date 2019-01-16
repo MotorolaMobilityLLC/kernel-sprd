@@ -1,0 +1,29 @@
+/*
+ * Spreadtrum UDX710 board common DTS file
+ *
+ * Copyright (C) 2017, Spreadtrum Communications Inc.
+ *
+ * This file is licensed under a dual GPLv2 or X11 license.
+ */
+
+#include "udx710-modem.dtsi"
+
+/ {
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		smem_reserved: sipc-mem@82000000 {
+			reg = <0x0 0x82000000 0x0 0x03000000>;
+		};
+
+		cp_reserved: cp-modem@88000000 {
+			reg = <0x0 0x88000000 0x0 0x15000000>;
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
