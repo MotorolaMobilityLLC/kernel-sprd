@@ -504,6 +504,8 @@ def aiaiai_check():
                                             tmp_plat = 'sharkle32_fp'
                                         else:
                                             tmp_plat = 'sharkle32'
+                                    elif tmp_arch == 'arm' and tmp_plat == 'sharkl5':
+                                        tmp_plat = 'sharkl5_32'
                                     elif tmp_arch == 'arm' and tmp_plat == 'sharkl3':
                                         tmp_plat = 'sharkl3_32'
                                     elif tmp_plat == 'pike2':
@@ -514,12 +516,16 @@ def aiaiai_check():
                                     elif tmp_arch == 'common' and tmp_plat == 'sharkl3':
                                         tmp_arch='arm,arm64'
                                         tmp_plat='sharkl3,sharkl3_32'
-                                    elif tmp_arch == 'arm' and tmp_plat == 'sharkl5':
-                                        tmp_plat = 'sharkl5_32'
                                     elif tmp_arch == 'common' and tmp_plat == 'sharkl5':
                                         tmp_arch='arm,arm64'
                                         tmp_plat='sharkl5,sharkl5_32'
-                                    d_add_config[f_diff_lines[i].split(":").pop()[:-1]] = {'arch':tmp_arch,'plat':tmp_plat}
+
+                                    for j in range(len(tmp_plat.split(","))):
+                                        if tmp_plat.split(",").pop(j) not in all_plat:
+                                            break
+
+                                    if j != len(tmp_plat.split(",")) - 1:
+                                        d_add_config[f_diff_lines[i].split(":").pop()[:-1]] = {'arch':tmp_arch,'plat':tmp_plat}
                     else:
                         break
 
@@ -544,9 +550,6 @@ def aiaiai_check():
                 change_file = f_diff_lines[i].split(" ").pop(2).split("/").pop(4)
                 plat = change_file.split("_").pop(1)
 
-                if plat not in d_defconfig_path[kernel_version]:
-                    continue
-
                 if plat == "sharkle" and arch == "arm":
                     if change_file == "sprd_sharkle_fp_defconfig":
                         plat="sharkle32_fp"
@@ -556,6 +559,9 @@ def aiaiai_check():
                     plat="sharkl3_32"
                 if plat == "sharkl5" and arch =="arm":
                     plat="sharkl5_32"
+
+                if plat not in all_plat:
+                    continue
 
                 while True:
                     i = i+1
