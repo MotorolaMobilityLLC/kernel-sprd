@@ -489,7 +489,7 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 		}
 	}
 
-	if (！phy->pmic) {
+	if (!phy->pmic) {
 		/*
 		 * USB PHY must init before DWC3 phy setup in haps,
 		 * otherwise dwc3 phy setting will be cleared
