@@ -212,6 +212,18 @@
 			reg = <0 0x3241c000 0 0x4000>;
 		};
 
+		anlg_phy_top_regs: syscon@32420000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x32420000 0 0x4000>;
+		};
+
+		anlg_phy_top1_regs: syscon@32424000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x32424000 0 0x4000>;
+		};
+
 		anlg_phy_g6_regs: syscon@32434000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
@@ -385,6 +397,8 @@
 				compatible = "sprd,roc1-phy";
 				sprd,syscon-enable = <&aon_apb_regs>;
 				sprd,syscon-anag3 = <&anlg_phy_g3_regs>;
+				sprd,syscon-anatop = <&anlg_phy_top_regs>;
+				sprd,syscon-anatop1 = <&anlg_phy_top1_regs>;
 				sprd,vdd-voltage = <3300000>;
 				#phy-cells = <0>;
 			};
