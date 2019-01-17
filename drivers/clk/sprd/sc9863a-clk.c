@@ -143,7 +143,7 @@ static const struct clk_bit_field f_gpll[PLL_FACT_MAX] = {
 	{ .shift = 55,	.width = 7 },	/* nint		*/
 	{ .shift = 32,	.width = 23},	/* kint		*/
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
-	{ .shift = 48,	.width = 1 },	/* postdiv	*/
+	{ .shift = 80,	.width = 1 },	/* postdiv	*/
 };
 static SPRD_PLL_WITH_ITABLE_K_FVCO(gpll_clk, "gpll", "gpll-gate", 0x38,
 				   3, ftable, f_gpll, 240,
