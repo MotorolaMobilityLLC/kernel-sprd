@@ -2003,6 +2003,40 @@ static void sprd_set_mmc_struct(struct sprd_sdhc_host *host,
 		mmc->caps2, host->flags, host_caps);
 }
 
+static void sprd_sdhc_fast_hotplug_disable(struct sprd_sdhc_host *host)
+{
+	regmap_update_bits(host->reg_protect_enable.regmap,
+			   host->reg_protect_enable.reg,
+			   host->reg_protect_enable.mask, 0);
+}
+
+static void sprd_sdhc_fast_hotplug_enable(struct sprd_sdhc_host *host)
+{
+	int debounce_counter = 3;
+
+	regmap_update_bits(host->reg_protect_enable.regmap,
+			   host->reg_protect_enable.reg,
+			   host->reg_protect_enable.mask,
+			   host->reg_protect_enable.mask);
+	regmap_update_bits(host->reg_debounce_en.regmap,
+			   host->reg_debounce_en.reg,
+			   host->reg_debounce_en.mask,
+			   host->reg_debounce_en.mask);
+	regmap_update_bits(host->reg_debounce_cn.regmap,
+			   host->reg_debounce_cn.reg,
+			   host->reg_debounce_cn.mask,
+			   debounce_counter << 16);
+	if (host->detect_gpio_polar)
+		regmap_update_bits(host->reg_detect_polar.regmap,
+				   host->reg_detect_polar.reg,
+				   host->reg_detect_polar.mask, 0);
+	else
+		regmap_update_bits(host->reg_detect_polar.regmap,
+				   host->reg_detect_polar.reg,
+				   host->reg_detect_polar.mask,
+				   host->reg_detect_polar.mask);
+}
+
 #ifdef CONFIG_PM_SLEEP
 static int sprd_sdhc_suspend(struct device *dev)
 {
@@ -2010,6 +2044,8 @@ static int sprd_sdhc_suspend(struct device *dev)
 		container_of(dev, struct platform_device, dev);
 	struct sprd_sdhc_host *host = platform_get_drvdata(pdev);
 
+	if (host->reg_protect_enable.regmap)
+		sprd_sdhc_fast_hotplug_disable(host);
 	sprd_sdhc_runtime_pm_get(host);
 	disable_irq(host->irq);
 	clk_disable_unprepare(host->clk);
@@ -2040,6 +2076,11 @@ static int sprd_sdhc_resume(struct device *dev)
 	ios = host->mmc->ios;
 	sprd_reset_ios(host);
 	host->mmc->ops->set_ios(host->mmc, &ios);
+	if (host->reg_detect_polar.regmap &&
+	    host->reg_protect_enable.regmap &&
+	    host->reg_detect_polar.regmap &&
+	    host->reg_protect_enable.regmap)
+	    sprd_sdhc_fast_hotplug_enable(host);
 
 	sprd_sdhc_runtime_pm_put(host);
 
@@ -2110,40 +2151,6 @@ static const struct of_device_id sprd_sdhc_of_match[] = {
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, sprd_sdhc_of_match);
-
-static void sprd_sdhc_fast_hotplug_disable(struct sprd_sdhc_host *host)
-{
-	regmap_update_bits(host->reg_protect_enable.regmap,
-		host->reg_protect_enable.reg,
-		host->reg_protect_enable.mask, 0);
-}
-
-static void sprd_sdhc_fast_hotplug_enable(struct sprd_sdhc_host *host)
-{
-	int debounce_counter = 3;
-
-	regmap_update_bits(host->reg_protect_enable.regmap,
-		host->reg_protect_enable.reg,
-		host->reg_protect_enable.mask,
-		host->reg_protect_enable.mask);
-	regmap_update_bits(host->reg_debounce_en.regmap,
-		host->reg_debounce_en.reg,
-		host->reg_debounce_en.mask,
-		host->reg_debounce_en.mask);
-	regmap_update_bits(host->reg_debounce_cn.regmap,
-		host->reg_debounce_cn.reg,
-		host->reg_debounce_cn.mask,
-		debounce_counter << 16);
-	if (host->detect_gpio_polar)
-		regmap_update_bits(host->reg_detect_polar.regmap,
-			host->reg_detect_polar.reg,
-			host->reg_detect_polar.mask, 0);
-	else
-		regmap_update_bits(host->reg_detect_polar.regmap,
-			host->reg_detect_polar.reg,
-			host->reg_detect_polar.mask,
-			host->reg_detect_polar.mask);
-}
 
 static int sprd_sdhc_probe(struct platform_device *pdev)
 {
