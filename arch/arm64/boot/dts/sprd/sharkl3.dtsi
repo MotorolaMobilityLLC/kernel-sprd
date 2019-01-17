@@ -758,7 +758,7 @@
 
 			jpg: jpeg-codec@62300000{
 				compatible = "sprd,sharkl3-jpg";
-				reg = <0 0x62300000 0 0x8000>;
+				reg = <0x62300000 0x8000>;
 				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
 				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
 						MASK_MM_VSP_AHB_JPG_SOFT_RST>,
