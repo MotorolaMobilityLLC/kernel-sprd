@@ -34,6 +34,8 @@ struct sprd_hsphy {
 	struct regulator	*vdd;
 	struct regmap           *hsphy_glb;
 	struct regmap           *ana_g3;
+	struct regmap           *anatop;
+	struct regmap           *anatop1;
 	struct regmap           *pmic;
 	u32			vdd_vol;
 	atomic_t		reset;
@@ -80,10 +82,17 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 		ret |= regmap_update_bits(phy->hsphy_glb,
 			REG_AON_APB_OTG_PHY_CTRL, msk, 0);
 
+		msk = MASK_ANLG_PHY_TOP_DBG_SEL_ANALOG_USB20_USB20_DMPULLDOWN |
+			MASK_ANLG_PHY_TOP_DBG_SEL_ANALOG_USB20_USB20_DPPULLDOWN;
+		ret |= regmap_update_bits(phy->anatop,
+			REG_ANLG_PHY_TOP_ANALOG_USB20_REG_SEL_CFG_0,
+			msk, msk);
+
 		/* the pull down resistance on D-/D+ enable */
-		msk = MASK_AON_APB_OTG_DMPULLDOWN | MASK_AON_APB_OTG_DPPULLDOWN;
-		ret |= regmap_update_bits(phy->ana_g3,
-			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL2,
+		msk = MASK_ANLG_PHY_TOP_ANALOG_USB20_USB20_DMPULLDOWN |
+			MASK_ANLG_PHY_TOP_ANALOG_USB20_USB20_DPPULLDOWN;
+		ret |= regmap_update_bits(phy->anatop,
+			REG_ANLG_PHY_TOP_ANALOG_USB20_USB20_UTMI_CTL2_TOP,
 			msk, msk);
 
 		ret |= regmap_read(phy->ana_g3,
@@ -98,9 +107,17 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 		ret |= regmap_update_bits(phy->hsphy_glb,
 			REG_AON_APB_OTG_PHY_CTRL, msk, reg);
 
-		msk = MASK_AON_APB_OTG_DMPULLDOWN | MASK_AON_APB_OTG_DPPULLDOWN;
-		ret |= regmap_update_bits(phy->ana_g3,
-			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL2,
+		msk = MASK_ANLG_PHY_TOP_DBG_SEL_ANALOG_USB20_USB20_DMPULLDOWN |
+			MASK_ANLG_PHY_TOP_DBG_SEL_ANALOG_USB20_USB20_DPPULLDOWN;
+		ret |= regmap_update_bits(phy->anatop,
+			REG_ANLG_PHY_TOP_ANALOG_USB20_REG_SEL_CFG_0,
+			msk, msk);
+
+		/* the pull down resistance on D-/D+ enable */
+		msk = MASK_ANLG_PHY_TOP_ANALOG_USB20_USB20_DMPULLDOWN |
+			MASK_ANLG_PHY_TOP_ANALOG_USB20_USB20_DPPULLDOWN;
+		ret |= regmap_update_bits(phy->anatop,
+			REG_ANLG_PHY_TOP_ANALOG_USB20_USB20_UTMI_CTL2_TOP,
 			msk, 0);
 
 		ret |= regmap_read(phy->ana_g3,
@@ -151,20 +168,23 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		}
 	}
 	/* enable otg utmi and analog */
-	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB |
-		MASK_AON_APB_CKG_EB;
+	reg = msk = MASK_AON_APB_OTG_UTMI_EB;
 	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1,
 				 msk, reg);
 
-	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN;
+	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN | MASK_AON_APB_CGM_DPHY_REF_EN;
 	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1,
 				 msk, reg);
 
+	ret |= regmap_update_bits(phy->anatop1,
+		MASK_ANLG_TOP_1_R2G_USB20_ISO_SW_EN,
+		REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL0, 0);
+
 	/* USB PHY power */
-	reg = msk = MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S |
-		MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_L;
-	ret |= regmap_update_bits(phy->hsphy_glb,
-		REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, 0);
+	reg = msk = MASK_ANLG_TOP_1_R2G_ANALOG_USB20_USB20_PS_PD_S |
+		MASK_ANLG_TOP_1_R2G_ANALOG_USB20_USB20_PS_PD_L;
+	ret |= regmap_update_bits(phy->anatop1,
+		REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL0, msk, 0);
 
 	/* USB vbus valid */
 	reg = msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
@@ -226,21 +246,21 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, msk, 0);
 
 	/* usb power down */
-	reg = msk = MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S |
-		MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_L;
-	regmap_update_bits(phy->hsphy_glb,
-		REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
-
-	/* usb cgm ref */
-	msk = MASK_AON_APB_CGM_OTG_REF_EN;
-	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
+	reg = msk = (MASK_ANLG_TOP_1_R2G_ANALOG_USB20_USB20_PS_PD_L |
+		MASK_ANLG_TOP_1_R2G_ANALOG_USB20_USB20_PS_PD_S);
+	regmap_update_bits(phy->anatop1,
+		REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL0, msk, reg);
+	reg = msk = MASK_ANLG_TOP_1_R2G_USB20_ISO_SW_EN;
+	regmap_update_bits(phy->anatop1,
+		REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL0,
+		msk, reg);
 
 	/* disable otg utmi and analog */
-	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB |
-		MASK_AON_APB_CKG_EB;
+	reg = msk = MASK_AON_APB_OTG_UTMI_EB;
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, 0);
 
-	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN;
+	/* usb cgm ref */
+	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN | MASK_AON_APB_CGM_DPHY_REF_EN;
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
 
 	if (phy->vdd && regulator_is_enabled(phy->vdd))
@@ -391,26 +411,39 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		return PTR_ERR(phy->hsphy_glb);
 	}
 
+	phy->anatop = syscon_regmap_lookup_by_phandle(dev->of_node,
+				 "sprd,syscon-anatop");
+	if (IS_ERR(phy->anatop)) {
+		dev_err(&pdev->dev, "ap USB anatop syscon failed!\n");
+		return PTR_ERR(phy->anatop);
+	}
+
+	phy->anatop1 = syscon_regmap_lookup_by_phandle(dev->of_node,
+				 "sprd,syscon-anatop1");
+	if (IS_ERR(phy->anatop1)) {
+		dev_err(&pdev->dev, "ap USB anatop1 syscon failed!\n");
+		return PTR_ERR(phy->anatop1);
+	}
+
 	/* select the AON-SYS USB controller */
 	msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
 	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL,
 				 msk, 0);
 
 	/* enable otg utmi and analog */
-	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB
-		| MASK_AON_APB_CKG_EB;
+	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB;
 	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1,
 				 msk, reg);
 
-	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN;
+	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN | MASK_AON_APB_CGM_DPHY_REF_EN;
 	ret |= regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1,
 				 msk, reg);
 
 	/* usb power down */
-	reg = msk = MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S |
-		MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_L;
-	ret |= regmap_update_bits(phy->hsphy_glb,
-		REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
+	reg = msk = (MASK_ANLG_TOP_1_R2G_ANALOG_USB20_USB20_PS_PD_L |
+		MASK_ANLG_TOP_1_R2G_ANALOG_USB20_USB20_PS_PD_S);
+	ret = regmap_update_bits(phy->anatop1,
+		REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL0, msk, reg);
 	if (ret)
 		return ret;
 
