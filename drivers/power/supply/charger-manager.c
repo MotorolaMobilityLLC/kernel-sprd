@@ -1290,6 +1290,27 @@ static int charger_get_property(struct power_supply *psy,
 			}
 		}
 		break;
+	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
+		fuel_gauge = power_supply_get_by_name(
+					cm->desc->psy_fuel_gauge);
+		if (!fuel_gauge) {
+			ret = -ENODEV;
+			break;
+		}
+
+		ret = power_supply_get_property(fuel_gauge,
+						POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
+						val);
+		if (ret) {
+			val->intval = 1;
+			ret = 0;
+		} else {
+			/* If CHARGE_COUNTER is supplied, use it */
+			val->intval = val->intval > 0 ? val->intval : 1;
+			val->intval = (cm->desc->cap * val->intval) / 100;
+		}
+		break;
+
 	default:
 		return -EINVAL;
 	}
@@ -1387,6 +1408,7 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
+	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	/*
 	 * Optional properties are:
 	 * POWER_SUPPLY_PROP_CHARGE_NOW,
