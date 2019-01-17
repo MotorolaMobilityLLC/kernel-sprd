@@ -10,16 +10,16 @@
 #include <dt-bindings/gpio/gpio.h>
 
 #include "ud710.dtsi"
-#include "ud710-common.dtsi"
-#include "ud710-modem.dtsi"
+#include "ud710-2h10-common.dtsi"
+#include "ud710-2h10-modem.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 #include "sc2730.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 
 / {
-	model = "Spreadtrum UD710 3h10 Board";
+	model = "Spreadtrum UD710 2h10 Board";
 
-	compatible = "sprd,ud710_3h10u", "sprd,ud710";
+	compatible = "sprd,ud710_2h10", "sprd,ud710";
 
 	sprd,sc-id = <710 1 0x20000>;
 
@@ -36,7 +36,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=8 maxcpus=1 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 rw rootwait androidboot.hardware=ud710_3h10u androidboot.selinux=permissive";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=8 maxcpus=1 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 rw rootwait androidboot.hardware=ud710_2h10 androidboot.selinux=permissive";
 	};
 
 	ipi: interrupt-controller {
@@ -73,20 +73,26 @@
 	};
 
 	sprd_marlin3: sprd-marlin3 {
-		compatible = "sprd,marlin3";
-		reset-gpios = <&ap_gpio 126 GPIO_ACTIVE_LOW>;
-		enable-gpios = <&ap_gpio 77 GPIO_ACTIVE_LOW>;
-		m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
-		/* no need config dvdd12 because of share vddmem to DDR */
+		permit-ap-send-gpios = <&ap_gpio 69 0>;
+		m2-to-ap-irq-gpios = <&ap_gpio 96 0>;
+		rstn-gpios = <&ap_gpio 126 0>;
+		chip-en-gpios = <&ap_gpio 77 0>;
+		dvdd12-supply = <&vddmem>;
 		avdd12-supply = <&vddgen1>;
 		avdd33-supply = <&vddwifipa>;
 		dcxo18-supply = <&vddldo0>;
-		clock-names = "clk_32k","source","enable";
-		clocks = <&aon_clk CLK_AON_AUX0>,
-			 <&ext_32k>,
-			 <&aonapb_gate CLK_AUX0_EB>;
-		sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/wcnmodem";
-		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
+		common_chip_en;
+		sprd,wait-ge2-disabled;
+		adma_tx_enable;
+		adma_rx_enable;
+		pwrseq_disable;
+		post-power-on-delay-ms = <20>;
+	};
+
+	sprd-wlan {
+		compatible = "sprd,sc2355-wifi";
+		reg = <0 0x211C0000 0 0x3000>;
+		reg-names = "PAM_WIFI_REG_BASE_REMAP";
 	};
 
 	gnss-common-ctl {
@@ -181,28 +187,6 @@
 	audio-mem-mgr {
 		memory-region = <&audio_reserved>;
 	};
-
-	ufs: ufs@71900000 {
-		compatible  = "sprd,ufshc";
-		reg = <0 0x71900000 0 0x10000>,
-		      <0 0x71a00000 0 0x10000>,
-		      <0 0x71800000 0 0x10000>;
-		reg-names = "ufshci_reg",
-			    "ufsutp_reg",
-			    "unipro_reg";
-		syscons = <&aon_apb_regs REG_AON_APB_APB_EB1 MASK_AON_APB_UFS_AO_EB>,
-			  <&ap_apb_regs REG_AP_APB_APB_EB1 (MASK_AP_APB_UFS_UTP_EB | MASK_AP_APB_UFS_HCI_EB | MASK_AP_APB_UFS_UNIPRO_EB | MASK_AP_APB_UFS_EB)>,
-			  <&ap_apb_regs REG_AP_APB_APB_RST (MASK_AP_APB_UFS_UTP_SOFT_RST | MASK_AP_APB_UFS_HCI_SOFT_RST | MASK_AP_APB_UFS_UNIPRO_SOFT_RST | MASK_AP_APB_UFS_SOFT_RST)>;
-		syscon-names = "aon_apb_ufs_en",
-			       "ap_apb_ufs_en",
-			       "ap_apb_ufs_rst";
-		interrupts = <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>;
-		status = "okay";
-	};
-};
-
-&sdio3 {
-	status = "disabled";
 };
 
 &dpu {
@@ -241,6 +225,22 @@
 &aon_i2c1 {
 	status = "okay";
 	clock-frequency = <400000>;
+
+	sc2703-buck@49 {
+		compatible = "sprd,sc2703-buck";
+		reg = <0x49>;
+		buck-gpios = <&ap_gpio 132 GPIO_ACTIVE_LOW>;
+
+		sprd,buck-ch1-b-out = <1000000>;
+
+		regulator-name = "sc2703-buck";
+		regulator-min-microvolt = < 300000>;
+		regulator-max-microvolt = <1570000>;
+		regulator-min-microamp = <5600000>;
+		regulator-max-microamp = <10800000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
 
 	sc2703_pmic: pmic@4C {
 		compatible = "sprd,sc2703";

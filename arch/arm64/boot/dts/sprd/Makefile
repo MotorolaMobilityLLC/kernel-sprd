@@ -9,6 +9,7 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			   ud710-3h10u.dtb	\
 			   ud710-haps-bkd.dtb   \
 			   ud710-orca-haps.dtb	\
+			   ud710-2h10.dtb	\
 			   udx710-1h10.dtb 	\
 			   udx710-haps.dtb 	\
 			   ums518-zebu.dtb     \
@@ -29,6 +30,7 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	ud710-3h10u-overlay.dtbo \
 	ud710-haps-bkd-overlay.dtbo \
         ud710-orca-haps-overlay.dtbo \
+	ud710-2h10-overlay.dtbo \
 	ums518-haps-overlay.dtbo
 
 always		:= $(dtb-y) $(dtbo-y)

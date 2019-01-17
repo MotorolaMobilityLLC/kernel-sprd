@@ -8,7 +8,6 @@
 
 #include <dt-bindings/clock/sprd,roc1-clk.h>
 #include "roc1.dtsi"
-#include "ud710-modem.dtsi"
 
 / {
 
