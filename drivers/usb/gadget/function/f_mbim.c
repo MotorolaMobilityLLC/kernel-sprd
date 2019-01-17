@@ -550,7 +550,7 @@ static inline void put_ncm(__le16 **p, unsigned int size, unsigned int val)
 
 static inline unsigned int get_ncm(__le16 **p, unsigned int size)
 {
-	unsigned int tmp;
+	unsigned int tmp = 0;
 
 	switch (size) {
 	case 1:
