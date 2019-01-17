@@ -390,13 +390,6 @@ int vsp_clk_enable(struct vsp_dev_t *vsp_hw_dev)
 		}
 		pr_debug("vsp clk_mm_eb: clk_prepare_enable ok.\n");
 
-		ret = clk_prepare_enable(vsp_hw_dev->clk_vsp_ckg);
-		if (ret) {
-			pr_err("clk_vsp_ckg: clk_prepare_enable failed!\n");
-			return ret;
-		}
-		pr_debug("clk_vsp_ckg: clk_prepare_enable ok.\n");
-
 		ret = clk_prepare_enable(vsp_hw_dev->clk_vsp_ahb_mmu_eb);
 		if (ret) {
 			pr_err("clk_vsp_ahb_mmu_eb: clk_prepare_enable failed!\n");
@@ -450,15 +443,15 @@ int vsp_clk_enable(struct vsp_dev_t *vsp_hw_dev)
 void vsp_clk_disable(struct vsp_dev_t *vsp_hw_dev)
 {
 	if (vsp_hw_dev->version == SHARKL3) {
-		clk_disable_unprepare(vsp_hw_dev->clk_ahb_vsp);
 		clk_disable_unprepare(vsp_hw_dev->clk_emc_vsp);
-		clk_disable_unprepare(vsp_hw_dev->clk_vsp_ahb_mmu_eb);
+		clk_disable_unprepare(vsp_hw_dev->clk_ahb_vsp);
 		clk_disable_unprepare(vsp_hw_dev->clk_axi_gate_vsp);
-		clk_disable_unprepare(vsp_hw_dev->clk_vsp_ckg);
-		clk_disable_unprepare(vsp_hw_dev->clk_mm_eb);
+		clk_disable_unprepare(vsp_hw_dev->clk_vsp_ahb_mmu_eb);
 	}
 
 	clk_disable_unprepare(vsp_hw_dev->vsp_clk);
 	clk_disable_unprepare(vsp_hw_dev->clk_ahb_gate_vsp_eb);
+	if (vsp_hw_dev->version == SHARKL3)
+		clk_disable_unprepare(vsp_hw_dev->clk_mm_eb);
 }
 

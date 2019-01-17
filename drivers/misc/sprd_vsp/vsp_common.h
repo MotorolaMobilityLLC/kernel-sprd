@@ -35,7 +35,6 @@ struct vsp_dev_t {
 	struct clk *ahb_parent_df_clk;
 	struct clk *emc_parent_clk;
 	struct clk *clk_mm_eb;
-	struct clk *clk_vsp_ckg;
 	struct clk *clk_axi_gate_vsp;
 	struct clk *clk_ahb_gate_vsp_eb;
 	struct clk *clk_ahb_vsp;
@@ -50,6 +49,7 @@ struct vsp_dev_t {
 	struct device *vsp_dev;
 	bool light_sleep_en;
 	bool iommu_exist_flag;
+	bool vsp_qos_exist_flag;
 };
 
 struct clock_name_map_t {

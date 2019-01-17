@@ -214,8 +214,9 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			&& vsp_hw_dev.iommu_exist_flag)
 			sprd_iommu_restore(vsp_hw_dev.vsp_dev);
 
-		writel_relaxed((qos_cfg.awqos << 8) | qos_cfg.arqos_high,
-			(vsp_glb_reg_base + qos_cfg.reg_offset));
+		if (vsp_hw_dev.vsp_qos_exist_flag)
+			writel_relaxed((qos_cfg.awqos << 8) | qos_cfg.arqos_high,
+				(vsp_glb_reg_base + qos_cfg.reg_offset));
 
 		break;
 
@@ -544,24 +545,26 @@ static int vsp_parse_dt(struct platform_device *pdev)
 	}
 
 	qos_np = of_parse_phandle(np, "sprd,qos", 0);
-	if (!qos_np)
+	if (!qos_np) {
 		pr_warn("can't find vsp qos cfg node\n");
+		vsp_hw_dev.vsp_qos_exist_flag = 0;
+	} else {
+		ret = of_property_read_u8(qos_np, "awqos",
+						&qos_cfg.awqos);
+		if (ret)
+			pr_warn("read awqos_low failed, use default\n");
 
-	ret = of_property_read_u8(qos_np, "awqos",
-					&qos_cfg.awqos);
-	if (ret)
-		pr_warn("read awqos_low failed, use default\n");
+		ret = of_property_read_u8(qos_np, "arqos-low",
+						&qos_cfg.arqos_low);
+		if (ret)
+			pr_warn("read arqos-low failed, use default\n");
 
-	ret = of_property_read_u8(qos_np, "arqos-low",
-					&qos_cfg.arqos_low);
-	if (ret)
-		pr_warn("read arqos-low failed, use default\n");
-
-	ret = of_property_read_u8(qos_np, "arqos-high",
-					&qos_cfg.arqos_high);
-	if (ret)
-		pr_warn("read arqos-high failed, use default\n");
-
+		ret = of_property_read_u8(qos_np, "arqos-high",
+						&qos_cfg.arqos_high);
+		if (ret)
+			pr_warn("read arqos-high failed, use default\n");
+		vsp_hw_dev.vsp_qos_exist_flag = 1;
+	}
 	pr_info("%x, %x, %x, %x", qos_cfg.awqos, qos_cfg.arqos_high,
 		qos_cfg.arqos_low, qos_cfg.reg_offset);
 
@@ -714,7 +717,6 @@ static int vsp_probe(struct platform_device *pdev)
 	vsp_hw_dev.clk_axi_gate_vsp = NULL;
 	vsp_hw_dev.clk_ahb_gate_vsp_eb = NULL;
 	vsp_hw_dev.clk_vsp_ahb_mmu_eb = NULL;
-	vsp_hw_dev.clk_vsp_ckg = NULL;
 	vsp_hw_dev.vsp_fp = NULL;
 	vsp_hw_dev.light_sleep_en = false;
 
