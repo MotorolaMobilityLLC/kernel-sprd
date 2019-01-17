@@ -40,7 +40,7 @@ struct sprd_hsphy {
 	atomic_t		inited;
 };
 
-#define TUNEHSAMP_2_6MA		(3 << 25)
+#define TUNEHSAMP_3_9MA		(3 << 25)
 #define TFREGRES_TUNE_VALUE	(0x14 << 19)
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
@@ -86,11 +86,13 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL2,
 			msk, msk);
 
-		reg = 0x200;
+		ret |= regmap_read(phy->ana_g3,
+			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, &reg);
 		msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_RESERVED;
-		ret |= regmap_update_bits(phy->ana_g3,
-			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1,
-			msk, reg);
+		reg &= ~msk;
+		reg |= 0x200;
+		ret |= regmap_write(phy->ana_g3,
+			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, reg);
 	} else {
 		reg = msk = MASK_AON_APB_USB2_PHY_IDDIG;
 		ret |= regmap_update_bits(phy->hsphy_glb,
@@ -101,10 +103,12 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL2,
 			msk, 0);
 
+		ret |= regmap_read(phy->ana_g3,
+			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, &reg);
 		msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_RESERVED;
-		ret |= regmap_update_bits(phy->ana_g3,
-			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1,
-			msk, 0);
+		reg &= ~msk;
+		ret |= regmap_write(phy->ana_g3,
+			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, reg);
 	}
 
 	return ret;
@@ -117,17 +121,14 @@ static void sprd_hsphy_emphasis_set(struct usb_phy *x, bool enabled)
 
 	if (!phy)
 		return;
-
-	reg = TUNEHSAMP_2_6MA;
 	msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_TUNEHSAMP;
+	regmap_read(phy->ana_g3,
+		 REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, &reg);
+	reg &= ~msk;
 	if (enabled)
-		regmap_update_bits(phy->ana_g3,
-			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING,
-			msk, reg);
-	else
-		regmap_update_bits(phy->ana_g3,
-			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING,
-			msk, 0);
+		reg |= TUNEHSAMP_3_9MA;
+	regmap_write(phy->ana_g3,
+		 REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, reg);
 }
 
 static int sprd_hsphy_init(struct usb_phy *x)
@@ -182,17 +183,21 @@ static int sprd_hsphy_init(struct usb_phy *x)
 			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1,
 			msk, reg);
 
-	reg = TUNEHSAMP_2_6MA;
 	msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_TUNEHSAMP;
-	ret |= regmap_update_bits(phy->ana_g3,
-			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING,
-			msk, reg);
+	ret |= regmap_read(phy->ana_g3,
+		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, &reg);
+	reg &= ~msk;
+	reg |= TUNEHSAMP_3_9MA;
+	ret |= regmap_write(phy->ana_g3,
+		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, reg);
 
-	reg = TFREGRES_TUNE_VALUE;
 	msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_TFREGRES;
-	ret |= regmap_update_bits(phy->ana_g3,
-			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING,
-			msk, reg);
+	ret |= regmap_read(phy->ana_g3,
+		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, &reg);
+	reg &= ~msk;
+	reg |= TFREGRES_TUNE_VALUE;
+	ret |= regmap_write(phy->ana_g3,
+		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, reg);
 
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
