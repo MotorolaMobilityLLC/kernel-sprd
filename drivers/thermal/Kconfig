@@ -145,6 +145,7 @@ config CPU_THERMAL
 	bool "generic cpu cooling support"
 	depends on CPU_FREQ
 	depends on THERMAL_OF
+	depends on !ARCH_SPRD
 	help
 	  This implements the generic cpu cooling mechanism through frequency
 	  reduction. An ACPI version of this already exists
@@ -492,7 +493,7 @@ config SPRD_THERMAL
 
 config SPRD_CPU_COOLING
 	bool "sprd cpu cooling support"
-	depends on THERMAL
+	depends on ARCH_SPRD && THERMAL
 	help
 	  This implements the sprd's cpu cooling mechanism through
 	  frequency reduction for devices using dvfs and trigger cpu hotplug.
