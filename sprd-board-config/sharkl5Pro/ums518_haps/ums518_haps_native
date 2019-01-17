@@ -11,4 +11,4 @@ KERNEL_DEFCONFIG := sprd_sharkl5Pro_defconfig
 TARGET_DTB := ums518-haps
 TARGET_DTBO := ums518-haps-overlay
 
-#BOARD_TEE_CONFIG := trusty
+BOARD_TEE_CONFIG := trusty
