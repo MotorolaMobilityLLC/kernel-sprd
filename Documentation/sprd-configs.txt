@@ -510,49 +510,42 @@ CONFIG_ARM64_ERRATUM_1024718
 	[function] Work around for Arm Cortex-A55 erratum problem.
 CONFIG_ARM64_ERRATUM_819472
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] sharkl5
 	[field] code
 	[subsys] erratum
 	[must] console
 	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_ERRATUM_824069
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] sharkl5
 	[field] code
 	[subsys] erratum
 	[must] console
 	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_ERRATUM_826319
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] sharkl5
 	[field] code
 	[subsys] erratum
 	[must] console
 	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_ERRATUM_827319
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] sharkl5
 	[field] code
 	[subsys] erratum
 	[must] console
 	[function] Work around for Arm Cortex-A53 erratum problem.
-CONFIG_ARM64_ERRATUM_832075
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_ARM64_ERRATUM_843419
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] sharkl5
 	[field] code
 	[subsys] erratum
 	[must] console
 	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_ERRATUM_845719
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] sharkl5
 	[field] code
 	[subsys] erratum
 	[must] console
@@ -574,7 +567,7 @@ CONFIG_ARM64_HW_AFDBM
 			hardware updates of the access and dirty information in page.
 CONFIG_ARM64_LSE_ATOMICS
 	[arch] arm64
-	[plat] sharkl5
+	[plat] roc1,sharkl5
 	[field]
 	[subsys]
 	[must]
@@ -1297,13 +1290,6 @@ CONFIG_CACHE_L2X0
 	[subsys]
 	[must]
 	[function]
-CONFIG_CAVIUM_ERRATUM_30115
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_CC_OPTIMIZE_FOR_SIZE
 	[arch] all
 	[plat] all
@@ -1434,13 +1420,6 @@ CONFIG_CHARGER_SC2703
 	[subsys] power
 	[must] user
 	[function] This function is used to enable charg
-CONFIG_CHARGER_SC2731
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_CLEANCACHE
 	[arch] all
 	[plat] all
@@ -1590,15 +1569,15 @@ CONFIG_CP15_BARRIER_EMULATION
 	[must] console
 	[function] Emulate CP15 Barrier instructions.
 CONFIG_CPUFREQ_DT
-	[arch] all
-	[plat] roc1,sharkl5_32
+	[arch] arm
+	[plat] sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_CPUFREQ_DT_PLATDEV
-	[arch] all
-	[plat] roc1,sharkl5_32
+	[arch] arm
+	[plat] sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -2452,7 +2431,7 @@ CONFIG_DEBUG_BUGVERBOSE
 	[function] For debug bugverbose.
 CONFIG_DEBUG_DRIVER
 	[arch] arm64
-	[plat] sharkl5
+	[plat] roc1,sharkl5
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -6640,13 +6619,6 @@ CONFIG_NETFILTER_XT_MATCH_CONNTRACK
 	[subsys] net
 	[must] user
 	[function] vts require, "conntrack" connection tracking match support
-CONFIG_NETFILTER_XT_MATCH_DSCP
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_NETFILTER_XT_MATCH_ECN
 	[arch] all
 	[plat] all
@@ -6894,7 +6866,7 @@ CONFIG_NETFILTER_XT_TARGET_CONNSECMARK
 		  2. vts require
 CONFIG_NETFILTER_XT_TARGET_DSCP
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field] menu
 	[subsys] net
 	[must] user
@@ -7133,13 +7105,6 @@ CONFIG_NET_KEY
 	[must] user
 	[function] vts require, PF_KEYv2 socket family, compatible to KAME ones.
 		They are required if you are going to use IPsec tools ported from KAME.
-CONFIG_NET_NS
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_NET_RX_BUSY_POLL
 	[arch] all
 	[plat] all
@@ -8081,13 +8046,6 @@ CONFIG_PHY_XGENE
 	[subsys]
 	[must]
 	[function]
-CONFIG_PID_NS
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_PINCONF
 	[arch] all
 	[plat] all
@@ -8541,34 +8499,6 @@ CONFIG_PWM_SYSFS
 	[subsys] pwm
 	[must] debug
 	[function] Create pwm sysfs file for userspace.
-CONFIG_QCOM_FALKOR_ERRATUM_1003
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_QCOM_FALKOR_ERRATUM_1009
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_QCOM_FALKOR_ERRATUM_E1041
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_QCOM_QDF2400_ERRATUM_0065
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_QFMT_V2
 	[arch] all
 	[plat] all
@@ -9946,8 +9876,8 @@ CONFIG_SPRD_PTM
 	[must] debug
 	[function] Support Spreadtrum PTM.
 CONFIG_SPRD_REGMAP_DEBUG
-	[arch] all
-	[plat] roc1,sharkl5_32
+	[arch] arm
+	[plat] sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
@@ -11381,7 +11311,7 @@ CONFIG_WLAN
 		on them refer to the wireless wiki:
 CONFIG_WQ_POWER_EFFICIENT_DEFAULT
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field] code
 	[subsys] power
 	[must] user
@@ -11449,34 +11379,6 @@ CONFIG_XPS
 	[function] To enable XPS, the bitmap of CPUs that may use a transmit
 		queue is configured using the sysfs file entry:
 		/sys/class/net/<dev>/queues/tx-<n>/xps_cpus
-CONFIG_XZ_DEC
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_XZ_DEC_ARM
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_XZ_DEC_ARMTHUMB
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_XZ_DEC_BCJ
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_ZBOOT_ROM_BSS
 	[arch] arm
 	[plat] sharkl5_32
