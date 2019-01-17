@@ -487,7 +487,7 @@
 
 			jpg: jpg-codec@62700000{
 				compatible = "sprd,sharkl5-jpg";
-				reg = <0 0x62700000 0 0xc000>;
+				reg = <0x62700000 0xc000>;
 				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
 
 				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
