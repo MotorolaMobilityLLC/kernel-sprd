@@ -172,6 +172,11 @@
 		sprd,name = "ttyBT";
 	};
 
+	sprd-fm {
+		compatible = "sprd,marlin3-fm";
+		sprd,name = "sprd-fm";
+	};
+
 	audio-mem-mgr {
 		memory-region = <&audio_reserved>;
 	};
