@@ -143,7 +143,7 @@
 		anlg_phy_g15_regs: syscon@323d4000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
-			reg = <0 0x323b0000 0 0xc000>;
+			reg = <0 0x323d4000 0 0xc000>;
 		};
 
 		anlg_phy_g11_regs: syscon@323e0000 {
