@@ -1269,40 +1269,40 @@
 				#pwm-cells = <2>;
 			};
 
-			topdvfs_controller: topdvfsctrl@322A0000 {
+			topdvfs_controller: topdvfsctrl@322a0000 {
 				compatible = "sprd,sharkl5-topdvfs", "syscon";
 				sprd,syscon-enable = <&aon_apb_regs>;
 				module-enable-cfg = <0x4 7>;
-				reg = <0 0x322A0000 0 0x8000>;
+				reg = <0 0x322a0000 0 0x8000>;
 				cpu-dcdc-cells = <&dcdc_cpu0>, <&dcdc_cpu1>;
 				device-dcdc-cells = <&dcdc_mm>, <&dcdc_modem>;
 				dcdc_cpu0: dcdc-cpu0{
 					dcdc-dvfs-enable = <0x68 20 1>;
 					dcdc-judge-vol-sw = <0x68 1 0x7 7>;
 					dcdc-subsys-tune-enable = <0x150 6 1>;
-					top-dvfs-adi-state = <0x70 0 0xF>;
+					top-dvfs-adi-state = <0x70 0 0xf>;
 					voltage-grade-num = <7>;
-					voltage-grade = <0 0xE0 0xF4 0 0x1FF>,
-							<1 0xF0 0xF4 9 0x1FF>,
-							<2 0x100 0xF4 18 0x1FF>,
-							<3 0x110 0xF8 0 0x1FF>,
-							<4 0x120 0xF8 9 0x1FF>,
-							<5 0x130 0xF8 18 0x1FF>,
-							<6 0x140 0xFC 0 0x1FF>;
+					voltage-grade = <0 0x160 0xf4 0 0x1ff>,
+							<1 0xf0 0xf4 9 0x1ff>,
+							<2 0x100 0xf4 18 0x1ff>,
+							<3 0x110 0xf8 0 0x1ff>,
+							<4 0x120 0xf8 9 0x1ff>,
+							<5 0x130 0xf8 18 0x1ff>,
+							<6 0x140 0xfc 0 0x1ff>;
 					chnl-in-i2c = <0>;
 				};
 				dcdc_cpu1: dcdc-cpu1{
 					dcdc-dvfs-enable = <0x94 0 1>;
 					dcdc-judge-vol-sw = <0x138 15 0x7 7>;
 					dcdc-subsys-tune-enable = <0x150 7 1>;
-					top-dvfs-i2c-state = <0x9C 4 0xF>;
+					top-dvfs-i2c-state = <0x9c 4 0xf>;
 					voltage-grade-num = <6>;
-					voltage-grade = <0 0x2D 0x12C 0 0x7F>,
-							<1 0x32 0x12C 7 0x7F>,
-							<2 0x37 0x12C 14 0x7F>,
-							<3 0x3C 0x12C 21 0x7F>,
-							<4 0x41 0x130 0 0x7F>,
-							<5 0x46 0x130 7 0x7F>;
+					voltage-grade = <0 0x2d 0x12c 0 0x7f>,
+							<1 0x32 0x12c 7 0x7f>,
+							<2 0x37 0x12c 14 0x7f>,
+							<3 0x3c 0x12c 21 0x7f>,
+							<4 0x41 0x130 0 0x7f>,
+							<5 0x46 0x130 7 0x7f>;
 					chnl-in-i2c = <1>;
 				};
 				dcdc_mm: dcdc-mm {
@@ -1323,8 +1323,8 @@
 					};
 				};
 				dcdc_modem: dcdc-modem {
-					dcdc-dvfs-enable = <0x3C 20 0>;
-					dcdc-judge-vol-sw = <0x3C 1 0x7 7>;
+					dcdc-dvfs-enable = <0x3c 20 0>;
+					dcdc-judge-vol-sw = <0x3c 1 0x7 7>;
 					dcdc-subsys-cells =	<&pubcp_sys>,
 								<&wtlcp_sys>,
 								<&ap_sys>;
@@ -1340,14 +1340,14 @@
 				};
 			};
 
-			cpudvfs_dev: cpudvfs-dev@322A8000 {
+			cpudvfs_dev: cpudvfs-dev@322a8000 {
 				compatible = "sprd,sharkl5-cpudvfs";
 				sprd,syscon-enable = <&aon_apb_regs>;
 				dcdc-cpu0-supply = <&vddcpu>;
 				dcdc-sram-supply = <&vddsram>;
 				module-enable-cfg = <0x4 7>;
 				topdvfs-controller = <&topdvfs_controller>;
-				reg = <0 0x322A8000 0 0x1000>;
+				reg = <0 0x322a8000 0 0x1000>;
 				mpll-cells = <&mpll_0>, <&mpll_1>, <&mpll_2>;
 				apcpu-dvfs-dcdc-cells =	<&apcpu_cpu0>,
 							<&apcpu_cpu1>;
@@ -1360,14 +1360,14 @@
 					cluster-name = "lit-core-cluster";
 					row-num = <10>;
 					column-num = <7>;
-					work-index-cfg = <0x214 0xF>;
-					idle-index-cfg = <0x218 0xF>;
+					work-index-cfg = <0x214 0xf>;
+					idle-index-cfg = <0x218 0xf>;
 					tuning-latency-us = <200>;
 					tuning-result-judge = <1>;
 					dcdc-name = "DCDC_CPU0";
 					map-tbl-regs = <0x60 0x64 0x68 0x6c 0x70 0x74 0x78 0x7c 0x80 0x84>;
 					column-entry-start-bit = <0 2 15 5 9 18 12>;
-					column-entry-mask = <0x3 0x7 0x7 0xF 0x7 0x7 0x7>;
+					column-entry-mask = <0x3 0x7 0x7 0xf 0x7 0x7 0x7>;
 					cluster-devices =	<&lit_core0_dev>,
 								<&lit_core1_dev>,
 								<&lit_core2_dev>;
@@ -1408,14 +1408,14 @@
 					cluster-name = "big-core-cluster";
 					row-num = <7>;
 					column-num = <7>;
-					work-index-cfg = <0x224 0xF>;
-					idle-index-cfg = <0x228 0xF>;
+					work-index-cfg = <0x224 0xf>;
+					idle-index-cfg = <0x228 0xf>;
 					tuning-latency-us = <200>;
 					tuning-result-judge = <1>;
 					dcdc-name = "DCDC_CPU1";
-					map-tbl-regs = <0xA0 0xA4 0xA8 0xAC 0xB0 0xB4 0xB8>;
+					map-tbl-regs = <0xa0 0xa4 0xa8 0xac 0xb0 0xb4 0xb8>;
 					column-entry-start-bit = <0 2 15 5 9 18 12 21>;
-					column-entry-mask = <0x3 0x7 0x7 0xF 0x7 0x7 0x7 0x7>;
+					column-entry-mask = <0x3 0x7 0x7 0xf 0x7 0x7 0x7 0x7>;
 					cluster-devices = <&big_core0_dev>;
 					big-core-dvfs-tbl = <
 								0 0 0 0 0 0 0
@@ -1437,11 +1437,11 @@
 					cluster-name = "scu-cluster";
 					row-num = <10>;
 					column-num = <5>;
-					work-index-cfg = <0x22C 0xF>;
-					idle-index-cfg = <0x230 0xF>;
+					work-index-cfg = <0x22C 0xf>;
+					idle-index-cfg = <0x230 0xf>;
 					dcdc-name = "DCDC_CPU0";
 					tuning-func-cfg = <0x18 1>;
-					map-tbl-regs = <0x180 0x184 0x188 0x18C 0x190 0x194 0x198 0x19C 0x1A0 0x1A4>;
+					map-tbl-regs = <0x180 0x184 0x188 0x18c 0x190 0x194 0x198 0x19c 0x1a0 0x1a4>;
 					column-entry-start-bit = <0 2 11 5 8>;
 					column-entry-mask = <0x3 0x7 0x7 0x7 0x7>;
 					cluster-devices = <&scu_dev>, <&ace_dev>;
@@ -1478,7 +1478,7 @@
 					idle-index-cfg = <0x240 0x7>;
 					dcdc-name = "DCDC_CPU0";
 					tuning-func-cfg = <0x18 0>;
-					map-tbl-regs = <0x1F4 0x1F8 0x1FC 0x200 0x204 0x208>;
+					map-tbl-regs = <0x1f4 0x1f8 0x1fc 0x200 0x204 0x208>;
 					column-entry-start-bit = <0 2 5>;
 					column-entry-mask = <0x3 0x7 0x7>;
 					cluster-devices =	<&periph_dev>;
@@ -1502,11 +1502,11 @@
 					cluster-name = "gic-cluster";
 					row-num = <6>;
 					column-num = <3>;
-					work-index-cfg = <0x2E0 0x7>;
-					idle-index-cfg = <0x2E4 0x7>;
+					work-index-cfg = <0x2e0 0x7>;
+					idle-index-cfg = <0x2e4 0x7>;
 					dcdc-name = "DCDC_CPU0";
 					tuning-func-cfg = <0x18 2>;
-					map-tbl-regs = <0x280 0x284 0x288 0x28C 0x290 0x294>;
+					map-tbl-regs = <0x280 0x284 0x288 0x28c 0x290 0x294>;
 					column-entry-start-bit = <0 2 5>;
 					column-entry-mask = <0x3 0x7 0x7>;
 					cluster-devices =	<&gic_dev>;
@@ -1520,8 +1520,8 @@
 									>;
 					gic_dev: gic-dev {
 						device-name = "gic";
-						sel-get = <0x3C 12 3>;
-						div-get = <0x3C 14 7>;
+						sel-get = <0x3c 12 3>;
+						div-get = <0x3c 14 7>;
 						vol-get = <0x30 21 7>;
 					};
 				};
@@ -1542,9 +1542,9 @@
 
 				mpll_2: mpll-scu{
 					sprd,syscon-ang = <&anlg_phy_g3_regs>;
-					mpll-rst = <0xDC 3 5 6>;
-					relock-cfg = <0x26C 1>;
-					pd-cfg = <0x26C 0>;
+					mpll-rst = <0xdc 3 5 6>;
+					relock-cfg = <0x26c 1>;
+					pd-cfg = <0x26c 0>;
 				};
 
 				apcpu_cpu0: apcpu-cpu0 {
@@ -1553,7 +1553,7 @@
 				};
 				apcpu_cpu1: apcpu-cpu1 {
 					subsys-dcdc-vol-sw = <0x24 4 0x7 7>;
-					subsys-dvfs-state = <0x4C 0 7>;
+					subsys-dvfs-state = <0x4c 0 7>;
 				};
 			};
 
