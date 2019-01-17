@@ -1,7 +1,7 @@
 ifdef BUILD_FROM_KERNEL
-include sprd-board-config/roc1/udx710_1h10/udx710_1h10_base
+include sprd-board-config/orca/udx710_1h10/udx710_1h10_base
 else
-include  $(KERNEL_PATH)/sprd-board-config/roc1/udx710_1h10/udx710_1h10_base
+include  $(KERNEL_PATH)/sprd-board-config/orca/udx710_1h10/udx710_1h10_base
 endif
 
 #DEFCONFIG
