@@ -10,6 +10,7 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			   ud710-haps-bkd.dtb   \
 			   ud710-orca-haps.dtb	\
 			   udx710-1h10.dtb 	\
+			   udx710-haps.dtb 	\
 			   ums518-zebu.dtb     \
 			   ums510-haps.dtb	\
 			   ums510-1h10.dtb	\
