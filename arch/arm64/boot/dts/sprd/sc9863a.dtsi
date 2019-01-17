@@ -1145,29 +1145,6 @@
 	clocks = <&aonapb_gate CLK_DISP_EB>;
 };
 
-&vsp {
-	clock-names = "clk_mm_eb",
-			"clk_ahb_gate_vsp_eb",
-			"clk_vsp_ckg",
-			"clk_axi_gate_vsp",
-			"clk_vsp_ahb_mmu_eb",
-			"clk_ahb_vsp",
-			"clk_ahb_vsp_parent",
-			"clk_emc_vsp",
-			"clk_emc_vsp_parent",
-			"clk_vsp";
-	clocks = <&aonapb_gate CLK_MM_VSP_EB>,
-			<&aonapb_gate CLK_MM_VSP_EMC_EB>,
-			<&aonapb_gate CLK_VSP_EB>,
-			<&vspahb_gate CLK_VCKG_EB>,
-			<&vspahb_gate CLK_VVSP_EB>,
-			<&aon_clk CLK_MM_VAHB>,
-			<&pll CLK_TWPLL_153M6>,
-			<&aon_clk CLK_MM_VEMC>,
-			<&pll CLK_ISPPLL_468M>,
-			<&aon_clk CLK_VSP>;
-};
-
 &spi0 {
 	clock-names = "enable", "spi", "source";
 	clocks = <&apapb_gate CLK_SPI0_EB>,
@@ -1204,4 +1181,58 @@
 	clocks = <&aon_clk CLK_EMMC_2X>,
 		 <&rpll CLK_RPLL_390M>,
 		 <&apahb_gate CLK_EMMC_EB>;
+};
+
+&vsp {
+	clock-names = "clk_mm_eb",
+			"clk_ahb_gate_vsp_eb",
+			"clk_axi_gate_vsp",
+			"clk_vsp_ahb_mmu_eb",
+			"clk_ahb_vsp",
+			"clk_ahb_vsp_parent",
+			"clk_emc_vsp",
+			"clk_emc_vsp_parent",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_384m",
+			"clk_vsp";
+
+	clocks = <&aonapb_gate CLK_MM_VSP_EB>,
+			<&aonapb_gate CLK_MM_VSP_EMC_EB>,
+			<&vspahb_gate CLK_VCKG_EB>,
+			<&vspahb_gate CLK_VVSP_EB>,
+			<&aon_clk CLK_MM_VAHB>,
+			<&pll CLK_TWPLL_153M6>,
+			<&aon_clk CLK_MM_VEMC>,
+			<&pll CLK_ISPPLL_468M>,
+			<&pll CLK_TWPLL_256M>,
+			<&pll CLK_TWPLL_307M2>,
+			<&pll CLK_TWPLL_384M>,
+			<&aon_clk CLK_VSP>;
+};
+
+&jpg {
+	clock-names = "jpg_domain_eb",
+			"clk_aon_jpg_emc_eb",
+			"jpg_dev_eb",
+			"jpg_ckg_eb",
+			"clk_ahb_vsp",
+			"clk_ahb_vsp_parent",
+			"clk_emc_vsp",
+			"clk_emc_vsp_parent",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"jpg_clk";
+
+	clocks = <&aonapb_gate CLK_MM_VSP_EB>,
+			<&aonapb_gate CLK_MM_VSP_EMC_EB>,
+			<&vspahb_gate CLK_VCKG_EB>,
+			<&vspahb_gate CLK_VJPG_EB>,
+			<&aon_clk CLK_MM_VAHB>,
+			<&pll CLK_TWPLL_153M6>,
+			<&aon_clk CLK_MM_VEMC>,
+			<&pll CLK_ISPPLL_468M>,
+			<&pll CLK_TWPLL_256M>,
+			<&pll CLK_TWPLL_307M2>,
+			<&aon_clk CLK_JPG>;
 };

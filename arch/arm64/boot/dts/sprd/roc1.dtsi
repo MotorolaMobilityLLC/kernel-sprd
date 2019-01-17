@@ -516,7 +516,7 @@
 					MASK_PMU_APB_PD_AP_VSP_AUTO_SHUTDOWN_EN>
 					,
 					<&pmu_apb_regs
-					REG_PMU_APB_PWR_STATUS0_DBG
+					REG_PMU_APB_PWR_STATUS1_DBG
 					MASK_PMU_APB_PD_AP_VSP_STATE>,
 					<&aon_apb_regs
 					REG_AON_APB_APB_EB1
