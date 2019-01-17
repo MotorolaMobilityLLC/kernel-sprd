@@ -3024,22 +3024,22 @@ CONFIG_EXPERT
 	[must] console
 	[function] Configure standard kernel features (expert users).
 CONFIG_EXT2_FS
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_EXT2_FS_XATTR
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_EXT3_FS
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1
 	[field]
 	[subsys]
 	[must]
