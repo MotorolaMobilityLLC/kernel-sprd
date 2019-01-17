@@ -44,7 +44,7 @@
 				<0x1 0x48100000 0x0 0x11300000>;      /* cache 275M */
 		};
 		fb_reserved: framebuffer@18a800000{
-				reg = <0x0 0x8a800000 0x0 0x2fd0000>;
+				reg = <0x0 0x8a800000 0x0 0x1fe0000>;
 		};
 	};
 
@@ -89,31 +89,5 @@
 };
 
 &dpu {
-	status = "okay";
-};
-
-&dsi {
-	status = "okay";
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	panel {
-		compatible = "sprd,generic-mipi-panel";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reg = <0>;
-
-		sprd,force-attached = "lcd_dummy_mipi_hd";
-
-		port {
-			reg = <1>;
-			panel_in: endpoint {
-				remote-endpoint = <&dphy_out>;
-			};
-		};
-	};
-};
-
-&dphy {
 	status = "okay";
 };

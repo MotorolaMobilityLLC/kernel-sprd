@@ -31,4 +31,28 @@
 		ports = <&dpu_port>;
 		/*gsp = <&gsp>;*/
 	};
+
+	dummy-connector {
+		compatible = "sprd,dummy-connector";
+
+		display-timings {
+			timing0 {
+				clock-frequency = <129870000>;
+				hactive = <1080>;
+				vactive = <1920>;
+				hback-porch = <10>;
+				hfront-porch = <10>;
+				vback-porch = <10>;
+				vfront-porch = <10>;
+				hsync-len = <10>;
+				vsync-len = <10>;
+			};
+		};
+
+		port {
+			dummy_connector_in: endpoint {
+				remote-endpoint = <&dpu_out>;
+			};
+		};
+	};
 };

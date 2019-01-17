@@ -230,75 +230,7 @@
 
 				dpu_port: port {
 					dpu_out: endpoint {
-						remote-endpoint = <&dsi_in>;
-					};
-				};
-			};
-
-			dsi: dsi@20400000 {
-				compatible = "sprd,dsi-host";
-				reg = <0x0 0x20400000 0x0 0x1000>;
-				/*syscons = <&ap_ahb_regs REG_AP_AHB_AHB_RST
-					MASK_AP_AHB_DSI_SOFT_RST>;*/
-				syscon-names = "reset";
-				interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
-					<GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
-				status = "disabled";
-
-				sprd,ip = "sprd,dsi-ctrl", "r3p1";
-				sprd,soc = "sharkl5Pro";
-
-				ports {
-					#address-cells = <1>;
-					#size-cells = <0>;
-
-					port@0 {
-						reg = <0>;
-						dsi_out: endpoint {
-							remote-endpoint = <&dphy_in>;
-						};
-					};
-
-					port@1 {
-						reg = <1>;
-						dsi_in: endpoint {
-							remote-endpoint = <&dpu_out>;
-						};
-					};
-				};
-			};
-
-			dphy: dphy {
-				compatible = "sprd,dsi-phy";
-				#address-cells = <1>;
-				#size-cells = <0>;
-				reg = <0x0 0x20400000 0x0 0x1000>;
-				/*syscons = <&ap_ahb_regs
-					REG_AP_AHB_MISC_CKG_EN
-					(MASK_AP_AHB_DPHY_REF_CKG_EN |
-					MASK_AP_AHB_DPHY_CFG_CKG_EN)>,
-					<&pmu_apb_regs
-					REG_PMU_APB_ANALOG_PHY_PD_CFG
-					MASK_PMU_APB_DSI_PD_REG>;*/
-				syscon-names = "enable", "power";
-				status = "disabled";
-
-				sprd,ip = "sprd,megacores-sharkl5";
-				sprd,soc = "sharkl5Pro";
-
-				/* output port */
-				port@0 {
-					reg = <0>;
-					dphy_out: endpoint {
-						remote-endpoint = <&panel_in>;
-					};
-				};
-
-				/* input port*/
-				port@1 {
-					reg = <1>;
-					dphy_in: endpoint {
-						remote-endpoint = <&dsi_out>;
+						remote-endpoint = <&dummy_connector_in>;
 					};
 				};
 			};
