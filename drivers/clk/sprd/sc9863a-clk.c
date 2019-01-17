@@ -296,7 +296,7 @@ static SPRD_PLL_WITH_ITABLE_1K(dpll1_clk, "dpll1", "dpll1-gate", 0x18,
 				   3, ftable_dpll, f_dpll, 240);
 
 static CLK_FIXED_FACTOR(dpll0_933m, "dpll0-933m", "dpll0", 2, 1, 0);
-static CLK_FIXED_FACTOR(dpll0_622m3, "dpll0-622m", "dpll0", 3, 1, 0);
+static CLK_FIXED_FACTOR(dpll0_622m3, "dpll0-622m3", "dpll0", 3, 1, 0);
 static CLK_FIXED_FACTOR(dpll1_400m, "dpll1-400m", "dpll1", 4, 1, 0);
 static CLK_FIXED_FACTOR(dpll1_266m7, "dpll1-266m7", "dpll1", 6, 1, 0);
 static CLK_FIXED_FACTOR(dpll1_123m1, "dpll1-123m1", "dpll1", 13, 1, 0);
@@ -1029,11 +1029,11 @@ static SPRD_SC_GATE_CLK(splk_eb,	"splk-eb",	"aon-apb", 0x0,
 static SPRD_SC_GATE_CLK(mspi_eb,	"mspi-eb",	"aon-apb", 0x0,
 		     0x1000, BIT(23), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ap_wdg_eb,	"ap-wdg-eb",	"aon-apb", 0x0,
-		     0x1000, BIT(25), CLK_IGNORE_UNUSED, 0);
+		     0x1000, BIT(24), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(mm_eb,		"mm-eb",	"aon-apb", 0x0,
-		     0x1000, BIT(26), CLK_IGNORE_UNUSED, 0);
+		     0x1000, BIT(25), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(aon_apb_ckg_eb,	"aon-apb-ckg-eb", "aon-apb", 0x0,
-		     0x1000, BIT(27), CLK_IGNORE_UNUSED, 0);
+		     0x1000, BIT(26), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ca53_ts0_eb, "ca53-ts0-eb",	"aon-apb", 0x0,
 		     0x1000, BIT(28), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ca53_ts1_eb, "ca53-ts1-eb",	"aon-apb", 0x0,
@@ -1433,6 +1433,24 @@ static SPRD_SC_GATE_CLK(mcsi_s_eb, "mcsi-s-eb", "mm-ahb", 0x0, 0x1000,
 			BIT(4), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(mcsi_t_eb, "mcsi-t-eb", "mm-ahb", 0x0, 0x1000,
 			BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_GATE_CLK(dcam_axi_eb, "dcam-axi-eb", "mm-ahb", 0x8,
+		     BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_GATE_CLK(isp_axi_eb, "isp-axi-eb", "mm-ahb", 0x8,
+		     BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_GATE_CLK(mcsi_eb,	"mcsi-eb", "mm-ahb", 0x8,
+		     BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_GATE_CLK(mcsi_s_ckg_eb, "mcsi-s-ckg-eb", "mm-ahb", 0x8,
+		     BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_GATE_CLK(mcsi_t_ckg_eb, "mcsi-t-ckg-eb", "mm-ahb", 0x8,
+		     BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_GATE_CLK(sensor0_eb, "sensor0-eb", "mm-ahb", 0x8,
+		     BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_GATE_CLK(sensor1_eb, "sensor1-eb", "mm-ahb", 0x8,
+		     BIT(6), CLK_IGNORE_UNUSED, 0);
+static SPRD_GATE_CLK(sensor2_eb, "sensor2-eb", "mm-ahb", 0x8,
+		     BIT(7), CLK_IGNORE_UNUSED, 0);
+static SPRD_GATE_CLK(mcphy_cfg_eb, "mcphy-cfg-eb", "mm-ahb", 0x8,
+		     BIT(8), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *sc9863a_mm_gate_clks[] = {
 	/* address base is 0x60800000 */
@@ -1442,6 +1460,15 @@ static struct sprd_clk_common *sc9863a_mm_gate_clks[] = {
 	&mahbcsi_eb.common,
 	&mcsi_s_eb.common,
 	&mcsi_t_eb.common,
+	&dcam_axi_eb.common,
+	&isp_axi_eb.common,
+	&mcsi_eb.common,
+	&mcsi_s_ckg_eb.common,
+	&mcsi_t_ckg_eb.common,
+	&sensor0_eb.common,
+	&sensor1_eb.common,
+	&sensor2_eb.common,
+	&mcphy_cfg_eb.common,
 };
 
 static struct clk_hw_onecell_data sc9863a_mm_gate_hws = {
@@ -1452,6 +1479,15 @@ static struct clk_hw_onecell_data sc9863a_mm_gate_hws = {
 		[CLK_MAHBCSI_EB]	= &mahbcsi_eb.common.hw,
 		[CLK_MCSI_S_EB]		= &mcsi_s_eb.common.hw,
 		[CLK_MCSI_T_EB]		= &mcsi_t_eb.common.hw,
+		[CLK_DCAM_AXI_EB]	= &dcam_axi_eb.common.hw,
+		[CLK_ISP_AXI_EB]	= &isp_axi_eb.common.hw,
+		[CLK_MCSI_EB]		= &mcsi_eb.common.hw,
+		[CLK_MCSI_S_CKG_EB]	= &mcsi_s_ckg_eb.common.hw,
+		[CLK_MCSI_T_CKG_EB]	= &mcsi_t_ckg_eb.common.hw,
+		[CLK_SENSOR0_EB]	= &sensor0_eb.common.hw,
+		[CLK_SENSOR1_EB]	= &sensor1_eb.common.hw,
+		[CLK_SENSOR2_EB]	= &sensor2_eb.common.hw,
+		[CLK_MCPHY_CFG_EB]	= &mcphy_cfg_eb.common.hw,
 	},
 	.num	= CLK_MM_GATE_NUM,
 };

@@ -304,7 +304,16 @@
 #define CLK_MAHBCSI_EB		3
 #define CLK_MCSI_S_EB		4
 #define CLK_MCSI_T_EB		5
-#define CLK_MM_GATE_NUM		(CLK_MCSI_T_EB + 1)
+#define CLK_DCAM_AXI_EB		6
+#define CLK_ISP_AXI_EB		7
+#define CLK_MCSI_EB		8
+#define CLK_MCSI_S_CKG_EB	9
+#define CLK_MCSI_T_CKG_EB	10
+#define CLK_SENSOR0_EB		11
+#define CLK_SENSOR1_EB		12
+#define CLK_SENSOR2_EB		13
+#define CLK_MCPHY_CFG_EB	14
+#define CLK_MM_GATE_NUM		(CLK_MCPHY_CFG_EB + 1)
 
 #define CLK_MIPI_CSI		0
 #define CLK_MIPI_CSI_S		1
