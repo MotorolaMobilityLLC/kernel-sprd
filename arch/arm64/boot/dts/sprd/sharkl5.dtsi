@@ -128,6 +128,12 @@
 			reg = <0 0x60100000 0 0x10000>;
 		};
 
+		gpu_dvfs_apb_regs: syscon@60110000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x60110000 0 0x10000>;
+		};
+
 		mm_ahb_regs: syscon@62200000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
@@ -332,13 +338,23 @@
 					(MASK_GPU_APB_AWQOS_THRESHOLD_GPU |
 					MASK_GPU_APB_ARQOS_THRESHOLD_GPU |
 					MASK_GPU_APB_AWQOS_GPU |
-					MASK_GPU_APB_ARQOS_GPU)>;
+					MASK_GPU_APB_ARQOS_GPU)>,
+				<&gpu_dvfs_apb_regs
+					REG_GPU_DVFS_APB_GPU_DVFS_INDEX_CFG
+					MASK_GPU_DVFS_APB_GPU_DVFS_INDEX>,
+				<&gpu_dvfs_apb_regs
+					REG_GPU_DVFS_APB_GPU_SW_DVFS_CTRL
+					(MASK_GPU_DVFS_APB_GPU_DVFS_ACK |
+					MASK_GPU_DVFS_APB_GPU_DVFS_VOLTAGE_SW |
+					MASK_GPU_DVFS_APB_GPU_DVFS_REQ_SW)>;
 
 				syscon-names = "top_force_shutdown",
 					"rgx_dust_force_shutdown",
 					"rgx_dust_auto_shutdown",
 					"gpu_qos_sel",
-					"gpu_qos";
+					"gpu_qos",
+					"dvfs_index_cfg",
+					"sw_dvfs_ctrl";
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
 
 				operating-points = <
