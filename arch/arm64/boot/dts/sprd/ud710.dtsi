@@ -819,6 +819,27 @@
 	<&ap_clk CLK_AP_SPI3>, <&g12_pll CLK_TWPLL_192M>;
 };
 
+&uart0 {
+	clock-names = "enable", "uart", "source";
+	clocks = <&apapb_gate CLK_UART0_EB>,
+		 <&ap_clk CLK_AP_UART0>,
+		 <&ext_26m>;
+};
+
+&uart1 {
+	clock-names = "enable", "uart", "source";
+	clocks = <&apapb_gate CLK_UART1_EB>,
+		 <&ap_clk CLK_AP_UART1>,
+		 <&ext_26m>;
+};
+
+&uart2 {
+	clock-names = "enable", "uart", "source";
+	clocks = <&apapb_gate CLK_UART2_EB>,
+		 <&ap_clk CLK_AP_UART2>,
+		 <&ext_26m>;
+};
+
 &vsp {
 	clock-names = "clk_ahb_gate_vsp_eb",
 			"clk_src_256m",
