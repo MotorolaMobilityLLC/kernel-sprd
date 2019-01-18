@@ -64,12 +64,13 @@ struct jpg_dev_t {
 	struct clk *jpg_parent_clk;
 	struct clk *jpg_parent_clk_df;
 	struct clk *jpg_domain_eb;
-	struct clk *clk_vsp_mq_ahb_eb;
 	struct clk *clk_aon_jpg_emc_eb;
-	struct clk *clk_aon_jpg_eb;
 	struct clk *jpg_dev_eb;
 	struct clk *jpg_ckg_eb;
-
+	struct clk *clk_ahb_vsp;
+	struct clk *ahb_parent_clk;
+	struct clk *clk_emc_vsp;
+	struct clk *emc_parent_clk;
 
 	unsigned int irq;
 	unsigned int version;
@@ -85,6 +86,7 @@ struct jpg_dev_t {
 	unsigned int jpg_softreset_reg_offset;
 	unsigned int jpg_reset_mask;
 	int max_freq_level;
+	bool jpg_qos_exist_flag;
 };
 
 struct clock_name_map_t {

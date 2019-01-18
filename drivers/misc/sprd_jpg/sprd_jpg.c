@@ -214,24 +214,27 @@ static int jpg_parse_dt(struct platform_device *pdev)
 	jpg_hw_dev.clock_name_map = clock_name_map;
 
 	qos_np = of_parse_phandle(np, "jpg_qos", 0);
-	if (!qos_np)
+	if (!qos_np) {
 		pr_warn("can't find jpg qos cfg node\n");
+		jpg_hw_dev.jpg_qos_exist_flag = 0;
+	} else {
+		ret = of_property_read_u8(qos_np, "awqos",
+						&qos_cfg.awqos);
+		if (ret)
+			pr_warn("read awqos_low failed, use default\n");
 
-	ret = of_property_read_u8(qos_np, "awqos",
-					&qos_cfg.awqos);
-	if (ret)
-		pr_warn("read awqos_low failed, use default\n");
+		ret = of_property_read_u8(qos_np, "arqos-low",
+						&qos_cfg.arqos_low);
+		if (ret)
+			pr_warn("read arqos-low failed, use default\n");
 
-	ret = of_property_read_u8(qos_np, "arqos-low",
-					&qos_cfg.arqos_low);
-	if (ret)
-		pr_warn("read arqos-low failed, use default\n");
+		ret = of_property_read_u8(qos_np, "arqos-high",
+						&qos_cfg.arqos_high);
+		if (ret)
+			pr_warn("read arqos-high failed, use default\n");
 
-	ret = of_property_read_u8(qos_np, "arqos-high",
-					&qos_cfg.arqos_high);
-	if (ret)
-		pr_warn("read arqos-high failed, use default\n");
-
+		jpg_hw_dev.jpg_qos_exist_flag = 1;
+	}
 	pr_info("%x, %x, %x, %x", qos_cfg.awqos, qos_cfg.arqos_high,
 		qos_cfg.arqos_low, qos_cfg.reg_offset);
 
@@ -276,7 +279,9 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case JPG_ENABLE:
 		pr_debug("jpg ioctl JPG_ENABLE\n");
+#if IS_ENABLED(CONFIG_SPRD_MM_PW_DOMAIN_R6P0)
 		sprd_cam_domain_eb();
+#endif
 		ret = jpg_clk_enable(jpg_hw_dev);
 		if (ret == 0)
 			jpg_fp->is_clock_enabled = 1;
@@ -287,7 +292,9 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			jpg_clk_disable(jpg_hw_dev);
 
 		jpg_fp->is_clock_enabled = 0;
+#if IS_ENABLED(CONFIG_SPRD_MM_PW_DOMAIN_R6P0)
 		sprd_cam_domain_disable();
+#endif
 		pr_info("jpg ioctl JPG_DISABLE\n");
 		break;
 	case JPG_ACQUAIRE:
@@ -350,11 +357,12 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				   regs[RESET].mask, regs[RESET].mask);
 		regmap_update_bits(regs[RESET].gpr, regs[RESET].reg,
 				   regs[RESET].mask, 0);
-		writel_relaxed((qos_cfg.arqos_high << 8)
-			| (qos_cfg.arqos_low << 4)
-			| qos_cfg.awqos,
-			((void __iomem *)jpg_hw_dev->sprd_jpg_virt
-			+ qos_cfg.reg_offset));
+		if (jpg_hw_dev->jpg_qos_exist_flag)
+			writel_relaxed((qos_cfg.arqos_high << 8)
+				| (qos_cfg.arqos_low << 4)
+				| qos_cfg.awqos,
+				((void __iomem *)jpg_hw_dev->sprd_jpg_virt
+				+ qos_cfg.reg_offset));
 
 		break;
 
