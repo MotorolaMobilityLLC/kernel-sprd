@@ -714,7 +714,7 @@ static SPRD_MUX_CLK(clk_vsp, "vsp-clk", vsp_parents, 0x380,
 
 static const char * const core_parents[] = { "ext-26m", "twpll-512m",
 					     "twpll-768m", "lpll", "dpll0",
-					     "mpll2", "mpll1", "mpll0" };
+					     "mpll2", "mpll0", "mpll1" };
 static SPRD_COMP_CLK(core0_clk, "core0-clk", core_parents, 0xa20,
 		     0, 3, 8, 3, 0);
 static SPRD_COMP_CLK(core1_clk, "core1-clk", core_parents, 0xa24,
