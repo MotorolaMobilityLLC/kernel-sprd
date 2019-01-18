@@ -3499,6 +3499,7 @@ static int sprd_codec_probe(struct platform_device *pdev)
 		return -EPROBE_DEFER;
 	}
 
+	mutex_init(&sprd_codec->digital_enable_mutex);
 	arch_audio_set_pmu_apb_gpr(pmu_apb_gpr);
 	of_node_put(np);
 	dig_pdev = of_find_device_by_node(dig_np);
