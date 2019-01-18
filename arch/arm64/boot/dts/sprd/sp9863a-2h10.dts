@@ -92,11 +92,25 @@
 	};
 
 	sprd_marlin3: sprd-marlin3 {
-		common-chip;
-		wait-ge2;
+		compatible = "sprd,marlin3";
+		m2-to-ap-coexist-gpios = <&ap_gpio 119 GPIO_ACTIVE_LOW>;
+		m2-wakeup-ap-gpios = <&ap_gpio 77 GPIO_ACTIVE_LOW>;
+		permit-ap-send-gpios = <&ap_gpio 69 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&ap_gpio 95 GPIO_ACTIVE_LOW>;
+		enable-gpios = <&ap_gpio 94 GPIO_ACTIVE_LOW>;
+		m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
+		dvdd12-supply = <&vddcon>;
+		avdd12-supply = <&vddcon>;
+		avdd33-supply = <&vddwifipa>;
+		dcxo18-supply = <&vddkpled>;
+		clock-names = "clk_32k","source","enable";
+		clocks = <&aon_clk CLK_AUX0>,
+			 <&ext_32k>,
+			 <&aonapb_gate CLK_AUX0_EB>;
+		sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-ahb/20600000.sdio/by-name/wcnmodem";
+		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-ahb/20600000.sdio/by-name/gnssmodem";
 		adma-tx;
 		adma-rx;
-		pwrseq;
 		post-power-on-delay-ms = <20>;
 	};
 
