@@ -196,6 +196,10 @@
 			reg = <0x0 0xf8dc0000 0x0 0x03000000>;
 		};
 
+		mm_reserved: mm-mem@e1bc0000 {
+			reg = <0x0 0xe1bc0000 0x0 0x1c000000>;
+		};
+
 		fd_reserved: fd-mem@fbdc0000 {
 			reg = <0x0 0xfbdc0000 0x0 0x01e00000>;
 		};
@@ -224,6 +228,7 @@
 			reg = <1>;
 			label = "carveout_mm";
 			type = <2>;
+			memory-region = <&mm_reserved>;
 		};
 
 		heap@2 {
