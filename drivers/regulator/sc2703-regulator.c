@@ -451,7 +451,6 @@ static int sc2703_buck_probe(struct i2c_client *i2c,
 {
 	struct sc2703_buck *chip;
 	struct regulator_config config = { };
-	struct regulator_dev *rdev;
 	int ret;
 
 	chip = devm_kzalloc(&i2c->dev, sizeof(*chip), GFP_KERNEL);
@@ -478,6 +477,13 @@ static int sc2703_buck_probe(struct i2c_client *i2c,
 	if (ret < 0)
 		return ret;
 
+	chip->rdev = devm_regulator_register(&i2c->dev, &sc2703_buck_reg,
+					     &config);
+	if (IS_ERR(chip->rdev)) {
+		dev_err(&i2c->dev, "Failed to register sc2703-regulator\n");
+		return PTR_ERR(chip->rdev);
+	}
+
 	if (chip->irq == 0) {
 		dev_warn(chip->dev, "No IRQ configured\n");
 	} else {
@@ -503,14 +509,8 @@ static int sc2703_buck_probe(struct i2c_client *i2c,
 		if (ret < 0)
 			return ret;
 	}
+	sc2703_debugfs_init(chip->rdev);
 
-	rdev = devm_regulator_register(&i2c->dev, &sc2703_buck_reg, &config);
-	if (IS_ERR(rdev)) {
-		dev_err(&i2c->dev, "Failed to register sc2703-regulator\n");
-		return PTR_ERR(rdev);
-	}
-	sc2703_debugfs_init(rdev);
-	chip->rdev = rdev;
 	return 0;
 }
 
