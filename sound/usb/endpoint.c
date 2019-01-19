@@ -973,7 +973,7 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 	int err;
 	unsigned int i;
 	struct snd_usb_substream *subs = ep->data_subs;
-	struct usb_hcd *hcd = bus_to_hcd(subs->dev->bus);
+	struct usb_hcd *hcd;
 	int is_mono;
 	int is_pcm_24bit;
 	int is_offload_mod;
@@ -1059,6 +1059,7 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 			is_pcm_24bit ? "data 24bit" : "data 16bit",
 			iis_width == USB_AUD_IIS_WIDTH_24 ?
 			"iis width 24bit" : "iis width 16bit");
+		hcd = bus_to_hcd(subs->dev->bus);
 		hcd->driver->offload_config(hcd, ep->ep_num, is_mono,
 			is_pcm_24bit, iis_width, 48, is_offload_mod);
 	}
