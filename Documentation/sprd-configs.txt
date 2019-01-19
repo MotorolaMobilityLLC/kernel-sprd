@@ -2424,7 +2424,7 @@ CONFIG_DEBUG_BUGVERBOSE
 	[function] For debug bugverbose.
 CONFIG_DEBUG_DRIVER
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] sharkl5
 	[field] make,code
 	[subsys] core
 	[must] debug
