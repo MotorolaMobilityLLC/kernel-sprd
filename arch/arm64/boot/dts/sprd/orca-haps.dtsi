@@ -39,6 +39,12 @@
 			reg = <0 0x29000000 0 0x100000>;
 		};
 
+		anlg_phy_g4_regs: syscon@634c0000 {
+			compatible = "sprd,syscon-anag4", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x634c0000 0 0x10000>;
+		};
+
 		pmu_apb_regs: syscon@64010000 {
 			compatible = "sprd,sys-pmu-apb", "syscon";
 			#syscon-cells = <2>;
@@ -127,6 +133,30 @@
 			#size-cells = <2>;
 			ranges;
 
+			usb3: usb3-0@29100000 {
+				compatible = "sprd,roc1-dwc3";
+				reg = <0 0x29100000 0 0x100000>;
+				#address-cells = <2>;
+				#size-cells = <2>;
+				ranges;
+
+				dwc3@29100000 {
+					compatible = "snps,dwc3";
+					reg = <0 0x29100000 0 0x100000>;
+					interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
+					interrupt-names = "irq";
+					usb-phy = <&ssphy>, <&ssphy>;
+					phy_type = "utmi_wide";
+					dr_mode = "peripheral";
+					snps,usb3-u1u2-disable;
+					snps,dis_u3_susphy_quirk;
+					snps,dis_u2_susphy_quirk;
+					snps,overlap_check_quirk;
+					snps,ep_out_aligned_size_quirk;
+					snps,disconnect_event_quirk;
+				};
+			};
+
 			pcie0@2b100000 {
 				compatible = "sprd,pcie", "snps,dw-pcie";
 				reg = <0x0 0x2b100000 0x0 0x2000>,
@@ -156,6 +186,14 @@
 				num-ib-windows = <6>;
 				num-ob-windows = <8>;
 				status = "okay";
+			};
+
+			ssphy: ssphy@634c0000 {
+				compatible = "sprd,orca1-ssphy0";
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+				sprd,syscon-ipa-ahb = <&ap_ipa_ahb_regs>;
+				sprd,syscon-anag4 = <&anlg_phy_g4_regs>;
+				sprd,vdd-voltage = <3300000>;
 			};
 		};
 	};
