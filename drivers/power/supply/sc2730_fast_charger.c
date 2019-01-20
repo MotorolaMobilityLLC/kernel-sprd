@@ -267,6 +267,8 @@ static int sc2730_fchg_usb_get_property(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CHARGE_TYPE:
 		val->intval = sc2730_fchg_get_detect_status(info);
+		if (val->intval != POWER_SUPPLY_CHARGE_TYPE_FAST)
+			sc2730_fchg_disable(info);
 		break;
 
 	default:
