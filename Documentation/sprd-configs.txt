@@ -9968,7 +9968,7 @@ CONFIG_SPRD_SOC_THERMAL
 	[function] enable virtual sensor for soc
 CONFIG_SPRD_SYSDUMP
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] soc
 	[must] user
