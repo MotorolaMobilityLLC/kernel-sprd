@@ -962,11 +962,11 @@ CONFIG_BACKLIGHT_PWM
 	[function] Enable pwm backlight driver.
 CONFIG_BACKLIGHT_SC2703
 	[arch] all
-	[plat] sharkl5,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[plat] all
+	[field] make
+	[subsys] video
+	[must] home
+	[function] Enable sc2703 backlight & display power
 CONFIG_BASE_FULL
 	[arch] all
 	[plat] all
