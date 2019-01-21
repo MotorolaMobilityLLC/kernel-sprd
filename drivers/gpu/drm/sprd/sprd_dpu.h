@@ -124,8 +124,7 @@ struct dpu_core_ops {
 	void (*enable_vsync)(struct dpu_context *ctx);
 	u32 (*isr)(struct dpu_context *ctx);
 	void (*ifconfig)(struct dpu_context *ctx);
-	void (*write_back)(struct dpu_context *ctx, int enable);
-	void (*wb_debug)(struct dpu_context *ctx, u32 *paddr, bool enable);
+	void (*write_back)(struct dpu_context *ctx, u8 count, bool debug);
 	void (*flip)(struct dpu_context *ctx,
 		     struct sprd_dpu_layer layers[], u8 count);
 	int (*capability)(struct dpu_context *ctx,
@@ -169,6 +168,7 @@ struct dpu_context {
 	struct videomode vm;
 	struct semaphore refresh_lock;
 	struct work_struct wb_work;
+	u32 wb_addr_p;
 };
 
 struct sprd_dpu {

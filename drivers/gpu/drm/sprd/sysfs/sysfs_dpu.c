@@ -259,7 +259,6 @@ static ssize_t wb_debug_show(struct device *dev,
 {
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
 	struct dpu_context *ctx = &dpu->ctx;
-	u32 paddr;
 	void *vaddr = NULL;
 	char filename[128];
 	struct timex txc;
@@ -270,9 +269,9 @@ static ssize_t wb_debug_show(struct device *dev,
 		return -EINVAL;
 	}
 
-	if (dpu->core && dpu->core->wb_debug) {
-		dpu->core->wb_debug(ctx, &paddr, true);
-		vaddr = __va(paddr);
+	if (dpu->core && dpu->core->write_back) {
+		dpu->core->write_back(ctx, 1, true);
+		vaddr = __va(ctx->wb_addr_p);
 	} else
 		return -ENXIO;
 

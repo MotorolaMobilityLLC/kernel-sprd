@@ -799,12 +799,6 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 	if ((int_mask & DISPC_INT_DPI_VSYNC_MASK) && ctx->is_inited)
 		drm_crtc_handle_vblank(&dpu->crtc);
 
-	/* give a new chance for write back */
-	if (int_mask & DISPC_INT_WB_FAIL_MASK) {
-		DRM_WARN("Warning: dpu write back fail!\n");
-		drm_crtc_vblank_on(&dpu->crtc);
-	}
-
 	return IRQ_HANDLED;
 }
 

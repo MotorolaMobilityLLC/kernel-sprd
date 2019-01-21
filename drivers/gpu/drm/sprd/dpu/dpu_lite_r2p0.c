@@ -289,13 +289,15 @@ static bool need_scale;
 static bool evt_update;
 static bool evt_stop;
 static int wb_en;
+static int wb_xfbc_en = 1;
+static int max_vsync_count;
+static int vsync_count;
 static struct sprd_dpu_layer wb_layer;
 static struct wb_region region[3];
-static int wb_xfbc_en = 1;
 //static bool sprd_corner_support;
 //static int sprd_corner_radius;
-module_param(wb_en, int, 0644);
 module_param(wb_xfbc_en, int, 0644);
+module_param(max_vsync_count, int, 0644);
 
 static void dpu_enhance_reload(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
@@ -402,6 +404,14 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		wake_up_interruptible_all(&wait_queue);
 	}
 
+	/* dpu vsync isr */
+	if (reg_val & DISPC_INT_DPI_VSYNC_MASK) {
+		/* write back feature */
+		if ((vsync_count == max_vsync_count) && wb_en)
+			schedule_work(&ctx->wb_work);
+		vsync_count++;
+	}
+
 	/* dpu stop done isr */
 	if (reg_val & DISPC_INT_DONE_MASK) {
 		evt_stop = true;
@@ -416,12 +426,23 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		 * no need to display. Otherwise the new frame will be covered
 		 * by the write back buffer, which is not what we wanted.
 		 */
-		if (!(reg->dpu_int_en & DISPC_INT_DPI_VSYNC_MASK)
-			&& wb_en) {
+		if ((vsync_count > max_vsync_count) && wb_en) {
+			wb_en = false;
 			schedule_work(&ctx->wb_work);
 			/*reg_val |= DISPC_INT_FENCE_SIGNAL_REQUEST;*/
 		}
+
 		pr_debug("wb done\n");
+	}
+
+	/* dpu write back error isr */
+	if (reg_val & DISPC_INT_WB_FAIL_MASK) {
+		pr_err("dpu write back fail\n");
+		/* give a new chance for write back */
+		if (max_vsync_count > 0) {
+			wb_en = true;
+			vsync_count = 0;
+		}
 	}
 
 	/* dpu ifbc payload error isr */
@@ -538,7 +559,7 @@ static void dpu_write_back(struct dpu_context *ctx,
 					((region[i].size_h >> 3) << 16);
 	}
 
-	if (wb_xfbc_en) {
+	if (wb_xfbc_en && !debug) {
 		reg->wb_cfg = (2 << 1) | BIT(0);
 		reg->wb_base_addr = wb_layer.addr[0] +
 				wb_layer.header_size_r;
@@ -548,52 +569,51 @@ static void dpu_write_back(struct dpu_context *ctx,
 	}
 	reg->wb_pitch = ctx->vm.hactive;
 
-	/*update trigger*/
+	/* update trigger */
 	reg->dpu_ctrl |= BIT(2);
 
-	/*writeback trigger*/
-	if (!debug) {
+	if (debug)
+		/* writeback debug trigger */
+		reg->wb_ctrl = BIT(3);
+	else {
+		/* writeback trigger */
 		for (i = 0; i < count; i++) {
 			index = region[i].index;
 			reg->wb_ctrl |= 1 << index;
 		}
-	} else
-		reg->wb_ctrl = BIT(3);
+	}
+
+	dpu_wait_update_done(ctx);
 
 	pr_debug("write back trigger\n");
 }
 
-static void dpu_write_back_debug(struct dpu_context *ctx,
-				u32 *paddr, bool enable)
+static void dpu_wb_flip(struct dpu_context *ctx)
 {
-	*paddr = wb_layer.addr[0];
-
-	if (enable) {
-		wb_en = false;
-		wb_xfbc_en = false;
-		dpu_write_back(ctx, 1, enable);
-	} else {
-		wb_en = true;
-		wb_xfbc_en = true;
-	}
-}
-
-static void dpu_wb_flip_work(struct work_struct *data)
-{
-	int ret;
-	struct dpu_context *ctx =
-		container_of(data, struct dpu_context, wb_work);
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	ret = down_trylock(&ctx->refresh_lock);
-	if (ret != 1) {
-		dpu_clean_all(ctx);
-		dpu_layer(ctx, &wb_layer);
-		reg->dpu_ctrl |= BIT(2);
-		dpu_wait_update_done(ctx);
-		up(&ctx->refresh_lock);
-	} else
-		pr_debug("cannot acquire lock for wb_lock\n");
+	dpu_clean_all(ctx);
+	dpu_layer(ctx, &wb_layer);
+
+	reg->dpu_ctrl |= BIT(2);
+	dpu_wait_update_done(ctx);
+
+	pr_debug("write back flip\n");
+}
+
+static void dpu_wb_work_func(struct work_struct *data)
+{
+	struct dpu_context *ctx =
+		container_of(data, struct dpu_context, wb_work);
+
+	down(&ctx->refresh_lock);
+
+	if (wb_en && (vsync_count > max_vsync_count))
+		dpu_write_back(ctx, 1, false);
+	else if (!wb_en)
+		dpu_wb_flip(ctx);
+
+	up(&ctx->refresh_lock);
 }
 
 static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
@@ -630,7 +650,7 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 {
 	int ret;
 	static int need_config = 1;
-	u32 wb_addr_p, wb_hdr_size;
+	u32 wb_hdr_size;
 	size_t wb_buf_size;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
@@ -642,9 +662,9 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 
 	wb_buf_size = XFBC8888_BUFFER_SIZE(ctx->vm.hactive, ctx->vm.vactive);
 	wb_hdr_size = XFBC8888_HEADER_SIZE(ctx->vm.hactive, ctx->vm.vactive);
-	ret = dpu_wb_buf_alloc(dpu, wb_buf_size, &wb_addr_p);
+	ret = dpu_wb_buf_alloc(dpu, wb_buf_size, &ctx->wb_addr_p);
 	if (ret) {
-		wb_en = false;
+		max_vsync_count = 0;
 		return -1;
 	}
 
@@ -662,13 +682,13 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	wb_layer.format = DRM_FORMAT_ABGR8888;
 	wb_layer.xfbc = wb_xfbc_en;
 	wb_layer.pitch[0] = ctx->vm.hactive * 4;
-	wb_layer.addr[0] = wb_addr_p;
+	wb_layer.addr[0] = ctx->wb_addr_p;
 	wb_layer.header_size_r = wb_hdr_size;
 
-	wb_en = true;
+	max_vsync_count = 4;
 	need_config = 0;
 
-	INIT_WORK(&ctx->wb_work, dpu_wb_flip_work);
+	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
 
 	return 0;
 }
@@ -957,6 +977,10 @@ static void dpu_flip(struct dpu_context *ctx,
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	int i;
 
+	vsync_count = 0;
+	if (max_vsync_count > 0 && count > 1)
+		wb_en = true;
+
 	/*
 	 * Make sure the dpu is in stop status. DPU_LITE_R2P0 has no shadow
 	 * registers in EDPI mode. So the config registers can only be
@@ -1091,10 +1115,6 @@ static void disable_vsync(struct dpu_context *ctx)
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
 	reg->dpu_int_en &= ~DISPC_INT_DPI_VSYNC_MASK;
-
-	/* enable writeback when vblank disable */
-	if (wb_en && !ctx->is_stopped && !ctx->disable_flip)
-		dpu_write_back(ctx, 1, false);
 }
 
 static void dpu_enhance_backup(u32 id, void *param)
@@ -1541,7 +1561,7 @@ static struct dpu_core_ops dpu_lite_r2p0_ops = {
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,
-	.wb_debug = dpu_write_back_debug,
+	.write_back = dpu_write_back,
 };
 
 static struct ops_entry entry = {
