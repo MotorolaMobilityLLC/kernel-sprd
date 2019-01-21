@@ -11,6 +11,8 @@
  * GNU General Public License for more details.
  */
 
+#include <dt-bindings/soc/sprd,sharkl3-regs.h>
+#include <dt-bindings/soc/sprd,sharkl3-mask.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
@@ -18,7 +20,6 @@
 #include <linux/kernel.h>
 #include <linux/kthread.h>
 #include <linux/mfd/syscon.h>
-#include <linux/mfd/syscon/sprd-glb.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
@@ -368,35 +369,35 @@ static void csi_dphy_2p2_testclr_init(struct csi_phy_info *phy)
 {
 	unsigned int mask = 0;
 
-	mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S_EN;
+	mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S_EN;
 	regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_MIPI_PHY_BIST_TEST,
 		mask, mask);
 
-	mask = BIT_ANLG_PHY_G1_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_S
-		| BIT_ANLG_PHY_G1_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_M
-		|BIT_ANLG_PHY_G1_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_DSI_IF_SEL_DB;
+	mask = MASK_ANLG_PHY_G1_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_S
+		| MASK_ANLG_PHY_G1_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_M
+		|MASK_ANLG_PHY_G1_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_DSI_IF_SEL_DB;
 	regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_REG_SEL_CFG_0,
 		mask, mask);
 
-	mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_DSI_IF_SEL_DB;
+	mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_DSI_IF_SEL_DB;
 	regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_CTRL_DB,
 		mask, ~mask);
 
-	mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_S;
+	mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_S;
 	regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_CTRL_S,
 		mask, ~mask);
 
-	mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_M;
+	mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_M;
 	regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_CTRL_M,
 		mask, ~mask);
 
-	mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_M_SEL
-		| BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S_SEL;
+	mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_M_SEL
+		| MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S_SEL;
 	regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_MIPI_PHY_BIST_TEST,
 		mask, mask);
@@ -406,13 +407,13 @@ static void csi_dphy_2p2_testclr_set(struct csi_phy_info *phy)
 {
 	unsigned int mask = 0;
 
-	mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_DSI_TESTCLR_DB;
+	mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_DSI_TESTCLR_DB;
 	regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_TEST_DB,
 		mask, mask);
 	udelay(1);
-	mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_M
-		| BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S;
+	mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_M
+		| MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S;
 	regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_MIPI_PHY_BIST_TEST,
 		mask, mask);
@@ -422,12 +423,12 @@ static void csi_dphy_2p2_testclr_clear(struct csi_phy_info *phy)
 {
 	unsigned int mask = 0;
 
-	mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_DSI_TESTCLR_DB;
+	mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_DSI_TESTCLR_DB;
 	regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_TEST_DB,
 		mask, ~mask);
-	mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_M
-		| BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S;
+	mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_M
+		| MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S;
 	regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_MIPI_PHY_BIST_TEST,
 		mask, ~mask);
@@ -457,18 +458,18 @@ static void csi_dphy_2p2_reset(struct csi_dt_node_info *csi_info)
 		cphy_sel_mask = 7 << (csi_info->controller_id * 4);
 		cphy_sel_val  = 3 << csi_info->controller_id * 4;
 
-		regmap_hwlock_update_bits(phy->cam_ahb_syscon,
+		regmap_update_bits(phy->cam_ahb_syscon,
 				REG_MM_AHB_MIPI_CSI2_CTRL,
 				cphy_sel_mask, cphy_sel_val);
-		mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_M
-		| BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S;
+		mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_M
+		| MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S;
 		regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_MIPI_PHY_BIST_TEST,
 		mask, mask);
 		regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_MIPI_PHY_BIST_TEST,
 		mask, ~mask);
-		regmap_hwlock_update_bits(phy->cam_ahb_syscon,
+		regmap_update_bits(phy->cam_ahb_syscon,
 				REG_MM_AHB_MIPI_CSI2_CTRL,
 				cphy_sel_mask, 0x0);
 		break;
@@ -476,32 +477,32 @@ static void csi_dphy_2p2_reset(struct csi_dt_node_info *csi_info)
 		cphy_sel_mask = 7 << (csi_info->controller_id * 4);
 		cphy_sel_val  = 1 << csi_info->controller_id * 4;
 
-		regmap_hwlock_update_bits(phy->cam_ahb_syscon,
+		regmap_update_bits(phy->cam_ahb_syscon,
 				REG_MM_AHB_MIPI_CSI2_CTRL,
 				cphy_sel_mask, cphy_sel_val);
 
-		mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S;
+		mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_S;
 		regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_MIPI_PHY_BIST_TEST,
 		mask, mask);
 		regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_MIPI_PHY_BIST_TEST,
 		mask, ~mask);
-		regmap_hwlock_update_bits(phy->cam_ahb_syscon,
+		regmap_update_bits(phy->cam_ahb_syscon,
 				REG_MM_AHB_MIPI_CSI2_CTRL,
 				cphy_sel_mask, 0x0);
 		cphy_sel_val  = 2 << csi_info->controller_id * 4;
-		regmap_hwlock_update_bits(phy->cam_ahb_syscon,
+		regmap_update_bits(phy->cam_ahb_syscon,
 				REG_MM_AHB_MIPI_CSI2_CTRL,
 				cphy_sel_mask, cphy_sel_val);
-		mask = BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_M;
+		mask = MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_CSI_2P2L_TESTCLR_M;
 		regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_MIPI_PHY_BIST_TEST,
 		mask, mask);
 		regmap_update_bits(phy->anlg_phy_g1_syscon,
 		REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_MIPI_PHY_BIST_TEST,
 		mask, ~mask);
-		regmap_hwlock_update_bits(phy->cam_ahb_syscon,
+		regmap_update_bits(phy->cam_ahb_syscon,
 				REG_MM_AHB_MIPI_CSI2_CTRL,
 				cphy_sel_mask, 0x0);
 		break;
@@ -530,15 +531,15 @@ void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 	switch (csi_info->controller_id) {
 	case CSI_RX0:
 		shutdownz =
-		BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_FORCE_CSI_PHY_SHUTDOWNZ;
+		MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_FORCE_CSI_PHY_SHUTDOWNZ;
 		break;
 	case CSI_RX1:
 		shutdownz =
-		BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_FORCE_CSI_S_PHY_SHUTDOWNZ;
+		MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_4LANE_FORCE_CSI_S_PHY_SHUTDOWNZ;
 		break;
 	case CSI_RX2:
 		shutdownz =
-		BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_2LANE_FORCE_CSI_PHY_SHUTDOWNZ;
+		MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_2LANE_FORCE_CSI_PHY_SHUTDOWNZ;
 		break;
 	default:
 		pr_err("fail to get valid csi_rx id\n");
@@ -548,45 +549,45 @@ void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 	switch (phy->phy_id) {
 	case PHY_2P2:
 		/* 2p2lane phy as a 4lane phy  */
-		ps_pd_l = BIT_AON_APB_MIPI_CSI_2P2LANE_PS_PD_L;
-		ps_pd_s = BIT_AON_APB_MIPI_CSI_2P2LANE_PS_PD_S;
-		iso_sw = BIT_AON_APB_MIPI_CSI_2P2LANE_ISO_SW_EN;
+		ps_pd_l = MASK_AON_APB_MIPI_CSI_2P2LANE_PS_PD_L;
+		ps_pd_s = MASK_AON_APB_MIPI_CSI_2P2LANE_PS_PD_S;
+		iso_sw = MASK_AON_APB_MIPI_CSI_2P2LANE_ISO_SW_EN;
 
 		regmap_update_bits(phy->anlg_phy_g1_syscon,
 			REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L,
-			BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL,
-			BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL);
+			MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL,
+			MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL);
 		break;
 	case PHY_4LANE:
 		/* phy: 4lane phy */
-		ps_pd_l = BIT_AON_APB_MIPI_CSI_4LANE_PS_PD_L;
-		ps_pd_s = BIT_AON_APB_MIPI_CSI_4LANE_PS_PD_S;
-		iso_sw = BIT_AON_APB_MIPI_CSI_4LANE_ISO_SW_EN;
+		ps_pd_l = MASK_AON_APB_MIPI_CSI_4LANE_PS_PD_L;
+		ps_pd_s = MASK_AON_APB_MIPI_CSI_4LANE_PS_PD_S;
+		iso_sw = MASK_AON_APB_MIPI_CSI_4LANE_ISO_SW_EN;
 		break;
 	case PHY_2LANE:
 		/* phy: 2lane phy */
-		ps_pd_l = BIT_AON_APB_MIPI_CSI_2LANE_PS_PD_L;
-		ps_pd_s = BIT_AON_APB_MIPI_CSI_2LANE_PS_PD_S;
-		iso_sw = BIT_AON_APB_MIPI_CSI_2LANE_ISO_SW_EN;
+		ps_pd_l = MASK_AON_APB_MIPI_CSI_2LANE_PS_PD_L;
+		ps_pd_s = MASK_AON_APB_MIPI_CSI_2LANE_PS_PD_S;
+		iso_sw = MASK_AON_APB_MIPI_CSI_2LANE_ISO_SW_EN;
 		break;
 	case PHY_2P2_M:
 	case PHY_2P2_S:
 		/* 2p2lane phy as a 2lane phy  */
-		ps_pd_l = BIT_AON_APB_MIPI_CSI_2P2LANE_PS_PD_L;
-		ps_pd_s = BIT_AON_APB_MIPI_CSI_2P2LANE_PS_PD_S;
-		iso_sw = BIT_AON_APB_MIPI_CSI_2P2LANE_ISO_SW_EN;
+		ps_pd_l = MASK_AON_APB_MIPI_CSI_2P2LANE_PS_PD_L;
+		ps_pd_s = MASK_AON_APB_MIPI_CSI_2P2LANE_PS_PD_S;
+		iso_sw = MASK_AON_APB_MIPI_CSI_2P2LANE_ISO_SW_EN;
 
 		regmap_update_bits(phy->anlg_phy_g1_syscon,
 			REG_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L,
-			BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL,
-		    (int)~BIT_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL);
+			MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL,
+		    (int)~MASK_ANLG_PHY_G1_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL);
 		break;
 	default:
 		pr_err("fail to get valid phy id %d\n", phy->phy_id);
 		return;
 	}
 
-	dphy_eb = BIT_AON_APB_SERDES_DPHY_EB;
+	dphy_eb = MASK_AON_APB_SERDES_DPHY_EB;
 	if (is_eb) {
 		regmap_update_bits(phy->aon_apb_syscon,
 				reg,
@@ -670,13 +671,13 @@ int csi_ahb_reset(struct csi_phy_info *phy, unsigned int csi_id)
 
 	switch (csi_id) {
 	case CSI_RX0:
-		flag = BIT_MM_AHB_CSI_SOFT_RST;
+		flag = MASK_MM_AHB_CSI_SOFT_RST;
 		break;
 	case CSI_RX1:
-		flag = BIT_MM_AHB_CSI_S_SOFT_RST;
+		flag = MASK_MM_AHB_CSI_S_SOFT_RST;
 		break;
 	case CSI_RX2:
-		flag = BIT_MM_AHB_CSI_T_SOFT_RST;
+		flag = MASK_MM_AHB_CSI_T_SOFT_RST;
 		break;
 	default:
 		pr_err("fail to get valid csi id %d\n", csi_id);
@@ -716,18 +717,18 @@ void csi_controller_enable(struct csi_dt_node_info *dt_info, int32_t idx)
 
 	switch (dt_info->controller_id) {
 	case CSI_RX0: {
-		mask_eb = BIT_MM_AHB_CSI_EB;
-		mask_rst = BIT_MM_AHB_CSI_SOFT_RST;
+		mask_eb = MASK_MM_AHB_CSI_EB;
+		mask_rst = MASK_MM_AHB_CSI_SOFT_RST;
 		break;
 	}
 	case CSI_RX1: {
-		mask_eb = BIT_MM_AHB_CSI_S_EB;
-		mask_rst = BIT_MM_AHB_CSI_S_SOFT_RST;
+		mask_eb = MASK_MM_AHB_CSI_S_EB;
+		mask_rst = MASK_MM_AHB_CSI_S_SOFT_RST;
 		break;
 	}
 	case CSI_RX2: {
-		mask_eb = BIT_MM_AHB_CSI_T_EB;
-		mask_rst = BIT_MM_AHB_CSI_T_SOFT_RST;
+		mask_eb = MASK_MM_AHB_CSI_T_EB;
+		mask_rst = MASK_MM_AHB_CSI_T_SOFT_RST;
 		break;
 	}
 	default:
@@ -764,7 +765,7 @@ void csi_controller_enable(struct csi_dt_node_info *dt_info, int32_t idx)
 			cphy_sel_val = 2;
 			if ((dt_info->controller_id == CSI_RX1) &&
 				((val & 0x7) == 2))
-				regmap_hwlock_update_bits(phy->cam_ahb_syscon,
+				regmap_update_bits(phy->cam_ahb_syscon,
 					REG_MM_AHB_MIPI_CSI2_CTRL,
 					7 << 0, 7 << 0);
 			break;
@@ -797,7 +798,7 @@ void csi_controller_enable(struct csi_dt_node_info *dt_info, int32_t idx)
 		case PHY_2P2_S: {
 			cphy_sel_val = 1;
 			if ((val & 0x70) >> 4 == 3)
-				regmap_hwlock_update_bits(phy->cam_ahb_syscon,
+				regmap_update_bits(phy->cam_ahb_syscon,
 					REG_MM_AHB_MIPI_CSI2_CTRL,
 					7 << 4, 1 << 4);
 			break;
@@ -805,7 +806,7 @@ void csi_controller_enable(struct csi_dt_node_info *dt_info, int32_t idx)
 		case PHY_2P2_M: {
 			cphy_sel_val = 2;
 			if ((val & 0x70) >> 4 == 3)
-				regmap_hwlock_update_bits(phy->cam_ahb_syscon,
+				regmap_update_bits(phy->cam_ahb_syscon,
 					REG_MM_AHB_MIPI_CSI2_CTRL,
 					7 << 4, 0 << 4);
 			break;
@@ -816,7 +817,7 @@ void csi_controller_enable(struct csi_dt_node_info *dt_info, int32_t idx)
 		}
 		cphy_sel_val  <<= 8;
 	}
-	regmap_hwlock_update_bits(phy->cam_ahb_syscon,
+	regmap_update_bits(phy->cam_ahb_syscon,
 			REG_MM_AHB_MIPI_CSI2_CTRL,
 			cphy_sel_mask,
 			cphy_sel_val);
@@ -845,18 +846,18 @@ void csi_controller_disable(struct csi_dt_node_info *dt_info, int32_t idx)
 
 	switch (dt_info->controller_id) {
 	case CSI_RX0: {
-		mask_eb = BIT_MM_AHB_CSI_EB;
-		mask_rst = BIT_MM_AHB_CSI_SOFT_RST;
+		mask_eb = MASK_MM_AHB_CSI_EB;
+		mask_rst = MASK_MM_AHB_CSI_SOFT_RST;
 		break;
 	}
 	case CSI_RX1: {
-		mask_eb = BIT_MM_AHB_CSI_S_EB;
-		mask_rst = BIT_MM_AHB_CSI_S_SOFT_RST;
+		mask_eb = MASK_MM_AHB_CSI_S_EB;
+		mask_rst = MASK_MM_AHB_CSI_S_SOFT_RST;
 		break;
 	}
 	case CSI_RX2: {
-		mask_eb = BIT_MM_AHB_CSI_T_EB;
-		mask_rst = BIT_MM_AHB_CSI_T_SOFT_RST;
+		mask_eb = MASK_MM_AHB_CSI_T_EB;
+		mask_rst = MASK_MM_AHB_CSI_T_SOFT_RST;
 		break;
 	}
 	default:

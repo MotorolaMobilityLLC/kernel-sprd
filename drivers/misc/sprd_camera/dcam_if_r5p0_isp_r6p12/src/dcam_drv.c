@@ -11,6 +11,8 @@
  * GNU General Public License for more details.
  */
 
+#include <dt-bindings/soc/sprd,sharkl3-regs.h>
+#include <dt-bindings/soc/sprd,sharkl3-mask.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
 #include <linux/delay.h>
@@ -18,7 +20,6 @@
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
-#include <linux/mfd/syscon/sprd-glb.h>
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 #include <linux/completion.h>
@@ -134,8 +135,8 @@ static int sprd_dcamdrv_clk_en(enum dcam_id idx)
 			goto exit;
 		}
 	}
-	flag = BIT_MM_AHB_DCAM_AXIM_SOFT_RST |
-			BIT_MM_AHB_DCAM_ALL_SOFT_RST;
+	flag = MASK_MM_AHB_DCAM_AXIM_SOFT_RST |
+			MASK_MM_AHB_DCAM_ALL_SOFT_RST;
 	regmap_update_bits(cam_ahb_gpr,
 		REG_MM_AHB_AHB_RST, flag, flag);
 	udelay(1);
@@ -481,14 +482,14 @@ int sprd_dcam_drv_reset(enum dcam_id idx, int is_irq)
 	}
 
 	if (idx == DCAM_ID_0)
-		flag = BIT_MM_AHB_DCAM0_SOFT_RST;
+		flag = MASK_MM_AHB_DCAM0_SOFT_RST;
 	else if (idx == DCAM_ID_1)
-		flag = BIT_MM_AHB_DCAM1_SOFT_RST;
+		flag = MASK_MM_AHB_DCAM1_SOFT_RST;
 	if (sprd_dcam_drv_chip_id_get() == SHARKL3 && idx == DCAM_ID_2)
 		flag = DCAM2_SOFT_RST;
 
 	if (is_irq && atomic_read(&s_dcam_total_users) == 1)
-		flag = BIT_MM_AHB_DCAM_ALL_SOFT_RST;
+		flag = MASK_MM_AHB_DCAM_ALL_SOFT_RST;
 
 	regmap_update_bits(cam_ahb_gpr,
 		REG_MM_AHB_AHB_RST, flag, flag);

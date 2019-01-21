@@ -11,13 +11,14 @@
  * GNU General Public License for more details.
  */
 
+#include <dt-bindings/soc/sprd,sharkl3-regs.h>
+#include <dt-bindings/soc/sprd,sharkl3-mask.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
 #include <linux/mfd/syscon.h>
-#include <linux/mfd/syscon/sprd-glb.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
@@ -114,7 +115,7 @@ int sprd_cam_pw_domain_init(struct platform_device *pdev)
 	cam_pw->aon_apb_gpr = aon_apb_gpr;
 
 	pmu_apb_gpr = syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
-						"sprd,syscon-pmu-apb");
+						"sprd,pmu-apb-syscon");
 	if (IS_ERR_OR_NULL(pmu_apb_gpr))
 		return PTR_ERR(pmu_apb_gpr);
 	cam_pw->pmu_apb_gpr = pmu_apb_gpr;
@@ -164,13 +165,13 @@ int sprd_cam_pw_off(void)
 
 		regmap_update_bits(cam_pw->pmu_apb_gpr,
 				REG_PMU_APB_PD_MM_TOP_CFG,
-				BIT_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN,
+				MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN,
 				~(unsigned int)
-				BIT_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN);
+				MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN);
 		regmap_update_bits(cam_pw->pmu_apb_gpr,
 				REG_PMU_APB_PD_MM_TOP_CFG,
-				BIT_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN,
-				BIT_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN);
+				MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN,
+				MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN);
 
 		do {
 			cpu_relax();
@@ -237,18 +238,18 @@ int sprd_cam_pw_on(void)
 
 	mutex_lock(&cam_pw->client_lock);
 	if (atomic_inc_return(&cam_pw->users_pw) == 1) {
-		disabled_bit = BIT_AON_APB_CLK_MM_EMC_EB |
-					BIT_AON_APB_CLK_MM_AHB_EB |
-					BIT_AON_APB_CLK_SENSOR2_EB |
-					BIT_AON_APB_CLK_DCAM_IF_EB |
-					BIT_AON_APB_CLK_ISP_EB |
-					BIT_AON_APB_CLK_JPG_EB |
-					BIT_AON_APB_CLK_CPP_EB |
-					BIT_AON_APB_CLK_SENSOR0_EB |
-					BIT_AON_APB_CLK_SENSOR1_EB |
-					BIT_AON_APB_CLK_MM_VSP_EMC_EB |
-					BIT_AON_APB_CLK_MM_VSP_AHB_EB |
-					BIT_AON_APB_CLK_VSP_EB;
+		disabled_bit = MASK_AON_APB_CLK_MM_EMC_EB |
+					MASK_AON_APB_CLK_MM_AHB_EB |
+					MASK_AON_APB_CLK_SENSOR2_EB |
+					MASK_AON_APB_CLK_DCAM_IF_EB |
+					MASK_AON_APB_CLK_ISP_EB |
+					MASK_AON_APB_CLK_JPG_EB |
+					MASK_AON_APB_CLK_CPP_EB |
+					MASK_AON_APB_CLK_SENSOR0_EB |
+					MASK_AON_APB_CLK_SENSOR1_EB |
+					MASK_AON_APB_CLK_MM_VSP_EMC_EB |
+					MASK_AON_APB_CLK_MM_VSP_AHB_EB |
+					MASK_AON_APB_CLK_VSP_EB;
 		regmap_update_bits(cam_pw->aon_apb_gpr,
 			REG_AON_APB_AON_CLK_TOP_CFG,
 			disabled_bit,
@@ -257,14 +258,14 @@ int sprd_cam_pw_on(void)
 		/* cam domain power on */
 		regmap_update_bits(cam_pw->pmu_apb_gpr,
 				REG_PMU_APB_PD_MM_TOP_CFG,
-				BIT_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN,
+				MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN,
 				~(unsigned int)
-				BIT_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN);
+				MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN);
 		regmap_update_bits(cam_pw->pmu_apb_gpr,
 				REG_PMU_APB_PD_MM_TOP_CFG,
-				BIT_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN,
+				MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN,
 				~(unsigned int)
-				BIT_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN);
+				MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN);
 
 		do {
 			cpu_relax();

@@ -11,6 +11,8 @@
  * GNU General Public License for more details.
  */
 
+#include <dt-bindings/soc/sprd,sharkl3-regs.h>
+#include <dt-bindings/soc/sprd,sharkl3-mask.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/io.h>
@@ -24,8 +26,6 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/mfd/syscon.h>
-#include <linux/mfd/syscon/sprd-glb.h>
-#include <linux/sprd_otp.h>
 #include <video/sprd_mm.h>
 #include "sprd_sensor_core.h"
 #include "csi_api.h"

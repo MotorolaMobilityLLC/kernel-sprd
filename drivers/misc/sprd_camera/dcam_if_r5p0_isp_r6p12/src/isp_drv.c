@@ -11,10 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#include <dt-bindings/soc/sprd,sharkl3-regs.h>
+#include <dt-bindings/soc/sprd,sharkl3-mask.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/mfd/syscon.h>
-#include <linux/mfd/syscon/sprd-glb.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/regmap.h>
@@ -229,7 +230,7 @@ static int sprd_ispdrv_reset(uint32_t idx)
 		return ISP_RTN_TIME_OUT;
 	}
 
-	flag = BIT_MM_AHB_ISP_LOG_SOFT_RST;
+	flag = MASK_MM_AHB_ISP_LOG_SOFT_RST;
 	regmap_update_bits(cam_ahb_gpr,
 		REG_MM_AHB_AHB_RST, flag, flag);
 	udelay(1);
@@ -1124,7 +1125,7 @@ static int sprd_ispdrv_clk_en(void)
 		goto exit;
 	}
 
-	flag = BIT_MM_AHB_ISP_EB;
+	flag = MASK_MM_AHB_ISP_EB;
 	regmap_update_bits(cam_ahb_gpr,
 		REG_MM_AHB_AHB_EB, flag, flag);
 
@@ -1144,7 +1145,7 @@ static int sprd_ispdrv_clk_dis(void)
 	clk_set_parent(isp_clk, isp_clk_default);
 	clk_disable_unprepare(isp_clk);
 
-	flag = BIT_MM_AHB_ISP_EB;
+	flag = MASK_MM_AHB_ISP_EB;
 	regmap_update_bits(cam_ahb_gpr,
 		REG_MM_AHB_AHB_EB, flag, ~flag);
 
