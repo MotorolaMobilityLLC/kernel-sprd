@@ -44,8 +44,4 @@ ccflags-y += 	-I$(srctree)/drivers/misc/sprd_camera/dcam_if_r5p0_isp_r6p12/inc \
 
 ifeq ($(CONFIG_SPRD_CAMERA_CSI_RECEIVER_R2P0),y)
 ccflags-y += -I$(srctree)/drivers/misc/sprd_camera/sensor/csi2/csi_sprd/receiver_r2p0
-else ifeq ($(CONFIG_SPRD_CAMERA_CSI_R2P0V2),y)
-ccflags-y += -I$(srctree)/drivers/misc/sprd_camera/sensor/csi2/csi_sprd/r2p0v2
-else ifeq ($(CONFIG_SPRD_CAM_PW_DOMAIN_R5P0),y)
-ccflags-y += -I$(srctree)/drivers/misc/sprd_camera/common/r5p0
 endif
