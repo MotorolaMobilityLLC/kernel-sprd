@@ -11,6 +11,7 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			   ud710-orca-haps.dtb	\
 			   ud710-2h10.dtb	\
 			   udx710-1h10.dtb 	\
+			   udx710-2h10.dtb 	\
 			   udx710-haps.dtb 	\
 			   ums518-zebu.dtb     \
 			   ums510-haps.dtb	\
@@ -28,6 +29,7 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
         ud710-haps-overlay.dtbo \
 	ud710-3h10-overlay.dtbo \
 	udx710-1h10-overlay.dtbo \
+	udx710-2h10-overlay.dtbo \
 	ud710-3h10u-overlay.dtbo \
 	ud710-haps-bkd-overlay.dtbo \
         ud710-orca-haps-overlay.dtbo \
