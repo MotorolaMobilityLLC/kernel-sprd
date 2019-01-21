@@ -16,7 +16,7 @@
 				parts = "vbmeta,boot,recovery,system,vendor,product";
 			};
 
-			fstab {
+			android_fst: fstab {
 				compatible = "android,fstab";
 				vendor {
 					compatible = "android,vendor";

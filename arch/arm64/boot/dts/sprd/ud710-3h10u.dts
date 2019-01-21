@@ -209,6 +209,15 @@
 	};
 };
 
+&android_fst {
+	vendor {
+		dev = "/dev/block/platform/71900000.ufs/by-name/vendor";
+	};
+	product {
+		dev = "/dev/block/platform/71900000.ufs/by-name/product";
+	};
+};
+
 &sdio3 {
 	status = "disabled";
 };
