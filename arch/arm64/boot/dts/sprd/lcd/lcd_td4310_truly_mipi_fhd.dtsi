@@ -1,5 +1,5 @@
 / { lcds {
-	lcd_td4310truly__mipi_fhd: lcd_td4310truly__mipi_fhd {
+	lcd_td4310_truly_mipi_fhd: lcd_td4310_truly_mipi_fhd {
 
 		sprd,dsi-work-mode = <1>; /* video burst mode*/
 		sprd,dsi-lane-number = <4>;
@@ -82,7 +82,7 @@
 			lcd_td4310_fhd_timing0: timing0 {
 				clock-frequency = <153600000>;
 				hactive = <1080>;
-				vactive = <2160>;
+				vactive = <1920>;
 				hback-porch = <20>;
 				hfront-porch = <50>;
 				vback-porch = <28>;

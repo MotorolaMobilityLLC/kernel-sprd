@@ -776,6 +776,7 @@
 
 				dma-coherent;
 
+				iommus = <&iommu_dispc>;
 				sprd,ip = "dpu-r3p0";
 				/* sprd,soc = "roc1"; */
 
