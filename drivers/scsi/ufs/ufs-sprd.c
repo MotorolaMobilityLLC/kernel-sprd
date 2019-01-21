@@ -59,7 +59,19 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
 	int val = 0;
 
+	dev_info(host->hba->dev, "ufs hardware reset!\n");
+
 	/* TODO: Temporary codes. Ufs reset will be simple in next IP version */
+	regmap_update_bits(host->anlg_mphy_ufs_rst.regmap,
+			   host->anlg_mphy_ufs_rst.reg,
+			   host->anlg_mphy_ufs_rst.mask,
+			   0);
+	msleep(100);
+	regmap_update_bits(host->anlg_mphy_ufs_rst.regmap,
+			   host->anlg_mphy_ufs_rst.reg,
+			   host->anlg_mphy_ufs_rst.mask,
+			   host->anlg_mphy_ufs_rst.mask);
+
 	val = readl(host->unipro_reg + 0x3c);
 	writel(0x35000000 | val, host->unipro_reg + 0x3c);
 	msleep(100);
@@ -69,6 +81,26 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	writel(1 | val, host->unipro_reg + 0x40);
 	msleep(100);
 	writel((~1) & val, host->unipro_reg + 0x40);
+
+	val = readl(host->ufsutp_reg + 0x100);
+	writel(3 | val, host->ufsutp_reg + 0x100);
+	msleep(100);
+	writel((~3) & val, host->ufsutp_reg + 0x100);
+
+	val = readl(host->hba->mmio_base + 0xb0);
+	writel(0x10001000 | val, host->hba->mmio_base + 0xb0);
+	msleep(100);
+	writel((~0x10001000) & val, host->hba->mmio_base + 0xb0);
+
+	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
+			   host->aon_apb_ufs_rst.reg,
+			   host->aon_apb_ufs_rst.mask,
+			   host->aon_apb_ufs_rst.mask);
+	msleep(100);
+	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
+			   host->aon_apb_ufs_rst.reg,
+			   host->aon_apb_ufs_rst.mask,
+			   0);
 
 	val = readl(host->unipro_reg + 0x84);
 	writel(2 | val, host->unipro_reg + 0x84);
@@ -85,16 +117,6 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	msleep(100);
 	writel((~4) & val, host->unipro_reg + 0xd0);
 
-	val = readl(host->ufsutp_reg + 0x100);
-	writel(3 | val, host->ufsutp_reg + 0x100);
-	msleep(100);
-	writel((~3) & val, host->ufsutp_reg + 0x100);
-
-	val = readl(host->hba->mmio_base + 0xb0);
-	writel(0x10001000 | val, host->hba->mmio_base + 0xb0);
-	msleep(100);
-	writel((~0x10001000) & val, host->hba->mmio_base + 0xb0);
-
 	regmap_update_bits(host->ap_apb_ufs_rst.regmap,
 			   host->ap_apb_ufs_rst.reg,
 			   host->ap_apb_ufs_rst.mask,
@@ -104,6 +126,11 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 			   host->ap_apb_ufs_rst.reg,
 			   host->ap_apb_ufs_rst.mask,
 			   0);
+
+	val = readl(host->ufs_ao_reg + 0x1c);
+	writel(2 | val, host->ufs_ao_reg + 0x1c);
+	msleep(100);
+	writel((~2) & val, host->ufs_ao_reg + 0x1c);
 }
 
 static int ufs_sprd_init(struct ufs_hba *hba)
@@ -159,6 +186,25 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		(u64) host->unipro_reg,
 		(u64) resource_size(res));
 
+	/* map ufs_ao_reg */
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ufs_ao_reg");
+	if (!res) {
+		dev_err(dev, "Missing ufs_ao_reg register resource\n");
+		return -ENODEV;
+	}
+	host->ufs_ao_reg = devm_ioremap_nocache(dev, res->start,
+						resource_size(res));
+	if (IS_ERR(host->ufs_ao_reg)) {
+		dev_err(dev, "%s: could not map ufs_ao_reg, err %ld\n",
+			__func__, PTR_ERR(host->ufs_ao_reg));
+		host->ufs_ao_reg = NULL;
+		return -ENODEV;
+	}
+	pr_info("ufs_ao_reg vit=0x%llx, phy=0x%llx, len=0x%llx\n",
+		(u64) res->start,
+		(u64) host->ufs_ao_reg,
+		(u64) resource_size(res));
+
 	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->aon_apb_ufs_en,
 				      "aon_apb_ufs_en");
 	if (ret < 0)
@@ -171,6 +217,16 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->ap_apb_ufs_rst,
 				      "ap_apb_ufs_rst");
+	if (ret < 0)
+		return -ENODEV;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->anlg_mphy_ufs_rst,
+				      "anlg_mphy_ufs_rst");
+	if (ret < 0)
+		return -ENODEV;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->aon_apb_ufs_rst,
+				      "aon_apb_ufs_rst");
 	if (ret < 0)
 		return -ENODEV;
 
@@ -266,12 +322,12 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		goto out;
 	}
 
-	dev_req_params->gear_rx = UFS_PWM_G1;
-	dev_req_params->gear_tx = UFS_PWM_G1;
+	dev_req_params->gear_rx = UFS_PWM_G3;
+	dev_req_params->gear_tx = UFS_PWM_G3;
 	dev_req_params->lane_rx = 1;
 	dev_req_params->lane_tx = 1;
-	dev_req_params->pwr_rx = SLOWAUTO_MODE;
-	dev_req_params->pwr_tx = SLOWAUTO_MODE;
+	dev_req_params->pwr_rx = FASTAUTO_MODE;
+	dev_req_params->pwr_tx = FASTAUTO_MODE;
 	dev_req_params->hs_rate = 0;
 
 	switch (status) {
