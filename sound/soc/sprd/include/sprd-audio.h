@@ -19,6 +19,11 @@
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 
+enum {
+	PLATFORM_SHARKL2 = 0,
+	PLATFORM_WHALE2 = 1,
+};
+
 /* aon apb global registers operating interfaces
  */
 static struct regmap *aon_apb_gpr;
@@ -244,7 +249,31 @@ static inline struct regmap *arch_audio_get_anlg_phy_g(void)
 	return anlg_phy_g;
 }
 
+
+#if (defined(CONFIG_SOC_IWHALE2) || defined(CONFIG_SOC_WHALE2))
+/* iwhale2 will include sprd-audio-whale2.h */
+#include "sprd-audio-whale2.h"
+#elif defined(CONFIG_SC9833)
+/* sharkl2 */
+#include "sprd-audio-sharkl2.h"
+#elif defined(CONFIG_SOC_ISHARKL2)
+/* isharkl2 */
+#include "sprd-audio-isharkl2.h"
+#elif defined(CONFIG_SOC_SHARKLJ1)
+/* sharklj1 */
+#include "sprd-audio-sharklj1.h"
+#elif defined(CONFIG_SOC_SHARKLE)
+#include "sprd-audio-sharkle.h"
+/* pike2 */
+#elif defined(CONFIG_SOC_PIKE2)
+#include "sprd-audio-pike2.h"
+/* sharkl3 */
+#elif defined(CONFIG_SND_SOC_SPRD_SHARKL3)
+#include "sprd-audio-sharkl3.h"
+#else
 #include "sprd-audio-agcp.h"
+#endif
+
 
 struct glb_reg_dump {
 	char *reg_name;

@@ -35,6 +35,14 @@ config SPRD_AUDIO_SIPC
 		It depends on mailbox and audio memeroy manager.
 		Say Y if you support sipc.
 
+config SPRD_AUDIO_SAUDIO
+	tristate "Sprd saudio driver in call mode based on sipc"
+	depends on SPRD_SIPC && SND_SOC
+	default N
+	help
+	  Say Y if you want to built in to kernel, Say M for ko module.
+	  SAudio is a bridge to connect AP and CP system.
+
 config SPRD_AUDIO_MCDT
 	bool "Spreadtrum MCDT support"
 	default n

@@ -54,6 +54,7 @@
 	  ((cpu_dai_id) == BE_DAI_ID_NORMAL_AP01_USB)) && \
 	 (stream) == SNDRV_PCM_STREAM_PLAYBACK)
 
+
 static struct aud_pm_vbc *pm_vbc;
 static struct aud_pm_vbc *aud_pm_vbc_get(void);
 #define TO_STRING(e) #e

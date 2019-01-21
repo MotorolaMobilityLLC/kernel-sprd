@@ -1318,6 +1318,7 @@ CONFIG_WCN_UTILS=y
 #
 # Spreadtrum Audio Assistant Modules
 #
+# CONFIG_SPRD_AUDIO_SAUDIO is not set
 # CONFIG_SPRD_AUDIO_MCDT is not set
 
 #

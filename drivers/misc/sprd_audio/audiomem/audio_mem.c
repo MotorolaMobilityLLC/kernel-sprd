@@ -966,7 +966,7 @@ static int audio_mem_whale2_probe(struct platform_device *pdev)
 
 #ifdef CONFIG_OF
 static const struct of_device_id audio_mem_match_table[] = {
-	{.compatible = "sprd,audio-mem-sharkl2",
+	{.compatible = "sprd,sharkl3-audio-mem",
 	 .data = (void *)PLATFORM_SHARKL2},
 	{.compatible = "sprd,audio-mem-whale2",
 	 .data = (void *)PLATFORM_WHALE2},

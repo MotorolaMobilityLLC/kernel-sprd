@@ -21,7 +21,7 @@ Required properties:
 
 Example:
 audio-mem-mgr {
-	compatible = "sprd,audio-mem-sharkl5";
+	compatible = "sprd,audio-mem-sharkl5", "sprd,sharkl3-audio-mem";
 	/*
 	 * base is 0x87400000 for sharkl5
 	 * 1. reserved ddr layout total 4M:

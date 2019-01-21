@@ -37,7 +37,28 @@ config SND_SOC_SPRD_I2S_DUMMY
 	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
 	  boards using the AP I2S and a dummy codec.
 
+config SND_SOC_SPRD_R1P0V3_SC2721
+	tristate "ASoC Spreadtrum sound card with vbc r1p0 v3 and codec sc2721"
+	select SND_SOC_SPRD_AUDIO_TWO_STAGE_DMAENGINE_SURPPORT
+	select SPRD_AUDIO_MEMORY_MANAGER
+	select SND_SOC_SPRD_VBC_R1P0V3
+	select SND_SOC_SPRD_CODEC_SC2721
+	select SND_SOC_SPRD_VAUDIO
+	help
+	  Sound card with vbc r1p0 v3 and codec sc2721.
+	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
+	  boards using the R1P0 V3 VBC and the sc2721 codec.
+
+config SND_SOC_SPRD_SHARKL3
+	tristate "ASoC Spreadtrum sound card for sharkl3 chip"
+	help
+	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
+	  boards using sharkl3 chip
+
 source "sound/soc/sprd/dai/vbc/Kconfig"
 source "sound/soc/sprd/dai/i2s/Kconfig"
+source "sound/soc/sprd/dai/vaudio/Kconfig"
+source "sound/soc/sprd/platform/Kconfig"
 source "sound/soc/sprd/codec/sprd/Kconfig"
+
 endif #SND_SOC_SPRD

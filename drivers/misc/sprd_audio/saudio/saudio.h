@@ -10,14 +10,18 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#ifndef __SAUDIO_H
+#define  __SAUDIO_H
 
-#ifndef __HEADSET_SPRD_H__
-#define __HEADSET_SPRD_H__
-
-#if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
-#include "./sc2730/sprd-headset-2730.h"
-#elif defined(CONFIG_SND_SOC_SPRD_CODEC_SC2721)
-#include "./sc2721/sprd-headset-2721.h"
-#endif
+struct saudio_init_data {
+	char	*name;
+	uint8_t	dst;
+	uint8_t	ctrl_channel;
+	uint8_t	playback_channel[2];
+	uint8_t	capture_channel;
+	uint8_t	monitor_channel;
+	uint8_t	device_num;
+	uint32_t	ap_addr_to_cp;
+};
 
 #endif

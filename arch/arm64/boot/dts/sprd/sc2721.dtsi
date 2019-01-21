@@ -102,6 +102,16 @@
 			reg = <0xc00>;
 		};
 
+		sprd_audio_codec_ana: audio-codec@700 {
+			compatible = "sprd,sc2721-audio-codec",
+				"sprd,sc27xx-audio-codec";
+			#sound-dai-cells = <1>;
+			reg = <0x700>;
+			interrupts = <6 IRQ_TYPE_NONE>;
+			sprd,syscon-pmu-apb = <&pmu_regs>;
+			status = "disabled";
+		};
+
 		power-controller@c00 {
 			compatible = "sprd,sc27xx-regulator", "sprd,sc2721-regulator";
 

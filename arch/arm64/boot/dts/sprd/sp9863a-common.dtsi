@@ -9,7 +9,7 @@
 #include "sc9863a-modem.dtsi"
 #include "sc2721.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
-
+#include "sprd-sound-sharkl.dtsi"
 / {
 	firmware {
 		android {
@@ -161,3 +161,25 @@
 	no-sd;
 	status = "okay";
 };
+
+&i2s0 {
+	status = "okay";
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	digital-codec = <&sprd_audio_codec_dig>;
+};
+
+&sprd_headset {
+	status = "okay";
+};
+
+&sound_vbc_r1p0v3_sprd_codec {
+	status = "okay";
+};
+
+&sound_sprd_ap_alliis {
+	status = "okay";
+};
+

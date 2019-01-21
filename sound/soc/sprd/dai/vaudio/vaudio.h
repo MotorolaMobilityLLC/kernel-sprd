@@ -1,5 +1,9 @@
 /*
- * Copyright (C) 2015 Spreadtrum Communications Inc.
+ * sound/soc/sprd/dai/vaudio/vaudio.h
+ *
+ * SpreadTrum Vaudio for the dsp stream.
+ *
+ * Copyright (C) 2015 SpreadTrum Ltd.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -10,14 +14,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#ifndef __SPRD_VAUDIO_PCM_H
+#define __SPRD_VAUDIO_PCM_H
 
-#ifndef __HEADSET_SPRD_H__
-#define __HEADSET_SPRD_H__
+#define VAUDIO_MAGIC_ID		(0x5AD)
 
-#if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
-#include "./sc2730/sprd-headset-2730.h"
-#elif defined(CONFIG_SND_SOC_SPRD_CODEC_SC2721)
-#include "./sc2721/sprd-headset-2721.h"
-#endif
-
-#endif
+#endif /* __SPRD_VAUDIO_PCM_H */

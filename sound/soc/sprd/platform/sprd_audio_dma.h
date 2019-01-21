@@ -8,6 +8,7 @@ struct sprd_dma_cfg {
 	struct dma_slave_config config;
 	struct sprd_dma_linklist ll_cfg;
 	unsigned long  dma_config_flag;
+	u32 transcation_len;
 	u32 datawidth;
 	u32 src_step;
 	u32 des_step;

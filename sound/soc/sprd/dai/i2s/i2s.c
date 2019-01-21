@@ -37,11 +37,14 @@
 #include <sound/pcm_params.h>
 #include <sound/tlv.h>
 #include <linux/mfd/syscon.h>
-#include <linux/mfd/syscon/sprd-glb.h>
 #include <linux/regmap.h>
 
 #include "sprd-asoc-common.h"
+#ifdef CONFIG_SND_SOC_SPRD_AUDIO_TWO_STAGE_DMAENGINE_SURPPORT
+#include "sprd-2stage-dmaengine-pcm.h"
+#else
 #include "sprd-dmaengine-pcm.h"
+#endif
 #include "i2s.h"
 #include "sprd-i2s.h"
 
@@ -68,7 +71,6 @@
 #define IIS_CLKNL		(0x0058)
 #define IIS_CLKNH		(0x005C)
 
-
 #define I2S_REG(i2s, offset) ((unsigned long)((i2s)->membase + (offset)))
 #define I2S_PHY_REG(i2s, offset) ((phys_addr_t)((i2s)->memphys + (offset)))
 
@@ -83,10 +85,10 @@ char *use_dma_name[] = {
 
 #define CMD_BUFFER_LENGTH 64
 
-
 struct i2s_rtx {
 	int dma_no;
 };
+
 #define DAI_NAME_SIZE 20
 struct i2s_priv {
 	struct device *dev;
@@ -107,9 +109,9 @@ struct i2s_priv {
 
 static struct sprd_pcm_dma_params i2s_pcm_stereo_out = {
 	.name = "I2S PCM Stereo out",
-	.irq_type = SPRD_DMA_BLK_INT,
+	.irq_type = 0,
 	.desc = {
-		 .datawidth = WORD_WIDTH,
+		 .datawidth = DMA_SLAVE_BUSWIDTH_4_BYTES,
 		 .src_step = 4,
 		 .des_step = 0,
 		 },
@@ -117,9 +119,9 @@ static struct sprd_pcm_dma_params i2s_pcm_stereo_out = {
 
 static struct sprd_pcm_dma_params i2s_pcm_stereo_in = {
 	.name = "I2S PCM Stereo in",
-	.irq_type = SPRD_DMA_BLK_INT,
+	.irq_type = 0,
 	.desc = {
-		 .datawidth = WORD_WIDTH,
+		 .datawidth = DMA_SLAVE_BUSWIDTH_4_BYTES,
 		 .src_step = 0,
 		 .des_step = 4,
 		 },
@@ -175,23 +177,11 @@ static inline void i2s_reg_raw_write(unsigned long reg, int val)
 	writel_relaxed(val, (void *__iomem)reg);
 }
 
-#if 0
-static int i2s_reg_write(unsigned int reg, int val)
-{
-	spin_lock(&i2s_lock);
-	i2s_reg_raw_write(reg, val);
-	spin_unlock(&i2s_lock);
-	sp_asoc_pr_reg("[0x%04x] W:[0x%08x] R:[0x%08x]\n", reg & 0xFFFF, val,
-		       i2s_reg_read(reg));
-	return 0;
-}
-#endif
-
-
 static inline struct i2s_priv *to_info(struct snd_soc_dai *dai)
 {
 	return snd_soc_dai_get_drvdata(dai);
 }
+
 struct i2s_config *sprd_i2s_dai_to_config(struct snd_soc_dai *dai)
 {
 	struct i2s_priv *i2s = NULL;
@@ -201,6 +191,7 @@ struct i2s_config *sprd_i2s_dai_to_config(struct snd_soc_dai *dai)
 	config = &i2s->config;
 	return config;
 }
+
 /*
  * Returns 1 for change, 0 for no change, or negative error code.
  */
@@ -288,7 +279,7 @@ static int i2s_calc_clk(struct i2s_priv *i2s)
 }
 
 static int i2s_calc_clk_m_n(struct i2s_priv *i2s, uint div_mode,
-			int *clk_m, int *clk_n, int *iis_clkd)
+			    int *clk_m, int *clk_n, int *iis_clkd)
 {
 	struct i2s_config *config = &i2s->config;
 	int bit_clk;
@@ -387,7 +378,6 @@ static int master_fraction_clock(struct i2s_priv *i2s, uint div_mode)
 		i2s_reg_update(reg_clkmh, val_clkmh, 0x3f);
 		i2s_reg_update(reg_clkml, val_clkml, 0xffff);
 	} else if (div_mode == 1) {
-
 	/* CTL5[5:4]=h02 IIS_CLK_DVDR_MOD1=1 IIS_CLK_DVDR_MOD0 must be 0*/
 		i2s_reg_update(reg_ctrl5, 0x02 << 4, BIT(4) | BIT(5));
 		i2s_reg_update(reg_clknh, val_clknh, 0x3f);
@@ -403,7 +393,6 @@ static int master_fraction_clock(struct i2s_priv *i2s, uint div_mode)
 	pr_info("%s div_mode=%d\n", __func__, div_mode);
 	return 0;
 }
-
 
 static int i2s_set_clkd(struct i2s_priv *i2s)
 {
@@ -619,9 +608,9 @@ static int i2s_get_dma_data_width(struct i2s_priv *i2s)
 
 	if (config->bus_type == PCM_BUS) {
 		if (config->byte_per_chan == I2S_BPCH_16)
-			return SHORT_WIDTH;
+			return DMA_SLAVE_BUSWIDTH_2_BYTES;
 	}
-	return WORD_WIDTH;
+	return DMA_SLAVE_BUSWIDTH_4_BYTES;
 }
 
 static int i2s_get_dma_step(struct i2s_priv *i2s)
@@ -789,13 +778,13 @@ static int i2s_hw_params(struct snd_pcm_substream *substream,
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		dma_data = &i2s_pcm_stereo_out;
 		dma_data->channels[0] = i2s->tx.dma_no;
-		dma_data->used_dma_channel_name[0] = use_dma_name[2*port];
+		dma_data->used_dma_channel_name[0] = use_dma_name[2 * port];
 		dma_data->desc.fragmens_len = I2S_FIFO_DEPTH -
 			i2s->config.tx_watermark;
 	} else {
 		dma_data = &i2s_pcm_stereo_in;
 		dma_data->channels[0] = i2s->rx.dma_no;
-		dma_data->used_dma_channel_name[0] = use_dma_name[2*port+1];
+		dma_data->used_dma_channel_name[0] = use_dma_name[2 * port + 1];
 		dma_data->desc.fragmens_len = i2s->config.rx_watermark;
 	}
 	dma_data->desc.datawidth = i2s_get_dma_data_width(i2s);
@@ -862,10 +851,11 @@ static struct snd_soc_dai_ops sprd_i2s_dai_ops = {
 	.hw_params = i2s_hw_params,
 	.trigger = i2s_trigger,
 };
+
 static void i2s_config_setting(int index, int value, struct i2s_config *config)
 {
-	pr_debug("%s i2s index %d,value %d\n", __func__ index, value);
-	if (config == NULL) {
+	pr_debug("%s i2s index %d,value %d\n", __func__, index, value);
+	if (!config) {
 		pr_err("%s config is NULL,error!\n", __func__);
 		return;
 	}
@@ -886,8 +876,9 @@ static void i2s_config_setting(int index, int value, struct i2s_config *config)
 			config->bus_type = value;
 		break;
 	case BYTE_PER_CHAN:
-		if (value == I2S_BPCH_8 || value == I2S_BPCH_16
-			|| value == I2S_BPCH_32)
+		if (value == I2S_BPCH_8 ||
+		    value == I2S_BPCH_16 ||
+			value == I2S_BPCH_32)
 			config->byte_per_chan = value;
 		break;
 	case MODE:
@@ -947,7 +938,7 @@ static void i2s_config_setting(int index, int value, struct i2s_config *config)
 static int i2s_config_getting(int index, struct i2s_config *config)
 {
 	pr_debug("%s i2s index %d\n", __func__, index);
-	if (config == NULL) {
+	if (!config) {
 		pr_err("%s config is NULL,error\n", __func__);
 		return -1;
 	}
@@ -998,7 +989,7 @@ static int get_index(char *line_first, char *line_end)
 	char *line_first_dummy = line_first;
 	unsigned long long index;
 
-	if (line_first == NULL || line_end == NULL)
+	if (!line_first || !line_end)
 		return -1;
 	for (; line_first < line_end; line_first++) {
 		if (*line_first >= '0' && *line_first <= '9') {
@@ -1016,7 +1007,7 @@ static int get_index_value(char *line_first)
 	char *line_first_dummy = line_first;
 	unsigned long long index;
 
-	if (line_first == NULL)
+	if (!line_first)
 		return -1;
 	pr_debug("i2s %s %s\n", __func__, line_first);
 	while (line_first++) {
@@ -1032,14 +1023,14 @@ static int get_index_value(char *line_first)
 }
 
 void i2s_debug_write(struct snd_info_entry *entry,
-				struct snd_info_buffer *buffer)
+		     struct snd_info_buffer *buffer)
 {
 	int index;
 	int index_value;
 	char *line = NULL;
 	char *sym_eq = NULL;
 
-	if (dup_config == NULL) {
+	if (!dup_config) {
 		pr_err("%s failed!\n", __func__);
 		return;
 	}
@@ -1049,20 +1040,20 @@ void i2s_debug_write(struct snd_info_entry *entry,
 	if (!snd_info_get_line(buffer, line, CMD_BUFFER_LENGTH)) {
 		pr_debug("i2s: input line %s\n", line);
 		sym_eq = strchr(line, '=');
-		if (sym_eq != NULL) {
+		if (sym_eq) {
 			index = get_index(line, sym_eq);
 			pr_debug("i2s: index %d\n", index);
 			index_value = get_index_value(++sym_eq);
 			pr_debug("i2s: index_value %d\n", index_value);
 			if (index >= 0 && index_value >= 0)
 				i2s_config_setting(index,
-					index_value, dup_config);
+						   index_value, dup_config);
 		} else if (strstr(line, "pcm")) {
 			memcpy(dup_config,
-				&def_pcm_config, sizeof(def_pcm_config));
+			       &def_pcm_config, sizeof(def_pcm_config));
 		} else if (strstr(line, "i2s")) {
 			memcpy(dup_config,
-				&def_i2s_config, sizeof(def_i2s_config));
+			       &def_i2s_config, sizeof(def_i2s_config));
 		} else {
 			pr_err("i2s:echo str fmt not right\n");
 		}
@@ -1073,9 +1064,9 @@ void i2s_debug_write(struct snd_info_entry *entry,
 }
 
 void i2s_debug_read(struct snd_info_entry *entry,
-				struct snd_info_buffer *buffer)
+		    struct snd_info_buffer *buffer)
 {
-	if (dup_config == NULL) {
+	if (!dup_config) {
 		snd_iprintf(buffer, "\n\n dup_config is NUll,error!\n");
 		return;
 	}
@@ -1084,25 +1075,25 @@ void i2s_debug_read(struct snd_info_entry *entry,
 	snd_iprintf(buffer, " 2)echo i2s > i2s-debug\n");
 	snd_iprintf(buffer, " 3)echo pcm >i2s-debug\n\n");
 	snd_iprintf(buffer,
-		" 0     fs 0d:%d\n 1     hw_port 0d:%d\n 2     slave_timeout 0x%x\n",
+		    " 0     fs 0d:%d\n 1     hw_port 0d:%d\n 2     slave_timeout 0x%x\n",
 		dup_config->fs, dup_config->hw_port, dup_config->slave_timeout);
 	snd_iprintf(buffer,
-		" 3     bus_type(****tip:bus_type 0 is iis,1 is pcm****) 0x%x\n 4     byte_per_chan 0x%x\n",
+		    " 3     bus_type(****tip:bus_type 0 is iis,1 is pcm****) 0x%x\n 4     byte_per_chan 0x%x\n",
 		dup_config->bus_type, dup_config->byte_per_chan);
 	snd_iprintf(buffer,
-		" 5     mode(****tip:mode 0 is master,1 is slave****) 0x%x\n 6     lsb 0x%x\n",
+		    " 5     mode(****tip:mode 0 is master,1 is slave****) 0x%x\n 6     lsb 0x%x\n",
 		dup_config->mode, dup_config->lsb);
 	snd_iprintf(buffer, " 7     rtx_mode 0x%x\n 8     lrck_inv 0x%x\n",
-		dup_config->rtx_mode, dup_config->lrck_inv);
+		    dup_config->rtx_mode, dup_config->lrck_inv);
 	snd_iprintf(buffer, " 9     sync_mode 0x%x\n 10    clk_inv 0x%x\n",
-		dup_config->sync_mode, dup_config->clk_inv);
+		    dup_config->sync_mode, dup_config->clk_inv);
 	snd_iprintf(buffer,
-		" 11    i2s_bus_mode 0x%x\n 12    pcm_bus_mode 0x%x\n",
+		    " 11    i2s_bus_mode 0x%x\n 12    pcm_bus_mode 0x%x\n",
 		dup_config->i2s_bus_mode, dup_config->pcm_bus_mode);
 	snd_iprintf(buffer, " 13    pcm_slot 0x%x\n 14    pcm_cycle 0x%x\n",
-		dup_config->pcm_slot, dup_config->pcm_cycle);
+		    dup_config->pcm_slot, dup_config->pcm_cycle);
 	snd_iprintf(buffer,
-		" 15    tx_watermark 0d:%d\n 16    rx_watermark 0d:%d\n\n",
+		    " 15    tx_watermark 0d:%d\n 16    rx_watermark 0d:%d\n\n",
 		dup_config->tx_watermark, dup_config->rx_watermark);
 }
 
@@ -1112,7 +1103,7 @@ static inline int iis_reg_read(unsigned long reg)
 }
 
 void i2s_register_proc_read(struct snd_info_entry *entry,
-			struct snd_info_buffer *buffer)
+			    struct snd_info_buffer *buffer)
 {
 	unsigned long reg;
 
@@ -1124,7 +1115,7 @@ void i2s_register_proc_read(struct snd_info_entry *entry,
 	snd_iprintf(buffer, "i2s register dump\n");
 	for (reg = IIS_TXD + membase; reg <= IIS_CLKNH + membase; reg += 0x10) {
 		snd_iprintf(buffer, "0x%08lx | 0x%08x 0x%08x 0x%08x 0x%08x\n",
-			(reg - IIS_TXD - membase)
+			    (reg - IIS_TXD - membase)
 			, iis_reg_read(reg + 0x00)
 			, iis_reg_read(reg + 0x04)
 			, iis_reg_read(reg + 0x08)
@@ -1134,30 +1125,30 @@ void i2s_register_proc_read(struct snd_info_entry *entry,
 }
 
 int i2s_config_get(struct snd_kcontrol *kcontrol,
-			struct snd_ctl_elem_value *ucontrol)
+		   struct snd_ctl_elem_value *ucontrol)
 {
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	int id = FUN_REG(mc->reg);
 
-	if (dup_config == NULL) {
+	if (!dup_config) {
 		pr_err("%s return\n", __func__);
 		return 0;
 	}
 	ucontrol->value.integer.value[0] = i2s_config_getting(id, dup_config);
 	pr_debug("%s return value %ld,id %d\n", __func__,
-		ucontrol->value.integer.value[0], id);
+		 ucontrol->value.integer.value[0], id);
 	return 0;
 }
 
 int i2s_config_set(struct snd_kcontrol *kcontrol,
-			struct snd_ctl_elem_value *ucontrol)
+		   struct snd_ctl_elem_value *ucontrol)
 {
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	int id = FUN_REG(mc->reg);
 
-	if (dup_config == NULL) {
+	if (!dup_config) {
 		pr_err("%s return\n", __func__);
 		return 0;
 	}
@@ -1200,7 +1191,7 @@ static int i2s_drv_probe(struct platform_device *pdev)
 		}
 
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-		if (res == NULL) {
+		if (!res) {
 			pr_err("ERR:Must give me the base address!\n");
 			goto out;
 		}
@@ -1216,12 +1207,12 @@ static int i2s_drv_probe(struct platform_device *pdev)
 			pr_err("ERR:Must give me the dai_name!\n");
 			/* goto out; */
 		}
-		if (dai_name != NULL)
+		if (dai_name)
 			strcpy(i2s->dai_name, dai_name);
 		sp_asoc_pr_info("dt version i2s->dai_name %s\n", i2s->dai_name);
 
 		if (of_property_read_string(node,
-			"sprd,config_type", &config_type)) {
+					    "sprd,config_type", &config_type)) {
 			i2s->config = def_pcm_config;
 			i2s->i2s_type = 0;
 			sp_asoc_pr_info(
@@ -1229,7 +1220,7 @@ static int i2s_drv_probe(struct platform_device *pdev)
 		}
 		sp_asoc_pr_info("i2s config_type %s\n", config_type);
 
-		if (config_type != NULL) {
+		if (config_type) {
 			if (strcmp(config_type, "i2s") == 0) {
 				i2s->config = def_i2s_config;
 				i2s->i2s_type = 1;
@@ -1276,7 +1267,7 @@ static int i2s_drv_probe(struct platform_device *pdev)
 			(node, "sprd,byte_per_chan", &val[0])) {
 			i2s->config.byte_per_chan = val[0];
 			sp_asoc_pr_dbg("Change byte per channal to %d!\n",
-				val[0]);
+				       val[0]);
 		}
 		if (!of_property_read_u32(node, "sprd,slave_mode", &val[0])) {
 			if (val[0])
@@ -1284,7 +1275,7 @@ static int i2s_drv_probe(struct platform_device *pdev)
 			else
 				i2s->config.mode = I2S_MASTER;
 			sp_asoc_pr_dbg("Change to %s!\n",
-					val[0] ? "Slave" : "Master");
+				       val[0] ? "Slave" : "Master");
 		}
 		if (!of_property_read_u32(node, "sprd,lsb", &val[0])) {
 			if (val[0])
@@ -1292,7 +1283,7 @@ static int i2s_drv_probe(struct platform_device *pdev)
 			else
 				i2s->config.lsb = I2S_MSB;
 			sp_asoc_pr_dbg("Change to %s!\n",
-				val[0] ? "LSB" : "MSB");
+				       val[0] ? "LSB" : "MSB");
 		}
 		if (!of_property_read_u32(node, "sprd,lrck", &val[0])) {
 			if (val[0])
@@ -1300,7 +1291,7 @@ static int i2s_drv_probe(struct platform_device *pdev)
 			else
 				i2s->config.sync_mode = I2S_SYNC;
 			sp_asoc_pr_dbg("Change to %s!\n",
-					val[0] ? "LRCK" : "SYNC");
+				       val[0] ? "LRCK" : "SYNC");
 		}
 		if (!of_property_read_u32
 		    (node, "sprd,low_for_left", &val[0])) {
@@ -1309,7 +1300,8 @@ static int i2s_drv_probe(struct platform_device *pdev)
 			else
 				i2s->config.lrck_inv = I2S_L_RIGTH;
 			sp_asoc_pr_dbg("Change to %s!\n",
-				val[0] ? "Low for Left" : "Low for Right");
+				       val[0] ?
+				       "Low for Left" : "Low for Right");
 		}
 		if (!of_property_read_u32(node, "sprd,clk_inv", &val[0])) {
 			if (val[0])
@@ -1317,7 +1309,7 @@ static int i2s_drv_probe(struct platform_device *pdev)
 			else
 				i2s->config.clk_inv = I2S_CLK_N;
 			sp_asoc_pr_dbg("Change to %s!\n",
-					val[0] ? "CLK INV" : "CLK Normal");
+				       val[0] ? "CLK INV" : "CLK Normal");
 		}
 		if (i2s->i2s_type) {
 			if (!of_property_read_u32
@@ -1331,7 +1323,8 @@ static int i2s_drv_probe(struct platform_device *pdev)
 					i2s->config.i2s_bus_mode =
 						I2S_MSBJUSTFIED;
 				sp_asoc_pr_dbg("Change to %s!\n",
-					val[0] ? "Compatible" : "MSBJustfied");
+					       val[0] ?
+					       "Compatible" : "MSBJustfied");
 			}
 		}
 		if (!of_property_read_u32
@@ -1341,7 +1334,7 @@ static int i2s_drv_probe(struct platform_device *pdev)
 			else
 				i2s->config.pcm_bus_mode = I2S_LONG_FRAME;
 			sp_asoc_pr_dbg("Change to %s!\n",
-					val[0] ? "Short Frame" : "Long Frame");
+				       val[0] ? "Short Frame" : "Long Frame");
 		}
 		if (!i2s->i2s_type) {
 			if (!of_property_read_u32(
@@ -1371,11 +1364,11 @@ static int i2s_drv_probe(struct platform_device *pdev)
 		i2s->config =
 		    *((struct i2s_config *)(dev_get_platdata(&pdev->dev)));
 		snprintf(i2s->dai_name, DAI_NAME_SIZE, "%s%d",
-			"i2s_bt_sco", pdev->id);
+			 "i2s_bt_sco", pdev->id);
 		sp_asoc_pr_info("not bt version i2s->dai_name %s\n",
-			i2s->dai_name);
+				i2s->dai_name);
 		sp_asoc_pr_dbg("i2s.%d(%d) default fs is (%d)\n", pdev->id,
-			i2s->config.hw_port, i2s->config.fs);
+			       i2s->config.hw_port, i2s->config.fs);
 
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 		i2s->membase = (void __iomem *)res->start;
@@ -1414,12 +1407,14 @@ static int i2s_drv_probe(struct platform_device *pdev)
 
 	atomic_set(&i2s->open_cnt, 0);
 
-	ret = snd_soc_register_component(&pdev->dev, &sprd_i2s_component,
-		i2s->i2s_dai_driver, ARRAY_SIZE(i2s->i2s_dai_driver));
+	ret = snd_soc_register_component(&pdev->dev,
+					 &sprd_i2s_component,
+					i2s->i2s_dai_driver,
+					ARRAY_SIZE(i2s->i2s_dai_driver));
 	sp_asoc_pr_dbg("return %i\n", ret);
 
 	if (strcmp(i2s->dai_name, "i2s_bt_sco0") == 0) {
-		dup_config = &(i2s->config);
+		dup_config = &i2s->config;
 		membase = (unsigned long)i2s->membase;
 	}
 	return ret;

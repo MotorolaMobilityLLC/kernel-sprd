@@ -1,5 +1,9 @@
 /*
- * Copyright (C) 2015 Spreadtrum Communications Inc.
+ * sound/soc/sprd/dai/vbc/r1p0v3/vbc-codec.h
+ *
+ * SPRD SoC VBC Codec -- SpreadTrum SOC VBC Codec function.
+ *
+ * Copyright (C) 2015 SpreadTrum Ltd.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -7,17 +11,12 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY ork FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#ifndef __VBC_CODEC_H
+#define __VBC_CODEC_H
 
-#ifndef __HEADSET_SPRD_H__
-#define __HEADSET_SPRD_H__
+#include "vbc-comm.h"
 
-#if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
-#include "./sc2730/sprd-headset-2730.h"
-#elif defined(CONFIG_SND_SOC_SPRD_CODEC_SC2721)
-#include "./sc2721/sprd-headset-2721.h"
-#endif
-
-#endif
+#endif /* __VBC_CODEC_H */
