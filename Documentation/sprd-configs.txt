@@ -3175,8 +3175,8 @@ CONFIG_FANOTIFY_ACCESS_PERMISSIONS
 	[must] user
 	[function] Filesystem wide access notification.
 CONFIG_FAST_CHARGER_SC2730
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1
 	[field] make
 	[subsys] power
 	[must] user
