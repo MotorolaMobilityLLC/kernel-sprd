@@ -16,7 +16,6 @@
 
 #include <linux/delay.h>
 #include <linux/of_device.h>
-#include <linux/wakelock.h>
 #include "sprd_sensor_core.h"
 
 #define SPRD_SENSOR_MINOR		MISC_DYNAMIC_MINOR

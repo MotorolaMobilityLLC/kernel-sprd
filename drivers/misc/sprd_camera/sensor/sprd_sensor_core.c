@@ -594,7 +594,7 @@ static int sprd_sensor_file_open(struct inode *node, struct file *file)
 			goto exit;
 		}
 		sprd_cam_domain_eb();
-		wake_lock(&p_mod->wakelock);
+		__pm_stay_awake(&p_mod->ws);
 	}
 	file->private_data = p_file;
 	p_file->mod_data = p_mod;
@@ -634,7 +634,7 @@ static int sprd_sensor_file_release(struct inode *node, struct file *file)
 	if (atomic_dec_return(&p_mod->total_users) == 0) {
 		sprd_cam_domain_disable();
 		sprd_cam_pw_off();
-		wake_unlock(&p_mod->wakelock);
+		__pm_relax(&p_mod->ws);
 	}
 	kfree(p_file);
 	p_file = NULL;
@@ -703,8 +703,7 @@ static int sprd_sensor_core_module_init(void)
 	if (!p_data)
 		return -ENOMEM;
 	mutex_init(&p_data->sensor_id_lock);
-	wake_lock_init(&p_data->wakelock, WAKE_LOCK_SUSPEND,
-		       "Camera Sensor Waklelock");
+	wakeup_source_init(&p_data->ws, "Camera Sensor Waklelock");
 	atomic_set(&p_data->total_users, 0);
 	sprd_sensor_register_driver();
 	pr_info("sensor register\n");
@@ -731,7 +730,7 @@ static void sprd_sensor_core_module_exit(void)
 	sprd_sensor_unregister_driver();
 	if (p_data) {
 		mutex_destroy(&p_data->sensor_id_lock);
-		wake_lock_destroy(&p_data->wakelock);
+		wakeup_source_trash(&p_data->ws);
 		kfree(p_data);
 		p_data = NULL;
 	}

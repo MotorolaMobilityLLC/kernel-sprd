@@ -15,7 +15,6 @@
 #define _SPRD_SENSOR_CORE_H_
 
 #include <linux/of_device.h>
-#include <linux/wakelock.h>
 #include <video/sprd_sensor_k.h>
 
 #define SPRD_SENSOR_VDD_1000MV_VAL	1000000
@@ -103,7 +102,7 @@ struct sprd_sensor_core_module_tag {
 	atomic_t total_users;
 	unsigned int padding;
 	struct mutex sensor_id_lock;
-	struct wake_lock wakelock;
+	struct wakeup_source ws;
 };
 
 struct sprd_sensor_file_tag {
