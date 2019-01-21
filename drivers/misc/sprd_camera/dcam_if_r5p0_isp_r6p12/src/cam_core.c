@@ -198,7 +198,7 @@ struct camera_group {
 	atomic_t isp_run_count;
 	struct miscdevice *md;
 	struct platform_device *pdev;
-	struct wake_lock wakelock;
+	struct wakeup_source ws;
 	struct completion fetch_com;
 	void *dump_work;
 	uint32_t dump_dcamraw;
@@ -529,7 +529,7 @@ static int sprd_camcore_open(struct inode *node, struct file *file)
 	}
 
 	file->private_data = (void *)camerafile;
-	wake_lock(&grp->wakelock);
+	__pm_stay_awake(&grp->ws);
 	pr_info("Camera open success!\n");
 
 	return ret;
@@ -587,7 +587,7 @@ static int sprd_camcore_release(struct inode *node, struct file *file)
 	}
 	vfree(camerafile);
 	file->private_data = NULL;
-	wake_unlock(&group->wakelock);
+	__pm_relax(&group->ws);
 
 	pr_info("Camera close success!\n");
 exit:
@@ -917,8 +917,7 @@ static int sprd_camcore_probe(struct platform_device *pdev)
 	group->md = &image_dev;
 	group->pdev = pdev;
 	atomic_set(&group->camera_opened, 0);
-	wake_lock_init(&group->wakelock, WAKE_LOCK_SUSPEND,
-		"Camera Sys Wakelock");
+	wakeup_source_init(&group->ws, "Camera Sys Wakelock");
 	mutex_init(&group->grp_mutex);
 	init_completion(&group->fetch_com);
 	complete(&group->fetch_com);
@@ -980,7 +979,7 @@ static int sprd_camcore_remove(struct platform_device *pdev)
 	group = image_dev.this_device->platform_data;
 	sprd_isp_drv_deinit();
 	sprd_dcam_drv_deinit();
-	wake_lock_destroy(&group->wakelock);
+	wakeup_source_trash(&group->ws);
 	mutex_destroy(&group->grp_mutex);
 	vfree(image_dev.this_device->platform_data);
 	misc_deregister(&image_dev);
