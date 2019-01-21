@@ -385,7 +385,7 @@ static int sprd_camioctl_tx_done(struct camera_frame *frame, void *param)
 			dev->idx, frame->frame_id,
 			frame->time.timeval.tv_sec,
 			frame->time.timeval.tv_usec,
-			frame->time.boot_time.tv64);
+			frame->time.boot_time);
 	}
 	node.time = frame->time;
 

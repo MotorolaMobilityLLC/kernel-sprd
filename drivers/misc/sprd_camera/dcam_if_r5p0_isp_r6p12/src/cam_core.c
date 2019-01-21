@@ -728,7 +728,7 @@ static ssize_t sprd_camcore_read(struct file *file,
 			read_op.parm.frame.sec = node.time.timeval.tv_sec;
 			read_op.parm.frame.usec = node.time.timeval.tv_usec;
 			read_op.parm.frame.monoboottime =
-				node.time.boot_time.tv64;
+				node.time.boot_time;
 			read_op.parm.frame.frm_base_id = path->frm_id_base;
 			read_op.parm.frame.img_fmt = path->fourcc;
 			read_op.parm.frame.yaddr = node.yaddr;

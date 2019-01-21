@@ -122,8 +122,8 @@ static int sprd_dcamint_get_time(struct camera_frame *frame,
 	dcam1 = dcam_group->dcam[DCAM_ID_1];
 	if ((dcam0->frame_id >= 1 && dcam1->frame_id == 1)
 		|| (dcam1->frame_id >= 1 && dcam0->frame_id == 1)) {
-		time_diff = (dcam1->time[dcam1->time_index].boot_time.tv64)
-			- (dcam0->time[dcam0->time_index].boot_time.tv64);
+		time_diff = (dcam1->time[dcam1->time_index].boot_time)
+			- (dcam0->time[dcam0->time_index].boot_time);
 		time_diff = (time_diff > 0 ? time_diff : -time_diff);
 		frame_id_diff = dcam0->frame_id - dcam1->frame_id;
 		if (dcam_group->frame_id_diff == 0 &&

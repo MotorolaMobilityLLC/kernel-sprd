@@ -576,7 +576,7 @@ static int sprd_ispdrv_sel_cap_frame(void *handle)
 		}
 
 		s_isp_group.timestamp[idx]
-				= frame.time.boot_time.tv64;
+				= frame.time.boot_time;
 		if (++s_isp_group.dual_sel_cnt == 2) {
 			pr_debug("frame %d %d %d %d\n",
 				dev0->frame_id, dev1->frame_id,
