@@ -255,7 +255,7 @@
 	sprd,sdio-adma;
 	no-sdio;
 	no-mmc;
-	status = "disabled";
+	status = "okay";
 };
 
 &sdio1 {
