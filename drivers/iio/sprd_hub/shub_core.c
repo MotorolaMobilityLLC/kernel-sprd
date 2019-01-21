@@ -459,7 +459,7 @@ static void request_send_firmware(struct shub_data *sensor,
 			break;
 		dev_info(&sensor->sensor_pdev->dev,
 			"try compatible sensor: %s\n", sensor_firms[i]);
-		sprintf(firmware_name, "/data/vendor/sensorhub/shub_fw_%s_cali",
+		sprintf(firmware_name, "/mnt/vendor/sensorhub/shub_fw_%s_cali",
 			sensor_firms[i]);
 		dev_info(&sensor->sensor_pdev->dev,
 			"fw path: %s\n", firmware_name);
@@ -499,7 +499,7 @@ static void request_send_firmware(struct shub_data *sensor,
 		kfree(cali_data);
 		filp_close(file, NULL);
 
-		sprintf(firmware_name, "/data/vendor/sensorhub/shub_fw_%s",
+		sprintf(firmware_name, "/mnt/vendor/sensorhub/shub_fw_%s",
 			sensor_firms[i]);
 		file = filp_open(firmware_name, O_RDONLY, 0);
 		if (IS_ERR(file))
@@ -1098,7 +1098,7 @@ static int shub_download_calibration_data(struct shub_data *sensor)
 		err = vfs_stat(file_path, &stat);
 		if (err) {
 			dev_err(&sensor->sensor_pdev->dev,
-				"Failed to find file stat\n");
+				"Failed to find file stat, err = %d\n", err);
 			continue;
 		}
 		cal_file_size = (int) stat.size;
