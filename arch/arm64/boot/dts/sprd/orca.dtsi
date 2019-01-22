@@ -39,6 +39,126 @@
 			reg = <0 0x29000000 0 0x100000>;
 		};
 
+		audcp_apb_regs: syscon@3350d000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x3350d000 0 0x1000>;
+		};
+
+		audcp_ahb_regs: syscon@335e0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x335e0000 0 0x10000>;
+		};
+
+		pub_ahb_regs: syscon@61030000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x61030000 0 0x10000>;
+		};
+
+		pub_apb_regs: syscon@61050000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x61050000 0 0x10000>;
+		};
+
+		ap_intc0_regs: syscon@63020000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63020000 0 0x10000>;
+		};
+
+		ap_intc1_regs: syscon@63030000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63030000 0 0x10000>;
+		};
+
+		ap_intc2_regs: syscon@63040000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63040000 0 0x10000>;
+		};
+
+		ap_intc3_regs: syscon@63050000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63050000 0 0x10000>;
+		};
+
+		ap_intc4_regs: syscon@63060000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63060000 0 0x10000>;
+		};
+
+		ap_intc5_regs: syscon@63070000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63070000 0 0x10000>;
+		};
+
+		anlg_phy_g0_regs: syscon@63470000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63470000 0 0x10000>;
+		};
+
+		anlg_phy_g1_regs: syscon@63480000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63480000 0 0x10000>;
+		};
+
+		anlg_phy_g2_regs: syscon@63490000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63490000 0 0x10000>;
+		};
+
+		anlg_phy_g3_regs: syscon@634b0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x634b0000 0 0x10000>;
+		};
+
+		anlg_phy_g4_regs: syscon@634c0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x634c0000 0 0x10000>;
+		};
+
+		anlg_phy_g5_regs: syscon@634f0000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x634f0000 0 0x10000>;
+		};
+
+		anlg_phy_g8_regs: syscon@63500000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63500000 0 0x10000>;
+		};
+
+		anlg_phy_g9_regs: syscon@63510000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63510000 0 0x10000>;
+		};
+
+		anlg_phy_g10_regs: syscon@63520000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63520000 0 0x10000>;
+		};
+
+		anlg_phy_g11_regs: syscon@63530000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x63530000 0 0x10000>;
+		};
+
 		pmu_apb_regs: syscon@64010000 {
 			compatible = "sprd,sys-pmu-apb", "syscon";
 			#syscon-cells = <2>;
