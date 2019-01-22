@@ -61,6 +61,27 @@ extern u32 wcn_print_level;
 #define MDBG_LOG(fmt, args...)
 #endif
 
+#ifdef CONFIG_PRINTK
+#define wcn_printk_ratelimited(inter, burst, now, fmt, ...)	\
+({								\
+	static DEFINE_RATELIMIT_STATE(_wcn_rs,			\
+				      (inter * HZ), burst);	\
+	static unsigned int _wcn_last;				\
+								\
+	if (__ratelimit(&_wcn_rs)) {				\
+		printk(fmt " [rate:%u]\n", ##__VA_ARGS__,	\
+		       (now - _wcn_last) / inter);		\
+		_wcn_last = now;				\
+	}							\
+})
+#else
+#define wcn_printk_ratelimited(inter, burst, now, fmt, ...)
+#endif
+
+#define wcn_pr_daterate(inter, burst, now, fmt, ...)		\
+	wcn_printk_ratelimited(inter, burst, now,		\
+			KERN_INFO "WCN: " pr_fmt(fmt), ##__VA_ARGS__)
+
 #define MDBG_FUNC_ENTERY	MDBG_LOG("ENTER.")
 #define MDBG_FUNC_EXIT		MDBG_LOG("EXIT.")
 

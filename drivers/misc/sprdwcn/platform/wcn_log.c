@@ -138,9 +138,7 @@ static ssize_t wcnlog_read(struct file *filp,
 		dum_send_size += read_size;
 		WCN_INFO("read_size = %ld dum_total_size= %d,remainder =%ld\n",
 				read_size, dum_send_size, mdbg_content_len());
-	} else
-		WCN_INFO("%ld remainder:0x%lx\n",
-			read_size, mdbg_content_len());
+	}
 	/* read_size = log1040 or mem32K, 1024 */
 	if (read_size > 0) {
 		WCN_DEBUG("Show %ld bytes data.", read_size);

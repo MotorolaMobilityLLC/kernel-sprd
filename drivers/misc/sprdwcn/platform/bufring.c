@@ -128,6 +128,7 @@ int mdbg_ring_read(struct mdbg_ring_t *ring, void *buf, int len)
 	int read_len = 0;
 	char *pstart = NULL;
 	char *pend = NULL;
+	static unsigned int total_len;
 
 	if ((buf == NULL) || (ring == NULL) || (len == 0)) {
 		MDBG_ERR("Ring Read Failed,Param Error!,buf=%p,ring=%p,len=%d",
@@ -187,6 +188,11 @@ int mdbg_ring_read(struct mdbg_ring_t *ring, void *buf, int len)
 		}
 		ring->rp += read_len;
 	}
+	total_len += read_len;
+	wcn_pr_daterate(4, 1, total_len,
+			"%s totallen:%u read:%d wp:%p rp:%p",
+			__func__, total_len, read_len,
+			ring->wp, ring->rp);
 	MDBG_LOG("<-----[read end] read len =%d.\n", read_len);
 	MDBG_RING_UNLOCK(ring);
 
@@ -202,6 +208,7 @@ int mdbg_ring_write(struct mdbg_ring_t *ring, void *buf, unsigned int len)
 	int len1, len2 = 0;
 	char *pstart = NULL;
 	char *pend = NULL;
+	static unsigned int total_len;
 
 	MDBG_LOG("-->Ring Write len = %d\n", len);
 	if ((ring == NULL) || (buf == NULL) || (len == 0)) {
@@ -261,6 +268,10 @@ int mdbg_ring_write(struct mdbg_ring_t *ring, void *buf, unsigned int len)
 		}
 		ring->wp += len;
 	}
+	total_len += len;
+	wcn_pr_daterate(4, 1, total_len,
+			"%s totallen:%u write:%u wp:%p rp:%p",
+			__func__, total_len, len, ring->wp, ring->rp);
 	MDBG_LOG("<------end len = %d\n", len);
 
 	return len;
