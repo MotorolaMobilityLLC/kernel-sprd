@@ -385,6 +385,7 @@ static const struct of_device_id sprd_wdt_match_table[] = {
 	{ .compatible = "sprd,sharkl5-wdt", },
 	{ .compatible = "sprd,sharkl3-wdt", },
 	{ .compatible = "sprd,roc1-wdt", },
+	{ .compatible = "sprd,orca-wdt", },
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_wdt_match_table);
