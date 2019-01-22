@@ -814,6 +814,7 @@ static inline void sprd_codec_inter_pa_init(struct sprd_codec_priv *sprd_codec)
 /* NOTE: VB, BG & BIAS must be enabled before calling this function. */
 static void spk_pa_short_check(struct sprd_codec_priv *sprd_codec)
 {
+#ifdef SPRD_CODEC_IMPD
 	struct snd_soc_codec *codec;
 
 	int val, mask;
@@ -880,6 +881,7 @@ static void spk_pa_short_check(struct sprd_codec_priv *sprd_codec)
 	val = snd_soc_read(codec, SOC_REG(ANA_STS14)) | IMPD_ADC_DATO(0xFFFF);
 
 	/* yintang: TBD. calculate the impd per the val */
+#endif
 }
 
 static int spk_pa_event(struct snd_soc_dapm_widget *w,
@@ -2741,6 +2743,7 @@ static int sprd_codec_soc_suspend(struct snd_soc_codec *codec)
 	sp_asoc_pr_info("%s, startup_cnt=%d\n",
 		__func__, sprd_codec->startup_cnt);
 
+	regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
 	return 0;
 }
 
@@ -2748,8 +2751,11 @@ static int sprd_codec_soc_resume(struct snd_soc_codec *codec)
 {
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 
-	sp_asoc_pr_info("%s, startup_cnt=%d\n",
-		__func__, sprd_codec->startup_cnt);
+	sp_asoc_pr_info("%s, startup_cnt=%d,ana_pmu0=0x%x\n",
+		__func__, sprd_codec->startup_cnt,
+		snd_soc_read(codec, SOC_REG(ANA_PMU0)));
+
+	regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_NORMAL);
 	return 0;
 }
 #else

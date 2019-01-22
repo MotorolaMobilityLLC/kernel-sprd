@@ -392,7 +392,14 @@ static int power_sleep(void *data, int en)
 	int ret;
 
 	switch (info->desc.id) {
+	case SPRD_AUDIO_POWER_VB:
+		reg = ANA_PMU0;
+		mask = VB_SLEEP_EN;
+		value = en ? mask : 0;
+		ret = sprd_power_u_bits(info, reg, mask, value);
+		break;
 	case SPRD_AUDIO_POWER_MICBIAS1:
+		reg = ANA_PMU1;
 		mask = MIC1_BIAS_SLEEP_EN;
 		value = en ? mask : 0;
 		ret = sprd_power_u_bits(info, reg, mask, value);
