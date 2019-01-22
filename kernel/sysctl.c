@@ -95,6 +95,10 @@
 #include <linux/nmi.h>
 #endif
 
+#ifdef CONFIG_E_SHOW_MEM
+#include <linux/emem.h>
+#endif
+
 #if defined(CONFIG_SYSCTL)
 
 /* External variables not in a header file. */
@@ -1701,6 +1705,17 @@ static struct ctl_table vm_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= (void *)&mmap_rnd_compat_bits_min,
 		.extra2		= (void *)&mmap_rnd_compat_bits_max,
+	},
+#endif
+#ifdef CONFIG_E_SHOW_MEM
+	{
+		.procname	= "emem_trigger",
+		.data		= &sysctl_emem_trigger,
+		.maxlen		= sizeof(int),
+		.mode		= 0200,
+		.proc_handler	= sysctl_emem_trigger_handler,
+		.extra1		= &zero,
+		.extra2		= &one_thousand,
 	},
 #endif
 	{ }
