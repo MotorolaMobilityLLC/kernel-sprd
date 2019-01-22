@@ -18,6 +18,7 @@
 #include <linux/regmap.h>
 #if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
 #include <linux/pm_wakeup.h>
+#define HDST_REGULATOR_COUNT 11
 #else
 #include <linux/wakelock.h>
 #endif
@@ -29,6 +30,7 @@
  * please refer to Bug#298417 to confirm your configuration.
  **********************************************/
 /* #define ADPGAR_BYP_SELECT */
+#define TO_STRING(e) #e
 enum {
 	BIT_HEADSET_OUT = 0,
 	BIT_HEADSET_MIC = (1 << 0),
@@ -55,24 +57,46 @@ enum {
 	HDST_GPIO_AUD_MAX
 };
 
-enum {
-	HDST_EIC_INSERT_ALL = 10,
-	HDST_EIC_MDET,
-	HDST_EIC_LDETL,
-	HDST_EIC_LDETH,
-	HDST_EIC_GDET,
-	HDST_EIC_BDET,
-	HDST_EIC_MAX
+/* define this according to ANA_INT8 */
+enum hdst_eic_type {
+	HDST_INSERT_ALL_EIC = 10,
+	HDST_MDET_EIC,
+	HDST_LDETL_EIC,
+	HDST_LDETH_EIC,
+	HDST_GDET_EIC,
+	HDST_BDET_EIC,
+	HDST_ALL_EIC
 };
 
-enum {
-	HDST_INSERT_BIT_MDET = 10,
-	HDST_INSERT_BIT_LDETL,
-	HDST_INSERT_BIT_LDETH,
-	HDST_INSERT_BIT_GDET,
-	HDST_INSERT_BIT_BDET,
-	HDST_INSERT_BIT_INSERT_ALL,
-	HDST_INSERT_BIT_MAX
+/* define this according to ANA_STS0 */
+enum hdst_insert_signal {
+	HDST_INSERT_MDET = 10,
+	HDST_INSERT_LDETL,
+	HDST_INSERT_LDETH,
+	HDST_INSERT_GDET,
+	HDST_INSERT_BDET,
+	HDST_INSERT_ALL,
+	HDST_INSERT_MAX
+};
+
+/* define 15 channels interrupt controller according to ANA_INT33 */
+enum intc_type {
+	INTC_FGU_HIGH = 0,
+	INTC_FGU_LOW,
+	INTC_IMPD_BIST_DONE,
+	INTC_IMPD_CHARGE,
+	INTC_IMPD_DISCHARGE,
+	INTC_HPL_DPOP,
+	INTC_HPR_DPOP = 6,
+	INTC_REV_DPOP,
+	INTC_CFGA_EAR,
+	INTC_CFGA_PA,
+	INTC_CFGA_HPL,
+	INTC_CFGA_HPR,
+	INTC_PACAL_DONE,
+	INTC_PADPOP_DONE,
+	INTC_ALL_ANALOG = 14,
+	INTC_MAX
 };
 
 enum {
@@ -88,6 +112,7 @@ struct sprd_headset_platform_data {
 	u32 gpios[HDST_GPIO_AUD_MAX];
 	u32 dbnc_times[HDST_GPIO_AUD_MAX]; /* debounce times */
 	u32 irq_trigger_levels[HDST_GPIO_AUD_MAX];
+	u32 eu_us_switch;
 	u32 threshold_3pole;/* adc threshold value of 3pole headset  */
 #else
 	u32 gpios[HDST_GPIO_MAX];
@@ -135,6 +160,58 @@ struct sprd_headset_power {
 	bool clk_dcl_32k_en;
 };
 
+#if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
+
+enum headset_hw_status {
+	HW_LDETL_PLUG_OUT,
+	HW_INSERT_ALL_PLUG_OUT,
+	HW_LDETL_PLUG_IN,
+	HW_INSERT_ALL_PLUG_IN,
+	HW_MDET,
+	HW_BTN_PRESS,
+	HW_BTN_RELEASE
+};
+
+enum headset_eic_type {
+	LDETL_PLUGIN = 0x1,
+	INSERT_ALL_PLUGOUT = 0x2,
+	MDET_EIC = 0x4,
+	BDET_EIC = 0x8,
+	TYPE_RE_DETECT = 0x10,
+	BTN_PRESS = 0x20,
+	BTN_RELEASE = 0x40,
+	INSERT_ALL_PLUGIN = 0x80,
+	LDETL_PLUGOUT = 0x100,
+	EIC_TYPE_MAX
+};
+
+enum headset_retrun_val {
+	RET_PLUGERR = -1,
+	RET_PLUGIN = 1,
+	RET_PLUGOUT = 0,
+	RET_DEBOUN_ERR = -2,
+	RET_NOERROR = 0,
+	RET_MIS_ERR = -3,
+	RET_NO_HDST_IRQ = -4,
+	RET_BTN_PRESS = 5,
+	RET_BTN_RELEASE = 6,
+	RET_BTN_INVALID = -7,
+	RET_LDETL_INVALID = -8,
+	RET_OTHER_ERR = -9
+};
+
+struct headset_power {
+	char *name;
+	u32 index;
+	bool en;
+	struct regulator *hdst_regu;
+};
+
+struct headset_power_manager {
+	struct headset_power power[HDST_REGULATOR_COUNT];
+};
+#endif
+
 struct sprd_headset {
 	int headphone;
 	int irq_detect;
@@ -151,12 +228,15 @@ struct sprd_headset {
 	struct workqueue_struct *det_all_work_q;
 #if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
 	struct delayed_work btn_work;
+	enum headset_hw_status hdst_hw_status;
 	struct delayed_work fc_work; /* for fast charge */
 	struct wakeup_source det_all_wakelock;
 	struct wakeup_source btn_wakelock;
 	struct wakeup_source ldetl_wakelock;
 	bool audio_on;
 	bool btn_detecting;
+	int det_3pole_cnt;/* re-check times after recognize a 3 pole headset */
+	bool mdet_tried;/* tried to wait mdet eic */
 #else
 	struct work_struct btn_work;
 	struct work_struct fc_work; /* for fast charge */
@@ -186,7 +266,7 @@ struct sprd_headset {
 	struct workqueue_struct *adpgar_work_q;
 #endif
 	int debug_level;
-	int det_err_cnt; /* detecting error count */
+	int det_err_cnt; /* re-check times for a error type headset */
 	int gpio_det_val_last; /* detecting gpio last value */
 	int gpio_btn_val_last; /* button detecting gpio last value */
 
@@ -196,7 +276,7 @@ struct sprd_headset {
 	 * plugged in, set plug_state_last = 1
 	 */
 	int plug_stat_last;
-	int report;
+	int report;/* headset type has reported by input event */
 	bool re_detect;
 	struct wakeup_source mic_wakelock;
 	int irq_detect_int_all;
