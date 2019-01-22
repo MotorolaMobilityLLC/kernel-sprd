@@ -381,14 +381,14 @@
 		ai_gate: ai-gate {
 			compatible = "sprd,roc1-ai-gate-clk";
 			sprd,syscon = <&ai_apb_regs>;
-			clocks = <&ext_26m>;
+			clocks = <&aonapb_gate CLK_AI_EB>;
 			#clock-cells = <1>;
 		};
 
 		ai_clk: clock-controller@6fd04000 {
 			compatible = "sprd,roc1-ai-clk";
 			reg = <0 0x6fd04000 0 0x1000>;
-			clocks = <&aonapb_gate CLK_AP_AI>;
+			clocks = <&ext_26m>;
 			#clock-cells = <1>;
 		};
 

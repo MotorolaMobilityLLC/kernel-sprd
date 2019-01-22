@@ -1782,6 +1782,35 @@
 				sprd,target-addr = <0 0>;
 				sprd,target-data = <0 0>;
 			};
+
+			pd_ai_sys: ai-sys {
+				compatible = "sprd,roc1-npu-power-domain";
+				syscons = <&pmu_apb_regs
+				REG_PMU_APB_PD_AI_SYS_CFG
+				MASK_PMU_APB_PD_AI_SYS_FORCE_SHUTDOWN>;
+				syscon-names = "cfg";
+				#power-domain-cells = <0>;
+			};
+
+			pd_ai_powervr: power-vr {
+				compatible = "sprd,roc1-npu-power-domain";
+				syscons = <&pmu_apb_regs
+				REG_PMU_APB_PD_AI_POWERVR_CFG
+				MASK_PMU_APB_PD_AI_POWERVR_FORCE_SHUTDOWN>;
+				syscon-names = "cfg";
+				power-domains = <&pd_ai_sys>;
+				#power-domain-cells = <0>;
+			};
+
+			pd_ai_cambricon: cambricon-1h {
+				compatible = "sprd,roc1-npu-power-domain";
+				syscons = <&pmu_apb_regs
+				REG_PMU_APB_PD_AI_CAMBRICON_CFG
+				MASK_PMU_APB_PD_AI_CAMBRICON_FORCE_SHUTDOWN>;
+				syscon-names = "cfg";
+				power-domains = <&pd_ai_sys>;
+				#power-domain-cells = <0>;
+			};
 		};
 
 		pub {
@@ -2157,7 +2186,7 @@
 			};
 		};
 
-		ap-axi {
+		ai-axi {
 			compatible = "simple-bus";
 			#address-cells = <2>;
 			#size-cells = <2>;
@@ -2168,7 +2197,19 @@
 				reg = <0 0x6fc00000 0 0x10000>;
 				interrupts = <GIC_SPI 132 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "ai_powervr";
+				power-domains = <&pd_ai_powervr>;
+				syscon-names = "reset";
+				syscons = <&ai_apb_regs REG_AI_APB_APB_RST
+					MASK_AI_APB_POWERVR_SOFT_RST>;
+				clock-names = "top", "enable",
+					"sources", "mtx", "cfg";
+				clocks = <&ai_gate CLK_AI_TOP_APB_EB>,
+					<&ai_gate CLK_AI_POWERVR_EB>,
+					<&ai_clk CLK_POWERVR>,
+					<&ai_clk CLK_AI_MTX>,
+					<&ai_clk CLK_POWERVR_CFG>;
 			};
+
 			ipu1: ipu@6fe00000 {
 				compatible = "cambricon,1h16-ipu";
 				reg = <0 0x6fd08000 0 0x80>,
@@ -2181,6 +2222,19 @@
 					<GIC_SPI 134 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "ai_cambricon", "ai_mmu";
 				iommus = <&iommu_ai>;
+				power-domains = <&pd_ai_cambricon>;
+				syscon-names = "reset";
+				syscons = <&ai_apb_regs
+					REG_AI_APB_AI_CAMBRICON_SOFT_RST
+					MASK_AI_APB_CAMB_SOFT_RST>;
+				clock-names = "top", "mmu", "enable",
+					"sources", "mtx", "cfg";
+				clocks = <&ai_gate CLK_AI_TOP_APB_EB>,
+					<&ai_gate CLK_AI_MMU_APB_EB>,
+					<&ai_gate CLK_AI_CAMBRICON_EB>,
+					<&ai_clk CLK_CAMBRICON>,
+					<&ai_clk CLK_AI_MTX>,
+					<&ai_clk CLK_CAMBRICON_CFG>;
 			};
 		};
 	};
