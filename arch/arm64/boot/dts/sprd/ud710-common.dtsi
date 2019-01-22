@@ -243,6 +243,19 @@
 			type = <2>;
 			memory-region = <&fb_reserved>;
 		};
+
+		heap@4 {
+			reg = <4>;
+			label = "carveout_cam";
+			type = <2>;
+		};
+
+		heap@5 {
+			reg = <5>;
+			label = "carveout_vdsp";
+			type = <2>;
+			memory-region = <&vdsp_reserved>;
+		};
 	};
 };
 
