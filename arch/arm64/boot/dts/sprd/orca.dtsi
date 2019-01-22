@@ -422,6 +422,13 @@
 				reg = <0 0x63450000 0 0x10000>;
 			};
 
+			watchdog@63940000 {
+				compatible = "sprd,orca-wdt";
+				reg = <0 0x63940000 0 0x10000>;
+				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <12>;
+			};
+
 			adi_bus: spi@63a00000 {
 				compatible = "sprd,sharkl5-adi", "sprd,orca-adi";
 				reg = <0 0x63a00000 0 0x200000>;
@@ -429,6 +436,7 @@
 				#size-cells = <0>;
 			};
 		};
+
 		ipa_local: sprd,sipa@2E000000 {
 			compatible = "sprd,sipa";
 			reg = <0 0x2E000000 0 0x00001000>,
