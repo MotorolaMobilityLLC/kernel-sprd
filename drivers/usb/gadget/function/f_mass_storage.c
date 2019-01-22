@@ -1201,6 +1201,57 @@ static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
 	return 20;
 }
 
+static int do_read_toc_mac(struct fsg_common *common, struct fsg_buffhd *bh)
+{
+	u8		*buf = (u8 *)bh->buf;
+
+	if ((common->cmnd[9] & 0xc0) != 0x80)
+		return -EINVAL;
+
+	buf[0] = 0x0;			/* TOC data length */
+	buf[1] = 37 - 2;
+	buf[2] = 1;			/* First track number */
+	buf[3] = 1;			/* Last track number */
+
+	buf[4] = 1;			/* session num */
+	buf[5] = 0x16;			/* Data track, copying allowed */
+	buf[6] = 0x0;			/* TNO */
+	buf[7] = 0xA0;			/* POINT */
+	buf[8] = 0x0;			/* MIN */
+	buf[9] = 0x0;			/* SEC */
+	buf[10] = 0x0;			/* FRAME */
+	buf[11] = 0x0;			/* ZERO */
+	buf[12] = 0x01;			/* first track number*/
+	buf[13] = 0x0;			/* PSEC disc type*/
+	buf[14] = 0x0;			/* PFRAME */
+
+	buf[15] = 1;			/* session num */
+	buf[16] = 0x16;			/* Data track, copying allowed */
+	buf[17] = 0x0;			/* TNO */
+	buf[18] = 0xA1;			/* POINT */
+	buf[19] = 0x0;			/* MIN */
+	buf[20] = 0x0;			/* SEC */
+	buf[21] = 0x0;			/* FRAME */
+	buf[22] = 0x0;			/* ZERO */
+	buf[23] = 0x01;			/* last track number*/
+	buf[24] = 0x0;			/* PSEC disc type*/
+	buf[25] = 0x0;			/* PFRAME */
+
+	buf[26] = 1;			/* session num */
+	buf[27] = 0x16;			/* Data track, copying allowed */
+	buf[28] = 0x0;			/* TNO */
+	buf[29] = 0xA2;			/* POINT */
+	buf[30] = 0x0;			/* MIN */
+	buf[31] = 0x0;			/* SEC */
+	buf[32] = 0x0;			/* FRAME */
+	buf[33] = 0x0;			/* ZERO */
+	buf[34] = 0x00;			/* start position of lead-out*/
+	buf[35] = 0x13;
+	buf[36] = 0x11;
+
+	return 37;
+}
+
 static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 {
 	struct fsg_lun	*curlun = common->curlun;
@@ -1927,8 +1978,14 @@ static int do_scsi_command(struct fsg_common *common)
 		reply = check_command(common, 10, DATA_DIR_TO_HOST,
 				      (7<<6) | (1<<1), 1,
 				      "READ TOC");
-		if (reply == 0)
+		if (reply == 0) {
 			reply = do_read_toc(common, bh);
+		} else if (common->curlun->sense_data ==
+			   SS_INVALID_FIELD_IN_CDB) {
+			reply = do_read_toc_mac(common, bh);
+			common->curlun->sense_data = SS_NO_SENSE;
+		}
+
 		break;
 
 	case READ_FORMAT_CAPACITIES:
