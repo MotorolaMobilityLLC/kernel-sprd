@@ -126,6 +126,15 @@ config SPRD_TOP_DVFS_DEVFREQ
 	  It accomplishes some necessory initialization which is required by
 	  subsys hardware dvfs.
 
+config SPRD_APSYS_DVFS_DEVFREQ
+	bool "Sprd Apsys-DVFS DEVFREQ Driver"
+	depends on SPRD_TOP_DVFS_DEVFREQ
+	select PM_OPP
+	default n
+	help
+	  This add the dvfs driver for apsys including the DPU, VSP and VDSP module.
+	  The driver is implemented under the linux devfreq framework.
+
 config ARM_RK3399_DMC_DEVFREQ
 	tristate "ARM RK3399 DMC DEVFREQ Driver"
 	depends on ARCH_ROCKCHIP
