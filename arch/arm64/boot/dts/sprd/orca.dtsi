@@ -204,6 +204,11 @@
 				sprd,core-cnt = <9>;
 			};
 
+			pin_controller: pinctrl@63450000 {
+				compatible = "sprd,orca-pinctrl";
+				reg = <0 0x63450000 0 0x10000>;
+			};
+
 			adi_bus: spi@63a00000 {
 				compatible = "sprd,sharkl5-adi", "sprd,orca-adi";
 				reg = <0 0x63a00000 0 0x200000>;
