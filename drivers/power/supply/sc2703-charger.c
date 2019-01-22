@@ -106,7 +106,7 @@ static u32 sc2703_charger_of_prop_range(struct device *dev, u32 val, u32 min,
 				       u32 max, u32 step, u32 default_val,
 				       const char *name)
 {
-	if (val < min || val > max || val % step) {
+	if (val < min || val > max) {
 		dev_warn(dev, "Invalid %s value\n", name);
 		return default_val;
 	} else {
