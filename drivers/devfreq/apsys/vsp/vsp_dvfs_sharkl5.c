@@ -1,0 +1,305 @@
+/*
+ * Copyright (C) 2018 Spreadtrum Communications Inc.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "../sprd_dvfs_vsp.h"
+
+struct ip_dvfs_map_cfg vsp_dvfs_config_table[] = {
+	{0, VOLT70, VSP_CLK_INDEX_256, VSP_CLK256},
+	{1, VOLT70, VSP_CLK_INDEX_307, VSP_CLK307},
+	{2, VOLT75, VSP_CLK_INDEX_384, VSP_CLK384},
+};
+
+/* userspace interface */
+static void ip_hw_dvfs_en(u32 dvfs_eb)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	mutex_lock(&apsys_glb_reg_lock);
+	if (dvfs_eb)
+		reg->ap_dfs_en_ctrl |= BIT(1);
+	else
+		reg->ap_dfs_en_ctrl &= ~BIT(1);
+	mutex_unlock(&apsys_glb_reg_lock);
+
+	pr_info("dvfs ops: %s, dvfs_eb=%d\n", __func__, dvfs_eb);
+}
+
+/* work-idle dvfs map ops */
+static void get_ip_dvfs_table(struct ip_dvfs_map_cfg *dvfs_table)
+{
+	int i = 0;
+
+	pr_info("dvfs ops: %s\n", __func__);
+
+	for (i = 0; i < ARRAY_SIZE(vsp_dvfs_config_table); i++) {
+		dvfs_table[i].map_index = vsp_dvfs_config_table[i].map_index;
+		dvfs_table[i].volt_level = vsp_dvfs_config_table[i].volt_level;
+		dvfs_table[i].clk_level = vsp_dvfs_config_table[i].clk_level;
+		dvfs_table[i].clk_rate = vsp_dvfs_config_table[i].clk_rate;
+	}
+}
+
+static void get_ip_index_from_table(unsigned long work_freq,
+		u32 *index)
+{
+	unsigned long set_clk = 0;
+	u32 i;
+
+	*index = 0;
+	pr_info("dvfs ops: %s,work_freq=%lu\n", __func__, work_freq);
+	for (i = 0; i < ARRAY_SIZE(vsp_dvfs_config_table); i++) {
+		set_clk = vsp_dvfs_config_table[i].clk_rate;
+
+		if (work_freq == set_clk) {
+			*index = i;
+			break;
+		}
+	}
+
+	pr_info("dvfs ops: %s,index=%d\n", __func__, *index);
+}
+
+static void set_work_freq(struct ip_dvfs_para *dvfs_para,
+		unsigned long work_freq)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+	u32 index = 0;
+
+	get_ip_index_from_table(work_freq, &index);
+	dvfs_para->u_work_index = index;
+
+	reg->vsp_dvfs_index_cfg = index;
+
+	pr_info("dvfs ops: %s, work_freq=%lu, index=%d,\n",
+		__func__, work_freq, index);
+}
+
+static void set_idle_freq(struct ip_dvfs_para *dvfs_para,
+		unsigned long idle_freq)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+	u32 index = 0;
+
+	get_ip_index_from_table(idle_freq, &index);
+	dvfs_para->u_idle_index = index;
+
+	reg->vsp_dvfs_index_idle_cfg = index;
+
+	pr_info("dvfs ops: %s, work_freq=%lu, index=%d,\n",
+		__func__, idle_freq, index);
+}
+
+/* get ip current volt, clk & map index */
+static void get_ip_status(struct ip_dvfs_status *ip_status)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	mutex_lock(&apsys_glb_reg_lock);
+	ip_status->vsp_vote = (reg->ap_dvfs_voltage_dbg >> 6)
+				& (0x7);
+	ip_status->dpu_vote = (reg->ap_dvfs_voltage_dbg >> 3)
+				& (0x7);
+	ip_status->ap_volt = (reg->ap_dvfs_voltage_dbg >> 12)
+				& (0x7);
+	mutex_unlock(&apsys_glb_reg_lock);
+
+	pr_info("dvfs ops: %s\n", __func__);
+}
+
+/* coffe setting ops */
+static void set_ip_gfree_wait_delay(u32 wind_para)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	mutex_lock(&apsys_glb_reg_lock);
+	reg->ap_gfree_wait_delay_cfg |= (wind_para & 0x3ff);
+	mutex_unlock(&apsys_glb_reg_lock);
+
+	pr_info("dvfs ops: %s\n", __func__);
+}
+
+static void set_ip_freq_upd_en_byp(u32 on)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	mutex_lock(&apsys_glb_reg_lock);
+	if (on)
+		reg->ap_freq_update_bypass |= BIT(1);
+	else
+		reg->ap_freq_update_bypass &= ~BIT(1);
+	mutex_unlock(&apsys_glb_reg_lock);
+
+	pr_info("dvfs ops: %s\n", __func__);
+}
+
+static void set_ip_freq_upd_delay_en(u32 on)
+{
+
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	mutex_lock(&apsys_glb_reg_lock);
+	if (on)
+		reg->ap_freq_upd_type_cfg |= BIT(3);
+	else
+		reg->ap_freq_upd_type_cfg &= ~BIT(3);
+	mutex_unlock(&apsys_glb_reg_lock);
+
+	pr_info("dvfs ops: %s\n", __func__);
+}
+
+static void set_ip_freq_upd_hdsk_en(u32 on)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	mutex_lock(&apsys_glb_reg_lock);
+	if (on)
+		reg->ap_freq_upd_type_cfg |= BIT(2);
+	else
+		reg->ap_freq_upd_type_cfg &= ~BIT(2);
+	mutex_unlock(&apsys_glb_reg_lock);
+
+	pr_info("dvfs ops: %s\n", __func__);
+}
+
+static void set_ip_dvfs_swtrig_en(u32 en)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	mutex_lock(&apsys_glb_reg_lock);
+	if (en)
+		reg->ap_sw_trig_ctrl |= BIT(1);
+	else
+		reg->ap_sw_trig_ctrl &= ~BIT(1);
+	mutex_unlock(&apsys_glb_reg_lock);
+
+	pr_info("dvfs ops: %s\n", __func__);
+}
+
+/*work-idle dvfs index ops*/
+static void set_ip_dvfs_work_index(struct ip_dvfs_para *dvfs_para,
+		u32 index)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	dvfs_para->u_work_freq = vsp_dvfs_config_table[index].clk_rate;
+	reg->vsp_dvfs_index_cfg = index;
+
+	pr_info("dvfs ops: %s, index_cfg=%d\n", __func__, index);
+}
+
+/*work-idle dvfs index ops*/
+static void get_ip_dvfs_work_index(u32 *index)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	*index = reg->vsp_dvfs_index_cfg;
+	pr_info("dvfs ops: %s, work_index=%d\n", __func__, *index);
+}
+
+static void set_ip_dvfs_idle_index(struct ip_dvfs_para *dvfs_para,
+		u32 index)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	dvfs_para->u_idle_freq = vsp_dvfs_config_table[index].clk_rate;
+
+	reg->vsp_dvfs_index_idle_cfg = index;
+	pr_info("dvfs ops: %s, work index=%d\n", __func__, index);
+}
+
+static void vsp_dvfs_map_cfg(void)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	reg->vsp_index0_map = vsp_dvfs_config_table[0].clk_level |
+		vsp_dvfs_config_table[0].volt_level << 2;
+	reg->vsp_index1_map = vsp_dvfs_config_table[1].clk_level |
+		vsp_dvfs_config_table[1].volt_level << 2;
+	reg->vsp_index2_map = vsp_dvfs_config_table[2].clk_level |
+		vsp_dvfs_config_table[2].volt_level << 2;
+}
+
+
+static int ip_dvfs_init(struct ip_dvfs_para *dvfs_para)
+{
+	pr_info("dvfs ops: vsp%s\n", __func__);
+
+	if (!dvfs_para) {
+		pr_info("undefined vsp_dvfs\n");
+		return 1;
+	}
+
+	vsp_dvfs_map_cfg();
+
+	set_work_freq(dvfs_para, dvfs_para->u_work_freq);
+	set_idle_freq(dvfs_para, dvfs_para->u_idle_freq);
+	ip_hw_dvfs_en(dvfs_para->u_dvfs_en);
+
+	return 0;
+}
+
+static void updata_target_freq(struct ip_dvfs_para *dvfs_para,
+		unsigned long freq, set_freq_type freq_type)
+{
+
+	pr_info("dvfs ops: %s\n", __func__);
+	if (freq_type == DVFS_WORK)
+		set_work_freq(dvfs_para, freq);
+	else
+		set_idle_freq(dvfs_para, freq);
+
+	pr_info("dvfs ops: %s\n", __func__);
+}
+
+struct ip_dvfs_ops vsp_dvfs_ops  =  {
+	.ip_dvfs_init = ip_dvfs_init,
+	.ip_hw_dvfs_en = ip_hw_dvfs_en,
+	.set_work_freq = set_work_freq,
+	.set_idle_freq = set_idle_freq,
+	.get_ip_dvfs_table = get_ip_dvfs_table,
+	.get_ip_status = get_ip_status,
+	.set_ip_dvfs_work_index = set_ip_dvfs_work_index,
+	.get_ip_dvfs_work_index = get_ip_dvfs_work_index,
+	.set_ip_dvfs_idle_index = set_ip_dvfs_idle_index,
+
+	.set_ip_gfree_wait_delay = set_ip_gfree_wait_delay,
+	.set_ip_freq_upd_en_byp = set_ip_freq_upd_en_byp,
+	.set_ip_freq_upd_delay_en = set_ip_freq_upd_delay_en,
+	.set_ip_freq_upd_hdsk_en = set_ip_freq_upd_hdsk_en,
+	.set_ip_dvfs_swtrig_en = set_ip_dvfs_swtrig_en,
+	.updata_target_freq = updata_target_freq,
+};
+static struct ops_entry vsp_dvfs_entry = {
+	.ver = "sharkl5",
+	.ops = &vsp_dvfs_ops,
+};
+
+static int __init vsp_dvfs_register(void)
+{
+	return vsp_dvfs_ops_register(&vsp_dvfs_entry);
+}
+
+subsys_initcall(vsp_dvfs_register);
