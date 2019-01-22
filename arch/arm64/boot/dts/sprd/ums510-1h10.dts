@@ -15,6 +15,7 @@
 #include "sprd-sound-fe-be.dtsi"
 #include "sc2730.dtsi"
 #include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
+#include "lcd/lcd_ili9881c_truly_mipi_hd.dtsi"
 
 / {
 	model = "Unisoc UMS510 1H10 board";
@@ -481,8 +482,6 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		reg = <0>;
-
-		sprd,force-attached = "lcd_r61350_truly_mipi_hd";
 
 		port {
 			reg = <1>;
