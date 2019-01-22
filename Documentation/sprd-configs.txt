@@ -9701,8 +9701,8 @@ CONFIG_SPRD_COMMON_CLK
 	[must]
 	[function]
 CONFIG_SPRD_CPROC
-	[arch] arm64
-	[plat] roc1,sharkl5
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] staging
 	[must] user
