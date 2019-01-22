@@ -203,6 +203,13 @@
 					     <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>;
 				sprd,core-cnt = <9>;
 			};
+
+			adi_bus: spi@63a00000 {
+				compatible = "sprd,sharkl5-adi", "sprd,orca-adi";
+				reg = <0 0x63a00000 0 0x200000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
 		};
 		ipa_local: sprd,sipa@2E000000 {
 			compatible = "sprd,sipa";
