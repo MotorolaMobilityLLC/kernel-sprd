@@ -29,8 +29,8 @@
 			/* segnr=1 */
 			/*TODO: ranges use to limit pm-sys & cali_lib memory region. it's not
 				standard use, need modify if possible*/
-			ranges = <0x0 0x0 0x800000 0x3b000>,
-					<0x3b000 0x0 0x83b000 0x5000>;
+			ranges = <0x0 0x800000 0x3b000>,
+					<0x3b000 0x83b000 0x5000>;
 			pm-sys@0 {
 				cproc,name = "pm_sys";
 				reg = <0x0 0x3b000>;
@@ -68,7 +68,7 @@
 
 		sipc1: sipc@d000 {
 			sprd,name = "sipc-pmsys";
-			sprd,dst = <6 1 7>; /* <dst core-id> */
+			sprd,dst = <6 1 6>; /* <dst core-id> */
 			/* <ap-addr dst-maped-addr size> */
 			sprd,smem-info = <0xdc00 0x2000bc00 0x2000>;
 		};
