@@ -398,6 +398,12 @@
 		reg = <0x4a>;
 		flash-chip-en-gpios = <&ap_gpio 137 0>;
 	};
+
+	/* A virtual i2c device */
+	cpudvfs@61{
+		compatible = "sprd,cpudvfs-regulator-sharkl5";
+		reg = <0x61>;
+	};
 };
 
 &spi0 {
