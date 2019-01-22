@@ -873,6 +873,14 @@
 				interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 			};
+
+			apsys_dvfs: apsys-dvfs@71700000 {
+				compatible = "sprd,hwdvfs-apsys-sharkl5";
+				reg = <0x0 0x71700000 0x0 0x144>;
+
+				sprd,ap-dvfs-up-window = <0x40>;
+				sprd,ap-dvfs-down-window = <0x80>;
+			};
 		};
 
 		ap-ahb {
@@ -1336,7 +1344,7 @@
 					};
 				};
 				dcdc_modem: dcdc-modem {
-					dcdc-dvfs-enable = <0x3c 20 0>;
+					dcdc-dvfs-enable = <0x3c 20 1>;
 					dcdc-judge-vol-sw = <0x3c 1 0x7 7>;
 					dcdc-subsys-cells =	<&pubcp_sys>,
 								<&wtlcp_sys>,
@@ -1348,7 +1356,7 @@
 						dcdc-subsys-tune-enable = <0x150 3 0>;
 					};
 					ap_sys: ap-sys {
-						dcdc-subsys-tune-enable = <0x150 0 0>;
+						dcdc-subsys-tune-enable = <0x150 0 1>;
 					};
 				};
 			};
