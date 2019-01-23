@@ -82,7 +82,7 @@
 			lcd_td4310_fhd_timing0: timing0 {
 				clock-frequency = <153600000>;
 				hactive = <1080>;
-				vactive = <1920>;
+				vactive = <2160>;
 				hback-porch = <20>;
 				hfront-porch = <50>;
 				vback-porch = <28>;
