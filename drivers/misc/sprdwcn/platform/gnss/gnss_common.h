@@ -64,6 +64,42 @@
 
 /* end: address map on gnss side */
 
+#ifdef CONFIG_UMW2652
+#define SC2730_PIN_REG_BASE     0x0480
+#define PTEST0			0x0
+#define PTEST0_MASK		(BIT(4) | BIT(5))
+#define PTEST0_sel(x)		(((x)&0x3)<<4)
+
+#define REGS_ANA_APB_BASE	0x1800
+#define XTL_WAIT_CTRL0		0x378
+#define BIT_XTL_EN		BIT(8)
+
+#define TSEN_CTRL0		0x334
+#define BIT_TSEN_CLK_SRC_SEL	BIT(4)
+#define BIT_TSEN_ADCLDO_EN	BIT(15)
+
+#define TSEN_CTRL1		 0x338
+#define BIT_TSEN_CLK_EN		BIT(7)
+#define BIT_TSEN_SDADC_EN	BIT(11)
+#define BIT_TSEN_UGBUF_EN	BIT(14)
+
+#define TSEN_CTRL2		0x33c
+#define TSEN_CTRL3		0x340
+#define BIT_TSEN_EN		BIT(0)
+#define BIT_TSEN_TIME_SEL_MASK  (BIT(4) | BIT(5))
+#define BIT_TSEN_TIME_sel(x)    (((x)&0x3)<<4)
+
+#define TSEN_CTRL4		0x344
+#define TSEN_CTRL5		0x348
+#define CLK32KLESS_CTRL0	0x368
+#define M26_TSX_32KLESS		0x8010
+
+enum{
+	TSEN_EXT,
+	TSEN_INT,
+};
+#endif
+
 int gnss_write_data(void);
 int gnss_backup_data(void);
 void gnss_file_path_set(char *buf);

@@ -236,6 +236,143 @@ static int gnss_boot_wait(void)
 
 	return ret;
 }
+
+#ifdef CONFIG_UMW2652
+static int gnss_tsen_enable(int type)
+{
+	struct platform_device *pdev_regmap;
+	struct device_node *regmap_np;
+	static struct regmap *regmap;
+	static unsigned int base;
+	int ret;
+	unsigned int value, temp;
+
+	if (base == 0) {
+		regmap_np = of_find_compatible_node(NULL, NULL,
+						    "sprd,sc27xx-syscon");
+		if (!regmap_np) {
+			GNSSCOMM_ERR("%s, error np\n", __func__);
+			return -EINVAL;
+		}
+		pdev_regmap = of_find_device_by_node(regmap_np);
+		if (!pdev_regmap) {
+			GNSSCOMM_ERR("%s, error regmap\n", __func__);
+			return -EINVAL;
+		}
+		regmap = dev_get_regmap(pdev_regmap->dev.parent, NULL);
+		ret = of_property_read_u32_index(regmap_np, "reg", 0, &base);
+		if (ret) {
+			GNSSCOMM_ERR("%s, error base\n", __func__);
+			return -EINVAL;
+		}
+	}
+	GNSSCOMM_ERR("%s, base 0x%x\n", __func__, base);
+	regmap_read(regmap, (REGS_ANA_APB_BASE + XTL_WAIT_CTRL0), &value);
+	GNSSCOMM_ERR("%s, XTL_WAIT_CTRL0 value read 0x%x\n", __func__, value);
+	temp = value | BIT_XTL_EN;
+	regmap_write(regmap, (REGS_ANA_APB_BASE + XTL_WAIT_CTRL0), temp);
+	regmap_read(regmap, (REGS_ANA_APB_BASE + XTL_WAIT_CTRL0), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL0), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL0 value read 0x%x\n", __func__, value);
+	temp = value | BIT_TSEN_ADCLDO_EN;
+	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL0), temp);
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL0), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL1), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL1 value read 0x%x\n", __func__, value);
+	temp = value | BIT_TSEN_SDADC_EN | BIT_TSEN_CLK_EN | BIT_TSEN_UGBUF_EN;
+	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL1), temp);
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL1), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (SC2730_PIN_REG_BASE + PTEST0), &value);
+	GNSSCOMM_ERR("%s, PTEST0 value read 0x%x\n", __func__, value);
+	temp = (value & (~PTEST0_MASK)) | PTEST0_sel(2);
+	regmap_write(regmap, (SC2730_PIN_REG_BASE + PTEST0), temp);
+	regmap_read(regmap, (SC2730_PIN_REG_BASE + PTEST0), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL3 value read 0x%x\n", __func__, value);
+	temp = value | BIT_TSEN_EN;
+	temp = (temp & (~BIT_TSEN_TIME_SEL_MASK)) | BIT_TSEN_TIME_sel(2);
+	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), temp);
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	if (type == TSEN_EXT)
+		regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL4), &value);
+	else
+		regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL5), &value);
+	GNSSCOMM_ERR("%s, 0x%x read 0x%x\n", __func__, TSEN_CTRL4, value);
+
+	return 0;
+}
+
+static int gnss_tsen_disable(int type)
+{
+	struct platform_device *pdev_regmap;
+	struct device_node *regmap_np;
+	static struct regmap *regmap;
+	static unsigned int base;
+	int ret;
+	unsigned int value, temp;
+
+	if (base == 0) {
+		regmap_np = of_find_compatible_node(NULL, NULL,
+						    "sprd,sc27xx-syscon");
+		if (!regmap_np) {
+			GNSSCOMM_ERR("%s, error np\n", __func__);
+			return -EINVAL;
+		}
+		pdev_regmap = of_find_device_by_node(regmap_np);
+		if (!pdev_regmap) {
+			GNSSCOMM_ERR("%s, error regmap\n", __func__);
+			return -EINVAL;
+		}
+		regmap = dev_get_regmap(pdev_regmap->dev.parent, NULL);
+		ret = of_property_read_u32_index(regmap_np, "reg", 0, &base);
+		if (ret) {
+			GNSSCOMM_ERR("%s, error base\n", __func__);
+			return -EINVAL;
+		}
+	}
+	GNSSCOMM_ERR("%s, base 0x%x\n", __func__, base);
+	regmap_read(regmap, (REGS_ANA_APB_BASE + XTL_WAIT_CTRL0), &value);
+	GNSSCOMM_ERR("%s, XTL_WAIT_CTRL0 value read 0x%x\n", __func__, value);
+	temp = value & ~BIT_XTL_EN;
+	regmap_write(regmap, (REGS_ANA_APB_BASE + XTL_WAIT_CTRL0), temp);
+	regmap_read(regmap, (REGS_ANA_APB_BASE + XTL_WAIT_CTRL0), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL0), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL0 value read 0x%x\n", __func__, value);
+	temp = value & ~BIT_TSEN_ADCLDO_EN;
+	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL0), temp);
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL0), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL1), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL1 value read 0x%x\n", __func__, value);
+	temp = BIT_TSEN_SDADC_EN | BIT_TSEN_CLK_EN | BIT_TSEN_UGBUF_EN;
+	temp = value & (~temp);
+	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL1), temp);
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL1), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
+	GNSSCOMM_ERR("%s, TSEN_CTRL3 value read 0x%x\n", __func__, value);
+	temp = value & ~BIT_TSEN_EN;
+	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), temp);
+	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
+	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
+
+	return 0;
+}
+#endif
 #endif
 
 static void gnss_power_on(bool enable)
@@ -246,6 +383,10 @@ static void gnss_power_on(bool enable)
 			enable, gnss_common_ctl_dev.gnss_status);
 	if (enable && gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWEROFF) {
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWERON_GOING;
+#ifdef CONFIG_UMW2652
+		if (wcn_get_xtal_26m_clk_type() == WCN_CLOCK_TYPE_TSX)
+			gnss_tsen_enable(TSEN_EXT);
+#endif
 		ret = start_marlin(gnss_common_ctl_dev.gnss_subsys);
 		if (ret != 0)
 			GNSSCOMM_INFO("%s: start marlin failed ret=%d\n",
@@ -255,6 +396,10 @@ static void gnss_power_on(bool enable)
 	} else if (!enable && gnss_common_ctl_dev.gnss_status
 			== GNSS_STATUS_POWERON) {
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF_GOING;
+#ifdef CONFIG_UMW2652
+		if (wcn_get_xtal_26m_clk_type() == WCN_CLOCK_TYPE_TSX)
+			gnss_tsen_disable(TSEN_EXT);
+#endif
 		ret = stop_marlin(gnss_common_ctl_dev.gnss_subsys);
 		if (ret != 0)
 			GNSSCOMM_INFO("%s: stop marlin failed ret=%d\n",
