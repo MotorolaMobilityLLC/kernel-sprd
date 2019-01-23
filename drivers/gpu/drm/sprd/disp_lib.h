@@ -18,6 +18,11 @@
 #include <drm/drmP.h>
 #include <linux/list.h>
 
+#ifdef pr_fmt
+#undef pr_fmt
+#define pr_fmt(__fmt) "[drm][%20s] "__fmt, __func__
+#endif
+
 struct ops_entry {
 	const char *ver;
 	void *ops;

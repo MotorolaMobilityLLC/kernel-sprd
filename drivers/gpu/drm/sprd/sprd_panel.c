@@ -545,8 +545,14 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 		DRM_WARN("backlight node not found\n");
 
 	panel->supply = devm_regulator_get(&slave->dev, "power");
-	if (IS_ERR(panel->supply))
-		DRM_ERROR("get lcd regulator failed\n");
+	if (IS_ERR(panel->supply)) {
+		if (PTR_ERR(panel->supply) == -EPROBE_DEFER)
+			DRM_ERROR("regulator driver not initialized, probe deffer\n");
+		else
+			DRM_ERROR("can't get regulator: %ld\n", PTR_ERR(panel->supply));
+
+		return PTR_ERR(panel->supply);
+	}
 
 	INIT_DELAYED_WORK(&panel->esd_work, sprd_panel_esd_work_func);
 

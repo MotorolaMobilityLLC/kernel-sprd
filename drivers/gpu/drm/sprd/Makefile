@@ -22,5 +22,6 @@ obj-y += sysfs/
 obj-y += sharkl3/
 obj-y += sharkl5/
 obj-y += sharkl5Pro/
+obj-y += roc1/
 
 obj-$(CONFIG_DRM_SPRD_GSP) += gsp/
