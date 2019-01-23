@@ -483,8 +483,7 @@ static int try_charger_enable_by_psy(struct charger_manager *cm, bool enable)
  */
 static int try_charger_enable(struct charger_manager *cm, bool enable)
 {
-	int err = 0, i;
-	struct charger_desc *desc = cm->desc;
+	int err = 0;
 
 	/* Ignore if it's redundant command */
 	if (enable == cm->charger_enabled)
@@ -504,19 +503,6 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		cm->charging_end_time = 0;
 
 		err = try_charger_enable_by_psy(cm, enable);
-		if (!err)
-			goto out;
-
-		for (i = 0 ; i < desc->num_charger_regulators ; i++) {
-			if (desc->charger_regulators[i].externally_control)
-				continue;
-
-			err = regulator_enable(desc->charger_regulators[i].consumer);
-			if (err < 0) {
-				dev_warn(cm->dev, "Cannot enable %s regulator\n",
-					 desc->charger_regulators[i].regulator_name);
-			}
-		}
 	} else {
 		/*
 		 * Save end time of charging to maintain fully charged state
@@ -526,36 +512,8 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		cm->charging_end_time = ktime_to_ms(ktime_get());
 
 		err = try_charger_enable_by_psy(cm, enable);
-		if (!err)
-			goto out;
-
-		for (i = 0 ; i < desc->num_charger_regulators ; i++) {
-			if (desc->charger_regulators[i].externally_control)
-				continue;
-
-			err = regulator_disable(desc->charger_regulators[i].consumer);
-			if (err < 0) {
-				dev_warn(cm->dev, "Cannot disable %s regulator\n",
-					 desc->charger_regulators[i].regulator_name);
-			}
-		}
-
-		/*
-		 * Abnormal battery state - Stop charging forcibly,
-		 * even if charger was enabled at the other places
-		 */
-		for (i = 0; i < desc->num_charger_regulators; i++) {
-			if (regulator_is_enabled(
-				    desc->charger_regulators[i].consumer)) {
-				regulator_force_disable(
-					desc->charger_regulators[i].consumer);
-				dev_warn(cm->dev, "Disable regulator(%s) forcibly\n",
-					 desc->charger_regulators[i].regulator_name);
-			}
-		}
 	}
 
-out:
 	if (!err)
 		cm->charger_enabled = enable;
 
