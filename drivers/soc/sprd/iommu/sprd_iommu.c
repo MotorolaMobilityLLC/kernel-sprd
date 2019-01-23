@@ -162,7 +162,7 @@ static const struct of_device_id sprd_iommu_ids[] = {
 	  .data = (void *)(IOMMU_EXROC1_EPP)},
 
 	{ .compatible = "sprd,iommuexroc1-edp",
-	  .data = (void *)(IOMMU_EXROC1_EPP)},
+	  .data = (void *)(IOMMU_EXROC1_EDP)},
 };
 
 static struct platform_driver iommu_driver = {
@@ -218,6 +218,11 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 		sprd_iommu_list[id].enabled = true;
 		sprd_iommu_list[id].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_ISP;
+		break;
+	case IOMMU_EX_EDP:
+		sprd_iommu_list[id].enabled = true;
+		sprd_iommu_list[id].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_EDP;
 		break;
 	default:
 		pr_err("%s, no iommu id: %d\n", __func__,
