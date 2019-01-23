@@ -438,7 +438,7 @@
 		};
 
 		ipa_local: sprd,sipa@2E000000 {
-			compatible = "sprd,sipa";
+			compatible = "sprd,orca-sipa";
 			reg = <0 0x2E000000 0 0x00001000>,
 				<0 0x28000000 0 0x00040000>;
 			reg-names = "glb-base", "iram-base";
