@@ -59,10 +59,12 @@ struct load_node {
 	u32 size;
 };
 
+#define MAX_IRAM_DATA_NUM	0x40
 struct cproc_ctrl {
 	phys_addr_t iram_addr;
+	u32 iram_loaded;
 	u32 iram_size;
-	u32 *iram_data;
+	u32 iram_data[MAX_IRAM_DATA_NUM];
 	u32 ctrl_reg[CPROC_CTRL_NR]; /* offset */
 	u32 ctrl_mask[CPROC_CTRL_NR];
 	struct regmap *rmap[CPROC_CTRL_NR];
@@ -87,7 +89,5 @@ struct cproc_init_data {
 	u32		segnr;
 	struct cproc_segments	segs[];
 };
-
-#define MAX_IRAM_DATA_NUM	0x40
 
 #endif

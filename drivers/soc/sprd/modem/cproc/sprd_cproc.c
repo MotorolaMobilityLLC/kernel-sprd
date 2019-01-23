@@ -488,6 +488,32 @@ static ssize_t cproc_proc_read(struct file *filp,
 	return count;
 }
 
+static int cproc_proc_copy_iram(struct cproc_device *cproc)
+{
+	struct cproc_ctrl	*ctrl;
+	void *vmem;
+
+	ctrl = cproc->initdata->ctrl;
+
+	if (ctrl->iram_loaded)
+		return 0;
+	ctrl->iram_loaded = 1;
+	pr_debug("%s: addr =0x%p, size =%d\n",
+		__func__,
+		(void *)ctrl->iram_addr,
+		ctrl->iram_size);
+
+	vmem = shmem_ram_vmap_nocache(ctrl->iram_addr,
+				      ctrl->iram_size);
+	if (!vmem)
+		return -ENOMEM;
+	unalign_memcpy(vmem,
+		       (void *)ctrl->iram_data,
+		       ctrl->iram_size);
+	shmem_ram_unmap(vmem);
+	return 0;
+}
+
 static ssize_t cproc_proc_write(struct file *filp,
 				const char __user *buf,
 				size_t count,
@@ -528,27 +554,9 @@ static ssize_t cproc_proc_write(struct file *filp,
 		pr_debug("%s: write %s, offse = %d!\n",
 			 __func__, type, offset);
 
-		/*move copy iram data from sprd_cproc_native_arm_start */
 		if (offset == 0 &&
 		    strstr(type, "modem")) {
-			struct cproc_ctrl	*ctrl;
-
-			ctrl = cproc->initdata->ctrl;
-			pr_debug("%s: copy iram, addr =0x%p, size =%d\n",
-				__func__,
-				(void *)ctrl->iram_addr,
-				ctrl->iram_size);
-
-			vmem = shmem_ram_vmap_nocache(ctrl->iram_addr,
-							ctrl->iram_size);
-			if (!vmem) {
-				pr_debug("%s: vmem is null!\n", __func__);
-				return -ENOMEM;
-			}
-			unalign_memcpy(vmem,
-					(void *)ctrl->iram_data,
-					ctrl->iram_size);
-			shmem_ram_unmap(vmem);
+			cproc_proc_copy_iram(cproc);
 		}
 	} else {
 		pr_err("%s: flag erro!\n", __func__);
@@ -783,6 +791,7 @@ static void sprd_cproc_regmap_update_bit(struct cproc_ctrl *ctrl,
 					 u32 val)
 {
 	u32 reg;
+	u32 val_read = 0;
 
 	reg = ctrl->ctrl_reg[index];
 
@@ -790,6 +799,13 @@ static void sprd_cproc_regmap_update_bit(struct cproc_ctrl *ctrl,
 			reg,
 			mask,
 			val);
+
+	regmap_read(ctrl->rmap[index], reg, &val_read);
+	pr_debug("%s: val_read = 0x%x, mask =0x%x\n",
+		 __func__, val_read, mask);
+
+	if ((val_read & mask) != (val & mask))
+		regmap_write(ctrl->rmap[index], reg, val & ~mask);
 }
 
 static void sprd_cproc_regmap_read(struct cproc_ctrl *ctrl,
@@ -828,6 +844,11 @@ static int sprd_cproc_native_arm_start(void *arg)
 		__func__,
 		cproc->type,
 		cproc->status);
+
+	if (strstr(pdata->devname, "cp") ||
+		strstr(pdata->devname, "nrphy") ||
+		strstr(pdata->devname, "v3phy"))
+		cproc_proc_copy_iram(cproc);
 
 	/* clear cp force shutdown */
 	pr_debug("%s: force shutdown reg =0x%x, mask =0x%x\n",
@@ -1199,8 +1220,6 @@ static u32 g_r5_loader[] = {
 	0xee010f10, 0xf57ff06f, 0xe51ff004, 0x8b800600
 };
 
-static u32 g_loader[MAX_IRAM_DATA_NUM] = {0, };
-
 struct sprd_cproc_data {
 	int (*start)(void *arg);
 	int (*stop)(void *arg);
@@ -1316,19 +1335,24 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 			__func__, i, ctrl->ctrl_reg[i], i, ctrl->ctrl_mask[i]);
 	}
 
-	/* get iram data */
+	/* get iram size */
+	iram_dsize = MAX_IRAM_DATA_NUM;
 	ret = of_property_read_u32(np, "sprd,iram-dsize", &iram_dsize);
 	if (ret)
-		iram_dsize = CPROC_IRAM_DATA_NR;
+		iram_dsize = MAX_IRAM_DATA_NUM;
 
-	ctrl->iram_data = pcproc_data->iramdata;
-	ctrl->iram_size = pcproc_data->iram_size;
+	/* get iram data */
 	ret = of_property_read_u32_array(np,
 					"sprd,iram-data",
-					g_loader,
+					ctrl->iram_data,
 					iram_dsize);
-	if (!ret) {
-		ctrl->iram_data = g_loader;
+	if (ret) {
+		pr_info("%s: use default iram data!\n", __func__);
+		memcpy(ctrl->iram_data,
+			pcproc_data->iramdata,
+			pcproc_data->iram_size);
+		ctrl->iram_size = pcproc_data->iram_size;
+	} else {
 		ctrl->iram_size = iram_dsize * sizeof(u32);
 	}
 
@@ -1340,7 +1364,9 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 	}
 
 	index = 0;
-	if (pdata->type == ARM_CTRL && strstr(pdata->devname, "cp")) {
+	if (pdata->type == ARM_CTRL && (strstr(pdata->devname, "cp") ||
+		strstr(pdata->devname, "nrphy") ||
+		strstr(pdata->devname, "v3phy"))) {
 		/* get iram_base+offset */
 		ret = of_address_to_resource(np, index, &res);
 		if (ret)
@@ -1364,7 +1390,9 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 		pdata->maxsz);
 	index++;
 
-	if (pdata->type == ARM_CTRL && strstr(pdata->devname, "cp")) {
+	if (pdata->type == ARM_CTRL && (strstr(pdata->devname, "cp") ||
+		strstr(pdata->devname, "nrphy") ||
+		strstr(pdata->devname, "v3phy"))) {
 		/* get mini dump base+offset */
 		ret = of_address_to_resource(np, index, &res);
 		if (!ret) {
@@ -1601,7 +1629,7 @@ static int sprd_cproc_debug_show(struct seq_file *m, void *private)
 
 	if (pdata->ctrl) {
 		ctrl = pdata->ctrl;
-		if (ctrl->iram_addr && ctrl->iram_data) {
+		if (ctrl->iram_addr) {
 			seq_printf(m, "iram_addr: 0x%08x, iram_size: 0x%08x\n",
 				   (u32)ctrl->iram_addr, ctrl->iram_size);
 
