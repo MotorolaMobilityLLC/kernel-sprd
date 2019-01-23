@@ -365,6 +365,16 @@
 			#size-cells = <2>;
 			ranges;
 
+			ap_gpio: gpio@32070000 {
+				compatible = "sprd,roc1-gpio";
+				reg = <0 0x32070000 0 0x10000>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
 			usb: usb@0x5fff0000 {
 				compatible = "sprd,roc1-musb";
 				reg = <0 0x5fff0000 0 0x2000>;
