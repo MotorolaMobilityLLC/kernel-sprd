@@ -1289,30 +1289,13 @@
 					dcdc-dvfs-enable = <0x68 20 1>;
 					dcdc-judge-vol-sw = <0x68 1 0x7 7>;
 					dcdc-subsys-tune-enable = <0x150 6 1>;
-					top-dvfs-adi-state = <0x70 0 0xf>;
-					voltage-grade-num = <7>;
-					voltage-grade = <0 0x160 0xf4 0 0x1ff>,
-							<1 0xf0 0xf4 9 0x1ff>,
-							<2 0x100 0xf4 18 0x1ff>,
-							<3 0x110 0xf8 0 0x1ff>,
-							<4 0x120 0xf8 9 0x1ff>,
-							<5 0x130 0xf8 18 0x1ff>,
-							<6 0x140 0xfc 0 0x1ff>;
-					chnl-in-i2c = <0>;
+					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu0_supply>;
 				};
 				dcdc_cpu1: dcdc-cpu1{
 					dcdc-dvfs-enable = <0x94 0 1>;
 					dcdc-judge-vol-sw = <0x138 15 0x7 7>;
 					dcdc-subsys-tune-enable = <0x150 7 1>;
-					top-dvfs-i2c-state = <0x9c 4 0xf>;
-					voltage-grade-num = <6>;
-					voltage-grade = <0 0x2d 0x12c 0 0x7f>,
-							<1 0x32 0x12c 7 0x7f>,
-							<2 0x37 0x12c 14 0x7f>,
-							<3 0x3c 0x12c 21 0x7f>,
-							<4 0x41 0x130 0 0x7f>,
-							<5 0x46 0x130 7 0x7f>;
-					chnl-in-i2c = <1>;
+					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu1_supply>;
 				};
 				dcdc_mm: dcdc-mm {
 					dcdc-dvfs-enable = <0x18 20 0>;
@@ -1371,7 +1354,6 @@
 					column-num = <7>;
 					work-index-cfg = <0x214 0xf>;
 					idle-index-cfg = <0x218 0xf>;
-					tuning-latency-us = <200>;
 					tuning-result-judge = <1>;
 					dcdc-name = "DCDC_CPU0";
 					map-tbl-regs = <0x60 0x64 0x68 0x6c 0x70 0x74 0x78 0x7c 0x80 0x84>;
@@ -1419,7 +1401,6 @@
 					column-num = <7>;
 					work-index-cfg = <0x224 0xf>;
 					idle-index-cfg = <0x228 0xf>;
-					tuning-latency-us = <200>;
 					tuning-result-judge = <1>;
 					dcdc-name = "DCDC_CPU1";
 					map-tbl-regs = <0xa0 0xa4 0xa8 0xac 0xb0 0xb4 0xb8>;
