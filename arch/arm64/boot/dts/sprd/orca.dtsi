@@ -9,6 +9,7 @@
 #include <dt-bindings/soc/sprd,orca-regs.h>
 #include <dt-bindings/soc/sprd,orca-mask.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/debug/busmonitor/busmonitor.h>
 #include <dt-bindings/debug/dmc_mpu/orca_dmc_mpu.h>
 / {
 	interrupt-parent = <&gic>;
@@ -457,6 +458,62 @@
 			pin_controller: pinctrl@63450000 {
 				compatible = "sprd,orca-pinctrl";
 				reg = <0 0x63450000 0 0x10000>;
+			};
+
+			djtag: djtag@63650000 {
+				compatible = "sprd,djtag";
+				reg = <0 0x63650000 0 0x1000>;
+				syscon-names = "soft_rst";
+				syscons = <&aon_apb_regs REG_AON_APB_RF_APB_RST3
+					MASK_AON_APB_RF_DJTAG_SOFT_RST>;
+				clock-names = "enable", "tck";
+				clocks = <&aonapb_gate CLK_DJTAG_EB>,
+					<&aonapb_gate CLK_DJTAG_TCK_EB>;
+				hwlocks = <&hwlock 10>;
+				hwlock-names = "djtag";
+
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				aon-busmonitor@7{
+					compatible  = "sprd,orca-busmonitor";
+					interrupts = <GIC_SPI 81
+						IRQ_TYPE_LEVEL_HIGH>;
+					reg = <0x7>;
+					sprd,bm-num = <7>;
+					sprd,bm-name =
+						"minAP", "V3_MODEM", "AGCP",
+						"PSCP", "NRCP", "CM4", "DAP";
+					sprd,bm-type =
+						<AXI>, <AXI>, <AXI>, <AXI>,
+						<AXI>, <AXI>, <AXI>;
+					sprd,bm-dap = <0>, <1>, <2>, <3>,
+						<4>, <5>, <6>;
+					sprd,bm-config =
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>;
+					sprd,bm-id =
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>;
+					sprd,bm-ranges =
+						<0x64020000 0x64020010>,
+						<0x64020000 0x64020010>,
+						<0x64020000 0x64020010>,
+						<0x64020000 0x64020010>,
+						<0x64020000 0x64020010>,
+						<0x64020000 0x64020010>,
+						<0x64020000 0x64020010>;
+				};
 			};
 
 			watchdog@63940000 {
