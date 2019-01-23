@@ -6262,10 +6262,10 @@ CONFIG_MFD_SC2703
 CONFIG_MFD_SC27XX_PMIC
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu,make,code
+	[subsys] mfd
+	[must] user
+	[function] Spreadtrum SC27xx PMICs.
 CONFIG_MFD_SYSCON
 	[arch] all
 	[plat] all
@@ -8821,10 +8821,10 @@ CONFIG_RTC_CLASS
 CONFIG_RTC_DRV_SC27XX
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] menu,make,code
+	[subsys] rtc
+	[must] user
+	[function] Spreadtrum SC27xx RTC.
 CONFIG_RTC_HCTOSYS
 	[arch] all
 	[plat] all
