@@ -436,6 +436,14 @@
 				#size-cells = <0>;
 			};
 
+			hwlock: hwspinlock@64000000 {
+				compatible = "sprd,orca-hwspinlock";
+				reg = <0 0x64000000 0 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
+
 			apb_bm: apb-busmonitor@64030000 {
 				compatible = "sprd,orca-apb-busmonitor";
 				reg = <0 0x64030000 0 0x1000>;
