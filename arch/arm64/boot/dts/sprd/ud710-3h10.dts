@@ -240,6 +240,7 @@
 			phys = <&hsphy>;
 			monitored-battery = <&bat>;
 			extcon = <&pmic_typec>;
+			sprd,long-key-detection;
 			vddvbus:otg-vbus {
 				regulator-name = "vddvbus";
 			};
