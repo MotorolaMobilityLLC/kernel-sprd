@@ -69,6 +69,11 @@ int sprd_clk_probe(struct device *dev, struct clk_hw_onecell_data *clkhw)
 {
 	int i, ret;
 	struct clk_hw *hw;
+	struct device_node *node = dev->of_node;
+	struct regmap *enable_regmap, *power_regmap;
+	u32 enable_reg, power_reg;
+	u32 enable_mask, power_mask;
+	u32 syscon_args[2];
 
 	for (i = 0; i < clkhw->num; i++) {
 
@@ -86,10 +91,49 @@ int sprd_clk_probe(struct device *dev, struct clk_hw_onecell_data *clkhw)
 	}
 
 	ret = devm_of_clk_add_hw_provider(dev, of_clk_hw_onecell_get, clkhw);
-	if (ret)
+	if (ret) {
 		dev_err(dev, "Failed to add clock provider\n");
+		return ret;
+	}
 
-	return ret;
+	enable_regmap = syscon_regmap_lookup_by_name(node, "enable");
+	if (!IS_ERR(enable_regmap)) {
+		ret = syscon_get_args_by_name(node, "enable", 2, syscon_args);
+		if (ret != 2) {
+			dev_err(dev, "%s has enable prop, but args less then 2",
+				node->name);
+			return -EINVAL;
+		}
+
+		enable_reg = syscon_args[0];
+		enable_mask = syscon_args[1];
+		ret = regmap_update_bits(enable_regmap, enable_reg, enable_mask, 0);
+		if (ret)
+			return ret;
+	} else {
+		dev_dbg(dev, "%s has no enable syscon\n", node->name);
+	}
+
+	power_regmap = syscon_regmap_lookup_by_name(node, "power");
+	if (!IS_ERR(power_regmap)) {
+		ret = syscon_get_args_by_name(node, "power", 2, syscon_args);
+		if (ret != 2) {
+			dev_err(dev, "%s has power prop, but args less then 2",
+				node->name);
+			return -EINVAL;
+		}
+
+		power_reg = syscon_args[0];
+		power_mask = syscon_args[1];
+		ret = regmap_update_bits(power_regmap, power_reg, power_mask,
+					 power_mask);
+		if (ret)
+			return ret;
+	} else {
+		dev_dbg(dev, "%s has no power syscon\n", node->name);
+	}
+
+	return 0;
 }
 EXPORT_SYMBOL_GPL(sprd_clk_probe);
 
