@@ -55,12 +55,11 @@ struct dsi_cmd_desc {
 };
 
 struct gpio_timing {
-	u32 gpio;
 	u32 level;
 	u32 delay;
 };
 
-struct power_sequence {
+struct reset_sequence {
 	u32 items;
 	struct gpio_timing *timing;
 };
@@ -69,8 +68,11 @@ struct panel_info {
 	/* common parameters */
 	struct device_node *of_node;
 	struct drm_display_mode mode;
-	struct power_sequence pwr_on_seq;
-	struct power_sequence pwr_off_seq;
+	struct gpio_desc *avdd_gpio;
+	struct gpio_desc *avee_gpio;
+	struct gpio_desc *reset_gpio;
+	struct reset_sequence rst_on_seq;
+	struct reset_sequence rst_off_seq;
 	const void *cmds[CMD_CODE_MAX];
 	int cmds_len[CMD_CODE_MAX];
 

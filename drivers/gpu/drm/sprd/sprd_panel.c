@@ -12,9 +12,9 @@
  */
 
 #include <drm/drm_atomic_helper.h>
-#include <linux/gpio.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/of_gpio.h>
 #include <video/mipi_display.h>
 #include <video/of_display_timing.h>
 #include <video/videomode.h>
@@ -67,27 +67,33 @@ static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 	return 0;
 }
 
-static void sprd_panel_power_ctrl(struct power_sequence *seq)
-{
-	u32 items, i;
-	struct gpio_timing *timing;
-
-	items = seq->items;
-	timing = seq->timing;
-
-	for (i = 0; i < items; i++) {
-		gpio_direction_output(timing[i].gpio, timing[i].level);
-		mdelay(timing[i].delay);
-	}
-}
-
 static int sprd_panel_unprepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
+	struct gpio_timing *timing;
+	int items, i;
 
 	DRM_INFO("%s()\n", __func__);
 
-	sprd_panel_power_ctrl(&panel->info.pwr_off_seq);
+	if (panel->info.avee_gpio) {
+		gpiod_direction_output(panel->info.avee_gpio, 0);
+		mdelay(5);
+	}
+
+	if (panel->info.avdd_gpio) {
+		gpiod_direction_output(panel->info.avdd_gpio, 0);
+		mdelay(5);
+	}
+
+	if (panel->info.reset_gpio) {
+		items = panel->info.rst_off_seq.items;
+		timing = panel->info.rst_off_seq.timing;
+		for (i = 0; i < items; i++) {
+			gpiod_direction_output(panel->info.reset_gpio,
+						timing[i].level);
+			mdelay(timing[i].delay);
+		}
+	}
 
 	regulator_disable(panel->supply);
 
@@ -97,7 +103,8 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 static int sprd_panel_prepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
-	int ret;
+	struct gpio_timing *timing;
+	int items, i, ret;
 
 	DRM_INFO("%s()\n", __func__);
 
@@ -105,7 +112,25 @@ static int sprd_panel_prepare(struct drm_panel *p)
 	if (ret < 0)
 		DRM_ERROR("enable lcd regulator failed\n");
 
-	sprd_panel_power_ctrl(&panel->info.pwr_on_seq);
+	if (panel->info.avdd_gpio) {
+		gpiod_direction_output(panel->info.avdd_gpio, 1);
+		mdelay(5);
+	}
+
+	if (panel->info.avee_gpio) {
+		gpiod_direction_output(panel->info.avee_gpio, 1);
+		mdelay(5);
+	}
+
+	if (panel->info.reset_gpio) {
+		items = panel->info.rst_on_seq.items;
+		timing = panel->info.rst_on_seq.timing;
+		for (i = 0; i < items; i++) {
+			gpiod_direction_output(panel->info.reset_gpio,
+						timing[i].level);
+			mdelay(timing[i].delay);
+		}
+	}
 
 	return 0;
 }
@@ -244,67 +269,76 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 			msecs_to_jiffies(info->esd_check_period));
 }
 
-static int sprd_panel_gpio_request(struct power_sequence *seq)
+static int sprd_panel_gpio_request(struct device *dev,
+			struct sprd_panel *panel)
 {
-	u32 items;
-	struct gpio_timing *timing;
-	int i;
+	panel->info.avdd_gpio = devm_gpiod_get_optional(dev,
+					"avdd", GPIOD_ASIS);
+	if (IS_ERR_OR_NULL(panel->info.avdd_gpio))
+		DRM_WARN("can't get panel avdd gpio: %ld\n",
+				 PTR_ERR(panel->info.avdd_gpio));
 
-	items = seq->items;
-	timing = seq->timing;
+	panel->info.avee_gpio = devm_gpiod_get_optional(dev,
+					"avee", GPIOD_ASIS);
+	if (IS_ERR_OR_NULL(panel->info.avee_gpio))
+		DRM_WARN("can't get panel avee gpio: %ld\n",
+				 PTR_ERR(panel->info.avee_gpio));
 
-	for (i = 0; i < items; i++)
-		gpio_request(timing[i].gpio, NULL);
+	panel->info.reset_gpio = devm_gpiod_get_optional(dev,
+					"reset", GPIOD_ASIS);
+	if (IS_ERR_OR_NULL(panel->info.reset_gpio))
+		DRM_WARN("can't get panel reset gpio: %ld\n",
+				 PTR_ERR(panel->info.reset_gpio));
 
 	return 0;
 }
 
-static int of_parse_power_seq(struct device_node *np,
+static int of_parse_reset_seq(struct device_node *np,
 				struct panel_info *info)
 {
 	struct property *prop;
 	int bytes, rc;
 	u32 *p;
 
-	prop = of_find_property(np, "sprd,power-on-sequence", &bytes);
+	prop = of_find_property(np, "sprd,reset-on-sequence", &bytes);
 	if (!prop) {
-		DRM_ERROR("sprd,power-on-sequence property not found\n");
+		DRM_ERROR("sprd,reset-on-sequence property not found\n");
 		return -EINVAL;
 	}
 
 	p = kzalloc(bytes, GFP_KERNEL);
 	if (!p)
 		return -ENOMEM;
-	rc = of_property_read_u32_array(np, "sprd,power-on-sequence",
+	rc = of_property_read_u32_array(np, "sprd,reset-on-sequence",
 					p, bytes / 4);
 	if (rc) {
-		DRM_ERROR("parse sprd,power-on-sequence failed\n");
+		DRM_ERROR("parse sprd,reset-on-sequence failed\n");
 		kfree(p);
 		return rc;
 	}
 
-	info->pwr_on_seq.items = bytes / 12;
-	info->pwr_on_seq.timing = (struct gpio_timing *)p;
+	info->rst_on_seq.items = bytes / 8;
+	info->rst_on_seq.timing = (struct gpio_timing *)p;
 
-	prop = of_find_property(np, "sprd,power-off-sequence", &bytes);
+	prop = of_find_property(np, "sprd,reset-off-sequence", &bytes);
 	if (!prop) {
-		DRM_ERROR("sprd,power-off-sequence property not found");
+		DRM_ERROR("sprd,reset-off-sequence property not found\n");
 		return -EINVAL;
 	}
 
 	p = kzalloc(bytes, GFP_KERNEL);
 	if (!p)
 		return -ENOMEM;
-	rc = of_property_read_u32_array(np, "sprd,power-off-sequence",
+	rc = of_property_read_u32_array(np, "sprd,reset-off-sequence",
 					p, bytes / 4);
 	if (rc) {
-		DRM_ERROR("parse sprd,power-off-sequence failed\n");
+		DRM_ERROR("parse sprd,reset-off-sequence failed\n");
 		kfree(p);
 		return rc;
 	}
 
-	info->pwr_off_seq.items = bytes / 12;
-	info->pwr_off_seq.timing = (struct gpio_timing *)p;
+	info->rst_off_seq.items = bytes / 8;
+	info->rst_off_seq.timing = (struct gpio_timing *)p;
 
 	return 0;
 }
@@ -419,11 +453,9 @@ static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 	else
 		info->use_dcs = false;
 
-	rc = of_parse_power_seq(lcd_node, info);
-	if (!rc)
-		sprd_panel_gpio_request(&info->pwr_off_seq);
-	else
-		DRM_ERROR("parse lcd power sequence failed\n");
+	rc = of_parse_reset_seq(lcd_node, info);
+	if (rc)
+		DRM_ERROR("parse lcd reset sequence failed\n");
 
 	p = of_get_property(lcd_node, "sprd,initial-command", &bytes);
 	if (p) {
@@ -507,6 +539,12 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 	if (ret) {
 		DRM_ERROR("parse panel info failed\n");
 		return ret;
+	}
+
+	ret = sprd_panel_gpio_request(&slave->dev, panel);
+	if (ret) {
+		DRM_WARN("gpio is not ready, panel probe deferred\n");
+		return -EPROBE_DEFER;
 	}
 
 	ret = sprd_panel_device_create(&slave->dev, panel);
