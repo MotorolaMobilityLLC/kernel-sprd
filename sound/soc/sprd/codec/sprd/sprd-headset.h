@@ -140,24 +140,6 @@ struct sprd_headset_power {
 	struct regulator *bg;
 	struct regulator *bias;
 	struct regulator *vb;
-	struct regulator *dcl;
-	struct regulator *dig_clk_intc;
-	struct regulator *dig_clk_hid;
-	struct regulator *clk_dcl_32k;
-	/*
-	 * Some regulators are used both in codec and headset.
-	 * It is difficult to make enable/disable calling in pair.
-	 * Add mark to record the status to make sure enable/disable
-	 * calling in pair.
-	 */
-	bool head_mic_en;
-	bool bg_en;
-	bool bias_en;
-	bool vb_en;
-	bool dcl_en;
-	bool dig_clk_intc_en;
-	bool dig_clk_hid_en;
-	bool clk_dcl_32k_en;
 };
 
 #if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
@@ -227,14 +209,26 @@ struct sprd_headset {
 	struct delayed_work det_all_work;
 	struct workqueue_struct *det_all_work_q;
 #if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
+	bool current_polling_state;
+	struct  headset_power_manager power_manager;
 	struct delayed_work btn_work;
 	enum headset_hw_status hdst_hw_status;
+	enum snd_jack_types hdst_type_status;
 	struct delayed_work fc_work; /* for fast charge */
 	struct wakeup_source det_all_wakelock;
 	struct wakeup_source btn_wakelock;
+	enum headset_eic_type eic_type;
 	struct wakeup_source ldetl_wakelock;
 	bool audio_on;
 	bool btn_detecting;
+	/*
+	 * Add mutex to protect member audio_on and btn_detecting,
+	 * because both codec and headset driver will write or access
+	 * them. Mode of hmicbias and polling can be enabled only when
+	 * audio is off and button is not in detecting.
+	 */
+	struct mutex audio_on_lock;
+	struct mutex btn_detecting_lock;
 	int det_3pole_cnt;/* re-check times after recognize a 3 pole headset */
 	bool mdet_tried;/* tried to wait mdet eic */
 #else
