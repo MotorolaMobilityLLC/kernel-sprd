@@ -11,6 +11,8 @@ Optional Properties:
 - charge-term-current-microamp: current for charge termination phase.
 - constant-charge-voltage-max-microvolt: maximum constant input voltage.
   See Documentation/devicetree/bindings/power/supply/battery.txt
+- sprd,long-key-detection: the long key power on configuration option, if
+  configured, press 15s the internal battery will disconnect.
 
 Example:
 
@@ -26,6 +28,7 @@ Example:
 		reg = <0x4c>;
 		phys = <&ssphy>;
 		monitored-battery = <&bat>;
+		sprd,long-key-detection;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 			regulator-ramp-delay = <25000>;

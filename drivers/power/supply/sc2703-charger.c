@@ -59,6 +59,7 @@ struct sc2703_charger_info {
 	struct delayed_work otg_work;
 	struct regmap *pmic;
 	u32 charger_detect;
+	bool long_key_detect;
 };
 
 /* sc2703 input limit current, Milliamp */
@@ -373,6 +374,18 @@ static int sc2703_charger_hw_init(struct sc2703_charger_info *info)
 		dev_err(info->dev,
 			 "Failed to set current reduction in T3-T4:%d\n", ret);
 		return ret;
+	}
+
+	if (info->long_key_detect) {
+		/* Enable the detection of long key presses */
+		ret = regmap_update_bits(info->regmap, SC2703_CONF_A,
+					 SC2703_ONKEY_DET_EN_MASK,
+					 SC2703_ONKEY_DET_EN_MASK);
+		if (ret) {
+			dev_err(info->dev,
+				 "Failed to enable the long key:%d\n", ret);
+			return ret;
+		}
 	}
 
 	/* Unlock 2703 test mode */
@@ -1300,6 +1313,9 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "unable to get pmic regmap device\n");
 		return -ENODEV;
 	}
+
+	info->long_key_detect =
+		device_property_read_bool(&pdev->dev, "sprd,long-key-detection");
 
 	info->usb_notify.notifier_call = sc2703_charger_usb_change;
 	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
