@@ -730,7 +730,7 @@
 			};
 
 			ipa_local: sipa@21180000 {
-				compatible = "sprd,sipa";
+				compatible = "sprd,roc1-sipa";
 				reg = <0 0x21180000 0 0x00001000>,
 					<0 0x20b10000 0 0x00040000>;
 				reg-names = "glb-base", "iram-base";
