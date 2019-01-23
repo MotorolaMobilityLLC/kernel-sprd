@@ -252,4 +252,13 @@ config SPRD_USB3_PHY
 	  takes care of all the PHY functionality, normally paired with
 	  DesignWare USB3.0 (DRD) Controller.
 
+config SPRD_ORCA1_USB3_PHY
+	tristate "Spreadtrum ORCA1 PHY Driver"
+	select USB_PHY
+	depends on USB_DWC3_SPRD ||  COMPILE_TEST
+	help
+	  Enable this to support ORCA1 USB3 PHY that is part of SOC. This
+	  driver takes care of all the PHY functionality, normally paired
+	  with DesignWare USB3.0 (DRD) Controller.
+
 endmenu
