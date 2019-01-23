@@ -599,7 +599,6 @@ static int dpu_init(struct dpu_context *ctx)
 
 	/* set dpu output size */
 	size = (ctx->vm.vactive << 16) | ctx->vm.hactive;
-	size = (2160 << 16) | 1080;
 	reg->panel_size = size;
 	reg->blend_size = size;
 
