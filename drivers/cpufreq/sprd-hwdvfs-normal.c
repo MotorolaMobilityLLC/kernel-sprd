@@ -775,6 +775,7 @@ int sprd_dcdc_vol_grade_value_setup(void *data, u32 dcdc_nr)
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
 	u32 grade_nr, vol_value, vol_reg, vol_bit, vol_mask;
+	u32 supply_sel_dialog, supply_reg, supply_bit;
 	u32 i;
 	int ret;
 
@@ -786,6 +787,24 @@ int sprd_dcdc_vol_grade_value_setup(void *data, u32 dcdc_nr)
 	if (dcdc_nr >= pdev->dcdc_num) {
 		pr_err("Incorrect dcdc number\n");
 		return -EINVAL;
+	}
+
+	if (pdev->pwr[dcdc_nr].dialog_used) {
+		supply_sel_dialog = pdev->pwr[dcdc_nr].supply_sel_dialog;
+		supply_reg = pdev->pwr[dcdc_nr].supply_sel_reg;
+		supply_bit = 1 << pdev->pwr[dcdc_nr].supply_sel_bit;
+
+		if (supply_sel_dialog) {
+			ret = regmap_update_bits(pdev->topdvfs_map, supply_reg,
+						 supply_bit, supply_bit);
+			if (ret)
+				return ret;
+		} else {
+			ret = regmap_update_bits(pdev->topdvfs_map, supply_reg,
+						 supply_bit, ~supply_bit);
+			if (ret)
+				return ret;
+		}
 	}
 
 	for (i = 0; i < pdev->pwr[dcdc_nr].voltage_grade_num; ++i) {
@@ -1039,7 +1058,7 @@ int sprd_cpudvfs_set_target(void *data, u32 cluster, u32 opp_idx)
 	}
 
 	/* Delay here to wait for finishing dvfs operations by hardware */
-	udelay(clu->tuning_latency_us);
+	udelay(pdev->pwr[clu->dcdc].tuning_latency_us);
 
 	if (clu->needed_judge)
 		hardware_dvfs_tuning_result_judge(clu);
@@ -1047,7 +1066,7 @@ int sprd_cpudvfs_set_target(void *data, u32 cluster, u32 opp_idx)
 	if (i2c_flag)
 		i2c_unlock_adapter(client->adapter);
 
-	return ret;
+	return 0;
 }
 
 bool sprd_cpudvfs_enable(void *data, int cluster, bool enable)
@@ -1244,13 +1263,104 @@ static int dcdc_voltage_grade_parse(struct device_node *dcdc_node,
 	struct property *prop;
 	const __be32 *list;
 	u32 size, count, i;
-	int ret = 0;
+	int ret = 0, i2c_flag;
+	u32 num;
+
+	if (of_find_property(dcdc_node, "supply-type-sel", &size)) {
+		size = size / sizeof(u32);
+		if (size != 3) {
+			pr_err("Invalid dts configuration for %s\n",
+			       "supply-type-sel");
+			ret = -ENODEV;
+			goto err_out;
+		}
+		of_property_read_u32_index(dcdc_node, "supply-type-sel",
+					   0, &pwr->supply_sel_reg);
+		of_property_read_u32_index(dcdc_node, "supply-type-sel",
+					   1, &pwr->supply_sel_bit);
+		of_property_read_u32_index(dcdc_node, "supply-type-sel",
+					   2, &pwr->supply_sel_dialog);
+		pwr->dialog_used = true;
+	}
+
+	prop = of_find_property(dcdc_node, "tuning-latency-us", NULL);
+	if (!prop) {
+		pr_err("No %s property found\n", "tuning-latency-us");
+		ret = -EINVAL;
+		goto err_out;
+	}
+
+	of_property_read_u32(dcdc_node, "tuning-latency-us",
+				     &pwr->tuning_latency_us);
+
+	prop = of_find_property(dcdc_node, "chnl-in-i2c", NULL);
+	if (!prop) {
+		pr_err("No %s property found\n", "chnl-in-i2c");
+		ret = -EINVAL;
+		goto err_out;
+	}
+
+	of_property_read_u32(dcdc_node, "chnl-in-i2c", &i2c_flag);
+	if (i2c_flag == 1) {
+		prop = of_find_property(dcdc_node, "top-dvfs-i2c-state", &num);
+		if (!prop) {
+			pr_err("No %s property found\n", "top-dvfs-i2c-state");
+				ret = -EINVAL;
+				goto err_out;
+		}
+
+		num = num / sizeof(u32);
+		if (num != 3) {
+			pr_err("Invalid dts configuration\n");
+			ret = -EINVAL;
+			goto err_out;
+		}
+
+		of_property_read_u32_index(dcdc_node,
+					   "top-dvfs-i2c-state", 0,
+					   &pwr->top_dvfs_state_reg);
+		of_property_read_u32_index(dcdc_node,
+					   "top-dvfs-i2c-state", 1,
+					   &pwr->top_dvfs_state_bit);
+		of_property_read_u32_index(dcdc_node,
+					   "top-dvfs-i2c-state", 2,
+					   &pwr->top_dvfs_state_mask);
+
+		pwr->i2c_used = true;
+
+	} else if (i2c_flag == 0) {
+		prop = of_find_property(dcdc_node, "top-dvfs-adi-state", &num);
+		if (!prop) {
+			pr_err("No %s property found\n", "top-dvfs-adi-state");
+			ret = -EINVAL;
+			goto err_out;
+		}
+
+		num = num / sizeof(u32);
+		if (num != 3) {
+			pr_err("Invalid dts configuration\n");
+			ret = -EINVAL;
+			goto err_out;
+		}
+
+		of_property_read_u32_index(dcdc_node,
+					   "top-dvfs-adi-state", 0,
+					   &pwr->top_dvfs_state_reg);
+		of_property_read_u32_index(dcdc_node,
+					   "top-dvfs-adi-state", 1,
+					   &pwr->top_dvfs_state_bit);
+		of_property_read_u32_index(dcdc_node,
+					   "top-dvfs-adi-state", 2,
+					   &pwr->top_dvfs_state_mask);
+
+		pwr->i2c_used = false;
+	}
 
 	prop = of_find_property(dcdc_node, "voltage-grade-num", NULL);
 	if (!prop) {
 		pr_err("No property 'voltage-grade-num' found\n");
-		of_node_put(dcdc_node);
-		return -ENODEV;
+		ret = -ENODEV;
+		goto err_out;
 	}
 
 	of_property_read_u32(dcdc_node, "voltage-grade-num",
@@ -1259,8 +1369,8 @@ static int dcdc_voltage_grade_parse(struct device_node *dcdc_node,
 	size = pwr->voltage_grade_num * sizeof(struct voltage_info);
 	pwr->vol_info = kzalloc(size, GFP_KERNEL);
 	if (!pwr->vol_info) {
-		of_node_put(dcdc_node);
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto err_out;
 	}
 
 	list = of_get_property(dcdc_node, "voltage-grade", &size);
@@ -1290,21 +1400,20 @@ static int dcdc_voltage_grade_parse(struct device_node *dcdc_node,
 	return 0;
 
 err_mem_free:
-	of_node_put(dcdc_node);
 	kfree(pwr->vol_info);
 	pwr->vol_info = NULL;
-
+err_out:
+	of_node_put(dcdc_node);
 	return ret;
 }
 
 static int dcdc_pwr_dt_parse(struct cpudvfs_archdata *pdev)
 {
-	struct device_node *node, *dcdc_node;
+	struct device_node *node, *dcdc_node, *supply_node;
 	struct property *prop;
 	u32 nr, ix, num;
 	struct regmap *map;
 	int ret;
-	int i2c_flag;
 
 	node = of_parse_phandle(pdev->of_node, "topdvfs-controller", 0);
 	if (!node) {
@@ -1353,7 +1462,16 @@ static int dcdc_pwr_dt_parse(struct cpudvfs_archdata *pdev)
 
 		sprintf(pdev->pwr[ix].name, "DCDC_CPU%d", ix);
 
-		ret = dcdc_voltage_grade_parse(dcdc_node, &pdev->pwr[ix]);
+		supply_node = of_parse_phandle(dcdc_node,
+					       "dcdc-supply-mode-cfg", 0);
+		if (!supply_node) {
+			pr_err("Failed to find '%s' node\n",
+			       "dcdc-supply-mode-cfg");
+			ret = -EINVAL;
+			goto err_pwr_free;
+		}
+
+		ret = dcdc_voltage_grade_parse(supply_node, &pdev->pwr[ix]);
 		if (ret) {
 			pr_err("Failed to parse voltage grade info\n");
 			goto err_pwr_free;
@@ -1417,80 +1535,6 @@ static int dcdc_pwr_dt_parse(struct cpudvfs_archdata *pdev)
 		of_property_read_u32_index(dcdc_node,
 					   "dcdc-subsys-tune-enable", 2,
 					   &pdev->pwr[ix].subsys_tune_eb);
-
-		prop = of_find_property(dcdc_node, "chnl-in-i2c", NULL);
-		if (!prop) {
-			pr_err("No %s property found\n",
-			       "chnl-in-i2c");
-			ret = -EINVAL;
-			goto err_pwr_free;
-		}
-
-		of_property_read_u32(dcdc_node, "chnl-in-i2c", &i2c_flag);
-		if (i2c_flag == 1) {
-			prop = of_find_property(dcdc_node,
-						"top-dvfs-i2c-state", &num);
-			if (!prop) {
-				pr_err("No %s property found\n",
-				       "top-dvfs-i2c-state");
-				ret = -EINVAL;
-				goto err_pwr_free;
-			}
-
-			num = num / sizeof(u32);
-			if (num != 3) {
-				pr_err("Invalid dts configuration\n");
-				ret = -EINVAL;
-				goto err_pwr_free;
-			}
-
-			of_property_read_u32_index(dcdc_node,
-						   "top-dvfs-i2c-state",
-						   0,
-					&pdev->pwr[ix].top_dvfs_state_reg);
-			of_property_read_u32_index(dcdc_node,
-						   "top-dvfs-i2c-state",
-						   1,
-					&pdev->pwr[ix].top_dvfs_state_bit);
-			of_property_read_u32_index(dcdc_node,
-						   "top-dvfs-i2c-state",
-						   2,
-					&pdev->pwr[ix].top_dvfs_state_mask);
-
-			pdev->pwr[ix].i2c_used = true;
-
-		} else if (i2c_flag == 0) {
-			prop = of_find_property(dcdc_node,
-						"top-dvfs-adi-state", &num);
-			if (!prop) {
-				pr_err("No %s property found\n",
-				       "top-dvfs-adi-state");
-				ret = -EINVAL;
-				goto err_pwr_free;
-			}
-
-			num = num / sizeof(u32);
-			if (num != 3) {
-				pr_err("Invalid dts configuration\n");
-				ret = -EINVAL;
-				goto err_pwr_free;
-			}
-
-			of_property_read_u32_index(dcdc_node,
-						   "top-dvfs-adi-state",
-						   0,
-					&pdev->pwr[ix].top_dvfs_state_reg);
-			of_property_read_u32_index(dcdc_node,
-						   "top-dvfs-adi-state",
-						   1,
-					&pdev->pwr[ix].top_dvfs_state_bit);
-			of_property_read_u32_index(dcdc_node,
-						   "top-dvfs-adi-state",
-						   2,
-					&pdev->pwr[ix].top_dvfs_state_mask);
-
-			pdev->pwr[ix].i2c_used = false;
-		}
 
 		of_node_put(dcdc_node);
 	}
@@ -1731,10 +1775,6 @@ int dvfs_cluster_info_dt_parse(struct device_node *parent, void *data)
 
 		of_node_put(sub_dev_np);
 	}
-
-	if (of_find_property(node, "tuning-latency-us", NULL))
-		of_property_read_u32(node, "tuning-latency-us",
-				     &cluster->tuning_latency_us);
 
 	if (of_find_property(node, "tuning-result-judge", NULL))
 		of_property_read_u32(node, "tuning-result-judge",

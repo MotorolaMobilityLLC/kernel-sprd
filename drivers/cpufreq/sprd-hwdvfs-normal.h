@@ -162,6 +162,11 @@ struct dcdc_pwr {
 	u32 dvfs_ctl_reg;
 	u32 dvfs_ctl_bit;
 	u32 dvfs_eb;
+	bool dialog_used;
+	u32 supply_sel_reg;
+	u32 supply_sel_bit;
+	u32 supply_sel_dialog;
+	u32 tuning_latency_us;
 	u32 subsys_tune_ctl_reg;
 	u32 subsys_tune_ctl_bit;
 	u32 subsys_tune_eb;	/*just for host cluster*/
@@ -204,7 +209,6 @@ struct dvfs_cluster {
 	u32 map_idx_max;
 	u32 *opp_map_tbl;
 	bool auto_tuning;
-	u32 tuning_latency_us;
 	u32 needed_judge;
 	bool existed;
 	struct sub_device *subdevs;
