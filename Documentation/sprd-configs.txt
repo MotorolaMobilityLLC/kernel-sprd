@@ -9898,7 +9898,7 @@ CONFIG_SPRD_ROC1_USB2_PHY
 	[function]
 CONFIG_SPRD_SENSOR_HUB
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] iio
 	[must] user
