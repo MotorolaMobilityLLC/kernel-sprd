@@ -6,6 +6,7 @@
  * This file is licensed under a dual GPLv2 or X11 license.
  */
 
+#include "dt-bindings/clock/sprd,orca-clk.h"
 #include "orca-haps.dtsi"
 
 / {
@@ -56,5 +57,28 @@
 			<GIC_PPI 11 IRQ_TYPE_LEVEL_HIGH>, /* Virtual PPI */
 			<GIC_PPI 10 IRQ_TYPE_LEVEL_HIGH>; /* Hipervisor PPI */
 		arm,no-tick-in-suspend;
+	};
+
+	soc {
+		apahb_gate: apahb-gate {
+			compatible = "sprd,orca-apahb-gate";
+			sprd,syscon = <&ap_ahb_regs>; /* 0x21000000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		apapb_gate: apapb-gate {
+			compatible = "sprd,orca-apapb-gate";
+			sprd,syscon = <&ap_apb_regs>; /* 0x24000000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		aonapb_gate: aonapb-gate {
+			compatible = "sprd,orca-aon-gate";
+			sprd,syscon = <&aon_apb_regs>; /* 0x64020000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
 	};
 };
