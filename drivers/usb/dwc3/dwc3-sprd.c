@@ -605,7 +605,6 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		return PTR_ERR(dwc3_node);
 	}
 
-	wakeup_source_init(&sdwc->wake_lock, "dwc3-sprd");
 	INIT_WORK(&sdwc->work, dwc3_sprd_notifier_work);
 	init_waitqueue_head(&sdwc->wait);
 	spin_lock_init(&sdwc->lock);
@@ -741,6 +740,7 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		dev_err(sdwc->dev, "failed to create dwc3 attributes\n");
 		goto err_extcon_id;
 	}
+	wakeup_source_init(&sdwc->wake_lock, "dwc3-sprd");
 
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
