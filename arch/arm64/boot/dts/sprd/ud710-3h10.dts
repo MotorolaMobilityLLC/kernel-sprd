@@ -356,7 +356,6 @@
 		csi = <&csi0>;
 		reset-gpios = <&ap_gpio 45 0>;
 		power-down-gpios = <&ap_gpio 47 0>;
-		avdd-gpios = <&ap_gpio 140 0>;
 
 		status = "okay";
 	};
@@ -383,7 +382,6 @@
 		csi = <&csi0>;
 		reset-gpios = <&ap_gpio 44 0>;
 		power-down-gpios = <&ap_gpio 46 0>;
-		avdd-gpios = <&ap_gpio 140 0>;
 
 		status = "okay";
 	};

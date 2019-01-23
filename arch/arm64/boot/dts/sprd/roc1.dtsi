@@ -395,90 +395,108 @@
 				compatible = "sprd,mipi-csi-phy";
 				#address-cells = <1>;
 				#size-cells = <0>;
-				status = "disabled";
 				ranges;
 
 				csi_phy0: phy@0 {
-					syscons = <&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_0_CTRL_CSI_4L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_0_CSI_PS_PD_S>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_0_CTRL_CSI_4L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_0_CSI_PS_PD_L>;
-					syscon-names = "ps_pd_s", "ps_pd_l";
+					syscons = <&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_CSI_4LANE_0_ISO_SW_EN>,
+						<&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_ANALOG_MIPI_CSI_4LANE_0_CSI_PS_PD_S>,
+						<&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_ANALOG_MIPI_CSI_4LANE_0_CSI_PS_PD_L>;
+					syscon-names = "iso_sw_en", "ps_pd_s", "ps_pd_l";
 					reg = <0>;
 					sprd,phyname = "4lane_0";
-					status = "disabled";
 					sprd,project-id = <1>;
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy1: phy@1 {
-					syscons = <&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
+					syscons = <&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_CSI_2P2LANE_ISO_SW_EN>,
+						<&anlg_phy_g10_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
 							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
-					syscon-names = "csi_mode_sel",
+						<&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
+						<&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
+					syscon-names = "iso_sw_en", "csi_mode_sel",
 							"ps_pd_l","ps_pd_s";
 					reg = <1>;
+					sprd,project-id = <1>;
 					sprd,phyname = "2p2";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy3: phy@3 {
-					syscons = <&anlg_phy_g10_regs
+					syscons = <&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_CSI_2P2LANE_ISO_SW_EN>,
+						<&anlg_phy_g10_regs
 							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
 							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
-					syscon-names = "csi_mode_sel",
+						<&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
+						<&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
+					syscon-names = "iso_sw_en", "csi_mode_sel",
 							"ps_pd_l","ps_pd_s";
 					reg = <3>;
+					sprd,project-id = <1>;
 					sprd,phyname = "2p2_m";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy4: phy@4 {
-					syscons = <&anlg_phy_g10_regs
+					syscons = <&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_CSI_2P2LANE_ISO_SW_EN>,
+						<&anlg_phy_g10_regs
 							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
 							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
-					syscon-names = "csi_mode_sel",
+						<&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
+						<&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
+					syscon-names = "iso_sw_en", "csi_mode_sel",
 							"ps_pd_l", "ps_pd_s";
 					reg = <4>;
+					sprd,project-id = <1>;
 					sprd,phyname = "2p2_s";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy5: phy@5 {
-					syscons = <&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_1_CTRL_CSI_4L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_1_CSI_PS_PD_S>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_1_CTRL_CSI_4L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_1_CSI_PS_PD_L>;
-					syscon-names = "ps_pd_s", "ps_pd_l";
+					syscons = <&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_CSI_4LANE_1_ISO_SW_EN>,
+						<&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_ANALOG_MIPI_CSI_4LANE_1_CSI_PS_PD_S>,
+						<&anlg_phy_top1_regs
+							REG_ANLG_TOP_1_ANALOG_PHY_POWER_DOWN_CTRL1
+							MASK_ANLG_TOP_1_R2G_ANALOG_MIPI_CSI_4LANE_1_CSI_PS_PD_L>;
+					syscon-names = "iso_sw_en", "ps_pd_s", "ps_pd_l";
 					reg = <5>;
+					sprd,project-id = <1>;
 					sprd,phyname = "4lane_1";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 			};
 

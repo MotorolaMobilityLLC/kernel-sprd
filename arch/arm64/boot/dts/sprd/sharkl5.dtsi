@@ -231,9 +231,10 @@
 					syscon-names = "iso_sw_en", "ps_pd_s",
 							"ps_pd_l";
 					reg = <0>;
+					sprd,project-id = <0>;
 					sprd,phyname = "4lane";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy1: phy@1 {
@@ -252,9 +253,10 @@
 					syscon-names = "iso_sw_en", "csi_mode_sel",
 							"ps_pd_l", "ps_pd_s";
 					reg = <1>;
+					sprd,project-id = <0>;
 					sprd,phyname = "2p2";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy2: phy@2 {
@@ -270,9 +272,10 @@
 					syscon-names = "iso_sw_en", "ps_pd_s",
 							"ps_pd_l";
 					reg = <2>;
+					sprd,project-id = <0>;
 					sprd,phyname = "2lane";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy3: phy@3 {
@@ -291,9 +294,10 @@
 					syscon-names = "iso_sw_en", "csi_mode_sel",
 							"ps_pd_l", "ps_pd_s";
 					reg = <3>;
+					sprd,project-id = <0>;
 					sprd,phyname = "2p2_m";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy4: phy@4 {
@@ -312,9 +316,10 @@
 					syscon-names = "iso_sw_en", "csi_mode_sel",
 							"ps_pd_l", "ps_pd_s";
 					reg = <4>;
+					sprd,project-id = <0>;
 					sprd,phyname = "2p2_s";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 			};
 			gpu: gpu@60000000 {
