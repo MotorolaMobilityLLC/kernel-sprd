@@ -36,26 +36,21 @@ Required properties:
                         for example, <0x150 6 1> means that the register offset
 			is 0x150, the control bit is 6, and the hw dvfs
 			function is should be enabled.
-		- voltage-grade-num: A property describing the total number of
-			voltage grade for the dcdc_cpuX.
-		- voltage-grade: The list of voltage grade for dcdc_cpuX, every
-			entry of this list describes how to set a voltage grade.
-                        for example, <2 0x100 0xF4 18 0x1FF> means that the
-			voltage grade is 2, the voltage value of this grade is
-			0x100(0.8V), the register offset in topdvfs_controller
-			is 0xF4, the left shift base bit is 0, the mask is 0x1FF
-		- chnl-in-i2c: A property to determine if this power domain uses
-			an i2c channel to adjust voltage.
-		- top-dvfs-adi-state: A property describing the way to get
-			current top dvfs fsm state. for example,<0x70 0 0xF>
-			means the register offset in top dvfs controller is 0x70
-			the left shift base bit is 0, the mask is 0xF, so you
-			should get current top dvfs fsm state from bit[3:0] in
-			the top dvfs register whose offset is 0x70.
-		- top-dvfs-i2c-state: A property describing the way to get
-		  	current top dvfs fsm state, if the domain uses an i2c
-			channel to adjust the voltage for dcdc_cpuX, the detail
-			method.
+		- dcdc-supply-mode-cfg: A phandle to the configurations related
+		  	to power supply mode of dcdc_cpuX
+			- voltage-grade-num: A property describing the total number of
+				voltage grade for the dcdc_cpuX.
+			- voltage-grade: The list of voltage grade for dcdc_cpuX, every
+				entry of this list describes how to set a voltage grade.
+				for example, <2 0x100 0xF4 18 0x1FF> means that the
+				voltage grade is 2, the voltage value of this grade is
+				0x100(0.8V), the register offset in topdvfs_controller
+				is 0xF4, the left shift base bit is 0, the mask is 0x1FF
+			- chnl-in-i2c: A property to determine if this power domain uses
+				an i2c channel to adjust voltage.
+			- tuning-latency-us: The delay time(in microsecond)
+				needed to wait after configuring a work index to
+				hardware dvfs module
 - device-dcdc-cells: A phandle to the power domains supplying for devices
 			excluding DSU and cores, every power domain which supports
 			hardware dvfs function has its own dvfs controller in
@@ -85,8 +80,17 @@ Required properties:
 					control bit is 5, and the hw dvfs
 					function should be disabled.
 Optional properties:
-- None
-
+- supply-type-sel: A property to select power supply mode for dcdc cpu
+- top-dvfs-adi-state: A property describing the way to get
+			current top dvfs fsm state. for example,<0x70 0 0xF>
+			means the register offset in top dvfs controller is 0x70
+			the left shift base bit is 0, the mask is 0xF, so you
+			should get current top dvfs fsm state from bit[3:0] in
+			the top dvfs register whose offset is 0x70.
+- top-dvfs-i2c-state: A property describing the way to get
+			current top dvfs fsm state, if the domain uses an i2c
+			channel to adjust the voltage for dcdc_cpuX, the detail
+			method.
 
 Node cpudvfs_dev
 -----------------------------------
@@ -163,9 +167,6 @@ Node cpudvfs_dev
 				current idle index of XXX_cluster, for detail
 				method, please refer to the previous description
 				of work-index-cfg.
-			- tuning-latency-us: The delay time(in microsecond)
-				needed to wait after configuring a work index to
-				XXX_cluster.
 			- tuning-result-judge: Tell software the dvfs tuning
 			  	result is needed to judge or not needed to judge
 			- dcdc-name: The name of a cpu power domain which the
@@ -240,16 +241,7 @@ topdvfs_controller: topdvfsctrl@322A0000 {
 		dcdc-dvfs-enable = <0x68 20 1>;
 		dcdc-judge-vol-sw = <0x68 1 0x7 7>;
 		dcdc-subsys-tune-enable = <0x150 6 1>;
-		top-dvfs-adi-state = <0x70 0 0xF>;
-		voltage-grade-num = <7>;
-		voltage-grade = <0 0xE0 0xF4 0 0x1FF>,
-				<1 0xF0 0xF4 9 0x1FF>,
-				<2 0x100 0xF4 18 0x1FF>,
-				<3 0x110 0xF8 0 0x1FF>,
-				<4 0x120 0xF8 9 0x1FF>,
-				<5 0x130 0xF8 18 0x1FF>,
-				<6 0x140 0xFC 0 0x1FF>;
-		chnl-in-i2c = <0>;
+		dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu0_supply>;
 	};
 
 	<...>
@@ -270,6 +262,35 @@ topdvfs_controller: topdvfsctrl@322A0000 {
 	<...>
 };
 
+dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
+	top-dvfs-adi-state = <0x70 0 0xF>;
+	voltage-grade-num = <7>;
+	voltage-grade = <0 0xE0 0xF4 0 0x1FF>,
+			<1 0xF0 0xF4 9 0x1FF>,
+			<2 0x100 0xF4 18 0x1FF>,
+			<3 0x110 0xF8 0 0x1FF>,
+			<4 0x120 0xF8 9 0x1FF>,
+			<5 0x130 0xF8 18 0x1FF>,
+			<6 0x140 0xFC 0 0x1FF>;
+	chnl-in-i2c = <0>;
+	tuning-latency-us = <200>;
+};
+
+dvfs_dcdc_cpu1_supply: dvfs-dcdc-cpu1-supply {
+	supply-type-sel = <0x120 0 1>;
+	top-dvfs-i2c-state = <0x9c 4 0xF>;
+	voltage-grade-num = <6>;
+	voltage-grade = <0 0x2d 0x12c 0 0x7f>,
+			<1 0x32 0x12c 7 0x7f>,
+			<2 0x37 0x12c 14 0x7f>,
+			<3 0x3c 0x12c 21 0x7f>,
+			<4 0x41 0x130 0 0x7f>,
+			<5 0x46 0x130 7 0x7f>;
+	chnl-in-i2c = <1>;
+	tuning-latency-us = <200>;
+};
+
+
 Example 2: Example for cpudvfs_dev
 ---------
 
@@ -288,7 +309,6 @@ cpudvfs_dev: cpudvfs-dev@322A8000 {
 		column-num = <7>;
 		work-index-cfg = <0x214 0xF>;
 		idle-index-cfg = <0x218 0xF>;
-		tuning-latency-us = <200>;
 		tuning-result-judge = <1>;
 		dcdc-name = "DCDC_CPU0";
 		dcdc-dvfs-fsm-state = <0x44 0 7>;
