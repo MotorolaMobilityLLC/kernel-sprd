@@ -588,6 +588,14 @@
 		arm,no-tick-in-suspend;
 	};
 
+	pmu {
+		compatible = "arm,armv8-pmuv3";
+		interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 113 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 114 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 115 IRQ_TYPE_LEVEL_HIGH>;
+	};
+
 	gsp: sprd-gsp {
 		compatible = "sprd,gsp-lite_r3p0-sharkl5";
 		name = "sprd-gsp";
