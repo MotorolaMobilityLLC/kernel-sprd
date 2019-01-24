@@ -241,6 +241,7 @@
 		#size-cells = <0>;
 		reg = <0>;
 
+		power-supply = <&lcd_vdd>;
 		port {
 			reg = <1>;
 			panel_in: endpoint {
@@ -272,6 +273,28 @@
 			};
 		};
 	};
+	sc2703-disp@4b {
+		compatible = "sprd,sc2703-disp";
+		reg = <0x4b>;
+
+		lcd_vdd: lcd-regulator {
+			compatible = "sprd,sc2703-lcd-regulator";
+			regulator-name = "sc2703-lcd";
+			regulator-boot-on;
+		};
+
+		pmic_backlight: sc2703-backlight {
+			compatible = "sprd,sc2703-backlight";
+
+			pwms = <&pwms 0 40000>;
+			pwm-names = "wled-pwm";
+			//int-gpios = <&ap_gpio 96 0>;
+
+			sprd,wled-mode = "duty-det-analog-mode";
+			sprd,max-brightness = <150>;
+		};
+	};
+
 };
 
 &cpp {
