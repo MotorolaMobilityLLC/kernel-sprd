@@ -1176,8 +1176,7 @@ static void codec_digital_reg_enable(struct snd_soc_codec *codec)
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 
 	mutex_lock(&sprd_codec->digital_enable_mutex);
-	if (!sprd_codec->digital_enable_count)
-		arch_audio_codec_digital_reg_enable();
+	arch_audio_codec_digital_reg_enable();
 	sprd_codec->digital_enable_count++;
 	mutex_unlock(&sprd_codec->digital_enable_mutex);
 }
