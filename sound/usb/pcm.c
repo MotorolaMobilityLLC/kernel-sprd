@@ -113,11 +113,7 @@ static int sprd_ofld_synctype_ignore(struct snd_usb_audio *chip,
 		pr_debug("not enable usb audio offload, can't ignore\n");
 		return 0;
 	}
-
-	if ((attr == USB_ENDPOINT_SYNC_ASYNC &&
-		stream == SNDRV_PCM_STREAM_PLAYBACK) ||
-		(attr == USB_ENDPOINT_SYNC_ADAPTIVE &&
-		stream == SNDRV_PCM_STREAM_CAPTURE)) {
+	if (attr != USB_ENDPOINT_SYNC_SYNC) {
 		pr_debug("offload ignore synctype stream %s sync_type %d\n",
 			stream ? "capture" : "playback", attr);
 		return 1;
