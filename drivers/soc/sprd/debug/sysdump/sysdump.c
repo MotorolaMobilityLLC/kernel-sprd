@@ -59,6 +59,8 @@
 #endif
 
 #define SYSDUMP_MAGIC	"SPRD_SYSDUMP_119"
+#define SYSDUMP_MAGIC_VOLUP  (0x766f7570)
+#define SYSDUMP_MAGIC_VOLDN  (0X766f646e)
 
 #define SYSDUMP_NOTE_BYTES (ALIGN(sizeof(struct elf_note), 4) +   \
 			    ALIGN(sizeof(CORE_STR), 4) + \
@@ -146,58 +148,63 @@ static int set_sysdump_enable(int on);
 
 void sprd_debug_check_crash_key(unsigned int code, int value)
 {
-	static bool volup_p;
-	static bool voldown_p;
-	static int loopcount;
-	static int vol_pressed;
+	static unsigned int volup_p;
+	static unsigned int voldown_p;
+	static unsigned int loopcount;
+	static unsigned long vol_pressed;
 
 #if 0
 	/* Must be deleted later */
-	pr_info("Test %s:key code(%d) value(%d),(up:%d,down:%d)\n", __func__,
-		code, value, volup_p, voldown_p);
+	pr_alert("Test %s:key code(%d) value(%d),(up:%d,down:%d),lpct(%d),vop(%ld)\n", __func__,
+		code, value, volup_p, voldown_p, loopcount, vol_pressed);
 #endif
 
-	/* Enter Force Upload
-	 *  Hold volume down key first
+	/*  Enter Force Upload
+	 *  hold the volume down and volume up
 	 *  and then press power key twice
-	 *  and volume up key should not be pressed
 	 */
 	if (value) {
-		if (code == KEY_VOLUMEUP)
-			volup_p = true;
-		if (code == KEY_VOLUMEDOWN)
-			voldown_p = true;
-		if ((!vol_pressed) && volup_p && voldown_p)
-			vol_pressed = jiffies_to_msecs(jiffies);
-		if (volup_p && voldown_p) {
-			static unsigned long stack_dump_jiffies;
-
-			if (!stack_dump_jiffies
-			    || jiffies > stack_dump_jiffies + HZ * 10)
-				stack_dump_jiffies = jiffies;
+		if (code == KEY_VOLUMEUP) {
+			volup_p = SYSDUMP_MAGIC_VOLUP; //vlup
+			vol_pressed = 0;
+			loopcount = 0;
+		}
+		if (code == KEY_VOLUMEDOWN) {
+			voldown_p = SYSDUMP_MAGIC_VOLDN; //vldn
+			loopcount = 0;
+			vol_pressed = 0;
+		}
+		if ((!vol_pressed) &&
+		    (volup_p == SYSDUMP_MAGIC_VOLUP) &&
+		    (voldown_p == SYSDUMP_MAGIC_VOLDN))
+			vol_pressed = jiffies;
+		if ((volup_p == SYSDUMP_MAGIC_VOLUP) && (voldown_p == SYSDUMP_MAGIC_VOLDN)) {
 			if (code == KEY_POWER) {
-				pr_info("%s: Crash key count : %d\n", __func__,
-					++loopcount);
-				//if (loopcount == 2)
-				//panic("Crash Key");
-				if ((jiffies_to_msecs(jiffies) - vol_pressed) <=
-				    5000) {
+				pr_info("%s: Crash key count : %d,vol_pressed:%ld\n", __func__,
+					++loopcount, vol_pressed);
+				if (time_before(jiffies, vol_pressed + 5 * HZ)) {
 					if (loopcount == 2)
 						panic("Crash Key");
 				} else {
-					volup_p = false;
-					voldown_p = false;
+					pr_info("%s: exceed 5s(%u) between power key and volup/voldn key\n",
+						__func__, jiffies_to_msecs(jiffies - vol_pressed));
+					volup_p = 0;
+					voldown_p = 0;
 					loopcount = 0;
 					vol_pressed = 0;
 				}
 			}
 		}
 	} else {
-		if (code == KEY_VOLUMEUP)
-			volup_p = false;
+		if (code == KEY_VOLUMEUP) {
+			volup_p = 0;
+			loopcount = 0;
+			vol_pressed = 0;
+		}
 		if (code == KEY_VOLUMEDOWN) {
 			loopcount = 0;
-			voldown_p = false;
+			voldown_p = 0;
+			vol_pressed = 0;
 		}
 	}
 }
