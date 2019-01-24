@@ -484,13 +484,29 @@ static void sprd_crtc_mode_set_nofb(struct drm_crtc *crtc)
 
 	DRM_INFO("%s()\n", __func__);
 
-	if ((crtc->mode.hdisplay == crtc->mode.htotal) ||
-	    (crtc->mode.vdisplay == crtc->mode.vtotal))
+	if ((dpu->mode->hdisplay == dpu->mode->htotal) ||
+	    (dpu->mode->vdisplay == dpu->mode->vtotal))
 		dpu->ctx.if_type = SPRD_DISPC_IF_EDPI;
 	else
 		dpu->ctx.if_type = SPRD_DISPC_IF_DPI;
 
-	drm_display_mode_to_videomode(&crtc->mode, &dpu->ctx.vm);
+	drm_display_mode_to_videomode(dpu->mode, &dpu->ctx.vm);
+}
+
+static enum drm_mode_status sprd_crtc_mode_valid(struct drm_crtc *crtc,
+					const struct drm_display_mode *mode)
+{
+	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+
+	DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__, DRM_MODE_ARG(mode));
+
+	if (mode->type & DRM_MODE_TYPE_DEFAULT)
+		dpu->mode = (struct drm_display_mode *)mode;
+
+	if ((mode->type & DRM_MODE_TYPE_PREFERRED) && !dpu->mode)
+		dpu->mode = (struct drm_display_mode *)mode;
+
+	return MODE_OK;
 }
 
 static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
@@ -624,6 +640,7 @@ static void sprd_crtc_disable_vblank(struct drm_crtc *crtc)
 
 static const struct drm_crtc_helper_funcs sprd_crtc_helper_funcs = {
 	.mode_set_nofb	= sprd_crtc_mode_set_nofb,
+	.mode_valid	= sprd_crtc_mode_valid,
 	.atomic_check	= sprd_crtc_atomic_check,
 	.atomic_begin	= sprd_crtc_atomic_begin,
 	.atomic_flush	= sprd_crtc_atomic_flush,

@@ -184,27 +184,42 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 {
 	struct drm_display_mode *mode;
 	struct sprd_panel *panel = to_sprd_panel(p);
+	struct device_node *np = panel->slave->dev.of_node;
+	u32 surface_width = 0, surface_height = 0;
+	int mode_count = 0;
 
 	DRM_INFO("%s()\n", __func__);
 
 	mode = drm_mode_duplicate(p->drm, &panel->info.mode);
 	if (!mode) {
-		DRM_ERROR("failed to add mode %ux%ux@%u\n",
-			  panel->info.mode.hdisplay,
-			  panel->info.mode.vdisplay,
-			  panel->info.mode.vrefresh);
-		return -ENOMEM;
+		DRM_ERROR("failed to alloc mode %s\n", panel->info.mode.name);
+		return 0;
 	}
-
-	drm_mode_set_name(mode);
-
-	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
+	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_DEFAULT;
 	drm_mode_probed_add(p->connector, mode);
+	mode_count++;
+
+	of_property_read_u32(np, "sprd,surface-width", &surface_width);
+	of_property_read_u32(np, "sprd,surface-height", &surface_height);
+	if (surface_width && surface_height) {
+		struct videomode vm = {};
+
+		vm.hactive = surface_width;
+		vm.vactive = surface_height;
+		vm.pixelclock = surface_width * surface_height * 60;
+
+		mode = drm_mode_create(p->drm);
+		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
+		mode->vrefresh = 60;
+		drm_display_mode_from_videomode(&vm, mode);
+		drm_mode_probed_add(p->connector, mode);
+		mode_count++;
+	}
 
 	p->connector->display_info.width_mm = panel->info.mode.width_mm;
 	p->connector->display_info.height_mm = panel->info.mode.height_mm;
 
-	return 1;
+	return mode_count;
 }
 
 static const struct drm_panel_funcs sprd_panel_funcs = {
