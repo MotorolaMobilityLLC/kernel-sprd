@@ -36,3 +36,9 @@ config PINCTRL_SPRD_SHARKL3
 	depends on PINCTRL_SPRD
 	help
 	  Say Y here to enable Spreadtrum Sharkl3 pinctrl driver
+
+config PINCTRL_SPRD_ORCA
+	bool "Spreadtrum Orca pinctrl driver"
+	depends on PINCTRL_SPRD
+	help
+	  Say Y here to enable Spreadtrum Orca pinctrl driver
