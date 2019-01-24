@@ -1071,7 +1071,9 @@ static int check_cp_clock_mode(void)
 		WCN_INFO("clock mode: TSX\n");
 	} else {
 		WCN_INFO("clock mode: TCXO, outside clock\n");
+#ifndef CONFIG_UMW2652
 		marlin_avdd18_dcxo_enable(false);
+#endif
 	}
 
 	return ret;
