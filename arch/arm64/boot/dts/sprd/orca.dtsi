@@ -9,7 +9,7 @@
 #include <dt-bindings/soc/sprd,orca-regs.h>
 #include <dt-bindings/soc/sprd,orca-mask.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
-
+#include <dt-bindings/debug/dmc_mpu/orca_dmc_mpu.h>
 / {
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
@@ -258,6 +258,72 @@
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				status = "disabled";
+			};
+		};
+
+		pub {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			dmc_mpu: dmc-mpu@61030000 {
+				compatible = "sprd,orca-dmc-mpu";
+				reg = <0 0x61030000 0 0x10000>;
+				interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
+				syscon-names = "irq_clr", "irq_en";
+				syscons = <&pub_apb_regs
+					REG_PUB_APB_REG_PUB_INT_CTRL
+					MASK_PUB_APB_REG_DMC_MPU_VIO_INT_CLR>,
+					<&pub_apb_regs
+					REG_PUB_APB_REG_PUB_INT_CTRL
+					MASK_PUB_APB_REG_DMC_MPU_VIO_INT_EN>;
+				sprd,channel-num = <7>;
+				sprd,mpu-num = <16>;
+				sprd,channel-names =
+					"APCPU/miniAP/CS/AON", "NR_CP1", "NR_CP2",
+					"V3_Modem1","V3_Modem2", "PS_CP","AG_CP",
+					"SHARED0", "SHARED1", "SHARED2",
+					"SHARED3", "SHARED4", "SHARED5",
+					"SHARED6", "SHARED7", "SHARED8";
+				sprd,ranges = <0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+					<0 0 0 0>;
+				sprd,chn-config =
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>;
+				sprd,id-config =
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>;
+				sprd,port-map = <0>, <1>, <2>, <3>, <4>,
+						<5>, <6>, <0>, <0>, <0>,
+						<0>, <0>, <0>, <0>, <0>,
+						<0>;
+				sprd,ddr-offset = <0x80000000>;
 				status = "disabled";
 			};
 		};
