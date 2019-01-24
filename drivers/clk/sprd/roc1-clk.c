@@ -649,41 +649,41 @@ static struct sprd_clk_desc roc1_ap_clk_desc = {
 };
 
 /* ipa gate */
-static SPRD_SC_GATE_CLK(ipa_usb_eb, "ipa-usb-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(ipa_usb_eb, "ipa-usb-eb", "ext-26m", 0x4,
 		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ipa_usb_suspend_eb, "ipa-usb-suspend-eb", "ext-26m",
-		     0x0, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ipa_usb_ref_eb, "ipa-usb-ref-eb", "ext-26m", 0x0,
+		     0x4, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_usb_ref_eb, "ipa-usb-ref-eb", "ext-26m", 0x4,
 		     0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ipa_top_eb, "ipa-top-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(ipa_top_eb, "ipa-top-eb", "ext-26m", 0x4,
 		     0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(pam_usb_eb, "pam-usb-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(pam_usb_eb, "pam-usb-eb", "ext-26m", 0x4,
 		     0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(pam_ipa_eb, "pam-ipa-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(pam_ipa_eb, "pam-ipa-eb", "ext-26m", 0x4,
 		     0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(pam_wifi_eb, "pam-wifi-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(pam_wifi_eb, "pam-wifi-eb", "ext-26m", 0x4,
 		     0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ipa_pcie3_eb, "ipa-pcie3-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(ipa_pcie3_eb, "ipa-pcie3-eb", "ext-26m", 0x4,
 		     0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ipa_pcie2_eb, "ipa-pcie2-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(ipa_pcie2_eb, "ipa-pcie2-eb", "ext-26m", 0x4,
 		     0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(bp_pam_u3_eb, "bp-pam-u3-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(bp_pam_u3_eb, "bp-pam-u3-eb", "ext-26m", 0x4,
 		     0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(bp_pam_ipa_eb, "bp-pam-ipa-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(bp_pam_ipa_eb, "bp-pam-ipa-eb", "ext-26m", 0x4,
 		     0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(bp_pam_top_eb, "bp-pam-top-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(bp_pam_top_eb, "bp-pam-top-eb", "ext-26m", 0x4,
 		     0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ipa_intc_eb, "ipa-intc-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(ipa_intc_eb, "ipa-intc-eb", "ext-26m", 0x4,
 		     0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ipa_bm_dbg_eb, "ipa-bm-dbg-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(ipa_bm_dbg_eb, "ipa-bm-dbg-eb", "ext-26m", 0x4,
 		     0x1000, BIT(13), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ipa_uart_eb, "ipa-uart-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(ipa_uart_eb, "ipa-uart-eb", "ext-26m", 0x4,
 		     0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ipa_timer_eb, "ipa-timer-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(ipa_timer_eb, "ipa-timer-eb", "ext-26m", 0x4,
 		     0x1000, BIT(15), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ipa_wdg_eb, "ipa-wdg-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(ipa_wdg_eb, "ipa-wdg-eb", "ext-26m", 0x4,
 		     0x1000, BIT(16), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK(ipa_cm4_eb, "ipa-cm4-eb", "ext-26m", 0x0,
+static SPRD_SC_GATE_CLK(ipa_cm4_eb, "ipa-cm4-eb", "ext-26m", 0x4,
 		     0x1000, BIT(17), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *roc1_ipa_gate_clks[] = {
