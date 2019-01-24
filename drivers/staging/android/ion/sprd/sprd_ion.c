@@ -344,6 +344,34 @@ out:
 	return ERR_PTR(ret);
 }
 
+#ifdef CONFIG_E_SHOW_MEM
+static int ion_e_show_mem_handler(struct notifier_block *nb,
+				unsigned long val, void *data)
+{
+	int i;
+	enum e_show_mem_type type = (enum e_show_mem_type)val;
+	unsigned long total_used = 0;
+
+	pr_info("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("Enhanced Mem-info :ION\n");
+	for (i = 0; i < num_heaps; i++) {
+		if ((E_SHOW_MEM_BASIC != type) ||
+		    (ION_HEAP_TYPE_SYSTEM == heaps[i]->type ||
+		     ION_HEAP_TYPE_SYSTEM_CONTIG == heaps[i]->type)) {
+			if (heaps[i]->debug_show)
+				heaps[i]->debug_show(heaps[i], 0, 0);
+		}
+	}
+
+	pr_info("Total allocated from Buddy: %lu kB\n", total_used / 1024);
+	return 0;
+}
+
+static struct notifier_block ion_e_show_mem_notifier = {
+	.notifier_call = ion_e_show_mem_handler,
+};
+#endif
+
 static int sprd_ion_probe(struct platform_device *pdev)
 {
 	int i = 0, ret = -1;
@@ -409,6 +437,9 @@ out1:
 
 static int sprd_ion_remove(struct platform_device *pdev)
 {
+#ifdef CONFIG_E_SHOW_MEM
+	unregister_e_show_mem_notifier(&ion_e_show_mem_notifier);
+#endif
 	kfree(heaps);
 
 	return 0;
