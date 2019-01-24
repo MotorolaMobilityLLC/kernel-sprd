@@ -920,16 +920,9 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 static int sprd_dpu_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
-	struct device_node *lcd_node;
 	struct sprd_dpu *dpu;
 	const char *str;
 	int ret;
-
-	lcd_node = platform_get_drvdata(pdev);
-	if (!lcd_node) {
-		DRM_INFO("panel is not attached, dpu probe deferred\n");
-		return -EPROBE_DEFER;
-	}
 
 	dpu = devm_kzalloc(&pdev->dev, sizeof(*dpu), GFP_KERNEL);
 	if (!dpu)

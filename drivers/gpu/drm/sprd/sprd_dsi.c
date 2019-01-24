@@ -188,10 +188,11 @@ static int sprd_dsi_encoder_init(struct drm_device *drm,
 	return 0;
 }
 
-static int sprd_dsi_find_panel(struct sprd_dsi *dsi)
+static int sprd_dsi_panel_attach(struct sprd_dsi *dsi)
 {
 	struct device *dev = dsi->host.dev;
 	struct device_node *child, *lcds_node;
+	struct drm_connector *connector = &dsi->connector;
 	struct drm_panel *panel;
 
 	/* search /lcds child node first */
@@ -200,7 +201,7 @@ static int sprd_dsi_find_panel(struct sprd_dsi *dsi)
 		panel = of_drm_find_panel(child);
 		if (panel) {
 			dsi->panel = panel;
-			return 0;
+			return drm_panel_attach(panel, connector);
 		}
 	}
 
@@ -212,7 +213,7 @@ static int sprd_dsi_find_panel(struct sprd_dsi *dsi)
 		panel = of_drm_find_panel(child);
 		if (panel) {
 			dsi->panel = panel;
-			return 0;
+			return drm_panel_attach(panel, connector);
 		}
 	}
 
@@ -245,7 +246,6 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 	struct sprd_dsi *dsi = host_to_dsi(host);
 	struct dsi_context *ctx = &dsi->ctx;
 	struct device_node *lcd_node;
-	struct device *dev;
 	u32 val;
 	int ret;
 
@@ -274,16 +274,11 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 	if (ret)
 		return ret;
 
-	ret = sprd_dsi_find_panel(dsi);
+	ret = sprd_dsi_panel_attach(dsi);
 	if (ret)
 		return ret;
 
 	lcd_node = dsi->panel->dev->of_node;
-
-	/* set driver_data for dpu platform device */
-	dev = sprd_disp_pipe_get_input(host->dev);
-	if (dev)
-		dev_set_drvdata(dev, lcd_node);
 
 	ret = of_property_read_u32(lcd_node, "sprd,phy-bit-clock", &val);
 	if (!ret) {
@@ -464,17 +459,6 @@ static int sprd_dsi_bridge_attach(struct sprd_dsi *dsi)
 	return 0;
 }
 
-static int sprd_dsi_panel_attach(struct sprd_dsi *dsi)
-{
-	int ret;
-
-	ret = drm_panel_attach(dsi->panel, &dsi->connector);
-	if (ret)
-		DRM_ERROR("failed to attach panel to connector\n");
-
-	return ret;
-}
-
 static int sprd_dsi_glb_init(struct sprd_dsi *dsi)
 {
 	if (dsi->glb && dsi->glb->power)
@@ -552,10 +536,6 @@ static int sprd_dsi_bind(struct device *dev, struct device *master, void *data)
 		goto cleanup_encoder;
 
 	ret = sprd_dsi_bridge_attach(dsi);
-	if (ret)
-		goto cleanup_connector;
-
-	ret = sprd_dsi_panel_attach(dsi);
 	if (ret)
 		goto cleanup_connector;
 
