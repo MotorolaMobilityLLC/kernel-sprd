@@ -72,3 +72,7 @@
 		};
 	};
 };
+
+&sc2730_pmic {
+	interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>;
+};
