@@ -574,6 +574,34 @@
 				status = "disabled";
 			};
 
+			cpp: cpp@62800000 {
+				compatible = "sprd,cpp";
+				reg = <0 0x62800000 0 0x1000>;
+				interrupts = <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "cpp_eb",
+					"cpp_clk",
+					"cpp_clk_parent";
+				clocks = <&mm_gate CLK_MM_CPP_EB>,
+					<&mm_clk CLK_CPP>,
+					<&g12_pll CLK_TWPLL_384M>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				/* iommus = <&iommu_cpp>; */
+				/* cpp_qos = <&cpp_qos>; */
+				status = "disabled";
+			};
+
+			iommu_cpp: iommu@62800000 {
+				compatible = "sprd,iommuexroc1-cpp";
+				reg = <0 0x62800000 0 0x200>,
+					<0 0x62800200 0 0x60>;
+				iova-base = <0x20000000>;
+				iova-size = <0x8000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg",
+					"iova pool";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
 			dcam: dcam@62900000 {
 				compatible = "sprd,dcam";
 				reg = <0 0x62900000 0 0x1000>,

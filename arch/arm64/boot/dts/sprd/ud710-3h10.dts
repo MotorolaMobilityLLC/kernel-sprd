@@ -332,6 +332,10 @@
 	status = "okay";
 };
 
+&cpp {
+	status = "okay";
+};
+
 &fd{
 	status = "okay";
 };
@@ -353,6 +357,9 @@
  *};
  *
  *&iommu_isp {
+ *	status = "okay";
+ *};
+ *&iommu_cpp{
  *	status = "okay";
  *};
  */
