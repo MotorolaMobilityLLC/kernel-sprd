@@ -24,18 +24,8 @@
 		sprd,esd-check-regs = <0xA>;
 		sprd,esd-return-code = <0x9c>;
 
-		sprd,power-on-sequence = <
-					4  1  5
-					5  1  5
-					50  1  5
-					50  0  5
-					50  1  20
-					>;
-		sprd,power-off-sequence = <
-					5  0  5
-					4  0  5
-					50  1  5
-					>;
+		sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
+		sprd,reset-off-sequence = <1 5>;
 
 		sprd,initial-command = [
 			23 00 00 02 FF 20

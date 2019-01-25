@@ -26,14 +26,8 @@
 		sprd,esd-check-register = <0x0A>;
 		sprd,esd-check-value = <0x9C>;
 
-		sprd,power-on-sequence = <
-					50  1  5
-					50  0  5
-					50  1  20
-					>;
-		sprd,power-off-sequence = <
-					50  0  5
-					>;
+		sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
+		sprd,reset-off-sequence = <0 5>;
 
 		sprd,use-dcs-write;
 		sprd,initial-command = [
@@ -88,6 +82,8 @@
 		sprd,sleep-out-command = [
 			15 78 00 01 11
 			15 32 00 01 29
+			15 01 00 02 B0 00
+			15 01 00 02 B1 01
 			];
 
 		display-timings {

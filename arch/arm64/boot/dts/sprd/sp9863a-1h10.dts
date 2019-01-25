@@ -188,6 +188,9 @@
 		#size-cells = <0>;
 		reg = <0>;
 
+		avdd-gpio = <&ap_gpio 4 GPIO_ACTIVE_HIGH>;
+		avee-gpio = <&ap_gpio 5 GPIO_ACTIVE_HIGH>;
+		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 		port {
 			reg = <1>;
 			panel_in: endpoint {
