@@ -13,7 +13,9 @@
 
 #include <linux/dma-buf.h>
 #include <linux/pm_runtime.h>
+#include <linux/sprd_ion.h>
 
+#include "ion.h"
 #include "sprd_drm.h"
 #include "sprd_gem.h"
 
@@ -52,10 +54,13 @@ void sprd_gem_free_object(struct drm_gem_object *obj)
 
 	DRM_DEBUG("gem = %p\n", obj);
 
-	if (sprd_gem->vaddr)
-		dma_free_writecombine(obj->dev->dev, obj->size,
+	if (sprd_gem->vaddr) {
+		if (sprd_gem->base.dma_buf)
+			ion_free(sprd_gem->base.dma_buf);
+		else
+			dma_free_writecombine(obj->dev->dev, obj->size,
 				      sprd_gem->vaddr, sprd_gem->dma_addr);
-	else if (sprd_gem->sgtb)
+	} else if (sprd_gem->sgtb)
 		drm_prime_gem_destroy(obj, sprd_gem->sgtb);
 
 	drm_gem_object_release(obj);
@@ -67,7 +72,10 @@ int sprd_gem_cma_dumb_create(struct drm_file *file_priv, struct drm_device *drm,
 			    struct drm_mode_create_dumb *args)
 {
 	struct sprd_gem_obj *sprd_gem;
+	struct dma_buf *dmabuf;
 	int ret;
+	unsigned long phyaddr;
+	size_t size;
 
 	args->pitch = DIV_ROUND_UP(args->width * args->bpp, 8);
 	args->size = round_up(args->pitch * args->height, PAGE_SIZE);
@@ -78,11 +86,31 @@ int sprd_gem_cma_dumb_create(struct drm_file *file_priv, struct drm_device *drm,
 
 	sprd_gem->vaddr = dma_alloc_writecombine(drm->dev, args->size,
 			&sprd_gem->dma_addr, GFP_KERNEL | __GFP_NOWARN | GFP_DMA);
+
 	if (!sprd_gem->vaddr) {
-		DRM_ERROR("failed to allocate buffer with size %llu\n",
-			  args->size);
-		ret = -ENOMEM;
-		goto error;
+		DRM_ERROR("failed to allocate buffer with size %llu,use ion\n",
+				args->size);
+
+		dmabuf = ion_new_alloc(args->size, ION_HEAP_ID_MASK_FB, 0);
+
+		if (IS_ERR_OR_NULL(dmabuf)) {
+			DRM_ERROR("ion_new_alloc dumb buffer fail\n");
+			ret = -ENOMEM;
+			goto error;
+		}
+
+		size = (size_t)args->size;
+		sprd_ion_get_phys_addr_by_db(dmabuf, &phyaddr, &size);
+		sprd_gem->base.dma_buf = dmabuf;
+		sprd_gem->dma_addr = phyaddr;
+		sprd_gem->vaddr = sprd_ion_map_kernel(dmabuf, 0);
+
+		if (!sprd_gem->vaddr) {
+			DRM_ERROR("failed to allocate buffer with size %llu\n",
+					args->size);
+			ret = -ENOMEM;
+			goto error;
+		}
 	}
 
 	ret = drm_gem_handle_create(file_priv, &sprd_gem->base, &args->handle);
