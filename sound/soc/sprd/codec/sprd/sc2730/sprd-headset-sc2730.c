@@ -52,11 +52,12 @@
 #define SPRD_BUTTON_JACK_MASK (SND_JACK_BTN_0 | SND_JACK_BTN_1 | \
 	SND_JACK_BTN_2 | SND_JACK_BTN_3 | SND_JACK_BTN_4)
 
-#define ADC_READ_REPET 2
+#define ADC_READ_REPET 10
+#define ADC_READ_BTN_COUNT 20
+
 #define CHIP_ID_2720 0x2720
 #define CHIP_ID_2730 0x2730
 
-#define SCI_ADC_GET_VALUE_COUNT  10
 #define ABS(x) (((x) < (0)) ? (-(x)) : (x))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
@@ -429,26 +430,18 @@ int headset_get_plug_state(void)
 }
 EXPORT_SYMBOL(headset_get_plug_state);
 
-static int sprd_wrap_sci_adc_get(struct iio_channel *chan)
+static int sprd_headset_adc_get(struct iio_channel *chan)
 {
-	int count = 0, average = 0, val, ret;
+	int val, ret;
 
-	while (count < SCI_ADC_GET_VALUE_COUNT) {
-		ret = iio_read_channel_raw(chan, &val);
-		if (ret < 0) {
-			pr_err("%s: read adc raw value failed!\n", __func__);
-			return 0;
-		}
-		average += val;
-		count++;
-		pr_debug("%s count %d,val %d, average %d\n",
-			__func__, count, val, average / count);
+	ret = iio_read_channel_raw(chan, &val);
+	if (ret < 0) {
+		pr_err("%s: read adc raw value failed!\n", __func__);
+		return ret;
 	}
+	pr_debug("%s: adc: %d\n", __func__, val);
 
-	average /= SCI_ADC_GET_VALUE_COUNT;
-	pr_debug("%s: adc: %d\n", __func__, average);
-
-	return average;
+	return val;
 }
 
 static void sprd_intc_force_clear(int force_clear)
@@ -776,44 +769,89 @@ static int sprd_adc_to_ideal(u32 adc_mic, u32 coefficient);
 
 static int sprd_get_adc_value(struct iio_channel *chan)
 {
-	int adc_value;
+	int adc_value, i = 0, avrage = 0;
 
-	/* head buffer not swap */
-	headset_reg_clr_bits(ANA_HDT3, HEDET_V2AD_SWAP);
-	adc_value = sprd_wrap_sci_adc_get(chan);
-	/* head buffer swap input */
-	headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_SWAP);
-	adc_value = sprd_wrap_sci_adc_get(chan) + adc_value;
-	pr_info("%s, adc_value is %d\n", __func__, adc_value/2);
-
-	return adc_value/2;
-}
-
-static void sprd_button_ideal_adc(struct iio_channel *chan, int *adc_array,
-	u32 loop_times, u32 *did_times)
-{
-	int adc_value, i = 0, insert_state_1, insert_state_2;
-
-	while (i < loop_times) {
-		insert_state_1 =
-			sprd_headset_part_is_inserted(HDST_INSERT_BDET);
+	while (i++ < ADC_READ_REPET) {
 		/* head buffer not swap */
 		headset_reg_clr_bits(ANA_HDT3, HEDET_V2AD_SWAP);
-		adc_value = sprd_wrap_sci_adc_get(chan);
+		adc_value = sprd_headset_adc_get(chan);
+		if (adc_value < 0)
+			return adc_value;
 		/* head buffer swap input */
 		headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_SWAP);
-		adc_value = sprd_wrap_sci_adc_get(chan) + adc_value;
-		insert_state_2 =
-			sprd_headset_part_is_inserted(HDST_INSERT_BDET);
-		if (insert_state_1 == 0 || insert_state_2 == 0) {
-			pr_err("%s key released! i %d, insert_state_1 %d, insert_state_2 %d\n",
-				__func__, i, insert_state_1, insert_state_2);
-			*did_times = i;
-			return;
-		}
-		adc_array[i++] = adc_value / 2;
+		adc_value = sprd_headset_adc_get(chan) + adc_value;
+		if (adc_value < 0)
+			return adc_value;
+		avrage += adc_value / 2;
 	}
-	*did_times = ADC_READ_REPET;
+	return avrage / ADC_READ_REPET;
+}
+
+static int sprd_button_ideal_adc(struct sprd_headset *hdst)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	struct iio_channel *chan = hdst->adc_chan;
+	int adc_mic_average = 0, adc_ideal, adc_value,
+		i = 0, insert_state, did_times;
+
+	headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_EN);
+	sprd_headset_scale_set(0);
+	headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0),
+		HEDET_V2AD_CH_SEL(0xf));
+
+	while (i < ADC_READ_BTN_COUNT) {
+		/* head buffer not swap */
+		headset_reg_clr_bits(ANA_HDT3, HEDET_V2AD_SWAP);
+		adc_value = sprd_headset_adc_get(chan);
+		if (adc_value < 0) {
+			adc_mic_average = 4095;
+			goto read_adc_err;
+		}
+		/* head buffer swap input */
+		headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_SWAP);
+		adc_value = sprd_headset_adc_get(chan) + adc_value;
+		if (adc_value < 0) {
+			adc_mic_average = 4095;
+			goto read_adc_err;
+		}
+		insert_state = sprd_headset_eic_get_data(HDST_BDET_EIC);
+		if (insert_state == 0) {
+			pr_err("%s key released! i %d, adc_value %d, insert_state %d\n",
+				__func__, i, adc_value / 2, insert_state);
+			did_times = i;
+			break;
+		}
+		adc_mic_average += adc_value / 2;
+		i++;
+	}
+	if (i == 0) {
+		adc_mic_average = 4095;
+		goto read_adc_err;
+	}
+
+	adc_mic_average /= i;
+
+	if (adc_mic_average < 0) {
+		pr_err("%s adc error, adc_mic_average %d\n",
+			__func__, adc_mic_average);
+		/*
+		 * When adc value is negative, it is invalid,
+		 * set a useless value to it, like 4095 in
+		 * buttons.
+		 */
+		adc_mic_average = 4095;
+	}
+read_adc_err:
+	adc_ideal = sprd_adc_to_ideal(adc_mic_average,
+				pdata->coefficient);
+	pr_info("%s adc_mic_average %d, adc_ideal=%d, V_ideal %s %d mV\n",
+		__func__, adc_mic_average, adc_ideal,
+		(adc_mic_average >= 4095) ? "outrange!" : "",
+		adc_ideal * 1250 / 4095);
+	if (adc_ideal >= 0)
+		adc_mic_average = adc_ideal;
+
+	return adc_mic_average;
 }
 
 static void sprd_enable_hmicbias_polling(bool enable, bool force_disable)
@@ -924,6 +962,7 @@ headset_type_detect_all(int insert_all_val_last)
 	int adc_mic_average, adc_mic_ideal, adc_left_average,
 		adc_left_ideal, val;
 	struct iio_channel *adc_chan = hdst->adc_chan;
+	bool adc_value_err = false;
 	enum sprd_headset_type headset_type;
 
 	HDST_DEBUG_LOG;
@@ -952,17 +991,29 @@ headset_type_detect_all(int insert_all_val_last)
 
 	headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_EN);
 	/* 0 little, 1 large */
-	headset_reg_clr_bits(ANA_HDT3, HEDET_V2AD_SCALE_SEL);
+	sprd_headset_scale_set(0);
 	headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0),
 		HEDET_V2AD_CH_SEL(0xF));
 	adc_mic_average = sprd_get_adc_value(adc_chan);
+	if (adc_mic_average < 0) {
+		pr_err("%s adc error, adc_mic_average %d\n",
+			__func__, adc_mic_average);
+		/*
+		 * When adc value is negative, it is invalid, set a useless
+		 * value to it, like 0 in headset type identification.
+		 */
+		adc_value_err = true;
+		adc_mic_average = 0;
+	}
+
 	adc_mic_ideal = sprd_adc_to_ideal(adc_mic_average,
 						pdata->coefficient);
-	pr_info("%s, adc_value: adc_mic_average %d, ideal_value: adc_mic_ideal %d, V_ideal %d mV\n",
+	pr_info("%s, adc_mic_average %d, adc_mic_ideal %d, V_ideal %s %d mV\n",
 		__func__, adc_mic_average, adc_mic_ideal,
+		(adc_mic_average >= 4095 || adc_value_err) ? "outrange!" : "",
 		adc_mic_ideal * 1250 / 4095);
-	if (adc_mic_ideal >= 0)
-		adc_mic_average = adc_mic_ideal;
+	if (adc_mic_ideal < 0)
+		adc_mic_ideal = 0;
 
 	if (pdata->jack_type == JACK_TYPE_NO)
 		headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0x4),
@@ -972,14 +1023,23 @@ headset_type_detect_all(int insert_all_val_last)
 			HEDET_V2AD_CH_SEL(0xF));
 
 	adc_left_average = sprd_get_adc_value(adc_chan);
-	/* si.chen say here could calculate voltage like mic */
+	if (adc_left_average < 0) {
+		pr_err("%s adc error, adc_left_average %d\n",
+			__func__, adc_left_average);
+		/*
+		 * When adc value is negative, it is invalid, set a useless
+		 * value to it, like 0 in headset type identification.
+		 */
+		adc_value_err = true;
+		adc_left_average = 0;
+	}
+
 	adc_left_ideal = sprd_adc_to_ideal(adc_left_average,
 			pdata->coefficient);
-	pr_info("%s adc_value: adc_left_average = %d, ideal_value: adc_left_ideal %d, V_ideal %d mV\n",
+	pr_info("%s adc_left_average %d, adc_left_ideal %d, V_ideal %s %d mV\n",
 		__func__, adc_left_average, adc_left_ideal,
+		(adc_left_average >= 4095 || adc_value_err) ? "outrange!" : "",
 		adc_left_ideal * 1250 / 4095);
-	if (-1 == adc_left_ideal)
-		return HEADSET_TYPE_ERR;
 
 	pr_info("%s sprd_half_adc_gnd %d, sprd_adc_gnd %d,sprd_one_half_adc_gnd %d, threshold_3pole %d\n",
 		__func__, pdata->sprd_half_adc_gnd,
@@ -1152,11 +1212,9 @@ static void headset_button_work_func(struct work_struct *work)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
-	int button_bit_value_current, adc_mic_average = 0, btn_irq_trig_level,
-		adc_ideal, temp, adc_array[ADC_READ_REPET];
+	int button_bit_value_current, adc_mic_average = 0, btn_irq_trig_level;
 	unsigned int val;
 	struct iio_channel *chan;
-	u32 did_times = 0;
 
 	if (!hdst || !pdata) {
 		pr_err("%s: sprd_hdst(%p) or pdata(%p) is NULL!\n",
@@ -1221,58 +1279,7 @@ static void headset_button_work_func(struct work_struct *work)
 
 	if (btn_irq_trig_level == 1) {/* pressed! */
 		if (pdata->nbuttons > 0) {
-			headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_EN);
-			headset_reg_clr_bits(ANA_HDT3, HEDET_V2AD_SCALE_SEL);
-			headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0),
-				HEDET_V2AD_CH_SEL(0xF));
-			sprd_button_ideal_adc(chan, adc_array, ADC_READ_REPET,
-				&did_times);
-			pr_debug("DCL1(100) %x, HDT0(D0) %x, HDT1(D4) %x, HDT2(D8) %x, CLK0(68) %x, HID0(144) %x, HID1(148) %x, HID2(14C) %x, HID3(150) %x, HID4(154) %x",
-				sprd_read_reg_value(ANA_DCL1),
-				sprd_read_reg_value(ANA_HDT0),
-				sprd_read_reg_value(ANA_HDT1),
-				sprd_read_reg_value(ANA_HDT2),
-				sprd_read_reg_value(ANA_CLK0),
-				sprd_read_reg_value(ANA_HID0),
-				sprd_read_reg_value(ANA_HID1),
-				sprd_read_reg_value(ANA_HID2),
-				sprd_read_reg_value(ANA_HID3),
-				sprd_read_reg_value(ANA_HID4));
-			if (did_times == 0) {
-				pr_err("%s button press invalid, did_times 0\n",
-					__func__);
-				adc_mic_average = 4095;
-				goto error1;
-			}
-			if (did_times != ADC_READ_REPET)
-				pr_err("%s key released before reading adc complete, did_times %d\n",
-				__func__, did_times);
-			for (temp = 0; temp < did_times; temp++) {
-				adc_mic_average += adc_array[temp];
-				pr_debug("%s, adc_array[%d] %d\n", __func__,
-					temp, adc_array[temp]);
-			}
-
-			adc_mic_average /= did_times;
-			if (adc_mic_average < 0) {
-				pr_err("%s adc error, adc_mic_average %d\n",
-					__func__, adc_mic_average);
-				/*
-				 * When adc value is negative, it is invalid,
-				 * set a useless value to it, like 4095 in
-				 * buttons.
-				 */
-				adc_mic_average = 4095;
-			}
-error1:
-			adc_ideal = sprd_adc_to_ideal(adc_mic_average,
-						pdata->coefficient);
-			pr_info("%s adc_mic_average %d, adc_ideal=%d, V_ideal %s %d mV\n",
-				__func__, adc_mic_average, adc_ideal,
-				(adc_mic_average >= 4095) ? "outrange!" : "",
-				adc_ideal * 1250 / 4095);
-			if (adc_ideal >= 0)
-				adc_mic_average = adc_ideal;
+			adc_mic_average = sprd_button_ideal_adc(hdst);
 			hdst->btns_pressed |=
 				sprd_adc_to_button(adc_mic_average);
 		}
@@ -1858,7 +1865,7 @@ static void sprd_dump_reg_work(struct work_struct *work)
 		return;
 	}
 
-	adc_mic = sprd_wrap_sci_adc_get(hdst->adc_chan);
+	adc_mic = sprd_headset_adc_get(hdst->adc_chan);
 	gpio_insert_all =
 		gpio_get_value(pdata->gpios[HDST_GPIO_AUD_DET_INT_ALL]);
 	pr_info("adc_mic %d, gpio_detect_all %d\n", adc_mic, gpio_insert_all);
