@@ -96,7 +96,7 @@ struct sprd_efuse {
 };
 
 static const struct sprd_efuse_variant_data sharkl5_data = {
-	.blk_max = 96,
+	.blk_max = 95,
 	.blk_start = 72,
 	.blk_double = 0,
 };
@@ -422,7 +422,7 @@ static int sprd_efuse_probe(struct platform_device *pdev)
 	mutex_init(&efuse->mutex);
 	efuse->dev = &pdev->dev;
 	efuse->var_data = pdata;
-	blk_num = efuse->var_data->blk_max - efuse->var_data->blk_start;
+	blk_num = efuse->var_data->blk_max - efuse->var_data->blk_start + 1;
 
 	econfig.stride = 1;
 	econfig.word_size = 1;
