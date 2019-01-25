@@ -58,6 +58,10 @@ int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset,
 {
 	char *mem = priv->bar[bar].vmem;
 
+	if (!buf) {
+		PCIE_INFO("%s: buff is NULL, return\n", __func__);
+		return -1;
+	}
 	mem += offset;
 	PCIE_INFO("%s(%d, 0x%x, 0x%x)\n", __func__, bar, offset, *((int *)buf));
 	memcpy(mem, buf, len);
@@ -272,7 +276,6 @@ EXPORT_SYMBOL(sprd_pcie_bar_map);
 static int sprd_pcie_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *pci_id)
 {
-
 	struct wcn_pcie_info *priv;
 
 	int ret = -ENODEV, i, flag;

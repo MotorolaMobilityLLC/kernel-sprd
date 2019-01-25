@@ -20,7 +20,7 @@
 #include "pcie_dbg.h"
 #include "wcn_log.h"
 
-#define FIRMWARE_PATH "/bin/wcnmodem.bin"
+#define FIRMWARE_PATH "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/wcnmodem"
 #define FIRMWARE_SIZE_MAX 0xf0c00
 
 static char *load_firmware_data(int size)
@@ -34,7 +34,7 @@ static char *load_firmware_data(int size)
 	file = filp_open(FIRMWARE_PATH, O_RDONLY, 0);
 
 	if (IS_ERR(file)) {
-		PCIE_INFO("firmware open fail %d", IS_ERR(file));
+		PCIE_INFO("firmware open fail errno=%d", IS_ERR(file));
 		return NULL;
 	}
 
@@ -68,9 +68,23 @@ int wcn_boot_init(struct wcn_pcie_info *pcie_info)
 	char *buffer = NULL;
 	char a[10];
 	int i;
+	static int dbg_cnt;
 
 	PCIE_INFO("%s enter\n", __func__);
+
+retry:
 	buffer = load_firmware_data(FIRMWARE_SIZE_MAX);
+	if (!buffer && ((dbg_cnt++) < 10)) {
+		PCIE_INFO("%s: can't download firmware, retry %d\n",
+			  __func__, dbg_cnt);
+		msleep(3000);
+		goto retry;
+	}
+	if (!buffer) {
+		PCIE_INFO("%s: can't download firmware, return -1\n", __func__);
+		return -1;
+	}
+
 	/* download firmware */
 	sprd_pcie_bar_map(pcie_info, 0, 0x40400000);
 	pcie_bar_write(pcie_info, 0, 0x100000, buffer, FIRMWARE_SIZE_MAX);
@@ -101,7 +115,10 @@ int pcie_boot(enum marlin_sub_sys subsys)
 		PCIE_ERR("%s:maybe PCIE device link error\n", __func__);
 		return -1;
 	}
-	wcn_boot_init(pdev);
+	if (wcn_boot_init(pdev) < 0) {
+		PCIE_ERR("%s: call wcn_boot_init fail\n", __func__);
+		return -1;
+	}
 
 	return 0;
 }

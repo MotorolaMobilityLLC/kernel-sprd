@@ -680,17 +680,17 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	marlin_dev->coexist = of_get_named_gpio(np,
 			"m2-to-ap-coexist-gpios", 0);
 	if (!gpio_is_valid(marlin_dev->coexist))
-		return -EINVAL;
+		WCN_INFO("can not get coexist gpio\n");
 
 	marlin_dev->wakeup_ap = of_get_named_gpio(np,
 			"m2-wakeup-ap-gpios", 0);
 	if (!gpio_is_valid(marlin_dev->wakeup_ap))
-		return -EINVAL;
+		WCN_INFO("can not get wakeup gpio\n");
 
 	marlin_dev->ap_send_data = of_get_named_gpio(np,
 			"permit-ap-send-gpios", 0);
 	if (!gpio_is_valid(marlin_dev->ap_send_data))
-		return -EINVAL;
+		WCN_INFO("can not get permit gpio\n");
 
 	marlin_dev->reset = of_get_named_gpio(np,
 			"reset-gpios", 0);
@@ -714,16 +714,25 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	}
 
 	marlin_dev->avdd12 = devm_regulator_get(&pdev->dev, "avdd12");
-	if (IS_ERR(marlin_dev->avdd12))
+	if (IS_ERR(marlin_dev->avdd12)) {
+		if (PTR_ERR(marlin_dev->avdd12) == -EPROBE_DEFER)
+			return -EPROBE_DEFER;
 		WCN_ERR("Get regulator of avdd12 error!\n");
+    }
 
 	marlin_dev->avdd33 = devm_regulator_get(&pdev->dev, "avdd33");
-	if (IS_ERR(marlin_dev->avdd33))
+	if (IS_ERR(marlin_dev->avdd33)) {
+		if (PTR_ERR(marlin_dev->avdd33) == -EPROBE_DEFER)
+			return -EPROBE_DEFER;
 		WCN_ERR("Get regulator of avdd33 error!\n");
+    }
 
 	marlin_dev->dcxo18 = devm_regulator_get(&pdev->dev, "dcxo18");
-	if (IS_ERR(marlin_dev->dcxo18))
+	if (IS_ERR(marlin_dev->dcxo18)) {
+		if (PTR_ERR(marlin_dev->dcxo18) == -EPROBE_DEFER)
+			return -EPROBE_DEFER;
 		WCN_ERR("Get regulator of dcxo18 error!\n");
+    }
 
 	marlin_dev->clk_32k = devm_clk_get(&pdev->dev, "clk_32k");
 	if (IS_ERR(marlin_dev->clk_32k)) {
@@ -2039,15 +2048,26 @@ EXPORT_SYMBOL_GPL(marlin_reset_reg);
 int start_marlin(u32 subsys)
 {
 #ifdef CONFIG_WCN_PCIE
+	int ret;
+
+	mutex_lock(&marlin_dev->power_lock);
 	WCN_INFO("%s [%s],power_status=%ld\n", __func__, strno(subsys),
 		 marlin_dev->power_state);
 	if (marlin_dev->download_finish_flag == 1) {
 		WCN_INFO("firmware have download\n");
+		mutex_unlock(&marlin_dev->power_lock);
 		return 0;
 	}
+
+	ret = pcie_boot(subsys);
+	if (ret < 0) {
+		WCN_INFO("pcie boot fail\n");
+		mutex_unlock(&marlin_dev->power_lock);
+		return -1;
+	}
 	set_bit(subsys, &marlin_dev->power_state);
-	pcie_boot(subsys);
 	marlin_dev->download_finish_flag = 1;
+	mutex_unlock(&marlin_dev->power_lock);
 
 	return 0;
 #else
@@ -2113,6 +2133,8 @@ static void marlin_power_wq(struct work_struct *work)
 
 static int marlin_probe(struct platform_device *pdev)
 {
+	int err;
+
 	marlin_dev = devm_kzalloc(&pdev->dev,
 			sizeof(struct marlin_device), GFP_KERNEL);
 	if (!marlin_dev)
@@ -2126,8 +2148,15 @@ static int marlin_probe(struct platform_device *pdev)
 	}
 	mutex_init(&(marlin_dev->power_lock));
 	marlin_dev->power_state = 0;
-	if (marlin_parse_dt(pdev) < 0)
+	err = marlin_parse_dt(pdev);
+	if (err < 0) {
 		WCN_INFO("marlin2 parse_dt some para not config\n");
+		if (err == -EPROBE_DEFER) {
+			WCN_ERR("%s: get some resources fail, defer probe it\n",
+				__func__);
+			return err;
+		}
+	}
 	if (gpio_is_valid(marlin_dev->reset))
 		gpio_direction_output(marlin_dev->reset, 0);
 	init_completion(&ge2_completion);
