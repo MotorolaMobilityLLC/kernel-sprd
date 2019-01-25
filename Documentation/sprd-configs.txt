@@ -9777,6 +9777,13 @@ CONFIG_SPRD_EFUSE
 	[subsys] nvmem
 	[must] home
 	[function] get sprdtrum soc series efuse value
+CONFIG_SPRD_HW_DEVICE_DVFS_CP
+	[arch] arm64
+	[plat] sharkl5
+	[field] make,code
+	[subsys] cp
+	[must] user
+	[function] This config is enable modem DVFS function.
 CONFIG_SPRD_IMS_BRIDGE
 	[arch] all
 	[plat] all
