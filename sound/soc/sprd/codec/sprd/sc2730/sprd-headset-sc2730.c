@@ -940,14 +940,8 @@ headset_type_detect_all(int insert_all_val_last)
 	else
 		pr_info("automatic type switch is unsupported\n");
 
-
-	headset_reg_set_bits(ANA_PMU0, VB_SLEEP_EN);
-	sprd_headset_power_set(&hdst->power_manager, "VB", true);
 	pr_debug("%s PMU0(0000) %x\n", __func__,
 		sprd_read_reg_value(ANA_PMU0));
-	headset_reg_set_bits(ANA_PMU1, HMIC_BIAS_SOFT_EN);
-	headset_reg_set_bits(ANA_PMU1, HMIC_BIAS_SLEEP_EN);
-	headset_reg_set_bits(ANA_PMU1, HMIC_BIAS_EN);
 	/*
 	 * changing to 4ms according to si.chen's email,
 	 * make sure the whole time is in 10ms
@@ -1623,7 +1617,6 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		sprd_headset_eic_enable(15, 0);
 		sprd_set_eic_trig_level(10, 1);
 
-		headset_reg_clr_bits(ANA_PMU1, HMIC_BIAS_EN);
 		headset_button_release_verify();
 
 		hdst->hdst_type_status &= ~SPRD_HEADSET_JACK_MASK;
@@ -1716,8 +1709,6 @@ out:
 			"HEADMICBIAS", false);
 		/* doc don't refer */
 		sprd_headset_power_set(&hdst->power_manager, "BIAS", false);
-		/* doc don't refer */
-		sprd_headset_power_set(&hdst->power_manager, "VB", true);
 		pr_debug("%s PMU0(0000) %x\n", __func__,
 			sprd_read_reg_value(ANA_PMU0));
 		/*
