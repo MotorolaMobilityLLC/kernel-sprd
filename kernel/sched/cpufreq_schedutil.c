@@ -19,6 +19,7 @@
 
 #include "sched.h"
 
+unsigned long cpu_util_freq(int cpu);
 unsigned long boosted_cpu_util(int cpu, unsigned long other_util);
 
 #define SUGOV_KTHREAD_PRIORITY	50
@@ -208,17 +209,59 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	return cpufreq_driver_resolve_freq(policy, freq);
 }
 
-static void sugov_get_util(unsigned long *util, unsigned long *max, int cpu)
+static unsigned long sugov_get_util(unsigned long *max, int cpu)
 {
-	unsigned long max_cap, rt;
+	struct rq *rq = cpu_rq(cpu);
+	unsigned long max_cap, irq, util;
 
-	max_cap = arch_scale_cpu_capacity(NULL, cpu);
+	*max = max_cap = arch_scale_cpu_capacity(NULL, cpu);
 
-	rt = sched_get_rt_rq_util(cpu);
+#ifdef CONFIG_SCHED_WALT
+	if (!walt_disabled && sysctl_sched_use_walt_cpu_util) {
+		util = cpu_util_freq(cpu);
+		util = boosted_cpu_util(cpu, util);
 
-	*util = boosted_cpu_util(cpu, rt);
-	*util = min(*util, max_cap);
-	*max = max_cap;
+		return min(util, max_cap);
+	}
+#endif
+	/*
+	 * Early check to see if IRQ/steal time saturates the CPU, can be
+	 * because of inaccuracies in how we track these -- see
+	 * update_irq_load_avg().
+	 */
+	irq = cpu_util_irq(rq);
+	if (unlikely(irq >= max_cap))
+		return max_cap;
+
+	/*
+	 * Because the time spend on RT/DL tasks is visible as 'lost' time to
+	 * CFS tasks and we use the same metric to track the effective
+	 * utilization (PELT windows are synchronized) we can directly add them
+	 * to obtain the CPU's actual utilization.
+	 *
+	 * Check if the CFS+RT sum is saturated (ie. no idle time) such that
+	 * we select f_max when there is no idle time.
+	 */
+	util = cpu_util_freq(cpu);
+	util += sched_get_rt_rq_util(cpu);
+	if (util >= max_cap)
+		return max_cap;
+
+	/*
+	 * There is still idle time; further improve the number by using the
+	 * irq metric. Because IRQ/steal time is hidden from the task clock we
+	 * need to scale the task numbers:
+	 *
+	 *               1 - irq
+	 *    U' = irq + ------- * U
+	 *                 max
+	 */
+	util = scale_irq_capacity(util, irq, max_cap);
+	util += irq;
+
+	util = boosted_cpu_util(cpu, util);
+
+	return min(util, max_cap);
 }
 
 static void sugov_set_iowait_boost(struct sugov_cpu *sg_cpu, u64 time,
@@ -309,7 +352,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	if (flags & SCHED_CPUFREQ_DL) {
 		next_f = policy->cpuinfo.max_freq;
 	} else {
-		sugov_get_util(&util, &max, sg_cpu->cpu);
+		util = sugov_get_util(&max, sg_cpu->cpu);
 		sugov_iowait_boost(sg_cpu, &util, &max);
 		next_f = get_next_freq(sg_policy, util, max);
 		/*
@@ -377,7 +420,7 @@ static void sugov_update_shared(struct update_util_data *hook, u64 time,
 	unsigned long util, max;
 	unsigned int next_f;
 
-	sugov_get_util(&util, &max, sg_cpu->cpu);
+	util = sugov_get_util(&max, sg_cpu->cpu);
 
 	raw_spin_lock(&sg_policy->update_lock);
 

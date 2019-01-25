@@ -2989,9 +2989,10 @@ accumulate_sum(u64 delta, int cpu, struct sched_avg *sa,
 static __always_inline int
 ___update_load_avg(u64 now, int cpu, struct sched_avg *sa,
 		  unsigned long weight, int running, struct cfs_rq *cfs_rq,
-		  struct rt_rq *rt_rq)
+		  int irq, int last_accum)
 {
 	u64 delta;
+	u32 ret;
 
 	delta = now - sa->last_update_time;
 	/*
@@ -3032,8 +3033,12 @@ ___update_load_avg(u64 now, int cpu, struct sched_avg *sa,
 	 * Step 1: accumulate *_sum since last_update_time. If we haven't
 	 * crossed period boundaries, finish.
 	 */
-	if (!accumulate_sum(delta, cpu, sa, weight, running, cfs_rq))
-		return 0;
+	ret = accumulate_sum(delta, cpu, sa, weight, running, cfs_rq);
+	if (!ret) {
+		if (!irq || (irq && !last_accum))
+			return 0;
+	} else if (irq == 1)
+		return 1;
 
 	/*
 	 * Step 2: update *_avg.
@@ -3044,15 +3049,6 @@ ___update_load_avg(u64 now, int cpu, struct sched_avg *sa,
 			div_u64(cfs_rq->runnable_load_sum, LOAD_AVG_MAX - 1024 + sa->period_contrib);
 	}
 	sa->util_avg = sa->util_sum / (LOAD_AVG_MAX - 1024 + sa->period_contrib);
-
-	if (cfs_rq)
-		trace_sched_load_cfs_rq(cfs_rq);
-	else {
-		if (likely(!rt_rq))
-			trace_sched_load_se(container_of(sa, struct sched_entity, avg));
-		else
-			trace_sched_load_rt_rq(cpu, rt_rq);
-	}
 
 	return 1;
 }
@@ -3086,7 +3082,12 @@ static inline void cfs_se_util_change(struct sched_avg *avg)
 static int
 __update_load_avg_blocked_se(u64 now, int cpu, struct sched_entity *se)
 {
-	return ___update_load_avg(now, cpu, &se->avg, 0, 0, NULL, NULL);
+	int ret;
+
+	ret = ___update_load_avg(now, cpu, &se->avg, 0, 0, NULL, 0, 0);
+	trace_sched_load_se(se);
+
+	return ret;
 }
 
 static int
@@ -3094,7 +3095,8 @@ __update_load_avg_se(u64 now, int cpu, struct cfs_rq *cfs_rq, struct sched_entit
 {
 	if (___update_load_avg(now, cpu, &se->avg,
 			       se->on_rq * scale_load_down(se->load.weight),
-			       cfs_rq->curr == se, NULL, NULL)) {
+			       cfs_rq->curr == se, NULL, 0, 0)) {
+		trace_sched_load_se(se);
 		cfs_se_util_change(&se->avg);
 
 #ifdef UTIL_EST_DEBUG
@@ -3127,9 +3129,14 @@ __update_load_avg_se(u64 now, int cpu, struct cfs_rq *cfs_rq, struct sched_entit
 static int
 __update_load_avg_cfs_rq(u64 now, int cpu, struct cfs_rq *cfs_rq)
 {
-	return ___update_load_avg(now, cpu, &cfs_rq->avg,
+	int ret;
+
+	ret = ___update_load_avg(now, cpu, &cfs_rq->avg,
 			scale_load_down(cfs_rq->load.weight),
-			cfs_rq->curr != NULL, cfs_rq, NULL);
+			cfs_rq->curr != NULL, cfs_rq, 0, 0);
+	trace_sched_load_cfs_rq(cfs_rq);
+
+	return ret;
 }
 
 /*
@@ -3474,16 +3481,60 @@ int update_rt_rq_load_avg(u64 now, int cpu, struct rt_rq *rt_rq, int running)
 	int ret;
 
 	ret = ___update_load_avg(now, cpu, &rt_rq->avg, running,
-		running, NULL, rt_rq);
+				 running, NULL, 0, 0);
+	trace_sched_load_rt_rq(cpu, rt_rq);
 
 	return ret;
 }
 
-unsigned long sched_get_rt_rq_util(int cpu)
+#if defined(CONFIG_IRQ_TIME_ACCOUNTING) || \
+	defined(CONFIG_PARAVIRT_TIME_ACCOUNTING)
+/*
+ * irq:
+ *
+ *   util_sum = \Sum se->avg.util_sum but se->avg.util_sum is not tracked
+ *   util_sum = cpu_scale * load_sum
+ *   runnable_load_sum = load_sum
+ *
+ */
+
+int update_irq_load_avg(struct rq *rq, u64 running)
 {
-	struct rt_rq *rt_rq = &(cpu_rq(cpu)->rt);
-	return rt_rq->avg.util_avg;
+	int ret;
+
+	/*
+	 * We know the time that has been used by interrupt since last update
+	 * but we don't when. Let be pessimistic and assume that interrupt has
+	 * happened just before the update. This is not so far from reality
+	 * because interrupt will most probably wake up task and trig an update
+	 * of rq clock during which the metric si updated.
+	 * We start to decay with normal context time and then we add the
+	 * interrupt context time.
+	 * We can safely remove running from rq->clock because
+	 * rq->clock += delta with delta >= running
+	 */
+	if (!running) {
+		ret = ___update_load_avg(rq->clock, rq->cpu,
+					 &rq->avg_irq, 0, 0, NULL,
+					 2, 0);
+	} else {
+		ret = ___update_load_avg(rq->clock - running, rq->cpu,
+					 &rq->avg_irq, 0, 0, NULL,
+					 1, 0);
+		ret = ___update_load_avg(rq->clock, rq->cpu,
+					 &rq->avg_irq, 1, 1, NULL,
+					 2, ret);
+	}
+	trace_sched_load_irq(rq);
+
+	return ret;
 }
+#else
+int update_irq_load_avg(struct rq *rq, u64 running)
+{
+	return 0;
+}
+#endif
 
 /*
  * Optional action to be done while updating the load average
@@ -3812,6 +3863,11 @@ update_cfs_rq_load_avg(u64 now, struct cfs_rq *cfs_rq)
 }
 
 int update_rt_rq_load_avg(u64 now, int cpu, struct rt_rq *rt_rq, int running)
+{
+	return 0;
+}
+
+int update_irq_load_avg(struct rq *rq, u64 running)
 {
 	return 0;
 }
@@ -5176,11 +5232,11 @@ static inline void update_overutilized_status(struct rq *rq)
 	rcu_read_unlock();
 }
 
-unsigned long boosted_cpu_util(int cpu, unsigned long other_util);
+unsigned long boosted_cpu_util(int cpu, unsigned long util);
 #else
 
 #define update_overutilized_status(rq) do {} while (0)
-#define boosted_cpu_util(cpu, other_util) cpu_util_freq(cpu)
+#define boosted_cpu_util(cpu, util) cpu_util_freq(cpu)
 
 #endif /* CONFIG_SMP */
 
@@ -5492,8 +5548,6 @@ static void cpu_load_update(struct rq *this_rq, unsigned long this_load,
 
 		this_rq->cpu_load[i] = (old_load * (scale - 1) + new_load) >> i;
 	}
-
-	sched_avg_update(this_rq);
 }
 
 /* Used instead of source_load when we know the type == 0 */
@@ -6676,10 +6730,11 @@ schedtune_task_margin(struct task_struct *task)
 #endif /* CONFIG_SCHED_TUNE */
 
 unsigned long
-boosted_cpu_util(int cpu, unsigned long other_util)
+boosted_cpu_util(int cpu, unsigned long util)
 {
-	unsigned long util = cpu_util_freq(cpu) + other_util;
-	long margin = schedtune_cpu_margin(util, cpu);
+	long margin;
+
+	margin = schedtune_cpu_margin(util, cpu);
 
 	trace_sched_boost_cpu(cpu, util, margin);
 
@@ -8945,6 +9000,7 @@ static void update_blocked_averages(int cpu)
 	struct rq *rq = cpu_rq(cpu);
 	struct cfs_rq *cfs_rq, *pos;
 	struct rq_flags rf;
+	const struct sched_class *curr_class;
 
 	rq_lock_irqsave(rq, &rf);
 	update_rq_clock(rq);
@@ -8975,7 +9031,11 @@ static void update_blocked_averages(int cpu)
 		if (cfs_rq_is_decayed(cfs_rq))
 			list_del_leaf_cfs_rq(cfs_rq);
 	}
-	update_rt_rq_load_avg(rq_clock_task(rq), cpu, &rq->rt, 0);
+
+	curr_class = rq->curr->sched_class;
+	update_rt_rq_load_avg(rq_clock_task(rq), cpu, &rq->rt,
+			      curr_class == &rt_sched_class);
+	update_irq_load_avg(rq, 0);
 #ifdef CONFIG_NO_HZ_COMMON
 	rq->last_blocked_load_update_tick = jiffies;
 #endif
@@ -9034,11 +9094,16 @@ static inline void update_blocked_averages(int cpu)
 	struct rq *rq = cpu_rq(cpu);
 	struct cfs_rq *cfs_rq = &rq->cfs;
 	struct rq_flags rf;
+	const struct sched_class *curr_class;
 
 	rq_lock_irqsave(rq, &rf);
 	update_rq_clock(rq);
 	update_cfs_rq_load_avg(cfs_rq_clock_task(cfs_rq), cfs_rq);
-	update_rt_rq_load_avg(rq_clock_task(rq), cpu, &rq->rt, 0);
+
+	curr_class = rq->curr->sched_class;
+	update_rt_rq_load_avg(rq_clock_task(rq), cpu, &rq->rt,
+			      curr_class == &rt_sched_class);
+	update_irq_load_avg(rq, 0);
 #ifdef CONFIG_NO_HZ_COMMON
 	rq->last_blocked_load_update_tick = jiffies;
 #endif
@@ -9144,31 +9209,25 @@ static inline int get_sd_load_idx(struct sched_domain *sd,
 	return load_idx;
 }
 
-static unsigned long scale_rt_capacity(int cpu)
+static unsigned long scale_rt_capacity(unsigned long max_cap, int cpu)
 {
 	struct rq *rq = cpu_rq(cpu);
-	u64 total, used, age_stamp, avg;
-	s64 delta;
+	unsigned long used, free;
+	unsigned long irq;
 
-	/*
-	 * Since we're reading these variables without serialization make sure
-	 * we read them once before doing sanity checks on them.
-	 */
-	age_stamp = READ_ONCE(rq->age_stamp);
-	avg = READ_ONCE(rq->rt_avg);
-	delta = __rq_clock_broken(rq) - age_stamp;
+	irq = cpu_util_irq(rq);
 
-	if (unlikely(delta < 0))
-		delta = 0;
+	if (unlikely(irq >= max_cap))
+		return 1;
 
-	total = sched_avg_period() + delta;
+	used = READ_ONCE(rq->rt.avg.util_avg);
 
-	used = div_u64(avg, total);
+	if (unlikely(used >= max_cap))
+		return 1;
 
-	if (likely(used < SCHED_CAPACITY_SCALE))
-		return SCHED_CAPACITY_SCALE - used;
+	free = max_cap - used;
 
-	return 1;
+	return scale_irq_capacity(free, irq, max_cap);
 }
 
 void init_max_cpu_capacity(struct max_cpu_capacity *mcc)
@@ -9211,8 +9270,7 @@ static void update_cpu_capacity(struct sched_domain *sd, int cpu)
 	raw_spin_unlock_irqrestore(&mcc->lock, flags);
 
 skip_unlock: __attribute__ ((unused));
-	capacity *= scale_rt_capacity(cpu);
-	capacity >>= SCHED_CAPACITY_SHIFT;
+	capacity = scale_rt_capacity(capacity, cpu);
 
 	if (!capacity)
 		capacity = 1;

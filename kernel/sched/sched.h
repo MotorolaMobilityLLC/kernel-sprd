@@ -547,6 +547,11 @@ struct rt_rq {
 #endif
 };
 
+static inline bool rt_rq_is_runnable(struct rt_rq *rt_rq)
+{
+	return rt_rq->rt_queued && rt_rq->rt_nr_running;
+}
+
 /* Deadline class' related fields in a runqueue */
 struct dl_rq {
 	/* runqueue is an rbtree, ordered by deadline */
@@ -777,6 +782,11 @@ struct rq {
 	int online;
 
 	struct list_head cfs_tasks;
+
+#if defined(CONFIG_IRQ_TIME_ACCOUNTING) || \
+	defined(CONFIG_PARAVIRT_TIME_ACCOUNTING)
+	struct sched_avg    avg_irq;
+#endif
 
 	u64 rt_avg;
 	u64 age_stamp;
@@ -1698,11 +1708,6 @@ extern const_debug unsigned int sysctl_sched_time_avg;
 extern const_debug unsigned int sysctl_sched_nr_migrate;
 extern const_debug unsigned int sysctl_sched_migration_cost;
 
-static inline u64 sched_avg_period(void)
-{
-	return (u64)sysctl_sched_time_avg * NSEC_PER_MSEC / 2;
-}
-
 #ifdef CONFIG_SCHED_HRTICK
 
 /*
@@ -1730,9 +1735,51 @@ static inline int hrtick_enabled(struct rq *rq)
 
 #endif /* CONFIG_SCHED_HRTICK */
 
+extern int update_rt_rq_load_avg(u64 now, int cpu, struct rt_rq *rt_rq,
+				 int running);
+extern int update_irq_load_avg(struct rq *rq, u64 running);
+
+#ifdef CONFIG_CPU_FREQ_GOV_SCHEDUTIL
+static inline unsigned long sched_get_rt_rq_util(int cpu)
+{
+	struct rt_rq *rt_rq = &(cpu_rq(cpu)->rt);
+
+	return rt_rq->avg.util_avg;
+}
+#endif
+
+#if defined(CONFIG_IRQ_TIME_ACCOUNTING) || \
+	defined(CONFIG_PARAVIRT_TIME_ACCOUNTING)
+static inline unsigned long cpu_util_irq(struct rq *rq)
+{
+	return rq->avg_irq.util_avg;
+}
+
+static inline
+unsigned long scale_irq_capacity(unsigned long util, unsigned long irq,
+				 unsigned long max)
+{
+	util *= (max - irq);
+	util /= max;
+
+	return util;
+}
+#else
+static inline unsigned long cpu_util_irq(struct rq *rq)
+{
+	return 0;
+}
+
+static inline
+unsigned long scale_irq_capacity(unsigned long util, unsigned long irq,
+				 unsigned long max)
+{
+	return util;
+}
+#endif
+
 #ifdef CONFIG_SMP
 extern void sched_avg_update(struct rq *rq);
-extern unsigned long sched_get_rt_rq_util(int cpu);
 
 #ifndef arch_scale_freq_capacity
 static __always_inline
@@ -1761,7 +1808,6 @@ unsigned long arch_scale_cpu_capacity(struct sched_domain *sd, int cpu)
 }
 #endif
 
-#ifdef CONFIG_SMP
 static inline unsigned long capacity_of(int cpu)
 {
 	return cpu_rq(cpu)->cpu_capacity;
@@ -1776,16 +1822,6 @@ extern unsigned int sysctl_sched_use_walt_cpu_util;
 extern unsigned int walt_ravg_window;
 extern bool walt_disabled;
 
-#endif /* CONFIG_SMP */
-
-static inline void sched_rt_avg_update(struct rq *rq, u64 rt_delta)
-{
-	rq->rt_avg += rt_delta * arch_scale_freq_capacity(NULL, cpu_of(rq));
-	sched_avg_update(rq);
-}
-#else
-static inline void sched_rt_avg_update(struct rq *rq, u64 rt_delta) { }
-static inline void sched_avg_update(struct rq *rq) { }
 #endif
 
 struct rq *__task_rq_lock(struct task_struct *p, struct rq_flags *rf)

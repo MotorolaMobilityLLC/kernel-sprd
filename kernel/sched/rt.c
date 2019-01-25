@@ -515,8 +515,11 @@ static void sched_rt_rq_dequeue(struct rt_rq *rt_rq)
 
 	rt_se = rt_rq->tg->rt_se[cpu];
 
-	if (!rt_se)
+	if (!rt_se) {
 		dequeue_top_rt_rq(rt_rq);
+		/* Kick cpufreq (see the comment in kernel/sched/sched.h). */
+		cpufreq_update_util(rq_of_rt_rq(rt_rq), 0);
+	}
 	else if (on_rt_rq(rt_se))
 		dequeue_rt_entity(rt_se, 0);
 }
@@ -966,9 +969,6 @@ static void update_curr_rt(struct rq *rq)
 	if (unlikely((s64)delta_exec <= 0))
 		return;
 
-	/* Kick cpufreq (see the comment in kernel/sched/sched.h). */
-	cpufreq_update_util(rq, SCHED_CPUFREQ_RT);
-
 	schedstat_set(curr->se.statistics.exec_max,
 		      max(curr->se.statistics.exec_max, delta_exec));
 
@@ -977,8 +977,6 @@ static void update_curr_rt(struct rq *rq)
 
 	curr->se.exec_start = rq_clock_task(rq);
 	cpuacct_charge(curr, delta_exec);
-
-	sched_rt_avg_update(rq, delta_exec);
 
 	if (!rt_bandwidth_enabled())
 		return;
@@ -1021,11 +1019,17 @@ enqueue_top_rt_rq(struct rt_rq *rt_rq)
 
 	if (rt_rq->rt_queued)
 		return;
-	if (rt_rq_throttled(rt_rq) || !rt_rq->rt_nr_running)
+
+	if (rt_rq_throttled(rt_rq))
 		return;
 
-	add_nr_running(rq, rt_rq->rt_nr_running);
-	rt_rq->rt_queued = 1;
+	if (rt_rq->rt_nr_running) {
+		add_nr_running(rq, rt_rq->rt_nr_running);
+		rt_rq->rt_queued = 1;
+	}
+
+	/* Kick cpufreq (see the comment in kernel/sched/sched.h). */
+	cpufreq_update_util(rq, 0);
 }
 
 #if defined CONFIG_SMP
@@ -1332,8 +1336,8 @@ enqueue_task_rt(struct rq *rq, struct task_struct *p, int flags)
 	if (flags & ENQUEUE_WAKEUP)
 		rt_se->timeout = 0;
 
-	enqueue_rt_entity(rt_se, flags);
 	walt_inc_cumulative_runnable_avg(rq, p);
+	enqueue_rt_entity(rt_se, flags);
 
 	if (!task_current(rq, p) && p->nr_cpus_allowed > 1)
 		enqueue_pushable_task(rq, p);
@@ -1346,8 +1350,8 @@ static void dequeue_task_rt(struct rq *rq, struct task_struct *p, int flags)
 	schedtune_dequeue_task(p, cpu_of(rq));
 
 	update_curr_rt(rq);
-	dequeue_rt_entity(rt_se, flags);
 	walt_dec_cumulative_runnable_avg(rq, p);
+	dequeue_rt_entity(rt_se, flags);
 
 	dequeue_pushable_task(rq, p);
 }
@@ -1537,8 +1541,6 @@ static struct task_struct *_pick_next_task_rt(struct rq *rq)
 
 	return p;
 }
-
-extern int update_rt_rq_load_avg(u64 now, int cpu, struct rt_rq *rt_rq, int running);
 
 static struct task_struct *
 pick_next_task_rt(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
@@ -2381,6 +2383,9 @@ static void task_tick_rt(struct rq *rq, struct task_struct *p, int queued)
 
 	update_curr_rt(rq);
 	update_rt_rq_load_avg(rq_clock_task(rq), cpu_of(rq), &rq->rt, 1);
+
+	/* Kick cpufreq (see the comment in kernel/sched/sched.h). */
+	cpufreq_update_util(rq, 0);
 
 	watchdog(rq, p);
 

@@ -730,6 +730,34 @@ TRACE_EVENT(sched_load_rt_rq,
 );
 
 /*
+ * Tracepoint for irq load tracking:
+ */
+#if defined(CONFIG_IRQ_TIME_ACCOUNTING) || \
+	defined(CONFIG_PARAVIRT_TIME_ACCOUNTING)
+struct rq;
+
+TRACE_EVENT(sched_load_irq,
+
+	TP_PROTO(struct rq *rq),
+
+	TP_ARGS(rq),
+
+	TP_STRUCT__entry(
+		__field(	int,		cpu			)
+		__field(	unsigned long,	util			)
+	),
+
+	TP_fast_assign(
+		__entry->cpu	= rq->cpu;
+		__entry->util	= rq->avg_irq.util_avg;
+	),
+
+	TP_printk("cpu=%d util=%lu", __entry->cpu,
+		  __entry->util)
+);
+#endif
+
+/*
  * Tracepoint for sched_entity load tracking:
  */
 TRACE_EVENT(sched_load_se,
