@@ -134,6 +134,22 @@ MODULE_PARM_DESC(perdev_minors, "Minors numbers to allocate per device");
 static inline int mmc_blk_part_switch(struct mmc_card *card,
 				      unsigned int part_type);
 
+static void mmc_remove_defective_card(struct mmc_host *host)
+{
+	if (!host || !host->card) {
+		pr_err("%s: %s: host or card is NULL, can't remove\n",
+		       mmc_hostname(host), __func__);
+		return;
+	}
+
+	if (mmc_card_sd(host->card)) {
+		mmc_card_set_removed(host->card);
+		mmc_power_off(host);
+		pr_info("%s: %s: only set sd to remove status and power off\n",
+			mmc_hostname(host), __func__);
+	}
+}
+
 static struct mmc_blk_data *mmc_blk_get(struct gendisk *disk)
 {
 	struct mmc_blk_data *md;
@@ -1900,6 +1916,7 @@ static void mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *new_req)
 		case MMC_BLK_CMD_ERR:
 			req_pending = mmc_blk_rw_cmd_err(md, card, brq, old_req, req_pending);
 			if (mmc_blk_reset(md, card->host, type)) {
+				mmc_remove_defective_card(card->host);
 				if (req_pending)
 					mmc_blk_rw_cmd_abort(mq, card, old_req, mq_rq);
 				else
@@ -1921,6 +1938,7 @@ static void mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *new_req)
 		case MMC_BLK_ABORT:
 			if (!mmc_blk_reset(md, card->host, type))
 				break;
+			mmc_remove_defective_card(card->host);
 			mmc_blk_rw_cmd_abort(mq, card, old_req, mq_rq);
 			mmc_blk_rw_try_restart(mq, new_req, mqrq_cur);
 			return;
@@ -1930,6 +1948,7 @@ static void mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *new_req)
 			err = mmc_blk_reset(md, card->host, type);
 			if (!err)
 				break;
+			mmc_remove_defective_card(card->host);
 			if (err == -ENODEV) {
 				mmc_blk_rw_cmd_abort(mq, card, old_req, mq_rq);
 				mmc_blk_rw_try_restart(mq, new_req, mqrq_cur);
