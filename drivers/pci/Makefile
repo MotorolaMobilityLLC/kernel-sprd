@@ -13,7 +13,6 @@ obj-$(CONFIG_SYSFS) += slot.o
 obj-$(CONFIG_PCI_QUIRKS) += quirks.o
 
 # Build PCI Express stuff if needed
-obj-$(CONFIG_PCIEPORTBUS) += pcie/
 
 # Build the PCI Hotplug drivers if we were asked to
 obj-$(CONFIG_HOTPLUG_PCI) += hotplug/

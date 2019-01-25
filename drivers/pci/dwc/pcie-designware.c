@@ -19,6 +19,7 @@
 
 /* PCIe Port Logic registers */
 #define PLR_OFFSET			0x700
+#define PCIE_PHY_DEBUG_R0		(PLR_OFFSET + 0x28)
 #define PCIE_PHY_DEBUG_R1		(PLR_OFFSET + 0x2c)
 #define PCIE_PHY_DEBUG_R1_LINK_UP	(0x1 << 4)
 #define PCIE_PHY_DEBUG_R1_LINK_IN_TRAINING	(0x1 << 29)
@@ -326,6 +327,9 @@ int dw_pcie_wait_for_link(struct dw_pcie *pci)
 	}
 
 	dev_err(pci->dev, "phy link never came up\n");
+	dev_err(pci->dev, "link status: [0x%x]: 0x%x, [0x%x]: 0x%x\n",
+		PCIE_PHY_DEBUG_R0, dw_pcie_readl_dbi(pci, PCIE_PHY_DEBUG_R0),
+		PCIE_PHY_DEBUG_R1, dw_pcie_readl_dbi(pci, PCIE_PHY_DEBUG_R1));
 
 	return -ETIMEDOUT;
 }

@@ -78,6 +78,12 @@
 #define PCIE_MISC_CONTROL_1_OFF		0x8BC
 #define PCIE_DBI_RO_WR_EN		(0x1 << 0)
 
+/* Although this is synopsys defined register, only spreadtrum pcie need it. */
+#define PCIE_SS_REG_BASE		0xE00
+#define PE0_GEN_CTRL_3			0x58
+#define  LTSSM_EN			(0x1 << 0)
+#define  L1_AUXCLK_EN			(0x1 << 8)
+
 /*
  * iATU Unroll-specific register definitions
  * From 4.80 core version the address translation will be made by unroll
