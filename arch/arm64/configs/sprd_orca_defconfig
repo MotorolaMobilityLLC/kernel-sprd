@@ -1898,8 +1898,9 @@ CONFIG_USB_CONFIGFS_F_MBIM=y
 #
 # USB Power Delivery and Type-C drivers
 #
-# CONFIG_USB_SC27XX_TYPEC is not set
-# CONFIG_TYPEC_UCSI is not set
+CONFIG_TYPEC=y
+CONFIG_USB_SC27XX_TYPEC=y
+CONFIG_TYPEC_UCSI=y
 # CONFIG_USB_LED_TRIG is not set
 # CONFIG_USB_ULPI_BUS is not set
 # CONFIG_UWB is not set
