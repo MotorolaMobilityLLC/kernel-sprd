@@ -949,6 +949,50 @@
 				#iommu-cells = <0>;
 			};
 
+			usb3: usb3@20f00000 {
+				compatible = "sprd,roc1-dwc3";
+				reg = <0 0x20f00000 0 0x100000>;
+				status = "disabled";
+				#address-cells = <2>;
+				#size-cells = <2>;
+
+				clocks = <&ipa_gate CLK_IPA_USB_EB>,
+					<&ipa_gate CLK_IPA_USB_SUSPEND_EB>,
+					<&ipa_gate CLK_IPA_USB_REF_EB>;
+				clock-names = "core_clk", "ref_clk", "susp_clk";
+				usb-phy = <&ssphy>, <&ssphy>;
+
+				dwc3@20f00000 {
+					compatible = "snps,dwc3";
+					reg = <0 0x20f00000 0 0x100000>;
+					interrupts = <GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>;
+					interrupt-names = "irq";
+					usb-phy = <&ssphy>, <&ssphy>;
+					phy_type = "utmi_wide";
+					dr_mode = "peripheral";
+					snps,usb3-u1u2-disable;
+					snps,dis_u3_susphy_quirk;
+					snps,dis_u2_susphy_quirk;
+					snps,overlap_check_quirk;
+					snps,ep_out_aligned_size_quirk;
+					snps,disconnect_event_quirk;
+				};
+			};
+
+			ssphy: ssphy@40400000 {
+				compatible = "sprd,roc1-ssphy";
+				reg = <0 0x40400000 0 0x100000>;
+				reg-names = "phy_glb_regs";
+				sprd,syscon-aon_apb = <&aon_apb_regs>;
+				sprd,syscon-ipa-ahb = <&ipa_ahb_regs>;
+				sprd,syscon-anag3 = <&anlg_phy_g3_regs>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				sprd,syscon-anatop = <&anlg_phy_top_regs>;
+				sprd,syscon-anatop1 = <&anlg_phy_top1_regs>;
+				sprd,vdd-voltage = <3300000>;
+				status = "disabled";
+			};
+
 			iommu_ai: iommu@6fe00000 {
 				compatible = "sprd,iommuexroc1-ai";
 				reg = <0 0x6fe00000 0 0x800>,
