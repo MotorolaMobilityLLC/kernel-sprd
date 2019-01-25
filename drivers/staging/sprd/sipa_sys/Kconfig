@@ -1,0 +1,11 @@
+
+menu "Sipa System Modules"
+
+config SPRD_IPA_SYS
+	tristate "Spreadtrum Ipa Sys Power Management"
+	default n
+	help
+	  Sipa sys is a module that manages ipa low power.
+	  Its main function is to provide a power interface to the outside.
+
+endmenu

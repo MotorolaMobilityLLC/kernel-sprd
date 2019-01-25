@@ -4,6 +4,8 @@ source "drivers/staging/sprd/sipa/Kconfig"
 
 source "drivers/staging/sprd/pam_ipa/Kconfig"
 
+source "drivers/staging/sprd/sipa_sys/Kconfig"
+
 config SPRD_DATA_TRANSPORTER
 	tristate "SPRD Data Transporter"
 	default n
