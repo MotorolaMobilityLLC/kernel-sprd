@@ -324,6 +324,10 @@
 	};
 };
 
+&vddsim2 {
+	status = "disabled";
+};
+
 &dcam {
 	status = "okay";
 };

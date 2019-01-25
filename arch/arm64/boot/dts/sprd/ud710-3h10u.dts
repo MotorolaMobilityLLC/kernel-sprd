@@ -283,6 +283,10 @@
  *};
  */
 
+&vddsim2 {
+	status = "disabled";
+};
+
 &pmic_fgu {
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-real = <20000>;
