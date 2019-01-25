@@ -188,11 +188,10 @@ static int sprd_dsi_encoder_init(struct drm_device *drm,
 	return 0;
 }
 
-static int sprd_dsi_panel_attach(struct sprd_dsi *dsi)
+static int sprd_dsi_find_panel(struct sprd_dsi *dsi)
 {
 	struct device *dev = dsi->host.dev;
 	struct device_node *child, *lcds_node;
-	struct drm_connector *connector = &dsi->connector;
 	struct drm_panel *panel;
 
 	/* search /lcds child node first */
@@ -201,7 +200,7 @@ static int sprd_dsi_panel_attach(struct sprd_dsi *dsi)
 		panel = of_drm_find_panel(child);
 		if (panel) {
 			dsi->panel = panel;
-			return drm_panel_attach(panel, connector);
+			return 0;
 		}
 	}
 
@@ -213,7 +212,7 @@ static int sprd_dsi_panel_attach(struct sprd_dsi *dsi)
 		panel = of_drm_find_panel(child);
 		if (panel) {
 			dsi->panel = panel;
-			return drm_panel_attach(panel, connector);
+			return 0;
 		}
 	}
 
@@ -274,7 +273,7 @@ static int sprd_dsi_host_attach(struct mipi_dsi_host *host,
 	if (ret)
 		return ret;
 
-	ret = sprd_dsi_panel_attach(dsi);
+	ret = sprd_dsi_find_panel(dsi);
 	if (ret)
 		return ret;
 
@@ -459,6 +458,17 @@ static int sprd_dsi_bridge_attach(struct sprd_dsi *dsi)
 	return 0;
 }
 
+static int sprd_dsi_panel_attach(struct sprd_dsi *dsi)
+{
+	int ret;
+
+	ret = drm_panel_attach(dsi->panel, &dsi->connector);
+	if (ret)
+		DRM_ERROR("failed to attach panel to connector\n");
+
+	return ret;
+}
+
 static int sprd_dsi_glb_init(struct sprd_dsi *dsi)
 {
 	if (dsi->glb && dsi->glb->power)
@@ -536,6 +546,10 @@ static int sprd_dsi_bind(struct device *dev, struct device *master, void *data)
 		goto cleanup_encoder;
 
 	ret = sprd_dsi_bridge_attach(dsi);
+	if (ret)
+		goto cleanup_connector;
+
+	ret = sprd_dsi_panel_attach(dsi);
 	if (ret)
 		goto cleanup_connector;
 
