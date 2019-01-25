@@ -524,6 +524,15 @@ int __init_memblock memblock_add_range(struct memblock_type *type,
 		type->total_size = size;
 		return 0;
 	}
+
+#ifdef CONFIG_SPRD_MEM_OVERLAY_CHECK
+	if (memblock_overlaps_region(&memblock.reserved, base, size)) {
+		panic("Detected Overlay Region: [%#016llx - %#016llx]\n",
+			(unsigned long long)base,
+			(unsigned long long)base + size - 1);
+	}
+#endif
+
 repeat:
 	/*
 	 * The following is executed twice.  Once with %false @insert and

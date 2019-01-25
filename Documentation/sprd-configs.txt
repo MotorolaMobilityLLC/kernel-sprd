@@ -9847,6 +9847,14 @@ CONFIG_SPRD_MEMDISK
 	[subsys] core
 	[must] console
 	[function] Support for memdisk. Enable on haps bringup, Disable on chipback.
+CONFIG_SPRD_MEM_OVERLAY_CHECK
+	[arch] all
+	[plat] all
+	[field] code
+	[subsys] staging
+	[must] user
+	[function] This function is used to detected overlay region in
+		   reserved-memory.
 CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[arch] all
 	[plat] all

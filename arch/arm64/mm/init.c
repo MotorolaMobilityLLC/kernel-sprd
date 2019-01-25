@@ -460,8 +460,6 @@ void __init arm64_memblock_init(void)
 	memblock_reserve(__pa_symbol(_text), _end - _text);
 #ifdef CONFIG_BLK_DEV_INITRD
 	if (initrd_start) {
-		memblock_reserve(initrd_start, initrd_end - initrd_start);
-
 		/* the generic initrd code expects virtual addresses */
 		initrd_start = __phys_to_virt(initrd_start);
 		initrd_end = __phys_to_virt(initrd_end);

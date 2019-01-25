@@ -757,3 +757,10 @@ config PERCPU_STATS
 	  This feature collects and exposes statistics via debugfs. The
 	  information includes global and per chunk statistics, which can
 	  be used to help understand percpu memory usage.
+
+config SPRD_MEM_OVERLAY_CHECK
+	bool "detect reserved-memory region is overlay"
+	depends on HAVE_MEMBLOCK
+	default y
+	help
+	  It's will panic when detect overlay in reserved-memory region
