@@ -2744,8 +2744,8 @@ static int sprd_codec_soc_suspend(struct snd_soc_codec *codec)
 
 	sp_asoc_pr_info("%s, startup_cnt=%d\n",
 		__func__, sprd_codec->startup_cnt);
-
-	regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
+	if (sprd_codec->startup_cnt == 0)
+		regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
 	return 0;
 }
 
