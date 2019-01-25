@@ -5798,6 +5798,13 @@ CONFIG_IRQ_FORCED_THREADING
 	[subsys] interrupt
 	[must] console
 	[function]
+CONFIG_IRQ_TIME_ACCOUNTING
+	[arch] all
+	[plat] all
+	[field] make,code
+	[subsys] core
+	[must] user
+	[function]enable fine granularity task irq time accounting
 CONFIG_IRQ_WORK
 	[arch] all
 	[plat] all
