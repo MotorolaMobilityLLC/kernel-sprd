@@ -449,6 +449,129 @@
 				sprd,core-cnt = <9>;
 			};
 
+			ap_efuse: efuse@63400000 {
+				compatible = "sprd,orca-efuse";
+				reg = <0 0x63400000 0 0x10000>;
+				clock-names = "enable";
+				hwlocks = <&hwlock 8>;
+				clocks = <&aonapb_gate CLK_EFUSE_EB>;
+
+				thm0_sign: thm0-sign@8c{
+					reg = <0x8c 0x4>;
+					bits = <0 1>;
+				};
+
+				thm0_ratio: thm0-ratio@8c{
+					reg = <0x8c 0x4>;
+					bits = <1 7>;
+				};
+
+				thm0_sen0: thm0-sen0@8d{
+					reg = <0x8d 0x4>;
+					bits = <0 8>;
+				};
+
+				thm1_sign: thm1-sign@90{
+					reg = <0x90 0x4>;
+					bits = <0 1>;
+				};
+
+				thm1_ratio: thm1-ratio@90{
+					reg = <0x90 0x4>;
+					bits = <1 7>;
+				};
+
+				thm1_sen0: thm1-sen0@91{
+					reg = <0x91 0x4>;
+					bits = <0 8>;
+				};
+
+				thm2_sign: thm2-sign@92{
+					reg = <0x92 0x4>;
+					bits = <0 1>;
+				};
+
+				thm2_ratio: thm2-ratio@92{
+					reg = <0x92 0x4>;
+					bits = <1 7>;
+				};
+
+				thm2_sen0: thm2-sen0@93{
+					reg = <0x93 0x4>;
+					bits = <0 8>;
+				};
+
+				thm2_sen1: thm2-sen1@98{
+					reg = <0x98 0x4>;
+					bits = <0 8>;
+				};
+
+				thm2_sen2: thm2-sen2@98{
+					reg = <0x98 0x4>;
+					bits = <0 8>;
+				};
+			};
+
+			ap_thm0: thermal@63410000 {
+				compatible = "sprd,orca-thermal";
+				reg = <0 0x63410000 0 0x10000>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM0_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&thm0_sign>, <&thm0_ratio>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal";
+
+				apcpu0-sensor@0{
+					reg = <0>;
+					nvmem-cells = <&thm0_sen0>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+			};
+
+			ap_thm1: thermal@63420000 {
+				compatible = "sprd,orca-thermal";
+				reg = <0 0x63420000 0 0x10000>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM1_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&thm1_sign>, <&thm1_ratio>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal";
+
+				nrcp-sensor@0{
+					reg = <0>;
+					nvmem-cells = <&thm1_sen0>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+			};
+
+			ap_thm2: thermal@63430000 {
+				compatible = "sprd,orca-thermal";
+				reg = <0 0x63430000 0 0x10000>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM2_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&thm2_sign>, <&thm2_ratio>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal";
+
+				apcpu1-sensor@0{
+					reg = <0>;
+					nvmem-cells = <&thm2_sen0>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				ank0-sensor@1{
+					reg = <1>;
+					nvmem-cells = <&thm2_sen1>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+
+				ank1-sensor@2{
+					reg = <2>;
+					nvmem-cells = <&thm2_sen2>;
+					nvmem-cell-names = "sen_delta_cal";
+				};
+			};
+
 			pin_controller: pinctrl@63450000 {
 				compatible = "sprd,orca-pinctrl";
 				reg = <0 0x63450000 0 0x10000>;
