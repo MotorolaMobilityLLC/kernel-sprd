@@ -942,7 +942,7 @@ static struct sprd_clk_desc sharkl5_aon_apb_desc = {
 
 /* gpu clocks */
 static SPRD_GATE_CLK(gpu_core_gate, "gpu-core-gate", "ap-mm-clk", 0x4,
-			BIT(0), 0, 0);
+			BIT(0), CLK_IGNORE_UNUSED, 0);
 
 static const char * const gpu_parents[] = { "ext-26m", "twpll-384m",
 					"twpll-512m", "lpll-614m4",
@@ -951,13 +951,13 @@ static SPRD_COMP_CLK(gpu_core_clk, "gpu-core-clk", gpu_parents, 0x4,
 		     4, 3, 8, 3, 0);
 
 static SPRD_GATE_CLK(gpu_mem_gate, "gpu-mem-gate", "ap-mm-clk", 0x8,
-			BIT(0), 0, 0);
+			BIT(0), CLK_IGNORE_UNUSED, 0);
 
 static SPRD_COMP_CLK(gpu_mem_clk, "gpu-mem-clk", gpu_parents, 0x8,
 		     4, 3, 8, 3, 0);
 
 static SPRD_GATE_CLK(gpu_sys_gate, "gpu-sys-gate", "ap-mm-clk", 0xc,
-			BIT(0), 0, 0);
+			BIT(0), CLK_IGNORE_UNUSED, 0);
 
 static SPRD_DIV_CLK(gpu_sys_clk, "gpu-sys-clk", "gpu-mem-clk", 0xc,
 		    4, 3, 0);
@@ -1042,13 +1042,13 @@ static SPRD_MUX_CLK(isp_clk, "isp-clk", isp_parents, 0x48,
 			0, 2, SHARKL5_MUX_FLAG);
 
 static SPRD_GATE_CLK(mipi_csi0, "mipi-csi0", "mm-ahb-clk", 0x4c,
-			BIT(16), 0, 0);
+			BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static SPRD_GATE_CLK(mipi_csi1, "mipi-csi1", "mm-ahb-clk", 0x50,
-			BIT(16), 0, 0);
+			BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static SPRD_GATE_CLK(mipi_csi2, "mipi-csi2", "mm-ahb-clk", 0x54,
-			BIT(16), 0, 0);
+			BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *sharkl5_mm_clk[] = {
 	/* address base is 0x62100000 */
