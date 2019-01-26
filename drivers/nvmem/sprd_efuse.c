@@ -113,6 +113,12 @@ static const struct sprd_efuse_variant_data sharkl3_data = {
 	.blk_double = 1,
 };
 
+static const struct sprd_efuse_variant_data orca_data = {
+	.blk_max = 46,
+	.blk_start = 2,
+	.blk_double = 1,
+};
+
 static int sprd_efuse_lock(struct sprd_efuse *efuse)
 {
 	int ret;
@@ -451,6 +457,7 @@ static const struct of_device_id sprd_efuse_of_match[] = {
 	{ .compatible = "sprd,sharkl5-efuse", .data = &sharkl5_data},
 	{ .compatible = "sprd,roc1-efuse", .data = &roc1_data},
 	{ .compatible = "sprd,sharkl3-efuse", .data = &sharkl3_data},
+	{ .compatible = "sprd,orca-efuse", .data = &orca_data},
 	{ }
 };
 
