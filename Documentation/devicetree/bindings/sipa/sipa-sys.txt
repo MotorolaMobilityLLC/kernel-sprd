@@ -1,0 +1,20 @@
+sipa system for Spreadtrum platforms
+
+Required properties:
+- compatible: Should be "sprd,roc1-sipa-sys".
+- syscons: Should contain the base address, offset and bit for each entry in "syscon-names".
+- syscon-names: global register bits name, order and name should the same as code.
+
+Examples:
+	ipa_sys: sipa-sys {
+		compatible = "sprd,roc1-sipa-sys";
+		syscons    = <&pmu_apb_regs
+				REG_PMU_APB_IPA_FORCE_WAKEUP_CFG
+				MASK_PMU_APB_IPA_FORCE_WAKEUP>,
+				<&pmu_apb_regs
+				REG_PMU_APB_PD_IPA_SYS_CFG
+				MASK_PMU_APB_PD_IPA_SYS_FORCE_SHUTDOWN>;
+
+		syscon-names = "ipa-sys-forcewakeup",
+				"ipa-sys-forceshutdown";
+	};
