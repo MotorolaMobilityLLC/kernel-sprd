@@ -154,9 +154,6 @@ static int sprd_drm_bind(struct device *dev)
 	/* init kms poll for handling hpd */
 	drm_kms_helper_poll_init(drm);
 
-	/* force detection after connectors init */
-	drm_helper_hpd_irq_event(drm);
-
 	err = drm_dev_register(drm, 0);
 	if (err < 0)
 		goto err_kms_helper_poll_fini;

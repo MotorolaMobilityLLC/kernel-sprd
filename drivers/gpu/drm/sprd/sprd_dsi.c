@@ -384,9 +384,16 @@ static struct drm_connector_helper_funcs sprd_dsi_connector_helper_funcs = {
 static enum drm_connector_status
 sprd_dsi_connector_detect(struct drm_connector *connector, bool force)
 {
+	struct sprd_dsi *dsi = connector_to_dsi(connector);
+
 	DRM_INFO("%s()\n", __func__);
 
-	return connector_status_connected;
+	if (dsi->panel) {
+		drm_panel_attach(dsi->panel, connector);
+		return connector_status_connected;
+	}
+
+	return connector_status_disconnected;
 }
 
 static void sprd_dsi_connector_destroy(struct drm_connector *connector)
@@ -456,17 +463,6 @@ static int sprd_dsi_bridge_attach(struct sprd_dsi *dsi)
 	}
 
 	return 0;
-}
-
-static int sprd_dsi_panel_attach(struct sprd_dsi *dsi)
-{
-	int ret;
-
-	ret = drm_panel_attach(dsi->panel, &dsi->connector);
-	if (ret)
-		DRM_ERROR("failed to attach panel to connector\n");
-
-	return ret;
 }
 
 static int sprd_dsi_glb_init(struct sprd_dsi *dsi)
@@ -546,10 +542,6 @@ static int sprd_dsi_bind(struct device *dev, struct device *master, void *data)
 		goto cleanup_encoder;
 
 	ret = sprd_dsi_bridge_attach(dsi);
-	if (ret)
-		goto cleanup_connector;
-
-	ret = sprd_dsi_panel_attach(dsi);
 	if (ret)
 		goto cleanup_connector;
 
