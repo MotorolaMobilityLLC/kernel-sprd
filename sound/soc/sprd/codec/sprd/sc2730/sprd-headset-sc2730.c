@@ -645,8 +645,6 @@ static void sprd_hmicbias_polling_init(struct sprd_headset *hdst)
 	headset_reg_write(ANA_HID4, HID_TMR_T2(0x20),
 		HID_TMR_T2(0xffff));
 	hdst->current_polling_state = true;
-	/* disable polling */
-	sprd_enable_hmicbias_polling(false, true);
 	pr_info("%s HID0(144) %x, HID1(148) %x, HID2(14C) %x, HID3(150) %x, HID4(154) %x",
 		__func__, sprd_read_reg_value(ANA_HID0),
 		sprd_read_reg_value(ANA_HID1), sprd_read_reg_value(ANA_HID2),

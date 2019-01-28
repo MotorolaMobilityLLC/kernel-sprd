@@ -2133,6 +2133,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"CLK_DAC", NULL, "DCL"},
 	{"CLK_DAC", NULL, "DIG_CLK_DRV_SOFT"},
 	{"CLK_DAC", NULL, "Digital Power"},
+	{"CLK_DAC", NULL, "BG"},
 
 	{"CLK_ADC", NULL, "CLK_DIG_6M5"},
 	{"CLK_ADC", NULL, "DCL"},
@@ -2277,6 +2278,8 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADC LOOP", NULL, "CLK_ADC"},
 
 /* MIC */
+	{"MICBIAS1", NULL, "BG"},
+	{"MICBIAS2", NULL, "BG"},
 	{"MIC Pin", NULL, "MICBIAS1"},
 	{"MIC2 Pin", NULL, "MICBIAS2"},
 	{"HPMIC Pin", NULL, "HEADMICBIAS"},
