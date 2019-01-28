@@ -11,6 +11,7 @@
 
 #include <linux/types.h>
 #include <linux/slab.h>
+#include <test/strerror.h>
 #include <test/test-stream.h>
 
 /**
@@ -384,6 +385,81 @@ static inline void test_expect_end(struct test *test,
 		EXPECT(test, !(condition),				       \
 		       "Expected " #condition " is false, but is true.")
 
+/**
+ * EXPECT_NOT_NULL() - Causes a test failure when @expression is NULL.
+ * @test: The test context object.
+ * @expression: an arbitrary pointer expression. The test fails when this
+ * evaluates to NULL.
+ *
+ * Sets an expectation that @expression does not evaluate to NULL. Similar to
+ * EXPECT_TRUE() but supposed to be used with pointer expressions.
+ */
+#define EXPECT_NOT_NULL(test, expression)				       \
+		EXPECT(test, (expression),				       \
+		       "Expected " #expression " is not NULL, but is NULL.")
+
+/**
+ * EXPECT_NULL() - Causes a test failure when @expression is not NULL.
+ * @test: The test context object.
+ * @expression: an arbitrary pointer expression. The test fails when this does
+ * not evaluate to NULL.
+ *
+ * Sets an expectation that @expression evaluates to NULL. Similar to
+ * EXPECT_FALSE() but supposed to be used with pointer expressions.
+ */
+#define EXPECT_NULL(test, expression)					       \
+		EXPECT(test, !(expression),				       \
+		       "Expected " #expression " is NULL, but is not NULL.")
+
+/**
+ * EXPECT_SUCCESS() - Causes a test failure if @expression does not evaluate
+ * to 0.
+ * @test: The test context object.
+ * @expression: an arbitrary expression evaluating to an int error code. The
+ * test fails when this does not evaluate to 0.
+ *
+ * Sets an expectation that @expression evaluates to 0. Implementation assumes
+ * that error codes are represented as negative values and if expression
+ * evaluates to a negative value failure message will contain a mnemonic
+ * representation of the error code (for example, for -1 it will contain EPERM).
+ */
+#define EXPECT_SUCCESS(test, expression) do {				       \
+	struct test_stream *__stream = EXPECT_START(test);		       \
+	typeof(expression) __result = (expression);			       \
+	char buf[64];							       \
+									       \
+	if (result != 0)						       \
+		__stream->add(__stream,					       \
+			      "Expected " #expression " is not error, "	       \
+			      "but is: %s.",				       \
+			      strerror_r(-result, buf, sizeof(buf)));	       \
+	EXPECT_END(test, result != 0, __stream);			       \
+} while (0)
+
+/**
+ * EXPECT_ERROR() - Causes a test failure when @expression evaluates to @errno.
+ * @test: The test context object.
+ * @expression: an arbitrary expression evaluating to an int error code. The
+ * test fails when this does not evaluate to @errno.
+ * @errno: expected error value, error values are expected to be negative.
+ *
+ * Sets an expectation that @expression evaluates to @errno, so as opposed to
+ * EXPECT_SUCCESS it verifies that @expression evaluates to an error.
+ */
+#define EXPECT_ERROR(test, expression, errno) do {			       \
+	struct test_stream *__stream = EXPECT_START(test);		       \
+	typeof(expression) __result = (expression);			       \
+	char buf1[64];							       \
+	char buf2[64];							       \
+									       \
+	if (result != errno)						       \
+		__stream->add(__stream,					       \
+			      "Expected " #expression " is %s, but is: %s.",   \
+			      strerror_t(-errno, buf1, sizeof(buf1)),	       \
+			      strerror_r(-result, buf2, sizeof(buf2)));	       \
+	EXPECT_END(test, result == errno, __stream);			       \
+} while (0)
+
 static inline void test_expect_binary(struct test *test,
 				      long long left, const char *left_name,
 				      long long right, const char *right_name,
@@ -531,22 +607,23 @@ static inline void test_expect_binary(struct test *test,
  * @test: The test context object.
  * @ptr: an arbitrary pointer.
  *
- * Sets an expectation that the value that @ptr evaluates to is not null and not
- * an errno stored in a pointer. This is semantically equivalent to
+ * Sets an expectation that the value that @ptr evaluates to is not null and
+ * not an errno stored in a pointer. This is semantically equivalent to
  * EXPECT_TRUE(@test, !IS_ERR_OR_NULL(@ptr)). See EXPECT_TRUE() for more
  * information.
  */
 #define EXPECT_NOT_ERR_OR_NULL(test, ptr) do {				       \
 	struct test_stream *__stream = EXPECT_START(test);		       \
 	typeof(ptr) __ptr = (ptr);					       \
+	char buf[64];							       \
 									       \
 	if (!__ptr)							       \
 		__stream->add(__stream,					       \
 			      "Expected " #ptr " is not null, but is.");       \
 	if (IS_ERR(__ptr))						       \
 		__stream->add(__stream,					       \
-			      "Expected " #ptr " is not error, but is: %ld",   \
-			      PTR_ERR(__ptr));				       \
+			      "Expected " #ptr " is not error, but is: %s",    \
+			      strerror_r(-PTR_ERR(__ptr), buf, sizeof(buf)));  \
 									       \
 	EXPECT_END(test, !IS_ERR_OR_NULL(__ptr), __stream);		       \
 } while (0)
@@ -615,6 +692,74 @@ static inline void test_assert_end(struct test *test,
 #define ASSERT_FALSE(test, condition)					       \
 		ASSERT(test, !(condition),				       \
 		       "Asserted " #condition " is false, but is true.")
+
+/**
+ * ASSERT_NOT_NULL() - Asserts that @expression does not evaluate to NULL.
+ * @test: The test context object.
+ * @expression: an arbitrary pointer expression. The test fails when this
+ * evaluates to NULL.
+ *
+ * Asserts that @expression does not evaluate to NULL, see EXPECT_NOT_NULL().
+ */
+#define ASSERT_NOT_NULL(test, expression)				       \
+		ASSERT(test, (expression),				       \
+		       "Expected " #expression " is not NULL, but is NULL.")
+
+/**
+ * ASSERT_NULL() - Asserts that @expression evaluates to NULL.
+ * @test: The test context object.
+ * @expression: an arbitrary pointer expression. The test fails when this does
+ * not evaluate to NULL.
+ *
+ * Asserts that @expression evaluates to NULL, see EXPECT_NULL().
+ */
+#define ASSERT_NULL(test, expression)					       \
+		ASSERT(test, !(expression),				       \
+		       "Expected " #expression " is NULL, but is not NULL.")
+
+/**
+ * ASSERT_SUCCESS() - Asserts that @expression is 0.
+ * @test: The test context object.
+ * @expression: an arbitrary expression evaluating to an int error code.
+ *
+ * Asserts that @expression evaluates to 0. It's the same as EXPECT_SUCCESS.
+ */
+#define ASSERT_SUCCESS(test, expression) do {				       \
+	struct test_stream *__stream = ASSERT_START(test);		       \
+	typeof(expression) __result = (expression);			       \
+	char buf[64];							       \
+									       \
+	if (result != 0)						       \
+		__stream->add(__stream,					       \
+			      "Asserted " #expression " is not error, "	       \
+			      "but is: %s.",				       \
+			      strerror_r(-result, buf, sizeof(buf)));	       \
+	ASSERT_END(test, result != 0, __stream);			       \
+} while (0)
+
+/**
+ * ASSERT_ERROR() - Causes a test failure when @expression does not evaluate to
+ * @errno.
+ * @test: The test context object.
+ * @expression: an arbitrary expression evaluating to an int error code. The
+ * test fails when this does not evaluate to @errno.
+ * @errno: expected error value, error values are expected to be negative.
+ *
+ * Asserts that @expression evaluates to @errno, similar to EXPECT_ERROR.
+ */
+#define ASSERT_ERROR(test, expression, errno) do {			       \
+	struct test_stream *__stream = ASSERT_START(test);		       \
+	typeof(expression) __result = (expression);			       \
+	char buf1[64];							       \
+	char buf2[64];							       \
+									       \
+	if (result != errno)						       \
+		__stream->add(__stream,					       \
+			      "Expected " #expression " is %s, but is: %s.",   \
+			      strerror_t(-errno, buf1, sizeof(buf1)),	       \
+			      strerror_r(-result, buf2, sizeof(buf2)));	       \
+	ASSERT_END(test, result == errno, __stream);			       \
+} while (0)
 
 static inline void test_assert_binary(struct test *test,
 				      long long left, const char *left_name,
@@ -770,6 +915,7 @@ static inline void test_assert_binary(struct test *test,
 #define ASSERT_NOT_ERR_OR_NULL(test, ptr) do {				       \
 	struct test_stream *__stream = ASSERT_START(test);		       \
 	typeof(ptr) __ptr = (ptr);					       \
+	char buf[64];							       \
 									       \
 	if (!__ptr)							       \
 		__stream->add(__stream,					       \
@@ -777,7 +923,7 @@ static inline void test_assert_binary(struct test *test,
 	if (IS_ERR(__ptr))						       \
 		__stream->add(__stream,					       \
 			      "Asserted " #ptr " is not error, but is: %ld",   \
-			      PTR_ERR(__ptr));				       \
+			      strerror_r(-PTR_ERR(__ptr), buf, sizeof(buf)));  \
 									       \
 	ASSERT_END(test, !IS_ERR_OR_NULL(__ptr), __stream);		       \
 } while (0)
