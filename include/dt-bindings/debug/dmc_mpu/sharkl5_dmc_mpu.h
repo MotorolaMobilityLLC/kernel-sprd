@@ -25,7 +25,7 @@
 
 /*MM*/
 #define DCAM_IF			0xc0
-#define FD			0xc1
+#define MM_FD			0xc1
 #define ISP_YUV			0xc2
 #define VSP_DSP			0xc3
 #define VSP_IDMA		0xc4
