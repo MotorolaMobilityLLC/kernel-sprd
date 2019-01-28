@@ -713,7 +713,7 @@ static void sprd_codec_pa_boost(struct snd_soc_codec *codec, int pa_d_en)
 		mask = CLK_PABST_EN | CLK_PABST_32K_EN;
 		snd_soc_update_bits(codec, SOC_REG(ANA_CLK0), mask, mask);
 		mask = PA_VCM_BYP_SEL;
-		snd_soc_update_bits(codec, SOC_REG(ANA_CDC15), mask, mask);
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC15), mask, 0);
 		snd_soc_update_bits(codec, SOC_REG(ANA_PMU6),
 			PABST_V_INIT(0xffff), 0);
 
