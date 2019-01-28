@@ -1028,7 +1028,7 @@
 				num-lanes = <1>;
 				num-vectors = <256>;
 				num-viewport = <8>;
-				status = "disabled";
+				status = "okay";
 			};
 
 			pcie1: pcie@20d00000 {
