@@ -562,3 +562,7 @@
 &vddmem {
 	status = "disabled";
 };
+
+&gpu {
+	gpu-supply = <&vddmodem>;
+};
