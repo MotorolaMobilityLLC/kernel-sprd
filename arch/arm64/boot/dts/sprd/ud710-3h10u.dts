@@ -10,7 +10,7 @@
 #include <dt-bindings/gpio/gpio.h>
 
 #include "ud710.dtsi"
-#include "ud710-common.dtsi"
+#include "ud710-3h10-common.dtsi"
 #include "ud710-3h10-modem.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 #include "sc2730.dtsi"
