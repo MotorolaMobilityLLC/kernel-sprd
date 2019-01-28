@@ -158,26 +158,16 @@
 			reg = <0x0 0x87400000 0x0 0x00400000>;
 		};
 
-		smem_reserved: sipc-mem@87800000 {
-			reg = <0x0 0x87800000 0x0 0x00800000>;
-		};
-
 		audiodsp_reserved: audiodsp-mem@89000000 {
 			reg = <0x0 0x89000000 0x0 0x00600000>;
 		};
 
-		cp_reserved: cp-modem@89600000 {
-			reg = <0x0 0x89600000 0x0 0x04500000>;
+		smem_reserved: sipc-mem@89600000 {
+			reg = <0x0 0x89600000 0x0 0x03000000>;
 		};
 
 		vdsp_reserved: vdsp-mem@93e00000 {
 			reg = <0x0 0x93e00000 0x0 0x00200000>;
-		};
-
-		/* Only used for iq, will be removed in normal mode by uboot */
-		iq_reserved: iq-mem@98100000 {
-			compatible = "sprd,iq-mem";
-			reg = <0x0 0x98100000 0x0 0x4000000>;
 		};
 
 		sml_reserved: sml-mem@94000000 {
@@ -192,10 +182,6 @@
 			reg = <0x0 0x9f000000 0x0 0x00040000>;
 		};
 
-		ipa_reserved: ipa-mem@f8dc0000 {
-			reg = <0x0 0xf8dc0000 0x0 0x03000000>;
-		};
-
 		fd_reserved: fd-mem@fbdc0000 {
 			reg = <0x0 0xfbdc0000 0x0 0x01e00000>;
 		};
@@ -208,12 +194,6 @@
 			reg = <0x0 0xff6c0000 0x0 0x00900000>;
 		};
 	};
-
-	sprd-iq {
-			compatible = "sprd,iq";
-			sprd,region = <&iq_reserved>;
-			sprd,mapping-offs = <0x0>;
-		};
 
 	ion {
 		compatible = "sprd,ion";
