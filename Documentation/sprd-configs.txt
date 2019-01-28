@@ -8874,13 +8874,6 @@ CONFIG_RTC_LIB
 	[subsys] rtc
 	[must] user
 	[function] RTC driver based on RTC lib.
-CONFIG_RTC_NVMEM
-	[arch] all
-	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_RTC_SYSTOHC
 	[arch] all
 	[plat] all
