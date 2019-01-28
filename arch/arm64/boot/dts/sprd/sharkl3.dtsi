@@ -569,34 +569,24 @@
 				hwlocks = <&hwlock 8>;
 				clocks = <&aonapb_gate CLK_EFUSE_EB>;
 
-				gthm_sign: gthm-sign@22{
-					reg = <0x22 0x4>;
-					bits = <0 1>;
-				};
-
-				gthm_ratio: gthm-ratio@22{
-					reg = <0x22 0x4>;
-					bits = <1 7>;
-				};
-
-				gthm_delta: gthm-delta@23{
-					reg = <0x23 0x4>;
-					bits = <0 8>;
-				};
-
-				cthm_sign: cthm-sign@20{
-					reg = <0x20 0x4>;
-					bits = <0 1>;
-				};
-
-				cthm_ratio: cthm-ratio@20{
-					reg = <0x20 0x4>;
-					bits = <1 7>;
-				};
-
-				cthm_delta: cthm-delta@21{
+				gthm_delta: gthm-delta@21{
 					reg = <0x21 0x4>;
-					bits = <1 8>;
+					bits = <1 7>;
+				};
+
+				cthm_sign: cthm-sign@22{
+					reg = <0x22 0x4>;
+					bits = <0 1>;
+				};
+
+				cthm_ratio: cthm-ratio@22{
+					reg = <0x22 0x4>;
+					bits = <1 7>;
+				};
+
+				cthm_delta: cthm-delta@23{
+					reg = <0x23 0x4>;
+					bits = <0 7>;
 				};
 			};
 
@@ -720,8 +710,8 @@
 				clocks = <&aonapb_gate CLK_THM_EB>;
 				#thermal-sensor-cells = <1>;
 				sprd,algor_ver = <2>;
-				nvmem-cells = <&gthm_sign>, <&gthm_ratio>, <&gthm_delta>;
-				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal", "thm_delta_cal";
+				nvmem-cells = <&gthm_delta>;
+				nvmem-cell-names = "thm_delta_cal";
 			};
 
 			cpu_thm: cpu-thm@40390000 {
