@@ -498,7 +498,7 @@
 };
 
 &sdio0 {
-	 cd-gpios = <&eic_async 19 GPIO_ACTIVE_LOW>;
+	 cd-gpios = <&eic_sync 19 GPIO_ACTIVE_LOW>;
 	 syscons = <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PRESENT_32K>,
 		   <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PROTECT_32K>,
 		   <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_EN_32K>,
