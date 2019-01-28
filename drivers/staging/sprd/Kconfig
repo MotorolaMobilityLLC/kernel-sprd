@@ -14,3 +14,5 @@ config SPRD_DATA_TRANSPORTER
 	depends on SPRD_SIPC
 	help
 	  The data transporter for SC9650 miniAP.
+
+source "drivers/staging/sprd/sfp/Kconfig"
