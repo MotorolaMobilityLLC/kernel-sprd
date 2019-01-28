@@ -37,4 +37,9 @@ config SPRD_ROC1_CLK
 	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
 	default ARM64 && ARCH_SPRD
 
+config SPRD_ORCA_CLK
+	tristate "Support for the Spreadtrum ORCA clocks"
+	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
+	default ARM64 && ARCH_SPRD
+
 endif
