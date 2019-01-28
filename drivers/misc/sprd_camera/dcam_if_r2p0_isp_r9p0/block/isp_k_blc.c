@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -36,14 +36,14 @@ static int isp_k_blc_block(struct isp_io_param *param, enum isp_id idx)
 		return -EPERM;
 	}
 
-	DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG, BIT_18, blc_info.bypass << 18);
+	DCAM_REG_MWR(idx, DCAM_BLC_PARA_R_B, BIT_31, blc_info.bypass << 31);
 	if (blc_info.bypass)
 		return 0;
 
-	val = ((blc_info.b & 0x3FF) << 10) | (blc_info.r & 0x3FF);
+	val = ((blc_info.b & 0x3FFF) << 10) | (blc_info.r & 0x3FFF);
 	DCAM_REG_WR(idx, DCAM_BLC_PARA_R_B, val);
 
-	val = ((blc_info.gb & 0x3FF) << 10) | (blc_info.gr & 0x3FF);
+	val = ((blc_info.gb & 0x3FFF) << 10) | (blc_info.gr & 0x3FFF);
 	DCAM_REG_WR(idx, DCAM_BLC_PARA_G, val);
 
 	return ret;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -43,10 +43,10 @@ static int isp_k_post_cdn_block(struct isp_io_param *param, uint32_t idx)
 	if (post_cdn_info.bypass)
 		return 0;
 	val = ((post_cdn_info.downsample_bypass & 0x1) << 1)
-		| ((post_cdn_info.mode & 0x1) << 2)
-		| ((post_cdn_info.writeback_en & 0x1) << 3)
-		| ((post_cdn_info.uvjoint & 0x1) << 4)
-		| ((post_cdn_info.median_mode & 0x7) << 5);
+			| ((post_cdn_info.mode & 0x1) << 2)
+			| ((post_cdn_info.writeback_en & 0x1) << 3)
+			| ((post_cdn_info.uvjoint & 0x1) << 4)
+			| ((post_cdn_info.median_mode & 0x7) << 5);
 
 	ISP_REG_MWR(idx, ISP_POSTCDN_COMMON_CTRL,
 		0xFE, val);
@@ -97,8 +97,22 @@ static int isp_k_post_cdn_block(struct isp_io_param *param, uint32_t idx)
 			| ((post_cdn_info.r_distw[i][4] & 0x7) << 12);
 		ISP_REG_WR(idx, ISP_POSTCDN_R_DISTW0 + i * 4, val);
 	}
-	/*start_row_mode4 = start_row & 0x3 for sclice*/
-	ISP_REG_WR(idx, ISP_POSTCDN_START_ROW_MOD4, 0);
+
+	return ret;
+}
+
+static int isp_k_post_cdn_slice(struct isp_io_param *param, enum isp_id idx)
+{
+	int ret = 0;
+	unsigned int val = 0;
+
+	ret = copy_from_user((void *)&val, param->property_param, sizeof(val));
+	if (ret != 0) {
+		pr_err("fail to copy from user, ret = %d\n", ret);
+		return -1;
+	}
+
+	ISP_REG_WR(idx, ISP_POSTCDN_START_ROW_MOD4, val & 0x3);
 
 	return ret;
 }
@@ -121,6 +135,9 @@ int isp_k_cfg_post_cdn(struct isp_io_param *param,
 	switch (param->property) {
 	case ISP_PRO_POST_CDN_BLOCK:
 		ret = isp_k_post_cdn_block(param, com_idx);
+		break;
+	case ISP_PRO_POST_CDN_SLICE:
+		ret = isp_k_post_cdn_slice(param, idx);
 		break;
 	default:
 		pr_err("fail to support cmd id = %d\n",

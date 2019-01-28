@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -51,8 +51,7 @@ static int isp_k_raw_aem_bypass(struct isp_io_param *param, enum isp_id idx)
 		return -1;
 	}
 
-	DCAM_REG_MWR(idx, ISP_AEM_PARAM, BIT_0, bypass);
-	DCAM_REG_MWR(idx, ISP_AEM_PARAM1, BIT_1, 1 << 1);
+	DCAM_REG_MWR(idx, DCAM_AEM_FRM_CTRL0, BIT_0, bypass);
 
 	return ret;
 }
@@ -72,31 +71,7 @@ static int32_t isp_k_raw_aem_offset(struct isp_io_param *param,
 	}
 
 	val = ((offset.y & 0x1FFF) << 16) | (offset.x & 0x1FFF);
-	DCAM_REG_WR(idx, ISP_AEM_OFFSET, val);
-
-	return ret;
-}
-
-static int32_t isp_k_raw_aem_shift(struct isp_io_param *param, enum isp_id idx)
-{
-	int32_t ret = 0;
-	uint32_t val = 0;
-	struct isp_range_thr shift;
-
-	ret = copy_from_user((void *)&shift,
-			param->property_param, sizeof(shift));
-	if (ret != 0) {
-		pr_err("fail to copy from user, ret = %d\n", ret);
-		return -1;
-	}
-
-	val = ((shift.middle & 0x3) << 20) |
-		((shift.low & 0x3) << 18) |
-		((shift.high & 0x3) << 16);
-	if (val != 0)
-		pr_debug("shift: 0x%x\n", val);
-
-	DCAM_REG_MWR(idx, ISP_AEM_BLK_SIZE, 0x3F0000, val);
+	DCAM_REG_WR(idx, DCAM_AEM_OFFSET, val);
 
 	return ret;
 }
@@ -113,14 +88,12 @@ static int isp_k_raw_aem_mode(struct isp_io_param *param, enum isp_id idx)
 		return -1;
 	}
 
-	DCAM_REG_MWR(idx, ISP_AEM_PARAM, BIT_2,
-		mode << 2);
+	DCAM_REG_MWR(idx, DCAM_AEM_FRM_CTRL0, BIT_2, mode << 2);
 
 	if (mode)
-		DCAM_REG_MWR(idx, ISP_AEM_PARAM, BIT_3,
-			(0x1 << 3));
+		DCAM_REG_MWR(idx, DCAM_AEM_FRM_CTRL0, BIT_3, (0x1 << 3));
 	else
-		DCAM_REG_MWR(idx, ISP_AEM_PARAM1, BIT_0, 0x1);
+		DCAM_REG_MWR(idx, DCAM_AEM_FRM_CTRL1, BIT_0, 0x1);
 
 	return ret;
 }
@@ -139,7 +112,7 @@ static int isp_k_raw_aem_blk_size(struct isp_io_param *param, enum isp_id idx)
 	}
 
 	val = ((size.height & 0xFF) << 8) | (size.width & 0xFF);
-	DCAM_REG_MWR(idx, ISP_AEM_BLK_SIZE, 0xFFFF, val);
+	DCAM_REG_MWR(idx, DCAM_AEM_BLK_SIZE, 0xFFFF, val);
 
 	return ret;
 }
@@ -158,7 +131,7 @@ static int isp_k_raw_aem_skip_num(struct isp_io_param *param, enum isp_id idx)
 	}
 
 	val = (skip_num & 0xF) << 4;
-	DCAM_REG_MWR(idx, ISP_AEM_PARAM, 0xF0, val);
+	DCAM_REG_MWR(idx, DCAM_AEM_FRM_CTRL0, 0xF0, val);
 
 	return ret;
 }
@@ -178,7 +151,7 @@ static int isp_k_raw_aem_blk_num(struct isp_io_param *param,
 	}
 
 	val = ((blk_num.y & 0xFF) << 8) | (blk_num.x & 0xFF);
-	DCAM_REG_WR(idx, ISP_AEM_BLK_NUM, val);
+	DCAM_REG_WR(idx, DCAM_AEM_BLK_NUM, val);
 
 	return ret;
 }
@@ -199,15 +172,15 @@ static int isp_k_raw_aem_rgb_thr(struct isp_io_param *param,
 
 	val = (((rgb_thr[1].r & 0x3FF) << 16) |
 		(rgb_thr[0].r & 0x3FF));/*0: h_thr 1: l_thr*/
-	DCAM_REG_WR(idx, ISP_AEM_RED_THR, val);
+	DCAM_REG_WR(idx, DCAM_AEM_RED_THR, val);
 
 	val = (((rgb_thr[1].b & 0x3FF) << 16) |
 		(rgb_thr[0].b & 0x3FF));/*0: h_thr 1: l_thr*/
-	DCAM_REG_WR(idx, ISP_AEM_BLUE_THR, val);
+	DCAM_REG_WR(idx, DCAM_AEM_BLUE_THR, val);
 
 	val = (((rgb_thr[1].g & 0x3FF) << 16) |
 		(rgb_thr[0].g & 0x3FF));/*0: h_thr 1: l_thr*/
-	DCAM_REG_WR(idx, ISP_AEM_GREEN_THR, val);
+	DCAM_REG_WR(idx, DCAM_AEM_GREEN_THR, val);
 
 	return ret;
 }
@@ -225,7 +198,7 @@ static int isp_k_raw_aem_skip_num_clr(struct isp_io_param *param,
 		return -1;
 	}
 
-	DCAM_REG_MWR(idx, ISP_AEM_PARAM1, BIT_1,
+	DCAM_REG_MWR(idx, DCAM_AEM_FRM_CTRL1, BIT_1,
 		is_clear << 1);
 
 	return ret;
@@ -260,9 +233,6 @@ int isp_k_cfg_raw_aem(struct isp_io_param *param,
 		break;
 	case ISP_PRO_RAW_AEM_OFFSET:
 		ret = isp_k_raw_aem_offset(param, idx);
-		break;
-	case ISP_PRO_RAW_AEM_SHIFT:
-		ret = isp_k_raw_aem_shift(param, idx);
 		break;
 	case ISP_PRO_RAW_AEM_BLK_SIZE:
 		ret = isp_k_raw_aem_blk_size(param, idx);

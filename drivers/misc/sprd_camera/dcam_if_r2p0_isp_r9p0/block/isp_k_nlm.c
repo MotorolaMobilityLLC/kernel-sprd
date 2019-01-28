@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -90,6 +90,7 @@ static int isp_k_nlm_block(struct isp_io_param *param,
 	ISP_REG_MWR(idx, ISP_IVST_PARA, BIT_0, nlm_info.ivst_bypass);
 	if (nlm_info.bypass)
 		return 0;
+
 	val = ((nlm_info.imp_opt_bypass & 0x1) << 1) |
 		((nlm_info.flat_opt_bypass & 0x1) << 2) |
 		((nlm_info.direction_mode_bypass & 0x1) << 4) |
@@ -175,8 +176,10 @@ static int isp_k_nlm_block(struct isp_io_param *param,
 		isp_k_param->nlm_col_center = nlm_info.nlm_radial_1D_center_x;
 		isp_k_param->nlm_row_center = nlm_info.nlm_radial_1D_center_y;
 	}
+
 	val = nlm_info.nlm_radial_1D_radius_threshold & 0x7FFF;
 	ISP_REG_MWR(idx, ISP_NLM_RADIAL_1D_THRESHOLD, 0x7FFF, val);
+
 	val = nlm_info.nlm_radial_1D_protect_gain_max & 0x1FFF;
 	ISP_REG_MWR(idx, ISP_NLM_RADIAL_1D_GAIN_MAX, 0x1FFF, val);
 
@@ -199,8 +202,8 @@ static int isp_k_nlm_block(struct isp_io_param *param,
 				<< 16);
 			ISP_REG_WR(idx,
 				ISP_NLM_RADIAL_1D_RATIO + i*16 + j*4, val);
-			ISP_REG_WR(idx,
-				ISP_NLM_RADIAL_1D_ADDBACK00 + i*16 + j*4, val);
+			ISP_REG_WR(idx, ISP_NLM_RADIAL_1D_ADDBACK00
+				+ i*16 + j*4, val);
 			}
 	}
 

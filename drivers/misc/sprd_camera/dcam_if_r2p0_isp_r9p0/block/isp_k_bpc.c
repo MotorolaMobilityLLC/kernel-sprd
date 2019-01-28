@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -37,11 +37,11 @@ static int isp_k_bpc_block(struct isp_io_param *param, enum isp_id idx)
 		return -EPERM;
 	}
 
-	val = ((bpc_info.bpc_mode_en_gc & 0x1) << 2) |
-		((bpc_info.bpc_mode_en & 0x1) << 1) |
-		(bpc_info.bpc_gc_cg_dis & 0x1);
-	DCAM_REG_MWR(idx, ISP_BPC_GC_CFG, 0x7, val);
-	if (bpc_info.bpc_mode_en == 0 && bpc_info.bpc_mode_en_gc == 0)
+	val = ((bpc_info.bpc_gc_cg_dis & 0x1) << 31) |
+		((bpc_info.bpc_mode_en & 0x1) << 30);
+	DCAM_REG_MWR(idx, ISP_BPC_PARAM, 0x3 << 30, val);
+
+	if (bpc_info.bpc_mode_en == 0)
 		return 0;
 
 	DCAM_REG_MWR(idx, ISP_BPC_PARAM, BIT_0, bpc_info.bypass);
@@ -51,25 +51,22 @@ static int isp_k_bpc_block(struct isp_io_param *param, enum isp_id idx)
 	val = ((bpc_info.double_bypass & 0x1) << 1) |
 		((bpc_info.three_bypass & 0x1) << 2) |
 		((bpc_info.four_bypass & 0x1) << 3);
-	DCAM_REG_MWR(idx, ISP_BPC_PARAM, 0xE, val);
+	DCAM_REG_MWR(idx, ISP_BPC_PARAM, 0x7 << 1, val);
 
-	DCAM_REG_MWR(idx, ISP_BPC_PARAM, BIT_4 |
-			BIT_5, bpc_info.bpc_mode << 4);
+	DCAM_REG_MWR(idx, ISP_BPC_PARAM, 0x3 << 4,
+		bpc_info.bpc_mode << 4);
+
+	DCAM_REG_MWR(idx, ISP_BPC_PARAM, BIT_16,
+		bpc_info.pos_out_continue_mode << 16);
+
 	DCAM_REG_MWR(idx, ISP_BPC_PARAM, BIT_6,
-			bpc_info.pos_out_continue_mode << 6);
-	DCAM_REG_MWR(idx, ISP_BPC_PARAM, BIT_7, bpc_info.is_mono_sensor << 7);
+		bpc_info.is_mono_sensor << 6);
+
 	DCAM_REG_MWR(idx, ISP_BPC_PARAM, BIT_9 |
 			BIT_8, bpc_info.edge_hv_mode << 8);
+
 	DCAM_REG_MWR(idx, ISP_BPC_PARAM, BIT_11 |
 			BIT_10, bpc_info.edge_rd_mode << 10);
-
-	DCAM_REG_MWR(idx, ISP_BPC_PARAM,
-			0xF000, bpc_info.pos_out_skip_num << 12);
-	DCAM_REG_MWR(idx, ISP_BPC_PARAM, 0xFF0000,
-			bpc_info.rd_retain_num << 16);
-	DCAM_REG_MWR(idx, ISP_BPC_PARAM, BIT_24, bpc_info.rd_max_len_sel << 24);
-	DCAM_REG_MWR(idx, ISP_BPC_PARAM, BIT_25, bpc_info.wr_max_len_sel << 25);
-	DCAM_REG_MWR(idx, ISP_BPC_PARAM, BIT_31, bpc_info.bpc_blk_mode << 31);
 
 	for (i = 0; i < 4; i++) {
 		val = ((bpc_info.double_badpixel_th[i] & 0x3FF) << 20) |
@@ -97,8 +94,7 @@ static int isp_k_bpc_block(struct isp_io_param *param, enum isp_id idx)
 
 	val = ((bpc_info.max_coeff & 0x1F) << 16) |
 			((bpc_info.min_coeff & 0x1F));
-
-	DCAM_REG_WR(idx, ISP_BPC_BAD_PIXEL_COEF, val);
+	DCAM_REG_WR(idx, ISP_BPC_BAD_PIXEL_COEFF, val);
 
 	for (i = 0; i < 8; i++) {
 		val = ((bpc_info.lut_level[i] & 0x3FF) << 20) |
@@ -107,9 +103,10 @@ static int isp_k_bpc_block(struct isp_io_param *param, enum isp_id idx)
 		DCAM_REG_WR(idx, ISP_BPC_LUTWORD0 + i * 4, val);
 	}
 
-	DCAM_REG_MWR(idx, ISP_BPC_MAP_CTRL,
-			BIT_0, bpc_info.bad_map_hw_fifo_clr_en);
-	DCAM_REG_WR(idx, ISP_BPC_MAP_CTRL1, bpc_info.bad_pixel_num);
+	DCAM_REG_MWR(idx, ISP_BPC_PARAM,
+			BIT_170, bpc_info.bad_map_hw_fifo_clr_en << 17);
+
+	DCAM_REG_WR(idx, ISP_BPC_MAP_CTRL, bpc_info.bad_pixel_num);
 
 	return ret;
 }

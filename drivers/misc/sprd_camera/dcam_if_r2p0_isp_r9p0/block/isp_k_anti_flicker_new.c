@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -89,10 +89,8 @@ static int isp_k_anti_flicker_new_block(struct isp_io_param *param,
 		return -EPERM;
 	}
 
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_PARAM0, BIT_0,
-		afl_info.bypass);
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_FRAM_CTRL, BIT_0,
-		afl_info.bypass);
+	DCAM_REG_MWR(idx, ISP_AFL_FRM_CTRL0, BIT_0, afl_info.bypass);
+	DCAM_REG_MWR(idx, ISP_AFL_PARAM0, BIT_1, afl_info.bypass << 1);
 	if (afl_info.bypass)
 		return 0;
 
@@ -100,58 +98,52 @@ static int isp_k_anti_flicker_new_block(struct isp_io_param *param,
 
 	val = ((afl_info.bayer2y_chanel & 0x3) << 6) |
 		((afl_info.bayer2y_mode & 0x3) << 4);
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_PARAM0, 0xF0, val);
+	DCAM_REG_MWR(idx, ISP_AFL_PARAM0, 0xF0, val);
 
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_FRAM_CTRL, 0xF0,
+	DCAM_REG_MWR(idx, ISP_AFL_FRM_CTRL0, 0xF << 4,
 		(afl_info.skip_frame_num & 0xF) << 4);
 
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_FRAM_CTRL, BIT_2,
-		afl_info.mode << 2);
+	DCAM_REG_MWR(idx, ISP_AFL_FRM_CTRL0, BIT_2, afl_info.mode << 2);
 	if (afl_info.mode)
-		DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_FRAM_CTRL,
-			BIT_3, (0x1 << 3));
+		DCAM_REG_MWR(idx, ISP_AFL_FRM_CTRL0, BIT_3, (0x1 << 3));
 	else
-		DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_NEW_CFG_READY,
-			BIT_0, 0x1);
+		DCAM_REG_MWR(idx, ISP_AFL_FRM_CTRL1, BIT_0, 0x1);
 
-	DCAM_REG_WR(idx, ISP_ANTI_FLICKER_NEW_PARAM1,
+	DCAM_REG_WR(idx, ISP_AFL_PARAM1,
 		(afl_info.afl_stepx & 0xFFFFFF));
-	DCAM_REG_WR(idx, ISP_ANTI_FLICKER_NEW_PARAM2,
+	DCAM_REG_WR(idx, ISP_AFL_PARAM2,
 		(afl_info.afl_stepy & 0xFFFFFF));
 
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_NEW_COL_POS,
+	DCAM_REG_MWR(idx, ISP_AFL_COL_POS,
 		0x1FFF, afl_info.start_col);
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_NEW_COL_POS,
+	DCAM_REG_MWR(idx, ISP_AFL_COL_POS,
 		0x1FFF << 16, afl_info.end_col << 16);
 
-	DCAM_REG_WR(idx, ISP_ANTI_FLICKER_NEW_REGION0,
+	DCAM_REG_WR(idx, ISP_AFL_REGION0,
 		afl_info.step_x_region & 0xFFFFFF);
-	DCAM_REG_WR(idx, ISP_ANTI_FLICKER_NEW_REGION1,
+	DCAM_REG_WR(idx, ISP_AFL_REGION1,
 		afl_info.step_y_region & 0XFFFFFF);
 
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_NEW_REGION2,
+	DCAM_REG_MWR(idx, ISP_AFL_REGION2,
 		0x1FFF, afl_info.step_x_start_region);
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_NEW_REGION2,
+	DCAM_REG_MWR(idx, ISP_AFL_REGION2,
 		0x1FFF << 16, afl_info.step_x_end_region << 16);
 
 	afl_glb_total_num = get_afl_data_num(afl_info.afl_stepy,
 		afl_info.frame_num, afl_info.img_size.height);
 
-	DCAM_REG_WR(idx, ISP_ANTI_FLICKER_NEW_SUM1,
+	DCAM_REG_WR(idx, ISP_AFL_SUM1,
 		afl_glb_total_num & 0xFFFFF);
 
 	afl_region_total_num =
 		get_afl_region_data_num(afl_info.step_y_region,
 		afl_info.frame_num, afl_info.img_size.height);
 
-	DCAM_REG_WR(idx, ISP_ANTI_FLICKER_NEW_SUM2,
+	DCAM_REG_WR(idx, ISP_AFL_SUM2,
 		afl_region_total_num & 0xFFFFF);
 
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_FRAM_CTRL,
+	DCAM_REG_MWR(idx, ISP_AFL_FRM_CTRL0,
 		0xFF0000, (afl_info.frame_num & 0xFF) << 16);
-
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_FRAM_CTRL,
-		0x1000, (afl_info.afl_chk_auto_clr & 0x1) << 12);
 
 	return ret;
 }
@@ -169,10 +161,8 @@ static int isp_k_afl_new_bypass(struct isp_io_param *param,
 		return -1;
 	}
 
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_FRAM_CTRL,
+	DCAM_REG_MWR(idx, ISP_AFL_FRM_CTRL0,
 		BIT_0, bypass);
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_NEW_CFG_READY,
-		BIT_0, 0x1);
 
 	return ret;
 }

@@ -38,7 +38,7 @@ static int isp_k_hist2_block(struct isp_io_param *param, uint32_t idx)
 	ISP_REG_MWR(idx, ISP_HIST2_PARAM, BIT_0, hist2_info.bypass);
 
 	if (hist2_info.bypass) {
-		ISP_REG_MWR(idx, ISP_HIST2_CFG_RDY, BIT_0, 1);
+		ISP_REG_MWR(idx, ISP_HIST2_CFG_READY, BIT_0, 1);
 		return 0;
 	}
 
@@ -54,9 +54,9 @@ static int isp_k_hist2_block(struct isp_io_param *param, uint32_t idx)
 		| ((hist2_info.hist_roi.end_x & 0xFFFF) << 16);
 	ISP_REG_WR(idx, ISP_HIST2_ROI_E0, val);
 
-	ISP_REG_MWR(idx, ISP_HIST2_SKIP_CLR, BIT_0, 1);
+	ISP_REG_MWR(idx, ISP_HIST2_SKIP_NUM_CLR, BIT_0, 1);
 
-	ISP_REG_MWR(idx, ISP_HIST2_CFG_RDY, BIT_0, 1);
+	ISP_REG_MWR(idx, ISP_HIST2_CFG_READY, BIT_0, 1);
 
 	return ret;
 }

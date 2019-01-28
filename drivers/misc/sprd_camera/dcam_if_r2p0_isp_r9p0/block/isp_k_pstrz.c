@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -43,12 +43,31 @@ static int isp_k_posterize_block
 	if (pstrz_info.bypass)
 		return 0;
 
-	for (i = 0; i < POSTERIZE_NUM; i++) {
-		val = (pstrz_info.posterize_level_out[i] & 0xFF) |
-			((pstrz_info.posterize_level_top[i] & 0xFF) << 8) |
-			((pstrz_info.posterize_level_bottom[i] & 0xFF) << 16);
-		ISP_REG_WR(idx, ISP_PSTRZ_LEVEL0 + i * 4, val);
+	for (i = 0; i < POSTERIZE_NUM - 1; i++) {
+		val = ((pstrz_info.posterize_r_data[i+1] & 0xFF)
+			| (pstrz_info.posterize_r_data[i] & 0xFF) << 8);
+		ISP_REG_WR16(idx, (pstrz_info.pstrz_buf_sel ?
+			ISP_PSTRZ_R_BUF1_CH0 : ISP_PSTRZ_R_BUF0_CH0) + i * 4,
+			val);
 	}
+	for (i = 0; i < POSTERIZE_NUM - 1; i++) {
+		val = ((pstrz_info.posterize_g_data[i+1] & 0xFF)
+			| (pstrz_info.posterize_g_data[i] & 0xFF) << 8);
+		ISP_REG_WR16(idx, (pstrz_info.pstrz_buf_sel ?
+			ISP_PSTRZ_G_BUF1_CH0 : ISP_PSTRZ_G_BUF0_CH0) + i * 4,
+			val);
+	}
+	for (i = 0; i < POSTERIZE_NUM - 1; i++) {
+		val = ((pstrz_info.posterize_b_data[i+1] & 0xFF)
+			| (pstrz_info.posterize_b_data[i] & 0xFF) << 8);
+		ISP_REG_WR16(idx, (pstrz_info.pstrz_buf_sel ?
+			ISP_PSTRZ_B_BUF1_CH0 : ISP_PSTRZ_B_BUF0_CH0) + i * 4,
+			val);
+	}
+
+	ISP_REG_MWR(idx, ISP_PSTRZ_PARAM,
+		BIT_3|BIT_2, (pstrz_info.pstrz_buf_sel) << 3
+		| (pstrz_info.sample_en << 2));
 
 	return ret;
 }

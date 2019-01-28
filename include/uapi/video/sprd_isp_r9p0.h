@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -57,6 +57,10 @@
 #define PDAF_PPI_NUM                       64
 #define PDAF_CORRECT_GAIN_NUM              128
 #define v_counter_interval                 524288
+#define GTM_HIST_BIN_NUM                   128
+#define ISP_LTM_STAT_TABLE_NUM             128
+#define ISP_HSV_TABLE_NUM                  360
+
 
 enum isp_img_output_id {
 	ISP_IMG_PREVIEW = 0,
@@ -139,6 +143,11 @@ enum isp_block {
 	ISP_BLOCK_RAW_AEM,
 	ISP_BLOCK_RAW_AFM,
 	ISP_BLOCK_3DNR,
+	ISP_BLOCK_GTM,
+	ISP_BLOCK_LTM_RGB_STAT,
+	ISP_BLOCK_LTM_RGB_MAP,
+	ISP_BLOCK_LTM_YUV_STAT,
+	ISP_BLOCK_LTM_YUV_MAP,
 };
 
 enum isp_blc_property {
@@ -329,6 +338,7 @@ enum isp_post_blc_property {
 /*isp sub block: post_cdn*/
 enum isp_post_cdn_property {
 	ISP_PRO_POST_CDN_BLOCK,
+	ISP_PRO_POST_CDN_SLICE,
 };
 
 /*isp sub block: pstrz*/
@@ -407,6 +417,11 @@ enum isp_raw_af_property {
 	ISP_PRO_RGB_AFM_CROP_EB,
 	ISP_PRO_RGB_AFM_CROP_SIZE,
 	ISP_PRO_RGB_AFM_DONE_TILE_NUM,
+};
+
+enum isp_raw_gtm_property {
+	ISP_PRO_RGB_GTM_BYPASS,
+	ISP_PRO_RGB_GTM_BLOCK,
 };
 
 enum isp_dev_capability {
@@ -601,15 +616,15 @@ struct isp_dev_anti_flicker_new_info {
 };
 
 struct isp_dev_anti_flicker_info {
-	unsigned int bypass;
-	unsigned int mode;
-	unsigned int skip_frame_num;
-	unsigned int line_step;
-	unsigned int frame_num;
-	unsigned int vheight;
-	unsigned int start_col;
-	unsigned int end_col;
-	unsigned int afl_total_num;
+	uint32_t bypass;
+	uint32_t mode;
+	uint32_t skip_frame_num;
+	uint32_t line_step;
+	uint32_t frame_num;
+	uint32_t vheight;
+	uint32_t start_col;
+	uint32_t end_col;
+	uint32_t afl_total_num;
 	struct isp_img_size img_size;
 };
 
@@ -764,6 +779,60 @@ struct isp_dev_cfa_info {
 struct isp_dev_cmc10_info {
 	uint32_t bypass;
 	struct cmc_matrix matrix;
+};
+
+struct isp_dev_ltm_stat_buf_info {
+	uint32_t buf_sel;
+	uint32_t text_point_thres[ISP_LTM_STAT_TABLE_NUM];
+};
+
+struct isp_dev_ltm_stat_block_info {
+	uint32_t bypass;
+	uint32_t binning_en;
+	uint32_t region_est_en;
+	uint32_t text_point_thres;
+	uint32_t text_proportion;
+	uint32_t tile_height;
+	uint32_t tile_width;
+	uint32_t clip_limit_min;
+	uint32_t clip_limit;
+	uint32_t ddr_pitch;
+	uint32_t buf_full_mode;
+	uint32_t channel_sel;
+	uint32_t lut_buf_sel;
+	float ltm_stat_rgb_text_point_alpha;
+	struct isp_dev_ltm_stat_buf_info buf_info;
+};
+
+struct isp_dev_ltm_stat_slice_info {
+	uint32_t roi_start_y;
+	uint32_t roi_start_x;
+	uint32_t tile_num_x_minus1;
+	uint32_t tile_num_y_minus1;
+	uint32_t ddr_addr;
+	uint32_t ddr_wr_num;
+};
+
+struct isp_dev_ltm_map_block_info {
+	uint32_t bypass;
+	uint32_t burst8_en;
+	uint32_t hist_pitch;
+	uint32_t tile_height;
+	uint32_t tile_width;
+	uint32_t tile_size_pro;
+	uint32_t fetch_wait_en;
+	uint32_t fetch_wait_line;
+	uint32_t video_mode;
+};
+
+struct isp_dev_ltm_map_slice_info {
+	uint32_t tile_num_x;
+	uint32_t tile_num_y;
+	uint32_t tile_right_flag;
+	uint32_t tile_left_flag;
+	int tile_start_y;
+	int tile_start_x;
+	uint32_t mem_init_addr;
 };
 
 struct isp_dev_common_info {
@@ -1164,6 +1233,8 @@ struct isp_dev_hist2_info {
 struct isp_hsv_region_info {
 	unsigned short s_curve[5][4];
 	unsigned short v_curve[5][4];
+	unsigned short  r_s[5][2];
+	unsigned short  r_v[5][2];
 	uint32_t hrange_left[5];
 	uint32_t hrange_right[5];
 };
@@ -1178,7 +1249,7 @@ struct isp_dev_hsv_info {
 	uint32_t bypass;
 	uint32_t buf_sel;
 	struct isp_hsv_region_info region_info[2];
-	uint32_t data_ptr[2]; /*compatible with 64bit cpu*/
+	uint32_t data_ptr[2];
 	uint32_t size;
 };
 
@@ -1389,36 +1460,171 @@ struct isp_dev_pre_glb_gain_info {
 };
 
 /*isp sub block: ynr*/
+struct isp_slice_ynr_info {
+	uint32_t start_row;
+	uint32_t start_col;
+};
+
 struct isp_dev_ynr_info {
 	uint32_t bypass;
-	uint32_t lowlux_bypass;
-	uint32_t nr_enable;
-	uint32_t l_blf_en[3];
-	uint32_t txt_th;
-	uint32_t edge_th;
-	uint32_t flat_th[7];
-	uint32_t lut_th[7];
-	uint32_t addback[9];
-	uint32_t sub_th[9];
-	uint32_t l_euroweight[3][3];
-	uint32_t l_wf_index[3];
-	uint32_t l0_lut_th0;
-	uint32_t l0_lut_th1;
-	uint32_t l1_txt_th0;
-	uint32_t l1_txt_th1;
-	uint32_t wlt_th[24];
-	uint32_t freq_ratio[24];
-	struct img_offset start_pos;
-	struct img_offset center;
+	uint32_t l3_addback_enable;
+	uint32_t l2_addback_enable;
+	uint32_t l1_addback_enable;
+	uint32_t l0_addback_enable;
+	uint32_t l3_blf_en;
+	uint32_t sal_enable;
+	uint32_t l3_wv_nr_enable;
+	uint32_t l2_wv_nr_enable;
+	uint32_t l1_wv_nr_enable;
+	uint32_t blf_range_index;
+	uint32_t blf_dist_weight2;
+	uint32_t blf_dist_weight1;
+	uint32_t blf_dist_weight0;
+	int blf_range_s4;
+	int blf_range_s3;
+	int blf_range_s2;
+	int blf_range_s1;
+	uint32_t coef_model;
+	uint32_t blf_range_s0_high;
+	uint32_t blf_range_s0_mid;
+	uint32_t blf_range_s0_low;
+	uint32_t lum_thresh1;
+	uint32_t lum_thresh0;
+	uint32_t l1_wv_ratio2_low;
+	uint32_t l1_wv_ratio1_low;
+	uint32_t l1_soft_offset_low;
+	uint32_t l1_wv_thr1_low;
+	uint32_t l1_wv_ratio_d2_low;
+	uint32_t l1_wv_ratio_d1_low;
+	uint32_t l1_soft_offset_d_low;
+	uint32_t l1_wv_ratio2_mid;
+	uint32_t l1_wv_ratio1_mid;
+	uint32_t l1_soft_offset_mid;
+	uint32_t l1_wv_ratio_d2_mid;
+	uint32_t l1_wv_ratio_d1_mid;
+	uint32_t l1_soft_offset_d_mid;
+	uint32_t l1_wv_thr_d1_mid;
+	uint32_t l1_wv_ratio2_high;
+	uint32_t l1_wv_ratio1_high;
+	uint32_t l1_soft_offset_high;
+	uint32_t l1_wv_thr1_high;
+	uint32_t l1_wv_ratio_d2_high;
+	uint32_t l1_wv_ratio_d1_high;
+	uint32_t l1_soft_offset_d_high;
+	uint32_t l1_wv_thr_d1_high;
+	uint32_t l2_wv_ratio2_low;
+	uint32_t l2_wv_ratio1_low;
+	uint32_t l2_soft_offset_low;
+	uint32_t l2_wv_thr1_low;
+	uint32_t l2_wv_ratio_d2_low;
+	uint32_t l2_wv_ratio_d1_low;
+	uint32_t l2_soft_offset_d_low;
+	uint32_t l2_wv_thr_d1_low;
+	uint32_t l2_wv_ratio2_mid;
+	uint32_t l2_wv_ratio1_mid;
+	uint32_t l2_soft_offset_mid;
+	uint32_t l2_wv_thr1_mid;
+	uint32_t l2_wv_ratio_d2_mid;
+	uint32_t l2_wv_ratio_d1_mid;
+	uint32_t l2_soft_offset_d_mid;
+	uint32_t l2_wv_thr_d1_mid;
+	uint32_t l2_wv_ratio2_high;
+	uint32_t l2_wv_ratio1_high;
+	uint32_t l2_soft_offset_high;
+	uint32_t l2_wv_thr1_high;
+	uint32_t l2_wv_ratio_d2_high;
+	uint32_t l2_wv_ratio_d1_high;
+	uint32_t l2_soft_offset_d_high;
+	uint32_t l2_wv_thr_d1_high;
+	uint32_t l3_wv_ratio2_low;
+	uint32_t l3_wv_ratio1_low;
+	uint32_t l3_soft_offset_low;
+	uint32_t l3_wv_thr1_low;
+	uint32_t l3_wv_ratio_d2_low;
+	uint32_t l3_wv_ratio_d1_low;
+	uint32_t l3_soft_offset_d_low;
+	uint32_t l3_wv_thr_d1_low;
+	uint32_t l3_wv_ratio2_mid;
+	uint32_t l3_wv_ratio1_mid;
+	uint32_t l3_soft_offset_mid;
+	uint32_t l3_wv_thr1_mid;
+	uint32_t l3_wv_ratio_d2_mid;
+	uint32_t l3_wv_ratio_d1_mid;
+	uint32_t l3_soft_offset_d_mid;
+	uint32_t l3_wv_thr_d1_mid;
+	uint32_t l3_wv_ratio2_high;
+	uint32_t l3_wv_ratio1_high;
+	uint32_t l3_soft_offset_high;
+	uint32_t l3_wv_thr1_high;
+	uint32_t l3_wv_ratio_d2_high;
+	uint32_t l3_wv_ratio_d1_high;
+	uint32_t l3_soft_offset_d_high;
+	uint32_t l3_wv_thr_d1_high;
+	uint32_t l3_wv_thr2_high;
+	uint32_t l3_wv_thr2_mid;
+	uint32_t l3_wv_thr2_low;
+	uint32_t l2_wv_thr2_high;
+	uint32_t l2_wv_thr2_mid;
+	uint32_t l2_wv_thr2_low;
+	uint32_t l1_wv_thr2_high;
+	uint32_t l1_wv_thr2_mid;
+	uint32_t l1_wv_thr2_low;
+	uint32_t l3_wv_thr_d2_high;
+	uint32_t l3_wv_thr_d2_mid;
+	uint32_t l3_wv_thr_d2_low;
+	uint32_t l2_wv_thr_d2_high;
+	uint32_t l2_wv_thr_d2_mid;
+	uint32_t l2_wv_thr_d2_low;
+	uint32_t l1_wv_thr_d2_high;
+	uint32_t l1_wv_thr_d2_mid;
+	uint32_t l1_wv_thr_d2_low;
+	uint32_t l1_addback_ratio;
+	uint32_t l1_addback_clip;
+	uint32_t l0_addback_ratio;
+	uint32_t l0_addback_clip;
+	uint32_t l3_addback_ratio;
+	uint32_t l3_addback_clip;
+	uint32_t l2_addback_ratio;
+	uint32_t l2_addback_clip;
+	uint32_t lut_thresh3;
+	uint32_t lut_thresh2;
+	uint32_t lut_thresh1;
+	uint32_t lut_thresh0;
+	uint32_t lut_thresh6;
+	uint32_t lut_thresh5;
+	uint32_t lut_thresh4;
+	uint32_t sal_offset3;
+	uint32_t sal_offset2;
+	uint32_t sal_offset1;
+	uint32_t sal_offset0;
+	uint32_t sal_offset7;
+	uint32_t sal_offset6;
+	uint32_t sal_offset5;
+	uint32_t sal_offset4;
+	uint32_t sal_nr_str3;
+	uint32_t sal_nr_str2;
+	uint32_t sal_nr_str1;
+	uint32_t sal_nr_str0;
+	uint32_t sal_nr_str7;
+	uint32_t sal_nr_str6;
+	uint32_t sal_nr_str5;
+	uint32_t sal_nr_str4;
+	uint32_t start_row;
+	uint32_t start_col;
+	uint32_t center_y;
+	uint32_t center_x;
+	uint32_t dis_interval;
 	uint32_t radius;
-	uint32_t dist_interval;
-	unsigned char sal_nr_str[8];
-	unsigned char sal_offset[8];
-	uint32_t edgeStep[8];
-	uint32_t wlt_T[3];
-	uint32_t ad_para[3];
-	uint32_t ratio[3];
-	uint32_t maxRadius;
+	uint32_t slice_height;
+	uint32_t slice_width;
+	struct isp_slice_ynr_info slice_info_array[SLICE_NUM_MAX];
+};
+
+struct img_signed_offset {
+	int offset_col;
+	int offset_row;
+	uint32_t slice_width;
+	uint32_t slice_height;
 };
 
 struct ynr_param {
@@ -1777,13 +1983,12 @@ struct isp_dev_uvd_info {
 	uint32_t lum_th_h;
 	uint32_t lum_th_l_len;
 	uint32_t lum_th_l;
-	uint32_t chroma_min_h;
-	uint32_t chroma_min_l;
+	uint32_t chroma_ratio;
 	uint32_t chroma_max_h;
 	uint32_t chroma_max_l;
 	struct uvd_th u_th;
 	struct uvd_th v_th;
-	uint32_t ratio;
+	uint32_t luma_ratio;
 	uint32_t ratio_uv_min;
 	uint32_t ratio_y_min[2];
 	uint32_t ratio0;
@@ -2581,4 +2786,138 @@ struct isp_3dnr_tuning_param {
 	struct isp_3dnr_const_param blend_param;
 };
 
+struct gtm_glb_ctrl {
+	uint32_t gtm_tm_out_bit_depth;
+	uint32_t gtm_tm_in_bit_depth;
+	uint32_t gtm_slice_main;
+	uint32_t gtm_tm_luma_est_mode;
+	uint32_t gtm_cur_is_first_frame;
+	uint32_t gtm_tm_param_calc_by_hw;
+	uint32_t gtm_hist_stat_bypass;
+	uint32_t gtm_map_bypass;
+	uint32_t gtm_mod_en;
+};
+
+struct gtm_hist_ctrl0 {
+	uint32_t gtm_imgkey_setting_value;
+	uint32_t gtm_imgkey_setting_mode;
+};
+
+struct gtm_hist_ctrl1 {
+	uint32_t gtm_target_norm_coeff;
+	uint32_t gtm_target_norm;
+	uint32_t gtm_target_norm_setting_mode;
+};
+
+struct gtm_hist_ymin {
+	uint32_t gtm_ymin;
+};
+
+struct gtm_hist_ctrl2 {
+	uint32_t gtm_yavg;
+	uint32_t gtm_ymax;
+};
+struct gtm_hist_ctrl3 {
+	uint32_t gtm_log_min_int;
+	uint32_t gtm_lr_int;
+};
+
+struct gtm_hist_ctrl4 {
+	uint32_t gtm_log_diff_int;
+	uint32_t gtm_log_max_int;
+};
+
+struct gtm_hist_ctrl5 {
+	uint32_t gtm_hist_total;
+};
+
+struct gtm_hist_ctrl6 {
+	uint32_t gtm_min_per;
+};
+struct gtm_hist_ctrl7 {
+	uint32_t gtm_max_per;
+};
+
+struct gtm_log_diff {
+	uint32_t gtm_log_diff;
+};
+
+struct gtm_tm_ymin_smooth {
+	uint32_t gtm_pre_ymin_weight;
+	uint32_t gtm_cur_ymin_weight;
+	uint32_t gtm_ymax_diff_thr;
+};
+
+struct gtm_tm_lumafilter0 {
+	uint32_t tm_lumafilter_c10;
+	uint32_t tm_lumafilter_c02;
+	uint32_t tm_lumafilter_c01;
+	uint32_t tm_lumafilter_c00;
+};
+
+struct gtm_tm_lumafilter1 {
+	uint32_t tm_lumafilter_c21;
+	uint32_t tm_lumafilter_c20;
+	uint32_t tm_lumafilter_c12;
+	uint32_t tm_lumafilter_c11;
+};
+
+struct gtm_tm_lumafilter2 {
+	uint32_t tm_lumafilter_shift;
+	uint32_t tm_lumafilter_c22;
+};
+
+struct gtm_tm_rgb2ycoeff0 {
+	uint32_t tm_rgb2y_g_coeff;
+	uint32_t tm_rgb2y_r_coeff;
+};
+
+struct gtm_tm_rgb2ycoeff1 {
+	uint32_t tm_rgb2y_b_coeff;
+};
+
+struct gtm_slice_line_startpos {
+	uint32_t gtm_slice_line_startpos;
+};
+
+struct gtm_slice_line_endpos {
+	uint32_t gtm_slice_line_endpos;
+};
+
+struct isp_dev_gtm_info {
+	struct gtm_glb_ctrl gtm_glb_ctrl;
+	struct gtm_hist_ctrl0 gtm_hist_ctrl0;
+	struct gtm_hist_ctrl1 gtm_hist_ctrl1;
+	struct gtm_hist_ymin gtm_hist_ymin;
+	struct gtm_hist_ctrl2 gtm_hist_ctrl2;
+	struct gtm_hist_ctrl3 gtm_hist_ctrl3;
+	struct gtm_hist_ctrl4 gtm_hist_ctrl4;
+	struct gtm_hist_ctrl5 gtm_hist_ctrl5;
+	struct gtm_hist_ctrl6 gtm_hist_ctrl6;
+	struct gtm_hist_ctrl7 gtm_hist_ctrl7;
+	struct gtm_log_diff gtm_log_diff;
+	struct gtm_tm_ymin_smooth gtm_tm_ymin_smooth;
+	struct gtm_tm_lumafilter0 gtm_tm_lumafilter0;
+	struct gtm_tm_lumafilter1 gtm_tm_lumafilter1;
+	struct gtm_tm_lumafilter2 gtm_tm_lumafilter2;
+	struct gtm_tm_rgb2ycoeff0 gtm_tm_rgb2ycoeff0;
+	struct gtm_tm_rgb2ycoeff1 gtm_tm_rgb2ycoeff1;
+	struct gtm_slice_line_startpos gtm_slice_line_startpos;
+	struct gtm_slice_line_endpos gtm_slice_line_endpos;
+	uint32_t histBin[GTM_HIST_BIN_NUM];
+};
+
+struct isp_dev_bchs_info_v1 {
+	uint32_t cnta_en;
+	uint32_t brta_en;
+	uint32_t hua_en;
+	uint32_t csa_en;
+	uint32_t bchs_bypass;
+	uint32_t csa_factor_u;
+	uint32_t csa_factor_v;
+	uint32_t hua_cos_value;
+	uint32_t hua_sina_value;
+	uint32_t brta_factor;
+	uint32_t cnta_factor;
+};
 #endif

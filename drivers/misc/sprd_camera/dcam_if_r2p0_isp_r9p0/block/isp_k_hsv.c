@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -99,21 +99,57 @@ static int isp_pingpang_frgb_hsv(struct isp_dev_hsv_info *hsv_info,
 
 	for (i = 0; i < 5; i++) {
 		val = ((region_info.hrange_left[i] & 0x1FF) << 23) |
-			  ((region_info.s_curve[i][1] & 0x7FF) << 11) |
-			   (region_info.s_curve[i][0] & 0x7FF);
-		ISP_REG_WR(idx, ISP_HSV_CFG0 + i*12, val);
+				((region_info.s_curve[i][1] & 0x7FF) << 11) |
+				(region_info.s_curve[i][0] & 0x7FF);
+		ISP_REG_WR(idx, ISP_HSV_CFG0 + i * 12, val);
 
 		val = ((region_info.hrange_right[i] & 0x1FF) << 23) |
-			  ((region_info.s_curve[i][3] & 0x7FF) << 11) |
-			   (region_info.s_curve[i][2] & 0x7FF);
-		ISP_REG_WR(idx, ISP_HSV_CFG1 + i*12, val);
+				((region_info.s_curve[i][3] & 0x7FF) << 11) |
+				(region_info.s_curve[i][2] & 0x7FF);
+		ISP_REG_WR(idx, ISP_HSV_CFG1 + i * 12, val);
 
 		val = ((region_info.v_curve[i][3] & 0xFF) << 24) |
-			  ((region_info.v_curve[i][2] & 0xFF) << 16) |
-			  ((region_info.v_curve[i][1] & 0xFF) << 8) |
-			   (region_info.v_curve[i][0] & 0xFF);
+				((region_info.v_curve[i][2] & 0xFF) << 16) |
+				((region_info.v_curve[i][1] & 0xFF) << 8) |
+				(region_info.v_curve[i][0] & 0xFF);
 		ISP_REG_WR(idx, ISP_HSV_CFG2 + i*12, val);
 	}
+
+	val = ((region_info.r_s[1][0] << 20) |
+			(region_info.r_s[0][0] << 9) |
+			(region_info.r_v[0][0]));
+	ISP_REG_WR(idx, ISP_HSV_CFG15, val);
+
+	val = ((region_info.r_s[3][0] << 20) |
+			(region_info.r_s[2][0] << 9) |
+			(region_info.r_v[1][0]));
+	ISP_REG_WR(idx, ISP_HSV_CFG16, val);
+
+	val = ((region_info.r_v[3][0] << 20) |
+			(region_info.r_s[4][0] << 9) |
+			(region_info.r_v[2][0]));
+	ISP_REG_WR(idx, ISP_HSV_CFG17, val);
+
+	val = ((region_info.r_s[1][1] << 20) |
+			(region_info.r_s[0][1] << 9) |
+			(region_info.r_v[0][1]));
+	ISP_REG_WR(idx, ISP_HSV_CFG18, val);
+
+	val = ((region_info.r_s[3][1] << 20) |
+			(region_info.r_s[2][1] << 9) |
+			(region_info.r_v[1][1]));
+	ISP_REG_WR(idx, ISP_HSV_CFG19, val);
+
+	val = ((region_info.r_v[3][1] << 20) |
+			(region_info.r_s[4][1] << 9) |
+			(region_info.r_v[2][1]));
+	ISP_REG_WR(idx, ISP_HSV_CFG20, val);
+
+	val = ((region_info.r_v[4][1] << 9) |
+			(region_info.r_v[4][0]));
+	ISP_REG_WR(idx, ISP_HSV_CFG21, val);
+
+
 #ifdef CONFIG_64BIT
 	data_ptr = ((unsigned long)hsv_info->data_ptr[1] << 32)
 				| hsv_info->data_ptr[0];

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -64,6 +64,7 @@ static struct dcam_cfg_fun dcam_cfg_fun_tab[] = {
 	{ISP_BLOCK_2D_LSC,           isp_k_cfg_2d_lsc},
 	{ISP_BLOCK_AWBC,             isp_k_cfg_awbc},
 	{ISP_BLOCK_RGBG_DITHER,      isp_k_cfg_rgb_dither},
+	{ISP_BLOCK_GTM,              isp_k_cfg_gtm}
 };
 
 int sprd_isp_cfg_param(void *param,

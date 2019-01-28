@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -41,6 +41,7 @@ static int isp_k_y_delay_block(struct isp_io_param *param, uint32_t idx)
 
 	val = ydelay_info.step & 0x1FFF;
 	ISP_REG_WR(idx, ISP_YDELAY_STEP, val);
+
 	return ret;
 }
 

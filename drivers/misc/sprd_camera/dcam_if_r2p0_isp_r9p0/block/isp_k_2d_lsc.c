@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -46,14 +46,14 @@ static int isp_k_2d_lsc_param_load
 
 	dcam_idx = (enum dcam_id)idx;
 
-	DCAM_REG_WR(idx, ISP_LENS_BASE_RADDR,
+	DCAM_REG_WR(idx, DCAM_LENS_BASE_RADDR,
 		isp_k_param->lsc_buf_phys_addr);
 
-	DCAM_REG_MWR(idx, ISP_LENS_GRID_NUMBER,
+	DCAM_REG_MWR(idx, DCAM_LENS_GRID_NUMBER,
 		0X7FF, lens_info->grid_num_t);
 
 	/*para_load_enable*/
-	DCAM_REG_MWR(idx, ISP_LENS_LOAD_CLR, BIT_0, 1);
+	DCAM_REG_MWR(idx, DCAM_LENS_LOAD_CLR, BIT_0, 1);
 
 	/*lens_load_buf_sel*/
 	if (isp_k_param->lsc_load_param_init <
@@ -67,7 +67,7 @@ static int isp_k_2d_lsc_param_load
 				isp_k_param->lsc_load_buf_id_prv = ISP_LSC_BUF0;
 			pr_info("lsc_load_buf_id_prv = %d\n",
 				!isp_k_param->lsc_load_buf_id_prv);
-			DCAM_REG_MWR(idx, ISP_LENS_LOAD_EB, BIT_1,
+			DCAM_REG_MWR(idx, DCAM_LENS_LOAD_ENABLE, BIT_1,
 				(!isp_k_param->lsc_load_buf_id_prv) << 1);
 		} else {
 			if (isp_k_param->lsc_load_buf_id_cap == ISP_LSC_BUF0)
@@ -76,13 +76,13 @@ static int isp_k_2d_lsc_param_load
 				isp_k_param->lsc_load_buf_id_cap = ISP_LSC_BUF0;
 			pr_info("lsc_load_buf_id_cap = %d\n",
 				!isp_k_param->lsc_load_buf_id_cap);
-			DCAM_REG_MWR(idx, ISP_LENS_LOAD_EB, BIT_1,
+			DCAM_REG_MWR(idx, DCAM_LENS_LOAD_ENABLE, BIT_1,
 				(!isp_k_param->lsc_load_buf_id_cap) << 1);
 		}
 	}
 
 	/*lens_bypass*/
-	DCAM_REG_MWR(idx, ISP_LENS_LOAD_EB, BIT_0, 0);
+	DCAM_REG_MWR(idx, DCAM_LENS_LOAD_ENABLE, BIT_0, 0);
 
 	if (isp_k_param->lsc_load_param_init <
 		ISP_LSC_BUF_MAX) {
@@ -92,7 +92,7 @@ static int isp_k_2d_lsc_param_load
 	val = ((lens_info->grid_width & 0x1FF) << 16) |
 		((lens_info->grid_y_num & 0xFF) << 8) |
 		(lens_info->grid_x_num & 0xFF);
-	DCAM_REG_MWR(idx, ISP_LENS_GRID_SIZE, 0x1FFFFFF, val);
+	DCAM_REG_MWR(idx, DCAM_LENS_GRID_SIZE, 0x1FFFFFF, val);
 
 	/*lens_load_buf_sel*/
 	if (isp_k_param->lsc_load_param_init >=
@@ -104,7 +104,7 @@ static int isp_k_2d_lsc_param_load
 				isp_k_param->lsc_load_buf_id_prv = ISP_LSC_BUF0;
 			pr_debug("lsc_load_buf_id_prv = %d\n",
 				!isp_k_param->lsc_load_buf_id_prv);
-			DCAM_REG_MWR(idx, ISP_LENS_LOAD_EB, BIT_1,
+			DCAM_REG_MWR(idx, DCAM_LENS_LOAD_ENABLE, BIT_1,
 				(!isp_k_param->lsc_load_buf_id_prv) << 1);
 		} else {
 			if (isp_k_param->lsc_load_buf_id_cap == ISP_LSC_BUF0)
@@ -113,7 +113,7 @@ static int isp_k_2d_lsc_param_load
 				isp_k_param->lsc_load_buf_id_cap = ISP_LSC_BUF0;
 			pr_debug("lsc_load_buf_id_cap = %d\n",
 				!isp_k_param->lsc_load_buf_id_cap);
-			DCAM_REG_MWR(idx, ISP_LENS_LOAD_EB, BIT_1,
+			DCAM_REG_MWR(idx, DCAM_LENS_LOAD_ENABLE, BIT_1,
 				(!isp_k_param->lsc_load_buf_id_cap) << 1);
 		}
 		isp_k_param->lsc_load_param_init = ISP_LSC_BUF_MAX;
@@ -132,12 +132,12 @@ static int isp_k_2d_lsc_param_load
 		sprd_dcam_drv_auto_copy(dcam_idx, copy_id);
 	}
 
-	reg_value = DCAM_REG_RD(idx, ISP_LENS_LOAD_EB);
+	reg_value = DCAM_REG_RD(idx, DCAM_LENS_LOAD_ENABLE);
 	pr_debug("reg_value = %d\n", reg_value);
 	while (((reg_value & ISP_EVT_LSC_LOAD) == 0x00)
 		&& (time_out_cnt < ISP_LSC_TIME_OUT_MAX)) {
 		udelay(1);
-		reg_value = DCAM_REG_RD(idx, ISP_LENS_LOAD_EB);
+		reg_value = DCAM_REG_RD(idx, DCAM_LENS_LOAD_ENABLE);
 		time_out_cnt++;
 	}
 	if (time_out_cnt >= ISP_LSC_TIME_OUT_MAX) {
@@ -145,7 +145,7 @@ static int isp_k_2d_lsc_param_load
 		pr_err("fail to load lsc param,lsc load time out\n");
 	}
 
-	DCAM_REG_MWR(idx, ISP_LENS_LOAD_CLR, BIT_1, 1);
+	DCAM_REG_MWR(idx, DCAM_LENS_LOAD_CLR, BIT_1, 1);
 
 	return ret;
 }
@@ -191,7 +191,7 @@ static int isp_k_2d_lsc_block(struct isp_io_param *param,
 		data_ptr = lens_info.data_ptr[0];
 #endif
 		isp_k_param->lsc_2d_weight_en = 0;
-		dst_addr = DCAM_BASE(idx) + ISP_LENS_WEIGHT_ADDR;
+		dst_addr = DCAM_BASE(idx) + DCAM_LSC_WEI_TABLE;
 		w_buff = isp_k_param->lsc_2d_weight_addr;
 
 		if (w_buff == NULL) {
@@ -229,7 +229,7 @@ static int isp_k_2d_lsc_block(struct isp_io_param *param,
 		&lens_info, scene_id);
 	if (ret != 0) {
 		pr_err("fail to load lsc param, ret = %d\n", ret);
-		DCAM_REG_MWR(idx, ISP_LENS_LOAD_EB, BIT_0, ISP_BYPASS_EB);
+		DCAM_REG_MWR(idx, DCAM_LENS_LOAD_ENABLE, BIT_0, ISP_BYPASS_EB);
 		ret = -EPERM;
 		goto exit;
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -44,19 +44,19 @@ static int isp_k_rgb_gain_block(struct isp_io_param *param, enum isp_id idx)
 	}
 	group->dual_frame_gap = !gain_info.reserv;
 
-	DCAM_REG_MWR(idx, ISP_RGBG_PARAM, BIT_0, gain_info.bypass);
+	DCAM_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAMETER0, BIT_0, gain_info.bypass);
 	if (gain_info.bypass)
 		return 0;
 
 	if (!gain_info.bypass) {
-		val = (gain_info.global_gain & 0xFFFF) << 16;
-		DCAM_REG_MWR(idx, ISP_RGBG_PARAM, 0xFFFF0000, val);
+		val = gain_info.global_gain & 0xFFFF;
+		DCAM_REG_WR(idx, ISP_RGBG_G, val);
 
 		val = ((gain_info.r_gain & 0xFFFF) << 16)
 			| (gain_info.b_gain & 0xFFFF);
 		DCAM_REG_WR(idx, ISP_RGBG_RB, val);
-		val = gain_info.g_gain & 0xFFFF;
-		DCAM_REG_WR(idx, ISP_RGBG_G, val);
+		val = (gain_info.g_gain & 0xFFFF) << 16;
+		DCAM_REG_MWR(idx, ISP_RGBG_G, 0xFFFF << 16, val);
 	}
 
 	return ret;
@@ -76,9 +76,9 @@ static int isp_k_rgb_gain_bypass
 	}
 
 	if (bypass)
-		DCAM_REG_MWR(idx, ISP_RGBG_PARAM, BIT_0, 1);
+		DCAM_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAMETER0, BIT_0, 1);
 	else
-		DCAM_REG_MWR(idx, ISP_RGBG_PARAM, BIT_0, 0);
+		DCAM_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAMETER0, BIT_0, 0);
 
 	return ret;
 }
@@ -97,9 +97,8 @@ static int isp_k_rgb_gain_global_gain
 		return -1;
 	}
 
-	val = (global_gain & 0xFFFF) << 16;
-
-	DCAM_REG_MWR(idx, ISP_RGBG_PARAM, 0xFFFF0000, val);
+	val = global_gain & 0xFFFF;
+	DCAM_REG_WR(idx, ISP_RGBG_G, val);
 
 	return ret;
 }
@@ -124,8 +123,8 @@ static int isp_k_rgb_gain_rgb_gain
 		(gain_para.b_gain & 0xFFFF);
 	DCAM_REG_WR(idx, ISP_RGBG_RB, val);
 
-	val = gain_para.g_gain & 0xFFFF;
-	DCAM_REG_WR(idx, ISP_RGBG_G, val);
+	val = (gain_para.g_gain & 0xFFFF) << 16;
+	DCAM_REG_MWR(idx, ISP_RGBG_G, 0xFFFF << 16, val);
 
 	return ret;
 }

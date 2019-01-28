@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -67,64 +67,6 @@ static int isp_k_cfa_block(struct isp_io_param *param, uint32_t idx)
 	val = (cfa_info.round_diff_12_thr & 0xFFF) |
 			((cfa_info.low_lux_12_thr & 0x3FF) << 16);
 	ISP_REG_WR(idx, ISP_CFAE_INTP_CFG5, val);
-
-	ISP_REG_MWR(idx, ISP_CFAE_NEW_CFG0, BIT_2, cfa_info.css_bypass << 2);
-
-	val = (cfa_info.css_weak_edge_thr & 0x1FFF) |
-			((cfa_info.css_edge_thr & 0x1FFF) << 16);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG0, val);
-
-	val = (cfa_info.css_texture1_thr & 0x1FFF) |
-			((cfa_info.css_texture2_thr & 0x1FFF) << 16);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG1, val);
-
-	val = ((cfa_info.css_gray_thr & 0x3FF) << 20) |
-			((cfa_info.css_uv_diff_thr & 0x3FF) << 10) |
-			(cfa_info.css_uv_val_thr & 0x3FF);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG2, val);
-
-	val = ((cfa_info.css_green_weak_edge_thr & 0x3FF) << 20) |
-			((cfa_info.css_green_edge_thr & 0x3FF) << 10) |
-			(cfa_info.css_pix_similar_thr & 0x3FF);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG3, val);
-
-	val = ((cfa_info.css_green_flat_thr & 0x3FF) << 20) |
-			((cfa_info.css_green_tex2_thr & 0x3FF) << 10) |
-			(cfa_info.css_green_tex1_thr & 0x3FF);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG4, val);
-
-	val = ((cfa_info.css_text1_corr_ratio_r & 0x1FF) << 18) |
-			((cfa_info.css_edge_corr_ratio_b & 0x1FF) << 9) |
-			(cfa_info.css_edge_corr_ratio_r & 0x1FF);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG5, val);
-
-	val = ((cfa_info.css_text2_corr_ratio_b & 0x1FF) << 18) |
-			((cfa_info.css_text2_corr_ratio_r & 0x1FF) << 9) |
-			(cfa_info.css_text1_corr_ratio_b & 0x1FF);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG6, val);
-
-	val = ((cfa_info.css_wedge_corr_ratio_r & 0x1FF) << 18) |
-			((cfa_info.css_flat_corr_ratio_b & 0x1FF) << 9) |
-			(cfa_info.css_flat_corr_ratio_r & 0x1FF);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG7, val);
-
-	val = ((cfa_info.css_alpha_for_tex2 & 0x1F) << 17) |
-			(cfa_info.css_wedge_corr_ratio_b & 0x1FF);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG8, val);
-
-	val = ((cfa_info.css_skin_u_top[0] & 0x3FF) << 20) |
-			((cfa_info.css_skin_u_down[0] & 0x3FF) << 10) |
-			(cfa_info.css_skin_v_top[0] & 0x3FF);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG9, val);
-
-	val = ((cfa_info.css_skin_v_down[0] & 0x3FF) << 20) |
-			((cfa_info.css_skin_u_top[1] & 0x3FF) << 10) |
-			(cfa_info.css_skin_u_down[1] & 0x3FF);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG10, val);
-
-	val = ((cfa_info.css_skin_v_top[1] & 0x3FF) << 10) |
-			(cfa_info.css_skin_v_down[1] & 0x3FF);
-	ISP_REG_WR(idx, ISP_CFAE_CSS_CFG11, val);
 
 	return ret;
 }

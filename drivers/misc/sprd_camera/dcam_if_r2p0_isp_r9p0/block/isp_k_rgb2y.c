@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -37,14 +37,13 @@ static int isp_k_rgb2y_block(struct isp_io_param *param, enum isp_id idx)
 		return -1;
 	}
 
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_PARAM0, BIT_0,
-			rgb2y_info.bypass);
+	DCAM_REG_MWR(idx, ISP_AFL_PARAM0, BIT_1, rgb2y_info.bypass << 1);
 	if (rgb2y_info.bypass)
 		return 0;
 
 	val = ((rgb2y_info.bayer2y_chanel & 0x3) << 6) |
 		(rgb2y_info.bayer2y_mode & 0x3) << 4;
-	DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_PARAM0, 0xF0, val);
+	DCAM_REG_MWR(idx, ISP_AFL_PARAM0, 0xF << 4, val);
 
 	return ret;
 }

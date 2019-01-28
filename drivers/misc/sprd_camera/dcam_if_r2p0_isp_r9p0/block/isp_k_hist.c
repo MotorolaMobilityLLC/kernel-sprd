@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2018-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -34,18 +34,15 @@ static int isp_k_hist_block(struct isp_io_param *param, uint32_t idx)
 		pr_err("fail to copy from user, ret = %d\n", ret);
 		return -1;
 	}
-	ISP_REG_MWR(idx, ISP_HIST_PARAM, BIT_0, hist_info.bypass);
-	if (hist_info.bypass) {
-		ISP_REG_MWR(idx, ISP_HIST_CFG_READY, BIT_0, 1);
+	ISP_REG_MWR(idx, DCAM_HIST_FRM_CTRL0, BIT_0, hist_info.bypass);
+	if (hist_info.bypass)
 		return 0;
-	}
-	ISP_REG_MWR(idx, ISP_HIST_PARAM, BIT_1, hist_info.mode << 1);
 
-	ISP_REG_MWR(idx, ISP_HIST_PARAM, 0xF0, hist_info.skip_num << 4);
+	ISP_REG_MWR(idx, DCAM_HIST_FRM_CTRL0, BIT_2, hist_info.mode << 2);
 
-	ISP_REG_MWR(idx, ISP_HIST_SKIP_NUM_CLR, BIT_0, 1);
+	ISP_REG_MWR(idx, DCAM_HIST_FRM_CTRL0, 0xF0, hist_info.skip_num << 4);
 
-	ISP_REG_MWR(idx, ISP_HIST_CFG_READY, BIT_0, 1);
+	ISP_REG_MWR(idx, DCAM_HIST_FRM_CTRL1, BIT_1, 1 << 1);
 
 	return ret;
 }
