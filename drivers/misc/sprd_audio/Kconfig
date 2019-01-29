@@ -51,4 +51,9 @@ config SPRD_AUDIO_MCDT
 	  normally we use it transfer audio data.
 	  Say Y if your platform supports hardware MCDT.
 
+config SPRD_HW_DEVICE_DVFS_AGCP
+	tristate "Spreadtrum AGCP dvfs driver"
+	depends on SPRD_MAILBOX && SPRD_AUDIO_MEMORY_MANAGER
+	help
+	   This driver supports dvfs interfaces for PUBCP DVFS and WTLCP DVFS at user specidied.
 endmenu

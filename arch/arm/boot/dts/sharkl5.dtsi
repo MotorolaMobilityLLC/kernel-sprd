@@ -1980,6 +1980,11 @@
 		sprd,channel = <9>;
 	};
 
+	audiocp_dvfs {
+		compatible = "sprd,sharkl5-audcp-dvfs";
+		sprd,channel = <10>;
+	};
+
 	ext_26m: ext-26m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;

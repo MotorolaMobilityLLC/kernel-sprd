@@ -33,8 +33,8 @@ CONFIG_AIO
 	[subsys] core
 	[must] console
 	[function] This option enables POSIX asynchronous I/O which may by used
-			by some high performance threaded applications. Disabling this
-			option saves about 7k.
+		by some high performance threaded applications. Disabling this
+		option saves about 7k.
 CONFIG_ALIGNMENT_TRAP
 	[arch] arm
 	[plat] sharkl5_32
@@ -63,7 +63,7 @@ CONFIG_ANDROID_BINDER_DEVICES
 	[subsys] core
 	[must] console
 	[function] vts require. Set with "binder,hwbinder,vndbinder" if the
-			version of android later than 8.0.
+		version of android later than 8.0.
 CONFIG_ANDROID_BINDER_IPC
 	[arch] all
 	[plat] all
@@ -71,7 +71,7 @@ CONFIG_ANDROID_BINDER_IPC
 	[subsys] core
 	[must] console
 	[function] vts require. Binder is used in Android for both communication
-			between processes, and remote method invocation.
+		between processes, and remote method invocation.
 CONFIG_ANDROID_LOW_MEMORY_KILLER
 	[arch] arm
 	[plat] sharkl5_32
@@ -79,7 +79,7 @@ CONFIG_ANDROID_LOW_MEMORY_KILLER
 	[subsys] mm
 	[must] unknown
 	[function] Registers processes to be killed when low memory conditions,
-		    this is useful in android-go.
+	    this is useful in android-go.
 CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 	[arch] arm
 	[plat] sharkl5_32
@@ -150,7 +150,7 @@ CONFIG_ARCH_HAS_ELF_RANDOMIZE
 	[subsys] core
 	[must] console
 	[function] An architecture supports choosing randomized locations for
-			stack, mmap, brk, and ET_DYN.
+		stack, mmap, brk, and ET_DYN.
 CONFIG_ARCH_HAS_FORTIFY_SOURCE
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -431,7 +431,7 @@ CONFIG_ARCH_USE_CMPXCHG_LOCKREF
 	[subsys] core
 	[must] console
 	[function] Enable ARCH_USE_CMPXCHG_LOCKREF for 64 bit since it shows performance
-			improvements with Linus' simple stat() test case of up to 50% on a 30 cpu system.
+		improvements with Linus' simple stat() test case of up to 50% on a 30 cpu system.
 CONFIG_ARCH_VIRT
 	[arch] arm
 	[plat] sharkl5_32
@@ -572,7 +572,7 @@ CONFIG_ARM64_HW_AFDBM
 	[subsys] arch
 	[must] user
 	[function] The ARMv8.1 architecture extensions introduce support for
-			hardware updates of the access and dirty information in page.
+		hardware updates of the access and dirty information in page.
 CONFIG_ARM64_LSE_ATOMICS
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -608,7 +608,7 @@ CONFIG_ARM64_PAN
 	[subsys] arch
 	[must] user
 	[function] Privileged Access Never (PAN; part of the ARMv8.1 Extensions)
-			prevents the kernel or hypervisor from accessing user-space (EL0) memory directly.
+		prevents the kernel or hypervisor from accessing user-space (EL0) memory directly.
 CONFIG_ARM64_SSBD
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -644,8 +644,8 @@ CONFIG_ARMV8_DEPRECATED
 	[subsys] core
 	[must] console
 	[function] Legacy software support may require certain instructions
-		that have been deprecated or obsoleted in the architecture.
-		Enable this config to enable selective emulation of these features.
+	that have been deprecated or obsoleted in the architecture.
+	Enable this config to enable selective emulation of these features.
 CONFIG_ARM_AMBA
 	[arch] all
 	[plat] all
@@ -653,7 +653,7 @@ CONFIG_ARM_AMBA
 	[subsys] kernel core
 	[must] debug
 	[function] Coresight devices depend on AMBA bus,
-		   enable it to support coresight architecture.
+	   enable it to support coresight architecture.
 CONFIG_ARM_ARCH_TIMER
 	[arch] all
 	[plat] all
@@ -738,7 +738,7 @@ CONFIG_ARM_GIC_V2M
 	[subsys] pci
 	[must] user
 	[function] Support for Message Signal Interrupts for system that
-		   implement ARM Generic Interrupt Controller: GICv2m.
+	   implement ARM Generic Interrupt Controller: GICv2m.
 CONFIG_ARM_GIC_V3
 	[arch] all
 	[plat] all
@@ -816,7 +816,7 @@ CONFIG_ARM_PSCI_FW
 	[subsys] core
 	[must] user
 	[function] hotplug with security depend on PSCI_FW,
-		   enable it to support hotplug
+	   enable it to support hotplug
 CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -859,10 +859,10 @@ CONFIG_ASN1
 	[subsys] security
 	[must] user
 	[function] Build a simple ASN.1 grammar compiler that produces
-        a bytecode output that can be interpreted by
-        the ASN.1 stream decoder and used to inform
-        it as to what tags are to be expected in a stream
-        and what functions  to call on what tags.
+a bytecode output that can be interpreted by
+the ASN.1 stream decoder and used to inform
+it as to what tags are to be expected in a stream
+and what functions  to call on what tags.
 CONFIG_ASSOCIATIVE_ARRAY
 	[arch] all
 	[plat] all
@@ -982,8 +982,8 @@ CONFIG_BASE_FULL
 	[subsys] core
 	[must] console
 	[function] Disabling this option reduces the size of miscellaneous core
-		kernel data structures. This saves memory on small machines,
-		but may reduce performance.
+	kernel data structures. This saves memory on small machines,
+	but may reduce performance.
 CONFIG_BASE_SMALL
 	[arch] all
 	[plat] all
@@ -1047,7 +1047,7 @@ CONFIG_BLK_DEV_DM
 	[subsys] md
 	[must] none
 	[function] Device-mapper is a low level volume manager.
-		   It works by allowing people to specify mappings for ranges of logical sectors.
+	   It works by allowing people to specify mappings for ranges of logical sectors.
 CONFIG_BLK_DEV_DM_BUILTIN
 	[arch] all
 	[plat] all
@@ -1083,7 +1083,7 @@ CONFIG_BLK_DEV_LOOP_MIN_COUNT
 	[subsys] block
 	[must] user
 	[function] Static number of loop devices to be unconditionally pre-created
-		   at init time. we set this value to 0 for known problem.
+	   at init time. we set this value to 0 for known problem.
 CONFIG_BLK_DEV_RAM
 	[arch] all
 	[plat] all
@@ -1140,10 +1140,10 @@ CONFIG_BLOCK
 	[subsys] block
 	[must] busybox_console
 	[function] Provide block layer support for the kernel.
-		   If this option is disabled:
-		    - block device files will become unusable
-		    - some filesystems (such as ext3) will become
-		   unavailable.
+	   If this option is disabled:
+	    - block device files will become unusable
+	    - some filesystems (such as ext3) will become
+	   unavailable.
 CONFIG_BLOCK_COMPAT
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -1207,9 +1207,9 @@ CONFIG_BQL
 	[subsys] net
 	[must] user
 	[function] depends on SYSFS, Byte queue limits are a mechanism to limit the size of the transmit
-		hardware queue on a NIC by a number of bytes. The goal of these byte
-		queue limits is to reduce latency caused by excessive queuing in
-		hardware without sacrificing throughput.
+	hardware queue on a NIC by a number of bytes. The goal of these byte
+	queue limits is to reduce latency caused by excessive queuing in
+	hardware without sacrificing throughput.
 CONFIG_BRANCH_PROFILE_NONE
 	[arch] all
 	[plat] all
@@ -1238,9 +1238,9 @@ CONFIG_BUG
 	[subsys] debug
 	[must] debug
 	[function] Disabling this option eliminates support for BUG and WARN, reducing
-		the size of your kernel image and potentially quietly ignoring numerous fatal conditions.
-		You should only consider disabling this option for embedded systems with no facilities for
-		reporting errors.
+	the size of your kernel image and potentially quietly ignoring numerous fatal conditions.
+	You should only consider disabling this option for embedded systems with no facilities for
+	reporting errors.
 CONFIG_BUILDTIME_EXTABLE_SORT
 	[arch] all
 	[plat] all
@@ -1283,7 +1283,7 @@ CONFIG_BUILD_BIN2C
 	[subsys] debug
 	[must] user
 	[function] vts require, Enable file format exchange from BIN to C.
-		   enable by IKCONFIG
+	   enable by IKCONFIG
 CONFIG_CACHE_L2X0
 	[arch] arm
 	[plat] sharkl5_32
@@ -1305,7 +1305,7 @@ CONFIG_CC_STACKPROTECTOR
 	[subsys] build
 	[must] user
 	[function] Set when a stack-protector mode is enabled, so that the build
-		can enable kernel-side support for the GCC feature.
+	can enable kernel-side support for the GCC feature.
 CONFIG_CC_STACKPROTECTOR_STRONG
 	[arch] all
 	[plat] all
@@ -1362,8 +1362,8 @@ CONFIG_CGROUPS
 	[subsys] core
 	[must] console
 	[function] vts require, This option adds support for grouping sets of
-		processes together, for use with process control subsystems such as
-		Cpusets, CFS, memory controls or device isolation.
+	processes together, for use with process control subsystems such as
+	Cpusets, CFS, memory controls or device isolation.
 CONFIG_CGROUP_BPF
 	[arch] all
 	[plat] all
@@ -1378,7 +1378,7 @@ CONFIG_CGROUP_CPUACCT
 	[subsys] core
 	[must] console
 	[function] vts require, Provides a simple Resource Controller for monitoring the
-		total CPU consumed by the tasks in a cgroup.
+	total CPU consumed by the tasks in a cgroup.
 CONFIG_CGROUP_DEBUG
 	[arch] all
 	[plat] all
@@ -1435,7 +1435,7 @@ CONFIG_CLKDEV_LOOKUP
 	[subsys] clock
 	[must] user
 	[function] This macro is used to provide interfaces
-			for clock customer.
+		for clock customer.
 CONFIG_CLKSRC_MMIO
 	[arch] arm
 	[plat] sharkl5_32
@@ -1450,7 +1450,7 @@ CONFIG_CLONE_BACKWARDS
 	[subsys] clock
 	[must] console
 	[function] Architecture has tls passed as the 4th argument of clone(2),
-		not the 5th one.
+	not the 5th one.
 CONFIG_CLZ_TAB
 	[arch] all
 	[plat] all
@@ -1486,7 +1486,7 @@ CONFIG_COMPAT
 	[subsys] core
 	[must] console
 	[function] This option enables support for a 32-bit EL0 running under a 64-bit
-		kernel at EL1. 
+	kernel at EL1.
 CONFIG_COMPAT_BINFMT_ELF
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -1508,10 +1508,10 @@ CONFIG_CONFIGFS_FS
 	[subsys] fs
 	[must] user
 	[function] Configfs is a RAM-based filesystem that provides the
-		   converse of sysfs's functionality. Where sysfs is a
-		   filesystem-based view of kernel objects, configfs is
-		   a filesystem-based manager of kernel objects, or
-		   config_items.
+	   converse of sysfs's functionality. Where sysfs is a
+	   filesystem-based view of kernel objects, configfs is
+	   a filesystem-based manager of kernel objects, or
+	   config_items.
 CONFIG_CONSOLE_LOGLEVEL_DEFAULT
 	[arch] all
 	[plat] all
@@ -1547,7 +1547,7 @@ CONFIG_CORESIGHT_LINKS_AND_SINKS
 	[subsys] kernel core
 	[must] debug
 	[function] This function is used to enable coresight funnel/etf/etr
-		   modules.
+	   modules.
 CONFIG_CORESIGHT_LINK_AND_SINK_TMC
 	[arch] all
 	[plat] all
@@ -1590,8 +1590,8 @@ CONFIG_CPUSETS
 	[subsys] core
 	[must] console
 	[function] Let you create and manage CPUSETs which allow dynamically
-			partitioning a system into sets of CPUs and Memory Nodes and
-			assigning tasks to run only within those sets.
+		partitioning a system into sets of CPUs and Memory Nodes and
+		assigning tasks to run only within those sets.
 CONFIG_CPU_32v6K
 	[arch] arm
 	[plat] sharkl5_32
@@ -1760,7 +1760,7 @@ CONFIG_CPU_RMAP
 	[subsys] core
 	[must] console
 	[function] These functions maintain a mapping from CPUs to some ordered set of
-			objects with CPU affinities.
+		objects with CPU affinities.
 CONFIG_CPU_SPECTRE
 	[arch] arm
 	[plat] sharkl5_32
@@ -2104,8 +2104,8 @@ CONFIG_CRYPTO_GCM
 	[subsys] security
 	[must] user
 	[function] Support for Galois/Counter Mode (GCM) and Galois Message
-        Authentication Code (GMAC). Required for IPSec. The new feature on androidp.
-        If don't enable this, when luncher boot the screen will print error info. eg.Bug 980109
+Authentication Code (GMAC). Required for IPSec. The new feature on androidp.
+If don't enable this, when luncher boot the screen will print error info. eg.Bug 980109
 CONFIG_CRYPTO_GF128MUL
 	[arch] all
 	[plat] all
@@ -2344,7 +2344,7 @@ CONFIG_CRYPTO_SHA512
 	[subsys] security
 	[must] user
 	[function] SHA512 secure hash standard (DFIPS 180-2). New feature on Android P.
-        If don't enable this, when luncher boot the screen will print error info. eg.Bug 980109
+If don't enable this, when luncher boot the screen will print error info. eg.Bug 980109
 CONFIG_CRYPTO_SHA512_ARM
 	[arch] arm
 	[plat] sharkl5_32
@@ -2394,7 +2394,7 @@ CONFIG_CRYPTO_XTS
 	[subsys] crypto
 	[must] none
 	[function] tristate "XTS support"(IEEE1619/D16 narrow block cipher use with aes-xts-plain,
-		   key size 256, 384 or 512 bits).
+	   key size 256, 384 or 512 bits).
 CONFIG_CUSE
 	[arch] all
 	[plat] all
@@ -2584,8 +2584,8 @@ CONFIG_DEVFREQ_GOV_SPRD_SCENE
 	[subsys] devfreq
 	[must] none
 	[function] Sprd govanor can selected by Sprd_auto_dfs driver.
-		   Userspace set scene to this govanor and then govnor send freq
-		   request to driver.
+	   Userspace set scene to this govanor and then govnor send freq
+	   request to driver.
 CONFIG_DEVFREQ_SPRD_AUTO_DFS
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -2593,7 +2593,7 @@ CONFIG_DEVFREQ_SPRD_AUTO_DFS
 	[subsys] devfreq
 	[must] none
 	[function] This function is used to enable ddr auto dfs function
-		   on DDRC v1 and and later version
+	   on DDRC v1 and and later version
 CONFIG_DEVPORT
 	[arch] arm64
 	[plat] roc1
@@ -2664,8 +2664,8 @@ CONFIG_DM_BUFIO
 	[subsys] md
 	[must] none
 	[function] depends on BLK_DEV_DM, This interface allows you to do buffered I/O on a device
-		   and acts as a cache, holding recently-read blocks in memory and performin delayed
-		   writes.
+	   and acts as a cache, holding recently-read blocks in memory and performin delayed
+	   writes.
 CONFIG_DM_CRYPT
 	[arch] all
 	[plat] all
@@ -2673,7 +2673,7 @@ CONFIG_DM_CRYPT
 	[subsys] md
 	[must] none
 	[function] Depends on BLK_DEV_DM, This device-mapper target allows you to create a device that
-		   transparently encrypts the data on it.
+	   transparently encrypts the data on it.
 CONFIG_DM_UEVENT
 	[arch] all
 	[plat] all
@@ -2688,7 +2688,7 @@ CONFIG_DM_VERITY
 	[subsys] md
 	[must] none
 	[function] Depends on BLK_DEV_DM, This device-mapper target creates a read-only device.
-		   Verity target one function in The device mapper.
+	   Verity target one function in The device mapper.
 CONFIG_DM_VERITY_AVB
 	[arch] all
 	[plat] all
@@ -2710,10 +2710,10 @@ CONFIG_DNOTIFY
 	[subsys] fs
 	[must] user
 	[function] Dnotify is a directory-based per-fd file change
-		   notification system that uses signals to communicate
-		   events to user-space.  There exist superior
-		   alternatives, but some applications may still rely on
-		   dnotify.
+	   notification system that uses signals to communicate
+	   events to user-space.  There exist superior
+	   alternatives, but some applications may still rely on
+	   dnotify.
 CONFIG_DNS_RESOLVER
 	[arch] all
 	[plat] all
@@ -2728,7 +2728,7 @@ CONFIG_DQL
 	[subsys] net
 	[must] user
 	[function] The goal of dynamic queue limits (dql) is to set the queue limit, number of objects to the queue, to be minimized
-		without allowing the queue to be starved.
+	without allowing the queue to be starved.
 CONFIG_DRAGONRISE_FF
 	[arch] all
 	[plat] all
@@ -2862,7 +2862,7 @@ CONFIG_DUMMY
 	[subsys] net
 	[must] user
 	[function] Dummy net driver support:This is essentially a bit-bucket device (i.e. traffic you send to
-		this device is consigned into oblivion) with a configurable IP address.
+	this device is consigned into oblivion) with a configurable IP address.
 CONFIG_DYNAMIC_DEBUG
 	[arch] all
 	[plat] all
@@ -3066,9 +3066,9 @@ CONFIG_EXT4_FS_SECURITY
 	[subsys] fs
 	[must] busybox_console
 	[function] Security labels support alternative access control
-		   models implemented by security modules like SELinux.
-		   This option enables an extended attribute handler for
-		   file security labels in the ext4 filesystem.
+	   models implemented by security modules like SELinux.
+	   This option enables an extended attribute handler for
+	   file security labels in the ext4 filesystem.
 CONFIG_EXT4_RESERVE_SPACE_FILTER
 	[arch] all
 	[plat] all
@@ -3076,7 +3076,7 @@ CONFIG_EXT4_RESERVE_SPACE_FILTER
 	[subsys] fs
 	[must] user
 	[function] Support for reserve space black and white list filter
-		   feature.
+	   feature.
 CONFIG_EXTCON
 	[arch] all
 	[plat] all
@@ -3294,8 +3294,8 @@ CONFIG_FILE_LOCKING
 	[subsys] fs
 	[must] user
 	[function] This option enables standard file locking support,
-		   required for filesystems like NFS and for the flock()
-		   system call.
+	   required for filesystems like NFS and for the flock()
+	   system call.
 CONFIG_FIRMWARE_IN_KERNEL
 	[arch] all
 	[plat] all
@@ -3352,7 +3352,7 @@ CONFIG_FRAME_POINTER
 	[subsys] core
 	[must] debug
 	[function] Compile the kernel with frame pointers, kernel image will be slightly
-		larger and slower, but it gives very useful debugging information in case of kernel bugs.
+	larger and slower, but it gives very useful debugging information in case of kernel bugs.
 CONFIG_FRAME_WARN
 	[arch] all
 	[plat] all
@@ -3367,7 +3367,7 @@ CONFIG_FREEZER
 	[subsys] power
 	[must] user
 	[function] control user space processes and some kernel threads suspend
-		   during hibernation or system-wide suspend
+	   during hibernation or system-wide suspend
 CONFIG_FSNOTIFY
 	[arch] all
 	[plat] all
@@ -3389,7 +3389,7 @@ CONFIG_FS_MBCACHE
 	[subsys] fs
 	[must] busybox_console
 	[function] Meta block cache for Extended Attributes (ext2/ext3/
-		   ext4).
+	   ext4).
 CONFIG_FS_POSIX_ACL
 	[arch] all
 	[plat] all
@@ -3460,8 +3460,8 @@ CONFIG_FUTEX
 	[subsys] interrupt
 	[must] console
 	[function] Disabling this option will cause the kernel to be built without
-		support for "fast userspace mutexes".  The resulting kernel may not
-		run glibc-based applications correctly.
+	support for "fast userspace mutexes".  The resulting kernel may not
+	run glibc-based applications correctly.
 CONFIG_FUTEX_PI
 	[arch] all
 	[plat] all
@@ -3490,8 +3490,8 @@ CONFIG_FW_LOADER_USER_HELPER_FALLBACK
 	[subsys] core
 	[must] console
 	[function] This option enables / disables the invocation of user-helper
-		(e.g. udev) for loading firmware files as a fallback after the
-		direct file loading in kernel fails.
+	(e.g. udev) for loading firmware files as a fallback after the
+	direct file loading in kernel fails.
 CONFIG_GENERIC_ADC_THERMAL
 	[arch] all
 	[plat] all
@@ -3499,7 +3499,7 @@ CONFIG_GENERIC_ADC_THERMAL
 	[subsys] thermal
 	[must] user
 	[function] This function is used to config thermal moudle to get
-		   adc sensor temperature.
+	   adc sensor temperature.
 CONFIG_GENERIC_ALLOCATOR
 	[arch] all
 	[plat] all
@@ -3528,7 +3528,7 @@ CONFIG_GENERIC_BUG_RELATIVE_POINTERS
 	[subsys] debug
 	[must] console
 	[function] use 32-bit pointers relative to the containing
-		struct bug_entry for bug_addr and file.
+	struct bug_entry for bug_addr and file.
 CONFIG_GENERIC_CALIBRATE_DELAY
 	[arch] all
 	[plat] all
@@ -3886,7 +3886,7 @@ CONFIG_HAVE_ARCH_JUMP_LABEL
 	[subsys] core
 	[must] console
 	[function] Enable kernel support JUMP_LABEL which
-			Optimize very unlikely/likely branches.
+		Optimize very unlikely/likely branches.
 CONFIG_HAVE_ARCH_KASAN
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -3908,9 +3908,9 @@ CONFIG_HAVE_ARCH_MMAP_RND_BITS
 	[subsys] core
 	[must] console
 	[function] An arch should select this symbol if it supports setting a variable
-		number of bits for use in establishing the base address for mmap
-		allocations, has MMU enabled and provides values for both:
-		ARCH_MMAP_RND_BITS_MIN & ARCH_MMAP_RND_BITS_MAX.
+	number of bits for use in establishing the base address for mmap
+	allocations, has MMU enabled and provides values for both:
+	ARCH_MMAP_RND_BITS_MIN & ARCH_MMAP_RND_BITS_MAX.
 CONFIG_HAVE_ARCH_MMAP_RND_COMPAT_BITS
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -3918,10 +3918,10 @@ CONFIG_HAVE_ARCH_MMAP_RND_COMPAT_BITS
 	[subsys] core
 	[must] console
 	[function] An arch should select this symbol if it supports running applications
-		in compatibility mode, supports setting a variable number of bits for
-		use in establishing the base address for mmap allocations, has MMU
-		enabled and provides values for both:
-		ARCH_MMAP_RND_COMPAT_BITS_MIN & ARCH_MMAP_RND_COMPAT_BITS_MAX.
+	in compatibility mode, supports setting a variable number of bits for
+	use in establishing the base address for mmap allocations, has MMU
+	enabled and provides values for both:
+	ARCH_MMAP_RND_COMPAT_BITS_MIN & ARCH_MMAP_RND_COMPAT_BITS_MAX.
 CONFIG_HAVE_ARCH_PFN_VALID
 	[arch] all
 	[plat] all
@@ -3978,8 +3978,8 @@ CONFIG_HAVE_CC_STACKPROTECTOR
 	[subsys] core
 	[must] console
 	[function] An arch should select this symbol if:
-		- its compiler supports the -fstack-protector option
-		- it has implemented a stack canary (e.g. __stack_chk_guard)
+	- its compiler supports the -fstack-protector option
+	- it has implemented a stack canary (e.g. __stack_chk_guard)
 CONFIG_HAVE_CLK
 	[arch] all
 	[plat] all
@@ -3987,7 +3987,7 @@ CONFIG_HAVE_CLK
 	[subsys] core
 	[must] console
 	[function] The <linux/clk.h> calls support software clock gating and
-			thus are a key power management tool on many systems.
+		thus are a key power management tool on many systems.
 CONFIG_HAVE_CLK_PREPARE
 	[arch] all
 	[plat] all
@@ -3995,7 +3995,7 @@ CONFIG_HAVE_CLK_PREPARE
 	[subsys] core
 	[must] user
 	[function] Some clocks need do some preparation, this macro allows
-			driver to implement the clk_prepare() interface.
+		driver to implement the clk_prepare() interface.
 CONFIG_HAVE_CMPXCHG_DOUBLE
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -4080,7 +4080,7 @@ CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
 	[subsys] core
 	[must] console
 	[function] Some architectures are unable to perform unaligned accesses
-			without the use of get_unaligned/put_unaligned.
+		without the use of get_unaligned/put_unaligned.
 CONFIG_HAVE_EXIT_THREAD
 	[arch] arm
 	[plat] sharkl5_32
@@ -4158,7 +4158,7 @@ CONFIG_HAVE_IRQ_TIME_ACCOUNTING
 	[subsys] core
 	[must] console
 	[function] Archs need to ensure they use a high enough resolution clock to
-			support irq time accounting and then call enable_sched_clock_irqtime().
+		support irq time accounting and then call enable_sched_clock_irqtime().
 CONFIG_HAVE_KERNEL_GZIP
 	[arch] arm
 	[plat] sharkl5_32
@@ -4306,7 +4306,7 @@ CONFIG_HAVE_REGS_AND_STACK_ACCESS_API
 	[subsys] core
 	[must] console
 	[function] This symbol should be selected by an architecure if it supports
-			the API needed to access registers and stack entries.
+		the API needed to access registers and stack entries.
 CONFIG_HAVE_SMP
 	[arch] arm
 	[plat] sharkl5_32
@@ -4335,8 +4335,8 @@ CONFIG_HAVE_VIRT_CPU_ACCOUNTING_GEN
 	[subsys] core
 	[must] console
 	[function] With VIRT_CPU_ACCOUNTING_GEN, cputime_t becomes 64-bit.
-		Before enabling this option, arch code must be audited to ensure there are
-		no races in concurrent read/write of cputime_t.
+	Before enabling this option, arch code must be audited to ensure there are
+	no races in concurrent read/write of cputime_t.
 CONFIG_HDMI
 	[arch] all
 	[plat] all
@@ -4995,7 +4995,7 @@ CONFIG_INET_DIAG
 	[subsys] net
 	[must] user
 	[function] Support for INET (TCP, DCCP, etc) socket monitoring interface used by
-		native Linux tools such as ss. ss is included in iproute2
+	native Linux tools such as ss. ss is included in iproute2
 CONFIG_INET_DIAG_DESTROY
 	[arch] all
 	[plat] all
@@ -5017,8 +5017,8 @@ CONFIG_INET_IPCOMP
 	[subsys] net
 	[must] user
 	[function] It is IPComp transformation, supports for IP Payload
-		  Compression Protocol (IPComp) (RFC3173), typically
-		  needed for IPsec.
+	  Compression Protocol (IPComp) (RFC3173), typically
+	  needed for IPsec.
 CONFIG_INET_RAW_DIAG
 	[arch] all
 	[plat] all
@@ -5033,7 +5033,7 @@ CONFIG_INET_TCP_DIAG
 	[subsys] net
 	[must] user
 	[function] Support for INET TCP socket monitoring interface used by
-		native Linux tools such as ss.
+	native Linux tools such as ss.
 CONFIG_INET_TUNNEL
 	[arch] all
 	[plat] all
@@ -5048,7 +5048,7 @@ CONFIG_INET_UDP_DIAG
 	[subsys] net
 	[must] user
 	[function] Support for UDP socket monitoring interface used by
-		  the ss tool.
+	  the ss tool.
 CONFIG_INET_XFRM_MODE_BEET
 	[arch] all
 	[plat] all
@@ -5091,7 +5091,7 @@ CONFIG_INIT_ENV_ARG_LIMIT
 	[subsys] core
 	[must] console
 	[function] Maximum of each of the number of arguments and environment
-		variables passed to init from the kernel command line.
+	variables passed to init from the kernel command line.
 CONFIG_INOTIFY_USER
 	[arch] all
 	[plat] all
@@ -5316,8 +5316,8 @@ CONFIG_IP6_NF_MANGLE
 	[subsys] net
 	[must] user
 	[function] vts require, This option adds a `mangle' table to iptables: see the man page for
-		iptables(8).  This table is used for various packet alterations
-		which can effect how the packet is routed.
+	iptables(8).  This table is used for various packet alterations
+	which can effect how the packet is routed.
 CONFIG_IP6_NF_MATCH_EUI64
 	[arch] all
 	[plat] all
@@ -5325,8 +5325,8 @@ CONFIG_IP6_NF_MATCH_EUI64
 	[subsys] net
 	[must] user
 	[function] This module performs checking on the IPv6 source address
-		  Compares the last 64 bits with the EUI64 (delivered from\
-		  the MAC address) address.
+	  Compares the last 64 bits with the EUI64 (delivered from\
+	  the MAC address) address.
 CONFIG_IP6_NF_MATCH_RPFILTER
 	[arch] all
 	[plat] all
@@ -5334,7 +5334,7 @@ CONFIG_IP6_NF_MATCH_RPFILTER
 	[subsys] net
 	[must] user
 	[function] This option allows you to match packets whose replies
-		  would go out via the interface the packet came in.
+	  would go out via the interface the packet came in.
 CONFIG_IP6_NF_NAT
 	[arch] all
 	[plat] all
@@ -5349,7 +5349,7 @@ CONFIG_IP6_NF_RAW
 	[subsys] net
 	[must] user
 	[function] vts require, This option adds a `raw' table to ip6tables. This table is the very
-		first in the netfilter framework and hooks in at the PREROUTING and OUTPUT chains.
+	first in the netfilter framework and hooks in at the PREROUTING and OUTPUT chains.
 CONFIG_IP6_NF_SECURITY
 	[arch] all
 	[plat] all
@@ -5364,8 +5364,8 @@ CONFIG_IP6_NF_TARGET_HL
 	[subsys] net
 	[must] user
 	[function] This is a backwards-compatible option for the user's
-		  convenience (e.g. when running oldconfig). It selects
-		  CONFIG_NETFILTER_XT_TARGET_HL.
+	  convenience (e.g. when running oldconfig). It selects
+	  CONFIG_NETFILTER_XT_TARGET_HL.
 CONFIG_IP6_NF_TARGET_MASQUERADE
 	[arch] all
 	[plat] all
@@ -5373,9 +5373,9 @@ CONFIG_IP6_NF_TARGET_MASQUERADE
 	[subsys] net
 	[must] user
 	[function] Masquerading is a special case of NAT: all outgoing
-		  connections are changed to seem to come from a
-		  particular interface's address, and if the interface
-		  goes down, those connections are lost.
+	  connections are changed to seem to come from a
+	  particular interface's address, and if the interface
+	  goes down, those connections are lost.
 CONFIG_IP6_NF_TARGET_NPT
 	[arch] all
 	[plat] all
@@ -5383,8 +5383,8 @@ CONFIG_IP6_NF_TARGET_NPT
 	[subsys] net
 	[must] user
 	[function] This option adds the `SNPT' and `DNPT' target, which
-		  perform stateless IPv6-to-IPv6 Network Prefix
-		  Translation per RFC 6296.
+	  perform stateless IPv6-to-IPv6 Network Prefix
+	  Translation per RFC 6296.
 CONFIG_IP6_NF_TARGET_REJECT
 	[arch] all
 	[plat] all
@@ -5392,7 +5392,7 @@ CONFIG_IP6_NF_TARGET_REJECT
 	[subsys] net
 	[must] user
 	[function] vts require, The REJECT target allows a filtering rule to specify that an ICMPv6
-		error should be issued in response to an incoming packet, rather than silently being dropped.
+	error should be issued in response to an incoming packet, rather than silently being dropped.
 CONFIG_IP6_NF_TARGET_SYNPROXY
 	[arch] all
 	[plat] all
@@ -5400,8 +5400,8 @@ CONFIG_IP6_NF_TARGET_SYNPROXY
 	[subsys] net
 	[must] user
 	[function] This enables the `nat' table in ip6tables.
-		  This allows masquerading, port forwarding and other
-		  forms of full Network Address Port Translation.
+	  This allows masquerading, port forwarding and other
+	  forms of full Network Address Port Translation.
 CONFIG_IP6_NF_VOWIFI_DEC_TCPDUMP
 	[arch] arm64
 	[plat] sharkl5
@@ -5409,9 +5409,9 @@ CONFIG_IP6_NF_VOWIFI_DEC_TCPDUMP
 	[subsys] net
 	[must] user
 	[function] to debug for decode ipsec pkt for software engineer.
-		Use this module,the esp pkt which apk allowed, will be
-		save in the tcpdump with its original message.The module will
-		save the ipv6 esp pkt.
+	Use this module,the esp pkt which apk allowed, will be
+	save in the tcpdump with its original message.The module will
+	save the ipv6 esp pkt.
 CONFIG_IPV6
 	[arch] all
 	[plat] all
@@ -5440,7 +5440,7 @@ CONFIG_IPV6_NDISC_NODETYPE
 	[subsys] net
 	[must] user
 	[function] Router type: cross-layer information from link-layer to
-		IPv6 layer reported by certain link types (e.g., RFC4214).
+	IPv6 layer reported by certain link types (e.g., RFC4214).
 CONFIG_IPV6_OPTIMISTIC_DAD
 	[arch] all
 	[plat] all
@@ -5448,8 +5448,8 @@ CONFIG_IPV6_OPTIMISTIC_DAD
 	[subsys] net
 	[must] user
 	[function] vts require,This is experimental support for optimistic Duplicate
-		Address Detection.  It allows for autoconfigured addresses
-		to be used more quickly.
+	Address Detection.  It allows for autoconfigured addresses
+	to be used more quickly.
 CONFIG_IPV6_ROUTER_PREF
 	[arch] all
 	[plat] all
@@ -5471,8 +5471,8 @@ CONFIG_IPV6_SIT
 	[subsys] net
 	[must] user
 	[function] This driver implements encapsulation of IPv6
-		into IPv4 packets. This is useful if you want to connect two IPv6
-		networks over an IPv4-only path.
+	into IPv4 packets. This is useful if you want to connect two IPv6
+	networks over an IPv4-only path.
 CONFIG_IPV6_SUBTREES
 	[arch] all
 	[plat] all
@@ -5494,9 +5494,9 @@ CONFIG_IPV6_VTI
 	[subsys] net
 	[must] user
 	[function]  This can be used with xfrm mode tunnel to give
-		the notion of a secure tunnel for IPSEC and then use routing protocol
-		on top.
-		If don't enable this config, the phone will have the internal problem.
+	the notion of a secure tunnel for IPSEC and then use routing protocol
+	on top.
+	If don't enable this config, the phone will have the internal problem.
 CONFIG_IP_ADVANCED_ROUTER
 	[arch] all
 	[plat] all
@@ -5504,9 +5504,9 @@ CONFIG_IP_ADVANCED_ROUTER
 	[subsys] net
 	[must] user
 	[function] vts require, If you intend to run your Linux box mostly as a router, i.e. as a
-		computer that forwards and redistributes network packets, say Y; you
-		will then be presented with several options that allow more precise
-		control about the routing process.
+	computer that forwards and redistributes network packets, say Y; you
+	will then be presented with several options that allow more precise
+	control about the routing process.
 CONFIG_IP_MULTICAST
 	[arch] all
 	[plat] all
@@ -5514,9 +5514,9 @@ CONFIG_IP_MULTICAST
 	[subsys] net
 	[must] user
 	[function] vts require, This is code for addressing several networked computers at once,
-		enlarging your kernel by about 2 KB. You need multicasting if you
-		intend to participate in the MBONE, a high bandwidth network on top
-		of the Internet which carries audio and video broadcasts.
+	enlarging your kernel by about 2 KB. You need multicasting if you
+	intend to participate in the MBONE, a high bandwidth network on top
+	of the Internet which carries audio and video broadcasts.
 CONFIG_IP_MULTIPLE_TABLES
 	[arch] all
 	[plat] all
@@ -5524,10 +5524,10 @@ CONFIG_IP_MULTIPLE_TABLES
 	[subsys] net
 	[must] user
 	[function] vts require, Normally, a router decides what to do with a received packet based
-		solely on the packet's final destination address. If you say Y here,
-		the Linux router will also be able to take the packet's source
-		address into account. Furthermore, the TOS (Type-Of-Service) field
-		of the packet can be used for routing decisions as well.
+	solely on the packet's final destination address. If you say Y here,
+	the Linux router will also be able to take the packet's source
+	address into account. Furthermore, the TOS (Type-Of-Service) field
+	of the packet can be used for routing decisions as well.
 CONFIG_IP_NF_ARPFILTER
 	[arch] all
 	[plat] all
@@ -5535,9 +5535,9 @@ CONFIG_IP_NF_ARPFILTER
 	[subsys] net
 	[must] user
 	[function] vts require, ARP packet filtering defines a table `filter', which has a series of
-		rules for simple ARP packet filtering at local input and
-		local output.  On a bridge, you can also specify filtering rules
-		for forwarded ARP packets. See the man page for arptables(8).
+	rules for simple ARP packet filtering at local input and
+	local output.  On a bridge, you can also specify filtering rules
+	for forwarded ARP packets. See the man page for arptables(8).
 CONFIG_IP_NF_ARPTABLES
 	[arch] all
 	[plat] all
@@ -5545,8 +5545,8 @@ CONFIG_IP_NF_ARPTABLES
 	[subsys] net
 	[must] user
 	[function] vts require, arptables is a general, extensible packet identification framework.
-		The ARP packet filtering and mangling (manipulation)subsystems
-		use this: say Y or M here if you want to use either of those.
+	The ARP packet filtering and mangling (manipulation)subsystems
+	use this: say Y or M here if you want to use either of those.
 CONFIG_IP_NF_ARP_MANGLE
 	[arch] all
 	[plat] all
@@ -5554,7 +5554,7 @@ CONFIG_IP_NF_ARP_MANGLE
 	[subsys] net
 	[must] user
 	[function] vts require, Allows altering the ARP packet payload: source and destination
-		hardware and network addresses.
+	hardware and network addresses.
 CONFIG_IP_NF_FILTER
 	[arch] all
 	[plat] all
@@ -5562,8 +5562,8 @@ CONFIG_IP_NF_FILTER
 	[subsys] net
 	[must] user
 	[function] vts require, Packet filtering defines a table `filter', which has a series of
-		rules for simple packet filtering at local input, forwarding and
-		local output.  See the man page for iptables(8).
+	rules for simple packet filtering at local input, forwarding and
+	local output.  See the man page for iptables(8).
 CONFIG_IP_NF_IPTABLES
 	[arch] all
 	[plat] all
@@ -5578,8 +5578,8 @@ CONFIG_IP_NF_MANGLE
 	[subsys] net
 	[must] user
 	[function] vts require, This option adds a `mangle' table to iptables: see the man page for
-		iptables(8).  This table is used for various packet alterations
-		which can effect how the packet is routed.
+	iptables(8).  This table is used for various packet alterations
+	which can effect how the packet is routed.
 CONFIG_IP_NF_MATCH_AH
 	[arch] all
 	[plat] all
@@ -5587,7 +5587,7 @@ CONFIG_IP_NF_MATCH_AH
 	[subsys] net
 	[must] user
 	[function] 1. This match extension allows you to match a range of SPIs
-		  inside AH header of IPSec packets. 2. vts require
+	  inside AH header of IPSec packets. 2. vts require
 CONFIG_IP_NF_MATCH_ECN
 	[arch] all
 	[plat] all
@@ -5595,7 +5595,7 @@ CONFIG_IP_NF_MATCH_ECN
 	[subsys] net
 	[must] user
 	[function] 1. This is a backwards-compat option for the user's
-		  convenience(e.g. when running oldconfig). 2. vts require
+	  convenience(e.g. when running oldconfig). 2. vts require
 CONFIG_IP_NF_MATCH_RPFILTER
 	[arch] all
 	[plat] all
@@ -5603,7 +5603,7 @@ CONFIG_IP_NF_MATCH_RPFILTER
 	[subsys] net
 	[must] user
 	[function] This option allows you to match packets whose replies would
-		go out via the interface the packet came in.
+	go out via the interface the packet came in.
 CONFIG_IP_NF_MATCH_TTL
 	[arch] all
 	[plat] all
@@ -5611,7 +5611,7 @@ CONFIG_IP_NF_MATCH_TTL
 	[subsys] net
 	[must] user
 	[function] 1. This is a backwards-compat option for the user's convenience
-		  (e.g. when running oldconfig). 2. vts require
+	  (e.g. when running oldconfig). 2. vts require
 CONFIG_IP_NF_NAT
 	[arch] all
 	[plat] all
@@ -5619,7 +5619,7 @@ CONFIG_IP_NF_NAT
 	[subsys] net
 	[must] user
 	[function] vts require, This enables the `nat' table in iptables. This allows masquerading,
-		port forwarding and other forms of full Network Address Port Translation.
+	port forwarding and other forms of full Network Address Port Translation.
 CONFIG_IP_NF_RAW
 	[arch] all
 	[plat] all
@@ -5627,7 +5627,7 @@ CONFIG_IP_NF_RAW
 	[subsys] net
 	[must] user
 	[function] vts require, This option adds a `raw' table to iptables. This table is the very
-		first in the netfilter framework and hooks in at the PREROUTING and OUTPUT chains.
+	first in the netfilter framework and hooks in at the PREROUTING and OUTPUT chains.
 CONFIG_IP_NF_SECURITY
 	[arch] all
 	[plat] all
@@ -5635,7 +5635,7 @@ CONFIG_IP_NF_SECURITY
 	[subsys] net
 	[must] user
 	[function] vts require, This option adds a `security' table to iptables, for use
-		with Mandatory Access Control (MAC) policy.
+	with Mandatory Access Control (MAC) policy.
 CONFIG_IP_NF_TARGET_ECN
 	[arch] all
 	[plat] all
@@ -5643,7 +5643,7 @@ CONFIG_IP_NF_TARGET_ECN
 	[subsys] net
 	[must] user
 	[function] This option adds a `ECN' target, which can be used in
-		  the iptables mangle table.
+	  the iptables mangle table.
 CONFIG_IP_NF_TARGET_MASQUERADE
 	[arch] all
 	[plat] all
@@ -5651,10 +5651,10 @@ CONFIG_IP_NF_TARGET_MASQUERADE
 	[subsys] net
 	[must] user
 	[function] vts require, Masquerading is a special case of NAT: all outgoing connections are
-		changed to seem to come from a particular interface's address, and
-		if the interface goes down, those connections are lost.  This is
-		only useful for dialup accounts with dynamic IP address (ie. your IP
-		address will be different on next dialup).
+	changed to seem to come from a particular interface's address, and
+	if the interface goes down, those connections are lost.  This is
+	only useful for dialup accounts with dynamic IP address (ie. your IP
+	address will be different on next dialup).
 CONFIG_IP_NF_TARGET_NETMAP
 	[arch] all
 	[plat] all
@@ -5662,7 +5662,7 @@ CONFIG_IP_NF_TARGET_NETMAP
 	[subsys] net
 	[must] user
 	[function] 1. This is a backwards-compat option for the user's
-		  convenience (e.g. when running oldconfig). 2. vts require
+	  convenience (e.g. when running oldconfig). 2. vts require
 CONFIG_IP_NF_TARGET_REDIRECT
 	[arch] all
 	[plat] all
@@ -5670,7 +5670,7 @@ CONFIG_IP_NF_TARGET_REDIRECT
 	[subsys] net
 	[must] user
 	[function] vts require, This is a backwards-compat option for the user's convenience
-		(e.g. when running oldconfig). It selects CONFIG_NETFILTER_XT_TARGET_REDIRECT.
+	(e.g. when running oldconfig). It selects CONFIG_NETFILTER_XT_TARGET_REDIRECT.
 CONFIG_IP_NF_TARGET_REJECT
 	[arch] all
 	[plat] all
@@ -5678,8 +5678,8 @@ CONFIG_IP_NF_TARGET_REJECT
 	[subsys] net
 	[must] user
 	[function] vts require, The REJECT target allows a filtering rule to specify that an ICMP
-		error should be issued in response to an incoming packet, rather
-		than silently being dropped.
+	error should be issued in response to an incoming packet, rather
+	than silently being dropped.
 CONFIG_IP_NF_TARGET_SYNPROXY
 	[arch] all
 	[plat] all
@@ -5687,8 +5687,8 @@ CONFIG_IP_NF_TARGET_SYNPROXY
 	[subsys] net
 	[must] user
 	[function] depends on NF_CONNTRACK && NETFILTER_ADVANCED, allows you to intercept TCP connections and
-		establish them using syncookies before they are passed on to the server. This allows to avoid conntrack and server resource usage
-		during SYN-flood attacks.
+	establish them using syncookies before they are passed on to the server. This allows to avoid conntrack and server resource usage
+	during SYN-flood attacks.
 CONFIG_IP_NF_TARGET_TTL
 	[arch] all
 	[plat] all
@@ -5696,8 +5696,8 @@ CONFIG_IP_NF_TARGET_TTL
 	[subsys] net
 	[must] user
 	[function] This is a backwards-compatible option for the user's
-		  convenience (e.g. when running oldconfig). It selects
-		  CONFIG_NETFILTER_XT_TARGET_HL.
+	  convenience (e.g. when running oldconfig). It selects
+	  CONFIG_NETFILTER_XT_TARGET_HL.
 CONFIG_IP_NF_VOWIFI_DEC_TCPDUMP
 	[arch] arm64
 	[plat] sharkl5
@@ -5705,8 +5705,8 @@ CONFIG_IP_NF_VOWIFI_DEC_TCPDUMP
 	[subsys] net
 	[must] user
 	[function] to debug for decode ipsec pkt for software engineer.Use this module,
-		the esp pkt which apk allowed, will be save in the tcpdump with its
-		original message.The module will save the ipv4 esp pkt.
+	the esp pkt which apk allowed, will be save in the tcpdump with its
+	original message.The module will save the ipv4 esp pkt.
 CONFIG_IP_PNP
 	[arch] all
 	[plat] all
@@ -5714,16 +5714,16 @@ CONFIG_IP_PNP
 	[subsys] net
 	[must] user
 	[function] This enables automatic configuration of IP addresses of devices and
-		of the routing table during kernel boot, based on either information
-		supplied on the kernel command line or by BOOTP or RARP protocols.
-		You need to say Y only for diskless machines requiring network
-		access to boot (in which case you want to say Y to "Root file system
-		on NFS" as well), because all other machines configure the network
-		in their startup scripts.
-	[field]
-	[subsys]
-	[must]
-	[function]
+	of the routing table during kernel boot, based on either information
+	supplied on the kernel command line or by BOOTP or RARP protocols.
+	You need to say Y only for diskless machines requiring network
+	access to boot (in which case you want to say Y to "Root file system
+	on NFS" as well), because all other machines configure the network
+	in their startup scripts.
+[field]
+[subsys]
+[must]
+[function]
 CONFIG_IP_PNP_DHCP
 	[arch] all
 	[plat] all
@@ -5738,10 +5738,10 @@ CONFIG_IP_ROUTE_VERBOSE
 	[subsys] net
 	[must] user
 	[function] the kernel will print verbose messages regarding the routing, for example warnings about
-		received packets which look strange and could be evidence of an
-		attack or a misconfigured system somewhere. The information is
-		handled by the klogd daemon which is responsible for kernel messages
-		("man klogd").
+	received packets which look strange and could be evidence of an
+	attack or a misconfigured system somewhere. The information is
+	handled by the klogd daemon which is responsible for kernel messages
+	("man klogd").
 CONFIG_IRQCHIP
 	[arch] all
 	[plat] all
@@ -5868,8 +5868,8 @@ CONFIG_JBD2
 	[subsys] fs
 	[must] busybox_console
 	[function] Generic journaling layer for block devices that support
-		   both 32-bit and 64-bit block numbers. It is currently
-		   used by the ext4 and OCFS2 filesystems.
+	   both 32-bit and 64-bit block numbers. It is currently
+	   used by the ext4 and OCFS2 filesystems.
 CONFIG_JOYSTICK_XPAD
 	[arch] all
 	[plat] all
@@ -6066,7 +6066,7 @@ CONFIG_LOCK_SPIN_ON_OWNER
 	[subsys] interrupt
 	[must] console
 	[function] An MCS like lock especially tailored for optimistic spinning for sleeping
-		lock implementations.
+	lock implementations.
 CONFIG_LOGIG940_FF
 	[arch] all
 	[plat] all
@@ -6200,8 +6200,8 @@ CONFIG_MD
 	[subsys] md
 	[must] user
 	[function] The device mapper is a framework provided by the Linux kernel.
-		   for mapping physical block devices onto higher-level virtual block devices.
-		   must enable when DM_VERIFY function enable.
+	   for mapping physical block devices onto higher-level virtual block devices.
+	   must enable when DM_VERIFY function enable.
 CONFIG_MDIO_BUS
 	[arch] all
 	[plat] all
@@ -6237,7 +6237,7 @@ CONFIG_MEMCG
 	[subsys] mm
 	[must] none
 	[function] Provides a memory resource controller that manages both anonymous
-		   memory and page cache. (See Documentation/cgroups/memory.txt).
+	   memory and page cache. (See Documentation/cgroups/memory.txt).
 CONFIG_MEMCG_SWAP
 	[arch] all
 	[plat] all
@@ -6245,7 +6245,7 @@ CONFIG_MEMCG_SWAP
 	[subsys] mm
 	[must] none
 	[function] Add swap management feature to memory resource controller. When you
-		   enable this, you can limit mem+swap usage per cgroup.
+	   enable this, you can limit mem+swap usage per cgroup.
 CONFIG_MEMCG_SWAP_ENABLED
 	[arch] all
 	[plat] all
@@ -6316,7 +6316,7 @@ CONFIG_MIGRATION
 	[subsys] core
 	[must] console
 	[function] Allows the migration of the physical location of pages of processes
-		while the virtual addresses are not changed.
+	while the virtual addresses are not changed.
 CONFIG_MISC_FILESYSTEMS
 	[arch] all
 	[plat] all
@@ -6324,7 +6324,7 @@ CONFIG_MISC_FILESYSTEMS
 	[subsys] fs
 	[must] user
 	[function] Miscellaneous filesystems support. This option alone
-		   does not add any kernel code. Sdcardfs/ubifs need this.
+	   does not add any kernel code. Sdcardfs/ubifs need this.
 CONFIG_MMC
 	[arch] all
 	[plat] all
@@ -6360,7 +6360,7 @@ CONFIG_MMU
 	[subsys] core
 	[must] console
 	[function] Select if you want MMU-based virtualised addressing space
-			support by paged memory management.
+		support by paged memory management.
 CONFIG_MODULES
 	[arch] all
 	[plat] all
@@ -6389,7 +6389,7 @@ CONFIG_MODULES_USE_ELF_RELA
 	[subsys] core
 	[must] console
 	[function] Modules only use ELF RELA relocations.  Modules with ELF REL
-		relocations will give an error.
+	relocations will give an error.
 CONFIG_MODULE_FORCE_UNLOAD
 	[arch] arm
 	[plat] sharkl5_32
@@ -6404,7 +6404,7 @@ CONFIG_MODULE_UNLOAD
 	[subsys] core
 	[must] user
 	[function] The loaded module can be uninstalled. If don't enable this, when
-	    luncher boot the screen will print error info. eg.Bug 983051.
+    luncher boot the screen will print error info. eg.Bug 983051.
 CONFIG_MODVERSIONS
 	[arch] all
 	[plat] all
@@ -6412,7 +6412,7 @@ CONFIG_MODVERSIONS
 	[subsys] core
 	[must] console
 	[function] Support module version check. If don't enable this, when luncher
-	     boot the screen will print error info. eg.Bug 983051.
+     boot the screen will print error info. eg.Bug 983051.
 CONFIG_MPILIB
 	[arch] all
 	[plat] all
@@ -6483,7 +6483,7 @@ CONFIG_NAMESPACES
 	[subsys] core
 	[must] console
 	[function] Provides the way to make tasks work with different objects using
-		the same id.
+	the same id.
 CONFIG_NEED_DMA_MAP_STATE
 	[arch] all
 	[plat] all
@@ -6568,7 +6568,7 @@ CONFIG_NETFILTER_SYNPROXY
 	[subsys] net
 	[must] user
 	[function] The SYNPROXY target allows you to intercept TCP connections and establish them using syncookies before they are passed on to the
-		server. This allows to avoid conntrack and server resource usage during SYN-flood attacks.
+	server. This allows to avoid conntrack and server resource usage during SYN-flood attacks.
 CONFIG_NETFILTER_XTABLES
 	[arch] all
 	[plat] all
@@ -6583,9 +6583,9 @@ CONFIG_NETFILTER_XT_CONNMARK
 	[subsys] net
 	[must] user
 	[function] This option adds the "CONNMARK" target and "connmark" match.
-		Netfilter allows you to store a mark value per connection (a.k.a.
-		ctmark), similarly to the packet mark (nfmark). Using this
-		target and match, you can set and match on this mark.
+	Netfilter allows you to store a mark value per connection (a.k.a.
+	ctmark), similarly to the packet mark (nfmark). Using this
+	target and match, you can set and match on this mark.
 CONFIG_NETFILTER_XT_MARK
 	[arch] all
 	[plat] all
@@ -6600,7 +6600,7 @@ CONFIG_NETFILTER_XT_MATCH_ADDRTYPE
 	[subsys] net
 	[must] user
 	[function] This option allows you to match what routing thinks of
-		  an address, eg. UNICAST, LOCAL, BROADCAST, ...
+	  an address, eg. UNICAST, LOCAL, BROADCAST, ...
 CONFIG_NETFILTER_XT_MATCH_BPF
 	[arch] all
 	[plat] all
@@ -6622,8 +6622,8 @@ CONFIG_NETFILTER_XT_MATCH_CONNBYTES
 	[subsys] net
 	[must] user
 	[function] This option adds a `connbytes' match, which allows
-		  you to match the number of bytes and/or packets for
-		  each direction within a connection.
+	  you to match the number of bytes and/or packets for
+	  each direction within a connection.
 CONFIG_NETFILTER_XT_MATCH_CONNLIMIT
 	[arch] all
 	[plat] all
@@ -6631,8 +6631,8 @@ CONFIG_NETFILTER_XT_MATCH_CONNLIMIT
 	[subsys] net
 	[must] user
 	[function] 1.  This match allows you to match against the number
-		  of parallel connections to a server per client IP
-		  address (or address block). 2. vts require
+	  of parallel connections to a server per client IP
+	  address (or address block). 2. vts require
 CONFIG_NETFILTER_XT_MATCH_CONNMARK
 	[arch] all
 	[plat] all
@@ -6640,7 +6640,7 @@ CONFIG_NETFILTER_XT_MATCH_CONNMARK
 	[subsys] net
 	[must] user
 	[function] vts require, This is a backwards-compat option for the user's convenience (e.g. when running oldconfig). It selects
-		CONFIG_NETFILTER_XT_CONNMARK (combined connmark/CONNMARK module).
+	CONFIG_NETFILTER_XT_CONNMARK (combined connmark/CONNMARK module).
 CONFIG_NETFILTER_XT_MATCH_CONNTRACK
 	[arch] all
 	[plat] all
@@ -6655,7 +6655,7 @@ CONFIG_NETFILTER_XT_MATCH_ECN
 	[subsys] net
 	[must] user
 	[function] This option adds an "ECN" match, which allows you to
-		  match against the IPv4 and TCP header ECN fields.
+	  match against the IPv4 and TCP header ECN fields.
 CONFIG_NETFILTER_XT_MATCH_ESP
 	[arch] all
 	[plat] all
@@ -6663,7 +6663,7 @@ CONFIG_NETFILTER_XT_MATCH_ESP
 	[subsys] net
 	[must] user
 	[function] This match extension allows you to match a range of
-		  SPIs inside ESP header of IPSec packets.
+	  SPIs inside ESP header of IPSec packets.
 CONFIG_NETFILTER_XT_MATCH_HASHLIMIT
 	[arch] all
 	[plat] all
@@ -6671,12 +6671,12 @@ CONFIG_NETFILTER_XT_MATCH_HASHLIMIT
 	[subsys] net
 	[must] user
 	[function] vts require, This option adds a `hashlimit' match.
-		As opposed to `limit', this match dynamically creates a hash table
-		of limit buckets, based on your selection of source/destination
-		addresses and/or ports.
-		It enables you to express policies like `10kpps for any given
-		destination address' or `500pps from any given source address'
-		with a single rule.
+	As opposed to `limit', this match dynamically creates a hash table
+	of limit buckets, based on your selection of source/destination
+	addresses and/or ports.
+	It enables you to express policies like `10kpps for any given
+	destination address' or `500pps from any given source address'
+	with a single rule.
 CONFIG_NETFILTER_XT_MATCH_HELPER
 	[arch] all
 	[plat] all
@@ -6684,8 +6684,8 @@ CONFIG_NETFILTER_XT_MATCH_HELPER
 	[subsys] net
 	[must] user
 	[function] 1. Helper matching allows you to match packets in dynamic
-		  connections tracked by a conntrack-helper,
-		  ie. ip_conntrack_ftp 2. vts require
+	  connections tracked by a conntrack-helper,
+	  ie. ip_conntrack_ftp 2. vts require
 CONFIG_NETFILTER_XT_MATCH_HL
 	[arch] all
 	[plat] all
@@ -6693,8 +6693,8 @@ CONFIG_NETFILTER_XT_MATCH_HL
 	[subsys] net
 	[must] user
 	[function] HL matching allows you to match packets based on the
-		  hoplimit in the IPv6 header, or the time-to-live field in
-		  the IPv4 header of the packet.
+	  hoplimit in the IPv6 header, or the time-to-live field in
+	  the IPv4 header of the packet.
 CONFIG_NETFILTER_XT_MATCH_IPCOMP
 	[arch] all
 	[plat] all
@@ -6702,7 +6702,7 @@ CONFIG_NETFILTER_XT_MATCH_IPCOMP
 	[subsys] net
 	[must] user
 	[function] This match extension allows you to match a range of
-		  CPIs(16 bits) inside IPComp header of IPSec packets.
+	  CPIs(16 bits) inside IPComp header of IPSec packets.
 CONFIG_NETFILTER_XT_MATCH_IPRANGE
 	[arch] all
 	[plat] all
@@ -6717,7 +6717,7 @@ CONFIG_NETFILTER_XT_MATCH_L2TP
 	[subsys] net
 	[must] user
 	[function] This option adds an "L2TP" match, which allows you to
-		  match against L2TP protocol header fields.
+	  match against L2TP protocol header fields.
 CONFIG_NETFILTER_XT_MATCH_LENGTH
 	[arch] all
 	[plat] all
@@ -6725,7 +6725,7 @@ CONFIG_NETFILTER_XT_MATCH_LENGTH
 	[subsys] net
 	[must] user
 	[function] vts require,  This option allows you to match the length of a packet against a
-		specific value or range of values.
+	specific value or range of values.
 CONFIG_NETFILTER_XT_MATCH_LIMIT
 	[arch] all
 	[plat] all
@@ -6796,8 +6796,8 @@ CONFIG_NETFILTER_XT_MATCH_QUOTA2_LOG
 	[subsys] net
 	[must] user
 	[function] This option adds an "L2TP" match, which allows you to
-		  his option allows `quota2' to log ONCE when a
-		  quota limit.
+	  his option allows `quota2' to log ONCE when a
+	  quota limit.
 CONFIG_NETFILTER_XT_MATCH_SCTP
 	[arch] all
 	[plat] all
@@ -6805,8 +6805,8 @@ CONFIG_NETFILTER_XT_MATCH_SCTP
 	[subsys] net
 	[must] user
 	[function] With this option enabled, you will be able to use the
-		  `sctp' match in order to match on SCTP source/destination
-		  portsand SCTP chunk types.NETFILTER_XT_MATCH_SOCKET.
+	  `sctp' match in order to match on SCTP source/destination
+	  portsand SCTP chunk types.NETFILTER_XT_MATCH_SOCKET.
 CONFIG_NETFILTER_XT_MATCH_SOCKET
 	[arch] all
 	[plat] all
@@ -6842,8 +6842,8 @@ CONFIG_NETFILTER_XT_MATCH_TCPMSS
 	[subsys] net
 	[must] user
 	[function] This option adds a `tcpmss' match, which allows you to
-		  examine the MSS value of TCP SYN packets, which control
-		  the maximum packet size for that connection.
+	  examine the MSS value of TCP SYN packets, which control
+	  the maximum packet size for that connection.
 CONFIG_NETFILTER_XT_MATCH_TIME
 	[arch] all
 	[plat] all
@@ -6872,7 +6872,7 @@ CONFIG_NETFILTER_XT_TARGET_CLASSIFY
 	[subsys] net
 	[must] user
 	[function] 1. This option adds a `CLASSIFY' target, which enables the
-		  user to set the priority of a packet. 2. vts require
+	  user to set the priority of a packet. 2. vts require
 CONFIG_NETFILTER_XT_TARGET_CONNMARK
 	[arch] all
 	[plat] all
@@ -6880,9 +6880,9 @@ CONFIG_NETFILTER_XT_TARGET_CONNMARK
 	[subsys] net
 	[must] user
 	[function] vts require, "CONNMARK" target support
-		This is a backwards-compat option for the user's convenience
-		(e.g. when running oldconfig). It selects
-		CONFIG_NETFILTER_XT_CONNMARK (combined connmark/CONNMARK module).
+	This is a backwards-compat option for the user's convenience
+	(e.g. when running oldconfig). It selects
+	CONFIG_NETFILTER_XT_CONNMARK (combined connmark/CONNMARK module).
 CONFIG_NETFILTER_XT_TARGET_CONNSECMARK
 	[arch] all
 	[plat] all
@@ -6890,9 +6890,9 @@ CONFIG_NETFILTER_XT_TARGET_CONNSECMARK
 	[subsys] net
 	[must] user
 	[function] 1.The CONNSECMARK target copies security markings from
-		  packets to connections, and restores security markings from
-		  connections to packets (if the packets are not already marked).
-		  2. vts require
+	  packets to connections, and restores security markings from
+	  connections to packets (if the packets are not already marked).
+	  2. vts require
 CONFIG_NETFILTER_XT_TARGET_DSCP
 	[arch] all
 	[plat] all
@@ -6900,11 +6900,11 @@ CONFIG_NETFILTER_XT_TARGET_DSCP
 	[subsys] net
 	[must] user
 	[function] This option adds a `DSCP' target, which allows you to
-		   manipulate the IPv4/IPv6 header DSCP field
-		   (differentiated services codepoint).
-		   The DSCP field can have any value between 0x0 and
-		   0x3f inclusive.
-		   It also adds the "TOS" target, which allows you to
+	   manipulate the IPv4/IPv6 header DSCP field
+	   (differentiated services codepoint).
+	   The DSCP field can have any value between 0x0 and
+	   0x3f inclusive.
+	   It also adds the "TOS" target, which allows you to
 CONFIG_NETFILTER_XT_TARGET_HL
 	[arch] all
 	[plat] all
@@ -6912,8 +6912,8 @@ CONFIG_NETFILTER_XT_TARGET_HL
 	[subsys] net
 	[must] user
 	[function] This option adds the "HL" (for IPv6) and "TTL"
-		  (for IPv4) targets, which enable the user to change the
-		  hoplimit/time-to-live value of the IP header.
+	  (for IPv4) targets, which enable the user to change the
+	  hoplimit/time-to-live value of the IP header.
 CONFIG_NETFILTER_XT_TARGET_IDLETIMER
 	[arch] all
 	[plat] all
@@ -6942,7 +6942,7 @@ CONFIG_NETFILTER_XT_TARGET_NETMAP
 	[subsys] net
 	[must] user
 	[function] "NETMAP" target support, NETMAP is an implementation of static 1:1 NAT mapping of network
-		addresses. It maps the network address part, while keeping the host address part intact.
+	addresses. It maps the network address part, while keeping the host address part intact.
 CONFIG_NETFILTER_XT_TARGET_NFLOG
 	[arch] all
 	[plat] all
@@ -6964,9 +6964,9 @@ CONFIG_NETFILTER_XT_TARGET_REDIRECT
 	[subsys] net
 	[must] user
 	[function] "REDIRECT target support:REDIRECT is a special case of NAT: all incoming connections are
-		mapped onto the incoming interface's address, causing the packets to
-		come to the local machine instead of passing through. This is
-		useful for transparent proxies.
+	mapped onto the incoming interface's address, causing the packets to
+	come to the local machine instead of passing through. This is
+	useful for transparent proxies.
 CONFIG_NETFILTER_XT_TARGET_SECMARK
 	[arch] all
 	[plat] all
@@ -6974,7 +6974,7 @@ CONFIG_NETFILTER_XT_TARGET_SECMARK
 	[subsys] net
 	[must] user
 	[function] vts require, "SECMARK" target support: The SECMARK target allows security marking of network
-		packets, for use with security subsystems.
+	packets, for use with security subsystems.
 CONFIG_NETFILTER_XT_TARGET_TCPMSS
 	[arch] all
 	[plat] all
@@ -6982,8 +6982,8 @@ CONFIG_NETFILTER_XT_TARGET_TCPMSS
 	[subsys] net
 	[must] user
 	[function] vts require, "TCPMSS" target support: This option adds a `TCPMSS' target, which allows you to alter the
-		MSS value of TCP SYN packets, to control the maximum size for that
-		connection (usually limiting it to your outgoing interface's MTU minus 40).
+	MSS value of TCP SYN packets, to control the maximum size for that
+	connection (usually limiting it to your outgoing interface's MTU minus 40).
 CONFIG_NETFILTER_XT_TARGET_TEE
 	[arch] all
 	[plat] all
@@ -6991,8 +6991,8 @@ CONFIG_NETFILTER_XT_TARGET_TEE
 	[subsys] net
 	[must] user
 	[function] This option adds a "TEE" target with which a packet
-		  can be cloned and this clone be rerouted to
-		  another nexthop.
+	  can be cloned and this clone be rerouted to
+	  another nexthop.
 CONFIG_NETFILTER_XT_TARGET_TPROXY
 	[arch] all
 	[plat] all
@@ -7000,7 +7000,7 @@ CONFIG_NETFILTER_XT_TARGET_TPROXY
 	[subsys] net
 	[must] user
 	[function] 1. This option adds a `TPROXY' target, which is somewhat
-		  similar to REDIRECT. 2. vts require
+	  similar to REDIRECT. 2. vts require
 CONFIG_NETFILTER_XT_TARGET_TRACE
 	[arch] all
 	[plat] all
@@ -7008,8 +7008,8 @@ CONFIG_NETFILTER_XT_TARGET_TRACE
 	[subsys] net
 	[must] user
 	[function] 1. The TRACE target allows you to mark packets so that
-		  the kernel will log every rule which match the packets as
-		  those traverse the tables, chains, rules. 2. vts require
+	  the kernel will log every rule which match the packets as
+	  those traverse the tables, chains, rules. 2. vts require
 CONFIG_NETWORK_SECMARK
 	[arch] all
 	[plat] all
@@ -7031,9 +7031,9 @@ CONFIG_NET_CLS_ACT
 	[subsys] net
 	[must] user
 	[function] vts require, Say Y here if you want to use traffic control actions. Actions
-		get attached to classifiers and are invoked after a successful
-		classification. They are used to overwrite the classification
-		result, instantly drop or redirect packets, etc.
+	get attached to classifiers and are invoked after a successful
+	classification. They are used to overwrite the classification
+	result, instantly drop or redirect packets, etc.
 CONFIG_NET_CLS_FW
 	[arch] all
 	[plat] all
@@ -7041,7 +7041,7 @@ CONFIG_NET_CLS_FW
 	[subsys] net
 	[must] user
 	[function] This option enable you to classify packets according
-		  to netfilter/firewall marks.
+	  to netfilter/firewall marks.
 CONFIG_NET_CLS_U32
 	[arch] all
 	[plat] all
@@ -7063,9 +7063,9 @@ CONFIG_NET_EMATCH
 	[subsys] net
 	[must] user
 	[function] Say Y here if you want to use extended matches on top of classifiers
-		and select the extended matches below.
-		Extended matches are small classification helpers not worth writing
-		a separate classifier for.
+	and select the extended matches below.
+	Extended matches are small classification helpers not worth writing
+	a separate classifier for.
 CONFIG_NET_EMATCH_STACK
 	[arch] all
 	[plat] all
@@ -7073,9 +7073,9 @@ CONFIG_NET_EMATCH_STACK
 	[subsys] net
 	[must] user
 	[function] Size of the local stack variable used while evaluating the tree of
-		ematches. Limits the depth of the tree, i.e. the number of
-		encapsulated precedences. Every level requires 4 bytes of additional
-		stack space.
+	ematches. Limits the depth of the tree, i.e. the number of
+	encapsulated precedences. Every level requires 4 bytes of additional
+	stack space.
 CONFIG_NET_EMATCH_U32
 	[arch] all
 	[plat] all
@@ -7083,7 +7083,7 @@ CONFIG_NET_EMATCH_U32
 	[subsys] net
 	[must] user
 	[function] Say Y here if you want to be able to classify packets using
-		the famous u32 key in combination with logic relations.
+	the famous u32 key in combination with logic relations.
 CONFIG_NET_FLOW_LIMIT
 	[arch] all
 	[plat] all
@@ -7091,11 +7091,11 @@ CONFIG_NET_FLOW_LIMIT
 	[subsys] net
 	[must] user
 	[function]  The network stack has to drop packets when a receive processing CPU's
-		backlog reaches netdev_max_backlog. If a few out of many active flows
-		generate the vast majority of load, drop their traffic earlier to
-		maintain capacity for the other flows. This feature provides servers
-		with many clients some protection against DoS by a single (spoofed)
-		flow that greatly exceeds average workload.
+	backlog reaches netdev_max_backlog. If a few out of many active flows
+	generate the vast majority of load, drop their traffic earlier to
+	maintain capacity for the other flows. This feature provides servers
+	with many clients some protection against DoS by a single (spoofed)
+	flow that greatly exceeds average workload.
 CONFIG_NET_INGRESS
 	[arch] all
 	[plat] all
@@ -7110,7 +7110,7 @@ CONFIG_NET_IPGRE_DEMUX
 	[subsys] net
 	[must] user
 	[function] his is helper module to demultiplex GRE packets on GRE version field criteria.
-		Required by ip_gre and pptp modules.
+	Required by ip_gre and pptp modules.
 CONFIG_NET_IPVTI
 	[arch] all
 	[plat] all
@@ -7118,7 +7118,7 @@ CONFIG_NET_IPVTI
 	[subsys] net
 	[must] user
 	[function] Support for Virtual (secure) IP tunneling:This can be used with xfrm mode tunnel to give
-		If don't enable this config, the phone will have the internal problem.
+	If don't enable this config, the phone will have the internal problem.
 CONFIG_NET_IP_TUNNEL
 	[arch] all
 	[plat] all
@@ -7133,7 +7133,7 @@ CONFIG_NET_KEY
 	[subsys] net
 	[must] user
 	[function] vts require, PF_KEYv2 socket family, compatible to KAME ones.
-		They are required if you are going to use IPsec tools ported from KAME.
+	They are required if you are going to use IPsec tools ported from KAME.
 CONFIG_NET_RX_BUSY_POLL
 	[arch] all
 	[plat] all
@@ -7148,13 +7148,13 @@ CONFIG_NET_SCHED
 	[subsys] net
 	[must] user
 	[function] vts require, If you say N here, you will get the standard packet scheduler, which
-		is a FIFO (first come, first served). If you say Y here, you will be
-		able to choose from among several alternative algorithms which can
-		then be attached to different network devices. This is useful for
-		example if some of your network devices are real time devices that
-		need a certain minimum data flow rate, or if you need to limit the
-		maximum data flow rate for traffic which matches specified criteria.
-		This code is considered to be experimental.
+	is a FIFO (first come, first served). If you say Y here, you will be
+	able to choose from among several alternative algorithms which can
+	then be attached to different network devices. This is useful for
+	example if some of your network devices are real time devices that
+	need a certain minimum data flow rate, or if you need to limit the
+	maximum data flow rate for traffic which matches specified criteria.
+	This code is considered to be experimental.
 CONFIG_NET_SCH_FIFO
 	[arch] all
 	[plat] all
@@ -7169,7 +7169,7 @@ CONFIG_NET_SCH_HTB
 	[subsys] net
 	[must] user
 	[function] vts require, Say Y here if you want to use the Hierarchical Token Buckets (HTB)
-		packet scheduling algorithm
+	packet scheduling algorithm
 CONFIG_NET_UDP_TUNNEL
 	[arch] all
 	[plat] all
@@ -7198,9 +7198,9 @@ CONFIG_NF_CONNTRACK_AMANDA
 	[subsys] net
 	[must] user
 	[function] 1. This allows the connection tracking and natting
-		  code to allow the sub-channels that Amanda requires
-		  for communication of the backup data, messages and
-		  index.2. vts require
+	  code to allow the sub-channels that Amanda requires
+	  for communication of the backup data, messages and
+	  index.2. vts require
 CONFIG_NF_CONNTRACK_BROADCAST
 	[arch] all
 	[plat] all
@@ -7215,8 +7215,8 @@ CONFIG_NF_CONNTRACK_EVENTS
 	[subsys] net
 	[must] user
 	[function] vts require, If this option is enabled, the connection tracking code will
-		provide a notifier chain that can be used by other kernel code
-		to get notified about changes in the connection tracking state.
+	provide a notifier chain that can be used by other kernel code
+	to get notified about changes in the connection tracking state.
 CONFIG_NF_CONNTRACK_FTP
 	[arch] all
 	[plat] all
@@ -7224,11 +7224,11 @@ CONFIG_NF_CONNTRACK_FTP
 	[subsys] net
 	[must] user
 	[function] vts require, Tracking FTP connections is problematic: special helpers are
-		required for tracking them, and doing masquerading and other forms
-		of Network Address Translation on them.
-		This is FTP support on Layer 3 independent connection tracking.
-		Layer 3 independent connection tracking is experimental scheme
-		which generalize ip_conntrack to support other layer 3 protocols.
+	required for tracking them, and doing masquerading and other forms
+	of Network Address Translation on them.
+	This is FTP support on Layer 3 independent connection tracking.
+	Layer 3 independent connection tracking is experimental scheme
+	which generalize ip_conntrack to support other layer 3 protocols.
 CONFIG_NF_CONNTRACK_H323
 	[arch] all
 	[plat] all
@@ -7236,7 +7236,7 @@ CONFIG_NF_CONNTRACK_H323
 	[subsys] net
 	[must] user
 	[function] 1. support H.323 on a connection tracking/NAT firewall.
-		  2. vts require
+	  2. vts require
 CONFIG_NF_CONNTRACK_IPV4
 	[arch] all
 	[plat] all
@@ -7258,9 +7258,9 @@ CONFIG_NF_CONNTRACK_IRC
 	[subsys] net
 	[must] user
 	[function] 1. There is a commonly-used extension to IRC called
-		  Direct Client-to-Client Protocol (DCC).  This enables
-		  users to send files to each other, and also chat to each
-		  other without the need of a server. 2. vts require
+	  Direct Client-to-Client Protocol (DCC).  This enables
+	  users to send files to each other, and also chat to each
+	  other without the need of a server. 2. vts require
 CONFIG_NF_CONNTRACK_MARK
 	[arch] all
 	[plat] all
@@ -7268,9 +7268,9 @@ CONFIG_NF_CONNTRACK_MARK
 	[subsys] net
 	[must] user
 	[function] This option enables support for connection marks, used by the
-		`CONNMARK' target and `connmark' match. Similar to the mark value
-		of packets, but this mark value is kept in the conntrack session
-		instead of the individual packets.
+	`CONNMARK' target and `connmark' match. Similar to the mark value
+	of packets, but this mark value is kept in the conntrack session
+	instead of the individual packets.
 CONFIG_NF_CONNTRACK_NETBIOS_NS
 	[arch] all
 	[plat] all
@@ -7278,8 +7278,8 @@ CONFIG_NF_CONNTRACK_NETBIOS_NS
 	[subsys] net
 	[must] user
 	[function] 1. NetBIOS name service requests are sent as broadcast
-		  messages from an unprivileged port and responded to with
-		  unicast messages to the same port. 2. vts require
+	  messages from an unprivileged port and responded to with
+	  unicast messages to the same port. 2. vts require
 CONFIG_NF_CONNTRACK_PPTP
 	[arch] all
 	[plat] all
@@ -7294,9 +7294,9 @@ CONFIG_NF_CONNTRACK_PROCFS
 	[subsys] net
 	[must] user
 	[function] This option enables for the list of known conntrack entries
-		to be shown in procfs under net/netfilter/nf_conntrack. This
-		is considered obsolete in favor of using the conntrack(8)
-		tool which uses Netlink.
+	to be shown in procfs under net/netfilter/nf_conntrack. This
+	is considered obsolete in favor of using the conntrack(8)
+	tool which uses Netlink.
 CONFIG_NF_CONNTRACK_SANE
 	[arch] all
 	[plat] all
@@ -7304,8 +7304,8 @@ CONFIG_NF_CONNTRACK_SANE
 	[subsys] net
 	[must] user
 	[function] 1. SANE is a protocol for remote access to scanners as
-		  implemented by the 'saned' daemon. Like FTP, it uses separate
-		  control and data connections. 2. vts require
+	  implemented by the 'saned' daemon. Like FTP, it uses separate
+	  control and data connections. 2. vts require
 CONFIG_NF_CONNTRACK_SECMARK
 	[arch] all
 	[plat] all
@@ -7313,7 +7313,7 @@ CONFIG_NF_CONNTRACK_SECMARK
 	[subsys] net
 	[must] user
 	[function] 1. The SECMARK target allows security marking of network
-		  packets, for use with security subsystems. 2. vts require
+	  packets, for use with security subsystems. 2. vts require
 CONFIG_NF_CONNTRACK_SIP
 	[arch] all
 	[plat] all
@@ -7321,7 +7321,7 @@ CONFIG_NF_CONNTRACK_SIP
 	[subsys] net
 	[must] user
 	[function] Support sip protocol on a connection
-		  tracking/NATing firewall.
+	  tracking/NATing firewall.
 CONFIG_NF_CONNTRACK_TFTP
 	[arch] all
 	[plat] all
@@ -7329,9 +7329,9 @@ CONFIG_NF_CONNTRACK_TFTP
 	[subsys] net
 	[must] user
 	[function] vts require, TFTP connection tracking helper, this is required depending
-		on how restrictive your ruleset is.
-		If you are using a tftp client behind -j SNAT or -j MASQUERADING
-		you will need this.
+	on how restrictive your ruleset is.
+	If you are using a tftp client behind -j SNAT or -j MASQUERADING
+	you will need this.
 CONFIG_NF_CT_NETLINK
 	[arch] all
 	[plat] all
@@ -7346,9 +7346,9 @@ CONFIG_NF_CT_NETLINK_TIMEOUT
 	[subsys] net
 	[must] user
 	[function] This option enables support for connection tracking
-		  timeout fine-grain tuning. This allows you to attach
-		  specific timeout, policies to flows, instead of using
-		  the global timeout policy.
+	  timeout fine-grain tuning. This allows you to attach
+	  specific timeout, policies to flows, instead of using
+	  the global timeout policy.
 CONFIG_NF_CT_PROTO_DCCP
 	[arch] all
 	[plat] all
@@ -7356,8 +7356,8 @@ CONFIG_NF_CT_PROTO_DCCP
 	[subsys] net
 	[must] user
 	[function] 1. With this option enabled, the layer 3 independent
-		  connection tracking code will be able to do state
-		  tracking on DCCP connections. 2. vts require
+	  connection tracking code will be able to do state
+	  tracking on DCCP connections. 2. vts require
 CONFIG_NF_CT_PROTO_GRE
 	[arch] all
 	[plat] all
@@ -7365,8 +7365,8 @@ CONFIG_NF_CT_PROTO_GRE
 	[subsys] net
 	[must] user
 	[function] Connection tracking protocol helper module for GRE.
-		GRE is a generic encapsulation protocol, which is generally not very
-		suited for NAT, as it has no protocol-specific part as port numbers.
+	GRE is a generic encapsulation protocol, which is generally not very
+	suited for NAT, as it has no protocol-specific part as port numbers.
 CONFIG_NF_CT_PROTO_SCTP
 	[arch] all
 	[plat] all
@@ -7374,8 +7374,8 @@ CONFIG_NF_CT_PROTO_SCTP
 	[subsys] net
 	[must] user
 	[function] 1. With this option enabled, the layer 3 independent
-		  connection tracking code will be able to do state
-		  tracking on SCTP connections. 2. vts require
+	  connection tracking code will be able to do state
+	  tracking on SCTP connections. 2. vts require
 CONFIG_NF_CT_PROTO_UDPLITE
 	[arch] all
 	[plat] all
@@ -7383,8 +7383,8 @@ CONFIG_NF_CT_PROTO_UDPLITE
 	[subsys] net
 	[must] user
 	[function] 1. With this option enabled, the layer 3 independent
-		  connection tracking code will be able to do state
-		  tracking on UDP-Lite connections.2. vts require
+	  connection tracking code will be able to do state
+	  tracking on UDP-Lite connections.2. vts require
 CONFIG_NF_DEFRAG_IPV4
 	[arch] all
 	[plat] all
@@ -7392,8 +7392,8 @@ CONFIG_NF_DEFRAG_IPV4
 	[subsys] net
 	[must] user
 	[function] Netfilter connection tracking requires all IPv4 packets to be defragmented.
-		Both the socket match and the TPROXY target depend on this functionality, so
-		this patch separates the Netfilter IPv4 defrag hooks into a separate module.
+	Both the socket match and the TPROXY target depend on this functionality, so
+	this patch separates the Netfilter IPv4 defrag hooks into a separate module.
 CONFIG_NF_DEFRAG_IPV6
 	[arch] all
 	[plat] all
@@ -7401,8 +7401,8 @@ CONFIG_NF_DEFRAG_IPV6
 	[subsys] net
 	[must] user
 	[function] Netfilter connection tracking requires all IPv6 packets to be defragmented.
-		Both the socket match and the TPROXY target depend on this functionality, so
-		this patch separates the Netfilter IPv6 defrag hooks into a separate module.
+	Both the socket match and the TPROXY target depend on this functionality, so
+	this patch separates the Netfilter IPv6 defrag hooks into a separate module.
 CONFIG_NF_DUP_IPV4
 	[arch] all
 	[plat] all
@@ -7410,8 +7410,8 @@ CONFIG_NF_DUP_IPV4
 	[subsys] net
 	[must] user
 	[function] This option adds a "TEE" target with which a packet
-		  can be cloned and this clone be rerouted to another
-		  nexthop.
+	  can be cloned and this clone be rerouted to another
+	  nexthop.
 CONFIG_NF_DUP_IPV6
 	[arch] all
 	[plat] all
@@ -7419,8 +7419,8 @@ CONFIG_NF_DUP_IPV6
 	[subsys] net
 	[must] user
 	[function] This option enables the nf_dup_ipv6 core, which
-		  duplicates an IPv6 packet to be rerouted to another
-		  destination.
+	  duplicates an IPv6 packet to be rerouted to another
+	  destination.
 CONFIG_NF_LOG_COMMON
 	[arch] all
 	[plat] all
@@ -7477,8 +7477,8 @@ CONFIG_NF_NAT_IPV4
 	[subsys] net
 	[must] user
 	[function] The IPv4 NAT option allows masquerading, port forwarding and other
-		forms of full Network Address Port Translation. This can be
-		controlled by iptables or nft.
+	forms of full Network Address Port Translation. This can be
+	controlled by iptables or nft.
 CONFIG_NF_NAT_IPV6
 	[arch] all
 	[plat] all
@@ -7486,7 +7486,7 @@ CONFIG_NF_NAT_IPV6
 	[subsys] net
 	[must] user
 	[function] depends on NF_CONNTRACK_IPV6 & NETFILTER_ADVANCED, The IPv6 NAT option allows masquerading, port forwarding and other
-		forms of full Network Address Port Translation. This can be controlled by iptables or nft.
+	forms of full Network Address Port Translation. This can be controlled by iptables or nft.
 CONFIG_NF_NAT_IRC
 	[arch] all
 	[plat] all
@@ -7501,7 +7501,7 @@ CONFIG_NF_NAT_MASQUERADE_IPV4
 	[subsys] net
 	[must] user
 	[function] This is the kernel functionality to provide NAT in the masquerade
-		flavour (automatic source address selection).
+	flavour (automatic source address selection).
 CONFIG_NF_NAT_MASQUERADE_IPV6
 	[arch] all
 	[plat] all
@@ -7509,8 +7509,8 @@ CONFIG_NF_NAT_MASQUERADE_IPV6
 	[subsys] net
 	[must] user
 	[function] This is the kernel functionality to provide NAT in
-		  the masquerade flavour (automatic source address
-		  selection).
+	  the masquerade flavour (automatic source address
+	  selection).
 CONFIG_NF_NAT_NEEDED
 	[arch] all
 	[plat] all
@@ -7539,7 +7539,7 @@ CONFIG_NF_NAT_PROTO_GRE
 	[subsys] net
 	[must] user
 	[function] NAT protocol helper module for GRE.GRE is a generic encapsulation protocol, which is generally not very
-		suited for NAT, as it has no protocol-specific part as port numbers.
+	suited for NAT, as it has no protocol-specific part as port numbers.
 CONFIG_NF_NAT_PROTO_SCTP
 	[arch] all
 	[plat] all
@@ -7568,7 +7568,7 @@ CONFIG_NF_NAT_SIP
 	[subsys] net
 	[must] user
 	[function] Support SIP protocol on a connection
-		  tracking/NATing firewall.
+	  tracking/NATing firewall.
 CONFIG_NF_NAT_TFTP
 	[arch] all
 	[plat] all
@@ -7611,7 +7611,7 @@ CONFIG_NL80211_TESTMODE
 	[subsys] wireless
 	[must] user
 	[function] helps implementing things like factory calibration or
-			validation tools for wireless chips
+		validation tools for wireless chips
 CONFIG_NLATTR
 	[arch] all
 	[plat] all
@@ -7626,9 +7626,9 @@ CONFIG_NLS
 	[subsys] fs
 	[must] user
 	[function] The base Native Language Support. A number of
-		   filesystems depend on it (e.g. FAT, JOLIET, NT, BEOS
-		   filesystems), as well as the ability of some filesystems
-		   to use native languages (NCP, SMB).
+	   filesystems depend on it (e.g. FAT, JOLIET, NT, BEOS
+	   filesystems), as well as the ability of some filesystems
+	   to use native languages (NCP, SMB).
 CONFIG_NLS_ASCII
 	[arch] all
 	[plat] all
@@ -7657,7 +7657,7 @@ CONFIG_NLS_ISO8859_1
 	[subsys] fs
 	[must] user
 	[function] Character sets. NLS ISO 8859-1  (Latin 1; Western
-		   European Languages).
+	   European Languages).
 CONFIG_NLS_UTF8
 	[arch] all
 	[plat] all
@@ -7980,7 +7980,7 @@ CONFIG_PCI_DEBUG
 	[subsys] pci
 	[must] user
 	[function] PCI core can produce a bunch of debug messages to the
-		   system log.
+	   system log.
 CONFIG_PCI_DOMAINS
 	[arch] arm64
 	[plat] roc1
@@ -8023,7 +8023,7 @@ CONFIG_PCI_SYSCALL
 	[subsys] pci
 	[must] user
 	[function] For architectures where we want to allow direct access to
-		   the PCI config stuff.
+	   the PCI config stuff.
 CONFIG_PELT_UTIL_HALFLIFE_32
 	[arch] all
 	[plat] all
@@ -8059,8 +8059,8 @@ CONFIG_PHYLIB
 	[subsys] net
 	[must] user
 	[function] Ethernet controllers are usually attached to PHY
-		devices.  This option provides infrastructure for
-		managing PHY devices.
+	devices.  This option provides infrastructure for
+	managing PHY devices.
 CONFIG_PHYS_ADDR_T_64BIT
 	[arch] arm64
 	[plat] roc1,sharkl5
@@ -8271,7 +8271,7 @@ CONFIG_PPP
 	[subsys] net
 	[must] user
 	[function] 1. PPP (Point to Point Protocol) is a newer and better SLIP.
-		  2. vts require
+	  2. vts require
 CONFIG_PPPOE
 	[arch] all
 	[plat] all
@@ -8286,8 +8286,8 @@ CONFIG_PPPOL2TP
 	[subsys] net
 	[must] user
 	[function] Support for PPP-over-L2TP socket family. L2TP is a protocol
-		used by ISPs and enterprises to tunnel PPP traffic over UDP
-		tunnels. L2TP is replacing PPTP for VPN uses.
+	used by ISPs and enterprises to tunnel PPP traffic over UDP
+	tunnels. L2TP is replacing PPTP for VPN uses.
 CONFIG_PPP_ASYNC
 	[arch] all
 	[plat] all
@@ -8295,9 +8295,9 @@ CONFIG_PPP_ASYNC
 	[subsys] net
 	[must] user
 	[function] Say Y (or M) here if you want to be able to use PPP over standard
-		asynchronous serial ports, such as COM1 or COM2 on a PC.  If you use
-		a modem (not a synchronous or ISDN modem) to contact your ISP, you
-		need this option.
+	asynchronous serial ports, such as COM1 or COM2 on a PC.  If you use
+	a modem (not a synchronous or ISDN modem) to contact your ISP, you
+	need this option.
 CONFIG_PPP_BSDCOMP
 	[arch] all
 	[plat] all
@@ -8305,8 +8305,8 @@ CONFIG_PPP_BSDCOMP
 	[subsys] net
 	[must] user
 	[function] 1. Support for the BSD-Compress compression method for PPP,
-		  which uses the LZW compression method to compress each PPP
-		  packet before it is sent over the wire. 2. vts require
+	  which uses the LZW compression method to compress each PPP
+	  packet before it is sent over the wire. 2. vts require
 CONFIG_PPP_DEFLATE
 	[arch] all
 	[plat] all
@@ -8314,9 +8314,9 @@ CONFIG_PPP_DEFLATE
 	[subsys] net
 	[must] user
 	[function] 1. Support for the Deflate compression method for PPP, which
-		  uses the Deflate algorithm (the same algorithm that gzip uses)
-		  to compress each PPP packet before it is sent over the wire.
-		  2. vts require
+	  uses the Deflate algorithm (the same algorithm that gzip uses)
+	  to compress each PPP packet before it is sent over the wire.
+	  2. vts require
 CONFIG_PPP_FILTER
 	[arch] all
 	[plat] all
@@ -8324,11 +8324,11 @@ CONFIG_PPP_FILTER
 	[subsys] net
 	[must] user
 	[function] Say Y here if you want to be able to filter the packets passing over
-		PPP interfaces.  This allows you to control which packets count as
-		activity (i.e. which packets will reset the idle timer or bring up
-		a demand-dialed link) and which packets are to be dropped entirely.
-		You need to say Y here if you wish to use the pass-filter and
-		active-filter options to pppd.
+	PPP interfaces.  This allows you to control which packets count as
+	activity (i.e. which packets will reset the idle timer or bring up
+	a demand-dialed link) and which packets are to be dropped entirely.
+	You need to say Y here if you wish to use the pass-filter and
+	active-filter options to pppd.
 CONFIG_PPP_MPPE
 	[arch] all
 	[plat] all
@@ -8336,7 +8336,7 @@ CONFIG_PPP_MPPE
 	[subsys] net
 	[must] user
 	[function] 1.  Support for the MPPE Encryption protocol, as employed by the
-		  Microsoft Point-to-Point Tunneling Protocol. 2. vts require
+	  Microsoft Point-to-Point Tunneling Protocol. 2. vts require
 CONFIG_PPP_MULTILINK
 	[arch] all
 	[plat] all
@@ -8442,8 +8442,8 @@ CONFIG_PROC_PAGE_MONITOR
 	[subsys] fs
 	[must] user
 	[function] Various /proc files exist to monitor process memory
-		   utilization: /proc/pid/smaps, /proc/pid/clear_refs,
-		   /proc/pid/pagemap,/proc/kpagecount, and /proc/kpageflags
+	   utilization: /proc/pid/smaps, /proc/pid/clear_refs,
+	   /proc/pid/pagemap,/proc/kpagecount, and /proc/kpageflags
 CONFIG_PROC_PID_CPUSET
 	[arch] all
 	[plat] all
@@ -8591,7 +8591,7 @@ CONFIG_RATIONAL
 	[subsys] core
 	[must] console
 	[function] Calculate best rational approximation for a given fraction
-			taking into account restricted register size.
+		taking into account restricted register size.
 CONFIG_RCU_CPU_STALL_TIMEOUT
 	[arch] all
 	[plat] all
@@ -8599,7 +8599,7 @@ CONFIG_RCU_CPU_STALL_TIMEOUT
 	[subsys] core
 	[must] console
 	[function] If a given RCU grace period extends more than the specified
-		number of seconds, a CPU stall warning is printed.
+	number of seconds, a CPU stall warning is printed.
 CONFIG_RCU_NEED_SEGCBLIST
 	[arch] all
 	[plat] all
@@ -8614,7 +8614,7 @@ CONFIG_RCU_STALL_COMMON
 	[subsys] core
 	[must] console
 	[function] Enables RCU CPU stall code that is common between the TINY
-		and TREE variants of RCU.
+	and TREE variants of RCU.
 CONFIG_RC_CORE
 	[arch] all
 	[plat] all
@@ -8769,8 +8769,8 @@ CONFIG_RELOCATABLE
 	[subsys] core
 	[must] console
 	[function] This builds the kernel as a Position Independent Executable (PIE),
-		which retains all relocation metadata required to relocate the kernel binary
-		at runtime to a different virtual address than the address it was linked at.
+	which retains all relocation metadata required to relocate the kernel binary
+	at runtime to a different virtual address than the address it was linked at.
 CONFIG_RESET_CONTROLLER
 	[arch] all
 	[plat] all
@@ -8806,10 +8806,10 @@ CONFIG_RFS_ACCEL
 	[subsys] net
 	[must] user
 	[function] Accelerated RFS is to RFS what RSS is to RPS: a hardware-accelerated load
-		balancing mechanism that uses soft state to steer flows based on where
-		the application thread consuming the packets of each flow is running.
-		Accelerated RFS should perform better than RFS since packets are sent
-		directly to a CPU local to the thread consuming the data.
+	balancing mechanism that uses soft state to steer flows based on where
+	the application thread consuming the packets of each flow is running.
+	Accelerated RFS should perform better than RFS since packets are sent
+	directly to a CPU local to the thread consuming the data.
 CONFIG_RING_BUFFER
 	[arch] all
 	[plat] all
@@ -8831,15 +8831,15 @@ CONFIG_RPS
 	[subsys] net
 	[must] user
 	[function] Receive Packet Steering (RPS) is logically a software implementation of
-		RSS. Being in software, it is necessarily called later in the datapath.
-		Whereas RSS selects the queue and hence CPU that will run the hardware
-		interrupt handler, RPS selects the CPU to perform protocol processing
-		above the interrupt handler. This is accomplished by placing the packet
-		on the desired CPUs backlog queue and waking up the CPU for processing.
-		RPS has some advantages over RSS: 1) it can be used with any NIC,
-		2) software filters can easily be added to hash over new protocols,
-		3) it does not increase hardware device interrupt rate (although it does
-		introduce inter-processor interrupts (IPIs)).
+	RSS. Being in software, it is necessarily called later in the datapath.
+	Whereas RSS selects the queue and hence CPU that will run the hardware
+	interrupt handler, RPS selects the CPU to perform protocol processing
+	above the interrupt handler. This is accomplished by placing the packet
+	on the desired CPUs backlog queue and waking up the CPU for processing.
+	RPS has some advantages over RSS: 1) it can be used with any NIC,
+	2) software filters can easily be added to hash over new protocols,
+	3) it does not increase hardware device interrupt rate (although it does
+	introduce inter-processor interrupts (IPIs)).
 CONFIG_RTC_CLASS
 	[arch] all
 	[plat] all
@@ -8973,7 +8973,7 @@ CONFIG_SC23XX
 	[subsys] msic
 	[must] user
 	[function] This function is used to support wcn sc23xx chip
-		For pike2, this must be enable for buletooth.
+	For pike2, this must be enable for buletooth.
 CONFIG_SC27XX_ADC
 	[arch] all
 	[plat] all
@@ -9107,7 +9107,7 @@ CONFIG_SECCOMP
 	[subsys] core
 	[must] user
 	[function] Enable seccomp to safely compute untrusted bytecode.
-	           vts require
+	   vts require
 CONFIG_SECCOMP_FILTER
 	[arch] all
 	[plat] all
@@ -9115,9 +9115,9 @@ CONFIG_SECCOMP_FILTER
 	[subsys] core
 	[must] user
 	[function] Enable tasks to build secure computing
-		environments defined in terms of Berkeley
-		Packet Filter programs which implement
-		task-defined system call filtering polices.
+	environments defined in terms of Berkeley
+	Packet Filter programs which implement
+	task-defined system call filtering polices.
 CONFIG_SECTION_MISMATCH_WARN_ONLY
 	[arch] all
 	[plat] all
@@ -9244,7 +9244,7 @@ CONFIG_SETEND_EMULATION
 	[subsys] core
 	[must] console
 	[function] The SETEND instruction alters the data-endianness of the
-		AArch32 EL0, and is deprecated in ARMv8.
+	AArch32 EL0, and is deprecated in ARMv8.
 CONFIG_SG_POOL
 	[arch] all
 	[plat] all
@@ -9266,7 +9266,7 @@ CONFIG_SIGNALFD
 	[subsys] make,code
 	[must] console
 	[function] Enable the signalfd() system call that allows to receive signals
-		on a file descriptor.
+	on a file descriptor.
 CONFIG_SLABINFO
 	[arch] all
 	[plat] all
@@ -9274,7 +9274,7 @@ CONFIG_SLABINFO
 	[subsys] mm
 	[must] debug
 	[function] Increase debug efficiency for memory covered issue,
-		   depends on PROC_FS,depends on SLAB || SLUB_DEBUG
+	   depends on PROC_FS,depends on SLAB || SLUB_DEBUG
 CONFIG_SLAB_MERGE_DEFAULT
 	[arch] all
 	[plat] all
@@ -9289,7 +9289,7 @@ CONFIG_SLHC
 	[subsys] net
 	[must] user
 	[function] This option enables Van Jacobsen serial line header
-		  compression routines.
+	  compression routines.
 CONFIG_SLUB
 	[arch] all
 	[plat] all
@@ -9318,7 +9318,7 @@ CONFIG_SLUB_DEBUG_ON
 	[subsys] mm
 	[must] debug
 	[function] Increase debug efficiency for memory covered issue,
-		   depends on SLUB && SLUB_DEBUG
+	   depends on SLUB && SLUB_DEBUG
 CONFIG_SLUB_STATS
 	[arch] all
 	[plat] all
@@ -9326,7 +9326,7 @@ CONFIG_SLUB_STATS
 	[subsys] mm
 	[must] debug
 	[function] SLUB statistics are useful to debug SLUBs allocation
-		  behavior
+	  behavior
 CONFIG_SMARTJOYPLUS_FF
 	[arch] all
 	[plat] all
@@ -9397,7 +9397,7 @@ CONFIG_SND_HWDEP
 	[subsys] snd-usb-audio
 	[must] debug
 	[function] This macro is selected when snd usb audio true
-		   support USB Audio/MIDI driver.
+	   support USB Audio/MIDI driver.
 CONFIG_SND_JACK
 	[arch] all
 	[plat] all
@@ -9594,8 +9594,8 @@ CONFIG_SPARSE_IRQ
 	[subsys] interrupt
 	[must] console
 	[function] Sparse irq numbering is useful for distro kernels that want
-		to define a high CONFIG_NR_CPUS value but still want to have
-		low kernel memory footprint on smaller machines.
+	to define a high CONFIG_NR_CPUS value but still want to have
+	low kernel memory footprint on smaller machines.
 CONFIG_SPI
 	[arch] all
 	[plat] all
@@ -9848,6 +9848,13 @@ CONFIG_SPRD_EXT_MODEM
 	[subsys]
 	[must]
 	[function]
+CONFIG_SPRD_HW_DEVICE_DVFS_AGCP
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field] make,code
+	[subsys] misc
+	[must] user
+	[function] This config is enable audiocp DVFS function.
 CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[arch] arm64
 	[plat] sharkl5
@@ -11255,6 +11262,20 @@ CONFIG_USB_U_SERIAL
 	[subsys] usb
 	[must] user
 	[function] u_serial.c -- utilities for USB gadget "serial port"/TTY support
+CONFIG_USB_XHCI_HCD
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_USB_XHCI_PLATFORM
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_USE_OF
 	[arch] arm
 	[plat] sharkl5_32

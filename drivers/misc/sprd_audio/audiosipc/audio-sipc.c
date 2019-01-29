@@ -50,6 +50,7 @@
 #define AUDIO_SMSG_RINGHDR_EXT_RXWRPTR	(12)
 
 #define AUDIO_VBC_SHM_MAX		6
+#define AUDCP_MSG_RCV_COUNT_MAX		4
 
 #define CMD_SEND_TIMEOUT msecs_to_jiffies(3000)
 
@@ -156,6 +157,26 @@ static int audio_cmd_copy(void *para, size_t n)
 
 	sp_asoc_pr_dbg("%s, write cmd para: txbuf_addr_v=0x%lx, tx_len=%zu\n",
 			__func__, aud_ipc->param_addr_v, n);
+
+	return 0;
+}
+
+static int audio_cmd_copy_back(void *para, size_t n)
+{
+	struct audio_ipc *aud_ipc = aud_ipc_get();
+
+	if (aud_ipc->param_addr_v == 0) {
+		pr_err("%s param_addr_v is NULLL\n", __func__);
+		return -EINVAL;
+	}
+
+	if (n > aud_ipc->param_size) {
+		pr_err("%s, data-size(%zu) out of range(%d)!\n",
+		       __func__, n, aud_ipc->param_size);
+		return -EINVAL;
+	}
+	/* write cmd para */
+	unalign_memcpy(para, (void *)(aud_ipc->param_addr_v), n);
 
 	return 0;
 }
@@ -448,8 +469,8 @@ int aud_ipc_ch_close(uint16_t channel)
 	return 0;
 }
 
-int aud_recv_cmd(uint16_t channel, u32 cmd, int *result,
-	int32_t timeout)
+int aud_recv_cmd(u16 channel, u32 cmd, struct aud_smsg *result,
+		 int32_t timeout)
 {
 	int ret = 0;
 	struct aud_smsg mrecv = { 0 };
@@ -473,8 +494,8 @@ int aud_recv_cmd(uint16_t channel, u32 cmd, int *result,
 	sp_asoc_pr_dbg(" value2: 0x%x, value3: 0x%x, timeout: %d\n",
 		mrecv.parameter2, mrecv.parameter3, timeout);
 
-	if (cmd == mrecv.command && mrecv.channel == channel) {
-		*result = mrecv.parameter3;
+	if (cmd == mrecv.command && mrecv.channel == channel && result) {
+		*result = mrecv;
 		return 0;
 	}
 	pr_err("%s, Haven't got right cmd(0x%x), got cmd(0x%x)",
@@ -531,8 +552,8 @@ int aud_send_cmd_no_param(uint16_t channel, u32 cmd,
 	u32 value0, u32 value1, u32 value2, int32_t value3,
 	int32_t timeout)
 {
-	int ret = 0;
-	int value = 0;
+	int ret;
+	struct aud_smsg value;
 	int repeat_count = 0;
 
 	/*clean the recev command buffer first */
@@ -563,7 +584,7 @@ int aud_send_cmd_no_param(uint16_t channel, u32 cmd,
 	}
 	pr_info(
 		"%s out,channel = %d cmd =%d ret-value:%d,repeat_count=%d\n",
-		__func__, channel, cmd, value, repeat_count);
+		__func__, channel, cmd, value.parameter3, repeat_count);
 
 	return ret;
 err:
@@ -588,8 +609,8 @@ int aud_send_use_noreplychan(
 int aud_send_cmd(uint16_t channel, int id, int stream,
 	u32 cmd, void *para, size_t n, int32_t timeout)
 {
-	int ret = 0;
-	int value = 0;
+	int ret;
+	struct aud_smsg value;
 	int repeat_count = 0;
 	struct audio_ipc *aud_ipc = aud_ipc_get();
 
@@ -608,7 +629,7 @@ int aud_send_cmd(uint16_t channel, int id, int stream,
 		ret = aud_recv_cmd(channel, cmd, &value, 0);
 	} while (ret == 0);
 	sp_asoc_pr_info("%s in,cmd =%d id:%d ret-value:%d\n",
-		__func__, cmd, id, value);
+			__func__, cmd, id, value.parameter3);
 
 	/* send audio cmd */
 	ret = aud_send_msg(channel, cmd,
@@ -632,13 +653,77 @@ int aud_send_cmd(uint16_t channel, int id, int stream,
 
 	aud_ipc_unlock();
 	sp_asoc_pr_info("%s out,cmd =%d id:%d ret-value:%d,repeat_count=%d\n",
-		__func__, cmd, id, value, repeat_count);
+			__func__, cmd, id, value.parameter3, repeat_count);
 
 	return ret;
 err:
 	aud_ipc_unlock();
 
-	return -1;
+	return ret;
+}
+
+/*
+ * id : parameter0(exchange with dsp)
+ * cmd: command
+ */
+int aud_send_cmd_result(u16 channel, int id, int stream,
+			u32 cmd, void *para, size_t n, void *result,
+			int32_t timeout)
+{
+	int ret;
+	struct aud_smsg value;
+	int repeat_count = 0;
+	struct audio_ipc *aud_ipc = aud_ipc_get();
+	int max_rev_count;
+
+	aud_ipc_lock();
+
+	/* set audio cmd para */
+	ret = audio_cmd_copy(para, n);
+	if (ret < 0) {
+		pr_err("%s: failed to write command(%d) para, ret=%d\n",
+		       __func__, cmd, ret);
+		goto err;
+	}
+	max_rev_count = 0;
+	/* clean the recev command buffer first */
+	do {
+		ret = aud_recv_cmd(channel, cmd, &value, 0);
+	} while (ret == 0 && ++max_rev_count < SMSG_CACHE_NR);
+
+	/* send audio cmd */
+	ret = aud_send_msg(channel, cmd,
+			   id, stream, aud_ipc->param_addr_p, 0);
+	if (ret < 0) {
+		pr_err("%s: failed to send command(%d), ret=%d\n",
+		       __func__, cmd, ret);
+		goto err;
+	}
+	do {
+		ret = aud_recv_cmd(channel, cmd, &value, CMD_SEND_TIMEOUT);
+		repeat_count++;
+	} while (ret < 0 && repeat_count < AUDCP_MSG_RCV_COUNT_MAX);
+
+	if (ret < 0) {
+		pr_err("%s: failed to get command(%d), ret=%d\n",
+		       __func__, cmd, ret);
+		goto err;
+	}
+	if (result) {
+		ret = audio_cmd_copy_back(result, n);
+		if (ret < 0) {
+			pr_err("%s: failed to copy back (%d) para, ret=%d\n",
+			       __func__, cmd, ret);
+			goto err;
+		}
+	}
+	sp_asoc_pr_info("%s out,cmd =%d id:%d ret-value:%d,repeat_count=%d\n",
+			__func__, cmd, id, value.parameter3, repeat_count);
+
+err:
+	aud_ipc_unlock();
+
+	return ret;
 }
 
 /*
