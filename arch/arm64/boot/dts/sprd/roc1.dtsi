@@ -320,7 +320,50 @@
 			gpu: gpu@60000000 {
 				compatible = "sprd,rogue";
 				reg = <0x0 0x60000000 0x0 0x100000>;
+				gpu-supply = <&vddgpu>;
+				syscons = <&pmu_apb_regs
+					REG_PMU_APB_PD_GPU_TOP_CFG0
+					MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>,
+				<&pmu_apb_regs
+					REG_PMU_APB_PD_GPU_RGX_DUST_CFG0
+					MASK_PMU_APB_PD_GPU_RGX_DUST_FORCE_SHUTDOWN>,
+				<&pmu_apb_regs
+					REG_PMU_APB_PD_GPU_RGX_DUST_CFG0
+					MASK_PMU_APB_PD_GPU_RGX_DUST_AUTO_SHUTDOWN_EN>;
+
+				syscon-names = "top_force_shutdown",
+					"rgx_dust_force_shutdown",
+					"rgx_dust_auto_shutdown",
+					"gpu_qos_sel",
+					"gpu_qos";
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+
+				operating-points = <
+					/* kHz    uV */
+					384000    700000
+					512000    750000
+					614400    750000
+					768000    800000
+					800000    800000
+					>;
+
+				sprd,dvfs-lists = <
+					/* kHz   uV      idx div */
+					384000  700000    6    1
+					512000  750000    7    1
+					614400  750000    8    1
+					768000  800000    9    1
+					800000  800000    10   1
+					>;
+
+				sprd,dvfs-default = <0>;
+				sprd,qos = <&gpu_qos>;
+				sprd,dvfs-scene-extreme = <2>;
+				sprd,dvfs-scene-high = <1>;
+				sprd,dvfs-scene-medium = <1>;
+				sprd,dvfs-scene-low = <0>;
+				sprd,dvfs-range-max = <2>;
+				sprd,dvfs-range-min = <0>;
 			};
 
 			mipi_csi_phy: mipi-csi-phy {

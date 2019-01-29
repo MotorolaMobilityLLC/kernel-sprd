@@ -1150,6 +1150,16 @@
 	<&ap_clk CLK_AP_SPI3>, <&g12_pll CLK_TWPLL_192M>;
 };
 
+&gpu {
+	clocks = <&aonapb_gate CLK_GPU_EB>,
+		<&gpu_clk CLK_GPU_CORE_EB>, <&gpu_clk CLK_GPU_CORE>,
+		<&gpu_clk CLK_GPU_MEM_EB>, <&gpu_clk CLK_GPU_MEM>,
+		<&gpu_clk CLK_GPU_SYS_EB>,
+		<&g12_pll CLK_TWPLL_384M>, <&g12_pll CLK_TWPLL_512M>,
+		<&g12_pll CLK_LPLL_614M4>, <&g12_pll CLK_TWPLL_768M>,
+		<&g12_pll CLK_GPLL>;
+};
+
 &uart0 {
 	clock-names = "enable", "uart", "source";
 	clocks = <&apapb_gate CLK_UART0_EB>,
