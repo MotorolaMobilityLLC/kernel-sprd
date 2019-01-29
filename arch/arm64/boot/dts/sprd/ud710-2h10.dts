@@ -280,7 +280,7 @@
 			//int-gpios = <&ap_gpio 96 0>;
 
 			sprd,wled-mode = "duty-det-analog-mode";
-			sprd,max-brightness = <150>;
+			sprd,max-brightness = <255>;
 		};
 	};
 
