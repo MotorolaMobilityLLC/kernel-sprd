@@ -377,6 +377,11 @@
 	};
 };
 
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
 &vddsim2 {
 	status = "disabled";
 };
