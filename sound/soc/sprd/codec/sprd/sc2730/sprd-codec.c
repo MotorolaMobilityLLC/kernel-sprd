@@ -1353,7 +1353,7 @@ static int hp_depop_event(struct snd_soc_dapm_widget *w,
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
 	u32 val = 0;
-	int ret;
+	int ret = 0;
 
 	sp_asoc_pr_dbg("%s Event is %s\n", __func__, get_event_name(event));
 	if (on) {
@@ -1736,7 +1736,7 @@ static void cp_short_check(struct sprd_codec_priv *sprd_codec)
 	mask1 = CP_NEG_PD_VNEG | CP_NEG_PD_FLYN | CP_NEG_PD_FLYP;
 	mask2 = CP_NEG_SHDT_VCPN_EN | CP_NEG_SHDT_FLYP_EN |
 		CP_NEG_SHDT_FLYN_EN | CP_NEG_SHDT_PGSEL;
-	for (idx = 0; i <= sizeof(val1); i++) {
+	for (idx = 0; idx <= sizeof(val1); idx++) {
 		snd_soc_update_bits(codec, SOC_REG(ANA_PMU7), mask1, val1[idx]);
 		snd_soc_update_bits(codec, SOC_REG(ANA_PMU8), mask2, val2[idx]);
 		sprd_codec_wait(20);
