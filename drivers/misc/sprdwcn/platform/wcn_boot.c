@@ -41,6 +41,7 @@
 #include "wcn_parn_parser.h"
 #include "pcie_boot.h"
 #include "rdc_debug.h"
+#include "wcn_boot.h"
 #include "wcn_dump.h"
 #include "wcn_log.h"
 #include "wcn_procfs.h"
@@ -53,77 +54,6 @@
 #endif
 static char BTWF_FIRMWARE_PATH[255];
 static char GNSS_FIRMWARE_PATH[255];
-
-struct wcn_sync_info_t {
-	unsigned int init_status;
-	unsigned int mem_pd_bt_start_addr;
-	unsigned int mem_pd_bt_end_addr;
-	unsigned int mem_pd_wifi_start_addr;
-	unsigned int mem_pd_wifi_end_addr;
-	unsigned int prj_type;
-	unsigned short tsx_dac_data;
-	unsigned short rsved;
-} __packed;
-
-struct tsx_data {
-	u32 flag; /* cali flag ref */
-	u16 dac; /* AFC cali data */
-	u16 reserved;
-};
-
-struct tsx_cali {
-	u32 init_flag;
-	struct tsx_data tsxdata;
-};
-
-struct marlin_device {
-	int coexist;
-	int wakeup_ap;
-	int ap_send_data;
-	int reset;
-	int chip_en;
-	int int_ap;
-	/* power sequence */
-	/* VDDIO->DVDD12->chip_en->rst_N->AVDD12->AVDD33 */
-	struct regulator *dvdd12;
-	struct regulator *avdd12;
-	/* for PCIe */
-	struct regulator *avdd18;
-	/* for wifi PA, BT TX RX */
-	struct regulator *avdd33;
-	/* for internal 26M clock */
-	struct regulator *dcxo18;
-	struct clk *clk_32k;
-
-	struct clk *clk_parent;
-	struct clk *clk_enable;
-	struct mutex power_lock;
-	struct completion carddetect_done;
-	struct completion download_done;
-	struct completion gnss_download_done;
-	unsigned long power_state;
-	char *write_buffer;
-	struct delayed_work power_wq;
-	struct work_struct download_wq;
-	struct work_struct gnss_dl_wq;
-	bool keep_power_on;
-	bool wait_ge2;
-	bool is_btwf_in_sysfs;
-	bool is_gnss_in_sysfs;
-	int wifi_need_download_ini_flag;
-	int first_power_on_flag;
-	unsigned char download_finish_flag;
-	int loopcheck_status_change;
-	struct wcn_sync_info_t sync_f;
-	struct tsx_cali tsxcali;
-	char *btwf_path;
-	char *gnss_path;
-};
-
-struct wifi_calibration {
-	struct wifi_config_t config_data;
-	struct wifi_cali_t cali_data;
-};
 
 static struct wifi_calibration wifi_data;
 struct completion ge2_completion;
@@ -704,8 +634,10 @@ static int marlin_parse_dt(struct platform_device *pdev)
 
 	marlin_dev->int_ap = of_get_named_gpio(np,
 			"m2-to-ap-irq-gpios", 0);
-	if (!gpio_is_valid(marlin_dev->int_ap))
+	if (!gpio_is_valid(marlin_dev->int_ap)) {
+		WCN_ERR("Get int irq error!\n");
 		return -EINVAL;
+	}
 
 	marlin_dev->dvdd12 = devm_regulator_get(&pdev->dev, "dvdd12");
 	if (IS_ERR(marlin_dev->dvdd12)) {
@@ -715,6 +647,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 
 	marlin_dev->avdd12 = devm_regulator_get(&pdev->dev, "avdd12");
 	if (IS_ERR(marlin_dev->avdd12)) {
+		WCN_ERR("avdd12 err =%ld\n", PTR_ERR(marlin_dev->avdd12));
 		if (PTR_ERR(marlin_dev->avdd12) == -EPROBE_DEFER)
 			return -EPROBE_DEFER;
 		WCN_ERR("Get regulator of avdd12 error!\n");
@@ -852,13 +785,17 @@ static int marlin_avdd18_dcxo_enable(bool enable)
 {
 	int ret = 0;
 
-	WCN_INFO("avdd18_dcxo enable 1v8 %d\n", enable);
 	if (!marlin_dev->dcxo18)
 		return 0;
 
 	if (enable) {
-		if (regulator_is_enabled(marlin_dev->dcxo18))
+#ifndef CONFIG_WCN_PCIE
+		if (regulator_is_enabled(marlin_dev->dcxo18)) {
+			WCN_INFO("avdd18_dcxo 1v8 have enable\n");
 			return 0;
+		}
+#endif
+		WCN_INFO("avdd18_dcxo enable 1v8 %d\n", enable);
 		regulator_set_voltage(marlin_dev->dcxo18, 1800000, 1800000);
 		ret = regulator_enable(marlin_dev->dcxo18);
 		if (ret)
@@ -1487,8 +1424,10 @@ void wifipa_enable(int enable)
 		WCN_INFO("marlin_analog_power_enable 3v3 %d\n", enable);
 		msleep(20);
 		if (enable) {
+#ifndef CONFIG_WCN_PCIE
 			if (regulator_is_enabled(marlin_dev->avdd33))
 				return;
+#endif
 			regulator_set_voltage(marlin_dev->avdd33,
 					      3300000, 3300000);
 			ret = regulator_enable(marlin_dev->avdd33);
@@ -1549,6 +1488,8 @@ static int chip_power_on(int subsys)
 	msleep(20);
 	chip_reset_release(1);
 	marlin_analog_power_enable(true);
+	usleep_range(50, 60);
+	wifipa_enable(1);
 #ifndef CONFIG_WCN_PCIE
 	sdio_scan_card();
 	loopcheck_first_boot_set();
@@ -1561,6 +1502,7 @@ static int chip_power_on(int subsys)
 
 static int chip_power_off(int subsys)
 {
+	wifipa_enable(0);
 	marlin_avdd18_dcxo_enable(false);
 	marlin_clk_enable(false);
 	marlin_chip_en(false, false);
@@ -2059,7 +2001,7 @@ int start_marlin(u32 subsys)
 		return 0;
 	}
 
-	ret = pcie_boot(subsys);
+	ret = pcie_boot(subsys, marlin_dev);
 	if (ret < 0) {
 		WCN_INFO("pcie boot fail\n");
 		mutex_unlock(&marlin_dev->power_lock);

@@ -24,6 +24,8 @@
 #define PCIE_ERR(fmt, args...) \
 		pr_err(PCIE_HEADER_ERR fmt,  ## args)
 
+#define PCIE_DBG(fmt, args...)
+
 int pcie_hexdump(char *name, char *buf, int len);
 
 #endif

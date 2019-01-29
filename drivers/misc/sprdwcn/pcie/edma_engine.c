@@ -1210,7 +1210,7 @@ static int dscr_ring_init(struct dscr_ring *dscr_ring, int inout, int size,
 						.rf_chn_rx_next_dscr_ptr_low),
 			       (unsigned char *)(&tmp), 4);
 		}
-		PCIE_INFO("dscr(0x%p-->0x%p)\n",
+		PCIE_DBG("dscr(0x%p-->0x%p)\n",
 			  mpool_vir_to_phy(&dscr[i]),
 			  mpool_vir_to_phy(&dscr[i + 1]));
 		dscr[i].next.p = &dscr[i + 1];

@@ -105,7 +105,7 @@ int mbuf_pool_init(struct buffer_pool *pool, int size, int payload)
 	for (i = 0, mbuf = (struct mbuf_t *) (pool->head);
 	     i < (size - 1); i++) {
 		mbuf->seq = i;
-		PCIE_INFO("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
+		PCIE_DBG("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
 			(unsigned long)mbuf,
 			(unsigned long)virt_to_phys(mbuf));
 		next = (struct mbuf_t *) ((char *)mbuf +
@@ -264,7 +264,7 @@ int mchn_init(struct mchn_ops_t *ops)
 	int ret = -1;
 	struct mchn_info_t *mchn = mchn_info();
 
-	PCIE_INFO("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
+	PCIE_INFO("[+]%s(chn=%d)\n", __func__, ops->channel);
 	if ((mchn->ops[ops->channel] != NULL) ||
 	     ((ops->hif_type != HW_TYPE_SDIO) &&
 	     (ops->hif_type != HW_TYPE_PCIE))) {

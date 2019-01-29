@@ -267,7 +267,7 @@ int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar, unsigned int addr)
 	ibreg->type = 0x00000000;
 	ibreg->limit = 0x00FFFFFF;
 	ibreg->en = REGION_EN | BAR_MATCH_MODE;
-	PCIE_ERR("%s(%d, 0x%x)\n", __func__, bar, addr);
+	PCIE_INFO("%s(%d, 0x%x)\n", __func__, bar, addr);
 
 	return 0;
 }
