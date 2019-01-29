@@ -131,6 +131,15 @@
 		};
 	};
 
+	sprd-mcd {
+		compatible = "sprd,roc1-modem-ctrl";
+		poweron-gpio = <&ap_gpio 15 GPIO_ACTIVE_LOW>;
+		reset-gpio = <&ap_gpio 16 GPIO_ACTIVE_LOW>;
+		cpwatchdog-gpio = <&ap_gpio 29 GPIO_ACTIVE_LOW>;
+		cpassert-gpio = <&ap_gpio 30 GPIO_ACTIVE_LOW>;
+		cppanic-gpio = <&ap_gpio 31 GPIO_ACTIVE_LOW>;
+	};
+
 	sprd-spool {
 		compatible = "sprd,spool";
 		sprd,name = "slog_lte";
