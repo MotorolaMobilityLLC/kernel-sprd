@@ -201,6 +201,8 @@
 			sprd,dynamic-cluster =
 			/*Pdynperghz*10    Freq     Vbase  */
 			< 757           1000     1000>;
+			sprd,sensor-names = "ank0-thmzone","ank1-thmzone","ank2-thmzone";
+			sprd,cpuidle-temp-point = <80000>;
 		};
 
 		cluster1_cooling: cluster1-cooling {
@@ -242,6 +244,8 @@
 			sprd,dynamic-cluster =
 			/* Pdynperghz*10    Freq     Vbase */
 			<  757            1000     1000>;
+			sprd,sensor-names = "prometheus0-thmzone";
+			sprd,cpuidle-temp-point = <75000>;
 		};
 	};
 
