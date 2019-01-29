@@ -297,8 +297,9 @@ static char *btwf_load_firmware_data(unsigned long int imag_size)
 				BTWF_FIRMWARE_PATH, i, __func__);
 			ssleep(1);
 			file = filp_open(BTWF_FIRMWARE_PATH, O_RDONLY, 0);
-		} else
+		} else {
 			break;
+		}
 	}
 	if (IS_ERR(file)) {
 		WCN_ERR("%s open file %s error\n",
@@ -435,8 +436,9 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 				GNSS_FIRMWARE_PATH, i, __func__);
 			ssleep(1);
 			file = filp_open(GNSS_FIRMWARE_PATH, O_RDONLY, 0);
-		} else
+		} else {
 			break;
+		}
 	}
 	if (IS_ERR(file)) {
 		WCN_ERR("%s marlin3 gnss open file %s error\n",
@@ -1346,8 +1348,9 @@ static void pre_gnss_download_firmware(struct work_struct *work)
 	if (gnss_ops && (gnss_ops->write_data)) {
 		if (gnss_ops->write_data() != 0)
 			return;
-	} else
+	} else {
 		WCN_ERR("%s gnss_ops write_data error\n", __func__);
+	}
 
 	if (gnss_start_run() != 0)
 		WCN_ERR("gnss start run fail\n");
@@ -1358,8 +1361,9 @@ static void pre_gnss_download_firmware(struct work_struct *work)
 			ret = gnss_ops->backup_data();
 			if (ret == 0)
 				cali_flag = 1;
-		} else
+		} else {
 			WCN_ERR("%s gnss_ops backup_data error\n", __func__);
+		}
 	} else {
 		WCN_INFO("gnss wait boot finish\n");
 		if (gnss_ops && gnss_ops->wait_gnss_boot)
@@ -1686,9 +1690,7 @@ static int marlin_set_power(int subsys, int val)
 				WCN_INFO("have power on, no action\n");
 				set_wifipa_status(subsys, val);
 				set_bit(subsys, &marlin_dev->power_state);
-			}
-
-			else {
+			} else {
 				WCN_INFO("!1st,not to bkup gnss cal, no act\n");
 			}
 		}
