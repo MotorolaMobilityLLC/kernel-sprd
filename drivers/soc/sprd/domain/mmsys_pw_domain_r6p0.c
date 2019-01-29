@@ -76,9 +76,10 @@ struct mmsys_power_info {
 	struct clk *mtx_clk_default;
 };
 
-#define PD_MM_DOWN_FLAG			(0x7 << 16)
+#define PD_MM_DOWN_FLAG			0x7
 #define ARQOS_THRESHOLD			0x0D
 #define AWQOS_THRESHOLD			0x0D
+#define SHIFT_MASK(a)			(ffs(a) ? ffs(a) - 1 : 0)
 static struct mmsys_power_info *pw_info;
 static BLOCKING_NOTIFIER_HEAD(mmsys_chain);
 
@@ -107,33 +108,6 @@ static void regmap_update_bits_mmsys(struct register_gpr *p, uint32_t val)
 		return;
 
 	regmap_update_bits(p->gpr, p->reg, p->mask, val);
-}
-
-/* The position first bit is 1 from low */
-static int lsb_bit1(uint32_t tmp)
-{
-	int num = 0;
-
-	if (!(tmp & 0xFFFF)) {
-		num += 16;
-		tmp >>= 16;
-	}
-	if (!(tmp & 0xFF)) {
-		num += 8;
-		tmp >>= 8;
-	}
-	if (!(tmp & 0xF)) {
-		num += 4;
-		tmp >>= 4;
-	}
-	if (!(tmp & 0x3)) {
-		num += 2;
-		tmp >>= 2;
-	}
-	if (!(tmp & 0x1))
-		num += 1;
-
-	return num;
 }
 
 static int regmap_read_mmsys(struct register_gpr *p, uint32_t *val)
@@ -245,7 +219,7 @@ static int mmsys_power_init(struct platform_device *pdev)
 	}
 	pw_info->ahb_clk_parent = of_clk_get_by_name(np, "clk_mm_ahb_parent");
 	if (IS_ERR_OR_NULL(pw_info->ahb_clk_parent)) {
-		pr_err("Get mm_ahb_eb clk fail, ret %d\n",
+		pr_err("Get mm_ahb_parent clk fail, ret %d\n",
 			(int)PTR_ERR(pw_info->ahb_clk_parent));
 		ret |= BIT(3);
 	}
@@ -345,7 +319,7 @@ int sprd_cam_pw_on(void)
 		}
 	}
 	mutex_unlock(&pw_info->mlock);
-	/* if count == 0, other using */
+	/* if count != 0, other using */
 	pr_info("Done, uses: %d, read count %d, cb: %p\n",
 		atomic_read(&pw_info->users_pw), read_count,
 		__builtin_return_address(0));
@@ -369,6 +343,7 @@ int sprd_cam_pw_off(void)
 	unsigned int power_state2;
 	unsigned int power_state3;
 	unsigned int read_count = 0;
+	int shift = 0;
 
 	ret = check_drv_init();
 	if (ret) {
@@ -385,7 +360,9 @@ int sprd_cam_pw_off(void)
 		/* set 1 to shutdown */
 		regmap_update_bits_mmsys(&pw_info->regs[_e_force_shutdown],
 			~((uint32_t)0));
-
+		/* shift for power off status bits */
+		if (pw_info->regs[_e_power_state].gpr != NULL)
+			shift = SHIFT_MASK(pw_info->regs[_e_power_state].mask);
 		do {
 			cpu_relax();
 			usleep_range(300, 350);
@@ -395,7 +372,6 @@ int sprd_cam_pw_off(void)
 					&power_state1);
 			if (ret)
 				goto err_pw_off;
-
 			ret = regmap_read_mmsys(&pw_info->regs[_e_power_state],
 					&power_state2);
 			if (ret)
@@ -406,18 +382,18 @@ int sprd_cam_pw_off(void)
 			if (ret)
 				goto err_pw_off;
 
-		} while (((power_state1 != PD_MM_DOWN_FLAG) &&
+		} while (((power_state1 != (PD_MM_DOWN_FLAG << shift)) &&
 			(read_count < 10)) ||
 				(power_state1 != power_state2) ||
 				(power_state2 != power_state3));
-		if (power_state1 != PD_MM_DOWN_FLAG) {
+		if (power_state1 != (PD_MM_DOWN_FLAG << shift)) {
 			pr_err("failed, power_state1=0x%x\n", power_state1);
 			ret = -1;
 			goto err_pw_off;
 		}
 	}
 	mutex_unlock(&pw_info->mlock);
-	/* if count == 0, other using */
+	/* if count != 0, other using */
 	pr_info("Done, state: 0x%x, read count %d, cb: %p\n",
 		power_state1, read_count,
 		__builtin_return_address(0));
@@ -448,7 +424,7 @@ int sprd_cam_domain_eb(void)
 		return -ENODEV;
 	}
 
-	pr_info("clk users count:%d, cb: %p\n",
+	pr_debug("clk users count:%d, cb: %p\n",
 		atomic_read(&pw_info->users_clk),
 		__builtin_return_address(0));
 
@@ -469,11 +445,11 @@ int sprd_cam_domain_eb(void)
 		/* Qos ar */
 		tmp = pw_info->mm_qos_ar;
 		regmap_update_bits_mmsys(&pw_info->regs[_e_qos_ar],
-			tmp << lsb_bit1(pw_info->regs[_e_qos_ar].mask));
+			tmp << SHIFT_MASK(pw_info->regs[_e_qos_ar].mask));
 		/* Qos aw */
 		tmp = pw_info->mm_qos_aw;
 		regmap_update_bits_mmsys(&pw_info->regs[_e_qos_aw],
-			tmp << lsb_bit1(pw_info->regs[_e_qos_aw].mask));
+			tmp << SHIFT_MASK(pw_info->regs[_e_qos_aw].mask));
 
 		mmsys_notifier_call_chain(_E_PW_ON, NULL);
 	}
@@ -493,7 +469,7 @@ int sprd_cam_domain_disable(void)
 			__builtin_return_address(0), ret);
 	}
 
-	pr_info("clk users count: %d, cb: %p\n",
+	pr_debug("clk users count: %d, cb: %p\n",
 		atomic_read(&pw_info->users_clk),
 		__builtin_return_address(0));
 	mutex_lock(&pw_info->mlock);
