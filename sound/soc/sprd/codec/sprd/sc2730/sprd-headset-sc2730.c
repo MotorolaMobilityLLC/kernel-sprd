@@ -637,10 +637,12 @@ static void sprd_hmicbias_polling_init(struct sprd_headset *hdst)
 		HID_HIGH_DBNC_THD0(0xff));
 	headset_reg_write(ANA_HID1, HID_LOW_DBNC_THD0(0x01),
 		HID_LOW_DBNC_THD0(0xff));
-	headset_reg_write(ANA_HID2, HID_HIGH_DBNC_THD1(0x01),
+	headset_reg_write(ANA_HID2, HID_HIGH_DBNC_THD1(0x80),
 		HID_HIGH_DBNC_THD1(0xff));
-	headset_reg_write(ANA_HID2, HID_LOW_DBNC_THD1(0x01),
+	headset_reg_write(ANA_HID2, HID_LOW_DBNC_THD1(0x80),
 		HID_LOW_DBNC_THD1(0xff));
+	headset_reg_write(ANA_HID3, HID_TMR_T1(0x8),
+		HID_TMR_T1(0xffff));
 	headset_reg_write(ANA_HID4, HID_TMR_T2(0x20),
 		HID_TMR_T2(0xffff));
 	hdst->current_polling_state = true;
@@ -705,7 +707,7 @@ static void sprd_headset_eic_init(void)
 	sprd_eic_hardware_debounce_set(ANA_INT28, 2);
 	sprd_eic_hardware_debounce_set(ANA_INT29, 2);
 	sprd_eic_hardware_debounce_set(ANA_INT30, 2);
-	sprd_eic_hardware_debounce_set(ANA_INT31, 2);
+	sprd_eic_hardware_debounce_set(ANA_INT31, 6);
 
 	/* init internal EIC */
 	sprd_set_all_eic_trig_level(true);
