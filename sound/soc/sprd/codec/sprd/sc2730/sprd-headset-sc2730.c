@@ -447,15 +447,14 @@ static int sprd_headset_adc_get(struct iio_channel *chan)
 static void sprd_intc_force_clear(int force_clear)
 {
 	if (force_clear == 1) {
-		/* clear bit14 of reg 0x288, reg 0x28C, clear all analog intc */
-		headset_reg_write_force(ANA_INT33, 0x4000, 0xFFFF);
+		/* clear bit14 of reg 0x288, reg 0x28c, clear all analog intc */
+		headset_reg_write_force(ANA_INT33, 0x4000, 0xffff);
 		pr_info("%s INT8(220.MIS) %x\n", __func__,
 			sprd_read_reg_value(ANA_INT8));
 	} else if (force_clear == 0) {
 		/*set bit14 to 0, equal to enable intc */
-		headset_reg_write_force(ANA_INT33, 0x0, 0xFFFF);
+		headset_reg_write_force(ANA_INT33, 0x0, 0xffff);
 	}
-	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
 }
 
 static inline int sprd_intc_irq_status(void)
@@ -478,8 +477,8 @@ static void sprd_headset_eic_clear(enum hdst_eic_type eic_type)
 /* clear all bits of reg 0x21c, reg 0x220, clear all eic irq */
 static void sprd_headset_clear_all_eic(void)
 {
-	headset_reg_write(ANA_INT9, EIC_DBNC_IC(0xFC00),
-	EIC_DBNC_IC(0xFFFF));
+	headset_reg_write(ANA_INT9, EIC_DBNC_IC(0xfc00),
+	EIC_DBNC_IC(0xffff));
 	pr_info("%s clear all internal eic\n", __func__);
 }
 
@@ -511,11 +510,11 @@ static void sprd_headset_eic_enable(enum hdst_eic_type eic_type, bool enable)
 static void sprd_headset_all_eic_enable(bool enable)
 {
 	if (enable)
-		headset_reg_write(ANA_INT6, EIC_DBNC_IE(0xFC00),
-			EIC_DBNC_IE(0xFFFF));
+		headset_reg_write(ANA_INT6, EIC_DBNC_IE(0xfc00),
+			EIC_DBNC_IE(0xffff));
 	else
 		headset_reg_write(ANA_INT6, EIC_DBNC_IE(0x0000),
-			EIC_DBNC_IE(0xFFFF));
+			EIC_DBNC_IE(0xffff));
 
 	pr_info("%s %s all internal eic\n", __func__,
 		enable ? "enable" : "disable");
@@ -578,11 +577,11 @@ static void sprd_set_eic_trig_level(enum hdst_eic_type eic_type,
 static void sprd_set_all_eic_trig_level(bool trig_level)
 {
 	if (trig_level)
-		headset_reg_write(ANA_INT5, EIC_DBNC_IEV(0xFFFF),
-			EIC_DBNC_IEV(0xFFFF));
+		headset_reg_write(ANA_INT5, EIC_DBNC_IEV(0xffff),
+			EIC_DBNC_IEV(0xffff));
 	else
 		headset_reg_write(ANA_INT5, EIC_DBNC_IEV(0x0),
-			EIC_DBNC_IEV(0xFFFF));
+			EIC_DBNC_IEV(0xffff));
 	pr_info("%s set all internal eic trig level to %s\n",
 		__func__, trig_level ? "high" : "low");
 }
@@ -620,10 +619,10 @@ static int sprd_headset_regulator_init(struct sprd_headset *hdst)
 		return ret;
 	}
 
-	pr_info("%s ANA_REG_GLB_ARM_MODULE_EN(glb 0008) %x, PMU0(0000) %x, PMU1(0004) %x, DCL1(0100) %x, CLK0(0068) %x\n",
-		__func__, sprd_read_reg_value(ANA_REG_GLB_ARM_MODULE_EN),
-		sprd_read_reg_value(ANA_PMU0), sprd_read_reg_value(ANA_PMU1),
-		sprd_read_reg_value(ANA_DCL1), sprd_read_reg_value(ANA_CLK0));
+	pr_info("%s PMU0(0000) %x, PMU1(0004) %x, DCL1(0100) %x, CLK0(0068) %x\n",
+		__func__, sprd_read_reg_value(ANA_PMU0),
+		sprd_read_reg_value(ANA_PMU1), sprd_read_reg_value(ANA_DCL1),
+		sprd_read_reg_value(ANA_CLK0));
 
 	return 0;
 }
@@ -674,7 +673,7 @@ static void sprd_eic_hardware_debounce_set(unsigned int reg, unsigned int ms)
 	unsigned int val;
 
 	val = ms + 0x4000;
-	headset_reg_write(reg, val,	EIC10_DBNC_CTRL(0xFFFF));
+	headset_reg_write(reg, val, EIC10_DBNC_CTRL(0xffff));
 	pr_debug("%s reg 0x%x, ms %d, val %x\n", __func__,
 		reg - CTL_BASE_AUD_CFGA_RF, ms, val);
 }
@@ -691,8 +690,8 @@ static void sprd_headset_eic_init(void)
 	headset_reg_set_bits(ANA_PMU2, BIT(12));/* BIAS_RSV1 */
 
 	/* EIC_DBNC_DATA register can be read if EIC_DBNC_DMSK set 1 */
-	headset_reg_write(ANA_INT1, EIC_DBNC_DMSK(0xFFFF),
-		EIC_DBNC_DMSK(0xFFFF));
+	headset_reg_write(ANA_INT1, EIC_DBNC_DMSK(0xffff),
+		EIC_DBNC_DMSK(0xffff));
 	pr_info("%s INT0(0200) %x, INT1(0204) %x, INT6(0218) %x\n",
 		__func__, sprd_read_reg_value(ANA_INT0),
 		sprd_read_reg_value(ANA_INT1), sprd_read_reg_value(ANA_INT6));
@@ -991,7 +990,7 @@ headset_type_detect_all(int insert_all_val_last)
 	/* 0 little, 1 large */
 	sprd_headset_scale_set(0);
 	headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0),
-		HEDET_V2AD_CH_SEL(0xF));
+		HEDET_V2AD_CH_SEL(0xf));
 	adc_mic_average = sprd_get_adc_value(adc_chan);
 	if (adc_mic_average < 0) {
 		pr_err("%s adc error, adc_mic_average %d\n",
@@ -1015,10 +1014,10 @@ headset_type_detect_all(int insert_all_val_last)
 
 	if (pdata->jack_type == JACK_TYPE_NO)
 		headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0x4),
-			HEDET_V2AD_CH_SEL(0xF));
+			HEDET_V2AD_CH_SEL(0xf));
 	else if (pdata->jack_type == JACK_TYPE_NC)
 		headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0x5),
-			HEDET_V2AD_CH_SEL(0xF));
+			HEDET_V2AD_CH_SEL(0xf));
 
 	adc_left_average = sprd_get_adc_value(adc_chan);
 	if (adc_left_average < 0) {
@@ -2204,7 +2203,7 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 
 	hdst->codec = codec;
 	adie_chip_id = sci_get_ana_chip_id() >> 16;
-	pr_info("%s adie_chip_id 0x%x\n", __func__, adie_chip_id & 0xFFFF);
+	pr_info("%s adie_chip_id 0x%x\n", __func__, adie_chip_id & 0xffff);
 	ret = sprd_headset_power_init(&hdst->power_manager, pdev);
 	if (ret) {
 		pr_err("%s power regulator init failed\n", __func__);
