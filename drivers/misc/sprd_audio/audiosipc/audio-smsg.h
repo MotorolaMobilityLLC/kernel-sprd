@@ -96,6 +96,7 @@ struct aud_smsg_ipc {
 
 	/* all channel states: 0 unused, 1 opened */
 	uint8_t	states[AMSG_CH_NR];
+	u8	wakeup[AMSG_CH_NR];
 	int	dsp_ready;
 };
 
@@ -138,6 +139,15 @@ int aud_smsg_send(uint8_t dst, struct aud_smsg *msg);
  * @return: 0 on success, <0 on failure
  */
 int aud_smsg_recv(uint8_t dst, struct aud_smsg *msg, int timeout);
+
+/**
+ * aud_smsg_wakeup_ch -- wake up the thread waiting for msg from dsp
+ *
+ * @dst: dest processor ID
+ * @channel: the communication channel between audio dsp
+ * @return: 0 on success, <0 on failure
+ */
+int aud_smsg_wakeup_ch(u8 dst, u8 channel);
 
 /* create/destroy smsg ipc between AP/CP */
 int aud_smsg_ipc_create(uint8_t dst, struct aud_smsg_ipc *ipc);

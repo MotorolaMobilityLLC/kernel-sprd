@@ -306,6 +306,27 @@ int aud_smsg_wakeup_all_ch(struct aud_smsg_ipc *ipc)
 	return 0;
 }
 
+int aud_smsg_wakeup_ch(u8 dst, u8 channel)
+{
+	int i;
+	struct aud_smsg_ipc *ipc;
+
+	ipc = aud_smsg_ipcs[dst];
+	if (!ipc)
+		return -ENODEV;
+
+	for (i = 0; i < AMSG_CH_NR; i++) {
+		if (ipc->states[i] == CHAN_STATE_OPENED &&
+			channel == i) {
+			ipc->wakeup[i] = 1;
+			wake_up_interruptible_all(&(ipc->channels[i]->rxwait));
+		}
+	}
+	return 0;
+}
+
+EXPORT_SYMBOL(aud_smsg_wakeup_ch);
+
 int aud_smsg_send(uint8_t dst, struct aud_smsg *msg)
 {
 	unsigned long long msg_val = 0;
@@ -427,7 +448,8 @@ int aud_smsg_recv(uint8_t dst, struct aud_smsg *msg, int timeout)
 				(readl_relaxed((void *)ch->wrptr) !=
 				readl_relaxed((void *)ch->rdptr)) ||
 				(ipc->states[msg->channel] == CHAN_STATE_FREE)
-				|| (ipc->dsp_ready == false));
+				|| (ipc->dsp_ready == false) ||
+				ipc->wakeup[msg->channel]);
 		if (rval < 0) {
 			sp_asoc_pr_info("%s wait interrupted!\n", __func__);
 			goto recv_failed;
@@ -503,6 +525,7 @@ int aud_smsg_recv(uint8_t dst, struct aud_smsg *msg, int timeout)
 			msg->parameter2, msg->parameter3);
 
 recv_failed:
+	ipc->wakeup[msg->channel] = 0;
 	mutex_unlock(&(ch->rxlock));
 	atomic_dec(&(ipc->busy[msg->channel]));
 

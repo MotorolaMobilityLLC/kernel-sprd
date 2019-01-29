@@ -29,6 +29,10 @@
 
 #define  AGDSP_COMMUNICATION_TIMEOUT	0x27
 
+#define	AUDIO_PIPE_MARGIC		'A'
+
+#define	AUDIO_PIPE_WAKEUP		_IOW(AUDIO_PIPE_MARGIC, 0, int)
+
 enum {
 	SPRD_PIPE_VOICE,
 	SPRD_PIPE_EFFECT,
@@ -279,8 +283,18 @@ error:
 static long aud_pipe_ioctl(struct file *filp,
 	unsigned int cmd, unsigned long arg)
 {
-	pr_info("audio_pipe_ioctl donothing");
+	struct aud_pipe_device *aud_pipe_dev = filp->private_data;
 
+	if (!aud_pipe_dev)
+		return -EINVAL;
+
+	switch (cmd) {
+	case AUDIO_PIPE_WAKEUP:
+		aud_smsg_wakeup_ch(AUD_IPC_AGDSP, aud_pipe_dev->channel);
+		break;
+	default:
+		return -EINVAL;
+	}
 	return 0;
 }
 
@@ -290,6 +304,7 @@ static const struct file_operations audio_pipe_fops = {
 	.read = aud_pipe_read,
 	.write = aud_pipe_write,
 	.unlocked_ioctl = aud_pipe_ioctl,
+	.compat_ioctl = aud_pipe_ioctl,
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
