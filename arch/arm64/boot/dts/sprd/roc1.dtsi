@@ -981,6 +981,7 @@
 				status = "disabled";
 				#address-cells = <2>;
 				#size-cells = <2>;
+				ranges;
 
 				clocks = <&ipa_gate CLK_IPA_USB_EB>,
 					<&ipa_gate CLK_IPA_USB_SUSPEND_EB>,
@@ -996,13 +997,14 @@
 					interrupt-names = "irq";
 					usb-phy = <&ssphy>, <&ssphy>;
 					phy_type = "utmi_wide";
-					dr_mode = "peripheral";
 					snps,usb3-u1u2-disable;
 					snps,dis_u3_susphy_quirk;
 					snps,dis_u2_susphy_quirk;
 					snps,overlap_check_quirk;
 					snps,ep_out_aligned_size_quirk;
 					snps,disconnect_event_quirk;
+					snps,usb3_slow_suspend;
+					snps,host_suspend_capable;
 				};
 			};
 

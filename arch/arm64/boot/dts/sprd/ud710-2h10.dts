@@ -289,7 +289,7 @@
 		reg = <0x4c>;
 		sc2703-charger {
 			compatible = "sprd,sc2703-charger";
-			phys = <&hsphy>;
+			phys = <&ssphy>;
 			monitored-battery = <&bat>;
 			extcon = <&pmic_typec>;
 			sprd,long-key-detection;
@@ -467,7 +467,7 @@
 
 &pmic_fchg {
 	sprd,input-voltage-microvolt = <9000000>;
-	phys = <&hsphy>;
+	phys = <&ssphy>;
 };
 
 &vsp {
@@ -489,11 +489,25 @@
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&pmic_typec>;
+	status = "disabled";
 };
 
 &usb {
 	extcon = <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
+	status = "disabled";
+};
+
+&ssphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&pmic_typec>;
+	status = "okay";
+};
+
+&usb3 {
+	extcon = <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
+	status = "okay";
 };
 
 &sprd_headset {
