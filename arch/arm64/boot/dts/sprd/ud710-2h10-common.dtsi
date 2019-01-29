@@ -289,3 +289,7 @@
 &uart2 {
 	status = "okay";
 };
+
+&sc2730_pmic {
+	interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
+};

@@ -10,10 +10,10 @@
 #include <dt-bindings/gpio/gpio.h>
 
 #include "ud710.dtsi"
+#include "sc2730.dtsi"
 #include "ud710-2h10-common.dtsi"
 #include "ud710-2h10-modem.dtsi"
 #include "sprd-sound-fe-be.dtsi"
-#include "sc2730.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 
 / {
