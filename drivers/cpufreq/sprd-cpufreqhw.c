@@ -402,6 +402,8 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 
 	freq_Hz = policy->cur * 1000;
 
+	policy->dvfs_possible_from_any_cpu = true;
+
 	goto free_np;
 
 free_table:
