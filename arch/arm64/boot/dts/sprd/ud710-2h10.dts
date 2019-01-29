@@ -207,7 +207,7 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		reg = <0>;
-
+		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 		power-supply = <&lcd_vdd>;
 		port {
 			reg = <1>;
