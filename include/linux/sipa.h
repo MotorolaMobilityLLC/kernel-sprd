@@ -104,7 +104,7 @@ typedef void (*sipa_notify_cb)(void *priv, enum sipa_evt_type evt,
 /**
  * enum sipa_rm_res_id - IPA RM clients identifications
  *
- * Add new mapping to ipa_rm_prod_index() / ipa_rm_cons_index()
+ * Add new mapping to sipa_rm_prod_index() / sipa_rm_cons_index()
  * when adding new entry to this enum.
  */
 enum sipa_rm_res_id {
@@ -141,13 +141,13 @@ enum sipa_rm_res_id {
 };
 
 /**
- * enum ipa_rm_event - IPA RM events
+ * enum sipa_rm_event - IPA RM events
  *
  * Indicate the resource state change
  */
 enum sipa_rm_event {
-	SIPA_RM_RES_GRANTED,
-	SIPA_RM_RES_RELEASED
+	SIPA_RM_EVT_GRANTED,
+	SIPA_RM_EVT_RELEASED
 };
 
 
@@ -277,9 +277,9 @@ struct sipa_hash_table {
  *		for consumer resource NULL should be provided
  *		for consumer resource
  * @request_resource: function which should be called to request resource,
- *			NULL should be provided for producer resource
+ *			NULL should be provided for consumer resource
  * @release_resource: function which should be called to release resource,
- *			NULL should be provided for producer resource
+ *			NULL should be provided for consumer resource
  *
  * IPA RM client is expected to perform non blocking operations only
  * in request_resource and release_resource functions and
@@ -356,21 +356,24 @@ int sipa_rm_create_resource(struct sipa_rm_create_params *create_params);
 
 int sipa_rm_delete_resource(enum sipa_rm_res_id res_id);
 
-int sipa_rm_set_perf_profile(enum sipa_rm_res_id res_id,
-			struct sipa_rm_perf_profile *profile);
+int sipa_rm_register(enum sipa_rm_res_id res_id,
+			struct sipa_rm_register_params *reg_params);
+
+int sipa_rm_deregister(enum sipa_rm_res_id res_id,
+			struct sipa_rm_register_params *reg_params);
 
 /*
  * @res_id: name of dependent producer resource
  * @depends_on_res: name of its dependency consumer
  */
-int sipa_rm_add_dependency(enum sipa_rm_res_id res_id,
-			enum sipa_rm_res_id depends_on_res);
+int sipa_rm_add_dependency(enum sipa_rm_res_id cons,
+			enum sipa_rm_res_id prod);
 
-int sipa_rm_add_dependency_sync(enum sipa_rm_res_id res_id,
-			enum sipa_rm_res_id depends_on_res);
+int sipa_rm_add_dependency_sync(enum sipa_rm_res_id cons,
+			enum sipa_rm_res_id prod);
 
-int sipa_rm_delete_dependency(enum sipa_rm_res_id res_id,
-			enum sipa_rm_res_id depends_on_res);
+int sipa_rm_delete_dependency(enum sipa_rm_res_id cons,
+			enum sipa_rm_res_id prod);
 
 int sipa_rm_request_resource(enum sipa_rm_res_id res_id);
 
