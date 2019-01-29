@@ -167,7 +167,7 @@ static int sipa_sys_drv_probe(struct platform_device *pdev_p)
 
 	struct sipa_sys_cfg_tag *cfg;
 
-	cfg = devm_kzalloc(sizeof(struct sipa_sys_cfg_tag), GFP_KERNEL);
+	cfg = devm_kzalloc(&pdev_p->dev, sizeof(*cfg), GFP_KERNEL);
 	if (!cfg)
 		return -ENOMEM;
 

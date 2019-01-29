@@ -13,6 +13,7 @@
 
 #ifndef _IPA_SYS_PHY_H_
 #define _IPA_SYS_PHY_H_
+#include "../sipa_sys.h"
 
 int sipa_sys_force_wakeup(struct sipa_sys_cfg_tag *cfg);
 int sipa_sys_set_sipa_enable(struct sipa_sys_cfg_tag *cfg);
