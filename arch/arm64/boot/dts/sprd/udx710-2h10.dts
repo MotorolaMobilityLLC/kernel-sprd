@@ -47,6 +47,15 @@
 	};
 };
 
+&ssphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&pmic_typec>;
+};
+
+&usb3 {
+	extcon = <&pmic_typec>;
+};
+
 &uart0 {
 	status = "ok";
 };
