@@ -592,7 +592,7 @@
 			];
 
 		display-timings {
-			timing0 {
+			lcd_nt35695_fhd_timing0: timing0 {
 				clock-frequency = <153600000>;
 				hactive = <1080>;
 				vactive = <1920>;
