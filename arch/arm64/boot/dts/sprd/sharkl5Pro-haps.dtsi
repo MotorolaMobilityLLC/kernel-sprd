@@ -303,6 +303,23 @@
 				};
 			};
 		};
+
+		aon {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			ap_gpio: gpio@32070000 {
+				compatible = "sprd,sharkl5Pro-gpio", "sprd,sharkl5-gpio";
+				reg = <0 0x32070000 0 0x10000>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+			};
+		};
 	};
 
 	ext_26m: ext-26m {
