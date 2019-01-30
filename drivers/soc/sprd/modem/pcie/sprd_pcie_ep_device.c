@@ -885,11 +885,74 @@ static const struct pci_device_id sprd_pci_ep_dev_tbl[] = {
 };
 MODULE_DEVICE_TABLE(pci, sprd_pci_ep_dev_tbl);
 
+#ifdef CONFIG_PM_SLEEP
+static int sprd_pci_ep_suspend(struct device *dev)
+{
+	struct pci_dev *pdev = to_pci_dev(dev);
+	int rc;
+
+	/* Exec pci PCI_D3cold one time */
+	if (pdev->current_state != PCI_D0) {
+		dev_info(dev, "done for pm %d\n", pdev->current_state);
+		return 0;
+	}
+
+	/*
+	 * TODO: The HAL will ask the shared memory layer whether D3 is allowed.
+	 */
+
+	/* Save the PCI configuration space of a device before suspending. */
+	rc = pci_save_state(pdev);
+	if (rc) {
+		dev_err(dev, "pci_save_state error=%d\n", rc);
+		return rc;
+	}
+
+	/* Set the power state of a PCI device.
+	 * Transition a device to a new power state, using the device's PCI PM
+	 * registers.
+	 */
+	rc = pci_set_power_state(pdev, PCI_D3cold);
+	if (rc) {
+		dev_err(dev, "pci_set_power_state error=%d\n", rc);
+		return rc;
+	}
+	return 0;
+}
+
+static int sprd_pci_ep_resume(struct device *dev)
+{
+	struct pci_dev *pdev = to_pci_dev(dev);
+	int rc;
+
+	/* Set the power state of a PCI device. */
+	rc = pci_set_power_state(pdev, PCI_D0);
+	if (rc) {
+		dev_err(dev, "pci_set_power_state error=%d\n", rc);
+		return rc;
+	}
+
+	/* Restore the saved state of a PCI device. */
+	pci_restore_state(pdev);
+
+	/* TODO: The HAL shall inform that the device is active. */
+	return 0;
+}
+#endif /* CONFIG_PM_SLEEP */
+
+static const struct dev_pm_ops sprd_pci_ep_pm = {
+	SET_SYSTEM_SLEEP_PM_OPS(sprd_pci_ep_suspend,
+				sprd_pci_ep_resume)
+};
+
 static struct pci_driver sprd_pci_ep_dev_driver = {
 	.name		= DRV_MODULE_NAME,
 	.id_table	= sprd_pci_ep_dev_tbl,
 	.probe		= sprd_pci_ep_dev_probe,
 	.remove		= sprd_pci_ep_dev_remove,
+	.driver		= {
+		.pm = &sprd_pci_ep_pm,
+	}
 };
 module_pci_driver(sprd_pci_ep_dev_driver);
 
