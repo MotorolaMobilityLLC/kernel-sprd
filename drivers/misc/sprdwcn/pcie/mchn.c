@@ -259,6 +259,18 @@ int mchn_push_link_wait_complete(int chn, struct mbuf_t *head,
 }
 EXPORT_SYMBOL(mchn_push_link_wait_complete);
 
+int mchn_wcn_mem_write(unsigned int addr, void *buf, unsigned int len)
+{
+	return sprd_pcie_mem_write(addr, buf, len);
+}
+EXPORT_SYMBOL(mchn_wcn_mem_write);
+
+int mchn_wcn_mem_read(unsigned int addr, void *buf, unsigned int len)
+{
+	return sprd_pcie_mem_read(addr, buf, len);
+}
+EXPORT_SYMBOL(mchn_wcn_mem_read);
+
 int mchn_init(struct mchn_ops_t *ops)
 {
 	int ret = -1;

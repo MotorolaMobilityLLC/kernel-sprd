@@ -25,6 +25,11 @@
 #include "wcn_op.h"
 #include "wcn_procfs.h"
 
+/* 4M align */
+#define EP_INBOUND_ALIGN 0x400000
+/* 4K align */
+#define EP_OUTBOUND_ALIGN 0x1000
+
 static struct wcn_pcie_info *g_pcie_dev;
 
 struct wcn_pcie_info *get_wcn_device_info(void)
@@ -63,9 +68,8 @@ int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset,
 		return -1;
 	}
 	mem += offset;
-	PCIE_INFO("%s(%d, 0x%x, 0x%x)\n", __func__, bar, offset, *((int *)buf));
+	PCIE_DBG("%s(%d, 0x%x, 0x%x)\n", __func__, bar, offset, *((int *)buf));
 	memcpy(mem, buf, len);
-	hexdump("read", mem, 16);
 
 	return 0;
 }
@@ -151,7 +155,7 @@ unsigned char *ibreg_base(struct wcn_pcie_info *priv, char region)
 		return NULL;
 	if (region > 8)
 		return NULL;
-	PCIE_INFO("%s(%d):0x%x\n", __func__, region, (0x10100 | (region << 9)));
+	PCIE_DBG("%s(%d):0x%x\n", __func__, region, (0x10100 | (region << 9)));
 	/*
 	 * 0x10000: iATU relative offset to BAR4.
 	 * BAR4 included map iatu reg information.
@@ -161,7 +165,7 @@ unsigned char *ibreg_base(struct wcn_pcie_info *priv, char region)
 	 * inbound = Base + i * 0x200 + 0x100
 	 */
 	p = p + (0x10100 | (region << 9));
-	PCIE_INFO("base =0x%p\n", p);
+	PCIE_DBG("base =0x%p\n", p);
 
 	return p;
 }
@@ -174,7 +178,7 @@ unsigned char *obreg_base(struct wcn_pcie_info *priv, char region)
 		return NULL;
 	if (region > 8)
 		return NULL;
-	PCIE_INFO("%s(%d):0x%x\n", __func__, region, (0x10000 | (region << 9)));
+	PCIE_DBG("%s(%d):0x%x\n", __func__, region, (0x10000 | (region << 9)));
 	p = p + (0x10000 | (region << 9));
 
 	return p;
@@ -267,11 +271,69 @@ int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar, unsigned int addr)
 	ibreg->type = 0x00000000;
 	ibreg->limit = 0x00FFFFFF;
 	ibreg->en = REGION_EN | BAR_MATCH_MODE;
-	PCIE_INFO("%s(%d, 0x%x)\n", __func__, bar, addr);
+	PCIE_DBG("%s(%d, 0x%x)\n", __func__, bar, addr);
 
 	return 0;
 }
 EXPORT_SYMBOL(sprd_pcie_bar_map);
+
+int sprd_pcie_mem_write(unsigned int addr, void *buf, unsigned int len)
+{
+	int ret = 0;
+	unsigned int base_addr;
+	unsigned int offset;
+	unsigned int base_upper_addr;
+	int bar;
+
+	base_addr = addr / EP_INBOUND_ALIGN * EP_INBOUND_ALIGN;
+	offset = addr % EP_INBOUND_ALIGN;
+	base_upper_addr = ((addr + len)/EP_INBOUND_ALIGN * EP_INBOUND_ALIGN);
+	bar = 0;
+
+	if (base_addr != base_upper_addr)
+		WARN_ON(1);
+	PCIE_INFO("%s: bar=%d, base_addr=0x%x, offset=0x%x, upper_addr=0x%x\n",
+		  __func__, bar, base_addr, offset, base_upper_addr);
+
+	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr);
+	if (ret < 0)
+		return ret;
+
+	ret = pcie_bar_write(g_pcie_dev, bar, offset, buf, len);
+	if (ret < 0)
+		return ret;
+
+	return ret;
+}
+
+int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len)
+{
+	int ret = 0;
+	unsigned int base_addr;
+	unsigned int offset;
+	unsigned int base_upper_addr;
+	int bar;
+
+	base_addr = addr / EP_INBOUND_ALIGN * EP_INBOUND_ALIGN;
+	offset = addr % EP_INBOUND_ALIGN;
+	base_upper_addr = ((addr + len)/EP_INBOUND_ALIGN * EP_INBOUND_ALIGN);
+	bar = 0;
+
+	if (base_addr != base_upper_addr)
+		WARN_ON(1);
+	PCIE_INFO("%s: bar=%d, base_addr=0x%x, offset=0x%x, upper_addr=0x%x\n",
+		  __func__, bar, base_addr, offset, base_upper_addr);
+
+	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr);
+	if (ret < 0)
+		return ret;
+
+	ret = pcie_bar_read(g_pcie_dev, bar, offset, buf, len);
+	if (ret < 0)
+		return ret;
+
+	return ret;
+}
 
 static int sprd_pcie_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *pci_id)

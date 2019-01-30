@@ -49,6 +49,36 @@ static int pcie_chn_deinit(struct mchn_ops_t *ops)
 	return mchn_deinit(ops);
 }
 
+static int pcie_direct_read(unsigned int addr, void *buf, unsigned int len)
+{
+	return mchn_wcn_mem_read(addr, buf, len);
+}
+
+static int pcie_direct_write(unsigned int addr, void *buf, unsigned int len)
+{
+	return mchn_wcn_mem_write(addr, buf, len);
+}
+
+static int pcie_readbyte(unsigned int addr, unsigned char *val)
+{
+	return mchn_wcn_mem_read(addr, val, 1);
+}
+
+static int pcie_writebyte(unsigned int addr, unsigned char val)
+{
+	return mchn_wcn_mem_write(addr, &val, 1);
+}
+
+int pcie_read32(unsigned int system_addr, void *buf)
+{
+	return mchn_wcn_mem_read(system_addr, buf, 4);
+}
+
+int pcie_write32(unsigned int system_addr, void *buf)
+{
+	return mchn_wcn_mem_write(system_addr, buf, 4);
+}
+
 static struct sprdwcn_bus_ops pcie_bus_ops = {
 	.preinit = pcie_preinit,
 	.deinit = pcie_preexit,
@@ -57,6 +87,12 @@ static struct sprdwcn_bus_ops pcie_bus_ops = {
 	.list_alloc = pcie_buf_list_alloc,
 	.list_free = pcie_buf_list_free,
 	.push_list = pcie_list_push,
+	.direct_read = pcie_direct_read,
+	.direct_write = pcie_direct_write,
+	.readbyte = pcie_readbyte,
+	.writebyte = pcie_writebyte,
+	.read_l = pcie_read32,
+	.write_l = pcie_write32,
 };
 
 void module_bus_init(void)
