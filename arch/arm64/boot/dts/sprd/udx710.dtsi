@@ -125,3 +125,8 @@
 		};
 	};
 };
+
+&uart0 {
+	clock-names = "enable", "uart", "source";
+	clocks = <&apapb_gate CLK_AP_UART0_EB>;
+};
