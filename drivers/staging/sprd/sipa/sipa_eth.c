@@ -64,8 +64,6 @@ static inline void sipa_eth_tx_stats_update(
 static void sipa_eth_prepare_skb(struct SIPA_ETH *sipa_eth, struct sk_buff *skb)
 {
 	int netid;
-	struct iphdr *iph;
-	struct udphdr *udp;
 	struct net_device *dev;
 	struct sipa_eth_init_data *pdata = sipa_eth->pdata;
 
@@ -308,7 +306,7 @@ static int sipa_eth_parse_dt(
 	struct sipa_eth_init_data *pdata = NULL;
 	struct device_node *np = dev->of_node;
 	int ret;
-	u32 data;
+	u32 data, id;
 
 	if (!np)
 		pr_err("dev of_node np is null\n");
