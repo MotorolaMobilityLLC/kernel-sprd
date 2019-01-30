@@ -199,6 +199,13 @@
 				clock-names = "enable";
 				clocks = <&apahb_gate CLK_DMA_EB>;
 			};
+
+			sdio3: sdio@26100000 {
+				compatible = "sprd,sdhc-r11p1";
+				reg = <0 0x26100000 0 0x1000>;
+				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+			};
 		};
 
 		ap-apb {
