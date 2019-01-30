@@ -194,8 +194,10 @@ void dwc3_gadget_del_and_unmap_request(struct dwc3_ep *dep,
 	req->trb = NULL;
 	trace_dwc3_gadget_giveback(req);
 
+#if 0
 	if (dep->number > 1)
 		pm_runtime_put(dwc->dev);
+#endif
 }
 
 /**
@@ -1325,8 +1327,6 @@ static int __dwc3_gadget_ep_queue(struct dwc3_ep *dep, struct dwc3_request *req)
 	if (WARN(req->dep != dep, "request %pK belongs to '%s'\n",
 				&req->request, req->dep->name))
 		return -EINVAL;
-
-	pm_runtime_get(dwc->dev);
 
 	req->request.actual	= 0;
 	req->request.status	= -EINPROGRESS;
