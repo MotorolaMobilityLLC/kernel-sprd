@@ -1,5 +1,5 @@
-#ifndef __DT_BINDINGS_DEBUG_ROC1_DMC_MPU_H__
-#define __DT_BINDINGS_DEBUG_ROC1_DMC_MPU_H__
+#ifndef __DT_BINDINGS_DEBUG_ORCA_DMC_MPU_H__
+#define __DT_BINDINGS_DEBUG_ORCA_DMC_MPU_H__
 
 #include "../common.h"
 
@@ -101,5 +101,5 @@
 #define DMA_AP			0x76
 #define DMA_CP			0x77
 
-#endif /* __DT_BINDINGS_DEBUG_ROC1_DMC_MPU_H__ */
+#endif /* __DT_BINDINGS_DEBUG_ORCA_DMC_MPU_H__ */
 
