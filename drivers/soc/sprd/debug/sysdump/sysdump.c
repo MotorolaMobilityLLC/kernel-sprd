@@ -59,8 +59,8 @@
 #endif
 
 #define SYSDUMP_MAGIC	"SPRD_SYSDUMP_119"
-#define SYSDUMP_MAGIC_VOLUP  (0x766f7570)
-#define SYSDUMP_MAGIC_VOLDN  (0X766f646e)
+#define SYSDUMP_MAGIC_VOLUP  (0x766f7570) // v-l-u-p
+#define SYSDUMP_MAGIC_VOLDN  (0X766f646e) // v-l-d-n
 
 #define SYSDUMP_NOTE_BYTES (ALIGN(sizeof(struct elf_note), 4) +   \
 			    ALIGN(sizeof(CORE_STR), 4) + \
@@ -117,7 +117,7 @@ static unsigned long sysdump_magic_paddr;
 
 /* global var for memory hash */
 static u8 g_ktxt_hash_data[SHA1_DIGEST_SIZE];
-static struct shash_desc desc;
+static struct shash_desc *desc;
 
 /* must be global to let gdb know */
 struct sysdump_extra sprd_sysdump_extra = {
@@ -155,7 +155,7 @@ void sprd_debug_check_crash_key(unsigned int code, int value)
 
 #if 0
 	/* Must be deleted later */
-	pr_alert("Test %s:key code(%d) value(%d),(up:%d,down:%d),lpct(%d),vop(%ld)\n", __func__,
+	pr_info("Test %s:key code(%d) value(%d),(up:%d,down:%d),lpct(%d),vop(%ld)\n", __func__,
 		code, value, volup_p, voldown_p, loopcount, vol_pressed);
 #endif
 
@@ -164,21 +164,15 @@ void sprd_debug_check_crash_key(unsigned int code, int value)
 	 *  and then press power key twice
 	 */
 	if (value) {
-		if (code == KEY_VOLUMEUP) {
-			volup_p = SYSDUMP_MAGIC_VOLUP; //vlup
-			vol_pressed = 0;
-			loopcount = 0;
-		}
-		if (code == KEY_VOLUMEDOWN) {
-			voldown_p = SYSDUMP_MAGIC_VOLDN; //vldn
-			loopcount = 0;
-			vol_pressed = 0;
-		}
-		if ((!vol_pressed) &&
-		    (volup_p == SYSDUMP_MAGIC_VOLUP) &&
-		    (voldown_p == SYSDUMP_MAGIC_VOLDN))
-			vol_pressed = jiffies;
+		if (code == KEY_VOLUMEUP)
+			volup_p = SYSDUMP_MAGIC_VOLUP;
+		if (code == KEY_VOLUMEDOWN)
+			voldown_p = SYSDUMP_MAGIC_VOLDN;
+
 		if ((volup_p == SYSDUMP_MAGIC_VOLUP) && (voldown_p == SYSDUMP_MAGIC_VOLDN)) {
+			if (!vol_pressed)
+				vol_pressed = jiffies;
+
 			if (code == KEY_POWER) {
 				pr_info("%s: Crash key count : %d,vol_pressed:%ld\n", __func__,
 					++loopcount, vol_pressed);
@@ -202,8 +196,8 @@ void sprd_debug_check_crash_key(unsigned int code, int value)
 			vol_pressed = 0;
 		}
 		if (code == KEY_VOLUMEDOWN) {
-			loopcount = 0;
 			voldown_p = 0;
+			loopcount = 0;
 			vol_pressed = 0;
 		}
 	}
@@ -439,9 +433,6 @@ void sysdump_enter(int enter_id, const char *reason, struct pt_regs *regs)
 				mdelay(3000);
 			}
 		}
-		memset(g_ktxt_hash_data, 0x55, SHA1_DIGEST_SIZE);
-		desc.tfm = crypto_alloc_shash("sha1", 0, CRYPTO_ALG_ASYNC);
-		crypto_shash_init(&desc);
 	}
 
 	/* this should before smp_send_stop() to make sysdump_ipi enable */
@@ -474,19 +465,21 @@ void sysdump_enter(int enter_id, const char *reason, struct pt_regs *regs)
 
 	sysdump_prepare_info(enter_id, reason, regs);
 
-	pr_emerg("KTXT VERIFY...\n");
-	crypto_shash_update(&desc, (u8 *)_stext, _etext-_stext);
-	crypto_shash_final(&desc, g_ktxt_hash_data);
+	if (sprd_sysdump_init) {
+		pr_emerg("KTXT VERIFY...\n");
+		crypto_shash_update(desc, (u8 *)_stext, _etext-_stext);
+		crypto_shash_final(desc, g_ktxt_hash_data);
 
-	pr_emerg("KTXT [0x%lx--0x%lx]\n",
-		(unsigned long)_stext, (unsigned long)_etext);
-	pr_emerg("SHA1:\n");
-	pr_emerg("%x %x %x %x %x\n",
-			*((unsigned int *)g_ktxt_hash_data+0),
-			*((unsigned int *)g_ktxt_hash_data+1),
-			*((unsigned int *)g_ktxt_hash_data+2),
-			*((unsigned int *)g_ktxt_hash_data+3),
-			*((unsigned int *)g_ktxt_hash_data+4));
+		pr_emerg("KTXT [0x%lx--0x%lx]\n",
+			(unsigned long)_stext, (unsigned long)_etext);
+		pr_emerg("SHA1:\n");
+		pr_emerg("%x %x %x %x %x\n",
+			*((unsigned int *)g_ktxt_hash_data + 0),
+			*((unsigned int *)g_ktxt_hash_data + 1),
+			*((unsigned int *)g_ktxt_hash_data + 2),
+			*((unsigned int *)g_ktxt_hash_data + 3),
+			*((unsigned int *)g_ktxt_hash_data + 4));
+	}
 
 	pr_emerg("\n");
 	pr_emerg("*****************************************************\n");
@@ -767,6 +760,37 @@ static int set_sysdump_enable(int on)
 	return 0;
 }
 
+static int sysdump_shash_init(void)
+{
+	struct crypto_shash *tfm;
+	size_t desc_size;
+	int ret;
+
+	tfm = crypto_alloc_shash("sha1", 0, CRYPTO_ALG_ASYNC);
+	if (IS_ERR(tfm))
+		return (PTR_ERR(tfm) == -ENOENT) ? -ENOPKG : PTR_ERR(tfm);
+
+	desc_size = crypto_shash_descsize(tfm) + sizeof(*desc);
+
+	desc = kzalloc(desc_size, GFP_KERNEL);
+	if (!desc)
+		goto error_no_desc;
+
+	desc->tfm = tfm;
+	desc->flags = CRYPTO_TFM_REQ_MAY_SLEEP;
+
+	ret = crypto_shash_init(desc);
+	if (ret < 0) {
+		pr_emerg("crypto_shash_init fail(%d)!\n", ret);
+		return ret;
+	}
+
+	return 0;
+error_no_desc:
+	crypto_free_shash(tfm);
+	return -ENOMEM;
+}
+
 int sysdump_sysctl_init(void)
 {
 	/*get_sprd_sysdump_info_paddr(); */
@@ -797,8 +821,8 @@ int sysdump_sysctl_init(void)
 		return -ENOMEM;
 
 	memset(g_ktxt_hash_data, 0x55, SHA1_DIGEST_SIZE);
-	desc.tfm = crypto_alloc_shash("sha1", 0, CRYPTO_ALG_ASYNC);
-	crypto_shash_init(&desc);
+	if (sysdump_shash_init())
+		return -ENOMEM;
 
 	sprd_sysdump_init = 1;
 
@@ -817,7 +841,11 @@ void sysdump_sysctl_exit(void)
 		unregister_sysctl_table(sysdump_sysctl_hdr);
 	input_unregister_handler(&sysdump_handler);
 	remove_proc_entry("sprd_sysdump", NULL);
-	crypto_free_shash(desc.tfm);
+	if (desc) {
+		if (desc->tfm)
+			crypto_free_shash(desc->tfm);
+		kfree(desc);
+	}
 }
 
 late_initcall_sync(sysdump_sysctl_init);
