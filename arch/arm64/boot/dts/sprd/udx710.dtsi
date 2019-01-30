@@ -75,9 +75,44 @@
 			#clock-cells = <1>;
 		};
 
+		ap_clk: clock-controller@21100000 {
+			compatible = "sprd,orca-ap-clk";
+			reg = <0 0x21100000 0 0x1000>;
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
 		apapb_gate: apapb-gate {
 			compatible = "sprd,orca-apapb-gate";
 			sprd,syscon = <&ap_apb_regs>; /* 0x24000000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		aon_clk: clock-controller@63170000 {
+			compatible = "sprd,orca-aon-clk";
+			reg = <0 0x63170000 0 0x1000>;
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		g3_pll: g3-pll {
+			compatible = "sprd,orca-g3-pll";
+			sprd,syscon = <&anlg_phy_g3_regs>; /* 0x634b0000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		apcpu_clk: clock-controller@63970000 {
+			compatible = "sprd,orca-apcpu-clk";
+			reg = <0 0x63970000 0 0x1000>;
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		pmu_gate: pmu-gate {
+			compatible = "sprd,orca-pmu-gate";
+			sprd,syscon = <&pmu_apb_regs>;	/* 0x64010000 */
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
 		};
