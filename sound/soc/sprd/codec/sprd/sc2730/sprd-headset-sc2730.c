@@ -909,9 +909,8 @@ void headset_set_audio_state(bool on)
 }
 
 static enum sprd_headset_type
-headset_type_detect_through_mdet(void)
+sprd_detect_type_through_mdet(struct sprd_headset *hdst)
 {
-	struct sprd_headset *hdst = sprd_hdst;
 	enum sprd_headset_type headset_type;
 	/*
 	 * according to si.chen's email, need 100~200ms at least to
@@ -922,13 +921,12 @@ headset_type_detect_through_mdet(void)
 	pr_info("%s enter\n", __func__);
 	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
 
-	/* need to disable/enable irq 10 in this func? i am not sure */
-	sprd_headset_eic_enable(10, 0);
-	sprd_headset_eic_clear(10);
-	sprd_headset_eic_enable(11, 1);/* enalbe mdet */
-	sprd_headset_eic_trig(11);/* trig mdet */
+	sprd_headset_eic_enable(HDST_INSERT_ALL_EIC, false);
+	sprd_headset_eic_clear(HDST_INSERT_ALL_EIC);
+	sprd_headset_eic_enable(HDST_MDET_EIC, true);
+	sprd_headset_eic_trig(HDST_MDET_EIC);
 	sprd_intc_force_clear(0);
-	headset_reg_clr_bits(ANA_HDT2, HEDET_LDETL_FLT_EN);
+	sprd_ldetl_filter_enable(false);
 	while (check_times > 0) {
 		if (hdst->mic_irq_trigged == 1)
 			break;
@@ -940,9 +938,9 @@ headset_type_detect_through_mdet(void)
 	else
 		headset_type = HEADSET_4POLE_NORMAL;
 
-	sprd_headset_eic_enable(10, 1);
-	sprd_headset_eic_enable(11, 0);/* disalbe mdet */
-	sprd_headset_eic_clear(11);
+	sprd_headset_eic_enable(HDST_INSERT_ALL_EIC, true);
+	sprd_headset_eic_enable(HDST_MDET_EIC, false);
+	sprd_headset_eic_clear(HDST_MDET_EIC);
 	hdst->mic_irq_trigged = 0;
 	pr_info("%s, headset_type = %d (%s), check_times %d\n",
 		__func__, headset_type,
@@ -977,15 +975,12 @@ headset_type_detect_all(int insert_all_val_last)
 		gpio_direction_output(pdata->eu_us_switch, 0);
 	else
 		pr_info("automatic type switch is unsupported\n");
-
-	pr_debug("%s PMU0(0000) %x\n", __func__,
-		sprd_read_reg_value(ANA_PMU0));
 	/*
+	 * after powers on, wait for 20 ms,
 	 * changing to 4ms according to si.chen's email,
 	 * make sure the whole time is in 10ms
 	 */
 	sprd_msleep(4);
-
 	pr_debug("%s, get adc value of headmic in little scale\n", __func__);
 
 	headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_EN);
@@ -1074,7 +1069,7 @@ headset_type_detect_all(int insert_all_val_last)
 			 * 4 pole normal type with mic floating
 			 * can be treated as 3 pole headphone
 			 */
-			headset_type = headset_type_detect_through_mdet();
+			headset_type = sprd_detect_type_through_mdet(hdst);
 			if (headset_type == HEADSET_4POLE_NORMAL)
 				sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
 			else
@@ -1087,7 +1082,7 @@ headset_type_detect_all(int insert_all_val_last)
 			 * 4 pole normal for selfie stick which is not
 			 * totally inserted or it is 4 pole floating.
 			 */
-			headset_type = headset_type_detect_through_mdet();
+			headset_type = sprd_detect_type_through_mdet(hdst);
 			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return headset_type;
 		}
@@ -1096,7 +1091,7 @@ headset_type_detect_all(int insert_all_val_last)
 	return HEADSET_TYPE_ERR;
 }
 
-static void headset_button_release_verify(void)
+static void sprd_headset_button_release_verify(void)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 
@@ -1111,9 +1106,8 @@ static void headset_button_release_verify(void)
 	}
 }
 
-static void headset_removed_verify(void)
+static void sprd_headset_removed_verify(struct sprd_headset *hdst)
 {
-	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = hdst ? &hdst->pdata : NULL;
 	int plug_state_current = 0;
 	bool trig_level, hw_insert_status;
@@ -1130,7 +1124,7 @@ static void headset_removed_verify(void)
 			__func__, hdst->headphone ? "headphone" : "headset");
 		sprd_headset_eic_enable(HDST_MDET_EIC, 0);
 		sprd_headset_eic_enable(HDST_BDET_EIC, 0);
-		headset_button_release_verify();
+		sprd_headset_button_release_verify();
 		hdst->hdst_type_status &= ~SPRD_HEADSET_JACK_MASK;
 		sprd_headset_jack_report(hdst, &hdst->hdst_jack,
 			0, SPRD_HEADSET_JACK_MASK);
@@ -1174,6 +1168,14 @@ static enum snd_jack_types sprd_adc_to_button(int adc_mic)
 	return j_type;
 }
 
+static void sprd_headset_reinit_mdet_eic(void)
+{
+	sprd_headset_eic_clear(HDST_MDET_EIC);
+	sprd_headset_eic_enable(HDST_MDET_EIC, true);
+	sprd_headset_eic_trig(HDST_MDET_EIC);
+	sprd_intc_force_clear(0);
+}
+
 static void headset_mic_work_func(struct work_struct *work)
 {
 	struct sprd_headset *hdst = sprd_hdst;
@@ -1188,23 +1190,19 @@ static void headset_mic_work_func(struct work_struct *work)
 	else
 		goto out;
 
-	sprd_headset_eic_enable(HDST_MDET_EIC, 0);
+	/* disable MDET */
+	sprd_headset_eic_enable(HDST_MDET_EIC, false);
 	sprd_headset_eic_clear(HDST_MDET_EIC);
 	sprd_intc_force_clear(0);
 
 	headset_reg_read(ANA_STS0, &val);
-	pr_info("%s: mic_irq_trigged %d, ANA_STS0 = 0x%x\n",
-		__func__, hdst->mic_irq_trigged, val);
+	pr_info("%s STS0 0x%x\n", __func__, val);
 	return;
 
 out:
 	pr_err("%s invalid, mdet_insert_status %d\n",
 		__func__, mdet_insert_status);
-	/* enable and trig MDET irq again */
-	sprd_headset_eic_clear(HDST_MDET_EIC);
-	sprd_headset_eic_enable(HDST_MDET_EIC, 1);
-	sprd_intc_force_clear(0);
-	sprd_headset_eic_trig(HDST_MDET_EIC);
+	sprd_headset_reinit_mdet_eic();
 }
 
 static void headset_button_work_func(struct work_struct *work)
@@ -1469,7 +1467,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	} else {
 		pr_err("%s fatal error, re-trig insert_all irq again\n",
 			__func__);
-		sprd_headset_eic_clear(10);
+		sprd_headset_eic_clear(HDST_INSERT_ALL_EIC);
 		sprd_intc_force_clear(1);
 		sprd_intc_force_clear(0);
 		sprd_headset_eic_trig(10);
@@ -1623,7 +1621,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		sprd_headset_eic_enable(15, 0);
 		sprd_set_eic_trig_level(10, 1);
 
-		headset_button_release_verify();
+		sprd_headset_button_release_verify();
 
 		hdst->hdst_type_status &= ~SPRD_HEADSET_JACK_MASK;
 		sprd_headset_jack_report(hdst, &hdst->hdst_jack,
@@ -1691,7 +1689,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		 * is corresponds to the software. If status conflict, software
 		 * status should be clean.
 		 */
-		headset_removed_verify();
+		sprd_headset_removed_verify(hdst);
 		sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS",
 			false);
 		sprd_set_all_eic_trig_level(true);
@@ -1914,7 +1912,7 @@ static void headset_force_remove_sw_plugin_status(void)
 		sprd_headset_eic_enable(HDST_BDET_EIC, false);
 		sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS",
 			false);
-		headset_button_release_verify();
+		sprd_headset_button_release_verify();
 		hdst->hdst_type_status &= ~SPRD_HEADSET_JACK_MASK;
 		sprd_headset_jack_report(hdst, &hdst->hdst_jack,
 			0, SPRD_HEADSET_JACK_MASK);
