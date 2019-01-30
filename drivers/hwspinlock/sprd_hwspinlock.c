@@ -153,6 +153,7 @@ static const struct of_device_id sprd_hwspinlock_of_match[] = {
 	{ .compatible = "sprd,hwspinlock-r3p0", },
 	{ .compatible = "sprd,sharkl5-hwspinlock", },
 	{ .compatible = "sprd,roc1-hwspinlock", },
+	{ .compatible = "sprd,orca-hwspinlock", },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, sprd_hwspinlock_of_match);
