@@ -731,7 +731,7 @@
 
 			ipa_local: sipa@21180000 {
 				compatible = "sprd,roc1-sipa";
-				reg = <0 0x21180000 0 0x00001000>,
+				reg = <0 0x21180000 0 0x00002000>,
 					<0 0x20b10000 0 0x00040000>;
 				reg-names = "glb-base", "iram-base";
 				interrupts = <GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>;
@@ -746,15 +746,16 @@
 				syscon-names = "enable", "wakeup";
 
 				sprd,sipa-bypass-mode = <0>;
+				sprd,need-through-pcie = <1>;
 
 				sprd,usb-dl-tx = <1 1024>;
 				sprd,usb-dl-rx = <1 1024>;
 				sprd,usb-ul-tx = <1 1024>;
 				sprd,usb-ul-rx = <1 1024>;
-				sprd,cp-dl-tx = <1 1024>;
-				sprd,cp-dl-rx = <1 1024>;
-				sprd,cp-ul-tx = <1 1024>;
-				sprd,cp-ul-rx = <1 1024>;
+				sprd,cp-dl-tx = <1 128>;
+				sprd,cp-dl-rx = <1 128>;
+				sprd,cp-ul-tx = <1 128>;
+				sprd,cp-ul-rx = <1 128>;
 				sprd,wifi-dl-tx = <1 1024>;
 				sprd,wifi-dl-rx = <1 1024>;
 				sprd,wifi-ul-tx = <1 1024>;
@@ -769,14 +770,14 @@
 				sprd,ap-ip-ul-rx = <0 1024>;
 			};
 
-			ipa_delegate: sipa-dele@2e000000 {
+			ipa_delegate: sipa-dele@38e000000 {
 				compatible = "sprd,sipa-delegate";
 				reg = <0x0 0x2e000000 0 0x00001000>,
 				      <0x3 0x8e000000 0 0x00001000>;
 				reg-names = "remote-base", "mapped-base";
 
-				sprd,ul-fifo-depth = <1024>;
-				sprd,dl-fifo-depth = <1024>;
+				sprd,ul-fifo-depth = <128>;
+				sprd,dl-fifo-depth = <128>;
 			};
 
 			ipa_sys: sipa-sys {
