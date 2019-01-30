@@ -473,6 +473,7 @@ static struct platform_driver sprd_thermal_driver = {
 	.driver = {
 		.name = "sprd-dedicate-thermal",
 		.pm = &sprd_thm_dev_pm_ops,
+		.of_match_table = sprd_thermal_of_match,
 	},
 };
 
