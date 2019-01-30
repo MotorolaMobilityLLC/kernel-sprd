@@ -103,6 +103,9 @@ struct sprd_cpufreq_driver_data {
 	int temp_now;
 	int temp_bottom;
 	unsigned long temp_fall_time;
+	/*cpufreq points to hotplug notify*/
+	int (*cpufreq_online)(unsigned int cpu);
+	int (*cpufreq_offline)(unsigned int cpu);
 };
 
 #define CPUFREQHW_NAME_LEN			30
