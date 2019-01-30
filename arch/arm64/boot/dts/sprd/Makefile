@@ -27,13 +27,11 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	ums510-haps-overlay.dtbo \
 	ums510-1h10-overlay.dtbo \
 	ums510-haps-overlay.dtbo \
-        ud710-haps-overlay.dtbo \
+	ud710-haps-overlay.dtbo \
 	ud710-3h10-overlay.dtbo \
-	udx710-1h10-overlay.dtbo \
-	udx710-2h10-overlay.dtbo \
 	ud710-3h10u-overlay.dtbo \
 	ud710-haps-bkd-overlay.dtbo \
-        ud710-orca-haps-overlay.dtbo \
+	ud710-orca-haps-overlay.dtbo \
 	ud710-2h10-overlay.dtbo \
 	ums518-haps-overlay.dtbo \
 	ums518-haps-bkd-overlay.dtbo \

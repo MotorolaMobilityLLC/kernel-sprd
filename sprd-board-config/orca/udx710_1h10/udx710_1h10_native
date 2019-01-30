@@ -9,5 +9,7 @@ KERNEL_DEFCONFIG := sprd_orca_defconfig
 
 #DTS
 TARGET_DTB := udx710-1h10
-TARGET_DTBO := udx710-1h10-overlay
+
+# udx710 use Android 8.1, doesn't have target dtbo
+#TARGET_DTBO := udx710-1h10-overlay
 
