@@ -149,16 +149,10 @@ static int sprd_ssphy_init(struct usb_phy *x)
 			return ret;
 	}
 
-	/* enable otg utmi and analog */
-	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB
-		| MASK_AON_APB_OTG_PHY_EB | MASK_AON_APB_CKG_EB;
-	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_EB1,
-			 msk, reg);
-
 	/* USB2/USB3 PHY power on */
 	reg = msk = MASK_PMU_APB_USB3_PHY_PD_REG | MASK_PMU_APB_USB2_PHY_PD_REG;
 	ret |= regmap_update_bits(phy->pmu_apb, REG_PMU_APB_ANALOG_PHY_PD_CFG,
-			 msk, reg);
+			 msk, 0);
 
 	/* disable IPA_SYS shutdown */
 	reg = msk = MASK_PMU_APB_PD_IPA_SYS_FORCE_SHUTDOWN;
@@ -166,15 +160,17 @@ static int sprd_ssphy_init(struct usb_phy *x)
 			 msk, 0);
 
 	/* disable low power */
-	reg = msk = MASK_IPA_AHB_MAIN_LP_EB;
-	ret |= regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_MAIN_MTX_LPC,
+	reg = msk = MASK_IPA_AHB_MAIN_M7_LP_EB;
+	ret |= regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_M7_LPC,
 			 msk, 0);
 
-	/*
-	 *In FPGA platform, Disable low power will take some time
-	 *before the DWC3 Core register is accessible.
-	 */
-	usleep_range(1000, 2000);
+	if (!phy->pmic) {
+		/*
+		 *In FPGA platform, Disable low power will take some time
+		 *before the DWC3 Core register is accessible.
+		 */
+		usleep_range(1000, 2000);
+	}
 
 	/* select the IPA_SYS USB controller */
 	reg = msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
@@ -194,13 +190,9 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	ret |= regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_USB_CTL0, msk, 0);
 
 	/* set power present to default value */
-	msk = MASK_IPA_AHB_USB_HOST_PORT_POWER_CONTROL_PRESENT;
-	ret |= regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_USB_CTL0, msk, 0);
-
-	/* Purpose: enable usb and usb suspend/ref clock */
-	reg = msk = MASK_IPA_AHB_USB_EB | MASK_IPA_AHB_USB_SUSPEND_EB
-		| MASK_IPA_AHB_USB_REF_EB;
-	ret |= regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_IPA_EB, msk, reg);
+	msk = MASK_AON_APB_USB30_POWER_PRESENT;
+	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST,
+				  msk, 0);
 
 	/* enable USB2 PHY 16bit */
 	reg = msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_DATABUS16_8;
@@ -243,22 +235,19 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	regmap_update_bits(phy->ana_g3,
 			 REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, msk, 0);
 
-	/* USB2/USB3 PHY power off */
-	msk = MASK_PMU_APB_USB3_PHY_PD_REG | MASK_PMU_APB_USB2_PHY_PD_REG;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_EB1, msk, 0);
+	/* dwc3 vbus invalid */
+	reg = msk = MASK_IPA_AHB_UTMISRP_BVALID_REG
+		 | MASK_IPA_AHB_OTG_VBUS_VALID_PHYREG;
+	regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_USB_CTL0, msk, 0);
 
-	/* vbus valid */
-	reg = msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
-
-	reg = msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_VBUSVLDEXT;
-	regmap_update_bits(phy->ana_g3,
-			 REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1,
-			 msk, 0);
-
-	/* set power present to default value */
-	reg = msk = MASK_IPA_AHB_USB_HOST_PORT_POWER_CONTROL_PRESENT;
+	reg = msk = MASK_IPA_AHB_OTG_VBUS_VALID_PHYREG_SEL;
 	regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_USB_CTL0, msk, reg);
+
+	/* USB2/USB3 PHY power off */
+	reg = msk = MASK_PMU_APB_USB3_PHY_PD_REG | MASK_PMU_APB_USB2_PHY_PD_REG;
+	regmap_update_bits(phy->pmu_apb, REG_PMU_APB_ANALOG_PHY_PD_CFG,
+			 msk, reg);
+
 	/*
 	 * Due to chip design, some chips may turn on vddusb by default,
 	 * We MUST avoid turning it off twice.
@@ -498,16 +487,10 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 		sprd_ssphy_init(&phy->phy);
 	}
 
-	/* enable otg utmi and analog */
-	ret = 0;
-	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB
-		| MASK_AON_APB_OTG_PHY_EB | MASK_AON_APB_CKG_EB;
-	reg = msk = MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB;
-	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_EB1, msk, reg);
-	if (ret) {
-		dev_err(dev, "fail to enable SPRD-SSPHY\n");
-		return ret;
-	}
+	/* select the IPA_SYS USB controller */
+	reg = msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
+	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_AON_SOC_USB_CTRL,
+			 msk, reg);
 
 	platform_set_drvdata(pdev, phy);
 	phy->phy.dev				= dev;
@@ -515,7 +498,7 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	phy->phy.init				= sprd_ssphy_init;
 	phy->phy.shutdown			= sprd_ssphy_shutdown;
 	phy->phy.reset_phy			= sprd_ssphy_reset;
-	phy->phy.type				= USB_PHY_TYPE_USB2;
+	phy->phy.type				= USB_PHY_TYPE_USB3;
 	phy->phy.vbus_nb.notifier_call		= sprd_ssphy_vbus_notify;
 	phy->phy.charger_detect			= sprd_ssphy_charger_detect;
 
