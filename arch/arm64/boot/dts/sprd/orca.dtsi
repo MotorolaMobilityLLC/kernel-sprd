@@ -676,7 +676,7 @@
 
 		ipa_local: sprd,sipa@2E000000 {
 			compatible = "sprd,orca-sipa";
-			reg = <0 0x2E000000 0 0x00001000>,
+			reg = <0 0x2E000000 0 0x00002000>,
 				<0 0x28000000 0 0x00040000>;
 			reg-names = "glb-base", "iram-base";
 			interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
@@ -687,12 +687,17 @@
 				MASK_AP_IPA_AHB_RF_IPA_EB>;
 			syscon-names = "enable";
 
-			sprd,sipa-bypass-mode = <0>;
+			sprd,sipa-bypass-mode = <1>;
+			sprd,need-through-pcie = <0>;
 
 			sprd,usb-dl-tx = <1 1024>;
 			sprd,usb-dl-rx = <1 1024>;
 			sprd,usb-ul-tx = <1 1024>;
 			sprd,usb-ul-rx = <1 1024>;
+			sprd,pcie-dl-tx = <1 256>;
+			sprd,pcie-dl-rx = <1 256>;
+			sprd,pcie-ul-tx = <1 256>;
+			sprd,pcie-ul-rx = <1 256>;
 			sprd,cp-dl-tx = <1 1024>;
 			sprd,cp-dl-rx = <1 1024>;
 			sprd,cp-ul-tx = <1 1024>;
