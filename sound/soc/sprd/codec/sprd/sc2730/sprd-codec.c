@@ -1636,7 +1636,7 @@ static int cp_event(struct snd_soc_dapm_widget *w,
 			CP_POS_SOFT_EN, CP_POS_SOFT_EN);
 
 		/* CP negative power on */
-		neg_cp = sprd_codec->neg_cp_efuse >> 8;
+		neg_cp = (sprd_codec->neg_cp_efuse >> 7) & 0xff;
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL14),
 			CP_NEG_HV(0xFFFF), CP_NEG_HV(neg_cp));
 		neg_cp = (neg_cp * 115) / 165;
