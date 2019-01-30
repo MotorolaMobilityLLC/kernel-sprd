@@ -5,7 +5,7 @@
 
 /* list master id */
 /* Sub-sys AP */
-#define DMA			0x01
+#define AP_DMA			0x01
 #define SDIO_MST		0x02
 #define NANDC			0x03
 #define EMMC			0x04
@@ -60,22 +60,22 @@
 
 /* PS_CP */
 #define CR8_M0			0x40
-#define CR8_LLPP		0x41
-#define CR8_FPP0		0x42
-#define CR8_FPP1		0x43
+#define PS_CP_CR8_LLPP		0x41
+#define PS_CP_CR8_FPP0		0x42
+#define PS_CP_CR8_FPP1		0x43
 #define V3_SEC			0x44
 #define DMA_LINK		0x45
 #define DMA_LINK_4C		0x46
-#define DMA			0x47
+#define PS_CP DMA		0x47
 #define SDIO			0x48
 #define NR_SEC0			0x49
 #define NR_SEC1			0x4A
 
 /* NR_CP */
 #define CR8_PL310		0x50
-#define CR8_LLPP		0x51
-#define CR8_FPP0		0x52
-#define CR8_FPP1		0x53
+#define NR_CP_CR8_LLPP		0x51
+#define NR_CP_CR8_FPP0		0x52
+#define NR_CP_CR8_FPP1		0x53
 #define CR8_DMA			0x54
 #define CR8_SEC			0x55
 #define XC0_EPP			0x56
