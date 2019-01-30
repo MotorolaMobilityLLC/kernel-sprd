@@ -8,6 +8,7 @@
 
 #include <linux/slab.h>
 #include <linux/irq_work.h>
+#include <linux/sched/topology.h>
 #include "tune.h"
 
 #include "walt.h"
@@ -1427,9 +1428,9 @@ select_task_rq_rt(struct task_struct *p, int cpu, int sd_flag, int flags,
 	 * This test is optimistic, if we get it wrong the load-balancer
 	 * will have to sort it out.
 	 */
-	if (curr && unlikely(rt_task(curr)) &&
+	if (sched_feat(ENERGY_AWARE) || (curr && unlikely(rt_task(curr)) &&
 	    (curr->nr_cpus_allowed < 2 ||
-	     curr->prio <= p->prio)) {
+	     curr->prio <= p->prio))) {
 		int target = find_lowest_rq(p);
 
 		/*
@@ -1643,6 +1644,18 @@ static struct task_struct *pick_highest_pushable_task(struct rq *rq, int cpu)
 	return NULL;
 }
 
+static inline unsigned long task_walt_util(struct task_struct *p)
+{
+#ifdef CONFIG_SCHED_WALT
+	if (!walt_disabled && sysctl_sched_use_walt_task_util) {
+		unsigned long demand = p->ravg.demand;
+
+		return (demand << 10) / walt_ravg_window;
+	}
+#endif
+	return 0;
+}
+
 static DEFINE_PER_CPU(cpumask_var_t, local_cpu_mask);
 
 static int find_lowest_rq(struct task_struct *task)
@@ -1661,6 +1674,37 @@ static int find_lowest_rq(struct task_struct *task)
 
 	if (!cpupri_find(&task_rq(task)->rd->cpupri, task, lowest_mask))
 		return -1; /* No targets found */
+
+	if (sched_feat(ENERGY_AWARE)) {
+		int i;
+		struct root_domain *rd = cpu_rq(this_cpu)->rd;
+		int min_cpu = rd->min_cap_orig_cpu;
+		struct cpumask tmp_mask;
+
+		cpumask_clear(&tmp_mask);
+		for_each_cpu(i, lowest_mask) {
+			if (cpus_share_cache(i, min_cpu))
+				cpumask_set_cpu(i, &tmp_mask);
+		}
+
+		if (cpumask_weight(&tmp_mask)) {
+			unsigned long total_util = 0, total_cap = 0;
+
+			for_each_cpu(i, &tmp_mask) {
+				total_util += cpu_util_freq(i);
+				total_cap += capacity_of(i);
+			}
+
+			total_util += task_walt_util(task);
+			if (total_util * capacity_margin < total_cap * 1024)
+				cpumask_copy(lowest_mask, &tmp_mask);
+		}
+
+		for_each_cpu(i, lowest_mask) {
+			if (idle_cpu(i))
+				return i;
+		}
+	}
 
 	/*
 	 * At this point we have built a mask of cpus representing the
@@ -2107,6 +2151,25 @@ static void pull_rt_task(struct rq *this_rq)
 		if (src_rq->rt.highest_prio.next >=
 		    this_rq->rt.highest_prio.curr)
 			continue;
+
+		if (sched_feat(ENERGY_AWARE)) {
+			unsigned long this_util = cpu_util_freq(this_cpu);
+			unsigned long util = cpu_util_freq(cpu);
+			unsigned long this_orig = capacity_orig_of(this_cpu);
+			unsigned long cap_orig = capacity_orig_of(cpu);
+
+			/* If local cpu is overutilized, abort pull */
+			if (this_util * capacity_margin >
+			    capacity_of(this_cpu) * 1024)
+				break;
+
+			/* Local cpu is the bigger one and the src cpu is
+			 * not overutilized, drop pull from src cpu
+			 */
+			if (this_orig > cap_orig &&
+			    util * capacity_margin < capacity_of(cpu) * 1024)
+				continue;
+		}
 
 		/*
 		 * We can potentially drop this_rq's lock in

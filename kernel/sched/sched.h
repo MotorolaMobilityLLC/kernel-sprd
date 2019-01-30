@@ -2210,3 +2210,6 @@ walt_task_in_cum_window_demand(struct rq *rq, struct task_struct *p)
 #else /* arch_scale_freq_capacity */
 #define arch_scale_freq_invariant()	(false)
 #endif
+
+extern unsigned int capacity_margin;
+unsigned long cpu_util_freq(int cpu);
