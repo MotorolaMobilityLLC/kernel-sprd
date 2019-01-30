@@ -500,7 +500,7 @@ static int dwc3_sprd_vbus_notifier(struct notifier_block *nb,
 static int dwc3_sprd_id_notifier(struct notifier_block *nb,
 				 unsigned long event, void *data)
 {
-	struct dwc3_sprd *sdwc = container_of(nb, struct dwc3_sprd, vbus_nb);
+	struct dwc3_sprd *sdwc = container_of(nb, struct dwc3_sprd, id_nb);
 	unsigned long flags;
 
 	if (event) {
@@ -605,11 +605,18 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		return PTR_ERR(dwc3_node);
 	}
 
-	INIT_WORK(&sdwc->work, dwc3_sprd_notifier_work);
-	init_waitqueue_head(&sdwc->wait);
-	spin_lock_init(&sdwc->lock);
-	sdwc->suspend = false;
-	sdwc->dev = dev;
+	sdwc->hs_phy = devm_usb_get_phy_by_phandle(dev,
+			"usb-phy", 0);
+	if (IS_ERR(sdwc->hs_phy)) {
+		dev_err(dev, "unable to get usb2.0 phy device\n");
+		return PTR_ERR(sdwc->hs_phy);
+	}
+	sdwc->ss_phy = devm_usb_get_phy_by_phandle(dev,
+			"usb-phy", 1);
+	if (IS_ERR(sdwc->ss_phy)) {
+		dev_err(dev, "unable to get usb3.0 phy device\n");
+		return PTR_ERR(sdwc->ss_phy);
+	}
 
 	/* perpare clock */
 	sdwc->core_clk = devm_clk_get(dev, "core_clk");
@@ -667,20 +674,11 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		goto err_susp_clk;
 	}
 
-	sdwc->hs_phy = devm_usb_get_phy_by_phandle(&sdwc->dwc3->dev,
-			"usb-phy", 0);
-	if (IS_ERR(sdwc->hs_phy)) {
-		dev_err(dev, "unable to get usb2.0 phy device\n");
-		ret = PTR_ERR(sdwc->hs_phy);
-		goto err_susp_clk;
-	}
-	sdwc->ss_phy = devm_usb_get_phy_by_phandle(&sdwc->dwc3->dev,
-			"usb-phy", 1);
-	if (IS_ERR(sdwc->ss_phy)) {
-		dev_err(dev, "unable to get usb3.0 phy device\n");
-		ret = PTR_ERR(sdwc->ss_phy);
-		goto err_susp_clk;
-	}
+	INIT_WORK(&sdwc->work, dwc3_sprd_notifier_work);
+	init_waitqueue_head(&sdwc->wait);
+	spin_lock_init(&sdwc->lock);
+	sdwc->suspend = false;
+	sdwc->dev = dev;
 
 	/* get vbus/id gpios extcon device */
 	if (of_property_read_bool(node, "extcon")) {
@@ -717,21 +715,21 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 			goto err_extcon_id;
 		}
 
+	} else {
+		/*
+		 * In some cases, FPGA, USB Core and PHY may be always powered
+		 * on.
+		 */
+		sdwc->vbus_active = true;
+
+		if (IS_ENABLED(CONFIG_USB_DWC3_HOST))
+			sdwc->dr_mode = USB_DR_MODE_HOST;
+		else
+			sdwc->dr_mode = USB_DR_MODE_PERIPHERAL;
+
+		dev_info(dev, "DWC3 is always running as %s\n",
+			 sdwc->dr_mode == USB_DR_MODE_PERIPHERAL ? "DEVICE" : "HOST");
 	}
-	/*
-	 * In some cases, FPGA, USB Core and PHY may be always powered
-	 * on.
-	 */
-
-	sdwc->vbus_active = true;
-
-	if (IS_ENABLED(CONFIG_USB_DWC3_HOST))
-		sdwc->dr_mode = USB_DR_MODE_HOST;
-	else
-		sdwc->dr_mode = USB_DR_MODE_PERIPHERAL;
-
-	dev_info(dev, "DWC3 is always running as %s\n",
-		sdwc->dr_mode == USB_DR_MODE_PERIPHERAL ? "DEVICE" : "HOST");
 
 	platform_set_drvdata(pdev, sdwc);
 
