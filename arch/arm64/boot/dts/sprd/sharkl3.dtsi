@@ -1075,6 +1075,11 @@
 			#size-cells = <2>;
 			ranges;
 
+			dmc_controller: dmc-controller@30000000  {
+				compatible = "sprd,sharkl3-dmc";
+				reg = <0x0 0x30000000 0x0 0x1000>;
+			};
+
 			ptm_trace: ptm@30010000 {
 				compatible = "sprd,sharkl3-ptm";
 				reg = <0x0 0x30010000 0x0 0x10000>,
