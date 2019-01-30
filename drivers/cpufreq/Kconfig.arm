@@ -293,8 +293,13 @@ config ACPI_CPPC_CPUFREQ
 
 	  If in doubt, say N.
 
+choice
+        tristate "SPRD cpufreq driver select"
+        optional
+	default ARM_SPRD_HW_CPUFREQ if CPU_FREQ
+
 config ARM_SPRD_HW_CPUFREQ
-	tristate "Sprd hardware cpufreq driver for frequency scaling"
+	tristate "Hardware cpufreq driver"
 	depends on ARCH_SPRD && CPU_FREQ
 	select PM_OPP
 	default n
@@ -305,6 +310,22 @@ config ARM_SPRD_HW_CPUFREQ
 	  hardware dvfs IP, such as sharkl3 and sharkl5.
 
 	  If in doubt, say N.
+
+config ARM_SPRD_SW_CPUFREQ
+	tristate "Software cpufreq driver"
+        depends on ARCH_SPRD && CPU_FREQ
+        select PM_OPP
+        default n
+	help
+	  This adds software cpufreq driver support for Spreadtrum SoCs.
+	  The driver works for scaling the voltage and frequency of cpu
+	  and cluster based on Regulator and clk functions independently.
+	  Besides hw cpufreq driver, software cpufreq driver provides
+	  another choice for scaling voltage and frequency.
+
+	  If in doubt, say N.
+
+endchoice
 
 config ARM_SPRD_HW_CPUFREQ_SHARKL3
 	tristate "Sprd apcpu hardware dvfs driver for sharkl3 platform"
