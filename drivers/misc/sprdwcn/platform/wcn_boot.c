@@ -1798,7 +1798,8 @@ static int marlin_set_power(int subsys, int val)
 	/* power off */
 	} else {
 		if (marlin_dev->power_state == 0) {
-
+			if (flag_reset)
+				flag_reset = 0;
 			goto check_power_state_notify;
 		}
 
@@ -1814,18 +1815,14 @@ static int marlin_set_power(int subsys, int val)
 					clear_bit(subsys,
 						&marlin_dev->power_state);
 				}
-
 				MDBG_LOG("marlin reset flag_reset:%d\n",
 					flag_reset);
-
 				goto check_power_state_notify;
 			}
 		}
 
-		if (!marlin_dev->download_finish_flag) {
-
+		if (!marlin_dev->download_finish_flag)
 			goto check_power_state_notify;
-		}
 
 		set_wifipa_status(subsys, val);
 		clear_bit(subsys, &marlin_dev->power_state);
@@ -1833,7 +1830,6 @@ static int marlin_set_power(int subsys, int val)
 			WCN_INFO("can not power off, other module is on\n");
 			if (subsys == MARLIN_GNSS)
 				gnss_powerdomain_close();
-
 			goto check_power_state_notify;
 		}
 
