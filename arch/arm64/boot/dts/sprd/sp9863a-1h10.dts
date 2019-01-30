@@ -147,6 +147,80 @@
 						114889 57
 						124872 43 >;
 	};
+
+	bat: battery {
+		compatible = "simple-battery";
+		charge-full-design-microamp-hours = <2780000>;
+		charge-term-current-microamp = <120000>;
+		constant_charge_voltage_max_microvolt = <4350000>;
+		factory-internal-resistance-micro-ohms = <320000>;
+		voltage-min-design-microvolt = <3450000>;
+		ocv-capacity-celsius = <20>;
+		ocv-capacity-table-0 = <4360000 100>, <4249000 95>, <4189000 90>,
+					<4133000 85>, <4081000 80>, <4034000 75>,
+					<3991000 70>, <3953000 65>, <3910000 60>,
+					<3866000 55>, <3836000 50>, <3813000 45>,
+					<3795000 40>, <3782000 35>, <3774000 30>,
+					<3765000 25>, <3750000 20>, <3726000 15>,
+					<3687000 10>, <3658000 5>, <3400000 0>;
+		voltage-temp-table = <1052000 750>, <953000 800>, <858000 850>,
+				      <762000 900>, <671000 950>,<584000 1000>,
+				      <504000 1050>, <434000 1100>, <372000 1150>,
+				      <318000 1200>,<271000 1250>, <234000 1300>,
+				      <198000 1350>, <165000 1400>, <140000 1450>,
+				      <119000 1500>, <104000 1550>, <88000 1600>;
+		charge-sdp-current-microamp = <500000 500000>;
+		charge-dcp-current-microamp = <1200000 3000000>;
+		charge-cdp-current-microamp = <1500000 1500000>;
+		charge-unknown-current-microamp = <500000 500000>;
+	};
+
+	charger-manager {
+		compatible = "charger-manager";
+		cm-name = "battery";
+		cm-poll-mode = <2>;
+		cm-poll-interval = <15000>;
+		cm-battery-stat = <2>;
+
+		cm-fullbatt-vchkdrop-ms = <30000>;
+		cm-fullbatt-vchkdrop-volt = <60000>;
+		cm-fullbatt-voltage = <4330000>;
+		cm-fullbatt-current = <120000>;
+		cm-fullbatt-capacity = <100>;
+
+		cm-num-chargers = <1>;
+		cm-chargers = "fan54015_charger";
+		cm-fuel-gauge = "sc27xx-fgu";
+
+		/* in deci centigrade */
+		cm-battery-cold = <50>;
+		cm-battery-cold-in-minus;
+		cm-battery-hot = <800>;
+		cm-battery-temp-diff = <100>;
+
+		/* Allow charging for 6hr */
+		cm-charging-max = <18000000>;
+
+		/* the interval to feed charger watchdog */
+		cm-wdt-interval = <60>;
+
+		/* drop voltage in microVolts to allow shutdown */
+		cm-shutdown-voltage = <3100000>;
+
+		/* when 99% of the time is exceeded, it will be forced to 100% */
+		cm-tickle-time-out = <1500>;
+
+		/* how much time to allow capacity change */
+		cm-one-cap-time = <30>;
+
+		regulator@0 {
+			cm-regulator-name = "vddgen0";
+			cable@0 {
+				cm-cable-name = "USB";
+				extcon = <&pmic_typec>;
+			};
+		};
+	};
 };
 
 &uart0 {
@@ -247,6 +321,22 @@
 			158 600 1320 60 45>;
 		private-data {
 			a8 = /bits/ 8 <0x5a>;
+		};
+	};
+};
+
+&i2c4 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	fan54015_chg: charger@6a {
+		compatible = "fairchild,fan54015_chg";
+		reg = <0x6a>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&pmic_typec>;
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
 		};
 	};
 };
