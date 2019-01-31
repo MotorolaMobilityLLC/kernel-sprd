@@ -1494,6 +1494,7 @@ static int chip_power_on(int subsys)
 	marlin_analog_power_enable(true);
 	usleep_range(50, 60);
 	wifipa_enable(1);
+	pmic_bound_xtl_assert(1);
 #ifndef CONFIG_WCN_PCIE
 	sdio_scan_card();
 	loopcheck_first_boot_set();
@@ -1506,6 +1507,7 @@ static int chip_power_on(int subsys)
 
 static int chip_power_off(int subsys)
 {
+	pmic_bound_xtl_assert(0);
 	wifipa_enable(0);
 	marlin_avdd18_dcxo_enable(false);
 	marlin_clk_enable(false);
@@ -1649,7 +1651,6 @@ static int marlin_set_power(int subsys, int val)
 			WCN_INFO("the first power on start\n");
 
 			chip_power_on(subsys);
-			set_wifipa_status(subsys, val);
 			set_bit(subsys, &marlin_dev->power_state);
 
 			WCN_INFO("GNSS start to auto download\n");
@@ -1676,6 +1677,7 @@ static int marlin_set_power(int subsys, int val)
 			WCN_INFO("then marlin download finished and run ok\n");
 
 			marlin_dev->first_power_on_flag = 2;
+			set_wifipa_status(subsys, val);
 			mutex_unlock(&marlin_dev->power_lock);
 			power_state_notify_or_not(subsys, val);
 			if (subsys == WCN_AUTO) {
@@ -1741,7 +1743,6 @@ static int marlin_set_power(int subsys, int val)
 		else {
 			WCN_INFO("no module to power on, start to power on\n");
 			chip_power_on(subsys);
-			set_wifipa_status(subsys, val);
 			set_bit(subsys, &marlin_dev->power_state);
 
 			/* 5.1 first download marlin, and then download gnss */
@@ -1768,7 +1769,6 @@ static int marlin_set_power(int subsys, int val)
 					goto out;
 				}
 				WCN_INFO("then gnss dl finished and ok\n");
-
 			}
 			/*
 			 * 5.2 only download marlin, and then
@@ -1789,6 +1789,7 @@ static int marlin_set_power(int subsys, int val)
 				WCN_INFO("BTWF download finished and run ok\n");
 				gnss_powerdomain_close();
 			}
+			set_wifipa_status(subsys, val);
 		}
 		/* power on together's Action */
 		power_state_notify_or_not(subsys, val);
