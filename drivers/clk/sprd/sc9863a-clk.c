@@ -511,11 +511,11 @@ static CLK_FIXED_FACTOR(clk_2m,		"clk-2m",	"ext-26m",
 static CLK_FIXED_FACTOR(clk_250k,	"clk-250k",	"ext-26m",
 			104, 1, 0);
 
-static CLK_FIXED_FACTOR(fac_rco_25m,	"rco-25m",	"ext-rco-100m",
+static CLK_FIXED_FACTOR(fac_rco_25m,	"rco-25m",	"rco-100m",
 			4, 1, 0);
-static CLK_FIXED_FACTOR(fac_rco_4m,	"rco-4m",	"ext-rco-100m",
+static CLK_FIXED_FACTOR(fac_rco_4m,	"rco-4m",	"rco-100m",
 			25, 1, 0);
-static CLK_FIXED_FACTOR(fac_rco_2m,	"rco-2m",	"ext-rco-100m",
+static CLK_FIXED_FACTOR(fac_rco_2m,	"rco-2m",	"rco-100m",
 			50, 1, 0);
 
 static const char * const emc_clk_parents[] = { "ext-26m", "twpll-384m",
@@ -526,7 +526,7 @@ static SPRD_MUX_CLK(emc_clk, "emc-clk", emc_clk_parents, 0x220,
 
 static const char * const aon_apb_parents[] = { "rco-4m",	"rco-25m",
 						"ext-26m",	"twpll-96m",
-						"ext-rco-100m",	"twpll-128m" };
+						"rco-100m",	"twpll-128m" };
 static SPRD_COMP_CLK(aon_apb, "aon-apb", aon_apb_parents, 0x224,
 		     0, 3, 8, 2, 0);
 
@@ -564,7 +564,7 @@ static SPRD_MUX_CLK(audif_clk, "audif-clk", audif_parents, 0x264,
 		    0, 2, SC9863A_MUX_FLAG);
 
 static const char * const cpu_dap_parents[] = { "rco-4m", "rco-25m", "ext-26m",
-						"twpll-76m8", "ext-rco-100m",
+						"twpll-76m8", "rco-100m",
 						"twpll-128m", "twpll-153m6" };
 static SPRD_MUX_CLK(cpu_dap_clk, "cpu-dap-clk", cpu_dap_parents, 0x26c,
 		    0, 3, SC9863A_MUX_FLAG);
@@ -602,7 +602,7 @@ static SPRD_MUX_CLK(aon_tmr_clk, "aon-tmr-clk", aon_tmr_parents, 0x2b0,
 			0, 1, SC9863A_MUX_FLAG);
 
 static const char * const power_cpu_parents[] = { "ext-26m", "rco-25m",
-						  "ext-rco-100m", "twpll-128m" };
+						  "rco-100m", "twpll-128m" };
 static SPRD_MUX_CLK(power_cpu_clk, "power-cpu-clk", power_cpu_parents, 0x2c4,
 			0, 2, SC9863A_MUX_FLAG);
 

@@ -594,13 +594,13 @@ static CLK_FIXED_FACTOR(clk_1m,		"clk-1m",	"ext-26m",
 static CLK_FIXED_FACTOR(clk_250k,	"clk-250k",	"ext-26m",
 			104, 1, 0);
 
-static CLK_FIXED_FACTOR(rco_25m,	"rco-25m",	"ext-rco-100m",
+static CLK_FIXED_FACTOR(rco_25m,	"rco-25m",	"rco-100m",
 			4, 1, 0);
-static CLK_FIXED_FACTOR(rco_20m,	"rco-20m",	"ext-rco-100m",
+static CLK_FIXED_FACTOR(rco_20m,	"rco-20m",	"rco-100m",
 			4, 1, 0);
-static CLK_FIXED_FACTOR(rco_4m,		"rco-4m",	"ext-rco-100m",
+static CLK_FIXED_FACTOR(rco_4m,		"rco-4m",	"rco-100m",
 			25, 1, 0);
-static CLK_FIXED_FACTOR(rco_2m,		"rco-2m",	"ext-rco-100m",
+static CLK_FIXED_FACTOR(rco_2m,		"rco-2m",	"rco-100m",
 			50, 1, 0);
 
 static const char * const aon_apb_parents[] = { "rco-4m", "clk-4m",
