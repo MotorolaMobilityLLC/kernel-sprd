@@ -638,6 +638,9 @@
 				reg = <0 0x63940000 0 0x10000>;
 				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
 				timeout-sec = <12>;
+				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_APCPU_WDG_EB>,
+					<&aonapb_gate CLK_AC_WDG_RTC_EB>;
 			};
 
 			adi_bus: spi@63a00000 {
