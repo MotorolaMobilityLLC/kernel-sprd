@@ -67,6 +67,8 @@ void check_max_cap_vs_cpu_scale(int cpu, struct sched_group_energy *sge)
 		max_cap, cpu_scale);
 }
 
+struct cpumask min_cap_cpu_mask;
+
 void init_sched_energy_costs(void)
 {
 	struct device_node *cn, *cp;
@@ -76,6 +78,11 @@ void init_sched_energy_costs(void)
 	const struct property *prop;
 	int sd_level, i, nstates, cpu;
 	const __be32 *val;
+	unsigned long min_cap = ULONG_MAX;
+	unsigned long capacity;
+	struct cpumask mc_cpu_mask;
+
+	cpumask_clear(&mc_cpu_mask);
 
 	for_each_possible_cpu(cpu) {
 		cn = of_get_cpu_node(cpu, NULL);
@@ -151,9 +158,28 @@ void init_sched_energy_costs(void)
 		}
 		if (!freq_energy_model)
 			check_max_cap_vs_cpu_scale(cpu, sge_array[cpu][SD_LEVEL0]);
+
+		/* find min_cap cpu masks */
+		sge = sge_array[cpu][SD_LEVEL0];
+		if (!sge)
+			continue;
+
+		capacity = sge->cap_states[sge->nr_cap_states - 1].cap;
+		if (capacity < min_cap) {
+			cpumask_clear(&mc_cpu_mask);
+			min_cap = capacity;
+		}
+
+		if (capacity == min_cap)
+			cpumask_set_cpu(cpu, &mc_cpu_mask);
 	}
+
+	if (cpumask_weight(&mc_cpu_mask))
+		cpumask_copy(&min_cap_cpu_mask, &mc_cpu_mask);
+
 	sge_ready = true;
-	pr_info("Sched-energy-costs installed from DT\n");
+	pr_info("Sched-energy-costs installed from DT, min_cap_cpu_mask: %*pbl\n",
+		cpumask_pr_args(&min_cap_cpu_mask));
 	return;
 
 out:

@@ -6031,6 +6031,8 @@ void __init sched_init(void)
 	init_schedstats();
 
 	scheduler_running = 1;
+
+	cpumask_copy(&min_cap_cpu_mask, cpu_possible_mask);
 }
 
 #ifdef CONFIG_DEBUG_ATOMIC_SLEEP

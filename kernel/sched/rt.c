@@ -8,7 +8,6 @@
 
 #include <linux/slab.h>
 #include <linux/irq_work.h>
-#include <linux/sched/topology.h>
 #include "tune.h"
 
 #include "walt.h"
@@ -1677,16 +1676,9 @@ static int find_lowest_rq(struct task_struct *task)
 
 	if (sched_feat(ENERGY_AWARE)) {
 		int i;
-		struct root_domain *rd = cpu_rq(this_cpu)->rd;
-		int min_cpu = rd->min_cap_orig_cpu;
 		struct cpumask tmp_mask;
 
-		cpumask_clear(&tmp_mask);
-		for_each_cpu(i, lowest_mask) {
-			if (cpus_share_cache(i, min_cpu))
-				cpumask_set_cpu(i, &tmp_mask);
-		}
-
+		cpumask_and(&tmp_mask, lowest_mask, &min_cap_cpu_mask);
 		if (cpumask_weight(&tmp_mask)) {
 			unsigned long total_util = 0, total_cap = 0;
 

@@ -2213,3 +2213,4 @@ walt_task_in_cum_window_demand(struct rq *rq, struct task_struct *p)
 
 extern unsigned int capacity_margin;
 unsigned long cpu_util_freq(int cpu);
+extern struct cpumask min_cap_cpu_mask;
