@@ -130,3 +130,21 @@
 	clock-names = "enable", "uart", "source";
 	clocks = <&apapb_gate CLK_AP_UART0_EB>;
 };
+
+&spi0 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_AP_APB_SPI0_EB>,
+	<&ap_clk CLK_AP_SPI0>, <&g3_pll CLK_TWPLL_192M>;
+};
+
+&spi1 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_AP_APB_SPI1_EB>,
+	<&ap_clk CLK_AP_SPI1>, <&g3_pll CLK_TWPLL_192M>;
+};
+
+&spi2 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_AP_APB_SPI2_EB>,
+	<&ap_clk CLK_AP_SPI2>, <&g3_pll CLK_TWPLL_192M>;
+};

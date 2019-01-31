@@ -270,8 +270,6 @@
 				compatible = "sprd,sc9860-spi", "sprd,orca-spi";
 				reg = <0 0x24700000 0 0x1000>;
 				interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "spi", "source";
-				clocks = <&apapb_gate CLK_AP_APB_SPI0_EB>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -281,8 +279,6 @@
 				compatible = "sprd,sc9860-spi", "sprd,orca-spi";
 				reg = <0 0x24800000 0 0x1000>;
 				interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "spi", "source";
-				clocks = <&apapb_gate CLK_AP_APB_SPI1_EB>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -292,8 +288,6 @@
 				compatible = "sprd,sc9860-spi", "sprd,orca-spi";
 				reg = <0 0x24900000 0 0x1000>;
 				interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "enable", "spi", "source";
-				clocks = <&apapb_gate CLK_AP_APB_SPI2_EB>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
