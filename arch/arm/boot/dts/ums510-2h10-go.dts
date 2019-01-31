@@ -466,7 +466,6 @@
 
 &usb {
 	extcon = <&pmic_typec>;
-	vbus-supply = <&vddvbus>;
 };
 
 &pmic_typec {
