@@ -196,6 +196,7 @@
 				#dma-cells = <1>;
 				#dma-channels = <28>;
 				clock-names = "enable";
+				clocks = <&apahb_gate CLK_DMA_EB>;
 			};
 		};
 
