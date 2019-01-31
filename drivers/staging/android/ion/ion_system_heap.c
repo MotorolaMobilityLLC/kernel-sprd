@@ -36,7 +36,6 @@ static const unsigned int orders[] = {8, 4, 0};
 #ifdef CONFIG_ARM
 static const unsigned int orders[] = {4, 1, 0};
 #endif
-static const int num_orders = ARRAY_SIZE(orders);
 
 static int order_to_index(unsigned int order)
 {
@@ -60,6 +59,13 @@ struct ion_system_heap {
 	struct ion_page_pool *cached_pools[NUM_ORDERS];
 };
 
+struct page_info {
+	struct page *page;
+	bool from_pool;
+	unsigned int order;
+	struct list_head list;
+};
+
 /**
  * The page from page-pool are all zeroed before. We need do cache
  * clean for cached buffer. The uncached buffer are always non-cached
@@ -67,7 +73,8 @@ struct ion_system_heap {
  */
 static struct page *alloc_buffer_page(struct ion_system_heap *heap,
 				      struct ion_buffer *buffer,
-				      unsigned long order)
+				      unsigned long order,
+				      bool *from_pool)
 {
 	bool cached = ion_buffer_cached(buffer);
 	struct ion_page_pool *pool;
@@ -78,7 +85,7 @@ static struct page *alloc_buffer_page(struct ion_system_heap *heap,
 	else
 		pool = heap->cached_pools[order_to_index(order)];
 
-	page = ion_page_pool_alloc(pool);
+	page = ion_page_pool_alloc(pool, from_pool);
 
 	return page;
 }
@@ -104,13 +111,15 @@ static void free_buffer_page(struct ion_system_heap *heap,
 	ion_page_pool_free(pool, page);
 }
 
-static struct page *alloc_largest_available(struct ion_system_heap *heap,
-					    struct ion_buffer *buffer,
-					    unsigned long size,
-					    unsigned int max_order)
+static struct page_info *alloc_largest_available(struct ion_system_heap *heap,
+						 struct ion_buffer *buffer,
+						 unsigned long size,
+						 unsigned int max_order)
 {
 	struct page *page;
+	struct page_info *info;
 	int i;
+	bool from_pool;
 
 	for (i = 0; i < NUM_ORDERS; i++) {
 		if (size < order_to_size(orders[i]))
@@ -118,16 +127,31 @@ static struct page *alloc_largest_available(struct ion_system_heap *heap,
 		if (max_order < orders[i])
 			continue;
 
-		page = alloc_buffer_page(heap, buffer, orders[i]);
-		if (!page)
+		page = alloc_buffer_page(heap, buffer, orders[i], &from_pool);
+		if (!page) {
+			pr_err("%s: failed to allocate memory from order %d\n",
+			       __func__, orders[i]);
 			continue;
+		}
 
-		return page;
+		info = kmalloc(sizeof(*info), GFP_KERNEL);
+		if (info) {
+			info->page = page;
+			info->order = orders[i];
+			info->from_pool = from_pool;
+		}
+		return info;
 	}
 
 	return NULL;
 }
 
+void set_sg_info(struct page_info *info, struct scatterlist *sg)
+{
+	sg_set_page(sg, info->page, (1 << info->order) * PAGE_SIZE, 0);
+	list_del(&info->list);
+	kfree(info);
+}
 static int ion_system_heap_allocate(struct ion_heap *heap,
 				    struct ion_buffer *buffer,
 				    unsigned long size,
@@ -139,25 +163,61 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 	struct sg_table *table;
 	struct scatterlist *sg;
 	struct list_head pages;
-	struct page *page, *tmp_page;
+	struct list_head pages_from_pool;
 	int i = 0;
 	unsigned long size_remaining = PAGE_ALIGN(size);
 	unsigned int max_order = orders[0];
+	struct timeval val_start;
+	struct timeval val_end;
+	u64 time_start;
+	u64 time_end;
+	unsigned int sz;
+	struct page_info *info, *tmp_info;
+	unsigned long pool_sz = 0;
+	unsigned long buddy_sz = 0;
+	unsigned int buddy_orders[NUM_ORDERS] = {0};
 
 	if (size / PAGE_SIZE > totalram_pages / 2)
 		return -ENOMEM;
 
+	do_gettimeofday(&val_start);
+	time_start = val_start.tv_sec * 1000000LL + val_start.tv_usec;
 	INIT_LIST_HEAD(&pages);
+	INIT_LIST_HEAD(&pages_from_pool);
 	while (size_remaining > 0) {
-		page = alloc_largest_available(sys_heap, buffer, size_remaining,
+		info = alloc_largest_available(sys_heap, buffer, size_remaining,
 					       max_order);
-		if (!page)
+		if (!info)
 			goto free_pages;
-		list_add_tail(&page->lru, &pages);
-		size_remaining -= PAGE_SIZE << compound_order(page);
-		max_order = compound_order(page);
+
+		sz = (1 << info->order) * PAGE_SIZE;
+		if (info->from_pool) {
+			pool_sz += sz;
+			list_add_tail(&info->list, &pages_from_pool);
+		} else {
+			int index;
+
+			for (index = 0; index < NUM_ORDERS; index++) {
+				if (info->order == orders[index]) {
+					buddy_orders[index]++;
+					break;
+				}
+			}
+			buddy_sz += sz;
+			list_add_tail(&info->list, &pages);
+		}
+
+		size_remaining -= sz;
+		max_order = info->order;
 		i++;
 	}
+
+	do_gettimeofday(&val_end);
+	time_end = val_end.tv_sec * 1000000LL + val_end.tv_usec;
+	pr_info("%s, size:%8ld, time:%lldus, pool:%ld, bud:%ld, ord 8:%d, 4:%d, 0:%d\n",
+		 __func__, size, time_end - time_start, pool_sz, buddy_sz,
+		 buddy_orders[0], buddy_orders[1], buddy_orders[2]);
+
 	table = kmalloc(sizeof(*table), GFP_KERNEL);
 	if (!table)
 		goto free_pages;
@@ -166,11 +226,24 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 		goto free_table;
 
 	sg = table->sgl;
-	list_for_each_entry_safe(page, tmp_page, &pages, lru) {
-		sg_set_page(sg, page, PAGE_SIZE << compound_order(page), 0);
+	do {
+		info = list_first_entry_or_null(&pages, struct page_info, list);
+		tmp_info = list_first_entry_or_null(&pages_from_pool,
+						    struct page_info, list);
+		if (info && tmp_info) {
+			if (info->order >= tmp_info->order)
+				set_sg_info(info, sg);
+			else
+				set_sg_info(tmp_info, sg);
+		} else if (info) {
+			set_sg_info(info, sg);
+		} else if (tmp_info) {
+			set_sg_info(tmp_info, sg);
+		} else {
+			WARN_ON(1);
+		}
 		sg = sg_next(sg);
-		list_del(&page->lru);
-	}
+	} while (sg);
 
 	buffer->sg_table = table;
 	return 0;
@@ -178,8 +251,14 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 free_table:
 	kfree(table);
 free_pages:
-	list_for_each_entry_safe(page, tmp_page, &pages, lru)
-		free_buffer_page(sys_heap, buffer, page);
+	list_for_each_entry_safe(info, tmp_info, &pages, list) {
+		free_buffer_page(sys_heap, buffer, info->page);
+		kfree(info);
+	}
+	list_for_each_entry_safe(info, tmp_info, &pages_from_pool, list) {
+		free_buffer_page(sys_heap, buffer, info->page);
+		kfree(info);
+	}
 	return -ENOMEM;
 }
 
@@ -268,7 +347,7 @@ static int ion_system_heap_debug_show(struct ion_heap *heap, struct seq_file *s,
 
 #ifdef CONFIG_E_SHOW_MEM
 	unsigned long *pool_used = (unsigned long *)unused;
-	for (i = 0; i < num_orders; i++) {
+	for (i = 0; i < NUM_ORDERS; i++) {
 		struct ion_page_pool *pool = sys_heap->uncached_pools[i];
 
 		if (s) {
@@ -302,7 +381,7 @@ static int ion_system_heap_debug_show(struct ion_heap *heap, struct seq_file *s,
 		}
 	}
 
-	for (i = 0; i < num_orders; i++) {
+	for (i = 0; i < NUM_ORDERS; i++) {
 		struct ion_page_pool *pool = sys_heap->cached_pools[i];
 
 		if (s) {
@@ -335,7 +414,7 @@ static int ion_system_heap_debug_show(struct ion_heap *heap, struct seq_file *s,
 		}
 	}
 #else
-	for (i = 0; i < num_orders; i++) {
+	for (i = 0; i < NUM_ORDERS; i++) {
 		struct ion_page_pool *pool = sys_heap->uncached_pools[i];
 
 		seq_printf(s, "%d order %u highmem pages in uncached pool = %lu total\n",
@@ -346,7 +425,7 @@ static int ion_system_heap_debug_show(struct ion_heap *heap, struct seq_file *s,
 			   (PAGE_SIZE << pool->order) * pool->low_count);
 	}
 
-	for (i = 0; i < num_orders; i++) {
+	for (i = 0; i < NUM_ORDERS; i++) {
 		struct ion_page_pool *pool = sys_heap->cached_pools[i];
 
 		seq_printf(s, "%d order %u highmem pages in cached pool = %lu total\n",
