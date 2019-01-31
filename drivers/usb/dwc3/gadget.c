@@ -2040,6 +2040,16 @@ static void dwc3_gadget_set_speed(struct usb_gadget *g,
 	u32			reg;
 
 	spin_lock_irqsave(&dwc->lock, flags);
+
+	/*
+	 * If the gadget has been in suspend state, then don't
+	 * need to set gadget speed, just return.
+	 */
+	if (pm_runtime_suspended(dwc->dev)) {
+		spin_unlock_irqrestore(&dwc->lock, flags);
+		return;
+	}
+
 	reg = dwc3_readl(dwc->regs, DWC3_DCFG);
 	reg &= ~(DWC3_DCFG_SPEED_MASK);
 
