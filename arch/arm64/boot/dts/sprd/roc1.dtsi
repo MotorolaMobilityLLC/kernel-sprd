@@ -2651,11 +2651,11 @@
 		clock-output-names = "ext-32k";
 	};
 
-	ext_rco_100m: ext-rco-100m {
+	rco_100m: rco-100m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
 		clock-frequency = <100000000>;
-		clock-output-names = "ext-rco-100m";
+		clock-output-names = "rco-100m";
 	};
 
 	rco_25m: rco-25m {
@@ -2663,7 +2663,7 @@
 		#clock-cells = <0>;
 		clock-mult = <1>;
 		clock-div = <4>;
-		clocks = <&ext_rco_100m>;
+		clocks = <&rco_100m>;
 		clock-output-names = "rco-25m";
 	};
 
@@ -2672,7 +2672,7 @@
 		#clock-cells = <0>;
 		clock-mult = <1>;
 		clock-div = <25>;
-		clocks = <&ext_rco_100m>;
+		clocks = <&rco_100m>;
 		clock-output-names = "rco-4m";
 	};
 
@@ -2681,7 +2681,7 @@
 		#clock-cells = <0>;
 		clock-mult = <1>;
 		clock-div = <50>;
-		clocks = <&ext_rco_100m>;
+		clocks = <&rco_100m>;
 		clock-output-names = "rco-2m";
 	};
 

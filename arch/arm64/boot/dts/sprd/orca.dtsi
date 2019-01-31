@@ -814,5 +814,11 @@
 		clock-output-names = "ext-26m";
 	};
 
+	rco_100m: rco-100m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <100000000>;
+		clock-output-names = "rco-100m";
+	};
 };
 

@@ -1234,11 +1234,11 @@
 		clock-output-names = "clk_pad";
 	};
 
-	ext_rco_100m: ext-rco-100m {
+	rco_100m: rco-100m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
 		clock-frequency = <100000000>;
-		clock-output-names = "ext-rco-100m";
+		clock-output-names = "rco-100m";
 	};
 
 	sprd_pcm: sprd-pcm-audio {
