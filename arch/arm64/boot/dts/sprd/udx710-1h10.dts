@@ -54,3 +54,14 @@
 &uart0 {
 	status = "ok";
 };
+
+&ssphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&pmic_typec>;
+	status = "okay";
+};
+
+&usb3 {
+	extcon = <&pmic_typec>;
+	status = "okay";
+};
