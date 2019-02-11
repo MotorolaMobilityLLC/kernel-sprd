@@ -1141,6 +1141,7 @@ headset_type_detect_all(int last_gpio_detect_value)
 	int retry_times = 1;
 	unsigned int msk, val;
 	struct iio_channel *adc_chan;
+	int ret;
 
 	ENTER;
 
@@ -1167,6 +1168,10 @@ retry_again:
 	pr_info("now get adc value of headmic in big scale\n");
 	/* set large scale */
 	headset_scale_set(1);
+	ret = iio_write_channel_attribute(adc_chan, 1, 0, IIO_CHAN_INFO_SCALE);
+	if (!ret)
+		pr_err("%s set channel attribute big failed!\n", __func__);
+
 	headset_set_adc_to_headmic(1);
 	sprd_msleep(10);
 	adc_mic_average = headset_get_adc_value(adc_chan);
@@ -1188,6 +1193,10 @@ retry_again:
 	pr_info("now get adc value  in little scale\n");
 	/* change to little scale */
 	headset_scale_set(0);
+
+	ret = iio_write_channel_attribute(adc_chan, 0, 0, IIO_CHAN_INFO_SCALE);
+	if (!ret)
+		pr_err("%s set channel attribute little failed!\n", __func__);
 
 	/* get adc value of left */
 	headset_set_adc_to_headmic(0);
