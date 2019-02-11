@@ -5,7 +5,7 @@
 #include <linux/skbuff.h>
 
 #define PAM_AKB_BUF_SIZE	1664
-#define PAM_FREE_FIFO_SIZE	1024
+#define PAM_FREE_FIFO_SIZE	128
 
 #define PAM_IPA_GET_LOW32(val) \
 			((u32)((val) & 0x00000000FFFFFFFF))
@@ -73,16 +73,14 @@ struct pam_ipa_cfg_tag {
 
 	struct sipa_connect_params
 			pam_local_param;
-	struct sipa_connect_params
-			pam_remote_param;
 
 	struct sipa_to_pam_info local_cfg;
 	struct sipa_to_pam_info remote_cfg;
 
-	struct sk_buff *skb1;
-	struct sk_buff *skb2;
-	struct sk_buff *skb3;
-	struct sk_buff *skb4;
+	void *dl_buf;
+	void *ul_buf;
+	dma_addr_t dl_dma_addr;
+	dma_addr_t ul_dma_addr;
 	dma_addr_t dma_addr_buf[PAM_FREE_FIFO_SIZE];
 
 	struct pam_ipa_hal_proc_tag hal_ops;

@@ -297,17 +297,17 @@ u32 pam_ipa_init(struct pam_ipa_cfg_tag *cfg)
 
 	pam_ipa_hal_init_pcie_dl_fifo_base(
 		cfg->reg_base,
-		PAM_IPA_GET_LOW32(cfg->remote_cfg.dl_fifo.tx_fifo_base_addr),
-		PAM_IPA_GET_HIGH32(cfg->remote_cfg.dl_fifo.tx_fifo_base_addr),
 		PAM_IPA_GET_LOW32(cfg->remote_cfg.dl_fifo.rx_fifo_base_addr),
-		PAM_IPA_GET_HIGH32(cfg->remote_cfg.dl_fifo.rx_fifo_base_addr));
+		PAM_IPA_GET_HIGH32(cfg->remote_cfg.dl_fifo.rx_fifo_base_addr),
+		PAM_IPA_GET_LOW32(cfg->remote_cfg.dl_fifo.tx_fifo_base_addr),
+		PAM_IPA_GET_HIGH32(cfg->remote_cfg.dl_fifo.tx_fifo_base_addr));
 
 	pam_ipa_hal_init_pcie_ul_fifo_base(
 		cfg->reg_base,
-		PAM_IPA_GET_LOW32(cfg->remote_cfg.ul_fifo.rx_fifo_base_addr),
-		PAM_IPA_GET_HIGH32(cfg->remote_cfg.ul_fifo.rx_fifo_base_addr),
 		PAM_IPA_GET_LOW32(cfg->remote_cfg.ul_fifo.tx_fifo_base_addr),
-		PAM_IPA_GET_HIGH32(cfg->remote_cfg.ul_fifo.tx_fifo_base_addr));
+		PAM_IPA_GET_HIGH32(cfg->remote_cfg.ul_fifo.tx_fifo_base_addr),
+		PAM_IPA_GET_LOW32(cfg->remote_cfg.ul_fifo.rx_fifo_base_addr),
+		PAM_IPA_GET_HIGH32(cfg->remote_cfg.ul_fifo.rx_fifo_base_addr));
 
 	pam_ipa_hal_init_wiap_dl_fifo_base(
 		cfg->reg_base,
