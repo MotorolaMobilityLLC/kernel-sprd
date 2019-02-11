@@ -353,8 +353,8 @@ void store_cpu_topology(unsigned int cpuid)
 	unsigned int mpidr;
 
 	/* If the cpu topology has been already set, just return */
-	if (cpuid_topo->core_id != -1)
-		return;
+	if (cpuid_topo->socket_id != -1)
+		goto topology_populated;
 
 	mpidr = read_cpuid_mpidr();
 
@@ -383,20 +383,21 @@ void store_cpu_topology(unsigned int cpuid)
 		 * or in the old uniprocessor format
 		 */
 		cpuid_topo->thread_id = -1;
-		cpuid_topo->core_id = 0;
+		cpuid_topo->core_id = -1;
 		cpuid_topo->socket_id = -1;
 	}
-
-	update_siblings_masks(cpuid);
-
-	update_cpu_capacity(cpuid);
-
-	topology_detect_flags();
 
 	pr_info("CPU%u: thread %d, cpu %d, socket %d, mpidr %x\n",
 		cpuid, cpu_topology[cpuid].thread_id,
 		cpu_topology[cpuid].core_id,
 		cpu_topology[cpuid].socket_id, mpidr);
+
+topology_populated:
+	update_siblings_masks(cpuid);
+
+	update_cpu_capacity(cpuid);
+
+	topology_detect_flags();
 }
 
 #ifdef CONFIG_SCHED_MC
