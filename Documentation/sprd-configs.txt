@@ -2182,6 +2182,13 @@ CONFIG_CRYPTO_KPP2
 	[subsys]
 	[must]
 	[function]
+CONFIG_CRYPTO_LZ4
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_CRYPTO_LZO
 	[arch] all
 	[plat] all
@@ -6109,6 +6116,20 @@ CONFIG_LSM_MMAP_MIN_ADDR
 	[must] console
 	[function] Low address space for LSM to protect from user allocation.
 CONFIG_LTO_NONE
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_LZ4_COMPRESS
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_LZ4_DECOMPRESS
 	[arch] all
 	[plat] all
 	[field]
@@ -11459,13 +11480,6 @@ CONFIG_ZRAM
 	[function] SWAP partition based on RAM is used to access the compressed anon page
 		   to avoid the influence of IO speed restriction on the system,
 		   which is equivalent to increasing the size of available memory.
-CONFIG_ZRAM_LZ4_COMPRESS
-	[arch] arm
-	[plat] sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_ZSMALLOC
 	[arch] all
 	[plat] all
