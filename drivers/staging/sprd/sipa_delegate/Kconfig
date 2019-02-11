@@ -1,5 +1,5 @@
 
-menu "SIPA modules"
+menu "SIPA delegate modules"
 config SPRD_SIPA_DELEGATE
 	bool "Enable delegate for modem side sipa"
 	default n

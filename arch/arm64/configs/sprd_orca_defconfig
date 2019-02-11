@@ -2241,7 +2241,7 @@ CONFIG_SPRD_MAILBOX_R2P0=y
 # CONFIG_SPRD_SIPA is not set
 
 #
-# SIPA modules
+# PAM IPA modules
 #
 # CONFIG_SPRD_PAM_IPA is not set
 
@@ -2249,6 +2249,10 @@ CONFIG_SPRD_MAILBOX_R2P0=y
 # Sipa System Modules
 #
 # CONFIG_SPRD_IPA_SYS is not set
+
+#
+# SIPA delegate modules
+#
 CONFIG_SPRD_DATA_TRANSPORTER=y
 # CONFIG_COMMON_CLK_XLNX_CLKWZRD is not set
 # CONFIG_MOST is not set

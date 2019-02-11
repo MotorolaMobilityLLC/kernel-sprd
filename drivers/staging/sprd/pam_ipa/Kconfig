@@ -1,8 +1,8 @@
 
-menu "SIPA modules"
+menu "PAM IPA modules"
 
 config SPRD_PAM_IPA
-	bool "Sprd IPA"
+	bool "Sprd PAM IPA"
 	default SPRD_SIPA
 	help
 	  PAM IPA is a module for connect SIPA and modem.
