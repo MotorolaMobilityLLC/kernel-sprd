@@ -3,8 +3,8 @@
 		compatible = "sprd,headset";
 		status = "disabled";
 		jack-type = <0>; /* 0: normal-open jack; 1: normal-close jack */
-		io-channel =  <&pmic_adc 48>, <&pmic_adc 49>;
-		io-channel-names = "headmic_in_big", "headmic_in_little";
+		io-channels =  <&pmic_adc 20>;
+		io-channel-names = "headmic_in_little";
 		gpios = <&pmic_eic 3 0>, <&pmic_eic 8 0>,
 				<&pmic_eic 12 0>, <&pmic_eic 5 0>,
 				<&pmic_eic 13 0>;
@@ -22,6 +22,10 @@
 		sprd,stable-value = <2223>;
 		sprd,coefficient = <939836>;
 		irq-threshold-button = <9>;
+
+		nvmem-cells = <&efuse_blk0>, <&efuse_blk14>, <&efuse_blk16>;
+		nvmem-cell-names = "protectbit", "auxadc", "headmic";
+
 		headset-button@0 {
 			/* media */
 			adc-min = <0>;

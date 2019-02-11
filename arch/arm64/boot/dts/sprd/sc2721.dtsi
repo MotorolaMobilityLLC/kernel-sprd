@@ -75,6 +75,18 @@
 			cc_cal: calib@1a {
 				reg = <0x1a 0x2>;
 			};
+
+			efuse_blk0: calib@0 {
+				reg = <0x0 0x2>;
+			};
+
+			efuse_blk14: calib@28 {
+				reg = <0x28 0x2>;
+			};
+
+			efuse_blk16: calib@2c {
+				reg = <0x2c 0x2>;
+			};
 		};
 
 		pmic_typec: typec@380 {
