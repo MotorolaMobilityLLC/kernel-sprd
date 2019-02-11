@@ -947,26 +947,21 @@ sprd_detect_type_through_mdet(struct sprd_headset *hdst)
 	return headset_type;
 }
 
-static enum sprd_headset_type
-headset_type_detect_all(int insert_all_val_last)
+static enum sprd_headset_type sprd_headset_type_plugged(void)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata;
+	struct iio_channel *adc_chan;
 	int adc_mic_average, adc_mic_ideal, adc_left_average,
 		adc_left_ideal, val;
-	struct iio_channel *adc_chan = hdst->adc_chan;
 	bool adc_value_err = false;
 	enum sprd_headset_type headset_type;
 
 	HDST_DEBUG_LOG;
-
-	if (!hdst || !adc_chan) {
-		pr_err("%s: sprd_hdset(%p) or adc_chan(%p) is NULL!\n",
-			__func__, hdst, adc_chan);
+	if (!hdst)
 		return HEADSET_TYPE_ERR;
-	}
-
 	pdata = &hdst->pdata;
+	adc_chan = hdst->adc_chan;
 	if (pdata->eu_us_switch != 0)
 		gpio_direction_output(pdata->eu_us_switch, 0);
 	else
@@ -1187,7 +1182,7 @@ static enum snd_jack_types sprd_adc_to_button(int adc_mic)
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
 	struct headset_buttons *hdst_btns =
 		(pdata ? pdata->headset_buttons : NULL);
-	int i, nb = (pdata ? pdata->nbuttons : 0);
+	int key, nb = (pdata ? pdata->nbuttons : 0);
 	enum snd_jack_types j_type = KEY_RESERVED;
 
 	if (!hdst || !hdst_btns) {
@@ -1196,14 +1191,14 @@ static enum snd_jack_types sprd_adc_to_button(int adc_mic)
 		return KEY_RESERVED;
 	}
 
-	for (i = 0; i < nb; i++) {
-		if (adc_mic >= hdst_btns[i].adc_min &&
-			adc_mic < hdst_btns[i].adc_max) {
-			j_type = sprd_jack_type_get(i);
+	for (key = 0; key < nb; key++) {
+		if (adc_mic >= hdst_btns[key].adc_min &&
+			adc_mic < hdst_btns[key].adc_max) {
+			j_type = sprd_jack_type_get(key);
 			break;
 		}
 	}
-	pr_info("%s key %d\n", __func__, i);
+	pr_info("%s key %d\n", __func__, key);
 
 	return j_type;
 }
@@ -1219,13 +1214,10 @@ static void sprd_headset_reinit_mdet_eic(void)
 static void headset_mic_work_func(struct work_struct *work)
 {
 	struct sprd_headset *hdst = sprd_hdst;
-	int val, mdet_insert_status;
+	int val, mdet_insert;
 
-	mdet_insert_status =
-		sprd_headset_part_is_inserted(HDST_INSERT_MDET);
-
-	/* 0==mic irq not triggered, 1==mic triggered */
-	if (mdet_insert_status != 1) {
+	mdet_insert = sprd_headset_part_is_inserted(HDST_INSERT_MDET);
+	if (!mdet_insert) {
 		pr_err("%s check %s debounce failed\n",
 			__func__, eic_name[HDST_MDET_EIC]);
 		goto out;
@@ -1242,8 +1234,8 @@ static void headset_mic_work_func(struct work_struct *work)
 	return;
 
 out:
-	pr_err("%s invalid, mdet_insert_status %d\n",
-		__func__, mdet_insert_status);
+	pr_err("%s invalid, mdet_insert %d\n",
+		__func__, mdet_insert);
 	sprd_headset_reinit_mdet_eic();
 }
 
@@ -1520,8 +1512,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 
 	if ((1 == plug_state_current && 0 == hdst->plug_state_last) ||
 	  (hdst->re_detect == true && detect_value == true)) {
-		headset_type =
-			headset_type_detect_all(hdst->insert_all_val_last);
+		headset_type = sprd_headset_type_plugged();
 		pr_info("%s headset_type  %d\n", __func__, headset_type);
 		switch (headset_type) {
 		case HEADSET_TYPE_ERR:
@@ -2037,6 +2028,11 @@ static ssize_t sprd_headset_state_show(struct kobject *kobj,
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	int type;
+
+	if (!hdst) {
+		pr_err("sprd_hdset is NULL!\n");
+		return -EINVAL;
+	}
 
 	switch (hdst->hdst_type_status) {
 	case SND_JACK_HEADSET:
