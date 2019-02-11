@@ -205,6 +205,8 @@ struct sprd_headset {
 	struct workqueue_struct *det_work_q;
 	struct delayed_work det_all_work;
 	struct workqueue_struct *det_all_work_q;
+	struct completion wait_insert_all;
+	struct completion wait_mdet;
 	bool current_polling_state;
 	struct  headset_power_manager power_manager;
 	struct delayed_work btn_work;
@@ -281,9 +283,6 @@ struct sprd_headset {
 	 */
 	/* the plug in/out state of last time irq handled */
 	int plug_state_last;
-	/* must remember to clean this value after head type detecting */
-	int mic_irq_trigged;
-	int insert_all_irq_trigged;
 };
 
 struct sprd_headset_global_vars {

@@ -912,41 +912,37 @@ static enum sprd_headset_type
 sprd_detect_type_through_mdet(struct sprd_headset *hdst)
 {
 	enum sprd_headset_type headset_type;
-	/*
-	 * according to si.chen's email, need 100~200ms at least to
-	 * wait now for try
-	 */
-	int check_times = 300;
+	unsigned long rc;
 
 	pr_info("%s enter\n", __func__);
 	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
 
 	sprd_headset_eic_enable(HDST_INSERT_ALL_EIC, false);
 	sprd_headset_eic_clear(HDST_INSERT_ALL_EIC);
+	reinit_completion(&hdst->wait_mdet);
 	sprd_headset_eic_enable(HDST_MDET_EIC, true);
 	sprd_headset_eic_trig(HDST_MDET_EIC);
 	sprd_intc_force_clear(0);
 	sprd_ldetl_filter_enable(false);
-	while (check_times > 0) {
-		if (hdst->mic_irq_trigged == 1)
-			break;
-		check_times--;
-		sprd_msleep(10);
-	}
-	if (check_times == 0)
-		headset_type = HEADSET_NO_MIC;
-	else
-		headset_type = HEADSET_4POLE_NORMAL;
+	rc = wait_for_completion_timeout(&hdst->wait_mdet,
+		msecs_to_jiffies(INSERT_ALL_WAIT_MDET_COMPL_MS));
 
+	if (rc == 0) {
+		sprd_headset_eic_enable(HDST_MDET_EIC, false);
+		headset_type = HEADSET_NO_MIC;
+		pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+	} else {
+		headset_type = HEADSET_4POLE_NORMAL;
+	}
+
+	hdst->mdet_tried = true;
 	sprd_headset_eic_enable(HDST_INSERT_ALL_EIC, true);
 	sprd_headset_eic_enable(HDST_MDET_EIC, false);
 	sprd_headset_eic_clear(HDST_MDET_EIC);
-	hdst->mic_irq_trigged = 0;
-	pr_info("%s, headset_type = %d (%s), check_times %d\n",
+	pr_info("%s, headset_type %d (%s)\n",
 		__func__, headset_type,
 		(headset_type == HEADSET_NO_MIC) ?
-		"HEADSET_NO_MIC" : "HEADSET_4POLE_NORMAL", check_times);
-	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+		"HEADSET_NO_MIC" : "HEADSET_4POLE_NORMAL");
 
 	return headset_type;
 }
@@ -1229,10 +1225,12 @@ static void headset_mic_work_func(struct work_struct *work)
 		sprd_headset_part_is_inserted(HDST_INSERT_MDET);
 
 	/* 0==mic irq not triggered, 1==mic triggered */
-	if (mdet_insert_status == 1)
-		hdst->mic_irq_trigged = 1;
-	else
+	if (mdet_insert_status != 1) {
+		pr_err("%s check %s debounce failed\n",
+			__func__, eic_name[HDST_MDET_EIC]);
 		goto out;
+	}
+	complete(&hdst->wait_mdet);
 
 	/* disable MDET */
 	sprd_headset_eic_enable(HDST_MDET_EIC, false);
@@ -1247,6 +1245,14 @@ out:
 	pr_err("%s invalid, mdet_insert_status %d\n",
 		__func__, mdet_insert_status);
 	sprd_headset_reinit_mdet_eic();
+}
+
+static int sprd_insert_all_plug_inout_check(void)
+{
+	if (sprd_get_eic_trig_level(HDST_INSERT_ALL_EIC))
+		return INSERT_ALL_PLUGIN;
+	else
+		return INSERT_ALL_PLUGOUT;
 }
 
 static void headset_button_work_func(struct work_struct *work)
@@ -1746,7 +1752,6 @@ out:
 		 *  headset_reg_clr_bits(ANA_PMU1, HMIC_BIAS_EN) in here
 		 */
 		sprd_button_irq_threshold(0);
-		hdst->mic_irq_trigged = 0;
 	}
 	if (times >= 10) {
 		times = 0;
@@ -1765,9 +1770,8 @@ out:
 static void headset_ldetl_work_func(struct work_struct *work)
 {
 	struct sprd_headset *hdst = sprd_hdst;
-	unsigned int val, ldetl_data_last, ldetl_data_current;
+	unsigned int val, ldetl_data_last, ldetl_data_current, rc;
 	bool insert_status;
-	int check_times = 100;
 
 	if (!hdst) {
 		pr_err("%s: sprd_hdset is NULL!\n", __func__);
@@ -1828,7 +1832,6 @@ static void headset_ldetl_work_func(struct work_struct *work)
 		sprd_msleep(20);
 	} else if ((hdst->ldetl_trig_val_last == 1) ||
 	(hdst->ldetl_plug_in == 1)) {
-		hdst->insert_all_irq_trigged = 0;
 		sprd_hmicbias_hw_control_enable(false);
 		sprd_headset_eic_enable(12, 0);
 		sprd_headset_eic_clear(12);
@@ -1836,28 +1839,27 @@ static void headset_ldetl_work_func(struct work_struct *work)
 		sprd_set_eic_trig_level(12, 0);
 		usleep_range(3000, 3500);
 		sprd_intc_force_clear(0);
+		reinit_completion(&hdst->wait_insert_all);
 		sprd_set_eic_trig_level(10, 1);
 		sprd_headset_eic_enable(10, 1);
 		sprd_headset_eic_trig(10);
-		while (check_times > 0) {
-			if (hdst->insert_all_irq_trigged == 1)
-				break;
-			check_times--;
-			pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
-			sprd_msleep(240);
+		rc = wait_for_completion_timeout(
+			&hdst->wait_insert_all,
+			msecs_to_jiffies(LDETL_WAIT_INSERT_ALL_COMPL_MS));
+
+		if (rc == 0) {
+			/*
+			 * when in ldetl plug in
+			 * rc = 0, wait time out,
+			 * rc < 0, ldetl error,
+			 * rc > 0, wait insert all eic successfully
+			 */
+			pr_err("insert_all plugin timeout\n");
+			sprd_headset_reset(hdst);
+			hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
+			goto out;
 		}
-		pr_info("%s check_times %d\n", __func__, check_times);
-		if (check_times == 0) {
-			pr_err("%s failed to wait insert_all irq, trig ldetl again\n",
-				__func__);
-			sprd_headset_eic_clear(12);
-			sprd_intc_force_clear(1);
-			sprd_intc_force_clear(0);
-			sprd_headset_eic_enable(12, 1);
-			sprd_set_eic_trig_level(12, 1);
-			sprd_headset_eic_trig(12);
-		}
-		hdst->insert_all_irq_trigged = 0;
+		hdst->hdst_hw_status = HW_LDETL_PLUG_IN;
 	}
 out:
 	pr_info("%s out\n", __func__);
@@ -1918,7 +1920,7 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 	struct sprd_headset *hdst = dev;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
 	struct sprd_headset_power *power;
-	unsigned int val;
+	unsigned int val, eic_type;
 	bool ret;
 
 	pr_info("%s enter\n", __func__);
@@ -1969,9 +1971,13 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 		/* I am not sure the new func is right or not */
 		__pm_wakeup_event(&hdst->det_all_wakelock,
 			msecs_to_jiffies(2000));
+		eic_type = sprd_insert_all_plug_inout_check();
+		if (pdata->jack_type == JACK_TYPE_NO &&
+			eic_type == INSERT_ALL_PLUGIN) {
+			complete(&hdst->wait_insert_all);
+		}
 		/* I think this is useless, only used to check debounce */
 		hdst->insert_all_val_last = sprd_get_eic_mis_status(10);
-		hdst->insert_all_irq_trigged = 1;
 		pr_info("%s insert_all_val_last %d\n", __func__,
 			hdst->insert_all_val_last);
 
@@ -2253,8 +2259,6 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 	hdst->report = 0;
 	hdst->det_err_cnt = 0;
 	hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
-	hdst->mic_irq_trigged = 0;
-	hdst->insert_all_irq_trigged = 0;
 
 	INIT_DELAYED_WORK(&hdst->det_all_work, headset_detect_all_work_func);
 	hdst->det_all_work_q =
@@ -2302,7 +2306,8 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 
 	for (i = 0; i < HDST_GPIO_AUD_MAX; i++)
 		gpio_set_debounce(pdata->gpios[i], pdata->dbnc_times[i] * 1000);
-
+	init_completion(&hdst->wait_insert_all);
+	init_completion(&hdst->wait_mdet);
 	sprd_headset_debug_sysfs_init();
 	sprd_get_adc_cal_from_efuse(hdst->pdev);
 	ret = devm_request_threaded_irq(
