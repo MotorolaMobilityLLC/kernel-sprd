@@ -179,7 +179,7 @@ static int audio_sipc_create(int target_id)
 	if (!smsg_base_p)
 		return -1;
 
-	smsg_base_v = (size_t)audio_mem_vmap(smsg_base_p, size_inout, 1);
+	smsg_base_v = (size_t)audio_mem_vmap(smsg_base_p, size_inout, 0);
 	if (!smsg_base_v) {
 		pr_err("%s:ioremap txbuf_addr return NULL\n", __func__);
 		return -1;
@@ -249,7 +249,7 @@ static int aud_block_param_init(struct aud_block_param *block_param, int type)
 
 	buf_p = audio_mem_alloc(type, &size);
 	if (buf_p)
-		buf_v = (size_t)audio_mem_vmap((phys_addr_t)buf_p, size, 1);
+		buf_v = (size_t)audio_mem_vmap((phys_addr_t)buf_p, size, 0);
 	else
 		return -1;
 
@@ -271,7 +271,7 @@ static int aud_ipc_command_param_init(void)
 	if (aud_ipc->param_addr_p) {
 		aud_ipc->param_addr_v = (size_t)audio_mem_vmap(
 							aud_ipc->param_addr_p,
-							aud_ipc->param_size, 1);
+							aud_ipc->param_size, 0);
 		if (aud_ipc->param_addr_v == 0)
 			pr_err("%s ioremap_nocache failed\n", __func__);
 
