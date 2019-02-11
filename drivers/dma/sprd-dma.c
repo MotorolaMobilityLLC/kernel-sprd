@@ -615,7 +615,7 @@ static void sprd_dma_free_chan_resources(struct dma_chan *chan)
 	spin_unlock_irqrestore(&schan->vc.lock, flags);
 
 	vchan_free_chan_resources(&schan->vc);
-	pm_runtime_put(chan->device->dev);
+	pm_runtime_put_sync(chan->device->dev);
 }
 
 static enum dma_status sprd_dma_tx_status(struct dma_chan *chan,
