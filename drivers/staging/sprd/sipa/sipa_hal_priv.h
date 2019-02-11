@@ -230,6 +230,8 @@ struct sipa_hal_global_ops {
 						   u32 enable, u32 flag);
 	u32 (*enable_cp_through_pcie)(void __iomem *reg_base,
 								  u32 enable);
+	u32 (*enable_wiap_ul_dma)(void __iomem *reg_base,
+								  u32 enable);
 	u32 (*enable_def_flowctrl_to_src_blk)(void __iomem *reg_base);
 };
 

@@ -91,8 +91,8 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.relate_ep = SIPA_EP_PCIE,
 		.src_id = SIPA_TERM_PCIE0,
 		.dst_id = SIPA_TERM_VAP0,
-		.is_to_ipa = 0,
-		.is_pam = 0,
+		.is_to_ipa = 1,
+		.is_pam = 1,
 	},
 	{
 		.tx_fifo = "sprd,remote-pcie0-ul-tx",
@@ -189,7 +189,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.rx_fifo = "sprd,cp-dl-rx",
 		.relate_ep = SIPA_EP_VCP,
 		.src_id = SIPA_TERM_VAP0,
-		.dst_id = SIPA_TERM_AP_IP,
+		.dst_id = SIPA_TERM_PCIE0,
 		.is_to_ipa = 1,
 		.is_pam = 1,
 	},
@@ -224,10 +224,10 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.tx_fifo = "sprd,pcie-dl-tx",
 		.rx_fifo = "sprd,pcie-dl-rx",
 		.relate_ep = SIPA_EP_PCIE,
-		.src_id = SIPA_TERM_AP_ETH,
-		.dst_id = SIPA_TERM_USB,
+		.src_id = SIPA_TERM_PCIE0,
+		.dst_id = SIPA_TERM_VAP0,
 		.is_to_ipa = 0,
-		.is_pam = 0,
+		.is_pam = 1,
 	},
 	{
 		.tx_fifo = "sprd,remote-pcie0-dl-tx",
@@ -270,7 +270,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.rx_fifo = "sprd,ap-eth-ul-rx",
 		.relate_ep = SIPA_EP_AP_ETH,
 		.src_id = SIPA_TERM_AP_ETH,
-		.dst_id = SIPA_TERM_USB,
+		.dst_id = SIPA_TERM_PCIE0,
 		.is_to_ipa = 0,
 		.is_pam = 0,
 	},
@@ -324,7 +324,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.rx_fifo = "sprd,cp-ul-rx",
 		.relate_ep = SIPA_EP_VCP,
 		.src_id = SIPA_TERM_VAP0,
-		.dst_id = SIPA_TERM_VCP,
+		.dst_id = SIPA_TERM_PCIE0,
 		.is_to_ipa = 0,
 		.is_pam = 1,
 	},
@@ -344,13 +344,21 @@ static const struct file_operations sipa_local_drv_fops = {
 #endif
 };
 
-/**
- * ipa_stop_gsi_channel()- Stops a GSI channel in IPA
- *
- * Return value: 0 on success, negative otherwise
- */
-int sipa_pam_connect(const struct sipa_connect_params *in,
-					 struct sipa_to_pam_info *out)
+int sipa_get_ep_info(enum sipa_ep_id id,
+		struct sipa_to_pam_info *out)
+{
+	struct sipa_endpoint *ep = s_sipa_ctrl.eps[id];
+
+	if (!ep) {
+		pr_err("%s: ep id:%d not create!", __func__, id);
+		return -EPROBE_DEFER;
+	}
+	sipa_hal_init_pam_param(ep->send_fifo.idx, ep->recv_fifo.idx, out);
+	return 0;
+}
+EXPORT_SYMBOL(sipa_get_ep_info);
+
+int sipa_pam_connect(const struct sipa_connect_params *in)
 {
 	u32 i;
 	struct sipa_hal_fifo_item fifo_item;
@@ -358,9 +366,10 @@ int sipa_pam_connect(const struct sipa_connect_params *in,
 
 	if (!ep) {
 		pr_err("sipa_pam_connect: ep id:%d not create!", in->id);
-		return -ENODEV;
+		return -EPROBE_DEFER;
 	}
 
+	memset(&fifo_item, 0, sizeof(fifo_item));
 	ep->send_notify = in->send_notify;
 	ep->recv_notify = in->recv_notify;
 	ep->send_priv = in->send_priv;
@@ -382,15 +391,22 @@ int sipa_pam_connect(const struct sipa_connect_params *in,
 
 	if (ep->send_fifo_param.data_ptr) {
 		for (i = 0; i < ep->send_fifo_param.data_ptr_cnt; i++) {
-			fifo_item.addr = ep->send_fifo_param.data_ptr[i];
+			fifo_item.addr = ep->send_fifo_param.data_ptr +
+				i * ep->send_fifo_param.buf_size;
 			fifo_item.len = ep->send_fifo_param.buf_size;
 			sipa_hal_init_set_tx_fifo(ep->sipa_ctx->hdl,
 									  ep->send_fifo.idx, &fifo_item, 1);
 		}
 	}
-
-	sipa_hal_init_pam_param(ep->send_fifo.idx, ep->recv_fifo.idx, out);
-
+	if (ep->recv_fifo_param.data_ptr) {
+		for (i = 0; i < ep->recv_fifo_param.data_ptr_cnt; i++) {
+			fifo_item.addr = ep->recv_fifo_param.data_ptr +
+				i * ep->send_fifo_param.buf_size;
+			fifo_item.len = ep->recv_fifo_param.buf_size;
+			sipa_hal_put_rx_fifo_item(ep->sipa_ctx->hdl,
+				ep->recv_fifo.idx, &fifo_item);
+		}
+	}
 	return 0;
 }
 EXPORT_SYMBOL(sipa_pam_connect);
@@ -513,6 +529,10 @@ static int sipa_parse_dts_configuration(
 		pr_debug("%s : using bypass mode =%d", __func__,
 				 cfg->is_bypass);
 
+	/* get through pcie flag */
+	cfg->need_through_pcie = of_property_read_bool(pdev->dev.of_node,
+				"sprd,need-through-pcie");
+
 	/* get enable register informations */
 	cfg->sys_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
 						       "enable");
@@ -533,6 +553,7 @@ static int sipa_parse_dts_configuration(
 	cfg->wakeup_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
 													  "wakeup");
 	if (IS_ERR(cfg->wakeup_regmap)) {
+		cfg->wakeup_regmap = NULL;
 		pr_err("%s :get wakeup regmap fail!\n", __func__);
 	}
 
@@ -540,9 +561,10 @@ static int sipa_parse_dts_configuration(
 								  "wakeup", 2,
 								  reg_info);
 
-	if (ret < 0 || ret != 2)
+	if (ret < 0 || ret != 2) {
+		cfg->wakeup_regmap = NULL;
 		pr_warn("%s :get wakeup register info fail!\n", __func__);
-	else {
+	} else {
 		cfg->wakeup_reg = reg_info[0];
 		cfg->wakeup_mask = reg_info[1];
 	}
@@ -806,7 +828,7 @@ static int sipa_init(struct sipa_context **ipa_pp,
 	}
 
 	/* init sipa skb transfer layer */
-	if (!ipa->bypass_mode) {
+	if (!cfg->is_bypass) {
 		ret = sipa_create_skb_xfer(ipa, cfg);
 		if (ret) {
 			ret = -EFAULT;

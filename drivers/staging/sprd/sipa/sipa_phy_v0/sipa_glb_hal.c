@@ -187,6 +187,12 @@ static u32 sipa_hal_set_force_to_ap_flag(
 	return ret;
 }
 
+static u32 sipa_hal_set_wipa_ul_dma(void __iomem *reg_base,
+	u32 enable)
+{
+	return ipa_phy_ctrl_wiap_ul_dma(reg_base, enable);
+}
+
 u32 sipa_glb_ops_init(
 	struct sipa_hal_global_ops *ops)
 {
@@ -218,7 +224,8 @@ u32 sipa_glb_ops_init(
 		sipa_hal_set_force_to_ap_flag;
 	ops->enable_cp_through_pcie		=
 		sipa_hal_enable_cp_through_pcie;
-
+	ops->enable_wiap_ul_dma =
+		sipa_hal_set_wipa_ul_dma;
 	ops->enable_def_flowctrl_to_src_blk =
 		sipa_hal_enable_def_flowctrl_to_src_blk;
 

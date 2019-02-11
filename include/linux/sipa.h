@@ -193,6 +193,7 @@ struct sipa_pam_attrs {
 	u64 tx_fifo_base_addr;
 
 	u64 fifo_sts_addr;
+	u32 fifo_depth;
 };
 
 enum sipa_nic_id
@@ -231,7 +232,7 @@ struct sipa_comm_fifo_params {
 
 	u32 data_ptr_cnt;
 	u32 buf_size;
-	dma_addr_t *data_ptr;
+	dma_addr_t data_ptr;
 };
 
 /**
@@ -310,8 +311,10 @@ int sipa_register_ipa_ready_cb(void (*sipa_ready_cb)(void *user_data),
 /*
  * IPA terminal managment
  */
-int sipa_pam_connect(const struct sipa_connect_params *in,
+int sipa_get_ep_info(enum sipa_ep_id id,
     struct sipa_to_pam_info *out);
+
+int sipa_pam_connect(const struct sipa_connect_params *in);
 
 int sipa_sw_connect(const struct sipa_connect_params *in);
 

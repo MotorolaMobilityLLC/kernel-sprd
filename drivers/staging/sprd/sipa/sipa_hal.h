@@ -177,4 +177,6 @@ int sipa_hal_get_cmn_fifo_filled_depth(sipa_hal_hdl hdl,
 									   enum sipa_cmn_fifo_index fifo_id,
 									   u32 *rx_filled, u32 *tx_filled);
 
+int sipa_hal_enable_wiap_dma(sipa_hal_hdl hdl, bool dma);
+
 #endif /* !_SIPA_HAL_H_ */
