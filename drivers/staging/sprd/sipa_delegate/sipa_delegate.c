@@ -66,12 +66,14 @@ int modem_sipa_connect(struct sipa_to_pam_info *out)
 		return -ENODEV;
 
 	out->term = SIPA_TERM_PCIE0;
-	out->dl_fifo.rx_fifo_base_addr = s_modem_sipa_delegator->dl_free_fifo_phy;
-	out->dl_fifo.tx_fifo_base_addr = s_modem_sipa_delegator->dl_filled_fifo_phy;
+	out->dl_fifo.rx_fifo_base_addr = DL_RX_FIFO_BASE_ADDR;
+	out->dl_fifo.tx_fifo_base_addr = DL_TX_FIFO_BASE_ADDR;
 	out->dl_fifo.fifo_sts_addr = s_modem_sipa_delegator->reg_mapped_start +
 				     ((SIPA_FIFO_PCIE_DL + 1) * SIPA_FIFO_REG_SIZE);
-	out->ul_fifo.rx_fifo_base_addr = s_modem_sipa_delegator->ul_filled_fifo_phy;
-	out->ul_fifo.tx_fifo_base_addr = s_modem_sipa_delegator->ul_free_fifo_phy;
+
+	out->ul_fifo.rx_fifo_base_addr = UL_RX_FIFO_BASE_ADDR;
+	out->ul_fifo.tx_fifo_base_addr = UL_TX_FIFO_BASE_ADDR;
+
 	out->ul_fifo.fifo_sts_addr = s_modem_sipa_delegator->reg_mapped_start +
 				     ((SIPA_FIFO_PCIE_UL + 1) * SIPA_FIFO_REG_SIZE);
 
