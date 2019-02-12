@@ -93,6 +93,18 @@ static struct of_device_id gsp_dt_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, gsp_dt_ids);
 
+static bool cali_mode;
+
+static int boot_mode_check(char *str)
+{
+	if (str != NULL && !strncmp(str, "cali", strlen("cali")))
+		cali_mode = true;
+	else
+		cali_mode = false;
+	return 0;
+}
+__setup("androidboot.mode=", boot_mode_check);
+
 int gsp_dev_name_cmp(struct gsp_dev *gsp)
 {
 	return strncmp(gsp->name, GSP_DEVICE_NAME, sizeof(gsp->name));
@@ -1089,6 +1101,11 @@ static struct platform_driver gsp_drv = {
 static int __init gsp_drv_init(void)
 {
 	int ret = -1;
+
+	if (cali_mode) {
+		GSP_WARN("Calibration Mode! Don't register sprd gsp driver");
+		return 0;
+	}
 
 	GSP_INFO("gsp device init begin\n");
 
