@@ -313,8 +313,8 @@ static int mbox_parse_dts(void)
 	/* parse mbox version */
 	ret = of_property_read_u32(np, "sprd,version", &mbox_dts_cfg.version);
 	if (ret) {
-		pr_err("mbox:ERR on line %d!\n", __LINE__);
-		return -EINVAL;
+		pr_debug("mbox: not found version!\n");
+		mbox_dts_cfg.version = 2;
 	}
 
 	return 0;

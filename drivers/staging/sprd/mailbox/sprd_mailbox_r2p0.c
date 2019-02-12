@@ -1065,6 +1065,7 @@ static int mbox_cfg_init(struct mbox_dts_cfg_tag *mbox_dts_cfg, u8 *mbox_inited)
 	/* init enable reg and mask bit */
 	mbox_cfg.enable_reg = mbox_dts_cfg->enable_reg;
 	mbox_cfg.mask_bit = mbox_dts_cfg->mask_bit;
+	mbox_cfg.version = mbox_dts_cfg->version;
 
 	/* init inbox base */
 	mbox_cfg.inbox_base = mbox_dts_cfg->inboxres.start;
