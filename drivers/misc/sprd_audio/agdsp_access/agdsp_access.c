@@ -236,13 +236,25 @@ static int agdsp_access_initialize(struct platform_device *pdev,
 			args[0], args[1]);
 	}
 	dsp_ac->smem_size = sizeof(struct agdsp_access_state);
+#ifdef CONFIG_SPRD_SIPC_V2
+	dsp_ac->smem_phy_addr = smem_alloc(SIPC_ID_PSCP, dsp_ac->smem_size);
+#else
 	dsp_ac->smem_phy_addr = smem_alloc(dsp_ac->smem_size);
+#endif
 	if (!dsp_ac->smem_phy_addr) {
 		pr_err("%s,smem_phy_addr is 0.\n", __func__);
 		goto error;
 	}
+ #ifdef CONFIG_SPRD_SIPC_V2
+	dsp_ac->state = shmem_ram_vmap_nocache(SIPC_ID_PSCP,
+					       dsp_ac->smem_phy_addr,
+					       sizeof(struct agdsp_access_state)
+					       );
+#else
 	dsp_ac->state = shmem_ram_vmap_nocache(dsp_ac->smem_phy_addr,
-		sizeof(struct agdsp_access_state));
+					       sizeof(struct agdsp_access_state)
+					       );
+#endif
 	if (!dsp_ac->state) {
 		pr_err("%s,shmem_ram_vmap_nocache return 0.\n", __func__);
 		goto error;

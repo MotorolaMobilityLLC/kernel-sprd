@@ -6,6 +6,17 @@ config SPRD_SIPC
 	help
 	  SIPC is a module for spreadtrum AP/CP communicaiton system.
 
+config SPRD_SIPC_V2
+	bool "Sprd IPC V2"
+	default n
+	depends on SPRD_SIPC
+	help
+	  This driver is a sipc v2 driver for support pcie external modem.
+	  the sipc v2 dirver also can support the old sipc, but it has not
+	  beem fully verified, so we still keep the old sipc driver. After
+	  orca bringup, we will only keep the new version, and the feature
+	  SPRD_SIPC_V2 will be remove.
+
 config SPRD_SIPC_SPIPE
 	bool "SPRD pipe driver based on SBUF"
 	default n

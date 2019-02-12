@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Spreadtrum Communications Inc.
+ * Copyright (C) 2012-2019 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -22,14 +22,18 @@
 /* sipc processor ID definition */
 enum {
 	SIPC_ID_AP = 0,		/* Application Processor */
-	SIPC_ID_CPT,		/* TD processor */
+	SIPC_ID_MINIAP,		/* mini AP processor */
 	SIPC_ID_CPW,		/* WCDMA processor */
 	SIPC_ID_WCN,		/* Wireless Connectivity */
 	SIPC_ID_GNSS,		/* Gps processor(gnss) */
-	SIPC_ID_LTE,		/* LTE processor */
+	SIPC_ID_PSCP,		/* Protocol stack processor */
 	SIPC_ID_PM_SYS,		/* Power management processor */
-	SIPC_ID_NR,			/* total processor number */
+	SIPC_ID_NR_PHY,		/* New Radio PHY processor */
+	SIPC_ID_V3_PHY,		/* MODEM v3 PHY processor */
+	SIPC_ID_NR,		/* Max processor number */
 };
+
+#define SIPC_ID_LTE		SIPC_ID_PSCP
 
 /* share-mem ring buffer short message */
 struct smsg {
@@ -150,6 +154,14 @@ enum {
 };
 #define INVALID_CHANEL_INDEX SMSG_CH_NR
 
+#ifdef CONFIG_SPRD_SIPC_V2
+/* modem type */
+enum {
+	SOC_MODEM = 0,
+	PCIE_MODEM,
+};
+#endif
+
 /* only be configed in sipc_config is valid channel */
 struct sipc_config {
 	u8 channel;
@@ -211,6 +223,7 @@ enum {
 	SMSG_TYPE_DFS,
 	SMSG_TYPE_DFS_RSP,
 	SMSG_TYPE_ASS_TRG,
+	SMSG_TYPE_HIGH_OFFSET, /* client sipc get high offset from host */
 	SMSG_TYPE_NR,		/* total type number */
 };
 
@@ -338,6 +351,80 @@ static inline void smsg_close_ack(u8 dst, u16 channel)
 
 /* ****************************************************************** */
 /* SMEM interfaces */
+#ifdef CONFIG_SPRD_SIPC_V2
+/**
+ * smem_alloc -- allocate shared memory block
+ *
+ * @dst: dest processor ID
+ * @size: size to be allocated, page-aligned
+ * @return: phys addr or 0 if failed
+ */
+u32 smem_alloc(u8 dst, u32 size);
+
+/**
+ * smem_free -- free shared memory block
+ *
+ * @dst: dest processor ID
+ * @addr: smem phys addr to be freed
+ * @order: size to be freed
+ */
+void smem_free(u8 dst, u32 addr, u32 size);
+
+/**
+ * shmem_ram_unmap -- for sipc unmap ram address
+ *
+ * @mem: vir mem
+ */
+void shmem_ram_unmap(u8 dst, const void *mem);
+
+/**
+ * shmem_ram_vmap_nocache -- for sipc map ram address
+ *
+ * @start: start address
+ * @size: size to be allocated, page-aligned
+ * @return: phys addr or 0 if failed
+ */
+void *shmem_ram_vmap_nocache(u8 dst, phys_addr_t start, size_t size);
+
+/**
+ * shmem_ram_vmap_cache -- for sipc map ram address
+ *
+ * @start: start address
+ * @size: size to be allocated, page-aligned
+ * @return: phys addr or 0 if failed
+ */
+void *shmem_ram_vmap_cache(u8 dst, phys_addr_t start, size_t size);
+
+void smem_free(u8 dst, u32 addr, u32 size);
+
+/**
+ * modem_ram_unmap -- for modem unmap ram address
+ *
+ * @mem: vir mem
+ * @modem_type: soc modem, pcie modem
+ */
+void modem_ram_unmap(u32 modem_type, const void *mem);
+
+/**
+ * shmem_ram_vmap_nocache -- for modem map ram address
+ *
+ * @modem_type: soc modem, pcie modem
+ * @start: start address
+ * @size: size to be allocated, page-aligned
+ * @return: phys addr or 0 if failed
+ */
+void *modem_ram_vmap_nocache(u32 modem_type, phys_addr_t start, size_t size);
+
+/**
+ * modem_ram_vmap_cache -- for modem map ram address
+ *
+ * @modem_type: soc modem, pcie modem
+ * @start: start address
+ * @size: size to be allocated, page-aligned
+ * @return: phys addr or 0 if failed
+ */
+void *modem_ram_vmap_cache(u32 modem_type, phys_addr_t start, size_t size);
+#else
 
 /**
  * smem_alloc -- allocate shared memory block
@@ -397,7 +484,7 @@ void *shmem_ram_vmap_nocache(phys_addr_t start, size_t size);
  * @return: phys addr or 0 if failed
  */
 void *shmem_ram_vmap_cache(phys_addr_t start, size_t size);
-
+#endif
 /**
  * sbuf_set_no_need_wake_lock
  *
@@ -481,6 +568,7 @@ int sbuf_poll_wait(u8 dst, u8 channel, u32 bufid,
  */
 int sbuf_status(u8 dst, u8 channel);
 
+#define	SBUF_NOTIFY_READY	0x00
 #define	SBUF_NOTIFY_READ	0x01
 #define	SBUF_NOTIFY_WRITE	0x02
 /**
@@ -546,6 +634,69 @@ int sblock_create_ex(u8 dst, u8 channel,
 			u32 rxblocknum, u32 rxblocksize,
 			void (*handler)(int event, void *data), void *data);
 
+#ifdef CONFIG_SPRD_SIPC_V2
+/* sblock_pcfg_create -- create preconfigured SBLOCK channel.
+ *
+ * @dst: dest processor ID
+ * @channel: channel ID
+ * @tx_blk_num: tx block number
+ * @tx_blk_sz: tx block size
+ * @rx_blk_num: rx block number
+ * @rx_blk_sz: rx block size
+ * @return: 0 on success, <0 on failure
+ *
+ * The function only allocates the memory for the channel, and will not
+ * open the channel. The client shall open the channel using
+ * sblock_pcfg_open and close the channel using sblock_close.
+ */
+int sblock_pcfg_create(u8 dst, u8 channel,
+		       u32 tx_blk_num, u32 tx_blk_sz,
+		       u32 rx_blk_num, u32 rx_blk_sz);
+
+/* sblock_pcfg_open -- request to open preconfigured SBLOCK channel.
+ *
+ * @dst: dest processor ID
+ * @channel: channel ID
+ * @notifier: the event notification callback function. This function can
+ *	      not sleep. If this parameter is NULL, no event will be
+ *	      reported.
+ * @event: SBLOCK_NOTIFY_GET, SBLOCK_NOTIFY_RECV, or both
+ * @client: opaque data passed to the receiver
+ * @return: if the channel is established, return 0; if the open procedure
+ *          is started and not finished, return SIPC_ERR_IN_PROGRESS;
+ *	    otherwise return a negative error code.
+ *
+ * The function starts the open procedure. If the open procedure is not
+ * finished when the function returns, the SBLOCK system will report
+ * the open result later through the notifier callback.
+ */
+int sblock_pcfg_open(uint8_t dest, uint8_t channel,
+		     void (*notifier)(int event, void *client),
+		     void *client);
+
+/* sblock_close -- request to close SBLOCK channel.
+ *
+ * @dst: dest processor ID
+ * @channel: channel ID
+ * @return: if the channel is closed, return 0; if the close procedure
+ *          is started and not finished, return SIPC_ERR_IN_PROGRESS;
+ *	    otherwise return a negative error code.
+ *
+ * The function starts the close procedure. If the close procedure is not
+ * finished when the function returns, the SBLOCK system will report
+ * the close result later through the notification callback that the
+ * client set by sblock_pcfg_open.
+ */
+int sblock_close(uint8_t dest, uint8_t channel);
+
+/* sblock_get_smem_cp_addr - get the shared memory CP address.
+ * @dest: destination ID
+ * @channel: channel number
+ * @paddr: pointer to the variable to receive the address.
+ */
+int sblock_get_smem_cp_addr(uint8_t dest, uint8_t channel,
+			    uint32_t *paddr);
+#endif
 /**
  * sblock_destroy -- destroy sblock manager on a channel
  *
@@ -559,6 +710,8 @@ void sblock_destroy(u8 dst, u8 channel);
 #define	SBLOCK_NOTIFY_STATUS	0x04
 #define	SBLOCK_NOTIFY_OPEN	0x08
 #define	SBLOCK_NOTIFY_CLOSE	0x10
+#define SBLOCK_NOTIFY_OPEN_FAILED 0x20
+
 /**
  * sblock_register_notifier -- register a callback that's called
  *		when a tx sblock is available or a rx block is received.
