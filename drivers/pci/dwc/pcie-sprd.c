@@ -209,6 +209,12 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	dev_info(dev, "%s: defer probe %d times to wait wcn\n",
 		 __func__, probe_defer_count);
 
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-startup-syscons");
+	if (ret < 0) {
+		dev_err(dev, "get pcie syscons fail, return %d\n", ret);
+		return ret;
+	}
+
 	data = (struct sprd_pcie_of_data *)of_device_get_match_data(dev);
 	mode = data->mode;
 
@@ -219,8 +225,6 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
 	if (!pci)
 		return -ENOMEM;
-
-	sprd_pcie_syscon_setting(pdev, "startup");
 
 	pci->dev = dev;
 	pci->ops = &dw_pcie_ops;

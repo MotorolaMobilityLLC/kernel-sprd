@@ -24,27 +24,31 @@
 
 #define NUM_OF_ARGS 5
 
-int sprd_pcie_syscon_setting(struct platform_device *pdev, char *evn)
+int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 {
-	struct device_node *np;
-	int i, count;
+	struct device_node *np = pdev->dev.of_node;
+	int i, count, err;
+	u32 type, delay, reg, mask, val, tmp_val;
 	struct of_phandle_args out_args;
-	uint32_t reg;
-	uint32_t type;
-	uint32_t delay;
-	uint32_t mask;
-	uint32_t val, tmp_val;
 	struct regmap *iomap;
 
-	np = of_get_child_by_name(pdev->dev.of_node, evn);
+	if (!of_find_property(np, env, NULL)) {
+		dev_info(&pdev->dev,
+			 "it's not a real SoC, please ignore pcie syscons\n");
+		return 0;
+	}
+
 	/* one handle and NUM_OF_ARGS args */
-	count = of_property_count_elems_of_size(np, "pcie,syscons",
-		(NUM_OF_ARGS + 1) * sizeof(uint32_t));
-	dev_info(&pdev->dev, "evn(%s) reg count is %d :\n", evn, count);
+	count = of_property_count_elems_of_size(np, env,
+		(NUM_OF_ARGS + 1) * sizeof(u32));
+	dev_dbg(&pdev->dev, "property (%s) reg count is %d :\n", env, count);
 
 	for (i = 0; i < count; i++) {
-		of_parse_phandle_with_fixed_args(np, "pcie,syscons",
-			NUM_OF_ARGS, i, &out_args);
+		err = of_parse_phandle_with_fixed_args(np, env, NUM_OF_ARGS,
+				i, &out_args);
+		if (err < 0)
+			return err;
+
 		type = out_args.args[0];
 		delay = out_args.args[1];
 		reg = out_args.args[2];
@@ -68,9 +72,9 @@ int sprd_pcie_syscon_setting(struct platform_device *pdev, char *evn)
 			msleep(delay);
 
 		regmap_read(iomap, reg, &tmp_val);
-		dev_info(&pdev->dev,
-			 "%2d:reg[0x%8x] mask[0x%8x] val[0x%8x] result[0x%8x]\n",
-			 i, reg, mask, val, tmp_val);
+		dev_dbg(&pdev->dev,
+			"%2d:reg[0x%8x] mask[0x%8x] val[0x%8x] result[0x%8x]\n",
+			i, reg, mask, val, tmp_val);
 	}
 
 	return i;
