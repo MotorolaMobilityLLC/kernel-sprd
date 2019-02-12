@@ -365,6 +365,22 @@
 				sprd,ddr-offset = <0x80000000>;
 				status = "disabled";
 			};
+
+			ptm_trace: ptm@61060000 {
+				compatible = "sprd,orca-ptm";
+				reg = <0x0 0x61060000 0x0 0x10000>,
+					<0x0 0x78002000 0x0 0x1000>,
+					<0x0 0x78003000 0x0 0x1000>,
+					<0x0 0x78006000 0x0 0x1000>;
+				interrupts = <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "clk_cs","cs_src";
+				clocks = <&aon_clk CLK_CSSYS>,
+					<&g3_pll CLK_TWPLL_256M>;
+				sprd,funnel-port = <5>;
+				sprd,ddr-chn = <7>;
+				sprd,chn-name = "APCPU/miniAP/CS/AON", "NRCPU",
+					"NRACC", "V3CPU", "V3ACC","PSCP","AGCP";
+			};
 		};
 
 		aon {
