@@ -107,6 +107,18 @@
 #define CLK_SIM0_32K_EB			18
 #define CLK_AP_APB_GATE_NUM		(CLK_SIM0_32K_EB + 1)
 
+#define CLK_IPA_USB1_EB			0
+#define CLK_USB1_SUSPEND_EB		1
+#define CLK_IPA_USB1_REF_EB		2
+#define CLK_SDIO_SLV_EB			3
+#define CLK_SD_SLV_FRUN_EB		4
+#define CLK_PCIE_EB			5
+#define CLK_PCIE_AUX_EB			6
+#define CLK_IPA_EB			7
+#define CLK_USB_PAM_EB			8
+#define CLK_PCIE_SEL			9
+#define CLK_IPA_GATE_NUM		(CLK_PCIE_SEL + 1)
+
 #define CLK_RC100_CAL_EB		0
 #define CLK_AON_SPI_EB			1
 #define CLK_DJTAG_TCK_EB		2

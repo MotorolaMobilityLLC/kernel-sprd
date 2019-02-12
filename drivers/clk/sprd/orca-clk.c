@@ -522,6 +522,64 @@ static const struct sprd_clk_desc orca_apapb_gate_desc = {
 	.hw_clks	= &orca_apapb_gate_hws,
 };
 
+/* ap ipa gate */
+static SPRD_SC_GATE_CLK(ipa_usb1_eb, "ipa-usb1-eb", "ext-26m", 0x0,
+		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(usb1_suspend_eb, "usb1-suspend-eb", "ext-26m", 0x0,
+		     0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_usb1_ref_eb, "ipa-usb1-ref-eb", "ext-26m", 0x0,
+		     0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(sdio_slv_eb, "sdio-slv-eb", "ext-26m", 0x0,
+		     0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(sd_slv_frun_eb, "sd-slv-frun-eb", "ext-26m", 0x0,
+		     0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pcie_eb, "pcie-eb", "ext-26m", 0x0,
+		     0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pcie_aux_eb, "pcie-aux-eb", "ext-26m", 0x0,
+		     0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(ipa_eb, "ipa-eb", "ext-26m", 0x0,
+		     0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(usb_pam_eb, "usb-pam-eb", "ext-26m", 0x0,
+		     0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pcie_sel, "pcie-sel", "ext-26m", 0x0,
+		     0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *orca_ipa_gate_clks[] = {
+	/* address base is 0x29000000 */
+	&ipa_usb1_eb.common,
+	&usb1_suspend_eb.common,
+	&ipa_usb1_ref_eb.common,
+	&sdio_slv_eb.common,
+	&sd_slv_frun_eb.common,
+	&pcie_eb.common,
+	&pcie_aux_eb.common,
+	&ipa_eb.common,
+	&usb_pam_eb.common,
+	&pcie_sel.common,
+};
+
+static struct clk_hw_onecell_data orca_ipa_gate_clk_hws = {
+	.hws	= {
+		[CLK_IPA_USB1_EB] = &ipa_usb1_eb.common.hw,
+		[CLK_USB1_SUSPEND_EB] = &usb1_suspend_eb.common.hw,
+		[CLK_IPA_USB1_REF_EB] = &ipa_usb1_ref_eb.common.hw,
+		[CLK_SDIO_SLV_EB] = &sdio_slv_eb.common.hw,
+		[CLK_SD_SLV_FRUN_EB] = &sd_slv_frun_eb.common.hw,
+		[CLK_PCIE_EB] = &pcie_eb.common.hw,
+		[CLK_PCIE_AUX_EB] = &pcie_aux_eb.common.hw,
+		[CLK_IPA_EB] = &ipa_eb.common.hw,
+		[CLK_USB_PAM_EB] = &usb_pam_eb.common.hw,
+		[CLK_PCIE_SEL] = &pcie_sel.common.hw,
+	},
+	.num	= CLK_IPA_GATE_NUM,
+};
+
+static struct sprd_clk_desc orca_ipa_gate_desc = {
+	.clk_clks	= orca_ipa_gate_clks,
+	.num_clk_clks	= ARRAY_SIZE(orca_ipa_gate_clks),
+	.hw_clks	= &orca_ipa_gate_clk_hws,
+};
+
 /* aon clocks */
 static CLK_FIXED_FACTOR(clk_13m,	"clk-13m",	"ext-26m",
 			2, 1, 0);
@@ -1336,6 +1394,8 @@ static const struct of_device_id sprd_orca_clk_ids[] = {
 	  .data = &orca_ap_clk_desc },
 	{ .compatible = "sprd,orca-apapb-gate",	/* 0x24000000 */
 	  .data = &orca_apapb_gate_desc },
+	{ .compatible = "sprd,orca-ipa-gate",	/* 0x29000000 */
+	  .data = &orca_ipa_gate_desc },
 	{ .compatible = "sprd,orca-aon-clk",	/* 0x63170000 */
 	  .data = &orca_aon_clk_desc },
 	{ .compatible = "sprd,orca-g3-pll",	/* 0x634b0000 */
