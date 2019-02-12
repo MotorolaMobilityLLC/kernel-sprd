@@ -114,6 +114,7 @@
 				syscon-names = "enable", "wakeup";
 
 				sprd,sipa-bypass-mode = <0>;
+				sprd,need-through-pcie;
 
 				sprd,usb-dl-tx = <1 1024>;
 				sprd,usb-dl-rx = <1 1024>;

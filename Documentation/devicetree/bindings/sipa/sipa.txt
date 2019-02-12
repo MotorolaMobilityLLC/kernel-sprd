@@ -81,6 +81,9 @@ Required properties:
 	First parameter indicates ap pcie ul rx common fifo is it in iram. 0: DDR 1: iram.
 	Second parameter indicates ap pcie ul rx common fifo total depth.
 
+Optional properties:
+- sprd,need-through-pcie: boolean, set this for IPA need send data to cp behind.
+
 Examples:
 	pa_local: sprd,sipa@21180000 {
 		compatible = "sprd,roc1-sipa";
@@ -92,7 +95,7 @@ Examples:
 		interrupt-names = "local_ipa_irq";
 
 		sprd,sipa-bypass-mode = <0>;
-
+		sprd,need-through-pcie;
 		sprd,usb-dl-tx = <1 1024>;
 		sprd,usb-dl-rx = <1 1024>;
 		sprd,usb-ul-tx = <1 1024>;

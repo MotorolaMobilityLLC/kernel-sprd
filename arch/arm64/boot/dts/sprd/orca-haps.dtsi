@@ -104,7 +104,6 @@
 			syscon-names = "enable";
 
 			sprd,sipa-bypass-mode = <1>;
-			sprd,need-through-pcie = <0>;
 
 			sprd,pcie-dl-tx = <1 256>;
 			sprd,pcie-dl-rx = <1 256>;

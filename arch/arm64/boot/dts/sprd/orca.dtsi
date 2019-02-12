@@ -688,7 +688,6 @@
 			syscon-names = "enable";
 
 			sprd,sipa-bypass-mode = <1>;
-			sprd,need-through-pcie = <0>;
 
 			sprd,usb-dl-tx = <1 1024>;
 			sprd,usb-dl-rx = <1 1024>;
