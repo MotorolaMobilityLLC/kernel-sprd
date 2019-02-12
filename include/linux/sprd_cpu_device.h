@@ -22,6 +22,10 @@ struct power_model_callback {
 	u32 (*get_cluster_min_cpunum_p)(int cooling_id);
 
 	u32 (*get_cluster_resistance_ja_p)(int cooling_id);
+
+	u32 (*get_cpuidle_temp_point_p)(int cooling_id);
+
+	int (*get_max_temp_core_p)(int cooling_id, int cpu, int *temp);
 };
 
 struct cpu_power_model_t {

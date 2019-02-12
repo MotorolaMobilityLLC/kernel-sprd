@@ -506,6 +506,16 @@ config SPRD_CPU_COOLING
 	  This implements the sprd's cpu cooling mechanism through
 	  frequency reduction for devices using dvfs and trigger cpu hotplug.
 
+config SPRD_CPU_COOLING_CPUIDLE
+	bool "sprd cpu idle cooling policy"
+	depends on SPRD_CPU_COOLING
+	depends on CPU_IDLE
+	help
+	  This implements the generic CPU cooling mechanism through
+	  idle injection.this will throttle the CPU by injecting
+	  fixed idle cycle.so that it can enter into the deepest idle state
+	  to reduce power consumption.
+
 config SPRD_CPU_COOLING_DEVICE
 	bool "sprd cpu cooling device"
 	depends on THERMAL
