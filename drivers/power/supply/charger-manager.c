@@ -883,8 +883,11 @@ static bool _cm_monitor(struct charger_manager *cm)
 	int i;
 
 	for (i = 0; i < cm->desc->num_charger_regulators; i++) {
-		if (cm->desc->charger_regulators[i].externally_control)
+		if (cm->desc->charger_regulators[i].externally_control) {
+			dev_info(cm->dev,
+				 "Charger has been controlled externally, so no need monitoring\n");
 			return false;
+		}
 	}
 
 	temp_alrt = cm_check_thermal_status(cm);
@@ -892,14 +895,16 @@ static bool _cm_monitor(struct charger_manager *cm)
 	/* It has been stopped already */
 	if (temp_alrt && cm->emergency_stop) {
 		dev_warn(cm->dev,
-			 "emergency stop, temperature alert = %d\n", temp_alrt);
+			 "Emergency stop, temperature alert = %d\n", temp_alrt);
 		return false;
 	}
 
 	/* Feed the charger watchdog if necessary */
 	ret = cm_feed_watchdog(cm);
-	if (ret)
+	if (ret) {
+		dev_warn(cm->dev, "Failed to feed charger watchdog\n");
 		return false;
+	}
 
 	/*
 	 * Check temperature whether overheat or cold.
@@ -907,6 +912,8 @@ static bool _cm_monitor(struct charger_manager *cm)
 	 */
 	if (temp_alrt) {
 		cm->emergency_stop = temp_alrt;
+		dev_info(cm->dev,
+			"Temperature is out of range normal state, stop charging\n");
 		if (!try_charger_enable(cm, false))
 			uevent_notify(cm, default_event_names[temp_alrt]);
 	/*
@@ -935,6 +942,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 	 */
 	} else if (!cm->emergency_stop && is_ext_pwr_online(cm) &&
 			!cm->charger_enabled) {
+		dev_info(cm->dev, "Check dropped voltage of battery\n");
 		fullbatt_vchk(&cm->fullbatt_vchk_work.work);
 
 	/*
@@ -952,6 +960,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 	} else {
 		cm->emergency_stop = 0;
 		if (is_ext_pwr_online(cm)) {
+			dev_info(cm->dev, "No emergency stop, charging\n");
 			if (!try_charger_enable(cm, true))
 				uevent_notify(cm, "CHARGING");
 		}
