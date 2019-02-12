@@ -28,7 +28,7 @@
 #include <asm/pgtable.h>
 #include <uapi/linux/sched/types.h>
 
-#include "../include/sipc_priv.h"
+#include "sipc_priv.h"
 #include "sbuf.h"
 
 #if defined(CONFIG_DEBUG_FS)

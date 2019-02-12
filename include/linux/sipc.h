@@ -302,6 +302,9 @@ u8 sipc_channel2index(u8 ch);
 
 int smsg_ch_wake_unlock(u8 dst, u8 channel);
 
+#if defined(CONFIG_DEBUG_FS)
+void sipc_debug_putline(struct seq_file *m, char c, int n);
+#endif
 
 /* quickly fill a smsg body */
 static inline void smsg_set(struct smsg *msg, u8 channel,

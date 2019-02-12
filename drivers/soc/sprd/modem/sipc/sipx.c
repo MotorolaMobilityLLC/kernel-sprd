@@ -38,7 +38,7 @@
 #include <uapi/linux/sched/types.h>
 
 #include "sipx.h"
-#include "../include/sipc_priv.h"
+#include "sipc_priv.h"
 
 #define SIPX_BLOCK_PENDING      (32)
 

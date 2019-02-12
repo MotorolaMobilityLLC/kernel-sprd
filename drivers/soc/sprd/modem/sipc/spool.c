@@ -20,7 +20,7 @@
 #include <linux/of_device.h>
 #include <linux/sipc.h>
 
-#include "../include/spool.h"
+#include "spool.h"
 
 struct spool_device {
 	struct spool_init_data	*init;

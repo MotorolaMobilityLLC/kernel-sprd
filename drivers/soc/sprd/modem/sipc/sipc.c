@@ -34,7 +34,7 @@
 #define SPRD_DEV_V2P(vaddr)	(vaddr)
 #endif
 
-#include "../include/sipc_priv.h"
+#include "sipc_priv.h"
 
 #define SMSG_TXBUF_ADDR		(0)
 #define SMSG_TXBUF_SIZE		(SZ_1K)
@@ -379,8 +379,7 @@ static int sipc_probe(struct platform_device *pdev)
 			pr_info("sipc: smem_init smem_base=0x%x, smem_size=0x%x\n",
 				pdata->smem_base, pdata->smem_size);
 			if (dst == SIPC_ID_LTE ||
-			    dst == SIPC_ID_CPW ||
-			    dst == SIPC_ID_CPT)
+			    dst == SIPC_ID_CPW)
 				smem_set_default_pool(pdata->smem_base);
 
 			smem_init(pdata->smem_base, pdata->smem_size, dst);

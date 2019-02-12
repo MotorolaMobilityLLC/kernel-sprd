@@ -173,10 +173,6 @@ int smem_set_default_pool(u32 addr);
 int smem_init(u32 addr, u32 size, u32 dst);
 void sbuf_get_status(u8 dst, char *status_info, int size);
 
-#if defined(CONFIG_DEBUG_FS)
-void sipc_debug_putline(struct seq_file *m, char c, int n);
-#endif
-
 #ifdef CONFIG_SPRD_MAILBOX
 #define RECV_MBOX_SENSOR_ID  8
 #endif

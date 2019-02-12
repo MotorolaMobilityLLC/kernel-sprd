@@ -29,7 +29,7 @@
 #include <linux/sipc.h>
 #include <uapi/linux/sched/types.h>
 
-#include "../include/sipc_priv.h"
+#include "sipc_priv.h"
 #include "sblock.h"
 
 static struct sblock_mgr *sblocks[SIPC_ID_NR][SMSG_VALID_CH_NR];

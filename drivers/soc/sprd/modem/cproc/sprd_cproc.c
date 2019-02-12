@@ -35,7 +35,6 @@
 #include <linux/debugfs.h>
 
 #include "../include/sprd_cproc.h"
-#include "../include/sipc_priv.h"
 
 #ifdef CONFIG_DEBUG_FS
 static const struct file_operations sprd_cproc_debug_fops;

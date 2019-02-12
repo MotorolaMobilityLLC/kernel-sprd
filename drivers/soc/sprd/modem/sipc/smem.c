@@ -23,7 +23,7 @@
 #include <linux/slab.h>
 #include <linux/sipc.h>
 
-#include "../include/sipc_priv.h"
+#include "sipc_priv.h"
 
 struct smem_phead {
 	struct list_head smem_phead;

@@ -30,7 +30,7 @@
 #include <linux/sprd_mailbox.h>
 #endif
 
-#include "../include/sipc_priv.h"
+#include "sipc_priv.h"
 
 #if defined(CONFIG_DEBUG_FS)
 #include "sipc_debugfs.h"

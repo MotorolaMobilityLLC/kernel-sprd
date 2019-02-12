@@ -20,8 +20,8 @@
 #include <linux/slab.h>
 #include <linux/sipc.h>
 
-#include "../include/sipc_priv.h"
-#include "../include/spipe.h"
+#include "sipc_priv.h"
+#include "spipe.h"
 
 struct spipe_device {
 	struct spipe_init_data	*init;
