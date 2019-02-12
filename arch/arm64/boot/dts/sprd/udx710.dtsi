@@ -89,6 +89,13 @@
 			#clock-cells = <1>;
 		};
 
+		ipa_gate: ipa-gate {
+			compatible = "sprd,orca-ipa-gate";
+			sprd,syscon = <&ap_ipa_ahb_regs>;
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
 		aon_clk: clock-controller@63170000 {
 			compatible = "sprd,orca-aon-clk";
 			reg = <0 0x63170000 0 0x1000>;
