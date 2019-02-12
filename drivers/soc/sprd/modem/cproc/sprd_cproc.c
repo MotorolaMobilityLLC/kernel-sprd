@@ -33,6 +33,7 @@
 #include <linux/regmap.h>
 #include <linux/sipc.h>
 #include <linux/debugfs.h>
+#include <linux/sprd_cp.h>
 
 #include "../include/sprd_cproc.h"
 
@@ -68,6 +69,7 @@ enum {
 	BE_LD	    = BIT(12),
 	BE_CTRL_ON  = BIT(13),
 	BE_CTRL_OFF	= BIT(14),
+	BE_IOCTL    = BIT(15),
 };
 
 enum {
@@ -90,6 +92,7 @@ const char *cproc_dts_args[CPROC_CTRL_NR] = {
 	"corereset",
 	"sysreset",
 	"getstatus",
+	"dspreset",
 };
 
 struct cproc_proc_fs;
@@ -125,6 +128,14 @@ struct cproc_dump_info {
 	u32 start_addr;
 	u32 size;
 };
+
+static void sprd_cproc_regmap_update_bit(struct cproc_ctrl *ctrl,
+					 u32 index,
+					 u32 mask,
+					 u32 val);
+static void sprd_cproc_regmap_read(struct cproc_ctrl *ctrl,
+				u32 index,
+				unsigned int *val);
 
 static int list_each_dump_info(struct cproc_dump_info *base,
 			       struct cproc_dump_info **info)
@@ -661,6 +672,54 @@ static unsigned int cproc_proc_poll(struct file *filp, poll_table *wait)
 	return mask;
 }
 
+static long cproc_proc_ioctl(struct file *filp, unsigned int cmd,
+			     unsigned long arg)
+{
+	struct cproc_proc_entry
+		*entry = (struct cproc_proc_entry *)filp->private_data;
+	struct cproc_device *cproc = entry->cproc;
+	struct cproc_ctrl *ctrl;
+	long ret = -EINVAL;
+	u32 status, mask;
+	int done;
+
+	if (!(entry->flag & BE_IOCTL)) {
+		pr_err("ioctl into non-supported file %s!\n",
+		       entry->name);
+		return -EOPNOTSUPP;
+	}
+
+	ctrl = cproc->initdata->ctrl;
+	mask = ctrl->ctrl_mask[CPROC_CTRL_LOAD_STATUS];
+
+	switch (cmd) {
+	case SPRD_CP_IOCGLDSTAT:
+		if (!access_ok(VERIFY_WRITE,
+			       (void __user *)arg, _IOC_SIZE(cmd)))
+			return -EFAULT;
+
+		sprd_cproc_regmap_read(ctrl,
+				       CPROC_CTRL_LOAD_STATUS,
+				       &status);
+		done = (status & mask) ? 1 : 0;
+		ret = __put_user(done, (int __user *)arg);
+		break;
+
+	case SPRD_CP_IOCCLDSTAT:
+		sprd_cproc_regmap_update_bit(
+			ctrl,
+			CPROC_CTRL_LOAD_STATUS,
+			mask,
+			~mask);
+		break;
+
+	default:
+		break;
+	}
+
+	return ret;
+}
+
 static const struct file_operations cpproc_fs_fops = {
 	.open		= cproc_proc_open,
 	.release	= cproc_proc_release,
@@ -668,6 +727,7 @@ static const struct file_operations cpproc_fs_fops = {
 	.read		= cproc_proc_read,
 	.write		= cproc_proc_write,
 	.poll		= cproc_proc_poll,
+	.unlocked_ioctl	= cproc_proc_ioctl,
 };
 
 static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
@@ -675,6 +735,7 @@ static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
 	u8 i, ucnt;
 	unsigned flag;
 	umode_t mode;
+	struct cproc_ctrl *ctrl;
 
 	cproc->procfs.procdir = proc_mkdir(cproc->name, NULL);
 
@@ -705,6 +766,10 @@ static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
 		case 3:
 			cproc->procfs.entrys[i].name = "status";
 			flag |= (BE_RDONLY | BE_RDWDTS);
+			ctrl = cproc->initdata->ctrl;
+			if (ctrl->ctrl_reg[CPROC_CTRL_LOAD_STATUS] !=
+				INVALID_REG)
+				flag |= BE_IOCTL;
 			ucnt++;
 			break;
 
@@ -935,6 +1000,16 @@ static int sprd_cproc_native_arm_stop(void *arg)
 
 	pr_debug("%s: stop %s\n", __func__, cproc->name);
 
+	/* hold tgdsp and ldsp */
+	if ((ctrl->ctrl_reg[CPROC_CTRL_DSPCORE_RESET] & INVALID_REG)
+		!= INVALID_REG) {
+		sprd_cproc_regmap_update_bit(
+			ctrl,
+			CPROC_CTRL_DSPCORE_RESET,
+			ctrl->ctrl_mask[CPROC_CTRL_DSPCORE_RESET],
+			ctrl->ctrl_mask[CPROC_CTRL_DSPCORE_RESET]);
+	}
+
 	/* reset core */
 	if ((ctrl->ctrl_reg[CPROC_CTRL_CORE_RESET] & INVALID_REG)
 	    != INVALID_REG) {
@@ -965,15 +1040,7 @@ static int sprd_cproc_native_arm_stop(void *arg)
 			ctrl->ctrl_mask[CPROC_CTRL_DEEP_SLEEP]);
 		msleep(50);
 	}
-	if ((ctrl->ctrl_reg[CPROC_CTRL_GET_STATUS] & INVALID_REG)
-	    != INVALID_REG) {
-	    /* cp1 clear  status */
-		sprd_cproc_regmap_update_bit(
-			ctrl,
-			CPROC_CTRL_GET_STATUS,
-			ctrl->ctrl_mask[CPROC_CTRL_GET_STATUS],
-			~ctrl->ctrl_mask[CPROC_CTRL_GET_STATUS]);
-	}
+
 	if ((ctrl->ctrl_reg[CPROC_CTRL_SHUT_DOWN] & INVALID_REG)
 	    != INVALID_REG) {
 		/* cp1 force shutdown */
@@ -1307,8 +1374,10 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 		/* get apb & pmu reg handle */
 		ctrl->rmap[cr_num] = syscon_regmap_lookup_by_name(np, cproc_dts_args[cr_num]);
 		if (IS_ERR(ctrl->rmap[cr_num])) {
-			pr_err("%s:failed to find %s\n", __func__, cproc_dts_args[cr_num]);
-			goto error;
+			pr_debug("%s: %s failed to find %s\n",
+				 __func__, pdata->devname,
+				 cproc_dts_args[cr_num]);
+			break;/* some dts no need config all args, just break */
 		}
 
 		/* 1.get ctrl_reg offset, the ctrl-reg variable number, so need
@@ -1334,8 +1403,10 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 			__func__, i, ctrl->ctrl_reg[i], i, ctrl->ctrl_mask[i]);
 	}
 
+	for (i = cr_num; i < CPROC_CTRL_NR; i++)
+		ctrl->ctrl_reg[i] = INVALID_REG;
+
 	/* get iram size */
-	iram_dsize = MAX_IRAM_DATA_NUM;
 	ret = of_property_read_u32(np, "sprd,iram-dsize", &iram_dsize);
 	if (ret)
 		iram_dsize = MAX_IRAM_DATA_NUM;
