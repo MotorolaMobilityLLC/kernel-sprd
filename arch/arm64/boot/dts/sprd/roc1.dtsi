@@ -1135,7 +1135,7 @@
 				num-lanes = <1>;
 				num-vectors = <256>;
 				num-viewport = <8>;
-				status = "disabled";
+				status = "okay";
 			};
 		};
 
