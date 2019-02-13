@@ -2642,11 +2642,11 @@ static int headset_adc_cal_from_efuse(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	ret = sprd_pmic_efuse_bits_read(pdev, "hp_adc_fir_calib", &data);
+	ret = sprd_pmic_efuse_bits_read(pdev, "auxadc", &data);
 	if (ret)
 		goto adc_cali_error;
 	test[0] = data;
-	ret = sprd_pmic_efuse_bits_read(pdev, "hp_adc_sec_calib", &data);
+	ret = sprd_pmic_efuse_bits_read(pdev, "headmic", &data);
 	if (ret)
 		goto adc_cali_error;
 	test[1] = data;
@@ -2663,7 +2663,7 @@ static int headset_adc_cal_from_efuse(struct platform_device *pdev)
 			delta[0], delta[0], delta[1], delta[1],
 			delta[2], delta[2],  delta[3], delta[3]);
 
-	ret = sprd_pmic_efuse_bits_read(pdev, "hp_adc_blk0", &data);
+	ret = sprd_pmic_efuse_bits_read(pdev, "protectbit", &data);
 	if (ret)
 		goto adc_cali_error;
 	block0_bit7 = data;
