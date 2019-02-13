@@ -380,6 +380,30 @@
 	status = "okay";
 };
 
+&iommu_dcam{
+	status = "okay";
+};
+
+&iommu_isp{
+	status = "okay";
+};
+
+&iommu_jpg{
+	status = "okay";
+};
+
+&iommu_cpp{
+	status = "okay";
+};
+
+&iommu_vsp{
+	status = "okay";
+};
+
+&iommu_fd{
+	status = "okay";
+};
+
 &dsi {
 	status = "okay";
 	#address-cells = <1>;
