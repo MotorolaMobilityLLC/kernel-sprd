@@ -2234,7 +2234,7 @@ failed_to_micbias_power_off:
 static struct gpio_map {
 	int type;
 	const char *name;
-} gpio_map[] __initdata = {
+} gpio_map[] = {
 	{HDST_GPIO_DET_L, "detect_l"},
 	{HDST_GPIO_DET_H, "detect_h"},
 	{HDST_GPIO_DET_MIC, "detect_mic"},
@@ -2692,6 +2692,7 @@ static int headset_adc_cal_from_efuse(struct platform_device *pdev)
 		adc_cal_headset.A, adc_cal_headset.B,
 		adc_cal_headset.E1, adc_cal_headset.E2);
 
+	return 0;
 adc_cali_error:
 	adc_cal_headset.cal_type = SPRD_HEADSET_AUXADC_CAL_NO;
 	pr_err("%s, error: headset adc calibration fail %d\n", __func__, ret);
