@@ -63,7 +63,7 @@ static struct modem_sipa_delegator *s_modem_sipa_delegator;
 int modem_sipa_connect(struct sipa_to_pam_info *out)
 {
 	if (!s_modem_sipa_delegator)
-		return -ENODEV;
+		return -EPROBE_DEFER;
 
 	out->term = SIPA_TERM_PCIE0;
 	out->dl_fifo.rx_fifo_base_addr = DL_RX_FIFO_BASE_ADDR;
