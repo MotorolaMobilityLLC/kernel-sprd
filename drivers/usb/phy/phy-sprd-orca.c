@@ -128,13 +128,6 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	ret |= regmap_update_bits(phy->ipa_ahb, REG_AP_IPA_AHB_RF_USB1_CTRL,
 		    msk, 0);
 
-	/* Purpose: enable usb and usb suspend/ref clock */
-	reg = msk = MASK_AP_IPA_AHB_RF_USB1_EB |
-		    MASK_AP_IPA_AHB_RF_USB1_REF_EB |
-		    MASK_AP_IPA_AHB_RF_USB1_SUSPEND_EB;
-	ret |= regmap_update_bits(phy->ipa_ahb, REG_AP_IPA_AHB_RF_AHB_EB,
-		    msk, reg);
-
 	/* enable USB2 PHY 16bit */
 	reg = msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_DATABUS16_8 |
 		    MASK_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_VBUSVLDEXT;
@@ -179,12 +172,6 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 		    MASK_AP_IPA_AHB_RF_OTG_VBUS_VALID_PHYREG1 |
 		    MASK_AP_IPA_AHB_RF_PIPE3_POWERPRESENT1;
 	regmap_update_bits(phy->ipa_ahb, REG_AP_IPA_AHB_RF_USB1_CTRL, msk, 0);
-
-	/* Purpose: disable usb and usb suspend/ref clock */
-	reg = msk = MASK_AP_IPA_AHB_RF_USB1_EB |
-		    MASK_AP_IPA_AHB_RF_USB1_REF_EB |
-		    MASK_AP_IPA_AHB_RF_USB1_SUSPEND_EB;
-	regmap_update_bits(phy->ipa_ahb, REG_AP_IPA_AHB_RF_AHB_EB, msk, 0);
 
 	/* USB3 PHY power off */
 	reg = msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_PS_PD_S |
