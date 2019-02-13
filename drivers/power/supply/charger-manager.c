@@ -2475,9 +2475,7 @@ static void cm_suspend_complete(struct device *dev)
 	}
 
 	_cm_monitor(cm);
-	queue_delayed_work(system_power_efficient_wq,
-			   &cm->cap_update_work,
-			   CM_CAP_CYCLE_TRACK_TIME * HZ);
+	cm_batt_works(&cm->cap_update_work.work);
 
 	/* Re-enqueue delayed work (fullbatt_vchk_work) */
 	if (cm->fullbatt_vchk_jiffies_at) {
