@@ -44,6 +44,13 @@ static struct dentry *cproc_root;
 static void sprd_cproc_init_debugfs(void);
 #endif
 
+#ifndef CONFIG_SPRD_SIPC_V2
+#define SOC_MODEM	0
+#define modem_ram_vmap_nocache(type, start, size) \
+	shmem_ram_vmap_nocache((start), (size))
+#define modem_ram_unmap(type, mem)	shmem_ram_unmap((mem))
+#endif
+
 #define CPROC_WDT_TRUE   true
 #define CPROC_WDT_FLASE  false
 /*used for ioremap to limit vmalloc size, shi yunlong*/
@@ -185,7 +192,7 @@ static ssize_t sprd_cproc_seg_dump(u32 base,
 	do {
 		u32 copy_size = CPROC_VMALLOC_SIZE_LIMIT;
 
-		vmem = shmem_ram_vmap_nocache(
+		vmem = modem_ram_vmap_nocache(SOC_MODEM,
 				start_addr + CPROC_VMALLOC_SIZE_LIMIT * loop,
 				CPROC_VMALLOC_SIZE_LIMIT);
 		if (!vmem) {
@@ -202,11 +209,11 @@ static ssize_t sprd_cproc_seg_dump(u32 base,
 
 		if (unalign_copy_to_user(buf, vmem, copy_size)) {
 			pr_err("cproc_proc_read copy data to user error !\n");
-			shmem_ram_unmap(vmem);
+			modem_ram_unmap(SOC_MODEM, vmem);
 			return -EFAULT;
 		}
 
-		shmem_ram_unmap(vmem);
+		modem_ram_unmap(SOC_MODEM, vmem);
 
 		count -= copy_size;
 		loop++;
@@ -316,7 +323,8 @@ static ssize_t cproc_proc_read(struct file *filp,
 		do {
 			u32 copy_size = CPROC_VMALLOC_SIZE_LIMIT;
 
-			vmem = shmem_ram_vmap_nocache(cproc->initdata->base +
+			vmem = modem_ram_vmap_nocache(SOC_MODEM,
+					cproc->initdata->base +
 					*ppos + CPROC_VMALLOC_SIZE_LIMIT * i,
 					CPROC_VMALLOC_SIZE_LIMIT);
 			if (!vmem) {
@@ -335,10 +343,10 @@ static ssize_t cproc_proc_read(struct file *filp,
 				copy_size = r;
 			if (unalign_copy_to_user(buf, vmem, copy_size)) {
 				pr_err("cproc read copy data to user err!\n");
-				shmem_ram_unmap(vmem);
+				modem_ram_unmap(SOC_MODEM, vmem);
 				return -EFAULT;
 			}
-			shmem_ram_unmap(vmem);
+			modem_ram_unmap(SOC_MODEM, vmem);
 			r -= copy_size;
 			buf += copy_size;
 			i++;
@@ -513,14 +521,16 @@ static int cproc_proc_copy_iram(struct cproc_device *cproc)
 		(void *)ctrl->iram_addr,
 		ctrl->iram_size);
 
-	vmem = shmem_ram_vmap_nocache(ctrl->iram_addr,
+	vmem = modem_ram_vmap_nocache(SOC_MODEM,
+				      ctrl->iram_addr,
 				      ctrl->iram_size);
 	if (!vmem)
 		return -ENOMEM;
 	unalign_memcpy(vmem,
 		       (void *)ctrl->iram_data,
 		       ctrl->iram_size);
-	shmem_ram_unmap(vmem);
+	modem_ram_unmap(SOC_MODEM, vmem);
+
 	return 0;
 }
 
@@ -586,10 +596,11 @@ static ssize_t cproc_proc_write(struct file *filp,
 	do {
 		u32 copy_size = CPROC_VMALLOC_SIZE_LIMIT;
 
-		vmem = shmem_ram_vmap_nocache(base +
-					offset +
-					CPROC_VMALLOC_SIZE_LIMIT * i,
-					CPROC_VMALLOC_SIZE_LIMIT);
+		vmem = modem_ram_vmap_nocache(SOC_MODEM,
+				       base +
+				       offset +
+				       CPROC_VMALLOC_SIZE_LIMIT * i,
+				       CPROC_VMALLOC_SIZE_LIMIT);
 		if (!vmem) {
 			unsigned long addr = base +
 					offset +
@@ -609,10 +620,10 @@ static ssize_t cproc_proc_write(struct file *filp,
 					buf + CPROC_VMALLOC_SIZE_LIMIT * i,
 					copy_size)) {
 			pr_err("%s: copy data from user err!\n", __func__);
-			shmem_ram_unmap(vmem);
+			modem_ram_unmap(SOC_MODEM, vmem);
 			return -EFAULT;
 		}
-		shmem_ram_unmap(vmem);
+		modem_ram_unmap(SOC_MODEM, vmem);
 		r -= copy_size;
 		i++;
 	} while (r > 0);
@@ -1466,9 +1477,10 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 		/* get mini dump base+offset */
 		ret = of_address_to_resource(np, index, &res);
 		if (!ret) {
-			dump_info = shmem_ram_vmap_nocache(res.start,
-							(res.end -
-							res.start + 1));
+			dump_info = modem_ram_vmap_nocache(SOC_MODEM,
+							   res.start,
+							   (res.end -
+							    res.start + 1));
 			if (!dump_info) {
 				pr_err("unable to map dump info base: 0x%llx\n",
 				       (long long)res.start);
@@ -1524,7 +1536,7 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 	return 0;
 error:
 	if (pdata->mini_mem)
-		shmem_ram_unmap(pdata->mini_mem);
+		modem_ram_unmap(SOC_MODEM, pdata->mini_mem);
 	kfree(ctrl);
 	kfree(pdata);
 	return -EINVAL;
@@ -1536,7 +1548,7 @@ static void sprd_cproc_destroy_pdata(struct cproc_init_data **init)
 
 	if (pdata) {
 		if (pdata->mini_mem)
-			shmem_ram_unmap(pdata->mini_mem);
+			modem_ram_unmap(SOC_MODEM, pdata->mini_mem);
 		kfree(pdata->ctrl);
 		kfree(pdata);
 	}
