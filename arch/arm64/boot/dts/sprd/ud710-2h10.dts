@@ -91,8 +91,8 @@
 
 	sprd-wlan {
 		compatible = "sprd,sc2355-wifi";
-		reg = <0 0x211C0000 0 0x3000>;
-		reg-names = "PAM_WIFI_REG_BASE_REMAP";
+		reg = <0 0x211c0000 0 0x3000>;
+		reg-names = "pam_wifi_reg_base_remap";
 	};
 
 	gnss-common-ctl {
