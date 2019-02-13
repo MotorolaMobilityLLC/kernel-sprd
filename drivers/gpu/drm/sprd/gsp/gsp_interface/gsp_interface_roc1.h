@@ -21,12 +21,12 @@
 
 #define GSP_ROC1 "roc1"
 
-#define ROC1_AON_APB_DISP_EB_NAME	  ("clk_aon_apb_disp_eb")
+#define ROC1_AP_AHB_DISP_EB_NAME	  ("clk_ap_ahb_disp_eb")
 
 struct gsp_interface_roc1 {
 	struct gsp_interface common;
 
-	struct clk *clk_aon_apb_disp_eb;
+	struct clk *clk_ap_ahb_disp_eb;
 	struct regmap *module_en_regmap;
 	struct regmap *reset_regmap;
 };
