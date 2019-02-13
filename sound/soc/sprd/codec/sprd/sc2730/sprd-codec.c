@@ -1096,25 +1096,26 @@ static int sprd_codec_sample_rate_setting(struct sprd_codec_priv *sprd_codec)
 
 static void sprd_codec_power_disable(struct snd_soc_codec *codec)
 {
-/*
- * struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
- * int ret;
- */
+
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
 	ADEBUG();
+
 	arch_audio_codec_analog_disable();
 	sprd_codec_audif_clk_enable(codec, 0);
+	regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
 }
 
 static void sprd_codec_power_enable(struct snd_soc_codec *codec)
 {
-/*
- * struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
- * int ret;
- */
+
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
 	ADEBUG();
 
 	arch_audio_codec_analog_enable();
 	sprd_codec_audif_clk_enable(codec, 1);
+	regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_NORMAL);
 }
 
 static int sprd_codec_digital_open(struct snd_soc_codec *codec)
@@ -1773,7 +1774,7 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_SUPPLY_S("Digital Power", 1, SND_SOC_NOPM,
 		0, 0, digital_power_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-	SND_SOC_DAPM_SUPPLY_S("Analog Power", 2, SND_SOC_NOPM,
+	SND_SOC_DAPM_SUPPLY_S("Analog Power", 0, SND_SOC_NOPM,
 		0, 0, analog_power_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 
@@ -1782,11 +1783,11 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_REGULATOR_SUPPLY("MICBIAS1", 0, 0),
 	SND_SOC_DAPM_REGULATOR_SUPPLY("MICBIAS2", 0, 0),
 	SND_SOC_DAPM_REGULATOR_SUPPLY("HEADMICBIAS", 0, 0),
-	SND_SOC_DAPM_SUPPLY_S("CP_LDO", 0, SOC_REG(ANA_PMU0),
+	SND_SOC_DAPM_SUPPLY_S("CP_LDO", 2, SOC_REG(ANA_PMU0),
 			CP_LDO_EN_S, 0, NULL, 0),
 
 /* Clock */
-	SND_SOC_DAPM_SUPPLY_S("ANA_CLK", 0, SOC_REG(ANA_CLK0),
+	SND_SOC_DAPM_SUPPLY_S("ANA_CLK", 1, SOC_REG(ANA_CLK0),
 			ANA_CLK_EN_S, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY_S("CLK_DCL_6M5", 1, SOC_REG(ANA_CLK0),
 			CLK_DCL_6M5_EN_S, 0, NULL, 0),
@@ -2737,34 +2738,6 @@ static struct snd_soc_dai_ops sprd_codec_dai_ops = {
 	.shutdown = sprd_codec_pcm_hw_shutdown,
 };
 
-#ifdef CONFIG_PM
-static int sprd_codec_soc_suspend(struct snd_soc_codec *codec)
-{
-	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
-
-	sp_asoc_pr_info("%s, startup_cnt=%d\n",
-		__func__, sprd_codec->startup_cnt);
-	if (sprd_codec->startup_cnt == 0)
-		regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
-	return 0;
-}
-
-static int sprd_codec_soc_resume(struct snd_soc_codec *codec)
-{
-	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
-
-	sp_asoc_pr_info("%s, startup_cnt=%d,ana_pmu0=0x%x\n",
-		__func__, sprd_codec->startup_cnt,
-		snd_soc_read(codec, SOC_REG(ANA_PMU0)));
-
-	regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_NORMAL);
-	return 0;
-}
-#else
-#define sprd_codec_soc_suspend NULL
-#define sprd_codec_soc_resume  NULL
-#endif
-
 /*
  * proc interface
  */
@@ -3229,10 +3202,16 @@ static int sprd_codec_soc_remove(struct snd_soc_codec *codec)
 static int sprd_codec_power_regulator_init(struct sprd_codec_priv *sprd_codec,
 					   struct device *dev)
 {
+	int ret;
+
 	sprd_codec_power_get(dev, &sprd_codec->main_mic, "MICBIAS");
 	sprd_codec_power_get(dev, &sprd_codec->head_mic, "HEADMICBIAS");
 	sprd_codec_power_get(dev, &sprd_codec->vb, "VB");
-
+	ret = regulator_enable(sprd_codec->vb);
+	if (!ret) {
+		regulator_set_mode(sprd_codec->vb, REGULATOR_MODE_STANDBY);
+		regulator_disable(sprd_codec->vb);
+	}
 	return 0;
 }
 
@@ -3240,13 +3219,12 @@ static void sprd_codec_power_regulator_exit(struct sprd_codec_priv *sprd_codec)
 {
 	sprd_codec_power_put(&sprd_codec->main_mic);
 	sprd_codec_power_put(&sprd_codec->head_mic);
+	sprd_codec_power_put(&sprd_codec->vb);
 }
 
 static struct snd_soc_codec_driver soc_codec_dev_sprd_codec = {
 	.probe = sprd_codec_soc_probe,
 	.remove = sprd_codec_soc_remove,
-	.suspend = sprd_codec_soc_suspend,
-	.resume = sprd_codec_soc_resume,
 	.read = sprd_codec_read,
 	.write = sprd_codec_write,
 	.reg_word_size = sizeof(u16),
