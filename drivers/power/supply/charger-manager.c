@@ -2421,6 +2421,28 @@ static int charger_manager_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void charger_manager_shutdown(struct platform_device *pdev)
+{
+	struct charger_manager *cm = platform_get_drvdata(pdev);
+	struct charger_desc *desc = cm->desc;
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(desc->psy_fuel_gauge);
+	if (!fuel_gauge) {
+		dev_err(cm->dev, "can not find fuel gauge device\n");
+		return;
+	}
+
+	val.intval = desc->cap;
+	ret = power_supply_set_property(fuel_gauge, POWER_SUPPLY_PROP_CAPACITY,
+					&val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		dev_err(cm->dev, "failed to save current battery capacity\n");
+}
+
 static const struct platform_device_id charger_manager_id[] = {
 	{ "charger-manager", 0 },
 	{ },
@@ -2519,6 +2541,7 @@ static struct platform_driver charger_manager_driver = {
 	},
 	.probe = charger_manager_probe,
 	.remove = charger_manager_remove,
+	.shutdown = charger_manager_shutdown,
 	.id_table = charger_manager_id,
 };
 
