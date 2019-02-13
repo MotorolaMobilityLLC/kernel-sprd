@@ -9701,6 +9701,20 @@ CONFIG_SPRD_AUDIO_SIPC
 	[subsys] sound
 	[must] user
 	[function] sound communication with audio dsp
+CONFIG_SPRD_AUTOTEST
+	[arch] all
+	[plat] all
+	[field] menu,make,code
+	[subsys] soc
+	[must] user
+	[function] Support Spreadtrum autotest
+CONFIG_SPRD_AUTOTEST_PINCTRL
+	[arch] all
+	[plat] all
+	[field] menu,make,code
+	[subsys] soc
+	[must] user
+	[function] Spreadtrum pinctrl autotest support
 CONFIG_SPRD_BUSMONITOR
 	[arch] all
 	[plat] all

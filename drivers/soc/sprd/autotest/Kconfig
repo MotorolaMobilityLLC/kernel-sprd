@@ -1,0 +1,11 @@
+#
+# SPRD Soc autotest support
+#
+config SPRD_AUTOTEST
+	tristate
+
+config SPRD_AUTOTEST_PINCTRL
+	tristate "Spreadtrum pinctrl autotest support"
+	select SPRD_AUTOTEST
+	help
+	  Enable this to support pinctrl autotest.

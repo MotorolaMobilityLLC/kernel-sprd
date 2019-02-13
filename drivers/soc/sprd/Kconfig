@@ -24,6 +24,7 @@ config SPRD_PMIC_SYSCON
 source drivers/soc/sprd/iommu/Kconfig
 source "drivers/soc/sprd/modem/Kconfig"
 source "drivers/soc/sprd/domain/Kconfig"
+source "drivers/soc/sprd/autotest/Kconfig"
 
 config SPRD_DEBUG
 	tristate "Spreadtrum debug module"
