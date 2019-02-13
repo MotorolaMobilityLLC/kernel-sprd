@@ -1095,14 +1095,58 @@ static int pm_qos_clusterx_freq_handler(struct notifier_block *nb,
 		unsigned long val, void *v)
 {
 	struct cpufreq_policy *policy = container_of(nb, struct cpufreq_policy, pm_qos_freq_nb);
-
-	return cpufreq_driver_target(policy, policy->target_freq, CPUFREQ_RELATION_L);
+	if (!policy_is_inactive(policy))
+		return cpufreq_driver_target(policy, policy->target_freq, CPUFREQ_RELATION_L);
+	else
+		return -1;
 }
 
+static void pm_qos_clusterx_freq_init(struct cpufreq_policy *policy)
+{
+	int cluster_id = topology_physical_package_id(policy->cpu);
+
+	switch (cluster_id) {
+	case CPU_CLUSTER0:
+		policy->pm_qos_freq_nb = (struct notifier_block){
+			.notifier_call = pm_qos_clusterx_freq_handler,
+		};
+		pm_qos_add_notifier(PM_QOS_CLUSTER0_FREQ_MAX, &policy->pm_qos_freq_nb);
+		pm_qos_add_notifier(PM_QOS_CLUSTER0_FREQ_MIN, &policy->pm_qos_freq_nb);
+		break;
+	case CPU_CLUSTER1:
+		policy->pm_qos_freq_nb = (struct notifier_block){
+			.notifier_call = pm_qos_clusterx_freq_handler,
+		};
+		pm_qos_add_notifier(PM_QOS_CLUSTER1_FREQ_MAX, &policy->pm_qos_freq_nb);
+		pm_qos_add_notifier(PM_QOS_CLUSTER1_FREQ_MIN, &policy->pm_qos_freq_nb);
+		break;
+	default:
+		pr_warn("more cluster id is not support yet!\n");
+		break;
+	}
+}
+
+static void pm_qos_clusterx_freq_exit(struct cpufreq_policy *policy)
+{
+	int cluster_id = topology_physical_package_id(policy->cpu);
+
+	switch (cluster_id) {
+	case CPU_CLUSTER0:
+		pm_qos_remove_notifier(PM_QOS_CLUSTER0_FREQ_MAX, &policy->pm_qos_freq_nb);
+		pm_qos_remove_notifier(PM_QOS_CLUSTER0_FREQ_MIN, &policy->pm_qos_freq_nb);
+		break;
+	case CPU_CLUSTER1:
+		pm_qos_remove_notifier(PM_QOS_CLUSTER1_FREQ_MAX, &policy->pm_qos_freq_nb);
+		pm_qos_remove_notifier(PM_QOS_CLUSTER1_FREQ_MIN, &policy->pm_qos_freq_nb);
+		break;
+	default:
+		pr_warn("more cluster id is not support yet!\n");
+		break;
+	};
+}
 static struct cpufreq_policy *cpufreq_policy_alloc(unsigned int cpu)
 {
 	struct cpufreq_policy *policy;
-	int cluster_id;
 	int ret;
 
 	policy = kzalloc(sizeof(*policy), GFP_KERNEL);
@@ -1133,26 +1177,6 @@ static struct cpufreq_policy *cpufreq_policy_alloc(unsigned int cpu)
 	INIT_WORK(&policy->update, handle_update);
 
 	policy->cpu = cpu;
-	cluster_id = topology_physical_package_id(policy->cpu);
-	switch (cluster_id) {
-	case CPU_CLUSTER0:
-		policy->pm_qos_freq_nb = (struct notifier_block){
-			.notifier_call = pm_qos_clusterx_freq_handler,
-		};
-		pm_qos_add_notifier(PM_QOS_CLUSTER0_FREQ_MAX, &policy->pm_qos_freq_nb);
-		pm_qos_add_notifier(PM_QOS_CLUSTER0_FREQ_MIN, &policy->pm_qos_freq_nb);
-		break;
-	case CPU_CLUSTER1:
-		policy->pm_qos_freq_nb = (struct notifier_block){
-			.notifier_call = pm_qos_clusterx_freq_handler,
-		};
-		pm_qos_add_notifier(PM_QOS_CLUSTER1_FREQ_MAX, &policy->pm_qos_freq_nb);
-		pm_qos_add_notifier(PM_QOS_CLUSTER1_FREQ_MIN, &policy->pm_qos_freq_nb);
-		break;
-	default:
-		pr_warn("more cluster id is not support yet!\n");
-		break;
-	}
 
 	return policy;
 
@@ -1194,7 +1218,6 @@ static void cpufreq_policy_free(struct cpufreq_policy *policy)
 {
 	unsigned long flags;
 	int cpu;
-	int cluster_id;
 
 	/* Remove policy from list */
 	write_lock_irqsave(&cpufreq_driver_lock, flags);
@@ -1203,21 +1226,6 @@ static void cpufreq_policy_free(struct cpufreq_policy *policy)
 	for_each_cpu(cpu, policy->related_cpus)
 		per_cpu(cpufreq_cpu_data, cpu) = NULL;
 	write_unlock_irqrestore(&cpufreq_driver_lock, flags);
-
-	cluster_id = topology_physical_package_id(policy->cpu);
-	switch (cluster_id) {
-	case CPU_CLUSTER0:
-		pm_qos_remove_notifier(PM_QOS_CLUSTER0_FREQ_MAX, &policy->pm_qos_freq_nb);
-		pm_qos_remove_notifier(PM_QOS_CLUSTER0_FREQ_MIN, &policy->pm_qos_freq_nb);
-		break;
-	case CPU_CLUSTER1:
-		pm_qos_remove_notifier(PM_QOS_CLUSTER1_FREQ_MAX, &policy->pm_qos_freq_nb);
-		pm_qos_remove_notifier(PM_QOS_CLUSTER1_FREQ_MIN, &policy->pm_qos_freq_nb);
-		break;
-	default:
-		pr_warn("more cluster id is not support yet!\n");
-		break;
-	};
 
 	cpufreq_policy_put_kobj(policy);
 	free_cpumask_var(policy->real_cpus);
@@ -1266,6 +1274,7 @@ static int cpufreq_online(unsigned int cpu)
 		pr_debug("initialization failed\n");
 		goto out_free_policy;
 	}
+	pm_qos_clusterx_freq_init(policy);
 
 	down_write(&policy->rwsem);
 
@@ -1441,6 +1450,7 @@ static int cpufreq_offline(unsigned int cpu)
 				CPUFREQ_NAME_LEN);
 		else
 			policy->last_policy = policy->policy;
+		pm_qos_clusterx_freq_exit(policy);
 	} else if (cpu == policy->cpu) {
 		/* Nominate new CPU */
 		policy->cpu = cpumask_any(policy->cpus);
