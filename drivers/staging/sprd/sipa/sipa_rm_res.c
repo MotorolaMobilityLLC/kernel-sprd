@@ -447,7 +447,7 @@ sipa_rm_resource_consumer_create(struct sipa_rm_resource **resource,
 int sipa_rm_resource_create(struct sipa_rm_create_params *create_params,
 			    struct sipa_rm_resource **resource)
 {
-	struct sipa_rm_res_cons *consumer;
+	struct sipa_rm_res_cons *consumer = NULL;
 	struct sipa_rm_res_prod *producer;
 	int max_peers;
 	int result = 0;
