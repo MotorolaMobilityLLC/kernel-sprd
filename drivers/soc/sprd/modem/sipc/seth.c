@@ -61,6 +61,8 @@
 #define ARPHRD_RAWIP 530
 #endif
 
+#define SETH_NAME_SIZE 16
+
 /* Struct of data transfer statistics */
 struct seth_dtrans_stats {
 	u32 rx_pkt_max;
@@ -675,19 +677,24 @@ static int seth_parse_dt(struct seth_init_data **init, struct device *dev)
 {
 	struct seth_init_data *pdata = NULL;
 	struct device_node *np = dev->of_node;
-	int ret;
+	int ret, dev_id;
 	u32 data;
 
 	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
 	if (!pdata)
 		return -ENOMEM;
 
-	ret = of_property_read_string(
-		np,
-		"sprd,name",
-		(const char **)&pdata->name);
-	if (ret)
+	pdata->name = devm_kzalloc(dev, SETH_NAME_SIZE, GFP_KERNEL);
+	if (!pdata->name)
+		return -ENOMEM;
+
+	dev_id = of_alias_get_id(np, "seth");
+	if (dev_id < 0) {
+		dev_err(dev, "failed to get seth device id, ret= %d\n", dev_id);
+		ret = dev_id;
 		goto error;
+	}
+	snprintf(pdata->name, SETH_NAME_SIZE, "seth_lte%d", dev_id);
 
 	ret = of_property_read_u32(
 		np,
