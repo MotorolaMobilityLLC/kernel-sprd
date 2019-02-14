@@ -158,7 +158,7 @@ static u32 calc_dpu_core_clk(u32 pclk)
 {
 	int i;
 
-	pclk *= 2;
+	pclk *= 4;
 
 	for (i = 0; i < ARRAY_SIZE(dpu_core_clk); i++) {
 		if (pclk <= dpu_core_clk[i])
@@ -166,7 +166,7 @@ static u32 calc_dpu_core_clk(u32 pclk)
 	}
 
 	pr_err("calc DPU_CORE_CLK failed, use default\n");
-	return 192000000;
+	return 307200000;
 }
 
 static u32 calc_dpi_clk_src(u32 pclk)
