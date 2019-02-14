@@ -83,7 +83,7 @@ static int sprd_ssphy_init(struct usb_phy *x)
 {
 	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
 	u32	reg, msk;
-	int	ret;
+	int	ret = 0;
 
 	if (atomic_read(&phy->inited)) {
 		dev_info(x->dev, "%s is already inited!\n", __func__);
@@ -97,20 +97,24 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	}
 
 	/* USB3 PHY power on */
-	reg = msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_PS_PD_S |
-		    MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_PS_PD_L |
-		    MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_ISO_SW_EN;
-	ret = regmap_update_bits(phy->ana_g4,
-		    REG_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_ANA_USB30_CTRL0,
-		    msk, reg);
+	ret |= regmap_read(phy->ana_g4,
+		REG_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_ANA_USB30_CTRL0, &reg);
+	msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_PS_PD_S |
+	      MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_PS_PD_L |
+	      MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_ISO_SW_EN;
+	reg |= msk;
+	ret |= regmap_write(phy->ana_g4,
+		REG_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_ANA_USB30_CTRL0, reg);
 
 	/* USB2 PHY power on */
-	reg = msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_PS_PD_S |
+	ret |= regmap_read(phy->ana_g4,
+		REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_UTMI_CTL1, &reg);
+	msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_PS_PD_S |
 		    MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_PS_PD_L |
 		    MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_ISO_SW_EN;
-	ret |= regmap_update_bits(phy->ana_g4,
-			 REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_UTMI_CTL1,
-			 msk, reg);
+	reg |= msk;
+	ret |= regmap_write(phy->ana_g4,
+		REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_UTMI_CTL1, reg);
 
 	/* purpose: set bvalid vbus_valid and clear vbus_valid_sel */
 	reg = msk = MASK_AP_IPA_AHB_RF_UTMISRP_BVALID_REG1 |
@@ -129,10 +133,10 @@ static int sprd_ssphy_init(struct usb_phy *x)
 		    msk, 0);
 
 	/* enable USB2 PHY 16bit */
-	reg = msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_DATABUS16_8 |
-		    MASK_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_VBUSVLDEXT;
+	reg = msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_DATABUS16_8 |
+		    MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_VBUSVLDEXT;
 	ret |= regmap_update_bits(phy->ana_g4,
-		    REG_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_UTMI_CTL1,
+		    REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_UTMI_CTL1,
 		    msk, reg);
 
 	/* vbus valid */
@@ -163,9 +167,9 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	msk = MASK_AON_APB_RF_OTG_VBUS_VALID_PHYREG;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_RF_OTG_PHY_TEST, msk, 0);
 
-	msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_VBUSVLDEXT;
+	msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_VBUSVLDEXT;
 	regmap_update_bits(phy->ana_g4,
-		REG_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_UTMI_CTL1, msk, 0);
+		REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_UTMI_CTL1, msk, 0);
 
 	/* purpose: set bvalid vbus_valid and clear vbus_valid_sel */
 	msk = MASK_AP_IPA_AHB_RF_UTMISRP_BVALID_REG1 |
@@ -174,19 +178,24 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	regmap_update_bits(phy->ipa_ahb, REG_AP_IPA_AHB_RF_USB1_CTRL, msk, 0);
 
 	/* USB3 PHY power off */
-	reg = msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_PS_PD_S |
-		    MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_PS_PD_L |
-		    MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_ISO_SW_EN;
-	regmap_update_bits(phy->ana_g4,
-			 REG_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_ANA_USB30_CTRL0,
-			 msk, 0);
+	regmap_read(phy->ana_g4,
+		REG_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_ANA_USB30_CTRL0, &reg);
+	msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_PS_PD_S |
+		MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_PS_PD_L |
+		MASK_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_USB30_ISO_SW_EN;
+	reg &= ~msk;
+	regmap_write(phy->ana_g4,
+		REG_ANLG_PHY_G4_RF_ANALOG_USB3_TYPEC_1_ANA_USB30_CTRL0, reg);
 
 	/* USB2 PHY power off */
-	reg = msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_PS_PD_S |
-		    MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_PS_PD_L |
-		    MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_ISO_SW_EN;
-	regmap_update_bits(phy->ana_g4,
-		    REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_UTMI_CTL1, msk, 0);
+	regmap_read(phy->ana_g4,
+		REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_UTMI_CTL1, &reg);
+	msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_PS_PD_S |
+	      MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_PS_PD_L |
+	      MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_ISO_SW_EN;
+	reg &= ~msk;
+	regmap_write(phy->ana_g4,
+		REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_UTMI_CTL1, reg);
 
 	if (phy->vdd && regulator_is_enabled(phy->vdd))
 		regulator_disable(phy->vdd);
