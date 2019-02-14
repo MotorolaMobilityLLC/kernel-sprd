@@ -870,6 +870,188 @@ static int cm_feed_watchdog(struct charger_manager *cm)
 
 	return 0;
 }
+
+enum cm_manager_jeita_status {
+	STATUS_BELOW_T0 = 0,
+	STATUS_T0_TO_T1,
+	STATUS_T1_TO_T2,
+	STATUS_T2_TO_T3,
+	STATUS_T3_TO_T4,
+	STATUS_ABOVE_T4
+};
+
+static void cm_manager_adjust_current(struct charger_manager *cm,
+				      int jeita_status)
+{
+	struct charger_desc *desc = cm->desc;
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int term_volt, target_cur, i, ret = -ENODEV;
+
+	if (jeita_status > desc->jeita_tab_size)
+		jeita_status = desc->jeita_tab_size;
+
+	if (jeita_status == 0 || jeita_status == desc->jeita_tab_size) {
+		dev_warn(cm->dev,
+			 "stop charging due to battery overheat or cold\n");
+		try_charger_enable(cm, false);
+		return;
+	}
+
+	term_volt = desc->jeita_tab[jeita_status].term_volt;
+	target_cur = desc->jeita_tab[jeita_status].current_ua;
+
+	dev_info(cm->dev, "target terminate voltage = %d, target current = %d\n",
+		 term_volt, target_cur);
+
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		val.intval = term_volt;
+		ret = power_supply_set_property(psy,
+					POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
+					&val);
+		if (ret) {
+			power_supply_put(psy);
+			dev_err(cm->dev,
+				"failed to set terminate voltage, ret = %d\n",
+				ret);
+			continue;
+		}
+
+		val.intval = target_cur;
+		ret = power_supply_set_property(psy,
+					POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
+					&val);
+		power_supply_put(psy);
+		if (ret) {
+			dev_err(cm->dev,
+				"failed to set charge current, ret = %d\n",
+				ret);
+			continue;
+		}
+	}
+
+	if (!ret)
+		try_charger_enable(cm, true);
+}
+
+static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
+{
+	struct charger_desc *desc = cm->desc;
+	static int jeita_status;
+	int i;
+
+	for (i = desc->jeita_tab_size - 1; i >= 0; i--) {
+		if ((cur_temp >= desc->jeita_tab[i].temp && i > 0) ||
+		    (cur_temp > desc->jeita_tab[i].temp && i == 0)) {
+			break;
+		}
+	}
+
+	switch (i) {
+	case 4:
+		jeita_status = STATUS_ABOVE_T4;
+		break;
+
+	case 3:
+		if (jeita_status != STATUS_ABOVE_T4 ||
+		    cur_temp <= desc->jeita_tab[4].recovery_temp)
+			jeita_status = STATUS_T3_TO_T4;
+		break;
+
+	case 2:
+		if ((jeita_status != STATUS_T3_TO_T4 ||
+		     cur_temp <= desc->jeita_tab[3].recovery_temp) &&
+		    (jeita_status != STATUS_T1_TO_T2 ||
+		     cur_temp >= desc->jeita_tab[2].recovery_temp))
+			jeita_status = STATUS_T2_TO_T3;
+		break;
+
+	case 1:
+		if (jeita_status != STATUS_T0_TO_T1 ||
+		    cur_temp >= desc->jeita_tab[1].recovery_temp)
+			jeita_status = STATUS_T1_TO_T2;
+		break;
+
+	case 0:
+		if (jeita_status != STATUS_BELOW_T0 ||
+		    cur_temp >= desc->jeita_tab[0].recovery_temp)
+			jeita_status = STATUS_T0_TO_T1;
+		break;
+
+	default:
+		jeita_status = STATUS_BELOW_T0;
+		break;
+	}
+
+	return jeita_status;
+}
+
+static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
+{
+	struct charger_desc *desc = cm->desc;
+	static int last_jeita_status = -1, temp_up_trigger, temp_down_trigger;
+	int cur_jeita_status, cur_temp, ret;
+
+	if (!desc->jeita_tab_size)
+		return 0;
+
+	if (!is_ext_pwr_online(cm)) {
+		if (last_jeita_status != -1)
+			last_jeita_status = -1;
+
+		return 0;
+	}
+
+	ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
+	if (ret) {
+		dev_err(cm->dev, "failed to get battery temperature\n");
+		return ret;
+	}
+
+	cur_jeita_status = cm_manager_get_jeita_status(cm, cur_temp);
+
+	dev_info(cm->dev, "current-last jeita status: %d-%d, current temperature: %d\n",
+		 cur_jeita_status, last_jeita_status, cur_temp);
+
+	/*
+	 * We should give a initial jeita status with adjusting the charging
+	 * current when pluging in the cabel.
+	 */
+	if (last_jeita_status == -1) {
+		cm_manager_adjust_current(cm, cur_jeita_status);
+		last_jeita_status = cur_jeita_status;
+		return 0;
+	}
+
+	if (cur_jeita_status > last_jeita_status) {
+		temp_down_trigger = 0;
+
+		if (++temp_up_trigger > 2) {
+			cm_manager_adjust_current(cm, cur_jeita_status);
+			last_jeita_status = cur_jeita_status;
+		}
+	} else if (cur_jeita_status < last_jeita_status) {
+		temp_up_trigger = 0;
+
+		if (++temp_down_trigger > 2) {
+			cm_manager_adjust_current(cm, cur_jeita_status);
+			last_jeita_status = cur_jeita_status;
+		}
+	} else {
+		temp_up_trigger = 0;
+		temp_down_trigger = 0;
+	}
+
+	return 0;
+}
+
 /**
  * _cm_monitor - Monitor the temperature and return true for exceptions.
  * @cm: the Charger Manager representing the battery.
@@ -903,6 +1085,17 @@ static bool _cm_monitor(struct charger_manager *cm)
 	ret = cm_feed_watchdog(cm);
 	if (ret) {
 		dev_warn(cm->dev, "Failed to feed charger watchdog\n");
+		return false;
+	}
+
+	/*
+	 * Adjust the charging current according to current battery
+	 * temperature jeita table.
+	 */
+	ret = cm_manager_jeita_current_monitor(cm);
+	if (ret) {
+		dev_warn(cm->dev,
+			 "Errors orrurs when adjusting charging current\n");
 		return false;
 	}
 
@@ -1846,6 +2039,32 @@ static int cm_init_thermal_data(struct charger_manager *cm,
 	return ret;
 }
 
+static int cm_init_jeita_table(struct charger_desc *desc, struct device *dev)
+{
+	struct device_node *np = dev->of_node;
+	const __be32 *list;
+	int i, size;
+
+	list = of_get_property(np, "cm-jeita-temp-table", &size);
+	if (!list || !size)
+		return 0;
+
+	desc->jeita_tab_size = size / (4 * sizeof(__be32));
+	desc->jeita_tab = devm_kzalloc(dev, sizeof(struct charger_jeita_table) *
+				       (desc->jeita_tab_size + 1), GFP_KERNEL);
+	if (!desc->jeita_tab)
+		return -ENOMEM;
+
+	for (i = 0; i < desc->jeita_tab_size; i++) {
+		desc->jeita_tab[i].temp = be32_to_cpu(*list++) - 1000;
+		desc->jeita_tab[i].recovery_temp = be32_to_cpu(*list++) - 1000;
+		desc->jeita_tab[i].current_ua = be32_to_cpu(*list++);
+		desc->jeita_tab[i].term_volt = be32_to_cpu(*list++);
+	}
+
+	return 0;
+}
+
 static const struct of_device_id charger_manager_match[] = {
 	{
 		.compatible = "charger-manager",
@@ -1859,7 +2078,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	struct device_node *np = dev->of_node;
 	u32 poll_mode = CM_POLL_DISABLE;
 	u32 battery_stat = CM_NO_BATTERY;
-	int num_chgs = 0;
+	int num_chgs = 0, ret;
 
 	desc = devm_kzalloc(dev, sizeof(*desc), GFP_KERNEL);
 	if (!desc)
@@ -1924,6 +2143,11 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->charge_voltage_max);
 	of_property_read_u32(np, "cm-charge-voltage-drop",
 			     &desc->charge_voltage_drop);
+
+	/* Initialize the jeita temperature table. */
+	ret = cm_init_jeita_table(desc, dev);
+	if (ret)
+		return ERR_PTR(ret);
 
 	/* battery charger regualtors */
 	desc->num_charger_regulators = of_get_child_count(np);

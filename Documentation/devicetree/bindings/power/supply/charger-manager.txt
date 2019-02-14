@@ -34,6 +34,11 @@ Optional properties :
  - cm-tickle-time-out: when 99% of the time is exceeded, it will be forced to 100%
  - cm-one-cap-time: how much time to allow capacity change
  - cm-wdt-interval: the interval to feed charger watchdog
+ - cm-jeita-temp-table: An array providing the temperature in degree Celsius,
+   the recovery temperature in degree Celsius, the corresponding current and
+   the corresponding terminate voltage, which is used to adjust the charging
+   current according to different battery temperature to improve charging
+   efficiency. The current unit is microamp and terminate voltage unit is microvolt.
 Example :
 	charger-manager@0 {
 		compatible = "charger-manager";
@@ -72,6 +77,9 @@ Example :
 		cm-tickle-time-out = <1500>;
 		cm-one-cap-time = <30>;
 		cm-wdt-interval = <60>;
+		cm-jeita-temp-table = <900 930 0 4200000>, <1000 1030 100000 4200000>,
+			<1100 1130 500000 4350000>, <1450 1420 0x7fff000 4350000>,
+			<1500 1470 700000 4350000>;
 
 		regulator@0 {
 			cm-regulator-name = "chg-reg";

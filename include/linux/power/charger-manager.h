@@ -128,6 +128,13 @@ struct charger_regulator {
 	struct charger_manager *cm;
 };
 
+struct charger_jeita_table {
+	int temp;
+	int recovery_temp;
+	int current_ua;
+	int term_volt;
+};
+
 /**
  * struct charger_desc
  * @psy_name: the name of power-supply-class for charger manager
@@ -184,6 +191,9 @@ struct charger_regulator {
  * @shutdown_voltage: If it has dropped more than shutdown_voltage,
  *	the phone will automatically shut down
  * @wdt_interval: Watch dog time pre-load value
+ * @jeita_tab: Specify the jeita temperature table, which is used to
+ *	adjust the charging current according to the battery temperature.
+ * @jeita_tab_size: Specify the size of jeita temperature table.
  */
 struct charger_desc {
 	const char *psy_name;
@@ -238,6 +248,9 @@ struct charger_desc {
 	u32 shutdown_voltage;
 
 	u32 wdt_interval;
+
+	struct charger_jeita_table *jeita_tab;
+	u32 jeita_tab_size;
 };
 
 #define PSY_NAME_MAX	30
