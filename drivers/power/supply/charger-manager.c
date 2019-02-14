@@ -848,7 +848,7 @@ static int cm_feed_watchdog(struct charger_manager *cm)
 	struct power_supply *psy;
 	int err, i;
 
-	if (!cm->desc->wdt_interval)
+	if (!cm->desc->wdt_interval || !cm->charger_enabled)
 		return 0;
 
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
