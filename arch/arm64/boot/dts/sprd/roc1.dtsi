@@ -258,6 +258,12 @@
 			reg = <0 0x60100000 0 0x10000>;
 		};
 
+		gpu_dvfs_apb_regs: syscon@60110000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x60110000 0 0x10000>;
+		};
+
 		mm_ahb_regs: syscon@62200000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
@@ -329,13 +335,32 @@
 					MASK_PMU_APB_PD_GPU_RGX_DUST_FORCE_SHUTDOWN>,
 				<&pmu_apb_regs
 					REG_PMU_APB_PD_GPU_RGX_DUST_CFG0
-					MASK_PMU_APB_PD_GPU_RGX_DUST_AUTO_SHUTDOWN_EN>;
+					MASK_PMU_APB_PD_GPU_RGX_DUST_AUTO_SHUTDOWN_EN>,
+				/*<&gpu_apb_regs
+					REG_GPU_APB_GPU_NIC400_QOS
+					MASK_GPU_APB_GPU_QOS_SEL>,
+				<&gpu_apb_regs
+					REG_GPU_APB_GPU_NIC400_QOS
+					(MASK_GPU_APB_AWQOS_THRESHOLD_GPU |
+					MASK_GPU_APB_ARQOS_THRESHOLD_GPU |
+					MASK_GPU_APB_AWQOS_GPU |
+					MASK_GPU_APB_ARQOS_GPU)>,*/
+				<&gpu_dvfs_apb_regs
+					REG_GPU_DVFS_APB_GPU_DVFS_INDEX_CFG
+					MASK_GPU_DVFS_APB_GPU_DVFS_INDEX>,
+				<&gpu_dvfs_apb_regs
+					REG_GPU_DVFS_APB_GPU_SW_DVFS_CTRL
+					(MASK_GPU_DVFS_APB_GPU_DVFS_ACK |
+					MASK_GPU_DVFS_APB_GPU_DVFS_VOLTAGE_SW |
+					MASK_GPU_DVFS_APB_GPU_DVFS_REQ_SW)>;
 
 				syscon-names = "top_force_shutdown",
 					"rgx_dust_force_shutdown",
 					"rgx_dust_auto_shutdown",
-					"gpu_qos_sel",
-					"gpu_qos";
+					/*"gpu_qos_sel",
+					"gpu_qos",*/
+					"dvfs_index_cfg",
+					"sw_dvfs_ctrl";
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
 
 				operating-points = <
@@ -358,11 +383,11 @@
 
 				sprd,dvfs-default = <0>;
 				sprd,qos = <&gpu_qos>;
-				sprd,dvfs-scene-extreme = <2>;
-				sprd,dvfs-scene-high = <1>;
-				sprd,dvfs-scene-medium = <1>;
+				sprd,dvfs-scene-extreme = <3>;
+				sprd,dvfs-scene-high = <2>;
+				sprd,dvfs-scene-medium = <2>;
 				sprd,dvfs-scene-low = <0>;
-				sprd,dvfs-range-max = <2>;
+				sprd,dvfs-range-max = <4>;
 				sprd,dvfs-range-min = <0>;
 			};
 
