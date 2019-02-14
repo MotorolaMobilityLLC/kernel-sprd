@@ -189,7 +189,7 @@
 				num-lanes = <1>;
 				num-ib-windows = <6>;
 				num-ob-windows = <8>;
-				status = "okay";
+				status = "disabled";
 			};
 
 			ssphy: ssphy@634c0000 {
