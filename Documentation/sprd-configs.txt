@@ -9918,13 +9918,6 @@ CONFIG_SPRD_MCD
 	[subsys] mm
 	[must] busybox_console
 	[function] modem control device driver
-CONFIG_SPRD_MEMDISK
-	[arch] arm64
-	[plat] sharkl5
-	[field] make,code
-	[subsys] core
-	[must] console
-	[function] Support for memdisk. Enable on haps bringup, Disable on chipback.
 CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[arch] all
 	[plat] all
