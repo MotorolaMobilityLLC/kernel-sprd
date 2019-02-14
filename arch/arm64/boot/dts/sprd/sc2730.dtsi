@@ -101,6 +101,7 @@
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 			reg = <0x380>;
+			mode = <2>;
 			nvmem-cells = <&cc_cal>;
 			nvmem-cell-names = "cc_calib";
 		};
