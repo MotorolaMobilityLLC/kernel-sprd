@@ -482,6 +482,12 @@ static void sprd_headset_clear_all_eic(void)
 	pr_info("%s clear all internal eic\n", __func__);
 }
 
+static bool sprd_headset_eic_mis_check(unsigned int eic_mis)
+{
+	return eic_mis & (BIT(HDST_LDETL_EIC) | BIT(HDST_INSERT_ALL_EIC) |
+		BIT(HDST_BDET_EIC) | BIT(HDST_MDET_EIC));
+}
+
 static void sprd_headset_eic_trig(enum hdst_eic_type eic_type)
 {
 	headset_reg_set_bits(ANA_INT10, BIT(eic_type));
@@ -1906,58 +1912,53 @@ static void sprd_dump_reg_work(struct work_struct *work)
 			&hdst->reg_dump_work, msecs_to_jiffies(500));
 }
 
-static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
+static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 {
 	struct sprd_headset *hdst = dev;
-	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
+	struct sprd_headset_platform_data *pdata;
 	struct sprd_headset_power *power;
-	unsigned int val, eic_type;
+	unsigned int eic_type, val_intc, eic_mis;
 	bool ret;
 
 	pr_info("%s enter\n", __func__);
 	if (!hdst) {
-		pr_err("%s: sprd_hdset is NULL!\n", __func__);
-		goto out;
+		pr_err("%s hdst NULL\n", __func__);
+		return IRQ_HANDLED;
 	}
-	power = (hdst ? &hdst->power : NULL);
+
+	pdata = &hdst->pdata;
+	power = &hdst->power;
 	if (!power) {
 		pr_err("%s: power is NULL!\n", __func__);
 		goto out;
 	}
-
-	hdst->gpio_detect_int_all_last =
-		gpio_get_value(pdata->gpios[HDST_GPIO_AUD_DET_INT_ALL]);
-
-	headset_reg_read(ANA_STS0, &val);
-
+	val_intc = sprd_intc_irq_status();
+	eic_mis = sprd_get_all_eic_mis_status();
 	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
-
-	if ((BIT(14) & sprd_read_reg_value(ANA_INT34)) == 0) {
-		sprd_headset_reset(hdst);
-		irq_set_irq_type(hdst->irq_detect_int_all, IRQF_TRIGGER_HIGH);
-		return IRQ_HANDLED;
-	}
-
-	if ((val & 0xFC00) == 0) {
-		pr_err("%s no headset alert signal at all! headphone is plugout?\n",
-			__func__);
-		pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
-	}
-
-	val = sprd_read_reg_value(ANA_INT8);
-	if ((val & 0xFC00) == 0) {
-		pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
-
-		sprd_headset_reset(hdst);
-		irq_set_irq_type(hdst->irq_detect_int_all, IRQF_TRIGGER_HIGH);
-		pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
-		return IRQ_HANDLED;
-	}
-	/* I think this need place at the begain of this func to clear intc */
+	/*
+	 * clear intc before trig top eic, or here may
+	 * receive invalid top eic irq.
+	 */
 	sprd_intc_force_clear(1);
 	irq_set_irq_type(hdst->irq_detect_int_all, IRQF_TRIGGER_HIGH);
 
-	if (val & BIT(10)) {/* insert_all */
+	if (!(val_intc & BIT(INTC_ALL_ANALOG))) {
+		pr_err("%s INTC_ALL_ANALOG not active\n", __func__);
+		/*
+		 * intc not active, so do not clear intc here, it may impact a
+		 * new coming eic. For the same reason, do not to clear any
+		 * eic here.
+		 */
+		sprd_headset_reset(hdst);
+		hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
+		return IRQ_HANDLED;
+	} else if (!sprd_headset_eic_mis_check(eic_mis)) {
+		pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+		sprd_headset_reset(hdst);
+		return IRQ_HANDLED;
+	}
+
+	if (eic_mis & BIT(HDST_INSERT_ALL_EIC)) {/* insert_all */
 		pr_info("%s in insert_all\n", __func__);
 		/* I am not sure the new func is right or not */
 		__pm_wakeup_event(&hdst->det_all_wakelock,
@@ -1978,7 +1979,7 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 		pr_info("%s insert_all irq active, exit, ret %d\n",
 			__func__, ret);
 	}
-	if (val & BIT(11)) {/* mdet */
+	if (eic_mis & BIT(HDST_MDET_EIC)) {/* mdet */
 		pr_info("%s in mdet\n", __func__);
 		/* I am not sure the new func is right or not */
 		__pm_wakeup_event(&hdst->mic_wakelock, msecs_to_jiffies(2000));
@@ -1990,7 +1991,7 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 			&hdst->det_mic_work, msecs_to_jiffies(5));
 		pr_info("%s mdet irq active, ret %d\n", __func__, ret);
 	}
-	if (val & BIT(12)) {/* ldetl */
+	if (eic_mis & BIT(HDST_LDETL_EIC)) {/* ldetl */
 		pr_info("%s in ldetl\n", __func__);
 		if (pdata->jack_type == JACK_TYPE_NC) {
 			pr_err("%s: don't need ldetl_irq in JACK_TYPE_NC!\n",
@@ -2008,7 +2009,7 @@ static irqreturn_t headset_detect_top_eic_handler(int irq, void *dev)
 			__func__, hdst->ldetl_trig_val_last,
 			hdst->plug_state_last, hdst->ldetl_plug_in);
 	}
-	if (val & BIT(15)) {/* bdet */
+	if (eic_mis & BIT(HDST_BDET_EIC)) {/* bdet */
 		__pm_wakeup_event(&hdst->btn_wakelock, msecs_to_jiffies(2000));
 		ret = cancel_delayed_work(&hdst->btn_work);
 		queue_delayed_work(hdst->btn_work_q,
@@ -2308,7 +2309,7 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 	sprd_get_adc_cal_from_efuse(hdst->pdev);
 	ret = devm_request_threaded_irq(
 		dev, hdst->irq_detect_int_all, NULL,
-		headset_detect_top_eic_handler,
+		sprd_headset_top_eic_handler,
 		IRQF_TRIGGER_HIGH | IRQF_NO_SUSPEND | IRQF_ONESHOT,
 		"head_aud_det_int_all", hdst);
 	if (ret < 0) {

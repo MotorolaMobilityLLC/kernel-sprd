@@ -274,7 +274,6 @@ struct sprd_headset {
 	int insert_all_val_last; /* detecting all gpio last value */
 	int bdet_val_last; /* button detecting gpio last value */
 	int mdet_val_last;
-	int gpio_detect_int_all_last;
 	int ldetl_plug_in;
 	int btn_state_last; /* 0==released, 1==pressed */
 	/*
