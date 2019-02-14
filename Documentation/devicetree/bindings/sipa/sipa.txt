@@ -83,6 +83,7 @@ Required properties:
 
 Optional properties:
 - sprd,need-through-pcie: boolean, set this for IPA need send data to cp behind.
+- sprd,wiap-ul-dma: boolean, set this for enable wiap ul common fifo dma function.
 
 Examples:
 	pa_local: sprd,sipa@21180000 {
@@ -96,6 +97,8 @@ Examples:
 
 		sprd,sipa-bypass-mode = <0>;
 		sprd,need-through-pcie;
+		sprd,wiap-ul-dma;
+
 		sprd,usb-dl-tx = <1 1024>;
 		sprd,usb-dl-rx = <1 1024>;
 		sprd,usb-ul-tx = <1 1024>;
