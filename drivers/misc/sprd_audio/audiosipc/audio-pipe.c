@@ -24,8 +24,10 @@
 #include <linux/string.h>
 
 #include "audio-sipc.h"
-#include "sprd-asoc-common.h"
 #include "sprd-string.h"
+
+#define sp_asoc_pr_dbg pr_debug
+#define sp_asoc_pr_info pr_info
 
 #define  AGDSP_COMMUNICATION_TIMEOUT	0x27
 

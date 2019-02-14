@@ -38,11 +38,10 @@
 
 #include "audio_mem.h"
 #include "audio-sipc.h"
-#include "sprd-asoc-common.h"
 #include "sprd-string.h"
 
-#undef sp_asoc_pr_dbg
 #define sp_asoc_pr_dbg pr_info
+#define sp_asoc_pr_info pr_info
 
 /*add by ninglei*/
 #define AUDIO_SMSG_RINGHDR_EXT_SIZE	(16)

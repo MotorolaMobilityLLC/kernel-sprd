@@ -24,13 +24,7 @@ enum {
 	PLATFORM_SHARKL2 = 0,
 	PLATFORM_WHALE2 = 1,
 	PLATFORM_SHARKL5 = 2,
-};
-
-struct smem_phead {
-	struct list_head smem_phead;
-	spinlock_t lock;
-	u32 poolnum;
-	u32 main_pool_addr;
+	PLATFORM_ORCA = 3,
 };
 
 struct smem_pool {
@@ -164,6 +158,28 @@ static u32 iram_ap_base;
 static u32 iram_dsp_base;
 static u32 dma_offset;
 
+static u32 audio_addr_ap2dsp_orca(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
+				  bool invert)
+{
+	int ret_val;
+
+	switch (mem_type) {
+	case IRAM_SMS_COMMD_PARAMS:
+	case IRAM_SMS:
+	case DDR32_DSPMEMDUMP:
+	case DDR32:
+		ret_val = invert ? (addr - dma_offset) : (addr + dma_offset);
+		break;
+	default:
+		pr_err("%s not supported mem_type %d\n", __func__, mem_type);
+		ret_val = 0;
+	}
+
+	pr_debug("%s ret_val=%#x\n", __func__, ret_val);
+
+	return ret_val;
+}
+
 static u32 audio_addr_ap2dsp_sharkl5(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
 	bool invert)
 {
@@ -191,8 +207,8 @@ static u32 audio_addr_ap2dsp_sharkl5(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
 		iram_dsp_base);
 		break;
 	default:
+		ret_val = 0;
 		pr_err("%s not supported mem_type %d\n", __func__, mem_type);
-
 	}
 
 	pr_debug("%s ret_val=%#x\n", __func__, ret_val);
@@ -208,18 +224,20 @@ u32 audio_addr_ap2dsp(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
 	if (g_priv_data->platform_type == PLATFORM_SHARKL5)
 		return audio_addr_ap2dsp_sharkl5(mem_type, addr, invert);
 
-	if ((mem_type == IRAM_SMS_COMMD_PARAMS) ||
-	    (mem_type == IRAM_SMS) ||
-	    (mem_type == IRAM_SHM_AUD_STR) ||
-	    (mem_type == IRAM_SHM_DSP_VBC) ||
-	    (mem_type == IRAM_SHM_NXP) ||
-	    (mem_type == IRAM_SHM_REG_DUMP) ||
-	    (mem_type == IRAM_SHM_IVS_SMARTPA) ||
-	    (mem_type == IRAM_OFFLOAD) ||
-	    (mem_type == IRAM_DSPLOG) ||
-	    (mem_type == IRAM_NORMAL_C_DATA) ||
-	    (mem_type == IRAM_NORMAL_C_LINKLIST_NODE1) ||
-	    (mem_type == IRAM_NORMAL_C_LINKLIST_NODE2)
+	if (g_priv_data->platform_type == PLATFORM_ORCA)
+		return audio_addr_ap2dsp_orca(mem_type, addr, invert);
+	if (mem_type == IRAM_SMS_COMMD_PARAMS ||
+	    mem_type == IRAM_SMS ||
+	    mem_type == IRAM_SHM_AUD_STR ||
+	    mem_type == IRAM_SHM_DSP_VBC ||
+	    mem_type == IRAM_SHM_NXP ||
+	    mem_type == IRAM_SHM_REG_DUMP ||
+	    mem_type == IRAM_SHM_IVS_SMARTPA ||
+	    mem_type == IRAM_OFFLOAD ||
+	    mem_type == IRAM_DSPLOG ||
+	    mem_type == IRAM_NORMAL_C_DATA ||
+	    mem_type == IRAM_NORMAL_C_LINKLIST_NODE1 ||
+	    mem_type == IRAM_NORMAL_C_LINKLIST_NODE2
 	    ) {
 		ret_val = invert ? (addr - iram_dsp_base + iram_ap_base) :
 						(addr - iram_ap_base +
@@ -891,6 +909,99 @@ static int audio_mem_sharkl5_parse_dt(struct device_node *np)
 	return 0;
 }
 
+static int audio_mem_orca_probe(struct platform_device *pdev)
+{
+	struct device_node *np = pdev->dev.of_node;
+	int ret;
+	u32 val_arr[2];
+	struct resource res;
+	struct device_node *memnp;
+	u32 ddr32_size;
+
+	if (!np) {
+		pr_err("%s, np is NULL!\n", __func__);
+		return -EINVAL;
+	}
+
+	/* DDR32 memory */
+	memnp = of_parse_phandle(np, "memory-region", 0);
+	if (!memnp) {
+		pr_err("get phandle 'memory-region' failed!\n");
+		return -ENODEV;
+	}
+	ret = of_address_to_resource(memnp, 0, &res);
+	if (ret) {
+		pr_err("of_address_to_resource failed!(%d)\n", ret);
+		return ret;
+	}
+	of_node_put(memnp);
+	ddr32_size = resource_size(&res);
+	if (!of_property_read_u32_array
+		(np, "ddr32-ap-dsp-map-offset", &val_arr[0], 1)) {
+		dma_offset = val_arr[0];
+	} else {
+		pr_err("%s, ERR:Must give me the dma offset addr!\n", __func__);
+		return -EINVAL;
+	}
+	/* DDR32 memory for, DSP LOG, DSP PCM */
+	ret = of_property_read_u32_array(np, "sprd,ddr32-dma", &val_arr[0], 2);
+	if (ret) {
+		pr_err("read 'sprd,ddr32-dma' failed!(%d)\n", ret);
+		return ret;
+	}
+	audio_mem[DDR32].addr = val_arr[0];
+	audio_mem[DDR32].size = val_arr[1];
+	if (audio_mem[DDR32].addr && audio_mem[DDR32].size) {
+		ret = audio_smem_init(audio_mem[DDR32].addr,
+				      audio_mem[DDR32].size);
+		if (ret) {
+			pr_info("%s audio_smem_init failed ret =%d\n", __func__,
+				ret);
+			return ret;
+		}
+	}
+
+	/* DDR32 memory for DSP memory dump */
+	ret = of_property_read_u32_array(np, "sprd,ddr32-dspmemdump",
+					 &val_arr[0], 2);
+	if (ret) {
+		pr_err("read 'sprd,ddr32-dspmemdump' failed!(%d)\n", ret);
+		return ret;
+	}
+	audio_mem[DDR32_DSPMEMDUMP].addr = val_arr[0];
+	audio_mem[DDR32_DSPMEMDUMP].size = val_arr[1];
+
+	/* DDR32 command params */
+	ret = of_property_read_u32_array(np, "sprd,cmdaddr", &val_arr[0], 2);
+	if (ret) {
+		pr_err("%s, ERR:Must give me the smsg cmdaddr!\n", __func__);
+		return ret;
+	}
+	audio_mem[IRAM_SMS_COMMD_PARAMS].addr = val_arr[0];
+	audio_mem[IRAM_SMS_COMMD_PARAMS].size = val_arr[1];
+
+	/* DDR32 SMSG */
+	ret = of_property_read_u32_array(np, "sprd,smsg-addr", &val_arr[0], 2);
+	if (ret) {
+		pr_err("%s, ERR:Must give me the smsg addr!\n", __func__);
+		return -ret;
+	}
+	audio_mem[IRAM_SMS].addr = val_arr[0];
+	audio_mem[IRAM_SMS].size = val_arr[1];
+	pr_info("%s ddr32 (COMMD_PARAMS), (SMS), (DSPMEMDUMP), (DDR32)\n",
+		__func__);
+	pr_info("ddr32 (addr, size) (%#x, %#x), (%#x, %#x), (%#x, %#x), (%#x, %#x)\n",
+		audio_mem[IRAM_SMS_COMMD_PARAMS].addr,
+		audio_mem[IRAM_SMS_COMMD_PARAMS].size,
+		audio_mem[IRAM_SMS].addr,
+		audio_mem[IRAM_SMS].size,
+		audio_mem[DDR32_DSPMEMDUMP].addr,
+		audio_mem[DDR32_DSPMEMDUMP].size,
+		audio_mem[DDR32].addr, audio_mem[DDR32].size);
+
+	return 0;
+}
+
 static int audio_mem_sharkl5_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -974,6 +1085,8 @@ static const struct of_device_id audio_mem_match_table[] = {
 	 .data = (void *)PLATFORM_SHARKL5},
 	{.compatible = "sprd,audio-mem-roc1",
 	 .data = (void *)PLATFORM_SHARKL5},
+	{.compatible = "sprd,audio-mem-orca",
+	 .data = (void *)PLATFORM_ORCA},
 	{},
 };
 
@@ -1009,6 +1122,8 @@ static int audio_mem_probe(struct platform_device *pdev)
 		return audio_mem_sharkl2_probe(pdev);
 	if (g_priv_data->platform_type == PLATFORM_SHARKL5)
 		return audio_mem_sharkl5_probe(pdev);
+	if (g_priv_data->platform_type == PLATFORM_ORCA)
+		return audio_mem_orca_probe(pdev);
 
 	pr_err("%s %d unknown platform_type[%d]\n",
 	       __func__, __LINE__, g_priv_data->platform_type);

@@ -27,9 +27,11 @@
 #include <linux/wait.h>
 
 #include "audio-smsg.h"
-#include "sprd-asoc-common.h"
 #include <linux/sprd_mailbox.h>
 #include "sprd-string.h"
+
+#define sp_asoc_pr_dbg pr_debug
+#define sp_asoc_pr_info pr_info
 
 #define  AGDSP_BOOT_OK			0xbeee
 #define  AGDSP_ASSERT			0x25

@@ -1,6 +1,8 @@
 #ifndef __SPRD_MEMCPY_OPS_H
 #define __SPRD_MEMCPY_OPS_H
 
+#include <linux/uaccess.h>
+
 #ifdef CONFIG_64BIT
 static inline unsigned long unalign_copy_to_user(void __user *to,
 						 const void *from,
