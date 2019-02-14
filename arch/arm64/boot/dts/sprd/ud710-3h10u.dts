@@ -298,6 +298,11 @@
 
 };
 
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
 &cpp {
 	status = "okay";
 };
