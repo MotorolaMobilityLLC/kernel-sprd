@@ -35,7 +35,7 @@ static int sipa_regdump_show(struct seq_file *s, void *unused)
 
 	seq_puts(s, "Sipa Ahb Register\n");
 
-	for (i = 0; i < MAX_REG; i++) {
+	for (i = 0; i < sipa_regmap->ahb_regnum; i++) {
 		switch (sipa_regmap->ahb_reg[i].size) {
 		case 8:
 			regmap_read(sipa->sys_regmap,

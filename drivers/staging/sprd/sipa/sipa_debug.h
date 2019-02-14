@@ -22,7 +22,8 @@
 #include "sipa_phy_v0/sipa_glb_phy.h"
 #include "sipa_phy_v0/sipa_fifo_phy.h"
 
-#define MAX_REG		32
+#define ROC1_AHB_MAX_REG		56
+#define ORCA_AHB_MAX_REG		67
 
 struct ipa_register_map {
 	char *name;
@@ -34,7 +35,11 @@ struct ipa_fifo_iterm_map {
 	char *name;
 	u32 offset;
 };
+
 struct sipa_register_data {
+	const u32 ahb_regnum;
+	const u32 apb_regnum;
+	const u32 mpu_regnum;
 	const struct ipa_register_map *ahb_reg;
 	const struct ipa_register_map *apb_reg;
 	const struct ipa_register_map *mpu_reg;

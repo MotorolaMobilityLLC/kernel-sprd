@@ -905,10 +905,12 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
  */
 static struct sipa_register_data roc1_defs_data = {
 	.ahb_reg = sipa_roc1_ahb_regmap,
+	.ahb_regnum = ROC1_AHB_MAX_REG,
 };
 
 static struct sipa_register_data orca_defs_data = {
 	.ahb_reg = sipa_orca_ahb_regmap,
+	.ahb_regnum = ORCA_AHB_MAX_REG,
 };
 
 static struct of_device_id sipa_plat_drv_match[] = {
