@@ -140,6 +140,11 @@
 			usb3: usb3-0@29100000 {
 				compatible = "sprd,roc1-dwc3";
 				reg = <0 0x29100000 0 0x100000>;
+				clocks = <&ipa_gate CLK_IPA_USB1_EB>,
+					<&ipa_gate CLK_USB1_SUSPEND_EB>,
+					<&ipa_gate CLK_IPA_USB1_REF_EB>;
+				clock-names = "core_clk", "ref_clk", "susp_clk";
+				usb-phy = <&ssphy>, <&ssphy>;
 				#address-cells = <2>;
 				#size-cells = <2>;
 				ranges;
