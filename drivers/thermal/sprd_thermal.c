@@ -216,7 +216,7 @@ static int sprd_thm_sen_efuse_cal(struct device_node *np,
 	sen->cal_slope = (thm->var_data->ideal_k * ratio) / 1000;
 	if (dt_offset)
 		sen->cal_offset = thm->var_data->ideal_b +
-			(dt_offset - 64) * 500;
+			(dt_offset - 128) * 250;
 	else
 		sen->cal_offset = thm->var_data->ideal_b;
 
