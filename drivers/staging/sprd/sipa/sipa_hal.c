@@ -273,6 +273,10 @@ sipa_hal_hdl sipa_hal_init(struct device *dev,
 
 	sipa_init_fifo_reg_base(hal_cfg);
 
+	hal_cfg->glb_ops.enable_wiap_ul_dma(
+		hal_cfg->phy_virt_res.glb_base,
+		(u32)cfg->wiap_ul_dma);
+
 	hal_cfg->glb_ops.enable_cp_through_pcie(
 		hal_cfg->phy_virt_res.glb_base,
 		(u32)cfg->need_through_pcie);
@@ -525,14 +529,6 @@ int sipa_hal_put_rx_fifo_item(sipa_hal_hdl hdl,
 	node.net_id = item->netid;
 	node.intr = item->intr;
 
-	if (node.dst == node.src) {
-		IPA_ERR("follow cfg is err\n");
-		IPA_ERR("node.dst = 0x%x node.src = 0x%x\n",
-				node.dst, node.src);
-		IPA_ERR("item.dst = 0x%x item.src = 0x%x\n",
-				item->dst, item->src);
-		return -1;
-	}
 	ret = hal_cfg->fifo_ops.put_node_to_rx_fifo(
 			  fifo_id, fifo_cfg, &node, 0, 1);
 	if (ret == 0) {

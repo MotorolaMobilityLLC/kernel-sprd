@@ -533,6 +533,10 @@ static int sipa_parse_dts_configuration(
 	cfg->need_through_pcie = of_property_read_bool(pdev->dev.of_node,
 				"sprd,need-through-pcie");
 
+	/* get wiap ul dma flag */
+	cfg->wiap_ul_dma = of_property_read_bool(pdev->dev.of_node,
+				"sprd,wiap-ul-dma");
+
 	/* get enable register informations */
 	cfg->sys_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
 						       "enable");
