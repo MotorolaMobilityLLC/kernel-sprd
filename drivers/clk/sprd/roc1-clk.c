@@ -1562,7 +1562,7 @@ static SPRD_COMP_CLK(powervr_clk, "powervr-clk",
 		     powervr_clk_parents, 0x24, 0, 1, 8, 3, 0);
 
 static const char * const ai_mtx_parents[] = { "ext-26m", "twpll-512m",
-					"twpll-768m", "clk-1000m" };
+					"twpll-768m", "apll" };
 static SPRD_COMP_CLK(ai_mtx_clk, "ai-mtx-clk",
 		     ai_mtx_parents, 0x28, 0, 2, 8, 3, 0);
 
