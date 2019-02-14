@@ -314,7 +314,9 @@
 
 &uart0 {
 	clock-names = "enable", "uart", "source";
-	clocks = <&apapb_gate CLK_AP_UART0_EB>;
+	clocks = <&apapb_gate CLK_AP_UART0_EB>,
+		 <&ap_clk CLK_AP_UART0>,
+		 <&ext_26m>;
 };
 
 &spi0 {
