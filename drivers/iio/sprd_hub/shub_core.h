@@ -26,8 +26,10 @@
 #define HOST_REQUEST_LEN             2
 #define RECEIVE_TIMEOUT_MS           100
 #define MAX_SENSOR_LOG_CTL_FLAG_LEN	8
+#define LOG_CTL_OUTPUT_FLAG	5
 #define SIPC_PM_BUFID0             0
 #define SIPC_PM_BUFID1             1
+#define SHUB_IIO_CHN_BITS             64
 
 /* ms,-1 is wait  forever */
 #define SIPC_WRITE_TIMEOUT             -1
@@ -164,16 +166,16 @@ struct shub_data {
 	struct class *sensor_class;
 	struct device *sensor_dev;
 	wait_queue_head_t rxwq;
-	struct mutex mutex_lock;
-	struct mutex mutex_read;
-	struct mutex mutex_send;
+	struct mutex mutex_lock;	/* mutex for trigger and raw read */
+	struct mutex mutex_read;	/* mutex for sipc read */
+	struct mutex mutex_send;	/* mutex for sending event */
 	bool rx_status;
 	u8 *rx_buf;
 	u32 rx_len;
 	/* sprd begin */
 	wait_queue_head_t  rw_wait_queue;
 	struct sent_cmd  sent_cmddata;
-	struct mutex send_command_mutex;
+	struct mutex send_command_mutex;	/* mutex for sending command */
 	u8 *regs_addr_buf;
 	u8 *regs_value_buf;
 	u8 regs_num;
@@ -185,9 +187,10 @@ struct shub_data {
 	void (*data_callback)(struct shub_data *sensor, u8 *buff, u32 len);
 	void (*readcmd_callback)(struct shub_data *sensor, u8 *buff, u32 len);
 	void (*resp_cmdstatus_callback)(struct shub_data *sensor,
-		u8 *buff, u32 len);
+					u8 *buff, u32 len);
 	void (*cm4_read_callback)(struct shub_data *sensor,
-		enum shub_subtype_id subtype,  u8 *buff, u32 len);
+				  enum shub_subtype_id subtype,
+				  u8 *buff, u32 len);
 	struct sensor_log_control log_control;
 	struct workqueue_struct *driver_wq;
 	struct delayed_work time_sync_work;
@@ -198,6 +201,7 @@ struct shub_data {
 	int is_sensorhub;
 	s16 version;
 };
+
 extern struct shub_data *g_sensor;
 /*hw sensor id*/
 enum _id_status {
@@ -205,13 +209,16 @@ enum _id_status {
 	_IDSTA_OK  = 1,
 	_IDSTA_FAIL = 2,
 };
+
 #define _HW_SENSOR_TOTAL 6
+#define VENDOR_ID_OFFSET 256
 struct hw_sensor_id_tag {
 	u8 id_status;
 	u8 vendor_id;
 	u8 chip_id;
 	char *pname;
 };
+
 struct id_to_name_tag {
 	u32 id;
 	char *pname;

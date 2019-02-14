@@ -72,18 +72,18 @@ static u16 shub_checksum(u8 *head_data)
 	 * 0x7e7e + 0x7e7e = 0xfcfc
 	 */
 	u32 sum = 0xfcfc;
-	u16 nAdd;
+	u16 n_add;
 
 	head_data += 4;
-	nAdd = *head_data++;
-	nAdd <<= 8;
-	nAdd += *head_data++;
-	sum += nAdd;
+	n_add = *head_data++;
+	n_add <<= 8;
+	n_add += *head_data++;
+	sum += n_add;
 
-	nAdd = *head_data++;
-	nAdd <<= 8;
-	nAdd += *head_data++;
-	sum += nAdd;
+	n_add = *head_data++;
+	n_add <<= 8;
+	n_add += *head_data++;
+	sum += n_add;
 
 	/* The carry is 2 at most, so we need 2 additions at most. */
 	sum = (sum & 0xffff) + (sum >> 16);
@@ -103,27 +103,27 @@ static u16 shub_checksum(u8 *head_data)
 static u16 shub_data_checksum(u8 *data, u16 out_len)
 {
 	unsigned int sum = 0;
-	u16 nAdd;
+	u16 n_add;
 
 	if (!data || out_len == 0)
 		return 0;
 
 	while (out_len > 2) {
-		nAdd = *data++;
-		nAdd <<= 8;
-		nAdd += *data++;
-		sum += nAdd;
+		n_add = *data++;
+		n_add <<= 8;
+		n_add += *data++;
+		sum += n_add;
 		out_len -= 2;
 	}
 	if (out_len == 2) {
-		nAdd = *data++;
-		nAdd <<= 8;
-		nAdd += *data++;
-		sum += nAdd;
+		n_add = *data++;
+		n_add <<= 8;
+		n_add += *data++;
+		sum += n_add;
 	} else {
-		nAdd = *data++;
-		nAdd <<= 8;
-		sum += nAdd;
+		n_add = *data++;
+		n_add <<= 8;
+		sum += n_add;
 	}
 	/*The carry is 2 at most, so we need 2 additions at most. */
 	sum = (sum & 0xffff) + (sum >> 16);
@@ -142,33 +142,33 @@ static void research_flag(struct shub_data_processor *stream)
 		stream->head_size = 9;
 		stream->state = SHUB_RECV_COLLECT_HEAD;
 	} else {
-		unsigned int value4Byte;
+		unsigned int value;
 
-		value4Byte = start[5];
-		value4Byte <<= 8;
-		value4Byte |= start[6];
-		value4Byte <<= 8;
-		value4Byte |= start[7];
-		value4Byte <<= 8;
-		value4Byte |= start[8];
+		value = start[5];
+		value <<= 8;
+		value |= start[6];
+		value <<= 8;
+		value |= start[7];
+		value <<= 8;
+		value |= start[8];
 		 /* get the [5--8] is magic head  */
-		if (value4Byte == 0x7e7e7e7e) {
+		if (value == 0x7e7e7e7e) {
 			start[4] = start[9];
 			stream->head_size = 5;
 			stream->state = SHUB_RECV_COLLECT_HEAD;
 		} else {	/* get [6--9] */
-			value4Byte <<= 8;
-			value4Byte |= start[9];
-			if (value4Byte == 0x7e7e7e7e) {
+			value <<= 8;
+			value |= start[9];
+			if (value == 0x7e7e7e7e) {
 				stream->head_size = 4;
 				stream->state = SHUB_RECV_COLLECT_HEAD;
-			} else if (0x7e7e7e == (0xffffff & value4Byte)) {
+			} else if (0x7e7e7e == (0xffffff & value)) {
 				stream->head_size = 3;
 				stream->state = SHUB_RECV_SEARCH_FLAG;
-			} else if (0x7e7e == (0xffff & value4Byte)) {
+			} else if (0x7e7e == (0xffff & value)) {
 				stream->head_size = 2;
 				stream->state = SHUB_RECV_SEARCH_FLAG;
-			} else if (0x7e == (0xff & value4Byte)) {
+			} else if (0x7e == (0xff & value)) {
 				stream->head_size = 1;
 				stream->state = SHUB_RECV_SEARCH_FLAG;
 			} else {
@@ -198,8 +198,7 @@ static void shub_collect_header(struct shub_data_processor *stream,
 	if (headsize != SHUB_MAX_HEAD_LEN) /* We have not got 10 bytes*/
 		return;
 
-	/**
-	 * We have got 10 bytes
+	/* We have got 10 bytes
 	 * Calculate the checksum (only 8 bytes in head buffer)
 	 */
 	crc = shub_checksum(stream->cur_header);
@@ -248,41 +247,41 @@ static int shub_collect_data(struct shub_data_processor *stream,
 			     u8 *data, u16 len,
 			     u16 *processed_len)
 {
-	u16 nFrameRemain =
+	u16 n_frame_remain =
 	    stream->data_len - stream->received_data_len + SHUB_MAX_DATA_CRC;
-	struct cmd_data *pPacket = &stream->cmd_data;
-	u16 nCopy = nFrameRemain > len ? len : nFrameRemain;
+	struct cmd_data *p_packet = &stream->cmd_data;
+	u16 n_copy = n_frame_remain > len ? len : n_frame_remain;
 	u16 data_crc;
 	u16 crc_inframe;
 
-	memcpy(pPacket->buff + stream->received_data_len, data, nCopy);
-	stream->received_data_len += nCopy;
+	memcpy(p_packet->buff + stream->received_data_len, data, n_copy);
+	stream->received_data_len += n_copy;
 
-	*processed_len = nCopy;
+	*processed_len = n_copy;
 	/*  Have we got the whole frame? */
 	if (stream->received_data_len ==
 		(stream->data_len + SHUB_MAX_DATA_CRC)) {
-		data_crc = shub_data_checksum(pPacket->buff, pPacket->length);
-		crc_inframe = pPacket->buff[pPacket->length];
+		data_crc = shub_data_checksum(p_packet->buff, p_packet->length);
+		crc_inframe = p_packet->buff[p_packet->length];
 		crc_inframe <<= 8;
-		crc_inframe |= pPacket->buff[(pPacket->length + 1)];
+		crc_inframe |= p_packet->buff[(p_packet->length + 1)];
 		if (data_crc == crc_inframe) {
 			shub_dispatch(&stream->cmd_data);
 		} else {
-			if (pPacket->subtype == SHUB_MEMDUMP_DATA_SUBTYPE ||
-				pPacket->subtype == SHUB_MEMDUMP_CODE_SUBTYPE) {
+			if (p_packet->subtype == SHUB_MEMDUMP_DATA_SUBTYPE ||
+			    p_packet->subtype == SHUB_MEMDUMP_CODE_SUBTYPE) {
 				/* gps_dispatch(&stream->cmd_data); */
 			} else {
 				pr_info
 					("err type=%d,subtype=%d len=%d\n",
-				     pPacket->type, pPacket->subtype,
-				     pPacket->length);
+				     p_packet->type, p_packet->subtype,
+				     p_packet->length);
 				pr_info
 				    ("err CRC=%d crc_inframe=%d\n",
 				     data_crc, crc_inframe);
 			}
 		}
-		stream->state = SHUB_RECV_Complete;
+		stream->state = SHUB_RECV_COMPLETE;
 		stream->state = SHUB_RECV_SEARCH_FLAG;
 		stream->head_size = 0;
 		stream->received_data_len = 0;
@@ -326,7 +325,7 @@ void shub_init_parse_packet(struct shub_data_processor *stream)
  * Negetive  Error
  */
 int shub_parse_one_packet(struct shub_data_processor *stream,
-	u8 *data, u16 len)
+			  u8 *data, u16 len)
 {
 	u8 *input;
 	u16 remain_len = 0;
@@ -382,8 +381,8 @@ void shub_fill_head(struct cmd_data *in_data, u8 *out_data)
 }
 
 int shub_encode_one_packet(struct cmd_data *in_data,
-	u8 *out_data,
-	u16 out_len)
+			   u8 *out_data,
+			   u16 out_len)
 {
 	int len = 0;
 	u8 *crc_data = NULL;

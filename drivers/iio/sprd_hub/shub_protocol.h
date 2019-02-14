@@ -94,7 +94,7 @@ enum shub_recv_state {
 	SHUB_RECV_SEARCH_FLAG,
 	SHUB_RECV_COLLECT_HEAD,
 	SHUB_RECV_DATA,
-	SHUB_RECV_Complete,
+	SHUB_RECV_COMPLETE,
 	SHUB_RECV_ERROR,
 };
 
@@ -108,6 +108,7 @@ struct shub_data_processor {
 	struct cmd_data  cmd_data;
 
 };
+
 /* define encode and decode struct union  end */
 
 struct sent_cmd {
@@ -131,6 +132,6 @@ int shub_parse_one_packet(
 	struct shub_data_processor *stream,
 	u8 *data,
 	u16 len);
-extern void  shub_dispatch(struct cmd_data *packet);
-extern  void debuginfor(void *src, int len);
+void shub_dispatch(struct cmd_data *packet);
+void debuginfor(void *src, int len);
 #endif

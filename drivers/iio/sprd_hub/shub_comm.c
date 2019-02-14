@@ -29,8 +29,8 @@ static void shub_get_data(struct cmd_data *packet)
 
 	case SHUB_SEND_DEBUG_DATA:
 		memcpy(g_sensor->log_control.debug_data,
-				packet->buff,
-				sizeof(g_sensor->log_control.debug_data));
+		       packet->buff,
+		       sizeof(g_sensor->log_control.debug_data));
 		break;
 
 	case SHUB_GET_MAG_OFFSET:
@@ -70,6 +70,6 @@ static void shub_get_data(struct cmd_data *packet)
 
 void shub_dispatch(struct cmd_data *packet)
 {
-	if (packet != NULL)
+	if (packet)
 		shub_get_data(packet);
 }
