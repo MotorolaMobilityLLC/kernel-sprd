@@ -260,10 +260,14 @@
 };
 
 &sdio0 {
+	sprd,sdr104-dly=<0x7f 0x77 0x6f 0x6f>;
+	sprd,sdr50-dly=<0x2c 0x7f 0x76 0x76>;
 	vmmc-supply = <&vddsdcore>;
 	vqmmc-supply = <&vddsdio>;
 	voltage-ranges = <3000 3000>;
 	bus-width = <4>;
+	sd-uhs-sdr104;
+	sd-uhs-sdr50;
 	sprd,name = "sdio_sd";
 	sprd,sdio-adma;
 	no-sdio;
@@ -281,11 +285,19 @@
 };
 
 &sdio3 {
+	sprd,hs400es-dly=<0x49 0x78 0x3c 0x3c>;
+	sprd,hs400-dly=<0x49 0x7f 0x3c 0x3c>;
+	sprd,hs200-dly=<0x7f 0x6c 0x53 0x53>;
+	sprd,ddr52-dly=<0x33 0x28 0x1b 0x1b>;
 	vmmc-supply = <&vddemmccore>;
 	voltage-ranges = <3000 3000>;
 	bus-width = <8>;
 	non-removable;
 	cap-mmc-hw-reset;
+	mmc-hs400-enhanced-strobe;
+	mmc-hs400-1_8v;
+	mmc-hs200-1_8v;
+	mmc-ddr-1_8v;
 	sprd,name = "sdio_emmc";
 	no-sdio;
 	no-sd;
