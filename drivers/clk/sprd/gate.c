@@ -121,8 +121,7 @@ const struct clk_ops sprd_sc_gate_ops = {
 EXPORT_SYMBOL_GPL(sprd_sc_gate_ops);
 
 const struct clk_ops sprd_pll_sc_gate_ops = {
-	.disable	= sprd_sc_gate_disable,
-	.enable		= sprd_pll_sc_gate_enable,
-	.is_enabled	= sprd_gate_is_enabled,
+	.unprepare	= sprd_sc_gate_disable,
+	.prepare	= sprd_pll_sc_gate_enable,
 };
 EXPORT_SYMBOL_GPL(sprd_pll_sc_gate_ops);
