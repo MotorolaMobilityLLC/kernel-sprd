@@ -59,7 +59,16 @@ enum {
 	TLS_NUM_CONFIG,
 };
 
+static struct proto *saved_tcpv6_prot;
+static DEFINE_MUTEX(tcpv6_prot_mutex);
 static struct proto tls_prots[TLS_NUM_PROTS][TLS_NUM_CONFIG];
+
+static inline void update_sk_prot(struct sock *sk, struct tls_context *ctx)
+{
+	int ip_ver = sk->sk_family == AF_INET6 ? TLSV6 : TLSV4;
+
+	sk->sk_prot = &tls_prots[ip_ver][ctx->tx_conf];
+}
 
 int wait_on_pending_writer(struct sock *sk, long *timeo)
 {
@@ -251,6 +260,12 @@ static void tls_sk_proto_close(struct sock *sk, long timeout)
 	void (*sk_proto_close)(struct sock *sk, long timeout);
 
 	lock_sock(sk);
+	sk_proto_close = ctx->sk_proto_close;
+
+	if (ctx->tx_conf == TLS_BASE_TX) {
+		tls_ctx_free(ctx);
+		goto skip_tx_cleanup;
+	}
 
 	if (!tls_complete_pending_work(sk, ctx, 0, &timeo))
 		tls_handle_open_record(sk, 0);
@@ -267,13 +282,16 @@ static void tls_sk_proto_close(struct sock *sk, long timeout)
 			sg++;
 		}
 	}
-	ctx->free_resources(sk);
+
 	kfree(ctx->rec_seq);
 	kfree(ctx->iv);
 
-	sk_proto_close = ctx->sk_proto_close;
-	tls_ctx_free(ctx);
+	if (ctx->tx_conf == TLS_SW_TX) {
+		tls_sw_free_tx_resources(sk);
+		tls_ctx_free(ctx);
+	}
 
+skip_tx_cleanup:
 	release_sock(sk);
 	sk_proto_close(sk, timeout);
 }
@@ -374,49 +392,43 @@ static int tls_getsockopt(struct sock *sk, int level, int optname,
 static int do_tls_setsockopt_tx(struct sock *sk, char __user *optval,
 				unsigned int optlen)
 {
-	struct tls_crypto_info *crypto_info, tmp_crypto_info;
+	struct tls_crypto_info *crypto_info;
 	struct tls_context *ctx = tls_get_ctx(sk);
-	struct proto *prot = NULL;
 	int rc = 0;
-	int ip_ver = sk->sk_family == AF_INET6 ? TLSV6 : TLSV4;
+	int tx_conf;
 
 	if (!optval || (optlen < sizeof(*crypto_info))) {
 		rc = -EINVAL;
 		goto out;
 	}
 
-	rc = copy_from_user(&tmp_crypto_info, optval, sizeof(*crypto_info));
-	if (rc) {
-		rc = -EFAULT;
-		goto out;
-	}
-
-	/* check version */
-	if (tmp_crypto_info.version != TLS_1_2_VERSION) {
-		rc = -ENOTSUPP;
-		goto out;
-	}
-
-	/* get user crypto info */
 	crypto_info = &ctx->crypto_send.info;
-
 	/* Currently we don't support set crypto info more than one time */
 	if (TLS_CRYPTO_INFO_READY(crypto_info)) {
 		rc = -EBUSY;
 		goto out;
 	}
 
-	switch (tmp_crypto_info.cipher_type) {
+	rc = copy_from_user(crypto_info, optval, sizeof(*crypto_info));
+	if (rc) {
+		rc = -EFAULT;
+		goto out;
+	}
+
+	/* check version */
+	if (crypto_info->version != TLS_1_2_VERSION) {
+		rc = -ENOTSUPP;
+		goto err_crypto_info;
+	}
+
+	switch (crypto_info->cipher_type) {
 	case TLS_CIPHER_AES_GCM_128: {
 		if (optlen != sizeof(struct tls12_crypto_info_aes_gcm_128)) {
 			rc = -EINVAL;
 			goto err_crypto_info;
 		}
-		rc = copy_from_user(
-		  crypto_info,
-		  optval,
-		  sizeof(struct tls12_crypto_info_aes_gcm_128));
-
+		rc = copy_from_user(crypto_info + 1, optval + sizeof(*crypto_info),
+				    optlen - sizeof(*crypto_info));
 		if (rc) {
 			rc = -EFAULT;
 			goto err_crypto_info;
@@ -428,18 +440,16 @@ static int do_tls_setsockopt_tx(struct sock *sk, char __user *optval,
 		goto err_crypto_info;
 	}
 
-	ctx->sk_write_space = sk->sk_write_space;
-	sk->sk_write_space = tls_write_space;
-
-	ctx->sk_proto_close = sk->sk_prot->close;
-
 	/* currently SW is default, we will have ethtool in future */
 	rc = tls_set_sw_offload(sk, ctx);
-	prot = &tls_prots[ip_ver][TLS_SW_TX];
+	tx_conf = TLS_SW_TX;
 	if (rc)
 		goto err_crypto_info;
 
-	sk->sk_prot = prot;
+	ctx->tx_conf = tx_conf;
+	update_sk_prot(sk, ctx);
+	ctx->sk_write_space = sk->sk_write_space;
+	sk->sk_write_space = tls_write_space;
 	goto out;
 
 err_crypto_info:
@@ -477,12 +487,24 @@ static int tls_setsockopt(struct sock *sk, int level, int optname,
 	return do_tls_setsockopt(sk, optname, optval, optlen);
 }
 
+static void build_protos(struct proto *prot, struct proto *base)
+{
+	prot[TLS_BASE_TX] = *base;
+	prot[TLS_BASE_TX].setsockopt	= tls_setsockopt;
+	prot[TLS_BASE_TX].getsockopt	= tls_getsockopt;
+	prot[TLS_BASE_TX].close		= tls_sk_proto_close;
+
+	prot[TLS_SW_TX] = prot[TLS_BASE_TX];
+	prot[TLS_SW_TX].sendmsg		= tls_sw_sendmsg;
+	prot[TLS_SW_TX].sendpage	= tls_sw_sendpage;
+}
+
 static int tls_init(struct sock *sk)
 {
+	int ip_ver = sk->sk_family == AF_INET6 ? TLSV6 : TLSV4;
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct tls_context *ctx;
 	int rc = 0;
-	int ip_ver = TLSV4;
 
 	/* The TLS ulp is currently supported only for TCP sockets
 	 * in ESTABLISHED state.
@@ -493,11 +515,6 @@ static int tls_init(struct sock *sk)
 	if (sk->sk_state != TCP_ESTABLISHED)
 		return -ENOTSUPP;
 
-	if (sk->sk_prot == &tcpv6_prot)
-		ip_ver = TLSV6;
-	else if (sk->sk_prot != &tcp_prot)
-		return -EINVAL;
-
 	/* allocate tls context */
 	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
 	if (!ctx) {
@@ -507,8 +524,21 @@ static int tls_init(struct sock *sk)
 	icsk->icsk_ulp_data = ctx;
 	ctx->setsockopt = sk->sk_prot->setsockopt;
 	ctx->getsockopt = sk->sk_prot->getsockopt;
+	ctx->sk_proto_close = sk->sk_prot->close;
 
-	sk->sk_prot = &tls_prots[ip_ver][TLS_BASE_TX];
+	/* Build IPv6 TLS whenever the address of tcpv6_prot changes */
+	if (ip_ver == TLSV6 &&
+	    unlikely(sk->sk_prot != smp_load_acquire(&saved_tcpv6_prot))) {
+		mutex_lock(&tcpv6_prot_mutex);
+		if (likely(sk->sk_prot != saved_tcpv6_prot)) {
+			build_protos(tls_prots[TLSV6], sk->sk_prot);
+			smp_store_release(&saved_tcpv6_prot, sk->sk_prot);
+		}
+		mutex_unlock(&tcpv6_prot_mutex);
+	}
+
+	ctx->tx_conf = TLS_BASE_TX;
+	update_sk_prot(sk, ctx);
 out:
 	return rc;
 }
@@ -519,22 +549,9 @@ static struct tcp_ulp_ops tcp_tls_ulp_ops __read_mostly = {
 	.init			= tls_init,
 };
 
-static void build_protos(struct proto *prot, struct proto *base)
-{
-	prot[TLS_BASE_TX] = *base;
-	prot[TLS_BASE_TX].setsockopt = tls_setsockopt;
-	prot[TLS_BASE_TX].getsockopt = tls_getsockopt;
-
-	prot[TLS_SW_TX]		= prot[TLS_BASE_TX];
-	prot[TLS_SW_TX].close	= tls_sk_proto_close;
-	prot[TLS_SW_TX].sendmsg		= tls_sw_sendmsg;
-	prot[TLS_SW_TX].sendpage	= tls_sw_sendpage;
-}
-
 static int __init tls_register(void)
 {
 	build_protos(tls_prots[TLSV4], &tcp_prot);
-	build_protos(tls_prots[TLSV6], &tcpv6_prot);
 
 	tcp_register_ulp(&tcp_tls_ulp_ops);
 
