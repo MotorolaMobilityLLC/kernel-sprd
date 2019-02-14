@@ -334,6 +334,10 @@
 		};
 	};
 
+	autotest: autotest {
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
 };
 
 &adi_bus {
