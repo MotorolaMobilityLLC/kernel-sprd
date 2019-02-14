@@ -144,7 +144,7 @@ int aud_smsg_irq_handler(void *ptr, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-int aud_smsg_ipc_create(uint8_t dst, struct aud_smsg_ipc *ipc)
+int aud_smsg_ipc_create(u8 dst, struct aud_smsg_ipc *ipc)
 {
 	if (!ipc->irq_handler)
 		ipc->irq_handler = (void *)aud_smsg_irq_handler;
@@ -174,7 +174,7 @@ int aud_smsg_ipc_create(uint8_t dst, struct aud_smsg_ipc *ipc)
 	return 0;
 }
 
-int aud_smsg_ipc_destroy(uint8_t dst)
+int aud_smsg_ipc_destroy(u8 dst)
 {
 	/* kthread_stop(ipc->thread); */
 	aud_smsg_ipcs[dst] = NULL;
@@ -184,7 +184,7 @@ int aud_smsg_ipc_destroy(uint8_t dst)
 
 /* ****************************************************************** */
 
-int aud_smsg_ch_open(uint8_t dst, uint16_t channel)
+int aud_smsg_ch_open(u8 dst, uint16_t channel)
 {
 	struct aud_smsg_ipc *ipc = aud_smsg_ipcs[dst];
 	struct aud_smsg_channel *ch;
@@ -212,7 +212,7 @@ int aud_smsg_ch_open(uint8_t dst, uint16_t channel)
 }
 EXPORT_SYMBOL(aud_smsg_ch_open);
 
-int aud_smsg_ch_close(uint8_t dst, uint16_t channel)
+int aud_smsg_ch_close(u8 dst, uint16_t channel)
 {
 	struct aud_smsg_ipc *ipc = NULL;
 	struct aud_smsg_channel *ch = NULL;
@@ -326,10 +326,9 @@ int aud_smsg_wakeup_ch(u8 dst, u8 channel)
 	}
 	return 0;
 }
-
 EXPORT_SYMBOL(aud_smsg_wakeup_ch);
 
-int aud_smsg_send(uint8_t dst, struct aud_smsg *msg)
+int aud_smsg_send(u8 dst, struct aud_smsg *msg)
 {
 	unsigned long long msg_val = 0;
 	unsigned long long command;
@@ -402,7 +401,7 @@ send_failed:
 }
 EXPORT_SYMBOL(aud_smsg_send);
 
-int aud_smsg_recv(uint8_t dst, struct aud_smsg *msg, int timeout)
+int aud_smsg_recv(u8 dst, struct aud_smsg *msg, int timeout)
 {
 	struct aud_smsg_ipc *ipc = aud_smsg_ipcs[dst];
 	struct aud_smsg_channel *ch;

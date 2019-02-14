@@ -43,7 +43,6 @@
 #define sp_asoc_pr_dbg pr_info
 #define sp_asoc_pr_info pr_info
 
-/*add by ninglei*/
 #define AUDIO_SMSG_RINGHDR_EXT_SIZE	(16)
 #define AUDIO_SMSG_RINGHDR_EXT_TXRDPTR	(0)
 #define AUDIO_SMSG_RINGHDR_EXT_TXWRPTR	(4)

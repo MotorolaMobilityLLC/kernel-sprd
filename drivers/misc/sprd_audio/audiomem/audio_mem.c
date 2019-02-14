@@ -29,12 +29,11 @@ enum {
 
 struct smem_pool {
 	struct list_head smem_head;
+	/* for pool record momory list */
 	spinlock_t lock;
-
 	u32 addr;
 	u32 size;
 	atomic_t used;
-
 	struct gen_pool *gen;
 };
 
@@ -55,6 +54,7 @@ struct smem_map {
 
 struct smem_map_list {
 	struct list_head map_head;
+	/* for memory map list operation */
 	spinlock_t lock;
 	u32 inited;
 };
@@ -63,7 +63,7 @@ static struct smem_pool audio_mem_pool;
 static struct smem_map_list mem_mp;
 static struct platform_audio_mem_priv *g_priv_data;
 
-int audio_smem_init(u32 addr, u32 size)
+static int audio_smem_init(u32 addr, u32 size)
 {
 	struct smem_pool *spool = &audio_mem_pool;
 	struct smem_map_list *smem = &mem_mp;
@@ -100,7 +100,7 @@ static u32 audio_smem_alloc(u32 size)
 	unsigned long flags;
 	u32 addr;
 
-	recd = kzalloc(sizeof(struct smem_record), GFP_KERNEL);
+	recd = kzalloc(sizeof(*recd), GFP_KERNEL);
 	if (!recd) {
 		addr = 0;
 		goto error;
@@ -181,7 +181,7 @@ static u32 audio_addr_ap2dsp_orca(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
 }
 
 static u32 audio_addr_ap2dsp_sharkl5(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
-	bool invert)
+				     bool invert)
 {
 	int ret_val;
 
@@ -217,7 +217,7 @@ static u32 audio_addr_ap2dsp_sharkl5(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
 }
 
 u32 audio_addr_ap2dsp(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
-			   bool invert)
+		      bool invert)
 {
 	u32 ret_val;
 
@@ -380,7 +380,7 @@ void *audio_mem_vmap(phys_addr_t start, size_t size, int writecombine)
 	struct smem_map *map;
 	struct smem_map_list *smem = &mem_mp;
 
-	map = kzalloc(sizeof(struct smem_map), GFP_KERNEL);
+	map = kzalloc(sizeof(*map), GFP_KERNEL);
 	if (!map)
 		return NULL;
 
@@ -483,7 +483,6 @@ static int audio_mem_whale2_parse_dt(struct device_node *np)
 		pr_warn("the size(%#x) of 'sprd,ddr32-dma' is greater than the total size(%#x)\n",
 			val_arr[0], ddr32_size);
 		val_arr[0] = ddr32_size;
-
 	}
 	audio_mem[DDR32].addr = (u32)res.start;
 	audio_mem[DDR32].size = val_arr[0];
@@ -575,7 +574,7 @@ static int audio_mem_whale2_parse_dt(struct device_node *np)
 		audio_mem[IRAM_CM4_SHMEM].size = val_arr[1];
 	} else {
 		pr_warn("%s, warn: parse the cm4 share memory addr failed!\n",
-		       __func__);
+			__func__);
 	}
 
 	/* IRAM_SHM_REG_DUMP */
@@ -605,28 +604,30 @@ static int audio_mem_whale2_parse_dt(struct device_node *np)
 	}
 	/* IRAM NORMAL CAPTURE */
 	if (!of_property_read_u32_array(np,
-		"sprd,normal-captue-linklilst-node1", &val_arr[0], 2)) {
+					"sprd,normal-captue-linklilst-node1",
+					&val_arr[0], 2)) {
 		audio_mem[IRAM_NORMAL_C_LINKLIST_NODE1].addr = val_arr[0];
 		audio_mem[IRAM_NORMAL_C_LINKLIST_NODE1].size = val_arr[1];
 	} else {
 		pr_err("%s, ERR:Must give me the iram sprd,normal-captue-linklilst-node1 addr!\n",
-			__func__);
+		       __func__);
 	}
 	if (!of_property_read_u32_array(np,
-		"sprd,normal-captue-linklilst-node2", &val_arr[0], 2)) {
+					"sprd,normal-captue-linklilst-node2",
+					&val_arr[0], 2)) {
 		audio_mem[IRAM_NORMAL_C_LINKLIST_NODE2].addr = val_arr[0];
 		audio_mem[IRAM_NORMAL_C_LINKLIST_NODE2].size = val_arr[1];
 	} else {
 		pr_err("%s, ERR:Must give me the iram sprd,normal-captue-linklilst-node2 addr!\n",
-			__func__);
+		       __func__);
 	}
 	if (!of_property_read_u32_array(np, "sprd,normal-captue-data",
-						&val_arr[0], 2)) {
+					&val_arr[0], 2)) {
 		audio_mem[IRAM_NORMAL_C_DATA].addr = val_arr[0];
 		audio_mem[IRAM_NORMAL_C_DATA].size = val_arr[1];
 	} else {
 		pr_err("%s, ERR:Must give me the iram normal capture data addr!\n",
-			__func__);
+		       __func__);
 	}
 
 	if (!of_property_read_u32_array
@@ -741,8 +742,9 @@ static int audio_mem_sharkl5_parse_dt(struct device_node *np)
 	audio_mem[DDR32].addr = val_arr[0];
 	audio_mem[DDR32].size = val_arr[1];
 	/* DDR32 memory for DSP memory dump */
-	ret = of_property_read_u32_array(np, "sprd,ddr32-dspmemdump",
-	&val_arr[0], 2);
+	ret = of_property_read_u32_array(np,
+					 "sprd,ddr32-dspmemdump",
+					 &val_arr[0], 2);
 	if (ret) {
 		pr_err("read 'sprd,ddr32-dspmemdump' failed!(%d)\n", ret);
 		return ret;
@@ -775,8 +777,9 @@ static int audio_mem_sharkl5_parse_dt(struct device_node *np)
 	}
 
 	/* DDR32 AUD_STRUCT */
-	if (!of_property_read_u32_array(np, "sprd,shmaddr-aud-str",
-		&val_arr[0], 2)) {
+	if (!of_property_read_u32_array(np,
+					"sprd,shmaddr-aud-str",
+					&val_arr[0], 2)) {
 		audio_mem[IRAM_SHM_AUD_STR].addr = val_arr[0];
 		audio_mem[IRAM_SHM_AUD_STR].size = val_arr[1];
 	} else {
@@ -784,8 +787,9 @@ static int audio_mem_sharkl5_parse_dt(struct device_node *np)
 	}
 
 	/* DDR32 SHM_DSP_VBC */
-	if (!of_property_read_u32_array(np, "sprd,shmaddr-dsp-vbc",
-		&val_arr[0], 2)) {
+	if (!of_property_read_u32_array(np,
+					"sprd,shmaddr-dsp-vbc",
+					&val_arr[0], 2)) {
 		audio_mem[IRAM_SHM_DSP_VBC].addr = val_arr[0];
 		audio_mem[IRAM_SHM_DSP_VBC].size = val_arr[1];
 	} else {
@@ -794,16 +798,17 @@ static int audio_mem_sharkl5_parse_dt(struct device_node *np)
 	}
 
 	/* DDR32 SHM_NXP */
-	if (!of_property_read_u32_array(np, "sprd,shmaddr-nxp",
-		&val_arr[0], 2)) {
+	if (!of_property_read_u32_array(np,
+					"sprd,shmaddr-nxp", &val_arr[0], 2)) {
 		audio_mem[IRAM_SHM_NXP].addr = val_arr[0];
 		audio_mem[IRAM_SHM_NXP].size = val_arr[1];
 	} else {
 		pr_err("%s, ERR:Must give me the shmaddr_c addr!\n", __func__);
 	}
 	/* DDR32 SHM_IVS_SMARTPA */
-	if (!of_property_read_u32_array(np, "sprd,shmaddr-dsp-smartpa",
-		&val_arr[0], 2)) {
+	if (!of_property_read_u32_array(np,
+					"sprd,shmaddr-dsp-smartpa",
+					&val_arr[0], 2)) {
 		audio_mem[IRAM_SHM_IVS_SMARTPA].addr = val_arr[0];
 		audio_mem[IRAM_SHM_IVS_SMARTPA].size = val_arr[1];
 	} else {
@@ -811,8 +816,9 @@ static int audio_mem_sharkl5_parse_dt(struct device_node *np)
 	}
 
 	/* DDR32 SHM_REG_DUMP */
-	if (!of_property_read_u32_array(np, "sprd,shmaddr-reg-dump",
-		&val_arr[0], 2)) {
+	if (!of_property_read_u32_array(np,
+					"sprd,shmaddr-reg-dump",
+					&val_arr[0], 2)) {
 		audio_mem[IRAM_SHM_REG_DUMP].addr = val_arr[0];
 		audio_mem[IRAM_SHM_REG_DUMP].size = val_arr[1];
 	} else {
@@ -868,34 +874,36 @@ static int audio_mem_sharkl5_parse_dt(struct device_node *np)
 
 	/* IRAM NORMAL CAPTURE */
 	if (!of_property_read_u32_array(np,
-		"sprd,normal-captue-linklilst-node1", &val_arr[0], 2)) {
+					"sprd,normal-captue-linklilst-node1",
+					&val_arr[0], 2)) {
 		audio_mem[IRAM_NORMAL_C_LINKLIST_NODE1].addr = val_arr[0];
 		audio_mem[IRAM_NORMAL_C_LINKLIST_NODE1].size = val_arr[1];
 	} else {
 		pr_err("%s, ERR:Must give me the iram sprd,normal-captue-linklilst-node1 addr!\n",
-			__func__);
+		       __func__);
 	}
 
 	if (!of_property_read_u32_array(np,
-		"sprd,normal-captue-linklilst-node2", &val_arr[0], 2)) {
+					"sprd,normal-captue-linklilst-node2",
+					&val_arr[0], 2)) {
 		audio_mem[IRAM_NORMAL_C_LINKLIST_NODE2].addr = val_arr[0];
 		audio_mem[IRAM_NORMAL_C_LINKLIST_NODE2].size = val_arr[1];
 	} else {
 		pr_err("%s, ERR:Must give me the iram sprd,normal-captue-linklilst-node2 addr!\n",
-			__func__);
+		       __func__);
 	}
 
 	if (!of_property_read_u32_array(np, "sprd,normal-captue-data",
-						&val_arr[0], 2)) {
+					&val_arr[0], 2)) {
 		audio_mem[IRAM_NORMAL_C_DATA].addr = val_arr[0];
 		audio_mem[IRAM_NORMAL_C_DATA].size = val_arr[1];
 	} else {
 		pr_err("%s, ERR:Must give me the iram normal capture data addr!\n",
-			__func__);
+		       __func__);
 	}
 
 	pr_info("%s audio iram(OFFLOAD), (NORMAL_CAP NODE1), (NORMAL_CAP NODE2), (NORMAL_CAP DATA)\n",
-	__func__);
+		__func__);
 	pr_info("iram(addr size), (%#x,%#x), (%#x,%#x), (%#x,%#x), (%#x,%#x)\n",
 		audio_mem[IRAM_OFFLOAD].addr,
 		audio_mem[IRAM_OFFLOAD].size,
@@ -1016,7 +1024,7 @@ static int audio_mem_sharkl5_probe(struct platform_device *pdev)
 
 	if (0 != audio_mem[DDR32].addr && 0 != audio_mem[DDR32].size) {
 		ret = audio_smem_init(audio_mem[DDR32].addr,
-			audio_mem[DDR32].size);
+				      audio_mem[DDR32].size);
 		if (ret) {
 			pr_info("%s audio_smem_init failed ret =%d\n", __func__,
 				ret);
@@ -1098,7 +1106,7 @@ static int audio_mem_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	const struct of_device_id *of_id;
 
-	if (np == NULL) {
+	if (!np) {
 		pr_err("ERR: device_node is NULL!\n");
 		return -1;
 	}
@@ -1111,7 +1119,7 @@ static int audio_mem_probe(struct platform_device *pdev)
 	}
 
 	g_priv_data =
-	    devm_kzalloc(&(pdev->dev), sizeof(*g_priv_data), GFP_KERNEL);
+	    devm_kzalloc(&pdev->dev, sizeof(*g_priv_data), GFP_KERNEL);
 	if (!g_priv_data)
 		return -ENOMEM;
 
@@ -1134,7 +1142,7 @@ static int audio_mem_probe(struct platform_device *pdev)
 static int audio_mem_remove(struct platform_device *pdev)
 {
 	if (g_priv_data) {
-		devm_kfree(&(pdev->dev), g_priv_data);
+		devm_kfree(&pdev->dev, g_priv_data);
 		g_priv_data = NULL;
 	}
 
@@ -1165,4 +1173,4 @@ arch_initcall(audio_mem_init);
 module_exit(audio_mem_exit);
 
 MODULE_DESCRIPTION("audio memory manager driver");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");

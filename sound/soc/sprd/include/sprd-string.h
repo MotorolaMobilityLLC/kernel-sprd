@@ -80,12 +80,14 @@ static inline unsigned long unalign_copy_to_user(void __user *to,
 {
 	return copy_to_user(to, from, n);
 }
+
 static inline unsigned long unalign_copy_from_user(void *to,
 						   const void __user *from,
 						   unsigned long n)
 {
 	return copy_from_user(to, from, n);
 }
+
 static inline void *unalign_memcpy(void *to, const void *from, size_t n)
 {
 	return memcpy(to, from, n);
