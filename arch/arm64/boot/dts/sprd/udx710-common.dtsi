@@ -22,12 +22,12 @@
 			reg = <0x0 0x85300000 0x0 0x00020000>;
 		};
 
-		audio_reserved: audio-mem@86e00000 {
-			reg = <0x0 0x86e00000 0x0 0x00400000>;
+		audiodsp_reserved: audiodsp-mem@86e00000 {
+			reg = <0x0 0x86e00000 0x0 0x00600000>;
 		};
 
-		audiodsp_reserved: audiodsp-mem@87200000 {
-			reg = <0x0 0x87200000 0x0 0x00600000>;
+		audio_reserved: audio-mem@87400000 {
+			reg = <0x0 0x87400000 0x0 0x00400000>;
 		};
 
 		smem_reserved: sipc-mem@87800000 {

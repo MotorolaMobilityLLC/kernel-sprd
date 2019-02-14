@@ -301,6 +301,40 @@
 			};
 		};
 
+		agcp {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			agdsp-access {
+				compatible = "sprd,agdsp-access";
+				sprd,syscon-agcp-ahb = <&aon_apb_regs>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				syscons = <&pmu_apb_regs REG_PMU_APB_RF_SLEEP_CTRL
+							MASK_PMU_APB_RF_AUDCP_DEEP_SLEEP>,
+							<&pmu_apb_regs REG_PMU_APB_RF_SLEEP_STATUS
+							MASK_PMU_APB_RF_AUDCP_SLP_STATUS>,
+							<&pmu_apb_regs REG_PMU_APB_RF_PWR_STATUS3_DBG
+							MASK_PMU_APB_RF_PD_AUDCP_SYS_STATE>,
+							<&pmu_apb_regs REG_PMU_APB_RF_PWR_STATUS3_DBG
+							MASK_PMU_APB_RF_PD_AUDCP_AUDDSP_STATE>,
+							<&aon_apb_regs REG_AON_APB_RF_AUDCP_CTRL
+							MASK_AON_APB_RF_AP_2_AUD_ACCESS_EN>;
+				syscon-names = "audcp_pmu_sleep_ctrl",
+								"audcp_pmu_slp_status",
+								"audcp_pmu_pwr_status4",
+								"audcp_pmu_pwr_status3",
+								"ap_access_ena";
+				sprd,dst = <5>;
+				sprd,channel = <130>;
+				sprd,mailbox-core = <5>;
+				sprd,ddr-addr-offset = <0x0>;
+				hwlocks = <&hwlock 11>;
+				sprd,auto_agcp_access = <0>;
+			};
+		};
+
 		pub {
 			compatible = "simple-bus";
 			#address-cells = <2>;
@@ -806,6 +840,71 @@
 				sprd,vdd-voltage = <3300000>;
 			};
 		};
+	};
+
+	audio-sipc{
+		compatible = "sprd,audio_sipc";
+		sprd,mailbox-core = <5>;  /* AGDSP id */
+	};
+
+	audio-mem-mgr {
+		compatible = "sprd,audio-mem-orca";
+		/*
+		 * base is 0x87400000 for orca
+		 */
+		ddr32-ap-dsp-map-offset = <0x0>;
+		/* 1K cmd para, 0x87400000 - 0x87400400 */
+		sprd,cmdaddr = <0x87400000 0x400>;
+		/* 2.5k + 16byte,0x87400400 - 0x87400e10 */
+		sprd,smsg-addr = <0x87400400 0xa10>;
+		/* fixed memory 0x87400e10 - 0x87480e10 */
+		sprd,ddr32-dspmemdump = <0x87400e10 0x80000>;
+		/*
+		 * 3M alloc from the end of memory region,
+		 * 0x87800000 - 0x300000
+		 */
+		sprd,ddr32-dma = <0x87500000 0x300000>;
+	};
+
+	audio-dsp-dump@0 {/* audio dsp log */
+		compatible = "sprd,audio_dsp_log";
+		sprd-usemem-type =<0x5>;
+		sprd-dst = /bits/ 8 <1>; /* AGDSP */
+		sprd-channel =/bits/ 8 <4>;
+		sprd-rxblocknum=<0x8>;
+		sprd-rxblocksize=<0x2000>;
+	};
+
+	audio-dsp-dump@1 {/* audio dsp pcm */
+		compatible = "sprd,audio_dsp_pcm";
+		sprd-usemem-type =<0x5>;
+		sprd-dst = /bits/ 8 <1>; /* AGDSP */
+		sprd-channel =/bits/ 8 <3>;
+		sprd-rxblocknum=<0x8>;
+		sprd-rxblocksize=<0x2000>;
+	};
+
+	audio-dsp-dump@2 {/* audio dsp memory */
+		compatible = "sprd,audio_dsp_mem";
+		sprd-usemem-type =<0x9>;
+		sprd-usemem-bytes =<0x80000>;
+		sprd-dst = /bits/ 8 <1>; /* AGDSP */
+		sprd-channel =/bits/ 8 <5>;
+		/*
+		 * dsp data iram and data irom,
+		 * aon memorey for dsp,
+		 * dsp bin+3M  for dsp code used
+		 */
+		sprd,dspdumpmem = <0x56000000 0x10000
+						   0x7400 0x1000
+						   0x87100000 0x5f000>;
+	};
+
+	audio_pipe_voice {
+		compatible = "sprd,audio_pipe_voice";
+		sprd,writesync = <0>;
+		sprd,maxuserwritebufsize = <0>;
+		sprd,channel = <2>;
 	};
 
 	ext_26m: ext-26m {

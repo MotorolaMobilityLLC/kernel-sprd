@@ -45,6 +45,10 @@
 			type = <0>;
 		};
 	};
+
+	audio-mem-mgr {
+		memory-region = <&audio_reserved>;
+	};
 };
 
 &uart0 {
