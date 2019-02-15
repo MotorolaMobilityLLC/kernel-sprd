@@ -702,17 +702,16 @@ static int mbox_phy_send(u8 core_id, u64 msg)
 
 	pr_debug("mbox:%s, core_id=%d\n", __func__, (u32)core_id);
 
-	/* if dst bit inbox block,  we dont't send it */
+	fifo_sts_1 = readl_relaxed(
+		(void __iomem *)(sprd_inbox_base + MBOX_FIFO_INBOX_STS_1));
 	fifo_sts_2 = readl_relaxed(
 		(void __iomem *)(sprd_inbox_base + MBOX_FIFO_INBOX_STS_2));
 	block = (fifo_sts_2 & MBOX_FIFO_BLOCK_STS_MASK) >>
 		MBOX_FIFO_BLOCK_STS_BIT;
 
+	/* if dst bit inbox block,  we dont't send it */
 	if (block & (1 << core_id))
 		goto block_exit;
-
-	fifo_sts_1 = readl_relaxed(
-		(void __iomem *)(sprd_inbox_base + MBOX_FIFO_INBOX_STS_1));
 
 	/* wait outbox recv flag, until flag is 0
 	 * (mail be send to  outbox will clear it)
