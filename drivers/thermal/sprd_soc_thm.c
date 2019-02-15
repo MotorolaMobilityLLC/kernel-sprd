@@ -87,12 +87,12 @@ static int __sprd_get_max_temp(int *temp)
 		sum_temp += sensor_temp[i];
 	}
 
-	if ((soc_temp >= 75000) && (soc_temp <= 85000)) {
-		weight_max = (soc_temp / 1000 - 75) * (1 * 100 / (85 - 75));
+	if ((soc_temp >= 75000) && (soc_temp <= 95000)) {
+		weight_max = (soc_temp / 1000 - 75) * (1 * 100 / (95 - 75));
 		*temp = soc_temp * weight_max / 100 +
 			(sum_temp / psensor->nsensor) *
 			(1 * 100 - weight_max) / 100;
-	} else if (soc_temp > 85000) {
+	} else if (soc_temp > 95000) {
 		*temp = soc_temp;
 	} else {
 		*temp = sum_temp / psensor->nsensor;
