@@ -131,6 +131,16 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	writel(2 | val, host->ufs_ao_reg + 0x1c);
 	msleep(100);
 	writel((~2) & val, host->ufs_ao_reg + 0x1c);
+
+	/*ufs tunning*/
+	val = readl(host->ufs_tuning + 0x8c);
+	writel(0x8000 | val, host->ufs_tuning + 0x8c);
+
+	val = readl(host->ufs_tuning + 0x1c);
+	writel(0x1000000 | val, host->ufs_tuning + 0x1c);
+
+	val = readl(host->unipro_reg + 0x148);
+	writel(1 | val, host->unipro_reg + 0x148);
 }
 
 static int ufs_sprd_init(struct ufs_hba *hba)
@@ -203,6 +213,25 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	pr_info("ufs_ao_reg vit=0x%llx, phy=0x%llx, len=0x%llx\n",
 		(u64) res->start,
 		(u64) host->ufs_ao_reg,
+		(u64) resource_size(res));
+
+	/* map ufs_tuning */
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ufs_tuning");
+	if (!res) {
+		dev_err(dev, "Missing ufs_tuning register resource\n");
+		return -ENODEV;
+	}
+	host->ufs_tuning = devm_ioremap_nocache(dev, res->start,
+						resource_size(res));
+	if (IS_ERR(host->ufs_tuning)) {
+		dev_err(dev, "%s: could not map ufs_tuning, err %ld\n",
+			__func__, PTR_ERR(host->ufs_tuning));
+		host->ufs_tuning = NULL;
+		return -ENODEV;
+	}
+	pr_info("ufs_tuning vit=0x%llx, phy=0x%llx, len=0x%llx\n",
+		(u64) res->start,
+		(u64) host->ufs_tuning,
 		(u64) resource_size(res));
 
 	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->aon_apb_ufs_en,
