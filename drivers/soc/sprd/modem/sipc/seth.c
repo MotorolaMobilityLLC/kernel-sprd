@@ -207,6 +207,11 @@ static int seth_rx_poll_handler(struct napi_struct *napi, int budget)
 		return 0;
 	}
 
+	if (seth->state != DEV_ON) {
+		dev_err(NULL, "seth state %d\n", seth->state);
+		return 0;
+	}
+
 	pdata = seth->pdata;
 	dt_stats = &seth->dt_stats;
 	blk_ret = 0;
@@ -597,7 +602,7 @@ static int seth_open(struct net_device *dev)
 	struct sblock blk = {};
 	int ret = 0, num = 0;
 
-	dev_dbg(&dev->dev, "open %s!\n", dev->name);
+	dev_info(&dev->dev, "open %s!\n", dev->name);
 
 	if (!seth)
 		return -ENODEV;
@@ -637,7 +642,7 @@ static int seth_close(struct net_device *dev)
 {
 	struct seth *seth = netdev_priv(dev);
 
-	dev_dbg(&dev->dev, "close %s!\n", dev->name);
+	dev_info(&dev->dev, "close %s!\n", dev->name);
 
 	seth->txstate = DEV_OFF;
 	seth->state = DEV_OFF;
