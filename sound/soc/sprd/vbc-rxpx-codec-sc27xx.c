@@ -103,33 +103,12 @@ static struct snd_soc_ops sprd_dai_link_ops[] = {
 
 static int vbc_rxpx_codec_sc27xx_late_probe(struct snd_soc_card *card)
 {
-	struct snd_soc_dapm_context *codec_dapm = &card->dapm;
-	struct sprd_card_data *mdata = snd_soc_card_get_drvdata(card);
-	enum CODEC_VERSION_TYPE codec_type = mdata->board_type->codec_type;
-
 	sprd_asoc_board_comm_late_probe(card);
 
 	snd_soc_dapm_ignore_suspend(&card->dapm, "inter HP PA");
 	snd_soc_dapm_ignore_suspend(&card->dapm, "inter Spk PA");
 	snd_soc_dapm_ignore_suspend(&card->dapm, "inter Ear PA");
-	/* for "snd-soc-dummy"  codec_dapm->card is null */
-	if (codec_dapm->card) {
-		snd_soc_dapm_ignore_suspend(codec_dapm, "Offload-Playback");
-		snd_soc_dapm_ignore_suspend(codec_dapm, "Fm-Playback");
-		snd_soc_dapm_ignore_suspend(codec_dapm, "Voice-Playback");
-		snd_soc_dapm_ignore_suspend(codec_dapm, "Voice-Capture");
-		/* These widgets are used for mute function and
-		 * vbc master clock control.
-		 */
-		if (codec_type == BOARD_T_CODEC_2731 ||
-			codec_type == BOARD_T_CODEC_2730 ||
-			codec_type == BOARD_T_CODEC_2721) {
-			pr_info("codec_type =%x, ignore suspend Virt Output, Virt Input\n",
-				codec_type);
-			snd_soc_dapm_ignore_suspend(codec_dapm, "Virt Output");
-			snd_soc_dapm_ignore_suspend(codec_dapm, "Virt Input");
-		}
-	}
+
 	return 0;
 }
 
