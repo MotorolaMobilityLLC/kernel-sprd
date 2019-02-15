@@ -9708,6 +9708,13 @@ CONFIG_SPRD_AUTOTEST
 	[subsys] soc
 	[must] user
 	[function] Support Spreadtrum autotest
+CONFIG_SPRD_AUTOTEST_GPIO
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] soc
+	[must] user
+	[function] Spreadtrum gpio autotest support
 CONFIG_SPRD_AUTOTEST_PINCTRL
 	[arch] all
 	[plat] all

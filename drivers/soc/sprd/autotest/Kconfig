@@ -4,6 +4,12 @@
 config SPRD_AUTOTEST
 	tristate
 
+config SPRD_AUTOTEST_GPIO
+	tristate "Spreadtrum gpio autotest support"
+	select SPRD_AUTOTEST
+	help
+	  Enable this to support gpio autotest.
+
 config SPRD_AUTOTEST_PINCTRL
 	tristate "Spreadtrum pinctrl autotest support"
 	select SPRD_AUTOTEST
