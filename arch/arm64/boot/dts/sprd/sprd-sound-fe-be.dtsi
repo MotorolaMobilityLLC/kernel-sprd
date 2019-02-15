@@ -50,9 +50,9 @@
 			"Speaker", "inter Spk PA",
 			"Speaker", "inter Ear PA";
 		sprd-audio-card,routing =
-			"HPMIC", "HPMIC Pin",
-			"MIC", "MIC Pin",
-			"AUXMIC", "MIC2 Pin",
+			"HPMIC Pin", "HP Mic Jack",
+			"MIC Pin", "Mic Jack",
+			"MIC2 Pin", "Aux Mic Jack",
 			"inter HP PA", "HP Pin",
 			"inter Spk PA", "SPK Pin",
 			"inter Ear PA", "EAR Pin";
