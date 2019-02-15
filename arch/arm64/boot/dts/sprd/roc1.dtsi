@@ -1886,14 +1886,14 @@
 				compatible = "sprd,roc1-pinctrl";
 				reg = <0 0x3243c000 0 0x20000>;
 
-				vbc_iis3_0: iis-matrix-cfg-inf0@e {
+				vbc_iis3_0: iis-matrix-cfg-inf0@a {
 					pins = "ROC1_IIS_INF0_SYS_SEL";
-					sprd,control = <0xe>;
+					sprd,control = <0xa>;
 				};
 
-				vbc_iism0_0: iis-matrix-cfg-inf0@f {
+				vbc_iism0_0: iis-matrix-cfg-inf0@d {
 					pins = "ROC1_IIS_INF0_SYS_SEL";
-					sprd,control = <0xf>;
+					sprd,control = <0xd>;
 				};
 
 				vbc_iis_to_pad: vbc-iis-inf-sys@0 {
