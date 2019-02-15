@@ -703,6 +703,7 @@
 				MASK_AP_IPA_AHB_RF_IPA_EB>;
 			syscon-names = "enable";
 
+			sprd,tft-mode;
 			sprd,sipa-bypass-mode = <1>;
 
 			sprd,usb-dl-tx = <1 1024>;
