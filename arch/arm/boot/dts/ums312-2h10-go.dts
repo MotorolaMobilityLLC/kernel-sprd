@@ -35,7 +35,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.hardware=ums312_2h10_go_32b androidboot.selinux=permissive androidboot.dtbo_idx=0 printk.devkmsg=on";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.hardware=ums312_2h10_go_32b androidboot.selinux=permissive androidboot.dtbo_idx=0 printk.devkmsg=on vmalloc=300M";
 	};
 
 	ipi: interrupt-controller {
@@ -578,23 +578,27 @@
 	status = "okay";
 };
 
-&mipi_csi_phy0 {
+&mipi_csi_phy {
 	status = "okay";
 };
 
-&mipi_csi_phy1 {
+&csi_phy0{
 	status = "okay";
 };
 
-&mipi_csi_phy2 {
+&csi_phy1{
 	status = "okay";
 };
 
-&mipi_csi_phy1_m {
+&csi_phy2{
 	status = "okay";
 };
 
-&mipi_csi_phy1_s {
+&csi_phy3{
+	status = "okay";
+};
+
+&csi_phy4{
 	status = "okay";
 };
 
