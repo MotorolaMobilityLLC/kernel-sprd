@@ -233,6 +233,17 @@ struct sipa_hal_global_ops {
 	u32 (*enable_wiap_ul_dma)(void __iomem *reg_base,
 								  u32 enable);
 	u32 (*enable_def_flowctrl_to_src_blk)(void __iomem *reg_base);
+	u32 (*enable_to_pcie_no_mac)(void __iomem *reg_base, bool enable);
+	u32 (*enable_from_pcie_no_mac)(void __iomem *reg_base, bool enable);
+	u32 (*set_cp_ul_pri)(void __iomem *reg_base, u32 pri);
+	u32 (*set_cp_ul_dst_num)(void __iomem *reg_base, u32 dst);
+	u32 (*set_cp_ul_cur_num)(void __iomem *reg_base, u32 cur);
+	u32 (*set_cp_ul_flow_ctrl_mode)(void __iomem *reg_base, u32 mode);
+	u32 (*set_cp_dl_pri)(void __iomem *reg_base, u32 pri);
+	u32 (*set_cp_dl_dst_num)(void __iomem *reg_base, u32 dst);
+	u32 (*set_cp_dl_cur_num)(void __iomem *reg_base, u32 cur);
+	u32 (*set_cp_dl_flow_ctrl_mode)(void __iomem *reg_base, u32 mode);
+	u32 (*ctrl_cp_work)(void __iomem *reg_base, bool enable);
 };
 
 struct sipa_sys_ops {

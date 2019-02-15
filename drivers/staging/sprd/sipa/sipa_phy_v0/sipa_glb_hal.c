@@ -193,6 +193,63 @@ static u32 sipa_hal_set_wipa_ul_dma(void __iomem *reg_base,
 	return ipa_phy_ctrl_wiap_ul_dma(reg_base, enable);
 }
 
+static u32 sipa_hal_enable_to_pcie_no_mac(void __iomem *reg_base,
+					bool enable)
+{
+	return ipa_phy_enable_to_pcie_no_mac(reg_base, enable);
+}
+
+static u32 sipa_hal_enable_from_pcie_no_mac(void __iomem *reg_base,
+					bool enable)
+{
+	return ipa_phy_enable_from_pcie_no_mac(reg_base, enable);
+}
+
+static u32 sipa_hal_set_cp_ul_pri(void __iomem *reg_base, u32 pri)
+{
+	return ipa_phy_set_cp_ul_pri(reg_base, pri);
+}
+
+static u32 sipa_hal_set_cp_ul_dst_num(void __iomem *reg_base, u32 dst)
+{
+	return ipa_phy_set_cp_ul_dst_num(reg_base, dst);
+}
+
+static u32 sipa_hal_set_cp_ul_cur_num(void __iomem *reg_base, u32 cur)
+{
+	return ipa_phy_set_cp_ul_cur_num(reg_base, cur);
+}
+
+static u32 sipa_hal_set_cp_ul_flow_ctrl_mode(void __iomem *reg_base, u32 mode)
+{
+	return ipa_phy_set_cp_ul_flow_ctrl_mode(reg_base, mode);
+}
+
+static u32 sipa_hal_set_cp_dl_pri(void __iomem *reg_base, u32 pri)
+{
+	return ipa_phy_set_cp_dl_pri(reg_base, pri);
+}
+
+static u32 sipa_hal_set_cp_dl_dst_num(void __iomem *reg_base, u32 dst)
+{
+	return ipa_phy_set_cp_dl_dst_num(reg_base, dst);
+}
+
+static u32 sipa_hal_set_cp_dl_cur_num(void __iomem *reg_base, u32 cur)
+{
+	return ipa_phy_set_cp_dl_cur_num(reg_base, cur);
+}
+
+static u32 sipa_hal_set_cp_dl_flow_ctrl_mode(void __iomem *reg_base, u32 mode)
+{
+	return ipa_phy_set_cp_dl_flow_ctrl_mode(reg_base, mode);
+}
+
+static u32 sipa_hal_ctrl_cp_work(void __iomem *reg_base, bool enable)
+{
+	return ipa_phy_ctrl_cp_work(reg_base, enable);
+}
+
 u32 sipa_glb_ops_init(
 	struct sipa_hal_global_ops *ops)
 {
@@ -228,6 +285,28 @@ u32 sipa_glb_ops_init(
 		sipa_hal_set_wipa_ul_dma;
 	ops->enable_def_flowctrl_to_src_blk =
 		sipa_hal_enable_def_flowctrl_to_src_blk;
+	ops->enable_to_pcie_no_mac =
+		sipa_hal_enable_to_pcie_no_mac;
+	ops->enable_from_pcie_no_mac =
+		sipa_hal_enable_from_pcie_no_mac;
+	ops->set_cp_ul_pri =
+		sipa_hal_set_cp_ul_pri;
+	ops->set_cp_ul_dst_num =
+		sipa_hal_set_cp_ul_dst_num;
+	ops->set_cp_ul_cur_num =
+		sipa_hal_set_cp_ul_cur_num;
+	ops->set_cp_ul_flow_ctrl_mode =
+		sipa_hal_set_cp_ul_flow_ctrl_mode;
+	ops->set_cp_dl_pri =
+		sipa_hal_set_cp_dl_pri;
+	ops->set_cp_dl_dst_num =
+		sipa_hal_set_cp_dl_dst_num;
+	ops->set_cp_dl_cur_num =
+		sipa_hal_set_cp_dl_cur_num;
+	ops->set_cp_dl_flow_ctrl_mode =
+		sipa_hal_set_cp_dl_flow_ctrl_mode;
+	ops->ctrl_cp_work =
+		sipa_hal_ctrl_cp_work;
 
 	return TRUE;
 }

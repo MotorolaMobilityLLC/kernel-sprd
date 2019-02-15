@@ -391,6 +391,82 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 }
 EXPORT_SYMBOL(sipa_open_common_fifo);
 
+int sipa_tft_mode_init(sipa_hal_hdl hdl)
+{
+	int ret;
+	struct sipa_hal_context *hal_cfg;
+	struct sipa_comm_fifo_params fifo_param;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg;
+
+	if (unlikely(!hdl)) {
+		IPA_ERR("hdl is null\n");
+		return -EINVAL;
+	}
+
+	hal_cfg = (struct sipa_hal_context *)hdl;
+	fifo_cfg = hal_cfg->cmn_fifo_cfg;
+
+	memset(&fifo_param, 0, sizeof(fifo_param));
+	fifo_param.intr_to_ap = 0;
+	fifo_param.tx_intr_delay_us = 5;
+	fifo_param.tx_intr_threshold = 5;
+
+	ret = sipa_open_common_fifo(hdl, SIPA_FIFO_PCIE_UL,
+				    &fifo_param, 0, NULL, NULL);
+	if (unlikely(ret))
+		pr_warn("open pcie ul common fifo failed\n");
+
+	ret = sipa_open_common_fifo(hdl, SIPA_FIFO_PCIE_DL,
+				    &fifo_param, 0, NULL, NULL);
+	if (unlikely(ret))
+		pr_warn("open pcie dl common fifo failed\n");
+
+	ret = hal_cfg->fifo_ops.set_cur_dst_term(SIPA_FIFO_PCIE_UL,
+			fifo_cfg, SIPA_TERM_PCIE0,
+			SIPA_TERM_VCP);
+	if (unlikely(!ret))
+		pr_warn("set pcie ul dst/cur id failed\n");
+
+	ret = hal_cfg->fifo_ops.set_cur_dst_term(SIPA_FIFO_PCIE_DL,
+			fifo_cfg, SIPA_TERM_PCIE0,
+			SIPA_TERM_VCP);
+	if (unlikely(!ret))
+		pr_warn("set pcie dl dst/cur id failed\n");
+
+	ret = hal_cfg->glb_ops.set_cp_ul_cur_num(hal_cfg->phy_virt_res.glb_base,
+			SIPA_TERM_VCP);
+	if (unlikely(!ret))
+		pr_warn("set cp ul cur id failed\n");
+
+	ret = hal_cfg->glb_ops.set_cp_ul_dst_num(hal_cfg->phy_virt_res.glb_base,
+			SIPA_TERM_PCIE0);
+	if (unlikely(!ret))
+		pr_warn("set cp ul dst id failed\n");
+
+	ret = hal_cfg->glb_ops.set_cp_dl_cur_num(hal_cfg->phy_virt_res.glb_base,
+			SIPA_TERM_VCP);
+	if (unlikely(!ret))
+		pr_warn("set cp dl cur id failed\n");
+
+	ret = hal_cfg->glb_ops.set_cp_dl_dst_num(hal_cfg->phy_virt_res.glb_base,
+			SIPA_TERM_PCIE0);
+	if (unlikely(!ret))
+		pr_warn("set cp dl dst id failed\n");
+
+	ret = hal_cfg->glb_ops.enable_from_pcie_no_mac(
+			hal_cfg->phy_virt_res.glb_base, 1);
+	if (unlikely(!ret))
+		pr_warn("enable from pcie no mac failed\n");
+
+	ret = hal_cfg->glb_ops.enable_to_pcie_no_mac(
+			hal_cfg->phy_virt_res.glb_base, 0);
+	if (unlikely(!ret))
+		pr_warn("enable to pcie no mac failed\n");
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_tft_mode_init);
+
 /*
  * stop : true : stop recv false : start receive
  */

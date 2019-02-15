@@ -537,6 +537,10 @@ static int sipa_parse_dts_configuration(
 	cfg->wiap_ul_dma = of_property_read_bool(pdev->dev.of_node,
 				"sprd,wiap-ul-dma");
 
+	/* get tft mode flag */
+	cfg->tft_mode = of_property_read_bool(pdev->dev.of_node,
+				"sprd,tft-mode");
+
 	/* get enable register informations */
 	cfg->sys_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
 						       "enable");
@@ -838,6 +842,12 @@ static int sipa_init(struct sipa_context **ipa_pp,
 			ret = -EFAULT;
 			goto fail;
 		}
+	}
+
+	if (cfg->tft_mode) {
+		ret = sipa_tft_mode_init(ipa->hdl);
+		if (ret)
+			goto fail;
 	}
 
 	*ipa_pp = ipa;

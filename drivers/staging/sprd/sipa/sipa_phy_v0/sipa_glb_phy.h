@@ -154,6 +154,7 @@
 #define IPA_HW_READY_FOR_CHECK_MASK			(BIT(26))
 #define IPA_SW_RESUME_IPA_MASK				(BIT(25))
 #define IPA_SW_DEBUG_MEM_ADDRH_MASK			(0x1FE0000l)
+#define IPA_CP_WORK_STATUS					(BIT(16))
 #define IPA_WIAP_DL_FLOW_CTL_MASK			(BIT(15))
 #define IPA_WIFI_DL_FLOW_CTL_MASK			(BIT(14))
 #define IPA_USB_DL_FLOW_CTL_MASK			(BIT(13))
@@ -293,6 +294,7 @@
 #define MAP_RX_DL_SRC_BLK_PCIE_CTL3_UL			~(BIT(28))
 #define MAP_RX_DL_SRC_BLK_WIFI_DL				~(BIT(29))
 #define MAP_RX_DL_SRC_BLK_WIAP_DL				~(BIT(30))
+#define TO_PCIE_NO_MAC_HEADER					BIT(31)
 
 #define PCIE_DL_SRC_BLK_MAP_DL					~(BIT(0))
 #define PCIE_DL_SRC_BLK_MAP_CTL0				~(BIT(1))
@@ -309,6 +311,7 @@
 #define PCIE_DL_SRC_BLK_PCIE_CTL3_UL			~(BIT(12))
 #define PCIE_DL_SRC_BLK_WIFI_DL					~(BIT(13))
 #define PCIE_DL_SRC_BLK_WIAP_DL					~(BIT(14))
+#define FROM_PCIE_NO_MAC_HEADER					BIT(15)
 
 #define IPA_MAP_RX_DL_PCIE_UL_FLOWCTL_SRC		(0x08l)
 
@@ -994,8 +997,24 @@
  * priority can be 0x0 ~ 0xF
  * 15 is the highest priority, 0 is the lowest priority.
  */
-#define IPA_CP_UL_PRIORITY					(0x0000000Fl)
-#define IPA_CP_CONFIGURATION				(0x48l)
+#define IPA_CP_DL_FLOW_CTRL_SEL_MASK		0xc0000000l
+#define IPA_CP_DL_FLOW_CTRL_SEL_OFFSET		30
+#define IPA_CP_DL_CUR_TERM_NUM_MASK			0x3e000000l
+#define IPA_CP_DL_CUR_TERM_NUM_OFFSET		25
+#define IPA_CP_DL_DST_TERM_NUM_MASK			0x01f00000l
+#define IPA_CP_DL_DST_TERM_NUM_OFFSET		20
+#define IPA_CP_DL_PRIORITY_MASK				0x000f0000l
+#define IPA_CP_DL_PRIORITY_OFFSET			16
+
+#define IPA_CP_UL_FLOW_CTRL_SEL_MASK		0x0000c000l
+#define IPA_CP_UL_FLOW_CTRL_SEL_OFFSET		14
+#define IPA_CP_UL_CUR_TERM_NUM_MASK			0x00003e00l
+#define IPA_CP_UL_CUR_TERM_NUM_OFFSET		9
+#define IPA_CP_UL_DST_TERM_NUM_MASK			0x000001f0l
+#define IPA_CP_UL_DST_TERM_NUM_OFFSET		4
+#define IPA_CP_UL_PRIORITY_MASK				0x0000000fl
+#define IPA_CP_UL_PRIORITY_OFFSET			0
+#define IPA_CP_CONFIGURATION				0x48l
 
 /**
  * when drop in cp DL channel, counter plus 1.
@@ -1957,6 +1976,217 @@ static inline u32 ipa_phy_get_timestamp(
 					((tmp & 0x000000FFl) << 24);
 
 	return ipa_timestamp;
+}
+
+static inline bool ipa_phy_enable_to_pcie_no_mac(void __iomem *reg_base,
+						 bool enable)
+{
+	u32 tmp;
+	bool flag;
+	void __iomem *addr = reg_base + IPA_MAP_RX_DL_PCIE_UL_FLOWCTL_SRC;
+
+	tmp = readl_relaxed(addr);
+
+	if (enable)
+		tmp |= TO_PCIE_NO_MAC_HEADER;
+	else
+		tmp &= ~TO_PCIE_NO_MAC_HEADER;
+
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+
+	if (tmp & TO_PCIE_NO_MAC_HEADER)
+		flag = true;
+	else
+		flag = false;
+
+	return flag == enable;
+}
+
+static inline bool ipa_phy_enable_from_pcie_no_mac(void __iomem *reg_base,
+						   bool enable)
+{
+	u32 flag, tmp;
+	void __iomem *addr = reg_base + IPA_MAP_RX_DL_PCIE_UL_FLOWCTL_SRC;
+
+	tmp = readl_relaxed(addr);
+
+	if (enable)
+		tmp |= FROM_PCIE_NO_MAC_HEADER;
+	else
+		tmp &= ~FROM_PCIE_NO_MAC_HEADER;
+
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+
+	if (tmp & FROM_PCIE_NO_MAC_HEADER)
+		flag = true;
+	else
+		flag = false;
+
+	return flag == enable;
+}
+
+static inline bool ipa_phy_set_cp_ul_pri(void __iomem *reg_base,
+					 u32 pri)
+{
+	u32 tmp;
+	void __iomem *addr = reg_base + IPA_CP_CONFIGURATION;
+
+	tmp = readl_relaxed(addr);
+	tmp &= ~IPA_CP_UL_PRIORITY_MASK;
+	tmp |= (pri << IPA_CP_UL_PRIORITY_OFFSET);
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+
+	if (pri == (tmp >> IPA_CP_UL_PRIORITY_OFFSET))
+		return true;
+	else
+		return false;
+}
+
+static inline bool ipa_phy_set_cp_ul_dst_num(void __iomem *reg_base, u32 dst)
+{
+	u32 tmp;
+	void __iomem *addr = reg_base + IPA_CP_CONFIGURATION;
+
+	tmp = readl_relaxed(addr);
+	tmp &= ~IPA_CP_UL_DST_TERM_NUM_MASK;
+	tmp |= (dst << IPA_CP_UL_DST_TERM_NUM_OFFSET);
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+
+	if (dst == (tmp >> IPA_CP_UL_DST_TERM_NUM_OFFSET))
+		return true;
+	else
+		return false;
+}
+
+static inline bool ipa_phy_set_cp_ul_cur_num(void __iomem *reg_base, u32 cur)
+{
+	u32 tmp;
+	void __iomem *addr = reg_base + IPA_CP_CONFIGURATION;
+
+	tmp = readl_relaxed(addr);
+	tmp &= ~IPA_CP_UL_CUR_TERM_NUM_MASK;
+	tmp |= (cur << IPA_CP_UL_CUR_TERM_NUM_OFFSET);
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+
+	if (cur == (tmp >> IPA_CP_UL_CUR_TERM_NUM_OFFSET))
+		return true;
+	else
+		return false;
+}
+
+static inline bool ipa_phy_set_cp_ul_flow_ctrl_mode(void __iomem *reg_base,
+						u32 mode)
+{
+	u32 tmp;
+	void __iomem *addr = reg_base + IPA_CP_CONFIGURATION;
+
+	tmp = readl_relaxed(addr);
+	tmp &= ~IPA_CP_UL_FLOW_CTRL_SEL_MASK;
+	tmp |= (mode << IPA_CP_UL_FLOW_CTRL_SEL_OFFSET);
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+
+	if (mode == (tmp >> IPA_CP_UL_FLOW_CTRL_SEL_OFFSET))
+		return true;
+	else
+		return false;
+}
+
+static inline bool ipa_phy_set_cp_dl_pri(void __iomem *reg_base, u32 pri)
+{
+	u32 tmp;
+	void __iomem *addr = reg_base + IPA_CP_CONFIGURATION;
+
+	tmp = readl_relaxed(addr);
+	tmp &= ~IPA_CP_DL_PRIORITY_MASK;
+	tmp |= (pri << IPA_CP_DL_PRIORITY_OFFSET);
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+
+	if (pri == (tmp >> IPA_CP_DL_PRIORITY_OFFSET))
+		return true;
+	else
+		return false;
+}
+
+static inline bool ipa_phy_set_cp_dl_dst_num(void __iomem *reg_base, u32 dst)
+{
+	u32 tmp;
+	void __iomem *addr = reg_base + IPA_CP_CONFIGURATION;
+
+	tmp = readl_relaxed(addr);
+	tmp &= ~IPA_CP_DL_DST_TERM_NUM_MASK;
+	tmp |= (dst << IPA_CP_DL_DST_TERM_NUM_OFFSET);
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+
+	if (dst == (tmp >> IPA_CP_DL_DST_TERM_NUM_OFFSET))
+		return true;
+	else
+		return false;
+}
+
+static inline bool ipa_phy_set_cp_dl_cur_num(void __iomem *reg_base, u32 cur)
+{
+	u32 tmp;
+	void __iomem *addr = reg_base + IPA_CP_CONFIGURATION;
+
+	tmp = readl_relaxed(addr);
+	tmp &= ~IPA_CP_DL_CUR_TERM_NUM_MASK;
+	tmp |= (cur << IPA_CP_DL_CUR_TERM_NUM_OFFSET);
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+
+	if (cur == (tmp >> IPA_CP_DL_CUR_TERM_NUM_OFFSET))
+		return true;
+	else
+		return false;
+}
+
+static inline bool ipa_phy_set_cp_dl_flow_ctrl_mode(void __iomem *reg_base,
+					u32 mode)
+{
+	u32 tmp;
+	void __iomem *addr = reg_base + IPA_CP_CONFIGURATION;
+
+	tmp = readl_relaxed(addr);
+	tmp &= ~IPA_CP_DL_FLOW_CTRL_SEL_MASK;
+	tmp |= (mode << IPA_CP_DL_FLOW_CTRL_SEL_OFFSET);
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+
+	if (mode == (tmp >> IPA_CP_DL_FLOW_CTRL_SEL_OFFSET))
+		return true;
+	else
+		return false;
+}
+
+static inline bool ipa_phy_ctrl_cp_work(void __iomem *reg_base,
+					bool enable)
+{
+	u32 tmp;
+	bool flag;
+	void __iomem *addr = reg_base + IPA_MODE_N_FLOWCTRL;
+
+	tmp = readl_relaxed(addr);
+	if (enable)
+		tmp |= IPA_CP_WORK_STATUS;
+	else
+		tmp &= ~IPA_CP_WORK_STATUS;
+
+	writel_relaxed(tmp, addr);
+	tmp = readl_relaxed(addr);
+	if (tmp & IPA_CP_WORK_STATUS)
+		flag = true;
+	else
+		flag = false;
+
+	return flag == enable;
 }
 
 #endif
