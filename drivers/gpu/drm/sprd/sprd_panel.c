@@ -154,6 +154,12 @@ static int sprd_panel_disable(struct drm_panel *p)
 		panel->esd_work_pending = false;
 	}
 
+	if (panel->backlight) {
+		panel->backlight->props.power = FB_BLANK_POWERDOWN;
+		panel->backlight->props.state |= BL_CORE_FBBLANK;
+		backlight_update_status(panel->backlight);
+	}
+
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_CODE_SLEEP_IN],
 			     panel->info.cmds_len[CMD_CODE_SLEEP_IN]);
@@ -170,6 +176,12 @@ static int sprd_panel_enable(struct drm_panel *p)
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_CODE_INIT],
 			     panel->info.cmds_len[CMD_CODE_INIT]);
+
+	if (panel->backlight) {
+		panel->backlight->props.power = FB_BLANK_UNBLANK;
+		panel->backlight->props.state &= ~BL_CORE_FBBLANK;
+		backlight_update_status(panel->backlight);
+	}
 
 	if (panel->info.esd_check_en) {
 		schedule_delayed_work(&panel->esd_work,
