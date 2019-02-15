@@ -2440,13 +2440,18 @@
 				syscon-names = "reset";
 				syscons = <&ai_apb_regs REG_AI_APB_APB_RST
 					MASK_AI_APB_POWERVR_SOFT_RST>;
-				clock-names = "top", "enable",
-					"sources", "mtx", "cfg";
+				clock-names = "top_eb",
+					"pvr_eb",
+					"pvr_clk",
+					"pvr_clk_512m",
+					"pvr_clk_apll",
+					"mtx_clk";
 				clocks = <&ai_gate CLK_AI_TOP_APB_EB>,
 					<&ai_gate CLK_AI_POWERVR_EB>,
 					<&ai_clk CLK_POWERVR>,
-					<&ai_clk CLK_AI_MTX>,
-					<&ai_clk CLK_POWERVR_CFG>;
+					<&g12_pll CLK_TWPLL_512M>,
+					<&g12_pll CLK_APLL>,
+					<&ai_clk CLK_AI_MTX>;
 			};
 
 			ipu1: ipu@6fe00000 {
