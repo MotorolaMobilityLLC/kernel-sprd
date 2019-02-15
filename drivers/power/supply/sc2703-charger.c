@@ -501,12 +501,11 @@ static int sc2703_charger_start_charge(struct sc2703_charger_info *info)
 	return 0;
 }
 
-static void sc2703_charger_stop_charge(struct sc2703_charger_info *info)
+static void sc2703_charger_stop_charge(struct sc2703_charger_info *info,
+				       bool present)
 {
-	bool present;
 	int ret;
 
-	present = sc2703_charger_is_bat_present(info);
 	if (present) {
 		ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
 					 SC2703_CHG_EN_MASK |
@@ -677,12 +676,13 @@ static int sc2703_charger_get_online(struct sc2703_charger_info *info,
 	return 0;
 }
 
-static int sc2703_charger_set_status(struct sc2703_charger_info *info, u32 val)
+static int sc2703_charger_set_status(struct sc2703_charger_info *info, u32 val,
+				     bool present)
 {
 	int ret = 0;
 
 	if (!val && info->charging) {
-		sc2703_charger_stop_charge(info);
+		sc2703_charger_stop_charge(info, present);
 		info->charging = false;
 	} else if (!info->charging) {
 		ret = sc2703_charger_start_charge(info);
@@ -744,11 +744,10 @@ static void sc2703_charger_work(struct work_struct *data)
 	struct sc2703_charger_info *info =
 		container_of(data, struct sc2703_charger_info, work);
 	int limit_cur, cur, ret;
-	bool present;
+	bool present = sc2703_charger_is_bat_present(info);
 
 	mutex_lock(&info->lock);
 
-	present = sc2703_charger_is_bat_present(info);
 	if (info->limit > 0 && !info->charging && present) {
 		/* set current limitation and start to charge */
 		switch (info->usb_phy->chg_type) {
@@ -790,7 +789,7 @@ static void sc2703_charger_work(struct work_struct *data)
 	} else if ((!info->limit && info->charging) || !present) {
 		/* Stop charging */
 		info->charging = false;
-		sc2703_charger_stop_charge(info);
+		sc2703_charger_stop_charge(info, present);
 	}
 
 out:
@@ -891,6 +890,7 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 				const union power_supply_propval *val)
 {
 	struct sc2703_charger_info *info = power_supply_get_drvdata(psy);
+	bool present = sc2703_charger_is_bat_present(info);
 	int ret;
 
 	mutex_lock(&info->lock);
@@ -914,7 +914,7 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_STATUS:
-		ret = sc2703_charger_set_status(info, val->intval);
+		ret = sc2703_charger_set_status(info, val->intval, present);
 		if (ret < 0)
 			dev_err(info->dev, "set charge status failed\n");
 		break;
