@@ -11,6 +11,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/skbuff.h>
 #include <linux/regmap.h>
+#include <linux/sipc.h>
 #include <linux/mfd/syscon.h>
 #include "pam_ipa_core.h"
 #include "../sipa_delegate/sipa_delegate.h"
@@ -34,35 +35,19 @@ static int pam_ipa_alloc_buf(
 	struct device *dev,
 	struct pam_ipa_cfg_tag *cfg)
 {
-	cfg->dl_buf = kzalloc(cfg->local_cfg.dl_fifo.fifo_depth *
-						  PAM_AKB_BUF_SIZE,
-						  GFP_KERNEL | GFP_DMA);
-	if (!cfg->dl_buf)
+	cfg->dl_dma_addr = smem_alloc(SIPC_ID_PSCP,
+		cfg->local_cfg.dl_fifo.fifo_depth *
+		PAM_AKB_BUF_SIZE);
+	if (!cfg->dl_dma_addr)
 		return -ENOMEM;
 
-	cfg->dl_dma_addr = dma_map_single(dev,
-				cfg->dl_buf,
-				cfg->local_cfg.dl_fifo.fifo_depth *
-				PAM_AKB_BUF_SIZE,
-				DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(dev, cfg->dl_dma_addr)) {
-		dev_err(dev, "[PAM_IPA] dl_buf map fail!\n");
-		return -ENOMEM;
-	}
-
-	cfg->ul_buf = kzalloc(cfg->local_cfg.ul_fifo.fifo_depth *
-						  PAM_AKB_BUF_SIZE,
-						  GFP_KERNEL | GFP_DMA);
-	if (!cfg->ul_buf)
-		return -ENOMEM;
-
-	cfg->ul_dma_addr = dma_map_single(dev,
-				cfg->ul_buf,
-				cfg->local_cfg.ul_fifo.fifo_depth *
-				PAM_AKB_BUF_SIZE,
-				DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(dev, cfg->ul_dma_addr)) {
-		dev_err(dev, "ul_buf map fail!\n");
+	cfg->ul_dma_addr = smem_alloc(SIPC_ID_PSCP,
+		cfg->local_cfg.ul_fifo.fifo_depth *
+		PAM_AKB_BUF_SIZE);
+	if (!cfg->ul_dma_addr) {
+		smem_free(SIPC_ID_PSCP, cfg->dl_dma_addr,
+			cfg->local_cfg.dl_fifo.fifo_depth *
+			PAM_AKB_BUF_SIZE);
 		return -ENOMEM;
 	}
 
@@ -72,18 +57,13 @@ static int pam_ipa_alloc_buf(
 static void pam_ipa_free_buf(struct device *dev,
 					struct pam_ipa_cfg_tag *cfg)
 {
-	dma_unmap_single(dev,
-			 cfg->dl_dma_addr,
-			 cfg->local_cfg.dl_fifo.fifo_depth *
-			 PAM_AKB_BUF_SIZE,
-			 DMA_BIDIRECTIONAL);
-	dma_unmap_single(dev,
-			 cfg->ul_dma_addr,
-			 cfg->local_cfg.ul_fifo.fifo_depth *
-			 PAM_AKB_BUF_SIZE,
-			 DMA_BIDIRECTIONAL);
-	kfree(cfg->ul_buf);
-	kfree(cfg->dl_buf);
+	smem_free(SIPC_ID_PSCP, cfg->dl_dma_addr,
+		  cfg->local_cfg.dl_fifo.fifo_depth *
+		  PAM_AKB_BUF_SIZE);
+
+	smem_free(SIPC_ID_PSCP, cfg->ul_dma_addr,
+		  cfg->local_cfg.ul_fifo.fifo_depth *
+		  PAM_AKB_BUF_SIZE);
 }
 
 static int pam_ipa_parse_dts_configuration(
@@ -218,7 +198,7 @@ static int pam_ipa_plat_drv_probe(struct platform_device *pdev_p)
 
 	ret = pam_ipa_alloc_buf(&pdev_p->dev, cfg);
 	if (ret)
-		goto err_alloc;
+		return ret;
 
 	cfg->pam_local_param.send_param.data_ptr =
 		cfg->dl_dma_addr;
