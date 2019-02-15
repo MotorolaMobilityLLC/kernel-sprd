@@ -1630,7 +1630,7 @@
 				#size-cells = <0>;
 
 				aon-busmonitor@8{
-					compatible  = "sprd,sharkl3-busmonitor";
+					compatible  = "sprd,sharkl5-busmonitor";
 					interrupts = <GIC_SPI 81
 						IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x8>;
