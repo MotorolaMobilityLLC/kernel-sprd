@@ -684,7 +684,7 @@ static int sc2703_charger_set_status(struct sc2703_charger_info *info, u32 val,
 	if (!val && info->charging) {
 		sc2703_charger_stop_charge(info, present);
 		info->charging = false;
-	} else if (!info->charging) {
+	} else if (val && !info->charging) {
 		ret = sc2703_charger_start_charge(info);
 		if (ret)
 			dev_err(info->dev, "start charge failed\n");
