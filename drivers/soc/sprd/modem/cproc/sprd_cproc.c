@@ -1008,7 +1008,7 @@ static int sprd_cproc_native_arm_stop(void *arg)
 	if (!pdata)
 		return -ENODEV;
 	ctrl = pdata->ctrl;
-
+	ctrl->iram_loaded = 0;
 	pr_debug("%s: stop %s\n", __func__, cproc->name);
 
 	/* hold tgdsp and ldsp */
