@@ -987,6 +987,7 @@
 					<&ipa_gate CLK_IPA_USB_REF_EB>;
 				clock-names = "core_clk", "ref_clk", "susp_clk";
 				usb-phy = <&ssphy>, <&ssphy>;
+				usb-pam = <&pamu3>;
 
 				dwc3@20f00000 {
 					compatible = "snps,dwc3";
@@ -1003,6 +1004,16 @@
 					snps,ep_out_aligned_size_quirk;
 					snps,disconnect_event_quirk;
 				};
+			};
+
+			pamu3: pamu3@21100000 {
+				compatible = "sprd,roc1-pamu3";
+				clocks = <&ipa_gate CLK_PAM_USB_EB>;
+				clock-names = "pamu3_clk";
+				reg = <0 0x21100000 0 0x10000>,
+				      <0 0x20f00000 0 0x100000>;
+				reg-names = "pamu3_glb_regs",
+					    "dwc3_core_regs";
 			};
 
 			ssphy: ssphy@40400000 {
