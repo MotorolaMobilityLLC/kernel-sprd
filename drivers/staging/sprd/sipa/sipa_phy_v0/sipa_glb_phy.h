@@ -2039,7 +2039,8 @@ static inline bool ipa_phy_set_cp_ul_pri(void __iomem *reg_base,
 	writel_relaxed(tmp, addr);
 	tmp = readl_relaxed(addr);
 
-	if (pri == (tmp >> IPA_CP_UL_PRIORITY_OFFSET))
+	if (pri == ((tmp & IPA_CP_UL_PRIORITY_MASK) >>
+	     IPA_CP_UL_PRIORITY_OFFSET))
 		return true;
 	else
 		return false;
@@ -2056,7 +2057,8 @@ static inline bool ipa_phy_set_cp_ul_dst_num(void __iomem *reg_base, u32 dst)
 	writel_relaxed(tmp, addr);
 	tmp = readl_relaxed(addr);
 
-	if (dst == (tmp >> IPA_CP_UL_DST_TERM_NUM_OFFSET))
+	if (dst == ((tmp & IPA_CP_UL_DST_TERM_NUM_MASK) >>
+	     IPA_CP_UL_DST_TERM_NUM_OFFSET))
 		return true;
 	else
 		return false;
@@ -2073,7 +2075,8 @@ static inline bool ipa_phy_set_cp_ul_cur_num(void __iomem *reg_base, u32 cur)
 	writel_relaxed(tmp, addr);
 	tmp = readl_relaxed(addr);
 
-	if (cur == (tmp >> IPA_CP_UL_CUR_TERM_NUM_OFFSET))
+	if (cur == ((tmp & IPA_CP_UL_CUR_TERM_NUM_MASK) >>
+	     IPA_CP_UL_CUR_TERM_NUM_OFFSET))
 		return true;
 	else
 		return false;
@@ -2091,7 +2094,8 @@ static inline bool ipa_phy_set_cp_ul_flow_ctrl_mode(void __iomem *reg_base,
 	writel_relaxed(tmp, addr);
 	tmp = readl_relaxed(addr);
 
-	if (mode == (tmp >> IPA_CP_UL_FLOW_CTRL_SEL_OFFSET))
+	if (mode == ((tmp & IPA_CP_UL_FLOW_CTRL_SEL_MASK) >>
+	      IPA_CP_UL_FLOW_CTRL_SEL_OFFSET))
 		return true;
 	else
 		return false;
@@ -2108,7 +2112,8 @@ static inline bool ipa_phy_set_cp_dl_pri(void __iomem *reg_base, u32 pri)
 	writel_relaxed(tmp, addr);
 	tmp = readl_relaxed(addr);
 
-	if (pri == (tmp >> IPA_CP_DL_PRIORITY_OFFSET))
+	if (pri == ((tmp & IPA_CP_DL_PRIORITY_MASK) >>
+	     IPA_CP_DL_PRIORITY_OFFSET))
 		return true;
 	else
 		return false;
@@ -2125,7 +2130,8 @@ static inline bool ipa_phy_set_cp_dl_dst_num(void __iomem *reg_base, u32 dst)
 	writel_relaxed(tmp, addr);
 	tmp = readl_relaxed(addr);
 
-	if (dst == (tmp >> IPA_CP_DL_DST_TERM_NUM_OFFSET))
+	if (dst == ((tmp & IPA_CP_DL_DST_TERM_NUM_MASK) >>
+	     IPA_CP_DL_DST_TERM_NUM_OFFSET))
 		return true;
 	else
 		return false;
@@ -2142,7 +2148,8 @@ static inline bool ipa_phy_set_cp_dl_cur_num(void __iomem *reg_base, u32 cur)
 	writel_relaxed(tmp, addr);
 	tmp = readl_relaxed(addr);
 
-	if (cur == (tmp >> IPA_CP_DL_CUR_TERM_NUM_OFFSET))
+	if (cur == ((tmp & IPA_CP_DL_CUR_TERM_NUM_MASK) >>
+	     IPA_CP_DL_CUR_TERM_NUM_OFFSET))
 		return true;
 	else
 		return false;
@@ -2160,7 +2167,8 @@ static inline bool ipa_phy_set_cp_dl_flow_ctrl_mode(void __iomem *reg_base,
 	writel_relaxed(tmp, addr);
 	tmp = readl_relaxed(addr);
 
-	if (mode == (tmp >> IPA_CP_DL_FLOW_CTRL_SEL_OFFSET))
+	if (mode == ((tmp & IPA_CP_DL_FLOW_CTRL_SEL_MASK) >>
+	      IPA_CP_DL_FLOW_CTRL_SEL_OFFSET))
 		return true;
 	else
 		return false;
