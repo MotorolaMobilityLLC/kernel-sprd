@@ -16,7 +16,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
+#include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/err.h>
@@ -64,7 +65,7 @@ struct sprd_pamu3 {
 	void __iomem        *base;
 	void __iomem        *dwc3_dma;
 	void __iomem        *dwc3_base;
-	struct regmap		*ipa_ahb;
+	struct clk		*clk;
 
 	struct pamu3_dwc3_trb		*tx_trb_pool;
 	struct pamu3_dwc3_trb		*rx_trb_pool;
@@ -184,7 +185,8 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 
 	/* IPA common FIFOs IRAM addresses */
 	pamu3->sipa_params.send_param.tx_intr_threshold = pamu3->max_dl_pkts;
-	sipa_pam_connect(&pamu3->sipa_params, &pamu3->sipa_info);
+	sipa_get_ep_info(SIPA_EP_USB, &pamu3->sipa_info);
+	sipa_pam_connect(&pamu3->sipa_params);
 
 	value = pamu3->sipa_info.dl_fifo.tx_fifo_base_addr &
 			PAMU3_MASK_LOWADDR32;
@@ -311,8 +313,7 @@ static int sprd_pamu3_init(struct usb_phy *x)
 	int ret;
 
 	/* Enable ipa pamu3 */
-	ret = regmap_update_bits(pamu3->ipa_ahb, REG_IPA_AHB_IPA_EB,
-			MASK_IPA_AHB_PAM_USB_EB, MASK_IPA_AHB_PAM_USB_EB);
+	ret = clk_prepare_enable(pamu3->clk);
 	if (ret)
 		return ret;
 
@@ -399,7 +400,7 @@ static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
 	value &= ~(PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN);
 	writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
-
+	clk_disable_unprepare(pamu3->clk);
 	return 0;
 }
 
@@ -441,8 +442,7 @@ static ssize_t max_dl_pkts_store(struct device *dev,
 	pamu3->max_dl_pkts = max_dl_pkts;
 
 	pamu3->sipa_params.send_param.tx_intr_threshold = pamu3->max_dl_pkts;
-	sipa_pam_connect(&pamu3->sipa_params, &pamu3->sipa_info);
-
+	sipa_pam_connect(&pamu3->sipa_params);
 	return size;
 }
 static DEVICE_ATTR_RW(max_dl_pkts);
@@ -525,11 +525,12 @@ static int sprd_pamu3_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	pamu3->ipa_ahb = syscon_regmap_lookup_by_phandle(dev->of_node,
-						"sprd,syscon-ipa-ahb");
-	if (!pamu3->ipa_ahb) {
-		dev_err(dev, "failed to map ipa ahb registers (via syscon)\n");
-		return -ENODEV;
+	pamu3->clk = devm_clk_get(dev, "pamu3_clk");
+	if (IS_ERR(pamu3->clk)) {
+		dev_err(dev, "failed to get ipa pamu3 clock\n");
+		ret = PTR_ERR(pamu3->clk);
+		pamu3->clk = NULL;
+		return ret;
 	}
 
 	pamu3->dwc3_dma = (void __iomem *)res->start;
