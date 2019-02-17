@@ -155,6 +155,7 @@
 					interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
 					interrupt-names = "irq";
 					usb-phy = <&ssphy>, <&ssphy>;
+					usb-pam = <&pamu3>;
 					phy_type = "utmi_wide";
 					dr_mode = "peripheral";
 					snps,usb3-u1u2-disable;
@@ -195,6 +196,16 @@
 				num-ib-windows = <6>;
 				num-ob-windows = <8>;
 				status = "disabled";
+			};
+
+			pamu3: pamu3@2b300000 {
+				compatible = "sprd,roc1-pamu3";
+				clocks = <&ipa_gate CLK_USB_PAM_EB>;
+				clock-names = "pamu3_clk";
+				reg = <0 0x2b300000 0 0x10000>,
+				      <0 0x29100000 0 0x100000>;
+				reg-names = "pamu3_glb_regs",
+					    "dwc3_core_regs";
 			};
 
 			ssphy: ssphy@634c0000 {
