@@ -57,82 +57,100 @@ static int ufs_sprd_get_syscon_reg(struct device_node *np,
 
 void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
-	int val = 0;
+	int val = 0, val1 = 0;
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 
-	/* TODO: Temporary codes. Ufs reset will be simple in next IP version */
+	/* TODO:Copy from romcode. HW reset will be simple in next IP version */
+	/* The configs need strict squence */
 	regmap_update_bits(host->anlg_mphy_ufs_rst.regmap,
 			   host->anlg_mphy_ufs_rst.reg,
 			   host->anlg_mphy_ufs_rst.mask,
 			   0);
-	msleep(100);
+	regmap_update_bits(host->anlg_mphy_ufs_rst.regmap,
+			   host->anlg_mphy_ufs_rst.reg,
+			   host->anlg_mphy_ufs_rst.mask,
+			   0);
+	mb();
 	regmap_update_bits(host->anlg_mphy_ufs_rst.regmap,
 			   host->anlg_mphy_ufs_rst.reg,
 			   host->anlg_mphy_ufs_rst.mask,
 			   host->anlg_mphy_ufs_rst.mask);
-
-	val = readl(host->unipro_reg + 0x3c);
-	writel(0x35000000 | val, host->unipro_reg + 0x3c);
-	msleep(100);
-	writel((~0x35000000) & val, host->unipro_reg + 0x3c);
-
-	val = readl(host->unipro_reg + 0x40);
-	writel(1 | val, host->unipro_reg + 0x40);
-	msleep(100);
-	writel((~1) & val, host->unipro_reg + 0x40);
-
-	val = readl(host->ufsutp_reg + 0x100);
-	writel(3 | val, host->ufsutp_reg + 0x100);
-	msleep(100);
-	writel((~3) & val, host->ufsutp_reg + 0x100);
-
-	val = readl(host->hba->mmio_base + 0xb0);
-	writel(0x10001000 | val, host->hba->mmio_base + 0xb0);
-	msleep(100);
-	writel((~0x10001000) & val, host->hba->mmio_base + 0xb0);
-
-	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
-			   host->aon_apb_ufs_rst.reg,
-			   host->aon_apb_ufs_rst.mask,
-			   host->aon_apb_ufs_rst.mask);
-	msleep(100);
-	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
-			   host->aon_apb_ufs_rst.reg,
-			   host->aon_apb_ufs_rst.mask,
-			   0);
-
-	val = readl(host->unipro_reg + 0x84);
-	writel(2 | val, host->unipro_reg + 0x84);
-	msleep(100);
-	writel((~2) & val, host->unipro_reg + 0x84);
-
-	val = readl(host->unipro_reg + 0xc0);
-	writel(0x10 | val, host->unipro_reg + 0xc0);
-	msleep(100);
-	writel((~0x10) & val, host->unipro_reg + 0xc0);
-
-	val = readl(host->unipro_reg + 0xd0);
-	writel(4 | val, host->unipro_reg + 0xd0);
-	msleep(100);
-	writel((~4) & val, host->unipro_reg + 0xd0);
-
+	mb();
 	regmap_update_bits(host->ap_apb_ufs_rst.regmap,
 			   host->ap_apb_ufs_rst.reg,
 			   host->ap_apb_ufs_rst.mask,
 			   host->ap_apb_ufs_rst.mask);
-	msleep(100);
+	mb();
 	regmap_update_bits(host->ap_apb_ufs_rst.regmap,
 			   host->ap_apb_ufs_rst.reg,
 			   host->ap_apb_ufs_rst.mask,
 			   0);
+	mb();
+	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
+			   host->aon_apb_ufs_rst.reg,
+			   host->aon_apb_ufs_rst.mask,
+			   host->aon_apb_ufs_rst.mask);
+	mb();
+	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
+			   host->aon_apb_ufs_rst.reg,
+			   host->aon_apb_ufs_rst.mask,
+			   0);
+
+	val = readl(host->unipro_reg + 0x40);
+	mb();
+	writel(1 | val, host->unipro_reg + 0x40);
+	mb();
+	writel((~1) & val, host->unipro_reg + 0x40);
+
+	val = readl(host->unipro_reg + 0x84);
+	mb();
+	writel(2 | val, host->unipro_reg + 0x84);
+	mb();
+	writel((~2) & val, host->unipro_reg + 0x84);
+
+	val = readl(host->unipro_reg + 0xc0);
+	mb();
+	writel(0x10 | val, host->unipro_reg + 0xc0);
+	mb();
+	writel((~0x10) & val, host->unipro_reg + 0xc0);
+
+	val = readl(host->unipro_reg + 0xd0);
+	mb();
+	writel(4 | val, host->unipro_reg + 0xd0);
+	mb();
+	writel((~4) & val, host->unipro_reg + 0xd0);
+
+	val1 = readl(host->hba->mmio_base + 0xb0);
+	mb();
+	writel(0x10001000 | val1, host->hba->mmio_base + 0xb0);
+	mb();
+
+	val = readl(host->ufsutp_reg + 0x100);
+	mb();
+	writel((~3) & val, host->ufsutp_reg + 0x100);
+	mb();
+	writel(3 | val, host->ufsutp_reg + 0x100);
+
+	mb();
+	writel((~0x10001000) & val1, host->hba->mmio_base + 0xb0);
 
 	val = readl(host->ufs_ao_reg + 0x1c);
+	mb();
 	writel(2 | val, host->ufs_ao_reg + 0x1c);
-	msleep(100);
+	mb();
 	writel((~2) & val, host->ufs_ao_reg + 0x1c);
 
-	/*ufs tunning*/
+	val = readl(host->unipro_reg + 0x3c);
+	mb();
+	writel(0x3f000000 | val, host->unipro_reg + 0x3c);
+	mb();
+	writel((~0x3f000000) & val, host->unipro_reg + 0x3c);
+
+	mb();
+	writel(UIC_CMD_DME_HIBER_EXIT, host->hba->mmio_base + 0x90);
+
+	/* ufs tuning */
 	val = readl(host->ufs_tuning + 0x8c);
 	writel(0x8000 | val, host->ufs_tuning + 0x8c);
 
@@ -262,6 +280,13 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION;
 	hba->quirks |= UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
 
+	return 0;
+}
+
+void ufs_sprd_hw_init(struct ufs_hba *hba)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
 	regmap_update_bits(host->ap_apb_ufs_en.regmap,
 			   host->ap_apb_ufs_en.reg,
 			   host->ap_apb_ufs_en.mask,
@@ -273,8 +298,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 			   host->aon_apb_ufs_en.mask);
 
 	ufs_sprd_reset(host);
-
-	return 0;
 }
 
 static void ufs_sprd_exit(struct ufs_hba *hba)
@@ -297,6 +320,7 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 
 	switch (status) {
 	case PRE_CHANGE:
+		ufs_sprd_hw_init(hba);
 		break;
 	case POST_CHANGE:
 		break;
