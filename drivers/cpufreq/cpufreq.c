@@ -1095,10 +1095,8 @@ static int pm_qos_clusterx_freq_handler(struct notifier_block *nb,
 		unsigned long val, void *v)
 {
 	struct cpufreq_policy *policy = container_of(nb, struct cpufreq_policy, pm_qos_freq_nb);
-	if (!policy_is_inactive(policy))
-		return cpufreq_driver_target(policy, policy->target_freq, CPUFREQ_RELATION_L);
-	else
-		return -1;
+
+	return cpufreq_driver_target(policy, policy->target_freq, CPUFREQ_RELATION_L);
 }
 
 static void pm_qos_clusterx_freq_init(struct cpufreq_policy *policy)
@@ -2091,7 +2089,8 @@ int cpufreq_driver_target(struct cpufreq_policy *policy,
 
 	down_write(&policy->rwsem);
 
-	ret = __cpufreq_driver_target(policy, target_freq, relation);
+	if (!policy_is_inactive(policy))
+		ret = __cpufreq_driver_target(policy, target_freq, relation);
 
 	up_write(&policy->rwsem);
 
