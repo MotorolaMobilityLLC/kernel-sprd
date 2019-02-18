@@ -78,9 +78,6 @@ static unsigned int marlin2_clk_wait_reg;
 #define IMG_MARLINAA_TAG "MLAA"
 #define IMG_MARLINAB_TAG "MLAB"
 #define IMG_MARLINAC_TAG "MLAC"
-#define MARLIN2_AA	1
-#define MARLIN2_AB	2
-#define MARLIN2_AA_CHIP 0x23490000
 #define MARLIN_MASK 0x27F
 #define GNSS_MASK 0x080
 #define AUTO_RUN_MASK 0X100
@@ -93,15 +90,15 @@ static unsigned int marlin2_clk_wait_reg;
 
 struct head {
 	char magic[4];
-	unsigned int version;
-	unsigned int img_count;
-};
+	u32 version;
+	u32 img_count;
+} __packed;
 
 struct imageinfo {
 	char tag[4];
-	unsigned int offset;
-	unsigned int size;
-};
+	u32 offset;
+	u32 size;
+} __packed;
 
 static unsigned long int chip_id;
 
@@ -120,6 +117,57 @@ unsigned int marlin_get_wcn_chipid(void)
 	WCN_INFO("marlin: chipid=%lx, %s\n", chip_id, __func__);
 
 	return chip_id;
+}
+
+enum wcn_chip_id_type wcn_get_chip_type(void)
+{
+	static enum wcn_chip_id_type chip_type;
+
+	if (likely(chip_type))
+		return chip_type;
+
+	switch (marlin_get_wcn_chipid()) {
+	case MARLIN_AA_CHIPID:
+		chip_type = WCN_CHIP_ID_AA;
+		break;
+	case MARLIN_AB_CHIPID:
+		chip_type = WCN_CHIP_ID_AB;
+		break;
+	case MARLIN_AC_CHIPID:
+		chip_type = WCN_CHIP_ID_AC;
+		break;
+	case MARLIN_AD_CHIPID:
+		chip_type = WCN_CHIP_ID_AD;
+		break;
+	default:
+		chip_type = WCN_CHIP_ID_INVALID;
+		break;
+	}
+
+	return chip_type;
+}
+EXPORT_SYMBOL_GPL(wcn_get_chip_type);
+
+static char *wcn_get_chip_tag(void)
+{
+	enum wcn_chip_id_type chip_type;
+	static char *wcn_chip_tag;
+	static char * const magic_tag[] = {
+		"NULL",
+		IMG_MARLINAA_TAG,
+		IMG_MARLINAB_TAG,
+		IMG_MARLINAC_TAG,
+		IMG_MARLINAC_TAG,
+	};
+
+	if (likely(wcn_chip_tag))
+		return wcn_chip_tag;
+
+	chip_type = wcn_get_chip_type();
+	if (chip_type != WCN_CHIP_ID_INVALID)
+		wcn_chip_tag = magic_tag[chip_type];
+
+	return wcn_chip_tag;
 }
 
 /* get the subsys string */
@@ -215,23 +263,14 @@ static u16 marlin_tsx_cali_data_get(void)
 
 static int marlin_judge_imagepack(char *buffer)
 {
-	int ret;
 	struct head *imghead;
 
 	if (buffer == NULL)
 		return -1;
-	imghead = vmalloc(sizeof(struct head));
-	if (!imghead) {
-		WCN_ERR("%s no memory\n", __func__);
-		return -1;
-	}
-	memcpy(imghead, buffer, sizeof(struct head));
-	WCN_INFO("marlin image  pack type:%s in the func %s:\n",
-		imghead->magic, __func__);
-	ret = strncmp(IMG_HEAD_MAGIC, imghead->magic, 4);
-	vfree(imghead);
 
-	return ret;
+	imghead = (struct head *)buffer;
+
+	return strncmp(IMG_HEAD_MAGIC, imghead->magic, 4);
 }
 
 
@@ -239,48 +278,42 @@ static struct imageinfo *marlin_judge_images(char *buffer)
 {
 
 	struct imageinfo *imginfo = NULL;
+	unsigned char *magic_str;
 
-	if (buffer == NULL)
+	magic_str = wcn_get_chip_tag();
+	if (!magic_str) {
+		WCN_ERR("%s chip id erro\n", __func__);
 		return NULL;
-	imginfo = vmalloc((sizeof(struct imageinfo)));
+	}
+
+	imginfo = kzalloc(sizeof(*imginfo), GFP_KERNEL);
 	if (!imginfo) {
 		WCN_ERR("%s no memory\n", __func__);
 		return NULL;
 	}
+	memcpy(imginfo, (buffer + sizeof(struct head)),
+	       sizeof(*imginfo));
 
-	if (chip_id == MARLIN_AC_CHIPID || chip_id == MARLIN_AD_CHIPID) {
-		WCN_INFO("%s marlin is AC(AD) !!!!\n",  __func__);
-		memcpy(imginfo, (buffer + sizeof(struct head)),
-			sizeof(struct imageinfo));
-		if (!strncmp(IMG_MARLINAC_TAG, imginfo->tag, 4)) {
-			WCN_INFO("marlin imginfo1 type is %s in the func %s:\n",
-				imginfo->tag, __func__);
-			return imginfo;
-		}
-		WCN_ERR("Marlin can't find marlin AC(AD) image!!!\n");
-		vfree(imginfo);
-		return NULL;
-	} else if (chip_id == MARLIN_AB_CHIPID) {
-		WCN_INFO("%s marlin is AB !!!!\n", __func__);
-		memcpy(imginfo,
-			buffer + sizeof(struct imageinfo) + sizeof(struct head),
-			sizeof(struct imageinfo));
-		if (!strncmp(IMG_MARLINAB_TAG, imginfo->tag, 4)) {
-			WCN_INFO("marlin imginfo1 type is %s in the func %s:\n",
-				imginfo->tag, __func__);
-			return imginfo;
-		}
-		WCN_ERR("Marlin can't find marlin AB image!!!\n");
-		vfree(imginfo);
-		return NULL;
+	if (!strncmp(magic_str, imginfo->tag, 4)) {
+		WCN_INFO("%s: marlin imginfo1 type is %s\n",
+			 __func__, magic_str);
+		return imginfo;
 	}
-	WCN_ERR("Marlin can't find marlin AB or AC(AD) image!!!\n");
-	vfree(imginfo);
+	memcpy(imginfo, buffer + sizeof(*imginfo) + sizeof(struct head),
+	       sizeof(*imginfo));
+	if (!strncmp(magic_str, imginfo->tag, 4)) {
+		WCN_INFO("%s: marlin imginfo2 type is %s\n",
+			 __func__, magic_str);
+		return imginfo;
+	}
 
-	return NULL;
+	WCN_ERR("Marlin can't find marlin chip image!!!\n");
+	kfree(imginfo);
+
+	return  NULL;
 }
 
-static char *btwf_load_firmware_data(unsigned long int imag_size)
+static char *btwf_load_firmware_data(loff_t off, unsigned long int imag_size)
 {
 	int read_len, size, i, opn_num_max = 15;
 	char *buffer = NULL;
@@ -323,6 +356,7 @@ static char *btwf_load_firmware_data(unsigned long int imag_size)
 		functionmask[7] = 0;
 
 	data = buffer;
+	offset += off;
 	do {
 		read_len = kernel_read(file, buffer, size, &offset);
 		if (read_len > 0) {
@@ -341,19 +375,20 @@ static char *btwf_load_firmware_data(unsigned long int imag_size)
 static int marlin_download_from_partition(void)
 {
 	int err, len, trans_size, ret;
-	unsigned long int imgpack_size, img_size;
+	unsigned long int img_size;
 	char *buffer = NULL;
 	char *temp = NULL;
 	struct imageinfo *imginfo = NULL;
 
-	img_size = imgpack_size =  FIRMWARE_MAX_SIZE;
+	img_size = FIRMWARE_MAX_SIZE;
 
 	WCN_INFO("%s entry\n", __func__);
-	temp = buffer = btwf_load_firmware_data(imgpack_size);
+	buffer = btwf_load_firmware_data(0, img_size);
 	if (!buffer) {
 		WCN_INFO("%s buff is NULL\n", __func__);
 		return -1;
 	}
+	temp = buffer;
 
 	ret = marlin_judge_imagepack(buffer);
 	if (!ret) {
@@ -367,16 +402,18 @@ static int marlin_download_from_partition(void)
 			WCN_ERR("marlin:%s imginfo is NULL\n", __func__);
 			return -1;
 		}
-		imgpack_size = imginfo->offset + imginfo->size;
-		temp = buffer = btwf_load_firmware_data(imgpack_size);
+		img_size = imginfo->size;
+		if (img_size > FIRMWARE_MAX_SIZE)
+			WCN_INFO("%s real size %ld is large than the max:%d\n",
+				 __func__, img_size, FIRMWARE_MAX_SIZE);
+		buffer = btwf_load_firmware_data(imginfo->offset, img_size);
 		if (!buffer) {
 			WCN_ERR("marlin:%s buffer is NULL\n", __func__);
-			vfree(imginfo);
+			kfree(imginfo);
 			return -1;
 		}
-		buffer += imginfo->offset;
-		img_size = imginfo->size;
-		vfree(imginfo);
+		temp = buffer;
+		kfree(imginfo);
 	}
 
 	len = 0;

@@ -40,6 +40,15 @@ enum marlin_sub_sys {
 	MARLIN_ALL,
 };
 
+enum wcn_chip_id_type {
+	WCN_CHIP_ID_INVALID,
+	WCN_CHIP_ID_AA,
+	WCN_CHIP_ID_AB,
+	WCN_CHIP_ID_AC,
+	WCN_CHIP_ID_AD,
+};
+
+enum wcn_chip_id_type wcn_get_chip_type(void);
 void marlin_power_off(enum marlin_sub_sys subsys);
 int marlin_get_power(enum marlin_sub_sys subsys);
 int marlin_set_wakeup(enum marlin_sub_sys subsys);

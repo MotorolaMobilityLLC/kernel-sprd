@@ -4,7 +4,25 @@
 /* UMW2652 is the lite of sc2355 */
 #include "sc2355_glb.h"
 
-#define MARLIN_LITE_CHIPID 0x2355B000
+#ifdef MARLIN_AA_CHIPID
+#undef MARLIN_AA_CHIPID
+#define MARLIN_AA_CHIPID 0x2355B000
+#endif
+
+#ifdef MARLIN_AB_CHIPID
+#undef MARLIN_AB_CHIPID
+#define MARLIN_AB_CHIPID 0x2355B001
+#endif
+
+#ifdef MARLIN_AC_CHIPID
+#undef MARLIN_AC_CHIPID
+#define MARLIN_AC_CHIPID 0x2355B002
+#endif
+
+#ifdef MARLIN_AD_CHIPID
+#undef MARLIN_AD_CHIPID
+#define MARLIN_AD_CHIPID 0x2355B003
+#endif
 
 /**************GNSS BEG**************/
 #ifdef GNSS_CP_START_ADDR
