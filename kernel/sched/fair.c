@@ -6098,6 +6098,25 @@ static unsigned long cpu_util_without(int cpu, struct task_struct *p)
 	return min_t(unsigned long, util, capacity_orig_of(cpu));
 }
 
+#ifdef CONFIG_SCHED_WALT
+static inline unsigned long cpu_cum_util_without(int cpu, struct task_struct *p)
+{
+	unsigned long capacity = capacity_orig_of(cpu);
+	unsigned long util = div64_u64(cpu_rq(cpu)->cum_window_demand,
+				walt_ravg_window >> SCHED_CAPACITY_SHIFT);
+
+	if (!walt_disabled && sysctl_sched_use_walt_cpu_util) {
+		if (walt_task_in_cum_window_demand(cpu_rq(cpu), p))
+			util -= min_t(unsigned long, util, task_util(p));
+
+		return (util >= capacity) ? capacity : util;
+	}
+	return cpu_util_without(cpu, p);
+}
+#else
+#define cpu_cum_util_without(cpu, p) cpu_util_without(cpu, p)
+#endif
+
 static unsigned long group_max_util(struct energy_env *eenv, int cpu_idx)
 {
 	unsigned long max_util = 0;
@@ -6105,7 +6124,7 @@ static unsigned long group_max_util(struct energy_env *eenv, int cpu_idx)
 	int cpu;
 
 	for_each_cpu(cpu, sched_group_span(eenv->sg_cap)) {
-		util = cpu_util_without(cpu, eenv->p);
+		util = cpu_cum_util_without(cpu, eenv->p);
 
 		/*
 		 * If we are looking at the target CPU specified by the eenv,
@@ -6138,7 +6157,7 @@ long group_norm_util(struct energy_env *eenv, int cpu_idx)
 	int cpu;
 
 	for_each_cpu(cpu, sched_group_span(eenv->sg)) {
-		util = cpu_util_without(cpu, eenv->p);
+		util = cpu_cum_util_without(cpu, eenv->p);
 
 		/*
 		 * If we are looking at the target CPU specified by the eenv,
@@ -6799,8 +6818,6 @@ boosted_task_util(struct task_struct *task)
 
 	return util + margin;
 }
-
-static unsigned long cpu_util_without(int cpu, struct task_struct *p);
 
 static unsigned long capacity_spare_without(int cpu, struct task_struct *p)
 {
