@@ -1952,11 +1952,10 @@ static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 		return IRQ_HANDLED;
 	}
 
+	__pm_wakeup_event(&hdst->hdst_detect_wakelock, msecs_to_jiffies(2000));
+
 	if (eic_mis & BIT(HDST_INSERT_ALL_EIC)) {/* insert_all */
 		pr_info("%s in insert_all\n", __func__);
-		/* I am not sure the new func is right or not */
-		__pm_wakeup_event(&hdst->det_all_wakelock,
-			msecs_to_jiffies(2000));
 		eic_type = sprd_insert_all_plug_inout_check();
 		if (pdata->jack_type == JACK_TYPE_NO &&
 			eic_type == INSERT_ALL_PLUGIN) {
@@ -1975,8 +1974,6 @@ static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 	}
 	if (eic_mis & BIT(HDST_MDET_EIC)) {/* mdet */
 		pr_info("%s in mdet\n", __func__);
-		/* I am not sure the new func is right or not */
-		__pm_wakeup_event(&hdst->mic_wakelock, msecs_to_jiffies(2000));
 		/* I think this is useless, only used to check debounce */
 		hdst->mdet_val_last = sprd_get_eic_mis_status(11);
 
@@ -1992,9 +1989,6 @@ static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 				__func__);
 			goto out;
 		}
-		/* I am not sure the new func is right or not */
-		__pm_wakeup_event(&hdst->ldetl_wakelock,
-		msecs_to_jiffies(2000));
 
 		ret = cancel_delayed_work(&hdst->ldetl_work);
 		queue_delayed_work(hdst->ldetl_work_q,
@@ -2004,7 +1998,6 @@ static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 			hdst->plug_state_last, hdst->ldetl_plug_in);
 	}
 	if (eic_mis & BIT(HDST_BDET_EIC)) {/* bdet */
-		__pm_wakeup_event(&hdst->btn_wakelock, msecs_to_jiffies(2000));
 		ret = cancel_delayed_work(&hdst->btn_work);
 		queue_delayed_work(hdst->btn_work_q,
 			&hdst->btn_work, msecs_to_jiffies(0));
@@ -2278,14 +2271,8 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 		queue_delayed_work(hdst->reg_dump_work_q,
 			&hdst->reg_dump_work, msecs_to_jiffies(500));
 
-	wakeup_source_init(&hdst->ldetl_wakelock,
-		"headset_ldetl_wakelock");
-	wakeup_source_init(&hdst->det_all_wakelock,
-		"headset_detect_all_wakelock");
-	wakeup_source_init(&hdst->btn_wakelock,
-		"headset_button_wakelock");
-	wakeup_source_init(&hdst->mic_wakelock,
-		"headset_mic_wakelock");
+	wakeup_source_init(&hdst->hdst_detect_wakelock,
+		"headset_detect_wakelock");
 
 	mutex_init(&hdst->irq_det_ldetl_lock);
 	mutex_init(&hdst->irq_det_all_lock);

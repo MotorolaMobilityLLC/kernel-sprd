@@ -213,10 +213,8 @@ struct sprd_headset {
 	enum headset_hw_status hdst_hw_status;
 	enum snd_jack_types hdst_type_status;
 	struct delayed_work fc_work; /* for fast charge */
-	struct wakeup_source det_all_wakelock;
-	struct wakeup_source btn_wakelock;
+	struct wakeup_source hdst_detect_wakelock;
 	enum headset_eic_type eic_type;
-	struct wakeup_source ldetl_wakelock;
 	bool audio_on;
 	bool btn_detecting;
 	/*
@@ -262,7 +260,6 @@ struct sprd_headset {
 	int plug_stat_last;
 	int report;/* headset type has reported by input event */
 	bool re_detect;
-	struct wakeup_source mic_wakelock;
 	int irq_detect_int_all;
 	struct delayed_work det_mic_work;
 	struct workqueue_struct *det_mic_work_q;
