@@ -33,10 +33,10 @@
 
 #define EXITING_TASK_MARKER	0xdeaddead
 
-static __read_mostly unsigned int walt_ravg_hist_size = 5;
+static __read_mostly unsigned int walt_ravg_hist_size = 6;
 static __read_mostly unsigned int walt_window_stats_policy =
-	WINDOW_STATS_MAX_RECENT_AVG;
-static __read_mostly unsigned int walt_account_wait_time = 1;
+	WINDOW_STATS_MAX;
+static __read_mostly unsigned int walt_account_wait_time;
 static __read_mostly unsigned int walt_freq_account_wait_time = 0;
 static __read_mostly unsigned int walt_io_is_busy = 0;
 
@@ -50,7 +50,7 @@ bool __read_mostly walt_disabled = false;
  * rollover occurs just before the tick boundary.
  */
 __read_mostly unsigned int walt_ravg_window =
-					    (20000000 / TICK_NSEC) * TICK_NSEC;
+					    (16000000 / TICK_NSEC) * TICK_NSEC;
 #define MIN_SCHED_RAVG_WINDOW ((10000000 / TICK_NSEC) * TICK_NSEC)
 #define MAX_SCHED_RAVG_WINDOW ((1000000000 / TICK_NSEC) * TICK_NSEC)
 
@@ -717,6 +717,24 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 		/* The simple case - busy time contained within the existing
 		 * window. */
 		add_to_task_demand(rq, p, wallclock - mark_start);
+
+		/* Update task demand in current window when policy is
+		 * WINDOW_STATS_MAX. The purpose is to create opportunity
+		 * for rising cpu freq when cr_avg is used for cpufreq
+		 */
+		if (p->ravg.sum > p->ravg.demand &&
+		    walt_window_stats_policy == WINDOW_STATS_MAX) {
+			if (!task_has_dl_policy(p) || !p->dl.dl_throttled) {
+				if (task_on_rq_queued(p))
+					fixup_cumulative_runnable_avg(
+							rq, p, p->ravg.sum);
+				else if (rq->curr == p)
+					fixup_cum_window_demand(
+							rq, p->ravg.sum);
+			}
+			p->ravg.demand = p->ravg.sum;
+		}
+
 		return;
 	}
 
