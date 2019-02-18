@@ -1201,8 +1201,6 @@ static ssize_t tipc_write_iter(struct kiocb *iocb, struct iov_iter *iter)
 	struct list_head *msg_buf_list;
 	struct list_head *pos, *pos_next;
 
-	mutex_lock(&dn->lock);
-
 	msg_buf_list = kzalloc(sizeof(*msg_buf_list), GFP_KERNEL);
 	if (!msg_buf_list) {
 		ret = -ENOMEM;
@@ -1255,8 +1253,6 @@ static ssize_t tipc_write_iter(struct kiocb *iocb, struct iov_iter *iter)
 	if (ret)
 		goto err_out;
 
-	mutex_unlock(&dn->lock);
-
 	return copyed_len;
 
 err_out:
@@ -1270,8 +1266,6 @@ err_out:
 		}
 		kfree(msg_buf_list);
 	}
-
-	mutex_unlock(&dn->lock);
 
 	return ret;
 }
