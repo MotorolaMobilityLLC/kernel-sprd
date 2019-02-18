@@ -353,7 +353,13 @@ int sipa_get_ep_info(enum sipa_ep_id id,
 		pr_err("%s: ep id:%d not create!", __func__, id);
 		return -EPROBE_DEFER;
 	}
-	sipa_hal_init_pam_param(ep->send_fifo.idx, ep->recv_fifo.idx, out);
+	if (SIPA_EP_USB == id ||  SIPA_EP_WIFI == id)
+		sipa_hal_init_pam_param(ep->recv_fifo.idx,
+					ep->send_fifo.idx, out);
+	else
+		sipa_hal_init_pam_param(ep->send_fifo.idx,
+					ep->recv_fifo.idx, out);
+
 	return 0;
 }
 EXPORT_SYMBOL(sipa_get_ep_info);
