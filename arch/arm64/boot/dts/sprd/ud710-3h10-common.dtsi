@@ -260,8 +260,9 @@
 };
 
 &sdio0 {
-	sprd,sdr104-dly=<0x7f 0x77 0x6f 0x6f>;
-	sprd,sdr50-dly=<0x2c 0x7f 0x76 0x76>;
+	cd-gpios = <&eic_async 19 GPIO_ACTIVE_HIGH>;
+	sprd,sdr104-dly = <0x7f 0x77 0x6f 0x6f>;
+	sprd,sdr50-dly = <0x2c 0x7f 0x76 0x76>;
 	vmmc-supply = <&vddsdcore>;
 	vqmmc-supply = <&vddsdio>;
 	voltage-ranges = <3000 3000>;
