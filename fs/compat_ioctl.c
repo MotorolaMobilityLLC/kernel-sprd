@@ -115,6 +115,8 @@
 
 #include <linux/sort.h>
 
+#include <linux/autotest.h>
+
 #ifdef CONFIG_SPARC
 #include <asm/fbio.h>
 #endif
@@ -1036,6 +1038,8 @@ COMPATIBLE_IOCTL(PPPIOCGL2TPSTATS)
 COMPATIBLE_IOCTL(PPPOEIOCSFWD)
 COMPATIBLE_IOCTL(PPPOEIOCDFWD)
 /* Big A */
+COMPATIBLE_IOCTL(AT_PINCTRL)
+COMPATIBLE_IOCTL(AT_GPIO)
 /* sparc only */
 /* Big Q for sound/OSS */
 COMPATIBLE_IOCTL(SNDCTL_SEQ_RESET)

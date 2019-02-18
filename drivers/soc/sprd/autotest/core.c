@@ -35,7 +35,7 @@ struct class *autotest_class;
 static dev_t autotest_devt;
 
 static struct autotest_handler *
-sprd_autotest_find_handler(enum autotest_type type)
+sprd_autotest_find_handler(unsigned int type)
 {
 	struct autotest_handler *handler;
 
@@ -56,10 +56,7 @@ static long sprd_autotest_ioctl(struct file *filp, unsigned int cmd,
 {
 	struct autotest_handler *handler;
 
-	pr_info("autotest cmd = %d\n", cmd);
-
-	if (cmd >= AT_MAX)
-		return -ENOTSUPP;
+	pr_info("autotest cmd = %x\n", cmd);
 
 	handler = sprd_autotest_find_handler(cmd);
 	if (!handler)

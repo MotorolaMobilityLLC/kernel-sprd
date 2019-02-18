@@ -2,17 +2,11 @@
 #ifndef _CORE_H
 #define _CORE_H
 
-enum autotest_type {
-	AT_GPIO,
-	AT_PINCTRL,
-
-	/* for user to add new test type */
-	AT_MAX,
-};
+#include <linux/autotest.h>
 
 struct autotest_handler {
 	const char *label;
-	enum autotest_type type;
+	unsigned int type;
 	struct list_head node;
 	int (*pre_test) (struct autotest_handler *handler, void *data);
 	int (*start_test) (struct autotest_handler *handler, void *data);
