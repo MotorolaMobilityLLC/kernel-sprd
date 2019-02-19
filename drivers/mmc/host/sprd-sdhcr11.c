@@ -119,11 +119,14 @@ static void dump_adma_info(struct sprd_sdhc_host *host)
 
 static void dump_sdio_reg(struct sprd_sdhc_host *host)
 {
-	if (!host->mmc->card)
+	if (!host->mmc->card && strcmp(host->device_name, "sdio_wifi"))
 		return;
 
-	print_hex_dump(KERN_INFO, "sdhc register: ", DUMP_PREFIX_OFFSET,
-			16, 4, host->ioaddr, 64, 0);
+	print_hex_dump(KERN_ERR, "sdhc register: ", DUMP_PREFIX_OFFSET,
+		       16, 4, host->ioaddr, 64, 0);
+
+	print_hex_dump(KERN_ERR, "sdhc register + 0x200: ", DUMP_PREFIX_OFFSET,
+		       16, 4, host->ioaddr + 0x200, 16, 0);
 
 	pr_info(" ===========================================\n");
 }
