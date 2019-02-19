@@ -1380,36 +1380,11 @@ out:
 	up(&hdst->sem);
 }
 
-static void sprd_process_4pole_type(enum sprd_headset_type headset_type)
+static void sprd_process_4pole_type(struct sprd_headset *hdst,
+	enum sprd_headset_type headset_type)
 {
-	struct sprd_headset *hdst = sprd_hdst;
-	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
-
-	if (!pdata) {
-		pr_err("%s: pdata is NULL!\n", __func__);
-		return;
-	}
-
-	if ((headset_type == HEADSET_4POLE_NOT_NORMAL)
-	    && (pdata->gpio_switch == 0)) {
-		sprd_headset_eic_enable(15, 0);
-		sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS",
-			false);
-		hdst->hdst_type_status = SND_JACK_HEADPHONE;
-		pr_info("HEADSET_4POLE_NOT_NORMAL is not supported %s\n",
-			"by your hardware! so disable the button irq!");
-	} else {
-		sprd_set_eic_trig_level(15, 1);
-		headset_reg_clr_bits(ANA_HDT2, HEDET_LDETL_FLT_EN);
-		/* set threshold and HEDET_BDET_EN */
-		sprd_button_irq_threshold(1);
-		sprd_headset_eic_enable(15, 1);
-		sprd_headset_eic_trig(15);
-		hdst->hdst_type_status = SND_JACK_HEADSET;
-		if (!hdst->audio_on)
-			sprd_enable_hmicbias_polling(true, false);
-	}
-
+	sprd_ldetl_filter_enable(false);
+	hdst->hdst_type_status = SND_JACK_HEADSET;
 	if (hdst->report == 0) {
 		sprd_headset_jack_report(hdst, &hdst->hdst_jack,
 			hdst->hdst_type_status, SND_JACK_HEADSET);
@@ -1425,7 +1400,97 @@ static void sprd_process_4pole_type(enum sprd_headset_type headset_type)
 			hdst->hdst_type_status, SND_JACK_HEADSET);
 	}
 	hdst->report = 1;
-	pr_info("%s headset plug in\n", __func__);
+	hdst->hdst_hw_status = HW_INSERT_ALL_PLUG_IN;
+	mutex_lock(&hdst->audio_on_lock);
+	if (!hdst->audio_on)
+		sprd_enable_hmicbias_polling(true, false);
+	mutex_unlock(&hdst->audio_on_lock);
+	sprd_button_irq_threshold(1);
+	sprd_set_eic_trig_level(HDST_BDET_EIC, true);
+	sprd_headset_eic_enable(HDST_BDET_EIC, true);
+	sprd_headset_eic_trig(HDST_BDET_EIC);
+}
+
+static enum headset_retrun_val
+sprd_headset_valid_insert_all(struct sprd_headset *hdst,
+	int deboun_time_ms)
+{
+	int val, data_last, data_current;
+
+	val = sprd_get_eic_mis_status(HDST_INSERT_ALL_EIC);
+	if (val == 0) {
+		pr_err("fatal error, HDST_INSERT_ALL_EIC invalid, INT8(220.MIS) %x\n",
+			val);
+		return RET_MIS_ERR;
+	}
+	data_last = sprd_headset_eic_get_data(HDST_INSERT_ALL_EIC);
+	/* need to wait some time to check debounce */
+	sprd_msleep(deboun_time_ms);
+	data_current = sprd_headset_eic_get_data(HDST_INSERT_ALL_EIC);
+	if (data_last != data_current) {
+		pr_err("insert all eic check debounce failed\n");
+		return RET_DEBOUN_ERR;
+	}
+	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+
+	return RET_NOERROR;
+}
+
+static void sprd_headset_set_hw_status(struct sprd_headset *hdst,
+	struct sprd_headset_platform_data *pdata)
+{
+	/* step 3 */
+	sprd_ldetl_filter_enable(true);
+	if (pdata->jack_type == JACK_TYPE_NO) {
+		sprd_hmicbias_hw_control_enable(true);
+		pr_debug("filter detect_l HDT2 0x%04x\n",
+			sprd_read_reg_value(ANA_HDT2));
+	} else if (pdata->jack_type == JACK_TYPE_NC) {
+		/*
+		 * step 4, following two line will be set back after
+		 * headset type detection over (see more on step 7).
+		 */
+		headset_reg_set_bits(ANA_HDT1, HEDET_LDET_CMP_SEL);
+		headset_reg_clr_bits(ANA_HDT0, HEDET_JACK_TYPE);
+	}
+
+	/* VB is supply, do not enable VB independently */
+	sprd_headset_power_set(&hdst->power_manager, "BIAS", true);
+	sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS", true);
+}
+
+static void sprd_headset_prepare_insert_all_plugout(void)
+{
+	sprd_headset_eic_clear(HDST_INSERT_ALL_EIC);
+	sprd_set_eic_trig_level(HDST_INSERT_ALL_EIC, false);
+	sprd_headset_eic_enable(HDST_INSERT_ALL_EIC, true);
+	sprd_headset_eic_trig(HDST_INSERT_ALL_EIC);
+	sprd_intc_force_clear(0);
+}
+
+static void
+sprd_headset_prepare_plugout(struct sprd_headset_platform_data *pdata)
+{
+	/* something after headset type detection over */
+	if (pdata->jack_type == JACK_TYPE_NC) {
+		headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0x4),
+			HEDET_V2AD_CH_SEL(0xf));
+		/*
+		 * step 7, after headset type detection over, turn the
+		 * current back to HEADSET_L_INT for headset plug
+		 * out detection.
+		 */
+		sprd_hmicbias_hw_control_enable(false);
+		headset_reg_clr_bits(ANA_HDT1, HEDET_LDET_CMP_SEL);
+		headset_reg_set_bits(ANA_HDT0, HEDET_JACK_TYPE);
+		usleep_range(50, 60); /* Wait for 50us */
+		sprd_hmicbias_hw_control_enable(true);
+	}
+
+	if (pdata->do_fm_mute)
+		vbc_close_fm_dggain(false);
+	sprd_headset_prepare_insert_all_plugout();
+	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
 }
 
 static void sprd_headset_reset_hw_status(struct sprd_headset *hdst)
@@ -1439,6 +1504,99 @@ static void sprd_headset_reset_hw_status(struct sprd_headset *hdst)
 	if (pdata->jack_type == JACK_TYPE_NO)
 		sprd_headset_power_set(&hdst->power_manager, "BIAS", false);
 	sprd_button_irq_threshold(0);
+}
+
+static void sprd_headset_type_report(struct sprd_headset *hdst)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	enum sprd_headset_type headset_type;
+
+	pr_debug("plug_state_last %d, hdst_hw_status %s\n",
+		hdst->plug_state_last,
+		eic_hw_state[hdst->hdst_hw_status]);
+
+	hdst->mdet_tried = false;
+	hdst->re_detect = false;
+	headset_type = sprd_headset_type_plugged();
+	pr_info("type_report headset_type %d\n", headset_type);
+	switch (headset_type) {
+	case HEADSET_TYPE_ERR:
+		hdst->det_err_cnt++;
+		hdst->headphone = HEADSET_TYPE_ERR;
+		if (hdst->det_err_cnt < 10)
+			queue_delayed_work(hdst->det_all_work_q,
+			&hdst->det_all_work, msecs_to_jiffies(1000));
+		return;
+	case HEADSET_4POLE_NORMAL:
+		if (pdata->eu_us_switch != 0)
+			gpio_direction_output(pdata->eu_us_switch, 0);
+		break;
+	case HEADSET_4POLE_NOT_NORMAL:
+		if (pdata->eu_us_switch != 0)
+			gpio_direction_output(pdata->eu_us_switch, 1);
+		/* Repeated detection 5 times when 3P is detected */
+	case HEADSET_NO_MIC:
+		if (hdst->det_3pole_cnt < 5 && !hdst->mdet_tried) {
+			pr_err("type_report det_3pole_cnt %d\n",
+				hdst->det_3pole_cnt);
+			hdst->det_3pole_cnt++;
+			hdst->re_detect = true;
+			queue_delayed_work(hdst->det_all_work_q,
+				&hdst->det_all_work,
+				msecs_to_jiffies(1000));
+		}
+
+		if (pdata->eu_us_switch != 0)
+			gpio_direction_output(pdata->eu_us_switch, 0);
+		break;
+	case HEADSET_APPLE:
+	default:
+		pr_err("type_report error headset_type %d\n",
+			headset_type);
+		break;
+	}
+
+	/*
+	 * invert trig level after type detect over, because it
+	 * may need redetect at that time.
+	 */
+	if (!hdst->re_detect)
+		sprd_set_eic_trig_level(HDST_INSERT_ALL_EIC, false);
+	hdst->det_err_cnt = 0;
+
+	switch (headset_type) {
+	case HEADSET_NO_MIC:
+	case HEADSET_4POLE_NOT_NORMAL:
+		hdst->headphone = HEADSET_NO_MIC;
+		if (!hdst->re_detect) {
+			sprd_headset_power_set(&hdst->power_manager,
+				"HEADMICBIAS", false);
+			sprd_button_irq_threshold(0);
+			sprd_headset_eic_enable(HDST_BDET_EIC, false);
+		}
+		hdst->hdst_type_status = SND_JACK_HEADPHONE;
+		if (hdst->report == 0) {
+			sprd_headset_jack_report(hdst, &hdst->hdst_jack,
+				hdst->hdst_type_status, SND_JACK_HEADPHONE);
+			hdst->hdst_hw_status = HW_INSERT_ALL_PLUG_IN;
+		}
+		hdst->report = 1;
+		pr_info("type_report headphone plug in\n");
+		break;
+	case HEADSET_4POLE_NORMAL:
+		hdst->headphone = HEADSET_4POLE_NORMAL;
+		sprd_process_4pole_type(hdst, headset_type);
+		pr_info("type_report headset plug in\n");
+		break;
+	default:
+		hdst->headphone = HEADSET_TYPE_ERR;
+		pr_err("type_report headphone type error\n");
+		break;
+	}
+
+	hdst->plug_state_last = 1;
+	if (!hdst->re_detect)
+		sprd_headset_prepare_plugout(pdata);
 }
 
 static void sprd_headset_type_error(struct sprd_headset *hdst)
@@ -1457,9 +1615,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
-	enum sprd_headset_type headset_type;
-	int plug_state_current, insert_all_data_last, insert_all_data_current,
-		val;
+	int plug_state_current, insert_all_data_last, ret;
 	bool trig_level, insert_status, detect_value = false;
 	static int times_1;
 
@@ -1471,24 +1627,15 @@ static void headset_detect_all_work_func(struct work_struct *work)
 
 	down(&hdst->sem);
 
-	val = sprd_get_eic_mis_status(10);
-	if (val == 0) {
-		sprd_headset_reset(hdst);
-		goto out;
-	}
-	insert_all_data_last = sprd_headset_eic_get_data(10);
+	insert_all_data_last = sprd_headset_eic_get_data(HDST_INSERT_ALL_EIC);
 	if (hdst->plug_state_last == 0)
-		sprd_msleep(40);
+		ret = sprd_headset_valid_insert_all(hdst, 40);
 	else
-		sprd_msleep(20);
-
-	insert_all_data_current = sprd_headset_eic_get_data(10);
-	if (insert_all_data_last != insert_all_data_current) {
-		pr_info("%s check debounce failed\n", __func__);
-		sprd_headset_eic_clear(10);
-		sprd_intc_force_clear(1);
-		sprd_intc_force_clear(0);
-		sprd_headset_eic_trig(10);
+		ret = sprd_headset_valid_insert_all(hdst, 20);
+	if (ret) {
+		pr_err("%s insert all invalid %d\n", __func__, ret);
+		sprd_headset_reset(hdst);
+		hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
 		goto out;
 	}
 
@@ -1496,35 +1643,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	pr_info("%s plug_state_last %d\n", __func__, hdst->plug_state_last);
 
 	if (hdst->plug_state_last == 0) {
-		sci_adi_set(ANA_REG_GLB_ARM_MODULE_EN, BIT_ANA_AUD_EN);
-		if (pdata->jack_type == JACK_TYPE_NO) {
-			sprd_hmicbias_hw_control_enable(true);
-			headset_reg_set_bits(ANA_HDT2, HEDET_LDETL_FLT_EN);
-			pr_debug("filter detect_l HDT2 0x%04x\n",
-				sprd_read_reg_value(ANA_HDT2));
-		} else if (pdata->jack_type == JACK_TYPE_NC) {
-			/* step 3 */
-			headset_reg_set_bits(ANA_HDT2, HEDET_LDETL_FLT_EN);
-			/*
-			 * step 4, following two line will be set back
-			 * after headset
-			 * type detection over, see more on step 7
-			 * turn the current from HEADSET_L to HP_L to
-			 * detect the resistor of HP_L
-			 * in spec, HEDET_LDET_CMP_SEL need to be handled before
-			 * insert, so I dout is it right in here? I am not sure
-			 */
-			headset_reg_set_bits(ANA_HDT1, HEDET_LDET_CMP_SEL);
-			headset_reg_clr_bits(ANA_HDT0, HEDET_JACK_TYPE);
-		}
-
-		pr_info("%s micbias power on\n", __func__);
-		sprd_headset_power_set(&hdst->power_manager, "BIAS", true);
-		pr_debug("%s PMU0(0000) %x\n", __func__,
-			sprd_read_reg_value(ANA_PMU0));
-		/* check if this need improve or need, I am not sure */
-		sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS",
-			true);
+		sprd_headset_set_hw_status(hdst, pdata);
 		sprd_msleep(10);
 	}
 
@@ -1557,124 +1676,8 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			eic_hw_state[hdst->hdst_hw_status]);
 
 	if ((1 == plug_state_current && 0 == hdst->plug_state_last) ||
-	  (hdst->re_detect == true && detect_value == true)) {
-		headset_type = sprd_headset_type_plugged();
-		pr_info("%s headset_type  %d\n", __func__, headset_type);
-		switch (headset_type) {
-		case HEADSET_TYPE_ERR:
-			hdst->det_err_cnt++;
-			pr_info("%s headset_type %d(HEADSET_TYPE_ERR), det_err_cnt %d\n",
-			__func__, headset_type, hdst->det_err_cnt);
-			if (hdst->det_err_cnt < 10)
-				queue_delayed_work(hdst->det_all_work_q,
-				&hdst->det_all_work, msecs_to_jiffies(2000));
-			goto out;
-		case HEADSET_4POLE_NORMAL:
-			pr_info("%s headset_type %d (HEADSET_4POLE_NORMAL)\n",
-				__func__, headset_type);
-			if (pdata->eu_us_switch != 0)
-				gpio_direction_output(pdata->eu_us_switch, 0);
-			break;
-		case HEADSET_4POLE_NOT_NORMAL:
-			pr_info("%s headset_type %d (HEADSET_4POLE_NOT_NORMAL)\n",
-				__func__, headset_type);
-			if (pdata->eu_us_switch != 0)
-				gpio_direction_output(pdata->eu_us_switch, 1);
-			/* Repeated detection 5 times when 3P is detected */
-		case HEADSET_NO_MIC:
-			pr_info("%s headset_type %d (HEADSET_NO_MIC)\n",
-				__func__, headset_type);
-				/*
-				 * following is ok, when in early test,
-				 * adc can't work, no mic
-				 * headphone is detected every time,
-				 * so I remove this for test
-				 */
-
-				/* if (times_1 < 5) {
-				 *	queue_delayed_work(hdst->det_all_work_q,
-				 *	&hdst->det_all_work,
-				 *	msecs_to_jiffies(1000));
-				 *	times_1++;
-				 *	hdst->re_detect = true;
-				 * } else {
-				 *	hdst->re_detect = false;
-				 * }
-				 */
-			if (pdata->eu_us_switch != 0)
-				gpio_direction_output(pdata->eu_us_switch, 0);
-			break;
-		case HEADSET_APPLE:
-			pr_info("%s headset_type %d (HEADSET_APPLE)\n",
-				__func__, headset_type);
-			pr_info("we have not yet implemented this in the code\n");
-			break;
-		default:
-			pr_info("%s headset_type %d (HEADSET_UNKNOWN)\n",
-				__func__, headset_type);
-			break;
-		}
-
-		/*
-		 * invert trig level after type detect over, because it
-		 * may need redetect at that time.
-		 */
-		sprd_set_eic_trig_level(HDST_INSERT_ALL_EIC, false);
-		hdst->det_err_cnt = 0;
-		if (headset_type == HEADSET_NO_MIC ||
-				headset_type == HEADSET_4POLE_NOT_NORMAL)
-			hdst->headphone = 1;
-		else
-			hdst->headphone = 0;
-
-		hdst->plug_state_last = 1;
-
-		if (hdst->headphone) {
-			/*
-			 * if it is 3pole, run
-			 * headset_reg_clr_bits(ANA_PMU1, HMIC_BIAS_EN) in here
-			 */
-			sprd_button_irq_threshold(0);
-			sprd_headset_eic_enable(15, 0);
-
-			hdst->hdst_type_status = SND_JACK_HEADPHONE;
-			if (hdst->report == 0) {
-				pr_debug("report for 3p\n");
-				sprd_headset_jack_report(hdst, &hdst->hdst_jack,
-					hdst->hdst_type_status,
-					SND_JACK_HEADPHONE);
-			}
-
-			hdst->report = 1;
-			if (hdst->re_detect == false)
-				sprd_headset_power_set(&hdst->power_manager,
-				"HEADMICBIAS", false);
-			pr_info("%s headphone plug in\n", __func__);
-		} else
-			sprd_process_4pole_type(headset_type);
-
-		/*something after headset type detection over*/
-		if (pdata->jack_type == JACK_TYPE_NC) {
-			headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0x4),
-				HEDET_V2AD_CH_SEL(0xF));
-			sprd_hmicbias_hw_control_enable(false);
-			headset_reg_clr_bits(ANA_HDT1, HEDET_LDET_CMP_SEL);
-			headset_reg_set_bits(ANA_HDT0, HEDET_JACK_TYPE);
-			usleep_range(50, 60); /* Wait for 50us */
-			sprd_hmicbias_hw_control_enable(true);
-		}
-
-		if (pdata->do_fm_mute)
-			vbc_close_fm_dggain(false);
-
-		sprd_headset_eic_enable(10, 0);
-		sprd_headset_eic_clear(10);
-		sprd_set_eic_trig_level(10, 0);
-		sprd_intc_force_clear(1);
-		sprd_intc_force_clear(0);
-		sprd_headset_eic_enable(10, 1);
-		pr_info("STS0(184) %x\n", sprd_read_reg_value(ANA_STS0));
-		sprd_headset_eic_trig(10);
+		(hdst->re_detect == true && detect_value == true)) {
+		sprd_headset_type_report(hdst);
 	} else if (0 == plug_state_current && 1 == hdst->plug_state_last) {
 		hdst->det_err_cnt = 0;
 		times_1 = 0;
@@ -1696,8 +1699,12 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS",
 			false);
 		hdst->plug_state_last = 0;
+		hdst->headphone = HEADSET_TYPE_ERR;
 		hdst->report = 0;
 		hdst->re_detect = false;
+		hdst->det_err_cnt = 0;
+		hdst->det_3pole_cnt = 0;
+		hdst->mdet_tried = false;
 
 		if (hdst->headphone)
 			pr_info("%s headphone plug out\n", __func__);
