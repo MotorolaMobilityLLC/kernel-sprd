@@ -207,6 +207,7 @@ struct sprd_headset {
 	struct workqueue_struct *det_all_work_q;
 	struct completion wait_insert_all;
 	struct completion wait_mdet;
+	struct completion wait_ldetl;
 	bool current_polling_state;
 	struct  headset_power_manager power_manager;
 	struct delayed_work btn_work;
