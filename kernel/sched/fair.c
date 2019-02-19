@@ -5987,9 +5987,17 @@ unsigned long cpu_util_freq(int cpu)
 	if (unlikely(walt_disabled || !sysctl_sched_use_walt_cpu_util))
 		return cpu_util(cpu);
 
-	walt_cpu_util = cpu_rq(cpu)->prev_runnable_sum;
+	walt_cpu_util = cpu_rq(cpu)->cumulative_runnable_avg;
 	walt_cpu_util <<= SCHED_CAPACITY_SHIFT;
 	do_div(walt_cpu_util, walt_ravg_window);
+
+	if (cpu_rq(cpu)->is_busy == CPU_BUSY_SET) {
+		u64 prev_runnable_sum = cpu_rq(cpu)->prev_runnable_sum;
+
+		prev_runnable_sum <<= SCHED_CAPACITY_SHIFT;
+		do_div(prev_runnable_sum, walt_ravg_window);
+		walt_cpu_util = max(walt_cpu_util, prev_runnable_sum);
+	}
 
 	return min_t(unsigned long, walt_cpu_util, capacity_orig_of(cpu));
 #else
