@@ -48,6 +48,7 @@ enum wcn_chip_id_type {
 	WCN_CHIP_ID_AD,
 };
 
+const char *wcn_get_chip_name(void);
 enum wcn_chip_id_type wcn_get_chip_type(void);
 void marlin_power_off(enum marlin_sub_sys subsys);
 int marlin_get_power(enum marlin_sub_sys subsys);

@@ -148,6 +148,41 @@ enum wcn_chip_id_type wcn_get_chip_type(void)
 }
 EXPORT_SYMBOL_GPL(wcn_get_chip_type);
 
+#if defined(CONFIG_SC2355)
+#define WCN_CHIP_NAME_PRE "Marlin3_"
+#elif defined(CONFIG_UMW2652)
+#define WCN_CHIP_NAME_PRE "Marlin3Lite_"
+#else
+#define WCN_CHIP_NAME_PRE "ERRO_"
+#endif
+
+#define _WCN_STR(a) #a
+#define WCN_STR(a) _WCN_STR(a)
+#define WCN_CON_STR(a, b, c) (a b WCN_STR(c))
+
+const char *wcn_get_chip_name(void)
+{
+	enum wcn_chip_id_type chip_type;
+	static char *wcn_chip_name;
+	static char * const chip_name[] = {
+		"UNKNOWN",
+		WCN_CON_STR(WCN_CHIP_NAME_PRE, "AA_", MARLIN_AA_CHIPID),
+		WCN_CON_STR(WCN_CHIP_NAME_PRE, "AB_", MARLIN_AB_CHIPID),
+		WCN_CON_STR(WCN_CHIP_NAME_PRE, "AC_", MARLIN_AC_CHIPID),
+		WCN_CON_STR(WCN_CHIP_NAME_PRE, "AD_", MARLIN_AD_CHIPID),
+	};
+
+	if (likely(wcn_chip_name))
+		return wcn_chip_name;
+
+	chip_type = wcn_get_chip_type();
+	if (chip_type != WCN_CHIP_ID_INVALID)
+		wcn_chip_name = chip_name[chip_type];
+
+	return chip_name[chip_type];
+}
+EXPORT_SYMBOL_GPL(wcn_get_chip_name);
+
 static char *wcn_get_chip_tag(void)
 {
 	enum wcn_chip_id_type chip_type;
