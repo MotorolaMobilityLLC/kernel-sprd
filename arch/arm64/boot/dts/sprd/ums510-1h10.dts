@@ -437,6 +437,7 @@
 	cpudvfs@61{
 		compatible = "sprd,cpudvfs-regulator-sharkl5";
 		reg = <0x61>;
+		dvfs-dcdc-i2c = <1>;
 	};
 };
 

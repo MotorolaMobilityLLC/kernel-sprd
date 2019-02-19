@@ -287,6 +287,17 @@
 	status = "okay";
 };
 
+&aon_i2c0 {
+	status = "okay";
+
+	/* A virtual i2c device */
+	cpudvfs-dcdc-cpu1@62{
+		compatible = "sprd,cpudvfs-regulator-dcdc-cpu1-roc1";
+		reg = <0x62>;
+		dvfs-dcdc-i2c = <1>;
+	};
+};
+
 &aon_i2c1 {
 	status = "okay";
 	clock-frequency = <400000>;
@@ -333,6 +344,12 @@
 		};
 	};
 
+	/* A virtual i2c device */
+	cpudvfs-dcdc-cpu0@61{
+		compatible = "sprd,cpudvfs-regulator-dcdc-cpu0-roc1";
+		reg = <0x61>;
+		dvfs-dcdc-i2c = <0>;
+	};
 };
 
 &i2c0 {
