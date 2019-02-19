@@ -55,31 +55,65 @@ static int cpudvfs_i2c_probe(struct i2c_client *client,
 {
 	struct sprd_cpudvfs_device *platdev = sprd_hardware_dvfs_device_get();
 	struct cpudvfs_archdata *pri;
+	struct device_node *np;
+	enum dcdc_name dcdc;
+	int ret;
 
 	if (!platdev) {
 		pr_err("No cpu dvfs device found.\n");
 		return -ENODEV;
 	}
-	pri = (struct cpudvfs_archdata *)platdev->archdata;
-	pri->i2c_client = client;
 
+	np = client->dev.of_node;
+	if (!np) {
+		pr_err("No i2c of node found.\n");
+		return -ENODEV;
+	}
+
+	ret = of_property_read_u32(np, "dvfs-dcdc-i2c", &dcdc);
+	if (ret) {
+		pr_err("dvfs-dcdc property read fail.\n");
+		return ret;
+	}
+
+
+	pri = (struct cpudvfs_archdata *)platdev->archdata;
+	pri->pwr[dcdc].i2c_client = client;
 	return 0;
 }
 
-static const struct of_device_id cpudvfs_i2c_of_match[] = {
-	{.compatible = "sprd,cpudvfs-regulator-sharkl5",},
-	{.compatible = "sprd,cpudvfs-regulator-roc1",},
+static const struct of_device_id cpudvfs_dcdc_cpu0_i2c_of_match[] = {
+	{.compatible = "sprd,cpudvfs-regulator-dcdc-cpu0-roc1",},
 	{},
 };
-MODULE_DEVICE_TABLE(of, cpudvfs_i2c_of_match);
+MODULE_DEVICE_TABLE(of, cpudvfs_dcdc_cpu0_i2c_of_match);
 
-static struct i2c_driver cpudvfs_i2c_driver = {
-	.driver = {
-		.name = "cpudvfs_i2c_drv",
-		.owner = THIS_MODULE,
-		.of_match_table = cpudvfs_i2c_of_match,
+static const struct of_device_id cpudvfs_dcdc_cpu1_i2c_of_match[] = {
+	{.compatible = "sprd,cpudvfs-regulator-sharkl5",},
+	{.compatible = "sprd,cpudvfs-regulator-dcdc-cpu1-roc1",},
+	{},
+};
+MODULE_DEVICE_TABLE(of, cpudvfs_dcdc_cpu1_i2c_of_match);
+
+static struct i2c_driver cpudvfs_i2c_driver[] = {
+	{
+		.driver = {
+			.name = "cpudvfs_dcdc_cpu0_i2c_drv",
+			.owner = THIS_MODULE,
+			.of_match_table = cpudvfs_dcdc_cpu0_i2c_of_match,
+		},
+		.probe = cpudvfs_i2c_probe,
 	},
-	.probe = cpudvfs_i2c_probe,
+
+	{
+		.driver = {
+			.name = "cpudvfs_dcdc_cpu1_i2c_drv",
+			.owner = THIS_MODULE,
+			.of_match_table = cpudvfs_dcdc_cpu1_i2c_of_match,
+		},
+		.probe = cpudvfs_i2c_probe,
+	}
+
 };
 
 static
@@ -840,15 +874,13 @@ int sprd_setup_i2c_channel(void *data, u32 dcdc_nr)
 		return -EINVAL;
 	}
 
-	if (pdev->pwr[dcdc_nr].i2c_used)
-		if (!i2c_add_driver(&cpudvfs_i2c_driver))
-			pdev->pwr[dcdc_nr].i2c_client = &pdev->i2c_client;
-		else
+	if (pdev->pwr[dcdc_nr].i2c_used) {
+		if (i2c_add_driver(&cpudvfs_i2c_driver[dcdc_nr]))
 			pr_err("Failed to add an i2c driver\n");
-	else
+	} else {
 		pr_info("cluster-%d does not need an i2c channel\n",
 			dcdc_nr);
-
+	}
 	return 0;
 }
 
@@ -1042,8 +1074,8 @@ int sprd_cpudvfs_set_target(void *data, u32 cluster, u32 opp_idx)
 	clu = pdev->cluster_array[cluster];
 
 	if (pdev->pwr[clu->dcdc].i2c_used &&
-	    *pdev->pwr[clu->dcdc].i2c_client) {
-		client = *pdev->pwr[clu->dcdc].i2c_client;
+	    pdev->pwr[clu->dcdc].i2c_client) {
+		client = pdev->pwr[clu->dcdc].i2c_client;
 		i2c_lock_adapter(client->adapter);
 		i2c_flag = 1;
 	}
@@ -2260,7 +2292,14 @@ err_out:
 
 static int sprd_cpudvfs_remove(struct platform_device *pdev)
 {
-	i2c_del_driver(&cpudvfs_i2c_driver);
+	int ix;
+	struct sprd_cpudvfs_device *plat_dev = platform_get_drvdata(pdev);
+	struct cpudvfs_archdata *parchdev = plat_dev->archdata;
+
+	for (ix = 0; ix < parchdev->dcdc_num; ix++) {
+		if (parchdev->pwr[ix].i2c_used && parchdev->pwr[ix].i2c_client)
+			i2c_del_driver(&cpudvfs_i2c_driver[ix]);
+	}
 	return 0;
 }
 

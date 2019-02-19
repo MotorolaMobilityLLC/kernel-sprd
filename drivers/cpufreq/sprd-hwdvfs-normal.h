@@ -187,7 +187,7 @@ struct dcdc_pwr {
 	u32 subsys_dvfs_state_reg;
 	u32 subsys_dvfs_state_bit;
 	u32 subsys_dvfs_state_mask;
-	struct i2c_client **i2c_client;
+	struct i2c_client *i2c_client;
 };
 
 struct dvfs_cluster {
@@ -246,7 +246,6 @@ struct cpudvfs_archdata {
 	bool module_eb;
 	u32 module_eb_reg;
 	u32 module_eb_bit;
-	struct i2c_client *i2c_client;
 	bool i2c_used[DVFS_CLUSTER_MAX];
 	bool probed;
 	bool enabled;
