@@ -877,6 +877,7 @@ static int dwc3_sprd_runtime_suspend(struct device *dev)
 	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
 
 	dwc3_sprd_disable(sdwc);
+	usb_phy_vbus_off(sdwc->ss_phy);
 	dev_info(dev, "enter into suspend mode\n");
 	return 0;
 }
@@ -885,6 +886,8 @@ static int dwc3_sprd_runtime_resume(struct device *dev)
 {
 	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
 
+	if (sdwc->dr_mode == USB_DR_MODE_HOST)
+		usb_phy_vbus_on(sdwc->ss_phy);
 	dwc3_sprd_enable(sdwc);
 	dev_info(dev, "enter into resume mode\n");
 	return 0;
