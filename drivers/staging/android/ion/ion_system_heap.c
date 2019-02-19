@@ -306,6 +306,9 @@ static int ion_system_heap_create_pools(struct ion_page_pool **pools,
 		if (orders[i] > 4)
 			gfp_flags = high_order_gfp_flags;
 
+		if (orders[i] > 0)
+			gfp_flags |= __GFP_NOWARN;
+
 		pool = ion_page_pool_create(gfp_flags, orders[i], cached);
 		if (!pool)
 			goto err_create_pool;
