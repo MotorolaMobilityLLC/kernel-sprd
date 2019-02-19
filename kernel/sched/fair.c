@@ -3442,6 +3442,7 @@ update_cfs_rq_load_avg(u64 now, struct cfs_rq *cfs_rq)
 {
 	struct sched_avg *sa = &cfs_rq->avg;
 	int decayed, removed_load = 0, removed_util = 0;
+	bool update_freq = false;
 
 	if (atomic_long_read(&cfs_rq->removed_load_avg)) {
 		s64 r = atomic_long_xchg(&cfs_rq->removed_load_avg, 0);
@@ -3466,7 +3467,12 @@ update_cfs_rq_load_avg(u64 now, struct cfs_rq *cfs_rq)
 	cfs_rq->load_last_update_time_copy = sa->last_update_time;
 #endif
 
-	if (decayed || removed_util)
+#ifdef CONFIG_SCHED_WALT
+	if (likely(!walt_disabled && sysctl_sched_use_walt_cpu_util))
+		update_freq = true;
+#endif
+
+	if (update_freq || decayed || removed_util)
 		cfs_rq_util_change(cfs_rq);
 
 	return decayed || removed_load;
@@ -5266,6 +5272,9 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_entity *se = &p->se;
 	int task_new = !(flags & ENQUEUE_WAKEUP);
 
+	/* Update rq's walt util before update schedutil */
+	walt_inc_cumulative_runnable_avg(rq, p);
+
 	/*
 	 * The code below (indirectly) updates schedutil which looks at
 	 * the cfs_rq utilization to select a frequency.
@@ -5336,7 +5345,6 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 		add_nr_running(rq, 1);
 		if (!task_new)
 			update_overutilized_status(rq);
-		walt_inc_cumulative_runnable_avg(rq, p);
 	}
 
 	hrtick_update(rq);
@@ -5354,6 +5362,9 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 	struct cfs_rq *cfs_rq;
 	struct sched_entity *se = &p->se;
 	int task_sleep = flags & DEQUEUE_SLEEP;
+
+	/* Update rq's walt util before update schedutil */
+	walt_dec_cumulative_runnable_avg(rq, p);
 
 	/*
 	 * The code below (indirectly) updates schedutil which looks at
@@ -5405,10 +5416,8 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 		update_cfs_shares(se);
 	}
 
-	if (!se) {
+	if (!se)
 		sub_nr_running(rq, 1);
-		walt_dec_cumulative_runnable_avg(rq, p);
-	}
 
 	util_est_dequeue(&rq->cfs, p, task_sleep);
 	hrtick_update(rq);
