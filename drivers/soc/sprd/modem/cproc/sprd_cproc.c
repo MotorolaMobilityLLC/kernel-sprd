@@ -534,6 +534,52 @@ static int cproc_proc_copy_iram(struct cproc_device *cproc)
 	return 0;
 }
 
+static unsigned long cproc_proc_copy_from_user(void *to,
+					       const void __user *from,
+					       unsigned long n)
+{
+	unsigned long i, ret, size;
+	char *buf, *src;
+	u32 *word_dst, *word_src;
+	u8 *byte_dst, *byte_src;
+
+	buf = kzalloc(n, GFP_KERNEL);
+	if (!buf)
+		return n;
+
+	/* when the dst address is on aon sp iram, we use the function
+	 * copy_from_user or the function memcpy to copy data to the dst
+	 * in sharkl5(arm32), the instuction stm may cause aon sp iram
+	 * repose unknown error to cpu. A ways to get around this
+	 * probem is below, Firstly,  copy the user data to a ddr buf,
+	 * than,  copy it to iram one byte by one byte
+	 */
+	ret = unalign_copy_from_user(buf, from, n);
+
+	/* Returns number of bytes that could not be copied.
+	 * On success, this will be zero.
+	 */
+	src = buf;
+
+	/*Firstly, cpoy all word align address one word by one word*/
+	size = (n - ret) / sizeof(u32);
+	word_dst = (u32 *)to;
+	word_src = (u32 *)src;
+	for (i = 0; i < size; i++)
+		*word_dst++ = *word_src++;
+
+	/*than, cpoy all left context one byte by one byte */
+	size = (n - ret) % sizeof(u32);
+	byte_dst = (u8 *)word_dst;
+	byte_src = (u8 *)word_src;
+	for (i = 0; i < size; i++)
+		*byte_dst++ = *byte_src++;
+
+	kfree(buf);
+
+	return ret;
+}
+
 static ssize_t cproc_proc_write(struct file *filp,
 				const char __user *buf,
 				size_t count,
@@ -594,6 +640,8 @@ static ssize_t cproc_proc_write(struct file *filp,
 	count = min((size_t)(size - offset), count);
 	r = count, i = 0;
 	do {
+		unsigned long ret;
+		const char __user *pos;
 		u32 copy_size = CPROC_VMALLOC_SIZE_LIMIT;
 
 		vmem = modem_ram_vmap_nocache(SOC_MODEM,
@@ -616,10 +664,19 @@ static ssize_t cproc_proc_write(struct file *filp,
 		}
 		if (r < CPROC_VMALLOC_SIZE_LIMIT)
 			copy_size = r;
-		if (unalign_copy_from_user(vmem,
-					buf + CPROC_VMALLOC_SIZE_LIMIT * i,
-					copy_size)) {
-			pr_err("%s: copy data from user err!\n", __func__);
+		pos = buf + CPROC_VMALLOC_SIZE_LIMIT * i;
+		/* dst is aon sp iram, we must used cproc_proc_copy_from_user */
+		if (strstr(cproc->initdata->devname, "pm"))
+			ret = cproc_proc_copy_from_user(vmem,
+							pos,
+							copy_size);
+		else
+			ret = unalign_copy_from_user(vmem,
+						     pos,
+						     copy_size);
+		if (ret) {
+			pr_err("%s: copy data from user err = %lu!\n",
+			       __func__, ret);
 			modem_ram_unmap(SOC_MODEM, vmem);
 			return -EFAULT;
 		}
