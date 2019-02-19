@@ -375,16 +375,15 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		goto out;
 	}
 
-	dev_req_params->gear_rx = UFS_PWM_G2;
-	dev_req_params->gear_tx = UFS_PWM_G2;
-	dev_req_params->lane_rx = 1;
-	dev_req_params->lane_tx = 1;
-	dev_req_params->pwr_rx = FAST_MODE;
-	dev_req_params->pwr_tx = FAST_MODE;
-	dev_req_params->hs_rate = PA_HS_MODE_A;
-
 	switch (status) {
 	case PRE_CHANGE:
+		dev_req_params->gear_rx = UFS_PWM_G2;
+		dev_req_params->gear_tx = UFS_PWM_G2;
+		dev_req_params->lane_rx = 1;
+		dev_req_params->lane_tx = 1;
+		dev_req_params->pwr_rx = FAST_MODE;
+		dev_req_params->pwr_tx = FAST_MODE;
+		dev_req_params->hs_rate = PA_HS_MODE_A;
 		break;
 	case POST_CHANGE:
 		break;
