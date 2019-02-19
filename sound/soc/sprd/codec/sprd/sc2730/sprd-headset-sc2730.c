@@ -1528,10 +1528,6 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		sprd_msleep(10);
 	}
 
-	pr_info("%s insert_all_val_last = %d, plug_state_last = %d\n",
-			__func__, hdst->insert_all_val_last,
-			hdst->plug_state_last);
-
 	trig_level = sprd_get_eic_trig_level(10);
 	insert_status =
 		sprd_headset_part_is_inserted(HDST_INSERT_ALL);
@@ -1721,11 +1717,6 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		if (pdata->do_fm_mute)
 			vbc_close_fm_dggain(true);
 
-		/*
-		 * following this, check all work queue if need to be
-		 * canceled in appropriate time, I am not sure
-		 */
-		cancel_delayed_work(&hdst->fc_work);
 		sprd_headset_eic_clear(10);
 		sprd_set_all_eic_trig_level(true);
 		sprd_headset_all_eic_enable(false);
@@ -1955,16 +1946,11 @@ static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 	__pm_wakeup_event(&hdst->hdst_detect_wakelock, msecs_to_jiffies(2000));
 
 	if (eic_mis & BIT(HDST_INSERT_ALL_EIC)) {/* insert_all */
-		pr_info("%s in insert_all\n", __func__);
 		eic_type = sprd_insert_all_plug_inout_check();
 		if (pdata->jack_type == JACK_TYPE_NO &&
 			eic_type == INSERT_ALL_PLUGIN) {
 			complete(&hdst->wait_insert_all);
 		}
-		/* I think this is useless, only used to check debounce */
-		hdst->insert_all_val_last = sprd_get_eic_mis_status(10);
-		pr_info("%s insert_all_val_last %d\n", __func__,
-			hdst->insert_all_val_last);
 
 		ret = cancel_delayed_work(&hdst->det_all_work);
 		queue_delayed_work(hdst->det_all_work_q,
@@ -1973,17 +1959,12 @@ static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 			__func__, ret);
 	}
 	if (eic_mis & BIT(HDST_MDET_EIC)) {/* mdet */
-		pr_info("%s in mdet\n", __func__);
-		/* I think this is useless, only used to check debounce */
-		hdst->mdet_val_last = sprd_get_eic_mis_status(11);
-
 		ret = cancel_delayed_work(&hdst->det_mic_work);
 		queue_delayed_work(hdst->det_mic_work_q,
 			&hdst->det_mic_work, msecs_to_jiffies(5));
 		pr_info("%s mdet irq active, ret %d\n", __func__, ret);
 	}
 	if (eic_mis & BIT(HDST_LDETL_EIC)) {/* ldetl */
-		pr_info("%s in ldetl\n", __func__);
 		if (pdata->jack_type == JACK_TYPE_NC) {
 			pr_err("%s: don't need ldetl_irq in JACK_TYPE_NC!\n",
 				__func__);

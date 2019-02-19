@@ -212,7 +212,6 @@ struct sprd_headset {
 	struct delayed_work btn_work;
 	enum headset_hw_status hdst_hw_status;
 	enum snd_jack_types hdst_type_status;
-	struct delayed_work fc_work; /* for fast charge */
 	struct wakeup_source hdst_detect_wakelock;
 	enum headset_eic_type eic_type;
 	bool audio_on;
