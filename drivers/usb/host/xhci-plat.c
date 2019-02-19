@@ -298,12 +298,6 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	device_enable_async_suspend(&pdev->dev);
 	pm_runtime_put_noidle(&pdev->dev);
 
-	/*
-	 * Prevent runtime pm from being on as default, users should enable
-	 * runtime pm using power/control in sysfs.
-	 */
-	pm_runtime_forbid(&pdev->dev);
-
 	return 0;
 
 

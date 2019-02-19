@@ -1374,6 +1374,7 @@ static int dwc3_probe(struct platform_device *pdev)
 	ret = pm_runtime_get_sync(dev);
 	if (ret < 0)
 		goto err1;
+	pm_suspend_ignore_children(dev, true);
 
 	ret = dwc3_alloc_event_buffers(dwc, DWC3_EVENT_BUFFERS_SIZE);
 	if (ret) {
@@ -1468,15 +1469,27 @@ static int dwc3_remove(struct platform_device *pdev)
 static int dwc3_suspend_common(struct dwc3 *dwc)
 {
 	unsigned long	flags;
+	int ret;
 
 	switch (dwc->dr_mode) {
 	case USB_DR_MODE_PERIPHERAL:
+		spin_lock_irqsave(&dwc->lock, flags);
+		dwc3_gadget_suspend(dwc);
+		spin_unlock_irqrestore(&dwc->lock, flags);
+		break;
 	case USB_DR_MODE_OTG:
+		ret = dwc3_host_suspend(dwc);
+		if (ret)
+			return ret;
+
 		spin_lock_irqsave(&dwc->lock, flags);
 		dwc3_gadget_suspend(dwc);
 		spin_unlock_irqrestore(&dwc->lock, flags);
 		break;
 	case USB_DR_MODE_HOST:
+		ret = dwc3_host_suspend(dwc);
+		if (ret)
+			return ret;
 	default:
 		/* do nothing */
 		break;
@@ -1498,12 +1511,23 @@ static int dwc3_resume_common(struct dwc3 *dwc)
 
 	switch (dwc->dr_mode) {
 	case USB_DR_MODE_PERIPHERAL:
-	case USB_DR_MODE_OTG:
 		spin_lock_irqsave(&dwc->lock, flags);
 		dwc3_gadget_resume(dwc);
 		spin_unlock_irqrestore(&dwc->lock, flags);
-		/* FALLTHROUGH */
+		break;
+	case USB_DR_MODE_OTG:
+		ret = dwc3_host_resume(dwc);
+		if (ret)
+			return ret;
+		spin_lock_irqsave(&dwc->lock, flags);
+		dwc3_gadget_resume(dwc);
+		spin_unlock_irqrestore(&dwc->lock, flags);
+		break;
 	case USB_DR_MODE_HOST:
+		ret = dwc3_host_resume(dwc);
+		if (ret)
+			return ret;
+		break;
 	default:
 		/* do nothing */
 		break;
