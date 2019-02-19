@@ -1172,6 +1172,10 @@ static void dwc3_get_properties(struct dwc3 *dwc)
 				&hird_threshold);
 	dwc->usb3_lpm_capable = device_property_read_bool(dev,
 				"snps,usb3_lpm_capable");
+	dwc->usb3_slow_suspend = device_property_read_bool(dev,
+			"snps,usb3_slow_suspend");
+	dwc->host_suspend_capable = device_property_read_bool(dev,
+				"snps,host_suspend_capable");
 
 	dwc->disable_scramble_quirk = device_property_read_bool(dev,
 				"snps,disable_scramble_quirk");

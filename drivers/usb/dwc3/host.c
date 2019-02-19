@@ -101,6 +101,9 @@ int dwc3_host_init(struct dwc3 *dwc)
 	if (dwc->usb3_lpm_capable)
 		props[prop_idx++].name = "usb3-lpm-capable";
 
+	if (dwc->usb3_slow_suspend)
+		props[prop_idx++].name = "usb3-slow-suspend";
+
 	/**
 	 * WORKAROUND: dwc3 revisions <=3.00a have a limitation
 	 * where Port Disable command doesn't work.
