@@ -52,6 +52,7 @@ struct dwc3_sprd {
 	struct extcon_dev	*edev;
 	struct notifier_block	vbus_nb;
 	struct notifier_block	id_nb;
+	struct regulator	*vbus;
 
 	bool			hibernate_en;
 	enum usb_dr_mode	dr_mode;
@@ -283,6 +284,14 @@ static int dwc3_sprd_start(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 		 * Before enable OTG power, we should disable VBUS irq, in case
 		 * extcon notifies the incorrect connecting events.
 		 */
+		if (!regulator_is_enabled(sdwc->vbus)) {
+			ret = regulator_enable(sdwc->vbus);
+			if (ret) {
+				dev_err(sdwc->dev,
+					"Failed to enable vbus: %d\n", ret);
+				return ret;
+			}
+		}
 	}
 
 	dwc->dr_mode = (mode == USB_DR_MODE_HOST) ?
@@ -346,6 +355,14 @@ static int dwc3_sprd_stop(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 
 	if (mode == USB_DR_MODE_PERIPHERAL)
 		dwc3_flush_all_events(sdwc);
+	else if (mode == USB_DR_MODE_HOST && regulator_is_enabled(sdwc->vbus)) {
+		ret = regulator_disable(sdwc->vbus);
+		if (ret) {
+			dev_err(sdwc->dev,
+				"Failed to enable vbus: %d\n", ret);
+			return ret;
+		}
+	}
 
 	ret = device_for_each_child(sdwc->dev, NULL, dwc3_sprd_suspend_child);
 	if (ret) {
@@ -616,6 +633,13 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 	if (IS_ERR(sdwc->ss_phy)) {
 		dev_err(dev, "unable to get usb3.0 phy device\n");
 		return PTR_ERR(sdwc->ss_phy);
+	}
+
+	sdwc->vbus = devm_regulator_get(dev, "vbus");
+	if (IS_ERR(sdwc->vbus)) {
+		ret = PTR_ERR(sdwc->vbus);
+		dev_err(dev, "unable to get vbus supply %d\n", ret);
+		return ret;
 	}
 
 	/* perpare clock */
