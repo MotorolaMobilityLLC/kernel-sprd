@@ -9855,6 +9855,7 @@ CONFIG_SPRD_EXT_MODEM
 	[subsys]
 	[must]
 	[function]
+<<<<<<< HEAD
 CONFIG_SPRD_HW_DEVICE_DVFS_AGCP
 	[arch] all
 	[plat] sharkl5,sharkl5_32
@@ -9862,6 +9863,8 @@ CONFIG_SPRD_HW_DEVICE_DVFS_AGCP
 	[subsys] misc
 	[must] user
 	[function] This config is enable audiocp DVFS function.
+=======
+>>>>>>> a9e7c3f... Bug #927753 arm64: configs: add sharkl5 mipilog on kernel4.14
 CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[arch] arm64
 	[plat] sharkl5
@@ -9947,6 +9950,13 @@ CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[must] user
 	[function] This function is used to detected overlay region in
 		   reserved-memory.
+CONFIG_SPRD_MIPI_LOG_R5P0
+	[arch] arm64
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[arch] all
 	[plat] all
@@ -9954,6 +9964,13 @@ CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[subsys] misc
 	[must] console
 	[function] This function is used to enable mm power domain.
+CONFIG_SPRD_MODEM_DEBUG
+	[arch] arm64
+	[plat] sharkl5
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_MODEM_LOADER
 	[arch] arm64
 	[plat] roc1
