@@ -114,6 +114,7 @@ static void dwc3_set_prtcap(struct dwc3 *dwc, u32 mode)
 	dwc3_writel(dwc->regs, DWC3_GCTL, reg);
 }
 
+#if 0
 static void __dwc3_set_mode(struct work_struct *work)
 {
 	struct dwc3 *dwc = work_to_dwc(work);
@@ -181,6 +182,7 @@ static void __dwc3_set_mode(struct work_struct *work)
 		break;
 	}
 }
+#endif
 
 void dwc3_set_mode(struct dwc3 *dwc, u32 mode)
 {
@@ -937,6 +939,21 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
 	}
 
+	switch (dwc->dr_mode) {
+	case USB_DR_MODE_PERIPHERAL:
+		dwc3_set_prtcap(dwc, DWC3_GCTL_PRTCAP_DEVICE);
+		break;
+	case USB_DR_MODE_HOST:
+		dwc3_set_prtcap(dwc, DWC3_GCTL_PRTCAP_HOST);
+		break;
+	case USB_DR_MODE_OTG:
+		dwc3_set_prtcap(dwc, DWC3_GCTL_PRTCAP_OTG);
+		break;
+	default:
+		dev_warn(dwc->dev, "Unsupported mode %d\n", dwc->dr_mode);
+		break;
+	}
+
 	return 0;
 
 err4:
@@ -1098,6 +1115,21 @@ static int dwc3_core_init_mode(struct dwc3 *dwc)
 		}
 		break;
 	case USB_DR_MODE_OTG:
+		ret = dwc3_host_init(dwc);
+		if (ret) {
+			if (ret != -EPROBE_DEFER)
+				dev_err(dev, "failed to initialize host\n");
+			return ret;
+		}
+
+		ret = dwc3_gadget_init(dwc);
+		if (ret) {
+			if (ret != -EPROBE_DEFER)
+				dev_err(dev, "failed to initialize gadget\n");
+			return ret;
+		}
+
+#if 0
 		INIT_WORK(&dwc->drd_work, __dwc3_set_mode);
 		ret = dwc3_drd_init(dwc);
 		if (ret) {
@@ -1105,6 +1137,7 @@ static int dwc3_core_init_mode(struct dwc3 *dwc)
 				dev_err(dev, "failed to initialize dual-role\n");
 			return ret;
 		}
+#endif
 		break;
 	default:
 		dev_err(dev, "Unsupported mode of operation %d\n", dwc->dr_mode);
