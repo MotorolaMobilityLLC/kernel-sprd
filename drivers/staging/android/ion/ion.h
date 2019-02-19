@@ -368,4 +368,7 @@ struct dma_buf *ion_new_alloc(size_t len, unsigned int heap_id_mask,
 int ion_free(struct dma_buf *dmabuf);
 
 struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data);
+#ifdef CONFIG_E_SHOW_MEM
+int ion_debug_heap_show_printk(enum e_show_mem_type type, void *data);
+#endif
 #endif /* _ION_H */
