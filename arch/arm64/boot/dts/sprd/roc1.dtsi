@@ -1948,6 +1948,12 @@
 				status = "disabled";
 			};
 
+			apdu_if: apdu@32380000 {
+				compatible = "sprd,roc1-apdu";
+				reg = <0 0x32380000 0 0x10000>;
+				interrupts = <GIC_SPI 187 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
 			pin_controller: pinctrl@3243c000 {
 				compatible = "sprd,roc1-pinctrl";
 				reg = <0 0x3243c000 0 0x20000>;
