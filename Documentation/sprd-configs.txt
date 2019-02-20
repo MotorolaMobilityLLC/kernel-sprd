@@ -2710,13 +2710,6 @@ CONFIG_DM_VERITY_FEC
 	[subsys] md
 	[must] none
 	[function] Depends on DM_VERITY, add forward error correction support to dm-verity.
-CONFIG_DM_VERITY_HASH_PREFETCH_MIN_SIZE
-	[arch] all
-	[plat] all
-	[field] make
-	[subsys] md
-	[must] none
-	[function] Depends on DM_VERITY, This sets minimum number of hash blocks to prefetch for
 CONFIG_DNOTIFY
 	[arch] all
 	[plat] all
@@ -5804,7 +5797,7 @@ CONFIG_IRQ_TIME_ACCOUNTING
 	[field] make,code
 	[subsys] core
 	[must] user
-	[function]enable fine granularity task irq time accounting
+	[function] enable fine granularity task irq time accounting
 CONFIG_IRQ_WORK
 	[arch] all
 	[plat] all
@@ -6782,13 +6775,6 @@ CONFIG_NETFILTER_XT_MATCH_POLICY
 	[subsys] net
 	[must] user
 	[function] vts require, IPsec "policy" match support
-CONFIG_NETFILTER_XT_MATCH_QTAGUID
-	[arch] all
-	[plat] all
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[function] vts require,"quota, tag, owner" match and stats support
 CONFIG_NETFILTER_XT_MATCH_QUOTA
 	[arch] all
 	[plat] all
@@ -9666,6 +9652,13 @@ CONFIG_SPRD_APB_BUSMONITOR
 	[subsys] debug
 	[must] debug
 	[function] Enable APB busmonitor function
+CONFIG_SPRD_APDU
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] misc
+	[must] user
+	[function] Spreadtrum apdu driver.
 CONFIG_SPRD_AUDIO_AGDSP_ACCESS
 	[arch] all
 	[plat] all
@@ -9848,6 +9841,13 @@ CONFIG_SPRD_EFUSE
 	[subsys] nvmem
 	[must] home
 	[function] get sprdtrum soc series efuse value
+CONFIG_SPRD_EXT_MODEM
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[arch] arm64
 	[plat] sharkl5
@@ -9940,6 +9940,27 @@ CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[subsys] misc
 	[must] console
 	[function] This function is used to enable mm power domain.
+CONFIG_SPRD_MODEM_LOADER
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_SPRD_PAM_IPA
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_SPRD_PCIE_EP_DEVICE
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_PMIC_SYSCON
 	[arch] all
 	[plat] all
@@ -10003,6 +10024,20 @@ CONFIG_SPRD_SHARKL5_USB2_PHY
 	[subsys] usb
 	[must] user
 	[function] usb phy init
+CONFIG_SPRD_SIPA
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_SPRD_SIPA_DELEGATE
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_SIPC
 	[arch] all
 	[plat] all
@@ -10045,6 +10080,13 @@ CONFIG_SPRD_SIPC_SPOOL
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable spool function.
+CONFIG_SPRD_SIPC_V2
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[arch] all
 	[plat] all
@@ -10116,13 +10158,6 @@ CONFIG_SPRD_WATCHDOG_SYS
 	[subsys] watchdog
 	[must] user
 	[function] add ap sys watchdog.
-CONFIG_SPRD_APDU
-	[arch] arm64
-	[plat] roc1
-	[field] make,code
-	[subsys] misc
-	[must] user
-	[function] Spreadtrum apdu driver.
 CONFIG_SRCU
 	[arch] all
 	[plat] all
