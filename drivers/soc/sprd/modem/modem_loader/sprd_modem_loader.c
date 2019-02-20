@@ -60,7 +60,7 @@
 #define	MODEM_READ_ALL_MEM 0xff
 #define	MODEM_READ_MODEM_MEM 0xfe
 #define RUN_STATE_INVALID 0xff
-#define MODEM_VMALLOC_SIZE_LIMIT 4096
+#define MODEM_VMALLOC_SIZE_LIMIT 0x100000
 
 enum {
 	SPRD_5G_MODEM_DP = 0,
@@ -508,6 +508,7 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int ret = -EINVAL;
 	int access = 0;
+	int param = 0;
 
 	struct modem_device *modem = (struct modem_device *)filp->private_data;
 
@@ -564,30 +565,35 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case MODEM_SET_READ_REGION_CMD:
 		ret = modem_set_something(modem,
-					  &modem->read_region,
+					  &param,
 					  cmd, arg);
+		modem->read_region = (u8)param;
 		break;
 
 	case MODEM_SET_WRITE_GEGION_CMD:
 		ret = modem_set_something(modem,
-					  &modem->write_region,
+					  &param,
 					  cmd, arg);
+		modem->write_region = (u8)param;
 		break;
 
 #ifdef CONFIG_SPRD_EXT_MODEM
 	case MODEM_GET_REMOTE_FLAG_CMD:
 		modem_get_remote_flag(modem);
+		param = (int)modem->remote_flag;
 		ret = modem_get_something(modem,
-					  &modem->remote_flag,
+					  &param,
 					  cmd, arg);
 		break;
 
 	case MODEM_SET_REMOTE_FLAG_CMD:
 		ret = modem_set_something(modem,
-					  &modem->remote_flag,
+					  &param,
 					  cmd, arg);
-		if (ret == 0)
+		if (ret == 0) {
+			modem->remote_flag = param;
 			modem_set_remote_flag(modem);
+		}
 		break;
 #endif
 
