@@ -10116,6 +10116,13 @@ CONFIG_SPRD_WATCHDOG_SYS
 	[subsys] watchdog
 	[must] user
 	[function] add ap sys watchdog.
+CONFIG_SPRD_APDU
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] misc
+	[must] user
+	[function] Spreadtrum apdu driver.
 CONFIG_SRCU
 	[arch] all
 	[plat] all
