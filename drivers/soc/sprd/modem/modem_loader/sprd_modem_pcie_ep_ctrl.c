@@ -28,11 +28,11 @@
  * sw use these bits to sync between AP and CP
  */
 
-#define EP_REMOTR_BASE		0x64010000
-#define EP_REMOTR_OFFSET	0x03a0
+#define EP_REMOTE_BASE		0x64010000
+#define EP_REMOTE_OFFSET	0x03a0
 #define BIT_SET_OFFSET		0x1000
 #define BIT_CLR_OFFSET		0x2000
-#define EP_REMOTR_MASK		0xf84
+#define EP_REMOTE_MASK		0xf84
 
 #define SPL_DONE_BIT		BIT(2)
 #define DDR_READY_BIT		BIT(7)
@@ -44,9 +44,9 @@
 #define FLAG_HANDSHK_SHIFT	7
 #define FLAG_HANDSHK_MASK	GENMASK(11, 7)
 
-
+#define CLR_FLAG	0x0
 #define REBOOT_MODEM_DELAY	1000
-#define MINI_REGION_SIZE	0x1000
+#define EP_REMOTE_OP_SIZE	0x10000
 
 static void modem_ep_get_remote_flag(struct modem_device *modem)
 {
@@ -54,41 +54,54 @@ static void modem_ep_get_remote_flag(struct modem_device *modem)
 	void __iomem *base;
 
 	base = modem_ram_vmap_nocache(modem->modem_type,
-				      EP_REMOTR_BASE,
-				      MINI_REGION_SIZE);
+				      EP_REMOTE_BASE,
+				      EP_REMOTE_OP_SIZE);
 	if (base) {
-		flag = readl_relaxed(base + EP_REMOTR_OFFSET);
-		dev_dbg(modem->p_dev, "ep get flag = 0x%x!\n", flag);
+		flag = readl_relaxed(base + EP_REMOTE_OFFSET);
 		modem_ram_unmap(modem->modem_type, base);
+
+		modem->remote_flag = (flag & FLAG_HANDSHK_MASK) >>
+			FLAG_HANDSHK_SHIFT;
+
+		if (flag & SPL_DONE_BIT)
+			modem->remote_flag |= SPL_IMAGE_DONE_FLAG;
+		dev_dbg(modem->p_dev,
+			 "ep get flag = 0x%x, remote_flag = 0x%x!\n",
+			 flag,
+			 modem->remote_flag);
 	}
-
-	modem->remote_flag = 0;
-	modem->remote_flag = (flag & FLAG_HANDSHK_MASK) >> FLAG_HANDSHK_SHIFT;
-
-	if (flag & SPL_DONE_BIT)
-		modem->remote_flag |= SPL_IMAGE_DONE_FLAG;
 }
 
 static void modem_ep_set_remote_flag(struct modem_device *modem)
 {
-	u32 flag;
+	u32 flag = 0;
+        u32 temp = modem->remote_flag;
 	void __iomem *base;
 
-	flag = (modem->remote_flag << FLAG_HANDSHK_SHIFT) & FLAG_HANDSHK_MASK;
-
-	if (modem->remote_flag & SPL_IMAGE_DONE_FLAG)
+	if (temp & SPL_IMAGE_DONE_FLAG) {
 		flag |= SPL_DONE_BIT;
+		temp &= ~SPL_IMAGE_DONE_FLAG;
+	}
+	flag |= (temp << FLAG_HANDSHK_SHIFT) & FLAG_HANDSHK_MASK;
 
 	dev_dbg(modem->p_dev, "ep set flag = 0x%x!\n", flag);
 
 	base = modem_ram_vmap_nocache(modem->modem_type,
-				      EP_REMOTR_BASE,
-				      MINI_REGION_SIZE);
+				      EP_REMOTE_BASE,
+				      EP_REMOTE_OP_SIZE);
 	if (base) {
-		writel_relaxed(EP_REMOTR_MASK,
-			       base + BIT_CLR_OFFSET + EP_REMOTR_OFFSET);
+		/* clear all bit */
+		if (flag == CLR_FLAG) {
+			writel_relaxed(EP_REMOTE_MASK,
+				       base + BIT_CLR_OFFSET
+				       + EP_REMOTE_OFFSET);
+			modem_ram_unmap(modem->modem_type, base);
+			return;
+		}
+
+		/* update flag */
 		writel_relaxed(flag,
-			       base + BIT_SET_OFFSET + EP_REMOTR_OFFSET);
+			       base + BIT_SET_OFFSET + EP_REMOTE_OFFSET);
 		modem_ram_unmap(modem->modem_type, base);
 	}
 }
