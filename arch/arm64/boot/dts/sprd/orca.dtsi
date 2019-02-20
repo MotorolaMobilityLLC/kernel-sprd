@@ -822,7 +822,7 @@
 
 			pcie1@2b100000 {
 				compatible = "sprd,pcie-ep", "snps,dw-pcie";
-				reg = <0x0 0x2b100000 0x0 0x2000>,
+				reg = <0x0 0x2b100000 0x0 0x100000>,
 				      <0x0 0x2b108000 0x0 0x2000>,
 				      <0x2 0x00000000 0x2 0x00000000>;
 				reg-names = "dbi", "dbi2","addr_space";
@@ -830,7 +830,7 @@
 				num-lanes = <1>;
 				num-ib-windows = <6>;
 				num-ob-windows = <8>;
-				status = "disabled";
+				status = "okay";
 			};
 
 			pamu3: pamu3@2b300000 {
