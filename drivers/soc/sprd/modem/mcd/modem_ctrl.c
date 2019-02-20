@@ -27,7 +27,7 @@
 #include <linux/sipc.h>
 #include <linux/gpio/consumer.h>
 #ifdef CONFIG_PCIE_PM_NOTIFY
-#include <linux/pci_notifier.h>
+#include <linux/pcie_notifier.h>
 #endif
 
 enum {
