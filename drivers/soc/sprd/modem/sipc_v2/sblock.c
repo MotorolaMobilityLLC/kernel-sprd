@@ -539,10 +539,11 @@ static int sblock_thread(void *data)
 		return rval;
 	}
 
-	if (sblock->pre_cfg && sblock->handler) {
+	if (sblock->pre_cfg) {
 		sblock->state = SBLOCK_STATE_READY;
 		recovery = 1;
-		sblock->handler(SBLOCK_NOTIFY_OPEN, sblock->data);
+		if (sblock->handler)
+			sblock->handler(SBLOCK_NOTIFY_OPEN, sblock->data);
 	}
 
 	/* if client, send SMSG_CMD_SBLOCK_INIT, wait SMSG_DONE_SBLOCK_INIT */
@@ -916,6 +917,14 @@ int sblock_pcfg_open(uint8_t dest, uint8_t channel,
 
 	if (!sblock->pre_cfg)
 		return -EINVAL;
+
+	if (sblock->thread) {
+		pr_err("%s: SBLOCK %u/%u already open",
+		       __func__,
+		       (unsigned int)sblock->dst,
+		       (unsigned int)sblock->channel);
+		return -EPROTO;
+	}
 
 	ret = 0;
 	sblock->thread = kthread_create(sblock_thread, sblock,
