@@ -128,6 +128,7 @@ static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll1, "mpll1", "mpll1-gate", 0xb0,
 
 static struct sprd_clk_common *orca_g3_pll_clks[] = {
 	/* address base is 0x634b0000 */
+	&v3pll.common,
 	&mpll0.common,
 	&mpll1.common,
 };
