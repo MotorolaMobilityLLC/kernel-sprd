@@ -44,7 +44,8 @@ enum ADDR_REGION_TYPE {
 
 #define GET_32_OF_40(a) ((unsigned int)((unsigned long)	\
 				(mpool_vir_to_phy(a)) & 0xFFFFFFFF))
-#define GET_8_OF_40(a) (0x80)
+#define GET_8_OF_40(a)	((unsigned char) \
+			((((unsigned long)a >> 32) & 0xff) | 0x80))
 #define SET_32_OF_40(a, v) do {	\
 	unsigned long l = (unsigned long)(a);	\
 	if (sizeof(unsigned long) == sizeof(unsigned int)) {	\
