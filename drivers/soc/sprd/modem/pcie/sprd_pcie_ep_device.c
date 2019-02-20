@@ -432,13 +432,9 @@ static void __iomem *sprd_ep_dev_ioremap_bar(struct sprd_pci_ep_dev *ep_dev,
 static void sprd_ep_dev_iounmap_bar(struct sprd_pci_ep_dev *ep_dev,
 				    int bar)
 {
-	if (!ep_dev->bar_vir[bar])
-		return;
-
-	pci_iounmap(ep_dev->pdev, ep_dev->bar_vir[bar]);
+	iounmap(ep_dev->bar_vir[bar]);
 	ep_dev->bar_vir[bar] = NULL;
 	ep_dev->cpu_vir[bar] = NULL;
-
 }
 
 static void __iomem *sprd_ep_dev_map_bar(int ep, int bar,
