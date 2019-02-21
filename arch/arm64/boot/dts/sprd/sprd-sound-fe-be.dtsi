@@ -1071,6 +1071,43 @@
 				sound-dai = <&sprd_audio_codec_ana 14>;
 			};
 		};
+
+		/* 33: be fast btsco */
+		sprd-audio-card,dai-link@51 {
+			ignore-suspend = <1>;
+			link-name = "BE_FAST_BTSCO";
+			stream-name = "BE_ST_FAST_BTSCO";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 32>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+		/* 34: be normal ap01 btsco */
+		sprd-audio-card,dai-link@52 {
+			ignore-suspend = <1>;
+			link-name = "BE_NORMAL_AP01_BTSCO";
+			stream-name = "BE_ST_NORMAL_AP01_BTSCO";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 33>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
 	};
 };
 
