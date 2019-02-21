@@ -97,6 +97,15 @@
 #define PCIE_ATU_UNR_UPPER_TARGET	0x18
 
 /*
+ * Synopsys specific 8 iATU. Though *num_viewport* in dts specific the
+ * numbers of iATU, we had better set the default value to 8.
+ * Now only 3 regions are using, one is for IO, another is for config,
+ * and the other is for MEM. However, the remain 5 iATUs can be used for
+ * MEM.
+ */
+#define PCIE_MEM_VP_NUM    6
+
+/*
  * Register address builder.
  * Different vendors may be have different offset address.
  * The iATU Unroll register offset address is 0x18000 in unisoc SoCs.
@@ -170,12 +179,13 @@ struct pcie_port {
 	resource_size_t		io_base;
 	phys_addr_t		io_bus_addr;
 	u32			io_size;
-	u64			mem_base;
-	phys_addr_t		mem_bus_addr;
-	u32			mem_size;
+	int			mem_ids;
+	u64			mem_base[PCIE_MEM_VP_NUM];
+	phys_addr_t		mem_bus_addr[PCIE_MEM_VP_NUM];
+	u32			mem_size[PCIE_MEM_VP_NUM];
+	struct resource		*mem[PCIE_MEM_VP_NUM];
 	struct resource		*cfg;
 	struct resource		*io;
-	struct resource		*mem;
 	struct resource		*busn;
 	int			irq;
 	const struct dw_pcie_host_ops *ops;
