@@ -75,8 +75,28 @@ static void sprd_pcie_ep_init(struct dw_pcie_ep *ep)
 	/* TODO*/
 }
 
+static int sprd_pcie_ep_raise_irq(struct dw_pcie_ep *ep,
+				     enum pci_epc_irq_type type,
+				     u8 interrupt_num)
+{
+	struct dw_pcie *pci = to_dw_pcie_from_ep(ep);
+
+	switch (type) {
+	case PCI_EPC_IRQ_LEGACY:
+		/* TODO*/
+		break;
+	case  PCI_EPC_IRQ_MSI:
+		return dw_pcie_ep_raise_msi_irq(ep, interrupt_num);
+	default:
+		dev_err(pci->dev, "UNKNOWN IRQ type\n");
+	}
+
+	return 0;
+}
+
 static struct dw_pcie_ep_ops pcie_ep_ops = {
 	.ep_init = sprd_pcie_ep_init,
+	.raise_irq = sprd_pcie_ep_raise_irq,
 };
 
 static int sprd_add_pcie_ep(struct sprd_pcie *sprd_pcie,
