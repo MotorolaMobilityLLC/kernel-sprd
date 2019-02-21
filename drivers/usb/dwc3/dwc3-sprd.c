@@ -635,11 +635,14 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		return PTR_ERR(sdwc->ss_phy);
 	}
 
-	sdwc->vbus = devm_regulator_get(dev, "vbus");
-	if (IS_ERR(sdwc->vbus)) {
-		ret = PTR_ERR(sdwc->vbus);
-		dev_err(dev, "unable to get vbus supply %d\n", ret);
-		return ret;
+	if (IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE) ||
+	    IS_ENABLED(CONFIG_USB_DWC3_HOST)) {
+		sdwc->vbus = devm_regulator_get(dev, "vbus");
+		if (IS_ERR(sdwc->vbus)) {
+			ret = PTR_ERR(sdwc->vbus);
+			dev_err(dev, "unable to get vbus supply %d\n", ret);
+			return ret;
+		}
 	}
 
 	/* perpare clock */
