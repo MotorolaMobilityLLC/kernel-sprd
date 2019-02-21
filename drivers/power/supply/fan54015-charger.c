@@ -447,6 +447,19 @@ static int fan54015_charger_get_online(struct fan54015_charger_info *info,
 	return 0;
 }
 
+static int fan54015_charger_feed_watchdog(struct fan54015_charger_info *info,
+					  u32 val)
+{
+	int ret;
+
+	ret = fan54015_update_bits(info, FAN54015_REG_0,
+				   FAN54015_REG_RESET_MASK, FAN54015_REG_RESET);
+	if (ret)
+		dev_err(info->dev, "reset fan54015 failed\n");
+
+	return ret;
+}
+
 static int fan54015_charger_get_status(struct fan54015_charger_info *info)
 {
 	if (info->charging == true)
@@ -633,6 +646,12 @@ static int fan54015_charger_usb_set_property(struct power_supply *psy,
 		ret = fan54015_charger_set_status(info, val->intval);
 		if (ret < 0)
 			dev_err(info->dev, "set charge status failed\n");
+		break;
+
+	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
+		ret = fan54015_charger_feed_watchdog(info, val->intval);
+		if (ret < 0)
+			dev_err(info->dev, "feed charger watchdog failed\n");
 		break;
 	default:
 		ret = -EINVAL;
