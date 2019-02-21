@@ -6,6 +6,7 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+#include <linux/gpio/consumer.h>
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/kernel.h>
@@ -15,6 +16,8 @@
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
+#include <linux/regulator/driver.h>
+#include <linux/regulator/machine.h>
 #include <linux/slab.h>
 #include <linux/usb/phy.h>
 
@@ -26,6 +29,13 @@
 #define FAN54015_REG_5					0x5
 #define FAN54015_REG_6					0x6
 #define FAN54015_REG_10					0x10
+
+#define BIT_DP_DM_BC_ENB				BIT(0)
+#define FAN54015_OTG_VALID_MS				500
+#define FAN54015_FEED_WATCHDOG_VALID_MS			50
+
+#define FAN54015_REG_HZ_MODE_MASK			GENMASK(1, 1)
+#define FAN54015_REG_OPA_MODE_MASK			GENMASK(0, 0)
 
 #define FAN54015_REG_SAFETY_VOL_MASK			GENMASK(3, 0)
 #define FAN54015_REG_SAFETY_CUR_MASK			GENMASK(6, 4)
@@ -63,6 +73,11 @@ struct fan54015_charger_info {
 	struct mutex lock;
 	bool charging;
 	u32 limit;
+	struct delayed_work otg_work;
+	struct delayed_work wdt_work;
+	struct regmap *pmic;
+	u32 charger_detect;
+	struct gpio_desc *gpiod;
 };
 
 static int fan54015_read(struct fan54015_charger_info *info, u8 reg, u8 *data)
@@ -654,6 +669,163 @@ static void fan54015_charger_detect_status(struct fan54015_charger_info *info)
 	schedule_work(&info->work);
 }
 
+static void
+fan54015_charger_feed_watchdog_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct fan54015_charger_info *info = container_of(dwork,
+							  struct fan54015_charger_info,
+							  wdt_work);
+	int ret;
+
+	ret = fan54015_update_bits(info, FAN54015_REG_0,
+				   FAN54015_REG_RESET_MASK,
+				   FAN54015_REG_RESET);
+	if (ret) {
+		dev_err(info->dev, "reset fan54015 failed\n");
+		return;
+	}
+	schedule_delayed_work(&info->wdt_work, HZ * 15);
+}
+
+#ifdef CONFIG_REGULATOR
+static void fan54015_charger_otg_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct fan54015_charger_info *info = container_of(dwork,
+			struct fan54015_charger_info, otg_work);
+	u32 vbus_gpio_value;
+	int ret;
+
+	vbus_gpio_value = gpiod_get_value_cansleep(info->gpiod);
+	if (!vbus_gpio_value) {
+		ret = fan54015_update_bits(info, FAN54015_REG_1,
+					   FAN54015_REG_HZ_MODE_MASK |
+					   FAN54015_REG_OPA_MODE_MASK,
+					   FAN54015_REG_OPA_MODE_MASK);
+		if (ret)
+			dev_err(info->dev, "restart fan54015 charger otg failed\n");
+	}
+
+	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(1500));
+}
+
+static int fan54015_charger_enable_otg(struct regulator_dev *dev)
+{
+	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
+	int ret;
+
+	/*
+	 * Disable charger detection function in case
+	 * affecting the OTG timing sequence.
+	 */
+	ret = regmap_update_bits(info->pmic, info->charger_detect,
+				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+	if (ret) {
+		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+		return ret;
+	}
+
+	ret = fan54015_update_bits(info, FAN54015_REG_1,
+				   FAN54015_REG_HZ_MODE_MASK |
+				   FAN54015_REG_OPA_MODE_MASK,
+				   FAN54015_REG_OPA_MODE_MASK);
+	if (ret) {
+		dev_err(info->dev, "enable fan54015 otg failed\n");
+		regmap_update_bits(info->pmic, info->charger_detect,
+				   BIT_DP_DM_BC_ENB, 0);
+		return ret;
+	}
+
+	schedule_delayed_work(&info->wdt_work,
+			      msecs_to_jiffies(FAN54015_FEED_WATCHDOG_VALID_MS));
+	schedule_delayed_work(&info->otg_work,
+			      msecs_to_jiffies(FAN54015_OTG_VALID_MS));
+
+	return 0;
+}
+
+static int fan54015_charger_disable_otg(struct regulator_dev *dev)
+{
+	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
+	int ret;
+
+	cancel_delayed_work_sync(&info->wdt_work);
+	cancel_delayed_work_sync(&info->otg_work);
+	ret = fan54015_update_bits(info, FAN54015_REG_1,
+				   FAN54015_REG_HZ_MODE_MASK |
+				   FAN54015_REG_OPA_MODE_MASK,
+				   0);
+	if (ret) {
+		dev_err(info->dev, "disable fan54015 otg failed\n");
+		return ret;
+	}
+
+	/* Enable charger detection function to identify the charger type */
+	return regmap_update_bits(info->pmic, info->charger_detect,
+				  BIT_DP_DM_BC_ENB, 0);
+}
+
+static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
+{
+	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
+	int ret;
+	u8 val;
+
+	ret = fan54015_read(info, FAN54015_REG_1, &val);
+	if (ret) {
+		dev_err(info->dev, "failed to get fan54015 otg status\n");
+		return ret;
+	}
+
+	val &= FAN54015_REG_OPA_MODE_MASK;
+
+	return val;
+}
+
+static const struct regulator_ops fan54015_charger_vbus_ops = {
+	.enable = fan54015_charger_enable_otg,
+	.disable = fan54015_charger_disable_otg,
+	.is_enabled = fan54015_charger_vbus_is_enabled,
+};
+
+static const struct regulator_desc fan54015_charger_vbus_desc = {
+	.name = "otg-vbus",
+	.of_match = "otg-vbus",
+	.type = REGULATOR_VOLTAGE,
+	.owner = THIS_MODULE,
+	.ops = &fan54015_charger_vbus_ops,
+	.fixed_uV = 5000000,
+	.n_voltages = 1,
+};
+
+static int
+fan54015_charger_register_vbus_regulator(struct fan54015_charger_info *info)
+{
+	struct regulator_config cfg = { };
+	struct regulator_dev *reg;
+	int ret = 0;
+
+	cfg.dev = info->dev;
+	cfg.driver_data = info;
+	reg = devm_regulator_register(info->dev,
+				      &fan54015_charger_vbus_desc, &cfg);
+	if (IS_ERR(reg)) {
+		ret = PTR_ERR(reg);
+		dev_err(info->dev, "Can't register regulator:%d\n", ret);
+	}
+
+	return ret;
+}
+
+#else
+static int
+fan54015_charger_register_vbus_regulator(struct fan54015_charger_info *info)
+{
+	return 0;
+}
+#endif
+
 static int fan54015_charger_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
@@ -661,6 +833,8 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	struct device *dev = &client->dev;
 	struct power_supply_config charger_cfg = { };
 	struct fan54015_charger_info *info;
+	struct device_node *regmap_np;
+	struct platform_device *regmap_pdev;
 	int ret;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
@@ -676,10 +850,49 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, fan54015_charger_work);
 
+	info->gpiod = devm_gpiod_get(dev, "otg-detect", GPIOD_IN);
+	if (IS_ERR(info->gpiod)) {
+		dev_err(dev, "failed to get charger detection GPIO\n");
+		return PTR_ERR(info->gpiod);
+	}
+
+	ret = fan54015_charger_register_vbus_regulator(info);
+	if (ret) {
+		dev_err(dev, "failed to register vbus regulator.\n");
+		return ret;
+	}
+
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(dev, "failed to find USB phy\n");
 		return PTR_ERR(info->usb_phy);
+	}
+
+	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
+	if (!regmap_np) {
+		dev_err(dev, "unable to get syscon node\n");
+		return -ENODEV;
+	}
+
+	ret = of_property_read_u32_index(regmap_np, "reg", 1,
+					 &info->charger_detect);
+	if (ret) {
+		dev_err(dev, "failed to get charger_detect\n");
+		return -EINVAL;
+	}
+
+	regmap_pdev = of_find_device_by_node(regmap_np);
+	if (!regmap_pdev) {
+		of_node_put(regmap_np);
+		dev_err(dev, "unable to get syscon device\n");
+		return -ENODEV;
+	}
+
+	of_node_put(regmap_np);
+	info->pmic = dev_get_regmap(regmap_pdev->dev.parent, NULL);
+	if (!info->pmic) {
+		dev_err(dev, "unable to get pmic regmap device\n");
+		return -ENODEV;
 	}
 
 	info->usb_notify.notifier_call = fan54015_charger_usb_change;
@@ -706,6 +919,9 @@ static int fan54015_charger_probe(struct i2c_client *client,
 		return ret;
 	}
 	fan54015_charger_detect_status(info);
+	INIT_DELAYED_WORK(&info->otg_work, fan54015_charger_otg_work);
+	INIT_DELAYED_WORK(&info->wdt_work,
+			  fan54015_charger_feed_watchdog_work);
 
 	return 0;
 }
