@@ -472,6 +472,12 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 		 * because IPA_ATH_USB_RESET  reset dwc3 PHY setting.
 		 */
 		sprd_ssphy_init(&phy->phy);
+	} else {
+		/*
+		 * USB PHY must reset before DWC3 phy setup,
+		 * otherwise dwc3 controller registers are empty.
+		 */
+		sprd_ssphy_reset(&phy->phy);
 	}
 
 	/* enable otg utmi and analog */
