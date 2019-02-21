@@ -30,6 +30,7 @@
 #define FAN54015_REG_6					0x6
 #define FAN54015_REG_10					0x10
 
+#define FAN54015_BATTERY_NAME				"sc27xx-fgu"
 #define BIT_DP_DM_BC_ENB				BIT(0)
 #define FAN54015_OTG_VALID_MS				500
 #define FAN54015_FEED_WATCHDOG_VALID_MS			50
@@ -79,6 +80,31 @@ struct fan54015_charger_info {
 	u32 charger_detect;
 	struct gpio_desc *gpiod;
 };
+
+static bool fan54015_charger_is_bat_present(struct fan54015_charger_info *info)
+{
+	struct power_supply *psy;
+	union power_supply_propval val;
+	bool present = false;
+	int ret;
+
+	psy = power_supply_get_by_name(FAN54015_BATTERY_NAME);
+	if (!psy) {
+		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
+		return present;
+	}
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT,
+					&val);
+	if (ret == 0 && val.intval)
+		present = true;
+	power_supply_put(psy);
+
+	if (ret)
+		dev_err(info->dev,
+			"Failed to get property of present:%d\n", ret);
+
+	return present;
+}
 
 static int fan54015_read(struct fan54015_charger_info *info, u8 reg, u8 *data)
 {
@@ -459,11 +485,12 @@ static void fan54015_charger_work(struct work_struct *data)
 {
 	struct fan54015_charger_info *info =
 		container_of(data, struct fan54015_charger_info, work);
+	bool present = fan54015_charger_is_bat_present(info);
 	int ret;
 
 	mutex_lock(&info->lock);
 
-	if (info->limit > 0 && !info->charging) {
+	if (info->limit > 0 && !info->charging && present) {
 		/* set current limitation and start to charge */
 		ret = fan54015_charger_set_limit_current(info, info->limit);
 		if (ret)
@@ -478,7 +505,7 @@ static void fan54015_charger_work(struct work_struct *data)
 			goto out;
 
 		info->charging = true;
-	} else if (!info->limit && info->charging) {
+	} else if ((!info->limit && info->charging) || !present) {
 		/* Stop charging */
 		info->charging = false;
 		fan54015_charger_stop_charge(info);
