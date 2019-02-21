@@ -598,7 +598,7 @@
 	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
 	clocks = <&aon_clk CLK_EMMC_2X>,
 		 <&g3_pll CLK_V3RPLL>,
-		 <&apapb_gate CLK_EMMC_EB>;
+		 <&apahb_gate CLK_EMMC_EB>;
 };
 
 &uart0 {
