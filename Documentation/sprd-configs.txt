@@ -6775,6 +6775,13 @@ CONFIG_NETFILTER_XT_MATCH_POLICY
 	[subsys] net
 	[must] user
 	[function] vts require, IPsec "policy" match support
+CONFIG_NETFILTER_XT_MATCH_QTAGUID
+       [arch] all
+       [plat] all
+       [field] menu,make
+       [subsys] net
+       [must] user
+       [function] vts require,"quota, tag, owner" match and stats support
 CONFIG_NETFILTER_XT_MATCH_QUOTA
 	[arch] all
 	[plat] all
