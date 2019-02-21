@@ -360,9 +360,6 @@
 		gpu_clk: gpu-clk {
 			compatible = "sprd,roc1-gpu-clk";
 			sprd,syscon = <&gpu_apb_regs>;	/* 0x60100000 */
-			syscons = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_GPU_EB>,
-				  <&pmu_apb_regs REG_PMU_APB_PD_GPU_TOP_CFG0 MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>;
-			syscon-names = "enable", "power";
 			clocks = <&aon_clk CLK_AP_GPU>;
 			#clock-cells = <1>;
 		};
@@ -377,9 +374,6 @@
 		mm_gate: mm-gate {
 			compatible = "sprd,roc1-mm-gate-clk";
 			sprd,syscon = <&mm_ahb_regs>;
-			syscons = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_MM_EB>,
-				  <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>;
-			syscon-names = "enable", "power";
 			clocks = <&aonapb_gate CLK_MM_EB>;
 			#clock-cells = <1>;
 		};
@@ -387,9 +381,6 @@
 		ai_gate: ai-gate {
 			compatible = "sprd,roc1-ai-gate-clk";
 			sprd,syscon = <&ai_apb_regs>;
-			syscons = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_AI_EB>,
-				  <&pmu_apb_regs REG_PMU_APB_PD_AI_SYS_CFG MASK_PMU_APB_PD_AI_SYS_FORCE_SHUTDOWN>;
-			syscon-names = "enable", "power";
 			clocks = <&aonapb_gate CLK_AI_EB>;
 			#clock-cells = <1>;
 		};
