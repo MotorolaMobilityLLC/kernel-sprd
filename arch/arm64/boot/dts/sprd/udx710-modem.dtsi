@@ -212,7 +212,7 @@
 		sprd,size-txbuf = <0x0800>; /* 2*1024 */
 	};
 
-	/* PSP log: 64KB x 55 = 3520KB */
+	/* PSP log: 2KB x 60 = 120KB */
 	slog_lte: spool@0 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_lte";
@@ -221,11 +221,11 @@
 		sprd,preconfigured = <0>;
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <55>;
+		sprd,rx-blksize = <0x800>;
+		sprd,rx-blknum = <60>;
 	};
 
-	/* New Radio PHY log: 64KB x 32 = 2M */
+	/* New Radio PHY log: 2KB x 100 = 200KB */
 	slog_nrphy: spool@1 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr_phy";
@@ -234,11 +234,11 @@
 		sprd,preconfigured = <1>;
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <32>;
+		sprd,rx-blksize = <0x800>;
+		sprd,rx-blknum = <100>;
 	};
 
-	/* MODEM v3 PHY log: 64KB x 32 = 2M */
+	/* MODEM v3 PHY log: 2KB x 200 = 400KB */
 	slog_v3phy: spool@2 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_v3_phy";
@@ -247,8 +247,8 @@
 		sprd,preconfigured = <1>;
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <32>;
+		sprd,rx-blksize = <0x800>;
+		sprd,rx-blknum = <200>;
 	};
 
 	/* PSP log: 64KB x 55 = 3520KB */
