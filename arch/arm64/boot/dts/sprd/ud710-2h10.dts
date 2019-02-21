@@ -402,6 +402,10 @@
 	status = "disabled";
 };
 
+&vddwcn {
+	regulator-always-on;
+};
+
 &dcam {
 	status = "okay";
 };
