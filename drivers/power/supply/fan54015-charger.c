@@ -471,25 +471,18 @@ static int fan54015_charger_get_status(struct fan54015_charger_info *info)
 static int fan54015_charger_set_status(struct fan54015_charger_info *info,
 				       int val)
 {
-	u8 chg_en;
-	int ret;
+	int ret = 0;
 
-	switch (val) {
-	case POWER_SUPPLY_STATUS_CHARGING:
-		chg_en = FAN54015_REG_CHARGE_ENABLE;
-		break;
-	case POWER_SUPPLY_STATUS_NOT_CHARGING:
-		chg_en = FAN54015_REG_CHARGE_DISABLE;
-		break;
-	default:
-		return -EINVAL;
+	if (!val && info->charging) {
+		fan54015_charger_stop_charge(info);
+		info->charging = false;
+	} else if (val && !info->charging) {
+		ret = fan54015_charger_start_charge(info);
+		if (ret)
+			dev_err(info->dev, "start charge failed\n");
+		else
+			info->charging = true;
 	}
-
-	ret = fan54015_update_bits(info, FAN54015_REG_1,
-				   FAN54015_REG_CHARGE_CONTROL_MASK,
-				   chg_en);
-	if (ret)
-		dev_err(info->dev, "set fan54015 charger status failed\n");
 
 	return ret;
 }
@@ -625,7 +618,7 @@ static int fan54015_charger_usb_set_property(struct power_supply *psy,
 
 	mutex_lock(&info->lock);
 
-	if (!info->charging) {
+	if (!info->charging && psp != POWER_SUPPLY_PROP_STATUS) {
 		mutex_unlock(&info->lock);
 		return -ENODEV;
 	}
