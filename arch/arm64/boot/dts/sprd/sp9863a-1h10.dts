@@ -213,6 +213,11 @@
 		/* how much time to allow capacity change */
 		cm-one-cap-time = <30>;
 
+		/* when the safe charging voltage is exceeded, stop charging */
+		cm-charge-voltage-max = <6500000>;
+		/* drop voltage in microVolts to restart charging */
+		cm-charge-voltage-drop = <700000>;
+
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
 			cable@0 {
@@ -266,6 +271,7 @@
 
 &usb {
 	extcon = <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
 };
 
 &pmic_typec {
@@ -335,6 +341,7 @@
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&pmic_typec>;
+		otg-detect-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
@@ -364,6 +371,12 @@
 
 &vsp {
 	status = "okay";
+};
+
+&pmic_fgu {
+	monitored-battery = <&bat>;
+	sprd,calib-resistance-real = <20000>;
+	sprd,calib-resistance-spec = <20000>;
 };
 
 &jpg {
