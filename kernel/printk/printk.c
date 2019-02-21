@@ -2475,6 +2475,10 @@ void console_unblank(void)
 	 * oops_in_progress is set to 1..
 	 */
 	if (oops_in_progress) {
+#ifdef CONFIG_SPRD_DEBUG
+		if (raw_spin_is_locked(&logbuf_lock))
+			return;
+#endif
 		if (down_trylock_console_sem() != 0)
 			return;
 	} else
