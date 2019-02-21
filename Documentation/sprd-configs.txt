@@ -819,14 +819,14 @@ CONFIG_ARM_PSCI_FW
 		   enable it to support hotplug
 CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] arm64
-	[plat] sharkl5
+	[plat] roc1,sharkl5
 	[field] make
 	[subsys] cpufreq
 	[must] user
 	[function] Enable apcpu hardware dvfs function.
 CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
 	[arch] arm64
-	[plat] sharkl5
+	[plat] roc1,sharkl5
 	[field] make
 	[subsys] cpufreq
 	[must] user
@@ -1655,23 +1655,16 @@ CONFIG_CPU_FREQ
 	[subsys] cpufreq
 	[must] user
 	[function] enable cpufreq
-CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
 	[function] Enable schedutil as a default governor
 CONFIG_CPU_FREQ_GOV_ATTR_SET
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
@@ -1692,7 +1685,7 @@ CONFIG_CPU_FREQ_GOV_POWERSAVE
 	[function]
 CONFIG_CPU_FREQ_GOV_SCHEDUTIL
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field]
 	[subsys]
 	[must]
