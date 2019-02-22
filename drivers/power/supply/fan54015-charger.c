@@ -20,6 +20,7 @@
 #include <linux/regulator/machine.h>
 #include <linux/slab.h>
 #include <linux/usb/phy.h>
+#include <uapi/linux/usb/charger.h>
 
 #define FAN54015_REG_0					0x0
 #define FAN54015_REG_1					0x1
@@ -71,6 +72,7 @@ struct fan54015_charger_info {
 	struct usb_phy *usb_phy;
 	struct notifier_block usb_notify;
 	struct power_supply *psy_usb;
+	struct power_supply_charge_current cur;
 	struct work_struct work;
 	struct mutex lock;
 	bool charging;
@@ -207,62 +209,89 @@ static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 	int ret;
 
 	ret = power_supply_get_battery_info(info->psy_usb, &bat_info);
-	if (ret)
+	if (ret) {
 		dev_warn(info->dev, "no battery information is supplied\n");
 
-	voltage_max_microvolt = bat_info.constant_charge_voltage_max_uv / 1000;
-	current_max_ua = bat_info.constant_charge_current_max_ua / 1000;
-	power_supply_put_battery_info(info->psy_usb, &bat_info);
+		/*
+		 * If no battery information is supplied, we should set
+		 * default charge termination current to 100 mA, and default
+		 * charge termination voltage to 4.2V.
+		 */
+		info->cur.sdp_limit = 500000;
+		info->cur.sdp_cur = 500000;
+		info->cur.dcp_limit = 5000000;
+		info->cur.dcp_cur = 500000;
+		info->cur.cdp_limit = 5000000;
+		info->cur.cdp_cur = 1500000;
+		info->cur.unknown_limit = 5000000;
+		info->cur.unknown_cur = 500000;
+	} else {
+		info->cur.sdp_limit = bat_info.cur.sdp_limit;
+		info->cur.sdp_cur = bat_info.cur.sdp_cur;
+		info->cur.dcp_limit = bat_info.cur.dcp_limit;
+		info->cur.dcp_cur = bat_info.cur.dcp_cur;
+		info->cur.cdp_limit = bat_info.cur.cdp_limit;
+		info->cur.cdp_cur = bat_info.cur.cdp_cur;
+		info->cur.unknown_limit = bat_info.cur.unknown_limit;
+		info->cur.unknown_cur = bat_info.cur.unknown_cur;
 
-	ret = fan54015_charger_set_safety_vol(info, voltage_max_microvolt);
-	if (ret) {
-		dev_err(info->dev, "set fan54015 safety vol failed\n");
-		return ret;
-	}
+		voltage_max_microvolt =
+			bat_info.constant_charge_voltage_max_uv / 1000;
+		current_max_ua = bat_info.constant_charge_current_max_ua / 1000;
+		power_supply_put_battery_info(info->psy_usb, &bat_info);
 
-	ret = fan54015_charger_set_safety_cur(info, current_max_ua);
-	if (ret) {
-		dev_err(info->dev, "set fan54015 safety cur failed\n");
-		return ret;
-	}
+		ret = fan54015_charger_set_safety_vol(info, voltage_max_microvolt);
+		if (ret) {
+			dev_err(info->dev, "set fan54015 safety vol failed\n");
+			return ret;
+		}
 
-	ret = fan54015_update_bits(info, FAN54015_REG_4,
-				   FAN54015_REG_RESET_MASK, FAN54015_REG_RESET);
-	if (ret) {
-		dev_err(info->dev, "reset fan54015 failed\n");
-		return ret;
-	}
+		ret = fan54015_charger_set_safety_cur(info, info->cur.dcp_cur);
+		if (ret) {
+			dev_err(info->dev, "set fan54015 safety cur failed\n");
+			return ret;
+		}
 
-	ret = fan54015_update_bits(info, FAN54015_REG_1,
-				   FAN54015_REG_WEAK_VOL_THRESHOLD_MASK, 0);
-	if (ret) {
-		dev_err(info->dev, "set fan54015 weak voltage threshold failed\n");
-		return ret;
-	}
-	ret = fan54015_update_bits(info, FAN54015_REG_5,
-				   FAN54015_REG_IO_LEVEL_MASK, 0);
-	if (ret) {
-		dev_err(info->dev, "set fan54015 io level failed\n");
-		return ret;
-	}
+		ret = fan54015_update_bits(info, FAN54015_REG_4,
+					   FAN54015_REG_RESET_MASK,
+					   FAN54015_REG_RESET);
+		if (ret) {
+			dev_err(info->dev, "reset fan54015 failed\n");
+			return ret;
+		}
 
-	ret = fan54015_update_bits(info, FAN54015_REG_5,
-				   FAN54015_REG_VSP_MASK, FAN54015_REG_VSP);
-	if (ret) {
-		dev_err(info->dev, "set fan54015 vsp failed\n");
-		return ret;
-	}
+		ret = fan54015_update_bits(info, FAN54015_REG_1,
+					   FAN54015_REG_WEAK_VOL_THRESHOLD_MASK, 0);
+		if (ret) {
+			dev_err(info->dev, "set fan54015 weak voltage threshold failed\n");
+			return ret;
+		}
+		ret = fan54015_update_bits(info, FAN54015_REG_5,
+					   FAN54015_REG_IO_LEVEL_MASK, 0);
+		if (ret) {
+			dev_err(info->dev, "set fan54015 io level failed\n");
+			return ret;
+		}
 
-	ret = fan54015_update_bits(info, FAN54015_REG_1,
-				   FAN54015_REG_TERMINAL_CURRENT_MASK, 0);
-	if (ret) {
-		dev_err(info->dev, "set fan54015 terminal cur failed\n");
-		return ret;
-	}
+		ret = fan54015_update_bits(info, FAN54015_REG_5,
+					   FAN54015_REG_VSP_MASK,
+					   FAN54015_REG_VSP);
+		if (ret) {
+			dev_err(info->dev, "set fan54015 vsp failed\n");
+			return ret;
+		}
 
-	ret = fan54015_charger_set_termina_vol(info, voltage_max_microvolt);
-	if (ret)
-		dev_err(info->dev, "set fan54015 terminal vol failed\n");
+		ret = fan54015_update_bits(info, FAN54015_REG_1,
+					   FAN54015_REG_TERMINAL_CURRENT_MASK, 0);
+		if (ret) {
+			dev_err(info->dev, "set fan54015 terminal cur failed\n");
+			return ret;
+		}
+
+		ret = fan54015_charger_set_termina_vol(info, voltage_max_microvolt);
+		if (ret)
+			dev_err(info->dev, "set fan54015 terminal vol failed\n");
+	}
 
 	return ret;
 }
@@ -492,18 +521,36 @@ static void fan54015_charger_work(struct work_struct *data)
 {
 	struct fan54015_charger_info *info =
 		container_of(data, struct fan54015_charger_info, work);
+	int limit_cur, cur, ret;
 	bool present = fan54015_charger_is_bat_present(info);
-	int ret;
 
 	mutex_lock(&info->lock);
 
 	if (info->limit > 0 && !info->charging && present) {
 		/* set current limitation and start to charge */
-		ret = fan54015_charger_set_limit_current(info, info->limit);
+		switch (info->usb_phy->chg_type) {
+		case SDP_TYPE:
+			limit_cur = info->cur.sdp_limit;
+			cur = info->cur.sdp_cur;
+			break;
+		case DCP_TYPE:
+			limit_cur = info->cur.dcp_limit;
+			cur = info->cur.dcp_cur;
+			break;
+		case CDP_TYPE:
+			limit_cur = info->cur.cdp_limit;
+			cur = info->cur.cdp_cur;
+			break;
+		default:
+			limit_cur = info->cur.unknown_limit;
+			cur = info->cur.unknown_cur;
+		}
+
+		ret = fan54015_charger_set_limit_current(info, limit_cur);
 		if (ret)
 			goto out;
 
-		ret = fan54015_charger_set_current(info, info->limit);
+		ret = fan54015_charger_set_current(info, cur);
 		if (ret)
 			goto out;
 
