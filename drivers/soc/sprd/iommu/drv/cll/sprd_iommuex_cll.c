@@ -270,19 +270,14 @@ u32 sprd_iommuex_cll_map(sprd_iommu_hdl  p_iommu_hdl,
 				       vir_base_entry,
 				       total_page_entrys);
 
-	/*the firsttime enable iommu*/
-	if (p_iommu_priv->map_cnt == 0) {
-		sprd_iommuex_cll_enable(p_iommu_hdl);
-	}
+	sprd_iommuex_cll_enable(p_iommu_hdl);
 
 	/*we must update the tlb rame,because prefetch may be have taken addr
 	*information before we map this time
 	*/
 	if (iommu_id == IOMMU_EX_ISP) {
-		if (iommu_type == SPRD_IOMMUEX_SHARKL3) {
 		mmuex_tlb_enable(p_iommu_priv->mmu_reg_addr, 0, 0);
 		mmuex_tlb_enable(p_iommu_priv->mmu_reg_addr, 1, 1);
-		}
 	} else
 		mmu_ex_update(p_iommu_priv->mmu_reg_addr, iommu_id, iommu_type);
 	/*for sharkle dcam_if r4p0*/
@@ -354,10 +349,6 @@ u32 sprd_iommuex_cll_unmap(sprd_iommu_hdl p_iommu_hdl,
 	}
 
 	p_iommu_priv->map_cnt--;
-	if (p_iommu_priv->map_cnt == 0) {
-		if (iommu_id != IOMMU_EX_DISP)
-			sprd_iommuex_cll_disable(p_iommu_hdl);
-	}
 
 	return SPRD_NO_ERR;
 }
@@ -434,6 +425,9 @@ u32 sprd_iommuex_cll_enable(sprd_iommu_hdl p_iommu_hdl)
 	iommu_id = p_iommu_priv->iommu_id;
 	iommu_type = p_iommu_priv->iommu_type;
 
+	if (mmu_ex_check_en(p_iommu_priv->mmu_reg_addr, iommu_id))
+		goto exit;
+
 	/*config first vpn*/
 	if (p_iommu_priv->pagt_base_phy_ddr > 0)
 		pgt_addr_phy = p_iommu_priv->pagt_base_phy_ddr;
@@ -487,6 +481,7 @@ u32 sprd_iommuex_cll_enable(sprd_iommu_hdl p_iommu_hdl)
 
 	mmu_ex_vaorbypass_clkgate_enable_combined(p_iommu_priv->mmu_reg_addr,
 		iommu_id);
+exit:
 	/*for sharkle dcam_if r4p0*/
 	mmu_ex_frc_copy(p_iommu_priv->master_reg_addr, iommu_id, iommu_type);
 
@@ -583,8 +578,8 @@ u32 sprd_iommuex_cll_reset(sprd_iommu_hdl  p_iommu_hdl, u32 channel_num)
 		return SPRD_ERR_INITIALIZED;
 
 	p_iommu_priv = (struct sprd_iommuex_priv *)(p_iommu_data->p_priv);
-	if (p_iommu_priv->map_cnt || p_iommu_priv->iommu_id == IOMMU_EX_DISP)
-		sprd_iommuex_cll_enable(p_iommu_hdl);
+
+	sprd_iommuex_cll_enable(p_iommu_hdl);
 
 	if (p_iommu_priv->iommu_id == IOMMU_EX_ISP) {
 		mmuex_tlb_enable(p_iommu_priv->mmu_reg_addr, 0, 0);

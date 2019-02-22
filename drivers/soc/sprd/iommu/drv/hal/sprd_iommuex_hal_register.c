@@ -1,5 +1,15 @@
 #include "sprd_iommuex_hal_register.h"
 
+bool mmu_ex_check_en(ulong ctrl_base_addr, u32 iommu_id)
+{
+	ulong reg_addr = ctrl_base_addr;
+
+	if (iommu_id == IOMMU_EX_ISP)
+		reg_addr += 0x20;
+
+	return (reg_read_dword(reg_addr) & 0x1) ? true : false;
+}
+
 void mmu_ex_enable(ulong ctrl_base_addr, u32 iommu_id, u32 mmu_enable)
 {
 	ulong reg_addr = ctrl_base_addr;
