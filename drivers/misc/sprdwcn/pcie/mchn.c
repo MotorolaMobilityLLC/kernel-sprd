@@ -10,12 +10,14 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/kernel.h>
 #include <misc/wcn_bus.h>
 
 #include "edma_engine.h"
 #include "mchn.h"
 
 static struct mchn_info_t g_mchn;
+static unsigned long chn_init_flags;
 
 struct mchn_info_t *mchn_info(void)
 {
@@ -277,8 +279,7 @@ int mchn_init(struct mchn_ops_t *ops)
 	struct mchn_info_t *mchn = mchn_info();
 
 	PCIE_INFO("[+]%s(chn=%d)\n", __func__, ops->channel);
-	if ((mchn->ops[ops->channel] != NULL) ||
-	     ((ops->hif_type != HW_TYPE_SDIO) &&
+	if (((ops->hif_type != HW_TYPE_SDIO) &&
 	     (ops->hif_type != HW_TYPE_PCIE))) {
 		PCIE_INFO("%s err, hif_type %d\n", __func__, ops->hif_type);
 		WARN_ON(1);
@@ -287,6 +288,10 @@ int mchn_init(struct mchn_ops_t *ops)
 	}
 	mchn->ops[ops->channel] = ops;
 
+	if (test_bit(ops->channel, &chn_init_flags)) {
+		PCIE_INFO("chn=%d have inited\n", ops->channel);
+		return 0;
+	}
 	switch (ops->hif_type) {
 	case HW_TYPE_SDIO:
 		ret = 0;
@@ -294,10 +299,12 @@ int mchn_init(struct mchn_ops_t *ops)
 	case HW_TYPE_PCIE:
 		ret = edma_chn_init(ops->channel, 0, ops->inout,
 				    ops->pool_size);
+		set_bit(ops->channel, &chn_init_flags);
 		break;
 	default:
 		break;
 	}
+
 	if ((ret == 0) && (ops->pool_size > 0))
 		ret = mbuf_pool_init(&(mchn->chn_public[ops->channel].pool),
 				     ops->pool_size, 0);
@@ -313,6 +320,8 @@ int mchn_deinit(struct mchn_ops_t *ops)
 	struct mchn_info_t *mchn = mchn_info();
 
 	PCIE_INFO("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
+
+	return ret;
 	if ((mchn->ops[ops->channel] == NULL) ||
 	    ((ops->hif_type != HW_TYPE_SDIO) &&
 	    (ops->hif_type != HW_TYPE_PCIE))) {
