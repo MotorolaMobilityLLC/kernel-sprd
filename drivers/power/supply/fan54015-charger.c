@@ -15,6 +15,7 @@
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
+#include <linux/power/charger-manager.h>
 #include <linux/regmap.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
@@ -567,6 +568,9 @@ static void fan54015_charger_work(struct work_struct *data)
 
 out:
 	mutex_unlock(&info->lock);
+	dev_info(info->dev, "battery present = %d, charger type = %d\n",
+		 present, info->usb_phy->chg_type);
+	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
 }
 
 
