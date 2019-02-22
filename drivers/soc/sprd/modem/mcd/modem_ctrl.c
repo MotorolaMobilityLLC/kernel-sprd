@@ -150,7 +150,7 @@ static int request_gpio_to_irq(struct gpio_desc *cp_gpio,
 		ret = devm_request_threaded_irq(mcd_dev->dev,
 						mcd_dev->init->irq_cpwatchdog,
 					NULL, cpwatchdogtriger_handler,
-					IRQF_ONESHOT | IRQF_TRIGGER_HIGH,
+					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
 					"cpwatchdog_irq", mcd_dev);
 		if (ret < 0) {
 			dev_err(mcd_dev->dev, "can not request irq for cp watchdog\n");
@@ -161,7 +161,7 @@ static int request_gpio_to_irq(struct gpio_desc *cp_gpio,
 		ret = devm_request_threaded_irq(mcd_dev->dev,
 						mcd_dev->init->irq_cpassert,
 					NULL, cpasserttriger_handler,
-					IRQF_ONESHOT | IRQF_TRIGGER_HIGH,
+					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
 					"cpassert_irq", mcd_dev);
 		if (ret < 0) {
 			dev_err(mcd_dev->dev, "can not request irq for cp assert\n");
@@ -172,7 +172,7 @@ static int request_gpio_to_irq(struct gpio_desc *cp_gpio,
 		ret = devm_request_threaded_irq(mcd_dev->dev,
 						mcd_dev->init->irq_cppanic,
 					NULL, cppanictriger_handler,
-					IRQF_ONESHOT | IRQF_TRIGGER_HIGH,
+					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
 					"cppanic_irq", mcd_dev);
 		if (ret < 0) {
 			dev_err(mcd_dev->dev,
