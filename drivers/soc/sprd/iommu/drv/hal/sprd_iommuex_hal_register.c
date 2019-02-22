@@ -23,9 +23,9 @@ void mmu_ex_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 	if (iommu_id == IOMMU_EX_ISP) {
 		/*isp vaor_bypass register is different*/
 		reg_addr += 0x10;
-		reg_write_dword(reg_addr, 0xffffffff);
+		reg_write_dword(reg_addr, 0);
 		reg_addr += 0x4;
-		reg_write_dword(reg_addr, 0xffffffff);
+		reg_write_dword(reg_addr, 0);
 		reg_addr += 0xC;
 		reg_value = reg_read_dword(reg_addr);
 		reg_write_dword(reg_addr, reg_addr | 0x1);
