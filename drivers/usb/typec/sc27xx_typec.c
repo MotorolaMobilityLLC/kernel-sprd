@@ -159,6 +159,7 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 		vconn_role = TYPEC_SINK;
 		break;
 	case SC27XX_ATTACHED_SRC:
+	case SC27XX_AUDIO_CABLE:
 		power_role = TYPEC_SOURCE;
 		data_role = TYPEC_HOST;
 		vconn_role = TYPEC_SOURCE;
@@ -189,6 +190,10 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 		sc->pre_state = SC27XX_ATTACHED_SRC;
 		extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, true);
 		break;
+	case SC27XX_AUDIO_CABLE:
+		sc->pre_state = SC27XX_AUDIO_CABLE;
+		extcon_set_state_sync(sc->edev, EXTCON_JACK_HEADPHONE, true);
+		break;
 	default:
 		break;
 	}
@@ -211,6 +216,9 @@ static void sc27xx_typec_disconnect(struct sc27xx_typec *sc, u32 status)
 		break;
 	case SC27XX_ATTACHED_SRC:
 		extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, false);
+		break;
+	case SC27XX_AUDIO_CABLE:
+		extcon_set_state_sync(sc->edev, EXTCON_JACK_HEADPHONE, false);
 		break;
 	default:
 		break;
@@ -322,6 +330,7 @@ static int sc27xx_typec_enable(struct sc27xx_typec *sc)
 static const u32 sc27xx_typec_cable[] = {
 	EXTCON_USB,
 	EXTCON_USB_HOST,
+	EXTCON_JACK_HEADPHONE,
 	EXTCON_NONE,
 };
 
