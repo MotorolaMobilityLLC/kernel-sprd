@@ -322,7 +322,7 @@ static int fan54015_charger_set_current(struct fan54015_charger_info *info,
 		reg_val = 0x7;
 
 	return fan54015_update_bits(info, FAN54015_REG_4,
-				    FAN54015_REG_CURRENT_MASK,
+				    FAN54015_REG_CURRENT_MASK | FAN54015_REG_RESET_MASK,
 				    reg_val << FAN54015_REG_CURRENT_MASK_SHIFT);
 }
 
