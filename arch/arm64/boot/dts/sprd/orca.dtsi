@@ -802,7 +802,7 @@
 				};
 			};
 
-			pcie0@2b100000 {
+			pcie0: pcie0@2b100000 {
 				compatible = "sprd,pcie", "snps,dw-pcie";
 				reg = <0x0 0x2b100000 0x0 0x2000>,
 				      <0x2 0x00000000 0x0 0x2000>;
@@ -820,7 +820,7 @@
 				status = "disabled";
 			};
 
-			pcie1@2b100000 {
+			pcie1: pcie1@2b100000 {
 				compatible = "sprd,pcie-ep", "snps,dw-pcie";
 				reg = <0x0 0x2b100000 0x0 0x100000>,
 				      <0x0 0x2b108000 0x0 0x2000>,
