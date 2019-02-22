@@ -289,6 +289,14 @@ static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 			return ret;
 		}
 
+		ret = fan54015_update_bits(info,
+					   FAN54015_REG_0,
+					   FAN54015_REG_RESET_MASK,
+					   FAN54015_REG_RESET);
+		if (ret) {
+			dev_err(info->dev, "feed fan54015 watchdog failed\n");
+			return ret;
+		}
 		ret = fan54015_charger_set_termina_vol(info, voltage_max_microvolt);
 		if (ret)
 			dev_err(info->dev, "set fan54015 terminal vol failed\n");
