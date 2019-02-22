@@ -53,6 +53,7 @@
 
 #define FAN54015_REG_TERMINAL_CURRENT_MASK		GENMASK(3, 3)
 #define FAN54015_REG_TERMINAL_VOLTAGE_MASK		GENMASK(7, 2)
+#define FAN54015_REG_TERMINAL_VOLTAGE_SHIFT		2
 
 #define FAN54015_REG_CHARGE_CONTROL_MASK		GENMASK(2, 2)
 #define FAN54015_REG_CHARGE_DISABLE			BIT(2)
@@ -168,7 +169,7 @@ fan54015_charger_set_termina_vol(struct fan54015_charger_info *info, u32 vol)
 
 	return fan54015_update_bits(info, FAN54015_REG_2,
 				    FAN54015_REG_TERMINAL_VOLTAGE_MASK,
-				    reg_val);
+				    reg_val << FAN54015_REG_TERMINAL_VOLTAGE_SHIFT);
 }
 
 
@@ -322,7 +323,7 @@ static int fan54015_charger_set_current(struct fan54015_charger_info *info,
 
 	return fan54015_update_bits(info, FAN54015_REG_4,
 				    FAN54015_REG_CURRENT_MASK,
-				    reg_val);
+				    reg_val << FAN54015_REG_CURRENT_MASK_SHIFT);
 }
 
 static int fan54015_charger_get_current(struct fan54015_charger_info *info,
@@ -387,7 +388,7 @@ fan54015_charger_set_limit_current(struct fan54015_charger_info *info,
 
 	ret = fan54015_update_bits(info, FAN54015_REG_1,
 				   FAN54015_REG_LIMIT_CURRENT_MASK,
-				   reg_val);
+				   reg_val << FAN54015_REG_LIMIT_CURRENT_SHIFT);
 	if (ret)
 		dev_err(info->dev, "set fan54015 limit cur failed\n");
 
