@@ -592,3 +592,7 @@
 &gpu {
 	gpu-supply = <&vddmodem>;
 };
+
+&vddrf18 {
+	status = "disabled";
+};

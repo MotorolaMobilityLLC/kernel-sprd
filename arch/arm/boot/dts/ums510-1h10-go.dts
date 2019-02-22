@@ -601,3 +601,7 @@
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
 };
+
+&vddrf18 {
+	status = "disabled";
+};
