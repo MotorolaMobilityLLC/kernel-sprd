@@ -47,6 +47,7 @@
 #include "wcn_procfs.h"
 #include "wcn_gnss.h"
 #include "mdbg_type.h"
+#include "../include/wcn_dbg.h"
 #include "../include/wcn_glb_reg.h"
 
 #ifndef REG_PMU_APB_XTL_WAIT_CNT0
@@ -356,7 +357,7 @@ static char *btwf_load_firmware_data(loff_t off, unsigned long int imag_size)
 	struct file *file;
 	loff_t offset = 0, pos = 0;
 
-	MDBG_LOG("%s entry\n", __func__);
+	WCN_LOG("%s entry\n", __func__);
 
 	file = filp_open(BTWF_FIRMWARE_PATH, O_RDONLY, 0);
 	for (i = 1; i <= opn_num_max; i++) {
@@ -374,7 +375,7 @@ static char *btwf_load_firmware_data(loff_t off, unsigned long int imag_size)
 			BTWF_FIRMWARE_PATH, __func__);
 		return NULL;
 	}
-	MDBG_LOG("marlin %s open image file  successfully\n",
+	WCN_LOG("marlin %s open image file  successfully\n",
 		__func__);
 	size = imag_size;
 	buffer = vmalloc(size);
@@ -496,7 +497,7 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 	struct file *file;
 	loff_t pos = 0;
 
-	MDBG_LOG("%s entry\n", __func__);
+	WCN_LOG("%s entry\n", __func__);
 	if (gnss_ops && (gnss_ops->set_file_path))
 		gnss_ops->set_file_path(&GNSS_FIRMWARE_PATH[0]);
 	else
@@ -517,7 +518,7 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 			GNSS_FIRMWARE_PATH, __func__);
 		return NULL;
 	}
-	MDBG_LOG("%s open image file  successfully\n", __func__);
+	WCN_LOG("%s open image file  successfully\n", __func__);
 	size = imag_size;
 	buffer = vmalloc(size);
 	if (!buffer) {
@@ -1886,7 +1887,7 @@ static int marlin_set_power(int subsys, int val)
 					clear_bit(subsys,
 						&marlin_dev->power_state);
 				}
-				MDBG_LOG("marlin reset flag_reset:%d\n",
+				WCN_LOG("marlin reset flag_reset:%d\n",
 					flag_reset);
 				goto check_power_state_notify;
 			}

@@ -62,7 +62,7 @@ static int lo_index(int chn)
 			return i;
 
 	}
-	PCIE_INFO("%s(%d) err\n", __func__, chn);
+	WCN_INFO("%s(%d) err\n", __func__, chn);
 	while (1)
 		;
 
@@ -166,7 +166,7 @@ static int lo_rx_pop(int chn, struct mbuf_t *head, struct mbuf_t *tail,
 	if (rx_link->num == ops->pool_size) {
 		//todo...
 		if (tx_link->num != rx_link->num) {
-			PCIE_ERR("%s line:%d err\n", __func__, __LINE__);
+			WCN_ERR("%s line:%d err\n", __func__, __LINE__);
 			while (1)
 				;
 
@@ -177,8 +177,8 @@ static int lo_rx_pop(int chn, struct mbuf_t *head, struct mbuf_t *tail,
 		for (i = 0, tx_mbuf = tx_link->head, rx_mbuf = rx_link->head;
 		    i < tx_link->num; i++) {
 			if (memcmp(tx_mbuf->buf, rx_mbuf->buf, 1024) != 0) {
-				PCIE_ERR("%s line:%d err\n", __func__,
-					 __LINE__);
+				WCN_ERR("%s line:%d err\n", __func__,
+					__LINE__);
 				while (1)
 					;
 			}
@@ -187,7 +187,7 @@ static int lo_rx_pop(int chn, struct mbuf_t *head, struct mbuf_t *tail,
 			tx_mbuf = tx_mbuf->next;
 			rx_mbuf = rx_mbuf->next;
 		}
-		PCIE_INFO("%s}\n", string);
+		WCN_INFO("%s}\n", string);
 		mbuf_link_free(rx_link->chn, rx_link->head, rx_link->tail,
 			       rx_link->num);
 		mbuf_link_free(tx_link->chn, tx_link->head, tx_link->tail,
@@ -217,7 +217,7 @@ int lo_init(void)
 	struct mchn_ops_t *ops;
 	struct loopback *lo = &g_lo;
 
-	PCIE_INFO("[+]%s\n", __func__);
+	WCN_INFO("[+]%s\n", __func__);
 	memset(lo, 0x00, sizeof(struct loopback));
 	for (i = 0; i < 8; i++) {
 		lo->link[i][0].chn = -1;
@@ -256,7 +256,7 @@ int lo_init(void)
 		lo->link[i][TX_CHN].chn = tx_chn;
 		lo->link[i][RX_CHN].chn = rx_chn;
 	}
-	PCIE_INFO("[-]%s\n", __func__);
+	WCN_INFO("[-]%s\n", __func__);
 
 	return 0;
 }
@@ -267,7 +267,7 @@ int lo_start(int mode)
 	int i, tx_chn;
 	struct loopback *lo = &g_lo;
 
-	PCIE_INFO("[+]%s\n", __func__);
+	WCN_INFO("[+]%s\n", __func__);
 	if (lo_init_state == 0) {
 		lo_init();
 		lo_init_state = 1;
@@ -278,7 +278,7 @@ int lo_start(int mode)
 		tx_chn = lo->link[i][TX_CHN].chn;
 		lo_push(tx_chn);
 	}
-	PCIE_INFO("[-]%s\n", __func__);
+	WCN_INFO("[-]%s\n", __func__);
 
 	return 0;
 }

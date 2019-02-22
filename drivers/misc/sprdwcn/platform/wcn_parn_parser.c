@@ -34,6 +34,7 @@
 #include <linux/vmalloc.h>
 
 #include "mdbg_type.h"
+#include "../include/wcn_dbg.h"
 #include "wcn_parn_parser.h"
 
 #define ROOT_PATH "/"

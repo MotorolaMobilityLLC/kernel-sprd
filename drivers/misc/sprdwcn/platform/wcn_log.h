@@ -1,8 +1,6 @@
 #ifndef _WCN_LOG
 #define _WCN_LOG
 
-#include "mdbg_type.h"
-
 #define WCN_LOG_MAX_MINOR 2
 
 struct mdbg_device_t {

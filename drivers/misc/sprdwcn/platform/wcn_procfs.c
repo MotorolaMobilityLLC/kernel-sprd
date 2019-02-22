@@ -30,6 +30,8 @@
 #include "wcn_log.h"
 #include "wcn_procfs.h"
 #include "wcn_txrx.h"
+#include "mdbg_type.h"
+#include "../include/wcn_dbg.h"
 
 u32 wcn_print_level = WCN_DEBUG_OFF;
 
@@ -826,8 +828,8 @@ static unsigned int mdbg_proc_poll(struct file *filp, poll_table *wait)
 
 	if (strcmp(type, "loopcheck") == 0) {
 		poll_wait(filp, &mdbg_proc->loopcheck.rxwait, wait);
-		MDBG_LOG("loopcheck:power_state_changed:%d\n",
-					wcn_get_module_status_changed());
+		WCN_LOG("loopcheck:power_state_changed:%d\n",
+			wcn_get_module_status_changed());
 		if (wcn_get_module_status_changed()) {
 			wcn_set_module_status_changed(false);
 			mask |= POLLIN | POLLRDNORM;

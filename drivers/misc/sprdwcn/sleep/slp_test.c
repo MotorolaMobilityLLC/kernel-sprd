@@ -5,6 +5,7 @@
 #include "slp_mgr.h"
 #include "slp_sdio.h"
 #include "wcn_glb_reg.h"
+#include "slp_dbg.h"
 
 static int test_cnt;
 static int sleep_test_thread(void *data)
@@ -21,7 +22,7 @@ static int sleep_test_thread(void *data)
 		slp_mgr_wakeup(MARLIN_GNSS);
 
 		sprdwcn_bus_reg_read(CP_START_ADDR, &ram_val, 0x4);
-		SLP_MGR_INFO("ram_val is 0x%x\n", ram_val);
+		WCN_INFO("ram_val is 0x%x\n", ram_val);
 
 		msleep(5000);
 		slp_mgr_drv_sleep(MARLIN_GNSS, TRUE);
@@ -34,7 +35,7 @@ static int sleep_test_thread(void *data)
 static struct task_struct *slp_test_task;
 int slp_test_init(void)
 {
-	SLP_MGR_INFO("create slp_mgr test thread\n");
+	WCN_INFO("create slp_mgr test thread\n");
 	if (!slp_test_task)
 		slp_test_task = kthread_create(sleep_test_thread,
 			NULL, "sleep_test_thread");
@@ -43,7 +44,7 @@ int slp_test_init(void)
 		return 0;
 	}
 
-	SLP_MGR_ERR("create sleep_test_thread fail\n");
+	WCN_ERR("create sleep_test_thread fail\n");
 
 	return -1;
 }

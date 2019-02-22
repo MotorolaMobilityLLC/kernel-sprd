@@ -20,7 +20,6 @@
 #include <linux/types.h>
 #include <linux/wait.h>
 
-#include "mdbg_type.h"
 #include <misc/wcn_bus.h>
 
 #define SMP_HEADERFLAG 0X7E7E7E7E
