@@ -220,23 +220,40 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	int ret;
 	const struct sprd_pcie_of_data *data;
 	enum dw_pcie_device_mode mode;
-	/* Dirty: must be deleted. Only for wcn driver temperarily */
+	/* Dirty: must be deleted. Only for marlin3 driver temperarily */
 	static int probe_defer_count;
 
-	if ((probe_defer_count++) < 10)
-		return -EPROBE_DEFER;
+	data = (struct sprd_pcie_of_data *)of_device_get_match_data(dev);
+	mode = data->mode;
 
-	dev_info(dev, "%s: defer probe %d times to wait wcn\n",
-		 __func__, probe_defer_count);
+	/*
+	 *  Dirty:
+	 *	These codes must be delete atfer marlin3 EP power-on sequence
+	 *	is okay.
+	 *  There two device type of the PCIe controller: RC and EP.
+	 *  -1. As RC + marlin3 PCIe EP:
+	 *	Marlin3 power on and init is too late. Before establishing PCIe
+	 *	link we must wait, wait... If marlin3 PCIe power on sequence is
+	 *	nice, we will remove these dirty codes.
+	 *  -2. As RC + ORCA PCIe EP:
+	 *	Because orca EP power on in uboot, if the probe() continue, PCIe
+	 *	will establish link. It's not nesseary to defer probe in this
+	 *	situation. However, it's harmless to defer probe.
+	 *  -3. As EP: This controller is selected to EP mode for ORCA:
+	 *	It must run earlier than RC. So it can't be probed.
+	 */
+	if (mode == DW_PCIE_RC_TYPE) {
+		if ((probe_defer_count++) < 10)
+			return -EPROBE_DEFER;
+		dev_info(dev, "%s: defer probe %d times to wait wcn\n",
+			 __func__, probe_defer_count);
+	}
 
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-startup-syscons");
 	if (ret < 0) {
 		dev_err(dev, "get pcie syscons fail, return %d\n", ret);
 		return ret;
 	}
-
-	data = (struct sprd_pcie_of_data *)of_device_get_match_data(dev);
-	mode = data->mode;
 
 	sprd_pcie = devm_kzalloc(dev, sizeof(*sprd_pcie), GFP_KERNEL);
 	if (!sprd_pcie)
