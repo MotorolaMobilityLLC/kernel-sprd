@@ -250,45 +250,6 @@
 		sprd,rx-blknum = <200>;
 	};
 
-	/* PSP log: 64KB x 55 = 3520KB */
-	slog_lte: spool@0 {
-		compatible = "sprd,spool";
-		sprd,name = "slog_lte";
-		sprd,dst = <5>;
-		sprd,channel = <5>;
-		sprd,preconfigured = <0>;
-		sprd,tx-blksize = <0>;
-		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <55>;
-	};
-
-	/* New Radio PHY log: 64KB x 32 = 2M */
-	slog_nrphy: spool@1 {
-		compatible = "sprd,spool";
-		sprd,name = "slog_nr_phy";
-		sprd,dst = <7>;
-		sprd,channel = <5>;
-		sprd,preconfigured = <1>;
-		sprd,tx-blksize = <0>;
-		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <32>;
-	};
-
-	/* MODEM v3 PHY log: 64KB x 32 = 2M */
-	slog_v3phy: spool@2 {
-		compatible = "sprd,spool";
-		sprd,name = "slog_v3_phy";
-		sprd,dst = <8>;
-		sprd,channel = <5>;
-		sprd,preconfigured = <1>;
-		sprd,tx-blksize = <0>;
-		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <32>;
-	};
-
 	slog_nr: spool@3{
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr";
