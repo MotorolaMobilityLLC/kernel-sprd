@@ -27,7 +27,6 @@
  * [11:7] AP_CP_HANDSHK RW 5'h0set/clear
  * sw use these bits to sync between AP and CP
  */
-
 #define EP_REMOTE_BASE		0x64010000
 #define EP_REMOTE_OFFSET	0x03a0
 #define BIT_SET_OFFSET		0x1000
@@ -47,6 +46,40 @@
 #define CLR_FLAG	0x0
 #define REBOOT_MODEM_DELAY	1000
 #define EP_REMOTE_OP_SIZE	0x10000
+
+/*
+ * Because the default value of below two registers in orca is error,
+ * It will disable the cp rpll, than the orca
+ * usb boot can't works in rom code, so we must workround in Roc1.
+ * The workround way is below: Before Roc1 set SPL_DONE_BIT flag to orca,
+ * enable the v3_rpll_cp_en_reg and nr_rpll_cp_en_reg.
+ * the decription of the two registers:
+ * BASE ADDR 0x6402_0000
+ * 0x0570	V3_RPLL_CTRL_REG0	[18]	v3_rpll_cp_en_reg
+ * 0x0590	NR_RPLL_CTRL_REG0	[18]	nr_rpll_cp_en_reg
+ */
+#define EP_AON_APB_BASE		0x64020000
+#define EP_AON_APB_SIZE		0x10000
+#define V3_RPLL_CTRL_REG0	0x0570
+#define NR_RPLL_CTRL_REG0	0x0590
+#define V3_RPLL_CP_EN_BIT	BIT(18)
+#define NR_RPLL_CP_EN_BIT	BIT(18)
+
+static void modem_ep_enable_cp_rpll(struct modem_device *modem)
+{
+	void __iomem *base;
+
+	base = modem_ram_vmap_nocache(modem->modem_type,
+				      EP_AON_APB_BASE,
+				      EP_AON_APB_SIZE);
+	if (base) {
+		writel_relaxed(V3_RPLL_CP_EN_BIT,
+			       base + BIT_SET_OFFSET + V3_RPLL_CTRL_REG0);
+		writel_relaxed(NR_RPLL_CP_EN_BIT,
+			       base + BIT_SET_OFFSET + NR_RPLL_CTRL_REG0);
+		modem_ram_unmap(modem->modem_type, base);
+	}
+}
 
 static void modem_ep_get_remote_flag(struct modem_device *modem)
 {
@@ -79,6 +112,11 @@ static void modem_ep_set_remote_flag(struct modem_device *modem)
 	void __iomem *base;
 
 	if (temp & SPL_IMAGE_DONE_FLAG) {
+		/*
+		 * the workround way is: befor Roc1 set SPL_DONE_BIT flag to orca,
+		 * enable the cp rpll.
+		 */
+		modem_ep_enable_cp_rpll(modem);
 		flag |= SPL_DONE_BIT;
 		temp &= ~SPL_IMAGE_DONE_FLAG;
 	}
