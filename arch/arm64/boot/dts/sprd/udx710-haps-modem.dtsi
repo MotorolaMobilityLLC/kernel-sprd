@@ -45,8 +45,6 @@
 			syscon-names = "shutdown", "deepsleep", "corereset",
 				       "sysreset", "getstatus";
 			reg = <0x0 0x2000 0x0 0x1000>;
-			/* Interrupt to be confirmed.*/
-			interrupts = <GIC_SPI 83 0x0>;
 		};
 
 		scproc_v3phy: scproc@2 {
