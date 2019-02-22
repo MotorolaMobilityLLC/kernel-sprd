@@ -176,8 +176,6 @@ static struct platform_driver iommu_driver = {
 
 static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 {
-	int id;
-
 	if (iommu_dev == NULL) {
 		pr_err("%s, iommu_dev == NULL!\n", __func__);
 		return;
@@ -190,8 +188,8 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 		iommu_dev->id = SPRD_IOMMU_VSP;
 		break;
 	case IOMMU_EX_DCAM:
-		sprd_iommu_list[id].enabled = true;
-		sprd_iommu_list[id].iommu_dev = iommu_dev;
+		sprd_iommu_list[SPRD_IOMMU_DCAM].enabled = true;
+		sprd_iommu_list[SPRD_IOMMU_DCAM].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_DCAM;
 		break;
 	case IOMMU_EX_CPP:
@@ -215,13 +213,13 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 		iommu_dev->id = SPRD_IOMMU_DISP;
 		break;
 	case IOMMU_EX_ISP:
-		sprd_iommu_list[id].enabled = true;
-		sprd_iommu_list[id].iommu_dev = iommu_dev;
+		sprd_iommu_list[SPRD_IOMMU_ISP].enabled = true;
+		sprd_iommu_list[SPRD_IOMMU_ISP].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_ISP;
 		break;
 	case IOMMU_EX_EDP:
-		sprd_iommu_list[id].enabled = true;
-		sprd_iommu_list[id].iommu_dev = iommu_dev;
+		sprd_iommu_list[SPRD_IOMMU_EDP].enabled = true;
+		sprd_iommu_list[SPRD_IOMMU_EDP].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_EDP;
 		break;
 	default:
@@ -652,6 +650,7 @@ int sprd_iommu_unmap(struct device *dev, struct sprd_iommu_unmap_data *data)
 					data->iova_size, &iova);
 		if (valid_buf) {
 			buf = data->buf;
+			data->iova_addr = iova;
 		} else {
 			IOMMU_ERR("%s illegal error iova 0x%lx buf %p size 0x%zx\n",
 				iommu_dev->init_data->name,
