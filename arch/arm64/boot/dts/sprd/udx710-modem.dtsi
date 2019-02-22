@@ -12,6 +12,7 @@
 		compatible = "sprd,scproc_pubcp";
 		#address-cells = <2>;
 		#size-cells = <2>;
+		ranges;
 
 		scproc_pubpm: scproc@0 {
 			sprd,name = "pmic";
