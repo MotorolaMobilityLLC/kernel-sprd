@@ -56,8 +56,6 @@ u8 sipc_rx_data[MAX_RX_LEN];
 /* for debug flush event */
 static int flush_setcnt;
 static int flush_getcnt;
-#define NS         (int64_t)1000000ll
-#define US         1000ll
 /* sensor id */
 static struct hw_sensor_id_tag hw_sensor_id[_HW_SENSOR_TOTAL] = {
 	{0, 0xFF, 0xFF, ""},
@@ -244,7 +242,7 @@ static int shub_sipc_channel_read(struct shub_data *sensor)
 
 	if (nread > 0) {
 		/* for debug */
-		#if SHUB_DATA_DUMP
+#if SHUB_DATA_DUMP
 		memcpy(sipc_rx_data + total_read_byte_cnt,
 		       sensor->readbuff, nread);
 		total_read_byte_cnt += nread;
@@ -252,7 +250,7 @@ static int shub_sipc_channel_read(struct shub_data *sensor)
 			total_read_byte_cnt = 0;
 			memset(sipc_rx_data, 0, sizeof(sipc_rx_data));
 		}
-		#endif
+#endif
 		shub_parse_one_packet(&shub_stream_processor,
 				      sensor->readbuff, nread);
 		memset(sensor->readbuff, 0, sizeof(sensor->readbuff));
@@ -660,8 +658,8 @@ static int shub_download_opcode(struct shub_data *sensor)
 	return ret;
 }
 
-static int shub_sipc_read(
-	struct shub_data *sensor, u8 reg_addr, u8 *data, u8 len)
+static int shub_sipc_read(struct shub_data *sensor,
+			  u8 reg_addr, u8 *data, u8 len)
 {
 	int err = 0;
 	int wait_ret;
@@ -688,7 +686,7 @@ static int shub_sipc_read(
 	sensor->rx_buf = NULL;
 	sensor->rx_len = 0;
 	if (!sensor->rx_status)
-		err = -1;
+		err = -ETIMEDOUT;
 	mutex_unlock(&sensor->mutex_read);
 
 	return err;
@@ -789,7 +787,7 @@ static ssize_t debug_data_show(struct device *dev,
 	total_read_byte_cnt = 0;
 	memset(sipc_rx_data, 0, sizeof(sipc_rx_data));
 	return sprintf(buf, "total_read_byte_cnt=%d\n", total_read_byte_cnt);
-	#else
+#else
 	char *prompt = "not dump data\n";
 
 	return sprintf(buf, "%s", prompt);
@@ -1226,7 +1224,7 @@ static ssize_t flush_store(struct device *dev, struct device_attribute *attr,
 	if (shub_send_command(sensor, handle,
 			      SHUB_SET_FLUSH_SUBTYPE,
 			      NULL, 0x00) < 0)
-		dev_info(dev, "%s Fail\n", __func__);
+		dev_err(dev, " Fail\n");
 
 	__pm_wakeup_event(&(sensorhub_wake_lock), jiffies_to_msecs(200));
 
@@ -1252,8 +1250,8 @@ static int set_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id,
 				SHUB_SET_CALIBRATION_CMD_SUBTYPE,
 				data, sizeof(data));
 	if (!err)
-		dev_info(&sensor->sensor_pdev->dev,
-			 "Write CalibratorCmd Fail\n");
+		dev_err(&sensor->sensor_pdev->dev,
+			"Write CalibratorCmd Fail\n");
 
 	return err;
 }
@@ -1361,8 +1359,8 @@ static ssize_t calibrator_data_store(struct device *dev,
 				     const char *buf, size_t count)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
-	char data[30];
-	int temp[CALIBRATION_DATA_LENGTH] = { 0 };
+	char data[CALIBRATION_DATA_LENGTH];
+	int temp[CALIBRATION_DATA_LENGTH];
 	int i, err;
 
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
@@ -1399,6 +1397,7 @@ static ssize_t version_show(struct device *dev, struct device_attribute *attr,
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	u8 data[4];
 	s16 version = -1;
+	int err;
 
 	if (!sensor) {
 		dev_err(dev, "sensor data fail\r\n");
@@ -1410,12 +1409,14 @@ static ssize_t version_show(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 	}
 
-	if (shub_sipc_read(sensor, SHUB_GET_FWVERSION_SUBTYPE, data, 4) >= 0) {
+	err = shub_sipc_read(sensor, SHUB_GET_FWVERSION_SUBTYPE, data, 4);
+	if (err >= 0) {
 		version = (s16)(((u16)data[1]) << 8 | (u16)data[0]);
 		dev_info(dev, "Check FW Version[3-0]: (M:%u,D:%u,V:%u,SV:%u)\n",
 			 data[3], data[2], data[1], data[0]);
 	} else {
-		dev_info(dev, "Read  FW Version Fail\n");
+		dev_err(dev, "Read  FW Version Fail\n");
+		return err;
 	}
 
 	return sprintf(buf, "%d\n", version);
@@ -1524,12 +1525,11 @@ static ssize_t raw_data4_show(struct device *dev, struct device_attribute *attr,
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	u8 data[6];
-	u16 *ptr;
+	u16 *ptr = (u16 *)data;
 	int err;
 
-	ptr = (u16 *)data;
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
-		dev_info(dev, "mcu_mode == SHUB_BOOT!\n");
+		dev_err(dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
 	}
 	err = shub_sipc_read(sensor,
@@ -1691,15 +1691,14 @@ static ssize_t mag_cali_flag_store(struct device *dev,
 {
 	char data_buf[16];
 	unsigned short mag_cali_check;
-	int len;
-	int flag = 0;
-	long mag_library_size = 0;
+	int len, err, flag;
+	long mag_library_size;
 	struct shub_data *sensor = dev_get_drvdata(dev);
 
 	len = sscanf(buf, "%d %ld %hu", &flag, &mag_library_size,
 		     &mag_cali_check);
-	dev_info(dev, "the flag = %d, the mag size is %ld, crc_check = %d\r\n",
-		 flag, mag_library_size, mag_cali_check);
+	dev_dbg(dev, "the flag = %d, the mag size is %ld, crc_check = %d\r\n",
+		flag, mag_library_size, mag_cali_check);
 
 	memcpy(data_buf, &flag, sizeof(flag));
 	memcpy(data_buf + sizeof(flag), &mag_library_size,
@@ -1707,9 +1706,13 @@ static ssize_t mag_cali_flag_store(struct device *dev,
 	memcpy(data_buf + sizeof(flag) + sizeof(mag_library_size),
 	       &mag_cali_check, sizeof(mag_cali_check));
 
-	shub_send_command(sensor, SHUB_NODATA,
-			  SHUB_SEND_MAG_CALIBRATION_FLAG,
-			  data_buf, 16);
+	err = shub_send_command(sensor, SHUB_NODATA,
+				SHUB_SEND_MAG_CALIBRATION_FLAG,
+				data_buf, 16);
+	if (err < 0) {
+		dev_err(dev, " magcali_flag_store Fail\n");
+		return err;
+	}
 
 	return 0;
 }
@@ -1749,7 +1752,7 @@ static ssize_t shub_debug_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	int len;
-	u8 data_buf[5] = {0};
+	u8 data_buf[5];
 	struct shub_data *sensor = dev_get_drvdata(dev);
 
 	len = sscanf(buf, "%4hhx %4hhx %4hhx %4hhx %4hhx\n",
@@ -1790,16 +1793,6 @@ static struct attribute *sensorhub_attrs[] = {
 };
 ATTRIBUTE_GROUPS(sensorhub);
 
-static int shub_suspend(struct platform_device *pdev, pm_message_t state)
-{
-	return 0;
-}
-
-static int shub_resume(struct platform_device *pdev)
-{
-	return 0;
-}
-
 static int shub_notifier_fn(struct notifier_block *nb,
 			    unsigned long action, void *data)
 {
@@ -1827,8 +1820,7 @@ static int shub_notifier_fn(struct notifier_block *nb,
 static void iio_trigger_work(struct irq_work *work)
 {
 	struct shub_data *mcu_data =
-	    container_of((struct irq_work *)work,
-			 struct shub_data, iio_irq_work);
+	    container_of(work, struct shub_data, iio_irq_work);
 	iio_trigger_poll(mcu_data->trig);
 }
 
@@ -1849,35 +1841,32 @@ static const struct iio_buffer_setup_ops shub_iio_buffer_setup_ops = {
 	.predisable = iio_triggered_buffer_predisable,
 };
 
-static int shub_pseudo_irq_enable(struct iio_dev *indio_dev)
+static void shub_pseudo_irq_enable(struct iio_dev *indio_dev)
 {
 	struct shub_data *mcu_data = iio_priv(indio_dev);
 
 	atomic_cmpxchg(&mcu_data->pseudo_irq_enable, 0, 1);
-	return 0;
 }
 
-static int shub_pseudo_irq_disable(struct iio_dev *indio_dev)
+static void shub_pseudo_irq_disable(struct iio_dev *indio_dev)
 {
 	struct shub_data *mcu_data = iio_priv(indio_dev);
 
 	atomic_cmpxchg(&mcu_data->pseudo_irq_enable, 1, 0);
-	return 0;
 }
 
-static int shub_set_pseudo_irq(struct iio_dev *indio_dev, int enable)
+static void shub_set_pseudo_irq(struct iio_dev *indio_dev, int enable)
 {
 	if (enable)
 		shub_pseudo_irq_enable(indio_dev);
 	else
 		shub_pseudo_irq_disable(indio_dev);
-	return 0;
 }
 
 static int shub_data_rdy_trigger_set_state(struct iio_trigger *trig, bool state)
 {
 	struct iio_dev *indio_dev =
-	    (struct iio_dev *)iio_trigger_get_drvdata(trig);
+		iio_trigger_get_drvdata(trig);
 	struct shub_data *mcu_data = iio_priv(indio_dev);
 
 	mutex_lock(&mcu_data->mutex_lock);
@@ -1907,9 +1896,10 @@ static int shub_probe_trigger(struct iio_dev *iio_dev)
 
 	mcu_data->trig =
 	    iio_trigger_alloc("%s-dev%d", iio_dev->name, iio_dev->id);
-	if (!mcu_data->trig)
+	if (!mcu_data->trig) {
+		iio_dealloc_pollfunc(iio_dev->pollfunc);
 		return -ENOMEM;
-
+	}
 	mcu_data->trig->dev.parent = &mcu_data->sensor_pdev->dev;
 	mcu_data->trig->ops = &shub_iio_trigger_ops;
 	iio_trigger_set_drvdata(mcu_data->trig, iio_dev);
@@ -1935,8 +1925,8 @@ static int shub_read_raw(struct iio_dev *iio_dev,
 
 	if (chan->type == IIO_LIGHT) {
 		*val =  channel_data_light_x_int0;
-		dev_dbg(&iio_dev->dev, "%s() val = %u, time = %lu, now = %lu\n",
-			__func__, *val, channel_data_light_time, jiffies);
+		dev_dbg(&iio_dev->dev, " val = %u, time = %lu, now = %lu\n",
+			*val, channel_data_light_time, jiffies);
 		return IIO_VAL_INT;
 	}
 
@@ -2016,14 +2006,13 @@ static int shub_config_kfifo(struct iio_dev *iio_dev)
 	iio_dev->buffer = buffer;
 	iio_dev->setup_ops = &shub_iio_buffer_setup_ops;
 	iio_dev->modes |= INDIO_BUFFER_TRIGGERED;
-	dev_info(&iio_dev->dev, "iio buff register success\n");
 
 	return 0;
 }
 
 static int create_sysfs_interfaces(struct shub_data *mcu_data)
 {
-	int res;
+	int ret;
 
 	mcu_data->sensor_class = class_create(THIS_MODULE, "sprd_sensorhub");
 	if (IS_ERR(mcu_data->sensor_class))
@@ -2032,7 +2021,7 @@ static int create_sysfs_interfaces(struct shub_data *mcu_data)
 	mcu_data->sensor_dev =
 	    device_create(mcu_data->sensor_class, NULL, 0, "%s", "sensor_hub");
 	if (IS_ERR(mcu_data->sensor_dev)) {
-		res = PTR_ERR(mcu_data->sensor_dev);
+		ret = PTR_ERR(mcu_data->sensor_dev);
 		goto err_device_create;
 	}
 	debugfs_create_symlink("sensor", NULL,
@@ -2040,16 +2029,16 @@ static int create_sysfs_interfaces(struct shub_data *mcu_data)
 
 	dev_set_drvdata(mcu_data->sensor_dev, mcu_data);
 
-	res = sysfs_create_groups(&mcu_data->sensor_dev->kobj,
+	ret = sysfs_create_groups(&mcu_data->sensor_dev->kobj,
 				  sensorhub_groups);
-	if (res) {
+	if (ret) {
 		dev_err(mcu_data->sensor_dev, "failed to create sysfs device attributes\n");
 		goto error;
 	}
 
-	res = sysfs_create_link(&mcu_data->sensor_dev->kobj,
+	ret = sysfs_create_link(&mcu_data->sensor_dev->kobj,
 				&mcu_data->indio_dev->dev.kobj, "iio");
-	if (res < 0)
+	if (ret < 0)
 		goto error;
 
 	return 0;
@@ -2059,7 +2048,7 @@ error:
 	device_unregister(mcu_data->sensor_dev);
 err_device_create:
 	class_destroy(mcu_data->sensor_class);
-	return res;
+	return ret;
 }
 
 static void shub_remove_trigger(struct iio_dev *indio_dev)
@@ -2078,15 +2067,6 @@ static void shub_remove_buffer(struct iio_dev *indio_dev)
 
 static void shub_config_init(struct shub_data *sensor)
 {
-	int i;
-
-	for (i = 0; i < HANDLE_ID_END; i++)
-		sensor->enabled_list[i] = 0;
-
-	sensor->interrupt_status = 0;
-	sensor->cal_cmd = 0;
-	sensor->cal_type = 0;
-	sensor->cal_id = 0;
 	sensor->is_sensorhub = 1;
 }
 
@@ -2096,11 +2076,9 @@ static int shub_probe(struct platform_device *pdev)
 	struct iio_dev *indio_dev;
 	int error;
 
-	dev_info(&pdev->dev, "MAIN_VERSION : %s\n", MAIN_VERSION);
-
 	indio_dev = iio_device_alloc(sizeof(*mcu));
 	if (!indio_dev) {
-		dev_err(&pdev->dev, " %s: iio_device_alloc failed\n", __func__);
+		dev_err(&pdev->dev, " iio_device_alloc failed\n");
 		return -ENOMEM;
 	}
 
@@ -2133,15 +2111,15 @@ static int shub_probe(struct platform_device *pdev)
 	mutex_init(&mcu->send_command_mutex);
 
 	error = shub_config_kfifo(indio_dev);
-	if (error != 0) {
-		dev_err(&pdev->dev, "iio yas_probe_buffer failed\n");
+	if (error) {
+		dev_err(&pdev->dev, " shub_config_kfifo failed\n");
 		goto error_free_dev;
 	}
 
 	error = shub_probe_trigger(indio_dev);
 	if (error) {
 		dev_err(&pdev->dev,
-			"%s: iio yas_probe_trigger failed\n", __func__);
+			" shub_probe_trigger failed\n");
 		goto error_remove_buffer;
 	}
 	error = devm_iio_device_register(&pdev->dev, indio_dev);
@@ -2151,7 +2129,7 @@ static int shub_probe(struct platform_device *pdev)
 	}
 
 	error = create_sysfs_interfaces(mcu);
-	if (error != 0)
+	if (error)
 		goto err_free_mem;
 
 	INIT_WORK(&mcu->savecalifile_work, shub_save_calibration_data);
@@ -2206,6 +2184,7 @@ static int shub_remove(struct platform_device *pdev)
 	struct shub_data *mcu = platform_get_drvdata(pdev);
 	struct iio_dev *indio_dev = mcu->indio_dev;
 
+	unregister_pm_notifier(&mcu->early_suspend);
 	if (!IS_ERR_OR_NULL(thread))
 		kthread_stop(thread);
 	if (!IS_ERR_OR_NULL(thread_nwu))
@@ -2233,9 +2212,7 @@ static struct platform_driver shub_driver = {
 		   .name = SHUB_NAME,
 		   .owner = THIS_MODULE,
 		   .of_match_table = shub_match_table,
-	   },
-	.suspend = shub_suspend,
-	.resume = shub_resume,
+	},
 };
 
 module_platform_driver(shub_driver);
