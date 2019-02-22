@@ -52,6 +52,7 @@
 /*-----------------------------------------------------------------------*/
 /*                          FUNCTIONS HEADERS                            */
 /*-----------------------------------------------------------------------*/
+bool mmu_ex_check_en(ulong ctrl_base_addr, u32 iommu_id);
 void mmu_ex_enable(ulong ctrl_base_addr, u32 iommu_id, u32 mmu_enable);
 void mmu_ex_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 	u32 iommu_id);
