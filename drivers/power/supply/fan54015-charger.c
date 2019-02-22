@@ -465,7 +465,7 @@ static int fan54015_charger_get_status(struct fan54015_charger_info *info)
 	if (info->charging == true)
 		return POWER_SUPPLY_STATUS_CHARGING;
 	else
-		return POWER_SUPPLY_STATUS_DISCHARGING;
+		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
 static int fan54015_charger_set_status(struct fan54015_charger_info *info,
@@ -546,10 +546,10 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		if (info->charging)
+		if (info->limit)
 			val->intval = fan54015_charger_get_status(info);
 		else
-			val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
+			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
