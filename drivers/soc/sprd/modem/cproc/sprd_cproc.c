@@ -100,6 +100,7 @@ const char *cproc_dts_args[CPROC_CTRL_NR] = {
 	"sysreset",
 	"getstatus",
 	"dspreset",
+	"fshutdown",
 };
 
 struct cproc_proc_fs;
@@ -982,7 +983,7 @@ static int sprd_cproc_native_arm_start(void *arg)
 		strstr(pdata->devname, "v3phy"))
 		cproc_proc_copy_iram(cproc);
 
-	/* clear cp force shutdown */
+	/* clear modem sys cp force shutdown */
 	pr_debug("%s: force shutdown reg =0x%x, mask =0x%x\n",
 		 __func__,
 		 ctrl->ctrl_reg[CPROC_CTRL_SHUT_DOWN],
@@ -993,6 +994,19 @@ static int sprd_cproc_native_arm_start(void *arg)
 			CPROC_CTRL_SHUT_DOWN,
 			ctrl->ctrl_mask[CPROC_CTRL_SHUT_DOWN],
 			~ctrl->ctrl_mask[CPROC_CTRL_SHUT_DOWN]);
+	}
+
+	/* Clear cp force shutdown 0x48*/
+	if (ctrl->ctrl_reg[CPROC_CTRL_EXT0] != INVALID_REG) {
+		pr_debug("%s: force shutdown reg =0x%x, mask =0x%x\n",
+			__func__,
+			ctrl->ctrl_reg[CPROC_CTRL_EXT0],
+			ctrl->ctrl_mask[CPROC_CTRL_EXT0]);
+		sprd_cproc_regmap_update_bit(
+			ctrl,
+			CPROC_CTRL_EXT0,
+			ctrl->ctrl_mask[CPROC_CTRL_EXT0],
+			~ctrl->ctrl_mask[CPROC_CTRL_EXT0]);
 	}
 
 	/* clear cp force deep sleep */
@@ -1109,9 +1123,19 @@ static int sprd_cproc_native_arm_stop(void *arg)
 		msleep(50);
 	}
 
+	if ((ctrl->ctrl_reg[CPROC_CTRL_EXT0] & INVALID_REG)
+	    != INVALID_REG) {
+		/* Cp1 force shutdown 0x48 */
+		sprd_cproc_regmap_update_bit(
+			ctrl,
+			CPROC_CTRL_EXT0,
+			ctrl->ctrl_mask[CPROC_CTRL_EXT0],
+			ctrl->ctrl_mask[CPROC_CTRL_EXT0]);
+	}
+
 	if ((ctrl->ctrl_reg[CPROC_CTRL_SHUT_DOWN] & INVALID_REG)
 	    != INVALID_REG) {
-		/* cp1 force shutdown */
+		/* cp1 modem sys force shutdown */
 		sprd_cproc_regmap_update_bit(
 			ctrl,
 			CPROC_CTRL_SHUT_DOWN,
