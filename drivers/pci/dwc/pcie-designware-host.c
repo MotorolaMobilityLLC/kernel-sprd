@@ -601,6 +601,9 @@ void dw_pcie_setup_rc(struct pcie_port *pp)
 	/* setup RC BARs */
 	dw_pcie_writel_dbi(pci, PCI_BASE_ADDRESS_0, 0x00000004);
 	dw_pcie_writel_dbi(pci, PCI_BASE_ADDRESS_1, 0x00000000);
+	/* Disabled BAR0 and BAR1 */
+	dw_pcie_writel_dbi(pci, PCIE_DBI_CS2 + PCI_BASE_ADDRESS_0, 0);
+	dw_pcie_writel_dbi(pci, PCIE_DBI_CS2 + PCI_BASE_ADDRESS_1, 0);
 
 	/* setup interrupt pins */
 	dw_pcie_dbi_ro_wr_en(pci);

@@ -97,6 +97,14 @@
 #define PCIE_ATU_UNR_UPPER_TARGET	0x18
 
 /*
+ * Shadow registers (e.g. BAR mask registers) can be accessed
+ * through this register.
+ * If you write 0 to (Base address + 0x8000 + 0x10), then BAR0
+ * can be set to 0.
+ */
+#define PCIE_DBI_CS2 0x8000
+
+/*
  * Synopsys specific 8 iATU. Though *num_viewport* in dts specific the
  * numbers of iATU, we had better set the default value to 8.
  * Now only 3 regions are using, one is for IO, another is for config,
