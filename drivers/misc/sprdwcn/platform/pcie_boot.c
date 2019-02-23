@@ -96,10 +96,10 @@ retry:
 	}
 
 	/* download firmware */
-	sprd_pcie_bar_map(pcie_info, 0, GNSS_BASE_ADDR);
-	pcie_bar_write(pcie_info, 0, GNSS_CPSTART_OFFSET,
+	sprd_pcie_bar_map(pcie_info, 2, GNSS_BASE_ADDR, 1);
+	pcie_bar_write(pcie_info, 2, GNSS_CPSTART_OFFSET,
 			buffer, GNSS_FIRMWARE_SIZE_MAX);
-	pcie_bar_read(pcie_info, 0, GNSS_CPSTART_OFFSET, a, 10);
+	pcie_bar_read(pcie_info, 2, GNSS_CPSTART_OFFSET, a, 10);
 	for (i = 0; i < 10; i++)
 		PCIE_INFO("a[%d]= 0x%x\n", i, a[i]);
 
@@ -108,13 +108,13 @@ retry:
 		return -1;
 	}
 
-	sprd_pcie_bar_map(pcie_info, 0, GNSS_BASE_ADDR);
+	sprd_pcie_bar_map(pcie_info, 2, GNSS_BASE_ADDR, 1);
 	/* release cpu */
-	pcie_bar_read(pcie_info, 0, GNSS_CPRESET_OFFSET,
+	pcie_bar_read(pcie_info, 2, GNSS_CPRESET_OFFSET,
 			(char *)&reg_val, 0x4);
 	PCIE_INFO("-->reset reg is %d\n", reg_val);
 	reg_val = 0;
-	pcie_bar_write(pcie_info, 0, GNSS_CPRESET_OFFSET,
+	pcie_bar_write(pcie_info, 2, GNSS_CPRESET_OFFSET,
 			(char *)&reg_val, 0x4);
 	PCIE_INFO("<--reset reg is %d\n", reg_val);
 	vfree(buffer);
@@ -137,7 +137,7 @@ int btwf_boot_up(struct wcn_pcie_info *pcie_info, const char *path,
 		return -1;
 	}
 	/* download firmware */
-	sprd_pcie_bar_map(pcie_info, 0, 0x40400000);
+	sprd_pcie_bar_map(pcie_info, 0, 0x40400000, 0);
 	pcie_bar_write(pcie_info, 0, 0x100000, buffer, BTWF_FIRMWARE_SIZE_MAX);
 	pcie_bar_read(pcie_info, 0, 0x100000, a, 10);
 	for (i = 0; i < 10; i++)
@@ -146,7 +146,7 @@ int btwf_boot_up(struct wcn_pcie_info *pcie_info, const char *path,
 		PCIE_ERR("%s: mmcblk's data is dirty\n", __func__);
 		return -1;
 	}
-	sprd_pcie_bar_map(pcie_info, 0, 0x40000000);
+	sprd_pcie_bar_map(pcie_info, 0, 0x40000000, 0);
 	/* release cpu */
 	pcie_bar_read(pcie_info, 0, 0x88288, (char *)&reg_val, 0x4);
 	PCIE_INFO("-->reset reg is %d\n", reg_val);
@@ -158,26 +158,61 @@ int btwf_boot_up(struct wcn_pcie_info *pcie_info, const char *path,
 	return 0;
 }
 
-int wcn_boot_init(struct wcn_pcie_info *pcie_info,
-		  struct marlin_device *marlin_dev)
+int handle_gnss_boot(struct wcn_pcie_info *pcie_info,
+		     struct marlin_device *marlin_dev,
+		     enum marlin_sub_sys subsys)
 {
 	int temp;
 
 	PCIE_INFO("%s enter\n", __func__);
 
 	temp = gnss_boot_up(pcie_info, (const char *)marlin_dev->gnss_path,
-				GNSS_FIRMWARE_SIZE_MAX);
-	if (temp < 0)
+			    GNSS_FIRMWARE_SIZE_MAX);
+	if (temp < 0) {
 		PCIE_ERR("GNSS boot up fail\n");
+		marlin_dev->gnss_dl_finish_flag = 0;
+	} else
+		marlin_dev->gnss_dl_finish_flag = 1;
 
+	return 0;
+}
+
+int handle_btwf_boot(struct wcn_pcie_info *pcie_info,
+		     struct marlin_device *marlin_dev,
+		     enum marlin_sub_sys subsys)
+{
+	int temp;
+
+	PCIE_INFO("%s enter\n", __func__);
 	temp = btwf_boot_up(pcie_info, (const char *)marlin_dev->btwf_path,
-				BTWF_FIRMWARE_SIZE_MAX);
+			    BTWF_FIRMWARE_SIZE_MAX);
 	if (temp < 0) {
 		PCIE_ERR("BTWF boot up fail\n");
+		marlin_dev->download_finish_flag = 0;
 		return -1;
 	}
 
+	marlin_dev->download_finish_flag = 1;
+
 	return 0;
+}
+
+int wcn_boot_init(struct wcn_pcie_info *pcie_info,
+		  struct marlin_device *marlin_dev, enum marlin_sub_sys subsys)
+{
+	int temp = 0;
+
+	PCIE_INFO("%s enter\n", __func__);
+	if (!marlin_dev->download_finish_flag) {
+		handle_gnss_boot(pcie_info, marlin_dev, subsys);
+		temp = handle_btwf_boot(pcie_info, marlin_dev, subsys);
+		return temp;
+	}
+
+	if ((subsys == MARLIN_GNSS) && (!marlin_dev->gnss_dl_finish_flag))
+		temp = handle_gnss_boot(pcie_info, marlin_dev, subsys);
+
+	return temp;
 }
 EXPORT_SYMBOL(wcn_boot_init);
 
@@ -190,7 +225,7 @@ int pcie_boot(enum marlin_sub_sys subsys, struct marlin_device *marlin_dev)
 		PCIE_ERR("%s:maybe PCIE device link error\n", __func__);
 		return -1;
 	}
-	if (wcn_boot_init(pdev, marlin_dev) < 0) {
+	if (wcn_boot_init(pdev, marlin_dev, subsys) < 0) {
 		PCIE_ERR("%s: call wcn_boot_init fail\n", __func__);
 		return -1;
 	}

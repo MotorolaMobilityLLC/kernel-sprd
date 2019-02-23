@@ -257,21 +257,23 @@ int pcie_config_write(struct wcn_pcie_info *priv, int offset,
 	return 0;
 }
 
-int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar, unsigned int addr)
+int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar,
+		      unsigned int addr, char region)
 {
 	struct inbound_reg *ibreg = (struct inbound_reg *) ibreg_base(priv,
-								      bar);
+								      region);
 
 	if (!ibreg) {
-		PCIE_ERR("ibreg(%d) NULL\n", bar);
+		PCIE_ERR("ibreg(%d) NULL\n", region);
 		return -1;
 	}
 	ibreg->lower_target_addr = addr;
 	ibreg->upper_target_addr = 0x00000000;
 	ibreg->type = 0x00000000;
 	ibreg->limit = 0x00FFFFFF;
-	ibreg->en = REGION_EN | BAR_MATCH_MODE;
-	PCIE_DBG("%s(%d, 0x%x)\n", __func__, bar, addr);
+	ibreg->en = REGION_EN | BAR_MATCH_MODE | (bar << 8);
+	PCIE_DBG("%s(bar=%d, addr=0x%x, region=%d)\n",
+		 __func__, bar, addr, region);
 
 	return 0;
 }
@@ -284,18 +286,20 @@ int sprd_pcie_mem_write(unsigned int addr, void *buf, unsigned int len)
 	unsigned int offset;
 	unsigned int base_upper_addr;
 	int bar;
+	char region;
 
 	base_addr = addr / EP_INBOUND_ALIGN * EP_INBOUND_ALIGN;
 	offset = addr % EP_INBOUND_ALIGN;
 	base_upper_addr = ((addr + len)/EP_INBOUND_ALIGN * EP_INBOUND_ALIGN);
-	bar = 0;
+	bar = 2;
+	region = 1;
 
 	if (base_addr != base_upper_addr)
 		WARN_ON(1);
 	PCIE_INFO("%s: bar=%d, base_addr=0x%x, offset=0x%x, upper_addr=0x%x\n",
 		  __func__, bar, base_addr, offset, base_upper_addr);
 
-	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr);
+	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr, region);
 	if (ret < 0)
 		return ret;
 
@@ -313,18 +317,20 @@ int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len)
 	unsigned int offset;
 	unsigned int base_upper_addr;
 	int bar;
+	char region;
 
 	base_addr = addr / EP_INBOUND_ALIGN * EP_INBOUND_ALIGN;
 	offset = addr % EP_INBOUND_ALIGN;
 	base_upper_addr = ((addr + len)/EP_INBOUND_ALIGN * EP_INBOUND_ALIGN);
-	bar = 0;
+	bar = 2;
+	region = 1;
 
 	if (base_addr != base_upper_addr)
 		WARN_ON(1);
 	PCIE_INFO("%s: bar=%d, base_addr=0x%x, offset=0x%x, upper_addr=0x%x\n",
 		  __func__, bar, base_addr, offset, base_upper_addr);
 
-	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr);
+	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr, region);
 	if (ret < 0)
 		return ret;
 

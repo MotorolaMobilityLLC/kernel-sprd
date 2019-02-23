@@ -650,6 +650,21 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		}
 		return count;
 	}
+	if (strncmp(mdbg_proc->write_buf, "startgnss", 9) == 0) {
+		if (start_marlin(MARLIN_GNSS)) {
+			WCN_ERR("%s power on failed\n", __func__);
+			return -EIO;
+		}
+		return count;
+	}
+
+	if (strncmp(mdbg_proc->write_buf, "stopgnss", 8) == 0) {
+		if (stop_marlin(MARLIN_GNSS)) {
+			WCN_ERR("%s power off failed\n", __func__);
+			return -EIO;
+		}
+		return count;
+	}
 
 	if (strncmp(mdbg_proc->write_buf, "disabledumpmem",
 		strlen("disabledumpmem")) == 0) {

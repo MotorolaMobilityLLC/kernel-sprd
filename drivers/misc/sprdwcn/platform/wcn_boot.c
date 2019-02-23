@@ -2064,7 +2064,12 @@ int start_marlin(u32 subsys)
 	mutex_lock(&marlin_dev->power_lock);
 	WCN_INFO("%s [%s],power_status=%ld\n", __func__, strno(subsys),
 		 marlin_dev->power_state);
-	if (marlin_dev->download_finish_flag == 1) {
+
+	if (subsys == MARLIN_GNSS)
+		gnss_powerdomain_open();
+
+	if ((marlin_dev->download_finish_flag == 1) &&
+	    (marlin_dev->gnss_dl_finish_flag)) {
 		WCN_INFO("firmware have download\n");
 		mutex_unlock(&marlin_dev->power_lock);
 		return 0;
@@ -2125,7 +2130,12 @@ int stop_marlin(u32 subsys)
 	mem_pd_mgr(subsys, false);
 	return marlin_set_power(subsys, false);
 #else
+	if (subsys == MARLIN_GNSS) {
+		gnss_powerdomain_close();
+		marlin_dev->gnss_dl_finish_flag = 0;
+	}
 	clear_bit(subsys, &marlin_dev->power_state);
+
 	return 0;
 #endif
 }
