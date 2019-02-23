@@ -3199,7 +3199,7 @@ static int sprd_codec_soc_probe(struct snd_soc_codec *codec)
 /* power down chip */
 static int sprd_codec_soc_remove(struct snd_soc_codec *codec)
 {
-	sprd_headset_power_deinit();
+	sprd_headset_remove();
 
 	return 0;
 }

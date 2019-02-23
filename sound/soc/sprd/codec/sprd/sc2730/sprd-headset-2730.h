@@ -131,6 +131,11 @@ struct sprd_headset_platform_data {
 	u32 nbuttons;
 	int (*external_headmicbias_power_on)(int);
 	bool do_fm_mute;
+	bool support_typec_hdst;/* support typec analog headset */
+	struct gpio_desc *typec_mic_gpio;
+	struct gpio_desc *typec_lr_gpio;
+	struct regulator *switch_regu;
+	u32 switch_vol;
 };
 
 struct sprd_headset_power {
@@ -279,6 +284,10 @@ struct sprd_headset {
 	 */
 	/* the plug in/out state of last time irq handled */
 	int plug_state_last;
+	bool adc_big_scale;
+	bool typec_attached;
+	struct notifier_block typec_plug_nb;
+	struct extcon_dev *edev;
 };
 
 struct sprd_headset_global_vars {
@@ -291,13 +300,12 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec);
 int headset_register_notifier(struct notifier_block *nb);
 int headset_unregister_notifier(struct notifier_block *nb);
 int headset_get_plug_state(void);
-void sprd_headset_power_deinit(void);
+void sprd_headset_remove(void);
 #if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2723) || \
 	defined(CONFIG_SND_SOC_SPRD_CODEC_SC2731) || \
 	defined(CONFIG_SND_SOC_SPRD_CODEC_SC2721) || \
 	defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
 int sprd_headset_probe(struct platform_device *pdev);
-void sprd_headset_remove(void);
 #if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2721) || \
 	defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
 int headset_fast_charge_finished(void);
