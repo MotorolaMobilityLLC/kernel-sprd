@@ -83,8 +83,9 @@ struct sipa_rm_resource {
 struct sipa_rm_res_prod {
 	struct sipa_rm_resource resource;
 	struct completion request_prod_in_progress;
-	int (*request_resource)(void);
-	int (*release_resource)(void);
+	void *user_data;
+	int (*request_resource)(void *);
+	int (*release_resource)(void *);
 };
 
 struct sipa_rm_res_cons {

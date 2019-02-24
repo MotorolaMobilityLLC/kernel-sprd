@@ -120,23 +120,14 @@ enum sipa_rm_res_id {
 	SIPA_RM_RES_PROD_SDSLAVE,
 	SIPA_RM_RES_PROD_PCIE2,
 	SIPA_RM_RES_PROD_PCIE_EP,
+	SIPA_RM_RES_PROD_MINI_AP,
+	SIPA_RM_RES_PROD_AP,
+	SIPA_RM_RES_PROD_CP,
 	SIPA_RM_RES_PROD_MAX,
 
-	SIPA_RM_RES_CONS_AP_CP = SIPA_RM_RES_PROD_MAX,
-	SIPA_RM_RES_CONS_AP_EXT_CP,
-	SIPA_RM_RES_CONS_AP_WIFI,
-	SIPA_RM_RES_CONS_AP_USB,
-	SIPA_RM_RES_CONS_USB_CP,
-	SIPA_RM_RES_CONS_WIFI_CP,
-	SIPA_RM_RES_CONS_VOWIFI_CP,
-	SIPA_RM_RES_CONS_AP_CTRL0,
-	SIPA_RM_RES_CONS_AP_CTRL1,
-	SIPA_RM_RES_CONS_AP_CTRL2,
-	SIPA_RM_RES_CONS_AP_CTRL3,
-	SIPA_RM_RES_CONS_CP_CTRL0,
-	SIPA_RM_RES_CONS_CP_CTRL1,
-	SIPA_RM_RES_CONS_CP_CTRL2,
-	SIPA_RM_RES_CONS_CP_CTRL3,
+	SIPA_RM_RES_CONS_WWAN = SIPA_RM_RES_PROD_MAX,
+	SIPA_RM_RES_CONS_WLAN,
+	SIPA_RM_RES_CONS_USB,
 	SIPA_RM_RES_MAX
 };
 
@@ -293,8 +284,8 @@ struct sipa_rm_create_params {
 	enum sipa_rm_res_id name;
 	enum sipa_voltage_level floor_voltage;
 	struct sipa_rm_register_params reg_params;
-	int (*request_resource)(void);
-	int (*release_resource)(void);
+	int (*request_resource)(void *);
+	int (*release_resource)(void *);
 };
 
 /**

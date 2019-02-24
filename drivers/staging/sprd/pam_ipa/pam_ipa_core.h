@@ -7,6 +7,9 @@
 #define PAM_AKB_BUF_SIZE	1664
 #define PAM_FREE_FIFO_SIZE	128
 
+#define PAM_IPA_DDR_MAP_OFFSET_L				0x0
+#define PAM_IPA_DDR_MAP_OFFSET_H				0x2
+
 #define PAM_IPA_GET_LOW32(val) \
 			((u32)((val) & 0x00000000FFFFFFFF))
 #define PAM_IPA_GET_HIGH32(val) \
@@ -60,6 +63,7 @@ struct pam_ipa_hal_proc_tag {
 };
 
 struct pam_ipa_cfg_tag {
+	struct platform_device *pdev;
 	void __iomem *reg_base;
 	struct resource pam_ipa_res;
 
@@ -67,7 +71,7 @@ struct pam_ipa_cfg_tag {
 	u32 enable_reg;
 	u32 enable_mask;
 
-	u32 connect;
+	bool connected;
 	u64 pcie_offset;
 	u64 pcie_rc_base;
 
@@ -89,5 +93,6 @@ struct pam_ipa_cfg_tag {
 extern u32 pam_ipa_init_api(struct pam_ipa_hal_proc_tag *ops);
 extern u32 pam_ipa_init(struct pam_ipa_cfg_tag *cfg);
 extern int pam_ipa_set_enabled(struct pam_ipa_cfg_tag *cfg);
+extern int pam_ipa_on_miniap_ready(struct sipa_to_pam_info *remote_cfg);
 
 #endif

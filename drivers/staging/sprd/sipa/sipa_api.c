@@ -353,7 +353,7 @@ int sipa_get_ep_info(enum sipa_ep_id id,
 		pr_err("%s: ep id:%d not create!", __func__, id);
 		return -EPROBE_DEFER;
 	}
-	if (SIPA_EP_USB == id ||  SIPA_EP_WIFI == id)
+	if (SIPA_EP_USB == id || SIPA_EP_WIFI == id || SIPA_EP_PCIE == id)
 		sipa_hal_init_pam_param(ep->recv_fifo.idx,
 					ep->send_fifo.idx, out);
 	else

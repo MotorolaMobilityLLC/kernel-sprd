@@ -111,7 +111,7 @@ enum {
 
 	/* general communication, channel 120~129 */
 	SMSG_CH_COMM_BASE = 120,
-	SMSG_CH_COMM0 = SMSG_CH_COMM_BASE,
+	SMSG_CH_COMM_SIPA = SMSG_CH_COMM_BASE,
 	SMSG_CH_COMM1,
 	SMSG_CH_COMM2,
 	SMSG_CH_COMM3,
@@ -199,7 +199,8 @@ static const struct sipc_config sipc_cfg[] = {
 	{SMSG_CH_IMSBR_DATA, "imsbr data"}, /* chanel 2 */
 	{SMSG_CH_IMSBR_CTRL, "imsbr control"},  /* channel 3 */
 	{SMSG_CH_VOIP_DEEP, "audio voip deep"},  /*channel 151*/
-	{SMSG_CH_DVFS, "dvfs"}  /* channel 41 */
+	{SMSG_CH_DVFS, "dvfs"},  /* channel 41 */
+	{SMSG_CH_COMM_SIPA, "sipa"},  /* channel 120 */
 };
 
 #define SMSG_VALID_CH_NR (sizeof(sipc_cfg)/sizeof(struct sipc_config))

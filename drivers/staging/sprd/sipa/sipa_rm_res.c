@@ -47,6 +47,9 @@ int sipa_rm_prod_index(enum sipa_rm_res_id resource_name)
 	case SIPA_RM_RES_PROD_SDSLAVE:
 	case SIPA_RM_RES_PROD_PCIE2:
 	case SIPA_RM_RES_PROD_PCIE_EP:
+	case SIPA_RM_RES_PROD_MINI_AP:
+	case SIPA_RM_RES_PROD_AP:
+	case SIPA_RM_RES_PROD_CP:
 		break;
 	default:
 		result = SIPA_RM_INDEX_INVALID;
@@ -69,21 +72,9 @@ int sipa_rm_cons_index(enum sipa_rm_res_id resource_name)
 	int result = resource_name;
 
 	switch (resource_name) {
-	case SIPA_RM_RES_CONS_AP_CP:
-	case SIPA_RM_RES_CONS_AP_EXT_CP:
-	case SIPA_RM_RES_CONS_AP_WIFI:
-	case SIPA_RM_RES_CONS_AP_USB:
-	case SIPA_RM_RES_CONS_USB_CP:
-	case SIPA_RM_RES_CONS_WIFI_CP:
-	case SIPA_RM_RES_CONS_VOWIFI_CP:
-	case SIPA_RM_RES_CONS_AP_CTRL0:
-	case SIPA_RM_RES_CONS_AP_CTRL1:
-	case SIPA_RM_RES_CONS_AP_CTRL2:
-	case SIPA_RM_RES_CONS_AP_CTRL3:
-	case SIPA_RM_RES_CONS_CP_CTRL0:
-	case SIPA_RM_RES_CONS_CP_CTRL1:
-	case SIPA_RM_RES_CONS_CP_CTRL2:
-	case SIPA_RM_RES_CONS_CP_CTRL3:
+	case SIPA_RM_RES_CONS_WWAN:
+	case SIPA_RM_RES_CONS_WLAN:
+	case SIPA_RM_RES_CONS_USB:
 		break;
 	default:
 		result = SIPA_RM_INDEX_INVALID;
@@ -124,7 +115,7 @@ int sipa_rm_resource_producer_release_work(struct sipa_rm_res_prod *producer)
 	int driver_result;
 
 	pr_debug("calling driver CB\n");
-	driver_result = producer->release_resource();
+	driver_result = producer->release_resource(producer->user_data);
 	pr_debug("driver CB returned with %d\n", driver_result);
 
 	if (driver_result != 0 && driver_result != -EINPROGRESS)
@@ -144,7 +135,7 @@ int sipa_rm_resource_producer_request_work(struct sipa_rm_res_prod *prod)
 	int driver_result;
 
 	pr_debug("calling driver CB\n");
-	driver_result = prod->request_resource();
+	driver_result = prod->request_resource(prod->user_data);
 	pr_debug("driver CB returned with %d\n", driver_result);
 
 	return driver_result;
@@ -348,19 +339,19 @@ bail:
  * @notify_registered_only: notify only clients registered by
  *	sipa_rm_register()
  */
-void sipa_rm_resource_consumer_notify_clients(struct sipa_rm_res_cons *producer,
+void sipa_rm_resource_consumer_notify_clients(struct sipa_rm_res_cons *cons,
 					      enum sipa_rm_event event)
 {
 	struct sipa_rm_notif_info *reg_info;
 
 	pr_debug("%s event: %d\n",
-		 sipa_rm_res_str(producer->resource.name),
+		 sipa_rm_res_str(cons->resource.name),
 		 event);
 
-	list_for_each_entry(reg_info, &(producer->event_listeners), link) {
+	list_for_each_entry(reg_info, &cons->event_listeners, link) {
 
 		pr_debug("Notifying %s event: %d\n",
-			 sipa_rm_res_str(producer->resource.name),
+			 sipa_rm_res_str(cons->resource.name),
 			 event);
 		reg_info->reg_params.notify_cb(reg_info->reg_params.user_data,
 					       event,
@@ -381,6 +372,7 @@ sipa_rm_resource_producer_create(struct sipa_rm_resource **resource,
 
 	(*producer)->request_resource = create_params->request_resource;
 	(*producer)->release_resource = create_params->release_resource;
+	(*producer)->user_data = create_params->reg_params.user_data;
 	init_completion(&(*producer)->request_prod_in_progress);
 
 	*resource = (struct sipa_rm_resource *)*producer;
