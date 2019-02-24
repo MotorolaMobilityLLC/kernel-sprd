@@ -1511,9 +1511,6 @@ static int sblock_debug_show(struct seq_file *m, void *private)
 			sblock = sblocks[i][j];
 			if (!sblock)
 				continue;
-			ring = sblock->ring;
-			poolhd_op = &(ring->header_op.poolhd_op);
-			ringhd_op = &(ring->header_op.ringhd_op);
 
 			sipc_debug_putline(m, '*', 170);
 			seq_printf(m, "sblock dst %d, channel: %3d, state: %d, smem_virt: 0x%lx, smem_addr: 0x%0x, dst_smem_addr: 0x%0x, smem_size: 0x%0x, txblksz: %d, rxblksz: %d\n",
@@ -1526,6 +1523,17 @@ static int sblock_debug_show(struct seq_file *m, void *private)
 				   sblock->smem_size,
 				   sblock->txblksz,
 				   sblock->rxblksz);
+
+			/*
+			 * in client mode the ring can be null
+			 * before the block handshake with host
+			 */
+			ring = sblock->ring;
+			if (!ring)
+				continue;
+
+			poolhd_op = &(ring->header_op.poolhd_op);
+			ringhd_op = &(ring->header_op.ringhd_op);
 			seq_printf(m, "sblock ring: txblk_virt :0x%lx, rxblk_virt :0x%lx\n",
 				   (unsigned long)ring->txblk_virt,
 				   (unsigned long)ring->rxblk_virt);
