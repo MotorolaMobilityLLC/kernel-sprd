@@ -54,7 +54,6 @@
 
 #define CMD_SEND_TIMEOUT msecs_to_jiffies(3000)
 
-
 struct sprd_audio_sharemem {
 	int id;
 	/* communicate with dsp */
@@ -149,14 +148,14 @@ static int audio_cmd_copy(void *para, size_t n)
 
 	if (n > aud_ipc->param_size) {
 		pr_err("%s, data-size(%zu) out of range(%d)!\n",
-				__func__, n, aud_ipc->param_size);
+		       __func__, n, aud_ipc->param_size);
 		return -1;
 	}
 	/* write cmd para */
 	unalign_memcpy((void *)(aud_ipc->param_addr_v), para, n);
 
 	sp_asoc_pr_dbg("%s, write cmd para: txbuf_addr_v=0x%lx, tx_len=%zu\n",
-			__func__, aud_ipc->param_addr_v, n);
+		       __func__, aud_ipc->param_addr_v, n);
 
 	return 0;
 }
@@ -208,7 +207,7 @@ static int audio_sipc_create(int target_id)
 	sipc->size_inout = size_inout;
 
 	memset_io((void *)smsg_base_v, 0, size_inout);
-	smsg_txsize = (size_inout - AUDIO_SMSG_RINGHDR_EXT_SIZE)/2;
+	smsg_txsize = (size_inout - AUDIO_SMSG_RINGHDR_EXT_SIZE) / 2;
 	smsg_rxsize = smsg_txsize;
 	smsg_txaddr = smsg_base_v;
 	smsg_rxaddr = smsg_base_v + smsg_txsize;
@@ -286,7 +285,7 @@ static int aud_ipc_command_param_init(void)
 	struct audio_ipc *aud_ipc = aud_ipc_get();
 
 	aud_ipc->param_addr_p = audio_mem_alloc(IRAM_SMS_COMMD_PARAMS,
-		&aud_ipc->param_size);
+						&aud_ipc->param_size);
 	if (aud_ipc->param_addr_p) {
 		aud_ipc->param_addr_v = (size_t)audio_mem_vmap(
 							aud_ipc->param_addr_p,
@@ -359,10 +358,9 @@ static struct aud_block_param *aud_ipc_block_param_get(int type)
 	}
 
 	for (i = 0; i < MAX_BLOCK_PARAMETERS; i++) {
-		if ((aud_ipc->block_param[i].type == mem_type) &&
-			aud_ipc->block_param[i].size) {
+		if (aud_ipc->block_param[i].type == mem_type &&
+		    aud_ipc->block_param[i].size)
 			return  &aud_ipc->block_param[i];
-		}
 	}
 
 	return NULL;
@@ -381,22 +379,22 @@ u32 aud_ipc_dump(void *buf, u32 buf_bytes)
 	unalign_memcpy((char *)buf + bytes, (void *)sipc->param_addr_v,
 		       sipc->param_size);
 	bytes += sipc->param_size;
-	unalign_memset((char *)buf + bytes, PAD_VALUE+1, PAD_BYTES);
+	unalign_memset((char *)buf + bytes, PAD_VALUE + 1, PAD_BYTES);
 	bytes += PAD_BYTES;
 
 	for (i = 0; i < MAX_BLOCK_PARAMETERS; i++) {
 		if (sipc->block_param[i].size) {
 			if ((bytes + sipc->block_param[i].size) < buf_bytes) {
-				unalign_memcpy((char *)buf + bytes,
-			(void *)(unsigned long)sipc->block_param[i].addr_v,
-					sipc->block_param[i].size);
+				unalign_memcpy((char *)buf + bytes, (void *)
+				(unsigned long)sipc->block_param[i].addr_v,
+				sipc->block_param[i].size);
 				bytes += sipc->block_param[i].size;
 			}
 		}
 	}
 
 	if ((bytes + PAD_BYTES) < buf_bytes) {
-		unalign_memset((char *)buf + bytes, PAD_VALUE+2, PAD_BYTES);
+		unalign_memset((char *)buf + bytes, PAD_VALUE + 2, PAD_BYTES);
 		bytes += PAD_BYTES;
 	}
 
@@ -420,7 +418,7 @@ static int aud_ipc_init(int target_id)
 	ret = aud_ipc_command_param_init();
 	if (ret < 0) {
 		pr_err("%s %d aud_ipc_command_param_init failed\n",
-			__func__, __LINE__);
+		       __func__, __LINE__);
 		audio_sipc_destroy(AUD_IPC_AGDSP);
 		return -1;
 	}
@@ -429,7 +427,7 @@ static int aud_ipc_init(int target_id)
 	ret = aud_ipc_block_param_init();
 	if (ret < 0) {
 		pr_err("%s %d aud_ipc_block_param_init failed\n",
-			__func__, __LINE__);
+		       __func__, __LINE__);
 		audio_sipc_destroy(AUD_IPC_AGDSP);
 		return -1;
 	}
@@ -485,62 +483,61 @@ int aud_recv_cmd(u16 channel, u32 cmd, struct aud_smsg *result,
 			return ret;
 		}
 		pr_err("%s, Failed to recv channel =%d cmd(0x%x),ret(%d)\n",
-			__func__, channel, cmd, ret);
+		       __func__, channel, cmd, ret);
 		return -EIO;
 	}
 	sp_asoc_pr_dbg("%s, chan: 0x%x, cmd: 0x%x, value0: 0x%x, value1: 0x%x,",
-		__func__, mrecv.channel, mrecv.command,
+		       __func__, mrecv.channel, mrecv.command,
 		mrecv.parameter0, mrecv.parameter1);
 	sp_asoc_pr_dbg(" value2: 0x%x, value3: 0x%x, timeout: %d\n",
-		mrecv.parameter2, mrecv.parameter3, timeout);
+		       mrecv.parameter2, mrecv.parameter3, timeout);
 
 	if (cmd == mrecv.command && mrecv.channel == channel && result) {
 		*result = mrecv;
 		return 0;
 	}
 	pr_err("%s, Haven't got right cmd(0x%x), got cmd(0x%x)",
-		__func__, cmd, mrecv.command);
+	       __func__, cmd, mrecv.command);
 	pr_err(" got chan(0x%x)\n",
-		mrecv.channel);
+	       mrecv.channel);
 
 	return -EIO;
-
 }
 
-int aud_send_msg(uint16_t channel, u32 cmd, u32 value0,
-		 u32 value1, u32 value2, int32_t value3)
+static int aud_send_msg(u16 channel, u32 cmd, u32 value0,
+			u32 value1, u32 value2, int32_t value3)
 {
 	int ret = 0;
 	struct aud_smsg msend = { 0 };
 
 	sp_asoc_pr_dbg("%s,cmd: 0x%x, value0: 0x%x, value1: 0x%x,",
-		__func__, cmd, value0, value1);
+		       __func__, cmd, value0, value1);
 	sp_asoc_pr_dbg(" value2: 0x%x, value3: 0x%x\n",
-		value2, value3);
+		       value2, value3);
 
 	aud_smsg_set(&msend, channel, cmd, value0, value1, value2, value3);
 
 	ret = aud_smsg_send(AUD_IPC_AGDSP, &msend);
 	if (ret) {
 		pr_err("%s, Failed to send cmd(0x%x), ret(%d)\n",
-			__func__, cmd, ret);
+		       __func__, cmd, ret);
 		return -EIO;
 	}
 
 	return 0;
 }
 
-int aud_send_cmd_no_wait(uint16_t channel, u32 cmd,
-	u32 value0, u32 value1, u32 value2, int32_t value3)
+int aud_send_cmd_no_wait(u16 channel, u32 cmd,
+			 u32 value0, u32 value1, u32 value2, int32_t value3)
 {
 	int ret;
 
 	pr_info("%s no wait\n", __func__);
 	ret = aud_send_msg(channel, cmd,
-	value0, value1, value2, value3);
+			   value0, value1, value2, value3);
 	if (ret < 0) {
 		pr_err("%s: channel=%d failed to send command(%d), ret=%d\n",
-			__func__, channel, cmd, ret);
+		       __func__, channel, cmd, ret);
 
 		return -EIO;
 	}
@@ -548,8 +545,8 @@ int aud_send_cmd_no_wait(uint16_t channel, u32 cmd,
 	return 0;
 }
 
-int aud_send_cmd_no_param(uint16_t channel, u32 cmd,
-	u32 value0, u32 value1, u32 value2, int32_t value3,
+int aud_send_cmd_no_param(u16 channel, u32 cmd,
+			  u32 value0, u32 value1, u32 value2, int32_t value3,
 	int32_t timeout)
 {
 	int ret;
@@ -563,10 +560,10 @@ int aud_send_cmd_no_param(uint16_t channel, u32 cmd,
 
 	/* send audio cmd */
 	ret = aud_send_msg(channel, cmd,
-		value0, value1, value2, value3);
+			   value0, value1, value2, value3);
 	if (ret < 0) {
 		pr_err("%s: failed to channel=%d send command(%d), ret=%d\n",
-				__func__, channel, cmd, ret);
+		       __func__, channel, cmd, ret);
 		goto err;
 	}
 
@@ -579,7 +576,7 @@ int aud_send_cmd_no_param(uint16_t channel, u32 cmd,
 
 	if (ret < 0) {
 		pr_err("%s: failed to get channel= %d command(%d), ret=%d\n",
-			__func__, channel, cmd, ret);
+		       __func__, channel, cmd, ret);
 		goto err;
 	}
 	pr_info(
@@ -606,8 +603,8 @@ int aud_send_use_noreplychan(
  * id : parameter0(exchange with dsp)
  * cmd: command
  */
-int aud_send_cmd(uint16_t channel, int id, int stream,
-	u32 cmd, void *para, size_t n, int32_t timeout)
+int aud_send_cmd(u16 channel, int id, int stream,
+		 u32 cmd, void *para, size_t n, int32_t timeout)
 {
 	int ret;
 	struct aud_smsg value;
@@ -620,7 +617,7 @@ int aud_send_cmd(uint16_t channel, int id, int stream,
 	ret = audio_cmd_copy(para, n);
 	if (ret < 0) {
 		pr_err("%s: failed to write command(%d) para, ret=%d\n",
-				__func__, cmd, ret);
+		       __func__, cmd, ret);
 		goto err;
 	}
 
@@ -633,10 +630,10 @@ int aud_send_cmd(uint16_t channel, int id, int stream,
 
 	/* send audio cmd */
 	ret = aud_send_msg(channel, cmd,
-		id, stream, aud_ipc->param_addr_p, 0);
+			   id, stream, aud_ipc->param_addr_p, 0);
 	if (ret < 0) {
 		pr_err("%s: failed to send command(%d), ret=%d\n",
-				__func__, cmd, ret);
+		       __func__, cmd, ret);
 		goto err;
 	}
 	pr_info("%s %d wait dsp\n", __func__, __LINE__);
@@ -647,7 +644,7 @@ int aud_send_cmd(uint16_t channel, int id, int stream,
 
 	if (ret < 0) {
 		pr_err("%s: failed to get command(%d), ret=%d\n",
-				__func__, cmd, ret);
+		       __func__, cmd, ret);
 		goto err;
 	}
 
@@ -729,8 +726,8 @@ err:
 /*
  * @type: comunicate with dsp
  */
-int aud_send_block_param(uint16_t channel, int id, int stream, u32 cmd,
-	int type, void *buf, size_t n, int32_t timeout)
+int aud_send_block_param(u16 channel, int id, int stream, u32 cmd,
+			 int type, void *buf, size_t n, int32_t timeout)
 {
 	int ret = 0;
 	struct sprd_audio_sharemem sharemem_info;
@@ -745,7 +742,7 @@ int aud_send_block_param(uint16_t channel, int id, int stream, u32 cmd,
 	}
 	if (block_param->size < n) {
 		pr_err("%s block_param->size=%#x < datasize=%#zx\n",
-			__func__, block_param->size, n);
+		       __func__, block_param->size, n);
 		aud_ipc_block_param_unlock();
 		return -1;
 	}
@@ -763,11 +760,12 @@ int aud_send_block_param(uint16_t channel, int id, int stream, u32 cmd,
 		sharemem_info.phy_iram_addr,
 		sharemem_info.size);
 	ret = aud_send_cmd(channel, id, stream, cmd, &sharemem_info,
-		sizeof(struct sprd_audio_sharemem), AUDIO_SIPC_WAIT_FOREVER);
+			   sizeof(struct sprd_audio_sharemem),
+			   AUDIO_SIPC_WAIT_FOREVER);
 	if (ret < 0) {
 		aud_ipc_block_param_unlock();
 		pr_err("%s: failed to send command(%d), ret=%d\n",
-				__func__, cmd, ret);
+		       __func__, cmd, ret);
 		return -1;
 	}
 
@@ -776,8 +774,9 @@ int aud_send_block_param(uint16_t channel, int id, int stream, u32 cmd,
 	return 0;
 }
 
-int aud_recv_block_param(uint16_t channel, int id, int stream,
-	u32 cmd, int type, void *buf, u32 size, int32_t timeout)
+int aud_recv_block_param(u16 channel, int id, int stream,
+			 u32 cmd, int type, void *buf, u32 size,
+			 int32_t timeout)
 {
 	int ret = 0;
 	struct sprd_audio_sharemem sharemem_info;
@@ -801,14 +800,14 @@ int aud_recv_block_param(uint16_t channel, int id, int stream,
 	sharemem_info.size = block_param->size;
 	/* send audio cmd */
 	ret = aud_send_cmd(channel, id, stream, cmd, &sharemem_info,
-		sizeof(struct sprd_audio_sharemem), timeout);
+			   sizeof(struct sprd_audio_sharemem), timeout);
 	if (ret < 0) {
 		pr_err("%s: failed to send command(%d), ret=%d\n",
-				__func__, cmd, ret);
+		       __func__, cmd, ret);
 		return -1;
 	}
 	unalign_memcpy(buf, (void *)(unsigned long)block_param->addr_v,
-		block_param->size);
+		       block_param->size);
 
 	return 0;
 }
