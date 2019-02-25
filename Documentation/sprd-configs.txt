@@ -2551,7 +2551,7 @@ CONFIG_DEFAULT_TCP_CONG
 	[function] default algorithm of congestion control
 CONFIG_DEFAULT_USE_ENERGY_AWARE
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] sched
 	[must] user
@@ -9039,7 +9039,7 @@ CONFIG_SCHED_TRACER
 	[function] Scheduling Latency Tracer
 CONFIG_SCHED_TUNE
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] sched
 	[must] user
