@@ -72,7 +72,7 @@ static const struct dw_pcie_host_ops sprd_pcie_host_ops = {
 
 static void sprd_pcie_ep_init(struct dw_pcie_ep *ep)
 {
-	/* TODO*/
+	dw_pcie_setup_ep(ep);
 }
 
 static int sprd_pcie_ep_raise_irq(struct dw_pcie_ep *ep,

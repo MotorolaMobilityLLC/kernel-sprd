@@ -332,6 +332,19 @@ static u8 dw_pcie_iatu_unroll_enabled(struct dw_pcie *pci)
 	return 0;
 }
 
+
+void dw_pcie_setup_ep(struct dw_pcie_ep *ep)
+{
+	u32 val;
+	struct dw_pcie *pci = to_dw_pcie_from_ep(ep);
+
+	dw_pcie_setup(pci);
+
+	val = dw_pcie_readl_dbi(pci, PCIE_SYMBOL_TIMER_FILTER_1_OFF);
+	val |= CX_FLT_MASK_UR_POIS;
+	dw_pcie_writel_dbi(pci, PCIE_SYMBOL_TIMER_FILTER_1_OFF, val);
+}
+
 int dw_pcie_ep_init(struct dw_pcie_ep *ep)
 {
 	int ret;
@@ -397,7 +410,7 @@ int dw_pcie_ep_init(struct dw_pcie_ep *ep)
 
 	ep->epc = epc;
 	epc_set_drvdata(epc, ep);
-	dw_pcie_setup(pci);
+	dw_pcie_setup_ep(ep);
 
 	return 0;
 }

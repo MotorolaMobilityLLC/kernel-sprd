@@ -38,6 +38,9 @@
 #define PORT_LINK_MODE_4_LANES		(0x7 << 16)
 #define PORT_LINK_MODE_8_LANES		(0xf << 16)
 
+#define PCIE_SYMBOL_TIMER_FILTER_1_OFF	0x71c
+#define CX_FLT_MASK_UR_POIS		(0x1 << 17)
+
 #define PCIE_LINK_WIDTH_SPEED_CONTROL	0x80C
 #define PORT_LOGIC_SPEED_CHANGE		(0x1 << 17)
 #define PORT_LOGIC_LINK_WIDTH_MASK	(0x1f << 8)
@@ -365,11 +368,16 @@ static inline int dw_pcie_host_init(struct pcie_port *pp)
 
 #ifdef CONFIG_PCIE_DW_EP
 void dw_pcie_ep_linkup(struct dw_pcie_ep *ep);
+void dw_pcie_setup_ep(struct dw_pcie_ep *ep);
 int dw_pcie_ep_init(struct dw_pcie_ep *ep);
 void dw_pcie_ep_exit(struct dw_pcie_ep *ep);
 int dw_pcie_ep_raise_msi_irq(struct dw_pcie_ep *ep, u8 interrupt_num);
 #else
 static inline void dw_pcie_ep_linkup(struct dw_pcie_ep *ep)
+{
+}
+
+static inline void dw_pcie_setup_ep(struct dw_pcie_ep *ep)
 {
 }
 
