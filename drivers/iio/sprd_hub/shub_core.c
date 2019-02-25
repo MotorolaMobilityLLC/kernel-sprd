@@ -541,9 +541,6 @@ static void request_send_firmware(struct shub_data *sensor,
 	}
 	if (!success)
 		dev_err(&sensor->sensor_pdev->dev, "%s failed\n", __func__);
-
-	dev_info(&sensor->sensor_pdev->dev,
-		 "%s sensor_type = %d end\n", __func__, sensor_type);
 }
 
 static int shub_download_opcode(struct shub_data *sensor)
@@ -720,8 +717,6 @@ static int shub_download_opcodefile(struct shub_data *sensor)
 
 	ret = shub_download_opcode(sensor);
 
-	dev_info(&sensor->sensor_pdev->dev, "ret=%d\n", ret);
-
 	return ret;
 }
 
@@ -737,7 +732,6 @@ static void shub_send_ap_status(struct shub_data *sensor, u8 status)
 	sensor->mcu_mode = status;
 	ret = shub_send_command(sensor, HANDLE_MAX,
 				SHUB_SET_HOST_STATUS_SUBTYPE, &status, 1);
-	dev_info(&sensor->sensor_pdev->dev, "ret = %d\n", ret);
 }
 
 static void shub_synctimestamp(struct shub_data *sensor)
@@ -802,7 +796,6 @@ static ssize_t reader_enable_show(struct device *dev,
 				  struct device_attribute *attr,
 				  char *buf)
 {
-	dev_info(dev, "debug_flag=%d\n", debug_flag);
 	return sprintf(buf, "debug_flag=%d\n", debug_flag);
 }
 
@@ -810,11 +803,8 @@ static ssize_t reader_enable_store(struct device *dev,
 				   struct device_attribute *attr,
 				   const char *buf, size_t count)
 {
-	struct shub_data *sensor = dev_get_drvdata(dev);
 	int len;
 
-	dev_info(dev, "user echo is:%s  count=%d sensor=%p\n",
-		 buf, (int)count, sensor);
 	len = sscanf(buf, "%d\n", &debug_flag);
 	return count;
 }
@@ -1004,8 +994,6 @@ static void shub_save_calibration_data(struct work_struct *work)
 	}
 	if (pfile)
 		filp_close(pfile, NULL);
-
-	dev_info(&sensor->sensor_pdev->dev, "end\n");
 }
 
 static void shub_save_mag_offset(struct shub_data *sensor,
@@ -1035,8 +1023,6 @@ static void shub_save_mag_offset(struct shub_data *sensor,
 	}
 	if (pfile)
 		filp_close(pfile, NULL);
-
-	dev_info(&sensor->sensor_pdev->dev, "end\n");
 }
 
 static int shub_download_calibration_data(struct shub_data *sensor)
@@ -1050,9 +1036,6 @@ static int shub_download_calibration_data(struct shub_data *sensor)
 	int sensor_type = 0, j = 0;
 
 	for (sensor_type = 0; sensor_type < 9; sensor_type++) {
-		dev_info(&sensor->sensor_pdev->dev,
-			 "sensor_type=%d,filename=%s\n", sensor_type,
-			 calibration_filename[sensor_type]);
 		sprintf(file_path, CALIBRATION_NODE "%s",
 			calibration_filename[sensor_type]);
 		dev_info(&sensor->sensor_pdev->dev,
@@ -1164,7 +1147,7 @@ static ssize_t batch_store(struct device *dev, struct device_attribute *attr,
 	if (shub_send_command(sensor, batch_cmd.handle,
 			      SHUB_SET_BATCH_SUBTYPE,
 			      (char *)&batch_cmd.report_rate, 12) < 0)
-		dev_info(dev, "%s Fail\n", __func__);
+		dev_err(dev, "%s Fail\n", __func__);
 
 	return count;
 }
@@ -1297,7 +1280,7 @@ static ssize_t calibrator_data_show(struct device *dev,
 			     SHUB_GET_CALIBRATION_DATA_SUBTYPE,
 			     sensor->calibrated_data, CALIBRATION_DATA_LENGTH);
 	if (err < 0) {
-		dev_info(dev, " Read CalibratorData Fail\n");
+		dev_err(dev, " Read CalibratorData Fail\n");
 		return err;
 	}
 
@@ -1375,15 +1358,13 @@ static ssize_t version_show(struct device *dev, struct device_attribute *attr,
 	}
 
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
-		dev_info(dev, "mcu_mode == SHUB_BOOT!\n");
+		dev_err(dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
 	}
 
 	err = shub_sipc_read(sensor, SHUB_GET_FWVERSION_SUBTYPE, data, 4);
 	if (err >= 0) {
 		version = (s16)(((u16)data[1]) << 8 | (u16)data[0]);
-		dev_info(dev, "Check FW Version[3-0]: (M:%u,D:%u,V:%u,SV:%u)\n",
-			 data[3], data[2], data[1], data[0]);
 	} else {
 		dev_err(dev, "Read  FW Version Fail\n");
 		return err;
@@ -1403,7 +1384,7 @@ static ssize_t raw_data0_show(struct device *dev, struct device_attribute *attr,
 
 	ptr = (u16 *)data;
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
-		dev_info(dev, "mcu_mode == SHUB_BOOT!\n");
+		dev_err(dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
 	}
 
@@ -1413,7 +1394,6 @@ static ssize_t raw_data0_show(struct device *dev, struct device_attribute *attr,
 		dev_err(dev, "read RegMapR_GetAccelerationRawData failed!\n");
 		return err;
 	}
-	dev_info(dev, "RawData0:%u,%u,%u)\n", ptr[0], ptr[1], ptr[2]);
 	return sprintf(buf, "%d %u %u %u\n", err, ptr[0], ptr[1], ptr[2]);
 }
 static DEVICE_ATTR_RO(raw_data0);
@@ -1428,7 +1408,7 @@ static ssize_t raw_data1_show(struct device *dev, struct device_attribute *attr,
 
 	ptr = (u16 *)data;
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
-		dev_info(dev, "mcu_mode == SHUB_BOOT!\n");
+		dev_err(dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
 	}
 	err = shub_sipc_read(sensor,
@@ -1437,7 +1417,6 @@ static ssize_t raw_data1_show(struct device *dev, struct device_attribute *attr,
 		dev_err(dev, "read RegMapR_GetMagneticRawData failed!\n");
 		return err;
 	}
-	dev_info(dev, "RawData1:%u,%u,%u)\n", ptr[0], ptr[1], ptr[2]);
 	return sprintf(buf, "%d %u %u %u\n", err, ptr[0], ptr[1], ptr[2]);
 }
 static DEVICE_ATTR_RO(raw_data1);
@@ -1452,7 +1431,7 @@ static ssize_t raw_data2_show(struct device *dev, struct device_attribute *attr,
 
 	ptr = (u16 *)data;
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
-		dev_info(dev, "mcu_mode == SHUB_BOOT!\n");
+		dev_err(dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
 	}
 	err = shub_sipc_read(sensor,
@@ -1461,7 +1440,6 @@ static ssize_t raw_data2_show(struct device *dev, struct device_attribute *attr,
 		dev_err(dev, "read RegMapR_GetGyroRawData failed!\n");
 		return err;
 	}
-	dev_info(dev, "RawData2:%u,%u,%u)\n", ptr[0], ptr[1], ptr[2]);
 	return sprintf(buf, "%d %u %u %u\n", err, ptr[0], ptr[1], ptr[2]);
 }
 static DEVICE_ATTR_RO(raw_data2);
@@ -1476,7 +1454,7 @@ static ssize_t raw_data3_show(struct device *dev, struct device_attribute *attr,
 
 	ptr = (u16 *)data;
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
-		dev_info(dev, "mcu_mode == SHUB_BOOT!\n");
+		dev_err(dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
 	}
 
@@ -1485,7 +1463,6 @@ static ssize_t raw_data3_show(struct device *dev, struct device_attribute *attr,
 		dev_err(dev, "read RegMapR_GetLightRawData failed!\n");
 		return err;
 	}
-	dev_info(dev, "RawData3:%u,%u,%u)\n", ptr[0], ptr[1], ptr[2]);
 	return sprintf(buf, "%d %u %u %u\n", err, ptr[0], ptr[1], ptr[2]);
 }
 static DEVICE_ATTR_RO(raw_data3);
