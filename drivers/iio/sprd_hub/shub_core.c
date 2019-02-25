@@ -446,12 +446,7 @@ static void request_send_firmware(struct shub_data *sensor,
 	int ret;
 	int success = 0;
 	struct file *file;
-	mm_segment_t fs;
 	loff_t *pos;
-
-	/* change to KERNEL_DS address limit */
-	fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	dev_info(&sensor->sensor_pdev->dev,
 		 "%s sensor_type = %d start\n", __func__, sensor_type);
@@ -488,7 +483,7 @@ static void request_send_firmware(struct shub_data *sensor,
 			continue;
 		}
 		pos = &file->f_pos;
-		vfs_read(file, (void __user *)cali_data, size, pos);
+		kernel_read(file, cali_data, size, pos);
 
 		cali_info->data = kmalloc(size, GFP_KERNEL);
 		if (!cali_info->data) {
@@ -523,7 +518,7 @@ static void request_send_firmware(struct shub_data *sensor,
 			filp_close(file, NULL);
 			continue;
 		}
-		vfs_read(file, (void __user *)fw_data, size, pos);
+		kernel_read(file, (void __user *)fw_data, size, pos);
 		filp_close(file, NULL);
 
 		fw_head = (struct fwshub_head *)fw_data;
@@ -547,8 +542,6 @@ static void request_send_firmware(struct shub_data *sensor,
 	if (!success)
 		dev_err(&sensor->sensor_pdev->dev, "%s failed\n", __func__);
 
-	/* restore previous address limit */
-	set_fs(fs);
 	dev_info(&sensor->sensor_pdev->dev,
 		 "%s sensor_type = %d end\n", __func__, sensor_type);
 }
@@ -983,15 +976,9 @@ static void shub_save_calibration_data(struct work_struct *work)
 {
 	int err = 0, nwrite = 0;
 	struct file *pfile = NULL;
-	mm_segment_t old_fs;
 	char file_path[CALIB_PATH_MAX_LENG];
 	struct shub_data *sensor = container_of(work,
 		struct shub_data, savecalifile_work);
-
-	/* debuginfor(sensor->calibrated_data,CALIBRATION_DATA_LENGTH); */
-	/* change to KERNEL_DS address limit */
-	old_fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	sprintf(file_path, CALIBRATION_NODE "%s",
 		calibration_filename[sensor->cal_id]);
@@ -1003,13 +990,11 @@ static void shub_save_calibration_data(struct work_struct *work)
 		dev_err(&sensor->sensor_pdev->dev,
 			"open file %s error=%d\n", file_path, err);
 		sensor->cal_savests = err;
-		set_fs(old_fs);
 		return;
 	}
-	nwrite =
-	    vfs_write(pfile, sensor->calibrated_data,
-		      CALIBRATION_DATA_LENGTH,
-		      &pfile->f_pos);
+	nwrite = kernel_write(pfile, sensor->calibrated_data,
+			      CALIBRATION_DATA_LENGTH,
+			      &pfile->f_pos);
 	if (nwrite < 0) {
 		dev_err(&sensor->sensor_pdev->dev, "nwrite=%d\n", nwrite);
 		err = nwrite;
@@ -1020,8 +1005,6 @@ static void shub_save_calibration_data(struct work_struct *work)
 	if (pfile)
 		filp_close(pfile, NULL);
 
-	/* restore previous address limit */
-	set_fs(old_fs);
 	dev_info(&sensor->sensor_pdev->dev, "end\n");
 }
 
@@ -1030,11 +1013,7 @@ static void shub_save_mag_offset(struct shub_data *sensor,
 {
 	int err = 0, nwrite = 0;
 	struct file *pfile = NULL;
-	mm_segment_t old_fs;
 	char file_path[CALIB_PATH_MAX_LENG];
-
-	old_fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	sprintf(file_path, CALIBRATION_NODE "%s",
 		calibration_filename[2]);
@@ -1044,13 +1023,11 @@ static void shub_save_mag_offset(struct shub_data *sensor,
 		err = PTR_ERR(pfile);
 		dev_err(&sensor->sensor_pdev->dev,
 			"open file %s error=%d\n", file_path, err);
-		set_fs(old_fs);
 		return;
 	}
-	nwrite =
-		vfs_write(pfile, (const char __user *)data,
-			  CALIBRATION_DATA_LENGTH,
-			  &pfile->f_pos);
+	nwrite = kernel_write(pfile, (const char __user *)data,
+			      CALIBRATION_DATA_LENGTH,
+			      &pfile->f_pos);
 
 	if (nwrite < 0) {
 		dev_err(&sensor->sensor_pdev->dev, "nwrite=%d\n", nwrite);
@@ -1059,7 +1036,6 @@ static void shub_save_mag_offset(struct shub_data *sensor,
 	if (pfile)
 		filp_close(pfile, NULL);
 
-	set_fs(old_fs);
 	dev_info(&sensor->sensor_pdev->dev, "end\n");
 }
 
@@ -1067,16 +1043,11 @@ static int shub_download_calibration_data(struct shub_data *sensor)
 {
 	int err = 0;
 	struct file *pfile = NULL;
-	mm_segment_t old_fs;
 	char file_path[CALIB_PATH_MAX_LENG];
 	char *raw_cali_data =  NULL;
 	int cal_file_size = 0;
 	struct kstat stat;
 	int sensor_type = 0, j = 0;
-
-	/* change to KERNEL_DS address limit */
-	old_fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	for (sensor_type = 0; sensor_type < 9; sensor_type++) {
 		dev_info(&sensor->sensor_pdev->dev,
@@ -1113,7 +1084,8 @@ static int shub_download_calibration_data(struct shub_data *sensor)
 				"Failed to allocate raw_cali_data memory\n");
 			continue;
 		}
-		if (vfs_read(pfile, raw_cali_data, cal_file_size, &pfile->f_pos)
+		if (kernel_read(pfile, raw_cali_data,
+				cal_file_size, &pfile->f_pos)
 			!= cal_file_size) {
 			dev_err(&sensor->sensor_pdev->dev,
 				"Error: file read failed\n");
@@ -1139,8 +1111,6 @@ static int shub_download_calibration_data(struct shub_data *sensor)
 		dev_err(&sensor->sensor_pdev->dev, "%s calibration success\n",
 			calibration_filename[sensor_type]);
 	}
-	/* restore previous address limit */
-	set_fs(old_fs);
 	return err;
 }
 
