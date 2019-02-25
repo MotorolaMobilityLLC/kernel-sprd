@@ -506,8 +506,8 @@ int sprd_gsp_get_capability_ioctl(struct drm_device *drm_dev, void *data,
 	struct drm_gsp_capability *drm_capa = data;
 	struct sprd_drm *priv = NULL;
 	struct device *dev = NULL;
+	struct gsp_capability *capa = NULL;
 	size_t size;
-	struct gsp_capability *capa;
 
 	priv = drm_dev->dev_private;
 
