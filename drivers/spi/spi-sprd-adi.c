@@ -206,7 +206,7 @@ static int sprd_adi_read(struct sprd_adi *sadi, u32 reg_paddr, u32 *read_val)
 	int read_timeout = ADI_READ_TIMEOUT;
 	unsigned long flags;
 	u32 val, rd_addr;
-	int ret;
+	int ret = 0;
 
 	if (sadi->hwlock) {
 		ret = hwspin_lock_timeout_irqsave(sadi->hwlock,
