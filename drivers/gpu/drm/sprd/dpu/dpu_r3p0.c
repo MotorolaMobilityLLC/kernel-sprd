@@ -330,6 +330,7 @@ static void check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 			DISPC_INT_MMU_INV_RD_MASK |
 			DISPC_INT_MMU_INV_WR_MASK);
 	u32 val = reg_val & int_mask;
+	reg->dpu_int_en &= ~int_mask;
 
 	if (val) {
 		pr_err("--- iommu interrupt err: 0x%04x ---\n", val);
@@ -344,7 +345,6 @@ static void check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 			reg->mmu_vaor_addr_wr);
 		pr_err("BUG: iommu failure at %s:%d/%s()!\n",
 			__FILE__, __LINE__, __func__);
-		panic("iommu panic\n");
 	}
 }
 
@@ -409,12 +409,16 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	}
 
 	/* dpu ifbc payload error isr */
-	if (reg_val & DISPC_INT_FBC_PLD_ERR_MASK)
+	if (reg_val & DISPC_INT_FBC_PLD_ERR_MASK) {
+		reg->dpu_int_en &= ~DISPC_INT_FBC_PLD_ERR_MASK;
 		pr_err("dpu ifbc payload error\n");
+	}
 
 	/* dpu ifbc header error isr */
-	if (reg_val & DISPC_INT_FBC_HDR_ERR_MASK)
+	if (reg_val & DISPC_INT_FBC_HDR_ERR_MASK) {
+		reg->dpu_int_en &= ~DISPC_INT_FBC_HDR_ERR_MASK;
 		pr_err("dpu ifbc header error\n");
+	}
 
 	check_mmu_isr(ctx, reg_val);
 
