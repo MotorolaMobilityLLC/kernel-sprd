@@ -2497,14 +2497,22 @@
 				syscons = <&ai_apb_regs
 					REG_AI_APB_AI_CAMBRICON_SOFT_RST
 					MASK_AI_APB_CAMB_SOFT_RST>;
-				clock-names = "top", "mmu", "enable",
-					"sources", "mtx", "cfg";
+				clock-names = "top_eb",
+					"mmu_eb",
+					"cmbn_eb",
+					"ai_mtx_clk",
+					"cmbn_clk",
+					"clk_src_512m",
+					"clk_scr_768m",
+					"clk_src_apll";
 				clocks = <&ai_gate CLK_AI_TOP_APB_EB>,
 					<&ai_gate CLK_AI_MMU_APB_EB>,
 					<&ai_gate CLK_AI_CAMBRICON_EB>,
-					<&ai_clk CLK_CAMBRICON>,
 					<&ai_clk CLK_AI_MTX>,
-					<&ai_clk CLK_CAMBRICON_CFG>;
+					<&ai_clk CLK_CAMBRICON>,
+					<&g12_pll CLK_TWPLL_512M>,
+					<&g12_pll CLK_TWPLL_768M>,
+					<&g12_pll CLK_APLL>;
 			};
 		};
 	};
