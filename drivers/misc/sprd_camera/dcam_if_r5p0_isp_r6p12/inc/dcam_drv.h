@@ -261,12 +261,11 @@ struct dcam_module {
 	uint32_t high_fps_cnt;
 	uint32_t time_index;
 	struct camera_time time[DCAM_FRM_QUEUE_LENGTH];
+	struct dual_sync_info dual_info[DCAM_FRM_QUEUE_LENGTH];
 };
 
 struct dcam_group {
 	uint32_t dual_cam;
-	int32_t frame_id_diff;
-	uint32_t frame_time_diff;
 	struct dcam_module *dcam[DCAM_MAX_COUNT];
 };
 

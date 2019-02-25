@@ -30,7 +30,6 @@ struct pfiommu_info {
 int pfiommu_get_sg_table(struct pfiommu_info *pfinfo);
 int  pfiommu_put_sg_table(void);
 void dma_buffer_list_clear(void);
-int pfiommu_check_addr(struct pfiommu_info *pfinfo);
 int pfiommu_get_addr(struct pfiommu_info *pfinfo);
 int pfiommu_free_addr(struct pfiommu_info *pfinfo);
 int pfiommu_free_addr_with_id(struct pfiommu_info *pfinfo,

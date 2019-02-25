@@ -316,10 +316,8 @@ static int sprd_ispdrv_slice_init_param_get(struct slice_param_in *in_ptr,
 	ISP_SET_SCENE_ID(in_ptr->com_idx, ISP_SCENE_CAP);
 	frame = &dev->offline_frame[ISP_SCENE_CAP];
 
-	pr_debug("fmcu yaddr 0x%x yaddr_vir 0x%x  fd 0x%x 0x%x %p %p\n",
-		frame->yaddr, frame->yaddr_vir, frame->buf_info.mfd[0],
-		frame->yaddr, frame->buf_info.client[0],
-		frame->buf_info.handle[0]);
+	pr_debug("fmcu yaddr 0x%x yaddr_vir 0x%x  fd 0x%x\n",
+		frame->yaddr, frame->yaddr_vir, frame->buf_info.mfd[0]);
 
 	in_ptr->fetch_addr.chn0 = frame->buf_info.iova[1] + frame->yaddr;
 	in_ptr->fetch_addr.chn1 = frame->buf_info.iova[1] + frame->uaddr;
@@ -511,9 +509,10 @@ static int sprd_ispdrv_sel_cap_frame(void *handle)
 	struct isp_pipe_dev *dev = NULL;
 	struct isp_module *module = NULL;
 	struct camera_frame frame;
-	int32_t frame_diff = 0, frame_index = 0;
-	s64 diff = 0;
-	uint32_t idx = 0, zsl_queue_nodes = 0;
+	int32_t frame_diff = 0, frame_index[2], i = 0, j = 0;
+	s64 timestamp[2][ISP_ZSL_BUF_NUM], cycle[2], min_cycle = 0,
+		time_diff = 0, min_time_diff = 0;
+	uint32_t idx = 0, zsl_queue_nodes[2], frame_id[2][ISP_ZSL_BUF_NUM];
 
 	if (!handle) {
 		pr_err("fail to get valid input ptr\n");
@@ -524,70 +523,123 @@ static int sprd_ispdrv_sel_cap_frame(void *handle)
 	idx = ISP_GET_ISP_ID(dev->com_idx);
 
 	memset((void *)&frame, 0x00, sizeof(frame));
-	if (s_isp_group.dual_cam) {
+	if (s_isp_group.dual_cam && !dev->is_raw_capture) {
+		if (!s_isp_group.dual_sel_cnt) {
+			for (j = 0; j < 2; j++) {
+				dev = s_isp_group.isp_dev[j];
+				zsl_queue_nodes[j] =
+					sprd_cam_queue_frm_cur_nodes
+					(&dev->module_info.full_zsl_queue);
+				i = 0;
+				while (i < zsl_queue_nodes[j]) {
+					sprd_cam_queue_frm_dequeue(&dev
+						->module_info.full_zsl_queue,
+						&frame);
+					frame_id[j][i] = frame.frame_id;
+					timestamp[j][i] =
+						frame.time.boot_time;
+					sprd_cam_queue_frm_enqueue(&dev
+						->module_info.full_zsl_queue,
+						&frame);
+					i++;
+				}
+				if (zsl_queue_nodes[j] > 1)
+					cycle[j] =
+						div64_s64((timestamp[j][i - 1]
+							   - timestamp[j][0]),
+							  (frame_id[j][i - 1]
+							   - frame_id[j][0]));
+				else
+					cycle[j] = LLONG_MAX;
+			}
+			min_cycle = min(cycle[0], cycle[1]);
+			min_time_diff = LLONG_MAX;
 
-		struct isp_pipe_dev *dev0 = s_isp_group.isp_dev[0];
-		struct isp_pipe_dev *dev1 = s_isp_group.isp_dev[1];
-		struct dcam_group *dcam_group = NULL;
-		int32_t frame_diff_change = 0;
+			pr_debug("%d %d %012lld, %012lld %012lld %012lld, %012lld %012lld %012lld\n",
+				zsl_queue_nodes[0], zsl_queue_nodes[1],
+				min_cycle,
+				timestamp[0][0], timestamp[0][1], cycle[0],
+				timestamp[1][0], timestamp[1][1], cycle[1]);
 
-		dcam_group = sprd_dcam_drv_group_get();
-		if (!dcam_group || !dev0 || !dev1) {
-			pr_err("fail to get valid input ptr\n");
-			return -EFAULT;
+			for (j = zsl_queue_nodes[0] - 1; j >= 0; --j) {
+				for (i = zsl_queue_nodes[1] - 1; i >= 0; --i) {
+					time_diff = abs(timestamp[0][j]
+						- timestamp[1][i]);
+					if (time_diff < (min_cycle >> 1)) {
+						frame_index[0] = j;
+						frame_index[1] = i;
+						min_time_diff = time_diff;
+						pr_debug("%d %d\n",
+							frame_index[0],
+							frame_index[1]);
+						goto sel_ok;
+					} else if (time_diff < min_time_diff) {
+						frame_index[0] = j;
+						frame_index[1] = i;
+						min_time_diff = time_diff;
+						pr_debug("%d %d %012lld\n",
+							frame_index[0],
+							frame_index[1],
+							time_diff);
+					}
+				}
+			}
+
+sel_ok:
+			if (s_isp_group.dual_frame_gap
+				&& (min_time_diff < min_cycle)) {
+				if (zsl_queue_nodes[0] > 1) {
+					if (frame_index[0] > 0)
+						--frame_index[0];
+					else
+						++frame_index[0];
+				} else if (zsl_queue_nodes[1] > 1) {
+					if (frame_index[1] > 0)
+						--frame_index[1];
+					else
+						++frame_index[1];
+				}
+				pr_debug("%d %d\n", frame_index[0],
+					frame_index[1]);
+			}
+			s_isp_group.frame_index[0] = frame_index[0];
+			s_isp_group.frame_index[1] = frame_index[1];
 		}
 
-		frame_diff = dev0->frame_id - dev1->frame_id;
-		zsl_queue_nodes = sprd_cam_queue_frm_cur_nodes(
-					&module->full_zsl_queue);
-		frame_diff_change = abs(dcam_group->frame_id_diff -
-					frame_diff);
-		if (s_isp_group.dual_frame_gap) {
-			pr_debug("%d\n", frame_diff_change);
-			frame_diff_change = (frame_diff_change > 0) ? 0 : 1;
-		}
-		if (idx == ISP_ID_1) {
-			if (dcam_group->frame_id_diff >= frame_diff)
-				frame_index = zsl_queue_nodes - 1 -
-					frame_diff_change;
-			else
-				frame_index = zsl_queue_nodes - 1;
-		} else {
-			if (dcam_group->frame_id_diff >= frame_diff)
-				frame_index = zsl_queue_nodes - 1;
-			else
-				frame_index = zsl_queue_nodes - 1 -
-					frame_diff_change;
-		}
-		if (frame_index < 0) {
-			pr_debug("%d\n", frame_index);
-			frame_index = 0;
-		}
-		if (frame_index >= zsl_queue_nodes) {
-			pr_debug("%d\n", frame_index);
-			frame_index = zsl_queue_nodes - 1;
-		}
 		ret = sprd_cam_queue_frm_dequeue_n(&module->full_zsl_queue,
-			frame_index, &frame);
+			s_isp_group.frame_index[idx], &frame);
 		if (ret) {
 			ret = -1;
 			pr_err("fail to dequeue capture frame\n");
 			goto exit;
 		}
 
-		s_isp_group.timestamp[idx]
-				= frame.time.boot_time;
+		s_isp_group.timestamp[idx] = frame.time.boot_time;
 		if (++s_isp_group.dual_sel_cnt == 2) {
-			pr_debug("frame %d %d %d %d\n",
+			struct isp_pipe_dev *dev0 = s_isp_group.isp_dev[0];
+			struct isp_pipe_dev *dev1 = s_isp_group.isp_dev[1];
+			struct dcam_group *dcam_group = NULL;
+
+			dcam_group = sprd_dcam_drv_group_get();
+			if (!dcam_group || !dev0 || !dev1) {
+				pr_err("fail to get valid input ptr\n");
+				return -EFAULT;
+			}
+
+			frame_diff = dev0->frame_id - dev1->frame_id;
+			pr_debug("frame %d %d %d %d %d\n",
 				dev0->frame_id, dev1->frame_id,
-				frame_diff, dcam_group->frame_id_diff);
-			diff = s_isp_group.timestamp[0] -
+				frame_diff,
+				s_isp_group.frame_index[0],
+				s_isp_group.frame_index[1]);
+			time_diff = s_isp_group.timestamp[0] -
 					s_isp_group.timestamp[1];
-			diff = diff > 0 ? diff : -diff;
+			time_diff = time_diff > 0 ? time_diff : -time_diff;
 			pr_debug("sel %12lld %12lld %12lld %012lld\n",
-			s_isp_group.capture_param.timestamp,
-			s_isp_group.timestamp[0], s_isp_group.timestamp[1],
-			diff);
+				 s_isp_group.capture_param.timestamp,
+				 s_isp_group.timestamp[0],
+				 s_isp_group.timestamp[1],
+				 time_diff);
 		}
 	} else {
 		ret = sprd_cam_queue_frm_dequeue(
@@ -599,6 +651,7 @@ static int sprd_ispdrv_sel_cap_frame(void *handle)
 		}
 	}
 
+	dev = (struct isp_pipe_dev *)handle;
 	frame.buf_info.dev = &s_isp_pdev->dev;
 	ret = sprd_cam_buf_addr_map(&frame.buf_info);
 	if (ret) {
@@ -1093,7 +1146,6 @@ static int sprd_ispdrv_k_buffer_alloc(void *isp_handle)
 static int sprd_ispdrv_clk_en(void)
 {
 	int ret = 0;
-	uint32_t flag = 0;
 
 	/*set isp clock to max value*/
 	ret = clk_set_parent(isp_clk, isp_clk_parent);
@@ -1125,10 +1177,6 @@ static int sprd_ispdrv_clk_en(void)
 		goto exit;
 	}
 
-	flag = MASK_MM_AHB_ISP_EB;
-	regmap_update_bits(cam_ahb_gpr,
-		REG_MM_AHB_AHB_EB, flag, flag);
-
 exit:
 
 	return ret;
@@ -1136,18 +1184,12 @@ exit:
 
 static int sprd_ispdrv_clk_dis(void)
 {
-	uint32_t flag = 0;
-
 	clk_disable_unprepare(isp_eb);
 	clk_disable_unprepare(isp_axi_eb);
 
 	/* set isp clock to default value before power off */
 	clk_set_parent(isp_clk, isp_clk_default);
 	clk_disable_unprepare(isp_clk);
-
-	flag = MASK_MM_AHB_ISP_EB;
-	regmap_update_bits(cam_ahb_gpr,
-		REG_MM_AHB_AHB_EB, flag, ~flag);
 
 	return 0;
 }
@@ -2357,6 +2399,7 @@ int sprd_isp_drv_stop(void *isp_handle, int is_irq)
 	sprd_ispdrv_irq_mask_dis(dev->com_idx);
 	sprd_ispdrv_irq_clear(dev->com_idx);
 
+	sprd_isp_3dnr_release(dev);
 	for (i = ISP_SCL_PRE; i < ISP_SCL_MAX; i++) {
 		module->isp_path[i].status = ISP_ST_STOP;
 		module->isp_path[i].valid = 0;
@@ -2379,7 +2422,6 @@ int sprd_isp_drv_stop(void *isp_handle, int is_irq)
 	s_isp_group.dual_cap_cnt = 0;
 	s_isp_group.dual_sel_cnt = 0;
 
-	sprd_isp_3dnr_release(dev);
 	while (!sprd_cam_queue_buf_read(&module->bin_buf_queue, &frame))
 		sprd_cam_buf_addr_unmap(&frame.buf_info);
 	while (!sprd_cam_queue_frm_dequeue(&module->bin_frm_queue, &frame))

@@ -131,6 +131,11 @@ struct camera_time {
 	ktime_t boot_time;
 };
 
+struct dual_sync_info {
+	uint32_t is_last_frm;
+	uint32_t time_diff;
+};
+
 struct camera_frame {
 	uint32_t type;
 	uint32_t lock;/*reserved*/
@@ -159,6 +164,7 @@ struct camera_frame {
 	unsigned long timestamp;
 	struct zoom_info_t zoom_info;
 	struct camera_time time;
+	struct dual_sync_info dual_info;
 };
 
 struct camera_get_path_id {

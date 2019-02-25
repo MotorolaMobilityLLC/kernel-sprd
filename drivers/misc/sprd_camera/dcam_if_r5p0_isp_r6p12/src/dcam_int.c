@@ -88,6 +88,7 @@ static int sprd_dcamint_update_time(struct camera_frame *frame,
 
 	i = frame->frame_id % DCAM_FRM_QUEUE_LENGTH;
 	frame->time = module->time[i];
+	frame->dual_info = module->dual_info[i];
 	return ret;
 }
 
@@ -99,8 +100,8 @@ static int sprd_dcamint_get_time(struct camera_frame *frame,
 	struct dcam_group *dcam_group = NULL;
 	struct dcam_module *dcam0 = NULL;
 	struct dcam_module *dcam1 = NULL;
-	s64 time_diff = 0;
-	int32_t frame_id_diff = 0;
+	s64 time_diff = 0, half_cycle = 0;
+	uint32_t idx = 0;
 
 	if (frame == NULL || module == NULL) {
 		pr_err("fail to get valid input ptr\n");
@@ -113,6 +114,7 @@ static int sprd_dcamint_get_time(struct camera_frame *frame,
 	frame->time.boot_time = module->time[i].boot_time;
 	frame->time.timeval = module->time[i].timeval;
 	module->time_index = i;
+	idx = module->id;
 
 	dcam_group = sprd_dcam_drv_group_get();
 	if (!dcam_group || !dcam_group->dual_cam)
@@ -120,23 +122,22 @@ static int sprd_dcamint_get_time(struct camera_frame *frame,
 
 	dcam0 = dcam_group->dcam[DCAM_ID_0];
 	dcam1 = dcam_group->dcam[DCAM_ID_1];
-	if ((dcam0->frame_id >= 1 && dcam1->frame_id == 1)
-		|| (dcam1->frame_id >= 1 && dcam0->frame_id == 1)) {
-		time_diff = (dcam1->time[dcam1->time_index].boot_time)
-			- (dcam0->time[dcam0->time_index].boot_time);
-		time_diff = (time_diff > 0 ? time_diff : -time_diff);
-		frame_id_diff = dcam0->frame_id - dcam1->frame_id;
-		if (dcam_group->frame_id_diff == 0 &&
-			dcam_group->frame_time_diff == 0) {
-			dcam_group->frame_id_diff = frame_id_diff;
-			dcam_group->frame_time_diff = time_diff;
-		} else if (time_diff < dcam_group->frame_time_diff) {
-			dcam_group->frame_id_diff = frame_id_diff;
-			dcam_group->frame_time_diff = time_diff;
-		}
-		pr_info("time_diff %lld, %dn", time_diff,
-			dcam_group->frame_id_diff);
-	}
+	time_diff = (dcam1->time[dcam1->time_index].boot_time)
+		- (dcam0->time[dcam0->time_index].boot_time);
+	time_diff = (time_diff > 0 ? time_diff : -time_diff);
+	if (frame->frame_id >= 1)
+		half_cycle = frame->time.boot_time -
+			module->time[(frame->frame_id - 1)
+			% DCAM_FRM_QUEUE_LENGTH].boot_time;
+	else
+		time_diff = LLONG_MAX;
+	half_cycle >>= 1;
+	frame->dual_info.time_diff = time_diff;
+	if (time_diff > half_cycle)
+		frame->dual_info.is_last_frm = 0;
+	else
+		frame->dual_info.is_last_frm = 1;
+	module->dual_info[i] = frame->dual_info;
 
 	return ret;
 }
@@ -328,7 +329,7 @@ static void sprd_dcamint_full_path_done(enum dcam_id idx,
 						DCAM_FULL_PATH_TX_DONE, &frame);
 				} else if (mv_ready_cnt == 1) {
 					frame.mv.mv_x = dcam_dev->fast_me.mv_x;
-					frame.mv.mv_y = dcam_dev->fast_me.mv_x;
+					frame.mv.mv_y = dcam_dev->fast_me.mv_y;
 					sprd_dcamint_isr_proc(idx, irq_id,
 						&frame);
 					dcam_dev->fast_me.full_frame_cnt = 0;
@@ -432,7 +433,7 @@ static void sprd_dcamint_bin_path_done(enum dcam_id idx,
 						DCAM_BIN_PATH_TX_DONE, &frame);
 				} else if (mv_ready_cnt == 1) {
 					frame.mv.mv_x = dcam_dev->fast_me.mv_x;
-					frame.mv.mv_y = dcam_dev->fast_me.mv_x;
+					frame.mv.mv_y = dcam_dev->fast_me.mv_y;
 					sprd_dcamint_isr_proc(idx, irq_id,
 						&frame);
 					dcam_dev->fast_me.bin_frame_cnt = 0;

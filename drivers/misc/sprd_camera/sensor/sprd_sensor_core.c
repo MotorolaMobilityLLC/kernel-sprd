@@ -615,8 +615,14 @@ exit:
 static int sprd_sensor_file_release(struct inode *node, struct file *file)
 {
 	int ret = 0;
+	int i = 0;
 	struct sprd_sensor_file_tag *p_file = file->private_data;
 	struct sprd_sensor_core_module_tag *p_mod = NULL;
+	int power[3][2] = {
+		{SPRD_SENSOR_AVDD_GPIO_TAG_E, SENSOR_REGULATOR_CAMAVDD_ID_E},
+		{SPRD_SENSOR_DVDD_GPIO_TAG_E, SENSOR_REGULATOR_CAMDVDD_ID_E},
+		{SPRD_SENSOR_IOVDD_GPIO_TAG_E, SENSOR_REGULATOR_VDDIO_E},
+	};
 
 	if (!p_file)
 		return -EINVAL;
@@ -631,6 +637,15 @@ static int sprd_sensor_file_release(struct inode *node, struct file *file)
 		pr_info("sensor %d mipi close\n", p_file->sensor_id);
 		ret = sprd_sensor_mipi_if_close(p_file);
 	}
+
+	for (i = 0; i < 3; i++) {
+		ret = sprd_sensor_set_voltage_by_gpio(p_file->sensor_id,
+				0, power[i][0]);
+		if (ret)
+			ret = sprd_sensor_set_voltage(p_file->sensor_id,
+					0, power[i][1]);
+	}
+
 	if (atomic_dec_return(&p_mod->total_users) == 0) {
 		sprd_cam_domain_disable();
 		sprd_cam_pw_off();

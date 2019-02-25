@@ -63,6 +63,8 @@ void isp_3dnr_default_param(uint32_t idx)
 	enum isp_id id = 0;
 
 	id = ISP_GET_ISP_ID(idx);
+	ISP_REG_MWR(idx, ISP_STORE_LITE_PARAM, BIT_3, 1 << 3);
+	ISP_REG_MWR(idx, ISP_STORE_LITE_SHADOW_CLR, BIT_0, 0);
 	ISP_REG_MWR(idx, ISP_YUV_3DNR_MEM_CTRL_PARAM0, BIT_0, 1);
 	ISP_REG_MWR(idx, ISP_YUV_3DNR_CONTROL0, BIT_0, 1);
 	ISP_REG_MWR(idx, ISP_STORE_LITE_PARAM, BIT_0, 1);

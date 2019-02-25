@@ -94,6 +94,7 @@ struct camera_node {
 	uint32_t zoom_ratio;
 	uint32_t reserved[2];
 	struct camera_time time;
+	struct dual_sync_info dual_info;
 };
 
 struct camera_path_spec {
@@ -193,7 +194,6 @@ struct camera_group {
 	uint32_t isp_count;/*dts cfg isp count*/
 	atomic_t camera_opened;
 	struct camera_dev *dev[CAMERA_MAX_COUNT];
-	struct ion_client *cam_ion_client[CAMERA_MAX_COUNT];
 	atomic_t dcam_run_count;
 	atomic_t isp_run_count;
 	struct miscdevice *md;
@@ -729,6 +729,10 @@ static ssize_t sprd_camcore_read(struct file *file,
 			read_op.parm.frame.usec = node.time.timeval.tv_usec;
 			read_op.parm.frame.monoboottime =
 				node.time.boot_time;
+			read_op.parm.frame.reserved[0] =
+				node.dual_info.is_last_frm;
+			read_op.parm.frame.reserved[1] =
+				node.dual_info.time_diff;
 			read_op.parm.frame.frm_base_id = path->frm_id_base;
 			read_op.parm.frame.img_fmt = path->fourcc;
 			read_op.parm.frame.yaddr = node.yaddr;

@@ -213,6 +213,7 @@ struct isp_group {
 	uint32_t dual_frame_gap;
 	void *isp_dev[ISP_MAX_COUNT + 1];
 	s64 timestamp[ISP_MAX_COUNT];
+	uint32_t frame_index[ISP_MAX_COUNT];
 };
 
 struct isp_ch_irq {
