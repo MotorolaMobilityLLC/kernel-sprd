@@ -2071,6 +2071,7 @@ int start_marlin(u32 subsys)
 	if ((marlin_dev->download_finish_flag == 1) &&
 	    (marlin_dev->gnss_dl_finish_flag)) {
 		WCN_INFO("firmware have download\n");
+		set_bit(subsys, &marlin_dev->power_state);
 		mutex_unlock(&marlin_dev->power_lock);
 		return 0;
 	}
