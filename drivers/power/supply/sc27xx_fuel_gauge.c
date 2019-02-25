@@ -499,7 +499,7 @@ static int sc27xx_fgu_vol_to_temp(struct power_supply_vol_temp_table *table,
 		temp = table[table_len - 1].temp;
 	}
 
-	return (temp - 1000) / 10;
+	return temp - 1000;
 }
 
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
