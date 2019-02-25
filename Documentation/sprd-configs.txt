@@ -8988,6 +8988,13 @@ CONFIG_SC27XX_EFUSE
 	[subsys] nvmem
 	[must] home
 	[function] get sc27xx series efuse value
+CONFIG_SCAN_BALANCE_ANON_FILE
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] mm
+	[must] home
+	[function] scan balance anonymous pages and page caches when reclaim
 CONFIG_SCHEDSTATS
 	[arch] all
 	[plat] all
