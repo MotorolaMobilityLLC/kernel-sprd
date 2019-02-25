@@ -586,12 +586,16 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_TEMP:
-		ret = sc27xx_fgu_get_temp(data, &value);
-		if (ret < 0)
-			goto error;
+		if (data->temp_table_len <= 0) {
+			val->intval = 200;
+		} else {
+			ret = sc27xx_fgu_get_temp(data, &value);
+			if (ret < 0)
+				goto error;
 
-		ret = 0;
-		val->intval = value;
+			ret = 0;
+			val->intval = value;
+		}
 		break;
 
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
@@ -978,15 +982,16 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	}
 
 	data->temp_table_len = info.temp_table_size;
-	data->temp_table = devm_kmemdup(data->dev, info.temp_table,
-					data->temp_table_len *
-					sizeof(struct power_supply_vol_temp_table),
-					GFP_KERNEL);
-	if (!data->temp_table) {
-		power_supply_put_battery_info(data->battery, &info);
-		return -ENOMEM;
+	if (data->temp_table_len > 0) {
+		data->temp_table = devm_kmemdup(data->dev, info.temp_table,
+						data->temp_table_len *
+						sizeof(struct power_supply_vol_temp_table),
+						GFP_KERNEL);
+		if (!data->temp_table) {
+			power_supply_put_battery_info(data->battery, &info);
+			return -ENOMEM;
+		}
 	}
-
 	data->alarm_cap = power_supply_ocv2cap_simple(data->cap_table,
 						      data->table_len,
 						      data->min_volt);
