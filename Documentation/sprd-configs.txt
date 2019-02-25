@@ -10125,6 +10125,14 @@ CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sipx function between modem and AP.
+CONFIG_SPRD_SIP_FW
+	[arch] all
+	[plat] all
+	[field] make,code
+	[subsys] firmware
+	[must] user
+	[function] Provides interfaces to SoC implementation-specific secure
+	           services.
 CONFIG_SPRD_SOC_THERMAL
 	[arch] all
 	[plat] sharkl5,sharkl5_32
