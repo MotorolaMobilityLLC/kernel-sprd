@@ -307,6 +307,111 @@
 	status = "okay";
 };
 
+&i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	sensor_main: sensor-main@20 {
+		compatible = "sprd,sensor-main";
+		reg = <0x20>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&aon_clk CLK_SENSOR0>, <&mm_gate CLK_SENSOR0_EB>,
+			<&pll CLK_TWPLL_96M>,<&pll CLK_TWPLL_76M8>,
+			<&pll CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama>;
+		vddcamd-supply = <&vddcamd>;
+		vddcammot-supply = <&vddcammot>;
+		reset-gpios = <&ap_gpio 44 0>;
+		power-down-gpios = <&ap_gpio 46 0>;
+		host = "dcam0";
+		port {
+			sensor_main_0: endpoint {
+				remote-endpoint = <&phy1_out>;
+			};
+		};
+	};
+};
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	sensor_sub: sensor-sub@20 {
+		compatible = "sprd,sensor-sub";
+		reg = <0x20>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&aon_clk CLK_SENSOR1>, <&mm_gate CLK_SENSOR1_EB>,
+			<&pll CLK_TWPLL_96M>,<&pll CLK_TWPLL_76M8>,
+			<&pll CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama>;
+		vddcamd-supply = <&vddcamd>;
+		vddcammot-supply = <&vddcammot>;
+		reset-gpios = <&ap_gpio 41 0>;
+		power-down-gpios = <&ap_gpio 40 0>;
+		host = "dcam0";
+		port {
+			sensor_sub_0: endpoint {
+				remote-endpoint = <&phy0_s_out>;
+			};
+		};
+	};
+
+	sensor_main2: sensor-main2@6C {
+		compatible = "sprd,sensor-main2";
+		reg = <0x6C>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&aon_clk CLK_SENSOR1>, <&mm_gate CLK_SENSOR1_EB>,
+			<&pll CLK_TWPLL_96M>,<&pll CLK_TWPLL_76M8>,
+			<&pll CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama>;
+		vddcamd-supply = <&vddcamd>;
+		vddcammot-supply = <&vddcammot>;
+		/*avdd-gpios=<&ap_gpio 140 0>;*/
+		dvdd-gpios=<&ap_gpio 62 0>;
+		reset-gpios = <&ap_gpio 45 0>;
+		power-down-gpios = <&ap_gpio 47 0>;
+		host = "dcam1";
+		port {
+			sensor_main_2: endpoint {
+				remote-endpoint = <&phy0_m_out>;
+			};
+		};
+	};
+
+	sensor_sub2: sensor-sub2@2a {
+		compatible = "sprd,sensor-sub2";
+		reg = <0x2a>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&aon_clk CLK_SENSOR1>, <&mm_gate CLK_SENSOR1_EB>,
+			<&pll CLK_TWPLL_96M>,<&pll CLK_TWPLL_76M8>,
+			<&pll CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama>;
+		vddcamd-supply = <&vddcamd>;
+		vddcammot-supply = <&vddcammot>;
+		/*avdd-gpios=<&ap_gpio 140 0>;*/
+		reset-gpios = <&ap_gpio 45 0>;
+		power-down-gpios = <&ap_gpio 40 0>;
+		host = "dcam2";
+		port {
+			sensor_sub_2: endpoint {
+				remote-endpoint = <&phy0_s_out_sub2>;
+			};
+		};
+	};
+};
+
 &i2c3 {
 	status = "okay";
 
@@ -363,6 +468,66 @@
 	};
 };
 
+&mipi_csi_phy1 {
+	status = "okay";
+	sprd,phyid = <1>;
+	sprd,csi = <&csi0>;
+	status = "okay";
+	port {
+		phy1_out: endpoint {
+			remote-enpoint = <&sensor_main_0>;
+		};
+	};
+};
+
+&mipi_csi_phy0_m {
+	status = "okay";
+	sprd,phyid = <3>;
+	sprd,csi = <&csi1>;
+	status = "okay";
+	port {
+		phy0_m_out: endpoint {
+			remote-enpoint = <&sensor_main_2>;
+		};
+	};
+};
+
+&mipi_csi_phy0_s {
+	status = "okay";
+	sprd,phyid = <4>;
+	sprd,csi = <&csi0>;
+	status = "okay";
+	port {
+		phy0_s_out: endpoint {
+			remote-enpoint = <&sensor_sub_0>;
+		};
+	};
+};
+
+&mipi_csi_phy0_s1 {
+	status = "okay";
+	sprd,phyid = <4>;
+	sprd,csi = <&csi2>;
+	status = "okay";
+	port {
+		phy0_s_out_sub2: endpoint {
+			remote-enpoint = <&sensor_sub_2>;
+		};
+	};
+};
+
+&mipi_csi_phy2 {
+	status = "okay";
+	sprd,phyid = <2>;
+	sprd,csi = <&csi2>;
+	status = "okay";
+	port {
+		phy2_out: endpoint {
+			remote-enpoint = <&sensor_sub_2>;
+		};
+	};
+};
+
 &vsp {
 	status = "okay";
 };
@@ -382,6 +547,42 @@
 };
 
 &iommu_jpg {
+	status = "okay";
+};
+
+&dcam {
+	status = "okay";
+};
+
+&iommu_dcam {
+	status = "okay";
+};
+
+&isp {
+	status = "okay";
+};
+
+&iommu_isp {
+	status = "okay";
+};
+
+&cpp {
+	status = "okay";
+};
+
+&iommu_cpp {
+	status = "okay";
+};
+
+&csi0 {
+	status = "okay";
+};
+
+&csi1 {
+	status = "okay";
+};
+
+&csi2 {
 	status = "okay";
 };
 
