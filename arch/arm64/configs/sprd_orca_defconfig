@@ -1719,7 +1719,8 @@ CONFIG_USB_DWC3_SPRD=y
 #
 # USB PAM drivers
 #
-# CONFIG_SPRD_PAMU3 is not set
+CONFIG_USB_PAM=y
+CONFIG_SPRD_PAMU3=y
 
 #
 # USB Physical Layer drivers
