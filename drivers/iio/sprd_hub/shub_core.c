@@ -803,9 +803,8 @@ static ssize_t reader_enable_store(struct device *dev,
 				   struct device_attribute *attr,
 				   const char *buf, size_t count)
 {
-	int len;
-
-	len = sscanf(buf, "%d\n", &debug_flag);
+	if (sscanf(buf, "%d\n", &debug_flag) != 1)
+		return -EINVAL;
 	return count;
 }
 static DEVICE_ATTR_RW(reader_enable);
@@ -924,7 +923,6 @@ static ssize_t logctl_store(struct device *dev,
 	int idx = 0;
 	int i = 0;
 	int total = count / 4;
-	int len;
 	u32 bit_flag = 0;
 	u32 bit_val = 0;
 
@@ -938,7 +936,9 @@ static ssize_t logctl_store(struct device *dev,
 	dev_info(dev, "char %s\n", buf);
 
 	for (idx = 0; idx < total; idx++)	{
-		len = sscanf(buf + 4 * idx, "%u %u\n", &bit_flag, &bit_val);
+		if (sscanf(buf + 4 * idx, "%u %u\n",
+			   &bit_flag, &bit_val) != 2)
+			return -EINVAL;
 		dev_info(dev, "%s bit_flag[%d], bit_val[%d]\n",
 			 __func__, bit_flag, bit_val);
 
@@ -1102,7 +1102,7 @@ static ssize_t enable_store(struct device *dev,
 			    const char *buf, size_t count)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
-	int handle, enabled, len;
+	int handle, enabled;
 	enum shub_subtype_id subtype;
 
 	dev_info(dev, "buf=%s\n", buf);
@@ -1112,7 +1112,8 @@ static ssize_t enable_store(struct device *dev,
 		return count;
 	}
 
-	len = sscanf(buf, "%d %d\n", &handle, &enabled);
+	if (sscanf(buf, "%d %d\n", &handle, &enabled) != 2)
+		return -EINVAL;
 	dev_info(dev, "handle = %d, enabled = %d\n", handle, enabled);
 	subtype = (enabled == 0) ? SHUB_SET_DISABLE_SUBTYPE :
 		SHUB_SET_ENABLE_SUBTYPE;
@@ -1136,10 +1137,11 @@ static ssize_t batch_store(struct device *dev, struct device_attribute *attr,
 		return count;
 	}
 
-	sscanf(buf, "%d %d %d %lld\n",
-	       &batch_cmd.handle, &flag,
-	       &batch_cmd.report_rate,
-	       &batch_cmd.batch_timeout);
+	if (sscanf(buf, "%d %d %d %lld\n",
+		   &batch_cmd.handle, &flag,
+		   &batch_cmd.report_rate,
+		   &batch_cmd.batch_timeout) != 4)
+		return -EINVAL;
 	dev_info(dev, "handle = %hu, rate = %d, enabled = %d\n",
 		 batch_cmd.handle,
 		 batch_cmd.report_rate, flag);
@@ -1164,13 +1166,14 @@ static ssize_t flush_store(struct device *dev, struct device_attribute *attr,
 			   const char *buf, size_t count)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
-	int handle, len;
+	int handle;
 
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
 		dev_err(dev, "mcu_mode == SHUB_BOOT\n");
 		return count;
 	}
-	len = sscanf(buf, "%d\n", &handle);
+	if (sscanf(buf, "%d\n", &handle) != 1)
+		return -EINVAL;
 #if SHUB_DATA_DUMP
 	flush_setcnt++;
 #endif
@@ -1222,9 +1225,9 @@ static ssize_t mcu_mode_store(struct device *dev, struct device_attribute *attr,
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	int mode = 0;
-	int len;
 
-	len = sscanf(buf, "%d\n", &mode);
+	if (sscanf(buf, "%d\n", &mode) != 1)
+		return -EINVAL;
 	sensor->mcu_mode = mode;
 	return count;
 }
@@ -1244,7 +1247,7 @@ static ssize_t calibrator_cmd_store(struct device *dev,
 				    const char *buf, size_t count)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
-	int err, len;
+	int len, err;
 
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
 		dev_err(dev, "mcu_mode == SHUB_BOOT!\n");
@@ -1254,6 +1257,9 @@ static ssize_t calibrator_cmd_store(struct device *dev,
 	dev_info(dev, "buf=%s\n", buf);
 	len = sscanf(buf, "%d %d %d %d\n", &sensor->cal_cmd, &sensor->cal_id,
 		     &sensor->cal_type, &sensor->golden_sample);
+	/* The 4th parameter is optional. */
+	if (len != 3 && len != 4)
+		return -EINVAL;
 	err = set_calib_cmd(sensor, sensor->cal_cmd, sensor->cal_id,
 			    sensor->cal_type, sensor->golden_sample);
 	dev_info(dev, "cmd:%d,id:%d,type:%d,golden:%d\n", sensor->cal_cmd,
@@ -1495,10 +1501,10 @@ static ssize_t sensorhub_store(struct device *dev,
 			       struct device_attribute *attr,
 			       const char *buf, size_t count)
 {
-	int len;
 	struct shub_data *sensor = dev_get_drvdata(dev);
 
-	len = sscanf(buf, "%d\n", &sensor->is_sensorhub);
+	if (sscanf(buf, "%d\n", &sensor->is_sensorhub) != 1)
+		return -EINVAL;
 	return count;
 }
 static DEVICE_ATTR_RW(sensorhub);
@@ -1632,12 +1638,13 @@ static ssize_t mag_cali_flag_store(struct device *dev,
 {
 	char data_buf[16];
 	unsigned short mag_cali_check;
-	int len, err, flag;
+	int err, flag;
 	long mag_library_size;
 	struct shub_data *sensor = dev_get_drvdata(dev);
 
-	len = sscanf(buf, "%d %ld %hu", &flag, &mag_library_size,
-		     &mag_cali_check);
+	if (sscanf(buf, "%d %ld %hu", &flag, &mag_library_size,
+		   &mag_cali_check) != 3)
+		return -EINVAL;
 	dev_dbg(dev, "the flag = %d, the mag size is %ld, crc_check = %d\r\n",
 		flag, mag_library_size, mag_cali_check);
 
@@ -1692,13 +1699,13 @@ static ssize_t shub_debug_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
-	int len;
 	u8 data_buf[5];
 	struct shub_data *sensor = dev_get_drvdata(dev);
 
-	len = sscanf(buf, "%4hhx %4hhx %4hhx %4hhx %4hhx\n",
-		     &data_buf[0], &data_buf[1], &data_buf[2],
-		     &data_buf[3], &data_buf[4]);
+	if (sscanf(buf, "%4hhx %4hhx %4hhx %4hhx %4hhx\n",
+		   &data_buf[0], &data_buf[1], &data_buf[2],
+		   &data_buf[3], &data_buf[4]) != 5)
+		return -EINVAL;
 
 	shub_send_command(sensor, SHUB_NODATA,
 			  SHUB_SEND_DEBUG_DATA,
