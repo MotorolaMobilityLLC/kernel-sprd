@@ -179,7 +179,7 @@ static int dispath_to_nic(struct sipa_skb_receiver *receiver,
 
 	for (i = 0; i < receiver->nic_cnt; i++) {
 		nic = receiver->nic_array[i];
-		if (nic->src_mask | item->src) {
+		if (nic->src_mask & BIT(item->src)) {
 			if ((nic->netid == -1) ||
 				(nic->netid == item->netid)) {
 				dst_nic = nic;
