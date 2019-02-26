@@ -151,8 +151,11 @@ static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
 	if (sg_policy->next_freq == next_freq)
 		return;
 
-	if (sugov_up_down_rate_limit(sg_policy, time, next_freq))
+	if (sugov_up_down_rate_limit(sg_policy, time, next_freq)) {
+		/* Reset cached freq as next_freq isn't changed */
+		sg_policy->cached_raw_freq = UINT_MAX;
 		return;
+	}
 
 	sg_policy->next_freq = next_freq;
 	sg_policy->last_freq_update_time = time;
@@ -362,7 +365,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 			next_f = sg_policy->next_freq;
 
 			/* Reset cached freq as next_freq has changed */
-			sg_policy->cached_raw_freq = 0;
+			sg_policy->cached_raw_freq = UINT_MAX;
 		}
 	}
 
@@ -392,7 +395,6 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 		if (delta_ns > TICK_NSEC) {
 			j_sg_cpu->iowait_boost = 0;
 			j_sg_cpu->iowait_boost_pending = false;
-			continue;
 		}
 		if (j_sg_cpu->flags & SCHED_CPUFREQ_DL)
 			return policy->cpuinfo.max_freq;
@@ -769,7 +771,7 @@ static int sugov_start(struct cpufreq_policy *policy)
 	sg_policy->next_freq = UINT_MAX;
 	sg_policy->work_in_progress = false;
 	sg_policy->need_freq_update = false;
-	sg_policy->cached_raw_freq = 0;
+	sg_policy->cached_raw_freq = UINT_MAX;
 
 	for_each_cpu(cpu, policy->cpus) {
 		struct sugov_cpu *sg_cpu = &per_cpu(sugov_cpu, cpu);
