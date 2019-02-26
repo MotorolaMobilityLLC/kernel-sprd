@@ -110,7 +110,6 @@ static int modem_open(struct inode *inode, struct file *filp)
 	struct modem_device *modem;
 
 	modem = container_of(inode->i_cdev, struct modem_device, cdev);
-	dev_dbg(modem->p_dev, "open %s!\n", modem->modem_name);
 	filp->private_data = modem;
 
 	return 0;
@@ -118,9 +117,6 @@ static int modem_open(struct inode *inode, struct file *filp)
 
 static int modem_release(struct inode *inode, struct file *filp)
 {
-	struct modem_device *modem = filp->private_data;
-
-	dev_dbg(modem->p_dev, "release %s!\n", modem->modem_name);
 	return 0;
 }
 
@@ -187,7 +183,7 @@ static ssize_t modem_read(struct file *filp,
 
 	modem_get_base_range(modem, &base, &size, 1);
 	offset = *ppos;
-	dev_dbg(modem->p_dev, "read, offset 0x%lx, count = 0x%lx!\n",
+	dev_dbg(modem->p_dev, "read, offset = 0x%lx, count = 0x%lx!\n",
 		offset, count);
 
 	if (size <= offset)
@@ -289,10 +285,6 @@ static ssize_t modem_write(struct file *filp,
 
 static loff_t modem_lseek(struct file *filp, loff_t off, int whence)
 {
-	struct modem_device *modem = filp->private_data;
-
-	dev_dbg(modem->p_dev, "seek %s!\n", modem->modem_name);
-
 	switch (whence) {
 	case SEEK_SET:
 		filp->f_pos = off;
@@ -482,13 +474,13 @@ static int modem_run(struct modem_device *modem, u8 b_run)
 static void modem_get_remote_flag(struct modem_device *modem)
 {
 	ext_modem_ops->get_remote_flag(modem);
-	dev_info(modem->p_dev, "get remote flag = %x!\n", modem->remote_flag);
+	dev_info(modem->p_dev, "get remote flag = 0x%x!\n", modem->remote_flag);
 }
 
 static void modem_set_remote_flag(struct modem_device *modem)
 {
 	ext_modem_ops->set_remote_flag(modem);
-	dev_info(modem->p_dev, "set remote flag = %d!\n", modem->remote_flag);
+	dev_info(modem->p_dev, "set remote flag = 0x%x!\n", modem->remote_flag);
 }
 #endif
 
