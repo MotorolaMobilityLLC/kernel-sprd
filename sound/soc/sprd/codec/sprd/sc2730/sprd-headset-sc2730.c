@@ -1271,29 +1271,9 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 		return HEADSET_NO_MIC;
 	}
-	if ((mic_voltage_0 > TYPEC_4POLE_MIC_MIN_VOLT &&
-		mic_voltage_1 < TYPEC_3POLE_MIC_MAX_VOLT) ||
-		(mic_voltage_0 < TYPEC_3POLE_MIC_MAX_VOLT &&
-		mic_voltage_1 > TYPEC_4POLE_MIC_MIN_VOLT)) {
-		if (mic_voltage_0 > TYPEC_4POLE_MIC_MIN_VOLT &&
-			mic_voltage_1 < TYPEC_3POLE_MIC_MAX_VOLT)
-			gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
 
-		if (max(mic_voltage_0, mic_voltage_1) <
-			TYPEC_SELFIE_STICK_THRESHOLD) {
-			/* typec head + headset */
-			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
-			return HEADSET_4POLE_NORMAL;
-		} else if (max(mic_voltage_0, mic_voltage_1) >
-			TYPEC_SELFIE_STICK_THRESHOLD) {
-			/* typec head + selfie stick */
-			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
-			return HEADSET_4POLE_NORMAL;
-		}
-	}
 	if (mic_voltage_0 > TYPEC_4POLE_MIC_MIN_VOLT &&
-		mic_voltage_1 > TYPEC_4POLE_MIC_MIN_VOLT &&
-		ABS(mic_voltage_0 - mic_voltage_1) > TYPEC_4POLE_MIC_MIN_VOLT) {
+		mic_voltage_1 > TYPEC_4POLE_MIC_MIN_VOLT) {
 		if (mic_voltage_0 > mic_voltage_1)
 			gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
 		if (max(mic_voltage_0, mic_voltage_1) <
