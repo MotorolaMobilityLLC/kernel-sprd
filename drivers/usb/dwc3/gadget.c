@@ -610,8 +610,8 @@ static int dwc3_gadget_set_ep_config(struct dwc3 *dwc, struct dwc3_ep *dep,
 			params.param1 |= DWC3_DEPCFG_INT_NUM(1);
 		else
 			params.param1 |= DWC3_DEPCFG_INT_NUM(2);
+		params.param1 |= DWC3_DEPCFG_XFER_COMPLETE_EN;
 	}
-
 	return dwc3_send_gadget_ep_cmd(dep, DWC3_DEPCMD_SETEPCONFIG, &params);
 }
 
@@ -692,7 +692,10 @@ static int __dwc3_gadget_ep_enable(struct dwc3_ep *dep,
 	 * Issue StartTransfer here with no-op TRB so we can always rely on No
 	 * Response Update Transfer command.
 	 */
-	if (usb_endpoint_xfer_bulk(desc)) {
+	/* Workaround for SPRD PAMU3 ep intnum mapping */
+	if (dep->endpoint.uether) {
+		usb_phy_post_init(dwc->pam);
+	} else if (usb_endpoint_xfer_bulk(desc)) {
 		struct dwc3_gadget_ep_cmd_params params;
 		struct dwc3_trb	*trb;
 		dma_addr_t trb_dma;
@@ -830,9 +833,6 @@ static int dwc3_gadget_ep_enable(struct usb_ep *ep,
 	ret = __dwc3_gadget_ep_enable(dep, false, false);
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
-	/* Workaround for SPRD PAMU3 ep intnum mapping */
-	if (ep->uether)
-		usb_phy_post_init(dwc->pam);
 
 	return ret;
 }

@@ -265,9 +265,6 @@ done:
 	if (dwc3_is_usb31(dwc))
 		msleep(50);
 
-	/* Pam init after core reset */
-	usb_phy_init(dwc->pam);
-
 	return 0;
 }
 
@@ -911,6 +908,9 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		dev_err(dwc->dev, "failed to setup event buffers\n");
 		goto err4;
 	}
+
+	/* Pam init after core reset */
+	usb_phy_init(dwc->pam);
 
 	/*
 	 * ENDXFER polling is available on version 3.10a and later of
