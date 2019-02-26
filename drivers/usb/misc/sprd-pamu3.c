@@ -156,6 +156,16 @@ void pamu3_start(struct sprd_pamu3 *pamu3)
 {
 	u32 value;
 
+	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
+
+	if (value & PAMU3_CTL0_BIT_PAM_EN) {
+		value |= PAMU3_CTL0_BIT_RX_START | PAMU3_CTL0_BIT_TX_START;
+		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
+		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
+		value |=  PAMU3_CTL0_BIT_USB_EN;
+		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
+		return;
+	}
 	value = (PAMU3_INTSTS_RXEPINT << PAMU3_SHIFT_INTSTS) |
 			(PAMU3_INTSTS_RXCMDERR << PAMU3_SHIFT_INTSTS);
 	writel_relaxed(value, pamu3->base + PAM_U3_INR_EN);
@@ -165,11 +175,7 @@ void pamu3_start(struct sprd_pamu3 *pamu3)
 	writel_relaxed(value, pamu3->base + PAM_U3_TRB_HEADER);
 
 	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
-	value |= PAMU3_CTL0_BIT_TX_START | PAMU3_CTL0_BIT_RX_START;
-	writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
-
-	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
-	value |= PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN;
+	value |= PAMU3_CTL0_BIT_PAM_EN;
 	writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
 }
 
@@ -185,6 +191,9 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 
 	/* IPA common FIFOs IRAM addresses */
 	pamu3->sipa_params.send_param.tx_intr_threshold = pamu3->max_dl_pkts;
+	pamu3->sipa_params.send_param.tx_intr_delay_us = 5;
+	pamu3->sipa_params.recv_param.tx_intr_threshold = pamu3->max_ul_pkts;
+	pamu3->sipa_params.recv_param.tx_intr_delay_us = 5;
 	sipa_get_ep_info(SIPA_EP_USB, &pamu3->sipa_info);
 	sipa_pam_connect(&pamu3->sipa_params);
 
