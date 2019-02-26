@@ -780,7 +780,6 @@
 					<&ipa_gate CLK_IPA_USB1_REF_EB>;
 				clock-names = "core_clk", "ref_clk", "susp_clk";
 				usb-phy = <&ssphy>, <&ssphy>;
-				usb-pam = <&pamu3>;
 				#address-cells = <2>;
 				#size-cells = <2>;
 				ranges;
@@ -791,6 +790,7 @@
 					interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
 					interrupt-names = "irq";
 					usb-phy = <&ssphy>, <&ssphy>;
+					usb-pam = <&pamu3>;
 					phy_type = "utmi_wide";
 					dr_mode = "peripheral";
 					snps,usb3-u1u2-disable;
