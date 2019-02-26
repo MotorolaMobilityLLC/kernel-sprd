@@ -109,7 +109,7 @@ struct cproc_proc_entry {
 	char				*name;
 	struct proc_dir_entry	*entry;
 	struct cproc_device		*cproc;
-	unsigned	flag; /*if set bit4 => bit0~bit3 for segs index */
+	unsigned int flag; /*if set bit4 => bit0~bit3 for segs index */
 };
 
 struct cproc_proc_fs {
@@ -171,10 +171,10 @@ static int list_each_dump_info(struct cproc_dump_info *base,
 }
 
 static ssize_t sprd_cproc_seg_dump(u32 base,
-					u32 maxsz,
-					char __user *buf,
-					size_t count,
-					loff_t offset)
+				   u32 maxsz,
+				   char __user *buf,
+				   size_t count,
+				   loff_t offset)
 {
 	void *vmem;
 	u32 loop = 0;
@@ -256,8 +256,8 @@ static int sprd_cproc_release(struct inode *inode, struct file *filp)
 }
 
 static long sprd_cproc_ioctl(struct file *filp,
-				unsigned int cmd,
-				unsigned long arg)
+			     unsigned int cmd,
+			     unsigned long arg)
 {
 	return 0;
 }
@@ -293,15 +293,15 @@ static int cproc_proc_release(struct inode *inode, struct file *filp)
 }
 
 static ssize_t cproc_proc_read(struct file *filp,
-				char __user *buf,
-				size_t count, loff_t *ppos)
+			       char __user *buf,
+			       size_t count, loff_t *ppos)
 {
 	struct cproc_proc_entry
 		*entry = (struct cproc_proc_entry *)filp->private_data;
 	struct cproc_device *cproc = entry->cproc;
 	char *type = entry->name;
 	unsigned int len;
-	unsigned flag;
+	unsigned int flag;
 	void *vmem;
 	int rval;
 	int i;
@@ -363,8 +363,8 @@ static ssize_t cproc_proc_read(struct file *filp,
 
 		count = (len > count) ? count : len;
 		if (unalign_copy_to_user(buf,
-					cp_status_info[cproc->status],
-					count)) {
+					 cp_status_info[cproc->status],
+					 count)) {
 			pr_err("cproc_proc_read copy data to user error !\n");
 			return -EFAULT;
 		}
@@ -446,11 +446,11 @@ static ssize_t cproc_proc_read(struct file *filp,
 			if (!count)
 				break;
 			len = sprintf(head,
-					"%s_%s_0x%8x_0x%x.bin",
-					s_cur_info->parent_name,
-					s_cur_info->name,
-					s_cur_info->start_addr,
-					s_cur_info->size);
+				      "%s_%s_0x%8x_0x%x.bin",
+				      s_cur_info->parent_name,
+				      s_cur_info->name,
+				      s_cur_info->start_addr,
+				      s_cur_info->size);
 
 			if (*ppos > len) {
 				offset = *ppos - len;
@@ -516,6 +516,7 @@ static int cproc_proc_copy_iram(struct cproc_device *cproc)
 
 	if (ctrl->iram_loaded)
 		return 0;
+
 	ctrl->iram_loaded = 1;
 	pr_debug("%s: addr =0x%p, size =%d\n",
 		__func__,
@@ -527,6 +528,7 @@ static int cproc_proc_copy_iram(struct cproc_device *cproc)
 				      ctrl->iram_size);
 	if (!vmem)
 		return -ENOMEM;
+
 	unalign_memcpy(vmem,
 		       (void *)ctrl->iram_data,
 		       ctrl->iram_size);
@@ -594,7 +596,7 @@ static ssize_t cproc_proc_write(struct file *filp,
 	void *vmem;
 	int i;
 	unsigned long r = count;
-	unsigned flag;
+	unsigned int flag;
 
 	flag = entry->flag;
 	pr_debug("%s: type = %s flag = 0x%x\n", __func__, type, flag);
@@ -622,9 +624,8 @@ static ssize_t cproc_proc_write(struct file *filp,
 			 __func__, type, offset);
 
 		if (offset == 0 &&
-		    strstr(type, "modem")) {
+		    strstr(type, "modem"))
 			cproc_proc_copy_iram(cproc);
-		}
 	} else {
 		pr_err("%s: flag erro!\n", __func__);
 		return -EPERM;
@@ -652,8 +653,8 @@ static ssize_t cproc_proc_write(struct file *filp,
 				       CPROC_VMALLOC_SIZE_LIMIT);
 		if (!vmem) {
 			unsigned long addr = base +
-					offset +
-					CPROC_VMALLOC_SIZE_LIMIT * i;
+				      offset +
+				      CPROC_VMALLOC_SIZE_LIMIT * i;
 			pr_err("Unable to map cproc base: 0x%lx\n",
 			       addr);
 			if (i > 0) {
@@ -755,6 +756,7 @@ static long cproc_proc_ioctl(struct file *filp, unsigned int cmd,
 	if (!(entry->flag & BE_IOCTL)) {
 		pr_err("ioctl into non-supported file %s!\n",
 		       entry->name);
+
 		return -EOPNOTSUPP;
 	}
 
@@ -802,7 +804,7 @@ static const struct file_operations cpproc_fs_fops = {
 static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
 {
 	u8 i, ucnt;
-	unsigned flag;
+	unsigned int flag;
 	umode_t mode;
 	struct cproc_ctrl *ctrl;
 
@@ -867,7 +869,8 @@ static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
 		default:
 			if (cproc->initdata->segnr + ucnt
 				>= MAX_CPROC_ENTRY_NUM) {
-				pr_debug("%s: entrys size to small\n", __func__);
+				pr_debug("%s: entries size to small\n",
+					 __func__);
 				return;
 			}
 
@@ -911,7 +914,7 @@ static inline void sprd_cproc_fs_exit(struct cproc_device *cproc)
 
 		if (cproc->procfs.entrys[i].flag != 0) {
 			remove_proc_entry(cproc->procfs.entrys[i].name,
-					cproc->procfs.procdir);
+					  cproc->procfs.procdir);
 		}
 	}
 
@@ -1037,8 +1040,8 @@ static int sprd_cproc_native_arm_start(void *arg)
 
 		while (1) {
 			sprd_cproc_regmap_read(ctrl,
-						CPROC_CTRL_CORE_RESET,
-						&state);
+					       CPROC_CTRL_CORE_RESET,
+					       &state);
 			if (!(state & ctrl->ctrl_mask[CPROC_CTRL_CORE_RESET]))
 				break;
 		}
@@ -1059,8 +1062,8 @@ static int sprd_cproc_native_arm_start(void *arg)
 
 		while (1) {
 			sprd_cproc_regmap_read(ctrl,
-						CPROC_CTRL_SYS_RESET,
-						&state);
+					       CPROC_CTRL_SYS_RESET,
+					       &state);
 			if (!(state & ctrl->ctrl_mask[CPROC_CTRL_SYS_RESET]))
 				break;
 		}
@@ -1445,8 +1448,8 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 	}
 
 	ret = of_property_read_string(np,
-				"sprd,name",
-				(const char **)&pdata->devname);
+				      "sprd,name",
+				      (const char **)&pdata->devname);
 	if (ret)
 		goto error;
 
@@ -1465,7 +1468,9 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 
 	do {
 		/* get apb & pmu reg handle */
-		ctrl->rmap[cr_num] = syscon_regmap_lookup_by_name(np, cproc_dts_args[cr_num]);
+		ctrl->rmap[cr_num] =
+			syscon_regmap_lookup_by_name(np,
+						     cproc_dts_args[cr_num]);
 		if (IS_ERR(ctrl->rmap[cr_num])) {
 			pr_debug("%s: %s failed to find %s\n",
 				 __func__, pdata->devname,
@@ -1476,8 +1481,9 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 		/* 1.get ctrl_reg offset, the ctrl-reg variable number, so need
 		 * to start reading from the largest until success.
 		 *  2.get ctrl_mask
-		*/
-		ret = syscon_get_args_by_name(np, cproc_dts_args[cr_num], 2, (u32 *)syscon_args);
+		 */
+		ret = syscon_get_args_by_name(np, cproc_dts_args[cr_num],
+					      2, (u32 *)syscon_args);
 		if (ret == 2) {
 			ctrl->ctrl_reg[cr_num] = syscon_args[0];
 			ctrl->ctrl_mask[cr_num] = syscon_args[1];
@@ -1653,7 +1659,8 @@ static int sprd_cproc_probe(struct platform_device *pdev)
 		for_each_child_of_node(np, chd) {
 			rval = sprd_cproc_parse_dt(&pdata, chd);
 			if (rval || !pdata) {
-				pr_err("%s: failed to parse device tree!\n", __func__);
+				pr_err("%s: failed to parse device tree!\n",
+				       __func__);
 				return rval;
 			}
 
@@ -1671,11 +1678,15 @@ static int sprd_cproc_probe(struct platform_device *pdev)
 			cproc = kzalloc(sizeof(*cproc), GFP_KERNEL);
 			if (!cproc) {
 				sprd_cproc_destroy_pdata(&pdata);
-				pr_err("%s: failed to allocate cproc device!\n", __func__);
+				pr_err("%s: failed to allocate cproc device!\n",
+				       __func__);
 				return -ENOMEM;
 			}
 
-			pr_debug("%s: 0x%p 0x%x\n", __func__, (void *)pdata->base, pdata->maxsz);
+			pr_debug("%s: 0x%p 0x%x\n",
+				 __func__,
+				 (void *)pdata->base,
+				 pdata->maxsz);
 
 			cproc->initdata = pdata;
 
@@ -1689,11 +1700,14 @@ static int sprd_cproc_probe(struct platform_device *pdev)
 			if (rval) {
 				sprd_cproc_destroy_pdata(&cproc->initdata);
 				kfree(cproc);
-				pr_err("%s:register miscdev! failed\n", __func__);
+				pr_err("%s:register miscdev! failed\n",
+				       __func__);
 				return rval;
 			}
 
-			pr_debug("%s: cp boot mode: 0x%x\n", __func__, cp_boot_mode);
+			pr_debug("%s: cp boot mode: 0x%x\n",
+				 __func__,
+				 cp_boot_mode);
 			if (!cp_boot_mode)
 				cproc->status = CP_NORMAL_STATUS;
 			else
@@ -1712,7 +1726,8 @@ static int sprd_cproc_probe(struct platform_device *pdev)
 				if (rval != 0) {
 					misc_deregister(&cproc->miscdev);
 					sprd_cproc_destroy_pdata(&cproc->initdata);
-					pr_err("%s: failed to request irq", __func__);
+					pr_err("%s: failed to request irq",
+					       __func__);
 					kfree(cproc);
 					return rval;
 				}
@@ -1722,7 +1737,9 @@ static int sprd_cproc_probe(struct platform_device *pdev)
 
 			platform_set_drvdata(pdev, cproc);
 
-			pr_debug("%s: %s!\n", __func__, cproc->initdata->devname);
+			pr_debug("%s: %s!\n",
+				 __func__,
+				 cproc->initdata->devname);
 		}
 	}
 
@@ -1803,10 +1820,10 @@ static int sprd_cproc_debug_show(struct seq_file *m, void *private)
 			for (i = 0; i < ctrl->iram_size / sizeof(u32); i++) {
 				if ((i + 1) % 4 == 0)
 					seq_printf(m, "0x%08x\n",
-						ctrl->iram_data[i]);
+						   ctrl->iram_data[i]);
 				else
 					seq_printf(m, "0x%08x, ",
-						ctrl->iram_data[i]);
+						   ctrl->iram_data[i]);
 			}
 			seq_puts(m, "\n");
 			sipc_debug_putline(m, '-', 80);
@@ -1817,9 +1834,9 @@ static int sprd_cproc_debug_show(struct seq_file *m, void *private)
 
 		for (i = 0; i < ctrl->reg_nr; i++)
 			seq_printf(m, "reg[%2d]: reg=0x%08x, mask=0x%08x\n",
-				i,
-				ctrl->ctrl_reg[i],
-				ctrl->ctrl_mask[i]);
+				   i,
+				   ctrl->ctrl_reg[i],
+				   ctrl->ctrl_mask[i]);
 		sipc_debug_putline(m, '-', 80);
 	}
 
@@ -1829,10 +1846,10 @@ static int sprd_cproc_debug_show(struct seq_file *m, void *private)
 
 	for (i = 0; i < pdata->segnr; i++)
 		seq_printf(m, "segment[%2d]:base=0x%08x, size=0x%08x, name=%s\n",
-			i,
-			segs[i].base,
-			segs[i].maxsz,
-			segs[i].name);
+			   i,
+			   segs[i].base,
+			   segs[i].maxsz,
+			   segs[i].name);
 
 	sipc_debug_putline(m, '-', 80);
 
