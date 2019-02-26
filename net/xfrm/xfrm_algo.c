@@ -255,8 +255,31 @@ static struct xfrm_algo_desc aalg_list[] = {
 		.sadb_alg_maxbits = 256
 	}
 },
+/*SPRD:654709 add one for sha256-128*/
+{
+	.name = "hmac(sha256-128)",
+	.compat = "sha256-128",
+
+	.uinfo = {
+		.auth = {
+			.icv_truncbits = 128,
+			.icv_fullbits = 256,
+		}
+	},
+
+	.pfkey_supported = 1,
+
+	.desc = {
+		.sadb_alg_id = SADB_X_AALG_SHA2_256HMAC,
+		.sadb_alg_ivlen = 0,
+		.sadb_alg_minbits = 256,
+		.sadb_alg_maxbits = 256
+	}
+},
+/*end*/
 {
 	.name = "hmac(sha384)",
+	.compat = "sha384",
 
 	.uinfo = {
 		.auth = {
@@ -276,6 +299,7 @@ static struct xfrm_algo_desc aalg_list[] = {
 },
 {
 	.name = "hmac(sha512)",
+	.compat = "sha512",
 
 	.uinfo = {
 		.auth = {
