@@ -405,6 +405,10 @@ static void sdiohal_tx_send(int chn)
 				mbuf_node->buf = kzalloc(TX_MULTI_BUF_SIZE +
 							 PUB_HEAD_RSV,
 							 GFP_KERNEL);
+				if (!mbuf_node->buf) {
+					sdiohal_err(" mbuf_node->buf kzalloc memory fail");
+					return;
+					}
 				mbuf_node->len = TX_MULTI_BUF_SIZE;
 				if ((i + 1) < num)
 					mbuf_node = mbuf_node->next;
