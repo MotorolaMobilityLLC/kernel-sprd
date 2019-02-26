@@ -663,6 +663,7 @@ static int fe_hw_params(struct snd_pcm_substream *substream,
 		data_fmt = VBC_DAT_L24;
 		break;
 	default:
+		data_fmt = VBC_DAT_L16;
 		pr_err("%s unsupported data format\n", __func__);
 		break;
 	}

@@ -274,8 +274,8 @@ static void sprd_headset_power_deinit(void)
 	struct headset_power *power_temp;
 	int i = 0;
 
-	while (i++ < HDST_REGULATOR_COUNT) {
-		power_temp = &power[i];
+	while (i < HDST_REGULATOR_COUNT) {
+		power_temp = &power[i++];
 		if (power_temp->hdst_regu) {
 			regulator_put(power_temp->hdst_regu);
 			power_temp->hdst_regu = NULL;
@@ -349,8 +349,8 @@ static struct headset_power *sprd_headset_search_power(
 	int i = 0;
 	struct headset_power *power_array = power_manager->power;
 
-	while (i++ < HDST_REGULATOR_COUNT) {
-		if (strcmp(power_array[i].name, name) == 0)
+	while (i < HDST_REGULATOR_COUNT) {
+		if (strcmp(power_array[i++].name, name) == 0)
 			break;
 	}
 	if (i >= HDST_REGULATOR_COUNT) {
@@ -366,7 +366,7 @@ static int sprd_headset_power_set(struct headset_power_manager *power_manager,
 	char *name, bool power_on)
 {
 	struct headset_power *power;
-	int ret;
+	int ret = 0;
 
 	power = sprd_headset_search_power(power_manager, name);
 	if (!power) {
