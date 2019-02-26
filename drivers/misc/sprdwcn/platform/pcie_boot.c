@@ -84,6 +84,8 @@ int gnss_boot_up(struct wcn_pcie_info *pcie_info, const char *path,
 
 retry:
 	buffer = load_firmware_data(path, size);
+	for (i = 0; i < 10; i++)
+		PCIE_INFO("buffer[%d]= 0x%x\n", i, buffer[i]);
 	if (!buffer && ((dbg_cnt++) < 1)) {
 		PCIE_INFO("%s: can't download firmware, retry %d\n",
 			  __func__, dbg_cnt);
@@ -102,6 +104,11 @@ retry:
 	pcie_bar_read(pcie_info, 2, GNSS_CPSTART_OFFSET, a, 10);
 	for (i = 0; i < 10; i++)
 		PCIE_INFO("a[%d]= 0x%x\n", i, a[i]);
+
+	if ((a[0] != buffer[0]) || (a[1] != buffer[1]) || (a[2] != buffer[2])) {
+		PCIE_ERR("%s: firmware's code transfer error\n", __func__);
+		return -1;
+	}
 
 	if ((a[0] == 0) && (a[1] == 0) && (a[2] == 0)) {
 		PCIE_ERR("%s: mmcblk's data is dirty\n", __func__);

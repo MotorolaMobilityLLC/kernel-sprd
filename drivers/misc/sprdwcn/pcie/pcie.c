@@ -10,6 +10,7 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/msi.h>
 #include <linux/pci.h>
@@ -260,6 +261,7 @@ int pcie_config_write(struct wcn_pcie_info *priv, int offset,
 int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar,
 		      unsigned int addr, char region)
 {
+	u32 retries, val;
 	struct inbound_reg *ibreg = (struct inbound_reg *) ibreg_base(priv,
 								      region);
 
@@ -275,7 +277,20 @@ int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar,
 	PCIE_DBG("%s(bar=%d, addr=0x%x, region=%d)\n",
 		 __func__, bar, addr, region);
 
-	return 0;
+	/*
+	 * Make sure ATU enable takes effect before any subsequent config
+	 * and I/O accesses.
+	 */
+	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
+		val = ibreg->en;
+		if (val & PCIE_ATU_ENABLE)
+			return 0;
+		PCIE_INFO("%s:retries=%d\n", __func__, retries);
+		mdelay(LINK_WAIT_IATU);
+	}
+	PCIE_ERR("inbound iATU is not being enabled\n");
+
+	return -EBUSY;
 }
 EXPORT_SYMBOL(sprd_pcie_bar_map);
 

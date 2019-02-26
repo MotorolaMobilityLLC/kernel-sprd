@@ -2062,16 +2062,18 @@ int start_marlin(u32 subsys)
 	int ret;
 
 	mutex_lock(&marlin_dev->power_lock);
-	WCN_INFO("%s [%s],power_status=%ld\n", __func__, strno(subsys),
+	WCN_INFO("%s [%s],power_status=0x%lx\n", __func__, strno(subsys),
 		 marlin_dev->power_state);
 
-	if (subsys == MARLIN_GNSS)
+	marlin_dev->first_power_on_flag++;
+	if ((subsys == MARLIN_GNSS) && (!marlin_dev->gnss_dl_finish_flag))
 		gnss_powerdomain_open();
 
 	if ((marlin_dev->download_finish_flag == 1) &&
 	    (marlin_dev->gnss_dl_finish_flag)) {
 		WCN_INFO("firmware have download\n");
 		set_bit(subsys, &marlin_dev->power_state);
+		marlin_dev->first_power_on_flag = 2;
 		mutex_unlock(&marlin_dev->power_lock);
 		return 0;
 	}
@@ -2084,6 +2086,11 @@ int start_marlin(u32 subsys)
 	}
 	set_bit(subsys, &marlin_dev->power_state);
 	marlin_dev->download_finish_flag = 1;
+
+	if (marlin_dev->first_power_on_flag == 1)
+		stop_marlin(MARLIN_GNSS);
+
+	marlin_dev->first_power_on_flag = 2;
 	mutex_unlock(&marlin_dev->power_lock);
 
 	return 0;
@@ -2117,6 +2124,7 @@ EXPORT_SYMBOL_GPL(start_marlin);
 
 int stop_marlin(u32 subsys)
 {
+	WCN_INFO("%s [%s]\n", __func__, strno(subsys));
 #ifndef CONFIG_WCN_PCIE
 	if (sprdwcn_bus_get_carddump_status() != 0) {
 		WCN_ERR("%s SDIO card dump\n", __func__);
