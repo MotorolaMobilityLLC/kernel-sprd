@@ -51,7 +51,7 @@ static struct wakeup_source sensorhub_wake_lock;
 #if SHUB_DATA_DUMP
 #define MAX_RX_LEN 102400
 static int total_read_byte_cnt;
-u8 sipc_rx_data[MAX_RX_LEN];
+static u8 sipc_rx_data[MAX_RX_LEN];
 #endif
 /* for debug flush event */
 static int flush_setcnt;
@@ -1313,25 +1313,19 @@ static ssize_t calibrator_data_store(struct device *dev,
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	char data[CALIBRATION_DATA_LENGTH];
-	int temp[CALIBRATION_DATA_LENGTH];
-	int i, err;
+	int i, err, temp, cr, offset = 0;
 
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
 		dev_err(dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
 	}
 
-	sscanf(buf,
-	       "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
-	       &temp[0], &temp[1], &temp[2], &temp[3], &temp[4], &temp[5],
-	       &temp[6], &temp[7], &temp[8], &temp[9], &temp[10], &temp[11],
-	       &temp[12], &temp[13], &temp[14], &temp[15], &temp[16], &temp[17],
-	       &temp[18], &temp[19], &temp[20], &temp[21], &temp[22], &temp[23],
-	       &temp[24], &temp[25], &temp[26], &temp[27], &temp[28],
-	       &temp[29]);
-
-	for (i = 0; i < 30; i++)
-		data[i] = (u8)temp[i];
+	for (i = 0; i < CALIBRATION_DATA_LENGTH; i++) {
+		if (sscanf(buf + offset, "%d %n", &temp, &cr) != 1)
+			return -EINVAL;
+		data[i] = (unsigned char)temp;
+		offset += cr;
+	}
 	err = shub_send_command(sensor, HANDLE_MAX,
 				SHUB_SET_CALIBRATION_DATA_SUBTYPE,
 				data, sizeof(data));
