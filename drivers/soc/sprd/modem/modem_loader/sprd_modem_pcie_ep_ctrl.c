@@ -108,7 +108,7 @@ static void modem_ep_get_remote_flag(struct modem_device *modem)
 static void modem_ep_set_remote_flag(struct modem_device *modem)
 {
 	u32 flag = 0;
-        u32 temp = modem->remote_flag;
+	u32 temp = modem->remote_flag;
 	void __iomem *base;
 
 	if (temp & SPL_IMAGE_DONE_FLAG) {

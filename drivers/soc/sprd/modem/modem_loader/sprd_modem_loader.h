@@ -64,7 +64,7 @@ struct modem_ctrl {
 
 struct modem_device {
 	struct modem_load_info	*load;
-	const char			*modem_name;
+	const char		*modem_name;
 	struct modem_ctrl	*modem_ctrl;
 
 #ifdef CONFIG_SPRD_EXT_MODEM_POWER_CTRL
