@@ -1009,13 +1009,14 @@ static int sdiohal_free_rx_mbuf_nodes(int num)
 	struct mbuf_t *mbuf_node = NULL, *mbuf_temp = NULL;
 	int i;
 
-	mbuf_temp = p_data->list_rx_buf.mbuf_head;
+	mbuf_node = p_data->list_rx_buf.mbuf_head;
 	for (i = 0; i < num; i++) {
-		if (mbuf_temp->next)
-			mbuf_node = mbuf_temp->next;
-		mbuf_temp->next = NULL;
-		kfree(mbuf_temp);
 		mbuf_temp = mbuf_node;
+		if (mbuf_temp->next) {
+			mbuf_node = mbuf_temp->next;
+			mbuf_temp->next = NULL;
+		}
+		kfree(mbuf_temp);
 	}
 
 	p_data->list_rx_buf.mbuf_head = NULL;
