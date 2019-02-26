@@ -20,6 +20,7 @@
 #define ION
 #ifdef ION
 #include "ion.h"
+#include "ion_priv.h"
 #endif
 
 #ifdef pr_fmt

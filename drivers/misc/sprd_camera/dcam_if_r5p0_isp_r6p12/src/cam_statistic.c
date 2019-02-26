@@ -23,6 +23,7 @@
 #define ION
 #ifdef ION
 #include "ion.h"
+#include "ion_priv.h"
 #endif
 
 #ifdef pr_fmt
@@ -315,8 +316,15 @@ int sprd_cam_statistic_buf_cfg(
 		addr_offset = dcam_statis_size;
 		iova_addr = frm_statis_head.phy_addr;
 		vir_addr = frm_statis_head.vir_addr;
-		kaddr = sprd_cam_buf_get_kaddr((int)parm->mfd);
-		pr_info("kaddr=0x%lx\n", kaddr);
+#ifdef CONFIG_64BIT
+		kaddr = (unsigned long)parm->kaddr[0]
+			| ((unsigned long)parm->kaddr[1] << 32);
+#else
+		kaddr = (unsigned long)parm->kaddr[0];
+#endif
+		pr_info("kaddr[0]=0x%x, kaddr[1]= 0x%x\n",
+			parm->kaddr[0],
+			parm->kaddr[1]);
 		kaddr += addr_offset;
 		if (parm->statis_valid & ISP_STATIS_VALID_HIST)
 			sprd_camstatistic_buf_split(&frm_statis_head,
@@ -358,8 +366,15 @@ int sprd_cam_statistic_buf_cfg(
 		sizeof(struct cam_statis_buf));
 	iova_addr = frm_statis_head.buf_info.iova[0];
 	vir_addr = parm->vir_addr;
-	kaddr = sprd_cam_buf_get_kaddr((int)parm->mfd);
-	pr_debug("kaddr=0x%lx\n", kaddr);
+#ifdef CONFIG_64BIT
+	kaddr = (unsigned long)parm->kaddr[0]
+		| ((unsigned long)parm->kaddr[1] << 32);
+#else
+	kaddr = (unsigned long)parm->kaddr[0];
+#endif
+	pr_debug("kaddr[0]=0x%x, kaddr[1]= 0x%x\n",
+		parm->kaddr[0],
+		parm->kaddr[1]);
 
 	if (parm->statis_valid & ISP_STATIS_VALID_AEM)
 		sprd_camstatistic_buf_split(&frm_statis_head,
@@ -389,18 +404,19 @@ int sprd_cam_statistic_buf_cfg(
 			&addr_offset,
 			1);
 
-	sprd_camstatistic_buf_split(&frm_statis_head,
-		&module->afm_statis_queue,
-		&module->afm_buf_reserved,
-		&s_dcam_pdev->dev,
-		ISP_AFM_STATIS_BUF_NUM,
-		ISP_AFM_STATIS_BUF_SIZE,
-		ISP_AFM_BLOCK,
-		iova_addr + addr_offset,
-		vir_addr + addr_offset,
-		kaddr + addr_offset,
-		&addr_offset,
-		1);
+	if (parm->statis_valid & ISP_STATIS_VALID_AFM)
+		sprd_camstatistic_buf_split(&frm_statis_head,
+			&module->afm_statis_queue,
+			&module->afm_buf_reserved,
+			&s_dcam_pdev->dev,
+			ISP_AFM_STATIS_BUF_NUM,
+			ISP_AFM_STATIS_BUF_SIZE,
+			ISP_AFM_BLOCK,
+			iova_addr + addr_offset,
+			vir_addr + addr_offset,
+			kaddr + addr_offset,
+			&addr_offset,
+			1);
 
 	if (parm->statis_valid & ISP_STATIS_VALID_PDAF)
 		sprd_camstatistic_buf_split(&frm_statis_head,
@@ -478,14 +494,11 @@ int sprd_cam_statistic_next_buf_set(
 		statis_heap = &module->ebd_statis_frm_queue;
 		reserved_buf = &module->ebd_buf_reserved;
 	} else if (block_index == ISP_AFM_BLOCK) {
+		if (!(module->statis_valid & ISP_STATIS_VALID_AFM))
+			return rtn;
 		p_buf_queue = &module->afm_statis_queue;
 		statis_heap = &module->afm_statis_frm_queue;
 		reserved_buf = &module->afm_buf_reserved;
-		if (!(module->statis_valid & ISP_STATIS_VALID_AFM)) {
-			DCAM_REG_WR(idx, ISP_RAW_AFM_ADDR,
-				reserved_buf->phy_addr);
-			return rtn;
-		}
 	} else if (block_index == ISP_HIST_BLOCK) {
 		if (!(module->statis_valid & ISP_STATIS_VALID_HIST))
 			return rtn;
@@ -648,13 +661,15 @@ int sprd_cam_statistic_buf_set(struct cam_statis_module *module)
 		sprd_dcam_drv_force_copy(idx, AEM_COPY);
 	}
 
-	rtn = sprd_cam_statistic_next_buf_set(module,
-			ISP_AFM_BLOCK, 0);
-	if (rtn) {
-		pr_err("fail to set next AFM statis buf\n");
-		return -(rtn);
+	if (module->statis_valid & ISP_STATIS_VALID_AFM) {
+		rtn = sprd_cam_statistic_next_buf_set(module,
+				ISP_AFM_BLOCK, 0);
+		if (rtn) {
+			pr_err("fail to set next AFM statis buf\n");
+			return -(rtn);
+		}
+		sprd_dcam_drv_force_copy(idx, BIN_COPY);
 	}
-	sprd_dcam_drv_force_copy(idx, BIN_COPY);
 
 	if (module->statis_valid & ISP_STATIS_VALID_PDAF) {
 		rtn = sprd_cam_statistic_next_buf_set(module,

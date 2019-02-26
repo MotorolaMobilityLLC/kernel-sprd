@@ -818,9 +818,8 @@ void sprd_dcam_drv_path_clear(enum dcam_id idx)
 	memset(&dcam_dev->fast_me, 0, sizeof(dcam_dev->fast_me));
 	memset(&dcam_dev->me_param, 0, sizeof(dcam_dev->me_param));
 	dcam_dev->frame_id = 0;
-	dcam_dev->time_index = 0;
-	memset(&dcam_dev->time, 0, sizeof(dcam_dev->time));
-	memset(&dcam_dev->dual_info, 0, sizeof(dcam_dev->dual_info));
+	s_dcam_group.frame_id_diff = 0;
+	s_dcam_group.frame_time_diff = 0;
 }
 
 int sprd_dcam_drv_module_en(enum dcam_id idx)

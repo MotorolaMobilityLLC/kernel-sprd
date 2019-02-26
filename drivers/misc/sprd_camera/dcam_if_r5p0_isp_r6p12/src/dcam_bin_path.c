@@ -212,8 +212,8 @@ int sprd_dcam_bin_path_cfg_set(enum dcam_id idx,
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else if (p_addr->buf_info.type != CAM_BUF_USER_TYPE
-			&& (p_addr->buf_info.dmabuf_p[0] == NULL
-			|| p_addr->buf_info.buf[0] == NULL)) {
+			&& (p_addr->buf_info.client[0] == NULL
+			|| p_addr->buf_info.handle[0] == NULL)) {
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else {
@@ -274,8 +274,8 @@ int sprd_dcam_bin_path_cfg_set(enum dcam_id idx,
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else if (p_addr->buf_info.type != CAM_BUF_USER_TYPE
-			&& (p_addr->buf_info.dmabuf_p[0] == NULL
-			|| p_addr->buf_info.buf[0] == NULL)) {
+			&& (p_addr->buf_info.client[0] == NULL
+			|| p_addr->buf_info.handle[0] == NULL)) {
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else {
@@ -400,9 +400,10 @@ int sprd_dcam_bin_path_next_frm_set(enum dcam_id idx)
 	}
 	addr = frame.buf_info.iova[0] + frame.yaddr;
 
-	DCAM_TRACE("DCAM%d: reserved %d iova[0]=0x%x mfd=0x%x 0x%x\n",
+	DCAM_TRACE("DCAM%d: reserved %d iova[0]=0x%x mfd=0x%x 0x%x %p %p\n",
 		idx, use_reserve_frame, (int)addr,
-		frame.buf_info.mfd[0], frame.yaddr);
+		frame.buf_info.mfd[0], frame.yaddr,
+		frame.buf_info.client[0], frame.buf_info.handle[0]);
 
 	DCAM_REG_WR(idx, DCAM_BIN_BASE_WADDR0, addr);
 

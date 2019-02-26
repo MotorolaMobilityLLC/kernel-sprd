@@ -260,8 +260,6 @@ static int sprd_camioctl_tx_sof(struct camera_frame *frame, void *param)
 	node.irq_type = CAMERA_IRQ_DONE;
 	node.irq_property = IRQ_DCAM_SOF;
 	node.frame_id = frame->frame_id;
-	node.time = frame->time;
-	node.dual_info = frame->dual_info;
 
 	ret = sprd_cam_queue_buf_write(&dev->queue, &node);
 	if (ret) {
@@ -357,7 +355,6 @@ static int sprd_camioctl_tx_done(struct camera_frame *frame, void *param)
 		node.addr_offset = frame->addr_offset;
 		node.buf_size = frame->buf_size;
 		node.frame_id = frame->frame_id;
-		node.dual_info = frame->dual_info;
 		if (dev->zoom_ratio)
 			node.zoom_ratio = dev->zoom_ratio;
 		else
@@ -369,7 +366,6 @@ static int sprd_camioctl_tx_done(struct camera_frame *frame, void *param)
 		node.irq_type = frame->irq_type;
 		node.irq_property = frame->irq_property;
 		node.frame_id = frame->frame_id;
-		node.dual_info = frame->dual_info;
 	} else if (frame->irq_type == CAMERA_IRQ_3DNR_DONE) {
 		node.irq_flag = IMG_TX_DONE;
 		node.irq_type = frame->irq_type;
@@ -1757,7 +1753,7 @@ static int sprd_camioctl_bin_size_get(struct camera_path_spec *pre,
 			&& vid->in_size.h < CAMERA_PFC_OPT_HEIGHT) {
 			full->assoc_idx |= 1 << CAMERA_VID_PATH;
 			vid->assoc_idx = 1 << CAMERA_FULL_PATH;
-		} else if (bin->is_work) {
+		} else if (!bin->is_work) {
 			bin->in_size = vid->in_size;
 			bin->in_rect.w = vid->in_rect.w;
 			bin->in_rect.h = vid->in_rect.h;
@@ -3466,6 +3462,14 @@ static int sprd_camioctl_io_stream_on(struct camera_file *camerafile,
 
 	mutex_lock(&dev->cam_mutex);
 
+	if (dev->init_inptr.statis_valid) {
+		group->cam_ion_client[idx] =
+			sprd_ion_client_get(dev->init_inptr.dev_fd);
+		if (!group->cam_ion_client[idx])
+			pr_err("fail to get ion client fd 0x%lx\n",
+				dev->init_inptr.dev_fd);
+	}
+
 	ret = sprd_cam_queue_buf_clear(&dev->queue);
 	if (unlikely(ret != 0)) {
 		mutex_unlock(&dev->cam_mutex);
@@ -3606,6 +3610,14 @@ static int sprd_camioctl_io_stream_off(struct camera_file *camerafile,
 		if (dev->cam_ctx.need_4in1 &&
 			dev->cam_ctx.need_isp_tool != 1)
 			sprd_cam_buf_sg_table_put(DCAM_ID_1);
+
+		if (dev->init_inptr.statis_valid) {
+			if (group->cam_ion_client[idx]) {
+				sprd_ion_client_put(
+					group->cam_ion_client[idx]);
+				group->cam_ion_client[idx] = NULL;
+			}
+		}
 
 		if (atomic_dec_return(&group->dcam_run_count) == 0)
 			sprd_iommu_restore(&s_dcam_pdev->dev);
@@ -3837,9 +3849,7 @@ static int sprd_camioctl_io_flash_cfg(struct camera_file *camerafile,
 		ret = -EFAULT;
 		return ret;
 	}
-#if 0
 	ret = sprd_flash_cfg(&cfg_parm);
-#endif
 	mutex_unlock(&dev->cam_mutex);
 	CAM_TRACE("config flash, ret %d\n", ret);
 

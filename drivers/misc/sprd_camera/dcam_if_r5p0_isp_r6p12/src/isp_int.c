@@ -22,6 +22,7 @@
 #define ION
 #ifdef ION
 #include "ion.h"
+#include "ion_priv.h"
 #endif
 
 #ifdef pr_fmt
@@ -374,14 +375,14 @@ static int sprd_ispint_hist_statistic_get(enum isp_id idx,
 	int i = 0;
 	int max_item = ISP_HIST_ITEMS;
 	unsigned long HIST_BUF = ISP_HIST_BUF0_CH0;
-	uint64_t *hist_statis = NULL;
+	unsigned long *hist_statis = NULL;
 	uint32_t isp_core_pmu_en = 0;
 #ifdef CONFIG_64BIT
 	hist_statis =
-		(uint64_t *)(((unsigned long)node->kaddr[0]) |
-		((uint64_t)(node->kaddr[1] << 32)));
+		(unsigned long *)(((unsigned long)node->kaddr[0]) |
+		((unsigned long)(node->kaddr[1] << 32)));
 #else
-	hist_statis = (uint64_t *)(node->kaddr[0]);
+	hist_statis = (unsigned long *)(node->kaddr[0]);
 #endif
 	if (IS_ERR_OR_NULL(hist_statis)) {
 		ret = -1;
@@ -397,8 +398,7 @@ static int sprd_ispint_hist_statistic_get(enum isp_id idx,
 		for (i = 0; i < max_item; i++) {
 			hist_statis[i] = ISP_HREG_RD(idx, HIST_BUF + i * 4);
 			pr_debug("ISP%d hist %ld statis[%d] %lu\n",
-				 idx, HIST_BUF, i,
-				 (unsigned long)hist_statis[i]);
+				 idx, HIST_BUF, i, hist_statis[i]);
 		}
 	} else {
 		ret = -1;
