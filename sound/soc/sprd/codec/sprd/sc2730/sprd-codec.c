@@ -2297,6 +2297,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"IVSense Virt", "Switch", "ADC"},
 	{"IVSense Virt", NULL, "IVSense SRC"},
 	{"DAC Fast", NULL, "IVSense Virt"},
+	{"DAC Offload", NULL, "IVSense Virt"},
 
 /* ADie loop */
 	{"ADC-DAC Adie Loop", "switch", "ADC"},
