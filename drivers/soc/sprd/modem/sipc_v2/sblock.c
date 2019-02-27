@@ -834,8 +834,42 @@ int sblock_pcfg_create(u8 dst, u8 channel,
 				   tx_blk_num, tx_blk_sz,
 				   rx_blk_num, rx_blk_sz,
 				   &sblock);
-	if (!result)
+	if (!result) {
+		struct sched_param param = {.sched_priority = 11};
+
+		sblock->thread = kthread_create(sblock_thread, sblock,
+						"sblock-%d-%d", dst, channel);
+		if (IS_ERR(sblock->thread)) {
+			struct smsg_ipc *sipc;
+
+			pr_err("Failed to create kthread: sblock-%d-%d\n",
+				dst, channel);
+			sipc = smsg_ipcs[sblock->dst];
+			if (!sipc->client) {
+				shmem_ram_unmap(dst, sblock->smem_virt);
+				smem_free(dst,
+					  sblock->smem_addr,
+					  sblock->smem_size);
+				kfree(sblock->ring->txrecord);
+				kfree(sblock->ring->rxrecord);
+			}
+			kfree(sblock->ring);
+			result = PTR_ERR(sblock->thread);
+			kfree(sblock);
+			return result;
+		}
+
+		/* Prevent the thread task_struct from being destroyed. */
+		get_task_struct(sblock->thread);
+
 		sblocks[dst][ch_index] = sblock;
+		/*
+		 * Set the thread as a real time thread, and its priority
+		 * is 11.
+		 */
+		sched_setscheduler(sblock->thread, SCHED_RR, &param);
+		wake_up_process(sblock->thread);
+	}
 
 	return result;
 }
