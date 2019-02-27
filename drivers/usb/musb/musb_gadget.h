@@ -74,7 +74,6 @@ enum buffer_map_state {
 	PRE_MAPPED,
 	MUSB_MAPPED
 };
-#define CHN_MAX_QUEUE_SIZE 8
 
 struct musb_request {
 	struct usb_request	request;
@@ -115,13 +114,8 @@ struct musb_ep {
 	struct dma_channel		*dma;
 
 #ifdef CONFIG_USB_SPRD_DMA
-#ifdef CONFIG_USB_SPRD_LINKFIFO
-	struct linklist_node_s	*dma_linklist[CHN_MAX_QUEUE_SIZE];
-	dma_addr_t list_dma_addr[CHN_MAX_QUEUE_SIZE];
-#else
 	struct linklist_node_s	*dma_linklist;
 	dma_addr_t list_dma_addr;
-#endif
 #endif
 
 	/* later things are modified based on usage */
