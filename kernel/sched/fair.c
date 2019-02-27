@@ -10115,7 +10115,8 @@ static struct sched_group *find_busiest_group(struct lb_env *env)
 	 */
 	update_sd_lb_stats(env, &sds);
 
-	if (energy_aware() && !sd_overutilized(env->sd))
+	if (energy_aware() && !sd_overutilized(env->sd) &&
+			!env->sd->parent)
 		goto out_balanced;
 
 	local = &sds.local_stat;
@@ -10927,7 +10928,25 @@ static inline int on_null_domain(struct rq *rq)
 
 static inline int find_new_ilb(void)
 {
-	int ilb = cpumask_first(nohz.idle_cpus_mask);
+	int ilb = nr_cpu_ids;
+	struct sched_domain *sd;
+	int cpu = raw_smp_processor_id();
+	struct rq *rq = cpu_rq(cpu);
+
+	rcu_read_lock();
+	sd = rcu_dereference_check_sched_domain(rq->sd);
+	if (sd)
+		ilb = cpumask_first_and(nohz.idle_cpus_mask,
+					sched_domain_span(sd));
+	rcu_read_unlock();
+
+	if (sd && (ilb >= nr_cpu_ids || !idle_cpu(ilb))) {
+		if (!energy_aware() ||
+		    (capacity_orig_of(cpu) ==
+		     cpu_rq(cpu)->rd->max_cpu_capacity.val ||
+		     cpu_overutilized(cpu)))
+			ilb = cpumask_first(nohz.idle_cpus_mask);
+	}
 
 	if (ilb < nr_cpu_ids && idle_cpu(ilb))
 		return ilb;
@@ -11091,7 +11110,7 @@ static void rebalance_domains(struct rq *rq, enum cpu_idle_type idle)
 		}
 		max_cost += sd->max_newidle_lb_cost;
 
-		if (energy_aware() && !sd_overutilized(sd))
+		if (energy_aware() && !sd_overutilized(sd) && !sd->parent)
 			continue;
 
 		if (!(sd->flags & SD_LOAD_BALANCE)) {
@@ -11310,7 +11329,8 @@ static inline bool nohz_kick_needed(struct rq *rq, bool only_update)
 		return false;
 
 	if (rq->nr_running >= 2 &&
-	    (!energy_aware() || cpu_overutilized(cpu)))
+	    (!energy_aware() || cpu_overutilized(cpu) ||
+			cpumask_test_cpu(cpu, &min_cap_cpu_mask)))
 		return true;
 
 	/* Do idle load balance if there have misfit task */
