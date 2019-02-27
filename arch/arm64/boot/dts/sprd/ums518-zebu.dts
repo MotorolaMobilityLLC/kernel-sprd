@@ -29,7 +29,7 @@
 
 	chosen {
 		stdout-path = &uart0;
-		bootargs = "earlycon loglevel=1 skip_initramfs init=/init root=/dev/memdisk.0 rootfstype=ext4 ro rootwait androidboot.hardware=ums518_zebu androidboot.selinux=permissive";
+		bootargs = "earlycon loglevel=1 skip_initramfs init=/init root=/dev/memdisk0p1 rootfstype=ext4 ro rootwait androidboot.hardware=ums518_zebu androidboot.selinux=permissive";
 	};
 
 	reserved-memory {
@@ -37,14 +37,48 @@
 		#size-cells = <2>;
 		ranges;
 
-		memdisk_reserved: memdisk@100000000{
-				reg = <0x1 0x00000000 0x0 0x48000000>,   /* system 1152M */
-				<0x0 0xc0000000 0x0 0x21000000>,      /* vendor 512M */
-				<0x0 0xe0000000 0x0 0x21000000>,      /* userdata 512M */
-				<0x1 0x48100000 0x0 0x11300000>;      /* cache 275M */
+		system_memdisk_reserved: system_memdisk_reserved@100000000{
+			reg = <0x1 0x00000000 0x0 0x48000000>;  /* system 1536M */
 		};
+
+		userdata_memdisk_reserved: userdata_memdisk_reserved@e0000000{
+			reg = <0x0 0xe0000000 0x0 0x20000000>; /* userdata 512M */
+		};
+
+		vendor_memdisk_reserved: vendor_memdisk_reserved@c0000000{
+			reg = <0x0 0xc0000000 0x0 0x15000000>; /* vendor 300M */
+		};
+
+		cache_memdisk_reserved: cache_memdisk_reserved@148100000{
+			reg = <0x1 0x48100000 0x0 0x11300000>; /* cache 275M */
+		};
+
 		fb_reserved: framebuffer@18a800000{
 				reg = <0x0 0x8a800000 0x0 0x1fe0000>;
+		};
+	};
+
+	sprd-memdisk {
+		compatible = "sprd,memdisk";
+
+		system {
+			memory-region = <&system_memdisk_reserved>;
+			label = "memdisk0p1";
+		};
+
+		userdata {
+			memory-region = <&userdata_memdisk_reserved>;
+			label = "memdisk0p2";
+		};
+
+		vendor {
+			memory-region = <&vendor_memdisk_reserved>;
+			label = "memdisk0p3";
+		};
+
+		cache {
+			memory-region = <&cache_memdisk_reserved>;
+			label = "memdisk0p4";
 		};
 	};
 
@@ -72,11 +106,6 @@
 			type = <2>;
 			memory-region = <&fb_reserved>;
 		};
-	};
-
-	sprd-memdisk {
-		compatible = "sprd,memdisk";
-		memory-region = <&memdisk_reserved>;
 	};
 };
 

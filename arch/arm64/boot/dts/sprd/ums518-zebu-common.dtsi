@@ -17,7 +17,7 @@
 				compatible = "android,fstab";
 				vendor {
 					compatible = "android,vendor";
-					dev = "/dev/block/memdisk.1";
+					dev = "/dev/block/memdisk0p3";
 					type = "ext4";
 					mnt_flags = "ro,barrier=1";
 					fsmgr_flags = "wait";
