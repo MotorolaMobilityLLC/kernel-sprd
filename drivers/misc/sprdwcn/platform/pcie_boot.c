@@ -84,8 +84,7 @@ int gnss_boot_up(struct wcn_pcie_info *pcie_info, const char *path,
 
 retry:
 	buffer = load_firmware_data(path, size);
-	for (i = 0; i < 10; i++)
-		PCIE_INFO("buffer[%d]= 0x%x\n", i, buffer[i]);
+
 	if (!buffer && ((dbg_cnt++) < 1)) {
 		PCIE_INFO("%s: can't download firmware, retry %d\n",
 			  __func__, dbg_cnt);
@@ -96,6 +95,9 @@ retry:
 		PCIE_ERR("%s: can't open gnss firmware path\n", __func__);
 		return -1;
 	}
+
+	for (i = 0; i < 10; i++)
+		PCIE_INFO("buffer[%d]= 0x%x\n", i, buffer[i]);
 
 	/* download firmware */
 	sprd_pcie_bar_map(pcie_info, 2, GNSS_BASE_ADDR, 1);
