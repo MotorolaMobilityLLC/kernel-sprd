@@ -193,7 +193,10 @@ class KUnitMainTest(unittest.TestCase):
 
 	def test_run_passes_args_fail(self):
 		self.linux_source_mock.run_kernel = mock.Mock(return_value=[])
-		kunit.main(['run'], self.linux_source_mock)
+		with self.assertRaises(SystemExit) as e:
+			kunit.main(['run'], self.linux_source_mock)
+		assert type(e.exception) == SystemExit
+		assert e.exception.code == 1
 		assert self.linux_source_mock.build_reconfig.call_count == 1
 		assert self.linux_source_mock.run_kernel.call_count == 1
 		self.print_mock.assert_any_call(StrContains('Before the crash:'))
