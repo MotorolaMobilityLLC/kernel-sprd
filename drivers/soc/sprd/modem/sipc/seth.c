@@ -236,11 +236,6 @@ static int seth_rx_poll_handler(struct napi_struct *napi, int budget)
 		return 0;
 	}
 
-	if (seth->state != DEV_ON) {
-		dev_err(&seth->netdev->dev, "seth state %d\n", seth->state);
-		return 0;
-	}
-
 	pdata = seth->pdata;
 	dt_stats = &seth->dt_stats;
 	blk_ret = 0;
@@ -356,12 +351,7 @@ static void seth_tx_open_handler(void *data)
 {
 	struct seth *seth = (struct seth *)data;
 
-	if (seth->state != DEV_ON) {
-		seth->state = DEV_ON;
-		seth->txstate = DEV_ON;
-		if (!netif_carrier_ok(seth->netdev))
-			netif_carrier_on(seth->netdev);
-	}
+	seth->txstate = DEV_ON;
 }
 
 /* Tx_close handler. */
@@ -383,6 +373,12 @@ static void seth_rx_handler(void *data)
 
 	if (!seth)
 		return;
+
+	if (seth->state != DEV_ON) {
+		dev_err(&seth->netdev->dev, "dev is OFF, state=%d\n",
+			seth->state);
+		return;
+	}
 
 	/* If the poll handler has been done, trigger to schedule*/
 	if (!atomic_cmpxchg(&seth->rx_busy, 0, 1)) {
@@ -670,7 +666,7 @@ static int seth_open(struct net_device *dev)
 	/* Reset stats */
 	memset(&seth->stats, 0, sizeof(seth->stats));
 
-	if (seth->state == DEV_ON && !netif_carrier_ok(seth->netdev)) {
+	if (!netif_carrier_ok(seth->netdev)) {
 		dev_dbg(&dev->dev, "%s netif_carrier_on\n", __func__);
 		netif_carrier_on(seth->netdev);
 	}
