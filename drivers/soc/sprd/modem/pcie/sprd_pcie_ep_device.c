@@ -183,7 +183,7 @@ void __iomem *sprd_ep_map_memory(int ep,
 
 	bar = sprd_ep_dev_get_bar(ep);
 	if (bar < 0) {
-		pr_err("%s: get bar err\n", __func__);
+		pr_err("%s: get bar err = %d\n", __func__, bar);
 		return NULL;
 	}
 
