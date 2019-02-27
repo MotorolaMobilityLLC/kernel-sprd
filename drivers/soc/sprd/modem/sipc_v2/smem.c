@@ -76,6 +76,10 @@ static struct smem_pool *shmem_find_pool(u8 dst)
 	struct smem_pool *pos;
 	unsigned long flags;
 
+	/* The num of one pool is 0, means the poll is not ready */
+	if (!phead->poolnum)
+		return NULL;
+
 	spin_lock_irqsave(&phead->lock, flags);
 	list_for_each_entry(pos, &phead->smem_phead, smem_plist) {
 		if (pos->dst == dst) {
