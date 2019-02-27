@@ -264,7 +264,7 @@ static inline void sprd_pci_ep_iatu_writel(struct sprd_pci_ep_dev *ep_dev,
 static int sprd_ep_dev_get_bar(int ep)
 {
 	int bar;
-	int ret = -ENODEV;
+	int ret = -EBUSY;
 	struct sprd_pci_ep_dev *ep_dev;
 
 	if (ep >= PCIE_EP_NR || !g_ep_dev[ep])
