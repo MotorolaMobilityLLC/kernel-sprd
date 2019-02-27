@@ -107,9 +107,9 @@ struct outbound_reg {
 	unsigned int upper_target_addr;
 } __packed;
 
-int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset, char *buf,
+int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset, void *buf,
 		   int len);
-int pcie_bar_read(struct wcn_pcie_info *priv, int bar, int offset, char *buf,
+int pcie_bar_read(struct wcn_pcie_info *priv, int bar, int offset, void *buf,
 		  int len);
 char *pcie_bar_vmem(struct wcn_pcie_info *priv, int bar);
 int dmalloc(struct wcn_pcie_info *priv, struct dma_buf *dm, int size);

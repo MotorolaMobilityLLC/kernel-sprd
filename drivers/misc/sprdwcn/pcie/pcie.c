@@ -60,7 +60,7 @@ static int sprd_pcie_legacy_irq(int irq, void *arg)
 }
 
 int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset,
-		   char *buf, int len)
+		   void *buf, int len)
 {
 	char *mem = priv->bar[bar].vmem;
 
@@ -69,20 +69,36 @@ int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset,
 		return -1;
 	}
 	mem += offset;
+
 	WCN_DBG("%s(%d, 0x%x, 0x%x)\n", __func__, bar, offset, *((int *)buf));
-	memcpy_toio(mem, buf, len);
+	if (len == 1)
+		writeb_relaxed(*((unsigned char *)buf), mem);
+	else if (len == 2)
+		writew_relaxed(*((unsigned short *)buf), mem);
+	else if (len == 4)
+		writel_relaxed(*((unsigned int *)buf), mem);
+	else
+		memcpy_toio(mem, buf, len);
 
 	return 0;
 }
 EXPORT_SYMBOL(pcie_bar_write);
 
 int pcie_bar_read(struct wcn_pcie_info *priv, int bar, int offset,
-		  char *buf, int len)
+		  void *buf, int len)
 {
 	char *mem = priv->bar[bar].vmem;
 
 	mem += offset;
-	memcpy_fromio(buf, mem, len);
+
+	if (len == 1)
+		*((unsigned char *)buf) = readb_relaxed(mem);
+	else if (len == 2)
+		*((unsigned short *)buf) = readw_relaxed(mem);
+	else if (len == 4)
+		*((unsigned int *)buf) = readl_relaxed(mem);
+	else
+		memcpy_fromio(buf, mem, len);
 
 	return 0;
 }
