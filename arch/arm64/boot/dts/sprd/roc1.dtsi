@@ -1006,7 +1006,6 @@
 					<&ipa_gate CLK_IPA_USB_REF_EB>;
 				clock-names = "core_clk", "ref_clk", "susp_clk";
 				usb-phy = <&ssphy>, <&ssphy>;
-				usb-pam = <&pamu3>;
 
 				dwc3@20f00000 {
 					compatible = "snps,dwc3";
@@ -1014,6 +1013,7 @@
 					interrupts = <GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>;
 					interrupt-names = "irq";
 					usb-phy = <&ssphy>, <&ssphy>;
+					usb-pam = <&pamu3>;
 					phy_type = "utmi_wide";
 					snps,usb3-u1u2-disable;
 					snps,dis_u3_susphy_quirk;
