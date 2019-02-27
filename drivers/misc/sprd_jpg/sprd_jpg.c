@@ -484,8 +484,8 @@ static int jpg_release(struct inode *inode, struct file *filp)
 		up(&jpg_hw_dev.jpg_mutex);
 	}
 
-	kfree(filp->private_data);
 	pr_info("%s %p\n", __func__, jpg_fp);
+	kfree(filp->private_data);
 
 	ret = sprd_jpg_pw_off();
 	pr_info("jpg pw_off: ret %d", ret);
