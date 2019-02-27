@@ -870,13 +870,16 @@ static ssize_t at_cmd_write(struct file *filp,
 			WCN_INFO("%s int_bitmap:%ld\n",
 				 __func__, int_bitmap);
 
-			if (int_bitmap & 0xff)
+			if (int_bitmap & 0xff) {
 				addr = REG_TO_CP0_REQ0;
-			sprdwcn_bus_aon_writeb(addr, int_bitmap & 0xff);
+				sprdwcn_bus_aon_writeb(addr, int_bitmap & 0xff);
+			}
 
-			if (int_bitmap & 0xff00)
+			if (int_bitmap & 0xff00) {
 				addr = REG_TO_CP0_REQ1;
-			sprdwcn_bus_aon_writeb(addr, int_bitmap >> 8);
+				sprdwcn_bus_aon_writeb(addr, int_bitmap >> 8);
+			}
+
 		}
 
 		return count;
