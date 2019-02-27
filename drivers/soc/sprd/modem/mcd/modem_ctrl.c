@@ -29,17 +29,11 @@
 #ifdef CONFIG_PCIE_PM_NOTIFY
 #include <linux/pcie_notifier.h>
 #endif
+#include <linux/mdm_ctrl.h>
 
 enum {
-	MDM_CTRL_POWER_OFF = 0,
-	MDM_CTRL_POWER_ON,
-	MDM_CTRL_WARM_RESET,
-	MDM_CTRL_COLD_RESET,
-	MDM_WATCHDOG_RESET,
-	MDM_ASSERT,
-	MDM_PANIC,
-	MDM_CTRL_PCIE_RECOVERY,
-	MDM_CTRL_SET_CFG
+	ROC1_SOC = 0,
+	ORCA_SOC
 };
 
 static char *const mdm_stat[] = {
@@ -49,6 +43,8 @@ static char *const mdm_stat[] = {
 
 #define REBOOT_MODEM_DELAY    1000
 #define POWERREST_MODEM_DELAY 7000
+#define RESET_MODEM_DELAY    50
+
 char cdev_name[] = "mdm_ctrl";
 
 struct modem_ctrl_init_data {
@@ -75,6 +71,7 @@ struct modem_ctrl_device {
 	int minor;
 	struct cdev cdev;
 	struct device *dev;
+	int soc_type;
 };
 
 static struct class *modem_ctrl_class;
@@ -205,6 +202,62 @@ static int modem_gpios_init(struct modem_ctrl_device *mcd_dev)
 	return 0;
 }
 
+void modem_ctrl_send_abnormal_to_ap(int status, u32 time_us)
+{
+	struct gpio_desc *gpiodesc;
+
+	if (!mcd_dev || !mcd_dev->init)
+		return;
+	if (mcd_dev->soc_type != ORCA_SOC) {
+		dev_err(mcd_dev->dev, "operation not be allowed for %d\n",
+			mcd_dev->soc_type);
+		return;
+	}
+	switch (status) {
+	case MDM_WATCHDOG_RESET:
+		gpiodesc = mcd_dev->init->gpio_cpwatchdog;
+		break;
+	case MDM_ASSERT:
+		gpiodesc = mcd_dev->init->gpio_cpassert;
+		break;
+	case MDM_PANIC:
+		gpiodesc = mcd_dev->init->gpio_cppanic;
+		break;
+	default:
+		dev_info(mcd_dev->dev,
+		"get status %d is not right for operation\n", status);
+		return;
+	}
+	mcd_dev->init->modem_status = status;
+	dev_info(mcd_dev->dev,
+		"operation unnormal status %d %d us send to ap\n",
+		status, time_us);
+	if (!IS_ERR(gpiodesc)) {
+		gpiod_set_value_cansleep(gpiodesc, 0);
+		/* Use 50us looks like good,base test */
+		if (time_us)
+			udelay(time_us);
+		gpiod_set_value_cansleep(gpiodesc, 1);
+	}
+}
+
+static void modem_ctrl_notify_abnormal_status(int status)
+{
+	if (!mcd_dev || !mcd_dev->init)
+		return;
+	if (mcd_dev->soc_type != ORCA_SOC) {
+		dev_err(mcd_dev->dev, "operation not be allowed for %d\n",
+			mcd_dev->soc_type);
+		return;
+	}
+	if (status < MDM_WATCHDOG_RESET || status > MDM_PANIC) {
+		dev_err(mcd_dev->dev,
+		       "operation not be allowed for status %d\n", status);
+		return;
+	}
+	modem_ctrl_send_abnormal_to_ap(status, 50);
+}
+
 static void modem_ctrl_poweron_modem(int on)
 {
 	if (!mcd_dev || !mcd_dev->init)
@@ -233,9 +286,14 @@ static void modem_ctrl_poweron_modem(int on)
 		 */
 		break;
 	case MDM_CTRL_WARM_RESET:
-		/*
-		 *To do
-		 */
+		if (!IS_ERR(mcd_dev->init->gpio_reset)) {
+			dev_dbg(mcd_dev->dev, "set warm reset: %d\n", on);
+			gpiod_set_value_cansleep(mcd_dev->init->gpio_reset, 1);
+			/* Base the spec modem that need to wait 50ms */
+			msleep(RESET_MODEM_DELAY);
+			mcd_dev->init->modem_status = MDM_CTRL_WARM_RESET;
+			gpiod_set_value_cansleep(mcd_dev->init->gpio_reset, 0);
+		}
 		break;
 	case MDM_CTRL_COLD_RESET:
 		if (!IS_ERR(mcd_dev->init->gpio_poweron)) {
@@ -346,16 +404,24 @@ static ssize_t modem_ctrl_write(struct file *filp,
 		dev_err(mcd_dev->dev, "Invalid input!\n");
 		return ret;
 	}
-	if (mcd_cmd >= MDM_CTRL_POWER_OFF && mcd_cmd <= MDM_CTRL_SET_CFG)
-		modem_ctrl_poweron_modem(mcd_cmd);
-	else
-		dev_info(mcd_dev->dev, "cmd not support!\n");
+	if (mcd_dev->soc_type == ROC1_SOC) {
+		if (mcd_cmd >= MDM_CTRL_POWER_OFF &&
+		    mcd_cmd <= MDM_CTRL_SET_CFG)
+			modem_ctrl_poweron_modem(mcd_cmd);
+		else
+			dev_info(mcd_dev->dev, "cmd not support!\n");
+	} else {
+		modem_ctrl_notify_abnormal_status(mcd_cmd);
+	}
 	return count;
 }
 
 static long modem_ctrl_ioctl(struct file *filp, unsigned int cmd,
 			     unsigned long arg)
 {
+
+	if (!mcd_dev || mcd_dev->soc_type == ORCA_SOC)
+		return -EINVAL;
 	switch (cmd) {
 	case MDM_CTRL_POWER_OFF:
 		modem_ctrl_poweron_modem(MDM_CTRL_POWER_OFF);
@@ -390,10 +456,39 @@ static const struct file_operations modem_ctrl_fops = {
 	.llseek		= default_llseek,
 };
 
-static int modem_ctrl_parse_dt(struct modem_ctrl_init_data **init,
+static int modem_ctrl_parse_modem_dt(struct modem_ctrl_init_data **init,
 			       struct device *dev)
 {
 	struct modem_ctrl_init_data *pdata = NULL;
+
+	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
+	if (!pdata)
+		return -ENOMEM;
+	pdata->name = cdev_name;
+
+	/* Triger watchdog,assert,panic of orca */
+	pdata->gpio_cpwatchdog = devm_gpiod_get(dev,
+					       "cpwatchdog",
+					       GPIOD_OUT_HIGH);
+	if (IS_ERR(pdata->gpio_cpwatchdog))
+		return PTR_ERR(pdata->gpio_cpwatchdog);
+
+	pdata->gpio_cpassert = devm_gpiod_get(dev, "cpassert", GPIOD_OUT_HIGH);
+	if (IS_ERR(pdata->gpio_cpassert))
+		return PTR_ERR(pdata->gpio_cpassert);
+
+	pdata->gpio_cppanic = devm_gpiod_get(dev, "cppanic", GPIOD_OUT_HIGH);
+	if (IS_ERR(pdata->gpio_cppanic))
+		return PTR_ERR(pdata->gpio_cppanic);
+
+	*init = pdata;
+	return 0;
+}
+
+static int modem_ctrl_parse_dt(struct modem_ctrl_init_data **init,
+			       struct device *dev)
+{
+	struct modem_ctrl_init_data *pdata;
 
 	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
 	if (!pdata)
@@ -441,23 +536,36 @@ static int modem_ctrl_probe(struct platform_device *pdev)
 	int rval;
 	struct device *dev = &pdev->dev;
 
-	if (pdev->dev.of_node && !init) {
+	modem_ctrl_dev = devm_kzalloc(dev, sizeof(*modem_ctrl_dev), GFP_KERNEL);
+	if (!modem_ctrl_dev)
+		return -ENOMEM;
+	mcd_dev = modem_ctrl_dev;
+	if (of_device_is_compatible(pdev->dev.of_node, "sprd,roc1-modem-ctrl"))
+		modem_ctrl_dev->soc_type = ROC1_SOC;
+	else
+		modem_ctrl_dev->soc_type = ORCA_SOC;
+
+	if (modem_ctrl_dev->soc_type == ROC1_SOC) {
 		rval = modem_ctrl_parse_dt(&init, &pdev->dev);
 		if (rval) {
-			dev_err(dev, "Failed to parse modem_ctrl device tree, ret=%d\n",
-			       rval);
+			dev_err(dev,
+				"Failed to parse modem_ctrl device tree, ret=%d\n",
+				rval);
+			return rval;
+		}
+	} else {
+		rval = modem_ctrl_parse_modem_dt(&init, &pdev->dev);
+		if (rval) {
+			dev_err(dev,
+				"Failed to parse modem_ctrl device tree, ret=%d\n",
+				rval);
 			return rval;
 		}
 	}
-	dev_dbg(dev, "after parse device tree, name=%s\n",
-		init->name);
 
-	modem_ctrl_dev = devm_kzalloc(dev, sizeof(*modem_ctrl_dev), GFP_KERNEL);
-	if (!modem_ctrl_dev) {
-		rval = -ENOMEM;
-		goto  error3;
-	}
-	mcd_dev = modem_ctrl_dev;
+	dev_dbg(dev, "after parse device tree, name=%s soctype=%d\n",
+		init->name,
+		modem_ctrl_dev->soc_type);
 
 	rval = alloc_chrdev_region(&devid, 0, 1, init->name);
 	if (rval != 0) {
@@ -484,11 +592,12 @@ static int modem_ctrl_probe(struct platform_device *pdev)
 	}
 	modem_ctrl_dev->init = init;
 	platform_set_drvdata(pdev, modem_ctrl_dev);
-
-	rval = modem_gpios_init(modem_ctrl_dev);
-	if (rval) {
-		dev_err(dev, "request gpios error\n");
-		goto error0;
+	if (modem_ctrl_dev->soc_type == ROC1_SOC) {
+		rval = modem_gpios_init(modem_ctrl_dev);
+		if (rval) {
+			dev_err(dev, "request gpios error\n");
+			goto error0;
+		}
 	}
 	return 0;
 error0:
@@ -521,7 +630,7 @@ static int modem_ctrl_remove(struct platform_device *pdev)
 
 static const struct of_device_id modem_ctrl_match_table[] = {
 	{.compatible = "sprd,roc1-modem-ctrl", },
-	{ },
+	{.compatible = "sprd,orca-modem-ctrl", },
 };
 
 static struct platform_driver modem_ctrl_driver = {
