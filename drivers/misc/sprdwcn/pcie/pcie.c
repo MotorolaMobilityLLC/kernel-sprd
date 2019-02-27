@@ -70,7 +70,7 @@ int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset,
 	}
 	mem += offset;
 	PCIE_DBG("%s(%d, 0x%x, 0x%x)\n", __func__, bar, offset, *((int *)buf));
-	memcpy(mem, buf, len);
+	memcpy_toio(mem, buf, len);
 
 	return 0;
 }
@@ -82,7 +82,7 @@ int pcie_bar_read(struct wcn_pcie_info *priv, int bar, int offset,
 	char *mem = priv->bar[bar].vmem;
 
 	mem += offset;
-	memcpy(buf, mem, len);
+	memcpy_fromio(buf, mem, len);
 
 	return 0;
 }
@@ -311,8 +311,8 @@ int sprd_pcie_mem_write(unsigned int addr, void *buf, unsigned int len)
 
 	if (base_addr != base_upper_addr)
 		WARN_ON(1);
-	PCIE_INFO("%s: bar=%d, base_addr=0x%x, offset=0x%x, upper_addr=0x%x\n",
-		  __func__, bar, base_addr, offset, base_upper_addr);
+	PCIE_INFO("%s: bar=%d, base=0x%x, offset=0x%x, upper=0x%x, len=0x%x\n",
+		  __func__, bar, base_addr, offset, base_upper_addr, len);
 
 	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr, region);
 	if (ret < 0)
@@ -342,8 +342,8 @@ int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len)
 
 	if (base_addr != base_upper_addr)
 		WARN_ON(1);
-	PCIE_INFO("%s: bar=%d, base_addr=0x%x, offset=0x%x, upper_addr=0x%x\n",
-		  __func__, bar, base_addr, offset, base_upper_addr);
+	PCIE_INFO("%s: bar=%d, base=0x%x, offset=0x%x, upper=0x%x, len=0x%x\n",
+		  __func__, bar, base_addr, offset, base_upper_addr, len);
 
 	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr, region);
 	if (ret < 0)
@@ -360,6 +360,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *pci_id)
 {
 	struct wcn_pcie_info *priv;
+	unsigned int reg32;
 
 	int ret = -ENODEV, i, flag;
 
@@ -514,6 +515,10 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	proc_fs_init();
 	log_dev_init();
 	wcn_op_init();
+	pci_read_config_dword(pdev, 0x0728, &reg32);
+	PCIE_INFO("EP link status 728=0x%x\n", reg32);
+	pci_read_config_dword(pdev, 0x072c, &reg32);
+	PCIE_INFO("EP link status 72c=0x%x\n", reg32);
 	PCIE_INFO("%s ok\n", __func__);
 
 	return 0;
