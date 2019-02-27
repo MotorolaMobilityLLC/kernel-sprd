@@ -1664,10 +1664,7 @@ struct net_device *gether_connect(struct gether *link)
 		netif_carrier_on(dev->net);
 		if (netif_running(dev->net))
 			eth_start(dev, GFP_ATOMIC);
-#ifdef CONFIG_USB_SPRD_LINKFIFO
-		link->in_ep->linkfifo = true;
-		link->out_ep->linkfifo = true;
-#endif
+
 	/* on error, disable any endpoints  */
 	} else {
 		(void) usb_ep_disable(link->out_ep);
@@ -1763,10 +1760,6 @@ void gether_disconnect(struct gether *link)
 
 	link->out_ep->desc = NULL;
 
-#ifdef CONFIG_USB_SPRD_LINKFIFO
-	link->in_ep->linkfifo = false;
-	link->out_ep->linkfifo = false;
-#endif
 	/* finish forgetting about this USB link episode */
 	dev->header_len = 0;
 	dev->unwrap = NULL;
