@@ -1350,7 +1350,7 @@
 					column-num = <7>;
 					work-index-cfg = <0x214 0xf>;
 					idle-index-cfg = <0x218 0xf>;
-					tuning-result-judge = <1>;
+					tuning-result-judge = <0>;
 					dcdc-name = "DCDC_CPU0";
 					map-tbl-regs = <0x60 0x64 0x68 0x6c 0x70 0x74 0x78 0x7c 0x80 0x84>;
 					column-entry-start-bit = <0 2 15 5 9 18 12>;
@@ -1397,7 +1397,7 @@
 					column-num = <7>;
 					work-index-cfg = <0x224 0xf>;
 					idle-index-cfg = <0x228 0xf>;
-					tuning-result-judge = <1>;
+					tuning-result-judge = <0>;
 					dcdc-name = "DCDC_CPU1";
 					map-tbl-regs = <0xa0 0xa4 0xa8 0xac 0xb0 0xb4 0xb8>;
 					column-entry-start-bit = <0 2 15 5 9 18 12 21>;
