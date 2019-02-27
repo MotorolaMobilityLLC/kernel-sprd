@@ -49,6 +49,12 @@
 	audio-mem-mgr {
 		memory-region = <&audio_reserved>;
 	};
+	sprd-mcd {
+		compatible = "sprd,orca-modem-ctrl";
+		cpwatchdog-gpio = <&ap_gpio 26 GPIO_ACTIVE_HIGH>;
+		cpassert-gpio = <&ap_gpio 27 GPIO_ACTIVE_HIGH>;
+		cppanic-gpio = <&ap_gpio 28 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &uart0 {

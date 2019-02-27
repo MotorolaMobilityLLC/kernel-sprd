@@ -1,12 +1,15 @@
 Spreadtrum mcd bindings
 
 Required properties:
-- compatible: must be "sprd,roc1-modem-ctrl".
+- compatible: Should be one of the following:
+  "sprd,roc1-modem-ctrl",
+  "sprd,orca-modem-ctrl".
 - poweron-gpio: control modem power.
 - reset-gpio: control modem reset.
-- cpwatchdog-gpio: modem watchdog reset int.
-- cpassert-gpio: modem assert int.
-- cppanic-gpio: modem panic int.
+- cpwatchdog-gpio: modem watchdog reset int. It should be set as input and high level trigger for AP
+  subsystem, and set as output and high level trigger for CP subsystem as defaut configuration.
+- cpassert-gpio: modem assert int. Its default configuration should be same as cpwatchdog-gpio.
+- cppanic-gpio: modem panic int. Its default configuration should be same as cpwatchdog-gpio.
 Example:
 
 	sprd-mcd {
