@@ -365,7 +365,7 @@ static ssize_t cproc_proc_read(struct file *filp,
 		if (unalign_copy_to_user(buf,
 					 cp_status_info[cproc->status],
 					 count)) {
-			pr_err("cproc_proc_read copy data to user error !\n");
+			pr_err("cproc: read, copy data to user error!\n");
 			return -EFAULT;
 		}
 	} else if ((flag & BE_RDWDT) != 0) {
@@ -373,15 +373,15 @@ static ssize_t cproc_proc_read(struct file *filp,
 		rval = wait_event_interruptible(cproc->wdtwait, cproc->wdtcnt
 						!= CPROC_WDT_FLASE);
 		if (rval < 0)
-			pr_err("cproc_proc_read wait interrupted error !\n");
+			pr_err("cproc: read, wait interrupted error!\n");
 
 		len = strlen(cp_status_info[CP_WDTIRQ_STATUS]);
 		if (*ppos >= len)
 			return 0;
 		count = (len > count) ? count : len;
 		if (unalign_copy_to_user(buf, cp_status_info[CP_WDTIRQ_STATUS],
-					count)) {
-			pr_err("cproc_proc_read copy data to user error !\n");
+					 count)) {
+			pr_err("cproc: read, copy data to user error!\n");
 			return -EFAULT;
 		}
 	} else if ((flag & BE_RDLDIF) != 0) {
@@ -976,8 +976,9 @@ static int sprd_cproc_native_arm_start(void *arg)
 		return -ENODEV;
 	ctrl = pdata->ctrl;
 
-	pr_debug("%s: test start, type = 0x%x, status = 0x%x\n",
+	pr_debug("%s: %s, type = 0x%x, status = 0x%x\n",
 		__func__,
+		pdata->devname,
 		cproc->type,
 		cproc->status);
 
@@ -1069,7 +1070,6 @@ static int sprd_cproc_native_arm_start(void *arg)
 		}
 	}
 
-	pr_debug("%s:start over\n", __func__);
 	return 0;
 }
 
@@ -1429,7 +1429,7 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 	if (of_id) {
 		pcproc_data = (struct sprd_cproc_data *)of_id->data;
 	} else {
-		pr_err("%s: not find matched id!", __func__);
+		pr_err("%s: not find matched id!\n", __func__);
 		return -1;
 	}
 
@@ -1450,9 +1450,12 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 	ret = of_property_read_string(np,
 				      "sprd,name",
 				      (const char **)&pdata->devname);
-	if (ret)
+	if (ret) {
+		pr_err("cproc: parse name error!\n");
 		goto error;
+	}
 
+	pr_debug("cproc: parse devname = %s\n", pdata->devname);
 	/* get ic type */
 	ret = of_property_read_u32(np, "sprd,type", (u32 *)&pdata->type);
 	if (ret) {
@@ -1472,9 +1475,8 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 			syscon_regmap_lookup_by_name(np,
 						     cproc_dts_args[cr_num]);
 		if (IS_ERR(ctrl->rmap[cr_num])) {
-			pr_debug("%s: %s failed to find %s\n",
-				 __func__, pdata->devname,
-				 cproc_dts_args[cr_num]);
+			pr_info("%s:can't find %s\n",
+				__func__, cproc_dts_args[cr_num]);
 			break;/* some dts no need config all args, just break */
 		}
 
@@ -1538,8 +1540,10 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 		strstr(pdata->devname, "v3phy"))) {
 		/* get iram_base+offset */
 		ret = of_address_to_resource(np, index, &res);
-		if (ret)
+		if (ret) {
+			pr_err("cproc: parse iram base error!");
 			goto error;
+		}
 		ctrl->iram_addr = res.start;
 		pr_debug("%s: iram_addr=0x%p\n",
 			__func__,
@@ -1549,8 +1553,11 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 
 	/* get cp base */
 	ret = of_address_to_resource(np, index, &res);
-	if (ret)
+	if (ret) {
+		pr_err("cproc: parse cp base error!\n");
 		goto error;
+	}
+
 	pdata->base = res.start;
 	pdata->maxsz = res.end - res.start + 1;
 	pr_debug("%s: cp base = 0x%p, size = 0x%x\n",
@@ -1599,14 +1606,18 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 		ret = of_property_read_string(chd,
 					"cproc,name",
 					(const char **)&seg->name);
-		if (ret)
+		if (ret) {
+			pr_err("cproc: parse chil[%d] name error!\n", i);
 			goto error;
+		}
 		pr_debug("%s: child node [%d] name=%s\n",
 			__func__, i, seg->name);
 		/* get child base addr */
 		ret = of_address_to_resource(chd, 0, &res);
-		if (ret)
+		if (ret) {
+			pr_err("cproc: parse chil[%d] base error!\n", i);
 			goto error;
+		}
 		seg->base = res.start;
 		seg->maxsz = res.end - res.start + 1;
 		pr_debug("%s: child node [%d] base=0x%x, size=0x%0x\n",
@@ -1726,7 +1737,7 @@ static int sprd_cproc_probe(struct platform_device *pdev)
 				if (rval != 0) {
 					misc_deregister(&cproc->miscdev);
 					sprd_cproc_destroy_pdata(&cproc->initdata);
-					pr_err("%s: failed to request irq",
+					pr_err("%s: failed to request irq\n",
 					       __func__);
 					kfree(cproc);
 					return rval;
