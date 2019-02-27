@@ -1524,7 +1524,7 @@ int sblock_query(u8 dst, u8 channel)
 	if (!sblock)
 		return -ENODEV;
 	if (sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready !\n", __func__, dst, channel);
+		pr_debug("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
 		return -EINVAL;
 	}
 	return 0;

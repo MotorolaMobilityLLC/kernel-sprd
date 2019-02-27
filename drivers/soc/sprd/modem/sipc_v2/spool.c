@@ -103,7 +103,7 @@ static ssize_t spool_read(struct file *filp,
 		ret = sblock_receive(sblock->dst,
 				sblock->channel, &blk, timeout);
 		if (ret < 0) {
-			pr_err("%s: failed to receive block!\n", __func__);
+			pr_debug("%s: failed to receive block!\n", __func__);
 			return ret;
 		}
 		if (blk.length <= count)
