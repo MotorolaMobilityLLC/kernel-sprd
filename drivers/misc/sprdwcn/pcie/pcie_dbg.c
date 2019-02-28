@@ -11,8 +11,8 @@ int pcie_hexdump(char *name, char *buf, int len)
 	WCN_INFO("hexdump %s hex(len=%d):\n", name, len);
 	for (i = 0; i < count; i++) {
 		p = (unsigned int *)(buf + i * 32);
-		WCN_INFO("mem[0x%04x] 0x%08x,0x%08x,0x%08x,
-			 0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,\n",
+		WCN_INFO(
+			 "mem[0x%04x] 0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x\n",
 			 i * 32, p[0], p[1], p[2], p[3], p[4], p[5],
 			 p[6], p[7]);
 	}

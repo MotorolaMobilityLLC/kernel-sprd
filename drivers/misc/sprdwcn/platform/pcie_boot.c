@@ -14,6 +14,7 @@
 #include <linux/fs.h>
 #include <linux/vmalloc.h>
 #include <misc/marlin_platform.h>
+#include <linux/delay.h>
 
 #include "pcie.h"
 #include "pcie_boot.h"
@@ -96,7 +97,7 @@ retry:
 	}
 
 	for (i = 0; i < 10; i++)
-		PCIE_INFO("buffer[%d]= 0x%x\n", i, buffer[i]);
+		WCN_INFO("buffer[%d]= 0x%x\n", i, buffer[i]);
 
 	/* download firmware */
 	sprd_pcie_bar_map(pcie_info, 2, GNSS_BASE_ADDR, 1);
