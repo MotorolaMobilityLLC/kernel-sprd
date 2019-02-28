@@ -20,12 +20,83 @@
 #include <linux/device.h>
 #include <linux/types.h>
 
+typedef enum {
+	DVFS_WORK = 0,
+	DVFS_IDLE,
+} set_freq_type;
+
+struct dvfs_ops_entry {
+	const char *ver;
+	void *ops;
+};
+
+struct dvfs_ops_list {
+	struct list_head head;
+	struct dvfs_ops_entry *entry;
+};
+
+struct apsys_regmap {
+	unsigned long apsys_base;
+	unsigned long top_base;
+};
+
+struct apsys_dvfs_coffe {
+	u32 sw_dvfs_en;
+	u32 dvfs_hold_en;
+	u32 dvfs_clk_gate;
+	u32 dvfs_wait_window;
+	u32 dvfs_min_volt;
+	u32 dvfs_force_en;
+	u32 sw_cgb_enable;
+};
+
+struct ip_dvfs_coffe {
+	u32 gfree_wait_delay;
+	u32 freq_upd_hdsk_en;
+	u32 freq_upd_delay_en;
+	u32 freq_upd_en_byp;
+	u32 sw_trig_en;
+	u32 hw_dfs_en;
+	u32 work_index_def;
+	u32 idle_index_def;
+};
+
+struct ip_dvfs_map_cfg {
+	u32 map_index;
+	u32 volt_level;
+	u32 clk_level;
+	u32 clk_rate;
+};
+
+struct ip_dvfs_status {
+	u32 ip_req_volt;
+	u32 ip_req_clk;
+	u32 current_sys_volt;
+	u32 current_ip_clk;
+	u32 apsys_cgm_cfg_debug_info;
+	u32 apsys_volt_debug_info;
+	u32 ap_volt;
+	u32 vsp_vote;
+	u32 dpu_vote;
+};
+
+struct ip_dvfs_para {
+	u32 u_dvfs_en;
+	u32 u_work_freq;
+	u32 u_idle_freq;
+	u32 u_work_index;
+	u32 u_idle_index;
+	u32 u_fix_volt;
+
+	struct ip_dvfs_status ip_status;
+	struct ip_dvfs_coffe ip_coffe;
+};
+
 struct apsys_dev {
 	struct device dev;
 	unsigned long base;
 	const char *version;
 
-	struct mutex lock;
 	struct apsys_dvfs_coffe dvfs_coffe;
 	struct apsys_dvfs_ops *dvfs_ops;
 };
@@ -33,14 +104,21 @@ struct apsys_dev {
 struct apsys_dvfs_ops {
 	/* apsys common ops */
 	void (*dvfs_init)(struct apsys_dev *apsys);
-	void (*set_sw_dvfs_en)(struct apsys_dev *apsys, u32 sw_dvfs_eb);
-	void (*set_dvfs_hold_en)(struct apsys_dev *apsys, u32 hold_en);
-	void (*set_dvfs_clk_gate_ctrl)(struct apsys_dev *apsys, u32 clk_gate);
-	void (*set_dvfs_wait_window)(struct apsys_dev *apsys, u32 wait_window);
-	void (*set_dvfs_min_volt)(struct apsys_dev *apsys, u32 min_volt);
+	void (*apsys_hold_en)(u32 hold_en);
+	void (*apsys_clk_gate)(u32 clk_gate);
+	void (*apsys_wait_window)(u32 wait_window);
+	void (*apsys_min_volt)(u32 min_volt);
+
+	/* top common ops */
+	int (*top_cur_volt)(void);
 };
 
+void *dvfs_ops_attach(const char *str, struct list_head *head);
+int dvfs_ops_register(struct dvfs_ops_entry *entry, struct list_head *head);
+
 extern struct list_head apsys_dvfs_head;
+extern struct apsys_regmap regmap_ctx;
+extern struct mutex apsys_glb_reg_lock;
 
 #define apsys_dvfs_ops_register(entry) \
 	dvfs_ops_register(entry, &apsys_dvfs_head)

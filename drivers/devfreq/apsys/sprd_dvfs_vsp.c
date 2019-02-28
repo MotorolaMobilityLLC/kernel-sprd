@@ -507,24 +507,6 @@ static struct devfreq_dev_profile vsp_dvfs_profile = {
 	.get_cur_freq       = vsp_dvfs_get_cur_freq,
 };
 
-static int vsp_dvfs_device_create(struct vsp_dvfs *vsp,
-		struct device *parent)
-{
-	int ret;
-
-	vsp->dev.class = dvfs_class;
-	vsp->dev.parent = parent;
-	vsp->dev.of_node = parent->of_node;
-	dev_set_name(&vsp->dev, "vsp");
-	dev_set_drvdata(&vsp->dev, vsp);
-
-	ret = device_register(&vsp->dev);
-	if (ret)
-		pr_err("dpu dvfs device register failed\n");
-
-	return ret;
-}
-
 static int vsp_dvfs_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -532,8 +514,6 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 	struct vsp_dvfs *vsp;
 	int ret;
 	struct sprd_vsp_dvfs_data *data = NULL;
-
-	pr_info("vsp-dvfs initialized\n");
 
 	vsp = devm_kzalloc(dev, sizeof(*vsp), GFP_KERNEL);
 	if (!vsp)
@@ -566,7 +546,6 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 		dev_err(dev, "Invalid operating-points in device tree.\n");
 		return -EINVAL;
 	}
-	vsp_dvfs_device_create(vsp, dev);
 
 	platform_set_drvdata(pdev, vsp);
 	vsp->devfreq = devm_devfreq_add_device(dev,
@@ -582,6 +561,8 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 	device_rename(&vsp->devfreq->dev, "vsp");
 	if (vsp->dvfs_ops && vsp->dvfs_ops->ip_dvfs_init)
 		vsp->dvfs_ops->ip_dvfs_init(&(vsp->vsp_dvfs_para));
+
+	pr_info("Succeeded to register a vsp dvfs device\n");
 
 	return 0;
 

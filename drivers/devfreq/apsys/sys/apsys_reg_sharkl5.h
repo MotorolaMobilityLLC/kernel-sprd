@@ -11,79 +11,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __SPRD_DVFS_COMM_H__
-#define __SPRD_DVFS_COMM_H__
-
-#include <linux/kernel.h>
-#include <linux/list.h>
-#include <linux/types.h>
-
-struct ops_entry {
-	const char *ver;
-	void *ops;
-};
-
-struct ops_list {
-	struct list_head head;
-	struct ops_entry *entry;
-};
-
-struct apsys_regmap {
-	unsigned long apsys_base;
-	unsigned long top_base;
-};
-
-struct apsys_dvfs_coffe {
-	u32 sys_sw_dvfs_en;
-	u32 sys_dvfs_hold_en;
-	u32 sys_dvfs_clk_gate_ctrl;
-	u32 sys_dvfs_wait_window;
-	u32 sys_dvfs_min_volt;
-	u32 sys_dvfs_force_en;
-	u32 sys_sw_cgb_enable;
-};
-
-struct ip_dvfs_coffe {
-	u32 gfree_wait_delay;
-	u32 freq_upd_hdsk_en;
-	u32 freq_upd_delay_en;
-	u32 freq_upd_en_byp;
-	u32 sw_trig_en;
-	u32 hw_dvfs_en;
-	u32 work_index_def;
-	u32 idle_index_def;
-};
-
-struct ip_dvfs_map_cfg {
-	u32 map_index;
-	u32 volt_level;
-	u32 clk_level;
-	u32 clk_rate;
-};
-
-struct ip_dvfs_status {
-	u32 ip_req_volt;
-	u32 ip_req_clk;
-	u32 current_sys_volt;
-	u32 current_ip_clk;
-	u32 apsys_cgm_cfg_debug_info;
-	u32 apsys_volt_debug_info;
-	u32 ap_volt;
-	u32 vsp_vote;
-	u32 dpu_vote;
-};
-
-struct ip_dvfs_para {
-	u32 u_dvfs_en;
-	u32 u_work_freq;
-	u32 u_idle_freq;
-	u32 u_work_index;
-	u32 u_idle_index;
-	u32 u_fix_volt;
-
-	struct ip_dvfs_status ip_status;
-	struct ip_dvfs_coffe ip_coffe;
-};
+#ifndef __APSYS_REG_SHARKL5_H__
+#define __APSYS_REG_SHARKL5_H__
 
 struct apsys_dvfs_reg {
 	u32 ap_dvfs_hold_ctrl;
@@ -131,16 +60,4 @@ struct apsys_dvfs_reg {
 	u32 ap_dvfs_reserved_reg_cfg3;
 };
 
-typedef enum {
-	DVFS_WORK = 0,
-	DVFS_IDLE,
-} set_freq_type;
-
-extern struct class *dvfs_class;
-extern struct apsys_regmap regmap_ctx;
-extern struct mutex apsys_glb_reg_lock;
-
-void *dvfs_ops_attach(const char *str, struct list_head *head);
-int dvfs_ops_register(struct ops_entry *entry, struct list_head *head);
-
-#endif /* __SPRD_DVFS_COMM_H__ */
+#endif

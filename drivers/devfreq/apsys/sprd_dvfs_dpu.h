@@ -20,13 +20,16 @@
 #include <linux/module.h>
 #include <linux/types.h>
 
-typedef enum {
-	VOLT70 = 0, //0.7v
-	VOLT75,	//0.75v
-} voltage_level;;
+#include "sprd_dvfs_apsys.h"
 
 typedef enum {
-	DPU_CLK_INDEX_153M = 0,
+	VOLT70 = 0, //0.7v
+	VOLT75, //0.75v
+	VOLT80, //0.8v
+} voltage_level;
+
+typedef enum {
+	DPU_CLK_INDEX_153M6 = 0,
 	DPU_CLK_INDEX_192M,
 	DPU_CLK_INDEX_256M,
 	DPU_CLK_INDEX_307M2,
@@ -48,13 +51,12 @@ struct dpu_dvfs {
 	struct devfreq *devfreq;
 	struct opp_table *opp_table;
 	struct devfreq_event_dev *edev;
-	struct mutex lock;
+	struct notifier_block dpu_dvfs_nb;
 
 	u32 work_freq;
 	u32 idle_freq;
 	set_freq_type freq_type;
 
-	int hwlayer;
 	struct ip_dvfs_coffe dvfs_coffe;
 	struct ip_dvfs_status dvfs_status;
 	struct dpu_dvfs_ops *dvfs_ops;
@@ -64,7 +66,7 @@ struct dpu_dvfs_ops {
 	/* initialization interface */
 	int (*parse_dt)(struct dpu_dvfs *dpu, struct device_node *np);
 	int (*dvfs_init)(struct dpu_dvfs *dpu);
-	void (*hw_dvfs_en)(bool dvfs_en);
+	void (*hw_dfs_en)(bool dfs_en);
 
 	/* work-idle dvfs index ops */
 	void  (*set_work_index)(int index);
@@ -96,19 +98,19 @@ struct dpu_dvfs_ops {
 extern struct list_head dpu_dvfs_head;
 extern struct blocking_notifier_head dpu_dvfs_chain;
 
+#if IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
+extern int dpu_dvfs_notifier_call_chain(void *data);
+#else
+static inline int dpu_dvfs_notifier_call_chain(void *data)
+{
+	return 0;
+}
+#endif
+
 #define dpu_dvfs_ops_register(entry) \
 	dvfs_ops_register(entry, &dpu_dvfs_head)
 
 #define dpu_dvfs_ops_attach(str) \
 	dvfs_ops_attach(str, &dpu_dvfs_head)
 
-#define dpu_dvfs_notifier_register(nb) \
-	blocking_notifier_chain_register(&dpu_dvfs_chain, nb);
-
-#define dpu_dvfs_notifier_unregister(nb) \
-	blocking_notifier_chain_unregister(&dpu_dvfs_chain, nb);
-
-#define dpu_dvfs_notifier_call_chain(data) \
-	blocking_notifier_call_chain(&dpu_dvfs_chain, data);
-
-#endif /* __SPRD_DVFS_APSYS_H__ */
+#endif /* __SPRD_DVFS_DPU_H__ */

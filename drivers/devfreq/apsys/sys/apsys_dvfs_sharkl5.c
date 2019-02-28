@@ -17,10 +17,10 @@
 #include <linux/of_device.h>
 #include <linux/slab.h>
 
-#include "../sprd_dvfs_comm.h"
-#include "../sprd_dvfs_apsys.h"
+#include "sprd_dvfs_apsys.h"
+#include "apsys_reg_sharkl5.h"
 
-static void ap_dvfs_auto_gate_sel(u32 enable)
+static void apsys_dvfs_auto_gate_sel(u32 enable)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
@@ -32,7 +32,7 @@ static void ap_dvfs_auto_gate_sel(u32 enable)
 }
 
 #if 0
-static void ap_dvfs_force_en(u32 enable)
+static void apsys_dvfs_force_en(u32 enable)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
@@ -44,14 +44,7 @@ static void ap_dvfs_force_en(u32 enable)
 }
 #endif
 
-static void set_apsys_sw_dvfs_en(struct apsys_dev *apsys,
-		u32 sw_dvfs_eb)
-{
-
-}
-
-static void set_apsys_dvfs_hold_en(struct apsys_dev *apsys,
-		u32 hold_en)
+static void apsys_dvfs_hold_en(u32 hold_en)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
@@ -59,14 +52,12 @@ static void set_apsys_dvfs_hold_en(struct apsys_dev *apsys,
 	reg->ap_dvfs_hold_ctrl = hold_en;
 }
 
-static void set_apsys_dvfs_clk_gate_ctrl(struct apsys_dev *apsys,
-		u32 clk_gate)
+static void apsys_dvfs_clk_gate(u32 clk_gate)
 {
-	ap_dvfs_auto_gate_sel(clk_gate);
+	apsys_dvfs_auto_gate_sel(clk_gate);
 }
 
-static void set_apsys_dvfs_wait_window(struct apsys_dev *apsys,
-		u32 wait_window)
+static void apsys_dvfs_wait_window(u32 wait_window)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
@@ -74,8 +65,7 @@ static void set_apsys_dvfs_wait_window(struct apsys_dev *apsys,
 	reg->ap_dvfs_wait_window_cfg = wait_window;
 }
 
-static void set_apsys_dvfs_min_volt(struct apsys_dev *apsys,
-		u32 min_volt)
+static void apsys_dvfs_min_volt(u32 min_volt)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
@@ -83,31 +73,47 @@ static void set_apsys_dvfs_min_volt(struct apsys_dev *apsys,
 	reg->ap_min_voltage_cfg = min_volt;
 }
 
+static int dcdc_modem_cur_volt(void)
+{
+	volatile u32 rw32;
+
+	rw32 = *(volatile u32 *)(regmap_ctx.top_base + 0x0044);
+
+	return (rw32 >> 20) & 0x07;
+}
+
 static void apsys_dvfs_init(struct apsys_dev *apsys)
 {
-#if 0
-	set_apsys_dvfs_hold_en(apsys->apsys_dvfs_para.sys_dvfs_hold_en);
-	ap_dvfs_force_en(apsys->apsys_dvfs_para.sys_dvfs_force_en);
+	void __iomem *base;
 
-	set_apsys_dvfs_min_volt(devfreq,
-		apsys->dvfs_coffe.sys_dvfs_min_volt);
-	set_apsys_dvfs_wait_window(devfreq,
-		apsys->dvfs_coffe.sys_dvfs_wait_window);
-	set_apsys_dvfs_clk_gate_ctrl(devfreq,
-		apsys->dvfs_coffe.sys_dvfs_clk_gate_ctrl);
+	base = ioremap_nocache(0x322a0000, 0x150);
+	if (IS_ERR(base))
+		pr_err("ioremap top dvfs address failed\n");
+
+	regmap_ctx.top_base = (unsigned long)base;
+#if 0
+	apsys_dvfs_hold(apsys->dvfs_coffe.dvfs_hold_en);
+	apsys_dvfs_force(apsys->dvfs_coffe.dvfs_force_en);
+
+	apsys_dvfs_min_volt(devfreq,
+		apsys->dvfs_coffe.dvfs_min_volt);
+	apsys_dvfs_wait_window(devfreq,
+		apsys->dvfs_coffe.dvfs_wait_window);
+	apsys_dvfs_clk_gate(devfreq,
+		apsys->dvfs_coffe.dvfs_clk_gate_ctrl);
 #endif
 }
 
 static struct apsys_dvfs_ops apsys_dvfs_ops = {
 	.dvfs_init = apsys_dvfs_init,
-	.set_dvfs_clk_gate_ctrl = set_apsys_dvfs_clk_gate_ctrl,
-	.set_sw_dvfs_en = set_apsys_sw_dvfs_en,
-	.set_dvfs_hold_en = set_apsys_dvfs_hold_en,
-	.set_dvfs_wait_window = set_apsys_dvfs_wait_window,
-	.set_dvfs_min_volt = set_apsys_dvfs_min_volt,
+	.apsys_clk_gate = apsys_dvfs_clk_gate,
+	.apsys_hold_en = apsys_dvfs_hold_en,
+	.apsys_wait_window = apsys_dvfs_wait_window,
+	.apsys_min_volt = apsys_dvfs_min_volt,
+	.top_cur_volt = dcdc_modem_cur_volt,
 };
 
-static struct ops_entry apsys_dvfs_entry = {
+static struct dvfs_ops_entry apsys_dvfs_entry = {
 	.ver = "sharkl5",
 	.ops = &apsys_dvfs_ops,
 };

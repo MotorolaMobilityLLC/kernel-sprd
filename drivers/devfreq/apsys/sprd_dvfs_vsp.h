@@ -28,7 +28,7 @@
 #include <linux/slab.h>
 
 #include "../governor.h"
-#include "sprd_dvfs_comm.h"
+#include "sprd_dvfs_apsys.h"
 
 struct vsp_dvfs {
 	unsigned long dvfs_enable;

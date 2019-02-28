@@ -20,33 +20,155 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 
-#include "sprd_dvfs_comm.h"
 #include "sprd_dvfs_apsys.h"
 
+#define to_apsys(DEV)	container_of((DEV), struct apsys_dev, dev)
+
 LIST_HEAD(apsys_dvfs_head);
+DEFINE_MUTEX(apsys_glb_reg_lock);
 
 struct class *dvfs_class;
 struct apsys_regmap regmap_ctx;
 
-#define to_apsys(DEV)	container_of((DEV), struct apsys_dev, dev)
-
-static ssize_t cur_volt_show(struct device *dev,
-			       struct device_attribute *attr, char *buf)
+void *dvfs_ops_attach(const char *str, struct list_head *head)
 {
-	//struct apsys_dev *apsys = to_apsys(dev);
-	//u32 cur_volt;
+	struct dvfs_ops_list *list;
+	const char *ver;
 
-	//if (apsys->dvfs_ops && apsys->dvfs_ops->get_cur_volt)
-	//	apsys->dvfs_ops->get_cur_volt(apsys, &cur_volt);
+	list_for_each_entry(list, head, head) {
+		ver = list->entry->ver;
+		if (!strcmp(str, ver))
+			return list->entry->ops;
+	}
 
-	//sprintf(buf, "0x%x\n", cur_volt);
+	pr_err("attach dvfs ops %s failed\n", str);
+
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(dvfs_ops_attach);
+
+int dvfs_ops_register(struct dvfs_ops_entry *entry, struct list_head *head)
+{
+	struct dvfs_ops_list *list;
+
+	list = kzalloc(sizeof(struct dvfs_ops_list), GFP_KERNEL);
+	if (!list)
+		return -ENOMEM;
+
+	list->entry = entry;
+	list_add(&list->head, head);
 
 	return 0;
 }
-static DEVICE_ATTR_RO(cur_volt);
+EXPORT_SYMBOL_GPL(dvfs_ops_register);
+
+static ssize_t top_cur_volt_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct apsys_dev *apsys = to_apsys(dev);
+	int ret, cur_volt;
+
+	if (apsys->dvfs_ops && apsys->dvfs_ops->top_cur_volt)
+		cur_volt = apsys->dvfs_ops->top_cur_volt();
+	else
+		pr_info("%s: apsys ops null\n", __func__);
+
+	if (cur_volt == 0)
+		ret = sprintf(buf, "0.7v\n");
+	else if (cur_volt == 1)
+		ret = sprintf(buf, "0.75v\n");
+	else if (cur_volt == 2)
+		ret = sprintf(buf, "0.8v\n");
+	else
+		ret = sprintf(buf, "undefined\n");
+
+	return ret;
+}
+
+static ssize_t apsys_hold_en_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct apsys_dev *apsys = to_apsys(dev);
+	int ret, hold_en;
+
+	ret = sscanf(buf, "%d\n", &hold_en);
+	if (ret == 0)
+		return -EINVAL;
+
+	if (apsys->dvfs_ops && apsys->dvfs_ops->apsys_hold_en)
+		apsys->dvfs_ops->apsys_hold_en(hold_en);
+	else
+		pr_info("%s: apsys ops null\n", __func__);
+
+	return count;
+}
+
+static ssize_t apsys_clk_gate_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct apsys_dev *apsys = to_apsys(dev);
+	int ret, clk_gate;
+
+	ret = sscanf(buf, "%d\n", &clk_gate);
+	if (ret == 0)
+		return -EINVAL;
+
+	if (apsys->dvfs_ops && apsys->dvfs_ops->apsys_clk_gate)
+		apsys->dvfs_ops->apsys_clk_gate(clk_gate);
+	else
+		pr_info("%s: apsys ops null\n", __func__);
+
+	return count;
+}
+
+static ssize_t apsys_wait_window_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct apsys_dev *apsys = to_apsys(dev);
+	int ret, wait_window;
+
+	ret = sscanf(buf, "%d\n", &wait_window);
+	if (ret == 0)
+		return -EINVAL;
+
+	if (apsys->dvfs_ops && apsys->dvfs_ops->apsys_wait_window)
+		apsys->dvfs_ops->apsys_wait_window(wait_window);
+	else
+		pr_info("%s: apsys ops null\n", __func__);
+
+	return count;
+}
+
+static ssize_t apsys_min_volt_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct apsys_dev *apsys = to_apsys(dev);
+	int ret, min_volt;
+
+	ret = sscanf(buf, "%d\n", &min_volt);
+	if (ret == 0)
+		return -EINVAL;
+
+	if (apsys->dvfs_ops && apsys->dvfs_ops->apsys_min_volt)
+		apsys->dvfs_ops->apsys_min_volt(min_volt);
+	else
+		pr_info("%s: apsys ops null\n", __func__);
+
+	return count;
+}
+
+static DEVICE_ATTR(cur_volt, 0444, top_cur_volt_show, NULL);
+static DEVICE_ATTR(hold_en, 0200, NULL, apsys_hold_en_store);
+static DEVICE_ATTR(clk_gate, 0200, NULL, apsys_clk_gate_store);
+static DEVICE_ATTR(wait_window, 0200, NULL, apsys_wait_window_store);
+static DEVICE_ATTR(min_volt, 0200, NULL, apsys_min_volt_store);
 
 static struct attribute *apsys_attrs[] = {
 	&dev_attr_cur_volt.attr,
+	&dev_attr_hold_en.attr,
+	&dev_attr_clk_gate.attr,
+	&dev_attr_wait_window.attr,
+	&dev_attr_min_volt.attr,
 	NULL,
 };
 
@@ -95,8 +217,6 @@ static int apsys_dvfs_probe(struct platform_device *pdev)
 	struct resource r;
 	int ret;
 
-	pr_info("apsys-dvfs initialized\n");
-
 	apsys = devm_kzalloc(dev, sizeof(*apsys), GFP_KERNEL);
 	if (!apsys)
 		return -ENOMEM;
@@ -109,16 +229,16 @@ static int apsys_dvfs_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	of_property_read_u32(np, "sprd,sys-sw-dvfs-en",
-		&apsys->dvfs_coffe.sys_sw_dvfs_en);
-	of_property_read_u32(np, "sprd,sys-dvfs-hold-en",
-		&apsys->dvfs_coffe.sys_dvfs_hold_en);
-	of_property_read_u32(np, "sprd,sys-dvfs-clk-gate-ctrl",
-		&apsys->dvfs_coffe.sys_dvfs_clk_gate_ctrl);
-	of_property_read_u32(np, "sprd,sys-dvfs-wait_window",
-		&apsys->dvfs_coffe.sys_dvfs_wait_window);
-	of_property_read_u32(np, "sprd,sys-dvfs-min_volt",
-		&apsys->dvfs_coffe.sys_dvfs_min_volt);
+	of_property_read_u32(np, "sprd,ap-sw-dvfs",
+		&apsys->dvfs_coffe.sw_dvfs_en);
+	of_property_read_u32(np, "sprd,ap-dvfs-hold",
+		&apsys->dvfs_coffe.dvfs_hold_en);
+	of_property_read_u32(np, "sprd,ap-dvfs-clk-gate",
+		&apsys->dvfs_coffe.dvfs_clk_gate);
+	of_property_read_u32(np, "sprd,ap-dvfs-wait_window",
+		&apsys->dvfs_coffe.dvfs_wait_window);
+	of_property_read_u32(np, "sprd,ap-dvfs-min_volt",
+		&apsys->dvfs_coffe.dvfs_min_volt);
 
 	if (of_address_to_resource(np, 0, &r)) {
 		pr_err("parse apsys base address failed\n");
@@ -131,13 +251,6 @@ static int apsys_dvfs_probe(struct platform_device *pdev)
 		return -EFAULT;
 	}
 	regmap_ctx.apsys_base = (unsigned long)base;
-
-	base = ioremap_nocache(0x322a0000, 0x150);
-	if (IS_ERR(base)) {
-		pr_err("ioremap top dvfs address failed\n");
-		return -EFAULT;
-	}
-	regmap_ctx.top_base = (unsigned long)base;
 
 	apsys_dvfs_class_init();
 	apsys_dvfs_device_create(apsys, dev);
@@ -152,6 +265,8 @@ static int apsys_dvfs_probe(struct platform_device *pdev)
 
 	if (apsys->dvfs_ops && apsys->dvfs_ops->dvfs_init)
 		apsys->dvfs_ops->dvfs_init(apsys);
+
+	pr_info("Succeeded to register a apsys dvfs device\n");
 
 	return 0;
 }

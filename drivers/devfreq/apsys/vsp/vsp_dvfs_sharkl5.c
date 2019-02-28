@@ -11,7 +11,8 @@
  * GNU General Public License for more details.
  */
 
-#include "../sprd_dvfs_vsp.h"
+#include "sprd_dvfs_vsp.h"
+#include "apsys_reg_sharkl5.h"
 
 struct ip_dvfs_map_cfg vsp_dvfs_config_table[] = {
 	{0, VOLT70, VSP_CLK_INDEX_256, VSP_CLK256},
@@ -292,7 +293,7 @@ struct ip_dvfs_ops vsp_dvfs_ops  =  {
 	.set_ip_dvfs_swtrig_en = set_ip_dvfs_swtrig_en,
 	.updata_target_freq = updata_target_freq,
 };
-static struct ops_entry vsp_dvfs_entry = {
+static struct dvfs_ops_entry vsp_dvfs_entry = {
 	.ver = "sharkl5",
 	.ops = &vsp_dvfs_ops,
 };
