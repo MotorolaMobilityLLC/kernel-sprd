@@ -330,8 +330,9 @@ static struct ion_platform_heap *sprd_ion_parse_dt(struct platform_device *pdev)
 #endif
 		}
 
-		pr_info("%s: heaps[%d]: %s type: %d base: 0x%llx size 0x%zx\n",
+		pr_info("%s: heaps[%d]: id: %u %s type: %d base: 0x%llx size 0x%zx\n",
 			__func__, i,
+			ion_heaps[i].id,
 			ion_heaps[i].name,
 			ion_heaps[i].type,
 			(u64)(ion_heaps[i].base),
