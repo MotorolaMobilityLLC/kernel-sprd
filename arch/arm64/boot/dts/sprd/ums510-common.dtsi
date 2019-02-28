@@ -54,12 +54,12 @@
 	dpu_dvfs: dpu-dvfs {
 		compatible = "sprd,hwdvfs-dpu-sharkl5";
 		sprd,hw-dvfs-en = <0>;
-		sprd,work-index-def = <4>;
-		sprd,idle-index-def = <0>;
+		sprd,work-index-def = <3>;
+		sprd,idle-index-def = <1>;
 
 		operating-points = <
 			/* kHz    uV */
-			156000    700000
+			153600    700000
 			192000    700000
 			256000    700000
 			307200    700000
