@@ -880,7 +880,7 @@ enum cm_manager_jeita_status {
 	STATUS_ABOVE_T4
 };
 
-static void cm_manager_adjust_current(struct charger_manager *cm,
+static bool cm_manager_adjust_current(struct charger_manager *cm,
 				      int jeita_status)
 {
 	struct charger_desc *desc = cm->desc;
@@ -895,7 +895,7 @@ static void cm_manager_adjust_current(struct charger_manager *cm,
 		dev_warn(cm->dev,
 			 "stop charging due to battery overheat or cold\n");
 		try_charger_enable(cm, false);
-		return;
+		return false;
 	}
 
 	term_volt = desc->jeita_tab[jeita_status].term_volt;
@@ -937,8 +937,11 @@ static void cm_manager_adjust_current(struct charger_manager *cm,
 		}
 	}
 
-	if (!ret)
-		try_charger_enable(cm, true);
+	if (ret)
+		return false;
+
+	try_charger_enable(cm, true);
+	return true;
 }
 
 static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
@@ -998,6 +1001,7 @@ static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
 	struct charger_desc *desc = cm->desc;
 	static int last_jeita_status = -1, temp_up_trigger, temp_down_trigger;
 	int cur_jeita_status, cur_temp, ret;
+	static bool is_normal = true;
 
 	if (!desc->jeita_tab_size)
 		return 0;
@@ -1025,29 +1029,35 @@ static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
 	 * current when pluging in the cabel.
 	 */
 	if (last_jeita_status == -1) {
-		cm_manager_adjust_current(cm, cur_jeita_status);
+		is_normal = cm_manager_adjust_current(cm, cur_jeita_status);
 		last_jeita_status = cur_jeita_status;
-		return 0;
+		goto out;
 	}
 
 	if (cur_jeita_status > last_jeita_status) {
 		temp_down_trigger = 0;
 
 		if (++temp_up_trigger > 2) {
-			cm_manager_adjust_current(cm, cur_jeita_status);
+			is_normal = cm_manager_adjust_current(cm,
+							      cur_jeita_status);
 			last_jeita_status = cur_jeita_status;
 		}
 	} else if (cur_jeita_status < last_jeita_status) {
 		temp_up_trigger = 0;
 
 		if (++temp_down_trigger > 2) {
-			cm_manager_adjust_current(cm, cur_jeita_status);
+			is_normal = cm_manager_adjust_current(cm,
+							      cur_jeita_status);
 			last_jeita_status = cur_jeita_status;
 		}
 	} else {
 		temp_up_trigger = 0;
 		temp_down_trigger = 0;
 	}
+
+out:
+	if (!is_normal)
+		return -EAGAIN;
 
 	return 0;
 }
