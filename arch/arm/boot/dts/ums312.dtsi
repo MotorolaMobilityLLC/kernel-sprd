@@ -8,13 +8,13 @@
 #include <dt-bindings/clock/sprd,sharkl5-clk.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include "sharkl5.dtsi"
-#include "ums510-modem.dtsi"
-#include "ums510-qos.dtsi"
+#include "ums312-modem.dtsi"
+#include "ums312-qos.dtsi"
 / {
-	cpuinfo_hardware = "Unisoc UMS510";
+	cpuinfo_hardware = "Unisoc UMS312";
 
 	cpus {
-		#address-cells = <2>;
+		#address-cells = <1>;
 		#size-cells = <0>;
 
 		cpu-map {
@@ -39,7 +39,7 @@
 		CPU0: cpu@0 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a55","arm,armv8";
-			reg = <0x0 0x0>;
+			reg = <0x0>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
@@ -49,7 +49,7 @@
 		CPU1: cpu@100 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a55","arm,armv8";
-			reg = <0x0 0x100>;
+			reg = <0x100>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
@@ -59,7 +59,7 @@
 		CPU2: cpu@200 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a55","arm,armv8";
-			reg = <0x0 0x200>;
+			reg = <0x200>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
@@ -69,7 +69,7 @@
 		CPU3: cpu@300 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a75","arm,armv8";
-			reg = <0x0 0x300>;
+			reg = <0x300>;
 			enable-method = "psci";
 			cpu-idle-states = <&BIG_CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus1>;
@@ -563,19 +563,19 @@
 	gic: interrupt-controller@12000000 {
 		compatible = "arm,gic-v3";
 		#interrupt-cells = <3>;
-		#address-cells = <2>;
-		#size-cells = <2>;
+		#address-cells = <1>;
+		#size-cells = <1>;
 		ranges;
-		redistributor-stride = <0x0 0x20000>;	/* 128KB stride */
+		redistributor-stride = <0x20000>;	/* 128KB stride */
 		#redistributor-regions = <1>;
 		interrupt-controller;
-		reg = <0x0 0x12000000 0 0x20000>,	/* GICD */
-			<0x0 0x12040000 0 0x80000>;	/* GICR */
+		reg = <0x12000000 0x20000>,	/* GICD */
+			<0x12040000 0x80000>;	/* GICR */
 		interrupts = <1 9 4>;
 		v2m_0: v2m@0 {
 			compatible = "arm,gic-v2m-frame";
 			msi-controller;
-			reg = <0 0 0 0x1000>;
+			reg = <0 0x1000>;
 		};
 	};
 
@@ -649,14 +649,14 @@
 
 		ap_clk: clock-controller@20200000 {
 			compatible = "sprd,sharkl5-ap-clk";
-			reg = <0 0x20200000 0 0x1000>;
+			reg = <0x20200000 0x1000>;
 			clocks = <&apapb_gate CLK_APB_REG_EB>;
 			#clock-cells = <1>;
 		};
 
 		aon_clk: clock-controller@32080000 {
 			compatible = "sprd,sharkl5-aonapb-clk";
-			reg = <0 0x32080000 0 0x1000>;
+			reg = <0x32080000 0x1000>;
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
 		};
@@ -670,7 +670,7 @@
 
 		mm_clk: clock-controller@62100000 {
 			compatible = "sprd,sharkl5-mm-clk";
-			reg = <0 0x62100000 0 0x1000>;
+			reg = <0x62100000 0x1000>;
 			clocks = <&aonapb_gate CLK_MM_EB>;
 			#clock-cells = <1>;
 		};
@@ -718,7 +718,7 @@
 
 		funnel@3c002000 {
 			compatible = "arm,coresight-funnel", "arm,primecell";
-			reg = <0 0x3c002000 0 0x1000>;
+			reg = <0x3c002000 0x1000>;
 			clocks = <&ext_26m>;
 			clock-names = "apb_pclk";
 			ports {
@@ -744,7 +744,7 @@
 
 		etb@3c003000 {
 			compatible = "arm,coresight-tmc", "arm,primecell";
-			reg = <0 0x3c003000 0 0x1000>;
+			reg = <0x3c003000 0x1000>;
 			clocks = <&ext_26m>;
 			clock-names = "apb_pclk";
 			port {
@@ -757,12 +757,12 @@
 
 		ts@3c009000 {
 			compatible = "arm,coresight-ts", "arm,primecell";
-			reg = <0 0x3c009000 0 0x1000>;
+			reg = <0x3c009000 0x1000>;
 		};
 
 		funnel@3e001000 {
 			compatible = "arm,coresight-funnel", "arm,primecell";
-			reg = <0 0x3e001000 0 0x1000>;
+			reg = <0x3e001000 0x1000>;
 			clocks = <&ext_26m>;
 			clock-names = "apb_pclk";
 
@@ -813,7 +813,7 @@
 
 		etf@3e003000 {
 			compatible = "arm,coresight-tmc", "arm,primecell";
-			reg = <0 0x3e003000 0 0x1000>;
+			reg = <0x3e003000 0x1000>;
 			clocks = <&ext_26m>;
 			clock-names = "apb_pclk";
 
@@ -833,7 +833,7 @@
 
 		etm@3f040000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
-			reg = <0 0x3f040000 0 0x1000>;
+			reg = <0x3f040000 0x1000>;
 			cpu = <&CPU0>;
 			clocks = <&ext_26m>, <&aon_clk CLK_CSSYS>, <&pll2 CLK_TWPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
@@ -847,7 +847,7 @@
 
 		etm@3f140000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
-			reg = <0 0x3f140000 0 0x1000>;
+			reg = <0x3f140000 0x1000>;
 			cpu = <&CPU1>;
 			clocks = <&ext_26m>, <&aon_clk CLK_CSSYS>, <&pll2 CLK_TWPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
@@ -861,7 +861,7 @@
 
 		etm@3f240000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
-			reg = <0 0x3f240000 0 0x1000>;
+			reg = <0x3f240000 0x1000>;
 			cpu = <&CPU2>;
 			clocks = <&ext_26m>, <&aon_clk CLK_CSSYS>, <&pll2 CLK_TWPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
@@ -875,7 +875,7 @@
 
 		etm@3f340000 {
 			compatible = "arm,coresight-etm4x", "arm,primecell";
-			reg = <0 0x3f340000 0 0x1000>;
+			reg = <0x3f340000 0x1000>;
 			cpu = <&CPU3>;
 			clocks = <&ext_26m>, <&aon_clk CLK_CSSYS>, <&pll2 CLK_TWPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
@@ -890,12 +890,10 @@
 };
 
 &sdio0 {
-	clock-names = "sdio_clk", "sdio_clk_source",
-		"sdio_ahb_enable", "sdio_hp_det_clk";
+	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
 	clocks = <&ap_clk CLK_SDIO0_2X>,
-		<&pll1 CLK_RPLL>,
-		<&apapb_gate CLK_SDIO0_EB>,
-		<&apapb_gate CLK_SDIO0_32K_EB>;
+		 <&pll1 CLK_RPLL>,
+		 <&apapb_gate CLK_SDIO0_EB>;
 };
 
 &sdio1 {

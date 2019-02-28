@@ -24,7 +24,7 @@
 
 enum sprd_cpudvfs_type {
 	UNKNOWN_CPUFREQHW,
-	SPRD_CPUFREQHW_UMS510,
+	SPRD_CPUFREQHW_UMS312,
 };
 
 enum cpu_dvfs_cluster {

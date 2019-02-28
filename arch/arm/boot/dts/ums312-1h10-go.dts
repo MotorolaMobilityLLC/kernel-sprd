@@ -10,34 +10,32 @@
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
 
-#include "ums510.dtsi"
-#include "sc2730.dtsi"
-#include "ums510-common.dtsi"
+#include "ums312.dtsi"
+#include "ums312-go-common.dtsi"
 #include "sprd-sound-fe-be.dtsi"
+#include "sc2730.dtsi"
 #include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
-#include "lcd/lcd_ili9881c_truly_mipi_hd.dtsi"
 
 / {
-	model = "Unisoc UMS510 1H10 board";
+	model = "Unisoc UMS312 1H10 board";
 
-	compatible = "sprd,ums510";
+	compatible = "sprd,ums312";
 
-	sprd,sc-id = <510 1 0x20000>;
+	sprd,sc-id = <312 1 0x20000>;
 
 	aliases {
 		serial0 = &uart0;
 		serial1 = &uart1;
-		serial2 = &uart2;
 	};
 
 	memory: memory {
 		device_type = "memory";
-		reg = <0x0 0x80000000 0x0 0x80000000>;
+		reg = <0x80000000 0x80000000>;
 	};
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.hardware=ums510_1h10 androidboot.dtbo_idx=0 swiotlb=1 printk.devkmsg=on";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.hardware=ums312_1h10_go_32b androidboot.dtbo_idx=0";
 	};
 
 	ipi: interrupt-controller {
@@ -79,7 +77,7 @@
 		sprd,mapping-offs = <0x0>;
 	};
 
-	ion: ion {
+	ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -94,7 +92,6 @@
 			reg = <2>;
 			label = "carveout_overlay";
 			type = <2>;
-			memory-region = <&overlay_reserved>;
 		};
 
 		heap@3 {
@@ -127,7 +124,6 @@
 		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
 		adma-tx;
 		adma-rx;
-		bound-avdd12;
 		post-power-on-delay-ms = <20>;
 	};
 
@@ -160,6 +156,12 @@
 					<3795000 40>, <3782000 35>, <3774000 30>,
 					<3765000 25>, <3750000 20>, <3726000 15>,
 					<3687000 10>, <3658000 5>, <3400000 0>;
+		voltage-temp-table = <1052000 750>, <953000 800>, <858000 850>,
+				      <762000 900>, <671000 950>,<584000 1000>,
+				      <504000 1050>, <434000 1100>, <372000 1150>,
+				      <318000 1200>,<271000 1250>, <234000 1300>,
+				      <198000 1350>, <165000 1400>, <140000 1450>,
+				      <119000 1500>, <104000 1550>, <88000 1600>;
 		charge-sdp-current-microamp = <500000 500000>;
 		charge-dcp-current-microamp = <2000000 3000000>;
 		charge-cdp-current-microamp = <1500000 1500000>;
@@ -175,7 +177,7 @@
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
 		cm-fullbatt-vchkdrop-volt = <60000>;
-		cm-fullbatt-voltage = <4320000>;
+		cm-fullbatt-voltage = <4330000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
@@ -203,11 +205,6 @@
 
 		/* how much time to allow capacity change */
 		cm-one-cap-time = <30>;
-
-		/* when the safe charging voltage is exceeded, stop charging */
-		cm-charge-voltage-max = <6500000>;
-		/* drop voltage in microVolts to restart charging */
-		cm-charge-voltage-drop = <700000>;
 
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
@@ -275,12 +272,6 @@
 				<5 0x46 0x130 7 0x7f>;
 		tuning-latency-us = <300>;
 		chnl-in-i2c = <1>;
-	};
-};
-
-&reserved_memory {
-	overlay_reserved: overlay-mem@bcdc0000 {
-		reg = <0x0 0xbcdc0000 0x0 0x01800000>;
 	};
 };
 
@@ -484,7 +475,8 @@
 		#size-cells = <0>;
 		reg = <0>;
 
-		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
+		sprd,force-attached = "lcd_r61350_truly_mipi_hd";
+
 		port {
 			reg = <1>;
 			panel_in: endpoint {
@@ -499,15 +491,15 @@
 };
 
 &sdio0 {
-	 cd-gpios = <&eic_sync 19 GPIO_ACTIVE_LOW>;
-	 syscons = <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PRESENT_32K>,
-		   <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PROTECT_32K>,
-		   <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_EN_32K>,
-		   <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_THD_32K>;
-	 syscon-names = "sd_detect_pol",
-			"sd_hotplug_protect_en",
-			"sd_hotplug_debounce_en",
-			"sd_hotplug_debounce_cn";
+	cd-gpios = <&eic_sync 19 GPIO_ACTIVE_LOW>;
+	syscons = <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PRESENT_32K>,
+		  <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PROTECT_32K>,
+		  <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_EN_32K>,
+		  <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_THD_32K>;
+	syscon-names = "sd_detect_pol",
+		       "sd_hotplug_protect_en",
+		       "sd_hotplug_debounce_en",
+		       "sd_hotplug_debounce_cn";
 };
 
 &hsphy {
@@ -575,27 +567,23 @@
 	status = "okay";
 };
 
-&mipi_csi_phy {
+&mipi_csi_phy0 {
 	status = "okay";
 };
 
-&csi_phy0{
+&mipi_csi_phy1 {
 	status = "okay";
 };
 
-&csi_phy1{
+&mipi_csi_phy2 {
 	status = "okay";
 };
 
-&csi_phy2{
+&mipi_csi_phy1_m {
 	status = "okay";
 };
 
-&csi_phy3{
-	status = "okay";
-};
-
-&csi_phy4{
+&mipi_csi_phy1_s {
 	status = "okay";
 };
 
@@ -612,100 +600,6 @@
 
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
-};
-&isp_dvfs {
-	status = "okay";
-};
-&cpp_dvfs {
-	status = "okay";
-};
-&jpg_dvfs {
-	status = "okay";
-};
-&fd_dvfs {
-	status = "okay";
-};
-&mtx_dvfs {
-	status = "okay";
-};
-&dcam_if_dvfs {
-	status = "okay";
-};
-&dcam_axi_dvfs {
-	status = "okay";
-};
-&mmsys_dvfs {
-	status = "okay";
-};
-
-&pin_controller {
-	pinctrl-names =
-	/* keyout0 ~ keyout2 */
-	"gpio_121", "gpio_122", "gpio_123",
-	/* keyin0 ~ keyin2 */
-	"gpio_124", "gpio_125", "gpio_126",
-	/* extint0, extint1, sda3, scl3 */
-	"gpio_144", "gpio_145", "gpio_146", "gpio_147";
-	pinctrl-0 = <&gpio_121>;
-	pinctrl-1 = <&gpio_122>;
-	pinctrl-2 = <&gpio_123>;
-	pinctrl-3 = <&gpio_124>;
-	pinctrl-4 = <&gpio_125>;
-	pinctrl-5 = <&gpio_126>;
-	pinctrl-6 = <&gpio_144>;
-	pinctrl-7 = <&gpio_145>;
-	pinctrl-8 = <&gpio_146>;
-	pinctrl-9 = <&gpio_147>;
-
-	gpio_121: keyout0 {
-		pins = "SHARKL5_KEYOUT0";
-		function = "func4";
-	};
-
-	gpio_122: keyout1 {
-		pins = "SHARKL5_KEYOUT1";
-		function = "func4";
-	};
-
-	gpio_123: keyout2 {
-		pins = "SHARKL5_KEYOUT2";
-		function = "func4";
-	};
-
-	gpio_124: keyin0 {
-		pins = "SHARKL5_KEYIN0";
-		function = "func4";
-	};
-
-	gpio_125: keyin1 {
-		pins = "SHARKL5_KEYIN1";
-		function = "func4";
-	};
-
-	gpio_126: keyin2 {
-		pins = "SHARKL5_KEYIN2";
-		function = "func4";
-	};
-
-	gpio_144: extint0 {
-		pins = "SHARKL5_EXTINT0";
-		function = "func4";
-	};
-
-	gpio_145: extint1 {
-		pins = "SHARKL5_EXTINT1";
-		function = "func4";
-	};
-
-	gpio_146: sda3 {
-		pins = "SHARKL5_SDA3";
-		function = "func4";
-	};
-
-	gpio_147: scl3 {
-		pins = "SHARKL5_SCL3";
-		function = "func4";
-	};
 };
 
 &vddrf18 {

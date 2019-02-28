@@ -10,18 +10,18 @@
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
 
-#include "ums510.dtsi"
-#include "ums510-go-common.dtsi"
+#include "ums312.dtsi"
+#include "ums312-go-common.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 #include "sc2730.dtsi"
 #include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
 
 / {
-	model = "Unisoc UMS510 1H10 board";
+	model = "Unisoc UMS312 1H10 board";
 
-	compatible = "sprd,ums510";
+	compatible = "sprd,ums312";
 
-	sprd,sc-id = <510 1 0x20000>;
+	sprd,sc-id = <312 1 0x20000>;
 
 	aliases {
 		serial0 = &uart0;
@@ -35,7 +35,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.hardware=ums510_1h10_go_32b androidboot.dtbo_idx=0";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.hardware=ums312_2h10_go_32b androidboot.selinux=permissive androidboot.dtbo_idx=0";
 	};
 
 	ipi: interrupt-controller {
@@ -261,17 +261,17 @@
 	};
 
 	dvfs_dcdc_cpu1_supply: dvfs-dcdc-cpu1-supply {
-		supply-type-sel = <0x120 0 1>;
-		top-dvfs-i2c-state = <0x9c 4 0xf>;
+		supply-type-sel = <0x120 0 0>;
+		top-dvfs-adi-state = <0x9c 0 0xf>;
 		voltage-grade-num = <6>;
-		voltage-grade = <0 0x2d 0x12c 0 0x7f>,
-				<1 0x32 0x12c 7 0x7f>,
-				<2 0x37 0x12c 14 0x7f>,
-				<3 0x3c 0x12c 21 0x7f>,
-				<4 0x41 0x130 0 0x7f>,
-				<5 0x46 0x130 7 0x7f>;
-		tuning-latency-us = <300>;
-		chnl-in-i2c = <1>;
+		voltage-grade = <0 0xf0 0x100 0 0x1ff>,
+				<1 0x100 0x100 9 0x1ff>,
+				<2 0x110 0x100 18 0x1ff>,
+				<3 0x120 0x104 0 0x1ff>,
+				<4 0x130 0x104 9 0x1ff>,
+				<5 0x140 0x104 18 0x1ff>;
+		tuning-latency-us = <200>;
+		chnl-in-i2c = <0>;
 	};
 };
 
@@ -320,9 +320,6 @@
 		csi = <&csi0>;
 		reset-gpios = <&ap_gpio 44 0>;
 		power-down-gpios = <&ap_gpio 46 0>;
-		mipi-switch-en-gpios = <&ap_gpio 55 0>;
-		/* 0:front, 1:main sensor */
-		mipi-switch-mode-gpios = <&ap_gpio 156 0>;
 
 		status = "okay";
 	};
@@ -345,13 +342,10 @@
 		vddcama-supply = <&vddcama0>;
 		vddcamd-supply = <&vddcamd0>;
 		vddcammot-supply = <&vddcammot>;
-		sprd,phyid = <0>;
-		csi = <&csi0>;
+		sprd,phyid = <4>;
+		csi = <&csi1>;
 		reset-gpios = <&ap_gpio 41 0>;
 		power-down-gpios = <&ap_gpio 40 0>;
-		mipi-switch-en-gpios = <&ap_gpio 55 0>;
-		/* 0:front, 1:main sensor */
-		mipi-switch-mode-gpios = <&ap_gpio 156 0>;
 
 		status = "okay";
 	};
@@ -379,51 +373,41 @@
 	};
 };
 
+&i2c4 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	flash_ic: flash-ic@63 {
+		compatible = "sprd,flash-ocp8137";
+		reg = <0x63>;
+		sprd,flash-ic = <8137>;
+		sprd,torch = <1>;
+		sprd,preflash = <1>;
+		sprd,highlight = <1>;
+		sprd,torch-level = <128>;
+		sprd,preflash-level = <128>;
+		sprd,highlight-level = <128>;
+		sprd,lvfm-enable = <1>;
+		flash-torch-en-gpios = <&ap_gpio 136 0>;
+		flash-chip-en-gpios = <&ap_gpio 135 0>;
+		flash-en-gpios = <&ap_gpio 137 0>;
+		flash-sync-gpios = <&ap_gpio 138 0>;
+	};
+};
+
 &i2c5 {
 	status = "okay";
 	clock-frequency = <400000>;
 
-	sc2703_pmic: pmic@4C {
-		compatible = "sprd,sc2703";
-		reg = <0x4c>;
-		sc2703-charger {
-			compatible = "sprd,sc2703-charger";
-			phys = <&hsphy>;
-			monitored-battery = <&bat>;
-			extcon = <&pmic_typec>;
-			vddvbus:otg-vbus {
-				regulator-name = "vddvbus";
-			};
+	fan54015_chg: charger@6a {
+		compatible = "fairchild, fan54015_chg";
+		reg = <0x6a>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&pmic_typec>;
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
 		};
-	};
-
-	ext_pmic: sc2703-buck@49 {
-		compatible = "sprd,sc2703-buck";
-		reg = <0x49>;
-		buck-gpios = <&ap_gpio 136 0>;
-
-		sprd,buck-ch1-b-out = <1000000>;
-
-		regulator-name = "sc2703-buck";
-		regulator-min-microvolt = < 300000>;
-		regulator-max-microvolt = <1570000>;
-		regulator-min-microamp = <5600000>;
-		regulator-max-microamp = <10800000>;
-		regulator-boot-on;
-		regulator-always-on;
-	};
-
-	flash: sc2703-flash@4a {
-		compatible = "sprd,sc2703-flash";
-		reg = <0x4a>;
-		flash-chip-en-gpios = <&ap_gpio 137 0>;
-	};
-
-	/* A virtual i2c device */
-	cpudvfs@61{
-		compatible = "sprd,cpudvfs-regulator-sharkl5";
-		reg = <0x61>;
-		dvfs-dcdc-i2c = <1>;
 	};
 };
 
@@ -509,7 +493,6 @@
 
 &usb {
 	extcon = <&pmic_typec>;
-	vbus-supply = <&vddvbus>;
 };
 
 &pmic_typec {
@@ -600,6 +583,14 @@
 
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
+};
+
+&vddmem {
+	status = "disabled";
+};
+
+&gpu {
+	gpu-supply = <&vddmodem>;
 };
 
 &vddrf18 {

@@ -23,9 +23,9 @@ dict_project={
         's9863a1h10_Tsc-userdebug'		: { 'path' : 'sprd-board-config/sharkl3/sp9863a_1h10/', },
 
 	#sharkl5
-	'ums510_haps_native-userdebug'		: { 'path' : 'sprd-board-config/sharkl5/ums510_haps/', },
-	'ums510_1h10_native-userdebug'		: { 'path' : 'sprd-board-config/sharkl5/ums510_1h10/', },
-	'ums510_1h10_go_32b_native-userdebug'	: { 'path' : 'sprd-board-config/sharkl5/ums510_1h10_go_32b/', },
+	'ums312_haps_native-userdebug'		: { 'path' : 'sprd-board-config/sharkl5/ums312_haps/', },
+	'ums312_1h10_native-userdebug'		: { 'path' : 'sprd-board-config/sharkl5/ums312_1h10/', },
+	'ums312_1h10_go_32b_native-userdebug'	: { 'path' : 'sprd-board-config/sharkl5/ums312_1h10_go_32b/', },
 
 	#sharkl5Pro
 	'ums518_haps_native-userdebug'		: { 'path' : 'sprd-board-config/sharkl5Pro/ums518_haps/', },
