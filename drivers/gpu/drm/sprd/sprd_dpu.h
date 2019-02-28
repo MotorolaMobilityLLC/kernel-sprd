@@ -168,6 +168,7 @@ struct dpu_context {
 	struct videomode vm;
 	struct semaphore refresh_lock;
 	struct work_struct wb_work;
+	struct work_struct dvfs_work;
 	u32 wb_addr_p;
 };
 
