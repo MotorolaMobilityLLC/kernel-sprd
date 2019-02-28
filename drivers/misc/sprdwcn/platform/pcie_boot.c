@@ -21,12 +21,15 @@
 #include "pcie_dbg.h"
 #include "wcn_boot.h"
 #include "wcn_log.h"
+#include "wcn_gnss.h"
 
 #define BTWF_FIRMWARE_SIZE_MAX	0xf0c00
 #define GNSS_FIRMWARE_SIZE_MAX	0x58000
 #define GNSS_BASE_ADDR			0x40800000
 #define GNSS_CPSTART_OFFSET	0x220000
 #define GNSS_CPRESET_OFFSET	0x3c8280
+
+extern struct sprdwcn_gnss_ops *gnss_ops;
 
 static char *load_firmware_data(const char *path, int size)
 {
@@ -80,9 +83,16 @@ int gnss_boot_up(struct wcn_pcie_info *pcie_info, const char *path,
 	char a[10];
 	int i;
 	static int dbg_cnt;
+	static int cali_flag;
+	int ret;
+	char gnss_path[255];
+	int path_len = 0;
 
 	WCN_INFO("%s enter\n", __func__);
-
+	if (gnss_ops && (gnss_ops->write_data)) {
+		if (gnss_ops->write_data() != 0)
+			WCN_ERR("%s gnss_ops write_data error\n", __func__);
+	}
 retry:
 	buffer = load_firmware_data(path, size);
 	if (!buffer && ((dbg_cnt++) < 1)) {
@@ -127,6 +137,31 @@ retry:
 			(char *)&reg_val, 0x4);
 	WCN_INFO("<--reset reg is %d\n", reg_val);
 	vfree(buffer);
+
+	if (cali_flag == 0) {
+		WCN_INFO("gnss start to backup calidata\n");
+		if (gnss_ops && gnss_ops->backup_data) {
+			ret = gnss_ops->backup_data();
+			if (ret == 0)
+				cali_flag = 1;
+		} else
+			WCN_ERR("%s gnss_ops backup_data error\n", __func__);
+	} else {
+		WCN_INFO("gnss wait boot finish\n");
+		if (gnss_ops && gnss_ops->wait_gnss_boot)
+			gnss_ops->wait_gnss_boot();
+		else
+			WCN_ERR("%s gnss_ops wait boot error\n", __func__);
+	}
+
+	if (gnss_ops && (gnss_ops->set_file_path)) {
+		path_len = strlen(path);
+		if (path_len > 255)
+			path_len = 255;
+		memcpy(gnss_path, path, path_len);
+		gnss_ops->set_file_path(gnss_path);
+	} else
+		WCN_ERR("%s gnss_path error\n", __func__);
 
 	return 0;
 }
