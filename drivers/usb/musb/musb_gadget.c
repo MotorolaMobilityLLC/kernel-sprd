@@ -1319,6 +1319,25 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 	list_add_tail(&request->list, &musb_ep->req_list);
 
 	/* it this is the head of the queue, start i/o ... */
+#ifdef CONFIG_USB_SPRD_LINKFIFO
+	if (ep->linkfifo && !musb_ep->busy &&
+	     !musb_linknode_full(musb, request->tx)) {
+		status = musb_queue_resume_work(musb,
+						musb_ep_restart_resume_work,
+						request);
+		if (status < 0)
+			dev_err(musb->controller, "%s resume work: %i\n",
+				__func__, status);
+	} else if (!musb_ep->busy &&
+		   &request->list == musb_ep->req_list.next) {
+		status = musb_queue_resume_work(musb,
+						musb_ep_restart_resume_work,
+						request);
+		if (status < 0)
+			dev_err(musb->controller, "%s resume work: %i\n",
+				__func__, status);
+	}
+#else
 	if (!musb_ep->busy && &request->list == musb_ep->req_list.next) {
 		status = musb_queue_resume_work(musb,
 						musb_ep_restart_resume_work,
@@ -1327,6 +1346,7 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 			dev_err(musb->controller, "%s resume work: %i\n",
 				__func__, status);
 	}
+#endif
 
 unlock:
 	spin_unlock_irqrestore(&musb->lock, lockflags);
@@ -1869,15 +1889,31 @@ init_peripheral_ep(struct musb *musb, struct musb_ep *ep, u8 epnum, int is_in)
 	}
 
 #ifdef CONFIG_USB_SPRD_DMA
+#ifdef CONFIG_USB_SPRD_LINKFIFO
+	if (epnum) {
+		int i;
+
+		for (i = 0; i < CHN_MAX_QUEUE_SIZE; i++) {
+			ep->dma_linklist[i] = dma_alloc_coherent(musb->controller,
+				sizeof(struct linklist_node_s) * LISTNODE_NUM,
+				&ep->list_dma_addr[i], GFP_KERNEL);
+
+			if (!ep->dma_linklist[i])
+				dev_err(musb->controller,
+					"failed to allocate dma linklist[%d]\n",
+					i);
+		}
+	}
+#else
 	if (epnum) {
 		ep->dma_linklist = dma_alloc_coherent(musb->controller,
 			sizeof(struct linklist_node_s) * LISTNODE_NUM,
 			&ep->list_dma_addr, GFP_KERNEL);
 
-
 		if (!ep->dma_linklist)
 			dev_err(musb->controller, "failed to allocate dma linklist\n");
 	}
+#endif
 #endif
 
 	if (!epnum || hw_ep->is_shared_fifo) {
@@ -1887,6 +1923,34 @@ init_peripheral_ep(struct musb *musb, struct musb_ep *ep, u8 epnum, int is_in)
 		ep->end_point.caps.dir_in = true;
 	else
 		ep->end_point.caps.dir_out = true;
+}
+
+static void
+free_peripheral_ep(struct musb *musb, struct musb_ep *ep, u8 epnum)
+{
+#ifdef CONFIG_USB_SPRD_DMA
+#ifdef CONFIG_USB_SPRD_LINKFIFO
+	int i;
+
+	if (epnum) {
+		for (i = 0; i < CHN_MAX_QUEUE_SIZE; i++) {
+			dma_free_coherent(musb->controller,
+				sizeof(struct linklist_node_s) * LISTNODE_NUM,
+				ep->dma_linklist[i], ep->list_dma_addr[i]);
+			ep->dma_linklist[i] = NULL;
+			ep->list_dma_addr[i] = 0;
+		}
+	}
+#else
+	if (epnum) {
+		dma_free_coherent(musb->controller,
+			sizeof(struct linklist_node_s) * LISTNODE_NUM,
+			ep->dma_linklist, ep->list_dma_addr);
+		ep->dma_linklist = NULL;
+		ep->list_dma_addr = 0;
+	}
+#endif
+#endif
 }
 
 /*
@@ -1919,6 +1983,25 @@ static inline void musb_g_init_endpoints(struct musb *musb)
 							epnum, 0);
 				count++;
 			}
+		}
+	}
+}
+
+static inline void musb_g_free_endpoints(struct musb *musb)
+{
+	u8			epnum;
+	struct musb_hw_ep	*hw_ep;
+
+	for (epnum = 0, hw_ep = musb->endpoints;
+			epnum < musb->nr_endpoints;
+			epnum++, hw_ep++) {
+		if (hw_ep->is_shared_fifo) {
+			free_peripheral_ep(musb, &hw_ep->ep_in, epnum);
+		} else {
+			if (hw_ep->max_packet_sz_tx)
+				free_peripheral_ep(musb, &hw_ep->ep_in, epnum);
+			if (hw_ep->max_packet_sz_rx)
+				free_peripheral_ep(musb, &hw_ep->ep_out, epnum);
 		}
 	}
 }
@@ -1974,6 +2057,7 @@ void musb_gadget_cleanup(struct musb *musb)
 		return;
 
 	cancel_delayed_work_sync(&musb->gadget_work);
+	musb_g_free_endpoints(musb);
 	usb_del_gadget_udc(&musb->g);
 }
 
