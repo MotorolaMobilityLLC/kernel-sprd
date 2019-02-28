@@ -331,6 +331,7 @@ static struct ion_heap *__ion_system_heap_create(void)
 	heap->heap.ops = &system_heap_ops;
 	heap->heap.type = ION_HEAP_TYPE_SYSTEM;
 	heap->heap.flags = ION_HEAP_FLAG_DEFER_FREE;
+	heap->heap.id = 0;
 
 	if (ion_system_heap_create_pools(heap->uncached_pools, false))
 		goto free_heap;
