@@ -26,6 +26,7 @@ struct sugov_tunables {
 	struct gov_attr_set attr_set;
 	unsigned int up_rate_limit_us;
 	unsigned int down_rate_limit_us;
+	unsigned int timer_slack_val_us;
 };
 
 struct sugov_policy {
@@ -41,7 +42,7 @@ struct sugov_policy {
 	s64 down_rate_delay_ns;
 	unsigned int next_freq;
 	unsigned int cached_raw_freq;
-
+	struct timer_list slack_timer;
 	/* The next fields are only needed if fast switch cannot be used. */
 	struct irq_work irq_work;
 	struct kthread_work work;
@@ -148,14 +149,23 @@ static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
 {
 	struct cpufreq_policy *policy = sg_policy->policy;
 
-	if (sg_policy->next_freq == next_freq)
-		return;
-
 	if (sugov_up_down_rate_limit(sg_policy, time, next_freq)) {
 		/* Reset cached freq as next_freq isn't changed */
 		sg_policy->cached_raw_freq = UINT_MAX;
 		return;
 	}
+
+	if (next_freq > policy->cpuinfo.min_freq) {
+		unsigned int slack_us;
+
+		slack_us = sg_policy->tunables->timer_slack_val_us;
+		mod_timer(&sg_policy->slack_timer,
+				 jiffies + usecs_to_jiffies(slack_us));
+	} else
+		del_timer(&sg_policy->slack_timer);
+
+	if (sg_policy->next_freq == next_freq)
+		return;
 
 	sg_policy->next_freq = next_freq;
 	sg_policy->last_freq_update_time = time;
@@ -511,6 +521,13 @@ static ssize_t down_rate_limit_us_show(struct gov_attr_set *attr_set, char *buf)
 	return sprintf(buf, "%u\n", tunables->down_rate_limit_us);
 }
 
+static ssize_t timer_slack_val_us_show(struct gov_attr_set *attr_set, char *buf)
+{
+	struct sugov_tunables *tunables = to_sugov_tunables(attr_set);
+
+	return sprintf(buf, "%u\n", tunables->timer_slack_val_us);
+}
+
 static ssize_t up_rate_limit_us_store(struct gov_attr_set *attr_set,
 				      const char *buf, size_t count)
 {
@@ -542,6 +559,8 @@ static ssize_t down_rate_limit_us_store(struct gov_attr_set *attr_set,
 		return -EINVAL;
 
 	tunables->down_rate_limit_us = rate_limit_us;
+	tunables->timer_slack_val_us = TICK_NSEC / NSEC_PER_USEC +
+		tunables->down_rate_limit_us;
 
 	list_for_each_entry(sg_policy, &attr_set->policy_list, tunables_hook) {
 		sg_policy->down_rate_delay_ns = rate_limit_us * NSEC_PER_USEC;
@@ -551,12 +570,33 @@ static ssize_t down_rate_limit_us_store(struct gov_attr_set *attr_set,
 	return count;
 }
 
+static ssize_t timer_slack_val_us_store(struct gov_attr_set *attr_set,
+					const char *buf, size_t count)
+{
+	struct sugov_tunables *tunables = to_sugov_tunables(attr_set);
+	unsigned int timer_slack_val_us;
+
+	if (kstrtouint(buf, 10, &timer_slack_val_us))
+		return -EINVAL;
+
+	if (timer_slack_val_us <
+	    (TICK_NSEC / NSEC_PER_USEC + tunables->down_rate_limit_us))
+		timer_slack_val_us = TICK_NSEC / NSEC_PER_USEC +
+			tunables->down_rate_limit_us;
+
+	tunables->timer_slack_val_us = timer_slack_val_us;
+
+	return count;
+}
+
 static struct governor_attr up_rate_limit_us = __ATTR_RW(up_rate_limit_us);
 static struct governor_attr down_rate_limit_us = __ATTR_RW(down_rate_limit_us);
+static struct governor_attr timer_slack_val_us = __ATTR_RW(timer_slack_val_us);
 
 static struct attribute *sugov_attributes[] = {
 	&up_rate_limit_us.attr,
 	&down_rate_limit_us.attr,
+	&timer_slack_val_us.attr,
 	NULL
 };
 
@@ -661,6 +701,38 @@ static void sugov_tunables_free(struct sugov_tunables *tunables)
 	kfree(tunables);
 }
 
+static void sugov_slack_timer(unsigned long data)
+{
+	struct sugov_cpu *sg_cpu = &per_cpu(sugov_cpu, data);
+	struct sugov_policy *sg_policy = sg_cpu->sg_policy;
+	struct cpufreq_policy *policy = sg_policy->policy;
+	int cpu;
+
+	for_each_cpu(cpu, policy->cpus) {
+		if (!idle_cpu(cpu))
+			return;
+	}
+
+	sg_policy->cached_raw_freq = UINT_MAX;
+	sg_policy->next_freq = policy->cpuinfo.min_freq;
+
+	if (policy->fast_switch_enabled) {
+		if (!cpufreq_driver_fast_switch(policy, sg_policy->next_freq))
+			return;
+
+		policy->cur = sg_policy->next_freq;
+		trace_cpu_frequency(sg_policy->next_freq, smp_processor_id());
+	} else {
+		/*
+		 * don't update sg_policy->sg_policy->last_freq_update_time
+		 * here, so that the next freq from scheduler can be set
+		 * immediately.
+		 */
+		sg_policy->work_in_progress = true;
+		kthread_queue_work(&sg_policy->worker, &sg_policy->work);
+	}
+}
+
 static int sugov_init(struct cpufreq_policy *policy)
 {
 	struct sugov_policy *sg_policy;
@@ -678,6 +750,10 @@ static int sugov_init(struct cpufreq_policy *policy)
 		ret = -ENOMEM;
 		goto disable_fast_switch;
 	}
+
+	init_timer_pinned(&sg_policy->slack_timer);
+	sg_policy->slack_timer.function = sugov_slack_timer;
+	sg_policy->slack_timer.data = policy->cpu;
 
 	ret = sugov_kthread_create(sg_policy);
 	if (ret)
@@ -705,6 +781,9 @@ static int sugov_init(struct cpufreq_policy *policy)
 
 	tunables->up_rate_limit_us = cpufreq_policy_transition_delay_us(policy);
 	tunables->down_rate_limit_us = cpufreq_policy_transition_delay_us(policy);
+
+	tunables->timer_slack_val_us =
+		TICK_NSEC / NSEC_PER_USEC + tunables->down_rate_limit_us;
 
 	policy->governor_data = sg_policy;
 	sg_policy->tunables = tunables;
@@ -798,6 +877,8 @@ static void sugov_stop(struct cpufreq_policy *policy)
 {
 	struct sugov_policy *sg_policy = policy->governor_data;
 	unsigned int cpu;
+
+	del_timer_sync(&sg_policy->slack_timer);
 
 	for_each_cpu(cpu, policy->cpus)
 		cpufreq_remove_update_util_hook(cpu);
