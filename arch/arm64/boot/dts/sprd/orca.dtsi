@@ -772,14 +772,43 @@
 			#size-cells = <2>;
 			ranges;
 
-			usb3: usb3-0@29100000 {
-				compatible = "sprd,roc1-dwc3";
+			usb3_0: usb3@21400000 {
+				compatible = "sprd,orca-dwc3";
+				reg = <0 0x21400000 0 0x100000>;
+				clocks = <&apahb_gate CLK_USB0_EB>,
+					<&apahb_gate CLK_USB0_SUSPEND_EB>,
+					<&apahb_gate CLK_USB0_REF_EB>;
+				clock-names = "core_clk", "ref_clk", "susp_clk";
+				usb-phy = <&ssphy0>, <&ssphy0>;
+				#address-cells = <2>;
+				#size-cells = <2>;
+				ranges;
+
+				dwc3@21400000 {
+					compatible = "snps,dwc3";
+					reg = <0 0x21400000 0 0x100000>;
+					interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
+					interrupt-names = "irq";
+					usb-phy = <&ssphy0>, <&ssphy0>;
+					phy_type = "utmi_wide";
+					dr_mode = "peripheral";
+					snps,usb3-u1u2-disable;
+					snps,dis_u3_susphy_quirk;
+					snps,dis_u2_susphy_quirk;
+					snps,overlap_check_quirk;
+					snps,ep_out_aligned_size_quirk;
+					snps,disconnect_event_quirk;
+				};
+			};
+
+			usb3_1: usb3@29100000 {
+				compatible = "sprd,orca-dwc3";
 				reg = <0 0x29100000 0 0x100000>;
 				clocks = <&ipa_gate CLK_IPA_USB1_EB>,
 					<&ipa_gate CLK_USB1_SUSPEND_EB>,
 					<&ipa_gate CLK_IPA_USB1_REF_EB>;
 				clock-names = "core_clk", "ref_clk", "susp_clk";
-				usb-phy = <&ssphy>, <&ssphy>;
+				usb-phy = <&ssphy1>, <&ssphy1>;
 				#address-cells = <2>;
 				#size-cells = <2>;
 				ranges;
@@ -789,7 +818,7 @@
 					reg = <0 0x29100000 0 0x100000>;
 					interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
 					interrupt-names = "irq";
-					usb-phy = <&ssphy>, <&ssphy>;
+					usb-phy = <&ssphy1>, <&ssphy1>;
 					usb-pam = <&pamu3>;
 					phy_type = "utmi_wide";
 					dr_mode = "peripheral";
@@ -843,9 +872,19 @@
 					    "dwc3_core_regs";
 			};
 
-			ssphy: ssphy@634c0000 {
+			ssphy0: ssphy0@634d0000 {
 				compatible = "sprd,orca1-ssphy0";
 				sprd,syscon-aon-apb = <&aon_apb_regs>;
+				sprd,syscon-ap-ahb = <&ap_ahb_regs>;
+				sprd,syscon-ipa-ahb = <&ap_ipa_ahb_regs>;
+				sprd,syscon-anag4 = <&anlg_phy_g4_regs>;
+				sprd,vdd-voltage = <3300000>;
+			};
+
+			ssphy1: ssphy@634e0000 {
+				compatible = "sprd,orca1-ssphy1";
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+				sprd,syscon-ap-ahb = <&ap_ahb_regs>;
 				sprd,syscon-ipa-ahb = <&ap_ipa_ahb_regs>;
 				sprd,syscon-anag4 = <&anlg_phy_g4_regs>;
 				sprd,vdd-voltage = <3300000>;

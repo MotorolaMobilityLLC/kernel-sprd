@@ -55,19 +55,35 @@
 		cpassert-gpio = <&ap_gpio 27 GPIO_ACTIVE_HIGH>;
 		cppanic-gpio = <&ap_gpio 28 GPIO_ACTIVE_HIGH>;
 	};
+
+	extcon_usb0: extcon_usb0 {
+		compatible = "linux,extcon-usb-gpio";
+
+		vbus-gpios = <&ap_gpio 11 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &uart0 {
 	status = "ok";
 };
 
-&ssphy {
+&ssphy0 {
+	vdd-supply = <&vddusb33>;
+	status = "okay";
+};
+
+&usb3_0 {
+	extcon = <&extcon_usb0>;
+	status = "okay";
+};
+
+&ssphy1 {
 	vdd-supply = <&vddusb33>;
 	extcon = <&pmic_typec>;
 	status = "okay";
 };
 
-&usb3 {
+&usb3_1 {
 	extcon = <&pmic_typec>;
 	status = "okay";
 };
