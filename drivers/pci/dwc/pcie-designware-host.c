@@ -147,6 +147,7 @@ static int assign_irq(int no_irqs, struct msi_desc *desc, int *pos)
 {
 	int irq, pos0, i;
 	struct pcie_port *pp;
+	unsigned int irq_offset;
 
 	pp = (struct pcie_port *)msi_desc_to_pci_sysdata(desc);
 	pos0 = bitmap_find_free_region(pp->msi_irq_in_use, MAX_MSI_IRQS,
@@ -166,7 +167,8 @@ static int assign_irq(int no_irqs, struct msi_desc *desc, int *pos)
 	 */
 
 	for (i = 0; i < no_irqs; i++) {
-		if (irq_set_msi_desc_off(irq, i, desc) != 0) {
+		irq_offset = irq_find_mapping(pp->irq_domain, pos0 + i) - irq;
+		if (irq_set_msi_desc_off(irq, irq_offset, desc) != 0) {
 			clear_irq_range(pp, irq, i, pos0);
 			goto no_valid_irq;
 		}
