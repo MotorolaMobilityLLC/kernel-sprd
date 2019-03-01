@@ -227,7 +227,6 @@ static int sipa_eth_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	dev->stats.tx_bytes += skb->len;
 	sipa_eth_tx_stats_update(dt_stats, skb->len);
 
-	dev_kfree_skb_any(skb);
 	return NETDEV_TX_OK;
 
 err:
