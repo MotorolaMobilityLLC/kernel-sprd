@@ -819,14 +819,14 @@ CONFIG_ARM_PSCI_FW
 	   enable it to support hotplug
 CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] sharkl5
 	[field] make
 	[subsys] cpufreq
 	[must] user
 	[function] Enable apcpu hardware dvfs function.
 CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] sharkl5
 	[field] make
 	[subsys] cpufreq
 	[must] user
