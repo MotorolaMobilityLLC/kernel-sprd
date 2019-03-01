@@ -100,7 +100,7 @@ static int pub_int_handle_thread(void *data)
 		if (sdio_power_notify)
 			atomic_set(&flag_pub_int_done, 1);
 		else
-			__pm_relax(&(sdio_int.pub_int_wakelock));
+			__pm_relax(sdio_int.pub_int_wakelock);
 
 		enable_irq(sdio_int.pub_int_num);
 	}
@@ -120,7 +120,7 @@ static irqreturn_t pub_int_isr(int irq, void *para)
 	if (sdio_power_notify)
 		atomic_set(&flag_pub_int_done, 0);
 	else
-		__pm_stay_awake(&(sdio_int.pub_int_wakelock));
+		__pm_stay_awake(sdio_int.pub_int_wakelock);
 
 	irq_cnt++;
 	WCN_INFO("irq_cnt%d!!\n", irq_cnt);
@@ -277,9 +277,13 @@ int sdio_pub_int_init(int irq)
 	sdio_int.pub_int_clr0 = REG_PUB_INT_CLR0;
 	sdio_int.pub_int_sts0 = REG_PUB_INT_STS0;
 
-	atomic_set(&flag_pub_int_done, 1);
+	sdio_int.pub_int_wakelock =
+		kmalloc(sizeof(struct wakeup_source), GFP_KERNEL);
+	if (!(sdio_int.pub_int_wakelock))
+		return -ENOMEM;
 
-	wakeup_source_init(&(sdio_int.pub_int_wakelock),
+	atomic_set(&flag_pub_int_done, 1);
+	wakeup_source_init(sdio_int.pub_int_wakelock,
 		"pub_int_wakelock");
 	init_completion(&(sdio_int.pub_int_completion));
 
@@ -306,7 +310,7 @@ int sdio_pub_int_deinit(void)
 	sdio_power_notify = false;
 	disable_irq(sdio_int.pub_int_num);
 	free_irq(sdio_int.pub_int_num, NULL);
-	wakeup_source_destroy(&(sdio_int.pub_int_wakelock));
+	wakeup_source_destroy(sdio_int.pub_int_wakelock);
 
 	WCN_INFO("%s ok!\n", __func__);
 

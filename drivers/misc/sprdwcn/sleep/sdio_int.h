@@ -99,7 +99,7 @@ struct sdio_int_t {
 	unsigned int pub_int_clr0;
 	unsigned int pub_int_sts0;
 	PUB_INT_ISR pub_int_cb[PUB_INT_MAX];
-	struct wakeup_source pub_int_wakelock;
+	struct wakeup_source *pub_int_wakelock;
 	struct completion pub_int_completion;
 	unsigned int pub_int_num;
 	/* 1: power on, 0: power off */
