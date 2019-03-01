@@ -89,7 +89,7 @@ int gnss_boot_up(struct wcn_pcie_info *pcie_info, const char *path,
 	int path_len = 0;
 
 	WCN_INFO("%s enter\n", __func__);
-	if (gnss_ops && (gnss_ops->write_data)) {
+	if (gnss_ops && gnss_ops->write_data) {
 		if (gnss_ops->write_data() != 0)
 			WCN_ERR("%s gnss_ops write_data error\n", __func__);
 	}
@@ -144,8 +144,9 @@ retry:
 			ret = gnss_ops->backup_data();
 			if (ret == 0)
 				cali_flag = 1;
-		} else
+		} else {
 			WCN_ERR("%s gnss_ops backup_data error\n", __func__);
+		}
 	} else {
 		WCN_INFO("gnss wait boot finish\n");
 		if (gnss_ops && gnss_ops->wait_gnss_boot)
@@ -154,14 +155,15 @@ retry:
 			WCN_ERR("%s gnss_ops wait boot error\n", __func__);
 	}
 
-	if (gnss_ops && (gnss_ops->set_file_path)) {
+	if (gnss_ops && gnss_ops->set_file_path) {
 		path_len = strlen(path);
 		if (path_len > 255)
 			path_len = 255;
 		memcpy(gnss_path, path, path_len);
 		gnss_ops->set_file_path(gnss_path);
-	} else
+	} else {
 		WCN_ERR("%s gnss_path error\n", __func__);
+	}
 
 	return 0;
 }
