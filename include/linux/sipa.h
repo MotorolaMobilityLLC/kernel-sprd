@@ -211,7 +211,10 @@ enum sipa_nic_id
 	SIPA_NIC_MAX
 };
 
-
+enum sipa_disconnect_id {
+	SIPA_DISCONNECT_START,
+	SIPA_DISCONNECT_END,
+};
 
 /**
  * struct sipa_comm_fifo_params - information needed to setup an IPA 
@@ -318,7 +321,7 @@ int sipa_pam_connect(const struct sipa_connect_params *in);
 
 int sipa_sw_connect(const struct sipa_connect_params *in);
 
-int sipa_disconnect(enum sipa_ep_id ep);
+int sipa_disconnect(enum sipa_ep_id ep, enum sipa_disconnect_id stage);
 
 int sipa_enable_receive(enum sipa_ep_id ep_id, bool enabled);
 

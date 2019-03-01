@@ -381,6 +381,7 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 	ep->send_priv = in->send_priv;
 	ep->recv_priv = in->recv_priv;
 	ep->connected = true;
+	ep->suspended = false;
 	memcpy(&ep->send_fifo_param, &in->send_param,
 		   sizeof(struct sipa_comm_fifo_params));
 	memcpy(&ep->recv_fifo_param, &in->recv_param,
@@ -413,6 +414,11 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 				ep->recv_fifo.idx, &fifo_item);
 		}
 	}
+
+	if (SIPA_EP_USB == in->id || SIPA_EP_WIFI == in->id)
+		return sipa_hal_cmn_fifo_set_receive(ep->sipa_ctx->hdl,
+				      ep->recv_fifo.idx, false);
+
 	return 0;
 }
 EXPORT_SYMBOL(sipa_pam_connect);
@@ -440,7 +446,7 @@ int sipa_sw_connect(const struct sipa_connect_params *in)
 }
 EXPORT_SYMBOL(sipa_sw_connect);
 
-int sipa_disconnect(enum sipa_ep_id ep_id)
+int sipa_disconnect(enum sipa_ep_id ep_id, enum sipa_disconnect_id stage)
 {
 	struct sipa_endpoint *ep = s_sipa_ctrl.eps[ep_id];
 
@@ -454,6 +460,20 @@ int sipa_disconnect(enum sipa_ep_id ep_id)
 	ep->send_priv = 0;
 	ep->recv_notify = NULL;
 	ep->recv_priv = 0;
+
+	switch (stage) {
+	case SIPA_DISCONNECT_START:
+		if (SIPA_EP_USB == ep_id || SIPA_EP_WIFI == ep_id)
+			return sipa_hal_reclaim_unuse_node(s_sipa_ctrl.ctx->hdl,
+				      ep->recv_fifo.idx);
+		break;
+	case SIPA_DISCONNECT_END:
+		ep->suspended = true;
+		break;
+	default:
+		pr_err("don't have this stage\n");
+		return -EPERM;
+	}
 
 	return 0;
 }

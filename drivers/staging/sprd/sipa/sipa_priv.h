@@ -145,6 +145,7 @@ struct sipa_endpoint {
 	void *recv_priv;
 
 	bool connected;
+	bool suspended;
 };
 
 struct sipa_context {

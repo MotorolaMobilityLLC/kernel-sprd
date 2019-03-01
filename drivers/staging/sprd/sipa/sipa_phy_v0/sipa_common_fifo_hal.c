@@ -1076,15 +1076,17 @@ static u32 ipa_common_fifo_ctrl_receive(
 	u32 ret;
 	struct sipa_common_fifo_cfg_tag *ipa_term_fifo;
 
-	if (likely(id < SIPA_FIFO_MAX))
+	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
-	else
+	} else {
 		IPA_ERR("don't have this id %d\n", id);
+		return 0;
+	}
 
 	if (stop)
-		ret = ipa_phy_stop_receive(cfg_base->fifo_reg_base);
+		ret = ipa_phy_stop_receive(ipa_term_fifo->fifo_reg_base);
 	else
-		ret = ipa_phy_clear_stop_receive(cfg_base->fifo_reg_base);
+		ret = ipa_phy_clear_stop_receive(ipa_term_fifo->fifo_reg_base);
 
 	return ret;
 }

@@ -391,6 +391,26 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 }
 EXPORT_SYMBOL(sipa_open_common_fifo);
 
+int sipa_close_common_fifo(sipa_hal_hdl hdl,
+			   enum sipa_cmn_fifo_index fifo)
+{
+	struct sipa_hal_context *hal_cfg;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg;
+
+	if (unlikely(!hdl)) {
+		IPA_ERR("hdl is null\n");
+		return -EINVAL;
+	}
+
+	hal_cfg = (struct sipa_hal_context *)hdl;
+	fifo_cfg = hal_cfg->cmn_fifo_cfg;
+
+	hal_cfg->fifo_ops.close(fifo, fifo_cfg);
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_close_common_fifo);
+
 int sipa_tft_mode_init(sipa_hal_hdl hdl)
 {
 	int ret;
@@ -582,6 +602,14 @@ int sipa_hal_enable_wiap_dma(sipa_hal_hdl hdl, bool dma)
 			dma);
 }
 EXPORT_SYMBOL(sipa_hal_enable_wiap_dma);
+
+int sipa_hal_reclaim_unuse_node(sipa_hal_hdl hdl,
+				enum sipa_cmn_fifo_index fifo_id)
+{
+	return sipa_hal_cmn_fifo_set_receive(hdl,
+				     fifo_id, true);
+}
+EXPORT_SYMBOL(sipa_hal_reclaim_unuse_node);
 
 int sipa_hal_put_rx_fifo_item(sipa_hal_hdl hdl,
 							  enum sipa_cmn_fifo_index fifo_id,

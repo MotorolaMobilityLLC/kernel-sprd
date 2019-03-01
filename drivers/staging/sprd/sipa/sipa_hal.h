@@ -181,4 +181,10 @@ int sipa_hal_enable_wiap_dma(sipa_hal_hdl hdl, bool dma);
 
 int sipa_tft_mode_init(sipa_hal_hdl hdl);
 
+int sipa_close_common_fifo(sipa_hal_hdl hdl,
+			   enum sipa_cmn_fifo_index fifo);
+
+int sipa_hal_reclaim_unuse_node(sipa_hal_hdl hdl,
+				enum sipa_cmn_fifo_index fifo_id);
+
 #endif /* !_SIPA_HAL_H_ */
