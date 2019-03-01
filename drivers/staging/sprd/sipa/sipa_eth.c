@@ -117,13 +117,13 @@ static int sipa_eth_rx(struct SIPA_ETH *sipa_eth, int budget)
 
 		sipa_eth_prepare_skb(sipa_eth, skb);
 		rx_bytes += skb->len;
+		sipa_eth_rx_stats_update(dt_stats, skb->len);
 
 		if (gro_enable)
 			napi_gro_receive(&sipa_eth->napi, skb);
 		else
 			netif_receive_skb(skb);
 
-		sipa_eth_rx_stats_update(dt_stats, skb->len);
 		skb_cnt++;
 	}
 
