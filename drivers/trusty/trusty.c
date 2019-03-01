@@ -336,7 +336,8 @@ s32 trusty_std_call32(struct device *dev, u32 smcnr, u32 a0, u32 a1, u32 a2)
 		__func__, smcnr, a0, a1, a2, ret);
 
 	WARN_ONCE(ret == SM_ERR_PANIC, "trusty crashed");
-	BUG_ON(ret == SM_ERR_PANIC);
+	if (ret == SM_ERR_PANIC)
+		panic("tospanic");
 
 	if (smcnr == SMC_SC_NOP)
 		complete(&s->cpu_idle_completion);
