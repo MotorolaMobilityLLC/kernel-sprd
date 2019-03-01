@@ -73,9 +73,6 @@ static int sprd_dpu_iommu_map(struct device *dev,
 	struct dma_buf *dma_buf;
 	struct sprd_iommu_map_data iommu_data = {};
 
-	if (sprd_gem->dma_addr)
-		return 0;
-
 	dma_buf = sprd_gem->base.import_attach->dmabuf;
 	iommu_data.buf = dma_buf->priv;
 	iommu_data.iova_size = dma_buf->size;
@@ -94,15 +91,13 @@ static int sprd_dpu_iommu_map(struct device *dev,
 static void sprd_dpu_iommu_unmap(struct device *dev,
 				struct sprd_gem_obj *sprd_gem)
 {
-	if (sprd_gem->sgtb && sprd_gem->sgtb->nents > 1) {
-		struct sprd_iommu_unmap_data iommu_data = {};
+	struct sprd_iommu_unmap_data iommu_data = {};
 
-		iommu_data.iova_size = sprd_gem->base.size;
-		iommu_data.iova_addr = sprd_gem->dma_addr;
-		iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
+	iommu_data.iova_size = sprd_gem->base.size;
+	iommu_data.iova_addr = sprd_gem->dma_addr;
+	iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 
-		sprd_iommu_unmap(dev, &iommu_data);
-	}
+	sprd_iommu_unmap(dev, &iommu_data);
 }
 
 static int sprd_plane_prepare_fb(struct drm_plane *plane,
@@ -129,7 +124,8 @@ static int sprd_plane_prepare_fb(struct drm_plane *plane,
 	for (i = 0; i < fb->format->num_planes; i++) {
 		obj = drm_gem_fb_get_obj(fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		sprd_dpu_iommu_map(&dpu->dev, sprd_gem);
+		if (sprd_gem->sgtb && sprd_gem->sgtb->nents > 1)
+			sprd_dpu_iommu_map(&dpu->dev, sprd_gem);
 	}
 
 	return 0;
@@ -159,7 +155,8 @@ static void sprd_plane_cleanup_fb(struct drm_plane *plane,
 	for (i = 0; i < fb->format->num_planes; i++) {
 		obj = drm_gem_fb_get_obj(fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		sprd_dpu_iommu_unmap(&dpu->dev, sprd_gem);
+		if (sprd_gem->sgtb && sprd_gem->sgtb->nents > 1)
+			sprd_dpu_iommu_unmap(&dpu->dev, sprd_gem);
 	}
 }
 
