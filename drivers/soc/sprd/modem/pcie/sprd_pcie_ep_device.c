@@ -101,7 +101,7 @@ struct sprd_pci_ep_dev {
 
 	u8	iatu_unroll_enabled;
 	u8	ep;
-
+	u8	irq_cnt;
 	struct resource	*bar[BAR_CNT];
 	void __iomem	*bar_vir[BAR_MAX];
 	void __iomem	*cpu_vir[BAR_MAX];
@@ -579,7 +579,7 @@ static irqreturn_t sprd_pci_ep_dev_irqhandler(int irq, void *dev_ptr)
 static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 				 const struct pci_device_id *ent)
 {
-	int i, err, cnt;
+	int i, err;
 	u32 val;
 	enum dev_pci_barno bar;
 	struct device *dev = &pdev->dev;
@@ -619,17 +619,17 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 	pci_set_master(pdev);
 
 #ifdef PCI_IRQ_MSI
-	cnt = pci_alloc_irq_vectors(pdev,
+	ep_dev->irq_cnt = pci_alloc_irq_vectors(pdev,
 				    1,
 				    16,
 				    PCI_IRQ_MSI);
 #else
-	cnt = pci_enable_msi_range(pdev, 1, PCIE_EP_MAX_IRQ);
+	ep_dev->irq_cnt = pci_enable_msi_range(pdev, 1, PCIE_EP_MAX_IRQ);
 #endif
 
-	if (cnt < 0) {
+	if (ep_dev->irq_cnt < 0) {
 		dev_err(dev, "ep: failed to get MSI interrupts\n");
-		err = cnt;
+		err = ep_dev->irq_cnt;
 		goto err_disable_msi;
 	}
 	err = devm_request_irq(dev, pdev->irq, sprd_pci_ep_dev_irqhandler,
@@ -638,9 +638,11 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 		dev_err(dev, "ep: failed to request IRQ %d\n", pdev->irq);
 		goto err_disable_msi;
 	}
-	dev_info(dev, "ep: request IRQ %d\n", pdev->irq);
+	dev_info(dev, "ep: request IRQ = %d, cnt =%d\n",
+		 pdev->irq,
+		 ep_dev->irq_cnt);
 
-	for (i = 1; i < cnt; i++) {
+	for (i = 1; i < ep_dev->irq_cnt; i++) {
 		err = devm_request_irq(dev, pdev->irq + i,
 				       sprd_pci_ep_dev_irqhandler,
 				       IRQF_SHARED, DRV_MODULE_NAME, ep_dev);
@@ -662,7 +664,7 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 	if (!ep_dev->cfg_base) {
 		dev_err(dev, "ep: failed to read cfg bar\n");
 		err = -ENOMEM;
-		goto err_disable_msi;
+		goto err_free_irq;
 	}
 
 	/* enable all 32 bit door bell */
@@ -685,6 +687,10 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 
 	return 0;
 
+err_free_irq:
+for (i = 0; i < ep_dev->irq_cnt; i++)
+	devm_free_irq(&pdev->dev, pdev->irq + i, ep_dev);
+
 err_disable_msi:
 	pci_disable_msi(pdev);
 	pci_release_regions(pdev);
@@ -697,6 +703,7 @@ err_disable_pdev:
 
 static void sprd_pci_ep_dev_remove(struct pci_dev *pdev)
 {
+	u32 i;
 	enum dev_pci_barno bar;
 	struct sprd_ep_dev_notify *notify;
 	struct sprd_pci_ep_dev *ep_dev = pci_get_drvdata(pdev);
@@ -706,6 +713,9 @@ static void sprd_pci_ep_dev_remove(struct pci_dev *pdev)
 
 	if (ep_dev->cfg_base)
 		pci_iounmap(pdev, ep_dev->cfg_base);
+
+	for (i = 0; i < ep_dev->irq_cnt; i++)
+		devm_free_irq(&pdev->dev, pdev->irq + i, ep_dev);
 
 	pci_disable_msi(pdev);
 	pci_release_regions(pdev);
