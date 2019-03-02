@@ -200,7 +200,7 @@ EXPORT_SYMBOL_GPL(sprd_ep_map_memory);
 
 void sprd_ep_unmap_memory(int ep, const void __iomem *bar_addr)
 {
-	int bar, i;
+	int bar;
 	struct sprd_pci_ep_dev *ep_dev;
 
 	if (ep >= PCIE_EP_NR || !g_ep_dev[ep])
@@ -208,8 +208,8 @@ void sprd_ep_unmap_memory(int ep, const void __iomem *bar_addr)
 
 	ep_dev = g_ep_dev[ep];
 
-	for (i = 0; i < BAR_MAX; i++) {
-		if (bar_addr == ep_dev->cpu_vir[i]) {
+	for (bar = 0; bar < BAR_MAX; bar++) {
+		if (bar_addr == ep_dev->cpu_vir[bar]) {
 			sprd_ep_dev_unmap_bar(ep, bar);
 			sprd_ep_dev_put_bar(ep, bar);
 			break;
