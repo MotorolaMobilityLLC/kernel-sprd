@@ -25,6 +25,7 @@
 #include <linux/uaccess.h>
 #include <linux/platform_device.h>
 #include <linux/of_device.h>
+#include <linux/math64.h>
 
 #define PUB_MONITOR_CLK		128	/* 128MHz */
 #define PUB_DFS_MONITOR_CLK	65	/* 6.5MHz */
@@ -263,20 +264,23 @@ static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 	sprd_pub_monitor_enable(0);
 	if (sprd_pub_monitor_reg_get())
 		return -ENODATA;
-	idle_time = (u64)drv_data.reg_val.idle_time * 1000ULL / PUB_MONITOR_CLK;
-	write_time = (u64)drv_data.reg_val.write_time * 1000ULL
-			/ PUB_MONITOR_CLK;
-	read_time = (u64)drv_data.reg_val.read_time * 1000ULL / PUB_MONITOR_CLK;
-	sref_time = (u64)drv_data.reg_val.sref_time * 1000ULL / PUB_MONITOR_CLK;
-	light_time = (u64)drv_data.reg_val.light_time * 1000ULL /
-			PUB_DFS_MONITOR_CLK;
+	idle_time = div64_u64((u64)drv_data.reg_val.idle_time * 1000ULL,
+			      PUB_MONITOR_CLK);
+	write_time = div64_u64((u64)drv_data.reg_val.write_time * 1000ULL,
+			      PUB_MONITOR_CLK);
+	read_time = div64_u64((u64)drv_data.reg_val.read_time * 1000ULL,
+			      PUB_MONITOR_CLK);
+	sref_time = div64_u64((u64)drv_data.reg_val.sref_time * 1000ULL,
+			      PUB_MONITOR_CLK);
+	light_time = div64_u64((u64)drv_data.reg_val.light_time * 10000ULL,
+			      PUB_DFS_MONITOR_CLK);
 	light_cnt = drv_data.reg_val.st_ls_cnt & 0xffff;
 	sref_cnt = (drv_data.reg_val.st_ls_cnt >> 16) & 0xffff;
 	sts_tm = idle_time + write_time + read_time + sref_time + light_time;
 
 	for (i = 0, total_tm = 0; i < 8; i++) {
-		fx_time[i] = (u64)drv_data.reg_val.fx_time[i]
-				* 10000ULL / PUB_DFS_MONITOR_CLK;
+		fx_time[i] = div64_u64((u64)drv_data.reg_val.fx_time[i] * 10000ULL,
+					PUB_DFS_MONITOR_CLK);
 		total_tm += fx_time[i];
 	}
 
