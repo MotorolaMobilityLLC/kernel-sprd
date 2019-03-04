@@ -2075,6 +2075,7 @@ int start_marlin(u32 subsys)
 		WCN_INFO("firmware have download\n");
 		set_bit(subsys, &marlin_dev->power_state);
 		marlin_dev->first_power_on_flag = 2;
+		power_state_notify_or_not(subsys, 1);
 		mutex_unlock(&marlin_dev->power_lock);
 		return 0;
 	}
@@ -2082,6 +2083,7 @@ int start_marlin(u32 subsys)
 	ret = pcie_boot(subsys, marlin_dev);
 	if (ret < 0) {
 		WCN_INFO("pcie boot fail\n");
+		power_state_notify_or_not(subsys, 1);
 		mutex_unlock(&marlin_dev->power_lock);
 		return -1;
 	}
@@ -2092,6 +2094,7 @@ int start_marlin(u32 subsys)
 		stop_marlin(MARLIN_GNSS);
 
 	marlin_dev->first_power_on_flag = 2;
+	power_state_notify_or_not(subsys, 1);
 	mutex_unlock(&marlin_dev->power_lock);
 
 	return 0;
@@ -2145,6 +2148,7 @@ int stop_marlin(u32 subsys)
 		marlin_dev->gnss_dl_finish_flag = 0;
 	}
 	clear_bit(subsys, &marlin_dev->power_state);
+	power_state_notify_or_not(subsys, 0);
 
 	return 0;
 #endif
