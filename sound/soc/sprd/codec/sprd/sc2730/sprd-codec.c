@@ -59,6 +59,11 @@
 
 #define UNSUPPORTED_AD_RATE SNDRV_PCM_RATE_44100
 
+#define SDM_RAMP_MAX 0x2000
+#define NEED_SDM_RAMP(sprd_codec, codec) \
+	(sprd_codec_get_ctrl(codec, "HPL EAR Sel") == 1 && \
+	!sprd_codec->hp_mix_mode)
+
 enum PA_SHORT_T {
 	PA_SHORT_NONE, /* PA output normal */
 	PA_SHORT_VBAT, /* PA output P/N short VBAT */
@@ -156,6 +161,7 @@ static int sprd_mixer_get(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol);
 static int sprd_mixer_put(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol);
+static int sprd_codec_get_ctrl(struct snd_soc_codec *codec, char *name);
 
 static unsigned long sprd_codec_dp_base;
 
@@ -213,7 +219,7 @@ struct sprd_codec_priv {
 	u32 aud_pabst_vcal;
 	u32 neg_cp_efuse;
 	u32 fgu_4p2_efuse;
-
+	u32 hp_mix_mode;
 	struct mutex dig_access_mutex;
 	bool dig_access_en;
 	bool user_dig_access_dis;
@@ -371,6 +377,9 @@ static const struct snd_kcontrol_new loop_controls[] = {
 	SOC_SINGLE_EXT("switch", SND_SOC_NOPM, 0,
 		1, 0, snd_soc_dapm_get_volsw, snd_soc_dapm_put_volsw),
 };
+
+static const struct snd_kcontrol_new da_mode_switch =
+	SOC_DAPM_SINGLE_VIRT("Switch", 1);
 
 static const struct snd_kcontrol_new hp_jack_switch =
 	SOC_DAPM_SINGLE_VIRT("Switch", 1);
@@ -637,12 +646,12 @@ static int sprd_das_dc_os_en(struct snd_soc_codec *codec, int on)
 	return 0;
 }
 
-static void sprd_das_dc_os_set(struct snd_soc_codec *codec, int offset)
+static void sprd_das_dc_os_set(struct snd_soc_codec *codec)
 {
 	int mask, val;
 
 	mask = DAS_OS(0xFFFF);
-	val = DAS_OS(offset);
+	val = DAS_OS(1);
 	snd_soc_update_bits(codec, SOC_REG(ANA_CDC6), mask, val);
 	sprd_codec_audif_dc_os_set(codec, 6);
 }
@@ -680,7 +689,7 @@ static int das_dc_os_event(struct snd_soc_dapm_widget *w,
 	sp_asoc_pr_dbg("%s Event is %s\n", __func__, get_event_name(event));
 
 	if (on)
-		sprd_das_dc_os_set(codec, 1);
+		sprd_das_dc_os_set(codec);
 	sprd_das_dc_os_en(codec, on);
 
 	return 0;
@@ -985,14 +994,61 @@ static int spk_pa_event(struct snd_soc_dapm_widget *w,
 	return 0;
 }
 
-static void sprd_dalr_dc_os_set(struct snd_soc_codec *codec, int offset)
+static void sprd_codec_sdm_ramp(struct snd_soc_codec *codec, bool on)
 {
-	int mask, val;
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+	int val = 0;
 
-	mask = DALR_OS(0xFFFF);
-	val = DALR_OS(offset);
-	snd_soc_update_bits(codec, SOC_REG(ANA_CDC5), mask, val);
-	sprd_codec_audif_dc_os_set(codec, 6);
+	sp_asoc_pr_dbg("%s hp_mix_mode=%d,on=%d\n",
+		__func__, sprd_codec->hp_mix_mode, on);
+
+	/*
+	 * if hp_mix_mode is true, do not ramp,only hp single mode would do;
+	 * if kctrl "HPL EAR Sel" is EAR mode(0), do not ramp;
+	 */
+	if (!NEED_SDM_RAMP(sprd_codec, codec))
+		return;
+
+	/* each step should wait 0.5ms per the guideline */
+	if (on) {
+		snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_L), 0xffff, 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_H), 0xffff, 0);
+
+		while (val <= SDM_RAMP_MAX) {
+			snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_L),
+					0xffff, val);
+			val += 0x20;
+			/* ramp need wait about 500us by ASIC requirement */
+			usleep_range(500, 510);
+		}
+	} else {
+		val = snd_soc_read(codec, SOC_REG(AUD_DAC_SDM_L));
+		while (val > 0x20) {
+			val -= 0x20;
+			snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_L),
+					0xffff, val);
+			/* ramp need wait about 500us by ASIC requirement */
+			usleep_range(500, 510);
+		}
+		snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_L), 0xffff, 0);
+	}
+}
+
+static void sprd_dalr_dc_os_set(struct snd_soc_codec *codec)
+{
+	int mask = DALR_OS(0xffff), val;
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	/* if need SDM ramp, os should set to 0 */
+	if (NEED_SDM_RAMP(sprd_codec, codec)) {
+		val = DALR_OS(0);
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC5), mask, val);
+		sprd_codec_audif_dc_os_set(codec, 0);
+	} else {
+		val = DALR_OS(1);
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC5), mask, val);
+		sprd_codec_audif_dc_os_set(codec, 6);
+	}
 }
 
 static int dalr_dc_os_event(struct snd_soc_dapm_widget *w,
@@ -1005,16 +1061,17 @@ static int dalr_dc_os_event(struct snd_soc_dapm_widget *w,
 	sp_asoc_pr_dbg("%s Event is %s\n", __func__, get_event_name(event));
 
 	if (on) {
-		sprd_dalr_dc_os_set(codec, 1);
+		sprd_dalr_dc_os_set(codec);
 
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC5),
 			DAL_EN|DAR_EN, DAL_EN|DAR_EN);
 		sprd_codec_wait(1);
+		update_switch(codec, SDALHPL | SDARHPR, on);
+		sprd_codec_sdm_ramp(codec, on);
+	} else {
+		sprd_codec_sdm_ramp(codec, on);
+		update_switch(codec, SDALHPL | SDARHPR, on);
 	}
-
-	update_switch(codec, SDALHPL | SDARHPR, on);
-	sprd_codec_wait(100);
-
 	while (i++ < 20) {
 		state = snd_soc_read(codec, SOC_REG(ANA_STS1));
 
@@ -1140,6 +1197,23 @@ static int sprd_codec_sample_rate_setting(struct sprd_codec_priv *sprd_codec)
 	return 0;
 }
 
+static void sprd_codec_sdm_init(struct snd_soc_codec *codec)
+{
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	sp_asoc_pr_dbg("%s hp_mix_mode=%d\n",
+		__func__, sprd_codec->hp_mix_mode);
+
+	if (NEED_SDM_RAMP(sprd_codec, codec)) {
+		snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_L), 0xffff, 0);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_H), 0xffff, 0);
+	} else {
+		snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_L),
+			0xffff, 0x9999);
+		snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_H), 0xff, 0x1);
+	}
+}
+
 static void sprd_codec_power_disable(struct snd_soc_codec *codec)
 {
 
@@ -1176,9 +1250,7 @@ static int sprd_codec_digital_open(struct snd_soc_codec *codec)
 
 	sprd_codec_sample_rate_setting(sprd_codec);
 
-	/*Bug 362021*/
-	snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_L), 0xFFFF, 0X9999);
-	snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_H), 0xFF, 0x1);
+	sprd_codec_sdm_init(codec);
 
 	/*peng.lee added this according to janus.li's email*/
 	snd_soc_update_bits(codec, SOC_REG(AUD_SDM_CTL0), 0xFFFF, 0);
@@ -2177,6 +2249,9 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 		SND_SOC_NOPM, 0, 0, digital_loop_event,
 		SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
 
+	/* for HP power up switch*/
+	SND_SOC_DAPM_SWITCH("DA mode", SND_SOC_NOPM, 0, 1, &da_mode_switch),
+
 	/* Switch widget for headphone DA path control. If headphone
 	 * is removed, switch off it, else switch on it.
 	 */
@@ -2601,6 +2676,72 @@ static int sprd_codec_fixed_rate_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static struct snd_kcontrol *sprd_codec_find_ctrl(struct snd_soc_codec *codec,
+							char *name)
+{
+	struct snd_kcontrol *kctrl;
+	struct snd_soc_card *card = codec ? codec->component.card : NULL;
+	struct snd_ctl_elem_id id = {.iface = SNDRV_CTL_ELEM_IFACE_MIXER};
+
+	if (!codec || !name)
+		return NULL;
+	memcpy(id.name, name, strlen(name));
+	kctrl = snd_ctl_find_id(card->snd_card, &id);
+	return kctrl;
+}
+
+static int sprd_codec_get_ctrl(struct snd_soc_codec *codec, char *name)
+{
+	struct snd_kcontrol *kctrl;
+	int ret = 0;
+
+	kctrl = sprd_codec_find_ctrl(codec, name);
+	if (kctrl)
+		ret = dapm_kcontrol_get_value(kctrl);
+	sp_asoc_pr_info("%s,kctrl=%p,ret=%d\n", __func__, kctrl, ret);
+	return ret;
+}
+
+static int sprd_codec_get_hp_mix_mode(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_codec->hp_mix_mode;
+
+	return 0;
+}
+
+#ifdef AUTO_DA_MODE_SWITCH
+static int sprd_codec_da_mode_switch(struct snd_soc_codec *codec, bool on)
+{
+	struct snd_kcontrol *kctrl;
+	struct snd_ctl_elem_value ucontrol = {
+		.value.integer.value[0] = on,
+	};
+
+	kctrl = sprd_codec_find_ctrl(codec, "DA mode Switch");
+	sp_asoc_pr_dbg("%s, ctrl=%p, %s\n", __func__,
+		kctrl, on ? "on" : "off");
+	if (!kctrl)
+		return -EPERM;
+
+	return snd_soc_dapm_put_volsw(kctrl, &ucontrol);
+}
+#endif
+
+static int sprd_codec_set_hp_mix_mode(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	sprd_codec->hp_mix_mode = ucontrol->value.integer.value[0];
+
+	return 0;
+}
+
 static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 
 	SOC_ENUM_EXT("Aud Codec Info", codec_info_enum,
@@ -2616,6 +2757,8 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 	SOC_ENUM_EXT("ADC1 LRCLK Select", lrclk_sel_enum,
 		sprd_codec_adc1_lrclk_sel_get,
 		sprd_codec_adc1_lrclk_sel_put),
+	SOC_SINGLE_EXT("HP mix mode", 0, 0, INT_MAX, 0,
+		sprd_codec_get_hp_mix_mode, sprd_codec_set_hp_mix_mode),
 
 	SOC_ENUM("DAS Input Mux", das_input_mux_enum),
 	SOC_SINGLE_EXT("TEST_FIXED_RATE", 0, 0, INT_MAX, 0,
