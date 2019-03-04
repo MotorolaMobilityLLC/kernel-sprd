@@ -87,3 +87,7 @@
 	extcon = <&pmic_typec>;
 	status = "okay";
 };
+
+&vddwcn {
+	regulator-always-on;
+};
