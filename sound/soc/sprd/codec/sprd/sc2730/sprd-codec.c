@@ -1736,6 +1736,9 @@ static int cp_ad_cmp_cali_event(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC13),
+				    HPRCV_OPA_IBIAS_MODE_SEL |
+				    HPRCV_DCCALI_IBIAS_MODE_SEL, 0);
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL10),
 			CP_AD_CMP_CAL_AVG(0xFFFF), CP_AD_CMP_CAL_AVG(1));
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL10),
@@ -1780,7 +1783,10 @@ static int cp_event(struct snd_soc_dapm_widget *w,
 		neg_cp = (neg_cp * 115) / 165;
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL14),
 			CP_NEG_LV(0xFFFF), CP_NEG_LV(neg_cp));
-
+		snd_soc_update_bits(codec, SOC_REG(ANA_DCL10),
+				    CP_NEG_SOFT_EN, CP_NEG_SOFT_EN);
+		/* wait 100us by guidline */
+		usleep_range(100, 110);
 		snd_soc_update_bits(codec, SOC_REG(ANA_PMU7),
 			CP_NEG_PD_VNEG | CP_NEG_PD_FLYN | CP_NEG_PD_FLYP, 0);
 		snd_soc_update_bits(codec, SOC_REG(ANA_PMU0),
