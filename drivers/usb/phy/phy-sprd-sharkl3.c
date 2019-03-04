@@ -438,6 +438,9 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (ret)
 		dev_err(dev, "failed to create usb hsphy attributes\n");
 
+	if (extcon_get_state(phy->phy.edev, EXTCON_USB) > 0)
+		usb_phy_set_charger_state(&phy->phy, USB_CHARGER_PRESENT);
+
 	dev_info(dev, "sprd usb phy probe ok\n");
 
 	return 0;
