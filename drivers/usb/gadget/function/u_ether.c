@@ -285,7 +285,7 @@ rx_submit(struct eth_dev *dev, struct usb_request *req, gfp_t gfp_flags)
 
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	if (!out || !dev->port_usb)
+	if (!out || !dev->port_usb || out->uether)
 		return -ENOTCONN;
 
 
@@ -950,6 +950,11 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 		return NETDEV_TX_OK;
 	}
 
+	if (in->uether) {
+		if (skb)
+			dev_kfree_skb_any(skb);
+		return NETDEV_TX_OK;
+	}
 	/* apply outgoing CDC or RNDIS filters */
 	if (skb && !is_promisc(cdc_filter)) {
 		u8		*dest = skb->data;
