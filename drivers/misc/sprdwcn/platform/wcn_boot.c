@@ -720,27 +720,35 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		WCN_ERR("Maybe share the power with mem\n");
 	}
 
+	if (of_property_read_bool(np, "bound-avdd12")) {
+		WCN_INFO("forbid avdd12 power ctrl\n");
+		marlin_dev->bound_avdd12 = true;
+	} else {
+		WCN_INFO("do avdd12 power ctrl\n");
+		marlin_dev->bound_avdd12 = false;
+	}
+
 	marlin_dev->avdd12 = devm_regulator_get(&pdev->dev, "avdd12");
 	if (IS_ERR(marlin_dev->avdd12)) {
 		WCN_ERR("avdd12 err =%ld\n", PTR_ERR(marlin_dev->avdd12));
 		if (PTR_ERR(marlin_dev->avdd12) == -EPROBE_DEFER)
 			return -EPROBE_DEFER;
 		WCN_ERR("Get regulator of avdd12 error!\n");
-    }
+	}
 
 	marlin_dev->avdd33 = devm_regulator_get(&pdev->dev, "avdd33");
 	if (IS_ERR(marlin_dev->avdd33)) {
 		if (PTR_ERR(marlin_dev->avdd33) == -EPROBE_DEFER)
 			return -EPROBE_DEFER;
 		WCN_ERR("Get regulator of avdd33 error!\n");
-    }
+	}
 
 	marlin_dev->dcxo18 = devm_regulator_get(&pdev->dev, "dcxo18");
 	if (IS_ERR(marlin_dev->dcxo18)) {
 		if (PTR_ERR(marlin_dev->dcxo18) == -EPROBE_DEFER)
 			return -EPROBE_DEFER;
 		WCN_ERR("Get regulator of dcxo18 error!\n");
-    }
+	}
 
 	marlin_dev->clk_32k = devm_clk_get(&pdev->dev, "clk_32k");
 	if (IS_ERR(marlin_dev->clk_32k)) {
@@ -905,6 +913,7 @@ static int marlin_digital_power_enable(bool enable)
 
 	return ret;
 }
+
 static int marlin_analog_power_enable(bool enable)
 {
 	int ret = 0;
@@ -915,11 +924,12 @@ static int marlin_analog_power_enable(bool enable)
 		if (enable) {
 			regulator_set_voltage(marlin_dev->avdd12,
 			1200000, 1200000);
-			ret = regulator_enable(marlin_dev->avdd12);
+			if (!marlin_dev->bound_avdd12)
+				ret = regulator_enable(marlin_dev->avdd12);
 		} else {
-			if (regulator_is_enabled(marlin_dev->avdd12))
-				ret =
-				regulator_disable(marlin_dev->avdd12);
+			if (!marlin_dev->bound_avdd12 &&
+			    regulator_is_enabled(marlin_dev->avdd12))
+				ret = regulator_disable(marlin_dev->avdd12);
 		}
 	}
 
