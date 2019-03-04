@@ -1,7 +1,9 @@
 SIPA delegator for Spreadtrum platforms
 
 Required properties:
-- compatible: Should be "sprd,roc1-sipa-delegate".
+- compatible: should be one of following:
+	"sprd,roc1-sipa-delegate",
+	"sprd,orca-sipa-delegate".
 - reg: Specify the physical base address of the controller and length
   of memory mapped region.
 - sprd,ul-fifo-depth:

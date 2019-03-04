@@ -862,11 +862,11 @@
 				sprd,ap-ip-ul-rx = <0 1024>;
 			};
 
-			ipa_delegate: sipa-dele@38e000000 {
-				compatible = "sprd,sipa-delegate";
-				reg = <0x0 0x2e000000 0 0x00001000>,
-				      <0x3 0x8e000000 0 0x00001000>;
-				reg-names = "remote-base", "mapped-base";
+			ipa_delegate: sipa-dele@80000000 {
+				compatible = "sprd,roc1-sipa-delegate";
+				reg = <0 0x80000000 0 0x10000000>,
+				      <0 0x2e000000 0 0x00010000>;
+				reg-names = "mem-base", "reg-base";
 
 				sprd,ul-fifo-depth = <128>;
 				sprd,dl-fifo-depth = <128>;

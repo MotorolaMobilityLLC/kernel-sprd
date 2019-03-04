@@ -766,6 +766,16 @@
 			sprd,ap-ip-ul-rx = <0 1024>;
 		};
 
+		ipa_delegate: sipa-dele@89600000 {
+			compatible = "sprd,orca-sipa-delegate";
+			reg = <0 0x89600000 0 0x04000000>,
+			      <0 0x21180000 0 0x00010000>;
+			reg-names = "mem-base", "reg-base";
+
+			sprd,ul-fifo-depth = <128>;
+			sprd,dl-fifo-depth = <128>;
+		};
+
 		ipa {
 			compatible = "simple-bus";
 			#address-cells = <2>;
