@@ -652,7 +652,7 @@ enum {
 	DPU_LAYER_FORMAT_MAX_TYPES,
 };
 
-static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
+static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 {
 	int reg_val = 0;
 
@@ -770,6 +770,8 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 		break;
 	}
 
+	reg_val |= y2r_coef << 28;
+
 	return reg_val;
 }
 
@@ -845,7 +847,7 @@ static void dpu_layer(struct dpu_context *ctx,
 		layer->pitch = hwlayer->pitch[0] / wd;
 
 	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-		hwlayer->xfbc);
+		hwlayer->xfbc, hwlayer->y2r_coef);
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,

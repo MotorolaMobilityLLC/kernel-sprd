@@ -35,6 +35,7 @@ struct sprd_plane {
 	struct drm_property *fbc_hsize_r_property;
 	struct drm_property *fbc_hsize_y_property;
 	struct drm_property *fbc_hsize_uv_property;
+	struct drm_property *y2r_coef_property;
 	u32 index;
 };
 
@@ -45,6 +46,7 @@ struct sprd_plane_state {
 	u32 fbc_hsize_r;
 	u32 fbc_hsize_y;
 	u32 fbc_hsize_uv;
+	u32 y2r_coef;
 };
 
 LIST_HEAD(dpu_core_head);
@@ -200,6 +202,7 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	layer->header_size_r = s->fbc_hsize_r;
 	layer->header_size_y = s->fbc_hsize_y;
 	layer->header_size_uv = s->fbc_hsize_uv;
+	layer->y2r_coef = s->y2r_coef;
 
 	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u\n",
 		  __func__, layer->alpha, layer->blending, layer->rotation);
@@ -282,6 +285,7 @@ sprd_plane_atomic_duplicate_state(struct drm_plane *plane)
 	s->fbc_hsize_r = old_state->fbc_hsize_r;
 	s->fbc_hsize_y = old_state->fbc_hsize_y;
 	s->fbc_hsize_uv = old_state->fbc_hsize_uv;
+	s->y2r_coef = old_state->y2r_coef;
 
 	return &s->state;
 }
@@ -316,6 +320,8 @@ static int sprd_plane_atomic_set_property(struct drm_plane *plane,
 		s->fbc_hsize_y = val;
 	else if (property == p->fbc_hsize_uv_property)
 		s->fbc_hsize_uv = val;
+	else if (property == p->y2r_coef_property)
+		s->y2r_coef = val;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -344,6 +350,8 @@ static int sprd_plane_atomic_get_property(struct drm_plane *plane,
 		*val = s->fbc_hsize_y;
 	else if (property == p->fbc_hsize_uv_property)
 		*val = s->fbc_hsize_uv;
+	else if (property == p->y2r_coef_property)
+		*val = s->y2r_coef;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -409,6 +417,14 @@ static int sprd_plane_create_properties(struct sprd_plane *p, int index)
 		return -ENOMEM;
 	drm_object_attach_property(&p->plane.base, prop, 0);
 	p->fbc_hsize_uv_property = prop;
+
+	/* create y2r coef property */
+	prop = drm_property_create_range(p->plane.dev, 0,
+			"YUV2RGB coef", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&p->plane.base, prop, 0);
+	p->y2r_coef_property = prop;
 
 	return 0;
 }

@@ -103,6 +103,7 @@ struct sprd_dpu_layer {
 	u32 header_size_r;
 	u32 header_size_y;
 	u32 header_size_uv;
+	u32 y2r_coef;
 };
 
 struct dpu_capability {
