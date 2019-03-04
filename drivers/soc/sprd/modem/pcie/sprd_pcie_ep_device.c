@@ -37,6 +37,10 @@ enum dev_pci_barno {
 	BAR_CNT
 };
 
+#define MAX_SUPPORT_IRQ	32
+#define REQUEST_BASE_IRQ	16
+#define REQUEST_MAX_IRQ	(REQUEST_BASE_IRQ + PCIE_EP_MAX_IRQ)
+
 /* the bar4 and the bar5 are specail bars */
 #define BAR_MAX BAR_4
 
@@ -563,7 +567,7 @@ static irqreturn_t sprd_pci_ep_dev_irqhandler(int irq, void *dev_ptr)
 
 	dev_dbg(dev, "ep: irq handler. irq = %d\n",  irq);
 
-	irq = irq - pdev->irq;
+	irq -= (pdev->irq + REQUEST_BASE_IRQ);
 	if (irq >= PCIE_EP_MAX_IRQ) {
 		dev_err(dev, "ep: error, irq = %d", irq);
 		return IRQ_HANDLED;
@@ -621,10 +625,10 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 #ifdef PCI_IRQ_MSI
 	ep_dev->irq_cnt = pci_alloc_irq_vectors(pdev,
 				    1,
-				    16,
+				    MAX_SUPPORT_IRQ,
 				    PCI_IRQ_MSI);
 #else
-	ep_dev->irq_cnt = pci_enable_msi_range(pdev, 1, PCIE_EP_MAX_IRQ);
+	ep_dev->irq_cnt = pci_enable_msi_range(pdev, 1, MAX_SUPPORT_IRQ);
 #endif
 
 	if (ep_dev->irq_cnt < 0) {
@@ -632,17 +636,12 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 		err = ep_dev->irq_cnt;
 		goto err_disable_msi;
 	}
-	err = devm_request_irq(dev, pdev->irq, sprd_pci_ep_dev_irqhandler,
-			       IRQF_SHARED, DRV_MODULE_NAME, ep_dev);
-	if (err) {
-		dev_err(dev, "ep: failed to request IRQ %d\n", pdev->irq);
-		goto err_disable_msi;
-	}
+
 	dev_info(dev, "ep: request IRQ = %d, cnt =%d\n",
 		 pdev->irq,
 		 ep_dev->irq_cnt);
 
-	for (i = 1; i < ep_dev->irq_cnt; i++) {
+	for (i = REQUEST_BASE_IRQ; i < REQUEST_MAX_IRQ; i++) {
 		err = devm_request_irq(dev, pdev->irq + i,
 				       sprd_pci_ep_dev_irqhandler,
 				       IRQF_SHARED, DRV_MODULE_NAME, ep_dev);
@@ -688,7 +687,7 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 	return 0;
 
 err_free_irq:
-for (i = 0; i < ep_dev->irq_cnt; i++)
+for (i = REQUEST_BASE_IRQ; i < REQUEST_MAX_IRQ; i++)
 	devm_free_irq(&pdev->dev, pdev->irq + i, ep_dev);
 
 err_disable_msi:
@@ -714,7 +713,7 @@ static void sprd_pci_ep_dev_remove(struct pci_dev *pdev)
 	if (ep_dev->cfg_base)
 		pci_iounmap(pdev, ep_dev->cfg_base);
 
-	for (i = 0; i < ep_dev->irq_cnt; i++)
+	for (i = REQUEST_BASE_IRQ; i < REQUEST_MAX_IRQ; i++)
 		devm_free_irq(&pdev->dev, pdev->irq + i, ep_dev);
 
 	pci_disable_msi(pdev);

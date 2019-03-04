@@ -41,6 +41,7 @@
 #define DOOR_BELL_BASE		0x10000
 #define DOOR_BELL_ENABLE	0x10
 #define DOOR_BELL_STATUS	0x14
+#define REQUEST_BASE_IRQ	16
 
 struct sprd_ep_res {
 	struct list_head	list;
@@ -179,6 +180,7 @@ int sprd_pci_epf_raise_irq(int function, int irq)
 		return -EINVAL;
 	}
 
+	irq += REQUEST_BASE_IRQ;
 	/* *
 	 * in dw_pcie_ep_raise_msi_irq, write to the data reg
 	 * is (irq -1) , so here, we must pass (irq + 1)
