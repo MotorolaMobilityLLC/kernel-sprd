@@ -788,8 +788,11 @@ void walt_update_task_ravg(struct task_struct *p, struct rq *rq,
 
 done:
 	if (rq->window_start > old_window_start) {
+		unsigned long cap_orig = capacity_orig_of(cpu_of(rq));
 		unsigned int busy_limit =
 			(walt_ravg_window * walt_busy_threshold) / 100;
+
+		busy_limit = (busy_limit * cap_orig) >> SCHED_CAPACITY_SHIFT;
 		if (rq->prev_runnable_sum >= busy_limit) {
 			if (rq->is_busy == CPU_BUSY_CLR)
 				rq->is_busy = CPU_BUSY_PREPARE;
