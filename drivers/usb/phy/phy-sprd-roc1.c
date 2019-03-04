@@ -43,7 +43,7 @@ struct sprd_hsphy {
 };
 
 #define TUNEHSAMP_3_9MA		(3 << 25)
-#define TFREGRES_TUNE_VALUE	(0x14 << 19)
+#define TFREGRES_TUNE_VALUE	(0xe << 19)
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 {
