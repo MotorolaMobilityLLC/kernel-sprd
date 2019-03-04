@@ -395,7 +395,12 @@ static bool is_full_charged(struct charger_manager *cm)
 				ret = get_batt_uA(cm, &uA);
 				if (!ret && uA <= desc->fullbatt_uA && ++desc->trigger_cnt > 1) {
 					desc->trigger_cnt = 0;
-					is_full = true;
+					if (cm->desc->cap >= 100) {
+						is_full = true;
+					} else {
+						cm->desc->force_set_full = true;
+						is_full = false;
+					}
 				}
 				goto out;
 			} else {
@@ -631,6 +636,7 @@ static void fullbatt_vchk(struct work_struct *work)
 	dev_info(cm->dev, "VBATT dropped %duV after full-batt\n", diff);
 
 	if (diff >= desc->fullbatt_vchkdrop_uV) {
+		cm->desc->force_set_full = false;
 		try_charger_restart(cm);
 		uevent_notify(cm, "Recharging");
 	}
@@ -2384,6 +2390,9 @@ static void cm_batt_works(struct work_struct *work)
 
 		if (fuel_cap != 100)
 			fuel_cap = 100;
+
+		if (fuel_cap > cm->desc->cap)
+			fuel_cap = cm->desc->cap + 1;
 
 		break;
 	default:
