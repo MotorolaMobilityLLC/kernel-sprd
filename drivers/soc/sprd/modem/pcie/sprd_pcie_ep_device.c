@@ -41,7 +41,14 @@ enum dev_pci_barno {
 #define REQUEST_BASE_IRQ	16
 #define REQUEST_MAX_IRQ	(REQUEST_BASE_IRQ + PCIE_EP_MAX_IRQ)
 
-define BAR_MIN BAR_0
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+/* the bar0 and the bar1 are used for ipa */
+#define IPA_MEM_BAR	BAR_0
+#define IPA_REG_BAR	BAR_1
+#define BAR_MIN		BAR_2
+#else
+#define BAR_MIN		BAR_0
+#endif
 
 /* the bar4 and the bar5 are specail bars */
 #define BAR_MAX BAR_4
@@ -253,12 +260,15 @@ phys_addr_t sprd_ep_ipa_map(int type, phys_addr_t target_addr, size_t size)
 	ep_dev = g_ep_dev[ep];
 	pdev = ep_dev->pdev;
 	dev = &pdev->dev;
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+	bar = type == PCIE_IPA_TYPE_MEM ? IPA_MEM_BAR : IPA_REG_BAR;
+#else
 	bar = sprd_ep_dev_get_bar(ep);
 	if (bar < 0) {
 		dev_err(dev, "ep: ipa map, get bar err = %d\n", bar);
 		return 0;
 	}
-
+#endif
 	res = &pdev->resource[bar];
 
 	dev_dbg(dev, "ep: ipa map type=%d, addr=0x%lx, size=0x%lx\n",
@@ -296,6 +306,13 @@ int sprd_ep_ipa_unmap(int type, const phys_addr_t cpu_addr)
 	pdev = ep_dev->pdev;
 	res = &pdev->resource[bar];
 
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+	bar = type == PCIE_IPA_TYPE_MEM ? IPA_MEM_BAR : IPA_REG_BAR;
+	if (ep_dev->ipa_cpu_addr[bar] == cpu_addr) {
+		ep_dev->ipa_cpu_addr[bar] = 0;
+		return sprd_ep_dev_just_unmap_bar(ep_dev, bar);
+	}
+#else
 	for (bar = 0; bar < BAR_MAX; bar++) {
 		if (cpu_addr == ep_dev->ipa_cpu_addr[bar]) {
 			sprd_ep_dev_put_bar(ep, bar);
@@ -303,6 +320,7 @@ int sprd_ep_ipa_unmap(int type, const phys_addr_t cpu_addr)
 			return sprd_ep_dev_just_unmap_bar(ep_dev, bar);
 		}
 	}
+#endif
 
 	return -EINVAL;
 }
@@ -796,6 +814,17 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 	ep_dev->can_notify = 1;
 
 	g_ep_dev[ep_dev->ep] = ep_dev;
+
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+	/*
+	 * IPA_REG_BAR is null, don't notify the sipc mudule,
+	 * wait the 2nd probe
+	 */
+	if (!ep_dev->bar[IPA_REG_BAR]) {
+		ep_dev->can_notify = 0;
+		dev_info(dev, "ep: wait the next probe!");
+	}
+#endif
 
 	notify = &g_ep_dev_notify[ep_dev->ep];
 	if (notify->notify && ep_dev->can_notify)

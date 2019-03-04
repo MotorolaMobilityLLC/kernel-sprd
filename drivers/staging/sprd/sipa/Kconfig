@@ -21,4 +21,15 @@ config SIPA_TEST
 	help
 	  This option enables sipa test module.
 
+config SPRD_IPA_PCIE_WORKROUND
+	bool "Enable ipa pcie workround"
+	default n
+	depends on SPRD_SIPA
+	help
+	  This option enables sipa pcie workround.
+          Orca ipa hardware limitations:
+	  the sipc share memory must map from
+	  0x280000000(orca side) to 0x80000000(roc1 side),
+	  and the size must be 256M
+
 endmenu
