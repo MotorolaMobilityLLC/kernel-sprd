@@ -350,8 +350,9 @@ static struct headset_power *sprd_headset_search_power(
 	struct headset_power *power_array = power_manager->power;
 
 	while (i < HDST_REGULATOR_COUNT) {
-		if (strcmp(power_array[i++].name, name) == 0)
+		if (strcmp(power_array[i].name, name) == 0)
 			break;
+		i++;
 	}
 	if (i >= HDST_REGULATOR_COUNT) {
 		pr_err("%s: wrong regu name %s\n", __func__, name);
