@@ -1808,6 +1808,17 @@ static int cp_event(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
+static int ivsense_event(struct snd_soc_dapm_widget *w,
+			 struct snd_kcontrol *kcontrol, int event)
+{
+	int on = !!SND_SOC_DAPM_EVENT_ON(event);
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+
+	update_switch(codec, SPAISNS | SPAVSNS, on);
+
+	return 0;
+}
+
 #define REGU_CNT 2
 static void cp_short_check(struct sprd_codec_priv *sprd_codec)
 {
@@ -2208,8 +2219,9 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_PGA_E("EAR Path", SND_SOC_NOPM, 0, 0, NULL, 0,
 		ear_path_event, SND_SOC_DAPM_PRE_PMU),
 
-	SND_SOC_DAPM_SWITCH("IVSense Virt", SND_SOC_NOPM,
-		0, 0, &ivsence_switch),
+	SND_SOC_DAPM_SWITCH_E("IVSense Virt", SND_SOC_NOPM,
+			      0, 0, &ivsence_switch, ivsense_event,
+			      SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
 
 /* PIN */
 	SND_SOC_DAPM_OUTPUT("EAR Pin"),
