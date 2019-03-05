@@ -12,6 +12,7 @@
  */
 
 #include <linux/delay.h>
+#include <linux/of_address.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
 #include "sprd_dpu.h"
@@ -28,13 +29,6 @@
 #define XFBC8888_PAYLOAD_SIZE(w, h) (w * h * 4)
 #define XFBC8888_BUFFER_SIZE(w, h) (XFBC8888_HEADER_SIZE(w, h) \
 				+ XFBC8888_PAYLOAD_SIZE(w, h))
-
-#define XFBC565_HEADER_SIZE(w, h) (ALIGN((w) * (h) / (16 * 8) / 2, 128))
-#define XFBC565_PAYLOAD_SIZE(w, h) (w * h * 2)
-#define XFBC565_BUFFER_SIZE(w, h) (XFBC565_HEADER_SIZE(w, h) \
-				+ XFBC565_PAYLOAD_SIZE(w, h))
-
-#define update_work	wb_work
 
 struct layer_reg {
 	u32 addr[4];
@@ -122,11 +116,14 @@ struct dpu_reg {
 	u32 reserved_0x03A8_0x03AC[2];
 	u32 dpu_fbc_cfg0;
 	u32 dpu_fbc_cfg1;
-	u32 reserved_0x03B8_0x03EC[14];
+	u32 dpu_fbc_cfg2;
+	u32 reserved_0x03BC_0x03EC[13];
 	u32 rf_ram_addr;
 	u32 rf_ram_rdata_low;
 	u32 rf_ram_rdata_high;
-	u32 reserved_0x03FC_0x07FC[257];
+	u32 reserved_0x03FC;
+	u32 cabc_hist[16];
+	u32 reserved_0x0440_0x07FC[240];
 	u32 mmu_en;
 	u32 mmu_update;
 	u32 mmu_min_vpn;
@@ -261,22 +258,20 @@ static bool need_scale;
 static bool evt_update;
 static bool evt_stop;
 static int wb_en;
+static int wb_xfbc_en = 1;
 static int max_vsync_count;
 static int vsync_count;
-//static struct sprd_adf_hwlayer wb_layer;
-//static struct wb_region region[3];
-//static int wb_xfbc_en = 1;
+static struct sprd_dpu_layer wb_layer;
+static struct wb_region region[3];
 //static bool sprd_corner_support;
 //static int sprd_corner_radius;
-//module_param(wb_xfbc_en, int, 0644);
-//module_param(max_vsync_count, int, 0644);
+module_param(wb_xfbc_en, int, 0644);
+module_param(max_vsync_count, int, 0644);
 
 static void dpu_enhance_reload(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_dpu_layer *hwlayer);
-//static void dpu_write_back(struct dpu_context *ctx,
-//		struct wb_region region[], u8 count);
 
 static u32 dpu_get_version(struct dpu_context *ctx)
 {
@@ -313,15 +308,27 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 }
 #endif
 
-static void check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
+
+static void dpu_dump(struct dpu_context *ctx)
+{
+	u32 *reg = (u32 *)ctx->base;
+	int i;
+
+	pr_info("      0          4          8          C\n");
+	for (i = 0; i < 256; i += 4) {
+		pr_info("%04x: 0x%08x 0x%08x 0x%08x 0x%08x\n",
+			i * 4, reg[i], reg[i + 1], reg[i + 2], reg[i + 3]);
+	}
+}
+
+static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	u32 int_mask = (DISPC_INT_MMU_VAOR_RD_MASK |
+	u32 mmu_mask = DISPC_INT_MMU_VAOR_RD_MASK |
 			DISPC_INT_MMU_VAOR_WR_MASK |
 			DISPC_INT_MMU_INV_RD_MASK |
-			DISPC_INT_MMU_INV_WR_MASK);
-	u32 val = reg_val & int_mask;
-	reg->dpu_int_en &= ~int_mask;
+			DISPC_INT_MMU_INV_WR_MASK;
+	u32 val = reg_val & mmu_mask;
 
 	if (val) {
 		pr_err("--- iommu interrupt err: 0x%04x ---\n", val);
@@ -336,20 +343,25 @@ static void check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 			reg->mmu_vaor_addr_wr);
 		pr_err("BUG: iommu failure at %s:%d/%s()!\n",
 			__FILE__, __LINE__, __func__);
+
+		dpu_dump(ctx);
+
+		/* panic("iommu panic\n"); */
 	}
+
+	return val;
 }
 
 static u32 dpu_isr(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	u32 reg_val;
+	u32 reg_val, int_mask = 0;
 
 	reg_val = reg->dpu_int_sts;
-	reg->dpu_int_clr = reg_val;
 
 	/* disable err interrupt */
 	if (reg_val & DISPC_INT_ERR_MASK)
-		reg->dpu_int_en &= ~DISPC_INT_ERR_MASK;
+		int_mask |= DISPC_INT_ERR_MASK;
 
 	/* dpu update done isr */
 	if (reg_val & DISPC_INT_UPDATE_DONE_MASK) {
@@ -360,10 +372,8 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	/* dpu vsync isr */
 	if (reg_val & DISPC_INT_DPI_VSYNC_MASK) {
 		/* write back feature */
-		if (vsync_count == max_vsync_count && wb_en) {
-			//dpu_write_back(ctx, region, 1);
-			schedule_work(&ctx->update_work);
-		}
+		if ((vsync_count == max_vsync_count) && wb_en)
+			schedule_work(&ctx->wb_work);
 		vsync_count++;
 	}
 
@@ -375,43 +385,47 @@ static u32 dpu_isr(struct dpu_context *ctx)
 
 	/* dpu write back done isr */
 	if (reg_val & DISPC_INT_WB_DONE_MASK) {
-		wb_en = false;
 		/*
 		 * The write back is a time-consuming operation. If there is a
 		 * flip occurs before write back done, the write back buffer is
-		 * no need to display. Or the new frame will be covered by the
-		 * write back buffer, which is not we wanted.
+		 * no need to display. Otherwise the new frame will be covered
+		 * by the write back buffer, which is not what we wanted.
 		 */
-		if (vsync_count > max_vsync_count) {
-			dpu_clean_all(ctx);
-			//dpu_layer(ctx, &wb_layer);
-			schedule_work(&ctx->update_work);
+		if ((vsync_count > max_vsync_count) && wb_en) {
+			wb_en = false;
+			schedule_work(&ctx->wb_work);
 			/*reg_val |= DISPC_INT_FENCE_SIGNAL_REQUEST;*/
 		}
+
 		pr_debug("wb done\n");
 	}
 
 	/* dpu write back error isr */
 	if (reg_val & DISPC_INT_WB_FAIL_MASK) {
 		pr_err("dpu write back fail\n");
-		/*give a new chance to write back*/
-		wb_en = true;
-		vsync_count = 0;
+		/* give a new chance for write back */
+		if (max_vsync_count > 0) {
+			wb_en = true;
+			vsync_count = 0;
+		}
 	}
 
 	/* dpu ifbc payload error isr */
 	if (reg_val & DISPC_INT_FBC_PLD_ERR_MASK) {
-		reg->dpu_int_en &= ~DISPC_INT_FBC_PLD_ERR_MASK;
+		int_mask |= DISPC_INT_FBC_PLD_ERR_MASK;
 		pr_err("dpu ifbc payload error\n");
 	}
 
 	/* dpu ifbc header error isr */
 	if (reg_val & DISPC_INT_FBC_HDR_ERR_MASK) {
-		reg->dpu_int_en &= ~DISPC_INT_FBC_HDR_ERR_MASK;
+		int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
 		pr_err("dpu ifbc header error\n");
 	}
 
-	check_mmu_isr(ctx, reg_val);
+	int_mask |= check_mmu_isr(ctx, reg_val);
+
+	reg->dpu_int_clr = reg_val;
+	reg->dpu_int_en &= ~int_mask;
 
 	return reg_val;
 }
@@ -496,62 +510,112 @@ static void dpu_run(struct dpu_context *ctx)
 	}
 }
 
-#if 0
 static void dpu_write_back(struct dpu_context *ctx,
-		struct wb_region region[], u8 count)
+		u8 count, bool debug)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	u16 w, h;
+	int i, index;
 
-	if (count == 0)
-		return;
+	for (i = 0; i < count; i++) {
+		index = region[i].index;
+		reg->region[index].pos = (region[i].pos_x >> 3) |
+					((region[i].pos_y >> 3) << 16);
+		reg->region[index].size = (region[i].size_w >> 3) |
+					((region[i].size_h >> 3) << 16);
+	}
 
-	w = reg->blend_size & 0xFFFF;
-	h = reg->blend_size >> 16;
-
-	wb_layer.dst_w = w;
-	wb_layer.dst_h = h;
-	wb_layer.compression = wb_xfbc_en;
-	wb_layer.header_size_r = XFBC8888_HEADER_SIZE(w, h);
-	wb_layer.pitch[0] = w * 4;
-
-	reg->region[0].pos = 0;
-	reg->region[0].size = (w >> 3) | ((h >> 3) << 16);
-	reg->wb_ctrl = BIT(0);
-	reg->wb_pitch = w;
-
-	if (wb_xfbc_en) {
+	if (wb_xfbc_en && !debug) {
 		reg->wb_cfg = (2 << 1) | BIT(0);
-		reg->wb_base_addr = wb_layer.iova_plane[0] +
+		reg->wb_base_addr = wb_layer.addr[0] +
 				wb_layer.header_size_r;
 	} else {
 		reg->wb_cfg = 0;
-		reg->wb_base_addr = wb_layer.iova_plane[0];
+		reg->wb_base_addr = wb_layer.addr[0];
 	}
+	reg->wb_pitch = ctx->vm.hactive;
+
+	/* update trigger */
+	reg->dpu_ctrl |= BIT(2);
+
+	if (debug)
+		/* writeback debug trigger */
+		reg->wb_ctrl = BIT(3);
+	else {
+		/* writeback trigger */
+		for (i = 0; i < count; i++) {
+			index = region[i].index;
+			reg->wb_ctrl |= 1 << index;
+		}
+	}
+
+	dpu_wait_update_done(ctx);
+
+	pr_debug("write back trigger\n");
 }
 
-static void writeback_update_handler(struct work_struct *data)
+static void dpu_wb_flip(struct dpu_context *ctx)
 {
-	int ret;
-	struct dpu_context *ctx =
-		container_of(data, struct dpu_context, update_work);
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	ret = down_trylock(&ctx->refresh_lock);
-	if (ret != 1) {
-		reg->dpu_ctrl |= BIT(2);
-		dpu_wait_update_done(ctx);
-		up(&ctx->refresh_lock);
-	} else
-		pr_debug("cannot acquire lock for wb_lock\n");
+	dpu_clean_all(ctx);
+	dpu_layer(ctx, &wb_layer);
+
+	reg->dpu_ctrl |= BIT(2);
+	dpu_wait_update_done(ctx);
+
+	pr_debug("write back flip\n");
+}
+
+static void dpu_wb_work_func(struct work_struct *data)
+{
+	struct dpu_context *ctx =
+		container_of(data, struct dpu_context, wb_work);
+
+	down(&ctx->refresh_lock);
+
+	if (wb_en && (vsync_count > max_vsync_count))
+		dpu_write_back(ctx, 1, false);
+	else if (!wb_en)
+		dpu_wb_flip(ctx);
+
+	up(&ctx->refresh_lock);
+}
+
+static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
+			 u32 *paddr)
+{
+	struct device_node *node;
+	u64 size64;
+	struct resource r;
+
+	node = of_parse_phandle(dpu->dev.of_node,
+					"sprd,wb-memory", 0);
+	if (!node) {
+		DRM_WARN("no sprd,wb-memory specified\n");
+		return -EINVAL;
+	}
+
+	if (of_address_to_resource(node, 0, &r)) {
+		DRM_ERROR("invalid wb reserved memory node!\n");
+		return -EINVAL;
+	}
+
+	*paddr = r.start;
+	size64 = resource_size(&r);
+
+	if (size64 < size) {
+		DRM_ERROR("unable to obtain enough wb memory\n");
+		return -ENOMEM;
+	}
+
+	return 0;
 }
 
 static int dpu_write_back_config(struct dpu_context *ctx)
 {
 	int ret;
 	static int need_config = 1;
-	struct panel_info *panel = ctx->panel;
-	u32 wb_addr_v;
+	u32 wb_hdr_size;
 	size_t wb_buf_size;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
@@ -561,27 +625,38 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 		return 0;
 	}
 
-	wb_buf_size = XFBC8888_BUFFER_SIZE(panel->width, panel->height);
-	ret = sprd_dpu_wb_buf_alloc(dpu, ION_HEAP_ID_MASK_FB,
-					&wb_buf_size, &(wb_addr_v));
-	if (ret)
+	wb_buf_size = XFBC8888_BUFFER_SIZE(ctx->vm.hactive, ctx->vm.vactive);
+	wb_hdr_size = XFBC8888_HEADER_SIZE(ctx->vm.hactive, ctx->vm.vactive);
+	ret = dpu_wb_buf_alloc(dpu, wb_buf_size, &ctx->wb_addr_p);
+	if (ret) {
+		max_vsync_count = 0;
 		return -1;
+	}
 
-	wb_layer.hwlayer_id = 7;
-	wb_layer.n_planes = 1;
+	region[0].index = 0;
+	region[0].pos_x = 0;
+	region[0].pos_y = 0;
+	region[0].size_w = ctx->vm.hactive;
+	region[0].size_h = ctx->vm.vactive;
+
+	wb_layer.index = 0;
+	wb_layer.planes = 1;
 	wb_layer.alpha = 0xff;
+	wb_layer.dst_w = ctx->vm.hactive;
+	wb_layer.dst_h = ctx->vm.vactive;
 	wb_layer.format = DRM_FORMAT_ABGR8888;
-	wb_layer.iova_plane[0] = wb_addr_v;
+	wb_layer.xfbc = wb_xfbc_en;
+	wb_layer.pitch[0] = ctx->vm.hactive * 4;
+	wb_layer.addr[0] = ctx->wb_addr_p;
+	wb_layer.header_size_r = wb_hdr_size;
 
-	max_vsync_count = 0;
+	max_vsync_count = 4;
 	need_config = 0;
 
-	pr_info("wb_xfbc_en = %d\n", wb_xfbc_en);
-	INIT_WORK(&ctx->update_work, writeback_update_handler);
+	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
 
 	return 0;
 }
-#endif
 
 static int dpu_init(struct dpu_context *ctx)
 {
@@ -617,7 +692,7 @@ static int dpu_init(struct dpu_context *ctx)
 
 	dpu_enhance_reload(ctx);
 
-	//dpu_write_back_config(ctx);
+	dpu_write_back_config(ctx);
 
 	return 0;
 }
@@ -698,9 +773,9 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 		/*2-Lane: Yuv420 */
 		reg_val |= DPU_LAYER_FORMAT_YUV420_2PLANE << 4;
 		/*Y endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 8;
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
 		/*UV endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 10;
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 10;
 		break;
 	case DRM_FORMAT_NV21:
 		/*2-Lane: Yuv420 */
@@ -708,7 +783,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 		/*Y endian */
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
 		/*UV endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 10;
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 10;
 		break;
 	case DRM_FORMAT_NV16:
 		/*2-Lane: Yuv422 */
@@ -733,6 +808,14 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 		/*UV endian */
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 10;
 		break;
+	case DRM_FORMAT_YVU420:
+		reg_val |= DPU_LAYER_FORMAT_YUV420_3PLANE << 4;
+		/*Y endian */
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
+		/*UV endian */
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 10;
+		break;
+
 	default:
 		pr_err("error: invalid format %c%c%c%c\n", format,
 						format >> 8,
@@ -748,11 +831,15 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 		reg_val |= BIT(2);
 		break;
 	case DRM_MODE_BLEND_COVERAGE:
-		/*Normal mode*/
+		/* alpha mode select - combo alpha */
+		reg_val |= BIT(3);
+		/* blending mode select - normal mode */
 		reg_val &= (~BIT(16));
 		break;
 	case DRM_MODE_BLEND_PREMULTI:
-		/*Pre-mult mode*/
+		/* alpha mode select - combo alpha */
+		reg_val |= BIT(3);
+		/* blending mode select - pre-mult mode */
 		reg_val |= BIT(16);
 		break;
 	default:
@@ -853,6 +940,10 @@ static void dpu_flip(struct dpu_context *ctx,
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	int i;
+
+	vsync_count = 0;
+	if (max_vsync_count > 0 && count > 1)
+		wb_en = true;
 
 	/*
 	 * Make sure the dpu is in stop status. DPU_R3P0 has no shadow
@@ -1384,7 +1475,7 @@ static const u32 primary_fmts[] = {
 	DRM_FORMAT_RGB565, DRM_FORMAT_BGR565,
 	DRM_FORMAT_NV12, DRM_FORMAT_NV21,
 	DRM_FORMAT_NV16, DRM_FORMAT_NV61,
-	DRM_FORMAT_YUV420,
+	DRM_FORMAT_YUV420, DRM_FORMAT_YVU420,
 };
 
 static int dpu_capability(struct dpu_context *ctx,
@@ -1401,7 +1492,7 @@ static int dpu_capability(struct dpu_context *ctx,
 }
 
 static struct dpu_core_ops dpu_r3p0_ops = {
-//	.parse_dt = dpu_parse_dt,
+	//.parse_dt = dpu_parse_dt,
 	.version = dpu_get_version,
 	.init = dpu_init,
 	.uninit = dpu_uninit,
@@ -1417,6 +1508,7 @@ static struct dpu_core_ops dpu_r3p0_ops = {
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,
+	.write_back = dpu_write_back,
 };
 
 static struct ops_entry entry = {
