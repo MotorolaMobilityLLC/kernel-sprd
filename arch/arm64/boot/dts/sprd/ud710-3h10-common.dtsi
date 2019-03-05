@@ -78,13 +78,13 @@
 			thermal-sensors = <&ap_thm0 4>;
 		};
 
-		ai0_thmzone: ank-thmzone {
+		ai0_thmzone: ai0-thmzone {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&ap_thm1 0>;
 		};
 
-		ai1_thmzone: ank0-thmzone {
+		ai1_thmzone: ai1-thmzone {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&ap_thm1 1>;
