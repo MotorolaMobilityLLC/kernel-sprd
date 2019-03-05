@@ -27,6 +27,7 @@ struct sugov_tunables {
 	unsigned int up_rate_limit_us;
 	unsigned int down_rate_limit_us;
 	unsigned int timer_slack_val_us;
+	int freq_margin;
 };
 
 struct sugov_policy {
@@ -211,8 +212,14 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	struct cpufreq_policy *policy = sg_policy->policy;
 	unsigned int freq = arch_scale_freq_invariant() ?
 				policy->cpuinfo.max_freq : policy->cur;
+	int freq_margin = sg_policy->tunables->freq_margin;
 
-	freq = (freq + (freq >> 2)) * util / max;
+	if (freq_margin > -100 && freq_margin < 100)
+		freq_margin = ((int)freq * freq_margin) / 100;
+	else
+		freq_margin = freq >> 2;
+
+	freq = div64_u64((u64)((int)freq + freq_margin) * (u64)util, max);
 
 	if (freq == sg_policy->cached_raw_freq && sg_policy->next_freq != UINT_MAX)
 		return sg_policy->next_freq;
@@ -528,6 +535,13 @@ static ssize_t timer_slack_val_us_show(struct gov_attr_set *attr_set, char *buf)
 	return sprintf(buf, "%u\n", tunables->timer_slack_val_us);
 }
 
+static ssize_t freq_margin_show(struct gov_attr_set *attr_set, char *buf)
+{
+	struct sugov_tunables *tunables = to_sugov_tunables(attr_set);
+
+	return sprintf(buf, "%d\n", tunables->freq_margin);
+}
+
 static ssize_t up_rate_limit_us_store(struct gov_attr_set *attr_set,
 				      const char *buf, size_t count)
 {
@@ -589,14 +603,33 @@ static ssize_t timer_slack_val_us_store(struct gov_attr_set *attr_set,
 	return count;
 }
 
+static ssize_t freq_margin_store(struct gov_attr_set *attr_set,
+					const char *buf, size_t count)
+{
+	struct sugov_tunables *tunables = to_sugov_tunables(attr_set);
+	int freq_margin;
+
+	if (kstrtoint(buf, 10, &freq_margin))
+		return -EINVAL;
+
+	if (freq_margin <= -100 || freq_margin >= 100)
+		return -EINVAL;
+
+	tunables->freq_margin = freq_margin;
+
+	return count;
+}
+
 static struct governor_attr up_rate_limit_us = __ATTR_RW(up_rate_limit_us);
 static struct governor_attr down_rate_limit_us = __ATTR_RW(down_rate_limit_us);
 static struct governor_attr timer_slack_val_us = __ATTR_RW(timer_slack_val_us);
+static struct governor_attr freq_margin = __ATTR_RW(freq_margin);
 
 static struct attribute *sugov_attributes[] = {
 	&up_rate_limit_us.attr,
 	&down_rate_limit_us.attr,
 	&timer_slack_val_us.attr,
+	&freq_margin.attr,
 	NULL
 };
 
@@ -781,6 +814,11 @@ static int sugov_init(struct cpufreq_policy *policy)
 
 	tunables->up_rate_limit_us = cpufreq_policy_transition_delay_us(policy);
 	tunables->down_rate_limit_us = cpufreq_policy_transition_delay_us(policy);
+
+	if (cpumask_test_cpu(policy->cpu, &min_cap_cpu_mask))
+		tunables->freq_margin = 50;
+	else
+		tunables->freq_margin = 30;
 
 	tunables->timer_slack_val_us =
 		TICK_NSEC / NSEC_PER_USEC + tunables->down_rate_limit_us;
