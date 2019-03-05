@@ -638,6 +638,36 @@ static void sprd_crtc_disable_vblank(struct drm_crtc *crtc)
 		dpu->core->disable_vsync(&dpu->ctx);
 }
 
+static int sprd_crtc_create_properties(struct drm_crtc *crtc)
+{
+	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+	struct drm_device *drm = dpu->crtc.dev;
+	struct drm_property *prop;
+	struct drm_property_blob *blob;
+	size_t blob_size;
+
+	blob_size = strlen(dpu->ctx.version) + 1;
+
+	blob = drm_property_create_blob(dpu->crtc.dev, blob_size,
+			dpu->ctx.version);
+	if (IS_ERR(blob)) {
+		DRM_ERROR("drm_property_create_blob dpu version failed\n");
+		return PTR_ERR(blob);
+	}
+
+	/* create dpu version property */
+	prop = drm_property_create(drm,
+		DRM_MODE_PROP_IMMUTABLE | DRM_MODE_PROP_BLOB,
+		"dpu version", 0);
+	if (!prop) {
+		DRM_ERROR("drm_property_create dpu version failed\n");
+		return -ENOMEM;
+	}
+	drm_object_attach_property(&crtc->base, prop, blob->base.id);
+
+	return 0;
+}
+
 static const struct drm_crtc_helper_funcs sprd_crtc_helper_funcs = {
 	.mode_set_nofb	= sprd_crtc_mode_set_nofb,
 	.mode_valid	= sprd_crtc_mode_valid,
@@ -687,6 +717,8 @@ static int sprd_crtc_init(struct drm_device *drm, struct drm_crtc *crtc,
 	drm_mode_crtc_set_gamma_size(crtc, 256);
 
 	drm_crtc_helper_add(crtc, &sprd_crtc_helper_funcs);
+
+	sprd_crtc_create_properties(crtc);
 
 	DRM_INFO("%s() ok\n", __func__);
 	return 0;
