@@ -3616,11 +3616,11 @@ static void init_vbc_codec_data(struct vbc_codec_priv *vbc_codec)
 	vbc_codec->iis_rx_wd[VBC_MUX_IIS_RX_ADC3].value = WD_16BIT;
 	/* iis lr mod */
 	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC0].id = VBC_MUX_IIS_TX_DAC0;
-	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC0].value = RIGHT_HIGH;
+	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC0].value = LEFT_HIGH;
 	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC1].id = VBC_MUX_IIS_TX_DAC1;
-	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC1].value = RIGHT_HIGH;
+	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC1].value = LEFT_HIGH;
 	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC2].id = VBC_MUX_IIS_TX_DAC2;
-	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC2].value = RIGHT_HIGH;
+	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC2].value = LEFT_HIGH;
 	vbc_codec->iis_rx_lr_mod[VBC_MUX_IIS_RX_ADC0].id = VBC_MUX_IIS_RX_ADC0;
 	vbc_codec->iis_rx_lr_mod[VBC_MUX_IIS_RX_ADC0].value = LEFT_HIGH;
 	vbc_codec->iis_rx_lr_mod[VBC_MUX_IIS_RX_ADC1].id = VBC_MUX_IIS_RX_ADC1;
