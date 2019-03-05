@@ -532,7 +532,7 @@ static int sprd_ssphy_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id sprd_ssphy_match[] = {
-	{ .compatible = "sprd,orca1-ssphy0" },
+	{ .compatible = "sprd,orca1-ssphy1" },
 	{},
 };
 
