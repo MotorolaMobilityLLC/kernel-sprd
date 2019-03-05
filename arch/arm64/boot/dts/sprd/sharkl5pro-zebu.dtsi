@@ -235,6 +235,15 @@
 				};
 			};
 
+			gsp_core0: gsp@20300000 {
+				compatible = "sprd,gsp-core";
+				reg = <0 0x20300000 0 0x2000>;
+				core-id = <0>;
+				kcfg-num = <16>;
+				interrupts = <GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>;
+				iommus = <&iommu_dispc>;
+			};
+
 			iommu_dispc: iommu@20300000 {
 				compatible = "sprd,iommuvaul5p-dispc";
 				reg = <0x0 0x20300000 0x0 0x800>,
@@ -274,5 +283,13 @@
 		#clock-cells = <0>;
 		clock-frequency = <26000000>;
 		clock-output-names = "ext-26m";
+	};
+
+	gsp: sprd-gsp {
+		compatible = "sprd,gsp-r8p0-sharkl5pro";
+		name = "sprd-gsp";
+		core-cnt = <1>;
+		io-cnt = <7>;
+		cores = <&gsp_core0>;
 	};
 };
