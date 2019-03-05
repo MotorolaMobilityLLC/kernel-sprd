@@ -236,6 +236,10 @@ static void defer_kevent(struct eth_dev *dev, int flag)
 {
 	if (test_and_set_bit(flag, &dev->todo))
 		return;
+	if (dev->port_usb &&
+	    dev->port_usb->out_ep &&
+	    dev->port_usb->out_ep->uether)
+		return;
 	if (!schedule_work(&dev->work))
 		ERROR(dev, "kevent %d may have been dropped\n", flag);
 	else
