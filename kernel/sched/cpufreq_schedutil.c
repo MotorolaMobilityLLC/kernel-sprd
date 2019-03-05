@@ -15,10 +15,13 @@
 #include <trace/hooks/sched.h>
 
 #define IOWAIT_BOOST_MIN	(SCHED_CAPACITY_SCALE / 8)
+#define MIN_CAP_CPUMASK_FREQ_MARGIN	0
+#define OTHER_CPUMASK_FREQ_MARGIN	0
 
 struct sugov_tunables {
 	struct gov_attr_set	attr_set;
 	unsigned int		rate_limit_us;
+	int			freq_margin;
 };
 
 struct sugov_policy {
@@ -32,6 +35,7 @@ struct sugov_policy {
 	s64			freq_update_delay_ns;
 	unsigned int		next_freq;
 	unsigned int		cached_raw_freq;
+	struct timer_list freq_margin_timer;
 
 	/* The next fields are only needed if fast switch cannot be used: */
 	struct			irq_work irq_work;
@@ -170,6 +174,9 @@ static void sugov_deferred_update(struct sugov_policy *sg_policy, u64 time,
 static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 				  unsigned long util, unsigned long max)
 {
+
+	int freq_margin = 0;
+
 	struct cpufreq_policy *policy = sg_policy->policy;
 	unsigned int freq = arch_scale_freq_invariant() ?
 				policy->cpuinfo.max_freq : policy->cur;
@@ -179,6 +186,15 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 	if (next_freq)
 		freq = next_freq;
 	else
+		freq_margin = sg_policy->tunables->freq_margin;
+
+	/*
+	 * freq_margin should be a percentage between -100 and 100.
+	 */
+	if (freq_margin > -100 && freq_margin < 100) {
+		freq_margin = ((int)freq * freq_margin) / 100;
+		freq = div64_u64((u64)((int)freq + freq_margin) * (u64)util, max);
+	} else
 		freq = map_util_freq(util, freq, max);
 
 	if (freq == sg_policy->cached_raw_freq && !sg_policy->need_freq_update)
@@ -622,10 +638,35 @@ rate_limit_us_store(struct gov_attr_set *attr_set, const char *buf, size_t count
 	return count;
 }
 
+static ssize_t freq_margin_show(struct gov_attr_set *attr_set, char *buf)
+{
+	struct sugov_tunables *tunables = to_sugov_tunables(attr_set);
+
+	return sprintf(buf, "%d\n", tunables->freq_margin);
+}
+
+static ssize_t freq_margin_store(struct gov_attr_set *attr_set,
+					const char *buf, size_t count)
+{
+	struct sugov_tunables *tunables = to_sugov_tunables(attr_set);
+	int freq_margin;
+
+	if (kstrtoint(buf, 10, &freq_margin))
+		return -EINVAL;
+
+	if (freq_margin <= -100 || freq_margin >= 100)
+		return -EINVAL;
+
+	tunables->freq_margin = freq_margin;
+
+	return count;
+}
 static struct governor_attr rate_limit_us = __ATTR_RW(rate_limit_us);
+static struct governor_attr freq_margin = __ATTR_RW(freq_margin);
 
 static struct attribute *sugov_attrs[] = {
 	&rate_limit_us.attr,
+	&freq_margin.attr,
 	NULL
 };
 ATTRIBUTE_GROUPS(sugov);
@@ -740,6 +781,18 @@ static void sugov_tunables_free(struct sugov_tunables *tunables)
 	kfree(tunables);
 }
 
+static void sugov_set_freq_margin(struct timer_list *t)
+{
+	struct sugov_policy *sg_policy;
+
+	sg_policy = container_of(t, struct sugov_policy, freq_margin_timer);
+
+	if (cpumask_test_cpu(sg_policy->policy->cpu, &min_cap_cpu_mask))
+		sg_policy->tunables->freq_margin = MIN_CAP_CPUMASK_FREQ_MARGIN;
+	else
+		sg_policy->tunables->freq_margin = OTHER_CPUMASK_FREQ_MARGIN;
+}
+
 static int sugov_init(struct cpufreq_policy *policy)
 {
 	struct sugov_policy *sg_policy;
@@ -783,6 +836,10 @@ static int sugov_init(struct cpufreq_policy *policy)
 	}
 
 	tunables->rate_limit_us = cpufreq_policy_transition_delay_us(policy);
+
+	timer_setup(&sg_policy->freq_margin_timer, sugov_set_freq_margin, 0);
+	sg_policy->freq_margin_timer.expires  = jiffies + HZ / 2;
+	add_timer(&sg_policy->freq_margin_timer);
 
 	policy->governor_data = sg_policy;
 	sg_policy->tunables = tunables;
@@ -872,6 +929,8 @@ static void sugov_stop(struct cpufreq_policy *policy)
 {
 	struct sugov_policy *sg_policy = policy->governor_data;
 	unsigned int cpu;
+
+	del_timer_sync(&sg_policy->freq_margin_timer);
 
 	for_each_cpu(cpu, policy->cpus)
 		cpufreq_remove_update_util_hook(cpu);
