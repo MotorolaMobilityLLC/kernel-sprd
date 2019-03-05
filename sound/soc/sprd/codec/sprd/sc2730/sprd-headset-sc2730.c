@@ -2396,21 +2396,14 @@ static int sprd_headset_switch_power(struct sprd_headset *hdst, bool on)
 	return regulator_enable(regu);
 }
 
-static int sprd_headset_typec_notifier(struct notifier_block *nb,
-				  unsigned long status, void *data)
+static void sprd_headset_typec_work(struct sprd_headset *hdst)
 {
-	struct sprd_headset *hdst = container_of(nb, struct sprd_headset,
-						 typec_plug_nb);
 	struct sprd_headset_platform_data *pdata = &hdst->pdata;
-	bool attached = false;
 	int ret;
 
-	if (!pdata->typec_lr_gpio) {
-		pr_warn("Analog typec headset is not supported!\n");
-		return NOTIFY_DONE;
-	}
-	if (status) {
-		attached = true;
+	pr_debug("typec_work typec_attached %d\n",
+		hdst->typec_attached);
+	if (hdst->typec_attached) {
 		/*
 		 * keep PLGPD disable all the time when support
 		 * typec analog headset
@@ -2418,14 +2411,29 @@ static int sprd_headset_typec_notifier(struct notifier_block *nb,
 		sprd_hmicbias_hw_control_enable(false, pdata);
 	}
 
-	ret = sprd_headset_switch_power(hdst, attached);
+	ret = sprd_headset_switch_power(hdst, hdst->typec_attached);
 	if (ret)
 		pr_err("Power typec swich supply failed(%d)!\n", ret);
 
-	hdst->typec_attached = attached;
 	__pm_wakeup_event(&hdst->hdst_detect_wakelock, msecs_to_jiffies(2000));
 	queue_delayed_work(hdst->det_all_work_q,
 		&hdst->det_all_work, 0);
+}
+
+static int sprd_headset_typec_notifier(struct notifier_block *nb,
+				       unsigned long status, void *data)
+{
+	struct sprd_headset *hdst = container_of(nb, struct sprd_headset,
+						 typec_plug_nb);
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+
+	pr_debug("typec_notifier status %ld\n", status);
+	if (!pdata->support_typec_hdst) {
+		pr_warn("Analog typec headset is not supported!\n");
+		return NOTIFY_DONE;
+	}
+	hdst->typec_attached = !!status;
+	sprd_headset_typec_work(hdst);
 
 	return NOTIFY_OK;
 }
@@ -2631,6 +2639,10 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 				"failed to register extcon HEADPHONE notifier, ret %d\n",
 				ret);
 			return ret;
+		}
+		if (extcon_get_state(hdst->edev, EXTCON_JACK_HEADPHONE)) {
+			hdst->typec_attached = true;
+			sprd_headset_typec_work(hdst);
 		}
 	}
 
