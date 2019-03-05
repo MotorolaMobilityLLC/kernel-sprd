@@ -26,6 +26,7 @@
 #include <linux/seq_file.h>
 #include <linux/sipc.h>
 #include <linux/gpio/consumer.h>
+#include <linux/reboot.h>
 #ifdef CONFIG_PCIE_PM_NOTIFY
 #include <linux/pcie_notifier.h>
 #endif
@@ -528,6 +529,20 @@ modem_ctrl_destroy_pdata(struct modem_ctrl_init_data **init)
 	pdata = NULL;
 }
 
+static int modem_ctrl_restart_handle(struct notifier_block *this,
+				     unsigned long mode, void *cmd)
+{
+	if (!mcd_dev || mcd_dev->soc_type == ROC1_SOC)
+		return NOTIFY_DONE;
+	modem_ctrl_notify_abnormal_status(MDM_PANIC);
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block modem_ctrl_restart_handler = {
+	.notifier_call = modem_ctrl_restart_handle,
+	.priority = 150,
+};
+
 static int modem_ctrl_probe(struct platform_device *pdev)
 {
 	struct modem_ctrl_init_data *init = pdev->dev.platform_data;
@@ -599,6 +614,12 @@ static int modem_ctrl_probe(struct platform_device *pdev)
 			goto error0;
 		}
 	}
+
+	rval = register_restart_handler(&modem_ctrl_restart_handler);
+	if (rval) {
+		dev_err(dev, "cannot register restart handler err=%d\n", rval);
+		goto error0;
+	}
 	return 0;
 error0:
 	device_destroy(modem_ctrl_class,
@@ -617,6 +638,7 @@ static int modem_ctrl_remove(struct platform_device *pdev)
 {
 	struct modem_ctrl_device *modem_ctrl_dev = platform_get_drvdata(pdev);
 
+	unregister_reboot_notifier(&modem_ctrl_restart_handler);
 	device_destroy(modem_ctrl_class,
 		       MKDEV(modem_ctrl_dev->major,
 			     modem_ctrl_dev->minor));
