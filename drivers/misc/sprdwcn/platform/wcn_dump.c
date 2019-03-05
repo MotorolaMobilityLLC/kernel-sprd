@@ -973,6 +973,40 @@ static int enable_cp_pll(void)
 	return ret;
 }
 
+static int check_bt_power_clk_ison(void)
+{
+	int ret;
+	unsigned int temp;
+
+	ret = sprdwcn_bus_reg_read(AHB_EB0, &temp, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read AHB_EB0 reg error:%d\n", __func__, ret);
+		return ret;
+	}
+	WCN_INFO("%s AHB_EB0 reg val:0x%x\n", __func__, temp);
+	if ((temp & BT_EN) != BT_EN) {
+		WCN_INFO("bt_en not enable\n");
+		temp = temp | BT_EN;
+		ret = sprdwcn_bus_reg_write(AHB_EB0, &temp, 4);
+	}
+
+	ret = sprdwcn_bus_reg_read(CLK_CTRL3, &temp, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read CLK_CTRL3 reg error:%d\n", __func__, ret);
+		return ret;
+	}
+	WCN_INFO("%s CLK_CTRL3(bit18,19 need 1)val:0x%x\n", __func__, temp);
+	if (((temp & CGM_BT_32M_EN) != CGM_BT_32M_EN) ||
+	    ((temp & CGM_BT_64M_EN) != CGM_BT_64M_EN)) {
+		WCN_INFO("bt clk not enable\n");
+		temp = temp | CGM_BT_32M_EN | CGM_BT_64M_EN;
+		ret = sprdwcn_bus_reg_write(CLK_CTRL3, &temp, 4);
+	}
+
+	return ret;
+}
+
+
 static int check_wifi_power_domain_ison(void)
 {
 	int ret = 0;
@@ -1042,21 +1076,21 @@ static int check_wifi_power_domain_ison(void)
 
 	}
 
-	ret = sprdwcn_bus_reg_read(WIFI_ENABLE, &temp, 4);
+	ret = sprdwcn_bus_reg_read(AHB_EB0, &temp, 4);
 	if (ret < 0) {
-		WCN_ERR("%s read WIFI_ENABLE reg error:%d\n", __func__, ret);
+		WCN_ERR("%s read AHB_EB0 reg error:%d\n", __func__, ret);
 		return ret;
 	}
-	WCN_INFO("%s WIFI_ENABLE reg val:0x%x\n", __func__, temp);
+	WCN_INFO("%s AHB_EB0 reg val:0x%x\n", __func__, temp);
 
 	if ((temp & WIFI_ALL_EN) == WIFI_ALL_EN)
 		return 0;
 
 	WCN_INFO("WIFI_en and wifi_mac_en is disable\n");
-	ret = sprdwcn_bus_reg_read(WIFI_ENABLE, &temp, 4);
+	ret = sprdwcn_bus_reg_read(AHB_EB0, &temp, 4);
 	temp = temp | WIFI_EN;
 	temp = temp | WIFI_MAC_EN;
-	ret = sprdwcn_bus_reg_write(WIFI_ENABLE, &temp, 4);
+	ret = sprdwcn_bus_reg_write(AHB_EB0, &temp, 4);
 
 	return 0;
 }
@@ -1222,6 +1256,12 @@ next:
 		count = mdbg_dump_data(DUMP_WIFI_ADDR, "start_dump_wifi_reg",
 			DUMP_WIFI_ADDR_SIZE, strlen("start_dump_wifi_reg"));
 		WCN_INFO("mdbg dump wifi %ld ok!\n", count);
+	}
+
+	ret = check_bt_power_clk_ison();
+	if (ret < 0) {
+		WCN_INFO("bt enable clk fail\n");
+		goto end;
 	}
 
 	if (DUMP_BT_CMD_ADDR != 0) {
