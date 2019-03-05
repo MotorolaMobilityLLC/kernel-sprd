@@ -2073,6 +2073,51 @@ err_freqvolt_free:
 	return ret;
 }
 
+static int sprd_get_chip_ver_id(struct cpudvfs_archdata *pdev)
+{
+	u32 chipid, verid;
+	int ret;
+
+	ret = regmap_read(pdev->aon_apb_reg_base, REG_CHIP_ID, &chipid);
+	if (ret) {
+		pr_err("Failed to get chipid\n");
+		return ret;
+	}
+
+	pdev->chipid = chipid;
+
+	ret = regmap_read(pdev->aon_apb_reg_base, REG_CHIP_VER_ID, &verid);
+	if (ret) {
+		pr_err("Failed to get chip version id\n");
+		return ret;
+	}
+
+	pdev->chip_ver_id = verid;
+
+	return 0;
+}
+
+static int sprd_fix_dcdc_cpu0(struct cpudvfs_archdata *pdev)
+{
+	/* Set dcdc-cpu0 to 1.1v when the system is idle
+	 * for ROC1 AA chip to workaround the cache issue.
+	 */
+	int ret;
+
+	if (pdev->chipid == SOC_ROC1 && pdev->chip_ver_id == CHIP_VER_AA) {
+		ret = regmap_update_bits(pdev->topdvfs_map,
+					 REG_DCDC_CPU0_VOL_GEAR0,
+					 DCDC_CPU0_VOL_MASK,
+					 DCDC_CPU0_VOL_GEAR0_VAL);
+		if (ret) {
+			pr_err("Failed to set voltage gear0 for dcdc-cpu0\n");
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
 /*
  * sprd_cpufreqhw_common_init - configure hardware dvfs,
  * not including enabling hardware dvfs function
@@ -2119,6 +2164,15 @@ static int sprd_cpudvfs_common_init(struct cpudvfs_archdata *pdev)
 		if (ret)
 			return ret;
 	}
+
+	ret = sprd_get_chip_ver_id(pdev);
+	if (ret)
+		return ret;
+
+	/* Need to set different voltage value for dcdc-cpu0,due to chipid */
+	ret = sprd_fix_dcdc_cpu0(pdev);
+	if (ret)
+		return ret;
 
 	ret = pdev->phy_ops->hw_dvfs_map_table_init(pdev);
 	if (ret) {
@@ -2372,12 +2426,26 @@ static int sprd_cpudvfs_recover_voltage(struct device *dev)
 #ifdef CONFIG_PM_SLEEP
 static int sprd_cpudvfs_suspend(struct device *dev)
 {
-	return sprd_cpudvfs_cache_workaround(dev);
+	struct sprd_cpudvfs_device *platdev = dev_get_drvdata(dev);
+	struct cpudvfs_archdata *pdev =
+		(struct cpudvfs_archdata *)platdev->archdata;
+
+	if (pdev->chipid == SOC_ROC1 && pdev->chip_ver_id == CHIP_VER_AA)
+		return sprd_cpudvfs_cache_workaround(dev);
+
+	return 0;
 }
 
 static int sprd_cpudvfs_resume(struct device *dev)
 {
-	return sprd_cpudvfs_recover_voltage(dev);
+	struct sprd_cpudvfs_device *platdev = dev_get_drvdata(dev);
+	struct cpudvfs_archdata *pdev =
+		(struct cpudvfs_archdata *)platdev->archdata;
+
+	if (pdev->chipid == SOC_ROC1 && pdev->chip_ver_id == CHIP_VER_AA)
+		return sprd_cpudvfs_recover_voltage(dev);
+
+	return 0;
 }
 #endif
 

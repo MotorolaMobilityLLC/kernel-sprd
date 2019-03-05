@@ -12,6 +12,16 @@
 #ifndef SPRD_HWDVFS_NORMAL_H
 #define SPRD_HWDVFS_NORMAL_H
 
+#define SOC_ROC1			0x526f6331
+#define CHIP_VER_AA			0x0
+
+#define REG_CHIP_ID			0xe4
+#define REG_CHIP_VER_ID			0xf8
+
+#define REG_DCDC_CPU0_VOL_GEAR0		0x260
+#define DCDC_CPU0_VOL_MASK		GENMASK(15, 0)
+#define DCDC_CPU0_VOL_GEAR0_VAL		0x50
+
 enum sprd_cpudvfs_type {
 	UNKNOWN_CPUFREQHW,
 	SPRD_CPUFREQHW_UMS510,
@@ -249,6 +259,8 @@ struct cpudvfs_archdata {
 	bool i2c_used[DVFS_CLUSTER_MAX];
 	bool probed;
 	bool enabled;
+	u32 chipid;
+	u32 chip_ver_id;
 };
 
 extern int cpudvfs_sysfs_create(struct cpudvfs_archdata *pdev);
