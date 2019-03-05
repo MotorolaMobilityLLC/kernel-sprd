@@ -2349,10 +2349,8 @@ static void cm_batt_works(struct work_struct *work)
 		 */
 		if (cm->desc->cap >= 99 &&
 		    cm->desc->trickle_time >= cm->desc->trickle_time_out &&
-		    cm->desc->trickle_time_out > 0) {
+		    cm->desc->trickle_time_out > 0)
 			cm->desc->force_set_full = true;
-			cm->desc->charger_status = POWER_SUPPLY_STATUS_FULL;
-		}
 
 		break;
 
@@ -2381,10 +2379,8 @@ static void cm_batt_works(struct work_struct *work)
 	case POWER_SUPPLY_STATUS_FULL:
 		cm->desc->update_capacity_time = cur_time.tv_sec;
 		if ((batt_ocV < (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 150000))
-		    && (bat_uA < 0)) {
-			cm->desc->charger_status = POWER_SUPPLY_STATUS_CHARGING;
+		    && (bat_uA < 0))
 			cm->desc->force_set_full = false;
-		}
 
 		if (fuel_cap != 100)
 			fuel_cap = 100;
