@@ -260,4 +260,9 @@
 		sprd,rx-blksize = <0x10000>; /* 64k*/
 		sprd,rx-blknum = <128>;
 	};
+
+	crypto {
+		compatible = "sprd,crypto_modem_verify";
+	};
+
 };

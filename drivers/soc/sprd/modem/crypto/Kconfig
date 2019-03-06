@@ -1,0 +1,12 @@
+
+config SPRD_CRYPTO
+	tristate "Spreadtrum Crypto Driver for verifying modem image"
+	default n
+	help
+	  spreadtrum crypto driver for verifying modem image.
+
+config SPRD_CRYPTO_TEST
+	tristate "The Testing option of Spreadtrum Crypto Driver for verifying modem image"
+	default n
+	help
+	  The Testing option of spreadtrum crypto driver for verifying modem image.
