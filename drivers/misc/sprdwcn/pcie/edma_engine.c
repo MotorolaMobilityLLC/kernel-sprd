@@ -633,6 +633,12 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 	WCN_INFO("%s(chn=%d, head=0x%p, tail=0x%p, num=%d)\n",
 		 __func__, chn, head, tail, num);
 
+	if (edma->chn_sw[chn].dscr_ring.tail == NULL) {
+		WCN_ERR("%s: dscr_ring.tail is NULL\n", __func__);
+		WARN_ON(1);
+		return -1;
+	}
+
 	spin_lock_irqsave(edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p,
 			edma->chn_sw[chn].dscr_ring.lock.flag);
 
