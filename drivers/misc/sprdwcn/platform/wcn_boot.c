@@ -1578,7 +1578,7 @@ static int chip_power_on(int subsys)
 	pmic_bound_xtl_assert(1);
 #ifndef CONFIG_WCN_PCIE
 	sdio_scan_card();
-	loopcheck_first_boot_set();
+	loopcheck_ready_set();
 	mem_pd_poweroff_deinit();
 	sdio_pub_int_poweron(true);
 #endif
@@ -1602,7 +1602,7 @@ static int chip_power_off(int subsys)
 	mem_pd_poweroff_deinit();
 	sprdwcn_bus_remove_card();
 #endif
-	loopcheck_first_boot_clear();
+	loopcheck_ready_clear();
 #ifndef CONFIG_WCN_PCIE
 	sdio_pub_int_poweron(false);
 #endif
@@ -1786,7 +1786,7 @@ static int marlin_set_power(int subsys, int val)
 			|| (((marlin_dev->power_state) & GNSS_MASK) != 0)) {
 			WCN_INFO("GNSS and marlin have ready\n");
 			if (((marlin_dev->power_state) & MARLIN_MASK) == 0)
-				loopcheck_first_boot_set();
+				loopcheck_ready_set();
 			set_wifipa_status(subsys, val);
 			set_bit(subsys, &marlin_dev->power_state);
 
@@ -2100,8 +2100,10 @@ int start_marlin(u32 subsys)
 	set_bit(subsys, &marlin_dev->power_state);
 	marlin_dev->download_finish_flag = 1;
 
-	if (marlin_dev->first_power_on_flag == 1)
+	if (marlin_dev->first_power_on_flag == 1) {
 		stop_marlin(MARLIN_GNSS);
+		loopcheck_ready_set();
+	}
 
 	marlin_dev->first_power_on_flag = 2;
 	power_state_notify_or_not(subsys, 1);
