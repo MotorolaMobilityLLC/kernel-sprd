@@ -420,6 +420,10 @@
 	};
 };
 
+&sdio0 {
+	cd-gpios = <&eic_async 19 GPIO_ACTIVE_HIGH>;
+};
+
 &spi0 {
 	/*used for fingerprint sensor*/
 	status = "okay";

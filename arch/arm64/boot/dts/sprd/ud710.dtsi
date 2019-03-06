@@ -1263,6 +1263,17 @@
 		<&g12_pll CLK_GPLL>;
 };
 
+&sdio0 {
+	syscons = <&aon_apb_regs REG_AON_APB_SDIO0_CTRL_REG MASK_AON_APB_SDIO0_EMMC_CARD_PRESENT_32K>,
+		  <&aon_apb_regs REG_AON_APB_SDIO0_CTRL_REG MASK_AON_APB_SDIO0_EMMC_CARD_PROTECT_32K>,
+		  <&aon_apb_regs REG_AON_APB_SDIO0_CTRL_REG MASK_AON_APB_SDIO0_EMMC_CARDDET_DBNC_EN_32K>,
+		  <&aon_apb_regs REG_AON_APB_SDIO0_CTRL_REG MASK_AON_APB_SDIO0_EMMC_CARDDET_DBNC_THD_32K>;
+	syscon-names =  "sd_detect_pol",
+			"sd_hotplug_protect_en",
+			"sd_hotplug_debounce_en",
+			"sd_hotplug_debounce_cn";
+};
+
 &uart0 {
 	clock-names = "enable", "uart", "source";
 	clocks = <&apapb_gate CLK_UART0_EB>,
