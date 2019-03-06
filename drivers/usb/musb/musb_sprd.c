@@ -411,7 +411,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 
 	if (event) {
 		spin_lock_irqsave(&glue->lock, flags);
-		if (glue->vbus_active == 1) {
+		if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_HOST) {
 			spin_unlock_irqrestore(&glue->lock, flags);
 			dev_info(glue->dev,
 				"ignore device connection detected from VBUS GPIO.\n");
@@ -426,7 +426,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 			"device connection detected from VBUS GPIO.\n");
 	} else {
 		spin_lock_irqsave(&glue->lock, flags);
-		if (glue->vbus_active == 0) {
+		if (glue->vbus_active == 0 || glue->dr_mode == USB_DR_MODE_HOST) {
 			spin_unlock_irqrestore(&glue->lock, flags);
 			dev_info(glue->dev,
 				"ignore device disconnect detected from VBUS GPIO.\n");
