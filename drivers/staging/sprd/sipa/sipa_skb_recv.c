@@ -307,7 +307,7 @@ void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 	u32 depth;
 	struct sipa_comm_fifo_params attr;
 
-	attr.tx_intr_delay_us = 0;
+	attr.tx_intr_delay_us = 4;
 	attr.tx_intr_threshold = 8;
 	attr.flowctrl_in_tx_full = false;
 	attr.flow_ctrl_cfg = flow_ctrl_rx_empty;
