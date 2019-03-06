@@ -29,6 +29,7 @@
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/of_device.h>
+#include <linux/interrupt.h>
 #include "sipa_eth.h"
 
 /* Device status */
@@ -153,6 +154,8 @@ static void sipa_eth_rx_handler (void *priv)
 		return;
 	}
 	napi_schedule(&sipa_eth->napi);
+	/* Trigger a NET_RX_SOFTIRQ softirq directly, or there will be a delay */
+	raise_softirq(NET_RX_SOFTIRQ);
 }
 
 static void sipa_eth_flowctrl_handler(void *priv, int flowctrl)
