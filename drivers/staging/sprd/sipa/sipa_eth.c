@@ -106,8 +106,15 @@ static int sipa_eth_rx(struct SIPA_ETH *sipa_eth, int budget)
 		ret = sipa_nic_rx(sipa_eth->nic_id, &skb);
 
 		if (ret) {
-			pr_err("fail to find dev, ret %d\n", ret);
-			dt_stats->rx_fail++;
+			switch (ret) {
+			case -ENODEV:
+				pr_err("fail to find dev");
+				dt_stats->rx_fail++;
+				break;
+			case -ENODATA:
+				pr_debug("no more skb to recv");
+				break;
+			}
 			break;
 		}
 
@@ -141,7 +148,15 @@ static int sipa_eth_rx_poll_handler(struct napi_struct *napi, int budget)
 
 	pkts = sipa_eth_rx(sipa_eth, budget);
 
-	napi_complete(napi);
+	/* If the number of pkt is more than weight(64),
+	 * we cannot read them all with a single poll.
+	 * When the return value of poll func equals to weight(64),
+	 * napi structure invokes the poll func one more time by
+	 * __raise_softirq_irqoff.(See napi_poll for details)
+	 * So do not do napi_complete in that case.
+	 */
+	if (pkts < budget)
+		napi_complete(napi);
 	return pkts;
 }
 
