@@ -301,26 +301,6 @@ int headset_register_notifier(struct notifier_block *nb);
 int headset_unregister_notifier(struct notifier_block *nb);
 int headset_get_plug_state(void);
 void sprd_headset_remove(void);
-#if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2723) || \
-	defined(CONFIG_SND_SOC_SPRD_CODEC_SC2731) || \
-	defined(CONFIG_SND_SOC_SPRD_CODEC_SC2721) || \
-	defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
-int sprd_headset_probe(struct platform_device *pdev);
-#if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2721) || \
-	defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
-int headset_fast_charge_finished(void);
-#else
-static inline int headset_fast_charge_finished(void)
-{
-	return 1;
-}
-#endif
-#else
-static inline int sprd_headset_probe(struct platform_device *pdev)
-{
-	return 0;
-}
-#endif
 
 #if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
 void headset_set_audio_state(bool enable);
