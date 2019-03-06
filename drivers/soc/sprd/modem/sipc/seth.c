@@ -123,12 +123,7 @@ struct seth {
 };
 
 /* we decide disable GRO, since it alawys conflit with others */
-static int gro_enable __read_mostly;
-
-/*
- * Set gro_enable module para, which enables us dynamicly switch gro on/off
- * Directory: /sys/module/seth/parameter/gro_enable
- */
+static u32 gro_enable;
 
 static struct dentry *root;
 static int seth_debugfs_mknod(void *root, void *data);
@@ -1021,11 +1016,34 @@ static int seth_debugfs_mknod(void *root, void *data)
 	return 0;
 }
 
+static int debugfs_gro_enable_get(void *data, u64 *val)
+{
+	*val = gro_enable;
+	return 0;
+}
+
+static int debugfs_gro_enable_set(void *data, u64 val)
+{
+	gro_enable = (u32)val;
+	return 0;
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(fops_gro_enable,
+			debugfs_gro_enable_get,
+			debugfs_gro_enable_set,
+			"%llu\n");
+
 static int __init seth_debugfs_init(void)
 {
 	root = debugfs_create_dir("seth", NULL);
 	if (!root)
 		return -ENODEV;
+
+	debugfs_create_file("gro_enable",
+			    0600,
+			    root,
+			    &gro_enable,
+			    &fops_gro_enable);
 
 	return 0;
 }
