@@ -1516,7 +1516,6 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			pr_info("software debance (step 1)!!!(headset_detect_work_func)\n");
 			headmicbias_power_on(hdst, 0);
 			pr_info("micbias power off for debance error\n");
-			headset_irq_detect_all_enable(1, hdst->irq_detect_all);
 			goto out;
 		}
 
@@ -1688,7 +1687,6 @@ out:
 		sprd_headset_vb_control(hdst, 1);
 		headset_button_irq_threshold(0);
 	}
-	headset_irq_detect_all_enable(1, hdst->irq_detect_all);
 	pr_info("%s out\n", __func__);
 	up(&hdst->sem);
 }
@@ -1894,6 +1892,7 @@ static irqreturn_t headset_detect_all_irq_handler(int irq, void *dev)
 		}
 	}
 #endif
+	headset_irq_detect_all_enable(1, hdst->irq_detect_all);
 	ret = cancel_delayed_work(&hdst->det_all_work);
 	queue_delayed_work(hdst->det_all_work_q,
 		&hdst->det_all_work, msecs_to_jiffies(5));
@@ -2183,6 +2182,8 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 	}
 	/* Disable button irq before headset detected. */
 	headset_irq_button_enable(0, hdst->irq_button);
+
+	irq_set_status_flags(hdst->irq_detect_all, IRQ_DISABLE_UNLAZY);
 
 	irqflags = pdata->irq_trigger_levels[HDST_GPIO_DET_ALL] ?
 		IRQF_TRIGGER_HIGH : IRQF_TRIGGER_LOW;
