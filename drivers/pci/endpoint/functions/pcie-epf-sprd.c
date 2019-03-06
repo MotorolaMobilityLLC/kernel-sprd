@@ -250,6 +250,42 @@ void __iomem *sprd_pci_epf_map_memory(int function,
 }
 EXPORT_SYMBOL_GPL(sprd_pci_epf_map_memory);
 
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+void __iomem *sprd_epf_ipa_map(phys_addr_t src_addr,
+			       phys_addr_t dst_addr, size_t size)
+{
+	int ret;
+	struct pci_epc *epc;
+	struct sprd_pci_epf *epf_sprd;
+	struct device *dev;
+	void __iomem *cpu_vir_addr;
+
+	epf_sprd = g_epf_sprd[SPRD_FUNCTION_0];
+	if (!epf_sprd || IS_ERR(epf_sprd->epf->epc))
+		return NULL;
+
+	dev = &epf_sprd->epf->dev;
+	epc = epf_sprd->epf->epc;
+	size = PAGE_ALIGN(size);
+	ret = pci_epc_map_addr(epc, src_addr, dst_addr, size);
+	if (ret) {
+		dev_err(dev, "failed to map ipa address!\n");
+		return NULL;
+	}
+
+	cpu_vir_addr = ioremap_nocache(src_addr, size);
+
+	return cpu_vir_addr;
+}
+EXPORT_SYMBOL_GPL(sprd_epf_ipa_map);
+
+void sprd_epf_ipa_unmap(void __iomem *cpu_vir_addr)
+{
+	iounmap(cpu_vir_addr);
+}
+EXPORT_SYMBOL_GPL(sprd_epf_ipa_unmap);
+#endif
+
 void sprd_pci_epf_unmap_memory(int function, const void __iomem *cpu_vir_addr)
 {
 	struct pci_epc *epc;
