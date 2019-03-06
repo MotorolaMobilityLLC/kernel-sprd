@@ -46,6 +46,7 @@ static int mdbg_write_smp_head(unsigned int len)
 {
 	struct smp_head *smp;
 	unsigned char *smp_buf, *tmp;
+	unsigned short *buf_tmp;
 	int smp_len;
 
 	smp_len = sizeof(struct smp_head) + sizeof(struct sme_head_tag);
@@ -60,7 +61,8 @@ static int mdbg_write_smp_head(unsigned int len)
 	smp->channel_num = SMP_DSP_CHANNEL_NUM;
 	smp->packet_type = SMP_DSP_TYPE;
 	smp->reserved = SMP_RESERVEDFLAG;
-	smp->check_sum = smp_calc_chsum(&smp->length, sizeof(struct smp_head)
+	buf_tmp = &smp->length;
+	smp->check_sum = smp_calc_chsum(buf_tmp, sizeof(struct smp_head)
 		- SYSNC_CODE_LEN - CHKSUM_LEN);
 
 	/*
