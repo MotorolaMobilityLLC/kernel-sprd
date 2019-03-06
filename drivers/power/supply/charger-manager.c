@@ -2426,6 +2426,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
 	struct power_supply_config psy_cfg = {};
+	struct timespec64 cur_time;
 
 	if (IS_ERR(desc)) {
 		dev_err(&pdev->dev, "No platform data (desc) found\n");
@@ -2568,6 +2569,10 @@ static int charger_manager_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Failed to get initial battery capacity\n");
 		return ret;
 	}
+
+	cur_time = ktime_to_timespec64(ktime_get_boottime());
+	cm->desc->update_capacity_time = cur_time.tv_sec;
+	cm->desc->last_query_time = cur_time.tv_sec;
 
 	ret = cm_init_thermal_data(cm, fuel_gauge);
 	if (ret) {
