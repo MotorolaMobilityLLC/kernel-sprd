@@ -90,7 +90,7 @@ static int sprd_ssphy_init(struct usb_phy *x)
 		return 0;
 	}
 
-	if (phy->vdd && !regulator_is_enabled(phy->vdd)) {
+	if (phy->vdd) {
 		ret = regulator_enable(phy->vdd);
 		if (ret < 0)
 			return ret;
@@ -200,7 +200,7 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	regmap_write(phy->ana_g4,
 			REG_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_ISO_SW, reg);
 
-	if (phy->vdd && regulator_is_enabled(phy->vdd))
+	if (phy->vdd)
 		regulator_disable(phy->vdd);
 	atomic_set(&phy->inited, 0);
 }

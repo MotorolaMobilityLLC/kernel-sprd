@@ -161,11 +161,9 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	/* Turn On VDD */
 	if (phy->vdd) {
 		regulator_set_voltage(phy->vdd, phy->vdd_vol, phy->vdd_vol);
-		if (!regulator_is_enabled(phy->vdd)) {
-			ret = regulator_enable(phy->vdd);
-			if (ret)
-				return ret;
-		}
+		ret = regulator_enable(phy->vdd);
+		if (ret)
+			return ret;
 	}
 	/* enable otg utmi and analog */
 	reg = msk = MASK_AON_APB_OTG_UTMI_EB;
@@ -263,7 +261,7 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 	reg = msk = MASK_AON_APB_CGM_OTG_REF_EN | MASK_AON_APB_CGM_DPHY_REF_EN;
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
 
-	if (phy->vdd && regulator_is_enabled(phy->vdd))
+	if (phy->vdd)
 		regulator_disable(phy->vdd);
 
 	atomic_set(&phy->inited, 0);

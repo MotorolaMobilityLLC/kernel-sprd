@@ -206,7 +206,7 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	 * Due to chip design, some chips may turn on vddusb by default,
 	 * We MUST avoid turning it on twice.
 	 */
-	if (phy->vdd && !regulator_is_enabled(phy->vdd)) {
+	if (phy->vdd) {
 		ret = regulator_enable(phy->vdd);
 		if (ret < 0)
 			return ret;
@@ -315,7 +315,7 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	 * Due to chip design, some chips may turn on vddusb by default,
 	 * We MUST avoid turning it off twice.
 	 */
-	if (phy->vdd && regulator_is_enabled(phy->vdd))
+	if (phy->vdd)
 		regulator_disable(phy->vdd);
 
 	atomic_set(&phy->inited, 0);
