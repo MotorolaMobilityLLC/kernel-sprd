@@ -188,6 +188,11 @@ static void free_sent_items(struct sipa_skb_sender *sender)
 		list_for_each_entry_safe(iter, _iter, &sender->sending_list,
 								 list) {
 			if (iter->dma_addr == item.addr) {
+				dma_unmap_single(sender->ctx->pdev,
+						 item.addr,
+						 iter->skb->len +
+						 skb_headroom(iter->skb),
+						 DMA_TO_DEVICE);
 				dev_kfree_skb_any(iter->skb);
 				list_del(&iter->list);
 				kmem_cache_free(sender->sending_pair_cache,
