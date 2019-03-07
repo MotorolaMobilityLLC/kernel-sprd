@@ -90,9 +90,9 @@ struct pam_ipa_cfg_tag {
 	struct pam_ipa_hal_proc_tag hal_ops;
 };
 
-extern u32 pam_ipa_init_api(struct pam_ipa_hal_proc_tag *ops);
-extern u32 pam_ipa_init(struct pam_ipa_cfg_tag *cfg);
-extern int pam_ipa_set_enabled(struct pam_ipa_cfg_tag *cfg);
-extern int pam_ipa_on_miniap_ready(struct sipa_to_pam_info *remote_cfg);
+u32 pam_ipa_init_api(struct pam_ipa_hal_proc_tag *ops);
+u32 pam_ipa_init(struct pam_ipa_cfg_tag *cfg);
+int pam_ipa_set_enabled(struct pam_ipa_cfg_tag *cfg);
+int pam_ipa_on_miniap_ready(struct sipa_to_pam_info *remote_cfg);
 
 #endif

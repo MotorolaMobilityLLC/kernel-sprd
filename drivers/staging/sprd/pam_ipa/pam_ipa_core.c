@@ -41,8 +41,8 @@ static int pam_ipa_alloc_buf(struct pam_ipa_cfg_tag *cfg)
 				      PAM_AKB_BUF_SIZE);
 	if (!cfg->ul_dma_addr) {
 		smem_free(SIPC_ID_MINIAP, cfg->dl_dma_addr,
-			cfg->local_cfg.dl_fifo.fifo_depth *
-			PAM_AKB_BUF_SIZE);
+			  cfg->local_cfg.dl_fifo.fifo_depth *
+			  PAM_AKB_BUF_SIZE);
 		return -ENOMEM;
 	}
 
