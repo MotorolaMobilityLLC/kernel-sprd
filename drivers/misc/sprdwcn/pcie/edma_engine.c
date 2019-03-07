@@ -20,6 +20,7 @@
 
 #define TX 1
 #define RX 0
+#define MPOOL_SIZE	0x10000
 
 static int hisrfunc_debug;
 static int hisrfunc_line;
@@ -58,7 +59,7 @@ void *mpool_malloc(int len)
 	struct edma_info *edma = edma_info();
 
 	if (mpool_buffer == NULL) {
-		ret = dmalloc(edma->pcie_info, &mpool_dm, 0x8000);
+		ret = dmalloc(edma->pcie_info, &mpool_dm, MPOOL_SIZE);
 		if (ret != 0)
 			return NULL;
 		mpool_buffer = (unsigned char *)(mpool_dm.vir);

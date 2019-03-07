@@ -141,7 +141,7 @@ int dmalloc(struct wcn_pcie_info *priv, struct dma_buf *dm, int size)
 	}
 	dm->size = size;
 	memset((unsigned char *)(dm->vir), 0x56, size);
-	WCN_INFO("dma_alloc_coherent(%d) 0x%lx 0x%lx\n",
+	WCN_INFO("dma_alloc_coherent(0x%x) vir=0x%lx, phy=0x%lx\n",
 		 size, dm->vir, dm->phy);
 
 	return 0;
