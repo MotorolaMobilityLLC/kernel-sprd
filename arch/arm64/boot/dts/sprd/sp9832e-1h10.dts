@@ -31,7 +31,7 @@
 	chosen {
 /*		stdout-path = "serial1:115200n8";*/
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.selinux=permissive androidboot.dtbo_idx=0";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.selinux=permissive androidboot.dtbo_idx=0 printk.devkmsg=on";
 	};
 
 	reserved-memory {
