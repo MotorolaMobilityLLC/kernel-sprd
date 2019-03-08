@@ -838,7 +838,7 @@ static void dpu_layer(struct dpu_context *ctx,
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct layer_reg *layer;
-	u32 addr, size, offset, wd;
+	u32 size, offset, wd;
 	int i;
 
 	layer = &reg->layers[hwlayer->index];
@@ -850,16 +850,10 @@ static void dpu_layer(struct dpu_context *ctx,
 		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
 
 	for (i = 0; i < hwlayer->planes; i++) {
-		addr = hwlayer->addr[i];
-
-		/* dpu r2p0 just support xfbc-rgb */
-		if (hwlayer->xfbc)
-			addr += hwlayer->header_size_r;
-
-		if (addr % 16)
+		if (hwlayer->addr[i] % 16)
 			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
-				i, addr);
-		layer->addr[i] = addr;
+				i, hwlayer->addr[i]);
+		layer->addr[i] = hwlayer->addr[i];
 	}
 
 	layer->pos = offset;
