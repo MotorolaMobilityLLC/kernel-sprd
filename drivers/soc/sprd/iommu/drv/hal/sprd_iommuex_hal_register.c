@@ -38,13 +38,15 @@ void mmu_ex_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 		reg_write_dword(reg_addr, 0);
 		reg_addr += 0xC;
 		reg_value = reg_read_dword(reg_addr);
-		reg_write_dword(reg_addr, reg_addr | 0x1);
-	} else if (iommu_id == IOMMU_EX_VSP || iommu_id == IOMMU_EX_JPG) {
+		reg_write_dword(reg_addr, reg_value | 0x1);
+	} else if (iommu_id == IOMMU_EX_DCAM || iommu_id == IOMMU_EX_NEWISP ||
+		   iommu_id == IOMMU_EX_VSP || iommu_id == IOMMU_EX_JPG ||
+		   iommu_id == IOMMU_EX_CPP) {
 		reg_value = reg_read_dword(reg_addr);
-		reg_write_dword(reg_addr, reg_addr | 0x3);
+		reg_write_dword(reg_addr, reg_value | 0x3);
 	} else {
 		reg_value = reg_read_dword(reg_addr);
-		reg_write_dword(reg_addr, reg_addr | 0x13);
+		reg_write_dword(reg_addr, reg_value | 0x13);
 	}
 
 }
@@ -58,25 +60,23 @@ void mmu_ex_clock_gate_enable(ulong ctrl_base_addr, u32 cg_enable)
 }
 
 void mmu_ex_vaout_bypass_enable(ulong ctrl_base_addr, u32 iommu_id,
-		u32 iommu_type, u32 r_enable, u32 w_enable)
+		u32 iommu_type, bool vaor_bp_en)
 {
 	ulong reg_addr = ctrl_base_addr;
-
+	u32 reg_value;
 	if (iommu_id == IOMMU_EX_ISP) {
 		/*just isp need write and read*/
+		reg_value = vaor_bp_en ? 0xffffffff : 0x0;
 		reg_addr += 0x10;
-		if (w_enable)
-			reg_write_dword(reg_addr, 0xffffffff);
-		else
-			reg_write_dword(reg_addr, 0);
-
+		reg_write_dword(reg_addr, reg_value);
 		reg_addr += 0x4;
-		reg_write_dword(reg_addr, 0);
-	} else if (iommu_id == IOMMU_EX_DCAM  || iommu_id == IOMMU_EX_VSP ||
-		iommu_id == IOMMU_EX_JPG || iommu_id == IOMMU_EX_CPP)
-		putbit(reg_addr, w_enable, 4);
-	else
-		putbit(reg_addr, r_enable, 4);
+		reg_write_dword(reg_addr, reg_value);
+	} else {
+		if (vaor_bp_en)
+			putbit(reg_addr, 1, 4);
+		else
+			putbit(reg_addr, 0, 4);
+	}
 }
 
 /*just isp_iommu need,be similar to update*/

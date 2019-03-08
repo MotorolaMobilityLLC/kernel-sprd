@@ -60,6 +60,7 @@ u32 sprd_iommuex_cll_suspend(sprd_iommu_hdl p_iommu_hdl);
 u32 sprd_iommuex_cll_resume(sprd_iommu_hdl  p_iommu_hdl);
 u32 sprd_iommuex_cll_release(sprd_iommu_hdl  p_iommu_hdl);
 u32 sprd_iommuex_cll_reset(sprd_iommu_hdl  p_iommu_hdl, u32 channel_num);
+u32 sprd_iommuex_cll_set_bypass(sprd_iommu_hdl  p_iommu_hdl, bool vaor_bp_en);
 u32 sprd_iommuex_cll_virt_to_phy(sprd_iommu_hdl p_iommu_hdl,
 			u64 virt_addr, u64 *dest_addr);
 u32 sprd_iommuex_reg_authority(sprd_iommu_hdl  p_iommu_hdl, u8 authority);

@@ -143,6 +143,7 @@ int sprd_iommu_unmap_orphaned(struct sprd_iommu_unmap_data *data);
 int sprd_iommu_suspend(struct device *dev);
 int sprd_iommu_resume(struct device *dev);
 int sprd_iommu_restore(struct device *dev);
+int sprd_iommu_set_cam_bypass(bool vaor_bp_en);
 #else
 static inline int sprd_iommu_attach_device(struct device *dev)
 {
@@ -196,6 +197,7 @@ struct sprd_iommu_ops {
 	int (*iova_unmap)(struct sprd_iommu_dev *dev, unsigned long iova, size_t iova_length);
 	int (*backup)(struct sprd_iommu_dev *dev);
 	int (*restore)(struct sprd_iommu_dev *dev);
+	int (*set_bypass)(struct sprd_iommu_dev *dev, bool vaor_bp_en);
 	void (*enable)(struct sprd_iommu_dev *dev);
 	void (*disable)(struct sprd_iommu_dev *dev);
 	int (*dump)(struct sprd_iommu_dev *dev, void *data);
