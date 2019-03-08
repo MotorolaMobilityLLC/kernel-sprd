@@ -239,6 +239,62 @@ static u32 pam_ipa_hal_resume(
 	return ret;
 }
 
+static void pam_ipa_init_speed(void __iomem *reg_base)
+{
+	u32 tmp;
+
+	tmp = __raw_readl(reg_base + PAM_IPA_BUFFER_TIMEOUT_VAL);
+	tmp &=  ~(PAM_IPA_BUFFER_TIMEOUT_MASK);
+	tmp |= PAM_IPA_BUFFER_TIMEOUT;
+	__raw_writel(tmp, reg_base + PAM_IPA_BUFFER_TIMEOUT_VAL);
+
+	tmp = __raw_readl(reg_base + PAM_IPA_CFG_UL_FILLED_BUFFER_CTRL);
+	tmp &= ~(CFG_UL_CP_FILLED_BUFFER_WATERMARK_MASK
+		| CFG_UL_AP_FILLED_BUFFER_MATERMARK_MASK
+		| CFG_UL_FILLED_BUFFER_CLR_MASK);
+	tmp |= CFG_UL_CP_FILLED_BUFFER_WATERMARK
+		| CFG_UL_AP_FILLED_BUFFER_MATERMARK
+		| CFG_UL_FILLED_BUFFER_CLR;
+	__raw_writel(tmp, reg_base + PAM_IPA_CFG_UL_FILLED_BUFFER_CTRL);
+
+	tmp = __raw_readl(reg_base + PAM_IPA_CFG_UL_FREE_BUFFER_CTRL);
+	tmp &= ~(CFG_UL_CP_FREE_BUFFER_WATERMARK_MASK
+		| CFG_UL_AP_FREE_BUFFER_MATERMARK_MASK
+		| CFG_UL_FREE_BUFFER_CLR_MASK);
+	tmp |= CFG_UL_CP_FREE_BUFFER_WATERMARK
+		| CFG_UL_AP_FREE_BUFFER_MATERMARK
+		| CFG_UL_FREE_BUFFER_CLR;
+	__raw_writel(tmp, reg_base + PAM_IPA_CFG_UL_FREE_BUFFER_CTRL);
+
+	tmp = __raw_readl(reg_base + PAM_IPA_CFG_DL_DST_FILLED_BUFFER_CTRL);
+	tmp &= ~(CFG_DL_DST_FILLED_BUFFER_MATERMARK_MASK
+		| CFG_DL_DST_FILLED_BUFFER_CLR_MASK);
+	tmp |= CFG_DL_DST_FILLED_BUFFER_MATERMARK
+		| CFG_DL_DST_FILLED_BUFFER_CLR;
+	__raw_writel(tmp, reg_base + PAM_IPA_CFG_DL_DST_FILLED_BUFFER_CTRL);
+
+	tmp = __raw_readl(reg_base + PAM_IPA_CFG_DL_DST_FREE_BUFFER_CTRL);
+	tmp &= ~(CFG_DL_DST_FREE_BUFFER_MATERMARK_MASK
+		| CFG_DL_DST_FREE_BUFFER_CLR_MASK);
+	tmp |= CFG_DL_DST_FREE_BUFFER_MATERMARK
+		| CFG_DL_DST_FREE_BUFFER_CLR;
+	__raw_writel(tmp, reg_base + PAM_IPA_CFG_DL_DST_FREE_BUFFER_CTRL);
+
+	tmp = __raw_readl(reg_base + PAM_IPA_CFG_DL_SRC_FILLED_BUFFER_CTRL);
+	tmp &= ~(CFG_DL_SRC_FILLED_BUFFER_MATERMARK_MASK
+		| CFG_DL_SRC_FILLED_BUFFER_CLR_MASK);
+	tmp |= CFG_DL_SRC_FILLED_BUFFER_MATERMARK
+		| CFG_DL_SRC_FILLED_BUFFER_CLR;
+	__raw_writel(tmp, reg_base + PAM_IPA_CFG_DL_SRC_FILLED_BUFFER_CTRL);
+
+	tmp = __raw_readl(reg_base + PAM_IPA_CFG_DL_SRC_FREE_BUFFER_CTRL);
+	tmp &= ~(CFG_DL_SRC_FREE_BUFFER_MATERMARK_MASK
+		| CFG_DL_SRC_FREE_BUFFER_CLR_MASK);
+	tmp |= CFG_DL_SRC_FREE_BUFFER_MATERMARK
+		| CFG_DL_SRC_FREE_BUFFER_CLR;
+	__raw_writel(tmp, reg_base + PAM_IPA_CFG_DL_SRC_FREE_BUFFER_CTRL);
+}
+
 u32 pam_ipa_init_api(
 	struct pam_ipa_hal_proc_tag *ops)
 {
@@ -367,6 +423,7 @@ u32 pam_ipa_init(struct pam_ipa_cfg_tag *cfg)
 	pam_ipa_hal_replace_pair3_id(cfg->reg_base, SIPA_TERM_PCIE2);
 	pam_ipa_hal_replace_pair4_id(cfg->reg_base, SIPA_TERM_PCIE0);
 
+	pam_ipa_init_speed(cfg->reg_base);
 	ret = pam_ipa_hal_start(cfg->reg_base);
 
 	if (ret)
