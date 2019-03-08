@@ -922,8 +922,13 @@ static int marlin_analog_power_enable(bool enable)
 		msleep(20);
 		WCN_INFO("%s 1v2 %d\n", __func__, enable);
 		if (enable) {
+#ifdef CONFIG_WCN_PCIE
 			regulator_set_voltage(marlin_dev->avdd12,
-			1200000, 1200000);
+					      1350000, 1350000);
+#else
+			regulator_set_voltage(marlin_dev->avdd12,
+					      1200000, 1200000);
+#endif
 			if (!marlin_dev->bound_avdd12)
 				ret = regulator_enable(marlin_dev->avdd12);
 		} else {
