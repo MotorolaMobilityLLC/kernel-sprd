@@ -87,14 +87,14 @@
 		sprd,smem-info = <0x8400 0x60008400 0x2000>;
 	};
 
-	/* PSP: 4MB */
+	/* PSP: 3MB */
 	sipc_lte: sipc@1 {
 		compatible = "sprd,sipc";
 		sprd,name = "sipc-lte";
 		sprd,type = "mbox";
 		sprd,dst = <5>;
 		sprd,core = <2>;
-		sprd,smem-info = <0x87800000 0x87800000 0x400000>;
+		sprd,smem-info = <0x87800000 0x87800000 0x300000>;
 	};
 
 	/* New Radio PHY: 2MB */
@@ -104,17 +104,17 @@
 		sprd,type = "mbox";
 		sprd,dst = <7>;
 		sprd,core = <6>;
-		sprd,smem-info = <0x87c00000 0x87c00000 0x200000>;
+		sprd,smem-info = <0x87b00000 0x87b00000 0x280000>;
 	};
 
-	/* MODEM v3 PHY: 2MB */
+	/* MODEM v3 PHY: 2.5MB */
 	sipc_v3phy: sipc@3 {
 		compatible = "sprd,sipc";
 		sprd,name = "sipc-v3-phy";
 		sprd,type = "mbox";
 		sprd,dst = <8>;
 		sprd,core = <4>;
-		sprd,smem-info = <0x87e00000 0x87e00000 0x200000>;
+		sprd,smem-info = <0x87d80000 0x87d80000 0x280000>;
 	};
 
 	/* Roc1: 48MB */
@@ -214,7 +214,7 @@
 		sprd,size-txbuf = <0x0800>; /* 2*1024 */
 	};
 
-	/* PSP log: 2KB x 60 = 120KB */
+	/* PSP log: 2KB x 1200 = 2.4M */
 	slog_lte: spool@0 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_lte";
@@ -224,10 +224,10 @@
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
 		sprd,rx-blksize = <0x800>;
-		sprd,rx-blknum = <60>;
+		sprd,rx-blknum = <1200>;
 	};
 
-	/* New Radio PHY log: 2KB x 100 = 200KB */
+	/* New Radio PHY log: 2KB x 1200 = 2.4M */
 	slog_nrphy: spool@1 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr_phy";
@@ -237,10 +237,10 @@
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
 		sprd,rx-blksize = <0x800>;
-		sprd,rx-blknum = <100>;
+		sprd,rx-blknum = <1200>;
 	};
 
-	/* MODEM v3 PHY log: 2KB x 200 = 400KB */
+	/* MODEM v3 PHY log: 2KB x 1200 = 2.4M */
 	slog_v3phy: spool@2 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_v3_phy";
@@ -250,7 +250,7 @@
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
 		sprd,rx-blksize = <0x800>;
-		sprd,rx-blknum = <200>;
+		sprd,rx-blknum = <1200>;
 	};
 
 	slog_nr: spool@3{
