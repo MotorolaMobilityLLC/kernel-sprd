@@ -714,7 +714,7 @@ static irqreturn_t sprd_pci_ep_dev_irqhandler(int irq, void *dev_ptr)
 static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 				 const struct pci_device_id *ent)
 {
-	int i, err;
+	int i, err, irq_cnt;
 	u32 val;
 	enum dev_pci_barno bar;
 	struct device *dev = &pdev->dev;
@@ -754,20 +754,21 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 	pci_set_master(pdev);
 
 #ifdef PCI_IRQ_MSI
-	ep_dev->irq_cnt = pci_alloc_irq_vectors(pdev,
+	irq_cnt = pci_alloc_irq_vectors(pdev,
 				    1,
 				    MAX_SUPPORT_IRQ,
 				    PCI_IRQ_MSI);
 #else
-	ep_dev->irq_cnt = pci_enable_msi_range(pdev, 1, MAX_SUPPORT_IRQ);
+	irq_cnt = pci_enable_msi_range(pdev, 1, MAX_SUPPORT_IRQ);
 #endif
 
-	if (ep_dev->irq_cnt < 0) {
-		dev_err(dev, "ep: failed to get MSI interrupts\n");
-		err = ep_dev->irq_cnt;
+	if (irq_cnt < REQUEST_MAX_IRQ) {
+		err = irq_cnt < 0 ? irq_cnt : -EINVAL;
+		dev_err(dev, "ep: failed to get MSI interrupts, err=%d\n", err);
 		goto err_disable_msi;
 	}
 
+	ep_dev->irq_cnt = irq_cnt;
 	dev_info(dev, "ep: request IRQ = %d, cnt =%d\n",
 		 pdev->irq,
 		 ep_dev->irq_cnt);
