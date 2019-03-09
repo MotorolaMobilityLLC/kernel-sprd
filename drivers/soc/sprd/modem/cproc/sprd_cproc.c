@@ -926,22 +926,32 @@ static void sprd_cproc_regmap_update_bit(struct cproc_ctrl *ctrl,
 					 u32 mask,
 					 u32 val)
 {
-	u32 reg;
-	u32 val_read = 0;
+	u32 reg, orig, tmp;
 
 	reg = ctrl->ctrl_reg[index];
+
+	/* The bit 31 of one register is 1 means that it doesn't support
+	 * bit operation, so we can't use the api regmap_update_bits to update it.
+	 * and before use the register, must clear this bit.
+	 */
+	if (reg & BIT(31)) {
+		reg &= ~BIT(31);
+		if (regmap_read(ctrl->rmap[index], reg, &orig))
+			return;
+
+		tmp = orig & ~mask;
+		tmp |= val & mask;
+
+		if (tmp != orig)
+			regmap_write(ctrl->rmap[index], reg, tmp);
+
+		return;
+	}
 
 	(void)regmap_update_bits(ctrl->rmap[index],
 			reg,
 			mask,
 			val);
-
-	regmap_read(ctrl->rmap[index], reg, &val_read);
-	pr_debug("%s: val_read = 0x%x, mask =0x%x\n",
-		 __func__, val_read, mask);
-
-	if ((val_read & mask) != (val & mask))
-		regmap_write(ctrl->rmap[index], reg, val & ~mask);
 }
 
 static void sprd_cproc_regmap_read(struct cproc_ctrl *ctrl,
