@@ -52,7 +52,7 @@
 			sprd,decoup = "cproc-use-decoup";
 			syscons = <&pmu_apb_regs 0x54 0x2000000>,
 			<&pmu_apb_regs 0x544 0x4>,
-			<&aon_apb_regs 0x220 0x07>,
+			<&aon_apb_regs 0x80000220 0x07>,
 			<&pmu_apb_regs 0xb0 0x1>,
 			<&pmu_apb_regs 0xff 0x100>,
 			<&pmu_apb_regs 0xff 0x100>,
