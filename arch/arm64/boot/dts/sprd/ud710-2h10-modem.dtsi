@@ -97,6 +97,24 @@
 		sprd,size-txbuf = <0x0800>; /* 2*1024 */
 	};
 
+	spipe@4 {
+		sprd,name = "slog_pm";
+		sprd,dst = <6>;
+		sprd,channel = <5>;
+		sprd,ringnr = <1>;
+		sprd,size-rxbuf = <0x600>;
+		sprd,size-txbuf = <0x20>;
+	};
+
+	spipe@5 {
+		sprd,name = "sctl_pm";
+		sprd,dst = <6>;
+		sprd,channel = <6>;
+		sprd,ringnr = <1>;
+		sprd,size-rxbuf = <0x10>;
+		sprd,size-txbuf = <0x20>;
+	};
+
 	slog_nr: spool@0{
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr";
