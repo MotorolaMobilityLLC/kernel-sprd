@@ -337,7 +337,8 @@ u32 smem_alloc(u8 dst, u32 size)
 
 	addr = gen_pool_alloc(spool->gen, size);
 	if (!addr) {
-		pr_err("%s:pool dst %d failed to alloc smem!\n", __func__, dst);
+		pr_err("%s:pool dst=%d, size=0x%x failed to alloc smem!\n",
+		       __func__, dst, size);
 		kfree(recd);
 		return 0;
 	}
