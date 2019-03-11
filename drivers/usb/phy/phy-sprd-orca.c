@@ -194,11 +194,11 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 		REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_UTMI_CTL1, reg);
 
 	regmap_read(phy->ana_g4,
-			REG_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_ISO_SW, &reg);
-	msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_ISO_SW_EN;
+			REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_ISO_SW, &reg);
+	msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_ISO_SW_EN;
 	reg |= msk;
 	regmap_write(phy->ana_g4,
-			REG_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_ISO_SW, reg);
+			REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_ISO_SW, reg);
 
 	if (phy->vdd)
 		regulator_disable(phy->vdd);
