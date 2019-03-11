@@ -15,6 +15,7 @@
 #include "../../sprd_debugfs.h"
 
 #define DEFAULT_SAMPLE_TIMEVALE 1000
+#define DEFAULT_THRESHOLD_IRQ   3000
 #define MAX_TIMEVALE 4294967296
 #define BRUST_ARRAY_SIZE 10
 
@@ -31,7 +32,8 @@ struct irq_monitor_s {
 
 static struct hrtimer irq_monitor_timer;
 static int  monitor_enable = 1;
-static unsigned int  time_interval = 1000;
+static unsigned int  time_interval = DEFAULT_SAMPLE_TIMEVALE;
+static unsigned int  threshold_irq = DEFAULT_THRESHOLD_IRQ;
 static spinlock_t irq_monitor_lock;
 static struct irq_monitor_s *irq_monitor;
 static int save_nr_irqs;
@@ -74,7 +76,8 @@ static enum hrtimer_restart scan_burst_irq(struct hrtimer *hr)
 			irq_occur_value =
 			(int)(tmp_kstat_irq-irq_monitor[i].prev_kstat_irq);
 			if (irq_occur_value != 0) {
-				pr_cont("Irq_monitor:Irq %45s[%d]occur %11d times per %d ms ",
+				if (irq_occur_value > threshold_irq)
+					pr_warning("Irq_monitor:Irq %45s[%d]occur %11d times per %d ms\n",
 					action->name, i,
 					irq_occur_value,
 					time_interval);
@@ -86,10 +89,7 @@ static enum hrtimer_restart scan_burst_irq(struct hrtimer *hr)
 					irq_monitor[i].history_brust_value[index] =
 					irq_occur_value;
 					irq_monitor[i].brust_times++;
-					pr_cont("exceed upper limit %d\n",
-						irq_monitor[i].brust_value);
-				} else
-					pr_cont("\n");
+				}
 
 				irq_monitor[i].prev_kstat_irq = tmp_kstat_irq;
 			}
@@ -354,6 +354,9 @@ static ssize_t time_interval_write(struct file *filep,
 				memset(irq_monitor[i].history_brust_value, 0, BRUST_ARRAY_SIZE * sizeof(int));
 			}
 		}
+		mid_value = interval*DEFAULT_THRESHOLD_IRQ;
+		res = do_div(mid_value, DEFAULT_SAMPLE_TIMEVALE);
+		threshold_irq = (unsigned int)mid_value;
 		spin_unlock(&irq_monitor_lock);
 		hrtimer_init(&irq_monitor_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 		irq_monitor_timer.function = scan_burst_irq;
@@ -369,6 +372,45 @@ const struct file_operations time_interval_fops = {
 	.open    = time_interval_open,
 	.read    = seq_read,
 	.write   = time_interval_write,
+	.llseek  = seq_lseek,
+	.release = single_release,
+};
+
+static int threshold_irq_show(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%d\n", threshold_irq);
+	return 0;
+}
+
+static int threshold_irq_open(struct inode *inodep,
+				struct file *filep)
+{
+	single_open(filep, threshold_irq_show, NULL);
+	return 0;
+}
+
+static ssize_t threshold_irq_write(struct file *filep,
+					const char __user *ubuf,
+					size_t cnt,
+					loff_t *ppos)
+{
+	int err;
+	unsigned int threshold;
+
+	err = kstrtouint_from_user(ubuf, cnt, 0, &threshold);
+	if (err)
+		return -EINVAL;
+
+	threshold_irq = threshold;
+
+	return cnt;
+}
+
+
+const struct file_operations threshold_irq_fops = {
+	.open    = threshold_irq_open,
+	.read    = seq_read,
+	.write   = threshold_irq_write,
 	.llseek  = seq_lseek,
 	.release = single_release,
 };
@@ -467,6 +509,8 @@ static int __init irq_monitor_init(void)
 				    irq_burst_monitor, NULL, &time_interval_fops);
 		debugfs_create_file("monitor_enable", (S_IRUGO | S_IWUSR | S_IWGRP),
 				    irq_burst_monitor, NULL, &monitor_enable_fops);
+		debugfs_create_file("threshold_irq", (S_IRUGO | S_IWUSR | S_IWGRP),
+				    irq_burst_monitor, NULL, &threshold_irq_fops);
 	}
 
 	hrtimer_init(&irq_monitor_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
