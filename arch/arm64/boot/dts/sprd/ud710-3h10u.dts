@@ -108,7 +108,7 @@
 		factory-internal-resistance-micro-ohms = <147000>;
 		voltage-min-design-microvolt = <3450000>;
 		ocv-capacity-celsius = <20>;
-		ocv-capacity-table-0 = <4360000 100>, <4317000 95>, <4258000 90>,
+		ocv-capacity-table-0 = <4380000 100>, <4317000 95>, <4258000 90>,
 					<4200000 85>, <4145000 80>, <4092000 75>,
 					<4047000 70>, <3990000 65>, <3955000 60>,
 					<3900000 55>, <3861000 50>, <3834000 45>,
