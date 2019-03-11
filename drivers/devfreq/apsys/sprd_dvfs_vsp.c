@@ -33,21 +33,24 @@ static const struct of_device_id vsp_dvfs_of_match[] = {
 
 MODULE_DEVICE_TABLE(of, vsp_dvfs_of_match);
 
+BLOCKING_NOTIFIER_HEAD(vsp_dvfs_chain);
+
+int vsp_dvfs_notifier_call_chain(void *data)
+{
+	return blocking_notifier_call_chain(&vsp_dvfs_chain, 0, data);
+}
+EXPORT_SYMBOL_GPL(vsp_dvfs_notifier_call_chain);
+
 static ssize_t get_dvfs_enable_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	int err = 0;
+	int ret = 0;
 
-	mutex_lock(&devfreq->lock);
-	if (vsp != NULL)
-		err = sprintf(buf, "%d\n", vsp->vsp_dvfs_para.u_dvfs_en);
-	else
-		err = sprintf(buf, "undefined\n");
-	mutex_unlock(&devfreq->lock);
+	ret = sprintf(buf, "%d\n", vsp->ip_coeff.hw_dfs_en);
 
-	return err;
+	return ret;
 }
 
 static ssize_t set_dvfs_enable_store(struct device *dev,
@@ -55,28 +58,22 @@ static ssize_t set_dvfs_enable_store(struct device *dev,
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	unsigned long dvfs_en;
-	int err;
+	u32 user_en;
+	int ret;
 
-	mutex_lock(&devfreq->lock);
-	err = sscanf(buf, "%lu\n", &dvfs_en);
-	if (err != 1) {
-		mutex_unlock(&devfreq->lock);
+	ret = sscanf(buf, "%u\n", &user_en);
+	if (ret != 1)
 		return -EINVAL;
+
+	if (vsp->dvfs_ops && vsp->dvfs_ops->hw_dvfs_en) {
+		vsp->dvfs_ops->hw_dvfs_en(user_en);
+		vsp->ip_coeff.hw_dfs_en = user_en;
 	}
-	pr_info("%s: err=%d, dvfs_en=%lu\n", __func__, err, dvfs_en);
-
-	vsp->vsp_dvfs_para.u_dvfs_en = dvfs_en;
-
-	if (vsp->dvfs_ops && vsp->dvfs_ops->ip_hw_dvfs_en)
-		vsp->dvfs_ops->ip_hw_dvfs_en(vsp->vsp_dvfs_para.u_dvfs_en);
 	else
-		pr_info("%s: ip  ops null\n", __func__);
+		pr_info("%s: ip ops null\n", __func__);
+	ret = count;
 
-	err = count;
-	mutex_unlock(&devfreq->lock);
-
-	return err;
+	return ret;
 }
 
 static ssize_t get_work_freq_show(struct device *dev,
@@ -84,16 +81,17 @@ static ssize_t get_work_freq_show(struct device *dev,
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	int err = 0;
+	u32 work_freq;
+	int ret = 0;
 
-	mutex_lock(&devfreq->lock);
-	if (vsp)
-		err = sprintf(buf, "%d\n", vsp->vsp_dvfs_para.u_work_freq);
+	if (vsp->dvfs_ops && vsp->dvfs_ops->get_work_freq) {
+		work_freq = vsp->dvfs_ops->get_work_freq();
+		ret = sprintf(buf, "%u\n", work_freq);
+	}
 	else
-		err = sprintf(buf, "undefined\n");
-	mutex_unlock(&devfreq->lock);
+		ret = sprintf(buf, "undefined\n");
 
-	return err;
+	return ret;
 }
 
 static ssize_t set_work_freq_store(struct device *dev,
@@ -101,28 +99,26 @@ static ssize_t set_work_freq_store(struct device *dev,
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	unsigned long user_freq;
-	int err;
+	u32 user_freq;
+	int ret;
 
 	mutex_lock(&devfreq->lock);
-
-	err = sscanf(buf, "%lu\n", &user_freq);
-	pr_info("%s:err=%d,count=%d", __func__, err, (int)count);
-	if (err != 1) {
+	ret = sscanf(buf, "%u\n", &user_freq);
+	if (ret != 1) {
 		mutex_unlock(&devfreq->lock);
 		return -EINVAL;
 	}
-	pr_info("%s: dvfs freq %lu", __func__, user_freq);
-	vsp->vsp_dvfs_para.u_work_freq = user_freq;
-	vsp->user_freq_type = DVFS_WORK;
+	pr_info("%s: dvfs freq %u", __func__, user_freq);
+	vsp->work_freq = user_freq;
+	vsp->freq_type = DVFS_WORK;
 
-	err = update_devfreq(devfreq);
-	if (err == 0)
-		err = count;
+	ret = update_devfreq(devfreq);
+	if (ret == 0)
+		ret = count;
 
 	mutex_unlock(&devfreq->lock);
 
-	return err;
+	return ret;
 }
 
 static ssize_t get_idle_freq_show(struct device *dev,
@@ -130,16 +126,17 @@ static ssize_t get_idle_freq_show(struct device *dev,
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	int err = 0;
+	int ret = 0;
+	u32 idle_freq;
 
-	mutex_lock(&devfreq->lock);
-	if (vsp)
-		err = sprintf(buf, "%d\n", vsp->vsp_dvfs_para.u_idle_freq);
+	if (vsp->dvfs_ops && vsp->dvfs_ops->get_idle_freq) {
+		idle_freq = vsp->dvfs_ops->get_idle_freq();
+		ret = sprintf(buf, "%d\n", idle_freq);
+	}
 	else
-		err = sprintf(buf, "undefined\n");
-	mutex_unlock(&devfreq->lock);
+		ret = sprintf(buf, "undefined\n");
 
-	return err;
+	return ret;
 
 }
 
@@ -148,27 +145,23 @@ static ssize_t set_idle_freq_store(struct device *dev,
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	unsigned long idle_freq;
-	int err;
+	u32 idle_freq;
+	int ret;
 
 	mutex_lock(&devfreq->lock);
-
-	err = sscanf(buf, "%lu\n", &idle_freq);
-	if (err == 0) {
+	ret = sscanf(buf, "%u\n", &idle_freq);
+	if (ret != 1) {
 		mutex_unlock(&devfreq->lock);
 		return -EINVAL;
 	}
-
-	vsp->vsp_dvfs_para.u_idle_freq = idle_freq;
-	vsp->user_freq_type = DVFS_IDLE;
-
-	err = update_devfreq(devfreq);
-	if (err == 0)
-		err = count;
-
+	vsp->idle_freq = idle_freq;
+	vsp->freq_type = DVFS_IDLE;
+	ret = update_devfreq(devfreq);
+	if (ret == 0)
+		ret = count;
 	mutex_unlock(&devfreq->lock);
 
-	return err;
+	return ret;
 
 }
 
@@ -177,16 +170,16 @@ static ssize_t get_work_index_show(struct device *dev,
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	int err = 0;
+	int ret = 0, work_index;
 
-	mutex_lock(&devfreq->lock);
-	if (vsp)
-		err = sprintf(buf, "%d\n", vsp->vsp_dvfs_para.u_work_index);
+	if (vsp->dvfs_ops && vsp->dvfs_ops->get_work_index) {
+		work_index = vsp->dvfs_ops->get_work_index();
+		ret = sprintf(buf, "%d\n", work_index);
+	}
 	else
-		err = sprintf(buf, "undefined\n");
-	mutex_unlock(&devfreq->lock);
+		ret = sprintf(buf, "undefined\n");
 
-	return err;
+	return ret;
 }
 
 static ssize_t set_work_index_store(struct device *dev,
@@ -194,32 +187,19 @@ static ssize_t set_work_index_store(struct device *dev,
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	unsigned long work_index;
-	int err;
+	u32 work_index;
+	int ret;
 
-	mutex_lock(&devfreq->lock);
-
-	err = sscanf(buf, "%lu\n", &work_index);
-
-	if (err != 1) {
-		mutex_unlock(&devfreq->lock);
+	ret = sscanf(buf, "%u\n", &work_index);
+	if (ret != 1)
 		return -EINVAL;
-	}
-	pr_info("%s: count=%d\n", __func__, (int)count);
-	pr_info("%s: ip ops null, work_index= %lu\n", __func__, work_index);
 
-	if (vsp->dvfs_ops && vsp->dvfs_ops->set_ip_dvfs_work_index) {
-		vsp->vsp_dvfs_para.u_work_index = work_index;
-		vsp->dvfs_ops->set_ip_dvfs_work_index(&(vsp->vsp_dvfs_para),
-				vsp->vsp_dvfs_para.u_work_index);
-	} else
+	if (vsp->dvfs_ops && vsp->dvfs_ops->set_work_index)
+		vsp->dvfs_ops->set_work_index(work_index);
+	else
 		pr_info("%s: ip ops null\n", __func__);
 
-	err = count;
-
-	mutex_unlock(&devfreq->lock);
-
-	return err;
+	return count;
 }
 
 static ssize_t get_idle_index_show(struct device *dev,
@@ -227,16 +207,16 @@ static ssize_t get_idle_index_show(struct device *dev,
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	int err = 0;
+	int ret = 0, idle_index;
 
-	mutex_lock(&devfreq->lock);
-	if (vsp)
-		err = sprintf(buf, "%d\n", vsp->vsp_dvfs_para.u_idle_index);
+	if (vsp->dvfs_ops && vsp->dvfs_ops->get_idle_index) {
+		idle_index = vsp->dvfs_ops->get_idle_index();
+		ret = sprintf(buf, "%d\n", idle_index);
+	}
 	else
-		err = sprintf(buf, "undefined\n");
-	mutex_unlock(&devfreq->lock);
+		ret = sprintf(buf, "undefined\n");
 
-	return err;
+	return ret;
 }
 
 static ssize_t set_idle_index_store(struct device *dev,
@@ -244,40 +224,28 @@ static ssize_t set_idle_index_store(struct device *dev,
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
-	unsigned long  idle_index;
-	int err;
+	u32 idle_index;
+	int ret;
 
-	mutex_lock(&devfreq->lock);
-
-	err = sscanf(buf, "%lu\n", &idle_index);
-	if (err != 1) {
-		mutex_unlock(&devfreq->lock);
+	ret = sscanf(buf, "%u\n", &idle_index);
+	if (ret != 1)
 		return -EINVAL;
-	}
-	vsp->vsp_dvfs_para.u_idle_index = idle_index;
 
-	if (vsp->dvfs_ops && vsp->dvfs_ops->set_ip_dvfs_idle_index) {
-		vsp->dvfs_ops->set_ip_dvfs_idle_index(&(vsp->vsp_dvfs_para),
-		vsp->vsp_dvfs_para.u_idle_index);
-	} else
+	if (vsp->dvfs_ops && vsp->dvfs_ops->set_idle_index)
+		vsp->dvfs_ops->set_idle_index(idle_index);
+	else
 		pr_info("%s: ip ops null\n", __func__);
 
-	err = count;
-
-	mutex_unlock(&devfreq->lock);
-
-	return err;
+	return count;
 }
 
-static ssize_t get_ip_status_show(struct device *dev,
+static ssize_t get_dvfs_status_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
 	struct ip_dvfs_status ip_status;
 	ssize_t len = 0;
-
-	mutex_lock(&devfreq->lock);
 
 	if (vsp->dvfs_ops && vsp->dvfs_ops->get_ip_status)
 		vsp->dvfs_ops->get_ip_status(&ip_status);
@@ -289,8 +257,6 @@ static ssize_t get_ip_status_show(struct device *dev,
 	len += sprintf(buf + len, "%d\t\t%d\t\t%d\t\t\n",
 			ip_status.ap_volt, ip_status.vsp_vote,
 			ip_status.dpu_vote);
-
-	mutex_unlock(&devfreq->lock);
 
 	return len;
 }
@@ -304,8 +270,6 @@ static ssize_t get_dvfs_table_info_show(struct device *dev,
 	struct ip_dvfs_map_cfg dvfs_table[MAX_FREQ_LEVEL];
 	ssize_t len = 0;
 	int i;
-
-	mutex_lock(&devfreq->lock);
 
 	if (vsp->dvfs_ops && vsp->dvfs_ops->get_ip_dvfs_table)
 		vsp->dvfs_ops->get_ip_dvfs_table(dvfs_table);
@@ -321,13 +285,11 @@ static ssize_t get_dvfs_table_info_show(struct device *dev,
 				dvfs_table[i].clk_rate);
 	}
 
-	mutex_unlock(&devfreq->lock);
-
 	return len;
 }
 
 /*sys for gov_entries*/
-static DEVICE_ATTR(hw_dvfs_en, 0644, get_dvfs_enable_show,
+static DEVICE_ATTR(dvfs_enable, 0644, get_dvfs_enable_show,
 				   set_dvfs_enable_store);
 static DEVICE_ATTR(work_freq, 0644, get_work_freq_show,
 				   set_work_freq_store);
@@ -337,16 +299,16 @@ static DEVICE_ATTR(work_index, 0644, get_work_index_show,
 				   set_work_index_store);
 static DEVICE_ATTR(idle_index, 0644, get_idle_index_show,
 				   set_idle_index_store);
-static DEVICE_ATTR(ip_status, 0644, get_ip_status_show, NULL);
+static DEVICE_ATTR(dvfs_status, 0644, get_dvfs_status_show, NULL);
 static DEVICE_ATTR(dvfs_table, 0644, get_dvfs_table_info_show, NULL);
 
 static struct attribute *dev_entries[] = {
-	&dev_attr_hw_dvfs_en.attr,
+	&dev_attr_dvfs_enable.attr,
 	&dev_attr_work_freq.attr,
 	&dev_attr_idle_freq.attr,
 	&dev_attr_work_index.attr,
 	&dev_attr_idle_index.attr,
-	&dev_attr_ip_status.attr,
+	&dev_attr_dvfs_status.attr,
 	&dev_attr_dvfs_table.attr,
 	NULL,
 };
@@ -368,38 +330,35 @@ static void userspace_exit(struct devfreq *devfreq)
 
 static int userspace_init(struct devfreq *devfreq)
 {
-	int err = 0;
+	int ret = 0;
 
-	err = sysfs_create_group(&devfreq->dev.kobj, &dev_attr_group);
+	ret = sysfs_create_group(&devfreq->dev.kobj, &dev_attr_group);
 
-	return err;
+	return ret;
 }
 
 static int vsp_dvfs_gov_get_target(struct devfreq *devfreq,
 		unsigned long *freq)
 {
 	struct vsp_dvfs *vsp = dev_get_drvdata(devfreq->dev.parent);
+	unsigned long adjusted_freq = 0;
 
-	pr_info("devfreq_governor-->get_target_freq\n");
+	pr_debug("devfreq_governor-->get_target_freq\n");
 
-	if (vsp->vsp_dvfs_para.u_dvfs_en) {
-		unsigned long adjusted_freq = 0;
+	if (vsp->freq_type == DVFS_WORK)
+		adjusted_freq = vsp->work_freq;
+	else
+		adjusted_freq = vsp->idle_freq;
 
-		if (vsp->user_freq_type == DVFS_WORK)
-			adjusted_freq = vsp->vsp_dvfs_para.u_work_freq;
-		else
-			adjusted_freq = vsp->vsp_dvfs_para.u_idle_freq;
+	if (devfreq->max_freq && adjusted_freq > devfreq->max_freq)
+		adjusted_freq = devfreq->max_freq;
 
-		if (devfreq->max_freq && adjusted_freq > devfreq->max_freq)
-			adjusted_freq = devfreq->max_freq;
+	if (devfreq->min_freq && adjusted_freq < devfreq->min_freq)
+		adjusted_freq = devfreq->min_freq;
 
-		if (devfreq->min_freq && adjusted_freq < devfreq->min_freq)
-			adjusted_freq = devfreq->min_freq;
+	*freq = adjusted_freq;
 
-		*freq = adjusted_freq;
-	} else
-		*freq = devfreq->previous_freq; /* No user freq specified yet */
-	pr_info("dvfs *freq %lu", *freq);
+	pr_debug("dvfs *freq %lu", *freq);
 	return 0;
 }
 
@@ -429,43 +388,59 @@ struct devfreq_governor vsp_dvfs_gov = {
 	.event_handler = vsp_dvfs_gov_event_handler,
 };
 
+static int vsp_dvfs_notify_callback(struct notifier_block *nb,
+			unsigned long action, void *data)
+{
+	struct vsp_dvfs *vsp = container_of(nb, struct vsp_dvfs, vsp_dvfs_nb);
+	u32 dvfs_freq = *(int *)data;
+
+	mutex_lock(&vsp->devfreq->lock);
+
+	if (!vsp->ip_coeff.hw_dfs_en) {
+		pr_info("vsp dvfs is disabled, nothing to do");
+		mutex_unlock(&vsp->devfreq->lock);
+		return NOTIFY_DONE;
+	}
+
+	vsp->work_freq = dvfs_freq;
+	vsp->freq_type = DVFS_WORK;
+	update_devfreq(vsp->devfreq);
+	mutex_unlock(&vsp->devfreq->lock);
+
+	return NOTIFY_OK;
+}
+
 static int vsp_dvfs_target(struct device *dev, unsigned long *freq,
 		u32 flags)
 {
 	struct vsp_dvfs *vsp = dev_get_drvdata(dev);
 	struct dev_pm_opp *opp;
 	unsigned long target_freq;
-	int err = 0;
+	int ret = 0;
 
-	pr_info("devfreq_dev_profile-->target,freq=%lu\n", *freq);
-
-
+	pr_debug("devfreq_dev_profile-->target,freq=%lu\n", *freq);
 	opp = devfreq_recommended_opp(dev, freq, flags);
+
 	if (IS_ERR(opp)) {
 		dev_err(dev, "Failed to find opp for %lu KHz\n", *freq);
 		return PTR_ERR(opp);
 	}
 
 	target_freq = dev_pm_opp_get_freq(opp);
-	pr_info("target freq from opp %lu\n", target_freq);
+	pr_debug("target freq from opp %lu\n", target_freq);
 
-	if (vsp->user_freq_type == DVFS_WORK)
-		vsp->vsp_dvfs_para.u_work_freq = target_freq;
+	if (vsp->freq_type == DVFS_WORK)
+		vsp->work_freq = target_freq;
 	else
-		vsp->vsp_dvfs_para.u_idle_freq = target_freq;
-	mutex_lock(&vsp->lock);
-	vsp->dvfs_ops->updata_target_freq(&(vsp->vsp_dvfs_para),
-		target_freq, vsp->user_freq_type);
+		vsp->idle_freq = target_freq;
+	vsp->dvfs_ops->updata_target_freq(target_freq, vsp->freq_type);
 
-	if (err) {
-		dev_err(dev, "Cannot to set freq:%lu to vsp, err: %d\n",
-		target_freq, err);
-		goto out;
+	if (ret) {
+		dev_err(dev, "Cannot to set freq:%lu to vsp, ret: %d\n",
+		target_freq, ret);
 	}
 
-out:
-	mutex_unlock(&vsp->lock);
-	return err;
+	return ret;
 }
 
 int vsp_dvfs_get_dev_status(struct device *dev,
@@ -476,8 +451,8 @@ int vsp_dvfs_get_dev_status(struct device *dev,
 	int ret = 0;
 
 	pr_info("devfreq_dev_profile-->get_dev_status\n");
-
 	ret = devfreq_event_get_event(vsp->edev, &edata);
+
 	if (ret < 0)
 		return ret;
 
@@ -492,16 +467,15 @@ static int vsp_dvfs_get_cur_freq(struct device *dev, unsigned long *freq)
 {
 	struct vsp_dvfs *vsp = dev_get_drvdata(dev);
 
-	if (vsp->user_freq_type == DVFS_WORK)
-		*freq = vsp->vsp_dvfs_para.u_work_freq;
+	if (vsp->freq_type == DVFS_WORK)
+		*freq = vsp->work_freq;
 	else
-		*freq = vsp->vsp_dvfs_para.u_idle_freq;
+		*freq = vsp->idle_freq;
+	pr_debug("devfreq_dev_profile-->get_cur_freq,*freq=%lu\n", *freq);
 
-	pr_info("devfreq_dev_profile-->get_cur_freq,*freq=%lu\n", *freq);
 	return 0;
 }
 static struct devfreq_dev_profile vsp_dvfs_profile = {
-	.polling_ms         = 200,
 	.target             = vsp_dvfs_target,
 	.get_dev_status     = vsp_dvfs_get_dev_status,
 	.get_cur_freq       = vsp_dvfs_get_cur_freq,
@@ -532,20 +506,23 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 	}
 
 	of_property_read_u32(np, "sprd,dvfs-work-freq",
-			&vsp->vsp_dvfs_para.u_work_freq);
+			&vsp->work_freq);
 	of_property_read_u32(np, "sprd,dvfs-idle-freq",
-			&vsp->vsp_dvfs_para.u_idle_freq);
+			&vsp->idle_freq);
 	of_property_read_u32(np, "sprd,dvfs-enable-flag",
-			&vsp->vsp_dvfs_para.u_dvfs_en);
+			&vsp->ip_coeff.hw_dfs_en);
 	pr_info("work freq %d,idle freq %d,enable flag %d\n",
-			vsp->vsp_dvfs_para.u_work_freq,
-			vsp->vsp_dvfs_para.u_idle_freq,
-			vsp->vsp_dvfs_para.u_dvfs_en);
+			vsp->work_freq,
+			vsp->idle_freq,
+			vsp->ip_coeff.hw_dfs_en);
 
 	if (dev_pm_opp_of_add_table(dev)) {
 		dev_err(dev, "Invalid operating-points in device tree.\n");
 		return -EINVAL;
 	}
+	vsp->vsp_dvfs_nb.notifier_call = vsp_dvfs_notify_callback;
+	ret = blocking_notifier_chain_register(&vsp_dvfs_chain,
+			&vsp->vsp_dvfs_nb);
 
 	platform_set_drvdata(pdev, vsp);
 	vsp->devfreq = devm_devfreq_add_device(dev,
@@ -556,18 +533,19 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 		dev_err(dev,
 		"failed to add devfreq dev with vsp-dvfs governor\n");
 		ret = PTR_ERR(vsp->devfreq);
-		goto err;
+		goto ret;
 	}
 	device_rename(&vsp->devfreq->dev, "vsp");
-	if (vsp->dvfs_ops && vsp->dvfs_ops->ip_dvfs_init)
-		vsp->dvfs_ops->ip_dvfs_init(&(vsp->vsp_dvfs_para));
+	if (vsp->dvfs_ops && vsp->dvfs_ops->dvfs_init)
+		vsp->dvfs_ops->dvfs_init(vsp);
 
 	pr_info("Succeeded to register a vsp dvfs device\n");
 
 	return 0;
 
-err:
+ret:
 	dev_pm_opp_of_remove_table(dev);
+	blocking_notifier_chain_unregister(&vsp_dvfs_chain, &vsp->vsp_dvfs_nb);
 
 	return ret;
 }

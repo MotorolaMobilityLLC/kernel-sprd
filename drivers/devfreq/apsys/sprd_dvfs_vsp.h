@@ -31,67 +31,52 @@
 #include "sprd_dvfs_apsys.h"
 
 struct vsp_dvfs {
-	unsigned long dvfs_enable;
 	struct device dev;
-
 	unsigned long freq, target_freq;
 	unsigned long volt, target_volt;
 	unsigned long user_freq;
-
+	u32 work_freq;
+	u32 idle_freq;
 	struct devfreq *devfreq;
 	struct devfreq_event_dev *edev;
 	struct ip_dvfs_ops  *dvfs_ops;
-	struct ip_dvfs_para vsp_dvfs_para;
-	set_freq_type user_freq_type;
+	struct ip_dvfs_status ip_status;
+	struct ip_dvfs_coffe ip_coeff;
+	set_freq_type freq_type;
 	struct mutex lock;
-	struct notifier_block pw_nb;
+	struct notifier_block vsp_dvfs_nb;
 	u32 max_freq_level;
-
 };
 
 struct ip_dvfs_ops {
 
 	/* userspace interface */
-	int (*ip_dvfs_init)(struct ip_dvfs_para *dvfs_para);
-	void (*ip_hw_dvfs_en)(u32 dvfs_eb);
-	void (*ip_auto_tune_en)(struct ip_dvfs_para *dvfs_para,
-				unsigned long dvfs_eb);
-	void (*set_work_freq)(struct ip_dvfs_para *dvfs_para,
-				unsigned long work_freq);
-	void (*get_work_freq)(struct ip_dvfs_para *dvfs_para,
-				unsigned long work_freq);
-	void (*set_idle_freq)(struct ip_dvfs_para *dvfs_para,
-				unsigned long idle_freq);
-	void (*get_idle_freq)(struct ip_dvfs_para *dvfs_para,
-				unsigned long idle_freq);
+	int (*dvfs_init)(struct vsp_dvfs *vsp);
+	void (*hw_dvfs_en)(u32 dvfs_eb);
+
+	void (*set_work_freq)(u32 work_freq);
+	u32 (*get_work_freq)(void);
+	void (*set_idle_freq)(u32 idle_freq);
+	u32 (*get_idle_freq)(void);
 
 	/* work-idle dvfs map ops */
 	void (*get_ip_dvfs_table)(struct ip_dvfs_map_cfg *dvfs_table);
-	void (*set_ip_dvfs_table)(struct ip_dvfs_para *dvfs_para,
-				struct ip_dvfs_map_cfg *dvfs_table);
-	void (*get_ip_dvfs_coffe)(struct ip_dvfs_para *dvfs_para,
-				struct ip_dvfs_coffe *dvfs_coffe);
-	void (*set_ip_dvfs_coffe)(struct ip_dvfs_para *dvfs_para,
-				struct ip_dvfs_coffe *dvfs_coffe);
+
 	void (*get_ip_status)(struct ip_dvfs_status *ip_status);
-	void (*power_on_nb)(struct ip_dvfs_para *dvfs_para);
-	void (*power_off_nb)(struct ip_dvfs_para *dvfs_para);
 
 	/* coffe setting ops */
-	void (*set_ip_gfree_wait_delay)(u32 wind_para);
-	void (*set_ip_freq_upd_en_byp)(u32 on);
-	void (*set_ip_freq_upd_delay_en)(u32 on);
-	void (*set_ip_freq_upd_hdsk_en)(u32 on);
-	void (*set_ip_dvfs_swtrig_en)(u32 en);
+	void (*set_gfree_wait_delay)(u32 wind_para);
+	void (*set_freq_upd_en_byp)(u32 on);
+	void (*set_freq_upd_delay_en)(u32 on);
+	void (*set_freq_upd_hdsk_en)(u32 on);
+	void (*set_dvfs_swtrig_en)(u32 en);
 
 	/* work-idle dvfs index ops */
-	void (*set_ip_dvfs_work_index)(struct ip_dvfs_para *dvfs_para,
-			u32 index);
-	void (*get_ip_dvfs_work_index)(u32 *index);
-	void (*set_ip_dvfs_idle_index)(struct ip_dvfs_para *dvfs_para,
-			u32 index);
-	void (*updata_target_freq)(struct ip_dvfs_para *dvfs_para,
-			unsigned long freq, set_freq_type user_freq_type);
+	void (*set_work_index)(u32 index);
+	u32 (*get_work_index)(void);
+	void (*set_idle_index)(u32 index);
+	u32 (*get_idle_index)(void);
+	void (*updata_target_freq)(u32 freq, set_freq_type freq_type);
 };
 
 typedef enum {
@@ -121,5 +106,14 @@ extern struct list_head vsp_dvfs_head;
 
 #define vsp_dvfs_ops_attach(str) \
 	dvfs_ops_attach(str, &vsp_dvfs_head)
+
+#if IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
+int vsp_dvfs_notifier_call_chain(void *data);
+#else
+static inline int vsp_dvfs_notifier_call_chain(void *data)
+{
+	return 0;
+}
+#endif
 
 #endif
