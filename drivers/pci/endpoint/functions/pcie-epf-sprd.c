@@ -361,9 +361,10 @@ static irqreturn_t sprd_epf_irq_handler(int irq_number, void *private)
 
 static int sprd_epf_bind(struct pci_epf *epf)
 {
+#ifdef CONFIG_SPRD_EPF_ENABLE_EPCONF
 	int ret;
+#endif
 	void  (*notify)(int event, void *data);
-	struct pci_epf_header *header = epf->header;
 	struct pci_epc *epc = epf->epc;
 	struct device *dev = &epf->dev;
 	struct dw_pcie_ep *ep;
@@ -375,7 +376,13 @@ static int sprd_epf_bind(struct pci_epf *epf)
 	dev_info(dev, "bind: func_no = %d, epf->func_no = =%d\n",
 		epf->func_no, epf->msi_interrupts);
 
-	ret = pci_epc_write_header(epc, header);
+	/*
+	 * if the feature CONFIG_SPRD_EPF_ENABLE_EPCONF
+	 * (default closed) is not opend, we can't set the header
+	 * and the msi, just use the default configuration.
+	 */
+#ifdef CONFIG_SPRD_EPF_ENABLE_EPCONF
+	ret = pci_epc_write_header(epc, epf->header);
 	if (ret) {
 		dev_err(dev, "bind: header write failed, ret=%d\n", ret);
 		return ret;
@@ -386,6 +393,7 @@ static int sprd_epf_bind(struct pci_epf *epf)
 		dev_err(dev, "bind: set msi failed, ret=%d\n", ret);
 		return ret;
 	}
+#endif
 
 	if (epf->func_no < SPRD_FUNCTION_MAX) {
 		notify = g_epf_notify[epf->func_no].notify;
