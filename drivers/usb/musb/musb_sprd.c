@@ -534,10 +534,8 @@ static int musb_sprd_suspend_child(struct device *dev, void *data)
 	int ret, cnt = 100;
 
 	ret = pm_runtime_put_sync(dev);
-	if (ret) {
+	if (ret)
 		dev_err(dev, "enters suspend failed, ret = %d\n", ret);
-		return ret;
-	}
 
 	while (!pm_runtime_suspended(dev) && --cnt > 0)
 		msleep(500);
