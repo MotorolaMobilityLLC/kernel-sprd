@@ -2643,6 +2643,13 @@ CONFIG_DEVTMPFS_MOUNT
 	[subsys] core
 	[must] console
 	[function] Automount devtmpfs at /dev, after the kernel mounted the rootfs.
+CONFIG_DIRECT_SWAPPINESS
+	[arch] all
+	[plat] all
+	[field] code
+	[subsys] mm
+	[must] unknown
+	[function] Allow to adjust direct reclaim swappiness
 CONFIG_DISP_PM_DOMAIN_SHARKL3
 	[arch] all
 	[plat] sharkl3,sharkl5_32
