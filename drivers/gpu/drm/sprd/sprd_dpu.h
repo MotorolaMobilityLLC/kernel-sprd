@@ -26,7 +26,7 @@
 #include <drm/drm_crtc.h>
 #include <drm/drm_fourcc.h>
 #include <drm/drm_vblank.h>
-
+#include <uapi/drm/drm_mode.h>
 #include "disp_lib.h"
 
 #define DRM_MODE_BLEND_PREMULTI		2

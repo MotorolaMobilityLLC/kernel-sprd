@@ -718,7 +718,56 @@ enum {
 	DPU_LAYER_FORMAT_MAX_TYPES,
 };
 
-static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
+enum {
+	DPU_LAYER_ROTATION_0,
+	DPU_LAYER_ROTATION_90,
+	DPU_LAYER_ROTATION_180,
+	DPU_LAYER_ROTATION_270,
+	DPU_LAYER_ROTATION_0_M,
+	DPU_LAYER_ROTATION_90_M,
+	DPU_LAYER_ROTATION_180_M,
+	DPU_LAYER_ROTATION_270_M,
+};
+
+static u32 to_dpu_rotation(u32 angle)
+{
+	u32 rot = DPU_LAYER_ROTATION_0;
+
+	switch (angle) {
+	case DRM_MODE_ROTATE_0:
+		rot = DPU_LAYER_ROTATION_0;
+		break;
+	case DRM_MODE_ROTATE_90:
+		rot = DPU_LAYER_ROTATION_90;
+		break;
+	case DRM_MODE_ROTATE_180:
+		rot = DPU_LAYER_ROTATION_180;
+		break;
+	case DRM_MODE_ROTATE_270:
+		rot = DPU_LAYER_ROTATION_270;
+		break;
+	case DRM_MODE_REFLECT_Y:
+		rot = DPU_LAYER_ROTATION_180_M;
+		break;
+	case (DRM_MODE_REFLECT_Y | DRM_MODE_ROTATE_90):
+		rot = DPU_LAYER_ROTATION_90_M;
+		break;
+	case DRM_MODE_REFLECT_X:
+		rot = DPU_LAYER_ROTATION_0_M;
+		break;
+	case (DRM_MODE_REFLECT_X | DRM_MODE_ROTATE_90):
+		rot = DPU_LAYER_ROTATION_270_M;
+		break;
+	default:
+		pr_err("rotation convert unsupport angle (drm)= 0x%x\n", angle);
+		break;
+	}
+
+	return rot;
+}
+
+static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
+		u32 rotation)
 {
 	int reg_val = 0;
 
@@ -849,6 +898,9 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 	}
 
 	reg_val |= y2r_coef << 28;
+	rotation = to_dpu_rotation(rotation);
+	reg_val |= (rotation & 0x7) << 20;
+
 
 	return reg_val;
 }
@@ -925,7 +977,7 @@ static void dpu_layer(struct dpu_context *ctx,
 		layer->pitch = hwlayer->pitch[0] / wd;
 
 	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-		hwlayer->xfbc, hwlayer->y2r_coef);
+		hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
