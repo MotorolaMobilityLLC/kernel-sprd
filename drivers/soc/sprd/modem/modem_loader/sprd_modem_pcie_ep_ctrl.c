@@ -105,7 +105,7 @@ static void modem_ep_get_remote_flag(struct modem_device *modem)
 	}
 }
 
-static void modem_ep_set_remote_flag(struct modem_device *modem)
+static void modem_ep_set_remote_flag(struct modem_device *modem, u8 b_clear)
 {
 	u32 flag = 0;
 	u32 temp = modem->remote_flag;
@@ -122,7 +122,8 @@ static void modem_ep_set_remote_flag(struct modem_device *modem)
 	}
 	flag |= (temp << FLAG_HANDSHK_SHIFT) & FLAG_HANDSHK_MASK;
 
-	dev_dbg(modem->p_dev, "ep set flag = 0x%x!\n", flag);
+	dev_dbg(modem->p_dev, "ep set flag = 0x%x!, b_clear = %d\n",
+		flag, b_clear);
 
 	base = modem_ram_vmap_nocache(modem->modem_type,
 				      EP_REMOTE_BASE,
@@ -137,9 +138,16 @@ static void modem_ep_set_remote_flag(struct modem_device *modem)
 			return;
 		}
 
-		/* update flag */
-		writel_relaxed(flag,
-			       base + BIT_SET_OFFSET + EP_REMOTE_OFFSET);
+		if (b_clear)
+			/* clear flag */
+			writel_relaxed(flag,
+				       base + BIT_CLR_OFFSET +
+				       EP_REMOTE_OFFSET);
+		else
+			/* update flag */
+			writel_relaxed(flag,
+				       base + BIT_SET_OFFSET +
+				       EP_REMOTE_OFFSET);
 		modem_ram_unmap(modem->modem_type, base);
 	}
 }

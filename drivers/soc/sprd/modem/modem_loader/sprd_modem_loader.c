@@ -46,15 +46,16 @@
 #ifdef CONFIG_SPRD_EXT_MODEM
 #define MODEM_GET_REMOTE_FLAG_CMD _IOR(MODEM_MAGIC, 0x9, int)
 #define MODEM_SET_REMOTE_FLAG_CMD _IOW(MODEM_MAGIC, 0xa, int)
+#define MODEM_CLR_REMOTE_FLAG_CMD _IOW(MODEM_MAGIC, 0xb, int)
 #endif
 
-#define MODEM_STOP_CMD _IO(MODEM_MAGIC, 0xb)
-#define MODEM_START_CMD _IO(MODEM_MAGIC, 0xc)
+#define MODEM_STOP_CMD _IO(MODEM_MAGIC, 0xc)
+#define MODEM_START_CMD _IO(MODEM_MAGIC, 0xd)
 
 #ifdef CONFIG_SPRD_EXT_MODEM_POWER_CTRL
-#define MODEM_REBOOT_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xd)
-#define MODEM_POWERON_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xe)
-#define MODEM_POWEROFF_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xf)
+#define MODEM_REBOOT_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xe)
+#define MODEM_POWERON_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xf)
+#define MODEM_POWEROFF_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0x10)
 #endif
 
 #define	MODEM_READ_ALL_MEM 0xff
@@ -477,10 +478,11 @@ static void modem_get_remote_flag(struct modem_device *modem)
 	dev_info(modem->p_dev, "get remote flag = 0x%x!\n", modem->remote_flag);
 }
 
-static void modem_set_remote_flag(struct modem_device *modem)
+static void modem_set_remote_flag(struct modem_device *modem, u8 b_clear)
 {
-	ext_modem_ops->set_remote_flag(modem);
-	dev_info(modem->p_dev, "set remote flag = 0x%x!\n", modem->remote_flag);
+	ext_modem_ops->set_remote_flag(modem, b_clear);
+	dev_info(modem->p_dev, "set remote flag = 0x%x, b_clear = %d!\n",
+		 modem->remote_flag, b_clear);
 }
 #endif
 
@@ -501,6 +503,7 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	int ret = -EINVAL;
 	int access = 0;
 	int param = 0;
+	u8 b_clear;
 
 	struct modem_device *modem = (struct modem_device *)filp->private_data;
 
@@ -579,12 +582,14 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case MODEM_SET_REMOTE_FLAG_CMD:
+	case MODEM_CLR_REMOTE_FLAG_CMD:
+		b_clear = cmd == MODEM_CLR_REMOTE_FLAG_CMD ? 1 : 0;
 		ret = modem_set_something(modem,
 					  &param,
 					  cmd, arg);
 		if (ret == 0) {
 			modem->remote_flag = param;
-			modem_set_remote_flag(modem);
+			modem_set_remote_flag(modem, b_clear);
 		}
 		break;
 #endif
