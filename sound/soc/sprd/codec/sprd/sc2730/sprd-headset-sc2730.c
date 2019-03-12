@@ -970,6 +970,41 @@ read_adc_err:
 	return voltage;
 }
 
+static int sprd_headset_typec_get_hpl_voltage(struct sprd_headset *hdst)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	int adc_left_average, adc_left_ideal, left_voltage,
+		adc_value_err = false;
+
+	headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_EN);
+	sprd_headset_scale_set(0);
+	headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0x5),
+		HEDET_V2AD_CH_SEL(0xf));
+	adc_left_average = sprd_get_adc_value(hdst->adc_chan);
+	if (adc_left_average < 0) {
+		dev_err(&hdst->pdev->dev, "adc error, adc_left_average %d\n",
+			adc_left_average);
+		/*
+		 * When adc value is negative, it is invalid, set a useless
+		 * value to it, like 0 in headset type identification.
+		 */
+		adc_value_err = true;
+		adc_left_average = 0;
+	}
+	headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0x4),
+			HEDET_V2AD_CH_SEL(0xf));
+
+	adc_left_ideal = sprd_adc_to_ideal(adc_left_average,
+			pdata->coefficient);
+	left_voltage = adc_left_ideal * 1250 / 4095;
+	pr_info("adc_left_average %d, adc_left_ideal %d, V_ideal %s %d mV\n",
+		adc_left_average, adc_left_ideal,
+		(adc_left_average >= 4095 || adc_value_err) ? "outrange!" : "",
+		left_voltage);
+
+	return left_voltage;
+}
+
 static void sprd_enable_hmicbias_polling(bool enable, bool force_disable)
 {
 	struct sprd_headset *hdst = sprd_hdst;
@@ -1212,87 +1247,95 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata;
-	struct iio_channel *adc_chan;
-	int mic_voltage_0, mic_voltage_1, try_count = 0,
-		voltage_3pole_threshold;
+	int mic_vol_0, mic_vol_1, try_count = 0, vol_3pole,
+		left_vol_0, left_vol_1, left_vol_max, gnd_vol,
+		mic_max_vol;
 
-	HDST_DEBUG_LOG;
 	if (!hdst)
 		return HEADSET_TYPE_ERR;
 	pdata = &hdst->pdata;
-	adc_chan = hdst->adc_chan;
-	voltage_3pole_threshold =
+	vol_3pole =
 		pdata->threshold_3pole * 1250 * 3 / 4095;
+	/* gnd voltage use small scale */
+	gnd_vol = pdata->sprd_adc_gnd * 1250 / 4095;
 
 	gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
 	do {
-		mic_voltage_0 = sprd_headset_get_mic_voltage(hdst);
-		if (mic_voltage_0 > TYPEC_4POLE_MIC_MAX_VOLT)
+		mic_vol_0 = sprd_headset_get_mic_voltage(hdst);
+		if (mic_vol_0 > TYPEC_4POLE_MIC_MAX_VOLT)
 			/* debounce */
 			sprd_msleep(100);
 		else
 			break;
 	} while (++try_count < TYPEC_INVALID_TRY_COUNT);
 
-	if (mic_voltage_0 < 0 || try_count >= TYPEC_INVALID_TRY_COUNT) {
+	if (mic_vol_0 < 0 || try_count >= TYPEC_INVALID_TRY_COUNT) {
 		pr_err("read voltage fail, mic_voltage_0 %d, try_count %d",
-			mic_voltage_0, try_count);
-		if (mic_voltage_0 > TYPEC_4POLE_MIC_MAX_VOLT) {
+			mic_vol_0, try_count);
+		if (mic_vol_0 > TYPEC_4POLE_MIC_MAX_VOLT) {
 			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return HEADSET_NO_MIC;
 		}
 		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
 		return HEADSET_TYPE_ERR;
 	}
+	left_vol_0 = sprd_headset_typec_get_hpl_voltage(hdst);
 
 	gpiod_set_value_cansleep(pdata->typec_mic_gpio, 1);
 	try_count = 0;
 	do {
-		mic_voltage_1 = sprd_headset_get_mic_voltage(hdst);
-		if (mic_voltage_1 > TYPEC_4POLE_MIC_MAX_VOLT)
+		mic_vol_1 = sprd_headset_get_mic_voltage(hdst);
+		if (mic_vol_1 > TYPEC_4POLE_MIC_MAX_VOLT)
 			/* debounce */
 			sprd_msleep(100);
 		else
 			break;
 	} while (++try_count < TYPEC_INVALID_TRY_COUNT);
 
-	if (mic_voltage_1 < 0 || try_count >= TYPEC_INVALID_TRY_COUNT) {
+	if (mic_vol_1 < 0 || try_count >= TYPEC_INVALID_TRY_COUNT) {
 		pr_err("read voltage fail, mic_voltage_1 %d, try_count %d",
-			mic_voltage_1, try_count);
-		if (mic_voltage_1 > TYPEC_4POLE_MIC_MAX_VOLT) {
+			mic_vol_1, try_count);
+		if (mic_vol_1 > TYPEC_4POLE_MIC_MAX_VOLT) {
 			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return HEADSET_NO_MIC;
 		}
 		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
 		return HEADSET_TYPE_ERR;
 	}
-	pr_info("typec mic_voltage_0 %d, mic_voltage_1 %d, voltage_3pole_threshold %d\n",
-		mic_voltage_0, mic_voltage_1, voltage_3pole_threshold);
-	if (mic_voltage_0 < voltage_3pole_threshold &&
-		mic_voltage_1 < voltage_3pole_threshold) {
+	left_vol_1 = sprd_headset_typec_get_hpl_voltage(hdst);
+	left_vol_max = max(left_vol_0, left_vol_1);
+	mic_max_vol = max(mic_vol_0, mic_vol_1);
+	pr_info("typec mic_vol_0 %d, mic_vol_1 %d, vol_3pole %d, left_vol_max %d\n",
+		mic_vol_0, mic_vol_1, vol_3pole, left_vol_max);
+	if (mic_vol_0 < vol_3pole &&
+		mic_vol_1 < vol_3pole) {
 		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 		return HEADSET_NO_MIC;
 	}
 
-	if (mic_voltage_0 > TYPEC_4POLE_MIC_MIN_VOLT &&
-		mic_voltage_1 > TYPEC_4POLE_MIC_MIN_VOLT) {
-		if (mic_voltage_0 > mic_voltage_1)
-			gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
-		if (max(mic_voltage_0, mic_voltage_1) <
-			TYPEC_SELFIE_STICK_THRESHOLD) {
-			/* typec headset */
-			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
-			return HEADSET_4POLE_NORMAL;
-		}
-		if (max(mic_voltage_0, mic_voltage_1) >
-			TYPEC_SELFIE_STICK_THRESHOLD) {
-			/* typec selfie stick */
-			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
-			return HEADSET_4POLE_NORMAL;
-		}
+	if (left_vol_max > gnd_vol &&
+		ABS(mic_max_vol - left_vol_max) < gnd_vol) {
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		return HEADSET_4POLE_NOT_NORMAL;
 	}
+
+	if (mic_vol_0 > mic_vol_1)
+		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+	if (max(mic_vol_0, mic_vol_1) <
+		TYPEC_SELFIE_STICK_THRESHOLD) {
+		/* typec headset */
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		return HEADSET_4POLE_NORMAL;
+	}
+	if (max(mic_vol_0, mic_vol_1) >
+		TYPEC_SELFIE_STICK_THRESHOLD) {
+		/* typec selfie stick */
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
+		return HEADSET_4POLE_NORMAL;
+	}
+
 	pr_err("type error, mic_voltage_0 %d, mic_voltage_1 %d\n",
-		mic_voltage_0, mic_voltage_1);
+		mic_vol_0, mic_vol_1);
 	gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
 
 	return HEADSET_TYPE_ERR;
