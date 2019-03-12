@@ -6000,7 +6000,7 @@ CONFIG_KEYS_COMPAT
 	[function] Support for Key compat.
 CONFIG_KSM
 	[arch] all
-	[plat] all
+	[plat] sharkl3,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] mm
 	[must] busybox_console
