@@ -159,7 +159,9 @@ void sipa_dele_start_rls_work(struct sipa_delegator *delegator)
 	queue_work(delegator->smsg_wq, (struct work_struct *)work);
 }
 
-void sipa_dele_start_done_work(struct sipa_delegator *delegator, u32 val)
+void sipa_dele_start_done_work(struct sipa_delegator *delegator,
+			       u16 flag,
+			       u32 val)
 {
 	struct sipa_dele_smsg_work_type *work;
 
@@ -168,7 +170,7 @@ void sipa_dele_start_done_work(struct sipa_delegator *delegator, u32 val)
 	work->delegator = delegator;
 	work->msg.channel = delegator->chan;
 	work->msg.type = SMSG_TYPE_DONE;
-	work->msg.flag = SMSG_FLG_DELE_REQUEST;
+	work->msg.flag = flag;
 	work->msg.value = val;
 
 	queue_work(delegator->smsg_wq, (struct work_struct *)work);
@@ -182,14 +184,18 @@ void sipa_dele_remote_req_cons(struct sipa_delegator *delegator)
 	switch (ret) {
 	case 0:
 		delegator->cons_ref_cnt++;
-		sipa_dele_start_done_work(delegator, SMSG_VAL_DELE_REQ_SUCCESS);
+		sipa_dele_start_done_work(delegator,
+					  SMSG_FLG_DELE_REQUEST,
+					  SMSG_VAL_DELE_REQ_SUCCESS);
 		break;
 	case -EINPROGRESS:
 		delegator->cons_ref_cnt++;
 		atomic_set(&delegator->requesting_cons, 1);
 		break;
 	default:
-		sipa_dele_start_done_work(delegator, SMSG_VAL_DELE_REQ_FAIL);
+		sipa_dele_start_done_work(delegator,
+					  SMSG_FLG_DELE_REQUEST,
+					  SMSG_VAL_DELE_REQ_FAIL);
 		break;
 	}
 }
@@ -363,7 +369,9 @@ void sipa_dele_cons_notify_cb(void *user_data,
 	if (event != SIPA_RM_EVT_GRANTED)
 		return;
 	if (atomic_cmpxchg(&delegator->requesting_cons, 1, 0))
-		sipa_dele_start_done_work(delegator, SMSG_VAL_DELE_REQ_SUCCESS);
+		sipa_dele_start_done_work(delegator,
+					  SMSG_FLG_DELE_REQUEST,
+					  SMSG_VAL_DELE_REQ_SUCCESS);
 }
 
 int sipa_delegator_init(struct sipa_delegator *delegator,
@@ -384,6 +392,8 @@ int sipa_delegator_init(struct sipa_delegator *delegator,
 	delegator->on_cmd = sipa_dele_on_commad;
 	delegator->on_done = sipa_dele_on_done;
 	delegator->on_evt = sipa_dele_on_event;
+	delegator->local_request_prod = sipa_dele_local_req_prod;
+	delegator->local_release_prod = sipa_dele_local_rls_prod;
 	spin_lock_init(&delegator->lock);
 
 	delegator->smsg_wq = create_singlethread_workqueue("dele_smsg_wq");
@@ -420,9 +430,9 @@ int sipa_delegator_start(struct sipa_delegator *delegator)
 	rm_params.name = delegator->prod_id;
 	rm_params.floor_voltage = 0;
 	rm_params.reg_params.notify_cb = NULL;
-	rm_params.reg_params.user_data = 0;
-	rm_params.request_resource = sipa_dele_local_req_prod;
-	rm_params.release_resource = sipa_dele_local_rls_prod;
+	rm_params.reg_params.user_data = delegator;
+	rm_params.request_resource = delegator->local_request_prod;
+	rm_params.release_resource = delegator->local_release_prod;
 
 	ret = sipa_rm_create_resource(&rm_params);
 	if (ret)

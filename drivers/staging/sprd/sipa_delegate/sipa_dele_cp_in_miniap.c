@@ -27,6 +27,35 @@
 
 static struct cp_delegator *s_cp_delegator;
 
+static void cp_dele_on_commad(void *priv, u16 flag, u32 data)
+{
+	struct sipa_delegator *delegator = priv;
+
+	pr_debug("prod_id:%d\n", delegator->prod_id);
+	switch (flag) {
+	case SMSG_FLG_DELE_ENABLE:
+		sipa_dele_start_done_work(delegator,
+					  SMSG_FLG_DELE_ENABLE,
+					  SMSG_VAL_DELE_REQ_SUCCESS);
+		break;
+	case SMSG_FLG_DELE_DISABLE:
+		/* do release operation */
+
+		break;
+	default:
+		break;
+	}
+	/* do default operations */
+	sipa_dele_on_commad(priv, flag, data);
+}
+
+static int cp_dele_local_req_prod(void *user_data)
+{
+	/* do enable ipa  operation */
+
+	return sipa_dele_local_req_prod(user_data);
+}
+
 int cp_delegator_init(struct sipa_delegator_create_params *params)
 {
 	int ret;
@@ -41,6 +70,8 @@ int cp_delegator_init(struct sipa_delegator_create_params *params)
 	if (ret)
 		return ret;
 
+	s_cp_delegator->delegator.on_cmd = cp_dele_on_commad;
+	s_cp_delegator->delegator.local_request_prod = cp_dele_local_req_prod;
 	sipa_delegator_start(&s_cp_delegator->delegator);
 
 	return 0;

@@ -23,6 +23,8 @@
 #define SMSG_FLG_DELE_ADDR_DL_RX	0x4
 #define SMSG_FLG_DELE_ADDR_UL_TX	0x5
 #define SMSG_FLG_DELE_ADDR_UL_RX	0x6
+#define SMSG_FLG_DELE_ENABLE		0x7
+#define SMSG_FLG_DELE_DISABLE		0x8
 
 #define SMSG_VAL_DELE_REQ_SUCCESS	0x0
 #define SMSG_VAL_DELE_REQ_FAIL		0x1
@@ -75,6 +77,8 @@ struct sipa_delegator {
 	sipa_dele_msg_func on_cmd;
 	sipa_dele_msg_func on_done;
 	sipa_dele_msg_func on_evt;
+	int (*local_request_prod)(void *);
+	int (*local_release_prod)(void *);
 	int (*req_res)(void *);
 	int (*rls_res)(void *);
 };
@@ -124,5 +128,9 @@ void sipa_dele_on_close(void *priv, u16 flag, u32 data);
 void sipa_dele_on_commad(void *priv, u16 flag, u32 data);
 void sipa_dele_on_done(void *priv, u16 flag, u32 val);
 void sipa_dele_on_event(void *priv, u16 flag, u32 val);
+int sipa_dele_local_req_prod(void *user_data);
+int sipa_dele_local_rls_prod(void *user_data);
+void sipa_dele_start_done_work(struct sipa_delegator *delegator,
+			       u16 flag, u32 val);
 
 #endif /* !_SIPA_DELE_PRIV_H_ */
