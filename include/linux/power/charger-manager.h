@@ -45,6 +45,13 @@ enum cm_event_types {
 	CM_EVENT_OTHERS,
 };
 
+enum cm_charge_status {
+	CM_CHARGE_TEMP_ABNORMAL = BIT(0),
+	CM_CHARGE_VOLTAGE_ABNORMAL = BIT(1),
+	CM_CHARGE_HEALTH_ABNORMAL = BIT(2),
+	CM_CHARGE_DURATION_ABNORMAL = BIT(3),
+};
+
 /**
  * struct charger_cable
  * @extcon_name: the name of extcon device.
@@ -277,6 +284,7 @@ struct charger_desc {
  *	saved status of battery before entering suspend-to-RAM
  * @charging_start_time: saved start time of enabling charging
  * @charging_end_time: saved end time of disabling charging
+ * @charging_status: saved charging status, 0 means charging normal
  */
 struct charger_manager {
 	struct list_head entry;
@@ -299,6 +307,7 @@ struct charger_manager {
 
 	u64 charging_start_time;
 	u64 charging_end_time;
+	u32 charging_status;
 };
 
 #ifdef CONFIG_CHARGER_MANAGER

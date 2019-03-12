@@ -671,6 +671,7 @@ static int check_charging_duration(struct charger_manager *cm)
 				 desc->charging_max_duration_ms);
 			uevent_notify(cm, "Discharging");
 			try_charger_enable(cm, false);
+			cm->charging_status |= CM_CHARGE_DURATION_ABNORMAL;
 			ret = true;
 		}
 	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled) {
@@ -682,8 +683,14 @@ static int check_charging_duration(struct charger_manager *cm)
 				 desc->discharging_max_duration_ms);
 			uevent_notify(cm, "Recharging");
 			try_charger_enable(cm, true);
+			cm->charging_status &= ~CM_CHARGE_DURATION_ABNORMAL;
 			ret = true;
 		}
+	}
+
+	if (cm->charging_status & CM_CHARGE_DURATION_ABNORMAL) {
+		dev_info(cm->dev, "Charging duration is still exceed\n");
+		return true;
 	}
 
 	return ret;
@@ -792,6 +799,7 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 			 desc->charge_voltage_max);
 		uevent_notify(cm, "Discharging");
 		try_charger_enable(cm, false);
+		cm->charging_status |= CM_CHARGE_VOLTAGE_ABNORMAL;
 		return 0;
 	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
 		   charge_vol <= (desc->charge_voltage_max - desc->charge_voltage_drop)) {
@@ -799,6 +807,10 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 			 desc->charge_voltage_max - desc->charge_voltage_drop);
 		uevent_notify(cm, "Recharging");
 		try_charger_enable(cm, true);
+		cm->charging_status &= ~CM_CHARGE_VOLTAGE_ABNORMAL;
+		return 0;
+	} else if (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL) {
+		dev_info(cm->dev, "Charging voltage is still abnormal\n");
 		return 0;
 	}
 
@@ -836,12 +848,17 @@ static int cm_check_charge_health(struct charger_manager *cm)
 		dev_info(cm->dev, "Charging health is not good\n");
 		uevent_notify(cm, "Discharging");
 		try_charger_enable(cm, false);
+		cm->charging_status |= CM_CHARGE_HEALTH_ABNORMAL;
 		return 0;
 	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
 		health == POWER_SUPPLY_HEALTH_GOOD) {
 		dev_info(cm->dev, "Charging health is recover good\n");
 		uevent_notify(cm, "Recharging");
 		try_charger_enable(cm, true);
+		cm->charging_status &= ~CM_CHARGE_HEALTH_ABNORMAL;
+		return 0;
+	} else if (cm->charging_status & CM_CHARGE_HEALTH_ABNORMAL) {
+		dev_info(cm->dev, "Charging health is still abnormal\n");
 		return 0;
 	}
 
@@ -901,6 +918,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		dev_warn(cm->dev,
 			 "stop charging due to battery overheat or cold\n");
 		try_charger_enable(cm, false);
+		cm->charging_status |= CM_CHARGE_TEMP_ABNORMAL;
 		return false;
 	}
 
@@ -947,6 +965,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		return false;
 
 	try_charger_enable(cm, true);
+	cm->charging_status &= ~CM_CHARGE_TEMP_ABNORMAL;
 	return true;
 }
 
@@ -1168,6 +1187,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 		fullbatt_vchk(&cm->fullbatt_vchk_work.work);
 	} else {
 		cm->emergency_stop = 0;
+		cm->charging_status = 0;
 		if (is_ext_pwr_online(cm)) {
 			dev_info(cm->dev, "No emergency stop, charging\n");
 			if (!try_charger_enable(cm, true))
