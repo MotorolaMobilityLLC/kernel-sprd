@@ -663,6 +663,10 @@ static int check_charging_duration(struct charger_manager *cm)
 			!desc->discharging_max_duration_ms)
 		return ret;
 
+	if (cm->charging_status != 0 &&
+	    !(cm->charging_status & CM_CHARGE_DURATION_ABNORMAL))
+		return ret;
+
 	if (cm->charger_enabled) {
 		duration = curr - cm->charging_start_time;
 
@@ -781,6 +785,10 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 	if (!desc->charge_voltage_max || !desc->charge_voltage_drop)
 		return -EINVAL;
 
+	if (cm->charging_status != 0 &&
+	    !(cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL))
+		return -EINVAL;
+
 	fuel_gauge = power_supply_get_by_name(desc->psy_fuel_gauge);
 	if (!fuel_gauge)
 		return -ENODEV;
@@ -824,6 +832,10 @@ static int cm_check_charge_health(struct charger_manager *cm)
 	union power_supply_propval val;
 	int health = POWER_SUPPLY_HEALTH_UNKNOWN;
 	int ret, i;
+
+	if (cm->charging_status != 0 &&
+	    !(cm->charging_status & CM_CHARGE_HEALTH_ABNORMAL))
+		return -EINVAL;
 
 	for (i = 0; desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
@@ -910,6 +922,10 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	union power_supply_propval val;
 	struct power_supply *psy;
 	int term_volt, target_cur, i, ret = -ENODEV;
+
+	if (cm->charging_status != 0 &&
+	    !(cm->charging_status & CM_CHARGE_TEMP_ABNORMAL))
+		return true;
 
 	if (jeita_status > desc->jeita_tab_size)
 		jeita_status = desc->jeita_tab_size;
