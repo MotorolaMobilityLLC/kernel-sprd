@@ -39,10 +39,10 @@ int notify_pam_ipa_miniap_ready(void)
 	cfg = s_miniap_delegator->delegator.cfg;
 	sprd_ep_ipa_map(PCIE_IPA_TYPE_MEM,
 			cfg->mem_base,
-			cfg->mem_base - cfg->mem_end);
+			cfg->mem_end - cfg->mem_base);
 	reg_mapped = sprd_ep_ipa_map(PCIE_IPA_TYPE_REG,
 				     cfg->reg_base,
-				     cfg->reg_base - cfg->reg_end);
+				     cfg->reg_end - cfg->reg_base);
 	/* notify pam_ipa */
 	info.term = SIPA_TERM_PCIE0;
 	info.dl_fifo.rx_fifo_base_addr = s_miniap_delegator->dl_free_fifo_phy;
