@@ -1094,7 +1094,6 @@ static int musb_sprd_runtime_suspend(struct device *dev)
 	struct sprd_musb_dma_controller *controller = container_of(c,
 			struct sprd_musb_dma_controller, controller);
 	int ret;
-	unsigned long flags;
 
 	if (glue->dr_mode == USB_DR_MODE_HOST)
 		usb_phy_vbus_off(glue->xceiv);
@@ -1110,9 +1109,7 @@ static int musb_sprd_runtime_suspend(struct device *dev)
 	}
 	musb_sprd_disable_all_interrupts(musb);
 
-	spin_lock_irqsave(&musb->lock, flags);
 	clk_disable_unprepare(glue->clk);
-	spin_unlock_irqrestore(&musb->lock, flags);
 
 	if (!musb->shutdowning)
 		usb_phy_shutdown(glue->xceiv);
