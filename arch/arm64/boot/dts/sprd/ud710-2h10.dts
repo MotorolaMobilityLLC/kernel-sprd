@@ -151,7 +151,9 @@
 		cm-battery-temp-diff = <100>;
 
 		/* Allow charging for 6hr */
-		cm-charging-max = <18000000>;
+		cm-charging-max = <21600000>;
+		/* recovery charging after stop charging 3hr */
+		cm-discharging-max = <10800000>;
 
 		/* the interval to feed charger watchdog */
 		cm-wdt-interval = <60>;
