@@ -190,10 +190,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		host->ufsutp_reg = NULL;
 		return -ENODEV;
 	}
-	pr_info("ufsutp_reg vit=0x%llx, phy=0x%llx, len=0x%llx\n",
-		(u64) res->start,
-		(u64) host->ufsutp_reg,
-		(u64) resource_size(res));
 
 	/* map unipro_reg */
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "unipro_reg");
@@ -209,10 +205,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		host->unipro_reg = NULL;
 		return -ENODEV;
 	}
-	pr_info("unipro_reg vit=0x%llx, phy=0x%llx, len=0x%llx\n",
-		(u64) res->start,
-		(u64) host->unipro_reg,
-		(u64) resource_size(res));
 
 	/* map ufs_ao_reg */
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ufs_ao_reg");
@@ -228,10 +220,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		host->ufs_ao_reg = NULL;
 		return -ENODEV;
 	}
-	pr_info("ufs_ao_reg vit=0x%llx, phy=0x%llx, len=0x%llx\n",
-		(u64) res->start,
-		(u64) host->ufs_ao_reg,
-		(u64) resource_size(res));
 
 	/* map ufs_tuning */
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ufs_tuning");
@@ -247,10 +235,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		host->ufs_tuning = NULL;
 		return -ENODEV;
 	}
-	pr_info("ufs_tuning vit=0x%llx, phy=0x%llx, len=0x%llx\n",
-		(u64) res->start,
-		(u64) host->ufs_tuning,
-		(u64) resource_size(res));
 
 	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->aon_apb_ufs_en,
 				      "aon_apb_ufs_en");
