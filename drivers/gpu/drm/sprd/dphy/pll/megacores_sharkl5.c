@@ -328,6 +328,7 @@ static int dphy_set_pll_reg(struct regmap *regmap, struct dphy_pll *pll)
 	regs._0d.bits.kstep_m = (pll->kstep >> 3) & 0xff;
 	regs._0e.bits.pll_pu_byp = 0;
 	regs._0e.bits.pll_pu = 0;
+	regs._0e.bits.stopstate_sel = 1;
 	regs._0e.bits.kstep_l = pll->kstep & 0x7;
 	regs._0f.bits.det_delay = pll->det_delay;
 	regs._0f.bits.kdelta =  pll->kdelta >> 12;
