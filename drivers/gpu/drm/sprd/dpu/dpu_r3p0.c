@@ -16,6 +16,7 @@
 #include <linux/wait.h>
 #include <linux/workqueue.h>
 #include "sprd_dpu.h"
+#include "sprd_dvfs_dpu.h"
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -375,6 +376,9 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		if ((vsync_count == max_vsync_count) && wb_en)
 			schedule_work(&ctx->wb_work);
 		vsync_count++;
+
+		/* dpu dvfs feature */
+		schedule_work(&ctx->dvfs_work);
 	}
 
 	/* dpu stop done isr */
@@ -658,6 +662,90 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	return 0;
 }
 
+static void dpu_dvfs_work_func(struct work_struct *data)
+{
+	struct dpu_context *ctx =
+		container_of(data, struct dpu_context, dvfs_work);
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	struct sprd_dpu_layer layer, layers[8];
+	int i, j, max_x, max_y, min_x, min_y;
+	int layer_en, max, maxs[8], count = 0;
+	u32 dvfs_freq;
+
+	/*
+	 * Count the current total number of active layers
+	 * and the corresponding pos_x, pos_y, size_x and size_y.
+	 */
+	for (i = 0; i < ARRAY_SIZE(reg->layers); i++) {
+		layer_en = reg->layers[i].ctrl & BIT(0);
+		if (layer_en) {
+			layers[count].dst_x = reg->layers[i].pos & 0xffff;
+			layers[count].dst_y = reg->layers[i].pos >> 16;
+			layers[count].dst_w = reg->layers[i].size & 0xffff;
+			layers[count].dst_h = reg->layers[i].size >> 16;
+			count++;
+		}
+	}
+
+	/*
+	 * Calculate the number of overlaps between each
+	 * layer with other layers, not include itself.
+	 */
+	for (i = 0; i < count; i++) {
+		layer.dst_x = layers[i].dst_x;
+		layer.dst_y = layers[i].dst_y;
+		layer.dst_w = layers[i].dst_w;
+		layer.dst_h = layers[i].dst_h;
+		maxs[i] = 1;
+
+		for (j = 0; j < count; j++) {
+			if (layer.dst_x + layer.dst_w > layers[j].dst_x &&
+				layers[j].dst_x + layers[j].dst_w > layer.dst_x &&
+				layer.dst_y + layer.dst_h > layers[j].dst_y &&
+				layers[j].dst_y + layers[j].dst_h > layer.dst_y &&
+				i != j) {
+				max_x = max(layers[i].dst_x, layers[j].dst_x);
+				max_y = max(layers[i].dst_y, layers[j].dst_y);
+				min_x = min(layers[i].dst_x + layers[i].dst_w,
+					layers[j].dst_x + layers[j].dst_w);
+				min_y = min(layers[i].dst_y + layers[i].dst_h,
+					layers[j].dst_y + layers[j].dst_h);
+
+				layer.dst_x = max_x;
+				layer.dst_y = max_y;
+				layer.dst_w = min_x - max_x;
+				layer.dst_h = min_y - max_y;
+
+				maxs[i]++;
+			}
+		}
+	}
+
+	/* take the maximum number of overlaps */
+	max = maxs[0];
+	for (i = 1; i < count; i++) {
+		if (maxs[i] > max)
+			max = maxs[i];
+	}
+
+	/*
+	 * Determine which frequency to use based on the
+	 * maximum number of overlaps.
+	 * Every IP here may be different, so need to modify it
+	 * according to the actual dpu core clock.
+	 */
+	if (max <= 2)
+		dvfs_freq = 256000000;
+	else if (max == 3)
+		dvfs_freq = 307200000;
+	else if (max == 4)
+		dvfs_freq = 384000000;
+	else
+		dvfs_freq = 468000000;
+
+	dpu_dvfs_notifier_call_chain(&dvfs_freq);
+}
+
 static int dpu_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -693,6 +781,8 @@ static int dpu_init(struct dpu_context *ctx)
 	dpu_enhance_reload(ctx);
 
 	dpu_write_back_config(ctx);
+
+	INIT_WORK(&ctx->dvfs_work, dpu_dvfs_work_func);
 
 	return 0;
 }
