@@ -2478,6 +2478,7 @@
 				syscon-names = "reset";
 				syscons = <&ai_apb_regs REG_AI_APB_APB_RST
 					MASK_AI_APB_POWERVR_SOFT_RST>;
+				sprd,qos = <&ai_qos>;
 				clock-names = "top_eb",
 					"pvr_eb",
 					"pvr_clk",
@@ -2509,6 +2510,7 @@
 				syscons = <&ai_apb_regs
 					REG_AI_APB_AI_CAMBRICON_SOFT_RST
 					MASK_AI_APB_CAMB_SOFT_RST>;
+				sprd,qos = <&ai_qos>;
 				clock-names = "top_eb",
 					"mmu_eb",
 					"cmbn_eb",
