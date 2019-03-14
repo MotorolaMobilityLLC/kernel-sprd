@@ -324,14 +324,10 @@
 		vddcama-supply = <&vddcama>;
 		vddcamd-supply = <&vddcamd>;
 		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <1>;
+		csi = <&csi0>;
 		reset-gpios = <&ap_gpio 44 0>;
 		power-down-gpios = <&ap_gpio 46 0>;
-		host = "dcam0";
-		port {
-			sensor_main_0: endpoint {
-				remote-endpoint = <&phy1_out>;
-			};
-		};
 	};
 };
 
@@ -352,14 +348,10 @@
 		vddcama-supply = <&vddcama>;
 		vddcamd-supply = <&vddcamd>;
 		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <4>;
+		csi = <&csi0>;
 		reset-gpios = <&ap_gpio 41 0>;
 		power-down-gpios = <&ap_gpio 40 0>;
-		host = "dcam0";
-		port {
-			sensor_sub_0: endpoint {
-				remote-endpoint = <&phy0_s_out>;
-			};
-		};
 	};
 
 	sensor_main2: sensor-main2@6C {
@@ -375,16 +367,12 @@
 		vddcama-supply = <&vddcama>;
 		vddcamd-supply = <&vddcamd>;
 		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <3>;
+		csi = <&csi1>;
 		/*avdd-gpios=<&ap_gpio 140 0>;*/
 		dvdd-gpios=<&ap_gpio 62 0>;
 		reset-gpios = <&ap_gpio 45 0>;
 		power-down-gpios = <&ap_gpio 47 0>;
-		host = "dcam1";
-		port {
-			sensor_main_2: endpoint {
-				remote-endpoint = <&phy0_m_out>;
-			};
-		};
 	};
 
 	sensor_sub2: sensor-sub2@2a {
@@ -400,15 +388,11 @@
 		vddcama-supply = <&vddcama>;
 		vddcamd-supply = <&vddcamd>;
 		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <4>;
+		csi = <&csi2>;
 		/*avdd-gpios=<&ap_gpio 140 0>;*/
 		reset-gpios = <&ap_gpio 45 0>;
 		power-down-gpios = <&ap_gpio 40 0>;
-		host = "dcam2";
-		port {
-			sensor_sub_2: endpoint {
-				remote-endpoint = <&phy0_s_out_sub2>;
-			};
-		};
 	};
 };
 
@@ -465,66 +449,6 @@
 		regulator-ramp-delay = <64000>;
 		regulator-always-on;
 		fcs,suspend-voltage-selector = <1>;
-	};
-};
-
-&mipi_csi_phy1 {
-	status = "okay";
-	sprd,phyid = <1>;
-	sprd,csi = <&csi0>;
-	status = "okay";
-	port {
-		phy1_out: endpoint {
-			remote-enpoint = <&sensor_main_0>;
-		};
-	};
-};
-
-&mipi_csi_phy0_m {
-	status = "okay";
-	sprd,phyid = <3>;
-	sprd,csi = <&csi1>;
-	status = "okay";
-	port {
-		phy0_m_out: endpoint {
-			remote-enpoint = <&sensor_main_2>;
-		};
-	};
-};
-
-&mipi_csi_phy0_s {
-	status = "okay";
-	sprd,phyid = <4>;
-	sprd,csi = <&csi0>;
-	status = "okay";
-	port {
-		phy0_s_out: endpoint {
-			remote-enpoint = <&sensor_sub_0>;
-		};
-	};
-};
-
-&mipi_csi_phy0_s1 {
-	status = "okay";
-	sprd,phyid = <4>;
-	sprd,csi = <&csi2>;
-	status = "okay";
-	port {
-		phy0_s_out_sub2: endpoint {
-			remote-enpoint = <&sensor_sub_2>;
-		};
-	};
-};
-
-&mipi_csi_phy2 {
-	status = "okay";
-	sprd,phyid = <2>;
-	sprd,csi = <&csi2>;
-	status = "okay";
-	port {
-		phy2_out: endpoint {
-			remote-enpoint = <&sensor_sub_2>;
-		};
 	};
 };
 

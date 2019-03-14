@@ -1166,6 +1166,21 @@
 	<&ap_clk CLK_AP_I2C6>, <&ext_26m>;
 };
 
+&cam_domain {
+    clock-names = "clk_cphy_cfg_gate_eb",
+				"clk_mm_eb",
+				"clk_mm_ahb",
+				"clk_mm_ahb_parent",
+				"clk_mm_emc",
+				"clk_mm_emc_parent";
+	clocks = <&aonapb_gate CLK_CPHY_CFG_EB>,
+				<&aonapb_gate CLK_MM_EB>,
+				<&aon_clk CLK_MM_AHB>,
+				<&pll CLK_TWPLL_153M6>,
+				<&aon_clk CLK_MM_EMC>,
+				<&pll CLK_TWPLL_512M>;
+};
+
 &dcam {
 	clock-names = "dcam_eb",
 				"dcam_axi_eb",
