@@ -20,7 +20,7 @@
 
 #include "sprd_dvfs_apsys.h"
 #include "sprd_dvfs_dpu.h"
-#include "apsys_reg_sharkl5.h"
+#include "apsys_reg_roc1.h"
 
 static struct ip_dvfs_map_cfg map_table[] = {
 	{0, VOLT70, DPU_CLK_INDEX_153M6, DPU_CLK153M6},
@@ -28,6 +28,7 @@ static struct ip_dvfs_map_cfg map_table[] = {
 	{2, VOLT70, DPU_CLK_INDEX_256M, DPU_CLK256M},
 	{3, VOLT70, DPU_CLK_INDEX_307M2, DPU_CLK307M2},
 	{4, VOLT75, DPU_CLK_INDEX_384M, DPU_CLK384M},
+	{5, VOLT75, DPU_CLK_INDEX_468M, DPU_CLK468M},
 };
 
 static int ip_dvfs_parse_dt(struct dpu_dvfs *dpu,
@@ -64,6 +65,8 @@ static void ip_dvfs_map_cfg(void)
 		map_table[3].volt_level << 3;
 	reg->dispc_index4_map = map_table[4].clk_level |
 		map_table[4].volt_level << 3;
+	reg->dispc_index5_map = map_table[5].clk_level |
+		map_table[5].volt_level << 3;
 }
 
 static void set_ip_work_freq(u32 freq)
@@ -226,9 +229,9 @@ static void set_ip_dvfs_swtrig_en(bool enable)
 
 	mutex_lock(&apsys_glb_reg_lock);
 	if (enable)
-		reg->ap_sw_trig_ctrl |= BIT(0);
+		reg->ap_sw_trig_ctrl |= BIT(2);
 	else
-		reg->ap_sw_trig_ctrl &= ~BIT(0);
+		reg->ap_sw_trig_ctrl &= ~BIT(2);
 	mutex_unlock(&apsys_glb_reg_lock);
 }
 
@@ -261,6 +264,8 @@ static void get_ip_status(struct ip_dvfs_status *dvfs_status)
 	dvfs_status->vsp_vote = (reg->ap_dvfs_voltage_dbg >> 6) & (0x7);
 	dvfs_status->dpu_vote = (reg->ap_dvfs_voltage_dbg >> 3) & (0x7);
 	dvfs_status->ap_volt = (reg->ap_dvfs_voltage_dbg >> 12) & (0x7);
+	dvfs_status->vsp_clk = (reg->ap_dvfs_cgm_cfg_dbg >> 3) & (0x3);
+	dvfs_status->dpu_clk = (reg->ap_dvfs_cgm_cfg_dbg) & (0x7);
 	mutex_unlock(&apsys_glb_reg_lock);
 }
 
@@ -307,7 +312,7 @@ static struct dpu_dvfs_ops dpu_dvfs_ops = {
 };
 
 static struct dvfs_ops_entry dpu_dvfs_entry = {
-	.ver = "sharkl5",
+	.ver = "roc1",
 	.ops = &dpu_dvfs_ops,
 };
 

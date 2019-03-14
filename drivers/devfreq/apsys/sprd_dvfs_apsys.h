@@ -78,6 +78,12 @@ struct ip_dvfs_status {
 	u32 ap_volt;
 	u32 vsp_vote;
 	u32 dpu_vote;
+	u32 vdsp_vote;
+	u32 vsp_clk;
+	u32 dpu_clk;
+	u32 vdsp_clk;
+	u32 vdsp_m0_div;
+	u32 vdsp_edap_div;
 };
 
 struct ip_dvfs_para {

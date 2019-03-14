@@ -11,49 +11,71 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __SPRD_DVFS_DPU_H__
-#define __SPRD_DVFS_DPU_H__
+#ifndef __SPRD_DVFS_VDSP_H__
+#define __SPRD_DVFS_VDSP_H__
 
 #include <linux/device.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/module.h>
 #include <linux/types.h>
-
 #include "sprd_dvfs_apsys.h"
 
 typedef enum {
 	VOLT70 = 0, //0.7v
 	VOLT75, //0.75v
-	VOLT80, //0.8v
+	VOLT80, //0.80v
 } voltage_level;
 
 typedef enum {
-	DPU_CLK_INDEX_153M6 = 0,
-	DPU_CLK_INDEX_192M,
-	DPU_CLK_INDEX_256M,
-	DPU_CLK_INDEX_307M2,
-	DPU_CLK_INDEX_384M,
-	DPU_CLK_INDEX_468M,
+	EDAP_DIV_0 = 0,
+	EDAP_DIV_1,
+	EDAP_DIV_2,
+	EDAP_DIV_3,
+} edap_div_level;
+
+typedef enum {
+	M0_DIV_0 = 0,
+	M0_DIV_1,
+	M0_DIV_2,
+	M0_DIV_3,
+} m0_div_level;
+
+typedef enum {
+	VDSP_CLK_INDEX_192M = 0,
+	VDSP_CLK_INDEX_307M2,
+	VDSP_CLK_INDEX_468M,
+	VDSP_CLK_INDEX_614M4,
+	VDSP_CLK_INDEX_702M,
+	VDSP_CLK_INDEX_768M,
 } clock_level;
 
 typedef enum {
-	DPU_CLK153M6 = 153600000,
-	DPU_CLK192M = 192000000,
-	DPU_CLK256M = 256000000,
-	DPU_CLK307M2 = 307200000,
-	DPU_CLK384M = 384000000,
-	DPU_CLK468M = 468000000,
+	VDSP_CLK192M = 192000000,
+	VDSP_CLK307M2 = 307200000,
+	VDSP_CLK468M = 468000000,
+	VDSP_CLK614M4 = 614400000,
+	VDSP_CLK702M = 702000000,
+	VDSP_CLK768M = 768000000,
 } clock_rate;
 
-struct dpu_dvfs {
+struct vdsp_dvfs_map_cfg {
+	u32 map_index;
+	u32 volt_level;
+	u32 clk_level;
+	u32 clk_rate;
+	u32 edap_div;
+	u32 m0_div;
+};
+
+struct vdsp_dvfs {
 	int dvfs_enable;
 	struct device dev;
 
 	struct devfreq *devfreq;
 	struct opp_table *opp_table;
 	struct devfreq_event_dev *edev;
-	struct notifier_block dpu_dvfs_nb;
+	struct notifier_block vdsp_dvfs_nb;
 
 	u32 work_freq;
 	u32 idle_freq;
@@ -61,13 +83,13 @@ struct dpu_dvfs {
 
 	struct ip_dvfs_coffe dvfs_coffe;
 	struct ip_dvfs_status dvfs_status;
-	struct dpu_dvfs_ops *dvfs_ops;
+	struct vdsp_dvfs_ops *dvfs_ops;
 };
 
-struct dpu_dvfs_ops {
+struct vdsp_dvfs_ops {
 	/* initialization interface */
-	int (*parse_dt)(struct dpu_dvfs *dpu, struct device_node *np);
-	int (*dvfs_init)(struct dpu_dvfs *dpu);
+	int (*parse_dt)(struct vdsp_dvfs *vdsp, struct device_node *np);
+	int (*dvfs_init)(struct vdsp_dvfs *vdsp);
 	void (*hw_dfs_en)(bool dfs_en);
 
 	/* work-idle dvfs index ops */
@@ -97,22 +119,22 @@ struct dpu_dvfs_ops {
 	void (*set_dvfs_swtrig_en)(bool enable);
 };
 
-extern struct list_head dpu_dvfs_head;
-extern struct blocking_notifier_head dpu_dvfs_chain;
+extern struct list_head vdsp_dvfs_head;
+extern struct blocking_notifier_head vdsp_dvfs_chain;
 
 #if IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
-extern int dpu_dvfs_notifier_call_chain(void *data);
+extern int vdsp_dvfs_notifier_call_chain(void *data);
 #else
-static inline int dpu_dvfs_notifier_call_chain(void *data)
+static inline int vdsp_dvfs_notifier_call_chain(void *data)
 {
 	return 0;
 }
 #endif
 
-#define dpu_dvfs_ops_register(entry) \
-	dvfs_ops_register(entry, &dpu_dvfs_head)
+#define vdsp_dvfs_ops_register(entry) \
+	dvfs_ops_register(entry, &vdsp_dvfs_head)
 
-#define dpu_dvfs_ops_attach(str) \
-	dvfs_ops_attach(str, &dpu_dvfs_head)
+#define vdsp_dvfs_ops_attach(str) \
+	dvfs_ops_attach(str, &vdsp_dvfs_head)
 
-#endif /* __SPRD_DVFS_DPU_H__ */
+#endif /* __SPRD_DVFS_VDSP_H__ */

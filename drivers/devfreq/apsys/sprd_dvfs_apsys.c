@@ -277,7 +277,9 @@ static int apsys_dvfs_remove(struct platform_device *pdev)
 
 static const struct of_device_id apsys_dvfs_of_match[] = {
 	{ .compatible = "sprd,hwdvfs-apsys-sharkl5",
-	  .data = (void *)"sharkl5" },
+	  .data = "sharkl5" },
+	{ .compatible = "sprd,hwdvfs-apsys-roc1",
+	  .data = "roc1" },
 	{ },
 };
 
