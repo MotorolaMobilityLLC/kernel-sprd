@@ -106,7 +106,10 @@ class LinuxSourceTree(object):
 		validated_kconfig = kunit_config.Kconfig()
 		validated_kconfig.read_from_file(KCONFIG_PATH)
 		if not self._kconfig.is_subset_of(validated_kconfig):
-			message = 'Provided Kconfig is not contained in validated .config!'
+			missing = self._kconfig.entries() - validated_kconfig.entries()
+			message = 'Provided Kconfig contains fields not in validated .config: %s' % (
+				', '.join([str(e) for e in missing]),
+			)
 			logging.error(message)
 			return ConfigResult(ConfigStatus.FAILURE, message)
 		return ConfigResult(ConfigStatus.SUCCESS, 'Build config!')
@@ -136,7 +139,10 @@ class LinuxSourceTree(object):
 		used_kconfig = kunit_config.Kconfig()
 		used_kconfig.read_from_file(KCONFIG_PATH)
 		if not self._kconfig.is_subset_of(used_kconfig):
-			message = 'Provided Kconfig is not contained in final config!'
+			missing = self._kconfig.entries() - validated_kconfig.entries()
+			message = 'Provided Kconfig contains fields not in final config: %s' % (
+				', '.join([str(e) for e in missing]),
+                        )
 			logging.error(message)
 			return BuildResult(BuildStatus.FAILURE, message)
 		return BuildResult(BuildStatus.SUCCESS, 'Built kernel!')
