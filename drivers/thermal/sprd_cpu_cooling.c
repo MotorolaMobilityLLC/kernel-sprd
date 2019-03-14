@@ -87,7 +87,7 @@ static int cpuidle_thread_fn(void *data)
 				break;
 		}
 
-		pr_info("force cpu%ld enter into idle...\n", cpu);
+		pr_debug("force cpu%ld enter into idle for cooling\n", cpu);
 		set_current_state(TASK_RUNNING);
 		play_idle(10);
 	}
@@ -1227,7 +1227,7 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 
 		if (curr_temp > tp) {
 
-			pr_info("cpu%d curr_temp:%d\n", cpu_idx, curr_temp);
+			pr_debug("cpu%d curr_temp:%d\n", cpu_idx, curr_temp);
 			cpuidle_thread_wakeup(cdev, cpu_idx);
 		}
 	}
@@ -1235,7 +1235,6 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	cpumask_and(&our_online_cpus,
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
 	num_our_online_cpus = cpumask_weight(&our_online_cpus);
-
 	if (cpufreq_device->hotplug_refractory_period) {
 		if (normalised_power <
 			cpu_freq_to_power(cpufreq_device, target_freq))
@@ -1252,6 +1251,8 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	trace_thermal_power_cpu_limit(&cpufreq_device->allowed_cpus,
 				      target_freq, *state, power);
 
+	cpumask_and(&our_online_cpus,
+		&cpufreq_device->allowed_cpus, cpu_online_mask);
 	num_our_online_cpus = cpumask_weight(&our_online_cpus);
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	if (count == 5) {

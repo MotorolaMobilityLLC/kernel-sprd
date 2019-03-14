@@ -261,7 +261,7 @@ static int get_all_core_temp(int cluster_id, int cpu)
 			return -1;
 		}
 
-		pr_info("%s:%d\n", tz->type, cpc->core_temp[cpu+i]);
+		pr_debug("%s:%d\n", tz->type, cpc->core_temp[cpu+i]);
     }
 
 	return ret;
