@@ -383,6 +383,14 @@ void gsp_core_trigger(struct kthread_work *work)
 		goto done;
 	}
 
+	GSP_DEBUG("kcfg[%d] iommu map start\n", gsp_kcfg_to_tag(kcfg));
+	ret = gsp_kcfg_iommu_map(kcfg);
+	if (ret) {
+		GSP_ERR("kcfg[%d] iommu map failed\n", gsp_kcfg_to_tag(kcfg));
+		gsp_core_state_set(core, CORE_STATE_MAP_ERR);
+		goto done;
+	}
+
 	if (gsp_kcfg_is_async(kcfg)) {
 		GSP_DEBUG("gsp kcfg start fence wait\n");
 		ret = gsp_kcfg_fence_wait(kcfg);
