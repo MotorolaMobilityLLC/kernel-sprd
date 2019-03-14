@@ -2383,6 +2383,14 @@
 				status = "disabled";
 			};
 
+			apsys_dvfs: apsys-dvfs@71700000 {
+				compatible = "sprd,hwdvfs-apsys-roc1";
+				reg = <0x0 0x71700000 0x0 0x15c>;
+
+				sprd,ap-dvfs-up-window = <0x40>;
+				sprd,ap-dvfs-down-window = <0x80>;
+			};
+
 			iommu_vdsp_edp: iommu_edp@78000000 {
 				compatible = "sprd,iommuexroc1-edp";
 				reg = <0 0x78000000 0 0x401600>,

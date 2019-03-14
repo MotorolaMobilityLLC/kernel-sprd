@@ -49,6 +49,39 @@
 		gsp = <&gsp>;
 	};
 
+	dpu_dvfs: dpu-dvfs {
+		compatible = "sprd,hwdvfs-dpu-roc1";
+		sprd,hw-dvfs-en = <0>;
+		sprd,work-index-def = <4>;
+		sprd,idle-index-def = <2>;
+
+		operating-points = <
+			/* kHz    uV */
+			153600    700000
+			192000    700000
+			256000    700000
+			307200    700000
+			384000    750000
+		>;
+	};
+
+	vdsp_dvfs: vdsp-dvfs {
+		compatible = "sprd,hwdvfs-vdsp-roc1";
+		sprd,hw-dvfs-en = <0>;
+		sprd,work-index-def = <5>;
+		sprd,idle-index-def = <1>;
+
+		operating-points = <
+			/* kHz    uV */
+			192000    700000
+			307200    700000
+			468000    750000
+			614400    800000
+			702000    800000
+			768000    800000
+		>;
+	};
+
 	sprd-sensorhub {
 		compatible = "sprd,roc1-sensorhub";
 	};
