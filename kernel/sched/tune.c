@@ -35,6 +35,10 @@ struct schedtune {
 	/* Hint to bias scheduling of tasks on that SchedTune CGroup
 	 * towards idle CPUs */
 	int prefer_idle;
+
+#ifdef CONFIG_SCHED_WALT
+	int account_wait_time;
+#endif
 };
 
 static inline struct schedtune *css_st(struct cgroup_subsys_state *css)
@@ -65,6 +69,9 @@ static struct schedtune
 root_schedtune = {
 	.boost	= 0,
 	.prefer_idle = 0,
+#ifdef CONFIG_SCHED_WALT
+	.account_wait_time = 0,
+#endif
 };
 
 /*
@@ -438,6 +445,25 @@ int schedtune_prefer_idle(struct task_struct *p)
 	return prefer_idle;
 }
 
+#ifdef CONFIG_SCHED_WALT
+int schedtune_account_wait_time(struct task_struct *p)
+{
+	struct schedtune *st;
+	int account_wait_time;
+
+	if (!unlikely(schedtune_initialized))
+		return 0;
+
+	/* Get account_wait_time value */
+	rcu_read_lock();
+	st = task_schedtune(p);
+	account_wait_time = st->account_wait_time;
+	rcu_read_unlock();
+
+	return account_wait_time;
+}
+#endif
+
 static u64
 prefer_idle_read(struct cgroup_subsys_state *css, struct cftype *cft)
 {
@@ -481,6 +507,27 @@ boost_write(struct cgroup_subsys_state *css, struct cftype *cft,
 	return 0;
 }
 
+#ifdef CONFIG_SCHED_WALT
+static u64
+account_wait_time_read(struct cgroup_subsys_state *css, struct cftype *cft)
+{
+	struct schedtune *st = css_st(css);
+
+	return st->account_wait_time;
+}
+
+static int
+account_wait_time_write(struct cgroup_subsys_state *css, struct cftype *cft,
+			u64 account_wait_time)
+{
+	struct schedtune *st = css_st(css);
+
+	st->account_wait_time = account_wait_time;
+
+	return 0;
+}
+#endif
+
 static struct cftype files[] = {
 	{
 		.name = "boost",
@@ -492,6 +539,13 @@ static struct cftype files[] = {
 		.read_u64 = prefer_idle_read,
 		.write_u64 = prefer_idle_write,
 	},
+#ifdef CONFIG_SCHED_WALT
+	{
+		.name = "account_wait_time",
+		.read_u64 = account_wait_time_read,
+		.write_u64 = account_wait_time_write,
+	},
+#endif
 	{ }	/* terminate */
 };
 

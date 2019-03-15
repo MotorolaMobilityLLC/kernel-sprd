@@ -24,6 +24,7 @@
 #include <trace/events/sched.h>
 #include "sched.h"
 #include "walt.h"
+#include "tune.h"
 
 #define WINDOW_STATS_RECENT		0
 #define WINDOW_STATS_MAX		1
@@ -547,16 +548,20 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 
 static int account_busy_for_task_demand(struct task_struct *p, int event)
 {
+	bool account_wait_time = walt_account_wait_time > 0;
+
 	/* No need to bother updating task demand for exiting tasks
 	 * or the idle task. */
 	if (exiting_task(p) || is_idle_task(p))
 		return 0;
 
+	account_wait_time = schedtune_account_wait_time(p) > 0;
+
 	/* When a task is waking up it is completing a segment of non-busy
 	 * time. Likewise, if wait time is not treated as busy time, then
 	 * when a task begins to run or is migrated, it is not running and
 	 * is completing a segment of non-busy time. */
-	if (event == TASK_WAKE || (!walt_account_wait_time &&
+	if (event == TASK_WAKE || (!account_wait_time &&
 			 (event == PICK_NEXT_TASK || event == TASK_MIGRATE)))
 		return 0;
 
