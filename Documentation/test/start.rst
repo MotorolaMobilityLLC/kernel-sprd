@@ -31,7 +31,7 @@ regular Kernel config, with the specific test targets as well.
 
 	git clone -b kunit/alpha/master https://kunit.googlesource.com/kunitconfig $PATH_TO_KUNITCONFIG_REPO
 	cd $PATH_TO_LINUX_REPO
-	ln -s $PATH_TO_KUNIT_CONFIG_REPO/kunitconfig kunitconfig
+	ln -s $PATH_TO_KUNITCONFIG_REPO/kunitconfig kunitconfig
 
 You may want to add kunitconfig to your local gitignore.
 
@@ -43,7 +43,7 @@ wrapper from your kernel repo:
 
 .. code-block:: bash
 
-	./tools/testing/kunit/kunit.py
+	./tools/testing/kunit/kunit.py run
 
 .. note::
    You may want to run ``make mrproper`` first.
@@ -110,8 +110,8 @@ Now we are ready to write the test. The test will be in
 
 .. code-block:: c
 
-	#include <linux/test.h>
-	#include <linux/mock.h>
+	#include <test/test.h>
+	#include <test/mock.h>
 	#include "example.h"
 
 	/* Define the mock. */
