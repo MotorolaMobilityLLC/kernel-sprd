@@ -44,12 +44,14 @@ struct sugov_policy {
 	unsigned int next_freq;
 	unsigned int cached_raw_freq;
 	struct timer_list slack_timer;
+	struct hrtimer performance_htimer;
 	/* The next fields are only needed if fast switch cannot be used. */
 	struct irq_work irq_work;
 	struct kthread_work work;
 	struct mutex work_lock;
 	struct kthread_worker worker;
 	struct task_struct *thread;
+	struct task_struct *performance_thread;
 	bool work_in_progress;
 
 	bool need_freq_update;
@@ -349,6 +351,25 @@ static bool sugov_cpu_is_busy(struct sugov_cpu *sg_cpu)
 static inline bool sugov_cpu_is_busy(struct sugov_cpu *sg_cpu) { return false; }
 #endif /* CONFIG_NO_HZ_COMMON */
 
+static int sugov_performance_htimer_cancel(struct sugov_policy *sg_policy)
+{
+	return hrtimer_try_to_cancel(&sg_policy->performance_htimer);
+}
+
+static void sugov_performance_htimer_start(struct sugov_policy *sg_policy,
+					   u64 time)
+{
+	s64 delta_ns = time - sg_policy->last_freq_update_time;
+	s64 expires_ns = sg_policy->min_rate_limit_ns - delta_ns;
+
+	if (expires_ns > 0 && !hrtimer_active(&sg_policy->performance_htimer)) {
+		ktime_t expires_ktime = ns_to_ktime(expires_ns);
+
+		hrtimer_start(&sg_policy->performance_htimer, expires_ktime,
+			      HRTIMER_MODE_REL_PINNED);
+	}
+}
+
 static void sugov_update_single(struct update_util_data *hook, u64 time,
 				unsigned int flags)
 {
@@ -362,8 +383,12 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	sugov_set_iowait_boost(sg_cpu, time, flags);
 	sg_cpu->last_update = time;
 
-	if (!sugov_should_update_freq(sg_policy, time))
+	if (!sugov_should_update_freq(sg_policy, time)) {
+		sugov_performance_htimer_start(sg_policy, time);
 		return;
+	}
+
+	sugov_performance_htimer_cancel(sg_policy);
 
 	busy = sugov_cpu_is_busy(sg_cpu);
 
@@ -454,7 +479,11 @@ static void sugov_update_shared(struct update_util_data *hook, u64 time,
 		else
 			next_f = sugov_next_freq_shared(sg_cpu, time);
 
+		sugov_performance_htimer_cancel(sg_policy);
+
 		sugov_update_commit(sg_policy, time, next_f);
+	} else {
+		sugov_performance_htimer_start(sg_policy, time);
 	}
 
 	raw_spin_unlock(&sg_policy->update_lock);
@@ -660,9 +689,28 @@ static void sugov_policy_free(struct sugov_policy *sg_policy)
 	kfree(sg_policy);
 }
 
+static int sugov_performance_fn(void *data)
+{
+	while (!kthread_should_stop()) {
+		set_current_state(TASK_INTERRUPTIBLE);
+		schedule();
+		set_current_state(TASK_RUNNING);
+	}
+	return 0;
+}
+
+static enum hrtimer_restart sugov_performance_htimer_fn(struct hrtimer *h)
+{
+	struct sugov_policy *sg_policy =
+		container_of(h, struct sugov_policy, performance_htimer);
+	wake_up_process(sg_policy->performance_thread);
+
+	return HRTIMER_NORESTART;
+}
+
 static int sugov_kthread_create(struct sugov_policy *sg_policy)
 {
-	struct task_struct *thread;
+	struct task_struct *thread, *performance_thread;
 	struct sched_param param = { .sched_priority = MAX_USER_RT_PRIO / 2 };
 	struct cpufreq_policy *policy = sg_policy->policy;
 	int ret;
@@ -699,6 +747,21 @@ static int sugov_kthread_create(struct sugov_policy *sg_policy)
 
 	wake_up_process(thread);
 
+	hrtimer_init(&sg_policy->performance_htimer, CLOCK_MONOTONIC,
+		     HRTIMER_MODE_REL);
+	sg_policy->performance_htimer.function = sugov_performance_htimer_fn;
+	performance_thread = kthread_create(sugov_performance_fn, NULL,
+				"sugov_perf:%d",
+				cpumask_first(policy->related_cpus));
+	if (IS_ERR(performance_thread)) {
+		pr_err("failed to create sugov performance_thread: %ld\n",
+		       PTR_ERR(performance_thread));
+		return PTR_ERR(performance_thread);
+	}
+	sg_policy->performance_thread = performance_thread;
+	kthread_bind_mask(performance_thread, policy->related_cpus);
+	wake_up_process(performance_thread);
+
 	return 0;
 }
 
@@ -711,6 +774,9 @@ static void sugov_kthread_stop(struct sugov_policy *sg_policy)
 	kthread_flush_worker(&sg_policy->worker);
 	kthread_stop(sg_policy->thread);
 	mutex_destroy(&sg_policy->work_lock);
+
+	sugov_performance_htimer_cancel(sg_policy);
+	kthread_stop(sg_policy->performance_thread);
 }
 
 static struct sugov_tunables *sugov_tunables_alloc(struct sugov_policy *sg_policy)
