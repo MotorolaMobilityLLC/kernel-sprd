@@ -10012,7 +10012,7 @@ CONFIG_SPRD_IQ
 	[function] This function is used to enable wcdma iq log function.
 CONFIG_SPRD_IRQS_MONITOR
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] soc
 	[must] debug
