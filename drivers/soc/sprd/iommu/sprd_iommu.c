@@ -826,6 +826,7 @@ int sprd_iommu_restore(struct device *dev)
 	sprd_iommu_pool_show(iommu_dev);
 	return ret;
 }
+EXPORT_SYMBOL(sprd_iommu_restore);
 
 static int sprd_iommu_get_resource(struct device_node *np,
 				struct sprd_iommu_init_data *pdata)
