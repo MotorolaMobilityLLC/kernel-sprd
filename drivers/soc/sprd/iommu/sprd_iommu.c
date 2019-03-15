@@ -827,6 +827,7 @@ int sprd_iommu_restore(struct device *dev)
 	sprd_iommu_pool_show(iommu_dev);
 	return ret;
 }
+EXPORT_SYMBOL(sprd_iommu_restore);
 
 int sprd_iommu_set_cam_bypass(bool vaor_bp_en)
 {
