@@ -89,6 +89,10 @@
 	status = "okay";
 };
 
+&vddcamd0 {
+	regulator-always-on;
+};
+
 &vddwcn {
 	regulator-always-on;
 };
