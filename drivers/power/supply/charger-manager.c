@@ -388,25 +388,29 @@ static bool is_full_charged(struct charger_manager *cm)
 	}
 
 	/* Full, if it's over the fullbatt voltage */
-	if (desc->fullbatt_uV > 0) {
+	if (desc->fullbatt_uV > 0 && desc->fullbatt_uA > 0) {
 		ret = get_batt_uV(cm, &uV);
-		if (!ret && uV >= desc->fullbatt_uV) {
-			if (desc->fullbatt_uA > 0) {
-				ret = get_batt_uA(cm, &uA);
-				if (!ret && uA <= desc->fullbatt_uA && ++desc->trigger_cnt > 1) {
-					desc->trigger_cnt = 0;
-					if (cm->desc->cap >= 100) {
-						is_full = true;
-					} else {
-						cm->desc->force_set_full = true;
-						is_full = false;
-					}
-				}
-				goto out;
-			} else {
+		if (ret)
+			goto out;
+
+		ret = get_batt_uA(cm, &uA);
+		if (ret)
+			goto out;
+
+		if (uV >= desc->fullbatt_uV && uA <= desc->fullbatt_uA &&
+		    ++desc->trigger_cnt > 1) {
+			desc->trigger_cnt = 0;
+			if (cm->desc->cap >= 100) {
 				is_full = true;
-				goto out;
+			} else {
+				cm->desc->force_set_full = true;
+				is_full = false;
 			}
+			goto out;
+		} else {
+			cm->desc->force_set_full = false;
+			is_full = false;
+			goto out;
 		}
 	}
 
