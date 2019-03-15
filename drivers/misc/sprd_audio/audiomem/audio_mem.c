@@ -167,9 +167,12 @@ static u32 audio_addr_ap2dsp_orca(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
 	case IRAM_SMS_COMMD_PARAMS:
 	case IRAM_SMS:
 	case DDR32_DSPMEMDUMP:
+	case MEM_AUDCP_DSPBIN:
 	case DDR32:
 		ret_val = invert ? (addr - dma_offset) : (addr + dma_offset);
-		break;
+	break;
+	/* ignore iram audcp aon */
+	case IRAM_AUDCP_AON:
 	default:
 		pr_err("%s not supported mem_type %d\n", __func__, mem_type);
 		ret_val = 0;
@@ -194,6 +197,7 @@ static u32 audio_addr_ap2dsp_sharkl5(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
 	case IRAM_SHM_REG_DUMP:
 	case DDR32_DSPMEMDUMP:
 	case IRAM_SHM_IVS_SMARTPA:
+	case MEM_AUDCP_DSPBIN:
 	case DDR32:
 		ret_val = invert ? (addr - dma_offset) : (addr + dma_offset);
 		break;
@@ -206,6 +210,8 @@ static u32 audio_addr_ap2dsp_sharkl5(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
 		(addr - iram_ap_base +
 		iram_dsp_base);
 		break;
+	/* ignore */
+	case IRAM_AUDCP_AON:
 	default:
 		ret_val = 0;
 		pr_err("%s not supported mem_type %d\n", __func__, mem_type);
@@ -246,6 +252,9 @@ u32 audio_addr_ap2dsp(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
 		ret_val = invert ? (addr - dma_offset) : (addr + dma_offset);
 	} else if (mem_type == DDR32) {
 		ret_val = invert ? (addr - dma_offset) : (addr + dma_offset);
+	} else if (mem_type == IRAM_AUDCP_AON) {
+		pr_info("ignroe IRAM_AUDCP_AON\n");
+		ret_val = 0;
 	} else {
 		ret_val = addr;
 		pr_info("%s unknown mem_type %d,ret_val =%#x\n", __func__,
@@ -286,6 +295,8 @@ u32 audio_mem_alloc(enum AUDIO_MEM_TYPE_E mem_type, u32 *size_inout)
 	case IRAM_NORMAL_C_LINKLIST_NODE1:
 	case IRAM_NORMAL_C_LINKLIST_NODE2:
 	case IRAM_NORMAL_C_DATA:
+	case MEM_AUDCP_DSPBIN:
+	case IRAM_AUDCP_AON:
 		ret_val = audio_mem[mem_type].addr;
 		*size_inout = audio_mem[mem_type].size;
 		break;
@@ -315,6 +326,8 @@ void audio_mem_free(enum AUDIO_MEM_TYPE_E mem_type, u32 addr,
 	case IRAM_SHM_NXP:
 	case IRAM_SHM_REG_DUMP:
 	case IRAM_SHM_IVS_SMARTPA:
+	case MEM_AUDCP_DSPBIN:
+	case IRAM_AUDCP_AON:
 	case IRAM_OFFLOAD:
 	case DDR32_DSPMEMDUMP:
 	case IRAM_DSPLOG:
@@ -704,6 +717,23 @@ static int audio_mem_sharkl5_parse_dt(struct device_node *np)
 		return -EINVAL;
 	}
 
+	memnp = of_parse_phandle(np, "memory-region", 1);
+	if (!memnp) {
+		pr_err("get phandle 'memory-region' failed!\n");
+		return -ENODEV;
+	}
+	ret = of_address_to_resource(memnp, 0, &res);
+	if (ret) {
+		pr_err("of_address_to_resource failed!(%d)\n", ret);
+		of_node_put(memnp);
+		return ret;
+	}
+	of_node_put(memnp);
+	audio_mem[MEM_AUDCP_DSPBIN].addr = (u32)res.start;
+	audio_mem[MEM_AUDCP_DSPBIN].size = (u32)resource_size(&res);
+	pr_info("dsp_bin (addr, size): (%#x, %#x)\n",
+		audio_mem[MEM_AUDCP_DSPBIN].addr,
+		audio_mem[MEM_AUDCP_DSPBIN].size);
 	/* DDR32 memory */
 	memnp = of_parse_phandle(np, "memory-region", 0);
 	if (!memnp) {
@@ -717,9 +747,6 @@ static int audio_mem_sharkl5_parse_dt(struct device_node *np)
 	}
 	of_node_put(memnp);
 	ddr32_size = (u32)(res.end - res.start) + 1;
-	pr_info("%s res.start=%#lx, res.end=%#lx\n", __func__,
-		(unsigned long)res.start, (unsigned long)res.end);
-
 	if (!of_property_read_u32_array
 		(np, "ddr32-ap-dsp-map-offset", &val_arr[0], 1)) {
 		dma_offset = val_arr[0];
@@ -914,6 +941,18 @@ static int audio_mem_sharkl5_parse_dt(struct device_node *np)
 		audio_mem[IRAM_NORMAL_C_DATA].addr,
 		audio_mem[IRAM_NORMAL_C_DATA].size);
 
+	/* audio cp aon iram */
+	if (!of_property_read_u32_array(np, "sprd,audcp-aon-iram",
+					&val_arr[0], 2)) {
+		audio_mem[IRAM_AUDCP_AON].addr = val_arr[0];
+		audio_mem[IRAM_AUDCP_AON].size = val_arr[1];
+		pr_info("iram audcp aon (addr size), (%#x, %#x)\n",
+			audio_mem[IRAM_AUDCP_AON].addr,
+			audio_mem[IRAM_AUDCP_AON].size);
+	} else {
+		pr_err("%s, ERR:Must give me the offload addr!\n", __func__);
+	}
+
 	return 0;
 }
 
@@ -930,6 +969,23 @@ static int audio_mem_orca_probe(struct platform_device *pdev)
 		pr_err("%s, np is NULL!\n", __func__);
 		return -EINVAL;
 	}
+
+	memnp = of_parse_phandle(np, "memory-region", 1);
+	if (!memnp) {
+		pr_err("get phandle 'memory-region' failed!\n");
+		return -ENODEV;
+	}
+	ret = of_address_to_resource(memnp, 0, &res);
+	if (ret != 0) {
+		pr_err("of_address_to_resource failed!(%d)\n", ret);
+		return -EINVAL;
+	}
+	of_node_put(memnp);
+	audio_mem[MEM_AUDCP_DSPBIN].addr = (u32)res.start;
+	audio_mem[MEM_AUDCP_DSPBIN].size = (u32)resource_size(&res);
+	pr_info("dsp_bin (addr, size): (%#x, %#x)\n",
+		audio_mem[MEM_AUDCP_DSPBIN].addr,
+		audio_mem[MEM_AUDCP_DSPBIN].size);
 
 	/* DDR32 memory */
 	memnp = of_parse_phandle(np, "memory-region", 0);
@@ -1006,6 +1062,18 @@ static int audio_mem_orca_probe(struct platform_device *pdev)
 		audio_mem[DDR32_DSPMEMDUMP].addr,
 		audio_mem[DDR32_DSPMEMDUMP].size,
 		audio_mem[DDR32].addr, audio_mem[DDR32].size);
+
+	/* audio cp aon iram */
+	if (!of_property_read_u32_array(np, "sprd,audcp-aon-iram",
+					&val_arr[0], 2)) {
+		audio_mem[IRAM_AUDCP_AON].addr = val_arr[0];
+		audio_mem[IRAM_AUDCP_AON].size = val_arr[1];
+		pr_info("iram audcp aon (addr size), (%#x, %#x)\n",
+			audio_mem[IRAM_AUDCP_AON].addr,
+			audio_mem[IRAM_AUDCP_AON].size);
+	} else {
+		pr_err("%s, ERR:Must give me the offload addr!\n", __func__);
+	}
 
 	return 0;
 }

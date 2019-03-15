@@ -59,5 +59,9 @@ int aud_send_cmd_no_param(uint16_t channel, u32 cmd,
 			  u32 value0, u32 value1,
 			  u32 value2, int32_t value3, int32_t timeout);
 u32 aud_ipc_dump(void *buf, u32 buf_bytes);
+int aud_get_aud_ipc_smsg_addr(unsigned long *phy, unsigned long *virt,
+			      u32 *size);
+int aud_get_aud_ipc_smsg_para_addr(unsigned long *phy,
+				   unsigned long *virt, u32 *size);
 
 #endif /* __AUDIO_SIPC_H */

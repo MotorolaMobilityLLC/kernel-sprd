@@ -18,6 +18,7 @@ Required properties:
 - sprd,iram-dsp-base : iram base for audio co-processor.
 - sprd,offload-addr ; compress offload iram offset,
 	this offset is used to transform agcp address to ap address of iram.
+- sprd,audcp-aon-iram : The iram used as private data for audio cp in aon area.
 
 Example:
 audio-mem-mgr {
@@ -56,4 +57,6 @@ audio-mem-mgr {
 	sprd,iram-dsp-base = <0x01800000>;
 	/* mp3 23K */
 	sprd,offload-addr = <0x33800000 0x5c00>;
+	/* iram for audio cp aon */
+	sprd,audcp-aon-iram = <0xa400 0x1000>;
 };

@@ -91,6 +91,7 @@ struct audio_ipc {
 	struct mutex	lock_block_param;
 
 	unsigned long smsg_base_v;
+	unsigned long smsg_base_p;
 	u32  size_inout;
 };
 
@@ -204,6 +205,7 @@ static int audio_sipc_create(int target_id)
 	}
 
 	sipc->smsg_base_v = smsg_base_v;
+	sipc->smsg_base_p = smsg_base_p;
 	sipc->size_inout = size_inout;
 
 	memset_io((void *)smsg_base_v, 0, size_inout);
@@ -399,6 +401,35 @@ u32 aud_ipc_dump(void *buf, u32 buf_bytes)
 	}
 
 	return bytes;
+}
+
+/* @return 0 success, <0 failed. */
+int aud_get_aud_ipc_smsg_addr(unsigned long *phy, unsigned long *virt,
+			      u32 *size)
+{
+	struct audio_ipc *aud_ipc = aud_ipc_get();
+
+	*phy = aud_ipc->smsg_base_p;
+	*virt = aud_ipc->smsg_base_v;
+	*size = aud_ipc->size_inout;
+	if (*virt && *phy && *size)
+		return 0;
+
+	return -ENOMEM;
+}
+
+int aud_get_aud_ipc_smsg_para_addr(unsigned long *phy,
+				   unsigned long *virt, u32 *size)
+{
+	struct audio_ipc *aud_ipc = aud_ipc_get();
+
+	*phy = aud_ipc->param_addr_p;
+	*virt = aud_ipc->param_addr_v;
+	*size = aud_ipc->param_size;
+	if (*virt && *phy && *size)
+		return 0;
+
+	return -ENOMEM;
 }
 
 static int aud_ipc_init(int target_id)
