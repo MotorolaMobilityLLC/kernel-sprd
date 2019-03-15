@@ -529,7 +529,7 @@
 					<&g12_pll CLK_ISPPLL_468M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp-count = <1>;
-				/*iommus = <&iommu_isp>;*/
+				iommus = <&iommu_isp>;
 				/*isp_qos = <&isp_qos>;*/
 				status = "disabled";
 			};
@@ -672,7 +672,19 @@
 						MASK_AON_APB_MM_EB>;
 				syscon-names = "reset",
 					"aon_apb_eb";
+				iommus = <&iommu_jpg>;
 				status = "disabled";
+			};
+
+			iommu_jpg: iommu@62700000 {
+				compatible = "sprd,iommuexroc1-jpg";
+				reg = <0x0 0x62700000 0x0 0x800>,
+				      <0x0 0x62700300 0x0 0x80>;
+				iova-base = <0x70000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
 			};
 
 			cpp: cpp@62800000 {
@@ -686,7 +698,7 @@
 					<&mm_clk CLK_CPP>,
 					<&g12_pll CLK_TWPLL_384M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
-				/* iommus = <&iommu_cpp>; */
+				iommus = <&iommu_cpp>;
 				/* cpp_qos = <&cpp_qos>; */
 				status = "disabled";
 			};
@@ -751,7 +763,7 @@
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
 				sprd,project-id = <1>;
-				/*iommus = <&iommu_dcam>;*/
+				iommus = <&iommu_dcam>;
 				/*dcam_qos = <&dcam_qos>;*/
 				status = "disabled";
 			};
@@ -1160,7 +1172,19 @@
 					"pmu_vsp_auto_shutdown",
 					"pmu_pwr_status",
 					"vsp_domain_eb";
+				iommus = <&iommu_vsp>;
 				status = "disabled";
+			};
+
+			iommu_vsp: iommu@20500000 {
+				compatible = "sprd,iommuexroc1-vsp";
+				reg = <0 0x20501000 0 0xb000>,
+				      <0 0x20500000 0 0x80>;
+				iova-base = <0x40000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
 			};
 
 			pcie0: pcie@20c00000 {

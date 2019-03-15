@@ -192,10 +192,6 @@
 			reg = <0x0 0x9f000000 0x0 0x00040000>;
 		};
 
-		mm_reserved: mm-mem@dcdc0000 {
-			reg = <0x0 0xdcdc0000 0x0 0x1c000000>;
-		};
-
 		ipa_reserved: ipa-mem@f8dc0000 {
 			reg = <0x0 0xf8dc0000 0x0 0x03000000>;
 		};
@@ -228,7 +224,6 @@
 			reg = <1>;
 			label = "carveout_mm";
 			type = <2>;
-			memory-region = <&mm_reserved>;
 		};
 
 		heap@2 {
