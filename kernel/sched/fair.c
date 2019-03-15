@@ -6689,6 +6689,7 @@ static int wake_affine(struct sched_domain *sd, struct task_struct *p,
 #ifdef CONFIG_SCHED_TUNE
 struct reciprocal_value schedtune_spc_rdiv;
 
+unsigned int spc_threshold = 100;
 static long
 schedtune_margin(unsigned long signal, long boost)
 {
@@ -6703,8 +6704,12 @@ schedtune_margin(unsigned long signal, long boost)
 	 * The obtained M could be used by the caller to "boost" S.
 	 */
 	if (boost >= 0) {
-		margin  = SCHED_CAPACITY_SCALE - signal;
-		margin *= boost;
+		if (signal < spc_threshold)
+			margin = signal * boost;
+		else {
+			margin  = SCHED_CAPACITY_SCALE - signal;
+			margin *= boost;
+		}
 	} else
 		margin = -signal * boost;
 

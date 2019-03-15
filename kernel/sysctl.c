@@ -375,6 +375,17 @@ static struct ctl_table kern_table[] = {
 		.extra2         = &one_hundred,
 	},
 #endif
+#ifdef CONFIG_SCHED_TUNE
+	{
+		.procname       = "sched_spc_threshold",
+		.data           = &spc_threshold,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec_minmax,
+		.extra1         = &one,
+		.extra2         = &one_thousand,
+	},
+#endif
 	{
 		.procname	= "sched_sync_hint_enable",
 		.data		= &sysctl_sched_sync_hint_enable,
