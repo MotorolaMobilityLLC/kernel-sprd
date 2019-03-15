@@ -68,6 +68,7 @@ struct cpudvfs_phy_ops {
 	int (*get_sys_dcdc_dvfs_state)(void *data, u32 dcdc_num);
 	int (*get_top_dcdc_dvfs_state)(void *data, u32 dcdc_num);
 	int (*setup_i2c_channel)(void *data, u32 dcdc_num);
+	int (*dcdc_vol_delay_time_setup)(void *data, u32 dcdc_num);
 };
 
 struct device_name {
@@ -167,6 +168,14 @@ struct voltage_info {
 	u32 vol_mask;
 };
 
+struct voltage_delay_cfg {
+	u32 voltage_span;
+	u32 reg;
+	u32 reg_offset;
+	u32 reg_mask;
+	u32 reg_value;
+};
+
 struct dcdc_pwr {
 	char name[10];
 	u32 dvfs_ctl_reg;
@@ -186,6 +195,10 @@ struct dcdc_pwr {
 	u32 judge_vol_val;	/*real voltage needed to tell dvfs module*/
 	u32 voltage_grade_num;
 	struct voltage_info *vol_info;
+	struct voltage_delay_cfg *up_delay_array;
+	struct voltage_delay_cfg *down_delay_array;
+	u32 up_delay_array_size;
+	u32 down_delay_array_size;
 	u32 subsys_dcdc_vol_sw_reg;
 	u32 subsys_dcdc_vol_sw_bit;
 	u32 subsys_dcdc_vol_sw_mask;

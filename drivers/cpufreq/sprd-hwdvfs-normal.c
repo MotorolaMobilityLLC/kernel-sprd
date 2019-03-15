@@ -860,6 +860,64 @@ int sprd_dcdc_vol_grade_value_setup(void *data, u32 dcdc_nr)
 	return 0;
 }
 
+static int sprd_dcdc_vol_delay_time_setup(void *data, u32 dcdc_nr)
+{
+	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
+	u32 reg, off, mask, val, i;
+	int ret, size;
+
+	if (!pdev->pwr) {
+		pr_err("No DCDC Power domain found\n");
+		return -ENODEV;
+	}
+
+	if (dcdc_nr >= pdev->dcdc_num) {
+		pr_err("Incorrect dcdc number\n");
+		return -EINVAL;
+	}
+
+	/* Note: This is hardware delay time
+	 * DVFS needs delay to wait PMIC to finish inceasing voltage
+	 */
+	size = pdev->pwr[dcdc_nr].up_delay_array_size;
+	if (size) {
+		for (i = 0; i < size; ++i) {
+			reg = pdev->pwr[dcdc_nr].up_delay_array[i].reg;
+			off = pdev->pwr[dcdc_nr].up_delay_array[i].reg_offset;
+			mask = pdev->pwr[dcdc_nr].up_delay_array[i].reg_mask;
+			val = pdev->pwr[dcdc_nr].up_delay_array[i].reg_value;
+
+			ret = regmap_update_bits(pdev->topdvfs_map, reg,
+						 mask << off, val << off);
+			if (ret) {
+				pr_err("Failed to set voltage up delay\n");
+				return ret;
+			}
+		}
+	}
+
+	/* Note: This is hardware delay time
+	 * DVFS needs delay to wait PMIC to finish deceasing voltage
+	 */
+	size = pdev->pwr[dcdc_nr].down_delay_array_size;
+	if (size) {
+		for (i = 0; i < size; ++i) {
+			reg = pdev->pwr[dcdc_nr].down_delay_array[i].reg;
+			off = pdev->pwr[dcdc_nr].down_delay_array[i].reg_offset;
+			mask = pdev->pwr[dcdc_nr].down_delay_array[i].reg_mask;
+			val = pdev->pwr[dcdc_nr].down_delay_array[i].reg_value;
+
+			ret = regmap_update_bits(pdev->topdvfs_map, reg,
+						 mask << off, val << off);
+			if (ret) {
+				pr_err("Failed to set voltage down delay\n");
+				return ret;
+			}
+		}
+	}
+	return 0;
+}
+
 int sprd_setup_i2c_channel(void *data, u32 dcdc_nr)
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
@@ -1014,6 +1072,7 @@ struct cpudvfs_phy_ops sprd_cpudvfs_phy_ops = {
 	.get_sys_dcdc_dvfs_state = sprd_get_sys_dcdc_dvfs_state,
 	.get_top_dcdc_dvfs_state = sprd_get_top_dcdc_dvfs_state,
 	.setup_i2c_channel = sprd_setup_i2c_channel,
+	.dcdc_vol_delay_time_setup = sprd_dcdc_vol_delay_time_setup,
 };
 
 static void hardware_dvfs_tuning_result_judge(struct dvfs_cluster *clu)
@@ -1427,9 +1486,65 @@ static int dcdc_voltage_grade_parse(struct device_node *dcdc_node,
 		pwr->vol_info[i].vol_mask = be32_to_cpu(*list++);
 	}
 
+	/* Parse voltage up delay time information */
+	list = of_get_property(dcdc_node, "voltage-up-delay", &size);
+	if (list && size) {
+		count = size / (sizeof(u32) * 5);
+		pwr->up_delay_array =
+			kcalloc(count, sizeof(struct voltage_delay_cfg),
+				GFP_KERNEL);
+		if (!pwr->up_delay_array) {
+			ret = -ENOMEM;
+			goto err_mem_free;
+		}
+		pwr->up_delay_array_size = count;
+
+		for (i = 0; i < count; i++) {
+			pwr->up_delay_array[i].voltage_span =
+				be32_to_cpu(*list++);
+			pwr->up_delay_array[i].reg =
+				be32_to_cpu(*list++);
+			pwr->up_delay_array[i].reg_offset =
+				be32_to_cpu(*list++);
+			pwr->up_delay_array[i].reg_mask =
+				be32_to_cpu(*list++);
+			pwr->up_delay_array[i].reg_value =
+				be32_to_cpu(*list++);
+		}
+	}
+	/* Parse voltage down delay time information */
+	list = of_get_property(dcdc_node, "voltage-down-delay", &size);
+	if (list && size) {
+		count = size / (sizeof(u32) * 5);
+		pwr->down_delay_array =
+			kcalloc(count, sizeof(struct voltage_delay_cfg),
+				GFP_KERNEL);
+		if (!pwr->down_delay_array) {
+			ret = -ENOMEM;
+			goto err_up_mem_free;
+		}
+		pwr->down_delay_array_size = count;
+
+		for (i = 0; i < count; i++) {
+			pwr->down_delay_array[i].voltage_span =
+				be32_to_cpu(*list++);
+			pwr->down_delay_array[i].reg =
+				be32_to_cpu(*list++);
+			pwr->down_delay_array[i].reg_offset =
+				be32_to_cpu(*list++);
+			pwr->down_delay_array[i].reg_mask =
+				be32_to_cpu(*list++);
+			pwr->down_delay_array[i].reg_value =
+				be32_to_cpu(*list++);
+		}
+	}
 	of_node_put(dcdc_node);
 
 	return 0;
+
+err_up_mem_free:
+	kfree(pwr->up_delay_array);
+	pwr->up_delay_array = NULL;
 
 err_mem_free:
 	kfree(pwr->vol_info);
@@ -2163,6 +2278,10 @@ static int sprd_cpudvfs_common_init(struct cpudvfs_archdata *pdev)
 		ret = pdev->phy_ops->setup_i2c_channel(pdev, ix);
 		if (ret)
 			return ret;
+		ret = pdev->phy_ops->dcdc_vol_delay_time_setup(pdev, ix);
+		if (ret)
+			return ret;
+
 	}
 
 	ret = sprd_get_chip_ver_id(pdev);
