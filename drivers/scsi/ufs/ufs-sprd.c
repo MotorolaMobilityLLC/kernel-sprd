@@ -369,6 +369,38 @@ out:
 	return err;
 }
 
+static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
+				    enum uic_cmd_dme cmd,
+				    enum ufs_notify_change_status status)
+{
+	int val = 0;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	switch (status) {
+	case PRE_CHANGE:
+		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
+			/*
+			 * Fix UIC_CMD_DME_HIBER_ENTER command fail.
+			 * Set the configuration before entry,
+			 * clear it after exit.
+			 * Only tested on samsung device.
+			 */
+			val = readl(host->unipro_reg + 0x1c);
+			writel((1 << 21) | val, host->unipro_reg + 0x1c);
+		}
+		break;
+	case POST_CHANGE:
+		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
+			val = readl(host->unipro_reg + 0x1c);
+			val &= ~(1 << 21);
+			writel(val, host->unipro_reg + 0x1c);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
 /**
  * struct ufs_hba_sprd_vops - UFS sprd specific variant operations
  *
@@ -383,6 +415,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.hce_enable_notify = ufs_sprd_hce_enable_notify,
 	.link_startup_notify = ufs_sprd_link_startup_notify,
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
+	.hibern8_notify = ufs_sprd_hibern8_notify,
 };
 
 /**
