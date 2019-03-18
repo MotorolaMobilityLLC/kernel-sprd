@@ -310,6 +310,57 @@ int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar,
 }
 EXPORT_SYMBOL(sprd_pcie_bar_map);
 
+/*
+ * set 1:   reg + 0x1000-->write 1 to set ref bit
+ * clear 0: reg +0x2000-->write 1 to clear ref bit
+ * for example:
+ * bit2 = 1, bit3 = 1. mask = BIT(2)|BIT(3) , value = BIT(2)|BIT(3)
+ * bit2 = 0, bit3 = 0. mask = BIT(2)|BIT(3) , value = ~(BIT(2)|BIT(3))
+ */
+int sprd_pcie_update_bits(unsigned int reg, unsigned int mask, unsigned int val)
+{
+	int ret;
+	unsigned int base_addr;
+	unsigned int offset;
+	unsigned int base_upper_addr;
+	int bar;
+	char region;
+	unsigned int set, clr;
+
+	base_addr = reg / EP_INBOUND_ALIGN * EP_INBOUND_ALIGN;
+	offset = reg % EP_INBOUND_ALIGN;
+	base_upper_addr = ((reg + 4)/EP_INBOUND_ALIGN * EP_INBOUND_ALIGN);
+	bar = 0;
+	region = 0;
+
+	if (base_addr != base_upper_addr)
+		WARN_ON(1);
+	WCN_INFO("%s: bar=%d, base=0x%x, offset=0x%x, upper=0x%x\n",
+		 __func__, bar, base_addr, offset, base_upper_addr);
+
+	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr, region);
+	if (ret < 0)
+		return ret;
+
+	set = val & mask;
+	clr = ~set & mask;
+
+	if (set) {
+		ret = pcie_bar_write(g_pcie_dev, bar, offset + 0x1000, &val, 4);
+		if (ret < 0)
+			return ret;
+
+	}
+
+	if (clr) {
+		ret = pcie_bar_write(g_pcie_dev, bar, offset + 0x2000, &val, 4);
+		if (ret < 0)
+			return ret;
+	}
+
+	return ret;
+}
+
 int sprd_pcie_mem_write(unsigned int addr, void *buf, unsigned int len)
 {
 	int ret = 0;

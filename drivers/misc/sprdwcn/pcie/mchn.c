@@ -276,6 +276,12 @@ int mchn_wcn_mem_read(unsigned int addr, void *buf, unsigned int len)
 }
 EXPORT_SYMBOL(mchn_wcn_mem_read);
 
+int mchn_wcn_update_bits(unsigned int reg, unsigned int mask, unsigned int val)
+{
+	return sprd_pcie_update_bits(reg, mask, val);
+}
+EXPORT_SYMBOL(mchn_wcn_update_bits);
+
 int mchn_init(struct mchn_ops_t *ops)
 {
 	int ret = -1;

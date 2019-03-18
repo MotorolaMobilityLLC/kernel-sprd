@@ -122,5 +122,7 @@ int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar,
 		      unsigned int addr, char region);
 int sprd_pcie_mem_write(unsigned int addr, void *buf, unsigned int len);
 int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len);
+int sprd_pcie_update_bits(unsigned int reg, unsigned int mask,
+			  unsigned int val);
 struct wcn_pcie_info *get_wcn_device_info(void);
 #endif
