@@ -12,8 +12,6 @@
 #include <linux/module.h>
 #include <linux/printk.h>
 #include <linux/proc_fs.h>
-#include <linux/sdiom_rx_api.h>
-#include <linux/sdiom_tx_api.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/timer.h>
@@ -21,16 +19,17 @@
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
 #include "rf.h"
+#include "wcn_integrate.h"
 
 #define SYSTEM_WIFI_CONFIG_FILE "/system/etc/connectivity_configure.ini"
 #define SYSTEM_WIFI_CALI_FILE "/system/etc/connectivity_calibration.ini"
 #define VENDOR_WIFI_CONFIG_FILE "/vendor/etc/connectivity_configure.ini"
 #define VENDOR_WIFI_CALI_FILE "/vendor/etc/connectivity_calibration.ini"
-#ifdef CONFIG_SC2342_INTEG
-#define WIFI_CALI_DUMP_FILE "/productinfo/wcn/connectivity_calibration_bak.ini"
-#else
-#define WIFI_CALI_DUMP_FILE "/productinfo/connectivity_calibration_bak.ini"
-#endif
+#define VENDOR_WIFI_CONFIG_AD_FILE "/vendor/etc/wcn/connectivity_configure.ini"
+#define SYSTEM_WIFI_CONFIG_AD_FILE "/system/etc/wcn/connectivity_configure.ini"
+#define VENDOR_WIFI_CALI_AD_FILE "/vendor/etc/wcn/connectivity_calibration.ini"
+#define SYSTEM_WIFI_CALI_AD_FILE "/system/etc/wcn/connectivity_calibration.ini"
+#define WIFI_CALI_DUMP_FILE "/mnt/vendor/wcn/connectivity_calibration_bak.ini"
 
 #define CONF_TYPE 1
 #define CALI_TYPE 2
@@ -47,15 +46,19 @@
 #define GAIN_MP_ED \
 	((int8_t *)&p->txpower_cali.txpower_gain_mapping_table1[31])
 #define TXPW_CARCH_ST \
-	((int8_t *)&p->txpower_cali.txpower_subcarries_channel1[0])
+	((int8_t *)&p->txpower_cali.txpower_subcarries_channel[0])
 #define TXPW_CARCH_ED \
-	((int8_t *)&p->txpower_cali.txpower_subcarries_channel1[14])
+	((int8_t *)&p->txpower_cali.txpower_subcarries_channel[14])
 
 static struct nvm_name_table g_config_table[] = {
-	/* [SETCTION 0]Marlin config Version info */
+	/*
+	 * [SETCTION 0]Marlin config Version info
+	 */
 	CF_TAB("conf_version", config_version, 1),
 
-	/* [SETCTION 1]wifi TX Power tx power control: tx_power_control_t */
+	/*
+	 * [SETCTION 1]wifi TX Power tx power control: tx_power_control_t
+	 */
 	CF_TAB("data_rate_power", tx_power_control.data_rate_power, 1),
 	CF_TAB("channel_num", tx_power_control.channel_num, 1),
 	CF_TAB("channel_range", tx_power_control.channel_range, 1),
@@ -71,7 +74,9 @@ static struct nvm_name_table g_config_table[] = {
 	CF_TAB("n_tx_power_dr3", tx_power_control.n_tx_power_dr3, 1),
 	CF_TAB("power_reserved", tx_power_control.power_reserved, 1),
 
-	/* [SETCTION 2]wifi PHY/RF reg init: init_register_t */
+	/*
+	 * [SETCTION 2]wifi PHY/RF reg init: init_register_t
+	 */
 	CF_TAB("phy0_init_num", init_register.phy0_init_num, 1),
 	CF_TAB("init_phy0_regs", init_register.init_phy0_regs, 2),
 	CF_TAB("phy1_init_num", init_register.phy1_init_num, 1),
@@ -81,14 +86,18 @@ static struct nvm_name_table g_config_table[] = {
 	CF_TAB("reserved_w16_num", init_register.reserved_w16_num, 1),
 	CF_TAB("reserved_w16_regs", init_register.reserved_w16_regs, 2),
 	CF_TAB("reserved_w32_num", init_register.reserved_w32_num, 1),
-	CF_TAB("reserved_w16_regs", init_register.reserved_w32_regs, 2),
+	CF_TAB("reserved_w32_regs", init_register.reserved_w32_regs, 2),
 
-	/* [SETCTION 3]wifi enhance config: enhance_config_t */
+	/*
+	 * [SETCTION 3]wifi enhance config: enhance_config_t
+	 */
 	CF_TAB("tpc_enable", enhance_config.tpc_enable, 1),
 	CF_TAB("power_save_key", enhance_config.power_save_key, 1),
 	CF_TAB("enhance_reserved", enhance_config.enhance_reserved, 1),
 
-	/* [SETCTION 4]Wifi/BT/lte coex config: coex_config_t */
+	/*
+	 * [SETCTION 4]Wifi/BT/lte coex config: coex_config_t
+	 */
 	CF_TAB("CoexExcutionMode",
 		coex_config.CoexExcutionMode, 1),
 	CF_TAB("CoexWifiScanCntPerChannel",
@@ -191,16 +200,22 @@ static struct nvm_name_table g_config_table[] = {
 		coex_config.CoexLteTxSpur2Wifi2400[0], 2),
 	CF_TAB("CoexReserved", coex_config.CoexReserved, 2),
 
-	/* [SETCTION 5]Wifi&BT public config */
+	/*
+	 * [SETCTION 5]Wifi&BT public config
+	 */
 	CF_TAB("public_reserved", public_config.public_reserved, 1),
-	{NULL, 0, 0}
+	{0, 0, 0}
 };
 
 static struct nvm_name_table g_cali_table[] = {
-	/* [SETCTION 0]Marlin cali Version info */
+	/*
+	 * [SETCTION 0]Marlin cali Version info
+	 */
 	CL_TAB("cali_version", cali_version, 1),
 
-	/* [SETCTION 1]Calibration Config: cali_config_t */
+	/*
+	 * [SETCTION 1]Calibration Config: cali_config_t
+	 */
 	CL_TAB("is_calibrated", cali_config.is_calibrated, 1),
 	CL_TAB("rc_cali_en", cali_config.rc_cali_en, 1),
 	CL_TAB("dcoc_cali_en", cali_config.dcoc_cali_en, 1),
@@ -210,27 +225,37 @@ static struct nvm_name_table g_cali_table[] = {
 	CL_TAB("dpd_cali_en", cali_config.dpd_cali_en, 1),
 	CL_TAB("config_reserved", cali_config.config_reserved[0], 1),
 
-	/* [SETCTION 2]rc calibration data: rctune_cali_t */
+	/*
+	 * [SETCTION 2]rc calibration data: rctune_cali_t
+	 */
 	CL_TAB("rctune_value", rctune_cali.rctune_value, 1),
 	CL_TAB("rc_cali_reserved", rctune_cali.rctune_reserved[0], 1),
 
-	/* [SETCTION 3]doco calibration data: dcoc_cali_t */
+	/*
+	 * [SETCTION 3]doco calibration data: dcoc_cali_t
+	 */
 	CL_TAB("dcoc_cali_code", dcoc_cali.dcoc_cali_code[0], 2),
 	CL_TAB("dcoc_reserved", dcoc_cali.dcoc_reserved[0], 4),
 
-	/* [SETCTION 4]txiq calibration data: txiq_cali_t */
+	/*
+	 * [SETCTION 4]txiq calibration data: txiq_cali_t
+	 */
 	CL_TAB("rf_txiq_c11", txiq_cali.rf_txiq_c11, 4),
 	CL_TAB("rf_txiq_c12", txiq_cali.rf_txiq_c12, 4),
 	CL_TAB("rf_txiq_c22", txiq_cali.rf_txiq_c22, 4),
 	CL_TAB("rf_txiq_dc", txiq_cali.rf_txiq_dc, 4),
 	CL_TAB("txiq_reserved", txiq_cali.txiq_reserved[0], 4),
 
-	/* [SETCTION 5]rxiq calibration data: rxiq_cali_t */
+	/*
+	 * [SETCTION 5]rxiq calibration data: rxiq_cali_t
+	 */
 	CL_TAB("rf_rxiq_coef21_22", rxiq_cali.rf_rxiq_coef21_22, 4),
 	CL_TAB("rf_rxiq_coef11_12", rxiq_cali.rf_rxiq_coef11_12, 4),
 	CL_TAB("rxiq_reserved", rxiq_cali.rxiq_reserved[0], 4),
 
-	/* [SETCTION 6]txpower calibration data: txpower_cali_t */
+	/*
+	 * [SETCTION 6]txpower calibration data: txpower_cali_t
+	 */
 	CL_TAB("txpower_psat_temperature",
 		txpower_cali.txpower_psat_temperature, 4),
 	CL_TAB("txpower_psat_gainindex",
@@ -303,33 +328,33 @@ static struct nvm_name_table g_cali_table[] = {
 	CL_TAB("txpower_subcarries_compensation_flag",
 		txpower_cali.txpower_subcarries_compensation_flag, 1),
 	CL_TAB("txpower_subcarries_channel1",
-		txpower_cali.txpower_subcarries_channel1[0], 1),
+		txpower_cali.txpower_subcarries_channel[0], 1),
 	CL_TAB("txpower_subcarries_channel2",
-		txpower_cali.txpower_subcarries_channel2[0], 1),
+		txpower_cali.txpower_subcarries_channel[1], 1),
 	CL_TAB("txpower_subcarries_channel3",
-		txpower_cali.txpower_subcarries_channel3[0], 1),
+		txpower_cali.txpower_subcarries_channel[2], 1),
 	CL_TAB("txpower_subcarries_channel4",
-		txpower_cali.txpower_subcarries_channel4[0], 1),
+		txpower_cali.txpower_subcarries_channel[3], 1),
 	CL_TAB("txpower_subcarries_channel5",
-		txpower_cali.txpower_subcarries_channel5[0], 1),
+		txpower_cali.txpower_subcarries_channel[4], 1),
 	CL_TAB("txpower_subcarries_channel6",
-		txpower_cali.txpower_subcarries_channel6[0], 1),
+		txpower_cali.txpower_subcarries_channel[5], 1),
 	CL_TAB("txpower_subcarries_channel7",
-		txpower_cali.txpower_subcarries_channel7[0], 1),
+		txpower_cali.txpower_subcarries_channel[6], 1),
 	CL_TAB("txpower_subcarries_channel8",
-		txpower_cali.txpower_subcarries_channel8[0], 1),
+		txpower_cali.txpower_subcarries_channel[7], 1),
 	CL_TAB("txpower_subcarries_channel9",
-		txpower_cali.txpower_subcarries_channel9[0], 1),
+		txpower_cali.txpower_subcarries_channel[8], 1),
 	CL_TAB("txpower_subcarries_channel10",
-		txpower_cali.txpower_subcarries_channel10[0], 1),
+		txpower_cali.txpower_subcarries_channel[9], 1),
 	CL_TAB("txpower_subcarries_channel11",
-		txpower_cali.txpower_subcarries_channel11[0], 1),
+		txpower_cali.txpower_subcarries_channel[10], 1),
 	CL_TAB("txpower_subcarries_channel12",
-		txpower_cali.txpower_subcarries_channel12[0], 1),
+		txpower_cali.txpower_subcarries_channel[11], 1),
 	CL_TAB("txpower_subcarries_channel13",
-		txpower_cali.txpower_subcarries_channel13[0], 1),
+		txpower_cali.txpower_subcarries_channel[12], 1),
 	CL_TAB("txpower_subcarries_channel14",
-		txpower_cali.txpower_subcarries_channel14[0], 1),
+		txpower_cali.txpower_subcarries_channel[13], 1),
 
 	CL_TAB("txpower_psat_trace_value",
 		txpower_cali.txpower_psat_trace_value[0], 1),
@@ -338,7 +363,9 @@ static struct nvm_name_table g_cali_table[] = {
 	CL_TAB("c_pad",
 		txpower_cali.c_pad[0], 1),
 
-	/* [SETCTION 7]DPD calibration data: dpd_cali_t */
+	/*
+	 * [SETCTION 7]DPD calibration data: dpd_cali_t
+	 */
 	CL_TAB("dpd_cali_channel_num",
 		dpd_cali.dpd_cali_channel_num, 1),
 	CL_TAB("dpd_cali_channel",
@@ -356,14 +383,18 @@ static struct nvm_name_table g_cali_table[] = {
 	CL_TAB("dpd_reserved",
 		dpd_cali.dpd_reserved[0], 4),
 
-	/* [SETCTION 8]RF parameters data: rf_para_t */
+	/*
+	 * [SETCTION 8]RF parameters data: rf_para_t
+	 */
 	CL_TAB("rf_ctune", rf_para.rf_ctune[0], 1),
 	CL_TAB("rf_reserved", rf_para.rf_reserved[0], 4),
 
-	/* [SETCTION 9]RF parameters data: tpc_cfg_t */
+	/*
+	 * [SETCTION 9]RF parameters data: tpc_cfg_t
+	 */
 	CL_TAB("tpc_cfg", tpc_cfg.tpc_cfg[0], 4),
 	CL_TAB("tpc_reserved", tpc_cfg.tpc_reserved[0], 4),
-	{NULL, 0, 0}
+	{0, 0, 0}
 };
 
 static int find_type(char key)
@@ -422,57 +453,57 @@ static int wifi_nvm_set_cmd(struct nvm_name_table *pTable,
 		else
 			pr_info("%s, type err\n", __func__);
 	}
-
 	return 0;
 }
 
 static void get_cmd_par(char *str, struct nvm_cali_cmd *cmd)
 {
-	int i, j, buftype, ctype, flag;
+	int i, j, bufType, cType, flag;
 	char tmp[128];
 	char c;
-	long val;
+	s64 val;
 
-	buftype = -1;
-	ctype = 0;
+	bufType = -1;
+	cType = 0;
 	flag = 0;
 	memset(cmd, 0, sizeof(struct nvm_cali_cmd));
 	for (i = 0, j = 0;; i++) {
 		c = str[i];
-		ctype = find_type(c);
-		if ((ctype == 1) || (ctype == 2) ||
-			(ctype == 3)) {
+		cType = find_type(c);
+		if ((cType == 1) || (cType == 2) ||
+			(cType == 3)) {
 			tmp[j] = c;
 			j++;
-			if (buftype == -1) {
-				if (ctype == 2)
-					buftype = 2;
+			if (bufType == -1) {
+				if (cType == 2)
+					bufType = 2;
 				else
-					buftype = 1;
-			} else if (buftype == 2) {
-				if (ctype == 1)
-					buftype = 1;
+					bufType = 1;
+			} else if (bufType == 2) {
+				if (cType == 1)
+					bufType = 1;
 			}
 			continue;
 		}
-		if (-1 != buftype) {
+		if (-1 != bufType) {
 			tmp[j] = '\0';
 
-			if ((buftype == 1) && (flag == 0)) {
-				strncpy(cmd->itm, tmp, CALI_CMD_NAME_LEN);
+			if ((bufType == 1) && (flag == 0)) {
+				strcpy(cmd->itm, tmp);
 				flag = 1;
 			} else {
-				if (kstrtol(tmp, 0, &val))
-					pr_err("kstrtol %s: error\n", tmp);
-				cmd->par[cmd->num] = val & 0xFFFFFFFF;
+				if (kstrtos64(tmp, 0, &val))
+					pr_err("kstrtos64 %s: error is %d\n",
+					       tmp, kstrtos64(tmp, 0, &val));
+				cmd->par[cmd->num] = val & 0xFFFFFFFFFFFFFFFF;
 				cmd->num++;
 			}
-			buftype = -1;
+			bufType = -1;
 			j = 0;
 		}
-		if (ctype == 0)
+		if (cType == 0)
 			continue;
-		if (ctype == 4)
+		if (cType == 4)
 			return;
 	}
 }
@@ -480,41 +511,39 @@ static void get_cmd_par(char *str, struct nvm_cali_cmd *cmd)
 static struct nvm_name_table *cf_table_match(struct nvm_cali_cmd *cmd)
 {
 	int i;
-	struct nvm_name_table *ptable = NULL;
-	int len = ARRAY_SIZE(g_config_table);
+	struct nvm_name_table *pTable = NULL;
+	int len = sizeof(g_config_table) / sizeof(struct nvm_name_table);
 
-	if (cmd == NULL)
+	if ((cmd == NULL) || (cmd->itm == NULL))
 		return NULL;
 	for (i = 0; i < len; i++) {
 		if (g_config_table[i].itm == NULL)
 			continue;
 		if (strcmp(g_config_table[i].itm, cmd->itm) != 0)
 			continue;
-		ptable = &g_config_table[i];
+		pTable = &g_config_table[i];
 		break;
 	}
-
-	return ptable;
+	return pTable;
 }
 
 static struct nvm_name_table *cali_table_match(struct nvm_cali_cmd *cmd)
 {
 	int i;
-	struct nvm_name_table *ptable = NULL;
-	int len = ARRAY_SIZE(g_cali_table);
+	struct nvm_name_table *pTable = NULL;
+	int len = sizeof(g_cali_table) / sizeof(struct nvm_name_table);
 
-	if (cmd == NULL)
+	if ((cmd == NULL) || (cmd->itm == NULL))
 		return NULL;
 	for (i = 0; i < len; i++) {
 		if (g_cali_table[i].itm == NULL)
 			continue;
 		if (strcmp(g_cali_table[i].itm, cmd->itm) != 0)
 			continue;
-		ptable = &g_cali_table[i];
+		pTable = &g_cali_table[i];
 		break;
 	}
-
-	return ptable;
+	return pTable;
 }
 
 static int wifi_nvm_buf_operate(char *pBuf, int file_len,
@@ -522,7 +551,7 @@ static int wifi_nvm_buf_operate(char *pBuf, int file_len,
 {
 	int i, p;
 	struct nvm_cali_cmd cmd;
-	struct nvm_name_table *ptable = NULL;
+	struct nvm_name_table *pTable = NULL;
 
 	if ((pBuf == NULL) || (file_len == 0))
 		return -1;
@@ -533,21 +562,20 @@ static int wifi_nvm_buf_operate(char *pBuf, int file_len,
 			if (5 <= (i - p)) {
 				get_cmd_par((pBuf + p), &cmd);
 				if (type == 1) {
-					ptable = cf_table_match(&cmd);
+					pTable = cf_table_match(&cmd);
 				} else if (type == 2) {	/*calibration */
-					ptable = cali_table_match(&cmd);
+					pTable = cali_table_match(&cmd);
 				} else {
 					pr_info("%s unknown type\n", __func__);
 					return -1;
 				}
 
-				if (ptable != NULL)
-					wifi_nvm_set_cmd(ptable, &cmd, p_data);
+				if (pTable != NULL)
+					wifi_nvm_set_cmd(pTable, &cmd, p_data);
 			}
 			p = i + 1;
 		}
 	}
-
 	return 0;
 }
 
@@ -557,7 +585,8 @@ static int wifi_nvm_parse(const char *path, const int type, void *p_data)
 	unsigned int read_len, buffer_len;
 	struct file *file;
 	char *buffer = NULL;
-	loff_t file_size = 0, pos = 0;
+	loff_t file_size = 0;
+	loff_t file_offset = 0;
 
 	pr_info("%s()...\n", __func__);
 
@@ -578,7 +607,7 @@ static int wifi_nvm_parse(const char *path, const int type, void *p_data)
 	}
 
 	do {
-		read_len = kernel_read(file, p_buf, file_size, &pos);
+		read_len = kernel_read(file, p_buf, file_size, &file_offset);
 		if (read_len > 0) {
 			buffer_len += read_len;
 			file_size -= read_len;
@@ -592,35 +621,77 @@ static int wifi_nvm_parse(const char *path, const int type, void *p_data)
 	wifi_nvm_buf_operate(buffer, buffer_len, type, p_data);
 	vfree(buffer);
 	pr_info("%s(), ok!\n", __func__);
-
 	return 0;
 }
 
 int get_connectivity_config_param(struct wifi_config_t *p)
 {
 	int ret;
-
+	char *path = VENDOR_WIFI_CONFIG_FILE;
+#ifdef CONFIG_SC2342_INTEG
+	if (wcn_get_aon_chip_id() == WCN_SHARKLE_CHIP_AD) {
+		path = SYSTEM_WIFI_CONFIG_AD_FILE;
+		ret = wifi_nvm_parse(path, CONF_TYPE, (void *)p);
+		if (!ret)
+			return ret;
+	}
+#endif
 	ret = wifi_nvm_parse(SYSTEM_WIFI_CONFIG_FILE, CONF_TYPE, (void *)p);
 	if (ret < 0) {
-		pr_info("parse SYSTEM_WIFI_CONFIG_FILE failed, use vendor path\n");
-		return wifi_nvm_parse(VENDOR_WIFI_CONFIG_FILE, CONF_TYPE,
-				      (void *)p);
-	}
+#ifdef CONFIG_SC2342_INTEG
+		struct file *file;
 
+		path = VENDOR_WIFI_CONFIG_AD_FILE;
+		file = filp_open(path, O_RDONLY, 0);
+		if (IS_ERR(file)) {
+			pr_err("open file %s error,try vendor/etc\n", path);
+			path = VENDOR_WIFI_CONFIG_FILE;
+		} else {
+			filp_close(file, NULL);
+			if ((wcn_get_aon_chip_id() != WCN_SHARKLE_CHIP_AD) &&
+			    (wcn_get_aon_chip_id() != WCN_PIKE2_CHIP_AB))
+				path = VENDOR_WIFI_CONFIG_FILE;
+		}
+#endif
+		pr_info("%s path : %s\n", __func__, path);
+		return wifi_nvm_parse(path, CONF_TYPE, (void *)p);
+	}
 	return ret;
 }
 
 int get_connectivity_cali_param(struct wifi_cali_t *p)
 {
 	int ret;
+	char *path = VENDOR_WIFI_CALI_FILE;
 
+#ifdef CONFIG_SC2342_INTEG
+	if (wcn_get_aon_chip_id() == WCN_SHARKLE_CHIP_AD) {
+		path = SYSTEM_WIFI_CALI_AD_FILE;
+		ret = wifi_nvm_parse(path, CALI_TYPE, (void *)p);
+		if (!ret)
+			return ret;
+	}
+#endif
 	ret = wifi_nvm_parse(SYSTEM_WIFI_CALI_FILE, CALI_TYPE, (void *)p);
 	if (ret < 0) {
-		pr_info("parse SYSTEM_WIFI_CALI_FILE failed, use vendor path\n");
-		return wifi_nvm_parse(VENDOR_WIFI_CALI_FILE, CALI_TYPE,
-				      (void *)p);
-	}
+#ifdef CONFIG_SC2342_INTEG
+		struct file *file;
 
+		path = VENDOR_WIFI_CALI_AD_FILE;
+		file = filp_open(path, O_RDONLY, 0);
+		if (IS_ERR(file)) {
+			pr_err("open file %s error,try vendor/etc\n", path);
+			path = VENDOR_WIFI_CALI_FILE;
+		} else {
+			filp_close(file, NULL);
+			if ((wcn_get_aon_chip_id() != WCN_SHARKLE_CHIP_AD) &&
+			    (wcn_get_aon_chip_id() != WCN_PIKE2_CHIP_AB))
+				path = VENDOR_WIFI_CALI_FILE;
+		}
+#endif
+		pr_info("%s path : %s\n", __func__, path);
+		return wifi_nvm_parse(path, CALI_TYPE, (void *)p);
+	}
 	return ret;
 }
 
@@ -630,7 +701,7 @@ static int write_file(struct file *fp, char *buf, size_t len)
 	loff_t offset = 0;
 
 	offset = vfs_llseek(fp, 0, SEEK_END);
-	if (kernel_write(fp, buf, len, offset) < 0) {
+	if (kernel_write(fp, buf, len, &offset) < 0) {
 		pr_err("kernel_write() for fp failed:");
 		return -1;
 	}
@@ -651,11 +722,8 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 	int i, j;
 
 	set_fs(KERNEL_DS);
-#ifdef CONFIG_SC2342_INTEG
-	fp = filp_open(path, O_RDWR | O_CREAT | O_TRUNC, 0755);
-#else
-	fp = filp_open(path, O_WRONLY | O_CREAT | O_TRUNC, 0400);
-#endif
+
+	fp = filp_open(path, O_RDWR | O_CREAT | O_TRUNC, 0771);
 	if (IS_ERR_OR_NULL(fp)) {
 		pr_err("%s(), open error!\n", __func__);
 		return;
@@ -665,6 +733,7 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 	DUMP(fp, "# Marlin2 cali Version info\r\n");
 	DUMP(fp, OFS_MARK_STRING);
 	DUMP(fp, "cali_version = %d\r\n\r\n", p->cali_version);
+
 
 	DUMP(fp, "[SETCTION 1]\r\n");
 	DUMP(fp, OFS_MARK_STRING);
@@ -686,6 +755,7 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 		p->cali_config.config_reserved[1],
 		p->cali_config.config_reserved[2],
 		p->cali_config.config_reserved[3]);
+
 
 	DUMP(fp, "[SETCTION 2]\r\n");
 	DUMP(fp, OFS_MARK_STRING);
@@ -714,6 +784,7 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 		p->dcoc_cali.dcoc_reserved[2],
 		p->dcoc_cali.dcoc_reserved[3]);
 
+
 	DUMP(fp, "[SETCTION 4]\r\n");
 	DUMP(fp, OFS_MARK_STRING);
 	DUMP(fp, "# txiq calibration data\r\n");
@@ -728,6 +799,7 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 		p->txiq_cali.txiq_reserved[2],
 		p->txiq_cali.txiq_reserved[3]);
 	DUMP(fp, "\r\n");
+
 
 	DUMP(fp, "[SETCTION 5]\r\n");
 	DUMP(fp, OFS_MARK_STRING);
@@ -814,11 +886,10 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 
 		for (i = 0; i < TXPOWER_SUBCARRIES_LEN - 1; i++)
 			DUMP(fp, " %d,",
-				*(TXPW_CARCH_ST + (int8_t)(j *
-					(TXPOWER_SUBCARRIES_LEN - 1) + i)));
+			     p->txpower_cali.txpower_subcarries_channel[j][i]);
 		DUMP(fp, " %d\r\n",
-			*(TXPW_CARCH_ED +
-				(int8_t)(j * (TXPOWER_SUBCARRIES_LEN - 1))));
+		     p->txpower_cali.txpower_subcarries_channel[j]
+		     [TXPOWER_SUBCARRIES_LEN - 1]);
 	}
 
 	DUMP(fp, "txpower_psat_trace_value = %d, %d, %d, %d\r\n",
@@ -836,6 +907,7 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 	DUMP(fp, "c_pad = %d, %d, %d\r\n", p->txpower_cali.c_pad[0],
 			p->txpower_cali.c_pad[1],
 			p->txpower_cali.c_pad[2]);
+
 
 	DUMP(fp, "[SETCTION 7]\r\n");
 	DUMP(fp, OFS_MARK_STRING);
@@ -867,6 +939,7 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 		p->dpd_cali.dpd_reserved[2],
 		p->dpd_cali.dpd_reserved[3]);
 
+
 	DUMP(fp, "[SETCTION 8]\n");
 	DUMP(fp, OFS_MARK_STRING);
 	DUMP(fp, "# RF parameters data\n");
@@ -882,6 +955,7 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 		p->rf_para.rf_reserved[1],
 		p->rf_para.rf_reserved[2],
 		p->rf_para.rf_reserved[3]);
+
 
 	DUMP(fp, "[SETCTION 9]\n");
 	DUMP(fp, OFS_MARK_STRING);
@@ -899,12 +973,15 @@ static void cali_save_file(char *path, struct wifi_cali_t *p)
 		p->tpc_cfg.tpc_reserved[2],
 		p->tpc_cfg.tpc_reserved[3]);
 
+
 	filp_close(fp, NULL);
 	set_fs(USER_DS);
+
 }
 
 
 void dump_cali_file(struct wifi_cali_t *p)
 {
+	pr_err("%s() write cali bak file: %s\n", __func__, WIFI_CALI_DUMP_FILE);
 	cali_save_file(WIFI_CALI_DUMP_FILE, p);
 }
