@@ -9052,6 +9052,14 @@ CONFIG_SC27XX_EFUSE
 	[subsys] nvmem
 	[must] home
 	[function] get sc27xx series efuse value
+CONFIG_SC27XX_TSENSOR_THERMAL
+	[arch] all
+	[plat] sharkl5,sharkl5_32
+	[field] make
+	[subsys] thermal
+	[must] usr
+	[function]This function is used to config thermal moudle to get
+	osc and extern cystal temperature.
 CONFIG_SCAN_BALANCE_ANON_FILE
 	[arch] arm64
 	[plat] sharkl5
