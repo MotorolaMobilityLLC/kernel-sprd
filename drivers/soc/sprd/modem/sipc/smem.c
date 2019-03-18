@@ -232,6 +232,9 @@ static void *shmem_ram_vmap(phys_addr_t start, size_t size, int noncached)
 	struct smem_map *map;
 	struct smem_map_list *smem = &mem_mp;
 
+	if (!smem->inited)
+		return NULL;
+
 	map = kzalloc(sizeof(struct smem_map), GFP_KERNEL);
 	if (!map)
 		return NULL;
@@ -262,11 +265,10 @@ static void *shmem_ram_vmap(phys_addr_t start, size_t size, int noncached)
 	map->mem = vaddr;
 	map->task = current;
 
-	if (smem->inited) {
-		spin_lock_irqsave(&smem->lock, flags);
-		list_add_tail(&map->map_list, &smem->map_head);
-		spin_unlock_irqrestore(&smem->lock, flags);
-	}
+	spin_lock_irqsave(&smem->lock, flags);
+	list_add_tail(&map->map_list, &smem->map_head);
+	spin_unlock_irqrestore(&smem->lock, flags);
+
 	return vaddr;
 }
 
