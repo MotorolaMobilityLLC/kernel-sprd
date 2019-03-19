@@ -84,6 +84,19 @@ static unsigned long next_polling; /* Next appointed polling time */
 static struct workqueue_struct *cm_wq; /* init at driver add */
 static struct delayed_work cm_monitor_work; /* init at driver add */
 
+static bool is_calib_mode;
+
+static int __init boot_calibration_mode(char *str)
+{
+	if (str && !strncmp(str, "cali", strlen("cali")))
+		is_calib_mode = true;
+	else
+		is_calib_mode = false;
+
+	return 0;
+}
+__setup("androidboot.mode=", boot_calibration_mode);
+
 /**
  * is_batt_present - See if the battery presents in place.
  * @cm: the Charger Manager representing the battery.
@@ -502,7 +515,12 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		if (cm->emergency_stop)
 			return -EAGAIN;
 
-		if (!is_batt_present(cm))
+		/*
+		 * Enable charge is permitted in calibration mode
+		 * even if use fake battery.
+		 * So it will not return in calibration mode.
+		 */
+		if (!is_batt_present(cm) && !is_calib_mode)
 			return 0;
 		/*
 		 * Save start time of charging to limit
