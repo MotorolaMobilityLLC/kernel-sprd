@@ -1017,6 +1017,17 @@
 				#iommu-cells = <0>;
 			};
 
+			ipa_intc: ipa@20e03000 {
+				compatible = "sprd,ud710-ipa-intc";
+				reg = <0 0x20e03000 0 0x1000>;
+				interrupt-controller;
+				interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>;
+				#interrupt-cells = <1>;
+				syscon-names =  "ipa_intc_eb";
+				syscons = <&ipa_ahb_regs REG_IPA_AHB_IPA_EB
+					   MASK_IPA_AHB_INTC_EB>;
+			};
+
 			usb3: usb3@20f00000 {
 				compatible = "sprd,roc1-dwc3";
 				reg = <0 0x20f00000 0 0x100000>;
