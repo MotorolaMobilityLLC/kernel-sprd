@@ -68,7 +68,7 @@ static int ts_parse_cali_mode(char *str)
 		cali = true;
 	else
 		cali = false;
-	return 1;
+	return 0;
 }
 __setup("androidboot.mode=", ts_parse_cali_mode);
 
