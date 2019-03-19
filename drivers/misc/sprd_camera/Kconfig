@@ -7,13 +7,3 @@ config SPRD_CAMERA
 
 source "drivers/misc/sprd_camera/cpp/Kconfig"
 source "drivers/misc/sprd_camera/sensor/Kconfig"
-source "drivers/misc/sprd_camera/flash/Kconfig"
-
-config SPRD_CAMERA_DCAM_IF_R5P0_ISP_R6P12
-    bool "Spreadtrum Camera DCAM IF R5P0 ISP R6P12"
-    depends on SPRD_CAMERA
-    help
-        This is SPRD_CAMERA_DCAM_IF_R5P0_ISP_R6P12 driver
-	for Spreadtrum SOCs and sharkl3, when you want to use
-	this configuration, please to read spec and driver code,
-        they can help you to use dcam r5p0 isp r6p12 driver
