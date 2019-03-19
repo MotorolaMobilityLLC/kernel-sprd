@@ -9116,6 +9116,13 @@ CONFIG_SCHED_TUNE
 	[subsys] sched
 	[must] user
 	[function] Enable boost for fair sched class tasks
+CONFIG_SCHED_WALT
+	[arch] arm64
+	[plat] sharkl5
+	[field] make,code
+	[subsys] sched
+	[must] user
+	[function] Window Assisted Load Tracking switch
 CONFIG_SCSI
 	[arch] all
 	[plat] all
