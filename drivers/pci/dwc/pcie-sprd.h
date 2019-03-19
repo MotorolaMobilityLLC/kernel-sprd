@@ -3,9 +3,13 @@
 #include "pcie-designware.h"
 
 struct sprd_pcie {
-	struct pcie_port pp;
+	const char *label;
 	struct dw_pcie *pci;
 	struct clk *pcie_eb;
+
+#ifdef CONFIG_SPRD_IPA_INTC
+	u32 interrupt_line;
+#endif
 };
 
 struct sprd_pcie_of_data {

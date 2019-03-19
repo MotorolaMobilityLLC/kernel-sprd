@@ -17,7 +17,9 @@
 #include <linux/interrupt.h>
 #include <linux/mfd/syscon.h>
 #include <linux/of_device.h>
+#include <linux/of_irq.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
 
 #include "pcie-designware.h"
 #include "pcie-sprd.h"
@@ -39,6 +41,25 @@ static void sprd_pcie_fix_class(struct pci_dev *dev)
 		 __func__, dev->device, dev->vendor, dev->class);
 }
 DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_SYNOPSYS, 0xabcd, sprd_pcie_fix_class);
+
+#ifdef CONFIG_SPRD_IPA_INTC
+static void sprd_pcie_fix_interrupt_line(struct pci_dev *dev)
+{
+	struct pcie_port *pp = dev->bus->sysdata;
+	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+	struct platform_device *pdev = to_platform_device(pci->dev);
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+
+	if (dev->hdr_type == PCI_HEADER_TYPE_NORMAL) {
+		pci_write_config_byte(dev, PCI_INTERRUPT_LINE,
+				      ctrl->interrupt_line);
+		dev_info(&dev->dev,
+			 "The pci legacy interrupt pin is set to: %lu\n",
+			 (unsigned long)ctrl->interrupt_line);
+	}
+}
+DECLARE_PCI_FIXUP_EARLY(PCI_ANY_ID, PCI_ANY_ID, sprd_pcie_fix_interrupt_line);
+#endif
 
 static irqreturn_t sprd_pcie_msi_irq_handler(int irq, void *arg)
 {
@@ -140,9 +161,12 @@ static int sprd_add_pcie_ep(struct sprd_pcie *sprd_pcie,
 
 static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 {
+	struct sprd_pcie *sprd_pcie;
 	struct pcie_port *pp;
 	struct device *dev = &pdev->dev;
+	struct fwnode_handle *child;
 	int ret;
+	unsigned int irq;
 	struct resource *res;
 	u32 reg_val;
 
@@ -168,21 +192,43 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 	dw_pcie_writel_dbi(pci, PCIE_SLAVE_ERROR_RESPONSE,
 			(reg_val | SLAVE_ERROR_RESPONSE_EN));
 
-	if (IS_ENABLED(CONFIG_PCI_MSI)) {
-		pp->msi_irq = platform_get_irq(pdev, 0);
-		if (pp->msi_irq < 0) {
-			dev_err(dev, "cannot get msi irq\n");
-			return pp->msi_irq;
+	sprd_pcie = platform_get_drvdata(to_platform_device(pci->dev));
+
+	device_for_each_child_node(dev, child) {
+		if (fwnode_property_read_string(child, "label",
+						&sprd_pcie->label)) {
+			dev_err(dev, "without interrupt property\n");
+			fwnode_handle_put(child);
+			return -EINVAL;
+		}
+		if (!strcmp(sprd_pcie->label, "parent_gic_intc")) {
+			irq = irq_of_parse_and_map(to_of_node(child), 0);
+			if (irq < 0) {
+				dev_err(dev, "cannot get msi irq\n");
+				return irq;
+			}
+
+			pp->msi_irq = (int)irq;
+			ret = devm_request_irq(dev, pp->msi_irq,
+					       sprd_pcie_msi_irq_handler,
+					       IRQF_SHARED | IRQF_NO_THREAD,
+					       "sprd-pcie-msi", pp);
+			if (ret) {
+				dev_err(dev, "cannot request msi irq\n");
+				return ret;
+			}
 		}
 
-		ret = devm_request_irq(dev, pp->msi_irq,
-				       sprd_pcie_msi_irq_handler,
-				       IRQF_SHARED | IRQF_NO_THREAD,
-				       "sprd-pcie-msi", pp);
-		if (ret) {
-			dev_err(dev, "cannot request msi irq\n");
-			return ret;
+#ifdef CONFIG_SPRD_IPA_INTC
+		if (!strcmp(sprd_pcie->label, "parent_ipa_intc")) {
+			irq = irq_of_parse_and_map(to_of_node(child), 0);
+			if (irq < 0) {
+				dev_err(dev, "cannot get legacy irq\n");
+				return irq;
+			}
+			sprd_pcie->interrupt_line = irq;
 		}
+#endif
 	}
 
 	return dw_pcie_host_init(&pci->pp);
