@@ -41,6 +41,9 @@ config UMW2652
 # sprd's SDIO device driver based on SC2355...,etc
 source "drivers/misc/sprdwcn/sdio/Kconfig"
 
+# sprd's SIPC device driver based on SC2342 integ...,etc
+source "drivers/misc/sprdwcn/sipc/Kconfig"
+
 # sprd's sleep device driver based on SC2355...,etc
 source "drivers/misc/sprdwcn/sleep/Kconfig"
 

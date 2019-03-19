@@ -14,7 +14,7 @@
 #include <linux/file.h>
 #include <linux/fs.h>
 #ifdef CONFIG_SC2342_INTEG
-#include <linux/gnss.h>
+#include "gnss.h"
 #endif
 #include <linux/kthread.h>
 #include <linux/printk.h>

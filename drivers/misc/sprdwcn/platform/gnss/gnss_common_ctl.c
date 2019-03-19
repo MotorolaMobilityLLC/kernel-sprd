@@ -15,7 +15,7 @@
 #include <linux/bug.h>
 #include <linux/delay.h>
 #ifdef CONFIG_SC2342_INTEG
-#include <linux/gnss.h>
+#include "gnss.h"
 #endif
 #include <linux/init.h>
 #include <linux/kernel.h>

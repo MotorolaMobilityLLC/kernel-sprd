@@ -20,12 +20,15 @@
 #include <linux/poll.h>
 #include <linux/proc_fs.h>
 #include <linux/sched.h>
+#include <linux/sched/clock.h>
 #include <linux/seq_file.h>
 #include <linux/wait.h>
 #include <misc/wcn_bus.h>
+
 #ifdef CONFIG_WCN_PCIE
 #include "pcie.h"
 #endif
+#include "wcn_misc.h"
 #include "wcn_glb.h"
 #include "wcn_log.h"
 #include "wcn_procfs.h"
@@ -65,13 +68,12 @@ struct mdbg_proc_t {
 
 static struct mdbg_proc_t *mdbg_proc;
 
-static void mdbg_assert_interface(char *str)
+void mdbg_assert_interface(char *str)
 {
 	int len = MDBG_ASSERT_SIZE;
 
 	if (strlen(str) <= MDBG_ASSERT_SIZE)
 		len = strlen(str);
-
 	strncpy(mdbg_proc->assert.buf, str, len);
 	WCN_INFO("%s:%s\n", __func__,
 		(char *)(mdbg_proc->assert.buf));
@@ -781,6 +783,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		return count;
 	}
 #endif
+
 #ifdef CONFIG_WCN_PCIE
 	pcie_dev = get_wcn_device_info();
 	if (!pcie_dev) {
@@ -811,9 +814,12 @@ static ssize_t mdbg_proc_write(struct file *filp,
 	ret = sprdwcn_bus_push_list(0, head, tail, num);
 	if (ret)
 		WCN_INFO("sprdwcn_bus_push_list error=%d\n", ret);
-
+#else
+#ifdef CONFIG_SC2342_INTEG
+	mdbg_send_atcmd(mdbg_proc->write_buf, count, WCN_ATCMD_WCND);
 #else
 	mdbg_send(mdbg_proc->write_buf, count, MDBG_SUBTYPE_AT);
+#endif
 #endif
 	return count;
 }

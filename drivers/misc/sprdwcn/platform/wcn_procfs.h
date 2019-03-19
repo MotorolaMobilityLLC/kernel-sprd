@@ -14,5 +14,6 @@ int get_loopcheck_status(void);
 void wakeup_loopcheck_int(void);
 void loopcheck_ready_clear(void);
 void loopcheck_ready_set(void);
+void mdbg_assert_interface(char *str);
 int prepare_free_buf(int chn, int size, int num);
 #endif
