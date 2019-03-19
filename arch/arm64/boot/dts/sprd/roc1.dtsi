@@ -1215,12 +1215,25 @@
 				device_type = "pci";
 				ranges = <0x01000000 0x0 0x00000000 0x3 0xfffee000 0x0 0x00010000
 					  0x03000000 0x0 0x10000000 0x3 0xf8000000 0x0 0x07fee000>;
-				interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
 				bus-range = <0 15>;
 				num-lanes = <1>;
 				num-vectors = <256>;
 				num-viewport = <8>;
 				status = "okay";
+
+				dummy@0 {
+					label = "parent_gic_intc";
+					interrupt-parent = <&gic>;
+					#interrupt-cells = <3>;
+					interrupts = <GIC_SPI 148
+						      IRQ_TYPE_LEVEL_HIGH>;
+				};
+				dummy@1 {
+					label = "parent_ipa_intc";
+					interrupt-parent = <&ipa_intc>;
+					#interrupt-cells = <1>;
+					interrupts = <11>;
+				};
 			};
 
 			pcie1: pcie@20d00000 {
@@ -1233,12 +1246,25 @@
 				device_type = "pci";
 				ranges = <0x01000000 0x0 0x00000000 0x3 0xf7ef0000 0x0 0x00010000
 					  0x03000000 0x0 0x10000000 0x2 0x80000000 0x0 0x80000000>;
-				interrupts = <GIC_SPI 153 IRQ_TYPE_LEVEL_HIGH>;
 				bus-range = <16 31>;
 				num-lanes = <1>;
 				num-vectors = <256>;
 				num-viewport = <8>;
 				status = "okay";
+
+				dummy@0 {
+					label = "parent_gic_intc";
+					interrupt-parent = <&gic>;
+					#interrupt-cells = <3>;
+					interrupts = <GIC_SPI 153
+						      IRQ_TYPE_LEVEL_HIGH>;
+				};
+				dummy@1 {
+					label = "parent_ipa_intc";
+					interrupt-parent = <&ipa_intc>;
+					#interrupt-cells = <1>;
+					interrupts = <20>;
+				};
 			};
 		};
 
