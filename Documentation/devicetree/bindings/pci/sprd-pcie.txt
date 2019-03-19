@@ -38,6 +38,25 @@ HOST MODE
 	- mask: the mask of the syscon register
 	- value: the value to be set to the syscon register mask
 
+ - dummy@0 and dummy@1: dummy nodes.
+	   some pcie controllers have two or more interrupt lines. one connect
+	   to ipa level2 interrupt controller (e.g. pcie legacy irq), which
+	   may belong to dummy@0. and the others connect to GIC(e.g. MSI
+	   controller), which may belong to dummy@1
+ - label: describe the interrupt connect to which interrupt controller
+ - interrupt-parent: specifies the phandle to the parent interrupt controller
+		     this one is cascaded from.
+ - #interrupt-cells: specifies the number of cells needed to encode an interrupt
+		     source. it may be 3 or 1.
+	-1. if the vlue of this property is 3:
+		a) the 1st cell is the interrupt type: SPI interrupt
+		b) the 2nd cell is the interrupt number for the interrupt type
+		c) the 3rd cell is the flags, it must be active high
+		   level-sensitive
+	-2 if the value of this property is 1:
+		The only value is the interrupt number
+- interrupts: as specified about #interrupt-cells
+
 DEVICE MODE
 ===========
  - reg : Three register ranges as listed in the reg-names property
@@ -60,7 +79,6 @@ Example:
 		device_type = "pci";
 		ranges = <0x01000000 0x0 0x00000000 0x2 0x00002000 0x0 0x00010000
 			  0x03000000 0x0 0x10000000 0x2 0x10000000 0x1 0xefffffff>;
-		interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
 		bus-range = <0  15>;
 		num-lanes = <1>;
 		num-vectors = <256>;
@@ -75,6 +93,19 @@ Example:
 				(MASK_PMU_APB_PCIE2_PERST_N_AUTO_CTRL_EN |
 				MASK_PMU_APB_REG_PCIE2_PERST_N_ASSERT)
 				0x1>;
+
+		dummy@0 {
+			label = "parent_gic_intc";
+			interrupt-parent = <&gic>;
+			#interrupt-cells = <3>;
+			interrupts = <GIC_SPI 153 IRQ_TYPE_LEVEL_HIGH>;
+		};
+		dummy@1 {
+			label = "parent_ipa_intc";
+			interrupt-parent = <&ipa_intc>;
+			#interrupt-cells = <1>;
+			interrupts = <20>;
+		};
 	};
 
 	pcie1@2b100000 {
