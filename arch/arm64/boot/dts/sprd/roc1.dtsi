@@ -40,6 +40,9 @@
 		eth7 = &sipa_eth7;
 		eth8 = &sipa_eth8;
 		eth9 = &sipa_eth9;
+		thm-sensor15 = &cluster0_sensor;
+		thm-sensor16 = &cluster1_sensor;
+		thm-sensor17 = &soc_sensor;
 	};
 
 	soc: soc {
@@ -1451,6 +1454,48 @@
 					nvmem-cells = <&thm3_sen6>;
 					nvmem-cell-names = "sen_delta_cal";
 				};
+			};
+
+			cluster0_sensor: cluster0-sensor@15 {
+				compatible = "sprd,cluster0-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "littlecore0-thmzone",
+					"littlecore1-thmzone",
+					"littlecore2-thmzone",
+					"littlecore3-thmzone";
+				k-po = <128>;
+				k-pu = <256>;
+				k-i = <2>;
+				k-d = <0>;
+				cutoff = <10000>;
+			};
+
+			cluster1_sensor: cluster1-sensor@16 {
+				compatible = "sprd,cluster1-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "bigcore4-thmzone",
+					"bigcore5-thmzone",
+					"bigcore6-thmzone",
+					"bigcore7-thmzone";
+				k-po = <128>;
+				k-pu = <256>;
+				k-i = <2>;
+				k-d = <0>;
+				cutoff = <10000>;
+			};
+
+			soc_sensor: soc-sensor@17 {
+				compatible = "sprd,soc-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "cluster0-thmzone",
+					"cluster1-thmzone",
+					"gpu0-thmzone",
+					"mm-thmzone";
+				k-po = <0>;
+				k-pu = <0>;
+				k-i = <2>;
+				k-d = <0>;
+				cutoff = <10000>;
 			};
 
 			ap_efuse: efuse@32240000 {
