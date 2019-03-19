@@ -1682,7 +1682,12 @@ static int sprd_cproc_probe(struct platform_device *pdev)
 			if (rval || !pdata) {
 				pr_err("%s: failed to parse device tree!\n",
 				       __func__);
-				return rval;
+				/*
+				 * if one subsystem parse fail,
+				 * just print an error log,
+				 * continue parse next one.
+				 */
+				continue;
 			}
 
 #if defined(CONFIG_DEBUG_FS)
