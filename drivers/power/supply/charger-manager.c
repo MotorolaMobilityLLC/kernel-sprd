@@ -2316,6 +2316,8 @@ static void cm_batt_works(struct work_struct *work)
 	}
 	if (fuel_cap > 100)
 		fuel_cap = 100;
+	else if (fuel_cap < 0)
+		fuel_cap = 0;
 
 	cur_time = ktime_to_timespec64(ktime_get_boottime());
 
