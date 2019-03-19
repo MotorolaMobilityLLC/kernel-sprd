@@ -98,6 +98,7 @@
 	};
 
 	spipe@4 {
+		compatible = "sprd,spipe";
 		sprd,name = "slog_pm";
 		sprd,dst = <6>;
 		sprd,channel = <5>;
@@ -107,6 +108,7 @@
 	};
 
 	spipe@5 {
+		compatible = "sprd,spipe";
 		sprd,name = "sctl_pm";
 		sprd,dst = <6>;
 		sprd,channel = <6>;
