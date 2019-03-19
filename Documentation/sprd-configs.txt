@@ -9842,6 +9842,13 @@ CONFIG_SPRD_CACHE_EFUSE
 	[subsys] nvmem
 	[must] home
 	[function] get sprdtrum soc series efuse value using pre-reading mechanism
+CONFIG_SPRD_CAM_PW_DOMAIN_R5P0
+	[arch] arm64
+	[plat] sharkl3
+	[field] make,code
+	[subsys] camera
+	[must] user
+	[function] This function is used to enable cam power domain.
 CONFIG_SPRD_CLUSTER0_THERMAL
 	[arch] all
 	[plat] sharkl5,sharkl5_32
