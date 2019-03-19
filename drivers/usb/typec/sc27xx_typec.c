@@ -154,6 +154,7 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 
 	switch (sc->state) {
 	case SC27XX_ATTACHED_SNK:
+	case SC27XX_DEBUG_CABLE:
 		power_role = TYPEC_SINK;
 		data_role = TYPEC_DEVICE;
 		vconn_role = TYPEC_SINK;
@@ -183,6 +184,7 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 
 	switch (sc->state) {
 	case SC27XX_ATTACHED_SNK:
+	case SC27XX_DEBUG_CABLE:
 		sc->pre_state = SC27XX_ATTACHED_SNK;
 		extcon_set_state_sync(sc->edev, EXTCON_USB, true);
 		break;
@@ -212,6 +214,7 @@ static void sc27xx_typec_disconnect(struct sc27xx_typec *sc, u32 status)
 
 	switch (sc->pre_state) {
 	case SC27XX_ATTACHED_SNK:
+	case SC27XX_DEBUG_CABLE:
 		extcon_set_state_sync(sc->edev, EXTCON_USB, false);
 		break;
 	case SC27XX_ATTACHED_SRC:
