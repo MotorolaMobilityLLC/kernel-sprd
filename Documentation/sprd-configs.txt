@@ -8302,7 +8302,7 @@ CONFIG_POWER_RESET
 	[function] Provides a number of drivers which either reset a complete board.
 CONFIG_POWER_RESET_SC27XX
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] reset
 	[must] user
