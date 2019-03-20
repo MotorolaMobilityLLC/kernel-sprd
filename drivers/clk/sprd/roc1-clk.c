@@ -1265,8 +1265,8 @@ static SPRD_GATE_CLK(gpu_core_gate, "gpu-core-gate", "ap-mm-clk", 0x4,
 			BIT(0), CLK_IGNORE_UNUSED, 0);
 
 static const char * const gpu_parents[] = { "ext-26m", "twpll-384m",
-					"twpll-512m", "twpll-768m",
-					"lpll-614m4", "clk_gpll" };
+					"twpll-512m", "lpll-614m4",
+					"twpll-768m", "gpll" };
 static SPRD_COMP_CLK(gpu_core_clk, "gpu-core-clk", gpu_parents, 0x4,
 		     4, 3, 8, 3, 0);
 
