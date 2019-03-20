@@ -654,6 +654,15 @@ static void sprd_musb_work(struct work_struct *work)
 		}
 
 		if (glue->dr_mode == USB_DR_MODE_HOST) {
+			if (!glue->vbus) {
+				glue->vbus = devm_regulator_get(glue->dev, "vbus");
+				if (IS_ERR(glue->vbus)) {
+					dev_err(glue->dev,
+						"unable to get vbus supply\n");
+					glue->vbus = NULL;
+					goto end;
+				}
+			}
 			ret = regulator_enable(glue->vbus);
 			if (ret) {
 				dev_err(glue->dev,
@@ -897,8 +906,8 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		glue->vbus = devm_regulator_get(dev, "vbus");
 		if (IS_ERR(glue->vbus)) {
 			ret = PTR_ERR(glue->vbus);
-			dev_err(dev, "unable to get vbus supply %d\n", ret);
-			goto err_core_clk;
+			dev_warn(dev, "unable to get vbus supply %d\n", ret);
+			glue->vbus = NULL;
 		}
 	}
 
@@ -1167,4 +1176,15 @@ static struct platform_driver musb_sprd_driver = {
 	.remove = musb_sprd_remove,
 };
 
-module_platform_driver(musb_sprd_driver);
+static int __init musb_sprd_driver_init(void)
+{
+	return platform_driver_register(&musb_sprd_driver);
+}
+
+static void __exit musb_sprd_driver_exit(void)
+{
+	platform_driver_unregister(&musb_sprd_driver);
+}
+
+late_initcall(musb_sprd_driver_init);
+module_exit(musb_sprd_driver_exit);
