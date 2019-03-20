@@ -36,6 +36,8 @@ struct sprd_plane {
 	struct drm_property *fbc_hsize_y_property;
 	struct drm_property *fbc_hsize_uv_property;
 	struct drm_property *y2r_coef_property;
+	struct drm_property *pallete_en_property;
+	struct drm_property *pallete_color_property;
 	u32 index;
 };
 
@@ -47,6 +49,8 @@ struct sprd_plane_state {
 	u32 fbc_hsize_y;
 	u32 fbc_hsize_uv;
 	u32 y2r_coef;
+	u32 pallete_en;
+	u32 pallete_color;
 };
 
 LIST_HEAD(dpu_core_head);
@@ -181,6 +185,22 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	struct sprd_dpu_layer *layer = &dpu->layers[p->index];
 	int i;
 
+	if (s->pallete_en) {
+		layer->index = p->index;
+		layer->dst_x = state->crtc_x;
+		layer->dst_y = state->crtc_y;
+		layer->dst_w = state->crtc_w;
+		layer->dst_h = state->crtc_h;
+		layer->alpha = s->alpha;
+		layer->blending = s->blend_mode;
+		layer->pallete_en = s->pallete_en;
+		layer->pallete_color = s->pallete_color;
+		dpu->pending_planes++;
+		DRM_DEBUG("%s() pallete_color = %u, index = %u\n",
+			__func__, layer->pallete_color, layer->index);
+		return;
+	}
+
 	layer->index = p->index;
 	layer->src_x = state->src_x >> 16;
 	layer->src_y = state->src_y >> 16;
@@ -200,9 +220,11 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	layer->header_size_y = s->fbc_hsize_y;
 	layer->header_size_uv = s->fbc_hsize_uv;
 	layer->y2r_coef = s->y2r_coef;
+	layer->pallete_en = s->pallete_en;
+	layer->pallete_color = s->pallete_color;
 
-	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u\n",
-		  __func__, layer->alpha, layer->blending, layer->rotation);
+	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u, y2r_coef = %u\n",
+		  __func__, layer->alpha, layer->blending, layer->rotation, s->y2r_coef);
 
 	DRM_DEBUG("%s() xfbc = %u, hsize_r = %u, hsize_y = %u, hsize_uv = %u\n",
 		  __func__, layer->xfbc, layer->header_size_r,
@@ -283,6 +305,8 @@ sprd_plane_atomic_duplicate_state(struct drm_plane *plane)
 	s->fbc_hsize_y = old_state->fbc_hsize_y;
 	s->fbc_hsize_uv = old_state->fbc_hsize_uv;
 	s->y2r_coef = old_state->y2r_coef;
+	s->pallete_en = old_state->pallete_en;
+	s->pallete_color = old_state->pallete_color;
 
 	return &s->state;
 }
@@ -319,6 +343,10 @@ static int sprd_plane_atomic_set_property(struct drm_plane *plane,
 		s->fbc_hsize_uv = val;
 	else if (property == p->y2r_coef_property)
 		s->y2r_coef = val;
+	else if (property == p->pallete_en_property)
+		s->pallete_en = val;
+	else if (property == p->pallete_color_property)
+		s->pallete_color = val;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -349,6 +377,10 @@ static int sprd_plane_atomic_get_property(struct drm_plane *plane,
 		*val = s->fbc_hsize_uv;
 	else if (property == p->y2r_coef_property)
 		*val = s->y2r_coef;
+	else if (property == p->pallete_en_property)
+		*val = s->pallete_en;
+	else if (property == p->pallete_color_property)
+		*val = s->pallete_color;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -422,6 +454,22 @@ static int sprd_plane_create_properties(struct sprd_plane *p, int index)
 		return -ENOMEM;
 	drm_object_attach_property(&p->plane.base, prop, 0);
 	p->y2r_coef_property = prop;
+
+	/* create pallete enable property */
+	prop = drm_property_create_range(p->plane.dev, 0,
+			"pallete enable", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&p->plane.base, prop, 0);
+	p->pallete_en_property = prop;
+
+	/* create pallete color property */
+	prop = drm_property_create_range(p->plane.dev, 0,
+			"pallete color", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&p->plane.base, prop, 0);
+	p->pallete_color_property = prop;
 
 	return 0;
 }

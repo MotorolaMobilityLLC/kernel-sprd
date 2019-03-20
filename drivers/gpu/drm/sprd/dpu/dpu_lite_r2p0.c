@@ -1021,6 +1021,22 @@ static void dpu_layer(struct dpu_context *ctx,
 	layer = &reg->layers[hwlayer->index];
 	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
 
+	if (hwlayer->pallete_en) {
+		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		layer->pos = offset;
+		layer->size = size;
+		layer->alpha = hwlayer->alpha;
+		layer->pallete = hwlayer->pallete_color;
+
+		/* pallete layer enable */
+		layer->ctrl = 0x2005;
+
+		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
+			hwlayer->dst_x, hwlayer->dst_y,
+			hwlayer->dst_w, hwlayer->dst_h, layer->pallete);
+		return;
+	}
+
 	if (hwlayer->src_w && hwlayer->src_h)
 		size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
 	else
