@@ -14,6 +14,7 @@ extern int dfs_auto_enable(void);
 extern int dfs_auto_disable(void);
 extern int scene_dfs_request(char *scenario);
 extern int scene_exit(char *scenario);
+extern int change_scene_freq(char *scenario, unsigned int freq);
 extern int force_freq_request(unsigned int freq);
 extern int get_dfs_status(unsigned int *data);
 extern int get_dfs_auto_status(unsigned int *data);

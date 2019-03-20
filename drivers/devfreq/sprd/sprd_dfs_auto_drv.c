@@ -387,6 +387,28 @@ int scene_exit(char *scenario)
 }
 EXPORT_SYMBOL(scene_exit);
 
+int change_scene_freq(char *scenario, unsigned int freq)
+{
+	struct scene_freq *scene;
+	int err;
+
+	if (g_dfs_data == NULL)
+		return -ENOENT;
+	if (g_dfs_data->init_done != 1)
+		return -ENOENT;
+	scene = find_scene(scenario);
+	if (scene == NULL) {
+		pr_err("%s, The scene: %s is invalid\n", __func__, scenario);
+		return -EINVAL;
+	}
+	spin_lock(&g_dfs_data->lock);
+		scene->scene_freq = freq;
+	spin_unlock(&g_dfs_data->lock);
+	err = send_scene_request(scene->vote_magic);
+	return err;
+}
+EXPORT_SYMBOL(change_scene_freq);
+
 int force_freq_request(unsigned int freq)
 {
 	unsigned int data;
