@@ -2591,12 +2591,10 @@ static void musb_save_context(struct musb *musb)
 		musb_writeb(musb_base, MUSB_INDEX, i);
 		musb->context.index_regs[i].txmaxp =
 			musb_readw(epio, MUSB_TXMAXP);
-		musb->context.index_regs[i].txcsr =
-			musb_readw(epio, MUSB_TXCSR);
+		musb->context.index_regs[i].txcsr = 0;
 		musb->context.index_regs[i].rxmaxp =
 			musb_readw(epio, MUSB_RXMAXP);
-		musb->context.index_regs[i].rxcsr =
-			musb_readw(epio, MUSB_RXCSR);
+		musb->context.index_regs[i].rxcsr = 0;
 
 		if (musb->dyn_fifo) {
 			musb->context.index_regs[i].txfifoadd =
