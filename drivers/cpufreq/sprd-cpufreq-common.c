@@ -28,6 +28,8 @@
 #include "sprd-cpufreq-common.h"
 #include "sprd-cpufreqhw.h"
 
+struct sprd_cpufreq_driver_data *cpufreq_datas[SPRD_CPUFREQ_MAX_MODULE];
+
 __weak struct sprd_cpudvfs_device *sprd_hardware_dvfs_device_get(void)
 {
 	return NULL;

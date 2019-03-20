@@ -31,7 +31,6 @@
 static unsigned long boot_done_timestamp;
 static int boost_mode_flag = 1;
 static struct cpufreq_driver sprd_cpufreq_driver;
-struct sprd_cpufreq_driver_data *cpufreq_datas[SPRD_CPUFREQ_MAX_MODULE];
 static int sprd_cpufreq_set_boost(int state);
 static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data,
 				   unsigned int idx, bool force);
