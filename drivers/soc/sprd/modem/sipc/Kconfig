@@ -61,4 +61,13 @@ config SPRD_SIPC_SETH_RAWIP
 	depends on SPRD_SIPC
 	help
 		Starting from SharkL5.1, use zero copy rawip transfer.
+
+config SPRD_SIPC_SWCNBLK
+	bool "Enable WCN use wcnblk to transfer IP packets"
+	default n
+	depends on SPRD_SIPC
+	help
+	  This driver supports wcn sblock special function.
+	  Starting from SharkLe, wcn use swcnblk to replace sblock.
+
 endmenu
