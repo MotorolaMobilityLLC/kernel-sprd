@@ -253,6 +253,12 @@
 		chnl-in-i2c = <1>;
 	};
 
+	ddr_dfs: scene-frequency {
+		compatible = "sprd,dfs";
+		freq-num = <8>;
+		backdoor = <1866>;
+	};
+
 };
 
 &dpu {

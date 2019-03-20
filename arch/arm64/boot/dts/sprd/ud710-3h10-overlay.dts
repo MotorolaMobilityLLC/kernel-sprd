@@ -55,3 +55,9 @@
 			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 	};
 };
+
+&ddr_dfs {
+	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+		"camhigh", "camveryhigh";
+	sprd-freq = <1333 667 256 384 667 1333>;
+};
