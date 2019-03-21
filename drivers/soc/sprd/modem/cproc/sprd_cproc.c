@@ -306,6 +306,7 @@ static ssize_t cproc_proc_read(struct file *filp,
 	int rval;
 	int i;
 	unsigned long r;
+	u32 base, size;
 
 	flag = entry->flag;
 	pr_debug("%s: type = %s, flag = 0x%x\n", __func__, type, flag);
@@ -313,23 +314,40 @@ static ssize_t cproc_proc_read(struct file *filp,
 	if ((flag & BE_RDONLY) == 0)
 		return -EPERM;
 
-	if ((flag & BE_CPDUMP) != 0) {
-		if (*ppos >= cproc->initdata->maxsz)
+	if ((flag & (BE_CPDUMP | BE_SEGMFG)) != 0) {
+		if (flag & BE_CPDUMP) {
+			base = cproc->initdata->base;
+			size = cproc->initdata->maxsz;
+		} else {
+			for (i = 0; i < cproc->initdata->segnr; i++) {
+				if (strcmp(cproc->initdata->segs[i].name,
+					   entry->name) == 0)
+					break;
+			}
+
+			if (i == cproc->initdata->segnr)
+				return -EINVAL;
+
+			base = cproc->initdata->segs[i].base;
+			size = cproc->initdata->segs[i].maxsz;
+		}
+
+		if (*ppos >= size)
 			return 0;
 
-		if ((*ppos + count) > cproc->initdata->maxsz)
-			count = cproc->initdata->maxsz - *ppos;
+		if ((*ppos + count) > size)
+			count = size - *ppos;
 
 		r = count, i = 0;
 		do {
 			u32 copy_size = CPROC_VMALLOC_SIZE_LIMIT;
 
 			vmem = modem_ram_vmap_nocache(SOC_MODEM,
-					cproc->initdata->base +
+					base +
 					*ppos + CPROC_VMALLOC_SIZE_LIMIT * i,
 					CPROC_VMALLOC_SIZE_LIMIT);
 			if (!vmem) {
-				unsigned long addr = cproc->initdata->base +
+				unsigned long addr = base +
 					*ppos + CPROC_VMALLOC_SIZE_LIMIT * i;
 				pr_err("Unable to map cproc base: 0x%lx\n",
 				       addr);
@@ -879,7 +897,7 @@ static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
 
 			cproc->procfs.entrys[i].name =
 				cproc->initdata->segs[i - ucnt].name;
-			flag |= (BE_WRONLY | BE_LD | BE_SEGMFG | (i - ucnt));
+			flag |= (BE_WRONLY | BE_RDONLY | BE_LD | BE_SEGMFG | (i - ucnt));
 			break;
 		}
 
