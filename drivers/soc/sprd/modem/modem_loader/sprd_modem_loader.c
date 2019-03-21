@@ -13,6 +13,7 @@
 
 #include <linux/cdev.h>
 #include <linux/kernel.h>
+#include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/io.h>
 #include <linux/of_device.h>
@@ -61,7 +62,6 @@
 #define	MODEM_READ_ALL_MEM 0xff
 #define	MODEM_READ_MODEM_MEM 0xfe
 #define RUN_STATE_INVALID 0xff
-#define MODEM_VMALLOC_SIZE_LIMIT 0x100000
 
 enum {
 	SPRD_5G_MODEM_DP = 0,
@@ -163,12 +163,33 @@ static void modem_get_base_range(struct modem_device *modem,
 	*p_size = size;
 }
 
+static void *modem_map_memory(struct modem_device *modem, phys_addr_t start,
+			      size_t size, size_t *map_size_ptr)
+{
+	size_t map_size = PAGE_ALIGN(size);
+	void *map;
+
+	do {
+		map = modem_ram_vmap_nocache(modem->modem_type,
+					     start, map_size);
+		if (map) {
+			if (map_size_ptr)
+				*map_size_ptr = map_size;
+
+			return map;
+		}
+		map_size /= 2;
+		map_size = PAGE_ALIGN(map_size);
+	} while (map_size >= PAGE_SIZE);
+
+	return NULL;
+}
+
 static ssize_t modem_read(struct file *filp,
 			  char __user *buf, size_t count, loff_t *ppos)
 {
 	phys_addr_t base;
-	size_t size, offset, copy_size, r;
-	u32 i;
+	size_t size, offset, copy_size, map_size, r;
 	void *vmem;
 	struct modem_device *modem = filp->private_data;
 	phys_addr_t addr;
@@ -191,29 +212,26 @@ static ssize_t modem_read(struct file *filp,
 		return -EINVAL;
 
 	count = min_t(size_t, size - offset, count);
-	r = count, i = 0;
+	r = count;
 	do {
-		addr = base + offset + MODEM_VMALLOC_SIZE_LIMIT * i;
-		vmem = modem_ram_vmap_nocache(modem->modem_type,
-					      addr,
-					      MODEM_VMALLOC_SIZE_LIMIT);
+		addr = base + offset + (count - r);
+		vmem = modem_map_memory(modem, addr, r, &map_size);
 		if (!vmem) {
 			dev_err(modem->p_dev,
 				"read, Unable to map  base: 0x%llx\n", addr);
-			break;
+			return -ENOMEM;
 		}
 
-		copy_size = min_t(size_t, r, (size_t)MODEM_VMALLOC_SIZE_LIMIT);
+		copy_size = min_t(size_t, r, map_size);
 		if (unalign_copy_to_user(buf, vmem, copy_size)) {
 			dev_err(modem->p_dev,
 				"read, copy data from user err!\n");
 			modem_ram_unmap(modem->modem_type, vmem);
-			break;
+			return -EFAULT;
 		}
 		modem_ram_unmap(modem->modem_type, vmem);
 		r -= copy_size;
 		buf += copy_size;
-		i++;
 	} while (r > 0);
 
 	*ppos += (count - r);
@@ -225,9 +243,8 @@ static ssize_t modem_write(struct file *filp,
 			   size_t count, loff_t *ppos)
 {
 	phys_addr_t base;
-	size_t size, offset, copy_size, r;
+	size_t size, offset, copy_size, map_size, r;
 	void *vmem;
-	u32 i;
 	struct modem_device *modem = filp->private_data;
 	phys_addr_t addr;
 
@@ -249,27 +266,18 @@ static ssize_t modem_write(struct file *filp,
 		return -EINVAL;
 
 	count = min_t(size_t, size - offset, count);
-	r = count, i = 0;
+	r = count;
 	do {
-		addr = base + offset + MODEM_VMALLOC_SIZE_LIMIT * i;
-		vmem = modem_ram_vmap_nocache(modem->modem_type,
-					      addr,
-					      MODEM_VMALLOC_SIZE_LIMIT);
+		addr = base + offset + (count - r);
+		vmem = modem_map_memory(modem, addr, r, &map_size);
 		if (!vmem) {
 			dev_err(modem->p_dev,
 				"write, Unable to map  base: 0x%llx\n",
 				addr);
-			if (i > 0) {
-				*ppos += MODEM_VMALLOC_SIZE_LIMIT * i;
-				return MODEM_VMALLOC_SIZE_LIMIT * i;
-			} else {
-				return -ENOMEM;
-			}
+			return -ENOMEM;
 		}
-		copy_size = min_t(size_t, r, MODEM_VMALLOC_SIZE_LIMIT);
-		if (unalign_copy_from_user(vmem,
-					   buf + MODEM_VMALLOC_SIZE_LIMIT * i,
-					   copy_size)) {
+		copy_size = min_t(size_t, r, map_size);
+		if (unalign_copy_from_user(vmem, buf, copy_size)) {
 			dev_err(modem->p_dev,
 				"write, copy data from user err!\n");
 			modem_ram_unmap(modem->modem_type, vmem);
@@ -277,7 +285,7 @@ static ssize_t modem_write(struct file *filp,
 		}
 		modem_ram_unmap(modem->modem_type, vmem);
 		r -= copy_size;
-		i++;
+		buf += copy_size;
 	} while (r > 0);
 
 	*ppos += (count - r);
