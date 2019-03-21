@@ -91,6 +91,12 @@
 		compatible = "sprd,sharkl5-sensorhub";
 	};
 
+	extcon_gpio: extcon_gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+		id-gpio = <&eic_debounce 4 GPIO_ACTIVE_HIGH>;
+	};
+
 	thm_zone: thermal-zones {
 
 		soc_thmzone: soc-thmzone {
