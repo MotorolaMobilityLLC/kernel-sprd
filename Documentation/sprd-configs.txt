@@ -9851,14 +9851,14 @@ CONFIG_SPRD_CAM_PW_DOMAIN_R5P0
 	[function] This function is used to enable cam power domain.
 CONFIG_SPRD_CLUSTER0_THERMAL
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] roc1,sharkl5,sharkl5_32
 	[field] make
 	[subsys] thermal
 	[must] user
 	[function] enable virtual sensor driver for cluster0
 CONFIG_SPRD_CLUSTER1_THERMAL
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] roc1,sharkl5,sharkl5_32
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -9879,14 +9879,14 @@ CONFIG_SPRD_CPROC
 	[function] This function is used to enable sprd cproc module for modem boot.
 CONFIG_SPRD_CPU_COOLING
 	[arch] arm64
-	[plat] sharkl5
+	[plat] roc1,sharkl5
 	[field] make
 	[subsys] thermal
 	[must] user
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_DEVICE
 	[arch] arm64
-	[plat] sharkl5
+	[plat] roc1,sharkl5
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -10301,7 +10301,7 @@ CONFIG_SPRD_SIP_FW
 	           services.
 CONFIG_SPRD_SOC_THERMAL
 	[arch] all
-	[plat] sharkl5,sharkl5_32
+	[plat] roc1,sharkl5,sharkl5_32
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -10695,7 +10695,7 @@ CONFIG_THERMAL_GOV_POWER_ALLOCATOR
 	[function] Power allocator thermal governor.
 CONFIG_THERMAL_GOV_STEP_WISE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5_32
+	[plat] sharkl3,sharkl5_32
 	[field] make
 	[subsys] thermal
 	[must] user
