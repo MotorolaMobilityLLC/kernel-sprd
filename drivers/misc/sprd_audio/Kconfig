@@ -56,4 +56,12 @@ config SPRD_HW_DEVICE_DVFS_AGCP
 	depends on SPRD_MAILBOX && SPRD_AUDIO_MEMORY_MANAGER
 	help
 	   This driver supports dvfs interfaces for PUBCP DVFS and WTLCP DVFS at user specidied.
+
+config SPRD_AUDIO_CPBOOT
+	tristate "Spreadtrum AGCP boot driver"
+	depends on SPRD_AUDIO_MEMORY_MANAGER
+	help
+	  Audio cp boot driver is used for reboot audio cp in kernel.
+	  It support interface for userspace to stop audio cp, download dsp bin and
+	  start audio cp.
 endmenu
