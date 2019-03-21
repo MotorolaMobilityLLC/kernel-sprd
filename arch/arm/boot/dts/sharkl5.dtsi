@@ -131,7 +131,7 @@
 		gpu_dvfs_apb_regs: syscon@60110000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
-			reg = <0 0x60110000 0 0x10000>;
+			reg = <0x60110000 0x10000>;
 		};
 
 		mm_ahb_regs: syscon@62200000 {
