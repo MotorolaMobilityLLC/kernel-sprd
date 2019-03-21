@@ -196,7 +196,7 @@
 	};
 
 	audio-mem-mgr {
-		memory-region = <&audio_reserved>;
+		memory-region = <&audio_reserved &audiodsp_reserved>;
 	};
 
 	dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {

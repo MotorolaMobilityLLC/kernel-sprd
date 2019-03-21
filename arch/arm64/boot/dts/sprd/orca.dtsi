@@ -934,6 +934,7 @@
 		 * 0x87800000 - 0x300000
 		 */
 		sprd,ddr32-dma = <0x87500000 0x300000>;
+		sprd,audcp-aon-iram = <0x7400 0x1000>;
 	};
 
 	audio-dsp-dump@0 {/* audio dsp log */
@@ -975,6 +976,25 @@
 		sprd,writesync = <0>;
 		sprd,maxuserwritebufsize = <0>;
 		sprd,channel = <2>;
+	};
+
+	audiocp_boot {
+		compatible = "sprd,orca-audcp-boot";
+		syscons = <&pmu_apb_regs REG_PMU_APB_RF_PD_AUDCP_SYS_CFG MASK_PMU_APB_RF_PD_AUDCP_SYS_FORCE_SHUTDOWN >,
+			<&pmu_apb_regs REG_PMU_APB_RF_PD_AUDCP_AUDDSP_CFG MASK_PMU_APB_RF_PD_AUDCP_AUDDSP_AUTO_SHUTDOWN_EN>,
+			<&pmu_apb_regs REG_PMU_APB_RF_SLEEP_CTRL MASK_PMU_APB_RF_AUDCP_FORCE_DEEP_SLEEP>,
+			<&pmu_apb_regs REG_PMU_APB_RF_CP_SOFT_RST MASK_PMU_APB_RF_AUDCP_AUDDSP_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_RF_CP_SOFT_RST MASK_PMU_APB_RF_AUDCP_SYS_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_RF_SOFT_RST_SEL MASK_PMU_APB_RF_SOFT_RST_SEL>,
+			<&pmu_apb_regs REG_PMU_APB_RF_PWR_STATUS3_DBG MASK_PMU_APB_RF_PD_AUDCP_SYS_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_RF_PWR_STATUS3_DBG MASK_PMU_APB_RF_PD_AUDCP_AUDDSP_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_RF_SLEEP_STATUS MASK_PMU_APB_RF_AUDCP_SLP_STATUS>,
+			<&aon_apb_regs REG_AON_APB_RF_AUDCP_BOOT_PROT MASK_AON_APB_RF_AUDCP_REG_PROT_VAL>,
+			<&aon_apb_regs REG_AON_APB_RF_AUDCP_DSP_CTRL0 MASK_AON_APB_RF_AUDCP_DSP_BOOT_VECTOR>,
+			<&aon_apb_regs REG_AON_APB_RF_AUDCP_DSP_CTRL1 MASK_AON_APB_RF_AUDCP_DSP_BOOT>;
+		syscon-names = "sysshutdown", "coreshutdown", "deepsleep", "corereset",
+			"sysreset", "reset_sel", "sysstatus", "corestatus", "sleepstatus",
+			"bootprotect", "bootvector", "bootaddress_sel";
 	};
 
 	ext_26m: ext-26m {

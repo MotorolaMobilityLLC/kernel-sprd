@@ -196,7 +196,7 @@
 	};
 
 	audio-mem-mgr {
-		memory-region = <&audio_reserved>;
+		memory-region = <&audio_reserved &audiodsp_reserved>;
 	};
 
 	ufs: ufs@71900000 {

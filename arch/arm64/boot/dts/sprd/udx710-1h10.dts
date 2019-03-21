@@ -47,7 +47,7 @@
 	};
 
 	audio-mem-mgr {
-		memory-region = <&audio_reserved>;
+		memory-region = <&audio_reserved &audiodsp_reserved>;
 	};
 	sprd-mcd {
 		compatible = "sprd,orca-modem-ctrl";

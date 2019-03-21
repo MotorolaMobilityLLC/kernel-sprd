@@ -223,7 +223,7 @@
 	};
 
 	audio-mem-mgr {
-		memory-region = <&audio_reserved>;
+		memory-region = <&audio_reserved &audiodsp_reserved>;
 	};
 
 	tboard_thermistor:thermal-sensor {
