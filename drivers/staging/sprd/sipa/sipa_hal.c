@@ -288,6 +288,10 @@ sipa_hal_hdl sipa_hal_init(struct device *dev,
 		hal_cfg->phy_virt_res.glb_base,
 		cfg->is_bypass);
 
+	if (cfg->is_bypass) {
+		hal_cfg->glb_ops.enable_pcie_intr_write_reg_mode(
+			hal_cfg->phy_virt_res.glb_base, 1);
+	}
 	return ((sipa_hal_hdl)hal_cfg);
 }
 EXPORT_SYMBOL(sipa_hal_init);

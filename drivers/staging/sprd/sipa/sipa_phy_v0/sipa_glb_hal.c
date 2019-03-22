@@ -1,6 +1,14 @@
 #include "../sipa_hal_priv.h"
 #include "sipa_glb_phy.h"
 
+#define SIPA_PCIE_DL_TX_INTR_PATTERN	0
+#define SIPA_PCIE_DL_RX_INTR_PATTERN	1
+#define SIPA_PCIE_UL_RX_INTR_PATTERN	2
+#define SIPA_PCIE_UL_TX_INTR_PATTERN	3
+
+#define SIPA_PCIE_INTR_ADDR_LOW		0x0
+#define SIPA_PCIE_INTR_ADDR_HIGH	0x2
+
 static u32 sipa_hal_set_work_mode(
 	void __iomem *reg_base,
 	u32 is_bypass)
@@ -250,6 +258,95 @@ static u32 sipa_hal_ctrl_cp_work(void __iomem *reg_base, bool enable)
 	return ipa_phy_ctrl_cp_work(reg_base, enable);
 }
 
+static void ipa_phy_set_dl_tx_intr(void __iomem *reg_base,
+				   u32 addr_low,
+				   u32 addr_high,
+				   u32 pattern)
+{
+	u32 tmp;
+
+	writel_relaxed(addr_low, reg_base + IPA_PCIE_DL_TX_FIFO_INT_ADDR_LOW);
+
+	tmp = readl_relaxed(reg_base + IPA_PCIE_DL_TX_FIFO_INT_ADDR_HIGH);
+	tmp &= ~(u32)IPA_PCIE_DL_TX_FIFO_INT_ADDR_HIGH_MASK;
+	tmp |= addr_high & IPA_PCIE_DL_TX_FIFO_INT_ADDR_HIGH_MASK;
+	writel_relaxed(tmp, reg_base + IPA_PCIE_DL_TX_FIFO_INT_ADDR_HIGH);
+	writel_relaxed(pattern, reg_base + IPA_PCIE_DL_TX_FIFO_INT_PATTERN);
+}
+
+static void ipa_phy_set_dl_rx_intr(void __iomem *reg_base,
+				   u32 addr_low,
+				   u32 addr_high,
+				   u32 pattern)
+{
+	u32 tmp;
+
+	writel_relaxed(addr_low, reg_base + IPA_PCIE_DL_RX_FIFO_INT_ADDR_LOW);
+
+	tmp = readl_relaxed(reg_base + IPA_PCIE_DL_RX_FIFO_INT_ADDR_HIGH);
+	tmp &= ~(u32)IPA_PCIE_DL_RX_FIFO_INT_ADDR_HIGH_MASK;
+	tmp |= addr_high & IPA_PCIE_DL_RX_FIFO_INT_ADDR_HIGH_MASK;
+	writel_relaxed(tmp, reg_base + IPA_PCIE_DL_RX_FIFO_INT_ADDR_HIGH);
+	writel_relaxed(pattern, reg_base + IPA_PCIE_DL_RX_FIFO_INT_PATTERN);
+}
+
+static void ipa_phy_set_ul_rx_intr(void __iomem *reg_base,
+				   u32 addr_low,
+				   u32 addr_high,
+				   u32 pattern)
+{
+	u32 tmp;
+
+	writel_relaxed(addr_low, reg_base + IPA_PCIE_UL_RX_FIFO_INT_ADDR_LOW);
+
+	tmp = readl_relaxed(reg_base + IPA_PCIE_UL_RX_FIFO_INT_ADDR_HIGH);
+	tmp &= ~(u32)IPA_PCIE_UL_RX_FIFO_INT_ADDR_HIGH_MASK;
+	tmp |= addr_high & IPA_PCIE_UL_RX_FIFO_INT_ADDR_HIGH_MASK;
+	writel_relaxed(tmp, reg_base + IPA_PCIE_UL_RX_FIFO_INT_ADDR_HIGH);
+	writel_relaxed(pattern, reg_base + IPA_PCIE_UL_RX_FIFO_INT_PATTERN);
+}
+
+static void ipa_phy_set_ul_tx_intr(void __iomem *reg_base,
+				   u32 addr_low,
+				   u32 addr_high,
+				   u32 pattern)
+{
+	u32 tmp;
+
+	writel_relaxed(addr_low, reg_base + IPA_PCIE_UL_TX_FIFO_INT_ADDR_LOW);
+
+	tmp = readl_relaxed(reg_base + IPA_PCIE_UL_TX_FIFO_INT_ADDR_HIGH);
+	tmp &= ~(u32)IPA_PCIE_UL_TX_FIFO_INT_ADDR_HIGH_MASK;
+	tmp |= addr_high & IPA_PCIE_UL_TX_FIFO_INT_ADDR_HIGH_MASK;
+	writel_relaxed(tmp, reg_base + IPA_PCIE_UL_TX_FIFO_INT_ADDR_HIGH);
+	writel_relaxed(pattern, reg_base + IPA_PCIE_UL_TX_FIFO_INT_PATTERN);
+}
+
+static void sipa_hal_enable_pcie_intr_write_reg_mode(void __iomem *reg_base,
+						     bool enable)
+{
+	ipa_phy_enable_pcie_mem_intr(reg_base, enable);
+	if (!enable)
+		return;
+
+	ipa_phy_set_dl_tx_intr(reg_base,
+			       SIPA_PCIE_INTR_ADDR_LOW,
+			       SIPA_PCIE_INTR_ADDR_HIGH,
+			       SIPA_PCIE_DL_TX_INTR_PATTERN);
+	ipa_phy_set_dl_rx_intr(reg_base,
+			       SIPA_PCIE_INTR_ADDR_LOW,
+			       SIPA_PCIE_INTR_ADDR_HIGH,
+			       SIPA_PCIE_DL_RX_INTR_PATTERN);
+	ipa_phy_set_ul_rx_intr(reg_base,
+			       SIPA_PCIE_INTR_ADDR_LOW,
+			       SIPA_PCIE_INTR_ADDR_HIGH,
+			       SIPA_PCIE_UL_RX_INTR_PATTERN);
+	ipa_phy_set_ul_tx_intr(reg_base,
+			       SIPA_PCIE_INTR_ADDR_LOW,
+			       SIPA_PCIE_INTR_ADDR_HIGH,
+			       SIPA_PCIE_UL_TX_INTR_PATTERN);
+}
+
 u32 sipa_glb_ops_init(
 	struct sipa_hal_global_ops *ops)
 {
@@ -307,6 +404,8 @@ u32 sipa_glb_ops_init(
 		sipa_hal_set_cp_dl_flow_ctrl_mode;
 	ops->ctrl_cp_work =
 		sipa_hal_ctrl_cp_work;
+	ops->enable_pcie_intr_write_reg_mode =
+		sipa_hal_enable_pcie_intr_write_reg_mode;
 
 	return TRUE;
 }

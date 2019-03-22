@@ -1,6 +1,7 @@
 #ifndef _IPA_GLB_REGS_H_
 #define _IPA_GLB_REGS_H_
 
+#include <linux/bitops.h>
 #include "../sipa_hal_priv.h"
 
 #define ZERO	0l
@@ -1424,11 +1425,14 @@
 
 /**
  * ipa_ctrl
- *   [31:15]: Reserved
+ *   [31:16]: Reserved
+ *   [15] HW int enable
  *   [14:1]: cm4_int_mask
  *   [0]: ul wiap dma enable
  */
 #define IPA_WIAP_UL_DMA_EN_MASK	(0x01l)
+#define ENABLE_PCIE_MEM_INTR_MODE_MASK BIT(15)
+
 #define MAP_UL_DEV_FIFO_FREE_FIFO_FATAL_INTERRUPT_FOR_CM4_MASK \
 			BIT(14)
 
@@ -1499,6 +1503,26 @@
 #define IPA_BUS_MONITOR_SOFT_RDATA	(0x106Cl)
 
 #define IPA_DUMMY_REG				(0x1070l)
+
+#define IPA_PCIE_DL_TX_FIFO_INT_ADDR_LOW	0x1078
+#define IPA_PCIE_DL_TX_FIFO_INT_ADDR_HIGH	0x107c
+#define IPA_PCIE_DL_TX_FIFO_INT_ADDR_HIGH_MASK	GENMASK(7, 0)
+#define IPA_PCIE_DL_TX_FIFO_INT_PATTERN		0x1080
+
+#define IPA_PCIE_DL_RX_FIFO_INT_ADDR_LOW	0x1084
+#define IPA_PCIE_DL_RX_FIFO_INT_ADDR_HIGH	0x1088
+#define IPA_PCIE_DL_RX_FIFO_INT_ADDR_HIGH_MASK	GENMASK(7, 0)
+#define IPA_PCIE_DL_RX_FIFO_INT_PATTERN		0x108c
+
+#define IPA_PCIE_UL_RX_FIFO_INT_ADDR_LOW	0x1090
+#define IPA_PCIE_UL_RX_FIFO_INT_ADDR_HIGH	0x1094
+#define IPA_PCIE_UL_RX_FIFO_INT_ADDR_HIGH_MASK	GENMASK(7, 0)
+#define IPA_PCIE_UL_RX_FIFO_INT_PATTERN		0x1098
+
+#define IPA_PCIE_UL_TX_FIFO_INT_ADDR_LOW	0x109c
+#define IPA_PCIE_UL_TX_FIFO_INT_ADDR_HIGH	0x10a0
+#define IPA_PCIE_UL_TX_FIFO_INT_ADDR_HIGH_MASK	GENMASK(7, 0)
+#define IPA_PCIE_UL_TX_FIFO_INT_PATTERN		0x10a4
 
 enum ipa_mode_e {
 	normal_mode,
@@ -2195,6 +2219,22 @@ static inline bool ipa_phy_ctrl_cp_work(void __iomem *reg_base,
 		flag = false;
 
 	return flag == enable;
+}
+
+static inline void ipa_phy_enable_pcie_mem_intr(void __iomem *reg_base,
+						bool enable)
+{
+	u32 tmp;
+
+	if (enable) {
+		tmp = readl_relaxed(reg_base + IPA_CTRL);
+		tmp |= ENABLE_PCIE_MEM_INTR_MODE_MASK;
+		writel_relaxed(tmp, reg_base + IPA_CTRL);
+	} else {
+		tmp = readl_relaxed(reg_base + IPA_CTRL);
+		tmp &= ~ENABLE_PCIE_MEM_INTR_MODE_MASK;
+		writel_relaxed(tmp, reg_base + IPA_CTRL);
+	}
 }
 
 #endif
