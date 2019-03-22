@@ -106,6 +106,7 @@
 	status = "okay";
 
 	adaptive-touchscreen@38 {
+		status = "disabled";
 		compatible = "adaptive-touchscreen";
 		reg = <0x38>;
 		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
@@ -117,6 +118,15 @@
 		private-data {
 			a8 = /bits/ 8 <0x5a>;
 		};
+	};
+
+	chipone_tddi@48 {
+		compatible = "chipone-tddi";
+		reg = <0x48>;
+		chipone,rst-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		chipone,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		chipone,x-res = <720>;
+		chipone,y-res = <1520>;
 	};
 };
 
