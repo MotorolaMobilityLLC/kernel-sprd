@@ -729,6 +729,7 @@ static void sprd_musb_work(struct work_struct *work)
 
 		musb->shutdowning = 0;
 
+		musb_reset_all_fifo_2_default(musb);
 		ret = device_for_each_child(glue->dev, NULL,
 					musb_sprd_suspend_child);
 		if (ret) {
@@ -737,7 +738,6 @@ static void sprd_musb_work(struct work_struct *work)
 		}
 
 		MUSB_DEV_MODE(musb);
-		musb_reset_all_fifo_2_default(musb);
 		ret = pm_runtime_put_sync(glue->dev);
 		if (ret) {
 			dev_err(glue->dev, "musb sprd suspend failed!\n");
@@ -745,7 +745,6 @@ static void sprd_musb_work(struct work_struct *work)
 		}
 
 		spin_lock_irqsave(&glue->lock, flags);
-		glue->dr_mode = USB_DR_MODE_UNKNOWN;
 		glue->charging_mode = false;
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
@@ -1122,6 +1121,7 @@ static int musb_sprd_runtime_suspend(struct device *dev)
 
 	if (!musb->shutdowning)
 		usb_phy_shutdown(glue->xceiv);
+	glue->dr_mode = USB_DR_MODE_UNKNOWN;
 	dev_info(dev, "enter into suspend mode\n");
 
 	return 0;
