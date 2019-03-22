@@ -124,6 +124,7 @@
 		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
 		adma-tx;
 		adma-rx;
+		bound-avdd12;
 		post-power-on-delay-ms = <20>;
 	};
 
