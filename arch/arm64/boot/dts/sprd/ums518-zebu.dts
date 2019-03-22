@@ -46,7 +46,7 @@
 		};
 
 		vendor_memdisk_reserved: vendor_memdisk_reserved@c0000000{
-			reg = <0x0 0xc0000000 0x0 0x15000000>; /* vendor 300M */
+			reg = <0x0 0xc0000000 0x0 0x6500000>; /* vendor 100M */
 		};
 
 		cache_memdisk_reserved: cache_memdisk_reserved@148100000{
