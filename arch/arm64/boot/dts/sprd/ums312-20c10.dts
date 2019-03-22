@@ -612,6 +612,22 @@
 
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
+
+	sprd-audio-card,widgets =
+		"Headphone", "inter HP PA",
+		"Speaker", "inter Ear PA";
+	sprd-audio-card,routing =
+		"HPMIC Pin", "HP Mic Jack",
+		"MIC Pin", "Mic Jack",
+		"MIC2 Pin", "Aux Mic Jack",
+		"inter HP PA", "HP Pin",
+		"Ext Spk", "SPK Pin",
+		"inter Ear PA", "EAR Pin";
+
+	/*ext_control_type, hook selection, mode, gpio share*/
+	sprd,spk-ext-pa-info = <0 0 5 0>;
+	sprd,spk-ext-pa-gpio = <&ap_gpio 55 0>;
+	sprd,spk-ext-pa-names = "ext_spk_r";
 };
 &isp_dvfs {
 	status = "okay";
