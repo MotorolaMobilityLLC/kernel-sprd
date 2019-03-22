@@ -529,7 +529,7 @@ static int sprd_hardware_cpufreq_probe(struct platform_device *pdev)
 	struct device *cpu_dev = NULL;
 	struct device_node *np = NULL;
 	struct device_node *cpu_np;
-	int ret, i;
+	int ret;
 	int cpu = 0; /* just core0 do probe */
 
 	boot_done_timestamp = jiffies + SPRD_CPUFREQ_DRV_BOOST_DURATOIN;
@@ -554,9 +554,6 @@ static int sprd_hardware_cpufreq_probe(struct platform_device *pdev)
 	}
 
 	sprd_cpufreq_cpuhp_setup();
-
-	for (i = 0; i < SPRD_CPUFREQ_MAX_MODULE; i++)
-		cpufreq_datas[i] = NULL;
 
 	ret = cpufreq_register_driver(&sprd_hardware_cpufreq_driver);
 	if (ret)

@@ -1275,7 +1275,7 @@ static int sprd_cpufreq_probe(struct platform_device *pdev)
 	struct regulator *cpu_reg;
 	struct device_node *cpu_np;
 	struct device_node *np = NULL, *np1 = NULL;
-	int ret = 0, i;
+	int ret = 0;
 	unsigned int cpu;
 
 	boot_done_timestamp = jiffies + SPRD_CPUFREQ_DRV_BOOST_DURATOIN;
@@ -1331,9 +1331,6 @@ static int sprd_cpufreq_probe(struct platform_device *pdev)
 			pr_debug("putting regulator\n");
 			devm_regulator_put(cpu_reg);
 		}
-
-		for (i = 0; i < SPRD_CPUFREQ_MAX_MODULE; i++)
-			cpufreq_datas[i] = NULL;
 
 put_clk:
 		if (!IS_ERR(cpu_clk)) {
