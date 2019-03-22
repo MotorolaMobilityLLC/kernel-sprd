@@ -75,9 +75,10 @@
 #define LTE_HSDL		0xdd
 
 /*AUDCP*/
-#define AUDDSP_L		0xf5
-#define AUDDSP_D		0xf6
-#define DMA_AP			0xf7
+#define AUDDSP_I		0xf4
+#define AUDDSP_D		0xf5
+#define DMA_AP			0xf6
+#define DMA_CP			0xf7
 
 /*GPU*/
 #define GPU			0x90
