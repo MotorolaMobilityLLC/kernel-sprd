@@ -97,7 +97,7 @@
 		sprd,smem-info = <0x87800000 0x87800000 0x300000>;
 	};
 
-	/* New Radio PHY: 2MB */
+	/* New Radio PHY: 2.5MB */
 	sipc_nrphy: sipc@2 {
 		compatible = "sprd,sipc";
 		sprd,name = "sipc-nr-phy";
@@ -214,7 +214,7 @@
 		sprd,size-txbuf = <0x0800>; /* 2*1024 */
 	};
 
-	/* PSP log: 2KB x 1200 = 2.4M */
+	/* PSP log: 2KB x 800 = 1.6M */
 	slog_lte: spool@0 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_lte";
@@ -224,7 +224,7 @@
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
 		sprd,rx-blksize = <0x800>;
-		sprd,rx-blknum = <1200>;
+		sprd,rx-blknum = <800>;
 	};
 
 	/* New Radio PHY log: 2KB x 1200 = 2.4M */
