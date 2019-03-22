@@ -84,6 +84,10 @@
 				reg = <0x20 0x2>;
 			};
 
+			neg_cp_efuse: calib@22 {
+				reg = <0x22 0x2>;
+			};
+
 			headset_adc_fir: calib@14 {
 				reg = <0x28 0x2>;
 			};
@@ -140,8 +144,12 @@
 			#sound-dai-cells = <1>;
 			reg = <0x1000>;
 			sprd,syscon-pmu-apb = <&pmu_apb_regs>;
-			nvmem-cells = <&aud_pabst_vcal>;
-			nvmem-cell-names = "aud_pabst_vcal_efuse";
+			nvmem-cells = <&aud_pabst_vcal>,
+				<&neg_cp_efuse>,
+				<&fgu_calib>;
+			nvmem-cell-names = "aud_pabst_vcal_efuse",
+					"neg_cp_efuse",
+					"fgu_4p2_efuse";
 			status = "disabled";
 		};
 

@@ -1606,12 +1606,12 @@
 				};
 
 				vbc_iis_to_pad: vbc-iis-inf-sys@0 {
-					pins = "SHARKL5_IIS_INF0_SYS_SEL";
+					pins = "SHARKL5_VBC_IIS_INF_SYS_SEL";
 					sprd,control = <0x0>;
 				};
 
 				vbc_iis_to_aon_usb: vbc-iis-inf-sys@1 {
-					pins = "SHARKL5_IIS_INF0_SYS_SEL";
+					pins = "SHARKL5_VBC_IIS_INF_SYS_SEL";
 					sprd,control = <0x1>;
 				};
 			};
@@ -1954,6 +1954,8 @@
 		sprd,normal-captue-data =<0x33806000 0x1e00>;
 		/* 0x200(0.5K) */
 		sprd,normal-captue-linklilst-node2 =<0x33807e00 0x200>;
+		/* audcp aon iram */
+		sprd,audcp-aon-iram = <0xa400 0x1000>;
 	};
 
 	audio-dsp-dump@0 {/* audio dsp log */
@@ -1983,7 +1985,7 @@
 		/* for cmd para addr */
 		sprd,dspdumpmem = <0x33000000 0x10000
 				   0xa400 0x1000
-				   0x89300000 0xc0000>;
+				   0x89300000 0x5f000>;
 	};
 
 	audio_pipe_voice {
@@ -2010,6 +2012,25 @@
 	audiocp_dvfs {
 		compatible = "sprd,sharkl5-audcp-dvfs";
 		sprd,channel = <10>;
+	};
+
+	audiocp_boot {
+		compatible = "sprd,sharkl5-audcp-boot";
+		syscons = <&pmu_apb_regs REG_PMU_APB_PD_AUDCP_SYS_CFG MASK_PMU_APB_PD_AUDCP_SYS_FORCE_SHUTDOWN>,
+			<&pmu_apb_regs REG_PMU_APB_PD_AUDCP_AUDDSP_CFG MASK_PMU_APB_PD_AUDCP_AUDDSP_AUTO_SHUTDOWN_EN>,
+			<&pmu_apb_regs REG_PMU_APB_SLEEP_CTRL MASK_PMU_APB_AUDCP_FORCE_DEEP_SLEEP>,
+			<&pmu_apb_regs REG_PMU_APB_CP_SOFT_RST MASK_PMU_APB_AUDCP_AUDDSP_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_CP_SOFT_RST MASK_PMU_APB_AUDCP_SYS_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_SOFT_RST_SEL MASK_PMU_APB_SOFT_RST_SEL>,
+			<&pmu_apb_regs REG_PMU_APB_PWR_STATUS4_DBG MASK_PMU_APB_PD_AUDCP_SYS_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_AUDCP_AUDDSP_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS MASK_PMU_APB_AUDCP_SLP_STATUS>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_BOOT_PROT MASK_AON_APB_REG_PROT_VAL>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL0 MASK_AON_APB_AUDCP_DSP_BOOT_VECTOR>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL1 MASK_AON_APB_AUDCP_DSP_BOOT>;
+		syscon-names = "sysshutdown", "coreshutdown", "deepsleep", "corereset",
+			"sysreset", "reset_sel", "sysstatus", "corestatus", "sleepstatus",
+			"bootprotect", "bootvector", "bootaddress_sel";
 	};
 
 	ext_26m: ext-26m {
