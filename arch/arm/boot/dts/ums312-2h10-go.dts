@@ -164,8 +164,8 @@
 				      <198000 1350>, <165000 1400>, <140000 1450>,
 				      <119000 1500>, <104000 1550>, <88000 1600>;
 		charge-sdp-current-microamp = <500000 500000>;
-		charge-dcp-current-microamp = <2000000 3000000>;
-		charge-cdp-current-microamp = <1500000 1500000>;
+		charge-dcp-current-microamp = <1200000 3000000>;
+		charge-cdp-current-microamp = <1150000 1150000>;
 		charge-unknown-current-microamp = <500000 500000>;
 	};
 
@@ -183,17 +183,19 @@
 		cm-fullbatt-capacity = <100>;
 
 		cm-num-chargers = <1>;
-		cm-chargers = "sc2703_charger";
+		cm-chargers = "fan54015_charger";
 		cm-fuel-gauge = "sc27xx-fgu";
 
 		/* in deci centigrade */
-		cm-battery-cold = <50>;
+		cm-battery-cold = <200>;
 		cm-battery-cold-in-minus;
 		cm-battery-hot = <800>;
 		cm-battery-temp-diff = <100>;
 
 		/* Allow charging for 6hr */
-		cm-charging-max = <18000000>;
+		cm-charging-max = <21600000>;
+		/* recovery charging after stop charging 3hr */
+		cm-discharging-max = <10800000>;
 
 		/* the interval to feed charger watchdog */
 		cm-wdt-interval = <60>;
@@ -434,6 +436,7 @@
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&pmic_typec>;
+		otg-detect-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
