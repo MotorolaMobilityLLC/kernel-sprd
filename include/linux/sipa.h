@@ -246,6 +246,40 @@ struct sipa_connect_params {
 };
 
 /**
+ * struct sipa_ext_fifo_params - information needed to setup an IPA
+ * external specified common FIFO, the tx  / rx are from the perspective of IPA
+ */
+struct sipa_ext_fifo_params {
+	u32 rx_depth;
+	u32 rx_fifo_pal;
+	u32 rx_fifo_pah;
+	void *rx_fifo_va;
+
+	u32 tx_depth;
+	u32 tx_fifo_pal;
+	u32 tx_fifo_pah;
+	void *tx_fifo_va;
+};
+
+/**
+ * struct sipa_connect_params - information needed to setup an IPA terminal
+ */
+struct sipa_pcie_open_params {
+	enum sipa_ep_id id;
+	struct sipa_comm_fifo_params recv_param;
+	struct sipa_comm_fifo_params send_param;
+
+	sipa_notify_cb send_notify;
+	void *send_priv; /* private data for sipa_notify_cb */
+
+	sipa_notify_cb recv_notify;
+	void *recv_priv; /* private data for sipa_notify_cb */
+
+	struct sipa_ext_fifo_params ext_recv_param;
+	struct sipa_ext_fifo_params ext_send_param;
+};
+
+/**
  * struct sipa_to_pam_info - information needed to setup an PAM for IPA
  */
 struct sipa_to_pam_info {
@@ -311,6 +345,8 @@ int sipa_get_ep_info(enum sipa_ep_id id,
 int sipa_pam_connect(const struct sipa_connect_params *in);
 
 int sipa_sw_connect(const struct sipa_connect_params *in);
+
+int sipa_ext_open_pcie(struct sipa_pcie_open_params *in);
 
 int sipa_disconnect(enum sipa_ep_id ep, enum sipa_disconnect_id stage);
 

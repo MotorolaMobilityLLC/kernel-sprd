@@ -328,6 +328,7 @@ EXPORT_SYMBOL(sipa_force_wakeup);
 int sipa_open_common_fifo(sipa_hal_hdl hdl,
 						  enum sipa_cmn_fifo_index fifo,
 						  struct sipa_comm_fifo_params *attr,
+						  struct sipa_ext_fifo_params *ext_attr,
 						  bool force_sw_intr,
 						  sipa_hal_notify_cb cb,
 						  void *priv)
@@ -349,6 +350,19 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 			fifo_cfg[fifo].fifo_id,
 			fifo_cfg[fifo].is_pam,
 			fifo_cfg[fifo].is_recv);
+
+	if (ext_attr) {
+		fifo_cfg[fifo].rx_fifo.depth = ext_attr->rx_depth;
+		fifo_cfg[fifo].rx_fifo.fifo_base_addr_l = ext_attr->rx_fifo_pal;
+		fifo_cfg[fifo].rx_fifo.fifo_base_addr_h = ext_attr->rx_fifo_pah;
+		fifo_cfg[fifo].rx_fifo.virtual_addr = ext_attr->rx_fifo_va;
+
+		fifo_cfg[fifo].tx_fifo.depth = ext_attr->tx_depth;
+		fifo_cfg[fifo].tx_fifo.fifo_base_addr_l = ext_attr->tx_fifo_pal;
+		fifo_cfg[fifo].tx_fifo.fifo_base_addr_h = ext_attr->tx_fifo_pah;
+		fifo_cfg[fifo].tx_fifo.virtual_addr = ext_attr->tx_fifo_va;
+	}
+
 	hal_cfg->fifo_ops.open(fifo, fifo_cfg, NULL);
 	if (!force_sw_intr && fifo_cfg[fifo].is_pam) {
 		hal_cfg->fifo_ops.set_hw_interrupt_threshold(
@@ -415,7 +429,6 @@ int sipa_tft_mode_init(sipa_hal_hdl hdl)
 {
 	int ret;
 	struct sipa_hal_context *hal_cfg;
-	struct sipa_comm_fifo_params fifo_param;
 	struct sipa_common_fifo_cfg_tag *fifo_cfg;
 
 	if (unlikely(!hdl)) {
@@ -425,21 +438,6 @@ int sipa_tft_mode_init(sipa_hal_hdl hdl)
 
 	hal_cfg = (struct sipa_hal_context *)hdl;
 	fifo_cfg = hal_cfg->cmn_fifo_cfg;
-
-	memset(&fifo_param, 0, sizeof(fifo_param));
-	fifo_param.intr_to_ap = 0;
-	fifo_param.tx_intr_delay_us = 5;
-	fifo_param.tx_intr_threshold = 5;
-
-	ret = sipa_open_common_fifo(hdl, SIPA_FIFO_PCIE_UL,
-				    &fifo_param, 0, NULL, NULL);
-	if (unlikely(ret))
-		pr_warn("open pcie ul common fifo failed\n");
-
-	ret = sipa_open_common_fifo(hdl, SIPA_FIFO_PCIE_DL,
-				    &fifo_param, 0, NULL, NULL);
-	if (unlikely(ret))
-		pr_warn("open pcie dl common fifo failed\n");
 
 	ret = hal_cfg->fifo_ops.set_cur_dst_term(SIPA_FIFO_PCIE_UL,
 			fifo_cfg, SIPA_TERM_PCIE0,
@@ -479,7 +477,7 @@ int sipa_tft_mode_init(sipa_hal_hdl hdl)
 		pr_warn("enable from pcie no mac failed\n");
 
 	ret = hal_cfg->glb_ops.enable_to_pcie_no_mac(
-			hal_cfg->phy_virt_res.glb_base, 0);
+			hal_cfg->phy_virt_res.glb_base, 1);
 	if (unlikely(!ret))
 		pr_warn("enable to pcie no mac failed\n");
 

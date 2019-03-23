@@ -328,6 +328,7 @@ void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 	sipa_open_common_fifo(receiver->ctx->hdl,
 						  receiver->ep->recv_fifo.idx,
 						  &attr,
+						  NULL,
 						  true,
 						  sipa_receiver_notify_cb, receiver);
 

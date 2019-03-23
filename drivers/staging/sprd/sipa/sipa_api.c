@@ -90,7 +90,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.rx_fifo = "sprd,pcie-ul-rx",
 		.relate_ep = SIPA_EP_PCIE,
 		.src_id = SIPA_TERM_PCIE0,
-		.dst_id = SIPA_TERM_VAP0,
+		.dst_id = SIPA_TERM_VCP,
 		.is_to_ipa = 1,
 		.is_pam = 1,
 	},
@@ -225,7 +225,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.rx_fifo = "sprd,pcie-dl-rx",
 		.relate_ep = SIPA_EP_PCIE,
 		.src_id = SIPA_TERM_PCIE0,
-		.dst_id = SIPA_TERM_VAP0,
+		.dst_id = SIPA_TERM_VCP,
 		.is_to_ipa = 0,
 		.is_pam = 1,
 	},
@@ -389,10 +389,12 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 
 	sipa_open_common_fifo(ep->sipa_ctx->hdl, ep->send_fifo.idx,
 						  &ep->send_fifo_param,
+						  NULL,
 						  false,
 						  (sipa_hal_notify_cb)ep->send_notify, ep);
 	sipa_open_common_fifo(ep->sipa_ctx->hdl, ep->recv_fifo.idx,
 						  &ep->recv_fifo_param,
+						  NULL,
 						  false,
 						  (sipa_hal_notify_cb)ep->recv_notify, ep);
 
@@ -422,6 +424,43 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 	return 0;
 }
 EXPORT_SYMBOL(sipa_pam_connect);
+
+int sipa_ext_open_pcie(struct sipa_pcie_open_params *in)
+{
+	struct sipa_endpoint *ep = s_sipa_ctrl.eps[in->id];
+
+	if (!ep) {
+		pr_err("%s: ep id:%d not create!", __func__, in->id);
+		return -EINVAL;
+	}
+
+	ep->send_notify = in->send_notify;
+	ep->recv_notify = in->recv_notify;
+	ep->send_priv = in->send_priv;
+	ep->recv_priv = in->recv_priv;
+	ep->connected = true;
+	ep->suspended = false;
+	memcpy(&ep->send_fifo_param, &in->send_param,
+	       sizeof(struct sipa_comm_fifo_params));
+	memcpy(&ep->recv_fifo_param, &in->recv_param,
+	       sizeof(struct sipa_comm_fifo_params));
+
+	sipa_open_common_fifo(ep->sipa_ctx->hdl,
+			      ep->send_fifo.idx,
+			      &ep->send_fifo_param,
+			      &in->ext_send_param,
+			      false,
+			      (sipa_hal_notify_cb)ep->send_notify, ep);
+
+	sipa_open_common_fifo(ep->sipa_ctx->hdl,
+			      ep->recv_fifo.idx,
+			      &ep->recv_fifo_param,
+			      &in->ext_recv_param,
+			      false,
+			      (sipa_hal_notify_cb)ep->recv_notify, ep);
+	return 0;
+}
+EXPORT_SYMBOL(sipa_ext_open_pcie);
 
 int sipa_pam_init_free_fifo(enum sipa_ep_id id,
 							const dma_addr_t *addr, u32 num)

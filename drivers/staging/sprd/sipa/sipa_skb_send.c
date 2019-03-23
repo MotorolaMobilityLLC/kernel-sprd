@@ -96,6 +96,7 @@ int sipa_skb_sender_init(struct sipa_skb_sender *sender)
 	sipa_open_common_fifo(sender->ctx->hdl,
 						  sender->ep->send_fifo.idx,
 						  &attr,
+						  NULL,
 						  true,
 						  sipa_sender_notify_cb, sender);
 

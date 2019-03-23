@@ -139,6 +139,7 @@ int sipa_force_wakeup(struct sipa_plat_drv_cfg *cfg);
 int sipa_open_common_fifo(sipa_hal_hdl hdl,
 						  enum sipa_cmn_fifo_index fifo,
 						  struct sipa_comm_fifo_params *attr,
+						  struct sipa_ext_fifo_params *ext_attr,
 						  bool force_sw_intr,
 						  sipa_hal_notify_cb cb,
 						  void *priv);
