@@ -541,8 +541,8 @@
 				compatible = "sprd,iommuexroc1-isp";
 				reg = <0 0x62000000 0 0xffc00>,
 				      <0 0x620ffc00 0 0x400>;
-				iova-base = <0x60000000>;
-				iova-size = <0x10000000>;
+				iova-base = <0x50000000>;
+				iova-size = <0x20000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
@@ -776,7 +776,7 @@
 				reg = <0 0x62900000 0 0xc000>,
 				      <0 0x6290c000 0 0x60>;
 				iova-base = <0x50000000>;
-				iova-size = <0x10000000>;
+				iova-size = <0x20000000>;
 				reg_name = "mmu_interrupt_reg", "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
