@@ -1257,8 +1257,8 @@ static ssize_t calibrator_cmd_store(struct device *dev,
 	dev_info(dev, "buf=%s\n", buf);
 	len = sscanf(buf, "%d %d %d %d\n", &sensor->cal_cmd, &sensor->cal_id,
 		     &sensor->cal_type, &sensor->golden_sample);
-	/* The 4th parameter is optional. */
-	if (len != 3 && len != 4)
+	/* The 3rd and 4th parameters are optional. */
+	if (len < 2 || len > 4)
 		return -EINVAL;
 	err = set_calib_cmd(sensor, sensor->cal_cmd, sensor->cal_id,
 			    sensor->cal_type, sensor->golden_sample);
