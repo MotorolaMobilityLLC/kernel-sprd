@@ -867,8 +867,28 @@
 
 			cam_domain: cam-domain {
 				compatible = "sprd,cam-domain";
-				sprd,pmu-apb-syscon = <&pmu_regs>;
-				sprd,aon-apb-syscon = <&aon_apb_regs>;
+				syscons = <&pmu_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>,
+					<&pmu_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
+					<&pmu_regs REG_PMU_APB_PWR_STATUS0_DBG 0xf8000000>,
+					<&pmu_regs REG_PMU_APB_BUS_STATUS0 0x80000>,
+					<&aon_apb_regs REG_AON_APB_AON_CLK_TOP_CFG
+					(MASK_AON_APB_CLK_MM_EMC_EB |
+					MASK_AON_APB_CLK_MM_AHB_EB |
+					MASK_AON_APB_CLK_SENSOR2_EB |
+					MASK_AON_APB_CLK_DCAM_IF_EB |
+					MASK_AON_APB_CLK_ISP_EB |
+					MASK_AON_APB_CLK_JPG_EB |
+					MASK_AON_APB_CLK_CPP_EB |
+					MASK_AON_APB_CLK_SENSOR0_EB |
+					MASK_AON_APB_CLK_SENSOR1_EB |
+					MASK_AON_APB_CLK_MM_VSP_EMC_EB |
+					MASK_AON_APB_CLK_MM_VSP_AHB_EB |
+					MASK_AON_APB_CLK_VSP_EB)>;
+				syscon-names = "shutdown_en",
+					"force_shutdown",
+					"pwr_status0",
+					"bus_status0",
+					"init_dis_bits";
 			};
 
 			gpu: gpu@60000000 {
@@ -1171,7 +1191,8 @@
 				interrupts = <GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
 				interrupts_name = "ch0", "ch1";
-				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_LOG_SOFT_RST>;
+				syscon-names = "reset";
 				sprd,isp-count = <1>;
 				iommus = <&iommu_isp>;
 				status = "disable";
@@ -1197,8 +1218,7 @@
 					<GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
 				sprd,aon-apb-syscon = <&aon_apb_regs>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
-				sprd,anlg_phy_g1_controller =
-					<&anlg_phy_g1_regs>;
+				sprd,anlg_phy_g1_controller = <&anlg_phy_g1_regs>;
 				sprd,csi-id = <0>;
 				sprd,dcam-id = <0>;
 				sprd,ip-version = <0x200>;
@@ -1212,8 +1232,7 @@
 					<GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
 				sprd,aon-apb-syscon = <&aon_apb_regs>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
-				sprd,anlg_phy_g1_controller =
-					<&anlg_phy_g1_regs>;
+				sprd,anlg_phy_g1_controller = <&anlg_phy_g1_regs>;
 				sprd,csi-id = <1>;
 				sprd,dcam-id = <1>;
 				sprd,ip-version = <0x200>;
@@ -1227,8 +1246,7 @@
 					<GIC_SPI 157 IRQ_TYPE_LEVEL_HIGH>;
 				sprd,aon-apb-syscon = <&aon_apb_regs>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
-				sprd,anlg_phy_g1_controller =
-					<&anlg_phy_g1_regs>;
+				sprd,anlg_phy_g1_controller = <&anlg_phy_g1_regs>;
 				sprd,csi-id = <2>;
 				sprd,dcam-id = <2>;
 				sprd,ip-version = <0x200>;
@@ -1239,7 +1257,18 @@
 				compatible = "sprd,cpp";
 				reg = <0x62400000 0x1000>;
 				interrupts = <GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>;
-				sprd,vsp-ahb-syscon = <&mm_vsp_ahb_regs>;
+				syscons = <&mm_vsp_ahb_regs REG_MM_VSP_AHB_AHB_RST
+					(MASK_MM_VSP_AHB_CPP_SOFT_RST |
+					MASK_MM_VSP_AHB_CPP_PATH0_SOFT_RST |
+					MASK_MM_VSP_AHB_CPP_PATH1_SOFT_RST |
+					MASK_MM_VSP_AHB_CPP_DMA_SOFT_RST)>,
+					<&mm_vsp_ahb_regs REG_MM_VSP_AHB_AHB_RST MASK_MM_VSP_AHB_CPP_PATH0_SOFT_RST>,
+					<&mm_vsp_ahb_regs REG_MM_VSP_AHB_AHB_RST MASK_MM_VSP_AHB_CPP_PATH1_SOFT_RST>,
+					<&mm_vsp_ahb_regs REG_MM_VSP_AHB_AHB_RST MASK_MM_VSP_AHB_CPP_DMA_SOFT_RST>;
+				syscon-names = "cpp_rst",
+					"path0_rst",
+					"path1_rst",
+					"dma_rst";
 				iommus = <&iommu_cpp>;
 				status = "disable";
 			};
