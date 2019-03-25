@@ -825,15 +825,15 @@ CONFIG_ARM_PSCI_FW
 	[function] hotplug with security depend on PSCI_FW,
 	   enable it to support hotplug
 CONFIG_ARM_SPRD_HW_CPUFREQ
-	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] cpufreq
 	[must] user
 	[function] Enable apcpu hardware dvfs function.
 CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
-	[arch] arm64
-	[plat] roc1,sharkl5
+	[arch] all
+	[plat] roc1,sharkl5,sharkl5_32
 	[field] make
 	[subsys] cpufreq
 	[must] user
@@ -9058,7 +9058,7 @@ CONFIG_SC27XX_TSENSOR_THERMAL
 	[field] make
 	[subsys] thermal
 	[must] usr
-	[function]This function is used to config thermal moudle to get
+	[function] 	[function]This function is used to config thermal moudle to get
 	osc and extern cystal temperature.
 CONFIG_SCAN_BALANCE_ANON_FILE
 	[arch] arm64
