@@ -11,8 +11,6 @@
  * GNU General Public License for more details.
  */
 
-#include <dt-bindings/soc/sprd,sharkl3-regs.h>
-#include <dt-bindings/soc/sprd,sharkl3-mask.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/io.h>
@@ -33,14 +31,33 @@
 #define pr_fmt(fmt) "cam_sys_pw: %d %d %s : "\
 	fmt, current->pid, __LINE__, __func__
 
+static const char * const syscon_name[] = {
+	"shutdown_en",
+	"force_shutdown",
+	"pwr_status0",
+	"bus_status0",
+	"init_dis_bits"
+};
+
+enum  {
+	CAMSYS_SHUTDOWN_EN = 0,
+	CAMSYS_FORCE_SHUTDOWN,
+	CAMSYS_PWR_STATUS0,
+	CAMSYS_BUS_STATUS0,
+	CAMSYS_INIT_DIS_BITS
+};
+
+struct register_gpr {
+	struct regmap *gpr;
+	uint32_t reg;
+	uint32_t mask;
+};
+
 struct camsys_power_info {
 	atomic_t users_pw;
 	atomic_t users_clk;
 	atomic_t inited;
 	struct mutex mlock;
-
-	struct regmap *aon_apb_gpr;
-	struct regmap *pmu_apb_gpr;
 
 	struct clk *cam_clk_cphy_cfg_gate_eb;
 	struct clk *cam_mm_eb;
@@ -52,6 +69,8 @@ struct camsys_power_info {
 	struct clk *cam_emc_clk;
 	struct clk *cam_emc_clk_default;
 	struct clk *cam_emc_clk_parent;
+
+	struct register_gpr syscon_regs[ARRAY_SIZE(syscon_name)];
 };
 
 static struct camsys_power_info *pw_info;
@@ -70,8 +89,11 @@ static int sprd_campw_check_drv_init(void)
 
 static int sprd_campw_init(struct platform_device *pdev)
 {
-	struct regmap *aon_apb_gpr = NULL;
-	struct regmap *pmu_apb_gpr = NULL;
+	int i, ret = 0;
+	struct device_node *np = pdev->dev.of_node;
+	const char *pname;
+	struct regmap *tregmap;
+	uint32_t args[2];
 
 	pw_info = devm_kzalloc(&pdev->dev, sizeof(*pw_info), GFP_KERNEL);
 	if (!pw_info)
@@ -113,17 +135,27 @@ static int sprd_campw_init(struct platform_device *pdev)
 	if (IS_ERR_OR_NULL(pw_info->cam_emc_clk_default))
 		return PTR_ERR(pw_info->cam_emc_clk_default);
 
-	aon_apb_gpr = syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
-						"sprd,aon-apb-syscon");
-	if (IS_ERR_OR_NULL(aon_apb_gpr))
-		return PTR_ERR(aon_apb_gpr);
-	pw_info->aon_apb_gpr = aon_apb_gpr;
-
-	pmu_apb_gpr = syscon_regmap_lookup_by_phandle(pdev->dev.of_node,
-						"sprd,pmu-apb-syscon");
-	if (IS_ERR_OR_NULL(pmu_apb_gpr))
-		return PTR_ERR(pmu_apb_gpr);
-	pw_info->pmu_apb_gpr = pmu_apb_gpr;
+	/* read global register */
+	for (i = 0; i < ARRAY_SIZE(syscon_name); i++) {
+		pname = syscon_name[i];
+		tregmap =  syscon_regmap_lookup_by_name(np, pname);
+		if (IS_ERR_OR_NULL(tregmap)) {
+			pr_err("fail to read %s regmap\n", pname);
+			continue;
+		}
+		ret = syscon_get_args_by_name(np, pname, 2, args);
+		if (ret != 2) {
+			pr_err("fail to read %s args, ret %d\n",
+				pname, ret);
+			continue;
+		}
+		pw_info->syscon_regs[i].gpr = tregmap;
+		pw_info->syscon_regs[i].reg = args[0];
+		pw_info->syscon_regs[i].mask = args[1];
+		pr_debug("dts[%s] 0x%x 0x%x\n", pname,
+			pw_info->syscon_regs[i].reg,
+			pw_info->syscon_regs[i].mask);
+	}
 
 	mutex_init(&pw_info->mlock);
 	atomic_set(&pw_info->inited, 1);
@@ -141,10 +173,11 @@ int sprd_cam_pw_off(void)
 	unsigned int val = 0;
 	unsigned int pmu_mm_bit = 0, pmu_mm_state = 0;
 	unsigned int mm_off = 0;
+	struct register_gpr *preg_gpr;
 
 	ret = sprd_campw_check_drv_init();
 	if (ret) {
-		pr_err("uses: %d, cb: %p, ret %d\n",
+		pr_err("fail to get init state %d, cb %p, ret %d\n",
 			atomic_read(&pw_info->users_pw),
 			__builtin_return_address(0), ret);
 		return -ENODEV;
@@ -159,35 +192,34 @@ int sprd_cam_pw_off(void)
 
 		usleep_range(300, 350);
 
-		regmap_update_bits(pw_info->pmu_apb_gpr,
-				REG_PMU_APB_PD_MM_TOP_CFG,
-				MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN,
-				~(unsigned int)
-				MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN);
-		regmap_update_bits(pw_info->pmu_apb_gpr,
-				REG_PMU_APB_PD_MM_TOP_CFG,
-				MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN,
-				MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN);
+		preg_gpr = &pw_info->syscon_regs[CAMSYS_SHUTDOWN_EN];
+		regmap_update_bits(preg_gpr->gpr,
+				preg_gpr->reg,
+				preg_gpr->mask,
+				~preg_gpr->mask);
+		preg_gpr = &pw_info->syscon_regs[CAMSYS_FORCE_SHUTDOWN];
+		regmap_update_bits(preg_gpr->gpr,
+				preg_gpr->reg,
+				preg_gpr->mask,
+				preg_gpr->mask);
 
 		do {
 			cpu_relax();
 			usleep_range(300, 350);
 			read_count++;
+			preg_gpr = &pw_info->syscon_regs[CAMSYS_PWR_STATUS0];
 
-			ret = regmap_read(pw_info->pmu_apb_gpr,
-					REG_PMU_APB_PWR_STATUS0_DBG, &val);
+			ret = regmap_read(preg_gpr->gpr, preg_gpr->reg, &val);
 			if (ret)
 				goto err_pw_off;
 			power_state1 = val & (pmu_mm_state << pmu_mm_bit);
 
-			ret = regmap_read(pw_info->pmu_apb_gpr,
-					REG_PMU_APB_PWR_STATUS0_DBG, &val);
+			ret = regmap_read(preg_gpr->gpr, preg_gpr->reg, &val);
 			if (ret)
 				goto err_pw_off;
 			power_state2 = val & (pmu_mm_state << pmu_mm_bit);
 
-			ret = regmap_read(pw_info->pmu_apb_gpr,
-					REG_PMU_APB_PWR_STATUS0_DBG, &val);
+			ret = regmap_read(preg_gpr->gpr, preg_gpr->reg, &val);
 			if (ret)
 				goto err_pw_off;
 			power_state3 = val & (pmu_mm_state << pmu_mm_bit);
@@ -196,8 +228,7 @@ int sprd_cam_pw_off(void)
 			(power_state2 != power_state3));
 
 		if (power_state1 != mm_off) {
-			pr_err("fail to pw off camera 0x%x\n",
-				power_state1);
+			pr_err("fail to get power state 0x%x\n", power_state1);
 			ret = -1;
 			goto err_pw_off;
 		}
@@ -210,7 +241,7 @@ err_pw_off:
 		ret, read_count);
 	mutex_unlock(&pw_info->mlock);
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL(sprd_cam_pw_off);
 
@@ -223,11 +254,11 @@ int sprd_cam_pw_on(void)
 	unsigned int read_count = 0;
 	unsigned int val = 0;
 	unsigned int pmu_mm_bit = 0, pmu_mm_state = 0;
-	unsigned int disabled_bit = 0;
+	struct register_gpr *preg_gpr;
 
 	ret = sprd_campw_check_drv_init();
 	if (ret) {
-		pr_info("uses: %d, cb: %p, ret %d\n",
+		pr_info("fail to get init state %d, cb %p, ret %d\n",
 			atomic_read(&pw_info->users_pw),
 			__builtin_return_address(0), ret);
 		return -ENODEV;
@@ -238,54 +269,41 @@ int sprd_cam_pw_on(void)
 
 	mutex_lock(&pw_info->mlock);
 	if (atomic_inc_return(&pw_info->users_pw) == 1) {
-		disabled_bit = MASK_AON_APB_CLK_MM_EMC_EB |
-					MASK_AON_APB_CLK_MM_AHB_EB |
-					MASK_AON_APB_CLK_SENSOR2_EB |
-					MASK_AON_APB_CLK_DCAM_IF_EB |
-					MASK_AON_APB_CLK_ISP_EB |
-					MASK_AON_APB_CLK_JPG_EB |
-					MASK_AON_APB_CLK_CPP_EB |
-					MASK_AON_APB_CLK_SENSOR0_EB |
-					MASK_AON_APB_CLK_SENSOR1_EB |
-					MASK_AON_APB_CLK_MM_VSP_EMC_EB |
-					MASK_AON_APB_CLK_MM_VSP_AHB_EB |
-					MASK_AON_APB_CLK_VSP_EB;
-		regmap_update_bits(pw_info->aon_apb_gpr,
-			REG_AON_APB_AON_CLK_TOP_CFG,
-			disabled_bit,
-			~disabled_bit);
+		preg_gpr = &pw_info->syscon_regs[CAMSYS_INIT_DIS_BITS];
+		regmap_update_bits(preg_gpr->gpr,
+				preg_gpr->reg,
+				preg_gpr->mask,
+				~preg_gpr->mask);
 
 		/* cam domain power on */
-		regmap_update_bits(pw_info->pmu_apb_gpr,
-				REG_PMU_APB_PD_MM_TOP_CFG,
-				MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN,
-				~(unsigned int)
-				MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN);
-		regmap_update_bits(pw_info->pmu_apb_gpr,
-				REG_PMU_APB_PD_MM_TOP_CFG,
-				MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN,
-				~(unsigned int)
-				MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN);
+		preg_gpr = &pw_info->syscon_regs[CAMSYS_SHUTDOWN_EN];
+		regmap_update_bits(preg_gpr->gpr,
+				preg_gpr->reg,
+				preg_gpr->mask,
+				~preg_gpr->mask);
+		preg_gpr = &pw_info->syscon_regs[CAMSYS_FORCE_SHUTDOWN];
+		regmap_update_bits(preg_gpr->gpr,
+				preg_gpr->reg,
+				preg_gpr->mask,
+				~preg_gpr->mask);
 
 		do {
 			cpu_relax();
 			usleep_range(300, 350);
 			read_count++;
+			preg_gpr = &pw_info->syscon_regs[CAMSYS_PWR_STATUS0];
 
-			ret = regmap_read(pw_info->pmu_apb_gpr,
-					REG_PMU_APB_PWR_STATUS0_DBG, &val);
+			ret = regmap_read(preg_gpr->gpr, preg_gpr->reg, &val);
 			if (ret)
 				goto err_pw_on;
 			power_state1 = val & (pmu_mm_state << pmu_mm_bit);
 
-			ret = regmap_read(pw_info->pmu_apb_gpr,
-					REG_PMU_APB_PWR_STATUS0_DBG, &val);
+			ret = regmap_read(preg_gpr->gpr, preg_gpr->reg, &val);
 			if (ret)
 				goto err_pw_on;
 			power_state2 = val & (pmu_mm_state << pmu_mm_bit);
 
-			ret = regmap_read(pw_info->pmu_apb_gpr,
-					REG_PMU_APB_PWR_STATUS0_DBG, &val);
+			ret = regmap_read(preg_gpr->gpr, preg_gpr->reg, &val);
 			if (ret)
 				goto err_pw_on;
 			power_state3 = val & (pmu_mm_state << pmu_mm_bit);
@@ -295,14 +313,12 @@ int sprd_cam_pw_on(void)
 			(power_state2 != power_state3));
 
 		if (power_state1) {
-			pr_err("fail to pw on camera 0x%x\n",
-				power_state1);
+			pr_err("fail to get power state 0x%x\n", power_state1);
 			ret = -1;
 			goto err_pw_on;
 		}
 	}
 	mutex_unlock(&pw_info->mlock);
-
 	return 0;
 
 err_pw_on:
@@ -320,13 +336,13 @@ int sprd_cam_domain_eb(void)
 
 	ret = sprd_campw_check_drv_init();
 	if (ret) {
-		pr_err("uses: %d, cb: %p, ret %d\n",
+		pr_err("fail to get init state %d, cb %p, ret %d\n",
 			atomic_read(&pw_info->users_pw),
 			__builtin_return_address(0), ret);
 		return -ENODEV;
 	}
 
-	pr_debug("users count: %d, cb: %p\n",
+	pr_debug("users count %d, cb %p\n",
 		atomic_read(&pw_info->users_clk),
 		__builtin_return_address(0));
 
@@ -362,14 +378,16 @@ int sprd_cam_domain_disable(void)
 	unsigned int pmu_mm_handshake_bit = 0;
 	unsigned int pmu_mm_handshake_state = 0;
 	unsigned int mm_domain_disable = 0;
+	struct register_gpr *preg_gpr;
 
 	ret = sprd_campw_check_drv_init();
 	if (ret) {
-		pr_err("cb: %p, inited %d\n",
+		pr_err("fail to get init state %d, cb %p, ret %d\n",
+			atomic_read(&pw_info->users_pw),
 			__builtin_return_address(0), ret);
 	}
 
-	pr_debug("users count: %d, cb: %p\n",
+	pr_debug("users count %d, cb %p\n",
 		atomic_read(&pw_info->users_clk),
 		__builtin_return_address(0));
 
@@ -387,9 +405,9 @@ int sprd_cam_domain_disable(void)
 			cpu_relax();
 			usleep_range(300, 350);
 			read_count++;
+			preg_gpr = &pw_info->syscon_regs[CAMSYS_BUS_STATUS0];
 
-			ret = regmap_read(pw_info->pmu_apb_gpr,
-					REG_PMU_APB_BUS_STATUS0, &val);
+			ret = regmap_read(preg_gpr->gpr, preg_gpr->reg, &val);
 			if (ret) {
 				pr_err("fail to read mm handshake %d\n", ret);
 				goto err_domain_disable;
@@ -422,7 +440,7 @@ int sprd_cam_domain_disable(void)
 	return 0;
 
 err_domain_disable:
-	pr_err("fail to disable cam, ret: %d, count: %d!\n",
+	pr_err("fail to disable cam power domain, ret %d, count %d\n",
 		ret, read_count);
 	mutex_unlock(&pw_info->mlock);
 
@@ -440,21 +458,17 @@ static int sprd_campw_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 
-	pr_info("E\n");
 	ret = sprd_campw_init(pdev);
 	if (ret) {
-		pr_err("power init fail\n");
+		pr_err("fail to init cam power domain\n");
 		return -ENODEV;
 	}
-	pr_info("OK\n");
 
 	return ret;
 }
 
 static int sprd_campw_remove(struct platform_device *pdev)
 {
-	pr_debug("E\n");
-
 	sprd_campw_deinit(pdev);
 
 	return 0;
