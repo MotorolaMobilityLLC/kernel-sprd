@@ -10080,6 +10080,13 @@ CONFIG_SPRD_SIPC_SPOOL
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable spool function.
+CONFIG_SPRD_SIPC_SWCNBLK
+	[arch] arm64
+	[plat] sharkl3
+	[field] make, code
+	[subsys] staging
+	[must] user
+	[function] This function is used to enable wcnblk function for wifi ht.
 CONFIG_SPRD_SIPC_V2
 	[arch] arm64
 	[plat] roc1
