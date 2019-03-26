@@ -222,6 +222,10 @@
 			};
 		};
 	};
+
+	sprd-wlan {
+		compatible = "sprd,sp9863a";
+	};
 };
 
 &uart0 {
