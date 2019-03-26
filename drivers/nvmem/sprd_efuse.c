@@ -351,6 +351,12 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 	 */
 	index += efuse->var_data->blk_start;
 
+	if (of_device_is_compatible(efuse->dev->of_node, "sprd,sharkl3-efuse") ||
+	    of_device_is_compatible(efuse->dev->of_node, "sprd,orca-efuse")) {
+		if (index == 95 || index == 94)
+			blk_double = 0;
+	}
+
 	ret = sprd_efuse_raw_read(efuse, index, &data, blk_double);
 	if (!ret) {
 		data >>= blk_offset;
