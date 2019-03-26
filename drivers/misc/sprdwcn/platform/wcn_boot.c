@@ -1220,27 +1220,22 @@ static int marlin_reset(int val)
 
 static int chip_reset_release(int val)
 {
-	static unsigned int reset_count;
 
 	if (!gpio_is_valid(marlin_dev->reset)) {
 		WCN_ERR("reset gpio error\n");
 		return -1;
 	}
-	if (val) {
-		if (reset_count == 0)
-			gpio_direction_output(marlin_dev->reset, 1);
-		reset_count++;
-	} else {
+	if (val)
+		gpio_direction_output(marlin_dev->reset, 1);
+
+	else
 		gpio_direction_output(marlin_dev->reset, 0);
-		reset_count--;
-	}
 
 	return 0;
 }
 
 void marlin_chip_en(bool enable, bool reset)
 {
-	static unsigned int chip_en_count;
 
 	if (gpio_is_valid(marlin_dev->chip_en)) {
 		if (reset) {
@@ -1249,22 +1244,16 @@ void marlin_chip_en(bool enable, bool reset)
 			msleep(100);
 			gpio_direction_output(marlin_dev->chip_en, 1);
 		} else if (enable) {
-			if (chip_en_count == 0) {
 				gpio_direction_output(marlin_dev->chip_en, 0);
 				mdelay(1);
 				gpio_direction_output(marlin_dev->chip_en, 1);
 				mdelay(1);
 				WCN_INFO("marlin chip en pull up\n");
-			}
-			chip_en_count++;
 		} else {
-			chip_en_count--;
-			if (chip_en_count == 0) {
 				gpio_direction_output(marlin_dev->chip_en, 0);
 				WCN_INFO("marlin chip en pull down\n");
 			}
 		}
-	}
 }
 EXPORT_SYMBOL_GPL(marlin_chip_en);
 
