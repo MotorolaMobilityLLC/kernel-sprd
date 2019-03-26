@@ -32,6 +32,8 @@
 #define DRIVER_MAJOR	1
 #define DRIVER_MINOR	0
 
+#define SPRD_FENCE_WAIT_TIMEOUT 3000 /* ms */
+
 static bool cali_mode;
 
 static int boot_mode_check(char *str)
@@ -44,6 +46,302 @@ static int boot_mode_check(char *str)
 }
 __setup("androidboot.mode=", boot_mode_check);
 
+/**
+ * sprd_atomic_wait_for_fences - wait for fences stashed in plane state
+ * @dev: DRM device
+ * @state: atomic state object with old state structures
+ * @pre_swap: If true, do an interruptible wait, and @state is the new state.
+ * Otherwise @state is the old state.
+ *
+ * For implicit sync, driver should fish the exclusive fence out from the
+ * incoming fb's and stash it in the drm_plane_state.  This is called after
+ * drm_atomic_helper_swap_state() so it uses the current plane state (and
+ * just uses the atomic state to find the changed planes)
+ *
+ * Note that @pre_swap is needed since the point where we block for fences moves
+ * around depending upon whether an atomic commit is blocking or
+ * non-blocking. For non-blocking commit all waiting needs to happen after
+ * drm_atomic_helper_swap_state() is called, but for blocking commits we want
+ * to wait **before** we do anything that can't be easily rolled back. That is
+ * before we call drm_atomic_helper_swap_state().
+ *
+ * Returns zero if success or < 0 if dma_fence_wait_timeout() fails.
+ */
+int sprd_atomic_wait_for_fences(struct drm_device *dev,
+				      struct drm_atomic_state *state,
+				      bool pre_swap)
+{
+	struct drm_plane *plane;
+	struct drm_plane_state *new_plane_state;
+	int i, ret;
+
+	for_each_new_plane_in_state(state, plane, new_plane_state, i) {
+		if (!new_plane_state->fence)
+			continue;
+
+		WARN_ON(!new_plane_state->fb);
+
+		/*
+		 * If waiting for fences pre-swap (ie: nonblock), userspace can
+		 * still interrupt the operation. Instead of blocking until the
+		 * timer expires, make the wait interruptible.
+		 */
+		ret = dma_fence_wait_timeout(new_plane_state->fence,
+				pre_swap,
+				msecs_to_jiffies(SPRD_FENCE_WAIT_TIMEOUT));
+		if (ret == 0) {
+			DRM_ERROR("wait fence timed out, index:%d,\n", i);
+			return -EBUSY;
+		} else if (ret < 0) {
+			DRM_ERROR("wait fence failed, index:%d, ret:%d.\n",
+				i, ret);
+			return ret;
+		}
+
+		dma_fence_put(new_plane_state->fence);
+		new_plane_state->fence = NULL;
+	}
+
+	return 0;
+}
+
+static void sprd_commit_tail(struct drm_atomic_state *old_state)
+{
+	struct drm_device *dev = old_state->dev;
+	const struct drm_mode_config_helper_funcs *funcs;
+
+	funcs = dev->mode_config.helper_private;
+
+	sprd_atomic_wait_for_fences(dev, old_state, false);
+
+	drm_atomic_helper_wait_for_dependencies(old_state);
+
+	if (funcs && funcs->atomic_commit_tail)
+		funcs->atomic_commit_tail(old_state);
+	else
+		drm_atomic_helper_commit_tail(old_state);
+
+	drm_atomic_helper_commit_cleanup_done(old_state);
+
+	drm_atomic_state_put(old_state);
+}
+
+static void sprd_commit_work(struct work_struct *work)
+{
+	struct drm_atomic_state *state = container_of(work,
+						      struct drm_atomic_state,
+						      commit_work);
+	sprd_commit_tail(state);
+}
+
+static int sprd_stall_checks(struct drm_crtc *crtc, bool nonblock)
+{
+	struct drm_crtc_commit *commit, *stall_commit = NULL;
+	bool completed = true;
+	int i;
+	long ret = 0;
+
+	spin_lock(&crtc->commit_lock);
+	i = 0;
+	list_for_each_entry(commit, &crtc->commit_list, commit_entry) {
+		if (i == 0) {
+			completed = try_wait_for_completion(&commit->flip_done);
+			/* Userspace is not allowed to get ahead of the previous
+			 * commit with nonblocking ones.
+			 */
+			if (!completed && nonblock)
+				DRM_DEBUG("EBUSY\n");
+		} else if (i == 1) {
+			stall_commit = commit;
+			drm_crtc_commit_get(stall_commit);
+			break;
+		}
+
+		i++;
+	}
+	spin_unlock(&crtc->commit_lock);
+
+	if (!stall_commit)
+		return 0;
+
+	/* We don't want to let commits get ahead of cleanup work too much,
+	 * stalling on 2nd previous commit means triple-buffer won't ever stall.
+	 */
+	ret = wait_for_completion_interruptible_timeout(&stall_commit->cleanup_done,
+							10*HZ);
+	if (ret == 0)
+		DRM_ERROR("[CRTC:%d:%s] cleanup_done timed out\n",
+			  crtc->base.id, crtc->name);
+
+	drm_crtc_commit_put(stall_commit);
+
+	return ret < 0 ? ret : 0;
+}
+
+static void sprd_release_crtc_commit(struct completion *completion)
+{
+	struct drm_crtc_commit *commit = container_of(completion,
+						      typeof(*commit),
+						      flip_done);
+
+	drm_crtc_commit_put(commit);
+}
+
+
+static int sprd_atomic_setup_commit(struct drm_atomic_state *state,
+				   bool nonblock)
+{
+	struct drm_crtc *crtc;
+	struct drm_crtc_state *old_crtc_state, *new_crtc_state;
+	struct drm_crtc_commit *commit;
+	int i, ret;
+
+	for_each_oldnew_crtc_in_state(state, crtc, old_crtc_state, new_crtc_state, i) {
+		commit = kzalloc(sizeof(*commit), GFP_KERNEL);
+		if (!commit)
+			return -ENOMEM;
+
+		init_completion(&commit->flip_done);
+		init_completion(&commit->hw_done);
+		init_completion(&commit->cleanup_done);
+		INIT_LIST_HEAD(&commit->commit_entry);
+		kref_init(&commit->ref);
+		commit->crtc = crtc;
+
+		state->crtcs[i].commit = commit;
+
+		ret = sprd_stall_checks(crtc, nonblock);
+		if (ret)
+			return ret;
+
+		/* Drivers only send out events when at least either current or
+		 * new CRTC state is active. Complete right away if everything
+		 * stays off.
+		 */
+		if (!old_crtc_state->active && !new_crtc_state->active) {
+			complete_all(&commit->flip_done);
+			continue;
+		}
+
+		/* Legacy cursor updates are fully unsynced. */
+		if (state->legacy_cursor_update) {
+			complete_all(&commit->flip_done);
+			continue;
+		}
+
+		if (!new_crtc_state->event) {
+			commit->event = kzalloc(sizeof(*commit->event),
+						GFP_KERNEL);
+			if (!commit->event)
+				return -ENOMEM;
+
+			new_crtc_state->event = commit->event;
+		}
+
+		new_crtc_state->event->base.completion = &commit->flip_done;
+		new_crtc_state->event->base.completion_release =
+			sprd_release_crtc_commit;
+		drm_crtc_commit_get(commit);
+	}
+
+	return 0;
+}
+
+
+/**
+ * sprd_atomic_commit - commit validated state object
+ * @dev: DRM device
+ * @state: the driver state object
+ * @nonblock: whether nonblocking behavior is requested.
+ *
+ * This function commits a with drm_atomic_helper_check() pre-validated state
+ * object. This can still fail when e.g. the framebuffer reservation fails. This
+ * function implements nonblocking commits, using
+ * drm_atomic_helper_setup_commit() and related functions.
+ *
+ * Committing the actual hardware state is done through the
+ * &drm_mode_config_helper_funcs.atomic_commit_tail callback, or it's default
+ * implementation drm_atomic_helper_commit_tail().
+ *
+ * RETURNS:
+ * Zero for success or -errno.
+ */
+int sprd_atomic_commit(struct drm_device *dev,
+			     struct drm_atomic_state *state,
+			     bool nonblock)
+{
+	int ret;
+
+	if (state->async_update) {
+		ret = drm_atomic_helper_prepare_planes(dev, state);
+		if (ret)
+			return ret;
+
+		drm_atomic_helper_async_commit(dev, state);
+		drm_atomic_helper_cleanup_planes(dev, state);
+
+		return 0;
+	}
+
+	ret = sprd_atomic_setup_commit(state, nonblock);
+	if (ret)
+		return ret;
+
+	INIT_WORK(&state->commit_work, sprd_commit_work);
+
+	ret = drm_atomic_helper_prepare_planes(dev, state);
+	if (ret)
+		return ret;
+
+	if (!nonblock) {
+		ret = sprd_atomic_wait_for_fences(dev, state, true);
+		if (ret)
+			goto err;
+	}
+
+	/*
+	 * This is the point of no return - everything below never fails except
+	 * when the hw goes bonghits. Which means we can commit the new state on
+	 * the software side now.
+	 */
+
+	ret = drm_atomic_helper_swap_state(state, true);
+	if (ret)
+		goto err;
+
+	/*
+	 * Everything below can be run asynchronously without the need to grab
+	 * any modeset locks at all under one condition: It must be guaranteed
+	 * that the asynchronous work has either been cancelled (if the driver
+	 * supports it, which at least requires that the framebuffers get
+	 * cleaned up with drm_atomic_helper_cleanup_planes()) or completed
+	 * before the new state gets committed on the software side with
+	 * drm_atomic_helper_swap_state().
+	 *
+	 * This scheme allows new atomic state updates to be prepared and
+	 * checked in parallel to the asynchronous completion of the previous
+	 * update. Which is important since compositors need to figure out the
+	 * composition of the next frame right after having submitted the
+	 * current layout.
+	 *
+	 * NOTE: Commit work has multiple phases, first hardware commit, then
+	 * cleanup. We want them to overlap, hence need system_unbound_wq to
+	 * make sure work items don't artifically stall on each another.
+	 */
+
+	drm_atomic_state_get(state);
+	if (nonblock)
+		queue_work(system_unbound_wq, &state->commit_work);
+	else
+		sprd_commit_tail(state);
+
+	return 0;
+
+err:
+	drm_atomic_helper_cleanup_planes(dev, state);
+	return ret;
+}
+
 static const struct drm_mode_config_helper_funcs sprd_drm_mode_config_helper = {
 	.atomic_commit_tail = drm_atomic_helper_commit_tail_rpm,
 };
@@ -51,7 +349,7 @@ static const struct drm_mode_config_helper_funcs sprd_drm_mode_config_helper = {
 static const struct drm_mode_config_funcs sprd_drm_mode_config_funcs = {
 	.fb_create = drm_gem_fb_create,
 	.atomic_check = drm_atomic_helper_check,
-	.atomic_commit = drm_atomic_helper_commit,
+	.atomic_commit = sprd_atomic_commit,
 };
 
 static void sprd_drm_mode_config_init(struct drm_device *drm)

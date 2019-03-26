@@ -24,4 +24,12 @@ struct sprd_drm {
 	struct device *gsp_dev;
 };
 
+int sprd_atomic_wait_for_fences(struct drm_device *dev,
+				      struct drm_atomic_state *state,
+				      bool pre_swap);
+
+int sprd_atomic_commit(struct drm_device *dev,
+			     struct drm_atomic_state *state,
+			     bool nonblock);
+
 #endif /* _SPRD_DRM_H_ */
