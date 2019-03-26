@@ -339,6 +339,9 @@
 				<&pmu_apb_regs
 					REG_PMU_APB_PD_GPU_RGX_DUST_CFG0
 					MASK_PMU_APB_PD_GPU_RGX_DUST_AUTO_SHUTDOWN_EN>,
+				<&gpu_apb_regs
+					REG_GPU_APB_CLK_GPU_DVFS
+					MASK_GPU_APB_CGM_GPU_DVFS_EN>,
 				/*<&gpu_apb_regs
 					REG_GPU_APB_GPU_NIC400_QOS
 					MASK_GPU_APB_GPU_QOS_SEL>,
@@ -364,6 +367,7 @@
 				syscon-names = "top_force_shutdown",
 					"rgx_dust_force_shutdown",
 					"rgx_dust_auto_shutdown",
+					"cgm_gpu_dvfs_en",
 					/*"gpu_qos_sel",
 					"gpu_qos",*/
 					"dvfs_index_cfg",
