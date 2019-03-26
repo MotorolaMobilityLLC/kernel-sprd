@@ -732,7 +732,7 @@ static bool sc2703_charger_is_support_fchg(struct sc2703_charger_info *info)
 	union power_supply_propval val;
 	struct power_supply *psy;
 	u32 ic_version;
-	int charger_type, ret, i;
+	int charger_type = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN, ret, i;
 
 	ret = regmap_read(info->regmap, SC2703_IC_VERSION_INFO, &ic_version);
 	if (ret) {
