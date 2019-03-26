@@ -2606,8 +2606,8 @@ CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND
 	[must] home
 	[function] Support gpu dfs/dvfs logic.
 CONFIG_DEVFREQ_GOV_SPRD_SCENE
-	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5
+	[arch] all
+	[plat] all
 	[field] make,code
 	[subsys] devfreq
 	[must] none
@@ -2615,8 +2615,8 @@ CONFIG_DEVFREQ_GOV_SPRD_SCENE
 	   Userspace set scene to this govanor and then govnor send freq
 	   request to driver.
 CONFIG_DEVFREQ_SPRD_AUTO_DFS
-	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5
+	[arch] all
+	[plat] all
 	[field] make,code
 	[subsys] devfreq
 	[must] none
