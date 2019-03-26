@@ -12,7 +12,8 @@ int mdbg_memory_alloc(void);
 void proc_fs_exit(void);
 int get_loopcheck_status(void);
 void wakeup_loopcheck_int(void);
-void loopcheck_first_boot_clear(void);
-void loopcheck_first_boot_set(void);
+void loopcheck_ready_clear(void);
+void loopcheck_ready_set(void);
+void mdbg_assert_interface(char *str);
 int prepare_free_buf(int chn, int size, int num);
 #endif

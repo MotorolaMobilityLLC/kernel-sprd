@@ -47,6 +47,7 @@
 #include "wcn_procfs.h"
 #include "wcn_gnss.h"
 #include "mdbg_type.h"
+#include "../include/wcn_dbg.h"
 #include "../include/wcn_glb_reg.h"
 
 #ifndef REG_PMU_APB_XTL_WAIT_CNT0
@@ -356,7 +357,7 @@ static char *btwf_load_firmware_data(loff_t off, unsigned long int imag_size)
 	struct file *file;
 	loff_t offset = 0, pos = 0;
 
-	MDBG_LOG("%s entry\n", __func__);
+	WCN_LOG("%s entry\n", __func__);
 
 	file = filp_open(BTWF_FIRMWARE_PATH, O_RDONLY, 0);
 	for (i = 1; i <= opn_num_max; i++) {
@@ -374,7 +375,7 @@ static char *btwf_load_firmware_data(loff_t off, unsigned long int imag_size)
 			BTWF_FIRMWARE_PATH, __func__);
 		return NULL;
 	}
-	MDBG_LOG("marlin %s open image file  successfully\n",
+	WCN_LOG("marlin %s open image file  successfully\n",
 		__func__);
 	size = imag_size;
 	buffer = vmalloc(size);
@@ -496,7 +497,7 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 	struct file *file;
 	loff_t pos = 0;
 
-	MDBG_LOG("%s entry\n", __func__);
+	WCN_LOG("%s entry\n", __func__);
 	if (gnss_ops && (gnss_ops->set_file_path))
 		gnss_ops->set_file_path(&GNSS_FIRMWARE_PATH[0]);
 	else
@@ -517,7 +518,7 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 			GNSS_FIRMWARE_PATH, __func__);
 		return NULL;
 	}
-	MDBG_LOG("%s open image file  successfully\n", __func__);
+	WCN_LOG("%s open image file  successfully\n", __func__);
 	size = imag_size;
 	buffer = vmalloc(size);
 	if (!buffer) {
@@ -719,27 +720,35 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		WCN_ERR("Maybe share the power with mem\n");
 	}
 
+	if (of_property_read_bool(np, "bound-avdd12")) {
+		WCN_INFO("forbid avdd12 power ctrl\n");
+		marlin_dev->bound_avdd12 = true;
+	} else {
+		WCN_INFO("do avdd12 power ctrl\n");
+		marlin_dev->bound_avdd12 = false;
+	}
+
 	marlin_dev->avdd12 = devm_regulator_get(&pdev->dev, "avdd12");
 	if (IS_ERR(marlin_dev->avdd12)) {
 		WCN_ERR("avdd12 err =%ld\n", PTR_ERR(marlin_dev->avdd12));
 		if (PTR_ERR(marlin_dev->avdd12) == -EPROBE_DEFER)
 			return -EPROBE_DEFER;
 		WCN_ERR("Get regulator of avdd12 error!\n");
-    }
+	}
 
 	marlin_dev->avdd33 = devm_regulator_get(&pdev->dev, "avdd33");
 	if (IS_ERR(marlin_dev->avdd33)) {
 		if (PTR_ERR(marlin_dev->avdd33) == -EPROBE_DEFER)
 			return -EPROBE_DEFER;
 		WCN_ERR("Get regulator of avdd33 error!\n");
-    }
+	}
 
 	marlin_dev->dcxo18 = devm_regulator_get(&pdev->dev, "dcxo18");
 	if (IS_ERR(marlin_dev->dcxo18)) {
 		if (PTR_ERR(marlin_dev->dcxo18) == -EPROBE_DEFER)
 			return -EPROBE_DEFER;
 		WCN_ERR("Get regulator of dcxo18 error!\n");
-    }
+	}
 
 	marlin_dev->clk_32k = devm_clk_get(&pdev->dev, "clk_32k");
 	if (IS_ERR(marlin_dev->clk_32k)) {
@@ -904,6 +913,7 @@ static int marlin_digital_power_enable(bool enable)
 
 	return ret;
 }
+
 static int marlin_analog_power_enable(bool enable)
 {
 	int ret = 0;
@@ -912,13 +922,19 @@ static int marlin_analog_power_enable(bool enable)
 		msleep(20);
 		WCN_INFO("%s 1v2 %d\n", __func__, enable);
 		if (enable) {
+#ifdef CONFIG_WCN_PCIE
 			regulator_set_voltage(marlin_dev->avdd12,
-			1200000, 1200000);
-			ret = regulator_enable(marlin_dev->avdd12);
+					      1350000, 1350000);
+#else
+			regulator_set_voltage(marlin_dev->avdd12,
+					      1200000, 1200000);
+#endif
+			if (!marlin_dev->bound_avdd12)
+				ret = regulator_enable(marlin_dev->avdd12);
 		} else {
-			if (regulator_is_enabled(marlin_dev->avdd12))
-				ret =
-				regulator_disable(marlin_dev->avdd12);
+			if (!marlin_dev->bound_avdd12 &&
+			    regulator_is_enabled(marlin_dev->avdd12))
+				ret = regulator_disable(marlin_dev->avdd12);
 		}
 	}
 
@@ -1567,7 +1583,7 @@ static int chip_power_on(int subsys)
 	pmic_bound_xtl_assert(1);
 #ifndef CONFIG_WCN_PCIE
 	sdio_scan_card();
-	loopcheck_first_boot_set();
+	loopcheck_ready_set();
 	mem_pd_poweroff_deinit();
 	sdio_pub_int_poweron(true);
 #endif
@@ -1591,7 +1607,7 @@ static int chip_power_off(int subsys)
 	mem_pd_poweroff_deinit();
 	sprdwcn_bus_remove_card();
 #endif
-	loopcheck_first_boot_clear();
+	loopcheck_ready_clear();
 #ifndef CONFIG_WCN_PCIE
 	sdio_pub_int_poweron(false);
 #endif
@@ -1775,7 +1791,7 @@ static int marlin_set_power(int subsys, int val)
 			|| (((marlin_dev->power_state) & GNSS_MASK) != 0)) {
 			WCN_INFO("GNSS and marlin have ready\n");
 			if (((marlin_dev->power_state) & MARLIN_MASK) == 0)
-				loopcheck_first_boot_set();
+				loopcheck_ready_set();
 			set_wifipa_status(subsys, val);
 			set_bit(subsys, &marlin_dev->power_state);
 
@@ -1886,7 +1902,7 @@ static int marlin_set_power(int subsys, int val)
 					clear_bit(subsys,
 						&marlin_dev->power_state);
 				}
-				MDBG_LOG("marlin reset flag_reset:%d\n",
+				WCN_LOG("marlin reset flag_reset:%d\n",
 					flag_reset);
 				goto check_power_state_notify;
 			}
@@ -2062,10 +2078,19 @@ int start_marlin(u32 subsys)
 	int ret;
 
 	mutex_lock(&marlin_dev->power_lock);
-	WCN_INFO("%s [%s],power_status=%ld\n", __func__, strno(subsys),
+	WCN_INFO("%s [%s],power_status=0x%lx\n", __func__, strno(subsys),
 		 marlin_dev->power_state);
-	if (marlin_dev->download_finish_flag == 1) {
+
+	marlin_dev->first_power_on_flag++;
+	if ((subsys == MARLIN_GNSS) && (!marlin_dev->gnss_dl_finish_flag))
+		gnss_powerdomain_open();
+
+	if ((marlin_dev->download_finish_flag == 1) &&
+	    (marlin_dev->gnss_dl_finish_flag)) {
 		WCN_INFO("firmware have download\n");
+		set_bit(subsys, &marlin_dev->power_state);
+		marlin_dev->first_power_on_flag = 2;
+		power_state_notify_or_not(subsys, 1);
 		mutex_unlock(&marlin_dev->power_lock);
 		return 0;
 	}
@@ -2073,11 +2098,20 @@ int start_marlin(u32 subsys)
 	ret = pcie_boot(subsys, marlin_dev);
 	if (ret < 0) {
 		WCN_INFO("pcie boot fail\n");
+		power_state_notify_or_not(subsys, 1);
 		mutex_unlock(&marlin_dev->power_lock);
 		return -1;
 	}
 	set_bit(subsys, &marlin_dev->power_state);
 	marlin_dev->download_finish_flag = 1;
+
+	if (marlin_dev->first_power_on_flag == 1) {
+		stop_marlin(MARLIN_GNSS);
+		loopcheck_ready_set();
+	}
+
+	marlin_dev->first_power_on_flag = 2;
+	power_state_notify_or_not(subsys, 1);
 	mutex_unlock(&marlin_dev->power_lock);
 
 	return 0;
@@ -2111,6 +2145,7 @@ EXPORT_SYMBOL_GPL(start_marlin);
 
 int stop_marlin(u32 subsys)
 {
+	WCN_INFO("%s [%s]\n", __func__, strno(subsys));
 #ifndef CONFIG_WCN_PCIE
 	if (sprdwcn_bus_get_carddump_status() != 0) {
 		WCN_ERR("%s SDIO card dump\n", __func__);
@@ -2125,7 +2160,13 @@ int stop_marlin(u32 subsys)
 	mem_pd_mgr(subsys, false);
 	return marlin_set_power(subsys, false);
 #else
+	if (subsys == MARLIN_GNSS) {
+		gnss_powerdomain_close();
+		marlin_dev->gnss_dl_finish_flag = 0;
+	}
 	clear_bit(subsys, &marlin_dev->power_state);
+	power_state_notify_or_not(subsys, 0);
+
 	return 0;
 #endif
 }

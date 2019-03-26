@@ -15,7 +15,7 @@
 #include <linux/bug.h>
 #include <linux/delay.h>
 #ifdef CONFIG_SC2342_INTEG
-#include <linux/gnss.h>
+#include "gnss.h"
 #endif
 #include <linux/init.h>
 #include <linux/kernel.h>
@@ -89,7 +89,7 @@ struct gnss_cali {
 	u32 *cali_data;
 };
 static struct gnss_cali gnss_cali_data;
-static u32 gnss_efuse_data[3];
+static u32 *gnss_efuse_data;
 
 
 #ifdef GNSSDEBUG
@@ -99,7 +99,7 @@ static void gnss_cali_done_isr(void)
 	GNSSCOMM_INFO("gnss cali done");
 }
 #endif
-static int gnss_cali_init(void)
+static int gnss_data_init(void)
 {
 	gnss_cali_data.cali_done = false;
 
@@ -113,6 +113,11 @@ static int gnss_cali_init(void)
 	init_completion(&marlin_dev.gnss_cali_done);
 	sdio_pub_int_RegCb(GNSS_CALI_DONE, (PUB_INT_ISR)gnss_cali_done_isr);
 	#endif
+	gnss_efuse_data = kzalloc(GNSS_EFUSE_DATA_SIZE, GFP_KERNEL);
+	if (gnss_efuse_data == NULL) {
+		GNSSCOMM_ERR("%s malloc efuse data fail.\n", __func__);
+		return -ENOMEM;
+	}
 
 	return 0;
 }
@@ -131,9 +136,8 @@ static int gnss_write_cali_data(void)
 static int gnss_write_efuse_data(void)
 {
 	GNSSCOMM_INFO("%s flag %d\n", __func__,	gnss_cali_data.cali_done);
-	if (gnss_cali_data.cali_done)
-		sprdwcn_bus_direct_write(GNSS_EFUSE_ADDRESS,
-					 &gnss_efuse_data[0],
+	if (gnss_cali_data.cali_done && (gnss_efuse_data != NULL))
+		sprdwcn_bus_direct_write(GNSS_EFUSE_ADDRESS, gnss_efuse_data,
 					 GNSS_EFUSE_DATA_SIZE);
 
 	return 0;
@@ -151,7 +155,7 @@ int gnss_write_data(void)
 
 static int gnss_backup_cali(void)
 {
-	int i = 10;
+	int i = 15;
 	int tempvalue = 0;
 
 	if (!gnss_cali_data.cali_done) {
@@ -183,12 +187,12 @@ static int gnss_backup_efuse(void)
 {
 	int ret = 1;
 
-	if (gnss_cali_data.cali_done) { /* efuse data is ok when cali done */
-		sprdwcn_bus_direct_read(GNSS_EFUSE_ADDRESS,
-					&gnss_efuse_data[0],
+	/* efuse data is ok when cali done */
+	if (gnss_cali_data.cali_done && (gnss_efuse_data != NULL)) {
+		sprdwcn_bus_direct_read(GNSS_EFUSE_ADDRESS, gnss_efuse_data,
 					GNSS_EFUSE_DATA_SIZE);
 		ret = 0;
-		GNSSCOMM_ERR("%s 0x%x\n", __func__, gnss_efuse_data[0]);
+		GNSSCOMM_ERR("%s 0x%x\n", __func__, *gnss_efuse_data);
 	} else
 		GNSSCOMM_INFO("%s no need back again\n", __func__);
 
@@ -208,15 +212,19 @@ int gnss_backup_data(void)
 static int gnss_boot_wait(void)
 {
 	int ret = -1;
-	u32 magic_value;
 	int i = 125;
+	u32 *buffer = NULL;
 
+	buffer = kzalloc(GNSS_BOOTSTATUS_SIZE, GFP_KERNEL);
+	if (buffer == NULL) {
+		GNSSCOMM_ERR("%s, malloc fail\n", __func__);
+		return -1;
+	}
 	while (i--) {
-		sprdwcn_bus_direct_read(GNSS_BOOTSTATUS_ADDRESS, &magic_value,
+		sprdwcn_bus_direct_read(GNSS_BOOTSTATUS_ADDRESS, buffer,
 					GNSS_BOOTSTATUS_SIZE);
-		GNSSCOMM_ERR("boot read %d time, value is 0x%x\n",
-			     i, magic_value);
-		if (magic_value != GNSS_BOOTSTATUS_MAGIC) {
+		GNSSCOMM_ERR("boot read %d time, value is 0x%x\n", i, *buffer);
+		if (*buffer != GNSS_BOOTSTATUS_MAGIC) {
 			msleep(20);
 			continue;
 		}
@@ -224,6 +232,7 @@ static int gnss_boot_wait(void)
 		GNSSCOMM_INFO("boot read success\n");
 		break;
 	}
+	kfree(buffer);
 
 	return ret;
 }
@@ -445,9 +454,9 @@ static ssize_t gnss_regr_show(struct device *dev, struct device_attribute *attr,
 		int set_value;
 
 		set_value = gnss_indirect_reg_offset + 0x80000000;
-		sprdwcn_bus_direct_write(op_reg, &set_value, 4);
+		sprdwcn_bus_reg_write(op_reg, &set_value, 4);
 	}
-	sprdwcn_bus_direct_read(op_reg, &buffer, 4);
+	sprdwcn_bus_reg_read(op_reg, &buffer, 4);
 	GNSSCOMM_INFO("%s,temp value is 0x%x\n", __func__, buffer);
 
 	i += scnprintf((char *)buf + i, PAGE_SIZE - i, "show: 0x%x\n", buffer);
@@ -504,7 +513,7 @@ static ssize_t gnss_regw_store(struct device *dev,
 	if (op_reg == GNSS_INDIRECT_OP_REG)
 		set_value = gnss_indirect_reg_offset + set_value;
 	GNSSCOMM_INFO("%s,0x%lx\n", __func__, set_value);
-	sprdwcn_bus_direct_write(op_reg, &set_value, 4);
+	sprdwcn_bus_reg_write(op_reg, &set_value, 4);
 
 	return count;
 }
@@ -561,7 +570,7 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 	gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF;
 #ifndef CONFIG_SC2342_INTEG
 	gnss_common_ctl_dev.gnss_subsys = MARLIN_GNSS;
-	gnss_cali_init();
+	gnss_data_init();
 #else
 	gnss_common_ctl_dev.gnss_subsys = WCN_GNSS;
 #endif

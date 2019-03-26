@@ -59,6 +59,7 @@ int mbuf_link_free(int chn, struct mbuf_t *head,
 int mchn_hw_max_pending(int chn);
 int mchn_wcn_mem_write(unsigned int addr, void *buf, unsigned int len);
 int mchn_wcn_mem_read(unsigned int addr, void *buf, unsigned int len);
+int mchn_wcn_update_bits(unsigned int reg, unsigned int mask, unsigned int val);
 struct mchn_info_t *mchn_info(void);
 struct mchn_ops_t *mchn_ops(int channel);
 #endif

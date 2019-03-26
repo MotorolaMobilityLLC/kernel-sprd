@@ -13,12 +13,18 @@
 #ifndef _WCN_GNSS_H
 #define _WCN_GNSS_H
 
+#ifdef CONFIG_SC2342_INTEG
+struct sprdwcn_gnss_ops {
+	int (*file_judge)(char *buff, int type);
+};
+#else
 struct sprdwcn_gnss_ops {
 	int (*backup_data)(void);
 	int (*write_data)(void);
 	void (*set_file_path)(char *buf);
 	int (*wait_gnss_boot)(void);
 };
+#endif
 
 int wcn_gnss_ops_register(struct sprdwcn_gnss_ops *ops);
 void wcn_gnss_ops_unregister(void);

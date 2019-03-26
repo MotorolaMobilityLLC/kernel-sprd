@@ -7,6 +7,10 @@
 #include "wcn_txrx.h"
 #include "wcn_log.h"
 
+#ifdef CONFIG_SC2342_INTEG
+#include "sc2342_integrate_glb.h"
+#endif
+
 #ifdef CONFIG_SC2355
 #include "sc2355_glb.h"
 #include "wcn_dump.h"

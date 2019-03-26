@@ -14,6 +14,8 @@
 #include "bufring.h"
 #include "wcn_glb.h"
 #include "wcn_procfs.h"
+#include "mdbg_type.h"
+#include "../include/wcn_dbg.h"
 
 int mdbg_log_read(int channel, struct mbuf_t *head,
 		  struct mbuf_t *tail, int num);

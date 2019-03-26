@@ -1,4 +1,5 @@
 #include "sdiohal.h"
+#include "sdiohal_dbg.h"
 
 static unsigned int sdiohal_rx_adapt_get(void)
 {
@@ -93,7 +94,7 @@ static int sdiohal_rx_list_parser(struct sdiohal_list_t *data_list,
 				(MAX_PAC_SIZE - SDIO_PUB_HEADER_SIZE)) ||
 				(puh->len == 0)) {
 				sdiohal_rx_list_free(mbuf_node, mbuf_node, 1);
-				sdiohal_err("%s skip type[%d]sub[%d]len[%d]\n",
+				WCN_ERR("%s skip type[%d]sub[%d]len[%d]\n",
 					__func__, puh->type,
 					puh->subtype, puh->len);
 				continue;
@@ -140,9 +141,9 @@ static int sdiohal_rx_buf_parser(char *data_buf, int valid_len)
 			if ((channel >= SDIO_CHANNEL_NUM) || (puh->len >
 			    (MAX_PAC_SIZE - SDIO_PUB_HEADER_SIZE)) ||
 			    (puh->len == 0)) {
-				sdiohal_err("%s skip type[%d]sub[%d]len[%d]\n",
-					    __func__, puh->type, puh->subtype,
-					    puh->len);
+				WCN_ERR("%s skip type[%d]sub[%d]len[%d]\n",
+					__func__, puh->type, puh->subtype,
+					puh->len);
 				continue;
 			}
 			p_data->rx_packer_cnt++;
@@ -232,7 +233,7 @@ read_again:
 
 			data_list = sdiohal_get_rx_mbuf_list(mbuf_num);
 			if (!data_list) {
-				sdiohal_err("sdiohal_get_rx_mbuf_list fail\n");
+				WCN_ERR("sdiohal_get_rx_mbuf_list fail\n");
 				msleep(100);
 				goto submit_list;
 			}
@@ -241,7 +242,7 @@ read_again:
 				       SDIOHAL_DTBS_BUF_SIZE);
 			ret = sdiohal_adma_pt_read(data_list);
 			if (ret != 0) {
-				sdiohal_err("adma read fail ret:%d\n", ret);
+				WCN_ERR("adma read fail ret:%d\n", ret);
 				rx_dtbs = 0;
 				if (!p_data->debug_iq)
 					goto submit_list;
@@ -264,13 +265,13 @@ read_again:
 
 			rx_buf = sdiohal_get_rx_free_buf();
 			if (!rx_buf) {
-				sdiohal_err("sdiohal_get_rx_free_buf fail\n");
+				WCN_ERR("sdiohal_get_rx_free_buf fail\n");
 				goto submit_list;
 			}
 
 			ret = sdiohal_sdio_pt_read(rx_buf, read_len);
 			if (ret != 0) {
-				sdiohal_err("sdio pt read fail ret:%d\n", ret);
+				WCN_ERR("sdio pt read fail ret:%d\n", ret);
 				rx_dtbs = 0;
 				goto submit_list;
 			}

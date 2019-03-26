@@ -1,4 +1,5 @@
 #include "sdiohal.h"
+#include "sdiohal_dbg.h"
 
 #define SDIOHAL_TX_RETRY_MAX 3
 #define SDIOHAL_TX_NO_RETRY
@@ -77,9 +78,9 @@ static int sdiohal_send(struct sdiohal_sendbuf_t *send_buf,
 	ret = sdiohal_sdio_pt_write(send_buf->buf,
 		SDIOHAL_ALIGN_BLK(send_buf->used_len));
 	if (ret != 0) {
-		sdiohal_err("tyr send,type:%d subtype:%d node_num:%d\n",
-				data_list->type, data_list->subtype,
-				data_list->node_num);
+		WCN_ERR("tyr send,type:%d subtype:%d node_num:%d\n",
+			data_list->type, data_list->subtype,
+			data_list->node_num);
 		ret = sdiohal_send_try(send_buf);
 	}
 
@@ -106,7 +107,7 @@ int sdiohal_tx_data_list_send(struct sdiohal_list_t *data_list)
 					   p_data->eof_buf);
 			ret = sdiohal_send(&p_data->send_buf, data_list);
 			if (ret)
-				sdiohal_err("err1,type:%d subtype:%d num:%d\n",
+				WCN_ERR("err1,type:%d subtype:%d num:%d\n",
 					data_list->type, data_list->subtype,
 					data_list->node_num);
 			p_data->send_buf.used_len = 0;
@@ -119,7 +120,7 @@ int sdiohal_tx_data_list_send(struct sdiohal_list_t *data_list)
 	sdiohal_tx_list_denq(data_list);
 	ret = sdiohal_send(&p_data->send_buf, data_list);
 	if (ret)
-		sdiohal_err("err2,type:%d subtype:%d num:%d\n",
+		WCN_ERR("err2,type:%d subtype:%d num:%d\n",
 			data_list->type, data_list->subtype,
 			data_list->node_num);
 

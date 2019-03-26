@@ -1,5 +1,6 @@
 #include "bus_common.h"
 #include "sdiohal.h"
+#include "sdiohal_dbg.h"
 
 void sdiohal_print_list_data(struct sdiohal_list_t *data_list,
 			     const char *func, int loglevel)
@@ -80,7 +81,7 @@ void sdiohal_list_check(struct sdiohal_list_t *data_list,
 	}
 
 	if (node) {
-		sdiohal_err("%s node:%p buf:%p\n", func, node, node->buf);
+		WCN_ERR("%s node:%p buf:%p\n", func, node, node->buf);
 		WARN_ON(1);
 	}
 }
@@ -107,7 +108,7 @@ void sdiohal_mbuf_list_check(int channel, struct mbuf_t *head,
 	}
 
 	if (node) {
-		sdiohal_err("%s node:%p buf:%p\n", func, node, node->buf);
+		WCN_ERR("%s node:%p buf:%p\n", func, node, node->buf);
 		WARN_ON(1);
 	}
 }
@@ -349,7 +350,7 @@ void sdiohal_resume_check(void)
 
 	while (!atomic_read(&p_data->flag_resume)) {
 		if (cnt == 0) {
-			sdiohal_err("wait sdio resume %s\n", __func__);
+			WCN_ERR("wait sdio resume %s\n", __func__);
 			dump_stack();
 		}
 		usleep_range(4000, 6000);
@@ -362,7 +363,7 @@ void sdiohal_resume_wait(void)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
 	while (!atomic_read(&p_data->flag_resume)) {
-		sdiohal_err("sleep 5ms wait for sdio resume\n");
+		WCN_ERR("sleep 5ms wait for sdio resume\n");
 		usleep_range(4000, 6000);
 	}
 }
@@ -497,8 +498,8 @@ static int sdiohal_tx_fill_puh(int channel, struct mbuf_t *head,
 	mbuf_node = head;
 	for (i = 0; i < num; i++, mbuf_node = mbuf_node->next) {
 		if (!mbuf_node) {
-			sdiohal_err("%s tx fill puh, mbuf ptr error:%p\n",
-			__func__, mbuf_node);
+			WCN_ERR("%s tx fill puh, mbuf ptr error:%p\n",
+				__func__, mbuf_node);
 
 			return -EFAULT;
 		}
@@ -578,7 +579,7 @@ static int sdiohal_tx_pop_assignment(struct sdiohal_list_t *data_list)
 	for (i = 0; i < node_num; i++) {
 		mbuf_node = mbuf_next;
 		if (!mbuf_node) {
-			sdiohal_err("%s tx pop mbuf ptr error:%p\n",
+			WCN_ERR("%s tx pop mbuf ptr error:%p\n",
 				__func__, mbuf_node);
 
 			return -EFAULT;
@@ -588,7 +589,7 @@ static int sdiohal_tx_pop_assignment(struct sdiohal_list_t *data_list)
 		channel = sdiohal_hwtype_to_channel(inout,
 			puh->type, puh->subtype);
 		if (channel >= SDIO_CHN_TX_NUM) {
-			sdiohal_err("%s tx pop channel error:%d\n",
+			WCN_ERR("%s tx pop channel error:%d\n",
 				__func__, channel);
 			continue;
 		}
@@ -638,7 +639,7 @@ int sdiohal_tx_list_denq(struct sdiohal_list_t *data_list)
 		channel = sdiohal_hwtype_to_channel(inout, tx_list->type,
 						    tx_list->subtype);
 		if (channel >= SDIO_CHN_TX_NUM) {
-			sdiohal_err("%s tx pop channel error:%d\n",
+			WCN_ERR("%s tx pop channel error:%d\n",
 				__func__, channel);
 			continue;
 		}
@@ -657,8 +658,8 @@ int sdiohal_tx_list_denq(struct sdiohal_list_t *data_list)
 					      tx_list->mbuf_tail,
 					      tx_list->node_num);
 		} else
-			sdiohal_err("%s no tx ops channel:%d\n",
-				    __func__, channel);
+			WCN_ERR("%s no tx ops channel:%d\n",
+				__func__, channel);
 
 		tx_list->node_num = 0;
 		sdiohal_callback_unlock(&chn_callback[channel]);
@@ -708,8 +709,8 @@ int sdiohal_rx_list_dispatch(void)
 		channel = sdiohal_hwtype_to_channel(inout, rx_list->type,
 						    rx_list->subtype);
 		if (channel >= SDIO_CHANNEL_NUM) {
-			sdiohal_err("%s rx pop channel error:%d\n",
-				    __func__, channel);
+			WCN_ERR("%s rx pop channel error:%d\n",
+				__func__, channel);
 			continue;
 		}
 
@@ -727,7 +728,7 @@ int sdiohal_rx_list_dispatch(void)
 					      rx_list->mbuf_tail,
 					      rx_list->node_num);
 		} else {
-			sdiohal_err("%s no rx ops channel:%d\n",
+			WCN_ERR("%s no rx ops channel:%d\n",
 				__func__, channel);
 			sdiohal_rx_list_free(rx_list->mbuf_head,
 					     rx_list->mbuf_tail,
@@ -756,13 +757,13 @@ struct sdiohal_list_t *sdiohal_get_rx_channel_list(int channel)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
 	if (unlikely(p_data->flag_init != true))  {
-		sdiohal_err("%s sdiohal not init\n", __func__);
+		WCN_ERR("%s sdiohal not init\n", __func__);
 		return NULL;
 	}
 
 	channel -= SDIO_CHN_TX_NUM;
 	if (channel >= SDIO_CHN_RX_NUM) {
-		sdiohal_err("%s rx error channel:%d\n", __func__, channel);
+		WCN_ERR("%s rx error channel:%d\n", __func__, channel);
 		return NULL;
 	}
 
@@ -835,7 +836,7 @@ refill:
 		}
 		frag_ctl->frag.size = PAGE_SIZE << order;
 		if (frag_ctl->frag.size < fragsz) {
-			sdiohal_err("alloc 0x%x mem, need:0x%x\n",
+			WCN_ERR("alloc 0x%x mem, need:0x%x\n",
 				frag_ctl->frag.size, fragsz);
 			put_page(frag_ctl->frag.page);
 			goto fail;
@@ -878,7 +879,7 @@ refill:
 	return data;
 fail:
 	local_irq_restore(flags);
-	sdiohal_err("alloc mem fail\n");
+	WCN_ERR("alloc mem fail\n");
 	return NULL;
 }
 
@@ -891,12 +892,12 @@ struct sdiohal_list_t *sdiohal_get_rx_mbuf_node(int num)
 	int i;
 
 	if (num == 0) {
-		sdiohal_err("num err:%d\n", num);
+		WCN_ERR("num err:%d\n", num);
 		goto err;
 	}
 
 	if (num > p_data->list_rx_buf.node_num) {
-		sdiohal_err("no rx mbuf node, need num:%d, list node num:%d\n",
+		WCN_ERR("no rx mbuf node, need num:%d, list node num:%d\n",
 			num, p_data->list_rx_buf.node_num);
 		goto err;
 	}
@@ -1008,13 +1009,14 @@ static int sdiohal_free_rx_mbuf_nodes(int num)
 	struct mbuf_t *mbuf_node = NULL, *mbuf_temp = NULL;
 	int i;
 
-	mbuf_temp = p_data->list_rx_buf.mbuf_head;
+	mbuf_node = p_data->list_rx_buf.mbuf_head;
 	for (i = 0; i < num; i++) {
-		if (mbuf_temp->next)
-			mbuf_node = mbuf_temp->next;
-		mbuf_temp->next = NULL;
-		kfree(mbuf_temp);
 		mbuf_temp = mbuf_node;
+		if (mbuf_temp->next) {
+			mbuf_node = mbuf_temp->next;
+			mbuf_temp->next = NULL;
+		}
+		kfree(mbuf_temp);
 	}
 
 	p_data->list_rx_buf.mbuf_head = NULL;
@@ -1055,7 +1057,7 @@ int sdiohal_list_push(int channel, struct mbuf_t *head,
 				SDIOHAL_LIST_LEVEL));
 	if ((channel < 0) || (channel >= SDIO_CHANNEL_NUM) ||
 		(!head) || (!tail) || (num <= 0)) {
-		sdiohal_err("%s Invalid argument\n", __func__);
+		WCN_ERR("%s Invalid argument\n", __func__);
 		dump_stack();
 		return -EINVAL;
 	}
@@ -1063,7 +1065,7 @@ int sdiohal_list_push(int channel, struct mbuf_t *head,
 	mbuf_node = head;
 	for (i = 0; i < num; i++, mbuf_node = mbuf_node->next) {
 		if (!mbuf_node) {
-			sdiohal_err("%s mbuf list error\n", __func__);
+			WCN_ERR("%s mbuf list error\n", __func__);
 			dump_stack();
 			return -EFAULT;
 		}
@@ -1282,7 +1284,7 @@ int sdiohal_misc_init(void)
 	sdiohal_dtbs_buf_init();
 	ret = sdiohal_list_init();
 	if (ret < 0)
-		sdiohal_err("alloc list err\n");
+		WCN_ERR("alloc list err\n");
 
 	sdiohal_tx_sendbuf_init();
 	ret = sdiohal_eof_buf_init();

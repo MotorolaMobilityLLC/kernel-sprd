@@ -15,7 +15,6 @@
 
 #include <linux/mutex.h>
 #include <linux/sched.h>
-#include "mdbg_type.h"
 
 #define MDBG_RING_R		0
 #define MDBG_RING_W		1

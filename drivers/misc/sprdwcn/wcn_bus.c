@@ -20,6 +20,8 @@
 
 #include <misc/wcn_bus.h>
 
+#include "include/wcn_dbg.h"
+
 struct buffer_pool_t {
 	int size;
 	int free;
@@ -53,7 +55,7 @@ static int buf_list_check(struct buffer_pool_t *pool,
 		return 0;
 	for (i = 0, mbuf = head; i < num; i++) {
 		if ((i == (num - 1)) && (mbuf != tail)) {
-			pr_err("%s(0x%lx, 0x%lx, %d), err 1\n", __func__,
+			WCN_ERR("%s(0x%lx, 0x%lx, %d), err 1\n", __func__,
 				(unsigned long)virt_to_phys(head),
 				(unsigned long)virt_to_phys(tail), num);
 			WARN_ON(1);
@@ -66,7 +68,7 @@ static int buf_list_check(struct buffer_pool_t *pool,
 	}
 
 	if (tail->next != NULL) {
-		pr_err("%s(0x%lx, 0x%lx, %d), err 2\n", __func__,
+		WCN_ERR("%s(0x%lx, 0x%lx, %d), err 2\n", __func__,
 			(unsigned long)virt_to_phys(head),
 			(unsigned long)virt_to_phys(tail), num);
 		WARN_ON(1);
@@ -89,7 +91,7 @@ static int buf_pool_check(struct buffer_pool_t *pool)
 	}
 
 	if (mbuf != NULL) {
-		pr_err("%s(0x%p) err\n", __func__, pool);
+		WCN_ERR("%s(0x%p) err\n", __func__, pool);
 		WARN_ON(1);
 	}
 
@@ -109,15 +111,15 @@ static int buf_pool_init(struct buffer_pool_t *pool, int size, int payload)
 	if (!pool->mem)
 		return -ENOMEM;
 
-	pr_info("mbuf_pool->mem:0x%lx\n",
-		(unsigned long)virt_to_phys(pool->mem));
+	WCN_INFO("mbuf_pool->mem:0x%lx\n",
+		 (unsigned long)virt_to_phys(pool->mem));
 	pool->head = (struct mbuf_t *) (pool->mem);
 	for (i = 0, mbuf = (struct mbuf_t *)(pool->head);
 	     i < (size - 1); i++) {
 		mbuf->seq = i;
-		pr_info("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
-			(unsigned long)mbuf,
-			(unsigned long)virt_to_phys(mbuf));
+		WCN_INFO("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
+			 (unsigned long)mbuf,
+			 (unsigned long)virt_to_phys(mbuf));
 		next = (struct mbuf_t *)((char *)mbuf +
 			sizeof(struct mbuf_t) + payload);
 		mbuf->buf = (char *)mbuf + sizeof(struct mbuf_t);
@@ -125,9 +127,9 @@ static int buf_pool_init(struct buffer_pool_t *pool, int size, int payload)
 		mbuf->next = next;
 		mbuf = next;
 	}
-	pr_info("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
-		(unsigned long)mbuf,
-		(unsigned long)virt_to_phys(mbuf));
+	WCN_INFO("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
+		 (unsigned long)mbuf,
+		 (unsigned long)virt_to_phys(mbuf));
 	mbuf->seq = i;
 	mbuf->buf = (char *)mbuf + sizeof(struct mbuf_t);
 	mbuf->len = payload;
@@ -158,7 +160,7 @@ int buf_list_alloc(int chn, struct mbuf_t **head,
 	pool = &(chn_inf->pool[chn]);
 
 	if ((*num <= 0) || (pool->free <= 0)) {
-		pr_err("[+]%s err, num %d, free %d)\n",
+		WCN_ERR("[+]%s err, num %d, free %d)\n",
 			__func__, *num, pool->free);
 		*num = 0;
 		*head = *tail = NULL;
@@ -194,7 +196,7 @@ int buf_list_free(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 	struct chn_info_t *chn_inf = chn_info();
 
 	if ((head == NULL) || (tail == NULL) || (num == 0)) {
-		pr_err("%s(%d, 0x%lx, 0x%lx, %d)\n", __func__, chn,
+		WCN_ERR("%s(%d, 0x%lx, 0x%lx, %d)\n", __func__, chn,
 			(unsigned long)virt_to_phys(head),
 			(unsigned long)virt_to_phys(tail), num);
 		return -1;
@@ -218,9 +220,9 @@ int bus_chn_init(struct mchn_ops_t *ops, int hif_type)
 	int ret = 0;
 	struct chn_info_t *chn_inf = chn_info();
 
-	pr_info("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
+	WCN_INFO("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
 	if (chn_inf->ops[ops->channel] != NULL) {
-		pr_err("%s err, hif_type %d\n", __func__, ops->hif_type);
+		WCN_ERR("%s err, hif_type %d\n", __func__, ops->hif_type);
 		WARN_ON(1);
 		return -1;
 	}
@@ -234,7 +236,7 @@ int bus_chn_init(struct mchn_ops_t *ops, int hif_type)
 				    ops->pool_size, 0);
 	mutex_unlock(&chn_inf->callback_lock[ops->channel]);
 
-	pr_info("[-]%s(%d)\n", __func__, ops->channel);
+	WCN_INFO("[-]%s(%d)\n", __func__, ops->channel);
 
 	return ret;
 }
@@ -245,9 +247,9 @@ int bus_chn_deinit(struct mchn_ops_t *ops)
 	int ret = 0;
 	struct chn_info_t *chn_inf = chn_info();
 
-	pr_info("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
+	WCN_INFO("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
 	if (chn_inf->ops[ops->channel] == NULL) {
-		pr_err("%s err\n", __func__);
+		WCN_ERR("%s err\n", __func__);
 		return -1;
 	}
 
@@ -258,7 +260,7 @@ int bus_chn_deinit(struct mchn_ops_t *ops)
 	mutex_unlock(&chn_inf->callback_lock[ops->channel]);
 	mutex_destroy(&chn_inf->callback_lock[ops->channel]);
 
-	pr_info("[-]%s(%d)\n", __func__, ops->channel);
+	WCN_INFO("[-]%s(%d)\n", __func__, ops->channel);
 
 	return ret;
 }

@@ -12,6 +12,8 @@
 #include "bufring.h"
 #include "wcn_glb.h"
 #include "wcn_log.h"
+#include "mdbg_type.h"
+#include "../include/wcn_dbg.h"
 
 static struct mdbg_ring_t	*mdev_ring;
 gnss_dump_callback gnss_dump_handle;

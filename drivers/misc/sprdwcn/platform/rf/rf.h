@@ -178,20 +178,8 @@ struct txpower_cali_t {
 					 [TXPOWER_GAIN_MAPPING_LEN];
 	int8_t txpower_subcarries_compensation_flag;
 
-	int8_t txpower_subcarries_channel1[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel2[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel3[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel4[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel5[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel6[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel7[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel8[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel9[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel10[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel11[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel12[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel13[TXPOWER_SUBCARRIES_LEN];
-	int8_t txpower_subcarries_channel14[TXPOWER_SUBCARRIES_LEN];
+	int8_t txpower_subcarries_channel[TXPOWER_SUBCARRIES_COUNTER]
+					 [TXPOWER_SUBCARRIES_LEN];
 
 	int8_t txpower_psat_trace_value[4];
 	uint32_t txpower_reserved[4];

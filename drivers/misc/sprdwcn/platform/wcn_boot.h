@@ -32,6 +32,7 @@ struct marlin_device {
 	int reset;
 	int chip_en;
 	int int_ap;
+	bool bound_avdd12;
 	/* power sequence */
 	/* VDDIO->DVDD12->chip_en->rst_N->AVDD12->AVDD33 */
 	struct regulator *dvdd12;
@@ -62,6 +63,7 @@ struct marlin_device {
 	int wifi_need_download_ini_flag;
 	int first_power_on_flag;
 	unsigned char download_finish_flag;
+	unsigned char gnss_dl_finish_flag;
 	int loopcheck_status_change;
 	struct wcn_sync_info_t sync_f;
 	struct tsx_cali tsxcali;

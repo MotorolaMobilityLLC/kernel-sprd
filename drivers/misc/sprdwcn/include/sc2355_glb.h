@@ -75,13 +75,17 @@
 #define WIFI_WRAP_PWR_DOWN			BIT(1)
 #define WIFI_MAC_PWR_DOWN			BIT(2)
 #define WIFI_PHY_PWR_DOWN			BIT(2)
-#define WIFI_ENABLE				0x40130004
+#define AHB_EB0					0x40130004
 #define WIFI_EN					BIT(5)
 #define WIFI_MAC_EN				BIT(9)
-#define WIFI_ALL_EN		(WIFI_EN | WIFI_MAC_EN)
-#define CLK_CTRL0			0x4083c040
-#define APLL_PDN			(1 << 0)
-#define BPLL_PDN			(1 << 1)
+#define WIFI_ALL_EN				(WIFI_EN | WIFI_MAC_EN)
+#define BT_EN					BIT(4)
+#define CLK_CTRL0				0x4083c040
+#define APLL_PDN				(1 << 0)
+#define BPLL_PDN				(1 << 1)
+#define CLK_CTRL3				0x4083c04c
+#define CGM_BT_32M_EN				BIT(18)
+#define CGM_BT_64M_EN				BIT(19)
 
 /* for BT */
 #define BT_ACC_ADDR			(0x40240000)

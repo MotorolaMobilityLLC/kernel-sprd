@@ -190,7 +190,7 @@ static int cmdline_args(char *cmdline, char *cmd, struct arg_t *args, int argc)
 			}
 		}
 		if (!FOUND) {
-			PCIE_ERR("arg %s err\n", argname);
+			WCN_ERR("arg %s err\n", argname);
 			status = 0;
 			goto WEDONE;
 		}
@@ -233,7 +233,7 @@ static int pcie_cmd_proc(struct char_drv_info *dev, unsigned char *input,
 
 	ret = cmdline_args(input, cmd, pcie_args, PCIE_ARG_MAX);
 	if (ret) {
-		PCIE_INFO("cmdline_args err\n");
+		WCN_INFO("cmdline_args err\n");
 		return -1;
 	} else if (!strcmp("mread", cmd)) {
 		addr = args_value(PCIE_ARG_ADDR);
@@ -246,15 +246,15 @@ static int pcie_cmd_proc(struct char_drv_info *dev, unsigned char *input,
 		addr = args_value(PCIE_ARG_ADDR);
 		value = args_value(PCIE_ARG_VALUE);
 		size = args_value(PCIE_ARG_SIZE);
-		PCIE_INFO("memwrite addr=0x%lx value=0x%lx size=%ld\n",
-		       addr, value, size);
+		WCN_INFO("memwrite addr=0x%lx value=0x%lx size=%ld\n",
+			 addr, value, size);
 		memcpy((char *)(addr), (char *)&value, 4);
 	} else if (!strcmp("init", cmd)) {
 		struct inbound_reg *ibreg =
 				(struct inbound_reg *) ibreg_base(priv, 0);
 
 		if (ibreg == NULL) {
-			PCIE_ERR("ibreg(0) NULL\n");
+			WCN_ERR("ibreg(0) NULL\n");
 			return -1;
 		}
 		ibreg->lower_target_addr = 0x40000000;
@@ -280,7 +280,7 @@ static int pcie_cmd_proc(struct char_drv_info *dev, unsigned char *input,
 
 		sprintf(string, "bwrite bar=%d offset=0x%x value=0x%lx\n", bar,
 			offset, value);
-		PCIE_INFO("do %s\n", string);
+		WCN_INFO("do %s\n", string);
 		pcie_bar_write(priv, bar, offset, (char *)(&value), 4);
 		replay->t = 0;
 		replay->l = strlen(string);
@@ -290,8 +290,8 @@ static int pcie_cmd_proc(struct char_drv_info *dev, unsigned char *input,
 		offset = args_value(PCIE_ARG_OFFSET);
 		size = args_value(PCIE_ARG_SIZE);
 		buf = pcie_bar_vmem(priv, bar) + offset;
-		PCIE_INFO("kernel bread bar=%d offset=0x%x size=0x%lx\n", bar,
-		       offset, size);
+		WCN_INFO("kernel bread bar=%d offset=0x%x size=0x%lx\n", bar,
+			 offset, size);
 		replay->t = 1;
 		replay->l = size;
 		hwcopy(replay->v, buf, replay->l);
@@ -350,12 +350,12 @@ static int pcie_cmd_proc(struct char_drv_info *dev, unsigned char *input,
 		size = args_value(PCIE_ARG_SIZE);
 		run = args_value(PCIE_ARG_RUN);
 
-		PCIE_INFO("inbound(%d,%ld,%d)\n", offset, size, run);
+		WCN_INFO("inbound(%d,%ld,%d)\n", offset, size, run);
 
 		mem = kmalloc(size, GFP_KERNEL);
 		buf = kmalloc(size, GFP_KERNEL);
 		if ((!mem) || (!buf)) {
-			PCIE_ERR("kmalloc(%ld) err\n", size);
+			WCN_ERR("kmalloc(%ld) err\n", size);
 			return 0;
 		}
 		for (i = 0; i < run; i++) {
@@ -374,7 +374,7 @@ static int pcie_cmd_proc(struct char_drv_info *dev, unsigned char *input,
 			sprintf(string, "inbound(0x%x,0x%lx,0x%x) ok\n", offset,
 				size, run);
 		}
-		PCIE_INFO("%s", string);
+		WCN_INFO("%s", string);
 		replay->t = 0;
 		replay->l = strlen(string);
 		memcpy(replay->v, string, replay->l);
@@ -387,7 +387,7 @@ static int pcie_cmd_proc(struct char_drv_info *dev, unsigned char *input,
 	} else if (!strcmp("lo_stop", cmd))
 		lo_stop();
 	else
-		PCIE_INFO("unknown cmd %s\n", cmd);
+		WCN_INFO("unknown cmd %s\n", cmd);
 
 	return 0;
 }
@@ -399,11 +399,13 @@ int hexdump(char *name, char *buf, int len)
 
 	count = len / 32;
 	count += 1;
-	PCIE_INFO("%s %s hex(len=%d):\n", __func__, name, len);
+	WCN_INFO("%s %s hex(len=%d):\n", __func__, name, len);
 	for (i = 0; i < count; i++) {
 		p = (unsigned int *)(buf + i * 32);
-		PCIE_INFO("mem[0x%04x] 0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,\n",
-		       i * 32, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+		WCN_INFO(
+			 "mem[0x%04x] 0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x\n",
+			 i * 32, p[0], p[1], p[2], p[3], p[4],
+			 p[5], p[6], p[7]);
 	}
 
 	return 0;
@@ -413,7 +415,7 @@ static int char_open(struct inode *inode, struct file *filp)
 {
 	struct char_drv_info *dev;
 
-	PCIE_INFO("%s\n", __func__);
+	WCN_INFO("%s\n", __func__);
 	dev = container_of(inode->i_cdev, struct char_drv_info, testcdev);
 	filp->private_data = dev;
 
@@ -423,7 +425,7 @@ static int char_open(struct inode *inode, struct file *filp)
 static ssize_t char_write(struct file *filp, const char __user *buffer,
 			  size_t count, loff_t *offset)
 {
-	PCIE_INFO("%s\n", __func__);
+	WCN_INFO("%s\n", __func__);
 
 	return 0;
 }
@@ -431,14 +433,14 @@ static ssize_t char_write(struct file *filp, const char __user *buffer,
 static ssize_t char_read(struct file *filp, char __user *buffer, size_t count,
 		  loff_t *offset)
 {
-	PCIE_INFO("%s\n", __func__);
+	WCN_INFO("%s\n", __func__);
 
 	return 0;
 }
 
 static int char_release(struct inode *inode, struct file *filp)
 {
-	PCIE_INFO("%s\n", __func__);
+	WCN_INFO("%s\n", __func__);
 
 	return 0;
 }
@@ -456,7 +458,7 @@ static long char_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	tlv = (struct tlv *) buf[1];
 
 	ret = copy_from_user(buf[0], (char __user *)arg, 64);
-	PCIE_INFO("input:%s\n", buf[0]);
+	WCN_INFO("input:%s\n", buf[0]);
 
 	pcie_cmd_proc(dev, buf[0], 4096, (struct tlv *) buf[1]);
 
@@ -505,7 +507,7 @@ static int ioctlcmd_init(struct wcn_pcie_info *bus)
 
 	drv->myclass = class_create(THIS_MODULE, "char_class");
 	drv->mydev = device_create(drv->myclass, NULL, dev, NULL, "kchar");
-	PCIE_INFO("module init ok ...\n");
+	WCN_INFO("module init ok ...\n");
 
 	return 0;
 }
@@ -522,7 +524,7 @@ int ioctlcmd_deinit(struct wcn_pcie_info *bus)
 
 	cdev_del(&(drv->testcdev));
 	unregister_chrdev_region(dev, 1);
-	PCIE_INFO("module exit ok....\n");
+	WCN_INFO("module exit ok....\n");
 
 	return 0;
 }

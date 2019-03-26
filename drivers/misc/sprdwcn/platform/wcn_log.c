@@ -9,6 +9,8 @@
 
 #include "rdc_debug.h"
 #include "../include/wcn_glb.h"
+#include "mdbg_type.h"
+#include "../include/wcn_dbg.h"
 
 #define MDBG_WRITE_SIZE			(64)
 #define WCN_LOG_MAJOR 255
@@ -68,7 +70,7 @@ static int wcnlog_open(struct inode *inode, struct file *filp)
 		dev->cdev.dev, MAJOR(dev->cdev.dev), MINOR(dev->cdev.dev));
 
 	if (mdbg_dev->open_count != 0)
-		MDBG_ERR("open count %d\n", mdbg_dev->open_count);
+		WCN_ERR("open count %d\n", mdbg_dev->open_count);
 
 	mdbg_dev->open_count++;
 
@@ -192,7 +194,7 @@ static unsigned int wcnlog_poll(struct file *filp, poll_table *wait)
 {
 	unsigned int mask = 0;
 
-	MDBG_LOG("%s\n", __func__);
+	WCN_LOG("%s\n", __func__);
 	if ((!mdbg_dev) || (mdbg_dev->exit_flag)) {
 		WCN_INFO("%s exit!\n", __func__);
 		mask |= POLLIN | POLLERR;

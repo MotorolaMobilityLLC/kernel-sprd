@@ -18,6 +18,8 @@
 #include "wcn_txrx.h"
 #include "wcn_log.h"
 #include "../include/wcn_glb_reg.h"
+#include "mdbg_type.h"
+#include "../include/wcn_dbg.h"
 
 static int smp_calc_chsum(unsigned short *buf, unsigned int size)
 {
@@ -44,6 +46,7 @@ static int mdbg_write_smp_head(unsigned int len)
 {
 	struct smp_head *smp;
 	unsigned char *smp_buf, *tmp;
+	unsigned short *buf_tmp;
 	int smp_len;
 
 	smp_len = sizeof(struct smp_head) + sizeof(struct sme_head_tag);
@@ -58,7 +61,8 @@ static int mdbg_write_smp_head(unsigned int len)
 	smp->channel_num = SMP_DSP_CHANNEL_NUM;
 	smp->packet_type = SMP_DSP_TYPE;
 	smp->reserved = SMP_RESERVEDFLAG;
-	smp->check_sum = smp_calc_chsum(&smp->length, sizeof(struct smp_head)
+	buf_tmp = &smp->length;
+	smp->check_sum = smp_calc_chsum(buf_tmp, sizeof(struct smp_head)
 		- SYSNC_CODE_LEN - CHKSUM_LEN);
 
 	/*
@@ -505,7 +509,7 @@ void dap_sel_btwf_lite(void)
 			return;
 		}
 	}
-	MDBG_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
 
 	reg_val |= CM4_DAP_SEL_BTWF_LITE;
 	ret = sprdwcn_bus_reg_write(DAP_CTRL, &reg_val, 4);
@@ -513,14 +517,14 @@ void dap_sel_btwf_lite(void)
 		WCN_ERR("%s write DJTAG_DAP_SEL error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
 
 	ret = sprdwcn_bus_reg_read(DAP_CTRL, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read2 DJTAG_DAP_SEL error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s 2:DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s 2:DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
 }
 
 /* select aon_apb_dap DAP(Debug Access Port) */
@@ -548,7 +552,7 @@ void apb_eb_lite(void)
 		WCN_ERR("%s read APB_EB error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
 
 	reg_val |= DBG_CM4_EB;
 	ret = sprdwcn_bus_reg_write(APB_ENB1, &reg_val, 4);
@@ -556,14 +560,14 @@ void apb_eb_lite(void)
 		WCN_ERR("%s write APB_EB error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
 
 	ret = sprdwcn_bus_reg_read(APB_ENB1, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read2 APB_EB error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s 2:APB_EB:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s 2:APB_EB:0x%x\n", __func__, reg_val);
 }
 #else
 /* select aon_apb_dap DAP(Debug Access Port) */
@@ -587,7 +591,7 @@ static void dap_sel_btwf(void)
 			return;
 		}
 	}
-	MDBG_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
 
 	reg_val |= CM4_DAP_SEL_BTWF | CM4_DAP_SEL_GNSS;
 	ret = sprdwcn_bus_reg_write(DJTAG_DAP_SEL, &reg_val, 4);
@@ -595,14 +599,14 @@ static void dap_sel_btwf(void)
 		WCN_ERR("%s write DJTAG_DAP_SEL error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
 
 	ret = sprdwcn_bus_reg_read(DJTAG_DAP_SEL, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read2 DJTAG_DAP_SEL error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s 2:DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s 2:DJTAG_DAP_SEL:0x%x\n", __func__, reg_val);
 }
 
 /* select aon_apb_dap DAP(Debug Access Port) */
@@ -628,7 +632,7 @@ static void apb_rst(void)
 		WCN_ERR("%s read APB_RST error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s APB_RST:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s APB_RST:0x%x\n", __func__, reg_val);
 
 	reg_val &= ~CM4_DAP0_SOFT_RST & ~CM4_DAP1_SOFT_RST;
 	ret = sprdwcn_bus_reg_write(APB_RST, &reg_val, 4);
@@ -636,14 +640,14 @@ static void apb_rst(void)
 		WCN_ERR("%s write APB_RST error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s APB_RST:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s APB_RST:0x%x\n", __func__, reg_val);
 
 	ret = sprdwcn_bus_reg_read(APB_RST, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read2 APB_RST error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s 2:APB_RST:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s 2:APB_RST:0x%x\n", __func__, reg_val);
 }
 
 /* enable aon_apb_dap_en */
@@ -657,7 +661,7 @@ static void apb_eb(void)
 		WCN_ERR("%s read APB_EB error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
 
 	reg_val |= CM4_DAP0_EB | CM4_DAP1_EB;
 	ret = sprdwcn_bus_reg_write(APB_EB, &reg_val, 4);
@@ -665,14 +669,14 @@ static void apb_eb(void)
 		WCN_ERR("%s write APB_EB error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s APB_EB:0x%x\n", __func__, reg_val);
 
 	ret = sprdwcn_bus_reg_read(APB_EB, &reg_val, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read2 APB_EB error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s 2:APB_EB:0x%x\n", __func__, reg_val);
+	WCN_LOG("%s 2:APB_EB:0x%x\n", __func__, reg_val);
 }
 #endif
 
@@ -686,7 +690,7 @@ static void check_dap_is_ok(void)
 		WCN_ERR("%s read error:%d\n", __func__, ret);
 		return;
 	}
-	MDBG_LOG("%s :0x%x\n", __func__, reg_val);
+	WCN_LOG("%s :0x%x\n", __func__, reg_val);
 
 	if (reg_val == BTWF_OK_VALUE)
 		WCN_INFO("btwf dap is ready\n");
@@ -814,7 +818,7 @@ static void write_core_reg_value(unsigned int reg_index, unsigned int value)
 	}
 
 	sprdwcn_bus_reg_read(a[2][0], &reg_val, 4);
-	MDBG_LOG("%s value: 0x%x, reg_value:0x%x\n", __func__, value, reg_val);
+	WCN_LOG("%s value: 0x%x, reg_value:0x%x\n", __func__, value, reg_val);
 
 	for (i = 0; i < 3; i++) {
 		reg_val = a[i][2];
@@ -872,7 +876,7 @@ static void read_core_reg(unsigned int value, unsigned int *p)
 	sprdwcn_bus_reg_read(a[2][0], &reg_val, 4);
 	p[value] = reg_val;
 
-	MDBG_LOG("%s ****R[%d]: 0x%x****\n", __func__, value, reg_val);
+	WCN_LOG("%s ****R[%d]: 0x%x****\n", __func__, value, reg_val);
 }
 
 
@@ -971,6 +975,40 @@ static int enable_cp_pll(void)
 	return ret;
 }
 
+static int check_bt_power_clk_ison(void)
+{
+	int ret;
+	unsigned int temp;
+
+	ret = sprdwcn_bus_reg_read(AHB_EB0, &temp, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read AHB_EB0 reg error:%d\n", __func__, ret);
+		return ret;
+	}
+	WCN_INFO("%s AHB_EB0 reg val:0x%x\n", __func__, temp);
+	if ((temp & BT_EN) != BT_EN) {
+		WCN_INFO("bt_en not enable\n");
+		temp = temp | BT_EN;
+		ret = sprdwcn_bus_reg_write(AHB_EB0, &temp, 4);
+	}
+
+	ret = sprdwcn_bus_reg_read(CLK_CTRL3, &temp, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read CLK_CTRL3 reg error:%d\n", __func__, ret);
+		return ret;
+	}
+	WCN_INFO("%s CLK_CTRL3(bit18,19 need 1)val:0x%x\n", __func__, temp);
+	if (((temp & CGM_BT_32M_EN) != CGM_BT_32M_EN) ||
+	    ((temp & CGM_BT_64M_EN) != CGM_BT_64M_EN)) {
+		WCN_INFO("bt clk not enable\n");
+		temp = temp | CGM_BT_32M_EN | CGM_BT_64M_EN;
+		ret = sprdwcn_bus_reg_write(CLK_CTRL3, &temp, 4);
+	}
+
+	return ret;
+}
+
+
 static int check_wifi_power_domain_ison(void)
 {
 	int ret = 0;
@@ -1040,21 +1078,21 @@ static int check_wifi_power_domain_ison(void)
 
 	}
 
-	ret = sprdwcn_bus_reg_read(WIFI_ENABLE, &temp, 4);
+	ret = sprdwcn_bus_reg_read(AHB_EB0, &temp, 4);
 	if (ret < 0) {
-		WCN_ERR("%s read WIFI_ENABLE reg error:%d\n", __func__, ret);
+		WCN_ERR("%s read AHB_EB0 reg error:%d\n", __func__, ret);
 		return ret;
 	}
-	WCN_INFO("%s WIFI_ENABLE reg val:0x%x\n", __func__, temp);
+	WCN_INFO("%s AHB_EB0 reg val:0x%x\n", __func__, temp);
 
 	if ((temp & WIFI_ALL_EN) == WIFI_ALL_EN)
 		return 0;
 
 	WCN_INFO("WIFI_en and wifi_mac_en is disable\n");
-	ret = sprdwcn_bus_reg_read(WIFI_ENABLE, &temp, 4);
+	ret = sprdwcn_bus_reg_read(AHB_EB0, &temp, 4);
 	temp = temp | WIFI_EN;
 	temp = temp | WIFI_MAC_EN;
-	ret = sprdwcn_bus_reg_write(WIFI_ENABLE, &temp, 4);
+	ret = sprdwcn_bus_reg_write(AHB_EB0, &temp, 4);
 
 	return 0;
 }
@@ -1220,6 +1258,12 @@ next:
 		count = mdbg_dump_data(DUMP_WIFI_ADDR, "start_dump_wifi_reg",
 			DUMP_WIFI_ADDR_SIZE, strlen("start_dump_wifi_reg"));
 		WCN_INFO("mdbg dump wifi %ld ok!\n", count);
+	}
+
+	ret = check_bt_power_clk_ison();
+	if (ret < 0) {
+		WCN_INFO("bt enable clk fail\n");
+		goto end;
 	}
 
 	if (DUMP_BT_CMD_ADDR != 0) {

@@ -33,6 +33,7 @@
 #include "slp_mgr.h"
 #include "slp_sdio.h"
 #include "wcn_glb.h"
+#include "slp_dbg.h"
 
 static struct slp_mgr_t slp_mgr;
 
@@ -70,7 +71,7 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 		while (1) {
 			ret = sprdwcn_bus_aon_readb(REG_BTWF_SLP_STS, &slp_sts);
 			if (ret < 0) {
-				SLP_MGR_ERR("read slp sts err:%d", ret);
+				WCN_ERR("read slp sts err:%d\n", ret);
 				usleep_range(40, 80);
 				goto try_timeout;
 			}
@@ -86,8 +87,8 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 try_timeout:
 			if (do_dump) {
 				atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);
-				SLP_MGR_INFO("wakeup fail, slp_sts-0x%x",
-					slp_sts);
+				WCN_INFO("wakeup fail, slp_sts-0x%x\n",
+					 slp_sts);
 				sdiohal_dump_aon_reg();
 				mutex_unlock(&(slp_mgr.wakeup_lock));
 				return -1;
@@ -113,7 +114,7 @@ void slp_mgr_reset(void)
 
 int slp_mgr_init(void)
 {
-	SLP_MGR_INFO("%s enter\n", __func__);
+	WCN_INFO("%s enter\n", __func__);
 
 	atomic_set(&(slp_mgr.cp2_state), STAY_AWAKING);
 	mutex_init(&(slp_mgr.drv_slp_lock));
@@ -124,7 +125,7 @@ int slp_mgr_init(void)
 	slp_test_init();
 #endif
 
-	SLP_MGR_INFO("%s ok!\n", __func__);
+	WCN_INFO("%s ok!\n", __func__);
 
 	return 0;
 }
@@ -132,12 +133,12 @@ EXPORT_SYMBOL(slp_mgr_init);
 
 int slp_mgr_deinit(void)
 {
-	SLP_MGR_INFO("%s enter\n", __func__);
+	WCN_INFO("%s enter\n", __func__);
 	atomic_set(&(slp_mgr.cp2_state), STAY_SLPING);
 	slp_mgr.active_module = 0;
 	mutex_destroy(&(slp_mgr.drv_slp_lock));
 	mutex_destroy(&(slp_mgr.wakeup_lock));
-	SLP_MGR_INFO("%s ok!\n", __func__);
+	WCN_INFO("%s ok!\n", __func__);
 
 	return 0;
 }

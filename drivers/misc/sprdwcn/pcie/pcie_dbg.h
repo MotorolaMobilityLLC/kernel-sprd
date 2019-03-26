@@ -15,16 +15,12 @@
 
 #include <linux/kernel.h>
 
-#define PCIE_HEADER		"WCN_PCIE: "
-#define PCIE_HEADER_ERR		"WCN_PCIE_ERR: "
+#include "../include/wcn_dbg.h"
 
-#define PCIE_INFO(fmt, args...) \
-	pr_info(PCIE_HEADER fmt, ## args)
-
-#define PCIE_ERR(fmt, args...) \
-		pr_err(PCIE_HEADER_ERR fmt,  ## args)
-
-#define PCIE_DBG(fmt, args...)
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "WCN PCIE" fmt
 
 int pcie_hexdump(char *name, char *buf, int len);
 

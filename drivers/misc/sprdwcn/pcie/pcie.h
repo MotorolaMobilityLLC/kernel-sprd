@@ -41,6 +41,11 @@
 #define IBREG0_OFFSET_ADDR	(0x10000 + (0 * 0x200) + 0x100)
 #define OBREG1_OFFSET_ADDR	(0x10000 + (1 * 0x200))
 #define IBREG1_OFFSET_ADDR	(0x10000 + (1 * 0x200) + 0x100)
+/* Parameters for the waiting for iATU enabled routine */
+#define LINK_WAIT_MAX_IATU_RETRIES	5
+#define LINK_WAIT_IATU			9
+#define PCIE_ATU_ENABLE			(0x1 << 31)
+#define PCIE_ATU_BAR_MODE_ENABLE	(0x1 << 30)
 
 
 struct bar_info {
@@ -102,9 +107,9 @@ struct outbound_reg {
 	unsigned int upper_target_addr;
 } __packed;
 
-int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset, char *buf,
+int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset, void *buf,
 		   int len);
-int pcie_bar_read(struct wcn_pcie_info *priv, int bar, int offset, char *buf,
+int pcie_bar_read(struct wcn_pcie_info *priv, int bar, int offset, void *buf,
 		  int len);
 char *pcie_bar_vmem(struct wcn_pcie_info *priv, int bar);
 int dmalloc(struct wcn_pcie_info *priv, struct dma_buf *dm, int size);
@@ -113,8 +118,11 @@ unsigned char *ibreg_base(struct wcn_pcie_info *priv, char region);
 unsigned char *obreg_base(struct wcn_pcie_info *priv, char region);
 int pcie_config_read(struct wcn_pcie_info *priv, int offset, char *buf,
 		     int len);
-int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar, unsigned int addr);
+int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar,
+		      unsigned int addr, char region);
 int sprd_pcie_mem_write(unsigned int addr, void *buf, unsigned int len);
 int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len);
+int sprd_pcie_update_bits(unsigned int reg, unsigned int mask,
+			  unsigned int val);
 struct wcn_pcie_info *get_wcn_device_info(void);
 #endif

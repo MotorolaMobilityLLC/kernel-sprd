@@ -4,9 +4,10 @@
 #include <misc/marlin_platform.h>
 #include <linux/vmalloc.h>
 
-#include "mdbg_type.h"
 #include "rdc_debug.h"
 #include "wcn_txrx.h"
+#include "mdbg_type.h"
+#include "../include/wcn_dbg.h"
 
 static struct task_struct *wcn_debug_thread;
 struct completion dumpmem_complete;

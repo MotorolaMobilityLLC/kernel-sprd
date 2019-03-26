@@ -10,6 +10,7 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/msi.h>
 #include <linux/pci.h>
@@ -59,29 +60,45 @@ static int sprd_pcie_legacy_irq(int irq, void *arg)
 }
 
 int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset,
-		   char *buf, int len)
+		   void *buf, int len)
 {
 	char *mem = priv->bar[bar].vmem;
 
 	if (!buf) {
-		PCIE_INFO("%s: buff is NULL, return\n", __func__);
+		WCN_INFO("%s: buff is NULL, return\n", __func__);
 		return -1;
 	}
 	mem += offset;
-	PCIE_DBG("%s(%d, 0x%x, 0x%x)\n", __func__, bar, offset, *((int *)buf));
-	memcpy(mem, buf, len);
+
+	WCN_DBG("%s(%d, 0x%x, 0x%x)\n", __func__, bar, offset, *((int *)buf));
+	if (len == 1)
+		writeb_relaxed(*((unsigned char *)buf), mem);
+	else if (len == 2)
+		writew_relaxed(*((unsigned short *)buf), mem);
+	else if (len == 4)
+		writel_relaxed(*((unsigned int *)buf), mem);
+	else
+		memcpy_toio(mem, buf, len);
 
 	return 0;
 }
 EXPORT_SYMBOL(pcie_bar_write);
 
 int pcie_bar_read(struct wcn_pcie_info *priv, int bar, int offset,
-		  char *buf, int len)
+		  void *buf, int len)
 {
 	char *mem = priv->bar[bar].vmem;
 
 	mem += offset;
-	memcpy(buf, mem, len);
+
+	if (len == 1)
+		*((unsigned char *)buf) = readb_relaxed(mem);
+	else if (len == 2)
+		*((unsigned short *)buf) = readw_relaxed(mem);
+	else if (len == 4)
+		*((unsigned int *)buf) = readl_relaxed(mem);
+	else
+		memcpy_fromio(buf, mem, len);
 
 	return 0;
 }
@@ -90,7 +107,7 @@ EXPORT_SYMBOL(pcie_bar_read);
 char *pcie_bar_vmem(struct wcn_pcie_info *priv, int bar)
 {
 	if (!priv) {
-		PCIE_ERR("sprd pcie_dev NULL\n");
+		WCN_ERR("sprd pcie_dev NULL\n");
 		return NULL;
 	}
 
@@ -102,14 +119,14 @@ int dmalloc(struct wcn_pcie_info *priv, struct dma_buf *dm, int size)
 	struct device *dev = &(priv->dev->dev);
 
 	if (!dev) {
-		PCIE_ERR("%s(NULL)\n", __func__);
+		WCN_ERR("%s(NULL)\n", __func__);
 		return ERROR;
 	}
 
 	if (dma_set_mask(dev, DMA_BIT_MASK(64))) {
-		PCIE_INFO("dma_set_mask err\n");
+		WCN_INFO("dma_set_mask err\n");
 		if (dma_set_coherent_mask(dev, DMA_BIT_MASK(64))) {
-			PCIE_ERR("dma_set_coherent_mask err\n");
+			WCN_ERR("dma_set_coherent_mask err\n");
 			return ERROR;
 		}
 	}
@@ -119,13 +136,13 @@ int dmalloc(struct wcn_pcie_info *priv, struct dma_buf *dm, int size)
 					      (dma_addr_t *)(&(dm->phy)),
 					      GFP_DMA);
 	if (dm->vir == 0) {
-		PCIE_ERR("dma_alloc_coherent err\n");
+		WCN_ERR("dma_alloc_coherent err\n");
 		return ERROR;
 	}
 	dm->size = size;
 	memset((unsigned char *)(dm->vir), 0x56, size);
-	PCIE_INFO("dma_alloc_coherent(%d) 0x%lx 0x%lx\n",
-		  size, dm->vir, dm->phy);
+	WCN_INFO("dma_alloc_coherent(0x%x) vir=0x%lx, phy=0x%lx\n",
+		 size, dm->vir, dm->phy);
 
 	return 0;
 }
@@ -136,11 +153,11 @@ int dmfree(struct wcn_pcie_info *priv, struct dma_buf *dm)
 	struct device *dev = &(priv->dev->dev);
 
 	if (!dev) {
-		PCIE_ERR("%s(NULL)\n", __func__);
+		WCN_ERR("%s(NULL)\n", __func__);
 		return ERROR;
 	}
-	PCIE_INFO("dma_free_coherent(%d,0x%lx,0x%lx)\n",
-		dm->size, dm->vir, dm->phy);
+	WCN_INFO("dma_free_coherent(%d,0x%lx,0x%lx)\n",
+		 dm->size, dm->vir, dm->phy);
 	dma_free_coherent(dev, dm->size, (void *)(dm->vir), dm->phy);
 	memset(dm, 0x00, sizeof(struct dma_buf));
 
@@ -155,7 +172,7 @@ unsigned char *ibreg_base(struct wcn_pcie_info *priv, char region)
 		return NULL;
 	if (region > 8)
 		return NULL;
-	PCIE_DBG("%s(%d):0x%x\n", __func__, region, (0x10100 | (region << 9)));
+	WCN_DBG("%s(%d):0x%x\n", __func__, region, (0x10100 | (region << 9)));
 	/*
 	 * 0x10000: iATU relative offset to BAR4.
 	 * BAR4 included map iatu reg information.
@@ -165,7 +182,7 @@ unsigned char *ibreg_base(struct wcn_pcie_info *priv, char region)
 	 * inbound = Base + i * 0x200 + 0x100
 	 */
 	p = p + (0x10100 | (region << 9));
-	PCIE_DBG("base =0x%p\n", p);
+	WCN_DBG("base =0x%p\n", p);
 
 	return p;
 }
@@ -178,7 +195,7 @@ unsigned char *obreg_base(struct wcn_pcie_info *priv, char region)
 		return NULL;
 	if (region > 8)
 		return NULL;
-	PCIE_DBG("%s(%d):0x%x\n", __func__, region, (0x10000 | (region << 9)));
+	WCN_DBG("%s(%d):0x%x\n", __func__, region, (0x10000 | (region << 9)));
 	p = p + (0x10000 | (region << 9));
 
 	return p;
@@ -191,7 +208,7 @@ static int sprd_ep_addr_map(struct wcn_pcie_info *priv)
 	struct outbound_reg *obreg1;
 
 	if (!pcie_bar_vmem(priv, 4)) {
-		PCIE_INFO("get bar4 base err\n");
+		WCN_INFO("get bar4 base err\n");
 		return -1;
 	}
 
@@ -234,7 +251,7 @@ int pcie_config_read(struct wcn_pcie_info *priv, int offset, char *buf, int len)
 	for (i = 0; i < len; i++) {
 		ret = pci_read_config_byte(priv->dev, i, &(buf[i]));
 		if (ret) {
-			PCIE_ERR("pci_read_config_dword %d err\n", ret);
+			WCN_ERR("pci_read_config_dword %d err\n", ret);
 			return ERROR;
 		}
 	}
@@ -249,7 +266,7 @@ int pcie_config_write(struct wcn_pcie_info *priv, int offset,
 	for (i = 0; i < len; i++) {
 		ret = pci_write_config_byte(priv->dev, i, buf[i]);
 		if (ret) {
-			PCIE_ERR("%s %d err\n", __func__, ret);
+			WCN_ERR("%s %d err\n", __func__, ret);
 			return ERROR;
 		}
 
@@ -257,25 +274,92 @@ int pcie_config_write(struct wcn_pcie_info *priv, int offset,
 	return 0;
 }
 
-int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar, unsigned int addr)
+int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar,
+		      unsigned int addr, char region)
 {
+	u32 retries, val;
 	struct inbound_reg *ibreg = (struct inbound_reg *) ibreg_base(priv,
-								      bar);
+								      region);
 
 	if (!ibreg) {
-		PCIE_ERR("ibreg(%d) NULL\n", bar);
+		WCN_ERR("ibreg(%d) NULL\n", region);
 		return -1;
 	}
 	ibreg->lower_target_addr = addr;
 	ibreg->upper_target_addr = 0x00000000;
 	ibreg->type = 0x00000000;
 	ibreg->limit = 0x00FFFFFF;
-	ibreg->en = REGION_EN | BAR_MATCH_MODE;
-	PCIE_DBG("%s(%d, 0x%x)\n", __func__, bar, addr);
+	ibreg->en = REGION_EN | BAR_MATCH_MODE | (bar << 8);
+	WCN_DBG("%s(bar=%d, addr=0x%x, region=%d)\n",
+		__func__, bar, addr, region);
 
-	return 0;
+	/*
+	 * Make sure ATU enable takes effect before any subsequent config
+	 * and I/O accesses.
+	 */
+	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
+		val = ibreg->en;
+		if (val & PCIE_ATU_ENABLE)
+			return 0;
+		WCN_INFO("%s:retries=%d\n", __func__, retries);
+		mdelay(LINK_WAIT_IATU);
+	}
+	WCN_ERR("inbound iATU is not being enabled\n");
+
+	return -EBUSY;
 }
 EXPORT_SYMBOL(sprd_pcie_bar_map);
+
+/*
+ * set 1:   reg + 0x1000-->write 1 to set ref bit
+ * clear 0: reg +0x2000-->write 1 to clear ref bit
+ * for example:
+ * bit2 = 1, bit3 = 1. mask = BIT(2)|BIT(3) , value = BIT(2)|BIT(3)
+ * bit2 = 0, bit3 = 0. mask = BIT(2)|BIT(3) , value = ~(BIT(2)|BIT(3))
+ */
+int sprd_pcie_update_bits(unsigned int reg, unsigned int mask, unsigned int val)
+{
+	int ret;
+	unsigned int base_addr;
+	unsigned int offset;
+	unsigned int base_upper_addr;
+	int bar;
+	char region;
+	unsigned int set, clr;
+
+	base_addr = reg / EP_INBOUND_ALIGN * EP_INBOUND_ALIGN;
+	offset = reg % EP_INBOUND_ALIGN;
+	base_upper_addr = ((reg + 4)/EP_INBOUND_ALIGN * EP_INBOUND_ALIGN);
+	bar = 0;
+	region = 0;
+
+	if (base_addr != base_upper_addr)
+		WARN_ON(1);
+	WCN_INFO("%s: bar=%d, base=0x%x, offset=0x%x, upper=0x%x\n",
+		 __func__, bar, base_addr, offset, base_upper_addr);
+
+	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr, region);
+	if (ret < 0)
+		return ret;
+
+	set = val & mask;
+	clr = ~set & mask;
+
+	if (set) {
+		ret = pcie_bar_write(g_pcie_dev, bar, offset + 0x1000, &val, 4);
+		if (ret < 0)
+			return ret;
+
+	}
+
+	if (clr) {
+		ret = pcie_bar_write(g_pcie_dev, bar, offset + 0x2000, &val, 4);
+		if (ret < 0)
+			return ret;
+	}
+
+	return ret;
+}
 
 int sprd_pcie_mem_write(unsigned int addr, void *buf, unsigned int len)
 {
@@ -284,18 +368,20 @@ int sprd_pcie_mem_write(unsigned int addr, void *buf, unsigned int len)
 	unsigned int offset;
 	unsigned int base_upper_addr;
 	int bar;
+	char region;
 
 	base_addr = addr / EP_INBOUND_ALIGN * EP_INBOUND_ALIGN;
 	offset = addr % EP_INBOUND_ALIGN;
 	base_upper_addr = ((addr + len)/EP_INBOUND_ALIGN * EP_INBOUND_ALIGN);
-	bar = 0;
+	bar = 2;
+	region = 1;
 
 	if (base_addr != base_upper_addr)
 		WARN_ON(1);
-	PCIE_INFO("%s: bar=%d, base_addr=0x%x, offset=0x%x, upper_addr=0x%x\n",
-		  __func__, bar, base_addr, offset, base_upper_addr);
+	WCN_INFO("%s: bar=%d, base=0x%x, offset=0x%x, upper=0x%x, len=0x%x\n",
+		 __func__, bar, base_addr, offset, base_upper_addr, len);
 
-	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr);
+	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr, region);
 	if (ret < 0)
 		return ret;
 
@@ -313,18 +399,20 @@ int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len)
 	unsigned int offset;
 	unsigned int base_upper_addr;
 	int bar;
+	char region;
 
 	base_addr = addr / EP_INBOUND_ALIGN * EP_INBOUND_ALIGN;
 	offset = addr % EP_INBOUND_ALIGN;
 	base_upper_addr = ((addr + len)/EP_INBOUND_ALIGN * EP_INBOUND_ALIGN);
-	bar = 0;
+	bar = 2;
+	region = 1;
 
 	if (base_addr != base_upper_addr)
 		WARN_ON(1);
-	PCIE_INFO("%s: bar=%d, base_addr=0x%x, offset=0x%x, upper_addr=0x%x\n",
-		  __func__, bar, base_addr, offset, base_upper_addr);
+	WCN_INFO("%s: bar=%d, base=0x%x, offset=0x%x, upper=0x%x, len=0x%x\n",
+		 __func__, bar, base_addr, offset, base_upper_addr, len);
 
-	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr);
+	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr, region);
 	if (ret < 0)
 		return ret;
 
@@ -339,10 +427,11 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *pci_id)
 {
 	struct wcn_pcie_info *priv;
+	unsigned int reg32;
 
 	int ret = -ENODEV, i, flag;
 
-	PCIE_INFO("%s Enter\n", __func__);
+	WCN_INFO("%s Enter\n", __func__);
 
 	priv = kzalloc(sizeof(struct wcn_pcie_info), GFP_KERNEL);
 	if (!priv)
@@ -354,7 +443,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 
 	/* enable device */
 	if (pci_enable_device(pdev)) {
-		PCIE_ERR("cannot enable device:%s\n", pci_name(pdev));
+		WCN_ERR("cannot enable device:%s\n", pci_name(pdev));
 		goto err_out;
 	}
 
@@ -362,7 +451,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	pci_set_master(pdev);
 
 	priv->irq = pdev->irq;
-	PCIE_INFO("dev->irq %d\n", pdev->irq);
+	WCN_INFO("dev->irq %d\n", pdev->irq);
 
 	priv->legacy_en = 0;
 	priv->msi_en = 1;
@@ -373,15 +462,15 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 
 	if (priv->msi_en == 1) {
 		priv->irq_num = pci_msi_vec_count(pdev);
-		PCIE_INFO("pci_msix_vec_count ret %d\n", priv->irq_num);
+		WCN_INFO("pci_msix_vec_count ret %d\n", priv->irq_num);
 
 		ret = pci_alloc_irq_vectors(pdev, 1, priv->irq_num,
 					    PCI_IRQ_MSI);
 		if (ret > 0) {
-			PCIE_INFO("pci_enable_msi_range %d ok\n", ret);
+			WCN_INFO("pci_enable_msi_range %d ok\n", ret);
 			priv->msi_en = 1;
 		} else {
-			PCIE_INFO("pci_enable_msi_range err=%d\n", ret);
+			WCN_INFO("pci_enable_msi_range err=%d\n", ret);
 			priv->msi_en = 0;
 		}
 		priv->irq = pdev->irq;
@@ -394,19 +483,19 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 		}
 		priv->irq_num = pci_enable_msix_range(pdev, priv->msix, 1, 64);
 		if (priv->irq_num > 0) {
-			PCIE_INFO("pci_enable_msix_range %d ok\n",
-				  priv->irq_num);
+			WCN_INFO("pci_enable_msix_range %d ok\n",
+				 priv->irq_num);
 			priv->msix_en = 1;
 		} else {
-			PCIE_INFO("pci_enable_msix_range %d err\n",
-				  priv->irq_num);
+			WCN_INFO("pci_enable_msix_range %d err\n",
+				 priv->irq_num);
 			priv->msix_en = 0;
 		}
 		priv->irq = pdev->irq;
 	}
-	PCIE_INFO("dev->irq %d\n", pdev->irq);
-	PCIE_INFO("legacy %d msi_en %d, msix_en %d\n", priv->legacy_en,
-		   priv->msi_en, priv->msix_en);
+	WCN_INFO("dev->irq %d\n", pdev->irq);
+	WCN_INFO("legacy %d msi_en %d, msix_en %d\n", priv->legacy_en,
+		 priv->msi_en, priv->msix_en);
 	for (i = 0; i < 8; i++) {
 		flag = pci_resource_flags(pdev, i);
 		if (!(flag & IORESOURCE_MEM))
@@ -420,17 +509,17 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 		    ioremap(priv->bar[i].mmio_start, priv->bar[i].mmio_len);
 		priv->bar[i].vmem = priv->bar[i].mem;
 		if (priv->bar[i].vmem == NULL) {
-			PCIE_ERR("%s:cannot remap mmio, aborting\n",
-			       pci_name(pdev));
+			WCN_ERR("%s:cannot remap mmio, aborting\n",
+				pci_name(pdev));
 			ret = -EIO;
 			goto err_out;
 		}
-		PCIE_INFO("BAR(%d) (0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx)\n", i,
-			  (unsigned long)priv->bar[i].mmio_start,
-			  (unsigned long)priv->bar[i].mmio_end,
-			  priv->bar[i].mmio_flags,
-			  (unsigned long)priv->bar[i].mmio_len,
-			  (unsigned long)priv->bar[i].vmem);
+		WCN_INFO("BAR(%d) (0x%lx, 0x%lx, 0x%lx, 0x%lx, 0x%lx)\n", i,
+			 (unsigned long)priv->bar[i].mmio_start,
+			 (unsigned long)priv->bar[i].mmio_end,
+			 priv->bar[i].mmio_flags,
+			 (unsigned long)priv->bar[i].mmio_len,
+			 (unsigned long)priv->bar[i].vmem);
 	}
 	priv->bar_num = 8;
 	ret = pci_request_regions(pdev, DRVER_NAME);
@@ -445,11 +534,11 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 				 IRQF_NO_SUSPEND | IRQF_NO_THREAD | IRQF_PERCPU,
 				 DRVER_NAME, (void *)priv);
 		if (ret)
-			PCIE_ERR("%s request_irq(%d), error %d\n", __func__,
+			WCN_ERR("%s request_irq(%d), error %d\n", __func__,
 				priv->irq, ret);
 		else
-			PCIE_INFO("%s request_irq(%d) ok\n", __func__,
-				  priv->irq);
+			WCN_INFO("%s request_irq(%d) ok\n", __func__,
+				 priv->irq);
 	}
 	if (priv->msi_en == 1) {
 		for (i = 0; i < priv->irq_num; i++) {
@@ -458,12 +547,12 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 					(irq_handler_t) (&sprd_pcie_msi_irq),
 					IRQF_SHARED, DRVER_NAME, (void *)priv);
 			if (ret) {
-				PCIE_ERR("%s request_irq(%d), error %d\n",
-				       __func__, priv->irq + i, ret);
+				WCN_ERR("%s request_irq(%d), error %d\n",
+					__func__, priv->irq + i, ret);
 				break;
 			}
-			PCIE_INFO("%s request_irq(%d) ok\n", __func__,
-				priv->irq + i);
+			WCN_INFO("%s request_irq(%d) ok\n", __func__,
+				 priv->irq + i);
 		}
 		if (i == priv->irq_num)
 			priv->irq_en = 1;
@@ -475,13 +564,13 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 					(irq_handler_t) (&sprd_pcie_msi_irq),
 					IRQF_SHARED, DRVER_NAME, (void *)priv);
 			if (ret) {
-				PCIE_ERR("%s request_irq(%d), error %d\n",
-				       __func__, priv->msix[i].vector, ret);
+				WCN_ERR("%s request_irq(%d), error %d\n",
+					__func__, priv->msix[i].vector, ret);
 				break;
 			}
 
-			PCIE_INFO("%s request_irq(%d) ok\n", __func__,
-				priv->msix[i].vector);
+			WCN_INFO("%s request_irq(%d) ok\n", __func__,
+				 priv->msix[i].vector);
 		}
 	}
 	device_wakeup_enable(&(pdev->dev));
@@ -493,7 +582,11 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	proc_fs_init();
 	log_dev_init();
 	wcn_op_init();
-	PCIE_INFO("%s ok\n", __func__);
+	pci_read_config_dword(pdev, 0x0728, &reg32);
+	WCN_INFO("EP link status 728=0x%x\n", reg32);
+	pci_read_config_dword(pdev, 0x072c, &reg32);
+	WCN_INFO("EP link status 72c=0x%x\n", reg32);
+	WCN_INFO("%s ok\n", __func__);
 
 	return 0;
 
@@ -516,14 +609,14 @@ static int sprd_ep_suspend(struct device *dev)
 		if ((ops != NULL) && (ops->power_notify != NULL)) {
 			ret = ops->power_notify(chn, 0);
 			if (ret != 0) {
-				PCIE_INFO("[%s] chn:%d suspend fail\n",
-						 __func__, chn);
+				WCN_INFO("[%s] chn:%d suspend fail\n",
+					 __func__, chn);
 				return ret;
 			}
 		}
 	}
 
-	PCIE_INFO("%s[+]\n", __func__);
+	WCN_INFO("%s[+]\n", __func__);
 
 	if (!pdev)
 		return 0;
@@ -532,10 +625,10 @@ static int sprd_ep_suspend(struct device *dev)
 	priv->saved_state = pci_store_saved_state(to_pci_dev(dev));
 
 	ret = pci_enable_wake(pdev, PCI_D3hot, 1);
-	PCIE_INFO("pci_enable_wake(PCI_D3hot) ret %d\n", ret);
+	WCN_INFO("pci_enable_wake(PCI_D3hot) ret %d\n", ret);
 	ret = pci_set_power_state(pdev, PCI_D3hot);
-	PCIE_INFO("pci_set_power_state(PCI_D3hot) ret %d\n", ret);
-	PCIE_INFO("%s[-]\n", __func__);
+	WCN_INFO("pci_set_power_state(PCI_D3hot) ret %d\n", ret);
+	WCN_INFO("%s[-]\n", __func__);
 
 	return 0;
 }
@@ -548,7 +641,7 @@ static int sprd_ep_resume(struct device *dev)
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct wcn_pcie_info *priv = pci_get_drvdata(pdev);
 
-	PCIE_INFO("%s[+]\n", __func__);
+	WCN_INFO("%s[+]\n", __func__);
 	if (!pdev)
 		return 0;
 
@@ -557,9 +650,9 @@ static int sprd_ep_resume(struct device *dev)
 	pci_write_config_dword(to_pci_dev(dev), 0x60, 0);
 
 	ret = pci_set_power_state(pdev, PCI_D0);
-	PCIE_INFO("pci_set_power_state(PCI_D0) ret %d\n", ret);
+	WCN_INFO("pci_set_power_state(PCI_D0) ret %d\n", ret);
 	ret = pci_enable_wake(pdev, PCI_D0, 0);
-	PCIE_INFO("pci_enable_wake(PCI_D0) ret %d\n", ret);
+	WCN_INFO("pci_enable_wake(PCI_D0) ret %d\n", ret);
 
 	usleep_range(50000, 51000);
 	ret = sprd_ep_addr_map(priv);
@@ -572,8 +665,8 @@ static int sprd_ep_resume(struct device *dev)
 		if ((ops != NULL) && (ops->power_notify != NULL)) {
 			ret = ops->power_notify(chn, 1);
 			if (ret != 0) {
-				PCIE_INFO("[%s] chn:%d resume fail\n",
-						 __func__, chn);
+				WCN_INFO("[%s] chn:%d resume fail\n",
+					 __func__, chn);
 				return ret;
 			}
 		}
@@ -604,7 +697,7 @@ static void sprd_pcie_remove(struct pci_dev *pdev)
 		pci_disable_msi(pdev);
 	}
 	if (priv->msix_en == 1) {
-		PCIE_INFO("disable MSI-X");
+		WCN_INFO("disable MSI-X");
 		for (i = 0; i < priv->irq_num; i++)
 			free_irq(priv->msix[i].vector, (void *)priv);
 
@@ -640,17 +733,17 @@ static int __init sprd_pcie_init(void)
 {
 	int ret = 0;
 
-	PCIE_INFO("%s init\n", __func__);
+	WCN_INFO("%s init\n", __func__);
 
 	ret = pci_register_driver(&sprd_pcie_driver);
-	PCIE_INFO("pci_register_driver ret %d\n", ret);
+	WCN_INFO("pci_register_driver ret %d\n", ret);
 
 	return ret;
 }
 
 static void __exit sprd_pcie_exit(void)
 {
-	PCIE_INFO("%s\n", __func__);
+	WCN_INFO("%s\n", __func__);
 	pci_unregister_driver(&sprd_pcie_driver);
 }
 

@@ -20,6 +20,7 @@
 
 #define TX 1
 #define RX 0
+#define MPOOL_SIZE	0x10000
 
 static int hisrfunc_debug;
 static int hisrfunc_line;
@@ -58,22 +59,22 @@ void *mpool_malloc(int len)
 	struct edma_info *edma = edma_info();
 
 	if (mpool_buffer == NULL) {
-		ret = dmalloc(edma->pcie_info, &mpool_dm, 0x8000);
+		ret = dmalloc(edma->pcie_info, &mpool_dm, MPOOL_SIZE);
 		if (ret != 0)
 			return NULL;
 		mpool_buffer = (unsigned char *)(mpool_dm.vir);
-		PCIE_INFO("%s {0x%lx,0x%lx} -- {0x%lx,0x%lx}\n",
-			  __func__, mpool_dm.vir, mpool_dm.phy,
-			  mpool_dm.vir + 0x20000,
-			  mpool_dm.phy + 0x20000);
+		WCN_INFO("%s {0x%lx,0x%lx} -- {0x%lx,0x%lx}\n",
+			 __func__, mpool_dm.vir, mpool_dm.phy,
+			 mpool_dm.vir + 0x20000,
+			 mpool_dm.phy + 0x20000);
 	}
 	if (len <= 0)
 		return NULL;
 	p = mpool_buffer;
 	memset(p, 0x56, len);
 	mpool_buffer += len;
-	PCIE_INFO("%s(%d) = {0x%p, 0x%p}\n", __func__, len, p,
-		  mpool_vir_to_phy((void *)p));
+	WCN_INFO("%s(%d) = {0x%p, 0x%p}\n", __func__, len, p,
+		 mpool_vir_to_phy((void *)p));
 	return p;
 }
 
@@ -88,7 +89,7 @@ int mpool_free(void)
 
 static int create_wcnevent(struct event_t *event, int id)
 {
-	PCIE_INFO("create event(0x%p)[+]\n", event);
+	WCN_INFO("create event(0x%p)[+]\n", event);
 	memset((unsigned char *)event, 0x00, sizeof(struct event_t));
 	sema_init(&(event->wait_sem), 0);
 
@@ -149,18 +150,18 @@ void *pcie_alloc_memory(int len)
 		if (ret != 0)
 			return NULL;
 		mpool_buffer = (unsigned char *)(mpool_dm.vir);
-		PCIE_INFO("%s {0x%lx,0x%lx} -- {0x%lx,0x%lx}\n",
-			  __func__, mpool_dm.vir, mpool_dm.phy,
-			  mpool_dm.vir + 0x20000,
-			  mpool_dm.phy + 0x20000);
+		WCN_INFO("%s {0x%lx,0x%lx} -- {0x%lx,0x%lx}\n",
+			 __func__, mpool_dm.vir, mpool_dm.phy,
+			 mpool_dm.vir + 0x20000,
+			 mpool_dm.phy + 0x20000);
 	}
 	if (len <= 0)
 		return NULL;
 	p = mpool_buffer;
 	memset(p, 0x56, len);
 	mpool_buffer += len;
-	PCIE_INFO("%s(%d) = {0x%p, 0x%p}\n", __func__, len, p,
-			    mpool_vir_to_phy((void *)p));
+	WCN_INFO("%s(%d) = {0x%p, 0x%p}\n", __func__, len, p,
+		 mpool_vir_to_phy((void *)p));
 
 	return p;
 }
@@ -174,39 +175,39 @@ static int create_queue(struct msg_q *q, int size, int num)
 {
 	int ret;
 
-	PCIE_INFO("[+]%s(0x%p, %d, %d)\n", __func__,
-		     (void *)virt_to_phys((void *)(q)), size, num);
+	WCN_INFO("[+]%s(0x%p, %d, %d)\n", __func__,
+		 (void *)virt_to_phys((void *)(q)), size, num);
 	q->mem = mpool_malloc(size * num);
 	if (q->mem == NULL) {
-		PCIE_INFO("%s malloc err\n", __func__);
+		WCN_INFO("%s malloc err\n", __func__);
 		return ERROR;
 	}
 
 	ret = edma_spin_lock_init(&(q->lock));
 	if (ret) {
-		PCIE_INFO("%s spin_lock_init err\n", __func__);
+		WCN_INFO("%s spin_lock_init err\n", __func__);
 		return ERROR;
 	}
 	ret = create_wcnevent(&(q->event), 0);
 	if (ret != 0) {
-		PCIE_INFO("%s event_create err\n", __func__);
+		WCN_INFO("%s event_create err\n", __func__);
 		return ERROR;
 	}
 	q->wt = 0;
 	q->rd = 0;
 	q->max = num;
 	q->size = size;
-	PCIE_INFO("[-]%s\n", __func__);
+	WCN_INFO("[-]%s\n", __func__);
 
 	return OK;
 }
 
 int delete_queue(struct msg_q *q)
 {
-	PCIE_INFO("[+]%s\n", __func__);
+	WCN_INFO("[+]%s\n", __func__);
 	kfree(q->mem);
 	memset((unsigned char *)(q), 0x00, sizeof(struct msg_q));
-	PCIE_INFO("[-]%s\n", __func__);
+	WCN_INFO("[-]%s\n", __func__);
 
 	return OK;
 }
@@ -229,7 +230,7 @@ static int dequeue(struct msg_q *q, unsigned char *msg, int timeout)
 static int enqueue(struct msg_q *q, unsigned char *msg)
 {
 	if ((q->wt + 1) % (q->max) == q->rd) {
-		PCIE_INFO("%s full\n", __func__);
+		WCN_INFO("%s full\n", __func__);
 		return ERROR;
 	}
 	q->seq++;
@@ -284,7 +285,7 @@ static int edma_hw_next_dscr(int chn, int inout, struct desc **next)
 				ptr_l[1] =
 				    edma->dma_chn_reg[chn].dma_dscr
 						.rf_chn_rx_next_dscr_ptr_low;
-				PCIE_INFO(
+				WCN_INFO(
 				    "%s(%d,%d) err hw_next:0x%p, 0x%x, 0x%x\n",
 					__func__, chn, inout, hw_next,
 					ptr_l[0], ptr_l[1]);
@@ -294,7 +295,7 @@ static int edma_hw_next_dscr(int chn, int inout, struct desc **next)
 			}
 		}
 		if (i == 5) {
-			PCIE_ERR(
+			WCN_ERR(
 				"%s(%d,%d) timeout hw_next:0x%p, 0x%x, 0x%x\n",
 				__func__, chn, inout, hw_next,
 				ptr_l[0], ptr_l[1]);
@@ -303,8 +304,8 @@ static int edma_hw_next_dscr(int chn, int inout, struct desc **next)
 	}
 	*next = hw_next;
 	if (hw_next == NULL) {
-		PCIE_ERR("%s(%d, %d) err, hw_next == NULL\n",
-			 __func__, chn, inout);
+		WCN_ERR("%s(%d, %d) err, hw_next == NULL\n",
+			__func__, chn, inout);
 	}
 
 	return 0;
@@ -402,8 +403,8 @@ static int edma_pop_link(int chn, struct desc *__head, struct desc *__tail,
 	struct edma_info *edma = edma_info();
 
 	if ((__head == NULL) || (__tail == NULL)) {
-		PCIE_ERR("[+]%s(%d) dscr(0x%p--0x%p)\n", __func__,
-			 chn, __head, __tail);
+		WCN_ERR("[+]%s(%d) dscr(0x%p--0x%p)\n", __func__,
+			chn, __head, __tail);
 	}
 	*head__ = *tail__ = NULL;
 	(*node) = 0;
@@ -411,8 +412,8 @@ static int edma_pop_link(int chn, struct desc *__head, struct desc *__tail,
 			edma->chn_sw[chn].dscr_ring.lock.flag);
 	do {
 		if (dscr == NULL) {
-			PCIE_ERR("%s(0x%p, 0x%p) dscr=NULL, error\n",
-				 __func__, __head, __tail);
+			WCN_ERR("%s(0x%p, 0x%p) dscr=NULL, error\n",
+				__func__, __head, __tail);
 			spin_unlock_irqrestore(edma->chn_sw[chn].dscr_ring.lock
 					       .irq_spinlock_p,
 					       edma->chn_sw[chn].dscr_ring.lock
@@ -420,8 +421,8 @@ static int edma_pop_link(int chn, struct desc *__head, struct desc *__tail,
 			return -1;
 		}
 		if (dscr_polling(dscr, 500000)) {
-			PCIE_ERR("%s(%d, 0x%p, 0x%p, 0x%p) polling err\n",
-				 __func__, chn, __head, __tail, dscr);
+			WCN_ERR("%s(%d, 0x%p, 0x%p, 0x%p) polling err\n",
+				__func__, chn, __head, __tail, dscr);
 			spin_unlock_irqrestore(edma->chn_sw[chn].dscr_ring.lock
 					       .irq_spinlock_p,
 					       edma->chn_sw[chn].dscr_ring.lock
@@ -437,7 +438,7 @@ static int edma_pop_link(int chn, struct desc *__head, struct desc *__tail,
 		}
 
 		if (!mbuf) {
-			PCIE_ERR("%s line:%d err\n", __func__, __LINE__);
+			WCN_ERR("%s line:%d err\n", __func__, __LINE__);
 			spin_unlock_irqrestore(edma->chn_sw[chn].dscr_ring.lock
 					       .irq_spinlock_p,
 					       edma->chn_sw[chn].dscr_ring.lock
@@ -497,8 +498,8 @@ int edma_one_link_dscr_buf_bind(struct desc *dscr, unsigned char *dst,
 	struct edma_info *edma = edma_info();
 	unsigned int tmp[2];
 
-	PCIE_INFO("[+]%s(0x%x, 0x%x, 0x%x, %d)\n", __func__, dscr, dst,
-		  src, len);
+	WCN_INFO("[+]%s(0x%x, 0x%x, 0x%x, %d)\n", __func__, dscr, dst,
+		 src, len);
 
 	AHB32_AXI40(&dst__, dst);
 	AHB32_AXI40(&src__, src);
@@ -530,7 +531,7 @@ int edma_one_link_dscr_buf_bind(struct desc *dscr, unsigned char *dst,
 		       (unsigned char *)(&dst), 8);
 	}
 
-	PCIE_INFO("[-]%s\n", __func__);
+	WCN_INFO("[-]%s\n", __func__);
 
 	return 0;
 }
@@ -541,8 +542,8 @@ int edma_one_link_copy(int chn, struct desc *head, struct desc *tail, int num)
 	struct edma_info *edma = edma_info();
 	union dma_dscr_ptr_high_reg local_chn_ptr_high;
 
-	PCIE_INFO("[+]%s(%d, 0x%x, 0x%x, %d)\n", __func__, chn, head,
-		  tail, num);
+	WCN_INFO("[+]%s(%d, 0x%x, 0x%x, %d)\n", __func__, chn, head,
+		 tail, num);
 	tail->chn_trans_len.bit.rf_chn_eof = 1;
 
 	dma_cfg.reg = edma->dma_chn_reg[chn].dma_cfg.reg;
@@ -558,7 +559,7 @@ int edma_one_link_copy(int chn, struct desc *head, struct desc *tail, int num)
 	edma->dma_chn_reg[chn].dma_cfg.reg = dma_cfg.reg;
 
 	edma_hw_tx_req(chn);
-	PCIE_INFO("[-]%s\n", __func__);
+	WCN_INFO("[-]%s\n", __func__);
 
 	return 0;
 }
@@ -571,8 +572,8 @@ int edma_none_link_copy(int chn, addr_t *dst, addr_t *src, unsigned short len,
 	union dma_dscr_ptr_high_reg chn_ptr_high = { 0 };
 	struct edma_info *edma = edma_info();
 
-	PCIE_INFO("[+]%s(%d, {0x%x,0x%x}, {0x%x,0x%x}, %d)\n",
-		  __func__, chn, dst->h, dst->l, src->h, src->l, len);
+	WCN_INFO("[+]%s(%d, {0x%x,0x%x}, {0x%x,0x%x}, %d)\n",
+		 __func__, chn, dst->h, dst->l, src->h, src->l, len);
 
 	dma_cfg.reg = edma->dma_chn_reg[chn].dma_cfg.reg;
 	chn_trans_len.reg = edma->dma_chn_reg[chn].dma_dscr.chn_trans_len.reg;
@@ -595,13 +596,13 @@ int edma_none_link_copy(int chn, addr_t *dst, addr_t *src, unsigned short len,
 						.rf_chn_tx_complete_int_clr = 1;
 			edma->dma_chn_reg[chn].dma_int.bit
 						.rf_chn_tx_pop_int_clr = 1;
-			PCIE_INFO("[-]%s\n", __func__);
+			WCN_INFO("[-]%s\n", __func__);
 
 			return 0;
 		}
 		udelay(1);
 	}
-	PCIE_INFO("[-]%s timeout\n", __func__);
+	WCN_INFO("[-]%s timeout\n", __func__);
 
 	return -1;
 }
@@ -618,20 +619,26 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 
 	inout = edma->chn_sw[chn].inout;
 	if ((head == NULL) || (tail == NULL) || (num == 0)) {
-		PCIE_ERR("%s(%d, 0x%p, 0x%p, %d) err\n", __func__,
-				chn, head, tail, num);
+		WCN_ERR("%s(%d, 0x%p, 0x%p, %d) err\n", __func__,
+			chn, head, tail, num);
 		return -1;
 	}
 	if (num > edma->chn_sw[chn].dscr_ring.free) {
-		PCIE_INFO("%s@%d err,chn:%d num:%d free:%d\n",
-			  __func__, __LINE__, chn, num,
+		WCN_INFO("%s@%d err,chn:%d num:%d free:%d\n",
+			 __func__, __LINE__, chn, num,
 			  edma->chn_sw[chn].dscr_ring.free);
 		/* dscr not enough */
 		return -1;
 	}
 
-	PCIE_INFO("%s(chn=%d, head=0x%p, tail=0x%p, num=%d)\n",
-		  __func__, chn, head, tail, num);
+	WCN_INFO("%s(chn=%d, head=0x%p, tail=0x%p, num=%d)\n",
+		 __func__, chn, head, tail, num);
+
+	if (edma->chn_sw[chn].dscr_ring.tail == NULL) {
+		WCN_ERR("%s: dscr_ring.tail is NULL\n", __func__);
+		WARN_ON(1);
+		return -1;
+	}
 
 	spin_lock_irqsave(edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p,
 			edma->chn_sw[chn].dscr_ring.lock.flag);
@@ -689,7 +696,7 @@ static int edma_pending_q_buffer(int chn, void *head, void *tail, int num)
 	q = &(edma->chn_sw[chn].pending_q);
 
 	if ((q->wt + 1) % (q->max) == q->rd) {
-		PCIE_ERR("%s(%d) full\n", __func__, chn);
+		WCN_ERR("%s(%d) full\n", __func__, chn);
 		return ERROR;
 	}
 	q->ring[q->wt].head = head;
@@ -834,7 +841,7 @@ static int edma_tx_pop_isr(int chn)
 	edma_hw_next_dscr(chn, edma->chn_sw[chn].inout, &end);
 	end = mpool_phy_to_vir(end);
 	if (start == end) {
-		PCIE_INFO("[-]%s empty\n", __func__);
+		WCN_INFO("[-]%s empty\n", __func__);
 		return 0;
 	}
 	if (edma->chn_sw[chn].wait == 0) {
@@ -925,7 +932,7 @@ static int hisrfunc(struct isr_msg_queue *msg)
 		case NON_LINK_MODE:
 			break;
 		default:
-			PCIE_INFO("%s unknown mode\n", __func__);
+			WCN_INFO("%s unknown mode\n", __func__);
 			break;
 		}
 		break;
@@ -957,8 +964,8 @@ int q_info(int debug)
 	struct edma_info *edma = edma_info();
 	struct msg_q *q = &(edma->isr_func.q);
 
-	PCIE_INFO("seq(%d,%d), line:%d, sem:%d\n", hisrfunc_last_msg,
-	       q->seq, hisrfunc_line, q->event.wait_sem.count);
+	WCN_INFO("seq(%d,%d), line:%d, sem:%d\n", hisrfunc_last_msg,
+		 q->seq, hisrfunc_line, q->event.wait_sem.count);
 
 	hisrfunc_debug = debug;
 	set_wcnevent(&(edma->isr_func.q.event));
@@ -983,8 +990,8 @@ int legacy_irq_handle(int data)
 			continue;
 		dma_int.reg = edma->dma_chn_reg[chn].dma_int.reg;
 		if (dma_int.bit.rf_chn_cfg_err_int_mask_status) {
-			PCIE_ERR("%s chn %d assert(0x%x)\n", __func__,
-					chn, dma_int.reg);
+			WCN_ERR("%s chn %d assert(0x%x)\n", __func__,
+				chn, dma_int.reg);
 			dma_int.bit.rf_chn_cfg_err_int_clr = 1;
 			edma->dma_chn_reg[chn].dma_int.reg = dma_int.reg;
 			continue;
@@ -1063,7 +1070,7 @@ int legacy_irq_handle(int data)
 			if (dma_int.bit.rf_chn_rx_push_int_mask_status)
 				dma_int.bit.rf_chn_rx_push_int_clr = 1;
 			edma->dma_chn_reg[chn].dma_int.reg = dma_int.reg;
-			PCIE_INFO("%s chn %d not ready\n", __func__, chn);
+			WCN_INFO("%s chn %d not ready\n", __func__, chn);
 			break;
 		}
 	}
@@ -1080,7 +1087,7 @@ int msi_irq_handle(int irq)
 	struct isr_msg_queue msg = { 0 };
 	struct edma_info *edma = edma_info();
 
-	PCIE_INFO("irq msi handle=%d\n", irq);
+	WCN_INFO("irq msi handle=%d\n", irq);
 	local_irq_save(irq_flags);
 	chn = (irq - 0) / 2;
 	dma_int.reg = edma->dma_chn_reg[chn].dma_int.reg;
@@ -1113,7 +1120,7 @@ int msi_irq_handle(int irq)
 	}
 	if (mchn_hw_cb_in_irq(chn) == 0) {
 		enqueue(&(edma->isr_func.q), (unsigned char *)(&msg));
-		PCIE_INFO(" callback not in irq\n");
+		WCN_INFO(" callback not in irq\n");
 		set_wcnevent(&(edma->isr_func.q.event));
 		local_irq_restore(irq_flags);
 		return 0;
@@ -1122,7 +1129,7 @@ int msi_irq_handle(int irq)
 		return -1;
 	}
 
-	PCIE_INFO("callback in irq\n");
+	WCN_INFO("callback in irq\n");
 	hisrfunc(&msg);
 
 	local_irq_restore(irq_flags);
@@ -1137,13 +1144,13 @@ int edma_task(void *a)
 	struct msg_q *q = &(edma->isr_func.q);
 
 	edma->isr_func.state = 1;
-	PCIE_INFO("[+]%s\n", __func__);
+	WCN_INFO("[+]%s\n", __func__);
 	do {
 		hisrfunc_line = __LINE__;
 		wait_wcnevent(&(q->event), -1);
 		hisrfunc_line = __LINE__;
 		if (hisrfunc_debug)
-			PCIE_INFO("#\n");
+			WCN_INFO("#\n");
 		while (dequeue(q, (unsigned char *)(&msg), -1) == OK) {
 			hisrfunc_line = __LINE__;
 			hisrfunc_last_msg = msg.seq;
@@ -1155,7 +1162,7 @@ int edma_task(void *a)
 	} while (1);
 EXIT:
 	edma->isr_func.state = 0;
-	PCIE_INFO("[-]%s\n", __func__);
+	WCN_INFO("[-]%s\n", __func__);
 
 	return 0;
 }
@@ -1179,7 +1186,7 @@ static int dscr_ring_init(struct dscr_ring *dscr_ring, int inout, int size,
 	unsigned int tmp;
 	struct desc *dscr;
 
-	PCIE_INFO("[+]%s(0x%p, 0x%p)\n", __func__, dscr_ring, mem);
+	WCN_INFO("[+]%s(0x%p, 0x%p)\n", __func__, dscr_ring, mem);
 
 	if (!mem)
 		dscr_ring->mem =
@@ -1210,9 +1217,9 @@ static int dscr_ring_init(struct dscr_ring *dscr_ring, int inout, int size,
 						.rf_chn_rx_next_dscr_ptr_low),
 			       (unsigned char *)(&tmp), 4);
 		}
-		PCIE_DBG("dscr(0x%p-->0x%p)\n",
-			  mpool_vir_to_phy(&dscr[i]),
-			  mpool_vir_to_phy(&dscr[i + 1]));
+		WCN_DBG("dscr(0x%p-->0x%p)\n",
+			mpool_vir_to_phy(&dscr[i]),
+			mpool_vir_to_phy(&dscr[i + 1]));
 		dscr[i].next.p = &dscr[i + 1];
 	}
 	if (inout == TX) {
@@ -1231,13 +1238,13 @@ static int dscr_ring_init(struct dscr_ring *dscr_ring, int inout, int size,
 		       (unsigned char *)(&tmp), 4);
 		dscr[0].chn_trans_len.bit.rf_chn_pause = 1;
 	}
-	PCIE_INFO("dscr(0x%p-->0x%p)\n",
-		  mpool_vir_to_phy(&dscr[i]),
-		  mpool_vir_to_phy(&dscr[0]));
+	WCN_INFO("dscr(0x%p-->0x%p)\n",
+		 mpool_vir_to_phy(&dscr[i]),
+		 mpool_vir_to_phy(&dscr[0]));
 	dscr[i].next.p = &dscr[0];
 	dscr_ring->free = size;
-	PCIE_INFO("[-]%s(0x%p, 0x%p, %d, %d)\n", __func__, dscr_ring,
-		  dscr_ring->mem, dscr_ring->size, dscr_ring->free);
+	WCN_INFO("[-]%s(0x%p, 0x%p, %d, %d)\n", __func__, dscr_ring,
+		 dscr_ring->mem, dscr_ring->size, dscr_ring->free);
 	return 0;
 }
 
@@ -1267,8 +1274,8 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 	if (inout == RX)
 		/* int direction. int send to ap */
 		dir = 1;
-	PCIE_INFO("[+]%s(chn=%d,mode=%d,dir=%d,inout=%d,max_trans=%d)\n",
-		  __func__, chn, mode, dir, inout, max_trans);
+	WCN_INFO("[+]%s(chn=%d,mode=%d,dir=%d,inout=%d,max_trans=%d)\n",
+		 __func__, chn, mode, dir, inout, max_trans);
 
 	dma_int.reg = edma->dma_chn_reg[chn].dma_int.reg;
 	dma_cfg.reg = edma->dma_chn_reg[chn].dma_cfg.reg;
@@ -1373,7 +1380,7 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 	edma->dma_chn_reg[chn].dma_int.reg = dma_int.reg;
 	edma->dma_chn_reg[chn].dma_cfg.reg = dma_cfg.reg;
 	dma_cfg.reg = edma->dma_chn_reg[chn].dma_cfg.reg;
-	PCIE_INFO("[-]%s\n", __func__);
+	WCN_INFO("[-]%s\n", __func__);
 
 	return 0;
 }
@@ -1392,8 +1399,8 @@ int edma_tp_count(int chn, void *head, void *tail, int num)
 		bytecount += mbuf->len;
 		dt = time_sub_us(&start_time, &time);
 		if (dt >= 1000000) {
-			PCIE_INFO("edma-tp:%d/%d (byte/us)\n",
-			       bytecount, dt);
+			WCN_INFO("edma-tp:%d/%d (byte/us)\n",
+				 bytecount, dt);
 			bytecount = 0;
 		}
 		mbuf = mbuf->next;
@@ -1410,12 +1417,12 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 	memset((char *)edma, 0x00, sizeof(struct edma_info));
 	edma->pcie_info = pcie_info;
 
-	PCIE_INFO("new edma(0x%p--0x%p)\n", edma,
-		  (void *)virt_to_phys((void *)(edma)));
+	WCN_INFO("new edma(0x%p--0x%p)\n", edma,
+		 (void *)virt_to_phys((void *)(edma)));
 	ret = create_queue(&(edma->isr_func.q), sizeof(struct isr_msg_queue),
 			   50);
 	if (ret != 0) {
-		PCIE_ERR("create_queue fail\n");
+		WCN_ERR("create_queue fail\n");
 		return -1;
 	}
 #if CONFIG_TASKLET_SUPPORT
@@ -1425,7 +1432,7 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 #else
 	edma->isr_func.entity = kthread_create(edma_task, edma, "edma_task");
 	if (edma->isr_func.entity == NULL) {
-		PCIE_ERR("create isr_func fail\n");
+		WCN_ERR("create isr_func fail\n");
 
 		return -1;
 	}
@@ -1435,8 +1442,8 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 		param.sched_priority = 90;
 		ret = sched_setscheduler((struct task_struct *)edma->isr_func
 					  .entity, SCHED_FIFO, &param);
-		PCIE_INFO("sched_setscheduler(SCHED_FIFO), prio:%d,ret:%d\n",
-			param.sched_priority, ret);
+		WCN_INFO("sched_setscheduler(SCHED_FIFO), prio:%d,ret:%d\n",
+			 param.sched_priority, ret);
 	} while (0);
 
 	wake_up_process(edma->isr_func.entity);
@@ -1447,15 +1454,15 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 			(pcie_bar_vmem(edma->pcie_info, 0) + 0x160000);
 	edma->dma_chn_reg = (struct edma_chn_reg *)
 			(pcie_bar_vmem(edma->pcie_info, 0) + 0X161000);
-	PCIE_INFO("WCN dma_chn_reg size is %ld\n", sizeof(struct edma_chn_reg));
+	WCN_INFO("WCN dma_chn_reg size is %ld\n", sizeof(struct edma_chn_reg));
 	for (i = 0; i < 16; i++) {
-		PCIE_INFO("edma chn[%d] dma_int:0x%p, event:%p\n", i,
-			  &(edma->dma_chn_reg[i].dma_int.reg),
-			  &(edma->chn_sw[i].event));
+		WCN_INFO("edma chn[%d] dma_int:0x%p, event:%p\n", i,
+			 &edma->dma_chn_reg[i].dma_int.reg,
+			 &edma->chn_sw[i].event);
 		create_wcnevent(&(edma->chn_sw[i].event), i);
 		edma->chn_sw[i].mode = -1;
 	}
-	PCIE_INFO("%s done\n", __func__);
+	WCN_INFO("%s done\n", __func__);
 
 	return 0;
 }
@@ -1465,7 +1472,7 @@ int edma_deinit(void)
 	struct isr_msg_queue msg = { 0 };
 	struct edma_info *edma = edma_info();
 
-	PCIE_INFO("[+]%s\n", __func__);
+	WCN_INFO("[+]%s\n", __func__);
 	do {
 		usleep_range(10000, 11000);
 		if (edma->isr_func.state == 0)
@@ -1479,7 +1486,7 @@ int edma_deinit(void)
 	tasklet_disable(edma->isr_func.q.event.tasklet);
 	tasklet_kill(edma->isr_func.q.event.tasklet);
 #endif
-	PCIE_INFO("[-]%s\n", __func__);
+	WCN_INFO("[-]%s\n", __func__);
 
 	return 0;
 }

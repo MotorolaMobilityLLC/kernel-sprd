@@ -20,6 +20,7 @@
 #include <misc/wcn_bus.h>
 
 #include "mdbg_type.h"
+#include "../include/wcn_dbg.h"
 #include "../sleep/slp_mgr.h"
 
 struct wcn_reg_ctl {
