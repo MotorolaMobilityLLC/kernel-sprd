@@ -79,6 +79,15 @@ class LinuxSourceTreeOperations(object):
 
 		return output
 
+def throw_error_if_not_subset(expected_superset: kunit_config.Kconfig,
+			      expected_subset: kunit_config.Kconfig) -> None:
+	if not expected_subset.is_subset_of(expected_superset):
+		missing = expected_subset.entries() - expected_superset.entries()
+		message = 'Provided Kconfig contains fields not in validated .config: %s' % (
+			', '.join([str(e) for e in missing]),
+		)
+		raise ConfigError(message)
+
 class LinuxSourceTree(object):
 	"""Represents a Linux kernel source tree with KUnit tests."""
 
@@ -102,16 +111,15 @@ class LinuxSourceTree(object):
 			self._ops.make_olddefconfig()
 		except ConfigError as e:
 			logging.error(e)
-			return ConfigResult(ConfigStatus.FAILURE, e.message)
+			return ConfigResult(ConfigStatus.FAILURE, str(e))
 		validated_kconfig = kunit_config.Kconfig()
 		validated_kconfig.read_from_file(KCONFIG_PATH)
-		if not self._kconfig.is_subset_of(validated_kconfig):
-			missing = self._kconfig.entries() - validated_kconfig.entries()
-			message = 'Provided Kconfig contains fields not in validated .config: %s' % (
-				', '.join([str(e) for e in missing]),
-			)
-			logging.error(message)
-			return ConfigResult(ConfigStatus.FAILURE, message)
+		try:
+			throw_error_if_not_subset(expected_subset=self._kconfig,
+						  expected_superset=validated_kconfig)
+		except ConfigError as e:
+			logging.error(e)
+			return ConfigResult(ConfigStatus.FAILURE, str(e))
 		return ConfigResult(ConfigStatus.SUCCESS, 'Build config!')
 
 	def build_reconfig(self):
@@ -138,13 +146,12 @@ class LinuxSourceTree(object):
 			return BuildResult(BuildStatus.FAILURE, e.message)
 		used_kconfig = kunit_config.Kconfig()
 		used_kconfig.read_from_file(KCONFIG_PATH)
-		if not self._kconfig.is_subset_of(used_kconfig):
-			missing = self._kconfig.entries() - validated_kconfig.entries()
-			message = 'Provided Kconfig contains fields not in final config: %s' % (
-				', '.join([str(e) for e in missing]),
-                        )
-			logging.error(message)
-			return BuildResult(BuildStatus.FAILURE, message)
+		try:
+			throw_error_if_not_subset(expected_subset=self._kconfig,
+						  expected_superset=used_kconfig)
+		except ConfigError as e:
+			logging.error(e)
+			return ConfigResult(ConfigStatus.FAILURE, str(e))
 		return BuildResult(BuildStatus.SUCCESS, 'Built kernel!')
 
 	def run_kernel(self, args=[], timeout=None):
