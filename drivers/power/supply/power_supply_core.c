@@ -569,6 +569,7 @@ int power_supply_get_battery_info(struct power_supply *psy,
 {
 	struct power_supply_vol_temp_table *temp_table;
 	struct power_supply_capacity_temp_table *cap_table;
+	struct power_supply_resistance_temp_table *resistance_table;
 	struct device_node *battery_np;
 	const char *value;
 	const __be32 *list;
@@ -584,6 +585,7 @@ int power_supply_get_battery_info(struct power_supply *psy,
 	info->factory_internal_resistance_uohm  = -EINVAL;
 	info->temp_table = NULL;
 	info->cap_table = NULL;
+	info->resistance_table = NULL;
 	info->temp_table_size = -EINVAL;
 	info->cur.sdp_cur = -EINVAL;
 	info->cur.sdp_limit = -EINVAL;
@@ -747,6 +749,25 @@ int power_supply_get_battery_info(struct power_supply *psy,
 		cap_table[index].cap = be32_to_cpu(*list++);
 	}
 
+	list = of_get_property(battery_np, "resistance-temp-table", &size);
+	if (!list || !size)
+		return 0;
+
+	info->resistance_table_size = size / (2 * sizeof(__be32));
+	resistance_table = info->resistance_table = devm_kcalloc(&psy->dev,
+								 info->resistance_table_size,
+								 sizeof(*resistance_table),
+								 GFP_KERNEL);
+	if (!info->resistance_table) {
+		power_supply_put_battery_info(psy, info);
+		return -ENOMEM;
+	}
+
+	for (index = 0; index < info->resistance_table_size; index++) {
+		resistance_table[index].temp = be32_to_cpu(*list++);
+		resistance_table[index].resistance = be32_to_cpu(*list++);
+	}
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(power_supply_get_battery_info);
@@ -765,6 +786,8 @@ void power_supply_put_battery_info(struct power_supply *psy,
 		devm_kfree(&psy->dev, info->temp_table);
 	if (info->cap_table)
 		devm_kfree(&psy->dev, info->cap_table);
+	if (info->resistance_table)
+		devm_kfree(&psy->dev, info->resistance_table);
 }
 EXPORT_SYMBOL_GPL(power_supply_put_battery_info);
 

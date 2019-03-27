@@ -315,6 +315,11 @@ struct power_supply_capacity_temp_table {
 	int cap;	/* capacity percentage */
 };
 
+struct power_supply_resistance_temp_table {
+	int temp;	/* celsius */
+	int resistance;	/* internal resistance percentage */
+};
+
 struct power_supply_charge_current {
 	int sdp_limit;
 	int sdp_cur;
@@ -355,8 +360,10 @@ struct power_supply_battery_info {
 	int ocv_table_size[POWER_SUPPLY_OCV_TEMP_MAX];
 	struct power_supply_vol_temp_table *temp_table;
 	struct power_supply_capacity_temp_table *cap_table;
+	struct power_supply_resistance_temp_table *resistance_table;
 	int temp_table_size;
 	int cap_table_size;
+	int resistance_table_size;
 	struct power_supply_charge_current cur;
 };
 

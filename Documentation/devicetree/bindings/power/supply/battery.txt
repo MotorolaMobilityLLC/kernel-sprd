@@ -40,6 +40,9 @@ Optional Properties:
  - capacity-temp-table: An array providing the capacity percentage and corresponding
    temperature in degree Celsius, which is used to look up the capacity percentage
    by one temperature value.
+ - resistance-temp-table: An array providing the resistance percentage and corresponding
+   temperature in degree Celsius, which is used to look up the resistance percentage
+   by one temperature value.
  - charge-sdp-current-microamp: An array providing the current and
    limit current for SDP charger type.
  - charge-dcp-current-microamp: An array providing the current and
@@ -78,6 +81,7 @@ Example:
 		ocv-capacity-table-2 = <4250000 100>, <4200000 95>, <4185000 90>, ...;
 		voltage-temp-table = <1052000 100>, <953000 90>, <858000 80>, ...;
 		capacity-temp-table = <20 100>, <10 90>, <0 80>, <(-10) 60>;
+		resistance-temp-table = <20 100>, <10 90>, <0 80>, <(-10) 60>;
 		charge-sdp-current-microamp = <500000 500000>;
 		charge-dcp-current-microamp = <1500000 3000000>;
 		charge-cdp-current-microamp = <1500000 1500000>;
