@@ -1313,6 +1313,13 @@ CONFIG_CC_STACKPROTECTOR_STRONG
 	[subsys] build
 	[must] user
 	[function] Functions will have the stack-protector canary logic added.
+CONFIG_REFCOUNT_FULL
+	[arch] all
+	[plat] all
+	[field] make
+	[subsys] core
+	[must] user
+	[function] AndroidQ Recommend Enable. Perform full reference count validation at the expense of speed.
 CONFIG_CFG80211
 	[arch] all
 	[plat] all
@@ -2409,6 +2416,27 @@ CONFIG_CUSE
 	[subsys] fs
 	[must] user
 	[function] tristate "Character device in Userspace support".
+CONFIG_OVERLAY_FS
+	[arch] all
+	[plat] all
+	[field] menu make
+	[subsys] fs
+	[must] user
+	[function] AndroidQ Recommend Enable. tristate "Overlay filesystem support".
+CONFIG_OVERLAY_FS_REDIRECT_DIR
+	[arch] all
+	[plat] all
+	[field] menu make
+	[subsys] fs
+	[must] user
+	[function] Overlayfs: turn on redirect dir feature by default.
+CONFIG_OVERLAY_FS_INDEX
+	[arch] all
+	[plat] all
+	[field] menu make
+	[subsys] fs
+	[must] user
+	[function] Overlayfs: turn on inodes index feature by default.
 CONFIG_DAX
 	[arch] all
 	[plat] all
@@ -3404,6 +3432,13 @@ CONFIG_FS_POSIX_ACL
 	[subsys] fs
 	[must] user
 	[function] POSIX Access Control Lists (ACLs) support.
+CONFIG_EXPORTFS
+	[arch] all
+	[plat] all
+	[field] make,code
+	[subsys] fs
+	[must] user
+	[function] tristate
 CONFIG_FTRACE
 	[arch] all
 	[plat] all
@@ -6775,6 +6810,14 @@ CONFIG_NETFILTER_XT_MATCH_POLICY
 	[subsys] net
 	[must] user
 	[function] vts require, IPsec "policy" match support
+CONFIG_NETFILTER_XT_MATCH_QTAGUID
+	[arch] all
+	[plat] all
+	[field] menu,make
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Disabled. The CONFIG meaningless (functional unrealized)!
+	     Here is just for the sake of AndroidQ Vintf-Check pass. (See: bug1034278)
 CONFIG_NETFILTER_XT_MATCH_QUOTA
 	[arch] all
 	[plat] all
@@ -7320,7 +7363,7 @@ CONFIG_NF_CONNTRACK_SIP
 	[field] menu
 	[subsys] net
 	[must] user
-	[function] Support sip protocol on a connection
+	[function] AndroidQ Recommend disable. Support sip protocol on a connection
 		  tracking/NATing firewall.
 CONFIG_NF_CONNTRACK_TFTP
 	[arch] all
@@ -7895,7 +7938,7 @@ CONFIG_PANIC_TIMEOUT
 	[field] code
 	[subsys] core
 	[must] debug
-	[function] Machine restart if kernel panic.
+	[function] AndroidQ Recommend Set to 5. Machine restart if kernel panic.
 CONFIG_PANTHERLORD_FF
 	[arch] all
 	[plat] all
@@ -8137,7 +8180,7 @@ CONFIG_PM_AUTOSLEEP
 	[field] make,code
 	[subsys] power
 	[must] user
-	[function] vts require, Support for PM_AUTOSLEEP
+	[function] AndroidQ Must disable; Support for PM_AUTOSLEEP
 CONFIG_PM_CLK
 	[arch] all
 	[plat] all
@@ -8221,7 +8264,7 @@ CONFIG_PM_WAKELOCKS_GC
 	[field] code
 	[subsys] power
 	[must] user
-	[function] Garbage collector for user space wakeup sources
+	[function] AndroidQ Recommend disable. Garbage collector for user space wakeup sources
 CONFIG_PM_WAKELOCKS_LIMIT
 	[arch] all
 	[plat] all
@@ -10404,6 +10447,13 @@ CONFIG_TASKSTATS
 	[subsys] core
 	[must] console
 	[function] Export task/process statistics through netlink.
+CONFIG_TASK_DELAY_ACCT
+	[arch] all
+	[plat] all
+	[field] make,code
+	[subsys]
+	[must]
+	[function] AndroidQ Recommend Enable. Enable per-task delay accounting.
 CONFIG_TASKS_RCU
 	[arch] all
 	[plat] all
@@ -10844,11 +10894,11 @@ CONFIG_UPROBES
 	[function]
 CONFIG_UPROBE_EVENTS
 	[arch] arm
-	[plat] sharkl5_32
+	[plat] sharkl3
 	[field]
-	[subsys]
+	[subsys] trace
 	[must]
-	[function]
+	[function] AndroidQ Recommend Enable. Enable uprobes-based dynamic events.
 CONFIG_USB
 	[arch] all
 	[plat] all
