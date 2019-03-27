@@ -1166,6 +1166,122 @@
 	<&ap_clk CLK_AP_I2C6>, <&ext_26m>;
 };
 
+&cam_domain {
+    clock-names = "clk_cphy_cfg_gate_eb",
+				"clk_mm_eb",
+				"clk_mm_ahb",
+				"clk_mm_ahb_parent",
+				"clk_mm_emc",
+				"clk_mm_emc_parent";
+	clocks = <&aonapb_gate CLK_CPHY_CFG_EB>,
+				<&aonapb_gate CLK_MM_EB>,
+				<&aon_clk CLK_MM_AHB>,
+				<&pll CLK_TWPLL_153M6>,
+				<&aon_clk CLK_MM_EMC>,
+				<&pll CLK_TWPLL_512M>;
+};
+
+&dcam {
+	clock-names = "dcam_eb",
+				"dcam_axi_eb",
+				"clk_cphy_cfg_gate_eb",
+				"clk_mm_eb",
+				"clk_mm_ahb",
+				"clk_mm_ahb_parent",
+				"clk_mm_emc",
+				"clk_mm_emc_parent",
+				"dcam_clk",
+				"dcam_clk_256m",
+				"dcam_clk_307m2",
+				"dcam_clk_384m",
+				"dcam_clk_parent",
+				"dcam_bpc_clk",
+				"dcam_bpc_clk_parent";
+	clocks = <&mm_gate CLK_MDCAM_EB>,
+				<&mm_gate CLK_DCAM_AXI_EB>,
+				<&aonapb_gate CLK_CPHY_CFG_EB>,
+				<&aonapb_gate CLK_MM_EB>,
+				<&aon_clk CLK_MM_AHB>,
+				<&pll CLK_TWPLL_153M6>,
+				<&aon_clk CLK_MM_EMC>,
+				<&pll CLK_TWPLL_512M>,
+				<&aon_clk CLK_DCAM_IF>,
+				<&pll CLK_TWPLL_256M>,
+				<&pll CLK_TWPLL_307M2>,
+				<&pll CLK_TWPLL_384M>,
+				<&pll CLK_TWPLL_384M>,
+				<&aon_clk CLK_BPC>,
+				<&dpll CLK_DPLL0_622M3>;
+};
+
+&isp {
+	clock-names = "isp_eb", "isp_axi_eb",
+				"isp_clk",
+				"isp_clk_128m",
+				"isp_clk_256m",
+				"isp_clk_307m2",
+				"isp_clk_384m",
+				"isp_clk_468m",
+				"isp_clk_parent";
+	clocks = <&mm_gate CLK_MISP_EB>,
+				<&mm_gate CLK_ISP_AXI_EB>,
+				<&aon_clk CLK_ISP>,
+				<&pll CLK_TWPLL_128M>,
+				<&pll CLK_TWPLL_256M>,
+				<&pll CLK_TWPLL_307M2>,
+				<&pll CLK_TWPLL_384M>,
+				<&pll CLK_ISPPLL_468M>,
+				<&pll CLK_ISPPLL_468M>;
+};
+
+&cpp {
+	clock-names = "cpp_eb",
+				"cpp_clk",
+				"cpp_clk_parent",
+				"clk_mm_vsp_eb",
+				"clk_mm_vsp_emc",
+				"clk_mm_vsp_emc_parent";
+	clocks = <&vspahb_gate CLK_VCPP_EB>,
+				<&aon_clk CLK_CPP>,
+				<&pll CLK_TWPLL_307M2>,
+				<&aonapb_gate CLK_MM_VSP_EB>,
+				<&aon_clk CLK_MM_VEMC>,
+				<&pll CLK_ISPPLL_468M>;
+};
+
+&csi0 {
+	clock-names = "clk_mipi_csi_gate_eb",
+				"clk_csi_eb",
+				"mipi_csi_src_eb",
+				"clk_gate_eb";
+	clocks = <&mm_gate CLK_MCSI_EB>,
+				<&mm_gate CLK_MAHBCSI_EB>,
+				<&mm_clk CLK_MIPI_CSI>,
+				<&mm_gate CLK_MAHB_CKG_EB>;
+};
+
+&csi1 {
+	clock-names = "clk_mipi_csi_gate_eb",
+				"clk_csi_eb",
+				"mipi_csi_src_eb",
+				"clk_gate_eb";
+	clocks = <&mm_gate CLK_MCSI_S_CKG_EB>,
+				<&mm_gate CLK_MCSI_S_EB>,
+				<&mm_clk CLK_MIPI_CSI_S>,
+				<&mm_gate CLK_MAHB_CKG_EB>;
+};
+
+&csi2 {
+	clock-names = "clk_mipi_csi_gate_eb",
+				"clk_csi_eb",
+				"mipi_csi_src_eb",
+				"clk_gate_eb";
+	clocks = <&mm_gate CLK_MCSI_T_CKG_EB>,
+				<&mm_gate CLK_MCSI_T_EB>,
+				<&mm_clk CLK_MIPI_CSI_M>,
+				<&mm_gate CLK_MAHB_CKG_EB>;
+};
+
 &gpu {
 	clocks = <&aonapb_gate CLK_GNU_EB>,
 	<&aon_clk CLK_GPU_CORE>,<&aon_clk CLK_GPU_SOC>,
