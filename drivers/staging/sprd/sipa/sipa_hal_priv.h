@@ -2,6 +2,7 @@
 #define _SIPA_HAL_PRIV_H_
 
 #include <linux/ioport.h>
+#include <linux/kfifo.h>
 #include "sipa_hal.h"
 
 #define TRUE	1
@@ -85,6 +86,8 @@ struct sipa_common_fifo_cfg_tag {
 	void *priv;
 	void __iomem *fifo_reg_base;
 
+	struct kfifo rx_priv_fifo;
+	struct kfifo tx_priv_fifo;
 	struct sipa_cmn_fifo_tag rx_fifo;
 	struct sipa_cmn_fifo_tag tx_fifo;
 

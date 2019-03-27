@@ -333,6 +333,7 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 						  sipa_hal_notify_cb cb,
 						  void *priv)
 {
+	int ret;
 	struct sipa_hal_context *hal_cfg;
 	struct sipa_common_fifo_cfg_tag *fifo_cfg;
 
@@ -379,9 +380,23 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 				fifo, fifo_cfg, 1,
 				attr->tx_intr_delay_us, NULL);
 	}
+	if (!fifo_cfg[fifo].is_pam) {
+		ret = kfifo_alloc(&fifo_cfg[fifo].tx_priv_fifo,
+		    fifo_cfg[fifo].tx_fifo.depth *
+		    sizeof(struct sipa_node_description_tag),
+		    GFP_KERNEL);
+		if (ret)
+			return -ENOMEM;
+		ret = kfifo_alloc(&fifo_cfg[fifo].rx_priv_fifo,
+		    fifo_cfg[fifo].rx_fifo.depth *
+		    sizeof(struct sipa_node_description_tag),
+		    GFP_KERNEL);
+		if (ret) {
+			kfifo_free(&fifo_cfg[fifo].tx_priv_fifo);
+			return -ENOMEM;
+		}
+	}
 
-	hal_cfg->fifo_ops.set_interrupt_txfifo_full(
-		fifo, fifo_cfg, 1, NULL);
 	if (fifo_cfg[fifo].is_recv)
 		hal_cfg->fifo_ops.enable_remote_flowctrl_interrupt(
 			fifo, fifo_cfg, attr->flow_ctrl_cfg,
@@ -573,6 +588,48 @@ int sipa_hal_get_tx_fifo_item(sipa_hal_hdl hdl,
 }
 EXPORT_SYMBOL(sipa_hal_get_tx_fifo_item);
 
+u32 sipa_hal_get_tx_fifo_items(sipa_hal_hdl hdl,
+			       enum sipa_cmn_fifo_index fifo_id)
+{
+	u32 num;
+	struct sipa_node_description_tag node;
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = hal_cfg->cmn_fifo_cfg;
+
+	num = hal_cfg->fifo_ops.recv_node_from_tx_fifo(fifo_id, fifo_cfg,
+						       &node, 0, -1);
+	if (!num)
+		pr_warn("fifo id %d tx fifo don't have node\n", fifo_id);
+
+	return num;
+}
+EXPORT_SYMBOL(sipa_hal_get_tx_fifo_items);
+
+int sipa_hal_conversion_node_to_item(sipa_hal_hdl hdl,
+				     enum sipa_cmn_fifo_index fifo_id,
+				     struct sipa_hal_fifo_item *item)
+{
+	struct sipa_node_description_tag node;
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = hal_cfg->cmn_fifo_cfg;
+
+	if (!kfifo_out(&((fifo_cfg + fifo_id)->tx_priv_fifo),
+	       &node, sizeof(node)))
+		return 0;
+
+	item->addr = node.address;
+	item->len = node.length;
+	item->dst = node.dst;
+	item->offset = node.offset;
+	item->src = node.src;
+	item->err_code = node.err_code;
+	item->netid = node.net_id;
+	item->intr = node.intr;
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_hal_conversion_node_to_item);
+
 int sipa_hal_get_cmn_fifo_filled_depth(sipa_hal_hdl hdl,
 									   enum sipa_cmn_fifo_index fifo_id,
 									   u32 *rx_filled, u32 *tx_filled)
@@ -642,6 +699,62 @@ int sipa_hal_put_rx_fifo_item(sipa_hal_hdl hdl,
 }
 EXPORT_SYMBOL(sipa_hal_put_rx_fifo_item);
 
+int sipa_hal_put_rx_fifo_items(sipa_hal_hdl hdl,
+			       enum sipa_cmn_fifo_index fifo_id)
+{
+	u32 ret, num;
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = hal_cfg->cmn_fifo_cfg;
+
+	num = kfifo_len(&((fifo_cfg + fifo_id)->rx_priv_fifo));
+	num /= sizeof(struct sipa_node_description_tag);
+	if (num) {
+		ret = hal_cfg->fifo_ops.put_node_to_rx_fifo(fifo_id, fifo_cfg,
+							    NULL, 0, num);
+		if (ret != num) {
+			pr_err("put node to rx fifo %d fail\n", fifo_id);
+			return -ENOSPC;
+		}
+	} else {
+		pr_err("fifo id %d rx priv fifo is empty", fifo_id);
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_hal_put_rx_fifo_items);
+
+int sipa_hal_cache_rx_fifo_item(sipa_hal_hdl hdl,
+				enum sipa_cmn_fifo_index fifo_id,
+				struct sipa_hal_fifo_item *item)
+{
+	u32 ret;
+	struct sipa_node_description_tag node;
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg =
+			&hal_cfg->cmn_fifo_cfg[fifo_id];
+
+	memset(&node, 0, sizeof(node));
+	node.address = item->addr;
+	node.length = item->len;
+	node.dst = item->dst;
+	node.offset = item->offset;
+	node.src = item->src;
+	node.err_code = item->err_code;
+	node.net_id = item->netid;
+	node.intr = item->intr;
+	node.reserved = item->reserved;
+
+	ret = kfifo_in(&fifo_cfg->rx_priv_fifo, &node,
+			sizeof(node));
+	if (ret != sizeof(node)) {
+		pr_err("fifo id %d rx priv fifo is full\n", fifo_id);
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_hal_cache_rx_fifo_item);
+
 bool sipa_hal_is_rx_fifo_empty(sipa_hal_hdl hdl,
 							   enum sipa_cmn_fifo_index fifo_id)
 {
@@ -657,6 +770,38 @@ bool sipa_hal_is_rx_fifo_empty(sipa_hal_hdl hdl,
 	return ret;
 }
 EXPORT_SYMBOL(sipa_hal_is_rx_fifo_empty);
+
+bool sipa_hal_check_rx_priv_fifo_is_empty(sipa_hal_hdl hdl,
+					  enum sipa_cmn_fifo_index fifo_id)
+{
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg =
+			&hal_cfg->cmn_fifo_cfg[fifo_id];
+
+	return kfifo_is_empty(&fifo_cfg->rx_priv_fifo);
+}
+EXPORT_SYMBOL(sipa_hal_check_rx_priv_fifo_is_empty);
+
+bool sipa_hal_check_rx_priv_fifo_is_full(sipa_hal_hdl hdl,
+					 enum sipa_cmn_fifo_index fifo_id)
+{
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg =
+			&hal_cfg->cmn_fifo_cfg[fifo_id];
+
+	return kfifo_is_full(&fifo_cfg->rx_priv_fifo);
+}
+EXPORT_SYMBOL(sipa_hal_check_rx_priv_fifo_is_full);
+
+bool sipa_hal_is_rx_fifo_full(sipa_hal_hdl hdl,
+			      enum sipa_cmn_fifo_index fifo_id)
+{
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = hal_cfg->cmn_fifo_cfg;
+
+	return hal_cfg->fifo_ops.get_rx_full_status(fifo_id, fifo_cfg);
+}
+EXPORT_SYMBOL(sipa_hal_is_rx_fifo_full);
 
 bool sipa_hal_is_tx_fifo_empty(sipa_hal_hdl hdl,
 							   enum sipa_cmn_fifo_index fifo_id)

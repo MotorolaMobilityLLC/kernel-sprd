@@ -221,11 +221,17 @@ struct sipa_skb_receiver {
 	u32 rsvd;
 	struct sipa_skb_array recv_array;
 	wait_queue_head_t recv_waitq;
+	wait_queue_head_t fill_recv_waitq;
 	spinlock_t lock;
 	u32 nic_cnt;
+	atomic_t need_fill_cnt;
 	struct sipa_nic *nic_array[SIPA_NIC_MAX];
 
+	struct task_struct *fill_thread;
 	struct task_struct *thread;
+
+	u32 tx_danger_cnt;
+	u32 rx_danger_cnt;
 };
 
 struct sipa_control {

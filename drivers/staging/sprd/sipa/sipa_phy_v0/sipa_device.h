@@ -3,6 +3,7 @@
 
 #include <linux/sipa.h>
 #include <linux/kernel.h>
+#include <linux/kfifo.h>
 
 #include "../sipa_hal_priv.h"
 #include "sipa_glb_phy.h"

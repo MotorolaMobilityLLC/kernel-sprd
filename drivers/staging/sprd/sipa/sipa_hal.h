@@ -114,6 +114,7 @@ struct sipa_hal_fifo_item {
 	u8 src;
 	u8 intr;
 	u32 err_code;
+	u32 reserved;
 };
 
 struct sipa_reg_res_tag {
@@ -160,12 +161,29 @@ int sipa_hal_get_tx_fifo_item(sipa_hal_hdl hdl,
 							  enum sipa_cmn_fifo_index fifo,
 							  struct sipa_hal_fifo_item *item);
 
+u32 sipa_hal_get_tx_fifo_items(sipa_hal_hdl hdl,
+			       enum sipa_cmn_fifo_index fifo_id);
+
+int sipa_hal_conversion_node_to_item(sipa_hal_hdl hdl,
+				     enum sipa_cmn_fifo_index fifo_id,
+				     struct sipa_hal_fifo_item *item);
+
 int sipa_hal_put_rx_fifo_item(sipa_hal_hdl hdl,
 							  enum sipa_cmn_fifo_index fifo,
 							  struct sipa_hal_fifo_item *item);
 
+int sipa_hal_put_rx_fifo_items(sipa_hal_hdl hdl,
+			       enum sipa_cmn_fifo_index fifo_id);
+
+int sipa_hal_cache_rx_fifo_item(sipa_hal_hdl hdl,
+				enum sipa_cmn_fifo_index fifo_id,
+				struct sipa_hal_fifo_item *item);
+
 bool sipa_hal_is_rx_fifo_empty(sipa_hal_hdl hdl,
 							   enum sipa_cmn_fifo_index fifo);
+
+bool sipa_hal_is_rx_fifo_full(sipa_hal_hdl hdl,
+			      enum sipa_cmn_fifo_index fifo);
 
 bool sipa_hal_is_tx_fifo_empty(sipa_hal_hdl hdl,
 							   enum sipa_cmn_fifo_index fifo);
@@ -187,5 +205,11 @@ int sipa_close_common_fifo(sipa_hal_hdl hdl,
 
 int sipa_hal_reclaim_unuse_node(sipa_hal_hdl hdl,
 				enum sipa_cmn_fifo_index fifo_id);
+
+bool sipa_hal_check_rx_priv_fifo_is_empty(sipa_hal_hdl hdl,
+					  enum sipa_cmn_fifo_index fifo_id);
+
+bool sipa_hal_check_rx_priv_fifo_is_full(sipa_hal_hdl hdl,
+					 enum sipa_cmn_fifo_index fifo_id);
 
 #endif /* !_SIPA_HAL_H_ */

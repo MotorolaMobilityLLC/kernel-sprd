@@ -5,6 +5,87 @@
 #include "sipa_glb_phy.h"
 #include "sipa_fifo_phy.h"
 
+static inline int
+ipa_put_pkts_to_rx_fifo(struct sipa_common_fifo_cfg_tag *fifo_cfg,
+			u32 num)
+{
+	u32 tmp = 0, ret = 0, index = 0, left_cnt = 0;
+	struct sipa_node_description_tag *node =
+			(struct sipa_node_description_tag *)
+			fifo_cfg->rx_fifo.virtual_addr;
+
+	left_cnt = fifo_cfg->rx_fifo.depth -
+		ipa_phy_get_rx_fifo_filled_depth(fifo_cfg->fifo_reg_base);
+
+	if (!left_cnt)
+		return -ENOSPC;
+
+	if (left_cnt < num)
+		num = left_cnt;
+
+	index = fifo_cfg->rx_fifo.wr &
+			(fifo_cfg->rx_fifo.depth - 1);
+	if (index + num <= fifo_cfg->rx_fifo.depth) {
+		ret = kfifo_out(&fifo_cfg->rx_priv_fifo, node + index,
+				sizeof(*node) * num);
+	} else {
+		tmp = fifo_cfg->rx_fifo.depth - index;
+		ret = kfifo_out(&fifo_cfg->rx_priv_fifo, node + index,
+			tmp * sizeof(*node));
+		tmp = num - tmp;
+		ret = kfifo_out(&fifo_cfg->rx_priv_fifo, node,
+			tmp * sizeof(*node));
+	}
+
+	fifo_cfg->rx_fifo.wr =
+		(fifo_cfg->rx_fifo.wr + num) &
+		PTR_MASK(fifo_cfg->rx_fifo.depth);
+	ret = ipa_phy_update_rx_fifo_wptr(
+			  fifo_cfg->fifo_reg_base,
+			  fifo_cfg->rx_fifo.wr);
+
+	if (!ret)
+		pr_info("ipa_phy_update_rx_fifo_rptr fail\n");
+
+	return num;
+}
+
+static inline u32
+ipa_recv_pkts_from_tx_fifo(struct sipa_common_fifo_cfg_tag *fifo_cfg,
+			   u32 num)
+{
+	u32 ret = 0, tmp = 0, index = 0;
+	struct sipa_node_description_tag *node =
+			(struct sipa_node_description_tag *)
+			fifo_cfg->tx_fifo.virtual_addr;
+
+	num = ipa_phy_get_tx_fifo_filled_depth(fifo_cfg->fifo_reg_base);
+	index = fifo_cfg->tx_fifo.rd &
+			(fifo_cfg->tx_fifo.depth - 1);
+	if (index + num <= fifo_cfg->tx_fifo.depth) {
+		kfifo_in(&fifo_cfg->tx_priv_fifo, node + index,
+			num * sizeof(struct sipa_node_description_tag));
+	} else {
+		tmp = fifo_cfg->tx_fifo.depth - index;
+		kfifo_in(&fifo_cfg->tx_priv_fifo, node + index,
+			tmp * sizeof(struct sipa_node_description_tag));
+		tmp = num - tmp;
+		kfifo_in(&fifo_cfg->tx_priv_fifo, node,
+			tmp * sizeof(struct sipa_node_description_tag));
+	}
+
+	fifo_cfg->tx_fifo.rd = (fifo_cfg->tx_fifo.rd + num) &
+				PTR_MASK(fifo_cfg->tx_fifo.depth);
+	ret = ipa_phy_update_tx_fifo_rptr(
+		fifo_cfg->fifo_reg_base,
+		fifo_cfg->tx_fifo.rd);
+
+	if (!ret)
+		pr_err("update tx fifo rptr fail !!!\n");
+
+	return num;
+}
+
 static u32 ipa_common_fifo_hal_open(
 	enum sipa_cmn_fifo_index id,
 	struct sipa_common_fifo_cfg_tag *cfg_base,
@@ -642,8 +723,11 @@ static u32 ipa_common_fifo_hal_put_node_to_rx_fifo(
 		return FALSE;
 	}
 
-	ret = ipa_put_pkt_to_rx_fifo(
-			  ipa_term_fifo, force_intr, node, num);
+	if (ipa_term_fifo->is_pam)
+		ret = ipa_put_pkt_to_rx_fifo(ipa_term_fifo, force_intr,
+					node, num);
+	else
+		ret = ipa_put_pkts_to_rx_fifo(ipa_term_fifo, num);
 
 	return ret;
 }
@@ -760,8 +844,10 @@ static u32 ipa_common_fifo_hal_recv_node_from_tx_fifo(
 		return FALSE;
 	}
 
-	ret = ipa_recv_pkt_from_tx_fifo(
-			  ipa_term_fifo, node, num);
+	if (ipa_term_fifo->is_pam)
+		ret = ipa_recv_pkt_from_tx_fifo(ipa_term_fifo, node, num);
+	else
+		ret = ipa_recv_pkts_from_tx_fifo(ipa_term_fifo, num);
 
 	return ret;
 }
