@@ -1015,8 +1015,13 @@ static int sdiohal_free_rx_mbuf_nodes(int num)
 		if (mbuf_temp->next) {
 			mbuf_node = mbuf_temp->next;
 			mbuf_temp->next = NULL;
+			kfree(mbuf_temp);
+		} else {
+			if (i < num - 1)
+				WCN_ERR("%s mbuf_node error\n", __func__);
+			kfree(mbuf_temp);
+			break;
 		}
-		kfree(mbuf_temp);
 	}
 
 	p_data->list_rx_buf.mbuf_head = NULL;
