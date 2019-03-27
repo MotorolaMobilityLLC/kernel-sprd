@@ -67,6 +67,9 @@
 #define SC27XX_FGU_CUR_BASIC_ADC	8192
 #define SC27XX_FGU_SAMPLE_HZ		2
 
+#define interpolate(x, x1, y1, x2, y2) \
+	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))));
+
 /*
  * struct sc27xx_fgu_data: describe the FGU device
  * @regmap: regmap for register access
@@ -111,6 +114,7 @@ struct sc27xx_fgu_data {
 	int table_len;
 	int temp_table_len;
 	int cap_table_len;
+	int resist_table_len;
 	int cur_1000ma_adc;
 	int vol_1000mv_adc;
 	int calib_resist_real;
@@ -118,6 +122,7 @@ struct sc27xx_fgu_data {
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_vol_temp_table *temp_table;
 	struct power_supply_capacity_temp_table *cap_temp_table;
+	struct power_supply_resistance_temp_table *resistance_table;
 };
 
 struct sc27xx_fgu_variant_data {
@@ -185,6 +190,31 @@ static int sc27xx_fgu_temp_to_cap(struct power_supply_capacity_temp_table *table
 		temp = table[0].cap;
 	} else {
 		temp = table[table_len - 1].cap;
+	}
+
+	return temp;
+}
+
+static int sc27xx_fgu_temp_to_resistance(struct power_supply_resistance_temp_table *table,
+					 int table_len, int value)
+{
+	int i, temp;
+
+	value = value / 10;
+	for (i = 0; i < table_len; i++)
+		if (value > table[i].temp)
+			break;
+
+	if (i > 0 && i < table_len) {
+		temp = interpolate(value,
+				   table[i].temp,
+				   table[i].resistance,
+				   table[i - 1].temp,
+				   table[i - 1].resistance);
+	} else if (i == 0) {
+		temp = table[0].resistance;
+	} else {
+		temp = table[table_len - 1].resistance;
 	}
 
 	return temp;
@@ -509,7 +539,7 @@ static int sc27xx_fgu_get_current(struct sc27xx_fgu_data *data, int *val)
 
 static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
 {
-	int vol, cur, ret;
+	int vol, cur, temp, resistance, ret;
 
 	ret = sc27xx_fgu_get_vbat_vol(data, &vol);
 	if (ret)
@@ -519,8 +549,21 @@ static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
 	if (ret)
 		return ret;
 
+	resistance = data->internal_resist;
+	if (data->resist_table_len > 0) {
+		ret = sc27xx_fgu_get_temp(data, &temp);
+		if (ret)
+			return ret;
+
+		resistance =
+			sc27xx_fgu_temp_to_resistance(data->resistance_table,
+						      data->resist_table_len,
+						      temp);
+		resistance = data->internal_resist * resistance / 100;
+	}
+
 	/* Return the battery OCV in micro volts. */
-	*val = vol * 1000 - cur * data->internal_resist;
+	*val = vol * 1000 - cur * resistance;
 
 	return 0;
 }
@@ -1059,6 +1102,18 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 						    sizeof(struct power_supply_capacity_temp_table),
 						    GFP_KERNEL);
 		if (!data->cap_temp_table) {
+			power_supply_put_battery_info(data->battery, &info);
+			return -ENOMEM;
+		}
+	}
+
+	data->resist_table_len = info.resistance_table_size;
+	if (data->resist_table_len > 0) {
+		data->resistance_table = devm_kmemdup(data->dev, info.resistance_table,
+						      data->resist_table_len *
+						      sizeof(struct power_supply_resistance_temp_table),
+						      GFP_KERNEL);
+		if (!data->resistance_table) {
 			power_supply_put_battery_info(data->battery, &info);
 			return -ENOMEM;
 		}
