@@ -427,6 +427,17 @@
 		flash-chip-en-gpios = <&ap_gpio 137 0>;
 	};
 
+	sc2703-disp@4b {
+		compatible = "sprd,sc2703-disp";
+		reg = <0x4b>;
+
+		lcd_vdd: lcd-regulator {
+			compatible = "sprd,sc2703-lcd-regulator";
+			regulator-name = "sc2703-lcd";
+			regulator-boot-on;
+		};
+	};
+
 	/* A virtual i2c device */
 	cpudvfs@61{
 		compatible = "sprd,cpudvfs-regulator-sharkl5";
@@ -483,8 +494,8 @@
 		#size-cells = <0>;
 		reg = <0>;
 
-		avdd-gpio = <&ap_gpio 9 GPIO_ACTIVE_HIGH>;
 		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
+		power-supply = <&lcd_vdd>;
 		port {
 			reg = <1>;
 			panel_in: endpoint {
