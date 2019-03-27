@@ -175,11 +175,27 @@ struct sipa_skb_sender {
 	struct sipa_context *ctx;
 	struct sipa_endpoint *ep;
 	enum sipa_xfer_pkt_type type;
-	u32 left_cnt;
-	spinlock_t lock;
+	atomic_t left_cnt;
+	spinlock_t nic_lock;
+	spinlock_t send_lock;
 	struct list_head nic_list;
 	struct list_head sending_list;
-	struct kmem_cache *sending_pair_cache;
+	struct list_head pair_free_list;
+	struct sipa_skb_dma_addr_node *pair_cache;
+
+	bool free_notify_net;
+	bool send_notify_net;
+
+	wait_queue_head_t send_waitq;
+	wait_queue_head_t free_waitq;
+
+	struct task_struct *free_thread;
+	struct task_struct *send_thread;
+
+	u32 no_mem_cnt;
+	u32 no_free_cnt;
+	u32 enter_flow_ctrl_cnt;
+	u32 exit_flow_ctrl_cnt;
 };
 
 struct sipa_receiver {
