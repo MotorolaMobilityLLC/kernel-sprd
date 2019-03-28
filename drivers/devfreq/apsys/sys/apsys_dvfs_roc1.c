@@ -18,8 +18,79 @@
 #include <linux/slab.h>
 
 #include "sprd_dvfs_apsys.h"
-#include "apsys_reg_roc1.h"
+#include "apsys_dvfs_roc1.h"
 
+char *roc1_apsys_val_to_volt(u32 val)
+{
+	switch (val) {
+	case 0:
+		return "0.7v";
+	case 1:
+		return "0.75v";
+	case 2:
+		return "0.8v";
+	default:
+		pr_err("invalid voltage value %u\n", val);
+		return "N/A";
+	}
+}
+
+char *roc1_dpu_val_to_freq(u32 val)
+{
+	switch (val) {
+	case 0:
+		return "153.6M";
+	case 1:
+		return "192M";
+	case 2:
+		return "256M";
+	case 3:
+		return "307.2M";
+	case 4:
+		return "384M";
+	case 5:
+		return "468M";
+	default:
+		pr_err("invalid frequency value %u\n", val);
+		return "N/A";
+	}
+}
+
+char *roc1_vdsp_val_to_freq(u32 val)
+{
+	switch (val) {
+	case 0:
+		return "192M";
+	case 1:
+		return "307.2M";
+	case 2:
+		return "468M";
+	case 3:
+		return "614.4M";
+	case 4:
+		return "702M";
+	case 5:
+		return "768M";
+	default:
+		pr_err("invalid frequency value %u\n", val);
+		return "N/A";
+	}
+}
+
+char *roc1_vsp_val_to_freq(u32 val)
+{
+	switch (val) {
+	case 0:
+		return "256M";
+	case 1:
+		return "307.2M";
+	case 2:
+		return "384M";
+	default:
+		pr_err("invalid frequency value %u\n", val);
+		return "N/A";
+	}
+}
 
 static void apsys_dvfs_auto_gate_sel(u32 enable)
 {
@@ -32,7 +103,6 @@ static void apsys_dvfs_auto_gate_sel(u32 enable)
 		reg->cgm_ap_dvfs_clk_gate_ctrl &= ~BIT(0);
 }
 
-#if 0
 static void apsys_dvfs_force_en(u32 enable)
 {
 	struct apsys_dvfs_reg *reg =
@@ -43,7 +113,6 @@ static void apsys_dvfs_force_en(u32 enable)
 	else
 		reg->cgm_ap_dvfs_clk_gate_ctrl &= ~BIT(1);
 }
-#endif
 
 static void apsys_dvfs_hold_en(u32 hold_en)
 {
@@ -83,6 +152,39 @@ static int dcdc_modem_cur_volt(void)
 	return (rw32 >> 20) & 0x07;
 }
 
+static int apsys_dvfs_parse_dt(struct apsys_dev *apsys,
+				struct device_node *np)
+{
+	int ret;
+
+	ret = of_property_read_u32(np, "sprd,ap-dvfs-hold",
+			&apsys->dvfs_coffe.dvfs_hold_en);
+	if (!ret)
+		apsys_dvfs_hold_en(apsys->dvfs_coffe.dvfs_hold_en);
+
+	ret = of_property_read_u32(np, "sprd,ap-dvfs-clk-gate",
+			&apsys->dvfs_coffe.dvfs_clk_gate);
+	if (!ret)
+		apsys_dvfs_clk_gate(apsys->dvfs_coffe.dvfs_clk_gate);
+
+	ret = of_property_read_u32(np, "sprd,ap-dvfs-wait_window",
+			&apsys->dvfs_coffe.dvfs_wait_window);
+	if (!ret)
+		apsys_dvfs_wait_window(apsys->dvfs_coffe.dvfs_wait_window);
+
+	ret = of_property_read_u32(np, "sprd,ap-dvfs-min_volt",
+			&apsys->dvfs_coffe.dvfs_min_volt);
+	if (!ret)
+		apsys_dvfs_min_volt(apsys->dvfs_coffe.dvfs_min_volt);
+
+	ret = of_property_read_u32(np, "sprd,ap-dvfs-force_en",
+			&apsys->dvfs_coffe.dvfs_force_en);
+	if (!ret)
+		apsys_dvfs_force_en(apsys->dvfs_coffe.dvfs_force_en);
+
+	return ret;
+}
+
 static void apsys_dvfs_init(struct apsys_dev *apsys)
 {
 	void __iomem *base;
@@ -92,20 +194,10 @@ static void apsys_dvfs_init(struct apsys_dev *apsys)
 		pr_err("ioremap top dvfs address failed\n");
 
 	regmap_ctx.top_base = (unsigned long)base;
-#if 0
-	apsys_dvfs_hold(apsys->dvfs_coffe.dvfs_hold_en);
-	apsys_dvfs_force(apsys->dvfs_coffe.dvfs_force_en);
-
-	apsys_dvfs_min_volt(devfreq,
-		apsys->dvfs_coffe.dvfs_min_volt);
-	apsys_dvfs_wait_window(devfreq,
-		apsys->dvfs_coffe.dvfs_wait_window);
-	apsys_dvfs_clk_gate(devfreq,
-		apsys->dvfs_coffe.dvfs_clk_gate_ctrl);
-#endif
 }
 
 static struct apsys_dvfs_ops apsys_dvfs_ops = {
+	.parse_dt = apsys_dvfs_parse_dt,
 	.dvfs_init = apsys_dvfs_init,
 	.apsys_clk_gate = apsys_dvfs_clk_gate,
 	.apsys_hold_en = apsys_dvfs_hold_en,

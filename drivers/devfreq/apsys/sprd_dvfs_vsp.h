@@ -43,13 +43,11 @@ struct vsp_dvfs {
 	struct ip_dvfs_status ip_status;
 	struct ip_dvfs_coffe ip_coeff;
 	set_freq_type freq_type;
-	struct mutex lock;
 	struct notifier_block vsp_dvfs_nb;
 	u32 max_freq_level;
 };
 
 struct ip_dvfs_ops {
-
 	/* userspace interface */
 	int (*dvfs_init)(struct vsp_dvfs *vsp);
 	void (*hw_dvfs_en)(u32 dvfs_eb);
@@ -60,9 +58,8 @@ struct ip_dvfs_ops {
 	u32 (*get_idle_freq)(void);
 
 	/* work-idle dvfs map ops */
-	void (*get_ip_dvfs_table)(struct ip_dvfs_map_cfg *dvfs_table);
-
-	void (*get_ip_status)(struct ip_dvfs_status *ip_status);
+	void (*get_dvfs_table)(struct ip_dvfs_map_cfg *dvfs_table);
+	void (*get_dvfs_status)(struct ip_dvfs_status *ip_status);
 
 	/* coffe setting ops */
 	void (*set_gfree_wait_delay)(u32 wind_para);

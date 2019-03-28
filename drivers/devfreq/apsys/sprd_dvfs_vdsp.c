@@ -224,10 +224,8 @@ static ssize_t set_work_index_store(struct device *dev,
 	int work_index, ret;
 
 	ret = sscanf(buf, "%d\n", &work_index);
-	if (ret == 0) {
-		mutex_unlock(&devfreq->lock);
+	if (ret == 0)
 		return -EINVAL;
-	}
 
 	if (vdsp->dvfs_ops && vdsp->dvfs_ops->set_work_index)
 		vdsp->dvfs_ops->set_work_index(work_index);
@@ -262,10 +260,8 @@ static ssize_t set_idle_index_store(struct device *dev,
 	int idle_index, ret;
 
 	ret = sscanf(buf, "%d\n", &idle_index);
-	if (ret == 0) {
-		mutex_unlock(&devfreq->lock);
+	if (ret == 0)
 		return -EINVAL;
-	}
 
 	if (vdsp->dvfs_ops && vdsp->dvfs_ops->set_idle_index)
 		vdsp->dvfs_ops->set_idle_index(idle_index);
@@ -283,23 +279,26 @@ static ssize_t get_dvfs_status_show(struct device *dev,
 	struct ip_dvfs_status dvfs_status;
 	ssize_t len = 0;
 
-	if (vdsp->dvfs_ops && vdsp->dvfs_ops->get_status)
-		vdsp->dvfs_ops->get_status(&dvfs_status);
-	else
-		pr_info("%s: ip ops null\n", __func__);
+	if (vdsp->dvfs_ops && vdsp->dvfs_ops->get_dvfs_status)
+		vdsp->dvfs_ops->get_dvfs_status(&dvfs_status);
+	else {
+		len = sprintf(buf, "undefined\n");
+		return len;
+	}
 
-	len = sprintf(buf, "apsys_voltage\tvsp_vote\tdpu_vote\tvdsp_vote\n");
+	len = sprintf(buf, "apsys_cur_volt\tvsp_vote_volt\t"
+			"dpu_vote_volt\tvdsp_vote_volt\n");
 
-	len += sprintf(buf + len, "%d\t\t%d\t\t%d\t\t%d\t\t\n",
-			dvfs_status.ap_volt, dvfs_status.vsp_vote,
-			dvfs_status.dpu_vote, dvfs_status.vdsp_vote);
+	len += sprintf(buf + len, "%s\t\t%s\t\t%s\t\t%s\n",
+			dvfs_status.apsys_cur_volt, dvfs_status.vsp_vote_volt,
+			dvfs_status.dpu_vote_volt, dvfs_status.vdsp_vote_volt);
 
-	len += sprintf(buf + len, "vsp_clk\t\tdpu_clk\t\tvdsp_clk\tvdsp_edap\tvdsp_m0\n");
+	len += sprintf(buf + len, "\t\tvsp_cur_freq\tdpu_cur_freq\t"
+			"vdsp_cur_freq\n");
 
-	len += sprintf(buf + len, "%d\t\t%d\t\t%d\t\t%d\t\t%d\t\t\n",
-			dvfs_status.vsp_clk, dvfs_status.dpu_clk,
-			dvfs_status.vdsp_clk, dvfs_status.vdsp_edap_div,
-			dvfs_status.vdsp_m0_div);
+	len += sprintf(buf + len, "\t\t%s\t\t%s\t\t%s\n",
+			dvfs_status.vsp_cur_freq, dvfs_status.dpu_cur_freq,
+			dvfs_status.vdsp_cur_freq);
 
 	return len;
 }
@@ -539,22 +538,12 @@ struct devfreq_governor vdsp_devfreq_gov = {
 	.event_handler = vdsp_gov_event_handler,
 };
 
-static int vdsp_dvfs_coffe_parse_dt(struct vdsp_dvfs *vdsp,
+static int vdsp_dvfs_parse_dt(struct vdsp_dvfs *vdsp,
 			      struct device_node *np)
 {
-	int ret = 0;
+	int ret;
 
-	ret = of_property_read_u32(np, "sprd,gfree-wait-delay",
-			&vdsp->dvfs_coffe.gfree_wait_delay);
-	ret |= of_property_read_u32(np, "sprd,freq-upd-hdsk-en",
-			&vdsp->dvfs_coffe.freq_upd_hdsk_en);
-	ret |= of_property_read_u32(np, "sprd,freq-upd-delay-en",
-			&vdsp->dvfs_coffe.freq_upd_delay_en);
-	ret |= of_property_read_u32(np, "sprd,freq-upd-en-byp",
-			&vdsp->dvfs_coffe.freq_upd_en_byp);
-	ret |= of_property_read_u32(np, "sprd,sw-trig-en",
-			&vdsp->dvfs_coffe.sw_trig_en);
-	ret |= of_property_read_u32(np, "sprd,hw-dfs-en",
+	ret = of_property_read_u32(np, "sprd,hw-dfs-en",
 			&vdsp->dvfs_coffe.hw_dfs_en);
 	ret |= of_property_read_u32(np, "sprd,work-index-def",
 			&vdsp->dvfs_coffe.work_index_def);
@@ -585,7 +574,11 @@ static int vdsp_dvfs_probe(struct platform_device *pdev)
 	}
 	pr_emerg("attach vdsp dvfs ops %s success\n", str);
 
-	vdsp_dvfs_coffe_parse_dt(vdsp, np);
+	ret = vdsp_dvfs_parse_dt(vdsp, np);
+	if (ret) {
+		pr_err("parse vdsp dvfs dt failed\n");
+		return ret;
+	}
 
 	ret = dev_pm_opp_of_add_table(dev);
 	if (ret) {
@@ -614,6 +607,11 @@ static int vdsp_dvfs_probe(struct platform_device *pdev)
 	}
 
 	device_rename(&vdsp->devfreq->dev, "vdsp");
+
+	vdsp->dvfs_enable = vdsp->dvfs_coffe.hw_dfs_en;
+
+	if (vdsp->dvfs_ops && vdsp->dvfs_ops->parse_dt)
+		vdsp->dvfs_ops->parse_dt(vdsp, np);
 
 	if (vdsp->dvfs_ops && vdsp->dvfs_ops->dvfs_init)
 		vdsp->dvfs_ops->dvfs_init(vdsp);

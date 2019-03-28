@@ -60,10 +60,8 @@ static ssize_t dpu_dvfs_enable_store(struct device *dev,
 	if (ret == 0)
 		return -EINVAL;
 
-	/* disable dpu dvfs */
 	dpu->dvfs_enable = user_en;
 
-	/* disable dpu hw dvfs */
 	if (dpu->dvfs_ops && dpu->dvfs_ops->hw_dfs_en) {
 		dpu->dvfs_ops->hw_dfs_en(user_en);
 		dpu->dvfs_coffe.hw_dfs_en = user_en;
@@ -222,10 +220,8 @@ static ssize_t set_work_index_store(struct device *dev,
 	int work_index, ret;
 
 	ret = sscanf(buf, "%d\n", &work_index);
-	if (ret == 0) {
-		mutex_unlock(&devfreq->lock);
+	if (ret == 0)
 		return -EINVAL;
-	}
 
 	if (dpu->dvfs_ops && dpu->dvfs_ops->set_work_index)
 		dpu->dvfs_ops->set_work_index(work_index);
@@ -260,10 +256,8 @@ static ssize_t set_idle_index_store(struct device *dev,
 	int idle_index, ret;
 
 	ret = sscanf(buf, "%d\n", &idle_index);
-	if (ret == 0) {
-		mutex_unlock(&devfreq->lock);
+	if (ret == 0)
 		return -EINVAL;
-	}
 
 	if (dpu->dvfs_ops && dpu->dvfs_ops->set_idle_index)
 		dpu->dvfs_ops->set_idle_index(idle_index);
@@ -281,21 +275,26 @@ static ssize_t get_dvfs_status_show(struct device *dev,
 	struct ip_dvfs_status dvfs_status;
 	ssize_t len = 0;
 
-	if (dpu->dvfs_ops && dpu->dvfs_ops->get_status)
-		dpu->dvfs_ops->get_status(&dvfs_status);
-	else
-		pr_info("%s: ip ops null\n", __func__);
+	if (dpu->dvfs_ops && dpu->dvfs_ops->get_dvfs_status)
+		dpu->dvfs_ops->get_dvfs_status(&dvfs_status);
+	else {
+		len = sprintf(buf, "undefined\n");
+		return len;
+	}
 
-	len = sprintf(buf, "apsys_voltage\tvsp_vote\tdpu_vote\n");
+	len = sprintf(buf, "apsys_cur_volt\tvsp_vote_volt\t"
+			"dpu_vote_volt\tvdsp_vote_volt\n");
 
-	len += sprintf(buf + len, "%d\t\t%d\t\t%d\t\t\n",
-			dvfs_status.ap_volt, dvfs_status.vsp_vote,
-			dvfs_status.dpu_vote);
+	len += sprintf(buf + len, "%s\t\t%s\t\t%s\t\t%s\n",
+			dvfs_status.apsys_cur_volt, dvfs_status.vsp_vote_volt,
+			dvfs_status.dpu_vote_volt, dvfs_status.vdsp_vote_volt);
 
-	len += sprintf(buf + len, "vsp_clk\t\tdpu_clk\n");
+	len += sprintf(buf + len, "\t\tvsp_cur_freq\tdpu_cur_freq\t"
+			"vdsp_cur_freq\n");
 
-	len += sprintf(buf + len, "%d\t\t%d\t\t\n",
-			dvfs_status.vsp_clk, dvfs_status.dpu_clk);
+	len += sprintf(buf + len, "\t\t%s\t\t%s\t\t%s\n",
+			dvfs_status.vsp_cur_freq, dvfs_status.dpu_cur_freq,
+			dvfs_status.vdsp_cur_freq);
 
 	return len;
 }
@@ -368,7 +367,6 @@ static int dpu_dvfs_notify_callback(struct notifier_block *nb,
 	mutex_lock(&dpu->devfreq->lock);
 
 	if (!dpu->dvfs_enable) {
-		pr_info("dpu dvfs is disabled, nothing to do");
 		mutex_unlock(&dpu->devfreq->lock);
 		return NOTIFY_DONE;
 	}
@@ -395,7 +393,7 @@ static int dpu_dvfs_target(struct device *dev, unsigned long *freq,
 	struct dev_pm_opp *opp;
 	u32 target_freq;
 
-	pr_info("devfreq_dev_profile-->target\n");
+	pr_debug("devfreq_dev_profile-->target\n");
 
 	opp = devfreq_recommended_opp(dev, freq, flags);
 	if (IS_ERR(opp)) {
@@ -408,12 +406,12 @@ static int dpu_dvfs_target(struct device *dev, unsigned long *freq,
 	if (dpu->freq_type == DVFS_WORK) {
 		if (dpu->dvfs_ops && dpu->dvfs_ops->set_work_freq) {
 			dpu->dvfs_ops->set_work_freq(target_freq);
-			pr_info("set work freq = %u\n", target_freq);
+			pr_debug("set work freq = %u\n", target_freq);
 		}
 	} else {
 		if (dpu->dvfs_ops && dpu->dvfs_ops->set_idle_freq) {
 			dpu->dvfs_ops->set_idle_freq(target_freq);
-			pr_info("set idle freq = %u\n", target_freq);
+			pr_debug("set idle freq = %u\n", target_freq);
 		}
 	}
 
@@ -429,7 +427,7 @@ static int dpu_dvfs_get_dev_status(struct device *dev,
 	struct devfreq_event_data edata;
 	int ret = 0;
 
-	pr_info("devfreq_dev_profile-->get_dev_status\n");
+	pr_debug("devfreq_dev_profile-->get_dev_status\n");
 
 	ret = devfreq_event_get_event(dpu->edev, &edata);
 	if (ret < 0)
@@ -446,7 +444,7 @@ static int dpu_dvfs_get_cur_freq(struct device *dev, unsigned long *freq)
 {
 	struct dpu_dvfs *dpu = dev_get_drvdata(dev);
 
-	pr_info("devfreq_dev_profile-->get_cur_freq\n");
+	pr_debug("devfreq_dev_profile-->get_cur_freq\n");
 
 	if (dpu->freq_type == DVFS_WORK)
 		*freq = dpu->work_freq;
@@ -490,7 +488,7 @@ static int dpu_gov_get_target(struct devfreq *devfreq,
 	struct dpu_dvfs *dpu = dev_get_drvdata(devfreq->dev.parent);
 	u32 adjusted_freq = 0;
 
-	pr_info("devfreq_governor-->get_target_freq\n");
+	pr_debug("devfreq_governor-->get_target_freq\n");
 
 	if (devfreq->max_freq && adjusted_freq > devfreq->max_freq)
 		adjusted_freq = devfreq->max_freq;
@@ -511,7 +509,6 @@ static int dpu_gov_event_handler(struct devfreq *devfreq,
 {
 	int ret = 0;
 
-	pr_info("devfreq_governor-->event_handler(%d)\n", event);
 	switch (event) {
 	case DEVFREQ_GOV_START:
 		ret = userspace_init(devfreq);
@@ -532,22 +529,12 @@ struct devfreq_governor dpu_devfreq_gov = {
 	.event_handler = dpu_gov_event_handler,
 };
 
-static int dpu_dvfs_coffe_parse_dt(struct dpu_dvfs *dpu,
+static int dpu_dvfs_parse_dt(struct dpu_dvfs *dpu,
 			      struct device_node *np)
 {
-	int ret = 0;
+	int ret;
 
-	ret = of_property_read_u32(np, "sprd,gfree-wait-delay",
-			&dpu->dvfs_coffe.gfree_wait_delay);
-	ret |= of_property_read_u32(np, "sprd,freq-upd-hdsk-en",
-			&dpu->dvfs_coffe.freq_upd_hdsk_en);
-	ret |= of_property_read_u32(np, "sprd,freq-upd-delay-en",
-			&dpu->dvfs_coffe.freq_upd_delay_en);
-	ret |= of_property_read_u32(np, "sprd,freq-upd-en-byp",
-			&dpu->dvfs_coffe.freq_upd_en_byp);
-	ret |= of_property_read_u32(np, "sprd,sw-trig-en",
-			&dpu->dvfs_coffe.sw_trig_en);
-	ret |= of_property_read_u32(np, "sprd,hw-dfs-en",
+	ret = of_property_read_u32(np, "sprd,hw-dfs-en",
 			&dpu->dvfs_coffe.hw_dfs_en);
 	ret |= of_property_read_u32(np, "sprd,work-index-def",
 			&dpu->dvfs_coffe.work_index_def);
@@ -572,12 +559,16 @@ static int dpu_dvfs_probe(struct platform_device *pdev)
 	str = (char *)of_device_get_match_data(dev);
 
 	dpu->dvfs_ops = dpu_dvfs_ops_attach(str);
-	if (dpu->dvfs_ops == NULL) {
+	if (!dpu->dvfs_ops) {
 		pr_err("attach dpu dvfs ops %s failed\n", str);
 		return -EINVAL;
 	}
 
-	dpu_dvfs_coffe_parse_dt(dpu, np);
+	ret = dpu_dvfs_parse_dt(dpu, np);
+	if (ret) {
+		pr_err("parse dpu dvfs dt failed\n");
+		return ret;
+	}
 
 	ret = dev_pm_opp_of_add_table(dev);
 	if (ret) {
@@ -606,6 +597,11 @@ static int dpu_dvfs_probe(struct platform_device *pdev)
 	}
 
 	device_rename(&dpu->devfreq->dev, "dpu");
+
+	dpu->dvfs_enable = dpu->dvfs_coffe.hw_dfs_en;
+
+	if (dpu->dvfs_ops && dpu->dvfs_ops->parse_dt)
+		dpu->dvfs_ops->parse_dt(dpu, np);
 
 	if (dpu->dvfs_ops && dpu->dvfs_ops->dvfs_init)
 		dpu->dvfs_ops->dvfs_init(dpu);

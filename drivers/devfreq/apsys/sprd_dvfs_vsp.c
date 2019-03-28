@@ -247,16 +247,26 @@ static ssize_t get_dvfs_status_show(struct device *dev,
 	struct ip_dvfs_status ip_status;
 	ssize_t len = 0;
 
-	if (vsp->dvfs_ops && vsp->dvfs_ops->get_ip_status)
-		vsp->dvfs_ops->get_ip_status(&ip_status);
-	else
-		pr_info("%s: dvfs_read_ops is null\n", __func__);
+	if (vsp->dvfs_ops && vsp->dvfs_ops->get_dvfs_status)
+		vsp->dvfs_ops->get_dvfs_status(&ip_status);
+	else {
+		len = sprintf(buf, "undefined\n");
+		return len;
+	}
 
-	len = sprintf(buf, "ap_voltage\tvsp_vote\tdpu_vote\n");
+	len = sprintf(buf, "apsys_cur_volt\tvsp_vote_volt\t"
+			"dpu_vote_volt\tvdsp_vote_volt\n");
 
-	len += sprintf(buf + len, "%d\t\t%d\t\t%d\t\t\n",
-			ip_status.ap_volt, ip_status.vsp_vote,
-			ip_status.dpu_vote);
+	len += sprintf(buf + len, "%s\t\t%s\t\t%s\t\t%s\n",
+			ip_status.apsys_cur_volt, ip_status.vsp_vote_volt,
+			ip_status.dpu_vote_volt, ip_status.vdsp_vote_volt);
+
+	len += sprintf(buf + len, "\t\tvsp_cur_freq\tdpu_cur_freq\t"
+			"vdsp_cur_freq\n");
+
+	len += sprintf(buf + len, "\t\t%s\t\t%s\t\t%s\n",
+			ip_status.vsp_cur_freq, ip_status.dpu_cur_freq,
+			ip_status.vdsp_cur_freq);
 
 	return len;
 }
@@ -271,8 +281,8 @@ static ssize_t get_dvfs_table_info_show(struct device *dev,
 	ssize_t len = 0;
 	int i;
 
-	if (vsp->dvfs_ops && vsp->dvfs_ops->get_ip_dvfs_table)
-		vsp->dvfs_ops->get_ip_dvfs_table(dvfs_table);
+	if (vsp->dvfs_ops && vsp->dvfs_ops->get_dvfs_table)
+		vsp->dvfs_ops->get_dvfs_table(dvfs_table);
 	else
 		pr_info("%s: ip ops null\n", __func__);
 
@@ -418,7 +428,7 @@ static int vsp_dvfs_target(struct device *dev, unsigned long *freq,
 	unsigned long target_freq;
 	int ret = 0;
 
-	pr_debug("devfreq_dev_profile-->target,freq=%lu\n", *freq);
+	pr_debug("devfreq_dev_profile-->target, freq=%lu\n", *freq);
 	opp = devfreq_recommended_opp(dev, freq, flags);
 
 	if (IS_ERR(opp)) {
@@ -471,7 +481,7 @@ static int vsp_dvfs_get_cur_freq(struct device *dev, unsigned long *freq)
 		*freq = vsp->work_freq;
 	else
 		*freq = vsp->idle_freq;
-	pr_debug("devfreq_dev_profile-->get_cur_freq,*freq=%lu\n", *freq);
+	pr_debug("devfreq_dev_profile-->get_cur_freq, *freq=%lu\n", *freq);
 
 	return 0;
 }
@@ -493,8 +503,6 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 	if (!vsp)
 		return -ENOMEM;
 
-	mutex_init(&vsp->lock);
-
 	data = (struct sprd_vsp_dvfs_data *)of_device_get_match_data(dev);
 	vsp->max_freq_level = data->max_freq_level;
 	vsp->dvfs_ops = vsp_dvfs_ops_attach(data->ver);
@@ -511,7 +519,7 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 			&vsp->idle_freq);
 	of_property_read_u32(np, "sprd,dvfs-enable-flag",
 			&vsp->ip_coeff.hw_dfs_en);
-	pr_info("work freq %d,idle freq %d,enable flag %d\n",
+	pr_info("work freq %d, idle freq %d, enable flag %d\n",
 			vsp->work_freq,
 			vsp->idle_freq,
 			vsp->ip_coeff.hw_dfs_en);
@@ -552,8 +560,6 @@ ret:
 
 static int vsp_dvfs_remove(struct platform_device *pdev)
 {
-	pr_err("%s:\n", __func__);
-
 	return 0;
 }
 

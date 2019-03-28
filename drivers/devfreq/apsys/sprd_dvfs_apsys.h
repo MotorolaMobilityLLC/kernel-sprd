@@ -69,33 +69,15 @@ struct ip_dvfs_map_cfg {
 };
 
 struct ip_dvfs_status {
-	u32 ip_req_volt;
-	u32 ip_req_clk;
-	u32 current_sys_volt;
-	u32 current_ip_clk;
-	u32 apsys_cgm_cfg_debug_info;
-	u32 apsys_volt_debug_info;
-	u32 ap_volt;
-	u32 vsp_vote;
-	u32 dpu_vote;
-	u32 vdsp_vote;
-	u32 vsp_clk;
-	u32 dpu_clk;
-	u32 vdsp_clk;
-	u32 vdsp_m0_div;
+	char *apsys_cur_volt;
+	char *dpu_vote_volt;
+	char *vsp_vote_volt;
+	char *vdsp_vote_volt;
+	char *dpu_cur_freq;
+	char *vsp_cur_freq;
+	char *vdsp_cur_freq;
 	u32 vdsp_edap_div;
-};
-
-struct ip_dvfs_para {
-	u32 u_dvfs_en;
-	u32 u_work_freq;
-	u32 u_idle_freq;
-	u32 u_work_index;
-	u32 u_idle_index;
-	u32 u_fix_volt;
-
-	struct ip_dvfs_status ip_status;
-	struct ip_dvfs_coffe ip_coffe;
+	u32 vdsp_m0_div;
 };
 
 struct apsys_dev {
@@ -109,6 +91,7 @@ struct apsys_dev {
 
 struct apsys_dvfs_ops {
 	/* apsys common ops */
+	int (*parse_dt)(struct apsys_dev *apsys, struct device_node *np);
 	void (*dvfs_init)(struct apsys_dev *apsys);
 	void (*apsys_hold_en)(u32 hold_en);
 	void (*apsys_clk_gate)(u32 clk_gate);

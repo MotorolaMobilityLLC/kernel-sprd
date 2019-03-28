@@ -229,17 +229,6 @@ static int apsys_dvfs_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	of_property_read_u32(np, "sprd,ap-sw-dvfs",
-		&apsys->dvfs_coffe.sw_dvfs_en);
-	of_property_read_u32(np, "sprd,ap-dvfs-hold",
-		&apsys->dvfs_coffe.dvfs_hold_en);
-	of_property_read_u32(np, "sprd,ap-dvfs-clk-gate",
-		&apsys->dvfs_coffe.dvfs_clk_gate);
-	of_property_read_u32(np, "sprd,ap-dvfs-wait_window",
-		&apsys->dvfs_coffe.dvfs_wait_window);
-	of_property_read_u32(np, "sprd,ap-dvfs-min_volt",
-		&apsys->dvfs_coffe.dvfs_min_volt);
-
 	if (of_address_to_resource(np, 0, &r)) {
 		pr_err("parse apsys base address failed\n");
 		return -ENODEV;
@@ -262,6 +251,9 @@ static int apsys_dvfs_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, apsys);
+
+	if (apsys->dvfs_ops && apsys->dvfs_ops->parse_dt)
+		apsys->dvfs_ops->parse_dt(apsys, np);
 
 	if (apsys->dvfs_ops && apsys->dvfs_ops->dvfs_init)
 		apsys->dvfs_ops->dvfs_init(apsys);

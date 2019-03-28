@@ -87,7 +87,7 @@ struct dpu_dvfs_ops {
 	void (*set_dvfs_table)(struct ip_dvfs_map_cfg *dvfs_table);
 	void (*get_dvfs_coffe)(struct ip_dvfs_coffe *dvfs_coffe);
 	void (*set_dvfs_coffe)(struct ip_dvfs_coffe *dvfs_coffe);
-	void (*get_status)(struct ip_dvfs_status *dvfs_status);
+	void (*get_dvfs_status)(struct ip_dvfs_status *dvfs_status);
 
 	/* coffe setting ops */
 	void (*set_gfree_wait_delay)(u32 para);
@@ -101,7 +101,7 @@ extern struct list_head dpu_dvfs_head;
 extern struct blocking_notifier_head dpu_dvfs_chain;
 
 #if IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
-extern int dpu_dvfs_notifier_call_chain(void *data);
+int dpu_dvfs_notifier_call_chain(void *data);
 #else
 static inline int dpu_dvfs_notifier_call_chain(void *data)
 {
