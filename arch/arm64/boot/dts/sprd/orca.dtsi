@@ -754,10 +754,6 @@
 			sprd,usb-dl-rx = <1 1024>;
 			sprd,usb-ul-tx = <1 1024>;
 			sprd,usb-ul-rx = <1 1024>;
-			sprd,pcie-dl-tx = <1 256>;
-			sprd,pcie-dl-rx = <1 256>;
-			sprd,pcie-ul-tx = <1 256>;
-			sprd,pcie-ul-rx = <1 256>;
 			sprd,cp-dl-tx = <1 1024>;
 			sprd,cp-dl-rx = <1 1024>;
 			sprd,cp-ul-tx = <1 1024>;
