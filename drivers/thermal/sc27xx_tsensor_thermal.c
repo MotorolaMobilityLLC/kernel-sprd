@@ -137,9 +137,9 @@ static int sc27xx_tsensor_osc_temp_read(struct sc27xx_tsen *tsen, int *temp)
 
 	/*
 	 * According to the requirements of design document,
-	 * tsensor osc temp = 3880400 - (7674 * rawdata) / 100
+	 * tsensor osc temp = 3880400 - (7770 * rawdata) / 100
 	 */
-	*temp = 3880400 - (7674 * rawdata) / 100;
+	*temp = 3880400 - (7770 * rawdata) / 100;
 
 	return ret;
 }
