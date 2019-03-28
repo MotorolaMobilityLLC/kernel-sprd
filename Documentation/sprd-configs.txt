@@ -681,7 +681,7 @@ CONFIG_ARM_ARCH_TIMER_OOL_WORKAROUND
 	[function]
 CONFIG_ARM_CPUIDLE
 	[arch] arm64
-	[plat] sharkl3,sharkl5
+	[plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] cpuidle
 	[must] user
@@ -1734,7 +1734,7 @@ CONFIG_CPU_HAS_ASID
 	[function] Enable kernel support ASID.
 CONFIG_CPU_IDLE
 	[arch] arm64
-	[plat] sharkl3,sharkl5
+	[plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] cpuidle
 	[must] console
@@ -1748,14 +1748,14 @@ CONFIG_CPU_IDLE_GOV_LADDER
 	[function]
 CONFIG_CPU_IDLE_GOV_MENU
 	[arch] arm64
-	[plat] sharkl3,sharkl5
+	[plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] cpuidle
 	[must] user
 	[function] Menu governor (for tickless system).
 CONFIG_CPU_IDLE_MULTIPLE_DRIVERS
 	[arch] arm64
-	[plat] sharkl3,sharkl5
+	[plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] cpuidle
 	[must] user
@@ -2878,7 +2878,7 @@ CONFIG_DTC
 	[function] Support the device-tree-compiler.
 CONFIG_DT_IDLE_STATES
 	[arch] arm64
-	[plat] sharkl3,sharkl5
+	[plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] cpuidle
 	[must] user
