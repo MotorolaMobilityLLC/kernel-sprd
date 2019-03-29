@@ -189,6 +189,8 @@ static  int dvfs_map_tbl_init(void *clu)
 			return -ENOMEM;
 
 		cluster->opp_map_tbl = tbl;
+	} else {
+		tbl = cluster->opp_map_tbl;
 	}
 
 	for (row = 0; row < cluster->tbl_row_num; ++row) {

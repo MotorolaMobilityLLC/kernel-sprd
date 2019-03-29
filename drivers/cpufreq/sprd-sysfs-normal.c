@@ -401,8 +401,10 @@ int cpudvfs_sysfs_create(struct cpudvfs_archdata *pdev)
 	}
 
 	size = dcdc_group_array_init(pdev, &dcdc_group_array);
-	if (size < 0)
-		return size;
+	if (size < 0) {
+		ret = size;
+		goto sysfs_error;
+	}
 
 	dcdc_kobj = kobject_create_and_add("dcdc", cpudvfs_kobj);
 	if (!dcdc_kobj) {
@@ -427,9 +429,9 @@ int cpudvfs_sysfs_create(struct cpudvfs_archdata *pdev)
 
 dcdc_error:
 	kobject_put(dcdc_kobj);
+	kfree(dcdc_group_array);
 sysfs_error:
 	kobject_put(cpudvfs_kobj);
-	kfree(dcdc_group_array);
 cpudvfs_kobj_error:
 	kobject_put(cpufreq_global_kobject);
 	kfree(group_array);
