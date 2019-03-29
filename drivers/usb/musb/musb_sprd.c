@@ -747,6 +747,7 @@ static void sprd_musb_work(struct work_struct *work)
 		glue->charging_mode = false;
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
+		glue->dr_mode = USB_DR_MODE_UNKNOWN;
 		spin_unlock_irqrestore(&glue->lock, flags);
 		if (!charging_only)
 			__pm_relax(&glue->wake_lock);
@@ -1120,7 +1121,6 @@ static int musb_sprd_runtime_suspend(struct device *dev)
 
 	if (!musb->shutdowning)
 		usb_phy_shutdown(glue->xceiv);
-	glue->dr_mode = USB_DR_MODE_UNKNOWN;
 	dev_info(dev, "enter into suspend mode\n");
 
 	return 0;
