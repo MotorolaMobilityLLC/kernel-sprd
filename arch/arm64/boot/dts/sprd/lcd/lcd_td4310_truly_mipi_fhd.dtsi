@@ -73,7 +73,7 @@
 			];
 
 		display-timings {
-			lcd_td4310_fhd_timing0: timing0 {
+			timing0 {
 				clock-frequency = <153600000>;
 				hactive = <1080>;
 				vactive = <2160>;
@@ -83,6 +83,17 @@
 				vfront-porch = <2>;
 				hsync-len = <2>;
 				vsync-len = <4>;
+			};
+			timing1 {
+				clock-frequency = <153600000>;
+				hactive = <720>;
+				vactive = <1440>;
+				hback-porch = <20>;
+				hfront-porch = <50>;
+				vback-porch = <28>;
+				vfront-porch = <4>;
+				hsync-len = <2>;
+				vsync-len = <2>;
 			};
 		};
 	};
