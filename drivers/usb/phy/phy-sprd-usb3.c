@@ -589,6 +589,8 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	if (ret)
 		dev_warn(dev, "failed to create usb ssphy attributes\n");
 
+	if (extcon_get_state(phy->phy.edev, EXTCON_USB) > 0)
+		usb_phy_set_charger_state(&phy->phy, USB_CHARGER_PRESENT);
 	return 0;
 }
 
