@@ -81,3 +81,7 @@
 &vddwcn {
 	regulator-always-on;
 };
+
+&sdio3 {
+	status = "okay";
+};
