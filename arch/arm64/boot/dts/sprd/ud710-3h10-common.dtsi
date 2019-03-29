@@ -472,6 +472,11 @@
 			memory-region = <&vdsp_reserved>;
 		};
 	};
+
+	autotest: autotest {
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
 };
 
 &sdio0 {
