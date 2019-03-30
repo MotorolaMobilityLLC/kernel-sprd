@@ -1354,6 +1354,7 @@ static void sprd_headset_button_release_verify(void)
 		hdst->btns_pressed &= ~SPRD_BUTTON_JACK_MASK;
 		sprd_set_eic_trig_level(HDST_BDET_EIC, true);
 	}
+	hdst->btn_detecting = false;
 }
 
 static void sprd_headset_removed_verify(struct sprd_headset *hdst)
@@ -1377,6 +1378,7 @@ static void sprd_headset_sw_reset(struct sprd_headset *hdst)
 	hdst->eic_type = 0;
 	hdst->plug_state_last = 0;
 	hdst->headphone = HEADSET_TYPE_ERR;
+	hdst->btn_detecting = false;
 }
 
 static void sprd_headset_disable_power(struct sprd_headset *hdst)
@@ -1609,8 +1611,6 @@ static void sprd_process_4pole_type(struct sprd_headset *hdst,
 		hdst->hdst_type_status = SND_JACK_HEADSET;
 		sprd_headset_jack_report(hdst, &hdst->hdst_jack,
 			hdst->hdst_type_status, SND_JACK_HEADSET);
-		sprd_headset_eic_enable(HDST_BDET_EIC, true);
-		sprd_headset_eic_trig(HDST_BDET_EIC);
 		hdst->plug_state_last = 1;
 	}
 	if (hdst->hdst_type_status == SND_JACK_HEADPHONE) {
@@ -1763,8 +1763,7 @@ sprd_headset_prepare_next_plugin(struct sprd_headset_platform_data *pdata,
 		if (rc == 0) {
 			pr_err("failed to wait ldetl plug out\n");
 			pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
-			sprd_hmicbias_hw_control_enable(true, pdata);
-			sprd_headset_prepare_ldetl();
+			sprd_headset_reset(hdst);
 		}
 		hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
 	} else if (pdata->jack_type == JACK_TYPE_NC) {
@@ -2279,9 +2278,8 @@ static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 		ret = cancel_delayed_work(&hdst->ldetl_work);
 		queue_delayed_work(hdst->ldetl_work_q,
 			&hdst->ldetl_work, msecs_to_jiffies(0));
-		pr_info("%s ldetl irq active, ldetl_trig_val_last %d,plug_state_last %d, ldetl_plug_in %d\n",
-			__func__, hdst->ldetl_trig_val_last,
-			hdst->plug_state_last, hdst->ldetl_plug_in);
+		pr_info("%s ldetl irq active, plug_state_last %d\n",
+			__func__, hdst->plug_state_last);
 	}
 	if (eic_mis & BIT(HDST_BDET_EIC)) {/* bdet */
 		ret = cancel_delayed_work(&hdst->btn_work);
