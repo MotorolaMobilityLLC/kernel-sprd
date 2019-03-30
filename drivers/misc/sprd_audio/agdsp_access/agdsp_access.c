@@ -241,20 +241,21 @@ static int agdsp_access_initialize(struct platform_device *pdev,
 #else
 	dsp_ac->smem_phy_addr = smem_alloc(dsp_ac->smem_size);
 #endif
-	if (!dsp_ac->smem_phy_addr) {
-		pr_err("%s,smem_phy_addr is 0.\n", __func__);
-		goto error;
-	}
- #ifdef CONFIG_SPRD_SIPC_V2
-	dsp_ac->state = shmem_ram_vmap_nocache(SIPC_ID_PSCP,
+	if (dsp_ac->smem_phy_addr) {
+#ifdef CONFIG_SPRD_SIPC_V2
+		dsp_ac->state = shmem_ram_vmap_nocache(SIPC_ID_PSCP,
 					       dsp_ac->smem_phy_addr,
 					       sizeof(struct agdsp_access_state)
 					       );
 #else
-	dsp_ac->state = shmem_ram_vmap_nocache(dsp_ac->smem_phy_addr,
+		dsp_ac->state = shmem_ram_vmap_nocache(dsp_ac->smem_phy_addr,
 					       sizeof(struct agdsp_access_state)
 					       );
 #endif
+	} else {
+		dsp_ac->state = kzalloc(sizeof(struct agdsp_access_state),
+					GFP_KERNEL);
+	}
 	if (!dsp_ac->state) {
 		pr_err("%s,shmem_ram_vmap_nocache return 0.\n", __func__);
 		goto error;
@@ -295,6 +296,10 @@ static int agdsp_access_initialize(struct platform_device *pdev,
 	dsp_ac->ready = true;
 	return 0;
 error:
+	if (!dsp_ac->smem_phy_addr && dsp_ac->state) {
+		kfree(dsp_ac->state);
+		dsp_ac->state = NULL;
+	}
 #ifdef CONFIG_SPRD_SIPC_V2
 	if (dsp_ac->state)
 		shmem_ram_unmap(SIPC_ID_PSCP, dsp_ac->state);
