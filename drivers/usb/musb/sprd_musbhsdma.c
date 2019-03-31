@@ -1244,7 +1244,7 @@ static void sprd_musb_dma_completion(struct musb *musb, u8 epnum, u8 transmit)
 		musb_g_giveback(musb_ep, request, 0);
 	} while (!list_empty(&musb_channel->req_queued));
 
-	musb_ep->dma->status = MUSB_DMA_STATUS_FREE;
+	channel->status = MUSB_DMA_STATUS_FREE;
 	musb_req = musb_ep->desc ? next_request(musb_ep) : NULL;
 	if (!musb_req) {
 		dev_dbg(musb->controller, "%s idle now\n",
