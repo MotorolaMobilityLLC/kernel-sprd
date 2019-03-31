@@ -612,6 +612,13 @@ static void dpu_wb_work_func(struct work_struct *data)
 
 	down(&ctx->refresh_lock);
 
+	if (!ctx->is_inited) {
+		wb_en = false;
+		up(&ctx->refresh_lock);
+		pr_err("dpu is not initialized\n");
+		return;
+	}
+
 	if (wb_en && (vsync_count > max_vsync_count))
 		dpu_write_back(ctx, 1, false);
 	else if (!wb_en)
