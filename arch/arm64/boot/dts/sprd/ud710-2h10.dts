@@ -73,20 +73,20 @@
 	};
 
 	sprd_marlin3: sprd-marlin3 {
-		permit-ap-send-gpios = <&ap_gpio 69 0>;
-		m2-to-ap-irq-gpios = <&ap_gpio 96 0>;
-		rstn-gpios = <&ap_gpio 126 0>;
-		chip-en-gpios = <&ap_gpio 77 0>;
-		dvdd12-supply = <&vddmem>;
+		compatible = "sprd,marlin3";
+		reset-gpios = <&ap_gpio 126 GPIO_ACTIVE_LOW>;
+		enable-gpios = <&ap_gpio 77 GPIO_ACTIVE_LOW>;
+		m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
+		/* no need config dvdd12 because of share vddmem to DDR */
 		avdd12-supply = <&vddgen1>;
 		avdd33-supply = <&vddwifipa>;
 		dcxo18-supply = <&vddldo0>;
-		common_chip_en;
-		sprd,wait-ge2-disabled;
-		adma_tx_enable;
-		adma_rx_enable;
-		pwrseq_disable;
-		post-power-on-delay-ms = <20>;
+		clock-names = "clk_32k","source","enable";
+		clocks = <&aon_clk CLK_AON_AUX0>,
+			 <&ext_32k>,
+			 <&aonapb_gate CLK_AUX0_EB>;
+		sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/wcnmodem";
+		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
 	};
 
 	sprd-wlan {
