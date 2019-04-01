@@ -88,7 +88,7 @@ struct sk_buff *alloc_recv_skb(u32 req_len, u8 rsvd)
 	struct sk_buff *skb;
 	u32 hr;
 
-	skb = __dev_alloc_skb(req_len + rsvd, GFP_KERNEL);
+	skb = __dev_alloc_skb(req_len + rsvd, GFP_KERNEL | GFP_NOWAIT);
 	if (!skb) {
 		pr_err("failed to alloc skb!\n");
 		return NULL;
