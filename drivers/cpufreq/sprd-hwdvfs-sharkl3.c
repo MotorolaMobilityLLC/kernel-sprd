@@ -292,9 +292,6 @@ static struct sprd_hwdvfs_l3_reg dcdc_data[DCDC_DATA_MAX] = {
 };
 
 #define SPRD_HWDVFS_MAX_FREQ_VOLT 8
-#define SPRD_HWDVFS_CHNL00_DEF_FREQ 2
-#define SPRD_HWDVFS_CHNL01_DEF_FREQ 5
-#define SPRD_HWDVFS_CHNL02_DEF_FREQ 5
 
 #define SPRD_HWDVFS_BUSY_DURATOIN (2ul * HZ)
 
@@ -308,6 +305,7 @@ enum sprd_hwdvfs_l3_chnl {
 enum sprd_hwdvfs_l3_type {
 	UNKNOWN_HWDVFS,
 	SPRD_HWDVFS_SHARKL3,
+	SPRD_HWDVFS_SHARKL3_3H10,
 };
 
 struct sprd_hwdvfs_l3_group {
@@ -317,15 +315,36 @@ struct sprd_hwdvfs_l3_group {
 	unsigned long volt;
 };
 
+struct sprd_hwdvfs_l3_info {
+	unsigned int type;
+	unsigned int def_freq0;
+	unsigned int def_freq1;
+	unsigned int def_freq2;
+};
+
+static const struct sprd_hwdvfs_l3_info sprd_hwdvfs_l3_info_1h10 = {
+	.type = SPRD_HWDVFS_SHARKL3,
+	.def_freq0 = 2,
+	.def_freq1 = 3,
+	.def_freq2 = 3,
+};
+
+static const struct sprd_hwdvfs_l3_info sprd_hwdvfs_l3_info_3h10 = {
+	.type = SPRD_HWDVFS_SHARKL3_3H10,
+	.def_freq0 = 2,
+	.def_freq1 = 3,
+	.def_freq2 = 3,
+};
+
 struct sprd_hwdvfs_l3 {
 	struct regmap *aon_apb_base;
 	struct regmap *anlg_phy_g4_ctrl;
 	void __iomem *base;
+	const struct sprd_hwdvfs_l3_info *info;
 	struct i2c_client *i2c_client;
 	struct completion i2c_done;
 	unsigned int on_i2c[HWDVFS_CHNL_MAX];
 	unsigned int dcdc_index[HWDVFS_CHNL_MAX];
-	enum sprd_hwdvfs_l3_type type;
 	int irq;
 	bool probed;
 	bool ready;
@@ -341,9 +360,6 @@ struct sprd_hwdvfs_l3 {
 	int idx_max[HWDVFS_CHNL_MAX];
 };
 
-struct sprd_hwdvfs_l3_data {
-	enum sprd_hwdvfs_l3_type type;
-};
 
 static struct sprd_hwdvfs_l3 *hwdvfs_l3;
 static struct kobject *hwdvfs_l3_kobj;
@@ -354,14 +370,14 @@ static int sprd_hwdvfs_set_clst0(unsigned int scalecode00,
 static int sprd_hwdvfs_set_clst1_scu(unsigned int scalecode01,
 				     bool sync, bool force);
 
-static const struct sprd_hwdvfs_l3_data sharkl3_data = {
-	.type = SPRD_HWDVFS_SHARKL3,
-};
-
 static const struct of_device_id sprd_hwdvfs_l3_of_match[] = {
 	{
 		 .compatible = "sprd,sharkl3-hwdvfs",
-		 .data = &sharkl3_data,
+		 .data = (void *)&sprd_hwdvfs_l3_info_1h10,
+	},
+	{
+		 .compatible = "sprd,sharkl3-hwdvfs-3h10",
+		 .data = (void *)&sprd_hwdvfs_l3_info_3h10,
 	},
 };
 
@@ -590,9 +606,9 @@ static ssize_t hwdvfs_enable_store(struct device *dev,
 	/*  TODO: need to enable magic number and add spinlock here */
 	switch (en) {
 	case 0:
-		if (!sprd_hwdvfs_set_clst0(SPRD_HWDVFS_CHNL00_DEF_FREQ,
+		if (!sprd_hwdvfs_set_clst0(hwdvfs_l3->info->def_freq0,
 					   true, true) &&
-		    !sprd_hwdvfs_set_clst1_scu(SPRD_HWDVFS_CHNL01_DEF_FREQ,
+		    !sprd_hwdvfs_set_clst1_scu(hwdvfs_l3->info->def_freq1,
 					       true, true)) {
 			hwdvfs_l3->probed = false;
 			dvfs_wr(DVFS_CTRL_MAGIC_NUM_UNLOCK,
@@ -607,9 +623,9 @@ static ssize_t hwdvfs_enable_store(struct device *dev,
 		dvfs_wr(VAL2REG(0x1, BIT_DVFS_CTRL_HW_DVFS_SEL),
 			REG_DVFS_CTRL_HW_DVFS_SEL);
 		hwdvfs_l3->probed = true;
-		sprd_hwdvfs_set_clst0(SPRD_HWDVFS_CHNL00_DEF_FREQ,
+		sprd_hwdvfs_set_clst0(hwdvfs_l3->info->def_freq0,
 				      true, true);
-		sprd_hwdvfs_set_clst1_scu(SPRD_HWDVFS_CHNL01_DEF_FREQ,
+		sprd_hwdvfs_set_clst1_scu(hwdvfs_l3->info->def_freq1,
 					  true, true);
 		pr_debug("ENABLE HWDVFS!\n");
 		break;
@@ -966,22 +982,25 @@ static int sprd_hwdvfs_l3_init_param(struct device_node *np)
 	dvfs_wr(BIT_DVFS_CTRL_FMUX_STABLE_VAL(TMR_CTRL_FMUX_US),
 		REG_DVFS_CTRL_TMR_CTRL_FMUX);
 
+	regval = hwdvfs_l3->info->def_freq0 ? 0x06 : 0x02;
 	dvfs_wr(VAL2REG(0x00, BIT_DVFS_CTRL_FCFG_PD_SW_CHNL00) |
 		BIT_DVFS_CTRL_FSEL_PARK_CHNL00(0x02) |
 		BIT_DVFS_CTRL_FSEL_BKP_CHNL00(0x02) |
-		BIT_DVFS_CTRL_FSEL_SW_CHNL00(0x06),
+		BIT_DVFS_CTRL_FSEL_SW_CHNL00(regval),
 		REG_DVFS_CTRL_CFG_CHNL00);
 
+	regval = hwdvfs_l3->info->def_freq1 ? 0x07 : 0x02;
 	dvfs_wr(VAL2REG(0x00, BIT_DVFS_CTRL_FCFG_PD_SW_CHNL01) |
 		BIT_DVFS_CTRL_FSEL_PARK_CHNL01(0x02) |
 		BIT_DVFS_CTRL_FSEL_BKP_CHNL01(0x02) |
-		BIT_DVFS_CTRL_FSEL_SW_CHNL01(0x07),
+		BIT_DVFS_CTRL_FSEL_SW_CHNL01(regval),
 		REG_DVFS_CTRL_CFG_CHNL01);
 
+	regval = hwdvfs_l3->info->def_freq2 ? 0x05 : 0x02;
 	dvfs_wr(VAL2REG(0x00, BIT_DVFS_CTRL_FCFG_PD_SW_CHNL02) |
 		BIT_DVFS_CTRL_FSEL_PARK_CHNL02(0x02) |
 		BIT_DVFS_CTRL_FSEL_BKP_CHNL02(0x02) |
-		BIT_DVFS_CTRL_FSEL_SW_CHNL02(0x05),
+		BIT_DVFS_CTRL_FSEL_SW_CHNL02(regval),
 		REG_DVFS_CTRL_CFG_CHNL02);
 
 
@@ -1665,13 +1684,13 @@ static unsigned int sprd_hwdvfs_l3_get(void *drvdata, int cluster)
 	} else {
 		switch (cluster) {
 		case HWDVFS_CHNL00:
-			regval = SPRD_HWDVFS_CHNL00_DEF_FREQ;
+			regval = hwdvfs_l3->info->def_freq0;
 			break;
 		case HWDVFS_CHNL01:
-			regval = SPRD_HWDVFS_CHNL01_DEF_FREQ;
+			regval = hwdvfs_l3->info->def_freq1;
 			break;
 		case HWDVFS_CHNL02:
-			regval = SPRD_HWDVFS_CHNL02_DEF_FREQ;
+			regval = hwdvfs_l3->info->def_freq2;
 			break;
 		default:
 			break;
@@ -1681,13 +1700,13 @@ static unsigned int sprd_hwdvfs_l3_get(void *drvdata, int cluster)
 	if (regval > hwdvfs_l3->idx_max[cluster]) {
 		switch (cluster) {
 		case HWDVFS_CHNL00:
-			regval = SPRD_HWDVFS_CHNL00_DEF_FREQ;
+			regval = hwdvfs_l3->info->def_freq0;
 			break;
 		case HWDVFS_CHNL01:
-			regval = SPRD_HWDVFS_CHNL01_DEF_FREQ;
+			regval = hwdvfs_l3->info->def_freq1;
 			break;
 		case HWDVFS_CHNL02:
-			regval = SPRD_HWDVFS_CHNL02_DEF_FREQ;
+			regval = hwdvfs_l3->info->def_freq2;
 			break;
 		default:
 			break;
@@ -1760,9 +1779,9 @@ static bool sprd_hwdvfs_l3_enable(void *drvdata, int cluster, bool en)
 			dvfs_wr(VAL2REG(0x1, BIT_DVFS_CTRL_HW_DVFS_SEL),
 				REG_DVFS_CTRL_HW_DVFS_SEL);
 			hwdvfs_l3->enabled = true;
-			sprd_hwdvfs_set_clst0(SPRD_HWDVFS_CHNL00_DEF_FREQ,
+			sprd_hwdvfs_set_clst0(hwdvfs_l3->info->def_freq0,
 					      true, true);
-			sprd_hwdvfs_set_clst1_scu(SPRD_HWDVFS_CHNL01_DEF_FREQ,
+			sprd_hwdvfs_set_clst1_scu(hwdvfs_l3->info->def_freq1,
 						  true, true);
 			pr_info("ENABLE HWDVFS!\n");
 		}
@@ -1885,7 +1904,7 @@ static int sprd_hwdvfs_l3_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct regmap *aon_apb_base;
 	struct regmap *anlg_phy_g4_ctrl_base;
-	const struct sprd_hwdvfs_l3_data *pdata;
+	const struct sprd_hwdvfs_l3_info *pdata;
 	void __iomem *base;
 	int ret;
 	struct device_node *np = pdev->dev.of_node;
@@ -1922,9 +1941,9 @@ static int sprd_hwdvfs_l3_probe(struct platform_device *pdev)
 
 	atomic_set(&hwdvfs_l3_suspend, 0);
 	hwdvfs_l3->probed = false;
-	hwdvfs_l3->type = pdata->type;
 	hwdvfs_l3->aon_apb_base = aon_apb_base;
 	hwdvfs_l3->anlg_phy_g4_ctrl = anlg_phy_g4_ctrl_base;
+	hwdvfs_l3->info = pdata;
 
 	init_completion(&hwdvfs_l3->i2c_done);
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
