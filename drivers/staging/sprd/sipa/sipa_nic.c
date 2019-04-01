@@ -208,7 +208,7 @@ void sipa_nic_push_skb(struct sipa_nic *nic, struct sk_buff *skb)
 
 	spin_lock_irqsave(&nic->lock, flags);
 	skb_queue_tail(&nic->rx_skb_q, skb);
-	if (nic->rx_skb_q.qlen)
+	if (nic->rx_skb_q.qlen == 1)
 		nic->need_notify = 1;
 	spin_unlock_irqrestore(&nic->lock, flags);
 }
