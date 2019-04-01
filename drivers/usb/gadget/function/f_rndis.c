@@ -71,7 +71,7 @@
  */
 
 static unsigned int rndis_dl_max_pkt_per_xfer = 10;
-static unsigned int rndis_ul_max_pkt_per_xfer = 1;
+static unsigned int rndis_ul_max_pkt_per_xfer = 3;
 
 struct f_rndis {
 	struct gether			port;
