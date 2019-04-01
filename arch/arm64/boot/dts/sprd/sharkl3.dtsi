@@ -769,6 +769,10 @@
 				interrupts = <GIC_SPI 121 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			sprd_swdvfs: sprd-swdvfs {
+				compatible = "sprd,sharkl3-swdvfs";
+			};
+
 			watchdog@40310000 {
 				compatible = "sprd,sharkl3-wdt";
 				reg = <0x40310000 0x1000>;
