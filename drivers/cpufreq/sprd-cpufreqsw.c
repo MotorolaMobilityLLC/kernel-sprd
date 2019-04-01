@@ -36,6 +36,14 @@ static int sprd_cpufreq_set_boost(int state);
 static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data,
 				   unsigned int idx, bool force);
 
+static const struct of_device_id sprd_swdvfs_of_match[] = {
+	{
+		.compatible = "sprd,sharkl3-swdvfs",
+	},
+	{},
+};
+MODULE_DEVICE_TABLE(of, sprd_swdvfs_of_match);
+
 static int sprd_verify_opp_with_regulator(struct device *cpu_dev,
 					  struct regulator *cpu_reg,
 					  unsigned int volt_tol)
@@ -1370,27 +1378,14 @@ static int sprd_cpufreq_remove(struct platform_device *pdev)
 }
 
 static struct platform_driver sprd_cpufreq_platdrv = {
-	.driver = {
-		.name	= "sprd-cpufreq",
-		.owner	= THIS_MODULE,
-	},
 	.probe		= sprd_cpufreq_probe,
 	.remove		= sprd_cpufreq_remove,
+	.driver = {
+		.name	= "sprd_swdvfs",
+		.of_match_table	= sprd_swdvfs_of_match,
+	},
 };
-
 module_platform_driver(sprd_cpufreq_platdrv);
-
-/* If required, we can move device registration code in other file */
-static struct platform_device sprd_cpufreq_pdev = {
-	.name = "sprd-cpufreq",
-};
-
-static int  __init sprd_cpufreq_init_pdev(void)
-{
-	return platform_device_register(&sprd_cpufreq_pdev);
-}
-
-device_initcall(sprd_cpufreq_init_pdev);
 
 MODULE_DESCRIPTION("spreadtrum cpufreq driver");
 MODULE_LICENSE("GPL v2");
