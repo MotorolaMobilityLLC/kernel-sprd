@@ -6810,14 +6810,6 @@ CONFIG_NETFILTER_XT_MATCH_POLICY
 	[subsys] net
 	[must] user
 	[function] vts require, IPsec "policy" match support
-CONFIG_NETFILTER_XT_MATCH_QTAGUID
-	[arch] all
-	[plat] all
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[function] AndroidQ Must Disabled. The CONFIG meaningless (functional unrealized)!
-	     Here is just for the sake of AndroidQ Vintf-Check pass. (See: bug1034278)
 CONFIG_NETFILTER_XT_MATCH_QUOTA
 	[arch] all
 	[plat] all
