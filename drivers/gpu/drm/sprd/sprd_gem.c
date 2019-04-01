@@ -54,12 +54,9 @@ void sprd_gem_free_object(struct drm_gem_object *obj)
 
 	DRM_DEBUG("gem = %p\n", obj);
 
-	if (sprd_gem->vaddr) {
-		if (sprd_gem->base.dma_buf)
-			ion_free(sprd_gem->base.dma_buf);
-		else
-			dma_free_writecombine(obj->dev->dev, obj->size,
-				      sprd_gem->vaddr, sprd_gem->dma_addr);
+	if (sprd_gem->vaddr && !sprd_gem->fb_reserved) {
+		dma_free_writecombine(obj->dev->dev, obj->size,
+			sprd_gem->vaddr, sprd_gem->dma_addr);
 	} else if (sprd_gem->sgtb)
 		drm_prime_gem_destroy(obj, sprd_gem->sgtb);
 
@@ -104,6 +101,7 @@ int sprd_gem_cma_dumb_create(struct drm_file *file_priv, struct drm_device *drm,
 		sprd_gem->base.dma_buf = dmabuf;
 		sprd_gem->dma_addr = phyaddr;
 		sprd_gem->vaddr = sprd_ion_map_kernel(dmabuf, 0);
+		sprd_gem->fb_reserved = true;
 
 		if (!sprd_gem->vaddr) {
 			DRM_ERROR("failed to allocate buffer with size %llu\n",

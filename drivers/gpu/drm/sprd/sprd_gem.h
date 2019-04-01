@@ -21,6 +21,7 @@ struct sprd_gem_obj {
 	dma_addr_t		dma_addr;
 	struct sg_table		*sgtb;
 	void			*vaddr;
+	bool			fb_reserved;
 };
 
 #define to_sprd_gem_obj(x)	container_of(x, struct sprd_gem_obj, base)
