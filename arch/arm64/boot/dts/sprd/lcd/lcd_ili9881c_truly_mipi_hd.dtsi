@@ -231,10 +231,10 @@
 				vactive = <1280>;
 				hback-porch = <26>;
 				hfront-porch = <52>;
-				vback-porch = <9>;
-				vfront-porch = <5>;
+				vback-porch = <11>;
+				vfront-porch = <1>;
 				hsync-len = <25>;
-				vsync-len = <2>;
+				vsync-len = <4>;
 			};
 		};
 	};
