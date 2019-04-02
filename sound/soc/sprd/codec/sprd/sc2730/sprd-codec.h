@@ -2182,6 +2182,8 @@
 #define FGU_LOW_LIMIT_INT_CLR       BIT(1)
 #define FGU_HIGH_LIMIT_INT_CLR      BIT(0)
 
+#define ANA_INT33_CODEC_INTC_CLR(x)            (((x) & GENMASK(14, 0)))
+
 /*
  * Register Name   : AUD_CFGA_RF_ANA_INT34
  * Register Offset : 0x0288
@@ -2204,7 +2206,7 @@
 #define FGU_LOW_LIMIT_INT_SHADOW_STATUS      BIT(1)
 #define FGU_HIGH_LIMIT_INT_SHADOW_STATUS     BIT(0)
 
-#define ANA_INT34_BITS_SET(x)                (((x) & GENMASK(15, 0)))
+#define ANA_INT34_BITS_SET(x)                (((x) & GENMASK(14, 0)))
 /*
  * Register Name   : AUD_CFGA_RF_ANA_INT35
  * Register Offset : 0x028C

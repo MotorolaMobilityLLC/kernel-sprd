@@ -69,6 +69,8 @@
 #define ABS(x) (((x) < (0)) ? (-(x)) : (x))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
+#define SPRD_HEADSET_INTC_MASK GENMASK(15, 0)
+
 #define headset_reg_read(reg, val) \
 	sci_adi_read(CODEC_REG((reg)), val)
 
@@ -464,16 +466,16 @@ static int sprd_headset_adc_get(struct iio_channel *chan)
 	return val;
 }
 
-static void sprd_intc_force_clear(int force_clear)
+static void sprd_intc_force_clear(bool force_clear, u32 bits)
 {
-	if (force_clear == 1) {
+	if (force_clear) {
 		/* clear bit14 of reg 0x288, reg 0x28c, clear all analog intc */
-		headset_reg_write_force(ANA_INT33, 0x4000, 0xffff);
-		pr_info("%s INT8(220.MIS) %x\n", __func__,
-			sprd_read_reg_value(ANA_INT8));
-	} else if (force_clear == 0) {
+		headset_reg_write_force(ANA_INT33, bits, bits);
+		pr_info("intc force clear, INT8(220.MIS) %x, bits %x\n",
+			sprd_read_reg_value(ANA_INT8), bits);
+	} else {
 		/*set bit14 to 0, equal to enable intc */
-		headset_reg_write_force(ANA_INT33, 0x0, 0xffff);
+		headset_reg_write_force(ANA_INT33, 0, bits);
 	}
 }
 
@@ -638,7 +640,7 @@ static void sprd_headset_prepare_ldetl(void)
 {
 	sprd_set_eic_trig_level(HDST_LDETL_EIC, true);
 	sprd_headset_eic_clear(HDST_LDETL_EIC);
-	sprd_intc_force_clear(0);
+	sprd_intc_force_clear(false, ANA_INT_CLR);
 	sprd_headset_eic_enable(HDST_LDETL_EIC, true);
 	sprd_headset_eic_trig(HDST_LDETL_EIC);
 	/*
@@ -712,6 +714,20 @@ static void sprd_headset_intc_enable(bool enable)
 		headset_reg_clr_bits(ANA_INT32, ANA_INT_EN);
 }
 
+void sprd_codec_intc_enable(bool enable, u32 irq_bit)
+{
+	if (enable)
+		headset_reg_set_bits(ANA_INT32, irq_bit);
+	else
+		headset_reg_clr_bits(ANA_INT32, irq_bit);
+}
+
+static bool sprd_codec_intc_status_check(unsigned int intc_status)
+{
+	return intc_status & (FGU_HIGH_LIMIT_INT_SHADOW_STATUS |
+			      FGU_LOW_LIMIT_INT_SHADOW_STATUS);
+}
+
 /*
  * Si.chen ask to set val like this:
  * 0x3 for 3 pole and selfie stick,
@@ -764,8 +780,8 @@ static void sprd_headset_eic_init(void)
 	/* init internal EIC */
 	sprd_set_all_eic_trig_level(true);
 	sprd_headset_all_eic_enable(false);
-	sprd_intc_force_clear(1);
-	sprd_intc_force_clear(0);
+	sprd_intc_force_clear(true, SPRD_HEADSET_INTC_MASK);
+	sprd_intc_force_clear(false, SPRD_HEADSET_INTC_MASK);
 
 	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
 }
@@ -1074,7 +1090,7 @@ sprd_detect_type_through_mdet(struct sprd_headset *hdst)
 	reinit_completion(&hdst->wait_mdet);
 	sprd_headset_eic_enable(HDST_MDET_EIC, true);
 	sprd_headset_eic_trig(HDST_MDET_EIC);
-	sprd_intc_force_clear(0);
+	sprd_intc_force_clear(false, ANA_INT_CLR);
 	sprd_ldetl_filter_enable(false);
 	rc = wait_for_completion_timeout(&hdst->wait_mdet,
 		msecs_to_jiffies(INSERT_ALL_WAIT_MDET_COMPL_MS));
@@ -1399,7 +1415,7 @@ static void sprd_headset_reset(struct sprd_headset *hdst)
 	pr_err("%s hdst_hw_status %s\n", __func__,
 		eic_hw_state[hdst->hdst_hw_status]);
 	pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
-	sprd_intc_force_clear(1);
+	sprd_intc_force_clear(true, ANA_INT33_CODEC_INTC_CLR(0x7fff));
 	sprd_ldetl_filter_enable(false);
 	sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 	sprd_headset_button_release_verify();
@@ -1412,7 +1428,7 @@ static void sprd_headset_reset(struct sprd_headset *hdst)
 	sprd_headset_all_eic_enable(false);
 	sprd_headset_clear_all_eic();
 	sprd_set_all_eic_trig_level(true);
-	sprd_intc_force_clear(0);
+	sprd_intc_force_clear(false, ANA_INT33_CODEC_INTC_CLR(0x7fff));
 	sprd_headset_eic_plugin_enable();
 }
 
@@ -1448,7 +1464,7 @@ static void sprd_headset_reinit_mdet_eic(void)
 	sprd_headset_eic_clear(HDST_MDET_EIC);
 	sprd_headset_eic_enable(HDST_MDET_EIC, true);
 	sprd_headset_eic_trig(HDST_MDET_EIC);
-	sprd_intc_force_clear(0);
+	sprd_intc_force_clear(false, ANA_INT_CLR);
 }
 
 static void sprd_mdet_eic_work(struct work_struct *work)
@@ -1467,7 +1483,7 @@ static void sprd_mdet_eic_work(struct work_struct *work)
 	/* disable MDET */
 	sprd_headset_eic_enable(HDST_MDET_EIC, false);
 	sprd_headset_eic_clear(HDST_MDET_EIC);
-	sprd_intc_force_clear(0);
+	sprd_intc_force_clear(false, ANA_INT_CLR);
 
 	headset_reg_read(ANA_STS0, &val);
 	pr_info("%s STS0 0x%x\n", __func__, val);
@@ -1506,7 +1522,7 @@ static int sprd_headset_button_status(void)
 static void sprd_headset_button_eic_reenable(void)
 {
 	sprd_headset_eic_clear(HDST_BDET_EIC);
-	sprd_intc_force_clear(0);
+	sprd_intc_force_clear(false, ANA_INT_CLR);
 	sprd_headset_eic_trig(HDST_BDET_EIC);
 }
 
@@ -1692,7 +1708,7 @@ static void sprd_headset_prepare_insert_all_plugout(
 	sprd_set_eic_trig_level(HDST_INSERT_ALL_EIC, false);
 	sprd_headset_eic_enable(HDST_INSERT_ALL_EIC, true);
 	sprd_headset_eic_trig(HDST_INSERT_ALL_EIC);
-	sprd_intc_force_clear(0);
+	sprd_intc_force_clear(false, ANA_INT_CLR);
 }
 
 static void
@@ -1925,7 +1941,7 @@ static void sprd_headset_insert_all_plugout(struct sprd_headset *hdst)
 	sprd_headset_eic_clear(HDST_INSERT_ALL_EIC);
 	sprd_set_all_eic_trig_level(true);
 	sprd_headset_all_eic_enable(false);
-	sprd_intc_force_clear(0);
+	sprd_intc_force_clear(false, ANA_INT_CLR);
 	sprd_headset_clear_all_eic();
 }
 
@@ -2064,6 +2080,18 @@ static void headset_ldetl_work_func(struct work_struct *work)
 	down(&hdst->sem);
 
 	pr_info("%s enter\n", __func__);
+
+	/* codec intc irq */
+	if (hdst->codec_intc) {
+		unsigned int codec_intc = hdst->codec_intc;
+
+		hdst->codec_intc = 0;
+		sprd_codec_intc_irq(hdst->codec, codec_intc);
+		sprd_intc_force_clear(0, codec_intc);
+		up(&hdst->sem);
+		return;
+	}
+
 	val = sprd_get_eic_mis_status(12);
 	if (val == 0) {
 		sprd_headset_reset(hdst);
@@ -2075,8 +2103,8 @@ static void headset_ldetl_work_func(struct work_struct *work)
 	if (ldetl_data_last != ldetl_data_current) {
 		pr_err("%s check debounce failed\n", __func__);
 		sprd_headset_eic_clear(12);
-		sprd_intc_force_clear(1);
-		sprd_intc_force_clear(0);
+		sprd_intc_force_clear(true, ANA_INT_CLR);
+		sprd_intc_force_clear(false, ANA_INT_CLR);
 		sprd_headset_eic_trig(12);
 		goto out;
 	}
@@ -2099,7 +2127,7 @@ static void headset_ldetl_work_func(struct work_struct *work)
 	sprd_hmicbias_hw_control_enable(false, pdata);
 	sprd_headset_eic_enable(12, 0);
 	sprd_set_eic_trig_level(12, 0);
-	sprd_intc_force_clear(1);
+	sprd_intc_force_clear(true, ANA_INT_CLR);
 	pr_info("%s %d ldetl_trig_val_last %d, plug_state_last %d, ldetl_plug_in %d\n",
 		__func__, __LINE__, hdst->ldetl_trig_val_last,
 		hdst->plug_state_last, hdst->ldetl_plug_in);
@@ -2113,10 +2141,10 @@ static void headset_ldetl_work_func(struct work_struct *work)
 		sprd_hmicbias_hw_control_enable(false, pdata);
 		sprd_headset_eic_enable(12, 0);
 		sprd_headset_eic_clear(12);
-		sprd_intc_force_clear(1);
+		sprd_intc_force_clear(true, ANA_INT_CLR);
 		sprd_set_eic_trig_level(12, 0);
 		usleep_range(3000, 3500);
-		sprd_intc_force_clear(0);
+		sprd_intc_force_clear(false, ANA_INT_CLR);
 		reinit_completion(&hdst->wait_insert_all);
 		sprd_set_eic_trig_level(10, 1);
 		sprd_headset_eic_enable(10, 1);
@@ -2220,72 +2248,74 @@ static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 	 * clear intc before trig top eic, or here may
 	 * receive invalid top eic irq.
 	 */
-	sprd_intc_force_clear(1);
+	sprd_intc_force_clear(true, val_intc);
 	irq_set_irq_type(hdst->irq_detect_int_all, IRQF_TRIGGER_HIGH);
 
-	if (!(val_intc & BIT(INTC_ALL_ANALOG))) {
-		pr_err("%s INTC_ALL_ANALOG not active\n", __func__);
-		/*
-		 * intc not active, so do not clear intc here, it may impact a
-		 * new coming eic. For the same reason, do not to clear any
-		 * eic here.
-		 */
-		sprd_headset_reset(hdst);
-		hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
-		return IRQ_HANDLED;
-	} else if (!sprd_headset_eic_mis_check(eic_mis)) {
-		pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
-		sprd_headset_reset(hdst);
-		return IRQ_HANDLED;
-	}
-	if (pdata->support_typec_hdst &&
-		!sprd_headset_typec_eic_mis_check(eic_mis)) {
-		pr_err("top_eic_handler only support bdet in typec analog headset, eic_mis 0x%x\n",
-			eic_mis);
-		return IRQ_HANDLED;
+	/* codec intc irq*/
+	if (sprd_codec_intc_status_check(val_intc)) {
+		hdst->codec_intc = val_intc;
+		__pm_wakeup_event(&hdst->hdst_detect_wakelock,
+				  msecs_to_jiffies(2000));
+		queue_delayed_work(hdst->ldetl_work_q, &hdst->ldetl_work, 0);
 	}
 
-	__pm_wakeup_event(&hdst->hdst_detect_wakelock, msecs_to_jiffies(2000));
-
-	if (eic_mis & BIT(HDST_INSERT_ALL_EIC)) {/* insert_all */
-		eic_type = sprd_insert_all_plug_inout_check();
-		if (pdata->jack_type == JACK_TYPE_NO &&
-			eic_type == INSERT_ALL_PLUGIN) {
-			complete(&hdst->wait_insert_all);
+	/* headset eic irq */
+	if (val_intc & BIT(INTC_ALL_ANALOG)) {
+		if (!sprd_headset_eic_mis_check(eic_mis)) {
+			pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+			sprd_headset_reset(hdst);
+			return IRQ_HANDLED;
+		}
+		if (pdata->support_typec_hdst &&
+			!sprd_headset_typec_eic_mis_check(eic_mis)) {
+			pr_err("top_eic_handler only support bdet in typec analog headset, eic_mis 0x%x\n",
+				eic_mis);
+			return IRQ_HANDLED;
 		}
 
-		ret = cancel_delayed_work(&hdst->det_all_work);
-		queue_delayed_work(hdst->det_all_work_q,
-			&hdst->det_all_work, msecs_to_jiffies(0));
-		pr_info("%s insert_all irq active, exit, ret %d\n",
-			__func__, ret);
-	}
-	if (eic_mis & BIT(HDST_MDET_EIC)) {/* mdet */
-		ret = cancel_delayed_work(&hdst->det_mic_work);
-		queue_delayed_work(hdst->det_mic_work_q,
-			&hdst->det_mic_work, msecs_to_jiffies(5));
-		pr_info("%s mdet irq active, ret %d\n", __func__, ret);
-	}
-	if (eic_mis & BIT(HDST_LDETL_EIC)) {/* ldetl */
-		if (pdata->jack_type == JACK_TYPE_NC) {
-			pr_err("%s: don't need ldetl_irq in JACK_TYPE_NC!\n",
-				__func__);
-			goto out;
-		}
-		if (sprd_headset_ldetl_inout_check() & LDETL_PLUGOUT)
-			complete(&hdst->wait_ldetl);
+		__pm_wakeup_event(&hdst->hdst_detect_wakelock,
+				  msecs_to_jiffies(2000));
 
-		ret = cancel_delayed_work(&hdst->ldetl_work);
-		queue_delayed_work(hdst->ldetl_work_q,
-			&hdst->ldetl_work, msecs_to_jiffies(0));
-		pr_info("%s ldetl irq active, plug_state_last %d\n",
-			__func__, hdst->plug_state_last);
-	}
-	if (eic_mis & BIT(HDST_BDET_EIC)) {/* bdet */
-		ret = cancel_delayed_work(&hdst->btn_work);
-		queue_delayed_work(hdst->btn_work_q,
-			&hdst->btn_work, msecs_to_jiffies(0));
-		pr_info("%s bdet irq active, ret %d\n", __func__, ret);
+		if (eic_mis & BIT(HDST_INSERT_ALL_EIC)) {/* insert_all */
+			eic_type = sprd_insert_all_plug_inout_check();
+			if (pdata->jack_type == JACK_TYPE_NO &&
+				eic_type == INSERT_ALL_PLUGIN) {
+				complete(&hdst->wait_insert_all);
+			}
+
+			ret = cancel_delayed_work(&hdst->det_all_work);
+			queue_delayed_work(hdst->det_all_work_q,
+				&hdst->det_all_work, msecs_to_jiffies(0));
+			pr_info("%s insert_all irq active, exit, ret %d\n",
+				__func__, ret);
+		}
+		if (eic_mis & BIT(HDST_MDET_EIC)) {/* mdet */
+			ret = cancel_delayed_work(&hdst->det_mic_work);
+			queue_delayed_work(hdst->det_mic_work_q,
+				&hdst->det_mic_work, msecs_to_jiffies(5));
+			pr_info("%s mdet irq active, ret %d\n", __func__, ret);
+		}
+		if (eic_mis & BIT(HDST_LDETL_EIC)) {/* ldetl */
+			if (pdata->jack_type == JACK_TYPE_NC) {
+				pr_err("%s: don't need ldetl_irq in JACK_TYPE_NC!\n",
+					__func__);
+				goto out;
+			}
+			if (sprd_headset_ldetl_inout_check() & LDETL_PLUGOUT)
+				complete(&hdst->wait_ldetl);
+
+			ret = cancel_delayed_work(&hdst->ldetl_work);
+			queue_delayed_work(hdst->ldetl_work_q,
+				&hdst->ldetl_work, msecs_to_jiffies(0));
+			pr_info("%s ldetl irq active, plug_state_last %d\n",
+				__func__, hdst->plug_state_last);
+		}
+		if (eic_mis & BIT(HDST_BDET_EIC)) {/* bdet */
+			ret = cancel_delayed_work(&hdst->btn_work);
+			queue_delayed_work(hdst->btn_work_q,
+				&hdst->btn_work, msecs_to_jiffies(0));
+			pr_info("%s bdet irq active, ret %d\n", __func__, ret);
+		}
 	}
 
 out:

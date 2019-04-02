@@ -64,6 +64,8 @@
 	(sprd_codec_get_ctrl(codec, "HPL EAR Sel") == 1 && \
 	!sprd_codec->hp_mix_mode)
 
+#define SPRD_CODEC_EFUSE_FGU_4P2_MASK GENMASK(8, 0)
+
 enum PA_SHORT_T {
 	PA_SHORT_NONE, /* PA output normal */
 	PA_SHORT_VBAT, /* PA output P/N short VBAT */
@@ -105,6 +107,7 @@ enum {
 };
 
 enum {
+	PSG_STATE_BOOST_NONE,
 	PSG_STATE_BOOST_LARGE_GAIN,
 	PSG_STATE_BOOST_SMALL_GAIN,
 	PSG_STATE_BOOST_BYPASS,
@@ -161,7 +164,14 @@ static int sprd_mixer_get(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol);
 static int sprd_mixer_put(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol);
+static int sprd_codec_spk_pga_get(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol);
+static int sprd_codec_spk_pga_put(struct snd_kcontrol *kcontrol,
+	struct snd_ctl_elem_value *ucontrol);
+
 static int sprd_codec_get_ctrl(struct snd_soc_codec *codec, char *name);
+static void sprd_codec_psg_state_init(struct snd_soc_codec *codec);
+static void sprd_codec_psg_state_exit(struct snd_soc_codec *codec);
 
 static unsigned long sprd_codec_dp_base;
 
@@ -202,7 +212,7 @@ struct sprd_codec_priv {
 	struct regulator *head_mic;
 	struct regulator *vb;
 
-	unsigned int psg_state;
+	int psg_state;
 	struct fgu fgu;
 
 	u32 fixed_sample_rate[CODEC_PATH_MAX];
@@ -220,6 +230,8 @@ struct sprd_codec_priv {
 	u32 neg_cp_efuse;
 	u32 fgu_4p2_efuse;
 	u32 hp_mix_mode;
+	u32 spk_dg;
+	u32 spk_fall_dg;
 	struct mutex dig_access_mutex;
 	bool dig_access_en;
 	bool user_dig_access_dis;
@@ -272,8 +284,9 @@ static const struct soc_enum codec_info_enum =
 		snd_soc_dapm_get_volsw, snd_soc_dapm_put_volsw)
 
 static const struct snd_kcontrol_new spkl_pga_controls[] = {
-	SPRD_CODEC_PGA_M("SPKL Playback Volume",
-		SOC_REG(ANA_CDC8), PA_G_S, 15, spk_tlv),
+	SOC_SINGLE_EXT_TLV("SPKL Playback Volume", SOC_REG(ANA_CDC8), PA_G_S,
+			   15, 0, sprd_codec_spk_pga_get,
+			   sprd_codec_spk_pga_put, spk_tlv),
 };
 
 static const struct snd_kcontrol_new ear_pga_controls[] = {
@@ -515,6 +528,31 @@ static void sprd_codec_wait(u32 wait_time)
 		msleep(wait_time);
 }
 
+static struct snd_kcontrol *sprd_codec_find_ctrl(struct snd_soc_codec *codec,
+						 char *name)
+{
+	struct snd_soc_card *card = codec ? codec->component.card : NULL;
+	struct snd_ctl_elem_id id = {.iface = SNDRV_CTL_ELEM_IFACE_MIXER};
+
+	if (!codec || !name)
+		return NULL;
+	memcpy(id.name, name, strlen(name));
+
+	return snd_ctl_find_id(card->snd_card, &id);
+}
+
+static int sprd_codec_get_ctrl(struct snd_soc_codec *codec, char *name)
+{
+	struct snd_kcontrol *kctrl;
+	int ret = 0;
+
+	kctrl = sprd_codec_find_ctrl(codec, name);
+	if (kctrl)
+		ret = dapm_kcontrol_get_value(kctrl);
+
+	return ret;
+}
+
 static int sprd_codec_read_efuse(struct platform_device *pdev,
 					const char *cell_name, u32 *data)
 {
@@ -573,6 +611,50 @@ static int sprd_pga_put(struct snd_kcontrol *kcontrol,
 		mask << mc->shift,
 		val << mc->shift);
 
+	return 0;
+}
+
+static int sprd_codec_spk_pga_get(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dapm_context *dapm =
+		 snd_soc_dapm_kcontrol_dapm(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(dapm);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_codec->spk_dg;
+	return 0;
+}
+
+static int sprd_codec_spk_pga_put(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_dapm_context *dapm =
+		 snd_soc_dapm_kcontrol_dapm(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(dapm);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	sprd_codec->spk_dg = ucontrol->value.integer.value[0];
+	if (sprd_codec->psg_state > PSG_STATE_BOOST_LARGE_GAIN)
+		ucontrol->value.integer.value[0] -= sprd_codec->spk_fall_dg;
+	sprd_pga_put(kcontrol, ucontrol);
+	return 0;
+}
+
+static int sprd_codec_spk_pga_update(struct snd_soc_codec *codec)
+{
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+	struct snd_kcontrol *kcontrol;
+	struct snd_ctl_elem_value ucontrol;
+
+	kcontrol = sprd_codec_find_ctrl(codec,
+					"SPKL Gain SPKL Playback Volume");
+	if (!kcontrol) {
+		pr_err("SPK volume control not sound\n");
+		return -EINVAL;
+	}
+	ucontrol.value.integer.value[0] = sprd_codec->spk_dg;
+	sprd_codec_spk_pga_put(kcontrol, &ucontrol);
 	return 0;
 }
 
@@ -826,7 +908,14 @@ static inline void sprd_codec_pa_d_en(struct snd_soc_codec *codec, int on)
 	mask = PA_D_EN;
 	val = on ? mask : 0;
 	snd_soc_update_bits(codec, SOC_REG(ANA_CDC14), mask, val);
-	sprd_codec_pa_boost(codec, on);
+	if (on)
+		sprd_codec_psg_state_init(codec);
+	else
+		sprd_codec_psg_state_exit(codec);
+	sprd_codec_intc_enable(on, FGU_LOW_LIMIT_INT_EN |
+			       FGU_HIGH_LIMIT_INT_EN);
+	snd_soc_update_bits(codec, SOC_REG(ANA_DCL2), FGU_DIG_EN,
+			    on ? FGU_DIG_EN : 0);
 }
 
 static inline void sprd_codec_pa_emi_rate(struct snd_soc_codec *codec, int rate)
@@ -875,6 +964,7 @@ static inline void sprd_codec_pa_en(struct snd_soc_codec *codec, int on)
 static inline void sprd_codec_inter_pa_init(struct sprd_codec_priv *sprd_codec)
 {
 	sprd_codec->inter_pa.setting.DTRI_F_sel = 0x2;
+	sprd_codec->spk_fall_dg = 15;
 }
 
 /* NOTE: VB, BG & BIAS must be enabled before calling this function. */
@@ -950,37 +1040,33 @@ static void spk_pa_short_check(struct sprd_codec_priv *sprd_codec)
 #endif
 }
 
+static void spk_pa_config(struct snd_soc_codec *codec,
+			 struct inter_pa setting)
+{
+	sp_asoc_pr_dbg("%s:is_classD_mode: %d\n", __func__,
+			setting.is_classD_mode);
+	sprd_codec_pa_d_en(codec, setting.is_classD_mode);
+	if (setting.is_DEMI_mode)
+		sprd_codec_pa_emi_rate(codec, setting.EMI_rate);
+	sprd_codec_pa_dtri_f_sel(codec, setting.DTRI_F_sel);
+}
+
 static int spk_pa_event(struct snd_soc_dapm_widget *w,
 			struct snd_kcontrol *kcontrol, int event)
 {
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
-	unsigned int control_val;
-	struct inter_pa *p_setting, setting;
+	struct inter_pa setting;
 	u32 state;
 	int i = 0;
 
-	sp_asoc_pr_dbg("%s Event is %s,kcontrol=%p\n", __func__,
-		get_event_name(event), kcontrol);
-	if (kcontrol) {
-		control_val = dapm_kcontrol_get_value(kcontrol);
-		memcpy(&setting, &control_val, sizeof(control_val));
-		p_setting = &setting;
-	} else {
-		p_setting = &sprd_codec->inter_pa.setting;
-	}
+	setting = sprd_codec->inter_pa.setting;
 	if (on) {
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC19),
 			PA_DPOP_RC_L(0xFFFF), 0);
 
-		/* Now default value is 6.5v,don't need change */
-		/*sprd_codec_pa_ovp_v_sel(codec, PA_OVP_V_5P8);*/
-		sprd_codec_pa_d_en(codec, p_setting->is_classD_mode);
-		if (p_setting->is_DEMI_mode)
-			sprd_codec_pa_emi_rate(codec, p_setting->EMI_rate);
-		sprd_codec_pa_dtri_f_sel(codec, p_setting->DTRI_F_sel);
-
+		spk_pa_config(codec, setting);
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC14),
 			PA_DPOP_BYP_EN, 0);
 		sprd_codec_wait(1);
@@ -997,8 +1083,8 @@ static int spk_pa_event(struct snd_soc_dapm_widget *w,
 		}
 		sp_asoc_pr_dbg("%s wait time %d\n", __func__, 60 + i);
 	} else {
+		sprd_codec_pa_d_en(codec, 0);
 		sprd_codec_pa_en(codec, 0);
-		sprd_codec_pa_boost(codec, 0);
 	}
 
 	return 0;
@@ -1458,6 +1544,194 @@ static int dfm_out_event(struct snd_soc_dapm_widget *w,
 	sprd_codec_sample_rate_setting(sprd_codec);
 
 	return 0;
+}
+
+static void sprd_codec_init_fgu(struct sprd_codec_priv *sprd_codec)
+{
+	struct fgu *fgu = &sprd_codec->fgu;
+
+	fgu->vh = 3800;
+	fgu->vl = 3750;
+	fgu->dvh = 50;
+	fgu->dvl = 50;
+}
+
+static void sprd_codec_set_fgu_high_thrd(struct snd_soc_codec *codec)
+{
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	snd_soc_update_bits(codec, SOC_REG(ANA_DCL3), FGU_HIGH_THRD(0xFFFF),
+			    FGU_HIGH_THRD(sprd_codec->fgu.high_thrd));
+}
+
+static void sprd_codec_set_fgu_low_thrd(struct snd_soc_codec *codec)
+{
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	snd_soc_update_bits(codec, SOC_REG(ANA_DCL4), FGU_LOW_THRD(0xFFFF),
+			    FGU_LOW_THRD(sprd_codec->fgu.low_thrd));
+}
+
+static unsigned int sprd_codec_get_fgu_vbatt(struct snd_soc_codec *codec)
+{
+	u32 vbatt;
+
+	vbatt = snd_soc_read(codec, SOC_REG(ANA_STS7));
+
+	return FGU_V_DAT(vbatt);
+}
+
+static void sprd_codec_set_fgu_v_unit(struct snd_soc_codec *codec)
+{
+	u32 fgu_4p2, v_unit;
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	fgu_4p2 = sprd_codec->fgu_4p2_efuse & SPRD_CODEC_EFUSE_FGU_4P2_MASK;
+
+	/*
+	 * This formular is to get the LSB of FGU_V_UNIT by EFUSE FGU, which
+	 * is come out from user guide.
+	 */
+	v_unit = 4200 * 2048 / ((fgu_4p2 - 256 + 6963) - 4096);
+
+	snd_soc_update_bits(codec, SOC_REG(ANA_DCL2), FGU_V_UNIT(0xffff),
+			    FGU_V_UNIT(v_unit));
+}
+
+static void sprd_codec_psg_state_transf(struct snd_soc_codec *codec,
+					unsigned int state)
+{
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+	struct fgu *fgu = &sprd_codec->fgu;
+
+	switch (state) {
+	case PSG_STATE_BOOST_NONE:
+		break;
+	case PSG_STATE_BOOST_LARGE_GAIN:
+		sprd_codec_pa_boost(codec, 1);
+		fgu->high_thrd = 4500;
+		fgu->low_thrd = fgu->vh;
+		break;
+	case PSG_STATE_BOOST_SMALL_GAIN:
+		fgu->high_thrd = fgu->vh + fgu->dvh;
+		fgu->low_thrd = fgu->vl;
+		break;
+	case PSG_STATE_BOOST_BYPASS:
+		sprd_codec_pa_boost(codec, 0);
+		fgu->high_thrd = fgu->vl + fgu->dvl;
+		fgu->low_thrd = 3000;
+		break;
+	default:
+		WARN_ON(1);
+		return;
+	}
+	sprd_codec->psg_state = state;
+	sprd_codec_set_fgu_high_thrd(codec);
+	sprd_codec_set_fgu_low_thrd(codec);
+	sprd_codec_spk_pga_update(codec);
+
+	sp_asoc_pr_reg("state=%d, battery=%d\n", state,
+			sprd_codec_get_fgu_vbatt(codec));
+}
+
+static void sprd_codec_psg_state_init(struct snd_soc_codec *codec)
+{
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+	struct fgu *fgu = &sprd_codec->fgu;
+	u32 state, vbatt = sprd_codec_get_fgu_vbatt(codec);
+
+	sprd_codec_set_fgu_v_unit(codec);
+	if (vbatt > fgu->vh)
+		state = PSG_STATE_BOOST_LARGE_GAIN;
+	else if (vbatt > fgu->vl && vbatt <= fgu->vh)
+		state = PSG_STATE_BOOST_SMALL_GAIN;
+	else
+		state = PSG_STATE_BOOST_BYPASS;
+	sprd_codec_psg_state_transf(codec, state);
+}
+
+static void sprd_codec_psg_state_exit(struct snd_soc_codec *codec)
+{
+	sprd_codec_psg_state_transf(codec, PSG_STATE_BOOST_NONE);
+}
+
+static void sprd_codec_psg_process(struct snd_soc_codec *codec, int hi_lo)
+{
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+	int state = -1;
+
+	sp_asoc_pr_reg("psg_state=%d,hi_lo=%d, batt=%d\n",
+			sprd_codec->psg_state, hi_lo,
+			sprd_codec_get_fgu_vbatt(codec));
+	switch (sprd_codec->psg_state) {
+	case PSG_STATE_BOOST_LARGE_GAIN:
+		if (hi_lo)
+			sp_asoc_pr_info("Int should not come!\n");
+		else
+			state = PSG_STATE_BOOST_SMALL_GAIN;
+		break;
+	case PSG_STATE_BOOST_SMALL_GAIN:
+		if (hi_lo)
+			state = PSG_STATE_BOOST_LARGE_GAIN;
+		else
+			state = PSG_STATE_BOOST_BYPASS;
+		break;
+	case PSG_STATE_BOOST_BYPASS:
+		if (hi_lo)
+			state = PSG_STATE_BOOST_SMALL_GAIN;
+		else
+			sp_asoc_pr_info("Int should not come!\n");
+		break;
+	default:
+		WARN_ON(1);
+		break;
+	}
+	if (state < 0)
+		return;
+	if (state != sprd_codec->psg_state)
+		sprd_codec_psg_state_transf(codec, state);
+}
+
+void sprd_codec_intc_irq(struct snd_soc_codec *codec, u32 int_shadow)
+{
+	u32 val_s, val_n, val_fgu;
+
+	val_n = PA_DCCAL_INT_SHADOW_STATUS |
+		PA_CLK_CAL_INT_SHADOW_STATUS |
+		RCV_DPOP_INT_SHADOW_STATUS |
+		HPR_DPOP_INT_SHADOW_STATUS |
+		HPL_DPOP_INT_SHADOW_STATUS |
+		IMPD_DISCHARGE_INT_SHADOW_STATUS |
+		IMPD_CHARGE_INT_SHADOW_STATUS |
+		IMPD_BIST_INT_SHADOW_STATUS;
+	val_s = HPR_SHUTDOWN_INT_SHADOW_STATUS |
+		HPL_SHUTDOWN_INT_SHADOW_STATUS |
+		PA_SHUTDOWN_INT_SHADOW_STATUS |
+		EAR_SHUTDOWN_INT_SHADOW_STATUS;
+	val_fgu = FGU_LOW_LIMIT_INT_SHADOW_STATUS |
+		FGU_HIGH_LIMIT_INT_SHADOW_STATUS;
+
+	/* For such int, nothing need to be done, just keep current status */
+	if (int_shadow & val_s) {
+		sp_asoc_pr_info("IRQ! shut down! int_shadow=%#x\n",
+				int_shadow);
+		return;
+	}
+
+	/* For such int, clear and enable it again.*/
+	if (int_shadow & val_n)
+		sp_asoc_pr_info("IRQ! clear and enable it! int_shadow=%#x\n",
+				int_shadow);
+
+	if (int_shadow & FGU_LOW_LIMIT_INT_SHADOW_STATUS)
+		sprd_codec_psg_process(codec, 0);
+	else if (int_shadow & FGU_HIGH_LIMIT_INT_SHADOW_STATUS)
+		sprd_codec_psg_process(codec, 1);
+
+	/* Int cannot be cleared within about 200ms, so here we should
+	 * wait 200ms to avoid Int trigger continuesely.
+	 */
+	sprd_codec_wait(250);
 }
 
 static int rcv_depop_event(struct snd_soc_dapm_widget *w,
@@ -2365,6 +2639,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"SPK PA", NULL, "SPKL Gain"},
 	{"SPK PA", NULL, "CLK_PA_32K"},
 	{"SPK PA", NULL, "DIG_CLK_PA"},
+	{"SPK PA", NULL, "DIG_CLK_FGU"},
 	{"SPK Pin", NULL, "SPK PA"},
 
 /* HP */
@@ -2548,6 +2823,7 @@ static int sprd_codec_inter_pa_put(struct snd_kcontrol *kcontrol,
 		val = max - val;
 
 	sprd_codec->inter_pa.value = val;
+	spk_pa_config(codec, sprd_codec->inter_pa.setting);
 
 	return 0;
 }
@@ -2709,32 +2985,6 @@ static int sprd_codec_fixed_rate_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static struct snd_kcontrol *sprd_codec_find_ctrl(struct snd_soc_codec *codec,
-							char *name)
-{
-	struct snd_kcontrol *kctrl;
-	struct snd_soc_card *card = codec ? codec->component.card : NULL;
-	struct snd_ctl_elem_id id = {.iface = SNDRV_CTL_ELEM_IFACE_MIXER};
-
-	if (!codec || !name)
-		return NULL;
-	memcpy(id.name, name, strlen(name));
-	kctrl = snd_ctl_find_id(card->snd_card, &id);
-	return kctrl;
-}
-
-static int sprd_codec_get_ctrl(struct snd_soc_codec *codec, char *name)
-{
-	struct snd_kcontrol *kctrl;
-	int ret = 0;
-
-	kctrl = sprd_codec_find_ctrl(codec, name);
-	if (kctrl)
-		ret = dapm_kcontrol_get_value(kctrl);
-	sp_asoc_pr_info("%s,kctrl=%p,ret=%d\n", __func__, kctrl, ret);
-	return ret;
-}
-
 static int sprd_codec_get_hp_mix_mode(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
@@ -2775,6 +3025,27 @@ static int sprd_codec_set_hp_mix_mode(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int sprd_codec_spk_dg_fall_get(struct snd_kcontrol *kcontrol,
+				      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_codec->spk_fall_dg;
+
+	return 0;
+}
+
+static int sprd_codec_spk_dg_fall_set(struct snd_kcontrol *kcontrol,
+				      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	sprd_codec->spk_fall_dg = ucontrol->value.integer.value[0];
+	return 0;
+}
+
 static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 
 	SOC_ENUM_EXT("Aud Codec Info", codec_info_enum,
@@ -2792,6 +3063,8 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 		sprd_codec_adc1_lrclk_sel_put),
 	SOC_SINGLE_EXT("HP mix mode", 0, 0, INT_MAX, 0,
 		sprd_codec_get_hp_mix_mode, sprd_codec_set_hp_mix_mode),
+	SOC_SINGLE_EXT("SPK DG fall", 0, 0, INT_MAX, 0,
+		sprd_codec_spk_dg_fall_get, sprd_codec_spk_dg_fall_set),
 
 	SOC_ENUM("DAS Input Mux", das_input_mux_enum),
 	SOC_SINGLE_EXT("TEST_FIXED_RATE", 0, 0, INT_MAX, 0,
@@ -3778,6 +4051,7 @@ static int sprd_codec_probe(struct platform_device *pdev)
 	cp_short_check(sprd_codec);
 	spk_pa_short_check(sprd_codec);
 	load_ocp_pfw_cfg(sprd_codec);
+	sprd_codec_init_fgu(sprd_codec);
 
 	ret = sprd_codec_read_efuse(pdev, "neg_cp_efuse",
 					&sprd_codec->neg_cp_efuse);

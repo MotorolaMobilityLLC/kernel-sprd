@@ -288,6 +288,7 @@ struct sprd_headset {
 	bool typec_attached;
 	struct notifier_block typec_plug_nb;
 	struct extcon_dev *edev;
+	unsigned int codec_intc;
 };
 
 struct sprd_headset_global_vars {
@@ -301,9 +302,11 @@ int headset_register_notifier(struct notifier_block *nb);
 int headset_unregister_notifier(struct notifier_block *nb);
 int headset_get_plug_state(void);
 void sprd_headset_remove(void);
+void sprd_codec_intc_irq(struct snd_soc_codec *codec, u32 int_shadow);
 
 #if defined(CONFIG_SND_SOC_SPRD_CODEC_SC2730)
 void headset_set_audio_state(bool enable);
 #endif
+void sprd_codec_intc_enable(bool enable, u32 irq_bit);
 
 #endif
