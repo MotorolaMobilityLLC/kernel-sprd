@@ -103,6 +103,13 @@ static void sprd_dummy_crtc_atomic_enable(struct drm_crtc *crtc,
 static void sprd_dummy_crtc_atomic_disable(struct drm_crtc *crtc,
 				    struct drm_crtc_state *old_state)
 {
+	spin_lock_irq(&crtc->dev->event_lock);
+	if (crtc->state->event) {
+		drm_crtc_send_vblank_event(crtc, crtc->state->event);
+		crtc->state->event = NULL;
+	}
+	spin_unlock_irq(&crtc->dev->event_lock);
+
 	DRM_INFO("%s()\n", __func__);
 }
 
@@ -180,7 +187,7 @@ static int sprd_dummy_crtc_init(struct drm_device *drm, struct drm_crtc *crtc,
 	crtc->port = port;
 
 	err = drm_crtc_init_with_planes(drm, crtc, primary, NULL,
-					&sprd_dummy_crtc_funcs, NULL);
+					&sprd_dummy_crtc_funcs, "dummy-crtc");
 	if (err) {
 		DRM_ERROR("failed to init crtc.\n");
 		return err;
