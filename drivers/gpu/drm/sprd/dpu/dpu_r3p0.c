@@ -245,6 +245,22 @@ struct slp_cfg {
 	u16 dummy;
 };
 
+struct dpu_cfg1 {
+	u8 arqos_threshold;
+	u8 arqos_low;
+	u8 arqos_high;
+	u8 awqos_low;
+	u8 awqos_high;
+};
+
+static struct dpu_cfg1 qos_cfg = {
+	.arqos_threshold = 0x4,
+	.arqos_low = 0x1,
+	.arqos_high = 0x7,
+	.awqos_low = 0x1,
+	.awqos_high = 0x7,
+};
+
 static struct scale_cfg scale_copy;
 static struct cm_cfg cm_copy;
 static struct slp_cfg slp_copy;
@@ -285,6 +301,7 @@ static u32 dpu_get_version(struct dpu_context *ctx)
 static int dpu_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
+	struct device_node *qos_np = NULL;
 	int ret = 0;
 
 	ret = of_property_read_u32(np, "sprd,corner-radius",
@@ -293,10 +310,38 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 		sprd_corner_support = 1;
 		pr_info("round corner support, radius = %d.\n",
 					sprd_corner_radius);
-	} else
-		return 0;
+	}
 
-	return 0;
+	qos_np = of_parse_phandle(np, "sprd,qos", 0);
+	if (!qos_np)
+		pr_warn("can't find dpu qos cfg node\n");
+
+	ret = of_property_read_u8(qos_np, "arqos-low",
+					&qos_cfg.arqos_low);
+	if (ret)
+		pr_warn("read arqos-low failed, use default\n");
+
+	ret = of_property_read_u8(qos_np, "arqos-high",
+					&qos_cfg.arqos_high);
+	if (ret)
+		pr_warn("read arqos-high failed, use default\n");
+
+	ret = of_property_read_u8(qos_np, "awqos-low",
+					&qos_cfg.awqos_low);
+	if (ret)
+		pr_warn("read awqos_low failed, use default\n");
+
+	ret = of_property_read_u8(qos_np, "awqos-high",
+					&qos_cfg.awqos_high);
+	if (ret)
+		pr_warn("read awqos-high failed, use default\n");
+
+	ret = of_property_read_u8(qos_np, "arqos-threshold",
+					&qos_cfg.arqos_threshold);
+	if (ret)
+		pr_warn("read arqos-threshold failed, use default\n");
+
+	return ret;
 }
 
 static void dpu_corner_init(struct dpu_context *ctx)
@@ -765,7 +810,13 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->blend_size = size;
 
 	reg->dpu_cfg0 = 0;
-	reg->dpu_cfg1 = 0x004466da;
+	reg->dpu_cfg1 =
+		(qos_cfg.arqos_threshold << 16)|
+		(qos_cfg.awqos_high << 12) |
+		(qos_cfg.awqos_low << 8) |
+		(qos_cfg.arqos_high << 4) |
+		(qos_cfg.arqos_low) |
+		BIT(22);
 	reg->dpu_cfg2 = 0;
 
 	if (is_running)
@@ -830,6 +881,7 @@ static u32 to_dpu_rotation(u32 angle)
 	u32 rot = DPU_LAYER_ROTATION_0;
 
 	switch (angle) {
+	case 0:
 	case DRM_MODE_ROTATE_0:
 		rot = DPU_LAYER_ROTATION_0;
 		break;
