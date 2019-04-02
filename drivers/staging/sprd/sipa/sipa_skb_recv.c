@@ -228,13 +228,6 @@ static int do_recv(struct sipa_skb_receiver *receiver)
 		sipa_hal_conversion_node_to_item(receiver->ctx->hdl,
 						 receiver->ep->recv_fifo.idx,
 						 &item);
-		pr_debug("fifo:%d, item addr:0x%x, len:%d, offset:%d, src:%d, dst:%d\n",
-			 receiver->ep->recv_fifo.idx,
-			 ((u32)(item.addr & 0x00000000FFFFFFFF)),
-			 item.len,
-			 item.offset,
-			 item.src,
-			 item.dst);
 
 		ret = get_recv_array_node(&receiver->recv_array,
 					  &recv_skb, &addr);
@@ -257,29 +250,9 @@ static int do_recv(struct sipa_skb_receiver *receiver)
 
 		skb_trim(recv_skb, item.len);
 
-		pr_debug("recv_skb->len %d recv_skb->data_len %d recv_skb->truesize %d\n",
-			 recv_skb->len,
-			 recv_skb->data_len,
-			 recv_skb->truesize);
-
 		skb_reset_network_header(recv_skb);
 
 		iph = ip_hdr(recv_skb);
-
-		pr_debug("recv_skb %p head %p data %p tail %p end %p\n",
-			 recv_skb,
-			 recv_skb->head,
-			 recv_skb->data,
-			 skb_tail_pointer(recv_skb),
-			 skb_end_pointer(recv_skb));
-
-		if (iph != NULL)
-			pr_debug("iph version %d tot_len %d srcip %pI4 dstip %pI4 ttl %d\n",
-				 iph->version,
-				 iph->tot_len,
-				 &iph->saddr,
-				 &iph->daddr,
-				 iph->ttl);
 
 		dispath_to_nic(receiver, &item, recv_skb);
 	}
@@ -316,12 +289,7 @@ static int recv_thread(void *data)
 
 	while (!kthread_should_stop()) {
 		u32 recv_cnt = 0;
-#if 1
-		pr_info("fifo(%d) empty status is %d\n",
-				receiver->ep->recv_fifo.idx,
-				sipa_hal_is_tx_fifo_empty(receiver->ctx->hdl,
-										  receiver->ep->recv_fifo.idx));
-#endif
+
 		wait_event_interruptible(receiver->recv_waitq,
 								 !sipa_hal_is_tx_fifo_empty(receiver->ctx->hdl,
 										 receiver->ep->recv_fifo.idx));

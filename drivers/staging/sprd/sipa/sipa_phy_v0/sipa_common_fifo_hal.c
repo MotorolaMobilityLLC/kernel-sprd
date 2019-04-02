@@ -45,7 +45,7 @@ ipa_put_pkts_to_rx_fifo(struct sipa_common_fifo_cfg_tag *fifo_cfg,
 			  fifo_cfg->rx_fifo.wr);
 
 	if (!ret)
-		pr_info("ipa_phy_update_rx_fifo_rptr fail\n");
+		pr_err("ipa_phy_update_rx_fifo_rptr fail\n");
 
 	return num;
 }
@@ -96,12 +96,12 @@ static u32 ipa_common_fifo_hal_open(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
 	if (ipa_term_fifo->state == TRUE) {
-		IPA_ERR("fifo_id = %d has already opened\n",
+		pr_err("fifo_id = %d has already opened\n",
 				ipa_term_fifo->fifo_id);
 		return TRUE;
 	}
@@ -158,7 +158,7 @@ static u32 ipa_common_fifo_hal_close(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -195,7 +195,7 @@ static u32 ipa_common_fifo_hal_reset_fifo(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -246,7 +246,7 @@ static u32 ipa_common_fifo_hal_set_rx_depth(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -267,7 +267,7 @@ static u32 ipa_common_fifo_hal_set_tx_depth(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -288,7 +288,7 @@ static u32 ipa_common_fifo_hal_set_interrupt_drop_packet(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -317,7 +317,7 @@ static u32	ipa_common_fifo_hal_set_interrupt_error_code(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -347,7 +347,7 @@ static u32 ipa_common_fifo_hal_set_interrupt_timeout(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -360,7 +360,7 @@ static u32 ipa_common_fifo_hal_set_interrupt_timeout(
 					  ipa_term_fifo->fifo_reg_base,
 					  IPA_TXFIFO_INT_DELAY_TIMER_SW_EN);
 		} else {
-			IPA_ERR("fifo(%d) set timeout threshold fail\n", id);
+			pr_err("fifo(%d) set timeout threshold fail\n", id);
 			ret = FALSE;
 		}
 	} else {
@@ -384,7 +384,7 @@ static u32 ipa_common_fifo_hal_set_hw_interrupt_timeout(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -397,7 +397,7 @@ static u32 ipa_common_fifo_hal_set_hw_interrupt_timeout(
 					  ipa_term_fifo->fifo_reg_base,
 					  IPA_TX_FIFO_DELAY_TIMER_EN);
 		} else {
-			IPA_ERR("fifo(%d) set timeout threshold fail\n", id);
+			pr_err("fifo(%d) set timeout threshold fail\n", id);
 			ret = FALSE;
 		}
 	} else {
@@ -421,7 +421,7 @@ static u32 ipa_common_fifo_hal_set_interrupt_threshold(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -433,7 +433,7 @@ static u32 ipa_common_fifo_hal_set_interrupt_threshold(
 					  ipa_term_fifo->fifo_reg_base,
 					  IPA_TXFIFO_INT_THRESHOLD_ONESHOT_EN);
 		} else {
-			IPA_ERR("fifo(%d) set threshold fail\n", id);
+			pr_err("fifo(%d) set threshold fail\n", id);
 			ret = FALSE;
 		}
 	} else {
@@ -457,7 +457,7 @@ static u32 ipa_common_fifo_hal_set_hw_interrupt_threshold(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -469,7 +469,7 @@ static u32 ipa_common_fifo_hal_set_hw_interrupt_threshold(
 					  ipa_term_fifo->fifo_reg_base,
 					  IPA_TX_FIFO_THRESHOLD_EN);
 		} else {
-			IPA_ERR("fifo(%d) set threshold fail\n", id);
+			pr_err("fifo(%d) set threshold fail\n", id);
 			ret = FALSE;
 		}
 	} else {
@@ -492,7 +492,7 @@ static u32 ipa_common_fifo_hal_set_src_dst_term(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -516,7 +516,7 @@ static u32 ipa_common_fifo_hal_enable_local_flowctrl_interrupt(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -532,7 +532,7 @@ static u32 ipa_common_fifo_hal_enable_local_flowctrl_interrupt(
 			  IPA_RX_FIFO_INT_ENTER_FLOW_CTRL_EN;
 		break;
 	default:
-		IPA_ERR("don't have this %d irq type\n", irq_mode);
+		pr_err("don't have this %d irq type\n", irq_mode);
 		return FALSE;
 	}
 
@@ -541,7 +541,7 @@ static u32 ipa_common_fifo_hal_enable_local_flowctrl_interrupt(
 				  ipa_term_fifo->fifo_reg_base,
 				  irq);
 		if (!ret) {
-			IPA_LOG("fifo_id = %d irq_mode = %d set failed\n",
+			pr_err("fifo_id = %d irq_mode = %d set failed\n",
 					id, irq);
 			return FALSE;
 		}
@@ -566,7 +566,7 @@ static u32 ipa_common_fifo_hal_enable_remote_flowctrl_interrupt(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -574,7 +574,7 @@ static u32 ipa_common_fifo_hal_enable_remote_flowctrl_interrupt(
 			  ipa_term_fifo->fifo_reg_base,
 			  tx_exit_watermark);
 	if (unlikely(!ret)) {
-		IPA_LOG("fifo_id = %d tx_exit_watermark(0x%x) failed\n",
+		pr_err("fifo_id = %d tx_exit_watermark(0x%x) failed\n",
 				id, tx_exit_watermark);
 		return FALSE;
 	}
@@ -583,7 +583,7 @@ static u32 ipa_common_fifo_hal_enable_remote_flowctrl_interrupt(
 			  ipa_term_fifo->fifo_reg_base,
 			  tx_entry_watermark);
 	if (unlikely(!ret)) {
-		IPA_LOG("fifo_id = %d tx_entry_watermark(0x%x) failed\n",
+		pr_err("fifo_id = %d tx_entry_watermark(0x%x) failed\n",
 				id, tx_entry_watermark);
 		return FALSE;
 	}
@@ -592,7 +592,7 @@ static u32 ipa_common_fifo_hal_enable_remote_flowctrl_interrupt(
 			  ipa_term_fifo->fifo_reg_base,
 			  rx_exit_watermark);
 	if (unlikely(!ret)) {
-		IPA_LOG("fifo_id = %d rx_exit_watermark(0x%x) failed\n",
+		pr_err("fifo_id = %d rx_exit_watermark(0x%x) failed\n",
 				id, rx_exit_watermark);
 		return FALSE;
 	}
@@ -601,7 +601,7 @@ static u32 ipa_common_fifo_hal_enable_remote_flowctrl_interrupt(
 			  ipa_term_fifo->fifo_reg_base,
 			  rx_entry_watermark);
 	if (unlikely(!ret)) {
-		IPA_LOG("fifo_id = %d rx_entry_watermark(0x%x) failed\n",
+		pr_err("fifo_id = %d rx_entry_watermark(0x%x) failed\n",
 				id, rx_entry_watermark);
 		return FALSE;
 	}
@@ -624,7 +624,7 @@ static u32 ipa_common_fifo_hal_set_interrupt_intr(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -652,7 +652,7 @@ static u32 ipa_common_fifo_hal_set_interrupt_txfifo_overflow(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -680,7 +680,7 @@ static u32 ipa_common_fifo_hal_set_interrupt_txfifo_full(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -719,7 +719,7 @@ static u32 ipa_common_fifo_hal_put_node_to_rx_fifo(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -753,7 +753,7 @@ static u32 ipa_common_fifo_hal_put_node_to_tx_fifo(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -785,7 +785,7 @@ static u32 ipa_common_fifo_hal_get_node_from_rx_fifo(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -805,7 +805,7 @@ static u32 ipa_common_fifo_hal_get_left_cnt(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -840,7 +840,7 @@ static u32 ipa_common_fifo_hal_recv_node_from_tx_fifo(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -865,7 +865,7 @@ static u32 ipa_common_fifo_hal_tx_fill(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -899,7 +899,7 @@ static u32 ipa_common_fifo_hal_rx_fill(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -931,7 +931,7 @@ static u32 ipa_common_fifo_hal_get_rx_ptr(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -955,7 +955,7 @@ static u32 ipa_common_fifo_hal_get_tx_ptr(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -979,7 +979,7 @@ static u32 ipa_common_fifo_hal_get_filled_depth(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -1003,7 +1003,7 @@ static u32 ipa_common_fifo_hal_get_tx_full_status(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -1023,7 +1023,7 @@ static u32 ipa_common_fifo_hal_get_tx_empty_status(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -1043,7 +1043,7 @@ static u32 ipa_common_fifo_hal_get_rx_full_status(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -1063,7 +1063,7 @@ static u32 ipa_common_fifo_hal_get_rx_empty_status(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -1086,7 +1086,7 @@ static u32 ipa_common_fifo_set_rx_tx_fifo_wr_rd_ptr(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return FALSE;
 	}
 
@@ -1107,7 +1107,7 @@ static u32 ipa_common_fifo_set_rx_tx_fifo_wr_rd_ptr(
 				  ipa_term_fifo->fifo_reg_base, rx_rd);
 		if (!ret) {
 			ret1 = FALSE;
-			IPA_ERR("update rx fifo rptr = 0x%x failed !!!",
+			pr_err("update rx fifo rptr = 0x%x failed !!!",
 					rx_rd);
 		}
 	}
@@ -1120,7 +1120,7 @@ static u32 ipa_common_fifo_set_rx_tx_fifo_wr_rd_ptr(
 				  ipa_term_fifo->fifo_reg_base, rx_wr);
 		if (!ret) {
 			ret1 = FALSE;
-			IPA_ERR("update rx fifo wptr = 0x%x failed !!!",
+			pr_err("update rx fifo wptr = 0x%x failed !!!",
 					rx_wr);
 		}
 	}
@@ -1133,7 +1133,7 @@ static u32 ipa_common_fifo_set_rx_tx_fifo_wr_rd_ptr(
 				  ipa_term_fifo->fifo_reg_base, tx_rd);
 		if (!ret) {
 			ret1 = FALSE;
-			IPA_ERR("update tx fifo rptr = 0x%x failed !!!",
+			pr_err("update tx fifo rptr = 0x%x failed !!!",
 					tx_rd);
 		}
 	}
@@ -1146,7 +1146,7 @@ static u32 ipa_common_fifo_set_rx_tx_fifo_wr_rd_ptr(
 				  ipa_term_fifo->fifo_reg_base, tx_wr);
 		if (!ret) {
 			ret1 = FALSE;
-			IPA_ERR("update tx fifo wptr = 0x%x failed !!!",
+			pr_err("update tx fifo wptr = 0x%x failed !!!",
 					tx_wr);
 		}
 	}
@@ -1165,7 +1165,7 @@ static u32 ipa_common_fifo_ctrl_receive(
 	if (likely(id < SIPA_FIFO_MAX)) {
 		ipa_term_fifo = cfg_base + id;
 	} else {
-		IPA_ERR("don't have this id %d\n", id);
+		pr_err("don't have this id %d\n", id);
 		return 0;
 	}
 

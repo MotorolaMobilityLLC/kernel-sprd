@@ -188,7 +188,6 @@ void sipa_nic_try_notify_recv(struct sipa_nic *nic)
 	unsigned long flags;
 	int need_notify = 0;
 
-	pr_info("%s nic->need_notify = %d\n", __func__, nic->need_notify);
 	spin_lock_irqsave(&nic->lock, flags);
 	if (nic->need_notify) {
 		nic->need_notify = 0;
@@ -196,7 +195,6 @@ void sipa_nic_try_notify_recv(struct sipa_nic *nic)
 	}
 	spin_unlock_irqrestore(&nic->lock, flags);
 
-	pr_info("%s need_notify = %d\n", __func__, need_notify);
 	if (need_notify)
 		nic->cb(nic->cb_priv, SIPA_RECEIVE, 0);
 }

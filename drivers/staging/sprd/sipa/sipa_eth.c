@@ -190,7 +190,6 @@ static void sipa_eth_notify_cb(void *priv, enum sipa_evt_type evt,
 {
 	switch (evt) {
 	case SIPA_RECEIVE:
-		pr_info("SIPA_RECEIVE\n");
 		sipa_eth_rx_handler(priv);
 		break;
 	case SIPA_LEAVE_FLOWCTRL:

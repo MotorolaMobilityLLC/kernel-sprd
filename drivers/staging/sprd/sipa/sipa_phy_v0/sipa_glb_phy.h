@@ -1558,7 +1558,7 @@ static inline u32 ipa_phy_set_work_mode(
 			flag = FALSE;
 		break;
 	default:
-		pr_info("don't have this mode type\n");
+		pr_err("don't have this mode type\n");
 		break;
 	}
 

@@ -18,18 +18,6 @@
 #define IPA_GET_HIGH32(val) ((u32)((val >> 32) & 0x00000000FFFFFFFF))
 #define IPA_STI_64BIT(l_val, h_val) ((u64)(l_val | ((u64)h_val << 32)))
 
-#define IPA_ERR(fmt, ...) \
-			pr_info("[SIPA_PHY]%s %d:" fmt, \
-			__func__, __LINE__, ##__VA_ARGS__)
-
-#define IPA_LOG(fmt, ...) \
-			pr_err("[SIPA_PHY]%s %d:" fmt, \
-			__func__, __LINE__, ##__VA_ARGS__)
-
-#define IPA_DBG(fmt, ...) \
-			pr_debug("[SIPA_PHY]%s %d:" fmt, \
-			__func__, __LINE__, ##__VA_ARGS__)
-
 #define SIPA_FIFO_REG_SIZE	0x80
 
 struct sipa_node_description_tag {

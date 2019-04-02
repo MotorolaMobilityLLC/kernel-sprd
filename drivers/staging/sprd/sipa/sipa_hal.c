@@ -83,7 +83,7 @@ static int alloc_rx_fifo_ram(struct device *dev,
 	if (fifo_cfg->rx_fifo.in_iram) {
 		if (cfg->phy_virt_res.iram_allocated_size >=
 			cfg->phy_virt_res.iram_size) {
-			IPA_ERR("fifo id = %d don't have iram\n", index);
+			pr_err("fifo id = %d don't have iram\n", index);
 			return -ENOMEM;
 		}
 
@@ -119,7 +119,7 @@ static int alloc_rx_fifo_ram(struct device *dev,
 			IPA_GET_HIGH32(phy_addr);
 
 		if (!fifo_cfg->rx_fifo.virtual_addr) {
-			IPA_ERR("dma alloc buf failed\n");
+			pr_err("dma alloc buf failed\n");
 			return -ENOMEM;
 		}
 	}
@@ -244,7 +244,7 @@ sipa_hal_hdl sipa_hal_init(struct device *dev,
 	ret = request_irq(hal_cfg->ipa_intr, sipa_int_callback_func,
 					  IRQF_NO_SUSPEND, "sprd,sipa", hal_cfg);
 	if (ret)
-		IPA_ERR("request irq err ret = %d\n", ret);
+		pr_err("request irq err ret = %d\n", ret);
 
 	enable_irq_wake(hal_cfg->ipa_intr);
 
@@ -254,7 +254,7 @@ sipa_hal_hdl sipa_hal_init(struct device *dev,
 					  dev, cfg->glb_phy, cfg->glb_size);
 
 	if (!hal_cfg->phy_virt_res.glb_base) {
-		IPA_ERR("%s: remap glb_base fail\n", __func__);
+		pr_err("remap glb_base fail\n");
 		return NULL;
 	}
 
@@ -263,13 +263,13 @@ sipa_hal_hdl sipa_hal_init(struct device *dev,
 	hal_cfg->phy_virt_res.iram_base = devm_ioremap_nocache(
 									 dev, cfg->iram_phy, cfg->iram_size);
 	if (!hal_cfg->phy_virt_res.iram_base) {
-		IPA_ERR("%s: remap iram_base fail\n", __func__);
+		pr_err("remap iram_base fail\n");
 		return NULL;
 	}
 
 	ret = sipa_init_fifo_addr(dev, hal_cfg);
 	if (ret)
-		IPA_ERR("init fifo addr err ret = %d\n", ret);
+		pr_err("init fifo addr err ret = %d\n", ret);
 
 	sipa_init_fifo_reg_base(hal_cfg);
 
@@ -302,7 +302,7 @@ int sipa_set_enabled(struct sipa_plat_drv_cfg *cfg)
 						   cfg->enable_mask,
 						   cfg->enable_mask);
 		if (ret < 0)
-			pr_warn("%s: regmap update bits failed", __func__);
+			pr_err("regmap update bits failed");
 	}
 	return ret;
 }
@@ -318,7 +318,7 @@ int sipa_force_wakeup(struct sipa_plat_drv_cfg *cfg)
 						   cfg->wakeup_mask,
 						   cfg->wakeup_mask);
 		if (ret < 0)
-			pr_warn("%s: regmap update bits failed", __func__);
+			pr_err("regmap update bits failed");
 	}
 	return ret;
 }
@@ -338,7 +338,7 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 	struct sipa_common_fifo_cfg_tag *fifo_cfg;
 
 	if (unlikely(!hdl)) {
-		IPA_ERR("hdl is null\n");
+		pr_err("hdl is null\n");
 		return -1;
 	}
 	hal_cfg = (struct sipa_hal_context *)hdl;
@@ -347,7 +347,7 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 	fifo_cfg[fifo].priv = priv;
 	fifo_cfg[fifo].fifo_irq_callback = cb;
 
-	IPA_LOG("fifo_id = %d is_pam = %d is_recv = %d\n",
+	pr_info("fifo_id = %d is_pam = %d is_recv = %d\n",
 			fifo_cfg[fifo].fifo_id,
 			fifo_cfg[fifo].is_pam,
 			fifo_cfg[fifo].is_recv);
@@ -427,7 +427,7 @@ int sipa_close_common_fifo(sipa_hal_hdl hdl,
 	struct sipa_common_fifo_cfg_tag *fifo_cfg;
 
 	if (unlikely(!hdl)) {
-		IPA_ERR("hdl is null\n");
+		pr_err("hdl is null\n");
 		return -EINVAL;
 	}
 
@@ -447,7 +447,7 @@ int sipa_tft_mode_init(sipa_hal_hdl hdl)
 	struct sipa_common_fifo_cfg_tag *fifo_cfg;
 
 	if (unlikely(!hdl)) {
-		IPA_ERR("hdl is null\n");
+		pr_err("hdl is null\n");
 		return -EINVAL;
 	}
 
@@ -546,7 +546,7 @@ int sipa_hal_init_set_tx_fifo(sipa_hal_hdl hdl,
 		ret = hal_cfg->fifo_ops.put_node_to_tx_fifo(
 				  fifo_id, fifo_cfg, &node, 0, 1);
 		if (ret == 0) {
-			IPA_ERR("put node to tx fifo %d fail\n", fifo_id);
+			pr_err("put node to tx fifo %d fail\n", fifo_id);
 			return -1;
 		}
 	}
@@ -571,7 +571,7 @@ int sipa_hal_get_tx_fifo_item(sipa_hal_hdl hdl,
 			  fifo_id, fifo_cfg, &node, 0, 1);
 
 	if (ret == 0) {
-		IPA_ERR("get node from tx fifo %d fail\n", fifo_id);
+		pr_err("get node from tx fifo %d fail\n", fifo_id);
 		return -1;
 	}
 
@@ -691,7 +691,7 @@ int sipa_hal_put_rx_fifo_item(sipa_hal_hdl hdl,
 	ret = hal_cfg->fifo_ops.put_node_to_rx_fifo(
 			  fifo_id, fifo_cfg, &node, 0, 1);
 	if (ret == 0) {
-		IPA_ERR("put node to rx fifo %d fail\n", fifo_id);
+		pr_err("put node to rx fifo %d fail\n", fifo_id);
 		return -1;
 	}
 

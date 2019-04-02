@@ -21,7 +21,7 @@ static inline u32 ipa_get_pkt_from_rx_fifo(
 	struct sipa_node_description_tag *node;
 
 	if (fill_node == NULL) {
-		IPA_LOG("fill node is NULL\n");
+		pr_err("fill node is NULL\n");
 		return FALSE;
 	}
 
@@ -30,8 +30,6 @@ static inline u32 ipa_get_pkt_from_rx_fifo(
 
 	if (ipa_phy_get_rx_fifo_empty_status(
 			fifo_cfg->fifo_reg_base)) {
-		IPA_LOG("fifo_id = %d is empty\n",
-				fifo_cfg->fifo_id);
 		return FALSE;
 	}
 
@@ -39,7 +37,7 @@ static inline u32 ipa_get_pkt_from_rx_fifo(
 				   fifo_cfg->fifo_reg_base);
 
 	if (left_cnt < num) {
-		IPA_LOG("%s %d only have %d node free\n",
+		pr_info("%s %d only have %d node free\n",
 				fifo_cfg->fifo_name,
 				fifo_cfg->fifo_id, left_cnt);
 		num = left_cnt;
@@ -60,7 +58,7 @@ static inline u32 ipa_get_pkt_from_rx_fifo(
 			  fifo_cfg->fifo_reg_base,
 			  fifo_cfg->rx_fifo.rd);
 	if (ret == FALSE)
-		IPA_LOG("ipa_phy_update_rx_fifo_rptr fail\n");
+		pr_err("ipa_phy_update_rx_fifo_rptr fail\n");
 
 	return num;
 }
@@ -75,7 +73,7 @@ static inline u32 ipa_put_pkt_to_rx_fifo(
 	struct sipa_node_description_tag *node;
 
 	if (fill_node == NULL) {
-		IPA_LOG("fill node is NULL\n");
+		pr_err("fill node is NULL\n");
 		return FALSE;
 	}
 
@@ -84,8 +82,6 @@ static inline u32 ipa_put_pkt_to_rx_fifo(
 
 	if (ipa_phy_get_rx_fifo_full_status(
 			fifo_cfg->fifo_reg_base)) {
-		pr_info("fifo_id = %d is full\n",
-				fifo_cfg->fifo_id);
 		return FALSE;
 	}
 
@@ -112,7 +108,7 @@ static inline u32 ipa_put_pkt_to_rx_fifo(
 			  fifo_cfg->rx_fifo.wr);
 
 	if (ret == FALSE)
-		pr_info("ipa_phy_update_rx_fifo_rptr fail\n");
+		pr_err("ipa_phy_update_rx_fifo_rptr fail\n");
 
 	return num;
 }
@@ -126,7 +122,7 @@ static inline u32 ipa_recv_pkt_from_tx_fifo(
 	u32 i = 0, ret = 0, index = 0, left_cnt = 0;
 
 	if (fill_node == NULL) {
-		IPA_LOG("fill node is NULL\n");
+		pr_err("fill node is NULL\n");
 		return FALSE;
 	}
 
@@ -135,8 +131,6 @@ static inline u32 ipa_recv_pkt_from_tx_fifo(
 
 	if (ipa_phy_get_tx_fifo_empty_status(
 			fifo_cfg->fifo_reg_base)) {
-		pr_info("fifo_id = %d tx fifo is empty\n",
-				fifo_cfg->fifo_id);
 		return FALSE;
 	}
 
@@ -163,7 +157,7 @@ static inline u32 ipa_recv_pkt_from_tx_fifo(
 			  fifo_cfg->tx_fifo.rd);
 
 	if (ret == FALSE)
-		pr_info("update tx fifo rptr fail !!!\n");
+		pr_err("update tx fifo rptr fail !!!\n");
 
 	return num;
 }
@@ -182,8 +176,6 @@ static inline u32 ipa_put_pkt_to_tx_fifo(
 
 	if (ipa_phy_get_tx_fifo_full_status(
 			fifo_cfg->fifo_reg_base)) {
-		IPA_LOG("fifo_id = %d tx fifo is full\n",
-				fifo_cfg->fifo_id);
 		return FALSE;
 	}
 
@@ -193,7 +185,7 @@ static inline u32 ipa_put_pkt_to_tx_fifo(
 				   fifo_cfg->fifo_reg_base);
 
 	if (num > left_cnt) {
-		IPA_LOG("fifo_id = %d don't have enough space\n",
+		pr_info("fifo_id = %d don't have enough space\n",
 				fifo_cfg->fifo_id);
 		num = left_cnt;
 	}
@@ -214,7 +206,7 @@ static inline u32 ipa_put_pkt_to_tx_fifo(
 			  fifo_cfg->tx_fifo.wr);
 
 	if (ret == FALSE)
-		IPA_ERR("update tx fifo rptr fail !!!\n");
+		pr_err("update tx fifo rptr fail !!!\n");
 
 	return num;
 }

@@ -139,7 +139,6 @@ static inline u32 ipa_fifo_traverse_int_bit(
 
 	fifo_base = ipa_cfg->fifo_reg_base;
 	int_status = ipa_phy_get_fifo_all_int_sts(fifo_base);
-	IPA_LOG("The fifo intr sts = 0x%x\n", int_status);
 
 	if (int_status & IPA_INT_EXIT_FLOW_CTRL_STS)
 		clr_sts |= IPA_EXIT_FLOW_CONTROL_CLR_BIT;
@@ -172,7 +171,7 @@ static inline u32 ipa_fifo_traverse_int_bit(
 		ipa_cfg->fifo_irq_callback(ipa_cfg->priv,
 					int_status, id);
 	else
-		IPA_ERR("Don't register this fifo(%d) irq callback\n", id);
+		pr_debug("Don't register this fifo(%d) irq callback\n", id);
 
 	ipa_phy_clear_int(ipa_cfg->fifo_reg_base, clr_sts);
 
@@ -189,7 +188,7 @@ static u32 ipa_fifo_irq_main_cb(enum sipa_cmn_fifo_index id,
 		if (ipa_cfg != NULL)
 			ipa_fifo_traverse_int_bit(id, ipa_cfg);
 	} else {
-		pr_info("don't have this id\n");
+		pr_err("don't have this id\n");
 	}
 
 	return TRUE;
@@ -204,7 +203,6 @@ u32 sipa_int_callback_func(int evt, void *cookie)
 
 	for (i = 0; i < SIPA_FIFO_MAX; i++) {
 		if (int_sts & ipa_int_table[i].int_owner) {
-			IPA_LOG("int_sts = 0x%x id = %d\n", int_sts, ipa_int_table[i].id);
 			ipa_fifo_irq_main_cb(ipa_int_table[i].id,
 								 cfg->cmn_fifo_cfg);
 		}

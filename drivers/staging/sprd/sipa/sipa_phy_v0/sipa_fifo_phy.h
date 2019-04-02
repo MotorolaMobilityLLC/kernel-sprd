@@ -709,8 +709,6 @@ static inline u32 ipa_phy_enable_int_bit(
 		tmp = TRUE;
 	} else {
 		tmp = FALSE;
-		IPA_ERR("Enable interrupt bit = 0x%x set failed!\n",
-				int_bit);
 	}
 
 	return tmp;
