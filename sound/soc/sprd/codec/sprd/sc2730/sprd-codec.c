@@ -424,6 +424,16 @@ static int sprd_codec_power_put(struct regulator **regu)
 	return 0;
 }
 
+static void codec_digital_reg_restore(struct snd_soc_codec *codec)
+{
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	mutex_lock(&sprd_codec->digital_enable_mutex);
+	if (sprd_codec->digital_enable_count)
+		arch_audio_codec_digital_reg_enable();
+	mutex_unlock(&sprd_codec->digital_enable_mutex);
+}
+
 static int dig_access_disable_put(struct snd_kcontrol *kcontrol,
 				   struct snd_ctl_elem_value *ucontrol)
 {
@@ -437,16 +447,17 @@ static int dig_access_disable_put(struct snd_kcontrol *kcontrol,
 			mutex_unlock(&sprd_codec->dig_access_mutex);
 			return 0;
 		}
-		sprd_codec->user_dig_access_dis = disable;
-
 		if (disable) {
 			pr_info("%s, disable agdsp access\n", __func__);
+			sprd_codec->user_dig_access_dis = disable;
 			agdsp_access_disable();
 		} else {
 			pr_info("%s, enable agdsp access\n", __func__);
 			if (agdsp_access_enable())
 				pr_err("%s, agdsp_access_enable failed!\n",
 				       __func__);
+			codec_digital_reg_restore(codec);
+			sprd_codec->user_dig_access_dis = disable;
 		}
 	}
 	mutex_unlock(&sprd_codec->dig_access_mutex);
@@ -1281,7 +1292,9 @@ static void codec_digital_reg_enable(struct snd_soc_codec *codec)
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 
 	mutex_lock(&sprd_codec->digital_enable_mutex);
-	arch_audio_codec_digital_reg_enable();
+	if (!sprd_codec->digital_enable_count
+		|| sprd_codec->user_dig_access_dis)
+		arch_audio_codec_digital_reg_enable();
 	sprd_codec->digital_enable_count++;
 	mutex_unlock(&sprd_codec->digital_enable_mutex);
 }
@@ -1323,7 +1336,6 @@ static int digital_power_event(struct snd_soc_dapm_widget *w,
 		sprd_codec->dig_access_en = true;
 		mutex_unlock(&sprd_codec->dig_access_mutex);
 
-		arch_audio_codec_digital_reg_enable();
 		codec_digital_reg_enable(codec);
 		arch_audio_codec_digital_reset();
 		sprd_codec_digital_open(codec);
