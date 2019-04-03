@@ -613,9 +613,14 @@ static void dpu_wb_work_func(struct work_struct *data)
 	down(&ctx->refresh_lock);
 
 	if (!ctx->is_inited) {
-		wb_en = false;
 		up(&ctx->refresh_lock);
 		pr_err("dpu is not initialized\n");
+		return;
+	}
+
+	if (ctx->disable_flip) {
+		up(&ctx->refresh_lock);
+		pr_warn("dpu flip is disabled\n");
 		return;
 	}
 
