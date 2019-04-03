@@ -966,6 +966,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
 				    (ctx->vm.vback_porch << 8) |
 				    (ctx->vm.vfront_porch << 20);
+		if (ctx->vm.vsync_len + ctx->vm.vback_porch < 32)
+			pr_warn("Warning: (vsync + vbp) < 32, "
+				"underflow risk!\n");
 
 		/* enable dpu update done INT */
 		int_mask |= DISPC_INT_UPDATE_DONE_MASK;
