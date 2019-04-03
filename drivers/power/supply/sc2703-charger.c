@@ -1305,16 +1305,16 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, info);
 
-	ret = sc2703_charger_register_vbus_regulator(info);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to register vbus regulator.\n");
-		return ret;
-	}
-
 	info->usb_phy = devm_usb_get_phy_by_phandle(&pdev->dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(&pdev->dev, "failed to find USB phy\n");
 		return PTR_ERR(info->usb_phy);
+	}
+
+	ret = sc2703_charger_register_vbus_regulator(info);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to register vbus regulator.\n");
+		return ret;
 	}
 
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
