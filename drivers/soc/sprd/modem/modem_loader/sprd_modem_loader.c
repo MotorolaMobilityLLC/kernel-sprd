@@ -166,10 +166,11 @@ static void modem_get_base_range(struct modem_device *modem,
 static void *modem_map_memory(struct modem_device *modem, phys_addr_t start,
 			      size_t size, size_t *map_size_ptr)
 {
-	size_t map_size = PAGE_ALIGN(size);
+	size_t map_size = size;
 	void *map;
 
 	do {
+		map_size = PAGE_ALIGN(map_size);
 		map = modem_ram_vmap_nocache(modem->modem_type,
 					     start, map_size);
 		if (map) {
@@ -179,7 +180,6 @@ static void *modem_map_memory(struct modem_device *modem, phys_addr_t start,
 			return map;
 		}
 		map_size /= 2;
-		map_size = PAGE_ALIGN(map_size);
 	} while (map_size >= PAGE_SIZE);
 
 	return NULL;
