@@ -231,10 +231,9 @@ static int sipa_eth_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	ret = sipa_nic_tx(sipa_eth->nic_id, pdata->term_type, netid, skb);
 	if (unlikely(ret != 0)) {
 		pr_err("fail to send skb, ret %d\n", ret);
-		if (ret == -ENOMEM) {
+		if (ret == -ENOMEM || ret == -EAGAIN) {
 			dt_stats->tx_fail++;
 			netif_stop_queue(dev);
-			dev_kfree_skb_any(skb);
 			return NETDEV_TX_BUSY;
 		}
 		goto err;
