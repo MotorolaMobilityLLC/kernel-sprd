@@ -76,6 +76,7 @@ static unsigned int pmic_reg;
 
 typedef char note_buf_t[SYSDUMP_NOTE_BYTES];
 
+static DEFINE_PER_CPU(note_buf_t, crash_notes_temp);
 note_buf_t __percpu *crash_notes;
 
 /* An ELF note in memory */
@@ -425,14 +426,7 @@ void sysdump_enter(int enter_id, const char *reason, struct pt_regs *regs)
 		sprd_sysdump_info = (struct sysdump_info *)phys_to_virt(sprd_sysdump_info_paddr);
 		pr_emerg("vaddr is %p, paddr is %p.\n", sprd_sysdump_info, (void *)sprd_sysdump_info_paddr);
 
-		crash_notes = alloc_percpu(note_buf_t);
-		if (crash_notes == NULL) {
-			pr_emerg("alloc_percpu failed.\n");
-			while (1) {
-				pr_emerg("alloc_percpu failed...\n");
-				mdelay(3000);
-			}
-		}
+		crash_notes = &crash_notes_temp;
 	}
 
 	/* this should before smp_send_stop() to make sysdump_ipi enable */
@@ -810,9 +804,8 @@ int sysdump_sysctl_init(void)
 	if (!sysdump_sysctl_hdr)
 		return -ENOMEM;
 
-	crash_notes = alloc_percpu(note_buf_t);
-	if (crash_notes == NULL)
-		return -ENOMEM;
+	crash_notes = &crash_notes_temp;
+
 	if (input_register_handler(&sysdump_handler))
 		pr_emerg("regist sysdump_handler failed.\n");
 
