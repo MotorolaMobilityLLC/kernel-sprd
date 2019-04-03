@@ -165,7 +165,7 @@ struct wifi_calibration {
 
 /* wifi efuse data, default value comes from PHY team */
 #define WIFI_EFUSE_BLOCK_COUNT (3)
-#define EFUSE_BLOCK_COUNT (7)
+#define WCN_EFUSE_BLOCK_COUNT (4)
 
 #define MARLIN_CP_INIT_READY_MAGIC	(0xababbaba)
 #define MARLIN_CP_INIT_START_MAGIC	(0x5a5a5a5a)

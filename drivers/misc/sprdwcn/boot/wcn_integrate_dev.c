@@ -49,7 +49,8 @@
 
 struct wcn_device_manage s_wcn_device;
 
-static u32 efuse_value[EFUSE_BLOCK_COUNT];
+static u32 wcn_efuse_val[WCN_EFUSE_BLOCK_COUNT];
+static u32 gnss_efuse_val[GNSS_EFUSE_BLOCK_COUNT];
 
 /* efuse blk */
 static const u32
@@ -65,9 +66,6 @@ s_gnss_efuse_id[WCN_PLATFORM_TYPE][GNSS_EFUSE_BLOCK_COUNT] = {
 	{32, 12, 16},	/* pike2 */
 	{32, 24, 28},	/* sharkl3 */
 };
-
-static const u32 s_wifi_efuse_default_value[WIFI_EFUSE_BLOCK_COUNT] = {
-0x11111111, 0x22222222, 0x33333333};	/* Until now, the value is error */
 
 static void wcn_global_source_init(void)
 {
@@ -287,23 +285,8 @@ static void marlin_write_efuse_data(void)
 	chip_type = wcn_platform_chip_type();
 	memset(&tmp_value, 0, sizeof(tmp_value[0]) *
 	       WIFI_EFUSE_BLOCK_COUNT);
-	if (chip_type == WCN_PLATFORM_TYPE_SHARKL3 ||
-	    wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKLE) {
-		tmp_value[0] = efuse_value[0];
-		tmp_value[1] = efuse_value[1];
-		tmp_value[2] = efuse_value[2];
-	} else if (chip_type == WCN_PLATFORM_TYPE_PIKE2) {
-		tmp_value[0] = efuse_value[4];
-		tmp_value[1] = efuse_value[5];
-		tmp_value[2] = efuse_value[6];
-	} else {
-		WCN_INFO("wcn efuse write not support this board now\n");
-	}
-
 	for (iloop = 0; iloop < WIFI_EFUSE_BLOCK_COUNT; iloop++) {
-		if (tmp_value[iloop] == 0)
-			tmp_value[iloop] = s_wifi_efuse_default_value[iloop];
-
+		tmp_value[iloop] = wcn_efuse_val[iloop];
 		WCN_INFO("s_wifi_efuse_id[%d][%d]=%d, value=0x%x\n",
 			 chip_type, iloop,
 			 s_wifi_efuse_id[chip_type][iloop],
@@ -327,12 +310,12 @@ static void marlin_write_efuse_temperature(void)
 	u32 magic, val;
 
 	magic = WCN_EFUSE_TEMPERATURE_MAGIC;
-	if (efuse_value[3] == 0) {
+	if (wcn_efuse_val[3] == 0) {
 		WCN_INFO("temperature efuse read err\n");
 		magic += 1;
 		goto out;
 	}
-	WCN_INFO("temperature efuse read 0x%x\n", efuse_value[3]);
+	WCN_INFO("temperature efuse read 0x%x\n", wcn_efuse_val[3]);
 	phy_addr = s_wcn_device.btwf_device->base_addr +
 		  (phys_addr_t)&s_wssm_phy_offset_p->efuse_temper_val;
 	wcn_write_data_to_phy_addr(phy_addr, &val, sizeof(val));
@@ -359,27 +342,13 @@ void gnss_write_efuse_data(void)
 
 	chip_type = wcn_platform_chip_type();
 	memset(&tmp_value, 0, sizeof(tmp_value[0]) * GNSS_EFUSE_BLOCK_COUNT);
-	if (chip_type == WCN_PLATFORM_TYPE_SHARKL3) {
-		tmp_value[0] = efuse_value[3];
-		tmp_value[1] = efuse_value[1];
-		tmp_value[2] = efuse_value[2];
-	} else if (chip_type == WCN_PLATFORM_TYPE_SHARKLE) {
-		tmp_value[0] = efuse_value[6];
-		tmp_value[1] = efuse_value[1];
-		tmp_value[2] = efuse_value[2];
-	} else if (chip_type == WCN_PLATFORM_TYPE_PIKE2) {
-		tmp_value[0] = efuse_value[3];
-		tmp_value[1] = efuse_value[5];
-		tmp_value[2] = efuse_value[6];
-	} else {
-		WCN_INFO("gnss efuse write not support this board now\n");
-	}
-
-	for (iloop = 0; iloop < GNSS_EFUSE_BLOCK_COUNT; iloop++)
+	for (iloop = 0; iloop < GNSS_EFUSE_BLOCK_COUNT; iloop++) {
+		tmp_value[iloop] = gnss_efuse_val[iloop];
 		WCN_INFO("s_gnss_efuse_id[%d][%d]=%d, value=0x%x\n",
 			 chip_type, iloop,
 			 s_gnss_efuse_id[chip_type][iloop],
 			 tmp_value[iloop]);
+	}
 	/* copy efuse data to target ddr address */
 	phy_addr = s_wcn_device.gnss_device->base_addr +
 		   GNSS_EFUSE_DATA_OFFSET;
@@ -400,7 +369,7 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	struct device_node *np = pdev->dev.of_node;
 	u32 cr_num;
 	int index, ret;
-	u32 i, loop;
+	u32 i;
 	struct resource res;
 	const struct of_device_id *of_id =
 		of_match_node(wcn_match_table, np);
@@ -722,41 +691,51 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	WCN_INFO("wcn_dev->file_length:%d\n", wcn_dev->file_length);
 	if (ret)
 		return -EINVAL;
-	/* get value from dts
-	 * efuse_valuse[0] ~ efuse_valuse[7] are values
-	 * of block 20, 24, 28, 32, 8, 12, 16 respectively.
-	 */
-	memset(&efuse_value, 0, sizeof(efuse_value[0]) * EFUSE_BLOCK_COUNT);
-	ret = wcn_efuse_cal_read(np, "wcn_efuse_blk1", &efuse_value[0]);
-	if (ret)
-		efuse_value[0] = 0;
+	/*get wcn efuse values from dts*/
+	if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0) {
+		ret = wcn_efuse_cal_read(np, "wcn_efuse_blk0",
+					 &wcn_efuse_val[0]);
+		if (ret) {
+			wcn_efuse_val[0] = 0x11111111;
+			WCN_ERR("wcn_efuse_blk0 read error, ret %d\n", ret);
+		}
 
-	ret = wcn_efuse_cal_read(np, "wcn_efuse_blk2", &efuse_value[1]);
-	if (ret)
-		efuse_value[1] = 0;
+		ret = wcn_efuse_cal_read(np, "wcn_efuse_blk1",
+					 &wcn_efuse_val[1]);
+		if (ret) {
+			wcn_efuse_val[1] = 0x22222222;
+			WCN_ERR("wcn_efuse_blk1 read error, ret %d\n", ret);
+		}
 
-	ret = wcn_efuse_cal_read(np, "wcn_efuse_blk3", &efuse_value[2]);
-	if (ret)
-		efuse_value[2] = 0;
+		ret = wcn_efuse_cal_read(np, "wcn_efuse_blk2",
+					 &wcn_efuse_val[2]);
+		if (ret) {
+			wcn_efuse_val[2] = 0x33333333;
+			WCN_ERR("wcn_efuse_blk2 read error, ret %d\n", ret);
+		}
+		/*only just sharkle*/
+		ret = wcn_efuse_cal_read(np, "wcn_efuse_blk3",
+					 &wcn_efuse_val[3]);
+		if (ret)
+			WCN_ERR("wcn_efuse_blk3 read error, ret %d\n", ret);
+	}
+	/*get gnss efuse values from dts*/
+	if (strcmp(wcn_dev->name, WCN_GNSS_DEV_NAME) == 0) {
+		ret = wcn_efuse_cal_read(np, "gnss_efuse_blk0",
+					 &gnss_efuse_val[0]);
+		if (ret)
+			WCN_ERR("gnss_efuse_blk0 read error, ret %d\n", ret);
 
-	ret = wcn_efuse_cal_read(np, "wcn_efuse_blk4", &efuse_value[3]);
-	if (ret)
-		efuse_value[3] = 0;
+		ret = wcn_efuse_cal_read(np, "gnss_efuse_blk1",
+					 &gnss_efuse_val[1]);
+		if (ret)
+			WCN_ERR("gnss_efuse_blk1 read error, ret %d\n", ret);
 
-	ret = wcn_efuse_cal_read(np, "wcn_efuse_blk5", &efuse_value[4]);
-	if (ret)
-		efuse_value[4] = 0;
-
-	ret = wcn_efuse_cal_read(np, "wcn_efuse_blk6", &efuse_value[5]);
-	if (ret)
-		efuse_value[5] = 0;
-
-	ret = wcn_efuse_cal_read(np, "wcn_efuse_blk7", &efuse_value[6]);
-	if (ret)
-		efuse_value[6] = 0;
-
-	for (loop = 0; loop < EFUSE_BLOCK_COUNT; loop++)
-		WCN_INFO("efuse_value[%d]: 0x%x\n", loop, efuse_value[loop]);
+		ret = wcn_efuse_cal_read(np, "gnss_efuse_blk2",
+					 &gnss_efuse_val[2]);
+		if (ret)
+			WCN_ERR("gnss_efuse_blk2 read error, ret %d\n", ret);
+	}
 
 	wcn_dev->start = pcproc_data->start;
 	wcn_dev->stop = pcproc_data->stop;
