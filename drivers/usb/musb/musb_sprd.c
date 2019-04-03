@@ -717,7 +717,7 @@ static void sprd_musb_work(struct work_struct *work)
 				msleep(50);
 		}
 
-		if (glue->dr_mode == USB_DR_MODE_HOST) {
+		if (glue->dr_mode == USB_DR_MODE_HOST && glue->vbus) {
 			ret = regulator_disable(glue->vbus);
 			if (ret) {
 				dev_err(glue->dev,
