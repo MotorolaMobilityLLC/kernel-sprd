@@ -427,12 +427,33 @@ EXPORT_SYMBOL(sipa_pam_connect);
 
 int sipa_ext_open_pcie(struct sipa_pcie_open_params *in)
 {
-	struct sipa_endpoint *ep = s_sipa_ctrl.eps[in->id];
+	struct sipa_endpoint *ep = s_sipa_ctrl.eps[SIPA_EP_PCIE];
 
-	if (!ep) {
-		pr_err("%s: ep id:%d not create!", __func__, in->id);
+	if (ep) {
+		pr_err("%s: pcie already create!", __func__);
 		return -EINVAL;
+	} else {
+		ep = kzalloc(sizeof(*ep), GFP_KERNEL);
+		if (!ep)
+			return -ENOMEM;
+
+		s_sipa_ctrl.eps[SIPA_EP_PCIE] = ep;
 	}
+
+	ep->id = SIPA_EP_PCIE;
+
+	ep->sipa_ctx = s_sipa_ctrl.ctx;
+	ep->send_fifo.idx = SIPA_FIFO_PCIE_UL;
+	ep->send_fifo.rx_fifo.fifo_depth = in->ext_send_param.rx_depth;
+	ep->send_fifo.tx_fifo.fifo_depth = in->ext_send_param.tx_depth;
+	ep->send_fifo.src_id = SIPA_TERM_PCIE0;
+	ep->send_fifo.dst_id = SIPA_TERM_VCP;
+
+	ep->recv_fifo.idx = SIPA_FIFO_PCIE_DL;
+	ep->recv_fifo.rx_fifo.fifo_depth = in->ext_recv_param.rx_depth;
+	ep->recv_fifo.tx_fifo.fifo_depth = in->ext_recv_param.tx_depth;
+	ep->recv_fifo.src_id = SIPA_TERM_PCIE0;
+	ep->recv_fifo.dst_id = SIPA_TERM_VCP;
 
 	ep->send_notify = in->send_notify;
 	ep->recv_notify = in->recv_notify;
