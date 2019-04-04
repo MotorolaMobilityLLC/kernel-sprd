@@ -2479,6 +2479,7 @@ struct isp_raw_proc_info {
 	struct isp_addr img_offset;
 	uint32_t img_fd;
 	uint32_t sensor_id;
+	uint32_t hw_simu_flag;
 };
 
 struct isp_3dnr_const_param {
