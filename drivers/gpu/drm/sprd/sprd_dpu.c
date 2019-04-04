@@ -752,8 +752,12 @@ static int sprd_dpu_init(struct sprd_dpu *dpu)
 	struct dpu_context *ctx = &dpu->ctx;
 	static bool is_running = true;
 
-	if (dpu->ctx.is_inited)
+	down(&ctx->refresh_lock);
+
+	if (dpu->ctx.is_inited) {
+		up(&ctx->refresh_lock);
 		return 0;
+	}
 
 	if (dpu->glb && dpu->glb->power)
 		dpu->glb->power(ctx, true);
@@ -777,6 +781,8 @@ static int sprd_dpu_init(struct sprd_dpu *dpu)
 
 	ctx->is_inited = true;
 
+	up(&ctx->refresh_lock);
+
 	return 0;
 }
 
@@ -784,8 +790,12 @@ static int sprd_dpu_uninit(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
 
-	if (!dpu->ctx.is_inited)
+	down(&ctx->refresh_lock);
+
+	if (!dpu->ctx.is_inited) {
+		up(&ctx->refresh_lock);
 		return 0;
+	}
 
 	if (dpu->core && dpu->core->uninit)
 		dpu->core->uninit(ctx);
@@ -797,6 +807,8 @@ static int sprd_dpu_uninit(struct sprd_dpu *dpu)
 		dpu->glb->power(ctx, false);
 
 	ctx->is_inited = false;
+
+	up(&ctx->refresh_lock);
 
 	return 0;
 }
