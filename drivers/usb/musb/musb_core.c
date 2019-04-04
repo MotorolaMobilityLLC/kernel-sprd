@@ -2596,17 +2596,6 @@ static void musb_save_context(struct musb *musb)
 			musb_readw(epio, MUSB_RXMAXP);
 		musb->context.index_regs[i].rxcsr = 0;
 
-		if (musb->dyn_fifo) {
-			musb->context.index_regs[i].txfifoadd =
-					musb_read_txfifoadd(musb_base);
-			musb->context.index_regs[i].rxfifoadd =
-					musb_read_rxfifoadd(musb_base);
-			musb->context.index_regs[i].txfifosz =
-					musb_read_txfifosz(musb_base);
-			musb->context.index_regs[i].rxfifosz =
-					musb_read_rxfifosz(musb_base);
-		}
-
 		musb->context.index_regs[i].txtype =
 			musb_readb(epio, MUSB_TXTYPE);
 		musb->context.index_regs[i].txinterval =
@@ -2676,17 +2665,6 @@ static void musb_restore_context(struct musb *musb)
 			musb->context.index_regs[i].rxmaxp);
 		musb_writew(epio, MUSB_RXCSR,
 			musb->context.index_regs[i].rxcsr);
-
-		if (musb->dyn_fifo) {
-			musb_write_txfifosz(musb_base,
-				musb->context.index_regs[i].txfifosz);
-			musb_write_rxfifosz(musb_base,
-				musb->context.index_regs[i].rxfifosz);
-			musb_write_txfifoadd(musb_base,
-				musb->context.index_regs[i].txfifoadd);
-			musb_write_rxfifoadd(musb_base,
-				musb->context.index_regs[i].rxfifoadd);
-		}
 
 		musb_writeb(epio, MUSB_TXTYPE,
 				musb->context.index_regs[i].txtype);

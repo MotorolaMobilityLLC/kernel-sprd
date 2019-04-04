@@ -681,6 +681,7 @@ static void sprd_musb_work(struct work_struct *work)
 			dev_err(glue->dev, "Resume sprd_musb core failed!\n");
 			goto end;
 		}
+		musb_reset_all_fifo_2_default(musb);
 
 		/*
 		 * We have resumed the dwc3 device to do enumeration,
@@ -728,7 +729,6 @@ static void sprd_musb_work(struct work_struct *work)
 
 		musb->shutdowning = 0;
 
-		musb_reset_all_fifo_2_default(musb);
 		ret = device_for_each_child(glue->dev, NULL,
 					musb_sprd_suspend_child);
 		if (ret) {
