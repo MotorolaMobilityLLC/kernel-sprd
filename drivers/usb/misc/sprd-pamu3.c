@@ -358,18 +358,25 @@ static int sprd_pamu3_open(struct sprd_pamu3 *pamu3)
 
 static void pamu3_start(struct sprd_pamu3 *pamu3)
 {
-	u32 value;
+	u32 value, depth;
 
 	if (atomic_inc_return(&pamu3->ref) == 1)
 		sprd_pamu3_open(pamu3);
 
 	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
 	if (value & PAMU3_CTL0_BIT_PAM_EN) {
+		depth = pamu3->sipa_info.dl_fifo.fifo_depth;
 		value |= PAMU3_CTL0_BIT_RX_START | PAMU3_CTL0_BIT_TX_START;
 		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
 		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
 		value |=  PAMU3_CTL0_BIT_USB_EN;
 		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
+		pamu3->sipa_params.recv_param.tx_enter_flowctrl_watermark =
+			depth - depth / 4;
+		pamu3->sipa_params.recv_param.tx_leave_flowctrl_watermark =
+			depth / 2;
+		pamu3->sipa_params.recv_param.flow_ctrl_cfg = 1;
+		pamu3->sipa_params.send_param.flow_ctrl_irq_mode = 2;
 		sipa_pam_connect(&pamu3->sipa_params);
 		return;
 	}
