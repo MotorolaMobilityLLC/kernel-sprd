@@ -295,6 +295,19 @@ static int agdsp_access_initialize(struct platform_device *pdev,
 	dsp_ac->ready = true;
 	return 0;
 error:
+#ifdef CONFIG_SPRD_SIPC_V2
+	if (dsp_ac->state)
+		shmem_ram_unmap(SIPC_ID_PSCP, dsp_ac->state);
+	if (dsp_ac->smem_phy_addr)
+		smem_free(SIPC_ID_PSCP, dsp_ac->smem_phy_addr,
+			  dsp_ac->smem_size);
+#else
+	if (dsp_ac->state)
+		shmem_ram_unmap(dsp_ac->state);
+	if (dsp_ac->smem_phy_addr)
+		smem_free(dsp_ac->smem_phy_addr, dsp_ac->smem_size);
+#endif
+	kfree(g_agdsp_access);
 	pr_err("agdsp_access init failed, exit.ret:%d\n", ret);
 
 	return ret;
