@@ -82,6 +82,15 @@ config PROC_CHILDREN
 	  Say Y if you are running any user-space software which takes benefit from
 	  this interface. For example, rkt is such a piece of software.
 
+config ENHANCE_SMAPS_INFO
+	bool "Show more smaps info"
+	depends on PROC_FS && MMU
+	default n
+	help
+	  Show more infos in /proc/pid/smaps, Such as Uss/filecache/shared_filecache
+	  /private_filecache/shared_anonymous/private_anonymous/pss_filecache/
+	  pss_anonymous/private_anonymous/uswap and so on, in each VMA info of smaps.
+
 config PROC_UID
 	bool "Include /proc/uid/ files"
 	default y
