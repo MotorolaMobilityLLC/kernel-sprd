@@ -1205,37 +1205,6 @@
 				#iommu-cells = <0>;
 			};
 
-			pcie0: pcie@20c00000 {
-				compatible = "sprd,pcie", "snps,dw-pcie";
-				reg = <0x0 0x20c00000 0x0 0x100000>,
-				      <0x3 0xffffe000 0x0 0x2000>;
-				reg-names = "dbi", "config";
-				#address-cells = <3>;
-				#size-cells = <2>;
-				device_type = "pci";
-				ranges = <0x01000000 0x0 0x00000000 0x3 0xfffee000 0x0 0x00010000
-					  0x03000000 0x0 0x10000000 0x3 0xf8000000 0x0 0x07fee000>;
-				bus-range = <0 15>;
-				num-lanes = <1>;
-				num-vectors = <256>;
-				num-viewport = <8>;
-				status = "okay";
-
-				dummy@0 {
-					label = "parent_gic_intc";
-					interrupt-parent = <&gic>;
-					#interrupt-cells = <3>;
-					interrupts = <GIC_SPI 148
-						      IRQ_TYPE_LEVEL_HIGH>;
-				};
-				dummy@1 {
-					label = "parent_ipa_intc";
-					interrupt-parent = <&ipa_intc>;
-					#interrupt-cells = <1>;
-					interrupts = <11>;
-				};
-			};
-
 			pcie1: pcie@20d00000 {
 				compatible = "sprd,pcie", "snps,dw-pcie";
 				reg = <0x0 0x20d00000 0x0 0x100000>,
@@ -1264,6 +1233,37 @@
 					interrupt-parent = <&ipa_intc>;
 					#interrupt-cells = <1>;
 					interrupts = <20>;
+				};
+			};
+
+			pcie0: pcie@20c00000 {
+				compatible = "sprd,pcie", "snps,dw-pcie";
+				reg = <0x0 0x20c00000 0x0 0x100000>,
+				      <0x3 0xffffe000 0x0 0x2000>;
+				reg-names = "dbi", "config";
+				#address-cells = <3>;
+				#size-cells = <2>;
+				device_type = "pci";
+				ranges = <0x01000000 0x0 0x00000000 0x3 0xfffee000 0x0 0x00010000
+					  0x03000000 0x0 0x10000000 0x3 0xf8000000 0x0 0x07fee000>;
+				bus-range = <0 15>;
+				num-lanes = <1>;
+				num-vectors = <256>;
+				num-viewport = <8>;
+				status = "okay";
+
+				dummy@0 {
+					label = "parent_gic_intc";
+					interrupt-parent = <&gic>;
+					#interrupt-cells = <3>;
+					interrupts = <GIC_SPI 148
+						      IRQ_TYPE_LEVEL_HIGH>;
+				};
+				dummy@1 {
+					label = "parent_ipa_intc";
+					interrupt-parent = <&ipa_intc>;
+					#interrupt-cells = <1>;
+					interrupts = <11>;
 				};
 			};
 		};
