@@ -67,6 +67,10 @@
 	status = "ok";
 };
 
+&dmc_mpu {
+	status = "okay";
+};
+
 &ssphy1 {
 	vdd-supply = <&vddusb33>;
 	extcon = <&pmic_typec>;

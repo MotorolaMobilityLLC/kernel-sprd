@@ -450,6 +450,10 @@
 	};
 };
 
+&dmc_mpu {
+	status = "okay";
+};
+
 &vddsim2 {
 	status = "disabled";
 };

@@ -68,6 +68,10 @@
 	status = "ok";
 };
 
+&dmc_mpu {
+	status = "okay";
+};
+
 &ssphy0 {
 	vdd-supply = <&vddusb33>;
 	status = "okay";
