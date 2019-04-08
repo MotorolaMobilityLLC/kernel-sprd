@@ -32,7 +32,7 @@
 #define SIPA_RECEIVER_BUF_LEN     1600
 
 static void inform_evt_to_nics(struct sipa_skb_sender *sender,
-							   enum sipa_evt_type evt)
+			       enum sipa_evt_type evt)
 {
 	unsigned long flags;
 	struct sipa_nic *nic;
@@ -45,7 +45,7 @@ static void inform_evt_to_nics(struct sipa_skb_sender *sender,
 }
 
 void sipa_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
-						   unsigned long data)
+			   unsigned long data)
 {
 	struct sipa_skb_sender *sender = (struct sipa_skb_sender *)priv;
 
@@ -190,20 +190,20 @@ static int sipa_skb_sender_init(struct sipa_skb_sender *sender)
 	attr.tx_leave_flowctrl_watermark = 0;
 
 	sipa_open_common_fifo(sender->ctx->hdl,
-						  sender->ep->send_fifo.idx,
-						  &attr,
-						  NULL,
-						  true,
-						  sipa_sender_notify_cb, sender);
+			      sender->ep->send_fifo.idx,
+			      &attr,
+			      NULL,
+			      true,
+			      sipa_sender_notify_cb, sender);
 
 	return 0;
 }
 
 
 int create_sipa_skb_sender(struct sipa_context *ipa,
-						   struct sipa_endpoint *ep,
-						   enum sipa_xfer_pkt_type type,
-						   struct sipa_skb_sender **sender_pp)
+			   struct sipa_endpoint *ep,
+			   enum sipa_xfer_pkt_type type,
+			   struct sipa_skb_sender **sender_pp)
 {
 	int i, ret;
 	struct sipa_skb_sender *sender = NULL;
@@ -285,7 +285,7 @@ void destroy_sipa_skb_sender(struct sipa_skb_sender *sender)
 EXPORT_SYMBOL(destroy_sipa_skb_sender);
 
 void sipa_skb_sender_add_nic(struct sipa_skb_sender *sender,
-							 struct sipa_nic *nic)
+			     struct sipa_nic *nic)
 {
 	unsigned long flags;
 
@@ -296,9 +296,9 @@ void sipa_skb_sender_add_nic(struct sipa_skb_sender *sender,
 EXPORT_SYMBOL(sipa_skb_sender_add_nic);
 
 int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
-							  struct sk_buff *skb,
-							  enum sipa_term_type dst,
-							  u8 netid)
+			      struct sk_buff *skb,
+			      enum sipa_term_type dst,
+			      u8 netid)
 {
 	unsigned long flags;
 	dma_addr_t dma_addr;
@@ -315,9 +315,9 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 	}
 
 	dma_addr = dma_map_single(sender->ctx->pdev,
-				skb->head,
-				skb->len + skb_headroom(skb),
-				DMA_TO_DEVICE);
+				  skb->head,
+				  skb->len + skb_headroom(skb),
+				  DMA_TO_DEVICE);
 
 	memset(&item, 0, sizeof(item));
 	item.addr = dma_addr;

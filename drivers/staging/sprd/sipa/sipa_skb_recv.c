@@ -47,7 +47,7 @@
 
 
 int put_recv_array_node(struct sipa_skb_array *p,
-						struct sk_buff *skb, dma_addr_t dma_addr)
+			struct sk_buff *skb, dma_addr_t dma_addr)
 {
 	u32 pos;
 
@@ -63,7 +63,7 @@ int put_recv_array_node(struct sipa_skb_array *p,
 }
 
 int get_recv_array_node(struct sipa_skb_array *p,
-						struct sk_buff **skb, dma_addr_t *dma_addr)
+			struct sk_buff **skb, dma_addr_t *dma_addr)
 {
 	u32 pos;
 
@@ -117,11 +117,12 @@ void fill_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt)
 			skb_put(skb, SIPA_RECV_BUF_LEN);
 			dma_addr = dma_map_single(receiver->ctx->pdev,
 						  skb->head,
-						  SIPA_RECV_BUF_LEN + skb_headroom(skb),
+						  SIPA_RECV_BUF_LEN +
+						  skb_headroom(skb),
 						  DMA_FROM_DEVICE);
 
 			put_recv_array_node(&receiver->recv_array,
-								skb, dma_addr);
+					    skb, dma_addr);
 
 			item.addr = dma_addr;
 			item.len = skb->len;
@@ -132,7 +133,8 @@ void fill_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt)
 			item.netid = 0;
 			item.err_code = 0;
 			sipa_hal_cache_rx_fifo_item(receiver->ctx->hdl,
-					receiver->ep->recv_fifo.idx, &item);
+						    receiver->ep->recv_fifo.idx,
+						    &item);
 			success_cnt++;
 		} else {
 			fail_cnt++;
@@ -141,17 +143,17 @@ void fill_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt)
 	}
 	if (success_cnt) {
 		sipa_hal_put_rx_fifo_items(receiver->ctx->hdl,
-					receiver->ep->recv_fifo.idx);
+					   receiver->ep->recv_fifo.idx);
 		if (atomic_read(&receiver->need_fill_cnt) > 0)
 			atomic_sub(success_cnt,
-				&receiver->need_fill_cnt);
+				   &receiver->need_fill_cnt);
 	}
 	if (fail_cnt)
 		pr_err("fill free fifo fail_cnt = %d\n", fail_cnt);
 }
 
 void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
-							 unsigned long data)
+			     unsigned long data)
 {
 	struct sipa_skb_receiver *receiver = (struct sipa_skb_receiver *)priv;
 
@@ -171,8 +173,8 @@ static void trigger_nics_recv(struct sipa_skb_receiver *receiver)
 }
 
 static int dispath_to_nic(struct sipa_skb_receiver *receiver,
-						  struct sipa_hal_fifo_item *item,
-						  struct sk_buff *skb)
+			  struct sipa_hal_fifo_item *item,
+			  struct sk_buff *skb)
 {
 	u32 i;
 	unsigned long flags;
@@ -198,7 +200,7 @@ static int dispath_to_nic(struct sipa_skb_receiver *receiver,
 		sipa_nic_push_skb(dst_nic, skb);
 	} else {
 		pr_err("dispath_to_nic src:0x%x, netid:%d no nic matched\n",
-			   item->src, item->netid);
+		       item->src, item->netid);
 		dev_kfree_skb_any(skb);
 	}
 
@@ -216,7 +218,7 @@ static int do_recv(struct sipa_skb_receiver *receiver)
 
 	depth = receiver->ep->recv_fifo.tx_fifo.fifo_depth;
 	num = sipa_hal_get_tx_fifo_items(receiver->ctx->hdl,
-				  receiver->ep->recv_fifo.idx);
+					 receiver->ep->recv_fifo.idx);
 
 	if (num > (depth - depth / 4)) {
 		pr_warn("ep id %d tx fifo not read in time num = %d\n",
@@ -291,8 +293,8 @@ static int recv_thread(void *data)
 		u32 recv_cnt = 0;
 
 		wait_event_interruptible(receiver->recv_waitq,
-								 !sipa_hal_is_tx_fifo_empty(receiver->ctx->hdl,
-										 receiver->ep->recv_fifo.idx));
+					 !sipa_hal_is_tx_fifo_empty(receiver->ctx->hdl,
+								    receiver->ep->recv_fifo.idx));
 
 		recv_cnt = do_recv(receiver);
 		atomic_add(recv_cnt, &receiver->need_fill_cnt);
@@ -315,25 +317,24 @@ void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 	attr.flowctrl_in_tx_full = false;
 	attr.flow_ctrl_cfg = flow_ctrl_rx_empty;
 	attr.flow_ctrl_irq_mode = enter_exit_flow_ctrl;
-	attr.rx_enter_flowctrl_watermark = receiver->ep
-									   ->recv_fifo.rx_fifo.fifo_depth / 4;
-	attr.rx_leave_flowctrl_watermark = receiver->ep
-									   ->recv_fifo.rx_fifo.fifo_depth / 2;
+	attr.rx_enter_flowctrl_watermark =
+		receiver->ep->recv_fifo.rx_fifo.fifo_depth / 4;
+	attr.rx_leave_flowctrl_watermark =
+		receiver->ep->recv_fifo.rx_fifo.fifo_depth / 2;
 	attr.tx_enter_flowctrl_watermark = 0;
 	attr.tx_leave_flowctrl_watermark = 0;
 
 	pr_info("ep_id = %d fifo_id = %d rx_fifo depth = 0x%x\n",
-			receiver->ep->id,
-			receiver->ep->recv_fifo.idx,
-			receiver->ep->recv_fifo.rx_fifo.fifo_depth);
-	pr_info("recv status is %d\n",
-			receiver->ep->recv_fifo.is_receiver);
+		receiver->ep->id,
+		receiver->ep->recv_fifo.idx,
+		receiver->ep->recv_fifo.rx_fifo.fifo_depth);
+	pr_info("recv status is %d\n", receiver->ep->recv_fifo.is_receiver);
 	sipa_open_common_fifo(receiver->ctx->hdl,
-						  receiver->ep->recv_fifo.idx,
-						  &attr,
-						  NULL,
-						  true,
-						  sipa_receiver_notify_cb, receiver);
+			      receiver->ep->recv_fifo.idx,
+			      &attr,
+			      NULL,
+			      true,
+			      sipa_receiver_notify_cb, receiver);
 
 	/* reserve space for dma flushing cache issue */
 	receiver->rsvd = rsvd;
@@ -344,7 +345,7 @@ void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 }
 
 void sipa_receiver_add_nic(struct sipa_skb_receiver *receiver,
-						   struct sipa_nic *nic)
+			   struct sipa_nic *nic)
 {
 	unsigned long flags;
 
@@ -359,7 +360,7 @@ EXPORT_SYMBOL(sipa_receiver_add_nic);
 int create_recv_array(struct sipa_skb_array *p, u32 depth)
 {
 	p->array = kzalloc(sizeof(struct sipa_skb_dma_addr_pair) * depth,
-					   GFP_KERNEL);
+			   GFP_KERNEL);
 	if (!p->array)
 		return -ENOMEM;
 	p->rp = 0;
@@ -381,8 +382,8 @@ void destroy_recv_array(struct sipa_skb_array *p)
 }
 
 int create_sipa_skb_receiver(struct sipa_context *ipa,
-							 struct sipa_endpoint *ep,
-							 struct sipa_skb_receiver **receiver_pp)
+			     struct sipa_endpoint *ep,
+			     struct sipa_skb_receiver **receiver_pp)
 {
 	int ret;
 	struct sipa_skb_receiver *receiver = NULL;
@@ -401,7 +402,7 @@ int create_sipa_skb_receiver(struct sipa_context *ipa,
 	atomic_set(&receiver->need_fill_cnt, 0);
 
 	ret = create_recv_array(&receiver->recv_array,
-							receiver->ep->recv_fifo.rx_fifo.fifo_depth);
+				receiver->ep->recv_fifo.rx_fifo.fifo_depth);
 	if (ret) {
 		pr_err("create_sipa_sipa_receiver: recv_array kzalloc err.\n");
 		kfree(receiver);
@@ -415,10 +416,10 @@ int create_sipa_skb_receiver(struct sipa_context *ipa,
 	sipa_receiver_init(receiver, SIPA_RECV_RSVD_LEN);
 	/* create sender thread */
 	receiver->thread = kthread_create(recv_thread, receiver,
-									  "sipa-recv-%d", ep->id);
+					  "sipa-recv-%d", ep->id);
 	if (IS_ERR(receiver->thread)) {
 		pr_err("Failed to create kthread: ipa-recv-%d\n",
-			   ep->id);
+		       ep->id);
 		ret = PTR_ERR(receiver->thread);
 		return ret;
 	}

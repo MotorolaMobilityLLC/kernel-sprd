@@ -98,7 +98,7 @@ static struct sipa_nic_statics_info s_spia_nic_statics[SIPA_NIC_MAX] = {
 };
 
 int sipa_nic_open(enum sipa_term_type src, int netid,
-				  sipa_notify_cb cb, void *priv)
+		  sipa_notify_cb cb, void *priv)
 {
 	int i;
 	struct sipa_nic *nic = NULL;
@@ -213,7 +213,7 @@ void sipa_nic_push_skb(struct sipa_nic *nic, struct sk_buff *skb)
 EXPORT_SYMBOL(sipa_nic_push_skb);
 
 int sipa_nic_tx(enum sipa_nic_id nic_id, enum sipa_term_type dst,
-				int netid, struct sk_buff *skb)
+		int netid, struct sk_buff *skb)
 {
 	struct sipa_skb_sender *sender;
 

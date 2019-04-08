@@ -202,7 +202,7 @@ struct sipa_receiver {
 	struct sipa_context *ctx;
 	struct sipa_endpoint *ep;
 	struct mutex mutex;
-	struct task_struct	*thread;
+	struct task_struct *thread;
 };
 
 struct sipa_skb_dma_addr_pair {
@@ -264,29 +264,29 @@ struct sipa_control {
 };
 
 int create_sipa_skb_sender(struct sipa_context *ipa,
-						   struct sipa_endpoint *ep,
-						   enum sipa_xfer_pkt_type type,
-						   struct sipa_skb_sender **sender_pp);
+			   struct sipa_endpoint *ep,
+			   enum sipa_xfer_pkt_type type,
+			   struct sipa_skb_sender **sender_pp);
 
 void destroy_sipa_skb_sender(struct sipa_skb_sender *sender);
 
 int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
-							  struct sk_buff *skb,
-							  enum sipa_term_type dst,
-							  u8 netid);
+			      struct sk_buff *skb,
+			      enum sipa_term_type dst,
+			      u8 netid);
 
 void sipa_skb_sender_add_nic(struct sipa_skb_sender *sender,
-							 struct sipa_nic *nic);
+			     struct sipa_nic *nic);
 
 
 int create_sipa_skb_receiver(struct sipa_context *ipa,
-							 struct sipa_endpoint *ep,
-							 struct sipa_skb_receiver **receiver_pp);
+			     struct sipa_endpoint *ep,
+			     struct sipa_skb_receiver **receiver_pp);
 
 void destroy_sipa_skb_receiver(struct sipa_skb_receiver *receiver);
 
 void sipa_receiver_add_nic(struct sipa_skb_receiver *receiver,
-						   struct sipa_nic *nic);
+			   struct sipa_nic *nic);
 
 void sipa_nic_try_notify_recv(struct sipa_nic *nic);
 

@@ -129,9 +129,9 @@ struct sipa_interrupt_table_tag ipa_int_table[] = {
 	},
 };
 
-static inline u32 ipa_fifo_traverse_int_bit(
-	enum sipa_cmn_fifo_index id,
-	struct sipa_common_fifo_cfg_tag *ipa_cfg)
+static inline u32
+ipa_fifo_traverse_int_bit(enum sipa_cmn_fifo_index id,
+			  struct sipa_common_fifo_cfg_tag *ipa_cfg)
 {
 	void __iomem *fifo_base;
 	u32 clr_sts = 0;
@@ -168,8 +168,7 @@ static inline u32 ipa_fifo_traverse_int_bit(
 		clr_sts |= IPA_TX_FIFO_FULL_INT_CLR_BIT;
 
 	if (ipa_cfg->fifo_irq_callback)
-		ipa_cfg->fifo_irq_callback(ipa_cfg->priv,
-					int_status, id);
+		ipa_cfg->fifo_irq_callback(ipa_cfg->priv, int_status, id);
 	else
 		pr_debug("Don't register this fifo(%d) irq callback\n", id);
 
@@ -179,7 +178,7 @@ static inline u32 ipa_fifo_traverse_int_bit(
 }
 
 static u32 ipa_fifo_irq_main_cb(enum sipa_cmn_fifo_index id,
-								struct sipa_common_fifo_cfg_tag *cfg_base)
+				struct sipa_common_fifo_cfg_tag *cfg_base)
 {
 	struct sipa_common_fifo_cfg_tag *ipa_cfg = NULL;
 
@@ -204,7 +203,7 @@ u32 sipa_int_callback_func(int evt, void *cookie)
 	for (i = 0; i < SIPA_FIFO_MAX; i++) {
 		if (int_sts & ipa_int_table[i].int_owner) {
 			ipa_fifo_irq_main_cb(ipa_int_table[i].id,
-								 cfg->cmn_fifo_cfg);
+					     cfg->cmn_fifo_cfg);
 		}
 	}
 
