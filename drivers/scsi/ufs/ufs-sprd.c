@@ -25,6 +25,23 @@
 #include "ufs_quirks.h"
 #include "unipro.h"
 
+/**
+ * ufs_sprd_rmwl - read modify write into a register
+ * @base - base address
+ * @mask - mask to apply on read value
+ * @val - actual value to write
+ * @reg - register address
+ */
+static inline void ufs_sprd_rmwl(void __iomem *base, u32 mask, u32 val, u32 reg)
+{
+	u32 tmp;
+
+	tmp = readl((base) + (reg));
+	tmp &= ~mask;
+	tmp |= (val & mask);
+	writel(tmp, (base) + (reg));
+}
+
 static int ufs_sprd_get_syscon_reg(struct device_node *np,
 	struct syscon_ufs *reg, const char *name)
 {
@@ -57,110 +74,96 @@ static int ufs_sprd_get_syscon_reg(struct device_node *np,
 
 void ufs_sprd_reset(struct ufs_sprd_host *host)
 {
-	int val = 0, val1 = 0;
+	int val = 0, mask = 0;
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 
-	/* TODO:Copy from romcode. HW reset will be simple in next IP version */
-	/* The configs need strict squence */
+	/* TODO: HW reset will be simple in next version. */
+	/* Configs need strict squence. */
 	regmap_update_bits(host->anlg_mphy_ufs_rst.regmap,
 			   host->anlg_mphy_ufs_rst.reg,
 			   host->anlg_mphy_ufs_rst.mask,
 			   0);
-	regmap_update_bits(host->anlg_mphy_ufs_rst.regmap,
-			   host->anlg_mphy_ufs_rst.reg,
-			   host->anlg_mphy_ufs_rst.mask,
-			   0);
-	mb();
+
 	regmap_update_bits(host->anlg_mphy_ufs_rst.regmap,
 			   host->anlg_mphy_ufs_rst.reg,
 			   host->anlg_mphy_ufs_rst.mask,
 			   host->anlg_mphy_ufs_rst.mask);
-	mb();
+
 	regmap_update_bits(host->ap_apb_ufs_rst.regmap,
 			   host->ap_apb_ufs_rst.reg,
 			   host->ap_apb_ufs_rst.mask,
 			   host->ap_apb_ufs_rst.mask);
-	mb();
+
 	regmap_update_bits(host->ap_apb_ufs_rst.regmap,
 			   host->ap_apb_ufs_rst.reg,
 			   host->ap_apb_ufs_rst.mask,
 			   0);
-	mb();
+
 	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
 			   host->aon_apb_ufs_rst.reg,
 			   host->aon_apb_ufs_rst.mask,
 			   host->aon_apb_ufs_rst.mask);
-	mb();
+
 	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
 			   host->aon_apb_ufs_rst.reg,
 			   host->aon_apb_ufs_rst.mask,
 			   0);
 
-	val = readl(host->unipro_reg + 0x40);
-	mb();
-	writel(1 | val, host->unipro_reg + 0x40);
-	mb();
-	writel((~1) & val, host->unipro_reg + 0x40);
+	val = mask = DL_RST;
+	ufs_sprd_rmwl(host->unipro_reg, mask, val, REG_DL_0);
+	ufs_sprd_rmwl(host->unipro_reg, mask, 0, REG_DL_0);
 
-	val = readl(host->unipro_reg + 0x84);
-	mb();
-	writel(2 | val, host->unipro_reg + 0x84);
-	mb();
-	writel((~2) & val, host->unipro_reg + 0x84);
+	val = mask = N_RST;
+	ufs_sprd_rmwl(host->unipro_reg, mask, val, REG_N_1);
+	ufs_sprd_rmwl(host->unipro_reg, mask, 0, REG_N_1);
 
-	val = readl(host->unipro_reg + 0xc0);
-	mb();
-	writel(0x10 | val, host->unipro_reg + 0xc0);
-	mb();
-	writel((~0x10) & val, host->unipro_reg + 0xc0);
+	val = mask = T_RST;
+	ufs_sprd_rmwl(host->unipro_reg, mask, val, REG_T_9);
+	ufs_sprd_rmwl(host->unipro_reg, mask, 0, REG_T_9);
 
-	val = readl(host->unipro_reg + 0xd0);
-	mb();
-	writel(4 | val, host->unipro_reg + 0xd0);
-	mb();
-	writel((~4) & val, host->unipro_reg + 0xd0);
+	val = mask = DME_RST;
+	ufs_sprd_rmwl(host->unipro_reg, mask, val, REG_DME_0);
+	ufs_sprd_rmwl(host->unipro_reg, mask, 0, REG_DME_0);
 
-	val1 = readl(host->hba->mmio_base + 0xb0);
-	mb();
-	writel(0x10001000 | val1, host->hba->mmio_base + 0xb0);
-	mb();
+	val = mask = HCI_RST | HCI_CLOD_RST;
+	ufshcd_rmwl(host->hba, mask, val, REG_SW_RST);
 
-	val = readl(host->ufsutp_reg + 0x100);
-	mb();
-	writel((~3) & val, host->ufsutp_reg + 0x100);
-	mb();
-	writel(3 | val, host->ufsutp_reg + 0x100);
+	val = mask = TX_RSTZ | RX_RSTZ;
+	ufs_sprd_rmwl(host->ufsutp_reg, mask, 0, REG_UTP_MISC);
+	ufs_sprd_rmwl(host->ufsutp_reg, mask, val, REG_UTP_MISC);
 
-	mb();
-	writel((~0x10001000) & val1, host->hba->mmio_base + 0xb0);
+	mask = HCI_RST | HCI_CLOD_RST;
+	ufshcd_rmwl(host->hba, mask, 0, REG_SW_RST);
 
-	val = readl(host->ufs_ao_reg + 0x1c);
-	mb();
-	writel(2 | val, host->ufs_ao_reg + 0x1c);
-	mb();
-	writel((~2) & val, host->ufs_ao_reg + 0x1c);
+	val = mask = XTAL_RST;
+	ufs_sprd_rmwl(host->ufs_ao_reg, mask, val, REG_AO_SW_RST);
+	ufs_sprd_rmwl(host->ufs_ao_reg, mask, 0, REG_AO_SW_RST);
 
-	val = readl(host->unipro_reg + 0x3c);
-	mb();
-	writel(0x3f000000 | val, host->unipro_reg + 0x3c);
-	mb();
-	writel((~0x3f000000) & val, host->unipro_reg + 0x3c);
+	val = mask = RMMI_TX_L0_RST | RMMI_TX_L1_RST | RMMI_RX_L0_RST
+			    | RMMI_RX_L1_RST | RMMI_CB_RST | RMMI_RST;
+	ufs_sprd_rmwl(host->unipro_reg, mask, val, REG_PA_15);
+	ufs_sprd_rmwl(host->unipro_reg, mask, 0, REG_PA_15);
 
-	mb();
-	writel(UIC_CMD_DME_HIBER_EXIT, host->hba->mmio_base + 0x90);
+	/* Exit hibernate after reset, and no need to care command's response. */
+	ufshcd_writel(host->hba, UIC_CMD_DME_HIBER_EXIT, REG_UIC_COMMAND);
 
-	/* ufs tuning */
-	val = readl(host->ufs_tuning + 0x8c);
-	writel(0x8000 | val, host->ufs_tuning + 0x8c);
+	/* Fix issue failing to change speed to fast gear3 mode. */
+	val = mask = TX_FIFOMODE;
+	ufs_sprd_rmwl(host->mphy_reg, mask, val, REG_DIG_CFG35);
 
-	val = readl(host->ufs_tuning + 0x1c);
-	writel(0x1000000 | val, host->ufs_tuning + 0x1c);
+	val = mask = CDR_MONITOR_BYPASS;
+	ufs_sprd_rmwl(host->mphy_reg, mask, val, REG_DIG_CFG7);
 
-	val = readl(host->unipro_reg + 0x148);
-	writel(1 | val, host->unipro_reg + 0x148);
+	val = mask = RMMI_TX_DIRDY_SEL;
+	ufs_sprd_rmwl(host->unipro_reg, mask, val, REG_PA_27);
 }
 
+/**
+ * ufs_sprd_init - find other essential mmio bases
+ * @hba: host controller instance
+ * Returns 0 on success, non-zero value on failure
+ */
 static int ufs_sprd_init(struct ufs_hba *hba)
 {
 	struct device *dev = hba->dev;
@@ -221,18 +224,18 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		return -ENODEV;
 	}
 
-	/* map ufs_tuning */
-	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ufs_tuning");
+	/* map mphy_reg */
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "mphy_reg");
 	if (!res) {
-		dev_err(dev, "Missing ufs_tuning register resource\n");
+		dev_err(dev, "Missing mphy_reg register resource\n");
 		return -ENODEV;
 	}
-	host->ufs_tuning = devm_ioremap_nocache(dev, res->start,
+	host->mphy_reg = devm_ioremap_nocache(dev, res->start,
 						resource_size(res));
-	if (IS_ERR(host->ufs_tuning)) {
-		dev_err(dev, "%s: could not map ufs_tuning, err %ld\n",
-			__func__, PTR_ERR(host->ufs_tuning));
-		host->ufs_tuning = NULL;
+	if (IS_ERR(host->mphy_reg)) {
+		dev_err(dev, "%s: could not map mphy_reg, err %ld\n",
+			__func__, PTR_ERR(host->mphy_reg));
+		host->mphy_reg = NULL;
 		return -ENODEV;
 	}
 
@@ -256,12 +259,16 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	if (ret < 0)
 		return -ENODEV;
 
-	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION;
-	hba->quirks |= UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
+	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
+		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
 
 	return 0;
 }
 
+/**
+ * ufs_sprd_hw_init - controller enable and reset
+ * @hba: host controller instance
+ */
 void ufs_sprd_hw_init(struct ufs_hba *hba)
 {
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
@@ -293,6 +300,7 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 
 	switch (status) {
 	case PRE_CHANGE:
+		/* Do hardware reset before host controller enable. */
 		ufs_sprd_hw_init(hba);
 		break;
 	case POST_CHANGE:
