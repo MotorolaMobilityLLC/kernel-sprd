@@ -49,32 +49,35 @@ static int pam_ipa_alloc_buf(struct pam_ipa_cfg_tag *cfg)
 	return 0;
 }
 
-static int pam_ipa_parse_dts_configuration(
-	struct platform_device *pdev,
-	struct pam_ipa_cfg_tag *cfg)
+static int pam_ipa_parse_dts_configuration(struct platform_device *pdev,
+					   struct pam_ipa_cfg_tag *cfg)
 {
 	int ret;
 	u32 reg_info[2];
 	struct resource *resource;
+	struct sipa_comm_fifo_params *recv_param =
+		&cfg->pam_local_param.recv_param;
+	struct sipa_comm_fifo_params *send_param =
+		&cfg->pam_local_param.send_param;
 
 	/* get IPA global register base  address */
 	resource = platform_get_resource_byname(pdev,
-											IORESOURCE_MEM,
-											"pam-ipa-base");
+						IORESOURCE_MEM,
+						"pam-ipa-base");
 	if (!resource) {
 		pr_err("%s :get resource failed for glb-base!\n",
-			   __func__);
+		       __func__);
 		return -ENODEV;
 	}
 	cfg->reg_base = devm_ioremap_nocache(&pdev->dev,
-										 resource->start,
-										 resource_size(resource));
+					     resource->start,
+					     resource_size(resource));
 	memcpy(&cfg->pam_ipa_res, resource,
-		   sizeof(struct resource));
+	       sizeof(struct resource));
 
 	/* get enable register informations */
 	cfg->enable_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
-			     "enable");
+							  "enable");
 	if (IS_ERR(cfg->enable_regmap))
 		pr_warn("%s :get enable regmap fail!\n", __func__);
 
@@ -89,52 +92,52 @@ static int pam_ipa_parse_dts_configuration(
 	}
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-intr-to-ap",
-						 &cfg->pam_local_param.recv_param.intr_to_ap);
+			     "sprd,cp-ul-intr-to-ap",
+			     &recv_param->intr_to_ap);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-threshold",
-						 &cfg->pam_local_param.recv_param.tx_intr_threshold);
+			     "sprd,cp-ul-threshold",
+			     &recv_param->tx_intr_threshold);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-timeout",
-						 &cfg->pam_local_param.recv_param.tx_intr_delay_us);
+			     "sprd,cp-ul-timeout",
+			     &recv_param->tx_intr_delay_us);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-flowctrl-mode",
-						 &cfg->pam_local_param.recv_param.flow_ctrl_cfg);
+			     "sprd,cp-ul-flowctrl-mode",
+			     &recv_param->flow_ctrl_cfg);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-enter-flowctrl-watermark",
-						 &cfg->pam_local_param.recv_param.tx_enter_flowctrl_watermark);
+			     "sprd,cp-ul-enter-flowctrl-watermark",
+			     &recv_param->tx_enter_flowctrl_watermark);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-exit-flowctrl-watermark",
-						 &cfg->pam_local_param.recv_param.tx_leave_flowctrl_watermark);
+			     "sprd,cp-ul-exit-flowctrl-watermark",
+			     &recv_param->tx_leave_flowctrl_watermark);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-intr-to-ap",
-						 &cfg->pam_local_param.send_param.intr_to_ap);
+			     "sprd,cp-dl-intr-to-ap",
+			     &send_param->intr_to_ap);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-threshold",
-						 &cfg->pam_local_param.send_param.tx_intr_threshold);
+			     "sprd,cp-dl-threshold",
+			     &send_param->tx_intr_threshold);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-timeout",
-						 &cfg->pam_local_param.send_param.tx_intr_delay_us);
+			     "sprd,cp-dl-timeout",
+			     &send_param->tx_intr_delay_us);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-flowctrl-mode",
-						 &cfg->pam_local_param.send_param.flow_ctrl_cfg);
+			     "sprd,cp-dl-flowctrl-mode",
+			     &send_param->flow_ctrl_cfg);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-enter-flowctrl-watermark",
-						 &cfg->pam_local_param.send_param.tx_enter_flowctrl_watermark);
+			     "sprd,cp-dl-enter-flowctrl-watermark",
+			     &send_param->tx_enter_flowctrl_watermark);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-exit-flowctrl-watermark",
-						 &cfg->pam_local_param.send_param.tx_leave_flowctrl_watermark);
+			     "sprd,cp-dl-exit-flowctrl-watermark",
+			     &send_param->tx_leave_flowctrl_watermark);
 
 	return 0;
 }
@@ -154,19 +157,15 @@ static int pam_ipa_connect_ipa(void)
 	if (ret)
 		return ret;
 
-	cfg->pam_local_param.send_param.data_ptr =
-		cfg->dl_dma_addr;
+	cfg->pam_local_param.send_param.data_ptr = cfg->dl_dma_addr;
 	cfg->pam_local_param.send_param.data_ptr_cnt =
 		cfg->local_cfg.dl_fifo.fifo_depth;
-	cfg->pam_local_param.send_param.buf_size =
-		PAM_AKB_BUF_SIZE;
+	cfg->pam_local_param.send_param.buf_size = PAM_AKB_BUF_SIZE;
 
-	cfg->pam_local_param.recv_param.data_ptr =
-		cfg->ul_dma_addr;
+	cfg->pam_local_param.recv_param.data_ptr = cfg->ul_dma_addr;
 	cfg->pam_local_param.recv_param.data_ptr_cnt =
 		cfg->local_cfg.ul_fifo.fifo_depth;
-	cfg->pam_local_param.recv_param.buf_size =
-		PAM_AKB_BUF_SIZE;
+	cfg->pam_local_param.recv_param.buf_size = PAM_AKB_BUF_SIZE;
 
 	cfg->pam_local_param.id = SIPA_EP_VCP;
 	ret = sipa_pam_connect(&cfg->pam_local_param);

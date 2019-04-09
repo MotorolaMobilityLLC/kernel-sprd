@@ -18,44 +18,34 @@
 			((u64)((l_val) | ((u64)(h_val) << 32)))
 
 struct pam_ipa_hal_proc_tag {
-	u32 (*init_pcie_ul_fifo_base)(
-		void __iomem *reg_base,
-		u32 free_addrl, u32 free_addrh,
-		u32 filled_addrl, u32 filled_addrh);
-	u32 (*init_pcie_dl_fifo_base)(
-		void __iomem *reg_base,
-		u32 free_addrl, u32 free_addrh,
-		u32 filled_addrl, u32 filled_addrh);
-	u32 (*init_wiap_ul_fifo_base)(
-		void __iomem *reg_base,
-		u32 free_addrl, u32 free_addrh,
-		u32 filled_addrl, u32 filled_addrh);
-	u32 (*init_wiap_dl_fifo_base)(
-		void __iomem *reg_base,
-		u32 free_addrl, u32 free_addrh,
-		u32 filled_addrl, u32 filled_addrh);
-	u32 (*init_pcie_ul_fifo_sts_addr)(
-		void __iomem *reg_base,
-		u32 free_addrl, u32 free_addrh,
-		u32 filled_addrl, u32 filled_addrh);
-	u32 (*init_pcie_dl_fifo_sts_addr)(
-		void __iomem *reg_base,
-		u32 free_addrl, u32 free_addrh,
-		u32 filled_addrl, u32 filled_addrh);
-	u32 (*init_wiap_dl_fifo_sts_addr)(
-		void __iomem *reg_base,
-		u32 free_addrl, u32 free_addrh,
-		u32 filled_addrl, u32 filled_addrh);
-	u32 (*init_wiap_ul_fifo_sts_addr)(
-		void __iomem *reg_base,
-		u32 free_addrl, u32 free_addrh,
-		u32 filled_addrl, u32 filled_addrh);
-	u32 (*set_ddr_mapping)(
-		void __iomem *reg_base,
-		u32 offset_l, u32 offset_h);
-	u32 (*set_pcie_rc_base)(
-		void __iomem *reg_base,
-		u32 offset_l, u32 offset_h);
+	u32 (*init_pcie_ul_fifo_base)(void __iomem *reg_base,
+				      u32 free_addrl, u32 free_addrh,
+				      u32 filled_addrl, u32 filled_addrh);
+	u32 (*init_pcie_dl_fifo_base)(void __iomem *reg_base,
+				      u32 free_addrl, u32 free_addrh,
+				      u32 filled_addrl, u32 filled_addrh);
+	u32 (*init_wiap_ul_fifo_base)(void __iomem *reg_base,
+				      u32 free_addrl, u32 free_addrh,
+				      u32 filled_addrl, u32 filled_addrh);
+	u32 (*init_wiap_dl_fifo_base)(void __iomem *reg_base,
+				      u32 free_addrl, u32 free_addrh,
+				      u32 filled_addrl, u32 filled_addrh);
+	u32 (*init_pcie_ul_fifo_sts_addr)(void __iomem *reg_base,
+					  u32 free_addrl, u32 free_addrh,
+					  u32 filled_addrl, u32 filled_addrh);
+	u32 (*init_pcie_dl_fifo_sts_addr)(void __iomem *reg_base,
+					  u32 free_addrl, u32 free_addrh,
+					  u32 filled_addrl, u32 filled_addrh);
+	u32 (*init_wiap_dl_fifo_sts_addr)(void __iomem *reg_base,
+					  u32 free_addrl, u32 free_addrh,
+					  u32 filled_addrl, u32 filled_addrh);
+	u32 (*init_wiap_ul_fifo_sts_addr)(void __iomem *reg_base,
+					  u32 free_addrl, u32 free_addrh,
+					  u32 filled_addrl, u32 filled_addrh);
+	u32 (*set_ddr_mapping)(void __iomem *reg_base,
+			       u32 offset_l, u32 offset_h);
+	u32 (*set_pcie_rc_base)(void __iomem *reg_base,
+				u32 offset_l, u32 offset_h);
 	u32 (*start)(void __iomem *reg_base);
 	u32 (*stop)(void __iomem *reg_base);
 	u32 (*resume)(void __iomem *reg_base, u32 flag);
@@ -75,8 +65,7 @@ struct pam_ipa_cfg_tag {
 	u64 pcie_offset;
 	u64 pcie_rc_base;
 
-	struct sipa_connect_params
-			pam_local_param;
+	struct sipa_connect_params pam_local_param;
 
 	struct sipa_to_pam_info local_cfg;
 	struct sipa_to_pam_info remote_cfg;
