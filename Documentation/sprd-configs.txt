@@ -2622,13 +2622,6 @@ CONFIG_DEVFREQ_SPRD_AUTO_DFS
 	[must] none
 	[function] This function is used to enable ddr auto dfs function
 	   on DDRC v1 and and later version
-CONFIG_DEVPORT
-	[arch] arm64
-	[plat] roc1
-	[field] make,code
-	[subsys] char
-	[must] user
-	[function] Suppot /dev/port character device.Depend on ISA and PCI.
 CONFIG_DEVTMPFS
 	[arch] all
 	[plat] all
