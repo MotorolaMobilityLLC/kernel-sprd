@@ -2986,5 +2986,54 @@
 		sprd,netid = <8>;
 		sprd,term-type = <0x6>;
 	};
+
+	isp_dvfs: isp-dvfs {
+		compatible = "sprd,hwdvfs-isp";
+		status = "disabled";
+		sprd,dvfs-work-index-def = <1>;
+	};
+
+	cpp_dvfs: cpp-dvfs {
+		compatible = "sprd,hwdvfs-cpp";
+		status = "disabled";
+		sprd,dvfs-work-index-def = <1>;
+	};
+
+	jpg_dvfs: jpg-dvfs {
+		compatible = "sprd,hwdvfs-jpg";
+		status = "disabled";
+		sprd,dvfs-work-index-def = <1>;
+	};
+
+	fd_dvfs: fd-dvfs {
+		compatible = "sprd,hwdvfs-fd";
+		status = "disabled";
+		sprd,dvfs-work-index-def = <2>;
+	};
+
+	mtx_dvfs: mtx-dvfs {
+		compatible = "sprd,hwdvfs-mtx";
+		status = "disabled";
+		sprd,dvfs-auto-tune = <1>;
+		sprd,dvfs-work-index-def = <3>;
+	};
+
+	dcam_if_dvfs: dcam-if-dvfs {
+		compatible = "sprd,hwdvfs-dcam-if";
+		status = "disabled";
+		sprd,dvfs-work-index-def = <5>;
+	};
+
+	dcam_axi_dvfs: dcam-axi-dvfs {
+		compatible = "sprd,hwdvfs-dcam-axi";
+		status = "disabled";
+		sprd,dvfs-auto-tune = <1>;
+		sprd,dvfs-work-index-def = <2>;
+	};
+
+	mmsys_dvfs: mmsys-dvfs {
+		compatible = "sprd,hwdvfs-mmsys";
+		status = "disabled";
+	};
 };
 

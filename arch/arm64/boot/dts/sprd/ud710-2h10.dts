@@ -590,3 +590,35 @@
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
 };
+
+&isp_dvfs {
+	status = "okay";
+};
+
+&cpp_dvfs {
+	status = "okay";
+};
+
+&jpg_dvfs {
+	status = "okay";
+};
+
+&fd_dvfs {
+	status = "okay";
+};
+
+&mtx_dvfs {
+	status = "okay";
+};
+
+&dcam_if_dvfs {
+	status = "okay";
+};
+
+&dcam_axi_dvfs {
+	status = "okay";
+};
+
+&mmsys_dvfs {
+	status = "okay";
+};
