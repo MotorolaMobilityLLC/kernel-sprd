@@ -131,6 +131,9 @@ static const struct mfd_cell sprd_pmic_devs[] = {
 	}, {
 		.name = "sc27xx-tsensor",
 		.of_compatible = "sprd,sc27xx-tsensor",
+	}, {
+		.name = "sc27xx-pd",
+		.of_compatible = "sprd,sc27xx-pd",
 	},
 };
 
