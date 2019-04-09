@@ -377,6 +377,13 @@
 		arm,no-tick-in-suspend;
 	};
 
+	aliases {
+		cp-etb0 = &pscp0;
+		cp-etb1 = &pscp1;
+		cp-etb2 = &nrcp0;
+		cp-etb3 = &nrcp1;
+	};
+
 	soc {
 		apahb_gate: apahb-gate {
 			compatible = "sprd,orca-apahb-gate";
@@ -483,6 +490,34 @@
 		ts@78009000 {
 			compatible = "arm,coresight-ts", "arm,primecell";
 			reg = <0 0x78009000 0 0x1000>;
+		};
+
+		pscp0: etb@78101000 {
+			compatible = "arm,coresight-ts", "arm,primecell", "arm,cpsys";
+			reg = <0 0x78101000 0 0x1000>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+		};
+
+		pscp1: etb@78103000 {
+			compatible = "arm,coresight-ts", "arm,primecell", "arm,cpsys";
+			reg = <0 0x78103000 0 0x1000>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+		};
+
+		nrcp0: etb@78301000 {
+			compatible = "arm,coresight-ts", "arm,primecell", "arm,cpsys";
+			reg = <0 0x78301000 0 0x1000>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+		};
+
+		nrcp1: etb@78303000 {
+			compatible = "arm,coresight-ts", "arm,primecell", "arm,cpsys";
+			reg = <0 0x78303000 0 0x1000>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
 		};
 
 		funnel@7a001000 {
