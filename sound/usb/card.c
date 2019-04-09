@@ -44,6 +44,7 @@
 #include <linux/mutex.h>
 #include <linux/usb/audio.h>
 #include <linux/usb/audio-v2.h>
+#include <linux/usb/hcd.h>
 #include <linux/module.h>
 
 #include <sound/control.h>
@@ -584,6 +585,52 @@ static int sprd_usb_offload_enable_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int sprd_usb_should_suspend_get(struct snd_kcontrol *kcontrol,
+				       struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_usb_audio *chip = snd_kcontrol_chip(kcontrol);
+
+	if (!chip) {
+		pr_err("%s chip is null\n", __func__);
+		return -EINVAL;
+	}
+
+	ucontrol->value.integer.value[0] = chip->usb_aud_should_suspend;
+
+	return 0;
+}
+
+static int sprd_usb_should_suspend_put(struct snd_kcontrol *kcontrol,
+				       struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_usb_audio *chip = snd_kcontrol_chip(kcontrol);
+	struct soc_mixer_control *mc =
+	(struct soc_mixer_control *)kcontrol->private_value;
+	int max = mc->max, val;
+	struct usb_hcd *hcd;
+
+	if (!chip || !chip->dev || !chip->dev->bus) {
+		pr_err("%s chip or dev or bus is null\n", __func__);
+		return -EINVAL;
+	}
+
+	val = ucontrol->value.integer.value[0];
+	if (val > max) {
+		pr_err("val is invalid\n");
+		return -EINVAL;
+	}
+	chip->usb_aud_should_suspend = val;
+	pr_info("set to %s\n", val ? "suspend" : "not suspend");
+	hcd = bus_to_hcd(chip->dev->bus);
+	if (!hcd->driver || !hcd->driver->set_offload_mode) {
+		pr_err("%s hcd driver or usb_aud_suspend is null\n", __func__);
+		return -EINVAL;
+	}
+	hcd->driver->set_offload_mode(hcd, chip->usb_aud_should_suspend);
+
+	return 0;
+}
+
 static struct snd_kcontrol_new sprd_controls[] = {
 	SOC_SINGLE_EXT("USB_AUD_OFLD_P_EN", SND_SOC_NOPM,
 		SNDRV_PCM_STREAM_PLAYBACK, 1, 0,
@@ -593,6 +640,9 @@ static struct snd_kcontrol_new sprd_controls[] = {
 		SNDRV_PCM_STREAM_CAPTURE, 1, 0,
 		sprd_usb_offload_enable_get,
 		sprd_usb_offload_enable_put),
+	SOC_SINGLE_EXT("USB_AUD_SHOULD_SUSPEND", SND_SOC_NOPM, 0, 1, 0,
+		       sprd_usb_should_suspend_get,
+		       sprd_usb_should_suspend_put),
 	{},
 };
 
@@ -696,6 +746,7 @@ static int usb_audio_probe(struct usb_interface *intf,
 			goto __error;
 		}
 		sprd_usb_control_add(chip);
+		chip->usb_aud_should_suspend = 1;
 	}
 	dev_set_drvdata(&dev->dev, chip);
 

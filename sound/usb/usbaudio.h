@@ -60,6 +60,7 @@ struct snd_usb_audio {
 
 	struct usb_host_interface *ctrl_intf;	/* the audio control interface */
 	int usb_aud_ofld_en[SPRD_AUD_PCM_STREAM_MAX];
+	int usb_aud_should_suspend;
 };
 
 #define usb_audio_err(chip, fmt, args...) \

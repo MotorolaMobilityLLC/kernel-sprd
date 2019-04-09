@@ -1116,15 +1116,69 @@ __error:
  */
 void snd_usb_endpoint_stop(struct snd_usb_endpoint *ep)
 {
+	struct snd_usb_substream *subs;
+	struct usb_hcd *hcd;
+	int is_mono, is_pcm_24bit, is_offload_mod, iis_width, ofld_rate;
+
 	if (!ep)
 		return;
 
 	if (snd_BUG_ON(ep->use_count == 0))
 		return;
 
+	subs = ep->data_subs;
+	if (subs) {
+		iis_width = USB_AUD_IIS_WIDTH_24;
+		ofld_rate = 48;
+		switch (subs->channels) {
+		case 2:
+			is_mono = false;
+			break;
+		case 1:
+			is_mono = true;
+			break;
+		default:
+			is_mono = false;
+			pr_err("%s invalid channel %d\n",
+				__func__, subs->channels);
+			break;
+		}
+		/* pcm fmt */
+		switch (subs->pcm_format) {
+		case SNDRV_PCM_FORMAT_S16_LE:
+			is_pcm_24bit = 0;
+			break;
+		case SNDRV_PCM_FORMAT_S24_LE:
+			is_pcm_24bit = 1;
+			break;
+		default:
+			is_pcm_24bit = 0;
+			pr_err("%s unknown pcm format %d\n",
+			       __func__, subs->pcm_format);
+			break;
+		}
+
+		pr_debug("%s channels = %d, %s, %s",
+			__func__, subs->channels,
+			is_mono ? "is mono" : "is stereo",
+			is_pcm_24bit ? "pcm 24" : "pcm 16bit");
+	}
+
 	if (--ep->use_count == 0) {
 		deactivate_urbs(ep, false);
 		set_bit(EP_FLAG_STOPPING, &ep->flags);
+		if (subs) {
+			is_offload_mod = sprd_usb_audio_offload_check(ep->chip,
+					subs->direction);
+			if (is_offload_mod) {
+				pr_debug("%s close offload mode\n", __func__);
+				hcd = bus_to_hcd(subs->dev->bus);
+				hcd->driver->offload_config(hcd, ep->ep_num,
+							    is_mono,
+							    is_pcm_24bit,
+							    iis_width, 48, 0);
+			}
+		}
 	}
 }
 
