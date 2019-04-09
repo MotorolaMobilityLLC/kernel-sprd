@@ -25,23 +25,10 @@ enum imsbr_call_state {
 	__IMSBR_CALLS_MAX
 };
 
-/**
- * enum imsbr_call_type
- *
- * @IMSBR_AUDIO_CALL: audio call
- * @IMSBR_VIDEO_CALL: videio call
- *
- */
-enum imsbr_call_type {
-	IMSBR_CALL_TYPE_UNSPEC,
-	IMSBR_NONE_CALL,
-	IMSBR_AUDIO_CALL,
-	IMSBR_VIDEO_CALL,
-	__IMSBR_CALL_TYPE_MAX
-};
-
 #define IMSBR_GENL_NAME		"imsbr"
 #define IMSBR_GENL_VERSION	0x1
+
+#define MAX_ESPS 10
 
 union imsbr_inet_addr {
 	__u32		all[4];
@@ -121,12 +108,13 @@ struct imsbr_tuple {
 enum imsbr_attrs {
 	IMSBR_A_UNSPEC,
 	IMSBR_A_CALL_STATE,
-	IMSBR_A_CALL_TYPE,
 	IMSBR_A_TUPLE,
 	IMSBR_A_SIMCARD,
 	IMSBR_A_LOCALMAC,
 	IMSBR_A_REMOTEADDR,
 	IMSBR_A_ISV4,
+	IMSBR_A_LOWPOWER_ST,
+	IMSBR_A_ESP_SPI,
 	__IMSBR_A_MAX
 };
 
@@ -135,15 +123,24 @@ enum imsbr_attrs {
 enum imsbr_commands {
 	IMSBR_C_UNSPEC,
 	IMSBR_C_CALL_STATE,
-	IMSBR_C_CALL_TYPE,
 	IMSBR_C_ADD_TUPLE,
 	IMSBR_C_DEL_TUPLE,
 	IMSBR_C_RESET_TUPLE,
 	IMSBR_C_SEND_LOCALMAC,
 	IMSBR_C_SEND_REMOTEMAC,
+	IMSBR_C_LOWPOWER_ST,
+	IMSBR_C_ADD_SPI,
+	IMSBR_C_DEL_SPI,
 	__IMSBR_C_MAX
 };
 
 #define IMSBR_C_MAX (__IMSBR_C_MAX - 1)
+
+enum imsbr_lowpower_state {
+	IMSBR_LOWPOWER_UNSPEC,
+	IMSBR_LOWPOWER_START,
+	IMSBR_LOWPOWER_END,
+	__IMSBR_LOWPOWER_MAX
+};
 
 #endif

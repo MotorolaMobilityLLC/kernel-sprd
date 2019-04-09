@@ -451,8 +451,35 @@ error:
 }
 EXPORT_SYMBOL_GPL(esp_output_tail);
 
+#define MAX_ESPS 10
+
+struct espheader {
+	u32 spi;
+	u32 seq;
+};
+
+static int imsbr_cp_esp_sync;
+static struct espheader imsbr_ehs[MAX_ESPS];
+
+int imsbr_esp_update_esphs(char *esp)
+{
+	int i;
+
+	imsbr_cp_esp_sync = 1;
+	memcpy(imsbr_ehs, esp, sizeof(struct espheader) * MAX_ESPS);
+
+	for (i = 0; i < MAX_ESPS; i++) {
+		pr_debug("update esp info from cp, spi %x seq %d\n",
+			 imsbr_ehs[i].spi, imsbr_ehs[i].seq);
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(imsbr_esp_update_esphs);
+
 static int esp_output(struct xfrm_state *x, struct sk_buff *skb)
 {
+	int i;
 	int alen;
 	int blksize;
 	struct ip_esp_hdr *esph;
@@ -491,6 +518,22 @@ static int esp_output(struct xfrm_state *x, struct sk_buff *skb)
 
 	esph = esp.esph;
 	esph->spi = x->id.spi;
+
+	if (imsbr_cp_esp_sync) {
+		for (i = 0; i < MAX_ESPS; i++) {
+			if (imsbr_ehs[i].spi == ntohl(esph->spi)) {
+				u32 spi = imsbr_ehs[i].spi;
+				u32 seq = imsbr_ehs[i].seq;
+
+				pr_debug("modify spi 0x%x seq from %d to %d\n",
+					 spi,
+					 XFRM_SKB_CB(skb)->seq.output.low,
+					 seq);
+				XFRM_SKB_CB(skb)->seq.output.low = seq;
+			}
+		}
+		imsbr_cp_esp_sync = 0;
+	}
 
 	esph->seq_no = htonl(XFRM_SKB_CB(skb)->seq.output.low);
 	esp.seqno = cpu_to_be64(XFRM_SKB_CB(skb)->seq.output.low +

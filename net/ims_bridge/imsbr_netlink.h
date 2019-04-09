@@ -3,5 +3,11 @@
 
 int imsbr_netlink_init(void);
 void imsbr_netlink_exit(void);
+int imsbr_spi_match(u32 spi);
+
+struct esph {
+	__u32 spi;
+	__u32 seqno;
+};
 
 #endif

@@ -3,6 +3,8 @@
 
 #include <net/netfilter/nf_conntrack.h>
 
+#define ESP_PORT 4500
+
 static inline void
 imsbr_nfct_debug(char *prefix, struct sk_buff *skb,
 		 struct nf_conntrack_tuple *nft)
@@ -27,5 +29,12 @@ int imsbr_parse_nfttuple(struct net *net, struct sk_buff *skb,
 
 int imsbr_hooks_init(void);
 void imsbr_hooks_exit(void);
+
+struct espheader {
+	u32 spi;
+	u32 seq;
+};
+
+extern struct espheader esphs[];
 
 #endif

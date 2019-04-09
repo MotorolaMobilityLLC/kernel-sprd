@@ -18,16 +18,20 @@
 #include <linux/netfilter_ipv6.h>
 #include <linux/skbuff.h>
 #include <linux/icmpv6.h>
+#include <linux/in.h>
 #include <net/ip.h>
 #include <net/icmp.h>
 #include <net/netfilter/nf_conntrack.h>
 #include <net/netfilter/nf_conntrack_core.h>
+#include <net/esp.h>
+#include <net/udp.h>
 #include <uapi/linux/ims_bridge/ims_bridge.h>
-
 #include "imsbr_core.h"
 #include "imsbr_packet.h"
 #include "imsbr_hooks.h"
+#include "imsbr_netlink.h"
 
+struct espheader esphs[MAX_ESPS];
 static bool is_icmp_error(struct nf_conntrack_tuple *nft)
 {
 	u8 protonum = nft->dst.protonum;
@@ -132,12 +136,28 @@ static int imsbr_get_tuple(struct net *net, struct sk_buff *skb,
 	return imsbr_parse_nfttuple(net, skb, nft);
 }
 
+static void
+imsbr_modify_esp_seq(unsigned int spi, unsigned int seq)
+{
+	int i;
+
+	for (i = 0; i < MAX_ESPS; i++) {
+		if (esphs[i].spi == spi && esphs[i].seq < seq) {
+			esphs[i].seq = seq;
+			break;
+		}
+	}
+}
+
 static unsigned int nf_imsbr_input(void *priv,
 				   struct sk_buff *skb,
 				   const struct nf_hook_state *state)
 {
 	struct nf_conntrack_tuple nft;
 	struct imsbr_flow *flow;
+	struct iphdr *iph;
+	struct udphdr *uh;
+	struct ip_esp_hdr *esph;
 
 	if (!atomic_read(&imsbr_enabled))
 		return NF_ACCEPT;
@@ -146,6 +166,20 @@ static unsigned int nf_imsbr_input(void *priv,
 		return NF_ACCEPT;
 
 	imsbr_nfct_debug("input", skb, &nft);
+
+	iph = ip_hdr(skb);
+	if (iph && (iph->version == 4 && iph->protocol == IPPROTO_UDP)) {
+		uh = udp_hdr(skb);
+		if (uh && ntohs(uh->source) == ESP_PORT) {
+			esph = (struct ip_esp_hdr *)((char *)uh + 8);
+			if (imsbr_spi_match(ntohl(esph->spi))) {
+				pr_info("spi 0x%x matched, update seq to %d\n",
+					ntohl(esph->spi), ntohl(esph->seq_no));
+				imsbr_modify_esp_seq(ntohl(esph->spi),
+						     ntohl(esph->seq_no));
+			}
+		}
+	}
 
 	/* rcu_read_lock hold by netfilter hook outside */
 	flow = imsbr_flow_match(&nft);
@@ -179,6 +213,9 @@ static unsigned int nf_imsbr_output(void *priv,
 	struct nf_conntrack_tuple nft;
 	struct imsbr_flow *flow;
 	int sim, link_type;
+	struct iphdr *iph;
+	struct udphdr *uh;
+	struct ip_esp_hdr *esph;
 
 	if (!atomic_read(&imsbr_enabled))
 		return NF_ACCEPT;
@@ -187,6 +224,21 @@ static unsigned int nf_imsbr_output(void *priv,
 		return NF_ACCEPT;
 
 	imsbr_nfct_debug("output", skb, &nft);
+
+	iph = ip_hdr(skb);
+	if (iph && (iph->version == 4 && iph->protocol == IPPROTO_UDP)) {
+		uh = udp_hdr(skb);
+		if (uh && ntohs(uh->dest) == ESP_PORT) {
+			esph = (struct ip_esp_hdr *)((char *)uh +
+				sizeof(struct udphdr));
+			if (imsbr_spi_match(ntohl(esph->spi))) {
+				pr_info("output spi %x matched, update seq to %d\n",
+					ntohl(esph->spi), ntohl(esph->seq_no));
+				imsbr_modify_esp_seq(ntohl(esph->spi),
+						     ntohl(esph->seq_no));
+			}
+		}
+	}
 
 	/* rcu_read_lock hold by netfilter hook outside */
 	flow = imsbr_flow_match(&nft);
@@ -217,6 +269,12 @@ static unsigned int nf_imsbr_output(void *priv,
 		/* Complete checksum manually if hw checksum offload is on */
 		if (skb->ip_summed == CHECKSUM_PARTIAL)
 			skb_checksum_help(skb);
+		imsbr_packet_relay2cp(skb);
+		return NF_STOLEN;
+	}
+
+	if (cur_lp_state == IMSBR_LOWPOWER_START) {
+		pr_info("lowpower output skb=%p relay to cp\n", skb);
 		imsbr_packet_relay2cp(skb);
 		return NF_STOLEN;
 	}

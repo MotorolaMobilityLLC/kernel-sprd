@@ -34,15 +34,17 @@
 
 #include "imsbr_core.h"
 #include "imsbr_netlink.h"
+#include "imsbr_hooks.h"
 
 static struct nla_policy imsbr_genl_policy[IMSBR_A_MAX + 1] = {
 	[IMSBR_A_CALL_STATE]    = { .type = NLA_U32 },
-	[IMSBR_A_CALL_TYPE]	    = { .type = NLA_U32 },
 	[IMSBR_A_TUPLE]         = { .len = sizeof(struct imsbr_tuple) },
 	[IMSBR_A_SIMCARD]       = { .type = NLA_U32 },
 	[IMSBR_A_LOCALMAC]      = { .type = NLA_STRING },
 	[IMSBR_A_REMOTEADDR]    = { .len = sizeof(union imsbr_inet_addr) },
 	[IMSBR_A_ISV4]          = { .type = NLA_U32 },
+	[IMSBR_A_LOWPOWER_ST]	= { .type = NLA_U32 },
+	[IMSBR_A_ESP_SPI]       = { .type = NLA_U32 },
 };
 
 static int
@@ -77,38 +79,82 @@ imsbr_do_call_state(struct sk_buff *skb, struct genl_info *info)
 	return 0;
 }
 
+static int imsbr_sync_esq_seq(void)
+{
+	int i;
+	u32 esp_num = 0;
+	struct sblock blk;
+	char *esp_info;
+	size_t len;
+	char *tmp;
+
+	for (i = 0; i < MAX_ESPS; i++) {
+		if (esphs[i].spi)
+			esp_num++;
+	}
+
+	if (!esp_num) {
+		pr_err("no esp info recorded\n");
+		return -EINVAL;
+	}
+
+	len = sizeof(unsigned int) + esp_num * sizeof(struct espheader);
+	esp_info = kmalloc(len, GFP_KERNEL);
+
+	memcpy(esp_info, &esp_num, sizeof(unsigned int));
+
+	tmp = esp_info + sizeof(unsigned int);
+
+	for (i = 0; i < MAX_ESPS; i++) {
+		if (esphs[i].spi) {
+			memcpy(tmp + sizeof(struct espheader) * i,
+			       &esphs[i], sizeof(struct espheader));
+			pr_info("spi %x seq %d\n", esphs[i].spi, esphs[i].seq);
+		}
+	}
+
+	if (!imsbr_build_cmd("ap-sync-esp", &blk, esp_info, len))
+		imsbr_sblock_send(&imsbr_ctrl, &blk, len);
+
+	return 0;
+}
+
+static void
+imsbr_notify_lowpower_state(const char *cmd, u32 lp_st)
+{
+	struct sblock blk;
+
+	if (!imsbr_build_cmd(cmd, &blk, &lp_st, sizeof(u32)))
+		imsbr_sblock_send(&imsbr_ctrl, &blk, sizeof(u32));
+}
+
 static int
-imsbr_do_call_type(struct sk_buff *skb, struct genl_info *info)
+imsbr_do_lp_state(struct sk_buff *skb, struct genl_info *info)
 {
 	struct nlattr *nla;
-	u32 simcard = 0;
-	u32 type;
+	u32 lp_st;
+	const char *cmd = "lp-state";
 
-	nla = info->attrs[IMSBR_A_CALL_TYPE];
+	nla = info->attrs[IMSBR_A_LOWPOWER_ST];
 	if (!nla) {
-		pr_err("call_type attr not exist!");
+		pr_err("lowpower state attr not exist!");
 		return -EINVAL;
 	}
 
-	type = *((u32 *)nla_data(nla));
+	lp_st = *((u32 *)nla_data(nla));
 
-	if (type == IMSBR_CALL_TYPE_UNSPEC || type >= __IMSBR_CALL_TYPE_MAX) {
-		pr_err("call_type %u is not supported\n", type);
+	pr_debug("start do_lowpower_st %d\n", lp_st);
+
+	if (lp_st == IMSBR_LOWPOWER_UNSPEC || lp_st >= __IMSBR_LOWPOWER_MAX) {
+		pr_err("lowpower state %u is not supported\n", lp_st);
 		return -EINVAL;
 	}
 
-	nla = info->attrs[IMSBR_A_SIMCARD];
-	if (nla)
-		simcard = *((u32 *)nla_data(nla));
-	if (simcard >= IMSBR_SIMCARD_NUM) {
-		pr_err("simcard %d is out of range\n", simcard);
-		return -EINVAL;
-	}
+	cur_lp_state = lp_st;
+	if (lp_st == IMSBR_LOWPOWER_START)
+		imsbr_sync_esq_seq();
 
-	imsbr_set_calltype(type, simcard);
-	pr_info("now call type is %s on sim%d\n",
-		type == IMSBR_AUDIO_CALL ? "audio-call" : "video-call",
-		simcard);
+	imsbr_notify_lowpower_state(cmd, lp_st);
 	return 0;
 }
 
@@ -365,18 +411,107 @@ imsbr_reset_aptuple(struct sk_buff *skb, struct genl_info *info)
 	return 0;
 }
 
+int imsbr_spi_match(u32 spi)
+{
+	int i, match = 0;
+
+	if (spi == 0)
+		return match;
+
+	for (i = 0; i < MAX_ESPS; i++) {
+		if (esphs[i].spi == spi) {
+			match = 1;
+			break;
+		}
+	}
+
+	return match;
+}
+
+static void
+imsbr_notify_spi(const char *cmd, u32 spi)
+{
+	struct sblock blk;
+
+	if (!imsbr_build_cmd(cmd, &blk, &spi, sizeof(u32)))
+		imsbr_sblock_send(&imsbr_ctrl, &blk, sizeof(u32));
+}
+
+static int
+imsbr_add_spi(struct sk_buff *skb, struct genl_info *info)
+{
+	struct nlattr *nla;
+	int i;
+	u32 spi = 0;
+	const char *cmd = "spi-add";
+
+	nla = info->attrs[IMSBR_A_ESP_SPI];
+	if (nla)
+		spi = *((u32 *)nla_data(nla));
+
+	if (spi == 0) {
+		pr_err("add spi can not be 0\n");
+		return -EINVAL;
+	}
+
+	if (imsbr_spi_match(spi)) {
+		pr_err("spi %x exist already!", spi);
+		return -EINVAL;
+	}
+
+	for (i = 0; i < MAX_ESPS; i++) {
+		if (!esphs[i].spi) {
+			esphs[i].spi = spi;
+			break;
+		}
+	}
+
+	pr_info("add esp spi %x\n", spi);
+	imsbr_notify_spi(cmd, spi);
+	return 0;
+}
+
+static int
+imsbr_del_spi(struct sk_buff *skb, struct genl_info *info)
+{
+	struct nlattr *nla;
+	int i;
+	u32 spi = 0;
+	const char *cmd = "spi-del";
+
+	nla = info->attrs[IMSBR_A_ESP_SPI];
+	if (nla)
+		spi = *((u32 *)nla_data(nla));
+
+	if (spi == 0) {
+		pr_err("del spi can not be 0\n");
+		return -EINVAL;
+	}
+
+	if (!imsbr_spi_match(spi)) {
+		pr_err("spi %x not exist!", spi);
+		return -EINVAL;
+	}
+
+	for (i = 0; i < MAX_ESPS; i++) {
+		if (esphs[i].spi == spi) {
+			esphs[i].spi = 0;
+			esphs[i].seq = 0;
+			break;
+		}
+	}
+
+	pr_info("del esp spi %x\n", spi);
+	imsbr_notify_spi(cmd, spi);
+	return 0;
+}
+
 static struct genl_ops imsbr_genl_ops[] = {
 	{
 		.cmd = IMSBR_C_CALL_STATE,
 		.flags = GENL_ADMIN_PERM,
 		.policy = imsbr_genl_policy,
 		.doit = imsbr_do_call_state,
-	},
-	{
-		.cmd = IMSBR_C_CALL_TYPE,
-		.flags = GENL_ADMIN_PERM,
-		.policy = imsbr_genl_policy,
-		.doit = imsbr_do_call_type,
 	},
 	{
 		.cmd = IMSBR_C_ADD_TUPLE,
@@ -407,6 +542,24 @@ static struct genl_ops imsbr_genl_ops[] = {
 		.flags = GENL_ADMIN_PERM,
 		.policy = imsbr_genl_policy,
 		.doit = imsbr_notify_remote_mac,
+	},
+	{
+		.cmd = IMSBR_C_LOWPOWER_ST,
+		.flags = GENL_ADMIN_PERM,
+		.policy = imsbr_genl_policy,
+		.doit = imsbr_do_lp_state,
+	},
+	{
+		.cmd = IMSBR_C_ADD_SPI,
+		.flags = GENL_ADMIN_PERM,
+		.policy = imsbr_genl_policy,
+		.doit = imsbr_add_spi,
+	},
+	{
+		.cmd = IMSBR_C_DEL_SPI,
+		.flags = GENL_ADMIN_PERM,
+		.policy = imsbr_genl_policy,
+		.doit = imsbr_del_spi,
 	},
 };
 

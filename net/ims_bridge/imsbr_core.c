@@ -24,10 +24,11 @@
 #include <linux/spinlock.h>
 #include <net/netfilter/nf_conntrack_core.h>
 #include <uapi/linux/ims_bridge/ims_bridge.h>
+#include <net/esp.h>
 
 #include "imsbr_core.h"
-#include "imsbr_sipc.h"
 #include "imsbr_packet.h"
+#include "imsbr_hooks.h"
 
 static DEFINE_MUTEX(imsbr_mutex);
 
@@ -36,6 +37,7 @@ atomic_t imsbr_enabled __read_mostly;
 struct imsbr_simcard imsbr_simcards[IMSBR_SIMCARD_NUM] __read_mostly;
 
 struct imsbr_stat __percpu *imsbr_stats;
+unsigned int cur_lp_state;
 
 static struct kmem_cache *imsbr_flow_cache;
 static mempool_t *imsbr_flow_pool;
@@ -49,6 +51,7 @@ static void imsbr_cptuple_reset(struct imsbr_msghdr *msg, unsigned long unused);
 static void imsbr_cp_reset(struct imsbr_msghdr *msg, unsigned long unused);
 static void imsbr_echo_ping(struct imsbr_msghdr *msg, unsigned long unused);
 static void imsbr_echo_pong(struct imsbr_msghdr *msg, unsigned long unused);
+static void imsbr_cp_sync_esp(struct imsbr_msghdr *msg, unsigned long unused);
 
 static struct imsbr_msglist {
 	const char *name;
@@ -87,6 +90,11 @@ static struct imsbr_msglist {
 		.name = "echo-pong",
 		.doit = imsbr_echo_pong,
 		.req_len = sizeof('\0'),
+	},
+	{
+		.name = "cp-sync-esp",
+		.doit = imsbr_cp_sync_esp,
+		.req_len = sizeof('\0'), /* size not fixed */
 	},
 };
 
@@ -401,6 +409,27 @@ static void imsbr_cptuple_update(struct imsbr_msghdr *msg, unsigned long add)
 	}
 }
 
+static void imsbr_cp_sync_esp(struct imsbr_msghdr *msg, unsigned long unused)
+{
+	int i, j;
+	struct espheader *esph =
+		(struct espheader *)(msg->imsbr_payload + sizeof(unsigned int));
+	unsigned int esp_num = *((unsigned int *)msg->imsbr_payload);
+
+	for (i = 0; i < esp_num; i++) {
+		esph = (struct espheader *)((char *)esph +
+			sizeof(*esph) * i);
+		for (j = 0; j < MAX_ESPS; j++) {
+			if (esphs[j].spi == esph->spi) {
+				esphs[j].seq = esph->seq;
+				break;
+			}
+		}
+	}
+
+	imsbr_esp_update_esphs((char *)esphs);
+}
+
 static void imsbr_cptuple_reset(struct imsbr_msghdr *msg, unsigned long unused)
 {
 	u32 *sim_card;
@@ -522,18 +551,6 @@ static char *imsbr_calls2cmd(enum imsbr_call_state state)
 	}
 }
 
-static char *imsbr_calltype2cmd(enum imsbr_call_type type)
-{
-	switch (type) {
-	case IMSBR_AUDIO_CALL:
-		return "call-audio";
-	case IMSBR_VIDEO_CALL:
-		return "call-video";
-	default:
-		return "call-none";
-	}
-}
-
 static void imsbr_trigger_handover(enum imsbr_ho_types type, u32 simcard)
 {
 	struct sblock blk;
@@ -617,18 +634,6 @@ void imsbr_set_callstate(enum imsbr_call_state state, u32 simcard)
 		imsbr_ho_type2cmd(curr_ho),
 		imsbr_ho_type2cmd(new_ho),
 		simcard);
-}
-
-void imsbr_set_calltype(enum imsbr_call_type type, u32 simcard)
-{
-	struct sblock blk;
-	char *cmd;
-
-	cmd = imsbr_calltype2cmd(type);
-	if (imsbr_build_cmd(cmd, &blk, &simcard, sizeof(simcard)))
-		return;
-
-	imsbr_sblock_send(&imsbr_ctrl, &blk, sizeof(simcard));
 }
 
 #ifdef CONFIG_PROC_FS
