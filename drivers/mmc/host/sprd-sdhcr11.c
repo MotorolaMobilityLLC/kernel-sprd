@@ -126,7 +126,7 @@ static void dump_sdio_reg(struct sprd_sdhc_host *host)
 		       16, 4, host->ioaddr, 64, 0);
 
 	print_hex_dump(KERN_ERR, "sdhc register + 0x200: ", DUMP_PREFIX_OFFSET,
-		       16, 4, host->ioaddr + 0x200, 16, 0);
+		       16, 4, host->ioaddr + 0x200, 32, 0);
 
 	pr_info(" ===========================================\n");
 }
