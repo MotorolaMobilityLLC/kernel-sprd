@@ -275,7 +275,7 @@ static int pwm_backlight_probe(struct platform_device *pdev)
 		pb->levels = data->levels;
 	} else
 		pb->scale = data->max_brightness;
-
+	pb->scale = data->max_brightness;
 	pb->notify = data->notify;
 	pb->notify_after = data->notify_after;
 	pb->check_fb = data->check_fb;
