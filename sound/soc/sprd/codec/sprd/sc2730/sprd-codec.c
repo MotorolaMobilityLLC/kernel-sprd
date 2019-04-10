@@ -958,6 +958,8 @@ static int spk_pa_event(struct snd_soc_dapm_widget *w,
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 	unsigned int control_val;
 	struct inter_pa *p_setting, setting;
+	u32 state;
+	int i = 0;
 
 	sp_asoc_pr_dbg("%s Event is %s,kcontrol=%p\n", __func__,
 		get_event_name(event), kcontrol);
@@ -983,6 +985,17 @@ static int spk_pa_event(struct snd_soc_dapm_widget *w,
 			PA_DPOP_BYP_EN, 0);
 		sprd_codec_wait(1);
 		sprd_codec_pa_en(codec, 1);
+
+		/* wait time is about 60 ~ 195 */
+		sprd_codec_wait(60);
+		while (i++ < 135) {
+			state = snd_soc_read(codec, SOC_REG(ANA_STS11)) &
+					     PA_AB_DPOP_DVLD;
+			if (state)
+				break;
+			sprd_codec_wait(1);
+		}
+		sp_asoc_pr_dbg("%s wait time %d\n", __func__, 60 + i);
 	} else {
 		sprd_codec_pa_en(codec, 0);
 		sprd_codec_pa_boost(codec, 0);
