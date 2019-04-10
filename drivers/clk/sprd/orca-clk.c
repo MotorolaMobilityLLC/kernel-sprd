@@ -1152,6 +1152,27 @@ static SPRD_SC_GATE_CLK(aapc_test_eb, "aapc-test-eb", "ext-26m", 0x24,
 static SPRD_SC_GATE_CLK(debug_ts_eb, "debug-ts-eb", "ext-26m", 0x24,
 		     0x1000, BIT(18), CLK_IGNORE_UNUSED, 0);
 
+static SPRD_SC_GATE_CLK(u2_0_ref_en, "u2-0-ref-en", "ext-26m", 0x564,
+		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(u2_1_ref_en, "u2-1-ref-en", "ext-26m", 0x564,
+		     0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(u3_0_ref_en, "u3-0-ref-en", "ext-26m", 0x564,
+		     0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(u3_0_suspend_en, "u3-0-suspend-en", "ext-26m", 0x564,
+		     0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(u3_1_ref_en, "u3-1-ref-en", "ext-26m", 0x564,
+		     0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(u3_1_suspend_en, "u3-1-suspend-en", "ext-26m", 0x564,
+		     0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(dsi0_ref_en, "dsi0-ref-en", "ext-26m", 0x564,
+		     0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(dsi1_ref_en, "dsi1-ref-en", "ext-26m", 0x564,
+		     0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(dsi2_ref_en, "dsi2-ref-en", "ext-26m", 0x564,
+		     0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(pcie_ref_en, "pcie-ref-en", "ext-26m", 0x564,
+		     0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
+
 static struct sprd_clk_common *orca_aon_gate[] = {
 	/* address base is 0x64020000 */
 	&rc100_cal_eb.common,
@@ -1264,6 +1285,16 @@ static struct sprd_clk_common *orca_aon_gate[] = {
 	&all_pll_test_eb.common,
 	&aapc_test_eb.common,
 	&debug_ts_eb.common,
+	&u2_0_ref_en.common,
+	&u2_1_ref_en.common,
+	&u3_0_ref_en.common,
+	&u3_0_suspend_en.common,
+	&u3_1_ref_en.common,
+	&u3_1_suspend_en.common,
+	&dsi0_ref_en.common,
+	&dsi1_ref_en.common,
+	&dsi2_ref_en.common,
+	&pcie_ref_en.common,
 };
 
 static struct clk_hw_onecell_data orca_aon_gate_hws = {
@@ -1378,6 +1409,16 @@ static struct clk_hw_onecell_data orca_aon_gate_hws = {
 		[CLK_ALL_PLL_TEST_EB] = &all_pll_test_eb.common.hw,
 		[CLK_AAPC_TEST_EB] = &aapc_test_eb.common.hw,
 		[CLK_DEBUG_TS_EB] = &debug_ts_eb.common.hw,
+		[CLK_U2_0_REF_EN] = &u2_0_ref_en.common.hw,
+		[CLK_U2_1_REF_EN] = &u2_1_ref_en.common.hw,
+		[CLK_U3_0_REF_EN] = &u3_0_ref_en.common.hw,
+		[CLK_U3_0_SUSPEND_EN] = &u3_0_suspend_en.common.hw,
+		[CLK_U3_1_REF_EN] = &u3_1_ref_en.common.hw,
+		[CLK_U3_1_SUSPEND_EN] = &u3_1_suspend_en.common.hw,
+		[CLK_DSI0_REF_EN] = &dsi0_ref_en.common.hw,
+		[CLK_DSI1_REF_EN] = &dsi1_ref_en.common.hw,
+		[CLK_DSI2_REF_EN] = &dsi2_ref_en.common.hw,
+		[CLK_PCIE_REF_EN] = &pcie_ref_en.common.hw,
 	},
 	.num	= CLK_AON_GATE_NUM,
 };

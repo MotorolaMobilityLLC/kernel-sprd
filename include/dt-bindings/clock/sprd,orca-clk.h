@@ -229,7 +229,17 @@
 #define CLK_ALL_PLL_TEST_EB		107
 #define CLK_AAPC_TEST_EB		108
 #define CLK_DEBUG_TS_EB			109
-#define CLK_AON_GATE_NUM		(CLK_DEBUG_TS_EB + 1)
+#define CLK_U2_0_REF_EN			110
+#define CLK_U2_1_REF_EN			111
+#define CLK_U3_0_REF_EN			112
+#define CLK_U3_0_SUSPEND_EN		113
+#define CLK_U3_1_REF_EN			114
+#define CLK_U3_1_SUSPEND_EN		115
+#define CLK_DSI0_REF_EN			116
+#define CLK_DSI1_REF_EN			117
+#define CLK_DSI2_REF_EN			118
+#define CLK_PCIE_REF_EN			119
+#define CLK_AON_GATE_NUM		(CLK_PCIE_REF_EN + 1)
 
 #define CLK_13M				0
 #define CLK_6M5				1
