@@ -313,7 +313,7 @@ static int sc27xx_typec_enable(struct sc27xx_typec *sc)
 		return ret;
 
 	/* typec USB20 only flag, only work in snk mode */
-	if (sc->typec_cap.type == TYPEC_PORT_UFP && sc->usb20_only) {
+	if (sc->typec_cap.data == TYPEC_PORT_UFP && sc->usb20_only) {
 		ret = regmap_update_bits(sc->regmap, sc->base + SC27XX_EN,
 					 SC27XX_TYPEC_USB20_ONLY,
 					 SC27XX_TYPEC_USB20_ONLY);
