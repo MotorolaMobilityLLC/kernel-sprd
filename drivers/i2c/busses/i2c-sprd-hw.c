@@ -362,6 +362,9 @@ static void sprd_i2c_hw_enable(struct sprd_i2c_hw *i2c_dev)
 {
 	u32 tmp = I2C_DVD_OPT;
 
+	sprd_i2c_hw_clear_ack(i2c_dev);
+	sprd_i2c_hw_clear_irq(i2c_dev);
+
 	writel(tmp, i2c_dev->base + I2C_CTL);
 	dev_dbg(&i2c_dev->adap.dev, "freq=%d\n", i2c_dev->bus_freq);
 

@@ -18,9 +18,6 @@
 
 #define DRV_NAME "sprd-pam-ipa"
 
-#define PAM_IPA_DDR_MAP_OFFSET_L				0x0
-#define PAM_IPA_DDR_MAP_OFFSET_H				0x2
-
 #define PAM_IPA_PCIE_RC_BASE_L					0x0
 #define PAM_IPA_PCIE_RC_BASE_H					0x0
 
@@ -31,67 +28,56 @@ static const struct of_device_id pam_ipa_plat_drv_match[] = {
 	{}
 };
 
-static int pam_ipa_alloc_buf(
-	struct device *dev,
-	struct pam_ipa_cfg_tag *cfg)
+static int pam_ipa_alloc_buf(struct pam_ipa_cfg_tag *cfg)
 {
-	cfg->dl_dma_addr = smem_alloc(SIPC_ID_PSCP,
-		cfg->local_cfg.dl_fifo.fifo_depth *
-		PAM_AKB_BUF_SIZE);
+	cfg->dl_dma_addr = smem_alloc(SIPC_ID_MINIAP,
+				      cfg->local_cfg.dl_fifo.fifo_depth *
+				      PAM_AKB_BUF_SIZE);
 	if (!cfg->dl_dma_addr)
 		return -ENOMEM;
 
-	cfg->ul_dma_addr = smem_alloc(SIPC_ID_PSCP,
-		cfg->local_cfg.ul_fifo.fifo_depth *
-		PAM_AKB_BUF_SIZE);
+	cfg->ul_dma_addr = smem_alloc(SIPC_ID_MINIAP,
+				      cfg->local_cfg.ul_fifo.fifo_depth *
+				      PAM_AKB_BUF_SIZE);
 	if (!cfg->ul_dma_addr) {
-		smem_free(SIPC_ID_PSCP, cfg->dl_dma_addr,
-			cfg->local_cfg.dl_fifo.fifo_depth *
-			PAM_AKB_BUF_SIZE);
+		smem_free(SIPC_ID_MINIAP, cfg->dl_dma_addr,
+			  cfg->local_cfg.dl_fifo.fifo_depth *
+			  PAM_AKB_BUF_SIZE);
 		return -ENOMEM;
 	}
 
 	return 0;
 }
 
-static void pam_ipa_free_buf(struct device *dev,
-					struct pam_ipa_cfg_tag *cfg)
-{
-	smem_free(SIPC_ID_PSCP, cfg->dl_dma_addr,
-		  cfg->local_cfg.dl_fifo.fifo_depth *
-		  PAM_AKB_BUF_SIZE);
-
-	smem_free(SIPC_ID_PSCP, cfg->ul_dma_addr,
-		  cfg->local_cfg.ul_fifo.fifo_depth *
-		  PAM_AKB_BUF_SIZE);
-}
-
-static int pam_ipa_parse_dts_configuration(
-	struct platform_device *pdev,
-	struct pam_ipa_cfg_tag *cfg)
+static int pam_ipa_parse_dts_configuration(struct platform_device *pdev,
+					   struct pam_ipa_cfg_tag *cfg)
 {
 	int ret;
 	u32 reg_info[2];
 	struct resource *resource;
+	struct sipa_comm_fifo_params *recv_param =
+		&cfg->pam_local_param.recv_param;
+	struct sipa_comm_fifo_params *send_param =
+		&cfg->pam_local_param.send_param;
 
 	/* get IPA global register base  address */
 	resource = platform_get_resource_byname(pdev,
-											IORESOURCE_MEM,
-											"pam-ipa-base");
+						IORESOURCE_MEM,
+						"pam-ipa-base");
 	if (!resource) {
 		pr_err("%s :get resource failed for glb-base!\n",
-			   __func__);
+		       __func__);
 		return -ENODEV;
 	}
 	cfg->reg_base = devm_ioremap_nocache(&pdev->dev,
-										 resource->start,
-										 resource_size(resource));
+					     resource->start,
+					     resource_size(resource));
 	memcpy(&cfg->pam_ipa_res, resource,
-		   sizeof(struct resource));
+	       sizeof(struct resource));
 
 	/* get enable register informations */
 	cfg->enable_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
-			     "enable");
+							  "enable");
 	if (IS_ERR(cfg->enable_regmap))
 		pr_warn("%s :get enable regmap fail!\n", __func__);
 
@@ -106,132 +92,142 @@ static int pam_ipa_parse_dts_configuration(
 	}
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-intr-to-ap",
-						 &cfg->pam_local_param.recv_param.intr_to_ap);
+			     "sprd,cp-ul-intr-to-ap",
+			     &recv_param->intr_to_ap);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-threshold",
-						 &cfg->pam_local_param.recv_param.tx_intr_threshold);
+			     "sprd,cp-ul-threshold",
+			     &recv_param->tx_intr_threshold);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-timeout",
-						 &cfg->pam_local_param.recv_param.tx_intr_delay_us);
+			     "sprd,cp-ul-timeout",
+			     &recv_param->tx_intr_delay_us);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-flowctrl-mode",
-						 &cfg->pam_local_param.recv_param.flow_ctrl_cfg);
+			     "sprd,cp-ul-flowctrl-mode",
+			     &recv_param->flow_ctrl_cfg);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-enter-flowctrl-watermark",
-						 &cfg->pam_local_param.recv_param.tx_enter_flowctrl_watermark);
+			     "sprd,cp-ul-enter-flowctrl-watermark",
+			     &recv_param->tx_enter_flowctrl_watermark);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-ul-exit-flowctrl-watermark",
-						 &cfg->pam_local_param.recv_param.tx_leave_flowctrl_watermark);
+			     "sprd,cp-ul-exit-flowctrl-watermark",
+			     &recv_param->tx_leave_flowctrl_watermark);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-intr-to-ap",
-						 &cfg->pam_local_param.send_param.intr_to_ap);
+			     "sprd,cp-dl-intr-to-ap",
+			     &send_param->intr_to_ap);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-threshold",
-						 &cfg->pam_local_param.send_param.tx_intr_threshold);
+			     "sprd,cp-dl-threshold",
+			     &send_param->tx_intr_threshold);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-timeout",
-						 &cfg->pam_local_param.send_param.tx_intr_delay_us);
+			     "sprd,cp-dl-timeout",
+			     &send_param->tx_intr_delay_us);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-flowctrl-mode",
-						 &cfg->pam_local_param.send_param.flow_ctrl_cfg);
+			     "sprd,cp-dl-flowctrl-mode",
+			     &send_param->flow_ctrl_cfg);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-enter-flowctrl-watermark",
-						 &cfg->pam_local_param.send_param.tx_enter_flowctrl_watermark);
+			     "sprd,cp-dl-enter-flowctrl-watermark",
+			     &send_param->tx_enter_flowctrl_watermark);
 
 	of_property_read_u32(pdev->dev.of_node,
-						 "sprd,cp-dl-exit-flowctrl-watermark",
-						 &cfg->pam_local_param.send_param.tx_leave_flowctrl_watermark);
+			     "sprd,cp-dl-exit-flowctrl-watermark",
+			     &send_param->tx_leave_flowctrl_watermark);
+
+	return 0;
+}
+
+static int pam_ipa_connect_ipa(void)
+{
+	int ret;
+	struct pam_ipa_cfg_tag *cfg = pam_ipa_cfg;
+
+	ret = sipa_get_ep_info(SIPA_EP_VCP, &cfg->local_cfg);
+	if (ret) {
+		dev_err(&cfg->pdev->dev, "local ipa open fail\n");
+		return ret;
+	}
+
+	ret = pam_ipa_alloc_buf(cfg);
+	if (ret)
+		return ret;
+
+	cfg->pam_local_param.send_param.data_ptr = cfg->dl_dma_addr;
+	cfg->pam_local_param.send_param.data_ptr_cnt =
+		cfg->local_cfg.dl_fifo.fifo_depth;
+	cfg->pam_local_param.send_param.buf_size = PAM_AKB_BUF_SIZE;
+
+	cfg->pam_local_param.recv_param.data_ptr = cfg->ul_dma_addr;
+	cfg->pam_local_param.recv_param.data_ptr_cnt =
+		cfg->local_cfg.ul_fifo.fifo_depth;
+	cfg->pam_local_param.recv_param.buf_size = PAM_AKB_BUF_SIZE;
+
+	cfg->pam_local_param.id = SIPA_EP_VCP;
+	ret = sipa_pam_connect(&cfg->pam_local_param);
+	if (ret) {
+		dev_err(&cfg->pdev->dev, "local ipa connect failed\n");
+		return ret;
+	}
+	cfg->connected = true;
+
+	return 0;
+}
+
+int pam_ipa_on_miniap_ready(struct sipa_to_pam_info *remote_cfg)
+{
+	struct pam_ipa_cfg_tag *cfg = pam_ipa_cfg;
+	int ret;
+
+	if (!cfg)
+		return -EINVAL;
+
+	memcpy(&cfg->remote_cfg, remote_cfg, sizeof(*remote_cfg));
+
+	if (!cfg->connected) {
+		ret = pam_ipa_connect_ipa();
+		if (ret) {
+			dev_err(&cfg->pdev->dev,
+				"pam_ipa_connect_ipa fail:%d\n",
+				ret);
+			return ret;
+		}
+	}
+
+	ret = pam_ipa_init(cfg);
+	if (ret) {
+		dev_err(&cfg->pdev->dev, "PAM_IPA init hw failed\n");
+		return ret;
+	}
 
 	return 0;
 }
 
 static int pam_ipa_plat_drv_probe(struct platform_device *pdev_p)
 {
-	int ret;
 	struct pam_ipa_cfg_tag *cfg;
-	struct sipa_to_pam_info local_cfg;
-	struct sipa_to_pam_info remote_cfg;
-
-	ret = sipa_get_ep_info(SIPA_EP_VCP, &local_cfg);
-	if (ret) {
-		dev_err(&pdev_p->dev, "[PAM_IPA] local ipa not ready\n");
-		return ret;
-	}
-
-	ret = modem_sipa_connect(&remote_cfg);
-	if (ret) {
-		dev_err(&pdev_p->dev, "[PAM_IPA] remote ipa not ready\n");
-		return ret;
-	}
 
 	cfg = devm_kzalloc(&pdev_p->dev, sizeof(*cfg),
-					   GFP_KERNEL);
-	if (!cfg) {
+			   GFP_KERNEL);
+	if (!cfg)
 		return -ENOMEM;
-	}
 
 	pam_ipa_cfg = cfg;
-
-	memcpy(&cfg->local_cfg, &local_cfg, sizeof(local_cfg));
-	memcpy(&cfg->remote_cfg, &remote_cfg, sizeof(remote_cfg));
-
+	cfg->pdev = pdev_p;
 	pam_ipa_parse_dts_configuration(pdev_p, cfg);
+	cfg->connected = false;
+	cfg->pcie_offset = PAM_IPA_STI_64BIT(PAM_IPA_DDR_MAP_OFFSET_L,
+					     PAM_IPA_DDR_MAP_OFFSET_H);
+	cfg->pcie_rc_base = PAM_IPA_STI_64BIT(PAM_IPA_PCIE_RC_BASE_L,
+					      PAM_IPA_PCIE_RC_BASE_H);
 
 	pam_ipa_init_api(&cfg->hal_ops);
-	cfg->pcie_offset = PAM_IPA_STI_64BIT(
-				   PAM_IPA_DDR_MAP_OFFSET_L,
-				   PAM_IPA_DDR_MAP_OFFSET_H);
-	cfg->pcie_rc_base = PAM_IPA_STI_64BIT(
-				    PAM_IPA_PCIE_RC_BASE_L,
-				    PAM_IPA_PCIE_RC_BASE_H);
-
-	ret = pam_ipa_alloc_buf(&pdev_p->dev, cfg);
-	if (ret)
-		return ret;
-
-	cfg->pam_local_param.send_param.data_ptr =
-		cfg->dl_dma_addr;
-	cfg->pam_local_param.send_param.data_ptr_cnt =
-		PAM_FREE_FIFO_SIZE;
-	cfg->pam_local_param.send_param.buf_size =
-		PAM_AKB_BUF_SIZE;
-
-	cfg->pam_local_param.recv_param.data_ptr =
-		cfg->ul_dma_addr;
-	cfg->pam_local_param.recv_param.data_ptr_cnt =
-		PAM_FREE_FIFO_SIZE;
-	cfg->pam_local_param.recv_param.buf_size =
-		PAM_AKB_BUF_SIZE;
-
-	cfg->pam_local_param.id = SIPA_EP_VCP;
-	ret = sipa_pam_connect(&cfg->pam_local_param);
-	if (ret) {
-		dev_err(&pdev_p->dev, "[PAM_IPA] local ipa connect failed\n");
-		goto err_alloc;
-	}
-
-	ret = pam_ipa_init(cfg);
-	if (ret) {
-		dev_err(&pdev_p->dev, "[PAM_IPA] init failed\n");
-		goto err_alloc;
-	}
 
 	return 0;
-
-err_alloc:
-	pam_ipa_free_buf(&pdev_p->dev, cfg);
-	return ret;
 }
 
 static int pam_ipa_ap_suspend(struct device *dev)

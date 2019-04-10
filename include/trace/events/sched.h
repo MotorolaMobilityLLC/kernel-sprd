@@ -656,7 +656,7 @@ extern unsigned int walt_ravg_window;
 extern bool walt_disabled;
 
 #define walt_util(util_var, demand_sum) {\
-	u64 sum = demand_sum << SCHED_CAPACITY_SHIFT;\
+	u64 sum = (u64)demand_sum << SCHED_CAPACITY_SHIFT;\
 	do_div(sum, walt_ravg_window);\
 	util_var = (typeof(util_var))sum;\
 	}
@@ -677,8 +677,11 @@ TRACE_EVENT(sched_load_cfs_rq,
 				__trace_sched_path(cfs_rq, NULL, 0)	)
 		__field(	unsigned long,	load			)
 		__field(	unsigned long,	util			)
-		__field(	unsigned long,	util_pelt          	)
-		__field(	unsigned long,	util_walt          	)
+		__field(	unsigned long,	util_pelt		)
+		__field(	unsigned long,	util_walt_cravg		)
+		__field(	unsigned long,	util_walt_prev		)
+		__field(	unsigned long,	util_walt_curr		)
+		__field(	unsigned long,	util_walt_cwind		)
 	),
 
 	TP_fast_assign(
@@ -688,20 +691,33 @@ TRACE_EVENT(sched_load_cfs_rq,
 		__entry->load	= cfs_rq->runnable_load_avg;
 		__entry->util	= cfs_rq->avg.util_avg;
 		__entry->util_pelt = cfs_rq->avg.util_avg;
-		__entry->util_walt = 0;
+		__entry->util_walt_cravg = 0;
+		__entry->util_walt_prev = 0;
+		__entry->util_walt_curr = 0;
+		__entry->util_walt_cwind = 0;
 #ifdef CONFIG_SCHED_WALT
 		if (&cfs_rq->rq->cfs == cfs_rq) {
-			walt_util(__entry->util_walt,
+			walt_util(__entry->util_walt_cravg,
+				  cfs_rq->rq->cumulative_runnable_avg);
+			walt_util(__entry->util_walt_prev,
 				  cfs_rq->rq->prev_runnable_sum);
+			walt_util(__entry->util_walt_curr,
+				  cfs_rq->rq->curr_runnable_sum);
+			walt_util(__entry->util_walt_cwind,
+				  cfs_rq->rq->cum_window_demand);
 			if (!walt_disabled && sysctl_sched_use_walt_cpu_util)
-				__entry->util = __entry->util_walt;
+				__entry->util = __entry->util_walt_cravg;
 		}
 #endif
 	),
 
-	TP_printk("cpu=%d path=%s load=%lu util=%lu util_pelt=%lu util_walt=%lu",
+	TP_printk("cpu=%d path=%s load=%lu util=%lu util_pelt=%lu "
+		  "util_walt_cravg=%lu util_walt_prev=%lu "
+		  "util_walt_curr=%lu util_walt_cwind=%lu",
 		  __entry->cpu, __get_str(path), __entry->load, __entry->util,
-		  __entry->util_pelt, __entry->util_walt)
+		  __entry->util_pelt, __entry->util_walt_cravg,
+		  __entry->util_walt_prev, __entry->util_walt_curr,
+		  __entry->util_walt_cwind)
 );
 
 /*

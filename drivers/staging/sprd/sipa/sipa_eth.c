@@ -29,6 +29,7 @@
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/of_device.h>
+#include <linux/interrupt.h>
 #include "sipa_eth.h"
 
 /* Device status */
@@ -105,8 +106,15 @@ static int sipa_eth_rx(struct SIPA_ETH *sipa_eth, int budget)
 		ret = sipa_nic_rx(sipa_eth->nic_id, &skb);
 
 		if (ret) {
-			pr_err("fail to find dev, ret %d\n", ret);
-			dt_stats->rx_fail++;
+			switch (ret) {
+			case -ENODEV:
+				pr_err("fail to find dev");
+				dt_stats->rx_fail++;
+				break;
+			case -ENODATA:
+				pr_debug("no more skb to recv");
+				break;
+			}
 			break;
 		}
 
@@ -117,13 +125,13 @@ static int sipa_eth_rx(struct SIPA_ETH *sipa_eth, int budget)
 
 		sipa_eth_prepare_skb(sipa_eth, skb);
 		rx_bytes += skb->len;
+		sipa_eth_rx_stats_update(dt_stats, skb->len);
 
 		if (gro_enable)
 			napi_gro_receive(&sipa_eth->napi, skb);
 		else
 			netif_receive_skb(skb);
 
-		sipa_eth_rx_stats_update(dt_stats, skb->len);
 		skb_cnt++;
 	}
 
@@ -140,7 +148,15 @@ static int sipa_eth_rx_poll_handler(struct napi_struct *napi, int budget)
 
 	pkts = sipa_eth_rx(sipa_eth, budget);
 
-	napi_complete(napi);
+	/* If the number of pkt is more than weight(64),
+	 * we cannot read them all with a single poll.
+	 * When the return value of poll func equals to weight(64),
+	 * napi structure invokes the poll func one more time by
+	 * __raise_softirq_irqoff.(See napi_poll for details)
+	 * So do not do napi_complete in that case.
+	 */
+	if (pkts < budget)
+		napi_complete(napi);
 	return pkts;
 }
 
@@ -153,6 +169,8 @@ static void sipa_eth_rx_handler (void *priv)
 		return;
 	}
 	napi_schedule(&sipa_eth->napi);
+	/* Trigger a NET_RX_SOFTIRQ softirq directly, or there will be a delay */
+	raise_softirq(NET_RX_SOFTIRQ);
 }
 
 static void sipa_eth_flowctrl_handler(void *priv, int flowctrl)
@@ -172,7 +190,6 @@ static void sipa_eth_notify_cb(void *priv, enum sipa_evt_type evt,
 {
 	switch (evt) {
 	case SIPA_RECEIVE:
-		pr_info("SIPA_RECEIVE\n");
 		sipa_eth_rx_handler(priv);
 		break;
 	case SIPA_LEAVE_FLOWCTRL:
@@ -213,10 +230,9 @@ static int sipa_eth_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	ret = sipa_nic_tx(sipa_eth->nic_id, pdata->term_type, netid, skb);
 	if (unlikely(ret != 0)) {
 		pr_err("fail to send skb, ret %d\n", ret);
-		if (ret == -ENOMEM) {
+		if (ret == -ENOMEM || ret == -EAGAIN) {
 			dt_stats->tx_fail++;
 			netif_stop_queue(dev);
-			dev_kfree_skb_any(skb);
 			return NETDEV_TX_BUSY;
 		}
 		goto err;
@@ -227,7 +243,6 @@ static int sipa_eth_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	dev->stats.tx_bytes += skb->len;
 	sipa_eth_tx_stats_update(dt_stats, skb->len);
 
-	dev_kfree_skb_any(skb);
 	return NETDEV_TX_OK;
 
 err:

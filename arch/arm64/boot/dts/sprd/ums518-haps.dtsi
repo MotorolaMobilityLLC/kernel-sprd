@@ -26,6 +26,7 @@
 			compatible = "arm,cortex-a55","arm,armv8";
 			reg = <0x0 0x0>;
 			enable-method = "spin-table";
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 
 	};
@@ -93,6 +94,85 @@
 				45		/* CORE_PD */
 			>;
 		};
+	};
+
+	cpufreq_clus0: cpufreq-clus0 {
+		cpufreq-cluster-id = <0>;
+		cpufreq-sub-clusters =  <&cpufreq_scu>,
+				<&cpufreq_periph>,
+				<&cpufreq_gic>;
+		clock-latency = <50000>;
+		voltage-tolerance = <6413>;
+		operating-points = <
+			/* kHZ   uV */
+			1820000 1000000
+			1716000 1000000
+			1536000 1000000
+			1482000 1000000
+			1228800 800000
+			1144000 800000
+			962000  800000
+			768000  800000
+			614400  700000
+		>;
+	};
+
+	cpufreq_scu: cpufreq-scu {
+		cpufreq-cluster-id = <2>;
+		clock-latency = <50000>;
+		voltage-tolerance = <0>;
+		operating-points = <
+			/* kHz   uV */
+			1404000 1000000
+			1326000 1000000
+			1222000 1000000
+			1118000 1000000
+			1014000 800000
+			962000  800000
+			768000  800000
+			650000  800000
+			546000  700000
+		>;
+	};
+
+	cpufreq_periph: cpufreq-periph {
+		cpufreq-cluster-id = <3>;
+		clock-latency = <50000>;
+		voltage-tolerance = <0>;
+		operating-points = <
+			/* kHZ  uV */
+			768000 1000000
+			512000 800000
+			384000 800000
+			256000 800000
+			153600 700000
+		>;
+	};
+
+	cpufreq_gic: cpufreq-gic {
+		cpufreq-cluster-id = <4>;
+		clock-latency = <50000>;
+		voltage-tolerance = <0>;
+		operating-points = <
+			/* kHZ  uV */
+			512000 800000
+			384000 800000
+			256000 800000
+			192000 800000
+			153600 700000
+		>;
+	};
+
+	cpufreq_atb: cpufreq-atb {
+		cpufreq-cluster-id = <5>;
+		operating-points = <
+			/* kHZ  uV */
+			768000 1000000
+			512000 800000
+			384000 800000
+			256000 700000
+			153600 700000
+		>;
 	};
 
 	gic: interrupt-controller@12000000 {

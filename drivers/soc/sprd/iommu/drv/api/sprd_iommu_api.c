@@ -175,6 +175,22 @@ u32 sprd_iommudrv_reset(sprd_iommu_hdl  p_iommu_hdl, u32 channel_num)
 							channel_num);
 }
 
+u32 sprd_iommudrv_set_bypass(sprd_iommu_hdl  p_iommu_hdl, bool vaor_bp_en)
+{
+	struct sprd_iommu_widget *p_iommu_data = NULL;
+
+	if (NULL == p_iommu_hdl)
+		return SPRD_ERR_INVALID_PARAM;
+
+	p_iommu_data = (struct sprd_iommu_widget *)p_iommu_hdl;
+
+	if (NULL == p_iommu_data->p_iommu_tbl)
+		return SPRD_ERR_INVALID_PARAM;
+	else
+		return p_iommu_data->p_iommu_tbl->set_bypass(p_iommu_hdl,
+							  vaor_bp_en);
+}
+
 u32 sprd_iommudrv_release(sprd_iommu_hdl p_iommu_hdl)
 {
 	struct sprd_iommu_widget *p_iommu_data = NULL;

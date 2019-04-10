@@ -54,6 +54,9 @@
 #define XFRM_INC_STATS(net, field)	((void)(net))
 #endif
 
+#ifdef CONFIG_XFRM_FRAGMENT
+#define XFRM_FRAG_DEFAULT_MTU 1400
+#endif
 
 /* Organization of SPD aka "XFRM rules"
    ------------------------------------
@@ -1652,9 +1655,25 @@ int xfrm6_output(struct net *net, struct sock *sk, struct sk_buff *skb);
 int xfrm6_output_finish(struct sock *sk, struct sk_buff *skb);
 int xfrm6_find_1stfragopt(struct xfrm_state *x, struct sk_buff *skb,
 			  u8 **prevhdr);
-
+#ifdef CONFIG_XFRM_FRAGMENT
+int xfrm6_rcv_encap(struct sk_buff *skb, int nexthdr, __be32 spi,
+		    int encap_type);
+extern int ip4_do_xfrm_frag(struct net *net, struct sock *sk,
+			    struct sk_buff *skb,
+			    int pmtu,
+			    int (*output)(struct net *,
+					  struct sock *,
+					  struct sk_buff *));
+extern int ip6_do_xfrm_frag(struct net *net, struct sock *sk,
+			    struct sk_buff *skb,
+			    int pmtu,
+			    int (*output)(struct net *,
+					  struct sock *,
+					  struct sk_buff *));
+#endif
 #ifdef CONFIG_XFRM
 int xfrm4_udp_encap_rcv(struct sock *sk, struct sk_buff *skb);
+int xfrm6_udp_encap_rcv(struct sock *sk, struct sk_buff *skb);
 int xfrm_user_policy(struct sock *sk, int optname,
 		     u8 __user *optval, int optlen);
 #else
@@ -1667,6 +1686,13 @@ static inline int xfrm4_udp_encap_rcv(struct sock *sk, struct sk_buff *skb)
 {
  	/* should not happen */
  	kfree_skb(skb);
+	return 0;
+}
+
+static inline int xfrm6_udp_encap_rcv(struct sock *sk, struct sk_buff *skb)
+{
+	/* should not happen */
+	kfree_skb(skb);
 	return 0;
 }
 #endif

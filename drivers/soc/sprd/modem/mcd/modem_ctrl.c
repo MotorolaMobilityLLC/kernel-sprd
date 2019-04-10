@@ -26,20 +26,15 @@
 #include <linux/seq_file.h>
 #include <linux/sipc.h>
 #include <linux/gpio/consumer.h>
+#include <linux/reboot.h>
 #ifdef CONFIG_PCIE_PM_NOTIFY
-#include <linux/pci_notifier.h>
+#include <linux/pcie_notifier.h>
 #endif
+#include <linux/mdm_ctrl.h>
 
 enum {
-	MDM_CTRL_POWER_OFF = 0,
-	MDM_CTRL_POWER_ON,
-	MDM_CTRL_WARM_RESET,
-	MDM_CTRL_COLD_RESET,
-	MDM_WATCHDOG_RESET,
-	MDM_ASSERT,
-	MDM_PANIC,
-	MDM_CTRL_PCIE_RECOVERY,
-	MDM_CTRL_SET_CFG
+	ROC1_SOC = 0,
+	ORCA_SOC
 };
 
 static char *const mdm_stat[] = {
@@ -49,6 +44,8 @@ static char *const mdm_stat[] = {
 
 #define REBOOT_MODEM_DELAY    1000
 #define POWERREST_MODEM_DELAY 7000
+#define RESET_MODEM_DELAY    50
+
 char cdev_name[] = "mdm_ctrl";
 
 struct modem_ctrl_init_data {
@@ -59,9 +56,11 @@ struct modem_ctrl_init_data {
 	struct gpio_desc *gpio_cpwatchdog;
 	struct gpio_desc *gpio_cpassert;
 	struct gpio_desc *gpio_cppanic;
+	struct gpio_desc *gpio_cppoweroff;
 	u32 irq_cpwatchdog;
 	u32 irq_cpassert;
 	u32 irq_cppanic;
+	u32 irq_cppoweroff;
 	u32 modem_status;
 };
 
@@ -75,6 +74,7 @@ struct modem_ctrl_device {
 	int minor;
 	struct cdev cdev;
 	struct device *dev;
+	int soc_type;
 };
 
 static struct class *modem_ctrl_class;
@@ -131,6 +131,15 @@ static irqreturn_t cppanictriger_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static irqreturn_t cppoweroff_handler(int irq, void *dev_id)
+{
+	if (!mcd_dev || !mcd_dev->init)
+		return IRQ_NONE;
+	/* To this reserve here for receve power off event from AP*/
+	kernel_power_off();
+	return IRQ_HANDLED;
+}
+
 static int request_gpio_to_irq(struct gpio_desc *cp_gpio,
 			       struct modem_ctrl_device *mcd_dev)
 {
@@ -150,7 +159,7 @@ static int request_gpio_to_irq(struct gpio_desc *cp_gpio,
 		ret = devm_request_threaded_irq(mcd_dev->dev,
 						mcd_dev->init->irq_cpwatchdog,
 					NULL, cpwatchdogtriger_handler,
-					IRQF_ONESHOT | IRQF_TRIGGER_HIGH,
+					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
 					"cpwatchdog_irq", mcd_dev);
 		if (ret < 0) {
 			dev_err(mcd_dev->dev, "can not request irq for cp watchdog\n");
@@ -161,7 +170,7 @@ static int request_gpio_to_irq(struct gpio_desc *cp_gpio,
 		ret = devm_request_threaded_irq(mcd_dev->dev,
 						mcd_dev->init->irq_cpassert,
 					NULL, cpasserttriger_handler,
-					IRQF_ONESHOT | IRQF_TRIGGER_HIGH,
+					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
 					"cpassert_irq", mcd_dev);
 		if (ret < 0) {
 			dev_err(mcd_dev->dev, "can not request irq for cp assert\n");
@@ -172,37 +181,143 @@ static int request_gpio_to_irq(struct gpio_desc *cp_gpio,
 		ret = devm_request_threaded_irq(mcd_dev->dev,
 						mcd_dev->init->irq_cppanic,
 					NULL, cppanictriger_handler,
-					IRQF_ONESHOT | IRQF_TRIGGER_HIGH,
+					IRQF_ONESHOT | IRQF_TRIGGER_LOW,
 					"cppanic_irq", mcd_dev);
 		if (ret < 0) {
 			dev_err(mcd_dev->dev,
 				"can not request irq for panic\n");
 			return ret;
 		}
+	}  else if (cp_gpio == mcd_dev->init->gpio_cppoweroff) {
+		mcd_dev->init->irq_cppoweroff = ret;
+		ret = devm_request_threaded_irq(mcd_dev->dev,
+						mcd_dev->init->irq_cppoweroff,
+						NULL, cppoweroff_handler,
+						IRQF_ONESHOT | IRQF_TRIGGER_LOW,
+						"cppoweroff_irq", mcd_dev);
+		if (ret < 0) {
+			dev_err(mcd_dev->dev,
+				"can not request irq for cppoweroff\n");
+			return ret;
+		}
 	}
 	return 0;
 }
 
-static int modem_gpios_init(struct modem_ctrl_device *mcd_dev)
+static int modem_gpios_init(struct modem_ctrl_device *mcd_dev, int soc_type)
 {
 	int ret;
 
 	if (!mcd_dev || !mcd_dev->init)
 		return -EINVAL;
-	gpiod_direction_input(mcd_dev->init->gpio_cpwatchdog);
-	gpiod_direction_input(mcd_dev->init->gpio_cpassert);
-	gpiod_direction_input(mcd_dev->init->gpio_cppanic);
+	if (soc_type == ROC1_SOC) {
+		gpiod_direction_input(mcd_dev->init->gpio_cpwatchdog);
+		gpiod_direction_input(mcd_dev->init->gpio_cpassert);
+		gpiod_direction_input(mcd_dev->init->gpio_cppanic);
 
-	ret = request_gpio_to_irq(mcd_dev->init->gpio_cpwatchdog, mcd_dev);
-	if (ret)
-		return ret;
-	ret = request_gpio_to_irq(mcd_dev->init->gpio_cpassert, mcd_dev);
-	if (ret)
-		return ret;
-	ret = request_gpio_to_irq(mcd_dev->init->gpio_cppanic, mcd_dev);
-	if (ret)
-		return ret;
+		ret = request_gpio_to_irq(mcd_dev->init->gpio_cpwatchdog,
+					  mcd_dev);
+		if (ret)
+			return ret;
+		ret = request_gpio_to_irq(mcd_dev->init->gpio_cpassert,
+					  mcd_dev);
+		if (ret)
+			return ret;
+		ret = request_gpio_to_irq(mcd_dev->init->gpio_cppanic,
+					  mcd_dev);
+		if (ret)
+			return ret;
+	} else {
+		gpiod_direction_input(mcd_dev->init->gpio_cppoweroff);
+		ret = request_gpio_to_irq(mcd_dev->init->gpio_cppoweroff,
+					  mcd_dev);
+		if (ret)
+			return ret;
+	}
 	return 0;
+}
+
+void modem_ctrl_send_abnormal_to_ap(int status, u32 time_us)
+{
+	struct gpio_desc *gpiodesc;
+
+	if (!mcd_dev || !mcd_dev->init)
+		return;
+	if (mcd_dev->soc_type != ORCA_SOC) {
+		dev_err(mcd_dev->dev, "operation not be allowed for %d\n",
+			mcd_dev->soc_type);
+		return;
+	}
+	switch (status) {
+	case MDM_WATCHDOG_RESET:
+		gpiodesc = mcd_dev->init->gpio_cpwatchdog;
+		break;
+	case MDM_ASSERT:
+		gpiodesc = mcd_dev->init->gpio_cpassert;
+		break;
+	case MDM_PANIC:
+		gpiodesc = mcd_dev->init->gpio_cppanic;
+		break;
+	default:
+		dev_info(mcd_dev->dev,
+		"get status %d is not right for operation\n", status);
+		return;
+	}
+	mcd_dev->init->modem_status = status;
+	dev_info(mcd_dev->dev,
+		"operation unnormal status %d %d us send to ap\n",
+		status, time_us);
+	if (!IS_ERR(gpiodesc)) {
+		gpiod_set_value_cansleep(gpiodesc, 0);
+		/* Use 50us looks like good,base test */
+		if (time_us)
+			udelay(time_us);
+		gpiod_set_value_cansleep(gpiodesc, 1);
+	}
+}
+
+static void modem_ctrl_send_cmd_to_cp(int status, u32 time_us)
+{
+	struct gpio_desc *gpiodesc = NULL;
+
+	if (!mcd_dev || !mcd_dev->init)
+		return;
+	if (mcd_dev->soc_type != ROC1_SOC) {
+		dev_err(mcd_dev->dev, "operation not be allowed for %d\n",
+			mcd_dev->soc_type);
+		return;
+	}
+	if (status == MDM_POWER_OFF)
+		gpiodesc = mcd_dev->init->gpio_cppoweroff;
+
+	mcd_dev->init->modem_status = status;
+	dev_info(mcd_dev->dev,
+		"operation  cmd %d %d us send to cp\n",
+		status, time_us);
+	if (!IS_ERR(gpiodesc)) {
+		gpiod_set_value_cansleep(gpiodesc, 0);
+		/* Use 50us looks like good,base test */
+		if (time_us)
+			udelay(time_us);
+		gpiod_set_value_cansleep(gpiodesc, 1);
+	}
+}
+
+static void modem_ctrl_notify_abnormal_status(int status)
+{
+	if (!mcd_dev || !mcd_dev->init)
+		return;
+	if (mcd_dev->soc_type != ORCA_SOC) {
+		dev_err(mcd_dev->dev, "operation not be allowed for %d\n",
+			mcd_dev->soc_type);
+		return;
+	}
+	if (status < MDM_WATCHDOG_RESET || status > MDM_PANIC) {
+		dev_err(mcd_dev->dev,
+		       "operation not be allowed for status %d\n", status);
+		return;
+	}
+	modem_ctrl_send_abnormal_to_ap(status, 50);
 }
 
 static void modem_ctrl_poweron_modem(int on)
@@ -233,9 +348,14 @@ static void modem_ctrl_poweron_modem(int on)
 		 */
 		break;
 	case MDM_CTRL_WARM_RESET:
-		/*
-		 *To do
-		 */
+		if (!IS_ERR(mcd_dev->init->gpio_reset)) {
+			dev_dbg(mcd_dev->dev, "set warm reset: %d\n", on);
+			gpiod_set_value_cansleep(mcd_dev->init->gpio_reset, 1);
+			/* Base the spec modem that need to wait 50ms */
+			msleep(RESET_MODEM_DELAY);
+			mcd_dev->init->modem_status = MDM_CTRL_WARM_RESET;
+			gpiod_set_value_cansleep(mcd_dev->init->gpio_reset, 0);
+		}
 		break;
 	case MDM_CTRL_COLD_RESET:
 		if (!IS_ERR(mcd_dev->init->gpio_poweron)) {
@@ -256,6 +376,9 @@ static void modem_ctrl_poweron_modem(int on)
 		msleep(100);
 		pcie_ep_pm_notify(PCIE_EP_POWER_ON);
 #endif
+		break;
+	case MDM_POWER_OFF:
+		modem_ctrl_send_cmd_to_cp(MDM_POWER_OFF, 50);
 		break;
 	default:
 		dev_err(mcd_dev->dev, "cmd not support: %d\n", on);
@@ -346,16 +469,24 @@ static ssize_t modem_ctrl_write(struct file *filp,
 		dev_err(mcd_dev->dev, "Invalid input!\n");
 		return ret;
 	}
-	if (mcd_cmd >= MDM_CTRL_POWER_OFF && mcd_cmd <= MDM_CTRL_SET_CFG)
-		modem_ctrl_poweron_modem(mcd_cmd);
-	else
-		dev_info(mcd_dev->dev, "cmd not support!\n");
+	if (mcd_dev->soc_type == ROC1_SOC) {
+		if (mcd_cmd >= MDM_CTRL_POWER_OFF &&
+		    mcd_cmd <= MDM_CTRL_SET_CFG)
+			modem_ctrl_poweron_modem(mcd_cmd);
+		else
+			dev_info(mcd_dev->dev, "cmd not support!\n");
+	} else {
+		modem_ctrl_notify_abnormal_status(mcd_cmd);
+	}
 	return count;
 }
 
 static long modem_ctrl_ioctl(struct file *filp, unsigned int cmd,
 			     unsigned long arg)
 {
+
+	if (!mcd_dev || mcd_dev->soc_type == ORCA_SOC)
+		return -EINVAL;
 	switch (cmd) {
 	case MDM_CTRL_POWER_OFF:
 		modem_ctrl_poweron_modem(MDM_CTRL_POWER_OFF);
@@ -390,10 +521,43 @@ static const struct file_operations modem_ctrl_fops = {
 	.llseek		= default_llseek,
 };
 
-static int modem_ctrl_parse_dt(struct modem_ctrl_init_data **init,
+static int modem_ctrl_parse_modem_dt(struct modem_ctrl_init_data **init,
 			       struct device *dev)
 {
 	struct modem_ctrl_init_data *pdata = NULL;
+
+	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
+	if (!pdata)
+		return -ENOMEM;
+	pdata->name = cdev_name;
+
+	/* Triger watchdog,assert,panic of orca */
+	pdata->gpio_cpwatchdog = devm_gpiod_get(dev,
+					       "cpwatchdog",
+					       GPIOD_OUT_HIGH);
+	if (IS_ERR(pdata->gpio_cpwatchdog))
+		return PTR_ERR(pdata->gpio_cpwatchdog);
+
+	pdata->gpio_cpassert = devm_gpiod_get(dev, "cpassert", GPIOD_OUT_HIGH);
+	if (IS_ERR(pdata->gpio_cpassert))
+		return PTR_ERR(pdata->gpio_cpassert);
+
+	pdata->gpio_cppanic = devm_gpiod_get(dev, "cppanic", GPIOD_OUT_HIGH);
+	if (IS_ERR(pdata->gpio_cppanic))
+		return PTR_ERR(pdata->gpio_cppanic);
+
+	pdata->gpio_cppoweroff = devm_gpiod_get(dev, "cppoweroff", GPIOD_IN);
+	if (IS_ERR(pdata->gpio_cpassert))
+		return PTR_ERR(pdata->gpio_cppoweroff);
+
+	*init = pdata;
+	return 0;
+}
+
+static int modem_ctrl_parse_dt(struct modem_ctrl_init_data **init,
+			       struct device *dev)
+{
+	struct modem_ctrl_init_data *pdata;
 
 	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
 	if (!pdata)
@@ -420,6 +584,11 @@ static int modem_ctrl_parse_dt(struct modem_ctrl_init_data **init,
 	if (IS_ERR(pdata->gpio_cppanic))
 		return PTR_ERR(pdata->gpio_cppanic);
 
+	pdata->gpio_cppoweroff = devm_gpiod_get(dev,
+						"cppoweroff", GPIOD_OUT_HIGH);
+	if (IS_ERR(pdata->gpio_cpassert))
+		return PTR_ERR(pdata->gpio_cppoweroff);
+
 	pdata->modem_status = MDM_CTRL_POWER_OFF;
 	*init = pdata;
 	return 0;
@@ -433,6 +602,20 @@ modem_ctrl_destroy_pdata(struct modem_ctrl_init_data **init)
 	pdata = NULL;
 }
 
+static int modem_ctrl_restart_handle(struct notifier_block *this,
+				     unsigned long mode, void *cmd)
+{
+	if (!mcd_dev || mcd_dev->soc_type == ROC1_SOC)
+		return NOTIFY_DONE;
+	modem_ctrl_notify_abnormal_status(MDM_PANIC);
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block modem_ctrl_restart_handler = {
+	.notifier_call = modem_ctrl_restart_handle,
+	.priority = 150,
+};
+
 static int modem_ctrl_probe(struct platform_device *pdev)
 {
 	struct modem_ctrl_init_data *init = pdev->dev.platform_data;
@@ -441,23 +624,36 @@ static int modem_ctrl_probe(struct platform_device *pdev)
 	int rval;
 	struct device *dev = &pdev->dev;
 
-	if (pdev->dev.of_node && !init) {
+	modem_ctrl_dev = devm_kzalloc(dev, sizeof(*modem_ctrl_dev), GFP_KERNEL);
+	if (!modem_ctrl_dev)
+		return -ENOMEM;
+	mcd_dev = modem_ctrl_dev;
+	if (of_device_is_compatible(pdev->dev.of_node, "sprd,roc1-modem-ctrl"))
+		modem_ctrl_dev->soc_type = ROC1_SOC;
+	else
+		modem_ctrl_dev->soc_type = ORCA_SOC;
+
+	if (modem_ctrl_dev->soc_type == ROC1_SOC) {
 		rval = modem_ctrl_parse_dt(&init, &pdev->dev);
 		if (rval) {
-			dev_err(dev, "Failed to parse modem_ctrl device tree, ret=%d\n",
-			       rval);
+			dev_err(dev,
+				"Failed to parse modem_ctrl device tree, ret=%d\n",
+				rval);
+			return rval;
+		}
+	} else {
+		rval = modem_ctrl_parse_modem_dt(&init, &pdev->dev);
+		if (rval) {
+			dev_err(dev,
+				"Failed to parse modem_ctrl device tree, ret=%d\n",
+				rval);
 			return rval;
 		}
 	}
-	dev_dbg(dev, "after parse device tree, name=%s\n",
-		init->name);
 
-	modem_ctrl_dev = devm_kzalloc(dev, sizeof(*modem_ctrl_dev), GFP_KERNEL);
-	if (!modem_ctrl_dev) {
-		rval = -ENOMEM;
-		goto  error3;
-	}
-	mcd_dev = modem_ctrl_dev;
+	dev_dbg(dev, "after parse device tree, name=%s soctype=%d\n",
+		init->name,
+		modem_ctrl_dev->soc_type);
 
 	rval = alloc_chrdev_region(&devid, 0, 1, init->name);
 	if (rval != 0) {
@@ -484,10 +680,15 @@ static int modem_ctrl_probe(struct platform_device *pdev)
 	}
 	modem_ctrl_dev->init = init;
 	platform_set_drvdata(pdev, modem_ctrl_dev);
-
-	rval = modem_gpios_init(modem_ctrl_dev);
+	rval = modem_gpios_init(modem_ctrl_dev, modem_ctrl_dev->soc_type);
 	if (rval) {
 		dev_err(dev, "request gpios error\n");
+		goto error0;
+	}
+
+	rval = register_restart_handler(&modem_ctrl_restart_handler);
+	if (rval) {
+		dev_err(dev, "cannot register restart handler err=%d\n", rval);
 		goto error0;
 	}
 	return 0;
@@ -508,6 +709,7 @@ static int modem_ctrl_remove(struct platform_device *pdev)
 {
 	struct modem_ctrl_device *modem_ctrl_dev = platform_get_drvdata(pdev);
 
+	unregister_reboot_notifier(&modem_ctrl_restart_handler);
 	device_destroy(modem_ctrl_class,
 		       MKDEV(modem_ctrl_dev->major,
 			     modem_ctrl_dev->minor));
@@ -519,9 +721,20 @@ static int modem_ctrl_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void modem_ctrl_shutdown(struct platform_device *pdev)
+{
+	if (mcd_dev->soc_type == ROC1_SOC) {
+		modem_ctrl_send_cmd_to_cp(MDM_POWER_OFF, 50);
+		/* Sleep 500ms for cp to deal power down process otherwise
+		 * cp will not power down clearly.
+		 */
+		msleep(500);
+	}
+}
+
 static const struct of_device_id modem_ctrl_match_table[] = {
 	{.compatible = "sprd,roc1-modem-ctrl", },
-	{ },
+	{.compatible = "sprd,orca-modem-ctrl", },
 };
 
 static struct platform_driver modem_ctrl_driver = {
@@ -531,6 +744,7 @@ static struct platform_driver modem_ctrl_driver = {
 	},
 	.probe = modem_ctrl_probe,
 	.remove = modem_ctrl_remove,
+	.shutdown = modem_ctrl_shutdown,
 };
 
 static int __init modem_ctrl_init(void)

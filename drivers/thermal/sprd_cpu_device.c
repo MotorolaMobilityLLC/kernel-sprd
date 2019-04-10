@@ -68,7 +68,7 @@ struct cluster_power_coefficients {
 	u32 min_cpufreq;
 	u32 min_cpunum;
 	u32 resistance_ja;
-	u32 temp_point;
+	u32 cpuidle_tp[MAX_SENSOR_NUMBER];
 	int leak_core_base;
 	int leak_cluster_base;
 	struct scale_coeff core_temp_scale;
@@ -82,6 +82,7 @@ struct cluster_power_coefficients {
 	int nsensor;
 	const char *sensor_names[MAX_SENSOR_NUMBER];
 	struct thermal_zone_device *thm_zones[MAX_SENSOR_NUMBER];
+	int core_temp[MAX_SENSOR_NUMBER];
 };
 
 struct cluster_power_coefficients *cluster_data;
@@ -240,6 +241,40 @@ static ssize_t sprd_cpu_store_min_core_num(struct device *dev,
 	return count;
 }
 
+static int get_all_core_temp(int cluster_id, int cpu)
+{
+	int i, ret;
+	struct thermal_zone_device *tz = NULL;
+	struct cluster_power_coefficients *cpc;
+
+	cpc = &cluster_data[cluster_id];
+	for (i = 0; i < (cpc->nsensor); i++) {
+		tz = cpc->thm_zones[i];
+		if (!tz || IS_ERR(tz) || !tz->ops->get_temp) {
+			pr_err("get thermal zone failed\n");
+			return -1;
+		}
+
+		ret = tz->ops->get_temp(tz, &(cpc->core_temp[cpu+i]));
+		if (ret) {
+			pr_err("get thermal %s temp failed\n", tz->type);
+			return -1;
+		}
+
+		pr_debug("%s:%d\n", tz->type, cpc->core_temp[cpu+i]);
+    }
+
+	return ret;
+}
+
+static void get_core_temp(int cluster_id, int cpu, int *temp)
+{
+	struct cluster_power_coefficients *cpc;
+
+	cpc = &cluster_data[cluster_id];
+	*temp = cpc->core_temp[cpu];
+
+}
 static int get_max_temp_core(int cluster_id, int cpu, int *temp)
 {
 	int i, ret, max_temp, id;
@@ -279,6 +314,23 @@ static int get_max_temp_core(int cluster_id, int cpu, int *temp)
 	return id;
 }
 
+static u32 get_core_cpuidle_tp(int cluster_id,
+		int first_cpu, int cpu, int *temp)
+{
+	int i, id = first_cpu;
+	struct cluster_power_coefficients *cpc;
+
+	cpc = &cluster_data[cluster_id];
+	for (i = 0; i < cpc->nsensor; i++, id++) {
+		if (id == cpu) {
+			*temp = cpc->cpuidle_tp[i];
+			break;
+		}
+	}
+
+	return id;
+}
+
 u64 get_core_dyn_power(int cluster_id,
 	unsigned int freq_mhz, unsigned int voltage_mv)
 {
@@ -294,11 +346,6 @@ u64 get_core_dyn_power(int cluster_id,
 		cluster_id, (u32)power, freq_mhz, voltage_mv, voltage_base);
 
 	return power;
-}
-
-static u32 get_cpuidle_temp_point(int cluster_id)
-{
-	return cluster_data[cluster_id].temp_point;
 }
 
 u32 get_cluster_min_cpufreq(int cluster_id)
@@ -731,10 +778,10 @@ static int sprd_get_power_model_coeff(struct device_node *np,
 		}
 	}
 
-	ret = of_property_read_u32(np,
-		"sprd,cpuidle_temp_point", &power_coeff->temp_point);
+	ret = of_property_read_u32_array(np, "sprd,cpuidle-temp",
+			power_coeff->cpuidle_tp, power_coeff->nsensor);
 	if (ret)
-		pr_err("fail to get cooling devices temp_point\n");
+		pr_err("fail to get cooling devices cpuidle-temp\n");
 
 	return 0;
 }
@@ -772,7 +819,9 @@ static struct power_model_callback pm_call = {
 		.get_cluster_min_cpunum_p = get_cluster_min_cpunum,
 		.get_cluster_resistance_ja_p = get_cluster_resistance_ja,
 		.get_max_temp_core_p = get_max_temp_core,
-		.get_cpuidle_temp_point_p = get_cpuidle_temp_point,
+		.get_core_temp_p = get_core_temp,
+		.get_all_core_temp_p = get_all_core_temp,
+		.get_core_cpuidle_tp_p = get_core_cpuidle_tp,
 };
 
 int create_cpu_cooling_device(void)

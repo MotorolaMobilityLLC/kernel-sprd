@@ -36,7 +36,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 rw rootwait androidboot.hardware=ud710_3h10 androidboot.dtbo_idx=0";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.hardware=ud710_3h10 androidboot.dtbo_idx=0 printk.devkmsg=on";
 	};
 
 	ipi: interrupt-controller {
@@ -93,6 +93,10 @@
 		compatible = "sprd,sc2355-wifi";
 		reg = <0 0x211c0000 0 0x3000>;
 		reg-names = "pam_wifi_reg_base_remap";
+		syscons = <&ipa_ahb_regs
+			   REG_IPA_AHB_IPA_EB
+			   MASK_IPA_AHB_PAM_WIFI_EB>;
+		syscon-names = "enable";
 	};
 
 	gnss-common-ctl {
@@ -108,19 +112,19 @@
 		factory-internal-resistance-micro-ohms = <147000>;
 		voltage-min-design-microvolt = <3450000>;
 		ocv-capacity-celsius = <20>;
-		ocv-capacity-table-0 = <4360000 100>, <4317000 95>, <4258000 90>,
+		ocv-capacity-table-0 = <4380000 100>, <4317000 95>, <4258000 90>,
 					<4200000 85>, <4145000 80>, <4092000 75>,
 					<4047000 70>, <3990000 65>, <3955000 60>,
 					<3900000 55>, <3861000 50>, <3834000 45>,
 					<3813000 40>, <3796000 35>, <3783000 30>,
 					<3770000 25>, <3752000 20>, <3730000 15>,
 					<3698000 10>, <3687000 5>, <3400000 0>;
-		voltage-temp-table = <1052000 750>, <953000 800>, <858000 850>,
-				      <762000 900>, <671000 950>,<584000 1000>,
-				      <504000 1050>, <434000 1100>, <372000 1150>,
-				      <318000 1200>,<271000 1250>, <234000 1300>,
-				      <198000 1350>, <165000 1400>, <140000 1450>,
-				      <119000 1500>, <104000 1550>, <88000 1600>;
+		voltage-temp-table = <1095000 800>, <986000 850>, <878000 900>,
+				      <775000 950>, <678000 1000>, <590000 1050>,
+				      <510000 1100>, <440000 1150>, <378000 1200>,
+				      <324000 1250>, <278000 1300>, <238000 1350>,
+				      <204000 1400>, <175000 1450>, <150000 1500>,
+				      <129000 1550>, <111000 1600>, <96000 1650>;
 		charge-sdp-current-microamp = <500000 500000>;
 		charge-dcp-current-microamp = <2000000 3000000>;
 		charge-cdp-current-microamp = <1500000 1500000>;
@@ -136,7 +140,7 @@
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
 		cm-fullbatt-vchkdrop-volt = <60000>;
-		cm-fullbatt-voltage = <4380000>;
+		cm-fullbatt-voltage = <4370000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
@@ -145,13 +149,15 @@
 		cm-fuel-gauge = "sc27xx-fgu";
 
 		/* in deci centigrade */
-		cm-battery-cold = <50>;
+		cm-battery-cold = <200>;
 		cm-battery-cold-in-minus;
 		cm-battery-hot = <800>;
 		cm-battery-temp-diff = <100>;
 
 		/* Allow charging for 6hr */
-		cm-charging-max = <18000000>;
+		cm-charging-max = <21600000>;
+		/* recovery charging after stop charging 3hr */
+		cm-discharging-max = <10800000>;
 
 		/* the interval to feed charger watchdog */
 		cm-wdt-interval = <60>;
@@ -169,6 +175,10 @@
 		cm-charge-voltage-max = <6500000>;
 		/* drop voltage in microVolts to restart charging */
 		cm-charge-voltage-drop = <700000>;
+
+		cm-jeita-temp-table = <900 930 0 4200000>, <1000 1030 100000 4200000>,
+			<1100 1130 500000 4350000>, <1450 1420 2000000 4350000>,
+			<1500 1470 700000 4350000>;
 
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
@@ -190,7 +200,7 @@
 	};
 
 	audio-mem-mgr {
-		memory-region = <&audio_reserved>;
+		memory-region = <&audio_reserved &audiodsp_reserved>;
 	};
 
 	tboard_thermistor:thermal-sensor {
@@ -243,6 +253,12 @@
 		chnl-in-i2c = <1>;
 	};
 
+	ddr_dfs: scene-frequency {
+		compatible = "sprd,dfs";
+		freq-num = <8>;
+		backdoor = <1866>;
+	};
+
 };
 
 &dpu {
@@ -285,6 +301,17 @@
 
 &dphy {
 	status = "okay";
+};
+
+&aon_i2c0 {
+	status = "okay";
+
+	/* A virtual i2c device */
+	cpudvfs-dcdc-cpu1@62{
+		compatible = "sprd,cpudvfs-regulator-dcdc-cpu1-roc1";
+		reg = <0x62>;
+		dvfs-dcdc-i2c = <1>;
+	};
 };
 
 &aon_i2c1 {
@@ -333,6 +360,12 @@
 		};
 	};
 
+	/* A virtual i2c device */
+	cpudvfs-dcdc-cpu0@61{
+		compatible = "sprd,cpudvfs-regulator-dcdc-cpu0-roc1";
+		reg = <0x61>;
+		dvfs-dcdc-i2c = <0>;
+	};
 };
 
 &i2c0 {
@@ -409,6 +442,14 @@
 	};
 };
 
+&dmc_mpu {
+	status = "okay";
+};
+
+&sdio0 {
+	cd-gpios = <&eic_async 19 GPIO_ACTIVE_HIGH>;
+};
+
 &spi0 {
 	/*used for fingerprint sensor*/
 	status = "okay";
@@ -422,11 +463,23 @@
 	status = "okay";
 };
 
+&iommu_dcam {
+	status = "okay";
+};
+
 &isp {
 	status = "okay";
 };
 
+&iommu_isp {
+	status = "okay";
+};
+
 &cpp {
+	status = "okay";
+};
+
+&iommu_cpp {
 	status = "okay";
 };
 
@@ -445,18 +498,6 @@
 &csi2{
 	status = "okay";
 };
-
-/*&iommu_dcam {
- *	status = "okay";
- *};
- *
- *&iommu_isp {
- *	status = "okay";
- *};
- *&iommu_cpp{
- *	status = "okay";
- *};
- */
 
 &mipi_csi_phy {
 	status = "okay";
@@ -497,7 +538,15 @@
 	status = "okay";
 };
 
+&iommu_vsp {
+	status = "okay";
+};
+
 &jpg {
+	status = "okay";
+};
+
+&iommu_jpg {
 	status = "okay";
 };
 
@@ -521,6 +570,12 @@
 
 &sprd_headset {
 	status = "okay";
+	extcon = <&pmic_typec>;
+	mic-gpios = <&ap_gpio 52 GPIO_ACTIVE_HIGH>;
+	lr-gpios = <&ap_gpio 55 GPIO_ACTIVE_HIGH>;
+	switch-supply = <&vddusb33>;
+	sprd,switch-voltage = <3300000>;
+	sprd,3pole-adc-threshold = <112>;
 };
 
 &sprd_audio_codec_ana {
@@ -532,4 +587,74 @@
 
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
+};
+
+&pin_controller {
+	pinctrl-names =
+	/* keyout0 ~ keyout2 */
+	"gpio_121", "gpio_122", "gpio_123",
+	/* keyin0 ~ keyin2 */
+	"gpio_124", "gpio_125", "gpio_126",
+	/* extint0, extint1, sda3, scl3 */
+	"gpio_144", "gpio_145", "gpio_146", "gpio_147";
+	pinctrl-0 = <&gpio_121>;
+	pinctrl-1 = <&gpio_122>;
+	pinctrl-2 = <&gpio_123>;
+	pinctrl-3 = <&gpio_124>;
+	pinctrl-4 = <&gpio_125>;
+	pinctrl-5 = <&gpio_126>;
+	pinctrl-6 = <&gpio_144>;
+	pinctrl-7 = <&gpio_145>;
+	pinctrl-8 = <&gpio_146>;
+	pinctrl-9 = <&gpio_147>;
+
+	gpio_121: keyout0 {
+		pins = "ROC1_KEYOUT0";
+		function = "func4";
+	};
+
+	gpio_122: keyout1 {
+		pins = "ROC1_KEYOUT1";
+		function = "func4";
+	};
+
+	gpio_123: keyout2 {
+		pins = "ROC1_KEYOUT2";
+		function = "func4";
+	};
+
+	gpio_124: keyin0 {
+		pins = "ROC1_KEYIN0";
+		function = "func4";
+	};
+
+	gpio_125: keyin1 {
+		pins = "ROC1_KEYIN1";
+		function = "func4";
+	};
+
+	gpio_126: keyin2 {
+		pins = "ROC1_KEYIN2";
+		function = "func4";
+	};
+
+	gpio_144: extint0 {
+		pins = "ROC1_EXTINT0";
+		function = "func4";
+	};
+
+	gpio_145: extint1 {
+		pins = "ROC1_EXTINT1";
+		function = "func4";
+	};
+
+	gpio_146: sda3 {
+		pins = "ROC1_SDA3";
+		function = "func4";
+	};
+
+	gpio_147: scl3 {
+		pins = "ROC1_SCL3";
+		function = "func4";
+	};
 };

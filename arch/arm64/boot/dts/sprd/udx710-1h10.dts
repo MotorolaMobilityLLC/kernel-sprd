@@ -31,7 +31,7 @@
 
 	chosen {
 		stdout-path = &uart0;
-		bootargs = "earlycon console=ttyS0,115200n8 loglevel=8 init=/init root=/dev/ram0 rw androidboot.hardware=udx710_1h10 androidboot.selinux=permissive swiotlb=64k androidboot.dtbo_idx=0";
+		bootargs = "earlycon console=ttyS0,115200n8 loglevel=8 init=/init root=/dev/ram0 ro androidboot.hardware=udx710_1h10 androidboot.selinux=permissive swiotlb=64k androidboot.dtbo_idx=0 printk.devkmsg=on";
 	};
 
 	ion {
@@ -47,10 +47,56 @@
 	};
 
 	audio-mem-mgr {
-		memory-region = <&audio_reserved>;
+		memory-region = <&audio_reserved &audiodsp_reserved>;
+	};
+	sprd-mcd {
+		compatible = "sprd,orca-modem-ctrl";
+		cpwatchdog-gpio = <&ap_gpio 26 GPIO_ACTIVE_HIGH>;
+		cpassert-gpio = <&ap_gpio 27 GPIO_ACTIVE_HIGH>;
+		cppanic-gpio = <&ap_gpio 28 GPIO_ACTIVE_HIGH>;
+		cppoweroff-gpio = <&ap_gpio 29 GPIO_ACTIVE_HIGH>;
+	};
+
+	extcon_usb0: extcon_usb0 {
+		compatible = "linux,extcon-usb-gpio";
+
+		vbus-gpios = <&ap_gpio 11 GPIO_ACTIVE_HIGH>;
 	};
 };
 
 &uart0 {
 	status = "ok";
+};
+
+&dmc_mpu {
+	status = "okay";
+};
+
+&ssphy0 {
+	vdd-supply = <&vddusb33>;
+	status = "okay";
+};
+
+&usb3_0 {
+	extcon = <&extcon_usb0>;
+	status = "okay";
+};
+
+&ssphy1 {
+	vdd-supply = <&vddusb33>;
+	extcon = <&pmic_typec>;
+	status = "okay";
+};
+
+&usb3_1 {
+	extcon = <&pmic_typec>;
+	status = "okay";
+};
+
+&vddcamd0 {
+	regulator-always-on;
+};
+
+&vddwcn {
+	regulator-always-on;
 };

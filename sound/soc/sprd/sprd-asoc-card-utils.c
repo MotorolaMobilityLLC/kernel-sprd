@@ -123,40 +123,6 @@ int asoc_sprd_register_card(struct device *dev, struct snd_soc_card *card)
 	return ret;
 }
 
-static int asoc_sprd_card_parse_sprd_headset(struct device_node *node)
-{
-	int ret = 0;
-	struct device_node *np;
-
-	/*
-	 * Parse dt configurations for sprd headset.
-	 * Even without headset driver, codec could work well. So ignore the
-	 * failure cases.
-	 */
-	np = of_parse_phandle(node, "sprd-audio-card,headset", 0);
-	if (np) {
-		struct platform_device *h_pdev;
-
-		h_pdev = of_find_device_by_node(np);
-		if (unlikely(!h_pdev)) {
-			pr_err("ERR: [%s] this node has no pdev?! deffer\n",
-			__func__);
-			return -EPROBE_DEFER;
-		}
-		ret = sprd_headset_probe(h_pdev);
-		if (ret < 0) {
-			if (ret == -EPROBE_DEFER)
-				return -EPROBE_DEFER;
-			pr_err("ERR: [%s] probe for headset failed!\n",
-				__func__);
-		}
-	} else
-		pr_err("ERR: %s parse prop 'sprd-audio-card,headset' failed!\n",
-			__func__);
-
-	return 0;
-}
-
 static int
 asoc_sprd_card_sub_parse_of(struct device_node *np,
 			    struct asoc_simple_dai *dai,
@@ -614,7 +580,6 @@ static int asoc_sprd_card_parse_of(struct device_node *node,
 				   struct sprd_card_data *priv)
 {
 	struct device *dev = sprd_priv_to_dev(priv);
-	enum of_gpio_flags flags;
 	u32 val;
 	int ret;
 
@@ -690,25 +655,7 @@ static int asoc_sprd_card_parse_of(struct device_node *node,
 		if (ret < 0)
 			return ret;
 	}
-	priv->gpio_hp_det = of_get_named_gpio_flags(node,
-						    "sprd-audio-card,hp-det-gpio",
-						    0, &flags);
-	priv->gpio_hp_det_invert = !!(flags & OF_GPIO_ACTIVE_LOW);
-	if (priv->gpio_hp_det == -EPROBE_DEFER)
-		return -EPROBE_DEFER;
 
-	priv->gpio_mic_det = of_get_named_gpio_flags(node,
-						     "sprd-audio-card,mic-det-gpio",
-						     0, &flags);
-	priv->gpio_mic_det_invert = !!(flags & OF_GPIO_ACTIVE_LOW);
-	if (priv->gpio_mic_det == -EPROBE_DEFER)
-		return -EPROBE_DEFER;
-
-	if (priv->gpio_hp_det < 0) {	/* Sprd headset */
-		ret = asoc_sprd_card_parse_sprd_headset(node);
-		if (ret < 0)
-			return ret;
-	}
 	ret = of_property_read_u32(node, "sprd-audio-card,codec-type", &val);
 	if (ret == 0)
 		priv->codec_type = val;

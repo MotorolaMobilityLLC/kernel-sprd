@@ -134,7 +134,7 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 
 	if (!ret) {
 		data >>= blk_offset;
-		memcpy(val, &data, SPRD_EFUSE_BLOCK_SIZE);
+		memcpy(val, &data, bytes);
 	}
 
 	return ret;

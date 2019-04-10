@@ -32,24 +32,25 @@
 #define SIPA_RECEIVER_BUF_LEN     1600
 
 static void inform_evt_to_nics(struct sipa_skb_sender *sender,
-							   enum sipa_evt_type evt)
+			       enum sipa_evt_type evt)
 {
 	unsigned long flags;
 	struct sipa_nic *nic;
 
-	spin_lock_irqsave(&sender->lock, flags);
+	spin_lock_irqsave(&sender->nic_lock, flags);
 	list_for_each_entry(nic, &sender->nic_list, list) {
 		sipa_nic_notify_evt(nic, evt);
 	}
-	spin_unlock_irqrestore(&sender->lock, flags);
+	spin_unlock_irqrestore(&sender->nic_lock, flags);
 }
 
 void sipa_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
-						   unsigned long data)
+			   unsigned long data)
 {
 	struct sipa_skb_sender *sender = (struct sipa_skb_sender *)priv;
 
-	pr_info("sipa sender recv evt:0x%x\n", (u32)evt);
+	if (evt & SIPA_RECV_EVT)
+		wake_up(&sender->free_waitq);
 
 	if (evt & SIPA_HAL_TXFIFO_OVERFLOW) {
 		pr_err("sipa overflow on ep:%d\n", sender->ep->id);
@@ -65,27 +66,122 @@ void sipa_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 	}
 }
 
-int sipa_skb_sender_init(struct sipa_skb_sender *sender)
+static void sipa_free_sent_items(struct sipa_skb_sender *sender)
+{
+	bool status = false;
+	unsigned long flags;
+	u32 i, num, success_cnt = 0;
+	struct sipa_skb_dma_addr_node *iter, *_iter;
+	struct sipa_hal_fifo_item item;
+
+	num = sipa_hal_get_tx_fifo_items(sender->ctx->hdl,
+					 sender->ep->send_fifo.idx);
+
+	if (!num) {
+		pr_info("get item failed index = %d\n",
+			sender->ep->send_fifo.idx);
+		return;
+	}
+
+	for (i = 0; i < num; i++) {
+		sipa_hal_conversion_node_to_item(sender->ctx->hdl,
+						 sender->ep->send_fifo.idx,
+						 &item);
+		if (item.err_code)
+			pr_err("have node transfer err = %d\n", item.err_code);
+
+		spin_lock_irqsave(&sender->send_lock, flags);
+		list_for_each_entry_safe(iter, _iter,
+					 &sender->sending_list, list) {
+			if (iter->dma_addr == item.addr) {
+				list_del(&iter->list);
+				list_add_tail(&iter->list,
+					      &sender->pair_free_list);
+				status = true;
+				break;
+			}
+		}
+		spin_unlock_irqrestore(&sender->send_lock, flags);
+		if (status) {
+			dma_unmap_single(sender->ctx->pdev,
+					 iter->dma_addr,
+					 iter->skb->len +
+					 skb_headroom(iter->skb),
+					 DMA_TO_DEVICE);
+
+			dev_kfree_skb_any(iter->skb);
+			success_cnt++;
+			status = false;
+		}
+	}
+	if (atomic_read(&sender->left_cnt) < 0)
+		atomic_set(&sender->left_cnt, 0);
+	atomic_add(success_cnt, &sender->left_cnt);
+	if (sender->free_notify_net) {
+		sipa_sender_notify_cb(sender, SIPA_HAL_EXIT_FLOW_CTRL, 0xfe);
+		sender->free_notify_net = false;
+	}
+	if (num != success_cnt)
+		pr_err("recv num = %d release num = %d\n",
+		       num, success_cnt);
+}
+
+static int sipa_send_thread(void *data)
+{
+	int ret;
+	struct sipa_skb_sender *sender = data;
+	struct sched_param param = {.sched_priority = 90};
+
+	sched_setscheduler(current, SCHED_RR, &param);
+
+	while (!kthread_should_stop()) {
+		ret = wait_event_interruptible(sender->send_waitq,
+			(!sipa_hal_check_rx_priv_fifo_is_empty(sender->ctx->hdl,
+					sender->ep->send_fifo.idx) ||
+					sender->send_notify_net));
+		if (!ret) {
+			sipa_hal_put_rx_fifo_items(sender->ctx->hdl,
+						   sender->ep->send_fifo.idx);
+			if (sender->send_notify_net) {
+				sipa_sender_notify_cb(sender,
+						      SIPA_HAL_EXIT_FLOW_CTRL,
+						      0xfe);
+				sender->send_notify_net = false;
+			}
+
+		}
+	}
+
+	return 0;
+}
+
+static int sipa_free_thread(void *data)
+{
+	int ret;
+	struct sipa_skb_sender *sender = (struct sipa_skb_sender *)data;
+	struct sched_param param = {.sched_priority = 90};
+
+	sched_setscheduler(current, SCHED_RR, &param);
+
+	while (!kthread_should_stop()) {
+		ret = wait_event_interruptible(sender->free_waitq,
+				(!sipa_hal_is_tx_fifo_empty(sender->ctx->hdl,
+					sender->ep->send_fifo.idx) ||
+					sender->free_notify_net));
+		if (!ret)
+			sipa_free_sent_items(sender);
+	}
+
+	return 0;
+}
+
+static int sipa_skb_sender_init(struct sipa_skb_sender *sender)
 {
 	struct sipa_comm_fifo_params attr;
 
-	spin_lock_init(&sender->lock);
-	INIT_LIST_HEAD(&sender->nic_list);
-	INIT_LIST_HEAD(&sender->sending_list);
-
-	sender->left_cnt = sender->ep->send_fifo.tx_fifo.fifo_depth;
-
-	sender->sending_pair_cache = kmem_cache_create("SIPA_PAIR",
-								 sizeof(struct sipa_skb_dma_addr_node), 0, 0, NULL);
-	if (!sender->sending_pair_cache) {
-		pr_err("sipa_skb_sender_init:sending_pair_cache create failed\n");
-		return -ENOMEM;
-	}
-
-
-	attr.tx_intr_delay_us = 0;
-	attr.tx_intr_threshold = sender->left_cnt / 4;
-	attr.flow_ctrl_cfg = 0;
+	attr.tx_intr_delay_us = 500;
+	attr.tx_intr_threshold = 32;
+	attr.flow_ctrl_cfg = flow_ctrl_tx_full;
 	attr.flowctrl_in_tx_full = true;
 	attr.flow_ctrl_irq_mode = enter_exit_flow_ctrl;
 	attr.rx_enter_flowctrl_watermark = 0;
@@ -94,20 +190,22 @@ int sipa_skb_sender_init(struct sipa_skb_sender *sender)
 	attr.tx_leave_flowctrl_watermark = 0;
 
 	sipa_open_common_fifo(sender->ctx->hdl,
-						  sender->ep->send_fifo.idx,
-						  &attr,
-						  true,
-						  sipa_sender_notify_cb, sender);
+			      sender->ep->send_fifo.idx,
+			      &attr,
+			      NULL,
+			      true,
+			      sipa_sender_notify_cb, sender);
 
 	return 0;
 }
 
 
 int create_sipa_skb_sender(struct sipa_context *ipa,
-						   struct sipa_endpoint *ep,
-						   enum sipa_xfer_pkt_type type,
-						   struct sipa_skb_sender **sender_pp)
+			   struct sipa_endpoint *ep,
+			   enum sipa_xfer_pkt_type type,
+			   struct sipa_skb_sender **sender_pp)
 {
+	int i, ret;
 	struct sipa_skb_sender *sender = NULL;
 
 	pr_info("%s ep->id = %d start\n", __func__, ep->id);
@@ -117,13 +215,62 @@ int create_sipa_skb_sender(struct sipa_context *ipa,
 		return -ENOMEM;
 	}
 
+	sender->pair_cache = kcalloc(ep->send_fifo.rx_fifo.fifo_depth,
+				     sizeof(struct sipa_skb_dma_addr_node),
+				     GFP_KERNEL);
+	if (!sender->pair_cache) {
+		kfree(sender);
+		return -ENOMEM;
+	}
+
+	INIT_LIST_HEAD(&sender->nic_list);
+	INIT_LIST_HEAD(&sender->sending_list);
+	INIT_LIST_HEAD(&sender->pair_free_list);
+	spin_lock_init(&sender->nic_lock);
+	spin_lock_init(&sender->send_lock);
+
+	for (i = 0; i < ep->send_fifo.rx_fifo.fifo_depth; i++)
+		list_add_tail(&((sender->pair_cache + i)->list),
+			      &sender->pair_free_list);
+
 	sender->ctx = ipa;
 	sender->ep = ep;
 	sender->type = type;
-	sender->left_cnt = ep->send_fifo.tx_fifo.fifo_depth;
+
+	atomic_set(&sender->left_cnt, ep->send_fifo.rx_fifo.fifo_depth);
 
 	/* reigster sender ipa event callback */
 	sipa_skb_sender_init(sender);
+
+	init_waitqueue_head(&sender->send_waitq);
+	init_waitqueue_head(&sender->free_waitq);
+
+	/* create sender thread */
+	sender->send_thread = kthread_create(sipa_send_thread, sender,
+					     "sipa-send-%d", ep->id);
+	if (IS_ERR(sender->send_thread)) {
+		pr_err("Failed to create kthread: ipa-send-%d\n",
+		       ep->id);
+		ret = PTR_ERR(sender->send_thread);
+		kfree(sender->pair_cache);
+		kfree(sender);
+		return ret;
+	}
+
+	sender->free_thread = kthread_create(sipa_free_thread, sender,
+					     "sipa-free-%d", ep->id);
+	if (IS_ERR(sender->free_thread)) {
+		kthread_stop(sender->send_thread);
+		pr_err("Failed to create kthread: ipa-free-%d\n",
+		       ep->id);
+		ret = PTR_ERR(sender->free_thread);
+		kfree(sender->pair_cache);
+		kfree(sender);
+		return ret;
+	}
+
+	wake_up_process(sender->send_thread);
+	wake_up_process(sender->free_thread);
 
 	*sender_pp = sender;
 	return 0;
@@ -132,115 +279,45 @@ EXPORT_SYMBOL(create_sipa_skb_sender);
 
 void destroy_sipa_skb_sender(struct sipa_skb_sender *sender)
 {
-	if (sender->sending_pair_cache)
-		kmem_cache_destroy(sender->sending_pair_cache);
+	kfree(sender->pair_cache);
 	kfree(sender);
 }
 EXPORT_SYMBOL(destroy_sipa_skb_sender);
 
 void sipa_skb_sender_add_nic(struct sipa_skb_sender *sender,
-							 struct sipa_nic *nic)
+			     struct sipa_nic *nic)
 {
 	unsigned long flags;
 
-	spin_lock_irqsave(&sender->lock, flags);
+	spin_lock_irqsave(&sender->nic_lock, flags);
 	list_add_tail(&nic->list, &sender->nic_list);
-	spin_unlock_irqrestore(&sender->lock, flags);
+	spin_unlock_irqrestore(&sender->nic_lock, flags);
 }
 EXPORT_SYMBOL(sipa_skb_sender_add_nic);
 
-static void free_sent_items(struct sipa_skb_sender *sender)
-{
-	unsigned long flags;
-
-	struct sipa_skb_dma_addr_node *iter, *_iter;
-	struct sipa_hal_fifo_item item;
-	u32 fail_cnt = 0;
-	int ret = 0;
-
-	spin_lock_irqsave(&sender->lock, flags);
-
-	while (!ret) {
-
-		ret = sipa_hal_is_tx_fifo_empty(sender->ctx->hdl,
-										sender->ep->send_fifo.idx);
-		if (ret) {
-			pr_info("id = %d tx fifo is empty\n",
-					sender->ep->send_fifo.idx);
-			break;
-		}
-
-		ret = sipa_hal_get_tx_fifo_item(sender->ctx->hdl,
-										sender->ep->send_fifo.idx,
-										&item);
-
-		if (ret) {
-			pr_info("get item failed index = %d\n",
-					sender->ep->send_fifo.idx);
-			break;
-		}
-
-		sender->left_cnt++;
-
-		if (item.err_code)
-			fail_cnt++;
-
-		list_for_each_entry_safe(iter, _iter, &sender->sending_list,
-								 list) {
-			if (iter->dma_addr == item.addr) {
-				dev_kfree_skb_any(iter->skb);
-				list_del(&iter->list);
-				kmem_cache_free(sender->sending_pair_cache,
-								iter);
-			}
-		}
-	}
-
-	spin_unlock_irqrestore(&sender->lock, flags);
-	pr_err("free_sent_items found send fail cnt:%d\n", fail_cnt);
-}
-
-
 int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
-							  struct sk_buff *skb,
-							  enum sipa_term_type dst,
-							  u8 netid)
+			      struct sk_buff *skb,
+			      enum sipa_term_type dst,
+			      u8 netid)
 {
 	unsigned long flags;
-	int can_send = 0;
 	dma_addr_t dma_addr;
 	struct sipa_skb_dma_addr_node *node;
 	struct sipa_hal_fifo_item item;
 
-	/* free sent items first */
-	free_sent_items(sender);
-
-	node = kmem_cache_zalloc(sender->sending_pair_cache, GFP_ATOMIC);
-	if (!node)
-		return -ENOMEM;
-
-	spin_lock_irqsave(&sender->lock, flags);
-	if (sender->left_cnt) {
-		sender->left_cnt--;
-		can_send = 1;
-	}
-	spin_unlock_irqrestore(&sender->lock, flags);
-
-	if (!can_send) {
-		kmem_cache_free(sender->sending_pair_cache, node);
+	atomic_dec(&sender->left_cnt);
+	if (atomic_read(&sender->left_cnt) < 0) {
+		atomic_set(&sender->left_cnt, 0);
+		sender->free_notify_net = true;
+		wake_up(&sender->free_waitq);
+		sender->no_free_cnt++;
 		return -EAGAIN;
 	}
 
 	dma_addr = dma_map_single(sender->ctx->pdev,
-							  skb->head,
-							  skb->len + skb_headroom(skb),
-							  DMA_TO_DEVICE);
-
-	node->skb = skb;
-	node->dma_addr = dma_addr;
-
-	spin_lock_irqsave(&sender->lock, flags);
-	list_add_tail(&node->list, &sender->sending_list);
+				  skb->head,
+				  skb->len + skb_headroom(skb),
+				  DMA_TO_DEVICE);
 
 	memset(&item, 0, sizeof(item));
 	item.addr = dma_addr;
@@ -250,10 +327,32 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 	item.dst = dst;
 	item.src = sender->ep->send_fifo.src_id;
 
-	sipa_hal_put_rx_fifo_item(sender->ctx->hdl,
-							  sender->ep->send_fifo.idx,
-							  &item);
-	spin_unlock_irqrestore(&sender->lock, flags);
+	spin_lock_irqsave(&sender->send_lock, flags);
+	if (sipa_hal_check_rx_priv_fifo_is_full(sender->ctx->hdl,
+						sender->ep->send_fifo.idx)) {
+		spin_unlock_irqrestore(&sender->send_lock, flags);
+		dma_unmap_single(sender->ctx->pdev,
+				 dma_addr,
+				 skb->len + skb_headroom(skb),
+				 DMA_TO_DEVICE);
+		sender->send_notify_net = true;
+		sender->no_mem_cnt++;
+		wake_up(&sender->send_waitq);
+		return -ENOMEM;
+	}
+	node = list_first_entry(&sender->pair_free_list,
+				struct sipa_skb_dma_addr_node,
+				list);
+	list_del(&node->list);
+	node->skb = skb;
+	node->dma_addr = dma_addr;
+	list_add_tail(&node->list, &sender->sending_list);
+	sipa_hal_cache_rx_fifo_item(sender->ctx->hdl,
+				    sender->ep->send_fifo.idx,
+				    &item);
+	spin_unlock_irqrestore(&sender->send_lock, flags);
+
+	wake_up(&sender->send_waitq);
 
 	return 0;
 }

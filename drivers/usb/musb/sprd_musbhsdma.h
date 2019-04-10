@@ -19,6 +19,18 @@
 #define MUSB_DMA_EN_STATUS	0x1014
 #define MUSB_DMA_DEBUG_STATUS	0x1018
 
+/* multi LL which is supported by r4p0 */
+#define MUSB_DMA_MULT_LL_Q_CTRL_STATUS	0x1080
+#define MUSB_DMA_MULT_LL_CTRL		0x1084
+#define MUSB_DMA_TX_CMD_QUEUE_LOW	0x1088
+#define MUSB_DMA_TX_CMD_QUEUE_HIGH	0x108c
+#define MUSB_DMA_TX_CMPLT_QUEUE_LOW	0x1090
+#define MUSB_DMA_TX_CMPLT_QUEUE_HIGH	0x1094
+#define MUSB_DMA_RX_CMD_QUEUE_LOW	0x1098
+#define MUSB_DMA_RX_CMD_QUEUE_HIGH	0x109c
+#define MUSB_DMA_RX_CMPLT_QUEUE_LOW	0x10a0
+#define MUSB_DMA_RX_CMPLT_QUEUE_HIGH	0x10a4
+
 #define MUSB_DMA_CHN_PAUSE(n)		(0x1c00 + (n - 1) * 0x20)
 #define MUSB_DMA_CHN_CFG(n)		(0x1c04 + (n - 1) * 0x20)
 #define MUSB_DMA_CHN_INTR(n)		(0x1c08 + (n - 1) * 0x20)
@@ -107,7 +119,29 @@
 #define LISTNODE_NUM	2048
 #define LISTNODE_MASK	(LISTNODE_NUM - 1)
 
-#define MUSB_DMA_CHANNELS	31
+#define MUSB_DMA_CHANNELS	30
+
+/* MUSB_DMA_MULT_LL_Q_CTRL_STATUS bit defines */
+#define BIT_TX_CMD_DEPTH_MASK	GENMASK(23, 20)
+#define BIT_TX_CMPLT_DEPTH_MASK	GENMASK(19, 16)
+#define BIT_TX_CMD_FULL		BIT(15)
+#define BIT_TX_CMPLT_EMPTY	BIT(14)
+#define BIT_TX_CMD_CLR		BIT(13)
+#define BIT_TX_CMPLT_CLR	BIT(12)
+#define BIT_RX_CMD_DEPTH_MASK	GENMASK(11, 8)
+#define BIT_RX_CMPLT_DEPTH_MASK	GENMASK(7, 4)
+#define BIT_RX_CMD_FULL		BIT(3)
+#define BIT_RX_CMPLT_EMPTY	BIT(2)
+#define BIT_RX_CMD_CLR		BIT(1)
+#define BIT_RX_CMPLT_CLR	BIT(0)
+
+/* MUSB_DMA_MULT_LL_CTRL bit defines */
+#define BIT_TX_CMD_QUEUE_WR	BIT(11)
+#define BIT_TX_CMPLT_QUEUE_RD	BIT(10)
+#define BIT_RX_CMD_QUEUE_WR	BIT(9)
+#define BIT_RX_CMPLT_QUEUE_RD	BIT(8)
+#define BIT_TX_IPA_CHN_MASK	GENMASK(7, 4)
+#define BIT_RX_IPA_CHN_MASK	GENMASK(3, 0)
 
 enum {
 	IIS_WIDTH_16BIT,
@@ -142,9 +176,15 @@ struct linklist_node_s {
 struct sprd_musb_dma_channel {
 	struct dma_channel	channel;
 	struct sprd_musb_dma_controller	*controller;
+#ifdef CONFIG_USB_SPRD_LINKFIFO
+	struct linklist_node_s	*dma_linklist[CHN_MAX_QUEUE_SIZE];
+	dma_addr_t list_dma_addr[CHN_MAX_QUEUE_SIZE];
+#else
 	struct linklist_node_s	*dma_linklist;
 	dma_addr_t list_dma_addr;
+#endif
 	struct list_head	req_queued;
+	u32	used_queue;
 	u32	free_slot;
 	u32	busy_slot;
 	u32	node_num;
@@ -163,6 +203,7 @@ struct sprd_musb_dma_controller {
 	wait_queue_head_t	wait;
 };
 
+u32 musb_linknode_full(struct musb *musb, u32 is_tx);
 irqreturn_t sprd_dma_interrupt(struct musb *musb, u32 int_hsdma);
 struct dma_controller *sprd_musb_dma_controller_create(struct musb *musb,
 							void __iomem *base);

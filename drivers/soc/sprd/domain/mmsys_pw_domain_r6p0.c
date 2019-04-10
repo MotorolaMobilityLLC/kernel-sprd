@@ -394,9 +394,8 @@ int sprd_cam_pw_off(void)
 	}
 	mutex_unlock(&pw_info->mlock);
 	/* if count != 0, other using */
-	pr_info("Done, state: 0x%x, read count %d, cb: %p\n",
-		power_state1, read_count,
-		__builtin_return_address(0));
+	pr_info("Done, read count %d, cb: %p\n",
+		read_count, __builtin_return_address(0));
 
 	return 0;
 

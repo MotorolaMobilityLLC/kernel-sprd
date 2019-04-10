@@ -227,8 +227,6 @@ static long rtc_dev_ioctl(struct file *file,
 	switch (cmd) {
 	case RTC_EPOCH_SET:
 	case RTC_SET_TIME:
-		if (!capable(CAP_SYS_TIME))
-			err = -EACCES;
 		break;
 
 	case RTC_IRQP_SET:

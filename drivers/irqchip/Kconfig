@@ -321,3 +321,14 @@ config IRQ_UNIPHIER_AIDET
 	select IRQ_DOMAIN_HIERARCHY
 	help
 	  Support for the UniPhier AIDET (ARM Interrupt Detector).
+
+config SPRD_IPA_INTC
+	bool "Spreadtrum IPA level2 interrupt controller"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select GENERIC_IRQ_CHIP
+	select IRQ_DOMAIN
+	help
+	 Say yes here to support for the spreadtrum IPA level2 interrupt.
+	 Some PCIe legacy IRQs are connected to ipa level2 interrupt controller
+	 directly, which can support 32 IRQs. If someone wants to use spreadtrum
+	 PCIe legacy IRQ, he or she must say yes here.

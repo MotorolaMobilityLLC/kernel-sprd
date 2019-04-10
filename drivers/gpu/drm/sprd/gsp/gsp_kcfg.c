@@ -325,12 +325,6 @@ static int gsp_kcfg_fill(struct gsp_kcfg *kcfg, void *arg, int index,
 		}
 	}
 
-	GSP_DEBUG("kcfg[%d] iommu map start\n", gsp_kcfg_to_tag(kcfg));
-
-	ret = gsp_kcfg_iommu_map(kcfg);
-	if (ret)
-		GSP_ERR("kcfg[%d] iommu map failed\n", gsp_kcfg_to_tag(kcfg));
-
 	goto exit;
 
 free_fence:

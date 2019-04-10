@@ -80,9 +80,9 @@
 				hback-porch = <20>;
 				hfront-porch = <50>;
 				vback-porch = <28>;
-				vfront-porch = <4>;
+				vfront-porch = <2>;
 				hsync-len = <2>;
-				vsync-len = <2>;
+				vsync-len = <4>;
 			};
 		};
 	};

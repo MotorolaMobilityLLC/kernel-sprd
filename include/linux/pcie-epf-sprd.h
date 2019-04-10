@@ -56,5 +56,11 @@ void __iomem *sprd_pci_epf_map_memory(int function,
 				      phys_addr_t rc_addr, size_t size);
 void sprd_pci_epf_unmap_memory(int function,
 			       const void __iomem *cpu_vir_addr);
+
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+void __iomem *sprd_epf_ipa_map(phys_addr_t src, phys_addr_t dst, size_t size);
+void sprd_epf_ipa_unmap(void __iomem *cpu_vir_addr);
+#endif
+
 #endif
 

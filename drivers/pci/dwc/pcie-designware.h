@@ -38,6 +38,9 @@
 #define PORT_LINK_MODE_4_LANES		(0x7 << 16)
 #define PORT_LINK_MODE_8_LANES		(0xf << 16)
 
+#define PCIE_SYMBOL_TIMER_FILTER_1_OFF	0x71c
+#define CX_FLT_MASK_UR_POIS		(0x1 << 17)
+
 #define PCIE_LINK_WIDTH_SPEED_CONTROL	0x80C
 #define PORT_LOGIC_SPEED_CHANGE		(0x1 << 17)
 #define PORT_LOGIC_LINK_WIDTH_MASK	(0x1f << 8)
@@ -51,6 +54,8 @@
 #define PCIE_MSI_INTR0_ENABLE		0x828
 #define PCIE_MSI_INTR0_MASK		0x82C
 #define PCIE_MSI_INTR0_STATUS		0x830
+#define PCIE_SLAVE_ERROR_RESPONSE	0x8d0
+#define SLAVE_ERROR_RESPONSE_EN		(0x1 << 0)
 
 #define PCIE_ATU_VIEWPORT		0x900
 #define PCIE_ATU_REGION_INBOUND		(0x1 << 31)
@@ -95,6 +100,23 @@
 #define PCIE_ATU_UNR_LIMIT		0x10
 #define PCIE_ATU_UNR_LOWER_TARGET	0x14
 #define PCIE_ATU_UNR_UPPER_TARGET	0x18
+
+/*
+ * Shadow registers (e.g. BAR mask registers) can be accessed
+ * through this register.
+ * If you write 0 to (Base address + 0x8000 + 0x10), then BAR0
+ * can be set to 0.
+ */
+#define PCIE_DBI_CS2 0x8000
+
+/*
+ * Synopsys specific 8 iATU. Though *num_viewport* in dts specific the
+ * numbers of iATU, we had better set the default value to 8.
+ * Now only 3 regions are using, one is for IO, another is for config,
+ * and the other is for MEM. However, the remain 5 iATUs can be used for
+ * MEM.
+ */
+#define PCIE_MEM_VP_NUM    6
 
 /*
  * Register address builder.
@@ -170,12 +192,13 @@ struct pcie_port {
 	resource_size_t		io_base;
 	phys_addr_t		io_bus_addr;
 	u32			io_size;
-	u64			mem_base;
-	phys_addr_t		mem_bus_addr;
-	u32			mem_size;
+	int			mem_ids;
+	u64			mem_base[PCIE_MEM_VP_NUM];
+	phys_addr_t		mem_bus_addr[PCIE_MEM_VP_NUM];
+	u32			mem_size[PCIE_MEM_VP_NUM];
+	struct resource		*mem[PCIE_MEM_VP_NUM];
 	struct resource		*cfg;
 	struct resource		*io;
-	struct resource		*mem;
 	struct resource		*busn;
 	int			irq;
 	const struct dw_pcie_host_ops *ops;
@@ -347,11 +370,16 @@ static inline int dw_pcie_host_init(struct pcie_port *pp)
 
 #ifdef CONFIG_PCIE_DW_EP
 void dw_pcie_ep_linkup(struct dw_pcie_ep *ep);
+void dw_pcie_setup_ep(struct dw_pcie_ep *ep);
 int dw_pcie_ep_init(struct dw_pcie_ep *ep);
 void dw_pcie_ep_exit(struct dw_pcie_ep *ep);
 int dw_pcie_ep_raise_msi_irq(struct dw_pcie_ep *ep, u8 interrupt_num);
 #else
 static inline void dw_pcie_ep_linkup(struct dw_pcie_ep *ep)
+{
+}
+
+static inline void dw_pcie_setup_ep(struct dw_pcie_ep *ep)
 {
 }
 

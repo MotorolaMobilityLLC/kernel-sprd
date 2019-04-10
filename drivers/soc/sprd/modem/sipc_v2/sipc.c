@@ -155,12 +155,17 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 #endif
 
 #ifdef CONFIG_SPRD_PCIE_EP_DEVICE
-	ipc->irq = PCIE_EP_SIPC_IRQ;
-	ret = of_property_read_u32_array(np, "sprd,ep-dev", &ipc->ep_dev, 1);
-	pr_debug("sipc: ep_dev=%d\n", ipc->ep_dev);
-	if (ret || ipc->ep_dev >= PCIE_EP_NR) {
-		pr_err("sipc: ep_dev err, ret =%d.\n", ret);
-		return ret;
+	if (ipc->type == SIPC_BASE_PCIE) {
+		ipc->irq = PCIE_EP_SIPC_IRQ;
+		ret = of_property_read_u32_array(np,
+						 "sprd,ep-dev",
+						 &ipc->ep_dev,
+						 1);
+		pr_debug("sipc: ep_dev=%d\n", ipc->ep_dev);
+		if (ret || ipc->ep_dev >= PCIE_EP_NR) {
+			pr_err("sipc: ep_dev err, ret =%d.\n", ret);
+			return ret;
+		}
 	}
 #endif
 

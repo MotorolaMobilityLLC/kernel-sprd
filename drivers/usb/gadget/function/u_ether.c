@@ -236,6 +236,10 @@ static void defer_kevent(struct eth_dev *dev, int flag)
 {
 	if (test_and_set_bit(flag, &dev->todo))
 		return;
+	if (dev->port_usb &&
+	    dev->port_usb->out_ep &&
+	    dev->port_usb->out_ep->uether)
+		return;
 	if (!schedule_work(&dev->work))
 		ERROR(dev, "kevent %d may have been dropped\n", flag);
 	else
@@ -285,7 +289,7 @@ rx_submit(struct eth_dev *dev, struct usb_request *req, gfp_t gfp_flags)
 
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	if (!out || !dev->port_usb)
+	if (!out || !dev->port_usb || out->uether)
 		return -ENOTCONN;
 
 
@@ -394,7 +398,7 @@ clean:
 #if defined(CONFIG_X86)
 		queue_work_on(2, uether_wq, &dev->rx_work);
 #else
-		queue_work(uether_wq, &dev->rx_work);
+		queue_work_on(1, uether_wq, &dev->rx_work);
 #endif
 }
 
@@ -950,6 +954,11 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 		return NETDEV_TX_OK;
 	}
 
+	if (in->uether) {
+		if (skb)
+			dev_kfree_skb_any(skb);
+		return NETDEV_TX_OK;
+	}
 	/* apply outgoing CDC or RNDIS filters */
 	if (skb && !is_promisc(cdc_filter)) {
 		u8		*dest = skb->data;
@@ -1664,7 +1673,10 @@ struct net_device *gether_connect(struct gether *link)
 		netif_carrier_on(dev->net);
 		if (netif_running(dev->net))
 			eth_start(dev, GFP_ATOMIC);
-
+#ifdef CONFIG_USB_SPRD_LINKFIFO
+		link->in_ep->linkfifo = true;
+		link->out_ep->linkfifo = true;
+#endif
 	/* on error, disable any endpoints  */
 	} else {
 		(void) usb_ep_disable(link->out_ep);
@@ -1760,6 +1772,10 @@ void gether_disconnect(struct gether *link)
 
 	link->out_ep->desc = NULL;
 
+#ifdef CONFIG_USB_SPRD_LINKFIFO
+	link->in_ep->linkfifo = false;
+	link->out_ep->linkfifo = false;
+#endif
 	/* finish forgetting about this USB link episode */
 	dev->header_len = 0;
 	dev->unwrap = NULL;
@@ -1844,11 +1860,7 @@ static void uether_debugfs_exit(struct eth_dev *dev)
 
 static int __init gether_init(void)
 {
-#if defined(CONFIG_X86)
 	uether_wq  = create_workqueue("uether");
-#else
-	uether_wq  = create_singlethread_workqueue("uether");
-#endif
 	if (!uether_wq) {
 		pr_err("%s: Unable to create workqueue: uether\n", __func__);
 		return -ENOMEM;

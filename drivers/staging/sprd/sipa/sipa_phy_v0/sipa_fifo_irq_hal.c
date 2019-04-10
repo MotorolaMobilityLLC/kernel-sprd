@@ -129,85 +129,56 @@ struct sipa_interrupt_table_tag ipa_int_table[] = {
 	},
 };
 
-static inline u32 ipa_fifo_traverse_int_bit(
-	enum sipa_cmn_fifo_index id,
-	struct sipa_common_fifo_cfg_tag *ipa_cfg)
+static inline u32
+ipa_fifo_traverse_int_bit(enum sipa_cmn_fifo_index id,
+			  struct sipa_common_fifo_cfg_tag *ipa_cfg)
 {
 	void __iomem *fifo_base;
 	u32 clr_sts = 0;
-	u32 int_status = 0, int_status1 = 0;
+	u32 int_status = 0;
 
 	fifo_base = ipa_cfg->fifo_reg_base;
 	int_status = ipa_phy_get_fifo_all_int_sts(fifo_base);
-	IPA_LOG("The fifo intr sts = 0x%x\n", int_status);
-traverse_again:
 
-	if (int_status & IPA_INT_EXIT_FLOW_CTRL_STS) {
-		int_status1 |= IPA_INT_EXIT_FLOW_CTRL_STS;
+	if (int_status & IPA_INT_EXIT_FLOW_CTRL_STS)
 		clr_sts |= IPA_EXIT_FLOW_CONTROL_CLR_BIT;
-	}
 
-	if (int_status & IPA_INT_ERRORCODE_IN_TX_FIFO_STS) {
-		int_status1 |= IPA_INT_ERRORCODE_IN_TX_FIFO_STS;
+	if (int_status & IPA_INT_ERRORCODE_IN_TX_FIFO_STS)
 		clr_sts |= IPA_ERROR_CODE_INTR_CLR_BIT;
-	}
 
-	if (int_status & IPA_INT_ENTER_FLOW_CTRL_STS) {
-		int_status1 |= IPA_INT_ENTER_FLOW_CTRL_STS;
+	if (int_status & IPA_INT_ENTER_FLOW_CTRL_STS)
 		clr_sts |= IPA_ENTRY_FLOW_CONTROL_CLR_BIT;
-	}
 
-	if (int_status & IPA_INT_INTR_BIT_STS) {
-		int_status1 |= IPA_INT_INTR_BIT_STS;
+	if (int_status & IPA_INT_INTR_BIT_STS)
 		clr_sts |= IPA_TX_FIFO_INTR_CLR_BIT;
-	}
 
-	if (int_status & IPA_INT_TX_FIFO_THRESHOLD_SW_STS) {
-		int_status1 |= IPA_INT_TX_FIFO_THRESHOLD_SW_STS;
+	if (int_status & IPA_INT_TX_FIFO_THRESHOLD_SW_STS)
 		clr_sts |= IPA_TX_FIFO_THRESHOLD_CLR_BIT;
-	}
 
-	if (int_status & IPA_INT_DELAY_TIMER_STS) {
-		int_status1 |= IPA_INT_DELAY_TIMER_STS;
+	if (int_status & IPA_INT_DELAY_TIMER_STS)
 		clr_sts |= IPA_TX_FIFO_TIMER_CLR_BIT;
-	}
 
-	if (int_status & IPA_INT_DROP_PACKT_OCCUR) {
-		int_status1 |= IPA_INT_DROP_PACKT_OCCUR;
+	if (int_status & IPA_INT_DROP_PACKT_OCCUR)
 		clr_sts |= IPA_DROP_PACKET_INTR_CLR_BIT;
-	}
 
-	if (int_status & IPA_INT_TXFIFO_OVERFLOW_STS) {
-		int_status1 |= IPA_INT_TXFIFO_OVERFLOW_STS;
+	if (int_status & IPA_INT_TXFIFO_OVERFLOW_STS)
 		clr_sts |= IPA_TX_FIFO_OVERFLOW_CLR_BIT;
-	}
 
-	if (int_status & IPA_INT_TXFIFO_FULL_INT_STS) {
-		int_status1 |= IPA_INT_TXFIFO_FULL_INT_STS;
+	if (int_status & IPA_INT_TXFIFO_FULL_INT_STS)
 		clr_sts |= IPA_TX_FIFO_FULL_INT_CLR_BIT;
-	}
 
 	if (ipa_cfg->fifo_irq_callback)
-		ipa_cfg->fifo_irq_callback(ipa_cfg->priv,
-								   int_status1, id);
+		ipa_cfg->fifo_irq_callback(ipa_cfg->priv, int_status, id);
 	else
-		IPA_ERR("Don't register this fifo(%d) irq callback\n", id);
+		pr_debug("Don't register this fifo(%d) irq callback\n", id);
 
-	int_status = ipa_phy_get_fifo_all_int_sts(fifo_base);
-
-	if ((int_status & (~IPA_INT_THRESHOLD_STS)) != int_status1) {
-		int_status &= (~int_status1);
-		int_status1 = 0;
-		goto traverse_again;
-	} else {
-		ipa_phy_clear_int(ipa_cfg->fifo_reg_base, clr_sts);
-	}
+	ipa_phy_clear_int(ipa_cfg->fifo_reg_base, clr_sts);
 
 	return TRUE;
 }
 
 static u32 ipa_fifo_irq_main_cb(enum sipa_cmn_fifo_index id,
-								struct sipa_common_fifo_cfg_tag *cfg_base)
+				struct sipa_common_fifo_cfg_tag *cfg_base)
 {
 	struct sipa_common_fifo_cfg_tag *ipa_cfg = NULL;
 
@@ -216,7 +187,7 @@ static u32 ipa_fifo_irq_main_cb(enum sipa_cmn_fifo_index id,
 		if (ipa_cfg != NULL)
 			ipa_fifo_traverse_int_bit(id, ipa_cfg);
 	} else {
-		pr_info("don't have this id\n");
+		pr_err("don't have this id\n");
 	}
 
 	return TRUE;
@@ -231,9 +202,8 @@ u32 sipa_int_callback_func(int evt, void *cookie)
 
 	for (i = 0; i < SIPA_FIFO_MAX; i++) {
 		if (int_sts & ipa_int_table[i].int_owner) {
-			IPA_LOG("int_sts = 0x%x id = %d\n", int_sts, ipa_int_table[i].id);
 			ipa_fifo_irq_main_cb(ipa_int_table[i].id,
-								 cfg->cmn_fifo_cfg);
+					     cfg->cmn_fifo_cfg);
 		}
 	}
 

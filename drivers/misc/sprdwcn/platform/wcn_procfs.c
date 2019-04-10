@@ -751,6 +751,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		WCN_INFO("fail_reset is value %d\n", flag_reset);
 		mdbg_proc->fail_count = 0;
 		sprdwcn_bus_set_carddump_status(false);
+		marlin_chip_en(false, true);
 		if (marlin_reset_func != NULL)
 			marlin_reset_func(marlin_callback_para);
 		return count;

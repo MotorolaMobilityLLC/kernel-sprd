@@ -62,6 +62,9 @@ struct netns_xfrm {
 	u32			sysctl_aevent_rseqth;
 	int			sysctl_larval_drop;
 	u32			sysctl_acq_expires;
+#ifdef CONFIG_XFRM_FRAGMENT
+	int			enable_xfrm_fragment;
+#endif
 #ifdef CONFIG_SYSCTL
 	struct ctl_table_header	*sysctl_hdr;
 #endif

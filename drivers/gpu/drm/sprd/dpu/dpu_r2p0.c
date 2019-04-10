@@ -828,6 +828,22 @@ static void dpu_layer(struct dpu_context *ctx,
 	layer = &reg->layers[hwlayer->index];
 	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
 
+	if (hwlayer->pallete_en) {
+		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		layer->pos = offset;
+		layer->size = size;
+		layer->alpha = hwlayer->alpha;
+		layer->pallete = hwlayer->pallete_color;
+
+		/* pallete layer enable */
+		layer->ctrl = 0x1005;
+
+		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
+			hwlayer->dst_x, hwlayer->dst_y,
+			hwlayer->dst_w, hwlayer->dst_h);
+		return;
+	}
+
 	if (hwlayer->src_w && hwlayer->src_h)
 		size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
 	else
@@ -940,6 +956,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
 				    (ctx->vm.vback_porch << 8) |
 				    (ctx->vm.vfront_porch << 20);
+		if (ctx->vm.vsync_len + ctx->vm.vback_porch < 32)
+			pr_warn("Warning: (vsync + vbp) < 32, "
+				"underflow risk!\n");
 
 		/* enable dpu update done INT */
 		int_mask |= DISPC_INT_UPDATE_DONE_MASK;

@@ -21,6 +21,5 @@
 #define UL_TX_FIFO_BASE_ADDR 0x287bfc000ULL
 #define UL_RX_FIFO_BASE_ADDR 0x287bfd000ULL
 
-int modem_sipa_connect(struct sipa_to_pam_info *out);
 
 #endif /* !_SIPA_DELEGATE_H_ */

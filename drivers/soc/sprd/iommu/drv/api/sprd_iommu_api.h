@@ -121,6 +121,7 @@ struct sprd_iommu_func_tbl {
 	u32  (*release)(sprd_iommu_hdl);
 
 	u32  (*reset)(sprd_iommu_hdl, u32);
+	u32  (*set_bypass)(sprd_iommu_hdl, bool);
 	u32  (*virttophy)(sprd_iommu_hdl, u64, u64 *);
 
 	u32  (*unmap_orphaned)(sprd_iommu_hdl, struct sprd_iommu_unmap_param *);
@@ -297,6 +298,7 @@ u32 sprd_iommudrv_release(sprd_iommu_hdl p_iommu_hdl);
  *********************************************************/
 u32 sprd_iommudrv_reset(sprd_iommu_hdl p_iommu_hdl, u32 channel_num);
 
+u32 sprd_iommudrv_set_bypass(sprd_iommu_hdl  p_iommu_hdl, bool vaor_bp_en);
 
 /**********************************************************
  * @name SPRDIommuVirtToPhy

@@ -84,6 +84,10 @@
 				reg = <0x20 0x2>;
 			};
 
+			neg_cp_efuse: calib@22 {
+				reg = <0x22 0x2>;
+			};
+
 			headset_adc_fir: calib@14 {
 				reg = <0x28 0x2>;
 			};
@@ -98,6 +102,7 @@
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 			reg = <0x380>;
+			mode = <2>;
 			nvmem-cells = <&cc_cal>;
 			nvmem-cell-names = "cc_calib";
 		};
@@ -139,8 +144,12 @@
 			#sound-dai-cells = <1>;
 			reg = <0x1000>;
 			sprd,syscon-pmu-apb = <&pmu_apb_regs>;
-			nvmem-cells = <&aud_pabst_vcal>;
-			nvmem-cell-names = "aud_pabst_vcal_efuse";
+			nvmem-cells = <&aud_pabst_vcal>,
+				<&neg_cp_efuse>,
+				<&fgu_calib>;
+			nvmem-cell-names = "aud_pabst_vcal_efuse",
+					"neg_cp_efuse",
+					"fgu_4p2_efuse";
 			status = "disabled";
 		};
 
@@ -395,6 +404,20 @@
 		poweroff@1820 {
 			compatible = "sprd,sc27xx-poweroff", "sprd,sc2730-poweroff";
 			reg = <0x1820>;
+		};
+
+		pmic_tsensor: tsensor@1b34 {
+			compatible = "sprd,sc27xx-tsensor", "sprd,sc2730-tsensor";
+			#thermal-sensor-cells = <1>;
+			reg = <0x1b34>;
+
+			osc_tsensor: osc-tsensor@0{
+				reg = <0>;
+			};
+
+			tout_tsensor: tout-tsensor@1{
+				reg = <1>;
+			};
 		};
 
 		vibrator@1b90 {

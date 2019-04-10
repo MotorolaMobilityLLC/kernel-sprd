@@ -52,6 +52,7 @@ struct dwc3_sprd {
 	struct extcon_dev	*edev;
 	struct notifier_block	vbus_nb;
 	struct notifier_block	id_nb;
+	struct regulator	*vbus;
 
 	bool			hibernate_en;
 	enum usb_dr_mode	dr_mode;
@@ -283,6 +284,14 @@ static int dwc3_sprd_start(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 		 * Before enable OTG power, we should disable VBUS irq, in case
 		 * extcon notifies the incorrect connecting events.
 		 */
+		if (!regulator_is_enabled(sdwc->vbus)) {
+			ret = regulator_enable(sdwc->vbus);
+			if (ret) {
+				dev_err(sdwc->dev,
+					"Failed to enable vbus: %d\n", ret);
+				return ret;
+			}
+		}
 	}
 
 	dwc->dr_mode = (mode == USB_DR_MODE_HOST) ?
@@ -346,6 +355,14 @@ static int dwc3_sprd_stop(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 
 	if (mode == USB_DR_MODE_PERIPHERAL)
 		dwc3_flush_all_events(sdwc);
+	else if (mode == USB_DR_MODE_HOST && regulator_is_enabled(sdwc->vbus)) {
+		ret = regulator_disable(sdwc->vbus);
+		if (ret) {
+			dev_err(sdwc->dev,
+				"Failed to enable vbus: %d\n", ret);
+			return ret;
+		}
+	}
 
 	ret = device_for_each_child(sdwc->dev, NULL, dwc3_sprd_suspend_child);
 	if (ret) {
@@ -618,6 +635,16 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		return PTR_ERR(sdwc->ss_phy);
 	}
 
+	if (IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE) ||
+	    IS_ENABLED(CONFIG_USB_DWC3_HOST)) {
+		sdwc->vbus = devm_regulator_get(dev, "vbus");
+		if (IS_ERR(sdwc->vbus)) {
+			ret = PTR_ERR(sdwc->vbus);
+			dev_err(dev, "unable to get vbus supply %d\n", ret);
+			return ret;
+		}
+	}
+
 	/* perpare clock */
 	sdwc->core_clk = devm_clk_get(dev, "core_clk");
 	if (IS_ERR(sdwc->core_clk)) {
@@ -877,6 +904,7 @@ static int dwc3_sprd_runtime_suspend(struct device *dev)
 	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
 
 	dwc3_sprd_disable(sdwc);
+	usb_phy_vbus_off(sdwc->ss_phy);
 	dev_info(dev, "enter into suspend mode\n");
 	return 0;
 }
@@ -885,6 +913,8 @@ static int dwc3_sprd_runtime_resume(struct device *dev)
 {
 	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
 
+	if (sdwc->dr_mode == USB_DR_MODE_HOST)
+		usb_phy_vbus_on(sdwc->ss_phy);
 	dwc3_sprd_enable(sdwc);
 	dev_info(dev, "enter into resume mode\n");
 	return 0;
@@ -910,6 +940,7 @@ static const struct dev_pm_ops dwc3_sprd_dev_pm_ops = {
 
 static const struct of_device_id sprd_dwc3_match[] = {
 	{ .compatible = "sprd,roc1-dwc3" },
+	{ .compatible = "sprd,orca-dwc3" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_dwc3_match);

@@ -31,7 +31,7 @@
 
 	chosen {
 		stdout-path = &uart0;
-		bootargs = "earlycon console=ttyS0,115200n8 loglevel=8 init=/init root=/dev/ram0 rw androidboot.hardware=udx710_2h10 androidboot.selinux=permissive swiotlb=64k androidboot.dtbo_idx=0";
+		bootargs = "earlycon console=ttyS0,115200n8 loglevel=8 init=/init root=/dev/ram0 ro androidboot.hardware=udx710_2h10 androidboot.selinux=permissive swiotlb=64k androidboot.dtbo_idx=0 printk.devkmsg=on";
 	};
 
 	ion {
@@ -45,17 +45,47 @@
 			type = <0>;
 		};
 	};
+
+	extcon_usb0: extcon_usb0 {
+		compatible = "linux,extcon-usb-gpio";
+
+		vbus-gpios = <&ap_gpio 11 GPIO_ACTIVE_HIGH>;
+	};
 };
 
-&ssphy {
+&ssphy0 {
 	vdd-supply = <&vddusb33>;
-	extcon = <&pmic_typec>;
+	status = "okay";
 };
 
-&usb3 {
-	extcon = <&pmic_typec>;
+&usb3_0 {
+	extcon = <&extcon_usb0>;
+	status = "okay";
 };
 
 &uart0 {
 	status = "ok";
+};
+
+&dmc_mpu {
+	status = "okay";
+};
+
+&ssphy1 {
+	vdd-supply = <&vddusb33>;
+	extcon = <&pmic_typec>;
+	status = "okay";
+};
+
+&usb3_1 {
+	extcon = <&pmic_typec>;
+	status = "okay";
+};
+
+&vddwcn {
+	regulator-always-on;
+};
+
+&sdio3 {
+	status = "okay";
 };

@@ -157,7 +157,6 @@ static void send_killing_app_info_to_user(int uid, int pid, int adj)
 		lowmem_print(1, "nlmsg_multicast error:%d\n", res);
 }
 
-/*
 static void send_vmpressure_to_user(int vmpressure)
 {
 	struct sk_buff *skb;
@@ -180,7 +179,7 @@ static void send_vmpressure_to_user(int vmpressure)
 	if (res < 0)
 		lowmem_print(1, "nlmsg_multicast error:%d\n", res);
 }
-*/
+
 /*for testing*/
 static void lmk_nl_recv_msg(struct sk_buff *skb)
 {
@@ -255,7 +254,6 @@ int adjust_minadj(short *min_score_adj, int *pressure)
 	return ret;
 }
 
-/*
 static int lmk_vmpressure_notifier(struct notifier_block *nb,
 			unsigned long action, void *data)
 {
@@ -301,11 +299,10 @@ static int lmk_vmpressure_notifier(struct notifier_block *nb,
 
 	return 0;
 }
-*/
 
-//static struct notifier_block lmk_vmpr_nb = {
-//	.notifier_call = lmk_vmpressure_notifier,
-//};
+static struct notifier_block lmk_vmpr_nb = {
+	.notifier_call = lmk_vmpressure_notifier,
+};
 
 #if defined(CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINFO) || defined(CONFIG_E_SHOW_MEM)
 static void dump_tasks_info(void)
@@ -1212,7 +1209,7 @@ static int __init lowmem_init(void)
 #ifdef CONFIG_E_SHOW_MEM
 	register_e_show_mem_notifier(&tasks_e_show_mem_notifier);
 #endif
-	//vmpressure_notifier_register(&lmk_vmpr_nb);
+	vmpressure_notifier_register(&lmk_vmpr_nb);
 	lowmem_print(1, "entering:%s\n", __func__);
 	nl_sk = netlink_kernel_create(&init_net, LMK_NETLINK_PROTO, &cfg);
 	if (!nl_sk)

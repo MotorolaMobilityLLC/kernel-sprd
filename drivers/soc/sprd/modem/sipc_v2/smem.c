@@ -25,6 +25,18 @@
 
 #include "sipc_priv.h"
 
+/*
+ * workround: Due to orca ipa hardware limitations
+ * the sipc share memory must map from
+ * 0x280000000(orca side) to 0x80000000(roc1
+ * side), and the size must be 256M
+ */
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+#define IPA_SRC_BASE	0x280000000
+#define IPA_DST_BASE	0x80000000
+#define IPA_SIZE	0x10000000
+#endif
+
 struct smem_phead {
 	struct list_head	smem_phead;
 	spinlock_t		lock;
@@ -75,6 +87,10 @@ static struct smem_pool *shmem_find_pool(u8 dst)
 	struct smem_pool *spool = NULL;
 	struct smem_pool *pos;
 	unsigned long flags;
+
+	/* The num of one pool is 0, means the poll is not ready */
+	if (!phead->poolnum)
+		return NULL;
 
 	spin_lock_irqsave(&phead->lock, flags);
 	list_for_each_entry(pos, &phead->smem_phead, smem_plist) {
@@ -276,9 +292,23 @@ int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type)
 	pr_info("%s: pool addr = 0x%x, size = 0x%x added.\n",
 		__func__, spool->addr, spool->size);
 
-	if (mem_type == SMEM_PCIE)
-		spool->pcie_base = pcie_modem_ram_vmap(addr, size, 1);
+	if (mem_type == SMEM_PCIE) {
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+#ifdef CONFIG_PCIE_EPF_SPRD
+		spool->pcie_base = sprd_epf_ipa_map(IPA_SRC_BASE,
+						    IPA_DST_BASE, IPA_SIZE);
+		if (!spool->pcie_base)
+			return -ENOMEM;
 
+		spool->pcie_base += (addr - IPA_DST_BASE);
+#else
+		pr_err("Failed to pcie map, can't br here!\n");
+		return -ENOMEM;
+#endif
+#else
+		spool->pcie_base = pcie_modem_ram_vmap(addr, size, 1);
+#endif
+	}
 	return 0;
 }
 
@@ -307,7 +337,8 @@ u32 smem_alloc(u8 dst, u32 size)
 
 	addr = gen_pool_alloc(spool->gen, size);
 	if (!addr) {
-		pr_err("%s:pool dst %d failed to alloc smem!\n", __func__, dst);
+		pr_err("%s:pool dst=%d, size=0x%x failed to alloc smem!\n",
+		       __func__, dst, size);
 		kfree(recd);
 		return 0;
 	}

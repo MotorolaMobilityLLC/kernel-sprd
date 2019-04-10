@@ -628,12 +628,18 @@ static int mmc_blk_ioctl_cmd(struct mmc_blk_data *md,
 		err = PTR_ERR(req);
 		goto cmd_done;
 	}
-	idatas[0] = idata;
-	req_to_mmc_queue_req(req)->drv_op = MMC_DRV_OP_IOCTL;
-	req_to_mmc_queue_req(req)->drv_op_data = idatas;
-	req_to_mmc_queue_req(req)->ioc_count = 1;
-	blk_execute_rq(mq->queue, NULL, req, 0);
-	ioc_err = req_to_mmc_queue_req(req)->drv_op_result;
+	if (mmc_access_rpmb(mq)) {
+		mmc_get_card(card);
+		ioc_err = __mmc_blk_ioctl_cmd(card, md, idata);
+		mmc_put_card(card);
+	} else {
+		idatas[0] = idata;
+		req_to_mmc_queue_req(req)->drv_op = MMC_DRV_OP_IOCTL;
+		req_to_mmc_queue_req(req)->drv_op_data = idatas;
+		req_to_mmc_queue_req(req)->ioc_count = 1;
+		blk_execute_rq(mq->queue, NULL, req, 0);
+		ioc_err = req_to_mmc_queue_req(req)->drv_op_result;
+	}
 	err = mmc_blk_ioctl_copy_to_user(ic_ptr, idata);
 	blk_put_request(req);
 
@@ -695,11 +701,18 @@ static int mmc_blk_ioctl_multi_cmd(struct mmc_blk_data *md,
 		err = PTR_ERR(req);
 		goto cmd_err;
 	}
-	req_to_mmc_queue_req(req)->drv_op = MMC_DRV_OP_IOCTL;
-	req_to_mmc_queue_req(req)->drv_op_data = idata;
-	req_to_mmc_queue_req(req)->ioc_count = num_of_cmds;
-	blk_execute_rq(mq->queue, NULL, req, 0);
-	ioc_err = req_to_mmc_queue_req(req)->drv_op_result;
+	if (mmc_access_rpmb(mq)) {
+		mmc_get_card(card);
+		for (i = 0; i < num_of_cmds && !ioc_err; i++)
+			ioc_err = __mmc_blk_ioctl_cmd(card, md, idata[i]);
+		mmc_put_card(card);
+	} else {
+		req_to_mmc_queue_req(req)->drv_op = MMC_DRV_OP_IOCTL;
+		req_to_mmc_queue_req(req)->drv_op_data = idata;
+		req_to_mmc_queue_req(req)->ioc_count = num_of_cmds;
+		blk_execute_rq(mq->queue, NULL, req, 0);
+		ioc_err = req_to_mmc_queue_req(req)->drv_op_result;
+	}
 
 	/* copy to user if data and response */
 	for (i = 0; i < num_of_cmds && !err; i++)

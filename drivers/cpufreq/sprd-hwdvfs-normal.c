@@ -47,6 +47,9 @@ static const struct of_device_id sprd_cpudvfs_of_match[] = {
 	{
 		.compatible = "sprd,roc1-cpudvfs",
 	},
+	{
+		.compatible = "sprd,sharkl5pro-cpudvfs",
+	},
 };
 MODULE_DEVICE_TABLE(of, sprd_cpudvfs_of_match);
 
@@ -55,31 +58,66 @@ static int cpudvfs_i2c_probe(struct i2c_client *client,
 {
 	struct sprd_cpudvfs_device *platdev = sprd_hardware_dvfs_device_get();
 	struct cpudvfs_archdata *pri;
+	struct device_node *np;
+	enum dcdc_name dcdc;
+	int ret;
 
 	if (!platdev) {
 		pr_err("No cpu dvfs device found.\n");
 		return -ENODEV;
 	}
-	pri = (struct cpudvfs_archdata *)platdev->archdata;
-	pri->i2c_client = client;
 
+	np = client->dev.of_node;
+	if (!np) {
+		pr_err("No i2c of node found.\n");
+		return -ENODEV;
+	}
+
+	ret = of_property_read_u32(np, "dvfs-dcdc-i2c", &dcdc);
+	if (ret) {
+		pr_err("dvfs-dcdc property read fail.\n");
+		return ret;
+	}
+
+
+	pri = (struct cpudvfs_archdata *)platdev->archdata;
+	pri->pwr[dcdc].i2c_client = client;
 	return 0;
 }
 
-static const struct of_device_id cpudvfs_i2c_of_match[] = {
-	{.compatible = "sprd,cpudvfs-regulator-sharkl5",},
-	{.compatible = "sprd,cpudvfs-regulator-roc1",},
+static const struct of_device_id cpudvfs_dcdc_cpu0_i2c_of_match[] = {
+	{.compatible = "sprd,cpudvfs-regulator-dcdc-cpu0-roc1",},
 	{},
 };
-MODULE_DEVICE_TABLE(of, cpudvfs_i2c_of_match);
+MODULE_DEVICE_TABLE(of, cpudvfs_dcdc_cpu0_i2c_of_match);
 
-static struct i2c_driver cpudvfs_i2c_driver = {
-	.driver = {
-		.name = "cpudvfs_i2c_drv",
-		.owner = THIS_MODULE,
-		.of_match_table = cpudvfs_i2c_of_match,
+static const struct of_device_id cpudvfs_dcdc_cpu1_i2c_of_match[] = {
+	{.compatible = "sprd,cpudvfs-regulator-sharkl5",},
+	{.compatible = "sprd,cpudvfs-regulator-dcdc-cpu1-roc1",},
+	{.compatible = "sprd,cpudvfs-regulator-sharkl5pro",},
+	{},
+};
+MODULE_DEVICE_TABLE(of, cpudvfs_dcdc_cpu1_i2c_of_match);
+
+static struct i2c_driver cpudvfs_i2c_driver[] = {
+	{
+		.driver = {
+			.name = "cpudvfs_dcdc_cpu0_i2c_drv",
+			.owner = THIS_MODULE,
+			.of_match_table = cpudvfs_dcdc_cpu0_i2c_of_match,
+		},
+		.probe = cpudvfs_i2c_probe,
 	},
-	.probe = cpudvfs_i2c_probe,
+
+	{
+		.driver = {
+			.name = "cpudvfs_dcdc_cpu1_i2c_drv",
+			.owner = THIS_MODULE,
+			.of_match_table = cpudvfs_dcdc_cpu1_i2c_of_match,
+		},
+		.probe = cpudvfs_i2c_probe,
+	}
+
 };
 
 static
@@ -151,6 +189,8 @@ static  int dvfs_map_tbl_init(void *clu)
 			return -ENOMEM;
 
 		cluster->opp_map_tbl = tbl;
+	} else {
+		tbl = cluster->opp_map_tbl;
 	}
 
 	for (row = 0; row < cluster->tbl_row_num; ++row) {
@@ -826,6 +866,64 @@ int sprd_dcdc_vol_grade_value_setup(void *data, u32 dcdc_nr)
 	return 0;
 }
 
+static int sprd_dcdc_vol_delay_time_setup(void *data, u32 dcdc_nr)
+{
+	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
+	u32 reg, off, mask, val, i;
+	int ret, size;
+
+	if (!pdev->pwr) {
+		pr_err("No DCDC Power domain found\n");
+		return -ENODEV;
+	}
+
+	if (dcdc_nr >= pdev->dcdc_num) {
+		pr_err("Incorrect dcdc number\n");
+		return -EINVAL;
+	}
+
+	/* Note: This is hardware delay time
+	 * DVFS needs delay to wait PMIC to finish inceasing voltage
+	 */
+	size = pdev->pwr[dcdc_nr].up_delay_array_size;
+	if (size) {
+		for (i = 0; i < size; ++i) {
+			reg = pdev->pwr[dcdc_nr].up_delay_array[i].reg;
+			off = pdev->pwr[dcdc_nr].up_delay_array[i].reg_offset;
+			mask = pdev->pwr[dcdc_nr].up_delay_array[i].reg_mask;
+			val = pdev->pwr[dcdc_nr].up_delay_array[i].reg_value;
+
+			ret = regmap_update_bits(pdev->topdvfs_map, reg,
+						 mask << off, val << off);
+			if (ret) {
+				pr_err("Failed to set voltage up delay\n");
+				return ret;
+			}
+		}
+	}
+
+	/* Note: This is hardware delay time
+	 * DVFS needs delay to wait PMIC to finish deceasing voltage
+	 */
+	size = pdev->pwr[dcdc_nr].down_delay_array_size;
+	if (size) {
+		for (i = 0; i < size; ++i) {
+			reg = pdev->pwr[dcdc_nr].down_delay_array[i].reg;
+			off = pdev->pwr[dcdc_nr].down_delay_array[i].reg_offset;
+			mask = pdev->pwr[dcdc_nr].down_delay_array[i].reg_mask;
+			val = pdev->pwr[dcdc_nr].down_delay_array[i].reg_value;
+
+			ret = regmap_update_bits(pdev->topdvfs_map, reg,
+						 mask << off, val << off);
+			if (ret) {
+				pr_err("Failed to set voltage down delay\n");
+				return ret;
+			}
+		}
+	}
+	return 0;
+}
+
 int sprd_setup_i2c_channel(void *data, u32 dcdc_nr)
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
@@ -840,15 +938,13 @@ int sprd_setup_i2c_channel(void *data, u32 dcdc_nr)
 		return -EINVAL;
 	}
 
-	if (pdev->pwr[dcdc_nr].i2c_used)
-		if (!i2c_add_driver(&cpudvfs_i2c_driver))
-			pdev->pwr[dcdc_nr].i2c_client = &pdev->i2c_client;
-		else
+	if (pdev->pwr[dcdc_nr].i2c_used) {
+		if (i2c_add_driver(&cpudvfs_i2c_driver[dcdc_nr]))
 			pr_err("Failed to add an i2c driver\n");
-	else
+	} else {
 		pr_info("cluster-%d does not need an i2c channel\n",
 			dcdc_nr);
-
+	}
 	return 0;
 }
 
@@ -982,6 +1078,7 @@ struct cpudvfs_phy_ops sprd_cpudvfs_phy_ops = {
 	.get_sys_dcdc_dvfs_state = sprd_get_sys_dcdc_dvfs_state,
 	.get_top_dcdc_dvfs_state = sprd_get_top_dcdc_dvfs_state,
 	.setup_i2c_channel = sprd_setup_i2c_channel,
+	.dcdc_vol_delay_time_setup = sprd_dcdc_vol_delay_time_setup,
 };
 
 static void hardware_dvfs_tuning_result_judge(struct dvfs_cluster *clu)
@@ -1042,8 +1139,8 @@ int sprd_cpudvfs_set_target(void *data, u32 cluster, u32 opp_idx)
 	clu = pdev->cluster_array[cluster];
 
 	if (pdev->pwr[clu->dcdc].i2c_used &&
-	    *pdev->pwr[clu->dcdc].i2c_client) {
-		client = *pdev->pwr[clu->dcdc].i2c_client;
+	    pdev->pwr[clu->dcdc].i2c_client) {
+		client = pdev->pwr[clu->dcdc].i2c_client;
 		i2c_lock_adapter(client->adapter);
 		i2c_flag = 1;
 	}
@@ -1395,9 +1492,65 @@ static int dcdc_voltage_grade_parse(struct device_node *dcdc_node,
 		pwr->vol_info[i].vol_mask = be32_to_cpu(*list++);
 	}
 
+	/* Parse voltage up delay time information */
+	list = of_get_property(dcdc_node, "voltage-up-delay", &size);
+	if (list && size) {
+		count = size / (sizeof(u32) * 5);
+		pwr->up_delay_array =
+			kcalloc(count, sizeof(struct voltage_delay_cfg),
+				GFP_KERNEL);
+		if (!pwr->up_delay_array) {
+			ret = -ENOMEM;
+			goto err_mem_free;
+		}
+		pwr->up_delay_array_size = count;
+
+		for (i = 0; i < count; i++) {
+			pwr->up_delay_array[i].voltage_span =
+				be32_to_cpu(*list++);
+			pwr->up_delay_array[i].reg =
+				be32_to_cpu(*list++);
+			pwr->up_delay_array[i].reg_offset =
+				be32_to_cpu(*list++);
+			pwr->up_delay_array[i].reg_mask =
+				be32_to_cpu(*list++);
+			pwr->up_delay_array[i].reg_value =
+				be32_to_cpu(*list++);
+		}
+	}
+	/* Parse voltage down delay time information */
+	list = of_get_property(dcdc_node, "voltage-down-delay", &size);
+	if (list && size) {
+		count = size / (sizeof(u32) * 5);
+		pwr->down_delay_array =
+			kcalloc(count, sizeof(struct voltage_delay_cfg),
+				GFP_KERNEL);
+		if (!pwr->down_delay_array) {
+			ret = -ENOMEM;
+			goto err_up_mem_free;
+		}
+		pwr->down_delay_array_size = count;
+
+		for (i = 0; i < count; i++) {
+			pwr->down_delay_array[i].voltage_span =
+				be32_to_cpu(*list++);
+			pwr->down_delay_array[i].reg =
+				be32_to_cpu(*list++);
+			pwr->down_delay_array[i].reg_offset =
+				be32_to_cpu(*list++);
+			pwr->down_delay_array[i].reg_mask =
+				be32_to_cpu(*list++);
+			pwr->down_delay_array[i].reg_value =
+				be32_to_cpu(*list++);
+		}
+	}
 	of_node_put(dcdc_node);
 
 	return 0;
+
+err_up_mem_free:
+	kfree(pwr->up_delay_array);
+	pwr->up_delay_array = NULL;
 
 err_mem_free:
 	kfree(pwr->vol_info);
@@ -2086,6 +2239,10 @@ static int sprd_cpudvfs_common_init(struct cpudvfs_archdata *pdev)
 		ret = pdev->phy_ops->setup_i2c_channel(pdev, ix);
 		if (ret)
 			return ret;
+		ret = pdev->phy_ops->dcdc_vol_delay_time_setup(pdev, ix);
+		if (ret)
+			return ret;
+
 	}
 
 	ret = pdev->phy_ops->hw_dvfs_map_table_init(pdev);
@@ -2260,98 +2417,22 @@ err_out:
 
 static int sprd_cpudvfs_remove(struct platform_device *pdev)
 {
-	i2c_del_driver(&cpudvfs_i2c_driver);
+	int ix;
+	struct sprd_cpudvfs_device *plat_dev = platform_get_drvdata(pdev);
+	struct cpudvfs_archdata *parchdev = plat_dev->archdata;
+
+	for (ix = 0; ix < parchdev->dcdc_num; ix++) {
+		if (parchdev->pwr[ix].i2c_used && parchdev->pwr[ix].i2c_client)
+			i2c_del_driver(&cpudvfs_i2c_driver[ix]);
+	}
 	return 0;
 }
-
-static int sprd_cpudvfs_set_voltage(struct device *dev,
-				    struct regulator **dcdc_regu,
-				    const char *dcdc_name, u32 target_volt,
-				    int *resume_volt)
-{
-	struct regulator *regu = *dcdc_regu;
-	int ret, curr_volt;
-
-	if (!regu) {
-		regu = devm_regulator_get(dev, dcdc_name);
-		if (IS_ERR(regu)) {
-			dev_err(dev, "failed to get '%s-supply'\n", dcdc_name);
-			devm_regulator_put(regu);
-			return PTR_ERR(regu);
-		}
-		*dcdc_regu = regu;
-	}
-
-	if (resume_volt) {
-		curr_volt = regulator_get_voltage(regu);
-		if (curr_volt < 0) {
-			dev_err(dev, "failed to get current voltage for %s\n",
-			       dcdc_name);
-			devm_regulator_put(regu);
-			return curr_volt;
-		}
-
-		*resume_volt = curr_volt;
-	}
-
-	ret = regulator_set_voltage(regu, target_volt, target_volt);
-	if (ret) {
-		dev_err(dev, "failed to set suspend voltage for '%s-supply'\n",
-			dcdc_name);
-		devm_regulator_put(regu);
-		return ret;
-	}
-
-	return 0;
-}
-
-static int sprd_cpudvfs_cache_workaround(struct device *dev)
-{
-	struct sprd_cpudvfs_device *platdev = dev_get_drvdata(dev);
-	struct cpudvfs_archdata *pdev =
-				(struct cpudvfs_archdata *)platdev->archdata;
-
-	/* Fix dcdc-sram to 1.1v*/
-	return sprd_cpudvfs_set_voltage(dev, &pdev->dcdc_sram_regu,
-					"dcdc-sram", 1100000,
-					&pdev->dcdc_sram_resume_volt);
-}
-
-static int sprd_cpudvfs_recover_voltage(struct device *dev)
-{
-	struct sprd_cpudvfs_device *platdev = dev_get_drvdata(dev);
-	struct cpudvfs_archdata *pdev =
-				(struct cpudvfs_archdata *)platdev->archdata;
-
-	/* Recover dcdc-sram to the value before deep sleep */
-	return sprd_cpudvfs_set_voltage(dev, &pdev->dcdc_sram_regu,
-					"dcdc-sram",
-					pdev->dcdc_sram_resume_volt,
-					NULL);
-}
-
-#ifdef CONFIG_PM_SLEEP
-static int sprd_cpudvfs_suspend(struct device *dev)
-{
-	return sprd_cpudvfs_cache_workaround(dev);
-}
-
-static int sprd_cpudvfs_resume(struct device *dev)
-{
-	return sprd_cpudvfs_recover_voltage(dev);
-}
-#endif
-
-static const struct dev_pm_ops sprd_cpudvfs_pm_ops = {
-	SET_SYSTEM_SLEEP_PM_OPS(sprd_cpudvfs_suspend, sprd_cpudvfs_resume)
-};
 
 static struct platform_driver sprd_cpudvfs_driver = {
 	.probe = sprd_cpudvfs_probe,
 	.remove = sprd_cpudvfs_remove,
 	.driver = {
 		.name = "sprd_cpudvfs",
-		.pm = &sprd_cpudvfs_pm_ops,
 		.of_match_table = sprd_cpudvfs_of_match,
 	},
 };

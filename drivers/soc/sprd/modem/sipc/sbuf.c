@@ -84,8 +84,7 @@ static struct task_struct *sbuf_wait_get_task(wait_queue_entry_t *pos, u32 *b_se
 	    task->tgid > 0 &&
 	    task->tgid < PID_MAX_LIMIT &&
 	    kern_addr_valid((unsigned long)task->comm)) {
-		memcpy(name, task->comm, sizeof(name));
-		name[TASK_COMM_LEN + 1] = 0;
+		strncpy(name, task->comm, sizeof(name));
 		len = strlen(name);
 		if (len > 0 && len < TASK_COMM_LEN)
 			return task;

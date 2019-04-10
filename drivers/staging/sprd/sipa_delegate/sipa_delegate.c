@@ -1,14 +1,17 @@
-/* Copyright (c) 2015-2018, The Linux Foundation. All rights reserved.
+/*
+ * Copyright (C) 2018-2019 Unisoc Corporation
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 and
- * only version 2 as published by the Free Software Foundation.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
  */
+
+#define pr_fmt(fmt) "sipa_dele: %s " fmt, __func__
 
 #include <linux/sipa.h>
 #include <linux/device.h>
@@ -23,63 +26,11 @@
 #include <linux/cdev.h>
 #include "../sipa/sipa_hal_priv.h"
 #include "sipa_delegate.h"
-
+#include "sipa_dele_priv.h"
 
 #define DRV_NAME "sipa_delegate"
 
-struct sipa_delegate_plat_drv_cfg {
-	phys_addr_t remote_base;
-	phys_addr_t remote_end;
-	phys_addr_t mapped_base;
-	phys_addr_t mapped_end;
-	u32 ul_fifo_depth;
-	u32 dl_fifo_depth;
-};
-
-struct modem_sipa_delegator {
-	struct device *pdev;
-
-	phys_addr_t reg_ori_start;
-	phys_addr_t reg_ori_end;
-	phys_addr_t reg_mapped_start;
-	phys_addr_t reg_mapped_end;
-	u32 ul_fifo_depth;
-	u32 dl_fifo_depth;
-
-	dma_addr_t ul_free_fifo_phy;
-	dma_addr_t ul_filled_fifo_phy;
-	dma_addr_t dl_free_fifo_phy;
-	dma_addr_t dl_filled_fifo_phy;
-
-	u8 *ul_free_fifo_virt;
-	u8 *ul_filled_fifo_virt;
-	u8 *dl_free_fifo_virt;
-	u8 *dl_filled_fifo_virt;
-};
-
 static struct sipa_delegate_plat_drv_cfg s_sipa_dele_cfg;
-static struct modem_sipa_delegator *s_modem_sipa_delegator;
-
-int modem_sipa_connect(struct sipa_to_pam_info *out)
-{
-	if (!s_modem_sipa_delegator)
-		return -EPROBE_DEFER;
-
-	out->term = SIPA_TERM_PCIE0;
-	out->dl_fifo.rx_fifo_base_addr = DL_RX_FIFO_BASE_ADDR;
-	out->dl_fifo.tx_fifo_base_addr = DL_TX_FIFO_BASE_ADDR;
-	out->dl_fifo.fifo_sts_addr = s_modem_sipa_delegator->reg_mapped_start +
-				     ((SIPA_FIFO_PCIE_DL + 1) * SIPA_FIFO_REG_SIZE);
-
-	out->ul_fifo.rx_fifo_base_addr = UL_RX_FIFO_BASE_ADDR;
-	out->ul_fifo.tx_fifo_base_addr = UL_TX_FIFO_BASE_ADDR;
-
-	out->ul_fifo.fifo_sts_addr = s_modem_sipa_delegator->reg_mapped_start +
-				     ((SIPA_FIFO_PCIE_UL + 1) * SIPA_FIFO_REG_SIZE);
-
-	return 0;
-}
-EXPORT_SYMBOL(modem_sipa_connect);
 
 static int sipa_dele_parse_dts_cfg(
 	struct platform_device *pdev,
@@ -91,24 +42,24 @@ static int sipa_dele_parse_dts_cfg(
 	/* get modem IPA global register base  address */
 	resource = platform_get_resource_byname(pdev,
 						IORESOURCE_MEM,
-						"remote-base");
+						"mem-base");
 	if (!resource) {
 		dev_err(&pdev->dev, "get resource failed for remote-base!\n");
 		return -ENODEV;
 	}
-	cfg->remote_base = resource->start;
-	cfg->remote_end = resource->end;
+	cfg->mem_base = resource->start;
+	cfg->mem_end = resource->end;
 
 	/* get mapped modem IPA global register base  address */
 	resource = platform_get_resource_byname(pdev,
 						IORESOURCE_MEM,
-						"mapped-base");
+						"reg-base");
 	if (!resource) {
 		dev_err(&pdev->dev, "get resource failed for mapped-base!\n");
 		return -ENODEV;
 	}
-	cfg->mapped_base = resource->start;
-	cfg->mapped_end = resource->end;
+	cfg->reg_base = resource->start;
+	cfg->reg_end = resource->end;
 
 	/* get ul fifo depth */
 	ret = of_property_read_u32(pdev->dev.of_node,
@@ -134,129 +85,67 @@ static int sipa_dele_parse_dts_cfg(
 	return 0;
 }
 
-static int sipa_dele_init(struct modem_sipa_delegator **delegator_pp,
-			  struct sipa_delegate_plat_drv_cfg *cfg,
-			  struct device *dev)
-{
-	struct modem_sipa_delegator *delegator;
-
-	delegator = devm_kzalloc(dev, sizeof(*delegator), GFP_KERNEL);
-	if (!delegator) {
-		pr_err("%s: alloc sipa_dele_init err.\n", __func__);
-		return -ENOMEM;
-	}
-
-	delegator->pdev = dev;
-	delegator->reg_ori_start = cfg->remote_base;
-	delegator->reg_ori_end = cfg->remote_end;
-	delegator->reg_mapped_start = cfg->mapped_base;
-	delegator->reg_mapped_end = cfg->mapped_end;
-	delegator->ul_fifo_depth = cfg->ul_fifo_depth;
-	delegator->dl_fifo_depth = cfg->dl_fifo_depth;
-	/* ul_free_fifo */
-	delegator->ul_free_fifo_virt = devm_kzalloc(dev,
-					       sizeof(struct sipa_node_description_tag) *
-					       delegator->ul_fifo_depth,
-					       GFP_KERNEL);
-	if (!delegator->ul_free_fifo_virt) {
-		dev_err(dev, "alloc ul_free_fifo_virt err.\n");
-		return -ENOMEM;
-	}
-	delegator->ul_free_fifo_phy = dma_map_single(dev,
-				      delegator->ul_free_fifo_virt,
-				      sizeof(struct sipa_node_description_tag) *
-				      delegator->ul_fifo_depth,
-				      DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(dev, delegator->ul_free_fifo_phy)) {
-		dev_err(dev, "dma map ul_free_fifo_phy err.\n");
-		return -ENOMEM;
-	}
-
-	/* ul_filled_fifo */
-	delegator->ul_filled_fifo_virt = devm_kzalloc(dev,
-			sizeof(struct sipa_node_description_tag) *
-			delegator->ul_fifo_depth,
-			GFP_KERNEL);
-	if (!delegator->ul_filled_fifo_virt) {
-		dev_err(dev, "alloc ul_filled_fifo_virt err.\n");
-		return -ENOMEM;
-	}
-	delegator->ul_filled_fifo_phy = dma_map_single(dev,
-					delegator->ul_filled_fifo_virt,
-					sizeof(struct sipa_node_description_tag) *
-					delegator->ul_fifo_depth,
-					DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(dev, delegator->ul_filled_fifo_phy)) {
-		dev_err(dev, "dma map ul_filled_fifo_phy err.\n");
-		return -ENOMEM;
-	}
-	/* dl_free_fifo */
-	delegator->dl_free_fifo_virt = devm_kzalloc(dev,
-					       sizeof(struct sipa_node_description_tag) *
-					       delegator->dl_fifo_depth,
-					       GFP_KERNEL);
-	if (!delegator->dl_free_fifo_virt) {
-		dev_err(dev, " alloc dl_free_fifo_virt err.\n");
-		return -ENOMEM;
-	}
-	delegator->dl_free_fifo_phy = dma_map_single(dev,
-				      delegator->dl_free_fifo_virt,
-				      sizeof(struct sipa_node_description_tag) *
-				      delegator->dl_fifo_depth,
-				      DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(dev, delegator->dl_free_fifo_phy)) {
-		dev_err(dev, "dma map dl_free_fifo_phy err.\n");
-		return -ENOMEM;
-	}
-	/* dl_filled_fifo */
-	delegator->dl_filled_fifo_virt = devm_kzalloc(dev,
-			sizeof(struct sipa_node_description_tag) *
-			delegator->dl_fifo_depth,
-			GFP_KERNEL);
-	if (!delegator->dl_filled_fifo_virt) {
-		dev_err(dev, "alloc dl_filled_fifo_virt err.\n");
-		return -ENOMEM;
-	}
-	delegator->dl_filled_fifo_phy = dma_map_single(dev,
-					delegator->dl_filled_fifo_virt,
-					sizeof(struct sipa_node_description_tag) *
-					delegator->dl_fifo_depth,
-					DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(dev, delegator->dl_filled_fifo_phy)) {
-		dev_err(dev, "dma map dl_filled_fifo_phy err.\n");
-		return -ENOMEM;
-	}
-
-	*delegator_pp = delegator;
-
-	return 0;
-}
-
 static int sipa_dele_plat_drv_probe(struct platform_device *pdev_p)
 {
 	int ret;
 	struct device *dev = &pdev_p->dev;
 	struct sipa_delegate_plat_drv_cfg *cfg = &s_sipa_dele_cfg;
+	struct sipa_delegator_create_params create_params;
 
 	memset(cfg, 0, sizeof(*cfg));
 
 	ret = sipa_dele_parse_dts_cfg(pdev_p, cfg);
 	if (ret) {
-		dev_err(&pdev_p->dev, "dts parsing failed\n");
+		dev_err(dev, "dts parsing failed\n");
 		return ret;
 	}
 
-	ret = sipa_dele_init(&s_modem_sipa_delegator, cfg, dev);
+	create_params.pdev = dev;
+	create_params.cfg = cfg;
+	create_params.chan = SMSG_CH_COMM_SIPA;
+
+#ifdef CONFIG_SPRD_SIPA_DELE_MINIAP_IN_AP
+	create_params.prod_id = SIPA_RM_RES_PROD_MINI_AP;
+	create_params.dst = SIPC_ID_MINIAP;
+
+	ret = miniap_delegator_init(&create_params);
 	if (ret) {
-		dev_err(&pdev_p->dev, "sipa_dele_init failed: %d\n", ret);
+		dev_err(dev, "miniap_delegator_init failed: %d\n", ret);
 		return ret;
 	}
+	pr_debug("miniap_delegator_init!\n");
+#endif /* CONFIG_SPRD_SIPA_DELE_MINIAP_IN_AP */
+
+#ifdef CONFIG_SPRD_SIPA_DELE_AP_IN_MINIAP
+	create_params.prod_id = SIPA_RM_RES_PROD_AP;
+	create_params.dst = SIPC_ID_AP;
+
+	ret = ap_delegator_init(&create_params);
+	if (ret) {
+		dev_err(dev, "ap_delegator_init failed: %d\n", ret);
+		return ret;
+	}
+	pr_debug("ap_delegator_init!\n");
+#endif /* CONFIG_SPRD_SIPA_DELE_AP_IN_MINIAP */
+
+#ifdef CONFIG_SPRD_SIPA_DELE_CP_IN_MINIAP
+	create_params.prod_id = SIPA_RM_RES_PROD_CP;
+	create_params.dst = SIPC_ID_PSCP;
+
+	ret = cp_delegator_init(&create_params);
+	if (ret) {
+		dev_err(dev, "cp_delegator_init failed: %d\n", ret);
+		return ret;
+	}
+	pr_debug("cp_delegator_init!\n");
+#endif /* CONFIG_SPRD_SIPA_DELE_AP_IN_MINIAP */
 
 	return ret;
 }
 
 static struct of_device_id sipa_dele_plat_drv_match[] = {
-	{ .compatible = "sprd,sipa-delegate", },
+	{ .compatible = "sprd,roc1-sipa-delegate", },
+	{ .compatible = "sprd,orca-sipa-delegate", },
 	{}
 };
 

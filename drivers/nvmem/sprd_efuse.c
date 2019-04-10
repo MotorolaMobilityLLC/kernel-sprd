@@ -96,7 +96,7 @@ struct sprd_efuse {
 };
 
 static const struct sprd_efuse_variant_data sharkl5_data = {
-	.blk_max = 96,
+	.blk_max = 95,
 	.blk_start = 72,
 	.blk_double = 0,
 };
@@ -351,10 +351,16 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 	 */
 	index += efuse->var_data->blk_start;
 
+	if (of_device_is_compatible(efuse->dev->of_node, "sprd,sharkl3-efuse") ||
+	    of_device_is_compatible(efuse->dev->of_node, "sprd,orca-efuse")) {
+		if (index == 95 || index == 94)
+			blk_double = 0;
+	}
+
 	ret = sprd_efuse_raw_read(efuse, index, &data, blk_double);
 	if (!ret) {
 		data >>= blk_offset;
-		memcpy(val, &data, SPRD_EFUSE_BLOCK_SIZE);
+		memcpy(val, &data, bytes);
 	}
 
 	return ret;
@@ -416,7 +422,7 @@ static int sprd_efuse_probe(struct platform_device *pdev)
 	mutex_init(&efuse->mutex);
 	efuse->dev = &pdev->dev;
 	efuse->var_data = pdata;
-	blk_num = efuse->var_data->blk_max - efuse->var_data->blk_start;
+	blk_num = efuse->var_data->blk_max - efuse->var_data->blk_start + 1;
 
 	econfig.stride = 1;
 	econfig.word_size = 1;

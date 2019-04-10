@@ -16,6 +16,7 @@
 #include <linux/wait.h>
 #include <linux/workqueue.h>
 #include "sprd_dpu.h"
+#include "sprd_dvfs_dpu.h"
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -410,6 +411,9 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		if ((vsync_count == max_vsync_count) && wb_en)
 			schedule_work(&ctx->wb_work);
 		vsync_count++;
+
+		/* dpu dvfs feature */
+		schedule_work(&ctx->dvfs_work);
 	}
 
 	/* dpu stop done isr */
@@ -608,6 +612,18 @@ static void dpu_wb_work_func(struct work_struct *data)
 
 	down(&ctx->refresh_lock);
 
+	if (!ctx->is_inited) {
+		up(&ctx->refresh_lock);
+		pr_err("dpu is not initialized\n");
+		return;
+	}
+
+	if (ctx->disable_flip) {
+		up(&ctx->refresh_lock);
+		pr_warn("dpu flip is disabled\n");
+		return;
+	}
+
 	if (wb_en && (vsync_count > max_vsync_count))
 		dpu_write_back(ctx, 1, false);
 	else if (!wb_en)
@@ -693,6 +709,90 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	return 0;
 }
 
+static void dpu_dvfs_work_func(struct work_struct *data)
+{
+	struct dpu_context *ctx =
+		container_of(data, struct dpu_context, dvfs_work);
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	struct sprd_dpu_layer layer, layers[8];
+	int i, j, max_x, max_y, min_x, min_y;
+	int layer_en, max, maxs[8], count = 0;
+	u32 dvfs_freq;
+
+	/*
+	 * Count the current total number of active layers
+	 * and the corresponding pos_x, pos_y, size_x and size_y.
+	 */
+	for (i = 0; i < ARRAY_SIZE(reg->layers); i++) {
+		layer_en = reg->layers[i].ctrl & BIT(0);
+		if (layer_en) {
+			layers[count].dst_x = reg->layers[i].pos & 0xffff;
+			layers[count].dst_y = reg->layers[i].pos >> 16;
+			layers[count].dst_w = reg->layers[i].size & 0xffff;
+			layers[count].dst_h = reg->layers[i].size >> 16;
+			count++;
+		}
+	}
+
+	/*
+	 * Calculate the number of overlaps between each
+	 * layer with other layers, not include itself.
+	 */
+	for (i = 0; i < count; i++) {
+		layer.dst_x = layers[i].dst_x;
+		layer.dst_y = layers[i].dst_y;
+		layer.dst_w = layers[i].dst_w;
+		layer.dst_h = layers[i].dst_h;
+		maxs[i] = 1;
+
+		for (j = 0; j < count; j++) {
+			if (layer.dst_x + layer.dst_w > layers[j].dst_x &&
+				layers[j].dst_x + layers[j].dst_w > layer.dst_x &&
+				layer.dst_y + layer.dst_h > layers[j].dst_y &&
+				layers[j].dst_y + layers[j].dst_h > layer.dst_y &&
+				i != j) {
+				max_x = max(layers[i].dst_x, layers[j].dst_x);
+				max_y = max(layers[i].dst_y, layers[j].dst_y);
+				min_x = min(layers[i].dst_x + layers[i].dst_w,
+					layers[j].dst_x + layers[j].dst_w);
+				min_y = min(layers[i].dst_y + layers[i].dst_h,
+					layers[j].dst_y + layers[j].dst_h);
+
+				layer.dst_x = max_x;
+				layer.dst_y = max_y;
+				layer.dst_w = min_x - max_x;
+				layer.dst_h = min_y - max_y;
+
+				maxs[i]++;
+			}
+		}
+	}
+
+	/* take the maximum number of overlaps */
+	max = maxs[0];
+	for (i = 1; i < count; i++) {
+		if (maxs[i] > max)
+			max = maxs[i];
+	}
+
+	/*
+	 * Determine which frequency to use based on the
+	 * maximum number of overlaps.
+	 * Every IP here may be different, so need to modify it
+	 * according to the actual dpu core clock.
+	 */
+	if (max <= 2)
+		dvfs_freq = 192000000;
+	else if (max == 3)
+		dvfs_freq = 256000000;
+	else if (max == 4)
+		dvfs_freq = 307200000;
+	else
+		dvfs_freq = 384000000;
+
+	dpu_dvfs_notifier_call_chain(&dvfs_freq);
+}
+
 static int dpu_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -732,6 +832,8 @@ static int dpu_init(struct dpu_context *ctx)
 
 	dpu_write_back_config(ctx);
 
+	INIT_WORK(&ctx->dvfs_work, dpu_dvfs_work_func);
+
 	return 0;
 }
 
@@ -756,7 +858,7 @@ enum {
 	DPU_LAYER_FORMAT_MAX_TYPES,
 };
 
-static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
+static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 {
 	int reg_val = 0;
 
@@ -886,6 +988,8 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 		break;
 	}
 
+	reg_val |= y2r_coef << 28;
+
 	return reg_val;
 }
 
@@ -929,6 +1033,22 @@ static void dpu_layer(struct dpu_context *ctx,
 	layer = &reg->layers[hwlayer->index];
 	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
 
+	if (hwlayer->pallete_en) {
+		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		layer->pos = offset;
+		layer->size = size;
+		layer->alpha = hwlayer->alpha;
+		layer->pallete = hwlayer->pallete_color;
+
+		/* pallete layer enable */
+		layer->ctrl = 0x2005;
+
+		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
+			hwlayer->dst_x, hwlayer->dst_y,
+			hwlayer->dst_w, hwlayer->dst_h, layer->pallete);
+		return;
+	}
+
 	if (hwlayer->src_w && hwlayer->src_h)
 		size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
 	else
@@ -961,7 +1081,7 @@ static void dpu_layer(struct dpu_context *ctx,
 		layer->pitch = hwlayer->pitch[0] / wd;
 
 	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-		hwlayer->xfbc);
+		hwlayer->xfbc, hwlayer->y2r_coef);
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
@@ -1055,6 +1175,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
 				    (ctx->vm.vback_porch << 8) |
 				    (ctx->vm.vfront_porch << 20);
+		if (ctx->vm.vsync_len + ctx->vm.vback_porch < 32)
+			pr_warn("Warning: (vsync + vbp) < 32, "
+				"underflow risk!\n");
 
 		/* enable dpu update done INT */
 		int_mask |= DISPC_INT_UPDATE_DONE_MASK;
@@ -1129,13 +1252,6 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
-		/* disable slp */
-		if (*p & BIT(4)) {
-			if (!(enhance_en & BIT(0))) {
-				*p |= BIT(1);
-				pr_info("enhance module epf need to be disabled\n");
-			}
-		}
 		enhance_en &= ~(*p);
 		pr_info("enhance module disable backup: 0x%x\n", *p);
 		break;
@@ -1156,6 +1272,9 @@ static void dpu_enhance_backup(u32 id, void *param)
 		enhance_en |= BIT(3);
 		pr_info("enhance cm backup\n");
 		break;
+	case ENHANCE_CFG_ID_LTM:
+		enhance_en |= BIT(6);
+		pr_info("enhance ltm backup\n");
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
 		enhance_en |= BIT(4);
@@ -1204,10 +1323,6 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
-		if (*p & BIT(4)) {
-			*p |= BIT(1);
-			pr_info("enhance module disable epf\n");
-		}
 		reg->dpu_enhance_cfg &= ~(*p);
 		pr_info("enhance module disable: 0x%x\n", *p);
 		break;
@@ -1248,6 +1363,9 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		reg->dpu_enhance_cfg |= BIT(3);
 		pr_info("enhance cm set\n");
 		break;
+	case ENHANCE_CFG_ID_LTM:
+		enhance_en |= BIT(6);
+		pr_info("enhance ltm set\n");
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
 		slp = &slp_copy;
@@ -1262,7 +1380,8 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 				slp->low_clip;
 		reg->slp_cfg3 = (slp->dummy << 12) |
 				slp->mask_height;
-		reg->dpu_enhance_cfg |= BIT(4);
+		enhance_en |= BIT(4);
+		reg->dpu_enhance_cfg = enhance_en;
 		pr_info("enhance slp set\n");
 		break;
 	case ENHANCE_CFG_ID_GAMMA:
@@ -1375,6 +1494,7 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		*p32++ = reg->cm_coef23_22;
 		pr_info("enhance cm get\n");
 		break;
+	case ENHANCE_CFG_ID_LTM:
 	case ENHANCE_CFG_ID_SLP:
 		slp = param;
 
@@ -1435,6 +1555,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	struct slp_cfg *slp;
 	struct gamma_lut *gamma;
 	struct hsv_lut *hsv;
+	struct epf_cfg *epf;
 	int i;
 
 	if (enhance_en & BIT(0)) {
@@ -1445,12 +1566,14 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	}
 
 	if (enhance_en & BIT(1)) {
-		reg->epf_epsilon = (epf.epsilon1 << 16) | epf.epsilon0;
-		reg->epf_gain0_3 = (epf.gain3 << 24) | (epf.gain2 << 16) |
-				(epf.gain1 << 8) | epf.gain0;
-		reg->epf_gain4_7 = (epf.gain7 << 24) | (epf.gain6 << 16) |
-				(epf.gain5 << 8) | epf.gain4;
-		reg->epf_diff = (epf.max_diff << 8) | epf.min_diff;
+		epf = &epf_copy;
+		reg->epf_epsilon = (epf->epsilon1 << 16) | epf->epsilon0;
+		reg->epf_gain0_3 = (epf->gain3 << 24) | (epf->gain2 << 16) |
+				(epf->gain1 << 8) | epf->gain0;
+		reg->epf_gain4_7 = (epf->gain7 << 24) | (epf->gain6 << 16) |
+				(epf->gain5 << 8) | epf->gain4;
+		reg->epf_diff = (epf->max_diff << 8) | epf->min_diff;
+		pr_info("enhance epf reload\n");
 	}
 
 	if (enhance_en & BIT(2)) {
@@ -1500,6 +1623,14 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 		pr_info("enhance gamma reload\n");
 	}
 
+	if (enhance_en & BIT(6)) {
+		slp = &slp_copy;
+		reg->slp_cfg2 = (slp->step_clip << 24) |
+				(slp->high_clip << 12) |
+				slp->low_clip;
+		pr_info("enhance ltm reload\n");
+	}
+
 	reg->dpu_enhance_cfg = enhance_en;
 }
 
@@ -1537,7 +1668,7 @@ static int dpu_capability(struct dpu_context *ctx,
 	if (!cap)
 		return -EINVAL;
 
-	cap->max_layers = 6;
+	cap->max_layers = 4;
 	cap->fmts_ptr = primary_fmts;
 	cap->fmts_cnt = ARRAY_SIZE(primary_fmts);
 

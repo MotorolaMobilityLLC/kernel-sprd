@@ -263,24 +263,41 @@ EXPORT_SYMBOL_GPL(sprd_cpufreq_update_opp);
 
 static int sprd_cpufreq_cpuhp_online(unsigned int cpu)
 {
-	pr_debug("cpuhp_online cpu%d\n", cpu);
+	unsigned int olcpu = 0;
+	struct sprd_cpufreq_driver_data *c;
+
+	if (!is_big_cluster(cpu))
+		return NOTIFY_DONE;
+
+	for_each_online_cpu(olcpu)
+		if (is_big_cluster(olcpu))
+			return NOTIFY_DONE;
+
+	c = sprd_cpufreq_data(cpu);
+	if (c && c->cpufreq_online)
+		c->cpufreq_online(cpu);
+	else
+		pr_debug("get c->cpufreq_online pointer failed!\n");
 	return NOTIFY_DONE;
 }
 
 static int sprd_cpufreq_cpuhp_offline(unsigned int cpu)
 {
-	struct sprd_cpufreq_driver_data *data;
+	unsigned int olcpu = 0;
+	struct sprd_cpufreq_driver_data *c;
 
-	pr_debug("cpuhp_offline cpu%d\n", cpu);
+	if (!is_big_cluster(cpu))
+		return NOTIFY_DONE;
 
-	data = sprd_cpufreq_data(cpu);
-	if (!data)
-		return 0;
+	for_each_online_cpu(olcpu)
+		if (is_big_cluster(olcpu))
+			return NOTIFY_DONE;
 
-	mutex_lock(data->volt_lock);
-	data->online = false;
-	mutex_unlock(data->volt_lock);
-
+	c = sprd_cpufreq_data(cpu);
+	if (c && c->cpufreq_offline)
+		c->cpufreq_offline(cpu);
+	else
+		pr_debug("get c->cpufreq_offline pointer failed!\n");
 	return NOTIFY_DONE;
 }
 

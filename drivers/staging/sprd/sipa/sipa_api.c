@@ -90,7 +90,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.rx_fifo = "sprd,pcie-ul-rx",
 		.relate_ep = SIPA_EP_PCIE,
 		.src_id = SIPA_TERM_PCIE0,
-		.dst_id = SIPA_TERM_VAP0,
+		.dst_id = SIPA_TERM_VCP,
 		.is_to_ipa = 1,
 		.is_pam = 1,
 	},
@@ -225,7 +225,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.rx_fifo = "sprd,pcie-dl-rx",
 		.relate_ep = SIPA_EP_PCIE,
 		.src_id = SIPA_TERM_PCIE0,
-		.dst_id = SIPA_TERM_VAP0,
+		.dst_id = SIPA_TERM_VCP,
 		.is_to_ipa = 0,
 		.is_pam = 1,
 	},
@@ -345,7 +345,7 @@ static const struct file_operations sipa_local_drv_fops = {
 };
 
 int sipa_get_ep_info(enum sipa_ep_id id,
-		struct sipa_to_pam_info *out)
+		     struct sipa_to_pam_info *out)
 {
 	struct sipa_endpoint *ep = s_sipa_ctrl.eps[id];
 
@@ -353,7 +353,7 @@ int sipa_get_ep_info(enum sipa_ep_id id,
 		pr_err("%s: ep id:%d not create!", __func__, id);
 		return -EPROBE_DEFER;
 	}
-	if (SIPA_EP_USB == id ||  SIPA_EP_WIFI == id)
+	if (SIPA_EP_USB == id || SIPA_EP_WIFI == id || SIPA_EP_PCIE == id)
 		sipa_hal_init_pam_param(ep->recv_fifo.idx,
 					ep->send_fifo.idx, out);
 	else
@@ -381,19 +381,18 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 	ep->send_priv = in->send_priv;
 	ep->recv_priv = in->recv_priv;
 	ep->connected = true;
+	ep->suspended = false;
 	memcpy(&ep->send_fifo_param, &in->send_param,
-		   sizeof(struct sipa_comm_fifo_params));
+	       sizeof(struct sipa_comm_fifo_params));
 	memcpy(&ep->recv_fifo_param, &in->recv_param,
-		   sizeof(struct sipa_comm_fifo_params));
+	       sizeof(struct sipa_comm_fifo_params));
 
 	sipa_open_common_fifo(ep->sipa_ctx->hdl, ep->send_fifo.idx,
-						  &ep->send_fifo_param,
-						  false,
-						  (sipa_hal_notify_cb)ep->send_notify, ep);
+			      &ep->send_fifo_param, NULL, false,
+			      (sipa_hal_notify_cb)ep->send_notify, ep);
 	sipa_open_common_fifo(ep->sipa_ctx->hdl, ep->recv_fifo.idx,
-						  &ep->recv_fifo_param,
-						  false,
-						  (sipa_hal_notify_cb)ep->recv_notify, ep);
+			      &ep->recv_fifo_param, NULL, false,
+			      (sipa_hal_notify_cb)ep->recv_notify, ep);
 
 	if (ep->send_fifo_param.data_ptr) {
 		for (i = 0; i < ep->send_fifo_param.data_ptr_cnt; i++) {
@@ -401,7 +400,8 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 				i * ep->send_fifo_param.buf_size;
 			fifo_item.len = ep->send_fifo_param.buf_size;
 			sipa_hal_init_set_tx_fifo(ep->sipa_ctx->hdl,
-									  ep->send_fifo.idx, &fifo_item, 1);
+						  ep->send_fifo.idx,
+						  &fifo_item, 1);
 		}
 	}
 	if (ep->recv_fifo_param.data_ptr) {
@@ -410,15 +410,79 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 				i * ep->send_fifo_param.buf_size;
 			fifo_item.len = ep->recv_fifo_param.buf_size;
 			sipa_hal_put_rx_fifo_item(ep->sipa_ctx->hdl,
-				ep->recv_fifo.idx, &fifo_item);
+						  ep->recv_fifo.idx,
+						  &fifo_item);
 		}
 	}
+
+	if (SIPA_EP_USB == in->id || SIPA_EP_WIFI == in->id)
+		return sipa_hal_cmn_fifo_set_receive(ep->sipa_ctx->hdl,
+						     ep->recv_fifo.idx, false);
+
 	return 0;
 }
 EXPORT_SYMBOL(sipa_pam_connect);
 
+int sipa_ext_open_pcie(struct sipa_pcie_open_params *in)
+{
+	struct sipa_endpoint *ep = s_sipa_ctrl.eps[SIPA_EP_PCIE];
+
+	if (ep) {
+		pr_err("%s: pcie already create!", __func__);
+		return -EINVAL;
+	} else {
+		ep = kzalloc(sizeof(*ep), GFP_KERNEL);
+		if (!ep)
+			return -ENOMEM;
+
+		s_sipa_ctrl.eps[SIPA_EP_PCIE] = ep;
+	}
+
+	ep->id = SIPA_EP_PCIE;
+
+	ep->sipa_ctx = s_sipa_ctrl.ctx;
+	ep->send_fifo.idx = SIPA_FIFO_PCIE_UL;
+	ep->send_fifo.rx_fifo.fifo_depth = in->ext_send_param.rx_depth;
+	ep->send_fifo.tx_fifo.fifo_depth = in->ext_send_param.tx_depth;
+	ep->send_fifo.src_id = SIPA_TERM_PCIE0;
+	ep->send_fifo.dst_id = SIPA_TERM_VCP;
+
+	ep->recv_fifo.idx = SIPA_FIFO_PCIE_DL;
+	ep->recv_fifo.rx_fifo.fifo_depth = in->ext_recv_param.rx_depth;
+	ep->recv_fifo.tx_fifo.fifo_depth = in->ext_recv_param.tx_depth;
+	ep->recv_fifo.src_id = SIPA_TERM_PCIE0;
+	ep->recv_fifo.dst_id = SIPA_TERM_VCP;
+
+	ep->send_notify = in->send_notify;
+	ep->recv_notify = in->recv_notify;
+	ep->send_priv = in->send_priv;
+	ep->recv_priv = in->recv_priv;
+	ep->connected = true;
+	ep->suspended = false;
+	memcpy(&ep->send_fifo_param, &in->send_param,
+	       sizeof(struct sipa_comm_fifo_params));
+	memcpy(&ep->recv_fifo_param, &in->recv_param,
+	       sizeof(struct sipa_comm_fifo_params));
+
+	sipa_open_common_fifo(ep->sipa_ctx->hdl,
+			      ep->send_fifo.idx,
+			      &ep->send_fifo_param,
+			      &in->ext_send_param,
+			      false,
+			      (sipa_hal_notify_cb)ep->send_notify, ep);
+
+	sipa_open_common_fifo(ep->sipa_ctx->hdl,
+			      ep->recv_fifo.idx,
+			      &ep->recv_fifo_param,
+			      &in->ext_recv_param,
+			      false,
+			      (sipa_hal_notify_cb)ep->recv_notify, ep);
+	return 0;
+}
+EXPORT_SYMBOL(sipa_ext_open_pcie);
+
 int sipa_pam_init_free_fifo(enum sipa_ep_id id,
-							const dma_addr_t *addr, u32 num)
+			    const dma_addr_t *addr, u32 num)
 {
 	u32 i;
 	struct sipa_hal_fifo_item iterms;
@@ -427,7 +491,7 @@ int sipa_pam_init_free_fifo(enum sipa_ep_id id,
 	for (i = 0; i < num; i++) {
 		iterms.addr = addr[i];
 		sipa_hal_init_set_tx_fifo(ep->sipa_ctx->hdl,
-								  ep->recv_fifo.idx, &iterms, 1);
+					  ep->recv_fifo.idx, &iterms, 1);
 	}
 
 	return 0;
@@ -440,7 +504,7 @@ int sipa_sw_connect(const struct sipa_connect_params *in)
 }
 EXPORT_SYMBOL(sipa_sw_connect);
 
-int sipa_disconnect(enum sipa_ep_id ep_id)
+int sipa_disconnect(enum sipa_ep_id ep_id, enum sipa_disconnect_id stage)
 {
 	struct sipa_endpoint *ep = s_sipa_ctrl.eps[ep_id];
 
@@ -454,6 +518,20 @@ int sipa_disconnect(enum sipa_ep_id ep_id)
 	ep->send_priv = 0;
 	ep->recv_notify = NULL;
 	ep->recv_priv = 0;
+
+	switch (stage) {
+	case SIPA_DISCONNECT_START:
+		if (SIPA_EP_USB == ep_id || SIPA_EP_WIFI == ep_id)
+			return sipa_hal_reclaim_unuse_node(s_sipa_ctrl.ctx->hdl,
+							   ep->recv_fifo.idx);
+		break;
+	case SIPA_DISCONNECT_END:
+		ep->suspended = true;
+		break;
+	default:
+		pr_err("don't have this stage\n");
+		return -EPERM;
+	}
 
 	return 0;
 }
@@ -469,15 +547,14 @@ int sipa_enable_receive(enum sipa_ep_id ep_id, bool enabled)
 	}
 
 	sipa_hal_cmn_fifo_set_receive(ep->sipa_ctx->hdl, ep->recv_fifo.idx,
-								  !enabled);
+				      !enabled);
 
 	return 0;
 }
 EXPORT_SYMBOL(sipa_enable_receive);
 
-static int sipa_parse_dts_configuration(
-	struct platform_device *pdev,
-	struct sipa_plat_drv_cfg *cfg)
+static int sipa_parse_dts_configuration(struct platform_device *pdev,
+					struct sipa_plat_drv_cfg *cfg)
 {
 	int i, ret;
 	u32 fifo_info[2];
@@ -494,11 +571,11 @@ static int sipa_parse_dts_configuration(
 	cfg->debugfs_data = pdata;
 	/* get IPA global register base  address */
 	resource = platform_get_resource_byname(pdev,
-											IORESOURCE_MEM,
-											"glb-base");
+						IORESOURCE_MEM,
+						"glb-base");
 	if (!resource) {
 		pr_err("%s :get resource failed for glb-base!\n",
-			   __func__);
+		       __func__);
 		return -ENODEV;
 	}
 	cfg->glb_phy = resource->start;
@@ -506,8 +583,8 @@ static int sipa_parse_dts_configuration(
 
 	/* get IPA iram base  address */
 	resource = platform_get_resource_byname(pdev,
-											IORESOURCE_MEM,
-											"iram-base");
+						IORESOURCE_MEM,
+						"iram-base");
 	if (!resource) {
 		pr_err("%s :get resource failed for iram-base!\n", __func__);
 		return -ENODEV;
@@ -518,34 +595,35 @@ static int sipa_parse_dts_configuration(
 	/* get IRQ numbers */
 	cfg->ipa_intr = platform_get_irq_byname(pdev, "local_ipa_irq");
 	if (cfg->ipa_intr == -ENXIO) {
-		pr_err("%s :get ipa-irq fail!\n",
-			   __func__);
+		pr_err("%s :get ipa-irq fail!\n",   __func__);
 		return -ENODEV;
 	}
 	pr_info("ipa intr num = %d\n", cfg->ipa_intr);
 
 	/* get IPA bypass mode */
 	ret = of_property_read_u32(pdev->dev.of_node,
-							   "sprd,sipa-bypass-mode",
-							   &cfg->is_bypass);
+				   "sprd,sipa-bypass-mode",
+				   &cfg->is_bypass);
 	if (ret)
-		pr_debug("%s :using non-bypass mode by default\n",
-				 __func__);
+		pr_debug("%s :using non-bypass mode by default\n",  __func__);
 	else
 		pr_debug("%s : using bypass mode =%d", __func__,
-				 cfg->is_bypass);
+			 cfg->is_bypass);
 
 	/* get through pcie flag */
-	cfg->need_through_pcie = of_property_read_bool(pdev->dev.of_node,
-				"sprd,need-through-pcie");
+	cfg->need_through_pcie =
+		of_property_read_bool(pdev->dev.of_node,
+				      "sprd,need-through-pcie");
 
 	/* get wiap ul dma flag */
-	cfg->wiap_ul_dma = of_property_read_bool(pdev->dev.of_node,
-				"sprd,wiap-ul-dma");
+	cfg->wiap_ul_dma =
+		of_property_read_bool(pdev->dev.of_node,
+				      "sprd,wiap-ul-dma");
 
 	/* get tft mode flag */
-	cfg->tft_mode = of_property_read_bool(pdev->dev.of_node,
-				"sprd,tft-mode");
+	cfg->tft_mode =
+		of_property_read_bool(pdev->dev.of_node,
+				      "sprd,tft-mode");
 
 	/* get enable register informations */
 	cfg->sys_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
@@ -554,8 +632,7 @@ static int sipa_parse_dts_configuration(
 		pr_err("%s :get sys regmap fail!\n", __func__);
 
 	ret = syscon_get_args_by_name(pdev->dev.of_node,
-								  "enable", 2,
-								  reg_info);
+				      "enable", 2, reg_info);
 	if (ret < 0 || ret != 2)
 		pr_warn("%s :get enable register info fail!\n", __func__);
 	else {
@@ -565,15 +642,13 @@ static int sipa_parse_dts_configuration(
 
 	/* get wakeup register informations */
 	cfg->wakeup_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
-													  "wakeup");
+							  "wakeup");
 	if (IS_ERR(cfg->wakeup_regmap)) {
 		cfg->wakeup_regmap = NULL;
 		pr_err("%s :get wakeup regmap fail!\n", __func__);
 	}
 
-	ret = syscon_get_args_by_name(pdev->dev.of_node,
-								  "wakeup", 2,
-								  reg_info);
+	ret = syscon_get_args_by_name(pdev->dev.of_node, "wakeup", 2, reg_info);
 
 	if (ret < 0 || ret != 2) {
 		cfg->wakeup_regmap = NULL;
@@ -587,20 +662,17 @@ static int sipa_parse_dts_configuration(
 	for (i = 0; i < SIPA_FIFO_MAX; i++) {
 		/* free fifo info */
 		ret = of_property_read_u32_array(pdev->dev.of_node,
-										 sipa_common_fifo_statics[i].tx_fifo,
-										 (u32 *)fifo_info,
-										 2);
+					sipa_common_fifo_statics[i].tx_fifo,
+					(u32 *)fifo_info, 2);
 		if (!ret) {
-			cfg->common_fifo_cfg[i].tx_fifo.in_iram =
-				fifo_info[0];
+			cfg->common_fifo_cfg[i].tx_fifo.in_iram = fifo_info[0];
 			cfg->common_fifo_cfg[i].tx_fifo.fifo_size =
 				fifo_info[1];
 		}
 		/* filled fifo info */
 		ret = of_property_read_u32_array(pdev->dev.of_node,
-										 sipa_common_fifo_statics[i].rx_fifo,
-										 (u32 *)fifo_info,
-										 2);
+					sipa_common_fifo_statics[i].rx_fifo,
+					(u32 *)fifo_info, 2);
 		if (!ret) {
 			cfg->common_fifo_cfg[i].rx_fifo.in_iram =
 				fifo_info[0];
@@ -637,7 +709,7 @@ static int ipa_pre_init(struct sipa_plat_drv_cfg *cfg)
 	}
 
 	cfg->dev = device_create(cfg->class, NULL, cfg->dev_num,
-							 cfg, DRV_LOCAL_NAME);
+				 cfg, DRV_LOCAL_NAME);
 	cdev_init(&cfg->cdev, &sipa_local_drv_fops);
 	cfg->cdev.owner = THIS_MODULE;
 	cfg->cdev.ops = &sipa_local_drv_fops;
@@ -652,8 +724,8 @@ static int ipa_pre_init(struct sipa_plat_drv_cfg *cfg)
 }
 
 static int create_sipa_ep_from_fifo_idx(enum sipa_cmn_fifo_index fifo_idx,
-										struct sipa_plat_drv_cfg *cfg,
-										struct sipa_context *ipa)
+					struct sipa_plat_drv_cfg *cfg,
+					struct sipa_context *ipa)
 {
 	enum sipa_ep_id ep_id;
 	struct sipa_common_fifo *fifo;
@@ -676,8 +748,8 @@ static int create_sipa_ep_from_fifo_idx(enum sipa_cmn_fifo_index fifo_idx,
 	ep->sipa_ctx = ipa;
 	ep->id = (fifo_info + fifo_idx)->relate_ep;
 	pr_info("idx = %d ep = %d ep_id = %d is_to_ipa = %d\n",
-			fifo_idx, ep->id, ep_id,
-			(fifo_info + fifo_idx)->is_to_ipa);
+		fifo_idx, ep->id, ep_id,
+		(fifo_info + fifo_idx)->is_to_ipa);
 
 	if (!(fifo_info + fifo_idx)->is_to_ipa) {
 		fifo = &ep->recv_fifo;
@@ -703,8 +775,8 @@ static int create_sipa_ep_from_fifo_idx(enum sipa_cmn_fifo_index fifo_idx,
 }
 
 static void destroy_sipa_ep_from_fifo_idx(enum sipa_cmn_fifo_index fifo_idx,
-		struct sipa_plat_drv_cfg *cfg,
-		struct sipa_context *ipa)
+					  struct sipa_plat_drv_cfg *cfg,
+					  struct sipa_context *ipa)
 {
 	struct sipa_endpoint *ep = NULL;
 	enum sipa_ep_id ep_id = sipa_common_fifo_statics[fifo_idx].relate_ep;
@@ -719,7 +791,7 @@ static void destroy_sipa_ep_from_fifo_idx(enum sipa_cmn_fifo_index fifo_idx,
 
 
 static void destroy_sipa_eps(struct sipa_plat_drv_cfg *cfg,
-							 struct sipa_context *ipa)
+			     struct sipa_context *ipa)
 {
 	int i;
 
@@ -731,7 +803,7 @@ static void destroy_sipa_eps(struct sipa_plat_drv_cfg *cfg,
 
 
 static int create_sipa_eps(struct sipa_plat_drv_cfg *cfg,
-						   struct sipa_context *ipa)
+			   struct sipa_context *ipa)
 {
 	int i;
 	int ret = 0;
@@ -749,31 +821,29 @@ static int create_sipa_eps(struct sipa_plat_drv_cfg *cfg,
 }
 
 static int sipa_create_skb_xfer(struct sipa_context *ipa,
-								struct sipa_plat_drv_cfg *cfg)
+				struct sipa_plat_drv_cfg *cfg)
 {
 	int ret = 0;
 
 
-	ret = create_sipa_skb_sender(ipa,
-								 s_sipa_ctrl.eps[SIPA_EP_AP_ETH],
-								 SIPA_PKT_ETH,
-								 &s_sipa_ctrl.sender[SIPA_PKT_ETH]);
+	ret = create_sipa_skb_sender(ipa, s_sipa_ctrl.eps[SIPA_EP_AP_ETH],
+				     SIPA_PKT_ETH,
+				     &s_sipa_ctrl.sender[SIPA_PKT_ETH]);
 	if (ret) {
 		ret = -EFAULT;
 		goto sender_fail;
 	}
 
-	ret = create_sipa_skb_sender(ipa,
-								 s_sipa_ctrl.eps[SIPA_EP_AP_IP],
-								 SIPA_PKT_IP,
-								 &s_sipa_ctrl.sender[SIPA_PKT_IP]);
+	ret = create_sipa_skb_sender(ipa, s_sipa_ctrl.eps[SIPA_EP_AP_IP],
+				     SIPA_PKT_IP,
+				     &s_sipa_ctrl.sender[SIPA_PKT_IP]);
 	if (ret) {
 		ret = -EFAULT;
 		goto receiver_fail;
 	}
 
 	ret = create_sipa_skb_receiver(ipa, s_sipa_ctrl.eps[SIPA_EP_AP_ETH],
-								   &s_sipa_ctrl.receiver[SIPA_PKT_ETH]);
+				       &s_sipa_ctrl.receiver[SIPA_PKT_ETH]);
 
 	if (ret) {
 		ret = -EFAULT;
@@ -781,7 +851,7 @@ static int sipa_create_skb_xfer(struct sipa_context *ipa,
 	}
 
 	ret = create_sipa_skb_receiver(ipa, s_sipa_ctrl.eps[SIPA_EP_AP_IP],
-								   &s_sipa_ctrl.receiver[SIPA_PKT_IP]);
+				       &s_sipa_ctrl.receiver[SIPA_PKT_IP]);
 
 	if (ret) {
 		ret = -EFAULT;
@@ -813,8 +883,8 @@ sender_fail:
 	return ret;
 }
 static int sipa_init(struct sipa_context **ipa_pp,
-					 struct sipa_plat_drv_cfg *cfg,
-					 struct device *ipa_dev)
+		     struct sipa_plat_drv_cfg *cfg,
+		     struct device *ipa_dev)
 {
 	int ret = 0;
 	struct sipa_context *ipa = NULL;
@@ -881,7 +951,7 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 	* function handles multiple compatibilities
 	*/
 	pr_debug("sipa: IPA driver probing started for %s\n",
-			 pdev_p->dev.of_node->name);
+		 pdev_p->dev.of_node->name);
 
 	cfg = &s_sipa_cfg;
 	memset(cfg, 0, sizeof(*cfg));

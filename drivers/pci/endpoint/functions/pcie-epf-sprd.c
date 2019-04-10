@@ -41,6 +41,7 @@
 #define DOOR_BELL_BASE		0x10000
 #define DOOR_BELL_ENABLE	0x10
 #define DOOR_BELL_STATUS	0x14
+#define REQUEST_BASE_IRQ	16
 
 struct sprd_ep_res {
 	struct list_head	list;
@@ -179,6 +180,7 @@ int sprd_pci_epf_raise_irq(int function, int irq)
 		return -EINVAL;
 	}
 
+	irq += REQUEST_BASE_IRQ;
 	/* *
 	 * in dw_pcie_ep_raise_msi_irq, write to the data reg
 	 * is (irq -1) , so here, we must pass (irq + 1)
@@ -247,6 +249,42 @@ void __iomem *sprd_pci_epf_map_memory(int function,
 	return cpu_vir_addr;
 }
 EXPORT_SYMBOL_GPL(sprd_pci_epf_map_memory);
+
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+void __iomem *sprd_epf_ipa_map(phys_addr_t src_addr,
+			       phys_addr_t dst_addr, size_t size)
+{
+	int ret;
+	struct pci_epc *epc;
+	struct sprd_pci_epf *epf_sprd;
+	struct device *dev;
+	void __iomem *cpu_vir_addr;
+
+	epf_sprd = g_epf_sprd[SPRD_FUNCTION_0];
+	if (!epf_sprd || IS_ERR(epf_sprd->epf->epc))
+		return NULL;
+
+	dev = &epf_sprd->epf->dev;
+	epc = epf_sprd->epf->epc;
+	size = PAGE_ALIGN(size);
+	ret = pci_epc_map_addr(epc, src_addr, dst_addr, size);
+	if (ret) {
+		dev_err(dev, "failed to map ipa address!\n");
+		return NULL;
+	}
+
+	cpu_vir_addr = ioremap_nocache(src_addr, size);
+
+	return cpu_vir_addr;
+}
+EXPORT_SYMBOL_GPL(sprd_epf_ipa_map);
+
+void sprd_epf_ipa_unmap(void __iomem *cpu_vir_addr)
+{
+	iounmap(cpu_vir_addr);
+}
+EXPORT_SYMBOL_GPL(sprd_epf_ipa_unmap);
+#endif
 
 void sprd_pci_epf_unmap_memory(int function, const void __iomem *cpu_vir_addr)
 {
@@ -323,9 +361,10 @@ static irqreturn_t sprd_epf_irq_handler(int irq_number, void *private)
 
 static int sprd_epf_bind(struct pci_epf *epf)
 {
+#ifdef CONFIG_SPRD_EPF_ENABLE_EPCONF
 	int ret;
+#endif
 	void  (*notify)(int event, void *data);
-	struct pci_epf_header *header = epf->header;
 	struct pci_epc *epc = epf->epc;
 	struct device *dev = &epf->dev;
 	struct dw_pcie_ep *ep;
@@ -337,7 +376,13 @@ static int sprd_epf_bind(struct pci_epf *epf)
 	dev_info(dev, "bind: func_no = %d, epf->func_no = =%d\n",
 		epf->func_no, epf->msi_interrupts);
 
-	ret = pci_epc_write_header(epc, header);
+	/*
+	 * if the feature CONFIG_SPRD_EPF_ENABLE_EPCONF
+	 * (default closed) is not opend, we can't set the header
+	 * and the msi, just use the default configuration.
+	 */
+#ifdef CONFIG_SPRD_EPF_ENABLE_EPCONF
+	ret = pci_epc_write_header(epc, epf->header);
 	if (ret) {
 		dev_err(dev, "bind: header write failed, ret=%d\n", ret);
 		return ret;
@@ -348,6 +393,7 @@ static int sprd_epf_bind(struct pci_epf *epf)
 		dev_err(dev, "bind: set msi failed, ret=%d\n", ret);
 		return ret;
 	}
+#endif
 
 	if (epf->func_no < SPRD_FUNCTION_MAX) {
 		notify = g_epf_notify[epf->func_no].notify;

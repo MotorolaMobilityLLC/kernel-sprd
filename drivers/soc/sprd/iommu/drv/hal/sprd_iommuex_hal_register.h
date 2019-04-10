@@ -58,7 +58,7 @@ void mmu_ex_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 	u32 iommu_id);
 void mmu_ex_clock_gate_enable(ulong ctrl_base_addr, u32 cg_enable);
 void mmu_ex_vaout_bypass_enable(ulong ctrl_base_addr, u32 iommu_id,
-		u32 iommu_type, u32 r_enable, u32 w_enable);
+		u32 iommu_type, bool vaor_bp_en);
 void mmuex_tlb_enable(ulong ctrl_base_addr, u32 r_enable, u32 w_enable);
 void mmu_ex_tlb_update(ulong ctrl_base_addr, enum sprd_iommu_ch_type ch_type,
 		       u32 ch_id);

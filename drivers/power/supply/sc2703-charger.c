@@ -707,12 +707,32 @@ static int sc2703_charger_feed_watchdog(struct sc2703_charger_info *info,
 	return ret;
 }
 
+static int sc2703_charger_set_terminate_volt(struct sc2703_charger_info *info,
+					     u32 val)
+{
+	u32 vol_val;
+
+	vol_val = sc2703_charger_of_prop_range(info->dev, val,
+					       SC2703_CHG_B_VMIN,
+					       SC2703_CHG_B_VMAX,
+					       SC2703_CHG_B_VSTEP,
+					       SC2703_VBAT_CHG_DEFAULT,
+					       "vbat-chg");
+
+	/* Set charge termination voltage */
+	if (vol_val > SC2703_VBAT_CHG_MAX)
+		vol_val = SC2703_VBAT_CHG_MAX;
+
+	return regmap_update_bits(info->regmap, SC2703_CHG_CTRL_A,
+				  SC2703_VBAT_CHG_MASK, vol_val);
+}
+
 static bool sc2703_charger_is_support_fchg(struct sc2703_charger_info *info)
 {
 	union power_supply_propval val;
 	struct power_supply *psy;
 	u32 ic_version;
-	int charger_type, ret, i;
+	int charger_type = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN, ret, i;
 
 	ret = regmap_read(info->regmap, SC2703_IC_VERSION_INFO, &ic_version);
 	if (ret) {
@@ -895,7 +915,7 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 
 	mutex_lock(&info->lock);
 
-	if (!info->charging && psp != POWER_SUPPLY_PROP_STATUS) {
+	if (!info->charging && psp == POWER_SUPPLY_PROP_FEED_WATCHDOG) {
 		mutex_unlock(&info->lock);
 		return -ENODEV;
 	}
@@ -925,6 +945,12 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "feed charger watchdog failed\n");
 		break;
 
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
+		ret = sc2703_charger_set_terminate_volt(info, val->intval);
+		if (ret < 0)
+			dev_err(info->dev, "failed to set terminate voltage\n");
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -939,6 +965,7 @@ static int sc2703_charger_property_is_writeable(struct power_supply *psy,
 	int ret;
 
 	switch (psp) {
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
@@ -960,6 +987,7 @@ static enum power_supply_property sc2703_usb_props[] = {
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_FEED_WATCHDOG,
+	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
 };
 
 static const struct power_supply_desc sc2703_charger_desc = {
@@ -1277,16 +1305,16 @@ static int sc2703_charger_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, info);
 
-	ret = sc2703_charger_register_vbus_regulator(info);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to register vbus regulator.\n");
-		return ret;
-	}
-
 	info->usb_phy = devm_usb_get_phy_by_phandle(&pdev->dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(&pdev->dev, "failed to find USB phy\n");
 		return PTR_ERR(info->usb_phy);
+	}
+
+	ret = sc2703_charger_register_vbus_regulator(info);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to register vbus regulator.\n");
+		return ret;
 	}
 
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");

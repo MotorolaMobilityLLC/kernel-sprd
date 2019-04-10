@@ -132,6 +132,9 @@ static const char *dai_id_to_str(int dai_id)
 		[BE_DAI_ID_FM_DSP_CODEC] = TO_STRING(BE_DAI_ID_FM_DSP_CODEC),
 		[BE_DAI_ID_FM_DSP_USB] = TO_STRING(BE_DAI_ID_FM_DSP_USB),
 		[BE_DAI_ID_DUMP] = TO_STRING(BE_DAI_ID_DUMP),
+		[BE_DAI_ID_FAST_P_BTSCO] = TO_STRING(BE_DAI_ID_FAST_P_BTSCO),
+		[BE_DAI_ID_NORMAL_AP01_P_BTSCO] =
+			TO_STRING(BE_DAI_ID_NORMAL_AP01_P_BTSCO),
 	};
 
 	if (dai_id >= BE_DAI_ID_MAX) {
@@ -255,6 +258,7 @@ static int check_be_dai_id(int be_dai_id)
 	switch (be_dai_id) {
 	case BE_DAI_ID_NORMAL_AP01_CODEC:
 	case BE_DAI_ID_NORMAL_AP01_USB:
+	case BE_DAI_ID_NORMAL_AP01_P_BTSCO:
 	case BE_DAI_ID_DUMP:
 		scene_id = VBC_DAI_ID_NORMAL_AP01;
 		break;
@@ -268,6 +272,7 @@ static int check_be_dai_id(int be_dai_id)
 		break;
 	case BE_DAI_ID_FAST_P_CODEC:
 	case BE_DAI_ID_FAST_P_USB:
+	case BE_DAI_ID_FAST_P_BTSCO:
 		scene_id = VBC_DAI_ID_FAST_P;
 		break;
 	case BE_DAI_ID_OFFLOAD_CODEC:
@@ -5563,6 +5568,38 @@ static struct snd_soc_dai_driver vbc_dais[BE_DAI_ID_MAX] = {
 			.rate_max = 192000,
 			.formats = SPRD_VBC_DAI_PCM_FORMATS,
 		},
+	},
+	/* 32: BE_DAI_ID_FAST_P_BTSCO */
+	{
+		.name = TO_STRING(BE_DAI_ID_FAST_P_BTSCO),
+		.id = BE_DAI_ID_FAST_P_BTSCO,
+		.playback = {
+			.stream_name = "BE_DAI_FAST_BTSCO_P",
+			.aif_name = "BE_IF_FAST_BTSCO_P",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &fast_ops,
+	},
+	/* 33: BE_DAI_ID_NORMAL_AP01_P_BTSCO */
+	{
+		.name = TO_STRING(BE_DAI_ID_NORMAL_AP01_P_BTSCO),
+		.id = BE_DAI_ID_NORMAL_AP01_P_BTSCO,
+		.playback = {
+			.stream_name = "BE_DAI_NORMAL_AP01_BTSCO_P",
+			.aif_name = "BE_IF_NORMAL_AP01_BTSCO_P",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &normal_ops,
 	},
 };
 

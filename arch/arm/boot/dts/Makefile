@@ -1071,12 +1071,12 @@ dtb-$(CONFIG_ARCH_ASPEED) += aspeed-bmc-opp-palmetto.dtb \
 	aspeed-ast2500-evb.dtb
 
 dtb-$(CONFIG_ARCH_SPRD) += \
-	ums510-1h10-go.dtb \
-	ums510-2h10-go.dtb
+	ums312-1h10-go.dtb \
+	ums312-2h10-go.dtb
 
 dtbo-$(CONFIG_ARCH_SPRD) += \
-	ums510-1h10-go-overlay.dtbo \
-	ums510-2h10-go-overlay.dtbo
+	ums312-1h10-go-overlay.dtbo \
+	ums312-2h10-go-overlay.dtbo
 endif
 
 dtstree		:= $(srctree)/$(src)

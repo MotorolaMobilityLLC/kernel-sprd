@@ -119,6 +119,8 @@ struct sprdwcn_bus_ops {
 
 	int (*write_l)(unsigned int system_addr, void *buf);
 	int (*read_l)(unsigned int system_addr, void *buf);
+	int (*update_bits)(unsigned int reg, unsigned int mask,
+			   unsigned int val);
 
 	unsigned int (*get_carddump_status)(void);
 	void (*set_carddump_status)(unsigned int flag);
@@ -334,6 +336,18 @@ int sprdwcn_bus_reg_write(unsigned int addr,
 		return 0;
 
 	return bus_ops->write_l(addr, buf);
+}
+
+static inline
+int sprdwcn_bus_update_bits(unsigned int reg, unsigned int mask,
+			    unsigned int val)
+{
+	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
+
+	if (!bus_ops || !bus_ops->update_bits)
+		return 0;
+
+	return bus_ops->update_bits(reg, mask, val);
 }
 
 static inline

@@ -834,8 +834,42 @@ int sblock_pcfg_create(u8 dst, u8 channel,
 				   tx_blk_num, tx_blk_sz,
 				   rx_blk_num, rx_blk_sz,
 				   &sblock);
-	if (!result)
+	if (!result) {
+		struct sched_param param = {.sched_priority = 11};
+
+		sblock->thread = kthread_create(sblock_thread, sblock,
+						"sblock-%d-%d", dst, channel);
+		if (IS_ERR(sblock->thread)) {
+			struct smsg_ipc *sipc;
+
+			pr_err("Failed to create kthread: sblock-%d-%d\n",
+				dst, channel);
+			sipc = smsg_ipcs[sblock->dst];
+			if (!sipc->client) {
+				shmem_ram_unmap(dst, sblock->smem_virt);
+				smem_free(dst,
+					  sblock->smem_addr,
+					  sblock->smem_size);
+				kfree(sblock->ring->txrecord);
+				kfree(sblock->ring->rxrecord);
+			}
+			kfree(sblock->ring);
+			result = PTR_ERR(sblock->thread);
+			kfree(sblock);
+			return result;
+		}
+
+		/* Prevent the thread task_struct from being destroyed. */
+		get_task_struct(sblock->thread);
+
 		sblocks[dst][ch_index] = sblock;
+		/*
+		 * Set the thread as a real time thread, and its priority
+		 * is 11.
+		 */
+		sched_setscheduler(sblock->thread, SCHED_RR, &param);
+		wake_up_process(sblock->thread);
+	}
 
 	return result;
 }
@@ -1490,7 +1524,7 @@ int sblock_query(u8 dst, u8 channel)
 	if (!sblock)
 		return -ENODEV;
 	if (sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready !\n", __func__, dst, channel);
+		pr_debug("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
 		return -EINVAL;
 	}
 	return 0;
@@ -1511,9 +1545,6 @@ static int sblock_debug_show(struct seq_file *m, void *private)
 			sblock = sblocks[i][j];
 			if (!sblock)
 				continue;
-			ring = sblock->ring;
-			poolhd_op = &(ring->header_op.poolhd_op);
-			ringhd_op = &(ring->header_op.ringhd_op);
 
 			sipc_debug_putline(m, '*', 170);
 			seq_printf(m, "sblock dst %d, channel: %3d, state: %d, smem_virt: 0x%lx, smem_addr: 0x%0x, dst_smem_addr: 0x%0x, smem_size: 0x%0x, txblksz: %d, rxblksz: %d\n",
@@ -1526,6 +1557,20 @@ static int sblock_debug_show(struct seq_file *m, void *private)
 				   sblock->smem_size,
 				   sblock->txblksz,
 				   sblock->rxblksz);
+
+			/*
+			 * in precfg channel,  the ring pinter can be null
+			 * before the the block manger has been created
+			 * and ring->header pointer can also be null
+			 * before the block handshake with host,
+			 * so must add null pointer protect here.
+			 */
+			ring = sblock->ring;
+			if (!ring || !ring->header)
+				continue;
+
+			poolhd_op = &(ring->header_op.poolhd_op);
+			ringhd_op = &(ring->header_op.ringhd_op);
 			seq_printf(m, "sblock ring: txblk_virt :0x%lx, rxblk_virt :0x%lx\n",
 				   (unsigned long)ring->txblk_virt,
 				   (unsigned long)ring->rxblk_virt);

@@ -28,7 +28,7 @@
 
 	chosen {
 		stdout-path = &uart0;
-		bootargs = "earlycon console=ttyS0,115200n8 loglevel=8 init=/init root=/dev/ram0 rw androidboot.hardware=udx710_haps androidboot.selinux=permissive swiotlb=64k";
+		bootargs = "earlycon console=ttyS0,115200n8 loglevel=8 init=/init root=/dev/ram0 rw androidboot.hardware=udx710_haps androidboot.selinux=permissive swiotlb=64k printk.devkmsg=on";
 	};
 
 	ion {

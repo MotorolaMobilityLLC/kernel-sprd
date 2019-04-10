@@ -233,6 +233,14 @@ config TI_SCI_PROTOCOL
 config HAVE_ARM_SMCCC
 	bool
 
+config SPRD_SIP_FW
+	bool "SPRD implementation-specific services"
+	depends on HAVE_ARM_SMCCC
+	help
+	  Provides interfaces to SoC implementation-specific services on this
+	  platform, for example secure platform initialization, configuration,
+	  and some power control services.
+
 source "drivers/firmware/broadcom/Kconfig"
 source "drivers/firmware/google/Kconfig"
 source "drivers/firmware/efi/Kconfig"

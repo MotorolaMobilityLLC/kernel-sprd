@@ -94,12 +94,15 @@ static void dump_tasks_info(void)
 
 static void enhance_meminfo(void)
 {
-	static DEFINE_RATELIMIT_STATE(emem_rs, DEFAULT_RATELIMIT_INTERVAL, 1);
+	struct timeval val;
+	static u64 last_time = 0;
 
-	if (__ratelimit(&emem_rs)) {
+	do_gettimeofday(&val);
+	if (val.tv_sec - last_time > 1) {
 		pr_info("+++++++++++++++++++++++++++++++++++++++++++++++++\n");
 		pr_info("The killed process adj = %d\n", sysctl_emem_trigger);
 		enhanced_show_mem(E_SHOW_MEM_ALL);
+		last_time = val.tv_sec;
 	}
 }
 
@@ -129,18 +132,6 @@ int sysctl_emem_trigger_handler(struct ctl_table *table, int write,
 	return 0;
 }
 
-static void show_zram_use_physical_memory(void)
-{
-#if IS_ENABLED(CONFIG_ZSMALLOC)
-	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	pr_info("Enhanced Mem-info :ZRAM\n");
-	pr_info("Detail:\n");
-	pr_info("Total used:\n");
-	pr_info("Zram : %lu kB\n", (atomic_long_read(&vm_zone_stat[NR_ZSPAGES])
-				   << PAGE_SHIFT) / 1024);
-#endif
-}
-
 static int tasks_e_show_mem_handler(struct notifier_block *nb,
 			unsigned long val, void *data)
 {
@@ -160,7 +151,6 @@ static int tasks_e_show_mem_handler(struct notifier_block *nb,
 	pr_info("   swaped: %lu kB\n", ((si.totalswap - si.freeswap)
 		<< PAGE_SHIFT) / 1024);
 
-	show_zram_use_physical_memory();
 	return 0;
 }
 

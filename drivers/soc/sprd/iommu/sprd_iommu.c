@@ -213,6 +213,7 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 		iommu_dev->id = SPRD_IOMMU_DISP;
 		break;
 	case IOMMU_EX_ISP:
+	case IOMMU_EX_NEWISP:
 		sprd_iommu_list[SPRD_IOMMU_ISP].enabled = true;
 		sprd_iommu_list[SPRD_IOMMU_ISP].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_ISP;
@@ -827,6 +828,27 @@ int sprd_iommu_restore(struct device *dev)
 	return ret;
 }
 EXPORT_SYMBOL(sprd_iommu_restore);
+
+int sprd_iommu_set_cam_bypass(bool vaor_bp_en)
+{
+	struct sprd_iommu_dev *iommu_dev;
+	int ret = 0;
+
+	iommu_dev = sprd_iommu_list[SPRD_IOMMU_DCAM].iommu_dev;
+	if (iommu_dev->ops->set_bypass)
+		iommu_dev->ops->set_bypass(iommu_dev, vaor_bp_en);
+	else
+		ret = -1;
+
+	iommu_dev = sprd_iommu_list[SPRD_IOMMU_ISP].iommu_dev;
+	if (iommu_dev->ops->set_bypass)
+		iommu_dev->ops->set_bypass(iommu_dev, vaor_bp_en);
+	else
+		ret = -1;
+
+	return ret;
+}
+EXPORT_SYMBOL(sprd_iommu_set_cam_bypass);
 
 static int sprd_iommu_get_resource(struct device_node *np,
 				struct sprd_iommu_init_data *pdata)

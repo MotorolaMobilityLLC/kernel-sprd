@@ -16,8 +16,14 @@
  */
 
 #include <linux/platform_device.h>
+#include <linux/usb.h>
+#include <linux/usb/hcd.h>
 
 #include "core.h"
+#include "../host/xhci.h"
+
+#define DWC3_HOST_SUSPEND_COUNT		100
+#define DWC3_HOST_SUSPEND_TIMEOUT	100
 
 static int dwc3_host_get_irq(struct dwc3 *dwc)
 {
@@ -101,6 +107,9 @@ int dwc3_host_init(struct dwc3 *dwc)
 	if (dwc->usb3_lpm_capable)
 		props[prop_idx++].name = "usb3-lpm-capable";
 
+	if (dwc->usb3_slow_suspend)
+		props[prop_idx++].name = "usb3-slow-suspend";
+
 	/**
 	 * WORKAROUND: dwc3 revisions <=3.00a have a limitation
 	 * where Port Disable command doesn't work.
@@ -150,4 +159,71 @@ void dwc3_host_exit(struct dwc3 *dwc)
 	phy_remove_lookup(dwc->usb3_generic_phy, "usb3-phy",
 			  dev_name(dwc->dev));
 	platform_device_unregister(dwc->xhci);
+}
+
+static int dwc3_host_suspend_child(struct device *dev, void *data)
+{
+	int cnt = DWC3_HOST_SUSPEND_COUNT;
+
+	while (!pm_runtime_suspended(dev) && --cnt > 0)
+		msleep(500);
+
+	if (cnt <= 0) {
+		dev_err(dev, "xHCI child device enters suspend failed!!!\n");
+		return -EAGAIN;
+	}
+
+	return 0;
+}
+
+int dwc3_host_suspend(struct dwc3 *dwc)
+{
+	struct device *xhci = &dwc->xhci->dev;
+	int ret;
+
+	if (!dwc->host_suspend_capable)
+		return 0;
+
+	/*
+	 * We need make sure the children of the xhci device had been into
+	 * suspend state, or we will suspend xhci device failed.
+	 */
+	ret = device_for_each_child(xhci, NULL, dwc3_host_suspend_child);
+	if (ret) {
+		dev_err(xhci, "failed to suspend xHCI children device\n");
+		return ret;
+	}
+
+	/*
+	 * If the xhci device had been into suspend state, thus just return.
+	 */
+	if (pm_runtime_suspended(xhci))
+		return 0;
+
+	/* Suspend the xhci device synchronously. */
+	ret = pm_runtime_put_sync(xhci);
+	if (ret) {
+		dev_err(xhci, "failed to suspend xHCI device\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+int dwc3_host_resume(struct dwc3 *dwc)
+{
+	struct device *xhci = &dwc->xhci->dev;
+	int ret;
+
+	if (!dwc->host_suspend_capable)
+		return 0;
+
+	/* Resume the xhci device synchronously. */
+	ret = pm_runtime_get_sync(xhci);
+	if (ret) {
+		dev_err(xhci, "failed to resume xHCI device\n");
+		return ret;
+	}
+
+	return 0;
 }

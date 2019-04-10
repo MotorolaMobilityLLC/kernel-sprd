@@ -26,7 +26,7 @@
 #include <drm/drm_crtc.h>
 #include <drm/drm_fourcc.h>
 #include <drm/drm_vblank.h>
-
+#include <uapi/drm/drm_mode.h>
 #include "disp_lib.h"
 
 #define DRM_MODE_BLEND_PREMULTI		2
@@ -76,6 +76,7 @@ enum {
 	ENHANCE_CFG_ID_CM,
 	ENHANCE_CFG_ID_SLP,
 	ENHANCE_CFG_ID_GAMMA,
+	ENHANCE_CFG_ID_LTM,
 	ENHANCE_CFG_ID_CABC,
 	ENHANCE_CFG_ID_MAX
 };
@@ -102,6 +103,9 @@ struct sprd_dpu_layer {
 	u32 header_size_r;
 	u32 header_size_y;
 	u32 header_size_uv;
+	u32 y2r_coef;
+	u8 pallete_en;
+	u32 pallete_color;
 };
 
 struct dpu_capability {
@@ -168,6 +172,7 @@ struct dpu_context {
 	struct videomode vm;
 	struct semaphore refresh_lock;
 	struct work_struct wb_work;
+	struct work_struct dvfs_work;
 	u32 wb_addr_p;
 };
 
