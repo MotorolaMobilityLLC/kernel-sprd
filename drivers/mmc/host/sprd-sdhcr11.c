@@ -2050,12 +2050,27 @@ static void sprd_set_mmc_struct(struct sprd_sdhc_host *host,
 }
 
 #ifdef CONFIG_PM_SLEEP
+void sprd_sdhc_save_dly(struct sprd_sdhc_host *host)
+{
+	host->dll_dly_saved = host->dll_dly;
+}
+
+void sprd_sdhc_restore_dly(struct sprd_sdhc_host *host)
+{
+	host->dll_dly = host->dll_dly_saved;
+	sprd_sdhc_writel(host, host->dll_dly,
+		SPRD_SDHC_REG_32_DLL_DLY);
+	pr_info("%s dll delay reg: 0x%x\n", host->device_name,
+		sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_DLY));
+}
+
 static int sprd_sdhc_suspend(struct device *dev)
 {
 	struct platform_device *pdev =
 		container_of(dev, struct platform_device, dev);
 	struct sprd_sdhc_host *host = platform_get_drvdata(pdev);
-
+	if (mmc_card_keep_power(host->mmc))
+		sprd_sdhc_save_dly(host);
 	sprd_sdhc_runtime_pm_get(host);
 	disable_irq(host->irq);
 	clk_disable_unprepare(host->clk);
@@ -2086,6 +2101,8 @@ static int sprd_sdhc_resume(struct device *dev)
 	ios = host->mmc->ios;
 	sprd_reset_ios(host);
 	host->mmc->ops->set_ios(host->mmc, &ios);
+	if (mmc_card_keep_power(host->mmc))
+		sprd_sdhc_restore_dly(host);
 
 	sprd_sdhc_runtime_pm_put(host);
 
