@@ -1262,7 +1262,7 @@ int set_cp_mem_status(int subsys, int val)
 	int ret;
 	unsigned int temp_val;
 
-#ifdef CONFIG_UMW2652
+#if defined(CONFIG_UMW2652) || defined(CONFIG_WCN_PCIE)
 	return 0;
 #endif
 	ret = sprdwcn_bus_reg_read(REG_WIFI_MEM_CFG1, &temp_val, 4);
