@@ -221,7 +221,7 @@ static int sprd_i2c_hw_check_noack(struct sprd_i2c_hw *i2c_dev)
 
 	if (tmp & I2C_RX_ACK) {
 		dev_warn(&i2c_dev->adap.dev,
-			 "i2c report last time: no ack error !\n");
+			 "i2c report last time: no ack error!\n");
 		sprd_i2c_hw_dump_reg(i2c_dev);
 		writel(tmp & ~I2C_RX_ACK, i2c_dev->base + I2C_STATUS);
 		sprd_i2c_hw_reset_fifo(i2c_dev);
@@ -471,14 +471,14 @@ static int sprd_i2c_hw_probe(struct platform_device *pdev)
 
 	ret = clk_prepare_enable(i2c_dev->clk);
 	if (ret) {
-		dev_err(&pdev->dev, "failed to enable clk !\n");
+		dev_err(&pdev->dev, "failed to enable clk!\n");
 		return ret;
 	}
 
 	ret = clk_prepare_enable(i2c_dev->clk_hw);
 	if (ret) {
 		clk_disable_unprepare(i2c_dev->clk);
-		dev_err(&pdev->dev, "failed to enable clk_hw !\n");
+		dev_err(&pdev->dev, "failed to enable clk_hw!\n");
 		return ret;
 	}
 
