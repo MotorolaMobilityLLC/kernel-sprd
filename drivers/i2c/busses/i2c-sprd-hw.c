@@ -573,8 +573,6 @@ static int __maybe_unused sprd_i2c_hw_runtime_resume(struct device *pdev)
 		return ret;
 	}
 
-	sprd_i2c_hw_enable(i2c_dev);
-
 	return 0;
 }
 
