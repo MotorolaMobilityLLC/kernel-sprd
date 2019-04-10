@@ -876,6 +876,9 @@ struct dwc3_scratchpad_array {
  * 	3	- Reserved
  * @imod_interval: set the interrupt moderation interval in 250ns
  *                 increments or 0 to disable.
+ * @u1u2_enable: whether enable the U1/U2 low power mode.
+ *     true    - allow USB3.0 PHY enter U1/U2 mode
+ *     false   - USB3.0 PHY never enter U1/U2 mode
  */
 struct dwc3 {
 	struct work_struct	drd_work;
@@ -1037,6 +1040,7 @@ struct dwc3 {
 	unsigned		tx_de_emphasis:2;
 
 	u16			imod_interval;
+	bool			u1u2_enable;
 };
 
 #define work_to_dwc(w)		(container_of((w), struct dwc3, drd_work))

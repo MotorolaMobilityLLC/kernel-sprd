@@ -1257,6 +1257,7 @@ static void dwc3_get_properties(struct dwc3 *dwc)
 		| (dwc->is_utmi_l1_suspend << 4);
 
 	dwc->imod_interval = 0;
+	dwc->u1u2_enable = true;
 }
 
 /* check whether the core supports IMOD */

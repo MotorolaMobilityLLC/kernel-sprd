@@ -121,6 +121,49 @@ static ssize_t maximum_speed_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(maximum_speed);
 
+static ssize_t u1u2_enable_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
+	struct dwc3 *dwc;
+
+	if (!sdwc)
+		return -EINVAL;
+
+	dwc = platform_get_drvdata(sdwc->dwc3);
+	if (!dwc)
+		return -EINVAL;
+
+	if (dwc->u1u2_enable)
+		return sprintf(buf, "enabled\n");
+	return sprintf(buf, "disabled\n");
+}
+
+static ssize_t u1u2_enable_store(struct device *dev,
+				 struct device_attribute *attr, const char *buf,
+				 size_t size)
+{
+	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
+	struct dwc3 *dwc;
+
+	if (!sdwc)
+		return -EINVAL;
+
+	dwc = platform_get_drvdata(sdwc->dwc3);
+	if (!dwc)
+		return -EINVAL;
+
+	if (!strncmp(buf, "enable", 6))
+		dwc->u1u2_enable = true;
+	else if (!strncmp(buf, "disable", 7))
+		dwc->u1u2_enable = false;
+	else
+		return -EINVAL;
+
+	return size;
+}
+static DEVICE_ATTR_RW(u1u2_enable);
+
 static ssize_t current_speed_show(struct device *dev,
 				  struct device_attribute *attr, char *buf)
 {
@@ -139,6 +182,7 @@ static ssize_t current_speed_show(struct device *dev,
 static DEVICE_ATTR_RO(current_speed);
 
 static struct attribute *dwc3_sprd_attrs[] = {
+	&dev_attr_u1u2_enable.attr,
 	&dev_attr_maximum_speed.attr,
 	&dev_attr_current_speed.attr,
 	NULL
