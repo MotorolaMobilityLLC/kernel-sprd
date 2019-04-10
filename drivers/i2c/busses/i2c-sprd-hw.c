@@ -98,7 +98,6 @@ struct sprd_i2c_hw {
 	u32 bus_freq;
 	u8 *buf;
 	u32 count;
-	int err;
 };
 
 static void sprd_i2c_hw_dump_reg(struct sprd_i2c_hw *i2c_dev)
@@ -183,7 +182,6 @@ static int sprd_i2c_hw_writebyte(struct sprd_i2c_hw *i2c_dev, u8 *buf, u32 len)
 					"Timed out for writing int status=0x%04x\n",
 					status);
 				sprd_i2c_hw_dump_reg(i2c_dev);
-				i2c_dev->err = -ETIMEDOUT;
 				continue;
 			}
 		}
@@ -194,8 +192,7 @@ static int sprd_i2c_hw_writebyte(struct sprd_i2c_hw *i2c_dev, u8 *buf, u32 len)
 			 "Timed out for writing, timeout=%d, debug1=0x%04x\n",
 			 cnt, tmp);
 		sprd_i2c_hw_dump_reg(i2c_dev);
-		i2c_dev->err = -ETIMEDOUT;
-		return i2c_dev->err;
+		return -ETIMEDOUT;
 	}
 
 	return 0;
@@ -249,8 +246,7 @@ static int sprd_i2c_hw_readbyte(struct sprd_i2c_hw *i2c_dev, u8 *buf, u32 len)
 				"Timed out for reading data=0x%04x\n",
 				data);
 			sprd_i2c_hw_dump_reg(i2c_dev);
-			i2c_dev->err = -ETIMEDOUT;
-			return i2c_dev->err;
+			return  -ETIMEDOUT;
 		}
 
 		buf[i] = data;
@@ -268,7 +264,6 @@ static int sprd_i2c_hw_handle_msg(struct i2c_adapter *i2c_adap,
 	i2c_dev->msg = pmsg;
 	i2c_dev->buf = pmsg->buf;
 	i2c_dev->count = pmsg->len;
-	i2c_dev->err = 0;
 
 	ret = sprd_i2c_hw_check_noack(i2c_dev);
 	if (ret)
@@ -284,15 +279,17 @@ static int sprd_i2c_hw_handle_msg(struct i2c_adapter *i2c_adap,
 	writel(HW_CTL_VALUE, i2c_dev->base + HW_CTL);
 
 	if (pmsg->flags & I2C_M_RD)
-		sprd_i2c_hw_readbyte(i2c_dev, i2c_dev->buf, i2c_dev->count);
+		ret = sprd_i2c_hw_readbyte(i2c_dev, i2c_dev->buf,
+						i2c_dev->count);
 	else
-		sprd_i2c_hw_writebyte(i2c_dev, i2c_dev->buf, i2c_dev->count);
+		ret = sprd_i2c_hw_writebyte(i2c_dev, i2c_dev->buf,
+						i2c_dev->count);
 
 	/* Transmission is done and clear ack */
 	sprd_i2c_hw_clear_ack(i2c_dev);
 	sprd_i2c_hw_reset_fifo(i2c_dev);
 
-	return i2c_dev->err;
+	return ret;
 }
 
 static int sprd_i2c_hw_master_xfer(struct i2c_adapter *i2c_adap,
