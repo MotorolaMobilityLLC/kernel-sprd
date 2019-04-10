@@ -82,6 +82,9 @@
 /* Absolutely safe for status update at 100 kHz I2C: */
 #define I2C_WAIT		200
 
+/* Absolutely safe for wait pending update at 400kHz */
+#define I2C_WRITE_WAIT	2000	/* us */
+
 /* i2c default source clock */
 #define I2C_SOURCE_CLK_26M	26000000
 
@@ -132,13 +135,6 @@ static void sprd_i2c_hw_dump_reg(struct sprd_i2c_hw *i2c_dev)
 		readl(i2c_dev->base + ARM_DEBUG1));
 }
 
-static void sprd_i2c_hw_clear_irq(struct sprd_i2c_hw *i2c_dev)
-{
-	u32 tmp = readl(i2c_dev->base + I2C_STATUS);
-
-	writel(tmp & ~I2C_INT, i2c_dev->base + I2C_STATUS);
-}
-
 static void sprd_i2c_hw_reset_fifo(struct sprd_i2c_hw *i2c_dev)
 {
 	writel(I2C_RST, i2c_dev->base + ADDR_RST);
@@ -147,12 +143,10 @@ static void sprd_i2c_hw_reset_fifo(struct sprd_i2c_hw *i2c_dev)
 static int sprd_i2c_hw_writebyte(struct sprd_i2c_hw *i2c_dev, u8 *buf, u32 len)
 {
 	u32 tmp, status;
-	int err, cnt = I2C_TIMEOUT;
 
 	/* only support 2 bytes, 1:reg address; 2:reg data. */
 	tmp = i2c_dev->msg->addr << SLAVE_ADDR_OFFSET |
 		buf[0] << REG_ADDR_OFFSET;
-	sprd_i2c_hw_clear_irq(i2c_dev);
 
 	/* len: 2 write operation, len:1 read operation */
 	if (len == 2) {
@@ -160,45 +154,34 @@ static int sprd_i2c_hw_writebyte(struct sprd_i2c_hw *i2c_dev, u8 *buf, u32 len)
 		writel(buf[1], i2c_dev->base + ARM_DAT_WR);
 	} else {
 		writel(tmp, i2c_dev->base + ARM_RD_CMD);
+		return 0;
 	}
 
-	/*
-	 * if we want to r/w i2c channel, we need poll until it's done,
-	 * we need check there is no pending channel or.
-	 * even there is pending channel but not channel 0 and 1.
-	 */
-	do {
-		/* poll until r/w done */
-		udelay(I2C_WAIT);
-		tmp = readl(i2c_dev->base + ARM_DEBUG1);
-		if ((!(tmp & CHNL_PENDING) &&
-		     ((tmp & CHNL_SEL) == CHNL_WRITE)) ||
-		    ((tmp & CHNL_SEL) == CHNL_READ))
-			break;
+	/* waitting for write finish */
+	usleep_range(I2C_WRITE_WAIT, I2C_WRITE_WAIT + 100);
 
-		if ((tmp & CHNL_SEL) == CHNL_WRITE) {
-			err = readl_poll_timeout_atomic(
-						i2c_dev->base + I2C_STATUS,
-						status,
-						status & I2C_INT, I2C_WAIT,
-						I2C_TIMEOUT);
-			if (err) {
-				dev_err(&i2c_dev->adap.dev,
-					"Timed out for writing int status=0x%04x\n",
-					status);
-				sprd_i2c_hw_dump_reg(i2c_dev);
-				continue;
-			}
-		}
-	} while ((tmp & CHNL_PENDING) && cnt--);
+	tmp = readl(i2c_dev->base + ARM_DEBUG1);
+	if (!(tmp & CHNL_PENDING))
+		return 0;
 
-	if (cnt <= 0) {
-		dev_warn(&i2c_dev->adap.dev,
-			 "Timed out for writing, timeout=%d, debug1=0x%04x\n",
-			 cnt, tmp);
+	status = readl(i2c_dev->base + I2C_STATUS);
+	if (status & I2C_RX_ACK)  {
+		if ((tmp & CHNL_SEL) == CHNL_WRITE)
+			dev_err(&i2c_dev->adap.dev, "no ack error!\n");
+		else
+			dev_err(&i2c_dev->adap.dev, "hw channel no ack error!\n");
+
 		sprd_i2c_hw_dump_reg(i2c_dev);
-		return -ETIMEDOUT;
+		return -EIO;
 	}
+
+	if ((tmp & CHNL_SEL) == CHNL_WRITE) {
+		dev_err(&i2c_dev->adap.dev, "bus error!\n");
+		sprd_i2c_hw_dump_reg(i2c_dev);
+		sprd_i2c_hw_reset_fifo(i2c_dev);
+		return -EIO;
+	}
+
 
 	return 0;
 }
@@ -279,8 +262,6 @@ static int sprd_i2c_hw_handle_msg(struct i2c_adapter *i2c_adap,
 			i2c_dev->count);
 		return -EINVAL;
 	}
-
-	writel(HW_CTL_VALUE, i2c_dev->base + HW_CTL);
 
 	if (pmsg->flags & I2C_M_RD)
 		ret = sprd_i2c_hw_readbyte(i2c_dev, i2c_dev->buf,
@@ -363,7 +344,6 @@ static void sprd_i2c_hw_enable(struct sprd_i2c_hw *i2c_dev)
 	u32 tmp = I2C_DVD_OPT;
 
 	sprd_i2c_hw_clear_ack(i2c_dev);
-	sprd_i2c_hw_clear_irq(i2c_dev);
 
 	writel(tmp, i2c_dev->base + I2C_CTL);
 	dev_dbg(&i2c_dev->adap.dev, "freq=%d\n", i2c_dev->bus_freq);
@@ -372,6 +352,7 @@ static void sprd_i2c_hw_enable(struct sprd_i2c_hw *i2c_dev)
 
 	tmp = readl(i2c_dev->base + I2C_CTL);
 	writel(tmp | I2C_EN | I2C_INT_EN, i2c_dev->base + I2C_CTL);
+	writel(HW_CTL_VALUE, i2c_dev->base + HW_CTL);
 }
 
 static int sprd_i2c_hw_clk_init(struct sprd_i2c_hw *i2c_dev)
