@@ -86,6 +86,10 @@
 	regulator-always-on;
 };
 
+&vddldo0 {
+	regulator-always-on;
+};
+
 &sdio3 {
 	status = "okay";
 };

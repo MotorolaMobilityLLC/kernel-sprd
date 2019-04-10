@@ -100,3 +100,7 @@
 &vddwcn {
 	regulator-always-on;
 };
+
+&vddldo0 {
+	regulator-always-on;
+};
