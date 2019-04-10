@@ -97,6 +97,26 @@
 		sprd,size-txbuf = <0x0800>; /* 2*1024 */
 	};
 
+	spipe@4 {
+		compatible = "sprd,spipe";
+		sprd,name = "slog_pm";
+		sprd,dst = <6>;
+		sprd,channel = <5>;
+		sprd,ringnr = <1>;
+		sprd,size-rxbuf = <0x600>;
+		sprd,size-txbuf = <0x20>;
+	};
+
+	spipe@5 {
+		compatible = "sprd,spipe";
+		sprd,name = "sctl_pm";
+		sprd,dst = <6>;
+		sprd,channel = <6>;
+		sprd,ringnr = <1>;
+		sprd,size-rxbuf = <0x10>;
+		sprd,size-txbuf = <0x20>;
+	};
+
 	slog_nr: spool@0{
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr";
@@ -110,10 +130,11 @@
 
 	sprd-mcd {
 		compatible = "sprd,roc1-modem-ctrl";
-		poweron-gpio = <&ap_gpio 15 GPIO_ACTIVE_LOW>;
-		reset-gpio = <&ap_gpio 16 GPIO_ACTIVE_LOW>;
-		cpwatchdog-gpio = <&ap_gpio 29 GPIO_ACTIVE_LOW>;
-		cpassert-gpio = <&ap_gpio 30 GPIO_ACTIVE_LOW>;
-		cppanic-gpio = <&ap_gpio 31 GPIO_ACTIVE_LOW>;
+		poweron-gpio = <&ap_gpio 15 GPIO_ACTIVE_HIGH>;
+		reset-gpio = <&ap_gpio 16 GPIO_ACTIVE_HIGH>;
+		cpwatchdog-gpio = <&ap_gpio 30 GPIO_ACTIVE_HIGH>;
+		cpassert-gpio = <&ap_gpio 36 GPIO_ACTIVE_HIGH>;
+		cppanic-gpio = <&ap_gpio 37 GPIO_ACTIVE_HIGH>;
+		cppoweroff-gpio = <&ap_gpio 33 GPIO_ACTIVE_HIGH>;
 	};
 };

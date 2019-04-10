@@ -838,11 +838,27 @@ static void dpu_layer(struct dpu_context *ctx,
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct layer_reg *layer;
-	u32 addr, size, offset, wd;
+	u32 size, offset, wd;
 	int i;
 
 	layer = &reg->layers[hwlayer->index];
 	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
+
+	if (hwlayer->pallete_en) {
+		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		layer->pos = offset;
+		layer->size = size;
+		layer->alpha = hwlayer->alpha;
+		layer->pallete = hwlayer->pallete_color;
+
+		/* pallete layer enable */
+		layer->ctrl = 0x2005;
+
+		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
+			hwlayer->dst_x, hwlayer->dst_y,
+			hwlayer->dst_w, hwlayer->dst_h, layer->pallete);
+		return;
+	}
 
 	if (hwlayer->src_w && hwlayer->src_h)
 		size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
@@ -850,16 +866,10 @@ static void dpu_layer(struct dpu_context *ctx,
 		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
 
 	for (i = 0; i < hwlayer->planes; i++) {
-		addr = hwlayer->addr[i];
-
-		/* dpu r2p0 just support xfbc-rgb */
-		if (hwlayer->xfbc)
-			addr += hwlayer->header_size_r;
-
-		if (addr % 16)
+		if (hwlayer->addr[i] % 16)
 			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
-				i, addr);
-		layer->addr[i] = addr;
+				i, hwlayer->addr[i]);
+		layer->addr[i] = hwlayer->addr[i];
 	}
 
 	layer->pos = offset;
@@ -956,6 +966,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		reg->dpi_v_timing = (ctx->vm.vsync_len << 0) |
 				    (ctx->vm.vback_porch << 8) |
 				    (ctx->vm.vfront_porch << 20);
+		if (ctx->vm.vsync_len + ctx->vm.vback_porch < 32)
+			pr_warn("Warning: (vsync + vbp) < 32, "
+				"underflow risk!\n");
 
 		/* enable dpu update done INT */
 		int_mask |= DISPC_INT_UPDATE_DONE_MASK;

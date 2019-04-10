@@ -536,7 +536,7 @@ cp_dvfs_get_of_pdata(struct device *dev, struct cpdvfs_data *pdata)
 
 static int cp_dvfs_init(struct cpdvfs_data *cpdvfs)
 {
-	int ret;
+	int ret = 0;
 	struct userspace_data *usr_data;
 	struct cmd_pkt *cmd;
 

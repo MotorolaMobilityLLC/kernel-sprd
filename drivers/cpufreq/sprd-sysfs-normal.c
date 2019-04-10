@@ -78,8 +78,7 @@ static ssize_t target_show(struct kobject *kobj,
 			   struct kobj_attribute *attr, char *buf)
 {
 	struct dvfs_cluster *cluster;
-	struct sub_device *sdev;
-	int id;
+	int id, index;
 
 	id = target_device_hit(&cluster, kobj);
 	if (id < 0) {
@@ -87,9 +86,34 @@ static ssize_t target_show(struct kobject *kobj,
 		return -EINVAL;
 	}
 
-	sdev = &cluster->subdevs[id];
+	index = gpdev->phy_ops->get_dvfs_index(gpdev, cluster->id, 1);
+	return sprintf(buf, "%d\n", index);
+}
 
-	return sprintf(buf, "%d\n", sdev->curr_index);
+static ssize_t target_store(struct kobject *kobj,
+			    struct kobj_attribute *attr, const char *buf,
+			    size_t count)
+{
+	struct dvfs_cluster *cluster;
+	unsigned int index;
+	int id;
+	size_t ret;
+
+	id = target_device_hit(&cluster, kobj);
+	if (id < 0) {
+		pr_err("No device found\n");
+		return id;
+	}
+
+	ret = kstrtouint(buf, 0, &index);
+	if (ret)
+		return ret;
+
+	ret = gpdev->phy_ops->set_dvfs_work_index(gpdev, cluster->id, index);
+	if (ret)
+		return ret;
+
+	return count;
 }
 
 static ssize_t sel_show(struct kobject *kobj,
@@ -143,7 +167,7 @@ static ssize_t voted_volt_show(struct kobject *kobj,
 	return sprintf(buf, "%d\n", volt);
 }
 
-static struct kobj_attribute target_kobj_attr = __ATTR_RO(target);
+static struct kobj_attribute target_kobj_attr = __ATTR_RW(target);
 static struct kobj_attribute sel_kobj_attr = __ATTR_RO(sel);
 static struct kobj_attribute div_kobj_attr = __ATTR_RO(div);
 static struct kobj_attribute voted_volt_kobj_attr = __ATTR_RO(voted_volt);
@@ -377,8 +401,10 @@ int cpudvfs_sysfs_create(struct cpudvfs_archdata *pdev)
 	}
 
 	size = dcdc_group_array_init(pdev, &dcdc_group_array);
-	if (size < 0)
-		return size;
+	if (size < 0) {
+		ret = size;
+		goto sysfs_error;
+	}
 
 	dcdc_kobj = kobject_create_and_add("dcdc", cpudvfs_kobj);
 	if (!dcdc_kobj) {
@@ -403,9 +429,9 @@ int cpudvfs_sysfs_create(struct cpudvfs_archdata *pdev)
 
 dcdc_error:
 	kobject_put(dcdc_kobj);
+	kfree(dcdc_group_array);
 sysfs_error:
 	kobject_put(cpudvfs_kobj);
-	kfree(dcdc_group_array);
 cpudvfs_kobj_error:
 	kobject_put(cpufreq_global_kobject);
 	kfree(group_array);

@@ -3449,8 +3449,8 @@ static int dsp_vbc_reg_shm_proc_read(struct snd_info_buffer *buffer)
 	}
 
 	snd_iprintf(buffer, "dsp-vbc register dump:\n");
-	for (reg = VBC_DSP_ADDR_START;
-	     reg <= VBC_DSP_ADDR_END; reg += 0x10, addr += 4) {
+	for (reg = REG_VBC_MODULE_CLR0;
+	     reg <= REG_VBC_IIS_IN_STS; reg += 0x10, addr += 4) {
 		snd_iprintf(buffer,
 			    "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
 			    reg - VBC_DSP_ADDR_BASE, (*addr),
@@ -3467,7 +3467,7 @@ static u32 ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 
 	agdsp_access_enable();
 	snd_iprintf(buffer, "ap-vbc register dump\n");
-	for (reg = VBC_AP_ADDR_START;
+	for (reg = REG_VBC_AUDPLY_FIFO_CTRL;
 	     reg <= VBC_AP_ADDR_END; reg += 0x10) {
 		snd_iprintf(buffer, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
 			    reg, ap_vbc_reg_read(reg + 0x00)
@@ -3498,6 +3498,18 @@ static void vbc_proc_write(struct snd_info_entry *entry,
 	agdsp_access_disable();
 }
 
+static void vbc_audcp_ahb_proc_read(struct snd_info_buffer *buffer)
+{
+	u32 val, reg;
+
+	agdsp_access_enable();
+	reg = REG_AGCP_AHB_EXT_ACC_AG_SEL;
+	agcp_ahb_reg_read(reg, &val);
+	snd_iprintf(buffer, "audcp ahb register dump\n");
+	snd_iprintf(buffer, "0x%04x | 0x%04x\n", reg, val);
+	agdsp_access_disable();
+}
+
 static void vbc_proc_read(struct snd_info_entry *entry,
 			  struct snd_info_buffer *buffer)
 {
@@ -3510,6 +3522,7 @@ static void vbc_proc_read(struct snd_info_entry *entry,
 	ret = ap_vbc_reg_proc_read(buffer);
 	if (ret < 0)
 		snd_iprintf(buffer, "ap-vbc register dump error\n");
+	vbc_audcp_ahb_proc_read(buffer);
 }
 
 static void vbc_proc_init(struct snd_soc_codec *codec)
@@ -3616,11 +3629,11 @@ static void init_vbc_codec_data(struct vbc_codec_priv *vbc_codec)
 	vbc_codec->iis_rx_wd[VBC_MUX_IIS_RX_ADC3].value = WD_16BIT;
 	/* iis lr mod */
 	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC0].id = VBC_MUX_IIS_TX_DAC0;
-	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC0].value = RIGHT_HIGH;
+	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC0].value = LEFT_HIGH;
 	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC1].id = VBC_MUX_IIS_TX_DAC1;
-	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC1].value = RIGHT_HIGH;
+	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC1].value = LEFT_HIGH;
 	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC2].id = VBC_MUX_IIS_TX_DAC2;
-	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC2].value = RIGHT_HIGH;
+	vbc_codec->iis_tx_lr_mod[VBC_MUX_IIS_TX_DAC2].value = LEFT_HIGH;
 	vbc_codec->iis_rx_lr_mod[VBC_MUX_IIS_RX_ADC0].id = VBC_MUX_IIS_RX_ADC0;
 	vbc_codec->iis_rx_lr_mod[VBC_MUX_IIS_RX_ADC0].value = LEFT_HIGH;
 	vbc_codec->iis_rx_lr_mod[VBC_MUX_IIS_RX_ADC1].id = VBC_MUX_IIS_RX_ADC1;

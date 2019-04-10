@@ -28,6 +28,9 @@
 #define SC27XX_STATUS			0x1c
 #define SC27XX_RTRIM			0x3c
 
+/* SC27XX_TYPEC_EN */
+#define SC27XX_TYPEC_USB20_ONLY		BIT(4)
+
 /* SC27XX_TYPEC MODE */
 #define SC27XX_MODE_SNK			0
 #define SC27XX_MODE_SRC			1
@@ -129,6 +132,7 @@ struct sc27xx_typec {
 	u32 base;
 	int irq;
 	struct extcon_dev *edev;
+	bool usb20_only;
 
 	enum sc27xx_typec_connection_state state;
 	enum sc27xx_typec_connection_state pre_state;
@@ -150,11 +154,13 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 
 	switch (sc->state) {
 	case SC27XX_ATTACHED_SNK:
+	case SC27XX_DEBUG_CABLE:
 		power_role = TYPEC_SINK;
 		data_role = TYPEC_DEVICE;
 		vconn_role = TYPEC_SINK;
 		break;
 	case SC27XX_ATTACHED_SRC:
+	case SC27XX_AUDIO_CABLE:
 		power_role = TYPEC_SOURCE;
 		data_role = TYPEC_HOST;
 		vconn_role = TYPEC_SOURCE;
@@ -178,12 +184,17 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 
 	switch (sc->state) {
 	case SC27XX_ATTACHED_SNK:
+	case SC27XX_DEBUG_CABLE:
 		sc->pre_state = SC27XX_ATTACHED_SNK;
 		extcon_set_state_sync(sc->edev, EXTCON_USB, true);
 		break;
 	case SC27XX_ATTACHED_SRC:
 		sc->pre_state = SC27XX_ATTACHED_SRC;
 		extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, true);
+		break;
+	case SC27XX_AUDIO_CABLE:
+		sc->pre_state = SC27XX_AUDIO_CABLE;
+		extcon_set_state_sync(sc->edev, EXTCON_JACK_HEADPHONE, true);
 		break;
 	default:
 		break;
@@ -203,10 +214,14 @@ static void sc27xx_typec_disconnect(struct sc27xx_typec *sc, u32 status)
 
 	switch (sc->pre_state) {
 	case SC27XX_ATTACHED_SNK:
+	case SC27XX_DEBUG_CABLE:
 		extcon_set_state_sync(sc->edev, EXTCON_USB, false);
 		break;
 	case SC27XX_ATTACHED_SRC:
 		extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, false);
+		break;
+	case SC27XX_AUDIO_CABLE:
+		extcon_set_state_sync(sc->edev, EXTCON_JACK_HEADPHONE, false);
 		break;
 	default:
 		break;
@@ -297,6 +312,15 @@ static int sc27xx_typec_enable(struct sc27xx_typec *sc)
 	if (ret)
 		return ret;
 
+	/* typec USB20 only flag, only work in snk mode */
+	if (sc->typec_cap.type == TYPEC_PORT_UFP && sc->usb20_only) {
+		ret = regmap_update_bits(sc->regmap, sc->base + SC27XX_EN,
+					 SC27XX_TYPEC_USB20_ONLY,
+					 SC27XX_TYPEC_USB20_ONLY);
+		if (ret)
+			return ret;
+	}
+
 	/* Enable typec interrupt and enable typec */
 	ret = regmap_read(sc->regmap, sc->base + sc->var_data->int_en, &val);
 	if (ret)
@@ -309,6 +333,7 @@ static int sc27xx_typec_enable(struct sc27xx_typec *sc)
 static const u32 sc27xx_typec_cable[] = {
 	EXTCON_USB,
 	EXTCON_USB_HOST,
+	EXTCON_JACK_HEADPHONE,
 	EXTCON_NONE,
 };
 
@@ -355,7 +380,7 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 	struct device_node *node = pdev->dev.of_node;
 	struct sc27xx_typec *sc;
 	const struct sprd_typec_variant_data *pdata;
-	int ret;
+	int mode, ret;
 
 	pdata = of_device_get_match_data(dev);
 	if (!pdata) {
@@ -398,8 +423,21 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	ret = of_property_read_u32(node, "mode", &mode);
+	if (ret) {
+		dev_err(dev, "failed to get typec port mode type\n");
+		return ret;
+	}
+
+	if (mode < TYPEC_PORT_DFP || mode > TYPEC_PORT_DRP
+	    || mode == TYPEC_PORT_UFP) {
+		mode = TYPEC_PORT_UFP;
+		sc->usb20_only = true;
+		dev_info(dev, "usb 2.0 only is enabled\n");
+	}
+
 	sc->var_data = pdata;
-	sc->typec_cap.type = TYPEC_PORT_DRP;
+	sc->typec_cap.type = mode;
 	sc->typec_cap.dr_set = sc27xx_typec_dr_set;
 	sc->typec_cap.pr_set = sc27xx_typec_pr_set;
 	sc->typec_cap.vconn_set = sc27xx_typec_vconn_set;

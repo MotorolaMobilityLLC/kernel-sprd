@@ -35,6 +35,9 @@ struct sprd_plane {
 	struct drm_property *fbc_hsize_r_property;
 	struct drm_property *fbc_hsize_y_property;
 	struct drm_property *fbc_hsize_uv_property;
+	struct drm_property *y2r_coef_property;
+	struct drm_property *pallete_en_property;
+	struct drm_property *pallete_color_property;
 	u32 index;
 };
 
@@ -45,6 +48,9 @@ struct sprd_plane_state {
 	u32 fbc_hsize_r;
 	u32 fbc_hsize_y;
 	u32 fbc_hsize_uv;
+	u32 y2r_coef;
+	u32 pallete_en;
+	u32 pallete_color;
 };
 
 LIST_HEAD(dpu_core_head);
@@ -71,9 +77,6 @@ static int sprd_dpu_iommu_map(struct device *dev,
 	struct dma_buf *dma_buf;
 	struct sprd_iommu_map_data iommu_data = {};
 
-	if (sprd_gem->dma_addr)
-		return 0;
-
 	dma_buf = sprd_gem->base.import_attach->dmabuf;
 	iommu_data.buf = dma_buf->priv;
 	iommu_data.iova_size = dma_buf->size;
@@ -92,15 +95,13 @@ static int sprd_dpu_iommu_map(struct device *dev,
 static void sprd_dpu_iommu_unmap(struct device *dev,
 				struct sprd_gem_obj *sprd_gem)
 {
-	if (sprd_gem->sgtb && sprd_gem->sgtb->nents > 1) {
-		struct sprd_iommu_unmap_data iommu_data = {};
+	struct sprd_iommu_unmap_data iommu_data = {};
 
-		iommu_data.iova_size = sprd_gem->base.size;
-		iommu_data.iova_addr = sprd_gem->dma_addr;
-		iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
+	iommu_data.iova_size = sprd_gem->base.size;
+	iommu_data.iova_addr = sprd_gem->dma_addr;
+	iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 
-		sprd_iommu_unmap(dev, &iommu_data);
-	}
+	sprd_iommu_unmap(dev, &iommu_data);
 }
 
 static int sprd_plane_prepare_fb(struct drm_plane *plane,
@@ -127,7 +128,8 @@ static int sprd_plane_prepare_fb(struct drm_plane *plane,
 	for (i = 0; i < fb->format->num_planes; i++) {
 		obj = drm_gem_fb_get_obj(fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		sprd_dpu_iommu_map(&dpu->dev, sprd_gem);
+		if (sprd_gem->sgtb && sprd_gem->sgtb->nents > 1)
+			sprd_dpu_iommu_map(&dpu->dev, sprd_gem);
 	}
 
 	return 0;
@@ -157,7 +159,8 @@ static void sprd_plane_cleanup_fb(struct drm_plane *plane,
 	for (i = 0; i < fb->format->num_planes; i++) {
 		obj = drm_gem_fb_get_obj(fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		sprd_dpu_iommu_unmap(&dpu->dev, sprd_gem);
+		if (sprd_gem->sgtb && sprd_gem->sgtb->nents > 1)
+			sprd_dpu_iommu_unmap(&dpu->dev, sprd_gem);
 	}
 }
 
@@ -182,6 +185,22 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	struct sprd_dpu_layer *layer = &dpu->layers[p->index];
 	int i;
 
+	if (s->pallete_en) {
+		layer->index = p->index;
+		layer->dst_x = state->crtc_x;
+		layer->dst_y = state->crtc_y;
+		layer->dst_w = state->crtc_w;
+		layer->dst_h = state->crtc_h;
+		layer->alpha = s->alpha;
+		layer->blending = s->blend_mode;
+		layer->pallete_en = s->pallete_en;
+		layer->pallete_color = s->pallete_color;
+		dpu->pending_planes++;
+		DRM_DEBUG("%s() pallete_color = %u, index = %u\n",
+			__func__, layer->pallete_color, layer->index);
+		return;
+	}
+
 	layer->index = p->index;
 	layer->src_x = state->src_x >> 16;
 	layer->src_y = state->src_y >> 16;
@@ -200,9 +219,12 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	layer->header_size_r = s->fbc_hsize_r;
 	layer->header_size_y = s->fbc_hsize_y;
 	layer->header_size_uv = s->fbc_hsize_uv;
+	layer->y2r_coef = s->y2r_coef;
+	layer->pallete_en = s->pallete_en;
+	layer->pallete_color = s->pallete_color;
 
-	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u\n",
-		  __func__, layer->alpha, layer->blending, layer->rotation);
+	DRM_DEBUG("%s() alpha = %u, blending = %u, rotation = %u, y2r_coef = %u\n",
+		  __func__, layer->alpha, layer->blending, layer->rotation, s->y2r_coef);
 
 	DRM_DEBUG("%s() xfbc = %u, hsize_r = %u, hsize_y = %u, hsize_uv = %u\n",
 		  __func__, layer->xfbc, layer->header_size_r,
@@ -282,6 +304,9 @@ sprd_plane_atomic_duplicate_state(struct drm_plane *plane)
 	s->fbc_hsize_r = old_state->fbc_hsize_r;
 	s->fbc_hsize_y = old_state->fbc_hsize_y;
 	s->fbc_hsize_uv = old_state->fbc_hsize_uv;
+	s->y2r_coef = old_state->y2r_coef;
+	s->pallete_en = old_state->pallete_en;
+	s->pallete_color = old_state->pallete_color;
 
 	return &s->state;
 }
@@ -316,6 +341,12 @@ static int sprd_plane_atomic_set_property(struct drm_plane *plane,
 		s->fbc_hsize_y = val;
 	else if (property == p->fbc_hsize_uv_property)
 		s->fbc_hsize_uv = val;
+	else if (property == p->y2r_coef_property)
+		s->y2r_coef = val;
+	else if (property == p->pallete_en_property)
+		s->pallete_en = val;
+	else if (property == p->pallete_color_property)
+		s->pallete_color = val;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -344,6 +375,12 @@ static int sprd_plane_atomic_get_property(struct drm_plane *plane,
 		*val = s->fbc_hsize_y;
 	else if (property == p->fbc_hsize_uv_property)
 		*val = s->fbc_hsize_uv;
+	else if (property == p->y2r_coef_property)
+		*val = s->y2r_coef;
+	else if (property == p->pallete_en_property)
+		*val = s->pallete_en;
+	else if (property == p->pallete_color_property)
+		*val = s->pallete_color;
 	else {
 		DRM_ERROR("property %s is invalid\n", property->name);
 		return -EINVAL;
@@ -409,6 +446,30 @@ static int sprd_plane_create_properties(struct sprd_plane *p, int index)
 		return -ENOMEM;
 	drm_object_attach_property(&p->plane.base, prop, 0);
 	p->fbc_hsize_uv_property = prop;
+
+	/* create y2r coef property */
+	prop = drm_property_create_range(p->plane.dev, 0,
+			"YUV2RGB coef", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&p->plane.base, prop, 0);
+	p->y2r_coef_property = prop;
+
+	/* create pallete enable property */
+	prop = drm_property_create_range(p->plane.dev, 0,
+			"pallete enable", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&p->plane.base, prop, 0);
+	p->pallete_en_property = prop;
+
+	/* create pallete color property */
+	prop = drm_property_create_range(p->plane.dev, 0,
+			"pallete color", 0, UINT_MAX);
+	if (!prop)
+		return -ENOMEM;
+	drm_object_attach_property(&p->plane.base, prop, 0);
+	p->pallete_color_property = prop;
 
 	return 0;
 }
@@ -638,6 +699,36 @@ static void sprd_crtc_disable_vblank(struct drm_crtc *crtc)
 		dpu->core->disable_vsync(&dpu->ctx);
 }
 
+static int sprd_crtc_create_properties(struct drm_crtc *crtc)
+{
+	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+	struct drm_device *drm = dpu->crtc.dev;
+	struct drm_property *prop;
+	struct drm_property_blob *blob;
+	size_t blob_size;
+
+	blob_size = strlen(dpu->ctx.version) + 1;
+
+	blob = drm_property_create_blob(dpu->crtc.dev, blob_size,
+			dpu->ctx.version);
+	if (IS_ERR(blob)) {
+		DRM_ERROR("drm_property_create_blob dpu version failed\n");
+		return PTR_ERR(blob);
+	}
+
+	/* create dpu version property */
+	prop = drm_property_create(drm,
+		DRM_MODE_PROP_IMMUTABLE | DRM_MODE_PROP_BLOB,
+		"dpu version", 0);
+	if (!prop) {
+		DRM_ERROR("drm_property_create dpu version failed\n");
+		return -ENOMEM;
+	}
+	drm_object_attach_property(&crtc->base, prop, blob->base.id);
+
+	return 0;
+}
+
 static const struct drm_crtc_helper_funcs sprd_crtc_helper_funcs = {
 	.mode_set_nofb	= sprd_crtc_mode_set_nofb,
 	.mode_valid	= sprd_crtc_mode_valid,
@@ -687,6 +778,8 @@ static int sprd_crtc_init(struct drm_device *drm, struct drm_crtc *crtc,
 	drm_mode_crtc_set_gamma_size(crtc, 256);
 
 	drm_crtc_helper_add(crtc, &sprd_crtc_helper_funcs);
+
+	sprd_crtc_create_properties(crtc);
 
 	DRM_INFO("%s() ok\n", __func__);
 	return 0;

@@ -64,7 +64,7 @@ struct modem_ctrl {
 
 struct modem_device {
 	struct modem_load_info	*load;
-	const char			*modem_name;
+	const char		*modem_name;
 	struct modem_ctrl	*modem_ctrl;
 
 #ifdef CONFIG_SPRD_EXT_MODEM_POWER_CTRL
@@ -105,7 +105,7 @@ struct dentry	*debug_file;
 
 struct ext_modem_operations {
 	void (*get_remote_flag)(struct modem_device *modem);
-	void (*set_remote_flag)(struct modem_device *modem);
+	void (*set_remote_flag)(struct modem_device *modem, u8 b_clear);
 
 #ifdef CONFIG_SPRD_EXT_MODEM_POWER_CTRL
 	int (*reboot)(struct modem_device *modem, u8 b_reset);

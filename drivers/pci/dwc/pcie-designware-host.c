@@ -147,6 +147,7 @@ static int assign_irq(int no_irqs, struct msi_desc *desc, int *pos)
 {
 	int irq, pos0, i;
 	struct pcie_port *pp;
+	unsigned int irq_offset;
 
 	pp = (struct pcie_port *)msi_desc_to_pci_sysdata(desc);
 	pos0 = bitmap_find_free_region(pp->msi_irq_in_use, MAX_MSI_IRQS,
@@ -166,7 +167,8 @@ static int assign_irq(int no_irqs, struct msi_desc *desc, int *pos)
 	 */
 
 	for (i = 0; i < no_irqs; i++) {
-		if (irq_set_msi_desc_off(irq, i, desc) != 0) {
+		irq_offset = irq_find_mapping(pp->irq_domain, pos0 + i) - irq;
+		if (irq_set_msi_desc_off(irq, irq_offset, desc) != 0) {
 			clear_irq_range(pp, irq, i, pos0);
 			goto no_valid_irq;
 		}
@@ -317,6 +319,7 @@ int dw_pcie_host_init(struct pcie_port *pp)
 	if (ret)
 		goto error;
 
+	pp->mem_ids = 0;
 	/* Get the I/O and memory ranges from DT */
 	resource_list_for_each_entry_safe(win, tmp, &bridge->windows) {
 		switch (resource_type(win->res)) {
@@ -334,10 +337,13 @@ int dw_pcie_host_init(struct pcie_port *pp)
 			}
 			break;
 		case IORESOURCE_MEM:
-			pp->mem = win->res;
-			pp->mem->name = "MEM";
-			pp->mem_size = resource_size(pp->mem);
-			pp->mem_bus_addr = pp->mem->start - win->offset;
+			pp->mem[pp->mem_ids] = win->res;
+			pp->mem[pp->mem_ids]->name = "MEM";
+			pp->mem_size[pp->mem_ids] =
+				resource_size(pp->mem[pp->mem_ids]);
+			pp->mem_bus_addr[pp->mem_ids] =
+				pp->mem[pp->mem_ids]->start - win->offset;
+			pp->mem_ids++;
 			break;
 		case 0:
 			pp->cfg = win->res;
@@ -363,7 +369,8 @@ int dw_pcie_host_init(struct pcie_port *pp)
 		}
 	}
 
-	pp->mem_base = pp->mem->start;
+	for (i = 0; i < pp->mem_ids; i++)
+		pp->mem_base[i] = pp->mem[i]->start;
 
 	if (!pp->va_cfg0_base) {
 		pp->va_cfg0_base = devm_pci_remap_cfgspace(dev,
@@ -422,8 +429,10 @@ int dw_pcie_host_init(struct pcie_port *pp)
 	bridge->sysdata = pp;
 	bridge->busnr = pp->root_bus_nr;
 	bridge->ops = &dw_pcie_ops;
+#ifndef CONFIG_SPRD_IPA_INTC
 	bridge->map_irq = of_irq_parse_and_map_pci;
 	bridge->swizzle_irq = pci_common_swizzle;
+#endif
 	if (IS_ENABLED(CONFIG_PCI_MSI)) {
 		bridge->msi = &dw_pcie_msi_chip;
 		dw_pcie_msi_chip.dev = dev;
@@ -479,14 +488,10 @@ static int dw_pcie_rd_other_conf(struct pcie_port *pp, struct pci_bus *bus,
 		va_cfg_base = pp->va_cfg1_base;
 	}
 
-	dw_pcie_prog_outbound_atu(pci, PCIE_ATU_REGION_INDEX1,
+	dw_pcie_prog_outbound_atu(pci, PCIE_ATU_REGION_INDEX0,
 				  type, cpu_addr,
 				  busdev, cfg_size);
 	ret = dw_pcie_read(va_cfg_base + where, size, val);
-	if (pci->num_viewport <= 2)
-		dw_pcie_prog_outbound_atu(pci, PCIE_ATU_REGION_INDEX1,
-					  PCIE_ATU_TYPE_IO, pp->io_base,
-					  pp->io_bus_addr, pp->io_size);
 
 	return ret;
 }
@@ -518,14 +523,10 @@ static int dw_pcie_wr_other_conf(struct pcie_port *pp, struct pci_bus *bus,
 		va_cfg_base = pp->va_cfg1_base;
 	}
 
-	dw_pcie_prog_outbound_atu(pci, PCIE_ATU_REGION_INDEX1,
+	dw_pcie_prog_outbound_atu(pci, PCIE_ATU_REGION_INDEX0,
 				  type, cpu_addr,
 				  busdev, cfg_size);
 	ret = dw_pcie_write(va_cfg_base + where, size, val);
-	if (pci->num_viewport <= 2)
-		dw_pcie_prog_outbound_atu(pci, PCIE_ATU_REGION_INDEX1,
-					  PCIE_ATU_TYPE_IO, pp->io_base,
-					  pp->io_bus_addr, pp->io_size);
 
 	return ret;
 }
@@ -596,7 +597,7 @@ static u8 dw_pcie_iatu_unroll_enabled(struct dw_pcie *pci)
 
 void dw_pcie_setup_rc(struct pcie_port *pp)
 {
-	u32 val;
+	u32 val, i;
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 
 	dw_pcie_setup(pci);
@@ -604,6 +605,9 @@ void dw_pcie_setup_rc(struct pcie_port *pp)
 	/* setup RC BARs */
 	dw_pcie_writel_dbi(pci, PCI_BASE_ADDRESS_0, 0x00000004);
 	dw_pcie_writel_dbi(pci, PCI_BASE_ADDRESS_1, 0x00000000);
+	/* Disabled BAR0 and BAR1 */
+	dw_pcie_writel_dbi(pci, PCIE_DBI_CS2 + PCI_BASE_ADDRESS_0, 0);
+	dw_pcie_writel_dbi(pci, PCIE_DBI_CS2 + PCI_BASE_ADDRESS_1, 0);
 
 	/* setup interrupt pins */
 	dw_pcie_dbi_ro_wr_en(pci);
@@ -637,13 +641,15 @@ void dw_pcie_setup_rc(struct pcie_port *pp)
 		dev_dbg(pci->dev, "iATU unroll: %s\n",
 			pci->iatu_unroll_enabled ? "enabled" : "disabled");
 
-		dw_pcie_prog_outbound_atu(pci, PCIE_ATU_REGION_INDEX0,
-					  PCIE_ATU_TYPE_MEM, pp->mem_base,
-					  pp->mem_bus_addr, pp->mem_size);
-		if (pci->num_viewport > 2)
-			dw_pcie_prog_outbound_atu(pci, PCIE_ATU_REGION_INDEX2,
-						  PCIE_ATU_TYPE_IO, pp->io_base,
-						  pp->io_bus_addr, pp->io_size);
+		for (i = 0; i < pp->mem_ids; i++)
+			dw_pcie_prog_outbound_atu(pci,
+				PCIE_ATU_REGION_INDEX2 + i,
+				PCIE_ATU_TYPE_MEM, pp->mem_base[i],
+				pp->mem_bus_addr[i], pp->mem_size[i]);
+
+		dw_pcie_prog_outbound_atu(pci, PCIE_ATU_REGION_INDEX1,
+				PCIE_ATU_TYPE_IO, pp->io_base,
+				pp->io_bus_addr, pp->io_size);
 	}
 
 	dw_pcie_wr_own_conf(pp, PCI_BASE_ADDRESS_0, 4, 0);

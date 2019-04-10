@@ -813,6 +813,11 @@ struct rq {
 	u64 avg_irqload;
 	u64 irqload_ts;
 	u64 cum_window_demand;
+	enum {
+		CPU_BUSY_CLR = 0,
+		CPU_BUSY_PREPARE,
+		CPU_BUSY_SET,
+	} is_busy;
 #endif /* CONFIG_SCHED_WALT */
 
 

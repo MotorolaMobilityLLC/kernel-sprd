@@ -4681,7 +4681,7 @@ static void codec_reconfig_dai_rate(struct snd_soc_codec *codec)
 static int sprd_codec_soc_probe(struct snd_soc_codec *codec)
 {
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
-	int ret = 0;
+	int ret;
 	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
 
 	if (!sprd_codec) {
@@ -4705,9 +4705,13 @@ static int sprd_codec_soc_probe(struct snd_soc_codec *codec)
 	 * Even without headset driver, codec could work well.
 	 * So, igore the return status here.
 	 */
-	sprd_headset_soc_probe(codec);
+	ret = sprd_headset_soc_probe(codec);
+	if (ret == -EPROBE_DEFER) {
+		pr_info("The headset is not ready now\n");
+		return ret;
+	}
 
-	return ret;
+	return 0;
 }
 
 /* power down chip */

@@ -309,6 +309,58 @@ static const struct attribute_group dpu_group = {
 #define BIN_ATTR_WO(_name, _size) BIN_ATTR(_name, S_IWUSR, NULL,\
 					_name##_write, _size)
 
+static ssize_t ltm_read(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->refresh_lock);
+		return -EINVAL;
+	}
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_LTM, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+
+static ssize_t ltm_write(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_set)
+		return -EIO;
+
+	/* I need to get my data in one piece */
+	if (off != 0 || count != attr->size)
+		return -EINVAL;
+
+	down(&ctx->refresh_lock);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_LTM, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+static BIN_ATTR_RW(ltm, 16);
+
 static ssize_t gamma_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
@@ -701,6 +753,7 @@ static struct attribute *pq_ascii_attrs[] = {
 	NULL,
 };
 static struct bin_attribute *pq_bin_attrs[] = {
+	&bin_attr_ltm,
 	&bin_attr_gamma,
 	&bin_attr_slp,
 	&bin_attr_cm,

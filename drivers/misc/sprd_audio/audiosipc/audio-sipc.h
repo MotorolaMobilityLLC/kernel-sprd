@@ -41,13 +41,16 @@ int aud_ipc_ch_open(uint16_t channel);
 int aud_ipc_ch_close(uint16_t channel);
 int aud_send_cmd(uint16_t channel, int id, int stream, u32 cmd,
 		 void *para, size_t n, int32_t timeout);
+int aud_send_cmd_result(u16 channel, int id, int stream, u32 cmd,
+			void *para, size_t n, void *result, int32_t timeout);
 int aud_send_block_param(uint16_t channel, int id, int stream, u32 cmd,
 	int type, void *buf, size_t n, int32_t timeout);
 
 int aud_recv_block_param(uint16_t channel, int id, int stream, u32 cmd,
 	int type, void *buf, u32 size, int32_t timeout);
 
-int aud_recv_cmd(uint16_t channel, u32 cmd, int *ret, int32_t timeout);
+int aud_recv_cmd(u16 channel, u32 cmd,
+		 struct aud_smsg *result, int32_t timeout);
 int aud_send_use_noreplychan(u32 cmd, u32 value0, u32 value1,
 			     u32 value2, int32_t value3);
 int aud_send_cmd_no_wait(uint16_t channel, u32 cmd, u32 value0,
@@ -56,5 +59,9 @@ int aud_send_cmd_no_param(uint16_t channel, u32 cmd,
 			  u32 value0, u32 value1,
 			  u32 value2, int32_t value3, int32_t timeout);
 u32 aud_ipc_dump(void *buf, u32 buf_bytes);
+int aud_get_aud_ipc_smsg_addr(unsigned long *phy, unsigned long *virt,
+			      u32 *size);
+int aud_get_aud_ipc_smsg_para_addr(unsigned long *phy,
+				   unsigned long *virt, u32 *size);
 
 #endif /* __AUDIO_SIPC_H */

@@ -296,17 +296,21 @@ int gsp_layer_iommu_map(struct gsp_layer *layer, struct device *dev)
 {
 	int ret = -1;
 	struct sprd_iommu_map_data iommu_data;
-	int fd;
+	struct gsp_buf *buf = NULL;
 
-	fd = gsp_layer_to_share_fd(layer);
-	ret = sprd_ion_get_buffer(fd, NULL,
-				&(iommu_data.buf),
-				&iommu_data.iova_size);
+	/* this buf has been assigned when kcfg get dmabuf
+	 * so we need to check whether it is validate
+	 */
+	buf = gsp_layer_to_buf(layer);
+	ret = gsp_layer_buf_verify(buf);
 	if (ret) {
-		GSP_ERR("get_sg_table failed, ret:%d, fd:%d\n", ret, fd);
+		GSP_ERR("layer[%d] buf is invalidate\n",
+			gsp_layer_to_type(layer));
 		goto done;
 	}
 
+	iommu_data.buf = buf->dmabuf->priv;
+	iommu_data.iova_size = buf->size;
 	iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 	ret = sprd_iommu_map(dev, &iommu_data);
 	if (ret) {

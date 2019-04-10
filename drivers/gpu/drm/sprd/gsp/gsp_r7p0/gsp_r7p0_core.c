@@ -39,6 +39,8 @@
 #include "gsp_r7p0_coef_cal.h"
 #include "../gsp_interface.h"
 
+static int zorder_used[R7P0_IMGL_NUM + R7P0_OSDL_NUM] = {0};
+
 static void print_image_layer_cfg(struct gsp_r7p0_img_layer *layer)
 {
 	struct gsp_r7p0_img_layer_params *params = NULL;
@@ -682,7 +684,6 @@ static irqreturn_t gsp_r7p0_core_irq_handler(int irq, void *data)
 
 int gsp_r7p0_core_enable(struct gsp_core *c)
 {
-#if 0
 	int ret = -1;
 	struct gsp_r7p0_core *core = NULL;
 
@@ -701,6 +702,7 @@ int gsp_r7p0_core_enable(struct gsp_core *c)
 		goto dpu_clk_unprepare;
 	}
 
+	gsp_r7p0_int_clear(c);
 	gsp_r7p0_core_irq_enable(c);
 	goto exit;
 
@@ -708,13 +710,6 @@ dpu_clk_unprepare:
 	clk_disable_unprepare(core->dpu_clk);
 exit:
 	return ret;
-#endif
-	struct gsp_r7p0_core *core = NULL;
-
-	core = (struct gsp_r7p0_core *)c;
-	gsp_r7p0_int_clear(c);
-	gsp_r7p0_core_irq_enable(c);
-	return 0;
 }
 
 void gsp_r7p0_core_disable(struct gsp_core *c)
@@ -723,12 +718,11 @@ void gsp_r7p0_core_disable(struct gsp_core *c)
 
 	core = (struct gsp_r7p0_core *)c;
 	gsp_r7p0_int_clear_and_disable(c);
-	/*clk_disable_unprepare(core->dpu_clk);*/
+	clk_disable_unprepare(core->dpu_clk);
 }
 
 static int gsp_r7p0_core_parse_clk(struct gsp_r7p0_core *core)
 {
-#if 0
 	int status = 0;
 	core->dpu_clk = of_clk_get_by_name(core->common.node,
 			R3P0_DPU_CLOCK_NAME);
@@ -741,8 +735,6 @@ static int gsp_r7p0_core_parse_clk(struct gsp_r7p0_core *core)
 		status = -1;
 	}
 	return status;
-#endif
-	return 0;
 }
 
 static int gsp_r7p0_core_parse_irq(struct gsp_core *core)
@@ -873,6 +865,7 @@ static void gsp_r7p0_core_limg_reg_set(void __iomem *base,
 	struct R7P0_LAYERIMG_DES_SCL_SIZE_REG limg_des_size_value;
 	struct R7P0_LAYERIMG_DES_SCL_SIZE_REG limg_des_size_mask;
 	struct gsp_r7p0_img_layer_params *limg_params = NULL;
+	int i = 0;
 
 	if (IS_ERR_OR_NULL(base) || IS_ERR_OR_NULL(layer)) {
 		GSP_ERR("layer0 reg set params error\n");
@@ -884,8 +877,16 @@ static void gsp_r7p0_core_limg_reg_set(void __iomem *base,
 	if (layer->common.enable != 1) {
 		limg_cfg_value.value = 0;
 		limg_cfg_value.Limg_en = 0;
+		for (i = 0; i < R7P0_IMGL_NUM; i++) {
+			if (!zorder_used[i]) {
+				limg_cfg_value.ZNUM_L = i;
+				zorder_used[i] = 1;
+				break;
+			}
+		}
 		limg_cfg_mask.value = 0;
 		limg_cfg_mask.Limg_en = 0x1;
+		limg_cfg_mask.ZNUM_L = 0x3;
 		gsp_core_reg_update(R7P0_LIMG_CFG(
 			(base + layer_index * R7P0_LIMG_OFFSET)),
 			limg_cfg_value.value, limg_cfg_mask.value);
@@ -1089,6 +1090,7 @@ static void gsp_r7p0_core_limg_reg_set(void __iomem *base,
 	limg_cfg_value.Y2R_MOD = limg_params->y2r_mod;
 	limg_cfg_value.Y2Y_MOD = limg_params->y2y_mod;
 	limg_cfg_value.ZNUM_L = limg_params->zorder;
+	zorder_used[limg_cfg_value.ZNUM_L] = 1;
 	limg_cfg_value.SCALE_EN = limg_params->scaling_en;
 	limg_cfg_value.Limg_en = layer->common.enable;
 	limg_cfg_mask.value = 0;
@@ -1131,6 +1133,7 @@ static void gsp_r7p0_core_losd_reg_set(void __iomem *base,
 	struct R7P0_LAYEROSD_CK_REG losd_ck_value;
 	struct R7P0_LAYEROSD_CK_REG losd_ck_mask;
 	struct gsp_r7p0_osd_layer_params *losd_params = NULL;
+	int i = 0;
 
 	if (IS_ERR_OR_NULL(base) || IS_ERR_OR_NULL(layer)) {
 		GSP_ERR("LAYER1 reg set params error\n");
@@ -1142,8 +1145,16 @@ static void gsp_r7p0_core_losd_reg_set(void __iomem *base,
 	if (layer->common.enable != 1) {
 		losd_cfg_value.value = 0;
 		losd_cfg_value.Losd_en = 0;
+		for (i = R7P0_IMGL_NUM; i < R7P0_IMGL_NUM + R7P0_OSDL_NUM; i++) {
+			if (!zorder_used[i]) {
+				losd_cfg_value.ZNUM_L = i;
+				zorder_used[i] = 1;
+				break;
+			}
+		}
 		losd_cfg_mask.value = 0;
 		losd_cfg_mask.Losd_en = 0x1;
+		losd_cfg_mask.ZNUM_L = 0x3;
 		gsp_core_reg_update(R7P0_LOSD_CFG(
 			(base + layer_index * R7P0_LOSD_OFFSET)),
 			losd_cfg_value.value, losd_cfg_mask.value);
@@ -1263,6 +1274,7 @@ static void gsp_r7p0_core_losd_reg_set(void __iomem *base,
 	losd_cfg_value.PALLET_EN = losd_params->pallet_en;
 	losd_cfg_value.FBCD_MOD = losd_params->fbcd_mod;
 	losd_cfg_value.ZNUM_L = losd_params->zorder;
+	zorder_used[losd_cfg_value.ZNUM_L] = 1;
 	losd_cfg_value.Losd_en = layer->common.enable;
 	losd_cfg_mask.value = 0;
 	losd_cfg_mask.ENDIAN = 0xF;
@@ -1487,6 +1499,7 @@ int gsp_r7p0_core_trigger(struct gsp_core *c)
 		GSP_ERR("core is still busy, can't trigger\n");
 		return GSP_K_HW_BUSY_ERR;
 	}
+	memset(zorder_used, 0, sizeof(zorder_used));
 	base = c->base;
 	cfg = (struct gsp_r7p0_cfg *)kcfg->cfg;
 

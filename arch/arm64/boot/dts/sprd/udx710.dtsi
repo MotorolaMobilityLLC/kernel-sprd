@@ -10,6 +10,8 @@
 #include "orca.dtsi"
 
 / {
+	cpuinfo_hardware = "Unisoc UDX710";
+
 	cpus {
 		#address-cells = <2>;
 		#size-cells = <0>;
@@ -456,7 +458,7 @@
 				};
 
 				port@1 {
-					reg = <1>;
+					reg = <0>;
 					funnel_soc_in_port: endpoint {
 						slave-mode;
 						remote-endpoint = <&funnel_core_out_port>;
@@ -568,7 +570,7 @@
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7b040000 0 0x1000>;
 			cpu = <&CPU0>;
-			clocks = <&ext_26m>, <&aon_clk CLK_CSSYS>, <&g3_pll CLK_TWPLL_512M>;
+			clocks = <&ext_26m>, <&aon_clk CLK_CSSYS>, <&g3_pll CLK_TWPLL_384M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
 
 			port {
@@ -582,7 +584,7 @@
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7b140000 0 0x1000>;
 			cpu = <&CPU1>;
-			clocks = <&ext_26m>, <&aon_clk CLK_CSSYS>, <&g3_pll CLK_TWPLL_512M>;
+			clocks = <&ext_26m>, <&aon_clk CLK_CSSYS>, <&g3_pll CLK_TWPLL_384M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
 
 			port {
@@ -598,7 +600,7 @@
 	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
 	clocks = <&aon_clk CLK_EMMC_2X>,
 		 <&g3_pll CLK_V3RPLL>,
-		 <&apapb_gate CLK_EMMC_EB>;
+		 <&apahb_gate CLK_EMMC_EB>;
 };
 
 &uart0 {
@@ -654,4 +656,12 @@
 	clock-names = "enable", "spi", "source";
 	clocks = <&apapb_gate CLK_AP_APB_SPI2_EB>,
 	<&ap_clk CLK_AP_SPI2>, <&g3_pll CLK_TWPLL_192M>;
+};
+
+&pcie1 {
+	sprd,pcie-startup-syscons =
+		<&aon_apb_regs 0 0
+			REG_AON_APB_RF_PCIE_SLV_ADDR_OFFSET
+			MASK_AON_APB_RF_PCIE_SLV_ADDR_OFFSET
+			0x1>;
 };

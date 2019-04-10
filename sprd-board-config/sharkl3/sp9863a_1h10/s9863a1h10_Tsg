@@ -5,6 +5,7 @@ include  $(KERNEL_PATH)/sprd-board-config/sharkl3/sp9863a_1h10/sp9863a_1h10_base
 endif
 
 BOARD_TEE_CONFIG := trusty
+BOARD_WCN_CONFIG := built-in
 
 #DEFCONFIG
 KERNEL_DEFCONFIG := sprd_sharkl3_defconfig

@@ -40,6 +40,9 @@
 		eth7 = &sipa_eth7;
 		eth8 = &sipa_eth8;
 		eth9 = &sipa_eth9;
+		thm-sensor15 = &cluster0_sensor;
+		thm-sensor16 = &cluster1_sensor;
+		thm-sensor17 = &soc_sensor;
 	};
 
 	soc: soc {
@@ -336,6 +339,9 @@
 				<&pmu_apb_regs
 					REG_PMU_APB_PD_GPU_RGX_DUST_CFG0
 					MASK_PMU_APB_PD_GPU_RGX_DUST_AUTO_SHUTDOWN_EN>,
+				<&gpu_apb_regs
+					REG_GPU_APB_CLK_GPU_DVFS
+					MASK_GPU_APB_CGM_GPU_DVFS_EN>,
 				/*<&gpu_apb_regs
 					REG_GPU_APB_GPU_NIC400_QOS
 					MASK_GPU_APB_GPU_QOS_SEL>,
@@ -352,15 +358,21 @@
 					REG_GPU_DVFS_APB_GPU_SW_DVFS_CTRL
 					(MASK_GPU_DVFS_APB_GPU_DVFS_ACK |
 					MASK_GPU_DVFS_APB_GPU_DVFS_VOLTAGE_SW |
-					MASK_GPU_DVFS_APB_GPU_DVFS_REQ_SW)>;
+					MASK_GPU_DVFS_APB_GPU_DVFS_REQ_SW)>,
+				<&gpu_dvfs_apb_regs
+					REG_GPU_DVFS_APB_GPU_PROACTIVE_DVFS_CFG
+					MASK_GPU_DVFS_APB_GPU_PROACTIVE_DVFS_SEL
+					>;
 
 				syscon-names = "top_force_shutdown",
 					"rgx_dust_force_shutdown",
 					"rgx_dust_auto_shutdown",
+					"cgm_gpu_dvfs_en",
 					/*"gpu_qos_sel",
 					"gpu_qos",*/
 					"dvfs_index_cfg",
-					"sw_dvfs_ctrl";
+					"sw_dvfs_ctrl",
+					"pdvfs_cfg";
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
 
 				operating-points = <
@@ -383,11 +395,11 @@
 
 				sprd,dvfs-default = <0>;
 				sprd,qos = <&gpu_qos>;
-				sprd,dvfs-scene-extreme = <3>;
-				sprd,dvfs-scene-high = <2>;
-				sprd,dvfs-scene-medium = <2>;
+				sprd,dvfs-scene-extreme = <2>;
+				sprd,dvfs-scene-high = <1>;
+				sprd,dvfs-scene-medium = <1>;
 				sprd,dvfs-scene-low = <0>;
-				sprd,dvfs-range-max = <4>;
+				sprd,dvfs-range-max = <2>;
 				sprd,dvfs-range-min = <0>;
 			};
 
@@ -524,7 +536,7 @@
 					<&g12_pll CLK_ISPPLL_468M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp-count = <1>;
-				/*iommus = <&iommu_isp>;*/
+				iommus = <&iommu_isp>;
 				/*isp_qos = <&isp_qos>;*/
 				status = "disabled";
 			};
@@ -533,8 +545,8 @@
 				compatible = "sprd,iommuexroc1-isp";
 				reg = <0 0x62000000 0 0xffc00>,
 				      <0 0x620ffc00 0 0x400>;
-				iova-base = <0x60000000>;
-				iova-size = <0x10000000>;
+				iova-base = <0x50000000>;
+				iova-size = <0x20000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
@@ -667,7 +679,19 @@
 						MASK_AON_APB_MM_EB>;
 				syscon-names = "reset",
 					"aon_apb_eb";
+				iommus = <&iommu_jpg>;
 				status = "disabled";
+			};
+
+			iommu_jpg: iommu@62700000 {
+				compatible = "sprd,iommuexroc1-jpg";
+				reg = <0x0 0x62700000 0x0 0x800>,
+				      <0x0 0x62700300 0x0 0x80>;
+				iova-base = <0x70000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
 			};
 
 			cpp: cpp@62800000 {
@@ -681,7 +705,7 @@
 					<&mm_clk CLK_CPP>,
 					<&g12_pll CLK_TWPLL_384M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
-				/* iommus = <&iommu_cpp>; */
+				iommus = <&iommu_cpp>;
 				/* cpp_qos = <&cpp_qos>; */
 				status = "disabled";
 			};
@@ -746,7 +770,7 @@
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
 				sprd,project-id = <1>;
-				/*iommus = <&iommu_dcam>;*/
+				iommus = <&iommu_dcam>;
 				/*dcam_qos = <&dcam_qos>;*/
 				status = "disabled";
 			};
@@ -756,7 +780,7 @@
 				reg = <0 0x62900000 0 0xc000>,
 				      <0 0x6290c000 0 0x60>;
 				iova-base = <0x50000000>;
-				iova-size = <0x10000000>;
+				iova-size = <0x20000000>;
 				reg_name = "mmu_interrupt_reg", "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
@@ -835,33 +859,33 @@
 				sprd,need-through-pcie;
 				sprd,wiap-ul-dma;
 
-				sprd,usb-dl-tx = <1 1024>;
-				sprd,usb-dl-rx = <1 1024>;
-				sprd,usb-ul-tx = <1 1024>;
-				sprd,usb-ul-rx = <1 1024>;
+				sprd,usb-dl-tx = <0 2048>;
+				sprd,usb-dl-rx = <0 2048>;
+				sprd,usb-ul-tx = <0 2048>;
+				sprd,usb-ul-rx = <0 2048>;
 				sprd,cp-dl-tx = <1 128>;
 				sprd,cp-dl-rx = <1 128>;
 				sprd,cp-ul-tx = <1 128>;
 				sprd,cp-ul-rx = <1 128>;
-				sprd,wifi-dl-tx = <1 1024>;
-				sprd,wifi-dl-rx = <1 1024>;
-				sprd,wifi-ul-tx = <1 1024>;
-				sprd,wifi-ul-rx = <1 1024>;
-				sprd,ap-eth-dl-tx = <0 1024>;
-				sprd,ap-eth-dl-rx = <0 1024>;
-				sprd,ap-eth-ul-tx = <0 1024>;
-				sprd,ap-eth-ul-rx = <0 1024>;
-				sprd,ap-ip-dl-tx = <0 1024>;
-				sprd,ap-ip-dl-rx = <0 1024>;
-				sprd,ap-ip-ul-tx = <0 1024>;
-				sprd,ap-ip-ul-rx = <0 1024>;
+				sprd,wifi-dl-tx = <1 128>;
+				sprd,wifi-dl-rx = <1 128>;
+				sprd,wifi-ul-tx = <1 128>;
+				sprd,wifi-ul-rx = <1 128>;
+				sprd,ap-eth-dl-tx = <0 2048>;
+				sprd,ap-eth-dl-rx = <0 2048>;
+				sprd,ap-eth-ul-tx = <0 2048>;
+				sprd,ap-eth-ul-rx = <0 2048>;
+				sprd,ap-ip-dl-tx = <0 2048>;
+				sprd,ap-ip-dl-rx = <0 2048>;
+				sprd,ap-ip-ul-tx = <0 2048>;
+				sprd,ap-ip-ul-rx = <0 2048>;
 			};
 
-			ipa_delegate: sipa-dele@38e000000 {
-				compatible = "sprd,sipa-delegate";
-				reg = <0x0 0x2e000000 0 0x00001000>,
-				      <0x3 0x8e000000 0 0x00001000>;
-				reg-names = "remote-base", "mapped-base";
+			ipa_delegate: sipa-dele@80000000 {
+				compatible = "sprd,roc1-sipa-delegate";
+				reg = <0 0x80000000 0 0x10000000>,
+				      <0 0x2e000000 0 0x00010000>;
+				reg-names = "mem-base", "reg-base";
 
 				sprd,ul-fifo-depth = <128>;
 				sprd,dl-fifo-depth = <128>;
@@ -993,6 +1017,17 @@
 				#iommu-cells = <0>;
 			};
 
+			ipa_intc: ipa@20e03000 {
+				compatible = "sprd,ud710-ipa-intc";
+				reg = <0 0x20e03000 0 0x1000>;
+				interrupt-controller;
+				interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>;
+				#interrupt-cells = <1>;
+				syscon-names =  "ipa_intc_eb";
+				syscons = <&ipa_ahb_regs REG_IPA_AHB_IPA_EB
+					   MASK_IPA_AHB_INTC_EB>;
+			};
+
 			usb3: usb3@20f00000 {
 				compatible = "sprd,roc1-dwc3";
 				reg = <0 0x20f00000 0 0x100000>;
@@ -1006,7 +1041,6 @@
 					<&ipa_gate CLK_IPA_USB_REF_EB>;
 				clock-names = "core_clk", "ref_clk", "susp_clk";
 				usb-phy = <&ssphy>, <&ssphy>;
-				usb-pam = <&pamu3>;
 
 				dwc3@20f00000 {
 					compatible = "snps,dwc3";
@@ -1014,6 +1048,7 @@
 					interrupts = <GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>;
 					interrupt-names = "irq";
 					usb-phy = <&ssphy>, <&ssphy>;
+					usb-pam = <&pamu3>;
 					phy_type = "utmi_wide";
 					snps,usb3-u1u2-disable;
 					snps,dis_u3_susphy_quirk;
@@ -1155,25 +1190,19 @@
 					"pmu_vsp_auto_shutdown",
 					"pmu_pwr_status",
 					"vsp_domain_eb";
+				iommus = <&iommu_vsp>;
 				status = "disabled";
 			};
 
-			pcie0: pcie@20c00000 {
-				compatible = "sprd,pcie", "snps,dw-pcie";
-				reg = <0x0 0x20c00000 0x0 0x100000>,
-				      <0x3 0xffffe000 0x0 0x2000>;
-				reg-names = "dbi", "config";
-				#address-cells = <3>;
-				#size-cells = <2>;
-				device_type = "pci";
-				ranges = <0x01000000 0x0 0x00000000 0x3 0xfffee000 0x0 0x00010000
-					  0x03000000 0x0 0x10000000 0x3 0xf8000000 0x0 0x07fee000>;
-				interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
-				bus-range = <0 15>;
-				num-lanes = <1>;
-				num-vectors = <256>;
-				num-viewport = <8>;
-				status = "okay";
+			iommu_vsp: iommu@20500000 {
+				compatible = "sprd,iommuexroc1-vsp";
+				reg = <0 0x20501000 0 0xb000>,
+				      <0 0x20500000 0 0x80>;
+				iova-base = <0x40000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
 			};
 
 			pcie1: pcie@20d00000 {
@@ -1186,12 +1215,56 @@
 				device_type = "pci";
 				ranges = <0x01000000 0x0 0x00000000 0x3 0xf7ef0000 0x0 0x00010000
 					  0x03000000 0x0 0x10000000 0x2 0x80000000 0x0 0x80000000>;
-				interrupts = <GIC_SPI 153 IRQ_TYPE_LEVEL_HIGH>;
 				bus-range = <16 31>;
 				num-lanes = <1>;
 				num-vectors = <256>;
 				num-viewport = <8>;
 				status = "okay";
+
+				dummy@0 {
+					label = "parent_gic_intc";
+					interrupt-parent = <&gic>;
+					#interrupt-cells = <3>;
+					interrupts = <GIC_SPI 153
+						      IRQ_TYPE_LEVEL_HIGH>;
+				};
+				dummy@1 {
+					label = "parent_ipa_intc";
+					interrupt-parent = <&ipa_intc>;
+					#interrupt-cells = <1>;
+					interrupts = <20>;
+				};
+			};
+
+			pcie0: pcie@20c00000 {
+				compatible = "sprd,pcie", "snps,dw-pcie";
+				reg = <0x0 0x20c00000 0x0 0x100000>,
+				      <0x3 0xffffe000 0x0 0x2000>;
+				reg-names = "dbi", "config";
+				#address-cells = <3>;
+				#size-cells = <2>;
+				device_type = "pci";
+				ranges = <0x01000000 0x0 0x00000000 0x3 0xfffee000 0x0 0x00010000
+					  0x03000000 0x0 0x10000000 0x3 0xf8000000 0x0 0x07fee000>;
+				bus-range = <0 15>;
+				num-lanes = <1>;
+				num-vectors = <256>;
+				num-viewport = <8>;
+				status = "okay";
+
+				dummy@0 {
+					label = "parent_gic_intc";
+					interrupt-parent = <&gic>;
+					#interrupt-cells = <3>;
+					interrupts = <GIC_SPI 148
+						      IRQ_TYPE_LEVEL_HIGH>;
+				};
+				dummy@1 {
+					label = "parent_ipa_intc";
+					interrupt-parent = <&ipa_intc>;
+					#interrupt-cells = <1>;
+					interrupts = <11>;
+				};
 			};
 		};
 
@@ -1422,6 +1495,48 @@
 					nvmem-cells = <&thm3_sen6>;
 					nvmem-cell-names = "sen_delta_cal";
 				};
+			};
+
+			cluster0_sensor: cluster0-sensor@15 {
+				compatible = "sprd,cluster0-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "littlecore0-thmzone",
+					"littlecore1-thmzone",
+					"littlecore2-thmzone",
+					"littlecore3-thmzone";
+				k-po = <128>;
+				k-pu = <256>;
+				k-i = <2>;
+				k-d = <0>;
+				cutoff = <10000>;
+			};
+
+			cluster1_sensor: cluster1-sensor@16 {
+				compatible = "sprd,cluster1-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "bigcore4-thmzone",
+					"bigcore5-thmzone",
+					"bigcore6-thmzone",
+					"bigcore7-thmzone";
+				k-po = <128>;
+				k-pu = <256>;
+				k-i = <2>;
+				k-d = <0>;
+				cutoff = <10000>;
+			};
+
+			soc_sensor: soc-sensor@17 {
+				compatible = "sprd,soc-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "cluster0-thmzone",
+					"cluster1-thmzone",
+					"gpu0-thmzone",
+					"mm-thmzone";
+				k-po = <0>;
+				k-pu = <0>;
+				k-i = <2>;
+				k-d = <0>;
+				cutoff = <10000>;
 			};
 
 			ap_efuse: efuse@32240000 {
@@ -2144,6 +2259,12 @@
 				status = "disabled";
 			};
 
+			dmc_controller: dmc-controller@31056200  {
+				compatible = "sprd,roc1-dmc";
+				reg = <0x0 0x31056200 0x0 0x1000>,
+					<0x0 0x3000 0x0 0x1000>;
+			};
+
 			ptm_trace: ptm@31060000 {
 				compatible = "sprd,roc1-ptm";
 				reg = <0x0 0x31060000 0x0 0x10000>,
@@ -2301,6 +2422,14 @@
 				reg = <0 0x71300000 0 0x1000>;
 				interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
+			};
+
+			apsys_dvfs: apsys-dvfs@71700000 {
+				compatible = "sprd,hwdvfs-apsys-roc1";
+				reg = <0x0 0x71700000 0x0 0x15c>;
+
+				sprd,ap-dvfs-up-window = <0x40>;
+				sprd,ap-dvfs-down-window = <0x80>;
 			};
 
 			iommu_vdsp_edp: iommu_edp@78000000 {
@@ -2466,6 +2595,7 @@
 				syscon-names = "reset";
 				syscons = <&ai_apb_regs REG_AI_APB_APB_RST
 					MASK_AI_APB_POWERVR_SOFT_RST>;
+				sprd,qos = <&ai_qos>;
 				clock-names = "top_eb",
 					"pvr_eb",
 					"pvr_clk",
@@ -2497,14 +2627,23 @@
 				syscons = <&ai_apb_regs
 					REG_AI_APB_AI_CAMBRICON_SOFT_RST
 					MASK_AI_APB_CAMB_SOFT_RST>;
-				clock-names = "top", "mmu", "enable",
-					"sources", "mtx", "cfg";
+				sprd,qos = <&ai_qos>;
+				clock-names = "top_eb",
+					"mmu_eb",
+					"cmbn_eb",
+					"ai_mtx_clk",
+					"cmbn_clk",
+					"clk_src_512m",
+					"clk_scr_768m",
+					"clk_src_apll";
 				clocks = <&ai_gate CLK_AI_TOP_APB_EB>,
 					<&ai_gate CLK_AI_MMU_APB_EB>,
 					<&ai_gate CLK_AI_CAMBRICON_EB>,
-					<&ai_clk CLK_CAMBRICON>,
 					<&ai_clk CLK_AI_MTX>,
-					<&ai_clk CLK_CAMBRICON_CFG>;
+					<&ai_clk CLK_CAMBRICON>,
+					<&g12_pll CLK_TWPLL_512M>,
+					<&g12_pll CLK_TWPLL_768M>,
+					<&g12_pll CLK_APLL>;
 			};
 		};
 	};
@@ -2607,6 +2746,8 @@
 		sprd,normal-captue-data =<0x33806000 0x1e00>;
 		/* 0x200(0.5K) */
 		sprd,normal-captue-linklilst-node2 =<0x33807e00 0x200>;
+		/* audcp aon iram */
+		sprd,audcp-aon-iram = <0xa400 0x1000>;
 	};
 
 	audio-dsp-dump@0 {/* audio dsp log */
@@ -2658,6 +2799,25 @@
 		sprd,writesync = <1>;
 		sprd,maxuserwritebufsize = <1024>;
 		sprd,channel = <9>;
+	};
+
+	audiocp_boot {
+		compatible = "sprd,roc1-audcp-boot";
+		syscons = <&pmu_apb_regs REG_PMU_APB_PD_AUDCP_SYS_CFG MASK_PMU_APB_PD_AUDCP_SYS_FORCE_SHUTDOWN>,
+			<&pmu_apb_regs REG_PMU_APB_PD_AUDCP_AUDDSP_CFG MASK_PMU_APB_PD_AUDCP_AUDDSP_AUTO_SHUTDOWN_EN>,
+			<&pmu_apb_regs REG_PMU_APB_SLEEP_CTRL MASK_PMU_APB_AUDCP_FORCE_DEEP_SLEEP>,
+			<&pmu_apb_regs REG_PMU_APB_CP_SOFT_RST MASK_PMU_APB_AUDCP_AUDDSP_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_CP_SOFT_RST MASK_PMU_APB_AUDCP_SYS_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_SOFT_RST_SEL MASK_PMU_APB_SOFT_RST_SEL>,
+			<&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_AUDCP_SYS_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_AUDCP_AUDDSP_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS MASK_PMU_APB_AUDCP_SLP_STATUS>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_BOOT_PROT MASK_AON_APB_REG_PROT_VAL>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL0 MASK_AON_APB_AUDCP_DSP_BOOT_VECTOR>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL1 MASK_AON_APB_AUDCP_DSP_BOOT>;
+		syscon-names = "sysshutdown", "coreshutdown", "deepsleep", "corereset",
+			"sysreset", "reset_sel", "sysstatus", "corestatus", "sleepstatus",
+			"bootprotect", "bootvector", "bootaddress_sel";
 	};
 
 	ext_26m: ext-26m {

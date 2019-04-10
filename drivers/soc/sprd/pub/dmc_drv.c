@@ -25,14 +25,16 @@
 #include <linux/uaccess.h>
 #include <linux/platform_device.h>
 #include <linux/of_device.h>
+#include <linux/math64.h>
 
-#define PUB_MONITOR_CYCLE_TO_NS		(1000 / 128)	/* 128MHz */
-#define PUB_DFS_MONITOR_CYCLE_TO_NS	(10000 / 65)	/* 6.5MHz */
+#define PUB_MONITOR_CLK		128	/* 128MHz */
+#define PUB_DFS_MONITOR_CLK	65	/* 6.5MHz */
 #define PUB_STATUS_MON_CTRL_OFFSET	0x0
 #define DDR_MAX_SUPPORT_CS_NUM		2
 #define DMC_PROC_NAME "sprd_dmc"
 #define DDR_PROPERTY_NAME "property"
 #define DDR_INFO_NAME "ddr_info"
+#define INVALID_RES_IDX  0xffffffff
 /*
  * new requirement: all register value is clear to 0,
  * when enable signle change from 0 to 1;
@@ -44,13 +46,14 @@ struct pub_monitor_dbg {
 	u32 read_time;		/* clk 128M */
 	u32 sref_time;		/* clk 128M */
 	u32 light_time;		/* clk 6.5M */
-	u16 light_cnt;
-	u16 sref_cnt;
+	u32 st_ls_cnt;
 	u32 fx_time[8];
 	u32 dfs_cnt;
 };
 
 struct dmc_data {
+	u32 proc_res;
+	u32 mon_res;
 	u32 size_l_offset;
 	u32 size_h_offset;
 	u32 type_offset;
@@ -58,8 +61,7 @@ struct dmc_data {
 };
 
 struct dmc_drv_data {
-	struct pub_monitor_dbg new_val;
-	struct pub_monitor_dbg old_val;
+	struct pub_monitor_dbg reg_val;
 	struct proc_dir_entry *proc_dir;
 	struct dentry *monitor_dir;
 	struct proc_dir_entry *property;
@@ -83,7 +85,15 @@ struct dmc_drv_data {
 #define SHARKL5_CS0_MR_OFFSET	0xc
 #define SHARKL5_CS1_MR_OFFSET	0x10
 
+#define ROC1_SIZE_L_OFFSET	0x0
+#define ROC1_SIZE_H_OFFSET	0x4
+#define ROC1_TYPE_OFFSET	0x8
+#define ROC1_CS0_MR_OFFSET	0xc
+#define ROC1_CS1_MR_OFFSET	0x10
+
 static const struct dmc_data sharkl3_data = {
+	.proc_res = 0,
+	.mon_res = INVALID_RES_IDX,
 	.size_l_offset = SHARKL3_SIZE_L_OFFSET,
 	.size_h_offset = SHARKL3_SIZE_H_OFFSET,
 	.type_offset = SHARKL3_TYPE_OFFSET,
@@ -94,12 +104,26 @@ static const struct dmc_data sharkl3_data = {
 };
 
 static const struct dmc_data sharkl5_data = {
+	.proc_res = 1,
+	.mon_res = 0,
 	.size_l_offset = SHARKL5_SIZE_L_OFFSET,
 	.size_h_offset = SHARKL5_SIZE_H_OFFSET,
 	.type_offset = SHARKL5_TYPE_OFFSET,
 	.mr_offset = {
 		SHARKL5_CS0_MR_OFFSET,
 		SHARKL5_CS1_MR_OFFSET,
+	},
+};
+
+static const struct dmc_data roc1_data = {
+	.proc_res = 1,
+	.mon_res = 0,
+	.size_l_offset = ROC1_SIZE_L_OFFSET,
+	.size_h_offset = ROC1_SIZE_H_OFFSET,
+	.type_offset = ROC1_TYPE_OFFSET,
+	.mr_offset = {
+		ROC1_CS0_MR_OFFSET,
+		ROC1_CS1_MR_OFFSET,
 	},
 };
 
@@ -200,30 +224,35 @@ static int sprd_ddr_proc_creat(void)
 
 static int sprd_pub_monitor_reg_get(void)
 {
-	u32 *ptr = (u32 *) &drv_data.new_val;
+	u32 *ptr = (u32 *) &drv_data.reg_val;
 	int i;
 
-	for (i = 0; i < sizeof(drv_data.new_val) / sizeof(u32); i++) {
+	for (i = 0; i < sizeof(drv_data.reg_val) / sizeof(u32); i++) {
 		*ptr = readl_relaxed(drv_data.mon_base + i * 4);
 		ptr++;
 	}
 	return 0;
 }
 
-static u64 time_diff_get(u64 new_time, u64 old_time, u64 overflow_offset,
-			 u64 period)
+static int sprd_pub_monitor_enable(int enable)
 {
-	if (old_time > new_time)
-		return (new_time + overflow_offset - old_time) * period;
-
-	return (new_time - old_time) * period;
+	if (!drv_data.mon_base)
+		return -ENOMEM;
+	if (enable) {
+		writel_relaxed(0x307,
+			       drv_data.mon_base + PUB_STATUS_MON_CTRL_OFFSET);
+	} else {
+		writel_relaxed(0x0,
+			       drv_data.mon_base + PUB_STATUS_MON_CTRL_OFFSET);
+	}
+	return 0;
 }
 
 static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 {
 	int i;
 	u64 idle_time, write_time, read_time, sref_time, light_time;
-	u64 fx_time[8];
+	u64 fx_time[8], total_tm, sts_tm;
 	u32 light_cnt, sref_cnt;
 
 	if (!drv_data.mon_base)
@@ -232,43 +261,30 @@ static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 	if (!drv_data.pub_mon_enabled)
 		return -ENODATA;
 
+	sprd_pub_monitor_enable(0);
 	if (sprd_pub_monitor_reg_get())
 		return -ENODATA;
-	idle_time =
-	    time_diff_get(drv_data.new_val.idle_time,
-			  drv_data.old_val.idle_time, 0x100000000ULL,
-			  PUB_MONITOR_CYCLE_TO_NS);
-	write_time =
-	    time_diff_get(drv_data.new_val.write_time,
-			  drv_data.old_val.write_time, 0x100000000ULL,
-			  PUB_MONITOR_CYCLE_TO_NS);
-	read_time =
-	    time_diff_get(drv_data.new_val.read_time,
-			  drv_data.old_val.read_time, 0x100000000ULL,
-			  PUB_MONITOR_CYCLE_TO_NS);
-	sref_time =
-	    time_diff_get(drv_data.new_val.sref_time,
-			  drv_data.old_val.sref_time, 0x100000000ULL,
-			  PUB_MONITOR_CYCLE_TO_NS);
-	light_time =
-	    time_diff_get(drv_data.new_val.light_time,
-			  drv_data.old_val.light_time, 0x100000000ULL,
-			  PUB_MONITOR_CYCLE_TO_NS);
-	light_cnt =
-	    time_diff_get(drv_data.new_val.light_cnt,
-			  drv_data.old_val.light_cnt, 0x10000UL,
-			  PUB_DFS_MONITOR_CYCLE_TO_NS);
-	sref_cnt =
-	    time_diff_get(drv_data.new_val.sref_cnt, drv_data.old_val.sref_cnt,
-			  0x10000UL, PUB_MONITOR_CYCLE_TO_NS);
+	idle_time = div64_u64((u64)drv_data.reg_val.idle_time * 1000ULL,
+			      PUB_MONITOR_CLK);
+	write_time = div64_u64((u64)drv_data.reg_val.write_time * 1000ULL,
+			      PUB_MONITOR_CLK);
+	read_time = div64_u64((u64)drv_data.reg_val.read_time * 1000ULL,
+			      PUB_MONITOR_CLK);
+	sref_time = div64_u64((u64)drv_data.reg_val.sref_time * 1000ULL,
+			      PUB_MONITOR_CLK);
+	light_time = div64_u64((u64)drv_data.reg_val.light_time * 10000ULL,
+			      PUB_DFS_MONITOR_CLK);
+	light_cnt = drv_data.reg_val.st_ls_cnt & 0xffff;
+	sref_cnt = (drv_data.reg_val.st_ls_cnt >> 16) & 0xffff;
+	sts_tm = idle_time + write_time + read_time + sref_time + light_time;
 
-	for (i = 0; i < 8; i++) {
-		fx_time[i] =
-		    drv_data.new_val.fx_time[i] * PUB_DFS_MONITOR_CYCLE_TO_NS;
+	for (i = 0, total_tm = 0; i < 8; i++) {
+		fx_time[i] = div64_u64((u64)drv_data.reg_val.fx_time[i] * 10000ULL,
+					PUB_DFS_MONITOR_CLK);
+		total_tm += fx_time[i];
 	}
-	memcpy(&drv_data.old_val, &drv_data.new_val, sizeof(drv_data.old_val));
 
-	seq_printf(m, "idle_time: %llu ns\n", idle_time);
+	seq_printf(m, "idle_time:  %llu ns\n", idle_time);
 	seq_printf(m, "write_time: %llu ns\n", write_time);
 	seq_printf(m, "read_time: %llu ns\n", read_time);
 	seq_printf(m, "sref_time: %llu ns\n", sref_time);
@@ -278,7 +294,9 @@ static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 
 	for (i = 0; i < 8; i++)
 		seq_printf(m, "F%d time: %llu ns\n", i, fx_time[i]);
-	seq_printf(m, "dfs_cnt: %d\n", (drv_data.new_val.dfs_cnt & 0x3ff));
+	seq_printf(m, "dfs_cnt: %d\n", (drv_data.reg_val.dfs_cnt & 0x3ff));
+	seq_printf(m, "total_time:%lldns, sts_time:%lldns\n", total_tm, sts_tm);
+	sprd_pub_monitor_enable(1);
 	return 0;
 }
 
@@ -306,22 +324,6 @@ static int sprd_pub_monitor_enable_open(struct inode *inodep,
 					struct file *filep)
 {
 	return single_open(filep, sprd_pub_monitor_enable_show, NULL);
-}
-
-static int sprd_pub_monitor_enable(int enable)
-{
-	if (!drv_data.mon_base)
-		return -ENOMEM;
-	if (enable) {
-		writel_relaxed(0x6,
-			       drv_data.mon_base + PUB_STATUS_MON_CTRL_OFFSET);
-		writel_relaxed(0x307,
-			       drv_data.mon_base + PUB_STATUS_MON_CTRL_OFFSET);
-	} else {
-		writel_relaxed(0x0,
-			       drv_data.mon_base + PUB_STATUS_MON_CTRL_OFFSET);
-	}
-	return 0;
 }
 
 static ssize_t sprd_pub_monitor_enable_write(struct file *filep,
@@ -390,25 +392,36 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "No matching driver data found\n");
 		return -EINVAL;
 	}
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	io_addr = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(io_addr))
-		return PTR_ERR(io_addr);
-	drv_data.size = readl_relaxed(io_addr + pdata->size_l_offset)
-		+ ((u64) readl_relaxed(io_addr + pdata->size_h_offset) << 32);
-	drv_data.type = readl_relaxed(io_addr + pdata->type_offset);
-	for (i = 0; i < DDR_MAX_SUPPORT_CS_NUM; i++)
-		drv_data.mr_val[i] =
+	if (pdata->proc_res != INVALID_RES_IDX) {
+		res = platform_get_resource(pdev, IORESOURCE_MEM,
+			pdata->proc_res);
+		if (!res)
+			return -ENODEV;
+		io_addr = devm_ioremap_resource(&pdev->dev, res);
+		if (IS_ERR(io_addr))
+			return PTR_ERR(io_addr);
+		drv_data.size = readl_relaxed(io_addr + pdata->size_l_offset)
+		  + ((u64) readl_relaxed(io_addr + pdata->size_h_offset) << 32);
+		drv_data.type = readl_relaxed(io_addr + pdata->type_offset);
+		for (i = 0; i < DDR_MAX_SUPPORT_CS_NUM; i++)
+			drv_data.mr_val[i] =
 		    readl_relaxed(io_addr + pdata->mr_offset[i]);
-	iounmap(io_addr);
+		iounmap(io_addr);
 #ifdef CONFIG_PROC_FS
-	sprd_ddr_proc_creat();
+		sprd_ddr_proc_creat();
 #endif
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	drv_data.mon_base = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(drv_data.mon_base))
-		return PTR_ERR(drv_data.mon_base);
-	sprd_pub_monitor_init();
+	}
+
+	if (pdata->mon_res != INVALID_RES_IDX) {
+		res = platform_get_resource(pdev, IORESOURCE_MEM,
+			pdata->mon_res);
+		if (!res)
+			return -ENODEV;
+		drv_data.mon_base = devm_ioremap_resource(&pdev->dev, res);
+		if (IS_ERR(drv_data.mon_base))
+			return PTR_ERR(drv_data.mon_base);
+		sprd_pub_monitor_init();
+	}
 	return 0;
 }
 
@@ -427,6 +440,7 @@ static int sprd_dmc_remove(struct platform_device *pdev)
 static const struct of_device_id sprd_dmc_of_match[] = {
 	{.compatible = "sprd,sharkl3-dmc", .data = &sharkl3_data},
 	{.compatible = "sprd,sharkl5-dmc", .data = &sharkl5_data},
+	{.compatible = "sprd,roc1-dmc", .data = &roc1_data},
 	{},
 };
 

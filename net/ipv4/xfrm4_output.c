@@ -99,10 +99,25 @@ static int __xfrm4_output(struct net *net, struct sock *sk, struct sk_buff *skb)
 
 int xfrm4_output(struct net *net, struct sock *sk, struct sk_buff *skb)
 {
+#ifdef CONFIG_XFRM_FRAGMENT
+	struct iphdr *iph = ip_hdr(skb);
+
+	if (likely(iph->version == 0x04))
+		return NF_HOOK_COND(NFPROTO_IPV4, NF_INET_POST_ROUTING,
+				    net, sk, skb, NULL, skb_dst(skb)->dev,
+				    __xfrm4_output,
+				    !(IPCB(skb)->flags & IPSKB_REROUTED));
+	else
+		return NF_HOOK_COND(NFPROTO_IPV6, NF_INET_POST_ROUTING,
+				    net, sk, skb, NULL, skb_dst(skb)->dev,
+				    __xfrm4_output,
+				    !(IPCB(skb)->flags & IPSKB_REROUTED));
+#else
 	return NF_HOOK_COND(NFPROTO_IPV4, NF_INET_POST_ROUTING,
 			    net, sk, skb, NULL, skb_dst(skb)->dev,
 			    __xfrm4_output,
 			    !(IPCB(skb)->flags & IPSKB_REROUTED));
+#endif
 }
 
 void xfrm4_local_error(struct sk_buff *skb, u32 mtu)

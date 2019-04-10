@@ -194,7 +194,7 @@ unlock_efuse:
 
 	if (!ret) {
 		buf >>= blk_offset;
-		memcpy(val, &buf, SC27XX_EFUSE_BLOCK_SIZE);
+		memcpy(val, &buf, bytes);
 	}
 
 	return ret;

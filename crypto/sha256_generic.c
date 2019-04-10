@@ -261,7 +261,7 @@ int crypto_sha256_finup(struct shash_desc *desc, const u8 *data,
 }
 EXPORT_SYMBOL(crypto_sha256_finup);
 
-static struct shash_alg sha256_algs[2] = { {
+static struct shash_alg sha256_algs[3] = { {
 	.digestsize	=	SHA256_DIGEST_SIZE,
 	.init		=	sha256_base_init,
 	.update		=	crypto_sha256_update,
@@ -287,6 +287,20 @@ static struct shash_alg sha256_algs[2] = { {
 		.cra_driver_name=	"sha224-generic",
 		.cra_flags	=	CRYPTO_ALG_TYPE_SHASH,
 		.cra_blocksize	=	SHA224_BLOCK_SIZE,
+		.cra_module	=	THIS_MODULE,
+	}
+}, {/* SPRD:654709 add a struct same as sha256 only for 256-128*/
+	.digestsize	=	SHA256_DIGEST_SIZE,
+	.init		=	sha256_base_init,
+	.update		=	crypto_sha256_update,
+	.final		=	sha256_final,
+	.finup		=	crypto_sha256_finup,
+	.descsize	=	sizeof(struct sha256_state),
+	.base		=	{
+		.cra_name	=	"sha256-128",
+		.cra_driver_name =	"sha256-128-generic",
+		.cra_flags	=	CRYPTO_ALG_TYPE_SHASH,
+		.cra_blocksize	=	SHA256_BLOCK_SIZE,
 		.cra_module	=	THIS_MODULE,
 	}
 } };

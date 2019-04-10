@@ -14,6 +14,7 @@ struct sprd_iommu_func_tbl iommuex_func_tbl = {
 	sprd_iommuex_cll_resume,
 	sprd_iommuex_cll_release,
 	sprd_iommuex_cll_reset,
+	sprd_iommuex_cll_set_bypass,
 	sprd_iommuex_cll_virt_to_phy,
 	sprd_iommuex_cll_unmap_orphaned,
 };
@@ -589,6 +590,27 @@ u32 sprd_iommuex_cll_reset(sprd_iommu_hdl  p_iommu_hdl, u32 channel_num)
 			p_iommu_priv->iommu_id,
 			p_iommu_priv->iommu_type);
 
+	return 0;
+}
+
+u32 sprd_iommuex_cll_set_bypass(sprd_iommu_hdl  p_iommu_hdl, bool vaor_bp_en)
+{
+	struct sprd_iommu_widget *p_iommu_data = NULL;
+	struct sprd_iommuex_priv *p_iommu_priv = NULL;
+
+	if (p_iommu_hdl == NULL)
+		return SPRD_ERR_INVALID_PARAM;
+
+	p_iommu_data = (struct sprd_iommu_widget *)p_iommu_hdl;
+	if  (p_iommu_data->p_priv == NULL)
+		return SPRD_ERR_INITIALIZED;
+
+	p_iommu_priv = (struct sprd_iommuex_priv *)(p_iommu_data->p_priv);
+
+	mmu_ex_vaout_bypass_enable(p_iommu_priv->mmu_reg_addr,
+				   p_iommu_priv->iommu_id,
+				   p_iommu_priv->iommu_type,
+				   vaor_bp_en);
 	return 0;
 }
 

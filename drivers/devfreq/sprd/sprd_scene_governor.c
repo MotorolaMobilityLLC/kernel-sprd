@@ -370,6 +370,40 @@ static ssize_t exit_scenario_store(struct device *dev,
 	return count;
 }
 
+static ssize_t scene_freq_set_store(struct device *dev,
+					struct device_attribute *attr,
+					const char *buf, size_t count)
+{
+	int err;
+	int name_len;
+	char *arg;
+	unsigned int freq;
+
+	arg = (char *)buf;
+	while (*arg && !isspace(*arg))
+		arg++;
+	name_len = arg-buf;
+	if (!name_len)
+		return -EINVAL;
+	arg = kzalloc(name_len * sizeof(char) + 1, GFP_KERNEL);
+	if (arg == NULL)
+		return -EINVAL;
+	memcpy(arg, buf, name_len);
+
+	err = sscanf(&buf[name_len], "%u\n", &freq);
+	if (err < 1) {
+		pr_err("%s: enable para err: %d", __func__, err);
+		kfree(arg);
+		return count;
+	}
+
+	err = change_scene_freq(arg, freq);
+	if (err)
+		pr_err("%s: scene freq set fail: %d", __func__, err);
+	kfree(arg);
+	return count;
+}
+
 static ssize_t scene_boost_dfs_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count)
@@ -509,6 +543,8 @@ static DEVICE_ATTR(scenario_dfs, 0220,
 	NULL, scenario_dfs_store);
 static DEVICE_ATTR(exit_scene, 0220,
 	NULL, exit_scenario_store);
+static DEVICE_ATTR(scene_freq_set, 0220,
+	NULL, scene_freq_set_store);
 static DEVICE_ATTR(scene_boost_dfs, 0220,
 	NULL, scene_boost_dfs_store);
 static DEVICE_ATTR(scene_dfs_list, 0444,
@@ -530,6 +566,7 @@ static struct attribute *dev_entries[] = {
 	&dev_attr_ddrinfo_freq_table.attr,
 	&dev_attr_scenario_dfs.attr,
 	&dev_attr_exit_scene.attr,
+	&dev_attr_scene_freq_set.attr,
 	&dev_attr_scene_boost_dfs.attr,
 	&dev_attr_scene_dfs_list.attr,
 	&dev_attr_backdoor.attr,

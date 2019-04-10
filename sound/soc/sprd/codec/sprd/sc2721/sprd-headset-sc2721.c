@@ -38,6 +38,7 @@
 #include "sprd-asoc-common.h"
 #include "sprd-codec.h"
 #include "sprd-headset-2721.h"
+#include "sprd-asoc-card-utils.h"
 
 #define ENTER pr_debug("func: %s  line: %04d\n", __func__, __LINE__)
 
@@ -1516,7 +1517,6 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			pr_info("software debance (step 1)!!!(headset_detect_work_func)\n");
 			headmicbias_power_on(hdst, 0);
 			pr_info("micbias power off for debance error\n");
-			headset_irq_detect_all_enable(1, hdst->irq_detect_all);
 			goto out;
 		}
 
@@ -1688,7 +1688,6 @@ out:
 		sprd_headset_vb_control(hdst, 1);
 		headset_button_irq_threshold(0);
 	}
-	headset_irq_detect_all_enable(1, hdst->irq_detect_all);
 	pr_info("%s out\n", __func__);
 	up(&hdst->sem);
 }
@@ -1894,6 +1893,7 @@ static irqreturn_t headset_detect_all_irq_handler(int irq, void *dev)
 		}
 	}
 #endif
+	headset_irq_detect_all_enable(1, hdst->irq_detect_all);
 	ret = cancel_delayed_work(&hdst->det_all_work);
 	queue_delayed_work(hdst->det_all_work_q,
 		&hdst->det_all_work, msecs_to_jiffies(5));
@@ -2042,20 +2042,131 @@ void sprd_headset_set_global_variables(
 }
 
 static int headset_adc_cal_from_efuse(struct platform_device *pdev);
+static int sprd_headset_probe(struct platform_device *pdev);
+
+static struct device_node *sprd_audio_codec_get_card0_node(void)
+{
+	int i;
+	struct device_node *np;
+	const char * const comp[] = {
+		"sprd,vbc-r1p0v3-codec-sc2721",
+		"sprd,vbc-r1p0v3-codec-sc2731",
+		"sprd,vbc-r3p0-codec-sc2731",
+	};
+
+	for (i = 0; i < ARRAY_SIZE(comp); i++) {
+		np = of_find_compatible_node(
+			NULL, NULL, comp[i]);
+		if (np)
+			return np;
+	}
+
+	return NULL;
+}
+
+static int sprd_headset_parse(struct snd_soc_card *card)
+{
+	struct platform_device *pdev, *h_pdev;
+	struct device_node *hdst_np;
+	enum of_gpio_flags flags;
+	struct sprd_card_data *priv;
+	struct device_node *node;
+	int ret = 0;
+
+	priv = snd_soc_card_get_drvdata(card);
+	node = sprd_audio_codec_get_card0_node();
+	if (!node) {
+		pr_err("error, there must be a card0 node!\n");
+		return -ENODEV;
+	}
+	pdev = of_find_device_by_node(node);
+	if (unlikely(!pdev)) {
+		pr_err("card0 node has no pdev?\n");
+		ret = -EPROBE_DEFER;
+		of_node_put(node);
+		return ret;
+	}
+
+	priv->gpio_hp_det = of_get_named_gpio_flags(node,
+						    "sprd-audio-card,hp-det-gpio",
+						    0, &flags);
+	priv->gpio_hp_det_invert = !!(flags & OF_GPIO_ACTIVE_LOW);
+	if (priv->gpio_hp_det == -EPROBE_DEFER)
+		return -EPROBE_DEFER;
+
+	priv->gpio_mic_det = of_get_named_gpio_flags(node,
+						     "sprd-audio-card,mic-det-gpio",
+						     0, &flags);
+	priv->gpio_mic_det_invert = !!(flags & OF_GPIO_ACTIVE_LOW);
+	if (priv->gpio_mic_det == -EPROBE_DEFER)
+		return -EPROBE_DEFER;
+
+	if (priv->gpio_hp_det >= 0)
+		return 0;
+
+	/* Sprd headset */
+	hdst_np = of_parse_phandle(node, "sprd-audio-card,headset", 0);
+	if (hdst_np) {
+		h_pdev = of_find_device_by_node(hdst_np);
+		if (unlikely(!h_pdev)) {
+			pr_err("headset node has no pdev?\n");
+			return -EPROBE_DEFER;
+		}
+
+		ret = sprd_headset_probe(h_pdev);
+		if (ret < 0) {
+			if (ret == -EPROBE_DEFER)
+				return ret;
+			pr_err("sprd_headset_probe failed, ret %d\n", ret);
+		}
+	} else {
+		pr_err("parse 'sprd-audio-card,headset' failed!\n");
+	}
+
+	return ret;
+}
 
 int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 {
-	int ret = 0, i;
-	struct sprd_headset *hdst = sprd_hdst;
-	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
-	struct device *dev = codec->dev; /* digiatal part device */
+	int ret, i;
+	struct sprd_headset *hdst;
+	struct platform_device *pdev;
+	struct sprd_headset_platform_data *pdata;
+	struct device *dev; /* digiatal part device */
 	unsigned int adie_chip_id = 0;
 	unsigned long irqflags = 0;
-	struct snd_soc_card *card = codec->component.card;
+	struct snd_soc_card *card;
 
+	if (!codec) {
+		pr_err("%s codec NULL\n", __func__);
+		return -EINVAL;
+	}
+	if (!codec->dev) {
+		pr_err("%s codec->dev NULL\n", __func__);
+		return -EINVAL;
+	}
+	if (!codec->component.card) {
+		pr_err("%s codec->component.card NULL\n", __func__);
+		return -EINVAL;
+	}
+	dev = codec->dev;
+	card = codec->component.card;
+
+	ret = sprd_headset_parse(card);
+	if (ret) {
+		pr_err("sprd_headset_parse fail %d\n", ret);
+		return ret;
+	}
+	hdst = sprd_hdst;
 	if (!hdst) {
 		pr_err("%s: sprd_hdset is NULL!\n", __func__);
-		return -1;
+		return -EINVAL;
+	}
+	pdev = hdst->pdev;
+	pdata = &hdst->pdata;
+	if (!pdev || !pdata) {
+		pr_err("%s pdev %p, pdata %p\n", __func__, pdev, pdata);
+		return -EINVAL;
 	}
 
 	hdst->codec = codec;
@@ -2183,6 +2294,8 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 	}
 	/* Disable button irq before headset detected. */
 	headset_irq_button_enable(0, hdst->irq_button);
+
+	irq_set_status_flags(hdst->irq_detect_all, IRQ_DISABLE_UNLAZY);
 
 	irqflags = pdata->irq_trigger_levels[HDST_GPIO_DET_ALL] ?
 		IRQF_TRIGGER_HIGH : IRQF_TRIGGER_LOW;
@@ -2458,7 +2571,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 #endif
 
 /* Note: @pdev is the platform_device of headset node in dts. */
-int sprd_headset_probe(struct platform_device *pdev)
+static int sprd_headset_probe(struct platform_device *pdev)
 {
 	struct sprd_headset *hdst = NULL;
 	struct sprd_headset_platform_data *pdata;
@@ -2535,7 +2648,6 @@ int sprd_headset_probe(struct platform_device *pdev)
 
 	return 0;
 }
-EXPORT_SYMBOL(sprd_headset_probe);
 
 static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient)
 {

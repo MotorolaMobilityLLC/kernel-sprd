@@ -69,3 +69,4 @@ obj-$(CONFIG_SPRD_DEDICATE_THERMAL)	+= sprd_dedicate_thm.o
 obj-$(CONFIG_SPRD_CLUSTER0_THERMAL)      += sprd_cluster0_thm.o sprd_thm_comm.o
 obj-$(CONFIG_SPRD_CLUSTER1_THERMAL)      += sprd_cluster1_thm.o
 obj-$(CONFIG_SPRD_SOC_THERMAL)      += sprd_soc_thm.o
+obj-$(CONFIG_SC27XX_TSENSOR_THERMAL)	+= sc27xx_tsensor_thermal.o

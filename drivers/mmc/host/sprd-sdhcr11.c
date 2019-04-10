@@ -119,11 +119,14 @@ static void dump_adma_info(struct sprd_sdhc_host *host)
 
 static void dump_sdio_reg(struct sprd_sdhc_host *host)
 {
-	if (!host->mmc->card)
+	if (!host->mmc->card && strcmp(host->device_name, "sdio_wifi"))
 		return;
 
-	print_hex_dump(KERN_INFO, "sdhc register: ", DUMP_PREFIX_OFFSET,
-			16, 4, host->ioaddr, 64, 0);
+	print_hex_dump(KERN_ERR, "sdhc register: ", DUMP_PREFIX_OFFSET,
+		       16, 4, host->ioaddr, 64, 0);
+
+	print_hex_dump(KERN_ERR, "sdhc register + 0x200: ", DUMP_PREFIX_OFFSET,
+		       16, 4, host->ioaddr + 0x200, 32, 0);
 
 	pr_info(" ===========================================\n");
 }
@@ -1151,8 +1154,7 @@ static void sprd_sdhc_enable_dpll(struct sprd_sdhc_host *host)
 	mdelay(1);
 
 	tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS0);
-	while (((tmp & SPRD_SDHC_DLL_LOCKED) != SPRD_SDHC_DLL_LOCKED) ||
-		((tmp & SPRD_SDHC_DLL_ERROR) == SPRD_SDHC_DLL_ERROR)) {
+	while ((tmp & SPRD_SDHC_DLL_LOCKED) != SPRD_SDHC_DLL_LOCKED) {
 		pr_info("+++++++++ sprd sdhc dpll locked faile +++++++++!\n");
 		pr_info("sprd sdhc dpll register DLL_STS0 : 0x%x\n", tmp);
 		tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_CFG);

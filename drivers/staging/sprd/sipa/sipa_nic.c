@@ -98,7 +98,7 @@ static struct sipa_nic_statics_info s_spia_nic_statics[SIPA_NIC_MAX] = {
 };
 
 int sipa_nic_open(enum sipa_term_type src, int netid,
-				  sipa_notify_cb cb, void *priv)
+		  sipa_notify_cb cb, void *priv)
 {
 	int i;
 	struct sipa_nic *nic = NULL;
@@ -188,7 +188,6 @@ void sipa_nic_try_notify_recv(struct sipa_nic *nic)
 	unsigned long flags;
 	int need_notify = 0;
 
-	pr_info("%s nic->need_notify = %d\n", __func__, nic->need_notify);
 	spin_lock_irqsave(&nic->lock, flags);
 	if (nic->need_notify) {
 		nic->need_notify = 0;
@@ -196,7 +195,6 @@ void sipa_nic_try_notify_recv(struct sipa_nic *nic)
 	}
 	spin_unlock_irqrestore(&nic->lock, flags);
 
-	pr_info("%s need_notify = %d\n", __func__, need_notify);
 	if (need_notify)
 		nic->cb(nic->cb_priv, SIPA_RECEIVE, 0);
 }
@@ -215,7 +213,7 @@ void sipa_nic_push_skb(struct sipa_nic *nic, struct sk_buff *skb)
 EXPORT_SYMBOL(sipa_nic_push_skb);
 
 int sipa_nic_tx(enum sipa_nic_id nic_id, enum sipa_term_type dst,
-				int netid, struct sk_buff *skb)
+		int netid, struct sk_buff *skb)
 {
 	struct sipa_skb_sender *sender;
 

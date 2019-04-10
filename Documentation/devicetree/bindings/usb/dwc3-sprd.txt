@@ -5,7 +5,7 @@ This driver controls the glue logic used to configure the dwc3 core on
 ROC1 based platforms.
 
 Required properties:
- - compatible	: must be "sprd,roc1-dwc3"
+ - compatible	: must be "sprd,roc1-dwc3", "sprd,orca-dwc3"
  - reg		: glue logic base address and USB syscfg ctrl register offset
 
  - #address-cells, #size-cells : should be '1' if the device has sub-nodes

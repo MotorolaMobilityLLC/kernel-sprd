@@ -26,6 +26,16 @@
 		spi0 = &spi0;
 		spi1 = &spi1;
 		spi2 = &spi2;
+		eth0 = &sipa_eth0;
+		eth1 = &sipa_eth1;
+		eth2 = &sipa_eth2;
+		eth3 = &sipa_eth3;
+		eth4 = &sipa_eth4;
+		eth5 = &sipa_eth5;
+		eth6 = &sipa_eth6;
+		eth7 = &sipa_eth7;
+		eth8 = &sipa_eth8;
+		eth9 = &sipa_eth9;
 	};
 
 	soc: soc {
@@ -513,58 +523,58 @@
 				hwlocks = <&hwlock 8>;
 				clocks = <&aonapb_gate CLK_EFUSE_EB>;
 
-				thm0_sign: thm0-sign@8c{
-					reg = <0x8c 0x4>;
-					bits = <0 1>;
-				};
-
-				thm0_ratio: thm0-ratio@8c{
-					reg = <0x8c 0x4>;
-					bits = <1 7>;
-				};
-
-				thm0_sen0: thm0-sen0@8d{
-					reg = <0x8d 0x4>;
+				thm2_sen1: thm2-sen1@92{
+					reg = <0x92 0x4>;
 					bits = <0 8>;
 				};
 
-				thm1_sign: thm1-sign@90{
-					reg = <0x90 0x4>;
-					bits = <0 1>;
-				};
-
-				thm1_ratio: thm1-ratio@90{
-					reg = <0x90 0x4>;
-					bits = <1 7>;
-				};
-
-				thm1_sen0: thm1-sen0@91{
-					reg = <0x91 0x4>;
-					bits = <0 8>;
-				};
-
-				thm2_sign: thm2-sign@92{
-					reg = <0x92 0x4>;
-					bits = <0 1>;
-				};
-
-				thm2_ratio: thm2-ratio@92{
-					reg = <0x92 0x4>;
-					bits = <1 7>;
-				};
-
-				thm2_sen0: thm2-sen0@93{
+				thm2_sen2: thm2-sen2@93{
 					reg = <0x93 0x4>;
 					bits = <0 8>;
 				};
 
-				thm2_sen1: thm2-sen1@98{
-					reg = <0x98 0x4>;
+				thm2_sign: thm2-sign@94{
+					reg = <0x94 0x4>;
+					bits = <0 1>;
+				};
+
+				thm2_ratio: thm2-ratio@94{
+					reg = <0x94 0x4>;
+					bits = <1 7>;
+				};
+
+				thm2_sen0: thm2-sen0@95{
+					reg = <0x95 0x4>;
 					bits = <0 8>;
 				};
 
-				thm2_sen2: thm2-sen2@98{
+				thm0_sign: thm0-sign@98{
 					reg = <0x98 0x4>;
+					bits = <0 1>;
+				};
+
+				thm0_ratio: thm0-ratio@98{
+					reg = <0x98 0x4>;
+					bits = <1 7>;
+				};
+
+				thm0_sen0: thm0-sen0@99{
+					reg = <0x99 0x4>;
+					bits = <0 8>;
+				};
+
+				thm1_sign: thm1-sign@9a{
+					reg = <0x9a 0x4>;
+					bits = <0 1>;
+				};
+
+				thm1_ratio: thm1-ratio@9a{
+					reg = <0x9a 0x4>;
+					bits = <1 7>;
+				};
+
+				thm1_sen0: thm1-sen0@9b{
+					reg = <0x9b 0x4>;
 					bits = <0 8>;
 				};
 			};
@@ -744,10 +754,6 @@
 			sprd,usb-dl-rx = <1 1024>;
 			sprd,usb-ul-tx = <1 1024>;
 			sprd,usb-ul-rx = <1 1024>;
-			sprd,pcie-dl-tx = <1 256>;
-			sprd,pcie-dl-rx = <1 256>;
-			sprd,pcie-ul-tx = <1 256>;
-			sprd,pcie-ul-rx = <1 256>;
 			sprd,cp-dl-tx = <1 1024>;
 			sprd,cp-dl-rx = <1 1024>;
 			sprd,cp-ul-tx = <1 1024>;
@@ -766,31 +772,40 @@
 			sprd,ap-ip-ul-rx = <0 1024>;
 		};
 
+		ipa_delegate: sipa-dele@89600000 {
+			compatible = "sprd,orca-sipa-delegate";
+			reg = <0 0x89600000 0 0x04000000>,
+			      <0 0x21180000 0 0x00010000>;
+			reg-names = "mem-base", "reg-base";
+
+			sprd,ul-fifo-depth = <128>;
+			sprd,dl-fifo-depth = <128>;
+		};
+
 		ipa {
 			compatible = "simple-bus";
 			#address-cells = <2>;
 			#size-cells = <2>;
 			ranges;
 
-			usb3: usb3-0@29100000 {
-				compatible = "sprd,roc1-dwc3";
-				reg = <0 0x29100000 0 0x100000>;
-				clocks = <&ipa_gate CLK_IPA_USB1_EB>,
-					<&ipa_gate CLK_USB1_SUSPEND_EB>,
-					<&ipa_gate CLK_IPA_USB1_REF_EB>;
+			usb3_0: usb3@21400000 {
+				compatible = "sprd,orca-dwc3";
+				reg = <0 0x21400000 0 0x100000>;
+				clocks = <&apahb_gate CLK_USB0_EB>,
+					<&apahb_gate CLK_USB0_SUSPEND_EB>,
+					<&apahb_gate CLK_USB0_REF_EB>;
 				clock-names = "core_clk", "ref_clk", "susp_clk";
-				usb-phy = <&ssphy>, <&ssphy>;
-				usb-pam = <&pamu3>;
+				usb-phy = <&ssphy0>, <&ssphy0>;
 				#address-cells = <2>;
 				#size-cells = <2>;
 				ranges;
 
-				dwc3@29100000 {
+				dwc3@21400000 {
 					compatible = "snps,dwc3";
-					reg = <0 0x29100000 0 0x100000>;
-					interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
+					reg = <0 0x21400000 0 0x100000>;
+					interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
 					interrupt-names = "irq";
-					usb-phy = <&ssphy>, <&ssphy>;
+					usb-phy = <&ssphy0>, <&ssphy0>;
 					phy_type = "utmi_wide";
 					dr_mode = "peripheral";
 					snps,usb3-u1u2-disable;
@@ -802,7 +817,37 @@
 				};
 			};
 
-			pcie0@2b100000 {
+			usb3_1: usb3@29100000 {
+				compatible = "sprd,orca-dwc3";
+				reg = <0 0x29100000 0 0x100000>;
+				clocks = <&ipa_gate CLK_IPA_USB1_EB>,
+					<&ipa_gate CLK_USB1_SUSPEND_EB>,
+					<&ipa_gate CLK_IPA_USB1_REF_EB>;
+				clock-names = "core_clk", "ref_clk", "susp_clk";
+				usb-phy = <&ssphy1>, <&ssphy1>;
+				#address-cells = <2>;
+				#size-cells = <2>;
+				ranges;
+
+				dwc3@29100000 {
+					compatible = "snps,dwc3";
+					reg = <0 0x29100000 0 0x100000>;
+					interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
+					interrupt-names = "irq";
+					usb-phy = <&ssphy1>, <&ssphy1>;
+					usb-pam = <&pamu3>;
+					phy_type = "utmi_wide";
+					dr_mode = "peripheral";
+					snps,usb3-u1u2-disable;
+					snps,dis_u3_susphy_quirk;
+					snps,dis_u2_susphy_quirk;
+					snps,overlap_check_quirk;
+					snps,ep_out_aligned_size_quirk;
+					snps,disconnect_event_quirk;
+				};
+			};
+
+			pcie0: pcie0@2b100000 {
 				compatible = "sprd,pcie", "snps,dw-pcie";
 				reg = <0x0 0x2b100000 0x0 0x2000>,
 				      <0x2 0x00000000 0x0 0x2000>;
@@ -820,9 +865,9 @@
 				status = "disabled";
 			};
 
-			pcie1@2b100000 {
+			pcie1: pcie1@2b100000 {
 				compatible = "sprd,pcie-ep", "snps,dw-pcie";
-				reg = <0x0 0x2b100000 0x0 0x2000>,
+				reg = <0x0 0x2b100000 0x0 0x100000>,
 				      <0x0 0x2b108000 0x0 0x2000>,
 				      <0x2 0x00000000 0x2 0x00000000>;
 				reg-names = "dbi", "dbi2","addr_space";
@@ -830,7 +875,7 @@
 				num-lanes = <1>;
 				num-ib-windows = <6>;
 				num-ob-windows = <8>;
-				status = "disabled";
+				status = "okay";
 			};
 
 			pamu3: pamu3@2b300000 {
@@ -843,9 +888,19 @@
 					    "dwc3_core_regs";
 			};
 
-			ssphy: ssphy@634c0000 {
+			ssphy0: ssphy0@634d0000 {
 				compatible = "sprd,orca1-ssphy0";
 				sprd,syscon-aon-apb = <&aon_apb_regs>;
+				sprd,syscon-ap-ahb = <&ap_ahb_regs>;
+				sprd,syscon-ipa-ahb = <&ap_ipa_ahb_regs>;
+				sprd,syscon-anag4 = <&anlg_phy_g4_regs>;
+				sprd,vdd-voltage = <3300000>;
+			};
+
+			ssphy1: ssphy@634e0000 {
+				compatible = "sprd,orca1-ssphy1";
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+				sprd,syscon-ap-ahb = <&ap_ahb_regs>;
 				sprd,syscon-ipa-ahb = <&ap_ipa_ahb_regs>;
 				sprd,syscon-anag4 = <&anlg_phy_g4_regs>;
 				sprd,vdd-voltage = <3300000>;
@@ -875,6 +930,7 @@
 		 * 0x87800000 - 0x300000
 		 */
 		sprd,ddr32-dma = <0x87500000 0x300000>;
+		sprd,audcp-aon-iram = <0x7400 0x1000>;
 	};
 
 	audio-dsp-dump@0 {/* audio dsp log */
@@ -918,6 +974,25 @@
 		sprd,channel = <2>;
 	};
 
+	audiocp_boot {
+		compatible = "sprd,orca-audcp-boot";
+		syscons = <&pmu_apb_regs REG_PMU_APB_RF_PD_AUDCP_SYS_CFG MASK_PMU_APB_RF_PD_AUDCP_SYS_FORCE_SHUTDOWN >,
+			<&pmu_apb_regs REG_PMU_APB_RF_PD_AUDCP_AUDDSP_CFG MASK_PMU_APB_RF_PD_AUDCP_AUDDSP_AUTO_SHUTDOWN_EN>,
+			<&pmu_apb_regs REG_PMU_APB_RF_SLEEP_CTRL MASK_PMU_APB_RF_AUDCP_FORCE_DEEP_SLEEP>,
+			<&pmu_apb_regs REG_PMU_APB_RF_CP_SOFT_RST MASK_PMU_APB_RF_AUDCP_AUDDSP_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_RF_CP_SOFT_RST MASK_PMU_APB_RF_AUDCP_SYS_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_RF_SOFT_RST_SEL MASK_PMU_APB_RF_SOFT_RST_SEL>,
+			<&pmu_apb_regs REG_PMU_APB_RF_PWR_STATUS3_DBG MASK_PMU_APB_RF_PD_AUDCP_SYS_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_RF_PWR_STATUS3_DBG MASK_PMU_APB_RF_PD_AUDCP_AUDDSP_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_RF_SLEEP_STATUS MASK_PMU_APB_RF_AUDCP_SLP_STATUS>,
+			<&aon_apb_regs REG_AON_APB_RF_AUDCP_BOOT_PROT MASK_AON_APB_RF_AUDCP_REG_PROT_VAL>,
+			<&aon_apb_regs REG_AON_APB_RF_AUDCP_DSP_CTRL0 MASK_AON_APB_RF_AUDCP_DSP_BOOT_VECTOR>,
+			<&aon_apb_regs REG_AON_APB_RF_AUDCP_DSP_CTRL1 MASK_AON_APB_RF_AUDCP_DSP_BOOT>;
+		syscon-names = "sysshutdown", "coreshutdown", "deepsleep", "corereset",
+			"sysreset", "reset_sel", "sysstatus", "corestatus", "sleepstatus",
+			"bootprotect", "bootvector", "bootaddress_sel";
+	};
+
 	ext_26m: ext-26m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
@@ -930,6 +1005,66 @@
 		#clock-cells = <0>;
 		clock-frequency = <100000000>;
 		clock-output-names = "rco-100m";
+	};
+
+	sipa_eth0: sipa-eth0 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <1>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth1: sipa-eth1 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <2>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth2: sipa-eth2 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <3>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth3: sipa-eth3 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <4>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth4: sipa-eth4 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <5>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth5: sipa-eth5 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <6>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth6: sipa-eth6 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <7>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth7: sipa-eth7 {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <8>;
+		sprd,term-type = <0x6>;
+	};
+
+	sipa_eth8: sipa-usb {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <0>;
+		sprd,term-type = <0x1>;
+	};
+
+	sipa_eth9:  sipa-wifi {
+		compatible = "sprd,sipa_eth";
+		sprd,netid = <0>;
+		sprd,term-type = <0x2>;
 	};
 };
 

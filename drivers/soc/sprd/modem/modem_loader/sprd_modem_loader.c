@@ -13,6 +13,7 @@
 
 #include <linux/cdev.h>
 #include <linux/kernel.h>
+#include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/io.h>
 #include <linux/of_device.h>
@@ -46,21 +47,21 @@
 #ifdef CONFIG_SPRD_EXT_MODEM
 #define MODEM_GET_REMOTE_FLAG_CMD _IOR(MODEM_MAGIC, 0x9, int)
 #define MODEM_SET_REMOTE_FLAG_CMD _IOW(MODEM_MAGIC, 0xa, int)
+#define MODEM_CLR_REMOTE_FLAG_CMD _IOW(MODEM_MAGIC, 0xb, int)
 #endif
 
-#define MODEM_STOP_CMD _IO(MODEM_MAGIC, 0xb)
-#define MODEM_START_CMD _IO(MODEM_MAGIC, 0xc)
+#define MODEM_STOP_CMD _IO(MODEM_MAGIC, 0xc)
+#define MODEM_START_CMD _IO(MODEM_MAGIC, 0xd)
 
 #ifdef CONFIG_SPRD_EXT_MODEM_POWER_CTRL
-#define MODEM_REBOOT_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xd)
-#define MODEM_POWERON_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xe)
-#define MODEM_POWEROFF_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xf)
+#define MODEM_REBOOT_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xe)
+#define MODEM_POWERON_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0xf)
+#define MODEM_POWEROFF_EXT_MODEM_CMD _IO(MODEM_MAGIC, 0x10)
 #endif
 
 #define	MODEM_READ_ALL_MEM 0xff
 #define	MODEM_READ_MODEM_MEM 0xfe
 #define RUN_STATE_INVALID 0xff
-#define MODEM_VMALLOC_SIZE_LIMIT 4096
 
 enum {
 	SPRD_5G_MODEM_DP = 0,
@@ -110,7 +111,6 @@ static int modem_open(struct inode *inode, struct file *filp)
 	struct modem_device *modem;
 
 	modem = container_of(inode->i_cdev, struct modem_device, cdev);
-	dev_dbg(modem->p_dev, "open %s!\n", modem->modem_name);
 	filp->private_data = modem;
 
 	return 0;
@@ -118,9 +118,6 @@ static int modem_open(struct inode *inode, struct file *filp)
 
 static int modem_release(struct inode *inode, struct file *filp)
 {
-	struct modem_device *modem = filp->private_data;
-
-	dev_dbg(modem->p_dev, "release %s!\n", modem->modem_name);
 	return 0;
 }
 
@@ -166,12 +163,33 @@ static void modem_get_base_range(struct modem_device *modem,
 	*p_size = size;
 }
 
+static void *modem_map_memory(struct modem_device *modem, phys_addr_t start,
+			      size_t size, size_t *map_size_ptr)
+{
+	size_t map_size = size;
+	void *map;
+
+	do {
+		map_size = PAGE_ALIGN(map_size);
+		map = modem_ram_vmap_nocache(modem->modem_type,
+					     start, map_size);
+		if (map) {
+			if (map_size_ptr)
+				*map_size_ptr = map_size;
+
+			return map;
+		}
+		map_size /= 2;
+	} while (map_size >= PAGE_SIZE);
+
+	return NULL;
+}
+
 static ssize_t modem_read(struct file *filp,
 			  char __user *buf, size_t count, loff_t *ppos)
 {
 	phys_addr_t base;
-	size_t size, offset, copy_size, r;
-	u32 i;
+	size_t size, offset, copy_size, map_size, r;
 	void *vmem;
 	struct modem_device *modem = filp->private_data;
 	phys_addr_t addr;
@@ -187,36 +205,33 @@ static ssize_t modem_read(struct file *filp,
 
 	modem_get_base_range(modem, &base, &size, 1);
 	offset = *ppos;
-	dev_dbg(modem->p_dev, "read, offset 0x%lx, count = 0x%lx!\n",
+	dev_dbg(modem->p_dev, "read, offset = 0x%lx, count = 0x%lx!\n",
 		offset, count);
 
 	if (size <= offset)
 		return -EINVAL;
 
 	count = min_t(size_t, size - offset, count);
-	r = count, i = 0;
+	r = count;
 	do {
-		addr = base + offset + MODEM_VMALLOC_SIZE_LIMIT * i;
-		vmem = modem_ram_vmap_nocache(modem->modem_type,
-					      addr,
-					      MODEM_VMALLOC_SIZE_LIMIT);
+		addr = base + offset + (count - r);
+		vmem = modem_map_memory(modem, addr, r, &map_size);
 		if (!vmem) {
 			dev_err(modem->p_dev,
 				"read, Unable to map  base: 0x%llx\n", addr);
-			break;
+			return -ENOMEM;
 		}
 
-		copy_size = min_t(size_t, r, (size_t)MODEM_VMALLOC_SIZE_LIMIT);
+		copy_size = min_t(size_t, r, map_size);
 		if (unalign_copy_to_user(buf, vmem, copy_size)) {
 			dev_err(modem->p_dev,
 				"read, copy data from user err!\n");
 			modem_ram_unmap(modem->modem_type, vmem);
-			break;
+			return -EFAULT;
 		}
 		modem_ram_unmap(modem->modem_type, vmem);
 		r -= copy_size;
 		buf += copy_size;
-		i++;
 	} while (r > 0);
 
 	*ppos += (count - r);
@@ -228,9 +243,8 @@ static ssize_t modem_write(struct file *filp,
 			   size_t count, loff_t *ppos)
 {
 	phys_addr_t base;
-	size_t size, offset, copy_size, r;
+	size_t size, offset, copy_size, map_size, r;
 	void *vmem;
-	u32 i;
 	struct modem_device *modem = filp->private_data;
 	phys_addr_t addr;
 
@@ -252,27 +266,18 @@ static ssize_t modem_write(struct file *filp,
 		return -EINVAL;
 
 	count = min_t(size_t, size - offset, count);
-	r = count, i = 0;
+	r = count;
 	do {
-		addr = base + offset + MODEM_VMALLOC_SIZE_LIMIT * i;
-		vmem = modem_ram_vmap_nocache(modem->modem_type,
-					      addr,
-					      MODEM_VMALLOC_SIZE_LIMIT);
+		addr = base + offset + (count - r);
+		vmem = modem_map_memory(modem, addr, r, &map_size);
 		if (!vmem) {
 			dev_err(modem->p_dev,
 				"write, Unable to map  base: 0x%llx\n",
 				addr);
-			if (i > 0) {
-				*ppos += MODEM_VMALLOC_SIZE_LIMIT * i;
-				return MODEM_VMALLOC_SIZE_LIMIT * i;
-			} else {
-				return -ENOMEM;
-			}
+			return -ENOMEM;
 		}
-		copy_size = min_t(size_t, r, MODEM_VMALLOC_SIZE_LIMIT);
-		if (unalign_copy_from_user(vmem,
-					   buf + MODEM_VMALLOC_SIZE_LIMIT * i,
-					   copy_size)) {
+		copy_size = min_t(size_t, r, map_size);
+		if (unalign_copy_from_user(vmem, buf, copy_size)) {
 			dev_err(modem->p_dev,
 				"write, copy data from user err!\n");
 			modem_ram_unmap(modem->modem_type, vmem);
@@ -280,7 +285,7 @@ static ssize_t modem_write(struct file *filp,
 		}
 		modem_ram_unmap(modem->modem_type, vmem);
 		r -= copy_size;
-		i++;
+		buf += copy_size;
 	} while (r > 0);
 
 	*ppos += (count - r);
@@ -289,10 +294,6 @@ static ssize_t modem_write(struct file *filp,
 
 static loff_t modem_lseek(struct file *filp, loff_t off, int whence)
 {
-	struct modem_device *modem = filp->private_data;
-
-	dev_dbg(modem->p_dev, "seek %s!\n", modem->modem_name);
-
 	switch (whence) {
 	case SEEK_SET:
 		filp->f_pos = off;
@@ -482,13 +483,14 @@ static int modem_run(struct modem_device *modem, u8 b_run)
 static void modem_get_remote_flag(struct modem_device *modem)
 {
 	ext_modem_ops->get_remote_flag(modem);
-	dev_info(modem->p_dev, "get remote flag = %x!\n", modem->remote_flag);
+	dev_info(modem->p_dev, "get remote flag = 0x%x!\n", modem->remote_flag);
 }
 
-static void modem_set_remote_flag(struct modem_device *modem)
+static void modem_set_remote_flag(struct modem_device *modem, u8 b_clear)
 {
-	ext_modem_ops->set_remote_flag(modem);
-	dev_info(modem->p_dev, "set remote flag = %d!\n", modem->remote_flag);
+	ext_modem_ops->set_remote_flag(modem, b_clear);
+	dev_info(modem->p_dev, "set remote flag = 0x%x, b_clear = %d!\n",
+		 modem->remote_flag, b_clear);
 }
 #endif
 
@@ -508,6 +510,8 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int ret = -EINVAL;
 	int access = 0;
+	int param = 0;
+	u8 b_clear;
 
 	struct modem_device *modem = (struct modem_device *)filp->private_data;
 
@@ -564,30 +568,37 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case MODEM_SET_READ_REGION_CMD:
 		ret = modem_set_something(modem,
-					  &modem->read_region,
+					  &param,
 					  cmd, arg);
+		modem->read_region = (u8)param;
 		break;
 
 	case MODEM_SET_WRITE_GEGION_CMD:
 		ret = modem_set_something(modem,
-					  &modem->write_region,
+					  &param,
 					  cmd, arg);
+		modem->write_region = (u8)param;
 		break;
 
 #ifdef CONFIG_SPRD_EXT_MODEM
 	case MODEM_GET_REMOTE_FLAG_CMD:
 		modem_get_remote_flag(modem);
+		param = (int)modem->remote_flag;
 		ret = modem_get_something(modem,
-					  &modem->remote_flag,
+					  &param,
 					  cmd, arg);
 		break;
 
 	case MODEM_SET_REMOTE_FLAG_CMD:
+	case MODEM_CLR_REMOTE_FLAG_CMD:
+		b_clear = cmd == MODEM_CLR_REMOTE_FLAG_CMD ? 1 : 0;
 		ret = modem_set_something(modem,
-					  &modem->remote_flag,
+					  &param,
 					  cmd, arg);
-		if (ret == 0)
-			modem_set_remote_flag(modem);
+		if (ret == 0) {
+			modem->remote_flag = param;
+			modem_set_remote_flag(modem, b_clear);
+		}
 		break;
 #endif
 

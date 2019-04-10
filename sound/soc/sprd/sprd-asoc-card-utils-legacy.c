@@ -70,10 +70,6 @@ static struct sprd_asoc_ext_hook *ext_hook;
 
 int sprd_asoc_ext_hook_register(struct sprd_asoc_ext_hook *hook)
 {
-	if (ext_hook) {
-		pr_err("ERR:Already Registed Hook\n");
-		return -EBUSY;
-	}
 	ext_hook = hook;
 
 	return 0;

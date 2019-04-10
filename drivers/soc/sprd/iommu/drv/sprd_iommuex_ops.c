@@ -203,6 +203,13 @@ static int sprd_iommuex_hw_restore(struct sprd_iommu_dev *dev)
 	return 0;
 }
 
+static int sprd_iommuex_hw_set_bypass(struct sprd_iommu_dev *dev,
+				      bool vaor_bp_en)
+{
+	sprd_iommudrv_set_bypass(dev->private, vaor_bp_en);
+	return 0;
+}
+
 static int sprd_iommuex_iova_unmap(struct sprd_iommu_dev *dev,
 	unsigned long iova, size_t iova_length)
 {
@@ -260,6 +267,7 @@ struct sprd_iommu_ops sprd_iommuex_hw_ops = {
 	.iova_unmap = sprd_iommuex_iova_unmap,
 	.backup = NULL,
 	.restore = sprd_iommuex_hw_restore,
+	.set_bypass = sprd_iommuex_hw_set_bypass,
 	.enable = NULL,
 	.disable = NULL,
 	.dump = NULL,

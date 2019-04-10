@@ -33,10 +33,12 @@
 #include <linux/nvmem-consumer.h>
 #include <linux/timer.h>
 #include <linux/types.h>
+#include <linux/extcon.h>
 
 #include "sprd-asoc-common.h"
 #include "sprd-codec.h"
 #include "sprd-headset.h"
+#include "sprd-asoc-card-utils.h"
 
 #define HDST_DEBUG_LOG pr_debug("%s %d\n", __func__, __LINE__)
 
@@ -54,6 +56,12 @@
 
 #define ADC_READ_REPET 10
 #define ADC_READ_BTN_COUNT 20
+#define ADC_READ_TYPEC_COUNT 20
+#define TYPEC_INVALID_TRY_COUNT 10
+#define TYPEC_4POLE_MIC_MAX_VOLT 2685
+#define TYPEC_4POLE_MIC_MIN_VOLT 200
+#define TYPEC_3POLE_MIC_MAX_VOLT 100
+#define TYPEC_SELFIE_STICK_THRESHOLD 2500
 
 #define CHIP_ID_2720 0x2720
 #define CHIP_ID_2730 0x2730
@@ -260,6 +268,23 @@ static enum snd_jack_types sprd_jack_type_get(int index)
 	return jack_type_map[index];
 }
 
+static void sprd_headset_power_deinit(void)
+{
+	struct sprd_headset *hdst = sprd_hdst;
+	struct headset_power *power = hdst->power_manager.power;
+	struct headset_power *power_temp;
+	int i = 0;
+
+	while (i < HDST_REGULATOR_COUNT) {
+		power_temp = &power[i++];
+		if (power_temp->hdst_regu) {
+			regulator_put(power_temp->hdst_regu);
+			power_temp->hdst_regu = NULL;
+			power_temp->name = NULL;
+		}
+	}
+}
+
 static int sprd_headset_power_init(struct headset_power_manager *power_manager,
 	struct platform_device *pdev)
 {
@@ -308,21 +333,15 @@ __error:
 	return ret;
 }
 
-void sprd_headset_power_deinit(void)
+void sprd_headset_remove(void)
 {
 	struct sprd_headset *hdst = sprd_hdst;
-	struct headset_power *power = hdst->power_manager.power;
-	struct headset_power *power_temp;
-	int i = 0;
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
 
-	while (i++ < HDST_REGULATOR_COUNT) {
-		power_temp = &power[i];
-		if (power_temp->hdst_regu) {
-			regulator_put(power_temp->hdst_regu);
-			power_temp->hdst_regu = NULL;
-			power_temp->name = NULL;
-		}
-	}
+	if (pdata->support_typec_hdst)
+		extcon_unregister_notifier(hdst->edev,
+			EXTCON_JACK_HEADPHONE, &hdst->typec_plug_nb);
+	sprd_headset_power_deinit();
 }
 
 static struct headset_power *sprd_headset_search_power(
@@ -331,9 +350,10 @@ static struct headset_power *sprd_headset_search_power(
 	int i = 0;
 	struct headset_power *power_array = power_manager->power;
 
-	while (i++ < HDST_REGULATOR_COUNT) {
+	while (i < HDST_REGULATOR_COUNT) {
 		if (strcmp(power_array[i].name, name) == 0)
 			break;
+		i++;
 	}
 	if (i >= HDST_REGULATOR_COUNT) {
 		pr_err("%s: wrong regu name %s\n", __func__, name);
@@ -348,7 +368,7 @@ static int sprd_headset_power_set(struct headset_power_manager *power_manager,
 	char *name, bool power_on)
 {
 	struct headset_power *power;
-	int ret;
+	int ret = 0;
 
 	power = sprd_headset_search_power(power_manager, name);
 	if (!power) {
@@ -488,15 +508,22 @@ static bool sprd_headset_eic_mis_check(unsigned int eic_mis)
 		BIT(HDST_BDET_EIC) | BIT(HDST_MDET_EIC));
 }
 
+static bool sprd_headset_typec_eic_mis_check(unsigned int eic_mis)
+{
+	return eic_mis & BIT(HDST_BDET_EIC);
+}
+
 static void sprd_headset_eic_trig(enum hdst_eic_type eic_type)
 {
 	headset_reg_set_bits(ANA_INT10, BIT(eic_type));
 	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
 }
 
-static void sprd_hmicbias_hw_control_enable(bool enable)
+static void sprd_hmicbias_hw_control_enable(bool enable,
+	struct sprd_headset_platform_data *pdata)
 {
-	if (enable)
+	/* disable PLGPD, it pull down headmicbias when support typec */
+	if (enable && !pdata->support_typec_hdst)
 		headset_reg_set_bits(ANA_HDT1, HEDET_PLGPD_EN);
 	else
 		headset_reg_clr_bits(ANA_HDT1, HEDET_PLGPD_EN);
@@ -538,6 +565,11 @@ static void sprd_headset_eic_plugin_enable(void)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
+
+	if (pdata->support_typec_hdst) {
+		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+		return;
+	}
 
 	if (pdata->jack_type == JACK_TYPE_NO) {
 		/* enalbe ldetl eic */
@@ -742,6 +774,7 @@ static int sprd_detect_reg_init(void)
 {
 	int ret;
 	struct sprd_headset *hdst = sprd_hdst;
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
 
 	ret = sprd_headset_regulator_init(hdst);
 	if (ret) {
@@ -750,7 +783,7 @@ static int sprd_detect_reg_init(void)
 	}
 	sprd_hmicbias_polling_init(hdst);
 	sprd_headset_intc_enable(true);
-	sprd_hmicbias_hw_control_enable(true);
+	sprd_hmicbias_hw_control_enable(true, pdata);
 	sprd_headset_eic_init();
 	return 0;
 }
@@ -871,6 +904,105 @@ read_adc_err:
 		adc_mic_average = adc_ideal;
 
 	return adc_mic_average;
+}
+
+static int sprd_headset_get_mic_voltage(struct sprd_headset *hdst)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	struct iio_channel *chan = hdst->adc_chan;
+	int adc_mic_average = 0, adc_ideal, adc_value,
+		i = 0, voltage;
+
+	headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_EN);
+	sprd_headset_scale_set(1);
+	headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0),
+		HEDET_V2AD_CH_SEL(0xf));
+
+	while (i < ADC_READ_TYPEC_COUNT) {
+		/* head buffer not swap */
+		headset_reg_clr_bits(ANA_HDT3, HEDET_V2AD_SWAP);
+		adc_value = sprd_headset_adc_get(chan);
+		if (adc_value < 0) {
+			adc_mic_average = -EINVAL;
+			goto read_adc_err;
+		}
+		/* head buffer swap input */
+		headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_SWAP);
+		adc_value = sprd_headset_adc_get(chan) + adc_value;
+		if (adc_value < 0) {
+			adc_mic_average = -EINVAL;
+			goto read_adc_err;
+		}
+
+		if (!hdst->typec_attached) {
+			pr_err("typec_mic_voltage headset plugout! i %d, adc_value %d\n",
+				i, adc_value / 2);
+			adc_mic_average = -EINVAL;
+			/* is here need add something? for plugout abnormally */
+			goto read_adc_err;
+		}
+		adc_mic_average += adc_value / 2;
+		i++;
+	}
+	if (i == 0) {
+		adc_mic_average = -EINVAL;
+		goto read_adc_err;
+	}
+
+	adc_mic_average /= i;
+
+read_adc_err:
+	if (adc_mic_average < 0)
+		return adc_mic_average;
+
+	hdst->adc_big_scale = true;
+	adc_ideal = sprd_adc_to_ideal(adc_mic_average,
+				pdata->coefficient);
+	hdst->adc_big_scale = false;
+	if (adc_ideal < 0)
+		return -EINVAL;
+	voltage = adc_ideal * 1250 * 3 / 4095;
+	pr_info("typec_mic_voltage adc_mic_average %d, adc_ideal=%d, V_ideal %s %d mV\n",
+		adc_mic_average, adc_ideal,
+		(adc_mic_average >= 4095) ? "outrange!" : "",
+		voltage);
+
+	return voltage;
+}
+
+static int sprd_headset_typec_get_hpl_voltage(struct sprd_headset *hdst)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	int adc_left_average, adc_left_ideal, left_voltage,
+		adc_value_err = false;
+
+	headset_reg_set_bits(ANA_HDT3, HEDET_V2AD_EN);
+	sprd_headset_scale_set(0);
+	headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0x5),
+		HEDET_V2AD_CH_SEL(0xf));
+	adc_left_average = sprd_get_adc_value(hdst->adc_chan);
+	if (adc_left_average < 0) {
+		dev_err(&hdst->pdev->dev, "adc error, adc_left_average %d\n",
+			adc_left_average);
+		/*
+		 * When adc value is negative, it is invalid, set a useless
+		 * value to it, like 0 in headset type identification.
+		 */
+		adc_value_err = true;
+		adc_left_average = 0;
+	}
+	headset_reg_write(ANA_HDT3, HEDET_V2AD_CH_SEL(0x4),
+			HEDET_V2AD_CH_SEL(0xf));
+
+	adc_left_ideal = sprd_adc_to_ideal(adc_left_average,
+			pdata->coefficient);
+	left_voltage = adc_left_ideal * 1250 / 4095;
+	pr_info("adc_left_average %d, adc_left_ideal %d, V_ideal %s %d mV\n",
+		adc_left_average, adc_left_ideal,
+		(adc_left_average >= 4095 || adc_value_err) ? "outrange!" : "",
+		left_voltage);
+
+	return left_voltage;
 }
 
 static void sprd_enable_hmicbias_polling(bool enable, bool force_disable)
@@ -1102,6 +1234,113 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 	return HEADSET_TYPE_ERR;
 }
 
+/*
+ * the map of voltage to adc value as below:
+ * voltage  adc_value
+ * 3.75v -> 4095
+ * 2.685v -> 3004, means typec is damaged
+ * 0.1v -> 112
+ * 0.2v -> 224
+ * 2.5v -> 2797
+ */
+static enum sprd_headset_type sprd_headset_get_type(void)
+{
+	struct sprd_headset *hdst = sprd_hdst;
+	struct sprd_headset_platform_data *pdata;
+	int mic_vol_0, mic_vol_1, try_count = 0, vol_3pole,
+		left_vol_0, left_vol_1, left_vol_max, gnd_vol,
+		mic_max_vol;
+
+	if (!hdst)
+		return HEADSET_TYPE_ERR;
+	pdata = &hdst->pdata;
+	vol_3pole =
+		pdata->threshold_3pole * 1250 * 3 / 4095;
+	/* gnd voltage use small scale */
+	gnd_vol = pdata->sprd_adc_gnd * 1250 / 4095;
+
+	gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+	do {
+		mic_vol_0 = sprd_headset_get_mic_voltage(hdst);
+		if (mic_vol_0 > TYPEC_4POLE_MIC_MAX_VOLT)
+			/* debounce */
+			sprd_msleep(100);
+		else
+			break;
+	} while (++try_count < TYPEC_INVALID_TRY_COUNT);
+
+	if (mic_vol_0 < 0 || try_count >= TYPEC_INVALID_TRY_COUNT) {
+		pr_err("read voltage fail, mic_voltage_0 %d, try_count %d",
+			mic_vol_0, try_count);
+		if (mic_vol_0 > TYPEC_4POLE_MIC_MAX_VOLT) {
+			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
+			return HEADSET_NO_MIC;
+		}
+		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+		return HEADSET_TYPE_ERR;
+	}
+	left_vol_0 = sprd_headset_typec_get_hpl_voltage(hdst);
+
+	gpiod_set_value_cansleep(pdata->typec_mic_gpio, 1);
+	try_count = 0;
+	do {
+		mic_vol_1 = sprd_headset_get_mic_voltage(hdst);
+		if (mic_vol_1 > TYPEC_4POLE_MIC_MAX_VOLT)
+			/* debounce */
+			sprd_msleep(100);
+		else
+			break;
+	} while (++try_count < TYPEC_INVALID_TRY_COUNT);
+
+	if (mic_vol_1 < 0 || try_count >= TYPEC_INVALID_TRY_COUNT) {
+		pr_err("read voltage fail, mic_voltage_1 %d, try_count %d",
+			mic_vol_1, try_count);
+		if (mic_vol_1 > TYPEC_4POLE_MIC_MAX_VOLT) {
+			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
+			return HEADSET_NO_MIC;
+		}
+		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+		return HEADSET_TYPE_ERR;
+	}
+	left_vol_1 = sprd_headset_typec_get_hpl_voltage(hdst);
+	left_vol_max = max(left_vol_0, left_vol_1);
+	mic_max_vol = max(mic_vol_0, mic_vol_1);
+	pr_info("typec mic_vol_0 %d, mic_vol_1 %d, vol_3pole %d, left_vol_max %d\n",
+		mic_vol_0, mic_vol_1, vol_3pole, left_vol_max);
+	if (mic_vol_0 < vol_3pole &&
+		mic_vol_1 < vol_3pole) {
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
+		return HEADSET_NO_MIC;
+	}
+
+	if (left_vol_max > gnd_vol &&
+		ABS(mic_max_vol - left_vol_max) < gnd_vol) {
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		return HEADSET_4POLE_NOT_NORMAL;
+	}
+
+	if (mic_vol_0 > mic_vol_1)
+		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+	if (max(mic_vol_0, mic_vol_1) <
+		TYPEC_SELFIE_STICK_THRESHOLD) {
+		/* typec headset */
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		return HEADSET_4POLE_NORMAL;
+	}
+	if (max(mic_vol_0, mic_vol_1) >
+		TYPEC_SELFIE_STICK_THRESHOLD) {
+		/* typec selfie stick */
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
+		return HEADSET_4POLE_NORMAL;
+	}
+
+	pr_err("type error, mic_voltage_0 %d, mic_voltage_1 %d\n",
+		mic_vol_0, mic_vol_1);
+	gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+
+	return HEADSET_TYPE_ERR;
+}
+
 static void sprd_headset_button_release_verify(void)
 {
 	struct sprd_headset *hdst = sprd_hdst;
@@ -1115,6 +1354,7 @@ static void sprd_headset_button_release_verify(void)
 		hdst->btns_pressed &= ~SPRD_BUTTON_JACK_MASK;
 		sprd_set_eic_trig_level(HDST_BDET_EIC, true);
 	}
+	hdst->btn_detecting = false;
 }
 
 static void sprd_headset_removed_verify(struct sprd_headset *hdst)
@@ -1138,6 +1378,7 @@ static void sprd_headset_sw_reset(struct sprd_headset *hdst)
 	hdst->eic_type = 0;
 	hdst->plug_state_last = 0;
 	hdst->headphone = HEADSET_TYPE_ERR;
+	hdst->btn_detecting = false;
 }
 
 static void sprd_headset_disable_power(struct sprd_headset *hdst)
@@ -1153,6 +1394,8 @@ static void sprd_headset_disable_power(struct sprd_headset *hdst)
  */
 static void sprd_headset_reset(struct sprd_headset *hdst)
 {
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+
 	pr_err("%s hdst_hw_status %s\n", __func__,
 		eic_hw_state[hdst->hdst_hw_status]);
 	pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
@@ -1165,7 +1408,7 @@ static void sprd_headset_reset(struct sprd_headset *hdst)
 	sprd_headset_scale_set(0);
 	sprd_headset_sw_reset(hdst);
 	sprd_button_irq_threshold(0);
-	sprd_hmicbias_hw_control_enable(true);
+	sprd_hmicbias_hw_control_enable(true, pdata);
 	sprd_headset_all_eic_enable(false);
 	sprd_headset_clear_all_eic();
 	sprd_set_all_eic_trig_level(true);
@@ -1234,6 +1477,14 @@ out:
 	pr_err("%s invalid, mdet_insert %d\n",
 		__func__, mdet_insert);
 	sprd_headset_reinit_mdet_eic();
+}
+
+static int sprd_headset_ldetl_inout_check(void)
+{
+	if (sprd_get_eic_trig_level(HDST_LDETL_EIC))
+		return LDETL_PLUGIN;
+	else
+		return LDETL_PLUGOUT;
 }
 
 static int sprd_insert_all_plug_inout_check(void)
@@ -1305,8 +1556,7 @@ static void headset_button_work_func(struct work_struct *work)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
-	int button_bit_value_current, btn_irq_trig_level;
-	unsigned int val;
+	int btn_irq_trig_level;
 	struct iio_channel *chan;
 
 	if (!hdst || !pdata) {
@@ -1318,33 +1568,7 @@ static void headset_button_work_func(struct work_struct *work)
 	chan = hdst->adc_chan;
 
 	down(&hdst->sem);
-	val = sprd_get_eic_mis_status(HDST_BDET_EIC);
-	if (val == 0) {
-		pr_info("%s fatal error, irq 15 invalid, INT8(220.MIS) %x\n",
-			__func__, val);
-		goto out;
-	}
-
 	btn_irq_trig_level = sprd_headset_button_status();
-	hdst->bdet_val_last =
-		sprd_headset_part_is_inserted(HDST_INSERT_BDET);
-
-	if (sprd_headset_part_is_inserted(15) == 0) {
-		pr_err("%s: button is invalid! STS0 0x%x\n",
-			__func__, sprd_read_reg_value(ANA_STS0));
-		goto out;
-	}
-	button_bit_value_current =
-		sprd_headset_part_is_inserted(HDST_INSERT_BDET);
-	if (button_bit_value_current != hdst->bdet_val_last) {
-		pr_err("%s software debounce error\n", __func__);
-		goto out;
-	}
-
-	if (val != sprd_get_eic_mis_status(HDST_BDET_EIC)) {
-		pr_err("%s check debounce failed\n", __func__);
-		goto out;
-	}
 
 	pr_info("%s polling: DCL1(0100) %x, CLK0(0068) %x, HID0(0144) %x\n",
 		__func__, sprd_read_reg_value(ANA_DCL1),
@@ -1374,7 +1598,6 @@ static void headset_button_work_func(struct work_struct *work)
 	else if (btn_irq_trig_level == BTN_RELEASE)
 		sprd_headset_button_release(hdst);
 
-out:
 	sprd_headset_button_eic_reenable();
 	/* wake_unlock(&hdst->btn_wakelock); */
 	up(&hdst->sem);
@@ -1384,20 +1607,21 @@ static void sprd_process_4pole_type(struct sprd_headset *hdst,
 	enum sprd_headset_type headset_type)
 {
 	sprd_ldetl_filter_enable(false);
-	hdst->hdst_type_status = SND_JACK_HEADSET;
 	if (hdst->report == 0) {
+		hdst->hdst_type_status = SND_JACK_HEADSET;
 		sprd_headset_jack_report(hdst, &hdst->hdst_jack,
 			hdst->hdst_type_status, SND_JACK_HEADSET);
-		sprd_headset_eic_enable(HDST_BDET_EIC, true);
-		sprd_headset_eic_trig(HDST_BDET_EIC);
+		hdst->plug_state_last = 1;
 	}
-	if (hdst->re_detect) {
+	if (hdst->hdst_type_status == SND_JACK_HEADPHONE) {
 		pr_err("%s report for 4p re_detect\n", __func__);
+		hdst->hdst_type_status = SND_JACK_HEADSET;
 		sprd_headset_jack_report(hdst, &hdst->hdst_jack,
 			0, SPRD_HEADSET_JACK_MASK);
 
 		sprd_headset_jack_report(hdst, &hdst->hdst_jack,
 			hdst->hdst_type_status, SND_JACK_HEADSET);
+		hdst->plug_state_last = 1;
 	}
 	hdst->report = 1;
 	hdst->hdst_hw_status = HW_INSERT_ALL_PLUG_IN;
@@ -1442,7 +1666,7 @@ static void sprd_headset_set_hw_status(struct sprd_headset *hdst,
 	/* step 3 */
 	sprd_ldetl_filter_enable(true);
 	if (pdata->jack_type == JACK_TYPE_NO) {
-		sprd_hmicbias_hw_control_enable(true);
+		sprd_hmicbias_hw_control_enable(true, pdata);
 		pr_debug("filter detect_l HDT2 0x%04x\n",
 			sprd_read_reg_value(ANA_HDT2));
 	} else if (pdata->jack_type == JACK_TYPE_NC) {
@@ -1459,8 +1683,11 @@ static void sprd_headset_set_hw_status(struct sprd_headset *hdst,
 	sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS", true);
 }
 
-static void sprd_headset_prepare_insert_all_plugout(void)
+static void sprd_headset_prepare_insert_all_plugout(
+	struct sprd_headset_platform_data *pdata)
 {
+	if (pdata->support_typec_hdst)
+		return;
 	sprd_headset_eic_clear(HDST_INSERT_ALL_EIC);
 	sprd_set_eic_trig_level(HDST_INSERT_ALL_EIC, false);
 	sprd_headset_eic_enable(HDST_INSERT_ALL_EIC, true);
@@ -1480,17 +1707,25 @@ sprd_headset_prepare_plugout(struct sprd_headset_platform_data *pdata)
 		 * current back to HEADSET_L_INT for headset plug
 		 * out detection.
 		 */
-		sprd_hmicbias_hw_control_enable(false);
+		sprd_hmicbias_hw_control_enable(false, pdata);
 		headset_reg_clr_bits(ANA_HDT1, HEDET_LDET_CMP_SEL);
 		headset_reg_set_bits(ANA_HDT0, HEDET_JACK_TYPE);
 		usleep_range(50, 60); /* Wait for 50us */
-		sprd_hmicbias_hw_control_enable(true);
+		sprd_hmicbias_hw_control_enable(true, pdata);
 	}
 
 	if (pdata->do_fm_mute)
 		vbc_close_fm_dggain(false);
-	sprd_headset_prepare_insert_all_plugout();
+	sprd_headset_prepare_insert_all_plugout(pdata);
 	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+}
+
+static void sprd_headset_disable_eic(void)
+{
+	sprd_headset_eic_enable(HDST_INSERT_ALL_EIC, false);
+	sprd_headset_eic_enable(HDST_MDET_EIC, false);
+	sprd_headset_eic_enable(HDST_BDET_EIC, false);
+	sprd_set_eic_trig_level(HDST_INSERT_ALL_EIC, true);
 }
 
 static void sprd_headset_reset_hw_status(struct sprd_headset *hdst)
@@ -1506,6 +1741,37 @@ static void sprd_headset_reset_hw_status(struct sprd_headset *hdst)
 	sprd_button_irq_threshold(0);
 }
 
+static void
+sprd_headset_prepare_next_plugin(struct sprd_headset_platform_data *pdata,
+	struct sprd_headset *hdst)
+{
+	unsigned long rc;
+
+	if (pdata->support_typec_hdst) {
+		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+		return;
+	}
+
+	if (pdata->jack_type == JACK_TYPE_NO) {
+		reinit_completion(&hdst->wait_ldetl);
+		sprd_set_eic_trig_level(HDST_LDETL_EIC, false);
+		sprd_headset_eic_enable(HDST_LDETL_EIC, true);
+		sprd_headset_eic_trig(HDST_LDETL_EIC);
+		rc = wait_for_completion_timeout(
+			&hdst->wait_ldetl,
+			msecs_to_jiffies(INSERT_ALL_WAIT_LDETL_COMPL_MS));
+		if (rc == 0) {
+			pr_err("failed to wait ldetl plug out\n");
+			pr_err(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+			sprd_headset_reset(hdst);
+		}
+		hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
+	} else if (pdata->jack_type == JACK_TYPE_NC) {
+		sprd_headset_eic_enable(HDST_INSERT_ALL_EIC, true);
+		sprd_headset_eic_trig(HDST_INSERT_ALL_EIC);
+	}
+}
+
 static void sprd_headset_type_report(struct sprd_headset *hdst)
 {
 	struct sprd_headset_platform_data *pdata = &hdst->pdata;
@@ -1517,15 +1783,20 @@ static void sprd_headset_type_report(struct sprd_headset *hdst)
 
 	hdst->mdet_tried = false;
 	hdst->re_detect = false;
-	headset_type = sprd_headset_type_plugged();
+	if (pdata->support_typec_hdst)
+		headset_type = sprd_headset_get_type();
+	else
+		headset_type = sprd_headset_type_plugged();
 	pr_info("type_report headset_type %d\n", headset_type);
 	switch (headset_type) {
 	case HEADSET_TYPE_ERR:
 		hdst->det_err_cnt++;
 		hdst->headphone = HEADSET_TYPE_ERR;
-		if (hdst->det_err_cnt < 10)
+		if (hdst->det_err_cnt < 10) {
+			hdst->re_detect = true;
 			queue_delayed_work(hdst->det_all_work_q,
 			&hdst->det_all_work, msecs_to_jiffies(1000));
+		}
 		return;
 	case HEADSET_4POLE_NORMAL:
 		if (pdata->eu_us_switch != 0)
@@ -1579,6 +1850,7 @@ static void sprd_headset_type_report(struct sprd_headset *hdst)
 			sprd_headset_jack_report(hdst, &hdst->hdst_jack,
 				hdst->hdst_type_status, SND_JACK_HEADPHONE);
 			hdst->hdst_hw_status = HW_INSERT_ALL_PLUG_IN;
+			hdst->plug_state_last = 1;
 		}
 		hdst->report = 1;
 		pr_info("type_report headphone plug in\n");
@@ -1594,7 +1866,6 @@ static void sprd_headset_type_report(struct sprd_headset *hdst)
 		break;
 	}
 
-	hdst->plug_state_last = 1;
 	if (!hdst->re_detect)
 		sprd_headset_prepare_plugout(pdata);
 }
@@ -1611,13 +1882,72 @@ static void sprd_headset_type_error(struct sprd_headset *hdst)
 	}
 }
 
+static void sprd_headset_insert_all_plugout(struct sprd_headset *hdst)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+
+	sprd_headset_disable_eic();
+	sprd_headset_button_release_verify();
+
+	hdst->hdst_type_status &= ~SPRD_HEADSET_JACK_MASK;
+	sprd_headset_jack_report(hdst, &hdst->hdst_jack,
+		0, SPRD_HEADSET_JACK_MASK);
+	/* must be called before set hdst->plug_state_last == 0 */
+	sprd_enable_hmicbias_polling(false, true);
+	sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS", false);
+
+	switch (hdst->headphone) {
+	case HEADSET_NO_MIC:
+		pr_info("headphone plug out\n");
+		break;
+	case HEADSET_4POLE_NORMAL:
+		pr_info("headset plug out\n");
+		break;
+	default:
+		pr_err("headphone type error\n");
+		break;
+	}
+
+	hdst->plug_state_last = 0;
+	hdst->headphone = HEADSET_TYPE_ERR;
+	hdst->report = 0;
+	hdst->re_detect = false;
+	hdst->det_err_cnt = 0;
+	hdst->det_3pole_cnt = 0;
+	hdst->mdet_tried = false;
+
+	/*
+	 * Close the fm in advance because of the noise when playing fm
+	 * in speaker mode plugging out headset.
+	 */
+	if (pdata->do_fm_mute)
+		vbc_close_fm_dggain(true);
+	sprd_headset_eic_clear(HDST_INSERT_ALL_EIC);
+	sprd_set_all_eic_trig_level(true);
+	sprd_headset_all_eic_enable(false);
+	sprd_intc_force_clear(0);
+	sprd_headset_clear_all_eic();
+}
+
+static void sprd_headset_detect_plugout(struct sprd_headset *hdst)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+
+	sprd_headset_insert_all_plugout(hdst);
+	hdst->hdst_hw_status = HW_INSERT_ALL_PLUG_OUT;
+	sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
+	sprd_ldetl_filter_enable(false);
+	sprd_headset_reset_hw_status(hdst);
+	sprd_headset_prepare_next_plugin(pdata, hdst);
+	hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
+}
+
 static void headset_detect_all_work_func(struct work_struct *work)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
 	int plug_state_current, insert_all_data_last, ret;
 	bool trig_level, insert_status, detect_value = false;
-	static int times_1;
 
 	if (!hdst) {
 		pr_err("%s: sprd_hdset is NULL!\n", __func__);
@@ -1627,16 +1957,24 @@ static void headset_detect_all_work_func(struct work_struct *work)
 
 	down(&hdst->sem);
 
-	insert_all_data_last = sprd_headset_eic_get_data(HDST_INSERT_ALL_EIC);
-	if (hdst->plug_state_last == 0)
-		ret = sprd_headset_valid_insert_all(hdst, 40);
-	else
-		ret = sprd_headset_valid_insert_all(hdst, 20);
-	if (ret) {
-		pr_err("%s insert all invalid %d\n", __func__, ret);
-		sprd_headset_reset(hdst);
-		hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
-		goto out;
+	if (!pdata->support_typec_hdst) {
+		insert_all_data_last =
+			sprd_headset_eic_get_data(HDST_INSERT_ALL_EIC);
+		if (hdst->plug_state_last == 0)
+			ret = sprd_headset_valid_insert_all(hdst, 40);
+		else
+			ret = sprd_headset_valid_insert_all(hdst, 20);
+		if (ret) {
+			pr_err("%s insert all invalid %d\n", __func__, ret);
+			sprd_headset_reset(hdst);
+			hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
+			goto out;
+		}
+	} else {
+		pr_info("typec_notifier typec_attached %d, lr_gpio %d, mic_gpio %d\n",
+			hdst->typec_attached,
+			gpiod_get_value(pdata->typec_lr_gpio),
+			gpiod_get_value(pdata->typec_mic_gpio));
 	}
 
 	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
@@ -1647,24 +1985,38 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		sprd_msleep(10);
 	}
 
-	trig_level = sprd_get_eic_trig_level(10);
-	insert_status =
-		sprd_headset_part_is_inserted(HDST_INSERT_ALL);
-	pr_info("%s trig_level %s, insert_status %s\n", __func__,
-		trig_level ? "high" : "low", insert_status ? "high" : "low");
-	if (trig_level && insert_status) {
-		pr_info("%s headphone is plugin???\n", __func__);
-		plug_state_current = 1;
-	} else if (!trig_level && !insert_status) {
-		pr_info("%s headphone is plugout???\n", __func__);
-		plug_state_current = 0;
+	if (pdata->support_typec_hdst) {
+		/*
+		 * 1. attached: type-c d+/d- -> left/right channel of headphone;
+		 * 2. detached: type-c d+/d- -> usb d+/d-.
+		 */
+		gpiod_set_value_cansleep(pdata->typec_lr_gpio,
+			hdst->typec_attached);
+		plug_state_current = hdst->typec_attached;
+		pr_info("detect_all_work_func, analog typec headset '%s'. Switch D+/D- to '%s'\n",
+			hdst->typec_attached ? "ATTACHED" : "DETACHED",
+			gpiod_get_value(pdata->typec_lr_gpio) ==
+			hdst->typec_attached ? "HEADPHONE" : "USB");
 	} else {
-		sprd_headset_reset(hdst);
-		goto out;
+		trig_level = sprd_get_eic_trig_level(10);
+		insert_status =
+			sprd_headset_part_is_inserted(HDST_INSERT_ALL);
+		pr_info("%s trig_level %s, insert_status %s\n", __func__,
+			trig_level ? "high" : "low",
+			insert_status ? "high" : "low");
+		if (trig_level && insert_status) {
+			plug_state_current = 1;
+		} else if (!trig_level && !insert_status) {
+			plug_state_current = 0;
+		} else {
+			sprd_headset_reset(hdst);
+			goto out;
+		}
 	}
 
 	if (hdst->re_detect == true)
-		detect_value =	insert_status;
+		detect_value = pdata->support_typec_hdst ?
+		hdst->typec_attached : insert_status;
 
 	/*
 	 * 4pole detect as 3 pole if polling is enabled,
@@ -1679,71 +2031,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		(hdst->re_detect == true && detect_value == true)) {
 		sprd_headset_type_report(hdst);
 	} else if (0 == plug_state_current && 1 == hdst->plug_state_last) {
-		hdst->det_err_cnt = 0;
-		times_1 = 0;
-		pr_info("%s micbias power off for plug out, det_err_cnt %d\n",
-			__func__, hdst->det_err_cnt);
-
-		sprd_headset_eic_enable(10, 0);
-		sprd_headset_eic_enable(11, 0);
-		sprd_headset_eic_enable(15, 0);
-		sprd_set_eic_trig_level(10, 1);
-
-		sprd_headset_button_release_verify();
-
-		hdst->hdst_type_status &= ~SPRD_HEADSET_JACK_MASK;
-		sprd_headset_jack_report(hdst, &hdst->hdst_jack,
-			0, SPRD_HEADSET_JACK_MASK);
-		/* must be called before set hdst->plug_state_last = 0 */
-		sprd_enable_hmicbias_polling(false, true);
-		sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS",
-			false);
-		hdst->plug_state_last = 0;
-		hdst->headphone = HEADSET_TYPE_ERR;
-		hdst->report = 0;
-		hdst->re_detect = false;
-		hdst->det_err_cnt = 0;
-		hdst->det_3pole_cnt = 0;
-		hdst->mdet_tried = false;
-
-		if (hdst->headphone)
-			pr_info("%s headphone plug out\n", __func__);
-		else
-			pr_info("%s headset plug out\n", __func__);
-
-		/*delay 10ms*/
-		sprd_msleep(10);
-
-		/*
-		 * asic's email, this reg needn't to disable, Power
-		 * Consumption is very little
-		 * headset_reg_clr_bits(ANA_HDT2, HEDET_MDET_EN);
-		 * Close the fm in advance because of the noise when playing fm
-		 * in speaker mode plugging out headset.
-		 */
-		if (pdata->do_fm_mute)
-			vbc_close_fm_dggain(true);
-
-		sprd_headset_eic_clear(10);
-		sprd_set_all_eic_trig_level(true);
-		sprd_headset_all_eic_enable(false);
-		sprd_intc_force_clear(0);
-
-		sprd_headset_clear_all_eic();
-		if (pdata->jack_type == JACK_TYPE_NO) {
-			sprd_set_eic_trig_level(12, 0);
-			sprd_headset_eic_enable(12, 1);
-			sprd_headset_eic_trig(12);
-		} else if (pdata->jack_type == JACK_TYPE_NC) {
-			sprd_headset_eic_enable(10, 1);
-			sprd_headset_eic_trig(10);
-		}
-		sprd_headset_ldetl_ref_sel(3);
-
-		pr_info("%s ANA_HDT2 0x%04x\n", __func__,
-			sprd_read_reg_value(ANA_HDT2));
-
-		msleep(20);
+		sprd_headset_detect_plugout(hdst);
 	} else {
 		sprd_headset_reset(hdst);
 		hdst->hdst_hw_status = HW_LDETL_PLUG_OUT;
@@ -1764,6 +2052,7 @@ out:
 static void headset_ldetl_work_func(struct work_struct *work)
 {
 	struct sprd_headset *hdst = sprd_hdst;
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
 	unsigned int val, ldetl_data_last, ldetl_data_current, rc;
 	bool insert_status;
 
@@ -1807,7 +2096,7 @@ static void headset_ldetl_work_func(struct work_struct *work)
 		sprd_headset_reset(hdst);
 		goto out;
 	}
-	sprd_hmicbias_hw_control_enable(false);
+	sprd_hmicbias_hw_control_enable(false, pdata);
 	sprd_headset_eic_enable(12, 0);
 	sprd_set_eic_trig_level(12, 0);
 	sprd_intc_force_clear(1);
@@ -1817,11 +2106,11 @@ static void headset_ldetl_work_func(struct work_struct *work)
 
 	if ((0 == hdst->ldetl_trig_val_last && 0 == hdst->plug_state_last) ||
 		(hdst->ldetl_plug_in == 0)) {
-		sprd_hmicbias_hw_control_enable(true);
+		sprd_hmicbias_hw_control_enable(true, pdata);
 		sprd_headset_prepare_ldetl();
 	} else if ((hdst->ldetl_trig_val_last == 1) ||
 	(hdst->ldetl_plug_in == 1)) {
-		sprd_hmicbias_hw_control_enable(false);
+		sprd_hmicbias_hw_control_enable(false, pdata);
 		sprd_headset_eic_enable(12, 0);
 		sprd_headset_eic_clear(12);
 		sprd_intc_force_clear(1);
@@ -1949,6 +2238,12 @@ static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 		sprd_headset_reset(hdst);
 		return IRQ_HANDLED;
 	}
+	if (pdata->support_typec_hdst &&
+		!sprd_headset_typec_eic_mis_check(eic_mis)) {
+		pr_err("top_eic_handler only support bdet in typec analog headset, eic_mis 0x%x\n",
+			eic_mis);
+		return IRQ_HANDLED;
+	}
 
 	__pm_wakeup_event(&hdst->hdst_detect_wakelock, msecs_to_jiffies(2000));
 
@@ -1977,13 +2272,14 @@ static irqreturn_t sprd_headset_top_eic_handler(int irq, void *dev)
 				__func__);
 			goto out;
 		}
+		if (sprd_headset_ldetl_inout_check() & LDETL_PLUGOUT)
+			complete(&hdst->wait_ldetl);
 
 		ret = cancel_delayed_work(&hdst->ldetl_work);
 		queue_delayed_work(hdst->ldetl_work_q,
 			&hdst->ldetl_work, msecs_to_jiffies(0));
-		pr_info("%s ldetl irq active, ldetl_trig_val_last %d,plug_state_last %d, ldetl_plug_in %d\n",
-			__func__, hdst->ldetl_trig_val_last,
-			hdst->plug_state_last, hdst->ldetl_plug_in);
+		pr_info("%s ldetl irq active, plug_state_last %d\n",
+			__func__, hdst->plug_state_last);
 	}
 	if (eic_mis & BIT(HDST_BDET_EIC)) {/* bdet */
 		ret = cancel_delayed_work(&hdst->btn_work);
@@ -2118,19 +2414,187 @@ void sprd_headset_set_global_variables(
 	arch_audio_codec_set_reg_offset(glb->codec_reg_offset);
 }
 
+static int sprd_headset_switch_power(struct sprd_headset *hdst, bool on)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	struct regulator *regu = pdata->switch_regu;
+	int ret;
+
+	if (!regu) {
+		pr_info("Typec switch supply is NULL.\n");
+		return 0;
+	}
+
+	if (!on)
+		return regulator_disable(regu);
+
+	ret = regulator_set_voltage(regu, pdata->switch_vol, pdata->switch_vol);
+	if (ret < 0) {
+		pr_err("Failed(%d) to set typec switch supply voltage at %duV\n",
+		       ret, pdata->switch_vol);
+		return ret;
+	}
+
+	return regulator_enable(regu);
+}
+
+static void sprd_headset_typec_work(struct sprd_headset *hdst)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	int ret;
+
+	pr_debug("typec_work typec_attached %d\n",
+		hdst->typec_attached);
+	if (hdst->typec_attached) {
+		/*
+		 * keep PLGPD disable all the time when support
+		 * typec analog headset
+		 */
+		sprd_hmicbias_hw_control_enable(false, pdata);
+	}
+
+	ret = sprd_headset_switch_power(hdst, hdst->typec_attached);
+	if (ret)
+		pr_err("Power typec swich supply failed(%d)!\n", ret);
+
+	__pm_wakeup_event(&hdst->hdst_detect_wakelock, msecs_to_jiffies(2000));
+	queue_delayed_work(hdst->det_all_work_q,
+		&hdst->det_all_work, 0);
+}
+
+static int sprd_headset_typec_notifier(struct notifier_block *nb,
+				       unsigned long status, void *data)
+{
+	struct sprd_headset *hdst = container_of(nb, struct sprd_headset,
+						 typec_plug_nb);
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+
+	pr_debug("typec_notifier status %ld\n", status);
+	if (!pdata->support_typec_hdst) {
+		pr_warn("Analog typec headset is not supported!\n");
+		return NOTIFY_DONE;
+	}
+	hdst->typec_attached = !!status;
+	sprd_headset_typec_work(hdst);
+
+	return NOTIFY_OK;
+}
+
 static int sprd_get_adc_cal_from_efuse(struct platform_device *pdev);
+static int sprd_headset_probe(struct platform_device *pdev);
+
+static struct device_node *sprd_audio_codec_get_card0_node(void)
+{
+	int i;
+	struct device_node *np;
+	const char * const comp[] = {
+		"sprd,vbc-v4-codec-sc2730",
+	};
+
+	for (i = 0; i < ARRAY_SIZE(comp); i++) {
+		np = of_find_compatible_node(
+			NULL, NULL, comp[i]);
+		if (np)
+			return np;
+	}
+
+	return NULL;
+}
+
+static int sprd_headset_parse(struct snd_soc_card *card)
+{
+	struct platform_device *pdev, *h_pdev;
+	struct device_node *hdst_np;
+	enum of_gpio_flags flags;
+	struct sprd_card_data *priv;
+	struct device_node *node;
+	int ret = 0;
+
+	priv = snd_soc_card_get_drvdata(card);
+	node = sprd_audio_codec_get_card0_node();
+	if (!node) {
+		pr_err("error, there must be a card0 node!\n");
+		return -ENODEV;
+	}
+	pdev = of_find_device_by_node(node);
+	if (unlikely(!pdev)) {
+		pr_err("card0 node has no pdev?\n");
+		ret = -EPROBE_DEFER;
+		of_node_put(node);
+		return ret;
+	}
+
+	priv->gpio_hp_det = of_get_named_gpio_flags(node,
+						    "sprd-audio-card,hp-det-gpio",
+						    0, &flags);
+	priv->gpio_hp_det_invert = !!(flags & OF_GPIO_ACTIVE_LOW);
+	if (priv->gpio_hp_det == -EPROBE_DEFER)
+		return -EPROBE_DEFER;
+
+	priv->gpio_mic_det = of_get_named_gpio_flags(node,
+						     "sprd-audio-card,mic-det-gpio",
+						     0, &flags);
+	priv->gpio_mic_det_invert = !!(flags & OF_GPIO_ACTIVE_LOW);
+	if (priv->gpio_mic_det == -EPROBE_DEFER)
+		return -EPROBE_DEFER;
+
+	if (priv->gpio_hp_det >= 0)
+		return 0;
+
+	/* Sprd headset */
+	hdst_np = of_parse_phandle(node, "sprd-audio-card,headset", 0);
+	if (hdst_np) {
+		h_pdev = of_find_device_by_node(hdst_np);
+		if (unlikely(!h_pdev)) {
+			pr_err("headset node has no pdev?\n");
+			return -EPROBE_DEFER;
+		}
+
+		ret = sprd_headset_probe(h_pdev);
+		if (ret < 0) {
+			if (ret == -EPROBE_DEFER)
+				return ret;
+			pr_err("sprd_headset_probe failed, ret %d\n", ret);
+		}
+	} else {
+		pr_err("parse 'sprd-audio-card,headset' failed!\n");
+	}
+
+	return ret;
+}
 
 int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 {
-	struct sprd_headset *hdst = sprd_hdst;
+	struct sprd_headset *hdst;
 	struct platform_device *pdev;
 	struct sprd_headset_platform_data *pdata;
-	struct device *dev = codec->dev; /* digiatal part device */
+	struct device *dev; /* digiatal part device */
 	struct gpio_desc *gpio_desc_test;
-	struct snd_soc_card *card = codec->component.card;
+	struct snd_soc_card *card;
 	unsigned int adie_chip_id;
 	int ret, i;
 
+	if (!codec) {
+		pr_err("%s codec NULL\n", __func__);
+		return -EINVAL;
+	}
+	if (!codec->dev) {
+		pr_err("%s codec->dev NULL\n", __func__);
+		return -EINVAL;
+	}
+	if (!codec->component.card) {
+		pr_err("%s codec->component.card NULL\n", __func__);
+		return -EINVAL;
+	}
+	dev = codec->dev;
+	card = codec->component.card;
+
+	ret = sprd_headset_parse(card);
+	if (ret) {
+		pr_err("sprd_headset_parse fail %d\n", ret);
+		return ret;
+	}
+	hdst = sprd_hdst;
 	if (!hdst) {
 		pr_err("%s hdst NULL\n", __func__);
 		return -EINVAL;
@@ -2274,6 +2738,8 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 		gpio_set_debounce(pdata->gpios[i], pdata->dbnc_times[i] * 1000);
 	init_completion(&hdst->wait_insert_all);
 	init_completion(&hdst->wait_mdet);
+	init_completion(&hdst->wait_ldetl);
+
 	sprd_headset_debug_sysfs_init();
 	sprd_get_adc_cal_from_efuse(hdst->pdev);
 	ret = devm_request_threaded_irq(
@@ -2288,7 +2754,7 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 		goto failed_to_request_int_all_irq;
 	}
 
-	sprd_hmicbias_hw_control_enable(true);
+	sprd_hmicbias_hw_control_enable(true, pdata);
 	headset_reg_set_bits(ANA_HDT2, HEDET_MDET_EN);
 
 	pr_debug("%s ANA_HDT1(00D4) %x, ANA_HDT2(00D8) %x\n",
@@ -2296,6 +2762,33 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 		sprd_read_reg_value(ANA_HDT2));
 	usleep_range(3000, 3500);
 	sprd_headset_eic_plugin_enable();
+
+	if (pdata->support_typec_hdst) {
+		gpiod_direction_output(pdata->typec_lr_gpio, 0);
+		gpiod_direction_output(pdata->typec_mic_gpio, 0);
+		hdst->edev = extcon_get_edev_by_phandle(&pdev->dev, 0);
+		if (IS_ERR(hdst->edev)) {
+			ret = PTR_ERR(hdst->edev);
+			dev_err(dev, "typec analog headset failed to find gpio extcon device, ret %d\n",
+				ret);
+			return PTR_ERR(hdst->edev);
+		}
+
+		/* Register notifier block for type-c headset detecting. */
+		hdst->typec_plug_nb.notifier_call = sprd_headset_typec_notifier;
+		ret = extcon_register_notifier(hdst->edev,
+			EXTCON_JACK_HEADPHONE, &hdst->typec_plug_nb);
+		if (ret) {
+			dev_err(dev,
+				"failed to register extcon HEADPHONE notifier, ret %d\n",
+				ret);
+			return ret;
+		}
+		if (extcon_get_state(hdst->edev, EXTCON_JACK_HEADPHONE)) {
+			hdst->typec_attached = true;
+			sprd_headset_typec_work(hdst);
+		}
+	}
 
 	pr_info(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
 
@@ -2489,12 +2982,57 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 		return PTR_ERR(hdst->adc_chan);
 	}
 
+	if (!of_property_read_bool(np, "extcon")) {
+		dev_warn(dev, "not support typec analog headset\n");
+		pdata->support_typec_hdst = false;
+		return 0;
+	}
+
+	pdata->support_typec_hdst = true;
+	pdata->typec_mic_gpio = devm_gpiod_get_index(dev, "mic",
+		0, GPIOD_ASIS);
+	if (IS_ERR(pdata->typec_mic_gpio)) {
+		dev_err(dev, "parse 'mic-gpios' fail\n");
+		return PTR_ERR(pdata->typec_mic_gpio);
+	}
+	pdata->typec_lr_gpio = devm_gpiod_get_index(dev, "lr",
+		0, GPIOD_ASIS);
+	if (IS_ERR(pdata->typec_lr_gpio)) {
+		dev_err(dev, "parse 'lr-gpios' fail\n");
+		return PTR_ERR(pdata->typec_lr_gpio);
+	}
+	ret = of_property_read_u32(np, "sprd,switch-voltage",
+				   &pdata->switch_vol);
+	if (ret < 0) {
+		pr_warn("parse 'sprd,switch-voltage' failed(%d).\n",
+			ret);
+		pdata->switch_vol = 33000000;
+	}
+	pdata->switch_regu = devm_regulator_get(dev, "switch");
+	if (IS_ERR_OR_NULL(pdata->switch_regu)) {
+		pr_warn("get switch supply failed(%ld)!\n",
+			PTR_ERR(pdata->switch_regu));
+		pdata->switch_regu = NULL;
+	}
+	if (pdata->switch_regu) {
+		ret = regulator_set_voltage(pdata->switch_regu,
+						pdata->switch_vol,
+						pdata->switch_vol);
+		if (ret < 0) {
+			pr_err("fail to set switch supply voltage at %dmV\n",
+				   pdata->switch_vol);
+			return ret;
+		}
+	}
+	dev_dbg(dev, "typec support_typec_hdst 1, switch_vol %d\n",
+		pdata->switch_vol);
+
 	return 0;
 }
 #endif
 
 /* Note: @pdev is the platform_device of headset node in dts. */
-int sprd_headset_probe(struct platform_device *pdev)
+static int sprd_headset_probe(struct platform_device *pdev)
 {
 	struct sprd_headset *hdst;
 	struct sprd_headset_platform_data *pdata;
@@ -2558,12 +3096,12 @@ int sprd_headset_probe(struct platform_device *pdev)
 
 	return 0;
 }
-EXPORT_SYMBOL(sprd_headset_probe);
 
 static int sprd_adc_to_ideal(u32 adc_mic, u32 coefficient)
 {
 	s64 numerator, denominator, exp1, exp2, exp3, exp4;
 	int adc_ideal, a, b, e1, e2;
+	struct sprd_headset *hdst = sprd_hdst;
 
 	if (adc_cal_headset.cal_type != SPRD_HEADSET_AUXADC_CAL_DO) {
 		pr_warn("%s efuse A,B,E hasn't been calculated!\n", __func__);
@@ -2586,7 +3124,11 @@ static int sprd_adc_to_ideal(u32 adc_mic, u32 coefficient)
 
 	pr_debug("exp1 %lld, exp2 %lld, exp3 %lld, exp4 %lld\n",
 		exp1, exp2, exp3, exp4);
-	denominator = exp3 + exp4;
+	if (hdst->adc_big_scale)
+		denominator = exp3 + 3 * exp4;
+	else
+		denominator = exp3 + exp4;
+
 	numerator = coefficient * (exp1 + 1200) * exp2;
 	pr_debug("denominator %lld, numerator %lld\n",
 			denominator, numerator);

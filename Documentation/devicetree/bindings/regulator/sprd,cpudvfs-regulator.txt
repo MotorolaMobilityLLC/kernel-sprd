@@ -5,9 +5,11 @@ Required properties:
 	- compatible: define the compatible property for the i2c device to
 	 	      match the specific i2c driver.
 	- reg: i2c address
+	- dvfs-dcdc-i2c: which dcdc is connected to this i2c.
 
-Example:
+Example-1:
 	cpudvfs@61{
 		compatible = "sprd,cpudvfs-regulator-sharkl5";
 		reg = <0x61>;
+		dvfs-dcdc-i2c = <1>;
 	};

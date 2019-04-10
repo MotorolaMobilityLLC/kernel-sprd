@@ -110,12 +110,14 @@ struct sc27xx_fgu_data {
 	int min_volt;
 	int table_len;
 	int temp_table_len;
+	int cap_table_len;
 	int cur_1000ma_adc;
 	int vol_1000mv_adc;
 	int calib_resist_real;
 	int calib_resist_spec;
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_vol_temp_table *temp_table;
+	struct power_supply_capacity_temp_table *cap_temp_table;
 };
 
 struct sc27xx_fgu_variant_data {
@@ -136,6 +138,7 @@ static const struct sc27xx_fgu_variant_data sc2730_info = {
 static int sc27xx_fgu_cap_to_clbcnt(struct sc27xx_fgu_data *data, int capacity);
 static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 						int cap, int int_mode);
+static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp);
 
 static const char * const sc27xx_charger_supply_name[] = {
 	"sc2731_charger",
@@ -159,6 +162,31 @@ static int sc27xx_fgu_adc_to_voltage(struct sc27xx_fgu_data *data, int adc)
 static int sc27xx_fgu_voltage_to_adc(struct sc27xx_fgu_data *data, int vol)
 {
 	return DIV_ROUND_CLOSEST(vol * data->vol_1000mv_adc, 1000);
+}
+
+static int sc27xx_fgu_temp_to_cap(struct power_supply_capacity_temp_table *table,
+				  int table_len, int value)
+{
+	int i, temp;
+
+	value = value / 10;
+	for (i = 0; i < table_len; i++)
+		if (value > table[i].temp)
+			break;
+
+	if (i > 0 && i < table_len) {
+		int tmp;
+
+		tmp = value - table[i].temp / ((table[i - 1].temp - table[i].temp));
+		tmp *= (table[i - 1].cap - table[i].cap);
+		temp = tmp + table[i].cap;
+	} else if (i == 0) {
+		temp = table[0].cap;
+	} else {
+		temp = table[table_len - 1].cap;
+	}
+
+	return temp;
 }
 
 static bool sc27xx_fgu_is_first_poweron(struct sc27xx_fgu_data *data)
@@ -386,7 +414,7 @@ static int sc27xx_fgu_get_clbcnt(struct sc27xx_fgu_data *data, int *clb_cnt)
 
 static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 {
-	int ret, cur_clbcnt, delta_clbcnt, delta_cap, temp;
+	int ret, cur_clbcnt, delta_clbcnt, delta_cap, temp, temp_cap;
 
 	/* Get current coulomb counters firstly */
 	ret = sc27xx_fgu_get_clbcnt(data, &cur_clbcnt);
@@ -408,6 +436,16 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 	 */
 	delta_cap = DIV_ROUND_CLOSEST(temp * 100, data->total_cap);
 	*cap = delta_cap + data->init_cap;
+
+	if (data->cap_table_len > 0) {
+		ret = sc27xx_fgu_get_temp(data, &temp);
+		if (ret)
+			return ret;
+		temp_cap = sc27xx_fgu_temp_to_cap(data->cap_temp_table,
+						  data->cap_table_len,
+						  temp);
+		*cap = *cap * temp_cap / 100;
+	}
 
 	sc27xx_fgu_low_capacity_calibration(data, *cap, false);
 
@@ -499,7 +537,7 @@ static int sc27xx_fgu_vol_to_temp(struct power_supply_vol_temp_table *table,
 		temp = table[table_len - 1].temp;
 	}
 
-	return (temp - 1000) / 10;
+	return temp - 1000;
 }
 
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
@@ -586,12 +624,16 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_TEMP:
-		ret = sc27xx_fgu_get_temp(data, &value);
-		if (ret < 0)
-			goto error;
+		if (data->temp_table_len <= 0) {
+			val->intval = 200;
+		} else {
+			ret = sc27xx_fgu_get_temp(data, &value);
+			if (ret < 0)
+				goto error;
 
-		ret = 0;
-		val->intval = value;
+			ret = 0;
+			val->intval = value;
+		}
 		break;
 
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
@@ -978,13 +1020,27 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	}
 
 	data->temp_table_len = info.temp_table_size;
-	data->temp_table = devm_kmemdup(data->dev, info.temp_table,
-					data->temp_table_len *
-					sizeof(struct power_supply_vol_temp_table),
-					GFP_KERNEL);
-	if (!data->temp_table) {
-		power_supply_put_battery_info(data->battery, &info);
-		return -ENOMEM;
+	if (data->temp_table_len > 0) {
+		data->temp_table = devm_kmemdup(data->dev, info.temp_table,
+						data->temp_table_len *
+						sizeof(struct power_supply_vol_temp_table),
+						GFP_KERNEL);
+		if (!data->temp_table) {
+			power_supply_put_battery_info(data->battery, &info);
+			return -ENOMEM;
+		}
+	}
+
+	data->cap_table_len = info.cap_table_size;
+	if (data->cap_table_len > 0) {
+		data->cap_temp_table = devm_kmemdup(data->dev, info.cap_table,
+						    data->cap_table_len *
+						    sizeof(struct power_supply_capacity_temp_table),
+						    GFP_KERNEL);
+		if (!data->cap_temp_table) {
+			power_supply_put_battery_info(data->battery, &info);
+			return -ENOMEM;
+		}
 	}
 
 	data->alarm_cap = power_supply_ocv2cap_simple(data->cap_table,

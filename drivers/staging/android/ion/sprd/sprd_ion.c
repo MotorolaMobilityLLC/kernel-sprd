@@ -349,22 +349,13 @@ out:
 static int ion_e_show_mem_handler(struct notifier_block *nb,
 				unsigned long val, void *data)
 {
-	int i;
 	enum e_show_mem_type type = (enum e_show_mem_type)val;
-	unsigned long total_used = 0;
+	unsigned long total = 0;
 
 	pr_info("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 	pr_info("Enhanced Mem-info :ION\n");
-	for (i = 0; i < num_heaps; i++) {
-		if ((E_SHOW_MEM_BASIC != type) ||
-		    (ION_HEAP_TYPE_SYSTEM == heaps[i]->type ||
-		     ION_HEAP_TYPE_SYSTEM_CONTIG == heaps[i]->type)) {
-			if (heaps[i]->debug_show)
-				heaps[i]->debug_show(heaps[i], 0, 0);
-		}
-	}
-
-	pr_info("Total allocated from Buddy: %lu kB\n", total_used / 1024);
+	ion_debug_heap_show_printk(type, &total);
+	pr_info("Total allocated from Buddy: %lu kB\n", total / 1024);
 	return 0;
 }
 

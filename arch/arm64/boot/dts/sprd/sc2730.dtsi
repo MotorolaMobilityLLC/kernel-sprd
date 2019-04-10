@@ -101,6 +101,7 @@
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 			reg = <0x380>;
+			mode = <2>;
 			nvmem-cells = <&cc_cal>;
 			nvmem-cell-names = "cc_calib";
 		};
@@ -209,16 +210,16 @@
 
 			vddgen0: DCDC_GEN0 {
 				regulator-name = "vddgen0";
-				regulator-min-microvolt = <1200000>;
-				regulator-max-microvolt = <2390625>;
+				regulator-min-microvolt = <1220000>;
+				regulator-max-microvolt = <2410625>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
 			};
 
 			vddgen1: DCDC_GEN1 {
 				regulator-name = "vddgen1";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <1593750>;
+				regulator-min-microvolt = <850000>;
+				regulator-max-microvolt = <1643750>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
 			};
@@ -233,16 +234,16 @@
 
 			avdd18: LDO_AVDD18 {
 				regulator-name = "avdd18";
-				regulator-min-microvolt = <1200000>;
-				regulator-max-microvolt = <1830000>;
+				regulator-min-microvolt = <1175000>;
+				regulator-max-microvolt = <1805000>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
 			};
 
 			vddrf18: LDO_VDDRF18 {
 				regulator-name = "vddrf18";
-				regulator-min-microvolt = <1200000>;
-				regulator-max-microvolt = <1830000>;
+				regulator-min-microvolt = <1175000>;
+				regulator-max-microvolt = <1805000>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
 			};
@@ -402,6 +403,20 @@
 		poweroff@1820 {
 			compatible = "sprd,sc27xx-poweroff", "sprd,sc2730-poweroff";
 			reg = <0x1820>;
+		};
+
+		pmic_tsensor: tsensor@1b34 {
+			compatible = "sprd,sc27xx-tsensor", "sprd,sc2730-tsensor";
+			#thermal-sensor-cells = <1>;
+			reg = <0x1b34>;
+
+			osc_tsensor: osc-tsensor@0{
+				reg = <0>;
+			};
+
+			tout_tsensor: tout-tsensor@1{
+				reg = <1>;
+			};
 		};
 
 		vibrator@1b90 {

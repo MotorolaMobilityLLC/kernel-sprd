@@ -12,6 +12,7 @@
 		compatible = "sprd,scproc_pubcp";
 		#address-cells = <2>;
 		#size-cells = <2>;
+		ranges;
 
 		scproc_pubpm: scproc@0 {
 			sprd,name = "pmic";
@@ -44,8 +45,6 @@
 			syscon-names = "shutdown", "deepsleep", "corereset",
 				       "sysreset", "getstatus";
 			reg = <0x0 0x2000 0x0 0x1000>;
-			/* Interrupt to be confirmed.*/
-			interrupts = <GIC_SPI 83 0x0>;
 		};
 
 		scproc_v3phy: scproc@2 {
@@ -53,11 +52,14 @@
 			sprd,decoup = "cproc-use-decoup";
 			syscons = <&pmu_apb_regs 0x54 0x2000000>,
 			<&pmu_apb_regs 0x544 0x4>,
-			<&aon_apb_regs 0x220 0x07>,
+			<&aon_apb_regs 0x80000220 0x07>,
 			<&pmu_apb_regs 0xb0 0x1>,
-			<&pmu_apb_regs 0xff 0x100>;
+			<&pmu_apb_regs 0xff 0x100>,
+			<&pmu_apb_regs 0xff 0x100>,
+			<&pmu_apb_regs 0x48 0x2000000>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
-				       "sysreset", "getstatus";
+				       "sysreset", "getstatus", "dspreset",
+				       "fshutdown";
 			reg = <0x0 0x4000 0x0 0x1000>;
 		};
 
@@ -85,34 +87,34 @@
 		sprd,smem-info = <0x8400 0x60008400 0x2000>;
 	};
 
-	/* PSP: 4MB */
+	/* PSP: 3MB */
 	sipc_lte: sipc@1 {
 		compatible = "sprd,sipc";
 		sprd,name = "sipc-lte";
 		sprd,type = "mbox";
 		sprd,dst = <5>;
 		sprd,core = <2>;
-		sprd,smem-info = <0x87800000 0x87800000 0x400000>;
+		sprd,smem-info = <0x87800000 0x87800000 0x300000>;
 	};
 
-	/* New Radio PHY: 2MB */
+	/* New Radio PHY: 2.5MB */
 	sipc_nrphy: sipc@2 {
 		compatible = "sprd,sipc";
 		sprd,name = "sipc-nr-phy";
 		sprd,type = "mbox";
 		sprd,dst = <7>;
 		sprd,core = <6>;
-		sprd,smem-info = <0x87c00000 0x87c00000 0x200000>;
+		sprd,smem-info = <0x87b00000 0x87b00000 0x280000>;
 	};
 
-	/* MODEM v3 PHY: 2MB */
+	/* MODEM v3 PHY: 2.5MB */
 	sipc_v3phy: sipc@3 {
 		compatible = "sprd,sipc";
 		sprd,name = "sipc-v3-phy";
 		sprd,type = "mbox";
 		sprd,dst = <8>;
 		sprd,core = <4>;
-		sprd,smem-info = <0x87e00000 0x87e00000 0x200000>;
+		sprd,smem-info = <0x87d80000 0x87d80000 0x280000>;
 	};
 
 	/* Roc1: 48MB */
@@ -212,20 +214,20 @@
 		sprd,size-txbuf = <0x0800>; /* 2*1024 */
 	};
 
-	/* PSP log: 64KB x 55 = 3520KB */
+	/* PSP log: 2KB x 800 = 1.6M */
 	slog_lte: spool@0 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_lte";
 		sprd,dst = <5>;
 		sprd,channel = <5>;
-		sprd,preconfigured = <0>;
+		sprd,preconfigured = <1>;
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <55>;
+		sprd,rx-blksize = <0x800>;
+		sprd,rx-blknum = <800>;
 	};
 
-	/* New Radio PHY log: 64KB x 32 = 2M */
+	/* New Radio PHY log: 2KB x 1200 = 2.4M */
 	slog_nrphy: spool@1 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr_phy";
@@ -234,11 +236,11 @@
 		sprd,preconfigured = <1>;
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <32>;
+		sprd,rx-blksize = <0x800>;
+		sprd,rx-blknum = <1200>;
 	};
 
-	/* MODEM v3 PHY log: 64KB x 32 = 2M */
+	/* MODEM v3 PHY log: 2KB x 1200 = 2.4M */
 	slog_v3phy: spool@2 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_v3_phy";
@@ -247,47 +249,8 @@
 		sprd,preconfigured = <1>;
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <32>;
-	};
-
-	/* PSP log: 64KB x 55 = 3520KB */
-	slog_lte: spool@0 {
-		compatible = "sprd,spool";
-		sprd,name = "slog_lte";
-		sprd,dst = <5>;
-		sprd,channel = <5>;
-		sprd,preconfigured = <0>;
-		sprd,tx-blksize = <0>;
-		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <55>;
-	};
-
-	/* New Radio PHY log: 64KB x 32 = 2M */
-	slog_nrphy: spool@1 {
-		compatible = "sprd,spool";
-		sprd,name = "slog_nr_phy";
-		sprd,dst = <7>;
-		sprd,channel = <5>;
-		sprd,preconfigured = <1>;
-		sprd,tx-blksize = <0>;
-		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <32>;
-	};
-
-	/* MODEM v3 PHY log: 64KB x 32 = 2M */
-	slog_v3phy: spool@2 {
-		compatible = "sprd,spool";
-		sprd,name = "slog_v3_phy";
-		sprd,dst = <8>;
-		sprd,channel = <5>;
-		sprd,preconfigured = <1>;
-		sprd,tx-blksize = <0>;
-		sprd,tx-blknum = <0>;
-		sprd,rx-blksize = <0x10000>;
-		sprd,rx-blknum = <32>;
+		sprd,rx-blksize = <0x800>;
+		sprd,rx-blknum = <1200>;
 	};
 
 	slog_nr: spool@3{
@@ -300,4 +263,9 @@
 		sprd,rx-blksize = <0x10000>; /* 64k*/
 		sprd,rx-blknum = <128>;
 	};
+
+	crypto {
+		compatible = "sprd,crypto_modem_verify";
+	};
+
 };

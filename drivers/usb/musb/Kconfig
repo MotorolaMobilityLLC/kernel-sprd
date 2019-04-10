@@ -172,6 +172,13 @@ config USB_SPRD_OFFLOAD
 	  interface automatically within host audio mode. Software need to add this macro to
 	  enable offload function.
 
+config USB_SPRD_LINKFIFO
+	bool 'USB LINKFIFO MODE'
+	depends on USB_SPRD_DMA
+	help
+	  Enable this to support the SPRD LINKFIFO that software can prepare linknode firstly
+	  without waiting for interrupt. Add this macro can speed up musb throughput.
+
 config USB_UX500_DMA
 	bool 'ST Ericsson Ux500'
 	depends on USB_MUSB_UX500

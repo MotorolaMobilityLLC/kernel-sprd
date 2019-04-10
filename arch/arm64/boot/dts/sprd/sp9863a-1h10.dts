@@ -35,7 +35,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.selinux=permissive androidboot.hardware=s9863a1h10 androidboot.dtbo_idx=0 androidboot.selinux=permissive";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.selinux=permissive androidboot.hardware=s9863a1h10 androidboot.dtbo_idx=0 printk.devkmsg=on";
 	};
 
 	ipi: interrupt-controller {
@@ -164,12 +164,6 @@
 					<3795000 40>, <3782000 35>, <3774000 30>,
 					<3765000 25>, <3750000 20>, <3726000 15>,
 					<3687000 10>, <3658000 5>, <3400000 0>;
-		voltage-temp-table = <1052000 750>, <953000 800>, <858000 850>,
-				      <762000 900>, <671000 950>,<584000 1000>,
-				      <504000 1050>, <434000 1100>, <372000 1150>,
-				      <318000 1200>,<271000 1250>, <234000 1300>,
-				      <198000 1350>, <165000 1400>, <140000 1450>,
-				      <119000 1500>, <104000 1550>, <88000 1600>;
 		charge-sdp-current-microamp = <500000 500000>;
 		charge-dcp-current-microamp = <1200000 3000000>;
 		charge-cdp-current-microamp = <1500000 1500000>;
@@ -213,6 +207,11 @@
 
 		/* how much time to allow capacity change */
 		cm-one-cap-time = <30>;
+
+		/* when the safe charging voltage is exceeded, stop charging */
+		cm-charge-voltage-max = <6500000>;
+		/* drop voltage in microVolts to restart charging */
+		cm-charge-voltage-drop = <700000>;
 
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
@@ -271,6 +270,7 @@
 
 &usb {
 	extcon = <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
 };
 
 &pmic_typec {
@@ -429,6 +429,7 @@
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&pmic_typec>;
+		otg-detect-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
@@ -458,6 +459,12 @@
 
 &vsp {
 	status = "okay";
+};
+
+&pmic_fgu {
+	monitored-battery = <&bat>;
+	sprd,calib-resistance-real = <20000>;
+	sprd,calib-resistance-spec = <20000>;
 };
 
 &jpg {

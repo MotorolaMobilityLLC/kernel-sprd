@@ -954,7 +954,7 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 	hd_op = &ring->header_op;
 
 	if (sbuf->state != SBUF_STATE_READY) {
-		pr_info("sbuf-%d-%d not ready to read!\n", dst, channel);
+		pr_debug("sbuf-%d-%d not ready to read!\n", dst, channel);
 		return -ENODEV;
 	}
 

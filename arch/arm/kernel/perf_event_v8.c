@@ -197,13 +197,13 @@
 #define ARMV8_PMU_PMCR_LC	(1 << 6) /* Overflow on 64 bit cycle counter */
 #define	ARMV8_PMU_PMCR_N_SHIFT	11	 /* Number of counters supported */
 #define	ARMV8_PMU_PMCR_N_MASK	0x1f
-#define	ARMV8_PMU_PMCR_MASK	0x3f	 /* Mask for writable bits */
+#define	ARMV8_PMU_PMCR_MASK	0x7f	 /* Mask for writable bits */
 
 /*
  *  * PMXEVTYPER: Event selection reg
  *   */
-#define	ARMV8_PMU_EVTYPE_MASK	0xc80003ff	/* Mask for writable bits */
-#define	ARMV8_PMU_EVTYPE_EVENT	0x3ff		/* Mask for EVENT bits */
+#define	ARMV8_PMU_EVTYPE_MASK	0xc800ffff	/* Mask for writable bits */
+#define	ARMV8_PMU_EVTYPE_EVENT	0xffff		/* Mask for EVENT bits */
 
 /*
  *  * Event filters for PMUv3
@@ -603,7 +603,7 @@ static inline void armv8pmu_write_counter(struct perf_event *event, u32 value)
 		pr_err("CPU%u writing wrong counter %d\n",
 			smp_processor_id(), idx);
 	else if (idx == ARMV8_IDX_CYCLE_COUNTER) {
-		asm volatile("mcr p15, 0, %0, c9, c13, 0" : : "r" (value));
+		asm volatile("mcrr p15, 0, %0, %1, c9" : : "r" (value), "r" (0xffffffff));
 	} else if (armv8pmu_select_counter(idx) == idx)
 		asm volatile("mcr p15, 0, %0, c9, c13, 2" : : "r" (value));
 }

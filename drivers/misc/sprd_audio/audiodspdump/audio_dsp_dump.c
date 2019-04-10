@@ -697,6 +697,7 @@ static int audio_dsp_probe(struct platform_device *pdev)
 	if (pdev->dev.of_node) {
 		rval = audio_dsp_parse_dt(init, &pdev->dev);
 		if (rval) {
+			kfree(init);
 			pr_err("Failed to parse dsp_log device tree, ret=%d\n",
 			rval);
 			return rval;
@@ -729,6 +730,7 @@ static int audio_dsp_probe(struct platform_device *pdev)
 		pr_info("aud_dsp_addr: mem: mem type %d, mem_addr %x\n",
 			init->usedmem_type, mem_addr);
 		if ((mem_addr == 0) || (init->usedmem_size == 0)) {
+			kfree(init);
 			pr_err("Failed to create sblock with addr: %x\n",
 				mem_addr);
 			return -ENOMEM;

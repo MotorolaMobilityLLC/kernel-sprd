@@ -2466,10 +2466,8 @@ static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
 		else
 			tmp |= BIT_RX_ST_MO;
 	}
-	tmp |= (BIT_TX_LEFT_FIRST |
-			BIT_RX_LEFT_FIRST |
-			BIT_TX_SAMPLE_RATE(rate) |
-			BIT_RX_SAMPLE_RATE(rate));
+	tmp |= (BIT_TX_SAMPLE_RATE(rate) |
+		BIT_RX_SAMPLE_RATE(rate));
 	musb_writel(mbase, MUSB_AUDIO_IIS_DMA_INS, tmp);
 
 	tmp = musb_readl(mbase, MUSB_AUDIO_IIS_EN);

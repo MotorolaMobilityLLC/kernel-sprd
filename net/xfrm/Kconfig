@@ -43,6 +43,16 @@ config XFRM_SUB_POLICY
 
 	  If unsure, say N.
 
+config XFRM_FRAGMENT
+	bool "Fragment pkts to avoiding pkts done in ip layer"
+	depends on XFRM_SUB_POLICY
+	default n
+	---help---
+	  Support pkt fragment in ip layer before esp. By using this one,
+	  control parameter will be set to one. It is only for sprd until
+	  now.
+	  If unsure, say N.
+
 config XFRM_MIGRATE
 	bool "Transformation migrate database"
 	depends on XFRM

@@ -24,48 +24,15 @@
 
 #include "sprd_drm.h"
 
-#define DRM_MODE_BLEND_PREMULTI		2
-#define DRM_MODE_BLEND_COVERAGE		1
-#define DRM_MODE_BLEND_PIXEL_NONE	0
-
 struct dummy_crtc {
 	struct drm_crtc crtc;
 	struct drm_pending_vblank_event *event;
 	struct hrtimer vsync_timer;
 };
 
-struct dummy_plane {
-	struct drm_plane plane;
-	struct drm_property *alpha_property;
-	struct drm_property *blend_mode_property;
-	struct drm_property *fbc_hsize_r_property;
-	struct drm_property *fbc_hsize_y_property;
-	struct drm_property *fbc_hsize_uv_property;
-};
-
-struct dummy_plane_state {
-	struct drm_plane_state state;
-	u8 alpha;
-	u8 blend_mode;
-	u32 fbc_hsize_r;
-	u32 fbc_hsize_y;
-	u32 fbc_hsize_uv;
-};
-
 static inline struct dummy_crtc *crtc_to_dummy(struct drm_crtc *crtc)
 {
 	return crtc ? container_of(crtc, struct dummy_crtc, crtc) : NULL;
-}
-
-static inline struct dummy_plane *to_dummy_plane(struct drm_plane *plane)
-{
-	return container_of(plane, struct dummy_plane, plane);
-}
-
-static inline struct
-dummy_plane_state *to_dummy_plane_state(const struct drm_plane_state *state)
-{
-	return container_of(state, struct dummy_plane_state, state);
 }
 
 static enum hrtimer_restart vsync_timer_func(struct hrtimer *timer)
@@ -85,177 +52,6 @@ static void sprd_dummy_plane_atomic_update(struct drm_plane *plane,
 	DRM_DEBUG("\n");
 }
 
-static void sprd_dummy_plane_reset(struct drm_plane *plane)
-{
-	struct dummy_plane_state *s;
-
-	DRM_INFO("%s()\n", __func__);
-
-	if (plane->state) {
-		__drm_atomic_helper_plane_destroy_state(plane->state);
-
-		s = to_dummy_plane_state(plane->state);
-		memset(s, 0, sizeof(*s));
-	} else {
-		s = kzalloc(sizeof(*s), GFP_KERNEL);
-		if (!s)
-			return;
-		plane->state = &s->state;
-	}
-
-	s->state.plane = plane;
-	s->state.zpos = 0;
-	s->alpha = 255;
-	s->blend_mode = DRM_MODE_BLEND_PIXEL_NONE;
-}
-
-static struct drm_plane_state *
-sprd_dummy_plane_atomic_duplicate_state(struct drm_plane *plane)
-{
-	struct dummy_plane_state *s;
-
-	DRM_DEBUG("%s()\n", __func__);
-
-	s = kzalloc(sizeof(*s), GFP_KERNEL);
-	if (!s)
-		return NULL;
-
-	__drm_atomic_helper_plane_duplicate_state(plane, &s->state);
-
-	WARN_ON(s->state.plane != plane);
-
-	s->alpha = 255;
-
-	return &s->state;
-}
-
-static void sprd_dummy_plane_atomic_destroy_state(struct drm_plane *plane,
-					    struct drm_plane_state *state)
-{
-	DRM_DEBUG("%s()\n", __func__);
-
-	__drm_atomic_helper_plane_destroy_state(state);
-	kfree(to_dummy_plane_state(state));
-}
-
-static int sprd_dummy_plane_atomic_set_property(struct drm_plane *plane,
-					  struct drm_plane_state *state,
-					  struct drm_property *property,
-					  u64 val)
-{
-	struct dummy_plane *p = to_dummy_plane(plane);
-	struct dummy_plane_state *s = to_dummy_plane_state(state);
-
-	DRM_DEBUG("%s() name = %s, val = %llu\n",
-		  __func__, property->name, val);
-
-	if (property == p->alpha_property)
-		s->alpha = val;
-	else if (property == p->blend_mode_property)
-		s->blend_mode = val;
-	else if (property == p->fbc_hsize_r_property)
-		s->fbc_hsize_r = val;
-	else if (property == p->fbc_hsize_y_property)
-		s->fbc_hsize_y = val;
-	else if (property == p->fbc_hsize_uv_property)
-		s->fbc_hsize_uv = val;
-	else {
-		DRM_ERROR("property %s is invalid\n", property->name);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-static int sprd_dummy_plane_atomic_get_property(struct drm_plane *plane,
-					  const struct drm_plane_state *state,
-					  struct drm_property *property,
-					  u64 *val)
-{
-	struct dummy_plane *p = to_dummy_plane(plane);
-	const struct dummy_plane_state *s = to_dummy_plane_state(state);
-
-	DRM_DEBUG("%s() name = %s\n", __func__, property->name);
-
-	if (property == p->alpha_property)
-		*val = s->alpha;
-	else if (property == p->blend_mode_property)
-		*val = s->blend_mode;
-	else if (property == p->fbc_hsize_r_property)
-		*val = s->fbc_hsize_r;
-	else if (property == p->fbc_hsize_y_property)
-		*val = s->fbc_hsize_y;
-	else if (property == p->fbc_hsize_uv_property)
-		*val = s->fbc_hsize_uv;
-	else {
-		DRM_ERROR("property %s is invalid\n", property->name);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-static int sprd_dummy_plane_create_properties(struct dummy_plane *p)
-{
-	struct drm_property *prop;
-	static const struct drm_prop_enum_list blend_mode_enum_list[] = {
-		{ DRM_MODE_BLEND_PIXEL_NONE, "None" },
-		{ DRM_MODE_BLEND_PREMULTI, "Pre-multiplied" },
-		{ DRM_MODE_BLEND_COVERAGE, "Coverage" },
-	};
-
-	/* create rotation property */
-	drm_plane_create_rotation_property(&p->plane,
-					   DRM_MODE_ROTATE_0,
-					   DRM_MODE_ROTATE_MASK |
-					   DRM_MODE_REFLECT_MASK);
-
-	/* create zpos property */
-	drm_plane_create_zpos_immutable_property(&p->plane, 0);
-
-	/* create layer alpha property */
-	prop = drm_property_create_range(p->plane.dev, 0, "alpha", 0, 255);
-	if (!prop)
-		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop, 255);
-	p->alpha_property = prop;
-
-	/* create blend mode property */
-	prop = drm_property_create_enum(p->plane.dev, DRM_MODE_PROP_ENUM,
-					"pixel blend mode",
-					blend_mode_enum_list,
-					ARRAY_SIZE(blend_mode_enum_list));
-	if (!prop)
-		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop,
-				   DRM_MODE_BLEND_PIXEL_NONE);
-	p->blend_mode_property = prop;
-
-	/* create fbc header size property */
-	prop = drm_property_create_range(p->plane.dev, 0,
-			"FBC header size RGB", 0, UINT_MAX);
-	if (!prop)
-		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop, 0);
-	p->fbc_hsize_r_property = prop;
-
-	prop = drm_property_create_range(p->plane.dev, 0,
-			"FBC header size Y", 0, UINT_MAX);
-	if (!prop)
-		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop, 0);
-	p->fbc_hsize_y_property = prop;
-
-	prop = drm_property_create_range(p->plane.dev, 0,
-			"FBC header size UV", 0, UINT_MAX);
-	if (!prop)
-		return -ENOMEM;
-	drm_object_attach_property(&p->plane.base, prop, 0);
-	p->fbc_hsize_uv_property = prop;
-
-	return 0;
-}
-
 static const struct drm_plane_helper_funcs sprd_dummy_plane_helper_funcs = {
 	.atomic_update = sprd_dummy_plane_atomic_update,
 };
@@ -264,11 +60,9 @@ static const struct drm_plane_funcs sprd_dummy_plane_funcs = {
 	.update_plane = drm_atomic_helper_update_plane,
 	.disable_plane	= drm_atomic_helper_disable_plane,
 	.destroy = drm_plane_cleanup,
-	.reset = sprd_dummy_plane_reset,
-	.atomic_duplicate_state = sprd_dummy_plane_atomic_duplicate_state,
-	.atomic_destroy_state = sprd_dummy_plane_atomic_destroy_state,
-	.atomic_set_property = sprd_dummy_plane_atomic_set_property,
-	.atomic_get_property = sprd_dummy_plane_atomic_get_property,
+	.reset = drm_atomic_helper_plane_reset,
+	.atomic_duplicate_state = drm_atomic_helper_plane_duplicate_state,
+	.atomic_destroy_state = drm_atomic_helper_plane_destroy_state,
 };
 
 static struct drm_plane *sprd_dummy_plane_init(struct drm_device *drm,
@@ -278,28 +72,26 @@ static struct drm_plane *sprd_dummy_plane_init(struct drm_device *drm,
 		DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888,
 		DRM_FORMAT_ARGB8888, DRM_FORMAT_ABGR8888,
 	};
-	struct dummy_plane *p;
+	struct drm_plane *plane;
 	int err;
 
-	p = kzalloc(sizeof(*p), GFP_KERNEL);
-	if (!p)
+	plane = kzalloc(sizeof(*plane), GFP_KERNEL);
+	if (!plane)
 		return ERR_PTR(-ENOMEM);
 
-	err = drm_universal_plane_init(drm, &p->plane, 1,
+	err = drm_universal_plane_init(drm, plane, 1,
 				       &sprd_dummy_plane_funcs, primary_fmts,
 				       ARRAY_SIZE(primary_fmts), NULL,
 				       DRM_PLANE_TYPE_PRIMARY, NULL);
 	if (err) {
-		kfree(p);
+		kfree(plane);
 		DRM_ERROR("fail to init primary plane\n");
 		return ERR_PTR(err);
 	}
 
-	drm_plane_helper_add(&p->plane, &sprd_dummy_plane_helper_funcs);
+	drm_plane_helper_add(plane, &sprd_dummy_plane_helper_funcs);
 
-	sprd_dummy_plane_create_properties(p);
-
-	return &p->plane;
+	return plane;
 }
 
 static void sprd_dummy_crtc_atomic_enable(struct drm_crtc *crtc,
@@ -311,6 +103,13 @@ static void sprd_dummy_crtc_atomic_enable(struct drm_crtc *crtc,
 static void sprd_dummy_crtc_atomic_disable(struct drm_crtc *crtc,
 				    struct drm_crtc_state *old_state)
 {
+	spin_lock_irq(&crtc->dev->event_lock);
+	if (crtc->state->event) {
+		drm_crtc_send_vblank_event(crtc, crtc->state->event);
+		crtc->state->event = NULL;
+	}
+	spin_unlock_irq(&crtc->dev->event_lock);
+
 	DRM_INFO("%s()\n", __func__);
 }
 
@@ -388,7 +187,7 @@ static int sprd_dummy_crtc_init(struct drm_device *drm, struct drm_crtc *crtc,
 	crtc->port = port;
 
 	err = drm_crtc_init_with_planes(drm, crtc, primary, NULL,
-					&sprd_dummy_crtc_funcs, NULL);
+					&sprd_dummy_crtc_funcs, "dummy-crtc");
 	if (err) {
 		DRM_ERROR("failed to init crtc.\n");
 		return err;

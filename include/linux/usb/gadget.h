@@ -227,6 +227,7 @@ struct usb_ep {
 	unsigned		maxburst:5;
 	u8			address;
 	bool			uether;
+	bool			linkfifo;
 	const struct usb_endpoint_descriptor	*desc;
 	const struct usb_ss_ep_comp_descriptor	*comp_desc;
 };

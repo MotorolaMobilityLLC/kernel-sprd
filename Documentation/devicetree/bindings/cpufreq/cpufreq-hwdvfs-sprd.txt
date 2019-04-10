@@ -91,6 +91,12 @@ Optional properties:
 			current top dvfs fsm state, if the domain uses an i2c
 			channel to adjust the voltage for dcdc_cpuX, the detail
 			method.
+- voltage-up-delay: An array to store the delay time for hardware dvfs module to
+			wait the PMIC to increase voltage to target value, different
+			target voltages have different delay time.
+- voltage-down-delay: An array to store the delay time for hardware dvfs module to
+			wait the PMIC to decrease voltage to target value, different
+			target voltages have different delay time.
 
 Node cpudvfs_dev
 -----------------------------------
@@ -223,16 +229,12 @@ Node cpudvfs_dev
 						register whose offset is 0x30.
 
 Optional properties:
-- dcdc-cpu0-supply: A phandle to the regulator for power domain dcdc-cpu0
-- dcdc-sram-supply: A phandle to the regulator for power domain dcdc-sram
-
+- NONE
 Example 1: Example for topdvfs_controller
 ---------
 topdvfs_controller: topdvfsctrl@322A0000 {
 	compatible = "sprd,sharkl5-topdvfs", "syscon";
 	sprd,syscon-enable = <&aon_apb_regs>;
-	dcdc-cpu0-supply = <&vddcpu>;
-	dcdc-sram-supply = <&vddsram>;
 	module-enable-cfg = <0x4 7>;
 	reg = <0 0x322A0000 0 0x8000>;
 	cpu-dcdc-cells = <&dcdc_cpu0>;
@@ -272,6 +274,20 @@ dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
 			<4 0x120 0xF8 9 0x1FF>,
 			<5 0x130 0xF8 18 0x1FF>,
 			<6 0x140 0xFC 0 0x1FF>;
+	voltage-up-delay = <50 0x58 0 0xffff 0x600>,
+			<100 0x58 16 0xffff 0xa00>,
+			<150 0x54 0 0xffff 0xf00>,
+			<200 0x54 16 0xffff 0x1400>,
+			<250 0x50 0 0xffff 0x1900>,
+			<300 0x50 16 0xffff 0x1e00>,
+			<350 0x110 0 0xffff 0x2300>;
+	voltage-down-delay = <50 0x64 0 0xffff 0x600>,
+			<100 0x64 16 0xffff 0xa00>,
+			<150 0x60 0 0xffff 0xf00>,
+			<200 0x60 16 0xffff 0x1400>,
+			<250 0x5c 0 0xffff 0x1900>,
+			<300 0x5c 16 0xffff 0x1e00>,
+			<350 0x114 0 0xffff 0x2300>;
 	chnl-in-i2c = <0>;
 	tuning-latency-us = <200>;
 };
@@ -286,6 +302,20 @@ dvfs_dcdc_cpu1_supply: dvfs-dcdc-cpu1-supply {
 			<3 0x3c 0x12c 21 0x7f>,
 			<4 0x41 0x130 0 0x7f>,
 			<5 0x46 0x130 7 0x7f>;
+	voltage-up-delay = <50 0x84 0 0xffff 0x1600>,
+			<100 0x84 16 0xffff 0x1a00>,
+			<150 0x80 0 0xffff 0x1f00>,
+			<200 0x80 16 0xffff 0x2400>,
+			<250 0x7c 0 0xffff 0x2900>,
+			<300 0x7c 16 0xffff 0x2e00>,
+			<350 0x118 0 0xffff 0x3300>;
+	voltage-down-delay = <50 0x90 0 0xffff 0x600>,
+			<100 0x90 16 0xffff 0xa00>,
+			<150 0x8c 0 0xffff 0xf00>,
+			<200 0x8c 16 0xffff 0x1400>,
+			<250 0x88 0 0xffff 0x1900>,
+			<300 0x88 16 0xffff 0x1e00>,
+			<350 0x114 0 0xffff 0x2300>;
 	chnl-in-i2c = <1>;
 	tuning-latency-us = <200>;
 };

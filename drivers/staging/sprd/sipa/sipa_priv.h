@@ -145,6 +145,7 @@ struct sipa_endpoint {
 	void *recv_priv;
 
 	bool connected;
+	bool suspended;
 };
 
 struct sipa_context {
@@ -174,18 +175,34 @@ struct sipa_skb_sender {
 	struct sipa_context *ctx;
 	struct sipa_endpoint *ep;
 	enum sipa_xfer_pkt_type type;
-	u32 left_cnt;
-	spinlock_t lock;
+	atomic_t left_cnt;
+	spinlock_t nic_lock;
+	spinlock_t send_lock;
 	struct list_head nic_list;
 	struct list_head sending_list;
-	struct kmem_cache *sending_pair_cache;
+	struct list_head pair_free_list;
+	struct sipa_skb_dma_addr_node *pair_cache;
+
+	bool free_notify_net;
+	bool send_notify_net;
+
+	wait_queue_head_t send_waitq;
+	wait_queue_head_t free_waitq;
+
+	struct task_struct *free_thread;
+	struct task_struct *send_thread;
+
+	u32 no_mem_cnt;
+	u32 no_free_cnt;
+	u32 enter_flow_ctrl_cnt;
+	u32 exit_flow_ctrl_cnt;
 };
 
 struct sipa_receiver {
 	struct sipa_context *ctx;
 	struct sipa_endpoint *ep;
 	struct mutex mutex;
-	struct task_struct	*thread;
+	struct task_struct *thread;
 };
 
 struct sipa_skb_dma_addr_pair {
@@ -220,11 +237,17 @@ struct sipa_skb_receiver {
 	u32 rsvd;
 	struct sipa_skb_array recv_array;
 	wait_queue_head_t recv_waitq;
+	wait_queue_head_t fill_recv_waitq;
 	spinlock_t lock;
 	u32 nic_cnt;
+	atomic_t need_fill_cnt;
 	struct sipa_nic *nic_array[SIPA_NIC_MAX];
 
+	struct task_struct *fill_thread;
 	struct task_struct *thread;
+
+	u32 tx_danger_cnt;
+	u32 rx_danger_cnt;
 };
 
 struct sipa_control {
@@ -241,29 +264,29 @@ struct sipa_control {
 };
 
 int create_sipa_skb_sender(struct sipa_context *ipa,
-						   struct sipa_endpoint *ep,
-						   enum sipa_xfer_pkt_type type,
-						   struct sipa_skb_sender **sender_pp);
+			   struct sipa_endpoint *ep,
+			   enum sipa_xfer_pkt_type type,
+			   struct sipa_skb_sender **sender_pp);
 
 void destroy_sipa_skb_sender(struct sipa_skb_sender *sender);
 
 int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
-							  struct sk_buff *skb,
-							  enum sipa_term_type dst,
-							  u8 netid);
+			      struct sk_buff *skb,
+			      enum sipa_term_type dst,
+			      u8 netid);
 
 void sipa_skb_sender_add_nic(struct sipa_skb_sender *sender,
-							 struct sipa_nic *nic);
+			     struct sipa_nic *nic);
 
 
 int create_sipa_skb_receiver(struct sipa_context *ipa,
-							 struct sipa_endpoint *ep,
-							 struct sipa_skb_receiver **receiver_pp);
+			     struct sipa_endpoint *ep,
+			     struct sipa_skb_receiver **receiver_pp);
 
 void destroy_sipa_skb_receiver(struct sipa_skb_receiver *receiver);
 
 void sipa_receiver_add_nic(struct sipa_skb_receiver *receiver,
-						   struct sipa_nic *nic);
+			   struct sipa_nic *nic);
 
 void sipa_nic_try_notify_recv(struct sipa_nic *nic);
 

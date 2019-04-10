@@ -120,23 +120,14 @@ enum sipa_rm_res_id {
 	SIPA_RM_RES_PROD_SDSLAVE,
 	SIPA_RM_RES_PROD_PCIE2,
 	SIPA_RM_RES_PROD_PCIE_EP,
+	SIPA_RM_RES_PROD_MINI_AP,
+	SIPA_RM_RES_PROD_AP,
+	SIPA_RM_RES_PROD_CP,
 	SIPA_RM_RES_PROD_MAX,
 
-	SIPA_RM_RES_CONS_AP_CP = SIPA_RM_RES_PROD_MAX,
-	SIPA_RM_RES_CONS_AP_EXT_CP,
-	SIPA_RM_RES_CONS_AP_WIFI,
-	SIPA_RM_RES_CONS_AP_USB,
-	SIPA_RM_RES_CONS_USB_CP,
-	SIPA_RM_RES_CONS_WIFI_CP,
-	SIPA_RM_RES_CONS_VOWIFI_CP,
-	SIPA_RM_RES_CONS_AP_CTRL0,
-	SIPA_RM_RES_CONS_AP_CTRL1,
-	SIPA_RM_RES_CONS_AP_CTRL2,
-	SIPA_RM_RES_CONS_AP_CTRL3,
-	SIPA_RM_RES_CONS_CP_CTRL0,
-	SIPA_RM_RES_CONS_CP_CTRL1,
-	SIPA_RM_RES_CONS_CP_CTRL2,
-	SIPA_RM_RES_CONS_CP_CTRL3,
+	SIPA_RM_RES_CONS_WWAN = SIPA_RM_RES_PROD_MAX,
+	SIPA_RM_RES_CONS_WLAN,
+	SIPA_RM_RES_CONS_USB,
 	SIPA_RM_RES_MAX
 };
 
@@ -211,7 +202,10 @@ enum sipa_nic_id
 	SIPA_NIC_MAX
 };
 
-
+enum sipa_disconnect_id {
+	SIPA_DISCONNECT_START,
+	SIPA_DISCONNECT_END,
+};
 
 /**
  * struct sipa_comm_fifo_params - information needed to setup an IPA 
@@ -249,6 +243,40 @@ struct sipa_connect_params {
 
 	sipa_notify_cb recv_notify;
 	void *recv_priv; /* private data for sipa_notify_cb */
+};
+
+/**
+ * struct sipa_ext_fifo_params - information needed to setup an IPA
+ * external specified common FIFO, the tx  / rx are from the perspective of IPA
+ */
+struct sipa_ext_fifo_params {
+	u32 rx_depth;
+	u32 rx_fifo_pal;
+	u32 rx_fifo_pah;
+	void *rx_fifo_va;
+
+	u32 tx_depth;
+	u32 tx_fifo_pal;
+	u32 tx_fifo_pah;
+	void *tx_fifo_va;
+};
+
+/**
+ * struct sipa_connect_params - information needed to setup an IPA terminal
+ */
+struct sipa_pcie_open_params {
+	enum sipa_ep_id id;
+	struct sipa_comm_fifo_params recv_param;
+	struct sipa_comm_fifo_params send_param;
+
+	sipa_notify_cb send_notify;
+	void *send_priv; /* private data for sipa_notify_cb */
+
+	sipa_notify_cb recv_notify;
+	void *recv_priv; /* private data for sipa_notify_cb */
+
+	struct sipa_ext_fifo_params ext_recv_param;
+	struct sipa_ext_fifo_params ext_send_param;
 };
 
 /**
@@ -290,8 +318,8 @@ struct sipa_rm_create_params {
 	enum sipa_rm_res_id name;
 	enum sipa_voltage_level floor_voltage;
 	struct sipa_rm_register_params reg_params;
-	int (*request_resource)(void);
-	int (*release_resource)(void);
+	int (*request_resource)(void *);
+	int (*release_resource)(void *);
 };
 
 /**
@@ -318,7 +346,9 @@ int sipa_pam_connect(const struct sipa_connect_params *in);
 
 int sipa_sw_connect(const struct sipa_connect_params *in);
 
-int sipa_disconnect(enum sipa_ep_id ep);
+int sipa_ext_open_pcie(struct sipa_pcie_open_params *in);
+
+int sipa_disconnect(enum sipa_ep_id ep, enum sipa_disconnect_id stage);
 
 int sipa_enable_receive(enum sipa_ep_id ep_id, bool enabled);
 

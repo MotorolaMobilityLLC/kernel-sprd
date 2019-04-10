@@ -40,6 +40,7 @@
 #include <uapi/video/sprd_vsp.h>
 #include <uapi/video/sprd_vsp_pw_domain.h>
 #include "vsp_common.h"
+#include "sprd_dvfs_vsp.h"
 
 #define VSP_MINOR MISC_DYNAMIC_MINOR
 #define VSP_AQUIRE_TIMEOUT_MS 500
@@ -84,7 +85,9 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	int ret = 0;
 	int codec_counter = -1;
 	u32 mm_eb_reg;
+#if !IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
 	struct clk *clk_parent;
+#endif
 	unsigned long frequency;
 	struct vsp_iommu_map_data mapdata;
 	struct vsp_iommu_map_data ummapdata;
@@ -98,10 +101,18 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case VSP_CONFIG_FREQ:
 		get_user(vsp_hw_dev.freq_div, (int __user *)arg);
+#if !IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
 		clk_parent = vsp_get_clk_src_name(clock_name_map,
 				vsp_hw_dev.freq_div, max_freq_level);
 		vsp_hw_dev.vsp_parent_clk = clk_parent;
 		pr_debug("VSP_CONFIG_FREQ %d\n", vsp_hw_dev.freq_div);
+#else
+		if (vsp_hw_dev.freq_div >= max_freq_level)
+			vsp_hw_dev.freq_div = max_freq_level - 1;
+		frequency = clock_name_map[vsp_hw_dev.freq_div].freq;
+		pr_debug("%s,cfg freq %ld\n", __func__, frequency);
+		vsp_dvfs_notifier_call_chain(&frequency);
+#endif
 		break;
 
 	case VSP_GET_FREQ:
@@ -446,13 +457,13 @@ static const struct sprd_vsp_cfg_data sharkl3_vsp_data = {
 
 static const struct sprd_vsp_cfg_data sharkl5_vsp_data = {
 	.version = SHARKL5,
-	.max_freq_level = 3,
+	.max_freq_level = 4,
 	.qos_reg_offset = 0x1f8,
 };
 
 static const struct sprd_vsp_cfg_data roc1_vsp_data = {
 	.version = ROC1,
-	.max_freq_level = 3,
+	.max_freq_level = 4,
 	.qos_reg_offset = 0x1fc,
 };
 

@@ -14,7 +14,7 @@
 
 enum sprd_cpudvfs_type {
 	UNKNOWN_CPUFREQHW,
-	SPRD_CPUFREQHW_UMS510,
+	SPRD_CPUFREQHW_UMS312,
 };
 
 enum cpu_dvfs_cluster {
@@ -58,6 +58,7 @@ struct cpudvfs_phy_ops {
 	int (*get_sys_dcdc_dvfs_state)(void *data, u32 dcdc_num);
 	int (*get_top_dcdc_dvfs_state)(void *data, u32 dcdc_num);
 	int (*setup_i2c_channel)(void *data, u32 dcdc_num);
+	int (*dcdc_vol_delay_time_setup)(void *data, u32 dcdc_num);
 };
 
 struct device_name {
@@ -157,6 +158,14 @@ struct voltage_info {
 	u32 vol_mask;
 };
 
+struct voltage_delay_cfg {
+	u32 voltage_span;
+	u32 reg;
+	u32 reg_offset;
+	u32 reg_mask;
+	u32 reg_value;
+};
+
 struct dcdc_pwr {
 	char name[10];
 	u32 dvfs_ctl_reg;
@@ -176,6 +185,10 @@ struct dcdc_pwr {
 	u32 judge_vol_val;	/*real voltage needed to tell dvfs module*/
 	u32 voltage_grade_num;
 	struct voltage_info *vol_info;
+	struct voltage_delay_cfg *up_delay_array;
+	struct voltage_delay_cfg *down_delay_array;
+	u32 up_delay_array_size;
+	u32 down_delay_array_size;
 	u32 subsys_dcdc_vol_sw_reg;
 	u32 subsys_dcdc_vol_sw_bit;
 	u32 subsys_dcdc_vol_sw_mask;
@@ -187,7 +200,7 @@ struct dcdc_pwr {
 	u32 subsys_dvfs_state_reg;
 	u32 subsys_dvfs_state_bit;
 	u32 subsys_dvfs_state_mask;
-	struct i2c_client **i2c_client;
+	struct i2c_client *i2c_client;
 };
 
 struct dvfs_cluster {
@@ -225,10 +238,6 @@ struct cpudvfs_archdata {
 	struct regmap *aon_apb_reg_base;
 	void __iomem *membase;
 	struct device_node *topdvfs_of_node;
-	struct regulator *dcdc_cpu0_regu;
-	struct regulator *dcdc_sram_regu;
-	int dcdc_cpu0_resume_volt;
-	int dcdc_sram_resume_volt;
 	struct regmap *topdvfs_map;
 	struct device_node *of_node;
 	struct dvfs_cluster *phost_cluster;
@@ -246,7 +255,6 @@ struct cpudvfs_archdata {
 	bool module_eb;
 	u32 module_eb_reg;
 	u32 module_eb_bit;
-	struct i2c_client *i2c_client;
 	bool i2c_used[DVFS_CLUSTER_MAX];
 	bool probed;
 	bool enabled;

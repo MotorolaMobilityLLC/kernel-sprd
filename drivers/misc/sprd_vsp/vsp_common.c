@@ -241,7 +241,9 @@ int vsp_get_mm_clk(struct vsp_dev_t *vsp_hw_dev)
 	struct clk *clk_vsp_ahb_mmu_eb;
 	struct clk *clk_axi_gate_vsp;
 	struct clk *clk_ahb_gate_vsp_eb;
+#if !IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
 	struct clk *clk_vsp;
+#endif
 	struct clk *clk_ahb_vsp;
 	struct clk *clk_emc_vsp;
 	struct clk *clk_parent;
@@ -285,6 +287,7 @@ int vsp_get_mm_clk(struct vsp_dev_t *vsp_hw_dev)
 	} else
 		vsp_hw_dev->clk_ahb_gate_vsp_eb = clk_ahb_gate_vsp_eb;
 
+#if !IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
 	clk_vsp = devm_clk_get(vsp_hw_dev->vsp_dev, "clk_vsp");
 
 	if (IS_ERR_OR_NULL(clk_vsp)) {
@@ -295,6 +298,7 @@ int vsp_get_mm_clk(struct vsp_dev_t *vsp_hw_dev)
 		goto errout;
 	} else
 		vsp_hw_dev->vsp_clk = clk_vsp;
+#endif
 
 	if (vsp_hw_dev->version == SHARKL3) {
 		clk_ahb_vsp =
@@ -369,6 +373,8 @@ int vsp_clk_enable(struct vsp_dev_t *vsp_hw_dev)
 		}
 		pr_debug("clk_ahb_gate_vsp_eb: clk_prepare_enable ok.\n");
 	}
+
+#if !IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
 	ret = clk_set_parent(vsp_hw_dev->vsp_clk, vsp_hw_dev->vsp_parent_clk);
 	if (ret) {
 		pr_err("clock[%s]: clk_set_parent() failed!", "clk_vsp");
@@ -381,6 +387,7 @@ int vsp_clk_enable(struct vsp_dev_t *vsp_hw_dev)
 		return ret;
 	}
 	pr_debug("vsp_clk: clk_prepare_enable ok.\n");
+#endif
 
 	if (vsp_hw_dev->version == SHARKL3) {
 		ret = clk_prepare_enable(vsp_hw_dev->clk_mm_eb);
@@ -448,8 +455,9 @@ void vsp_clk_disable(struct vsp_dev_t *vsp_hw_dev)
 		clk_disable_unprepare(vsp_hw_dev->clk_axi_gate_vsp);
 		clk_disable_unprepare(vsp_hw_dev->clk_vsp_ahb_mmu_eb);
 	}
-
+#if !IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
 	clk_disable_unprepare(vsp_hw_dev->vsp_clk);
+#endif
 	clk_disable_unprepare(vsp_hw_dev->clk_ahb_gate_vsp_eb);
 	if (vsp_hw_dev->version == SHARKL3)
 		clk_disable_unprepare(vsp_hw_dev->clk_mm_eb);

@@ -40,6 +40,8 @@
 #define XFRM_QUEUE_TMO_MAX ((unsigned)(60*HZ))
 #define XFRM_MAX_QUEUE_LEN	100
 
+#define IMSBRD_IN_FWMARK 0x40000000
+
 struct xfrm_flo {
 	struct dst_entry *dst_orig;
 	u8 flags;
@@ -2474,6 +2476,10 @@ int __xfrm_policy_check(struct sock *sk, int dir, struct sk_buff *skb,
 
 	reverse = dir & ~XFRM_POLICY_MASK;
 	dir &= XFRM_POLICY_MASK;
+
+	/* SPRD: avoid skb from cp will be rejected.*/
+	if (dir == XFRM_POLICY_IN && (skb->mark & IMSBRD_IN_FWMARK))
+		return 1;
 
 	if (__xfrm_decode_session(skb, &fl, family, reverse) < 0) {
 		XFRM_INC_STATS(net, LINUX_MIB_XFRMINHDRERROR);

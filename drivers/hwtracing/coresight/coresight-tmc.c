@@ -339,7 +339,6 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 {
 	int ret = 0;
 	u32 devid;
-	char etf_name[16];
 	void __iomem *base;
 	struct device *dev = &adev->dev;
 	struct coresight_platform_data *pdata = NULL;
@@ -429,12 +428,12 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 	}
 
 	/* fix etb dev name as "/dev/tmc_etb" for modem */
-	if (strstr(pdata->name, "etb")) {
+	if (strnstr(pdata->name, "etb", strlen(pdata->name))) {
 		drvdata->miscdev.name = "tmc_etb";
 	} else {
-		snprintf(etf_name, sizeof(etf_name), "%8lx-etf",
+		snprintf(drvdata->etf_name, sizeof(drvdata->etf_name), "etf-%8lx",
 			(unsigned long)res->start);
-		drvdata->miscdev.name = etf_name;
+		drvdata->miscdev.name = drvdata->etf_name;
 	}
 
 	drvdata->miscdev.minor = MISC_DYNAMIC_MINOR;

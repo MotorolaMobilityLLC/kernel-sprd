@@ -21,6 +21,11 @@ Required properties:
 - sprd,headset-button: headset key
 - adc-min: minimum adc value of a headset key
 - adc-max: maximum adc value of a headset key
+- extcon: phandle for the extcon device pmic_typec uses to detect
+- mic-gpios: typec analog headset MIC/GND switch
+- lr-gpios: typec analog headset LR/USB switch
+- switch-supply: typec analog headset power supply
+- sprd,switch-voltage: typec analog headset voltage value
 - code: headset key ID
 
 Example:
@@ -39,6 +44,11 @@ sprd_headset: sprd-headset {
 		sprd,irq-threshold-button = <5>;
 		nvmem-cells = <&headset_adc_fir>, <&headset_adc_sec>;
 		nvmem-cell-names = "hp_adc_fir_calib", "hp_adc_sec_calib";
+		extcon = <&pmic_typec>;
+		mic-gpios = <&ap_gpio 52 GPIO_ACTIVE_LOW>;
+		lr-gpios = <&ap_gpio 55 GPIO_ACTIVE_LOW>;
+		switch-supply = <&vddusb33>;
+		sprd,switch-voltage = <3300000>;
 
 		sprd,headset-button@0 {
 			adc-min = <0>;

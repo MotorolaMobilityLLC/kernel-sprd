@@ -78,6 +78,8 @@ struct sprd_ssphy {
 	struct regmap		*aon_apb;
 	struct regmap		*ana_g3;
 	struct regmap		*pmu_apb;
+	struct regmap		*anatop;
+	struct regmap		*anatop1;
 	struct regmap           *pmic;
 	struct regulator	*vdd;
 	u32			vdd_vol;
@@ -128,6 +130,67 @@ static int sprd_ssphy_reset(struct usb_phy *x)
 	return 0;
 }
 
+static int sprd_ssphy_set_vbus(struct usb_phy *x, int on)
+{
+	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
+	u32 reg, msk;
+	int ret = 0;
+
+	if (on) {
+		/* set USB connector type is A-type*/
+		msk = MASK_AON_APB_USB2_PHY_IDDIG;
+		ret |= regmap_update_bits(phy->aon_apb,
+			REG_AON_APB_OTG_PHY_CTRL, msk, 0);
+
+		msk = MASK_ANLG_PHY_TOP_DBG_SEL_ANALOG_USB20_USB20_DMPULLDOWN |
+			MASK_ANLG_PHY_TOP_DBG_SEL_ANALOG_USB20_USB20_DPPULLDOWN;
+		ret |= regmap_update_bits(phy->anatop,
+			REG_ANLG_PHY_TOP_ANALOG_USB20_REG_SEL_CFG_0,
+			msk, msk);
+
+		/* the pull down resistance on D-/D+ enable */
+		msk = MASK_ANLG_PHY_TOP_ANALOG_USB20_USB20_DMPULLDOWN |
+			MASK_ANLG_PHY_TOP_ANALOG_USB20_USB20_DPPULLDOWN;
+		ret |= regmap_update_bits(phy->anatop,
+			REG_ANLG_PHY_TOP_ANALOG_USB20_USB20_UTMI_CTL2_TOP,
+			msk, msk);
+
+		ret |= regmap_read(phy->ana_g3,
+			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, &reg);
+		msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_RESERVED;
+		reg &= ~msk;
+		reg |= 0x200;
+		ret |= regmap_write(phy->ana_g3,
+			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, reg);
+	} else {
+		reg = msk = MASK_AON_APB_USB2_PHY_IDDIG;
+		ret |= regmap_update_bits(phy->aon_apb,
+			REG_AON_APB_OTG_PHY_CTRL, msk, reg);
+
+		msk = MASK_ANLG_PHY_TOP_DBG_SEL_ANALOG_USB20_USB20_DMPULLDOWN |
+			MASK_ANLG_PHY_TOP_DBG_SEL_ANALOG_USB20_USB20_DPPULLDOWN;
+		ret |= regmap_update_bits(phy->anatop,
+			REG_ANLG_PHY_TOP_ANALOG_USB20_REG_SEL_CFG_0,
+			msk, msk);
+
+		/* the pull down resistance on D-/D+ enable */
+		msk = MASK_ANLG_PHY_TOP_ANALOG_USB20_USB20_DMPULLDOWN |
+			MASK_ANLG_PHY_TOP_ANALOG_USB20_USB20_DPPULLDOWN;
+		ret |= regmap_update_bits(phy->anatop,
+			REG_ANLG_PHY_TOP_ANALOG_USB20_USB20_UTMI_CTL2_TOP,
+			msk, 0);
+
+		ret |= regmap_read(phy->ana_g3,
+			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, &reg);
+		msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_RESERVED;
+		reg &= ~msk;
+		ret |= regmap_write(phy->ana_g3,
+			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, reg);
+	}
+
+	return ret;
+}
+
 static int sprd_ssphy_init(struct usb_phy *x)
 {
 	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
@@ -143,7 +206,7 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	 * Due to chip design, some chips may turn on vddusb by default,
 	 * We MUST avoid turning it on twice.
 	 */
-	if (phy->vdd && !regulator_is_enabled(phy->vdd)) {
+	if (phy->vdd) {
 		ret = regulator_enable(phy->vdd);
 		if (ret < 0)
 			return ret;
@@ -252,7 +315,7 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	 * Due to chip design, some chips may turn on vddusb by default,
 	 * We MUST avoid turning it off twice.
 	 */
-	if (phy->vdd && regulator_is_enabled(phy->vdd))
+	if (phy->vdd)
 		regulator_disable(phy->vdd);
 
 	atomic_set(&phy->inited, 0);
@@ -457,6 +520,19 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 		dev_err(dev, "failed to map pmu registers (via syscon)\n");
 		return PTR_ERR(phy->pmu_apb);
 	}
+	phy->anatop = syscon_regmap_lookup_by_phandle(dev->of_node,
+				 "sprd,syscon-anatop");
+	if (IS_ERR(phy->anatop)) {
+		dev_err(&pdev->dev, "ap USB anatop syscon failed!\n");
+		return PTR_ERR(phy->anatop);
+	}
+
+	phy->anatop1 = syscon_regmap_lookup_by_phandle(dev->of_node,
+				 "sprd,syscon-anatop1");
+	if (IS_ERR(phy->anatop1)) {
+		dev_err(&pdev->dev, "ap USB anatop1 syscon failed!\n");
+		return PTR_ERR(phy->anatop1);
+	}
 
 	ret = of_property_read_u32(dev->of_node, "sprd,vdd-voltage",
 				   &phy->vdd_vol);
@@ -498,6 +574,7 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	phy->phy.init				= sprd_ssphy_init;
 	phy->phy.shutdown			= sprd_ssphy_shutdown;
 	phy->phy.reset_phy			= sprd_ssphy_reset;
+	phy->phy.set_vbus			= sprd_ssphy_set_vbus;
 	phy->phy.type				= USB_PHY_TYPE_USB3;
 	phy->phy.vbus_nb.notifier_call		= sprd_ssphy_vbus_notify;
 	phy->phy.charger_detect			= sprd_ssphy_charger_detect;
@@ -512,6 +589,8 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	if (ret)
 		dev_warn(dev, "failed to create usb ssphy attributes\n");
 
+	if (extcon_get_state(phy->phy.edev, EXTCON_USB) > 0)
+		usb_phy_set_charger_state(&phy->phy, USB_CHARGER_PRESENT);
 	return 0;
 }
 

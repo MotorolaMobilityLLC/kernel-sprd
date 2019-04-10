@@ -85,6 +85,7 @@ struct sprd_pamu3 {
 	u8		max_ul_pkts;
 
 	atomic_t    inited;     /* Pam init flag */
+	atomic_t	ref;
 };
 
 static struct sprd_pamu3 *pamu3_tag;
@@ -152,27 +153,6 @@ void pamu3_load_code(struct sprd_pamu3 *pamu3, void *txep, void *rxep)
 	writel_relaxed(value, pamu3->base + PAM_U3_RXPCMDENTRY_ADDR1);
 }
 
-void pamu3_start(struct sprd_pamu3 *pamu3)
-{
-	u32 value;
-
-	value = (PAMU3_INTSTS_RXEPINT << PAMU3_SHIFT_INTSTS) |
-			(PAMU3_INTSTS_RXCMDERR << PAMU3_SHIFT_INTSTS);
-	writel_relaxed(value, pamu3->base + PAM_U3_INR_EN);
-
-	value = readl_relaxed(pamu3->base + PAM_U3_TRB_HEADER);
-	value |= PAMU3_TRB_LAST;
-	writel_relaxed(value, pamu3->base + PAM_U3_TRB_HEADER);
-
-	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
-	value |= PAMU3_CTL0_BIT_TX_START | PAMU3_CTL0_BIT_RX_START;
-	writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
-
-	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
-	value |= PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN;
-	writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
-}
-
 void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 {
 	static struct pamu3_dwc3_trb *trb;
@@ -185,8 +165,10 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 
 	/* IPA common FIFOs IRAM addresses */
 	pamu3->sipa_params.send_param.tx_intr_threshold = pamu3->max_dl_pkts;
+	pamu3->sipa_params.send_param.tx_intr_delay_us = 5;
+	pamu3->sipa_params.recv_param.tx_intr_threshold = pamu3->max_ul_pkts;
+	pamu3->sipa_params.recv_param.tx_intr_delay_us = 5;
 	sipa_get_ep_info(SIPA_EP_USB, &pamu3->sipa_info);
-	sipa_pam_connect(&pamu3->sipa_params);
 
 	value = pamu3->sipa_info.dl_fifo.tx_fifo_base_addr &
 			PAMU3_MASK_LOWADDR32;
@@ -202,17 +184,17 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 			PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB;
 	writel_relaxed(value, pamu3->base + PAM_U3_DLFIFOFREE_ADDRH);
 
-	value = pamu3->sipa_info.ul_fifo.tx_fifo_base_addr &
+	value = pamu3->sipa_info.ul_fifo.rx_fifo_base_addr &
 			PAMU3_MASK_LOWADDR32;
 	writel_relaxed(value, pamu3->base + PAM_U3_ULFIFOFILL_ADDRL);
-	value = (pamu3->sipa_info.ul_fifo.tx_fifo_base_addr >>
+	value = (pamu3->sipa_info.ul_fifo.rx_fifo_base_addr >>
 			PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB;
 	writel_relaxed(value, pamu3->base + PAM_U3_ULFIFOFILL_ADDRH);
 
-	value = pamu3->sipa_info.ul_fifo.rx_fifo_base_addr &
+	value = pamu3->sipa_info.ul_fifo.tx_fifo_base_addr &
 			PAMU3_MASK_LOWADDR32;
 	writel_relaxed(value, pamu3->base + PAM_U3_ULFIFOFREE_ADDRL);
-	value = (pamu3->sipa_info.ul_fifo.rx_fifo_base_addr >>
+	value = (pamu3->sipa_info.ul_fifo.tx_fifo_base_addr >>
 			PAMU3_BITS_LOWADDR32) & PAMU3_MASK_ADDR32_LSB;
 	writel_relaxed(value, pamu3->base + PAM_U3_ULFIFOFREE_ADDRH);
 
@@ -305,9 +287,8 @@ void pamu3_memory_init(struct sprd_pamu3 *pamu3)
 }
 
 /* pamu3_init will be called when controller initializes */
-static int sprd_pamu3_init(struct usb_phy *x)
+static int sprd_pamu3_open(struct sprd_pamu3 *pamu3)
 {
-	struct sprd_pamu3 *pamu3 = container_of(x, struct sprd_pamu3, pam);
 	u64 temp;
 	u32 reg;
 	int ret;
@@ -375,6 +356,58 @@ static int sprd_pamu3_init(struct usb_phy *x)
 	return 0;
 }
 
+static void pamu3_start(struct sprd_pamu3 *pamu3)
+{
+	u32 value, depth;
+
+	if (atomic_inc_return(&pamu3->ref) == 1)
+		sprd_pamu3_open(pamu3);
+
+	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
+	if (value & PAMU3_CTL0_BIT_PAM_EN) {
+		depth = pamu3->sipa_info.dl_fifo.fifo_depth;
+		value |= PAMU3_CTL0_BIT_RX_START | PAMU3_CTL0_BIT_TX_START;
+		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
+		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
+		value |=  PAMU3_CTL0_BIT_USB_EN;
+		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
+		pamu3->sipa_params.recv_param.tx_enter_flowctrl_watermark =
+			depth - depth / 4;
+		pamu3->sipa_params.recv_param.tx_leave_flowctrl_watermark =
+			depth / 2;
+		pamu3->sipa_params.recv_param.flow_ctrl_cfg = 1;
+		pamu3->sipa_params.send_param.flow_ctrl_irq_mode = 2;
+		sipa_pam_connect(&pamu3->sipa_params);
+		return;
+	}
+	value = (PAMU3_INTSTS_RXEPINT << PAMU3_SHIFT_INTSTS) |
+			(PAMU3_INTSTS_RXCMDERR << PAMU3_SHIFT_INTSTS);
+	writel_relaxed(value, pamu3->base + PAM_U3_INR_EN);
+
+	value = readl_relaxed(pamu3->base + PAM_U3_TRB_HEADER);
+	value |= PAMU3_TRB_LAST;
+	writel_relaxed(value, pamu3->base + PAM_U3_TRB_HEADER);
+
+	value = readl_relaxed(pamu3->base + PAM_U3_SRC_MACH);
+	value &= PAMU3_MASK_SRCMAC_ADDRH;
+	value |= (MAX_PACKET_NUM << MAX_PACKET_NUM_SHIFT_BIT);
+	writel_relaxed(value, pamu3->base + PAM_U3_SRC_MACH);
+
+	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
+	value |= PAMU3_CTL0_BIT_PAM_EN;
+	writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
+}
+
+/* PAMU3 main reset */
+static int sprd_pamu3_init(struct usb_phy *x)
+{
+	struct sprd_pamu3 *pamu3 = container_of(x, struct sprd_pamu3, pam);
+
+	if (atomic_read(&pamu3->ref))
+		dev_warn(pamu3->dev, "is already opened\n");
+	return 0;
+}
+
 /* PAMU3 main reset */
 static int sprd_pamu3_reset(struct usb_phy *x)
 {
@@ -396,11 +429,34 @@ static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 {
 	struct sprd_pamu3 *pamu3 = container_of(x, struct sprd_pamu3, pam);
 	u32 value;
+	int timeout = 500;
 
-	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
-	value &= ~(PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN);
-	writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
-	clk_disable_unprepare(pamu3->clk);
+	if (!atomic_read(&pamu3->inited)) {
+		dev_warn(pamu3->dev, "is already disabled\n");
+		return 0;
+	}
+
+	if (atomic_dec_return(&pamu3->ref)) {
+		sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_START);
+		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
+		value |= PAMU3_CTL0_BIT_RELEASE;
+		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
+		do {
+			value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
+			if (!timeout--) {
+				dev_warn(pamu3->dev,
+					 "failed to stop PAMU3!!!\n");
+				return 0;
+			}
+		} while (!(value & PAMU3_CTL0_BIT_DONE));
+		sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_END);
+	} else {
+		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
+		value &= ~(PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN);
+		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
+		clk_disable_unprepare(pamu3->clk);
+		atomic_set(&pamu3->inited, 0);
+	}
 	return 0;
 }
 

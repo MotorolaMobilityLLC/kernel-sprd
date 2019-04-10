@@ -169,6 +169,7 @@ struct tmc_drvdata {
 	enum tmc_mem_intf_width	memwidth;
 	u32			trigger_cntr;
 	u32			etr_caps;
+	char			etf_name[16];
 };
 
 /* Generic functions */

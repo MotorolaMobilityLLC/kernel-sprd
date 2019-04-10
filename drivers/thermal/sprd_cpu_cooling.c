@@ -64,7 +64,7 @@ static void cpuidle_thread_wakeup(struct thermal_cooling_device *cdev,
 			if (test_bit(cpu, cpuidle_tsk_mask)) {
 				thread = *per_cpu_ptr(cpuidle_tsk, cpu);
 				if (likely(!IS_ERR(thread))) {
-					pr_info("wakeup cpuidle/%u task\n", wakeup_cpu);
+					pr_debug("wakeup cpuidle/%u task\n", wakeup_cpu);
 					wake_up_process(thread);
 					break;
 				}
@@ -82,15 +82,14 @@ static int cpuidle_thread_fn(void *data)
 	while (1) {
 		set_current_state(TASK_INTERRUPTIBLE);
 		if (cpu_online(cpu)) {
-			pr_debug("cpuidle/%ld task sleep...\n", cpu);
 			schedule();
 			if (kthread_should_stop())
 				break;
 		}
 
-		pr_debug("cpuidle/%ld task running...\n", cpu);
+		pr_debug("force cpu%ld enter into idle for cooling\n", cpu);
 		set_current_state(TASK_RUNNING);
-		play_idle(jiffies_to_msecs(3));
+		play_idle(10);
 	}
 	clear_bit(cpu, cpuidle_tsk_mask);
 
@@ -715,46 +714,6 @@ static int init_pm_qos_request(struct cpufreq_cooling_device *cpufreq_dev)
 	return 0;
 }
 
-static int estimate_core_static_power(
-				struct cpufreq_cooling_device *cpufreq_device,
-				struct thermal_zone_device *tz, unsigned long freq,
-				u32 *power, cpumask_t *cpumask)
-{
-	struct dev_pm_opp *opp;
-	unsigned long voltage;
-	struct cpumask our_online_cpus = *cpumask;
-	unsigned long freq_hz = freq * 1000;
-	int temperature;
-
-	if (!cpufreq_device->plat_get_core_static_power ||
-					!cpufreq_device->cpu_dev ||
-					cpumask_empty(&our_online_cpus)) {
-		*power = 0;
-		return 0;
-	}
-
-	rcu_read_lock();
-
-	opp = dev_pm_opp_find_freq_exact(cpufreq_device->cpu_dev, freq_hz,
-					 true);
-	voltage = dev_pm_opp_get_voltage(opp);
-
-	rcu_read_unlock();
-
-	if (voltage == 0) {
-		dev_warn_ratelimited(cpufreq_device->cpu_dev,
-				     "Failed to get voltage for frequency %lu: %ld\n",
-				     freq_hz, IS_ERR(opp) ? PTR_ERR(opp) : 0);
-		return -EINVAL;
-	}
-
-	temperature = tz->temperature;
-
-	return cpufreq_device->plat_get_core_static_power(
-			&our_online_cpus, tz->passive_delay,
-				voltage, power, temperature);
-}
-
 /*
  * We only change the online cpus after being called
  * hotplug_refractory_period times and then we average all the rounds.
@@ -802,6 +761,47 @@ static void set_online_cpus(struct cpufreq_cooling_device *cpufreq_dev,
 			cpufreq_dev->qos_cur_cpu);
 
 	}
+}
+
+#ifndef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+static int estimate_core_static_power(
+				struct cpufreq_cooling_device *cpufreq_device,
+				struct thermal_zone_device *tz, unsigned long freq,
+				u32 *power, cpumask_t *cpumask)
+{
+	struct dev_pm_opp *opp;
+	unsigned long voltage;
+	struct cpumask our_online_cpus = *cpumask;
+	unsigned long freq_hz = freq * 1000;
+	int temperature;
+
+	if (!cpufreq_device->plat_get_core_static_power ||
+					!cpufreq_device->cpu_dev ||
+					cpumask_empty(&our_online_cpus)) {
+		*power = 0;
+		return 0;
+	}
+
+	rcu_read_lock();
+
+	opp = dev_pm_opp_find_freq_exact(cpufreq_device->cpu_dev, freq_hz,
+					 true);
+	voltage = dev_pm_opp_get_voltage(opp);
+
+	rcu_read_unlock();
+
+	if (voltage == 0) {
+		dev_warn_ratelimited(cpufreq_device->cpu_dev,
+				     "Failed to get voltage for frequency %lu: %ld\n",
+				     freq_hz, IS_ERR(opp) ? PTR_ERR(opp) : 0);
+		return -EINVAL;
+	}
+
+	temperature = tz->temperature;
+
+	return cpufreq_device->plat_get_core_static_power(
+			&our_online_cpus, tz->passive_delay,
+				voltage, power, temperature);
 }
 
 static void hotplug_out_cpus(struct cpufreq_cooling_device *cpufreq_device,
@@ -886,6 +886,7 @@ static void hotplug_keep_cpus(struct cpufreq_cooling_device *cpufreq_device)
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
 	set_online_cpus(cpufreq_device, cpumask_weight(&current_online_cpus));
 }
+#endif
 
 /* cpufreq cooling device callback functions are defined below */
 
@@ -1129,13 +1130,17 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 			       unsigned long *state)
 {
 	unsigned int cpu, target_freq, num_our_online_cpus;
-	int ret, max_temp;
+	int ret;
 	u32 last_load, normalised_power;
 	struct cpufreq_cooling_device *cpufreq_device = cdev->devdata;
 	struct cpumask our_online_cpus;
 	unsigned int min_cpufreq = 0;
 	static int last_temperature;
 	static int count;
+
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	int curr_temp, tp, cpu_idx;
+#endif
 
 	get_online_cpus();
 	cpu = cpumask_any_and(&cpufreq_device->allowed_cpus, cpu_online_mask);
@@ -1203,10 +1208,33 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 		}
 	}
 
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
+	cpu_idx = cpu;
+	cpufreq_device->power_model->cab->get_all_core_temp_p(
+			cpufreq_device->power_model->cluster_id,
+			cpu);
+
+	for_each_cpu(cpu_idx, &cpufreq_device->allowed_cpus) {
+
+		cpufreq_device->power_model->cab->get_core_temp_p(
+				cpufreq_device->power_model->cluster_id,
+				cpu_idx, &curr_temp);
+
+		cpufreq_device->power_model->cab->get_core_cpuidle_tp_p(
+				cpufreq_device->power_model->cluster_id,
+				cpu, cpu_idx, &tp);
+
+		if (curr_temp > tp) {
+
+			pr_debug("cpu%d curr_temp:%d\n", cpu_idx, curr_temp);
+			cpuidle_thread_wakeup(cdev, cpu_idx);
+		}
+	}
+#else
 	cpumask_and(&our_online_cpus,
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
 	num_our_online_cpus = cpumask_weight(&our_online_cpus);
-
 	if (cpufreq_device->hotplug_refractory_period) {
 		if (normalised_power <
 			cpu_freq_to_power(cpufreq_device, target_freq))
@@ -1219,10 +1247,12 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 		else
 			hotplug_keep_cpus(cpufreq_device);
 	}
-
+#endif
 	trace_thermal_power_cpu_limit(&cpufreq_device->allowed_cpus,
 				      target_freq, *state, power);
 
+	cpumask_and(&our_online_cpus,
+		&cpufreq_device->allowed_cpus, cpu_online_mask);
 	num_our_online_cpus = cpumask_weight(&our_online_cpus);
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	if (count == 5) {
@@ -1234,15 +1264,6 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 		count = 0;
 	}
 	count++;
-
-	cpu = cpufreq_device->power_model->cab->get_max_temp_core_p(
-				cpufreq_device->power_model->cluster_id,
-				cpu, &max_temp);
-#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-	if (max_temp > cpufreq_device->power_model->cab->get_cpuidle_temp_point_p(
-				cpufreq_device->power_model->cluster_id))
-		cpuidle_thread_wakeup(cdev, cpu);
-#endif
 
 	return 0;
 }

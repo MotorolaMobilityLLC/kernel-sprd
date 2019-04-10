@@ -17,7 +17,9 @@
 #include <linux/interrupt.h>
 #include <linux/mfd/syscon.h>
 #include <linux/of_device.h>
+#include <linux/of_irq.h>
 #include <linux/platform_device.h>
+#include <linux/property.h>
 
 #include "pcie-designware.h"
 #include "pcie-sprd.h"
@@ -39,6 +41,25 @@ static void sprd_pcie_fix_class(struct pci_dev *dev)
 		 __func__, dev->device, dev->vendor, dev->class);
 }
 DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_SYNOPSYS, 0xabcd, sprd_pcie_fix_class);
+
+#ifdef CONFIG_SPRD_IPA_INTC
+static void sprd_pcie_fix_interrupt_line(struct pci_dev *dev)
+{
+	struct pcie_port *pp = dev->bus->sysdata;
+	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+	struct platform_device *pdev = to_platform_device(pci->dev);
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+
+	if (dev->hdr_type == PCI_HEADER_TYPE_NORMAL) {
+		pci_write_config_byte(dev, PCI_INTERRUPT_LINE,
+				      ctrl->interrupt_line);
+		dev_info(&dev->dev,
+			 "The pci legacy interrupt pin is set to: %lu\n",
+			 (unsigned long)ctrl->interrupt_line);
+	}
+}
+DECLARE_PCI_FIXUP_EARLY(PCI_ANY_ID, PCI_ANY_ID, sprd_pcie_fix_interrupt_line);
+#endif
 
 static irqreturn_t sprd_pcie_msi_irq_handler(int irq, void *arg)
 {
@@ -72,11 +93,31 @@ static const struct dw_pcie_host_ops sprd_pcie_host_ops = {
 
 static void sprd_pcie_ep_init(struct dw_pcie_ep *ep)
 {
-	/* TODO*/
+	dw_pcie_setup_ep(ep);
+}
+
+static int sprd_pcie_ep_raise_irq(struct dw_pcie_ep *ep,
+				     enum pci_epc_irq_type type,
+				     u8 interrupt_num)
+{
+	struct dw_pcie *pci = to_dw_pcie_from_ep(ep);
+
+	switch (type) {
+	case PCI_EPC_IRQ_LEGACY:
+		/* TODO*/
+		break;
+	case  PCI_EPC_IRQ_MSI:
+		return dw_pcie_ep_raise_msi_irq(ep, interrupt_num);
+	default:
+		dev_err(pci->dev, "UNKNOWN IRQ type\n");
+	}
+
+	return 0;
 }
 
 static struct dw_pcie_ep_ops pcie_ep_ops = {
 	.ep_init = sprd_pcie_ep_init,
+	.raise_irq = sprd_pcie_ep_raise_irq,
 };
 
 static int sprd_add_pcie_ep(struct sprd_pcie *sprd_pcie,
@@ -120,10 +161,14 @@ static int sprd_add_pcie_ep(struct sprd_pcie *sprd_pcie,
 
 static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 {
+	struct sprd_pcie *sprd_pcie;
 	struct pcie_port *pp;
 	struct device *dev = &pdev->dev;
+	struct fwnode_handle *child;
 	int ret;
+	unsigned int irq;
 	struct resource *res;
+	u32 reg_val;
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dbi");
 	pci->dbi_base = devm_ioremap(dev, res->start, resource_size(res));
@@ -135,22 +180,55 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 
 	dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
 			   LTSSM_EN | L1_AUXCLK_EN);
+	/*
+	 * If RC send some commands to access some memory addresses of EP side
+	 * that can not be accessed, these commands cannot be completed and
+	 * will be blocked in the EP's receive buffer. When EP's credit is
+	 * exhausted, the RC axi slave interface will be hanged if there are
+	 * continuous requests. Enable the global slave error response to
+	 * notify the CPU that an exception has occurred.
+	 */
+	reg_val = dw_pcie_readl_dbi(pci, PCIE_SLAVE_ERROR_RESPONSE);
+	dw_pcie_writel_dbi(pci, PCIE_SLAVE_ERROR_RESPONSE,
+			(reg_val | SLAVE_ERROR_RESPONSE_EN));
 
-	if (IS_ENABLED(CONFIG_PCI_MSI)) {
-		pp->msi_irq = platform_get_irq(pdev, 0);
-		if (pp->msi_irq < 0) {
-			dev_err(dev, "cannot get msi irq\n");
-			return pp->msi_irq;
+	sprd_pcie = platform_get_drvdata(to_platform_device(pci->dev));
+
+	device_for_each_child_node(dev, child) {
+		if (fwnode_property_read_string(child, "label",
+						&sprd_pcie->label)) {
+			dev_err(dev, "without interrupt property\n");
+			fwnode_handle_put(child);
+			return -EINVAL;
+		}
+		if (!strcmp(sprd_pcie->label, "parent_gic_intc")) {
+			irq = irq_of_parse_and_map(to_of_node(child), 0);
+			if (irq < 0) {
+				dev_err(dev, "cannot get msi irq\n");
+				return irq;
+			}
+
+			pp->msi_irq = (int)irq;
+			ret = devm_request_irq(dev, pp->msi_irq,
+					       sprd_pcie_msi_irq_handler,
+					       IRQF_SHARED | IRQF_NO_THREAD,
+					       "sprd-pcie-msi", pp);
+			if (ret) {
+				dev_err(dev, "cannot request msi irq\n");
+				return ret;
+			}
 		}
 
-		ret = devm_request_irq(dev, pp->msi_irq,
-				       sprd_pcie_msi_irq_handler,
-				       IRQF_SHARED | IRQF_NO_THREAD,
-				       "sprd-pcie-msi", pp);
-		if (ret) {
-			dev_err(dev, "cannot request msi irq\n");
-			return ret;
+#ifdef CONFIG_SPRD_IPA_INTC
+		if (!strcmp(sprd_pcie->label, "parent_ipa_intc")) {
+			irq = irq_of_parse_and_map(to_of_node(child), 0);
+			if (irq < 0) {
+				dev_err(dev, "cannot get legacy irq\n");
+				return irq;
+			}
+			sprd_pcie->interrupt_line = irq;
 		}
+#endif
 	}
 
 	return dw_pcie_host_init(&pci->pp);
@@ -200,23 +278,40 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	int ret;
 	const struct sprd_pcie_of_data *data;
 	enum dw_pcie_device_mode mode;
-	/* Dirty: must be deleted. Only for wcn driver temperarily */
+	/* Dirty: must be deleted. Only for marlin3 driver temperarily */
 	static int probe_defer_count;
 
-	if ((probe_defer_count++) < 10)
-		return -EPROBE_DEFER;
+	data = (struct sprd_pcie_of_data *)of_device_get_match_data(dev);
+	mode = data->mode;
 
-	dev_info(dev, "%s: defer probe %d times to wait wcn\n",
-		 __func__, probe_defer_count);
+	/*
+	 *  Dirty:
+	 *	These codes must be delete atfer marlin3 EP power-on sequence
+	 *	is okay.
+	 *  There two device type of the PCIe controller: RC and EP.
+	 *  -1. As RC + marlin3 PCIe EP:
+	 *	Marlin3 power on and init is too late. Before establishing PCIe
+	 *	link we must wait, wait... If marlin3 PCIe power on sequence is
+	 *	nice, we will remove these dirty codes.
+	 *  -2. As RC + ORCA PCIe EP:
+	 *	Because orca EP power on in uboot, if the probe() continue, PCIe
+	 *	will establish link. It's not nesseary to defer probe in this
+	 *	situation. However, it's harmless to defer probe.
+	 *  -3. As EP: This controller is selected to EP mode for ORCA:
+	 *	It must run earlier than RC. So it can't be probed.
+	 */
+	if (mode == DW_PCIE_RC_TYPE) {
+		if ((probe_defer_count++) < 10)
+			return -EPROBE_DEFER;
+		dev_info(dev, "%s: defer probe %d times to wait wcn\n",
+			 __func__, probe_defer_count);
+	}
 
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-startup-syscons");
 	if (ret < 0) {
 		dev_err(dev, "get pcie syscons fail, return %d\n", ret);
 		return ret;
 	}
-
-	data = (struct sprd_pcie_of_data *)of_device_get_match_data(dev);
-	mode = data->mode;
 
 	sprd_pcie = devm_kzalloc(dev, sizeof(*sprd_pcie), GFP_KERNEL);
 	if (!sprd_pcie)

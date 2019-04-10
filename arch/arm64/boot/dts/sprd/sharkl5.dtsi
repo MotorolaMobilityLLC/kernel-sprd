@@ -351,7 +351,11 @@
 					REG_GPU_DVFS_APB_GPU_SW_DVFS_CTRL
 					(MASK_GPU_DVFS_APB_GPU_DVFS_ACK |
 					MASK_GPU_DVFS_APB_GPU_DVFS_VOLTAGE_SW |
-					MASK_GPU_DVFS_APB_GPU_DVFS_REQ_SW)>;
+					MASK_GPU_DVFS_APB_GPU_DVFS_REQ_SW)>,
+				<&gpu_dvfs_apb_regs
+					REG_GPU_DVFS_APB_GPU_PROACTIVE_DVFS_CFG
+					MASK_GPU_DVFS_APB_GPU_PROACTIVE_DVFS_SEL
+					>;
 
 				syscon-names = "top_force_shutdown",
 					"rgx_dust_force_shutdown",
@@ -359,23 +363,24 @@
 					"gpu_qos_sel",
 					"gpu_qos",
 					"dvfs_index_cfg",
-					"sw_dvfs_ctrl";
+					"sw_dvfs_ctrl",
+					"pdvfs_cfg";
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
 
 				operating-points = <
 					/* kHz    uV */
-					384000    700000
-					512000    750000
-					614400    750000
+					384000    800000
+					512000    800000
+					614400    800000
 					768000    800000
 					800000    800000
 					>;
 
 				sprd,dvfs-lists = <
 					/* kHz   uV      idx div */
-					384000  700000    6    1
-					512000  750000    7    1
-					614400  750000    8    1
+					384000  800000    6    1
+					512000  800000    7    1
+					614400  800000    8    1
 					768000  800000    9    1
 					800000  800000    10   1
 					>;
@@ -424,8 +429,8 @@
 				/* sharkl3 isp need pagetalbe size */
 				reg = <0 0x62000000 0 0xffc00>,
 				      <0 0x620ffc00 0 0x400>;
-				iova-base = <0x50000000>;
-				iova-size = <0x10000000>;
+				iova-base = <0x40000000>;
+				iova-size = <0x20000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg",
 					   "iova pool";
 				status = "disabled";
@@ -673,7 +678,7 @@
 				reg = <0 0x62900000 0 0xc000>,
 				      <0 0x6290c000 0 0x60>;
 				iova-base = <0x40000000>;
-				iova-size = <0x10000000>;
+				iova-size = <0x20000000>;
 				reg_name = "mmu_interrupt_reg", "mmu_reg",
 					   "iova pool";
 				status = "disabled";
@@ -733,7 +738,7 @@
 			ranges;
 
 			uart0: serial@70000000 {
-				compatible = "sprd,ums510-uart",
+				compatible = "sprd,ums312-uart",
 					     "sprd,sc9836-uart";
 				reg = <0 0x70000000 0 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
@@ -741,7 +746,7 @@
 			};
 
 			uart1: serial@70100000 {
-				compatible = "sprd,ums510-uart",
+				compatible = "sprd,ums312-uart",
 					     "sprd,sc9836-uart";
 				reg = <0 0x70100000 0 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
@@ -749,7 +754,7 @@
 			};
 
 			uart2: serial@70200000 {
-				compatible = "sprd,ums510-uart",
+				compatible = "sprd,ums312-uart",
 					     "sprd,sc9836-uart";
 				reg = <0 0x70200000 0 0x100>;
 				interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
@@ -872,6 +877,14 @@
 				reg = <0 0x71300000 0 0x1000>;
 				interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
+			};
+
+			apsys_dvfs: apsys-dvfs@71700000 {
+				compatible = "sprd,hwdvfs-apsys-sharkl5";
+				reg = <0x0 0x71700000 0x0 0x144>;
+
+				sprd,ap-dvfs-up-window = <0x40>;
+				sprd,ap-dvfs-down-window = <0x80>;
 			};
 		};
 
@@ -1319,7 +1332,7 @@
 					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu1_supply>;
 				};
 				dcdc_mm: dcdc-mm {
-					dcdc-dvfs-enable = <0x18 20 0>;
+					dcdc-dvfs-enable = <0x18 20 1>;
 					dcdc-judge-vol-sw = <0x18 1 0x7 7>;
 					dcdc-subsys-cells =	<&audcp_sys>,
 								<&gpu_sys>,
@@ -1328,7 +1341,7 @@
 						dcdc-subsys-tune-enable = <0x150 5 0>;
 					};
 					gpu_sys: gpu-sys {
-						dcdc-subsys-tune-enable = <0x150 1 0>;
+						dcdc-subsys-tune-enable = <0x150 1 1>;
 					};
 
 					mm_sys: mm-sys {
@@ -1356,8 +1369,6 @@
 			cpudvfs_dev: cpudvfs-dev@322a8000 {
 				compatible = "sprd,sharkl5-cpudvfs";
 				sprd,syscon-enable = <&aon_apb_regs>;
-				dcdc-cpu0-supply = <&vddcpu>;
-				dcdc-sram-supply = <&vddsram>;
 				module-enable-cfg = <0x4 7>;
 				topdvfs-controller = <&topdvfs_controller>;
 				reg = <0 0x322a8000 0 0x1000>;
@@ -1375,7 +1386,7 @@
 					column-num = <7>;
 					work-index-cfg = <0x214 0xf>;
 					idle-index-cfg = <0x218 0xf>;
-					tuning-result-judge = <1>;
+					tuning-result-judge = <0>;
 					dcdc-name = "DCDC_CPU0";
 					map-tbl-regs = <0x60 0x64 0x68 0x6c 0x70 0x74 0x78 0x7c 0x80 0x84>;
 					column-entry-start-bit = <0 2 15 5 9 18 12>;
@@ -1422,7 +1433,7 @@
 					column-num = <7>;
 					work-index-cfg = <0x224 0xf>;
 					idle-index-cfg = <0x228 0xf>;
-					tuning-result-judge = <1>;
+					tuning-result-judge = <0>;
 					dcdc-name = "DCDC_CPU1";
 					map-tbl-regs = <0xa0 0xa4 0xa8 0xac 0xb0 0xb4 0xb8>;
 					column-entry-start-bit = <0 2 15 5 9 18 12 21>;
@@ -1670,6 +1681,20 @@
 						<0 0>,
 						<0x327d0000 0x327d0018>;
 				};
+			};
+
+			modem_dbg_log: modem-dbg-log@324f0000 {
+				compatible = "sprd,dbg-log-sharkl5";
+				reg = <0 0x324f0000 0 0x4000>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+				sprd,syscon-mm-ahb = <&mm_ahb_regs>;
+				sprd,syscon-dsi-apb = <&anlg_phy_g10_regs>;
+				sprd,ch-name = "TRAINING", "WTL", "MDAR", "TPIU", "DBUS", "WCN";
+				sprd,ch-index = <15 1 0 2 3 4>;
+				sprd,dcfix;
+				sprd,mm;
+				status = "disabled";
 			};
 
 			hwlock: hwspinlock@327f0000 {
@@ -1957,6 +1982,8 @@
 		sprd,normal-captue-data =<0x33806000 0x1e00>;
 		/* 0x200(0.5K) */
 		sprd,normal-captue-linklilst-node2 =<0x33807e00 0x200>;
+		/* audcp aon iram */
+		sprd,audcp-aon-iram = <0xa400 0x1000>;
 	};
 
 	audio-dsp-dump@0 {/* audio dsp log */
@@ -2008,6 +2035,30 @@
 		sprd,writesync = <1>;
 		sprd,maxuserwritebufsize = <1024>;
 		sprd,channel = <9>;
+	};
+
+	audiocp_dvfs {
+		compatible = "sprd,sharkl5-audcp-dvfs";
+		sprd,channel = <10>;
+	};
+
+	audiocp_boot {
+		compatible = "sprd,sharkl5-audcp-boot";
+		syscons = <&pmu_apb_regs REG_PMU_APB_PD_AUDCP_SYS_CFG MASK_PMU_APB_PD_AUDCP_SYS_FORCE_SHUTDOWN>,
+			<&pmu_apb_regs REG_PMU_APB_PD_AUDCP_AUDDSP_CFG MASK_PMU_APB_PD_AUDCP_AUDDSP_AUTO_SHUTDOWN_EN>,
+			<&pmu_apb_regs REG_PMU_APB_SLEEP_CTRL MASK_PMU_APB_AUDCP_FORCE_DEEP_SLEEP>,
+			<&pmu_apb_regs REG_PMU_APB_CP_SOFT_RST MASK_PMU_APB_AUDCP_AUDDSP_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_CP_SOFT_RST MASK_PMU_APB_AUDCP_SYS_SOFT_RST>,
+			<&pmu_apb_regs REG_PMU_APB_SOFT_RST_SEL MASK_PMU_APB_SOFT_RST_SEL>,
+			<&pmu_apb_regs REG_PMU_APB_PWR_STATUS4_DBG MASK_PMU_APB_PD_AUDCP_SYS_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_AUDCP_AUDDSP_STATE>,
+			<&pmu_apb_regs REG_PMU_APB_SLEEP_STATUS MASK_PMU_APB_AUDCP_SLP_STATUS>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_BOOT_PROT MASK_AON_APB_REG_PROT_VAL>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL0 MASK_AON_APB_AUDCP_DSP_BOOT_VECTOR>,
+			<&aon_apb_regs REG_AON_APB_AUDCP_DSP_CTRL1 MASK_AON_APB_AUDCP_DSP_BOOT>;
+		syscon-names = "sysshutdown", "coreshutdown", "deepsleep", "corereset",
+			"sysreset", "reset_sel", "sysstatus", "corestatus", "sleepstatus",
+			"bootprotect", "bootvector", "bootaddress_sel";
 	};
 
 	ext_26m: ext-26m {

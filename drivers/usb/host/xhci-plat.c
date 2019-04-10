@@ -55,16 +55,6 @@ static int xhci_priv_init_quirk(struct usb_hcd *hcd)
 	return priv->init_quirk(hcd);
 }
 
-static int xhci_priv_resume_quirk(struct usb_hcd *hcd)
-{
-	struct xhci_plat_priv *priv = hcd_to_xhci_priv(hcd);
-
-	if (!priv->resume_quirk)
-		return 0;
-
-	return priv->resume_quirk(hcd);
-}
-
 static void xhci_plat_quirks(struct device *dev, struct xhci_hcd *xhci)
 {
 	/*
@@ -266,6 +256,9 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	if (device_property_read_bool(sysdev, "usb3-lpm-capable"))
 		xhci->quirks |= XHCI_LPM_SUPPORT;
 
+	if (device_property_read_bool(&pdev->dev, "usb3-slow-suspend"))
+		xhci->quirks |= XHCI_SLOW_SUSPEND;
+
 	if (device_property_read_bool(&pdev->dev, "quirk-broken-port-ped"))
 		xhci->quirks |= XHCI_BROKEN_PORT_PED;
 
@@ -294,12 +287,6 @@ static int xhci_plat_probe(struct platform_device *pdev)
 
 	device_enable_async_suspend(&pdev->dev);
 	pm_runtime_put_noidle(&pdev->dev);
-
-	/*
-	 * Prevent runtime pm from being on as default, users should enable
-	 * runtime pm using power/control in sysfs.
-	 */
-	pm_runtime_forbid(&pdev->dev);
 
 	return 0;
 
@@ -355,31 +342,12 @@ static int xhci_plat_remove(struct platform_device *dev)
 
 static int __maybe_unused xhci_plat_suspend(struct device *dev)
 {
-	struct usb_hcd	*hcd = dev_get_drvdata(dev);
-	struct xhci_hcd	*xhci = hcd_to_xhci(hcd);
-
-	/*
-	 * xhci_suspend() needs `do_wakeup` to know whether host is allowed
-	 * to do wakeup during suspend. Since xhci_plat_suspend is currently
-	 * only designed for system suspend, device_may_wakeup() is enough
-	 * to dertermine whether host is allowed to do wakeup. Need to
-	 * reconsider this when xhci_plat_suspend enlarges its scope, e.g.,
-	 * also applies to runtime suspend.
-	 */
-	return xhci_suspend(xhci, device_may_wakeup(dev));
+	return 0;
 }
 
 static int __maybe_unused xhci_plat_resume(struct device *dev)
 {
-	struct usb_hcd	*hcd = dev_get_drvdata(dev);
-	struct xhci_hcd	*xhci = hcd_to_xhci(hcd);
-	int ret;
-
-	ret = xhci_priv_resume_quirk(hcd);
-	if (ret)
-		return ret;
-
-	return xhci_resume(xhci, 0);
+	return 0;
 }
 
 static int __maybe_unused xhci_plat_runtime_suspend(struct device *dev)
