@@ -2820,6 +2820,11 @@
 			"bootprotect", "bootvector", "bootaddress_sel";
 	};
 
+	audiocp-dvfs {
+		compatible = "sprd,roc1-audcp-dvfs", "sprd,sharkl5-audcp-dvfs";
+		sprd,channel = <10>;
+	};
+
 	ext_26m: ext-26m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
