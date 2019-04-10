@@ -168,7 +168,6 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 	int ret;
 	unsigned int irq;
 	struct resource *res;
-	u32 reg_val;
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dbi");
 	pci->dbi_base = devm_ioremap(dev, res->start, resource_size(res));
@@ -180,17 +179,6 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 
 	dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
 			   LTSSM_EN | L1_AUXCLK_EN);
-	/*
-	 * If RC send some commands to access some memory addresses of EP side
-	 * that can not be accessed, these commands cannot be completed and
-	 * will be blocked in the EP's receive buffer. When EP's credit is
-	 * exhausted, the RC axi slave interface will be hanged if there are
-	 * continuous requests. Enable the global slave error response to
-	 * notify the CPU that an exception has occurred.
-	 */
-	reg_val = dw_pcie_readl_dbi(pci, PCIE_SLAVE_ERROR_RESPONSE);
-	dw_pcie_writel_dbi(pci, PCIE_SLAVE_ERROR_RESPONSE,
-			(reg_val | SLAVE_ERROR_RESPONSE_EN));
 
 	sprd_pcie = platform_get_drvdata(to_platform_device(pci->dev));
 
