@@ -165,7 +165,7 @@ static void dpu_glb_enable(struct dpu_context *ctx)
 	temp = (temp | 0x2);
 	writel(temp, base1);
 	writel(0x4, base2 + 0x009c);
-	writel(0x2, base2 + 0x00A0);
+	writel(0x3, base2 + 0x00A0);
 }
 
 static void dpu_glb_disable(struct dpu_context *ctx)
