@@ -51,6 +51,7 @@ struct sprd_glue {
 	struct phy		*phy;
 	struct usb_phy		*xceiv;
 	struct regulator	*vbus;
+	struct wakeup_source	pd_wake_lock;
 
 	enum usb_dr_mode		dr_mode;
 	enum usb_dr_mode		wq_mode;
@@ -68,6 +69,8 @@ struct sprd_glue {
 	bool		bus_active;
 	bool		vbus_active;
 	bool		charging_mode;
+	bool		power_always_on;
+	bool		is_suspend;
 	int		host_disabled;
 	int		musb_work_running;
 };
@@ -597,6 +600,20 @@ static void sprd_musb_work(struct work_struct *work)
 	int ret;
 	int cnt = 100;
 
+	/*
+	 * There is a hidden danger, when system is going to suspend.
+	 * if plug in/out usb deives, add this work to queue in interrupt
+	 * processing, this work is waiting to schedule. At the same time,
+	 * system is in deep sleep. this event don't handle until resumed.
+	 */
+	__pm_stay_awake(&glue->pd_wake_lock);
+	/*
+	 * we need to wait system resumed, otherwise, the regulator interface
+	 * failed, it use i2c, i2c is disabled in deep sleep.
+	 */
+	while (glue->is_suspend)
+		msleep(20);
+
 	if ((glue->musb_work_running == 0) &&
 	    (glue->wq_mode == USB_DR_MODE_HOST)) {
 		while (!musb->gadget_driver)
@@ -691,7 +708,8 @@ static void sprd_musb_work(struct work_struct *work)
 		glue->charging_mode = false;
 		spin_unlock_irqrestore(&glue->lock, flags);
 
-		if (!charging_only)
+		if (!charging_only && !(glue->power_always_on
+			&& glue->dr_mode == USB_DR_MODE_HOST))
 			__pm_stay_awake(&glue->wake_lock);
 
 		dev_info(glue->dev, "is running as %s\n",
@@ -742,20 +760,21 @@ static void sprd_musb_work(struct work_struct *work)
 			dev_err(glue->dev, "musb sprd suspend failed!\n");
 			goto end;
 		}
-
+		if (!charging_only && !(glue->power_always_on
+			&& glue->dr_mode == USB_DR_MODE_HOST))
+			__pm_relax(&glue->wake_lock);
 		spin_lock_irqsave(&glue->lock, flags);
 		glue->charging_mode = false;
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		glue->dr_mode = USB_DR_MODE_UNKNOWN;
 		spin_unlock_irqrestore(&glue->lock, flags);
-		if (!charging_only)
-			__pm_relax(&glue->wake_lock);
 
 		dev_info(glue->dev, "is shut down\n");
 		goto end;
 	}
 end:
+	__pm_relax(&glue->pd_wake_lock);
 	enable_irq(glue->vbus_irq);
 }
 
@@ -911,6 +930,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	}
 
 	wakeup_source_init(&glue->wake_lock, "musb-sprd");
+	wakeup_source_init(&glue->pd_wake_lock, "musb-sprd-pd");
 	spin_lock_init(&glue->lock);
 	INIT_WORK(&glue->work, sprd_musb_work);
 	INIT_DELAYED_WORK(&glue->recover_work, sprd_musb_recover_work);
@@ -919,6 +939,9 @@ static int musb_sprd_probe(struct platform_device *pdev)
 
 	pdata.platform_ops = &sprd_musb_ops;
 	pdata.config = &sprd_musb_hdrc_config;
+	glue->power_always_on = of_property_read_bool(node, "wakeup-source");
+	pdata.board_data = &glue->power_always_on;
+	glue->is_suspend = false;
 	memset(&pinfo, 0, sizeof(pinfo));
 	pinfo.name = "musb-hdrc";
 	pinfo.id = PLATFORM_DEVID_AUTO;
@@ -1094,6 +1117,24 @@ static void musb_sprd_disable_all_interrupts(struct musb *musb)
 	}
 }
 
+static int musb_sprd_suspend(struct device *dev)
+{
+	struct sprd_glue *glue = dev_get_drvdata(dev);
+
+	glue->is_suspend = true;
+
+	return 0;
+}
+
+static int musb_sprd_resume(struct device *dev)
+{
+	struct sprd_glue *glue = dev_get_drvdata(dev);
+
+	glue->is_suspend = false;
+
+	return 0;
+}
+
 static int musb_sprd_runtime_suspend(struct device *dev)
 {
 	struct sprd_glue *glue = dev_get_drvdata(dev);
@@ -1151,6 +1192,8 @@ static int musb_sprd_runtime_idle(struct device *dev)
 }
 
 static const struct dev_pm_ops musb_sprd_pm_ops = {
+	.suspend	= musb_sprd_suspend,
+	.resume		= musb_sprd_resume,
 	.runtime_suspend = musb_sprd_runtime_suspend,
 	.runtime_resume = musb_sprd_runtime_resume,
 	.runtime_idle = musb_sprd_runtime_idle,

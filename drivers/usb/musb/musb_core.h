@@ -462,6 +462,9 @@ struct musb {
 	struct dentry		*debugfs_root;
 #endif
 	int	shutdowning;
+#ifdef CONFIG_USB_MUSB_SPRD
+	bool power_always_on;
+#endif
 };
 
 /* This must be included after struct musb is defined */

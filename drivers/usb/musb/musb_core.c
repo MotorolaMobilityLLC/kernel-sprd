@@ -2148,6 +2148,9 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	musb->min_power = plat->min_power;
 	musb->ops = plat->platform_ops;
 	musb->port_mode = plat->mode;
+#ifdef CONFIG_USB_MUSB_SPRD
+	musb->power_always_on = *((bool *)plat->board_data);
+#endif
 
 	/*
 	 * Initialize the default IO functions. At least omap2430 needs
@@ -2619,6 +2622,10 @@ static int musb_suspend(struct device *dev)
 	unsigned long	flags;
 	int ret;
 
+#ifdef CONFIG_USB_MUSB_SPRD
+	if (musb->power_always_on && is_host_active(musb))
+		return 0;
+#endif
 	if (pm_runtime_suspended(dev))
 		return 0;
 
@@ -2676,7 +2683,10 @@ static int musb_resume(struct device *dev)
 	 * be done. As it shouldn't harm other platforms, we do it
 	 * unconditionally.
 	 */
-
+#ifdef CONFIG_USB_MUSB_SPRD
+	if (musb->power_always_on && is_host_active(musb))
+		return 0;
+#endif
 	if (pm_runtime_suspended(dev))
 		return 0;
 
