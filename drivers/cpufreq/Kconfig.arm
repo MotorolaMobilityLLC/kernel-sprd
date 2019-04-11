@@ -302,7 +302,6 @@ config ARM_SPRD_HW_CPUFREQ
 	tristate "Hardware cpufreq driver"
 	depends on ARCH_SPRD && CPU_FREQ
 	select PM_OPP
-	default n
 	help
 	  This driver enables hardware to adjust the voltage and frequency
 	  automatically for every cpu in different cpu clusters. Enable this in
@@ -315,7 +314,6 @@ config ARM_SPRD_SW_CPUFREQ
 	tristate "Software cpufreq driver"
         depends on ARCH_SPRD && CPU_FREQ
         select PM_OPP
-        default n
 	help
 	  This adds software cpufreq driver support for Spreadtrum SoCs.
 	  The driver works for scaling the voltage and frequency of cpu
