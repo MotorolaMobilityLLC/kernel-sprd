@@ -398,7 +398,7 @@ clean:
 #if defined(CONFIG_X86)
 		queue_work_on(2, uether_wq, &dev->rx_work);
 #else
-		queue_work_on(1, uether_wq, &dev->rx_work);
+		queue_work(uether_wq, &dev->rx_work);
 #endif
 }
 
@@ -1860,7 +1860,11 @@ static void uether_debugfs_exit(struct eth_dev *dev)
 
 static int __init gether_init(void)
 {
+#if defined(CONFIG_X86)
 	uether_wq  = create_workqueue("uether");
+#else
+	uether_wq  = create_singlethread_workqueue("uether");
+#endif
 	if (!uether_wq) {
 		pr_err("%s: Unable to create workqueue: uether\n", __func__);
 		return -ENOMEM;
