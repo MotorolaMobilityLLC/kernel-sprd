@@ -254,8 +254,9 @@ static ssize_t dpu_version_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(dpu_version);
 
-static ssize_t wb_debug_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+static ssize_t wb_debug_store(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t count)
 {
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
 	struct dpu_context *ctx = &dpu->ctx;
@@ -286,9 +287,9 @@ static ssize_t wb_debug_show(struct device *dev,
 
 	dump_bmp32(vaddr, ctx->vm.hactive, ctx->vm.vactive, true, filename);
 
-	return 0;
+	return count;
 }
-static DEVICE_ATTR_RO(wb_debug);
+static DEVICE_ATTR_WO(wb_debug);
 
 static struct attribute *dpu_attrs[] = {
 	&dev_attr_run.attr,

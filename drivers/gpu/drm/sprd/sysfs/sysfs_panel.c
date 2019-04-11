@@ -11,6 +11,7 @@
  * GNU General Public License for more details.
  */
 
+#include <drm/drm_crtc_helper.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/sysfs.h>
@@ -111,6 +112,8 @@ static ssize_t hporch_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_panel *panel = dev_get_drvdata(dev);
+	struct drm_device *drm = panel->base.drm;
+	struct drm_connector *connector = panel->base.connector;
 	struct videomode vm;
 	u32 val[4] = {0};
 	int len;
@@ -134,6 +137,9 @@ static ssize_t hporch_store(struct device *dev,
 	}
 
 	drm_display_mode_from_videomode(&vm, &panel->info.mode);
+	mutex_lock(&drm->mode_config.mutex);
+	drm_helper_probe_single_connector_modes(connector, 0, 0);
+	mutex_unlock(&drm->mode_config.mutex);
 
 	return count;
 }
@@ -161,6 +167,8 @@ static ssize_t vporch_store(struct device *dev,
 				const char *buf, size_t count)
 {
 	struct sprd_panel *panel = dev_get_drvdata(dev);
+	struct drm_device *drm = panel->base.drm;
+	struct drm_connector *connector = panel->base.connector;
 	struct videomode vm;
 	u32 val[4] = {0};
 	int len;
@@ -184,6 +192,9 @@ static ssize_t vporch_store(struct device *dev,
 	}
 
 	drm_display_mode_from_videomode(&vm, &panel->info.mode);
+	mutex_lock(&drm->mode_config.mutex);
+	drm_helper_probe_single_connector_modes(connector, 0, 0);
+	mutex_unlock(&drm->mode_config.mutex);
 
 	return count;
 }

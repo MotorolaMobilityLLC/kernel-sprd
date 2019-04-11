@@ -550,8 +550,6 @@ static void sprd_crtc_mode_set_nofb(struct drm_crtc *crtc)
 		dpu->ctx.if_type = SPRD_DISPC_IF_EDPI;
 	else
 		dpu->ctx.if_type = SPRD_DISPC_IF_DPI;
-
-	drm_display_mode_to_videomode(dpu->mode, &dpu->ctx.vm);
 }
 
 static enum drm_mode_status sprd_crtc_mode_valid(struct drm_crtc *crtc,
@@ -566,6 +564,8 @@ static enum drm_mode_status sprd_crtc_mode_valid(struct drm_crtc *crtc,
 
 	if ((mode->type & DRM_MODE_TYPE_PREFERRED) && !dpu->mode)
 		dpu->mode = (struct drm_display_mode *)mode;
+
+	drm_display_mode_to_videomode(dpu->mode, &dpu->ctx.vm);
 
 	return MODE_OK;
 }
