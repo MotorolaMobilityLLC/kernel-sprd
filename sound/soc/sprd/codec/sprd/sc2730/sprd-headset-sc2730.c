@@ -531,6 +531,40 @@ static void sprd_hmicbias_hw_control_enable(bool enable,
 		headset_reg_clr_bits(ANA_HDT1, HEDET_PLGPD_EN);
 }
 
+/* used to enable/disable fast discharging in typec analog headset */
+static void sprd_headset_typec_fast_discharging(bool enable)
+{
+	if (enable)
+		headset_reg_set_bits(ANA_HDT1, HEDET_PLGPD_EN);
+	else
+		headset_reg_clr_bits(ANA_HDT1, HEDET_PLGPD_EN);
+}
+
+static void
+sprd_headset_typec_headmicbias_ramp_on(struct sprd_headset *hdst)
+{
+	sprd_headset_power_set(&hdst->power_manager, "DIG_CLK_HID", true);
+	/*
+	 * in order to avoid pop noise in typec analog headphone, HW ask
+	 * to enable HEADMICBIAS like this: clear bit9, set bit10 firstly, then
+	 * set bit2, or the ramp can't work, and pop noise come out
+	 */
+	headset_reg_clr_bits(ANA_PMU1, HMIC_BIAS_VREF_SEL);
+	headset_reg_set_bits(ANA_PMU1, HMIC_BIAS_SOFT_EN);
+	headset_reg_set_bits(ANA_PMU1, HMIC_BIAS_EN);
+
+	/* wait for ramp over */
+	sprd_msleep(15);
+	/*
+	 * after run sprd_headset_typec_headmicbias_ramp, HEADMICBIAS is
+	 * powered on ,in order to keep use_count of HEADMICBIAS regulator
+	 * correctly, power on the regulator here.
+	 */
+	headset_reg_set_bits(ANA_PMU1, HMIC_BIAS_VREF_SEL);
+	sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS", true);
+	sprd_headset_power_set(&hdst->power_manager, "DIG_CLK_HID", false);
+}
+
 static void sprd_headset_eic_enable(enum hdst_eic_type eic_type, bool enable)
 {
 	if (enable)
@@ -1250,6 +1284,29 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 	return HEADSET_TYPE_ERR;
 }
 
+static void
+sprd_headset_typec_mic_switch(struct sprd_headset *hdst, bool high,
+			      bool no_headmicbias_on)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	int mic_gpio_level;
+
+	mic_gpio_level = gpiod_get_value(pdata->typec_mic_gpio);
+	if (mic_gpio_level == high)
+		return;
+
+	sprd_headset_power_set(&hdst->power_manager, "HEADMICBIAS", false);
+	/* wait for power down */
+	sprd_msleep(20);
+	sprd_headset_typec_fast_discharging(true);
+	sprd_msleep(1);
+	gpiod_set_value_cansleep(pdata->typec_mic_gpio, high);
+	sprd_msleep(1);
+	sprd_headset_typec_fast_discharging(false);
+	if (!no_headmicbias_on)
+		sprd_headset_typec_headmicbias_ramp_on(hdst);
+}
+
 /*
  * the map of voltage to adc value as below:
  * voltage  adc_value
@@ -1275,7 +1332,7 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 	/* gnd voltage use small scale */
 	gnd_vol = pdata->sprd_adc_gnd * 1250 / 4095;
 
-	gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+	sprd_headset_typec_mic_switch(hdst, false, false);
 	do {
 		mic_vol_0 = sprd_headset_get_mic_voltage(hdst);
 		if (mic_vol_0 > TYPEC_4POLE_MIC_MAX_VOLT)
@@ -1292,12 +1349,12 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return HEADSET_NO_MIC;
 		}
-		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+		sprd_headset_typec_mic_switch(hdst, false, true);
 		return HEADSET_TYPE_ERR;
 	}
 	left_vol_0 = sprd_headset_typec_get_hpl_voltage(hdst);
 
-	gpiod_set_value_cansleep(pdata->typec_mic_gpio, 1);
+	sprd_headset_typec_mic_switch(hdst, true, false);
 	try_count = 0;
 	do {
 		mic_vol_1 = sprd_headset_get_mic_voltage(hdst);
@@ -1315,7 +1372,7 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 			sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 			return HEADSET_NO_MIC;
 		}
-		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+		sprd_headset_typec_mic_switch(hdst, false, true);
 		return HEADSET_TYPE_ERR;
 	}
 	left_vol_1 = sprd_headset_typec_get_hpl_voltage(hdst);
@@ -1336,7 +1393,8 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 	}
 
 	if (mic_vol_0 > mic_vol_1)
-		gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+		sprd_headset_typec_mic_switch(hdst, false, false);
+
 	if (max(mic_vol_0, mic_vol_1) <
 		TYPEC_SELFIE_STICK_THRESHOLD) {
 		/* typec headset */
@@ -1352,7 +1410,7 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 
 	pr_err("type error, mic_voltage_0 %d, mic_voltage_1 %d\n",
 		mic_vol_0, mic_vol_1);
-	gpiod_set_value_cansleep(pdata->typec_mic_gpio, 0);
+	sprd_headset_typec_mic_switch(hdst, false, true);
 
 	return HEADSET_TYPE_ERR;
 }
