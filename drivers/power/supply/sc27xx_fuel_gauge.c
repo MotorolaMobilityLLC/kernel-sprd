@@ -445,7 +445,27 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 		temp_cap = sc27xx_fgu_temp_to_cap(data->cap_temp_table,
 						  data->cap_table_len,
 						  temp);
-		*cap = *cap * temp_cap / 100;
+		/*
+		 * Battery capacity at different temperatures, we think
+		 * the change is linear, the follow the formula: y = ax + k
+		 *
+		 * for example: display 100% at 25 degrees need to display
+		 * 100% at -10 degrees, display 10% at 25 degrees need to
+		 * display 0% at -10 degrees, substituting the above special
+		 * points will deduced follow formula.
+		 * formula 1:
+		 * Capacity_Delta = 100 - Capacity_Percentage(T1)
+		 * formula 2:
+		 * Capacity_temp = (Capacity_Percentage(current) -
+		 * Capacity_Delta) * 100 /(100 - Capacity_Delta)
+		 */
+		delta_cap = 100 - temp_cap;
+		*cap = (*cap - delta_cap) * 100 / (100 - delta_cap);
+
+		if (*cap < 0)
+			*cap = 0;
+		else if (*cap > 100)
+			*cap = 100;
 	}
 
 	sc27xx_fgu_low_capacity_calibration(data, *cap, false);
