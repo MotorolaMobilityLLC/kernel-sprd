@@ -1023,6 +1023,10 @@ static void sprd_codec_sdm_ramp(struct snd_soc_codec *codec, bool on)
 	if (on) {
 		snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_L), 0xffff, 0);
 		snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_H), 0xffff, 0);
+		/* ramp need set PGA as -3dB by HW requirement*/
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC7),
+				    HPL_G(0xffff) | HPR_G(0xffff),
+				    HPL_G(5) | HPR_G(5));
 
 		while (val <= SDM_RAMP_MAX) {
 			snd_soc_update_bits(codec, SOC_REG(AUD_DAC_SDM_L),
