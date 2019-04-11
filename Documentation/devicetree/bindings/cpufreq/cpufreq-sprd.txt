@@ -32,7 +32,8 @@ Required properties:
 		- core_clk: mcu clock of this cpu.
 		- high_freq_clk_parent - high frequency clock parent that can be used by core_clk.
 
-Optional properties: under cpufreq-clusX node.
+Optional properties:
+- cpufreq-clusX node.
 	- clock-names: Names of the optional clock parents as shown bellow -
 		- low_freq_clk_parent - Lower frequency clock parent that can be used by core_clk.
 	- clock-latency: Specify the possible maximum transition latency for clock,
@@ -40,6 +41,9 @@ Optional properties: under cpufreq-clusX node.
 	- voltage-tolerance: Specify the CPU voltage tolerance in percentage.
 	- dual-phase-supply - boolean flag used only if SOC have shared power supply for Big and
 		Little clusters, and we are not defining cpu-supply for this cpu.
+- sprd_swdvfs node.
+	- compatible: Describe which soc will use swdvfs driver,for example:
+			"sprd,sharkl3-swdvfs";
 
 Example 1: Example for quad core, single cluster architecture.
 --------
@@ -249,3 +253,10 @@ Example 3: Example for Big-Little architecture having different power supply for
 		clock-latency = <50000>;
 		voltage-tolerance = <0>;
 	};
+
+Example 4: Example for A specific soc will use swdvfs driver.
+---------
+	sprd_swdvfs: sprd-swdvfs {
+		compatible = "sprd,sharkl3-swdvfs";
+	};
+
