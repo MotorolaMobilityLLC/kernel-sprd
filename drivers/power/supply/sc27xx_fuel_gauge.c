@@ -177,8 +177,9 @@ static int sc27xx_fgu_temp_to_cap(struct power_supply_capacity_temp_table *table
 	if (i > 0 && i < table_len) {
 		int tmp;
 
-		tmp = value - table[i].temp / ((table[i - 1].temp - table[i].temp));
-		tmp *= (table[i - 1].cap - table[i].cap);
+		tmp = (table[i - 1].cap - table[i].cap) *
+			(value - table[i].temp);
+		tmp /= table[i - 1].temp - table[i].temp;
 		temp = tmp + table[i].cap;
 	} else if (i == 0) {
 		temp = table[0].cap;
