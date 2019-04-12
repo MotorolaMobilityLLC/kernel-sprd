@@ -91,7 +91,7 @@
 			sprd,dst = <6>;
 			sprd,channel = <5>;
 			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x600>;
+			sprd,size-rxbuf = <0x5c0>;
 			sprd,size-txbuf = <0x20>;
 		};
 
@@ -100,7 +100,7 @@
 			sprd,dst = <6>;
 			sprd,channel = <6>;
 			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x10>;
+			sprd,size-rxbuf = <0x40>;
 			sprd,size-txbuf = <0x20>;
 		};
 
