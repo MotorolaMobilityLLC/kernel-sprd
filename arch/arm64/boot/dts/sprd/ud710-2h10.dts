@@ -454,6 +454,9 @@
 	status = "okay";
 };
 
+&sdio0 {
+	cd-gpios = <&eic_async 19 GPIO_ACTIVE_HIGH>;
+};
 &vddsim2 {
 	status = "disabled";
 };
