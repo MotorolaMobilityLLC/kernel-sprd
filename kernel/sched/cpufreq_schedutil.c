@@ -19,6 +19,9 @@
 
 #include "sched.h"
 
+#define MIN_CAP_CPUMASK_FREQ_MARGIN 50
+#define OTHER_CPUMASK_FREQ_MARGIN 30
+
 unsigned long cpu_util_freq(int cpu);
 unsigned long boosted_cpu_util(int cpu, unsigned long other_util);
 
@@ -43,6 +46,7 @@ struct sugov_policy {
 	s64 down_rate_delay_ns;
 	unsigned int next_freq;
 	unsigned int cached_raw_freq;
+	struct timer_list freq_margin_timer;
 	struct timer_list slack_timer;
 	struct hrtimer performance_htimer;
 	/* The next fields are only needed if fast switch cannot be used. */
@@ -832,6 +836,16 @@ static void sugov_slack_timer(unsigned long data)
 	}
 }
 
+static void sugov_set_freq_margin(unsigned long data)
+{
+	struct sugov_policy *sg_policy = (struct sugov_policy *)data;
+
+	if (cpumask_test_cpu(sg_policy->policy->cpu, &min_cap_cpu_mask))
+		sg_policy->tunables->freq_margin = MIN_CAP_CPUMASK_FREQ_MARGIN;
+	else
+		sg_policy->tunables->freq_margin = OTHER_CPUMASK_FREQ_MARGIN;
+}
+
 static int sugov_init(struct cpufreq_policy *policy)
 {
 	struct sugov_policy *sg_policy;
@@ -881,10 +895,11 @@ static int sugov_init(struct cpufreq_policy *policy)
 	tunables->up_rate_limit_us = cpufreq_policy_transition_delay_us(policy);
 	tunables->down_rate_limit_us = cpufreq_policy_transition_delay_us(policy);
 
-	if (cpumask_test_cpu(policy->cpu, &min_cap_cpu_mask))
-		tunables->freq_margin = 50;
-	else
-		tunables->freq_margin = 30;
+	init_timer(&sg_policy->freq_margin_timer);
+	setup_timer(&sg_policy->freq_margin_timer, sugov_set_freq_margin,
+		   (unsigned long)sg_policy);
+	sg_policy->freq_margin_timer.expires  = jiffies + HZ / 2;
+	add_timer(&sg_policy->freq_margin_timer);
 
 	tunables->timer_slack_val_us =
 		TICK_NSEC / NSEC_PER_USEC + tunables->down_rate_limit_us;
