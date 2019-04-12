@@ -342,15 +342,20 @@
 				<&gpu_apb_regs
 					REG_GPU_APB_CLK_GPU_DVFS
 					MASK_GPU_APB_CGM_GPU_DVFS_EN>,
-				/*<&gpu_apb_regs
-					REG_GPU_APB_GPU_NIC400_QOS
-					MASK_GPU_APB_GPU_QOS_SEL>,
 				<&gpu_apb_regs
-					REG_GPU_APB_GPU_NIC400_QOS
-					(MASK_GPU_APB_AWQOS_THRESHOLD_GPU |
-					MASK_GPU_APB_ARQOS_THRESHOLD_GPU |
-					MASK_GPU_APB_AWQOS_GPU |
-					MASK_GPU_APB_ARQOS_GPU)>,*/
+					REG_GPU_APB_GPU_MEMIF0_QOS
+					(MASK_GPU_APB_GPU_QOS_SEL0 |
+					MASK_GPU_APB_AWQOS_THRESHOLD_GPU0 |
+					MASK_GPU_APB_ARQOS_THRESHOLD_GPU0 |
+					MASK_GPU_APB_AWQOS_GPU0 |
+					MASK_GPU_APB_ARQOS_GPU0)>,
+				<&gpu_apb_regs
+					REG_GPU_APB_GPU_MEMIF1_QOS
+					(MASK_GPU_APB_GPU_QOS_SEL1 |
+					MASK_GPU_APB_AWQOS_THRESHOLD_GPU1 |
+					MASK_GPU_APB_ARQOS_THRESHOLD_GPU1 |
+					MASK_GPU_APB_AWQOS_GPU1 |
+					MASK_GPU_APB_ARQOS_GPU1)>,
 				<&gpu_dvfs_apb_regs
 					REG_GPU_DVFS_APB_GPU_DVFS_INDEX_CFG
 					MASK_GPU_DVFS_APB_GPU_DVFS_INDEX>,
@@ -368,8 +373,8 @@
 					"rgx_dust_force_shutdown",
 					"rgx_dust_auto_shutdown",
 					"cgm_gpu_dvfs_en",
-					/*"gpu_qos_sel",
-					"gpu_qos",*/
+					"gpu0_qos",
+					"gpu1_qos",
 					"dvfs_index_cfg",
 					"sw_dvfs_ctrl",
 					"pdvfs_cfg";
