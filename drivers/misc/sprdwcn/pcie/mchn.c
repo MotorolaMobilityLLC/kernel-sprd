@@ -330,6 +330,8 @@ int mchn_deinit(struct mchn_ops_t *ops)
 
 	WCN_INFO("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
 
+	mchn->ops[ops->channel] = NULL;
+
 	return ret;
 	if ((mchn->ops[ops->channel] == NULL) ||
 	    ((ops->hif_type != HW_TYPE_SDIO) &&
