@@ -37,15 +37,15 @@
 
 		display-timings {
 			timing0 {
-				clock-frequency = <129870000>;
+				clock-frequency = <192000000>;
 				hactive = <1080>;
-				vactive = <1920>;
-				hback-porch = <10>;
-				hfront-porch = <10>;
-				vback-porch = <10>;
-				vfront-porch = <10>;
-				hsync-len = <10>;
-				vsync-len = <10>;
+				vactive = <2400>;
+				hback-porch = <50>;
+				hfront-porch = <50>;
+				vback-porch = <50>;
+				vfront-porch = <50>;
+				hsync-len = <47>;
+				vsync-len = <47>;
 			};
 		};
 
