@@ -1255,9 +1255,9 @@
 				sensor-names = "ank0-thmzone","ank1-thmzone","ank2-thmzone";
 				k-po = <128>;
 				k-pu = <256>;
-				k-i = <2>;
+				k-i = <1>;
 				k-d = <0>;
-				cutoff = <10000>;
+				cutoff = <0>;
 			};
 
 			cluster1_sensor: cluster1-sensor@16 {
@@ -1266,9 +1266,9 @@
 				sensor-names = "prometheus0-thmzone";
 				k-po = <128>;
 				k-pu = <256>;
-				k-i = <2>;
+				k-i = <1>;
 				k-d = <0>;
-				cutoff = <10000>;
+				cutoff = <0>;
 			};
 
 			soc_sensor: soc-sensor@17 {
@@ -1277,9 +1277,9 @@
 				sensor-names = "cluster0-thmzone","cluster1-thmzone","gpu-thmzone";
 				k-po = <0>;
 				k-pu = <0>;
-				k-i = <2>;
+				k-i = <1>;
 				k-d = <0>;
-				cutoff = <10000>;
+				cutoff = <0>;
 			};
 
 			ap_efuse: efuse@32240000 {
