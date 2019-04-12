@@ -10350,6 +10350,13 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[subsys] devfreq
 	[must] user
 	[function] Enable device dvfs function.
+CONFIG_SPRD_APSYS_DVFS_DEVFREQ
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] devfreq
+	[must] user
+	[function] Enable apsys dvfs function.
 CONFIG_SPRD_USB3_PHY
 	[arch] arm64
 	[plat] roc1
