@@ -1383,6 +1383,7 @@ static void sprd_headset_removed_verify(struct sprd_headset *hdst)
 		sprd_headset_jack_report(hdst, &hdst->hdst_jack,
 			0, SPRD_HEADSET_JACK_MASK);
 	}
+	hdst->btn_detecting = false;
 }
 
 static void sprd_headset_sw_reset(struct sprd_headset *hdst)
@@ -1578,6 +1579,12 @@ static void headset_button_work_func(struct work_struct *work)
 	if (!hdst || !pdata) {
 		pr_err("%s: sprd_hdst(%p) or pdata(%p) is NULL!\n",
 			__func__, sprd_hdst, pdata);
+		return;
+	}
+
+	if (hdst->plug_state_last == 0) {
+		pr_err("button work, no headset insert!\n");
+		sprd_headset_button_release_verify();
 		return;
 	}
 
