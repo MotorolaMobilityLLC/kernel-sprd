@@ -29,7 +29,9 @@
 
 #define PUB_MONITOR_CLK		128	/* 128MHz */
 #define PUB_DFS_MONITOR_CLK	65	/* 6.5MHz */
-#define PUB_STATUS_MON_CTRL_OFFSET	0x0
+#define PUB_STATUS_MON_CTRL_OFFSET	0x6200
+#define DMC_DDR_CLK_CTRL_OFFSET	0x4000
+#define PUB_CLK_DMC_REF_EB	22
 #define DDR_MAX_SUPPORT_CS_NUM		2
 #define DMC_PROC_NAME "sprd_dmc"
 #define DDR_PROPERTY_NAME "property"
@@ -228,7 +230,8 @@ static int sprd_pub_monitor_reg_get(void)
 	int i;
 
 	for (i = 0; i < sizeof(drv_data.reg_val) / sizeof(u32); i++) {
-		*ptr = readl_relaxed(drv_data.mon_base + i * 4);
+		*ptr = readl_relaxed(drv_data.mon_base
+			+ PUB_STATUS_MON_CTRL_OFFSET + i * 4);
 		ptr++;
 	}
 	return 0;
@@ -331,6 +334,7 @@ static ssize_t sprd_pub_monitor_enable_write(struct file *filep,
 					     size_t len, loff_t *ppos)
 {
 	char buf_tmp[8];
+	u32 reg = 0;
 	int ret;
 
 	if (len < 1)
@@ -339,6 +343,11 @@ static ssize_t sprd_pub_monitor_enable_write(struct file *filep,
 		return -EFAULT;
 
 	if (buf_tmp[0] == '1' || buf_tmp[0] == 1) {
+		reg = readl_relaxed(drv_data.mon_base
+			+ DMC_DDR_CLK_CTRL_OFFSET);
+		reg = reg | (1<<PUB_CLK_DMC_REF_EB);
+		writel_relaxed(reg, drv_data.mon_base
+			+ DMC_DDR_CLK_CTRL_OFFSET);
 		drv_data.pub_mon_enabled = 1;
 		ret = sprd_pub_monitor_enable(0);
 		if (ret)
@@ -347,6 +356,11 @@ static ssize_t sprd_pub_monitor_enable_write(struct file *filep,
 		if (ret)
 			return ret;
 	} else if (buf_tmp[0] == '0' || buf_tmp[0] == 0) {
+		reg = readl_relaxed(drv_data.mon_base
+			+ DMC_DDR_CLK_CTRL_OFFSET);
+		reg = reg & ~(1<<PUB_CLK_DMC_REF_EB);
+		writel_relaxed(reg, drv_data.mon_base
+			+ DMC_DDR_CLK_CTRL_OFFSET);
 		drv_data.pub_mon_enabled = 0;
 		ret = sprd_pub_monitor_enable(0);
 		if (ret)
