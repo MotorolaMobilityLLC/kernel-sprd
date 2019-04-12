@@ -17,7 +17,7 @@
 		sprd,adc-gnd = <328>;
 		sprd,half-adc-gnd = <100>;
 		sprd,coefficient = <884520>;
-		sprd,irq-threshold-button = <5>;
+		sprd,irq-threshold-button = <4>;
 		nvmem-cells = <&headset_adc_fir>, <&headset_adc_sec>;
 		nvmem-cell-names = "hp_adc_fir_calib", "hp_adc_sec_calib";
 
