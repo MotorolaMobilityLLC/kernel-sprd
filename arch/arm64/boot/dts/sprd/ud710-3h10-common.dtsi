@@ -51,7 +51,7 @@
 
 	dpu_dvfs: dpu-dvfs {
 		compatible = "sprd,hwdvfs-dpu-roc1";
-		sprd,hw-dvfs-en = <0>;
+		sprd,hw-dfs-en = <0>;
 		sprd,work-index-def = <4>;
 		sprd,idle-index-def = <2>;
 
