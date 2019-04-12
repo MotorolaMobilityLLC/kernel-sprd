@@ -77,6 +77,7 @@ struct dbg_log_device {
 	u32 channel;
 	bool is_inited;
 	bool mm;
+	int serdes_id;
 	struct regmap *aon_apb;
 	struct serdes_drv_data serdes;
 	struct clk *clk_serdes_eb;
@@ -85,6 +86,7 @@ struct dbg_log_device {
 	struct clk *clk_dphy_cfg_eb;
 	struct clk *clk_dphy_ref_eb;
 	struct clk *clk_dsi_csi_test_eb;
+	struct clk *clk_dsi_ref_eb;
 	struct clk *clk_cphy_cfg_eb;
 
 	struct clk *clk_src[CLK_SRC_MAX];
