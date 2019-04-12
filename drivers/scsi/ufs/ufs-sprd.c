@@ -381,7 +381,7 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				    enum uic_cmd_dme cmd,
 				    enum ufs_notify_change_status status)
 {
-	int val = 0;
+	int val = 0, mask = 0;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
 	switch (status) {
@@ -393,15 +393,14 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 			 * clear it after exit.
 			 * Only tested on samsung device.
 			 */
-			val = readl(host->unipro_reg + 0x1c);
-			writel((1 << 21) | val, host->unipro_reg + 0x1c);
+			val = mask = REDESKEW_MASK;
+			ufs_sprd_rmwl(host->unipro_reg, mask, val, REG_PA_7);
 		}
 		break;
 	case POST_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
-			val = readl(host->unipro_reg + 0x1c);
-			val &= ~(1 << 21);
-			writel(val, host->unipro_reg + 0x1c);
+			mask = REDESKEW_MASK;
+			ufs_sprd_rmwl(host->unipro_reg, mask, 0, REG_PA_7);
 		}
 		break;
 	default:

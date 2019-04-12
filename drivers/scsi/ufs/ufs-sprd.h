@@ -38,6 +38,9 @@ struct ufs_sprd_host {
 #define HCI_CLOD_RST	(1 << 28)
 
 /* UFS unipro registers */
+#define REG_PA_7	0x1c
+#define REDESKEW_MASK	(1 << 21)
+
 #define REG_PA_15		0x3c
 #define RMMI_TX_L0_RST		(1 << 24)
 #define RMMI_TX_L1_RST		(1 << 25)
