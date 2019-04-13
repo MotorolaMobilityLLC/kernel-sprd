@@ -736,7 +736,7 @@ static ssize_t status_show(struct device *dev,
 	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_ENABLE, &en);
 	up(&ctx->refresh_lock);
 
-	ret += snprintf(buf + ret, PAGE_SIZE, "value = 0x%08x\n", en);
+	ret += snprintf(buf + ret, PAGE_SIZE, "0x%08x\n", en);
 	ret += snprintf(buf + ret, PAGE_SIZE, "scl: %d\n", !!(en & BIT(0)));
 	ret += snprintf(buf + ret, PAGE_SIZE, "epf: %d\n", !!(en & BIT(1)));
 	ret += snprintf(buf + ret, PAGE_SIZE, "hsv: %d\n", !!(en & BIT(2)));
