@@ -16,6 +16,7 @@ Required properties:
  - dr-mode: Should be "peripheral"
  - extcon: Should be "pmic_typec"
  - vbus-supply: Should be "vddvbus" which is provided by charger
+ - wakeup-source: indicate USB irq is wakeup source of AP.
 
 Example:
 -------

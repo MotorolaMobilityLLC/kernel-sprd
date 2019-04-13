@@ -1715,6 +1715,7 @@
 				usb-phy = <&hsphy>;
 				phy-names = "usb";
 				dr-mode = "peripheral";
+				wakeup-source;
 			};
 		};
 
