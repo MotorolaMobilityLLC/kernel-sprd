@@ -312,7 +312,7 @@ static int sprd_musb_recover(struct musb *musb)
 {
 	struct sprd_glue *glue = dev_get_drvdata(musb->controller->parent);
 
-	if (is_host_active(musb))
+	if (is_host_active(musb) && glue->wq_mode == USB_DR_MODE_HOST)
 		schedule_delayed_work(&glue->recover_work,
 			msecs_to_jiffies(MUSB_RECOVER_TIMEOUT));
 	return 0;
@@ -658,6 +658,7 @@ static void sprd_musb_work(struct work_struct *work)
 			msleep(200);
 
 		if (cnt <= 0) {
+			glue->dr_mode = USB_DR_MODE_UNKNOWN;
 			dev_err(glue->dev,
 			"Wait for musb core enter suspend failed!\n");
 			goto end;
