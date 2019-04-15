@@ -33,6 +33,7 @@ struct marlin_device {
 	int chip_en;
 	int int_ap;
 	bool bound_avdd12;
+	bool bound_dcxo18;
 	/* power sequence */
 	/* VDDIO->DVDD12->chip_en->rst_N->AVDD12->AVDD33 */
 	struct regulator *dvdd12;

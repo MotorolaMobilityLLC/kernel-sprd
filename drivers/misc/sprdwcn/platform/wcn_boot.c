@@ -750,6 +750,14 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		WCN_ERR("Get regulator of dcxo18 error!\n");
 	}
 
+	if (of_property_read_bool(np, "bound-dcxo18")) {
+		WCN_INFO("forbid dcxo18 power ctrl\n");
+		marlin_dev->bound_dcxo18 = true;
+	} else {
+		WCN_INFO("do dcxo18 power ctrl\n");
+		marlin_dev->bound_dcxo18 = false;
+	}
+
 	marlin_dev->clk_32k = devm_clk_get(&pdev->dev, "clk_32k");
 	if (IS_ERR(marlin_dev->clk_32k)) {
 		WCN_ERR("can't get wcn clock dts config: clk_32k\n");
@@ -873,18 +881,24 @@ static int marlin_avdd18_dcxo_enable(bool enable)
 
 	if (enable) {
 #ifndef CONFIG_WCN_PCIE
-		if (regulator_is_enabled(marlin_dev->dcxo18)) {
+		if (!marlin_dev->bound_dcxo18 &&
+		    regulator_is_enabled(marlin_dev->dcxo18)) {
 			WCN_INFO("avdd18_dcxo 1v8 have enable\n");
 			return 0;
 		}
 #endif
-		WCN_INFO("avdd18_dcxo enable 1v8 %d\n", enable);
+		WCN_INFO("avdd18_dcxo set 1v8\n");
 		regulator_set_voltage(marlin_dev->dcxo18, 1800000, 1800000);
-		ret = regulator_enable(marlin_dev->dcxo18);
-		if (ret)
-			WCN_ERR("fail to enable avdd18_dcxo\n");
+		if (!marlin_dev->bound_dcxo18) {
+			WCN_INFO("avdd18_dcxo power enable\n");
+			ret = regulator_enable(marlin_dev->dcxo18);
+			if (ret)
+				WCN_ERR("fail to enable avdd18_dcxo\n");
+		}
 	} else {
-		if (regulator_is_enabled(marlin_dev->dcxo18)) {
+		if (!marlin_dev->bound_dcxo18 &&
+		    regulator_is_enabled(marlin_dev->dcxo18)) {
+			WCN_INFO("avdd18_dcxo power disable\n");
 			ret = regulator_disable(marlin_dev->dcxo18);
 			if (ret)
 				WCN_ERR("fail to disable avdd18_dcxo\n");
@@ -920,21 +934,30 @@ static int marlin_analog_power_enable(bool enable)
 
 	if (marlin_dev->avdd12 != NULL) {
 		msleep(20);
-		WCN_INFO("%s 1v2 %d\n", __func__, enable);
 		if (enable) {
 #ifdef CONFIG_WCN_PCIE
+			WCN_INFO("%s avdd12 set 1.35v\n", __func__);
 			regulator_set_voltage(marlin_dev->avdd12,
 					      1350000, 1350000);
 #else
+			WCN_INFO("%s avdd12 set 1.2v\n", __func__);
 			regulator_set_voltage(marlin_dev->avdd12,
 					      1200000, 1200000);
 #endif
-			if (!marlin_dev->bound_avdd12)
+			if (!marlin_dev->bound_avdd12) {
+				WCN_INFO("%s avdd12 power enable\n", __func__);
 				ret = regulator_enable(marlin_dev->avdd12);
+				if (ret)
+					WCN_ERR("fail to enalbe avdd12\n");
+			}
 		} else {
 			if (!marlin_dev->bound_avdd12 &&
-			    regulator_is_enabled(marlin_dev->avdd12))
+			    regulator_is_enabled(marlin_dev->avdd12)) {
+				WCN_INFO("%s avdd12 power disable\n", __func__);
 				ret = regulator_disable(marlin_dev->avdd12);
+				if (ret)
+					WCN_ERR("fail to disable avdd12\n");
+			}
 		}
 	}
 
