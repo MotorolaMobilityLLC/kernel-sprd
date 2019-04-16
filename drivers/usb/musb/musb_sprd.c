@@ -541,7 +541,7 @@ static int musb_sprd_suspend_child(struct device *dev, void *data)
 		dev_err(dev, "enters suspend failed, ret = %d\n", ret);
 
 	while (!pm_runtime_suspended(dev) && --cnt > 0)
-		msleep(500);
+		msleep(200);
 
 	if (cnt <= 0) {
 		dev_err(dev, "musb child device enters suspend failed!!!\n");
