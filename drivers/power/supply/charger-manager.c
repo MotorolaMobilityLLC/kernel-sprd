@@ -1439,6 +1439,7 @@ static int charger_get_property(struct power_supply *psy,
 				POWER_SUPPLY_PROP_CURRENT_NOW, val);
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
+		return cm_get_battery_temperature_by_psy(cm, &val->intval);
 	case POWER_SUPPLY_PROP_TEMP_AMBIENT:
 		return cm_get_battery_temperature(cm, &val->intval);
 	case POWER_SUPPLY_PROP_CAPACITY:
@@ -2093,7 +2094,7 @@ static int cm_init_thermal_data(struct charger_manager *cm,
 		cm->desc->measure_battery_temp = true;
 	}
 #ifdef CONFIG_THERMAL
-	if (ret && desc->thermal_zone) {
+	if (desc->thermal_zone) {
 		cm->tzd_batt =
 			thermal_zone_get_zone_by_name(desc->thermal_zone);
 		if (IS_ERR(cm->tzd_batt))
