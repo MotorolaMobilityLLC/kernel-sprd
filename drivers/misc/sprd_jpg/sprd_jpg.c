@@ -41,6 +41,7 @@
 
 static struct jpg_dev_t jpg_hw_dev;
 static char *jpg_clk_src[] = {
+	"clk_src_76m8",
 	"clk_src_96m",
 	"clk_src_128m",
 	"clk_src_153m6",
