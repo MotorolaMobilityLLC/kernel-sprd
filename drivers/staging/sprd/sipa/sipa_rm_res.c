@@ -869,6 +869,8 @@ int sipa_rm_resource_consumer_request(struct sipa_rm_res_cons *cons)
 
 		if (result == 0)
 			sipa_rm_resource_consumer_enter_granted(cons);
+		else
+			cons->resource.state = SIPA_RM_REQUEST_IN_PROGRESS;
 
 	}
 bail:
