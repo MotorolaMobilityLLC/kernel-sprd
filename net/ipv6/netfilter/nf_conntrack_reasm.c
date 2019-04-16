@@ -573,10 +573,15 @@ int nf_ct_frag6_gather(struct net *net, struct sk_buff *skb, u32 user)
 	hdr = ipv6_hdr(skb);
 	fhdr = (struct frag_hdr *)skb_transport_header(skb);
 
+	/* If the fragment is shorter than 1280, it will be dropped.
+	 * In some case, the pkts will be shorter than 1280,
+	 * so we have to close the following code, if supporting vowifi.
+	 */
+#ifndef CONFIG_XFRM_FRAGMENT
 	if (skb->len - skb_network_offset(skb) < IPV6_MIN_MTU &&
 	    fhdr->frag_off & htons(IP6_MF))
 		return -EINVAL;
-
+#endif
 	skb_orphan(skb);
 	fq = fq_find(net, fhdr->identification, user, hdr,
 		     skb->dev ? skb->dev->ifindex : 0);
