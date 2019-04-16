@@ -412,6 +412,13 @@ sipa_rm_resource_consumer_create(struct sipa_rm_resource **resource,
 	*resource = (struct sipa_rm_resource *)*consumer;
 	(*resource)->type = SIPA_RM_CONSUMER;
 	INIT_LIST_HEAD(&(*consumer)->event_listeners);
+	(*consumer)->pending_request = 0;
+	(*consumer)->pending_release = 0;
+	*max_peers = SIPA_RM_RES_PROD_MAX;
+
+	if (!create_params->reg_params.notify_cb)
+		return 0;
+
 	result = sipa_rm_resource_consumer_register(*consumer,
 			&create_params->reg_params,
 			false);
@@ -420,10 +427,6 @@ sipa_rm_resource_consumer_create(struct sipa_rm_resource **resource,
 		kfree(*consumer);
 		return result;
 	}
-	(*consumer)->pending_request = 0;
-	(*consumer)->pending_release = 0;
-
-	*max_peers = SIPA_RM_RES_PROD_MAX;
 
 	return 0;
 }
