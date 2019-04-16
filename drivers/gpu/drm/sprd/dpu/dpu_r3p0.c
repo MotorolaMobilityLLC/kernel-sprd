@@ -798,7 +798,6 @@ static void dpu_dvfs_work_func(struct work_struct *data)
 static int dpu_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	static bool is_running = true;
 	u32 size;
 
 	/* set bg color */
@@ -819,9 +818,7 @@ static int dpu_init(struct dpu_context *ctx)
 		BIT(22);
 	reg->dpu_cfg2 = 0;
 
-	if (is_running)
-		is_running = false;
-	else
+	if (ctx->is_stopped)
 		dpu_clean_all(ctx);
 
 	reg->mmu_en = 0;

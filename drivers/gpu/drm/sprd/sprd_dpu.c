@@ -843,7 +843,6 @@ int sprd_dpu_stop(struct sprd_dpu *dpu)
 static int sprd_dpu_init(struct sprd_dpu *dpu)
 {
 	struct dpu_context *ctx = &dpu->ctx;
-	static bool is_running = true;
 
 	down(&ctx->refresh_lock);
 
@@ -857,9 +856,7 @@ static int sprd_dpu_init(struct sprd_dpu *dpu)
 	if (dpu->glb && dpu->glb->enable)
 		dpu->glb->enable(ctx);
 
-	if (is_running)
-		is_running = false;
-	else if (dpu->glb && dpu->glb->reset)
+	if (ctx->is_stopped && dpu->glb && dpu->glb->reset)
 		dpu->glb->reset(ctx);
 
 	if (dpu->clk && dpu->clk->init)
@@ -1019,6 +1016,11 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 		dpu->clk->parse_dt(&dpu->ctx, np);
 	if (dpu->glb && dpu->glb->parse_dt)
 		dpu->glb->parse_dt(&dpu->ctx, np);
+
+	if (of_property_read_bool(np, "sprd,initial-stop-state")) {
+		DRM_WARN("DPU is not initialized before entering kernel\n");
+		dpu->ctx.is_stopped = true;
+	}
 
 	if (!of_property_read_u32(np, "sprd,dev-id", &temp))
 		ctx->id = temp;

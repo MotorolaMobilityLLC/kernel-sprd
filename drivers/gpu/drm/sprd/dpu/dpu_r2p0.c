@@ -611,7 +611,6 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 static int dpu_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	static bool is_running = true;
 	u32 size;
 
 	/* set bg color */
@@ -626,9 +625,7 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->dpu_cfg1 = 0x004466da;
 	reg->dpu_cfg2 = 0;
 
-	if (is_running)
-		is_running = false;
-	else
+	if (ctx->is_stopped)
 		dpu_clean_all(ctx);
 
 	reg->mmu_en = 0;
