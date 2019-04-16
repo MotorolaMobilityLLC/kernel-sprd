@@ -72,7 +72,8 @@ int sipa_rm_cons_index(enum sipa_rm_res_id resource_name)
 	int result = resource_name;
 
 	switch (resource_name) {
-	case SIPA_RM_RES_CONS_WWAN:
+	case SIPA_RM_RES_CONS_WWAN_UL:
+	case SIPA_RM_RES_CONS_WWAN_DL:
 	case SIPA_RM_RES_CONS_WLAN:
 	case SIPA_RM_RES_CONS_USB:
 		break;

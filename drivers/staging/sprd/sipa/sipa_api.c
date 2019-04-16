@@ -27,6 +27,7 @@
 #include "sipa_api.h"
 #include "sipa_priv.h"
 #include "sipa_hal.h"
+#include "sipa_rm.h"
 #include "sipa_debug.h"
 
 #ifdef CONFIG_SIPA_TEST
@@ -882,6 +883,31 @@ sender_fail:
 
 	return ret;
 }
+
+static int sipa_create_wwan_cons(void)
+{
+	int ret;
+	struct sipa_rm_create_params rm_params = {};
+
+	/* WWAN UL */
+	rm_params.name = SIPA_RM_RES_CONS_WWAN_UL;
+
+	ret = sipa_rm_create_resource(&rm_params);
+	if (ret)
+		return ret;
+
+	/* WWAN DL */
+	rm_params.name = SIPA_RM_RES_CONS_WWAN_DL;
+
+	ret = sipa_rm_create_resource(&rm_params);
+	if (ret) {
+		sipa_rm_delete_resource(SIPA_RM_RES_CONS_WWAN_UL);
+		return ret;
+	}
+
+	return 0;
+}
+
 static int sipa_init(struct sipa_context **ipa_pp,
 		     struct sipa_plat_drv_cfg *cfg,
 		     struct device *ipa_dev)
@@ -910,6 +936,11 @@ static int sipa_init(struct sipa_context **ipa_pp,
 		ret = -EFAULT;
 		goto fail;
 	}
+
+	/* create basic cons */
+	ret = sipa_create_wwan_cons();
+	if (ret)
+		goto fail;
 
 	/* init sipa skb transfer layer */
 	if (!cfg->is_bypass) {

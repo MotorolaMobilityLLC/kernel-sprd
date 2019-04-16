@@ -106,6 +106,8 @@ static int sipa_dele_plat_drv_probe(struct platform_device *pdev_p)
 
 #ifdef CONFIG_SPRD_SIPA_DELE_MINIAP_IN_AP
 	create_params.prod_id = SIPA_RM_RES_PROD_MINI_AP;
+	create_params.cons_prod = SIPA_RM_RES_CONS_WWAN_UL;
+	create_params.cons_user = SIPA_RM_RES_CONS_WWAN_DL;
 	create_params.dst = SIPC_ID_MINIAP;
 
 	ret = miniap_delegator_init(&create_params);
@@ -118,6 +120,8 @@ static int sipa_dele_plat_drv_probe(struct platform_device *pdev_p)
 
 #ifdef CONFIG_SPRD_SIPA_DELE_AP_IN_MINIAP
 	create_params.prod_id = SIPA_RM_RES_PROD_AP;
+	create_params.cons_prod = SIPA_RM_RES_CONS_WWAN_DL;
+	create_params.cons_user = SIPA_RM_RES_CONS_WWAN_UL;
 	create_params.dst = SIPC_ID_AP;
 
 	ret = ap_delegator_init(&create_params);
@@ -130,6 +134,8 @@ static int sipa_dele_plat_drv_probe(struct platform_device *pdev_p)
 
 #ifdef CONFIG_SPRD_SIPA_DELE_CP_IN_MINIAP
 	create_params.prod_id = SIPA_RM_RES_PROD_CP;
+	create_params.cons_prod = SIPA_RM_RES_CONS_WWAN_UL;
+	create_params.cons_user = SIPA_RM_RES_CONS_WWAN_DL;
 	create_params.dst = SIPC_ID_PSCP;
 
 	ret = cp_delegator_init(&create_params);

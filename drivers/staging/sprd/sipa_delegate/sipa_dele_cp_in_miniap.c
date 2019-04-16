@@ -49,11 +49,11 @@ static void cp_dele_on_commad(void *priv, u16 flag, u32 data)
 	sipa_dele_on_commad(priv, flag, data);
 }
 
-static int cp_dele_local_req_prod(void *user_data)
+static int cp_dele_local_req_r_prod(void *user_data)
 {
 	/* do enable ipa  operation */
 
-	return sipa_dele_local_req_prod(user_data);
+	return sipa_dele_local_req_r_prod(user_data);
 }
 
 int cp_delegator_init(struct sipa_delegator_create_params *params)
@@ -71,7 +71,7 @@ int cp_delegator_init(struct sipa_delegator_create_params *params)
 		return ret;
 
 	s_cp_delegator->delegator.on_cmd = cp_dele_on_commad;
-	s_cp_delegator->delegator.local_request_prod = cp_dele_local_req_prod;
+	s_cp_delegator->delegator.local_request_prod = cp_dele_local_req_r_prod;
 	sipa_delegator_start(&s_cp_delegator->delegator);
 
 	return 0;

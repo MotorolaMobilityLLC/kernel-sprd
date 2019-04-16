@@ -59,6 +59,8 @@ struct sipa_delegator {
 	struct device *pdev;
 	struct sipa_delegate_plat_drv_cfg *cfg;
 	enum sipa_rm_res_id prod_id;
+	enum sipa_rm_res_id cons_prod;
+	enum sipa_rm_res_id cons_user;
 	enum sipa_dele_state stat;
 	u32 cons_ref_cnt;
 	u32 dst;
@@ -112,6 +114,8 @@ struct sipa_delegator_create_params {
 	struct device *pdev;
 	struct sipa_delegate_plat_drv_cfg *cfg;
 	enum sipa_rm_res_id prod_id;
+	enum sipa_rm_res_id cons_prod;
+	enum sipa_rm_res_id cons_user;
 	u32 dst;
 	u32 chan;
 };
@@ -128,8 +132,8 @@ void sipa_dele_on_close(void *priv, u16 flag, u32 data);
 void sipa_dele_on_commad(void *priv, u16 flag, u32 data);
 void sipa_dele_on_done(void *priv, u16 flag, u32 val);
 void sipa_dele_on_event(void *priv, u16 flag, u32 val);
-int sipa_dele_local_req_prod(void *user_data);
-int sipa_dele_local_rls_prod(void *user_data);
+int sipa_dele_local_req_r_prod(void *user_data);
+int sipa_dele_local_rls_r_prod(void *user_data);
 void sipa_dele_start_done_work(struct sipa_delegator *delegator,
 			       u16 flag, u32 val);
 

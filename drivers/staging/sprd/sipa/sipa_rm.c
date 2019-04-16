@@ -86,7 +86,8 @@ static const char *resource_name_to_str[SIPA_RM_RES_MAX] = {
 	__stringify(SIPA_RM_RES_PROD_MINI_AP),
 	__stringify(SIPA_RM_RES_PROD_AP),
 	__stringify(SIPA_RM_RES_PROD_CP),
-	__stringify(SIPA_RM_RES_CONS_WWAN),
+	__stringify(SIPA_RM_RES_CONS_WWAN_UL),
+	__stringify(SIPA_RM_RES_CONS_WWAN_DL),
 	__stringify(SIPA_RM_RES_CONS_WLAN),
 	__stringify(SIPA_RM_RES_CONS_USB),
 };
