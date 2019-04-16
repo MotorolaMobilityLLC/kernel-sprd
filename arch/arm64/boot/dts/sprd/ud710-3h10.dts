@@ -175,7 +175,7 @@
 		cm-charge-voltage-max = <6500000>;
 		/* drop voltage in microVolts to restart charging */
 		cm-charge-voltage-drop = <700000>;
-
+		cm-thermal-zone = "chg-thmzone";
 		cm-jeita-temp-table = <900 930 0 4200000>, <1000 1030 100000 4200000>,
 			<1100 1130 500000 4350000>, <1450 1420 2000000 4350000>,
 			<1500 1470 700000 4350000>;
@@ -224,6 +224,29 @@
 						114889 57
 						124872 43 >;
 	};
+
+	chg_thermistor: thermal-sensor@4 {
+		compatible = "generic-adc-thermal";
+		#thermal-sensor-cells = <0>;
+		io-channels = <&pmic_adc 4>;
+		io-channel-names = "sensor-channel";
+		temperature-lookup-table = <(-39742) 1131
+					(-29777) 1110
+					(-19480) 1074
+					(-4679) 983
+					10110 838
+					24805 654
+					44922 413
+					54903 316
+					64895 238
+					74884 178
+					84883 133
+					94883 100
+					104880 75
+					114889 57
+					124872 43>;
+	};
+
 	dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
 		supply-type-sel = <0x29C 0 1>;
 		top-dvfs-i2c-state = <0x88 4 0xF>;
@@ -274,6 +297,12 @@
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-sensors = <&tboard_thermistor>;
+	};
+
+	chg_thmzone: chg-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&chg_thermistor>;
 	};
 };
 
