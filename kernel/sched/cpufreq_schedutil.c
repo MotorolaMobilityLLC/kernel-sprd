@@ -83,6 +83,7 @@ struct sugov_cpu {
 };
 
 static DEFINE_PER_CPU(struct sugov_cpu, sugov_cpu);
+static bool slack_timer_setup;
 
 /************************ Governor internals ***********************/
 
@@ -151,6 +152,24 @@ static bool sugov_up_down_rate_limit(struct sugov_policy *sg_policy, u64 time,
 	return false;
 }
 
+static void sugov_slack_timer_setup(struct sugov_policy *sg_policy,
+				    unsigned int next_freq)
+{
+	struct cpufreq_policy *policy = sg_policy->policy;
+
+	if (!slack_timer_setup)
+		return;
+
+	if (next_freq > policy->cpuinfo.min_freq) {
+		unsigned int slack_us;
+
+		slack_us = sg_policy->tunables->timer_slack_val_us;
+		mod_timer(&sg_policy->slack_timer,
+				 jiffies + usecs_to_jiffies(slack_us));
+	} else
+		del_timer(&sg_policy->slack_timer);
+}
+
 static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
 				unsigned int next_freq)
 {
@@ -162,14 +181,7 @@ static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
 		return;
 	}
 
-	if (next_freq > policy->cpuinfo.min_freq) {
-		unsigned int slack_us;
-
-		slack_us = sg_policy->tunables->timer_slack_val_us;
-		mod_timer(&sg_policy->slack_timer,
-				 jiffies + usecs_to_jiffies(slack_us));
-	} else
-		del_timer(&sg_policy->slack_timer);
+	sugov_slack_timer_setup(sg_policy, next_freq);
 
 	if (sg_policy->next_freq == next_freq)
 		return;
@@ -606,8 +618,9 @@ static ssize_t down_rate_limit_us_store(struct gov_attr_set *attr_set,
 		return -EINVAL;
 
 	tunables->down_rate_limit_us = rate_limit_us;
-	tunables->timer_slack_val_us = TICK_NSEC / NSEC_PER_USEC +
-		tunables->down_rate_limit_us;
+	if (slack_timer_setup)
+		tunables->timer_slack_val_us = TICK_NSEC / NSEC_PER_USEC +
+			tunables->down_rate_limit_us;
 
 	list_for_each_entry(sg_policy, &attr_set->policy_list, tunables_hook) {
 		sg_policy->down_rate_delay_ns = rate_limit_us * NSEC_PER_USEC;
@@ -622,6 +635,9 @@ static ssize_t timer_slack_val_us_store(struct gov_attr_set *attr_set,
 {
 	struct sugov_tunables *tunables = to_sugov_tunables(attr_set);
 	unsigned int timer_slack_val_us;
+
+	if (!slack_timer_setup)
+		return -EINVAL;
 
 	if (kstrtouint(buf, 10, &timer_slack_val_us))
 		return -EINVAL;
@@ -850,6 +866,7 @@ static int sugov_init(struct cpufreq_policy *policy)
 {
 	struct sugov_policy *sg_policy;
 	struct sugov_tunables *tunables;
+	struct device_node *cn;
 	int ret = 0;
 
 	/* State should be equivalent to EXIT */
@@ -864,9 +881,24 @@ static int sugov_init(struct cpufreq_policy *policy)
 		goto disable_fast_switch;
 	}
 
-	init_timer_pinned(&sg_policy->slack_timer);
-	sg_policy->slack_timer.function = sugov_slack_timer;
-	sg_policy->slack_timer.data = policy->cpu;
+	if (!slack_timer_setup) {
+		int cpu;
+
+		for_each_possible_cpu(cpu) {
+			cn = of_get_cpu_node(cpu, NULL);
+			if (cn && of_find_property(cn, "sugov_slack_timer",
+						   NULL)) {
+				slack_timer_setup = true;
+				break;
+			}
+		}
+	}
+
+	if (slack_timer_setup) {
+		init_timer_pinned(&sg_policy->slack_timer);
+		sg_policy->slack_timer.function = sugov_slack_timer;
+		sg_policy->slack_timer.data = policy->cpu;
+	}
 
 	ret = sugov_kthread_create(sg_policy);
 	if (ret)
@@ -997,7 +1029,8 @@ static void sugov_stop(struct cpufreq_policy *policy)
 	struct sugov_policy *sg_policy = policy->governor_data;
 	unsigned int cpu;
 
-	del_timer_sync(&sg_policy->slack_timer);
+	if (slack_timer_setup)
+		del_timer_sync(&sg_policy->slack_timer);
 
 	for_each_cpu(cpu, policy->cpus)
 		cpufreq_remove_update_util_hook(cpu);
