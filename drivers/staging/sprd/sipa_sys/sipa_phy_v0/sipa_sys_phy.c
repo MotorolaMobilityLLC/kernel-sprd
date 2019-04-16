@@ -53,7 +53,7 @@ int sipa_sys_clear_force_shutdown(struct sipa_sys_cfg_tag *cfg)
 		ret = regmap_update_bits(cfg->pmu_regmap,
 					 cfg->forceshutdown_reg,
 					 cfg->forceshutdown_mask,
-					 cfg->forceshutdown_mask);
+					 ~cfg->forceshutdown_mask);
 		if (ret < 0)
 			pr_warn("%s: regmap update bits failed", __func__);
 	}
@@ -85,7 +85,7 @@ int sipa_sys_clear_force_deepsleep(struct sipa_sys_cfg_tag *cfg)
 		ret = regmap_update_bits(cfg->pmu_regmap,
 					 cfg->forcedslp_reg,
 					 cfg->forcedslp_mask,
-					 cfg->forcedslp_mask);
+					 ~cfg->forcedslp_mask);
 		if (ret < 0)
 			pr_warn("%s: regmap update bits failed", __func__);
 	}
@@ -116,7 +116,7 @@ int sipa_sys_clear_force_lightsleep(struct sipa_sys_cfg_tag *cfg)
 		ret = regmap_update_bits(cfg->pmu_regmap,
 					 cfg->forcelslp_reg,
 					 cfg->forcelslp_mask,
-					 cfg->forcelslp_mask);
+					 ~cfg->forcelslp_mask);
 		if (ret < 0)
 			pr_warn("%s: regmap update bits failed", __func__);
 	}
@@ -162,7 +162,7 @@ int sipa_sys_disable_ipacm4(struct sipa_sys_cfg_tag *cfg)
 	if (cfg->sys_regmap) {
 		ret = regmap_update_bits(cfg->sys_regmap,
 					 cfg->cm4eb_reg,
-					 cfg->cm4eb_mask, cfg->cm4eb_mask);
+					 cfg->cm4eb_mask, ~cfg->cm4eb_mask);
 		if (ret < 0)
 			pr_warn("%s: regmap update bits failed", __func__);
 	}
