@@ -489,6 +489,8 @@ EXPORT_SYMBOL(sipa_rm_release_resource);
 int sipa_rm_notify_completion(enum sipa_rm_event event,
 			      enum sipa_rm_res_id resource_name)
 {
+	unsigned long flags;
+
 	if (unlikely(!sipa_rm_ctx)) {
 		pr_err("SIPA RM was not initialized\n");
 		return -EINVAL;
@@ -500,9 +502,12 @@ int sipa_rm_notify_completion(enum sipa_rm_event event,
 		pr_err("can be called on CONS only\n");
 		return -EINVAL;
 	}
+	spin_lock_irqsave(&sipa_rm_ctx->sipa_rm_lock, flags);
 	sipa_rm_wq_send_cmd(SIPA_RM_WQ_RESOURCE_CB,
 			    resource_name,
 			    event);
+	spin_unlock_irqrestore(&sipa_rm_ctx->sipa_rm_lock,
+			       flags);
 	return 0;
 }
 EXPORT_SYMBOL(sipa_rm_notify_completion);
@@ -742,16 +747,12 @@ int sipa_rm_wq_send_cmd(enum sipa_rm_wq_cmd wq_cmd,
 			enum sipa_rm_event event)
 {
 	struct sipa_rm_resource *resource;
-	unsigned long flags;
 	struct sipa_rm_wq_work_type *work;
 
-	spin_lock_irqsave(&sipa_rm_ctx->sipa_rm_lock, flags);
 	if (sipa_rm_dep_graph_get_resource(sipa_rm_ctx->dep_graph,
 					   resource_name,
 					   &resource) != 0) {
 		pr_err("resource does not exists\n");
-		spin_unlock_irqrestore(&sipa_rm_ctx->sipa_rm_lock,
-				       flags);
 		return -EINVAL;
 	}
 
@@ -761,8 +762,6 @@ int sipa_rm_wq_send_cmd(enum sipa_rm_wq_cmd wq_cmd,
 	work->resource_name = resource_name;
 	work->event = event;
 
-	spin_unlock_irqrestore(&sipa_rm_ctx->sipa_rm_lock,
-			       flags);
 	return queue_work(sipa_rm_ctx->sipa_rm_wq,
 			    (struct work_struct *)work);
 }
