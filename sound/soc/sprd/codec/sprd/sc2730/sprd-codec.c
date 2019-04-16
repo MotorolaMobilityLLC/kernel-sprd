@@ -639,7 +639,7 @@ static int sprd_codec_spk_pga_put(struct snd_kcontrol *kcontrol,
 
 	sprd_codec->spk_dg = ucontrol->value.integer.value[0];
 	if (sprd_codec->psg_state > PSG_STATE_BOOST_LARGE_GAIN)
-		ucontrol->value.integer.value[0] -= sprd_codec->spk_fall_dg;
+		ucontrol->value.integer.value[0] = sprd_codec->spk_fall_dg;
 	sprd_pga_put(kcontrol, ucontrol);
 	return 0;
 }
@@ -967,7 +967,7 @@ static inline void sprd_codec_pa_en(struct snd_soc_codec *codec, int on)
 static inline void sprd_codec_inter_pa_init(struct sprd_codec_priv *sprd_codec)
 {
 	sprd_codec->inter_pa.setting.DTRI_F_sel = 0x2;
-	sprd_codec->spk_fall_dg = 15;
+	sprd_codec->spk_fall_dg = 0x1;
 }
 
 /* NOTE: VB, BG & BIAS must be enabled before calling this function. */
