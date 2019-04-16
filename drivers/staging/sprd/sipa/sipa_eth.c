@@ -65,6 +65,7 @@ static inline void sipa_eth_tx_stats_update(
 static void sipa_eth_prepare_skb(struct SIPA_ETH *sipa_eth, struct sk_buff *skb)
 {
 	int netid;
+	struct iphdr *iph;
 	struct net_device *dev;
 	struct sipa_eth_init_data *pdata = sipa_eth->pdata;
 
@@ -77,6 +78,11 @@ static void sipa_eth_prepare_skb(struct SIPA_ETH *sipa_eth, struct sk_buff *skb)
 		skb_set_network_header(skb, ETH_HLEN);
 	} else {
 		skb_reset_network_header(skb);
+		iph = ip_hdr(skb);
+		if (iph->version == 4)
+			skb->protocol = htons(ETH_P_IP);
+		else
+			skb->protocol = htons(ETH_P_IPV6);
 	}
 
 	/* TODO chechsum ... */
