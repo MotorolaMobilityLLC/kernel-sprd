@@ -18,6 +18,11 @@
 					cpu = <&CPU0>;
 				};
 			};
+			cluster1 {
+				core0 {
+					cpu = <&CPU1>;
+				};
+			};
 
 		};
 
@@ -25,8 +30,14 @@
 			device_type = "cpu";
 			compatible = "arm,cortex-a55","arm,armv8";
 			reg = <0x0 0x0>;
-			enable-method = "spin-table";
+			enable-method = "psci";
 			cpufreq-data-v1 = <&cpufreq_clus0>;
+		};
+		CPU1: cpu@100 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a75","arm,armv8";
+			reg = <0x0 0x100>;
+			enable-method = "psci";
 		};
 
 	};
