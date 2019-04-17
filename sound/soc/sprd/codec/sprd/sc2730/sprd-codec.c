@@ -1624,13 +1624,15 @@ static void sprd_codec_psg_state_transf(struct snd_soc_codec *codec,
 
 	switch (state) {
 	case PSG_STATE_BOOST_NONE:
-		break;
+		sprd_codec_pa_boost(codec, 0);
+		return;
 	case PSG_STATE_BOOST_LARGE_GAIN:
 		sprd_codec_pa_boost(codec, 1);
 		fgu->high_thrd = 4500;
 		fgu->low_thrd = fgu->vh;
 		break;
 	case PSG_STATE_BOOST_SMALL_GAIN:
+		sprd_codec_pa_boost(codec, 1);
 		fgu->high_thrd = fgu->vh + fgu->dvh;
 		fgu->low_thrd = fgu->vl;
 		break;
