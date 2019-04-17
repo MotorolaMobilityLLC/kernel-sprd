@@ -56,6 +56,7 @@
 			cpu-idle-states = <&CORE_PD>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <1024>;
+			sugov_slack_timer;
 		};
 
 		CPU1: cpu@100 {
