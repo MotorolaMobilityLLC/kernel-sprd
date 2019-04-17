@@ -140,19 +140,54 @@ void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
 	return wcn_mem_ram_vmap(start, size, 1, count);
 }
 
+#ifdef CONFIG_ARM64
+static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
+{
+	if (((unsigned long)to & 7) == ((unsigned long)from & 7)) {
+		while (((unsigned long)from & 7) && len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+		memcpy(to, from, len);
+	} else if (((unsigned long)to & 3) == ((unsigned long)from & 3)) {
+		while (((unsigned long)from & 3) && len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+		while (len >= 4) {
+			*(u32 *)(to) = *(u32 *)(from);
+			to += 4;
+			from += 4;
+			len -= 4;
+		}
+		while (len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+	} else {
+		while (len) {
+			*(char *)(to++) = *(char *)(from++);
+			len--;
+		}
+	}
+}
+#else
+static inline void wcn_unalign_memcpy(void *to, const void *from, u32 len)
+{
+	memcpy(to, from, len);
+}
+#endif
+
 int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
 			       void *src_data, u32 size)
 {
-	int i;
 	char *virt_addr, *src;
 	unsigned int cnt;
 
 	src = (char *)src_data;
 	virt_addr = (char *)wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
 	if (virt_addr) {
-		/* crash so remove the memcpy */
-		for (i = 0; i < size; i++)
-			virt_addr[i] = src[i];
+		wcn_unalign_memcpy((void *)virt_addr, (void *)src, size);
 		wcn_mem_ram_unmap(virt_addr, cnt);
 		return 0;
 	}
@@ -164,16 +199,13 @@ int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
 int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
 				void *tar_data, u32 size)
 {
-	int i;
 	char *virt_addr, *tar;
 	unsigned int cnt;
 
 	tar = (char *)tar_data;
 	virt_addr = wcn_mem_ram_vmap_nocache(phy_addr, size, &cnt);
 	if (virt_addr) {
-		/* crash so remove the memcpy */
-		for (i = 0; i < size; i++)
-			tar[i] = virt_addr[i];
+		wcn_unalign_memcpy((void *)tar, (void *)virt_addr, size);
 		wcn_mem_ram_unmap(virt_addr, cnt);
 		return 0;
 	}
