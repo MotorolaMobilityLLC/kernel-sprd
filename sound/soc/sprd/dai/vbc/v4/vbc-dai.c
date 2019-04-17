@@ -900,7 +900,11 @@ static int dsp_startup(struct vbc_codec_priv *vbc_codec,
 
 	if (!vbc_codec)
 		return 0;
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
 	memset(&startup_info, 0,
 	       sizeof(struct sprd_vbc_stream_startup_shutdown));
 	fill_dsp_startup_data(vbc_codec, scene_id, stream, &startup_info);
@@ -1200,11 +1204,16 @@ static int ap_hw_params(struct vbc_codec_priv *vbc_codec,
 	int watermark_type;
 	int watermark;
 	bool use_ad_src;
+	int ret;
 
 	if (!vbc_codec)
 		return 0;
 
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
 	fifo_id = scene_id_to_ap_fifo_id(scene_id, stream);
 	watermark_type = stream_to_watermark_type(stream);
 	watermark = get_watermark(fifo_id, watermark_type);
@@ -1277,12 +1286,16 @@ static int ap_trigger(struct vbc_codec_priv *vbc_codec,
 		      int scene_id, int stream, int vbc_chan, int up_down)
 {
 	int is_playback = stream == SNDRV_PCM_STREAM_PLAYBACK ? 1 : 0;
-	int fifo_id;
+	int fifo_id, ret;
 
 	fifo_id = scene_id_to_ap_fifo_id(scene_id, stream);
 	if (!vbc_codec)
 		return 0;
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
 	if (up_down == 1) {
 		ap_vbc_fifo_clear(fifo_id);
 		if (is_playback)

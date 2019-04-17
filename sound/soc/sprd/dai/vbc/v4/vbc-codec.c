@@ -2726,6 +2726,7 @@ static int vbc_put_agdsp_aud_access(struct snd_kcontrol *kcontrol,
 				    struct snd_ctl_elem_value *ucontrol)
 {
 	u16 enable;
+	int ret = true;
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
 
@@ -2739,8 +2740,11 @@ static int vbc_put_agdsp_aud_access(struct snd_kcontrol *kcontrol,
 		if (vbc_codec->agcp_access_aud_cnt == 0 &&
 		    vbc_codec->agcp_access_a2dp_cnt == 0) {
 			vbc_codec->agcp_access_aud_cnt++;
-			agdsp_access_enable();
-			vbc_codec->agcp_access_enable = 1;
+			ret = agdsp_access_enable();
+			if (ret)
+				pr_err("agdsp_access_enable error:%d\n", ret);
+			else
+				vbc_codec->agcp_access_enable = 1;
 		}
 	} else {
 		if (vbc_codec->agcp_access_aud_cnt != 0) {
@@ -2754,13 +2758,14 @@ static int vbc_put_agdsp_aud_access(struct snd_kcontrol *kcontrol,
 	}
 	mutex_unlock(&vbc_codec->agcp_access_mutex);
 
-	return true;
+	return ret;
 }
 
 static int vbc_put_agdsp_a2dp_access(struct snd_kcontrol *kcontrol,
 				     struct snd_ctl_elem_value *ucontrol)
 {
 	u16 enable;
+	int ret = true;
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
 
@@ -2774,8 +2779,11 @@ static int vbc_put_agdsp_a2dp_access(struct snd_kcontrol *kcontrol,
 		if (vbc_codec->agcp_access_a2dp_cnt == 0 &&
 		    vbc_codec->agcp_access_aud_cnt == 0) {
 			vbc_codec->agcp_access_a2dp_cnt++;
-			agdsp_access_enable();
-			vbc_codec->agcp_access_enable = 1;
+			ret = agdsp_access_enable();
+			if (ret)
+				pr_err("agdsp_access_enable error:%d\n", ret);
+			else
+				vbc_codec->agcp_access_enable = 1;
 		}
 	} else {
 		if (vbc_codec->agcp_access_a2dp_cnt != 0) {
@@ -2789,7 +2797,7 @@ static int vbc_put_agdsp_a2dp_access(struct snd_kcontrol *kcontrol,
 	}
 	mutex_unlock(&vbc_codec->agcp_access_mutex);
 
-	return true;
+	return ret;
 }
 
 int sbc_paras_get(struct snd_kcontrol *kcontrol,
@@ -3463,9 +3471,13 @@ static int dsp_vbc_reg_shm_proc_read(struct snd_info_buffer *buffer)
 
 static u32 ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 {
-	int reg;
+	int reg, ret;
 
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("agdsp_access_enable:error:%d", ret);
+		return ret;
+	}
 	snd_iprintf(buffer, "ap-vbc register dump\n");
 	for (reg = REG_VBC_AUDPLY_FIFO_CTRL;
 	     reg <= VBC_AP_ADDR_END; reg += 0x10) {
@@ -3485,9 +3497,14 @@ static void vbc_proc_write(struct snd_info_entry *entry,
 {
 	char line[64];
 	u32 reg, val;
+	int ret;
 	struct snd_soc_codec *codec = entry->private_data;
 
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err(":%s:agdsp_access_enable error:%d", __func__, ret);
+		return;
+	}
 	while (!snd_info_get_line(buffer, line, sizeof(line))) {
 		if (sscanf(line, "%x %x", &reg, &val) != 2)
 			continue;
@@ -3501,8 +3518,13 @@ static void vbc_proc_write(struct snd_info_entry *entry,
 static void vbc_audcp_ahb_proc_read(struct snd_info_buffer *buffer)
 {
 	u32 val, reg;
+	int ret;
 
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return;
+	}
 	reg = REG_AGCP_AHB_EXT_ACC_AG_SEL;
 	agcp_ahb_reg_read(reg, &val);
 	snd_iprintf(buffer, "audcp ahb register dump\n");

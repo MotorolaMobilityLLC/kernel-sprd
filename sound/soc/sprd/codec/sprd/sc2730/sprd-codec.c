@@ -466,9 +466,12 @@ static int dig_access_disable_put(struct snd_kcontrol *kcontrol,
 			agdsp_access_disable();
 		} else {
 			pr_info("%s, enable agdsp access\n", __func__);
-			if (agdsp_access_enable())
+			if (agdsp_access_enable()) {
 				pr_err("%s, agdsp_access_enable failed!\n",
 				       __func__);
+				mutex_unlock(&sprd_codec->dig_access_mutex);
+				return -EIO;
+			}
 			codec_digital_reg_restore(codec);
 			sprd_codec->user_dig_access_dis = disable;
 		}
@@ -1200,6 +1203,7 @@ static int sprd_codec_set_sample_rate(struct snd_soc_codec *codec,
 {
 	int i = 0;
 	unsigned int val = 0;
+	int ret;
 	struct sprd_codec_rate_tbl {
 		u32 rate; /* 8000, 11025, ... */
 		/* SPRD_CODEC_RATE_xxx, ... */
@@ -1216,7 +1220,11 @@ static int sprd_codec_set_sample_rate(struct snd_soc_codec *codec,
 		{96000, SPRD_CODEC_RATE_96000},
 	};
 
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
 
 	for (i = 0; i < ARRAY_SIZE(rate_tbl); i++) {
 		if (rate_tbl[i].rate == rate)
@@ -1247,10 +1255,15 @@ static int sprd_codec_set_ad_sample_rate(struct snd_soc_codec *codec,
 					 int mask, int shift)
 {
 	int set;
+	int ret;
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 	unsigned int replace_rate = sprd_codec->replace_rate;
 
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
 
 	if (is_unsupported_ad_rate(rate) && replace_rate) {
 		pr_debug("Replace %uHz with %uHz for record.\n",
@@ -1271,10 +1284,15 @@ static int sprd_codec_set_ad_sample_rate(struct snd_soc_codec *codec,
 
 static int sprd_codec_sample_rate_setting(struct sprd_codec_priv *sprd_codec)
 {
+	int ret;
 	sp_asoc_pr_info("%s AD %u DA %u AD1 %u\n", __func__,
 		       sprd_codec->ad_sample_val, sprd_codec->da_sample_val,
 		       sprd_codec->ad1_sample_val);
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
 
 	if (sprd_codec->ad_sample_val) {
 		sprd_codec_set_ad_sample_rate(sprd_codec->codec,
@@ -2847,6 +2865,7 @@ static int sprd_codec_dac_lrclk_sel_get(struct snd_kcontrol *kcontrol,
 static int sprd_codec_dac_lrclk_sel_put(struct snd_kcontrol *kcontrol,
 				      struct snd_ctl_elem_value *ucontrol)
 {
+	int ret;
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
@@ -2863,7 +2882,11 @@ static int sprd_codec_dac_lrclk_sel_put(struct snd_kcontrol *kcontrol,
 	sprd_codec->lrclk_sel[LRCLK_SEL_DAC] =
 		!!ucontrol->value.enumerated.item[0];
 	val = !!ucontrol->value.enumerated.item[0] ? BIT(DAC_LR_SEL) : 0;
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
 	snd_soc_update_bits(codec, SOC_REG(AUD_I2S_CTL),
 		BIT(DAC_LR_SEL), val);
 	agdsp_access_disable();
@@ -2894,6 +2917,7 @@ static int sprd_codec_adc_lrclk_sel_put(struct snd_kcontrol *kcontrol,
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
 	unsigned int val;
+	int ret;
 
 	if (ucontrol->value.integer.value[0] >= texts->items) {
 		pr_err("ERR: %s,index outof bounds error\n", __func__);
@@ -2906,7 +2930,11 @@ static int sprd_codec_adc_lrclk_sel_put(struct snd_kcontrol *kcontrol,
 	sprd_codec->lrclk_sel[LRCLK_SEL_ADC] =
 		!!ucontrol->value.enumerated.item[0];
 	val = !!ucontrol->value.enumerated.item[0] ? BIT(ADC_LR_SEL) : 0;
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
 	snd_soc_update_bits(codec, SOC_REG(AUD_I2S_CTL),
 		BIT(ADC_LR_SEL), val);
 	agdsp_access_disable();
@@ -2937,6 +2965,7 @@ static int sprd_codec_adc1_lrclk_sel_put(struct snd_kcontrol *kcontrol,
 	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
 	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
 	unsigned int val;
+	int ret;
 
 	if (ucontrol->value.integer.value[0] >= texts->items) {
 		pr_err("ERR: %s,index outof bounds error\n", __func__);
@@ -2949,7 +2978,11 @@ static int sprd_codec_adc1_lrclk_sel_put(struct snd_kcontrol *kcontrol,
 	sprd_codec->lrclk_sel[LRCLK_SEL_ADC1] =
 		!!ucontrol->value.enumerated.item[0];
 	val = !!ucontrol->value.enumerated.item[0] ? BIT(ADC1_LR_SEL) : 0;
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+		return ret;
+	}
 	snd_soc_update_bits(codec, SOC_REG(AUD_ADC1_I2S_CTL),
 		BIT(ADC1_LR_SEL), val);
 	agdsp_access_disable();
@@ -3275,9 +3308,13 @@ static void sprd_codec_proc_read(struct snd_info_entry *entry,
 {
 	struct sprd_codec_priv *sprd_codec = entry->private_data;
 	struct snd_soc_codec *codec = sprd_codec->codec;
-	int reg;
+	int reg, ret;
 
-	agdsp_access_enable();
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s, agdsp_access_enable failed!\n", __func__);
+		return;
+	}
 	snd_iprintf(buffer, "%s digital part\n", codec->component.name);
 	for (reg = SPRD_CODEC_DP_BASE; reg < SPRD_CODEC_DP_END; reg += 0x10) {
 		snd_iprintf(buffer, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
