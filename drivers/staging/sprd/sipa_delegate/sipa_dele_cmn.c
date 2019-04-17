@@ -303,6 +303,7 @@ int sipa_dele_local_rls_prod(void *user_data)
 	spin_lock_irqsave(&delegator->lock, flags);
 	switch (delegator->stat) {
 	case SIPA_DELE_ACTIVE:
+		delegator->stat = SIPA_DELE_RELEASED;
 		sipa_dele_start_rls_work(delegator);
 		ret = 0;
 		break;
