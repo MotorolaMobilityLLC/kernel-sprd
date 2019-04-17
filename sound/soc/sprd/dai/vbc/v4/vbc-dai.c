@@ -1419,10 +1419,11 @@ void startup_add_ref(int scene_id, int stream)
 void startup_dec_ref(int scene_id, int stream)
 {
 	struct scene_data_s *scene_data;
-	int ref;
+	int ref = 0;
 
 	scene_data = get_scene_data();
-	ref = --scene_data->ref_startup[scene_id][stream];
+	if (scene_data->ref_startup[scene_id][stream] > 0)
+		ref = --scene_data->ref_startup[scene_id][stream];
 	pr_debug("%s %s %s ref=%d\n", __func__,
 		scene_id_to_str(scene_id), stream_to_str(stream), ref);
 }
@@ -1593,11 +1594,12 @@ static void set_scene_flag(int scene_id, int stream)
 static void clr_scene_flag(int scene_id, int stream)
 {
 	struct aud_pm_vbc *pm_vbc;
-	int flag;
+	int flag = 0;
 
 	pm_vbc = aud_pm_vbc_get();
 	mutex_lock(&pm_vbc->lock_scene_flag);
-	flag = --pm_vbc->scene_flag[scene_id][stream];
+	if (pm_vbc->scene_flag[scene_id][stream])
+		flag = --pm_vbc->scene_flag[scene_id][stream];
 	mutex_unlock(&pm_vbc->lock_scene_flag);
 	pr_debug("%s %s %s flag = %d\n", __func__,
 		scene_id_to_str(scene_id), stream_to_str(stream), flag);
@@ -1657,6 +1659,7 @@ static int scene_normal_startup(struct snd_pcm_substream *substream,
 	int stream = substream->stream;
 	int scene_id = VBC_DAI_ID_NORMAL_AP01;
 	int be_dai_id = dai->id;
+	int ret = 0;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
@@ -1672,17 +1675,22 @@ static int scene_normal_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
 		normal_vbc_protect_mutex_lock(stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret) {
+			startup_dec_ref(scene_id, stream);
+			normal_vbc_protect_mutex_unlock(stream);
+			startup_unlock_mtx(scene_id, stream);
+			return ret;
+		}
+		set_scene_flag(scene_id, stream);
 		normal_vbc_protect_spin_lock(stream);
 		set_normal_p_running_status(stream, true);
 		normal_vbc_protect_spin_unlock(stream);
 		normal_vbc_protect_mutex_unlock(stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
-
-	return 0;
+	return ret;
 }
 
 static void scene_normal_shutdown(struct snd_pcm_substream *substream,
@@ -1882,6 +1890,7 @@ static int scene_normal_ap23_startup(struct snd_pcm_substream *substream,
 	int stream = substream->stream;
 	int scene_id = VBC_DAI_ID_NORMAL_AP23;
 	int be_dai_id = dai->id;
+	int ret = 0;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
@@ -1897,12 +1906,15 @@ static int scene_normal_ap23_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_normal_ap23_shutdown(struct snd_pcm_substream *substream,
@@ -2070,6 +2082,7 @@ static int scene_capture_dsp_startup(struct snd_pcm_substream *substream,
 	int stream = substream->stream;
 	int scene_id = VBC_DAI_ID_CAPTURE_DSP;
 	int be_dai_id = dai->id;
+	int ret = 0;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
@@ -2085,12 +2098,15 @@ static int scene_capture_dsp_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_capture_dsp_shutdown(struct snd_pcm_substream *substream,
@@ -2246,6 +2262,7 @@ static int scene_fast_startup(struct snd_pcm_substream *substream,
 	int stream = substream->stream;
 	int scene_id = VBC_DAI_ID_FAST_P;
 	int be_dai_id = dai->id;
+	int ret = 0;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
@@ -2261,12 +2278,15 @@ static int scene_fast_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_fast_shutdown(struct snd_pcm_substream *substream,
@@ -2421,6 +2441,7 @@ static int scene_offload_startup(struct snd_pcm_substream *substream,
 {
 	int stream = substream->stream;
 	int scene_id = VBC_DAI_ID_OFFLOAD;
+	int ret = 0;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
 	int be_dai_id = dai->id;
 
@@ -2437,12 +2458,15 @@ static int scene_offload_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_offload_shutdown(struct snd_pcm_substream *substream,
@@ -2583,6 +2607,7 @@ static int scene_offload_a2dp_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_OFFLOAD_A2DP;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
 	int be_dai_id = dai->id;
+	int ret = 0;
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
@@ -2597,12 +2622,15 @@ static int scene_offload_a2dp_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_offload_a2dp_shutdown(struct snd_pcm_substream *substream,
@@ -2756,6 +2784,7 @@ static int scene_pcm_a2dp_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_PCM_A2DP;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
 	int be_dai_id = dai->id;
+	int ret = 0;
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
@@ -2770,12 +2799,15 @@ static int scene_pcm_a2dp_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_pcm_a2dp_shutdown(struct snd_pcm_substream *substream,
@@ -2930,6 +2962,7 @@ static int scene_voice_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_VOICE;
 	int be_dai_id = dai->id;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
+	int ret = 0;
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
@@ -2944,12 +2977,15 @@ static int scene_voice_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_voice_shutdown(struct snd_pcm_substream *substream,
@@ -3105,7 +3141,7 @@ static int scene_voice_capture_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_VOICE_CAPTURE;
 	int be_dai_id = dai->id;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
-
+	int ret = 0;
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
 		be_dai_id, scene_id_to_str(scene_id), stream_to_str(stream));
@@ -3119,12 +3155,15 @@ static int scene_voice_capture_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_voice_capture_shutdown(struct snd_pcm_substream *substream,
@@ -3281,6 +3320,7 @@ static int scene_voip_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_VOIP;
 	int be_dai_id = dai->id;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
+	int ret = 0;
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
@@ -3295,12 +3335,15 @@ static int scene_voip_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_voip_shutdown(struct snd_pcm_substream *substream,
@@ -3454,6 +3497,7 @@ static int scene_loop_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_LOOP;
 	int be_dai_id = dai->id;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
+	int ret = 0;
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
@@ -3468,12 +3512,15 @@ static int scene_loop_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_loop_shutdown(struct snd_pcm_substream *substream,
@@ -3627,6 +3674,7 @@ static int scene_fm_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_FM;
 	int be_dai_id = dai->id;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
+	int ret = 0;
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
@@ -3641,14 +3689,18 @@ static int scene_fm_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
 		pr_info("%s, force_on_xtl\n", __func__);
 		force_on_xtl(true);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret) {
+			startup_dec_ref(scene_id, stream);
+			force_on_xtl(false);
+		} else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_fm_shutdown(struct snd_pcm_substream *substream,
@@ -3804,6 +3856,7 @@ static int scene_bt_capture_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_BT_CAPTURE_AP;
 	int be_dai_id = dai->id;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
+	int ret = 0;
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
@@ -3818,12 +3871,15 @@ static int scene_bt_capture_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_bt_capture_shutdown(struct snd_pcm_substream *substream,
@@ -4176,6 +4232,7 @@ static int scene_capture_fm_dsp_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_FM_CAPTURE_DSP;
 	int be_dai_id = dai->id;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
+	int ret = 0;
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
@@ -4190,12 +4247,15 @@ static int scene_capture_fm_dsp_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_capture_fm_dsp_shutdown(struct snd_pcm_substream *substream,
@@ -4354,6 +4414,7 @@ static int scene_capture_btsco_dsp_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_BT_SCO_CAPTURE_DSP;
 	int be_dai_id = dai->id;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
+	int ret = 0;
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
@@ -4368,12 +4429,15 @@ static int scene_capture_btsco_dsp_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		set_scene_flag(scene_id, stream);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret)
+			startup_dec_ref(scene_id, stream);
+		else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_capture_btsco_dsp_shutdown(
@@ -4533,6 +4597,7 @@ static int scene_fm_dsp_startup(struct snd_pcm_substream *substream,
 	int scene_id = VBC_DAI_ID_FM_DSP;
 	int be_dai_id = dai->id;
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
+	int ret = 0;
 
 	pr_info("%s dai:%s(%d) scene:%s %s\n", __func__,
 		dai_id_to_str(be_dai_id),
@@ -4550,11 +4615,16 @@ static int scene_fm_dsp_startup(struct snd_pcm_substream *substream,
 		set_scene_flag(scene_id, stream);
 		pr_info("%s, force_on_xtl\n", __func__);
 		force_on_xtl(true);
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret) {
+			startup_dec_ref(scene_id, stream);
+			force_on_xtl(false);
+		} else
+			set_scene_flag(scene_id, stream);
 	}
 	startup_unlock_mtx(scene_id, stream);
 
-	return 0;
+	return ret;
 }
 
 static void scene_fm_dsp_shutdown(struct snd_pcm_substream *substream,
@@ -4710,6 +4780,7 @@ static int scene_dump_startup(struct snd_pcm_substream *substream,
 	struct vbc_codec_priv *vbc_codec = dev_get_drvdata(dai->dev);
 	enum vbc_dump_position_e pos;
 	int scene_id = VBC_DAI_ID_NORMAL_AP01;
+	int ret;
 
 	pr_info("%s dai:%s(%d) %s, scene: %s\n", __func__,
 		dai_id_to_str(dai->id), dai->id, stream_to_str(stream),
@@ -4723,7 +4794,12 @@ static int scene_dump_startup(struct snd_pcm_substream *substream,
 	startup_lock_mtx(scene_id, stream);
 	startup_add_ref(scene_id, stream);
 	if (startup_get_ref(scene_id, stream) == 1) {
-		dsp_startup(vbc_codec, scene_id, stream);
+		ret = dsp_startup(vbc_codec, scene_id, stream);
+		if (ret) {
+			startup_dec_ref(scene_id, stream);
+			startup_unlock_mtx(scene_id, stream);
+			return ret;
+		}
 		pos = vbc_codec->vbc_dump_position;
 		pr_info("dump scene pos = %s\n", vbc_dumppos2name(pos));
 		switch (pos) {
