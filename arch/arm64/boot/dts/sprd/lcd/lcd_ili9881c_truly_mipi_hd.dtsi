@@ -5,7 +5,7 @@
 		sprd,dsi-lane-number = <4>;
 		sprd,dsi-color-format = "rgb888";
 
-		sprd,phy-bit-clock = <600000>;
+		sprd,phy-bit-clock = <500000>;
 		sprd,phy-escape-clock = <20000>;
 
 		sprd,width-mm = <68>;

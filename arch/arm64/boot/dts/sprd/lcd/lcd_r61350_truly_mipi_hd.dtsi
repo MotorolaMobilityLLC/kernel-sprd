@@ -14,7 +14,7 @@
 		sprd,dsi-lane-number = <4>;
 		sprd,dsi-color-format = "rgb888";
 
-		sprd,phy-bit-clock = <600000>;	/* kbps */
+		sprd,phy-bit-clock = <500000>;	/* kbps */
 		sprd,phy-escape-clock = <20000>;/* kHz */
 
 		sprd,width-mm = <68>;
@@ -38,7 +38,7 @@
 			//DSI control
 			39 00 00 03 B6 61 2C
 			//display setting
-			39 00 00 07 C0 23 B2 0F 10 C2 7F
+			39 00 00 07 C0 23 B2 22 10 C2 7F
 			//display h-timing setting
 			39 00 00 17 C1 0B 6F 01 80 00 00 00 00 7F 03 08 08 08 08 08 08 08 08 08 08 08 08
 			//stop recovery setting
@@ -90,13 +90,13 @@
 
 		display-timings {
 			timing0 {
-				clock-frequency = <76800000>;
+				clock-frequency = <64000000>;
 				hactive = <720>;
 				vactive = <1280>;
-				hback-porch = <80>;
-				hfront-porch = <80>;
-				vback-porch = <14>;
-				vfront-porch = <126>;
+				hback-porch = <31>;
+				hfront-porch = <31>;
+				vback-porch = <32>;
+				vfront-porch = <16>;
 				hsync-len = <20>;
 				vsync-len = <2>;
 			};
