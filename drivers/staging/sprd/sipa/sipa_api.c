@@ -932,10 +932,13 @@ static int sipa_init(struct sipa_context **ipa_pp,
 
 	/* init sipa eps */
 	ret = create_sipa_eps(cfg, ipa);
-	if (ret) {
-		ret = -EFAULT;
+	if (ret)
+		goto ep_fail;
+
+	/* init resource manager */
+	ret = sipa_rm_init();
+	if (ret)
 		goto fail;
-	}
 
 	/* create basic cons */
 	ret = sipa_create_wwan_cons();
@@ -964,7 +967,8 @@ static int sipa_init(struct sipa_context **ipa_pp,
 
 
 fail:
-
+	sipa_rm_exit();
+ep_fail:
 	destroy_sipa_eps(cfg, ipa);
 
 	if (ipa)
