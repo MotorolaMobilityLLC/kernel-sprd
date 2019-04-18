@@ -53,8 +53,8 @@
 			reg = <0x1 0x48100000 0x0 0x11300000>; /* cache 275M */
 		};
 
-		fb_reserved: framebuffer@18a800000{
-				reg = <0x0 0x8a800000 0x0 0x1fe0000>;
+		fb_reserved: framebuffer@8a800000{
+				reg = <0x0 0x8a800000 0x0 0x2878000>;
 		};
 	};
 
