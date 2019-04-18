@@ -721,8 +721,8 @@ int sdiohal_dt_read(unsigned int system_addr, void *buf,
 	sdiohal_op_enter();
 	ret = sdiohal_dt_set_addr(system_addr);
 	if (ret != 0) {
-		sdiohal_cp_rx_sleep(DT_READ);
 		sdiohal_op_leave();
+		sdiohal_cp_rx_sleep(DT_READ);
 		return ret;
 	}
 
