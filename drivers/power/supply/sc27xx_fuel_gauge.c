@@ -180,12 +180,11 @@ static int sc27xx_fgu_temp_to_cap(struct power_supply_capacity_temp_table *table
 			break;
 
 	if (i > 0 && i < table_len) {
-		int tmp;
-
-		tmp = (table[i - 1].cap - table[i].cap) *
-			(value - table[i].temp);
-		tmp /= table[i - 1].temp - table[i].temp;
-		temp = tmp + table[i].cap;
+		temp = interpolate(value,
+				   table[i].temp,
+				   table[i].cap,
+				   table[i - 1].temp,
+				   table[i - 1].cap);
 	} else if (i == 0) {
 		temp = table[0].cap;
 	} else {
@@ -590,11 +589,11 @@ static int sc27xx_fgu_vol_to_temp(struct power_supply_vol_temp_table *table,
 			break;
 
 	if (i > 0 && i < table_len) {
-		int tmp;
-
-		tmp = (table[i - 1].temp - table[i].temp) * (vol - table[i].vol);
-		tmp /= table[i - 1].vol - table[i].vol;
-		temp = tmp + table[i].temp;
+		temp = interpolate(vol,
+				   table[i].vol,
+				   table[i].temp,
+				   table[i - 1].vol,
+				   table[i - 1].temp);
 	} else if (i == 0) {
 		temp = table[0].temp;
 	} else {
