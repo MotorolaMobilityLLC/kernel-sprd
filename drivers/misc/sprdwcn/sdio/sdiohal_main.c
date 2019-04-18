@@ -1240,7 +1240,6 @@ static int sdiohal_probe(struct sdio_func *func,
 		pm_runtime_put_noidle(&func->dev);
 
 	p_data->carddetect_indicator = true;
-	p_data->card_dump_flag = false;
 
 	sdiohal_set_cp_pin_status();
 
