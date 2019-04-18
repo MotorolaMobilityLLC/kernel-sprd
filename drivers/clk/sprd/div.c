@@ -89,3 +89,64 @@ const struct clk_ops sprd_div_ops = {
 	.set_rate = sprd_div_set_rate,
 };
 EXPORT_SYMBOL_GPL(sprd_div_ops);
+
+unsigned long sprd_div_helper_recalc_rate_sec(struct sprd_clk_common *common,
+					      const struct sprd_div_internal *div,
+					      unsigned long parent_rate)
+{
+	unsigned long val;
+	unsigned int reg;
+
+	common->svc_handle->perf_ops.get_div(common->id, &reg);
+	val = reg >> div->shift;
+	val &= (1 << div->width) - 1;
+
+	return divider_recalc_rate(&common->hw, parent_rate, val, NULL, 0,
+				   div->width);
+}
+EXPORT_SYMBOL_GPL(sprd_div_helper_recalc_rate_sec);
+
+static unsigned long sprd_div_recalc_rate_sec(struct clk_hw *hw,
+					      unsigned long parent_rate)
+{
+	struct sprd_div *cd = hw_to_sprd_div(hw);
+
+	return sprd_div_helper_recalc_rate_sec(&cd->common, &cd->div,
+					       parent_rate);
+}
+
+int sprd_div_helper_set_rate_sec(const struct sprd_clk_common *common,
+				 const struct sprd_div_internal *div,
+				 unsigned long rate,
+				 unsigned long parent_rate)
+{
+	unsigned long val;
+	unsigned int reg;
+
+	val = divider_get_val(rate, parent_rate, NULL, div->width, 0);
+
+	common->svc_handle->perf_ops.get_div(common->id, &reg);
+	reg &= ~GENMASK(div->width + div->shift - 1, div->shift);
+	common->svc_handle->perf_ops.set_div(common->id,
+					     reg | (val << div->shift));
+
+	return 0;
+
+}
+EXPORT_SYMBOL_GPL(sprd_div_helper_set_rate_sec);
+
+static int sprd_div_set_rate_sec(struct clk_hw *hw, unsigned long rate,
+				 unsigned long parent_rate)
+{
+	struct sprd_div *cd = hw_to_sprd_div(hw);
+
+	return sprd_div_helper_set_rate_sec(&cd->common, &cd->div, rate,
+					    parent_rate);
+}
+
+const struct clk_ops sprd_div_ops_sec = {
+	.recalc_rate = sprd_div_recalc_rate_sec,
+	.round_rate = sprd_div_round_rate,
+	.set_rate = sprd_div_set_rate_sec,
+};
+EXPORT_SYMBOL_GPL(sprd_div_ops_sec);

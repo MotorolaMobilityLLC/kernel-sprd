@@ -21,6 +21,26 @@ static const struct regmap_config sprdclk_regmap_config = {
 	.fast_io	= true,
 };
 
+struct sprd_sip_svc_handle __weak *sprd_sip_svc_get_handle(void)
+{
+	return NULL;
+}
+
+static void sprd_clk_sec_set_svc_handle(const struct sprd_clk_desc *desc,
+				struct sprd_sip_svc_handle *svc_handle)
+{
+	int i;
+	struct sprd_clk_common *sclk;
+
+	for (i = 0; i < desc->num_clk_clks; i++) {
+		sclk = desc->clk_clks[i];
+		if (!sclk)
+			continue;
+
+		sclk->svc_handle = svc_handle;
+	}
+}
+
 static void sprd_clk_set_regmap(const struct sprd_clk_desc *desc,
 			 struct regmap *regmap)
 {
@@ -42,6 +62,7 @@ int sprd_clk_regmap_init(struct platform_device *pdev,
 	void __iomem *base;
 	struct device_node *node = pdev->dev.of_node;
 	struct regmap *regmap;
+	struct sprd_sip_svc_handle *svc_handle;
 
 	if (of_find_property(node, "sprd,syscon", NULL)) {
 		regmap = syscon_regmap_lookup_by_phandle(node, "sprd,syscon");
@@ -49,6 +70,14 @@ int sprd_clk_regmap_init(struct platform_device *pdev,
 			pr_err("%s: failed to get syscon regmap\n", __func__);
 			return PTR_ERR(regmap);
 		}
+	} else if (of_find_property(node, "sprd,sec-clk", NULL)) {
+		svc_handle = sprd_sip_svc_get_handle();
+		if (!svc_handle) {
+			pr_err("%s: failed to get svc handle\n", __func__);
+			return -ENODEV;
+		}
+		sprd_clk_sec_set_svc_handle(desc, svc_handle);
+		return 0;
 	} else {
 		base = of_iomap(node, 0);
 		regmap = devm_regmap_init_mmio(&pdev->dev, base,

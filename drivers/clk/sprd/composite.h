@@ -39,6 +39,27 @@ struct sprd_comp {
 			    NULL, _mshift, _mwidth,		\
 			    _dshift, _dwidth, _flags)
 
+#define SPRD_COMP_CLK_TABLE_SEC(_struct, _name, _parent, _id, _table,	\
+			_mshift, _mwidth, _dshift, _dwidth, _flags)	\
+	struct sprd_comp _struct = {				\
+		.mux	= _SPRD_MUX_CLK(_mshift, _mwidth, _table),	\
+		.div	= _SPRD_DIV_CLK(_dshift, _dwidth),		\
+		.common	= {						\
+			.svc_handle	= NULL,				\
+			.id		= _id,				\
+			.hw.init = CLK_HW_INIT_PARENTS(_name,		\
+						       _parent,		\
+						       &sprd_comp_ops_sec,\
+						       _flags),		\
+		}							\
+	}
+
+#define SPRD_COMP_CLK_SEC(_struct, _name, _parent, _id, _mshift,	\
+			  _mwidth, _dshift, _dwidth, _flags)		\
+	SPRD_COMP_CLK_TABLE_SEC(_struct, _name, _parent, _id,		\
+				NULL, _mshift, _mwidth,			\
+				_dshift, _dwidth, _flags)
+
 static inline struct sprd_comp *hw_to_sprd_comp(const struct clk_hw *hw)
 {
 	struct sprd_clk_common *common = hw_to_sprd_clk_common(hw);
@@ -47,5 +68,7 @@ static inline struct sprd_comp *hw_to_sprd_comp(const struct clk_hw *hw)
 }
 
 extern const struct clk_ops sprd_comp_ops;
+
+extern const struct clk_ops sprd_comp_ops_sec;
 
 #endif /* _SPRD_COMPOSITE_H_ */

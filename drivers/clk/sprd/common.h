@@ -11,12 +11,19 @@
 #include <linux/clk-provider.h>
 #include <linux/of_platform.h>
 #include <linux/regmap.h>
+#include <linux/sprd_sip_svc.h>
 
 struct device_node;
 
 struct sprd_clk_common {
-	struct regmap	*regmap;
-	u32		reg;
+	union {
+		struct regmap	*regmap;
+		struct sprd_sip_svc_handle *svc_handle;
+	};
+	union {
+		u32		reg;
+		u32		id;
+	};
 	struct clk_hw	hw;
 };
 

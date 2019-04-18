@@ -71,4 +71,11 @@ int sprd_mux_helper_set_parent(const struct sprd_clk_common *common,
 			       const struct sprd_mux_ssel *mux,
 			       u8 index);
 
+extern const struct clk_ops sprd_mux_ops_sec;
+
+u8 sprd_mux_helper_get_parent_sec(const struct sprd_clk_common *common,
+				  const struct sprd_mux_ssel *mux);
+int sprd_mux_helper_set_parent_sec(const struct sprd_clk_common *common,
+				   const struct sprd_mux_ssel *mux,
+				   u8 index);
 #endif /* _SPRD_MUX_H_ */
