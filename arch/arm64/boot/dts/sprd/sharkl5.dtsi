@@ -1712,6 +1712,10 @@
 				interrupt-names = "mc";
 				clocks = <&aonapb_gate CLK_OTG_UTMI_EB>;
 				clock-names = "core_clk";
+				syscons = <&pmu_apb_regs
+					REG_PMU_APB_PUB_SYS_DEEP_SLEEP_POLL1
+					MASK_PMU_APB_AON_PUB_SYS_DEEP_SLEEP_POLL>;
+				syscon-names = "usb_pub_slp_poll";
 				usb-phy = <&hsphy>;
 				phy-names = "usb";
 				dr-mode = "peripheral";

@@ -16,7 +16,11 @@ Required properties:
  - dr-mode: Should be "peripheral"
  - extcon: Should be "pmic_typec"
  - vbus-supply: Should be "vddvbus" which is provided by charger
+
+Optional properties:
  - wakeup-source: indicate USB irq is wakeup source of AP.
+ - syscons: define AON_PUB_SYS_DEEP_SLEEP_POLL in pmu apb
+ - syscon-names: should contain "usb_pub_slp_poll"
 
 Example:
 -------
