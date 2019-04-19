@@ -578,7 +578,9 @@ static void process_rx_w(struct work_struct *work)
 		dev->net->stats.rx_packets++;
 		dev->net->stats.rx_bytes += skb->len;
 
-		status = netif_rx_ni(skb);
+		local_bh_disable();
+		status = netif_receive_skb(skb);
+		local_bh_enable();
 	}
 
 	if (netif_running(dev->net))
