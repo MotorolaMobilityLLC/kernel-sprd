@@ -403,12 +403,9 @@ static const struct snd_kcontrol_new virt_output_switch =
 static const struct snd_kcontrol_new ivsence_switch =
 	SOC_DAPM_SINGLE_VIRT("Switch", 1);
 
-static const u16 ocp_cfg_table[16] = {
-	0, 0
-};
-
-static const u16 pfm_cfg_table[16] = {
-	0, 0
+static const u16 ocp_pfm_cfg_table[16] = {
+	0x0406, 0x1618, 0x292b, 0x3a3b, 0x4344, 0x5457, 0x6668, 0x787a,
+	0x8082, 0x9095, 0xa4a7, 0xb6b8, 0xc0c0, 0xd0d3, 0xe3e5, 0xf5f6
 };
 
 static int sprd_codec_power_get(struct device *dev, struct regulator **regu,
@@ -763,12 +760,10 @@ static void load_ocp_pfw_cfg(struct sprd_codec_priv *sprd_codec)
 	if (!codec)
 		return;
 	for (i = 0;
-			i < ARRAY_SIZE(ocp_cfg_table) && i <
-				ARRAY_SIZE(pfm_cfg_table);
+			i < ARRAY_SIZE(ocp_pfm_cfg_table) && i <
+				ARRAY_SIZE(ocp_pfm_cfg_table);
 			i++) {
-		val = PABST_CLIMIT_CFG_ADDR(i) |
-			PABST_CLIMIT_V(ocp_cfg_table[i]) |
-			PABST_PFM_CFG_ADDR(i) | PABST_PFM(pfm_cfg_table[i]);
+		val = ocp_pfm_cfg_table[i];
 		snd_soc_update_bits(codec, SOC_REG(ANA_PMU22), 0xFFFF, val);
 
 		snd_soc_update_bits(codec, SOC_REG(ANA_PMU23),
