@@ -1138,8 +1138,6 @@
 				compatible = "sprd,sharkl5-hw-i2c";
 				reg = <0 0x32060000 0 0x1000>;
 				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "source", "enable", "i2c",
-						"clk_hw_i2c";
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;

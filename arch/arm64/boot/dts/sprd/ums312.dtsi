@@ -960,6 +960,11 @@
 		 <&ap_clk CLK_AP_I2C4>, <&ext_26m>;
 };
 
+&i2c5 {
+	clock-names = "i2c", "source";
+	clocks = <&aon_clk CLK_AON_I2C>, <&pll2 CLK_TWPLL_153M6>;
+};
+
 &spi0 {
 	clock-names = "enable", "spi", "source";
 	clocks = <&apapb_gate CLK_SPI0_EB>,

@@ -441,7 +441,7 @@
 
 &i2c5 {
 	status = "okay";
-	clock-frequency = <400000>;
+	clock-frequency = <3400000>;
 
 	sc2703_pmic: pmic@4C {
 		compatible = "sprd,sc2703";
