@@ -1563,8 +1563,8 @@ static void sprd_codec_init_fgu(struct sprd_codec_priv *sprd_codec)
 {
 	struct fgu *fgu = &sprd_codec->fgu;
 
-	fgu->vh = 3800;
-	fgu->vl = 3750;
+	fgu->vh = 3550;
+	fgu->vl = 3500;
 	fgu->dvh = 50;
 	fgu->dvl = 50;
 }
