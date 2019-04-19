@@ -82,11 +82,30 @@
 /* Absolutely safe for status update at 100 kHz I2C: */
 #define I2C_WAIT		200
 
+/* Absolutely safe for wait pending update at 100kHz */
+#define I2C_100K_WRITE_WAIT	1500	/* us */
+
 /* Absolutely safe for wait pending update at 400kHz */
-#define I2C_WRITE_WAIT	2000	/* us */
+#define I2C_400K_WRITE_WAIT	400	/* us */
+
+/* Absolutely safe for wait pending update at 3.4MHz */
+#define I2C_3M4_WRITE_WAIT	200	/* us */
 
 /* i2c default source clock */
 #define I2C_SOURCE_CLK_26M	26000000
+
+/* For 100KHz speed */
+#define I2C_CLK_100K	100000
+
+/* For 400KHz speed */
+#define I2C_CLK_400K	400000
+
+/* For 3.4MHz speed */
+#define I2C_CLK_3M4	3400000
+
+/* For 3.4MHz clock adjustment */
+#define I2C_CLK_3M4_HIGH_ADJUST	2
+#define I2C_CLK_3M4_LOW_ADJUST	1
 
 /* i2c data structure */
 struct sprd_i2c_hw {
@@ -101,6 +120,7 @@ struct sprd_i2c_hw {
 	u32 bus_freq;
 	u8 *buf;
 	u32 count;
+	u32 write_wait_time;
 };
 
 static void sprd_i2c_hw_dump_reg(struct sprd_i2c_hw *i2c_dev)
@@ -158,7 +178,7 @@ static int sprd_i2c_hw_writebyte(struct sprd_i2c_hw *i2c_dev, u8 *buf, u32 len)
 	}
 
 	/* waitting for write finish */
-	usleep_range(I2C_WRITE_WAIT, I2C_WRITE_WAIT + 100);
+	usleep_range(i2c_dev->write_wait_time, i2c_dev->write_wait_time + 50);
 
 	tmp = readl(i2c_dev->base + ARM_DEBUG1);
 	if (!(tmp & CHNL_PENDING))
@@ -311,7 +331,7 @@ static const struct i2c_algorithm sprd_i2c_hw_algo = {
 
 static void  sprd_i2c_hw_set_clk(struct sprd_i2c_hw *i2c_dev, u32 freq)
 {
-	u32 apb_clk = i2c_dev->src_clk;
+	u32 apb_clk = i2c_dev->src_clk, high, low, div0, div1;
 	/*
 	 * From I2C databook, the prescale calculation formula:
 	 * prescale = freq_i2c / (4 * freq_scl) - 1;
@@ -323,20 +343,46 @@ static void  sprd_i2c_hw_set_clk(struct sprd_i2c_hw *i2c_dev, u32 freq)
 	 * (3/5), then the formula should be:
 	 * high = (prescale * 2 * 2) / 5
 	 * low = (prescale * 2 * 3) / 5
+	 *
+	 * For high spped mode, the SCL should be adjust after we get the
+	 * prescale, we should adjust the high period of SCL clock is recommended
+	 * more then 60ns, and the low period of SCL clock is recommended more
+	 * then 160ns, then the formula should be:
+	 * high = (((i2c_dvd -  I2C_CLK_3M4_HIGH_ADJUST) << 1) * 2) / 5;
+	 * low = (((i2c_dvd -  I2C_CLK_3M4_LOW_ADJUST) << 1) * 3) / 5;
 	 */
-	u32 high = ((i2c_dvd << 1) * 2) / 5;
-	u32 low = ((i2c_dvd << 1) * 3) / 5;
-	u32 div0 = (high & TIMIMG_MAST_L) << 16 | (low & TIMIMG_MAST_L);
-	u32 div1 =  (high & TIMIMG_MAST_H) | ((low & TIMIMG_MAST_H) >> 16);
+	if (freq == I2C_CLK_3M4) {
+		high = (((i2c_dvd -  I2C_CLK_3M4_HIGH_ADJUST) << 1) * 2) / 5;
+		low = (((i2c_dvd -  I2C_CLK_3M4_LOW_ADJUST) << 1) * 3) / 5;
+	} else {
+		high = ((i2c_dvd << 1) * 2) / 5;
+		low = ((i2c_dvd << 1) * 3) / 5;
+	}
+
+	div0 = (high & TIMIMG_MAST_L) << 16 | (low & TIMIMG_MAST_L);
+	div1 =  (high & TIMIMG_MAST_H) | ((low & TIMIMG_MAST_H) >> 16);
 
 	writel(div0, i2c_dev->base + ADDR_DVD0);
 	writel(div1, i2c_dev->base + ADDR_DVD1);
 
 	/* Start hold timing = hold time(us) * source clock */
-	if (freq == 400000)
+	switch (freq) {
+	case I2C_CLK_3M4:
+		writel((18 * apb_clk) / 100000000, i2c_dev->base + ADDR_STA0_DVD);
+		i2c_dev->write_wait_time = I2C_3M4_WRITE_WAIT;
+		break;
+	case I2C_CLK_400K:
 		writel((6 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
-	else if (freq == 100000)
+		i2c_dev->write_wait_time = I2C_400K_WRITE_WAIT;
+		break;
+	case I2C_CLK_100K:
 		writel((4 * apb_clk) / 1000000, i2c_dev->base + ADDR_STA0_DVD);
+		i2c_dev->write_wait_time = I2C_100K_WRITE_WAIT;
+		break;
+	default:
+		dev_err(&i2c_dev->adap.dev, "Invalid bus freqence!");
+		break;
+	}
 }
 
 static void sprd_i2c_hw_enable(struct sprd_i2c_hw *i2c_dev)
