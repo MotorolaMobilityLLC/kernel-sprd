@@ -281,7 +281,8 @@ struct hc_driver {
 
 	/* usb audio offload */
 	void	(*offload_config)(struct usb_hcd *hcd, int ep_num, int mono,
-		int is_pcm_24, int width, int rate, int is_offload_mod);
+		int is_pcm_24, int width, int rate, int offload_used);
+	void	(*set_offload_mode)(struct usb_hcd *hcd, bool is_offload);
 
 	/* manage i/o requests, device state */
 	int	(*urb_enqueue)(struct usb_hcd *hcd,

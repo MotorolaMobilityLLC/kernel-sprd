@@ -32,6 +32,8 @@
 #include <linux/usb/phy.h>
 #include <linux/usb/usb_phy_generic.h>
 #include <linux/wait.h>
+#include <linux/mfd/syscon.h>
+#include <linux/regmap.h>
 
 #include "musb_core.h"
 #include "sprd_musbhsdma.h"
@@ -52,6 +54,7 @@ struct sprd_glue {
 	struct usb_phy		*xceiv;
 	struct regulator	*vbus;
 	struct wakeup_source	pd_wake_lock;
+	struct regmap		*pmu;
 
 	enum usb_dr_mode		dr_mode;
 	enum usb_dr_mode		wq_mode;
@@ -73,6 +76,8 @@ struct sprd_glue {
 	bool		is_suspend;
 	int		host_disabled;
 	int		musb_work_running;
+	u32		usb_pub_slp_poll_offset;
+	u32		usb_pub_slp_poll_mask;
 };
 
 static int boot_charging;
@@ -746,6 +751,8 @@ static void sprd_musb_work(struct work_struct *work)
 		}
 
 		musb->shutdowning = 0;
+		musb->is_offload = false;
+		musb->offload_used = false;
 
 		ret = device_for_each_child(glue->dev, NULL,
 					musb_sprd_suspend_child);
@@ -885,6 +892,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	struct musb_hdrc_platform_data pdata;
 	struct platform_device_info pinfo;
 	struct sprd_glue *glue;
+	u32 buf[2];
 	int ret;
 
 	glue = devm_kzalloc(&pdev->dev, sizeof(*glue), GFP_KERNEL);
@@ -926,6 +934,23 @@ static int musb_sprd_probe(struct platform_device *pdev)
 			ret = PTR_ERR(glue->vbus);
 			dev_warn(dev, "unable to get vbus supply %d\n", ret);
 			glue->vbus = NULL;
+		}
+	}
+	glue->pmu = syscon_regmap_lookup_by_name(dev->of_node,
+						 "usb_pub_slp_poll");
+	if (IS_ERR(glue->pmu)) {
+		dev_warn(&pdev->dev, "failed to get pmu regmap!\n");
+		glue->pmu = NULL;
+	} else {
+		ret = syscon_get_args_by_name(dev->of_node,
+					      "usb_pub_slp_poll", 2, buf);
+		if (ret != 2) {
+			dev_warn(&pdev->dev,
+				 "failed to go get syscon parameters\n");
+			glue->pmu = NULL;
+		} else {
+			glue->usb_pub_slp_poll_offset = buf[0];
+			glue->usb_pub_slp_poll_mask = buf[1];
 		}
 	}
 
@@ -1120,7 +1145,24 @@ static void musb_sprd_disable_all_interrupts(struct musb *musb)
 static int musb_sprd_suspend(struct device *dev)
 {
 	struct sprd_glue *glue = dev_get_drvdata(dev);
+	struct musb *musb = platform_get_drvdata(glue->musb);
+	u32 msk, val;
+	int ret;
 
+	if (musb->is_offload && !musb->offload_used) {
+		if (glue->vbus) {
+			ret = regulator_disable(glue->vbus);
+			if (ret < 0)
+				dev_err(glue->dev,
+					"Failed to disable vbus: %d\n", ret);
+		}
+		if (glue->pmu) {
+			val = msk = glue->usb_pub_slp_poll_mask;
+			regmap_update_bits(glue->pmu,
+					   glue->usb_pub_slp_poll_offset,
+					   msk, val);
+		}
+	}
 	glue->is_suspend = true;
 
 	return 0;
@@ -1129,7 +1171,24 @@ static int musb_sprd_suspend(struct device *dev)
 static int musb_sprd_resume(struct device *dev)
 {
 	struct sprd_glue *glue = dev_get_drvdata(dev);
+	struct musb *musb = platform_get_drvdata(glue->musb);
+	u32 msk;
+	int ret;
 
+	if (musb->is_offload && !musb->offload_used) {
+		if (glue->vbus) {
+			ret = regulator_enable(glue->vbus);
+			if (ret < 0)
+				dev_err(glue->dev,
+					"Failed to enable vbus: %d\n", ret);
+		}
+		if (glue->pmu) {
+			msk = glue->usb_pub_slp_poll_mask;
+			regmap_update_bits(glue->pmu,
+					   glue->usb_pub_slp_poll_offset,
+					   msk, 0);
+		}
+	}
 	glue->is_suspend = false;
 
 	return 0;

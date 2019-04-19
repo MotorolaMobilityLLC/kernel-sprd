@@ -2382,8 +2382,15 @@ static bool musb_offload_detect(struct musb *musb,
 	return false;
 }
 
+static void musb_set_offload_mode(struct usb_hcd *hcd, bool is_offload)
+{
+	struct musb *musb = hcd_to_musb(hcd);
+
+	musb->is_offload = is_offload;
+}
+
 static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
-		int is_pcm_24, int width, int rate, int is_offload_mod)
+		int is_pcm_24, int width, int rate, int offload_used)
 {
 	struct musb *musb = hcd_to_musb(hcd);
 	void __iomem *mbase = musb->mregs;
@@ -2406,12 +2413,13 @@ static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
 		dir = 1;
 		bchannel = (u8)(ep_num & 0xf);
 	}
-	musb->is_offload = is_offload_mod;
+	musb->is_offload = true;
+	musb->offload_used = offload_used;
 	dev_dbg(musb->controller,
 		"ep:0x%x dir:%d mono:%d pcm:%d width:%d rate:%d offload:%d\n",
-		ep_num,	dir, mono, is_pcm_24, width, rate, is_offload_mod);
+		ep_num,	dir, mono, is_pcm_24, width, rate, offload_used);
 
-	if (musb->is_offload == 0) {
+	if (musb->offload_used == 0) {
 		musb_offload_disable(musb, bchannel);
 		return;
 	}
@@ -2588,10 +2596,13 @@ static bool musb_offload_detect(struct musb *musb,
 }
 
 static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
-		int is_pcm_24, int width, int rate, int is_offload_mod)
+		int is_pcm_24, int width, int rate, int offload_used)
 {}
 
 static void musb_offload_enqueue(struct musb *musb, struct urb *urb)
+{}
+
+static void musb_set_offload_mode(struct usb_hcd *hcd, bool is_offload)
 {}
 #endif
 
@@ -3179,6 +3190,7 @@ static const struct hc_driver musb_hc_driver = {
 	.urb_enqueue		= musb_urb_enqueue,
 	.urb_dequeue		= musb_urb_dequeue,
 	.endpoint_disable	= musb_h_disable,
+	.set_offload_mode	= musb_set_offload_mode,
 
 #ifndef CONFIG_MUSB_PIO_ONLY
 	.map_urb_for_dma	= musb_map_urb_for_dma,
