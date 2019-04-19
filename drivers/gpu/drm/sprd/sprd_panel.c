@@ -198,18 +198,30 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 	struct sprd_panel *panel = to_sprd_panel(p);
 	struct device_node *np = panel->slave->dev.of_node;
 	u32 surface_width = 0, surface_height = 0;
-	int mode_count = 0;
+	int i, mode_count = 0;
 
 	DRM_INFO("%s()\n", __func__);
-
 	mode = drm_mode_duplicate(p->drm, &panel->info.mode);
 	if (!mode) {
 		DRM_ERROR("failed to alloc mode %s\n", panel->info.mode.name);
 		return 0;
 	}
-	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_DEFAULT;
+	mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
 	drm_mode_probed_add(p->connector, mode);
 	mode_count++;
+
+	for (i = 1; i < panel->info.num_biuldin_modes; i++)	{
+		mode = drm_mode_duplicate(p->drm,
+			&(panel->info.buildin_modes[i]));
+		if (!mode) {
+			DRM_ERROR("failed to alloc mode %s\n",
+				panel->info.buildin_modes[i].name);
+			return 0;
+		}
+		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_DEFAULT;
+		drm_mode_probed_add(p->connector, mode);
+		mode_count++;
+	}
 
 	of_property_read_u32(np, "sprd,surface-width", &surface_width);
 	of_property_read_u32(np, "sprd,surface-height", &surface_height);
@@ -221,6 +233,8 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 		vm.pixelclock = surface_width * surface_height * 60;
 
 		mode = drm_mode_create(p->drm);
+		/* TODO:  How to do low simulator resolution? */
+
 		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
 		mode->vrefresh = 60;
 		drm_display_mode_from_videomode(&vm, mode);
@@ -370,6 +384,55 @@ static int of_parse_reset_seq(struct device_node *np,
 	return 0;
 }
 
+static int of_get_buildin_modes(struct panel_info *info,
+	struct device_node *lcd_node)
+{
+	int i, rc, num_timings;
+	struct device_node *timings_np;
+
+
+	timings_np = of_get_child_by_name(lcd_node, "display-timings");
+	if (!timings_np) {
+		DRM_ERROR("%s: can not find display-timings node\n",
+			lcd_node->name);
+		return -ENODEV;
+	}
+
+	num_timings = of_get_child_count(timings_np);
+	if (num_timings == 0) {
+		/* should never happen, as entry was already found above */
+		DRM_ERROR("%s: no timings specified\n", lcd_node->name);
+		goto done;
+	}
+
+	info->buildin_modes = kzalloc(sizeof(struct drm_display_mode) *
+				num_timings, GFP_KERNEL);
+
+	for (i = 0; i < num_timings; i++) {
+		rc = of_get_drm_display_mode(lcd_node,
+			&info->buildin_modes[i], NULL, i);
+		if (rc) {
+			DRM_ERROR("get display timing failed\n");
+			goto entryfail;
+		}
+
+		info->buildin_modes[i].width_mm = info->mode.width_mm;
+		info->buildin_modes[i].height_mm = info->mode.height_mm;
+		info->buildin_modes[i].vrefresh = info->mode.vrefresh;
+	}
+	info->num_biuldin_modes = num_timings;
+	DRM_INFO("info->num_buildin_modes = %d\n", num_timings);
+	goto done;
+
+entryfail:
+	kfree(info->buildin_modes);
+done:
+	of_node_put(timings_np);
+
+	return 0;
+}
+
+
 static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 {
 	u32 val;
@@ -513,6 +576,7 @@ static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 	}
 
 	info->mode.vrefresh = drm_mode_vrefresh(&info->mode);
+	of_get_buildin_modes(info, lcd_node);
 
 	return 0;
 }

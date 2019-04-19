@@ -134,7 +134,9 @@ static void sprd_dsi_encoder_mode_set(struct drm_encoder *encoder,
 				 struct drm_display_mode *mode,
 				 struct drm_display_mode *adj_mode)
 {
-	DRM_INFO("%s()\n", __func__);
+	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
+
+	DRM_INFO("%s() set mode: %s\n", __func__, dsi->mode->name);
 }
 
 static int sprd_dsi_encoder_atomic_check(struct drm_encoder *encoder,
@@ -359,9 +361,6 @@ sprd_dsi_connector_mode_valid(struct drm_connector *connector,
 	struct sprd_dsi *dsi = connector_to_dsi(connector);
 
 	DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__, DRM_MODE_ARG(mode));
-
-	if (mode->type & DRM_MODE_TYPE_DEFAULT)
-		dsi->mode = mode;
 
 	if ((mode->type & DRM_MODE_TYPE_PREFERRED) && !dsi->mode)
 		dsi->mode = mode;

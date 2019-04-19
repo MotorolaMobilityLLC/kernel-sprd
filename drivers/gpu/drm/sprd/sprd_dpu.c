@@ -543,7 +543,7 @@ static void sprd_crtc_mode_set_nofb(struct drm_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
-	DRM_INFO("%s()\n", __func__);
+	DRM_INFO("%s() set mode: %s\n", __func__, dpu->mode->name);
 
 	if ((dpu->mode->hdisplay == dpu->mode->htotal) ||
 	    (dpu->mode->vdisplay == dpu->mode->vtotal))
@@ -559,13 +559,10 @@ static enum drm_mode_status sprd_crtc_mode_valid(struct drm_crtc *crtc,
 
 	DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__, DRM_MODE_ARG(mode));
 
-	if (mode->type & DRM_MODE_TYPE_DEFAULT)
+	if ((mode->type & DRM_MODE_TYPE_PREFERRED) && !dpu->mode) {
 		dpu->mode = (struct drm_display_mode *)mode;
-
-	if ((mode->type & DRM_MODE_TYPE_PREFERRED) && !dpu->mode)
-		dpu->mode = (struct drm_display_mode *)mode;
-
-	drm_display_mode_to_videomode(dpu->mode, &dpu->ctx.vm);
+		drm_display_mode_to_videomode(dpu->mode, &dpu->ctx.vm);
+	}
 
 	return MODE_OK;
 }
@@ -662,6 +659,16 @@ static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
 	struct drm_device *drm = dpu->crtc.dev;
 
 	DRM_DEBUG("%s()\n", __func__);
+
+	if (dpu->core && dpu->core->modeset) {
+		if (crtc->state->mode_changed) {
+			struct drm_mode_modeinfo umode;
+
+			drm_mode_convert_to_umode(&umode,
+				&crtc->state->adjusted_mode);
+			dpu->core->modeset(&dpu->ctx, &umode);
+		}
+	}
 
 	if (dpu->core && dpu->core->flip &&
 	    dpu->pending_planes && !dpu->ctx.disable_flip)

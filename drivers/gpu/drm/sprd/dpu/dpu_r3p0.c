@@ -32,6 +32,8 @@
 #define XFBC8888_BUFFER_SIZE(w, h) (XFBC8888_HEADER_SIZE(w, h) \
 				+ XFBC8888_PAYLOAD_SIZE(w, h))
 
+#define SLP_BRIGHTNESS_THRESHOLD 0x20
+
 struct layer_reg {
 	u32 addr[4];
 	u32 ctrl;
@@ -271,7 +273,7 @@ static u32 enhance_en;
 
 static DECLARE_WAIT_QUEUE_HEAD(wait_queue);
 static bool panel_ready = true;
-static bool need_scale;
+//static bool need_scale;
 //static bool is_scaling;
 static bool evt_update;
 static bool evt_stop;
@@ -290,6 +292,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_dpu_layer *hwlayer);
+static int dpu_wb_layer_config_from_vm(struct dpu_context *ctx);
 
 static u32 dpu_get_version(struct dpu_context *ctx)
 {
@@ -402,6 +405,12 @@ static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 	return val;
 }
 
+static inline void work_now(struct work_struct *work)
+{
+	if (work->func)
+		schedule_work(work);
+}
+
 static u32 dpu_isr(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -423,11 +432,11 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	if (reg_val & DISPC_INT_DPI_VSYNC_MASK) {
 		/* write back feature */
 		if ((vsync_count == max_vsync_count) && wb_en)
-			schedule_work(&ctx->wb_work);
+			work_now(&ctx->wb_work);
 		vsync_count++;
 
 		/* dpu dvfs feature */
-		schedule_work(&ctx->dvfs_work);
+		work_now(&ctx->dvfs_work);
 	}
 
 	/* dpu stop done isr */
@@ -569,6 +578,9 @@ static void dpu_write_back(struct dpu_context *ctx,
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	int i, index;
 
+	/* config layer everytime from vm for sr */
+	dpu_wb_layer_config_from_vm(ctx);
+
 	for (i = 0; i < count; i++) {
 		index = region[i].index;
 		reg->region[index].pos = (region[i].pos_x >> 3) |
@@ -640,70 +652,93 @@ static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
 	struct device_node *node;
 	u64 size64;
 	struct resource r;
+	int ret = 0;
 
 	node = of_parse_phandle(dpu->dev.of_node,
 					"sprd,wb-memory", 0);
 	if (!node) {
-		DRM_WARN("no sprd,wb-memory specified\n");
+		pr_err("no sprd,wb-memory specified\n");
 		return -EINVAL;
 	}
 
 	if (of_address_to_resource(node, 0, &r)) {
-		DRM_ERROR("invalid wb reserved memory node!\n");
-		return -EINVAL;
+		pr_err("invalid wb reserved memory node!\n");
+		ret = -EINVAL;
+		goto OF_EXIT;
 	}
 
 	*paddr = r.start;
 	size64 = resource_size(&r);
 
 	if (size64 < size) {
-		DRM_ERROR("unable to obtain enough wb memory\n");
-		return -ENOMEM;
+		pr_err("unable to obtain enough wb memory\n");
+		ret = -ENOMEM;
+		goto OF_EXIT;
 	}
 
-	return 0;
+OF_EXIT:
+	of_node_put(node);
+	return ret;
+}
+
+static int dpu_wb_layer_config_from_vm(struct dpu_context *ctx)
+{
+	u32 hdr_size;
+	size_t buf_size;
+	int ret = 0;
+	int mode_width  = ctx->vm.hactive;
+	int mode_height = ctx->vm.vactive;
+
+	hdr_size = XFBC8888_HEADER_SIZE(mode_width, mode_height);
+	if (wb_layer.header_size_r < hdr_size) {
+		struct sprd_dpu *dpu =	(struct sprd_dpu *)
+			container_of(ctx, struct sprd_dpu, ctx);
+
+		pr_info("Need to alloc new buffer for writeback\n");
+		buf_size = XFBC8888_BUFFER_SIZE(mode_width, mode_height);
+		ret = dpu_wb_buf_alloc(dpu, buf_size, &ctx->wb_addr_p);
+	}
+
+	pr_info("mode_ (%d, %d)\n", mode_width, mode_height);
+	region[0].index = 0;
+	region[0].pos_x = 0;
+	region[0].pos_y = 0;
+	region[0].size_w = mode_width;
+	region[0].size_h = mode_height;
+
+	wb_layer.index = 0;
+	wb_layer.planes = 1;
+	wb_layer.alpha = 0xff;
+	wb_layer.dst_w = mode_width;
+	wb_layer.dst_h = mode_height;
+	wb_layer.format = DRM_FORMAT_ABGR8888;
+	wb_layer.xfbc = wb_xfbc_en;
+	wb_layer.pitch[0] = mode_width * 4;
+	wb_layer.addr[0] = ctx->wb_addr_p;
+	wb_layer.header_size_r = hdr_size;
+
+	return ret;
 }
 
 static int dpu_write_back_config(struct dpu_context *ctx)
 {
 	int ret;
 	static int need_config = 1;
-	u32 wb_hdr_size;
-	size_t wb_buf_size;
-	struct sprd_dpu *dpu =
-		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 
 	if (!need_config) {
 		pr_debug("write back has configed\n");
 		return 0;
 	}
 
-	wb_buf_size = XFBC8888_BUFFER_SIZE(ctx->vm.hactive, ctx->vm.vactive);
-	wb_hdr_size = XFBC8888_HEADER_SIZE(ctx->vm.hactive, ctx->vm.vactive);
-	ret = dpu_wb_buf_alloc(dpu, wb_buf_size, &ctx->wb_addr_p);
+	wb_layer.header_size_r = 0;
+	wb_layer.addr[0] = 0;
+	ret = dpu_wb_layer_config_from_vm(ctx);
 	if (ret) {
 		max_vsync_count = 0;
 		return -1;
 	}
 
-	region[0].index = 0;
-	region[0].pos_x = 0;
-	region[0].pos_y = 0;
-	region[0].size_w = ctx->vm.hactive;
-	region[0].size_h = ctx->vm.vactive;
-
-	wb_layer.index = 0;
-	wb_layer.planes = 1;
-	wb_layer.alpha = 0xff;
-	wb_layer.dst_w = ctx->vm.hactive;
-	wb_layer.dst_h = ctx->vm.vactive;
-	wb_layer.format = DRM_FORMAT_ABGR8888;
-	wb_layer.xfbc = wb_xfbc_en;
-	wb_layer.pitch[0] = ctx->vm.hactive * 4;
-	wb_layer.addr[0] = ctx->wb_addr_p;
-	wb_layer.header_size_r = wb_hdr_size;
-
-	max_vsync_count = 4;
+	max_vsync_count = 0;
 	need_config = 0;
 
 	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
@@ -802,8 +837,7 @@ static int dpu_init(struct dpu_context *ctx)
 
 	/* set bg color */
 	reg->bg_color = 0;
-
-	/* set dpu output size */
+	/* dpu->mode is the primary panel mode*/
 	size = (ctx->vm.vactive << 16) | ctx->vm.hactive;
 	reg->panel_size = size;
 	reg->blend_size = size;
@@ -1586,6 +1620,8 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 
 static void dpu_enhance_reload(struct dpu_context *ctx)
 {
+	struct sprd_dpu *dpu =	(struct sprd_dpu *)
+		container_of(ctx, struct sprd_dpu, ctx);
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct scale_cfg *scale;
 	struct cm_cfg *cm;
@@ -1599,7 +1635,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 		scale = &scale_copy;
 		reg->blend_size = (scale->in_h << 16) | scale->in_w;
 		pr_info("enhance scaling from %ux%u to %ux%u\n", scale->in_w,
-			scale->in_h, ctx->vm.hactive, ctx->vm.vactive);
+			scale->in_h, dpu->mode->hdisplay, dpu->mode->vdisplay);
 	}
 
 	if (enhance_en & BIT(1)) {
@@ -1674,16 +1710,32 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
+	struct sprd_dpu *dpu =	(struct sprd_dpu *)
+		container_of(ctx, struct sprd_dpu, ctx);
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
 	scale_copy.in_w = mode->hdisplay;
 	scale_copy.in_h = mode->vdisplay;
 
-	if ((mode->hdisplay != ctx->vm.hactive) ||
-	    (mode->vdisplay != ctx->vm.vactive))
-		need_scale = true;
-	else
-		need_scale = false;
-
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
+	reg->blend_size = (mode->vdisplay << 16) | mode->hdisplay;
+
+	if (mode->hdisplay != dpu->mode->hdisplay ||
+		mode->vdisplay != dpu->mode->vdisplay) {
+#ifdef EPF_ENABLED
+		if (slp_copy.brightness <= SLP_BRIGHTNESS_THRESHOLD) {
+			if (epf_copy.gain3 > 0) {
+				dpu_epf_set(reg, &epf_copy);
+				enhance_en |= BIT(1);
+			}
+		}
+#endif
+		enhance_en |= BIT(0);
+		reg->dpu_enhance_cfg = enhance_en;
+	} else {
+		enhance_en &= ~BIT(0);
+		reg->dpu_enhance_cfg = enhance_en;
+	}
 
 	return 0;
 }
