@@ -271,6 +271,9 @@
 #define MUSB_FS_EOF1		0x7d	/* 8 bit */
 #define MUSB_LS_EOF1		0x7e	/* 8 bit */
 
+#define MUSB_RX_DPKTBUFDIS	0x340	/* 16 bit */
+#define MUSB_TX_DPKTBUFDIS	0x342	/* 16 bit */
+
 /* Offsets to endpoint registers */
 #define MUSB_TXMAXP		0x00
 #define MUSB_TXCSR		0x02

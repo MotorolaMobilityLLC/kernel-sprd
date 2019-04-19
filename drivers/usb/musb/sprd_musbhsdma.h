@@ -11,7 +11,6 @@
  * GNU General Public License for more details.
  */
 
-#define MUSB_DMA_PAUSE	0x1000
 #define MUSB_DMA_FRAG_WAIT	0x1004
 #define MUSB_DMA_INTR_RAW_STATUS	0x1008
 #define MUSB_DMA_INTR_MASK_STATUS	0x100C
@@ -39,6 +38,16 @@
 #define MUSB_DMA_CHN_LLIST_PTR(n)	(0x1c14 + (n - 1) * 0x20)
 #define MUSB_DMA_CHN_ADDR_H(n)		(0x1c18 + (n - 1) * 0x20)
 #define MUSB_DMA_CHN_REQ(n)		(0x1c1c + (n - 1) * 0x20)
+
+#define MUSB_DMA_CHN_BASE(n)		(0x1c00 + (n - 1) * 0x20)
+#define MUSB_DMA_PAUSE			0x00
+#define MUSB_DMA_CFG			0x04
+#define MUSB_DMA_INTR			0x08
+#define MUSB_DMA_ADDR			0x0c
+#define MUSB_DMA_LEN			0x10
+#define MUSB_DMA_LLIST_PTR		0x14
+#define MUSB_DMA_ADDR_H			0x18
+#define MUSB_DMA_REQ			0x1c
 
 /*MUSB I2S control*/
 #define MUSB_AUDIO_IIS_CTL0		0x1404
