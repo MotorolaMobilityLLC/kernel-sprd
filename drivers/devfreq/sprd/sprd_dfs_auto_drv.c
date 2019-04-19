@@ -244,6 +244,20 @@ static int dfs_msg(unsigned int *data, unsigned int value,
 	return err;
 }
 
+static int dfs_vote(unsigned int freq, unsigned int magic)
+{
+	unsigned int data;
+#ifdef CONFIG_DEVFREQ_GOV_SPRD_EXT_VOTE
+	if (magic == 0)
+		return dfs_msg(&data, freq, DFS_CMD_NORMAL, 500);
+	else
+		return dfs_ext_vote(freq, magic);
+#else
+	return dfs_msg(&data, (freq | (magic << 16)), DFS_CMD_NORMAL, 500);
+#endif
+}
+
+
 int dfs_enable(void)
 {
 	int err = 0;
@@ -320,7 +334,6 @@ static int send_scene_request(unsigned int magic)
 	unsigned int target_freq = 0;
 	struct scene_freq *scene;
 	int i, err;
-	unsigned int data;
 
 	if ((g_dfs_data == NULL) || (g_dfs_data->scenes == NULL))
 		return -ENOENT;
@@ -334,8 +347,7 @@ static int send_scene_request(unsigned int magic)
 	}
 	mutex_lock(&g_dfs_data->sync_mutex);
 	if (target_freq != last_vote(magic)) {
-		err = dfs_msg(&data, (target_freq | (magic << 16)),
-			DFS_CMD_NORMAL, 500);
+		err = dfs_vote(target_freq, magic);
 		if (err == 0)
 			last_vote(magic) = target_freq;
 	} else {
@@ -831,6 +843,14 @@ static int dfs_auto_freq_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_DEVFREQ_GOV_SPRD_EXT_VOTE
+static int dfs_auto_freq_remove(struct platform_device *pdev)
+{
+	dfs_ext_vote_resume();
+	return 0;
+}
+#endif
+
 static const struct of_device_id dfs_auto_freq_match[] = {
 	{ .compatible = "sprd,dfs" },
 	{},
@@ -848,6 +868,9 @@ static struct platform_driver dfs_auto_freq_drvier = {
 		.of_match_table = dfs_auto_freq_match,
 #endif
 		},
+#ifdef CONFIG_DEVFREQ_GOV_SPRD_EXT_VOTE
+	.resume = dfs_auto_resume,
+#endif
 };
 
 module_platform_driver(dfs_auto_freq_drvier);

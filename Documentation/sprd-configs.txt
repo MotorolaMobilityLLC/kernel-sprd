@@ -2776,6 +2776,20 @@ CONFIG_DEVFREQ_SPRD_AUTO_DFS
 	[must] none
 	[function] This function is used to enable ddr auto dfs function
 	   on DDRC v1 and and later version
+CONFIG_DEVFREQ_SPRD_EXT_VOTE
+	[arch] arm64
+	[plat] sharkl5Pro
+	[field] make,code
+	[subsys] devfreq
+	[must] none
+	[function] This function is used to vote without cm4 for ddr dfs
+CONFIG_DEVFREQ_SPRD_EXT_VOTE_UMS512
+	[arch] arm64
+	[plat] sharkl5Pro
+	[field] make,code
+	[subsys] devfreq
+	[must] none
+	[function] Roc1 configure for EXT_VOTE
 CONFIG_DEVTMPFS
 	[arch] all
 	[plat] all

@@ -92,6 +92,32 @@ config DEVFREQ_SPRD_AUTO_DFS
 	  governors.
 	  This driver send SIPC request to DFS core to change freq.
 
+config DEVFREQ_SPRD_EXT_VOTE
+	bool "Sprd ext vote for sharkl5/roc1 etc"
+	depends on DEVFREQ_SPRD_AUTO_DFS
+	help
+	  If hardware support ext vote, software can request scene
+          without SIPC.
+          Ext vote feature can make dfs better performance.
+
+choice
+	prompt "SPRD DFS ext vote of each asic design"
+	depends on DEVFREQ_SPRD_EXT_VOTE
+	help
+	  Vote registers on pub has several different design
+
+config DEVFREQ_SPRD_EXT_VOTE_UMS512
+	bool "Sprd ext vote for sharkl5Pro"
+	help
+          Ext vote registers for sharkl5Pro .
+
+config DEVFREQ_SPRD_EXT_VOTE_ROC1
+	bool "Sprd ext vote for roc1"
+	help
+          Ext vote registers for roc1 .
+
+endchoice
+
 config ARM_EXYNOS_BUS_DEVFREQ
 	tristate "ARM EXYNOS Generic Memory Bus DEVFREQ Driver"
 	depends on ARCH_EXYNOS || COMPILE_TEST
