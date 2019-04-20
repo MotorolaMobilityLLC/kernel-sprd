@@ -616,6 +616,9 @@ static int sprd_ep_suspend(struct device *dev)
 		}
 	}
 
+	if (edma_hw_pause() < 0)
+		return -1;
+
 	WCN_INFO("%s[+]\n", __func__);
 
 	if (!pdev)
@@ -659,6 +662,8 @@ static int sprd_ep_resume(struct device *dev)
 	if (ret)
 		return ret;
 	usleep_range(10000, 11000);
+
+	edma_hw_restore();
 
 	for (chn = 0; chn < 16; chn++) {
 		ops = mchn_ops(chn);

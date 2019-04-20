@@ -401,4 +401,6 @@ void *mpool_malloc(int len);
 int mpool_free(void);
 void *pcie_alloc_memory(int len);
 int delete_queue(struct msg_q *q);
+int edma_hw_pause(void);
+int edma_hw_restore(void);
 #endif
