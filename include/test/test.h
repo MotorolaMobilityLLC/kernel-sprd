@@ -13,6 +13,7 @@
 #include <linux/slab.h>
 #include <test/strerror.h>
 #include <test/test-stream.h>
+#include <test/try-catch.h>
 
 /**
  * struct test_resource - represents a *test managed resource*
@@ -172,6 +173,7 @@ struct test_post_condition {
 struct test {
 	void *priv;
 	/* private: internal use only. */
+	spinlock_t lock; /* Guards all mutable test state. */
 	struct list_head resources;
 	struct list_head post_conditions;
 	const char *name;
@@ -182,7 +184,17 @@ struct test {
 			struct va_format *vaf);
 	void (*fail)(struct test *test, struct test_stream *stream);
 	void (*abort)(struct test *test);
+	struct test_try_catch try_catch;
 };
+
+static inline void test_set_death_test(struct test *test, bool death_test)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&test->lock, flags);
+	test->death_test = death_test;
+	spin_unlock_irqrestore(&test->lock, flags);
+}
 
 int test_init_test(struct test *test, const char *name);
 
@@ -216,10 +228,18 @@ void test_install_initcall(struct test_initcall *initcall);
  *
  * Registers @module with the test framework. See &struct test_module for more
  * information.
+ * Hardcoding the alignment to 8 was chosen as the most likely to remain
+ * between the compiler laying out the test module pointers in the custom
+ * section and the linker script placing the custom section in the output
+ * binary. There must be no gap between the section start and the first
+ * (test_module *) entry nor between any (test_module *) entries because
+ * the test executor views the .test_modules section as an array of
+ * (test_module *) starting at __test_modules_start.
  */
 #define module_test(module) \
 		static struct test_module *__test_module_##module __used       \
-	__attribute__((__section__(".test_modules"))) = &module
+		__aligned(8) __attribute__((__section__(".test_modules"))) = \
+			&module
 
 /**
  * test_alloc_resource() - Allocates a *test managed resource*.
