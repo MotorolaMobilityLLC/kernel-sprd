@@ -146,6 +146,7 @@ static int pam_ipa_connect_ipa(void)
 {
 	int ret;
 	struct pam_ipa_cfg_tag *cfg = pam_ipa_cfg;
+	u32 depth = cfg->local_cfg.ul_fifo.fifo_depth;
 
 	ret = sipa_get_ep_info(SIPA_EP_VCP, &cfg->local_cfg);
 	if (ret) {
@@ -156,6 +157,13 @@ static int pam_ipa_connect_ipa(void)
 	ret = pam_ipa_alloc_buf(cfg);
 	if (ret)
 		return ret;
+
+	cfg->pam_local_param.send_param.flow_ctrl_irq_mode = 2;
+	cfg->pam_local_param.recv_param.flow_ctrl_cfg = 1;
+	cfg->pam_local_param.recv_param.tx_enter_flowctrl_watermark =
+		depth - depth / 4;
+	cfg->pam_local_param.recv_param.rx_enter_flowctrl_watermark =
+		depth / 2;
 
 	cfg->pam_local_param.send_param.data_ptr = cfg->dl_dma_addr;
 	cfg->pam_local_param.send_param.data_ptr_cnt =
