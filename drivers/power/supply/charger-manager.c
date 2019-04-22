@@ -679,7 +679,7 @@ static int check_charging_duration(struct charger_manager *cm)
 	struct charger_desc *desc = cm->desc;
 	u64 curr = ktime_to_ms(ktime_get());
 	u64 duration;
-	int ret = false;
+	int batt_ocv, diff, ret = false;
 
 	if (!desc->charging_max_duration_ms &&
 			!desc->discharging_max_duration_ms)
@@ -689,10 +689,18 @@ static int check_charging_duration(struct charger_manager *cm)
 	    !(cm->charging_status & CM_CHARGE_DURATION_ABNORMAL))
 		return ret;
 
+	ret = get_batt_ocv(cm, &batt_ocv);
+	if (ret) {
+		dev_err(cm->dev, "failed to get battery OCV\n");
+		return ret;
+	}
+	diff = desc->fullbatt_uV - batt_ocv;
+
 	if (cm->charger_enabled) {
 		duration = curr - cm->charging_start_time;
 
-		if (duration > desc->charging_max_duration_ms) {
+		if (duration > desc->charging_max_duration_ms &&
+		    diff < desc->fullbatt_vchkdrop_uV) {
 			dev_info(cm->dev, "Charging duration exceed %ums\n",
 				 desc->charging_max_duration_ms);
 			uevent_notify(cm, "Discharging");
