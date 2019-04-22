@@ -1020,7 +1020,7 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		pr_err("sipa: sipa_init failed %d\n", ret);
 		return ret;
 	}
-	sipa_init_debugfs(cfg);
+	sipa_init_debugfs(cfg, &s_sipa_ctrl);
 	return ret;
 }
 

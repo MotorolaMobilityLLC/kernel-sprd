@@ -490,7 +490,8 @@ extern struct sipa_hal_context sipa_hal_ctx;
 extern struct sipa_plat_drv_cfg s_sipa_cfg;
 void sipa_dbg(struct sipa_plat_drv_cfg *sipa, const char *fmt, ...);
 #ifdef CONFIG_DEBUG_FS
-int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa);
+int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa,
+		      struct sipa_control *ctrl);
 void sipa_exit_debugfs(struct sipa_plat_drv_cfg *sipa);
 #else
 static inline int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa)

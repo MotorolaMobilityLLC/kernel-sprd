@@ -107,9 +107,16 @@ void fill_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt)
 	struct sk_buff *skb;
 	u32 fail_cnt = 0;
 	int i;
-	u32 success_cnt = 0;
+	u32 success_cnt = 0, depth;
 	struct sipa_hal_fifo_item item;
 	dma_addr_t dma_addr;
+
+	depth = receiver->ep->recv_fifo.rx_fifo.fifo_depth;
+	if (cnt > (depth - depth / 4)) {
+		pr_warn("ep id = %d free node is not enough,need fill %d\n",
+			receiver->ep->id, cnt);
+		receiver->rx_danger_cnt++;
+	}
 
 	for (i = 0; i < cnt; i++) {
 		skb = alloc_recv_skb(SIPA_RECV_BUF_LEN, receiver->rsvd);

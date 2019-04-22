@@ -22,8 +22,9 @@
 #include <linux/uaccess.h>
 #include<linux/pm_runtime.h>
 #include<linux/regmap.h>
-
+#include <linux/sipa.h>
 #include "sipa_debug.h"
+#include "sipa_priv.h"
 
 static int sipa_regdump_show(struct seq_file *s, void *unused)
 {
@@ -116,7 +117,66 @@ static const struct file_operations sipa_commonfifo_fops = {
 	.release = single_release,
 };
 
-int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa)
+static int sipa_flow_ctrl_show(struct seq_file *s, void *unused)
+{
+	struct sipa_control *ipa =
+		(struct sipa_control *)s->private;
+	struct sipa_skb_sender *eth_sender =
+		ipa->sender[SIPA_PKT_ETH];
+	struct sipa_skb_sender *ip_sender =
+		ipa->sender[SIPA_PKT_IP];
+	struct sipa_skb_receiver *eth_recv =
+		ipa->receiver[SIPA_PKT_ETH];
+	struct sipa_skb_receiver *ip_recv =
+		ipa->receiver[SIPA_PKT_IP];
+
+	seq_printf(s, "[SEND_ETH] no_mem_cnt = %d no_free_cnt = %d\n",
+		   eth_sender->no_mem_cnt, eth_sender->no_free_cnt);
+
+	seq_printf(s, "[SEND_ETH] enter_flow_ctrl_cnt = %d\n",
+		   eth_sender->enter_flow_ctrl_cnt);
+
+	seq_printf(s, "[SEND_ETH] exit_flow_ctrl_cnt = %d\n",
+		   eth_sender->exit_flow_ctrl_cnt);
+
+	seq_printf(s, "[SEND_IP] no_mem_cnt = %d no_free_cnt = %d\n",
+		   ip_sender->no_mem_cnt, ip_sender->no_free_cnt);
+
+	seq_printf(s, "[SEND_IP] enter_flow_ctrl_cnt = %d\n",
+		   ip_sender->enter_flow_ctrl_cnt);
+
+	seq_printf(s, "[SEND_IP] exit_flow_ctrl_cnt = %d\n",
+		   ip_sender->exit_flow_ctrl_cnt);
+
+	seq_printf(s, "[RECV_ETH] tx_danger_cnt = %d rx_danger_cnt = %d\n",
+		   eth_recv->tx_danger_cnt, eth_recv->rx_danger_cnt);
+
+	seq_printf(s, "[RECV_ETH] need_fill_cnt = %d\n",
+		   atomic_read(&eth_recv->need_fill_cnt));
+
+	seq_printf(s, "[RECV_IP] tx_danger_cnt = %d rx_danger_cnt = %d\n",
+		   ip_recv->tx_danger_cnt, ip_recv->rx_danger_cnt);
+
+	seq_printf(s, "[RECV_IP] need_fill_cnt = %d\n",
+		   atomic_read(&ip_recv->need_fill_cnt));
+
+	return 0;
+}
+
+static int sipa_flow_ctrl_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sipa_flow_ctrl_show, inode->i_private);
+}
+
+static const struct file_operations sipa_flow_ctrl_fops = {
+	.open = sipa_flow_ctrl_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
+int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa,
+		      struct sipa_control *ctrl)
 {
 	struct dentry *root;
 	struct dentry *file;
@@ -135,6 +195,13 @@ int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa)
 
 	file = debugfs_create_file("commonfifo_reg", 0444, root, sipa,
 				   &sipa_commonfifo_fops);
+	if (!file) {
+		ret = -ENOMEM;
+		goto err1;
+	}
+
+	file = debugfs_create_file("flow_ctrl", 0444, root, ctrl,
+				   &sipa_flow_ctrl_fops);
 	if (!file) {
 		ret = -ENOMEM;
 		goto err1;
