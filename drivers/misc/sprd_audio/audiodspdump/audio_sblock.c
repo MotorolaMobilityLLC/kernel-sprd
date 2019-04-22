@@ -137,6 +137,8 @@ struct sblock_ring {
 	struct sblock_header	*header;
 	void			*txblk_virt; /* virt of header->txblk_addr */
 	void			*rxblk_virt; /* virt of header->rxblk_addr */
+	u32		txblkmemsz; /* total size of tx block memory size */
+	u32		rxblkmemsz; /* total size of rx block memory size */
 	/* virt of header->ring->txblk_blks */
 	struct sblock_blks	*r_txblks;
 	/* virt of header->ring->rxblk_blks */
@@ -178,6 +180,8 @@ struct sblock_mgr {
 
 	void			(*handler)(int event, void *data);
 	void			*data;
+	u32		txblks_err; /* the abnormal tx blcoks for debug */
+	u32		rxblks_err; /* the abnormal rx blcoks for debug*/
 };
 
 static struct sblock_mgr *sblocks[AUD_IPC_NR][AMSG_CH_NR];
@@ -523,6 +527,10 @@ int audio_sblock_create(uint8_t dst, uint8_t channel,
 
 	sblock->ring->p_rxblks = sblock->smem_virt +
 		(poolhd->rxblk_blks - sblock->smem_dsp_addr);
+
+	sblock->ring->rxblkmemsz = rxblocknum * rxblocksize;
+	sblock->ring->txblkmemsz = txblocknum * txblocksize;
+
 	/*init physic addr*/
 	for (i = 0; i < txblocknum; i++) {
 		sblock->ring->p_txblks[i].addr =
@@ -726,19 +734,23 @@ int audio_sblock_get(uint8_t dst, uint8_t channel,
 		txpos = sblock_get_ringpos(poolhd->txblk_rdptr,
 			poolhd->txblk_count);
 
-		if ((ring->p_txblks[txpos].addr > sblock->smem_dsp_addr) &&
-			(ring->p_txblks[txpos].addr < sblock->smem_dsp_addr +
-				sblock->smem_size)) {
+		if ((ring->p_txblks[txpos].addr >= ringhd->txblk_addr) &&
+			(ring->p_txblks[txpos].addr + poolhd->txblk_size <=
+			ringhd->txblk_addr + ring->txblkmemsz)) {
 			blk->addr = sblock->smem_virt +
 				(ring->p_txblks[txpos].addr - sblock->smem_dsp_addr);
 			blk->length = poolhd->txblk_size;
-			poolhd->txblk_rdptr = poolhd->txblk_rdptr + 1;
 			index = sblock_get_index((blk->addr - ring->txblk_virt),
-				sblock->txblksz);
+			sblock->txblksz);
 			ring->txrecord[index] = SBLOCK_BLK_STATE_PENDING;
 		} else {
+			sblock->txblks_err++;
+			pr_err("%s:block address error:ch:%d, block error:addr:0x%p,length:%x,err bxblks:%d\n",
+			    __func__, sblock->channel, blk->addr, blk->length,
+			    sblock->txblks_err);
 			rval = -ENXIO;
 		}
+		poolhd->txblk_rdptr = poolhd->txblk_rdptr + 1;
 	} else {
 		rval = sblock->state == SBLOCK_STATE_READY ? -EAGAIN : -EIO;
 	}
@@ -768,6 +780,14 @@ static int audio_sblock_send_ex(uint8_t dst,
 	ring = sblock->ring;
 	ringhd =
 		(volatile struct sblock_ring_header *)(&ring->header->ring);
+
+	if (blk->addr < ring->txblk_virt ||
+		blk->addr + blk->length >
+			ring->txblk_virt + ring->txblkmemsz) {
+		pr_err("%s:block ch:%d,error:addr:0x%p,length:%x\n", __func__,
+			channel, blk->addr, blk->length);
+		return -EINVAL;
+	}
 
 	spin_lock_irqsave(&ring->r_txlock, flags);
 
@@ -904,9 +924,21 @@ int audio_sblock_receive(
 			- sblock->smem_dsp_addr + sblock->smem_virt;
 		blk->length = ring->r_rxblks[rxpos].length;
 		ringhd->rxblk_rdptr = ringhd->rxblk_rdptr + 1;
-		index = sblock_get_index(
-			(blk->addr - ring->rxblk_virt), sblock->rxblksz);
-		ring->rxrecord[index] = SBLOCK_BLK_STATE_PENDING;
+		if (blk->addr >= ring->rxblk_virt &&
+			blk->addr + blk->length <=
+				ring->rxblk_virt + ring->rxblkmemsz) {
+			index = sblock_get_index(
+			    (blk->addr - ring->rxblk_virt), sblock->rxblksz);
+			ring->rxrecord[index] = SBLOCK_BLK_STATE_PENDING;
+		} else {
+			sblock->rxblks_err++;
+			pr_err("%s:ch:%d, block error:addr:0x%p,length:%x,err blk cnt:%d\n",
+			    __func__, sblock->channel, blk->addr, blk->length,
+			    sblock->rxblks_err);
+			rval =
+			    sblock->state ==
+			    SBLOCK_STATE_READY ? -EAGAIN : -EIO;
+		}
 	} else {
 		rval = sblock->state == SBLOCK_STATE_READY ? -EAGAIN : -EIO;
 	}
@@ -986,8 +1018,9 @@ int audio_sblock_release(uint8_t dst, uint8_t channel, struct sblock *blk)
 	rxpos = sblock_get_ringpos(poolhd->rxblk_wrptr,
 		poolhd->rxblk_count);
 
-	if ((blk->addr > sblock->smem_virt) &&
-		(blk->addr < sblock->smem_virt+sblock->smem_size)) {
+	if ((blk->addr >= ring->rxblk_virt) &&
+		(blk->addr + poolhd->rxblk_size <=
+			ring->rxblk_virt + ring->rxblkmemsz)) {
 		ring->p_rxblks[rxpos].addr =
 			blk->addr - sblock->smem_virt
 			+ sblock->smem_dsp_addr;
@@ -997,9 +1030,9 @@ int audio_sblock_release(uint8_t dst, uint8_t channel, struct sblock *blk)
 			sblock->rxblksz);
 		ring->rxrecord[index] = SBLOCK_BLK_STATE_DONE;
 	} else {
-		pr_err("sblock_release addr error! p_rxblks[%d].addr=0x%x",
-			rxpos, ring->p_rxblks[rxpos].addr);
-		ret = -ENXIO;
+		pr_err("sblock_release ch:%d,addr error!addr=0x%p,length:%d",
+			sblock->channel, blk->addr, blk->length);
+		ret = -EINVAL;
 	}
 	spin_unlock_irqrestore(&ring->p_rxlock, flags);
 
