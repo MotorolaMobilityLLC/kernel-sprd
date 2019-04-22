@@ -217,10 +217,5 @@ void sipa_sys_proc_init(struct sipa_sys_cfg_tag *cfg)
 	sipa_sys_set_lightsleep(cfg);
 	/*set ipa smart light sleep enable:0x32280230[7] */
 	sipa_sys_set_smart_lightsleep(cfg);
-
-	/*step4 disable ipa sys cm4 */
-	sipa_sys_disable_ipacm4(cfg);
-	/*step5 auto gate enable */
-	sipa_sys_auto_gate_enable(cfg);
 }
 EXPORT_SYMBOL(sipa_sys_proc_init);
