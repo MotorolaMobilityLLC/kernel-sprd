@@ -50,6 +50,10 @@ static const char * const default_event_names[] = {
 	[CM_EVENT_OTHERS] = "Other battery events"
 };
 
+static char *charger_manager_supplied_to[] = {
+	"audio-ldo",
+};
+
 /*
  * Regard CM_JIFFIES_SMALL jiffies is small enough to ignore for
  * delayed works so that we can run delayed works with CM_JIFFIES_SMALL
@@ -2666,6 +2670,9 @@ static int charger_manager_probe(struct platform_device *pdev)
 			cm->charger_psy_desc.name);
 		return PTR_ERR(cm->charger_psy);
 	}
+	cm->charger_psy->supplied_to = charger_manager_supplied_to;
+	cm->charger_psy->num_supplicants =
+		ARRAY_SIZE(charger_manager_supplied_to);
 
 	/* Register extcon device for charger cable */
 	ret = charger_manager_register_extcon(cm);
