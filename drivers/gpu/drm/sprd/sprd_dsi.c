@@ -120,6 +120,7 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 
 	if (dsi->panel) {
 		drm_panel_disable(dsi->panel);
+		sprd_dphy_ulps_enter(dsi->phy);
 		drm_panel_unprepare(dsi->panel);
 	}
 

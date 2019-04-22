@@ -40,7 +40,21 @@ static int dphy_wait_datalane_stop_state(struct sprd_dphy *dphy, u8 mask)
 		udelay(10);
 	}
 
-	pr_err("datalane ulps exit wait time out\n");
+	pr_err("wait datalane stop-state time out\n");
+	return -1;
+}
+
+static int dphy_wait_datalane_ulps_active(struct sprd_dphy *dphy, u8 mask)
+{
+	u32 i = 0;
+
+	for (i = 0; i < 5000; i++) {
+		if (dphy_hal_is_ulps_active_datalane(dphy) == mask)
+			return 0;
+		udelay(10);
+	}
+
+	pr_err("wait datalane ulps-active time out\n");
 	return -1;
 }
 
@@ -54,18 +68,24 @@ static int dphy_wait_clklane_stop_state(struct sprd_dphy *dphy)
 		udelay(10);
 	}
 
-	pr_err("clklane ulps exit wait time out\n");
+	pr_err("wait clklane stop-state time out\n");
 	return -1;
 }
 
-/**
- * Configure D-PHY and PLL module to desired operation mode
- * @param dphy: pointer to structure
- *  which holds information about the d-dphy module
- * @param no_of_lanes active
- * @param freq desired high speed frequency
- * @return error code
- */
+static int dphy_wait_clklane_ulps_active(struct sprd_dphy *dphy)
+{
+	u32 i = 0;
+
+	for (i = 0; i < 5000; i++) {
+		if (dphy_hal_is_ulps_active_clklane(dphy))
+			return 0;
+		udelay(10);
+	}
+
+	pr_err("wait clklane ulps-active time out\n");
+	return -1;
+}
+
 int sprd_dphy_configure(struct sprd_dphy *dphy)
 {
 	struct dphy_pll_ops *pll = dphy->pll;
@@ -133,12 +153,6 @@ int sprd_dphy_ssc_en(struct sprd_dphy *dphy, bool en)
 	return 0;
 }
 
-/**
- * Close and power down D-PHY module
- * @param dphy pointer to structure which holds information about the d-dphy
- * module
- * @return error code
- */
 int sprd_dphy_close(struct sprd_dphy *dphy)
 {
 	if (!dphy)
@@ -150,126 +164,67 @@ int sprd_dphy_close(struct sprd_dphy *dphy)
 
 	return 0;
 }
-/**
- * Wake up or make sure D-PHY PLL module is awake
- * This function must be called after going into ULPS and before exiting it
- * to force the DPHY PLLs to wake up. It will wait until the DPHY status is
- * locked. It follows the procedure described in the user guide.
- * This function should be used to make sure the PLL is awake, rather than
- * the force_pll above.
- * @param dphy pointer to structure which holds information about the d-dphy
- * module
- * @return error code
- * @note this function has an active wait
- */
-int sprd_dphy_wakeup_pll(struct sprd_dphy *dphy)
+
+int sprd_dphy_data_ulps_enter(struct sprd_dphy *dphy)
 {
-	if (dphy_hal_is_pll_locked(dphy))
-		return 0;
+	u8 lane_mask = (1 << dphy->ctx.lanes) - 1;
 
-	dphy_hal_force_pll(dphy, 1);
+	dphy_hal_datalane_ulps_rqst(dphy, 1);
 
-	if (dphy_wait_pll_locked(dphy))
-		return -1;
+	dphy_wait_datalane_ulps_active(dphy, lane_mask);
+
+	dphy_hal_datalane_ulps_rqst(dphy, 0);
 
 	return 0;
 }
 
-/**
- * ULPS mode request/exit on all active data lanes.
- * @param dphy pointer to structure which holds information about the d-dphy
- * module
- * @param enable (request 1/ exit 0)
- * @return error code
- * @note this is a blocking function. wait upon exiting the ULPS will exceed 1ms
- */
-int sprd_dphy_data_ulps_en(struct sprd_dphy *dphy, int enable)
+int sprd_dphy_data_ulps_exit(struct sprd_dphy *dphy)
 {
-	u8 mask = 0;
-	u16 lanes = dphy->ctx.lanes;
+	u8 lane_mask = (1 << dphy->ctx.lanes) - 1;
 
-	if (enable)
-		dphy_hal_datalane_ulps_rqst(dphy, 1);
-	else {
-		if (!dphy_hal_is_pll_locked(dphy)) {
-			pr_err("dphy pll is not locked\n");
-			return -1;
-		}
+	dphy_hal_datalane_ulps_exit(dphy, 1);
 
-		dphy_hal_datalane_ulps_exit(dphy, 1);
-		switch (lanes) {
-		/* Fall through */
-		case 4:
-			mask |= BIT(3);
-		/* Fall through */
-		case 3:
-			mask |= BIT(2);
-		/* Fall through */
-		case 2:
-			mask |= BIT(1);
-		/* Fall through */
-		case 1:
-			mask |= BIT(0);
-			break;
-		default:
-			break;
-		}
+	dphy_wait_datalane_stop_state(dphy, lane_mask);
 
-		/* verify that the DPHY has left ULPM */
-		dphy_wait_datalane_stop_state(dphy, mask);
-
-		dphy_hal_datalane_ulps_rqst(dphy, 0);
-		dphy_hal_datalane_ulps_exit(dphy, 0);
-	}
+	dphy_hal_datalane_ulps_exit(dphy, 0);
 
 	return 0;
 }
 
-/**
- * ULPS mode request/exit on Clock Lane.
- * @param dphy pointer to structure which holds information about the
- * d-dphy module
- * @param enable 1 or disable 0 of the Ultra Low Power State of the clock lane
- * @return error code
- * @note this is a blocking function. wait upon exiting the ULPS will exceed 1ms
- */
-int sprd_dphy_clk_ulps_en(struct sprd_dphy *dphy, int enable)
+int sprd_dphy_clk_ulps_enter(struct sprd_dphy *dphy)
 {
-	if (enable)
-		dphy_hal_clklane_ulps_rqst(dphy, 1);
-	else {
-		if (!dphy_hal_is_pll_locked(dphy)) {
-			pr_err("dphy pll is not locked\n");
-			return -1;
-		}
+	dphy_hal_clklane_ulps_rqst(dphy, 1);
 
-		dphy_hal_clklane_ulps_exit(dphy, 1);
+	dphy_wait_clklane_ulps_active(dphy);
 
-		/* verify that the DPHY has left ULPM */
-		dphy_wait_clklane_stop_state(dphy);
-
-		dphy_hal_clklane_ulps_rqst(dphy, 0);
-		dphy_hal_clklane_ulps_exit(dphy, 0);
-	}
+	dphy_hal_clklane_ulps_rqst(dphy, 0);
 
 	return 0;
 }
 
-void sprd_dphy_hs_clk_en(struct sprd_dphy *dphy, int enable)
+int sprd_dphy_clk_ulps_exit(struct sprd_dphy *dphy)
+{
+	dphy_hal_clklane_ulps_exit(dphy, 1);
+
+	dphy_wait_clklane_stop_state(dphy);
+
+	dphy_hal_clklane_ulps_exit(dphy, 0);
+
+	return 0;
+}
+
+void sprd_dphy_force_pll(struct sprd_dphy *dphy, bool enable)
+{
+	dphy_hal_force_pll(dphy, enable);
+}
+
+void sprd_dphy_hs_clk_en(struct sprd_dphy *dphy, bool enable)
 {
 	dphy_hal_clk_hs_rqst(dphy, enable);
 
 	dphy_wait_pll_locked(dphy);
 }
 
-/**
- * Write to D-PHY module (encapsulating the digital interface)
- * @param dphy pointer to structure which holds information about the d-dphy
- * module
- * @param address offset inside the D-PHY digital interface
- * @param data array of bytes to be written to D-PHY
- * @param data_length of the data array
- */
 void sprd_dphy_test_write(struct sprd_dphy *dphy, u8 address, u8 data)
 {
 	dphy_hal_test_en(dphy, 1);

@@ -90,6 +90,8 @@ extern struct list_head dphy_glb_head;
 #define dphy_glb_ops_attach(str) \
 	disp_ops_attach(str, &dphy_glb_head)
 
+void sprd_dphy_ulps_enter(struct sprd_dphy *dphy);
+void sprd_dphy_ulps_exit(struct sprd_dphy *dphy);
 int sprd_dphy_resume(struct sprd_dphy *dphy);
 int sprd_dphy_suspend(struct sprd_dphy *dphy);
 
@@ -99,10 +101,12 @@ void sprd_dphy_shutdown(struct sprd_dphy *dphy);
 int sprd_dphy_hop_config(struct sprd_dphy *dphy, int delta, int period);
 int sprd_dphy_ssc_en(struct sprd_dphy *dphy, bool en);
 int sprd_dphy_close(struct sprd_dphy *dphy);
-int sprd_dphy_wakeup_pll(struct sprd_dphy *dphy);
-int sprd_dphy_data_ulps_en(struct sprd_dphy *dphy, int enable);
-int sprd_dphy_clk_ulps_en(struct sprd_dphy *dphy, int enable);
-void sprd_dphy_hs_clk_en(struct sprd_dphy *dphy, int enable);
+int sprd_dphy_data_ulps_enter(struct sprd_dphy *dphy);
+int sprd_dphy_data_ulps_exit(struct sprd_dphy *dphy);
+int sprd_dphy_clk_ulps_enter(struct sprd_dphy *dphy);
+int sprd_dphy_clk_ulps_exit(struct sprd_dphy *dphy);
+void sprd_dphy_force_pll(struct sprd_dphy *dphy, bool enable);
+void sprd_dphy_hs_clk_en(struct sprd_dphy *dphy, bool enable);
 void sprd_dphy_test_write(struct sprd_dphy *dphy, u8 address, u8 data);
 u8 sprd_dphy_test_read(struct sprd_dphy *dphy, u8 address);
 

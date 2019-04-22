@@ -100,6 +100,23 @@ static int sprd_dphy_regmap_init(struct sprd_dphy *dphy)
 	return 0;
 }
 
+void sprd_dphy_ulps_enter(struct sprd_dphy *dphy)
+{
+	DRM_INFO("dphy ulps enter\n");
+	sprd_dphy_hs_clk_en(dphy, false);
+	sprd_dphy_data_ulps_enter(dphy);
+	sprd_dphy_clk_ulps_enter(dphy);
+}
+
+void sprd_dphy_ulps_exit(struct sprd_dphy *dphy)
+{
+	DRM_INFO("dphy ulps exit\n");
+	sprd_dphy_force_pll(dphy, true);
+	sprd_dphy_clk_ulps_exit(dphy);
+	sprd_dphy_data_ulps_exit(dphy);
+	sprd_dphy_force_pll(dphy, false);
+}
+
 int sprd_dphy_resume(struct sprd_dphy *dphy)
 {
 	int ret;

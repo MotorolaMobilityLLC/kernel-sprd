@@ -23,6 +23,7 @@
 
 static int hop_freq;
 static int ssc_en;
+static int ulps_en;
 static u32 input_param[64];
 static u32 read_buf[64];
 
@@ -216,6 +217,43 @@ static ssize_t hop_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(hop);
 
+static ssize_t ulps_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int ret = 0;
+
+	ret = snprintf(buf, PAGE_SIZE, "%u\n", ulps_en);
+
+	return ret;
+}
+
+static ssize_t ulps_store(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	int ret;
+	struct sprd_dphy *dphy = dev_get_drvdata(dev);
+
+	if (pm_runtime_suspended(dev->parent)) {
+		pr_err("dphy is not initialized\n");
+		return -ENXIO;
+	}
+
+	ret = kstrtoint(buf, 10, &ulps_en);
+	if (ret) {
+		pr_err("Invalid input freq\n");
+		return -EINVAL;
+	}
+
+	if (ulps_en)
+		sprd_dphy_ulps_enter(dphy);
+	else
+		sprd_dphy_ulps_exit(dphy);
+
+	return count;
+}
+static DEVICE_ATTR_RW(ulps);
+
 static ssize_t freq_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -313,6 +351,7 @@ static struct attribute *dphy_attrs[] = {
 	&dev_attr_reg_write.attr,
 	&dev_attr_ssc.attr,
 	&dev_attr_hop.attr,
+	&dev_attr_ulps.attr,
 	&dev_attr_freq.attr,
 	&dev_attr_suspend.attr,
 	&dev_attr_resume.attr,
