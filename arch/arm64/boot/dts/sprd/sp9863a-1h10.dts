@@ -290,7 +290,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	panel {
+	panel: panel {
 		compatible = "sprd,generic-mipi-panel";
 		#address-cells = <1>;
 		#size-cells = <0>;

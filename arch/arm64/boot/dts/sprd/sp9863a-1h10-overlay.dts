@@ -52,3 +52,7 @@ dtbo: dtbo {
 		reg = <0x11>;
 	};
 };
+
+&panel {
+	sprd,backlight = <&pwm_backlight>;
+};
