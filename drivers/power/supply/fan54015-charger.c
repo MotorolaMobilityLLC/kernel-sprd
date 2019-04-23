@@ -952,16 +952,16 @@ static int fan54015_charger_probe(struct i2c_client *client,
 		return PTR_ERR(info->gpiod);
 	}
 
-	ret = fan54015_charger_register_vbus_regulator(info);
-	if (ret) {
-		dev_err(dev, "failed to register vbus regulator.\n");
-		return ret;
-	}
-
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(dev, "failed to find USB phy\n");
 		return PTR_ERR(info->usb_phy);
+	}
+
+	ret = fan54015_charger_register_vbus_regulator(info);
+	if (ret) {
+		dev_err(dev, "failed to register vbus regulator.\n");
+		return ret;
 	}
 
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
