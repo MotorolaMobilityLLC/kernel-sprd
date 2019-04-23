@@ -57,14 +57,18 @@ void sipa_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 		BUG_ON(0);
 	}
 
-	if (evt & SIPA_HAL_EXIT_FLOW_CTRL) {
-		sender->exit_flow_ctrl_cnt++;
-		inform_evt_to_nics(sender, SIPA_LEAVE_FLOWCTRL);
-	}
+	if ((evt & SIPA_HAL_ENTER_FLOW_CTRL) &&
+	    (evt & SIPA_HAL_EXIT_FLOW_CTRL))
+		return;
 
 	if (evt & SIPA_HAL_ENTER_FLOW_CTRL) {
 		sender->enter_flow_ctrl_cnt++;
 		inform_evt_to_nics(sender, SIPA_ENTER_FLOWCTRL);
+	}
+
+	if (evt & SIPA_HAL_EXIT_FLOW_CTRL) {
+		sender->exit_flow_ctrl_cnt++;
+		inform_evt_to_nics(sender, SIPA_LEAVE_FLOWCTRL);
 	}
 }
 
