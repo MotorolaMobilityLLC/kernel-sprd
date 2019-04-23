@@ -38,6 +38,10 @@ Optional properties:
 	       the clock, and so we can get regmap for the clocks from the
 	       syscon device.
 
+- sprd,sec-clk: boolean, it means the clock registers only be accessd at
+		security world. It must be configured only if no 'sprd,syscon'
+		& 'reg' property under the node.
+
 Example:
 
 	pmu_gate: pmu-gate {
