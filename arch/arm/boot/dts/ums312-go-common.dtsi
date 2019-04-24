@@ -346,6 +346,7 @@
 &sdio0 {
 	sprd,sdr104-dly = <0x86 0x6e 0x70 0x70>;
 	sprd,sdr50-dly = <0x7f 0x7f 0xf6 0xf6>;
+	sprd,sdhs-dly = <0x0 0x24 0x24 0x24>;
 	vmmc-supply = <&vddsdcore>;
 	vqmmc-supply = <&vddsdio>;
 	voltage-ranges = <3000 3000>;
