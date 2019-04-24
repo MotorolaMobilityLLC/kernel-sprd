@@ -114,6 +114,7 @@
 		virtualkeys = <580 60 1320 60 45
 				172 360 1320 60 45
 				158 600 1320 60 45>;
+		firmware-auto-upgrade;
 		private-data {
 			a8 = /bits/ 8 <0x5a>;
 		};
