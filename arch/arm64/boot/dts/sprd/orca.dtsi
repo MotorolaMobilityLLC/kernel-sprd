@@ -36,6 +36,9 @@
 		eth7 = &sipa_eth7;
 		eth8 = &sipa_eth8;
 		eth9 = &sipa_eth9;
+		serdes0 = &serdes0;
+		serdes1 = &serdes1;
+		serdes2 = &serdes2;
 	};
 
 	soc: soc {
@@ -647,6 +650,36 @@
 			pin_controller: pinctrl@63450000 {
 				compatible = "sprd,orca-pinctrl";
 				reg = <0 0x63450000 0 0x10000>;
+			};
+
+			serdes0: modem-dbg-log@63610000 {
+				compatible = "sprd,dbg-log-orca";
+				reg = <0 0x63610000 0 0x4000>;
+				sprd,syscon-dsi-apb = <&anlg_phy_g11_regs>;
+				sprd,ch-name = "TRAINING", "TPIU", "DBUS", "V3", "NR";
+				sprd,ch-index = <15 1 0 2 3>;
+				sprd,dcfix;
+				status = "disabled";
+			};
+
+			serdes1: modem-dbg-log@63620000 {
+				compatible = "sprd,dbg-log-orca";
+				reg = <0 0x63620000 0 0x4000>;
+				sprd,syscon-dsi-apb = <&anlg_phy_g11_regs>;
+				sprd,ch-name = "TRAINING", "TPIU", "NR";
+				sprd,ch-index = <15 1 0>;
+				sprd,dcfix;
+				status = "disabled";
+			};
+
+			serdes2: modem-dbg-log@63630000 {
+				compatible = "sprd,dbg-log-orca";
+				reg = <0 0x63630000 0 0x4000>;
+				sprd,syscon-dsi-apb = <&anlg_phy_g11_regs>;
+				sprd,ch-name = "TRAINING", "NR";
+				sprd,ch-index = <15 0>;
+				sprd,dcfix;
+				status = "disabled";
 			};
 
 			djtag: djtag@63650000 {

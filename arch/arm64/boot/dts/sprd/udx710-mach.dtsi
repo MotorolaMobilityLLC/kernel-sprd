@@ -73,6 +73,54 @@
 	};
 };
 
+&serdes0 {
+	status = "okay";
+	clock-names =
+		"serdes_eb",
+		"ana_eb",
+		"dphy_cfg_eb",
+		"dphy_ref_eb",
+		"dsi_ref_eb";
+	clocks =
+		<&aonapb_gate CLK_SERDES0_EB>,
+		<&aonapb_gate CLK_ANA_EB>,
+		<&aonapb_gate CLK_SD0_CFG_EB>,
+		<&aonapb_gate CLK_SD0_REF_EB>,
+		<&aonapb_gate CLK_DSI0_REF_EN>;
+};
+
+&serdes1 {
+	status = "okay";
+	clock-names =
+		"serdes_eb",
+		"ana_eb",
+		"dphy_cfg_eb",
+		"dphy_ref_eb",
+		"dsi_ref_eb";
+	clocks =
+		<&aonapb_gate CLK_SERDES1_EB>,
+		<&aonapb_gate CLK_ANA_EB>,
+		<&aonapb_gate CLK_SD1_CFG_EB>,
+		<&aonapb_gate CLK_SD1_REF_EB>,
+		<&aonapb_gate CLK_DSI1_REF_EN>;
+};
+
+&serdes2 {
+	status = "okay";
+	clock-names =
+		"serdes_eb",
+		"ana_eb",
+		"dphy_cfg_eb",
+		"dphy_ref_eb",
+		"dsi_ref_eb";
+	clocks =
+		<&aonapb_gate CLK_SERDES2_EB>,
+		<&aonapb_gate CLK_ANA_EB>,
+		<&aonapb_gate CLK_SD2_CFG_EB>,
+		<&aonapb_gate CLK_SD2_REF_EB>,
+		<&aonapb_gate CLK_DSI2_REF_EN>;
+};
+
 &sc2730_pmic {
 	interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>;
 };
