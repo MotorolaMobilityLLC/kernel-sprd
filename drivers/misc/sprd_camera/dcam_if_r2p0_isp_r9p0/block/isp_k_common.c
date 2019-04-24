@@ -25,7 +25,6 @@
 static int isp_k_common_block(struct isp_io_param *param, enum isp_id idx)
 {
 	int ret = 0;
-	unsigned int val = 0;
 	struct isp_dev_common_info common_info;
 
 	memset(&common_info, 0x00, sizeof(common_info));
@@ -55,11 +54,6 @@ static int isp_k_common_block(struct isp_io_param *param, enum isp_id idx)
 				common_info.gclk_ctrl_yiq_frgb);
 	ISP_HREG_WR(idx, ISP_COMMON_GCLK_CTRL_2,
 				common_info.gclk_ctrl_yuv);
-
-	/* JPG TO DO */
-	val = ((common_info.isp_cfg_sof_rst & 0x1) << 1) |
-			(common_info.isp_soft_rst & 0x1);
-	ISP_HREG_WR(idx, ISP_COMMON_SOFT_RST_CTRL, val);
 
 	ISP_HREG_MWR(idx, ISP_COMMON_SHADOW_CTRL_CH0, BIT_16,
 		common_info.shadow_ctrl_ch0.shadow_mctrl << 16);

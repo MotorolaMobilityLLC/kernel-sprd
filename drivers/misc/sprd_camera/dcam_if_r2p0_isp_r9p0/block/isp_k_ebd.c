@@ -25,8 +25,7 @@
 
 static int isp_k_ebd_block(struct isp_io_param *param, enum dcam_id idx)
 {
-	sprd_dcam_drv_glb_reg_owr(idx, DCAM_CFG, BIT_5, DCAM_CFG_REG);
-
+	DCAM_REG_MWR(idx, DCAM_VCH3_CONTROL, BIT_0, 1);
 	return 0;
 }
 

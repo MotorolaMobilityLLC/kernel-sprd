@@ -38,16 +38,16 @@ static int isp_k_yrandom_block(struct isp_io_param *param, enum isp_id idx)
 		return -1;
 	}
 
-	ISP_REG_MWR(idx, ISP_YRANDOM_PARAM1,
+	ISP_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAM1,
 		BIT_0, yrandom_info.yrandom_bypass);
 	if (yrandom_info.yrandom_bypass)
 		return 0;
 
-	ISP_REG_MWR(idx, ISP_YRANDOM_PARAM1,
+	ISP_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAM1,
 		0xFFFFFF00, yrandom_info.seed << 8);
 	val = (yrandom_info.shift & 0xF)
 		| ((yrandom_info.offset & 0x7FF) << 16);
-	ISP_REG_MWR(idx, ISP_YRANDOM_PARAM2, 0x7FF000F, val);
+	ISP_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAM2, 0x7FF000F, val);
 
 	val = (yrandom_info.takeBit[0]  & 0xF) |
 		((yrandom_info.takeBit[1] & 0xF) << 4) |
@@ -57,7 +57,7 @@ static int isp_k_yrandom_block(struct isp_io_param *param, enum isp_id idx)
 		((yrandom_info.takeBit[5] & 0xF) << 20) |
 		((yrandom_info.takeBit[6] & 0xF) << 24) |
 		((yrandom_info.takeBit[7] & 0xF) << 28);
-	ISP_REG_WR(idx, ISP_YRANDOM_PARAM3, val);
+	ISP_REG_WR(idx, ISP_RGBG_YRANDOM_PARAM3, val);
 
 	return ret;
 }
@@ -77,9 +77,9 @@ static int isp_k_yrandom_chk_sum_clr(struct isp_io_param *param,
 	}
 
 	if (val)
-		ISP_REG_OWR(idx, ISP_YRANDOM_PARAM1, BIT_2);
+		ISP_REG_OWR(idx, ISP_RGBG_YRANDOM_PARAM1, BIT_2);
 	else
-		ISP_REG_MWR(idx, ISP_YRANDOM_PARAM1, BIT_2, 0);
+		ISP_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAM1, BIT_2, 0);
 
 	return ret;
 }
@@ -97,7 +97,7 @@ static int isp_k_yrandom_init(struct isp_io_param *param, enum isp_id idx)
 		return -1;
 	}
 
-	ISP_REG_WR(idx, ISP_YRANDOM_INIT, val & 0x1);
+	ISP_REG_WR(idx, ISP_RGBG_YRANDOM_INIT, val & 0x1);
 
 	return ret;
 }

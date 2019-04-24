@@ -38,14 +38,14 @@ static int isp_k_rgb_dither_random_block
 		return -1;
 	}
 
-	DCAM_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAM0, BIT_0,
+	DCAM_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAM1, BIT_0,
 				rgb_gain.random_bypass);
 	if (rgb_gain.random_bypass)
 		return 0;
 
 	val = ((rgb_gain.seed & 0xFFFFFF) << 8)
 		| ((rgb_gain.random_mode & 0x1) << 2);
-	DCAM_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAM0, 0xFFFFFF04, val);
+	DCAM_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAM1, 0xFFFFFF04, val);
 
 	val = (rgb_gain.r_shift & 0xF)
 		| ((rgb_gain.range & 0x7) << 4)

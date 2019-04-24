@@ -44,7 +44,7 @@ static int isp_k_ltm_map_block(struct isp_io_param *param, enum isp_id idx)
 		base = ISP_LTM_MAP_YUV_BASE;
 		break;
 	default:
-		pr_err("fail to check cmd,not supported.\n", param->sub_block);
+		pr_err("fail to check cmd %d.\n", param->sub_block);
 		return -1;
 	}
 
@@ -88,7 +88,7 @@ static int isp_k_ltm_map_slice(struct isp_io_param *param, enum isp_id idx)
 		base = ISP_LTM_MAP_YUV_BASE;
 		break;
 	default:
-		pr_err("fail to check cmd, not supported.\n", param->sub_block);
+		pr_err("fail to check cmd %d\n", param->sub_block);
 		return -1;
 	}
 

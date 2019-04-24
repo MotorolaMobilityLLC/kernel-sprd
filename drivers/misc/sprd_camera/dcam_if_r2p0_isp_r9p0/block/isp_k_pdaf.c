@@ -28,9 +28,8 @@
 static void write_pd_table(struct pdaf_ppi_info *pdaf_info, enum dcam_id idx)
 {
 	int i = 0;
-	int line_start_num = 0, inner_linenum = 0, line_offset = 0;
-	int col = 0, row = 0, is_pd = 0, is_right = 0, bit_start = 0;
-	int col2 = 0, row2 = 0, is_pd2 = 0, is_right2 = 0, bit_start2 = 0;
+	int col = 0, row = 0, is_right = 0;
+	int col2 = 0, row2 = 0, is_right2 = 0;
 	int block_size = 16;
 	uint32_t pdafinfo[PDAF_PATTERN_NUM] = {0};
 

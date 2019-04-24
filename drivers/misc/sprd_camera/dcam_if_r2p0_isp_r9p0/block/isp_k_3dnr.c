@@ -229,7 +229,7 @@ static void isp_3dnr_config_fast_me(enum isp_id idx,
 
 	val = ((fast_me->nr3_channel_sel & 0x3) << 2)
 		|(fast_me->nr3_project_mode & 0x3);
-	DCAM_REG_MWR(idx, DCAM_NR3_PARA0, 0xF, val);
+	DCAM_REG_MWR(idx, DCAM_NR3_FAST_ME_PARAM, 0xF, val << 4);
 }
 
 static void isp_3dnr_config_blend(uint32_t idx,

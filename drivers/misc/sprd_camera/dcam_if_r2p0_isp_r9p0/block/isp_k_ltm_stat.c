@@ -55,7 +55,7 @@ static int isp_k_ltm_stat_block(struct isp_io_param *param, enum isp_id idx)
 		buf_addr_1 = ISP_LTM_YUV_STAT_BUF1_ADDR;
 		break;
 	default:
-		pr_err("fail to check cmd, not supported.\n", param->sub_block);
+		pr_err("fail to check cmd %d.\n", param->sub_block);
 		return -1;
 	}
 
@@ -175,7 +175,6 @@ static int isp_k_ltm_stat_pingpong_buf(struct isp_io_param *param,
 	enum isp_id idx)
 {
 	int ret = 0;
-	unsigned int val = 0;
 	unsigned int base = 0;
 	unsigned int buf_addr_0 = 0;
 	unsigned int buf_addr_1 = 0;

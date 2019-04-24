@@ -104,7 +104,7 @@ static int isp_k_bpc_block(struct isp_io_param *param, enum isp_id idx)
 	}
 
 	DCAM_REG_MWR(idx, ISP_BPC_PARAM,
-			BIT_170, bpc_info.bad_map_hw_fifo_clr_en << 17);
+			BIT_17, bpc_info.bad_map_hw_fifo_clr_en << 17);
 
 	DCAM_REG_WR(idx, ISP_BPC_MAP_CTRL, bpc_info.bad_pixel_num);
 

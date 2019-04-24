@@ -34,7 +34,7 @@ static int isp_k_raw_gtm_bypass(struct isp_io_param *param, enum isp_id idx)
 		return -1;
 	}
 
-	DCAM_REG_MWR(DCAM_GTM_GLB_CTRL, BIT_0, bypass);
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL, BIT_0, bypass);
 
 	return ret;
 }
@@ -42,7 +42,7 @@ static int isp_k_raw_gtm_bypass(struct isp_io_param *param, enum isp_id idx)
 int isp_k_raw_gtm_block(struct isp_io_param *param, enum isp_id idx)
 {
 	int ret = 0, i = 0;
-	unsigned int val = 0;
+	unsigned int val[GTM_HIST_BIN_NUM] = {0};
 	struct isp_dev_gtm_info gtm_info;
 
 	memset(&gtm_info, 0x00, sizeof(gtm_info));
@@ -53,147 +53,147 @@ int isp_k_raw_gtm_block(struct isp_io_param *param, enum isp_id idx)
 		ret = -1;
 	}
 
-	DCAM_REG_MWR(DCAM_GTM_GLB_CTRL,
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL,
 		BIT_0,
-		gtm_info->gtm_glb_ctrl.gtm_mod_en);
-	if (!gtm_info->gtm_glb_ctrl.gtm_mod_en) {
+		gtm_info.gtm_glb_ctrl.gtm_mod_en);
+	if (!gtm_info.gtm_glb_ctrl.gtm_mod_en) {
 		pr_info("gtm is disable");
 		return ret;
 	}
-	DCAM_REG_MWR(DCAM_GTM_GLB_CTRL,
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL,
 		0xF << 28,
-		gtm_info->gtm_glb_ctrl.gtm_tm_out_bit_depth << 28);
-	DCAM_REG_MWR(DCAM_GTM_GLB_CTRL,
+		gtm_info.gtm_glb_ctrl.gtm_tm_out_bit_depth << 28);
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL,
 		0xF << 24,
-		gtm_info->gtm_glb_ctrl.gtm_tm_in_bit_depth << 24);
-	DCAM_REG_MWR(DCAM_GTM_GLB_CTRL,
+		gtm_info.gtm_glb_ctrl.gtm_tm_in_bit_depth << 24);
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL,
 		BIT_7,
-		gtm_info->gtm_glb_ctrl.gtm_slice_main << 7);
-	DCAM_REG_MWR(DCAM_GTM_GLB_CTRL,
+		gtm_info.gtm_glb_ctrl.gtm_slice_main << 7);
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL,
 		0x3 << 5,
-		gtm_info->gtm_glb_ctrl.gtm_tm_luma_est_mode << 5);
-	DCAM_REG_MWR(DCAM_GTM_GLB_CTRL,
+		gtm_info.gtm_glb_ctrl.gtm_tm_luma_est_mode << 5);
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL,
 		BIT_4,
-		gtm_info->gtm_glb_ctrl.gtm_cur_is_first_frame << 4);
-	DCAM_REG_MWR(DCAM_GTM_GLB_CTRL,
+		gtm_info.gtm_glb_ctrl.gtm_cur_is_first_frame << 4);
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL,
 		BIT_3,
-		gtm_info->gtm_glb_ctrl.gtm_tm_param_calc_by_hw << 3);
-	DCAM_REG_MWR(DCAM_GTM_GLB_CTRL,
+		gtm_info.gtm_glb_ctrl.gtm_tm_param_calc_by_hw << 3);
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL,
 		BIT_2,
-		gtm_info->gtm_glb_ctrl.gtm_hist_stat_bypass << 2);
-	DCAM_REG_MWR(DCAM_GTM_GLB_CTRL,
+		gtm_info.gtm_glb_ctrl.gtm_hist_stat_bypass << 2);
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL,
 		BIT_1,
-		gtm_info->gtm_glb_ctrl.gtm_map_bypass << 1);
+		gtm_info.gtm_glb_ctrl.gtm_map_bypass << 1);
 
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL0,
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL0,
 		0x7FFF << 4,
-		gtm_info->gtm_hist_ctrl0.gtm_imgkey_setting_value << 4);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL0,
+		gtm_info.gtm_hist_ctrl0.gtm_imgkey_setting_value << 4);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL0,
 		BIT_0,
-		gtm_info->gtm_hist_ctrl0.gtm_imgkey_setting_mode);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL1,
+		gtm_info.gtm_hist_ctrl0.gtm_imgkey_setting_mode);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL1,
 		0x3FFF << 16,
-		gtm_info->gtm_hist_ctrl1.gtm_target_norm_coeff << 16);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL1,
+		gtm_info.gtm_hist_ctrl1.gtm_target_norm_coeff << 16);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL1,
 		0x3FFF << 2,
-		gtm_info->gtm_hist_ctrl1.gtm_target_norm << 2);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL1,
+		gtm_info.gtm_hist_ctrl1.gtm_target_norm << 2);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL1,
 		BIT_0,
-		gtm_info->gtm_hist_ctrl1.gtm_target_norm_setting_mode);
-	DCAM_REG_MWR(DCAM_GTM_HIST_YMIN,
+		gtm_info.gtm_hist_ctrl1.gtm_target_norm_setting_mode);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_YMIN,
 		0xFF,
-		gtm_info->gtm_hist_ymin.gtm_ymin);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL2,
+		gtm_info.gtm_hist_ymin.gtm_ymin);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL2,
 		0x3FFF << 16,
-		gtm_info->gtm_hist_ctrl2.gtm_yavg << 16);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL2,
+		gtm_info.gtm_hist_ctrl2.gtm_yavg << 16);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL2,
 		0x3FFF,
-		gtm_info->gtm_hist_ctrl2.gtm_ymax);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL3,
+		gtm_info.gtm_hist_ctrl2.gtm_ymax);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL3,
 		0xFFFF << 16,
-		gtm_info->gtm_hist_ctrl3.gtm_log_min_int << 16);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL3,
+		gtm_info.gtm_hist_ctrl3.gtm_log_min_int << 16);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL3,
 		0xFFFF,
-		gtm_info->gtm_hist_ctrl3.gtm_lr_int);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL4,
+		gtm_info.gtm_hist_ctrl3.gtm_lr_int);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL4,
 		0xFFFF << 16,
-		gtm_info->gtm_hist_ctrl4.gtm_log_diff_int << 16);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL4,
+		gtm_info.gtm_hist_ctrl4.gtm_log_diff_int << 16);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL4,
 		0xFFFF,
-		gtm_info->gtm_hist_ctrl4.gtm_log_max_int);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL5,
+		gtm_info.gtm_hist_ctrl4.gtm_log_max_int);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL5,
 		0x3FFFFFF,
-		gtm_info->gtm_hist_ctrl5.gtm_hist_total);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL6,
+		gtm_info.gtm_hist_ctrl5.gtm_hist_total);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL6,
 		0xFFFFF,
-		gtm_info->gtm_hist_ctrl6.gtm_min_per);
-	DCAM_REG_MWR(DCAM_GTM_HIST_CTRL7,
+		gtm_info.gtm_hist_ctrl6.gtm_min_per);
+	DCAM_REG_MWR(idx, DCAM_GTM_HIST_CTRL7,
 		0xFFFFF,
-		gtm_info->gtm_hist_ctrl7.gtm_max_per);
-	DCAM_REG_MWR(DCAM_GTM_LOG_DIFF,
+		gtm_info.gtm_hist_ctrl7.gtm_max_per);
+	DCAM_REG_MWR(idx, DCAM_GTM_LOG_DIFF,
 		0x1FFFFFFF,
-		gtm_info->gtm_log_diff.gtm_log_diff);
-	DCAM_REG_MWR(DCAM_GTM_TM_YMIN_SMOOTH,
+		gtm_info.gtm_log_diff.gtm_log_diff);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_YMIN_SMOOTH,
 		0x1FF << 23,
-		gtm_info->gtm_tm_ymin_smooth.gtm_pre_ymin_weight << 23);
-	DCAM_REG_MWR(DCAM_GTM_TM_YMIN_SMOOTH,
+		gtm_info.gtm_tm_ymin_smooth.gtm_pre_ymin_weight << 23);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_YMIN_SMOOTH,
 		0x1FF << 14,
-		gtm_info->gtm_tm_ymin_smooth.gtm_cur_ymin_weight << 14);
-	DCAM_REG_MWR(DCAM_GTM_TM_YMIN_SMOOTH,
+		gtm_info.gtm_tm_ymin_smooth.gtm_cur_ymin_weight << 14);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_YMIN_SMOOTH,
 		0x1FF,
-		gtm_info->gtm_tm_ymin_smooth.gtm_ymax_diff_thr);
-	DCAM_REG_MWR(DCAM_GTM_TM_LUMAFILTER0,
+		gtm_info.gtm_tm_ymin_smooth.gtm_ymax_diff_thr);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_LUMAFILTER0,
 		0xFF << 24,
-		gtm_info->gtm_tm_lumafilter0.tm_lumafilter_c10 << 24);
-	DCAM_REG_MWR(DCAM_GTM_TM_LUMAFILTER0,
+		gtm_info.gtm_tm_lumafilter0.tm_lumafilter_c10 << 24);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_LUMAFILTER0,
 		0xFF << 16,
-		gtm_info->gtm_tm_lumafilter0.tm_lumafilter_c02 << 16);
-	DCAM_REG_MWR(DCAM_GTM_TM_LUMAFILTER0,
+		gtm_info.gtm_tm_lumafilter0.tm_lumafilter_c02 << 16);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_LUMAFILTER0,
 		0xFF << 8,
-		gtm_info->gtm_tm_lumafilter0.tm_lumafilter_c01 << 8);
-	DCAM_REG_MWR(DCAM_GTM_TM_LUMAFILTER0,
+		gtm_info.gtm_tm_lumafilter0.tm_lumafilter_c01 << 8);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_LUMAFILTER0,
 		0xFF,
-		gtm_info->gtm_tm_lumafilter0.tm_lumafilter_c00);
-	DCAM_REG_MWR(DCAM_GTM_TM_LUMAFILTER1,
+		gtm_info.gtm_tm_lumafilter0.tm_lumafilter_c00);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_LUMAFILTER1,
 		0xFF << 24,
-		gtm_info->gtm_tm_lumafilter1.tm_lumafilter_c21 << 24);
-	DCAM_REG_MWR(DCAM_GTM_TM_LUMAFILTER1,
+		gtm_info.gtm_tm_lumafilter1.tm_lumafilter_c21 << 24);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_LUMAFILTER1,
 		0xFF << 16,
-		gtm_info->gtm_tm_lumafilter1.tm_lumafilter_c20 << 16);
-	DCAM_REG_MWR(DCAM_GTM_TM_LUMAFILTER1,
+		gtm_info.gtm_tm_lumafilter1.tm_lumafilter_c20 << 16);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_LUMAFILTER1,
 		0xFF << 8,
-		gtm_info->gtm_tm_lumafilter1.tm_lumafilter_c12 << 8);
-	DCAM_REG_MWR(DCAM_GTM_TM_LUMAFILTER1,
+		gtm_info.gtm_tm_lumafilter1.tm_lumafilter_c12 << 8);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_LUMAFILTER1,
 		0xFF,
-		gtm_info->gtm_tm_lumafilter1.tm_lumafilter_c11);
-	DCAM_REG_MWR(DCAM_GTM_TM_LUMAFILTER2,
+		gtm_info.gtm_tm_lumafilter1.tm_lumafilter_c11);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_LUMAFILTER2,
 		0xF << 28,
-		gtm_info->gtm_tm_lumafilter2.tm_lumafilter_shift << 28);
-	DCAM_REG_MWR(DCAM_GTM_TM_LUMAFILTER2,
+		gtm_info.gtm_tm_lumafilter2.tm_lumafilter_shift << 28);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_LUMAFILTER2,
 		0xFF,
-		gtm_info->gtm_tm_lumafilter2.tm_lumafilter_c22);
-	DCAM_REG_MWR(DCAM_GTM_TM_RGB2YCOEFF0,
+		gtm_info.gtm_tm_lumafilter2.tm_lumafilter_c22);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_RGB2YCOEFF0,
 		0x7FF << 16,
-		gtm_info->gtm_tm_rgb2ycoeff0.tm_rgb2y_g_coeff << 16);
-	DCAM_REG_MWR(DCAM_GTM_TM_RGB2YCOEFF0,
+		gtm_info.gtm_tm_rgb2ycoeff0.tm_rgb2y_g_coeff << 16);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_RGB2YCOEFF0,
 		0x7FF,
-		gtm_info->gtm_tm_rgb2ycoeff0.tm_rgb2y_r_coeff);
-	DCAM_REG_MWR(DCAM_GTM_TM_RGB2YCOEFF1,
+		gtm_info.gtm_tm_rgb2ycoeff0.tm_rgb2y_r_coeff);
+	DCAM_REG_MWR(idx, DCAM_GTM_TM_RGB2YCOEFF1,
 		0x7FF,
-		gtm_info->gtm_tm_rgb2ycoeff1.tm_rgb2y_b_coeff);
+		gtm_info.gtm_tm_rgb2ycoeff1.tm_rgb2y_b_coeff);
 
-	DCAM_REG_MWR(DCAM_GTM_SLICE_LINE_STARTPOS,
+	DCAM_REG_MWR(idx, DCAM_GTM_SLICE_LINE_STARTPOS,
 		0x1FFF,
-		gtm_info->gtm_slice_line_startpos.gtm_slice_line_startpos);
-	DCAM_REG_MWR(DCAM_GTM_SLICE_LINE_ENDPOS,
+		gtm_info.gtm_slice_line_startpos.gtm_slice_line_startpos);
+	DCAM_REG_MWR(idx, DCAM_GTM_SLICE_LINE_ENDPOS,
 		0x1FFF,
-		gtm_info->gtm_slice_line_endpos.gtm_slice_line_endpos);
+		gtm_info.gtm_slice_line_endpos.gtm_slice_line_endpos);
 
 	for (i = 0; i < GTM_HIST_BIN_NUM; i += 2)
-		val[i] = gtm_info->histBin[i] << 16 | gtm_info->histBin[i+1];
+		val[i] = gtm_info.histBin[i] << 16 | gtm_info.histBin[i+1];
 
 	for (i = 0; i < GTM_HIST_BIN_NUM / 2; i++) {
-		DCAM_REG_MWR(DCAM_GTM_HIST_XPTS_0 + i*4,
+		DCAM_REG_MWR(idx, DCAM_GTM_HIST_XPTS_0 + i*4,
 				0x3FFF << 16 | 0x3FFF,
 				val[i]);
 	}

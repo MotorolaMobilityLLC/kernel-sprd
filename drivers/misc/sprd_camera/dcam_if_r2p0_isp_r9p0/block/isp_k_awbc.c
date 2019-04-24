@@ -85,7 +85,7 @@ static int isp_k_awbc_gain(struct isp_io_param *param, enum isp_id idx)
 	val = ((awbc_gain.b & 0x3FFF) << 16) | (awbc_gain.r & 0x3FFF);
 	DCAM_REG_WR(idx, ISP_AWBC_GAIN0, val);
 
-	val = ((awbc_gain.gb & 0x3FFF) << 16) | (awbc_gain.gr & 0x3FFF);
+	val = ((awbc_gain.g & 0x3FFF) << 16) | (awbc_gain.g & 0x3FFF);
 	DCAM_REG_WR(idx, ISP_AWBC_GAIN1, val);
 
 	return ret;

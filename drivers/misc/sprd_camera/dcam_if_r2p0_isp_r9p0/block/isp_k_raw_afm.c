@@ -29,7 +29,7 @@ static int isp_k_raw_afm_iir_nr_cfg(enum isp_id idx,
 	unsigned int val = 0;
 	int i = 0;
 
-	DCAM_REG_MWR(ISP_RAW_AFM_PARAMETERS,
+	DCAM_REG_MWR(idx, ISP_AFM_PARAMETERS,
 			BIT_2, rafm_info->iir_eb << 2);
 
 	val = ((rafm_info->iir_g1 & 0xFFF) << 16) |
@@ -48,12 +48,11 @@ static int isp_k_raw_afm_iir_nr_cfg(enum isp_id idx,
 static int isp_k_raw_afm_enhance_cfg(enum isp_id idx,
 	struct isp_dev_rgb_afm_info *rafm_info)
 {
-	int ret = 0;
+	int ret = 0, i = 0;
 	unsigned int val = 0;
-	int i = 0;
 
 	val = ((rafm_info->fv1_shift & 0x7) << 12) |
-		((rafm_info->fv0_shift & 0x7) << 8 |
+		((rafm_info->fv0_shift & 0x7) << 8) |
 		((rafm_info->clip_en1 & 0x1) << 7) |
 		((rafm_info->clip_en0 & 0x1) << 6) |
 		((rafm_info->center_weight & 0x3) << 4) |
@@ -90,7 +89,6 @@ static int isp_k_raw_afm_enhance_cfg(enum isp_id idx,
 int isp_k_raw_afm_block(struct isp_io_param *param, enum isp_id idx)
 {
 	int ret = 0;
-	unsigned int val = 0;
 	struct isp_dev_rgb_afm_info rafm_info;
 
 	memset(&rafm_info, 0x00, sizeof(rafm_info));
@@ -110,7 +108,7 @@ int isp_k_raw_afm_block(struct isp_io_param *param, enum isp_id idx)
 
 	DCAM_REG_MWR(idx, ISP_AFM_PARAMETERS, 0x3 << 4,
 		rafm_info.lum_stat_chn_sel << 4);
-	DCAM_REG_MWR(ISP_AFM_PARAMETERS, BIT_0, rafm_info.clk_gate_dis);
+	DCAM_REG_MWR(idx, ISP_AFM_PARAMETERS, BIT_0, rafm_info.clk_gate_dis);
 
 	ret = isp_k_raw_afm_iir_nr_cfg(idx, &rafm_info);
 	if (ret != 0) {
@@ -306,7 +304,7 @@ static int isp_k_raw_afm_done_tile_num(struct isp_io_param *param,
 
 	val = (done_tile_num.x & 0x1F) << 4 |
 		(done_tile_num.y & 0xF);
-	DCAM_REG_WR(idx, ISP_AFM_DONE_TILE_NUM, val);
+	DCAM_REG_WR(idx, ISP_AFM_TILE_CNT_OUT, val);
 
 	return ret;
 }
@@ -324,7 +322,7 @@ int isp_k_raw_afm_pitch(struct isp_io_param *param, enum isp_id idx)
 		return -1;
 	}
 
-	DCAM_REG_MWR(ISP_AFM_FRM_CTRL, 0x1F << 16, pitch << 16);
+	DCAM_REG_MWR(idx, ISP_AFM_FRM_CTRL, 0x1F << 16, pitch << 16);
 
 	return ret;
 }

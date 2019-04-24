@@ -24,7 +24,6 @@
 
 #define ISP_FRGB_HSV_BUF0  0
 #define ISP_FRGB_HSV_BUF1  1
-#define ISP_HSV_ITEM       360
 
 static int isp_pingpang_frgb_hsv(struct isp_dev_hsv_info *hsv_info,
 			struct isp_k_block *isp_k_param, uint32_t idx)

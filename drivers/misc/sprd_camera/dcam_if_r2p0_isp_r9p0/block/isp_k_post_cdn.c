@@ -137,7 +137,7 @@ int isp_k_cfg_post_cdn(struct isp_io_param *param,
 		ret = isp_k_post_cdn_block(param, com_idx);
 		break;
 	case ISP_PRO_POST_CDN_SLICE:
-		ret = isp_k_post_cdn_slice(param, idx);
+		ret = isp_k_post_cdn_slice(param, com_idx);
 		break;
 	default:
 		pr_err("fail to support cmd id = %d\n",

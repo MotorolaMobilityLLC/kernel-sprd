@@ -36,20 +36,20 @@ static int isp_k_fetch_block(struct isp_io_param *param,
 		return -1;
 	}
 
-	ISP_REG_MWR(idx, ISP_FETCH_PARAM, BIT_0, fetch_info.bypass);
+	ISP_REG_MWR(idx, ISP_FETCH_PARAM0, BIT_0, fetch_info.bypass);
 	if (fetch_info.bypass)
 		return 0;
 
-	ISP_REG_MWR(idx, ISP_FETCH_PARAM, 0xF << 4,
+	ISP_REG_MWR(idx, ISP_FETCH_PARAM0, 0xF << 4,
 		fetch_info.color_format << 4);
 
-	ISP_REG_WR(idx, ISP_FETCH_SLICE_Y_PITCH,
+	ISP_REG_WR(idx, ISP_FETCH_Y_PITCH,
 			(fetch_info.pitch[0] & 0xFFFF));
 
-	ISP_REG_WR(idx, ISP_FETCH_SLICE_U_PITCH,
+	ISP_REG_WR(idx, ISP_FETCH_U_PITCH,
 			(fetch_info.pitch[1] & 0xFFFF));
 
-	ISP_REG_WR(idx, ISP_FETCH_SLICE_V_PITCH,
+	ISP_REG_WR(idx, ISP_FETCH_V_PITCH,
 			(fetch_info.pitch[2] & 0xFFFF));
 
 	return ret;
@@ -110,7 +110,7 @@ static int isp_k_fetch_slice_size(struct isp_io_param *param,
 
 	val = (slice_info.mipi_word & 0xFFFF)
 		| ((slice_info.mipi_byte & 0xF) << 16);
-	ISP_REG_MWR(idx, ISP_FETCH_MIPI_INFO, 0xFFFFF, val);
+	ISP_REG_MWR(idx, ISP_FETCH_MIPI_PARAM, 0xFFFFF, val);
 
 	return ret;
 }

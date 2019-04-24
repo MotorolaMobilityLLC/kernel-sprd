@@ -26,9 +26,7 @@ static int isp_k_ynr_block(struct isp_io_param *param,
 	struct isp_k_block *isp_k_param, uint32_t idx)
 {
 	int ret = 0;
-	unsigned int val = 0;
 	struct isp_dev_ynr_info ynr;
-	unsigned int i = 0;
 	uint32_t scene_id = 0;
 
 	memset(&ynr, 0x00, sizeof(ynr));
@@ -42,8 +40,8 @@ static int isp_k_ynr_block(struct isp_io_param *param,
 		return -1;
 	}
 
-	ISP_REG_MWR(idx, ISP_YNR_CONTRL0, BIT_0, ynr.ynr_bypass);
-	if (ynr.ynr_bypass)
+	ISP_REG_MWR(idx, ISP_YNR_CONTRL0, BIT_0, ynr.bypass);
+	if (ynr.bypass)
 		return 0;
 	ISP_REG_MWR(idx, ISP_YNR_CONTRL0, 0xffffffff,
 		(ynr.l3_addback_enable << 9) |
@@ -262,7 +260,6 @@ static int isp_k_ynr_slice(struct isp_io_param *param, uint32_t idx)
 {
 	int ret = 0;
 	unsigned int val = 0;
-	signed short offset_x, offset_y;
 	struct img_signed_offset img;
 
 	ret = copy_from_user((void *)&img, param->property_param, sizeof(img));
@@ -278,9 +275,6 @@ static int isp_k_ynr_slice(struct isp_io_param *param, uint32_t idx)
 
 	val = (img.slice_width & 0xFFFF) | ((img.slice_height & 0xFFFF) << 16);
 	ISP_REG_WR(idx, ISP_YNR_CFG33, val);
-
-	return ret;
-}
 
 	return ret;
 }
