@@ -8,6 +8,17 @@
  */
 
 / {
+	aliases {
+		seth0 = &seth_ch7;
+		seth1 = &seth_ch8;
+		seth2 = &seth_ch9;
+		seth3 = &seth_ch18;
+		seth4 = &seth_ch19;
+		seth5 = &seth_ch29;
+		seth6 = &seth_ch24;
+		seth7 = &seth_ch25;
+	};
+
 	scproc-pubcp {
 		compatible = "sprd,scproc_pubcp";
 		#address-cells = <2>;
@@ -153,72 +164,60 @@
 		sprd,ul-ack-pool = <1024>;
 	};
 
-	sprd-seth {
+	seth_ch7: seth@0 {
 		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <7>;
+		sprd,blknum = <256>;
+	};
 
-		seth@0 {
-			sprd,name = "seth_lte0";
-			sprd,dst = <5>;
-			sprd,channel = <7>;
-			sprd,blknum = <256>;
-			sprd,poolsize = <16>;
-		};
+	seth_ch8: seth@1 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <8>;
+		sprd,blknum = <256>;
+	};
 
-		seth@1 {
-			sprd,name = "seth_lte1";
-			sprd,dst = <5>;
-			sprd,channel = <8>;
-			sprd,blknum = <256>;
-			sprd,poolsize = <16>;
-		};
+	seth_ch9: seth@2 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <9>;
+		sprd,blknum = <256>;
+	};
 
-		seth@2 {
-			sprd,name = "seth_lte2";
-			sprd,dst = <5>;
-			sprd,channel = <9>;
-			sprd,blknum = <256>;
-			sprd,poolsize = <16>;
-		};
+	seth_ch18: seth@3 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <18>;
+		sprd,blknum = <256>;
+	};
 
-		seth@3 {
-			sprd,name = "seth_lte3";
-			sprd,dst = <5>;
-			sprd,channel = <18>;
-			sprd,blknum = <256>;
-			sprd,poolsize = <16>;
-		};
+	seth_ch19: seth@4 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <19>;
+		sprd,blknum = <256>;
+	};
 
-		seth@4 {
-			sprd,name = "seth_lte4";
-			sprd,dst = <5>;
-			sprd,channel = <19>;
-			sprd,blknum = <256>;
-			sprd,poolsize = <16>;
-		};
+	seth_ch29: seth@5 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <20>;
+		sprd,blknum = <256>;
+	};
 
-		seth@5 {
-			sprd,name = "seth_lte5";
-			sprd,dst = <5>;
-			sprd,channel = <20>;
-			sprd,blknum = <256>;
-			sprd,poolsize = <16>;
-		};
+	seth_ch24: seth@6 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <24>;
+		sprd,blknum = <256>;
+	};
 
-		seth@6 {
-			sprd,name = "seth_lte6";
-			sprd,dst = <5>;
-			sprd,channel = <24>;
-			sprd,blknum = <256>;
-			sprd,poolsize = <16>;
-		};
-
-		seth@7 {
-			sprd,name = "seth_lte7";
-			sprd,dst = <5>;
-			sprd,channel = <25>;
-			sprd,blknum = <256>;
-			sprd,poolsize = <16>;
-		};
+	seth_ch25: seth@7 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <25>;
+		sprd,blknum = <256>;
 	};
 };
 
