@@ -4,3 +4,4 @@ obj-$(CONFIG_PINCTRL_SPRD_SHARKL5)      += pinctrl-sprd-sharkl5.o
 obj-$(CONFIG_PINCTRL_SPRD_ROC1)		+= pinctrl-sprd-roc1.o
 obj-$(CONFIG_PINCTRL_SPRD_SHARKL3)	+= pinctrl-sprd-sharkl3.o
 obj-$(CONFIG_PINCTRL_SPRD_ORCA)		+= pinctrl-sprd-orca.o
+obj-$(CONFIG_PINCTRL_SPRD_SHARKL5PRO)	+= pinctrl-sprd-sharkl5Pro.o
