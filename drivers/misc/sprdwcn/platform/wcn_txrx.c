@@ -12,6 +12,9 @@
 #include <misc/wcn_bus.h>
 
 #include "bufring.h"
+#ifdef CONFIG_WCN_PCIE
+#include "edma_engine.h"
+#endif
 #include "wcn_glb.h"
 #include "wcn_procfs.h"
 #include "mdbg_type.h"
@@ -51,7 +54,11 @@ static struct mchn_ops_t mdbg_ringc_ops = {
 #ifdef CONFIG_WCN_PCIE
 int mdbg_log_push(int chn, struct mbuf_t **head, struct mbuf_t **tail, int *num)
 {
-	WCN_INFO("%s enter num=%d,mbuf used done", __func__, *num);
+	WCN_INFO("%s enter num=%d, chn=%d,mbuf used done", __func__, *num, chn);
+#ifdef CONFIG_WCN_PCIE
+	edma_dump_glb_reg();
+	edma_dump_chn_reg(chn);
+#endif
 
 	return 0;
 }
@@ -187,6 +194,8 @@ int mdbg_log_read(int channel, struct mbuf_t *head,
 {
 	struct ring_rx_data *rx;
 
+	WCN_INFO("%s:seq=0x%x, num=%d\n", __func__,
+		 *((u32 *)head->buf + 12), num);
 	if (ring_dev) {
 		mutex_lock(&ring_dev->mdbg_read_mutex);
 		rx = kmalloc(sizeof(*rx), GFP_KERNEL);

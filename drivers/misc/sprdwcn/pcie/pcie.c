@@ -423,6 +423,24 @@ int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len)
 	return ret;
 }
 
+/* only for 4000 0000 ~ 4040 0000 */
+u32 sprd_pcie_read_reg32(struct wcn_pcie_info *priv, int offset)
+{
+	char *addr = priv->bar[0].vmem;
+
+	addr += offset;
+	return readl_relaxed(addr);
+}
+
+void sprd_pcie_write_reg32(struct wcn_pcie_info *priv, u32 reg_offset,
+			    u32 value)
+{
+	char *address = priv->bar[0].vmem;
+
+	address += reg_offset;
+	writel_relaxed(value, address);
+}
+
 static int sprd_pcie_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *pci_id)
 {
