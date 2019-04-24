@@ -897,7 +897,8 @@ static void sprd_codec_pa_boost(struct snd_soc_codec *codec, int pa_d_en)
 }
 
 /* inter PA */
-static inline void sprd_codec_pa_d_en(struct snd_soc_codec *codec, int on)
+static inline void sprd_codec_pa_d_en(struct snd_soc_codec *codec, int on,
+				      int force)
 {
 	int mask;
 	int val;
@@ -905,7 +906,8 @@ static inline void sprd_codec_pa_d_en(struct snd_soc_codec *codec, int on)
 	sp_asoc_pr_dbg("%s set %d\n", __func__, on);
 	mask = PA_D_EN;
 	val = on ? mask : 0;
-	snd_soc_update_bits(codec, SOC_REG(ANA_CDC14), mask, val);
+	if (force)
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC14), mask, val);
 	if (on)
 		sprd_codec_psg_state_init(codec);
 	else
@@ -1043,7 +1045,7 @@ static void spk_pa_config(struct snd_soc_codec *codec,
 {
 	sp_asoc_pr_dbg("%s:is_classD_mode: %d\n", __func__,
 			setting.is_classD_mode);
-	sprd_codec_pa_d_en(codec, setting.is_classD_mode);
+	sprd_codec_pa_d_en(codec, setting.is_classD_mode, 1);
 	if (setting.is_DEMI_mode)
 		sprd_codec_pa_emi_rate(codec, setting.EMI_rate);
 	sprd_codec_pa_dtri_f_sel(codec, setting.DTRI_F_sel);
@@ -1081,7 +1083,7 @@ static int spk_pa_event(struct snd_soc_dapm_widget *w,
 		}
 		sp_asoc_pr_dbg("%s wait time %d\n", __func__, 60 + i);
 	} else {
-		sprd_codec_pa_d_en(codec, 0);
+		sprd_codec_pa_d_en(codec, 0, 0);
 		sprd_codec_pa_en(codec, 0);
 	}
 
