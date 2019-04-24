@@ -348,7 +348,7 @@
 			sprd,bit-width = <8>;
 			sprd,bit-index = <0 8 16 24>;
 			sprd,pdm-names = "PD_AP_SYS", "PD_AP_VSP",
-				"null", "null";
+				"PD_CDMA_SYS", "null";
 		};
 		sprd_pwr_status1: pwr-status@c0 {
 			reg = <REG_PMU_APB_PWR_STATUS1_DBG>;
