@@ -148,6 +148,11 @@ static int sprd_get_delay_value(struct platform_device *pdev)
 		timing_dly->mmchs_dly = SPRD_SDHC_DLY_TIMING(dly_vl[0],
 					dly_vl[1], dly_vl[2], dly_vl[3]);
 
+	ret = of_property_read_u32_array(np, "sprd,sdhs-dly", dly_vl, 4);
+	if (!ret)
+		timing_dly->sdhs_dly = SPRD_SDHC_DLY_TIMING(dly_vl[0],
+					dly_vl[1], dly_vl[2], dly_vl[3]);
+
 	ret = of_property_read_u32_array(np, "sprd,sdr50-dly", dly_vl, 4);
 	if (!ret)
 		timing_dly->sdr50_dly = SPRD_SDHC_DLY_TIMING(dly_vl[0],
@@ -192,6 +197,15 @@ static void sprd_set_delay_value(struct sprd_sdhc_host *host)
 			sprd_sdhc_writel(host, host->dll_dly,
 					SPRD_SDHC_REG_32_DLL_DLY);
 			pr_info("(%s) mmchs default timing delay value 0x%08x\n",
+				host->device_name, host->dll_dly);
+		}
+		break;
+	case MMC_TIMING_SD_HS:
+		if (host->ios.clock == 50000000) {
+			host->dll_dly = host->timing_dly->sdhs_dly;
+			sprd_sdhc_writel(host, host->dll_dly,
+					SPRD_SDHC_REG_32_DLL_DLY);
+			pr_info("(%s) sdhs default timing delay value 0x%08x\n",
 				host->device_name, host->dll_dly);
 		}
 		break;
