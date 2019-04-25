@@ -67,6 +67,26 @@ static enum isp_store_format sprd_isppath_format_store(enum dcam_fmt in_format)
 	return format;
 }
 
+static enum isp_store_format
+	sprd_isppath_format_store_fbc(enum dcam_fmt in_format)
+{
+	enum isp_store_format format = ISP_STORE_FORMAT_MAX;
+
+	switch (in_format) {
+	case DCAM_YUV420:
+		format = ISP_STORE_YUV420_2FRAME;
+		break;
+	case DCAM_YVU420:
+		format = ISP_STORE_YVU420_2FRAME;
+		break;
+	default:
+		format = ISP_STORE_FORMAT_MAX;
+		pr_err("fail to get support format!\n");
+		break;
+	}
+	return format;
+}
+
 static void sprd_isppath_store_pitch_get(struct slice_pitch *pitch_ptr,
 	enum isp_store_format format, uint32_t width)
 {
@@ -109,7 +129,7 @@ static int sprd_isppath_store_param_get(struct isp_path_desc *path)
 	}
 
 	store_info = &path->store_info;
-	store_info->bypass = 0;
+	store_info->bypass = path->store_info.bypass;
 	store_info->endian = path->data_endian.uv_endian;
 	store_info->speed_2x = 1;
 	store_info->mirror_en = 0;
@@ -135,6 +155,36 @@ static int sprd_isppath_store_param_get(struct isp_path_desc *path)
 	return 0;
 }
 
+static int sprd_isppath_store_fbc_param_get(struct isp_path_desc *path)
+{
+	struct isp_store_fbc_info *store_fbc_info = NULL;
+
+	if (!path) {
+		pr_err("fail to get valid input ptr\n");
+		return -EFAULT;
+	}
+
+	store_fbc_info = &path->store_fbc_info;
+	store_fbc_info->bypass = path->store_fbc_info.bypass;
+	store_fbc_info->endian = path->data_endian.uv_endian;
+	store_fbc_info->mirror_en = 0;
+	store_fbc_info->color_format =
+		sprd_isppath_format_store_fbc(path->output_format);
+	store_fbc_info->tile_number_pitch = 0;
+	store_fbc_info->header_offset = 0x0;
+	store_fbc_info->size.w = path->trim1_info.size_x;
+	store_fbc_info->size.h = path->trim1_info.size_x;
+	store_fbc_info->pad_w = 0;
+	store_fbc_info->pad_h = 0;
+
+	store_fbc_info->border.up_border = 0;
+	store_fbc_info->border.down_border = 0;
+	store_fbc_info->border.left_border = 0;
+	store_fbc_info->border.right_border = 0;
+
+	return 0;
+}
+
 static int sprd_isppath_store_cfg(struct isp_path_desc *pre,
 			struct isp_path_desc *vid,
 			struct isp_path_desc *cap)
@@ -147,26 +197,59 @@ static int sprd_isppath_store_cfg(struct isp_path_desc *pre,
 	}
 
 	if (pre->valid) {
-		rtn = sprd_isppath_store_param_get(pre);
-		if (rtn) {
-			pr_err("fail to get pre store param\n");
-			return rtn;
+		pre->store_info.bypass = 0;
+		pre->store_fbc_info.bypass = 1;
+		if (!pre->store_info.bypass) {
+			rtn = sprd_isppath_store_param_get(pre);
+			if (rtn) {
+				pr_err("fail to get pre store param error\n");
+				return rtn;
+			}
+		}
+		if (!pre->store_fbc_info.bypass) {
+			rtn = sprd_isppath_store_fbc_param_get(pre);
+			if (rtn) {
+				pr_err("fail to get pre store param error\n");
+				return rtn;
+			}
 		}
 	}
 
 	if (vid->valid) {
-		rtn = sprd_isppath_store_param_get(vid);
-		if (rtn) {
-			pr_err("fail to get vid store param error\n");
-			return rtn;
+		vid->store_info.bypass = 0;
+		vid->store_fbc_info.bypass = 1;
+		if (!vid->store_info.bypass) {
+			rtn = sprd_isppath_store_param_get(vid);
+			if (rtn) {
+				pr_err("fail to get vid store param error\n");
+				return rtn;
+			}
+		}
+		if (!vid->store_fbc_info.bypass) {
+			rtn = sprd_isppath_store_fbc_param_get(vid);
+			if (rtn) {
+				pr_err("fail to get vid store param error\n");
+				return rtn;
+			}
 		}
 	}
 
 	if (cap->valid) {
-		rtn = sprd_isppath_store_param_get(cap);
-		if (rtn) {
-			pr_err("fail to get cap store param error\n");
-			return rtn;
+		cap->store_info.bypass = 0;
+		cap->store_fbc_info.bypass = 1;
+		if (!cap->store_info.bypass) {
+			rtn = sprd_isppath_store_param_get(cap);
+			if (rtn) {
+				pr_err("fail to get cap store param error\n");
+				return rtn;
+			}
+		}
+		if (!cap->store_fbc_info.bypass) {
+			rtn = sprd_isppath_store_fbc_param_get(cap);
+			if (rtn) {
+				pr_err("fail to get cap store param error\n");
+				return rtn;
+			}
 		}
 	}
 
@@ -230,6 +313,48 @@ static int sprd_isppath_store_set(uint32_t idx, void *input_info, uint32_t addr)
 	return ret;
 }
 
+static int sprd_isppath_store_fbc_set
+	(uint32_t idx, void *input_info, uint32_t addr)
+{
+	int ret = 0;
+	uint32_t val = 0;
+	struct isp_store_fbc_info *store_info =
+		(struct isp_store_fbc_info *)input_info;
+
+	ISP_REG_MWR(idx, addr+ISP_FBC_STORE_PARAM, BIT_0, store_info->bypass);
+
+	if (store_info->bypass)
+		return 0;
+
+	ISP_REG_MWR(idx, addr+ISP_FBC_STORE_PARAM,
+		BIT_3, (store_info->mirror_en << 3));
+	ISP_REG_MWR(idx, addr+ISP_FBC_STORE_PARAM,
+		0xF0, (4 << 4));
+	ISP_REG_MWR(idx, addr+ISP_FBC_STORE_PARAM,
+		0x300, (store_info->endian << 8));
+	ISP_REG_WR(idx, addr+ISP_FBC_STORE_TILE_PITCH,
+		(store_info->tile_number_pitch & 0x1FFF));
+	ISP_REG_WR(idx, addr+ISP_FBC_STORE_NFULL_LEVEL, 0x20002);
+	ISP_REG_WR(idx, addr+ISP_FBC_STORE_P0, 0xF);
+
+	val = ((store_info->size.h & 0x1FFF) << 16) |
+		(store_info->size.w & 0x1FFF);
+	ISP_REG_WR(idx, addr+ISP_FBC_STORE_SLICE_SIZE, val);
+
+	val = (store_info->border.up_border & 0xFF) |
+		((store_info->border.down_border & 0xFF) << 8) |
+		((store_info->border.left_border & 0xFF) << 16) |
+		((store_info->border.right_border & 0xFF) << 24);
+	ISP_REG_WR(idx, addr+ISP_FBC_STORE_BORDER, val);
+
+	val = (store_info->header_offset);
+	ISP_REG_WR(idx, addr+ISP_FBC_STORE_SLICE_HEADER_OFFSET_ADDR, val);
+	ISP_REG_WR(idx, addr+ISP_FBC_STORE_SLICE_Y_ADDR, store_info->yaddr);
+	ISP_REG_WR(idx, addr+ISP_FBC_STORE_SLICE_Y_HEADER, store_info->yheader);
+
+	return ret;
+}
+
 static void sprd_isppath_bypass_ispblock_for_yuv_sensor(
 	uint32_t idx, int bypass)
 {
@@ -240,7 +365,7 @@ static void sprd_isppath_bypass_ispblock_for_yuv_sensor(
 	ISP_REG_MWR(idx, ISP_CMC10_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_GAMMA_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_HSV_PARAM, BIT_0, bypass);
-	ISP_REG_MWR(idx, ISP_PSTRZ_PARAM, BIT_0, bypass);
+	ISP_REG_MWR(idx, ISP_PSTRZ_PARA, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_CCE_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_UVD_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_YUV_3DNR_MEM_CTRL_PARAM0, BIT_0, bypass);
@@ -258,7 +383,7 @@ static void sprd_isppath_bypass_ispblock_for_yuv_sensor(
 	ISP_REG_MWR(idx, ISP_CSA_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_HUA_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_IIRCNR_PARAM, BIT_0, bypass);
-	ISP_REG_MWR(idx, ISP_YRANDOM_PARAM1, BIT_0, bypass);
+	ISP_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAM1, BIT_0, bypass);
 }
 
 static void sprd_isppath_fetch_set(uint32_t idx,
@@ -290,15 +415,15 @@ static void sprd_isppath_fetch_set(uint32_t idx,
 	pr_debug("path src %d, pitch %d, byte %d, word %d\n",
 		path->src.w, fetchraw_pitch, mipi_byte_info, mipi_word_info);
 	if (path->input_format == DCAM_CAP_MODE_YUV) {
-		ISP_REG_WR(idx, ISP_FETCH_PARAM, 0x0A << 4);
-		ISP_REG_WR(idx, ISP_FETCH_SLICE_Y_PITCH, path->src.w);
-		ISP_REG_WR(idx, ISP_FETCH_SLICE_U_PITCH, path->src.w);
+		ISP_REG_WR(idx, ISP_FETCH_PARAM0, 0x0A << 4);
+		ISP_REG_WR(idx, ISP_FETCH_Y_PITCH, path->src.w);
+		ISP_REG_WR(idx, ISP_FETCH_U_PITCH, path->src.w);
 		ISP_REG_WR(idx, ISP_FETCH_SLICE_U_ADDR, path->fetch_addr.chn1);
 		sprd_isppath_bypass_ispblock_for_yuv_sensor(idx, 1);
 	} else {
-		ISP_REG_WR(idx, ISP_FETCH_PARAM, 0x08 << 4);
-		ISP_REG_WR(idx, ISP_FETCH_SLICE_Y_PITCH, fetchraw_pitch);
-		ISP_REG_WR(idx, ISP_FETCH_MIPI_INFO,
+		ISP_REG_WR(idx, ISP_FETCH_PARAM0, 0x08 << 4);
+		ISP_REG_WR(idx, ISP_FETCH_Y_PITCH, fetchraw_pitch);
+		ISP_REG_WR(idx, ISP_FETCH_MIPI_PARAM,
 			mipi_word_info | (mipi_byte_info << 16));
 	}
 	ISP_REG_WR(idx, ISP_FETCH_MEM_SLICE_SIZE,
@@ -314,10 +439,10 @@ static void sprd_isppath_fetch_set(uint32_t idx,
 static void sprd_isppath_dispatch_set(uint32_t idx,
 		struct isp_path_desc *path)
 {
-	ISP_REG_WR(idx, ISP_DISPATCH_DLY, 0x1D3C);
-	ISP_REG_WR(idx, ISP_DISPATCH_HW_CTRL_CH0, 0x80004);
+	ISP_REG_WR(idx, ISP_DISPATCH_DLY, 0x253C);
 	ISP_REG_WR(idx, ISP_DISPATCH_LINE_DLY1, 0x280001C);
 	ISP_REG_WR(idx, ISP_DISPATCH_PIPE_BUF_CTRL_CH0, 0x64043C);
+	ISP_REG_WR(idx, ISP_DISPATCH_CH0_BAYER, 1);
 	ISP_REG_WR(idx, ISP_DISPATCH_CH0_SIZE,
 		path->src.w | (path->src.h << 16));
 }
@@ -1086,9 +1211,11 @@ void sprd_isp_path_pathset(struct isp_module *module,
 	struct isp_path_desc *path, enum isp_path_index path_index)
 {
 	enum isp_id id = ISP_ID_0;
-	uint32_t scl_addr = 0, store_addr = 0;
+	enum isp_scene_id scene_id = 0;
+	uint32_t scl_addr = 0, store_addr = 0, store_fbc_addr = 0;
 	uint32_t idx = 0;
 	uint32_t sel_mask = 0;
+	uint32_t cfg_id = 0;
 
 	if (!module || !path) {
 		pr_err("fail to get valid input ptr\n");
@@ -1100,14 +1227,17 @@ void sprd_isp_path_pathset(struct isp_module *module,
 	if (ISP_PATH_IDX_PRE & path_index) {
 		scl_addr = ISP_SCALER_PRE_CAP_BASE;
 		store_addr = ISP_STORE_PRE_CAP_BASE;
+		store_fbc_addr = ISP_CAP_FBC_STORE_BASE;
 		sel_mask = (BIT_0 | BIT_1);
 	} else if (ISP_PATH_IDX_VID & path_index) {
 		scl_addr = ISP_SCALER_VID_BASE;
 		store_addr = ISP_STORE_VID_BASE;
+		store_fbc_addr = ISP_VID_FBC_STORE_BASE;
 		sel_mask = (BIT_2 | BIT_3);
 	} else if (ISP_PATH_IDX_CAP & path_index) {
 		scl_addr = ISP_SCALER_PRE_CAP_BASE;
 		store_addr = ISP_STORE_PRE_CAP_BASE;
+		store_fbc_addr = ISP_CAP_FBC_STORE_BASE;
 		sel_mask = (BIT_0 | BIT_1);
 	} else {
 		pr_err("fail to get valid path index\n");
@@ -1119,7 +1249,16 @@ void sprd_isp_path_pathset(struct isp_module *module,
 	sprd_isppath_dispatch_set(idx, path);
 	sprd_isppath_scl_block_set(idx, path, scl_addr);
 	sprd_isppath_store_set(idx, (void *)&path->store_info, store_addr);
+	sprd_isppath_store_fbc_set(idx,
+		(void *)&path->store_fbc_info, store_fbc_addr);
+
 	ISP_HREG_MWR(id, ISP_COMMON_SCL_PATH_SEL, sel_mask, 0);
+
+	if (ISP_CFG_ON == 1) {
+		scene_id = module->isp_cfg_contex.cur_scene_id;
+		cfg_id = (scene_id << 1) + id;
+		ISP_HREG_MWR(id, ISP_COMMON_FMCU_PATH_SEL, 0x3, cfg_id);
+	}
 }
 
 int sprd_isp_path_next_frm_set(struct isp_module *module,
@@ -1205,6 +1344,10 @@ int sprd_isp_path_next_frm_set(struct isp_module *module,
 	path->store_info.addr.chn1 = frame.buf_info.iova[0] + frame.uaddr;
 	path->store_info.addr.chn2 = frame.buf_info.iova[2];
 
+	path->store_fbc_info.yheader = frame.buf_info.iova[0] + frame.yaddr;
+	path->store_fbc_info.yaddr = path->store_fbc_info.yheader +
+		path->store_fbc_info.header_offset;
+
 	if (use_reserve_frame) {
 		memcpy(reserved_frame, &frame, sizeof(struct camera_frame));
 		pr_debug("isp%d path%d  mfd = 0x%x, yaddr = 0x%x, uv addr 0x%x, iova addr 0x%lx\n",
@@ -1248,7 +1391,6 @@ void sprd_isp_path_offline_frame_set(struct isp_pipe_dev *dev,
 			pr_err("fail to write buff frame\n");
 			return;
 		}
-
 		complete(&dev->offline_thread_com);
 	} else if (path_index == CAMERA_FULL_PATH) {
 		if (dev->sn_mode != DCAM_CAP_MODE_YUV) {

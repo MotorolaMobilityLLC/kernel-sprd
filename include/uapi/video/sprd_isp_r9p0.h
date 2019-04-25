@@ -254,6 +254,12 @@ enum isp_gamma_property {
 };
 
 /*isp sub block: grgb*/
+enum isp_grgb_imbalnce_property {
+	ISP_PRO_GRGB_IMBALANCE_BLOCK,
+	ISP_PRO_GRGB_IMBALANCE_SLICE_PARAM,
+};
+
+/*isp sub block: grgb*/
 enum isp_grgb_property {
 	ISP_PRO_GRGB_BLOCK,
 };
@@ -281,8 +287,8 @@ enum isp_hua_property {
 /*isp sub block: yrandom*/
 enum isp_yrandom_property {
 	ISP_PRO_YRANDOM_BLOCK,
-	ISP_PRO_YRANDOM_CHK_SUM_CLR,
 	ISP_PRO_YRANDOM_INIT,
+	ISP_PRO_YRANDOM_CHK_SUM_CLR,
 };
 
 /*isp sub block: nlc*/
@@ -376,6 +382,7 @@ enum isp_store_property {
 /*isp sub block: uvd*/
 enum isp_uvd_property {
 	ISP_PRO_UVD_BLOCK,
+	ISP_PRO_UVD_CHK_SUM_CLR,
 };
 
 /*isp sub block: y_delay*/
@@ -432,6 +439,23 @@ enum isp_dev_capability {
 enum isp_3dnr_property {
 	ISP_PRO_3DNR_UPDATE_PRE_PARAM,
 	ISP_PRO_3DNR_UPDATE_CAP_PARAM
+};
+
+enum isp_bchs_property {
+	ISP_PRO_BCHS_BLOCK,
+	ISP_PRO_BCHS_CHK_SUM_CLR
+};
+
+enum isp_ltm_map_property {
+	ISP_PRO_LTM_MAP_BLOCK,
+	ISP_PRO_LTM_MAP_SLICE,
+};
+
+enum isp_ltm_stat_property {
+	ISP_PRO_LTM_STAT_BLOCK,
+	ISP_PRO_LTM_STAT_SLICE,
+	ISP_PRO_LTM_STAT_PINGPONG_BUF,
+	ISP_PRO_LTM_STAT_BUF_SEL,
 };
 
 struct isp_io_param {
@@ -1030,6 +1054,10 @@ struct isp_dev_block_addr {
 	uint32_t img_fd;
 };
 
+struct dev_fetch_slice_info {
+	struct isp_img_size size;
+};
+
 struct isp_dev_fetch_info {
 	uint32_t bypass;
 	uint32_t color_format;
@@ -1039,6 +1067,8 @@ struct isp_dev_fetch_info {
 	struct isp_img_size size;
 	struct isp_dev_block_addr fetch_addr;
 	uint32_t dcam_fetch_endian;
+	struct dev_fetch_slice_info slice0;
+	struct dev_fetch_slice_info slice1;
 };
 
 struct isp_dev_fetch_slice_info {
@@ -1164,6 +1194,66 @@ struct ee_param {
 	uint32_t ee_freq_r3;
 };
 
+struct isp_dev_edge_info_v2 {
+	unsigned int ee_bypass;
+	unsigned int ee_new_pyramid_en;
+	unsigned int ee_old_gradient_en;
+	unsigned int ee_flat_smooth_mode;
+	unsigned int ee_edge_smooth_mode;
+	struct edge_pn_config ee_str_d;
+	unsigned int ee_mode;
+	struct edge_pn_config ee_incr_d;
+	struct edge_pn_config ee_edge_thr_d;
+	struct edge_pn_config ee_corner_sm;
+	struct edge_pn_config ee_corner_gain;
+	struct edge_pn_config ee_corner_th;
+	unsigned int ee_corner_cor;
+	unsigned int ee_cv_t[4];
+	struct edge_pn_config ee_cv_clip;
+	unsigned int ee_cv_r[3];
+	unsigned int ee_ipd_en;
+	unsigned int ee_ipd_mask_mode;
+	struct edge_pn_config ee_ipd_less_thr;
+	unsigned int ee_ipd_smooth_en;
+	struct edge_pn_config ee_ipd_smooth_mode;
+	struct edge_pn_config ee_ipd_flat_thr;
+	struct edge_pn_config ee_ipd_eq_thr;
+	struct edge_pn_config ee_ipd_more_thr;
+	struct edge_pn_config ee_ipd_smooth_edge_thr;
+	struct edge_pn_config ee_ipd_smooth_edge_diff;
+	unsigned int ee_ratio_hv_3;
+	unsigned int ee_ratio_hv_5;
+	unsigned int ee_ratio_diag_3;
+	unsigned int ee_weight_hv2diag;
+	unsigned int ee_gradient_computation_type;
+	unsigned int ee_weight_diag2hv;
+	unsigned int ee_gain_hv_t[2][4];
+	unsigned int ee_gain_hv_r[2][3];
+	unsigned int ee_ratio_diag_5;
+	unsigned int ee_gain_diag_t[2][4];
+	unsigned int ee_gain_diag_r[2][3];
+	unsigned int ee_lum_t[4];
+	unsigned int ee_lum_r[3];
+	unsigned int ee_pos_t[4];
+	unsigned int ee_pos_r[3];
+	unsigned int ee_pos_c[3];
+	unsigned int ee_neg_t[4];
+	unsigned int ee_neg_r[3];
+	unsigned int ee_neg_c[3];
+	unsigned int ee_freq_t[4];
+	unsigned int ee_freq_r[3];
+	unsigned int ee_ratio_old_gradient;
+	unsigned int ee_ratio_new_pyramid;
+	unsigned int ee_offset_thr_layer_curve_pos[3][4];
+	unsigned int ee_offset_ratio_layer_curve_pos[3][3];
+	unsigned int ee_offset_clip_layer_curve_pos[3][3];
+	unsigned int ee_offset_thr_layer_curve_neg[3][4];
+	unsigned int ee_offset_ratio_layer_curve_neg[3][3];
+	unsigned int ee_offset_clip_layer_curve_neg[3][3];
+	unsigned int ee_offset_ratio_layer_lum_curve[3][3];
+	unsigned int ee_offset_ratio_layer_freq_curve[3][3];
+};
+
 /*isp sub block: gamma*/
 struct coordinate_xy {
 	unsigned short node_x;
@@ -1211,6 +1301,95 @@ struct isp_dev_grgb_info {
 	uint32_t gb_ratio;
 	struct grgb_param lum;
 	struct grgb_param frez;
+};
+
+struct isp_dev_grgb_imbalance_slice_info {
+	unsigned int gc2_radial_1d_center_x;
+	unsigned int gc2_radial_1d_center_y;
+	unsigned int gc2_global_x_start;
+	unsigned int gc2_global_y_start;
+	unsigned int slice_width;
+	unsigned int radial_en;
+};
+
+struct isp_dev_grgb_imbalance_info {
+	unsigned int bypass;
+	unsigned int gc2_flag12_frezthr;
+	unsigned int gc2_flag3_grid;
+	unsigned int gc2_flag3_lum;
+	unsigned int gc2_flag3_frez;
+	unsigned int gc2_lumth1;
+	unsigned int gc2_lumth2;
+
+	unsigned int gc2_hv_edge_thr0;
+	unsigned int gc2_slash_edge_thr0;
+	unsigned int gc2_hv_flat_thr0;
+	unsigned int gc2_slash_flat_thr0;
+	unsigned int gc2_S_baohedu01;
+	unsigned int gc2_S_baohedu02;
+	unsigned int gc2_lum0_flag2_r;
+	unsigned int gc2_lum0_flag0_rs;
+	unsigned int gc2_lum0_flag0_r;
+	unsigned int gc2_lum0_flag1_r;
+	unsigned int gc2_lum0_flag4_r;
+	unsigned int gc2_lum0_flag3_r;
+	unsigned int gc2_diff0;
+
+	unsigned int gc2_hv_edge_thr1;
+	unsigned int gc2_slash_edge_thr1;
+	unsigned int gc2_hv_flat_thr1;
+	unsigned int gc2_slash_flat_thr1;
+	unsigned int gc2_S_baohedu11;
+	unsigned int gc2_S_baohedu12;
+	unsigned int gc2_lum1_flag2_r;
+	unsigned int gc2_lum1_flag0_rs;
+	unsigned int gc2_lum1_flag0_r;
+	unsigned int gc2_lum1_flag1_r;
+	unsigned int gc2_lum1_flag4_r;
+	unsigned int gc2_lum1_flag3_r;
+	unsigned int gc2_diff1;
+
+	unsigned int gc2_hv_edge_thr2;
+	unsigned int gc2_slash_edge_thr2;
+	unsigned int gc2_hv_flat_thr2;
+	unsigned int gc2_slash_flat_thr2;
+	unsigned int gc2_S_baohedu21;
+	unsigned int gc2_S_baohedu22;
+	unsigned int gc2_lum2_flag2_r;
+	unsigned int gc2_lum2_flag0_rs;
+	unsigned int gc2_lum2_flag0_r;
+	unsigned int gc2_lum2_flag1_r;
+	unsigned int gc2_lum2_flag4_r;
+	unsigned int gc2_lum2_flag3_r;
+	unsigned int gc2_diff2;
+	unsigned int gc2_ff_wt0;
+	unsigned int gc2_ff_wt1;
+	unsigned int gc2_ff_wt2;
+	unsigned int gc2_ff_wt3;
+	unsigned int gc2_ff_wr0;
+	unsigned int gc2_ff_wr1;
+	unsigned int gc2_ff_wr2;
+	unsigned int gc2_ff_wr3;
+	unsigned int gc2_ff_wr4;
+	unsigned int gc2_sat_lumth;
+	unsigned int gc2_radial_1d_en;
+	unsigned int gc2_radial_1d_center_x;
+	unsigned int gc2_radial_1d_center_y;
+	unsigned int gc2_radial_1d_coef_r0;
+	unsigned int gc2_radial_1d_coef_r1;
+	unsigned int gc2_radial_1d_coef_r2;
+	unsigned int gc2_radial_1d_coef_r3;
+	unsigned int gc2_radial_1d_coef_r4;
+	unsigned int gc2_radial_1d_protect_ratio_max;
+	unsigned int gc2_radial_1D_radius_threshold;
+	unsigned int gc2_faceRmin;
+	unsigned int gc2_faceRmax;
+	unsigned int gc2_faceBmin;
+	unsigned int gc2_faceBmax;
+	unsigned int gc2_faceGmin;
+	unsigned int gc2_faceGmax;
+	unsigned int gc2_dump_map_en;
+
 };
 
 /*isp sub block: hist*/
@@ -1466,158 +1645,185 @@ struct isp_slice_ynr_info {
 };
 
 struct isp_dev_ynr_info {
-	uint32_t bypass;
-	uint32_t l3_addback_enable;
-	uint32_t l2_addback_enable;
-	uint32_t l1_addback_enable;
-	uint32_t l0_addback_enable;
-	uint32_t l3_blf_en;
-	uint32_t sal_enable;
-	uint32_t l3_wv_nr_enable;
-	uint32_t l2_wv_nr_enable;
-	uint32_t l1_wv_nr_enable;
-	uint32_t blf_range_index;
-	uint32_t blf_dist_weight2;
-	uint32_t blf_dist_weight1;
-	uint32_t blf_dist_weight0;
+	unsigned int bypass;
+	unsigned int lowlux_bypass;
+	unsigned int nr_enable;
+	unsigned int l_blf_en[3];
+	unsigned int txt_th;
+	unsigned int edge_th;
+	unsigned int flat_th[7];
+	unsigned int lut_th[7];
+	unsigned int addback[9];
+	unsigned int sub_th[9];
+	unsigned int l_euroweight[3][3];
+	unsigned int l_wf_index[3];
+	unsigned int l0_lut_th0;
+	unsigned int l0_lut_th1;
+	unsigned int l1_txt_th0;
+	unsigned int l1_txt_th1;
+	unsigned int wlt_th[24];
+	unsigned int freq_ratio[24];
+	struct img_offset start_pos;
+	struct img_offset center;
+	unsigned int dist_interval;
+	unsigned char sal_nr_str[8];
+	unsigned char sal_offset[8];
+	unsigned int edgeStep[8];
+	unsigned int wlt_T[3];
+	unsigned int ad_para[3];
+	unsigned int ratio[3];
+	unsigned int maxRadius;
+	unsigned int l3_addback_enable;
+	unsigned int l2_addback_enable;
+	unsigned int l1_addback_enable;
+	unsigned int l0_addback_enable;
+	unsigned int l3_blf_en;
+	unsigned int sal_enable;
+	unsigned int l3_wv_nr_enable;
+	unsigned int l2_wv_nr_enable;
+	unsigned int l1_wv_nr_enable;
+	unsigned int ynr_bypass;
+	unsigned int blf_range_index;
+	unsigned int blf_dist_weight2;
+	unsigned int blf_dist_weight1;
+	unsigned int blf_dist_weight0;
 	int blf_range_s4;
 	int blf_range_s3;
 	int blf_range_s2;
 	int blf_range_s1;
-	uint32_t coef_model;
-	uint32_t blf_range_s0_high;
-	uint32_t blf_range_s0_mid;
-	uint32_t blf_range_s0_low;
-	uint32_t lum_thresh1;
-	uint32_t lum_thresh0;
-	uint32_t l1_wv_ratio2_low;
-	uint32_t l1_wv_ratio1_low;
-	uint32_t l1_soft_offset_low;
-	uint32_t l1_wv_thr1_low;
-	uint32_t l1_wv_ratio_d2_low;
-	uint32_t l1_wv_ratio_d1_low;
-	uint32_t l1_soft_offset_d_low;
-	uint32_t l1_wv_ratio2_mid;
-	uint32_t l1_wv_ratio1_mid;
-	uint32_t l1_soft_offset_mid;
-	uint32_t l1_wv_ratio_d2_mid;
-	uint32_t l1_wv_ratio_d1_mid;
-	uint32_t l1_soft_offset_d_mid;
-	uint32_t l1_wv_thr_d1_mid;
-	uint32_t l1_wv_ratio2_high;
-	uint32_t l1_wv_ratio1_high;
-	uint32_t l1_soft_offset_high;
-	uint32_t l1_wv_thr1_high;
-	uint32_t l1_wv_ratio_d2_high;
-	uint32_t l1_wv_ratio_d1_high;
-	uint32_t l1_soft_offset_d_high;
-	uint32_t l1_wv_thr_d1_high;
-	uint32_t l2_wv_ratio2_low;
-	uint32_t l2_wv_ratio1_low;
-	uint32_t l2_soft_offset_low;
-	uint32_t l2_wv_thr1_low;
-	uint32_t l2_wv_ratio_d2_low;
-	uint32_t l2_wv_ratio_d1_low;
-	uint32_t l2_soft_offset_d_low;
-	uint32_t l2_wv_thr_d1_low;
-	uint32_t l2_wv_ratio2_mid;
-	uint32_t l2_wv_ratio1_mid;
-	uint32_t l2_soft_offset_mid;
-	uint32_t l2_wv_thr1_mid;
-	uint32_t l2_wv_ratio_d2_mid;
-	uint32_t l2_wv_ratio_d1_mid;
-	uint32_t l2_soft_offset_d_mid;
-	uint32_t l2_wv_thr_d1_mid;
-	uint32_t l2_wv_ratio2_high;
-	uint32_t l2_wv_ratio1_high;
-	uint32_t l2_soft_offset_high;
-	uint32_t l2_wv_thr1_high;
-	uint32_t l2_wv_ratio_d2_high;
-	uint32_t l2_wv_ratio_d1_high;
-	uint32_t l2_soft_offset_d_high;
-	uint32_t l2_wv_thr_d1_high;
-	uint32_t l3_wv_ratio2_low;
-	uint32_t l3_wv_ratio1_low;
-	uint32_t l3_soft_offset_low;
-	uint32_t l3_wv_thr1_low;
-	uint32_t l3_wv_ratio_d2_low;
-	uint32_t l3_wv_ratio_d1_low;
-	uint32_t l3_soft_offset_d_low;
-	uint32_t l3_wv_thr_d1_low;
-	uint32_t l3_wv_ratio2_mid;
-	uint32_t l3_wv_ratio1_mid;
-	uint32_t l3_soft_offset_mid;
-	uint32_t l3_wv_thr1_mid;
-	uint32_t l3_wv_ratio_d2_mid;
-	uint32_t l3_wv_ratio_d1_mid;
-	uint32_t l3_soft_offset_d_mid;
-	uint32_t l3_wv_thr_d1_mid;
-	uint32_t l3_wv_ratio2_high;
-	uint32_t l3_wv_ratio1_high;
-	uint32_t l3_soft_offset_high;
-	uint32_t l3_wv_thr1_high;
-	uint32_t l3_wv_ratio_d2_high;
-	uint32_t l3_wv_ratio_d1_high;
-	uint32_t l3_soft_offset_d_high;
-	uint32_t l3_wv_thr_d1_high;
-	uint32_t l3_wv_thr2_high;
-	uint32_t l3_wv_thr2_mid;
-	uint32_t l3_wv_thr2_low;
-	uint32_t l2_wv_thr2_high;
-	uint32_t l2_wv_thr2_mid;
-	uint32_t l2_wv_thr2_low;
-	uint32_t l1_wv_thr2_high;
-	uint32_t l1_wv_thr2_mid;
-	uint32_t l1_wv_thr2_low;
-	uint32_t l3_wv_thr_d2_high;
-	uint32_t l3_wv_thr_d2_mid;
-	uint32_t l3_wv_thr_d2_low;
-	uint32_t l2_wv_thr_d2_high;
-	uint32_t l2_wv_thr_d2_mid;
-	uint32_t l2_wv_thr_d2_low;
-	uint32_t l1_wv_thr_d2_high;
-	uint32_t l1_wv_thr_d2_mid;
-	uint32_t l1_wv_thr_d2_low;
-	uint32_t l1_addback_ratio;
-	uint32_t l1_addback_clip;
-	uint32_t l0_addback_ratio;
-	uint32_t l0_addback_clip;
-	uint32_t l3_addback_ratio;
-	uint32_t l3_addback_clip;
-	uint32_t l2_addback_ratio;
-	uint32_t l2_addback_clip;
-	uint32_t lut_thresh3;
-	uint32_t lut_thresh2;
-	uint32_t lut_thresh1;
-	uint32_t lut_thresh0;
-	uint32_t lut_thresh6;
-	uint32_t lut_thresh5;
-	uint32_t lut_thresh4;
-	uint32_t sal_offset3;
-	uint32_t sal_offset2;
-	uint32_t sal_offset1;
-	uint32_t sal_offset0;
-	uint32_t sal_offset7;
-	uint32_t sal_offset6;
-	uint32_t sal_offset5;
-	uint32_t sal_offset4;
-	uint32_t sal_nr_str3;
-	uint32_t sal_nr_str2;
-	uint32_t sal_nr_str1;
-	uint32_t sal_nr_str0;
-	uint32_t sal_nr_str7;
-	uint32_t sal_nr_str6;
-	uint32_t sal_nr_str5;
-	uint32_t sal_nr_str4;
-	uint32_t start_row;
-	uint32_t start_col;
-	uint32_t center_y;
-	uint32_t center_x;
-	uint32_t dis_interval;
-	uint32_t radius;
-	uint32_t slice_height;
-	uint32_t slice_width;
-	struct isp_slice_ynr_info slice_info_array[SLICE_NUM_MAX];
+	unsigned int coef_model;
+	unsigned int blf_range_s0_high;
+	unsigned int blf_range_s0_mid;
+	unsigned int blf_range_s0_low;
+	unsigned int lum_thresh1;
+	unsigned int lum_thresh0;
+	unsigned int l1_wv_ratio2_low;
+	unsigned int l1_wv_ratio1_low;
+	unsigned int l1_soft_offset_low;
+	unsigned int l1_wv_thr1_low;
+	unsigned int l1_wv_ratio_d2_low;
+	unsigned int l1_wv_ratio_d1_low;
+	unsigned int l1_soft_offset_d_low;
+	unsigned int l1_wv_thr_d1_low;
+	unsigned int l1_wv_ratio2_mid;
+	unsigned int l1_wv_ratio1_mid;
+	unsigned int l1_soft_offset_mid;
+	unsigned int l1_wv_thr1_mid;
+	unsigned int l1_wv_ratio_d2_mid;
+	unsigned int l1_wv_ratio_d1_mid;
+	unsigned int l1_soft_offset_d_mid;
+	unsigned int l1_wv_thr_d1_mid;
+	unsigned int l1_wv_ratio2_high;
+	unsigned int l1_wv_ratio1_high;
+	unsigned int l1_soft_offset_high;
+	unsigned int l1_wv_thr1_high;
+	unsigned int l1_wv_ratio_d2_high;
+	unsigned int l1_wv_ratio_d1_high;
+	unsigned int l1_soft_offset_d_high;
+	unsigned int l1_wv_thr_d1_high;
+	unsigned int l2_wv_ratio2_low;
+	unsigned int l2_wv_ratio1_low;
+	unsigned int l2_soft_offset_low;
+	unsigned int l2_wv_thr1_low;
+	unsigned int l2_wv_ratio_d2_low;
+	unsigned int l2_wv_ratio_d1_low;
+	unsigned int l2_soft_offset_d_low;
+	unsigned int l2_wv_thr_d1_low;
+	unsigned int l2_wv_ratio2_mid;
+	unsigned int l2_wv_ratio1_mid;
+	unsigned int l2_soft_offset_mid;
+	unsigned int l2_wv_thr1_mid;
+	unsigned int l2_wv_ratio_d2_mid;
+	unsigned int l2_wv_ratio_d1_mid;
+	unsigned int l2_soft_offset_d_mid;
+	unsigned int l2_wv_thr_d1_mid;
+	unsigned int l2_wv_ratio2_high;
+	unsigned int l2_wv_ratio1_high;
+	unsigned int l2_soft_offset_high;
+	unsigned int l2_wv_thr1_high;
+	unsigned int l2_wv_ratio_d2_high;
+	unsigned int l2_wv_ratio_d1_high;
+	unsigned int l2_soft_offset_d_high;
+	unsigned int l2_wv_thr_d1_high;
+	unsigned int l3_wv_ratio2_low;
+	unsigned int l3_wv_ratio1_low;
+	unsigned int l3_soft_offset_low;
+	unsigned int l3_wv_thr1_low;
+	unsigned int l3_wv_ratio_d2_low;
+	unsigned int l3_wv_ratio_d1_low;
+	unsigned int l3_soft_offset_d_low;
+	unsigned int l3_wv_thr_d1_low;
+	unsigned int l3_wv_ratio2_mid;
+	unsigned int l3_wv_ratio1_mid;
+	unsigned int l3_soft_offset_mid;
+	unsigned int l3_wv_thr1_mid;
+	unsigned int l3_wv_ratio_d2_mid;
+	unsigned int l3_wv_ratio_d1_mid;
+	unsigned int l3_soft_offset_d_mid;
+	unsigned int l3_wv_thr_d1_mid;
+	unsigned int l3_wv_ratio2_high;
+	unsigned int l3_wv_ratio1_high;
+	unsigned int l3_soft_offset_high;
+	unsigned int l3_wv_thr1_high;
+	unsigned int l3_wv_ratio_d2_high;
+	unsigned int l3_wv_ratio_d1_high;
+	unsigned int l3_soft_offset_d_high;
+	unsigned int l3_wv_thr_d1_high;
+	unsigned int l3_wv_thr2_high;
+	unsigned int l3_wv_thr2_mid;
+	unsigned int l3_wv_thr2_low;
+	unsigned int l2_wv_thr2_high;
+	unsigned int l2_wv_thr2_mid;
+	unsigned int l2_wv_thr2_low;
+	unsigned int l1_wv_thr2_high;
+	unsigned int l1_wv_thr2_mid;
+	unsigned int l1_wv_thr2_low;
+	unsigned int l3_wv_thr_d2_high;
+	unsigned int l3_wv_thr_d2_mid;
+	unsigned int l3_wv_thr_d2_low;
+	unsigned int l2_wv_thr_d2_high;
+	unsigned int l2_wv_thr_d2_mid;
+	unsigned int l2_wv_thr_d2_low;
+	unsigned int l1_wv_thr_d2_high;
+	unsigned int l1_wv_thr_d2_mid;
+	unsigned int l1_wv_thr_d2_low;
+	unsigned int l1_addback_ratio;
+	unsigned int l1_addback_clip;
+	unsigned int l0_addback_ratio;
+	unsigned int l0_addback_clip;
+	unsigned int l3_addback_ratio;
+	unsigned int l3_addback_clip;
+	unsigned int l2_addback_ratio;
+	unsigned int l2_addback_clip;
+	unsigned int lut_thresh3;
+	unsigned int lut_thresh2;
+	unsigned int lut_thresh1;
+	unsigned int lut_thresh0;
+	unsigned int lut_thresh6;
+	unsigned int lut_thresh5;
+	unsigned int lut_thresh4;
+	unsigned int sal_offset3;
+	unsigned int sal_offset2;
+	unsigned int sal_offset1;
+	unsigned int sal_offset0;
+	unsigned int sal_offset7;
+	unsigned int sal_offset6;
+	unsigned int sal_offset5;
+	unsigned int sal_offset4;
+	unsigned int sal_nr_str3;
+	unsigned int sal_nr_str2;
+	unsigned int sal_nr_str1;
+	unsigned int sal_nr_str0;
+	unsigned int sal_nr_str7;
+	unsigned int sal_nr_str6;
+	unsigned int sal_nr_str5;
+	unsigned int sal_nr_str4;
+	unsigned int start_row;
+	unsigned int start_col;
+	unsigned int center_y;
+	unsigned int center_x;
+	unsigned int dis_interval;
+	unsigned int radius;
 };
 
 struct img_signed_offset {
@@ -1755,10 +1961,13 @@ struct post_cdn_distw {
 
 /*isp sub block: pstrz*/
 struct isp_dev_posterize_info {
-	uint32_t bypass;
-	unsigned char posterize_level_bottom[POSTERIZE_NUM];
-	unsigned char posterize_level_top[POSTERIZE_NUM];
-	unsigned char posterize_level_out[POSTERIZE_NUM];
+	unsigned int  bypass;
+	unsigned int  posterize_r_data[POSTERIZE_NUM];
+	unsigned int  posterize_g_data[POSTERIZE_NUM];
+	unsigned int  posterize_b_data[POSTERIZE_NUM];
+	unsigned int  pstrz_buf_sel;
+	unsigned int  sample_en;
+	unsigned int  chk_auto_clr;
 };
 
 struct pstrz_level {

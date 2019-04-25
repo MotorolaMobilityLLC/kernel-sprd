@@ -43,12 +43,6 @@ static int isp_k_dispatch_block(struct isp_io_param *param,
 		((dispatch_info.dispatch_height_dly_num_ch0 & 0xFF) << 8);
 	ISP_REG_WR(idx, ISP_DISPATCH_DLY, val);
 
-	val = (dispatch_info.dispatch_nready_width_ch0 & 0x1FFF) |
-		((dispatch_info.dispatch_nready_cfg_ch0 & 1) << 15) |
-		((dispatch_info.dispatch_ready_width_ch0 & 0x1FFF) << 16) |
-		((dispatch_info.dispatch_dbg_mode_ch0 & 1) << 31);
-	ISP_REG_WR(idx, ISP_DISPATCH_HW_CTRL_CH0, val);
-
 	val = (dispatch_info.dispatch_done_line_dly_num & 0xFF) |
 		((dispatch_info.dispatch_done_cfg_mode & 1) << 15) |
 		((dispatch_info.dispatch_width_dly_num_flash & 0x1FFF) << 16) |

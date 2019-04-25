@@ -31,10 +31,10 @@
 #define SLICE_WIDTH_MAX                (2592 - RAW_OVERLAP_RIGHT)
 #define SLICE_SCL_CAP_WIDTH_MAX        2592
 #define SLICE_WIDTH_MIN                160
-#define RAW_OVERLAP_UP                 62
-#define RAW_OVERLAP_DOWN               82
-#define RAW_OVERLAP_LEFT               90
-#define RAW_OVERLAP_RIGHT              142
+#define RAW_OVERLAP_UP                 58
+#define RAW_OVERLAP_DOWN               78
+#define RAW_OVERLAP_LEFT               86
+#define RAW_OVERLAP_RIGHT              138
 #define YUV_OVERLAP_UP                 46
 #define YUV_OVERLAP_DOWN               68
 #define YUV_OVERLAP_LEFT               74
@@ -804,7 +804,7 @@ static void sprd_ispslice_path_trim1_info_set(
 		(struct slice_scaler_path *)slice->scaler_yuv;
 	uint32_t trim_sum_x = 0;
 	uint32_t trim_sum_y = 0;
-	uint32_t pix_align = 8;
+	uint32_t pix_align = 32;
 	uint32_t i = 0;
 
 	if (in->trim0_start_x >= slice->scaler_slice_start_x &&
@@ -1541,6 +1541,121 @@ exit:
 	return rtn;
 }
 
+static int sprd_ispslice_store_fbc_info_set(
+	struct slice_store_fbc_info *store_fbc_info,
+	struct slice_store_fbc_path *store_fbc_frame,
+	struct slice_base_info *base_info,
+	struct slice_scaler_info *scaler_info, uint32_t scl_bypass)
+{
+	int rtn = 0;
+	uint32_t slice_col_num = base_info->slice_col_num;
+	uint32_t slice_start_col = 0;
+	uint32_t slice_id = 0;
+	uint32_t cur_slice_row = 0;
+	uint32_t cur_slice_col = 0;
+	uint32_t overlap_left = 0;
+	uint32_t overlap_up = 0;
+	uint32_t overlap_down = 0;
+	uint32_t overlap_right = 0;
+	uint32_t scl_out_width = 0, scl_out_height = 0;
+	uint32_t tmp_slice_id = 0;
+	uint32_t slice_start_col_tile_num = 0;
+
+	struct slice_store_fbc_info *slice_param = store_fbc_info;
+
+	if (!store_fbc_info || !store_fbc_frame || !base_info || !scaler_info) {
+		pr_err("fail to get valid input ptr\n");
+		rtn = -EINVAL;
+		goto exit;
+	}
+
+	slice_id = base_info->cur_slice_id;
+
+	for (; slice_id < base_info->slice_num; slice_id++) {
+		cur_slice_row = slice_id / slice_col_num;
+		cur_slice_col = slice_id % slice_col_num;
+
+		overlap_up = 0;
+		overlap_left = 0;
+		overlap_down = 0;
+		overlap_right = 0;
+		scl_out_width = scaler_info[slice_id].trim1_size_x;
+		scl_out_height = scaler_info[slice_id].trim1_size_y;
+
+		slice_param[slice_id].overlap_up = overlap_up;
+		slice_param[slice_id].overlap_left = overlap_left;
+		slice_param[slice_id].overlap_down = overlap_down;
+		slice_param[slice_id].overlap_right = overlap_right;
+
+		slice_param[slice_id].slice_out_height =
+			scl_out_height - overlap_up - overlap_down;
+		slice_param[slice_id].slice_out_width =
+			scl_out_width - overlap_left - overlap_right;
+
+		tmp_slice_id = slice_id;
+		slice_start_col = 0;
+		while ((int)(tmp_slice_id - 1) >=
+			(int)(cur_slice_row * slice_col_num)) {
+			tmp_slice_id--;
+			slice_start_col +=
+				(slice_param[tmp_slice_id].slice_out_width +
+				32 - 1) / 32 * 32;
+		}
+
+		slice_start_col_tile_num = slice_start_col / 32;
+
+		slice_param[slice_id].yheader_addr =
+			store_fbc_frame->yheader_addr +
+				slice_start_col_tile_num * 16;
+		slice_param[slice_id].yaddr =
+			store_fbc_frame->yaddr +
+				slice_start_col_tile_num * 384;
+		slice_param[slice_id].slice_offset =
+			store_fbc_frame->header_offset +
+				slice_start_col_tile_num * 384;
+		pr_info("slice afbc yheader = %x\n",
+			slice_param[slice_id].yheader_addr);
+		pr_info("slice afbc yaddr = %x\n",
+			slice_param[slice_id].yaddr);
+		pr_info("slice afbc offset = %x\n",
+			slice_param[slice_id].slice_offset);
+	}
+
+exit:
+	return rtn;
+}
+
+static int sprd_ispslice_slice_store_fbc_info_set(struct slice_param_in *in_ptr,
+	struct slice_context_info *cxt)
+{
+	int rtn = 0;
+	uint32_t scl_bypass = 0;
+	struct slice_base_info *base_info = NULL;
+	struct slice_store_fbc_info *store_fbc_info = NULL;
+	struct slice_store_fbc_path *store_fbc_frame = NULL;
+	struct slice_scaler_info *scaler_info = NULL;
+
+	if (!in_ptr || !cxt) {
+		pr_err("fail to get valid input ptr\n");
+		rtn = -EINVAL;
+		goto exit;
+	}
+
+	base_info = &cxt->base_info;
+	if (in_ptr->cap_slice_need == 1) {
+		store_fbc_info = cxt->store_fbc_info[SLICE_PATH_CAP];
+		scaler_info = cxt->scaler_info[SLICE_PATH_CAP];
+		store_fbc_frame = &in_ptr->store_fbc_frame[SLICE_PATH_CAP];
+		scl_bypass =
+			in_ptr->scaler_frame[SLICE_PATH_CAP].scaler_bypass;
+		sprd_ispslice_store_fbc_info_set(store_fbc_info,
+			store_fbc_frame, base_info, scaler_info, scl_bypass);
+	}
+
+exit:
+	return rtn;
+}
+
 static int sprd_ispslice_3dnr_memctrl_set(struct slice_store_path *in_ptr,
 	struct slice_context_info *cxt)
 {
@@ -1974,7 +2089,7 @@ static int sprd_ispslice_fmcu_fetch_set(uint32_t *fmcu_buf,
 	addr = ISP_GET_REG(idx, ISP_FETCH_SLICE_V_ADDR);
 	cmd = fetch_info->addr.chn2;
 	num = sprd_ispslice_fmcu_push_back(&fmcu_buf[num], addr, cmd, num);
-	addr = ISP_GET_REG(idx, ISP_FETCH_MIPI_INFO);
+	addr = ISP_GET_REG(idx, ISP_FETCH_MIPI_PARAM);
 	cmd = fetch_info->mipi_word_num | (fetch_info->mipi_byte_rel_pos << 16);
 	num = sprd_ispslice_fmcu_push_back(&fmcu_buf[num], addr, cmd, num);
 
@@ -2204,6 +2319,44 @@ static int sprd_ispslice_fmcu_store_set(uint32_t *fmcu_buf,
 	return num;
 }
 
+static int sprd_ispslice_fmcu_store_fbc_set(uint32_t *fmcu_buf,
+	struct slice_store_fbc_info *store_fbc_info,
+	uint32_t num, enum isp_id idx, uint32_t base)
+{
+	uint32_t addr = 0, cmd = 0;
+
+	if (!fmcu_buf || !store_fbc_info) {
+		pr_err("fail to get valid input ptr\n");
+		return 0;
+	}
+
+	addr = ISP_GET_REG(idx, ISP_FBC_STORE_SLICE_SIZE) + base;
+	cmd = (store_fbc_info->slice_out_width & 0x1FFF) |
+		((store_fbc_info->slice_out_height & 0x1FFF) << 16);
+	num = sprd_ispslice_fmcu_push_back(&fmcu_buf[num], addr, cmd, num);
+
+	addr = ISP_GET_REG(idx, ISP_FBC_STORE_BORDER) + base;
+	cmd = (store_fbc_info->overlap_up & 0xFF) |
+		((store_fbc_info->overlap_down & 0xFF) << 8)|
+		((store_fbc_info->overlap_left & 0xFF) << 16) |
+		((store_fbc_info->overlap_right & 0xFF) << 24);
+	num = sprd_ispslice_fmcu_push_back(&fmcu_buf[num], addr, cmd, num);
+
+	cmd = store_fbc_info->slice_offset;
+	addr = ISP_GET_REG(idx, ISP_FBC_STORE_SLICE_HEADER_OFFSET_ADDR) + base;
+	num = sprd_ispslice_fmcu_push_back(&fmcu_buf[num], addr, cmd, num);
+
+	cmd = store_fbc_info->yheader_addr;
+	addr = ISP_GET_REG(idx, ISP_FBC_STORE_SLICE_Y_HEADER) + base;
+	num = sprd_ispslice_fmcu_push_back(&fmcu_buf[num], addr, cmd, num);
+
+	cmd = store_fbc_info->yaddr;
+	addr = ISP_GET_REG(idx, ISP_FBC_STORE_SLICE_Y_ADDR) + base;
+	num = sprd_ispslice_fmcu_push_back(&fmcu_buf[num], addr, cmd, num);
+
+	return num;
+}
+
 static int sprd_ispslice_fmcu_3dnr_memctrl_set(uint32_t *fmcu_buf,
 	struct slice_3dnr_mem_ctrl *mem_ctrl,
 	uint32_t num, enum isp_id idx)
@@ -2314,6 +2467,7 @@ static int sprd_ispslice_fmcu_info_set(struct slice_param_in *in_ptr,
 	struct slice_base_info *base_info = NULL;
 	struct slice_scaler_info *scaler_info = NULL;
 	struct slice_store_info *store_info = NULL;
+	struct slice_store_fbc_info *store_fbc_info = NULL;
 	struct slice_3dnr_mem_ctrl *nr3_mem_ctrl = NULL;
 	struct slice_3dnr_store_info *store_3dnr_info = NULL;
 	struct slice_3dnr_crop_info *crop_3dnr_info = NULL;
@@ -2323,7 +2477,7 @@ static int sprd_ispslice_fmcu_info_set(struct slice_param_in *in_ptr,
 	enum isp_id id = 0;
 	enum isp_scene_id scene_id = 0;
 	enum isp_work_mode work_mode = ISP_CFG_MODE;
-	uint32_t scl_base = 0, store_base = 0;
+	uint32_t scl_base = 0, store_base = 0, store_fbc_base = 0;
 
 	uint32_t shadow_done_cmd[ISP_ID_MAX][ISP_SCENE_MAX] = {
 		{PRE0_SHADOW_DONE, CAP0_SHADOW_DONE},
@@ -2409,12 +2563,17 @@ static int sprd_ispslice_fmcu_info_set(struct slice_param_in *in_ptr,
 		if (in_ptr->cap_slice_need == 1) {
 			scaler_info = cxt->scaler_info[SLICE_PATH_CAP];
 			store_info = cxt->store_info[SLICE_PATH_CAP];
+			store_fbc_info = cxt->store_fbc_info[SLICE_PATH_CAP];
 			scl_base = ISP_SCALER_PRE_CAP_BASE;
 			store_base = ISP_STORE_PRE_CAP_BASE;
+			store_fbc_base = ISP_CAP_FBC_STORE_BASE;
 			num = sprd_ispslice_fmcu_scaler_set(fmcu_buf,
 				&scaler_info[slice_id], num, id, scl_base);
 			num = sprd_ispslice_fmcu_store_set(fmcu_buf,
 				&store_info[slice_id], num, id, store_base);
+			num = sprd_ispslice_fmcu_store_fbc_set(fmcu_buf,
+				&store_fbc_info[slice_id], num, id,
+					store_fbc_base);
 		}
 
 		if (work_mode == ISP_CFG_MODE)
@@ -2514,6 +2673,12 @@ int sprd_isp_slice_fmcu_slice_cfg(void *fmcu_handler,
 	rtn = sprd_ispslice_slice_store_info_set(in_ptr, cxt);
 	if (rtn) {
 		pr_err("fail to set slice store info!\n");
+		goto exit;
+	}
+
+	rtn = sprd_ispslice_slice_store_fbc_info_set(in_ptr, cxt);
+	if (rtn) {
+		pr_err("fail to set slice fbc store info!\n");
 		goto exit;
 	}
 

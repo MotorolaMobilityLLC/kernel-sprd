@@ -22,7 +22,6 @@
 #define ION
 #ifdef ION
 #include "ion.h"
-#include "ion_priv.h"
 #endif
 
 #ifdef pr_fmt
@@ -657,6 +656,8 @@ static void sprd_ispint_p_all_done(enum isp_id idx, void *isp_handle)
 	}
 	pr_debug("isp all done. isp_id:%d usr_cnt %d\n", idx,
 		atomic_read(&pframe->usr_cnt));
+
+	dev->isp_busy = 0;
 
 	if (module->isp_path[ISP_SCL_PRE].valid
 		&& module->isp_path[ISP_SCL_VID].valid) {

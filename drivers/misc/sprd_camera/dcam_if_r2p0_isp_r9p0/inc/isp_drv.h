@@ -26,7 +26,6 @@
 
 #define ISP_PIXEL_ALIGN_WIDTH          4
 #define ISP_PIXEL_ALIGN_HEIGHT         2
-#define ISP_FRGB_GAMMA_BUF_SIZE        (257 * 6 + 8)
 #define ISP_LSC_2D_BUF_SIZE            (1024 * 8 + 4)
 #define ISP_NLM_BUF_SIZE               (1024 * 4 + 4)
 #define ISP_ZSL_BUF_NUM                2
@@ -328,6 +327,21 @@ struct isp_store_info {
 	struct isp_pitch_fs pitch;
 };
 
+struct isp_store_fbc_info {
+	uint32_t bypass;
+	uint32_t endian;
+	uint32_t mirror_en;
+	uint32_t color_format;
+	uint32_t tile_number_pitch;
+	uint32_t yaddr;
+	uint32_t yheader;
+	uint32_t header_offset;
+	struct camera_size size;
+	struct store_border border;
+	uint32_t pad_w;
+	uint32_t pad_h;
+};
+
 struct isp_zoom_param {
 	struct camera_size in_size;
 	struct camera_rect in_rect;
@@ -365,6 +379,7 @@ struct isp_path_desc {
 	struct isp_regular_info regular_info;
 	struct isp_scaler_info scaler_info;
 	struct isp_store_info store_info;
+	struct isp_store_fbc_info store_fbc_info;
 	struct camera_frame path_reserved_frame;
 	struct isp_coeff coeff_latest;
 	struct cam_buf_queue coeff_queue;
@@ -450,6 +465,7 @@ struct isp_pipe_dev {
 	uint32_t need_4in1;
 	uint32_t lowlux_4in1_cap;
 	uint32_t sn_mode;
+	uint32_t isp_busy;
 };
 
 typedef void(*isp_isr)(enum isp_id id, void *param);

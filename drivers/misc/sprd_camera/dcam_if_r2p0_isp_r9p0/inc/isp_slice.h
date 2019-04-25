@@ -128,6 +128,18 @@ struct slice_store_info {
 	struct slice_addr addr;
 };
 
+struct slice_store_fbc_info {
+	uint32_t yheader_addr;
+	uint32_t yaddr;
+	uint32_t slice_out_width;
+	uint32_t slice_out_height;
+	uint32_t overlap_up;
+	uint32_t overlap_down;
+	uint32_t overlap_left;
+	uint32_t overlap_right;
+	uint32_t slice_offset;
+};
+
 struct slice_3dnr_mem_ctrl {
 	uint32_t start_col;
 	uint32_t start_row;
@@ -237,6 +249,8 @@ struct slice_context_info {
 	struct slice_3dnr_store_info store_3dnr_info[SLICE_NUM_MAX];
 	struct slice_3dnr_crop_info crop_3dnr_info[SLICE_NUM_MAX];
 	struct slice_store_info store_info[SLICE_PATH_MAX][SLICE_NUM_MAX];
+	struct slice_store_fbc_info
+		store_fbc_info[SLICE_PATH_MAX][SLICE_NUM_MAX];
 	struct slice_dispatch_info dispatch_info[SLICE_NUM_MAX];
 	struct slice_scaler_info scaler_info[SLICE_PATH_MAX][SLICE_NUM_MAX];
 	struct slice_postcnr_info postcnr_info[SLICE_NUM_MAX];
@@ -250,6 +264,14 @@ struct slice_store_path {
 	uint32_t format;
 	struct slice_addr addr;
 	struct slice_img_size size;
+};
+
+struct slice_store_fbc_path {
+	uint32_t yheader_addr;
+	uint32_t yaddr;
+	uint32_t header_offset;
+	uint32_t pad_w;
+	uint32_t pad_h;
 };
 
 struct slice_scaler_path {
@@ -290,6 +312,7 @@ struct slice_param_in {
 	struct slice_img_size img_size;
 	struct slice_scaler_path scaler_frame[SLICE_PATH_MAX];
 	struct slice_store_path store_frame[SLICE_PATH_MAX];
+	struct slice_store_fbc_path store_fbc_frame[SLICE_PATH_MAX];
 	struct slice_3dnr_info nr3_info;
 	uint32_t nlm_col_center;
 	uint32_t nlm_row_center;

@@ -14,7 +14,6 @@
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/mfd/syscon.h>
-#include <linux/mfd/syscon/sprd-glb.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/regmap.h>
@@ -38,6 +37,11 @@
 #define pr_fmt(fmt) "ISP_DRV: %d %d %s : "\
 	fmt, current->pid, __LINE__, __func__
 
+#ifndef FPGA_BRINGUP
+#define BIT_MM_AHB_ISP_EB                BIT(2)
+#define REG_MM_AHB_AHB_EB                (0x0000)
+#endif
+
 struct platform_device *s_isp_pdev;
 struct isp_group s_isp_group;
 static atomic_t s_isp_users[ISP_MAX_COUNT];
@@ -56,14 +60,13 @@ static struct clk *isp_eb;
 struct isp_ch_irq s_isp_irq[ISP_MAX_COUNT];
 static struct mutex isp_module_sema[ISP_MAX_COUNT];
 static struct regmap *cam_ahb_gpr;
-static struct regmap *aon_apb_gpr;
 
 static spinlock_t isp_glb_reg_axi_lock[ISP_MAX_COUNT];
 static spinlock_t isp_glb_reg_mask_lock[ISP_MAX_COUNT];
 static spinlock_t isp_glb_reg_clr_lock[ISP_MAX_COUNT];
 spinlock_t isp_mod_lock;
 #define ISP_AXI_STOP_TIMEOUT           1000
-#define ISP_HIST_ENABLE                1
+#define ISP_HIST_ENABLE                0
 
 static void sprd_ispdrv_glb_reg_awr(uint32_t idx, unsigned long addr,
 			uint32_t val, uint32_t reg_id)
@@ -229,12 +232,26 @@ static int sprd_ispdrv_reset(uint32_t idx)
 		return ISP_RTN_TIME_OUT;
 	}
 
-	flag = BIT_MM_AHB_ISP_LOG_SOFT_RST;
+	flag = MASK_MM_AHB_RF_ISP_SOFT_RST;
 	regmap_update_bits(cam_ahb_gpr,
-		REG_MM_AHB_AHB_RST, flag, flag);
+		REG_MM_AHB_RF_AHB_RST, flag, flag);
 	udelay(1);
 	regmap_update_bits(cam_ahb_gpr,
-		REG_MM_AHB_AHB_RST, flag, ~flag);
+		REG_MM_AHB_RF_AHB_RST, flag, ~flag);
+
+	flag = MASK_MM_AHB_RF_ISP_AHB_SOFT_RST;
+	regmap_update_bits(cam_ahb_gpr,
+		REG_MM_AHB_RF_AHB_RST, flag, flag);
+	udelay(1);
+	regmap_update_bits(cam_ahb_gpr,
+		REG_MM_AHB_RF_AHB_RST, flag, ~flag);
+
+	flag = MASK_MM_AHB_RF_ISP_VAU_SOFT_RST;
+	regmap_update_bits(cam_ahb_gpr,
+		REG_MM_AHB_RF_AHB_RST, flag, flag);
+	udelay(1);
+	regmap_update_bits(cam_ahb_gpr,
+		REG_MM_AHB_RF_AHB_RST, flag, ~flag);
 
 	sprd_ispdrv_glb_reg_awr(idx,
 		ISP_AXI_ITI2AXIM_CTRL, ~BIT_26, ISP_AXI_REG);
@@ -297,6 +314,7 @@ static int sprd_ispdrv_slice_init_param_get(struct slice_param_in *in_ptr,
 	struct isp_path_desc *path_cap = NULL;
 	struct slice_scaler_path *scaler = NULL;
 	struct slice_store_path *store = NULL;
+	struct slice_store_fbc_path *store_fbc = NULL;
 	struct isp_module *module = NULL;
 	struct camera_frame *frame = NULL;
 	struct isp_nr3_param *nr3_info  = NULL;
@@ -385,12 +403,20 @@ static int sprd_ispdrv_slice_init_param_get(struct slice_param_in *in_ptr,
 				ISP_PATH_IDX_CAP, frame);
 		}
 		store = &in_ptr->store_frame[SLICE_PATH_CAP];
+		store_fbc = &in_ptr->store_fbc_frame[SLICE_PATH_CAP];
 		store->format = path_cap->store_info.color_format;
 		store->size.width = path_cap->dst.w;
 		store->size.height = path_cap->dst.h;
 		store->addr.chn0 = path_cap->store_info.addr.chn0;
 		store->addr.chn1 = path_cap->store_info.addr.chn1;
 		store->addr.chn2 = path_cap->store_info.addr.chn2;
+		if (!path_cap->store_fbc_info.bypass) {
+			store_fbc->yaddr = path_cap->store_fbc_info.yaddr;
+			store_fbc->yheader_addr =
+				path_cap->store_fbc_info.yheader;
+			store_fbc->header_offset =
+				path_cap->store_fbc_info.header_offset;
+		}
 	}
 
 	in_ptr->nlm_col_center = dev->isp_k_param.nlm_col_center;
@@ -462,9 +488,17 @@ static int sprd_ispdrv_fmcu_pre_proc(struct isp_pipe_dev *dev)
 
 	sprd_ispdrv_fmcu_cmd_trace(fmcu_slice);
 
+#ifdef CONFIG_64BIT
+	__flush_dcache_area(fmcu_slice->buf_info.kaddr[0], PAGE_SIZE);
+#else
+	flush_kernel_vmap_range(fmcu_slice->buf_info.kaddr[0], PAGE_SIZE);
+#endif
+
 	ISP_HREG_WR(idx, ISP_FMCU_DDR_ADDR, fmcu_slice->buf_info.iova[0]);
 	ISP_HREG_MWR(idx, ISP_FMCU_CTRL, 0xFFFF0000,
 		fmcu_slice->fmcu_num << 16);
+	ISP_HREG_MWR(idx, ISP_FMCU_CTRL, 0x8, 1 << 3);
+	ISP_HREG_WR(idx, ISP_FMCU_ISP_REG_REGION, 0x06300620);
 
 exit:
 	return ret;
@@ -476,32 +510,85 @@ static void sprd_ispdrv_common_cfg(uint32_t com_idx)
 
 	id = ISP_GET_ISP_ID(com_idx);
 
-	ISP_HREG_MWR(id, ISP_COMMON_SCL_PATH_SEL, (BIT_6 | BIT_7), 0x3 << 6);
-	ISP_HREG_WR(id, ISP_COMMON_GCLK_CTRL_2, 0xFFFF0000);
-	ISP_HREG_WR(id, ISP_COMMON_GCLK_CTRL_3, 0x7F00);
 	ISP_HREG_MWR(id, ISP_AXI_ISOLATION, BIT_0, 0);
 	ISP_HREG_MWR(id, ISP_ARBITER_ENDIAN_CH0, BIT_0, 0);
 	ISP_HREG_WR(id, ISP_ARBITER_CHK_SUM_CLR, 0xF10);
 	ISP_HREG_WR(id, ISP_ARBITER_CHK_SUM0, 0x0);
 
-	ISP_REG_MWR(com_idx, ISP_PSTRZ_PARAM, BIT_0, 1);
-#if ISP_HIST_ENABLE
-	ISP_REG_MWR(com_idx, ISP_HIST_PARAM, BIT_0 | BIT_1, 0x2);
-	ISP_REG_MWR(com_idx, ISP_HIST_CFG_READY, BIT_0, 1);
-#else
-	ISP_REG_MWR(com_idx, ISP_HIST_PARAM, BIT_0 | BIT_1, 0x1);
-	ISP_REG_MWR(com_idx, ISP_HIST_CFG_READY, BIT_0, 1);
-#endif
-	ISP_REG_MWR(com_idx, ISP_HUA_PARAM, BIT_0, 1);
-	ISP_REG_MWR(com_idx, ISP_YGAMMA_PARAM, BIT_0, 1);
-	ISP_REG_MWR(com_idx, ISP_YRANDOM_PARAM1, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_BWU_PARAM, BIT_0, 0);
+	ISP_REG_WR(com_idx, ISP_BWU_PARAM, (0x4 & 0x7) << 16);
 
-	ISP_REG_WR(com_idx, ISP_YDELAY_STEP, 0x144);
-	ISP_REG_WR(com_idx, ISP_SCALER_PRE_CAP_BASE
-		+ ISP_SCALER_HBLANK, 0x4040);
+	ISP_REG_MWR(com_idx, ISP_CFAE_NEW_CFG0, BIT_0, 0);
+	ISP_REG_WR(com_idx, ISP_CFAE_INTP_CFG0, (500 & 0xFFFF));
+	ISP_REG_WR(com_idx, ISP_CFAE_INTP_CFG1,
+		(((1 & 0x1) << 31) | ((20 & 0xFFF) << 12)
+		| ((127 & 0xFF) << 4)));
+	ISP_REG_WR(com_idx, ISP_CFAE_INTP_CFG2, ((8 & 0x3F)
+		| ((0 & 0x1FFFF) << 8)));
+	ISP_REG_WR(com_idx, ISP_CFAE_INTP_CFG3,
+		(((8 & 0x1F) << 20) | ((8 & 0x1F) << 12) | (280 & 0x3FF)));
+	ISP_REG_WR(com_idx, ISP_CFAE_INTP_CFG4, ((100 & 0xFFF)
+		| ((100 & 0x3FF) << 16)));
+	ISP_REG_WR(com_idx, ISP_CFAE_INTP_CFG5, ((200 & 0xFFF)
+		| ((200 & 0x3FF) << 16)));
+
+	ISP_REG_MWR(com_idx, ISP_CCE_PARAM, BIT_0, 0);
+	ISP_REG_WR(com_idx, ISP_CCE_MATRIX0, (((0x96 & 0x7FF) << 11)
+	    | (0x4D & 0x7FF)));
+	ISP_REG_WR(com_idx, ISP_CCE_MATRIX1, (((0x7D5 & 0x7FF) << 11)
+	    | (0x1D & 0x7FF)));
+	ISP_REG_WR(com_idx, ISP_CCE_MATRIX2, (((0x80 & 0x7FF) << 11
+	    | (0x7AB & 0x7FF))));
+	ISP_REG_WR(com_idx, ISP_CCE_MATRIX3, (((0x795 & 0x7FF) << 11)
+	    | (0x80 & 0x7FF)));
+	ISP_REG_WR(com_idx, ISP_CCE_MATRIX4, ((0x7E8) & 0x7FF));
+	ISP_REG_WR(com_idx, ISP_CCE_SHIFT,
+		((0 & 0x1FF) | ((0 & 0x1FF) << 9)
+		| (((0 & 0x1FF) << 18) & 0x7FFFFFF)));
+
+	ISP_REG_MWR(com_idx, ISP_VST_PARA, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_NLM_PARA, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_IVST_PARA, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_GC2_CTRL, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_GRGB_CTRL, BIT_0, 1);
+
+	ISP_REG_MWR(com_idx, ISP_CMC10_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_LTM_STAT_RGB_BASE + ISP_LTM_PARAMETERS,
+		BIT_0, 0x1);
+	ISP_REG_MWR(com_idx, ISP_LTM_MAP_RGB_BASE + ISP_LTM_MAP_PARAM0,
+		BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_GAMMA_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_HSV_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_PSTRZ_PARA, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_HIST_PARAM, BIT_0, 1);
+
+	ISP_REG_MWR(com_idx, ISP_UVD_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_LTM_STAT_YUV_BASE + ISP_LTM_PARAMETERS,
+		BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_LTM_MAP_YUV_BASE + ISP_LTM_MAP_PARAM0,
+		BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_PRECDN_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_YNR_CONTRL0, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_EE_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_YGAMMA_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_CDN_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_POSTCDN_COMMON_CTRL, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_YDELAY_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_IIRCNR_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_YUV_YRANDOM_PARAM1, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_BCHS_PARAM, BIT_0, 1);
+
+	ISP_REG_WR(com_idx, ISP_SCALER_PRE_CAP_BASE + ISP_SCALER_HBLANK,
+		0x4040);
 	ISP_REG_WR(com_idx, ISP_SCALER_PRE_CAP_BASE + ISP_SCALER_RES, 0xFF);
 	ISP_REG_WR(com_idx, ISP_SCALER_PRE_CAP_BASE + ISP_SCALER_DEBUG, 1);
 	ISP_REG_MWR(com_idx, ISP_STORE_BASE + ISP_STORE_PARAM, BIT_0, 1);
+
+	ISP_REG_MWR(com_idx, ISP_FBD_RAW_SEL, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_FBC_3DNR_STORE_PARAM, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_NF_CTRL, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_THMB_CFG, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_STORE_THU_BASE + ISP_STORE_PARAM, BIT_0, 1);
 }
 
 static int sprd_ispdrv_sel_cap_frame(void *handle)
@@ -510,7 +597,7 @@ static int sprd_ispdrv_sel_cap_frame(void *handle)
 	struct isp_pipe_dev *dev = NULL;
 	struct isp_module *module = NULL;
 	struct camera_frame frame;
-	int32_t frame_diff = 0, frame_index[2], i = 0, j = 0;
+	int32_t frame_diff = 0, frame_index[2] = {0, 0}, i = 0, j = 0;
 	s64 timestamp[2][ISP_ZSL_BUF_NUM], cycle[2], min_cycle = 0,
 		time_diff = 0, min_time_diff = 0;
 	uint32_t idx = 0, zsl_queue_nodes[2], frame_id[2][ISP_ZSL_BUF_NUM];
@@ -538,7 +625,7 @@ static int sprd_ispdrv_sel_cap_frame(void *handle)
 						&frame);
 					frame_id[j][i] = frame.frame_id;
 					timestamp[j][i] =
-						frame.time.boot_time.tv64;
+						frame.time.boot_time;
 					sprd_cam_queue_frm_enqueue(&dev
 						->module_info.full_zsl_queue,
 						&frame);
@@ -614,7 +701,7 @@ sel_ok:
 			goto exit;
 		}
 
-		s_isp_group.timestamp[idx] = frame.time.boot_time.tv64;
+		s_isp_group.timestamp[idx] = frame.time.boot_time;
 		if (++s_isp_group.dual_sel_cnt == 2) {
 			struct isp_pipe_dev *dev0 = s_isp_group.isp_dev[0];
 			struct isp_pipe_dev *dev1 = s_isp_group.isp_dev[1];
@@ -863,6 +950,48 @@ static int sprd_ispdrv_path_scaler(struct isp_module *module,
 	return rtn;
 }
 
+static int sprd_isppath_afbc_store(struct isp_path_desc *path)
+{
+	uint32_t w_tile_num = 0, h_tile_num = 0;
+	uint32_t pad_width = 0, pad_height = 0;
+	uint32_t header_size = 0, tile_data_size = 0;
+	uint32_t header_addr = 0;
+	struct isp_store_fbc_info *store_fbc_info = NULL;
+
+	if (!path) {
+		pr_err("fail to get valid input ptr\n");
+		return -EFAULT;
+	}
+
+	store_fbc_info = &path->store_fbc_info;
+	store_fbc_info->size.w = path->dst.w;
+	store_fbc_info->size.h = path->dst.h;
+
+	pad_width = (store_fbc_info->size.w + 32 - 1) / 32 * 32;
+	pad_height = (store_fbc_info->size.h + 8 - 1) / 8 * 8;
+
+	store_fbc_info->pad_w = pad_width;
+	store_fbc_info->pad_h = pad_height;
+
+	w_tile_num = pad_width / 32;
+	h_tile_num = pad_height / 8;
+
+	header_size = w_tile_num * h_tile_num * 16;
+	tile_data_size = w_tile_num * h_tile_num * 384;
+	header_addr = store_fbc_info->yheader;
+
+	store_fbc_info->header_offset = (header_size + 1024 - 1) / 1024 * 1024;
+
+	store_fbc_info->yheader = header_addr;
+
+	store_fbc_info->yaddr = store_fbc_info->yheader +
+		store_fbc_info->header_offset;
+
+	store_fbc_info->tile_number_pitch = w_tile_num;
+
+	return 0;
+}
+
 static int sprd_ispdrv_path_common_start(struct isp_module *module,
 	struct isp_path_desc *cur_path,
 	enum isp_path_index cur_path_idx,
@@ -908,6 +1037,14 @@ static int sprd_ispdrv_path_common_start(struct isp_module *module,
 	if (rtn) {
 		pr_err("fail to set pre path scaler\n");
 		return rtn;
+	}
+
+	if (!cur_path->store_fbc_info.bypass) {
+		rtn = sprd_isppath_afbc_store(cur_path);
+		if (rtn) {
+			pr_err("fail to set cap path scaler\n");
+			return rtn;
+		}
 	}
 
 	if (cur_path_idx != ISP_PATH_IDX_CAP) {
@@ -1011,10 +1148,8 @@ static int sprd_ispdrv_path_start(void *isp_handle,
 		isp_3dnr_default_param(dev->com_idx);
 	}
 
-	if (cur_path->input_format == DCAM_CAP_MODE_YUV) {
+	if (cur_path->input_format == DCAM_CAP_MODE_YUV)
 		ISP_HREG_MWR(id, ISP_COMMON_SPACE_SEL, 0x0F, 0x0A);
-		ISP_HREG_MWR(id, ISP_YUV_MULT, BIT_31, 0 << 31);
-	}
 
 	sprd_ispdrv_common_cfg(module->com_idx);
 	sprd_ispdrv_irq_mask_en(module->com_idx);
@@ -1195,7 +1330,6 @@ static int sprd_ispdrv_clk_dis(void)
 	/* set isp clock to default value before power off */
 	clk_set_parent(isp_clk, isp_clk_default);
 	clk_disable_unprepare(isp_clk);
-
 	flag = BIT_MM_AHB_ISP_EB;
 	regmap_update_bits(cam_ahb_gpr,
 		REG_MM_AHB_AHB_EB, flag, ~flag);
@@ -1617,6 +1751,13 @@ static int sprd_ispdrv_pre_frame_pre_proc(struct isp_pipe_dev *dev)
 	return rtn;
 }
 
+static void sprd_ispdrv_start(uint32_t idx,
+	enum isp_id id, enum isp_scene_id scene_id)
+{
+	ISP_HREG_MWR(id, ISP_CFG_PAMATER, BIT_0, 1);
+	ISP_REG_WR(idx, ISP_FETCH_START, 1);
+}
+
 static int sprd_ispdrv_offline_proc(void *handle)
 {
 	uint32_t idx = 0, work_mode = 0;
@@ -1653,8 +1794,9 @@ static int sprd_ispdrv_offline_proc(void *handle)
 	work_mode = ISP_GET_MODE_ID(idx);
 
 	/* preview frame proc */
-	if (module->isp_path[ISP_SCL_PRE].valid ||
-		module->isp_path[ISP_SCL_VID].valid) {
+	if ((module->isp_path[ISP_SCL_PRE].valid ||
+		module->isp_path[ISP_SCL_VID].valid) &&
+		!dev->isp_busy) {
 		if (sprd_ispdrv_pre_frame_pre_proc(dev))
 			goto capture_proc;
 
@@ -1672,15 +1814,15 @@ static int sprd_ispdrv_offline_proc(void *handle)
 				ret = sprd_ispdrv_update_rds_param(idx,
 					&zoom_info);
 			ret = sprd_isp_cfg_block_config(cfg_ctx);
-			pr_debug("start isp%d in CFG mode, scene_idx 0x%x\n",
+			pr_info("start isp%d in CFG mode, scene_idx 0x%x\n",
 					id, scene_id);
 			atomic_set(&dev->shadow_done, 1);
 			sprd_isp_cfg_isp_start(cfg_ctx);
 		} else {
-			ISP_HREG_MWR(id, ISP_CFG_PAMATER, BIT_0, 1);
-			pr_debug("start isp%d in AP mode, scene_idx 0x%x\n",
-					id, scene_id);
-			ISP_REG_WR(idx, ISP_FETCH_START, 1);
+			pr_info("start isp%d in AP mode, scene_idx 0x%x\n",
+			id, scene_id);
+			sprd_ispdrv_start(idx, id, scene_id);
+			dev->isp_busy = 1;
 		}
 	}
 
@@ -2112,6 +2254,7 @@ int sprd_isp_drv_dt_parse(struct device_node *dn, uint32_t *isp_count)
 		s_isp_count = count;
 		*isp_count = count;
 
+#ifdef FPGA_BRIPNUP
 		isp_eb = of_clk_get_by_name(isp_node, "isp_eb");
 		if (IS_ERR_OR_NULL(isp_eb)) {
 			pr_err("fail to get isp_eb\n");
@@ -2153,6 +2296,11 @@ int sprd_isp_drv_dt_parse(struct device_node *dn, uint32_t *isp_count)
 			pr_err("fail to get isp_clk_default\n");
 			return PTR_ERR(isp_clk_default);
 		}
+#endif
+		cam_ahb_gpr = syscon_regmap_lookup_by_phandle(isp_node,
+			"sprd,cam-ahb-syscon");
+		if (IS_ERR_OR_NULL(cam_ahb_gpr))
+			return PTR_ERR(cam_ahb_gpr);
 
 		if (of_address_to_resource(isp_node, 0, &res))
 			pr_err("fail to get isp phys addr\n");

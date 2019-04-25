@@ -52,6 +52,7 @@ struct dcam_cfg_fun {
 };
 
 static struct dcam_cfg_fun dcam_cfg_fun_tab[] = {
+#ifdef FPGA_BRINGUP
 	{ISP_BLOCK_BLC,              isp_k_cfg_blc},
 	{ISP_BLOCK_BPC,              isp_k_cfg_bpc},
 	{ISP_BLOCK_GRGB,             isp_k_cfg_grgb},
@@ -65,6 +66,7 @@ static struct dcam_cfg_fun dcam_cfg_fun_tab[] = {
 	{ISP_BLOCK_AWBC,             isp_k_cfg_awbc},
 	{ISP_BLOCK_RGBG_DITHER,      isp_k_cfg_rgb_dither},
 	{ISP_BLOCK_GTM,              isp_k_cfg_gtm}
+#endif
 };
 
 int sprd_isp_cfg_param(void *param,
