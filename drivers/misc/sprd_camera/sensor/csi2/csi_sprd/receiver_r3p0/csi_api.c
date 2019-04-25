@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Spreadtrum Communications Inc.
+ * Copyright (C) 2019 Unisoc Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -11,8 +11,8 @@
  * GNU General Public License for more details.
  */
 
-#include <dt-bindings/soc/sprd,sharkl3-regs.h>
-#include <dt-bindings/soc/sprd,sharkl3-mask.h>
+#include <dt-bindings/soc/sprd,sharkl5pro-regs.h>
+#include <dt-bindings/soc/sprd,sharkl5pro-mask.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/io.h>
@@ -53,7 +53,7 @@
 #define CSI_2P2L_EFUSE_BLOCK_ID		7
 #define CSI_2L_EFUSE_BLOCK_ID		9
 
-#define CSI_PATTERN_ENABLE		0
+#define CSI_PATTERN_ENABLE		1
 #define IPG_CLK_CFG_MSK			0x3
 #define IPG_CLK_48M			0
 #define IPG_CLK_96M			1
@@ -361,9 +361,36 @@ int csi_api_mipi_phy_cfg(void)
 	return ret;
 }
 
+static void csi_api_reg_owr(unsigned int addr, unsigned int val)
+{
+	void __iomem *io_tmp = NULL;
+	u32 tmp;
+
+	io_tmp = ioremap_nocache(addr, 0x4);
+	tmp = __raw_readl(io_tmp);
+	__raw_writel(tmp|val, io_tmp);
+	mb(); /* asm/barrier.h */
+	val = __raw_readl(io_tmp);
+	iounmap(io_tmp);
+}
+
+static void csi_api_reg_awr(unsigned int addr, unsigned int val)
+{
+	void __iomem *io_tmp = NULL;
+	unsigned int tmp;
+
+	io_tmp = ioremap_nocache(addr, 0x4);
+	tmp = __raw_readl(io_tmp);
+	__raw_writel(tmp&val, io_tmp);
+	mb(); /* asm/barrier.h */
+	val = __raw_readl(io_tmp);
+	iounmap(io_tmp);
+}
+
 int csi_api_open(int bps_per_lane, int phy_id, int lane_num, int sensor_id)
 {
 	int ret = 0;
+#ifdef FPAG_BRINGUP
 	struct csi_dt_node_info *dt_info = csi_get_dt_node_data(sensor_id);
 
 	if (!dt_info) {
@@ -380,9 +407,19 @@ int csi_api_open(int bps_per_lane, int phy_id, int lane_num, int sensor_id)
 		goto EXIT;
 	}
 	udelay(1);
+#endif
+	csi_api_reg_owr(0x62200004, BIT_9);
+	udelay(10);
+	csi_api_reg_awr(0x62200004, ~BIT_9);
+	udelay(10);
+	bps_per_lane = 56;
+	phy_id = 0;
+	/* sensor_id = 0; */
+	lane_num = 2;
 	ret = csi_init(bps_per_lane, phy_id, sensor_id);
 	if (unlikely(ret))
 		goto EXIT;
+	csi_api_close(0, 0);
 	csi_start(sensor_id);
 	csi_set_on_lanes(lane_num, sensor_id);
 	if (CSI_PATTERN_ENABLE)

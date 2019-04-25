@@ -33,6 +33,7 @@ enum csi_phy_t {
 	PHY_2LANE,
 	PHY_2P2_M,
 	PHY_2P2_S,
+	PHY_CPHY,
 	PHY_MAX,
 };
 
@@ -71,6 +72,15 @@ enum csi_registers_t {
 	IPG_YUV422_8_CFG1 = 0x64,
 	IPG_YUV422_8_CFG2 = 0x68,
 	IPG_OTHER_CFG0 = 0x6C,
+	PHY_SEL = 0x70,
+	CPHY_ERR2 = 0x74,
+	CPHY_ERR2_MASK = 0x78,
+	CPHY_ERR2_CLR = 0x7c,
+	PHY_TRANS_FLAG = 0x80,
+	PHY_PH_ERR_NUM = 0x84,
+	PHY_DEBUG_EN = 0x88,
+	PHY_LINE_START_DELAY = 0x8C,
+	PHY_IPG_CFG_ADD = 0x90,
 };
 
 int csi_reg_base_save(struct csi_dt_node_info *dt_info, int32_t idx);
