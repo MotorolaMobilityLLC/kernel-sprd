@@ -2944,13 +2944,16 @@ CONFIG_USB_CONFIGFS_F_MIDI=y
 # CONFIG_USB_CONFIGFS_F_PRINTER is not set
 CONFIG_USB_CONFIGFS_F_VSERIAL=y
 # CONFIG_USB_CONFIGFS_F_MBIM is not set
+CONFIG_TYPEC=y
+# CONFIG_TYPEC_TCPM is not set
+CONFIG_TYPEC_UCSI=y
+# CONFIG_TYPEC_TPS6598X is not set
+CONFIG_USB_SC27XX_TYPEC=y
 
 #
-# USB Power Delivery and Type-C drivers
+# USB Type-C Alternate Mode drivers
 #
-CONFIG_TYPEC=y
-CONFIG_USB_SC27XX_TYPEC=y
-CONFIG_TYPEC_UCSI=y
+# CONFIG_TYPEC_DP_ALTMODE is not set
 # CONFIG_USB_LED_TRIG is not set
 # CONFIG_USB_ULPI_BUS is not set
 # CONFIG_UWB is not set
@@ -3362,11 +3365,6 @@ CONFIG_SPRD_MAILBOX_R1P2=y
 # CONFIG_KS7010 is not set
 # CONFIG_GREYBUS is not set
 # CONFIG_CRYPTO_DEV_CCREE is not set
-
-#
-# USB Power Delivery and Type-C drivers
-#
-# CONFIG_TYPEC_TCPM is not set
 # CONFIG_PI433 is not set
 # CONFIG_GOLDFISH is not set
 # CONFIG_CHROME_PLATFORMS is not set

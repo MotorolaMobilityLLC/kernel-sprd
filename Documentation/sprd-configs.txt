@@ -10954,6 +10954,20 @@ CONFIG_TYPEC
 	[subsys]
 	[must]
 	[function]
+CONFIG_TYPEC_TCPCI
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_TYPEC_TCPM
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_TYPEC_UCSI
 	[arch] all
 	[plat] all
@@ -11409,6 +11423,13 @@ CONFIG_USB_PHY
 	[subsys] usb
 	[must] user
 	[function] This macro is to support USB Physical Layer drivers.
+CONFIG_USB_ROLE_SWITCH
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_USB_SC27XX_TYPEC
 	[arch] all
 	[plat] all
