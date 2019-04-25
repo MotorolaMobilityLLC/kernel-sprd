@@ -314,7 +314,6 @@ static int sprd_camioctl_tx_done(struct camera_frame *frame, void *param)
 	}
 
 	atomic_set(&dev->run_flag, 1);
-
 	memset((void *)&node, 0, sizeof(node));
 
 	if (frame->irq_type == CAMERA_IRQ_IMG
@@ -385,11 +384,10 @@ static int sprd_camioctl_tx_done(struct camera_frame *frame, void *param)
 			frame->time.boot_time = ktime_get_boottime();
 			sprd_cam_com_timestamp(&frame->time.timeval);
 		}
-		pr_debug("cam %d frame %d: time %ld.%ld, %lld\n",
+		pr_debug("cam %d frame %d: time %ld.%ld\n",
 			dev->idx, frame->frame_id,
 			frame->time.timeval.tv_sec,
-			frame->time.timeval.tv_usec,
-			frame->time.boot_time.tv64);
+			frame->time.timeval.tv_usec);
 	}
 	node.time = frame->time;
 
@@ -482,6 +480,8 @@ static int sprd_camioctl_timer_stop(struct timer_list *cam_timer)
 	return 0;
 }
 
+static int sprd_camioctl_dcam_fetch_start(enum dcam_id idx,
+	enum dcam_id fetch_idx, struct camera_group *group);
 static int sprd_camioctl_full_tx_done(struct camera_frame *frame, void *param)
 {
 	int ret = DCAM_RTN_SUCCESS;
@@ -490,6 +490,8 @@ static int sprd_camioctl_full_tx_done(struct camera_frame *frame, void *param)
 		&dev->cam_ctx.cam_path[CAMERA_FULL_PATH];
 	struct camera_group *group = (struct camera_group *)dev->grp;
 
+	pr_info("dev->cam_ctx.need_isp_tool = %d, path->assoc_idx = %d\n",
+		dev->cam_ctx.need_isp_tool, path->assoc_idx);
 	if (dev->cam_ctx.need_isp_tool
 		|| path->assoc_idx == 0) {
 		if (dev->cam_ctx.need_4in1) {
@@ -724,7 +726,7 @@ static int sprd_camioctl_res_get(struct camera_group *group,
 			goto exit;
 		}
 	}
-
+	pr_info("group->dcam_res_used = %d\n", group->dcam_res_used);
 exit:
 	if (ret)
 		res->flag = 0;
@@ -1537,8 +1539,8 @@ static int sprd_camioctl_frame_addr_set(struct camera_file *camerafile,
 		return -EINVAL;
 	}
 
-	CAM_TRACE("set path%d frame addr,status %d reserved_buf %d\n",
-		p->channel_id, path->status, p->is_reserved_buf);
+	CAM_TRACE("set path%d frame addr,status %d\n",
+		p->channel_id, path->status);
 
 	if (unlikely(p->fd_array[0] == 0)) {
 		pr_err("fail to get chn %d fd\n", p->channel_id);
@@ -1989,13 +1991,14 @@ static int sprd_camioctl_camera_raw_pipeline_cfg(struct camera_file *camerafile)
 			path->buf_num = 1;
 		}
 	}
-
+	pr_info("path_bin->is_work = %d, path_bin->assoc_idx= %d\n",
+		path_bin->is_work, path_bin->assoc_idx);
 	if (path_bin->is_work && path_bin->assoc_idx != 0) {
 		struct camera_addr cam_addr = {0};
 		size_t size;
 		int i;
 
-		pr_debug("bin path max out w = %d, h = %d\n",
+		pr_info("bin path max out w = %d, h = %d\n",
 			path_bin->max_out_size.w, path_bin->max_out_size.h);
 		path = path_bin;
 		if (!ctx->need_downsizer)
@@ -2022,10 +2025,10 @@ static int sprd_camioctl_camera_raw_pipeline_cfg(struct camera_file *camerafile)
 		|| (path_full->is_work && path_full->assoc_idx != 0))
 		dev->isp_work = 1;
 
-	pr_debug("path is_work: %d %d %d %d %d\n",
+	pr_info("path is_work: %d %d %d %d %d\n",
 		path_full->is_work, path_bin->is_work,
 		path_pre->is_work, path_cap->is_work, path_vid->is_work);
-	pr_debug("path assoc_idx: 0x%x 0x%x 0x%x 0x%x 0x%x\n",
+	pr_info("path assoc_idx: 0x%x 0x%x 0x%x 0x%x 0x%x\n",
 		path_full->assoc_idx, path_bin->assoc_idx,
 		path_pre->assoc_idx, path_cap->assoc_idx,
 		path_vid->assoc_idx);
@@ -2137,7 +2140,7 @@ static int sprd_camioctl_camera_pipeline_cfg(struct camera_file *camerafile)
 		pr_err("fail to get valid input ptr\n");
 		return ret;
 	}
-
+	pr_info("ctx->sn_mode = 0x%x\n", ctx->sn_mode);
 	sprd_dcam_drv_path_clear(camerafile->idx);
 	sprd_isp_drv_path_clear(dev->isp_dev_handle);
 
@@ -2149,17 +2152,42 @@ static int sprd_camioctl_camera_pipeline_cfg(struct camera_file *camerafile)
 	return ret;
 }
 
-static int sprd_camioctl_dcam_cap_cfg(struct camera_context *ctx,
+static int sprd_camioctl_dcam_cap_cfg(struct camera_dev *dev,
 		enum dcam_id idx)
 {
 	int ret = DCAM_RTN_SUCCESS;
+	struct dcam_module *dcam_module = NULL;
+	struct camera_context *ctx = NULL;
 
+	if (dev == NULL) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+	dcam_module = sprd_dcam_drv_module_get(dev->idx);
+	ctx = &dev->cam_ctx;
 	if (ctx == NULL) {
 		pr_err("fail to get valid input ptr\n");
 		ret = -EINVAL;
 		goto exit;
 	}
 
+	if (ctx->slice_en && !ctx->slice_mode) {
+		ctx->slice_part =
+			dcam_module->slice_info[idx].dcam_cap.slice_part;
+		ctx->slice_mode =
+			dcam_module->slice_info[idx].dcam_cap.slice_mode;
+		ctx->cap_in_rect.x =
+			dcam_module->slice_info[idx].dcam_cap.cap_rect.x;
+		ctx->cap_in_rect.y =
+			dcam_module->slice_info[idx].dcam_cap.cap_rect.y;
+		ctx->cap_in_rect.w =
+			dcam_module->slice_info[idx].dcam_cap.cap_rect.w;
+		ctx->cap_in_rect.h =
+			dcam_module->slice_info[idx].dcam_cap.cap_rect.h;
+	} else {
+		ctx->slice_en = 0;
+	}
 	ret = sprd_dcam_cap_cfg_set(idx, DCAM_CAP_SENSOR_MODE,
 		&ctx->sn_mode);
 	if (unlikely(ret)) {
@@ -2236,28 +2264,81 @@ static int sprd_camioctl_dcam_cap_cfg(struct camera_context *ctx,
 		}
 	}
 
-	ret = sprd_dcam_cap_cfg_set(idx, DCAM_CAP_DUAL_MODE,
-		&ctx->dual_cam);
+	ret = sprd_dcam_cap_cfg_set(idx, DCAM_CAP_CPHY_SEL,
+		&ctx->cphy_sel);
 	if (unlikely(ret)) {
-		pr_err("fail to cfg dcam dual mode\n");
+		pr_err("fail to cfg dcam cphy sel\n");
 		goto exit;
 	}
 
+	ret = sprd_dcam_cap_cfg_set(idx, DCAM_CAP_SLICE_PART,
+		&ctx->slice_part);
+	if (unlikely(ret)) {
+		pr_err("fail to cfg dcam slice_part\n");
+		goto exit;
+	}
+
+	ret = sprd_dcam_cap_cfg_set(idx, DCAM_CAP_SLICE_MODE,
+		&ctx->slice_mode);
+	if (unlikely(ret)) {
+		pr_err("fail to cfg dcam slice_mode\n");
+		goto exit;
+	}
+
+	ret = sprd_dcam_cap_cfg_set(idx, DCAM_CAP_SLICE_EN,
+		&ctx->slice_en);
+	if (unlikely(ret)) {
+		pr_err("fail to cfg dcam slice en\n");
+		goto exit;
+	}
+
+	ret = sprd_dcam_cap_cfg_set(idx, DCAM_CAP_FETCH_MODE_EN,
+		&ctx->fetch_mode_en);
+	if (unlikely(ret)) {
+		pr_err("fail to cfg dcam fetch_mode_en\n");
+		goto exit;
+	}
 exit:
 	return ret;
 }
 
-static int sprd_camioctl_full_path_cfg(struct camera_path_spec *full_path,
+static int sprd_camioctl_full_path_cfg(struct camera_dev *dev,
+	struct camera_path_spec *full_path,
 	enum dcam_id idx)
 {
 	int ret = 0;
 	uint32_t param = 0;
 	struct camera_addr cur_node = {0};
+	struct dcam_module *dcam_module = NULL;
+	struct camera_context *ctx = NULL;
+
+	dcam_module = sprd_dcam_drv_module_get(dev->idx);
+	ctx = &dev->cam_ctx;
+	if (ctx == NULL) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+		goto exit;
+	}
 
 	if (full_path == NULL) {
 		pr_err("fail to get valid input ptr\n");
 		ret = -EINVAL;
 		goto exit;
+	}
+
+	if (ctx->slice_en && !ctx->slice_mode) {
+		full_path->pitch =
+			dcam_module->slice_info[idx].full_path.pitch;
+		full_path->in_size.w =
+			dcam_module->slice_info[idx].full_path.input_size.w;
+		full_path->in_rect =
+			dcam_module->slice_info[idx].full_path.input_rect;
+		full_path->out_size.w =
+			dcam_module->slice_info[idx].full_path.output_size.w;
+		pr_err("in_size = {%d, %d}, rect = {%d, %d, %d, %d}\n",
+			full_path->in_size.w, full_path->in_size.h,
+			full_path->in_rect.x, full_path->in_rect.y,
+			full_path->in_rect.w, full_path->in_rect.h);
 	}
 
 	ret = sprd_dcam_full_path_cfg_set(idx, DCAM_PATH_BUF_NUM,
@@ -2343,17 +2424,42 @@ exit:
 	return ret;
 }
 
-static int sprd_camioctl_bin_path_cfg(struct camera_path_spec *bin_path,
-	enum dcam_id idx)
+static int sprd_camioctl_bin_path_cfg(struct camera_dev *dev,
+	struct camera_path_spec *bin_path, enum dcam_id idx)
 {
 	int ret = 0;
 	uint32_t param = 0;
 	struct camera_addr cur_node = {0};
+	struct dcam_module *dcam_module = NULL;
+	struct camera_context *ctx = NULL;
+
+	dcam_module = sprd_dcam_drv_module_get(dev->idx);
+	ctx = &dev->cam_ctx;
+	if (ctx == NULL) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+		goto exit;
+	}
 
 	if (bin_path == NULL) {
 		pr_err("fail to get valid input ptr\n");
 		ret = -EINVAL;
 		goto exit;
+	}
+
+	if (ctx->slice_en && !ctx->slice_mode) {
+		bin_path->pitch =
+			dcam_module->slice_info[idx].bin_path.pitch;
+		bin_path->in_size.w =
+			dcam_module->slice_info[idx].bin_path.input_size.w;
+		bin_path->in_rect =
+			dcam_module->slice_info[idx].bin_path.input_rect;
+		bin_path->out_size.w =
+			dcam_module->slice_info[idx].bin_path.output_size.w;
+		pr_info("in_size = {%d, %d}, rect = {%d, %d, %d, %d}\n",
+			bin_path->in_size.w, bin_path->in_size.h,
+			bin_path->in_rect.x, bin_path->in_rect.y,
+			bin_path->in_rect.w, bin_path->in_rect.h);
 	}
 
 	ret = sprd_dcam_bin_path_cfg_set(idx, DCAM_PATH_BUF_NUM,
@@ -2406,8 +2512,19 @@ static int sprd_camioctl_bin_path_cfg(struct camera_path_spec *bin_path,
 		goto exit;
 	}
 
+	ret = sprd_dcam_bin_path_cfg_set(idx, DCAM_PATH_PITCH,
+		&bin_path->pitch);
+	if (unlikely(ret)) {
+		pr_err("fail to cfg bin_path pitch\n");
+		goto exit;
+	}
+
 	while (sprd_cam_queue_buf_read(&bin_path->buf_queue, &cur_node) == 0) {
 
+		DCAM_TRACE("y=0x%x u=0x%x v=0x%x mfd=0x%x 0x%x\n",
+				cur_node.yaddr, cur_node.uaddr,
+				cur_node.vaddr, cur_node.buf_info.mfd[0],
+				cur_node.buf_info.mfd[1]);
 		ret = sprd_dcam_bin_path_cfg_set(idx, DCAM_PATH_OUTPUT_ADDR,
 			&cur_node);
 		if (unlikely(ret)) {
@@ -2454,6 +2571,214 @@ exit:
 	return ret;
 }
 
+static int calc_online_mipi_cap(struct camera_dev *dev)
+{
+	int ret = 0;
+	struct dcam_module *dcam_module = NULL;
+	struct camera_context *ctx = NULL;
+	struct camera_rect cap_in_rect;
+
+	ctx = &dev->cam_ctx;
+
+	if (ctx == NULL) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+	}
+
+	dcam_module = sprd_dcam_drv_module_get(dev->idx);
+	cap_in_rect = ctx->cap_in_rect;
+
+	dcam_module->slice_info[0].dcam_cap.slice_en = 1;
+	dcam_module->slice_info[0].dcam_cap.slice_mode = 0;
+	dcam_module->slice_info[0].dcam_cap.slice_part = 0;
+	dcam_module->slice_info[0].dcam_cap.cap_rect.x = cap_in_rect.x;
+	dcam_module->slice_info[0].dcam_cap.cap_rect.y = cap_in_rect.y;
+	dcam_module->slice_info[0].dcam_cap.cap_rect.w =
+		(cap_in_rect.w / 2 + 127) / 128 * 128;
+	dcam_module->slice_info[0].dcam_cap.cap_rect.h = cap_in_rect.h;
+
+	pr_info("slice0_rect{%d,%d,%d,%d}\n",
+		dcam_module->slice_info[0].dcam_cap.cap_rect.x,
+		dcam_module->slice_info[0].dcam_cap.cap_rect.y,
+		dcam_module->slice_info[0].dcam_cap.cap_rect.w,
+		dcam_module->slice_info[0].dcam_cap.cap_rect.h);
+	dcam_module->slice_info[1].dcam_cap.slice_en = 1;
+	dcam_module->slice_info[1].dcam_cap.slice_mode = 0;
+	dcam_module->slice_info[1].dcam_cap.slice_part = 1;
+	dcam_module->slice_info[1].dcam_cap.cap_rect.x =
+		dcam_module->slice_info[0].dcam_cap.cap_rect.w;
+	dcam_module->slice_info[1].dcam_cap.cap_rect.y = cap_in_rect.y;
+	dcam_module->slice_info[1].dcam_cap.cap_rect.w =
+		cap_in_rect.w - dcam_module->slice_info[0].dcam_cap.cap_rect.w;
+	dcam_module->slice_info[1].dcam_cap.cap_rect.h =
+		cap_in_rect.h;
+
+	pr_info("slice1_rect{%d,%d,%d,%d}\n",
+		dcam_module->slice_info[1].dcam_cap.cap_rect.x,
+		dcam_module->slice_info[1].dcam_cap.cap_rect.y,
+		dcam_module->slice_info[1].dcam_cap.cap_rect.w,
+		dcam_module->slice_info[1].dcam_cap.cap_rect.h);
+
+	return ret;
+}
+
+static int calc_online_bin_path(struct camera_dev *dev)
+{
+	int ret = 0;
+	struct camera_context *ctx = NULL;
+	struct camera_rect cap_in_rect;
+	struct dcam_module *dcam_module = NULL;
+	struct camera_path_spec *bin_path = NULL;
+
+	ctx = &dev->cam_ctx;
+	if (ctx == NULL) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+	}
+	bin_path = &ctx->cam_path[CAMERA_BIN_PATH];
+	dcam_module = sprd_dcam_drv_module_get(dev->idx);
+	cap_in_rect = ctx->cap_in_rect;
+
+	pr_info("bin_path_rect {%d,%d,%d,%d} bin_path->out_size.w = %d\n",
+		bin_path->in_rect.x, bin_path->in_rect.y,
+		bin_path->in_rect.w, bin_path->in_rect.h, bin_path->out_size.w);
+	dcam_module->slice_info[0].bin_path.pitch =
+		(bin_path->out_size.w + 63) / 64 * 64 * 10 / 128;
+	dcam_module->slice_info[0].bin_path.input_rect.x =
+		bin_path->in_rect.x;
+	dcam_module->slice_info[0].bin_path.input_rect.y =
+		bin_path->in_rect.y;
+	dcam_module->slice_info[0].bin_path.input_rect.w =
+		dcam_module->slice_info[0].dcam_cap.cap_rect.w
+		- bin_path->in_rect.x;
+	dcam_module->slice_info[0].bin_path.input_rect.h =
+		bin_path->in_rect.h;
+	dcam_module->slice_info[0].bin_path.input_size.w =
+		dcam_module->slice_info[0].dcam_cap.cap_rect.w;
+	dcam_module->slice_info[0].bin_path.output_size.w =
+		dcam_module->slice_info[0].bin_path.input_rect.w *
+		bin_path->out_size.w / bin_path->in_rect.w;
+
+	pr_info("slice0_rect{%d,%d,%d,%d}\n",
+		dcam_module->slice_info[0].bin_path.input_rect.x,
+		dcam_module->slice_info[0].bin_path.input_rect.y,
+		dcam_module->slice_info[0].bin_path.input_rect.w,
+		dcam_module->slice_info[0].bin_path.input_rect.h);
+
+	dcam_module->slice_info[1].bin_path.input_rect.x =
+		dcam_module->slice_info[0].dcam_cap.cap_rect.w;
+	dcam_module->slice_info[1].bin_path.input_rect.y =
+		bin_path->in_rect.y;
+	dcam_module->slice_info[1].bin_path.input_rect.w =
+		bin_path->in_rect.w -
+		dcam_module->slice_info[0].bin_path.input_rect.w;
+	dcam_module->slice_info[1].bin_path.input_rect.h =
+		bin_path->in_rect.h;
+	dcam_module->slice_info[1].bin_path.input_size.w =
+		bin_path->in_size.w -
+		dcam_module->slice_info[0].bin_path.input_size.w;
+	dcam_module->slice_info[1].bin_path.output_size.w =
+		bin_path->out_size.w -
+		dcam_module->slice_info[0].bin_path.output_size.w;
+	dcam_module->slice_info[1].bin_path.pitch =
+		dcam_module->slice_info[0].bin_path.pitch;
+
+	pr_info("slice0_rect{%d,%d,%d,%d}\n",
+		dcam_module->slice_info[1].bin_path.input_rect.x,
+		dcam_module->slice_info[1].bin_path.input_rect.y,
+		dcam_module->slice_info[1].bin_path.input_rect.w,
+		dcam_module->slice_info[1].bin_path.input_rect.h);
+
+	return ret;
+}
+
+static int calc_online_full_path(struct camera_dev *dev)
+{
+	int ret = 0;
+	struct camera_context *ctx = NULL;
+	struct camera_rect cap_in_rect;
+	struct dcam_module *dcam_module = NULL;
+	struct camera_path_spec *full_path = NULL;
+
+	ctx = &dev->cam_ctx;
+	if (ctx == NULL) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+	}
+	full_path = &ctx->cam_path[CAMERA_FULL_PATH];
+	dcam_module = sprd_dcam_drv_module_get(dev->idx);
+	cap_in_rect = ctx->cap_in_rect;
+
+	pr_info("bin_path_rect {%d,%d,%d,%d} bin_path->out_size.w = %d\n",
+		full_path->in_rect.x, full_path->in_rect.y,
+		full_path->in_rect.w, full_path->in_rect.h,
+		full_path->out_size.w);
+	dcam_module->slice_info[0].full_path.pitch =
+		(full_path->out_size.w + 63) / 64 * 64 * 10 / 128;
+	dcam_module->slice_info[0].full_path.input_rect.x =
+		full_path->in_rect.x;
+	dcam_module->slice_info[0].full_path.input_rect.y =
+		full_path->in_rect.y;
+	dcam_module->slice_info[0].full_path.input_rect.w =
+		dcam_module->slice_info[0].dcam_cap.cap_rect.w
+		- full_path->in_rect.x;
+	dcam_module->slice_info[0].full_path.input_rect.h =
+		full_path->in_rect.h;
+	dcam_module->slice_info[0].full_path.input_size.w =
+		dcam_module->slice_info[0].dcam_cap.cap_rect.w;
+	dcam_module->slice_info[0].full_path.output_size.w =
+		dcam_module->slice_info[0].full_path.input_rect.w *
+		full_path->out_size.w / full_path->in_rect.w;
+
+	pr_info("slice0_rect{%d,%d,%d,%d}\n",
+		dcam_module->slice_info[0].full_path.input_rect.x,
+		dcam_module->slice_info[0].full_path.input_rect.y,
+		dcam_module->slice_info[0].full_path.input_rect.w,
+		dcam_module->slice_info[0].full_path.input_rect.h);
+
+	dcam_module->slice_info[1].full_path.input_rect.x =
+		dcam_module->slice_info[0].dcam_cap.cap_rect.w;
+	dcam_module->slice_info[1].full_path.input_rect.y =
+		full_path->in_rect.y;
+	dcam_module->slice_info[1].full_path.input_rect.w =
+		full_path->in_rect.w -
+		dcam_module->slice_info[0].full_path.input_rect.w;
+	dcam_module->slice_info[1].full_path.input_rect.h =
+		full_path->in_rect.h;
+	dcam_module->slice_info[1].full_path.input_size.w =
+		full_path->in_size.w -
+		dcam_module->slice_info[0].full_path.input_size.w;
+	dcam_module->slice_info[1].full_path.output_size.w =
+		full_path->out_size.w -
+		dcam_module->slice_info[0].full_path.output_size.w;
+	dcam_module->slice_info[1].full_path.pitch =
+		dcam_module->slice_info[0].full_path.pitch;
+
+	pr_info("slice0_rect{%d,%d,%d,%d}\n",
+		dcam_module->slice_info[1].full_path.input_rect.x,
+		dcam_module->slice_info[1].full_path.input_rect.y,
+		dcam_module->slice_info[1].full_path.input_rect.w,
+		dcam_module->slice_info[1].full_path.input_rect.h);
+
+	return ret;
+}
+
+static int sprd_cam_calc_online_param(struct camera_dev *dev)
+{
+	int ret = 0;
+
+	if (dev == NULL) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+	}
+
+	calc_online_mipi_cap(dev);
+	calc_online_bin_path(dev);
+	calc_online_full_path(dev);
+
+	return ret;
+}
+
 static int sprd_camioctl_dcam_cfg(struct camera_dev *dev)
 {
 	int ret = 0;
@@ -2470,14 +2795,25 @@ static int sprd_camioctl_dcam_cfg(struct camera_dev *dev)
 	bin_path = &ctx->cam_path[CAMERA_BIN_PATH];
 	dcam_module = sprd_dcam_drv_module_get(dev->idx);
 
+	if (ctx->cap_in_rect.w > DCAM_LINE_BUF) {
+		ctx->slice_en = 1;
+		ctx->slice_mode = 0;
+		dcam_module->slice_en = 1;
+		dcam_module->slice_mode = 0;
+		ret = sprd_cam_calc_online_param(dev);
+		if (ret)
+			pr_err("fail to calc online param\n");
+	}
+
+	pr_info("in\n");
 	ret = sprd_camioctl_dcam_reg_isr(dev);
 	if (unlikely(ret)) {
 		pr_err("fail to register dcam isr\n");
 		goto exit;
 	}
-
+	/*slice0 for online slice*/
+	ret = sprd_camioctl_dcam_cap_cfg(dev, idx);
 	/* config cap sub-module */
-	ret = sprd_camioctl_dcam_cap_cfg(ctx, idx);
 	if (unlikely(ret)) {
 		pr_err("fail to config cap\n");
 		goto exit;
@@ -2485,7 +2821,7 @@ static int sprd_camioctl_dcam_cfg(struct camera_dev *dev)
 
 	/* config dcam_if full_path */
 	if (full_path->is_work) {
-		ret = sprd_camioctl_full_path_cfg(full_path, idx);
+		ret = sprd_camioctl_full_path_cfg(dev, full_path, idx);
 		if (unlikely(ret)) {
 			pr_err("fail to config full_path cap\n");
 			goto exit;
@@ -2495,7 +2831,7 @@ static int sprd_camioctl_dcam_cfg(struct camera_dev *dev)
 
 	/* config dcam_if bin_path */
 	if (bin_path->is_work) {
-		ret = sprd_camioctl_bin_path_cfg(bin_path, idx);
+		ret = sprd_camioctl_bin_path_cfg(dev, bin_path, idx);
 		if (unlikely(ret)) {
 			pr_err("fail to config bin_path cap\n");
 			goto exit;
@@ -2514,6 +2850,37 @@ static int sprd_camioctl_dcam_cfg(struct camera_dev *dev)
 		}
 	}
 
+	if (ctx->slice_en && !ctx->slice_mode) {
+		/*slice0 for online slice*/
+		ret = sprd_camioctl_dcam_cap_cfg(dev, DCAM_ID_1);
+		/* config cap sub-module */
+		if (unlikely(ret)) {
+			pr_err("fail to config cap\n");
+			goto exit;
+		}
+
+		/* config dcam_if full_path */
+		if (full_path->is_work) {
+			ret = sprd_camioctl_full_path_cfg(dev,
+				full_path, DCAM_ID_1);
+			if (unlikely(ret)) {
+				pr_err("fail to config full_path cap\n");
+				goto exit;
+			}
+			full_path->status = PATH_RUN;
+		}
+
+		/* config dcam_if bin_path */
+		if (bin_path->is_work) {
+			ret = sprd_camioctl_bin_path_cfg(dev,
+				bin_path, DCAM_ID_1);
+			if (unlikely(ret)) {
+				pr_err("fail to config bin_path cap\n");
+				goto exit;
+			}
+			bin_path->status = PATH_RUN;
+		}
+	}
 	if (dev->init_inptr.statis_valid) {
 		ret = sprd_cam_statistic_buf_cfg(
 				&dcam_module->statis_module_info,
@@ -2695,7 +3062,7 @@ exit:
 	return ret;
 }
 
-static int sprd_camioctl_isp_path_cfg(struct camera_dev *dev)
+int sprd_camioctl_isp_path_cfg(struct camera_dev *dev)
 {
 	int ret = 0, path_not_work = 0;
 	struct camera_context *ctx = NULL;
@@ -2808,6 +3175,191 @@ exit:
 	return ret;
 }
 
+static int calc_mipi_cap(enum dcam_id idx,
+	enum dcam_id fetch_idx, struct camera_group *group)
+{
+	int ret = 0;
+	struct isp_img_size size;
+
+	struct dcam_module *dcam_module = NULL;
+	struct camera_dev *dev = group->dev[idx];
+
+	if (!dev) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+		return ret;
+	}
+	size = dev->fetch_info.size;
+	dcam_module = sprd_dcam_drv_module_get(fetch_idx);
+
+	if (!dcam_module) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+		return ret;
+	}
+
+	dcam_module->slice_info[0].dcam_cap.slice_en = 1;
+	dcam_module->slice_info[0].dcam_cap.slice_part = 0;
+	dcam_module->slice_info[0].dcam_cap.slice_mode = 1;
+
+	dcam_module->slice_info[1].dcam_cap.slice_en = 1;
+	dcam_module->slice_info[1].dcam_cap.slice_part = 1;
+	dcam_module->slice_info[1].dcam_cap.slice_mode = 1;
+
+	return ret;
+}
+
+static int calc_fetch(enum dcam_id idx,
+	enum dcam_id fetch_idx, struct camera_group *group)
+{
+	int ret = 0;
+	struct isp_img_size size;
+	struct camera_dev *dev = group->dev[idx];
+	struct dcam_module *dcam_module = NULL;
+
+	if (!dev) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+		return ret;
+	}
+	dcam_module = sprd_dcam_drv_module_get(fetch_idx);
+
+	if (!dev) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+		return ret;
+	}
+	size = dev->fetch_info.size;
+
+	dcam_module->slice_info[0].dcam_fetch.input_rect.x = 0;
+	dcam_module->slice_info[0].dcam_fetch.input_rect.w =
+		(size.width / 2 + 127) / 128 * 128;
+	dcam_module->slice_info[0].dcam_fetch.input_rect.h =
+		size.height;
+
+	dcam_module->slice_info[1].dcam_fetch.input_rect.x =
+		dcam_module->slice_info[0].dcam_fetch.input_rect.w;
+	dcam_module->slice_info[1].dcam_fetch.input_rect.w =
+		size.width - dcam_module->slice_info[0].dcam_fetch.input_rect.w;
+	dcam_module->slice_info[1].dcam_fetch.input_rect.h = size.height;
+	pr_info("slice0_retc {x=%d,w= %d}\n",
+		dcam_module->slice_info[0].dcam_fetch.input_rect.x,
+		dcam_module->slice_info[0].dcam_fetch.input_rect.w);
+	pr_info("slice1_retc {x=%d,w= %d}\n",
+		dcam_module->slice_info[1].dcam_fetch.input_rect.x,
+		dcam_module->slice_info[1].dcam_fetch.input_rect.w);
+
+	return ret;
+}
+
+static int calc_bin(enum dcam_id idx,
+	enum dcam_id fetch_idx, struct camera_group *group)
+{
+	int ret = 0;
+	struct camera_dev *dev = group->dev[idx];
+	struct dcam_module *dcam_module = NULL;
+
+	dcam_module = sprd_dcam_drv_module_get(fetch_idx);
+	if (!dev) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+		return ret;
+	}
+
+	dcam_module->slice_info[0].bin_path.output_size.w =
+		dcam_module->slice_info[0].dcam_fetch.input_rect.w;
+	dcam_module->slice_info[0].bin_path.output_size.h =
+		dcam_module->slice_info[0].dcam_fetch.input_rect.h;
+
+	dcam_module->slice_info[1].bin_path.output_size.w =
+		dcam_module->slice_info[1].dcam_fetch.input_rect.w;
+	dcam_module->slice_info[1].bin_path.output_size.h =
+		dcam_module->slice_info[1].dcam_fetch.input_rect.h;
+
+	return ret;
+}
+
+static int sprd_cam_drv_calc_offline_slice_param(enum dcam_id idx,
+	enum dcam_id fetch_idx, struct camera_group *group)
+{
+	int ret = 0;
+	struct camera_dev *dev = group->dev[idx];
+	struct dcam_module *dcam_module = NULL;
+
+	dcam_module = sprd_dcam_drv_module_get(fetch_idx);
+
+	if (!dev) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+		return ret;
+	}
+	if (!dcam_module) {
+		pr_err("fail to check param\n");
+		ret = -EINVAL;
+		return ret;
+	}
+	ret = calc_mipi_cap(idx, fetch_idx, group);
+	if (ret)
+		pr_err("fail to calc mipi_cap param\n");
+
+	ret = calc_fetch(idx, fetch_idx, group);
+	if (ret)
+		pr_err("fail to calc fetch param\n");
+
+	ret = calc_bin(idx, fetch_idx, group);
+	if (ret)
+		pr_err("fail to calc bin param\n");
+
+	return ret;
+}
+
+int sprd_cam_update_dcam_slice_param(
+	enum dcam_id fetch_idx, enum dcam_slice_part part)
+{
+	int ret = 0;
+	uint32_t tmp = 0;
+	uint32_t addr;
+	struct dcam_module *dcam_module = NULL;
+
+	dcam_module = sprd_dcam_drv_module_get(fetch_idx);
+
+	if (!dcam_module) {
+		pr_err("fail to get valid input ptr\n");
+		ret = -EINVAL;
+		return ret;
+	}
+	/*mipi_cap*/
+	sprd_dcam_cap_cfg_set(fetch_idx,
+		DCAM_CAP_SLICE_EN,
+		&dcam_module->slice_info[part].dcam_cap.slice_en);
+	sprd_dcam_cap_cfg_set(fetch_idx,
+		DCAM_CAP_SLICE_MODE,
+		&dcam_module->slice_info[part].dcam_cap.slice_mode);
+	sprd_dcam_cap_cfg_set(fetch_idx,
+		DCAM_CAP_SLICE_PART,
+		&dcam_module->slice_info[part].dcam_cap.slice_part);
+
+	/*fetch*/
+	tmp = (dcam_module->slice_info[part].dcam_fetch.input_rect.h << 16) |
+			dcam_module->slice_info[part].dcam_fetch.input_rect.w;
+	DCAM_AXIM_WR(REG_DCAM_IMG_FETCH_SIZE, tmp);
+	DCAM_AXIM_MWR(REG_DCAM_IMG_FETCH_X, 0x1FFF,
+		dcam_module->slice_info[part].dcam_fetch.input_rect.x);
+
+	/*bin_path tbd*/
+	if (part == DCAM_SLICE1) {
+		addr = dcam_module->slice_info[0].bin_path.store_addr +
+			dcam_module->slice_info[0].bin_path.output_size.w *
+			10 / 8;
+		pr_err("addr = %d, slice0_output_size.w = %d\n", addr,
+			dcam_module->slice_info[0].bin_path.output_size.w);
+		DCAM_REG_WR(fetch_idx, DCAM_BIN_BASE_WADDR0, addr);
+	}
+	sprd_dcam_drv_force_copy(fetch_idx, ALL_COPY);
+
+	return ret;
+}
+
 static int sprd_camioctl_dcam_fetch_start(enum dcam_id idx,
 	enum dcam_id fetch_idx, struct camera_group *group)
 {
@@ -2815,12 +3367,17 @@ static int sprd_camioctl_dcam_fetch_start(enum dcam_id idx,
 	uint32_t i = 0;
 	uint32_t param = 0;
 	size_t image_size;
+	uint32_t fetch_pitch = 0;
+	uint32_t prev_pitch = 0;
 	struct camera_dev *dev = group->dev[idx];
 	struct camera_rect rect;
 	struct camera_addr cam_addr = {0};
 	struct camera_path_spec *path;
 	struct camera_path_spec *isp_path;
 	struct isp_img_size size;
+	struct isp_img_size slice0_size;
+	struct isp_img_size slice1_size;
+
 	uint32_t tmp = 0;
 	uint32_t addr = 0;
 	struct dcam_module *dcam_module = NULL;
@@ -2832,8 +3389,22 @@ static int sprd_camioctl_dcam_fetch_start(enum dcam_id idx,
 		return ret;
 	}
 
+	dcam_module = sprd_dcam_drv_module_get(fetch_idx);
 	pr_info("dcam%d => dcam%d\n", idx, fetch_idx);
 	size = dev->fetch_info.size;
+	if (size.width > DCAM_LINE_BUF) {
+		dcam_module->slice_en = 1;
+		dcam_module->slice_mode = DCAM_OFFLINE_SLICE;
+		dcam_module->slice_part = 0;
+		ret = sprd_cam_drv_calc_offline_slice_param(idx,
+			fetch_idx, group);
+		if (ret)
+			pr_err("fail to calc offline slice param\n");
+	}
+
+	pr_info("slice0_size {%d, %d}, slice1_size{%d, %d}\n",
+		slice0_size.width, slice0_size.height,
+		slice1_size.width, slice1_size.height);
 	path = &group->dev[fetch_idx]->cam_ctx.cam_path[CAMERA_BIN_PATH];
 	isp_path = &dev->cam_ctx.cam_path[CAMERA_CAP_PATH];
 	if (!dev->raw_cap)
@@ -2889,28 +3460,34 @@ config_fetch:
 		goto exit;
 	}
 
-	ret = sprd_camioctl_bin_path_cfg(path, fetch_idx);
+	prev_pitch = sprd_cam_com_raw_pitch_calc(0, path->out_size.w) / 16;
+	pr_info("fetch_pitch = %d, path->out_size.w= %d\n",
+		prev_pitch, path->out_size.w);
+	ret = sprd_dcam_bin_path_cfg_set(idx, DCAM_PATH_PITCH,
+		&prev_pitch);
+	if (unlikely(ret)) {
+		pr_err("fail to config prev pitch\n");
+		goto exit;
+	}
+	ret = sprd_camioctl_bin_path_cfg(dev, path, fetch_idx);
 	if (unlikely(ret)) {
 		pr_err("fail to config bin path\n");
 		goto exit;
 	}
-
 	rect.x = 0;
 	rect.y = 0;
 	rect.w = size.width;
 	rect.h = size.height;
 
 	/*full_path->src_sel == DCAM_PATH_FROM_CAP*/
-	DCAM_REG_MWR(fetch_idx, DCAM_MIPI_CAP_CFG,
-		BIT_16 | BIT_17, dev->cam_ctx.img_ptn << 16);
+	DCAM_REG_MWR(fetch_idx, DCAM_BAYER_INFO_CFG,
+		BIT_5 | BIT_4, dev->cam_ctx.img_ptn << 4);
 	DCAM_REG_WR(fetch_idx, DCAM_MIPI_CAP_START, 0);
 	tmp = (size.width - 1);
 	tmp |= (size.height - 1) << 16;
 	DCAM_REG_WR(fetch_idx, DCAM_MIPI_CAP_END, tmp);
-
 	sprd_dcam_bin_path_start(fetch_idx);
 	if (dev->raw_cap) {
-		dcam_module = sprd_dcam_drv_module_get(fetch_idx);
 		sprd_cam_statistic_queue_clear(
 			&dcam_module->statis_module_info);
 		sprd_cam_statistic_buf_cfg(
@@ -2918,14 +3495,21 @@ config_fetch:
 		sprd_cam_statistic_buf_set(
 			&dcam_module->statis_module_info);
 	} else {
-		DCAM_REG_MWR(fetch_idx, ISP_AEM_PARAM, BIT_0, 1);
-		DCAM_REG_MWR(fetch_idx, ISP_RAW_AFM_FRAM_CTRL, BIT_0, 1);
-		DCAM_REG_MWR(fetch_idx, ISP_ANTI_FLICKER_FRAM_CTRL, BIT_0, 1);
-		DCAM_REG_MWR(fetch_idx, DCAM_NR3_PARA1, BIT_0, 1);
+		DCAM_REG_MWR(fetch_idx, DCAM_AEM_FRM_CTRL0, BIT_0, 1);
+		DCAM_REG_MWR(fetch_idx, ISP_AFM_FRM_CTRL, BIT_0, 1);
+		DCAM_REG_MWR(fetch_idx, ISP_AFL_FRM_CTRL0, BIT_0, 1);
+		DCAM_REG_MWR(fetch_idx, DCAM_NR3_FAST_ME_PARAM, BIT_0, 1);
 	}
 	sprd_dcam_drv_irq_mask_en(fetch_idx);
 
 	sprd_dcam_drv_force_copy(fetch_idx, ALL_COPY);
+
+	if (size.width > DCAM_LINE_BUF) {
+		ret = sprd_cam_drv_calc_offline_slice_param(
+				idx, fetch_idx, group);
+		if (ret)
+			pr_err("fail to calc offline slice param\n");
+	}
 
 	/*config fetch*/
 	param = 0;
@@ -2943,6 +3527,15 @@ config_fetch:
 		goto exit;
 	}
 
+	fetch_pitch = sprd_cam_com_raw_pitch_calc(0, size.width) / 16;
+	pr_info("fetch_pitch = %d, size.width = %d\n",
+		fetch_pitch, size.width);
+	ret = sprd_dcam_fetch_cfg_set(fetch_idx,
+		DCAM_FETCH_IMG_PITCH, &fetch_pitch);
+	if (unlikely(ret)) {
+		pr_err("fail to cfg fetch pitch\n");
+		goto exit;
+	}
 	param = dev->fetch_info.dcam_fetch_endian;
 	ret = sprd_dcam_fetch_cfg_set(fetch_idx,
 		DCAM_FETCH_DATA_ENDIAN, &param);
@@ -2957,6 +3550,8 @@ config_fetch:
 	cam_addr.buf_info.num = 1;
 	cam_addr.mfd_y = dev->fetch_info.fetch_addr.img_fd;
 	cam_addr.yaddr = dev->fetch_info.fetch_addr.offset.x;
+	pr_info("dev->raw_cap = %d, cam_addr.yaddr = 0x%x\n",
+		dev->raw_cap, cam_addr.yaddr);
 	if (!dev->raw_cap) {
 		for (i = 0; i < full_path->buf_num; i++) {
 			if (full_path->addr_4in1[i].mfd == cam_addr.mfd_y) {
@@ -2978,8 +3573,13 @@ config_fetch:
 			goto exit;
 		}
 	}
-
 	/*start dcam1 and isp fetch flow*/
+	if (dcam_module->slice_en) {
+		ret = sprd_cam_update_dcam_slice_param(
+				fetch_idx, DCAM_SLICE0);
+		if (ret)
+			pr_err("fail to update offline slice0 param\n");
+	}
 	param = 1;
 	ret = sprd_dcam_fetch_cfg_set(fetch_idx,
 		DCAM_FETCH_START, &param);
@@ -3459,13 +4059,16 @@ static int sprd_camioctl_io_stream_on(struct camera_file *camerafile,
 	struct camera_group *group = NULL;
 	enum dcam_id idx = DCAM_ID_0;
 	struct flash_led_task *flash_task = NULL;
+	struct camera_context *ctx = NULL;
 
 	group = camerafile->grp;
 	idx = camerafile->idx;
 	flash_task = dev->flash_task;
+	ctx = &dev->cam_ctx;
 
 	mutex_lock(&dev->cam_mutex);
 
+#ifdef FPGA_BRINGUP
 	if (dev->init_inptr.statis_valid) {
 		group->cam_ion_client[idx] =
 			sprd_ion_client_get(dev->init_inptr.dev_fd);
@@ -3473,6 +4076,7 @@ static int sprd_camioctl_io_stream_on(struct camera_file *camerafile,
 			pr_err("fail to get ion client fd 0x%lx\n",
 				dev->init_inptr.dev_fd);
 	}
+#endif
 
 	ret = sprd_cam_queue_buf_clear(&dev->queue);
 	if (unlikely(ret != 0)) {
@@ -3521,6 +4125,8 @@ static int sprd_camioctl_io_stream_on(struct camera_file *camerafile,
 	}
 
 	ret = sprd_dcam_drv_start(idx);
+	if (ctx->slice_en && !ctx->slice_mode)
+		ret = sprd_dcam_drv_start(DCAM_ID_1);
 	if (unlikely(ret)) {
 		pr_err("fail to start dcam\n");
 		ret = sprd_camioctl_isp_unreg_isr(dev);
@@ -3615,6 +4221,7 @@ static int sprd_camioctl_io_stream_off(struct camera_file *camerafile,
 			dev->cam_ctx.need_isp_tool != 1)
 			sprd_cam_buf_sg_table_put(DCAM_ID_1);
 
+#ifdef FPGA_BRINGUP
 		if (dev->init_inptr.statis_valid) {
 			if (group->cam_ion_client[idx]) {
 				sprd_ion_client_put(
@@ -3622,6 +4229,7 @@ static int sprd_camioctl_io_stream_off(struct camera_file *camerafile,
 				group->cam_ion_client[idx] = NULL;
 			}
 		}
+#endif
 
 		if (atomic_dec_return(&group->dcam_run_count) == 0)
 			sprd_iommu_restore(&s_dcam_pdev->dev);
@@ -3749,6 +4357,7 @@ static int sprd_camioctl_io_fmt_check(struct camera_file *camerafile,
 		goto exit;
 	}
 
+	pr_info("img_format.channel_id =  %d\n", img_format.channel_id);
 	if (img_format.channel_id == CAMERA_FULL_PATH) {
 		mutex_lock(&dev->cam_mutex);
 		ret = sprd_camioctl_full_path_cap_check(fmt->fourcc,
@@ -3853,7 +4462,9 @@ static int sprd_camioctl_io_flash_cfg(struct camera_file *camerafile,
 		ret = -EFAULT;
 		return ret;
 	}
+#ifdef FPGA_BRINGUP
 	ret = sprd_flash_cfg(&cfg_parm);
+#endif
 	mutex_unlock(&dev->cam_mutex);
 	CAM_TRACE("config flash, ret %d\n", ret);
 
@@ -4553,6 +5164,9 @@ static int sprd_camioctl_io_function_mode_set(struct camera_file *camerafile,
 	else
 		ctx->need_downsizer = 1;
 
+#ifndef FPAG_BRINGUP
+	ctx->need_downsizer = 0;
+#endif
 	ret = sprd_isp_drv_path_cfg_set(dev->isp_dev_handle,
 		ISP_PATH_IDX_PRE, ISP_PATH_SUPPORT_4IN1,
 		&ctx->need_4in1);

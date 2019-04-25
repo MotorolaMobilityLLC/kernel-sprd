@@ -23,7 +23,6 @@
 #define ION
 #ifdef ION
 #include "ion.h"
-#include "ion_priv.h"
 #endif
 
 #ifdef pr_fmt
@@ -316,15 +315,8 @@ int sprd_cam_statistic_buf_cfg(
 		addr_offset = dcam_statis_size;
 		iova_addr = frm_statis_head.phy_addr;
 		vir_addr = frm_statis_head.vir_addr;
-#ifdef CONFIG_64BIT
-		kaddr = (unsigned long)parm->kaddr[0]
-			| ((unsigned long)parm->kaddr[1] << 32);
-#else
-		kaddr = (unsigned long)parm->kaddr[0];
-#endif
-		pr_info("kaddr[0]=0x%x, kaddr[1]= 0x%x\n",
-			parm->kaddr[0],
-			parm->kaddr[1]);
+		kaddr = sprd_cam_buf_get_kaddr((int)parm->mfd);
+		pr_info("kaddr=0x%lx\n", kaddr);
 		kaddr += addr_offset;
 		if (parm->statis_valid & ISP_STATIS_VALID_HIST)
 			sprd_camstatistic_buf_split(&frm_statis_head,
@@ -366,15 +358,8 @@ int sprd_cam_statistic_buf_cfg(
 		sizeof(struct cam_statis_buf));
 	iova_addr = frm_statis_head.buf_info.iova[0];
 	vir_addr = parm->vir_addr;
-#ifdef CONFIG_64BIT
-	kaddr = (unsigned long)parm->kaddr[0]
-		| ((unsigned long)parm->kaddr[1] << 32);
-#else
-	kaddr = (unsigned long)parm->kaddr[0];
-#endif
-	pr_debug("kaddr[0]=0x%x, kaddr[1]= 0x%x\n",
-		parm->kaddr[0],
-		parm->kaddr[1]);
+	kaddr = sprd_cam_buf_get_kaddr((int)parm->mfd);
+	pr_debug("kaddr=0x%lx\n", kaddr);
 
 	if (parm->statis_valid & ISP_STATIS_VALID_AEM)
 		sprd_camstatistic_buf_split(&frm_statis_head,
@@ -536,16 +521,15 @@ int sprd_cam_statistic_next_buf_set(
 		DCAM_REG_WR(idx, DCAM_AEM_BASE_WADDR, node.phy_addr);
 	} else if (block_index == ISP_AFL_BLOCK) {
 		DCAM_REG_WR(idx,
-			ISP_ANTI_FLICKER_GLB_WADDR, node.phy_addr);
-		DCAM_REG_WR(idx, ISP_ANTI_FLICKER_REGION_WADDR,
+			ISP_AFL_GLB_WADDR, node.phy_addr);
+		DCAM_REG_WR(idx, ISP_AFL_REGION_WADDR,
 				(node.phy_addr + node.buf_size / 2));
 
-		DCAM_REG_MWR(idx, ISP_ANTI_FLICKER_NEW_CFG_READY, BIT_0, 1);
 	} else if (block_index == ISP_AFM_BLOCK) {
-		DCAM_REG_WR(idx, ISP_RAW_AFM_ADDR, node.phy_addr);
+		DCAM_REG_WR(idx, ISP_AFM_BASE_WADDR, node.phy_addr);
 	} else if (block_index == ISP_PDAF_BLOCK) {
 		DCAM_REG_WR(idx, DCAM_PDAF_BASE_WADDR, node.phy_addr);
-		DCAM_REG_WR(idx, DCAM_VCH2_BASE_WADDR,
+		DCAM_REG_WR(idx, DCAM_PPE_RIGHT_WADDR,
 				node.phy_addr + node.buf_size / 2);
 	} else if (block_index == ISP_EBD_BLOCK) {
 		DCAM_REG_WR(idx, DCAM_VCH3_BASE_WADDR, node.phy_addr);

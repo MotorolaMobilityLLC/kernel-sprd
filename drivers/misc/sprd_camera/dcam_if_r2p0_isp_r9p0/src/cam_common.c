@@ -26,24 +26,19 @@ int sprd_cam_com_timestamp(struct timeval *tv)
 
 int sprd_cam_com_raw_pitch_calc(uint16_t isloose, uint16_t width)
 {
-	uint16_t width_align_16 = (width + 16 - 1) & (~(16 - 1));
+	uint16_t width_pitch = 0;
 
-	if (!width_align_16 || !width) {
+	if (!width) {
 		pr_err("fail to get valid width!\n");
 		return 0;
 	}
 
 	if (!isloose) {
-		uint32_t fetchraw_pitch = 0;
-		uint32_t mod16_pixel = width & 0xF;
-		uint32_t mod16_bytes = (mod16_pixel + 3) / 4 * 5;
-		uint32_t mod16_words = (mod16_bytes + 3) / 4;
+		width_pitch = (width * 10 + 127) / 128 * 128  / 8;
+		pr_err("fail to width 0x%x, width_pitch 0x%x\n",
+			width, width_pitch);
 
-		fetchraw_pitch = width / 16 * 20 + mod16_words * 4;
-
-		pr_debug("width 0x%x, pitch 0x%x\n", width, fetchraw_pitch);
-		return fetchraw_pitch;
-	} else {
-		return (width * 2);
-	}
+	} else
+		width_pitch = (width * 16 + 127) / 128 * 128 / 8;
+	return width_pitch;
 }

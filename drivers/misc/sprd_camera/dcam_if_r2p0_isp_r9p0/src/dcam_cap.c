@@ -31,28 +31,24 @@ int sprd_dcam_cap_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 		pr_err("fail to get valid input ptr\n");
 		return -EFAULT;
 	}
-
+	pr_info("id = %d, reg_base = 0x%lx, id = %d\n",
+		idx, DCAM_BASE(idx), id);
 	switch (id) {
 	case DCAM_CAP_SENSOR_MODE:
 		{
 			enum dcam_cap_sensor_mode cap_sensor_mode =
 				*(uint32_t *)param;
 
+			pr_info("cap_sensor_mode %d\n", cap_sensor_mode);
 			if (cap_sensor_mode >= DCAM_CAP_MODE_MAX)
 				rtn = DCAM_RTN_CAP_SENSOR_MODE_ERR;
 			else {
 				if (cap_sensor_mode == DCAM_CAP_MODE_RAWRGB)
-					if (idx == DCAM_ID_2)
-						DCAM_REG_MWR(idx,
-							DCAM_MIPI_CAP_CFG,
-							BIT_1 | BIT_0, BIT_0);
-					else
-						DCAM_REG_MWR(idx,
-							DCAM_MIPI_CAP_CFG,
-							BIT_1, BIT_1);
+					DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
+						BIT_1, 1 << 1);
 				else
 					DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
-						BIT_1, 0);
+						BIT_1, 0 << 1);
 				cap_desc->input_format = cap_sensor_mode;
 			}
 			break;
@@ -65,8 +61,8 @@ int sprd_dcam_cap_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 			if (samp_mode >= DCAM_CAPTURE_MODE_MAX) {
 				rtn = DCAM_RTN_MODE_ERR;
 			} else {
-				DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG, BIT_2,
-					samp_mode << 2);
+				DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG, BIT_3,
+					samp_mode << 3);
 				cap_desc->cap_mode =
 					samp_mode;
 			}
@@ -79,29 +75,15 @@ int sprd_dcam_cap_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 
 			if (sync_pol->need_href)
 				DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
-					BIT_3, 1 << 3);
+					BIT_13, 1 << 13);
 			else
 				DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
-					BIT_3, 0 << 3);
+					BIT_13, 0 << 13);
 			break;
 		}
+	/*sharkl5pro only support 10bit sensor*/
 	case DCAM_CAP_DATA_BITS:
-		{
-			enum dcam_cap_data_bits bits = *(uint32_t *)param;
-
-			if (bits == DCAM_CAP_12_BITS)
-				DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
-				BIT_5 | BIT_4, 2 << 4);
-			else if (bits == DCAM_CAP_10_BITS)
-				DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
-				BIT_5 | BIT_4, 1 << 4);
-			else if (bits == DCAM_CAP_8_BITS)
-				DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
-				BIT_5 | BIT_4, 0 << 4);
-			else
-				rtn = DCAM_RTN_CAP_IN_BITS_ERR;
-			break;
-		}
+		break;
 	case DCAM_CAP_PRE_SKIP_CNT:
 		{
 			uint32_t skip_num = *(uint32_t *)param;
@@ -125,7 +107,7 @@ int sprd_dcam_cap_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 			break;
 		}
 	case DCAM_CAP_FRM_COUNT_CLR:
-		DCAM_REG_MWR(idx, DCAM_MIPI_CAP_FRM_CLR, BIT_6, BIT_6);
+		DCAM_REG_MWR(idx, DCAM_CAP_FRM_CLR, BIT_8, BIT_8);
 		break;
 	case DCAM_CAP_INPUT_RECT:
 		{
@@ -155,21 +137,14 @@ int sprd_dcam_cap_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 				return -rtn;
 			}
 
-			if (idx == DCAM_ID_2) {
-				cap_desc->cap_rect = *rect;
-				tmp = rect->x | (rect->y << 16);
-				DCAM_REG_WR(idx, DCAM2_MIPI_CAP_START, tmp);
-				tmp = (rect->x + rect->w - 1);
-				tmp |= (rect->y + rect->h - 1) << 16;
-				DCAM_REG_WR(idx, DCAM2_MIPI_CAP_END, tmp);
-			} else {
-				cap_desc->cap_rect = *rect;
-				tmp = rect->x | (rect->y << 16);
-				DCAM_REG_WR(idx, DCAM_MIPI_CAP_START, tmp);
-				tmp = (rect->x + rect->w - 1);
-				tmp |= (rect->y + rect->h - 1) << 16;
-				DCAM_REG_WR(idx, DCAM_MIPI_CAP_END, tmp);
-			}
+			cap_desc->cap_rect = *rect;
+			tmp = rect->x | (rect->y << 16);
+			DCAM_REG_WR(idx, DCAM_MIPI_CAP_START, tmp);
+			tmp = (rect->x + rect->w - 1);
+			tmp |= (rect->y + rect->h - 1) << 16;
+			pr_info("rect start {%d, %d} size {%d, %d}\n",
+				rect->x, rect->y, rect->w, rect->h);
+			DCAM_REG_WR(idx, DCAM_MIPI_CAP_END, tmp);
 
 			break;
 		}
@@ -177,7 +152,7 @@ int sprd_dcam_cap_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 		{
 			struct dcam_cap_dec *cap_dec =
 				(struct dcam_cap_dec *)param;
-			reg = DCAM_MIPI_CAP_FRM_CTRL;
+			reg = DCAM_MIPI_CAP_CFG;
 
 			if (cap_dec->x_factor > DCAM_CAP_X_DECI_FAC_MAX ||
 				cap_dec->y_factor > DCAM_CAP_Y_DECI_FAC_MAX) {
@@ -191,17 +166,11 @@ int sprd_dcam_cap_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 						break;
 					}
 				}
-				if (DCAM_CAP_MODE_RAWRGB ==
-					cap_desc->input_format) {
-					DCAM_REG_MWR(idx, reg, BIT_5 | BIT_4,
-						cap_dec->x_factor << 4);
-				} else {
-					DCAM_REG_MWR(idx, reg, BIT_9 | BIT_8,
-						cap_dec->y_factor << 8);
-					DCAM_REG_MWR(idx, reg, BIT_5 | BIT_4,
-						cap_dec->x_factor << 4);
+				DCAM_REG_MWR(idx, reg, BIT_19 | BIT_18,
+					cap_dec->y_factor << 8);
+				DCAM_REG_MWR(idx, reg, BIT_17 | BIT_16,
+					cap_dec->x_factor << 4);
 				}
-			}
 			break;
 		}
 	case DCAM_CAP_DATA_PATTERN:
@@ -209,19 +178,22 @@ int sprd_dcam_cap_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 			uint32_t pattern = *(uint32_t *)param;
 
 			if (cap_desc->input_format == DCAM_CAP_MODE_RAWRGB) {
-				DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
-					BIT_16 | BIT_17, pattern << 16);
+				DCAM_REG_MWR(idx, DCAM_BAYER_INFO_CFG,
+						BIT_4 | BIT_5,
+						pattern << 4);
 			} else if (cap_desc->input_format ==
 				DCAM_CAP_MODE_YUV) {
-				DCAM_REG_MWR(idx, DCAM_MIPI_CAP_FRM_CTRL,
-					0x03 << 0, pattern);
+				DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
+					BIT_15 | BIT_14, pattern << 14);
 			} else
 				rtn = DCAM_RTN_CAP_IN_PATTERN_ERR;
 			break;
 		}
 	case DCAM_CAP_4IN1_BYPASS:
 	{
-		DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG, BIT_12, 0 << 12);
+		DCAM_REG_MWR(idx, DCAM_BAYER_INFO_CFG, BIT_2, 0 << 2);
+		DCAM_REG_MWR(idx, DCAM_BAYER_INFO_CFG, BIT_1, 0 << 1);
+		DCAM_REG_MWR(idx, DCAM_BAYER_INFO_CFG, BIT_0, 0);
 		break;
 	}
 	case DCAM_CAP_DUAL_MODE:
@@ -231,6 +203,51 @@ int sprd_dcam_cap_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 
 		if (dcam_group)
 			dcam_group->dual_cam = dual_cam;
+		break;
+	}
+	case DCAM_CAP_CPHY_SEL:
+	{
+		uint32_t cphy_sel = *(uint32_t *)param;
+
+		pr_info("cphy_sel = %d\n", cphy_sel);
+		DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
+			BIT_31, cphy_sel << 31);
+		break;
+	}
+	case DCAM_CAP_SLICE_PART:
+	{
+		uint32_t slice_part = *(uint32_t *)param;
+
+		pr_info("slice_part = %d\n", slice_part);
+		DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
+			BIT_30, slice_part << 30);
+		break;
+	}
+	case DCAM_CAP_SLICE_MODE:
+	{
+		uint32_t slice_mode = *(uint32_t *)param;
+
+		pr_info("slice_mode = %d\n", slice_mode);
+		DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
+			BIT_29, slice_mode << 29);
+		break;
+	}
+	case DCAM_CAP_SLICE_EN:
+	{
+		uint32_t slice_en = *(uint32_t *)param;
+
+		pr_info("slice_en = %d\n", slice_en);
+		DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
+			BIT_28, slice_en << 28);
+		break;
+	}
+	case DCAM_CAP_FETCH_MODE_EN:
+	{
+		uint32_t fetch_mode_en = *(uint32_t *)param;
+
+		pr_info("fetch_mode_en = %d\n", fetch_mode_en);
+		DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG,
+			BIT_12, fetch_mode_en << 12);
 		break;
 	}
 	default:

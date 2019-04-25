@@ -92,7 +92,7 @@ static int sprd_camflash_thread_loop(void *arg)
 int sprd_cam_flash_set(enum dcam_id idx,
 			struct sprd_img_set_flash *set_flash)
 {
-	sprd_flash_ctrl(set_flash);
+	/*sprd_flash_ctrl(set_flash);*/
 	CAM_TRACE("%d set flash\n", idx);
 
 	return 0;

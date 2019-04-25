@@ -112,6 +112,7 @@ int pfiommu_get_addr(struct pfiommu_info *pfinfo)
 	int i;
 	int ret = 0;
 	struct sprd_iommu_map_data iommu_data;
+
 	pr_debug("%s, cb: %pS\n", __func__, __builtin_return_address(0));
 
 	for (i = 0; i < 2; i++) {
@@ -143,26 +144,6 @@ int pfiommu_get_addr(struct pfiommu_info *pfinfo)
 	return ret;
 }
 
-int pfiommu_check_addr(struct pfiommu_info *pfinfo)
-{
-	struct fd_map_dma *fd_dma = NULL;
-	struct list_head *g_dma_buffer_list = &dma_buffer_list;
-
-	list_for_each_entry(fd_dma, g_dma_buffer_list, list) {
-		if (fd_dma->fd == pfinfo->mfd[0] &&
-		    fd_dma->dma_buf == pfinfo->dmabuf_p[0])
-			break;
-	}
-
-	if (&fd_dma->list == g_dma_buffer_list) {
-		pr_err("invalid mfd: 0x%x, dma_buf:0x%p!\n",
-		       pfinfo->mfd[0],
-		       pfinfo->dmabuf_p[0]);
-		return -1;
-	}
-	return sprd_ion_check_phys_addr(pfinfo->dmabuf_p[0]);
-}
-
 int pfiommu_free_addr(struct pfiommu_info *pfinfo)
 {
 	int i, ret;
@@ -182,12 +163,12 @@ int pfiommu_free_addr(struct pfiommu_info *pfinfo)
 			iommu_data.buf = NULL;
 
 			ret = sprd_iommu_unmap(pfinfo->dev, &iommu_data);
-			if (ret) {
-				pr_err("failed to free iommu %d\n", i);
-				return -EFAULT;
-			} else {
+			if (!ret) {
 				pfinfo->iova[i] = 0;
 				pfinfo->size[i] = 0;
+			} else {
+				pr_err("fail to free iommu %d\n", i);
+				return -EFAULT;
 			}
 		}
 	}
@@ -216,12 +197,12 @@ int pfiommu_free_addr_with_id(struct pfiommu_info *pfinfo,
 
 			ret = sprd_iommu_unmap(pfinfo->dev,
 					&iommu_data);
-			if (ret) {
-				pr_err("failed to free iommu %d\n", i);
-				return -EFAULT;
-			} else {
+			if (!ret) {
 				pfinfo->iova[i] = 0;
 				pfinfo->size[i] = 0;
+			} else {
+				pr_err("failed to free iommu %d\n", i);
+				return -EFAULT;
 			}
 		}
 	}

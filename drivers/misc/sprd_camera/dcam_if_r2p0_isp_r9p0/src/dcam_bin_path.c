@@ -149,6 +149,7 @@ int sprd_dcam_bin_path_cfg_set(enum dcam_id idx,
 		return -EFAULT;
 	}
 
+	pr_info("bin_path_cfg id = 0x%x\n", id);
 	if ((unsigned long)(param) == 0) {
 		pr_err("fail to get valid input ptr\n");
 		return -DCAM_RTN_PARA_ERR;
@@ -212,8 +213,8 @@ int sprd_dcam_bin_path_cfg_set(enum dcam_id idx,
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else if (p_addr->buf_info.type != CAM_BUF_USER_TYPE
-			&& (p_addr->buf_info.client[0] == NULL
-			|| p_addr->buf_info.handle[0] == NULL)) {
+			&& (p_addr->buf_info.dmabuf_p[0] == NULL
+			|| p_addr->buf_info.buf[0] == NULL)) {
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else {
@@ -274,8 +275,8 @@ int sprd_dcam_bin_path_cfg_set(enum dcam_id idx,
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else if (p_addr->buf_info.type != CAM_BUF_USER_TYPE
-			&& (p_addr->buf_info.client[0] == NULL
-			|| p_addr->buf_info.handle[0] == NULL)) {
+			&& (p_addr->buf_info.dmabuf_p[0] == NULL
+			|| p_addr->buf_info.buf[0] == NULL)) {
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else {
@@ -350,6 +351,20 @@ int sprd_dcam_bin_path_cfg_set(enum dcam_id idx,
 	case DCAM_PATH_ZOOM_INFO:
 		bin_path->zoom_info = *(struct zoom_info_t *)param;
 		break;
+	case DCAM_PATH_PITCH:
+		bin_path->pitch = *(uint32_t *)param;
+		break;
+	case DCAM_PATH_SLICE1_ADDR:
+		bin_path->slice1_addr = *(uint32_t *)param;
+		break;
+	case DCAM_PATH_SLICE1_RECT:
+	{
+		struct camera_rect *slice1_rect
+			= (struct camera_rect  *)param;
+		memcpy((void *)&bin_path->slice1_rect, (void *)slice1_rect,
+			sizeof(struct camera_rect));
+		break;
+	}
 	default:
 		pr_err("fail to cfg dcam bin_path\n");
 		break;
@@ -374,6 +389,8 @@ int sprd_dcam_bin_path_next_frm_set(enum dcam_id idx)
 		return -EFAULT;
 	}
 
+	if (module->slice_info[0].dcam_cap.slice_en && idx == DCAM_ID_1)
+		return rtn;
 	memset((void *)&frame, 0x00, sizeof(frame));
 	reserved_frame = &bin_path->reserved_frame;
 	p_heap = &bin_path->frame_queue;
@@ -400,20 +417,32 @@ int sprd_dcam_bin_path_next_frm_set(enum dcam_id idx)
 	}
 	addr = frame.buf_info.iova[0] + frame.yaddr;
 
-	DCAM_TRACE("DCAM%d: reserved %d iova[0]=0x%x mfd=0x%x 0x%x %p %p\n",
+	DCAM_TRACE("DCAM%d: reserved %d iova[0]=0x%x mfd=0x%x 0x%x\n",
 		idx, use_reserve_frame, (int)addr,
-		frame.buf_info.mfd[0], frame.yaddr,
-		frame.buf_info.client[0], frame.buf_info.handle[0]);
+		frame.buf_info.mfd[0], frame.yaddr);
 
 	DCAM_REG_WR(idx, DCAM_BIN_BASE_WADDR0, addr);
 
+	if (module->slice_info[0].dcam_cap.slice_en
+		&& module->slice_mode == DCAM_ONLINE_SLICE
+		&& DCAM_ID_0 == idx) {
+		pr_info("store_addr = %d\n", addr +
+			module->slice_info[0].bin_path.output_size.w * 10 / 8);
+		DCAM_REG_WR(DCAM_ID_1, DCAM_BIN_BASE_WADDR0, addr +
+			module->slice_info[0].bin_path.output_size.w * 10 / 8);
+	}
+	if (module->slice_en && (module->slice_mode == DCAM_OFFLINE_SLICE))
+		module->slice_info[0].bin_path.store_addr = addr;
+
 	frame.frame_id = module->frame_id;
 	if (bin_path->need_downsizer) {
-		frame.width = bin_path->out_size_latest.w;
+		frame.width = module->bin_path.output_size.w;
 		frame.height = bin_path->out_size_latest.h;
 		frame.zoom_info = bin_path->zoom_info;
 	}
-
+	if (module->slice_info[0].dcam_cap.slice_en
+		&& module->slice_mode == DCAM_ONLINE_SLICE)
+		frame.width = module->bin_path.output_size.w;
 	if (sprd_cam_queue_frm_enqueue(p_heap, &frame) == 0)
 		DCAM_TRACE("success to enq frame buf\n");
 	else
@@ -458,48 +487,54 @@ int sprd_dcam_bin_path_scaler_cfg(enum dcam_id idx)
 
 	if (!zoom_param.bin_crop_bypass) {
 		pr_debug("set crop_eb\n");
-		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_1, BIT_1);
+		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_1, 0x1 << 1);
 
-		addr = DCAM_BIN_CROP_START;
+		addr = DCAM_CAM_BIN_CROP_START;
 		rect = &zoom_param.in_rect;
-		reg_val = (rect->x & 0xFFFF) |
-			((rect->y & 0xFFFF) << 16);
+		reg_val = (rect->x & 0x1FFF) |
+			((rect->y & 0x1FFF) << 16);
 		DCAM_REG_WR(idx, addr, reg_val);
 
-		addr = DCAM_BIN_CROP_SIZE;
-		reg_val = (rect->w & 0xFFFF) |
-			((rect->h & 0xFFFF) << 16);
+		addr = DCAM_CAM_BIN_CROP_SIZE;
+		reg_val = (rect->w & 0x1FFF) |
+			((rect->h & 0x1FFF) << 16);
 		DCAM_REG_WR(idx, addr, reg_val);
 		DCAM_TRACE("bin path crop: %d %d %d %d\n",
 			rect->x, rect->y, rect->w, rect->h);
 	}
 	if (zoom_param.in_rect.w == zoom_param.out_size.w
 		&& zoom_param.in_rect.h == zoom_param.out_size.h) {
-		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, 0x20, 0x20);
+		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_4 | BIT_5, 0x2 << 4);
 		pr_debug("raw scale and bin bypass\n");
 	} else if (bin_path->need_downsizer == 0
 		&& zoom_param.in_rect.w
 				== 2 * zoom_param.out_size.w
 		&& zoom_param.in_rect.h
 				== 2 * zoom_param.out_size.h) {
-		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, 0x2c, 0x00);
+		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_4 | BIT_5, 0x0 << 4);
 		pr_debug("bin 1/2\n");
 	} else {
 		pr_debug("rds\n");
-		DCAM_REG_MWR(idx,
-			DCAM_RDS_DES_SIZE, 0x7ff << 16 | 0xfff,
-			zoom_param.out_size.h << 16 |
-			zoom_param.out_size.w);
+		addr = DCAM_RDS_DES_SIZE;
+		reg_val = (zoom_param.out_size.w & 0x1FFF) |
+			((zoom_param.out_size.h & 0x1FFF) << 16);
+		DCAM_REG_WR(idx, addr, reg_val);
+
 		coeff_ptr = zoom_param.coeff_ptr;
 		for (i = 0; i < RDS_COEFF_SIZE; i += 4) {
 			pr_debug("*coeff_ptr = 0x%x\n", *coeff_ptr);
 			DCAM_REG_WR(idx,
-				RDS_COEFF_START + i,
+				DCAM_RDS_COEF_TABLE + i,
 					*coeff_ptr++);
 			}
-		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, 0x28, 0x08);
+		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_4 | BIT_5, 0x1 << 4);
 	}
-	sprd_dcam_drv_glb_reg_owr(idx, DCAM_CFG, BIT_2, DCAM_CFG_REG);
+	pr_info("bin_path->output_size.w = %d, bin_path->pitch = %d\n",
+		bin_path->output_size.w, bin_path->pitch);
+	DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG,
+		0x3ff << 20,
+		(bin_path->pitch & 0x3ff) << 20);
+	DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_0, 0x1);
 
 	return rtn;
 }
@@ -519,6 +554,11 @@ int sprd_dcam_bin_path_start(enum dcam_id idx)
 		return -EFAULT;
 	}
 
+	pr_info("rect {%d, %d, %d, %d}, out {%d, %d}, insize {%d, %d}\n",
+		bin_path->input_rect.x, bin_path->input_rect.y,
+		bin_path->input_rect.w, bin_path->input_rect.h,
+		bin_path->output_size.w, bin_path->output_size.h,
+		bin_path->input_size.w, bin_path->input_size.h);
 	if (bin_path->valid) {
 		if (bin_path->valid_param.data_endian) {
 			sprd_dcam_drv_glb_reg_mwr(idx, DCAM_PATH_ENDIAN,
@@ -535,15 +575,15 @@ int sprd_dcam_bin_path_start(enum dcam_id idx)
 
 			DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_1, BIT_1);
 
-			addr = DCAM_BIN_CROP_START;
+			addr = DCAM_CAM_BIN_CROP_START;
 			rect = &bin_path->input_rect;
-			reg_val = (rect->x & 0xFFFF) |
-				((rect->y & 0xFFFF) << 16);
+			reg_val = (rect->x & 0x1FFF) |
+				((rect->y & 0x1FFF) << 16);
 			DCAM_REG_WR(idx, addr, reg_val);
 
-			addr = DCAM_BIN_CROP_SIZE;
-			reg_val = (rect->w & 0xFFFF) |
-				((rect->h & 0xFFFF) << 16);
+			addr = DCAM_CAM_BIN_CROP_SIZE;
+			reg_val = (rect->w & 0x1FFF) |
+				((rect->h & 0x1FFF) << 16);
 			DCAM_REG_WR(idx, addr, reg_val);
 			DCAM_TRACE("bin path crop: %d %d %d %d\n",
 				rect->x, rect->y, rect->w, rect->h);
@@ -551,7 +591,7 @@ int sprd_dcam_bin_path_start(enum dcam_id idx)
 
 		if (bin_path->valid_param.output_format) {
 			DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG,
-				BIT_0, bin_path->is_loose);
+				BIT_2 | BIT_3, bin_path->is_loose << 2);
 		}
 		if (bin_path->need_downsizer)
 			bin_path->out_size_latest =
@@ -565,14 +605,19 @@ int sprd_dcam_bin_path_start(enum dcam_id idx)
 
 		if (bin_path->input_rect.w == bin_path->output_size.w
 			&& bin_path->input_rect.h == bin_path->output_size.h) {
-			DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, 0x20, 0x20);
+			DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG,
+				BIT_4 | BIT_5, 0x3 << 4);
 			DCAM_TRACE("raw scale and bin bypass\n");
 		} else if (bin_path->need_downsizer == 0
 			&& bin_path->input_rect.w
 					== 2 * bin_path->output_size.w
 			&& bin_path->input_rect.h
 					== 2 * bin_path->output_size.h) {
-			DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, 0x2c, 0x00);
+			DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG,
+				BIT_4 | BIT_5, 0x0 << 4);
+			/*1/2 binning*/
+			DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG,
+				BIT_6, 0x0 << 6);
 			DCAM_TRACE("bin 1/2\n");
 		} else {
 			sprd_dcam_raw_sizer_coeff_gen(
@@ -582,22 +627,24 @@ int sprd_dcam_bin_path_start(enum dcam_id idx)
 				bin_path->output_size.h,
 				coeff_ptr, 0);
 
-			DCAM_REG_MWR(idx,
-				DCAM_RDS_DES_SIZE, 0x7ff << 16 | 0xfff,
-				bin_path->output_size.h << 16 |
-				bin_path->output_size.w);
+			addr = DCAM_RDS_DES_SIZE;
+			reg_val = (bin_path->output_size.w & 0x1FFF) |
+				((bin_path->output_size.h & 0x1FFF) << 16);
+			DCAM_REG_WR(idx, addr, reg_val);
 
 			for (i = 0; i < RDS_COEFF_SIZE; i += 4)
 				DCAM_REG_WR(idx,
-					RDS_COEFF_START + i,
+					DCAM_RDS_COEF_TABLE + i,
 					*coeff_ptr++);
 
-			DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, 0x28, 0x08);
+		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_4 | BIT_5, 0x1 << 4);
 			DCAM_TRACE("raw scale\n");
 		}
+		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG,
+			0x3ff << 20,
+			(bin_path->pitch & 0x3ff) << 20);
 		sprd_dcam_drv_force_copy(idx, RDS_COPY);
-
-		sprd_dcam_drv_glb_reg_owr(idx, DCAM_CFG, BIT_2, DCAM_CFG_REG);
+		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_0, 0x1);
 		sprd_dcam_drv_force_copy(idx, BIN_COPY);
 		bin_path->need_wait = 0;
 		bin_path->status = DCAM_ST_START;

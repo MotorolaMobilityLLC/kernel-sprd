@@ -53,10 +53,10 @@
 #define CAM_ALIGNTO(size)          ((size) & ~(CAM_ALIGN_SIZE - 1))
 #define MAX(_x, _y)                (((_x) > (_y)) ? (_x) : (_y))
 
-#ifdef CONFIG_SPRD_CAMERA_ON_FPGA
-#define DCAM_TIMEOUT               (2000*100)
+#ifdef FPGA_BRINGUP
+#define DCAM_TIMEOUT               (1500)
 #else
-#define DCAM_TIMEOUT               1500
+#define DCAM_TIMEOUT               (2000*100)
 #endif
 
 enum {
@@ -124,6 +124,9 @@ struct camera_path_spec {
 	uint32_t need_downsizer;
 	struct zoom_info_t zoom_info;
 	unsigned char bin_crop_bypass;
+	uint32_t slice1_addr;
+	struct camera_rect slice1_rect;
+	uint32_t pitch;
 };
 
 struct camera_context {
@@ -148,9 +151,17 @@ struct camera_context {
 	uint32_t is_slow_motion;
 	uint32_t skip_number;/*cap skip*/
 	uint32_t capture_mode;/*multiple or single frame*/
+	uint32_t cphy_sel;
+	uint32_t slice_part;
+	uint32_t slice_mode;
+	uint32_t slice_en;
+	uint32_t fetch_mode_en;
 	struct dcam_cap_sync_pol sync_pol;
 	struct camera_size cap_in_size;
 	struct camera_rect cap_in_rect;
+	struct camera_rect cap_in_rect_slice0;
+	struct camera_rect cap_in_rect_slice1;
+
 	struct camera_size cap_out_size;
 	struct camera_size sn_max_size;
 	struct camera_size dst_size;
@@ -180,6 +191,7 @@ struct camera_dev {
 	uint32_t zoom_ratio;
 	uint32_t isp_work;
 	struct isp_dev_fetch_info fetch_info;
+	struct isp_dev_fetch_info slice_info[2];
 	struct camera_group *grp;
 	uint32_t need_downsizer;
 };
@@ -194,12 +206,11 @@ struct camera_group {
 	uint32_t isp_count;/*dts cfg isp count*/
 	atomic_t camera_opened;
 	struct camera_dev *dev[CAMERA_MAX_COUNT];
-	struct ion_client *cam_ion_client[CAMERA_MAX_COUNT];
 	atomic_t dcam_run_count;
 	atomic_t isp_run_count;
 	struct miscdevice *md;
 	struct platform_device *pdev;
-	struct wake_lock wakelock;
+	struct wakeup_source ws;
 	struct completion fetch_com;
 	void *dump_work;
 	uint32_t dump_dcamraw;
@@ -447,6 +458,7 @@ static void sprd_camcore_dev_deinit(struct camera_group *group,
 	mutex_lock(&dev->cam_mutex);
 	atomic_set(&dev->stream_on, 0);
 
+	pr_info("in\n");
 	if (dev->isp_id < ISP_ID_MAX)
 		sprd_isp_drv_dev_deinit(dev->isp_dev_handle);
 
@@ -475,6 +487,7 @@ static int sprd_camcore_open(struct inode *node, struct file *file)
 	grp = md->this_device->platform_data;
 	count = grp->dcam_count;
 
+	pr_info("camcore_open count = %d\n", count);
 	if (atomic_inc_return(&grp->camera_opened) > count) {
 		pr_err("fail to open camera: the camera has been all used %d\n",
 			atomic_read(&grp->camera_opened));
@@ -530,7 +543,7 @@ static int sprd_camcore_open(struct inode *node, struct file *file)
 	}
 
 	file->private_data = (void *)camerafile;
-	wake_lock(&grp->wakelock);
+	__pm_stay_awake(&grp->ws);
 	pr_info("Camera open success!\n");
 
 	return ret;
@@ -588,7 +601,7 @@ static int sprd_camcore_release(struct inode *node, struct file *file)
 	}
 	vfree(camerafile);
 	file->private_data = NULL;
-	wake_unlock(&group->wakelock);
+	__pm_relax(&group->ws);
 
 	pr_info("Camera close success!\n");
 exit:
@@ -638,8 +651,8 @@ static long sprd_camcore_ioctl(struct file *file, uint32_t cmd,
 			sprd_camioctl_get_str(cmd));
 	}
 
-	CAM_TRACE("cam ioctl end: %d, cmd: 0x%x, %d\n",
-			idx, cmd, _IOC_NR(cmd));
+	CAM_TRACE("cam ioctl end: %d, cmd: 0x%x, %d, %s\n",
+			idx, cmd, _IOC_NR(cmd), sprd_camioctl_get_str(cmd));
 exit:
 	return ret;
 }
@@ -729,11 +742,7 @@ static ssize_t sprd_camcore_read(struct file *file,
 			read_op.parm.frame.sec = node.time.timeval.tv_sec;
 			read_op.parm.frame.usec = node.time.timeval.tv_usec;
 			read_op.parm.frame.monoboottime =
-				node.time.boot_time.tv64;
-			read_op.parm.frame.reserved[0] =
-				node.dual_info.is_last_frm;
-			read_op.parm.frame.reserved[1] =
-				node.dual_info.time_diff;
+				node.time.boot_time;
 			read_op.parm.frame.frm_base_id = path->frm_id_base;
 			read_op.parm.frame.img_fmt = path->fourcc;
 			read_op.parm.frame.yaddr = node.yaddr;
@@ -922,19 +931,19 @@ static int sprd_camcore_probe(struct platform_device *pdev)
 	group->md = &image_dev;
 	group->pdev = pdev;
 	atomic_set(&group->camera_opened, 0);
-	wake_lock_init(&group->wakelock, WAKE_LOCK_SUSPEND,
-		"Camera Sys Wakelock");
+	wakeup_source_init(&group->ws, "Camera Sys Wakelock");
 	mutex_init(&group->grp_mutex);
 	init_completion(&group->fetch_com);
 	complete(&group->fetch_com);
 
 	pr_info("sprd img probe pdev name %s\n", pdev->name);
+#ifdef FPGA_BRINGUP
 	ret = sprd_cam_pw_domain_init(pdev);
 	if (ret) {
 		pr_err("fail to init pw domain\n");
 		goto exit;
 	}
-
+#endif
 	pr_info("sprd dcam dev name %s\n", pdev->dev.init_name);
 	ret = sprd_dcam_drv_dt_parse(pdev, &group->dcam_count);
 	if (ret) {
@@ -962,7 +971,7 @@ static int sprd_camcore_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	sprd_cam_debug_create_attrs_group(image_dev.this_device);
+	/*sprd_cam_debug_create_attrs_group(image_dev.this_device);*/
 
 	return ret;
 
@@ -985,7 +994,7 @@ static int sprd_camcore_remove(struct platform_device *pdev)
 	group = image_dev.this_device->platform_data;
 	sprd_isp_drv_deinit();
 	sprd_dcam_drv_deinit();
-	wake_lock_destroy(&group->wakelock);
+	wakeup_source_trash(&group->ws);
 	mutex_destroy(&group->grp_mutex);
 	vfree(image_dev.this_device->platform_data);
 	misc_deregister(&image_dev);

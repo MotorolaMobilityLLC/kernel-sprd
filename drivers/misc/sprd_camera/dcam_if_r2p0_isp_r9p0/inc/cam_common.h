@@ -20,7 +20,7 @@
 #include "cam_buf.h"
 #include "isp_3dnr_drv.h"
 
-/* #define CAM_DEBUG */
+#define CAM_DEBUG
 
 #ifdef CAM_DEBUG
 #define CAM_TRACE                      pr_info
@@ -37,6 +37,7 @@
 #define ISP_PATH1_LINE_BUF_LENGTH      2592
 #define ISP_PATH2_LINE_BUF_LENGTH      2304
 #define ISP_PATH3_LINE_BUF_LENGTH      4656
+#define DCAM_LINE_BUF_LEGNTH           5664
 
 #define CAMERA_PFC_OPT_WIDTH           640
 #define CAMERA_PFC_OPT_HEIGHT          480

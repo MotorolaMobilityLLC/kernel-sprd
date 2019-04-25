@@ -39,22 +39,20 @@ struct cam_buf_info {
 	uint32_t offset[3];
 	unsigned long iova[3];
 	uint32_t mfd[3];
-	void *buf[3];
+	void *buf[3]; /* for iommu map */
 	struct dma_buf *dmabuf_p[3];
-	struct ion_client *client[3];/*for ion alloc buffer*/
-	struct ion_handle *handle[3];
 	uint32_t *kaddr[3];
 };
 
 static inline uint32_t sprd_cam_buf_is_valid(struct cam_buf_info *buf_info)
 {
 	if ((buf_info->type == CAM_BUF_USER_TYPE && buf_info->mfd[0] != 0)
-	|| (buf_info->client[0] != NULL && buf_info->handle[0] != NULL))
+	|| (buf_info->dmabuf_p[0] != NULL && buf_info->buf[0] != NULL))
 		return 1;
 
-	pr_debug("fail to get type mfd or client handle %d %x %p %p\n",
+	pr_debug("fail to get type mfd or dmabuf %d 0x%x %p %p\n",
 		buf_info->type, buf_info->mfd[0],
-		buf_info->client[0], buf_info->handle[0]);
+		buf_info->dmabuf_p[0], buf_info->buf[0]);
 
 	return 0;
 }
@@ -67,8 +65,8 @@ static inline uint32_t sprd_cam_buf_is_equal(struct cam_buf_info *buf_info1,
 		&& buf_info1->offset[0] == buf_info2->offset[0])
 		return 1;
 	else if (buf_info1->type != CAM_BUF_USER_TYPE
-		&& buf_info1->client[0] == buf_info2->client[0]
-		&& buf_info1->handle[0] == buf_info2->handle[0])
+		&& buf_info1->dmabuf_p[0] == buf_info2->dmabuf_p[0]
+		&& buf_info1->offset[0] == buf_info2->offset[0])
 		return 1;
 
 	return 0;
@@ -80,5 +78,6 @@ int sprd_cam_buf_addr_map(struct cam_buf_info *info);
 int sprd_cam_buf_addr_unmap(struct cam_buf_info *info);
 int sprd_cam_buf_alloc(struct cam_buf_info *buf_info, uint32_t idx,
 	struct device *dev, size_t size, uint32_t num, uint32_t type);
+unsigned long sprd_cam_buf_get_kaddr(int fd);
 
 #endif /* _CAM_BUF_H_ */

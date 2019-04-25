@@ -357,15 +357,16 @@ extern unsigned long s_dcam_mmubase;
 #define    DCAM_LSC_WEI_LAST1                             (0x0D04UL)
 #define    DCAM_RDS_COEF_TABLE                         (0x0D40UL)
 #define    DCAM_PDAF_CORR_TABLE                      (0x0E00UL)
+#define RDS_COEFF_SIZE                 (0x00C0)
 #define DCAM_AXIM_BASE                 s_dcam_aximbase
 #define DCAM_AXIM_CTRL                 (0x0000UL)
 #define DCAM_AXIM_DBG_STS              (0x0004UL)
 #define DCAM_CAP_SENSOR_CTRL           (0x0008UL)
 
-#define REG_DCAM_IMG_FETCH_START       (0x0020)
-#define REG_DCAM_IMG_FETCH_CTRL        (0x0024)
-#define REG_DCAM_IMG_FETCH_SIZE        (0x0028)
-#define REG_DCAM_IMG_FETCH_X           (0x002c)
+#define REG_DCAM_IMG_FETCH_CTRL        (0x0020)
+#define REG_DCAM_IMG_FETCH_SIZE        (0x0024)
+#define REG_DCAM_IMG_FETCH_X           (0x0028)
+#define REG_DCAM_IMG_FETCH_START       (0x002c)
 #define REG_DCAM_IMG_FETCH_RADDR       (0x0030)
 
 #define DCAM_MMU_BASE                  s_dcam_mmubase
@@ -440,7 +441,8 @@ enum camera_copy_id {
 	PDAF_COPY = BIT(5),
 	VCH2_COPY = BIT(6),
 	VCH3_COPY = BIT(7),
-	ALL_COPY = 0xFF,
+	COEF_COPY = BIT(8),
+	ALL_COPY = 0x1FF,
 };
 
 #define DCAM_REG_WR(idx, reg, val) (REG_WR(DCAM_BASE(idx)+reg, val))

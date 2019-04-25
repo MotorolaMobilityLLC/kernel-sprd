@@ -27,7 +27,7 @@ int sprd_dcam_fetch_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 	enum dcam_drv_rtn rtn = DCAM_RTN_SUCCESS;
 	struct dcam_fetch_desc *fetch_desc = sprd_dcam_drv_fetch_get(idx);
 	struct camera_addr *p_addr = NULL;
-	int time_out = 5000;
+	/*int time_out = 5000;*/
 
 	if (DCAM_ADDR_INVALID(fetch_desc)) {
 		pr_err("fail to get valid input ptr\n");
@@ -40,7 +40,7 @@ int sprd_dcam_fetch_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 			uint32_t is_loose = *(uint32_t *)param;
 
 			DCAM_AXIM_MWR(REG_DCAM_IMG_FETCH_CTRL,
-				BIT(1), is_loose << 1);
+				BIT(1) | BIT(0), is_loose);
 			fetch_desc->is_loose = is_loose;
 			break;
 		}
@@ -57,6 +57,8 @@ int sprd_dcam_fetch_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 			struct camera_rect *rect = (struct camera_rect *)param;
 			uint32_t tmp = 0;
 
+			pr_info("rect {x = %d, y = %d, w = %d,h = %d\n}\n",
+				rect->x, rect->y, rect->w, rect->h);
 			if (rect->x > DCAM_CAP_FRAME_WIDTH_MAX ||
 				rect->y > DCAM_CAP_FRAME_HEIGHT_MAX ||
 				rect->w > DCAM_CAP_FRAME_WIDTH_MAX ||
@@ -68,11 +70,7 @@ int sprd_dcam_fetch_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 			DCAM_AXIM_WR(REG_DCAM_IMG_FETCH_SIZE, tmp);
 			fetch_desc->input_rect = *rect;
 
-			tmp = sprd_cam_com_raw_pitch_calc(fetch_desc->is_loose,
-				rect->w) / 4;
-			DCAM_AXIM_WR(REG_DCAM_IMG_FETCH_X, rect->x);
-			DCAM_AXIM_MWR(REG_DCAM_IMG_FETCH_X,
-					0x0fff << 16, tmp << 16);
+			DCAM_AXIM_MWR(REG_DCAM_IMG_FETCH_X, 0x1FFF, rect->x);
 			break;
 		}
 	case DCAM_FETCH_INPUT_ADDR:
@@ -86,8 +84,8 @@ int sprd_dcam_fetch_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else if (p_addr->buf_info.type != CAM_BUF_USER_TYPE
-			&& (p_addr->buf_info.client[0] == NULL
-			|| p_addr->buf_info.handle[0] == NULL)) {
+			&& (p_addr->buf_info.dmabuf_p[0] == NULL
+			|| p_addr->buf_info.buf[0] == NULL)) {
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else {
@@ -132,20 +130,30 @@ int sprd_dcam_fetch_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 				(uint32_t)addr);
 		}
 		break;
+
+	case DCAM_FETCH_IMG_PITCH:
+	{
+		uint32_t fetch_img_pitch = *(uint32_t *)param;
+
+		pr_info("fetch_img_pitch = %d\n", fetch_img_pitch);
+		DCAM_AXIM_MWR(REG_DCAM_IMG_FETCH_X,
+			0x3FF << 16, fetch_img_pitch << 16);
+		break;
+	}
+
 	case DCAM_FETCH_START:
 	{
 		uint32_t start = *(uint32_t *)param;
 
 		if (start) {
+			DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG, BIT(12), BIT(12));
 			DCAM_AXIM_MWR(REG_DCAM_IMG_FETCH_CTRL,
-				BIT(16), 0 << 16);
-			DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG, BIT(0), BIT(0));
+				0x0F << 12, 0x01 << 12);
 			DCAM_AXIM_MWR(REG_DCAM_IMG_FETCH_CTRL,
-				0x0F << 12, 0x0F << 12);
-			DCAM_AXIM_MWR(REG_DCAM_IMG_FETCH_CTRL,
-				0xFF << 4, 0xFF << 4);
+				0xFF << 4, 0x1 << 4);
 			DCAM_AXIM_WR(REG_DCAM_IMG_FETCH_START, BIT(0));
 		} else {
+#ifdef FPGA_BRINGUP
 			DCAM_AXIM_MWR(REG_DCAM_IMG_FETCH_CTRL,
 				BIT(16), 1 << 16);
 			udelay(1000);
@@ -159,6 +167,7 @@ int sprd_dcam_fetch_cfg_set(enum dcam_id idx, enum dcam_cfg_id id, void *param)
 			}
 			if (!time_out)
 				pr_info("fail to stop fetch timeout\n");
+#endif
 		}
 		break;
 	}

@@ -209,8 +209,8 @@ int sprd_dcam_full_path_cfg_set(enum dcam_id idx,
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else if (p_addr->buf_info.type != CAM_BUF_USER_TYPE
-			&& (p_addr->buf_info.client[0] == NULL
-			|| p_addr->buf_info.handle[0] == NULL)) {
+			&& (p_addr->buf_info.dmabuf_p[0] == NULL
+			|| p_addr->buf_info.buf[0] == NULL)) {
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else {
@@ -281,8 +281,8 @@ int sprd_dcam_full_path_cfg_set(enum dcam_id idx,
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else if (p_addr->buf_info.type != CAM_BUF_USER_TYPE
-			&& (p_addr->buf_info.client[0] == NULL
-			|| p_addr->buf_info.handle[0] == NULL)) {
+			&& (p_addr->buf_info.dmabuf_p[0] == NULL
+			|| p_addr->buf_info.buf[0] == NULL)) {
 			pr_err("fail to get valid addr!\n");
 			rtn = DCAM_RTN_PATH_ADDR_ERR;
 		} else {
@@ -364,6 +364,9 @@ int sprd_dcam_full_path_next_frm_set(enum dcam_id idx)
 		return -EFAULT;
 	}
 
+	if (module->slice_info[0].dcam_cap.slice_en && DCAM_ID_1 == idx)
+		return rtn;
+
 	memset((void *)&frame, 0x00, sizeof(frame));
 	reserved_frame = &full_path->reserved_frame;
 	p_heap = &full_path->frame_queue;
@@ -392,12 +395,15 @@ int sprd_dcam_full_path_next_frm_set(enum dcam_id idx)
 	addr[1] = frame.buf_info.iova[0] + frame.uaddr;
 
 	DCAM_REG_WR(idx, DCAM_FULL_BASE_WADDR, addr[0]);
+	if (module->slice_info[0].dcam_cap.slice_en && DCAM_ID_0 == idx)
+		DCAM_REG_WR(DCAM_ID_1, DCAM_FULL_BASE_WADDR, addr[0] +
+			module->slice_info[0].full_path.output_size.w * 10 / 8);
 	if (full_path->output_format != DCAM_RAWRGB)
 		DCAM_REG_WR(idx, DCAM_BIN_BASE_WADDR0, addr[1]);
 
 	frame.frame_id = module->frame_id;
 
-	pr_debug("DCAM%d: frame id %d reserved %d iova[0]=0x%x mfd=0x%x 0x%x\n",
+	pr_info("DCAM%d: frame id %d reserved %d iova[0]=0x%x mfd=0x%x 0x%x\n",
 		idx, frame.frame_id, use_reserve_frame, (int)addr[0],
 		frame.buf_info.mfd[0], frame.yaddr);
 
@@ -416,7 +422,7 @@ int sprd_dcam_full_path_start(enum dcam_id idx)
 	uint32_t reg_val = 0;
 	unsigned long addr = 0;
 	struct camera_rect *rect = NULL;
-	int path_eb = BIT_1;
+	int path_eb = BIT_0;
 
 	if (DCAM_ADDR_INVALID(full_path)) {
 		pr_err("fail to get valid input ptr\n");
@@ -435,7 +441,7 @@ int sprd_dcam_full_path_start(enum dcam_id idx)
 
 		if (full_path->valid_param.src_sel) {
 			DCAM_REG_MWR(idx, DCAM_FULL_CFG,
-				BIT_2, full_path->src_sel << 2);
+				BIT_4, full_path->src_sel << 4);
 		}
 
 		if (full_path->input_size.w != full_path->input_rect.w
@@ -446,13 +452,13 @@ int sprd_dcam_full_path_start(enum dcam_id idx)
 
 			addr = DCAM_FULL_CROP_START;
 			rect = &full_path->input_rect;
-			reg_val = (rect->x & 0xFFFF) |
-				((rect->y & 0xFFFF) << 16);
+			reg_val = (rect->x & 0x1FFF) |
+				((rect->y & 0x1FFF) << 16);
 			DCAM_REG_WR(idx, addr, reg_val);
 
 			addr = DCAM_FULL_CROP_SIZE;
-			reg_val = ((rect->x + rect->w - 1) & 0xFFFF) |
-				(((rect->y + rect->h - 1) & 0xFFFF) << 16);
+			reg_val = ((rect->x + rect->w - 1) & 0x1FFF) |
+				(((rect->y + rect->h - 1) & 0x1FFF) << 16);
 			DCAM_REG_WR(idx, addr, reg_val);
 			full_path->output_size.w = rect->w;
 			full_path->output_size.h = rect->h;
@@ -463,24 +469,30 @@ int sprd_dcam_full_path_start(enum dcam_id idx)
 
 		if (full_path->output_format == DCAM_RAWRGB)
 			DCAM_REG_MWR(idx, DCAM_FULL_CFG,
-				BIT_0, full_path->is_loose);
+				BIT_3 | BIT_2, full_path->is_loose << 2);
 
 		rtn = sprd_dcam_full_path_next_frm_set(idx);
 		if (rtn) {
 			pr_err("fail to set next frame\n");
 			return -(rtn);
 		}
+		pr_info("output_size.w = %d, pitch = %d\n",
+			full_path->output_size.w, full_path->pitch);
+		DCAM_REG_MWR(idx, DCAM_FULL_CFG,
+			0x3ff << 20,
+			(full_path->pitch & 0x3ff) << 20);
+		DCAM_REG_MWR(idx, DCAM_FULL_CFG, BIT_0, path_eb);
+		sprd_dcam_drv_force_copy(idx, FULL_COPY);
 
-		sprd_dcam_drv_glb_reg_owr(idx, DCAM_CFG, path_eb, DCAM_CFG_REG);
 		full_path->need_wait = 0;
 		full_path->status = DCAM_ST_START;
 
 		if (full_path->output_format == DCAM_YUV420) {
-			sprd_dcam_drv_glb_reg_owr(idx,
-				DCAM_CFG, BIT_2, DCAM_CFG_REG);
+			DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_0, 0x1);
 			sprd_dcam_drv_force_copy(idx, BIN_COPY);
 		}
 	}
+
 	return rtn;
 }
 
@@ -501,7 +513,7 @@ void sprd_dcam_full_path_quickstop(enum dcam_id idx)
 	}
 
 	sprd_dcam_drv_glb_reg_owr(idx, DCAM_PATH_STOP, BIT_0, DCAM_CONTROL_REG);
-	sprd_dcam_drv_glb_reg_mwr(idx, DCAM_CFG, BIT_1, ~BIT_1, DCAM_CFG_REG);
+	DCAM_REG_MWR(idx, DCAM_FULL_CFG, BIT_0, 0);
 	sprd_dcam_drv_force_copy(idx, FULL_COPY);
 	udelay(1000);
 

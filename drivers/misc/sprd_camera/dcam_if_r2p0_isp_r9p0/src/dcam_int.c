@@ -36,38 +36,38 @@ static struct{
 	char *irq_name;
 	int enable_log;
 } s_irq_vect[] = {
-	{DCAM_SN_SOF,            "sensor_sof",       0},
-	{DCAM_SN_EOF,            "sensor_eof",       0},
-	{DCAM_CAP_SOF,           "cap_sof",          0},
-	{DCAM_CAP_EOF,           "cap_eof",          0},
+	{DCAM_SN_SOF,            "sensor_sof",       1},
+	{DCAM_SN_EOF,            "sensor_eof",       1},
+	{DCAM_CAP_SOF,           "cap_sof",          1},
+	{DCAM_CAP_EOF,           "cap_eof",          1},
 	{DCAM_DCAM_OVF,          "dcam_ovf",         1},
-	{DCAM_PREVIEW_SOF,       "preview_sof",      0},
-	{DCAM_ISP_ENABLE_PULSE,  "isp_enable_pulse", 0},
-	{DCAM_FETCH_SOF_INT,     "fetch_sof int",    0},
-	{DCAM_AFL_LAST_SOF,      "afl_last_sof",     0},
-	{DCAM_BPC_MEM_ERR,       "bpc_mem_err",      1},
 	{DCAM_CAP_LINE_ERR,      "cap_line_err",     1},
 	{DCAM_CAP_FRM_ERR,       "cap_frm_err",      1},
-	{DCAM_FULL_PATH_END,     "full_path_end",    0},
-	{DCAM_BIN_PATH_END,      "bin_path_end",     0},
-	{DCAM_AEM_PATH_END,      "aem_path_end",     0},
-	{DCAM_PDAF_PATH_END,     "pdaf_path_end",    0},
-	{DCAM_VCH2_PATH_END,     "vch2_path_end",    0},
-	{DCAM_VCH3_PATH_END,     "vch3_path_end",    0},
-	{DCAM_FULL_PATH_TX_DONE, "full_path_done",   0},
-	{DCAM_BIN_PATH_TX_DONE,  "bin_path_done",    0},
-	{DCAM_AEM_PATH_TX_DONE,  "aem_path_done",    0},
-	{DCAM_PDAF_PATH_TX_DONE, "pdaf_path_done",   0},
-	{DCAM_VCH2_PATH_TX_DONE, "vch2_path_done",   0},
-	{DCAM_VCH3_PATH_TX_DONE, "vch3_path_done",   0},
-	{DCAM_BPC_MAP_DONE,      "bpc_map_done",     0},
-	{DCAM_BPC_POS_DONE,      "bpc_pos_done",     0},
-	{DCAM_AFM_INTREQ0,       "afm_intreq0",      0},
-	{DCAM_AFM_INTREQ1,       "afm_intreq1",      0},
-	{DCAM_AFL_TX_DONE,       "afl_tx_done",      0},
-	{DCAM_NR3_TX_DONE,       "nr3_tx_done",      0},
-	{DCAM_RESERVED,          "reserved",         0},
-	{DCAM_MMU_INT,           "mmu_int",          0},
+	{DCAM_FETCH_SOF_INT,     "fetch_sof int",    1},
+	{DCAM_ISP_ENABLE_PULSE,  "isp_enable_pulse", 1},
+	{DCAM_PREVIEW_SOF,       "preview_sof",      1},
+	{DCAM_PDAF_SOF,          "pdaf_sof",         1},
+	{DCAM_AEM_SOF,           "aem_sof",          1},
+	{DCAM_HIST_SOF,          "hist_sof",         1},
+	{DCAM_AFL_LAST_SOF,      "afl_last_sof",     1},
+	{DCAM_AFM_SOF,           "afm_sof",          1},
+	{DCAM_LSCM_SOF,          "lscm_sof",         1},
+	{DCAM_FULL_PATH_TX_DONE, "full_path_done",   1},
+	{DCAM_BIN_PATH_TX_DONE,  "bin_path_done",    1},
+	{DCAM_PDAF_PATH_TX_DONE, "pdaf_path_done",   1},
+	{DCAM_VCH2_PATH_TX_DONE, "vch2_path_done",   1},
+	{DCAM_VCH3_PATH_TX_DONE, "vch3_path_done",   1},
+	{DCAM_AEM_PATH_TX_DONE,  "aem_path_done",    1},
+	{DCAM_HIST_PATH_TX_DONE, "hist_path_done",   1},
+	{DCAM_AFL_TX_DONE,       "afl_tx_done",      1},
+	{DCAM_BPC_MAP_DONE,      "bpc_map_done",     1},
+	{DCAM_BPC_POS_DONE,      "bpc_pos_done",     1},
+	{DCAM_AFM_INTREQ0,       "afm_intreq0",      1},
+	{DCAM_AFM_INTREQ1,       "afm_intreq1",      1},
+	{DCAM_NR3_TX_DONE,       "nr3_tx_done",      1},
+	{DCAM_LSCM_TX_DONE,      "lscm_tx_done",     1},
+	{DCAM_GTM_DONE,          "lscm_tx_done",     1},
+	{DCAM_MMU_INT,           "mmu_int",          1},
 };
 
 static int sprd_dcamint_update_time(struct camera_frame *frame,
@@ -122,13 +122,13 @@ static int sprd_dcamint_get_time(struct camera_frame *frame,
 
 	dcam0 = dcam_group->dcam[DCAM_ID_0];
 	dcam1 = dcam_group->dcam[DCAM_ID_1];
-	time_diff = (dcam1->time[dcam1->time_index].boot_time.tv64)
-		- (dcam0->time[dcam0->time_index].boot_time.tv64);
+	time_diff = (dcam1->time[dcam1->time_index].boot_time)
+		- (dcam0->time[dcam0->time_index].boot_time);
 	time_diff = (time_diff > 0 ? time_diff : -time_diff);
 	if (frame->frame_id >= 1)
-		half_cycle = frame->time.boot_time.tv64 -
+		half_cycle = frame->time.boot_time -
 			module->time[(frame->frame_id - 1)
-			% DCAM_FRM_QUEUE_LENGTH].boot_time.tv64;
+			% DCAM_FRM_QUEUE_LENGTH].boot_time;
 	else
 		time_diff = 0x7FFFFFFFFFFFFFFF;
 	half_cycle >>= 1;
@@ -167,6 +167,7 @@ static int sprd_dcamint_isr_proc(enum dcam_id idx, enum dcam_irq_id id,
 static void sprd_dcamint_3dnr_frame_mv_get(enum dcam_id idx,
 	int *mv_x, int *mv_y)
 {
+#ifdef FPGA_BRINGUP
 	int out0 = 0;
 	int out1 = 0;
 	signed char temp_mv_x = 0;
@@ -203,6 +204,7 @@ static void sprd_dcamint_3dnr_frame_mv_get(enum dcam_id idx,
 	} else {
 		pr_err("fail to get 3dnr frame_mv\n");
 	}
+#endif
 }
 
 static void sprd_dcamint_3dnr_me_frame_store(
@@ -383,6 +385,7 @@ static void sprd_dcamint_bin_path_done(enum dcam_id idx,
 	enum dcam_drv_rtn rtn = DCAM_RTN_SUCCESS;
 	struct dcam_module *dcam_dev = NULL;
 	struct dcam_path_desc *bin_path = sprd_dcam_drv_bin_path_get(idx);
+	uint32_t fetch_start = 0;
 
 	if (DCAM_ADDR_INVALID(bin_path))
 		return;
@@ -395,6 +398,18 @@ static void sprd_dcamint_bin_path_done(enum dcam_id idx,
 	dcam_dev = (struct dcam_module *)param;
 	if (idx == DCAM_ID_1 && dcam_dev->need_4in1)
 		dcam_dev->cap_4in1 = 1;
+	pr_info("slice_en = %d, slice_mode = %d, slice_part = %d\n",
+		dcam_dev->slice_en, dcam_dev->slice_mode, dcam_dev->slice_part);
+	if (dcam_dev->slice_en && (dcam_dev->slice_mode == DCAM_OFFLINE_SLICE)
+		&& !dcam_dev->slice_part) {
+		dcam_dev->slice_part = 1;
+		rtn = sprd_cam_update_dcam_slice_param(idx, DCAM_SLICE1);
+		if (rtn)
+			pr_err("fail to cfg slice1 param\n");
+		fetch_start = 1;
+		sprd_dcam_fetch_cfg_set(idx,
+			DCAM_FETCH_START, &fetch_start);
+	}
 
 	if (bin_path->need_wait) {
 		bin_path->need_wait = 0;
@@ -441,7 +456,7 @@ static void sprd_dcamint_bin_path_done(enum dcam_id idx,
 				} else {
 					dcam_dev->fast_me.mv_ready_cnt = 0;
 					dcam_dev->fast_me.bin_frame_cnt = 0;
-					pr_err("DCAM%d:fail to 3DNR bin mv_cnt err\n",
+					pr_info("DCAM%d:fail to 3DNR bin mv_cnt err\n",
 						idx);
 					return;
 				}
@@ -815,6 +830,9 @@ static void sprd_dcamint_cap_sof(enum dcam_id idx,
 		sprd_dcamint_bin_path_sof(idx);
 		sprd_dcamint_module_start(idx, param);
 		sprd_dcam_drv_auto_copy(idx, ALL_COPY);
+		if (module->slice_en && !module->slice_mode)
+			sprd_dcam_drv_auto_copy(DCAM_ID_1, ALL_COPY);
+
 		if (user_func)
 			(*user_func) (&frame, data);
 	} else
@@ -846,9 +864,10 @@ static const dcam_isr dcam_isr_list[DCAM_MAX_COUNT][DCAM_IRQ_NUMBER] = {
 	[0][DCAM_CAP_SOF] = sprd_dcamint_cap_sof,
 	[0][DCAM_CAP_EOF] = sprd_dcamint_default_irq,
 	[0][DCAM_DCAM_OVF] = sprd_dcamint_default_irq,
-	[0][DCAM_BPC_MEM_ERR] = sprd_dcamint_default_irq,
 	[0][DCAM_CAP_LINE_ERR] = sprd_dcamint_default_irq,
 	[0][DCAM_CAP_FRM_ERR] = sprd_dcamint_default_irq,
+	[0][DCAM_FETCH_SOF_INT] = sprd_dcamint_default_irq,
+
 	[0][DCAM_FULL_PATH_TX_DONE] = sprd_dcamint_full_path_done,
 	[0][DCAM_BIN_PATH_TX_DONE] = sprd_dcamint_bin_path_done,
 	[0][DCAM_AEM_PATH_TX_DONE] = sprd_dcamint_aem_done,
@@ -864,7 +883,6 @@ static const dcam_isr dcam_isr_list[DCAM_MAX_COUNT][DCAM_IRQ_NUMBER] = {
 	[1][DCAM_CAP_SOF] = sprd_dcamint_cap_sof,
 	[1][DCAM_CAP_EOF] = sprd_dcamint_default_irq,
 	[1][DCAM_DCAM_OVF] = sprd_dcamint_default_irq,
-	[1][DCAM_BPC_MEM_ERR] = sprd_dcamint_default_irq,
 	[1][DCAM_CAP_LINE_ERR] = sprd_dcamint_default_irq,
 	[1][DCAM_CAP_FRM_ERR] = sprd_dcamint_default_irq,
 	[1][DCAM_FULL_PATH_TX_DONE] = sprd_dcamint_full_path_done,
@@ -896,7 +914,7 @@ static int sprd_dcamint_err_pre_proc(enum dcam_id idx,
 	sprd_isp_drv_reg_trace((int)idx);
 	sprd_dcam_drv_reg_trace(idx);
 
-	sprd_dcam_drv_glb_reg_mwr(idx, DCAM_CFG, BIT_0, 0, DCAM_CFG_REG);
+	DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG, BIT_0, 0);
 	sprd_dcam_drv_stop(idx, 1);
 
 	return 0;
@@ -950,7 +968,7 @@ static irqreturn_t sprd_dcamint_isr_root(int irq, void *priv)
 	else
 		return IRQ_NONE;
 
-	status = DCAM_REG_RD(idx, DCAM_INT_MASK) & DCAM_IRQ_LINE_MASK;
+	status = DCAM_REG_RD(idx, DCAM_INIT_MASK) & DCAM_IRQ_LINE_MASK;
 	if (unlikely(status == 0))
 		return IRQ_NONE;
 	DCAM_REG_WR(idx, DCAM_INT_CLR, status);

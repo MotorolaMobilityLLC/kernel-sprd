@@ -164,9 +164,8 @@ static void sprd_camdebug_dump(struct work_struct *work)
 			dump_frame[0] = &cxt->frame[0];
 			if (dump_frame[0]->buf_info.type != CAM_BUF_KERNEL_TYPE)
 				dump_frame[0]->buf_info.kaddr[0] =
-				(uint32_t *)ion_map_kernel
-					(dump_frame[0]->buf_info.client[0],
-					dump_frame[0]->buf_info.handle[0]);
+				(uint32_t *)sprd_ion_map_kernel(
+					dump_frame[0]->buf_info.dmabuf_p[0], 0);
 			sprd_camdebug_write_file(dump_frame[0]);
 		}
 	}
@@ -175,9 +174,8 @@ static void sprd_camdebug_dump(struct work_struct *work)
 			dump_frame[1] = &cxt->frame[1];
 			if (dump_frame[1]->buf_info.type != CAM_BUF_KERNEL_TYPE)
 				dump_frame[1]->buf_info.kaddr[0] =
-				(uint32_t *)ion_map_kernel
-					(dump_frame[1]->buf_info.client[0],
-					dump_frame[1]->buf_info.handle[0]);
+				(uint32_t *)sprd_ion_map_kernel(
+					dump_frame[1]->buf_info.dmabuf_p[0], 0);
 			sprd_camdebug_write_file(dump_frame[1]);
 		}
 	}

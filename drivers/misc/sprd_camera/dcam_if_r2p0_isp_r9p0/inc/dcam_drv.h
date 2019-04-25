@@ -32,7 +32,6 @@
 	DCAM_ADDR_INVALID(u) && \
 	DCAM_ADDR_INVALID(v))
 
-
 #define DCAM_STATE_QUICKQUIT           0x01
 #define DCAM2_SOFT_RST                 BIT(4)
 #define DCAM_AXIM_AQOS_MASK            (0x30FFFF)
@@ -98,6 +97,11 @@ enum dcam_cfg_id {
 	DCAM_CAP_SAMPLE_MODE,
 	DCAM_CAP_4IN1_BYPASS,
 	DCAM_CAP_DUAL_MODE,
+	DCAM_CAP_CPHY_SEL,
+	DCAM_CAP_SLICE_PART,
+	DCAM_CAP_SLICE_MODE,
+	DCAM_CAP_SLICE_EN,
+	DCAM_CAP_FETCH_MODE_EN,
 
 	DCAM_PATH_INPUT_SIZE,
 	DCAM_PATH_INPUT_RECT,
@@ -114,12 +118,16 @@ enum dcam_cfg_id {
 	DCAM_PATH_ASSOC,
 	DCAM_PATH_NEED_DOWNSIZER,
 	DCAM_PATH_ZOOM_INFO,
+	DCAM_PATH_PITCH,
+	DCAM_PATH_SLICE1_ADDR,
+	DCAM_PATH_SLICE1_RECT,
 
 	DCAM_FETCH_DATA_PACKET,
 	DCAM_FETCH_DATA_ENDIAN,
 	DCAM_FETCH_INPUT_RECT,
 	DCAM_FETCH_INPUT_ADDR,
 	DCAM_FETCH_START,
+	DCAM_FETCH_IMG_PITCH,
 	DCAM_CFG_ID_E_MAX
 };
 
@@ -162,10 +170,25 @@ struct dcam_cap_dec {
 	unsigned char y_factor;
 };
 
+enum dcam_slice_mode {
+	DCAM_ONLINE_SLICE = 0,
+	DCAM_OFFLINE_SLICE,
+	DCAM_SLICE_MODE_MAX
+};
+
+enum dcam_slice_part {
+	DCAM_SLICE0 = 0,
+	DCAM_SLICE1,
+	DCAM_SLICE_MAX
+};
+
 struct dcam_cap_desc {
 	enum dcam_cap_sensor_mode input_format;
 	enum dcam_capture_mode cap_mode;
 	struct camera_rect cap_rect;
+	enum dcam_slice_mode slice_mode;
+	enum dcam_slice_part slice_part;
+	uint32_t slice_en;
 };
 
 struct dcam_fetch_desc {
@@ -213,10 +236,14 @@ struct dcam_path_desc {
 	void *private_data;
 	uint32_t assoc_idx;
 	uint32_t need_downsizer;
+	uint32_t pitch;
+	uint32_t slice1_addr;
+	struct camera_rect slice1_rect;
 	struct cam_4in1_addr addr_4in1[DCAM_FRM_QUEUE_LENGTH];
 	struct camera_size out_size_latest;
 	struct cam_buf_queue coeff_queue;
 	struct zoom_info_t zoom_info;
+	uint32_t store_addr;
 };
 
 struct dcam_3dnr_me {
@@ -242,12 +269,20 @@ struct dcam_fast_me_param {
 	uint32_t cap_in_size_h;
 };
 
+struct dcam_slice_info {
+	struct dcam_cap_desc dcam_cap;
+	struct dcam_fetch_desc dcam_fetch;
+	struct dcam_path_desc full_path;
+	struct dcam_path_desc bin_path;
+};
+
 struct dcam_module {
 	enum dcam_id id;
 	struct dcam_cap_desc dcam_cap;
 	struct dcam_fetch_desc dcam_fetch;
 	struct dcam_path_desc full_path;
 	struct dcam_path_desc bin_path;
+	struct dcam_slice_info slice_info[2];
 	struct cam_statis_module statis_module_info;
 	struct dcam_3dnr_me fast_me;
 	struct dcam_fast_me_param me_param;
@@ -260,12 +295,17 @@ struct dcam_module {
 	uint32_t high_fps_skip_num;
 	uint32_t high_fps_cnt;
 	uint32_t time_index;
+	uint32_t slice_en;
+	uint32_t slice_mode;
+	uint32_t slice_part;
 	struct camera_time time[DCAM_FRM_QUEUE_LENGTH];
 	struct dual_sync_info dual_info[DCAM_FRM_QUEUE_LENGTH];
 };
 
 struct dcam_group {
 	uint32_t dual_cam;
+	int32_t frame_id_diff;
+	uint32_t frame_time_diff;
 	struct dcam_module *dcam[DCAM_MAX_COUNT];
 };
 
@@ -379,4 +419,6 @@ void sprd_dcam_drv_update_rawsizer_param(
 void sprd_dcam_drv_init_online_pipe(struct zoom_info_t *o_zoom_info,
 	int sensor_width, int sensor_height,
 	int output_width, int output_height);
+int sprd_cam_update_dcam_slice_param
+	(enum dcam_id fetch_idx, enum dcam_slice_part part);
 #endif /* _DCAM_DRV_H_ */

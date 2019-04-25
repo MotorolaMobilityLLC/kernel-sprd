@@ -11,6 +11,8 @@
  * GNU General Public License for more details.
  */
 
+#include <dt-bindings/soc/sprd,sharkl5pro-regs.h>
+#include <dt-bindings/soc/sprd,sharkl5pro-mask.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
 #include <linux/delay.h>
@@ -18,7 +20,6 @@
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
-#include <linux/mfd/syscon/sprd-glb.h>
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 #include <linux/completion.h>
@@ -56,6 +57,7 @@ static spinlock_t dcam_glb_reg_clr_lock[DCAM_MAX_COUNT];
 static spinlock_t dcam_glb_reg_ahbm_sts_lock[DCAM_MAX_COUNT];
 static spinlock_t dcam_glb_reg_endian_lock[DCAM_MAX_COUNT];
 
+#ifdef FPGA_BRINGUP
 static struct clk *dcam_clk;
 static struct clk *dcam_clk_parent;
 static struct clk *dcam_clk_default;
@@ -66,6 +68,7 @@ static struct clk *dcam_axi_eb;
 static struct clk *dcam_eb;
 static struct regmap *cam_ahb_gpr;
 static struct regmap *aon_apb;
+#endif
 static unsigned int chip_id0;
 static unsigned int chip_id1;
 
@@ -81,6 +84,7 @@ static struct dcam_group s_dcam_group;
 static int sprd_dcamdrv_clk_en(enum dcam_id idx)
 {
 	int ret = 0;
+#ifdef FPGA_BRINGUP
 	uint32_t flag = 0;
 
 	if (atomic_read(&s_dcam_total_users) != 0)
@@ -141,8 +145,8 @@ static int sprd_dcamdrv_clk_en(enum dcam_id idx)
 	udelay(1);
 	regmap_update_bits(cam_ahb_gpr,
 		REG_MM_AHB_AHB_RST, flag, ~flag);
-
 exit:
+#endif
 
 	return ret;
 }
@@ -151,7 +155,7 @@ static int sprd_dcamdrv_clk_dis(enum dcam_id idx)
 {
 	if (atomic_read(&s_dcam_total_users) != 1)
 		return 0;
-
+#ifdef FPGA_BRINGUP
 	if (sprd_dcam_drv_chip_id_get() == SHARKL3)
 		clk_disable_unprepare(dcam_axi_eb);
 	clk_disable_unprepare(dcam_eb);
@@ -161,6 +165,7 @@ static int sprd_dcamdrv_clk_dis(enum dcam_id idx)
 	clk_disable_unprepare(dcam_clk);
 	clk_set_parent(dcam0_bpc_clk, dcam0_bpc_clk_default);
 	clk_disable_unprepare(dcam0_bpc_clk);
+#endif
 
 	return 0;
 }
@@ -396,6 +401,8 @@ void sprd_dcam_drv_force_copy(enum dcam_id idx,
 	uint32_t reg_val = 0;
 
 	if (copy_id & CAP_COPY)
+		reg_val |= BIT_0;
+	if (copy_id & COEF_COPY)
 		reg_val |= BIT_4;
 	if (copy_id & RDS_COPY)
 		reg_val |= BIT_6;
@@ -403,15 +410,14 @@ void sprd_dcam_drv_force_copy(enum dcam_id idx,
 		reg_val |= BIT_8;
 	if (copy_id & BIN_COPY)
 		reg_val |= BIT_10;
-	if (copy_id & AEM_COPY)
-		reg_val |= BIT_12;
 	if (copy_id & PDAF_COPY)
-		reg_val |= BIT_14;
+		reg_val |= BIT_12;
 	if (copy_id & VCH2_COPY)
-		reg_val |= BIT_16;
+		reg_val |= BIT_14;
 	if (copy_id & VCH3_COPY)
-		reg_val |= BIT_18;
+		reg_val |= BIT_16;
 
+	reg_val = 0x15551;
 	sprd_dcam_drv_glb_reg_mwr(idx, DCAM_CONTROL, reg_val,
 			reg_val, DCAM_CONTROL_REG);
 }
@@ -421,6 +427,8 @@ void sprd_dcam_drv_auto_copy(enum dcam_id idx, enum camera_copy_id copy_id)
 	uint32_t reg_val = 0;
 
 	if (copy_id & CAP_COPY)
+		reg_val |= BIT_1;
+	if (copy_id & COEF_COPY)
 		reg_val |= BIT_5;
 	if (copy_id & RDS_COPY)
 		reg_val |= BIT_7;
@@ -428,15 +436,13 @@ void sprd_dcam_drv_auto_copy(enum dcam_id idx, enum camera_copy_id copy_id)
 		reg_val |= BIT_9;
 	if (copy_id & BIN_COPY)
 		reg_val |= BIT_11;
-	if (copy_id & AEM_COPY)
-		reg_val |= BIT_13;
 	if (copy_id & PDAF_COPY)
-		reg_val |= BIT_15;
+		reg_val |= BIT_13;
 	if (copy_id & VCH2_COPY)
-		reg_val |= BIT_17;
+		reg_val |= BIT_15;
 	if (copy_id & VCH3_COPY)
-		reg_val |= BIT_19;
-
+		reg_val |= BIT_17;
+	reg_val = 0x2aaa2;
 	sprd_dcam_drv_glb_reg_mwr(idx, DCAM_CONTROL, reg_val,
 			reg_val, DCAM_CONTROL_REG);
 }
@@ -457,10 +463,40 @@ void sprd_dcam_drv_irq_mask_dis(enum dcam_id idx)
 		DCAM_IRQ_LINE_MASK, DCAM_INIT_CLR_REG);
 }
 
+static void reg_owr(unsigned int addr, unsigned int val)
+{
+	void __iomem *io_tmp = NULL;
+	u32 tmp = 0;
+
+	io_tmp = ioremap_nocache(addr, 0x4);
+	tmp = __raw_readl(io_tmp);
+	 __raw_writel(tmp|val, io_tmp);
+	mb(); /* asm/barrier.h */
+	val = __raw_readl(io_tmp);
+	iounmap(io_tmp);
+}
+
+static void reg_awr(unsigned int addr, unsigned int val)
+{
+	void __iomem *io_tmp = NULL;
+	unsigned int tmp = 0;
+
+	io_tmp = ioremap_nocache(addr, 0x4);
+	tmp = __raw_readl(io_tmp);
+	__raw_writel(tmp&val, io_tmp);
+	mb(); /* asm/barrier.h */
+	val = __raw_readl(io_tmp);
+	iounmap(io_tmp);
+}
+
 int sprd_dcam_drv_reset(enum dcam_id idx, int is_irq)
 {
+#ifdef FPGA_BRINGUP
 	int i = 0;
 	uint32_t time_out = 0, flag = 0;
+#else
+	uint32_t time_out = 0;
+#endif
 	enum dcam_drv_rtn rtn = DCAM_RTN_SUCCESS;
 
 	if (atomic_read(&s_dcam_total_users) == 1) {
@@ -470,7 +506,7 @@ int sprd_dcam_drv_reset(enum dcam_id idx, int is_irq)
 
 		/* then wait for AHB busy cleared */
 		while (++time_out < DCAM_AXI_STOP_TIMEOUT) {
-			if (0 == (DCAM_AXIM_RD(DCAM_AXIM_DBG_STS) & 0x0F))
+			if (0 == (DCAM_AXIM_RD(DCAM_AXIM_DBG_STS) & BIT_12))
 				break;
 		}
 
@@ -479,7 +515,7 @@ int sprd_dcam_drv_reset(enum dcam_id idx, int is_irq)
 				idx, DCAM_AXIM_RD(DCAM_AXIM_DBG_STS));
 		}
 	}
-
+#ifdef FPGA_BRINGUP
 	if (idx == DCAM_ID_0)
 		flag = BIT_MM_AHB_DCAM0_SOFT_RST;
 	else if (idx == DCAM_ID_1)
@@ -498,7 +534,6 @@ int sprd_dcam_drv_reset(enum dcam_id idx, int is_irq)
 
 	for (i = 0x200; i < 0x400; i += 4)
 		DCAM_REG_WR(idx, i, 0);
-
 	DCAM_REG_MWR(idx, ISP_LENS_LOAD_EB, BIT_0, 1);
 	DCAM_REG_MWR(idx, ISP_AEM_PARAM, BIT_0, 1);
 	DCAM_REG_MWR(idx, ISP_BPC_GC_CFG, 0x07, 0x01);
@@ -510,7 +545,12 @@ int sprd_dcam_drv_reset(enum dcam_id idx, int is_irq)
 	DCAM_REG_MWR(idx, ISP_RGBG_PARAM, BIT_0, 1);
 	DCAM_REG_MWR(idx, ISP_AWBC_PARAM, BIT_0, 1);
 	sprd_dcam_drv_glb_reg_awr(idx, DCAM_CFG, ~0x3f, DCAM_CFG_REG);
+#endif
+	reg_owr(0x62200004, BIT_23);
+	usleep_range(300, 350);
 
+	reg_awr(0x62200004, ~BIT_23);
+	usleep_range(300, 350);
 	/* the end, enable AXI writing */
 	if (atomic_read(&s_dcam_total_users) == 1)
 		sprd_dcam_drv_glb_reg_awr(idx,
@@ -532,16 +572,15 @@ int sprd_dcam_drv_path_pause(enum dcam_id idx, uint32_t channel_id)
 
 	if (channel_id == CAMERA_FULL_PATH) {
 #if DCAM_FULL_PATH_PAUSE
-		sprd_dcam_drv_glb_reg_awr(idx, DCAM_CFG,
-			~BIT_1, DCAM_CFG_REG);
+		DCAM_REG_MWR(idx, DCAM_FULL_CFG, BIT_0, 0);
 		sprd_dcam_drv_auto_copy(idx, FULL_COPY);
 		path = &s_p_dcam_mod[idx]->full_path;
 #else
 		return -rtn;
 #endif
 	} else {
-		sprd_dcam_drv_glb_reg_awr(idx, DCAM_CFG,
-			~BIT_2, DCAM_CFG_REG);
+		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_0, 0);
+		sprd_dcam_drv_auto_copy(idx, BIN_COPY);
 		path = &s_p_dcam_mod[idx]->bin_path;
 	}
 	path->status = DCAM_ST_PAUSE;
@@ -560,14 +599,14 @@ int sprd_dcam_drv_path_resume(enum dcam_id idx, uint32_t channel_id)
 
 	if (channel_id == CAMERA_FULL_PATH) {
 #if DCAM_FULL_PATH_PAUSE
-		sprd_dcam_drv_glb_reg_owr(idx, DCAM_CFG, BIT_1, DCAM_CFG_REG);
+		DCAM_REG_MWR(idx, DCAM_FULL_CFG, BIT_0, 1);
 		sprd_dcam_drv_auto_copy(idx, FULL_COPY);
 		path = &s_p_dcam_mod[idx]->full_path;
 #else
 		return -rtn;
 #endif
 	} else {
-		sprd_dcam_drv_glb_reg_owr(idx, DCAM_CFG, BIT_2, DCAM_CFG_REG);
+		DCAM_REG_MWR(idx, DCAM_CAM_BIN_CFG, BIT_0, 1);
 		path = &s_p_dcam_mod[idx]->bin_path;
 	}
 	path->status = DCAM_ST_START;
@@ -580,7 +619,7 @@ static int sprd_dcamdrv_bypass_ispblock_for_yuv_sensor(enum dcam_id idx)
 		pr_err("fail to get valid input ptr\n");
 		return -EFAULT;
 	}
-
+#ifdef FPGA_BRINGUP
 	DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG, BIT_18, BIT_18);
 	DCAM_REG_MWR(idx, ISP_RGBG_PARAM, BIT_0, BIT_0);
 	DCAM_REG_MWR(idx, ISP_RGBG_PARAM, 0xFFFF << 16, 0xFFFF << 16);
@@ -593,10 +632,100 @@ static int sprd_dcamdrv_bypass_ispblock_for_yuv_sensor(enum dcam_id idx)
 	DCAM_REG_MWR(idx, ISP_GRGB_CTRL, BIT_0, BIT_0);
 	DCAM_REG_MWR(idx, ISP_RAW_AFM_FRAM_CTRL, BIT_0, BIT_0);
 	DCAM_REG_MWR(idx, DCAM_NR3_PARA1, BIT_0, BIT_0);
+#endif
 
 	return 0;
 }
 
+static int sprd_dcamdrv_bypass_ispblock(enum dcam_id idx)
+{
+
+	/*bypass pre-binning*/
+	DCAM_REG_MWR(idx, DCAM_BAYER_INFO_CFG, BIT_0, 1);
+
+	/*bypass blc*/
+	DCAM_REG_MWR(idx, DCAM_BLC_PARA_R_B,
+		BIT_31,
+		1 << 31);
+
+	/*bypass RGBG*/
+	DCAM_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAMETER0,
+		BIT_1,
+		1 << 1);
+	DCAM_REG_MWR(idx, ISP_RGBG_YRANDOM_PARAMETER0,
+		BIT_0,
+		1);
+
+	/*bypas ppi*/
+	DCAM_REG_MWR(idx, ISP_PPI_PARAM,
+		BIT_0,
+		1);
+
+	/*bypass LSCM*/
+	DCAM_REG_MWR(idx, DCAM_LSCM_FRM_CTRL0,
+		BIT_0,
+		1);
+
+	/*bypass lsc*/
+	DCAM_REG_MWR(idx, DCAM_LENS_LOAD_ENABLE,
+		BIT_0,
+		1);
+
+	/*bypass aem*/
+	DCAM_REG_MWR(idx, DCAM_AEM_FRM_CTRL0,
+		BIT_0,
+		1);
+
+	/*bypass hist*/
+	DCAM_REG_MWR(idx, DCAM_HIST_FRM_CTRL0,
+		BIT_0,
+		1);
+
+	/*bypass bayer2y*/
+	DCAM_REG_MWR(idx, ISP_AFL_PARAM0,
+	BIT_1,
+	1 << 1);
+
+	/*bypass afl*/
+	DCAM_REG_MWR(idx, ISP_AFL_FRM_CTRL0,
+		BIT_0,
+		1);
+
+	/*bypass Crop0*/
+	DCAM_REG_MWR(idx, DCAM_CROP0_START, BIT_31, 0 << 31);
+
+	/*bypass awbc*/
+	DCAM_REG_MWR(idx, ISP_AWBC_GAIN0,
+		BIT_31,
+		1 << 31);
+
+	/*bypass bpc*/
+	DCAM_REG_MWR(idx, ISP_BPC_PARAM,
+		BIT_0,
+		1);
+
+	/*bypass afm*/
+	DCAM_REG_MWR(idx, ISP_AFM_FRM_CTRL,
+		BIT_0,
+		1);
+
+	/*bypass nr3*/
+	DCAM_REG_MWR(idx, DCAM_NR3_FAST_ME_PARAM,
+		BIT_0,
+		1);
+
+	/*bypass GTM*/
+	DCAM_REG_MWR(idx, DCAM_GTM_GLB_CTRL,
+		BIT_0,
+		0);
+
+	/*fbc bypass*/
+	DCAM_REG_MWR(idx, DCAM_FBC_CTRL,
+		BIT_0,
+		0);
+
+	return 0;
+}
 int sprd_dcam_drv_start(enum dcam_id idx)
 {
 	enum dcam_drv_rtn rtn = DCAM_RTN_SUCCESS;
@@ -622,22 +751,18 @@ int sprd_dcam_drv_start(enum dcam_id idx)
 		return -rtn;
 	}
 
-	cap_en = DCAM_REG_RD(idx, DCAM_CFG) & BIT_0;
+	cap_en = DCAM_REG_RD(idx, DCAM_MIPI_CAP_CFG) & BIT_0;
 
 	if (s_p_dcam_mod[idx]->full_path.output_format == DCAM_YUV420) {
 		sprd_dcamdrv_bypass_ispblock_for_yuv_sensor(idx);
 		image_data_type = IMG_TYPE_YUV;
 	}
-
+	sprd_dcamdrv_bypass_ispblock(idx);
 	reg_val = ((image_vc & 0x3) << 16) |
 		((image_data_type & 0x3F) << 8) | (image_mode & 0x3);
 
 	if (cap_en == 0) {
-
-		if (idx != DCAM_ID_2)
-			DCAM_REG_WR(idx, DCAM_IMAGE_CONTROL, reg_val);
-		else
-			DCAM_REG_WR(idx, DCAM2_IMAGE_CONTROL, reg_val);
+		DCAM_REG_WR(idx, DCAM_IMAGE_CONTROL, reg_val);
 
 		sprd_dcam_drv_irq_mask_en(idx);
 		if (s_p_dcam_mod[idx]->full_path.valid
@@ -657,8 +782,8 @@ int sprd_dcam_drv_start(enum dcam_id idx)
 		/* Cap force copy */
 		sprd_dcam_drv_force_copy(idx, ALL_COPY);
 		/* Cap Enable */
-		sprd_dcam_drv_glb_reg_mwr(idx, DCAM_CFG, BIT_0, BIT_0,
-				DCAM_CONTROL_REG);
+		DCAM_REG_MWR(idx, DCAM_MIPI_CAP_CFG, BIT_0, 1);
+		pr_info("mipi_cap_start");
 	}
 
 	if (s_p_dcam_mod[idx]->need_nr3) {
@@ -671,7 +796,7 @@ int sprd_dcam_drv_start(enum dcam_id idx)
 			pr_err("fail to get_fast_me param\n");
 			return -rtn;
 		}
-		DCAM_REG_WR(idx, DCAM_NR3_BASE_WADDR,
+		DCAM_REG_WR(idx, ISP_NR3_WADDR,
 			s_p_dcam_mod[idx]->statis_module_info
 			.aem_buf_reserved.phy_addr);
 	}
@@ -713,8 +838,10 @@ int sprd_dcam_drv_stop(enum dcam_id idx, int is_irq)
 
 	sprd_dcam_drv_glb_reg_owr(idx, DCAM_PATH_STOP, 0x3F, DCAM_CONTROL_REG);
 	udelay(1000);
+#ifdef FPGA_BRINGUP
+	/*stop all data path*/
 	sprd_dcam_drv_glb_reg_awr(idx, DCAM_CFG, ~0x3f, DCAM_CFG_REG);
-
+#endif
 	/* wait for AHB path busy cleared */
 	while (time_out) {
 		ret = DCAM_REG_RD(idx, DCAM_PATH_BUSY) & 0xFFF;
@@ -850,6 +977,11 @@ int sprd_dcam_drv_module_en(enum dcam_id idx)
 	return ret;
 
 cam_irq_exit:
+#ifndef FPGA_BRINGUP
+	atomic_dec_return(&s_dcam_users[idx]);
+	mutex_unlock(&dcam_module_sema[idx]);
+	return 0;
+#endif
 	sprd_dcamdrv_clk_dis(idx);
 	sprd_cam_domain_disable();
 cam_pw_on_exit:
@@ -953,15 +1085,18 @@ int sprd_dcam_drv_chip_id_get(void)
 	return idx;
 }
 
+extern int csi_init_reg_base(unsigned long reg_base, int32_t idx);
+
 int sprd_dcam_drv_dt_parse(struct platform_device *pdev, uint32_t *dcam_count)
 {
 	int i = 0, ret = 0;
 	uint32_t count = 0;
 	void __iomem *reg_base;
-	struct device_node *iommu_dcam_node = NULL;
+	/*struct device_node *iommu_dcam_node = NULL;*/
 	struct device_node *dn = NULL;
 	struct device *dev = NULL;
 	int index = 0;
+	unsigned long csi_reg_base;
 
 	if (!pdev || !dcam_count) {
 		pr_err("fail to get valid input ptr\n");
@@ -978,6 +1113,8 @@ int sprd_dcam_drv_dt_parse(struct platform_device *pdev, uint32_t *dcam_count)
 
 	s_dcam_count = count;
 	*dcam_count = count;
+
+#ifdef FPGA_BRINGUP
 
 	dcam_eb = of_clk_get_by_name(dn, "dcam_eb");
 	if (IS_ERR_OR_NULL(dcam_eb)) {
@@ -1044,7 +1181,7 @@ int sprd_dcam_drv_dt_parse(struct platform_device *pdev, uint32_t *dcam_count)
 			return PTR_ERR(dcam_axi_eb);
 		}
 	}
-
+#endif
 	for (i = 0; i < count; i++) {
 		s_dcam_irq[i] = irq_of_parse_and_map(dn, i);
 		if (s_dcam_irq[i] <= 0) {
@@ -1063,19 +1200,64 @@ int sprd_dcam_drv_dt_parse(struct platform_device *pdev, uint32_t *dcam_count)
 			s_dcam_irq[i]);
 	}
 
-	index = device_property_match_string(dev, "reg_name",
+	index = device_property_match_string(dev, "reg-names",
 		"axi_ctrl_reg");
 	if (index < 0) {
 		pr_err("fail to get index %d\n", index);
-		return -ENODATA;
+		/*return -ENODATA;*/
 	}
 	reg_base = of_iomap(dn, index);
 	if (!reg_base) {
 		pr_err("fail to get dcam axim_base %d\n", i);
-		return -ENXIO;
+		/*return -ENXIO;*/
 	}
 	s_dcam_aximbase = (unsigned long)reg_base;
+	index = device_property_match_string(dev, "reg-names",
+		"csi_reg");
+	if (index < 0) {
+		pr_err("fail to get index %d\n", index);
+		/*return -ENODATA;*/
+	}
+	reg_base = of_iomap(dn, index);
+	if (!reg_base) {
+		pr_err("fail to get dcam axim_base %d\n", i);
+		/*return -ENXIO;*/
+	}
+	csi_reg_base = (unsigned long)reg_base;
+	csi_init_reg_base(csi_reg_base, 0);
+	pr_err("csi_reg_base = 0x%lx\n", csi_reg_base);
 
+	index = device_property_match_string(dev, "reg-names",
+		"csi1_reg");
+	if (index < 0) {
+		pr_err("fail to get index %d\n", index);
+		/*return -ENODATA;*/
+	}
+	reg_base = of_iomap(dn, index);
+	if (!reg_base) {
+		pr_err("fail to get dcam axim_base %d\n", i);
+		/*return -ENXIO;*/
+	}
+	csi_reg_base = (unsigned long)reg_base;
+	csi_init_reg_base(csi_reg_base, 1);
+	pr_err("csi1_reg_base = 0x%lx\n", csi_reg_base);
+
+	index = device_property_match_string(dev, "reg-names",
+		"csi2_reg");
+	if (index < 0) {
+		pr_err("fail to get index %d\n", index);
+		/*return -ENODATA;*/
+	}
+	reg_base = of_iomap(dn, index);
+	if (!reg_base) {
+		pr_err("fail to get dcam axim_base %d\n", i);
+		/*return -ENXIO;*/
+	}
+	csi_reg_base = (unsigned long)reg_base;
+	csi_init_reg_base(csi_reg_base, 2);
+	pr_err("csi2_reg_base = 0x%lx\n", csi_reg_base);
+
+#ifdef FPGA_BRINGUP
 	iommu_dcam_node = of_find_compatible_node(NULL, NULL,
 		"sprd,iommuexl3-dcam");
 	if (iommu_dcam_node == NULL) {
@@ -1083,9 +1265,11 @@ int sprd_dcam_drv_dt_parse(struct platform_device *pdev, uint32_t *dcam_count)
 		return -EFAULT;
 	}
 	s_dcam_mmubase = (unsigned long)of_iomap(iommu_dcam_node, 1);
-
+#endif
 	return 0;
+#ifdef FPGA_BRINGUP
 exit:
+#endif
 	return ret;
 }
 
@@ -1116,7 +1300,7 @@ int sprd_dcam_drv_3dnr_me_set(uint32_t idx, void *size)
 	}
 
 	p_size = (struct camera_size *)size;
-	val = DCAM_REG_RD(idx, DCAM_NR3_PARA0);
+	val = DCAM_REG_RD(idx, DCAM_NR3_FAST_ME_PARAM);
 	nr3_project_mode = val & 0x3;
 	nr3_channel_sel = (val >> 2) & 0x3;
 
@@ -1154,15 +1338,15 @@ int sprd_dcam_drv_3dnr_me_set(uint32_t idx, void *size)
 	me_param->roi_width = roi_width & 0x1FF8;
 	me_param->roi_height = (roi_height - 40) & 0x1FF8;
 
-	DCAM_REG_MWR(idx, DCAM_NR3_PARA1, BIT_0,
+	DCAM_REG_MWR(idx, DCAM_NR3_FAST_ME_PARAM, BIT_0,
 		me_param->nr3_bypass);
 	val = ((me_param->roi_start_x & 0x1FFF) << 16)
 		| (me_param->roi_start_y & 0x1FFF);
-	DCAM_REG_MWR(idx, DCAM_NR3_ROI_PARA0,
+	DCAM_REG_MWR(idx, DCAM_NR3_FAST_ME_ROI_PARAM0,
 			0x1FFF1FFF, val);
 	val = ((me_param->roi_width & 0x1FFF) << 16)
 		| (me_param->roi_height & 0x1FFF);
-	DCAM_REG_MWR(idx, DCAM_NR3_ROI_PARA1,
+	DCAM_REG_MWR(idx, DCAM_NR3_FAST_ME_ROI_PARAM1,
 		0x1FFF1FFF, val);
 
 	return 0;
@@ -1197,7 +1381,7 @@ void sprd_dcam_drv_reg_trace(enum dcam_id idx)
 	pr_info("cb: %pS\n", __builtin_return_address(0));
 
 	pr_info("DCAM%d: Register list\n", idx);
-	for (addr = DCAM_IP_REVISION; addr <= ISP_RAW_AFM_IIR_FILTER5;
+	for (addr = DCAM_IP_REVISION; addr <= DCAM_GTM_HIST_XPTS_126;
 		addr += 16) {
 		pr_info("0x%03lx: 0x%x 0x%x 0x%x 0x%x\n",
 			addr,
@@ -1206,6 +1390,7 @@ void sprd_dcam_drv_reg_trace(enum dcam_id idx)
 			DCAM_REG_RD(idx, addr + 8),
 			DCAM_REG_RD(idx, addr + 12));
 	}
+#ifdef FPGA_BRINGUP
 	pr_info("AXIM: Register list\n");
 	for (addr = DCAM_AXIM_CTRL; addr <= REG_DCAM_IMG_FETCH_RADDR;
 		addr += 16) {
@@ -1216,6 +1401,7 @@ void sprd_dcam_drv_reg_trace(enum dcam_id idx)
 			DCAM_AXIM_RD(addr + 8),
 			DCAM_AXIM_RD(addr + 12));
 	}
+#endif
 #endif
 }
 
