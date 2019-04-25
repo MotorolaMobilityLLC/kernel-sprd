@@ -7600,6 +7600,7 @@ static bool __cpu_overutilized(int cpu, int delta)
 	struct rq *rq = cpu_rq(cpu);
 	unsigned long capacity_orig = capacity_orig_of(cpu);
 	unsigned long max_capacity = rq->rd->max_cpu_capacity.val;
+	unsigned long capacity = capacity_of(cpu);
 
 	if (!static_branch_unlikely(&sched_asym_cpucapacity))
 		goto out;
@@ -7610,8 +7611,11 @@ static bool __cpu_overutilized(int cpu, int delta)
 	}
 
 out:
-	return (capacity_of(cpu) * 1024) <
-		((cpu_util(cpu) + delta) * capacity_margin);
+#ifdef CONFIG_SCHED_WALT
+	if (likely(!walt_disabled && sysctl_sched_use_walt_cpu_util))
+		capacity = capacity_orig;
+#endif
+	return (capacity * 1024) < ((cpu_util(cpu) + delta) * capacity_margin);
 }
 
 static bool cpu_overutilized(int cpu)
