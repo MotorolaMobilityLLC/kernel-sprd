@@ -2685,6 +2685,13 @@ CONFIG_DMA_VIRTUAL_CHANNELS
 	[subsys]
 	[must]
 	[function]
+CONFIG_DM_BOW
+	[arch] arm64
+	[plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_DM_BUFIO
 	[arch] all
 	[plat] all

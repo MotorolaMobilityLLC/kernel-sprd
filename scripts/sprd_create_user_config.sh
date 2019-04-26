@@ -5,7 +5,7 @@ SCR_PATH=`dirname $0`
 
 for line in `cat "$FN"`
 do
-prefix=`expr substr "$line" 1 3`
+prefix=${line:0:3}
 
 if [ "$prefix" = "DEL" ]; then
 config=${line:11}
