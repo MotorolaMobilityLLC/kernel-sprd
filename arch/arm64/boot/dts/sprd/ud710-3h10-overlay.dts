@@ -39,7 +39,7 @@
 
 			fingerprint@0 {
 				compatible = "microarray,afs121";
-				fpint-gpios = <&ap_gpio 131 0>;
+				fpint-gpios = <&eic_async 13 0>;
 			};
 		};
 	};
