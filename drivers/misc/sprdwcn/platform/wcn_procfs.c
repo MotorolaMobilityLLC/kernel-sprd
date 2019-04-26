@@ -26,7 +26,9 @@
 #include <misc/wcn_bus.h>
 
 #ifdef CONFIG_WCN_PCIE
+#include "edma_engine.h"
 #include "pcie.h"
+#include "wcn_dump.h"
 #endif
 #include "wcn_misc.h"
 #include "wcn_glb.h"
@@ -79,9 +81,12 @@ void mdbg_assert_interface(char *str)
 		(char *)(mdbg_proc->assert.buf));
 
 	sprdwcn_bus_set_carddump_status(true);
-	/* wcn_hold_cpu(); */
+#ifdef CONFIG_WCN_PCIE
+	edma_hw_pause();
+	dump_arm_reg();
+#endif
 	wcnlog_clear_log();
-	mdbg_proc->assert.rcv_len = 23;
+	mdbg_proc->assert.rcv_len = len;
 	mdbg_proc->fail_count++;
 	complete(&mdbg_proc->assert.completed);
 	wake_up_interruptible(&mdbg_proc->assert.rxwait);

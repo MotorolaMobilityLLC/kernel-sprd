@@ -880,7 +880,7 @@ static void read_core_reg(unsigned int value, unsigned int *p)
 }
 
 
-static int dump_arm_reg(void)
+int dump_arm_reg(void)
 {
 	unsigned int i;
 	static const char *core_reg_name[19] = {
