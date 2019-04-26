@@ -1570,6 +1570,8 @@ static int dcdc_pwr_dt_parse(struct cpudvfs_archdata *pdev)
 	u32 nr, ix, num;
 	struct regmap *map;
 	int ret;
+	u32 syscon_args[2];
+	struct regmap *blk_sd_map;
 
 	node = of_parse_phandle(pdev->of_node, "topdvfs-controller", 0);
 	if (!node) {
@@ -1631,6 +1633,22 @@ static int dcdc_pwr_dt_parse(struct cpudvfs_archdata *pdev)
 		if (ret) {
 			pr_err("Failed to parse voltage grade info\n");
 			goto err_pwr_free;
+		}
+
+		blk_sd_map = syscon_regmap_lookup_by_name(dcdc_node,
+							  "dvfs-blk-dcdc-sd");
+		if (!IS_ERR(blk_sd_map)) {
+			ret = syscon_get_args_by_name(dcdc_node,
+						      "dvfs-blk-dcdc-sd", 2,
+						      syscon_args);
+			if (ret != 2) {
+				pr_err("Failed to parse dvfs-blk-dcdc-sd syscon, ret = %d\n",
+				       ret);
+				return -EINVAL;
+			}
+			pdev->pwr[ix].blk_sd_map = blk_sd_map;
+			pdev->pwr[ix].blk_reg = syscon_args[0];
+			pdev->pwr[ix].blk_off = syscon_args[1];
 		}
 
 		of_property_read_u32_index(dcdc_node, "dcdc-dvfs-enable",
@@ -2246,6 +2264,22 @@ static int sprd_cpudvfs_common_init(struct cpudvfs_archdata *pdev)
 		if (ret)
 			return ret;
 
+		/*
+		 * Enable dvfs block shutdown; because the case that the dcdc
+		 * receives the signal to power down the cpu, while the dvfs is
+		 * adjusting cpu's voltage to idle voltage may take place this
+		 * case may result in some unpredictable problems, so we should
+		 * let dvfs block the dcdc shut down cpu's power until dvfs
+		 * finishes to adjust the voltage.
+		 */
+		if (pdev->pwr[ix].blk_sd_map) {
+			ret = regmap_update_bits(pdev->pwr[ix].blk_sd_map,
+						 pdev->pwr[ix].blk_reg,
+						 pdev->pwr[ix].blk_off,
+						 pdev->pwr[ix].blk_off);
+			if (ret)
+				return ret;
+		}
 	}
 
 	ret = pdev->phy_ops->hw_dvfs_map_table_init(pdev);

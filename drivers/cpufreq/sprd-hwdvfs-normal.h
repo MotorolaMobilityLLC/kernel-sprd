@@ -168,6 +168,9 @@ struct voltage_delay_cfg {
 
 struct dcdc_pwr {
 	char name[10];
+	struct regmap *blk_sd_map;
+	u32 blk_reg;	/* dvfs block shutdown */
+	u32 blk_off;
 	u32 dvfs_ctl_reg;
 	u32 dvfs_ctl_bit;
 	u32 dvfs_eb;
