@@ -32,6 +32,7 @@
 #define PUB_STATUS_MON_CTRL_OFFSET	0x6200
 #define DMC_DDR_CLK_CTRL_OFFSET	0x4000
 #define PUB_CLK_DMC_REF_EB	22
+#define PUB_CLK_DFS_EB	15
 #define DDR_MAX_SUPPORT_CS_NUM		2
 #define DMC_PROC_NAME "sprd_dmc"
 #define DDR_PROPERTY_NAME "property"
@@ -72,6 +73,7 @@ struct dmc_drv_data {
 	int pub_mon_enabled;
 	u32 type;
 	u32 mr_val[DDR_MAX_SUPPORT_CS_NUM];
+	u32 reg_clk_ctrl;
 	u64 size;
 };
 
@@ -92,6 +94,12 @@ struct dmc_drv_data {
 #define ROC1_TYPE_OFFSET	0x8
 #define ROC1_CS0_MR_OFFSET	0xc
 #define ROC1_CS1_MR_OFFSET	0x10
+
+#define ORCA_SIZE_L_OFFSET	0x0
+#define ORCA_SIZE_H_OFFSET	0x4
+#define ORCA_TYPE_OFFSET	0x8
+#define ORCA_CS0_MR_OFFSET	0xc
+#define ORCA_CS1_MR_OFFSET	0x10
 
 static const struct dmc_data sharkl3_data = {
 	.proc_res = 0,
@@ -126,6 +134,17 @@ static const struct dmc_data roc1_data = {
 	.mr_offset = {
 		ROC1_CS0_MR_OFFSET,
 		ROC1_CS1_MR_OFFSET,
+	},
+};
+static const struct dmc_data orca_data = {
+	.proc_res = INVALID_RES_IDX,
+	.mon_res = 0,
+	.size_l_offset = ORCA_SIZE_L_OFFSET,
+	.size_h_offset = ORCA_SIZE_H_OFFSET,
+	.type_offset = ORCA_TYPE_OFFSET,
+	.mr_offset = {
+		ORCA_CS0_MR_OFFSET,
+		ORCA_CS1_MR_OFFSET,
 	},
 };
 
@@ -345,9 +364,16 @@ static ssize_t sprd_pub_monitor_enable_write(struct file *filep,
 	if (buf_tmp[0] == '1' || buf_tmp[0] == 1) {
 		reg = readl_relaxed(drv_data.mon_base
 			+ DMC_DDR_CLK_CTRL_OFFSET);
-		reg = reg | (1<<PUB_CLK_DMC_REF_EB);
-		writel_relaxed(reg, drv_data.mon_base
-			+ DMC_DDR_CLK_CTRL_OFFSET);
+		if (!(reg & 1<<PUB_CLK_DMC_REF_EB)
+		    || !(reg & 1<<PUB_CLK_DFS_EB)) {
+			if (!(reg & 1<<PUB_CLK_DMC_REF_EB))
+				drv_data.reg_clk_ctrl |= 1<<PUB_CLK_DMC_REF_EB;
+			if (!(reg & 1<<PUB_CLK_DFS_EB))
+				drv_data.reg_clk_ctrl |= 1<<PUB_CLK_DFS_EB;
+			reg = reg | drv_data.reg_clk_ctrl;
+			writel_relaxed(reg, drv_data.mon_base
+				+ DMC_DDR_CLK_CTRL_OFFSET);
+		}
 		drv_data.pub_mon_enabled = 1;
 		ret = sprd_pub_monitor_enable(0);
 		if (ret)
@@ -356,11 +382,14 @@ static ssize_t sprd_pub_monitor_enable_write(struct file *filep,
 		if (ret)
 			return ret;
 	} else if (buf_tmp[0] == '0' || buf_tmp[0] == 0) {
-		reg = readl_relaxed(drv_data.mon_base
-			+ DMC_DDR_CLK_CTRL_OFFSET);
-		reg = reg & ~(1<<PUB_CLK_DMC_REF_EB);
-		writel_relaxed(reg, drv_data.mon_base
-			+ DMC_DDR_CLK_CTRL_OFFSET);
+		if (drv_data.reg_clk_ctrl) {
+			reg = readl_relaxed(drv_data.mon_base
+					+ DMC_DDR_CLK_CTRL_OFFSET);
+			reg = reg & ~(drv_data.reg_clk_ctrl);
+			writel_relaxed(reg, drv_data.mon_base
+					+ DMC_DDR_CLK_CTRL_OFFSET);
+			drv_data.reg_clk_ctrl = 0;
+		}
 		drv_data.pub_mon_enabled = 0;
 		ret = sprd_pub_monitor_enable(0);
 		if (ret)
@@ -455,6 +484,7 @@ static const struct of_device_id sprd_dmc_of_match[] = {
 	{.compatible = "sprd,sharkl3-dmc", .data = &sharkl3_data},
 	{.compatible = "sprd,sharkl5-dmc", .data = &sharkl5_data},
 	{.compatible = "sprd,roc1-dmc", .data = &roc1_data},
+	{.compatible = "sprd,orca-dmc", .data = &orca_data},
 	{},
 };
 
