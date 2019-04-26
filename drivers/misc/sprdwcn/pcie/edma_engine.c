@@ -1157,7 +1157,7 @@ int msi_irq_handle(int irq)
 	}
 	if (mchn_hw_cb_in_irq(chn) == 0) {
 		enqueue(&(edma->isr_func.q), (unsigned char *)(&msg));
-		WCN_INFO(" callback not in irq\n");
+		WCN_DBG(" callback not in irq\n");
 		set_wcnevent(&(edma->isr_func.q.event));
 		local_irq_restore(irq_flags);
 		return 0;
@@ -1166,7 +1166,7 @@ int msi_irq_handle(int irq)
 		return -1;
 	}
 
-	WCN_INFO("callback in irq\n");
+	WCN_DBG("callback in irq\n");
 	hisrfunc(&msg);
 
 	local_irq_restore(irq_flags);
@@ -1459,25 +1459,25 @@ int edma_dump_chn_reg(int chn)
 
 	WCN_INFO("------------[ chn=%d ]------------\n", chn);
 	value = sprd_pcie_read_reg32(pdev, CHN_DMA_INT(chn));
-	WCN_INFO("dma_int =\t0x%08x\n",  value);
+	WCN_INFO("[dma_int  ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_DMA_TX_REQ(chn));
-	WCN_INFO("tx_req =\t0x%08x\n",  value);
+	WCN_INFO("[tx_req   ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_DMA_RX_REQ(chn));
-	WCN_INFO("rx_req =\t0x%08x\n",  value);
+	WCN_INFO("[rx_req   ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_DMA_CFG(chn));
-	WCN_INFO("dma_cfg =\t0x%08x\n",  value);
+	WCN_INFO("[dma_cfg  ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_TRANS_LEN(chn));
-	WCN_INFO("tran_len =\t0x%08x\n",  value);
+	WCN_INFO("[tran_len ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_PTR_HIGH(chn));
-	WCN_INFO("P_high =\t0x%08x\n",  value);
+	WCN_INFO("[PTR_high ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_TX_NEXT_DSCR_PTR_LOW(chn));
-	WCN_INFO("tx_next =\t0x%08x\n",  value);
+	WCN_INFO("[tx_next  ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_RX_NEXT_DSCR_PTR_LOW(chn));
-	WCN_INFO("rx_next =\t0x%08x\n",  value);
+	WCN_INFO("[rx_next  ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_DATA_SRC_ADDR_LOW(chn));
-	WCN_INFO("src_addr =\t0x%08x\n",  value);
+	WCN_INFO("[src_addr ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_DATA_DEST_ADDR_LOW(chn));
-	WCN_INFO("dest_addr =\t0x%08x\n",  value);
+	WCN_INFO("[dest_addr] =\t0x%08x\n",  value);
 
 	return 0;
 }
@@ -1494,33 +1494,33 @@ int edma_dump_glb_reg(void)
 	}
 	WCN_INFO("------------[ DMA glb Reg ]------------\n");
 	value = sprd_pcie_read_reg32(pdev, DMA_PAUSE);
-	WCN_INFO("dma_pause =\t0x%08x\n",  value);
+	WCN_INFO("[dma_pause  ] =\t0x%08x\n", value);
 	value = sprd_pcie_read_reg32(pdev, DMA_INT_RAW_STATUS);
-	WCN_INFO("int_sts =\t0x%08x\n",  value);
+	WCN_INFO("[int_sts    ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_INT_MASK_STATUS);
-	WCN_INFO("mask_sts=\t0x%08x\n",  value);
+	WCN_INFO("[mask_sts   ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_REQ_STATUS);
-	WCN_INFO("req_sts =\t0x%08x\n",  value);
+	WCN_INFO("[req_sts    ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_DEBUG_STATUS);
-	WCN_INFO("debug_sts =\t0x%08x\n",  value);
+	WCN_INFO("[debug_sts  ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_ARB_SEL_STATUS);
-	WCN_INFO("arb_sel_sts =\t0x%08x\n",  value);
+	WCN_INFO("[arb_sel_sts] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_CHN_ARPROT);
-	WCN_INFO("arport =\t0x%08x\n",  value);
+	WCN_INFO("[arport     ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_CHN_AWPROT);
-	WCN_INFO("awport =\t0x%08x\n",  value);
+	WCN_INFO("[awport     ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_CHN_PROT_FLAG);
-	WCN_INFO("prot_flag =\t0x%08x\n",  value);
+	WCN_INFO("[prot_flag  ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_GLB_PROT);
-	WCN_INFO("glb_port =\t0x%08x\n",  value);
+	WCN_INFO("[glb_port   ]=\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_REQ_CID_PROT);
-	WCN_INFO("req_cid =\t0x%08x\n",  value);
+	WCN_INFO("[req_cid    ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_SYNC_SEC_NORMAL);
-	WCN_INFO("sync =\t0x%08x\n",  value);
+	WCN_INFO("[sync       ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_PCIE_MSIX_REG_ADDR_LO);
-	WCN_INFO("msix_reg =\t0x%08x\n",  value);
+	WCN_INFO("[msix_reg   ] =\t0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_PCIE_MSIX_VALUE);
-	WCN_INFO("msix_val =\t0x%08x\n",  value);
+	WCN_INFO("[msix_val   ] =\t0x%08x\n",  value);
 
 	return 0;
 }

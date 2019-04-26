@@ -37,7 +37,7 @@ static struct mchn_ops_t mdbg_ringc_ops = {
 	.inout = WCNBUS_RX,
 	.hif_type = 1,
 	.buf_size = 1056,
-	.pool_size = 6,
+	.pool_size = 16,
 	.cb_in_irq = 0,
 	.pop_link = mdbg_log_read,
 	.push_link = mdbg_log_push,
@@ -195,7 +195,7 @@ int mdbg_log_read(int channel, struct mbuf_t *head,
 	struct ring_rx_data *rx;
 
 	WCN_INFO("%s:seq=0x%x, num=%d\n", __func__,
-		 *((u32 *)head->buf + 12), num);
+		 *((u32 *)(head->buf + 12)), num);
 	if (ring_dev) {
 		mutex_lock(&ring_dev->mdbg_read_mutex);
 		rx = kmalloc(sizeof(*rx), GFP_KERNEL);
@@ -260,7 +260,7 @@ static void mdbg_pt_ring_reg(void)
 {
 	sprdwcn_bus_chn_init(&mdbg_ringc_ops);
 #ifdef CONFIG_WCN_PCIE
-	prepare_free_buf(15, 1056, 6);
+	prepare_free_buf(15, 1056, 16);
 #endif
 }
 
