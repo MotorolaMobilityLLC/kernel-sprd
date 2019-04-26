@@ -476,7 +476,7 @@
 };
 
 &sdio0 {
-	cd-gpios = <&eic_async 19 GPIO_ACTIVE_HIGH>;
+	cd-gpios = <&eic_sync 19 GPIO_ACTIVE_HIGH>;
 };
 
 &spi0 {
