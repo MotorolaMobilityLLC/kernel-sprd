@@ -778,8 +778,8 @@
 			      <0 0x21180000 0 0x00010000>;
 			reg-names = "mem-base", "reg-base";
 
-			sprd,ul-fifo-depth = <128>;
-			sprd,dl-fifo-depth = <128>;
+			sprd,ul-fifo-depth = <4096>;
+			sprd,dl-fifo-depth = <4096>;
 		};
 
 		ipa {
