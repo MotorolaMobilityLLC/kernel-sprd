@@ -49,7 +49,7 @@ static ssize_t lane_num_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(lane_num);
 
-static ssize_t dpi_freq_show(struct device *dev,
+static ssize_t pixel_clock_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct sprd_panel *panel = dev_get_drvdata(dev);
@@ -60,7 +60,7 @@ static ssize_t dpi_freq_show(struct device *dev,
 
 	return ret;
 }
-static DEVICE_ATTR_RO(dpi_freq);
+static DEVICE_ATTR_RO(pixel_clock);
 
 static ssize_t resolution_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -379,9 +379,9 @@ static DEVICE_ATTR_WO(resume);
 static struct attribute *panel_attrs[] = {
 	&dev_attr_name.attr,
 	&dev_attr_lane_num.attr,
-	&dev_attr_dpi_freq.attr,
 	&dev_attr_resolution.attr,
 	&dev_attr_screen_size.attr,
+	&dev_attr_pixel_clock.attr,
 	&dev_attr_hporch.attr,
 	&dev_attr_vporch.attr,
 	&dev_attr_esd_check_enable.attr,
