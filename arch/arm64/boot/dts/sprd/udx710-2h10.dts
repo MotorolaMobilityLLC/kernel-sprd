@@ -82,12 +82,28 @@
 	status = "okay";
 };
 
-&vddwcn {
-	regulator-always-on;
+&vddcamd0 {
+	status = "disabled";
+};
+
+&vddcamd1 {
+	status = "disabled";
+};
+
+&vddcammot {
+	status = "disabled";
 };
 
 &vddldo0 {
-	regulator-always-on;
+	status = "disabled";
+};
+
+&vddldo1 {
+	status = "disabled";
+};
+
+&vddldo2 {
+	status = "disabled";
 };
 
 &sdio3 {
