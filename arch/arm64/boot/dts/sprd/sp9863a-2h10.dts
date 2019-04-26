@@ -11,6 +11,7 @@
 #include "sp9863a-common.dtsi"
 #include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt35532_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 
