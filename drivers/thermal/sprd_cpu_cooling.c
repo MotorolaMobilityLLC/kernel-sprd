@@ -1037,6 +1037,7 @@ static int cpufreq_get_requested_power(struct thermal_cooling_device *cdev,
 		i++;
 	}
 
+	total_load = total_load ?: 1;
 	cpufreq_device->last_load = total_load;
 
 	pr_debug("tz:%s temp:%d\n", tz->type, tz->temperature);
