@@ -868,22 +868,22 @@
 				sprd,usb-dl-rx = <0 2048>;
 				sprd,usb-ul-tx = <0 2048>;
 				sprd,usb-ul-rx = <0 2048>;
-				sprd,cp-dl-tx = <1 128>;
-				sprd,cp-dl-rx = <1 128>;
-				sprd,cp-ul-tx = <1 128>;
-				sprd,cp-ul-rx = <1 128>;
+				sprd,cp-dl-tx = <0 4096>;
+				sprd,cp-dl-rx = <0 4096>;
+				sprd,cp-ul-tx = <0 4096>;
+				sprd,cp-ul-rx = <0 4096>;
 				sprd,wifi-dl-tx = <1 128>;
 				sprd,wifi-dl-rx = <1 128>;
 				sprd,wifi-ul-tx = <1 128>;
 				sprd,wifi-ul-rx = <1 128>;
-				sprd,ap-eth-dl-tx = <0 2048>;
-				sprd,ap-eth-dl-rx = <0 2048>;
-				sprd,ap-eth-ul-tx = <0 2048>;
-				sprd,ap-eth-ul-rx = <0 2048>;
-				sprd,ap-ip-dl-tx = <0 2048>;
-				sprd,ap-ip-dl-rx = <0 2048>;
-				sprd,ap-ip-ul-tx = <0 2048>;
-				sprd,ap-ip-ul-rx = <0 2048>;
+				sprd,ap-eth-dl-tx = <0 4096>;
+				sprd,ap-eth-dl-rx = <0 4096>;
+				sprd,ap-eth-ul-tx = <0 4096>;
+				sprd,ap-eth-ul-rx = <0 4096>;
+				sprd,ap-ip-dl-tx = <0 4096>;
+				sprd,ap-ip-dl-rx = <0 4096>;
+				sprd,ap-ip-ul-tx = <0 4096>;
+				sprd,ap-ip-ul-rx = <0 4096>;
 			};
 
 			ipa_delegate: sipa-dele@80000000 {
@@ -892,8 +892,8 @@
 				      <0 0x2e000000 0 0x00010000>;
 				reg-names = "mem-base", "reg-base";
 
-				sprd,ul-fifo-depth = <128>;
-				sprd,dl-fifo-depth = <128>;
+				sprd,ul-fifo-depth = <4096>;
+				sprd,dl-fifo-depth = <4096>;
 			};
 
 			ipa_sys: sipa-sys {
