@@ -25,6 +25,7 @@ struct tsx_cali {
 	struct tsx_data tsxdata;
 };
 
+#define WCN_VDDGEN1_CONFIG_NUM	4
 struct marlin_device {
 	int coexist;
 	int wakeup_ap;
@@ -32,6 +33,10 @@ struct marlin_device {
 	int reset;
 	int chip_en;
 	int int_ap;
+	/* vddgen1 config */
+	struct regmap *syscon_pmic;
+	/* index [0]:addr [1]:mask [2]:unboudval [3]boundval */
+	u32 vddgen1_chip[WCN_VDDGEN1_CONFIG_NUM];
 	bool bound_avdd12;
 	bool bound_dcxo18;
 	/* power sequence */
