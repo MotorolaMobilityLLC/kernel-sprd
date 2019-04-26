@@ -645,7 +645,7 @@ static int sprd_dsi_context_init(struct sprd_dsi *dsi, struct device_node *np)
 	if (!of_property_read_u32(np, "sprd,max-read-time", &tmp))
 		ctx->max_rd_time = tmp;
 	else
-		ctx->max_rd_time = 0x6000;
+		ctx->max_rd_time = 6000;
 
 	if (!of_property_read_u32(np, "sprd,int0_mask", &tmp))
 		ctx->int0_mask = tmp;
