@@ -56,6 +56,7 @@ struct dbg_log_ops {
 	void (*exit)(struct dbg_log_device *dbg);
 	void (*select)(struct dbg_log_device *dbg);
 	bool (*is_freq_valid)(struct dbg_log_device *dbg, unsigned int freq);
+	bool (*fill_freq_array)(struct dbg_log_device *dbg, char *sbuf);
 	int (*get_valid_channel)(struct dbg_log_device *dbg, const char *buf);
 };
 
@@ -115,9 +116,11 @@ static inline void reg_bits_clr(unsigned long reg, u32 bits)
 void dbg_log_channel_sel(struct dbg_log_device *dbg);
 bool dbg_log_is_freq_valid(struct dbg_log_device *dbg, unsigned int freq);
 int dbg_log_get_valid_channel(struct dbg_log_device *dbg, const char *buf);
+bool dbg_log_fill_freq_array(struct dbg_log_device *dbg, char *sbuf);
 struct dbg_log_device *dbg_log_device_register(struct device *parent,
 					       struct dbg_log_ops *ops,
-					       struct phy_ctx *phy);
+					       struct phy_ctx *phy,
+					       const char *serdes_name);
 int dbg_log_sysfs_init(struct device *dev);
 
 #endif

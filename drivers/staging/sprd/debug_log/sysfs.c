@@ -38,7 +38,7 @@ static ssize_t freq_show(struct device *dev,
 		}
 		strcat(temp_sbuf, "]");
 	} else {
-		strcat(temp_sbuf, "[1500000]");
+		dbg_log_fill_freq_array(dbg, temp_sbuf);
 	}
 
 	ret = snprintf(buf, PAGE_SIZE, "%d %s\n", phy->freq, temp_sbuf);

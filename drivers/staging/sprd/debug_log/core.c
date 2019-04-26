@@ -10,6 +10,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#include <linux/module.h>
+#include <linux/device.h>
 
 #include "core.h"
 const char *ch_str[] = {
@@ -66,6 +68,13 @@ bool dbg_log_is_freq_valid(struct dbg_log_device *dbg, unsigned int freq)
 	return false;
 }
 
+bool dbg_log_fill_freq_array(struct dbg_log_device *dbg, char *sbuf)
+{
+	if (dbg->ops->fill_freq_array)
+		return dbg->ops->fill_freq_array(dbg, sbuf);
+	return false;
+}
+
 int dbg_log_get_valid_channel(struct dbg_log_device *dbg, const char *buf)
 {
 	if (dbg->ops->get_valid_channel)
@@ -73,12 +82,16 @@ int dbg_log_get_valid_channel(struct dbg_log_device *dbg, const char *buf)
 	return -EINVAL;
 }
 
+static struct class dbg_log_class = {
+	.name = "modem",
+};
+
 struct dbg_log_device *dbg_log_device_register(struct device *parent,
 					       struct dbg_log_ops *ops,
-					       struct phy_ctx *phy)
+					       struct phy_ctx *phy,
+					       const char *serdes_name)
 {
 	struct dbg_log_device *dbg;
-	struct class *dbg_class;
 	int i;
 
 	DEBUG_LOG_PRINT("entry\n");
@@ -96,16 +109,12 @@ struct dbg_log_device *dbg_log_device_register(struct device *parent,
 	}
 	dbg->ops = ops;
 
-	dbg_class = class_create(THIS_MODULE, "modem");
-	if (IS_ERR(dbg_class)) {
-		pr_err("Unable to create modem class\n");
-		goto phy_free;
-	}
+	dbg->dev.class = &dbg_log_class;
 
-	dbg->dev.class = dbg_class;
 	dbg->dev.parent = parent;
 	dbg->dev.of_node = parent->of_node;
-	dev_set_name(&dbg->dev, "debug-log");
+	dev_set_name(&dbg->dev, serdes_name);
+
 	dev_set_drvdata(&dbg->dev, dbg);
 
 	if (device_register(&dbg->dev)) {
@@ -135,3 +144,16 @@ err:
 	kfree(dbg);
 	return NULL;
 }
+
+static int __init dbg_log_class_init(void)
+{
+	return class_register(&dbg_log_class);
+}
+
+static void __exit dbg_log_class_exit(void)
+{
+	class_unregister(&dbg_log_class);
+}
+
+fs_initcall(dbg_log_class_init);
+module_exit(dbg_log_class_exit);

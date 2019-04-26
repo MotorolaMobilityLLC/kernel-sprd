@@ -26,6 +26,10 @@
 #define FREQ_OFFSET (50 * 1000)
 #define MATCH_FREQ(f, src_f) (abs((f) - (src_f)) <= FREQ_OFFSET)
 
+static u32 s_freq_array[] = {
+	1500000,
+};
+
 /**
  * Write to D-PHY module (encapsulating the digital interface)
  * @param base pointer to structure which holds information about the d-base
@@ -175,12 +179,10 @@ static void inter_dbg_log_chn_sel(struct dbg_log_device *dbg)
 static bool inter_dbg_log_is_freq_valid(struct dbg_log_device *dbg, unsigned int freq)
 {
 	int i;
-	unsigned long src_freq;
 
 	DEBUG_LOG_PRINT("input freq %d\n", freq);
-	for (i = 0; i < CLK_SRC_MAX; i++) {
-		src_freq = (clk_get_rate(dbg->clk_src[i]) / 1000);
-		if (MATCH_FREQ(freq, src_freq)) {
+	for (i = 0; i < ARRAY_SIZE(s_freq_array); i++) {
+		if (s_freq_array[i] == freq) {
 			dbg->phy->clk_sel = i;
 			return true;
 		}
@@ -204,11 +206,36 @@ static int inter_dbg_log_get_valid_channel(struct dbg_log_device *dbg, const cha
 	return -EINVAL;
 }
 
+static bool inter_dbg_log_fill_freq_array(struct dbg_log_device *dbg,
+					  char *sbuf)
+{
+	int i, ret;
+	char temp_buf[16];
+
+	strcat(sbuf, "[");
+	for (i = 0; i < ARRAY_SIZE(s_freq_array); i++) {
+		ret = snprintf(temp_buf,
+			       16, " %u",
+			       (unsigned int)s_freq_array[i]);
+		if (ret >= 16) {
+			DEBUG_LOG_PRINT("len(%d) of s_freq_array[%d] >= 16",
+					ret,
+					i);
+			return false;
+		}
+		strcat(sbuf, temp_buf);
+	}
+	strcat(sbuf, "]");
+
+	return true;
+}
+
 static struct dbg_log_ops ops = {
 	.init = inter_dbg_log_init,
 	.exit = inter_dbg_log_exit,
 	.select = inter_dbg_log_chn_sel,
 	.is_freq_valid = inter_dbg_log_is_freq_valid,
+	.fill_freq_array = inter_dbg_log_fill_freq_array,
 	.get_valid_channel = inter_dbg_log_get_valid_channel,
 };
 
@@ -240,8 +267,7 @@ static int dbg_log_probe(struct platform_device *pdev)
 		pr_err("mm ahb get failed!\n");
 		return PTR_ERR(mm_ahb);
 	}
-	dbg = dbg_log_device_register(&pdev->dev, &ops, NULL);
-
+	dbg = dbg_log_device_register(&pdev->dev, &ops, NULL, "debug-log");
 	if (!dbg)
 		return -ENOMEM;
 
