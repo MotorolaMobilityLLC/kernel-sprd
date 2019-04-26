@@ -793,6 +793,9 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 	u32 vbus_gpio_value;
 	int ret;
 
+	if (!info->gpiod)
+		return;
+
 	vbus_gpio_value = gpiod_get_value_cansleep(info->gpiod);
 	if (!vbus_gpio_value) {
 		ret = fan54015_update_bits(info, FAN54015_REG_1,
@@ -948,8 +951,8 @@ static int fan54015_charger_probe(struct i2c_client *client,
 
 	info->gpiod = devm_gpiod_get(dev, "otg-detect", GPIOD_IN);
 	if (IS_ERR(info->gpiod)) {
-		dev_err(dev, "failed to get charger detection GPIO\n");
-		return PTR_ERR(info->gpiod);
+		dev_warn(dev, "failed to get charger detection GPIO\n");
+		info->gpiod = NULL;
 	}
 
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
