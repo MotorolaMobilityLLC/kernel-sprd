@@ -50,9 +50,9 @@ class LinuxSourceTreeOperations(object):
 		except subprocess.CalledProcessError as e:
 			raise ConfigError(e.output)
 
-	def make(self):
+	def make(self, jobs):
 		try:
-			subprocess.check_output(['make', 'ARCH=um'])
+			subprocess.check_output(['make', 'ARCH=um', '--jobs=' + str(jobs)])
 		except OSError as e:
 			raise BuildError('Could not call execute make: ' + e)
 		except subprocess.CalledProcessError as e:
@@ -137,10 +137,10 @@ class LinuxSourceTree(object):
 			print('Generating .config ...')
 			return self.build_config()
 
-	def build_um_kernel(self):
+	def build_um_kernel(self, jobs):
 		try:
 			self._ops.make_olddefconfig()
-			self._ops.make()
+			self._ops.make(jobs)
 		except (ConfigError, BuildError) as e:
 			logging.error(e)
 			return BuildResult(BuildStatus.FAILURE, str(e))

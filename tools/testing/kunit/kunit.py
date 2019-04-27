@@ -15,7 +15,7 @@ import kunit_parser
 
 from collections import namedtuple
 
-KunitRequest = namedtuple('KunitRequest', ['raw_output','timeout'])
+KunitRequest = namedtuple('KunitRequest', ['raw_output','timeout', 'jobs'])
 
 KunitResult = namedtuple('KunitResult', ['status','result'])
 
@@ -36,7 +36,7 @@ def run_tests(linux: kunit_kernel.LinuxSourceTree,
 	print(kunit_parser.timestamp('Building KUnit Kernel ...'))
 
 	build_start = time.time()
-	build_result = linux.build_um_kernel()
+	build_result = linux.build_um_kernel(request.jobs)
 	build_end = time.time()
 	if build_result.status != kunit_kernel.BuildStatus.SUCCESS:
 		return KunitResult(KunitStatus.BUILD_FAILURE, build_result)
@@ -92,6 +92,11 @@ def main(argv, linux):
 				default=300,
 				metavar='timeout')
 
+	run_parser.add_argument('--jobs',
+				help='As in the make command, "Specifies  the number of '
+				'jobs (commands) to run simultaneously."',
+				type=int, default=8, metavar='jobs')
+
 	new_parser = subparser.add_parser(
 			'new',
 			help='Prints out boilerplate for writing new tests.')
@@ -112,7 +117,9 @@ def main(argv, linux):
 	if cli_args.subcommand == 'new':
 		print_test_skeletons(cli_args)
 	elif cli_args.subcommand == 'run':
-		request = KunitRequest(cli_args.raw_output, cli_args.timeout)
+		request = KunitRequest(cli_args.raw_output,
+				       cli_args.timeout,
+				       cli_args.jobs)
 		result = run_tests(linux, request)
 		if result.status == KunitStatus.TEST_FAILURE:
 			sys.exit(1)
