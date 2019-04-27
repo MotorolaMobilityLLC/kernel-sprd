@@ -143,7 +143,7 @@ class LinuxSourceTree(object):
 			self._ops.make()
 		except (ConfigError, BuildError) as e:
 			logging.error(e)
-			return BuildResult(BuildStatus.FAILURE, e.message)
+			return BuildResult(BuildStatus.FAILURE, str(e))
 		used_kconfig = kunit_config.Kconfig()
 		used_kconfig.read_from_file(KCONFIG_PATH)
 		try:
