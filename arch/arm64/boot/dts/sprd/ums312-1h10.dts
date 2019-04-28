@@ -440,6 +440,9 @@
 };
 
 &i2c5 {
+	clock-names = "i2c", "source";
+	clocks = <&aon_clk CLK_AON_I2C>, <&pll2 CLK_TWPLL_153M6>;
+
 	status = "okay";
 	clock-frequency = <3400000>;
 
