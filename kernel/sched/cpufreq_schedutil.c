@@ -1032,6 +1032,8 @@ static void sugov_stop(struct cpufreq_policy *policy)
 	if (slack_timer_setup)
 		del_timer_sync(&sg_policy->slack_timer);
 
+	del_timer_sync(&sg_policy->freq_margin_timer);
+
 	for_each_cpu(cpu, policy->cpus)
 		cpufreq_remove_update_util_hook(cpu);
 
