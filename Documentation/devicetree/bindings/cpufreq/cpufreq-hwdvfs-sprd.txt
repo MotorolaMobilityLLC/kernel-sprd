@@ -101,6 +101,9 @@ Optional properties:
 - voltage-down-delay: An array to store the delay time for hardware dvfs module to
 			wait the PMIC to decrease voltage to target value, different
 			target voltages have different delay time.
+- syscons: A phandle to PMU controller register to enable dvfs module to block
+			the dcdc shutdown while dvfs module is working.
+- syscon-names: The name of the current syscon.
 
 Node cpudvfs_dev
 -----------------------------------
@@ -252,6 +255,8 @@ topdvfs_controller: topdvfsctrl@322A0000 {
 		dcdc-judge-vol-sw = <0x68 1 0x7 7>;
 		dcdc-subsys-tune-enable = <0x150 6 1>;
 		dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu0_supply>;
+		syscons = <&pmu_apb_regs REG_PMU_APB_DVFS_BLOCK_SHUTDOWN_CFG MASK_PMU_APB_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
+		syscon-names = "dvfs-blk-dcdc-sd";
 	};
 
 	<...>
