@@ -96,13 +96,6 @@ CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINFO
 	[subsys] mm
 	[must] debug
 	[function] Show memory information when lmk kills process
-CONFIG_ANDROID_PARANOID_NETWORK
-	[arch] all
-	[plat] all
-	[field] menu,code
-	[subsys] net
-	[must] user
-	[function] specified config for android
 CONFIG_ANON_INODES
 	[arch] all
 	[plat] all
@@ -1416,7 +1409,7 @@ CONFIG_CGROUP_SCHED
 	[function] Group CPU scheduler(vts require)
 CONFIG_CHARGER_FAN54015
 	[arch] all
-	[plat] sharkl3,sharkl5_32
+	[plat] sharkl3,sharkl5,sharkl5_32
 	[field] make
 	[subsys] power
 	[must] user
@@ -3628,8 +3621,8 @@ CONFIG_GENERIC_IRQ_EFFECTIVE_AFF_MASK
 	[must]
 	[function]
 CONFIG_GENERIC_IRQ_MIGRATION
-	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] interrupt
 	[must] console
@@ -5177,13 +5170,6 @@ CONFIG_INPUT_KEYBOARD
 	[subsys] input
 	[must] user
 	[function] Keyboards support
-CONFIG_INPUT_KEYCHORD
-	[arch] all
-	[plat] all
-	[field] menu,make
-	[subsys] input
-	[must] unknown
-	[function] Key chord input driver support
 CONFIG_INPUT_KEYCOMBO
 	[arch] all
 	[plat] all
@@ -9780,6 +9766,13 @@ CONFIG_SPRD_APDU
 	[subsys] misc
 	[must] user
 	[function] Spreadtrum apdu driver.
+CONFIG_SPRD_APSYS_DVFS_DEVFREQ
+	[arch] arm64
+	[plat] sharkl5
+	[field] make
+	[subsys] devfreq
+	[must] user
+	[function] Enable apsys dvfs function.
 CONFIG_SPRD_AUDIO_AGDSP_ACCESS
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5_32
@@ -9894,14 +9887,14 @@ CONFIG_SPRD_CPROC
 	[function] This function is used to enable sprd cproc module for modem boot.
 CONFIG_SPRD_CPU_COOLING
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] thermal
 	[must] user
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_DEVICE
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -10096,6 +10089,13 @@ CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[must] user
 	[function] This function is used to detected overlay region in
 		   reserved-memory.
+CONFIG_SPRD_MINI_SYSDUMP
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_MIPI_LOG_R5P0
 	[arch] arm64
 	[plat] sharkl5
@@ -10350,13 +10350,6 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[subsys] devfreq
 	[must] user
 	[function] Enable device dvfs function.
-CONFIG_SPRD_APSYS_DVFS_DEVFREQ
-	[arch] arm64
-	[plat] sharkl5
-	[field] make
-	[subsys] devfreq
-	[must] user
-	[function] Enable apsys dvfs function.
 CONFIG_SPRD_USB3_PHY
 	[arch] arm64
 	[plat] roc1
@@ -10716,8 +10709,8 @@ CONFIG_THERMAL_GOV_POWER_ALLOCATOR
 	[must] user
 	[function] Power allocator thermal governor.
 CONFIG_THERMAL_GOV_STEP_WISE
-	[arch] all
-	[plat] sharkl3,sharkl5_32
+	[arch] arm
+	[plat] sharkl5_32
 	[field] make
 	[subsys] thermal
 	[must] user
