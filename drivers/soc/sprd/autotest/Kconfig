@@ -15,3 +15,9 @@ config SPRD_AUTOTEST_PINCTRL
 	select SPRD_AUTOTEST
 	help
 	  Enable this to support pinctrl autotest.
+
+config SPRD_AUTOTEST_OTG
+	tristate "Spreadtrum otg autotest support"
+	select SPRD_AUTOTEST
+	help
+	  Enable this to support otg autotest.
