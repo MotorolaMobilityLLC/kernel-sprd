@@ -2369,6 +2369,10 @@ static int elf_core_dump(struct coredump_params *cprm)
 			goto end_coredump;
 	}
 
+	/* Sprd add for debug */
+	printk(KERN_INFO "Elf core dump success with pid %d(%s)\n",
+	       task_tgid_vnr(current), current->comm);
+
 end_coredump:
 	set_fs(fs);
 
