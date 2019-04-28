@@ -17,6 +17,9 @@ Required properties:
 - adma-rx : supprt SDIO ADMA function in rx side.
 - pwrseq : SDIO's power sequencing.
 - post-power-on-delay-ms : delay value when power on/off.
+- bound-avdd12 : avdd12 not enable,just config the valtage.
+- vddgen1-enable : for sharkl5, vddwcn always on need config vddgen1.
+- vddgen1-bound-chip :  the four member:<addr mask unboundval boundval>.
 
 Optional properties:
 - vddio-supply = <&vddgen>: this supply is alway on.
@@ -44,6 +47,8 @@ Example:
 		wait-ge2;
 		adma-tx;
 		adma-rx;
+		vddgen1-enable;
+		vddgen1-bound-chip = <0x1a4c 0x1 0x0 0x1>;
 		pwrseq;
 		post-power-on-delay-ms = <20>;
 	};
