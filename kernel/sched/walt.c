@@ -934,6 +934,11 @@ void walt_init_new_task_load(struct task_struct *p)
 			div64_u64((u64)sysctl_sched_walt_init_task_load_pct *
                           (u64)walt_ravg_window, 100);
 	u32 init_load_pct = current->init_load_pct;
+	int stune_init_load_pct = schedtune_init_task_load_pct(p);
+
+	if (stune_init_load_pct > 0)
+		init_load_windows = div64_u64((u64)stune_init_load_pct *
+					      (u64)walt_ravg_window, 100);
 
 	p->init_load_pct = 0;
 	memset(&p->ravg, 0, sizeof(struct ravg));

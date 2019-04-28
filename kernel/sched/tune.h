@@ -19,6 +19,7 @@ int schedtune_prefer_idle(struct task_struct *tsk);
 
 #ifdef CONFIG_SCHED_WALT
 int schedtune_account_wait_time(struct task_struct *tsk);
+int schedtune_init_task_load_pct(struct task_struct *tsk);
 #endif
 
 void schedtune_enqueue_task(struct task_struct *p, int cpu);
@@ -33,6 +34,7 @@ void schedtune_dequeue_task(struct task_struct *p, int cpu);
 
 #ifdef CONFIG_SCHED_WALT
 #define schedtune_account_wait_time(tsk) 0
+#define schedtune_init_task_load_pct(tsk) 0
 #endif
 
 #define schedtune_enqueue_task(task, cpu) do { } while (0)

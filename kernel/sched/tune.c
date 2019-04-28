@@ -38,6 +38,7 @@ struct schedtune {
 
 #ifdef CONFIG_SCHED_WALT
 	int account_wait_time;
+	int init_task_load_pct;
 #endif
 };
 
@@ -71,6 +72,7 @@ root_schedtune = {
 	.prefer_idle = 0,
 #ifdef CONFIG_SCHED_WALT
 	.account_wait_time = 0,
+	.init_task_load_pct = 0,
 #endif
 };
 
@@ -462,6 +464,23 @@ int schedtune_account_wait_time(struct task_struct *p)
 
 	return account_wait_time;
 }
+
+int schedtune_init_task_load_pct(struct task_struct *p)
+{
+	struct schedtune *st;
+	int init_task_load_pct;
+
+	if (!unlikely(schedtune_initialized))
+		return 0;
+
+	/* Get init_task_load_pct value */
+	rcu_read_lock();
+	st = task_schedtune(p);
+	init_task_load_pct = st->init_task_load_pct;
+	rcu_read_unlock();
+
+	return init_task_load_pct;
+}
 #endif
 
 static u64
@@ -526,6 +545,25 @@ account_wait_time_write(struct cgroup_subsys_state *css, struct cftype *cft,
 
 	return 0;
 }
+
+static u64
+init_task_load_pct_read(struct cgroup_subsys_state *css, struct cftype *cft)
+{
+	struct schedtune *st = css_st(css);
+
+	return st->init_task_load_pct;
+}
+
+static int
+init_task_load_pct_write(struct cgroup_subsys_state *css, struct cftype *cft,
+			u64 init_task_load_pct)
+{
+	struct schedtune *st = css_st(css);
+
+	st->init_task_load_pct = init_task_load_pct;
+
+	return 0;
+}
 #endif
 
 static struct cftype files[] = {
@@ -544,6 +582,11 @@ static struct cftype files[] = {
 		.name = "account_wait_time",
 		.read_u64 = account_wait_time_read,
 		.write_u64 = account_wait_time_write,
+	},
+	{
+		.name = "init_task_load_pct",
+		.read_u64 = init_task_load_pct_read,
+		.write_u64 = init_task_load_pct_write,
 	},
 #endif
 	{ }	/* terminate */
