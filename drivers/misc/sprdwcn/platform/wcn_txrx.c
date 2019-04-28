@@ -36,7 +36,9 @@ static struct mchn_ops_t mdbg_ringc_ops = {
 	.channel = WCN_RING_RX,
 	.inout = WCNBUS_RX,
 	.hif_type = 1,
-	.buf_size = 1056,
+	/* bt cp log buffer size: 360*4, so setting as 1500 */
+	.buf_size = 1500,
+	/* bt log buf num + pld buf num = 4 + 8 */
 	.pool_size = 16,
 	.cb_in_irq = 0,
 	.pop_link = mdbg_log_read,
@@ -260,7 +262,7 @@ static void mdbg_pt_ring_reg(void)
 {
 	sprdwcn_bus_chn_init(&mdbg_ringc_ops);
 #ifdef CONFIG_WCN_PCIE
-	prepare_free_buf(15, 1056, 16);
+	prepare_free_buf(15, 1500, 16);
 #endif
 }
 

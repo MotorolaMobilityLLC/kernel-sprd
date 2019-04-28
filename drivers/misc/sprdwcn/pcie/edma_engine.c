@@ -21,6 +21,7 @@
 #define TX 1
 #define RX 0
 #define MPOOL_SIZE	0x10000
+#define MAX_PRINT_BYTE_NUM 8
 
 static int hisrfunc_debug;
 static int hisrfunc_line;
@@ -29,6 +30,26 @@ static struct edma_info g_edma = { 0 };
 
 static unsigned char *mpool_buffer;
 static struct dma_buf mpool_dm = {0};
+
+void edma_print_mbuf_data(int channel, struct mbuf_t *head,
+			  struct mbuf_t *tail, const char *func)
+{
+	unsigned short print_len;
+	char print_str[64];
+
+	/* only print bt tx/rx buffer for debug */
+	if ((channel != 1) && (channel != 2))
+		return;
+
+	if (!head) {
+		WARN_ON(1);
+		return;
+	}
+	sprintf(print_str, "WCN PCIE: %s mbuf: ", func);
+	print_hex_dump(KERN_INFO, print_str, DUMP_PREFIX_NONE,
+		16, 1, head->buf, (print_len < MAX_PRINT_BYTE_NUM ?
+		print_len : MAX_PRINT_BYTE_NUM), true);
+}
 
 int time_sub_us(struct timeval *start, struct timeval *end)
 {
@@ -676,6 +697,7 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 		WARN_ON(1);
 		return -1;
 	}
+	edma_print_mbuf_data(chn, head, tail, __func__);
 
 	spin_lock_irqsave(edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p,
 			edma->chn_sw[chn].dscr_ring.lock.flag);
@@ -930,8 +952,10 @@ static int edma_rx_pop_isr(int chn)
 
 	edma_pop_link(chn, edma->chn_sw[chn].dscr_ring.head, end,
 		      (void **)(&head), (void **)(&tail), &node);
-	if (node > 0)
+	if (node > 0) {
+		edma_print_mbuf_data(chn, head, tail, __func__);
 		mchn_hw_pop_link(chn, head, tail, node);
+	}
 	return 0;
 }
 
