@@ -752,7 +752,6 @@ static void sprd_musb_work(struct work_struct *work)
 		}
 
 		musb->shutdowning = 0;
-		musb->is_offload = false;
 		musb->offload_used = false;
 
 		ret = device_for_each_child(glue->dev, NULL,
