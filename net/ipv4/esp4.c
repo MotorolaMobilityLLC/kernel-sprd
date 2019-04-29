@@ -525,11 +525,12 @@ static int esp_output(struct xfrm_state *x, struct sk_buff *skb)
 				u32 spi = imsbr_ehs[i].spi;
 				u32 seq = imsbr_ehs[i].seq;
 
-				pr_debug("modify spi 0x%x seq from %d to %d\n",
+				pr_debug("modify spi 0x%x xstate oseq from %d to %d\n",
 					 spi,
 					 XFRM_SKB_CB(skb)->seq.output.low,
-					 seq);
-				XFRM_SKB_CB(skb)->seq.output.low = seq;
+					 seq + 1);
+				XFRM_SKB_CB(skb)->seq.output.low = seq + 1;
+				x->replay.oseq = seq + 1;
 			}
 		}
 		imsbr_cp_esp_sync = 0;
