@@ -37,6 +37,9 @@
 #define DEV_OFF 0
 
 #define SIPA_ETH_NAPI_WEIGHT 64
+#define SIPA_USB_IFACE "sipa_usb0"
+#define SIPA_WLAN_IFACE "sipa_wlan0"
+#define SIPA_ETH_IFACE_PREF "sipa_eth"
 
 static struct dentry *root;
 static int sipa_eth_debugfs_mknod(void *root, void *data);
@@ -285,8 +288,9 @@ static int sipa_eth_open(struct net_device *dev)
 		pr_info("set netif_carrier_on\n");
 		netif_carrier_on(sipa_eth->netdev);
 	}
-	napi_enable(&sipa_eth->napi);
+
 	netif_start_queue(dev);
+	napi_enable(&sipa_eth->napi);
 
 	return 0;
 }
@@ -328,7 +332,8 @@ static int sipa_eth_parse_dt(
 	struct sipa_eth_init_data *pdata = NULL;
 	struct device_node *np = dev->of_node;
 	int ret;
-	u32 data, id;
+	u32 udata, id;
+	s32 sdata;
 
 	if (!np)
 		pr_err("dev of_node np is null\n");
@@ -340,33 +345,34 @@ static int sipa_eth_parse_dt(
 	id = of_alias_get_id(np, "eth");
 	switch (id) {
 	case 0 ... 7:
-		snprintf(pdata->name, IFNAMSIZ, "sipa_eth%d", id);
+		snprintf(pdata->name, IFNAMSIZ, "%s%d",
+			 SIPA_ETH_IFACE_PREF, id);
 		break;
 	case 8:
-		strncpy(pdata->name, "sipa_usb0", IFNAMSIZ);
+		strncpy(pdata->name, SIPA_USB_IFACE, IFNAMSIZ);
 		break;
 	case 9:
-		strncpy(pdata->name, "sipa_wlan0", IFNAMSIZ);
+		strncpy(pdata->name, SIPA_WLAN_IFACE, IFNAMSIZ);
 		break;
 	default:
 		return -EINVAL;
 	}
 
-	ret = of_property_read_u32(np, "sprd,netid", &data);
+	ret = of_property_read_s32(np, "sprd,netid", &sdata);
 	if (ret) {
 		pr_err("read sprd,netid ret %d\n", ret);
 		return ret;
 	}
 	/* dts reflect */
-	pdata->netid = data - 1;
+	pdata->netid = sdata - 1;
 
-	ret = of_property_read_u32(np, "sprd,term-type", &data);
+	ret = of_property_read_u32(np, "sprd,term-type", &udata);
 	if (ret) {
 		pr_err("read sprd,term-type ret %d\n", ret);
 		return ret;
 	}
 
-	pdata->term_type = data;
+	pdata->term_type = udata;
 	*init = pdata;
 	pr_debug("after dt parse, name %s netid %d term-type %d\n",
 		 pdata->name, pdata->netid, pdata->term_type);
@@ -378,14 +384,6 @@ static void s_setup(struct net_device *dev)
 	ether_setup(dev);
 	/* avoid mdns to be send */
 	dev->flags &= ~(IFF_BROADCAST | IFF_MULTICAST);
-}
-
-static inline void sipa_eth_destroy_pdata(struct sipa_eth_init_data **init)
-{
-	struct sipa_eth_init_data *pdata = *init;
-
-	kfree(pdata);
-	*init = NULL;
 }
 
 static int sipa_eth_probe(struct platform_device *pdev)
@@ -402,6 +400,11 @@ static int sipa_eth_probe(struct platform_device *pdev)
 			pr_err("failed to parse device tree, ret=%d\n", ret);
 			return ret;
 		}
+		pdev->dev.platform_data = pdata;
+	}
+
+	if (!strcmp(SIPA_USB_IFACE, pdata->name)) {
+		return 0;
 	}
 
 	strlcpy(ifname, pdata->name, IFNAMSIZ);
@@ -409,7 +412,9 @@ static int sipa_eth_probe(struct platform_device *pdev)
 		sizeof(struct SIPA_ETH),
 		ifname,
 		NET_NAME_UNKNOWN,
-		strncmp("sipa_eth", ifname, 8) == 0 ? s_setup : ether_setup);
+		strncmp(SIPA_ETH_IFACE_PREF, ifname,
+			strlen(SIPA_ETH_IFACE_PREF)) == 0 ?
+			s_setup : ether_setup);
 
 	if (!netdev) {
 		pr_err("alloc_netdev() failed.\n");
@@ -422,7 +427,7 @@ static int sipa_eth_probe(struct platform_device *pdev)
 	 * this will casue ipv6 fail in some test environment.
 	 * So set the sipa_eth net_device's type to ARPHRD_RAWIP here.
 	 */
-	if (!strncmp("sipa_eth", pdata->name, 8))
+	if (!strncmp(SIPA_ETH_IFACE_PREF, pdata->name, 8))
 		netdev->type = ARPHRD_RAWIP;
 
 	sipa_eth = netdev_priv(netdev);
@@ -447,7 +452,6 @@ static int sipa_eth_probe(struct platform_device *pdev)
 		pr_err("register_netdev() failed (%d)\n", ret);
 		netif_napi_del(&sipa_eth->napi);
 		free_netdev(netdev);
-		sipa_eth_destroy_pdata(&pdata);
 		return ret;
 	}
 
@@ -463,10 +467,8 @@ static int sipa_eth_probe(struct platform_device *pdev)
 static int sipa_eth_remove(struct platform_device *pdev)
 {
 	struct SIPA_ETH *sipa_eth = platform_get_drvdata(pdev);
-	struct sipa_eth_init_data *pdata = sipa_eth->pdata;
 
 	netif_napi_del(&sipa_eth->napi);
-	sipa_eth_destroy_pdata(&pdata);
 	unregister_netdev(sipa_eth->netdev);
 	free_netdev(sipa_eth->netdev);
 	platform_set_drvdata(pdev, NULL);
@@ -484,7 +486,7 @@ static struct platform_driver sipa_eth_driver = {
 	.remove = sipa_eth_remove,
 	.driver = {
 		.owner = THIS_MODULE,
-		.name = "sipa_eth",
+		.name = SIPA_ETH_IFACE_PREF,
 		.of_match_table = sipa_eth_match_table
 	}
 };
@@ -564,7 +566,7 @@ static int sipa_eth_debugfs_mknod(void *root, void *data)
 	if (!root)
 		return -ENXIO;
 
-	debugfs_create_file("sipa_eth",
+	debugfs_create_file(SIPA_ETH_IFACE_PREF,
 			    0444,
 			    (struct dentry *)root,
 			    data,
@@ -581,7 +583,7 @@ static int sipa_eth_debugfs_mknod(void *root, void *data)
 
 static void __init sipa_eth_debugfs_init(void)
 {
-	root = debugfs_create_dir("sipa_eth", NULL);
+	root = debugfs_create_dir(SIPA_ETH_IFACE_PREF, NULL);
 	if (!root)
 		pr_err("failed to create sipa_eth debugfs dir\n");
 }

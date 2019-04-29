@@ -30,6 +30,6 @@ struct SIPA_ETH {
 struct sipa_eth_init_data {
 	char name[IFNAMSIZ];
 	u32 term_type;
-	u32 netid;
+	s32 netid;
 };
 #endif

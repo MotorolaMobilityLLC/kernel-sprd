@@ -24,8 +24,12 @@
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 
-#include "rndis.h"
+#ifdef CONFIG_SPRD_SIPA
+#include <linux/interrupt.h>
+#include <linux/sipa.h>
+#endif
 
+#include "rndis.h"
 
 /*
  * This component encapsulates the Ethernet link glue needed to provide
@@ -65,6 +69,25 @@ static int tx_stop_threshold = 2000;
  */
 #define DL_MAX_PKTS_PER_XFER	20
 
+#ifdef CONFIG_SPRD_SIPA
+/* Struct of data transfer statistics */
+struct sipa_usb_dtrans_stats {
+	u32 rx_sum;
+	u32 rx_cnt;
+	u32 rx_fail;
+
+	u32 tx_sum;
+	u32 tx_cnt;
+	u32 tx_fail;
+};
+
+struct sipa_usb_init_data {
+	char name[IFNAMSIZ];
+	u32 term_type;
+	s32 netid;
+};
+#endif
+
 struct eth_dev {
 	/* lock is held while accessing port_usb
 	 */
@@ -103,6 +126,16 @@ struct eth_dev {
 	struct work_struct	rx_work;
 	struct work_struct	tx_work;
 
+#ifdef CONFIG_SPRD_SIPA
+	int state;
+	enum sipa_nic_id nic_id;
+	struct napi_struct napi;/* Napi instance */
+	/* Record data_transfer statistics */
+	struct sipa_usb_dtrans_stats dt_stats;
+	struct net_device_stats stats;/* Net statistics */
+	struct sipa_usb_init_data *pdata;/* Platform data */
+#endif
+
 	unsigned long		todo;
 #define	WORK_RX_MEMORY		0
 
@@ -134,6 +167,18 @@ static void uether_debugfs_exit(struct eth_dev *dev);
 #define RX_EXTRA	20	/* bytes guarding against rx overflows */
 
 #define DEFAULT_QLEN	2	/* double buffering by default */
+
+#ifdef CONFIG_SPRD_SIPA
+
+#define SIPA_USB_NAPI_WEIGHT 64
+/* Device status */
+#define DEV_ON 1
+#define DEV_OFF 0
+
+static u64 gro_enable;
+static struct dentry *root;
+
+#endif
 
 /*
  * Usually downlink rates are higher than uplink rates and it
@@ -1258,6 +1303,385 @@ static struct device_type gadget_type = {
 	.name	= "gadget",
 };
 
+#ifdef CONFIG_SPRD_SIPA
+static inline void sipa_usb_dt_stats_init(struct sipa_usb_dtrans_stats *stats)
+{
+	memset(stats, 0, sizeof(*stats));
+}
+
+static inline void sipa_usb_rx_stats_update(
+			struct sipa_usb_dtrans_stats *stats, u32 len)
+{
+	stats->rx_sum += len;
+	stats->rx_cnt++;
+}
+
+static inline void sipa_usb_tx_stats_update(
+			struct sipa_usb_dtrans_stats *stats, u32 len)
+{
+	stats->tx_sum += len;
+	stats->tx_cnt++;
+}
+
+static void sipa_usb_prepare_skb(struct eth_dev *dev, struct sk_buff *skb)
+{
+	struct net_device *net = dev->net;
+
+	skb->protocol = eth_type_trans(skb, net);
+	skb_set_network_header(skb, ETH_HLEN);
+
+	/* TODO chechsum ... */
+	skb->ip_summed = CHECKSUM_NONE;
+	skb->dev = net;
+}
+
+static int sipa_usb_rx(struct eth_dev *dev, int budget)
+{
+	struct sk_buff *skb;
+	struct net_device *net;
+	struct sipa_usb_dtrans_stats *dt_stats;
+	int skb_cnt = 0;
+	int ret;
+
+	if (!dev) {
+		ERROR(dev, "%s sipa usb no device\n", __func__);
+		return -EINVAL;
+	}
+
+	dt_stats = &dev->dt_stats;
+	net = dev->net;
+	while (skb_cnt < budget) {
+		ret = sipa_nic_rx(dev->nic_id, &skb);
+
+		if (ret) {
+			switch (ret) {
+			case -ENODEV:
+				ERROR(dev, "sipa usb fail to find dev");
+				dev->stats.rx_errors++;
+				dt_stats->rx_fail++;
+				break;
+			case -ENODATA:
+				DBG(dev, "sipa usb no more skb to recv");
+				break;
+			}
+			break;
+		}
+
+		if (!skb) {
+			ERROR(dev, "sipa usb recv skb is null\n");
+			return -EINVAL;
+		}
+
+		sipa_usb_prepare_skb(dev, skb);
+
+		dev->stats.rx_packets++;
+		dev->stats.rx_bytes += skb->len;
+		sipa_usb_rx_stats_update(dt_stats, skb->len);
+
+		if (gro_enable)
+			napi_gro_receive(&dev->napi, skb);
+		else
+			netif_receive_skb(skb);
+
+		skb_cnt++;
+	}
+
+	return skb_cnt;
+}
+
+static int sipa_usb_rx_poll_handler(struct napi_struct *napi, int budget)
+{
+	int pkts;
+	struct eth_dev *dev = container_of(napi, struct eth_dev, napi);
+
+	pkts = sipa_usb_rx(dev, budget);
+	/* If the number of pkt is more than weight(64),
+	 * we cannot read them all with a single poll.
+	 * When the return value of poll func equals to weight(64),
+	 * napi structure invokes the poll func one more time by
+	 * __raise_softirq_irqoff.(See napi_poll for details)
+	 * So do not do napi_complete in that case.
+	 */
+	if (pkts < budget)
+		napi_complete(napi);
+	return pkts;
+}
+
+static void sipa_usb_rx_handler (void *priv)
+{
+	struct eth_dev *dev = (struct eth_dev *)priv;
+
+	if (!dev) {
+		ERROR(dev, "%s sipa_usb dev is NULL\n", __func__);
+		return;
+	}
+
+	napi_schedule(&dev->napi);
+	/*
+	 * Trigger a NET_RX_SOFTIRQ softirq directly
+	 * otherwise there will be a delay
+	 */
+	raise_softirq(NET_RX_SOFTIRQ);
+}
+
+static void sipa_usb_flowctrl_handler(void *priv, int flowctrl)
+{
+	struct eth_dev *dev = (struct eth_dev *)priv;
+	struct net_device *net = dev->net;
+
+	if (flowctrl)
+		netif_stop_queue(net);
+	else if (netif_queue_stopped(net))
+		netif_wake_queue(net);
+}
+
+static void sipa_usb_notify_cb(void *priv, enum sipa_evt_type evt,
+			       unsigned long data)
+{
+	struct eth_dev *dev = (struct eth_dev *)priv;
+
+	switch (evt) {
+	case SIPA_RECEIVE:
+		DBG(dev, "sipa_usb SIPA_RECEIVE evt received\n");
+		sipa_usb_rx_handler(priv);
+		break;
+	case SIPA_LEAVE_FLOWCTRL:
+		INFO(dev, "sipa_usb SIPA LEAVE FLOWCTRL\n");
+		sipa_usb_flowctrl_handler(priv, 0);
+		break;
+	case SIPA_ENTER_FLOWCTRL:
+		INFO(dev, "sipa_usb SIPA ENTER FLOWCTRL\n");
+		sipa_usb_flowctrl_handler(priv, 1);
+		break;
+	default:
+		break;
+	}
+}
+
+/* Open interface */
+static int sipa_usb_open(struct net_device *net)
+{
+	int ret = 0;
+	struct gether	*link;
+	struct eth_dev *dev = netdev_priv(net);
+	struct sipa_usb_init_data *pdata = dev->pdata;
+
+	INFO(dev, "sipa_usb open %s netid %d term_type %d\n",
+		 net->name, pdata->netid, pdata->term_type);
+	ret = sipa_nic_open(
+		pdata->term_type,
+		pdata->netid,
+		sipa_usb_notify_cb,
+		(void *)dev);
+
+	if (ret < 0) {
+		ERROR(dev, "sipa_usb fail to open\n");
+		return -EINVAL;
+	}
+
+	dev->nic_id = ret;
+	dev->state = DEV_ON;
+
+	if (!netif_carrier_ok(net))
+		netif_carrier_on(net);
+
+	napi_enable(&dev->napi);
+	netif_start_queue(net);
+
+	spin_lock_irq(&dev->lock);
+	link = dev->port_usb;
+	if (link && link->open)
+		link->open(link);
+	spin_unlock_irq(&dev->lock);
+
+	sipa_usb_dt_stats_init(&dev->dt_stats);
+	memset(&dev->stats, 0, sizeof(dev->stats));
+
+	return 0;
+}
+
+/* Close interface */
+static int sipa_usb_close(struct net_device *net)
+{
+	unsigned long	flags;
+	struct eth_dev *dev = netdev_priv(net);
+
+	INFO(dev, "sipa_usb close %s!\n", net->name);
+	sipa_nic_close(dev->nic_id);
+	dev->state = DEV_OFF;
+	napi_disable(&dev->napi);
+	netif_stop_queue(net);
+	/* ensure there are no more active requests */
+	spin_lock_irqsave(&dev->lock, flags);
+	if (dev->port_usb) {
+		struct gether	*link = dev->port_usb;
+		const struct usb_endpoint_descriptor *in;
+		const struct usb_endpoint_descriptor *out;
+		if (link->close)
+			link->close(link);
+		in = link->in_ep->desc;
+		out = link->out_ep->desc;
+		usb_ep_disable(link->in_ep);
+		usb_ep_disable(link->out_ep);
+		if (netif_carrier_ok(net)) {
+			DBG(dev, "host still using in/out endpoints\n");
+			link->in_ep->desc = in;
+			link->out_ep->desc = out;
+			usb_ep_enable(link->in_ep);
+			usb_ep_enable(link->out_ep);
+		}
+	}
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	return 0;
+}
+
+static int sipa_usb_start_xmit(struct sk_buff *skb, struct net_device *net)
+{
+	struct eth_dev *dev = netdev_priv(net);
+	struct sipa_usb_init_data *pdata = dev->pdata;
+	struct sipa_usb_dtrans_stats *dt_stats;
+	int ret = 0;
+	int netid;
+
+	dt_stats = &dev->dt_stats;
+	if (dev->state != DEV_ON) {
+		ERROR(dev, "sipa_usb called when %s is down\n", net->name);
+		dt_stats->tx_fail++;
+		netif_carrier_off(net);
+		dev_kfree_skb_any(skb);
+		return NETDEV_TX_OK;
+	}
+
+	netid = pdata->netid;
+	ret = sipa_nic_tx(dev->nic_id, pdata->term_type, netid, skb);
+	if (unlikely(ret != 0)) {
+		ERROR(dev, "sipa_usb fail to send skb, ret %d\n", ret);
+		if (ret == -ENOMEM || ret == -EAGAIN) {
+			dt_stats->tx_fail++;
+			dev->stats.tx_errors++;
+			netif_stop_queue(net);
+			return NETDEV_TX_BUSY;
+		}
+	}
+
+	/* update netdev statistics */
+	dev->stats.tx_packets++;
+	dev->stats.tx_bytes += skb->len;
+	sipa_usb_tx_stats_update(dt_stats, skb->len);
+
+	return NETDEV_TX_OK;
+}
+
+static struct net_device_stats *sipa_usb_get_stats(struct net_device *net)
+{
+	struct eth_dev *dev = netdev_priv(net);
+
+	return &dev->stats;
+}
+
+static const struct net_device_ops sipa_usb_ops = {
+	.ndo_open = sipa_usb_open,
+	.ndo_stop = sipa_usb_close,
+	.ndo_start_xmit = sipa_usb_start_xmit,
+	.ndo_get_stats = sipa_usb_get_stats,
+	.ndo_change_mtu	= ueth_change_mtu,
+	.ndo_set_mac_address = eth_mac_addr,
+	.ndo_validate_addr = eth_validate_addr,
+};
+
+static int sipa_usb_debug_show(struct seq_file *m, void *v)
+{
+	struct eth_dev *dev = (struct eth_dev *)(m->private);
+	struct sipa_usb_dtrans_stats *stats;
+	struct sipa_usb_init_data *pdata;
+
+	if (!dev) {
+		ERROR(dev, "sipa_usb invalid data, sipa_eth is NULL\n");
+		return -EINVAL;
+	}
+	pdata = dev->pdata;
+	stats = &dev->dt_stats;
+
+	seq_puts(m, "*************************************************\n");
+	seq_printf(m, "DEVICE: %s, term_type %d, netid %d, state %s\n",
+		   pdata->name, pdata->term_type, pdata->netid,
+		   dev->state == DEV_ON ? "UP" : "DOWN");
+	seq_puts(m, "\nRX statistics:\n");
+	seq_printf(m, "rx_sum=%u, rx_cnt=%u\n",
+		   stats->rx_sum,
+		   stats->rx_cnt);
+	seq_printf(m, "rx_fail=%u\n",
+		   stats->rx_fail);
+
+	seq_puts(m, "\nTX statistics:\n");
+	seq_printf(m, "tx_sum=%u, tx_cnt=%u\n",
+		   stats->tx_sum,
+		   stats->tx_cnt);
+	seq_printf(m, "tx_fail=%u\n",
+		   stats->tx_fail);
+
+	seq_puts(m, "*************************************************\n");
+
+	return 0;
+}
+
+static int sipa_usb_debug_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sipa_usb_debug_show, inode->i_private);
+}
+
+static const struct file_operations sipa_usb_debug_fops = {
+	.open = sipa_usb_debug_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
+static int debugfs_gro_enable_get(void *data, u64 *val)
+{
+	*val = *(u64 *)data;
+	return 0;
+}
+
+static int debugfs_gro_enable_set(void *data, u64 val)
+{
+	*(u64 *)data = val;
+	return 0;
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(fops_gro_enable,
+			debugfs_gro_enable_get,
+			debugfs_gro_enable_set,
+			"%llu\n");
+
+static int sipa_usb_debugfs_mknod(void *root, void *data)
+{
+	struct eth_dev *dev = (struct eth_dev *)dev;
+
+	if (!dev)
+		return -ENODEV;
+
+	if (!root)
+		return -ENXIO;
+
+	debugfs_create_file("sipa_usb",
+			    0444,
+			    (struct dentry *)root,
+			    data,
+			    &sipa_usb_debug_fops);
+
+	debugfs_create_file("gro_enable",
+			    0600,
+			    (struct dentry *)root,
+			    &gro_enable,
+			    &fops_gro_enable);
+
+	return 0;
+}
+
+#endif
+
 /**
  * gether_setup_name - initialize one ethernet-over-usb link
  * @g: gadget to associated with these links
@@ -1342,14 +1766,43 @@ EXPORT_SYMBOL_GPL(gether_setup_name);
 
 struct net_device *gether_setup_name_default(const char *netname)
 {
+#ifdef CONFIG_SPRD_SIPA
+	struct sipa_usb_init_data *pdata = NULL;
+#endif
 	struct net_device	*net;
 	struct eth_dev		*dev;
 
+#ifdef CONFIG_SPRD_SIPA
+	net = alloc_netdev(sizeof(struct eth_dev),
+			   "usb0",
+			   NET_NAME_UNKNOWN,
+			   ether_setup);
+	if (!net) {
+		pr_err("sipa_usb alloc_netdev() failed.\n");
+		return ERR_PTR(-ENOMEM);
+	}
+#else
 	net = alloc_etherdev(sizeof(*dev));
 	if (!net)
 		return ERR_PTR(-ENOMEM);
+#endif
 
 	dev = netdev_priv(net);
+#ifdef CONFIG_SPRD_SIPA
+	pdata = kzalloc(sizeof(*pdata), GFP_KERNEL);
+	/* hardcode */
+	strncpy(pdata->name, "usb0", IFNAMSIZ);
+	pdata->netid = -1;
+	pdata->term_type = 0x1;
+	dev->net = net;
+	dev->pdata = pdata;
+	net->watchdog_timeo = 1 * HZ;
+	net->irq = 0;
+	net->dma = 0;
+	netif_napi_add(net, &dev->napi,
+		       sipa_usb_rx_poll_handler,
+		       SIPA_USB_NAPI_WEIGHT);
+#endif
 	spin_lock_init(&dev->lock);
 	spin_lock_init(&dev->req_lock);
 	INIT_WORK(&dev->work, eth_work);
@@ -1371,7 +1824,11 @@ struct net_device *gether_setup_name_default(const char *netname)
 	eth_random_addr(dev->host_mac);
 	pr_warn("using random %s ethernet address\n", "host");
 
+#ifdef CONFIG_SPRD_SIPA
+	net->netdev_ops = &sipa_usb_ops;
+#else
 	net->netdev_ops = &eth_netdev_ops;
+#endif
 
 	net->ethtool_ops = &ops;
 	SET_NETDEV_DEVTYPE(net, &gadget_type);
@@ -1393,6 +1850,19 @@ int gether_register_netdev(struct net_device *net)
 	dev = netdev_priv(net);
 	g = dev->gadget;
 	status = register_netdev(net);
+
+#ifdef CONFIG_SPRD_SIPA
+	if (status < 0) {
+		ERROR(dev, "sipa_usb register usb0 dev failed (%d)\n", status);
+		netif_napi_del(&dev->napi);
+		free_netdev(net);
+		return status;
+	}
+
+	netif_carrier_off(net);
+	dev->state = DEV_OFF;
+	sipa_usb_debugfs_mknod(root, (void *)dev);
+#else
 	if (status < 0) {
 		dev_dbg(&g->dev, "register_netdev failed, %d\n", status);
 		return status;
@@ -1405,6 +1875,7 @@ int gether_register_netdev(struct net_device *net)
 		 */
 		netif_carrier_off(net);
 	}
+#endif
 	sa.sa_family = net->type;
 	memcpy(sa.sa_data, dev->dev_mac, ETH_ALEN);
 	rtnl_lock();
@@ -1549,6 +2020,11 @@ void gether_cleanup(struct eth_dev *dev)
 {
 	if (!dev)
 		return;
+
+#ifdef CONFIG_SPRD_SIPA
+	netif_napi_del(&dev->napi);
+	kfree(dev->pdata);
+#endif
 
 	uether_debugfs_exit(dev);
 	unregister_netdev(dev->net);
@@ -1860,6 +2336,15 @@ static void uether_debugfs_exit(struct eth_dev *dev)
 	dev->uether_dfile = NULL;
 }
 
+#ifdef CONFIG_SPRD_SIPA
+static void __init sipa_usb_debugfs_init(void)
+{
+	root = debugfs_create_dir("sipa_usb", NULL);
+	if (!root)
+		pr_err("failed to create sipa_eth debugfs dir\n");
+}
+#endif
+
 static int __init gether_init(void)
 {
 #if defined(CONFIG_X86)
@@ -1880,6 +2365,9 @@ static int __init gether_init(void)
 		return -ENOMEM;
 	}
 
+#ifdef CONFIG_SPRD_SIPA
+	sipa_usb_debugfs_init();
+#endif
 	return 0;
 }
 module_init(gether_init);
