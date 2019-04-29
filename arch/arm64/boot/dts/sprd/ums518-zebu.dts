@@ -7,7 +7,7 @@
 
 /dts-v1/;
 
-#include "sharkl5pro-zebu.dtsi"
+#include "ums518-zebu.dtsi"
 #include "ums518-zebu-common.dtsi"
 
 / {
