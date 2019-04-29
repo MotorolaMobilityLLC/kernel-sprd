@@ -388,6 +388,15 @@ static int sc2703_charger_hw_init(struct sc2703_charger_info *info)
 		}
 	}
 
+	/* Set flash voltage output 4800mv */
+	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_F,
+				 SC2703_DCDC_REV_VOUT_MASK, 0);
+	if (ret) {
+		dev_err(info->dev,
+			 "Failed to set flash voltage output 4800mv:%d\n", ret);
+		return ret;
+	}
+
 	/* Unlock 2703 test mode */
 	ret = regmap_update_bits(info->regmap, SC2703_REG_UNLOCK,
 				 SC2703_CHG_REG_MASK_ALL,
@@ -1082,6 +1091,15 @@ static int sc2703_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_F,
+				 SC2703_DCDC_REV_VOUT_MASK,
+				 SC2703_CHG_DCDC_REV_VOUT_5000MV);
+	if (ret) {
+		dev_err(info->dev,
+			"failed to set flash voltage output 5000mv.\n");
+		return ret;
+	}
+
 	/* Set dc-dc output limit cur 500ma in reverse boost mode */
 	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_B,
 				 SC2703_IIN_REV_LIM_MASK, 0);
@@ -1128,6 +1146,13 @@ static int sc2703_charger_disable_otg(struct regulator_dev *dev)
 	if (ret) {
 		dev_err(info->dev,
 			"failed to enable bc1.2 detect function.\n");
+		return ret;
+	}
+
+	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_F,
+				 SC2703_DCDC_REV_VOUT_MASK, 0);
+	if (ret) {
+		dev_err(info->dev, "failed to set flash voltage output 4800mv.\n");
 		return ret;
 	}
 
