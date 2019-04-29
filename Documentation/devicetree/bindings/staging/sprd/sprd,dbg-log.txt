@@ -18,13 +18,13 @@ Required properties:
 - sprd,dcfix:
 	value of dc_blnc_fix(fix DC balance issue of 8b/10b encoder). set to enable.
 - sprd,mm:
-	call sprd_cam_pw_on funtion to power mm on. set to enable.
+	call sprd_cam_pw_on function to power mm on. set to enable.
 
 
 Examples:
-	modem_dbg_log: modem-dbg-log@324F0000 {
+	modem_dbg_log: modem-dbg-log@324f0000 {
 		compatible = "sprd,dbg-log-sharkl5";
-		reg = <0 0x324F0000 0 0x4000>;
+		reg = <0 0x324f0000 0 0x4000>;
 		sprd,syscon-mm-ahb = <&mm_ahb_regs>;
 		sprd,syscon-dsi-apb = <&anlg_phy_g10_regs>;
 		sprd,ch-name = "TRAINING", "WTL", "MDAR", "TPIU", "DBUS", "WCN";
