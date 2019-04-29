@@ -191,11 +191,9 @@ static bool inter_dbg_log_is_freq_valid(struct dbg_log_device *dbg, unsigned int
 
 static int inter_dbg_log_get_valid_channel(struct dbg_log_device *dbg, const char *buf)
 {
-	int i;
-	int cmp_len;
+	int i, cmp_len = strlen(buf);
 
 	DEBUG_LOG_PRINT("input channel %s", buf);
-	cmp_len = strlen(buf);
 	if (!strncasecmp(STR_CH_DISABLE, buf, cmp_len))
 		return 0;
 	for (i = 0; i < dbg->serdes.ch_num; i++) {
@@ -217,23 +215,17 @@ static struct dbg_log_ops ops = {
 static int dbg_log_probe(struct platform_device *pdev)
 {
 	struct resource *res;
-	void __iomem *addr;
+	void __iomem *addr, *serdes_apb;
 	struct dbg_log_device *dbg;
-	struct regmap *dsi_apb;
-	struct regmap *mm_ahb;
-	void __iomem *serdes_apb;
-	int count;
-	int i;
-	int rc;
+	struct regmap *dsi_apb, *mm_ahb;
+	int count, i, rc;
 
 	DEBUG_LOG_PRINT("hello world! entry\n");
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	addr = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(addr)) {
-		pr_err("serdes_apb ioremap failed!\n");
+	if (IS_ERR(addr))
 		return PTR_ERR(addr);
-	}
 
 	serdes_apb = (void __iomem *)addr;
 
