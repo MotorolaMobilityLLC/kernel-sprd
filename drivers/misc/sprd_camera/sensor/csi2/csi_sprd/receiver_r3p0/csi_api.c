@@ -260,12 +260,12 @@ int csi_api_dt_node_init(struct device *dev, struct device_node *dn,
 	csi_info->phy.aon_apb_syscon = regmap_syscon;
 
 	regmap_syscon = syscon_regmap_lookup_by_phandle(dn,
-					"sprd,anlg_phy_g1_controller");
+					"sprd,anlg_phy_g10_controller");
 	if (IS_ERR_OR_NULL(regmap_syscon)) {
-		pr_err("csi_dt_init:fail to get anlg_phy_g1_controller\n");
+		pr_err("csi_dt_init:fail to get anlg_phy_g10_controller\n");
 		return PTR_ERR(regmap_syscon);
 	}
-	csi_info->phy.anlg_phy_g1_syscon = regmap_syscon;
+	csi_info->phy.anlg_phy_g10_syscon = regmap_syscon;
 
 	csi_reg_base_save(csi_info, sensor_id);
 	csi_phy_power_down(csi_info, sensor_id, 1);
@@ -284,17 +284,20 @@ static int csi_init(unsigned int bps_per_lane, unsigned int phy_id,
 
 	csi_phy_power_down(dt_info, sensor_id, 0);
 	csi_controller_enable(dt_info, sensor_id);
-	dphy_init(dt_info, sensor_id);
-
+	if (phy_id == PHY_CPHY)
+		cphy_init(dt_info, sensor_id);
+	else
+		dphy_init(dt_info, sensor_id);
 	return 0;
 }
 
-static void csi_start(int sensor_id)
+static void csi_start(unsigned int phy_id, int sensor_id)
 {
-	csi_set_on_lanes(1, sensor_id);
-	csi_shut_down_phy(0, sensor_id);
-	csi_reset_phy(sensor_id);
-	csi_reset_controller(sensor_id);
+	if (phy_id != PHY_CPHY) {
+		csi_shut_down_phy(0, sensor_id);
+		csi_reset_phy(sensor_id);
+		csi_reset_controller(sensor_id);
+	}
 	csi_event_enable(sensor_id);
 }
 
@@ -408,14 +411,6 @@ int csi_api_open(int bps_per_lane, int phy_id, int lane_num, int sensor_id)
 	}
 	udelay(1);
 #endif
-	csi_api_reg_owr(0x62200004, BIT_9);
-	udelay(10);
-	csi_api_reg_awr(0x62200004, ~BIT_9);
-	udelay(10);
-	bps_per_lane = 56;
-	phy_id = 0;
-	/* sensor_id = 0; */
-	lane_num = 2;
 	ret = csi_init(bps_per_lane, phy_id, sensor_id);
 	if (unlikely(ret))
 		goto EXIT;

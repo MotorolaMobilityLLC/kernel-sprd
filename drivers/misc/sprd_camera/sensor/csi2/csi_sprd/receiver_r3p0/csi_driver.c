@@ -40,7 +40,7 @@
 
 #define CSI_MASK0                       0x1FFFFFF
 #define CSI_MASK1                       0xFFFFFF
-
+#define CSI_MASK2                       0x7
 #define PHY_TESTCLR                     BIT_0
 #define PHY_TESTCLK                     BIT_1
 #define PHY_REG_SEL                     BIT_2
@@ -263,7 +263,7 @@ void csi_reg_trace(unsigned int idx)
 }
 
 /* phy testclear used to reset phy to right default state */
-static void dphy_cfg_clr(int32_t idx)
+static void phy_cfg_clr(int32_t idx)
 {
 	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLR, 1);
 	udelay(1);
@@ -271,15 +271,7 @@ static void dphy_cfg_clr(int32_t idx)
 	udelay(1);
 }
 
-static void dphy_cfg_start(int32_t idx)
-{
-	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTEN, 0 << 16);
-	udelay(1);
-	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLK, 1 << 1);
-	udelay(1);
-}
-
-static void dphy_cfg_done(int32_t idx)
+static void phy_cfg_done(int32_t idx)
 {
 	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTEN, 0 << 16);
 	udelay(1);
@@ -293,34 +285,64 @@ static void dphy_cfg_done(int32_t idx)
 	udelay(1);
 }
 
-static void dphy_cfg_write(int32_t idx, unsigned int code_in,
-	unsigned int data_in)
+static void phy_cfg_start(int32_t idx)
 {
 	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTEN, 0 << 16);
 	udelay(1);
 	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLK, 1 << 1);
 	udelay(1);
-	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTDIN, code_in);
-	udelay(1);
+}
+
+/* used to write testcode or testdata to cphy */
+static void phy_write(int32_t idx, unsigned int code_in,
+	unsigned int data_in, unsigned int mask)
+{
+	unsigned int temp = 0xffffff00;
+
 	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTEN, 1 << 16);
+	udelay(1);
+	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLK, 1 << 1);
+	udelay(1);
+	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTDIN, code_in);
 	udelay(1);
 	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLK, 0 << 1);
 	udelay(1);
+	temp = (CSI_REG_RD(idx, PHY_TEST_CRTL1) & PHY_TESTDOUT) >> 8;
+	udelay(1);
+	data_in = (temp & (~mask)) | (mask&data_in);
 	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTEN, 0 << 16);
 	udelay(1);
 	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTDIN, data_in);
 	udelay(1);
 	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLK, 1 << 1);
 	udelay(1);
+	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLK, 0 << 1);
+	udelay(1);
+	temp = (CSI_REG_RD(idx, PHY_TEST_CRTL1) & PHY_TESTDOUT) >> 8;
+	udelay(1);
+	pr_debug("CPHY Read addr %x value = 0x%x.\r\n", code_in, temp);
 }
 
-/* used to write testcode or testdata to phy */
-static void dphy_write(int32_t idx, unsigned int test_code,
-	unsigned int test_data)
+/* used to read testcode or testdata to cphy */
+static void phy_read(int32_t idx, unsigned int code_in,
+	uint8_t *test_out)
 {
-	dphy_cfg_start(idx);
-	dphy_cfg_write(idx, test_code, test_data);
-	dphy_cfg_done(idx);
+	unsigned int temp = 0xffffff00;
+
+	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTEN, 1 << 16);
+	udelay(1);
+	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLK, 1 << 1);
+	udelay(1);
+	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTDIN, code_in);
+	udelay(1);
+	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLK, 0 << 1);
+	udelay(1);
+	CSI_REG_MWR(idx, PHY_TEST_CRTL1, PHY_TESTEN, 0 << 16);
+	udelay(1);
+	temp = (CSI_REG_RD(idx, PHY_TEST_CRTL1) & PHY_TESTDOUT) >> 8;
+	udelay(1);
+	*test_out = (uint8_t)temp;
+	pr_debug("CPHY Read addr %x value = 0x%x.\r\n", code_in, temp);
 }
 
 static void csi_dphy_lane_cfg(unsigned int phy_id, int32_t idx,
@@ -356,13 +378,13 @@ static void csi_dphy_lane_cfg(unsigned int phy_id, int32_t idx,
 
 	for (i = 0; i < PHY_LANE_CFG_COUNTER; i++) {
 		if (lane_seq == dphy_lane_setting[i].lane_seq) {
-			dphy_write(idx, 0x4d,
+			phy_write(idx, 0x4d,
 				dphy_lane_setting[i].lane_cfg[0]);
-			dphy_write(idx, 0x5d,
+			phy_write(idx, 0x5d,
 				dphy_lane_setting[i].lane_cfg[1]);
-			dphy_write(idx, 0x6d,
+			phy_write(idx, 0x6d,
 				dphy_lane_setting[i].lane_cfg[2]);
-			dphy_write(idx, 0x7d,
+			phy_write(idx, 0x7d,
 				dphy_lane_setting[i].lane_cfg[3]);
 			break;
 		}
@@ -379,7 +401,7 @@ static void csi_dphy_2p2_testclr_init(struct csi_phy_info *phy)
 	unsigned int mask = 0;
 
 	mask = MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_S_EN;
-	regmap_update_bits(phy->anlg_phy_g1_syscon,
+	regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST,
 		mask, mask);
 
@@ -387,29 +409,29 @@ static void csi_dphy_2p2_testclr_init(struct csi_phy_info *phy)
 	MASK_ANLG_PHY_G10_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_S
 	| MASK_ANLG_PHY_G10_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_M
 	|MASK_ANLG_PHY_G10_DBG_SEL_ANALOG_MIPI_CSI_2P2LANE_DSI_IF_SEL_DB;
-	regmap_update_bits(phy->anlg_phy_g1_syscon,
+	regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_REG_SEL_CFG_0,
 		mask, mask);
 
 	mask = MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_DSI_IF_SEL_DB;
-	regmap_update_bits(phy->anlg_phy_g1_syscon,
+	regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_CTRL_DB,
 		mask, ~mask);
 
 	mask = MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_S;
-	regmap_update_bits(phy->anlg_phy_g1_syscon,
+	regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_CTRL_S,
 		mask, ~mask);
 
 	mask = MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_IF_SEL_M;
-	regmap_update_bits(phy->anlg_phy_g1_syscon,
+	regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_CTRL_M,
 		mask, ~mask);
 
 	mask =
 	MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_M_SEL
 	| MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_S_SEL;
-	regmap_update_bits(phy->anlg_phy_g1_syscon,
+	regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST,
 		mask, mask);
 }
@@ -419,13 +441,13 @@ static void csi_dphy_2p2_testclr_set(struct csi_phy_info *phy)
 	unsigned int mask = 0;
 
 	mask = MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_DSI_TESTCLR_DB;
-	regmap_update_bits(phy->anlg_phy_g1_syscon,
+	regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_TEST_DB,
 		mask, mask);
 	udelay(1);
 	mask = MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_M
 		| MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_S;
-	regmap_update_bits(phy->anlg_phy_g1_syscon,
+	regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST,
 		mask, mask);
 }
@@ -435,12 +457,12 @@ static void csi_dphy_2p2_testclr_clear(struct csi_phy_info *phy)
 	unsigned int mask = 0;
 
 	mask = MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_DSI_TESTCLR_DB;
-	regmap_update_bits(phy->anlg_phy_g1_syscon,
+	regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_TEST_DB,
 		mask, ~mask);
 	mask = MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_M
 		| MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_S;
-	regmap_update_bits(phy->anlg_phy_g1_syscon,
+	regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST,
 		mask, ~mask);
 }
@@ -475,10 +497,10 @@ static void csi_dphy_2p2_reset(struct csi_dt_node_info *csi_info)
 		mask =
 		MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_M
 		| MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_S;
-		regmap_update_bits(phy->anlg_phy_g1_syscon,
+		regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST,
 		mask, mask);
-		regmap_update_bits(phy->anlg_phy_g1_syscon,
+		regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST,
 		mask, ~mask);
 		regmap_update_bits(phy->cam_ahb_syscon,
@@ -495,10 +517,10 @@ static void csi_dphy_2p2_reset(struct csi_dt_node_info *csi_info)
 
 		mask =
 		MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_S;
-		regmap_update_bits(phy->anlg_phy_g1_syscon,
+		regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST,
 		mask, mask);
-		regmap_update_bits(phy->anlg_phy_g1_syscon,
+		regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST,
 		mask, ~mask);
 		regmap_update_bits(phy->cam_ahb_syscon,
@@ -510,10 +532,10 @@ static void csi_dphy_2p2_reset(struct csi_dt_node_info *csi_info)
 				cphy_sel_mask, cphy_sel_val);
 		mask =
 		MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_2P2L_TESTCLR_M;
-		regmap_update_bits(phy->anlg_phy_g1_syscon,
+		regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST,
 		mask, mask);
-		regmap_update_bits(phy->anlg_phy_g1_syscon,
+		regmap_update_bits(phy->anlg_phy_g10_syscon,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST,
 		mask, ~mask);
 		regmap_update_bits(phy->cam_ahb_syscon,
@@ -551,7 +573,7 @@ void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 		break;
 	case CSI_RX1:
 		shutdownz =
-	MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_FORCE_CSI_S_PHY_SHUTDOWNZ;
+		MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_FORCE_CSI_S_PHY_SHUTDOWNZ;
 		reg = REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_COMBO_CSI_4L_BIST_TEST;
 		break;
 	case CSI_RX2:
@@ -576,11 +598,12 @@ void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L;
 		ios_sw_reg =
 		REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2L_ISO_SW;
-		regmap_update_bits(phy->anlg_phy_g1_syscon,
+		regmap_update_bits(phy->anlg_phy_g10_syscon,
 			REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L,
 			MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL,
 			MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL);
 		break;
+	case PHY_CPHY:
 	case PHY_4LANE:
 		/* phy: 4lane phy */
 		ps_pd_l =
@@ -614,7 +637,7 @@ void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 			REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L;
 		ios_sw_reg =
 			REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2L_ISO_SW;
-		regmap_update_bits(phy->anlg_phy_g1_syscon,
+		regmap_update_bits(phy->anlg_phy_g10_syscon,
 			REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L,
 			MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL,
 		(int)~MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL);
@@ -632,7 +655,7 @@ void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 		regmap_update_bits(phy->aon_apb_syscon,
 				ios_sw_reg,
 				iso_sw, iso_sw);
-		regmap_update_bits(phy->anlg_phy_g1_syscon,
+		regmap_update_bits(phy->anlg_phy_g10_syscon,
 		reg, shutdownz, ~shutdownz);
 	} else {
 		/* According to the time sequence of CSI-DPHY INIT,
@@ -646,7 +669,8 @@ void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 			csi_dphy_2p2_testclr_init(phy);
 			csi_dphy_2p2_testclr_set(phy);
 		} else if (phy->phy_id == PHY_4LANE ||
-				phy->phy_id == PHY_2LANE)
+				phy->phy_id == PHY_2LANE ||
+				phy->phy_id == PHY_CPHY)
 			CSI_REG_MWR(sensor_id, PHY_TEST_CRTL0, PHY_TESTCLR, 1);
 		udelay(1);
 
@@ -666,7 +690,7 @@ void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 				~iso_sw);
 
 		/* set phy force shutdown */
-		regmap_update_bits(phy->anlg_phy_g1_syscon,
+		regmap_update_bits(phy->anlg_phy_g10_syscon,
 		reg, shutdownz, shutdownz);
 		if (phy->phy_id == PHY_2P2 ||
 			phy->phy_id == PHY_2P2_M ||
@@ -674,7 +698,8 @@ void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 			csi_dphy_2p2_testclr_clear(phy);
 			csi_dphy_2p2_reset(csi_info);
 		} else if (phy->phy_id == PHY_4LANE ||
-				phy->phy_id == PHY_2LANE) {
+				phy->phy_id == PHY_2LANE ||
+				phy->phy_id == PHY_CPHY) {
 			CSI_REG_MWR(sensor_id, PHY_TEST_CRTL0, PHY_TESTCLR, 0);
 			udelay(1);
 		}
@@ -721,8 +746,8 @@ int csi_ahb_reset(struct csi_phy_info *phy, unsigned int csi_id)
 void csi_controller_enable(struct csi_dt_node_info *dt_info, int32_t idx)
 {
 	struct csi_phy_info *phy = NULL;
-	uint32_t cphy_sel_mask;
-	uint32_t cphy_sel_val;
+	uint32_t phy_sel_mask;
+	uint32_t phy_sel_val;
 	uint32_t mask_eb = 0;
 	uint32_t mask_rst = 0;
 	unsigned long flag = 0;
@@ -777,60 +802,63 @@ void csi_controller_enable(struct csi_dt_node_info *dt_info, int32_t idx)
 
 	if (dt_info->controller_id == CSI_RX0 ||
 			dt_info->controller_id == CSI_RX1) {
-		cphy_sel_mask = 0x3f << (dt_info->controller_id * 6);
+		/* cfg the value of  mipi_csi_dphy_c0/1_sel */
+		phy_sel_mask = 0x3f << (dt_info->controller_id * 6);
 
 		switch (phy->phy_id) {
 		case PHY_2P2: {
-			cphy_sel_val = 0x1;
+			phy_sel_val = 0x1;
 			break;
 		}
+		case PHY_CPHY:
 		case PHY_4LANE: {
-			cphy_sel_val = 0x12;
+			phy_sel_val = 0x12;
 			break;
 		}
 		case PHY_2LANE: {
-			cphy_sel_val = 0x24;
+			phy_sel_val = 0x24;
 			break;
 		}
 		case PHY_2P2_S: {
-			cphy_sel_val = 0x20;
+			phy_sel_val = 0x20;
 			break;
 		}
 		case PHY_2P2_M: {
-			cphy_sel_val = 0x21;
+			phy_sel_val = 0x21;
 			break;
 		}
 		default:
 			pr_err("fail to get valid csi phy id\n");
 			return;
 		}
-		cphy_sel_val  <<= dt_info->controller_id * 6;
+		phy_sel_val  <<= dt_info->controller_id * 6;
 	} else {
-		cphy_sel_mask = 7 << 12;
+		/* cfg the value of  mipi_csi_dphy_c2_sel */
+		phy_sel_mask = 7 << 12;
 
 		switch (phy->phy_id) {
 		case PHY_2LANE: {
-			cphy_sel_val = 4;
+			phy_sel_val = 4;
 			break;
 		}
 		case PHY_2P2_S: {
-			cphy_sel_val = 0;
+			phy_sel_val = 0;
 			break;
 		}
 		case PHY_2P2_M: {
-			cphy_sel_val = 1;
+			phy_sel_val = 1;
 			break;
 		}
 		default:
 			pr_err("fail to get valid csi phy id\n");
 			return;
 		}
-		cphy_sel_val  <<= 12;
+		phy_sel_val  <<= 12;
 	}
 	regmap_update_bits(phy->cam_ahb_syscon,
 			REG_MM_AHB_MIPI_CSI_SEL_CTRL,
-			cphy_sel_mask,
-			cphy_sel_val);
+			phy_sel_mask,
+			phy_sel_val);
 }
 
 void csi_controller_disable(struct csi_dt_node_info *dt_info, int32_t idx)
@@ -892,7 +920,6 @@ void csi_controller_disable(struct csi_dt_node_info *dt_info, int32_t idx)
 
 void dphy_init(struct csi_dt_node_info *dt_info, int32_t idx)
 {
-#ifdef FPGA_BRINGUP
 	if (!dt_info) {
 		pr_err("fail to get valid phy ptr\n");
 		return;
@@ -901,13 +928,198 @@ void dphy_init(struct csi_dt_node_info *dt_info, int32_t idx)
 
 	if (dt_info->phy.phy_id == PHY_4LANE ||
 		dt_info->phy.phy_id == PHY_2LANE)
-		dphy_cfg_clr(idx);
+		phy_cfg_clr(idx);
 
 	csi_dphy_lane_cfg(dt_info->phy.phy_id, idx,
 		dt_info->lane_switch_eb, dt_info->lane_seq);
-#endif
-	dphy_cfg_clr(0);
-	csi_dphy_lane_cfg(PHY_4LANE, 0, 0, 0x0123);
+}
+
+void cphy_osc_result_cal(int32_t idx)
+{
+	uint8_t temp1 = 0;
+	uint8_t temp2 = 0;
+	uint8_t n_count_tmp0 = 0;
+	uint8_t n_count_tmp1 = 0;
+	uint16_t n_count_result0 = 0;
+	uint16_t n_count_result1 = 0;
+	uint16_t n_count_result2 = 0;
+	uint8_t n_win_set0 = 0;
+	uint8_t n_win_set1 = 0;
+	uint8_t n_win_set2 = 0;
+	uint32_t n_cal_resultl0 = 0;
+	uint32_t n_cal_resultl1 = 0;
+	uint32_t n_cal_resultl2 = 0;
+	uint32_t cphy_data_rate = 140;
+
+	phy_read(idx, 0x9c, &n_count_tmp0);
+	phy_read(idx, 0x9d, &n_count_tmp1);
+	n_count_result0 = ((uint16_t)n_count_tmp0) |
+		(((uint16_t)n_count_tmp1) << 8);
+
+	phy_read(idx, 0xbc, &n_count_tmp0);
+	phy_read(idx, 0xbd, &n_count_tmp1);
+	n_count_result1 = ((uint16_t)n_count_tmp0) |
+		(((uint16_t)n_count_tmp1) << 8);
+
+	phy_read(idx, 0xdc, &n_count_tmp0);
+	phy_read(idx, 0xdd, &n_count_tmp1);
+	n_count_result2 = ((uint16_t)n_count_tmp0) |
+		(((uint16_t)n_count_tmp1) << 8);
+
+	phy_read(idx, 0x98, &n_win_set0);
+	n_win_set0 = ((n_win_set0 & 0x6) >> 1) + 1;
+
+	phy_read(idx, 0xb8, &n_win_set1);
+	n_win_set1 = ((n_win_set1 & 0x6) >> 1) + 1;
+
+	phy_read(idx, 0xd8, &n_win_set2);
+	n_win_set2 = ((n_win_set2 & 0x6) >> 1) + 1;
+
+	n_cal_resultl0 =
+		(26 * 67 * 2 * n_count_result0) /
+		(cphy_data_rate * 1024 * n_win_set0);
+	n_cal_resultl1 =
+		(26 * 67 * 2 * n_count_result1) /
+		(cphy_data_rate * 1024 * n_win_set1);
+	n_cal_resultl2 =
+		(26 * 67 * 2 * n_count_result2) /
+		(cphy_data_rate * 1024 * n_win_set2);
+
+	if ((n_cal_resultl0/48) < 15) {
+		temp1 = (uint8_t)(n_cal_resultl0 / 48);
+		phy_write(idx, 0x94, temp1 << 4, BIT_7 | BIT_6 | BIT_5 | BIT_4);
+		if ((n_cal_resultl0/48) != 0) {
+			temp1 = (0x20 & (n_cal_resultl0 % 48 + 1)) >> 5;
+			temp2 = ((0x1f & (n_cal_resultl0 % 48 + 1)) << 3) | 0x4;
+			phy_write(idx, 0x98, temp1 << 7, BIT_7);
+			phy_write(idx, 0x99, temp2, 0xff);
+		} else {
+			temp1 = (0x20 & n_cal_resultl0) >> 5;
+			temp2 = ((0x1f & n_cal_resultl0) << 3) | 0x4;
+			phy_write(idx, 0x98, temp1 << 7, BIT_7);
+			phy_write(idx, 0x99, temp2, 0xff);
+		}
+	} else {
+		phy_write(idx, 0x94, 15 << 4, BIT_7 | BIT_6 | BIT_5 | BIT_4);
+		temp1 = (0x20 & (n_cal_resultl0-719)) >> 5;
+		temp2 = ((0x1f & (n_cal_resultl0-719)) << 3) | 0x4;
+		phy_write(idx, 0x98, temp1 << 7, BIT_7);
+		phy_write(idx, 0x99, temp2, 0xff);
+	}
+
+	if ((n_cal_resultl1 / 48) < 15) {
+		temp1 = (uint8_t)(n_cal_resultl1 / 48);
+		phy_write(idx, 0xb4, temp1 << 4, BIT_7 | BIT_6 | BIT_5 | BIT_4);
+		if ((n_cal_resultl1 / 48) != 0) {
+			temp1 = (0x20 & (n_cal_resultl1 % 48 + 1)) >> 5;
+			temp2 = ((0x1f & (n_cal_resultl1 % 48 + 1)) << 3) | 0x4;
+			phy_write(idx, 0xb8, temp1 << 7, BIT_7);
+			phy_write(idx, 0xb9, temp2, 0xff);
+		} else {
+			temp1 = (0x20 & n_cal_resultl1) >> 5;
+			temp2 = ((0x1f & n_cal_resultl1) << 3) | 0x4;
+			phy_write(idx, 0xb8, temp1 << 7, BIT_7);
+			phy_write(idx, 0xb9, temp2, 0xff);
+		}
+	} else {
+		phy_write(idx, 0xb4, 15 << 4, BIT_7 | BIT_6 | BIT_5 | BIT_4);
+		temp1 = (0x20 & (n_cal_resultl1-719)) >> 5;
+		temp2 = ((0x1f & (n_cal_resultl1-719)) << 3) | 0x4;
+		phy_write(idx, 0xb8, temp1 << 7, BIT_7);
+		phy_write(idx, 0xb9, temp2, 0xff);
+	}
+
+	if ((n_cal_resultl2/48) < 15) {
+		temp1 = (uint8_t)(n_cal_resultl2 / 48);
+		phy_write(idx, 0xd4, temp1 << 4, BIT_7 | BIT_6 | BIT_5 | BIT_4);
+		if ((n_cal_resultl2 / 48) != 0) {
+			temp1 = (0x20 & (n_cal_resultl2 % 48 + 1)) >> 5;
+			temp2 = ((0x1f & (n_cal_resultl2 % 48 + 1)) << 3) | 0x4;
+			phy_write(idx, 0xd8, temp1 << 7, BIT_7);
+			phy_write(idx, 0xd9, temp2, 0xff);
+		} else {
+			temp1 = (0x20 & n_cal_resultl2) >> 5;
+			temp2 = ((0x1f & n_cal_resultl2) << 3) | 0x4;
+			phy_write(idx, 0xd8, temp1 << 7, BIT_7);
+			phy_write(idx, 0xd9, temp2, 0xff);
+		}
+	} else {
+		phy_write(idx, 0xd4, 15 << 4, BIT_7 | BIT_6 | BIT_5 | BIT_4);
+		temp1 = (0x20 & (n_cal_resultl2-719)) >> 5;
+		temp2 = ((0x1f & (n_cal_resultl2-719)) << 3) | 0x4;
+		phy_write(idx, 0xd8, temp1 << 7, BIT_7);
+		phy_write(idx, 0xd9, temp2, 0xff);
+	}
+}
+void cphy_init(struct csi_dt_node_info *dt_info, int32_t idx)
+{
+	uint8_t readback = 0;
+
+	CSI_REG_MWR(idx, PHY_SEL, BIT_0, 1);
+	udelay(1);
+	CSI_REG_MWR(idx, PHY_PD_N, BIT_0, 0);
+	udelay(1);
+	CSI_REG_MWR(idx, PHY_PD_N, BIT_0, 1);
+	udelay(1);
+	CSI_REG_MWR(idx, RST_DPHY_N, BIT_0, 0);
+	udelay(1);
+	CSI_REG_MWR(idx, RST_DPHY_N, BIT_0, 1);
+	udelay(1);
+	CSI_REG_MWR(idx, RST_CSI2_N, BIT_0, 0);
+	udelay(1);
+	CSI_REG_MWR(idx, RST_CSI2_N, BIT_0, 1);
+	udelay(1);
+	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLR, 1);
+	udelay(1);
+	CSI_REG_MWR(idx, PHY_TEST_CRTL0, PHY_TESTCLR, 0);
+	udelay(1);
+
+	phy_cfg_start(idx);
+
+	phy_write(idx, 0x62, BIT_0, BIT_0);
+	phy_write(idx, 0x60, 0xf1, BIT_7 | BIT_6 | BIT_5 | BIT_4 | BIT_0);
+	phy_write(idx, 0x68, BIT_0, BIT_0);
+	phy_read(idx, 0x92, &readback);
+	phy_read(idx, 0xb2, &readback);
+	phy_read(idx, 0xd2, &readback);
+	phy_read(idx, 0x60, &readback);
+	udelay(10);
+	phy_write(idx, 0x9e, BIT_2, BIT_2);
+	phy_write(idx, 0xbe, BIT_2, BIT_2);
+	phy_write(idx, 0xde, BIT_2, BIT_2);
+	udelay(5);
+	phy_write(idx, 0x98, BIT_0, BIT_0);
+	phy_write(idx, 0xb8, BIT_0, BIT_0);
+	phy_write(idx, 0xd8, BIT_0, BIT_0);
+	readback = 0;
+	while (readback != 1) {
+		phy_read(idx, 0x9a, &readback);
+		readback = (readback & BIT_1) >> 1;
+	}
+	readback = 0;
+	while (readback != 1) {
+		phy_read(idx, 0xba, &readback);
+		readback = (readback & BIT_1) >> 1;
+	}
+	readback = 0;
+	while (readback != 1) {
+		phy_read(idx, 0xda, &readback);
+		readback = (readback & BIT_1) >> 1;
+	}
+	//calculate osc counter result
+	cphy_osc_result_cal(idx);
+	udelay(10);
+	phy_write(idx, 0x92, 0, BIT_1);
+	phy_write(idx, 0xb2, 0, BIT_1);
+	phy_write(idx, 0xd2, 0, BIT_1);
+
+	phy_write(idx, 0x69, 1 << 3, BIT_3 | BIT_4);
+	phy_write(idx, 0x6b, 1 << 5, BIT_5 | BIT_6);
+	phy_read(idx, 0x02, &readback);
+	phy_write(idx, 0x02, 0x3D,
+		BIT_0 | BIT_1 | BIT_2 | BIT_3 | BIT_4 | BIT_5);
+
+	phy_cfg_done(idx);
 }
 
 void csi_set_on_lanes(uint8_t lanes, int32_t idx)
@@ -945,6 +1157,7 @@ void csi_event_enable(int32_t idx)
 {
 	CSI_REG_WR(idx, MASK0, CSI_MASK0);
 	CSI_REG_WR(idx, MASK1, CSI_MASK1);
+	CSI_REG_WR(idx, CPHY_ERR2_MASK, CSI_MASK2);
 }
 
 void csi_close(int32_t idx)

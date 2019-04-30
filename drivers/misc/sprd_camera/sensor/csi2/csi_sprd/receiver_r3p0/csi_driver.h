@@ -28,8 +28,8 @@ struct dphy_lane_cfg {
 };
 
 enum csi_phy_t {
-	PHY_2P2 = 0,
-	PHY_4LANE,
+	PHY_4LANE = 0,
+	PHY_2P2,
 	PHY_2LANE,
 	PHY_2P2_M,
 	PHY_2P2_S,
@@ -89,6 +89,7 @@ void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 void csi_controller_enable(struct csi_dt_node_info *dt_info, int32_t idx);
 void csi_controller_disable(struct csi_dt_node_info *dt_info, int32_t idx);
 void dphy_init(struct csi_dt_node_info *dt_info, int32_t idx);
+void cphy_init(struct csi_dt_node_info *dt_info, int32_t idx);
 void csi_set_on_lanes(uint8_t lanes, int32_t idx);
 void csi_reset_shut_down(uint8_t shutdown, int32_t idx);
 void csi_shut_down_phy(uint8_t shutdown, int32_t idx);
