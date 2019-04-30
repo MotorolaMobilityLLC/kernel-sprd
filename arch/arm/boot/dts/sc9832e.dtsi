@@ -1,0 +1,86 @@
+/*
+ * Spreadtrum SC9832e SoC DTS file
+ *
+ * Copyright (C) 2019, Spreadtrum Communications Inc.
+ *
+ * This file is licensed under a dual GPLv2 or X11 license.
+ */
+
+#include "sharkle.dtsi"
+
+/ {
+	cpuinfo_hardware = "Unisoc SC9832e";
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu-map {
+			cluster0 {
+				core0 {
+					cpu = <&cpu0>;
+				};
+				core1 {
+					cpu = <&cpu1>;
+				};
+				core2 {
+					cpu = <&cpu2>;
+				};
+				core3 {
+					cpu = <&cpu3>;
+				};
+			};
+		};
+
+
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,aarch32";
+			reg = <0x0>;
+			enable-method = "psci";
+		};
+		cpu1: cpu@1 {
+			device_type = "cpu";
+			compatible = "arm,aarch32";
+			reg = <0x1>;
+			enable-method = "psci";
+		};
+		cpu2: cpu@2 {
+			device_type = "cpu";
+			compatible = "arm,aarch32";
+			reg = <0x2>;
+			enable-method = "psci";
+		};
+		cpu3: cpu@3 {
+			device_type = "cpu";
+			compatible = "arm,aarch32";
+			reg = <0x3>;
+			enable-method = "psci";
+		};
+	};
+
+	psci {
+		compatible = "arm,psci-1.0";
+		method = "smc";
+	};
+
+	gic: interrupt-controller@12001000 {
+		compatible = "arm,gic-400";
+		reg = <0x12001000 0x1000>,
+			<0x12002000 0x2000>,
+			<0x12004000 0x2000>,
+			<0x12006000 0x2000>;
+		#interrupt-cells = <3>;
+		interrupt-controller;
+		interrupts = <GIC_PPI 9 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_HIGH)>;
+	};
+
+	arch_timer: timer {
+		compatible = "arm,armv7-timer";
+		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
+			<GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
+			<GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>,
+			<GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>;
+			clock-frequency = <26000000>;
+	};
+};

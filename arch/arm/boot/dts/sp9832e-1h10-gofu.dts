@@ -1,0 +1,62 @@
+/*
+ * Spreadtrum SP9832E 1H10 GO FULL board DTS file
+ *
+ * Copyright (C) 2019-2020, Spreadtrum Communications Inc.
+ *
+ * This file is licensed under a dual GPLv2 or X11 license.
+ */
+/dts-v1/;
+
+#include "sc9832e.dtsi"
+
+/ {
+	model = "Spreadtrum SP9832E-1H10-GOFU Board";
+
+	compatible = "sprd,sp9832e-1h10", "sprd,sc9832e";
+
+	sprd,sc-id = <9832 1 0x20000>;
+
+	aliases {
+		serial1 = &uart1;
+	};
+
+	memory: memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x40000000>;
+	};
+
+	chosen {
+		stdout-path = &uart1;
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=11 init=/init root=/dev/ram0 rw androidboot.hardware=sp9832e_1h10_go vmalloc=360M androidboot.dtbo_idx=0 androidboot.selinux=permissive printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
+	};
+
+	reserved_memory: reserved-memory {
+		/* cp_reserved = cp region + debug region */
+		/* debug region: not reserved in normal mode, it */
+		/* will be proccessed in u-boot */
+		cp_reserved: cp-modem@89600000 {
+			reg = <0x89600000 0x04240000>;
+			/* This prop specifies the size of debug region */
+			/* in the cp tail */
+			sprd,cpdbg-size = <0x280000>;
+		};
+
+		tos_reserved: tos-mem@94020000{
+			reg = <0x94020000 0x01fe0000>;
+		};
+
+		/* if changed ,uboot dts also need change */
+		fb_reserved: fb@9c100000{
+			reg = <0x9c100000 0xe10000>;
+		};
+
+		camera_reserved: camera@a0000000{
+			reg = <0xa0000000 0x00500000>;
+		};
+	};
+};
+
+&uart1 {
+	status = "okay";
+};
+
