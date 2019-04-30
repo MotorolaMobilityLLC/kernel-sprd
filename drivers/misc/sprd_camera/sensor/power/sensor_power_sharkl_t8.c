@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (C) 2012 Spreadtrum Communications Inc.
+ * Copyright (C) 2019 Unisoc Communications Inc.
  *
  *
  *
