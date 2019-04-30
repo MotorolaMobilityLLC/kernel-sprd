@@ -121,7 +121,7 @@ def main(argv, linux):
 				       cli_args.timeout,
 				       cli_args.jobs)
 		result = run_tests(linux, request)
-		if result.status == KunitStatus.TEST_FAILURE:
+		if result.status != KunitStatus.SUCCESS:
 			sys.exit(1)
 	else:
 		parser.print_help()
