@@ -1,0 +1,22 @@
+TARGET_KERNEL_ARCH := arm
+
+ifdef BUILD_FROM_KERNEL
+KERNEL_OUT=.
+TARGET_ROOT_OUT=.
+KERNEL_DIFF_CONFIG_ARCH := sprd-diffconfig/sharkle/$(TARGET_KERNEL_ARCH)
+KERNEL_DIFF_CONFIG_COMMON := sprd-diffconfig/sharkle/common
+else
+KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/KERNEL
+KERNEL_DIFF_CONFIG_ARCH := $(KERNEL_PATH)/sprd-diffconfig/sharkle/$(TARGET_KERNEL_ARCH)
+KERNEL_DIFF_CONFIG_COMMON := $(KERNEL_PATH)/sprd-diffconfig/sharkle/common
+KERNEL_CROSS_COMPILE := $(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin/arm-linux-androideabi-
+endif
+
+BOARD_WCN_CONFIG :=
+BOARD_EXT_PMIC_CONFIG :=
+BOARD_TEE_CONFIG :=
+PRODUCT_GO_DEVICE := true
+BOARD_FEATUREPHONE_CONFIG :=
+
+BOARD_TEE_64BIT := false
+
