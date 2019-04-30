@@ -1,0 +1,37 @@
+/*
+ * Spreadtrum Pike2 SP7731e DTS file
+ *
+ * Copyright (C) 2019-2020, Spreadtrum Communications Inc.
+ *
+ * This file is licensed under a dual GPLv2 or X11 license.
+ */
+
+#include "sc7731e.dtsi"
+
+/ {
+	model = "Spreadtrum Pike2 SC7731e Board";
+
+	compatible = "sprd,sp7731e-1h10", "sprd,sc7731e";
+
+	sprd,sc-id = <7731 1 0x20000>;
+
+	aliases {
+		serial1 = &uart1;
+	};
+
+	memory: memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x40000000>;
+	};
+
+	chosen {
+		stdout-path = &uart1;
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 loglevel=11 console=ttyS1,115200n8 init=/init root=/dev/ram0 rw androidboot.hardware=sp7731e_1h10 androidboot.dtbo_idx=0 androidboot.selinux=permissive printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
+	};
+};
+
+&uart1 {
+	status = "okay";
+};
+
+
