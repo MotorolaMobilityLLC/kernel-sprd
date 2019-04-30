@@ -37,6 +37,22 @@
 static int (*scan_card_notify)(void);
 static struct sdiohal_data_t *sdiohal_data;
 
+static int sdiohal_card_lock(struct sdiohal_data_t *p_data)
+{
+	if (atomic_inc_return(&p_data->xmit_cnt) >= SDIOHAL_REMOVE_CARD_VAL) {
+		atomic_dec(&p_data->xmit_cnt);
+		WCN_ERR("%s failed\n", __func__);
+		return -1;
+	}
+
+	return 0;
+}
+
+static void sdiohal_card_unlock(struct sdiohal_data_t *p_data)
+{
+	atomic_dec(&p_data->xmit_cnt);
+}
+
 struct sdiohal_data_t *sdiohal_get_data(void)
 {
 	return sdiohal_data;
@@ -145,12 +161,6 @@ int sdiohal_sdio_pt_write(unsigned char *src, unsigned int datalen)
 	static int times_count;
 
 	getnstimeofday(&tm_begin);
-
-	if (unlikely(p_data->carddetect_indicator != true)) {
-		WCN_ERR("%s line %d not have card\n", __func__, __LINE__);
-		return -ENODEV;
-	}
-
 	if (unlikely(p_data->card_dump_flag == true)) {
 		WCN_ERR("%s line %d dump happened\n", __func__, __LINE__);
 		return -ENODEV;
@@ -160,6 +170,9 @@ int sdiohal_sdio_pt_write(unsigned char *src, unsigned int datalen)
 		WCN_ERR("%s datalen not aligned to 4 byte\n", __func__);
 		return -1;
 	}
+
+	if (sdiohal_card_lock(p_data))
+		return -1;
 
 	sdiohal_resume_check();
 	sdiohal_op_enter();
@@ -172,6 +185,7 @@ int sdiohal_sdio_pt_write(unsigned char *src, unsigned int datalen)
 		sdiohal_abort();
 	}
 	sdiohal_op_leave();
+	sdiohal_card_unlock(p_data);
 
 	getnstimeofday(&tm_end);
 	time_total_ns += timespec_to_ns(&tm_end) - timespec_to_ns(&tm_begin);
@@ -196,15 +210,13 @@ int sdiohal_sdio_pt_read(unsigned char *src, unsigned int datalen)
 
 	getnstimeofday(&tm_begin);
 
-	if (unlikely(p_data->carddetect_indicator != true)) {
-		WCN_ERR("%s line %d not have card\n", __func__, __LINE__);
-		return -ENODEV;
-	}
-
 	if (unlikely(p_data->card_dump_flag == true)) {
 		WCN_ERR("%s line %d dump happened\n", __func__, __LINE__);
 		return -ENODEV;
 	}
+
+	if (sdiohal_card_lock(p_data))
+		return -1;
 
 	sdiohal_resume_check();
 	sdiohal_op_enter();
@@ -215,6 +227,7 @@ int sdiohal_sdio_pt_read(unsigned char *src, unsigned int datalen)
 	if (ret != 0)
 		sdiohal_abort();
 	sdiohal_op_leave();
+	sdiohal_card_unlock(p_data);
 
 	getnstimeofday(&tm_end);
 	time_total_ns += timespec_to_ns(&tm_end) - timespec_to_ns(&tm_begin);
@@ -365,15 +378,13 @@ int sdiohal_adma_pt_write(struct sdiohal_list_t *data_list)
 
 	getnstimeofday(&tm_begin);
 
-	if (unlikely(p_data->carddetect_indicator != true)) {
-		WCN_ERR("%s line %d not have card\n", __func__, __LINE__);
-		return -ENODEV;
-	}
-
 	if (unlikely(p_data->card_dump_flag == true)) {
 		WCN_ERR("%s line %d dump happened\n", __func__, __LINE__);
 		return -ENODEV;
 	}
+
+	if (sdiohal_card_lock(p_data))
+		return -1;
 
 	sdiohal_resume_check();
 	sdiohal_op_enter();
@@ -386,6 +397,7 @@ int sdiohal_adma_pt_write(struct sdiohal_list_t *data_list)
 		sdiohal_abort();
 	}
 	sdiohal_op_leave();
+	sdiohal_card_unlock(p_data);
 
 	getnstimeofday(&tm_end);
 	time_total_ns += timespec_to_ns(&tm_end) - timespec_to_ns(&tm_begin);
@@ -410,15 +422,13 @@ int sdiohal_adma_pt_read(struct sdiohal_list_t *data_list)
 
 	getnstimeofday(&tm_begin);
 
-	if (unlikely(p_data->carddetect_indicator != true)) {
-		WCN_ERR("%s line %d not have card\n", __func__, __LINE__);
-		return -ENODEV;
-	}
-
 	if (unlikely(p_data->card_dump_flag == true)) {
 		WCN_ERR("%s line %d dump happened\n", __func__, __LINE__);
 		return -ENODEV;
 	}
+
+	if (sdiohal_card_lock(p_data))
+		return -1;
 
 	sdiohal_resume_check();
 	sdiohal_op_enter();
@@ -429,6 +439,7 @@ int sdiohal_adma_pt_read(struct sdiohal_list_t *data_list)
 	if (ret != 0)
 		sdiohal_abort();
 	sdiohal_op_leave();
+	sdiohal_card_unlock(p_data);
 
 	getnstimeofday(&tm_end);
 	time_total_ns += timespec_to_ns(&tm_end) - timespec_to_ns(&tm_begin);
@@ -555,10 +566,8 @@ int sdiohal_writel(unsigned int system_addr, void *buf)
 	int ret = 0;
 
 	WCN_INFO("%s\n", __func__);
-	if (unlikely(p_data->carddetect_indicator != true)) {
-		WCN_ERR("%s line %d not have card\n", __func__, __LINE__);
-		return -ENODEV;
-	}
+	if (sdiohal_card_lock(p_data))
+		return -1;
 
 	sdiohal_resume_check();
 	sdiohal_cp_tx_wakeup(DT_WRITEL);
@@ -568,6 +577,7 @@ int sdiohal_writel(unsigned int system_addr, void *buf)
 	if (ret != 0) {
 		sdiohal_op_leave();
 		sdiohal_cp_tx_sleep(DT_WRITEL);
+		sdiohal_card_unlock(p_data);
 		return ret;
 	}
 
@@ -584,6 +594,7 @@ int sdiohal_writel(unsigned int system_addr, void *buf)
 		sdiohal_dump_aon_reg();
 		sdiohal_abort();
 	}
+	sdiohal_card_unlock(p_data);
 
 	return ret;
 }
@@ -593,10 +604,8 @@ int sdiohal_readl(unsigned int system_addr, void *buf)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	int ret = 0;
 
-	if (unlikely(p_data->carddetect_indicator != true)) {
-		WCN_ERR("%s line %d not have card\n", __func__, __LINE__);
-		return -ENODEV;
-	}
+	if (sdiohal_card_lock(p_data))
+		return -1;
 
 	sdiohal_resume_check();
 	sdiohal_cp_rx_wakeup(DT_READL);
@@ -605,6 +614,7 @@ int sdiohal_readl(unsigned int system_addr, void *buf)
 	if (ret != 0) {
 		sdiohal_op_leave();
 		sdiohal_cp_rx_sleep(DT_READL);
+		sdiohal_card_unlock(p_data);
 		return ret;
 	}
 
@@ -621,6 +631,7 @@ int sdiohal_readl(unsigned int system_addr, void *buf)
 		sdiohal_dump_aon_reg();
 		sdiohal_abort();
 	}
+	sdiohal_card_unlock(p_data);
 
 	return ret;
 }
@@ -660,10 +671,8 @@ int sdiohal_dt_write(unsigned int system_addr,
 	unsigned int trans_len;
 	int ret = 0;
 
-	if (unlikely(p_data->carddetect_indicator != true)) {
-		WCN_ERR("%s line %d not have card\n", __func__, __LINE__);
-		return -ENODEV;
-	}
+	if (sdiohal_card_lock(p_data))
+		return -1;
 
 	sdiohal_resume_check();
 	sdiohal_cp_tx_wakeup(DT_WRITE);
@@ -673,6 +682,7 @@ int sdiohal_dt_write(unsigned int system_addr,
 	if (ret != 0) {
 		sdiohal_op_leave();
 		sdiohal_cp_tx_sleep(DT_WRITE);
+		sdiohal_card_unlock(p_data);
 		return ret;
 	}
 
@@ -699,6 +709,7 @@ int sdiohal_dt_write(unsigned int system_addr,
 		sdiohal_dump_aon_reg();
 		sdiohal_abort();
 	}
+	sdiohal_card_unlock(p_data);
 
 	return ret;
 }
@@ -711,10 +722,8 @@ int sdiohal_dt_read(unsigned int system_addr, void *buf,
 	unsigned int trans_len;
 	int ret = 0;
 
-	if (unlikely(p_data->carddetect_indicator != true)) {
-		WCN_ERR("%s line %d not have card\n", __func__, __LINE__);
-		return -ENODEV;
-	}
+	if (sdiohal_card_lock(p_data))
+		return -1;
 
 	sdiohal_resume_check();
 	sdiohal_cp_rx_wakeup(DT_READ);
@@ -723,6 +732,7 @@ int sdiohal_dt_read(unsigned int system_addr, void *buf,
 	if (ret != 0) {
 		sdiohal_op_leave();
 		sdiohal_cp_rx_sleep(DT_READ);
+		sdiohal_card_unlock(p_data);
 		return ret;
 	}
 
@@ -749,6 +759,7 @@ int sdiohal_dt_read(unsigned int system_addr, void *buf,
 		sdiohal_dump_aon_reg();
 		sdiohal_abort();
 	}
+	sdiohal_card_unlock(p_data);
 
 	return ret;
 }
@@ -759,10 +770,8 @@ int sdiohal_aon_readb(unsigned int addr, unsigned char *val)
 	int err = 0;
 	unsigned char reg_val = 0;
 
-	if (unlikely(p_data->carddetect_indicator != true)) {
-		WCN_ERR("%s line %d not have card\n", __func__, __LINE__);
-		return -ENODEV;
-	}
+	if (sdiohal_card_lock(p_data))
+		return -1;
 
 	sdiohal_resume_check();
 	sdiohal_op_enter();
@@ -772,6 +781,7 @@ int sdiohal_aon_readb(unsigned int addr, unsigned char *val)
 		*val = reg_val;
 	sdio_release_host(p_data->sdio_func[FUNC_0]);
 	sdiohal_op_leave();
+	sdiohal_card_unlock(p_data);
 
 	return err;
 }
@@ -781,10 +791,8 @@ int sdiohal_aon_writeb(unsigned int addr, unsigned char val)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	int err = 0;
 
-	if (unlikely(p_data->carddetect_indicator != true)) {
-		WCN_ERR("%s line %d not have card\n", __func__, __LINE__);
-		return -ENODEV;
-	}
+	if (sdiohal_card_lock(p_data))
+		return -1;
 
 	sdiohal_resume_check();
 	sdiohal_op_enter();
@@ -792,6 +800,7 @@ int sdiohal_aon_writeb(unsigned int addr, unsigned char val)
 	sdio_writeb(p_data->sdio_func[FUNC_0], val, addr, &err);
 	sdio_release_host(p_data->sdio_func[FUNC_0]);
 	sdiohal_op_leave();
+	sdiohal_card_unlock(p_data);
 
 	return err;
 }
@@ -801,8 +810,25 @@ void sdiohal_remove_card(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
+	if (!WCN_CARD_EXIST(&p_data->xmit_cnt))
+		return;
+
+	atomic_add(SDIOHAL_REMOVE_CARD_VAL, &p_data->xmit_cnt);
+	sdiohal_lock_scan_ws();
+	sdiohal_resume_check();
+	while (atomic_read(&p_data->xmit_cnt) > SDIOHAL_REMOVE_CARD_VAL)
+		usleep_range(4000, 6000);
+
+	init_completion(&p_data->remove_done);
 	p_data->sdio_dev_host->card->state |= WCN_SDIO_CARD_REMOVED;
 	mmc_detect_change(p_data->sdio_dev_host, 0);
+	if (wait_for_completion_timeout(&p_data->remove_done,
+					msecs_to_jiffies(5000)) == 0)
+		WCN_ERR("remove card time out\n");
+	else
+		WCN_INFO("remove card end\n");
+
+	sdiohal_unlock_scan_ws();
 }
 
 int sdiohal_scan_card(void)
@@ -816,7 +842,7 @@ int sdiohal_scan_card(void)
 		return -1;
 	}
 
-	if (likely(p_data->carddetect_indicator == true)) {
+	if (WCN_CARD_EXIST(&p_data->xmit_cnt)) {
 		WCN_INFO("Already exist card!\n");
 		sdiohal_remove_card();
 		msleep(100);
@@ -1082,7 +1108,7 @@ static int sdiohal_suspend(struct device *dev)
 	if (atomic_read(&p_data->irq_cnt))
 		sdiohal_lock_rx_ws();
 
-	if (p_data->carddetect_indicator == true) {
+	if (WCN_CARD_EXIST(&p_data->xmit_cnt)) {
 		func = container_of(dev, struct sdio_func, dev);
 		func->card->host->pm_flags |= MMC_PM_KEEP_POWER;
 	}
@@ -1100,7 +1126,7 @@ static int sdiohal_resume(struct device *dev)
 
 	WCN_INFO("[%s]enter\n", __func__);
 
-	if (p_data->carddetect_indicator == true) {
+	if (WCN_CARD_EXIST(&p_data->xmit_cnt)) {
 		func = container_of(dev, struct sdio_func, dev);
 		func->card->host->pm_flags &= ~MMC_PM_KEEP_POWER;
 	}
@@ -1239,7 +1265,8 @@ static int sdiohal_probe(struct sdio_func *func,
 	} else
 		pm_runtime_put_noidle(&func->dev);
 
-	p_data->carddetect_indicator = true;
+	if (!WCN_CARD_EXIST(&p_data->xmit_cnt))
+		atomic_sub(SDIOHAL_REMOVE_CARD_VAL, &p_data->xmit_cnt);
 
 	sdiohal_set_cp_pin_status();
 
@@ -1270,7 +1297,10 @@ static void sdiohal_remove(struct sdio_func *func)
 
 	WCN_INFO("[%s]enter\n", __func__);
 
-	p_data->carddetect_indicator = false;
+	if (WCN_CARD_EXIST(&p_data->xmit_cnt))
+		atomic_add(SDIOHAL_REMOVE_CARD_VAL, &p_data->xmit_cnt);
+
+	complete(&p_data->remove_done);
 
 	if (p_data->irq_num != 0)
 		free_irq(p_data->irq_num, &func->dev);
@@ -1343,6 +1373,8 @@ int sdiohal_init(void)
 	sdiohal_launch_thread();
 	sdiohal_host_irq_init(p_data->gpio_num);
 	p_data->flag_init = true;
+	/* card not ready */
+	atomic_set(&p_data->xmit_cnt, SDIOHAL_REMOVE_CARD_VAL);
 
 #ifdef CONFIG_DEBUG_FS
 	sdiohal_debug_init();

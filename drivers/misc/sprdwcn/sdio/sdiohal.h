@@ -155,6 +155,10 @@ extern long int sdiohal_log_level;
 #define CP_HREADY_SIZE	(0x4)
 #define SDIO_VER_CCCR (0X0)
 
+#define SDIOHAL_REMOVE_CARD_VAL 0x8000
+#define WCN_CARD_EXIST(xmit) \
+	(atomic_read(xmit) < SDIOHAL_REMOVE_CARD_VAL)
+
 struct sdiohal_frag_mg {
 	struct page_frag frag;
 	unsigned int pagecnt_bias;
@@ -204,6 +208,7 @@ struct sdiohal_data_t {
 	spinlock_t rx_spinlock;
 	atomic_t flag_resume;
 	atomic_t tx_mbuf_num;
+	atomic_t xmit_cnt;
 	bool exit_flag;
 	/* adma enable:1, disable:0 */
 	bool adma_tx_enable;
@@ -232,7 +237,6 @@ struct sdiohal_data_t {
 	unsigned int irq_num;
 	atomic_t irq_cnt;
 	unsigned int card_dump_flag;
-	unsigned int carddetect_indicator;
 	struct sdio_func *sdio_func[SDIOHAL_MAX_FUNCS];
 	struct mmc_host *sdio_dev_host;
 	struct scatterlist sg_list[MAX_CHAIN_NODE_NUM + 1];
@@ -254,6 +258,7 @@ struct sdiohal_data_t {
 
 	struct wakeup_source scan_ws;
 	struct completion scan_done;
+	struct completion remove_done;
 };
 
 struct sdiohal_data_t *sdiohal_get_data(void);

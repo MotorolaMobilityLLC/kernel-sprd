@@ -180,7 +180,7 @@ static void sdiohal_rx_wait(void)
 
 	while (1) {
 		msleep(300);
-		if (p_data->carddetect_indicator)
+		if (WCN_CARD_EXIST(&p_data->xmit_cnt))
 			break;
 	}
 }
