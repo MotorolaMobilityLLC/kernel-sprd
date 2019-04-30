@@ -1,0 +1,17 @@
+ifdef BUILD_FROM_KERNEL
+include sprd-board-config/pike2/sp7731e_1h10/sp7731e_1h10_base
+else
+include $(KERNEL_PATH)/sprd-board-config/pike2/sp7731e_1h10/sp7731e_1h10_base
+endif
+
+TARGET_KERNEL_ARCH=arm
+BOARD_WCN_CONFIG :=
+BOARD_EXT_PMIC_CONFIG :=
+BOARD_TEE_CONFIG := trusty
+
+#DEFCONFIG
+KERNEL_DEFCONFIG := sprd_pike2_defconfig
+
+#DTS
+TARGET_DTB := sp7731e-1h10-native
+TARGET_DTBO := sp7731e-1h10-overlay
