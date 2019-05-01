@@ -20,11 +20,13 @@
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
 
-int mdbg_log_read(int channel, struct mbuf_t *head,
-		  struct mbuf_t *tail, int num);
 #ifdef CONFIG_WCN_PCIE
+int mdbg_log_cb(int channel, struct mbuf_t *head, struct mbuf_t *tail, int num);
 int mdbg_log_push(int chn, struct mbuf_t **head,
 		  struct mbuf_t **tail, int *num);
+#else
+int mdbg_log_read(int channel, struct mbuf_t *head,
+		  struct mbuf_t *tail, int num);
 #endif
 
 static struct ring_device *ring_dev;
@@ -41,7 +43,7 @@ static struct mchn_ops_t mdbg_ringc_ops = {
 	/* bt log buf num + pld buf num = 4 + 8 */
 	.pool_size = 16,
 	.cb_in_irq = 0,
-	.pop_link = mdbg_log_read,
+	.pop_link = mdbg_log_cb,
 	.push_link = mdbg_log_push,
 };
 #else
@@ -221,6 +223,29 @@ int mdbg_log_read(int channel, struct mbuf_t *head,
 	return 0;
 }
 
+/*
+ * PCIE's log callback in Interrupt context, can not use interface(kmalloc,
+ * mutex) that may cause sleep. So handle it apart.
+ * SDIO's log callback not in interrupt context, it in Kthread
+ */
+#ifdef CONFIG_WCN_PCIE
+int mdbg_log_cb(int channel, struct mbuf_t *head, struct mbuf_t *tail, int num)
+{
+	struct mbuf_t *mbuf_node;
+	int i;
+
+	WCN_INFO("%s:seq=0x%x, num=%d\n", __func__,
+		 *((u32 *)(head->buf + 12)), num);
+
+	for (i = 0, mbuf_node = head; i < num; i++, mbuf_node = mbuf_node->next)
+		mdbg_ring_write(ring_dev->ring, mbuf_node->buf, mbuf_node->len);
+
+	sprdwcn_bus_push_list(channel, head, tail, num);
+	wake_up_log_wait();
+
+	return 0;
+}
+#endif
 long int mdbg_send(char *buf, long int len, unsigned int subtype)
 {
 	long int sent_size = 0;
