@@ -45,10 +45,20 @@ void edma_print_mbuf_data(int channel, struct mbuf_t *head,
 		WARN_ON(1);
 		return;
 	}
-	sprintf(print_str, "WCN PCIE: %s mbuf: ", func);
+	sprintf(print_str, "WCN PCIE: %s bt:  ", func);
 	print_hex_dump(KERN_INFO, print_str, DUMP_PREFIX_NONE,
 		16, 1, head->buf, (print_len < MAX_PRINT_BYTE_NUM ?
 		print_len : MAX_PRINT_BYTE_NUM), true);
+}
+
+void dump_dscr_reg(struct desc *dscr)
+{
+	WCN_INFO("%08x  %08x  %08x  %08x  %08x  %08x\n",
+		 dscr->chn_trans_len.reg, dscr->chn_ptr_high.reg,
+		 dscr->rf_chn_tx_next_dscr_ptr_low,
+		 dscr->rf_chn_rx_next_dscr_ptr_low,
+		 dscr->rf_chn_data_src_addr_low,
+		 dscr->rf_chn_data_dst_addr_low);
 }
 
 int time_sub_us(struct timeval *start, struct timeval *end)
@@ -77,6 +87,7 @@ void *mpool_malloc(int len)
 {
 	int ret;
 	unsigned char *p;
+	static int total_len;
 	struct edma_info *edma = edma_info();
 
 	if (mpool_buffer == NULL) {
@@ -86,16 +97,21 @@ void *mpool_malloc(int len)
 		mpool_buffer = (unsigned char *)(mpool_dm.vir);
 		WCN_INFO("%s {0x%lx,0x%lx} -- {0x%lx,0x%lx}\n",
 			 __func__, mpool_dm.vir, mpool_dm.phy,
-			 mpool_dm.vir + 0x20000,
-			 mpool_dm.phy + 0x20000);
+			 mpool_dm.vir + 0x10000,
+			 mpool_dm.phy + 0x10000);
 	}
 	if (len <= 0)
 		return NULL;
 	p = mpool_buffer;
 	memset(p, 0x56, len);
 	mpool_buffer += len;
-	WCN_INFO("%s(%d) = {0x%p, 0x%p}\n", __func__, len, p,
-		 mpool_vir_to_phy((void *)p));
+	total_len += len;
+	if (total_len > MPOOL_SIZE) {
+		WCN_ERR("mpool used done!size=0x%x\n", total_len);
+		return NULL;
+	}
+	WCN_INFO("%s(%d) totle:0x%x= {0x%p, 0x%p}\n", __func__, len, total_len,
+		 p, mpool_vir_to_phy((void *)p));
 	return p;
 }
 
@@ -110,7 +126,7 @@ int mpool_free(void)
 
 static int create_wcnevent(struct event_t *event, int id)
 {
-	WCN_INFO("create event(0x%p)[+]\n", event);
+	WCN_DBG("create event(0x%p)[+]\n", event);
 	memset((unsigned char *)event, 0x00, sizeof(struct event_t));
 	sema_init(&(event->wait_sem), 0);
 
@@ -196,7 +212,7 @@ static int create_queue(struct msg_q *q, int size, int num)
 {
 	int ret;
 
-	WCN_INFO("[+]%s(0x%p, %d, %d)\n", __func__,
+	WCN_DBG("[+]%s(0x%p, %d, %d)\n", __func__,
 		 (void *)virt_to_phys((void *)(q)), size, num);
 	q->mem = mpool_malloc(size * num);
 	if (q->mem == NULL) {
@@ -218,7 +234,7 @@ static int create_queue(struct msg_q *q, int size, int num)
 	q->rd = 0;
 	q->max = num;
 	q->size = size;
-	WCN_INFO("[-]%s\n", __func__);
+	WCN_DBG("[-]%s\n", __func__);
 
 	return OK;
 }
@@ -442,8 +458,11 @@ static int edma_pop_link(int chn, struct desc *__head, struct desc *__tail,
 			return -1;
 		}
 		if (dscr_polling(dscr, 500000)) {
-			WCN_ERR("%s(%d, 0x%p, 0x%p, 0x%p) polling err\n",
-				__func__, chn, __head, __tail, dscr);
+			WCN_ERR("%s(%d, 0x%p, 0x%p, 0x%p, free=%d) not done\n",
+				__func__, chn, __head, __tail, dscr,
+				edma->chn_sw[chn].dscr_ring.free);
+			dump_dscr_reg(dscr);
+			edma_dump_chn_reg(chn);
 			spin_unlock_irqrestore(edma->chn_sw[chn].dscr_ring.lock
 					       .irq_spinlock_p,
 					       edma->chn_sw[chn].dscr_ring.lock
@@ -689,7 +708,7 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 		return -1;
 	}
 
-	WCN_INFO("%s(chn=%d, head=0x%p, tail=0x%p, num=%d)\n",
+	WCN_DBG("%s(chn=%d, head=0x%p, tail=0x%p, num=%d)\n",
 		 __func__, chn, head, tail, num);
 
 	if (edma->chn_sw[chn].dscr_ring.tail == NULL) {
@@ -697,7 +716,8 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 		WARN_ON(1);
 		return -1;
 	}
-	edma_print_mbuf_data(chn, head, tail, __func__);
+	if (inout == TX)
+		edma_print_mbuf_data(chn, head, tail, __func__);
 
 	spin_lock_irqsave(edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p,
 			edma->chn_sw[chn].dscr_ring.lock.flag);
@@ -1596,7 +1616,7 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 			(pcie_bar_vmem(edma->pcie_info, 0) + 0X161000);
 	WCN_INFO("WCN dma_chn_reg size is %ld\n", sizeof(struct edma_chn_reg));
 	for (i = 0; i < 16; i++) {
-		WCN_INFO("edma chn[%d] dma_int:0x%p, event:%p\n", i,
+		WCN_DBG("edma chn[%d] dma_int:0x%p, event:%p\n", i,
 			 &edma->dma_chn_reg[i].dma_int.reg,
 			 &edma->chn_sw[i].event);
 		create_wcnevent(&(edma->chn_sw[i].event), i);

@@ -100,7 +100,7 @@ int mbuf_pool_init(struct buffer_pool *pool, int size, int payload)
 	spin_lock_init(&(pool->lock));
 	pool->mem = kmalloc((sizeof(struct mbuf_t) + payload) * size,
 			     GFP_KERNEL);
-	WCN_INFO("mbuf_pool->mem:0x%lx\n",
+	WCN_DBG("mbuf_pool->mem:0x%lx\n",
 		 (unsigned long)virt_to_phys(pool->mem));
 	memset(pool->mem, 0x00, (sizeof(struct mbuf_t) + payload) * size);
 	pool->head = (struct mbuf_t *) (pool->mem);
@@ -117,7 +117,7 @@ int mbuf_pool_init(struct buffer_pool *pool, int size, int payload)
 		mbuf->next = next;
 		mbuf = next;
 	}
-	WCN_INFO("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
+	WCN_DBG("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
 		 (unsigned long)mbuf,
 		 (unsigned long)virt_to_phys(mbuf));
 	mbuf->seq = i;
@@ -125,7 +125,7 @@ int mbuf_pool_init(struct buffer_pool *pool, int size, int payload)
 	mbuf->len = payload;
 	mbuf->next = NULL;
 	pool->free = size;
-	WCN_INFO("%s(0x%p, %d)\n", __func__, pool, pool->free);
+	WCN_DBG("%s(0x%p, %d)\n", __func__, pool, pool->free);
 
 	return 0;
 }
