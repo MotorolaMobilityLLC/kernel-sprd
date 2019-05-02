@@ -445,7 +445,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *pci_id)
 {
 	struct wcn_pcie_info *priv;
-	unsigned int reg32;
+	unsigned int val32;
 
 	int ret = -ENODEV, i, flag;
 
@@ -600,10 +600,10 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	proc_fs_init();
 	log_dev_init();
 	wcn_op_init();
-	pci_read_config_dword(pdev, 0x0728, &reg32);
-	WCN_INFO("EP link status 728=0x%x\n", reg32);
-	pci_read_config_dword(pdev, 0x072c, &reg32);
-	WCN_INFO("EP link status 72c=0x%x\n", reg32);
+	pci_read_config_dword(pdev, 0x0728, &val32);
+	WCN_INFO("EP link status 728=0x%x\n", val32);
+	pci_read_config_dword(pdev, 0x072c, &val32);
+	WCN_INFO("EP link status 72c=0x%x\n", val32);
 	WCN_INFO("%s ok\n", __func__);
 
 	return 0;
