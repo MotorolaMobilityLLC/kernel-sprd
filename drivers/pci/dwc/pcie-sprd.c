@@ -338,12 +338,69 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	return 0;
 }
 
+static int sprd_pcie_suspend_noirq(struct device *dev)
+{
+	int ret;
+	struct platform_device *pdev = to_platform_device(dev);
+	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = sprd_pcie->pci;
+
+	sprd_pcie_save_dwc_reg(pci);
+
+	sprd_pcie_enter_pcipm_l2(pci);
+	ret = sprd_pcie_rc_wait_for_l2(pci);
+	if (ret < 0) {
+		dev_err(dev, "suspend fail, RC can't enter l2\n");
+		return ret;
+	}
+
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-suspend-syscons");
+	if (ret < 0) {
+		dev_err(dev, "set pcie suspend syscons fail, return %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int sprd_pcie_resume_noirq(struct device *dev)
+{
+	int ret;
+	struct platform_device *pdev = to_platform_device(dev);
+	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = sprd_pcie->pci;
+	struct pcie_port *pp = &pci->pp;
+
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-startup-syscons");
+	if (ret < 0) {
+		dev_err(dev, "set pcie resume syscons fail, return %d\n", ret);
+		return ret;
+	}
+
+	dw_pcie_setup_rc(pp);
+	ret = dw_pcie_wait_for_link(pci);
+	if (ret < 0) {
+		dev_err(dev, "resume fail, pcie can't establish link\n");
+		return ret;
+	}
+
+	sprd_pcie_restore_dwc_reg(pci);
+
+	return 0;
+}
+
+static const struct dev_pm_ops sprd_pcie_pm_ops = {
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(sprd_pcie_suspend_noirq,
+				      sprd_pcie_resume_noirq)
+};
+
 static struct platform_driver sprd_pcie_driver = {
 	.probe = sprd_pcie_probe,
 	.driver = {
 		.name = "sprd-pcie",
 		.suppress_bind_attrs = true,
 		.of_match_table = sprd_pcie_of_match,
+		.pm	= &sprd_pcie_pm_ops,
 	},
 };
 

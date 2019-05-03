@@ -14,6 +14,7 @@
  */
 
 #include <linux/clk.h>
+#include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/mfd/syscon.h>
 #include <linux/of_device.h>
@@ -78,4 +79,90 @@ int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 	}
 
 	return i;
+}
+
+int sprd_pcie_rc_wait_for_l2(struct dw_pcie *pci)
+{
+	int retries;
+	u32 reg;
+
+	for (retries = 0; retries < ENTER_L2_MAX_RETRIES; retries++) {
+		reg = dw_pcie_readl_dbi(pci, SPRD_PCIE_PE0_PM_STS);
+		if ((reg & SPRD_PCIE_PM_CURRENT_STATE_MASK) != SPRD_PCIE_L2) {
+			dev_err(pci->dev, "retries %d to enter L2, reg: %lx\n",
+				retries, (unsigned long)reg);
+			/* TODO: now we can't sure the delay time */
+			usleep_range(1000, 2000);
+		} else {
+			dev_info(pci->dev, "enter L2: reg: 0x%lx\n",
+				 (unsigned long)reg);
+			return 0;
+		}
+	}
+	dev_err(pci->dev, "can't enter L2\n");
+
+	return -ETIMEDOUT;
+}
+
+void sprd_pcie_enter_pcipm_l2(struct dw_pcie *pci)
+{
+	u32 reg;
+
+	reg = dw_pcie_readl_dbi(pci, SPRD_PCIE_PE0_PM_CTRL);
+	reg |= SPRD_PCIE_APP_CLK_PM_EN;
+	dw_pcie_writel_dbi(pci, SPRD_PCIE_PE0_PM_CTRL, reg);
+
+	reg = dw_pcie_readl_dbi(pci, SPRD_PCIE_PE0_TX_MSG_REG);
+	reg |= SPRD_PCIE_PME_TURN_OFF_REQ;
+	dw_pcie_writel_dbi(pci, SPRD_PCIE_PE0_TX_MSG_REG, reg);
+}
+
+void sprd_pcie_save_msi_ctrls(struct dw_pcie *pci)
+{
+	int i;
+	struct platform_device *pdev = to_platform_device(pci->dev);
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+
+	for (i = 0; i < MAX_MSI_CTRLS; i++) {
+		ctrl->save_msi_ctrls[i][0] =
+			dw_pcie_readl_dbi(pci, PCIE_MSI_INTR0_ENABLE + i * 12);
+		ctrl->save_msi_ctrls[i][1] =
+			dw_pcie_readl_dbi(pci, PCIE_MSI_INTR0_MASK + i * 12);
+		ctrl->save_msi_ctrls[i][2] =
+			dw_pcie_readl_dbi(pci, PCIE_MSI_INTR0_STATUS + i * 12);
+	}
+}
+
+void sprd_pcie_save_dwc_reg(struct dw_pcie *pci)
+{
+	sprd_pcie_save_msi_ctrls(pci);
+}
+
+void sprd_pcie_restore_msi_ctrls(struct dw_pcie *pci)
+{
+	int i;
+	u64 msi_target;
+	struct pcie_port *pp = &pci->pp;
+	struct platform_device *pdev = to_platform_device(pci->dev);
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+
+	msi_target = virt_to_phys((void *)pp->msi_data);
+	dw_pcie_writel_dbi(pci, PCIE_MSI_ADDR_LO,
+			   (u32)(msi_target & 0xffffffff));
+	dw_pcie_writel_dbi(pci, PCIE_MSI_ADDR_HI,
+			   (u32)(msi_target >> 32 & 0xfffffff));
+
+	for (i = 0; i < MAX_MSI_CTRLS; i++) {
+		dw_pcie_writel_dbi(pci, PCIE_MSI_INTR0_ENABLE + i * 12,
+				   ctrl->save_msi_ctrls[i][0]);
+		dw_pcie_writel_dbi(pci, PCIE_MSI_INTR0_MASK + i * 12,
+				   ctrl->save_msi_ctrls[i][1]);
+		dw_pcie_writel_dbi(pci, PCIE_MSI_INTR0_STATUS + i * 12,
+				   ctrl->save_msi_ctrls[i][2]);
+	}
+}
+
+void sprd_pcie_restore_dwc_reg(struct dw_pcie *pci)
+{
+	sprd_pcie_restore_msi_ctrls(pci);
 }
