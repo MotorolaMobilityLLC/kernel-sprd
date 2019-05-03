@@ -1224,7 +1224,7 @@
 				num-lanes = <1>;
 				num-vectors = <256>;
 				num-viewport = <8>;
-				status = "okay";
+				status = "disabled";
 
 				dummy@0 {
 					label = "parent_gic_intc";
@@ -1255,7 +1255,7 @@
 				num-lanes = <1>;
 				num-vectors = <256>;
 				num-viewport = <8>;
-				status = "okay";
+				status = "disabled";
 
 				dummy@0 {
 					label = "parent_gic_intc";
