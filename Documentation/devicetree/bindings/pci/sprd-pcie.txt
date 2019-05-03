@@ -38,6 +38,10 @@ HOST MODE
 	- mask: the mask of the syscon register
 	- value: the value to be set to the syscon register mask
 
+ - sprd,pcie-suspend-syscons: the global registers of pcie when pcie suspend.
+			      This property is the same as
+			      sprd,pcie-startup-syscons.
+
  - dummy@0 and dummy@1: dummy nodes.
 	   some pcie controllers have two or more interrupt lines. one connect
 	   to ipa level2 interrupt controller (e.g. pcie legacy irq), which
@@ -86,14 +90,29 @@ Example:
 		sprd,pcie-startup-syscons =
 			<&ipa_ahb_regs 0 0
 				REG_IPA_AHB_IPA_EB
-				(MASK_IPA_AHB_PCIE2_EB | MASK_IPA_AHB_IPA_EB)
-				(MASK_IPA_AHB_PCIE2_EB | MASK_IPA_AHB_IPA_EB)>,
+				MASK_IPA_AHB_PCIE2_EB
+				(0x1 << 8)>,
+			<&pmu_apb_regs 0 20
+				REG_PMU_APB_PCIE_PERST_CTRL_CFG
+				MASK_PMU_APB_REG_PCIE2_PERST_N_ASSERT
+				0>,
 			<&pmu_apb_regs 0 0
 				REG_PMU_APB_PCIE_PERST_CTRL_CFG
-				(MASK_PMU_APB_PCIE2_PERST_N_AUTO_CTRL_EN |
-				MASK_PMU_APB_REG_PCIE2_PERST_N_ASSERT)
+				MASK_PMU_APB_PCIE2_PERST_N_AUTO_CTRL_EN
 				0x1>;
-
+		sprd,pcie-suspend-syscons =
+			<&pmu_apb_regs 0 0
+				REG_PMU_APB_PCIE_PERST_CTRL_CFG
+				MASK_PMU_APB_PCIE2_PERST_N_AUTO_CTRL_EN
+				0>,
+			<&pmu_apb_regs 0 20
+				REG_PMU_APB_PCIE_PERST_CTRL_CFG
+				MASK_PMU_APB_REG_PCIE2_PERST_N_ASSERT
+				(0x1 << 1)>,
+			<&ipa_ahb_regs 0 0
+				REG_IPA_AHB_IPA_EB
+				MASK_IPA_AHB_PCIE2_EB
+				0>;
 		dummy@0 {
 			label = "parent_gic_intc";
 			interrupt-parent = <&gic>;
