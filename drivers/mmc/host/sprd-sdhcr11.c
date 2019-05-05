@@ -1260,7 +1260,6 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		clkchg_flag = 1;
 		mmiowb();
 		sprd_sdhc_clk_set_and_on(host, div);
-		sdhc_enable_auto_gate(host);
 		sprd_sdhc_sd_clk_on(host);
 		host->ios.clock = ios->clock;
 		host->data_timeout_val = sprd_sdhc_calc_timeout(ios->clock,
@@ -1277,9 +1276,11 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		    ios->clock == MMC_TIMING_MMC_HS)
 			sdhc_set_dll_invert(host, SPRD_SDHC_BIT_CMD_DLY_INV |
 					    SPRD_SDHC_BIT_POSRD_DLY_INV, 1);
-		else
+		else {
 			sdhc_set_dll_invert(host, SPRD_SDHC_BIT_CMD_DLY_INV |
 					    SPRD_SDHC_BIT_POSRD_DLY_INV, 0);
+			sdhc_enable_auto_gate(host);
+		}
 	}
 
 	if (ios->power_mode != host->ios.power_mode) {
