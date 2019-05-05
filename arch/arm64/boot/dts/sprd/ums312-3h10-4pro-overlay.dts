@@ -1,0 +1,11 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+		};
+	};
+};
+

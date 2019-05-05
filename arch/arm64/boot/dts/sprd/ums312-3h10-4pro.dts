@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Unisoc Sharkl5 platform DTS file
+ *
+ * Copyright (C) 2018, Unisoc Communications Inc.
+ */
+
+/dts-v1/;
+
+
+#include "ums312.dtsi"
+#include "ums312-common.dtsi"
+
+/ {
+	model = "Unisoc UMS312 1H10 board";
+
+	compatible = "sprd,ums312";
+
+	sprd,sc-id = <312 1 0x20000>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+	};
+
+	memory: memory {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x80000000>;
+	};
+
+	chosen {
+		stdout-path = &uart1;
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=8 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.hardware=ums312_3h10_4pro androidboot.dtbo_idx=0 swiotlb=1 printk.devkmsg=on androidboot.selinux=permissive";
+	};
+
+	&uart0 {
+		status = "okay";
+	};
+
+	&uart1 {
+		status = "okay";
+	};
+
+	&uart2 {
+		status = "okay";
+	};
+}
