@@ -359,6 +359,79 @@ static struct sprd_clk_desc sharkl5_gc_pll_desc = {
 	.hw_clks	= &sharkl5_gc_pll_hws,
 };
 
+/* apcpu sec clk */
+static const char * const acore_parents[] = { "ext-26m", "lpll",
+					      "twpll", "mpll0" };
+static SPRD_COMP_CLK_SEC(acore0_clk, "acore0-clk", acore_parents, 0,
+			 0, 2, 4, 3, 0);
+static SPRD_COMP_CLK_SEC(acore1_clk, "acore1-clk", acore_parents, 1,
+			 8, 2, 12, 3, 0);
+static SPRD_COMP_CLK_SEC(acore2_clk, "acore2-clk", acore_parents, 2,
+			 16, 2, 20, 3, 0);
+
+static const char * const pcore_parents[] = { "ext-26m", "lpll",
+					      "twpll", "mpll1" };
+static SPRD_COMP_CLK_SEC(pcore_clk, "pcore-clk", pcore_parents, 3,
+			 0, 2, 4, 3, 0);
+
+static const char * const scu_parents[] = { "ext-26m", "twpll-768m",
+					    "lpll", "mpll2" };
+static SPRD_COMP_CLK_SEC(scu_clk, "scu-clk", scu_parents, 4,
+			 0, 2, 4, 3, 0);
+static SPRD_DIV_CLK_SEC(ace_clk, "ace-clk", "scu-clk", 5,
+			12, 3, 0);
+
+static const char * const periph_parents[] = { "ext-26m", "twpll-153m6",
+					       "twpll-512m", "twpll-768m" };
+static SPRD_COMP_CLK_SEC(periph_clk, "periph-clk", periph_parents, 6,
+			 24, 2, 28, 3, 0);
+
+static const char * const gic_parents[] = { "ext-26m", "twpll-153m6",
+					    "twpll-384m", "twpll-512m" };
+static SPRD_COMP_CLK_SEC(gic_clk, "gic-clk", gic_parents, 7,
+			 16, 2, 20, 3, 0);
+
+static SPRD_COMP_CLK_SEC(atb_clk, "atb-clk", periph_parents, 8,
+			 0, 2, 4, 3, 0);
+static SPRD_DIV_CLK_SEC(debug_apb_clk, "debug-apb-clk", "atb-clk", 9,
+			12, 3, 0);
+
+static struct sprd_clk_common *sharkl5_apcpu_clks[] = {
+	/* address base is 0x32880000 */
+	&acore0_clk.common,
+	&acore1_clk.common,
+	&acore2_clk.common,
+	&pcore_clk.common,
+	&scu_clk.common,
+	&ace_clk.common,
+	&periph_clk.common,
+	&gic_clk.common,
+	&atb_clk.common,
+	&debug_apb_clk.common,
+};
+
+static struct clk_hw_onecell_data sharkl5_apcpu_hws = {
+	.hws	= {
+		[CLK_ACORE0]	= &acore0_clk.common.hw,
+		[CLK_ACORE1]	= &acore1_clk.common.hw,
+		[CLK_ACORE2]	= &acore2_clk.common.hw,
+		[CLK_PCORE]	= &pcore_clk.common.hw,
+		[CLK_SCU]	= &scu_clk.common.hw,
+		[CLK_ACE]	= &ace_clk.common.hw,
+		[CLK_PERIPH]	= &periph_clk.common.hw,
+		[CLK_GIC]	= &gic_clk.common.hw,
+		[CLK_ATB]	= &atb_clk.common.hw,
+		[CLK_DEBUG_APB]	= &debug_apb_clk.common.hw,
+	},
+	.num	= CLK_APCPU_SEC_NUM,
+};
+
+static struct sprd_clk_desc sharkl5_apcpu_clk_sec_desc = {
+	.clk_clks	= sharkl5_apcpu_clks,
+	.num_clk_clks	= ARRAY_SIZE(sharkl5_apcpu_clks),
+	.hw_clks	= &sharkl5_apcpu_hws,
+};
+
 /* audcp apb gates */
 static SPRD_SC_GATE_CLK(audcp_wdg_eb,	"audcp-wdg-eb",	"ext-26m", 0x0,
 		     0x100, BIT(1), CLK_IGNORE_UNUSED, 0);
@@ -1808,6 +1881,8 @@ static const struct of_device_id sprd_sharkl5_clk_ids[] = {
 	  .data = &sharkl5_g3_pll_desc },
 	{ .compatible = "sprd,sharkl5-gc-pll",		/* 0x323e0000 */
 	  .data = &sharkl5_gc_pll_desc },
+	{ .compatible = "sprd,sharkl5-apcpu-clk-sec",	/* 0x32880000 */
+	  .data = &sharkl5_apcpu_clk_sec_desc },
 	{ .compatible = "sprd,sharkl5-audcpapb-gate",	/* 0x3350d000 */
 	  .data = &sharkl5_audcpapb_gate_desc },
 	{ .compatible = "sprd,sharkl5-audcpahb-gate",	/* 0x335e0000 */

@@ -353,4 +353,16 @@
 #define CLK_AUDCP_TMR1_EB		3
 #define CLK_AUDCP_APB_GATE_NUM		(CLK_AUDCP_TMR1_EB + 1)
 
+#define CLK_ACORE0			0
+#define CLK_ACORE1			1
+#define CLK_ACORE2			2
+#define CLK_PCORE			3
+#define CLK_SCU				4
+#define CLK_ACE				5
+#define CLK_PERIPH			6
+#define CLK_GIC				7
+#define CLK_ATB				8
+#define CLK_DEBUG_APB			9
+#define CLK_APCPU_SEC_NUM		(CLK_DEBUG_APB + 1)
+
 #endif /* _DT_BINDINGS_CLK_SHARKL5_H_ */
