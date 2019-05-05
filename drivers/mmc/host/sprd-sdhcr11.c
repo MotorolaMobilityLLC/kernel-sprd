@@ -143,6 +143,11 @@ static int sprd_get_delay_value(struct platform_device *pdev)
 	if (!timing_dly)
 		return -ENOMEM;
 
+	ret = of_property_read_u32_array(np, "sprd,legacy-dly", dly_vl, 4);
+	if (!ret)
+		timing_dly->legacy_dly = SPRD_SDHC_DLY_TIMING(dly_vl[0],
+					dly_vl[1], dly_vl[2], dly_vl[3]);
+
 	ret = of_property_read_u32_array(np, "sprd,mmchs-dly", dly_vl, 4);
 	if (!ret)
 		timing_dly->mmchs_dly = SPRD_SDHC_DLY_TIMING(dly_vl[0],
@@ -191,6 +196,15 @@ static int sprd_get_delay_value(struct platform_device *pdev)
 static void sprd_set_delay_value(struct sprd_sdhc_host *host)
 {
 	switch (host->ios.timing) {
+	case MMC_TIMING_LEGACY:
+		if (host->ios.clock == 25000000) {
+			host->dll_dly = host->timing_dly->legacy_dly;
+			sprd_sdhc_writel(host, host->dll_dly,
+					SPRD_SDHC_REG_32_DLL_DLY);
+			pr_err("(%s) legacy default timing delay value 0x%08x\n",
+				host->device_name, host->dll_dly);
+		}
+		break;
 	case MMC_TIMING_MMC_HS:
 		if (host->ios.clock == 52000000) {
 			host->dll_dly = host->timing_dly->mmchs_dly;
@@ -1273,7 +1287,8 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		}
 
 		if (ios->clock <= 400000 || ios->timing == MMC_TIMING_SD_HS ||
-		    ios->clock == MMC_TIMING_MMC_HS)
+		    ios->clock == MMC_TIMING_MMC_HS ||
+		    ios->timing == MMC_TIMING_LEGACY)
 			sdhc_set_dll_invert(host, SPRD_SDHC_BIT_CMD_DLY_INV |
 					    SPRD_SDHC_BIT_POSRD_DLY_INV, 1);
 		else {

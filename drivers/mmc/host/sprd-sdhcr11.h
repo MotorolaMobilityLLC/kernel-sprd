@@ -33,6 +33,7 @@
 
 /* Controller block structure */
 struct timing_delay_value {
+	u32 legacy_dly;
 	u32 mmchs_dly;
 	u32 sdhs_dly;
 	u32 sdr50_dly;
