@@ -41,7 +41,7 @@
 static struct dentry *root;
 static int sipa_eth_debugfs_mknod(void *root, void *data);
 
-static u32 gro_enable;
+static u64 gro_enable;
 
 static inline void sipa_eth_dt_stats_init(struct sipa_eth_dtrans_stats *stats)
 {
@@ -538,13 +538,13 @@ static const struct file_operations sipa_eth_debug_fops = {
 
 static int debugfs_gro_enable_get(void *data, u64 *val)
 {
-	*val = gro_enable;
+	*val = *(u64 *)data;
 	return 0;
 }
 
 static int debugfs_gro_enable_set(void *data, u64 val)
 {
-	gro_enable = *(u32 *)val;
+	*(u64 *)data = val;
 	return 0;
 }
 
