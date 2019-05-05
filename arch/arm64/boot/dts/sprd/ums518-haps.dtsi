@@ -222,9 +222,51 @@
 	};
 
 	soc {
+		pmu_gate: pmu-gate {
+			compatible = "sprd,sharkl5pro-pmu-gate";
+			sprd,syscon = <&pmu_apb_regs>; /* 0x327e0000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		mpll1: mpll1 {
+			compatible = "sprd,sharkl5pro-g2-pll";
+			sprd,syscon = <&anlg_phy_g2_regs>; /* 0x323b0000 */
+			clocks = <&pmu_gate CLK_MPLL1>;
+			#clock-cells = <1>;
+		};
+
+		pll1: pll1 {
+			compatible = "sprd,sharkl5pro-g3-pll";
+			sprd,syscon = <&anlg_phy_g3_regs>; /* 0x323c0000 */
+			clocks = <&pmu_gate 0>;
+			#clock-cells = <1>;
+		};
+
+		pll2: pll2 {
+			compatible = "sprd,sharkl5pro-gc-pll";
+			sprd,syscon = <&anlg_phy_gc_regs>; /* 0x323e0000 */
+			clocks = <&pmu_gate 0>;
+			#clock-cells = <1>;
+		};
+
 		apahb_gate: apahb-gate {
 			compatible = "sprd,sharkl5pro-apahb-gate";
 			sprd,syscon = <&ap_ahb_regs>; /* 0x20100000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		ap_clk: clock-controller@20200000 {
+			compatible = "sprd,sharkl5pro-ap-clk";
+			reg = <0 0x20200000 0 0x1000>;
+			clocks = <&apapb_gate CLK_APB_REG_EB>;
+			#clock-cells = <1>;
+		};
+
+		aon_clk: clock-controller@32080000 {
+			compatible = "sprd,sharkl5pro-aonapb-clk";
+			reg = <0 0x32080000 0 0x1000>;
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
 		};
