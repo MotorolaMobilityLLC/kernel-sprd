@@ -115,14 +115,11 @@ static int serdes_get_version(struct serdes_drv_data *serdes)
 
 int serdes_enable(struct serdes_drv_data *serdes, int enable)
 {
-	static int is_enabled;
-
-	if (is_enabled == enable) {
+	if (serdes->enabled == enable) {
 		if (enable)
 			serdes_chan_sel(serdes, serdes->channel);
 		return 0;
 	}
-	is_enabled = enable;
 
 	if (enable) {
 		serdes_get_version(serdes);
