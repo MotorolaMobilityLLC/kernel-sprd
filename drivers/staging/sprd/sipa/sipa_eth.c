@@ -96,7 +96,6 @@ static int sipa_eth_rx(struct SIPA_ETH *sipa_eth, int budget)
 	struct net_device *dev;
 	struct sipa_eth_dtrans_stats *dt_stats;
 	int skb_cnt = 0;
-	int rx_bytes = 0;
 	int ret;
 
 	dt_stats = &sipa_eth->dt_stats;
@@ -115,6 +114,7 @@ static int sipa_eth_rx(struct SIPA_ETH *sipa_eth, int budget)
 			switch (ret) {
 			case -ENODEV:
 				pr_err("fail to find dev");
+				sipa_eth->stats.rx_errors++;
 				dt_stats->rx_fail++;
 				break;
 			case -ENODATA:
@@ -130,7 +130,9 @@ static int sipa_eth_rx(struct SIPA_ETH *sipa_eth, int budget)
 		}
 
 		sipa_eth_prepare_skb(sipa_eth, skb);
-		rx_bytes += skb->len;
+
+		sipa_eth->stats.rx_packets++;
+		sipa_eth->stats.rx_bytes += skb->len;
 		sipa_eth_rx_stats_update(dt_stats, skb->len);
 
 		if (gro_enable)
@@ -140,9 +142,6 @@ static int sipa_eth_rx(struct SIPA_ETH *sipa_eth, int budget)
 
 		skb_cnt++;
 	}
-
-	dev->stats.rx_packets += skb_cnt;
-	dev->stats.rx_bytes += rx_bytes;
 
 	return skb_cnt;
 }
@@ -238,6 +237,7 @@ static int sipa_eth_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		pr_err("fail to send skb, ret %d\n", ret);
 		if (ret == -ENOMEM || ret == -EAGAIN) {
 			dt_stats->tx_fail++;
+			sipa_eth->stats.tx_errors++;
 			netif_stop_queue(dev);
 			return NETDEV_TX_BUSY;
 		}
@@ -245,8 +245,8 @@ static int sipa_eth_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	}
 
 	/* update netdev statistics */
-	dev->stats.tx_packets++;
-	dev->stats.tx_bytes += skb->len;
+	sipa_eth->stats.tx_packets++;
+	sipa_eth->stats.tx_bytes += skb->len;
 	sipa_eth_tx_stats_update(dt_stats, skb->len);
 
 	return NETDEV_TX_OK;
@@ -279,6 +279,7 @@ static int sipa_eth_open(struct net_device *dev)
 	sipa_eth->state = DEV_ON;
 
 	sipa_eth_dt_stats_init(&sipa_eth->dt_stats);
+	memset(&sipa_eth->stats, 0, sizeof(sipa_eth->stats));
 
 	if (!netif_carrier_ok(sipa_eth->netdev)) {
 		pr_info("set netif_carrier_on\n");
