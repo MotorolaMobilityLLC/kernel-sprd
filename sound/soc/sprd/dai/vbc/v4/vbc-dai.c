@@ -912,7 +912,7 @@ static int dsp_startup(struct vbc_codec_priv *vbc_codec,
 	if (ret < 0) {
 		pr_err("vbc_dsp_func_startup return error");
 		agdsp_access_disable();
-		return 0;
+		return ret;
 	}
 	agdsp_access_disable();
 
