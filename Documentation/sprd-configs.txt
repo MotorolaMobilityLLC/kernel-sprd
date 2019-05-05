@@ -2502,7 +2502,7 @@ CONFIG_DECOMPRESS_BZIP2
 	[function] Support bzip2 decompress format.
 CONFIG_DECOMPRESS_GZIP
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -8667,7 +8667,7 @@ CONFIG_RD_BZIP2
 	[function] Support initial ramdisks compressed using bzip2.
 CONFIG_RD_GZIP
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] lib
 	[must] console
