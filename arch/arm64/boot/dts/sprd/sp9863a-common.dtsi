@@ -20,35 +20,6 @@
 		thm-sensor11 = &cpu_thmzone;
 	};
 
-	firmware {
-		android {
-			compatible = "android,firmware";
-
-			vbmeta {
-				compatible = "android,vbmeta";
-				parts = "vbmeta,boot,recovery,system,vendor,product";
-			};
-
-			fstab {
-				compatible = "android,fstab";
-				vendor {
-					compatible = "android,vendor";
-					dev = "/dev/block/platform/soc/soc:ap-ahb/20600000.sdio/by-name/vendor";
-					type = "ext4";
-					mnt_flags = "ro,barrier=1";
-					fsmgr_flags = "wait,avb";
-				};
-				product {
-					compatible = "android,product";
-					dev = "/dev/block/platform/soc/soc:ap-ahb/20600000.sdio/by-name/product";
-					type = "ext4";
-					mnt_flags = "ro,barrier=1";
-					fsmgr_flags = "wait,avb";
-				};
-			};
-		};
-	};
-
 	thm_zone: thermal-zones {
 
 		cpu_thmzone: cpu-thmzone {
