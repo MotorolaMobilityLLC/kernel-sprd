@@ -197,9 +197,6 @@ EXPORT_SYMBOL(sipa_sys_auto_gate_enable);
 
 void sipa_sys_proc_init(struct sipa_sys_cfg_tag *cfg)
 {
-	/*sipa enable */
-	sipa_sys_force_wakeup(cfg);
-	sipa_sys_set_sipa_enable(cfg);
 
 	/*step1 clear force shutdown:0x32280538[25] */
 	sipa_sys_clear_force_shutdown(cfg);
