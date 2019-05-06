@@ -9,7 +9,7 @@ else
 KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/KERNEL
 KERNEL_DIFF_CONFIG_ARCH := $(KERNEL_PATH)/sprd-diffconfig/sharkle/$(TARGET_KERNEL_ARCH)
 KERNEL_DIFF_CONFIG_COMMON := $(KERNEL_PATH)/sprd-diffconfig/sharkle/common
-KERNEL_CROSS_COMPILE := $(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin/arm-linux-androideabi-
+KERNEL_CROSS_COMPILE := $(shell pwd)/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin/arm-linux-androideabi-
 endif
 
 BOARD_WCN_CONFIG :=
