@@ -10338,7 +10338,7 @@ CONFIG_SPRD_TIMER
 	[function] Support for Spreadtrum ARM based SoCs.
 CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[arch] arm64
-	[plat] sharkl5
+	[plat] roc1,sharkl5
 	[field] make
 	[subsys] devfreq
 	[must] user
