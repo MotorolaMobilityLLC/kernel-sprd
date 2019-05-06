@@ -1071,11 +1071,13 @@ dtb-$(CONFIG_ARCH_ASPEED) += aspeed-bmc-opp-palmetto.dtb \
 	aspeed-ast2500-evb.dtb
 
 dtb-$(CONFIG_ARCH_SPRD) += \
+	sp9832e-1h10-gofu.dtb \
 	sp7731e-1h10-native.dtb \
 	ums312-1h10-go.dtb \
 	ums312-2h10-go.dtb
 
 dtbo-$(CONFIG_ARCH_SPRD) += \
+	sp9832e-1h10-gofu-overlay.dtbo \
 	sp7731e-1h10-overlay.dtbo \
 	ums312-1h10-go-overlay.dtbo \
 	ums312-2h10-go-overlay.dtbo
