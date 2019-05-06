@@ -1694,6 +1694,10 @@ static int find_lowest_rq(struct task_struct *task)
 				cpumask_copy(lowest_mask, &tmp_mask);
 		}
 
+		/* fast path for prev_cpu */
+		if (cpumask_test_cpu(cpu, lowest_mask) && idle_cpu(cpu))
+			return cpu;
+
 		for_each_cpu(i, lowest_mask) {
 			if (idle_cpu(i))
 				return i;

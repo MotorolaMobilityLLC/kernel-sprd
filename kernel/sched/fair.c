@@ -7326,11 +7326,21 @@ static inline int task_fits_capacity(struct task_struct *p, int cpu)
 	return capacity * 1024 > boosted_task_util(p) * capacity_margin;
 }
 
-static int start_cpu(bool boosted)
+static int start_cpu(struct task_struct *p, bool boosted)
 {
 	struct root_domain *rd = cpu_rq(smp_processor_id())->rd;
+	int start_cpu = -1;
 
-	return boosted ? rd->max_cap_orig_cpu : rd->min_cap_orig_cpu;
+	if (boosted)
+		return rd->max_cap_orig_cpu;
+
+	if (rd->min_cap_orig_cpu != -1
+	    && task_fits_capacity(p, rd->min_cap_orig_cpu))
+		start_cpu = rd->min_cap_orig_cpu;
+	else
+		start_cpu = rd->max_cap_orig_cpu;
+
+	return start_cpu;
 }
 
 static inline int find_best_target(struct task_struct *p, int *backup_cpu,
@@ -7358,7 +7368,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	*backup_cpu = -1;
 
 	/* Find start CPU based on boost value */
-	cpu = start_cpu(false);
+	cpu = start_cpu(p, false);
 	if (cpu < 0)
 		return -1;
 
@@ -7366,6 +7376,15 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	sd = rcu_dereference(per_cpu(sd_ea, cpu));
 	if (!sd)
 		return -1;
+
+	/* fast path for prev_cpu */
+	if ((capacity_orig_of(prev_cpu) == capacity_orig_of(cpu)) &&
+	    cpu_online(prev_cpu) && idle_cpu(prev_cpu)) {
+		target_cpu = -1;
+		trace_sched_find_best_target(p, prefer_idle, min_util, cpu,
+					     -1, -1, target_cpu);
+		return target_cpu;
+	}
 
 	/* Scan CPUs in all SDs */
 	sg = sd->groups;
