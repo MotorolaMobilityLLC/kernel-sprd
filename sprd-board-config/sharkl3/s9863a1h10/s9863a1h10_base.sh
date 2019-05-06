@@ -1,0 +1,23 @@
+BSP_KERNEL_ARCH="arm64"
+#BSP_KERNEL_OUT_DIR="."
+#BSP_ROOT_OUT="."
+BSP_KERNEL_DIFF_CONFIG_ARCH="sprd-diffconfig/sharkl3/$BSP_KERNEL_ARCH"
+BSP_KERNEL_DIFF_CONFIG_COMMON="sprd-diffconfig/sharkl3/common"
+if [ -z $BSP_KERNEL_PATH ]; then
+	BSP_KERNEL_PATH="."
+fi
+BSP_KERNEL_CROSS_COMPILE="$BSP_KERNEL_PATH/../../toolchain/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
+BSP_BOARD_NAME="sp9863a_1h10"
+
+BSP_BOARD_WCN_CONFIG=""
+BSP_BOARD_EXT_PMIC_CONFIG=""
+BSP_PRODUCT_GO_DEVICE=""
+BSP_BOARD_FEATUREPHONE_CONFIG=""
+BSP_BOARD_TEE_CONFIG=""
+
+if [ "$BSP_BOARD_FEATUREPHONE_CONFIG" == "true" ]; then
+	BSP_BOARD_TEE_64BIT="false"
+else
+	BSP_BOARD_TEE_64BIT="true"
+fi
+
