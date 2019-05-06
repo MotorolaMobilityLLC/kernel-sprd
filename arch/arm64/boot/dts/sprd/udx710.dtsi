@@ -33,6 +33,7 @@
 			reg = <0x0 0x0>;
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD>;
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 		CPU1: cpu@100 {
 			device_type = "cpu";
@@ -40,6 +41,7 @@
 			reg = <0x0 0x100>;
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD>;
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 	};
 
@@ -58,6 +60,66 @@
 	psci {
 		compatible = "arm,psci-0.2";
 		method = "smc";
+	};
+
+	cpufreq_clus0: cpufreq-clus0 {
+		cpufreq-cluster-id = <0>;
+		cpufreq-sub-clusters =  <&cpufreq_scu>,
+					<&cpufreq_periph>,
+					<&cpufreq_gic>;
+		clock-latency = <50000>;
+		voltage-latency = <6413>;
+		operating-points = <
+			/*kHZ	uV*/
+			1352000 800000
+			1014000 800000
+			768000  800000
+			624000  800000
+			512000  800000
+			256000  800000
+		>;
+	};
+	cpufreq_scu: cpufreq-scu {
+		cpufreq-cluster-id = <1>;
+		clock-latency = <50000>;
+		voltage-latency = <0>;
+		operating-points = <
+			/*kHZ	uV*/
+			1014000 800000
+			768000  800000
+			512000  800000
+			468000  800000
+			384000  800000
+			192000  800000
+		>;
+	};
+
+	cpufreq_periph: cpufreq-periph {
+		cpufreq-cluster-id = <2>;
+		clock-latency = <50000>;
+		voltage-latency = <0>;
+		operating-points = <
+			/*kHZ	uV*/
+			384000  800000
+			256000  800000
+			192000  800000
+			153600  800000
+			128000  800000
+		>;
+	};
+
+	cpufreq_gic: cpufreq-gic {
+		cpufreq-cluster-id = <3>;
+		clock-latency = <50000>;
+		voltage-latency = <0>;
+		operating-points = <
+			/*kHZ	uV*/
+			384000  800000
+			256000  800000
+			192000  800000
+			153600  800000
+			128000  800000
+		>;
 	};
 
 	power: power-debug {

@@ -62,6 +62,21 @@
 
 		vbus-gpios = <&ap_gpio 11 GPIO_ACTIVE_HIGH>;
 	};
+
+	dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
+		supply-type-sel = <0x29c 0 0>;
+		top-dvfs-adi-state = <0x88 0 0xf>;
+		voltage-grade-num = <7>;
+		voltage-grade = <0 0x100 0x240 0 0x1fff>,
+			<1 0x100 0x240 9 0x1fff>,
+			<2 0x100 0x240 18 0x1fff>,
+			<3 0x100 0x244 0 0x1fff>,
+			<4 0x100 0x244 9 0x1fff>,
+			<5 0x100 0x244 18 0x1fff>,
+			<6 0x100 0x248 0 0x1fff>;
+		tuning-latency-us = <200>;
+		chnl-in-i2c = <0>;
+	};
 };
 
 &uart0 {
