@@ -1692,20 +1692,20 @@
 					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu1_supply>;
 				};
 				dcdc_mm: dcdc-mm {
-					dcdc-dvfs-enable = <0x18 20 0>;
+					dcdc-dvfs-enable = <0x18 20 1>;
 					dcdc-judge-vol-sw = <0x18 1 0x7 2>;
 					dcdc-subsys-cells = <&audcp_sys>,
 							<&gpu_sys>,
 							<&mm_sys>;
 					audcp_sys: audcp-sys {
-						dcdc-subsys-tune-enable = <0x300 6 0>;
+						dcdc-subsys-tune-enable = <0x300 6 1>;
 					};
 					gpu_sys: gpu-sys {
-						dcdc-subsys-tune-enable = <0x300 8 0>;
+						dcdc-subsys-tune-enable = <0x300 8 1>;
 					};
 
 					mm_sys: mm-sys {
-						dcdc-subsys-tune-enable = <0x300 7 0>;
+						dcdc-subsys-tune-enable = <0x300 7 1>;
 					};
 				};
 				dcdc_modem: dcdc-modem {
