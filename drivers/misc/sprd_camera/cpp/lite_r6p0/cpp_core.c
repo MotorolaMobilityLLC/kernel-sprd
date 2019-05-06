@@ -309,10 +309,10 @@ static int sprd_cppcore_sc_reg_trace(struct scale_drv_private *p)
 		return -EINVAL;
 	}
 
-	pr_info("CPP:Scaler Register list\n");
+	CPP_TRACE("CPP:Scaler Register list\n");
 	for (addr = CPP_PATH_EB; addr <= CPP_PATH0_BP_YUV_REGULATE_2;
 		addr += 16) {
-		pr_info("0x%lx: 0x%x 0x%x 0x%x 0x%x\n", addr,
+		CPP_TRACE("0x%lx: 0x%8x 0x%8x 0x%8x 0x%8x\n", addr,
 			CPP_REG_RD(addr), CPP_REG_RD(addr + 4),
 			CPP_REG_RD(addr + 8), CPP_REG_RD(addr + 12));
 	}
@@ -331,10 +331,10 @@ static int sprd_cppcore_rot_reg_trace(struct rot_drv_private *p)
 		return -EINVAL;
 	}
 
-	pr_info("CPP:Rotation Register list");
+	CPP_TRACE("CPP:Rotation Register list");
 	for (addr = CPP_ROTATION_SRC_ADDR; addr <= CPP_ROTATION_PATH_CFG;
 		addr += 16) {
-		pr_info("0x%lx: 0x%x 0x%x 0x%x 0x%x\n", addr,
+		CPP_TRACE("0x%lx: 0x%8x 0x%8x 0x%8x 0x%8x\n", addr,
 			CPP_REG_RD(addr), CPP_REG_RD(addr + 4),
 			CPP_REG_RD(addr + 8), CPP_REG_RD(addr + 12));
 	}
@@ -353,9 +353,9 @@ static int sprd_cppcore_dma_reg_trace(struct dma_drv_private *p)
 		return -EINVAL;
 	}
 
-	pr_info("CPP:Dma Register list");
+	CPP_TRACE("CPP:Dma Register list");
 	for (addr = CPP_DMA_SRC_ADDR; addr <= CPP_DMA_CFG; addr += 16) {
-		pr_info("0x%lx: 0x%x 0x%x 0x%x 0x%x\n", addr,
+		CPP_TRACE("0x%lx: 0x%8x 0x%8x 0x%8x 0x%8x\n", addr,
 			CPP_REG_RD(addr), CPP_REG_RD(addr + 4),
 			CPP_REG_RD(addr + 8), CPP_REG_RD(addr + 12));
 	}
@@ -598,325 +598,9 @@ int sprd_cpp_core_free_addr(struct cpp_iommu_info *pfinfo)
 	return 0;
 }
 
-static int sprd_cppcore_ioctl_open_rot(struct cpp_device *dev,
-	unsigned long arg)
-{
-	int ret = 0;
-
-	if (arg)
-		ret = copy_to_user((int *)arg, &ret,
-		sizeof(ret));
-	if (ret) {
-		pr_err("fail to open rot drv");
-		ret = -EFAULT;
-		goto rot_open_exit;
-	}
-
-rot_open_exit:
-
-	return ret;
-}
-
-static int sprd_cppcore_ioctl_start_rot(struct cpp_device *dev,
-	unsigned long arg)
-{
-	int ret = 0;
-	int timeleft = 0;
-	struct rotif_device *rotif = NULL;
-	struct sprd_cpp_rot_cfg_parm rot_parm;
-
-	rotif = dev->rotif;
-	if (!rotif) {
-		pr_err("fail to get invalid rotif\n");
-		ret = -EINVAL;
-		goto rot_start_exit;
-	}
-
-	mutex_lock(&rotif->rot_mutex);
-	memset(&rot_parm, 0x00, sizeof(rot_parm));
-	ret = copy_from_user(&rot_parm,
-				(void __user *)arg, sizeof(rot_parm));
-	if (unlikely(ret)) {
-		pr_err("fail to get rot param form user, ret %d\n", ret);
-		mutex_unlock(&rotif->rot_mutex);
-		ret = -EFAULT;
-		goto rot_start_exit;
-	}
-
-	ret = sprd_rot_drv_parm_check(&rot_parm);
-	if (ret) {
-		pr_err("fail to check rot parm\n");
-		mutex_unlock(&rotif->rot_mutex);
-		ret = -EFAULT;
-		goto rot_start_exit;
-	}
-	rotif->drv_priv.iommu_src.dev = &dev->pdev->dev;
-	rotif->drv_priv.iommu_dst.dev = &dev->pdev->dev;
-
-	ret = sprd_rot_drv_y_parm_set(&rot_parm,
-			&rotif->drv_priv);
-	if (ret) {
-		pr_err("fail to set rot y parm\n");
-		mutex_unlock(&rotif->rot_mutex);
-		ret = -EFAULT;
-		goto rot_start_exit;
-	}
-	sprd_rot_drv_start(&rotif->drv_priv);
-	sprd_cppcore_rot_reg_trace(&rotif->drv_priv);
-	if (!sprd_rot_drv_is_end(&rot_parm)) {
-		timeleft = wait_for_completion_timeout(&rotif->done_com,
-			msecs_to_jiffies(ROT_TIMEOUT));
-		if (timeleft == 0) {
-			sprd_cppcore_rot_reg_trace(&rotif->drv_priv);
-			pr_err("fail to wait for rot path y int\n");
-			sprd_rot_drv_stop(&rotif->drv_priv);
-			sprd_cppcore_rot_reset(dev);
-			mutex_unlock(&rotif->rot_mutex);
-			ret = -EBUSY;
-			goto rot_start_exit;
-		}
-		sprd_rot_drv_uv_parm_set(&rotif->drv_priv);
-		sprd_rot_drv_start(&rotif->drv_priv);
-	}
-
-	timeleft = wait_for_completion_timeout(&rotif->done_com,
-		msecs_to_jiffies(ROT_TIMEOUT));
-	if (timeleft == 0) {
-		sprd_cppcore_rot_reg_trace(&rotif->drv_priv);
-		sprd_rot_drv_stop(&rotif->drv_priv);
-		pr_err("fail to wait for rot path uv int\n");
-		sprd_cppcore_rot_reset(dev);
-		mutex_unlock(&rotif->rot_mutex);
-		ret = -EBUSY;
-		goto rot_start_exit;
-	}
-
-	sprd_rot_drv_stop(&rotif->drv_priv);
-	sprd_cppcore_rot_reset(dev);
-	mutex_unlock(&rotif->rot_mutex);
-
-rot_start_exit:
-	pr_info("cpp rotation ret %d\n", ret);
-
-	return ret;
-}
-
-static int sprd_cppcore_ioctl_open_scale(struct cpp_device *dev,
-	unsigned long arg)
-{
-	int ret = 0;
-	int cpp_dimension = 0;
-	struct sprd_cpp_size s_sc_cap;
-
-	memset(&s_sc_cap, 0x00, sizeof(s_sc_cap));
-	sprd_scale_drv_max_size_get(&s_sc_cap.w, &s_sc_cap.h);
-	cpp_dimension = (s_sc_cap.h << 16) | s_sc_cap.w;
-	if (arg)
-		ret = copy_to_user((int *)arg, &cpp_dimension,
-		sizeof(cpp_dimension));
-	if (ret) {
-		pr_err("fail to get max size form user");
-		ret = -EFAULT;
-		goto open_scal_exit;
-	}
-
-open_scal_exit:
-
-	return ret;
-}
-
-static int sprd_cppcore_ioctl_start_scale(struct cpp_device *dev,
-	unsigned long arg)
-{
-	int i = 0;
-	int timeleft = 0;
-	int ret = 0;
-	struct sprd_cpp_scale_cfg_parm *sc_parm = NULL;
-	struct scif_device *scif = NULL;
-
-	scif = dev->scif;
-	if (!scif) {
-		pr_err("fail to get valid scif!\n");
-		ret = -EFAULT;
-		goto start_scal_exit;
-	}
-
-	sc_parm = kzalloc(sizeof(struct sprd_cpp_scale_cfg_parm),
-			GFP_KERNEL);
-	if (sc_parm == NULL) {
-		ret = -EFAULT;
-		goto start_scal_exit;
-	}
-
-	mutex_lock(&scif->sc_mutex);
-
-	ret = copy_from_user(sc_parm, (void __user *)arg,
-			sizeof(struct sprd_cpp_scale_cfg_parm));
-	if (ret) {
-		pr_err("fail to get parm form user\n");
-		mutex_unlock(&scif->sc_mutex);
-		ret = -EFAULT;
-		goto start_scal_exit;
-	}
-	scif->drv_priv.iommu_src.dev = &dev->pdev->dev;
-	scif->drv_priv.iommu_dst.dev = &dev->pdev->dev;
-	scif->drv_priv.iommu_dst_bp.dev = &dev->pdev->dev;
-
-	sprd_scale_drv_dev_stop(&scif->drv_priv);
-	sprd_scale_drv_dev_enable(&scif->drv_priv);
-	do {
-		ret = sprd_scale_drv_slice_param_set(&scif->drv_priv, sc_parm,
-			&sc_parm->slice_param.output.hw_slice_param[i]);
-		if (ret) {
-			pr_err("fail to set slice param\n");
-			mutex_unlock(&scif->sc_mutex);
-			ret = -EINVAL;
-			goto start_scal_exit;
-		}
-		sprd_scale_drv_start(&scif->drv_priv);
-		timeleft = wait_for_completion_timeout(&scif->done_com,
-				msecs_to_jiffies(SCALE_TIMEOUT));
-		if (timeleft == 0) {
-			sprd_cppcore_sc_reg_trace(&scif->drv_priv);
-			sprd_scale_drv_stop(&scif->drv_priv);
-			sprd_cppcore_scale_reset(dev);
-			mutex_unlock(&scif->sc_mutex);
-			pr_err("fail to get scaling done com\n");
-			ret = -EBUSY;
-			goto start_scal_exit;
-		}
-		i++;
-	} while (--sc_parm->slice_param.output.slice_count);
-	sprd_scale_drv_stop(&scif->drv_priv);
-	sprd_cppcore_scale_reset(dev);
-	mutex_unlock(&scif->sc_mutex);
-	pr_info("cpp scale over\n");
-
-start_scal_exit:
-	if (sc_parm != NULL)
-		kfree(sc_parm);
-
-	return ret;
-}
-
-static int sprd_cppcore_ioctl_start_dma(struct cpp_device *dev,
-	unsigned long arg)
-{
-	int ret = 0;
-	int timeleft = 0;
-	struct dmaif_device *dmaif = NULL;
-	struct sprd_cpp_dma_cfg_parm dma_parm;
-
-	memset(&dma_parm, 0x00, sizeof(dma_parm));
-
-	dmaif = dev->dmaif;
-	if (!dmaif) {
-		pr_err("fail to get valid dmaif\n");
-		ret = -EFAULT;
-		goto start_dma_exit;
-	}
-
-	mutex_lock(&dmaif->dma_mutex);
-
-	ret = copy_from_user(&dma_parm, (void __user *)arg, sizeof(dma_parm));
-	if (ret) {
-		pr_err("fail to get param form user\n");
-		mutex_unlock(&dmaif->dma_mutex);
-		ret = -EFAULT;
-		goto start_dma_exit;
-	}
-
-	dmaif->drv_priv.iommu_src.dev = &dev->pdev->dev;
-	dmaif->drv_priv.iommu_dst.dev = &dev->pdev->dev;
-
-	ret = sprd_dma_drv_start(&dma_parm, &dmaif->drv_priv);
-	if (ret) {
-		pr_err("fail to start dma\n");
-		mutex_unlock(&dmaif->dma_mutex);
-		ret = -EFAULT;
-		goto start_dma_exit;
-	}
-
-	timeleft = wait_for_completion_timeout(&dmaif->done_com,
-			msecs_to_jiffies(DMA_TIMEOUT));
-	if (timeleft == 0) {
-		sprd_cppcore_dma_reg_trace(&dmaif->drv_priv);
-		sprd_dma_drv_stop(&dmaif->drv_priv);
-		sprd_cppcore_dma_reset(dev);
-		mutex_unlock(&dmaif->dma_mutex);
-		pr_err("failed to get dma done com\n");
-		ret = -EBUSY;
-		goto start_dma_exit;
-	}
-
-	sprd_dma_drv_stop(&dmaif->drv_priv);
-	sprd_cppcore_dma_reset(dev);
-	mutex_unlock(&dmaif->dma_mutex);
-	pr_info("cpp dma over\n");
-
-start_dma_exit:
-
-	return ret;
-}
-
-static int sprd_cppcore_ioctl_get_scale_cap(struct cpp_device *dev,
-	unsigned long arg)
-{
-	int ret = 0;
-	struct sprd_cpp_scale_capability sc_cap_param;
-
-	memset(&sc_cap_param, 0x00, sizeof(sc_cap_param));
-
-	if (!arg) {
-		pr_err("fail to get valid arg\n");
-		ret = -EFAULT;
-		goto get_cap_exit;
-	}
-
-	ret = copy_from_user(&sc_cap_param, (void __user *)arg,
-			sizeof(sc_cap_param));
-	if (ret != 0) {
-		pr_err("fail to copy from user, ret = %d\n", ret);
-		ret = -EFAULT;
-		goto get_cap_exit;
-	}
-	ret = sprd_scale_drv_capability_get(&sc_cap_param);
-	if (ret != 0)
-		sc_cap_param.is_supported = 0;
-
-	ret = copy_to_user((void  __user *)arg,
-			&sc_cap_param, sizeof(sc_cap_param));
-	if (ret != 0) {
-		pr_err("fail to copy to user, ret = %d\n", ret);
-		ret = -EFAULT;
-		goto get_cap_exit;
-	}
-	pr_info("cpp done ret = %d\n", ret);
-
-get_cap_exit:
-	return ret;
-}
-
-static struct cpp_ioctl_cmd cpp_ioctl_cmds_table[60] = {
-	[_IOC_NR(SPRD_CPP_IO_OPEN_ROT)]		= {
-		SPRD_CPP_IO_OPEN_ROT, sprd_cppcore_ioctl_open_rot},
-	[_IOC_NR(SPRD_CPP_IO_CLOSE_ROT)]	= {
-		SPRD_CPP_IO_CLOSE_ROT, NULL},
-	[_IOC_NR(SPRD_CPP_IO_START_ROT)]	= {
-		SPRD_CPP_IO_START_ROT, sprd_cppcore_ioctl_start_rot},
-	[_IOC_NR(SPRD_CPP_IO_OPEN_SCALE)]	= {
-		SPRD_CPP_IO_OPEN_SCALE, sprd_cppcore_ioctl_open_scale},
-	[_IOC_NR(SPRD_CPP_IO_START_SCALE)]	= {
-		SPRD_CPP_IO_START_SCALE, sprd_cppcore_ioctl_start_scale},
-	[_IOC_NR(SPRD_CPP_IO_STOP_SCALE)]	= {
-		SPRD_CPP_IO_STOP_SCALE, NULL},
-	[_IOC_NR(SPRD_CPP_IO_OPEN_DMA)]		= {
-		SPRD_CPP_IO_OPEN_DMA, NULL},
-	[_IOC_NR(SPRD_CPP_IO_START_DMA)]	= {
-		SPRD_CPP_IO_START_DMA, sprd_cppcore_ioctl_start_dma},
-	[_IOC_NR(SPRD_CPP_IO_SCALE_CAPABILITY)]	= {
-		SPRD_CPP_IO_SCALE_CAPABILITY, sprd_cppcore_ioctl_get_scale_cap},
-};
+#define CPP_IOCTL
+#include "cpp_ioctl.c"
+#undef CPP_IOCTL
 
 /* Need modify ref to the DCAM driver. */
 static long sprd_cppcore_ioctl(struct file *file,
@@ -924,8 +608,7 @@ static long sprd_cppcore_ioctl(struct file *file,
 {
 	int ret = 0;
 	struct cpp_device *dev = NULL;
-	struct cpp_ioctl_cmd *ioctl_cmd_p = NULL;
-	int nr = _IOC_NR(cmd);
+	cpp_io_func io_ctrl;
 
 	if (!file) {
 		pr_err("fail to get valid input ptr\n");
@@ -937,27 +620,20 @@ static long sprd_cppcore_ioctl(struct file *file,
 		pr_err("fail to get cpp device\n");
 		return -EFAULT;
 	}
-
-	if (unlikely(!(nr >= 0 && nr < ARRAY_SIZE(cpp_ioctl_cmds_table)))) {
-		pr_debug("invalid cmd: 0x%xn", cmd);
-		return -EINVAL;
+	io_ctrl = sprd_cppcore_ioctl_get_fun(cmd);
+	if (io_ctrl != NULL) {
+		ret = io_ctrl(dev, arg);
+		if (ret) {
+			pr_err("fail to cmd %d\n", _IOC_NR(cmd));
+			goto exit;
+		}
+	} else {
+		pr_debug("fail to get valid cmd 0x%x 0x%x %s\n", cmd,
+			sprd_cppcore_ioctl_get_val(cmd),
+			sprd_cppcore_ioctl_get_str(cmd));
 	}
 
-	ioctl_cmd_p = &cpp_ioctl_cmds_table[nr];
-	if (unlikely((ioctl_cmd_p->cmd != cmd) ||
-			(ioctl_cmd_p->cmd_proc == NULL))) {
-		pr_debug("unsupported cmd_k: 0x%x, cmd_u: 0x%x, nr: %d\n",
-			ioctl_cmd_p->cmd, cmd, nr);
-		return -EINVAL;
-	}
-
-	ret = ioctl_cmd_p->cmd_proc(dev, arg);
-	if (ret) {
-		pr_err("fail to ioctl cmd:%x, nr:%d, func %ps\n",
-			cmd, nr, ioctl_cmd_p->cmd_proc);
-		return -EFAULT;
-	}
-
+exit:
 	return ret;
 }
 
@@ -970,23 +646,23 @@ static int sprd_cppcore_open(struct inode *node, struct file *file)
 	struct scif_device *scif = NULL;
 	struct dmaif_device *dmaif = NULL;
 
-	pr_info("start open cpp\n");
+	CPP_TRACE("start open cpp\n");
 
 	if (!node || !file) {
-		pr_info("fail to get valid input ptr\n");
+		pr_err("fail to get valid input ptr\n");
 		return -EINVAL;
 	}
-	pr_info("start get miscdevice\n");
+	CPP_TRACE("start get miscdevice\n");
 	md = (struct miscdevice *)file->private_data;
 	if (!md) {
-		pr_info("fail to get md device\n");
+		pr_err("fail to get md device\n");
 		return -EFAULT;
 	}
 	dev = md->this_device->platform_data;
 
 	file->private_data = (void *)dev;
 	if (atomic_inc_return(&dev->users) != 1) {
-		pr_info("cpp device node has been opened %d\n",
+		CPP_TRACE("cpp device node has been opened %d\n",
 			atomic_read(&dev->users));
 		return 0;
 	}
@@ -1052,11 +728,11 @@ static int sprd_cppcore_open(struct inode *node, struct file *file)
 	ret = devm_request_irq(&dev->pdev->dev, dev->irq,
 		sprd_cppcore_isr_root, IRQF_SHARED, "CPP", (void *)dev);
 	if (ret < 0) {
-		pr_info("fail to install IRQ %d\n", ret);
+		pr_err("fail to install IRQ %d\n", ret);
 		goto vzalloc_exit;
 	}
 
-	pr_info("open sprd_cpp success\n");
+	CPP_TRACE("open sprd_cpp success\n");
 
 	return ret;
 
@@ -1076,7 +752,7 @@ vzalloc_exit:
 	sprd_cppcore_module_disable(dev);
 
 	if (atomic_dec_return(&dev->users) != 0)
-		pr_info("others is using cpp device\n");
+		CPP_TRACE("others is using cpp device\n");
 	file->private_data = NULL;
 
 	return ret;
@@ -1100,6 +776,7 @@ static int sprd_cppcore_release(struct inode *node,
 	}
 
 	if (atomic_dec_return(&dev->users) != 0) {
+		pr_err("fail to release cpp module.\n");
 		pr_err("others is using cpp device\n");
 		return ret;
 	}
@@ -1121,7 +798,7 @@ static int sprd_cppcore_release(struct inode *node,
 	sprd_cppcore_module_disable(dev);
 
 	file->private_data = NULL;
-	pr_info("cpp release success\n");
+	CPP_TRACE("cpp release success\n");
 
 	return ret;
 }
@@ -1172,7 +849,7 @@ static int sprd_cppcore_probe(struct platform_device *pdev)
 	spin_lock_init(&dev->slock);
 	atomic_set(&dev->users, 0);
 
-	pr_info("sprd cpp probe pdev name %s\n", pdev->name);
+	CPP_TRACE("sprd cpp probe pdev name %s\n", pdev->name);
 
 	dev->cpp_eb = devm_clk_get(&pdev->dev, "cpp_eb");
 	if (IS_ERR_OR_NULL(dev->cpp_eb)) {
@@ -1244,16 +921,16 @@ static int sprd_cppcore_probe(struct platform_device *pdev)
 
 	irq = irq_of_parse_and_map(pdev->dev.of_node, 0);
 	if (irq <= 0) {
-		pr_err("fail to get dcam irq %d\n", irq);
+		pr_err("fail to get cpp irq %d\n", irq);
 		goto misc_fail;
 	}
 	dev->irq = irq;
-	pr_info("cpp probe OK\n");
+	CPP_TRACE("cpp probe OK\n");
 
 	return 0;
 
 misc_fail:
-	pr_info("cpp probe fail\n");
+	pr_err("fai to probe cpp module\n");
 	misc_deregister(&dev->md);
 fail:
 

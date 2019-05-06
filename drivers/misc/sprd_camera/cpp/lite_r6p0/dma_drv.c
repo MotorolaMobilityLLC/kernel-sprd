@@ -94,12 +94,12 @@ static int sprd_dmadrv_parm_check(struct sprd_cpp_dma_cfg_parm *parm)
 		return -EINVAL;
 	}
 #ifdef DMA_DRV_DEBUG
-	pr_info("DMA:\n");
-	pr_info("dma total num %d\n", parm->total_num);
-	pr_info("src mfd %u y:u:v 0x%x 0x%x 0x%x\n",
+	CPP_TRACE("DMA:\n");
+	CPP_TRACE("dma total num %d\n", parm->total_num);
+	CPP_TRACE("src mfd %u y:u:v 0x%x 0x%x 0x%x\n",
 		parm->input_addr.mfd[0],
 		parm->input_addr.y, parm->input_addr.u, parm->input_addr.v);
-	pr_info("dst mfd %u y:u:v 0x%x 0x%x 0x%x\n",
+	CPP_TRACE("dst mfd %u y:u:v 0x%x 0x%x 0x%x\n",
 		parm->output_addr.mfd[0],
 		parm->output_addr.y, parm->output_addr.u, parm->output_addr.v);
 #endif
@@ -174,8 +174,9 @@ static int sprd_dmadrv_parm_cfg(
 
 	pr_debug("iommu_dma_src:0x%x\n", p->dma_dst_addr);
 	pr_debug("iommu_dma_dst:0x%x\n", p->dma_src_addr);
+	pr_debug("iommu_total_num:%d\n", p->total_num);
 
-	return 0;
+	return ret;
 }
 
 static int sprd_dmadrv_parm_set(struct dma_drv_private *p)

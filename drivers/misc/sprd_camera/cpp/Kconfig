@@ -1,0 +1,7 @@
+config SPRD_CAMERA_CPP_LITE_R6P0
+	bool "UNISOC Camera CPP LITE R6P0 Driver"
+	depends on SPRD_CAMERA
+	help
+		Support for CPP on UNISOC Socs,
+		it is used for image rotation,scaling and dma when using camera.
+

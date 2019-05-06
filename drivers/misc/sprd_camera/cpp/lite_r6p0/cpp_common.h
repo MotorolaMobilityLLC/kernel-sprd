@@ -24,4 +24,12 @@ extern unsigned long g_cpp_base;
 #define CPP_REG_MWR(reg, msk, val) \
 			CPP_REG_WR(reg, \
 			((val) & (msk)) | (CPP_REG_RD(reg) & (~(msk))))
+
+#define CPP_DEBUG
+#ifdef CPP_DEBUG
+#define CPP_TRACE pr_info
+#else
+#define CPP_TRACE pr_debug
+#endif
+
 #endif
