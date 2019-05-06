@@ -203,8 +203,7 @@ static int sprd_hardware_cpufreq_init_slaves(
 			goto free_np;
 		}
 
-		if (cluster < SPRD_CPUFREQ_MAX_CLUSTER ||
-		    cluster >= SPRD_CPUFREQ_MAX_MODULE) {
+		if (cluster >= SPRD_CPUFREQ_MAX_MODULE) {
 			pr_err("Cluster id %d for cluster %u is overflowed\n",
 			       cluster, i);
 			ret = -EINVAL;
