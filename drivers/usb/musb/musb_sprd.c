@@ -977,6 +977,9 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	pinfo.size_data = sizeof(pdata);
 	pinfo.dma_mask = sprd_device_dma_mask;
 
+	if (of_property_read_bool(node, "multipoint"))
+		pdata.config->multipoint = true;
+
 	glue->musb = platform_device_register_full(&pinfo);
 	if (IS_ERR(glue->musb)) {
 		ret = PTR_ERR(glue->musb);
