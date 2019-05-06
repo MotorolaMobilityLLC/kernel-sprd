@@ -50,6 +50,9 @@ static const struct of_device_id sprd_cpudvfs_of_match[] = {
 	{
 		.compatible = "sprd,sharkl5pro-cpudvfs",
 	},
+	{
+		.compatible = "sprd,orca-cpudvfs",
+	}
 };
 MODULE_DEVICE_TABLE(of, sprd_cpudvfs_of_match);
 
