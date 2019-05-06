@@ -2056,17 +2056,6 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			hdst->typec_attached,
 			gpiod_get_value(pdata->typec_lr_gpio),
 			gpiod_get_value(pdata->typec_mic_gpio));
-	}
-
-	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
-	pr_info("%s plug_state_last %d\n", __func__, hdst->plug_state_last);
-
-	if (hdst->plug_state_last == 0) {
-		sprd_headset_set_hw_status(hdst, pdata);
-		sprd_msleep(10);
-	}
-
-	if (pdata->support_typec_hdst) {
 		/*
 		 * 1. attached: type-c d+/d- -> left/right channel of headphone;
 		 * 2. detached: type-c d+/d- -> usb d+/d-.
@@ -2078,7 +2067,17 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			hdst->typec_attached ? "ATTACHED" : "DETACHED",
 			gpiod_get_value(pdata->typec_lr_gpio) ==
 			hdst->typec_attached ? "HEADPHONE" : "USB");
-	} else {
+	}
+
+	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
+	pr_info("%s plug_state_last %d\n", __func__, hdst->plug_state_last);
+
+	if (hdst->plug_state_last == 0) {
+		sprd_headset_set_hw_status(hdst, pdata);
+		sprd_msleep(10);
+	}
+
+	if (!pdata->support_typec_hdst) {
 		trig_level = sprd_get_eic_trig_level(10);
 		insert_status =
 			sprd_headset_part_is_inserted(HDST_INSERT_ALL);
