@@ -10180,6 +10180,13 @@ CONFIG_SPRD_PAM_IPA
 	[subsys]
 	[must]
 	[function]
+CONFIG_SPRD_IPA_SYS
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_PCIE_EP_DEVICE
 	[arch] arm64
 	[plat] roc1

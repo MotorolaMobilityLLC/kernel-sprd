@@ -3566,7 +3566,7 @@ CONFIG_SPRD_MAILBOX_R1P2=y
 #
 # Sipa System Modules
 #
-# CONFIG_SPRD_IPA_SYS is not set
+CONFIG_SPRD_IPA_SYS=y
 
 #
 # SIPA delegate modules
