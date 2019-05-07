@@ -600,6 +600,7 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 {
 	struct fan54015_charger_info *info = power_supply_get_drvdata(psy);
 	u32 cur, online, health;
+	enum usb_charger_type type;
 	int ret = 0;
 
 	mutex_lock(&info->lock);
@@ -655,6 +656,28 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 
 			val->intval = health;
 		}
+		break;
+
+	case POWER_SUPPLY_PROP_USB_TYPE:
+		type = info->usb_phy->charger_detect(info->usb_phy);
+
+		switch (type) {
+		case SDP_TYPE:
+			val->intval = POWER_SUPPLY_USB_TYPE_SDP;
+			break;
+
+		case DCP_TYPE:
+			val->intval = POWER_SUPPLY_USB_TYPE_DCP;
+			break;
+
+		case CDP_TYPE:
+			val->intval = POWER_SUPPLY_USB_TYPE_CDP;
+			break;
+
+		default:
+			val->intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
+		}
+
 		break;
 
 	default:
@@ -730,12 +753,24 @@ static int fan54015_charger_property_is_writeable(struct power_supply *psy,
 	return ret;
 }
 
+static enum power_supply_usb_type fan54015_charger_usb_types[] = {
+	POWER_SUPPLY_USB_TYPE_UNKNOWN,
+	POWER_SUPPLY_USB_TYPE_SDP,
+	POWER_SUPPLY_USB_TYPE_DCP,
+	POWER_SUPPLY_USB_TYPE_CDP,
+	POWER_SUPPLY_USB_TYPE_C,
+	POWER_SUPPLY_USB_TYPE_PD,
+	POWER_SUPPLY_USB_TYPE_PD_DRP,
+	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID
+};
+
 static enum power_supply_property fan54015_usb_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_HEALTH,
+	POWER_SUPPLY_PROP_USB_TYPE,
 };
 
 static const struct power_supply_desc fan54015_charger_desc = {
@@ -746,6 +781,8 @@ static const struct power_supply_desc fan54015_charger_desc = {
 	.get_property		= fan54015_charger_usb_get_property,
 	.set_property		= fan54015_charger_usb_set_property,
 	.property_is_writeable	= fan54015_charger_property_is_writeable,
+	.usb_types		= fan54015_charger_usb_types,
+	.num_usb_types		= ARRAY_SIZE(fan54015_charger_usb_types),
 };
 
 static void fan54015_charger_detect_status(struct fan54015_charger_info *info)
