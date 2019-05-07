@@ -847,6 +847,7 @@ static int sc2703_charger_usb_get_property(struct power_supply *psy,
 	struct sc2703_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
 	u32 cur, online, health;
+	enum usb_charger_type type;
 
 	mutex_lock(&info->lock);
 
@@ -900,6 +901,28 @@ static int sc2703_charger_usb_get_property(struct power_supply *psy,
 				goto out;
 
 			val->intval = health;
+		}
+
+		break;
+
+	case POWER_SUPPLY_PROP_USB_TYPE:
+		type = info->usb_phy->charger_detect(info->usb_phy);
+
+		switch (type) {
+		case SDP_TYPE:
+			val->intval = POWER_SUPPLY_USB_TYPE_SDP;
+			break;
+
+		case DCP_TYPE:
+			val->intval = POWER_SUPPLY_USB_TYPE_DCP;
+			break;
+
+		case CDP_TYPE:
+			val->intval = POWER_SUPPLY_USB_TYPE_CDP;
+			break;
+
+		default:
+			val->intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 		}
 
 		break;
@@ -989,6 +1012,17 @@ static int sc2703_charger_property_is_writeable(struct power_supply *psy,
 	return ret;
 }
 
+static enum power_supply_usb_type sc2703_charger_usb_types[] = {
+	POWER_SUPPLY_USB_TYPE_UNKNOWN,
+	POWER_SUPPLY_USB_TYPE_SDP,
+	POWER_SUPPLY_USB_TYPE_DCP,
+	POWER_SUPPLY_USB_TYPE_CDP,
+	POWER_SUPPLY_USB_TYPE_C,
+	POWER_SUPPLY_USB_TYPE_PD,
+	POWER_SUPPLY_USB_TYPE_PD_DRP,
+	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID
+};
+
 static enum power_supply_property sc2703_usb_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
@@ -997,6 +1031,7 @@ static enum power_supply_property sc2703_usb_props[] = {
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_FEED_WATCHDOG,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
+	POWER_SUPPLY_PROP_USB_TYPE,
 };
 
 static const struct power_supply_desc sc2703_charger_desc = {
@@ -1007,6 +1042,8 @@ static const struct power_supply_desc sc2703_charger_desc = {
 	.get_property		= sc2703_charger_usb_get_property,
 	.set_property		= sc2703_charger_usb_set_property,
 	.property_is_writeable	= sc2703_charger_property_is_writeable,
+	.usb_types		= sc2703_charger_usb_types,
+	.num_usb_types		= ARRAY_SIZE(sc2703_charger_usb_types),
 };
 
 static void sc2703_charger_detect_status(struct sc2703_charger_info *info)
