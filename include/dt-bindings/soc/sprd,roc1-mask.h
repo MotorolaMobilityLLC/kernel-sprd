@@ -8035,6 +8035,10 @@
 #define MASK_PMU_APB_EIC_LIGHT_SLEEP_SEL                                                                      0x2
 #define MASK_PMU_APB_EIC_DEEP_SLEEP_SEL                                                                       0x1
 #define MASK_PMU_APB_IPA_FORCE_WAKEUP                                                                         0xff
+#define MASK_PMU_APB_IPA_FORCE_WAKEUP_IPA                                                                     0x8
+#define MASK_PMU_APB_IPA_FORCE_WAKEUP_USB3                                                                    0x4
+#define MASK_PMU_APB_IPA_FORCE_WAKEUP_PCIE3                                                                   0x2
+#define MASK_PMU_APB_IPA_FORCE_WAKEUP_PCIE2                                                                   0x1
 #define MASK_PMU_APB_PMU_DEBUG                                                                                0xffffffff
 #define MASK_PMU_APB_IPA_SYS_SLEEP_CNT_CLR                                                                    0x400000
 #define MASK_PMU_APB_IPA_LIGHT_SLEEP_CNT_CLR                                                                  0x200000
