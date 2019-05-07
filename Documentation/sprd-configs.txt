@@ -11185,6 +11185,13 @@ CONFIG_USB_CONFIGFS_F_FS
 	[subsys] usb
 	[must] user
 	[function] Function filesystem (FunctionFS)
+CONFIG_USB_CONFIGFS_F_MBIM
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_USB_CONFIGFS_F_MIDI
 	[arch] all
 	[plat] all
@@ -11325,6 +11332,13 @@ CONFIG_USB_F_MASS_STORAGE
 	[subsys] usb
 	[must] user
 	[function] This macro is to support USB Mass storage.
+CONFIG_USB_F_MBIM
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_USB_F_MIDI
 	[arch] all
 	[plat] all
