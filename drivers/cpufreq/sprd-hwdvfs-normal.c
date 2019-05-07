@@ -353,10 +353,15 @@ int host_cluster_auto_tuning_enable(void *clu, bool enable)
 	addr1 = pdev->pwr[cluster->id].subsys_tune_ctl_reg;
 	bit1 =  1 << pdev->pwr[cluster->id].subsys_tune_ctl_bit;
 
-	if (enable) {
+	/* Enable TOP DVFS to change voltage dynamically */
+	if (enable && pdev->pwr[cluster->id].dvfs_eb) {
 		ret = regmap_update_bits(pdev->topdvfs_map, addr0, bit0, ~bit0);
 		if (ret)
 			return ret;
+	}
+
+	/* Enable Subsys DVFS to change frequency dynamically */
+	if (enable && pdev->pwr[cluster->id].subsys_tune_eb) {
 		ret = regmap_update_bits(pdev->topdvfs_map, addr1, bit1, ~bit1);
 		if (ret)
 			return ret;
