@@ -673,7 +673,7 @@ static int btwifi_download_firmware(void)
 	return 0;
 }
 
-static void wcn_get_syscon_regmap(void)
+static int wcn_get_syscon_regmap(void)
 {
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
@@ -681,14 +681,14 @@ static void wcn_get_syscon_regmap(void)
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
 	if (!regmap_np) {
 		WCN_ERR("unable to get syscon node\n");
-		return;
+		return -ENODEV;
 	}
 
 	regmap_pdev = of_find_device_by_node(regmap_np);
 	if (!regmap_pdev) {
 		of_node_put(regmap_np);
 		WCN_ERR("unable to get syscon platform device\n");
-		return;
+		return -ENODEV;
 	}
 
 	marlin_dev->syscon_pmic = dev_get_regmap(regmap_pdev->dev.parent, NULL);
@@ -696,59 +696,85 @@ static void wcn_get_syscon_regmap(void)
 		WCN_ERR("unable to get pmic regmap device\n");
 
 	of_node_put(regmap_np);
+
+	return 0;
 }
 
-static void wcn_get_vddgen1_config(struct device_node *np)
+static void wcn_get_pmic_config(struct device_node *np)
 {
 	int ret;
+	struct wcn_pmic_config *pmic;
 
-	if (!of_property_read_bool(np, "vddgen1-enable"))
+	if (wcn_get_syscon_regmap())
 		return;
 
-	WCN_INFO("vddgen1 need config\n");
-	ret = of_property_read_u32_array(np, "vddgen1-bound-chip",
-					 (u32 *)marlin_dev->vddgen1_chip,
-					 WCN_VDDGEN1_CONFIG_NUM);
-	if (ret) {
-		WCN_ERR("read vddgen1-bound-chip erro:%d\n", ret);
-		return;
-	}
+	pmic = &marlin_dev->avdd12_parent_bound_chip;
+	strcpy(pmic->name, "avdd12-parent-bound-chip");
+	ret = of_property_read_u32_array(np, pmic->name,
+					 (u32 *)pmic->config,
+					 WCN_BOUND_CONFIG_NUM);
+	pmic->enable = !ret;
+	WCN_INFO("vddgen1-bound-chip config enable:%d\n", pmic->enable);
 
-	WCN_INFO("vddgen1_chip  0x%x 0x%x 0x%x 0x%x\n",
-		 marlin_dev->vddgen1_chip[0], marlin_dev->vddgen1_chip[1],
-		 marlin_dev->vddgen1_chip[2], marlin_dev->vddgen1_chip[3]);
+	pmic = &marlin_dev->avdd12_bound_wbreq;
+	strcpy(pmic->name, "avdd12-bound-wbreq");
+	ret = of_property_read_u32_array(np, pmic->name,
+					 (u32 *)pmic->config,
+					 WCN_BOUND_CONFIG_NUM);
+	pmic->enable = !ret;
+	WCN_INFO("avdd12-bound-wbreq config status:%d\n", pmic->enable);
 
-	wcn_get_syscon_regmap();
+	pmic = &marlin_dev->avdd33_bound_wbreq;
+	strcpy(pmic->name, "avdd33-bound-wbreq");
+	ret = of_property_read_u32_array(np, pmic->name,
+					 (u32 *)pmic->config,
+					 WCN_BOUND_CONFIG_NUM);
+	pmic->enable = !ret;
+	WCN_INFO("avdd33-bound-wbreq config status:%d\n", pmic->enable);
 }
 
-/* The vddgen1 is always on,here just bound and unbound the chipsleep */
-static void wcn_vddgen1_enable(bool enable)
+static int wcn_pmic_do_bound(struct wcn_pmic_config *pmic, bool bound)
 {
 	int ret;
 	u32 *chip;
 
-	if (!marlin_dev->syscon_pmic)
-		return;
+	if (!marlin_dev->syscon_pmic || !pmic->enable)
+		return -1;
 
-	chip = marlin_dev->vddgen1_chip;
+	chip = pmic->config;
 
-	if (enable) {
-		WCN_INFO("vddgen1 enable\n");
-		/* unbound chip sleep */
-		ret = regmap_update_bits(marlin_dev->syscon_pmic,
-					 chip[0], chip[1], chip[2]);
-		if (ret)
-			WCN_ERR("vddgen1 unbound chipsleep\n");
-		usleep_range(1000, 2000);
-	} else {
-		WCN_INFO("vddgen1 disable\n");
-		/* bound chip sleep */
+	if (bound) {
+		WCN_INFO("%s bound\n", pmic->name);
 		ret = regmap_update_bits(marlin_dev->syscon_pmic,
 					 chip[0], chip[1], chip[3]);
 		if (ret)
-			WCN_ERR("vddgen1 bound chipsleep\n");
-		usleep_range(1000, 2000);
+			WCN_ERR("%s bound:%d\n", pmic->name, ret);
+	} else {
+		WCN_INFO("%s unbound\n", pmic->name);
+		ret = regmap_update_bits(marlin_dev->syscon_pmic,
+					 chip[0], chip[1], chip[2]);
+		if (ret)
+			WCN_ERR("%s unbound:%d\n", pmic->name, ret);
 	}
+	usleep_range(1000, 2000);
+
+	return 0;
+}
+
+static inline int wcn_avdd12_parent_bound_chip(bool enable)
+{
+	return wcn_pmic_do_bound(&marlin_dev->avdd12_parent_bound_chip, enable);
+}
+
+static inline int wcn_avdd12_bound_xtl(bool enable)
+{
+	return wcn_pmic_do_bound(&marlin_dev->avdd12_bound_wbreq, enable);
+}
+
+/* wifipa bound XTLEN3, gnss not need wifipa bound */
+static inline int wcn_wifipa_bound_xtl(bool enable)
+{
+	return wcn_pmic_do_bound(&marlin_dev->avdd33_bound_wbreq, enable);
 }
 
 static int marlin_parse_dt(struct platform_device *pdev)
@@ -760,7 +786,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	if (!marlin_dev)
 		return -1;
 
-	wcn_get_vddgen1_config(np);
+	wcn_get_pmic_config(np);
 
 	marlin_dev->coexist = of_get_named_gpio(np,
 			"m2-to-ap-coexist-gpios", 0);
@@ -1579,25 +1605,6 @@ static void sdio_scan_card(void)
 }
 #endif
 
-/* for example: wifipa bound XTLEN3 */
-int pmic_bound_xtl_assert(unsigned int enable)
-{
-/* TODO: for sharkl5 update PMIC driver */
-#if 0
-	unsigned int val;
-
-	regmap_read(reg_map, ANA_REG_GLB_LDO_XTL_EN10, &val);
-	WCN_INFO("%s:%d, XTL_EN10 =0x%x\n", __func__, enable, val);
-	regmap_update_bits(reg_map,
-			   ANA_REG_GLB_LDO_XTL_EN10,
-			   BIT_LDO_WIFIPA_EXT_XTL3_EN,
-			   enable);
-	regmap_read(reg_map, ANA_REG_GLB_LDO_XTL_EN10, &val);
-	WCN_INFO("after XTL_EN10 =0x%x\n", val);
-#endif
-	return 0;
-}
-
 void wifipa_enable(int enable)
 {
 	int ret = -1;
@@ -1634,22 +1641,21 @@ void set_wifipa_status(int subsys, int val)
 		if (((subsys == MARLIN_BLUETOOTH) || (subsys == MARLIN_WIFI)) &&
 		    ((marlin_dev->power_state & 0x5) == 0)) {
 			wifipa_enable(1);
-			pmic_bound_xtl_assert(1);
+			wcn_wifipa_bound_xtl(true);
 		}
 
 		if (((subsys != MARLIN_BLUETOOTH) && (subsys != MARLIN_WIFI)) &&
 		    ((marlin_dev->power_state & 0x5) == 0)) {
 			wifipa_enable(0);
-			pmic_bound_xtl_assert(0);
+			wcn_wifipa_bound_xtl(false);
 		}
-
 	} else {
 		if (((subsys == MARLIN_BLUETOOTH) &&
 		     ((marlin_dev->power_state & 0x4) == 0)) ||
 		    ((subsys == MARLIN_WIFI) &&
 		     ((marlin_dev->power_state & 0x1) == 0))) {
 			wifipa_enable(0);
-			pmic_bound_xtl_assert(0);
+			wcn_wifipa_bound_xtl(false);
 		}
 	}
 }
@@ -1663,7 +1669,7 @@ void set_wifipa_status(int subsys, int val)
  */
 static int chip_power_on(int subsys)
 {
-	wcn_vddgen1_enable(true);
+	wcn_avdd12_parent_bound_chip(false);
 	marlin_avdd18_dcxo_enable(true);
 	marlin_clk_enable(true);
 	marlin_digital_power_enable(true);
@@ -1671,9 +1677,10 @@ static int chip_power_on(int subsys)
 	msleep(20);
 	chip_reset_release(1);
 	marlin_analog_power_enable(true);
+	wcn_avdd12_bound_xtl(true);
 	usleep_range(50, 60);
 	wifipa_enable(1);
-	pmic_bound_xtl_assert(1);
+	wcn_wifipa_bound_xtl(true);
 #ifndef CONFIG_WCN_PCIE
 	sdio_scan_card();
 	loopcheck_ready_set();
@@ -1686,8 +1693,9 @@ static int chip_power_on(int subsys)
 
 static int chip_power_off(int subsys)
 {
-	wcn_vddgen1_enable(false);
-	pmic_bound_xtl_assert(0);
+	wcn_avdd12_bound_xtl(false);
+	wcn_wifipa_bound_xtl(false);
+	wcn_avdd12_parent_bound_chip(true);
 	wifipa_enable(0);
 	marlin_avdd18_dcxo_enable(false);
 	marlin_clk_enable(false);
@@ -2358,7 +2366,7 @@ static int  marlin_remove(struct platform_device *pdev)
 	if (marlin_dev->power_state != 0) {
 		WCN_INFO("marlin some subsys power is on, warning!\n");
 		wifipa_enable(0);
-		pmic_bound_xtl_assert(0);
+		wcn_wifipa_bound_xtl(false);
 		marlin_chip_en(false, false);
 	}
 	wcn_bus_deinit();
@@ -2380,7 +2388,8 @@ static void marlin_shutdown(struct platform_device *pdev)
 	if (marlin_dev->power_state != 0) {
 		WCN_INFO("marlin some subsys power is on, warning!\n");
 		wifipa_enable(0);
-		pmic_bound_xtl_assert(0);
+		wcn_avdd12_bound_xtl(false);
+		wcn_wifipa_bound_xtl(false);
 		marlin_chip_en(false, false);
 	}
 	WCN_INFO("%s end\n", __func__);
