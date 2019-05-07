@@ -2,22 +2,22 @@
 
 #include "pcie-designware.h"
 
-#define PCI_DEVICE_ID_SPRD_RC  0xabcd
+#define SPRD_PCIE_PE0_PM_CTRL			0xe60
+#define SPRD_PCIE_APP_CLK_PM_EN			(0x1 << 21)
 
-#define SPRD_PCIE_PE0_PM_CTRL      0xe60
-#define  SPRD_PCIE_APP_CLK_PM_EN    (0x1 << 21)
+#define SPRD_PCIE_PE0_PM_STS			0xe64
+#define SPRD_PCIE_PM_CURRENT_STATE_MASK		(0x7 << 8)
+#define SPRD_PCIE_L0s				(0x1 << 8)
+#define SPRD_PCIE_L1				(0x2 << 8)
+#define SPRD_PCIE_L2				(0x3 << 8)
+#define SPRD_PCIE_L3				(0x4 << 8)
 
-#define SPRD_PCIE_PE0_PM_STS  0xe64
-#define  SPRD_PCIE_PM_CURRENT_STATE_MASK    (0x7 << 8)
-#define  SPRD_PCIE_L0s   (0x1 << 8)
-#define  SPRD_PCIE_L1   (0x2 << 8)
-#define  SPRD_PCIE_L2   (0x3 << 8)
-#define  SPRD_PCIE_L3   (0x4 << 8)
+#define SPRD_PCIE_PE0_TX_MSG_REG		0xe80
+#define SPRD_PCIE_PME_TURN_OFF_REQ		(0x1 << 19)
 
-#define SPRD_PCIE_PE0_TX_MSG_REG    0xe80
-#define  SPRD_PCIE_PME_TURN_OFF_REQ  (0x1 << 19)
+#define ENTER_L2_MAX_RETRIES	200
 
-#define ENTER_L2_MAX_RETRIES 200
+#define PCI_DEVICE_ID_SPRD_RC	0xabcd
 
 struct sprd_pcie {
 	const char *label;
