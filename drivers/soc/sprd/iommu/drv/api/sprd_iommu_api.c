@@ -13,6 +13,8 @@ u32 sprd_iommudrv_init(struct sprd_iommu_init_param *p_init_param,
 					sizeof(struct sprd_iommu_widget));
 
 	if (p_init_param->iommu_type == SPRD_IOMMUEX_SHARKL3
+		|| p_init_param->iommu_type == SPRD_IOMMUEX_SHARKLE
+		|| p_init_param->iommu_type == SPRD_IOMMUEX_PIKE2
 		|| p_init_param->iommu_type == SPRD_IOMMUEX_SHARKL5
 		|| p_init_param->iommu_type == SPRD_IOMMUEX_ROC1) {
 		func_tbl = (&iommuex_func_tbl);

@@ -27,6 +27,8 @@ enum sprd_iommu_ch_type {
 };
 
 enum sprd_iommu_type {
+	SPRD_IOMMUEX_SHARKLE,
+	SPRD_IOMMUEX_PIKE2,
 	SPRD_IOMMUEX_SHARKL3,
 	SPRD_IOMMUEX_SHARKL5,
 	SPRD_IOMMUEX_ROC1,

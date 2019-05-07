@@ -96,6 +96,48 @@ static struct sprd_iommu_list_data sprd_iommu_list[SPRD_IOMMU_MAX] = {
 };
 
 static const struct of_device_id sprd_iommu_ids[] = {
+	{ .compatible = "sprd,iommuexle-gsp",
+	   .data = (void *)(IOMMU_EXLE_GSP)},
+
+	{ .compatible = "sprd,iommuexle-dispc",
+	   .data = (void *)(IOMMU_EXLE_DISP)},
+
+	{ .compatible = "sprd,iommuexle-vsp",
+	   .data = (void *)(IOMMU_EXLE_VSP)},
+
+	{ .compatible = "sprd,iommuexle-dcam",
+	   .data = (void *)(IOMMU_EXLE_DCAM)},
+
+	{ .compatible = "sprd,iommuexle-isp",
+	   .data = (void *)(IOMMU_EXLE_ISP)},
+
+	{ .compatible = "sprd,iommuexle-cpp",
+	   .data = (void *)(IOMMU_EXLE_CPP)},
+
+	{ .compatible = "sprd,iommuexle-jpg",
+	   .data = (void *)(IOMMU_EXLE_JPG)},
+
+	{ .compatible = "sprd,iommuexpk2-gsp",
+	   .data = (void *)(IOMMU_EXPK2_GSP)},
+
+	{ .compatible = "sprd,iommuexpk2-dispc",
+	   .data = (void *)(IOMMU_EXPK2_DISP)},
+
+	{ .compatible = "sprd,iommuexpk2-vsp",
+	   .data = (void *)(IOMMU_EXPK2_VSP)},
+
+	{ .compatible = "sprd,iommuexpk2-dcam",
+	   .data = (void *)(IOMMU_EXPK2_DCAM)},
+
+	{ .compatible = "sprd,iommuexpk2-isp",
+	   .data = (void *)(IOMMU_EXPK2_ISP)},
+
+	{ .compatible = "sprd,iommuexpk2-cpp",
+	   .data = (void *)(IOMMU_EXPK2_CPP)},
+
+	{ .compatible = "sprd,iommuexpk2-jpg",
+	   .data = (void *)(IOMMU_EXPK2_JPG)},
+
 	{ .compatible = "sprd,iommuexl3-dispc",
 	   .data = (void *)(IOMMU_EXL3_DISP)},
 
@@ -1017,6 +1059,62 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 		((of_match_node(sprd_iommu_ids, np))->data));
 
 	switch (pdata->id) {
+	/*for sharkle iommu*/
+	case IOMMU_EXLE_VSP:
+	case IOMMU_EXLE_DCAM:
+	case IOMMU_EXLE_CPP:
+	case IOMMU_EXLE_GSP:
+	case IOMMU_EXLE_JPG:
+	case IOMMU_EXLE_DISP:
+	case IOMMU_EXLE_ISP:
+	{
+		pdata->iommuex_rev = 7;
+		iommu_dev->ops = &sprd_iommuex_hw_ops;
+		if (pdata->id == IOMMU_EXLE_GSP)
+			pdata->id = IOMMU_EX_GSP;
+		else if (pdata->id == IOMMU_EXLE_DISP)
+			pdata->id = IOMMU_EX_DISP;
+		else if (pdata->id == IOMMU_EXLE_VSP)
+			pdata->id = IOMMU_EX_VSP;
+		else if (pdata->id == IOMMU_EXLE_DCAM)
+			pdata->id = IOMMU_EX_DCAM;
+		else if (pdata->id == IOMMU_EXLE_ISP)
+			pdata->id = IOMMU_EX_ISP;
+		else if (pdata->id == IOMMU_EXLE_CPP)
+			pdata->id = IOMMU_EX_CPP;
+		else if (pdata->id == IOMMU_EXLE_JPG)
+			pdata->id = IOMMU_EX_JPG;
+
+		break;
+	}
+	/*for pike2 iommu*/
+	case IOMMU_EXPK2_VSP:
+	case IOMMU_EXPK2_DCAM:
+	case IOMMU_EXPK2_CPP:
+	case IOMMU_EXPK2_GSP:
+	case IOMMU_EXPK2_JPG:
+	case IOMMU_EXPK2_DISP:
+	case IOMMU_EXPK2_ISP:
+	{
+		pdata->iommuex_rev = 8;
+		iommu_dev->ops = &sprd_iommuex_hw_ops;
+		if (pdata->id == IOMMU_EXPK2_GSP)
+			pdata->id = IOMMU_EX_GSP;
+		else if (pdata->id == IOMMU_EXPK2_DISP)
+			pdata->id = IOMMU_EX_DISP;
+		else if (pdata->id == IOMMU_EXPK2_VSP)
+			pdata->id = IOMMU_EX_VSP;
+		else if (pdata->id == IOMMU_EXPK2_DCAM)
+			pdata->id = IOMMU_EX_DCAM;
+		else if (pdata->id == IOMMU_EXPK2_ISP)
+			pdata->id = IOMMU_EX_ISP;
+		else if (pdata->id == IOMMU_EXPK2_CPP)
+			pdata->id = IOMMU_EX_CPP;
+		else if (pdata->id == IOMMU_EXPK2_JPG)
+			pdata->id = IOMMU_EX_JPG;
+
+		break;
+	}
 	/*for sharkl3 iommu*/
 	case IOMMU_EXL3_VSP:
 	case IOMMU_EXL3_DCAM:
