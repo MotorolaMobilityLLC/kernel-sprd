@@ -36,7 +36,7 @@ struct sprd_div {
 };
 
 #define SPRD_DIV_CLK(_struct, _name, _parent, _reg,			\
-			_shift, _width, _flags)				\
+		     _shift, _width, _flags)				\
 	struct sprd_div _struct = {					\
 		.div	= _SPRD_DIV_CLK(_shift, _width),		\
 		.common	= {						\
@@ -45,6 +45,20 @@ struct sprd_div {
 			.hw.init	= CLK_HW_INIT(_name,		\
 						      _parent,		\
 						      &sprd_div_ops,	\
+						      _flags),		\
+		}							\
+	}
+
+#define SPRD_DIV_CLK_SEC(_struct, _name, _parent, _id,			\
+			 _shift, _width, _flags)			\
+	struct sprd_div _struct = {					\
+		.div	= _SPRD_DIV_CLK(_shift, _width),		\
+		.common	= {						\
+			.svc_handle	= NULL,				\
+			.id		= _id,				\
+			.hw.init	= CLK_HW_INIT(_name,		\
+						      _parent,		\
+						      &sprd_div_ops_sec,\
 						      _flags),		\
 		}							\
 	}
