@@ -226,14 +226,12 @@ function make_modules()
 function make_headers()
 {
 	if [ -n $BSP_KERNEL_DIST ]; then
-		mkdir $BSP_KERNEL_DIST/usr -p
-		mkdir $BSP_UAPI_HEADERS_DIR/usr -p
 		make -C $BSP_KERNEL_PATH O=$BSP_KERNEL_OUT ARCH=$BSP_KERNEL_ARCH CROSS_COMPILE=$BSP_KERNEL_CROSS_COMPILE \
 			$BSP_CC_LD_ARG INSTALL_HDR_PATH="$BSP_KERNEL_HEADERS_DIR/usr" headers_install -j$BSP_OBJ
 		find $BSP_KERNEL_HEADERS_DIR \( -name ..install.cmd -o -name .install \) -exec rm '{}' +
 		BSP_KERNEL_HEADER_TAR=$BSP_KERNEL_DIST/kernel-uapi-headers.tar.gz
 		tar -czPf $BSP_KERNEL_HEADER_TAR --directory=$BSP_KERNEL_HEADERS_DIR usr/
-		tar -xf $BSP_KERNEL_HEADER_TAR -C $BSP_KERNEL_HEADERS_DIR
+		tar -xf $BSP_KERNEL_HEADER_TAR -C $BSP_KERNEL_DIST
 	fi
 }
 
