@@ -301,6 +301,17 @@ void sipa_skb_sender_add_nic(struct sipa_skb_sender *sender,
 }
 EXPORT_SYMBOL(sipa_skb_sender_add_nic);
 
+void sipa_skb_sender_remove_nic(struct sipa_skb_sender *sender,
+				struct sipa_nic *nic)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&sender->nic_lock, flags);
+	list_del(&nic->list);
+	spin_unlock_irqrestore(&sender->nic_lock, flags);
+}
+EXPORT_SYMBOL(sipa_skb_sender_remove_nic);
+
 int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 			      struct sk_buff *skb,
 			      enum sipa_term_type dst,

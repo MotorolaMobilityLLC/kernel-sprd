@@ -363,6 +363,20 @@ void sipa_receiver_add_nic(struct sipa_skb_receiver *receiver,
 }
 EXPORT_SYMBOL(sipa_receiver_add_nic);
 
+void sipa_receiver_remove_nic(struct sipa_skb_receiver *receiver,
+			      struct sipa_nic *nic)
+{
+	int i;
+	unsigned long flags;
+
+	spin_lock_irqsave(&receiver->lock, flags);
+	for (i = 0; i < receiver->nic_cnt; i++)
+		if (receiver->nic_array[i] == nic)
+			receiver->nic_array[i] = NULL;
+	receiver->nic_cnt--;
+	spin_unlock_irqrestore(&receiver->lock, flags);
+}
+EXPORT_SYMBOL(sipa_receiver_remove_nic);
 
 int create_recv_array(struct sipa_skb_array *p, u32 depth)
 {

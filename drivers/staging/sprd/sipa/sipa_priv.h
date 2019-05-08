@@ -278,6 +278,8 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 void sipa_skb_sender_add_nic(struct sipa_skb_sender *sender,
 			     struct sipa_nic *nic);
 
+void sipa_skb_sender_remove_nic(struct sipa_skb_sender *sender,
+				struct sipa_nic *nic);
 
 int create_sipa_skb_receiver(struct sipa_context *ipa,
 			     struct sipa_endpoint *ep,
@@ -288,6 +290,8 @@ void destroy_sipa_skb_receiver(struct sipa_skb_receiver *receiver);
 void sipa_receiver_add_nic(struct sipa_skb_receiver *receiver,
 			   struct sipa_nic *nic);
 
+void sipa_receiver_remove_nic(struct sipa_skb_receiver *receiver,
+			      struct sipa_nic *nic);
 void sipa_nic_try_notify_recv(struct sipa_nic *nic);
 
 void sipa_nic_notify_evt(struct sipa_nic *nic, enum sipa_evt_type evt);

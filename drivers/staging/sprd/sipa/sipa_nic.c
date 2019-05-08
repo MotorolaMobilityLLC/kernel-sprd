@@ -155,6 +155,8 @@ void sipa_nic_close(enum sipa_nic_id nic_id)
 	struct sipa_nic *nic = NULL;
 	struct sk_buff *skb;
 	unsigned long flags;
+	struct sipa_skb_receiver *receiver;
+	struct sipa_skb_sender *sender;
 
 	if (nic_id == SIPA_NIC_MAX)
 		return;
@@ -170,6 +172,15 @@ void sipa_nic_close(enum sipa_nic_id nic_id)
 		dev_kfree_skb_any(skb);
 
 	spin_unlock_irqrestore(&nic->lock, flags);
+
+	receiver = s_sipa_ctrl.receiver[s_spia_nic_statics[nic_id].pkt_type];
+	sipa_receiver_remove_nic(receiver, nic);
+	if (s_spia_nic_statics[nic_id].pkt_type == SIPA_PKT_IP) {
+		receiver = s_sipa_ctrl.receiver[SIPA_PKT_ETH];
+		sipa_receiver_remove_nic(receiver, nic);
+	}
+	sender = s_sipa_ctrl.sender[s_spia_nic_statics[nic_id].pkt_type];
+	sipa_skb_sender_remove_nic(sender, nic);
 
 	kfree(nic);
 	s_sipa_ctrl.nic[nic_id] = NULL;
