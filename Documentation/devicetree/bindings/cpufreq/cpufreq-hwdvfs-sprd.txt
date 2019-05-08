@@ -6,7 +6,11 @@ Both topdvfs_controller and cpudvfs_dev nodes listed below  must be defined.
 Node topdvfs_controller
 ------------------------
 Required properties:
-- compatible: must include: sprd,sharkl5-topdvfs and syscon
+- compatible: must select one config from following options
+	sprd,sharkl5-topdvfs and syscon,
+	sprd,roc1-topdvfs and syscon,
+	sprd,sharkl5pro-topdvfs and syscon,
+	sprd,orca-topdvfs and syscon.
 - sprd,syscon-enable: A phandle to the aon apb controller node
 - module-enable-cfg: A property describing how to enable or disable the
 			topdvfs_controller configuration. for example, <0x4 7>
@@ -101,7 +105,11 @@ Optional properties:
 Node cpudvfs_dev
 -----------------------------------
 - cpudvfs_dev:  Represent a ap cpu hardwre dvfs device
-	- compatible: should be sprd,sharkl5-cpudvfs.
+	- compatible: select one config from following options
+		sprd,sharkl5-cpudvfs,
+		sprd,roc1-cpudvfs,
+		sprd,sharkl5pro-cpudvfs,
+		sprd,orca-cpudvfs.
 	- sprd,syscon-enable: A phandle to aon apb controller.
 	- module-enable-cfg: A property describing how to enable or disable the
 			topdvfs_controller configuration. for example, <0x4 7>
