@@ -8,8 +8,8 @@
 /dts-v1/;
 
 #include "ud710-haps.dtsi"
-#include "ud710-haps-common.dtsi"
-#include "ud710-haps-bkd-common.dtsi"
+#include "ud710-haps-mach.dtsi"
+#include "ud710-haps-bkd-mach.dtsi"
 #include "lcd/lcd_nt35597_boe_mipi_hd.dtsi"
 
 / {

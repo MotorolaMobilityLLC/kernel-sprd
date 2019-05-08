@@ -9,7 +9,7 @@
 
 #include "sc9863a.dtsi"
 #include "sc9863a-wcn.dtsi"
-#include "sp9863a-common.dtsi"
+#include "sp9863a-mach.dtsi"
 #include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt35532_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"

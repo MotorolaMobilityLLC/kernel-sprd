@@ -8,7 +8,7 @@
 /dts-v1/;
 
 #include "udx710-haps.dtsi"
-#include "udx710-haps-common.dtsi"
+#include "udx710-haps-mach.dtsi"
 
 / {
 	model = "Spreadtrum UDX710 HAPSBoard";

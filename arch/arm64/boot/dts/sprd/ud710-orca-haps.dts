@@ -8,7 +8,7 @@
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
 #include "ud710-orca-haps.dtsi"
-#include "ud710-orca-haps-common.dtsi"
+#include "ud710-orca-haps-mach.dtsi"
 #include "lcd/lcd_nt35597_boe_mipi_hd.dtsi"
 
 / {

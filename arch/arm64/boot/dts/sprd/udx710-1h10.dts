@@ -11,7 +11,7 @@
 
 #include "udx710.dtsi"
 #include "sc2730.dtsi"
-#include "udx710-common.dtsi"
+#include "udx710-mach.dtsi"
 
 / {
 	model = "Spreadtrum UDX710 Board";

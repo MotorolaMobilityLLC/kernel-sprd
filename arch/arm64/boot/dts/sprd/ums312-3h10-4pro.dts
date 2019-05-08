@@ -9,7 +9,7 @@
 
 
 #include "ums312.dtsi"
-#include "ums312-common.dtsi"
+#include "ums312-mach.dtsi"
 
 / {
 	model = "Unisoc UMS312 1H10 board";

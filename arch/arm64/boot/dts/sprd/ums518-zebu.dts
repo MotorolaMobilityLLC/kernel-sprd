@@ -8,7 +8,7 @@
 /dts-v1/;
 
 #include "ums518-zebu.dtsi"
-#include "ums518-zebu-common.dtsi"
+#include "ums518-zebu-mach.dtsi"
 
 / {
 	model = "sharkl5pro zebu board";

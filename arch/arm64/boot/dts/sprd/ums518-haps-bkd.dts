@@ -8,7 +8,7 @@
 /dts-v1/;
 
 #include "ums518-haps.dts"
-#include "ums518-haps-bkd-common.dtsi"
+#include "ums518-haps-bkd-mach.dtsi"
 
 / {
 	chosen {

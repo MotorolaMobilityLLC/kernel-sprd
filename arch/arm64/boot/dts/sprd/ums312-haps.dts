@@ -11,7 +11,7 @@
 #include <dt-bindings/gpio/gpio.h>
 
 #include "ums312-haps.dtsi"
-#include "ums312-haps-common.dtsi"
+#include "ums312-haps-mach.dtsi"
 #include "sc2730.dtsi"
 #include "lcd/lcd_nt35597_boe_mipi_hd.dtsi"
 

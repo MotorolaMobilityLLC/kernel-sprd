@@ -12,7 +12,7 @@
 
 #include "ums312.dtsi"
 #include "sc2730.dtsi"
-#include "ums312-common.dtsi"
+#include "ums312-mach.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 #include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
 #include "lcd/lcd_ili9881c_truly_mipi_hd.dtsi"
