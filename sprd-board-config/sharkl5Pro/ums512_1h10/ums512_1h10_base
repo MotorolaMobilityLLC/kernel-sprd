@@ -1,0 +1,26 @@
+TARGET_KERNEL_ARCH := arm64
+
+ifdef BUILD_FROM_KERNEL
+KERNEL_OUT=.
+TARGET_ROOT_OUT=.
+KERNEL_DIFF_CONFIG_ARCH := sprd-diffconfig/sharkl5Pro/$(TARGET_KERNEL_ARCH)
+KERNEL_DIFF_CONFIG_COMMON := sprd-diffconfig/sharkl5Pro/common
+else
+KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/KERNEL
+KERNEL_DIFF_CONFIG_ARCH := $(KERNEL_PATH)/sprd-diffconfig/sharkl5Pro/$(TARGET_KERNEL_ARCH)
+KERNEL_DIFF_CONFIG_COMMON := $(KERNEL_PATH)/sprd-diffconfig/sharkl5Pro/common
+KERNEL_CROSS_COMPILE := $(ANDROID_BUILD_TOP)/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+endif
+
+BOARD_WCN_CONFIG :=
+BOARD_EXT_PMIC_CONFIG :=
+PRODUCT_GO_DEVICE :=
+BOARD_FEATUREPHONE_CONFIG :=
+BOARD_TEE_CONFIG :=
+
+ifeq ($(strip $(BOARD_FEATUREPHONE_CONFIG)),true)
+BOARD_TEE_64BIT := false
+else
+BOARD_TEE_64BIT := true
+endif
+

@@ -1,0 +1,14 @@
+ifdef BUILD_FROM_KERNEL
+include sprd-board-config/sharkl5Pro/ums518_haps/ums512_1h10_base
+else
+include  $(KERNEL_PATH)/sprd-board-config/sharkl5Pro/ums512_1h10/ums512_1h10_base
+endif
+
+#DEFCONFIG
+KERNEL_DEFCONFIG := sprd_sharkl5Pro_defconfig
+
+#DTS
+TARGET_DTB := ums512-1h10
+TARGET_DTBO := ums512-1h10-overlay
+
+BOARD_TEE_CONFIG := trusty
