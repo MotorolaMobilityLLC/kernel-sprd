@@ -700,7 +700,9 @@
 	/* keyin0 ~ keyin2 */
 	"gpio_124", "gpio_125", "gpio_126",
 	/* extint0, extint1, sda3, scl3 */
-	"gpio_144", "gpio_145", "gpio_146", "gpio_147";
+	"gpio_144", "gpio_145", "gpio_146", "gpio_147",
+	/* sim0_det, sim1_det */
+	"gpio_9", "gpio_31";
 	pinctrl-0 = <&gpio_121>;
 	pinctrl-1 = <&gpio_122>;
 	pinctrl-2 = <&gpio_123>;
@@ -711,6 +713,8 @@
 	pinctrl-7 = <&gpio_145>;
 	pinctrl-8 = <&gpio_146>;
 	pinctrl-9 = <&gpio_147>;
+	pinctrl-10 = <&gpio_9>;
+	pinctrl-11 = <&gpio_31>;
 
 	gpio_121: keyout0 {
 		pins = "SHARKL5_KEYOUT0";
@@ -759,6 +763,16 @@
 
 	gpio_147: scl3 {
 		pins = "SHARKL5_SCL3";
+		function = "func4";
+	};
+
+	gpio_9: sim1 {
+		pins = "SHARKL5_GPIO9";
+		function = "func4";
+	};
+
+	gpio_31: sim0 {
+		pins = "SHARKL5_GPIO31";
 		function = "func4";
 	};
 };
