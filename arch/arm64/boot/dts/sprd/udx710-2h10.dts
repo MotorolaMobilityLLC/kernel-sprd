@@ -51,6 +51,10 @@
 
 		vbus-gpios = <&ap_gpio 11 GPIO_ACTIVE_HIGH>;
 	};
+	sprd-sysdump {
+		memory-region = <&memory>;
+		memory-region-re = <&ddrbist_reserved>, <&cp_reserved>, <&smem_reserved>;
+	 };
 };
 
 &ssphy0 {
