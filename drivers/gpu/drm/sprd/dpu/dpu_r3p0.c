@@ -756,6 +756,13 @@ static void dpu_dvfs_work_func(struct work_struct *data)
 	int layer_en, max, maxs[8], count = 0;
 	u32 dvfs_freq;
 
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		up(&ctx->refresh_lock);
+		pr_err("dpu is not initialized\n");
+		return;
+	}
+
 	/*
 	 * Count the current total number of active layers
 	 * and the corresponding pos_x, pos_y, size_x and size_y.
@@ -770,6 +777,7 @@ static void dpu_dvfs_work_func(struct work_struct *data)
 			count++;
 		}
 	}
+	up(&ctx->refresh_lock);
 
 	/*
 	 * Calculate the number of overlaps between each

@@ -642,12 +642,12 @@ static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
 	node = of_parse_phandle(dpu->dev.of_node,
 					"sprd,wb-memory", 0);
 	if (!node) {
-		DRM_WARN("no sprd,wb-memory specified\n");
+		pr_err("no sprd,wb-memory specified\n");
 		return -EINVAL;
 	}
 
 	if (of_address_to_resource(node, 0, &r)) {
-		DRM_ERROR("invalid wb reserved memory node!\n");
+		pr_err("invalid wb reserved memory node!\n");
 		return -EINVAL;
 	}
 
@@ -655,7 +655,7 @@ static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
 	size64 = resource_size(&r);
 
 	if (size64 < size) {
-		DRM_ERROR("unable to obtain enough wb memory\n");
+		pr_err("unable to obtain enough wb memory\n");
 		return -ENOMEM;
 	}
 
@@ -719,6 +719,13 @@ static void dpu_dvfs_work_func(struct work_struct *data)
 	int layer_en, max, maxs[8], count = 0;
 	u32 dvfs_freq;
 
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		up(&ctx->refresh_lock);
+		pr_err("dpu is not initialized\n");
+		return;
+	}
+
 	/*
 	 * Count the current total number of active layers
 	 * and the corresponding pos_x, pos_y, size_x and size_y.
@@ -733,6 +740,7 @@ static void dpu_dvfs_work_func(struct work_struct *data)
 			count++;
 		}
 	}
+	up(&ctx->refresh_lock);
 
 	/*
 	 * Calculate the number of overlaps between each
