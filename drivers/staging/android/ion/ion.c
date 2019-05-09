@@ -547,8 +547,10 @@ struct dma_buf *ion_new_alloc(size_t len, unsigned int heap_id_mask,
 	exp_info.priv = buffer;
 
 	dmabuf = dma_buf_export(&exp_info);
-	if (IS_ERR(dmabuf))
+	if (IS_ERR(dmabuf)) {
 		_ion_buffer_destroy(buffer);
+		return dmabuf;
+	}
 
 	attachment = kzalloc(sizeof(*attachment), GFP_KERNEL);
 	if (!attachment) {
