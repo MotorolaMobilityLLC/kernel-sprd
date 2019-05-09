@@ -223,4 +223,17 @@ struct id_to_name_tag {
 	u32 id;
 	char *pname;
 };
+
+struct acc_gyro_cali_data {
+	int x_bias;
+	int y_bias;
+	int z_bias;
+	int x_raw_data;
+	int y_raw_data;
+	int z_raw_data;
+};
+
+#define ACC_MAX_X_Y_BIAS_VALUE 20000 /* units: (1/10000) m/s^2 */
+#define ACC_MAX_Z_BIAS_VALUE 25000 /* units: (1/10000) m/s^2 */
+
 #endif

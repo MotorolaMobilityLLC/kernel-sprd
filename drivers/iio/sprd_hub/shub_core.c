@@ -958,6 +958,32 @@ static ssize_t logctl_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(logctl);
 
+static int check_acc_cali_data(void *cali_data)
+{
+	struct acc_gyro_cali_data acc_cali_data;
+	struct shub_data *sensor = container_of(cali_data, struct shub_data,
+		calibrated_data);
+
+	memcpy(&acc_cali_data, cali_data, sizeof(acc_cali_data));
+
+	dev_info(&sensor->sensor_pdev->dev,
+			"x_bias = %d; y_bias = %d; z_bias = %d\n",
+			acc_cali_data.x_bias,
+			acc_cali_data.y_bias,
+			acc_cali_data.z_bias);
+
+	if (abs(acc_cali_data.x_bias) > ACC_MAX_X_Y_BIAS_VALUE ||
+		abs(acc_cali_data.y_bias) > ACC_MAX_X_Y_BIAS_VALUE ||
+		abs(acc_cali_data.z_bias) > ACC_MAX_Z_BIAS_VALUE) {
+		dev_err(&sensor->sensor_pdev->dev,
+			"acc sensor cali failed! the bias is too big!\n");
+		return -EINVAL;
+	}
+
+	return 0;
+
+}
+
 /**
  * return 0:success
  * return < 0:fail
@@ -969,6 +995,15 @@ static void shub_save_calibration_data(struct work_struct *work)
 	char file_path[CALIB_PATH_MAX_LENG];
 	struct shub_data *sensor = container_of(work,
 		struct shub_data, savecalifile_work);
+
+	if (sensor->cal_id == SENSOR_ACCELEROMETER) {
+		err = check_acc_cali_data(sensor->calibrated_data);
+
+		if (err < 0) {
+			sensor->cal_savests = err;
+			return;
+		}
+	}
 
 	sprintf(file_path, CALIBRATION_NODE "%s",
 		calibration_filename[sensor->cal_id]);
@@ -1202,6 +1237,13 @@ static int set_calib_cmd(struct shub_data *sensor, u8 cmd, u8 id,
 	data[0] = cmd;
 	data[1] = type;
 	memcpy(&data[2], &golden_value, sizeof(golden_value));
+	if (cmd == CALIB_EN) {
+		err = shub_send_command(sensor, id,
+			SHUB_DISABLE_CALI_RANGE_CHECK_SUBTYPE,
+			data, sizeof(data));
+		dev_info(&sensor->sensor_pdev->dev,
+			"disable cali range check, err = %d\n", err);
+	}
 	err = shub_send_command(sensor, id,
 				SHUB_SET_CALIBRATION_CMD_SUBTYPE,
 				data, sizeof(data));
