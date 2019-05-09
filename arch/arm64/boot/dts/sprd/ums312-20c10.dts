@@ -286,6 +286,12 @@
 	overlay_reserved: overlay-mem@bcdc0000 {
 		reg = <0x0 0xbcdc0000 0x0 0x01800000>;
 	};
+	fb_reserved: framebuffer-mem {
+		reg = <0x0 0xbefc0000 0x0 0x00c90000>;
+	};
+	wb_reserved: writeback {
+		reg = <0x0 0xbfc50000 0x0 0x00430000>;
+	};
 };
 
 &thm_zone {

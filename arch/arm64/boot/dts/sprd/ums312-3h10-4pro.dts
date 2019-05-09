@@ -353,12 +353,11 @@
 };
 
 &reserved_memory {
-
-	fb_reserved: framebuffer-mem@befc0000 {
+	fb_reserved: framebuffer-mem {
 		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
 	};
 
-	wb_reserved: writeback@bfc30000 {
+	wb_reserved: writeback {
 		reg = <0x0 0xff562000 0x0 0x00a1e000>;
 	};
 };
