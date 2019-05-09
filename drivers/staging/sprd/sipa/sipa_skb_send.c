@@ -120,8 +120,6 @@ static void sipa_free_sent_items(struct sipa_skb_sender *sender)
 			status = false;
 		}
 	}
-	if (atomic_read(&sender->left_cnt) < 0)
-		atomic_set(&sender->left_cnt, 0);
 	atomic_add(success_cnt, &sender->left_cnt);
 	if (sender->free_notify_net) {
 		sipa_sender_notify_cb(sender, SIPA_HAL_EXIT_FLOW_CTRL, 0xfe);
@@ -322,14 +320,13 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 	struct sipa_skb_dma_addr_node *node;
 	struct sipa_hal_fifo_item item;
 
-	atomic_dec(&sender->left_cnt);
-	if (atomic_read(&sender->left_cnt) < 0) {
-		atomic_set(&sender->left_cnt, 0);
+	if (!atomic_read(&sender->left_cnt)) {
 		sender->free_notify_net = true;
 		wake_up(&sender->free_waitq);
 		sender->no_free_cnt++;
 		return -EAGAIN;
 	}
+	atomic_dec(&sender->left_cnt);
 
 	dma_addr = dma_map_single(sender->ctx->pdev,
 				  skb->head,
