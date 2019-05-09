@@ -185,6 +185,11 @@ static void sprd_plane_atomic_update(struct drm_plane *plane,
 	struct sprd_dpu_layer *layer = &dpu->layers[p->index];
 	int i;
 
+	if (plane->state->crtc->state->active_changed) {
+		DRM_DEBUG("resume or suspend, no need to update plane\n");
+		return;
+	}
+
 	if (s->pallete_en) {
 		layer->index = p->index;
 		layer->dst_x = state->crtc_x;
