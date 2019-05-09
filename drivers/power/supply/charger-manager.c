@@ -414,13 +414,17 @@ static bool is_full_charged(struct charger_manager *cm)
 		if (ret)
 			goto out;
 
-		if (uV >= desc->fullbatt_uV && uA <= desc->fullbatt_uA &&
-		    ++desc->trigger_cnt > 1) {
-			if (cm->desc->cap >= 100) {
-				is_full = true;
+		if (uV >= desc->fullbatt_uV && uA <= desc->fullbatt_uA) {
+			if (++desc->trigger_cnt > 1) {
+				if (cm->desc->cap >= 100) {
+					is_full = true;
+				} else {
+					is_full = false;
+					cm->desc->force_set_full = true;
+				}
 			} else {
-				cm->desc->force_set_full = true;
 				is_full = false;
+				cm->desc->force_set_full = false;
 			}
 			goto out;
 		} else {
