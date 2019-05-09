@@ -10067,6 +10067,13 @@ CONFIG_SPRD_IPA_PCIE_WORKROUND
 	[subsys]
 	[must]
 	[function]
+CONFIG_SPRD_IPA_SYS
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_IQ
 	[arch] all
 	[plat] all
@@ -10174,13 +10181,6 @@ CONFIG_SPRD_PAMU3
 	[must]
 	[function]
 CONFIG_SPRD_PAM_IPA
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_SPRD_IPA_SYS
 	[arch] arm64
 	[plat] roc1
 	[field]
