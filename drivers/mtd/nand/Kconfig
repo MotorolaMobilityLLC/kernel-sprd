@@ -563,4 +563,10 @@ config MTD_NAND_MTK
 	  Enables support for NAND controller on MTK SoCs.
 	  This controller is found on mt27xx, mt81xx, mt65xx SoCs.
 
+config MTD_NAND_SPRD
+	tristate "Support for NAND controller on SPRD SoC Orca"
+	depends on ARCH_SPRD || COMPILE_TEST
+	help
+	  Enables support for NAND controller on SPRD SoC Orca.
+
 endif # MTD_NAND
