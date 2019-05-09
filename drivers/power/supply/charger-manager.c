@@ -2469,12 +2469,13 @@ static void cm_batt_works(struct work_struct *work)
 		if ((batt_ocV < (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 150000))
 		    && (bat_uA < 0))
 			cm->desc->force_set_full = false;
+		if (is_ext_pwr_online(cm)) {
+			if (fuel_cap != 100)
+				fuel_cap = 100;
 
-		if (fuel_cap != 100)
-			fuel_cap = 100;
-
-		if (fuel_cap > cm->desc->cap)
-			fuel_cap = cm->desc->cap + 1;
+			if (fuel_cap > cm->desc->cap)
+				fuel_cap = cm->desc->cap + 1;
+		}
 
 		break;
 	default:
