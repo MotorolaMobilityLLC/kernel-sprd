@@ -78,6 +78,11 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 
 	DRM_INFO("%s()\n", __func__);
 
+	/* add if condition to avoid resume dsi for SR feature */
+	if (encoder->crtc->state->mode_changed &&
+	    !encoder->crtc->state->active_changed)
+		return;
+
 	pm_runtime_get_sync(dsi->dev.parent);
 
 	if (is_enabled) {
@@ -113,8 +118,12 @@ static void sprd_dsi_encoder_disable(struct drm_encoder *encoder)
 
 	DRM_INFO("%s()\n", __func__);
 
-	sprd_dpu_stop(dpu);
+	/* add if condition to avoid suspend dsi for SR feature */
+	if (encoder->crtc->state->mode_changed &&
+	    !encoder->crtc->state->active_changed)
+		return;
 
+	sprd_dpu_stop(dpu);
 	sprd_dsi_set_work_mode(dsi, DSI_MODE_CMD);
 	sprd_dsi_lp_cmd_enable(dsi, true);
 

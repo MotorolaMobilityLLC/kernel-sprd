@@ -555,6 +555,17 @@ static void sprd_crtc_mode_set_nofb(struct drm_crtc *crtc)
 		dpu->ctx.if_type = SPRD_DISPC_IF_EDPI;
 	else
 		dpu->ctx.if_type = SPRD_DISPC_IF_DPI;
+
+	if (dpu->core && dpu->core->modeset) {
+		if (crtc->state->mode_changed) {
+			struct drm_mode_modeinfo umode;
+
+			drm_mode_convert_to_umode(&umode,
+				&crtc->state->adjusted_mode);
+			dpu->core->modeset(&dpu->ctx, &umode);
+		}
+	}
+
 }
 
 static enum drm_mode_status sprd_crtc_mode_valid(struct drm_crtc *crtc,
@@ -578,6 +589,12 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
 
 	DRM_INFO("%s()\n", __func__);
+
+	/*
+	 * add if condition to avoid resume dpu for SR feature.
+	 */
+	if (crtc->state->mode_changed && !crtc->state->active_changed)
+		return;
 
 	pm_runtime_get_sync(dpu->dev.parent);
 
@@ -619,6 +636,10 @@ static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 	struct drm_device *drm = dpu->crtc.dev;
 
 	DRM_INFO("%s()\n", __func__);
+
+	/* add if condition to avoid suspend dpu for SR feature */
+	if (crtc->state->mode_changed && !crtc->state->active_changed)
+		return;
 
 	sprd_crtc_wait_last_commit_complete(crtc);
 
@@ -664,16 +685,6 @@ static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
 	struct drm_device *drm = dpu->crtc.dev;
 
 	DRM_DEBUG("%s()\n", __func__);
-
-	if (dpu->core && dpu->core->modeset) {
-		if (crtc->state->mode_changed) {
-			struct drm_mode_modeinfo umode;
-
-			drm_mode_convert_to_umode(&umode,
-				&crtc->state->adjusted_mode);
-			dpu->core->modeset(&dpu->ctx, &umode);
-		}
-	}
 
 	if (dpu->core && dpu->core->flip &&
 	    dpu->pending_planes && !dpu->ctx.disable_flip)
