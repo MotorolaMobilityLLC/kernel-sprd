@@ -665,6 +665,21 @@
 		 <&apahb_gate CLK_EMMC_EB>;
 };
 
+&nandc {
+	clock-names = "nandc_clk","nandc_ecc_clk","nandc_parent_sdr",
+		"nandc_parent_ddr","nandc_ahb_enable","nandc_ecc_enable",
+		"nandc_26m_enable","nandc_1x_enable","nandc_2x_enable";
+	clocks = <&aon_clk CLK_NANDC_2X>,
+		 <&ap_clk CLK_NANDC_ECC>,
+		 <&g3_pll CLK_TWPLL_219M4>,
+		 <&g3_pll CLK_TWPLL_307M2>,
+		 <&apahb_gate CLK_NANDC_EB>,
+		 <&apahb_gate CLK_NANDC_ECC_EB>,
+		 <&apahb_gate CLK_NANDC_26M_EB>,
+		 <&aonapb_gate CLK_NANDC_1X_EN>,
+		 <&aonapb_gate CLK_NANDC_2X_EN>;
+};
+
 &uart0 {
 	clock-names = "enable", "uart", "source";
 	clocks = <&apapb_gate CLK_AP_UART0_EB>,

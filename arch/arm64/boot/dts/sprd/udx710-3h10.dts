@@ -112,3 +112,7 @@
 &sdio3 {
 	status = "okay";
 };
+
+&nandc {
+	status = "okay";
+};

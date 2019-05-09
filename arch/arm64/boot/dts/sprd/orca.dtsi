@@ -213,6 +213,13 @@
 				clocks = <&apahb_gate CLK_DMA_EB>;
 			};
 
+			nandc: nand-controller@21300000 {
+				compatible = "sprd,orca-nandc";
+				reg = <0 0x21300000 0 0x1000>;
+				interrupts = <GIC_SPI 59 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+			};
+
 			sdio3: sdio@26100000 {
 				compatible = "sprd,sdhc-r11p1";
 				reg = <0 0x26100000 0 0x1000>;
