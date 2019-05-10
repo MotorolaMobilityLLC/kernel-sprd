@@ -1324,6 +1324,7 @@
 					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu0_supply>;
 					syscons = <&pmu_apb_regs REG_PMU_APB_DVFS_BLOCK_SHUTDOWN_CFG MASK_PMU_APB_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
 					syscon-names = "dvfs-blk-dcdc-sd";
+					dcdc-idle-voltage = <0x16c 3 0x7 6>;
 				};
 				dcdc_cpu1: dcdc-cpu1{
 					dcdc-dvfs-enable = <0x94 0 1>;
@@ -1332,6 +1333,7 @@
 					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu1_supply>;
 					syscons = <&pmu_apb_regs REG_PMU_APB_DVFS_BLOCK_SHUTDOWN_CFG MASK_PMU_APB_DCDC_CPU1_DVFS_BLOCK_SHUTDOWN_EN>;
 					syscon-names = "dvfs-blk-dcdc-sd";
+					dcdc-idle-voltage = <0x16c 0 0x7 5>;
 				};
 				dcdc_mm: dcdc-mm {
 					dcdc-dvfs-enable = <0x18 20 1>;
@@ -1413,6 +1415,7 @@
 						sel-get = <0x38 0 3>;
 						div-get = <0x38 2 7>;
 						vol-get = <0x30 0 7>;
+						dfs-idle-disable = <0x1c 0 1>;
 
 					};
 					lit_core1_dev:	lit-core1-dev {
@@ -1420,6 +1423,7 @@
 						sel-get = <0x38 5 3>;
 						div-get = <0x38 7 7>;
 						vol-get = <0x30 3 7>;
+						dfs-idle-disable = <0x1c 1 1>;
 
 					};
 					lit_core2_dev:	lit-core2-dev {
@@ -1427,6 +1431,7 @@
 						sel-get = <0x38 10 3>;
 						div-get = <0x38 12 7>;
 						vol-get = <0x30 6 7>;
+						dfs-idle-disable = <0x1c 2 1>;
 					};
 				};
 				big_core_cluster:	big-core-cluster {
@@ -1455,6 +1460,7 @@
 						sel-get = <0x38 15 3>;
 						div-get = <0x38 17 7>;
 						vol-get = <0x30 9 7>;
+						dfs-idle-disable = <0x1c 3 1>;
 					};
 				};
 				scu_cluster: scu-cluster {
@@ -1486,6 +1492,7 @@
 						sel-get = <0x38 20 3>;
 						div-get = <0x38 22 7>;
 						vol-get = <0x30 12 7>;
+						dfs-idle-disable = <0x1c 4 0>;
 					};
 					ace_dev: ace-dev	{
 						device-name = "ace";
@@ -1519,6 +1526,7 @@
 						sel-get = <0x3C 0 3>;
 						div-get = <0x3C 2 7>;
 						vol-get = <0x30 18 7>;
+						dfs-idle-disable = <0x1c 6 0>;
 					};
 				};
 
@@ -1547,6 +1555,7 @@
 						sel-get = <0x3c 12 3>;
 						div-get = <0x3c 14 7>;
 						vol-get = <0x30 21 7>;
+						dfs-idle-disable = <0x1c 7 0>;
 					};
 				};
 
