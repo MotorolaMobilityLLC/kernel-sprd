@@ -323,6 +323,15 @@ config ARM_SPRD_SW_CPUFREQ
 
 	  If in doubt, say N.
 
+config ARM_SPRD_DUMMY_CPUFREQ
+	tristate "Dummy CPUfreq driver"
+	depends on ARCH_SPRD && CPU_FREQ
+	select PM_OPP
+	help
+	 This adds a sprd dummy CPUfreq driver only for zebu and vdk platform
+
+	 If in doubt, say N.
+
 endchoice
 
 config ARM_SPRD_HW_CPUFREQ_SHARKL3
