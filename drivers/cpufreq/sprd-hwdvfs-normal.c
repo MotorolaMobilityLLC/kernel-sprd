@@ -495,6 +495,40 @@ static int get_device_voted_volt(void *clu, u32 dev_nr)
 				cluster->subdevs[dev_nr].vol_mask;
 }
 
+static int cluster_set_dfs_idle_disable(void *clu, u32 dev_nr)
+{
+	struct dvfs_cluster *cluster = (struct dvfs_cluster *)clu;
+	struct cpudvfs_archdata *pdev = cluster->parent_dev;
+	int en, reg, offset;
+
+	if (!cluster->subdevs) {
+		pr_err("No device found in %s cluster\n",
+		       cluster->name);
+		return -ENODEV;
+	}
+
+	if (dev_nr >= cluster->device_num) {
+		pr_err("Invalid device number in %s cluster\n",
+		       cluster->name);
+		return -EINVAL;
+	}
+
+	en = cluster->subdevs[dev_nr].idle_dis_en;
+	reg = cluster->subdevs[dev_nr].idle_dis_reg;
+	offset = cluster->subdevs[dev_nr].idle_dis_off;
+
+	/* no related function register to set */
+	if (reg < 0)
+		return 0;
+
+	if (en)
+		cpu_dvfs_bits_update(pdev, reg, BIT(offset), BIT(offset));
+	else
+		cpu_dvfs_bits_update(pdev, reg, BIT(offset), 0);
+
+	return 0;
+}
+
 inline unsigned long get_cluster_freq(void *clu, int hw_opp_index)
 {
 	struct dvfs_cluster *cluster = (struct dvfs_cluster *)clu;
@@ -632,6 +666,26 @@ static int sprd_get_cgm_sel_value(void *data, u32 cluster_id, u32 device_id)
 	}
 
 	return cluster->driver->get_cgm_sel(cluster, device_id);
+}
+
+static int sprd_dfs_idle_disable(void *data, u32 cluster_id, u32 device_id)
+{
+	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
+	struct dvfs_cluster *cluster;
+
+	if (cluster_id >= pdev->total_cluster_num) {
+		pr_err("The cluster id is overflow.\n");
+		return -EINVAL;
+	}
+
+	cluster = pdev->cluster_array[cluster_id];
+	if (!cluster) {
+		pr_err("Failed to get cluster%d device\n",
+		       cluster_id);
+		return -ENODEV;
+	}
+
+	return cluster->driver->set_dfs_idle_disable(cluster, device_id);
 }
 
 static int sprd_get_cgm_div_value(void *data, u32 cluster_id, u32 device_id)
@@ -932,6 +986,46 @@ static int sprd_dcdc_vol_delay_time_setup(void *data, u32 dcdc_nr)
 	return 0;
 }
 
+int sprd_set_dcdc_idle_voltage(void *data, u32 dcdc_nr, u32 grade)
+{
+	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
+	int ret, reg, off, msk;
+	u32 value;
+
+	if (!pdev->pwr) {
+		pr_err("No DCDC Power domain found\n");
+		return -ENODEV;
+	}
+
+	if (dcdc_nr >= pdev->dcdc_num) {
+		pr_err("Incorrect dcdc number\n");
+		return -EINVAL;
+	}
+
+	reg = pdev->pwr[dcdc_nr].idle_vol_reg;
+	off = pdev->pwr[dcdc_nr].idle_vol_off;
+	msk = pdev->pwr[dcdc_nr].idle_vol_msk;
+
+	/*
+	 * Since the registers about idle voltage don't support set/clr, we
+	 * cannot use regmap_update_bits().
+	 */
+	ret = regmap_read(pdev->topdvfs_map, reg, &value);
+	if (ret)
+		return ret;
+
+	value &= ~(msk << off);
+	value |= grade << off;
+
+	ret = regmap_write(pdev->topdvfs_map, reg, value);
+	if (ret) {
+		pr_err("Failed to set idle voltage for dcdc-cpu%d\n", dcdc_nr);
+		return ret;
+	}
+
+	return 0;
+}
+
 int sprd_setup_i2c_channel(void *data, u32 dcdc_nr)
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
@@ -1076,6 +1170,7 @@ struct cpudvfs_phy_ops sprd_cpudvfs_phy_ops = {
 	.set_dvfs_work_index = sprd_set_dvfs_work_index,
 	.set_dvfs_idle_index = sprd_set_dvfs_idle_index,
 	.get_dvfs_index = sprd_get_dvfs_index,
+	.dfs_idle_disable = sprd_dfs_idle_disable,
 	.get_cgm_sel_value = sprd_get_cgm_sel_value,
 	.get_cgm_div_value = sprd_get_cgm_div_value,
 	.get_cgm_voted_volt = sprd_get_cgm_voted_volt,
@@ -1087,6 +1182,7 @@ struct cpudvfs_phy_ops sprd_cpudvfs_phy_ops = {
 	.get_top_dcdc_dvfs_state = sprd_get_top_dcdc_dvfs_state,
 	.setup_i2c_channel = sprd_setup_i2c_channel,
 	.dcdc_vol_delay_time_setup = sprd_dcdc_vol_delay_time_setup,
+	.set_dcdc_idle_voltage = sprd_set_dcdc_idle_voltage,
 };
 
 static void hardware_dvfs_tuning_result_judge(struct dvfs_cluster *clu)
@@ -1656,6 +1752,22 @@ static int dcdc_pwr_dt_parse(struct cpudvfs_archdata *pdev)
 			pdev->pwr[ix].blk_off = syscon_args[1];
 		}
 
+		if (of_find_property(dcdc_node, "dcdc-idle-voltage", NULL)) {
+			pdev->pwr[ix].fix_dcdc_pd_volt = true;
+			of_property_read_u32_index(dcdc_node,
+						   "dcdc-idle-voltage", 0,
+						   &pdev->pwr[ix].idle_vol_reg);
+			of_property_read_u32_index(dcdc_node,
+						   "dcdc-idle-voltage", 1,
+						   &pdev->pwr[ix].idle_vol_off);
+			of_property_read_u32_index(dcdc_node,
+						   "dcdc-idle-voltage", 2,
+						   &pdev->pwr[ix].idle_vol_msk);
+			of_property_read_u32_index(dcdc_node,
+						   "dcdc-idle-voltage", 3,
+						   &pdev->pwr[ix].idle_vol_val);
+		}
+
 		of_property_read_u32_index(dcdc_node, "dcdc-dvfs-enable",
 					   0, &pdev->pwr[ix].dvfs_ctl_reg);
 		of_property_read_u32_index(dcdc_node, "dcdc-dvfs-enable",
@@ -1948,6 +2060,26 @@ int dvfs_cluster_info_dt_parse(struct device_node *parent, void *data)
 					   &cluster->subdevs[idx].vol_bit);
 		of_property_read_u32_index(sub_dev_np, "vol-get", 2,
 					   &cluster->subdevs[idx].vol_mask);
+		prop = of_find_property(sub_dev_np, "dfs-idle-disable", &num);
+		if (prop) {
+			num = num / sizeof(u32);
+			if (num != 3) {
+				pr_err("Invalid dts configuration\n");
+				ret = -EINVAL;
+				goto err_subsys_free;
+			}
+			of_property_read_u32_index(sub_dev_np,
+						   "dfs-idle-disable", 0,
+					   &cluster->subdevs[idx].idle_dis_reg);
+			of_property_read_u32_index(sub_dev_np,
+						   "dfs-idle-disable", 1,
+					   &cluster->subdevs[idx].idle_dis_off);
+			of_property_read_u32_index(sub_dev_np,
+						   "dfs-idle-disable", 2,
+					   &cluster->subdevs[idx].idle_dis_en);
+		} else {
+			cluster->subdevs[idx].idle_dis_reg = -1;
+		}
 
 		cluster->subdevs[idx].device_id = dev_nr;
 		pdev->total_device_num++;
@@ -2228,7 +2360,8 @@ err_freqvolt_free:
 static int sprd_cpudvfs_common_init(struct cpudvfs_archdata *pdev)
 {
 	int ret;
-	u32 ix, addr, bit;
+	u32 ix, addr, bit, jx, vol;
+	struct dvfs_cluster *clu;
 
 	ret = pdev->phy_ops->dvfs_module_eb(pdev);
 	if (ret) {
@@ -2285,6 +2418,23 @@ static int sprd_cpudvfs_common_init(struct cpudvfs_archdata *pdev)
 			if (ret)
 				return ret;
 		}
+
+		if (pdev->pwr[ix].fix_dcdc_pd_volt) {
+			vol = pdev->pwr[ix].idle_vol_val;
+			ret = pdev->phy_ops->set_dcdc_idle_voltage(pdev, ix,
+								   vol);
+			if (ret)
+				return ret;
+		}
+	}
+
+	for (ix = 0; ix < pdev->total_cluster_num; ++ix) {
+		clu = pdev->cluster_array[ix];
+		for (jx = 0; jx < clu->device_num; ++jx) {
+			ret = pdev->phy_ops->dfs_idle_disable(pdev, ix, jx);
+			if (ret)
+				return ret;
+		}
 	}
 
 	ret = pdev->phy_ops->hw_dvfs_map_table_init(pdev);
@@ -2306,6 +2456,7 @@ static struct dvfs_cluster_driver default_cluster_ops = {
 	.get_voted_volt = get_device_voted_volt,
 	.get_entry_info = get_index_entry_info,
 	.get_freq =  get_cluster_freq,
+	.set_dfs_idle_disable = cluster_set_dfs_idle_disable,
 };
 
 struct dvfs_cluster global_host_cluster[] = {
@@ -2470,11 +2621,38 @@ static int sprd_cpudvfs_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM_SLEEP
+static int sprd_cpudvfs_resume(struct device *dev)
+{
+	struct sprd_cpudvfs_device *platdev = dev_get_drvdata(dev);
+	struct cpudvfs_archdata *pdev =
+		(struct cpudvfs_archdata *)platdev->archdata;
+	struct dvfs_cluster *clu;
+	int ret, ix, jx;
+
+	for (ix = 0; ix < pdev->total_cluster_num; ++ix) {
+		clu = pdev->cluster_array[ix];
+		for (jx = 0; jx < clu->device_num; ++jx) {
+			ret = pdev->phy_ops->dfs_idle_disable(pdev, ix, jx);
+			if (ret)
+				return ret;
+		}
+	}
+
+	return 0;
+}
+#endif
+
+static const struct dev_pm_ops sprd_cpudvfs_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(NULL, sprd_cpudvfs_resume)
+};
+
 static struct platform_driver sprd_cpudvfs_driver = {
 	.probe = sprd_cpudvfs_probe,
 	.remove = sprd_cpudvfs_remove,
 	.driver = {
 		.name = "sprd_cpudvfs",
+		.pm = &sprd_cpudvfs_pm_ops,
 		.of_match_table = sprd_cpudvfs_of_match,
 	},
 };

@@ -50,6 +50,7 @@ struct cpudvfs_phy_ops {
 	int (*get_cgm_sel_value)(void *data, u32 cluster_id, u32 device_id);
 	int (*get_cgm_div_value)(void *data, u32 cluster_id, u32 device_id);
 	int (*get_cgm_voted_volt)(void *data, u32 cluster_id, u32 device_id);
+	int (*dfs_idle_disable)(void *data, u32 cluster_id, u32 device_id);
 	int (*get_index_entry_info)(void *data, int index,
 				    u32 cluster_id, u32 **pdvfs_tbl_entry);
 	int (*get_index_freq)(void *data, u32 cluster_id, int index);
@@ -59,6 +60,7 @@ struct cpudvfs_phy_ops {
 	int (*get_top_dcdc_dvfs_state)(void *data, u32 dcdc_num);
 	int (*setup_i2c_channel)(void *data, u32 dcdc_num);
 	int (*dcdc_vol_delay_time_setup)(void *data, u32 dcdc_num);
+	int (*set_dcdc_idle_voltage)(void *data, u32 dcdc_num, u32 grade);
 };
 
 struct device_name {
@@ -118,6 +120,7 @@ struct dvfs_cluster_driver {
 	unsigned long (*get_freq)(void *cluster, int index);
 	int (*get_entry_info)(void *cluster, u32 index,
 			      u32 **entry);
+	int (*set_dfs_idle_disable)(void *cluster, u32 device_id);
 };
 
 struct sub_device {
@@ -134,6 +137,9 @@ struct sub_device {
 	u32 vol_reg;
 	u32 vol_bit;
 	u32 vol_mask;
+	int idle_dis_reg;
+	int idle_dis_off;
+	int idle_dis_en;
 };
 
 struct mpll_cfg {
@@ -203,6 +209,11 @@ struct dcdc_pwr {
 	u32 subsys_dvfs_state_reg;
 	u32 subsys_dvfs_state_bit;
 	u32 subsys_dvfs_state_mask;
+	bool fix_dcdc_pd_volt;
+	u32 idle_vol_reg;
+	u32 idle_vol_off;
+	u32 idle_vol_msk;
+	u32 idle_vol_val;
 	struct i2c_client *i2c_client;
 };
 
