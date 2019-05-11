@@ -92,4 +92,75 @@
 			};
 		};
 	};
+
+	ext_26m: ext-26m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+		clock-output-names = "ext-26m";
+	};
+
+	ext_26m_cp: ext-26m-cp {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+		clock-output-names = "ext-26m-cp";
+	};
+
+	ext_26m_aud: ext-26m-aud {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+		clock-output-names = "ext-26m-aud";
+	};
+
+	ext_32k: ext-32k {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <32768>;
+		clock-output-names = "ext-32k";
+	};
+
+	ext_1m: ext-1m {
+		compatible = "fixed-factor-clock";
+		#clock-cells = <0>;
+		clock-mult = <1>;
+		clock-div = <26>;
+		clocks = <&ext_26m>;
+		clock-output-names = "ext-1m";
+	};
+
+	ext_6m5: ext-6m5 {
+		compatible = "fixed-factor-clock";
+		#clock-cells = <0>;
+		clock-mult = <1>;
+		clock-div = <4>;
+		clocks = <&ext_26m>;
+		clock-output-names = "ext-6m5";
+	};
+
+	ext_13m: ext-13m {
+		compatible = "fixed-factor-clock";
+		#clock-cells = <0>;
+		clock-mult = <1>;
+		clock-div = <2>;
+		clocks = <&ext_26m>;
+		clock-output-names = "ext-13m";
+	};
+
+	clk_250k: clk-250k {
+		compatible = "fixed-factor-clock";
+		#clock-cells = <0>;
+		clock-mult = <1>;
+		clock-div = <104>;
+		clocks = <&ext_26m>;
+		clock-output-names = "clk-250k";
+	};
+
+	bbpll: bbpll {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <1248000000>;
+		clock-output-names = "bbpll";
+	};
 };
