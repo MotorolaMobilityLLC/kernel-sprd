@@ -81,14 +81,30 @@
 	energy-costs {
 		CPU_COST_0: core-cost0 {
 			busy-cost-data = <
-				164	44		//614MHz
-				206	68		//768MHz
-				307	99		//1144MHz
-				329	117		//1229MHz
-				397	150		//1482MHz
-				412	171		//1536MHz
-				460	207		//1716MHz
-				488	241		//1820MHz
+				164	30		//614MHz
+				206	42		//768MHz
+				257	56	        //962MHz
+				307	70		//1144MHz
+				329	85		//1229MHz
+				397	115		//1482MHz
+				412	134		//1536MHz
+				460	166		//1716MHz
+				488	194		//1820MHz
+			>;
+			idle-cost-data = <
+				6		/* ACTIVE-IDLE */
+				6		/* WFI */
+				0		/* CORE_PD */
+			>;
+		};
+		CPU_COST_1: core-cost1 {
+			busy-cost-data = <
+				621	331		//1229MHz
+				748	454		//1482MHz
+				776	540		//1536MHz
+				880	683		//1742MHz
+				945	820		//1872MHz
+				1024	984		//2028MHz
 			>;
 			idle-cost-data = <
 				37		/* ACTIVE-IDLE */
@@ -96,31 +112,17 @@
 				0		/* CORE_PD */
 			>;
 		};
-		CPU_COST_1: core-cost1 {
-			busy-cost-data = <
-				621	412		//1229MHz
-				748	539		//1482MHz
-				776	623		//1536MHz
-				880	771		//1742MHz
-				945	912		//1872MHz
-				1024	1083		//2028MHz
-			>;
-			idle-cost-data = <
-				116		/* ACTIVE-IDLE */
-				116		/* WFI */
-				0		/* CORE_PD */
-			>;
-		};
 		CLUSTER_COST_0: cluster-cost0 {
 			busy-cost-data = <
 				164	1		//614MHz
 				206	2		//768MHz
-				307	3		//1144MHz
-				329	4		//1229MHz
-				397	5		//1482MHz
-				412	6		//1536MHz
-				460	7		//1716MHz
-				488	8		//1820MHz
+				257	3		//962MHz
+				307	4		//1144MHz
+				329	5		//1229MHz
+				397	6		//1482MHz
+				412	7		//1536MHz
+				460	8		//1716MHz
+				488	9		//1820MHz
 			>;
 			idle-cost-data = <
 				0		/* ACTIVE-IDLE */
@@ -130,17 +132,17 @@
 		};
 		CLUSTER_COST_1: cluster-cost1 {
 			busy-cost-data = <
-				621	45		//1229MHz
-				748	59		//1482MHz
-				776	70		//1536MHz
-				880	83		//1742MHz
-				945	98		//1872MHz
-				1024	112		//2028MHz
+				621	13		//1229MHz
+				748	17		//1482MHz
+				776	21		//1536MHz
+				880	25		//1742MHz
+				945	30		//1872MHz
+				1024	35		//2028MHz
 			>;
 			idle-cost-data = <
-				14		/* ACTIVE-IDLE */
-				14		/* WFI */
-				14		/* CORE_PD */
+				23		/* ACTIVE-IDLE */
+				23		/* WFI */
+				23		/* CORE_PD */
 			>;
 		};
 	};
