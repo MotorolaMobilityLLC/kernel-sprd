@@ -53,6 +53,14 @@ struct sipa_sys_cfg_tag {
 	u32 ipaseceb_reg;
 	u32 ipaseceb_mask;
 
+	u32 pciepllhsel_reg;
+	u32 pciepllhsel_mask;
+	u32 pciepllvsel_reg;
+	u32 pciepllvsel_mask;
+	u32 xtlbufpciehsel_reg;
+	u32 xtlbufpciehsel_mask;
+	u32 xtlbufpcievsel_reg;
+	u32 xtlbufpcievsel_mask;
 };
 
 #endif

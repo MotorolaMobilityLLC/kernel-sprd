@@ -159,6 +159,46 @@ static int sipa_sys_parse_dts_configuration(struct platform_device *pdev,
 		cfg->s5autogateb_mask = reg_info[1];
 	}
 
+	ret = syscon_get_args_by_name(pdev->dev.of_node,
+				      "ipa-sys-pciepllhsel", 2, reg_info);
+
+	if (ret < 0 || ret != 2) {
+		pr_warn("get pciepll_p_sel register info fail!\n");
+	} else {
+		cfg->pciepllhsel_reg = reg_info[0];
+		cfg->pciepllhsel_mask = reg_info[1];
+	}
+
+	ret = syscon_get_args_by_name(pdev->dev.of_node,
+				      "ipa-sys-pciepllvsel", 2, reg_info);
+
+	if (ret < 0 || ret != 2) {
+		pr_warn("get s5 pciepll_v_sel register info fail!\n");
+	} else {
+		cfg->pciepllvsel_reg = reg_info[0];
+		cfg->pciepllvsel_mask = reg_info[1];
+	}
+
+	ret = syscon_get_args_by_name(pdev->dev.of_node,
+				      "ipa-sys-xtlbufpciehsel", 2, reg_info);
+
+	if (ret < 0 || ret != 2) {
+		pr_warn("get s5 xtlbuf_pcieh_sel register info fail!\n");
+	} else {
+		cfg->xtlbufpciehsel_reg = reg_info[0];
+		cfg->xtlbufpciehsel_mask = reg_info[1];
+	}
+
+	ret = syscon_get_args_by_name(pdev->dev.of_node,
+				      "ipa-sys-xtlbufpcievsel", 2, reg_info);
+
+	if (ret < 0 || ret != 2) {
+		pr_warn("get s5 xtlbuf_pciev_sel register info fail!\n");
+	} else {
+		cfg->xtlbufpcievsel_reg = reg_info[0];
+		cfg->xtlbufpcievsel_mask = reg_info[1];
+	}
+
 	return 0;
 }
 

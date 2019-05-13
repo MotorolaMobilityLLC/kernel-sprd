@@ -195,6 +195,66 @@ int sipa_sys_auto_gate_enable(struct sipa_sys_cfg_tag *cfg)
 }
 EXPORT_SYMBOL(sipa_sys_auto_gate_enable);
 
+static int sipa_sys_pciepll_h_sel_clear(struct sipa_sys_cfg_tag *cfg)
+{
+	int ret = 0;
+
+	if (cfg->sys_regmap) {
+		ret = regmap_update_bits(cfg->sys_regmap,
+					 cfg->pciepllhsel_reg,
+					 cfg->pciepllhsel_mask,
+					 ~cfg->pciepllhsel_mask);
+		if (ret < 0)
+			pr_warn("pciepllhsel clear regmap update bits failed");
+	}
+	return ret;
+}
+
+static int sipa_sys_pciepll_v_sel_clear(struct sipa_sys_cfg_tag *cfg)
+{
+	int ret = 0;
+
+	if (cfg->sys_regmap) {
+		ret = regmap_update_bits(cfg->sys_regmap,
+					 cfg->pciepllvsel_reg,
+					 cfg->pciepllvsel_mask,
+					 ~cfg->pciepllvsel_mask);
+		if (ret < 0)
+			pr_warn("pciepllvsel clear regmap update bits failed");
+	}
+	return ret;
+}
+
+static int sipa_sys_xtlbuf_pcieh_sel_clear(struct sipa_sys_cfg_tag *cfg)
+{
+	int ret = 0;
+
+	if (cfg->sys_regmap) {
+		ret = regmap_update_bits(cfg->sys_regmap,
+					 cfg->xtlbufpciehsel_reg,
+					 cfg->xtlbufpciehsel_mask,
+					 ~cfg->xtlbufpciehsel_mask);
+		if (ret < 0)
+			pr_warn("xtlbufpciehsel clr regmap update bits failed");
+	}
+	return ret;
+}
+
+static int sipa_sys_xtlbuf_pciev_sel_clear(struct sipa_sys_cfg_tag *cfg)
+{
+	int ret = 0;
+
+	if (cfg->sys_regmap) {
+		ret = regmap_update_bits(cfg->sys_regmap,
+					 cfg->xtlbufpcievsel_reg,
+					 cfg->xtlbufpcievsel_mask,
+					 ~cfg->xtlbufpcievsel_mask);
+		if (ret < 0)
+			pr_warn("xtlbufpcievsel clr regmap update bits failed");
+	}
+	return ret;
+}
+
 void sipa_sys_proc_init(struct sipa_sys_cfg_tag *cfg)
 {
 
@@ -214,5 +274,14 @@ void sipa_sys_proc_init(struct sipa_sys_cfg_tag *cfg)
 	sipa_sys_set_lightsleep(cfg);
 	/*set ipa smart light sleep enable:0x32280230[7] */
 	sipa_sys_set_smart_lightsleep(cfg);
+
+	/* unbind between pciepllh and ipa sys */
+	sipa_sys_pciepll_h_sel_clear(cfg);
+	/* unbind between pciepllv and ipa sys */
+	sipa_sys_pciepll_v_sel_clear(cfg);
+	/* unbind between xtlbuf_pcieh and ipa sys */
+	sipa_sys_xtlbuf_pcieh_sel_clear(cfg);
+	/* unbind between xtlbuf_pciev and ipa sys */
+	sipa_sys_xtlbuf_pciev_sel_clear(cfg);
 }
 EXPORT_SYMBOL(sipa_sys_proc_init);
