@@ -494,6 +494,19 @@
 				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			timer@63260000 {
+				compatible = "sprd,orca-timer";
+				reg = <0 0x63260000 0 0x20>;
+				interrupts = <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&ext_32k>;
+			};
+
+			timer@63260020 {
+				compatible = "sprd,orca-suspend-timer";
+				reg = <0 0x63260020 0 0x20>;
+				clocks = <&ext_32k>;
+			};
+
 			aon_i2c0: i2c@632c0000 {
 				compatible = "sprd,orca-hw-i2c";
 				reg = <0 0x632c0000 0 0x1000>;
@@ -1238,6 +1251,13 @@
 		#clock-cells = <0>;
 		clock-frequency = <26000000>;
 		clock-output-names = "ext-26m";
+	};
+
+	ext_32k: ext_32k {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <32768>;
+		clock-output-names = "ext-32k";
 	};
 
 	rco_100m: rco-100m {
