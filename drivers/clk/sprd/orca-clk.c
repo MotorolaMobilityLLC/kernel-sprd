@@ -1455,13 +1455,17 @@ MODULE_DEVICE_TABLE(of, sprd_orca_clk_ids);
 static int orca_clk_probe(struct platform_device *pdev)
 {
 	const struct sprd_clk_desc *desc;
+	int ret;
 
 	desc = of_device_get_match_data(&pdev->dev);
 	if (!desc) {
 		pr_err("%s: Cannot find matching driver data!\n", __func__);
 		return -EINVAL;
 	}
-	sprd_clk_regmap_init(pdev, desc);
+
+	ret = sprd_clk_regmap_init(pdev, desc);
+	if (ret)
+		return ret;
 
 	return sprd_clk_probe(&pdev->dev, desc->hw_clks);
 }
