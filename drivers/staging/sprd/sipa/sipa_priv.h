@@ -24,6 +24,10 @@
 #define SIPA_RECV_EVT (SIPA_HAL_INTR_BIT | \
 			SIPA_HAL_TX_FIFO_THRESHOLD_SW | SIPA_HAL_DELAY_TIMER)
 
+enum sipa_nic_status_e {
+	NIC_OPEN,
+	NIC_CLOSE,
+};
 
 enum flow_ctrl_mode_e {
 	flow_ctrl_rx_empty,
@@ -225,10 +229,10 @@ struct sipa_nic {
 	int need_notify;
 	u32 src_mask;
 	int netid;
-	spinlock_t lock;
 	struct list_head list;
 	sipa_notify_cb cb;
 	void *cb_priv;
+	atomic_t status;
 };
 
 struct sipa_skb_receiver {
@@ -290,8 +294,6 @@ void destroy_sipa_skb_receiver(struct sipa_skb_receiver *receiver);
 void sipa_receiver_add_nic(struct sipa_skb_receiver *receiver,
 			   struct sipa_nic *nic);
 
-void sipa_receiver_remove_nic(struct sipa_skb_receiver *receiver,
-			      struct sipa_nic *nic);
 void sipa_nic_try_notify_recv(struct sipa_nic *nic);
 
 void sipa_nic_notify_evt(struct sipa_nic *nic, enum sipa_evt_type evt);

@@ -102,6 +102,7 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 {
 	int i;
 	struct sipa_nic *nic = NULL;
+	struct sk_buff *skb;
 	enum sipa_nic_id nic_id = SIPA_NIC_MAX;
 	struct sipa_skb_receiver *receiver;
 	struct sipa_skb_sender *sender;
@@ -117,23 +118,26 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 	if (nic_id == SIPA_NIC_MAX)
 		return -EINVAL;
 
-	if (s_sipa_ctrl.nic[nic_id])
-		return -EINVAL;
-
-	nic = kzalloc(sizeof(*nic), GFP_KERNEL);
-	if (!nic) {
-		pr_err("sipa_nic: kzalloc err.\n");
-		return -ENOMEM;
+	if (s_sipa_ctrl.nic[nic_id]) {
+		nic = s_sipa_ctrl.nic[nic_id];
+		if  (atomic_read(&nic->status) == NIC_OPEN)
+			return -EBUSY;
+		while ((skb = skb_dequeue(&nic->rx_skb_q)) != NULL)
+			dev_kfree_skb_any(skb);
+	} else {
+		nic = kzalloc(sizeof(*nic), GFP_KERNEL);
+		if (!nic)
+			return -ENOMEM;
+		s_sipa_ctrl.nic[nic_id] = nic;
+		skb_queue_head_init(&nic->rx_skb_q);
 	}
+	atomic_set(&nic->status, NIC_OPEN);
 	nic->send_ep = s_sipa_ctrl.eps[s_spia_nic_statics[nic_id].send_ep];
-	skb_queue_head_init(&nic->rx_skb_q);
 	nic->need_notify = 0;
 	nic->src_mask = s_spia_nic_statics[i].src_mask;
 	nic->netid = netid;
-	spin_lock_init(&nic->lock);
 	nic->cb = cb;
 	nic->cb_priv = priv;
-	s_sipa_ctrl.nic[nic_id] = nic;
 
 	/* every receiver may receive cp packets */
 	receiver = s_sipa_ctrl.receiver[s_spia_nic_statics[nic_id].pkt_type];
@@ -154,36 +158,20 @@ void sipa_nic_close(enum sipa_nic_id nic_id)
 {
 	struct sipa_nic *nic = NULL;
 	struct sk_buff *skb;
-	unsigned long flags;
-	struct sipa_skb_receiver *receiver;
 	struct sipa_skb_sender *sender;
 
-	if (nic_id == SIPA_NIC_MAX)
-		return;
-
-	if (!s_sipa_ctrl.nic[nic_id])
+	if (nic_id == SIPA_NIC_MAX || !s_sipa_ctrl.nic[nic_id])
 		return;
 
 	nic = s_sipa_ctrl.nic[nic_id];
 
+	atomic_set(&nic->status, NIC_CLOSE);
 	/* free all  pending skbs */
-	spin_lock_irqsave(&nic->lock, flags);
 	while ((skb = skb_dequeue(&nic->rx_skb_q)) != NULL)
 		dev_kfree_skb_any(skb);
 
-	spin_unlock_irqrestore(&nic->lock, flags);
-
-	receiver = s_sipa_ctrl.receiver[s_spia_nic_statics[nic_id].pkt_type];
-	sipa_receiver_remove_nic(receiver, nic);
-	if (s_spia_nic_statics[nic_id].pkt_type == SIPA_PKT_IP) {
-		receiver = s_sipa_ctrl.receiver[SIPA_PKT_ETH];
-		sipa_receiver_remove_nic(receiver, nic);
-	}
 	sender = s_sipa_ctrl.sender[s_spia_nic_statics[nic_id].pkt_type];
 	sipa_skb_sender_remove_nic(sender, nic);
-
-	kfree(nic);
-	s_sipa_ctrl.nic[nic_id] = NULL;
 }
 
 void sipa_nic_notify_evt(struct sipa_nic *nic, enum sipa_evt_type evt)
@@ -196,30 +184,26 @@ EXPORT_SYMBOL(sipa_nic_notify_evt);
 
 void sipa_nic_try_notify_recv(struct sipa_nic *nic)
 {
-	unsigned long flags;
 	int need_notify = 0;
 
-	spin_lock_irqsave(&nic->lock, flags);
+	if (atomic_read(&nic->status) == NIC_CLOSE)
+		return;
+
 	if (nic->need_notify) {
 		nic->need_notify = 0;
 		need_notify = 1;
 	}
-	spin_unlock_irqrestore(&nic->lock, flags);
 
-	if (need_notify)
+	if (need_notify && nic->cb)
 		nic->cb(nic->cb_priv, SIPA_RECEIVE, 0);
 }
 EXPORT_SYMBOL(sipa_nic_try_notify_recv);
 
 void sipa_nic_push_skb(struct sipa_nic *nic, struct sk_buff *skb)
 {
-	unsigned long flags;
-
-	spin_lock_irqsave(&nic->lock, flags);
 	skb_queue_tail(&nic->rx_skb_q, skb);
 	if (nic->rx_skb_q.qlen == 1)
 		nic->need_notify = 1;
-	spin_unlock_irqrestore(&nic->lock, flags);
 }
 EXPORT_SYMBOL(sipa_nic_push_skb);
 
@@ -238,17 +222,15 @@ EXPORT_SYMBOL(sipa_nic_tx);
 
 int sipa_nic_rx(enum sipa_nic_id nic_id, struct sk_buff **out_skb)
 {
-	unsigned long flags;
 	struct sk_buff *skb;
 	struct sipa_nic *nic;
 
-	if (!s_sipa_ctrl.nic[nic_id])
+	if (!s_sipa_ctrl.nic[nic_id] ||
+	    atomic_read(&s_sipa_ctrl.nic[nic_id]->status) == NIC_CLOSE)
 		return -ENODEV;
 
 	nic = s_sipa_ctrl.nic[nic_id];
-	spin_lock_irqsave(&nic->lock, flags);
 	skb = skb_dequeue(&nic->rx_skb_q);
-	spin_unlock_irqrestore(&nic->lock, flags);
 
 	*out_skb = skb;
 
@@ -260,7 +242,8 @@ int sipa_nic_rx_has_data(enum sipa_nic_id nic_id)
 {
 	struct sipa_nic *nic;
 
-	if (!s_sipa_ctrl.nic[nic_id])
+	if (!s_sipa_ctrl.nic[nic_id] ||
+	    atomic_read(&s_sipa_ctrl.nic[nic_id]->status) == NIC_CLOSE)
 		return 0;
 
 	nic = s_sipa_ctrl.nic[nic_id];

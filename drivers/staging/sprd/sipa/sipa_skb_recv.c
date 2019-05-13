@@ -171,12 +171,9 @@ void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 static void trigger_nics_recv(struct sipa_skb_receiver *receiver)
 {
 	int i;
-	unsigned long flags;
 
-	spin_lock_irqsave(&receiver->lock, flags);
 	for (i = 0; i < receiver->nic_cnt; i++)
 		sipa_nic_try_notify_recv(receiver->nic_array[i]);
-	spin_unlock_irqrestore(&receiver->lock, flags);
 }
 
 static int dispath_to_nic(struct sipa_skb_receiver *receiver,
@@ -184,24 +181,19 @@ static int dispath_to_nic(struct sipa_skb_receiver *receiver,
 			  struct sk_buff *skb)
 {
 	u32 i;
-	unsigned long flags;
 	struct sipa_nic *nic;
 	struct sipa_nic *dst_nic = NULL;
 
-	spin_lock_irqsave(&receiver->lock, flags);
-
 	for (i = 0; i < receiver->nic_cnt; i++) {
 		nic = receiver->nic_array[i];
-		if (nic->src_mask & BIT(item->src)) {
-			if ((nic->netid == -1) ||
-				(nic->netid == item->netid)) {
-				dst_nic = nic;
-				break;
-			}
+		if (atomic_read(&nic->status) != NIC_OPEN)
+			continue;
+		if ((nic->src_mask & BIT(item->src)) &&
+		    (nic->netid == -1 || nic->netid == item->netid)) {
+			dst_nic = nic;
+			break;
 		}
 	}
-
-	spin_unlock_irqrestore(&receiver->lock, flags);
 
 	if (dst_nic) {
 		sipa_nic_push_skb(dst_nic, skb);
@@ -354,29 +346,18 @@ void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 void sipa_receiver_add_nic(struct sipa_skb_receiver *receiver,
 			   struct sipa_nic *nic)
 {
+	int i;
 	unsigned long flags;
 
+	for (i = 0; i < receiver->nic_cnt; i++)
+		if (receiver->nic_array[i] == nic)
+			return;
 	spin_lock_irqsave(&receiver->lock, flags);
 	if (receiver->nic_cnt < SIPA_NIC_MAX)
 		receiver->nic_array[receiver->nic_cnt++] = nic;
 	spin_unlock_irqrestore(&receiver->lock, flags);
 }
 EXPORT_SYMBOL(sipa_receiver_add_nic);
-
-void sipa_receiver_remove_nic(struct sipa_skb_receiver *receiver,
-			      struct sipa_nic *nic)
-{
-	int i;
-	unsigned long flags;
-
-	spin_lock_irqsave(&receiver->lock, flags);
-	for (i = 0; i < receiver->nic_cnt; i++)
-		if (receiver->nic_array[i] == nic)
-			receiver->nic_array[i] = NULL;
-	receiver->nic_cnt--;
-	spin_unlock_irqrestore(&receiver->lock, flags);
-}
-EXPORT_SYMBOL(sipa_receiver_remove_nic);
 
 int create_recv_array(struct sipa_skb_array *p, u32 depth)
 {
