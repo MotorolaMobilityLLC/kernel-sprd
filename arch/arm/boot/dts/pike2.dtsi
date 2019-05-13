@@ -23,6 +23,61 @@
 		#size-cells = <1>;
 		ranges;
 
+		ap_ahb_regs: syscon@20e00000 {
+			compatible = "syscon";
+			reg = <0x20e00000 0x100000>;
+		};
+
+		anlg_wrap_wcn_regs: syscon@33100000 {
+			compatible = "syscon";
+			reg = <0x33100000 0x10000>;
+		};
+
+		pmu_apb_regs: syscon@402b0000 {
+			compatible = "syscon";
+			reg = <0x402b0000 0x10000>;
+		};
+
+		aon_apb_regs: syscon@402e0000 {
+			compatible = "syscon";
+			reg = <0x402e0000 0x10000>;
+		};
+
+		anlg_phy_g1_regs: syscon@40350000 {
+			compatible = "syscon";
+			reg = <0x40350000 0x3000>;
+		};
+
+		anlg_phy_g2_regs: syscon@40353000 {
+			compatible = "syscon";
+			reg = <0x40353000 0x3000>;
+		};
+
+		anlg_phy_g3_regs: syscon@40356000 {
+			compatible = "syscon";
+			reg = <0x40356000 0x3000>;
+		};
+
+		anlg_phy_g5_regs: syscon@40359000 {
+			compatible = "syscon";
+			reg = <0x40359000 0x3000>;
+		};
+
+		gpu_ahb_regs: syscon@60100000 {
+			compatible = "syscon";
+			reg = <0x60100000 0x100000>;
+		};
+
+		mm_ahb_regs: syscon@60d00000 {
+			compatible = "syscon";
+			reg = <0x60d00000 0x100000>;
+		};
+
+		ap_apb_regs: syscon@71300000 {
+			compatible = "syscon";
+			reg = <0x71300000 0x100000>;
+		};
+
 		ap-apb {
 			compatible = "simple-bus";
 			#address-cells = <1>;
