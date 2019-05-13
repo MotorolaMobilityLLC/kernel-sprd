@@ -254,6 +254,7 @@
 	};
 
 	dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
+		pmic-type-num = <0>;
 		top-dvfs-adi-state = <0x70 0 0xf>;
 		voltage-grade-num = <7>;
 		voltage-grade = <0 0xf0 0xf4 0 0x1ff>,
@@ -279,10 +280,12 @@
 				<350 0x114 0 0xffff 0x2300>;
 		tuning-latency-us = <0>;
 		chnl-in-i2c = <0>;
+		slew-rate = <9375>; /* 9375uV/us */
 	};
 
 	dvfs_dcdc_cpu1_supply: dvfs-dcdc-cpu1-supply {
 		supply-type-sel = <0x120 0 0>;
+		pmic-type-num = <0>;
 		top-dvfs-adi-state = <0x9c 0 0xf>;
 		voltage-grade-num = <6>;
 		voltage-grade = <0 0xf0 0x100 0 0x1ff>,
@@ -307,6 +310,7 @@
 				<350 0x11c 0 0xffff 0x2300>;
 		tuning-latency-us = <0>;
 		chnl-in-i2c = <0>;
+		slew-rate = <9375>; /* 9375uV/us */
 	};
 
 	extcon_gpio: extcon-gpio {
