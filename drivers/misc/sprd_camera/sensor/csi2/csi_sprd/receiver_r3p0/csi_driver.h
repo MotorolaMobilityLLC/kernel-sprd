@@ -86,12 +86,13 @@ enum csi_registers_t {
 int csi_reg_base_save(struct csi_dt_node_info *dt_info, int32_t idx);
 void csi_phy_power_down(struct csi_dt_node_info *csi_info,
 			unsigned int sensor_id, int is_eb);
-void csi_controller_enable(struct csi_dt_node_info *dt_info, int32_t idx);
+void csi_phy_testclr_init(struct csi_phy_info *phy);
+void csi_phy_testclr(int sensor_id, struct csi_phy_info *phy);
+void csi_controller_enable(struct csi_dt_node_info *dt_info);
+void phy_csi_path_cfg(struct csi_dt_node_info *dt_info, int sensor_id);
 void csi_controller_disable(struct csi_dt_node_info *dt_info, int32_t idx);
-void dphy_init(struct csi_dt_node_info *dt_info, int32_t idx);
-void cphy_init(struct csi_dt_node_info *dt_info, int32_t idx);
+void csi_phy_init(struct csi_dt_node_info *dt_info, int32_t idx);
 void csi_set_on_lanes(uint8_t lanes, int32_t idx);
-void csi_reset_shut_down(uint8_t shutdown, int32_t idx);
 void csi_shut_down_phy(uint8_t shutdown, int32_t idx);
 void csi_close(int32_t idx);
 void csi_reset_controller(int32_t idx);

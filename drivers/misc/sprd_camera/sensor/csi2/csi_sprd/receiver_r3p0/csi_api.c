@@ -53,7 +53,7 @@
 #define CSI_2P2L_EFUSE_BLOCK_ID		7
 #define CSI_2L_EFUSE_BLOCK_ID		9
 
-#define CSI_PATTERN_ENABLE		1
+#define CSI_PATTERN_ENABLE		0
 #define IPG_CLK_CFG_MSK			0x3
 #define IPG_CLK_48M			0
 #define IPG_CLK_96M			1
@@ -70,6 +70,7 @@ static struct csi_dt_node_info *csi_get_dt_node_data(int sensor_id)
 	return s_csi_dt_info_p[sensor_id];
 }
 /* csi src 0 soc, 1 sensor, and csi test pattern clk */
+#ifdef FPGA_BRINGUP
 static int csi_ipg_set_clk(int sensor_id)
 {
 	struct csi_dt_node_info *dt_info = csi_get_dt_node_data(sensor_id);
@@ -133,6 +134,7 @@ static int csi_mipi_clk_enable(int sensor_id)
 	}
 	return ret;
 }
+#endif
 
 static void csi_mipi_clk_disable(int sensor_id)
 {
@@ -232,6 +234,7 @@ int csi_api_dt_node_init(struct device *dev, struct device_node *dn,
 			csi_info->reg_base);
 
 	/* read clocks */
+#ifdef FPAG_BRINGUP
 	csi_info->clk_ckg_eb = of_clk_get_by_name(dn,
 					"clk_gate_eb");
 
@@ -239,6 +242,7 @@ int csi_api_dt_node_init(struct device *dev, struct device_node *dn,
 					"clk_mipi_csi_gate_eb");
 
 	csi_info->csi_eb_clk = of_clk_get_by_name(dn, "clk_csi_eb");
+#endif
 
 	/* csi src flag from sensor or csi */
 	csi_info->csi_src_eb = of_clk_get_by_name(dn, "mipi_csi_src_eb");
@@ -265,7 +269,9 @@ int csi_api_dt_node_init(struct device *dev, struct device_node *dn,
 		pr_err("csi_dt_init:fail to get anlg_phy_g10_controller\n");
 		return PTR_ERR(regmap_syscon);
 	}
+#ifdef FPAG_BRINGUP
 	csi_info->phy.anlg_phy_g10_syscon = regmap_syscon;
+#endif
 
 	csi_reg_base_save(csi_info, sensor_id);
 	csi_phy_power_down(csi_info, sensor_id, 1);
@@ -277,27 +283,9 @@ int csi_api_dt_node_init(struct device *dev, struct device_node *dn,
 	return 0;
 }
 
-static int csi_init(unsigned int bps_per_lane, unsigned int phy_id,
-	int sensor_id)
+static void csi_start(int lane_num, int sensor_id)
 {
-	struct csi_dt_node_info *dt_info = csi_get_dt_node_data(sensor_id);
-
-	csi_phy_power_down(dt_info, sensor_id, 0);
-	csi_controller_enable(dt_info, sensor_id);
-	if (phy_id == PHY_CPHY)
-		cphy_init(dt_info, sensor_id);
-	else
-		dphy_init(dt_info, sensor_id);
-	return 0;
-}
-
-static void csi_start(unsigned int phy_id, int sensor_id)
-{
-	if (phy_id != PHY_CPHY) {
-		csi_shut_down_phy(0, sensor_id);
-		csi_reset_phy(sensor_id);
-		csi_reset_controller(sensor_id);
-	}
+	csi_set_on_lanes(lane_num, sensor_id);
 	csi_event_enable(sensor_id);
 }
 
@@ -364,42 +352,16 @@ int csi_api_mipi_phy_cfg(void)
 	return ret;
 }
 
-static void csi_api_reg_owr(unsigned int addr, unsigned int val)
-{
-	void __iomem *io_tmp = NULL;
-	u32 tmp;
-
-	io_tmp = ioremap_nocache(addr, 0x4);
-	tmp = __raw_readl(io_tmp);
-	__raw_writel(tmp|val, io_tmp);
-	mb(); /* asm/barrier.h */
-	val = __raw_readl(io_tmp);
-	iounmap(io_tmp);
-}
-
-static void csi_api_reg_awr(unsigned int addr, unsigned int val)
-{
-	void __iomem *io_tmp = NULL;
-	unsigned int tmp;
-
-	io_tmp = ioremap_nocache(addr, 0x4);
-	tmp = __raw_readl(io_tmp);
-	__raw_writel(tmp&val, io_tmp);
-	mb(); /* asm/barrier.h */
-	val = __raw_readl(io_tmp);
-	iounmap(io_tmp);
-}
-
 int csi_api_open(int bps_per_lane, int phy_id, int lane_num, int sensor_id)
 {
 	int ret = 0;
-#ifdef FPAG_BRINGUP
 	struct csi_dt_node_info *dt_info = csi_get_dt_node_data(sensor_id);
 
 	if (!dt_info) {
 		pr_err("fail to get valid phy ptr\n");
 		return -EINVAL;
 	}
+#ifdef FPAG_BRINGUP
 	ret = csi_ahb_reset(&dt_info->phy, dt_info->controller_id);
 	if (unlikely(ret))
 		goto EXIT;
@@ -411,20 +373,24 @@ int csi_api_open(int bps_per_lane, int phy_id, int lane_num, int sensor_id)
 	}
 	udelay(1);
 #endif
-	ret = csi_init(bps_per_lane, phy_id, sensor_id);
-	if (unlikely(ret))
-		goto EXIT;
-	csi_api_close(0, 0);
-	csi_start(sensor_id);
-	csi_set_on_lanes(lane_num, sensor_id);
+	phy_csi_path_cfg(dt_info, sensor_id);
+	csi_phy_power_down(dt_info, sensor_id, 0);
+	csi_phy_testclr_init(&dt_info->phy);
+	csi_controller_enable(dt_info);
+	csi_phy_testclr(sensor_id, &dt_info->phy);
+	csi_phy_init(dt_info, sensor_id);
+	csi_start(lane_num, sensor_id);
+
 	if (CSI_PATTERN_ENABLE)
 		csi_ipg_mode_cfg(sensor_id, 1);
 
 	return ret;
+#ifdef FPAG_BRINGUP
 EXIT:
 	pr_err("fail to open csi api %d\n", ret);
 	csi_api_close(phy_id, sensor_id);
 	return ret;
+#endif
 }
 
 int csi_api_close(uint32_t phy_id, int sensor_id)
