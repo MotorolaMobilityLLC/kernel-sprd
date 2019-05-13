@@ -201,6 +201,12 @@
 			reg = <0 0x32408000 0 0x4000>;
 		};
 
+		anlg_pcie20_phy_regs: syscon@3240c000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x3240c000 0 0x4000>;
+		};
+
 		anlg_phy_g9_regs: syscon@32410000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
@@ -241,6 +247,12 @@
 			compatible = "syscon";
 			#syscon-cells = <2>;
 			reg = <0 0x32434000 0 0x4000>;
+		};
+
+		anlg_pcie30_phy_regs: syscon@32438000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x32438000 0 0x4000>;
 		};
 
 		audcp_apb_regs: syscon@0x3350d000 {
