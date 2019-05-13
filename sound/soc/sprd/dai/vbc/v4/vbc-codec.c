@@ -2505,6 +2505,30 @@ static int vbc_put_aud_iis_clock(struct snd_kcontrol *kcontrol,
 	return value;
 }
 
+static int vbc_loopback_loop_mode_get(struct snd_kcontrol *kcontrol,
+				      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->loopback.loop_mode;
+
+	return 0;
+}
+
+static int vbc_loopback_loop_mode_put(struct snd_kcontrol *kcontrol,
+				      struct snd_ctl_elem_value *ucontrol)
+{
+	int value = ucontrol->value.integer.value[0];
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	vbc_codec->loopback.loop_mode = value;
+	dsp_vbc_loopback_set(&vbc_codec->loopback);
+
+	return value;
+}
+
 static int vbc_loopback_type_get(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
 {
@@ -3237,10 +3261,15 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 		       MAX_32_BIT, 0,
 		       vbc_loopback_amr_rate_get,
 		       vbc_loopback_amr_rate_put),
-	SOC_SINGLE_EXT("VBC_DSP_LOOPBACK_VOICE_FMT", SND_SOC_NOPM, 0,
+	SOC_SINGLE_EXT("VBC_DSP_LOOPBACK_VOICE_FMT",
+		       SND_SOC_NOPM, 0,
 		       MAX_32_BIT, 0,
 		       vbc_loopback_voice_fmt_get,
 		       vbc_loopback_voice_fmt_put),
+	SOC_SINGLE_EXT("VBC_DSP_LOOPBACK_LOOP_MODE", SND_SOC_NOPM, 0,
+		      MAX_32_BIT, 0,
+		      vbc_loopback_loop_mode_get,
+		      vbc_loopback_loop_mode_put),
 	SOC_ENUM_EXT("VBC_DSP_LOOPBACK_TYPE",
 		     dsp_loopback_enum,
 		     vbc_loopback_type_get, vbc_loopback_type_put),

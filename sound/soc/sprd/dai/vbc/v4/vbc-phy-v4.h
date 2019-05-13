@@ -1033,6 +1033,7 @@ struct vbc_loopback_para {
 	enum VBC_LOOPBACK_TYPE_E loopback_type;
 	int voice_fmt;
 	int amr_rate;
+	int loop_mode;
 };
 
 /* SND_KCTL_TYPE_DATAPATH */
