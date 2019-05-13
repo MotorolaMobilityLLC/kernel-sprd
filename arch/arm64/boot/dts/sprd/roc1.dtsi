@@ -945,7 +945,19 @@
 					  MASK_REG_FW0_IPA_S3_LPC_RD_SEC>,
 					  <&ipa_ahb_regs
 					  REG_IPA_AHB_S5_LPC
-					  MASK_REG_FW0_IPA_S3_LPC_WR_SEC>;
+					  MASK_REG_FW0_IPA_S3_LPC_WR_SEC>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_PCIEPLL_H_REL_CFG
+					  MASK_PMU_APB_PCIEPLL_H_IPA_SEL>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_PCIEPLL_V_REL_CFG
+					  MASK_PMU_APB_PCIEPLL_V_IPA_SEL>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_XTLBUF_PCIEH_REL_CFG
+					  MASK_PMU_APB_XTLBUF_PCIEH_IPA_SEL>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_XTLBUF_PCIEV_REL_CFG
+					  MASK_PMU_APB_XTLBUF_PCIEV_IPA_SEL>;
 
 				syscon-names = "ipa-sys-forcewakeup",
 						"ipa-sys-forceshutdown",
@@ -958,7 +970,11 @@
 						"ipa-sys-ipaeb",
 						"ipa-sys-cm4eb",
 						"ipa-sys-autogaten",
-						"ipa-sys-s5-autogaten";
+						"ipa-sys-s5-autogaten",
+						"ipa-sys-pciepllhsel",
+						"ipa-sys-pciepllvsel",
+						"ipa-sys-xtlbufpciehsel",
+						"ipa-sys-xtlbufpcievsel";
 			};
 		};
 
