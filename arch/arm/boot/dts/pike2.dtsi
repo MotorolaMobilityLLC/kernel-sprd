@@ -91,6 +91,19 @@
 				status = "disabled";
 			};
 		};
+
+		aon {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			hwlock: hwspinlock@40060000{
+				compatible = "sprd,hwspinlock-r3p0";
+				reg = <0x40060000 0x10000>;
+				#hwlock-cells = <1>;
+			};
+		};
 	};
 
 	ext_26m: ext-26m {
