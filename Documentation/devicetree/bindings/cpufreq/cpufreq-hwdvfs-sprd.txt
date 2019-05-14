@@ -117,6 +117,11 @@ Optional properties:
 			means the power domains dcdc-modem and dcdc-mm are
 			shared in hardware design.
 
+- pmic-type-num: The PMIC type number that provided power for current cpu cluster,
+		for example, 0 means sc2730, 1 means sc2703, and so on.
+- slew-rate: The voltage in microvolt for the current pmic can raise per microsecond
+		by default.
+
 Node cpudvfs_dev
 -----------------------------------
 - cpudvfs_dev:  Represent a ap cpu hardwre dvfs device
@@ -295,6 +300,7 @@ topdvfs_controller: topdvfsctrl@322A0000 {
 };
 
 dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
+	pmic-type-num = <0>;
 	top-dvfs-adi-state = <0x70 0 0xF>;
 	voltage-grade-num = <7>;
 	voltage-grade = <0 0xE0 0xF4 0 0x1FF>,
@@ -320,6 +326,7 @@ dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
 			<350 0x114 0 0xffff 0x2300>;
 	chnl-in-i2c = <0>;
 	tuning-latency-us = <200>;
+	slew-rate = <9375>;
 };
 
 dvfs_dcdc_cpu1_supply: dvfs-dcdc-cpu1-supply {
