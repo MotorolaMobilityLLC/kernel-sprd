@@ -6782,7 +6782,7 @@ CONFIG_NETFILTER_XT_MATCH_POLICY
 	[function] vts require, IPsec "policy" match support
 CONFIG_NETFILTER_XT_MATCH_QTAGUID
 	[arch] all
-	[plat] all
+	[plat] roc1,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] net
 	[must] user
@@ -8155,7 +8155,7 @@ CONFIG_PM
 	[function] power management system
 CONFIG_PM_AUTOSLEEP
 	[arch] all
-	[plat] all
+	[plat] roc1,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] power
 	[must] user
@@ -11783,6 +11783,48 @@ CONFIG_XPS
 	[function] To enable XPS, the bitmap of CPUs that may use a transmit
 		queue is configured using the sysfs file entry:
 		/sys/class/net/<dev>/queues/tx-<n>/xps_cpus
+CONFIG_NETFILTER_XT_MATCH_OWNER
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Enable. "owner" match support.
+CONFIG_NETFILTER_XT_TARGET_CT
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Enable. "CT" target support.
+CONFIG_NET_CLS_BPF
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Enable. BPF-based classifier.
+CONFIG_NET_EGRESS
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] bool
+CONFIG_NET_SCH_INGRESS
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Enable. Ingress/classifier-action Qdisc.
+CONFIG_XFRM_INTERFACE
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Enable. Transformation virtual interface.
 CONFIG_ZBOOT_ROM_BSS
 	[arch] arm
 	[plat] sharkl5_32
