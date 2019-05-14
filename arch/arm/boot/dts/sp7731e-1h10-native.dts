@@ -7,6 +7,7 @@
  */
 
 #include "sc7731e.dtsi"
+#include "sc2720.dtsi"
 
 / {
 	model = "Spreadtrum Pike2 SC7731e Board";
