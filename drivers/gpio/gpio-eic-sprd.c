@@ -126,7 +126,7 @@ static const struct sprd_eic_variant_data soc_name##_eic_sync_data = {	\
 
 SPRD_EIC_VAR_DATA(sc9860, SPRD_EIC_PER_BANK_NR);
 SPRD_EIC_VAR_DATA(sharkl5, SPRD_EIC_PER_BANK_NR * 4);
-SPRD_EIC_VAR_DATA(roc1, SPRD_EIC_PER_BANK_NR * 4);
+SPRD_EIC_VAR_DATA(roc1, SPRD_EIC_PER_BANK_NR * 6);
 SPRD_EIC_VAR_DATA(sharkl3, SPRD_EIC_PER_BANK_NR * 2);
 SPRD_EIC_VAR_DATA(sharkle, SPRD_EIC_PER_BANK_NR * 3);
 SPRD_EIC_VAR_DATA(pike2, SPRD_EIC_PER_BANK_NR * 2);
