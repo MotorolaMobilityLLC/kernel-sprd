@@ -821,6 +821,10 @@ void sdiohal_remove_card(void)
 
 	init_completion(&p_data->remove_done);
 	p_data->sdio_dev_host->card->state |= WCN_SDIO_CARD_REMOVED;
+
+	/* enable remove the card */
+	p_data->sdio_dev_host->caps &= ~MMC_CAP_NONREMOVABLE;
+
 	mmc_detect_change(p_data->sdio_dev_host, 0);
 	if (wait_for_completion_timeout(&p_data->remove_done,
 					msecs_to_jiffies(5000)) == 0)
@@ -1280,6 +1284,9 @@ static int sdiohal_probe(struct sdio_func *func,
 
 	disable_irq(p_data->irq_num);
 	complete(&p_data->scan_done);
+
+	/* the card is nonremovable */
+	p_data->sdio_dev_host->caps |= MMC_CAP_NONREMOVABLE;
 
 	/* calling rescan callback to inform download */
 	if (scan_card_notify != NULL)
