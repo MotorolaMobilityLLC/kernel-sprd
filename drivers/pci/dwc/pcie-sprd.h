@@ -32,10 +32,15 @@ struct sprd_pcie {
 
 	/* These irq lines are connected to GIC */
 	u32 aer_irq;
-	u32 wakeup_irq;
+
+	/* this irq cames from EIC to GIC */
+	int wakeup_irq;
 
 	/* Save sysnopsys-specific PCIe configuration registers  */
 	u32 save_msi_ctrls[MAX_MSI_CTRLS][3];
+
+	size_t label_len; /* pcie controller device length + 10 */
+	char wakeup_label[0];
 };
 
 struct sprd_pcie_of_data {

@@ -14,6 +14,7 @@
  */
 
 #include <linux/clk.h>
+#include <linux/gpio/consumer.h>
 #include <linux/interrupt.h>
 #include <linux/mfd/syscon.h>
 #include <linux/of_device.h>
@@ -159,6 +160,12 @@ static int sprd_add_pcie_ep(struct sprd_pcie *sprd_pcie,
 	return 0;
 }
 
+static irqreturn_t sprd_pcie_wakeup_irq(int irq, void *data)
+{
+	/* TODO: After EP wakeups AP, RC does nothing now */
+	return IRQ_HANDLED;
+}
+
 static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 {
 	struct sprd_pcie *sprd_pcie;
@@ -168,6 +175,7 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 	int ret;
 	unsigned int irq;
 	struct resource *res;
+	struct gpio_desc *desc;
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dbi");
 	pci->dbi_base = devm_ioremap(dev, res->start, resource_size(res));
@@ -219,6 +227,29 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 #endif
 	}
 
+	desc = devm_gpiod_get_index(dev, "pcie-wakeup", 0, GPIOD_IN);
+	if (IS_ERR(desc)) {
+		dev_warn(dev, "Please set pcie-wakeup gpio in DTS\n");
+		goto no_wakeup;
+	}
+
+	sprd_pcie->wakeup_irq = gpiod_to_irq(desc);
+	if (sprd_pcie->wakeup_irq < 0) {
+		dev_warn(dev, "cannot get wakeup irq\n");
+		goto no_wakeup;
+	}
+
+	snprintf(sprd_pcie->wakeup_label, sprd_pcie->label_len,
+		 "%s wakeup", dev_name(dev));
+	ret = devm_request_threaded_irq(dev, sprd_pcie->wakeup_irq,
+					sprd_pcie_wakeup_irq, NULL,
+					IRQF_TRIGGER_RISING,
+					sprd_pcie->wakeup_label, sprd_pcie);
+	if (ret < 0)
+		dev_warn(dev, "cannot request wakeup irq\n");
+
+no_wakeup:
+
 	return dw_pcie_host_init(&pci->pp);
 }
 
@@ -264,6 +295,7 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	struct dw_pcie *pci;
 	struct sprd_pcie *sprd_pcie;
 	int ret;
+	size_t len = strlen(dev_name(dev)) + 10;
 	const struct sprd_pcie_of_data *data;
 	enum dw_pcie_device_mode mode;
 	/* Dirty: must be deleted. Only for marlin3 driver temperarily */
@@ -301,7 +333,7 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	sprd_pcie = devm_kzalloc(dev, sizeof(*sprd_pcie), GFP_KERNEL);
+	sprd_pcie = devm_kzalloc(dev, sizeof(*sprd_pcie) + len, GFP_KERNEL);
 	if (!sprd_pcie)
 		return -ENOMEM;
 
@@ -312,6 +344,7 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	pci->dev = dev;
 	pci->ops = &dw_pcie_ops;
 	sprd_pcie->pci = pci;
+	sprd_pcie->label_len = len;
 
 	platform_set_drvdata(pdev, sprd_pcie);
 
