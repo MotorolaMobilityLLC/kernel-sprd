@@ -93,7 +93,6 @@
 			reg = <2>;
 			label = "carveout_overlay";
 			type = <2>;
-			memory-region = <&overlay_reserved>;
 		};
 
 		heap@3 {
@@ -283,9 +282,6 @@
 };
 
 &reserved_memory {
-	overlay_reserved: overlay-mem@bcdc0000 {
-		reg = <0x0 0xbcdc0000 0x0 0x01800000>;
-	};
 	fb_reserved: framebuffer-mem {
 		reg = <0x0 0xbefc0000 0x0 0x00c90000>;
 	};
