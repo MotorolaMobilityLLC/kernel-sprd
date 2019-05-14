@@ -19,6 +19,8 @@
 #include <linux/regmap.h>
 #include <linux/kthread.h>
 #include <video/sprd_img.h>
+#include <dt-bindings/soc/sprd,sharkl5pro-mask.h>
+#include <dt-bindings/soc/sprd,sharkl5pro-regs.h>
 
 #include "isp_buf.h"
 #include "isp_int.h"
@@ -36,11 +38,6 @@
 #endif
 #define pr_fmt(fmt) "ISP_DRV: %d %d %s : "\
 	fmt, current->pid, __LINE__, __func__
-
-#ifndef FPGA_BRINGUP
-#define BIT_MM_AHB_ISP_EB                BIT(2)
-#define REG_MM_AHB_AHB_EB                (0x0000)
-#endif
 
 struct platform_device *s_isp_pdev;
 struct isp_group s_isp_group;
@@ -333,11 +330,6 @@ static int sprd_ispdrv_slice_init_param_get(struct slice_param_in *in_ptr,
 	ISP_SET_SCENE_ID(in_ptr->com_idx, ISP_SCENE_CAP);
 	frame = &dev->offline_frame[ISP_SCENE_CAP];
 
-	pr_debug("fmcu yaddr 0x%x yaddr_vir 0x%x  fd 0x%x 0x%x %p %p\n",
-		frame->yaddr, frame->yaddr_vir, frame->buf_info.mfd[0],
-		frame->yaddr, frame->buf_info.client[0],
-		frame->buf_info.handle[0]);
-
 	in_ptr->fetch_addr.chn0 = frame->buf_info.iova[1] + frame->yaddr;
 	in_ptr->fetch_addr.chn1 = frame->buf_info.iova[1] + frame->uaddr;
 	in_ptr->fetch_addr.chn2 = frame->buf_info.iova[1] + frame->vaddr;
@@ -559,7 +551,7 @@ static void sprd_ispdrv_common_cfg(uint32_t com_idx)
 		BIT_0, 1);
 	ISP_REG_MWR(com_idx, ISP_GAMMA_PARAM, BIT_0, 1);
 	ISP_REG_MWR(com_idx, ISP_HSV_PARAM, BIT_0, 1);
-	ISP_REG_MWR(com_idx, ISP_PSTRZ_PARA, BIT_0, 1);
+	ISP_REG_MWR(com_idx, ISP_PSTRZ_PARAM, BIT_0, 1);
 	ISP_REG_MWR(com_idx, ISP_HIST_PARAM, BIT_0, 1);
 
 	ISP_REG_MWR(com_idx, ISP_UVD_PARAM, BIT_0, 1);
@@ -1311,7 +1303,7 @@ static int sprd_ispdrv_clk_en(void)
 		goto exit;
 	}
 
-	flag = BIT_MM_AHB_ISP_EB;
+	flag = REG_MM_AHB_AHB_RST;
 	regmap_update_bits(cam_ahb_gpr,
 		REG_MM_AHB_AHB_EB, flag, flag);
 
@@ -1330,7 +1322,7 @@ static int sprd_ispdrv_clk_dis(void)
 	/* set isp clock to default value before power off */
 	clk_set_parent(isp_clk, isp_clk_default);
 	clk_disable_unprepare(isp_clk);
-	flag = BIT_MM_AHB_ISP_EB;
+	flag = REG_MM_AHB_AHB_RST;
 	regmap_update_bits(cam_ahb_gpr,
 		REG_MM_AHB_AHB_EB, flag, ~flag);
 

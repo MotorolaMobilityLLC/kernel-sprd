@@ -2795,7 +2795,7 @@ static int sprd_camioctl_dcam_cfg(struct camera_dev *dev)
 	bin_path = &ctx->cam_path[CAMERA_BIN_PATH];
 	dcam_module = sprd_dcam_drv_module_get(dev->idx);
 
-	if (ctx->cap_in_rect.w > DCAM_LINE_BUF) {
+	if (ctx->cap_in_rect.w > DCAM_LINE_BUF_LEGNTH) {
 		ctx->slice_en = 1;
 		ctx->slice_mode = 0;
 		dcam_module->slice_en = 1;
@@ -3392,7 +3392,7 @@ static int sprd_camioctl_dcam_fetch_start(enum dcam_id idx,
 	dcam_module = sprd_dcam_drv_module_get(fetch_idx);
 	pr_info("dcam%d => dcam%d\n", idx, fetch_idx);
 	size = dev->fetch_info.size;
-	if (size.width > DCAM_LINE_BUF) {
+	if (size.width > DCAM_LINE_BUF_LEGNTH) {
 		dcam_module->slice_en = 1;
 		dcam_module->slice_mode = DCAM_OFFLINE_SLICE;
 		dcam_module->slice_part = 0;
@@ -3504,7 +3504,7 @@ config_fetch:
 
 	sprd_dcam_drv_force_copy(fetch_idx, ALL_COPY);
 
-	if (size.width > DCAM_LINE_BUF) {
+	if (size.width > DCAM_LINE_BUF_LEGNTH) {
 		ret = sprd_cam_drv_calc_offline_slice_param(
 				idx, fetch_idx, group);
 		if (ret)

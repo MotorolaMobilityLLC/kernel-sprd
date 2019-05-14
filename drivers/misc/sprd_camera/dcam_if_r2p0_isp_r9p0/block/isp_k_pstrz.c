@@ -39,7 +39,7 @@ static int isp_k_posterize_block
 		return -1;
 	}
 
-	ISP_REG_MWR(idx, ISP_PSTRZ_PARA, BIT_0, pstrz_info.bypass);
+	ISP_REG_MWR(idx, ISP_PSTRZ_PARAM, BIT_0, pstrz_info.bypass);
 	if (pstrz_info.bypass)
 		return 0;
 
@@ -65,7 +65,7 @@ static int isp_k_posterize_block
 			val);
 	}
 
-	ISP_REG_MWR(idx, ISP_PSTRZ_PARA,
+	ISP_REG_MWR(idx, ISP_PSTRZ_PARAM,
 		BIT_3|BIT_2, (pstrz_info.pstrz_buf_sel) << 3
 		| (pstrz_info.sample_en << 2));
 

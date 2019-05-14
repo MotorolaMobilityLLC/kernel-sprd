@@ -365,7 +365,7 @@ static void sprd_isppath_bypass_ispblock_for_yuv_sensor(
 	ISP_REG_MWR(idx, ISP_CMC10_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_GAMMA_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_HSV_PARAM, BIT_0, bypass);
-	ISP_REG_MWR(idx, ISP_PSTRZ_PARA, BIT_0, bypass);
+	ISP_REG_MWR(idx, ISP_PSTRZ_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_CCE_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_UVD_PARAM, BIT_0, bypass);
 	ISP_REG_MWR(idx, ISP_YUV_3DNR_MEM_CTRL_PARAM0, BIT_0, bypass);
@@ -1344,9 +1344,12 @@ int sprd_isp_path_next_frm_set(struct isp_module *module,
 	path->store_info.addr.chn1 = frame.buf_info.iova[0] + frame.uaddr;
 	path->store_info.addr.chn2 = frame.buf_info.iova[2];
 
-	path->store_fbc_info.yheader = frame.buf_info.iova[0] + frame.yaddr;
-	path->store_fbc_info.yaddr = path->store_fbc_info.yheader +
-		path->store_fbc_info.header_offset;
+	if (!path->store_fbc_info.bypass) {
+		path->store_fbc_info.yheader = frame.buf_info.iova[0] +
+			frame.yaddr;
+		path->store_fbc_info.yaddr = path->store_fbc_info.yheader +
+			path->store_fbc_info.header_offset;
+	}
 
 	if (use_reserve_frame) {
 		memcpy(reserved_frame, &frame, sizeof(struct camera_frame));
