@@ -34,5 +34,18 @@
 				status = "disabled";
 			};
 		};
+
+		aon {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			hwlock: hwspinlock@33000000{
+				compatible = "sprd,hwspinlock-r3p0";
+				reg = <0x33000000 0x10000>;
+				#hwlock-cells = <1>;
+			};
+		};
 	};
 };
