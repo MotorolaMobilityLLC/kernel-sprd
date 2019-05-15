@@ -21,6 +21,7 @@
 		i2c2 = &i2c2;
 		i2c3 = &i2c3;
 		i2c4 = &i2c4;
+		i2c5 = &aon_i2c0;
 	};
 
 	soc: soc {
@@ -388,6 +389,18 @@
 			#address-cells = <2>;
 			#size-cells = <2>;
 			ranges;
+
+			aon_i2c0: i2c@32060000 {
+				compatible = "sprd,sharkl5pro-hw-i2c";
+				reg = <0 0x32060000 0 0x1000>;
+				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "source", "enable", "i2c",
+						"clk_hw_i2c";
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
 
 			ap_gpio: gpio@32070000 {
 				compatible = "sprd,sharkl5Pro-gpio", "sprd,sharkl5-gpio";
