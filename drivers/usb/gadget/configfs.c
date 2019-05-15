@@ -76,6 +76,7 @@ struct gadget_info {
 	struct config_group strings_group;
 	struct config_group os_desc_group;
 
+	spinlock_t slock;
 	struct mutex lock;
 	struct usb_gadget_strings *gstrings[MAX_USB_STRING_LANGS + 1];
 	struct list_head string_list;
@@ -1465,12 +1466,14 @@ static void configfs_composite_unbind(struct usb_gadget *gadget)
 {
 	struct usb_composite_dev	*cdev;
 	struct gadget_info		*gi;
+	unsigned long flags;
 
 	/* the gi->lock is hold by the caller */
 
 	cdev = get_gadget_data(gadget);
 	gi = container_of(cdev, struct gadget_info, cdev);
 
+	spin_lock_irqsave(&gi->slock, flags);
 	kfree(otg_desc[0]);
 	otg_desc[0] = NULL;
 	purge_configs_funcs(gi);
@@ -1478,6 +1481,7 @@ static void configfs_composite_unbind(struct usb_gadget *gadget)
 	usb_ep_autoconfig_reset(cdev->gadget);
 	cdev->gadget = NULL;
 	set_gadget_data(gadget, NULL);
+	spin_unlock_irqrestore(&gi->slock, flags);
 }
 
 #ifdef CONFIG_USB_CONFIGFS_UEVENT
@@ -1486,16 +1490,21 @@ static int android_setup(struct usb_gadget *gadget,
 {
 	struct usb_composite_dev *cdev = get_gadget_data(gadget);
 	unsigned long flags;
-	struct gadget_info *gi = container_of(cdev, struct gadget_info, cdev);
+	struct gadget_info *gi;
 	int value = -EOPNOTSUPP;
 	struct usb_function_instance *fi;
 
+	if (!cdev)
+		return value;
+	gi = container_of(cdev, struct gadget_info, cdev);
 	spin_lock_irqsave(&cdev->lock, flags);
 	if (!gi->connected) {
 		gi->connected = 1;
 		schedule_work(&gi->work);
 	}
 	spin_unlock_irqrestore(&cdev->lock, flags);
+
+	spin_lock(&gi->slock);
 	list_for_each_entry(fi, &gi->available_func, cfs_list) {
 		if (fi != NULL && fi->f != NULL && fi->f->setup != NULL) {
 			value = fi->f->setup(fi->f, c);
@@ -1512,6 +1521,7 @@ static int android_setup(struct usb_gadget *gadget,
 	if (value < 0)
 		value = composite_setup(gadget, c);
 
+	spin_unlock(&gi->slock);
 	spin_lock_irqsave(&cdev->lock, flags);
 	if (c->bRequest == USB_REQ_SET_CONFIGURATION &&
 						cdev->config) {
@@ -1696,6 +1706,7 @@ static struct config_group *gadgets_make(
 	gi->composite.resume = NULL;
 	gi->composite.max_speed = USB_SPEED_SUPER;
 
+	spin_lock_init(&gi->slock);
 	mutex_init(&gi->lock);
 	INIT_LIST_HEAD(&gi->string_list);
 	INIT_LIST_HEAD(&gi->available_func);
