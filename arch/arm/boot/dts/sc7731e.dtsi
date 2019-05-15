@@ -159,3 +159,8 @@
 		clock-frequency = <26000000>;
 	};
 };
+
+&hwlock {
+	clock-names = "enable";
+	clocks = <&aonapb_gate CLK_SPLK_EB>;
+};
