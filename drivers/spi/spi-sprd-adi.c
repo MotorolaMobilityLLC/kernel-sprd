@@ -94,6 +94,10 @@
 #define SC2721_MODULE_EN		0xc08
 #define SC2721_CLK_EN			0xc10
 #define SC2721_WDT_BASE			0x40
+#define SC2720_RST_STATUS		0xe24
+#define SC2720_MODULE_EN		0xc08
+#define SC2720_CLK_EN			0xc10
+#define SC2720_WDT_BASE			0x40
 #define BIT_WDG_EN			BIT(2)
 
 /* Definition of PMIC reset status register */
@@ -158,6 +162,14 @@ struct sprd_adi_variant_data sharkl3_data = {
 	.rst_sts = SC2721_RST_STATUS,
 	.wdt_en = SC2721_MODULE_EN,
 	.wdt_clk = SC2721_CLK_EN,
+};
+
+struct sprd_adi_variant_data pike2_data = {
+	.slave_offset = ADI_SLAVE_OFFSET,
+	.wdt_base = SC2720_WDT_BASE,
+	.rst_sts = SC2720_RST_STATUS,
+	.wdt_en = SC2720_MODULE_EN,
+	.wdt_clk = SC2720_CLK_EN,
 };
 
 static int sprd_adi_check_paddr(struct sprd_adi *sadi, u32 paddr)
@@ -608,6 +620,10 @@ static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,sharkl3-adi",
 		.data = &sharkl3_data,
+	},
+	{
+		.compatible = "sprd,pike2-adi",
+		.data = &pike2_data,
 	},
 	{ },
 };
