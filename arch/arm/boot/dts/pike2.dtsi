@@ -14,6 +14,7 @@
 	#size-cells = <1>;
 
 	aliases {
+		serial0 = &uart0;
 		serial1 = &uart1;
 	};
 
@@ -84,10 +85,27 @@
 			#size-cells = <1>;
 			ranges;
 
+			uart0: serial@70000000 {
+				compatible = "sprd,sc7731-uart",
+					     "sprd,sc9836-uart";
+				reg = <0x70000000 0x100>;
+				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&apapb_gate CLK_UART0_EB>,
+					 <&ap_clk CLK_AP_UART0>,
+					 <&ext_26m>;
+				status = "disabled";
+			};
+
 			uart1: serial@70100000 {
-				compatible = "sprd,sc9836-uart";
+				compatible = "sprd,sc7731-uart",
+					     "sprd,sc9836-uart";
 				reg = <0x70100000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&apapb_gate CLK_UART1_EB>,
+					 <&ap_clk CLK_AP_UART1>,
+					 <&ext_26m>;
 				status = "disabled";
 			};
 		};
