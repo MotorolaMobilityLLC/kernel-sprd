@@ -214,6 +214,26 @@
 		sprd,size-txbuf = <0x0800>; /* 2*1024 */
 	};
 
+	snv_lte: spipe@8 {
+		compatible = "sprd,spipe";
+		sprd,name = "snv_lte";
+		sprd,dst = <5>;
+		sprd,channel = <40>;
+		sprd,ringnr = <1>;
+		sprd,size-rxbuf = <0x40400>; /* 257*1024*/
+		sprd,size-txbuf = <0x1000>; /* 4*1024 */
+	};
+
+	snv_nr: spipe@9 {
+		compatible = "sprd,spipe";
+		sprd,name = "snv_nr";
+		sprd,dst = <0>;
+		sprd,channel = <40>;
+		sprd,ringnr = <1>;
+		sprd,size-rxbuf = <0x40400>; /* 257*1024*/
+		sprd,size-txbuf = <0x1000>; /* 4*1024 */
+	};
+
 	/* PSP log: 2KB x 800 = 1.6M */
 	slog_lte: spool@0 {
 		compatible = "sprd,spool";

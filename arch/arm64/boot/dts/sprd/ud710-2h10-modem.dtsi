@@ -117,6 +117,16 @@
 		sprd,size-txbuf = <0x20>;
 	};
 
+	snv_nr: spipe@6 {
+		compatible = "sprd,spipe";
+		sprd,name = "snv_nr";
+		sprd,dst = <1>;
+		sprd,channel = <40>;
+		sprd,ringnr = <1>;
+		sprd,size-rxbuf = <0x40400>; /* 257*1024*/
+		sprd,size-txbuf = <0x1000>; /* 4*1024 */
+	};
+
 	slog_nr: spool@0{
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr";
