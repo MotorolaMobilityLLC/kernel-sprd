@@ -656,7 +656,7 @@ static int seth_open(struct net_device *dev)
 			num++;
 		}
 	}
-	dev_dbg(&dev->dev, "%s clean %d resident sblocks\n", __func__, num);
+	dev_info(&dev->dev, "%s clean %d resident sblocks\n", __func__, num);
 
 	/* Reset stats */
 	memset(&seth->stats, 0, sizeof(seth->stats));
