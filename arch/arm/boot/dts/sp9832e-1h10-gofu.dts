@@ -54,6 +54,11 @@
 			reg = <0xa0000000 0x00500000>;
 		};
 	};
+	sprd-sysdump {
+		memory-region = <&memory>;
+		memory-region-re = <&cp_reserved>;
+		memory-region-se = <&tos_reserved>;
+	};
 };
 
 &uart1 {
