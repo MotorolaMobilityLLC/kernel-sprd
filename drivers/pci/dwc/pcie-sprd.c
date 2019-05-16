@@ -375,11 +375,13 @@ static int sprd_pcie_resume_noirq(struct device *dev)
 	struct dw_pcie *pci = sprd_pcie->pci;
 	struct pcie_port *pp = &pci->pp;
 
-	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-startup-syscons");
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-resume-syscons");
 	if (ret < 0) {
 		dev_err(dev, "set pcie resume syscons fail, return %d\n", ret);
 		return ret;
 	}
+	dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
+			   LTSSM_EN | L1_AUXCLK_EN);
 
 	dw_pcie_setup_rc(pp);
 	ret = dw_pcie_wait_for_link(pci);

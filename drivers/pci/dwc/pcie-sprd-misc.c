@@ -28,7 +28,7 @@
 int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 {
 	struct device_node *np = pdev->dev.of_node;
-	int i, count, err;
+	int i, count, err, j;
 	u32 type, delay, reg, mask, val, tmp_val;
 	struct of_phandle_args out_args;
 	struct regmap *iomap;
@@ -67,6 +67,16 @@ int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 			tmp_val &= (~mask);
 			tmp_val |= (val & mask);
 			regmap_write(iomap, reg, tmp_val);
+			break;
+
+		case 2:
+			j = 0;
+			do {
+				regmap_read(iomap, reg, &tmp_val);
+				if (j++ > 100)
+					return -ETIMEDOUT;
+				usleep_range(50, 100);
+			} while ((tmp_val & mask) != val);
 			break;
 		}
 		if (delay)
