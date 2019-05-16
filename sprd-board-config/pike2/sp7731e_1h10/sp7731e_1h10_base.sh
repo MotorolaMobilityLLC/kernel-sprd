@@ -1,0 +1,16 @@
+BSP_KERNEL_ARCH="arm"
+BSP_KERNEL_DIFF_CONFIG_ARCH="sprd-diffconfig/pike2/$BSP_KERNEL_ARCH"
+BSP_KERNEL_DIFF_CONFIG_COMMON="sprd-diffconfig/pike2/common"
+if [ -z $BSP_KERNEL_PATH ]; then
+	BSP_KERNEL_PATH="."
+fi
+BSP_KERNEL_CROSS_COMPILE="$BSP_KERNEL_PATH/../../toolchain/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin/arm-linux-androideabi-"
+BSP_BOARD_NAME="sp7731e_1h10"
+
+BSP_BOARD_WCN_CONFIG=""
+BSP_BOARD_EXT_PMIC_CONFIG=""
+BSP_PRODUCT_GO_DEVICE="true"
+BSP_BOARD_FEATUREPHONE_CONFIG=""
+BSP_BOARD_TEE_CONFIG=""
+BSP_BOARD_TEE_64BIT=""
+

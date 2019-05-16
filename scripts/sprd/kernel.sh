@@ -3,7 +3,7 @@ export BSP_KERNEL_PATH=$(readlink -f $(dirname $0)/../../)
 function get_board()
 {
 	SEARCH_DIR="sprd-board-config"
-	BOARD_PATH=`find $BSP_KERNEL_PATH/$SEARCH_DIR -type f | grep -v "base"`
+	BOARD_PATH=`find $BSP_KERNEL_PATH/$SEARCH_DIR -name *.sh -type f | grep -v "base"`
 	for board_path in $BOARD_PATH;
 	do
 		board_name=`echo $board_path | awk -F"$SEARCH_DIR/" {'print $2'} | awk -F"/" {'if (NF == 3) print $NF'} | awk -F"." {'print $1'}`
