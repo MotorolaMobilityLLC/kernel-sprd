@@ -38,6 +38,10 @@ HOST MODE
 	- mask: the mask of the syscon register
 	- value: the value to be set to the syscon register mask
 
+ - sprd,pcie-resume-syscons: the global registers of pcie when pcie resume.
+			      This property is the same as
+			      sprd,pcie-startup-syscons.
+
  - sprd,pcie-suspend-syscons: the global registers of pcie when pcie suspend.
 			      This property is the same as
 			      sprd,pcie-startup-syscons.
@@ -104,6 +108,15 @@ Example:
 				REG_PMU_APB_PCIE_PERST_CTRL_CFG
 				MASK_PMU_APB_PCIE2_PERST_N_AUTO_CTRL_EN
 				0x1>;
+		sprd,pcie-resume-syscons =
+			<&pmu_apb_regs 0 0
+				REG_PMU_APB_XTLBUF_PCIEH_REL_CFG
+				MASK_PMU_APB_XTLBUF_PCIEH_FRC_ON
+				(0x1 << 7)>,
+			<&pmu_apb_regs 0 0
+				REG_PMU_APB_XTLBUF_PCIEV_REL_CFG
+				MASK_PMU_APB_XTLBUF_PCIEV_FRC_ON
+				(0x1 << 7)>;
 		sprd,pcie-suspend-syscons =
 			<&pmu_apb_regs 0 0
 				REG_PMU_APB_PCIE_PERST_CTRL_CFG
