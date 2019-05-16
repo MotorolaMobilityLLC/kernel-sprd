@@ -1,0 +1,66 @@
+/*
+ * Unisoc SP7731e board common DTS file
+ *
+ * Copyright (C) 2019, Unisoc Communications Inc.
+ *
+ * This file is licensed under a dual GPLv2 or X11 license.
+ */
+
+/ {
+	reserved_memory: reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		pstore: pstore-mem@877c0000 {
+			reg = <0x877c0000 0x00040000>;
+		};
+
+		smem_reserved: sipc-mem@87800000 {
+			reg = <0x87800000 0x00200000>;
+		};
+
+		/*start address must be 32M aligned */
+		wcn_reserved: wcn-mem@88000000 {
+			reg = <0x88000000 0x00300000>;
+		};
+
+		gnss_reserved: gnss-mem {
+			reg = <0x88300000 0x0015b000>;
+		};
+
+		cp_reserved: cp-modem@89600000 {
+			reg = <0x89600000 0x02300000>;
+		};
+
+		/* only used for iq, will be removed in normal mode by uboot */
+		iq_reserved: iq-mem@90000000 {
+			compatible = "sprd,iq-mem";
+			reg = <0x90000000 0x04000000>;
+		};
+
+		/*start address must be 64M aligned */
+		sml_reserved: sml-mem@94000000 {
+			reg = <0x94000000 0x00020000>;
+		};
+
+		tos_reserved: tos-mem@94020000 {
+			reg = <0x94020000 0x002e0000>;
+		};
+	};
+
+	ramoops {
+		compatible = "ramoops";
+		memory-region = <&pstore>;
+		record-size	= <0x0 0x00008000>;
+		console-size	= <0x0 0x00008000>;
+		pmsg-size	= <0x0 0x00008000>;
+	};
+
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
+	};
+};
+
