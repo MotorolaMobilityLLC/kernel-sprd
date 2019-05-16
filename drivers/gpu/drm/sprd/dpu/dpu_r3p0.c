@@ -293,7 +293,6 @@ static void dpu_enhance_reload(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_dpu_layer *hwlayer);
-static int dpu_wb_layer_config_from_vm(struct dpu_context *ctx);
 
 static u32 dpu_get_version(struct dpu_context *ctx)
 {
@@ -576,11 +575,22 @@ static void dpu_run(struct dpu_context *ctx)
 static void dpu_write_back(struct dpu_context *ctx,
 		u8 count, bool debug)
 {
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	int i, index;
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	int mode_width  = reg->blend_size & 0xFFFF;
+	int mode_height = reg->blend_size >> 16;
 
-	/* config layer everytime from vm for sr */
-	dpu_wb_layer_config_from_vm(ctx);
+	region[0].index = 0;
+	region[0].pos_x = 0;
+	region[0].pos_y = 0;
+	region[0].size_w = mode_width;
+	region[0].size_h = mode_height;
+
+	wb_layer.dst_w = mode_width;
+	wb_layer.dst_h = mode_height;
+	wb_layer.pitch[0] = mode_width * 4;
+	wb_layer.xfbc = wb_xfbc_en;
+	wb_layer.header_size_r = XFBC8888_HEADER_SIZE(mode_width, mode_height);
 
 	for (i = 0; i < count; i++) {
 		index = region[i].index;
@@ -590,6 +600,7 @@ static void dpu_write_back(struct dpu_context *ctx,
 					((region[i].size_h >> 3) << 16);
 	}
 
+	reg->wb_pitch = mode_width;
 	if (wb_xfbc_en && !debug) {
 		reg->wb_cfg = (2 << 1) | BIT(0);
 		reg->wb_base_addr = wb_layer.addr[0] +
@@ -598,7 +609,6 @@ static void dpu_write_back(struct dpu_context *ctx,
 		reg->wb_cfg = 0;
 		reg->wb_base_addr = wb_layer.addr[0];
 	}
-	reg->wb_pitch = ctx->vm.hactive;
 
 	/* update trigger */
 	reg->dpu_ctrl |= BIT(2);
@@ -682,66 +692,37 @@ OF_EXIT:
 	return ret;
 }
 
-static int dpu_wb_layer_config_from_vm(struct dpu_context *ctx)
-{
-	u32 hdr_size;
-	size_t buf_size;
-	int ret = 0;
-	int mode_width  = ctx->vm.hactive;
-	int mode_height = ctx->vm.vactive;
-
-	hdr_size = XFBC8888_HEADER_SIZE(mode_width, mode_height);
-	if (wb_layer.header_size_r < hdr_size) {
-		struct sprd_dpu *dpu =	(struct sprd_dpu *)
-			container_of(ctx, struct sprd_dpu, ctx);
-
-		pr_info("Need to alloc new buffer for writeback\n");
-		buf_size = XFBC8888_BUFFER_SIZE(mode_width, mode_height);
-		ret = dpu_wb_buf_alloc(dpu, buf_size, &ctx->wb_addr_p);
-	}
-
-	pr_info("mode_ (%d, %d)\n", mode_width, mode_height);
-	region[0].index = 0;
-	region[0].pos_x = 0;
-	region[0].pos_y = 0;
-	region[0].size_w = mode_width;
-	region[0].size_h = mode_height;
-
-	wb_layer.index = 0;
-	wb_layer.planes = 1;
-	wb_layer.alpha = 0xff;
-	wb_layer.dst_w = mode_width;
-	wb_layer.dst_h = mode_height;
-	wb_layer.format = DRM_FORMAT_ABGR8888;
-	wb_layer.xfbc = wb_xfbc_en;
-	wb_layer.pitch[0] = mode_width * 4;
-	wb_layer.addr[0] = ctx->wb_addr_p;
-	wb_layer.header_size_r = hdr_size;
-
-	return ret;
-}
-
 static int dpu_write_back_config(struct dpu_context *ctx)
 {
 	int ret;
+	size_t buf_size;
 	static int need_config = 1;
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 
 	if (!need_config) {
 		pr_debug("write back has configed\n");
 		return 0;
 	}
 
-	wb_layer.header_size_r = 0;
-	wb_layer.addr[0] = 0;
-	ret = dpu_wb_layer_config_from_vm(ctx);
+	buf_size = XFBC8888_BUFFER_SIZE(dpu->mode->hdisplay,
+						dpu->mode->vdisplay);
+	pr_info("Need to alloc new buffer for writeback: 0x%zx\n", buf_size);
+
+	ret = dpu_wb_buf_alloc(dpu, buf_size, &ctx->wb_addr_p);
 	if (ret) {
 		max_vsync_count = 0;
 		return -1;
 	}
 
-	max_vsync_count = 0;
-	need_config = 0;
+	wb_layer.index = 0;
+	wb_layer.planes = 1;
+	wb_layer.alpha = 0xff;
 
+	wb_layer.addr[0] = ctx->wb_addr_p;
+	wb_layer.format = DRM_FORMAT_ABGR8888;
+	max_vsync_count = 4;
+	need_config = 0;
 	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
 
 	return 0;
