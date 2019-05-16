@@ -2232,6 +2232,22 @@ static const SOC_ENUM_SINGLE_VIRT_DECL(hpl_rcv_enum, hpl_rcv_mux_texts);
 static const struct snd_kcontrol_new hpl_rcv_mux =
 	SOC_DAPM_ENUM("HPL EAR Sel", hpl_rcv_enum);
 
+#define SPRD_CODEC_MUX_KCTL(xname, xkctl, xreg, xshift, xtext) \
+	static const SOC_ENUM_SINGLE_DECL(xkctl##_enum, xreg, xshift, xtext); \
+	static const struct snd_kcontrol_new xkctl = \
+		SOC_DAPM_ENUM_EXT(xname, xkctl##_enum, \
+		snd_soc_dapm_get_enum_double, \
+		snd_soc_dapm_put_enum_double)
+
+static const char * const dig_adc_in_texts[] = {
+	"ADC", "DAC", "DMIC"
+};
+
+SPRD_CODEC_MUX_KCTL("Digital ADC In Sel", dig_adc_in_sel,
+		    AUD_TOP_CTL, ADC_SINC_SEL, dig_adc_in_texts);
+SPRD_CODEC_MUX_KCTL("Digital ADC1 In Sel", dig_adc1_in_sel,
+		    AUD_TOP_CTL, ADC1_SINC_SEL, dig_adc_in_texts);
+
 static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_SUPPLY_S("Digital Power", 1, SND_SOC_NOPM,
 		0, 0, digital_power_event,
@@ -2350,6 +2366,10 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_PGA_S("Digital ADC1R Switch", 4, SOC_REG(AUD_TOP_CTL),
 		ADC1_EN_R, 0, 0, 0),
 	SND_SOC_DAPM_ADC_E("ADC", "Normal-Capture-AP01",
+		FUN_REG(SPRD_CODEC_CAPTRUE),
+		0, 0, chan_event,
+		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_ADC_E("ADC1", "Normal-Capture-AP23",
 		FUN_REG(SPRD_CODEC_CAPTRUE),
 		0, 0, chan_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
@@ -2550,8 +2570,8 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_INPUT("MIC2 Pin"),
 	SND_SOC_DAPM_INPUT("HPMIC Pin"),
 
-	SND_SOC_DAPM_INPUT("DMIC"),
-	SND_SOC_DAPM_INPUT("DMIC1"),
+	SND_SOC_DAPM_INPUT("DMIC Pin"),
+	SND_SOC_DAPM_INPUT("DMIC1 Pin"),
 
 	/* add DMIC */
 	SND_SOC_DAPM_PGA_S("DMIC Switch", 3, SOC_REG(AUD_DMIC_CTL),
@@ -2584,6 +2604,15 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_SWITCH("HP", SND_SOC_NOPM,
 			0, 0, &hp_jack_switch),
 
+	SND_SOC_DAPM_PGA_S("DMIC Switch", 3, SOC_REG(AUD_DMIC_CTL),
+			   ADC_DMIC_EN, 0, NULL, 0),
+	SND_SOC_DAPM_PGA_S("DMIC1 Switch", 3, SOC_REG(AUD_DMIC_CTL),
+			   ADC1_DMIC1_EN, 0, NULL, 0),
+
+	SND_SOC_DAPM_MUX("Digital ADC In Sel", SND_SOC_NOPM, 0, 0,
+			 &dig_adc_in_sel),
+	SND_SOC_DAPM_MUX("Digital ADC1 In Sel", SND_SOC_NOPM, 0, 0,
+			 &dig_adc1_in_sel),
 };
 
 /* sprd_codec supported interconnection */
@@ -2762,6 +2791,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADCL Mixer", "VSENSEL Switch", "VSNS Mixer"},
 	{"ADCR Mixer", "ISENSER Switch", "ISNS Mixer"},
 	{"IVSense Virt", "Switch", "ADC"},
+	{"IVSense Virt", "Switch", "ADC1"},
 	{"IVSense Virt", NULL, "IVSense SRC"},
 	{"DAC Fast", NULL, "IVSense Virt"},
 	{"DAC Offload", NULL, "IVSense Virt"},
@@ -2781,6 +2811,17 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADC1-DAC Digital Loop post", NULL, "ADC1-DAC Digital Loop"},
 	{"DAC", NULL, "ADC-DAC Digital Loop post"},
 	{"DAC", NULL, "ADC1-DAC Digital Loop post"},
+
+	/* DMIC0 */
+	{"DMIC Switch", NULL, "DMIC Pin"},
+	{"Digital ADC In Sel", "DMIC", "DMIC Switch"},
+	{"Digital ADCL Switch", NULL, "Digital ADC In Sel"},
+	{"Digital ADCR Switch", NULL, "Digital ADC In Sel"},
+	/* DMIC1 */
+	{"DMIC1 Switch", NULL, "DMIC1 Pin"},
+	{"Digital ADC1 In Sel", "DMIC", "DMIC1 Switch"},
+	{"Digital ADC1L Switch", NULL, "Digital ADC1 In Sel"},
+	{"Digital ADC1R Switch", NULL, "Digital ADC1 In Sel"},
 
 	/* virt path */
 	{"Virt Output", "Switch", "Digital DACL Switch"},
