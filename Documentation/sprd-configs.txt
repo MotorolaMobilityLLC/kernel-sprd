@@ -9065,8 +9065,8 @@ CONFIG_REGULATOR_SC2720
 	[must]
 	[function]
 CONFIG_REGULATOR_SC2721
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkle32
 	[field]
 	[subsys]
 	[must]
