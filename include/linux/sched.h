@@ -463,6 +463,8 @@ struct sched_entity {
 	u64				sum_exec_runtime;
 	u64				vruntime;
 	u64				prev_sum_exec_runtime;
+	u64				s_sum_exec_runtime;
+	u64				b_sum_exec_runtime;
 
 	u64				nr_migrations;
 

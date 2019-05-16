@@ -1116,6 +1116,7 @@ static void update_curr_dl(struct rq *rq)
 	struct task_struct *curr = rq->curr;
 	struct sched_dl_entity *dl_se = &curr->dl;
 	u64 delta_exec;
+	int cpu = cpu_of(rq);
 
 	if (!dl_task(curr) || !on_dl_rq(dl_se))
 		return;
@@ -1142,6 +1143,12 @@ static void update_curr_dl(struct rq *rq)
 		      max(curr->se.statistics.exec_max, delta_exec));
 
 	curr->se.sum_exec_runtime += delta_exec;
+
+	if (cpumask_test_cpu(cpu, &min_cap_cpu_mask))
+		curr->se.s_sum_exec_runtime += delta_exec;
+	else
+		curr->se.b_sum_exec_runtime += delta_exec;
+
 	account_group_exec_runtime(curr, delta_exec);
 
 	curr->se.exec_start = rq_clock_task(rq);

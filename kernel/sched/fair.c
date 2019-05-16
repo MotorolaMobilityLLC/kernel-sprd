@@ -846,6 +846,7 @@ static void update_curr(struct cfs_rq *cfs_rq)
 	struct sched_entity *curr = cfs_rq->curr;
 	u64 now = rq_clock_task(rq_of(cfs_rq));
 	u64 delta_exec;
+	int cpu = cpu_of(rq_of(cfs_rq));
 
 	if (unlikely(!curr))
 		return;
@@ -860,6 +861,12 @@ static void update_curr(struct cfs_rq *cfs_rq)
 		      max(delta_exec, curr->statistics.exec_max));
 
 	curr->sum_exec_runtime += delta_exec;
+
+	if (cpumask_test_cpu(cpu, &min_cap_cpu_mask))
+		curr->s_sum_exec_runtime += delta_exec;
+	else
+		curr->b_sum_exec_runtime += delta_exec;
+
 	schedstat_add(cfs_rq->exec_clock, delta_exec);
 
 	curr->vruntime += calc_delta_fair(delta_exec, curr);

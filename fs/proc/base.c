@@ -488,6 +488,34 @@ static int proc_pid_schedstat(struct seq_file *m, struct pid_namespace *ns,
 
 	return 0;
 }
+
+static int proc_pid_schedinfo(struct seq_file *m, struct pid_namespace *ns,
+			      struct pid *pid, struct task_struct *task)
+{
+	if (unlikely(!sched_info_on()))
+		seq_puts(m, "0 0 0\n");
+	else {
+		struct task_struct *t;
+		u64 total = 0;
+		u64 s_total = 0, b_total = 0;
+
+		rcu_read_lock();
+		for_each_thread(task, t) {
+			total += t->se.sum_exec_runtime;
+			s_total += t->se.s_sum_exec_runtime;
+			b_total += t->se.b_sum_exec_runtime;
+		}
+		rcu_read_unlock();
+		seq_printf(m, "%llu %llu %llu %llu %llu\n",
+			   (unsigned long long)task->se.s_sum_exec_runtime,
+			   (unsigned long long)task->se.b_sum_exec_runtime,
+			   (unsigned long long)s_total,
+			   (unsigned long long)b_total,
+			   (unsigned long long)total);
+	}
+
+	return 0;
+}
 #endif
 
 #ifdef CONFIG_LATENCYTOP
@@ -2993,6 +3021,7 @@ static const struct pid_entry tgid_base_stuff[] = {
 #endif
 #ifdef CONFIG_SCHED_INFO
 	ONE("schedstat",  S_IRUGO, proc_pid_schedstat),
+	ONE("schedinfo",  0444, proc_pid_schedinfo),
 #endif
 #ifdef CONFIG_LATENCYTOP
 	REG("latency",  S_IRUGO, proc_lstats_operations),
@@ -3390,6 +3419,7 @@ static const struct pid_entry tid_base_stuff[] = {
 #endif
 #ifdef CONFIG_SCHED_INFO
 	ONE("schedstat", S_IRUGO, proc_pid_schedstat),
+	ONE("schedinfo", 0444, proc_pid_schedinfo),
 #endif
 #ifdef CONFIG_LATENCYTOP
 	REG("latency",  S_IRUGO, proc_lstats_operations),
