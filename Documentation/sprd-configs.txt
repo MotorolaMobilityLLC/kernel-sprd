@@ -3045,6 +3045,13 @@ CONFIG_EXPERT
 	[subsys] core
 	[must] console
 	[function] Configure standard kernel features (expert users).
+CONFIG_EXPORTFS
+	[arch] arm64
+	[plat] sharkl3
+	[field] code
+	[subsys] fs
+	[must]
+	[function] Making Filesystems Exportable
 CONFIG_EXT4_ENCRYPTION
 	[arch] all
 	[plat] all
@@ -6766,6 +6773,13 @@ CONFIG_NETFILTER_XT_MATCH_MULTIPORT
 	[subsys] net
 	[must] user
 	[function] "multiport" Multiple port match support
+CONFIG_NETFILTER_XT_MATCH_OWNER
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Enable. "owner" match support.
 CONFIG_NETFILTER_XT_MATCH_PKTTYPE
 	[arch] all
 	[plat] all
@@ -6905,6 +6919,13 @@ CONFIG_NETFILTER_XT_TARGET_CONNSECMARK
 	  packets to connections, and restores security markings from
 	  connections to packets (if the packets are not already marked).
 	  2. vts require
+CONFIG_NETFILTER_XT_TARGET_CT
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Enable. "CT" target support.
 CONFIG_NETFILTER_XT_TARGET_DSCP
 	[arch] all
 	[plat] all
@@ -7046,6 +7067,13 @@ CONFIG_NET_CLS_ACT
 	get attached to classifiers and are invoked after a successful
 	classification. They are used to overwrite the classification
 	result, instantly drop or redirect packets, etc.
+CONFIG_NET_CLS_BPF
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Enable. BPF-based classifier.
 CONFIG_NET_CLS_FW
 	[arch] all
 	[plat] all
@@ -7068,6 +7096,13 @@ CONFIG_NET_CORE
 	[subsys] net
 	[must] user
 	[function] Network core driver support
+CONFIG_NET_EGRESS
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] bool
 CONFIG_NET_EMATCH
 	[arch] all
 	[plat] all
@@ -7182,6 +7217,13 @@ CONFIG_NET_SCH_HTB
 	[must] user
 	[function] vts require, Say Y here if you want to use the Hierarchical Token Buckets (HTB)
 	packet scheduling algorithm
+CONFIG_NET_SCH_INGRESS
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Enable. Ingress/classifier-action Qdisc.
 CONFIG_NET_UDP_TUNNEL
 	[arch] all
 	[plat] all
@@ -7868,6 +7910,13 @@ CONFIG_OUTER_CACHE_SYNC
 	[subsys]
 	[must]
 	[function]
+CONFIG_OVERLAY_FS
+	[arch] arm64
+	[plat] sharkl3
+	[field] code
+	[subsys] fs
+	[must] none
+	[function] An overlay filesystem
 CONFIG_PACKET
 	[arch] all
 	[plat] all
@@ -11748,6 +11797,13 @@ CONFIG_XFRM_FRAGMENT
 	[function] Support pkt fragment in ip layer before esp. By using this
 		   one,control parameter will be set to one. It is only for
 		   sprd until now. It is used for vowifi.
+CONFIG_XFRM_INTERFACE
+	[arch] arm64
+	[plat] sharkl3
+	[field] menu,net
+	[subsys] net
+	[must] user
+	[function] AndroidQ Must Enable. Transformation virtual interface.
 CONFIG_XFRM_IPCOMP
 	[arch] all
 	[plat] all
@@ -11790,48 +11846,6 @@ CONFIG_XPS
 	[function] To enable XPS, the bitmap of CPUs that may use a transmit
 		queue is configured using the sysfs file entry:
 		/sys/class/net/<dev>/queues/tx-<n>/xps_cpus
-CONFIG_NETFILTER_XT_MATCH_OWNER
-	[arch] arm64
-	[plat] sharkl3
-	[field] menu,net
-	[subsys] net
-	[must] user
-	[function] AndroidQ Must Enable. "owner" match support.
-CONFIG_NETFILTER_XT_TARGET_CT
-	[arch] arm64
-	[plat] sharkl3
-	[field] menu,net
-	[subsys] net
-	[must] user
-	[function] AndroidQ Must Enable. "CT" target support.
-CONFIG_NET_CLS_BPF
-	[arch] arm64
-	[plat] sharkl3
-	[field] menu,net
-	[subsys] net
-	[must] user
-	[function] AndroidQ Must Enable. BPF-based classifier.
-CONFIG_NET_EGRESS
-	[arch] arm64
-	[plat] sharkl3
-	[field] menu,net
-	[subsys] net
-	[must] user
-	[function] bool
-CONFIG_NET_SCH_INGRESS
-	[arch] arm64
-	[plat] sharkl3
-	[field] menu,net
-	[subsys] net
-	[must] user
-	[function] AndroidQ Must Enable. Ingress/classifier-action Qdisc.
-CONFIG_XFRM_INTERFACE
-	[arch] arm64
-	[plat] sharkl3
-	[field] menu,net
-	[subsys] net
-	[must] user
-	[function] AndroidQ Must Enable. Transformation virtual interface.
 CONFIG_ZBOOT_ROM_BSS
 	[arch] arm
 	[plat] sharkl5_32
