@@ -29,6 +29,8 @@
 #define SPRD_SC2730_IRQ_NUMS		10
 #define SPRD_SC2721_IRQ_BASE		0xc0
 #define SPRD_SC2721_IRQ_NUMS		11
+#define SPRD_SC2720_IRQ_BASE		0xc0
+#define SPRD_SC2720_IRQ_NUMS		9
 
 struct sprd_pmic {
 	struct regmap *regmap;
@@ -62,6 +64,11 @@ static const struct sprd_pmic_data sc2730_data = {
 static const struct sprd_pmic_data sc2721_data = {
 	.irq_base = SPRD_SC2721_IRQ_BASE,
 	.num_irqs = SPRD_SC2721_IRQ_NUMS,
+};
+
+static const struct sprd_pmic_data sc2720_data = {
+	.irq_base = SPRD_SC2720_IRQ_BASE,
+	.num_irqs = SPRD_SC2720_IRQ_NUMS,
 };
 
 static const struct mfd_cell sprd_pmic_devs[] = {
@@ -254,6 +261,7 @@ static const struct of_device_id sprd_pmic_match[] = {
 	{ .compatible = "sprd,sc2731", .data = &sc2731_data },
 	{ .compatible = "sprd,sc2730", .data = &sc2730_data },
 	{ .compatible = "sprd,sc2721", .data = &sc2721_data },
+	{ .compatible = "sprd,sc2720", .data = &sc2720_data },
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_pmic_match);
