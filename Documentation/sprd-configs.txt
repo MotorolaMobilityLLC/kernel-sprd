@@ -8753,6 +8753,13 @@ CONFIG_PROFILING
 	[subsys] core
 	[must] console
 	[function] vts require, Profiling support.
+CONFIG_PSI
+	[arch] arm64
+	[plat] sharkl3
+	[field] make,code
+	[subsys] sched
+	[must] after kernel4.14
+	[function] Pressure stall information, which include memory/ IO/ CPU.
 CONFIG_PSTORE
 	[arch] all
 	[plat] all
