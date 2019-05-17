@@ -1171,6 +1171,8 @@ static int dalr_dc_os_event(struct snd_soc_dapm_widget *w,
 	} else {
 		sprd_codec_sdm_ramp(codec, on);
 		update_switch(codec, SDALHPL | SDARHPR, on);
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC5),
+				    DAL_EN | DAR_EN, 0);
 	}
 	while (i++ < 20) {
 		state = snd_soc_read(codec, SOC_REG(ANA_STS1));
