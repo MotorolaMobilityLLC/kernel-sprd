@@ -29,5 +29,5 @@ obj-$(CONFIG_PCIE_KIRIN) += pcie-kirin.o
 obj-$(CONFIG_ARM64) += pcie-hisi.o
 
 ifneq ($(filter y,$(CONFIG_PCIE_SPRD_HOST) $(CONFIG_PCIE_SPRD_EP)),)
-	obj-$(CONFIG_PCIE_SPRD) += pcie-sprd.o pcie-sprd-misc.o
+	obj-$(CONFIG_PCIE_SPRD) += pcie-sprd.o pcie-sprd-misc.o pcie-sprd-rc.o
 endif
