@@ -867,7 +867,7 @@ static int sc2703_charger_usb_get_property(struct power_supply *psy,
 			if (ret)
 				goto out;
 
-			val->intval = cur;
+			val->intval = cur * 1000;
 		}
 		break;
 
