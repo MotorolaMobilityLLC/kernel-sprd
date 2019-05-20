@@ -104,6 +104,11 @@ Optional properties:
 - syscons: A phandle to PMU controller register to enable dvfs module to block
 			the dcdc shutdown while dvfs module is working.
 - syscon-names: The name of the current syscon.
+- dcdc-idle-voltage: The cpu voltage gear when apcpu top shutdown. For example,
+			<0x16c 3 0x7 6> means the register offset in top dvfs
+			controller is 0x16c, the left shift base bit is 3, the
+			mask is 0x7, the idle voltage grade to set into the
+			register whose offset is 0x16c is 6.
 
 Node cpudvfs_dev
 -----------------------------------
@@ -240,7 +245,11 @@ Node cpudvfs_dev
 						register whose offset is 0x30.
 
 Optional properties:
-- NONE
+- dfs-idle-disable: Disable hardware to switch the voting dvfs index for current
+		module to idle dvfs index. For example, <0x1c 0 1> means the
+		register offset in apcpu dvfs controller is 0x1c, the bit to
+		enable or disable dfs idle function is 0, and 1 means you want
+		to disable the dfs idle function.
 Example 1: Example for topdvfs_controller
 ---------
 topdvfs_controller: topdvfsctrl@322A0000 {
@@ -257,6 +266,7 @@ topdvfs_controller: topdvfsctrl@322A0000 {
 		dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu0_supply>;
 		syscons = <&pmu_apb_regs REG_PMU_APB_DVFS_BLOCK_SHUTDOWN_CFG MASK_PMU_APB_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
 		syscon-names = "dvfs-blk-dcdc-sd";
+		dcdc-idle-voltage = <0x16c 3 0x7 6>
 	};
 
 	<...>
@@ -376,6 +386,7 @@ cpudvfs_dev: cpudvfs-dev@322A8000 {
 				sel-get = <0x38 0 3>;
 				div-get = <0x38 2 7>;
 				vol-get = <0x30 0 7>;
+				dfs-idle-disable = <0x1c 0 1>;
 		};
 
 		<...>
