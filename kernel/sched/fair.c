@@ -7833,7 +7833,7 @@ static int find_energy_efficient_cpu(struct sched_domain *sd,
 			delta = task_util(p);
 #endif
 
-		if (__cpu_overutilized(prev_cpu, delta))
+		if (__cpu_overutilized(prev_cpu, delta) || !task_fits_capacity(p, prev_cpu))
 			if (target_cpu >= 0 && target_cpu != prev_cpu)
 				return target_cpu;
 
@@ -9540,12 +9540,11 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 		}
 
 
-		if (cpu_overutilized(i)) {
+		if (cpu_overutilized(i))
 			*overutilized = true;
 
-			if (rq->misfit_task_load)
-				*misfit_task = true;
-		}
+		if (rq->misfit_task_load)
+			*misfit_task = true;
 	}
 
 	/* Adjust by relative CPU capacity of the group */
