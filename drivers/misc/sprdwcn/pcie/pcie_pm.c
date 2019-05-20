@@ -213,10 +213,6 @@ void wcn_aspm_l1_2(struct pci_dev *pdev)
 		 dwreg.l1ss_cap_ptr + PCI_L1SS_CTL1,
 		 dwreg.l1ss_ctl1);
 
-	pci_read_config_dword(pdev, PL_LTR_LATENCY_OFF, &val);
-	val |= SNOOP_LATENCY_VALUE;
-	pci_write_config_dword(pdev, PL_LTR_LATENCY_OFF, val);
-	WCN_INFO("EP: B30=0x%x\n", val);
 
 	pci_read_config_dword(pdev,
 			      pdev->pcie_cap +

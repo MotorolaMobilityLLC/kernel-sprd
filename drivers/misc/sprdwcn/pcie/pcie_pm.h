@@ -40,4 +40,6 @@
 #define T_POWER_ON_VALUE			(0x1 << 3)
 #define T_POWER_ON_SCALE			((0x1 << 0) | (0x1 << 1))
 
+void wcn_aspm_enable(struct pci_dev *pdev);
+
 #endif

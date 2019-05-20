@@ -22,6 +22,7 @@
 #include "mchn.h"
 #include "pcie.h"
 #include "pcie_dbg.h"
+#include "pcie_pm.h"
 #include "wcn_log.h"
 #include "wcn_op.h"
 #include "wcn_procfs.h"
@@ -595,6 +596,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	ret = sprd_ep_addr_map(priv);
 	if (ret < 0)
 		return ret;
+	wcn_aspm_enable(pdev);
 	edma_init(priv);
 	dbg_attach_bus(priv);
 	proc_fs_init();
