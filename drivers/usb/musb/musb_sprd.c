@@ -78,6 +78,7 @@ struct sprd_glue {
 	int		musb_work_running;
 	u32		usb_pub_slp_poll_offset;
 	u32		usb_pub_slp_poll_mask;
+	bool		suspending;
 };
 
 static int boot_charging;
@@ -143,15 +144,16 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 	u16 mask16;
 	u8 mask8;
 
-	spin_lock(&musb->lock);
+	spin_lock(&glue->lock);
 
-	if (!__clk_is_enabled(glue->clk)) {
-		spin_unlock(&musb->lock);
+	if (glue->suspending) {
+		spin_unlock(&glue->lock);
 		dev_err(musb->controller,
-			"interrupt after close otg eb!\n");
+			"interrupt is already cleared!\n");
 		return retval;
 	}
 
+	spin_lock(&musb->lock);
 	mask8 = musb_readb(musb->mregs, MUSB_INTRUSBE);
 	musb->int_usb = musb_readb(musb->mregs, MUSB_INTRUSB) & mask8;
 
@@ -174,6 +176,7 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 		retval = sprd_dma_interrupt(musb, reg_dma);
 
 	spin_unlock(&musb->lock);
+	spin_unlock(&glue->lock);
 
 	return retval;
 }
@@ -1204,6 +1207,7 @@ static int musb_sprd_runtime_suspend(struct device *dev)
 	struct dma_controller *c = musb->dma_controller;
 	struct sprd_musb_dma_controller *controller = container_of(c,
 			struct sprd_musb_dma_controller, controller);
+	unsigned long flags;
 	int ret;
 
 	if (glue->dr_mode == USB_DR_MODE_HOST)
@@ -1218,7 +1222,10 @@ static int musb_sprd_runtime_suspend(struct device *dev)
 		if (ret == 0)
 			dev_err(glue->dev, "wait for port suspend timeout!\n");
 	}
+	spin_lock_irqsave(&glue->lock, flags);
 	musb_sprd_disable_all_interrupts(musb);
+	glue->suspending = true;
+	spin_unlock_irqrestore(&glue->lock, flags);
 
 	clk_disable_unprepare(glue->clk);
 
@@ -1235,6 +1242,7 @@ static int musb_sprd_runtime_resume(struct device *dev)
 	struct musb *musb = platform_get_drvdata(glue->musb);
 
 	clk_prepare_enable(glue->clk);
+	glue->suspending = false;
 
 	if (!musb->shutdowning)
 		usb_phy_init(glue->xceiv);
