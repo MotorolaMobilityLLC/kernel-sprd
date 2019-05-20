@@ -2087,9 +2087,11 @@ static int cp_event(struct snd_soc_dapm_widget *w,
 
 		/* CP negative power on */
 		neg_cp = (sprd_codec->neg_cp_efuse >> 7) & 0xff;
+		/* set negative voltalge to 1.62 by ASIC suggest */
+		neg_cp = (neg_cp * 162) / 165;
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL14),
 			CP_NEG_HV(0xFFFF), CP_NEG_HV(neg_cp));
-		neg_cp = (neg_cp * 115) / 165;
+		neg_cp = (neg_cp * 110) / 165;
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL14),
 			CP_NEG_LV(0xFFFF), CP_NEG_LV(neg_cp));
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL10),
