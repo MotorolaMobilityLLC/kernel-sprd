@@ -83,7 +83,7 @@ enum {
 
 	/* general pipe channel,  channel 40~59 */
 	SMSG_CH_PIPE_BASE = 40,
-	SMSG_CH_PIPE0 = SMSG_CH_PIPE_BASE,
+	SMSG_CH_NV = SMSG_CH_PIPE_BASE,
 	SMSG_CH_DVFS,
 	SMSG_CH_PIPE2,
 	SMSG_CH_PIPE3,
@@ -201,6 +201,7 @@ static const struct sipc_config sipc_cfg[] = {
 	{SMSG_CH_VOIP_DEEP, "audio voip deep"},  /*channel 151*/
 	{SMSG_CH_DVFS, "dvfs"},  /* channel 41 */
 	{SMSG_CH_COMM_SIPA, "sipa"},  /* channel 120 */
+	{SMSG_CH_NV, "nvsync"}, /* channel 40 */
 };
 
 #define SMSG_VALID_CH_NR (sizeof(sipc_cfg)/sizeof(struct sipc_config))
