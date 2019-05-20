@@ -1720,12 +1720,18 @@
 					dcdc-judge-vol-sw = <0x150 15 0x7 6>;
 					dcdc-subsys-tune-enable = <0x300 2 1>;
 					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu0_supply>;
+					syscons = <&pmu_apb_regs REG_PMU_APB_DVFS_BLOCK_SHUTDOWN_CFG
+						MASK_PMU_APB_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
+					syscon-names = "dvfs-blk-dcdc-sd";
 				};
 				dcdc_cpu1: dcdc-cpu1{
 					dcdc-dvfs-enable = <0xA0 0 1>;
 					dcdc-judge-vol-sw = <0x160 15 0x7 5>;
 					dcdc-subsys-tune-enable = <0x300 1 1>;
 					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu1_supply>;
+					syscons = <&pmu_apb_regs REG_PMU_APB_DVFS_BLOCK_SHUTDOWN_CFG
+						MASK_PMU_APB_DCDC_CPU1_DVFS_BLOCK_SHUTDOWN_EN>;
+					syscon-names = "dvfs-blk-dcdc-sd";
 				};
 				dcdc_mm: dcdc-mm {
 					dcdc-dvfs-enable = <0x18 20 1>;
