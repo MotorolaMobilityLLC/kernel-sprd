@@ -47,7 +47,7 @@
 #define NORMAL_BLOCK_SIZE	(ETH_HLEN + ETH_DATA_LEN + NET_IP_ALIGN)
 #define ACK_BLOCK_SIZE	(96)
 
-#define TIME_TRIGGER_CP_NS      (1000 * 1000)
+#define TIME_TRIGGER_CP_NS      (500 * 1000)
 
 #define IS_DL_BLK_ACK(sipx, blk) ((blk)->addr >= (sipx)->dl_ack_start)
 
@@ -1077,26 +1077,24 @@ static void sipx_force_ul_trigger(struct sipx_channel *sipx_chan)
 	SIPX_DEBUG("sipx trigger cp force\n");
 }
 
-/*
-* static void sipx_start_trigger_timer(struct sipx_channel *sipx_chan)
-*{
-*	sipx_chan->ul_timer_active = 1;
-*	hrtimer_start(&sipx_chan->ul_timer, sipx_chan->ul_timer_val,
-*		      HRTIMER_MODE_REL);
-*	SIPX_DEBUG("sipx_start_trigger_timer\n");
-*}
-*
-*static void sipx_try_trigger_cp(struct sipx_channel *sipx_chan)
-*{
-*	unsigned long flags;
-*
-*	spin_lock_irqsave(&sipx_chan->lock, flags);
-*	if (!sipx_chan->ul_timer_active)
-*		sipx_start_trigger_timer(sipx_chan);
-*
-*	spin_unlock_irqrestore(&sipx_chan->lock, flags);
-*}
-*/
+
+static void sipx_start_trigger_timer(struct sipx_channel *sipx_chan)
+{
+	sipx_chan->ul_timer_active = 1;
+	hrtimer_start(&sipx_chan->ul_timer, sipx_chan->ul_timer_val,
+		      HRTIMER_MODE_REL);
+}
+
+static void sipx_try_trigger_cp(struct sipx_channel *sipx_chan)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&sipx_chan->lock, flags);
+	if (!sipx_chan->ul_timer_active)
+		sipx_start_trigger_timer(sipx_chan);
+
+	spin_unlock_irqrestore(&sipx_chan->lock, flags);
+}
 
 int sipx_flush(u8 dst, u8 channel)
 {
@@ -1188,7 +1186,7 @@ int sipx_send(u8 dst, u8 channel, struct sblock *blk)
 	if (full)
 		sipx_force_ul_trigger(sipx_chan);
 	else if (yell)
-		sipx_force_ul_trigger(sipx_chan);
+		sipx_try_trigger_cp(sipx_chan);
 
 	return 0;
 }
