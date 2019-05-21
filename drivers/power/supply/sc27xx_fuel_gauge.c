@@ -1121,6 +1121,17 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	data->alarm_cap = power_supply_ocv2cap_simple(data->cap_table,
 						      data->table_len,
 						      data->min_volt);
+	/*
+	 * We must keep the alarm capacity is larger than 0%. When in monkey
+	 * test, the precision power supply setting 4000mv, but the fake battery
+	 * has been simulated into a real battery. Due to it has been discharging,
+	 * the battery capacity has been decreasing, finally will reach 0%, so upper
+	 * layer will issue a command to shutdown. we in order to prevent such problem,
+	 * we determine if the ocv voltage is greater than data->min_volt and cap is
+	 * small alarm capacity. We will recalculate the battery capacity based on ocv voltage.
+	 */
+	if (!data->alarm_cap)
+		data->alarm_cap += 1;
 
 	power_supply_put_battery_info(data->battery, &info);
 
