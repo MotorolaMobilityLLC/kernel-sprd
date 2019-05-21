@@ -25,6 +25,7 @@
 #include "sprd_rsa.h"
 #include "sprd_sha256.h"
 #include "sprd_crypto.h"
+#include "sprd_sha256_sw.h"
 
 struct sprd_crypto_alg *sprd_crypto_alg;
 
@@ -189,7 +190,11 @@ static int sprd_crypto_probe(struct platform_device *pdev)
 
 	sprd_crypto->alg = alg;
 	sprd_crypto->alg->verify = sprd_crypto_verify;
+#ifdef CONFIG_SPRD_CRYPTO_SW
+	sprd_crypto->alg->sha256 = SHA256_hash;
+#else
 	sprd_crypto->alg->sha256 = sha256_csum_wd;
+#endif
 	sprd_crypto->alg->supported_alg = SPRD_CRYPTO_VERIFY |
 		SPRD_CRYPTO_SHA256;
 
