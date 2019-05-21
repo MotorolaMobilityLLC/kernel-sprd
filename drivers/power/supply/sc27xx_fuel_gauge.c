@@ -119,6 +119,7 @@ struct sc27xx_fgu_data {
 	int vol_1000mv_adc;
 	int calib_resist_real;
 	int calib_resist_spec;
+	int comp_resistance;
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_vol_temp_table *temp_table;
 	struct power_supply_capacity_temp_table *cap_temp_table;
@@ -611,6 +612,33 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 	if (ret < 0)
 		return ret;
 
+	if (data->comp_resistance) {
+		int bat_current, resistance_vol;
+
+		ret = sc27xx_fgu_get_current(data, &bat_current);
+		if (ret) {
+			dev_err(data->dev, "failed to get battery current\n");
+			return ret;
+		}
+
+		/*
+		 * Due to the ntc resistor is connected to the coulomb counter
+		 * internal resistance and the board ground impedance at 1850mv.
+		 * so need to compensate for coulomb resistance and voltage loss
+		 * to ground impedance.
+		 * Follow the formula below:
+		 * formula:
+		 * Vadc = Vresistance + (1850 - Vresistance) * R / 47k + R
+		 * ->
+		 *  UR = Vadc -Vresistance +
+		 *  Vresistance * (Vadc - Vresistance) / (1850 - Vresistance)
+		 */
+		resistance_vol = bat_current * data->comp_resistance / 1000;
+		vol = vol - resistance_vol + (resistance_vol *
+			(vol - resistance_vol)) / (1850 - resistance_vol);
+		if (vol < 0)
+			vol = 0;
+	}
 	*temp = sc27xx_fgu_vol_to_temp(data->temp_table,
 				       data->temp_table_len, vol * 1000);
 	return 0;
@@ -1278,6 +1306,12 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to get fgu specification calibration resistance\n");
 		return ret;
 	}
+
+	ret = device_property_read_u32(&pdev->dev,
+				       "sprd,comp-resistance-mohm",
+				       &data->comp_resistance);
+	if (ret)
+		dev_warn(&pdev->dev, "no fgu compensated resistance support\n");
 
 	data->channel = devm_iio_channel_get(&pdev->dev, "bat-temp");
 	if (IS_ERR(data->channel)) {

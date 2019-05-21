@@ -20,6 +20,13 @@ Required properties:
 - monitored-battery: Phandle of battery characteristics devicetree node.
   See Documentation/devicetree/bindings/power/supply/battery.txt
 
+Optional Properties:
+- sprd,comp-resistance-mohm: The coulomb counter internal resistance and the board
+  ground resistance.
+  Due to the ntc resistor is connected to the coulomb counter internal resistance of 20 million
+  and the board ground impedance at 1850mv. so need to compensate for coulomb resistance and
+  voltage loss to ground impedance.
+
 Example:
 
 	bat: battery {
@@ -58,5 +65,6 @@ Example:
 			monitored-battery = <&bat>;
 			sprd,calib-resistance-real = <21500>;
 			sprd,calib-resistance-spec = <20000>;
+			sprd,comp-resistance-mohm = <30>;
 		};
 	};
