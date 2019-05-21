@@ -185,5 +185,7 @@ struct sprd_crypto_device {
 #ifdef CONFIG_SPRD_CRYPTO_TEST
 int sprd_crypto_test(void);
 #endif
-
+#ifdef CONFIG_SPRD_CRYPTO_PERFORMANCE_TEST
+int sprd_crypto_speed_test(void);
+#endif
 #endif /* SPRD_CRYPTO_H */

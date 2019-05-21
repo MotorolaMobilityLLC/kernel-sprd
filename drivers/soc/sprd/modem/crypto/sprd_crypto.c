@@ -188,10 +188,20 @@ static int sprd_crypto_probe(struct platform_device *pdev)
 	pr_info("%s: SPRD CRYPTO test success\n", __func__);
 #endif
 
+#ifdef CONFIG_SPRD_CRYPTO_PERFORMANCE_TEST
+	err = sprd_crypto_speed_test();
+	if (err) {
+		pr_err("%s: SPRD CRYPTO PERFORMANCE test failure(%d)\n",
+				__func__, err);
+		goto err_alloc_alg;
+	}
+	pr_info("%s: SPRD CRYPTO PERFORMANCE test success\n", __func__);
+#endif
+
 	sprd_crypto->alg = alg;
 	sprd_crypto->alg->verify = sprd_crypto_verify;
 #ifdef CONFIG_SPRD_CRYPTO_SW
-	sprd_crypto->alg->sha256 = SHA256_hash;
+	sprd_crypto->alg->sha256 = *SHA256_hash;
 #else
 	sprd_crypto->alg->sha256 = sha256_csum_wd;
 #endif

@@ -21,7 +21,7 @@
 #include "sprd_pkcs_padding.h"
 #include "sprd_rsa.h"
 
-#define		BIGINT_MAXLEN 66
+#define		BIGINT_MAXLEN 130
 #define		DEC 10
 #define		HEX 16
 

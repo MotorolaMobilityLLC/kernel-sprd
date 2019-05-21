@@ -13,6 +13,13 @@ config SPRD_CRYPTO_TEST
 	help
 	  The Testing option of spreadtrum crypto driver for verifying modem image.
 
+config SPRD_CRYPTO_PERFORMANCE_TEST
+	tristate "The Performance Testing option of Spreadtrum Crypto Driver"
+	depends on SPRD_CRYPTO_TEST
+	default n
+	help
+	  The Testing option of spreadtrum crypto driver for verifying modem image.
+
 config SPRD_CRYPTO_SW
 	tristate "The Soft Crypto option of Spreadtrum Crypto Driver"
 	default n

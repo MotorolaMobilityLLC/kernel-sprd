@@ -15,6 +15,11 @@
 
 #ifndef SPRD_SHA256_H
 #define SPRD_SHA256_H
+#include <sprd_sha256_sw.h>
+
+int SHA256_Init(SHA256_CTX *sha);
+int SHA256_Update(SHA256_CTX *c, const void *data_, unsigned int len);
+int SHA256_Final(unsigned char *md, SHA256_CTX *c);
 
 void sha256_csum_wd(const unsigned char *input, unsigned int ilen,
 		unsigned char *output, unsigned int chunk_sz);

@@ -98,7 +98,7 @@ typedef struct sha256_state_st SHA256_CTX;
 extern void sprd_sha256_block_data_order(unsigned int *state,
 		const unsigned char *in, unsigned int num);
 
-static int SHA256_Init(SHA256_CTX *sha)
+int SHA256_Init(SHA256_CTX *sha)
 {
 	memset(sha, 0, sizeof(SHA256_CTX));
 	sha->h[0] = 0x6a09e667UL;
@@ -113,7 +113,7 @@ static int SHA256_Init(SHA256_CTX *sha)
 	return 1;
 }
 
-static int SHA256_Update(SHA256_CTX *c, const void *data_, unsigned int len)
+int SHA256_Update(SHA256_CTX *c, const void *data_, unsigned int len)
 {
 	const unsigned char *data = data_;
 	unsigned int l, n;
@@ -162,7 +162,7 @@ static int SHA256_Update(SHA256_CTX *c, const void *data_, unsigned int len)
 	return 1;
 }
 
-static int SHA256_Final(unsigned char *md, SHA256_CTX *c)
+int SHA256_Final(unsigned char *md, SHA256_CTX *c)
 {
 	/* |c->data| always has room for at least one byte. A full block would have
 	 * been consumed. */
