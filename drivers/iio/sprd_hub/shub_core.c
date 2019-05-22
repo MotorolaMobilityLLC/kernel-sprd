@@ -1471,7 +1471,7 @@ static ssize_t raw_data4_show(struct device *dev, struct device_attribute *attr,
 			      char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
-	u8 data[6];
+	u8 data[2];
 	u16 *ptr = (u16 *)data;
 	int err;
 
@@ -1480,12 +1480,12 @@ static ssize_t raw_data4_show(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 	}
 	err = shub_sipc_read(sensor,
-			     SHUB_GET_PROXIMITY_RAWDATA_SUBTYPE, data, 6);
+			     SHUB_GET_PROXIMITY_RAWDATA_SUBTYPE, data, sizeof(data));
 	if (err < 0) {
 		dev_err(dev, "read RegMapR_GetProximityRawData failed!\n");
 		return err;
 	}
-	return sprintf(buf, "%d %u %u %u\n", err, ptr[0], ptr[1], ptr[2]);
+	return sprintf(buf, "%d\n", ptr[0]);
 }
 static DEVICE_ATTR_RO(raw_data4);
 
