@@ -36,7 +36,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.hardware=ums312_3h10_4pro androidboot.dtbo_idx=0 swiotlb=1 printk.devkmsg=on";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 maxcpus=3 init=/init root=/dev/mmcblk0p30 rootfstype=ext4 ro rootwait androidboot.hardware=ums312_3h10_4pro androidboot.dtbo_idx=0 swiotlb=1 printk.devkmsg=on";
 	};
 
 	ipi: interrupt-controller {
