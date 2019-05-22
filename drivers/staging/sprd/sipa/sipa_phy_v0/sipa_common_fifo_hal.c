@@ -1,4 +1,5 @@
 #include <linux/sipa.h>
+#include <linux/dma-mapping.h>
 
 #include "../sipa_hal_priv.h"
 #include "sipa_device.h"
@@ -6,13 +7,20 @@
 #include "sipa_fifo_phy.h"
 
 static inline int
-ipa_put_pkts_to_rx_fifo(struct sipa_common_fifo_cfg_tag *fifo_cfg,
+ipa_put_pkts_to_rx_fifo(struct device *dev,
+			struct sipa_common_fifo_cfg_tag *fifo_cfg,
 			u32 num)
 {
-	u32 tmp = 0, ret = 0, index = 0, left_cnt = 0;
+	dma_addr_t dma_addr;
+	u32 tmp = 0, ret = 0, index = 0, left_cnt = 0, size;
+	ssize_t node_size = sizeof(struct sipa_node_description_tag);
 	struct sipa_node_description_tag *node =
 			(struct sipa_node_description_tag *)
 			fifo_cfg->rx_fifo.virtual_addr;
+
+	size = fifo_cfg->rx_fifo.size;
+	dma_addr = fifo_cfg->rx_fifo.fifo_base_addr_l |
+		(fifo_cfg->rx_fifo.fifo_base_addr_h << 8);
 
 	left_cnt = fifo_cfg->rx_fifo.depth -
 		ipa_phy_get_rx_fifo_filled_depth(fifo_cfg->fifo_reg_base);
@@ -23,18 +31,23 @@ ipa_put_pkts_to_rx_fifo(struct sipa_common_fifo_cfg_tag *fifo_cfg,
 	if (left_cnt < num)
 		num = left_cnt;
 
-	index = fifo_cfg->rx_fifo.wr &
-			(fifo_cfg->rx_fifo.depth - 1);
+	index = fifo_cfg->rx_fifo.wr & (fifo_cfg->rx_fifo.depth - 1);
 	if (index + num <= fifo_cfg->rx_fifo.depth) {
 		ret = kfifo_out(&fifo_cfg->rx_priv_fifo, node + index,
-				sizeof(*node) * num);
+				node_size * num);
+		dma_sync_single_for_device(dev, dma_addr + index * node_size,
+					   node_size * num, DMA_TO_DEVICE);
 	} else {
 		tmp = fifo_cfg->rx_fifo.depth - index;
 		ret = kfifo_out(&fifo_cfg->rx_priv_fifo, node + index,
-			tmp * sizeof(*node));
+			tmp * node_size);
+		dma_sync_single_for_device(dev, dma_addr + index * node_size,
+					   node_size * tmp, DMA_TO_DEVICE);
 		tmp = num - tmp;
 		ret = kfifo_out(&fifo_cfg->rx_priv_fifo, node,
-			tmp * sizeof(*node));
+			tmp * node_size);
+		dma_sync_single_for_device(dev, dma_addr,
+					   node_size * tmp, DMA_TO_DEVICE);
 	}
 
 	fifo_cfg->rx_fifo.wr =
@@ -51,37 +64,30 @@ ipa_put_pkts_to_rx_fifo(struct sipa_common_fifo_cfg_tag *fifo_cfg,
 }
 
 static inline u32
-ipa_recv_pkts_from_tx_fifo(struct sipa_common_fifo_cfg_tag *fifo_cfg,
+ipa_recv_pkts_from_tx_fifo(struct device *dev,
+			   struct sipa_common_fifo_cfg_tag *fifo_cfg,
 			   u32 num)
 {
-	u32 ret = 0, tmp = 0, index = 0;
-	struct sipa_node_description_tag *node =
-			(struct sipa_node_description_tag *)
-			fifo_cfg->tx_fifo.virtual_addr;
+	dma_addr_t dma_addr;
+	u32 tmp = 0, index = 0;
+	ssize_t node_size = sizeof(struct sipa_node_description_tag);
+
+	dma_addr = fifo_cfg->tx_fifo.fifo_base_addr_l |
+		(fifo_cfg->tx_fifo.fifo_base_addr_h << 8);
 
 	num = ipa_phy_get_tx_fifo_filled_depth(fifo_cfg->fifo_reg_base);
-	index = fifo_cfg->tx_fifo.rd &
-			(fifo_cfg->tx_fifo.depth - 1);
+	index = fifo_cfg->tx_fifo.rd & (fifo_cfg->tx_fifo.depth - 1);
 	if (index + num <= fifo_cfg->tx_fifo.depth) {
-		kfifo_in(&fifo_cfg->tx_priv_fifo, node + index,
-			num * sizeof(struct sipa_node_description_tag));
+		dma_sync_single_for_cpu(dev, dma_addr + index * node_size,
+					num * node_size, DMA_FROM_DEVICE);
 	} else {
 		tmp = fifo_cfg->tx_fifo.depth - index;
-		kfifo_in(&fifo_cfg->tx_priv_fifo, node + index,
-			tmp * sizeof(struct sipa_node_description_tag));
+		dma_sync_single_for_cpu(dev, dma_addr + index * node_size,
+					tmp * node_size, DMA_FROM_DEVICE);
 		tmp = num - tmp;
-		kfifo_in(&fifo_cfg->tx_priv_fifo, node,
-			tmp * sizeof(struct sipa_node_description_tag));
+		dma_sync_single_for_cpu(dev, dma_addr,
+					tmp * node_size, DMA_FROM_DEVICE);
 	}
-
-	fifo_cfg->tx_fifo.rd = (fifo_cfg->tx_fifo.rd + num) &
-				PTR_MASK(fifo_cfg->tx_fifo.depth);
-	ret = ipa_phy_update_tx_fifo_rptr(
-		fifo_cfg->fifo_reg_base,
-		fifo_cfg->tx_fifo.rd);
-
-	if (!ret)
-		pr_err("update tx fifo rptr fail !!!\n");
 
 	return num;
 }
@@ -663,7 +669,8 @@ ipa_common_fifo_hal_set_interrupt_txfifo_full(enum sipa_cmn_fifo_index id,
  * Note:
  */
 static u32
-ipa_common_fifo_hal_put_node_to_rx_fifo(enum sipa_cmn_fifo_index id,
+ipa_common_fifo_hal_put_node_to_rx_fifo(struct device *dev,
+					enum sipa_cmn_fifo_index id,
 					struct sipa_common_fifo_cfg_tag *cfg_base,
 					struct sipa_node_description_tag *node,
 					u32 force_intr, u32 num)
@@ -682,7 +689,7 @@ ipa_common_fifo_hal_put_node_to_rx_fifo(enum sipa_cmn_fifo_index id,
 		ret = ipa_put_pkt_to_rx_fifo(ipa_term_fifo, force_intr,
 					     node, num);
 	else
-		ret = ipa_put_pkts_to_rx_fifo(ipa_term_fifo, num);
+		ret = ipa_put_pkts_to_rx_fifo(dev, ipa_term_fifo, num);
 
 	return ret;
 }
@@ -697,7 +704,8 @@ ipa_common_fifo_hal_put_node_to_rx_fifo(enum sipa_cmn_fifo_index id,
  * Note:
  */
 static u32
-ipa_common_fifo_hal_put_node_to_tx_fifo(enum sipa_cmn_fifo_index id,
+ipa_common_fifo_hal_put_node_to_tx_fifo(struct device *dev,
+					enum sipa_cmn_fifo_index id,
 					struct sipa_common_fifo_cfg_tag *cfg_base,
 					struct sipa_node_description_tag *pkt,
 					u32 force_intr, u32 num)
@@ -728,7 +736,8 @@ ipa_common_fifo_hal_put_node_to_tx_fifo(enum sipa_cmn_fifo_index id,
  * Note:
  */
 static u32
-ipa_common_fifo_hal_get_node_from_rx_fifo(enum sipa_cmn_fifo_index id,
+ipa_common_fifo_hal_get_node_from_rx_fifo(struct device *dev,
+					  enum sipa_cmn_fifo_index id,
 					  struct sipa_common_fifo_cfg_tag *cfg_base,
 					  struct sipa_node_description_tag *pkt,
 					  u32 force_intr, u32 num)
@@ -780,7 +789,8 @@ ipa_common_fifo_hal_get_left_cnt(enum sipa_cmn_fifo_index id,
  * Note:
  */
 static u32
-ipa_common_fifo_hal_recv_node_from_tx_fifo(enum sipa_cmn_fifo_index id,
+ipa_common_fifo_hal_recv_node_from_tx_fifo(struct device *dev,
+					   enum sipa_cmn_fifo_index id,
 					   struct sipa_common_fifo_cfg_tag *cfg_base,
 					   struct sipa_node_description_tag *node,
 					   u32 force_intr, u32 num)
@@ -798,7 +808,7 @@ ipa_common_fifo_hal_recv_node_from_tx_fifo(enum sipa_cmn_fifo_index id,
 	if (ipa_term_fifo->is_pam)
 		ret = ipa_recv_pkt_from_tx_fifo(ipa_term_fifo, node, num);
 	else
-		ret = ipa_recv_pkts_from_tx_fifo(ipa_term_fifo, num);
+		ret = ipa_recv_pkts_from_tx_fifo(dev, ipa_term_fifo, num);
 
 	return ret;
 }

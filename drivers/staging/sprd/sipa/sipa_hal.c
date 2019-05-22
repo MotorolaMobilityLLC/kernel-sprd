@@ -25,11 +25,13 @@ static int alloc_tx_fifo_ram(struct device *dev,
 			     struct sipa_hal_context *cfg,
 			     enum sipa_cmn_fifo_index index)
 {
-	ssize_t node_size = sizeof(struct sipa_node_description_tag);
+	ssize_t size, node_size = sizeof(struct sipa_node_description_tag);
 	dma_addr_t phy_addr;
-	struct sipa_common_fifo_cfg_tag *fifo_cfg =
-				&cfg->cmn_fifo_cfg[index];
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = &cfg->cmn_fifo_cfg[index];
 
+	if (!fifo_cfg->tx_fifo.depth)
+		return 0;
+	size = fifo_cfg->tx_fifo.depth * node_size;
 	if (fifo_cfg->tx_fifo.in_iram) {
 		if (cfg->phy_virt_res.iram_allocated_size >=
 			cfg->phy_virt_res.iram_size)
@@ -40,33 +42,33 @@ static int alloc_tx_fifo_ram(struct device *dev,
 			cfg->phy_virt_res.iram_allocated_size;
 
 		phy_addr = cfg->phy_virt_res.iram_phy +
-				   cfg->phy_virt_res.iram_allocated_size;
+			cfg->phy_virt_res.iram_allocated_size;
 
-		fifo_cfg->tx_fifo.fifo_base_addr_l =
-			IPA_GET_LOW32(phy_addr);
-
-		fifo_cfg->tx_fifo.fifo_base_addr_h =
-			IPA_GET_HIGH32(phy_addr);
-
-		cfg->phy_virt_res.iram_allocated_size +=
-			fifo_cfg->tx_fifo.depth * node_size;
-	} else {
-		if (fifo_cfg->tx_fifo.depth != 0)
-			fifo_cfg->tx_fifo.virtual_addr =
-				dma_alloc_coherent(dev,
-						   fifo_cfg->tx_fifo.depth *
-						   node_size,
-						   &phy_addr, GFP_KERNEL);
-		else
-			return 0;
-
-		fifo_cfg->tx_fifo.fifo_base_addr_l = IPA_GET_LOW32(phy_addr);
-
-		fifo_cfg->tx_fifo.fifo_base_addr_h = IPA_GET_HIGH32(phy_addr);
-
+		cfg->phy_virt_res.iram_allocated_size += size;
+	} else if (fifo_cfg->is_pam) {
+		fifo_cfg->tx_fifo.virtual_addr =
+			dma_alloc_coherent(dev, size, &phy_addr, GFP_KERNEL);
 		if (!fifo_cfg->tx_fifo.virtual_addr)
 			return -ENOMEM;
+	} else {
+		fifo_cfg->tx_fifo.virtual_addr =
+			(void *)__get_free_pages(GFP_KERNEL, get_order(size));
+		if (!fifo_cfg->tx_fifo.virtual_addr)
+			return -ENOMEM;
+		memset(fifo_cfg->tx_fifo.virtual_addr, 0, size);
+		phy_addr = dma_map_single(dev, fifo_cfg->tx_fifo.virtual_addr,
+					  size, DMA_FROM_DEVICE);
+		if (dma_mapping_error(dev, phy_addr)) {
+			free_pages((unsigned long)
+				   fifo_cfg->tx_fifo.virtual_addr,
+				   get_order(fifo_cfg->tx_fifo.size));
+			fifo_cfg->rx_fifo.virtual_addr = NULL;
+			return -ENOMEM;
+		}
 	}
+	fifo_cfg->tx_fifo.size = size;
+	fifo_cfg->tx_fifo.fifo_base_addr_l = IPA_GET_LOW32(phy_addr);
+	fifo_cfg->tx_fifo.fifo_base_addr_h = IPA_GET_HIGH32(phy_addr);
 
 	return 0;
 }
@@ -76,10 +78,12 @@ static int alloc_rx_fifo_ram(struct device *dev,
 			     enum sipa_cmn_fifo_index index)
 {
 	dma_addr_t phy_addr;
-	ssize_t node_size = sizeof(struct sipa_node_description_tag);
-	struct sipa_common_fifo_cfg_tag *fifo_cfg =
-				&cfg->cmn_fifo_cfg[index];
+	ssize_t size, node_size = sizeof(struct sipa_node_description_tag);
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = &cfg->cmn_fifo_cfg[index];
 
+	if (!fifo_cfg->rx_fifo.depth)
+		return 0;
+	size = fifo_cfg->rx_fifo.depth * node_size;
 	if (fifo_cfg->rx_fifo.in_iram) {
 		if (cfg->phy_virt_res.iram_allocated_size >=
 			cfg->phy_virt_res.iram_size) {
@@ -94,35 +98,31 @@ static int alloc_rx_fifo_ram(struct device *dev,
 		phy_addr = cfg->phy_virt_res.iram_phy +
 			cfg->phy_virt_res.iram_allocated_size;
 
-		fifo_cfg->rx_fifo.fifo_base_addr_l =
-			IPA_GET_LOW32(phy_addr);
-
-		fifo_cfg->rx_fifo.fifo_base_addr_h =
-			IPA_GET_HIGH32(phy_addr);
-
-		cfg->phy_virt_res.iram_allocated_size +=
-			fifo_cfg->rx_fifo.depth * node_size;
+		cfg->phy_virt_res.iram_allocated_size += size;
+	} else if (fifo_cfg->is_pam) {
+		fifo_cfg->rx_fifo.virtual_addr =
+			dma_alloc_coherent(dev, size, &phy_addr, GFP_KERNEL);
+		if (!fifo_cfg->rx_fifo.virtual_addr)
+			return -ENOMEM;
 	} else {
-		if (fifo_cfg->rx_fifo.depth != 0)
-			fifo_cfg->rx_fifo.virtual_addr =
-				dma_alloc_coherent(dev,
-						   fifo_cfg->rx_fifo.depth *
-						   node_size,
-						   &phy_addr, GFP_KERNEL);
-		else
-			return 0;
-
-		fifo_cfg->rx_fifo.fifo_base_addr_l =
-			IPA_GET_LOW32(phy_addr);
-
-		fifo_cfg->rx_fifo.fifo_base_addr_h =
-			IPA_GET_HIGH32(phy_addr);
-
-		if (!fifo_cfg->rx_fifo.virtual_addr) {
-			pr_err("dma alloc buf failed\n");
+		fifo_cfg->rx_fifo.virtual_addr =
+			(void *)__get_free_pages(GFP_KERNEL, get_order(size));
+		if (!fifo_cfg->rx_fifo.virtual_addr)
+			return -ENOMEM;
+		memset(fifo_cfg->rx_fifo.virtual_addr, 0, size);
+		phy_addr = dma_map_single(dev, fifo_cfg->rx_fifo.virtual_addr,
+					  size, DMA_TO_DEVICE);
+		if (dma_mapping_error(dev, phy_addr)) {
+			free_pages((unsigned long)
+				   fifo_cfg->rx_fifo.virtual_addr,
+				   get_order(fifo_cfg->rx_fifo.size));
+			fifo_cfg->rx_fifo.virtual_addr = NULL;
 			return -ENOMEM;
 		}
 	}
+	fifo_cfg->rx_fifo.size = size;
+	fifo_cfg->rx_fifo.fifo_base_addr_l = IPA_GET_LOW32(phy_addr);
+	fifo_cfg->rx_fifo.fifo_base_addr_h = IPA_GET_HIGH32(phy_addr);
 
 	return 0;
 }
@@ -135,14 +135,18 @@ static void free_tx_fifo_ram(struct device *dev,
 	struct sipa_common_fifo_cfg_tag *fifo_cfg =
 				&cfg->cmn_fifo_cfg[index];
 
-	if (!fifo_cfg->tx_fifo.in_iram &&
-		fifo_cfg->tx_fifo.virtual_addr) {
-		phy_addr =
-			IPA_STI_64BIT(fifo_cfg->tx_fifo.fifo_base_addr_l,
-				      fifo_cfg->tx_fifo.fifo_base_addr_h);
-		dma_free_coherent(dev,
-				  fifo_cfg->tx_fifo.depth *
-				  sizeof(struct sipa_node_description_tag),
+	if (!fifo_cfg->tx_fifo.virtual_addr)
+		return;
+	phy_addr = IPA_STI_64BIT(fifo_cfg->tx_fifo.fifo_base_addr_l,
+				 fifo_cfg->tx_fifo.fifo_base_addr_h);
+	if (!fifo_cfg->tx_fifo.in_iram && !fifo_cfg->is_pam &&
+	    fifo_cfg->tx_fifo.virtual_addr) {
+		dma_unmap_single(dev, phy_addr, fifo_cfg->tx_fifo.size,
+				 DMA_FROM_DEVICE);
+		free_pages((unsigned long)fifo_cfg->tx_fifo.virtual_addr,
+			   get_order(fifo_cfg->tx_fifo.size));
+	} else if (fifo_cfg->is_pam) {
+		dma_free_coherent(dev, fifo_cfg->tx_fifo.size,
 				  fifo_cfg->tx_fifo.virtual_addr,
 				  phy_addr);
 	}
@@ -156,13 +160,18 @@ static void free_rx_fifo_ram(struct device *dev,
 	struct sipa_common_fifo_cfg_tag *fifo_cfg =
 				&cfg->cmn_fifo_cfg[index];
 
-	if (!fifo_cfg->rx_fifo.in_iram &&
-		fifo_cfg->rx_fifo.virtual_addr) {
-		phy_addr = IPA_STI_64BIT(fifo_cfg->rx_fifo.fifo_base_addr_l,
-					 fifo_cfg->rx_fifo.fifo_base_addr_h);
-		dma_free_coherent(dev,
-				  fifo_cfg->rx_fifo.depth *
-				  sizeof(struct sipa_node_description_tag),
+	if (!fifo_cfg->rx_fifo.virtual_addr)
+		return;
+	phy_addr = IPA_STI_64BIT(fifo_cfg->rx_fifo.fifo_base_addr_l,
+				 fifo_cfg->rx_fifo.fifo_base_addr_h);
+	if (!fifo_cfg->rx_fifo.in_iram && !fifo_cfg->is_pam &&
+	    fifo_cfg->rx_fifo.virtual_addr) {
+		dma_unmap_single(dev, phy_addr, fifo_cfg->rx_fifo.size,
+				 DMA_TO_DEVICE);
+		free_pages((unsigned long)fifo_cfg->rx_fifo.virtual_addr,
+			   get_order(fifo_cfg->rx_fifo.size));
+	} else if (fifo_cfg->is_pam) {
+		dma_free_coherent(dev, fifo_cfg->rx_fifo.size,
 				  fifo_cfg->rx_fifo.virtual_addr,
 				  phy_addr);
 	}
@@ -534,7 +543,8 @@ int sipa_hal_init_set_tx_fifo(sipa_hal_hdl hdl,
 		node.length = (items + i)->len;
 		node.dst = (items + i)->dst;
 		node.offset = (items + i)->offset;
-		ret = hal_cfg->fifo_ops.put_node_to_tx_fifo(fifo_id, fifo_cfg,
+		ret = hal_cfg->fifo_ops.put_node_to_tx_fifo(hal_cfg->dev,
+							    fifo_id, fifo_cfg,
 							    &node, 0, 1);
 		if (ret == 0) {
 			pr_err("put node to tx fifo %d fail\n", fifo_id);
@@ -558,7 +568,8 @@ int sipa_hal_get_tx_fifo_item(sipa_hal_hdl hdl,
 	hal_cfg = (struct sipa_hal_context *)hdl;
 	fifo_cfg = hal_cfg->cmn_fifo_cfg;
 
-	ret = hal_cfg->fifo_ops.recv_node_from_tx_fifo(fifo_id, fifo_cfg,
+	ret = hal_cfg->fifo_ops.recv_node_from_tx_fifo(hal_cfg->dev,
+						       fifo_id, fifo_cfg,
 						       &node, 0, 1);
 
 	if (ret == 0) {
@@ -587,7 +598,8 @@ u32 sipa_hal_get_tx_fifo_items(sipa_hal_hdl hdl,
 	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
 	struct sipa_common_fifo_cfg_tag *fifo_cfg = hal_cfg->cmn_fifo_cfg;
 
-	num = hal_cfg->fifo_ops.recv_node_from_tx_fifo(fifo_id, fifo_cfg,
+	num = hal_cfg->fifo_ops.recv_node_from_tx_fifo(hal_cfg->dev,
+						       fifo_id, fifo_cfg,
 						       &node, 0, -1);
 	if (!num)
 		pr_warn("fifo id %d tx fifo don't have node\n", fifo_id);
@@ -677,7 +689,8 @@ int sipa_hal_put_rx_fifo_item(sipa_hal_hdl hdl,
 	node.net_id = item->netid;
 	node.intr = item->intr;
 
-	ret = hal_cfg->fifo_ops.put_node_to_rx_fifo(fifo_id, fifo_cfg,
+	ret = hal_cfg->fifo_ops.put_node_to_rx_fifo(hal_cfg->dev,
+						    fifo_id, fifo_cfg,
 						    &node, 0, 1);
 	if (ret == 0) {
 		pr_err("put node to rx fifo %d fail\n", fifo_id);
@@ -698,7 +711,8 @@ int sipa_hal_put_rx_fifo_items(sipa_hal_hdl hdl,
 	num = kfifo_len(&((fifo_cfg + fifo_id)->rx_priv_fifo));
 	num /= sizeof(struct sipa_node_description_tag);
 	if (num) {
-		ret = hal_cfg->fifo_ops.put_node_to_rx_fifo(fifo_id, fifo_cfg,
+		ret = hal_cfg->fifo_ops.put_node_to_rx_fifo(hal_cfg->dev,
+							    fifo_id, fifo_cfg,
 							    NULL, 0, num);
 		if (ret != num) {
 			pr_err("put node to rx fifo %d fail\n", fifo_id);

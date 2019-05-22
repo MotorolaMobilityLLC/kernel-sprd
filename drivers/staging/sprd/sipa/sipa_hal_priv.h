@@ -47,6 +47,7 @@ struct sipa_cmn_fifo_tag {
 	u32 depth;
 	u32 wr;
 	u32 rd;
+	u32 size;
 	bool in_iram;
 
 	u32 fifo_base_addr_l;
@@ -154,21 +155,25 @@ struct sipa_hal_fifo_ops {
 					       struct sipa_common_fifo_cfg_tag *cfg_base,
 					       u32 enable, u32 irq_mode,
 					       sipa_hal_notify_cb cb);
-	u32 (*recv_node_from_tx_fifo)(enum sipa_cmn_fifo_index id,
+	u32 (*recv_node_from_tx_fifo)(struct device *dev,
+				      enum sipa_cmn_fifo_index id,
 				      struct sipa_common_fifo_cfg_tag *cfg_base,
 				      struct sipa_node_description_tag *node,
 				      u32 force_intr, u32 num);
-	u32 (*get_node_from_rx_fifo)(enum sipa_cmn_fifo_index id,
+	u32 (*get_node_from_rx_fifo)(struct device *dev,
+				     enum sipa_cmn_fifo_index id,
 				     struct sipa_common_fifo_cfg_tag *cfg_base,
 				     struct sipa_node_description_tag *node,
 				     u32 force_intr, u32 num);
 	u32 (*get_left_cnt)(enum sipa_cmn_fifo_index id,
 			    struct sipa_common_fifo_cfg_tag *cfg_base);
-	u32 (*put_node_to_tx_fifo)(enum sipa_cmn_fifo_index id,
+	u32 (*put_node_to_tx_fifo)(struct device *dev,
+				   enum sipa_cmn_fifo_index id,
 				   struct sipa_common_fifo_cfg_tag *cfg_base,
 				   struct sipa_node_description_tag *node,
 				   u32 force_intr, u32 num);
-	u32 (*put_node_to_rx_fifo)(enum sipa_cmn_fifo_index id,
+	u32 (*put_node_to_rx_fifo)(struct device *dev,
+				   enum sipa_cmn_fifo_index id,
 				   struct sipa_common_fifo_cfg_tag *cfg_base,
 				   struct sipa_node_description_tag *node,
 				   u32 force_intr, u32 num);
