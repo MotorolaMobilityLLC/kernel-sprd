@@ -608,6 +608,32 @@ u32 sipa_hal_get_tx_fifo_items(sipa_hal_hdl hdl,
 }
 EXPORT_SYMBOL(sipa_hal_get_tx_fifo_items);
 
+int sipa_hal_recv_conversion_node_to_item(sipa_hal_hdl hdl,
+					  enum sipa_cmn_fifo_index fifo_id,
+					  struct sipa_hal_fifo_item *item,
+					  u32 index)
+{
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = hal_cfg->cmn_fifo_cfg;
+	struct sipa_node_description_tag *node =
+		hal_cfg->fifo_ops.get_tx_fifo_node(fifo_id, fifo_cfg, index);
+
+	if (unlikely(!node))
+		return -EINVAL;
+
+	item->addr = node->address;
+	item->len = node->length;
+	item->dst = node->dst;
+	item->offset = node->offset;
+	item->src = node->src;
+	item->err_code = node->err_code;
+	item->netid = node->net_id;
+	item->intr = node->intr;
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_hal_recv_conversion_node_to_item);
+
 int sipa_hal_conversion_node_to_item(sipa_hal_hdl hdl,
 				     enum sipa_cmn_fifo_index fifo_id,
 				     struct sipa_hal_fifo_item *item)
@@ -632,6 +658,16 @@ int sipa_hal_conversion_node_to_item(sipa_hal_hdl hdl,
 	return 0;
 }
 EXPORT_SYMBOL(sipa_hal_conversion_node_to_item);
+
+int sipa_hal_set_tx_fifo_rptr(sipa_hal_hdl hdl, enum sipa_cmn_fifo_index id,
+			      u32 num)
+{
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = hal_cfg->cmn_fifo_cfg;
+
+	return hal_cfg->fifo_ops.update_tx_fifo_rptr(id, fifo_cfg, num);
+}
+EXPORT_SYMBOL(sipa_hal_set_tx_fifo_rptr);
 
 int sipa_hal_get_cmn_fifo_filled_depth(sipa_hal_hdl hdl,
 				       enum sipa_cmn_fifo_index fifo_id,

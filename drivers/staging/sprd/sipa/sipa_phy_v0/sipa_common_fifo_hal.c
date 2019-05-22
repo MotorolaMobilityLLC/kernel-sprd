@@ -1117,6 +1117,54 @@ ipa_common_fifo_ctrl_receive(enum sipa_cmn_fifo_index id,
 	return ret;
 }
 
+static struct sipa_node_description_tag *
+ipa_get_tx_fifo_node_pointer(enum sipa_cmn_fifo_index id,
+			     struct sipa_common_fifo_cfg_tag *cfg_base,
+			     u32 index)
+{
+	u32 tmp;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg;
+	struct sipa_node_description_tag *node;
+
+	if (unlikely(id >= SIPA_FIFO_MAX))
+		return NULL;
+
+	fifo_cfg = cfg_base + id;
+	node = (struct sipa_node_description_tag *)
+		fifo_cfg->tx_fifo.virtual_addr;
+
+	if (unlikely(!node))
+		return NULL;
+
+	tmp = (fifo_cfg->tx_fifo.rd + index) & (fifo_cfg->tx_fifo.depth - 1);
+
+	return node + tmp;
+}
+
+static int ipa_set_tx_fifo_rptr(enum sipa_cmn_fifo_index id,
+				struct sipa_common_fifo_cfg_tag *cfg_base,
+				u32 tx_rd)
+{
+	int ret;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg;
+
+	if (unlikely(id >= SIPA_FIFO_MAX))
+		return -EINVAL;
+
+	fifo_cfg = cfg_base + id;
+	fifo_cfg->tx_fifo.rd = (fifo_cfg->tx_fifo.rd + tx_rd) &
+		PTR_MASK(fifo_cfg->tx_fifo.depth);
+	ret = ipa_phy_update_tx_fifo_rptr(fifo_cfg->fifo_reg_base,
+					  fifo_cfg->tx_fifo.rd);
+
+	if (!ret) {
+		pr_err("update tx fifo rptr fail !!!\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 u32 sipa_fifo_ops_init(struct sipa_hal_fifo_ops *ops)
 {
 	ops->open = ipa_common_fifo_hal_open;
@@ -1211,6 +1259,9 @@ u32 sipa_fifo_ops_init(struct sipa_hal_fifo_ops *ops)
 
 	ops->ctrl_receive =
 		ipa_common_fifo_ctrl_receive;
+
+	ops->update_tx_fifo_rptr = ipa_set_tx_fifo_rptr;
+	ops->get_tx_fifo_node = ipa_get_tx_fifo_node_pointer;
 
 	return TRUE;
 }

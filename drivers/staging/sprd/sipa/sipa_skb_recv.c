@@ -211,9 +211,9 @@ static int do_recv(struct sipa_skb_receiver *receiver)
 	int i, ret;
 	u32 num = 0, depth = 0;
 	dma_addr_t addr;
-	struct iphdr *iph;
 	struct sk_buff *recv_skb = NULL;
 	struct sipa_hal_fifo_item item;
+	enum sipa_cmn_fifo_index id = receiver->ep->recv_fifo.idx;
 
 	depth = receiver->ep->recv_fifo.tx_fifo.fifo_depth;
 	num = sipa_hal_get_tx_fifo_items(receiver->ctx->hdl,
@@ -226,22 +226,23 @@ static int do_recv(struct sipa_skb_receiver *receiver)
 	}
 
 	for (i = 0; i < num; i++) {
-		sipa_hal_conversion_node_to_item(receiver->ctx->hdl,
-						 receiver->ep->recv_fifo.idx,
-						 &item);
+		sipa_hal_recv_conversion_node_to_item(receiver->ctx->hdl, id,
+						      &item, i);
 
 		ret = get_recv_array_node(&receiver->recv_array,
 					  &recv_skb, &addr);
-		if (!item.addr)
+		if (!item.addr) {
 			pr_err("phy addr is null = %llx\n", item.addr);
+			continue;
+		}
 		if (ret) {
 			pr_err("recv addr:0x%llx, butrecv_array is empty\n",
 			       item.addr);
-			return -ERANGE;
+			continue;
 		} else if (addr != item.addr) {
 			pr_err("recv addr:0x%llx, but recv_array addr:0x%llx not equal\n",
 			       item.addr, addr);
-			return -EFAULT;
+			continue;
 		}
 
 		dma_unmap_single(receiver->ctx->pdev,
@@ -253,10 +254,10 @@ static int do_recv(struct sipa_skb_receiver *receiver)
 
 		skb_reset_network_header(recv_skb);
 
-		iph = ip_hdr(recv_skb);
-
 		dispath_to_nic(receiver, &item, recv_skb);
 	}
+
+	sipa_hal_set_tx_fifo_rptr(receiver->ctx->hdl, id, num);
 
 	return num;
 }

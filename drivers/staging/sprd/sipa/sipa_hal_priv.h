@@ -109,6 +109,13 @@ struct sipa_hal_fifo_ops {
 					struct sipa_common_fifo_cfg_tag *cfg_base,
 					u32 rx_rd, u32 rx_wr,
 					u32 tx_rd, u32 tx_wr);
+	int (*update_tx_fifo_rptr)(enum sipa_cmn_fifo_index id,
+				   struct sipa_common_fifo_cfg_tag *cfg_base,
+				   u32 tx_rd);
+	struct sipa_node_description_tag *
+		(*get_tx_fifo_node)(enum sipa_cmn_fifo_index id,
+				    struct sipa_common_fifo_cfg_tag *cfg_base,
+				    u32 index);
 	u32 (*set_interrupt_error_code)(enum sipa_cmn_fifo_index id,
 					struct sipa_common_fifo_cfg_tag *cfg_base,
 					u32 enable, sipa_hal_notify_cb cb);

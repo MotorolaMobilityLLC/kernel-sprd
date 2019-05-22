@@ -90,9 +90,9 @@ static void sipa_free_sent_items(struct sipa_skb_sender *sender)
 	}
 
 	for (i = 0; i < num; i++) {
-		sipa_hal_conversion_node_to_item(sender->ctx->hdl,
-						 sender->ep->send_fifo.idx,
-						 &item);
+		sipa_hal_recv_conversion_node_to_item(sender->ctx->hdl,
+						      sender->ep->send_fifo.idx,
+						      &item, i);
 		if (item.err_code)
 			pr_err("have node transfer err = %d\n", item.err_code);
 
@@ -120,6 +120,8 @@ static void sipa_free_sent_items(struct sipa_skb_sender *sender)
 			status = false;
 		}
 	}
+	sipa_hal_set_tx_fifo_rptr(sender->ctx->hdl,
+				  sender->ep->send_fifo.idx, num);
 	atomic_add(success_cnt, &sender->left_cnt);
 	if (sender->free_notify_net) {
 		sipa_sender_notify_cb(sender, SIPA_HAL_EXIT_FLOW_CTRL, 0xfe);

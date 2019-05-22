@@ -167,6 +167,11 @@ int sipa_hal_conversion_node_to_item(sipa_hal_hdl hdl,
 				     enum sipa_cmn_fifo_index fifo_id,
 				     struct sipa_hal_fifo_item *item);
 
+int sipa_hal_recv_conversion_node_to_item(sipa_hal_hdl hdl,
+					  enum sipa_cmn_fifo_index fifo_id,
+					  struct sipa_hal_fifo_item *item,
+					  u32 index);
+
 int sipa_hal_put_rx_fifo_item(sipa_hal_hdl hdl,
 			      enum sipa_cmn_fifo_index fifo,
 			      struct sipa_hal_fifo_item *item);
@@ -211,4 +216,6 @@ bool sipa_hal_check_rx_priv_fifo_is_empty(sipa_hal_hdl hdl,
 bool sipa_hal_check_rx_priv_fifo_is_full(sipa_hal_hdl hdl,
 					 enum sipa_cmn_fifo_index fifo_id);
 
+int sipa_hal_set_tx_fifo_rptr(sipa_hal_hdl hdl, enum sipa_cmn_fifo_index id,
+			      u32 tmp);
 #endif /* !_SIPA_HAL_H_ */
