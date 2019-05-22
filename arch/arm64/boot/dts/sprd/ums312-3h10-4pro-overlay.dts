@@ -88,8 +88,20 @@
 
 &reserved_memory {
 
-	fd_reserved: face-mem@fd1c0000{
-		reg = <0x0 0xfd1c0000 0x0 0x01e00000>;
+	fd_reserved: faceid-mem {
+		reg = <0x0 0xf13ae000 0x0 0x00f00000>;
+	};
+
+	vdsp_reserved: vdsp-mem {
+		reg = <0x0 0xf22ae000 0x0 0x01e00000>;
+	};
+
+	vsp_reserved: vsp-mem {
+		reg = <0x0 0xf40ae000 0x0 0x07800000>;
+	};
+
+	gpu_reserved: gpu-mem {
+		reg = <0x0 0xfb8ae000 0x0 0x01e5a000>;
 	};
 };
 
