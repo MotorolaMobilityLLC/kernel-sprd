@@ -63,24 +63,6 @@
 		};
 	};
 
-	reserved-memory {
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-
-		sml_reserved: sml-mem@94000000{
-			reg = <0x0 0x94000000 0x0 0x00020000>;
-		};
-
-		tos_reserved: tos-mem@94020000{
-			reg = <0x0 0x94020000 0x0 0x01fe0000>;
-		};
-
-		fb_reserved: framebuffer-mem@bc000000{
-			reg = <0x0 0xbc000000 0x0 0x02000000>;
-		};
-	};
-
 	ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
@@ -160,6 +142,17 @@
 			<350 0x11c 0 0xffff 0x2300>;
 		tuning-latency-us = <300>;
 		chnl-in-i2c = <1>;
+	};
+};
+
+&reserved_memory {
+
+	fb_reserved: framebuffer-mem {
+		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
+	};
+
+	wb_reserved: writeback-mem {
+		reg = <0x0 0xff562000 0x0 0x00a1e000>;
 	};
 };
 

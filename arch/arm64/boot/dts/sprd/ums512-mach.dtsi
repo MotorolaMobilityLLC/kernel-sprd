@@ -46,4 +46,53 @@
 	sprd-sensorhub {
 		 compatible = "sprd,sharkl5Pro-sensorhub";
 	};
+
+	reserved_memory: reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		ddrbist_reserved: ddrbist-mem {
+			reg = <0x0 0x80000000 0x0 0x00001000>;
+		};
+
+		audio_reserved: audio-mem {
+			reg = <0x0 0x87400000 0x0 0x00400000>;
+		};
+
+		smem_reserved: sipc-mem {
+			reg = <0x0 0x87800000 0x0 0x00800000>;
+		};
+
+		sensorhub_reserved: sensorhub-mem {
+			reg = <0x0 0x88000000 0x0 0x01000000>;
+		};
+
+		audiodsp_reserved: audiodsp-mem {
+			reg = <0x0 0x89000000 0x0 0x00600000>;
+		};
+
+		cp_reserved: cp-mem {
+			reg = <0x0 0x89600000 0x0 0x04600000>;
+		};
+
+		/* Only used for iq mode, will be removed in normal mode by uboot */
+		iq_reserved: iq-mem {
+			compatible = "sprd,iq-mem";
+			reg = <0x0 0x90000000 0x0 0x04000000>;
+		};
+
+		/* must be 64M aligned */
+		sml_reserved: sml-mem {
+			reg = <0x0 0x94000000 0x0 0x00020000>;
+		};
+
+		tos_reserved: tos-mem {
+			reg = <0x0 0x94020000 0x0 0x01fe0000>;
+		};
+
+		pstore: pstore-mem {
+			reg = <0x0 0xfff80000 0x0 0x00040000>;
+		};
+	};
 };
