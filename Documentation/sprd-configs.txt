@@ -9165,7 +9165,7 @@ CONFIG_RTC_CLASS
 	[function] Generic RTC class support.
 CONFIG_RTC_DRV_SC27XX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] all
 	[field] menu,make,code
 	[subsys] rtc
 	[must] user
@@ -9221,7 +9221,7 @@ CONFIG_RTC_LIB
 	[function] RTC driver based on RTC lib.
 CONFIG_RTC_NVMEM
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
