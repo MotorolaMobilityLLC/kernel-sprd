@@ -62,7 +62,6 @@ static int __sprd_get_max_temp(int *temp)
 	int i, ret = 0;
 	int soc_temp = 0;
 	int sum_temp = 0;
-	int weight_max = 0;
 	int sensor_temp[THM_SENSOR_NUMBER];
 	struct thermal_zone_device *tz = NULL;
 	struct soc_sensor *psensor = &soc_temp_sensor;
@@ -87,12 +86,7 @@ static int __sprd_get_max_temp(int *temp)
 		sum_temp += sensor_temp[i];
 	}
 
-	if ((soc_temp >= 75000) && (soc_temp <= 95000)) {
-		weight_max = (soc_temp / 1000 - 75) * (1 * 100 / (95 - 75));
-		*temp = soc_temp * weight_max / 100 +
-			(sum_temp / psensor->nsensor) *
-			(1 * 100 - weight_max) / 100;
-	} else if (soc_temp > 95000) {
+	if (soc_temp >= 70000) {
 		*temp = soc_temp;
 	} else {
 		*temp = sum_temp / psensor->nsensor;
