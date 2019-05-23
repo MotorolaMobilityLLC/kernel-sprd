@@ -92,6 +92,9 @@ static int sipa_dele_plat_drv_probe(struct platform_device *pdev_p)
 	struct sipa_delegate_plat_drv_cfg *cfg = &s_sipa_dele_cfg;
 	struct sipa_delegator_create_params create_params;
 
+	if (!sipa_rm_is_initialized())
+		return -EPROBE_DEFER;
+
 	memset(cfg, 0, sizeof(*cfg));
 
 	ret = sipa_dele_parse_dts_cfg(pdev_p, cfg);

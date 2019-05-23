@@ -137,6 +137,17 @@ static void sipa_rm_inactivity_timer_func(struct work_struct *work)
 		&sipa_rm_it_handles[me->resource_name].lock, flags);
 }
 
+/**
+ * sipa_rm_is_initialized() - check sipa_rm is initialized
+ *
+ * Returns: true on initialized
+ *
+ * This function is called to check sipa_rm is initialized
+ */
+bool sipa_rm_is_initialized(void)
+{
+	return !!sipa_rm_ctx;
+}
 
 /**
  * sipa_rm_create_resource() - create resource
