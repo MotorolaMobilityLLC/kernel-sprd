@@ -31,10 +31,12 @@ d_defconfig_path={
             'sharkl3_32':{'defconfig':'arch/arm/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3', 'arch':'arm'},
         },
         'kernel4.14':{
+            'pike2':{'defconfig':'arch/arm/configs/sprd_pike2_defconfig', 'diffconfig':'sprd-diffconfig/pike2', 'arch':'arm'},
             'roc1':{'defconfig':'arch/arm64/configs/sprd_roc1_defconfig', 'diffconfig':'sprd-diffconfig/roc1','arch':'arm64'},
             'sharkl3':{'defconfig':'arch/arm64/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3','arch':'arm64'},
             'sharkl5':{'defconfig':'arch/arm64/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm64'},
             'sharkl5_32':{'defconfig':'arch/arm/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm'},
+            'sharkle32':{'defconfig':'arch/arm/configs/sprd_sharkle_defconfig', 'diffconfig':'sprd-diffconfig/sharkle', 'arch':'arm'},
         },
 }
 
@@ -72,16 +74,28 @@ def add_diffconfig_to_dictconfig():
                         elif tmp_arch == 'arm' and tmp_plat == 'sharkl5':
                             tmp_plat = 'sharkl5_32'
                         elif tmp_arch == 'common' and tmp_plat == 'sharkle':
-                            if lines[j][4:-1] not in d_diffconfig:
-                                d_diffconfig[lines[j][4:-1]]={
-                                    'arch': 'arm,arm64,',
-                                    'plat': 'sharkle,sharkle32,',
-                                    'field':'',
-                                    'subsys':'',
-                                    'must':'',
-                                    'function':''
-                                    }
-                                continue
+                            if kernel_version == 'kernel4.4':
+                                if lines[j][4:-1] not in d_diffconfig:
+                                    d_diffconfig[lines[j][4:-1]]={
+                                        'arch': 'arm,arm64,',
+                                        'plat': 'sharkle,sharkle32,',
+                                        'field':'',
+                                        'subsys':'',
+                                        'must':'',
+                                        'function':''
+                                        }
+                                    continue
+                            elif kernel_version == 'kernel4.14':
+                                if lines[j][4:-1] not in d_diffconfig:
+                                    d_diffconfig[lines[j][4:-1]]={
+                                        'arch': 'arm,',
+                                        'plat': 'sharkle32,',
+                                        'field':'',
+                                        'subsys':'',
+                                        'must':'',
+                                        'function':''
+                                        }
+                                    continue
                             if 'sharkle' not in d_diffconfig[lines[j][4:-1]]['plat'].split(','):
                                 d_diffconfig[lines[j][4:-1]]['plat'] = d_diffconfig[lines[j][4:-1]]['plat'] + 'sharkle,'
                             if 'sharkle32' not in d_diffconfig[lines[j][4:-1]]['plat'].split(','):
