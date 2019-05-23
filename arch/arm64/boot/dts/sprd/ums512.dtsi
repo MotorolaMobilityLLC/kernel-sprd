@@ -283,6 +283,13 @@
 			#clock-cells = <1>;
 		};
 
+		dpll0: dpll0 {
+			compatible = "sprd,sharkl5pro-g0-pll";
+			sprd,syscon = <&anlg_phy_g0_regs>; /* 0x32390000 */
+			clocks = <&pmu_gate CLK_DPLL0_GATE>;
+			#clock-cells = <1>;
+		};
+
 		mpll1: mpll1 {
 			compatible = "sprd,sharkl5pro-g2-pll";
 			sprd,syscon = <&anlg_phy_g2_regs>; /* 0x323b0000 */
@@ -311,6 +318,41 @@
 			#clock-cells = <1>;
 		};
 
+		mm_clk: clock-controller@62100000 {
+			compatible = "sprd,sharkl5pro-mm-clk";
+			reg = <0 0x62100000 0 0x1000>;
+			clocks = <&aonapb_gate CLK_MM_EB>;
+			#clock-cells = <1>;
+		};
+
+		gpu_clk: gpu-clk {
+			compatible = "sprd,sharkl5pro-gpu-clk";
+			sprd,syscon = <&gpu_apb_regs>;
+			syscons = <&aon_apb_regs
+					REG_AON_APB_RF_APB_EB0
+					MASK_AON_APB_RF_GPU_EB>,
+				  <&pmu_apb_regs
+					REG_PMU_APB_RF_PD_GPU_TOP_CFG0
+					MASK_PMU_APB_RF_PD_GPU_TOP_FORCE_SHUTDOWN>;
+			syscon-names = "enable", "power";
+			clocks = <&aon_clk CLK_AP_MM>;
+			#clock-cells = <1>;
+		};
+
+		mm_gate: clock-controller@62200000 {
+			compatible = "sprd,sharkl5pro-mm-gate-clk";
+			sprd,syscon = <&mm_ahb_regs>;
+			syscons = <&aon_apb_regs
+					REG_AON_APB_RF_APB_EB0
+					MASK_AON_APB_RF_MM_EB>,
+				  <&pmu_apb_regs
+					REG_PMU_APB_RF_PD_MM_TOP_CFG
+					MASK_PMU_APB_RF_PD_MM_TOP_FORCE_SHUTDOWN>;
+			syscon-names = "enable", "power";
+			clocks = <&aonapb_gate CLK_MM_EB>;
+			#clock-cells = <1>;
+		};
+
 		ap_clk: clock-controller@20200000 {
 			compatible = "sprd,sharkl5pro-ap-clk";
 			reg = <0 0x20200000 0 0x1000>;
@@ -335,6 +377,20 @@
 		apapb_gate: apapb-gate {
 			compatible = "sprd,sharkl5pro-apapb-gate";
 			sprd,syscon = <&ap_apb_regs>; /* 0x71000000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		audcpapb_gate: audcpapb-gate {
+			compatible = "sprd,sharkl5pro-audcpapb-gate";
+			sprd,syscon = <&audcp_apb_regs>; /* 0x3350d000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
+		audcpahb_gate: audcpahb-gate {
+			compatible = "sprd,sharkl5pro-audcpahb-gate";
+			sprd,syscon = <&audcp_ahb_regs>; /* 0x335e0000 */
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
 		};
