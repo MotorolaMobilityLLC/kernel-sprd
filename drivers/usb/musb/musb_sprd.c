@@ -110,7 +110,6 @@ static void sprd_musb_enable(struct musb *musb)
 	} else {
 		pwr = musb_readb(musb->mregs, MUSB_POWER);
 		if (musb->gadget_driver && !is_host_active(musb)) {
-			usb_phy_reset(glue->xceiv);
 			pwr |= MUSB_POWER_SOFTCONN;
 			glue->bus_active = true;
 			dev_info(glue->dev, "%s:MUSB_POWER_SOFTCONN\n",
