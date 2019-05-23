@@ -102,7 +102,7 @@
 	};
 };
 
-&i2c4 {
+&i2c3 {
 	status = "okay";
 
 	touchscreen@20 {
