@@ -1639,8 +1639,6 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 
 static void dpu_enhance_reload(struct dpu_context *ctx)
 {
-	struct sprd_dpu *dpu =	(struct sprd_dpu *)
-		container_of(ctx, struct sprd_dpu, ctx);
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct scale_cfg *scale;
 	struct cm_cfg *cm;
@@ -1654,7 +1652,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 		scale = &scale_copy;
 		reg->blend_size = (scale->in_h << 16) | scale->in_w;
 		pr_info("enhance scaling from %ux%u to %ux%u\n", scale->in_w,
-			scale->in_h, dpu->mode->hdisplay, dpu->mode->vdisplay);
+			scale->in_h, ctx->vm.hactive, ctx->vm.vactive);
 	}
 
 	if (enhance_en & BIT(1)) {
@@ -1760,13 +1758,10 @@ static void dpu_sr_config(struct dpu_context *ctx)
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
-	struct sprd_dpu *dpu =	(struct sprd_dpu *)
-		container_of(ctx, struct sprd_dpu, ctx);
-
 	scale_copy.in_w = mode->hdisplay;
 	scale_copy.in_h = mode->vdisplay;
-	if (mode->hdisplay != dpu->mode->hdisplay ||
-		mode->vdisplay != dpu->mode->vdisplay)
+	if (mode->hdisplay != ctx->vm.hactive ||
+		mode->vdisplay != ctx->vm.vactive)
 		need_scale = true;
 	else
 		need_scale = false;

@@ -565,7 +565,6 @@ static void sprd_crtc_mode_set_nofb(struct drm_crtc *crtc)
 			dpu->core->modeset(&dpu->ctx, &umode);
 		}
 	}
-
 }
 
 static enum drm_mode_status sprd_crtc_mode_valid(struct drm_crtc *crtc,
@@ -575,7 +574,10 @@ static enum drm_mode_status sprd_crtc_mode_valid(struct drm_crtc *crtc,
 
 	DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__, DRM_MODE_ARG(mode));
 
-	if ((mode->type & DRM_MODE_TYPE_PREFERRED) && !dpu->mode) {
+	if (mode->type & DRM_MODE_TYPE_DEFAULT)
+		dpu->mode = (struct drm_display_mode *)mode;
+
+	if (mode->type & DRM_MODE_TYPE_PREFERRED) {
 		dpu->mode = (struct drm_display_mode *)mode;
 		drm_display_mode_to_videomode(dpu->mode, &dpu->ctx.vm);
 	}

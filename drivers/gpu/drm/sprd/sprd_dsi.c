@@ -371,10 +371,10 @@ sprd_dsi_connector_mode_valid(struct drm_connector *connector,
 
 	DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__, DRM_MODE_ARG(mode));
 
-	if ((mode->type & DRM_MODE_TYPE_PREFERRED) && !dsi->mode)
+	if (mode->type & DRM_MODE_TYPE_PREFERRED) {
 		dsi->mode = mode;
-
-	drm_display_mode_to_videomode(dsi->mode, &dsi->ctx.vm);
+		drm_display_mode_to_videomode(dsi->mode, &dsi->ctx.vm);
+	}
 
 	return MODE_OK;
 }
