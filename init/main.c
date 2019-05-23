@@ -1007,6 +1007,7 @@ static int __ref kernel_init(void *unused)
 
 	rcu_end_inkernel_boot();
 
+	pr_emerg("run init\n");
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);
 		if (!ret)
