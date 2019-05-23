@@ -230,6 +230,7 @@ function make_headers()
 			$BSP_CC_LD_ARG INSTALL_HDR_PATH="$BSP_KERNEL_HEADERS_DIR/usr" headers_install -j$BSP_OBJ
 		find $BSP_KERNEL_HEADERS_DIR \( -name ..install.cmd -o -name .install \) -exec rm '{}' +
 		BSP_KERNEL_HEADER_TAR=$BSP_KERNEL_DIST/kernel-uapi-headers.tar.gz
+		mkdir $BSP_KERNEL_DIST -p
 		tar -czPf $BSP_KERNEL_HEADER_TAR --directory=$BSP_KERNEL_HEADERS_DIR usr/
 		tar -xf $BSP_KERNEL_HEADER_TAR -C $BSP_KERNEL_DIST
 	fi
