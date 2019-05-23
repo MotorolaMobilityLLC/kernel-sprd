@@ -178,6 +178,8 @@ function make_kernel()
 {
 	make_config
 	make -C $BSP_KERNEL_PATH O=$BSP_KERNEL_OUT ARCH=$BSP_KERNEL_ARCH CROSS_COMPILE=$BSP_KERNEL_CROSS_COMPILE -j$BSP_OBJ
+	compile_check $?
+
 	if [ -n $BSP_KERNEL_DIST ]; then
 		mkdir $BSP_KERNEL_DIST -p
 		find $BSP_KERNEL_OUT -name $BSP_DTB.dtb | xargs -i cp {} $BSP_KERNEL_DIST
@@ -188,18 +190,24 @@ function make_kernel()
 function make_config()
 {
 	make -C $BSP_KERNEL_PATH O=$BSP_KERNEL_OUT ARCH=$BSP_KERNEL_ARCH CROSS_COMPILE=$BSP_KERNEL_CROSS_COMPILE $BSP_KERNEL_DEFCONFIG -j$BSP_OBJ
+	compile_check $?
+
 	add_diffconfig
 }
 
 function make_kuconfig()
 {
 	make -C $BSP_KERNEL_PATH O=$BSP_KERNEL_OUT ARCH=$BSP_KERNEL_ARCH CROSS_COMPILE=$BSP_KERNEL_CROSS_COMPILE $BSP_KERNEL_DEFCONFIG menuconfig -j$BSP_OBJ
+	compile_check $?
+
 	cp $BSP_KERNEL_OUT/.config $BSP_KERNEL_PATH/arch/$BSP_KERNEL_ARCH/configs/$BSP_KERNEL_DEFCONFIG
 }
 
 function make_dtb()
 {
 	make -C $BSP_KERNEL_PATH O=$BSP_KERNEL_OUT ARCH=$BSP_KERNEL_ARCH CROSS_COMPILE=$BSP_KERNEL_CROSS_COMPILE dtbs -j$BSP_OBJ
+	compile_check $?
+
 	if [ -n $BSP_KERNEL_DIST ]; then
 		mkdir $BSP_KERNEL_DIST -p
 		find $BSP_KERNEL_OUT -name $BSP_DTB.dtb | xargs -i cp {} $BSP_KERNEL_DIST
@@ -209,6 +217,8 @@ function make_dtb()
 function make_dtbo()
 {
 	make -C $BSP_KERNEL_PATH O=$BSP_KERNEL_OUT ARCH=$BSP_KERNEL_ARCH CROSS_COMPILE=$BSP_KERNEL_CROSS_COMPILE dtbs -j$BSP_OBJ
+	compile_check $?
+
 	if [ -n $BSP_KERNEL_DIST ]; then
 		mkdir $BSP_KERNEL_DIST -p
 		find $BSP_KERNEL_OUT -name $BSP_DTBO.dtbo | xargs -i cp {} $BSP_KERNEL_DIST
@@ -220,6 +230,7 @@ function make_modules()
 	if [ -n $BSP_KERNEL_DIST ]; then
 		mkdir $BSP_KERNEL_DIST -p
 		make -C $BSP_KERNEL_OUT O=$BSP_KERNEL_OUT $BSP_CC_LD_ARG INSTALL_MOD_PATH=$BSP_KERNEL_DIST modules_install -j$BSP_OBJ
+		compile_check $?
 	fi
 }
 
@@ -228,6 +239,8 @@ function make_headers()
 	if [ -n $BSP_KERNEL_DIST ]; then
 		make -C $BSP_KERNEL_PATH O=$BSP_KERNEL_OUT ARCH=$BSP_KERNEL_ARCH CROSS_COMPILE=$BSP_KERNEL_CROSS_COMPILE \
 			$BSP_CC_LD_ARG INSTALL_HDR_PATH="$BSP_KERNEL_HEADERS_DIR/usr" headers_install -j$BSP_OBJ
+		compile_check $?
+
 		find $BSP_KERNEL_HEADERS_DIR \( -name ..install.cmd -o -name .install \) -exec rm '{}' +
 		BSP_KERNEL_HEADER_TAR=$BSP_KERNEL_DIST/kernel-uapi-headers.tar.gz
 		mkdir $BSP_KERNEL_DIST -p
@@ -239,6 +252,14 @@ function make_headers()
 function make_clean()
 {
 	make -C $BSP_KERNEL_PATH O=$BSP_KERNEL_OUT ARCH=$BSP_KERNEL_ARCH CROSS_COMPILE=$BSP_KERNEL_CROSS_COMPILE mrproper -j$BSP_OBJ
+	compile_check $?
+}
+
+function compile_check()
+{
+	if [[ $1 -ne 0 ]]; then
+		exit 1
+	fi
 }
 
 lunch $1
