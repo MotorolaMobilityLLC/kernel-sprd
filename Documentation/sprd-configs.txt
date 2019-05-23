@@ -10133,7 +10133,7 @@ CONFIG_SPRD_MEM_OVERLAY_CHECK
 		   reserved-memory.
 CONFIG_SPRD_MINI_SYSDUMP
 	[arch] arm64
-	[plat] roc1
+	[plat] roc1,sharkl3
 	[field]
 	[subsys]
 	[must]
