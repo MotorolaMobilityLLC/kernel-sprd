@@ -1574,14 +1574,12 @@
 				compatible = "sprd,soc-thermal";
 				#thermal-sensor-cells = <1>;
 				sensor-names = "cluster0-thmzone",
-					"cluster1-thmzone",
-					"gpu0-thmzone",
-					"mm-thmzone";
+					"cluster1-thmzone";
 				k-po = <0>;
 				k-pu = <0>;
 				k-i = <2>;
 				k-d = <0>;
-				cutoff = <10000>;
+				cutoff = <0>;
 			};
 
 			ap_efuse: efuse@32240000 {

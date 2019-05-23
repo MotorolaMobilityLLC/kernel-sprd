@@ -56,9 +56,9 @@
 	thm_zone: thermal-zones {
 
 		soc_thmzone: soc-thmzone {
-			polling-delay-passive = <100>;
+			polling-delay-passive = <50>;
 			polling-delay = <1000>;
-			sustainable-power = <2500>;
+			sustainable-power = <4800>;
 			thermal-sensors = <&soc_sensor  17>;
 			trips {
 				soc_threshold: trip-point@0 {
