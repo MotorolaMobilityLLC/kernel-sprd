@@ -834,7 +834,8 @@
 				compatible = "sprd,pam-ipa";
 				reg = <0 0x21140000 0 0x100>;
 				reg-names = "pam-ipa-base";
-
+				power-domains = <&pd_ipa_sys>;
+				vpower-supply = <&vddipa>;
 				syscons = <&ipa_ahb_regs
 					  REG_IPA_AHB_IPA_EB
 					  MASK_IPA_AHB_PAM_IPA_EB>;
@@ -863,6 +864,8 @@
 				reg-names = "glb-base", "iram-base";
 				interrupts = <GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "local_ipa_irq";
+				power-domains = <&pd_ipa_sys>;
+				vpower-supply = <&vddipa>;
 
 				syscons = <&ipa_ahb_regs
 					  REG_IPA_AHB_IPA_EB
@@ -1255,6 +1258,7 @@
 				pcie-wakeup-gpios = <&eic_async 11
 						     GPIO_ACTIVE_HIGH>;
 				status = "disabled";
+				power-domains = <&pd_ipa_sys>;
 
 				dummy@0 {
 					label = "parent_gic_intc";
@@ -1288,6 +1292,7 @@
 				pcie-wakeup-gpios = <&eic_async 10
 						     GPIO_ACTIVE_HIGH>;
 				status = "disabled";
+				power-domains = <&pd_ipa_sys>;
 
 				dummy@0 {
 					label = "parent_gic_intc";
@@ -2239,6 +2244,81 @@
 				syscon-names = "cfg";
 				power-domains = <&pd_ai_sys>;
 				#power-domain-cells = <0>;
+			};
+
+			pd_ipa_sys: sipa-sys {
+				compatible = "sprd,roc1-ipa-sys-power-domain";
+				syscons = <&pmu_apb_regs
+					  REG_PMU_APB_IPA_FORCE_WAKEUP_CFG
+					  MASK_PMU_APB_IPA_FORCE_WAKEUP>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_PD_IPA_SYS_CFG
+					  MASK_PMU_APB_PD_IPA_SYS_FORCE_SHUTDOWN>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_PD_IPA_SYS_CFG
+					  MASK_PMU_APB_PD_IPA_SYS_AUTO_SHUTDOWN_EN>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_FORCE_DEEP_SLEEP_CFG
+					  MASK_PMU_APB_IPA_FORCE_DEEP_SLEEP>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_IPA_DSLP_ENA
+					  MASK_PMU_APB_IPA_DSLP_ENA>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_FORCE_LIGHT_SLEEP_CFG
+					  MASK_PMU_APB_IPA_FORCE_LIGHT_SLEEP>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_LIGHT_SLEEP_ENABLE
+					  MASK_PMU_APB_IPA_LSLP_ENA>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_LIGHT_SLEEP_ENABLE
+					  MASK_PMU_APB_IPA_SMART_LSLP_ENA>,
+					  <&ipa_ahb_regs
+					  REG_IPA_AHB_IPA_EB
+					  MASK_IPA_AHB_IPA_EB>,
+					  <&ipa_ahb_regs
+					  REG_IPA_AHB_IPA_EB
+					  MASK_IPA_AHB_CM4_EB>,
+					  <&ipa_ahb_regs
+					  REG_IPA_AHB_MAIN_MTX_LPC
+					  MASK_REG_FW0_IPA_S3_LPC_RD_SEC>,
+					  <&ipa_ahb_regs
+					  REG_IPA_AHB_S5_LPC
+					  MASK_REG_FW0_IPA_S3_LPC_WR_SEC>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_PCIEPLL_H_REL_CFG
+					  MASK_PMU_APB_PCIEPLL_H_IPA_SEL>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_PCIEPLL_V_REL_CFG
+					  MASK_PMU_APB_PCIEPLL_V_IPA_SEL>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_XTLBUF_PCIEH_REL_CFG
+					  MASK_PMU_APB_XTLBUF_PCIEH_IPA_SEL>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_XTLBUF_PCIEV_REL_CFG
+					  MASK_PMU_APB_XTLBUF_PCIEV_IPA_SEL>;
+
+				syscon-names =
+					"ipa-sys-forcewakeup",
+					"ipa-sys-forceshutdown",
+					"ipa-sys-autoshutdown",
+					"ipa-sys-forcedslp",
+					"ipa-sys-dslpen",
+					"ipa-sys-forcelslp",
+					"ipa-sys-lslpen",
+					"ipa-sys-smartlslpen",
+					"ipa-sys-ipaeb",
+					"ipa-sys-cm4eb",
+					"ipa-sys-autogaten",
+					"ipa-sys-s5-autogaten",
+					"ipa-sys-pciepllhsel",
+					"ipa-sys-pciepllvsel",
+					"ipa-sys-xtlbufpciehsel",
+					"ipa-sys-xtlbufpcievsel";
+				#power-domain-cells = <0>;
+
+				vddipa:vdd-ipa {
+					regulator-name = "IPA_SYS_VPOWER";
+				};
 			};
 		};
 
