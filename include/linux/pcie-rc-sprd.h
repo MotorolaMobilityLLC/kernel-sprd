@@ -16,5 +16,6 @@
 
 extern int sprd_pcie_configure_device(struct platform_device *pdev);
 extern int sprd_pcie_unconfigure_device(struct platform_device *pdev);
+extern void sprd_pcie_teardown_msi_irq(unsigned int irq);
 
 #endif

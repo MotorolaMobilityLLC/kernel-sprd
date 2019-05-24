@@ -17,6 +17,7 @@
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/mfd/syscon.h>
+#include <linux/msi.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 
@@ -175,3 +176,25 @@ void sprd_pcie_restore_dwc_reg(struct dw_pcie *pci)
 {
 	sprd_pcie_restore_msi_ctrls(pci);
 }
+
+/*
+ *  Orca pci asic design for normal interrupt mode is not compatible with
+ *  kernel PCIE framework, the 0-3 msi irqs are handled directly by hardware.
+ *  This workaround is used to disable the corresponding bits of these four irqs
+ *  on the msi reqister so that AP GIC will not receive these interrupts.
+ */
+void sprd_pcie_teardown_msi_irq(unsigned int irq)
+{
+	unsigned int msi_ctrls, bit, val;
+	struct irq_data *data = irq_get_irq_data(irq);
+	struct msi_desc *msi = irq_data_get_msi_desc(data);
+	struct pcie_port *pp = (struct pcie_port *)msi_desc_to_pci_sysdata(msi);
+	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+
+	msi_ctrls = (data->hwirq / 32) * 12;
+	bit = data->hwirq % 32;
+	val = dw_pcie_readl_dbi(pci, PCIE_MSI_INTR0_ENABLE + msi_ctrls);
+	val &= ~(1 << bit);
+	dw_pcie_writel_dbi(pci,  PCIE_MSI_INTR0_ENABLE + msi_ctrls, val);
+}
+EXPORT_SYMBOL(sprd_pcie_teardown_msi_irq);
