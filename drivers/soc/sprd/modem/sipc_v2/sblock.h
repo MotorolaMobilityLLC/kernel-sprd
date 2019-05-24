@@ -126,6 +126,14 @@ struct sblock_mgr {
 	u32	smem_size;
 	u32	dst_smem_addr;
 
+	/*
+	 * this address stored in share memory,
+	 * be used to calculte the block virt address.
+	 * in host mode, it is client physial address(dst_smem_addr),
+	 * in client mode, it is own physial address(smem_addr).
+	 */
+	u32 stored_smem_addr;
+
 	u32	txblksz;
 	u32	rxblksz;
 	u32	txblknum;

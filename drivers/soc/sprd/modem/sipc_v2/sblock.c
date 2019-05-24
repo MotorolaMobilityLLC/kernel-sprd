@@ -64,7 +64,7 @@ void sblock_put(u8 dst, u8 channel, struct sblock *blk)
 				   poolhd_op->tx_count);
 	ring->p_txblks[txpos].addr = blk->addr -
 				     sblock->smem_virt +
-				     sblock->smem_addr;
+				     sblock->stored_smem_addr;
 	ring->p_txblks[txpos].length = poolhd_op->tx_size;
 	*(poolhd_op->tx_rd_p) = *(poolhd_op->tx_rd_p) - 1;
 	if ((int)(*(poolhd_op->tx_wt_p) - *(poolhd_op->tx_rd_p)) == 1)
@@ -211,6 +211,10 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 
 	sblock->dst_smem_addr = sblock->smem_addr -
 		sipc->smem_base + sipc->dst_smem_base;
+
+	/* in host mode,  it is client physial address. */
+	sblock->stored_smem_addr = sblock->dst_smem_addr;
+
 #ifdef CONFIG_PHYS_ADDR_T_64BIT
 	offset = sipc->high_offset;
 	offset = offset << 32;
@@ -233,7 +237,7 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 
 	/* initialize header */
 	ringhd = (volatile struct sblock_ring_header *)(sblock->smem_virt);
-	ringhd->txblk_addr = sblock->dst_smem_addr + hsize;
+	ringhd->txblk_addr = sblock->stored_smem_addr + hsize;
 	ringhd->txblk_count = txblocknum;
 	ringhd->txblk_size = txblocksize;
 	ringhd->txblk_rdptr = 0;
@@ -249,7 +253,7 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 		txblocknum * sizeof(struct sblock_blks);
 
 	poolhd = ringhd + 1;
-	poolhd->txblk_addr = sblock->dst_smem_addr + hsize;
+	poolhd->txblk_addr = sblock->stored_smem_addr + hsize;
 	poolhd->txblk_count = txblocknum;
 	poolhd->txblk_size = txblocksize;
 	poolhd->txblk_rdptr = 0;
@@ -280,17 +284,17 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 
 	sblock->ring->header = sblock->smem_virt;
 	sblock->ring->txblk_virt = sblock->smem_virt +
-		(ringhd->txblk_addr - sblock->dst_smem_addr);
+		(ringhd->txblk_addr - sblock->stored_smem_addr);
 	sblock->ring->r_txblks = sblock->smem_virt +
-		(ringhd->txblk_blks - sblock->dst_smem_addr);
+		(ringhd->txblk_blks - sblock->stored_smem_addr);
 	sblock->ring->rxblk_virt = sblock->smem_virt +
-		(ringhd->rxblk_addr - sblock->dst_smem_addr);
+		(ringhd->rxblk_addr - sblock->stored_smem_addr);
 	sblock->ring->r_rxblks = sblock->smem_virt +
-		(ringhd->rxblk_blks - sblock->dst_smem_addr);
+		(ringhd->rxblk_blks - sblock->stored_smem_addr);
 	sblock->ring->p_txblks = sblock->smem_virt +
-		(poolhd->txblk_blks - sblock->dst_smem_addr);
+		(poolhd->txblk_blks - sblock->stored_smem_addr);
 	sblock->ring->p_rxblks = sblock->smem_virt +
-		(poolhd->rxblk_blks - sblock->dst_smem_addr);
+		(poolhd->rxblk_blks - sblock->stored_smem_addr);
 
 	for (i = 0; i < txblocknum; i++) {
 		sblock->ring->p_txblks[i].addr = poolhd->txblk_addr +
@@ -438,6 +442,9 @@ static int sblock_client_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock)
 		 sblock->smem_addr + offset,
 		 sblock->smem_size);
 
+	/* in client mode,  it is own physial address. */
+	sblock->stored_smem_addr = sblock->smem_addr;
+
 	/* get smem virtual address */
 	sblock->smem_virt = shmem_ram_vmap_nocache(dst,
 						   sblock->smem_addr + offset,
@@ -465,17 +472,17 @@ static int sblock_client_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock)
 	/* client mode, tx <==> rx */
 	sblock->ring->header = sblock->smem_virt;
 	sblock->ring->txblk_virt = sblock->smem_virt +
-		(ringhd->rxblk_addr - sblock->smem_addr);
+		(ringhd->rxblk_addr - sblock->stored_smem_addr);
 	sblock->ring->rxblk_virt = sblock->smem_virt +
-		(ringhd->txblk_addr - sblock->smem_addr);
+		(ringhd->txblk_addr - sblock->stored_smem_addr);
 	sblock->ring->r_txblks = sblock->smem_virt +
-		(ringhd->rxblk_blks - sblock->smem_addr);
+		(ringhd->rxblk_blks - sblock->stored_smem_addr);
 	sblock->ring->r_rxblks = sblock->smem_virt +
-		(ringhd->txblk_blks - sblock->smem_addr);
+		(ringhd->txblk_blks - sblock->stored_smem_addr);
 	sblock->ring->p_txblks = sblock->smem_virt +
-		(poolhd->rxblk_blks - sblock->smem_addr);
+		(poolhd->rxblk_blks - sblock->stored_smem_addr);
 	sblock->ring->p_rxblks = sblock->smem_virt +
-		(poolhd->txblk_blks - sblock->smem_addr);
+		(poolhd->txblk_blks - sblock->stored_smem_addr);
 
 	/* init header op,  tx <==> rx */
 	ringhd_op = &((sblock->ring->header_op).ringhd_op);
@@ -1124,7 +1131,7 @@ int sblock_get(u8 dst, u8 channel, struct sblock *blk, int timeout)
 					   poolhd_op->tx_count);
 		blk->addr = sblock->smem_virt +
 			    (ring->p_txblks[txpos].addr -
-			     sblock->smem_addr);
+			     sblock->stored_smem_addr);
 		blk->length = poolhd_op->tx_size;
 		*(poolhd_op->tx_rd_p) = *(poolhd_op->tx_rd_p) + 1;
 		index = sblock_get_index((blk->addr - ring->txblk_virt),
@@ -1175,7 +1182,7 @@ static int sblock_send_ex(u8 dst, u8 channel,
 	txpos = sblock_get_ringpos(*(ringhd_op->tx_wt_p), ringhd_op->tx_count);
 	ring->r_txblks[txpos].addr = blk->addr -
 				     sblock->smem_virt +
-				     sblock->smem_addr;
+				     sblock->stored_smem_addr;
 	ring->r_txblks[txpos].length = blk->length;
 	pr_debug("sblock_send: channel=%d, wrptr=%d, txpos=%d, addr=%x\n",
 		 channel, *(ringhd_op->tx_wt_p),
@@ -1332,7 +1339,7 @@ int sblock_receive(u8 dst, u8 channel,
 		rxpos = sblock_get_ringpos(*(ringhd_op->rx_rd_p),
 					   ringhd_op->rx_count);
 		blk->addr = ring->r_rxblks[rxpos].addr -
-			    sblock->smem_addr +
+			    sblock->stored_smem_addr +
 			    sblock->smem_virt;
 		blk->length = ring->r_rxblks[rxpos].length;
 		*(ringhd_op->rx_rd_p) = *(ringhd_op->rx_rd_p) + 1;
@@ -1448,7 +1455,7 @@ int sblock_release(u8 dst, u8 channel, struct sblock *blk)
 	rxpos = sblock_get_ringpos(*(poolhd_op->rx_wt_p), poolhd_op->rx_count);
 	ring->p_rxblks[rxpos].addr = blk->addr -
 				     sblock->smem_virt +
-				     sblock->smem_addr;
+				     sblock->stored_smem_addr;
 	ring->p_rxblks[rxpos].length = poolhd_op->rx_size;
 	*(poolhd_op->rx_wt_p) = *(poolhd_op->rx_wt_p) + 1;
 	pr_debug("%s: addr=%x\n", __func__, ring->p_rxblks[rxpos].addr);
