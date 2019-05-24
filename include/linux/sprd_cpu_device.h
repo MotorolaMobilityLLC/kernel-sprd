@@ -26,6 +26,8 @@ struct power_model_callback {
 	u32 (*get_core_cpuidle_tp_p)(int cooling_id, int first_cpu,
 			int cpu, int *temp);
 
+	u32 (*get_cpuidle_temp_point_p)(int cooling_id);
+
 	int (*get_max_temp_core_p)(int cooling_id, int cpu, int *temp);
 
 	int (*get_all_core_temp_p)(int cooling_id, int cpu);

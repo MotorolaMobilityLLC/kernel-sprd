@@ -68,6 +68,7 @@ struct cluster_power_coefficients {
 	u32 min_cpufreq;
 	u32 min_cpunum;
 	u32 resistance_ja;
+	u32 temp_point;
 	u32 cpuidle_tp[MAX_SENSOR_NUMBER];
 	int leak_core_base;
 	int leak_cluster_base;
@@ -346,6 +347,11 @@ u64 get_core_dyn_power(int cluster_id,
 		cluster_id, (u32)power, freq_mhz, voltage_mv, voltage_base);
 
 	return power;
+}
+
+static u32 get_cpuidle_temp_point(int cluster_id)
+{
+	return cluster_data[cluster_id].temp_point;
 }
 
 u32 get_cluster_min_cpufreq(int cluster_id)
@@ -778,10 +784,15 @@ static int sprd_get_power_model_coeff(struct device_node *np,
 		}
 	}
 
-	ret = of_property_read_u32_array(np, "sprd,cpuidle-temp",
+	ret = of_property_read_u32_array(np, "sprd,cii-per-core-tp",
 			power_coeff->cpuidle_tp, power_coeff->nsensor);
 	if (ret)
-		pr_err("fail to get cooling devices cpuidle-temp\n");
+		pr_err("fail to get cooling devices per-core-tp\n");
+
+	ret = of_property_read_u32(np, "sprd,cii-max-tp-core",
+			&power_coeff->temp_point);
+	if (ret)
+		pr_err("fail to get cooling devices max-tp-core\n");
 
 	return 0;
 }
@@ -822,6 +833,7 @@ static struct power_model_callback pm_call = {
 		.get_core_temp_p = get_core_temp,
 		.get_all_core_temp_p = get_all_core_temp,
 		.get_core_cpuidle_tp_p = get_core_cpuidle_tp,
+		.get_cpuidle_temp_point_p = get_cpuidle_temp_point,
 };
 
 int create_cpu_cooling_device(void)

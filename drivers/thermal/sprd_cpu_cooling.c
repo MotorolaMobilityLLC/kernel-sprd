@@ -89,7 +89,7 @@ static int cpuidle_thread_fn(void *data)
 
 		pr_debug("force cpu%ld enter into idle for cooling\n", cpu);
 		set_current_state(TASK_RUNNING);
-		play_idle(10);
+		play_idle(5);
 	}
 	clear_bit(cpu, cpuidle_tsk_mask);
 
@@ -170,7 +170,6 @@ static int cpuidle_cpu_online(unsigned int hpcpu)
 	};
 	struct task_struct **p = per_cpu_ptr(cpuidle_tsk, cpu);
 
-	get_online_cpus();
 	thread = kthread_create_on_node(cpuidle_thread_fn,
 			(void *)cpu, cpu_to_node(cpu), "cpuidle/%ld", cpu);
 	if (likely(!IS_ERR(thread))) {
@@ -181,7 +180,6 @@ static int cpuidle_cpu_online(unsigned int hpcpu)
 		set_bit(cpu, cpuidle_tsk_mask);
 		wake_up_process(thread);
 	}
-	put_online_cpus();
 
 	return 0;
 }
@@ -191,8 +189,10 @@ static int cpuidle_cpu_predown(unsigned int cpu)
 	struct task_struct **p =
 				per_cpu_ptr(cpuidle_tsk, cpu);
 
-	if (test_bit(cpu, cpuidle_tsk_mask))
+	if (test_bit(cpu, cpuidle_tsk_mask)) {
 		kthread_stop(*p);
+		clear_bit(cpu, cpuidle_tsk_mask);
+	}
 
 	return 0;
 }
@@ -1140,7 +1140,7 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	static int count;
 
 #ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-	int curr_temp, tp, cpu_idx;
+	int curr_temp, tp, cpu_idx, max_temp;
 #endif
 
 	get_online_cpus();
@@ -1211,25 +1211,37 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 
 #ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
-	cpu_idx = cpu;
-	cpufreq_device->power_model->cab->get_all_core_temp_p(
-			cpufreq_device->power_model->cluster_id,
-			cpu);
-
-	for_each_cpu(cpu_idx, &cpufreq_device->allowed_cpus) {
-
-		cpufreq_device->power_model->cab->get_core_temp_p(
-				cpufreq_device->power_model->cluster_id,
-				cpu_idx, &curr_temp);
-
-		cpufreq_device->power_model->cab->get_core_cpuidle_tp_p(
-				cpufreq_device->power_model->cluster_id,
-				cpu, cpu_idx, &tp);
-
-		if (curr_temp > tp) {
-
-			pr_debug("cpu%d curr_temp:%d\n", cpu_idx, curr_temp);
+	tp = cpufreq_device->power_model->cab->get_cpuidle_temp_point_p(
+			cpufreq_device->power_model->cluster_id);
+	if (tp) {
+		cpu_idx = cpufreq_device->power_model->cab->get_max_temp_core_p(
+								cpufreq_device->power_model->cluster_id,
+								cpu, &max_temp);
+		if (max_temp > tp) {
+			pr_debug("cpu%d max_temp:%d\n", cpu_idx, max_temp);
 			cpuidle_thread_wakeup(cdev, cpu_idx);
+		}
+	} else {
+		cpu_idx = cpu;
+		cpufreq_device->power_model->cab->get_all_core_temp_p(
+				cpufreq_device->power_model->cluster_id,
+				cpu);
+
+		for_each_cpu(cpu_idx, &cpufreq_device->allowed_cpus) {
+
+			cpufreq_device->power_model->cab->get_core_temp_p(
+					cpufreq_device->power_model->cluster_id,
+					cpu_idx, &curr_temp);
+
+			cpufreq_device->power_model->cab->get_core_cpuidle_tp_p(
+					cpufreq_device->power_model->cluster_id,
+					cpu, cpu_idx, &tp);
+
+			if (curr_temp > tp) {
+
+				pr_debug("cpu%d curr_temp:%d\n", cpu_idx, curr_temp);
+				cpuidle_thread_wakeup(cdev, cpu_idx);
+			}
 		}
 	}
 #else
