@@ -160,9 +160,29 @@ static int sprd_add_pcie_ep(struct sprd_pcie *sprd_pcie,
 	return 0;
 }
 
+/*
+ * WAKE# (low active)from endpoint to wake up AP.
+ *
+ * When AP is in deep state, an endpoint can wakeup AP by pulling the wake
+ * signal to low. After AP is activated, the endpoint must pull the wake signal
+ * to high.
+ */
 static irqreturn_t sprd_pcie_wakeup_irq(int irq, void *data)
 {
-	/* TODO: After EP wakeups AP, RC does nothing now */
+	struct sprd_pcie *sprd_pcie = data;
+	int value = gpiod_get_value(sprd_pcie->gpiod_wakeup);
+	u32 irq_flags = irq_get_trigger_type(irq);
+
+	if (!value) {
+		irq_flags &= ~IRQF_TRIGGER_LOW;
+		irq_flags |= IRQF_TRIGGER_HIGH;
+	} else {
+		irq_flags &= ~IRQF_TRIGGER_HIGH;
+		irq_flags |= IRQF_TRIGGER_LOW;
+	}
+
+	irq_set_irq_type(irq, irq_flags);
+
 	return IRQ_HANDLED;
 }
 
@@ -175,7 +195,6 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 	int ret;
 	unsigned int irq;
 	struct resource *res;
-	struct gpio_desc *desc;
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dbi");
 	pci->dbi_base = devm_ioremap(dev, res->start, resource_size(res));
@@ -227,13 +246,14 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 #endif
 	}
 
-	desc = devm_gpiod_get_index(dev, "pcie-wakeup", 0, GPIOD_IN);
-	if (IS_ERR(desc)) {
+	sprd_pcie->gpiod_wakeup =
+		devm_gpiod_get_index(dev, "pcie-wakeup", 0, GPIOD_IN);
+	if (IS_ERR(sprd_pcie->gpiod_wakeup)) {
 		dev_warn(dev, "Please set pcie-wakeup gpio in DTS\n");
 		goto no_wakeup;
 	}
 
-	sprd_pcie->wakeup_irq = gpiod_to_irq(desc);
+	sprd_pcie->wakeup_irq = gpiod_to_irq(sprd_pcie->gpiod_wakeup);
 	if (sprd_pcie->wakeup_irq < 0) {
 		dev_warn(dev, "cannot get wakeup irq\n");
 		goto no_wakeup;
@@ -243,7 +263,7 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 		 "%s wakeup", dev_name(dev));
 	ret = devm_request_threaded_irq(dev, sprd_pcie->wakeup_irq,
 					sprd_pcie_wakeup_irq, NULL,
-					IRQF_TRIGGER_RISING,
+					IRQF_TRIGGER_LOW,
 					sprd_pcie->wakeup_label, sprd_pcie);
 	if (ret < 0)
 		dev_warn(dev, "cannot request wakeup irq\n");

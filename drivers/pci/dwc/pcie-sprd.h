@@ -35,6 +35,7 @@ struct sprd_pcie {
 
 	/* this irq cames from EIC to GIC */
 	int wakeup_irq;
+	struct gpio_desc *gpiod_wakeup;
 
 	/* Save sysnopsys-specific PCIe configuration registers  */
 	u32 save_msi_ctrls[MAX_MSI_CTRLS][3];
