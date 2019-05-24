@@ -49,6 +49,14 @@
 		};
 	};
 
+	thm_zone: thermal-zones {
+		cpu_thmzone: cpu-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&cpu_thm 0>;
+		};
+	};
+
 	ramoops {
 		compatible = "ramoops";
 		memory-region = <&pstore>;
