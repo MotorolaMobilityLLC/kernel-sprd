@@ -162,6 +162,64 @@
 			interrupts = <GIC_SPI 28 IRQ_TYPE_LEVEL_HIGH>;
 			clock-frequency = <32768>;
 		};
+
+		eic_debounce: gpio@40210000 {
+			compatible = "sprd,sharkle-eic-debounce";
+			reg = <0x0 0x40210000 0x0 0x80>,
+			      <0x0 0x40370000 0x0 0x80>,
+			      <0x0 0x402c0000 0x0 0x80>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		eic_latch: gpio@40210080 {
+			compatible = "sprd,sharkle-eic-latch";
+			reg = <0x0 0x40210080 0x0 0x20>,
+			      <0x0 0x40370080 0x0 0x20>,
+			      <0x0 0x402c0080 0x0 0x20>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		eic_async: gpio@402100a0 {
+			compatible = "sprd,sharkle-eic-async";
+			reg = <0x0 0x402100a0 0x0 0x20>,
+			      <0x0 0x403700a0 0x0 0x20>,
+			      <0x0 0x402c00a0 0x0 0x20>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		eic_sync: gpio@402100c0 {
+			compatible = "sprd,sharkle-eic-sync";
+			reg = <0x0 0x402100c0 0x0 0x20>,
+			      <0x0 0x403700c0 0x0 0x20>,
+			      <0x0 0x402c00c0 0x0 0x20>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		ap_gpio: gpio@40280000 {
+			compatible = "sprd,sharkle-gpio";
+			reg = <0x0 0x40280000 0x0 0x1000>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			interrupts = <GIC_SPI 35 IRQ_TYPE_LEVEL_HIGH>;
+		};
 	};
 
 	ext_26m: ext-26m {
