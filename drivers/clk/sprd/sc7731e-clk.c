@@ -1274,7 +1274,7 @@ static struct clk_hw_onecell_data sc7731e_apapb_gate_hws = {
 		[CLK_INTC0_EB]		= &intc0_eb.common.hw,
 		[CLK_INTC1_EB]		= &intc1_eb.common.hw,
 		[CLK_INTC2_EB]		= &intc2_eb.common.hw,
-		[CLK_INTC3_EB]		= &intc2_eb.common.hw,
+		[CLK_INTC3_EB]		= &intc3_eb.common.hw,
 	},
 	.num	= CLK_AP_APB_GATE_NUM,
 };
