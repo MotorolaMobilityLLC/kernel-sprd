@@ -31,19 +31,6 @@
 
 #define SIPA_RECEIVER_BUF_LEN     1600
 
-static void inform_evt_to_nics(struct sipa_skb_sender *sender,
-			       enum sipa_evt_type evt)
-{
-	unsigned long flags;
-	struct sipa_nic *nic;
-
-	spin_lock_irqsave(&sender->nic_lock, flags);
-	list_for_each_entry(nic, &sender->nic_list, list) {
-		sipa_nic_notify_evt(nic, evt);
-	}
-	spin_unlock_irqrestore(&sender->nic_lock, flags);
-}
-
 void sipa_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 			   unsigned long data)
 {
@@ -57,19 +44,11 @@ void sipa_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 		BUG_ON(0);
 	}
 
-	if ((evt & SIPA_HAL_ENTER_FLOW_CTRL) &&
-	    (evt & SIPA_HAL_EXIT_FLOW_CTRL))
-		return;
-
-	if (evt & SIPA_HAL_ENTER_FLOW_CTRL) {
+	if (evt & SIPA_HAL_ENTER_FLOW_CTRL)
 		sender->enter_flow_ctrl_cnt++;
-		inform_evt_to_nics(sender, SIPA_ENTER_FLOWCTRL);
-	}
 
-	if (evt & SIPA_HAL_EXIT_FLOW_CTRL) {
+	if (evt & SIPA_HAL_EXIT_FLOW_CTRL)
 		sender->exit_flow_ctrl_cnt++;
-		inform_evt_to_nics(sender, SIPA_LEAVE_FLOWCTRL);
-	}
 }
 
 static void sipa_free_sent_items(struct sipa_skb_sender *sender)
@@ -93,7 +72,7 @@ static void sipa_free_sent_items(struct sipa_skb_sender *sender)
 		sipa_hal_recv_conversion_node_to_item(sender->ctx->hdl,
 						      sender->ep->send_fifo.idx,
 						      &item, i);
-		if (item.err_code)
+		if (item.err_code > 1)
 			pr_err("have node transfer err = %d\n", item.err_code);
 
 		spin_lock_irqsave(&sender->send_lock, flags);
