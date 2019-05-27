@@ -42,6 +42,13 @@ config MMC_PXA
 	  If you have a PXA(R) platform with a Multimedia Card slot,
 	  say Y or M here.
 
+config MMC_SPRD_SDHCR10
+	tristate "Spreadtrum SDIO host Controller(IP version: R10P0) support"
+	depends on ARCH_SPRD
+	help
+	  This selects the SDIO Host Controller(R10P0) in spreadtrum platform.
+	  If you have a controller with this interface, say Y or M here.
+
 	  If unsure, say N.
 
 config MMC_SDHCI

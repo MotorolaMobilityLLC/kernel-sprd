@@ -3316,6 +3316,7 @@ CONFIG_MMC_BLOCK_MINORS=8
 #
 # CONFIG_MMC_DEBUG is not set
 # CONFIG_MMC_ARMMMCI is not set
+# CONFIG_MMC_SPRD_SDHCR10 is not set
 # CONFIG_MMC_SDHCI is not set
 # CONFIG_MMC_TIFM_SD is not set
 # CONFIG_MMC_SPI is not set
