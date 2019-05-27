@@ -110,6 +110,25 @@
 			};
 		};
 
+		ap-ahb {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			sdio3: sdio@20600000 {
+				compatible  = "sprd,sdhc-r10";
+				reg = <0x20600000 0x1000>;
+				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio_clk","sdio_clk_source",
+					      "sdio_ahb_enable";
+				clocks = <&aon_clk CLK_EMMC_2X>,
+					 <&pll CLK_TWPLL_384M>,
+					 <&apahb_gate CLK_EMMC_EB>;
+				status = "disabled";
+			};
+		};
+
 		aon {
 			compatible = "simple-bus";
 			#address-cells = <1>;
@@ -295,3 +314,4 @@
 		clock-output-names = "bbpll";
 	};
 };
+
