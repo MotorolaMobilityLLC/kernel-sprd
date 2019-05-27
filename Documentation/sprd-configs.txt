@@ -1,10 +1,3 @@
-:CONFIG_SPRD_MINI_SYSDUMP
-	[arch] arm64
-	[plat] sharkl3
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_64BIT
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5
@@ -3909,14 +3902,14 @@ CONFIG_GPIOLIB
 	[function] Generic gpio support
 CONFIG_GPIOLIB_IRQCHIP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_GPIO_EIC_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field]
 	[subsys]
 	[must]
@@ -3944,14 +3937,14 @@ CONFIG_GPIO_PLUS_SPRD
 	[function]
 CONFIG_GPIO_PMIC_EIC_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_GPIO_SPRD
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] gpio
 	[must] user
@@ -9299,14 +9292,14 @@ CONFIG_SC23XX
 	For pike2, this must be enable for buletooth.
 CONFIG_SC27XX_ADC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
 	[field] make
 	[subsys] iio
 	[must] home
 	[function] This function is used to support sc27xx adc moudle
 CONFIG_SC27XX_EFUSE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
 	[field] make
 	[subsys] nvmem
 	[must] home
@@ -10215,8 +10208,8 @@ CONFIG_SPRD_DEBUG
 	[must] debug
 	[function] Enable/disable sprd debug function.
 CONFIG_SPRD_DEDICATE_THERMAL
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] pike2,sharkl3
 	[field]
 	[subsys]
 	[must]
@@ -10265,7 +10258,7 @@ CONFIG_SPRD_DMC_MPU_CORE
 	[function] Enable MPU core function
 CONFIG_SPRD_EFUSE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
 	[field] 	[field]make
 	[subsys] nvmem
 	[must] home
