@@ -7,6 +7,11 @@
 #define CHN_MAX_NUM 32
 #define PUB_HEAD_RSV 4
 
+enum wcn_bus_state {
+	WCN_BUS_DOWN,	/* Not ready for frame transfers */
+	WCN_BUS_UP		/* Ready for frame transfers */
+};
+
 struct mbuf_t {
 	struct mbuf_t *next;
 	unsigned char *buf;
@@ -82,6 +87,8 @@ struct sprdwcn_bus_ops {
 
 	int (*chn_init)(struct mchn_ops_t *ops);
 	int (*chn_deinit)(struct mchn_ops_t *ops);
+
+	int (*get_bus_status)(void);
 
 	/*
 	 * For sdio:
@@ -171,6 +178,17 @@ void sprdwcn_bus_deinit(void)
 		return;
 
 	bus_ops->deinit();
+}
+
+static inline
+int sprdwcn_bus_get_status(void)
+{
+	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
+
+	if (!bus_ops || !bus_ops->deinit)
+		return 0;
+
+	bus_ops->get_bus_status();
 }
 
 static inline

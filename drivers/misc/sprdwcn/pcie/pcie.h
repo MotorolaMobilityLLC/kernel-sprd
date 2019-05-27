@@ -15,6 +15,7 @@
 #define __PCIE_DRV_H__
 
 #include <linux/pci.h>
+#include <misc/wcn_bus.h>
 
 #define DRVER_NAME      "wcn_pcie"
 
@@ -85,6 +86,7 @@ struct wcn_pcie_info {
 	unsigned short vendor_id;
 	unsigned short device_id;
 	struct char_drv_info *p_char;
+	enum wcn_bus_state pci_status;
 };
 
 struct inbound_reg {
@@ -125,6 +127,7 @@ int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len);
 int sprd_pcie_update_bits(unsigned int reg, unsigned int mask,
 			  unsigned int val);
 struct wcn_pcie_info *get_wcn_device_info(void);
+int wcn_pcie_get_bus_status(void);
 u32 sprd_pcie_read_reg32(struct wcn_pcie_info *priv, int offset);
 void sprd_pcie_write_reg32(struct wcn_pcie_info *priv, u32 reg_offset,
 			   u32 value);

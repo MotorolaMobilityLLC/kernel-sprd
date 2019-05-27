@@ -84,6 +84,11 @@ int pcie_update_bits(unsigned int reg, unsigned int mask, unsigned int val)
 	return mchn_wcn_update_bits(reg, mask, val);
 }
 
+int pcie_get_bus_status(void)
+{
+	return wcn_pcie_get_bus_status();
+}
+
 static struct sprdwcn_bus_ops pcie_bus_ops = {
 	.preinit = pcie_preinit,
 	.deinit = pcie_preexit,
@@ -99,6 +104,7 @@ static struct sprdwcn_bus_ops pcie_bus_ops = {
 	.read_l = pcie_read32,
 	.write_l = pcie_write32,
 	.update_bits = pcie_update_bits,
+	.get_bus_status = pcie_get_bus_status,
 };
 
 void module_bus_init(void)

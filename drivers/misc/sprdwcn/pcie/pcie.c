@@ -39,6 +39,12 @@ struct wcn_pcie_info *get_wcn_device_info(void)
 	return g_pcie_dev;
 }
 
+static void wcn_bus_change_state(struct wcn_pcie_info *bus,
+				 enum wcn_bus_state state)
+{
+	bus->pci_status = state;
+}
+
 static int sprd_pcie_msi_irq(int irq, void *arg)
 {
 	struct wcn_pcie_info *priv = arg;
@@ -442,6 +448,14 @@ void sprd_pcie_write_reg32(struct wcn_pcie_info *priv, u32 reg_offset,
 	writel_relaxed(value, address);
 }
 
+int wcn_pcie_get_bus_status(void)
+{
+	if (!g_pcie_dev)
+		return WCN_BUS_DOWN;
+
+	return g_pcie_dev->pci_status;
+}
+
 static int sprd_pcie_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *pci_id)
 {
@@ -607,6 +621,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	pci_read_config_dword(pdev, 0x072c, &val32);
 	WCN_INFO("EP link status 72c=0x%x\n", val32);
 	WCN_INFO("%s ok\n", __func__);
+	wcn_bus_change_state(priv, WCN_BUS_UP);
 
 	return 0;
 
@@ -623,6 +638,8 @@ static int sprd_ep_suspend(struct device *dev)
 	int chn;
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct wcn_pcie_info *priv = pci_get_drvdata(pdev);
+
+	wcn_bus_change_state(priv, WCN_BUS_DOWN);
 
 	for (chn = 0; chn < 16; chn++) {
 		ops = mchn_ops(chn);
@@ -685,6 +702,7 @@ static int sprd_ep_resume(struct device *dev)
 
 	edma_hw_restore();
 
+	wcn_bus_change_state(priv, WCN_BUS_UP);
 	for (chn = 0; chn < 16; chn++) {
 		ops = mchn_ops(chn);
 		if ((ops != NULL) && (ops->power_notify != NULL)) {
