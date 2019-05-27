@@ -79,7 +79,7 @@ struct completion gnss_dump_complete;
 #endif
 static unsigned int gnssver = 0x22;
 static const struct of_device_id gnss_common_ctl_of_match[] = {
-	{.compatible = "sprd,gnss-common-ctl", .data = (void *)&gnssver},
+	{.compatible = "sprd,gnss_common_ctl", .data = (void *)&gnssver},
 	{},
 };
 
@@ -629,7 +629,7 @@ static int gnss_common_ctl_remove(struct platform_device *pdev)
 }
 static struct platform_driver gnss_common_ctl_drv = {
 	.driver = {
-		   .name = "gnss-common-ctl",
+		   .name = "gnss_common_ctl",
 		   .of_match_table = of_match_ptr(gnss_common_ctl_of_match),
 		   },
 	.probe = gnss_common_ctl_probe,
