@@ -111,16 +111,16 @@ function sprd_create_user_config()
 function add_diffconfig()
 {
 	if [ -z $BSP_KERNEL_OUT ]; then
-		echo ++++++++++++++++++Ruifeng++++++++++++++++
 		BSP_KERNEL_OUT="."
 	fi
-	KERNEL_CONFIG="$BSP_KERNEL_OUT/.config"
-	BSP_BOARD_SPEC_CONFIG=$BSP_KERNEL_DIFF_CONFIG_ARCH/$BSP_BOARD_NAME"_diff_config"
-	sprd_create_user_config $KERNEL_CONFIG $BSP_BOARD_SPEC_CONFIG
 
-	if [ "$BOARD_TEE_CONFIG" == "trusty" ]; then
-		if [ -n $BOARD_TEE_64BIT ]; then
-			if [ "$BOARD_TEE_64BIT" == "false" ]; then
+	BSP_OUT_KERNEL_CONFIG="$BSP_KERNEL_OUT/.config"
+	BSP_BOARD_SPEC_CONFIG=$BSP_KERNEL_DIFF_CONFIG_ARCH/$BSP_BOARD_NAME"_diff_config"
+	sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_BOARD_SPEC_CONFIG
+
+	if [ "$BSP_BOARD_TEE_CONFIG" == "trusty" ]; then
+		if [ -n $BSP_BOARD_TEE_64BIT ]; then
+			if [ "$BSP_BOARD_TEE_64BIT" == "false" ]; then
 				BSP_DEVICE_TRUSTY_CONFIG=$BSP_KERNEL_DIFF_CONFIG_ARCH/trusty_aarch32_diff_config
 			else
 				BSP_DEVICE_TRUSTY_CONFIG=$BSP_KERNEL_DIFF_CONFIG_ARCH/trusty_aarch64_diff_config
@@ -129,7 +129,7 @@ function add_diffconfig()
 			BSP_DEVICE_TRUSTY_CONFIG=$BSP_KERNEL_DIFF_CONFIG_ARCH/trusty_diff_config
 		fi
 
-		sprd_create_user_config $KERNEL_CONFIG $BSP_DEVICE_TRUSTY_CONFIG
+		sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_DEVICE_TRUSTY_CONFIG
 	fi
 
 	if [ "$BSP_BOARD_WCN_CONFIG" == "ext" ]; then
@@ -139,12 +139,12 @@ function add_diffconfig()
 	fi
 
 	if [ -n $BSP_BSP_DEVICE_WCN_CONFIG ]; then
-		sprd_create_user_config $KERNEL_CONFIG $BSP_DEVICE_WCN_CONFIG
+		sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_DEVICE_WCN_CONFIG
 	fi
 
 	if [ "$BSP_PRODUCT_GO_DEVICE" == "true" ]; then
 		BSP_GO_DEVICE_CONFIG=$BSP_KERNEL_DIFF_CONFIG_ARCH/go_google_diff_config
-		sprd_create_user_config $KERNEL_CONFIG $BSP_GO_DEVICE_CONFIG
+		sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_GO_DEVICE_CONFIG
 	fi
 
 	if [ "$BSP_BUILD_VARIANT" == "user" ]; then
@@ -156,7 +156,7 @@ function add_diffconfig()
 			fi
 		fi
 
-		sprd_create_user_config $KERNEL_CONFIG $BSP_DEVICE_USER_CONFIG
+		sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_DEVICE_USER_CONFIG
 	fi
 }
 
@@ -285,4 +285,3 @@ elif [ "$2" == "kuconfig" ]; then
 elif [ "$2" == "clean" ]; then
 	make_clean
 fi
-
