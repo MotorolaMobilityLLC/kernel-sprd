@@ -279,6 +279,12 @@
 		tuning-latency-us = <300>;
 		chnl-in-i2c = <1>;
 	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+		id-gpio = <&eic_debounce 4 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &reserved_memory {
