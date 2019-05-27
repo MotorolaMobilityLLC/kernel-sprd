@@ -1,3 +1,10 @@
+:CONFIG_SPRD_MINI_SYSDUMP
+	[arch] arm64
+	[plat] sharkl3
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_64BIT
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5
