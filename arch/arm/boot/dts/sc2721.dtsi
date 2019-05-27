@@ -17,6 +17,33 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
+		efuse@300 {
+			compatible = "sprd,sc27xx-efuse", "sprd,sc2721-efuse";
+			reg = <0x300>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			hwlocks = <&hwlock 12>;
+
+			adc_bcal: calib@24 {
+				reg = <0x24 0x2>;
+			};
+
+			adc_scal: calib@26 {
+				reg = <0x26 0x2>;
+			};
+		};
+
+		pmic_adc: adc@400 {
+			compatible = "sprd,sc27xx-adc", "sprd,sc2721-adc";
+			reg = <0x400>;
+			interrupt-parent = <&sc2721_pmic>;
+			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
+			#io-channel-cells = <1>;
+			hwlocks = <&hwlock 4>;
+			nvmem-cells = <&adc_bcal>, <&adc_scal>;
+			nvmem-cell-names = "big_scale_calib", "small_scale_calib";
+		};
+
 		power-controller@c00 {
 			compatible = "sprd,sc27xx-regulator", "sprd,sc2721-regulator";
 

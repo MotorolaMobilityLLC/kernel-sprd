@@ -237,6 +237,44 @@
 				interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			ap_efuse: efuse@40240000 {
+				compatible = "sprd,sharkl3-efuse", "sprd,sharkle-efuse";
+				reg = <0x40240000 0x10000>;
+				clock-names = "enable";
+				hwlocks = <&hwlock 8>;
+				clocks = <&aonapb_gate CLK_EFUSE_EB>;
+
+				gthm_sign: cthm-sign@20{
+					reg = <0x20 0x4>;
+					bits = <1 1>;
+				};
+
+				gthm_ratio: cthm-ratio@20{
+					reg = <0x20 0x4>;
+					bits = <2 7>;
+				};
+
+				gthm_delta: cthm-delta@21{
+					reg = <0x21 0x4>;
+					bits = <1 7>;
+				};
+
+				cthm_sign: cthm-sign@22{
+					reg = <0x22 0x4>;
+					bits = <0 1>;
+				};
+
+				cthm_ratio: cthm-ratio@22{
+					reg = <0x22 0x4>;
+					bits = <1 7>;
+				};
+
+				cthm_delta: cthm-delta@23{
+					reg = <0x23 0x4>;
+					bits = <0 7>;
+				};
+			};
+
 			ap_gpio: gpio@40280000 {
 				compatible = "sprd,sharkle-gpio";
 				reg = <0x40280000 0x1000>;
@@ -250,6 +288,26 @@
 			pin_controller: pinctrl@402a0000 {
 				compatible = "sprd,sharkle-pinctrl";
 				reg = <0x402a0000 0x10000>;
+			};
+
+			gpu_thm: thermal@402f0000 {
+				compatible = "sprd,sharkl3-thermal", "sprd,sharkle-thermal";
+				reg = <0x402f0000 0x100>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM0_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&gthm_sign>, <&gthm_ratio>, <&gthm_delta>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal", "thm_delta_cal";
+			};
+
+			cpu_thm: thermal@40300000 {
+				compatible = "sprd,sharkl3-thermal", "sprd,sharkle-thermal";
+				reg = <0x40300000 0x100>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_THM1_EB>;
+				#thermal-sensor-cells = <1>;
+				nvmem-cells = <&cthm_sign>, <&cthm_ratio>, <&cthm_delta>;
+				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal", "thm_delta_cal";
 			};
 
 			adi_bus: spi@40380000 {
