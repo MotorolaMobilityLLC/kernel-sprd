@@ -128,6 +128,8 @@ SPRD_EIC_VAR_DATA(sc9860, SPRD_EIC_PER_BANK_NR);
 SPRD_EIC_VAR_DATA(sharkl5, SPRD_EIC_PER_BANK_NR * 4);
 SPRD_EIC_VAR_DATA(roc1, SPRD_EIC_PER_BANK_NR * 4);
 SPRD_EIC_VAR_DATA(sharkl3, SPRD_EIC_PER_BANK_NR * 2);
+SPRD_EIC_VAR_DATA(sharkle, SPRD_EIC_PER_BANK_NR * 3);
+SPRD_EIC_VAR_DATA(pike2, SPRD_EIC_PER_BANK_NR * 2);
 
 static const char *sprd_eic_label_name[SPRD_EIC_MAX] = {
 	"eic-debounce", "eic-latch", "eic-async",
@@ -727,6 +729,38 @@ static const struct of_device_id sprd_eic_of_match[] = {
 	{
 		.compatible = "sprd,sharkl3-eic-sync",
 		.data = &sharkl3_eic_sync_data,
+	},
+	{
+		.compatible = "sprd,sharkle-eic-debounce",
+		.data = &sharkle_eic_dbnc_data,
+	},
+	{
+		.compatible = "sprd,sharkle-eic-latch",
+		.data = &sharkle_eic_latch_data,
+	},
+	{
+		.compatible = "sprd,sharkle-eic-async",
+		.data = &sharkle_eic_async_data,
+	},
+	{
+		.compatible = "sprd,sharkle-eic-sync",
+		.data = &sharkle_eic_sync_data,
+	},
+	{
+		.compatible = "sprd,pike2-eic-debounce",
+		.data = &pike2_eic_dbnc_data,
+	},
+	{
+		.compatible = "sprd,pike2-eic-latch",
+		.data = &pike2_eic_latch_data,
+	},
+	{
+		.compatible = "sprd,pike2-eic-async",
+		.data = &pike2_eic_async_data,
+	},
+	{
+		.compatible = "sprd,pike2-eic-sync",
+		.data = &pike2_eic_sync_data,
 	},
 	{
 		/* end of list */

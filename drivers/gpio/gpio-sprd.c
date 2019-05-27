@@ -274,6 +274,8 @@ static const struct of_device_id sprd_gpio_of_match[] = {
 	{ .compatible = "sprd,sc9860-gpio", },
 	{ .compatible = "sprd,sharkl5-gpio", },
 	{ .compatible = "sprd,roc1-gpio", },
+	{ .compatible = "sprd,sharkle-gpio", },
+	{ .compatible = "sprd,pike2-gpio", },
 	{ /* end of list */ }
 };
 MODULE_DEVICE_TABLE(of, sprd_gpio_of_match);
