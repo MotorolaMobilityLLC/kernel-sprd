@@ -10179,6 +10179,13 @@ CONFIG_SPRD_CPU_COOLING
 	[subsys] thermal
 	[must] user
 	[function] sprd thermal policy
+CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	[arch] arm64
+	[plat] roc1
+	[field] make
+	[subsys] thermal
+	[must] user
+	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_DEVICE
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5
