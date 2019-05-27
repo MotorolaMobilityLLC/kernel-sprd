@@ -65,6 +65,7 @@ struct sprd_glue {
 	struct work_struct		work;
 	struct delayed_work		recover_work;
 	struct extcon_dev		*edev;
+	struct extcon_dev		*id_edev;
 	struct notifier_block		hot_plug_nb;
 	struct notifier_block		vbus_nb;
 	struct notifier_block		id_nb;
@@ -998,7 +999,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		glue->edev = extcon_get_edev_by_phandle(glue->dev, 0);
 		if (IS_ERR(glue->edev)) {
 			ret = PTR_ERR(glue->edev);
-			dev_err(dev, "failed to find gpio extcon device.\n");
+			dev_err(dev, "failed to find vbus extcon device.\n");
 			goto err_glue_musb;
 		}
 		glue->vbus_nb.notifier_call = musb_sprd_vbus_notifier;
@@ -1010,17 +1011,27 @@ static int musb_sprd_probe(struct platform_device *pdev)
 			goto err_glue_musb;
 		}
 
+		glue->id_edev = extcon_get_edev_by_phandle(glue->dev, 1);
+		if (IS_ERR(glue->id_edev)) {
+			glue->id_edev = NULL;
+			dev_info(dev, "No separate ID extcon device.\n");
+		}
+
 		glue->id_nb.notifier_call = musb_sprd_id_notifier;
-		ret = extcon_register_notifier(glue->edev, EXTCON_USB_HOST,
-						&glue->id_nb);
+		if (glue->id_edev)
+			ret = extcon_register_notifier(glue->id_edev,
+						       EXTCON_USB_HOST,
+						       &glue->id_nb);
+		else
+			ret = extcon_register_notifier(glue->edev,
+						       EXTCON_USB_HOST,
+						       &glue->id_nb);
 		if (ret) {
 			dev_err(dev,
 			"failed to register extcon USB HOST notifier.\n");
 			goto err_extcon_vbus;
 		}
 	}
-
-
 
 	ret = sysfs_create_groups(&glue->dev->kobj, musb_sprd_groups);
 	if (ret)
