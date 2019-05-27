@@ -412,6 +412,13 @@
 				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			adi_bus: spi@32100000 {
+				compatible = "sprd,sharkl5-adi", "sprd,sharkl5pro-adi";
+				reg = <0 0x32100000 0 0x100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
 			topdvfs_controller: topdvfsctrl@322a0000 {
 				compatible = "sprd,sharkl5pro-topdvfs", "syscon";
 				sprd,syscon-enable = <&aon_apb_regs>;
