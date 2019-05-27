@@ -49,7 +49,7 @@
 			39 00 00 0B BC 61 03 FF DE 72 E0 2E 04 88 3E //enable GIP VGH in APO-0914
 			39 00 00 11 BD 8E 0E 78 78 15 15 46 5A 14 66 23 06 00 00 00 00 //VGMP 5.0V-0911 VGH=14V VGL=-14V
 			39 00 00 06 BE 60 60 50 60 77
-			39 00 00 0F C1 70 7C 0C 78 04 0C 10 04 2A 71 00 07 10 10
+			39 00 00 0F C1 70 7C 3A 78 04 0C 10 04 2A 71 00 07 10 10
 			39 00 00 0A C3 00 00 FF 00 FF 00 00 0D 1F
 			39 00 00 09 C4 B4 A3 EE 41 04 2F 00 00
 			39 00 00 11 C5 07 1F 42 26 51 44 14 1A 04 00 0A 08 00 00 00 00
@@ -88,7 +88,7 @@
 				vactive = <1520>;
 				hback-porch = <12>;
 				hfront-porch = <16>;
-				vback-porch = <12>;
+				vback-porch = <58>;
 				vfront-porch = <120>;
 				hsync-len = <4>;
 				vsync-len = <4>;
