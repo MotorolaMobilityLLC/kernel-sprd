@@ -188,7 +188,7 @@ int sprdwcn_bus_get_status(void)
 	if (!bus_ops || !bus_ops->deinit)
 		return 0;
 
-	bus_ops->get_bus_status();
+	return bus_ops->get_bus_status();
 }
 
 static inline
