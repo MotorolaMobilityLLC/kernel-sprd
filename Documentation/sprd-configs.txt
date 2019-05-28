@@ -9313,8 +9313,8 @@ CONFIG_SC27XX_TSENSOR_THERMAL
 	[function] 	[function]This function is used to config thermal moudle to get
 	osc and extern cystal temperature.
 CONFIG_SCAN_BALANCE_ANON_FILE
-	[arch] arm64
-	[plat] sharkl5
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] mm
 	[must] home
