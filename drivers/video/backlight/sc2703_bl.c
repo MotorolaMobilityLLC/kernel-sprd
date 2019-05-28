@@ -260,6 +260,11 @@ static int sc2703_bl_set_pwm(struct sc2703_bl *bl, int brightness)
 	u32 pwm_duty;
 	int ret;
 
+	if (brightness > bl->max_brightness)
+		brightness = bl->max_brightness;
+	else if (brightness < 0)
+		brightness = 0;
+
 	/*
 	 * The formula to convert level(from host) to pwm duty cycle as below:
 	 * pwm_duty range (0 ~ 100%) = (level * pwm_period) / MAXIMUM
