@@ -10,6 +10,7 @@
 #include <dt-bindings/gpio/gpio.h>
 
 #include "ums512.dtsi"
+#include "sc2730.dtsi"
 #include "ums512-mach.dtsi"
 #include "ums512-modem.dtsi"
 #include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
