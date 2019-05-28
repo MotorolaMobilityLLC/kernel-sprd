@@ -339,6 +339,7 @@ static struct xfrm_algo_desc aalg_list[] = {
 },
 {
 	.name = "xcbc(aes)",
+	.compat = "xcbc-aes",
 
 	.uinfo = {
 		.auth = {
