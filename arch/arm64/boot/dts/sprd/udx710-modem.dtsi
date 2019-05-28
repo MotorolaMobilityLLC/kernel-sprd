@@ -97,28 +97,48 @@
 		sprd,smem-info = <0x87800000 0x87800000 0x300000>;
 	};
 
-	/* New Radio PHY: 2.5MB */
+	/* New Radio PHY: 2.0MB */
 	sipc_nrphy: sipc@2 {
 		compatible = "sprd,sipc";
 		sprd,name = "sipc-nr-phy";
 		sprd,type = "mbox";
 		sprd,dst = <7>;
 		sprd,core = <6>;
-		sprd,smem-info = <0x87b00000 0x87b00000 0x280000>;
+		sprd,smem-info = <0x87b00000 0x87b00000 0x200000>;
 	};
 
-	/* MODEM v3 PHY: 2.5MB */
+	/* MODEM v3 PHY: 2.0MB */
 	sipc_v3phy: sipc@3 {
 		compatible = "sprd,sipc";
 		sprd,name = "sipc-v3-phy";
 		sprd,type = "mbox";
 		sprd,dst = <8>;
 		sprd,core = <4>;
-		sprd,smem-info = <0x87d80000 0x87d80000 0x280000>;
+		sprd,smem-info = <0x87d00000 0x87d00000 0x200000>;
+	};
+
+	/*XC4500_0: 0.5MB */
+	sipc_xc4500_0: sipc@4 {
+		compatible = "sprd,sipc";
+		sprd,name = "sipc-xc4500-0";
+		sprd,type = "mbox";
+		sprd,dst = <1>;
+		sprd,core = <7>;
+		sprd,smem-info = <0x87f00000 0x87f00000 0x80000>;
+	};
+
+	/* XC4500_1: 0.5MB */
+	sipc_xc4500_1: sipc@5 {
+		compatible = "sprd,sipc";
+		sprd,name = "sipc-xc4500-1";
+		sprd,type = "mbox";
+		sprd,dst = <2>;
+		sprd,core = <8>;
+		sprd,smem-info = <0x87f80000 0x87f80000 0x80000>;
 	};
 
 	/* Roc1: 48MB */
-	sipc_nr: sipc@4 {
+	sipc_nr: sipc@6 {
 		compatible = "sprd,sipc";
 		sprd,name = "sipc-nr";
 		sprd,type = "pcie";
@@ -184,7 +204,7 @@
 		sprd,size-txbuf = <0x0800>; /* 2*1024 */
 	};
 
-	spipe_nr: pipe@5 {
+	spipe_nr: spipe@5 {
 		compatible = "sprd,spipe";
 		sprd,name = "spipe_nr";
 		sprd,dst = <0>;
@@ -234,7 +254,7 @@
 		sprd,size-txbuf = <0x1000>; /* 4*1024 */
 	};
 
-	/* PSP log: 2KB x 800 = 1.6M */
+	/* PSP log: 2KB x 800 = 1600k */
 	slog_lte: spool@0 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_lte";
@@ -247,7 +267,7 @@
 		sprd,rx-blknum = <800>;
 	};
 
-	/* New Radio PHY log: 2KB x 1200 = 2.4M */
+	/* New Radio PHY log: 2KB x 1000 = 2000K */
 	slog_nrphy: spool@1 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr_phy";
@@ -257,10 +277,10 @@
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
 		sprd,rx-blksize = <0x800>;
-		sprd,rx-blknum = <1200>;
+		sprd,rx-blknum = <1000>;
 	};
 
-	/* MODEM v3 PHY log: 2KB x 1200 = 2.4M */
+	/* MODEM v3 PHY log: 2KB x 1000 = 2000K */
 	slog_v3phy: spool@2 {
 		compatible = "sprd,spool";
 		sprd,name = "slog_v3_phy";
@@ -270,10 +290,34 @@
 		sprd,tx-blksize = <0>;
 		sprd,tx-blknum = <0>;
 		sprd,rx-blksize = <0x800>;
-		sprd,rx-blknum = <1200>;
+		sprd,rx-blknum = <1000>;
 	};
 
-	slog_nr: spool@3{
+	/* XC4500_0 log: 2KB x 250 = 500K */
+	slog_xc4500_0: spool@3 {
+		compatible = "sprd,spool";
+		sprd,name = "slog_xc4500_0";
+		sprd,dst = <1>;
+		sprd,channel = <5>;
+		sprd,tx-blksize = <0>;
+		sprd,tx-blknum = <0>;
+		sprd,rx-blksize = <0x800>;
+		sprd,rx-blknum = <250>;
+	};
+
+	/* XC4500_1 log: 2KB x 250 = 500k */
+	slog_xc4500_1: spool@4 {
+		compatible = "sprd,spool";
+		sprd,name = "slog_xc4500_1";
+		sprd,dst = <2>;
+		sprd,channel = <5>;
+		sprd,tx-blksize = <0>;
+		sprd,tx-blknum = <0>;
+		sprd,rx-blksize = <0x800>;
+		sprd,rx-blknum = <250>;
+	};
+
+	slog_nr: spool@5{
 		compatible = "sprd,spool";
 		sprd,name = "slog_nr";
 		sprd,dst = <0>;
