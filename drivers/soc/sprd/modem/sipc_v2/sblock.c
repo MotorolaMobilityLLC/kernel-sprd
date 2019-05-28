@@ -602,6 +602,8 @@ static int sblock_thread(void *data)
 				sblock_recover(sblock->dst, sblock->channel);
 			}
 			smsg_open_ack(sblock->dst, sblock->channel);
+			if (sblock->pre_cfg)
+				sblock->state = SBLOCK_STATE_READY;
 			break;
 		case SMSG_TYPE_CLOSE:
 			/* handle channel recovery */
