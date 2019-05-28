@@ -1187,7 +1187,7 @@ static void dpu_scaling(struct dpu_context *ctx,
 				scale_copy.in_w);
 		}
 
-		if  (top_layer->dst_w == scale_copy.in_w) {
+		if  (top_layer->dst_w <= scale_copy.in_w) {
 			dpu_sr_config(ctx);
 			mode_changed = false;
 
