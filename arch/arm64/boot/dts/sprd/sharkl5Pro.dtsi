@@ -706,6 +706,14 @@
 					subsys-dvfs-state = <0x4c 0 7>;
 				};
 			};
+
+			hwlock: hwspinlock@327f0000 {
+				compatible = "sprd,hwspinlock-r3p0", "sprd,sharkl5pro-hwspinlock";
+				reg = <0 0x327f0000 0 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
 		};
 	};
 
