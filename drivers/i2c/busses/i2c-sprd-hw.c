@@ -86,7 +86,7 @@
 #define I2C_100K_WRITE_WAIT	1500	/* us */
 
 /* Absolutely safe for wait pending update at 400kHz */
-#define I2C_400K_WRITE_WAIT	400	/* us */
+#define I2C_400K_WRITE_WAIT	1000	/* us */
 
 /* Absolutely safe for wait pending update at 3.4MHz */
 #define I2C_3M4_WRITE_WAIT	200	/* us */
