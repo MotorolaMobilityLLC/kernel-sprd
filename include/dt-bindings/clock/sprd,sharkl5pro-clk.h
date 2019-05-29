@@ -64,33 +64,36 @@
 #define CLK_ANLG_PHY_GC_NUM		(CLK_CPPLL + 1)
 
 #define CLK_AP_APB			0
-#define CLK_AP_UART0			1
-#define CLK_AP_UART1			2
-#define CLK_AP_UART2			3
-#define CLK_AP_I2C0			4
-#define CLK_AP_I2C1			5
-#define CLK_AP_I2C2			6
-#define CLK_AP_I2C3			7
-#define CLK_AP_I2C4			8
-#define CLK_AP_SPI0			9
-#define CLK_AP_SPI1			10
-#define CLK_AP_SPI2			11
-#define CLK_AP_SPI3			12
-#define CLK_AP_IIS0			13
-#define CLK_AP_IIS1			14
-#define CLK_AP_IIS2			15
-#define CLK_AP_SIM			16
-#define CLK_AP_CE			17
-#define CLK_SDIO0_2X			18
-#define CLK_SDIO1_2X			19
-#define CLK_EMMC_2X			20
-#define CLK_VSP				21
-#define CLK_DISPC0			22
-#define CLK_DISPC0_DPI			23
-#define CLK_DSI_APB			24
-#define CLK_DSI_RXESC			25
-#define CLK_DSI_LANEBYTE		26
-#define CLK_AP_CLK_NUM			(CLK_DSI_LANEBYTE + 1)
+#define CLK_IPI			        1
+#define CLK_AP_UART0			2
+#define CLK_AP_UART1			3
+#define CLK_AP_UART2			4
+#define CLK_AP_I2C0			5
+#define CLK_AP_I2C1			6
+#define CLK_AP_I2C2			7
+#define CLK_AP_I2C3			8
+#define CLK_AP_I2C4			9
+#define CLK_AP_SPI0			10
+#define CLK_AP_SPI1			11
+#define CLK_AP_SPI2			12
+#define CLK_AP_SPI3			13
+#define CLK_AP_IIS0			14
+#define CLK_AP_IIS1			15
+#define CLK_AP_IIS2			16
+#define CLK_AP_SIM			17
+#define CLK_AP_CE			18
+#define CLK_SDIO0_2X			19
+#define CLK_SDIO1_2X			20
+#define CLK_EMMC_2X			21
+#define CLK_VSP				22
+#define CLK_DISPC0			23
+#define CLK_DISPC0_DPI			24
+#define CLK_DSI_APB			25
+#define CLK_DSI_RXESC			26
+#define CLK_DSI_LANEBYTE		27
+#define CLK_VDSP		        28
+#define CLK_VDSP_M		        29
+#define CLK_AP_CLK_NUM			(CLK_VDSP_M + 1)
 
 #define CLK_DSI_EB			0
 #define CLK_DISPC_EB			1

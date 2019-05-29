@@ -583,9 +583,10 @@ static SPRD_MUX_CLK(dcam_axi_clk, "dcam-axi-clk", dcam_axi_parents, 0x44,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
 static const char * const isp_parents[] = { "twpll-256m", "twpll-307m2",
-					"twpll-384m", "isppll-468m" };
+					    "twpll-384m", "isppll-468m",
+					    "twpll-512m"};
 static SPRD_MUX_CLK(isp_clk, "isp-clk", isp_parents, 0x48,
-		    0, 2, SHARKL5PRO_MUX_FLAG);
+		    0, 3, SHARKL5PRO_MUX_FLAG);
 
 static SPRD_GATE_CLK(mipi_csi0, "mipi-csi0", "mm-ahb-clk", 0x4c,
 		     BIT(16), CLK_IGNORE_UNUSED, 0);
@@ -791,105 +792,121 @@ static struct sprd_clk_desc sharkl5pro_apahb_gate_desc = {
 	.hw_clks	= &sharkl5pro_apahb_gate_hws,
 };
 
+/* ap clks */
 static const char * const ap_apb_parents[] = { "ext-26m", "twpll-64m",
 					       "twpll-96m", "twpll-128m" };
 static SPRD_MUX_CLK(ap_apb_clk, "ap-apb-clk", ap_apb_parents, 0x20,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
+static const char * const ipi_parents[] = { "ext-26m", "twpll-64m",
+					    "twpll-96m", "twpll-128m" };
+static SPRD_MUX_CLK(ipi_clk, "ipi-clk", ipi_parents, 0x24,
+		    0, 2, SHARKL5PRO_MUX_FLAG);
+
 static const char * const ap_uart_parents[] = { "ext-26m", "twpll-48m",
 					"twpll-51m2", "twpll-96m" };
-static SPRD_COMP_CLK(ap_uart0_clk,	"ap-uart0-clk",	ap_uart_parents, 0x24,
+static SPRD_COMP_CLK(ap_uart0_clk,	"ap-uart0-clk",	ap_uart_parents, 0x28,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_uart1_clk,	"ap-uart1-clk",	ap_uart_parents, 0x28,
+static SPRD_COMP_CLK(ap_uart1_clk,	"ap-uart1-clk",	ap_uart_parents, 0x2c,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_uart2_clk,	"ap-uart2-clk",	ap_uart_parents, 0x2c,
+static SPRD_COMP_CLK(ap_uart2_clk,	"ap-uart2-clk",	ap_uart_parents, 0x30,
 		     0, 2, 8, 3, 0);
 
 static const char * const i2c_parents[] = { "ext-26m", "twpll-48m",
 					    "twpll-51m2", "twpll-153m6" };
-static SPRD_COMP_CLK(ap_i2c0_clk, "ap-i2c0-clk", i2c_parents, 0x30,
+static SPRD_COMP_CLK(ap_i2c0_clk, "ap-i2c0-clk", i2c_parents, 0x34,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_i2c1_clk, "ap-i2c1-clk", i2c_parents, 0x34,
+static SPRD_COMP_CLK(ap_i2c1_clk, "ap-i2c1-clk", i2c_parents, 0x38,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_i2c2_clk, "ap-i2c2-clk", i2c_parents, 0x38,
+static SPRD_COMP_CLK(ap_i2c2_clk, "ap-i2c2-clk", i2c_parents, 0x3c,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_i2c3_clk, "ap-i2c3-clk", i2c_parents, 0x3c,
+static SPRD_COMP_CLK(ap_i2c3_clk, "ap-i2c3-clk", i2c_parents, 0x40,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_i2c4_clk, "ap-i2c4-clk", i2c_parents, 0x40,
+static SPRD_COMP_CLK(ap_i2c4_clk, "ap-i2c4-clk", i2c_parents, 0x44,
 		     0, 2, 8, 3, 0);
 
 static const char * const spi_parents[] = { "ext-26m", "twpll-128m",
 					"twpll-153m6", "twpll-192m" };
-static SPRD_COMP_CLK(ap_spi0_clk, "ap-spi0-clk", spi_parents, 0x44,
+static SPRD_COMP_CLK(ap_spi0_clk, "ap-spi0-clk", spi_parents, 0x48,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_spi1_clk, "ap-spi1-clk", spi_parents, 0x48,
+static SPRD_COMP_CLK(ap_spi1_clk, "ap-spi1-clk", spi_parents, 0x4c,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_spi2_clk, "ap-spi2-clk", spi_parents, 0x4c,
+static SPRD_COMP_CLK(ap_spi2_clk, "ap-spi2-clk", spi_parents, 0x50,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_spi3_clk, "ap-spi3-clk", spi_parents, 0x50,
+static SPRD_COMP_CLK(ap_spi3_clk, "ap-spi3-clk", spi_parents, 0x54,
 		     0, 2, 8, 3, 0);
 
 static const char * const iis_parents[] = { "ext-26m",
 					    "twpll-128m",
 					    "twpll-153m6" };
-static SPRD_COMP_CLK(ap_iis0_clk, "ap-iis0-clk", iis_parents, 0x54,
+static SPRD_COMP_CLK(ap_iis0_clk, "ap-iis0-clk", iis_parents, 0x58,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_iis1_clk, "ap-iis1-clk", iis_parents, 0x58,
+static SPRD_COMP_CLK(ap_iis1_clk, "ap-iis1-clk", iis_parents, 0x5c,
 		     0, 2, 8, 3, 0);
-static SPRD_COMP_CLK(ap_iis2_clk, "ap-iis2-clk", iis_parents, 0x5c,
+static SPRD_COMP_CLK(ap_iis2_clk, "ap-iis2-clk", iis_parents, 0x60,
 		     0, 2, 8, 3, 0);
 
 static const char * const sim_parents[] = { "ext-26m", "twpll-51m2",
 					"twpll-64m", "twpll-96m",
 					"twpll-128m"};
-static SPRD_COMP_CLK(ap_sim_clk, "ap-sim-clk", sim_parents, 0x60,
+static SPRD_COMP_CLK(ap_sim_clk, "ap-sim-clk", sim_parents, 0x64,
 		     0, 3, 8, 3, 0);
 
 static const char * const ap_ce_parents[] = { "ext-26m", "twpll-96m",
 					"twpll-192m", "twpll-256m"};
-static SPRD_MUX_CLK(ap_ce_clk, "ap-ce-clk", ap_ce_parents, 0x64,
+static SPRD_MUX_CLK(ap_ce_clk, "ap-ce-clk", ap_ce_parents, 0x68,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
 static const char * const sdio_parents[] = { "ext-1m", "ext-26m",
 					     "twpll-307m2", "twpll-384m",
 					     "rpll", "lpll-409m6" };
-static SPRD_MUX_CLK(sdio0_2x_clk, "sdio0-2x", sdio_parents, 0x7c,
+static SPRD_MUX_CLK(sdio0_2x_clk, "sdio0-2x", sdio_parents, 0x80,
 		    0, 3, SHARKL5PRO_MUX_FLAG);
-static SPRD_MUX_CLK(sdio1_2x_clk, "sdio1-2x", sdio_parents, 0x84,
+static SPRD_MUX_CLK(sdio1_2x_clk, "sdio1-2x", sdio_parents, 0x88,
 		    0, 3, SHARKL5PRO_MUX_FLAG);
-static SPRD_MUX_CLK(emmc_2x_clk, "emmc-2x", sdio_parents, 0x8c,
+static SPRD_MUX_CLK(emmc_2x_clk, "emmc-2x", sdio_parents, 0x90,
 		    0, 3, SHARKL5PRO_MUX_FLAG);
 
 static const char * const vsp_parents[] = { "twpll-256m", "twpll-307m2",
 					"twpll-384m"};
-static SPRD_MUX_CLK(vsp_clk, "vsp-clk", vsp_parents, 0x94,
+static SPRD_MUX_CLK(vsp_clk, "vsp-clk", vsp_parents, 0x98,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
 static const char * const dispc0_parents[] = { "twpll-153m6", "twpll-192m",
 					"twpll-256m", "twpll-307m2",
 					"twpll-384m"};
-static SPRD_MUX_CLK(dispc0_clk, "dispc0-clk", dispc0_parents, 0x98,
+static SPRD_MUX_CLK(dispc0_clk, "dispc0-clk", dispc0_parents, 0x9c,
 		    0, 3, SHARKL5PRO_MUX_FLAG);
 
 static const char * const dispc0_dpi_parents[] = { "twpll-96m",
-					"twpll-128m", "twpll-153m6"};
+						   "twpll-128m", "twpll-153m6",
+						   "twpll-192m"};
 static SPRD_COMP_CLK(dispc0_dpi_clk, "dispc0-dpi-clk", dispc0_dpi_parents,
-		     0x9c, 0, 2, 8, 4, 0);
+		     0xa0, 0, 2, 8, 4, 0);
 
 static const char * const dsi_apb_parents[] = { "twpll-96m", "twpll-128m",
 					"twpll-153m6", "twpll-192m"};
-static SPRD_MUX_CLK(dsi_apb_clk, "dsi-apb-clk", dsi_apb_parents, 0xa0,
+static SPRD_MUX_CLK(dsi_apb_clk, "dsi-apb-clk", dsi_apb_parents, 0xa4,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
-static SPRD_GATE_CLK(dsi_rxesc, "dsi-rxesc", "ap-apb-clk", 0xa4,
+static SPRD_GATE_CLK(dsi_rxesc, "dsi-rxesc", "ap-apb-clk", 0xa8,
 		     BIT(16), 0, 0);
 
-static SPRD_GATE_CLK(dsi_lanebyte, "dsi-lanebyte", "ap-apb-clk", 0xa8,
+static SPRD_GATE_CLK(dsi_lanebyte, "dsi-lanebyte", "ap-apb-clk", 0xac,
 		     BIT(16), 0, 0);
+
+static const char * const vdsp_parents[] = { "twpll-256m", "twpll-384m",
+					     "twpll-512m", "lpll-614m4",
+					     "twpll-768m", "isppll" };
+static SPRD_MUX_CLK(vdsp_clk, "vdsp-clk", vdsp_parents, 0xb0,
+		    0, 3, SHARKL5PRO_MUX_FLAG);
+static SPRD_DIV_CLK(vdsp_m_clk, "vdsp-m-clk", "vdsp-clk", 0xb4,
+		    8, 2, 0);
 
 static struct sprd_clk_common *sharkl5pro_ap_clks[] = {
 	/* address base is 0x20200000 */
 	&ap_apb_clk.common,
+	&ipi_clk.common,
 	&ap_uart0_clk.common,
 	&ap_uart1_clk.common,
 	&ap_uart2_clk.common,
@@ -916,11 +933,15 @@ static struct sprd_clk_common *sharkl5pro_ap_clks[] = {
 	&dsi_apb_clk.common,
 	&dsi_rxesc.common,
 	&dsi_lanebyte.common,
+	&vdsp_clk.common,
+	&vdsp_m_clk.common,
+
 };
 
 static struct clk_hw_onecell_data sharkl5pro_ap_clk_hws = {
 	.hws	= {
 		[CLK_AP_APB] = &ap_apb_clk.common.hw,
+		[CLK_IPI] = &ipi_clk.common.hw,
 		[CLK_AP_UART0] = &ap_uart0_clk.common.hw,
 		[CLK_AP_UART1] = &ap_uart1_clk.common.hw,
 		[CLK_AP_UART2] = &ap_uart2_clk.common.hw,
@@ -947,6 +968,8 @@ static struct clk_hw_onecell_data sharkl5pro_ap_clk_hws = {
 		[CLK_DSI_APB] = &dsi_apb_clk.common.hw,
 		[CLK_DSI_RXESC] = &dsi_rxesc.common.hw,
 		[CLK_DSI_LANEBYTE] = &dsi_lanebyte.common.hw,
+		[CLK_VDSP] = &vdsp_clk.common.hw,
+		[CLK_VDSP_M] = &vdsp_m_clk.common.hw,
 	},
 	.num	= CLK_AP_CLK_NUM,
 };
@@ -1132,8 +1155,8 @@ static const char * const emc_parents[] = { "ext-26m", "twpll-384m",
 static SPRD_MUX_CLK(emc_clk, "emc-clk", emc_parents, 0x30c,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
-static const char * const usb_parents[] = { "rco-25m", "ext-26m", "isppll-78m",
-					"twpll-96m", "rco-100m", "twpll-128m" };
+static const char * const usb_parents[] = { "rco-25m", "ext-26m", "twpll-192m",
+					    "twpll-96m", "rco-100m", "twpll-128m" };
 static SPRD_COMP_CLK(usb_clk, "usb-clk", usb_parents, 0x310,
 		     0, 3, 8, 2, 0);
 
