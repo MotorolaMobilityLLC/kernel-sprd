@@ -104,6 +104,11 @@
 				#interrupt-cells = <2>;
 				interrupts = <GIC_SPI 35 IRQ_TYPE_LEVEL_HIGH>;
 			};
+
+			pin_controller: pinctrl@402a0000 {
+				compatible = "sprd,sharkle-pinctrl";
+				reg = <0x402a0000 0x10000>;
+			};
 		};
 	};
 };
