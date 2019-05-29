@@ -34,9 +34,7 @@ struct wcn_pmic_config {
 };
 
 struct marlin_device {
-	int coexist;
 	int wakeup_ap;
-	int ap_send_data;
 	int reset;
 	int chip_en;
 	int int_ap;

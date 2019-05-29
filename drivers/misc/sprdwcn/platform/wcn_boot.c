@@ -788,20 +788,10 @@ static int marlin_parse_dt(struct platform_device *pdev)
 
 	wcn_get_pmic_config(np);
 
-	marlin_dev->coexist = of_get_named_gpio(np,
-			"m2-to-ap-coexist-gpios", 0);
-	if (!gpio_is_valid(marlin_dev->coexist))
-		WCN_INFO("can not get coexist gpio\n");
-
 	marlin_dev->wakeup_ap = of_get_named_gpio(np,
 			"m2-wakeup-ap-gpios", 0);
 	if (!gpio_is_valid(marlin_dev->wakeup_ap))
 		WCN_INFO("can not get wakeup gpio\n");
-
-	marlin_dev->ap_send_data = of_get_named_gpio(np,
-			"permit-ap-send-gpios", 0);
-	if (!gpio_is_valid(marlin_dev->ap_send_data))
-		WCN_INFO("can not get permit gpio\n");
 
 	marlin_dev->reset = of_get_named_gpio(np,
 			"reset-gpios", 0);
