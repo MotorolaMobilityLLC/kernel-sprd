@@ -6474,7 +6474,7 @@ CONFIG_MESSAGE_LOGLEVEL_DEFAULT
 	[function] Default message log level (1-7), set to 4.
 CONFIG_MFD_CORE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] mfd
 	[must] user
@@ -6488,7 +6488,7 @@ CONFIG_MFD_SC2703
 	[function] Support for sc2703 charger management
 CONFIG_MFD_SC27XX_PMIC
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] menu,make,code
 	[subsys] mfd
 	[must] user
@@ -8989,7 +8989,7 @@ CONFIG_REGMAP_I2C
 	[function] Support iic regmap.
 CONFIG_REGMAP_IRQ
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] menu,make
 	[subsys] core
 	[must] user
@@ -9158,7 +9158,7 @@ CONFIG_RTC_CLASS
 	[function] Generic RTC class support.
 CONFIG_RTC_DRV_SC27XX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] menu,make,code
 	[subsys] rtc
 	[must] user
