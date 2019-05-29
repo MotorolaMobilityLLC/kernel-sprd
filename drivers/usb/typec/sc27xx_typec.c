@@ -104,7 +104,7 @@ struct sprd_typec_variant_data {
 	u32 event_mask;
 };
 
-static const struct sprd_typec_variant_data sharkl5_data = {
+static const struct sprd_typec_variant_data sc2730_data = {
 	.efuse_shift = SC2730_EFUSE_SHIFT,
 	.int_en = SC27XX_INT_EN,
 	.int_clr = SC27XX_INT_CLR,
@@ -115,7 +115,7 @@ static const struct sprd_typec_variant_data sharkl5_data = {
 	.event_mask = SC27XX_EVENT_MASK,
 };
 
-static const struct sprd_typec_variant_data sharkl3_data = {
+static const struct sprd_typec_variant_data sc2721_data = {
 	.efuse_shift = SC27XX_EFUSE_SHIFT_DEFAULT,
 	.int_en = SC2721_EN,
 	.int_clr = SC2721_CLR,
@@ -487,8 +487,8 @@ static int sc27xx_typec_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id typec_sprd_match[] = {
-	{.compatible = "sprd,sc2730-typec", .data = &sharkl5_data},
-	{.compatible = "sprd,sc2721-typec", .data = &sharkl3_data},
+	{.compatible = "sprd,sc2730-typec", .data = &sc2730_data},
+	{.compatible = "sprd,sc2721-typec", .data = &sc2721_data},
 	{},
 };
 MODULE_DEVICE_TABLE(of, typec_sprd_match);
