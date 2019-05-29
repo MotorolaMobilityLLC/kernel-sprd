@@ -164,6 +164,17 @@
 				clocks = <&apahb_gate CLK_DMA_EB>;
 			};
 
+			usb: usb@20200000 {
+				compatible  = "sprd,pike2-musb";
+				reg = <0x20200000 0x2000>;
+				interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "mc";
+				clocks = <&apahb_gate CLK_OTG_EB>;
+				clock-names = "core_clk";
+				usb-phy = <&hsphy>;
+				phy-names = "usb";
+			};
+
 			sdio3: sdio@20600000 {
 				compatible  = "sprd,sdhc-r10";
 				reg = <0x20600000 0x1000>;
@@ -186,6 +197,16 @@
 					 <&pll CLK_TWPLL_384M>,
 					 <&apahb_gate CLK_SDIO0_EB>;
 				status = "disabled";
+			};
+
+			hsphy: hsphy@20e00000 {
+				compatible = "sprd,pike2-phy";
+				reg = <0x20e00000 0x3030>;
+				reg-names = "phy_glb_regs";
+				sprd,syscon-enable = <&aon_apb_regs>;
+				sprd,tune-value = <0x0005af33>;
+				sprd,vdd-voltage = <3300000>;
+				#phy-cells = <0>;
 			};
 		};
 

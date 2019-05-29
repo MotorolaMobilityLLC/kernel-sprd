@@ -7,7 +7,6 @@
  */
 
 #include <dt-bindings/gpio/gpio.h>
-
 #include "sc7731e.dtsi"
 #include "sc2720.dtsi"
 #include "sp7731e-common.dtsi"
@@ -90,6 +89,10 @@
 						124872 43 >;
 	};
 
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &uart1 {
@@ -131,4 +134,13 @@
 
 &dphy {
 	status = "okay";
+};
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+};
+
+&usb {
+	extcon = <&extcon_gpio>;
 };
