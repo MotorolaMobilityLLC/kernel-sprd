@@ -11,6 +11,7 @@
 
 #include "ums512.dtsi"
 #include "ums512-mach.dtsi"
+#include "ums512-modem.dtsi"
 #include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
 #include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
 
@@ -61,6 +62,12 @@
 		log {
 			compatible = "android,trusty-log-v1";
 		};
+	};
+
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
 	};
 
 	ion {
