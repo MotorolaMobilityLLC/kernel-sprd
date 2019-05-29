@@ -94,9 +94,7 @@
 
 	sprd_marlin3: sprd-marlin3 {
 		compatible = "sprd,marlin3";
-		m2-to-ap-coexist-gpios = <&ap_gpio 119 GPIO_ACTIVE_LOW>;
 		m2-wakeup-ap-gpios = <&ap_gpio 77 GPIO_ACTIVE_LOW>;
-		permit-ap-send-gpios = <&ap_gpio 69 GPIO_ACTIVE_LOW>;
 		reset-gpios = <&ap_gpio 95 GPIO_ACTIVE_LOW>;
 		enable-gpios = <&ap_gpio 94 GPIO_ACTIVE_LOW>;
 		m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
