@@ -914,6 +914,16 @@
 				};
 			};
 
+			watchdog@322f0000 {
+				compatible = "sprd,sharkl5-wdt", "sprd,sharkl5pro-wdt";
+				reg = <0 0x322f0000 0 0x10000>;
+				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <12>;
+				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_APCPU_WDG_EB>,
+					<&aonapb_gate CLK_AC_WDG_RTC_EB>;
+			};
+
 			hwlock: hwspinlock@327f0000 {
 				compatible = "sprd,hwspinlock-r3p0", "sprd,sharkl5pro-hwspinlock";
 				reg = <0 0x327f0000 0 0x10000>;
