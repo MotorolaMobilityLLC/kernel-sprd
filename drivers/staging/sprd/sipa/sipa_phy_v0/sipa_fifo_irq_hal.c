@@ -23,110 +23,6 @@ struct sipa_interrupt_table_tag ipa_int_table[] = {
 		.id = SIPA_FIFO_AP_IP_UL,
 		.int_owner = IPA_MAP_UL_TX_INTERRUPT_MASK,
 	},
-	{
-		.id = SIPA_FIFO_LOCAL_PCIE_CTRL0_DL,
-		.int_owner = IPA_MAP_PCIE_DL_CH0_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_LOCAL_PCIE_CTRL1_DL,
-		.int_owner = IPA_MAP_PCIE_DL_CH1_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_LOCAL_PCIE_CTRL2_DL,
-		.int_owner = IPA_MAP_PCIE_DL_CH2_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_LOCAL_PCIE_CTRL3_DL,
-		.int_owner = IPA_MAP_PCIE_DL_CH3_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_LOCAL_PCIE_CTRL0_UL,
-		.int_owner = IPA_MAP_PCIE_UL_CH0_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_LOCAL_PCIE_CTRL1_UL,
-		.int_owner = IPA_MAP_PCIE_UL_CH1_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_LOCAL_PCIE_CTRL2_UL,
-		.int_owner = IPA_MAP_PCIE_UL_CH2_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_LOCAL_PCIE_CTRL3_UL,
-		.int_owner = IPA_MAP_PCIE_UL_CH3_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_USB_DL,
-		.int_owner = IPA_USB_DL_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_USB_UL,
-		.int_owner = IPA_USB_UL_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_SDIO_DL,
-		.int_owner = IPA_SDIO_DL_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_SDIO_UL,
-		.int_owner = IPA_SDIO_UL_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_PCIE_DL,
-		.int_owner = IPA_PCIE_DL_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_PCIE_UL,
-		.int_owner = IPA_PCIE_UL_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_REMOTE_PCIE_CTRL0_DL,
-		.int_owner = IPA_PCIE_DL_CH0_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_REMOTE_PCIE_CTRL0_UL,
-		.int_owner = IPA_PCIE_UL_CH0_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_REMOTE_PCIE_CTRL1_DL,
-		.int_owner = IPA_PCIE_DL_CH1_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_REMOTE_PCIE_CTRL1_UL,
-		.int_owner = IPA_PCIE_UL_CH1_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_REMOTE_PCIE_CTRL2_DL,
-		.int_owner = IPA_PCIE_DL_CH2_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_REMOTE_PCIE_CTRL2_UL,
-		.int_owner = IPA_PCIE_UL_CH2_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_REMOTE_PCIE_CTRL3_DL,
-		.int_owner = IPA_PCIE_DL_CH3_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_REMOTE_PCIE_CTRL3_UL,
-		.int_owner = IPA_PCIE_UL_CH3_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_WIFI_DL,
-		.int_owner = IPA_WIFI_DL_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_WIFI_UL,
-		.int_owner = IPA_WIFI_UL_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_CP_DL,
-		.int_owner = IPA_WIAP_DL_INTERRUPT_MASK,
-	},
-	{
-		.id = SIPA_FIFO_CP_UL,
-		.int_owner = IPA_WIAP_UL_INTERRUPT_MASK,
-	},
 };
 
 static inline u32
@@ -200,7 +96,7 @@ u32 sipa_int_callback_func(int evt, void *cookie)
 
 	int_sts = ipa_phy_get_int_status(cfg->phy_virt_res.glb_base);
 
-	for (i = 0; i < SIPA_FIFO_MAX; i++) {
+	for (i = 0; i < ARRAY_SIZE(ipa_int_table); i++) {
 		if (int_sts & ipa_int_table[i].int_owner) {
 			ipa_fifo_irq_main_cb(ipa_int_table[i].id,
 					     cfg->cmn_fifo_cfg);
