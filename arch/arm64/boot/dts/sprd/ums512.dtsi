@@ -446,3 +446,27 @@
 	clocks = <&apapb_gate CLK_I2C4_EB>,
 		 <&ap_clk CLK_AP_I2C4>, <&ext_26m>;
 };
+
+&spi0 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI0_EB>,
+		 <&ap_clk CLK_AP_SPI0>, <&pll2 CLK_TWPLL_192M>;
+};
+
+&spi1 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI1_EB>,
+		 <&ap_clk CLK_AP_SPI1>, <&pll2 CLK_TWPLL_192M>;
+};
+
+&spi2 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI2_EB>,
+		 <&ap_clk CLK_AP_SPI2>, <&pll2 CLK_TWPLL_192M>;
+};
+
+&spi3 {
+	clock-names = "enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI3_EB>,
+		 <&ap_clk CLK_AP_SPI3>, <&pll2 CLK_TWPLL_192M>;
+};
