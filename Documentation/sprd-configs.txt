@@ -3662,7 +3662,7 @@ CONFIG_FW_LOADER_USER_HELPER_FALLBACK
 	direct file loading in kernel fails.
 CONFIG_GENERIC_ADC_THERMAL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -9306,14 +9306,14 @@ CONFIG_SC23XX
 	For pike2, this must be enable for buletooth.
 CONFIG_SC27XX_ADC
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] iio
 	[must] home
 	[function] This function is used to support sc27xx adc moudle
 CONFIG_SC27XX_EFUSE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] nvmem
 	[must] home
@@ -10230,7 +10230,7 @@ CONFIG_SPRD_DEBUG
 	[function] Enable/disable sprd debug function.
 CONFIG_SPRD_DEDICATE_THERMAL
 	[arch] all
-	[plat] pike2,sharkl3
+	[plat] pike2,sharkl3,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -10279,7 +10279,7 @@ CONFIG_SPRD_DMC_MPU_CORE
 	[function] Enable MPU core function
 CONFIG_SPRD_EFUSE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] 	[field]make
 	[subsys] nvmem
 	[must] home
