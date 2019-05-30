@@ -1661,7 +1661,7 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_gro_enable,
 
 static int sipa_usb_debugfs_mknod(void *root, void *data)
 {
-	struct eth_dev *dev = (struct eth_dev *)dev;
+	struct eth_dev *dev = (struct eth_dev *)data;
 
 	if (!dev)
 		return -ENODEV;
