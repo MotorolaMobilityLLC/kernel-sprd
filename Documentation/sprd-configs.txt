@@ -5033,7 +5033,7 @@ CONFIG_I2C_HELPER_AUTO
 	[function] Some I2C bus drivers require so-called "I2C algorithm" modules
 CONFIG_I2C_SPRD
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] menu
 	[subsys] i2c
 	[must] user

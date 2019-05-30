@@ -1844,7 +1844,7 @@ CONFIG_I2C_HELPER_AUTO=y
 # CONFIG_I2C_PXA_PCI is not set
 # CONFIG_I2C_RK3X is not set
 # CONFIG_I2C_SIMTEC is not set
-# CONFIG_I2C_SPRD is not set
+CONFIG_I2C_SPRD=y
 # CONFIG_I2C_XILINX is not set
 # CONFIG_I2C_SPRD_HW is not set
 
