@@ -7,6 +7,7 @@
  */
 /dts-v1/;
 
+#include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
 
 #include "udx710.dtsi"
@@ -54,6 +55,34 @@
 	sprd-sysdump {
 		memory-region = <&memory>;
 		memory-region-re = <&ddrbist_reserved>, <&cp_reserved>, <&smem_reserved>;
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		key-volumedown {
+			label = "Volume Down Key";
+			linux,code = <KEY_VOLUMEDOWN>;
+			gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+
+		key-volumeup {
+			label = "Volume Up Key";
+			linux,code = <KEY_VOLUMEUP>;
+			gpios = <&pmic_eic 4 GPIO_ACTIVE_HIGH>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+
+		key-power {
+			label = "Power Key";
+			linux,code = <KEY_POWER>;
+			gpios = <&pmic_eic 1 GPIO_ACTIVE_LOW>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
 	};
 
 	dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
