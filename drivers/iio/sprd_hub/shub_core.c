@@ -445,6 +445,7 @@ static void request_send_firmware(struct shub_data *sensor,
 	int i, size;
 	int ret;
 	int success = 0;
+	int opcode_download_count;
 	struct file *file;
 	loff_t *pos;
 
@@ -524,9 +525,18 @@ static void request_send_firmware(struct shub_data *sensor,
 		fw_head = (struct fwshub_head *)fw_data;
 		fw_body = (struct iic_unit *)(fw_data +
 			sizeof(struct fwshub_head));
-		ret = shub_send_command(sensor, sensor_type,
-					SHUB_DOWNLOAD_OPCODE_SUBTYPE,
-					fw_data, size);
+
+		opcode_download_count = 0;
+		do {
+			if (opcode_download_count)
+				msleep(200);
+			ret = shub_send_command(sensor, sensor_type,
+					SHUB_DOWNLOAD_OPCODE_SUBTYPE, fw_data,
+					size);
+			opcode_download_count++;
+		} while (ret == RESPONSE_TIMEOUT &&
+			opcode_download_count < 10);
+
 		if (ret) {
 			dev_err(&sensor->sensor_pdev->dev,
 				"Failed to init sensor, ret = %d\n", ret);
