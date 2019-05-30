@@ -3832,14 +3832,14 @@ CONFIG_GENERIC_PHY
 	[function]
 CONFIG_GENERIC_PINCONF
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] menu
 	[subsys] pinctrl
 	[must] user
 	[function] Generic pin configuration support.
 CONFIG_GENERIC_PINMUX_FUNCTIONS
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field]
 	[subsys]
 	[must]
@@ -8351,7 +8351,7 @@ CONFIG_PHY_XGENE
 	[function]
 CONFIG_PINCONF
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] menu
 	[subsys] pinctrl
 	[must] user
@@ -8365,7 +8365,7 @@ CONFIG_PINCTRL
 	[function] Support pin configuration controllers.
 CONFIG_PINCTRL_SPRD
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] menu,make
 	[subsys] pinctrl
 	[must] user
@@ -8398,9 +8398,16 @@ CONFIG_PINCTRL_SPRD_SHARKL5
 	[subsys] pinctrl
 	[must] user
 	[function] Spreadtrum Sharkl5 pinctrl driver
+CONFIG_PINCTRL_SPRD_SHARKLE
+	[arch] arm
+	[plat] sharkle32
+	[field] menu,make,code
+	[subsys] pinctrl
+	[must] user
+	[function] Spreadtrum Sharkle pinctrl driver
 CONFIG_PINMUX
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] all
 	[field] menu
 	[subsys] pinctrl
 	[must] user

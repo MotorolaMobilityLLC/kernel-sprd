@@ -54,3 +54,9 @@ config PINCTRL_SPRD_PIKE2
 	depends on PINCTRL_SPRD
 	help
 	  Say Y here to enable Spreadtrum Pike2 pinctrl driver
+
+config PINCTRL_SPRD_SHARKLE
+	bool "Spreadtrum Sharkle pinctrl driver"
+	depends on PINCTRL_SPRD
+	help
+	  Say Y here to enable Spreadtrum Sharkle pinctrl driver
