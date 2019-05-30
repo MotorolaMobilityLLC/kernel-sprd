@@ -1667,6 +1667,7 @@
 					syscons = <&pmu_apb_regs REG_PMU_APB_DVFS_BLOCK_SHUTDOWN_CFG
 						MASK_PMU_APB_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
 					syscon-names = "dvfs-blk-dcdc-sd";
+					dcdc-idle-voltage = <0x320 6 0x7 6>;
 				};
 				dcdc_cpu1: dcdc-cpu1{
 					dcdc-dvfs-enable = <0xA0 0 1>;
@@ -1676,6 +1677,7 @@
 					syscons = <&pmu_apb_regs REG_PMU_APB_DVFS_BLOCK_SHUTDOWN_CFG
 						MASK_PMU_APB_DCDC_CPU1_DVFS_BLOCK_SHUTDOWN_EN>;
 					syscon-names = "dvfs-blk-dcdc-sd";
+					dcdc-idle-voltage = <0x320 3 0x7 5>;
 				};
 				dcdc_mm: dcdc-mm {
 					dcdc-dvfs-enable = <0x18 20 1>;
@@ -1765,24 +1767,28 @@
 						sel-get = <0x38 0 3>;
 						div-get = <0x38 2 7>;
 						vol-get = <0x30 0 7>;
+						dfs-idle-disable = <0x308 0 1>;
 					};
 					lit_core1_dev: lit-core1-dev {
 						device-name = "cpu1";
 						sel-get = <0x38 5 3>;
 						div-get = <0x38 7 7>;
 						vol-get = <0x30 3 7>;
+						dfs-idle-disable = <0x308 1 1>;
 					};
 					lit_core2_dev: lit-core2-dev {
 						device-name = "cpu2";
 						sel-get = <0x38 10 3>;
 						div-get = <0x38 12 7>;
 						vol-get = <0x30 6 7>;
+						dfs-idle-disable = <0x308 2 1>;
 					};
 					lit_core3_dev: lit-core3-dev {
 						device-name = "cpu3";
 						sel-get = <0x38 15 3>;
 						div-get = <0x38 17 7>;
 						vol-get = <0x30 9 7>;
+						dfs-idle-disable = <0x308 3 1>;
 					};
 				};
 				big_core_cluster: big-core-cluster {
@@ -1824,24 +1830,28 @@
 						sel-get = <0x38 20 3>;
 						div-get = <0x38 22 7>;
 						vol-get = <0x30 12 7>;
+						dfs-idle-disable = <0x308 4 1>;
 					};
 					big_core1_dev: big-core1-dev {
 						device-name = "cpu5";
 						sel-get = <0x38 25 3>;
 						div-get = <0x38 27 7>;
 						vol-get = <0x30 15 7>;
+						dfs-idle-disable = <0x308 5 1>;
 					};
 					big_core2_dev: big-core2-dev {
 						device-name = "cpu6";
 						sel-get = <0x3C 0 3>;
 						div-get = <0x3C 2 7>;
 						vol-get = <0x30 18 7>;
+						dfs-idle-disable = <0x308 6 1>;
 					};
 					big_core3_dev: big-core3-dev {
 						device-name = "cpu7";
 						sel-get = <0x3C 5 3>;
 						div-get = <0x3C 7 7>;
 						vol-get = <0x30 21 7>;
+						dfs-idle-disable = <0x308 7 1>;
 					};
 				};
 				scu_cluster: scu-cluster {
@@ -1879,6 +1889,7 @@
 						sel-get = <0x3C 10 7>;
 						div-get = <0x3C 13 7>;
 						vol-get = <0x34 0 7>;
+						dfs-idle-disable = <0x308 8 1>;
 					};
 					ace_dev: ace-dev {
 						device-name = "ace";
@@ -1914,6 +1925,7 @@
 						sel-get = <0x3C 19 3>;
 						div-get = <0x3C 21 7>;
 						vol-get = <0x34 6 7>;
+						dfs-idle-disable = <0x308 10 1>;
 					};
 				};
 
@@ -1944,6 +1956,7 @@
 						sel-get = <0x40 0 3>;
 						div-get = <0x40 2 7>;
 						vol-get = <0x34 9 7>;
+						dfs-idle-disable = <0x308 11 1>;
 					};
 				};
 
