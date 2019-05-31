@@ -3018,7 +3018,7 @@ CONFIG_DT_IDLE_STATES
 	[function] This macro is used to open cpuidle and light sleep function.
 CONFIG_DUAL_ROLE_USB_INTF
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] usb
 	[must] user
@@ -10488,6 +10488,13 @@ CONFIG_SPRD_PCIE_EP_DEVICE
 	[subsys]
 	[must]
 	[function]
+CONFIG_SPRD_PIKE2_USB2_PHY
+	[arch] arm
+	[plat] pike2
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_PMIC_SYSCON
 	[arch] all
 	[plat] pike2,roc1,sharkl5,sharkl5_32
@@ -11929,7 +11936,7 @@ CONFIG_USB_PAM
 	[function]
 CONFIG_USB_PHY
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] usb
 	[must] user
