@@ -679,7 +679,6 @@ static irqreturn_t gsp_r6p0_core_irq_handler(int irq, void *data)
 
 int gsp_r6p0_core_enable(struct gsp_core *c)
 {
-#if 0
 	int ret = -1;
 	struct gsp_r6p0_core *core = NULL;
 
@@ -698,19 +697,14 @@ int gsp_r6p0_core_enable(struct gsp_core *c)
 		goto dpu_clk_unprepare;
 	}
 
+	gsp_r6p0_int_clear(c);
+	gsp_r6p0_core_irq_enable(c);
 	goto exit;
 
 dpu_clk_unprepare:
 	clk_disable_unprepare(core->dpu_clk);
 exit:
 	return ret;
-#endif
-	struct gsp_r6p0_core *core = NULL;
-
-	core = (struct gsp_r6p0_core *)c;
-	gsp_r6p0_int_clear(c);
-	gsp_r6p0_core_irq_enable(c);
-	return 0;
 }
 
 void gsp_r6p0_core_disable(struct gsp_core *c)
@@ -719,7 +713,7 @@ void gsp_r6p0_core_disable(struct gsp_core *c)
 
 	core = (struct gsp_r6p0_core *)c;
 	gsp_r6p0_int_clear_and_disable(c);
-	/*clk_disable_unprepare(core->dpu_clk);*/
+	clk_disable_unprepare(core->dpu_clk);
 }
 
 static int gsp_r6p0_core_parse_clk(struct gsp_r6p0_core *core)

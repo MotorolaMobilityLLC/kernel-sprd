@@ -23,7 +23,6 @@
 int gsp_interface_sharkl3_parse_dt(struct gsp_interface *intf,
 				  struct device_node *node)
 {
-#if 0
 	int status = 0;
 	struct gsp_interface_sharkl3 *gsp_interface = NULL;
 
@@ -38,8 +37,6 @@ int gsp_interface_sharkl3_parse_dt(struct gsp_interface *intf,
 	}
 
 	return status;
-#endif
-	return 0;
 }
 
 int gsp_interface_sharkl3_init(struct gsp_interface *intf)
@@ -54,8 +51,6 @@ int gsp_interface_sharkl3_deinit(struct gsp_interface *intf)
 
 int gsp_interface_sharkl3_prepare(struct gsp_interface *intf)
 {
-	return 0;
-#if 0
 	int ret = -1;
 	struct gsp_interface_sharkl3 *gsp_interface = NULL;
 
@@ -85,12 +80,10 @@ exit:
 	GSP_DEBUG("interface[%s] prepare success\n",
 			  gsp_interface_to_name(intf));
 	return ret;
-#endif
 }
 
 int gsp_interface_sharkl3_unprepare(struct gsp_interface *intf)
 {
-#if 0
 	struct gsp_interface_sharkl3 *gsp_interface = NULL;
 
 	if (IS_ERR_OR_NULL(intf)) {
@@ -104,7 +97,6 @@ int gsp_interface_sharkl3_unprepare(struct gsp_interface *intf)
 
 	GSP_DEBUG("interface[%s] unprepare success\n",
 		  gsp_interface_to_name(intf));
-#endif
 	return 0;
 }
 
