@@ -253,3 +253,7 @@
 	no-sd;
 	status = "okay";
 };
+
+&vddldo0 {
+	regulator-always-on;
+};
