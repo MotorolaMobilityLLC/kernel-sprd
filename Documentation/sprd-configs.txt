@@ -2806,7 +2806,7 @@ CONFIG_DMA_SHARED_BUFFER
 	[function] Support DMA share buffer.
 CONFIG_DMA_VIRTUAL_CHANNELS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -10244,7 +10244,7 @@ CONFIG_SPRD_DJTAG_CORE
 	[function] Enable Djtag core function
 CONFIG_SPRD_DMA
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
 	[field] make
 	[subsys] dma
 	[must] none
