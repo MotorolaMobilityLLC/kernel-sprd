@@ -2782,6 +2782,11 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"DAC", NULL, "ADC-DAC Digital Loop post"},
 	{"DAC", NULL, "ADC1-DAC Digital Loop post"},
 
+	/* virt path */
+	{"Virt Output", "Switch", "Digital DACL Switch"},
+	{"Virt Output", "Switch", "Digital DACR Switch"},
+	{"Virt Output Pin", NULL, "Virt Output"},
+
 #endif
 };
 
