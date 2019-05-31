@@ -23,96 +23,115 @@
 
 		ap_ahb_regs: syscon@20e00000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x20e00000 0x10000>;
 		};
 
 		pub_apb_regs: syscon@300e0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x300e0000 0x10000>;
 		};
 
 		aon_intc_regs: syscon@40200000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x40200000 0x10000>;
 		};
 
 		pmu_apb_regs: syscon@402b0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x402b0000 0x10000>;
 		};
 
 		aon_apb_regs: syscon@402e0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x402e0000 0x10000>;
 		};
 
 		anlg_phy_g1_regs: syscon@403c0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x403c0000 0x10000>;
 		};
 
 		anlg_phy_g2_regs: syscon@403d0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x403d0000 0x10000>;
 		};
 
 		anlg_phy_top_regs: syscon@403e0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x403e0000 0x10000>;
 		};
 
 		anlg_phy_g4_regs: syscon@403f0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x403f0000 0x10000>;
 		};
 
 		anlg_phy_g6_regs: syscon@40410000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x40410000 0x10000>;
 		};
 
 		anlg_phy_g7_regs: syscon@40420000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x40420000 0x8000>;
 		};
 
 		anlg_phy_g8_regs: syscon@40430000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x40430000 0x10000>;
 		};
 
 		anlg_wrap_wcn_regs: syscon@40440000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x40440000 0x10000>;
 		};
 
 		mm_ahb_regs: syscon@60d00000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x60d00000 0x10000>;
 		};
 
 		ap_apb_regs: syscon@71300000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x71300000 0x10000>;
 		};
 
 		intc0_regs: syscon@71400000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x71400000 0x10000>;
 		};
 
 		intc1_regs: syscon@71500000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x71500000 0x10000>;
 		};
 
 		intc2_regs: syscon@71600000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x71600000 0x10000>;
 		};
 
 		intc3_regs: syscon@71700000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x71700000 0x10000>;
 		};
 
