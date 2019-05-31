@@ -3247,7 +3247,7 @@ CONFIG_EXTCON
 	[function]
 CONFIG_EXTCON_USB_GPIO
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -11894,7 +11894,7 @@ CONFIG_USB_MUSB_HDRC
 	[function] This macro is to support Inventra Highspeed Dual Role Controller (TI, ADI, AW, ...).
 CONFIG_USB_MUSB_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] usb
 	[must] user
@@ -11964,7 +11964,7 @@ CONFIG_USB_SERIAL
 	[function] USB serial mode on host mode
 CONFIG_USB_SPRD_DMA
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] usb
 	[must] user
