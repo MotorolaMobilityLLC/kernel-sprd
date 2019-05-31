@@ -116,6 +116,16 @@
 			#size-cells = <1>;
 			ranges;
 
+			ap_dma: dma-controller@20100000 {
+				compatible = "sprd,pike2-dma";
+				reg = <0x20100000 0x4000>;
+				interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
+				#dma-cells = <1>;
+				#dma-channels = <28>;
+				clock-names = "enable";
+				clocks = <&apahb_gate CLK_DMA_EB>;
+			};
+
 			sdio3: sdio@20600000 {
 				compatible  = "sprd,sdhc-r10";
 				reg = <0x20600000 0x1000>;
@@ -139,6 +149,15 @@
 				compatible = "sprd,hwspinlock-r3p0";
 				reg = <0x40060000 0x10000>;
 				#hwlock-cells = <1>;
+			};
+
+			aon_dma: dma-controller@40100000 {
+				compatible = "sprd,pike2-dma";
+				reg = <0x40100000 0x4000>;
+				#dma-cells = <1>;
+				#dma-channels = <13>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_AON_DMA_EB>;
 			};
 
 			adi_bus: spi@403c0000 {
