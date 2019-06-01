@@ -716,7 +716,8 @@ static int check_charging_duration(struct charger_manager *cm)
 			cm->charging_status |= CM_CHARGE_DURATION_ABNORMAL;
 			ret = true;
 		}
-	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled) {
+	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
+		(cm->charging_status & CM_CHARGE_DURATION_ABNORMAL)) {
 		duration = curr - cm->charging_end_time;
 
 		if (duration > desc->discharging_max_duration_ms &&
@@ -848,7 +849,8 @@ static int cm_check_charge_voltage(struct charger_manager *cm)
 		cm->charging_status |= CM_CHARGE_VOLTAGE_ABNORMAL;
 		return 0;
 	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
-		   charge_vol <= (desc->charge_voltage_max - desc->charge_voltage_drop)) {
+		   charge_vol <= (desc->charge_voltage_max - desc->charge_voltage_drop) &&
+		   (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL)) {
 		dev_info(cm->dev, "Charging voltage is less than %d, recharging\n",
 			 desc->charge_voltage_max - desc->charge_voltage_drop);
 		uevent_notify(cm, "Recharging");
@@ -901,7 +903,8 @@ static int cm_check_charge_health(struct charger_manager *cm)
 		cm->charging_status |= CM_CHARGE_HEALTH_ABNORMAL;
 		return 0;
 	} else if (is_ext_pwr_online(cm) && !cm->charger_enabled &&
-		health == POWER_SUPPLY_HEALTH_GOOD) {
+		health == POWER_SUPPLY_HEALTH_GOOD &&
+		(cm->charging_status & CM_CHARGE_HEALTH_ABNORMAL)) {
 		dev_info(cm->dev, "Charging health is recover good\n");
 		uevent_notify(cm, "Recharging");
 		try_charger_enable(cm, true);
