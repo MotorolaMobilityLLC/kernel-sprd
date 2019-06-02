@@ -83,28 +83,60 @@ struct sprd_pamu3 {
 	struct sipa_to_pam_info sipa_info;
 	u8		max_dl_pkts;
 	u8		max_ul_pkts;
-
+	u8		netid;
 	atomic_t    inited;     /* Pam init flag */
 	atomic_t	ref;
 };
 
 static struct sprd_pamu3 *pamu3_tag;
-int pamu3_set_netid(u8 netid)
-{
-	struct sprd_pamu3 *pamu3 = pamu3_tag;
-	u32 value;
 
-	if (!pamu3 || !atomic_read(&pamu3->inited))
-		return -ENODEV;
+static void pamu3_set_netid(struct sprd_pamu3 *pamu3, u8 netid)
+{
+	u32 value;
 
 	value = readl_relaxed(pamu3->base + PAM_U3_UL_NODE_HEADER);
 	value &= ~PAMU3_MASK_NETID;
 	value |= netid;
 	writel_relaxed(value, pamu3->base + PAM_U3_UL_NODE_HEADER);
-
-	return 0;
 }
-EXPORT_SYMBOL(pamu3_set_netid);
+
+static ssize_t pamu3_netid_store(struct device *dev,
+				 struct device_attribute *attr,
+				 const char *buf, size_t size)
+{
+	struct usb_phy *x = dev_get_drvdata(dev);
+	struct sprd_pamu3 *pamu3;
+	u8	netid;
+
+	if (!x)
+		return -EINVAL;
+
+	pamu3 = container_of(x, struct sprd_pamu3, pam);
+	if (kstrtou8(buf, 10, &netid) < 0)
+		return -EINVAL;
+
+	pamu3->netid = netid;
+	if (atomic_read(&pamu3->ref))
+		pamu3_set_netid(pamu3, netid);
+	return size;
+}
+
+static ssize_t pamu3_netid_show(struct device *dev,
+				struct device_attribute *attr,
+				char *buf)
+{
+	struct usb_phy *x = dev_get_drvdata(dev);
+	struct sprd_pamu3 *pamu3;
+
+	if (!x)
+		return -EINVAL;
+
+	pamu3 = container_of(x, struct sprd_pamu3, pam);
+
+	return sprintf(buf, "%d\n", pamu3->netid);
+}
+
+static DEVICE_ATTR_RW(pamu3_netid);
 
 void pamu3_load_code(struct sprd_pamu3 *pamu3, void *txep, void *rxep)
 {
@@ -405,6 +437,7 @@ static int sprd_pamu3_init(struct usb_phy *x)
 
 	if (atomic_read(&pamu3->ref))
 		dev_warn(pamu3->dev, "is already opened\n");
+	pamu3_set_netid(pamu3, pamu3->netid);
 	return 0;
 }
 
@@ -546,6 +579,7 @@ static DEVICE_ATTR_RW(max_ul_pkts);
 static struct attribute *usb_pamu3_attrs[] = {
 	&dev_attr_max_dl_pkts.attr,
 	&dev_attr_max_ul_pkts.attr,
+	&dev_attr_pamu3_netid.attr,
 	NULL
 };
 ATTRIBUTE_GROUPS(usb_pamu3);

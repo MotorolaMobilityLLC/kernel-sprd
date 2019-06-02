@@ -18,6 +18,4 @@ enum usb_pam_type {
 	USB_PAM_TYPE_USB3,
 };
 
-extern int pamu3_set_netid(u8 netid);
-
 #endif /* __LINUX_USB_PAM_H */
