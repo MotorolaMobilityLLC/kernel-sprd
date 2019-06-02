@@ -1243,6 +1243,10 @@ static int eth_stop(struct net_device *net)
 		 */
 		in = link->in_ep->desc;
 		out = link->out_ep->desc;
+#ifdef CONFIG_USB_PAM
+		link->in_ep->uether = false;
+		link->out_ep->uether = false;
+#endif
 		usb_ep_disable(link->in_ep);
 		usb_ep_disable(link->out_ep);
 		if (netif_carrier_ok(net)) {
