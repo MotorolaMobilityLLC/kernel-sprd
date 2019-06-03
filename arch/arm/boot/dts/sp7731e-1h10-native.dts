@@ -26,9 +26,43 @@
 		reg = <0x80000000 0x40000000>;
 	};
 
+	reserved-memory {
+		tos_reserved: tos-mem@94020000{
+			reg = <0x94020000 0x001fe0000>;
+		};
+	};
+
 	chosen {
 		stdout-path = &uart1;
 		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 loglevel=11 console=ttyS1,115200n8 init=/init root=/dev/ram0 rw androidboot.hardware=sp7731e_1h10 androidboot.dtbo_idx=0 androidboot.selinux=permissive printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
+	};
+
+	ipi: interrupt-controller {
+		compatible = "android,CustomIPI";
+		#interrupt-cells = <1>;
+		interrupt-controller;
+	};
+
+	trusty {
+		compatible = "android,trusty-smc-v1";
+
+		irq {
+			compatible = "android,trusty-irq-v1";
+			interrupt-templates = <&ipi 0>,
+						<&gic 1 GIC_PPI 0>,
+						<&gic 1 GIC_SPI 0>;
+			interrupt-ranges = < 0  15 0>,
+						<16  31 1>,
+						<32 223 2>;
+		};
+
+		virtio {
+			compatible = "android,trusty-virtio-v1";
+		};
+
+		log {
+			compatible = "android,trusty-log-v1";
+		};
 	};
 
 	tboard_thermistor:thermal-sensor {
@@ -52,6 +86,7 @@
 						114889 57
 						124872 43 >;
 	};
+
 };
 
 &uart1 {
