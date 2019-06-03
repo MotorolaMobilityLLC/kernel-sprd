@@ -1271,9 +1271,15 @@ CONFIG_MEMORY_STATE_TIME=y
 #
 # Spreadtrum WCN Device Drivers
 #
-# CONFIG_SC23XX is not set
-# CONFIG_WCN_BOOT is not set
-# CONFIG_WCN_UTILS is not set
+CONFIG_SC23XX=y
+# CONFIG_SC2342_INTEG is not set
+# CONFIG_SC2355 is not set
+CONFIG_UMW2652=y
+CONFIG_SDIOHAL=y
+CONFIG_WCN_SLP=y
+# CONFIG_WCN_PCIE is not set
+CONFIG_WCN_BOOT=y
+CONFIG_WCN_UTILS=y
 
 #
 # Spreadtrum Audio Assistant Modules
