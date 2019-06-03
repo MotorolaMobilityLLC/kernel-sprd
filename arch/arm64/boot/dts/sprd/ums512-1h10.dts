@@ -97,6 +97,38 @@
 		};
 	};
 
+	sprd_marlin3: sprd-marlin3 {
+		compatible = "sprd,marlin3";
+		m2-to-ap-coexist-gpios = <&ap_gpio 119 GPIO_ACTIVE_LOW>;
+		m2-wakeup-ap-gpios = <&ap_gpio 32 GPIO_ACTIVE_LOW>;
+		permit-ap-send-gpios = <&ap_gpio 121 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&ap_gpio 97 GPIO_ACTIVE_LOW>;
+		enable-gpios = <&ap_gpio 143 GPIO_ACTIVE_LOW>;
+		m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
+		avdd12-supply = <&vddwcn>;
+		avdd33-supply = <&vddwifipa>;
+		dcxo18-supply = <&vddsim2>;
+
+		clock-names = "clk_32k","source","enable";
+		clocks = <&aon_clk CLK_AUX0>,
+			 <&ext_32k>,
+			 <&aonapb_gate CLK_AUX0_EB>;
+
+		sdhci-name = <&sdio1>;
+		sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/wcnmodem";
+		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
+		adma-tx;
+		adma-rx;
+		/*
+		 * bound parameter:
+		 * [0]:addr offset, [1]:mask, [2]:unboundval, [3]:boundval
+		 */
+		uvdd12-parent-bound-chip = <0x1a4c 0x1 0x0 0x1>;
+		avdd12-bound-wbreq = <0x1ac8 0x1000 0x0 0x1000>;
+		avdd33-bound-wbreq = <0x1acc 0x4 0x0 0x4>;
+		post-power-on-delay-ms = <20>;
+	};
+
 	dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
 		top-dvfs-adi-state = <0x70 0 0xf>;
 		voltage-grade-num = <7>;
