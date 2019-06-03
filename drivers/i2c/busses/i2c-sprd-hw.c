@@ -104,7 +104,7 @@
 #define I2C_CLK_3M4	3400000
 
 /* For 3.4MHz clock adjustment */
-#define I2C_CLK_3M4_HIGH_ADJUST	2
+#define I2C_CLK_3M4_HIGH_ADJUST	1
 #define I2C_CLK_3M4_LOW_ADJUST	1
 
 /* i2c data structure */
@@ -348,12 +348,12 @@ static void  sprd_i2c_hw_set_clk(struct sprd_i2c_hw *i2c_dev, u32 freq)
 	 * prescale, we should adjust the high period of SCL clock is recommended
 	 * more then 60ns, and the low period of SCL clock is recommended more
 	 * then 160ns, then the formula should be:
-	 * high = (((i2c_dvd -  I2C_CLK_3M4_HIGH_ADJUST) << 1) * 2) / 5;
-	 * low = (((i2c_dvd -  I2C_CLK_3M4_LOW_ADJUST) << 1) * 3) / 5;
+	 * high = (((i2c_dvd -  I2C_CLK_3M4_HIGH_ADJUST) << 1) * 3) / 10;
+	 * low = (((i2c_dvd -  I2C_CLK_3M4_LOW_ADJUST) << 1) * 7) / 10;
 	 */
 	if (freq == I2C_CLK_3M4) {
-		high = (((i2c_dvd -  I2C_CLK_3M4_HIGH_ADJUST) << 1) * 2) / 5;
-		low = (((i2c_dvd -  I2C_CLK_3M4_LOW_ADJUST) << 1) * 3) / 5;
+		high = (((i2c_dvd -  I2C_CLK_3M4_HIGH_ADJUST) << 1) * 3) / 10;
+		low = (((i2c_dvd -  I2C_CLK_3M4_LOW_ADJUST) << 1) * 7) / 10;
 	} else {
 		high = ((i2c_dvd << 1) * 2) / 5;
 		low = ((i2c_dvd << 1) * 3) / 5;
