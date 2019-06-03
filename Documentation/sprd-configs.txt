@@ -3903,45 +3903,45 @@ CONFIG_GPIOLIB
 CONFIG_GPIOLIB_IRQCHIP
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] gpio
+	[must] user
+	[function] Generic gpio irq support
 CONFIG_GPIO_EIC_SPRD
 	[arch] all
 	[plat] all
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] gpio
+	[must] user
+	[function] Sprd gpio eic support
 CONFIG_GPIO_GENERIC
 	[arch] arm
 	[plat] sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] gpio
+	[must] user
+	[function] Gerneric gpio  support
 CONFIG_GPIO_GENERIC_PLATFORM
 	[arch] arm
 	[plat] sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] gpio
+	[must] user
+	[function] Generic gpio support
 CONFIG_GPIO_PLUS_SPRD
 	[arch] arm64
 	[plat] sharkl3
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] gpio
+	[must] user
+	[function] Sprd gpio plus support
 CONFIG_GPIO_PMIC_EIC_SPRD
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[function]
+	[field] make,code
+	[subsys] gpio
+	[must] user
+	[function] Sprd pmic eic support
 CONFIG_GPIO_SPRD
 	[arch] all
 	[plat] pike2,roc1,sharkl5,sharkl5_32,sharkle32
@@ -10391,8 +10391,8 @@ CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[function] This function is used to detected overlay region in
 		   reserved-memory.
 CONFIG_SPRD_MINI_SYSDUMP
-	[arch] arm64
-	[plat] roc1,sharkl3
+	[arch] all
+	[plat] pike2,roc1,sharkl3,sharkle32
 	[field]
 	[subsys]
 	[must]
