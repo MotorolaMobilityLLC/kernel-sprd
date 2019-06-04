@@ -2,8 +2,9 @@ Spreadtrum BUSMONITOR
 
 Required properties:
 - compatible: Should be one of follow:
-	      "sprd,sharkl3-busmonitor",
-	      "sprd,sharkl5-busmonitor".
+		"sprd,sharkl3-busmonitor",
+		"sprd,sharkl5-busmonitor",
+		"sprd,sharkl5pro-busmonitor".
 - interrupts: Should contain the BUSMONITOR interrupt number.
 - reg: Should contain the number of the sys on the djtag bus.
 - sprd,bm-num: Should contain the number of BUSMONITOR this sys have.
