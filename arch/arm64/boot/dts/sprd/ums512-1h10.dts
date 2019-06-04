@@ -129,6 +129,16 @@
 		post-power-on-delay-ms = <20>;
 	};
 
+	sprd-mtty {
+		compatible = "sprd,mtty";
+		sprd,name = "ttyBT";
+	};
+
+	sprd-fm {
+		compatible = "sprd,marlin3-fm";
+		sprd,name = "sprd-fm";
+	};
+
 	dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
 		top-dvfs-adi-state = <0x70 0 0xf>;
 		voltage-grade-num = <7>;
