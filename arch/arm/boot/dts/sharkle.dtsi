@@ -223,6 +223,15 @@
 				compatible = "sprd,sharkle-pinctrl";
 				reg = <0x402a0000 0x10000>;
 			};
+
+			adi_bus: spi@40380000 {
+				compatible = "sprd,sharkl3-adi",
+					"sprd,sharkle-adi";
+				reg = <0x40380000 0x10000>;
+				hwlocks = <&hwlock 0>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
 		};
 	};
 };
