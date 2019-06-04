@@ -10681,7 +10681,7 @@ CONFIG_SPRD_VSP
 	[function] The VSP is a video CODEC accelerator.
 CONFIG_SPRD_WATCHDOG
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl5,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
@@ -12103,21 +12103,21 @@ CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED
 	[function]
 CONFIG_WATCHDOG_PRETIMEOUT_DEFAULT_GOV_PANIC
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl5,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
 	[function] watchdog pretimeout default gov panic
 CONFIG_WATCHDOG_PRETIMEOUT_GOV
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl5,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
 	[function] watchdog pretimeout gov
 CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl5,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
