@@ -976,6 +976,22 @@ ep_fail:
 	return ret;
 }
 
+static void sipa_notify_sender_flow_ctrl(struct work_struct *work)
+{
+	int i;
+	struct sipa_control *sipa_ctrl = container_of(work, struct sipa_control,
+						      flow_ctrl_work);
+
+	for (i = 0; i < SIPA_PKT_TYPE_MAX; i++) {
+		if (sipa_ctrl->sender[i] &&
+		    sipa_ctrl->sender[i]->free_notify_net)
+			wake_up(&sipa_ctrl->sender[i]->free_waitq);
+		if (sipa_ctrl->sender[i] &&
+		    sipa_ctrl->sender[i]->send_notify_net)
+			wake_up(&sipa_ctrl->sender[i]->send_waitq);
+	}
+}
+
 static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 {
 	int ret;
@@ -1015,6 +1031,7 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		return ret;
 	}
 
+	INIT_WORK(&s_sipa_ctrl.flow_ctrl_work, sipa_notify_sender_flow_ctrl);
 	ret = sipa_init(&s_sipa_ctrl.ctx, cfg, dev);
 	if (ret) {
 		pr_err("sipa: sipa_init failed %d\n", ret);

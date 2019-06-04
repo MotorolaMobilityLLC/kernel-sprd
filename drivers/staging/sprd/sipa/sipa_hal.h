@@ -218,4 +218,7 @@ bool sipa_hal_check_rx_priv_fifo_is_full(sipa_hal_hdl hdl,
 
 int sipa_hal_set_tx_fifo_rptr(sipa_hal_hdl hdl, enum sipa_cmn_fifo_index id,
 			      u32 tmp);
+
+u32 sipa_hal_get_rx_priv_fifo_left_num(sipa_hal_hdl hdl,
+				       enum sipa_cmn_fifo_index fifo_id);
 #endif /* !_SIPA_HAL_H_ */

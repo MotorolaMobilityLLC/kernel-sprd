@@ -210,13 +210,18 @@ EXPORT_SYMBOL(sipa_nic_push_skb);
 int sipa_nic_tx(enum sipa_nic_id nic_id, enum sipa_term_type dst,
 		int netid, struct sk_buff *skb)
 {
+	int ret;
 	struct sipa_skb_sender *sender;
 
 	sender = s_sipa_ctrl.sender[s_spia_nic_statics[nic_id].pkt_type];
 	if (!sender)
 		return -ENODEV;
 
-	return sipa_skb_sender_send_data(sender, skb, dst, netid);
+	ret = sipa_skb_sender_send_data(sender, skb, dst, netid);
+	if (ret == -EAGAIN || ret == -ENOMEM)
+		s_sipa_ctrl.nic[nic_id]->flow_ctrl_status = true;
+
+	return ret;
 }
 EXPORT_SYMBOL(sipa_nic_tx);
 
@@ -251,3 +256,28 @@ int sipa_nic_rx_has_data(enum sipa_nic_id nic_id)
 	return (!!nic->rx_skb_q.qlen);
 }
 EXPORT_SYMBOL(sipa_nic_rx_has_data);
+
+int sipa_nic_trigger_flow_ctrl_work(enum sipa_nic_id nic_id, int err)
+{
+	struct sipa_skb_sender *sender;
+
+	sender = s_sipa_ctrl.sender[s_spia_nic_statics[nic_id].pkt_type];
+	if (!sender)
+		return -ENODEV;
+
+	switch (err) {
+	case -ENOMEM:
+		sender->send_notify_net = true;
+		break;
+	case -EAGAIN:
+		sender->free_notify_net = true;
+		break;
+	default:
+		pr_warn("don't have this err type\n");
+		break;
+	}
+
+	schedule_work(&s_sipa_ctrl.flow_ctrl_work);
+	return 0;
+}
+EXPORT_SYMBOL(sipa_nic_trigger_flow_ctrl_work);

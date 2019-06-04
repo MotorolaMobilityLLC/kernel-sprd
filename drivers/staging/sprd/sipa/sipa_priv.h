@@ -233,6 +233,7 @@ struct sipa_nic {
 	sipa_notify_cb cb;
 	void *cb_priv;
 	atomic_t status;
+	bool flow_ctrl_status;
 };
 
 struct sipa_skb_receiver {
@@ -260,6 +261,7 @@ struct sipa_control {
 	struct sipa_endpoint *eps[SIPA_EP_MAX];
 
 	/* IPA NIC interface */
+	struct work_struct flow_ctrl_work;
 	struct sipa_nic *nic[SIPA_NIC_MAX];
 
 	/* sender & receiver */

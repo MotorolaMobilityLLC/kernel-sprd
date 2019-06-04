@@ -31,6 +31,22 @@
 
 #define SIPA_RECEIVER_BUF_LEN     1600
 
+static void sipa_inform_evt_to_nics(struct sipa_skb_sender *sender,
+				    enum sipa_evt_type evt)
+{
+	unsigned long flags;
+	struct sipa_nic *nic;
+
+	spin_lock_irqsave(&sender->nic_lock, flags);
+	list_for_each_entry(nic, &sender->nic_list, list) {
+		if (nic->flow_ctrl_status) {
+			nic->flow_ctrl_status = false;
+			sipa_nic_notify_evt(nic, evt);
+		}
+	}
+	spin_unlock_irqrestore(&sender->nic_lock, flags);
+}
+
 void sipa_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 			   unsigned long data)
 {
@@ -61,12 +77,6 @@ static void sipa_free_sent_items(struct sipa_skb_sender *sender)
 
 	num = sipa_hal_get_tx_fifo_items(sender->ctx->hdl,
 					 sender->ep->send_fifo.idx);
-
-	if (!num) {
-		pr_info("get item failed index = %d\n",
-			sender->ep->send_fifo.idx);
-		return;
-	}
 
 	for (i = 0; i < num; i++) {
 		sipa_hal_recv_conversion_node_to_item(sender->ctx->hdl,
@@ -102,9 +112,11 @@ static void sipa_free_sent_items(struct sipa_skb_sender *sender)
 	sipa_hal_set_tx_fifo_rptr(sender->ctx->hdl,
 				  sender->ep->send_fifo.idx, num);
 	atomic_add(success_cnt, &sender->left_cnt);
-	if (sender->free_notify_net) {
-		sipa_sender_notify_cb(sender, SIPA_HAL_EXIT_FLOW_CTRL, 0xfe);
+	if (sender->free_notify_net &&
+	    atomic_read(&sender->left_cnt) >
+	    sender->ep->send_fifo.rx_fifo.fifo_depth / 4) {
 		sender->free_notify_net = false;
+		sipa_inform_evt_to_nics(sender, SIPA_LEAVE_FLOWCTRL);
 	}
 	if (num != success_cnt)
 		pr_err("recv num = %d release num = %d\n",
@@ -120,6 +132,7 @@ static int sipa_send_thread(void *data)
 	sched_setscheduler(current, SCHED_RR, &param);
 
 	while (!kthread_should_stop()) {
+		u32 num;
 		ret = wait_event_interruptible(sender->send_waitq,
 			(!sipa_hal_check_rx_priv_fifo_is_empty(sender->ctx->hdl,
 					sender->ep->send_fifo.idx) ||
@@ -127,13 +140,15 @@ static int sipa_send_thread(void *data)
 		if (!ret) {
 			sipa_hal_put_rx_fifo_items(sender->ctx->hdl,
 						   sender->ep->send_fifo.idx);
-			if (sender->send_notify_net) {
-				sipa_sender_notify_cb(sender,
-						      SIPA_HAL_EXIT_FLOW_CTRL,
-						      0xfe);
+			num = sipa_hal_get_rx_priv_fifo_left_num(
+						sender->ctx->hdl,
+						sender->ep->send_fifo.idx);
+			if (sender->send_notify_net && num >
+			    sender->ep->send_fifo.rx_fifo.fifo_depth / 4) {
 				sender->send_notify_net = false;
+				sipa_inform_evt_to_nics(sender,
+							SIPA_LEAVE_FLOWCTRL);
 			}
-
 		}
 	}
 
@@ -302,8 +317,6 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 	struct sipa_hal_fifo_item item;
 
 	if (!atomic_read(&sender->left_cnt)) {
-		sender->free_notify_net = true;
-		wake_up(&sender->free_waitq);
 		sender->no_free_cnt++;
 		return -EAGAIN;
 	}
@@ -330,9 +343,7 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 				 dma_addr,
 				 skb->len + skb_headroom(skb),
 				 DMA_TO_DEVICE);
-		sender->send_notify_net = true;
 		sender->no_mem_cnt++;
-		wake_up(&sender->send_waitq);
 		return -ENOMEM;
 	}
 	node = list_first_entry(&sender->pair_free_list,
