@@ -355,6 +355,7 @@ static const struct of_device_id sprd_dmc_mpu_of_match[] = {
 	{ .compatible = "sprd,sharkl5-dmc-mpu", },
 	{ .compatible = "sprd,roc1-dmc-mpu", },
 	{ .compatible = "sprd,orca-dmc-mpu", },
+	{ .compatible = "sprd,sharkl5pro-dmc-mpu", },
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_dmpu_of_match);
