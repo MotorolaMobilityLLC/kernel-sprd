@@ -72,6 +72,20 @@
 	};
 };
 
+&sdio0 {
+	sprd,sdr104-dly = <0x7f 0xb0 0xb4 0xb4>;
+	sprd,sdr50-dly = <0x7f 0x45 0x41 0x41>;
+	vmmc-supply = <&vddsdcore>;
+	vqmmc-supply = <&vddsdio>;
+	voltage-ranges = <3000 3000>;
+	bus-width = <4>;
+	sd-uhs-sdr50;
+	sprd,name = "sdio_sd";
+	no-sdio;
+	no-mmc;
+	status = "okay";
+};
+
 &sdio3 {
 	sprd,hs400es-dly = <0x45 0x7f 0x30 0x30>;
 	sprd,hs400-dly = <0x45 0xaa 0x30 0x30>;

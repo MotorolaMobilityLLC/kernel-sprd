@@ -173,6 +173,18 @@
 					 <&apahb_gate CLK_EMMC_EB>;
 				status = "disabled";
 			};
+
+			sdio0: sdio@20300000 {
+				compatible  = "sprd,sdhc-r10";
+				reg = <0x20300000 0x1000>;
+				interrupts = <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio_clk","sdio_clk_source",
+					      "sdio_ahb_enable";
+				clocks = <&aon_clk CLK_SDIO0_2X>,
+					 <&pll CLK_TWPLL_384M>,
+					 <&apahb_gate CLK_SDIO0_EB>;
+				status = "disabled";
+			};
 		};
 
 		aon {
