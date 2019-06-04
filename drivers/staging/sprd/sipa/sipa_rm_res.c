@@ -601,7 +601,9 @@ int sipa_rm_resource_consumer_register(struct sipa_rm_res_cons *cons,
 				      struct sipa_rm_notif_info,
 				      link);
 		if (reg_info->reg_params.notify_cb ==
-		    reg_para->notify_cb) {
+		    reg_para->notify_cb &&
+		    reg_info->reg_params.user_data ==
+		    reg_para->user_data) {
 			pr_err("already registered\n");
 			return -EPERM;
 		}
@@ -649,7 +651,9 @@ sipa_rm_resource_consumer_deregister(struct sipa_rm_res_cons *consumer,
 				      struct sipa_rm_notif_info,
 				      link);
 		if (reg_info->reg_params.notify_cb ==
-		    reg_params->notify_cb) {
+		    reg_params->notify_cb &&
+		    reg_info->reg_params.user_data ==
+		    reg_params->user_data) {
 			list_del(pos);
 			kfree(reg_info);
 			return 0;
