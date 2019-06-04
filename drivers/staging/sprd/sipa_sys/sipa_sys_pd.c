@@ -41,10 +41,6 @@ static const char * const reg_name_tb[] = {
 	"ipa-sys-cm4eb",
 	"ipa-sys-autogaten",
 	"ipa-sys-s5-autogaten",
-	"ipa-sys-pciepllhsel",
-	"ipa-sys-pciepllvsel",
-	"ipa-sys-xtlbufpciehsel",
-	"ipa-sys-xtlbufpcievsel",
 };
 
 enum  {
@@ -60,10 +56,6 @@ enum  {
 	IPA_SYS_CM4EB,
 	IPA_SYS_AUTOGATEN,
 	IPA_SYS_S5_AUTOGATEN,
-	IPA_SYS_PCIEPLLHSEL,
-	IPA_SYS_PCIEPLLVSEL,
-	IPA_SYS_XTLBUFPCIEHSEL,
-	IPA_SYS_XTLBUFPCIEVSEL,
 };
 
 struct sipa_sys_register {
