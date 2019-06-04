@@ -1,7 +1,7 @@
 Spreadtrum DMC MPU
 
 Required properties:
-- compatible: "sprd,sharkl3-dmc-mpu", "sprd,sharkl5-dmc-mpu".
+- compatible: "sprd,sharkl3-dmc-mpu", "sprd,sharkl5-dmc-mpu", "sprd,sharkl5pro-dmc-mpu".
 	There will be different IP versions for different Spreadtrum
 	SoC families. So we use specified IP to compatible different SoC.
 	e.g. sprd,dmc-mpu-r4p0 for SHARKL3.
