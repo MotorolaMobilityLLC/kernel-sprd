@@ -10027,7 +10027,7 @@ CONFIG_SPI_SPRD
 	[function] Enable spreadtrum SPI controller
 CONFIG_SPI_SPRD_ADI
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] spi
 	[must] user
