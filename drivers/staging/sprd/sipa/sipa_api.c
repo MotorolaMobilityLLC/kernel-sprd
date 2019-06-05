@@ -23,6 +23,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/io.h>
 #include <linux/cdev.h>
+#include <linux/regulator/consumer.h>
 
 #include "sipa_api.h"
 #include "sipa_priv.h"
@@ -561,7 +562,7 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 	u32 fifo_info[2];
 	u32 reg_info[2];
 	struct resource *resource;
-	const struct sipa_register_data *pdata;
+	const struct sipa_hw_data *pdata;
 
 	/* get IPA  global  register  offset */
 	pdata = of_device_get_match_data(&pdev->dev);
@@ -570,6 +571,7 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 		return -EINVAL;
 	}
 	cfg->debugfs_data = pdata;
+	cfg->standalone_subsys = pdata->standalone_subsys;
 	/* get IPA global register base  address */
 	resource = platform_get_resource_byname(pdev,
 						IORESOURCE_MEM,
@@ -642,21 +644,15 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 	}
 
 	/* get wakeup register informations */
-	cfg->wakeup_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
-							  "wakeup");
-	if (IS_ERR(cfg->wakeup_regmap)) {
-		cfg->wakeup_regmap = NULL;
-		pr_err("%s :get wakeup regmap fail!\n", __func__);
-	}
-
-	ret = syscon_get_args_by_name(pdev->dev.of_node, "wakeup", 2, reg_info);
-
-	if (ret < 0 || ret != 2) {
-		cfg->wakeup_regmap = NULL;
-		pr_warn("%s :get wakeup register info fail!\n", __func__);
-	} else {
-		cfg->wakeup_reg = reg_info[0];
-		cfg->wakeup_mask = reg_info[1];
+	if (cfg->standalone_subsys) {
+		cfg->vpower = devm_regulator_get(&pdev->dev, "vpower");
+		if (IS_ERR(cfg->vpower)) {
+			ret = PTR_ERR(cfg->vpower);
+			dev_err(&pdev->dev,
+				"unable to get vpower supply %d\n",
+				ret);
+			return ret;
+		}
 	}
 
 	/* get IPA fifo memory settings */
@@ -1015,13 +1011,13 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		return ret;
 	}
 
-	ret = sipa_force_wakeup(cfg);
+	ret = sipa_force_wakeup(cfg, true);
 	if (ret) {
 		pr_err("sipa: sipa_hal_init failed %d\n", ret);
 		return ret;
 	}
 
-	ret = sipa_set_enabled(cfg);
+	ret = sipa_set_enabled(cfg, true);
 	if (ret) {
 		pr_err("sipa: sipa_hal_init failed %d\n", ret);
 		return ret;
@@ -1041,14 +1037,16 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
  * offset address and register , we should save offset and names
  * in the device data structure.
  */
-static struct sipa_register_data roc1_defs_data = {
+static struct sipa_hw_data roc1_defs_data = {
 	.ahb_reg = sipa_roc1_ahb_regmap,
 	.ahb_regnum = ROC1_AHB_MAX_REG,
+	.standalone_subsys = true,
 };
 
-static struct sipa_register_data orca_defs_data = {
+static struct sipa_hw_data orca_defs_data = {
 	.ahb_reg = sipa_orca_ahb_regmap,
 	.ahb_regnum = ORCA_AHB_MAX_REG,
+	.standalone_subsys = false,
 };
 
 static struct of_device_id sipa_plat_drv_match[] = {

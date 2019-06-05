@@ -31,7 +31,7 @@ static int sipa_regdump_show(struct seq_file *s, void *unused)
 	struct sipa_plat_drv_cfg *sipa = &s_sipa_cfg;
 	struct sipa_hal_context *hal_cfg = &sipa_hal_ctx;
 	void __iomem *glbbase = hal_cfg->phy_virt_res.glb_base;
-	const struct sipa_register_data *sipa_regmap = sipa->debugfs_data;
+	const struct sipa_hw_data *sipa_regmap = sipa->debugfs_data;
 	unsigned int i, val;
 
 	seq_puts(s, "Sipa Ahb Register\n");

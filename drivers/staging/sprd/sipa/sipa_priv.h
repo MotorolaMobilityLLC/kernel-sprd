@@ -86,6 +86,18 @@ struct sipa_common_fifo_cfg {
 	struct sipa_fifo_cfg rx_fifo;
 };
 
+struct ipa_register_map {
+	char *name;
+	u32 offset;
+	u32 size;
+};
+
+struct sipa_hw_data {
+	const u32 ahb_regnum;
+	const struct ipa_register_map *ahb_reg;
+	const bool standalone_subsys;
+};
+
 struct sipa_plat_drv_cfg {
 	const char *name;
 
@@ -94,13 +106,11 @@ struct sipa_plat_drv_cfg {
 	struct device *dev;
 	struct cdev cdev;
 
+	bool standalone_subsys;
 	struct regmap *sys_regmap;
 	u32 enable_reg;
 	u32 enable_mask;
-
-	struct regmap *wakeup_regmap;
-	u32 wakeup_reg;
-	u32 wakeup_mask;
+	struct regulator *vpower;
 
 	int ipa_intr;
 

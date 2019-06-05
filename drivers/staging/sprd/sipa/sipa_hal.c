@@ -10,6 +10,7 @@
 #include <linux/of_address.h>
 #include <linux/of_reserved_mem.h>
 #include <linux/dma-mapping.h>
+#include <linux/regulator/consumer.h>
 
 #ifdef CONFIG_SIPA_TEST
 #include <linux/kthread.h>
@@ -300,15 +301,16 @@ sipa_hal_hdl sipa_hal_init(struct device *dev,
 }
 EXPORT_SYMBOL(sipa_hal_init);
 
-int sipa_set_enabled(struct sipa_plat_drv_cfg *cfg)
+int sipa_set_enabled(struct sipa_plat_drv_cfg *cfg, bool enable)
 {
 	int ret = 0;
+	u32 val = enable ? cfg->enable_mask : (~cfg->enable_mask);
 
 	if (cfg->sys_regmap) {
 		ret = regmap_update_bits(cfg->sys_regmap,
 					 cfg->enable_reg,
 					 cfg->enable_mask,
-					 cfg->enable_mask);
+					 val);
 		if (ret < 0)
 			pr_err("regmap update bits failed");
 	}
@@ -316,18 +318,21 @@ int sipa_set_enabled(struct sipa_plat_drv_cfg *cfg)
 }
 EXPORT_SYMBOL(sipa_set_enabled);
 
-int sipa_force_wakeup(struct sipa_plat_drv_cfg *cfg)
+int sipa_force_wakeup(struct sipa_plat_drv_cfg *cfg, bool wake)
 {
 	int ret = 0;
 
-	if (cfg->wakeup_regmap) {
-		ret = regmap_update_bits(cfg->wakeup_regmap,
-					 cfg->wakeup_reg,
-					 cfg->wakeup_mask,
-					 cfg->wakeup_mask);
-		if (ret < 0)
-			pr_err("regmap update bits failed");
-	}
+	if (!cfg->vpower)
+		return ret;
+
+	if (wake)
+		ret = regulator_enable(cfg->vpower);
+	else
+		ret = regulator_disable(cfg->vpower);
+
+	if (ret < 0)
+		pr_err("%s: enable vpower failed", __func__);
+
 	return ret;
 }
 EXPORT_SYMBOL(sipa_force_wakeup);

@@ -25,24 +25,9 @@
 #define ROC1_AHB_MAX_REG		56
 #define ORCA_AHB_MAX_REG		67
 
-struct ipa_register_map {
-	char *name;
-	u32 offset;
-	u32 size;
-};
-
 struct ipa_fifo_iterm_map {
 	char *name;
 	u32 offset;
-};
-
-struct sipa_register_data {
-	const u32 ahb_regnum;
-	const u32 apb_regnum;
-	const u32 mpu_regnum;
-	const struct ipa_register_map *ahb_reg;
-	const struct ipa_register_map *apb_reg;
-	const struct ipa_register_map *mpu_reg;
 };
 
 static const struct ipa_register_map sipa_orca_ahb_regmap[] = {

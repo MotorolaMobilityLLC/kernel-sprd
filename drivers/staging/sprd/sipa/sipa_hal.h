@@ -132,9 +132,9 @@ struct sipa_plat_drv_cfg;
 
 sipa_hal_hdl sipa_hal_init(struct device *dev, struct sipa_plat_drv_cfg *cfg);
 
-int sipa_set_enabled(struct sipa_plat_drv_cfg *cfg);
+int sipa_set_enabled(struct sipa_plat_drv_cfg *cfg, bool enable);
 
-int sipa_force_wakeup(struct sipa_plat_drv_cfg *cfg);
+int sipa_force_wakeup(struct sipa_plat_drv_cfg *cfg, bool wake);
 
 int sipa_open_common_fifo(sipa_hal_hdl hdl,
 			  enum sipa_cmn_fifo_index fifo,
