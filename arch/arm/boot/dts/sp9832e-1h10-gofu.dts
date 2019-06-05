@@ -8,6 +8,7 @@
 /dts-v1/;
 
 #include "sc9832e.dtsi"
+#include "sp9832e-go-mach.dtsi"
 
 / {
 	model = "Spreadtrum SP9832E-1H10-GOFU Board";
