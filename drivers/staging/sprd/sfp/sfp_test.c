@@ -31,15 +31,11 @@ static u32 saddr = 0x2A89A8C0;
 static u32 daddr = 0x98965DCC;
 static u16 srcport = 0x6BFC;
 static u16 dstport = 0x5000;
-static u8 proto = 0x06;
 static u32 tgt_dstip = 0x0A0A0A01;
 static u32 tgt_srcip = 0x0A0A0A0A;
 static u16 tgt_srcport = 5000;
 static u16 tgt_dstport = 50000;
-static int ifindex  = 1;
-static int mtype    = NF_NAT_MANIP_SRC;
-static u8 macaddrs[] = {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2};
-static int test_count;
+int test_count;
 
 #define IP_1 0x0A0A0A01
 #define IP_2 0x0A0A0A02

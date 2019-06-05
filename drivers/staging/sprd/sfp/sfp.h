@@ -522,7 +522,6 @@ int nf_sfp_conntrack_init(void);
 bool sfp_ipa_tbl_timeout(struct sfp_conn *sfp_ct);
 void sfp_ipa_swap_tbl_new(void);
 void ipa_tbl_check(void);
-void ipa_time_out_test(unsigned long ul_timer);
 
 int sfp_ct_init(struct nf_conn *ct, struct sfp_conn *sfp_ct);
 void clear_sfp_mgr_table(void);
