@@ -96,7 +96,7 @@
 		soc_thmzone: soc-thmzone {
 			polling-delay-passive = <100>;
 			polling-delay = <1000>;
-			sustainable-power = <2000>;
+			sustainable-power = <2386>;
 			thermal-sensors = <&soc_sensor  17>;
 			trips {
 				soc_threshold: trip-point@0 {
@@ -243,7 +243,8 @@
 			/*Pdynperghz*10    Freq     Vbase  */
 			< 757           1000     1000>;
 			sprd,sensor-names = "ank0-thmzone","ank1-thmzone","ank2-thmzone";
-			sprd,cpuidle-temp = <100000 95000 90000>;
+			sprd,cii-per-core-tp = <100000 95000 90000>;
+			sprd,cii-max-tp-core = <90000>;
 		};
 
 		cluster1_cooling: cluster1-cooling {
@@ -286,7 +287,8 @@
 			/* Pdynperghz*10    Freq     Vbase */
 			<  757            1000     1000>;
 			sprd,sensor-names = "prometheus0-thmzone";
-			sprd,cpuidle-temp = <85000>;
+			sprd,cii-per-core-tp = <90000>;
+			sprd,cii-max-tp-core = <90000>;
 		};
 	};
 
