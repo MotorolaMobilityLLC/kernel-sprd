@@ -425,6 +425,8 @@ static void pamu3_start(struct sprd_pamu3 *pamu3)
 	value |= (MAX_PACKET_NUM << MAX_PACKET_NUM_SHIFT_BIT);
 	writel_relaxed(value, pamu3->base + PAM_U3_SRC_MACH);
 
+	pamu3_set_netid(pamu3, pamu3->netid);
+
 	value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
 	value |= PAMU3_CTL0_BIT_PAM_EN;
 	writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
@@ -437,7 +439,6 @@ static int sprd_pamu3_init(struct usb_phy *x)
 
 	if (atomic_read(&pamu3->ref))
 		dev_warn(pamu3->dev, "is already opened\n");
-	pamu3_set_netid(pamu3, pamu3->netid);
 	return 0;
 }
 
