@@ -328,13 +328,6 @@
 		gpu_clk: gpu-clk {
 			compatible = "sprd,sharkl5pro-gpu-clk";
 			sprd,syscon = <&gpu_apb_regs>;
-			syscons = <&aon_apb_regs
-					REG_AON_APB_RF_APB_EB0
-					MASK_AON_APB_RF_GPU_EB>,
-				  <&pmu_apb_regs
-					REG_PMU_APB_RF_PD_GPU_TOP_CFG0
-					MASK_PMU_APB_RF_PD_GPU_TOP_FORCE_SHUTDOWN>;
-			syscon-names = "enable", "power";
 			clocks = <&aon_clk CLK_AP_MM>;
 			#clock-cells = <1>;
 		};
@@ -342,13 +335,6 @@
 		mm_gate: clock-controller@62200000 {
 			compatible = "sprd,sharkl5pro-mm-gate-clk";
 			sprd,syscon = <&mm_ahb_regs>;
-			syscons = <&aon_apb_regs
-					REG_AON_APB_RF_APB_EB0
-					MASK_AON_APB_RF_MM_EB>,
-				  <&pmu_apb_regs
-					REG_PMU_APB_RF_PD_MM_TOP_CFG
-					MASK_PMU_APB_RF_PD_MM_TOP_FORCE_SHUTDOWN>;
-			syscon-names = "enable", "power";
 			clocks = <&aonapb_gate CLK_MM_EB>;
 			#clock-cells = <1>;
 		};
