@@ -91,32 +91,10 @@ int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 	return i;
 }
 
-int sprd_pcie_rc_wait_for_l2(struct dw_pcie *pci)
+int sprd_pcie_enter_pcipm_l2(struct dw_pcie *pci)
 {
+	u32 reg;
 	int retries;
-	u32 reg;
-
-	for (retries = 0; retries < ENTER_L2_MAX_RETRIES; retries++) {
-		reg = dw_pcie_readl_dbi(pci, SPRD_PCIE_PE0_PM_STS);
-		if ((reg & SPRD_PCIE_PM_CURRENT_STATE_MASK) != SPRD_PCIE_L2) {
-			dev_err(pci->dev, "retries %d to enter L2, reg: %lx\n",
-				retries, (unsigned long)reg);
-			/* TODO: now we can't sure the delay time */
-			usleep_range(1000, 2000);
-		} else {
-			dev_info(pci->dev, "enter L2: reg: 0x%lx\n",
-				 (unsigned long)reg);
-			return 0;
-		}
-	}
-	dev_err(pci->dev, "can't enter L2\n");
-
-	return -ETIMEDOUT;
-}
-
-void sprd_pcie_enter_pcipm_l2(struct dw_pcie *pci)
-{
-	u32 reg;
 
 	reg = dw_pcie_readl_dbi(pci, SPRD_PCIE_PE0_PM_CTRL);
 	reg |= SPRD_PCIE_APP_CLK_PM_EN;
@@ -125,6 +103,27 @@ void sprd_pcie_enter_pcipm_l2(struct dw_pcie *pci)
 	reg = dw_pcie_readl_dbi(pci, SPRD_PCIE_PE0_TX_MSG_REG);
 	reg |= SPRD_PCIE_PME_TURN_OFF_REQ;
 	dw_pcie_writel_dbi(pci, SPRD_PCIE_PE0_TX_MSG_REG, reg);
+
+	for (retries = 0; retries < ENTER_L2_MAX_RETRIES; retries++) {
+		reg = dw_pcie_readl_dbi(pci, SPRD_PCIE_PE0_PM_STS);
+		if ((reg & SPRD_PCIE_PM_CURRENT_STATE_MASK) == SPRD_PCIE_L2) {
+			dev_info(pci->dev, "enter L2: reg: 0x%lx\n",
+				 (unsigned long)reg);
+			return 0;
+		}
+		/* TODO: now we can't sure the delay time */
+		usleep_range(1000, 2000);
+	}
+	dev_err(pci->dev,
+		"can't enter L2, [0x%x]: 0x%x, [0x%x]: 0x%x, [0x%x]: [0x%x]\n",
+		SPRD_PCIE_PE0_PM_CTRL,
+		dw_pcie_readl_dbi(pci, SPRD_PCIE_PE0_PM_CTRL),
+		SPRD_PCIE_PE0_PM_STS,
+		dw_pcie_readl_dbi(pci, SPRD_PCIE_PE0_PM_STS),
+		PCIE_PHY_DEBUG_R0,
+		dw_pcie_readl_dbi(pci, PCIE_PHY_DEBUG_R0));
+
+	return -ETIMEDOUT;
 }
 
 void sprd_pcie_save_msi_ctrls(struct dw_pcie *pci)

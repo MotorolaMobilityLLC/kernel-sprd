@@ -15,7 +15,7 @@
 #define SPRD_PCIE_PE0_TX_MSG_REG		0xe80
 #define SPRD_PCIE_PME_TURN_OFF_REQ		(0x1 << 19)
 
-#define ENTER_L2_MAX_RETRIES	200
+#define ENTER_L2_MAX_RETRIES	10
 
 #define PCI_DEVICE_ID_SPRD_RC	0xabcd
 
@@ -51,5 +51,4 @@ struct sprd_pcie_of_data {
 int sprd_pcie_syscon_setting(struct platform_device *pdev, char *evn);
 void sprd_pcie_save_dwc_reg(struct dw_pcie *pci);
 void sprd_pcie_restore_dwc_reg(struct dw_pcie *pci);
-int sprd_pcie_rc_wait_for_l2(struct dw_pcie *pci);
-void sprd_pcie_enter_pcipm_l2(struct dw_pcie *pci);
+int sprd_pcie_enter_pcipm_l2(struct dw_pcie *pci);

@@ -404,12 +404,9 @@ static int sprd_pcie_suspend_noirq(struct device *dev)
 
 	sprd_pcie_save_dwc_reg(pci);
 
-	sprd_pcie_enter_pcipm_l2(pci);
-	ret = sprd_pcie_rc_wait_for_l2(pci);
-	if (ret < 0) {
-		dev_err(dev, "suspend fail, RC can't enter l2\n");
-		return ret;
-	}
+	ret = sprd_pcie_enter_pcipm_l2(pci);
+	if (ret < 0)
+		dev_warn(dev, "note: RC doesn't enter l2\n");
 
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-suspend-syscons");
 	if (ret < 0) {
@@ -433,6 +430,7 @@ static int sprd_pcie_resume_noirq(struct device *dev)
 		dev_err(dev, "set pcie resume syscons fail, return %d\n", ret);
 		return ret;
 	}
+
 	dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
 			   LTSSM_EN | L1_AUXCLK_EN);
 
