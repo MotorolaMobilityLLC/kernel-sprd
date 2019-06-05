@@ -341,3 +341,9 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 	return 0;
 }
 EXPORT_SYMBOL(sipa_skb_sender_send_data);
+
+bool sipa_skb_sender_check_send_complete(struct sipa_skb_sender *sender)
+{
+	return true;
+}
+EXPORT_SYMBOL(sipa_skb_sender_check_send_complete);

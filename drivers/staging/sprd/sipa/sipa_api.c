@@ -855,6 +855,11 @@ static int sipa_create_skb_xfer(struct sipa_context *ipa,
 		goto receiver_fail;
 	}
 
+	ret = sipa_rm_inactivity_timer_init(SIPA_RM_RES_CONS_WWAN_UL,
+					    SIPA_WWAN_CONS_TIMER);
+	if (ret)
+		goto receiver_fail;
+
 	return 0;
 
 receiver_fail:
@@ -880,7 +885,28 @@ sender_fail:
 	return ret;
 }
 
-static int sipa_create_wwan_cons(void)
+static void sipa_destroy_skb_xfer(void)
+{
+	if (s_sipa_ctrl.receiver[SIPA_PKT_IP]) {
+		destroy_sipa_skb_receiver(s_sipa_ctrl.receiver[SIPA_PKT_IP]);
+		s_sipa_ctrl.receiver[SIPA_PKT_IP] = NULL;
+	}
+	if (s_sipa_ctrl.receiver[SIPA_PKT_ETH]) {
+		destroy_sipa_skb_receiver(s_sipa_ctrl.receiver[SIPA_PKT_ETH]);
+		s_sipa_ctrl.receiver[SIPA_PKT_ETH] = NULL;
+	}
+	if (s_sipa_ctrl.sender[SIPA_PKT_IP]) {
+		destroy_sipa_skb_sender(s_sipa_ctrl.sender[SIPA_PKT_IP]);
+		s_sipa_ctrl.sender[SIPA_PKT_IP] = NULL;
+	}
+	if (s_sipa_ctrl.sender[SIPA_PKT_ETH]) {
+		destroy_sipa_skb_sender(s_sipa_ctrl.sender[SIPA_PKT_ETH]);
+		s_sipa_ctrl.sender[SIPA_PKT_ETH] = NULL;
+	}
+	sipa_rm_inactivity_timer_destroy(SIPA_RM_RES_CONS_WWAN_UL);
+}
+
+static int sipa_create_rm_cons(void)
 {
 	int ret;
 	struct sipa_rm_create_params rm_params = {};
@@ -901,7 +927,135 @@ static int sipa_create_wwan_cons(void)
 		return ret;
 	}
 
+	/* USB */
+	rm_params.name = SIPA_RM_RES_CONS_USB;
+
+	ret = sipa_rm_create_resource(&rm_params);
+	if (ret) {
+		sipa_rm_delete_resource(SIPA_RM_RES_CONS_WWAN_UL);
+		sipa_rm_delete_resource(SIPA_RM_RES_CONS_WWAN_DL);
+		return ret;
+	}
+
+	/* WLAN */
+	rm_params.name = SIPA_RM_RES_CONS_WLAN;
+
+	ret = sipa_rm_create_resource(&rm_params);
+	if (ret) {
+		sipa_rm_delete_resource(SIPA_RM_RES_CONS_WWAN_UL);
+		sipa_rm_delete_resource(SIPA_RM_RES_CONS_WWAN_DL);
+		sipa_rm_delete_resource(SIPA_RM_RES_CONS_USB);
+		return ret;
+	}
+
 	return 0;
+}
+
+static void sipa_destroy_rm_cons(void)
+{
+	sipa_rm_delete_resource(SIPA_RM_RES_CONS_WWAN_UL);
+	sipa_rm_delete_resource(SIPA_RM_RES_CONS_WWAN_DL);
+	sipa_rm_delete_resource(SIPA_RM_RES_CONS_USB);
+	sipa_rm_delete_resource(SIPA_RM_RES_CONS_WLAN);
+}
+
+static int sipa_req_ipa_prod(void *user_data)
+{
+	int ret;
+	struct sipa_plat_drv_cfg *cfg = &s_sipa_cfg;
+
+	ret = sipa_force_wakeup(cfg, true);
+	if (ret) {
+		pr_err("sipa: sipa_hal_init failed %d\n", ret);
+		return ret;
+	}
+
+	ret = sipa_set_enabled(cfg, true);
+	if (ret) {
+		sipa_force_wakeup(cfg, false);
+		pr_err("sipa: sipa_hal_init failed %d\n", ret);
+		return ret;
+	}
+
+	return ret;
+}
+
+static int sipa_rls_ipa_prod(void *user_data)
+{
+	int ret;
+	struct sipa_plat_drv_cfg *cfg = &s_sipa_cfg;
+
+	ret = sipa_set_enabled(cfg, false);
+	if (ret) {
+		pr_err("sipa: sipa_hal_init failed %d\n", ret);
+		return ret;
+	}
+
+	ret = sipa_force_wakeup(cfg, false);
+	if (ret) {
+		pr_err("sipa: sipa_hal_init failed %d\n", ret);
+		return ret;
+	}
+
+	return ret;
+}
+
+static int sipa_create_ipa_prod(struct sipa_context *ipa)
+{
+	int ret;
+	struct sipa_rm_create_params rm_params = {};
+
+	/* create prod */
+	rm_params.name = SIPA_RM_RES_PROD_IPA;
+	rm_params.floor_voltage = 0;
+	rm_params.reg_params.notify_cb = NULL;
+	rm_params.reg_params.user_data = ipa;
+	rm_params.request_resource = sipa_req_ipa_prod;
+	rm_params.release_resource = sipa_rls_ipa_prod;
+	ret = sipa_rm_create_resource(&rm_params);
+	if (ret)
+		return ret;
+
+	/* add dependencys */
+	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_WWAN_UL,
+				     SIPA_RM_RES_PROD_IPA);
+	if (ret < 0 && ret != -EINPROGRESS) {
+		pr_err("sipa_init: add_dependency WWAN_UL fail.\n");
+		sipa_rm_delete_resource(SIPA_RM_RES_PROD_IPA);
+		return ret;
+	}
+	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_WWAN_DL,
+				     SIPA_RM_RES_PROD_IPA);
+	if (ret < 0 && ret != -EINPROGRESS) {
+		pr_err("sipa_init: add_dependency WWAN_DL fail.\n");
+		sipa_rm_delete_dependency(SIPA_RM_RES_CONS_WWAN_UL,
+					  SIPA_RM_RES_PROD_IPA);
+		sipa_rm_delete_resource(SIPA_RM_RES_PROD_IPA);
+		return ret;
+	}
+	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_USB,
+				     SIPA_RM_RES_PROD_IPA);
+	if (ret < 0 && ret != -EINPROGRESS) {
+		pr_err("sipa_init: add_dependency USB fail.\n");
+		sipa_rm_delete_dependency(SIPA_RM_RES_CONS_WWAN_UL,
+					  SIPA_RM_RES_PROD_IPA);
+		sipa_rm_delete_dependency(SIPA_RM_RES_CONS_WWAN_DL,
+					  SIPA_RM_RES_PROD_IPA);
+		sipa_rm_delete_resource(SIPA_RM_RES_PROD_IPA);
+		return ret;
+	}
+	return 0;
+}
+
+static void sipa_destroy_ipa_prod(void)
+{
+	sipa_rm_delete_dependency(SIPA_RM_RES_CONS_WWAN_UL,
+				  SIPA_RM_RES_PROD_IPA);
+	sipa_rm_delete_dependency(SIPA_RM_RES_CONS_WWAN_DL,
+				  SIPA_RM_RES_PROD_IPA);
+	sipa_rm_delete_dependency(SIPA_RM_RES_CONS_USB,
+				  SIPA_RM_RES_PROD_IPA);
+	sipa_rm_delete_resource(SIPA_RM_RES_PROD_IPA);
 }
 
 static int sipa_init(struct sipa_context **ipa_pp,
@@ -934,19 +1088,29 @@ static int sipa_init(struct sipa_context **ipa_pp,
 	/* init resource manager */
 	ret = sipa_rm_init();
 	if (ret)
-		goto fail;
+		goto ep_fail;
 
 	/* create basic cons */
-	ret = sipa_create_wwan_cons();
+	ret = sipa_create_rm_cons();
 	if (ret)
-		goto fail;
+		goto cons_fail;
+
+	/* init usb cons */
+	sipa_rm_usb_cons_init();
+	if (ret)
+		goto usb_fail;
+
+	/* create basic prod */
+	ret = sipa_create_ipa_prod(ipa);
+	if (ret)
+		goto prod_fail;
 
 	/* init sipa skb transfer layer */
 	if (!cfg->is_bypass) {
 		ret = sipa_create_skb_xfer(ipa, cfg);
 		if (ret) {
 			ret = -EFAULT;
-			goto fail;
+			goto xfer_fail;
 		}
 	}
 
@@ -960,9 +1124,15 @@ static int sipa_init(struct sipa_context **ipa_pp,
 
 	return 0;
 
-
-
 fail:
+	sipa_destroy_skb_xfer();
+xfer_fail:
+	sipa_destroy_ipa_prod();
+prod_fail:
+	sipa_destroy_rm_cons();
+usb_fail:
+	sipa_rm_usb_cons_deinit();
+cons_fail:
 	sipa_rm_exit();
 ep_fail:
 	destroy_sipa_eps(cfg, ipa);

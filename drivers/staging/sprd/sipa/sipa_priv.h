@@ -26,6 +26,8 @@
 
 #define SIPA_RECV_WARN_EVT (SIPA_HAL_TXFIFO_FULL_INT | SIPA_HAL_TXFIFO_OVERFLOW)
 
+#define SIPA_WWAN_CONS_TIMER 100
+
 enum sipa_nic_status_e {
 	NIC_OPEN,
 	NIC_CLOSE,
@@ -235,7 +237,24 @@ struct sipa_skb_array {
 	u32 depth;
 };
 
+typedef bool (*sipa_check_send_completed)(void *priv);
+
+struct sipa_nic_cons_res {
+	bool initied;
+	enum sipa_rm_res_id cons;
+	sipa_check_send_completed chk_func;
+	void *chk_priv;
+	spinlock_t lock;
+	struct delayed_work work;
+	bool resource_requested;
+	bool reschedule_work;
+	bool release_in_progress;
+	bool need_request;
+	unsigned long jiffies;
+};
+
 struct sipa_nic {
+	enum sipa_nic_id nic_id;
 	struct sipa_endpoint *send_ep;
 	struct sk_buff_head	rx_skb_q;
 	int need_notify;
@@ -246,6 +265,7 @@ struct sipa_nic {
 	void *cb_priv;
 	atomic_t status;
 	bool flow_ctrl_status;
+	struct sipa_nic_cons_res rm_res;
 };
 
 struct sipa_skb_receiver {
@@ -279,6 +299,9 @@ struct sipa_control {
 	/* sender & receiver */
 	struct sipa_skb_sender *sender[SIPA_PKT_TYPE_MAX];
 	struct sipa_skb_receiver *receiver[SIPA_PKT_TYPE_MAX];
+
+	/* usb rm */
+	struct completion usb_rm_comp;
 };
 
 int create_sipa_skb_sender(struct sipa_context *ipa,
@@ -292,6 +315,8 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 			      struct sk_buff *skb,
 			      enum sipa_term_type dst,
 			      u8 netid);
+
+bool sipa_skb_sender_check_send_complete(struct sipa_skb_sender *sender);
 
 void sipa_skb_sender_add_nic(struct sipa_skb_sender *sender,
 			     struct sipa_nic *nic);

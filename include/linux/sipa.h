@@ -428,6 +428,18 @@ int sipa_rm_inactivity_timer_request_resource(
 int sipa_rm_inactivity_timer_release_resource(
 				enum sipa_rm_res_id res_id);
 
+/*
+ * SIPA USB RM interface
+ */
 
+int sipa_rm_usb_cons_init(void);
+
+void sipa_rm_usb_cons_deinit(void);
+
+int sipa_rm_set_usb_eth_up(void);
+
+void sipa_rm_set_usb_eth_down(void);
+
+int sipa_rm_enable_usb_tether(void);
 
 #endif /* _SIPA_H_ */

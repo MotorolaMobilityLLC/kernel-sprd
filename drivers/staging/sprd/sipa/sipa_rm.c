@@ -56,6 +56,7 @@ struct sipa_rm_context_type {
  * @reschedule_work: boolean flag indicates to not release and to
  *	reschedule the release work.
  * @work_in_progress: boolean flag indicates is release work was scheduled.
+ * @need_request: boolean flag indicates is need to call request function.
  * @jiffies: number of jiffies for timeout
  */
 struct sipa_rm_it_private {
@@ -66,6 +67,7 @@ struct sipa_rm_it_private {
 	bool resource_requested;
 	bool reschedule_work;
 	bool work_in_progress;
+	bool need_request;
 	unsigned long jiffies;
 };
 
@@ -131,6 +133,7 @@ static void sipa_rm_inactivity_timer_func(struct work_struct *work)
 		pr_debug("calling release_resource on resource %d!\n",
 			 me->resource_name);
 		sipa_rm_release_resource(me->resource_name);
+		sipa_rm_it_handles[me->resource_name].need_request = true;
 		sipa_rm_it_handles[me->resource_name].work_in_progress = false;
 	}
 	spin_unlock_irqrestore(
@@ -561,6 +564,7 @@ int sipa_rm_inactivity_timer_init(enum sipa_rm_res_id resource_name,
 	sipa_rm_it_handles[resource_name].resource_requested = false;
 	sipa_rm_it_handles[resource_name].reschedule_work = false;
 	sipa_rm_it_handles[resource_name].work_in_progress = false;
+	sipa_rm_it_handles[resource_name].need_request = true;
 
 	INIT_DELAYED_WORK(&sipa_rm_it_handles[resource_name].work,
 			  sipa_rm_inactivity_timer_func);
@@ -619,7 +623,7 @@ EXPORT_SYMBOL(sipa_rm_inactivity_timer_destroy);
  */
 int sipa_rm_inactivity_timer_request_resource(enum sipa_rm_res_id resource_name)
 {
-	int ret;
+	int ret = 0;
 	unsigned long flags;
 
 	pr_debug(" resource %d\n", resource_name);
@@ -637,10 +641,11 @@ int sipa_rm_inactivity_timer_request_resource(enum sipa_rm_res_id resource_name)
 
 	spin_lock_irqsave(&sipa_rm_it_handles[resource_name].lock, flags);
 	sipa_rm_it_handles[resource_name].resource_requested = true;
+	if (sipa_rm_it_handles[resource_name].need_request) {
+		sipa_rm_it_handles[resource_name].need_request = false;
+		ret = sipa_rm_request_resource(resource_name);
+	}
 	spin_unlock_irqrestore(&sipa_rm_it_handles[resource_name].lock, flags);
-	ret = sipa_rm_request_resource(resource_name);
-	pr_debug("resource %d: returning %d\n",
-		 resource_name, ret);
 
 	return ret;
 }
