@@ -6554,7 +6554,7 @@ CONFIG_MMC_BLOCK_MINORS
 	[function] Number of minors per block device
 CONFIG_MMC_SPRD_SDHCR10
 	[arch] arm
-	[plat] pike2
+	[plat] pike2,sharkle32
 	[field] make
 	[subsys] mmc
 	[must] user
