@@ -328,8 +328,7 @@ static int gen_ndis_query_resp(struct rndis_params *params, u32 OID, u8 *buf,
 
 	/* mandatory */
 	case RNDIS_OID_GEN_MEDIA_CONNECT_STATUS:
-		if (rndis_debug > 1)
-			pr_debug("%s: RNDIS_OID_GEN_MEDIA_CONNECT_STATUS\n", __func__);
+		pr_info("%s: RNDIS_OID_GEN_MEDIA_CONNECT_STATUS\n", __func__);
 		*outbuf = cpu_to_le32(params->media_state);
 		retval = 0;
 		break;

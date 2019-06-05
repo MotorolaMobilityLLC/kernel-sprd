@@ -1494,8 +1494,10 @@ static int sipa_usb_open(struct net_device *net)
 
 	spin_lock_irq(&dev->lock);
 	link = dev->port_usb;
-	if (link && link->open)
+	if (link && link->open) {
 		link->open(link);
+		INFO(dev, "sipa_usb done link open\n");
+	}
 	spin_unlock_irq(&dev->lock);
 
 	sipa_usb_dt_stats_init(&dev->dt_stats);
