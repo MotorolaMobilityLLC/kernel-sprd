@@ -660,11 +660,15 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 		return 0;
 
 	ct = nf_ct_get(skb, &ctinfo);
-	if (sfp_tcp_flag_chk(ct))
+	if (!ct)
 		return 0;
 
 	tuple = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple;
 	l4proto = tuple->dst.protonum;
+
+	if (l4proto == IPPROTO_TCP && sfp_tcp_flag_chk(ct))
+		return 0;
+
 	if (CTINFO2DIR(ctinfo) == IP_CT_DIR_ORIGINAL) {
 		if (l4proto == IPPROTO_TCP &&
 		    test_bit(IPS_ASSURED_BIT, &ct->status))
