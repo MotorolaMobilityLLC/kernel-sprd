@@ -32,12 +32,20 @@ void sfp_conntrack_in(struct net *net, u_int8_t pf,
 {
 	enum ip_conntrack_info ctinfo;
 	struct nf_conn *ct = nf_ct_get(skb, &ctinfo);
-	enum ip_conntrack_dir dir = CTINFO2DIR(ctinfo);
-	struct nf_conntrack_tuple *tuple = &ct->tuplehash[dir].tuple;
-	u8  l4proto = tuple->dst.protonum;
+	enum ip_conntrack_dir dir;
+	struct nf_conntrack_tuple *tuple;
+	u8  l4proto;
 	struct sfp_mgr_fwd_tuple_hash *tuple_hash;
 	struct sfp_conn *sfp_ct;
 	u32 hash;
+
+	/* packets behind rst may not have a ct */
+	if (!ct)
+		return;
+
+	dir = CTINFO2DIR(ctinfo);
+	tuple = &ct->tuplehash[dir].tuple;
+	l4proto = tuple->dst.protonum;
 
 	if (l4proto != IP_L4_PROTO_TCP)
 		return;
