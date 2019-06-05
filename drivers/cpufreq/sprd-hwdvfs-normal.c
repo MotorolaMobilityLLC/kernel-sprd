@@ -43,6 +43,7 @@
 static const struct of_device_id sprd_cpudvfs_of_match[] = {
 	{
 		.compatible = "sprd,sharkl5-cpudvfs",
+		.data = &ums312_dvfs_private_data,
 	},
 	{
 		.compatible = "sprd,roc1-cpudvfs",
@@ -1026,6 +1027,78 @@ int sprd_set_dcdc_idle_voltage(void *data, u32 dcdc_nr, u32 grade)
 	return 0;
 }
 
+static int sprd_mpll_table_init(void *data, u32 mpll_num)
+{
+	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
+	struct mpll_freq_manager *manager;
+	int i, ret;
+	struct regmap *map;
+	struct reg_info *regdata;
+	struct mpll_index_entry *en;
+
+	if (!pdev->priv)
+		return 0;
+
+	manager = pdev->priv->mpll_manager;
+
+	if (!manager || !manager->mpll_tbl) {
+		pr_err("Empty mpll table\n");
+		return -EINVAL;
+	}
+
+	if (mpll_num > MAX_MPLL) {
+		pr_err("Invalid mpll number\n");
+		return -EINVAL;
+	}
+
+	map = pdev->mplls[mpll_num].anag_map;
+
+	for (i = 0; i < MAX_MPLL_INDEX_NUM; ++i) {
+		en = &manager->mpll_tbl[mpll_num].entry[i];
+
+		regdata = &en->output[ICP];
+		if (!regdata->reg && !regdata->off && !regdata->msk &&
+		    !regdata->val)
+			break;
+
+		pr_debug("MPLL%d-index%d-icp: reg = 0x%x, msk = 0x%x, off = %d, val = 0x%x\n",
+			 mpll_num, i, regdata->reg, regdata->msk, regdata->off,
+			 regdata->val);
+
+		ret = regmap_update_bits(map, regdata->reg,
+					 regdata->msk << regdata->off,
+					 regdata->val << regdata->off);
+		if (ret)
+			return ret;
+
+		regdata = &en->output[POSTDIV];
+
+		pr_debug("MPLL%d-index%d-postdiv: reg = 0x%x, msk = 0x%x, off = %d, val = 0x%x\n",
+			 mpll_num, i, regdata->reg, regdata->msk, regdata->off,
+			 regdata->val);
+
+		ret = regmap_update_bits(map, regdata->reg,
+					 regdata->msk << regdata->off,
+					 regdata->val << regdata->off);
+		if (ret)
+			return ret;
+
+		regdata = &en->output[N];
+
+		pr_debug("MPLL%d-index%d-n: reg = 0x%x, msk = 0x%x, off = %d, val = 0x%x\n",
+			 mpll_num, i, regdata->reg, regdata->msk, regdata->off,
+			 regdata->val);
+
+		ret = regmap_update_bits(map, regdata->reg,
+					 regdata->msk << regdata->off,
+					 regdata->val << regdata->off);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
 int sprd_setup_i2c_channel(void *data, u32 dcdc_nr)
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
@@ -1183,11 +1256,87 @@ struct cpudvfs_phy_ops sprd_cpudvfs_phy_ops = {
 	.setup_i2c_channel = sprd_setup_i2c_channel,
 	.dcdc_vol_delay_time_setup = sprd_dcdc_vol_delay_time_setup,
 	.set_dcdc_idle_voltage = sprd_set_dcdc_idle_voltage,
+	.mpll_index_table_init = sprd_mpll_table_init,
 };
 
 static void hardware_dvfs_tuning_result_judge(struct dvfs_cluster *clu)
 {
 	dvfs_judge_handler(clu);
+}
+
+static int voltage_grade_value_update(struct dvfs_cluster *clu,
+				      unsigned long volt, int opp_idx)
+{
+	struct cpudvfs_archdata *pdev =
+		(struct cpudvfs_archdata *)clu->parent_dev;
+	struct reg_info *regdata;
+	struct pmic_data *pm;
+	int ret, count;
+	u32 pmic_num, grade_id;
+
+	if (!pdev->priv)
+		return 0;
+
+	if (opp_idx == 0) {
+		clu->pre_grade_volt = 0;
+		clu->tmp_vol_grade = 0;
+		clu->max_vol_grade = 0;
+	}
+
+	if (clu->pre_grade_volt == volt)
+		return 0;
+
+	if (clu->pre_grade_volt > volt) {
+		pr_err("The voltages are not in ascending order\n");
+		return -EINVAL;
+	}
+
+	clu->pre_grade_volt = volt;
+
+	if (!pdev->priv->volt_manager || !pdev->priv->volt_manager->grade_tbl ||
+	    !pdev->priv->pmic) {
+		pr_err("The voltage grade table is NULL\n");
+		return -EINVAL;
+	}
+
+	pmic_num = pdev->pwr[clu->id].pmic_num;
+	if (pmic_num < 0 || pmic_num >= pdev->pmic_type_sum) {
+		pr_err("Incorrect pmic sequenc number\n");
+		return -EINVAL;
+	}
+
+	regdata = pdev->priv->volt_manager->grade_tbl[clu->id].regs_array;
+
+	pm = &pdev->priv->pmic[pmic_num];
+
+	if (!regdata || !pm) {
+		pr_err("Empty private data\n");
+		return -EINVAL;
+	}
+
+	count = pdev->priv->volt_manager->grade_tbl[clu->id].grade_count;
+
+	grade_id = clu->tmp_vol_grade++;
+
+	if (grade_id > MAX_VOLT_GRADE_NUM) {
+		pr_err("The volt grade number(%d) is beyond the maximun(%d)\n",
+		       grade_id, MAX_VOLT_GRADE_NUM);
+		return -EINVAL;
+	}
+
+	pdev->pwr[clu->dcdc].grade_volt_val_array[grade_id] = volt;
+
+	if (clu->max_vol_grade < grade_id)
+		clu->max_vol_grade = grade_id;
+
+	ret = pm->update(pdev->topdvfs_map, regdata, pm, volt, grade_id, count);
+	if (ret) {
+		pr_err("Error in updating volt gear values for dcdc%d\n",
+		       clu->dcdc);
+		return ret;
+	}
+
+	return 0;
 }
 
 /*
@@ -1197,9 +1346,9 @@ static void hardware_dvfs_tuning_result_judge(struct dvfs_cluster *clu)
  * This is the last known freq, without actually getting it from the driver.
  * Return value will be as same as what is shown in scaling_cur_freq in sysfs.
  */
-int sprd_cpudvfs_opp_add(void *data,
-			 unsigned int cluster, unsigned long hz_freq,
-			 unsigned long u_volt, int opp_idx)
+static int sprd_cpudvfs_opp_add(void *data,
+				unsigned int cluster, unsigned long hz_freq,
+				unsigned long u_volt, int opp_idx)
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
 	struct dvfs_cluster *pcluster;
@@ -1220,6 +1369,241 @@ int sprd_cpudvfs_opp_add(void *data,
 
 	if (pcluster->map_idx_max < opp_idx)
 		pcluster->map_idx_max = opp_idx;
+
+	/* Fill in binning voltages dynamically*/
+	if (pcluster->is_host_cluster)
+		voltage_grade_value_update(pcluster, u_volt, opp_idx);
+
+	return 0;
+}
+
+static int find_maximum_vol_diff(unsigned long *vol, int *max_diff_val,
+				 int vol_size, int n)
+{
+	int i, j;
+	u32 tmp_diff, max_diff = 0;
+	int max_i, max_j;
+
+	if (n == vol_size - 1)
+		return 0;
+
+	for (i = 0, j = i + n + 1; j < vol_size; ++i, ++j) {
+		tmp_diff = vol[j] - vol[i];
+		if (max_diff < tmp_diff) {
+			max_i = i;
+			max_j = j;
+			max_diff = tmp_diff;
+		}
+	}
+
+	pr_debug("j = %d, i = %d, vol[%d](%ld) - vol[%d](%ld) = %d\n",
+		 max_j, max_i, max_j, vol[max_j], max_i, vol[max_i], max_diff);
+	*max_diff_val = max_diff;
+
+	return 0;
+}
+
+static int sprd_cpudvfs_udelay_update(void *data, int cluster)
+{
+	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
+	struct dvfs_cluster *clu;
+	int ret = 0, i;
+	u32 max_value;
+	struct pmic_data *pm;
+	u32 slew_rate, module_clk_khz, margin;
+	u32 cycle, reg, off, msk;
+	struct topdvfs_volt_manager *manager;
+
+	if (!pdev->priv)
+		return 0;
+
+	if (cluster < 0 || cluster >= pdev->total_cluster_num) {
+		pr_err("Cluster number (%d) is overflow\n", cluster);
+		return -EINVAL;
+	}
+
+	clu = pdev->cluster_array[cluster];
+	if (!clu) {
+		pr_err("Cannot find the cluster(%d) device\n", cluster);
+		return -ENODEV;
+	}
+
+	if (!clu->is_host_cluster)
+		return 0;
+
+	pr_debug("Update voltage delay time for dcdc%d\n\n", clu->dcdc);
+
+	pm = pdev->priv->pmic;
+	slew_rate = pdev->pwr[clu->dcdc].slew_rate;
+	module_clk_khz = pdev->priv->module_clk_khz;
+	margin = pdev->priv->pmic[clu->dcdc].margin_us;
+	manager = pdev->priv->volt_manager;
+
+	for (i = 0; i <= clu->max_vol_grade; ++i) {
+		find_maximum_vol_diff(pdev->pwr[clu->dcdc].grade_volt_val_array,
+				      &max_value, clu->max_vol_grade + 1, i);
+
+		cycle = pm->up_cycle_calculate(max_value, slew_rate,
+					       module_clk_khz, margin);
+		pr_debug("up udelay[%d] = 0x%x\n", i, cycle);
+
+		reg = manager->up_udelay_tbl[clu->dcdc].tbl[i].reg;
+		off = manager->up_udelay_tbl[clu->dcdc].tbl[i].off;
+		msk = manager->up_udelay_tbl[clu->dcdc].tbl[i].msk;
+
+		ret = regmap_update_bits(pdev->topdvfs_map, reg, msk << off,
+					 cycle << off);
+		if (ret)
+			return ret;
+
+		cycle = pm->down_cycle_calculate(max_value, slew_rate,
+						 module_clk_khz, margin);
+		pr_debug("down udelay[%d] = 0x%x\n", i, cycle);
+
+		reg = manager->down_udelay_tbl[clu->dcdc].tbl[i].reg;
+		off = manager->down_udelay_tbl[clu->dcdc].tbl[i].off;
+		msk = manager->down_udelay_tbl[clu->dcdc].tbl[i].msk;
+
+		ret = regmap_update_bits(pdev->topdvfs_map, reg, msk << off,
+					 cycle << off);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+static int sprd_cpudvfs_index_tbl_update(void *data, char *opp_name,
+					 int cluster)
+{
+	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
+	struct dvfs_cluster *clu, *slave;
+	char *temp;
+	int ret, idx = 0;
+
+	if (!pdev->priv)
+		return 0;
+
+	if (cluster < 0 || cluster >= pdev->total_cluster_num) {
+		pr_err("The cluster number is overflowing");
+		return -EINVAL;
+	}
+
+	if (!opp_name) {
+		pr_err("Empty operating-points\n");
+		return -EINVAL;
+	}
+
+	clu = pdev->cluster_array[cluster];
+
+	/* Just deal with the host clusters*/
+	if (!clu->is_host_cluster)
+		return 0;
+
+	/*
+	 * Use the default dts_tbl_name, if opp name is "operating-points",
+	 * otherwise change the dts_tbl_name.
+	 */
+	if (!clu->dts_tbl_name) {
+		pr_err("The name of the dvfs module's index table is null\n");
+		return -EINVAL;
+	}
+
+	strcpy(clu->dts_tbl_name, clu->default_tbl_name);
+
+	if (!strcmp(opp_name, "operating-points-1")) {
+		strcat(clu->dts_tbl_name, "-1");
+		temp = "-1";
+	} else if (!strcmp(opp_name, "operating-points-2")) {
+		strcat(clu->dts_tbl_name, "-2");
+		temp = "-2";
+	} else if (!strcmp(opp_name, "operating-points-3")) {
+		strcat(clu->dts_tbl_name, "-3");
+		temp = "-3";
+	} else if (!strcmp(opp_name, "operating-points-4")) {
+		strcat(clu->dts_tbl_name, "-4");
+		temp = "-4";
+	} else if (!strcmp(opp_name, "operating-points-1-65")) {
+		strcat(clu->dts_tbl_name, "-1-65");
+		temp = "-1-65";
+	} else if (!strcmp(opp_name, "operating-points-2-65")) {
+		strcat(clu->dts_tbl_name, "-2-65");
+		temp = "-2-65";
+	} else if (!strcmp(opp_name, "operating-points-3-65")) {
+		strcat(clu->dts_tbl_name, "-3-65");
+		temp = "-3-65";
+	} else if (!strcmp(opp_name, "operating-points-4-65")) {
+		strcat(clu->dts_tbl_name, "-4-65");
+		temp = "-4-65";
+	} else if (strcmp(opp_name, "operating-points")) {
+		pr_err("Invalid operating-points name\n");
+		return -EINVAL;
+	}
+
+	pr_debug("Update dvfs index map table for hoster cluster%d host-tbl-name: %s\n",
+		 cluster, clu->dts_tbl_name);
+
+	ret = clu->driver->map_tbl_init(clu);
+	if (ret < 0)
+		return ret;
+
+	/*
+	 * Initialize the slave clusters whose power domain is same with the
+	 * current host cluster.
+	 */
+	slave = pdev->cluster_array[0];
+
+	while (slave) {
+		if (!slave->is_host_cluster && slave->dcdc == clu->dcdc) {
+			if (!slave->dts_tbl_name) {
+				pr_err("The name of the dvfs module's index table is null\n");
+				return -EINVAL;
+			}
+			strcpy(slave->dts_tbl_name, slave->default_tbl_name);
+			strcat(slave->dts_tbl_name, temp);
+
+			pr_debug("Update dvfs index map table for slave cluster%d of host cluster%d slave-tbl-name: %s\n",
+				 idx, clu->id, slave->dts_tbl_name);
+			ret = slave->driver->map_tbl_init(slave);
+			if (ret < 0)
+				return ret;
+		}
+		slave = pdev->cluster_array[++idx];
+	}
+
+	return 0;
+}
+
+static int sprd_cpudvfs_idle_pd_volt_update(void *data, int cluster)
+{
+	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
+	struct dvfs_cluster *clu;
+	u32 vol;
+	int ret;
+
+	if (!pdev->priv)
+		return 0;
+
+	if (cluster < 0 || cluster >= pdev->total_cluster_num) {
+		pr_err("The cluster number is overflowing");
+		return -EINVAL;
+	}
+
+	clu = pdev->cluster_array[cluster];
+
+	/*
+	 * Set dvfs idle pd voltage, it's needed to set pd voltage as the max
+	 * grade when dvfs idle is disabled in sharkl5.
+	 */
+	if (clu->is_host_cluster && pdev->pwr[clu->dcdc].fix_dcdc_pd_volt) {
+		vol = clu->max_vol_grade;
+		pr_debug("Update idle pd volt for dcdc%d: %d\n", clu->dcdc, vol);
+
+		ret = pdev->phy_ops->set_dcdc_idle_voltage(pdev, clu->dcdc,
+							   vol);
+		if (ret)
+			return ret;
+	}
 
 	return 0;
 }
@@ -1484,6 +1868,10 @@ static int dcdc_voltage_grade_parse(struct device_node *dcdc_node,
 		pwr->dialog_used = true;
 	}
 
+	if (of_find_property(dcdc_node, "pmic-type-num", NULL))
+		of_property_read_u32(dcdc_node, "pmic-type-num",
+				     &pwr->pmic_num);
+
 	prop = of_find_property(dcdc_node, "tuning-latency-us", NULL);
 	if (!prop) {
 		pr_err("No %s property found\n", "tuning-latency-us");
@@ -1493,6 +1881,9 @@ static int dcdc_voltage_grade_parse(struct device_node *dcdc_node,
 
 	of_property_read_u32(dcdc_node, "tuning-latency-us",
 				     &pwr->tuning_latency_us);
+
+	if (of_find_property(dcdc_node, "slew-rate", NULL))
+		of_property_read_u32(dcdc_node, "slew-rate", &pwr->slew_rate);
 
 	prop = of_find_property(dcdc_node, "chnl-in-i2c", NULL);
 	if (!prop) {
@@ -2386,6 +2777,11 @@ static int sprd_cpudvfs_common_init(struct cpudvfs_archdata *pdev)
 			pr_err("Error in configuring MPLL\n");
 			return ret;
 		}
+
+		/* Need to init mpll index table if necessary */
+		ret = pdev->phy_ops->mpll_index_table_init(pdev, ix);
+		if (ret)
+			return ret;
 	}
 
 	for (ix = 0; ix < pdev->dcdc_num; ++ix) {
@@ -2464,6 +2860,7 @@ struct dvfs_cluster global_host_cluster[] = {
 		.name = "lit-core-cluster",
 		.enum_name = DVFS_CLUSTER_LIT_CORE,
 		.dts_tbl_name = "lit-core-dvfs-tbl",
+		.default_tbl_name = "lit-core-dvfs-tbl",
 		.driver = &default_cluster_ops,
 		.auto_tuning_enable = host_cluster_auto_tuning_enable,
 	},
@@ -2471,6 +2868,7 @@ struct dvfs_cluster global_host_cluster[] = {
 		.name = "big-core-cluster",
 		.enum_name = DVFS_CLUSTER_BIG_CORE,
 		.dts_tbl_name = "big-core-dvfs-tbl",
+		.default_tbl_name = "big-core-dvfs-tbl",
 		.driver = &default_cluster_ops,
 		.auto_tuning_enable = host_cluster_auto_tuning_enable,
 	},
@@ -2481,6 +2879,7 @@ struct dvfs_cluster global_slave_cluster[] = {
 		.name = "scu-cluster",
 		.enum_name = DVFS_CLUSTER_SCU,
 		.dts_tbl_name = "scu-dvfs-tbl",
+		.default_tbl_name = "scu-dvfs-tbl",
 		.driver = &default_cluster_ops,
 		.auto_tuning_enable = slave_cluster_auto_tuning_enable,
 	},
@@ -2488,6 +2887,7 @@ struct dvfs_cluster global_slave_cluster[] = {
 		.name = "periph-cluster",
 		.enum_name = DVFS_CLUSTER_PERIPH,
 		.dts_tbl_name = "periph-dvfs-tbl",
+		.default_tbl_name = "periph-dvfs-tbl",
 		.driver = &default_cluster_ops,
 		.auto_tuning_enable = slave_cluster_auto_tuning_enable,
 	},
@@ -2495,6 +2895,7 @@ struct dvfs_cluster global_slave_cluster[] = {
 		.name = "gic-cluster",
 		.enum_name = DVFS_CLUSTER_GIC,
 		.dts_tbl_name = "gic-dvfs-tbl",
+		.default_tbl_name = "gic-dvfs-tbl",
 		.driver = &default_cluster_ops,
 		.auto_tuning_enable = slave_cluster_auto_tuning_enable,
 	},
@@ -2502,6 +2903,7 @@ struct dvfs_cluster global_slave_cluster[] = {
 		.name = "atb-cluster",
 		.enum_name = DVFS_CLUSTER_ATB,
 		.dts_tbl_name = "atb-dvfs-tbl",
+		.default_tbl_name = "atb-dvfs-tbl",
 		.driver = &default_cluster_ops,
 		.auto_tuning_enable = slave_cluster_auto_tuning_enable,
 	},
@@ -2519,11 +2921,15 @@ static struct sprd_cpudvfs_device cpudvfs_plat_dev = {
 		.opp_add = sprd_cpudvfs_opp_add,
 		.set = sprd_cpudvfs_set_target,
 		.get = sprd_cpudvfs_get,
+		.udelay_update = sprd_cpudvfs_udelay_update,
+		.index_tbl_update = sprd_cpudvfs_index_tbl_update,
+		.idle_pd_volt_update = sprd_cpudvfs_idle_pd_volt_update,
 	},
 };
 
 static int sprd_cpudvfs_probe(struct platform_device *pdev)
 {
+	const struct dvfs_private_data *pdata;
 	struct cpudvfs_archdata *parchdev;
 	struct regmap *aon_reg;
 	struct device_node *np;
@@ -2544,6 +2950,10 @@ static int sprd_cpudvfs_probe(struct platform_device *pdev)
 	}
 
 	parchdev->of_node = np;
+
+	pdata = of_device_get_match_data(&pdev->dev);
+	if (!pdata)
+		dev_info(&pdev->dev, "No matched private driver data found\n");
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	base = devm_ioremap_resource(&pdev->dev, res);
@@ -2571,6 +2981,10 @@ static int sprd_cpudvfs_probe(struct platform_device *pdev)
 	parchdev->host_cluster_num = ARRAY_SIZE(global_host_cluster);
 
 	parchdev->slave_cluster_num = ARRAY_SIZE(global_slave_cluster);
+
+	parchdev->priv = pdata;
+
+	parchdev->pmic_type_sum = MAX_PMIC_TYPE_NUM;
 
 	ret = dvfs_device_dt_parse(parchdev);
 	if (ret)

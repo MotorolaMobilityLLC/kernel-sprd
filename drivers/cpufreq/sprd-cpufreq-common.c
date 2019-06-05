@@ -305,6 +305,41 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 				cdata->freqvolt[count].volt,
 				cdata->freqvolts - 1 - count);
 
+	/*
+	 * Need to update delay cycles and hardware dvfs index tables in L5
+	 * family socs when switching operating-points tables.
+	 */
+	if (!driver->udelay_update && !driver->index_tbl_update)
+		goto exit;
+
+	if (!(driver->udelay_update && driver->index_tbl_update)) {
+		pr_err("empty hardware dvfs operations\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	/*
+	 * Update the delay cycles for dvfs module to wait the pmic to finish
+	 * adjusting voltage.
+	 */
+	ret = driver->udelay_update(pdevice->archdata, cluster);
+	if (ret)
+		goto exit;
+
+	/*
+	 * Update the hardware dvfs index map tables, since the operating-points
+	 * tables have been changed by temperature or corner chip id.
+	 */
+	ret = driver->index_tbl_update(pdevice->archdata, opp_string, cluster);
+	if (ret)
+		goto exit;
+
+	/*
+	 * Update the pd voltage in dvfs idle, if necessary
+	 */
+	if (driver->idle_pd_volt_update)
+		ret = driver->idle_pd_volt_update(pdevice->archdata, cluster);
+
 exit:
 	/* should put np opened by this func */
 	if (np_cpufreq_in == NULL) {

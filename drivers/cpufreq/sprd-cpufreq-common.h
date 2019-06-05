@@ -118,6 +118,9 @@ struct sprd_cpudvfs_ops {
 		       int opp_idx);
 	int (*set)(void *drvdata, u32 cluster, u32 opp_idx);
 	unsigned int (*get)(void *drvdata, int cluster);
+	int (*udelay_update)(void *drvdata, int cluster);
+	int (*index_tbl_update)(void *drvdata, char *opp_name, int cluster);
+	int (*idle_pd_volt_update)(void *drvdata, int cluster);
 };
 
 struct sprd_cpudvfs_device {

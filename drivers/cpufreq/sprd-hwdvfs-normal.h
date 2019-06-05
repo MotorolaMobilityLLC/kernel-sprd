@@ -12,10 +12,7 @@
 #ifndef SPRD_HWDVFS_NORMAL_H
 #define SPRD_HWDVFS_NORMAL_H
 
-enum sprd_cpudvfs_type {
-	UNKNOWN_CPUFREQHW,
-	SPRD_CPUFREQHW_UMS312,
-};
+#include "sprd-hwdvfs-archdata.h"
 
 enum cpu_dvfs_cluster {
 	DVFS_CLUSTER_LIT_CORE,	/*including ANANKE CORES*/
@@ -25,11 +22,6 @@ enum cpu_dvfs_cluster {
 	DVFS_CLUSTER_GIC,	/*including GIC*/
 	DVFS_CLUSTER_ATB,	/*including ATB & DEBUG APB*/
 	DVFS_CLUSTER_MAX,
-};
-
-enum dcdc_name {
-	DCDC_CPU0,
-	DCDC_CPU1,
 };
 
 struct plat_opp {
@@ -61,6 +53,7 @@ struct cpudvfs_phy_ops {
 	int (*setup_i2c_channel)(void *data, u32 dcdc_num);
 	int (*dcdc_vol_delay_time_setup)(void *data, u32 dcdc_num);
 	int (*set_dcdc_idle_voltage)(void *data, u32 dcdc_num, u32 grade);
+	int (*mpll_index_table_init)(void *data, u32 mpll_num);
 };
 
 struct device_name {
@@ -181,6 +174,7 @@ struct dcdc_pwr {
 	u32 dvfs_ctl_bit;
 	u32 dvfs_eb;
 	bool dialog_used;
+	u32 pmic_num;		/* sequence number in pmic_array*/
 	u32 supply_sel_reg;
 	u32 supply_sel_bit;
 	u32 supply_sel_dialog;
@@ -193,6 +187,8 @@ struct dcdc_pwr {
 	u32 judge_vol_sw_mask;
 	u32 judge_vol_val;	/*real voltage needed to tell dvfs module*/
 	u32 voltage_grade_num;
+	u32 slew_rate;		/* mv/us */
+	unsigned long grade_volt_val_array[MAX_VOLT_GRADE_NUM];	/* in uV*/
 	struct voltage_info *vol_info;
 	struct voltage_delay_cfg *up_delay_array;
 	struct voltage_delay_cfg *down_delay_array;
@@ -222,6 +218,9 @@ struct dvfs_cluster {
 	char *name;		/*cluster name*/
 	bool is_host_cluster;
 	enum dcdc_name dcdc;
+	unsigned long pre_grade_volt;
+	u32 tmp_vol_grade;
+	u32 max_vol_grade;
 	void *parent_dev;	/*parent device*/
 	enum cpu_dvfs_cluster enum_name;
 	struct dvfs_cluster_driver *driver;
@@ -229,7 +228,8 @@ struct dvfs_cluster {
 	char *tbl_column_num_property;
 	char *tbl_row_num_property;
 	struct device_node *of_node;
-	char *dts_tbl_name;	/*map table name in dts for this cluster*/
+	char dts_tbl_name[30];	/*map table name in dts for this cluster*/
+	char default_tbl_name[30];
 	u32 tbl_column_num;	/*the column num in map table*/
 	u32 tbl_row_num;	/*the row num in map table*/
 	u32 device_num;		/*the device num in this cluster*/
@@ -251,6 +251,7 @@ struct dvfs_cluster {
 struct cpudvfs_archdata {
 	struct regmap *aon_apb_reg_base;
 	void __iomem *membase;
+	const struct dvfs_private_data *priv;
 	struct device_node *topdvfs_of_node;
 	struct regmap *topdvfs_map;
 	struct device_node *of_node;
@@ -265,6 +266,7 @@ struct cpudvfs_archdata {
 	u32 mpll_num;
 	struct dcdc_pwr *pwr;
 	u32 dcdc_num;
+	u32 pmic_type_sum; /* the total number of different pmics*/
 	bool parse_done;
 	bool module_eb;
 	u32 module_eb_reg;
@@ -275,5 +277,7 @@ struct cpudvfs_archdata {
 };
 
 extern int cpudvfs_sysfs_create(struct cpudvfs_archdata *pdev);
+
+extern const struct dvfs_private_data ums312_dvfs_private_data;
 
 #endif /* DVFS_CTRL_H */
