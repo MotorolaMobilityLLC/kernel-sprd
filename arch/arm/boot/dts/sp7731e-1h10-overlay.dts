@@ -7,6 +7,8 @@
  */
 /dts-v1/;
 /plugin/;
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
 
 / {
 	/*
@@ -22,3 +24,20 @@
 	};
 };
 
+&i2c2 {
+	status = "okay";
+	clock-frequency = <400000>;
+	touchscreen@38 {
+		compatible = "adaptive-touchscreen";
+		reg = <0x38>;
+		gpios = <&ap_gpio 63 GPIO_ACTIVE_HIGH
+			&ap_gpio 64 GPIO_ACTIVE_HIGH>;
+		controller = "focaltech,FT5436";
+		virtualkeys = <580 60 1320 60 45
+			172 360 1320 60 45
+			158 600 1320 60 45>;
+		private-data {
+			a8 = /bits/ 8 <0x5A>;
+		};
+	};
+};
