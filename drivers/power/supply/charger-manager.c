@@ -303,6 +303,78 @@ static int get_batt_cap(struct charger_manager *cm, int *cap)
 }
 
 /**
+ * get_charger_current - Get the charging current from charging ic
+ * @cm: the Charger Manager representing the battery.
+ * @cur: the charging current returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_charger_current(struct charger_manager *cm, int *cur)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, ret;
+
+	/* If at least one of them has one, it's yes. */
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		ret = power_supply_get_property(psy,
+						POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
+						&val);
+		power_supply_put(psy);
+		if (ret == 0) {
+			*cur = val.intval;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+/**
+ * get_charger_limit_current - Get the charging limit current from charging ic
+ * @cm: the Charger Manager representing the battery.
+ * @cur: the charging input limit current returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_charger_limit_current(struct charger_manager *cm, int *cur)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, ret;
+
+	/* If at least one of them has one, it's yes. */
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		ret = power_supply_get_property(psy,
+						POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
+						&val);
+		power_supply_put(psy);
+		if (ret == 0) {
+			*cur = val.intval;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+/**
  * is_charging - Returns true if the battery is being charged.
  * @cm: the Charger Manager representing the battery.
  */
@@ -2328,6 +2400,7 @@ static void cm_batt_works(struct work_struct *work)
 	struct timespec64 cur_time;
 	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
 	int period_time, flush_time;
+	int chg_cur, chg_limit_cur;
 
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
@@ -2352,6 +2425,19 @@ static void cm_batt_works(struct work_struct *work)
 		dev_err(cm->dev, "get fuel_cap error.\n");
 		return;
 	}
+
+	ret = get_charger_current(cm, &chg_cur);
+	if (ret) {
+		dev_err(cm->dev, "get chg_cur error.\n");
+		return;
+	}
+
+	ret = get_charger_limit_current(cm, &chg_limit_cur);
+	if (ret) {
+		dev_err(cm->dev, "get chg_limit_cur error.\n");
+		return;
+	}
+
 	if (fuel_cap > 100)
 		fuel_cap = 100;
 	else if (fuel_cap < 0)
@@ -2396,9 +2482,10 @@ static void cm_batt_works(struct work_struct *work)
 		cm->desc->charger_status = chg_sts;
 
 	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
-		 "capacity = %d, charger status = %d, force set full = %d\n",
+		 "capacity = %d, charger status = %d, force set full = %d, "
+		 "charging current = %d, charging limit current = %d\n",
 		 batt_uV, batt_ocV, bat_uA, fuel_cap, cm->desc->charger_status,
-		 cm->desc->force_set_full);
+		 cm->desc->force_set_full, chg_cur, chg_limit_cur);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
