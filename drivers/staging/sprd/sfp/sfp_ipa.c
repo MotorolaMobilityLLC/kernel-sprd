@@ -370,6 +370,10 @@ static void sfp_set_hash_entry(int hash, u8 *vptr, u32 offset, int n)
 	FP_PRT_DBG(FP_PRT_INFO,
 		   "cur_entry %p %p\n", cur_entry, hash_entry);
 	sfp_tuple_to_entry(hash_entry, cur_entry);
+
+	if (fp_dbg_lvl & FP_PRT_DETAIL)
+		print_hash_tbl((char *)hash_entry,
+			       IPA_HASH_FWD_ENTRY_SIZE);
 }
 
 static void sfp_ipa_append_hash(void)
