@@ -204,7 +204,7 @@ void sfp_mode_timer(struct sfp_conn *ul_sfp_ct)
 			spin_lock_bh(&mgr_lock);
 			sfp_ct->timeout.expires = newtime;
 			mod_timer(&sfp_ct->timeout, sfp_ct->timeout.expires);
-			spin_lock_bh(&mgr_lock);
+			spin_unlock_bh(&mgr_lock);
 		}
 	}
 }
