@@ -339,43 +339,6 @@
 	};
 };
 
-&sdio0 {
-	bus-width = <4>;
-	sprd,name = "sdio_sd";
-	sprd,sdio-adma;
-	no-sdio;
-	no-mmc;
-	status = "disabled";
-};
-
-&sdio1 {
-	bus-width = <4>;
-	sprd,name = "sdio_wifi";
-	sprd,sdio-adma;
-	no-sd;
-	no-mmc;
-	status = "disabled";
-};
-
-&sdio2 {
-	bus-width = <4>;
-	sprd,name = "sdio_wifi";
-	sprd,sdio-adma;
-	no-sd;
-	no-mmc;
-	status = "disabled";
-};
-
-&sdio3 {
-	bus-width = <8>;
-	non-removable;
-	cap-mmc-hw-reset;
-	sprd,name = "sdio_emmc";
-	no-sdio;
-	no-sd;
-	status = "okay";
-};
-
 &vddldo0 {
 	regulator-always-on;
 };
