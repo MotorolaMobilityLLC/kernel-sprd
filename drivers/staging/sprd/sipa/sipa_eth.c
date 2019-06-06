@@ -165,8 +165,10 @@ static int sipa_eth_rx_poll_handler(struct napi_struct *napi, int budget)
 	 * __raise_softirq_irqoff.(See napi_poll for details)
 	 * So do not do napi_complete in that case.
 	 */
-	if (pkts < budget)
+	if (pkts < budget) {
 		napi_complete(napi);
+		atomic_dec(&sipa_eth->rx_busy);
+	}
 	return pkts;
 }
 
@@ -178,9 +180,14 @@ static void sipa_eth_rx_handler (void *priv)
 		pr_err("data is NULL\n");
 		return;
 	}
-	napi_schedule(&sipa_eth->napi);
-	/* Trigger a NET_RX_SOFTIRQ softirq directly, or there will be a delay */
-	raise_softirq(NET_RX_SOFTIRQ);
+
+	if (!atomic_cmpxchg(&sipa_eth->rx_busy, 0, 1)) {
+		napi_schedule(&sipa_eth->napi);
+		/* Trigger a NET_RX_SOFTIRQ softirq directly,
+		 * or there will be a delay
+		 */
+		raise_softirq(NET_RX_SOFTIRQ);
+	}
 }
 
 static void sipa_eth_flowctrl_handler(void *priv, int flowctrl)
@@ -291,6 +298,7 @@ static int sipa_eth_open(struct net_device *dev)
 		netif_carrier_on(sipa_eth->netdev);
 	}
 
+	atomic_set(&sipa_eth->rx_busy, 0);
 	netif_start_queue(dev);
 	napi_enable(&sipa_eth->napi);
 
@@ -436,6 +444,7 @@ static int sipa_eth_probe(struct platform_device *pdev)
 	sipa_eth_dt_stats_init(&sipa_eth->dt_stats);
 	sipa_eth->netdev = netdev;
 	sipa_eth->pdata = pdata;
+	atomic_set(&sipa_eth->rx_busy, 0);
 	netdev->netdev_ops = &sipa_eth_ops;
 	netdev->watchdog_timeo = 1 * HZ;
 	netdev->irq = 0;
@@ -517,6 +526,7 @@ static int sipa_eth_debug_show(struct seq_file *m, void *v)
 	seq_printf(m, "rx_fail=%u\n",
 		   stats->rx_fail);
 
+	seq_printf(m, "rx_busy=%d\n", atomic_read(&sipa_eth->rx_busy));
 	seq_puts(m, "\nTX statistics:\n");
 	seq_printf(m, "tx_sum=%u, tx_cnt=%u\n",
 		   stats->tx_sum,
