@@ -993,6 +993,11 @@
 					<&aonapb_gate CLK_AC_WDG_RTC_EB>;
 			};
 
+			pin_controller: pinctrl@32450000 {
+				compatible = "sprd,sharkl5Pro-pinctrl";
+				reg = <0 0x32450000 0 0x10000>;
+			};
+
 			djtag: djtag@324e0000 {
 				compatible = "sprd,djtag";
 				reg = <0 0x324e0000 0 0x1000>;
