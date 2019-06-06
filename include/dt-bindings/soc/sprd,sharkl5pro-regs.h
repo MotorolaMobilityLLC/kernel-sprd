@@ -640,6 +640,14 @@
 #define REG_ANLG_PHY_G2_RF_ANALOG_EPLL_TOP_RG_EPLL_CTRL3                                   0x0084
 #define REG_ANLG_PHY_G2_RF_ANALOG_EPLL_TOP_RG_EPLL_CTRL4                                   0x0088
 #define REG_ANLG_PHY_G2_RF_ANALOG_EPLL_TOP_REG_SEL_CFG_0                                   0x008c
+#define REG_AON_DBG_APB_RF_APCPU_COMM_CTRL                                                 0x0000
+#define REG_AON_DBG_APB_RF_APCPU_PROT_CTRL                                                 0x0004
+#define REG_AON_DBG_APB_RF_CSSYS_CFG                                                       0x0008
+#define REG_AON_DBG_APB_RF_CR5_PROT_CTRL                                                   0x000c
+#define REG_AON_DBG_APB_RF_APCPU_PROT_CTRL_NON_SEC                                         0x0010
+#define REG_AON_DBG_APB_RF_CSSYS_CFG_NON_SEC                                               0x0014
+#define REG_AON_DBG_APB_RF_CR5_PROT_CTRL_NON_SEC                                           0x0018
+#define REG_AON_DBG_APB_RF_DEBUG_BOND_OPTION                                               0x001c
 #define REG_SCC_APB_RF_SCC_TUNE_LMT_CFG                                                    0x0000
 #define REG_SCC_APB_RF_SCC_TUNE_STATUS                                                     0x0004
 #define REG_SCC_APB_RF_SCC_CFG                                                             0x0008
@@ -893,6 +901,9 @@
 #define REG_GPU_DVFS_APB_RF_GPU_DVFS_RESERVED_REG_CFG3                                     0x00b4
 #define REG_GPU_DVFS_APB_RF_GPU_DVFS_WAIT_WINDOW_CFG2                                      0x00c0
 #define REG_GPU_DVFS_APB_RF_GPU_DFS_IDLE_DISABLE_CFG                                       0x00d0
+#define REG_AP_APB_RF_APB_EB                                                               0x0000
+#define REG_AP_APB_RF_APB_RST                                                              0x0004
+#define REG_AP_APB_RF_APB_MISC_CTRL                                                        0x0008
 #define REG_PUB_QOSC_AHB_RF_QOS_CTRL_EB                                                    0x0000
 #define REG_PUB_QOSC_AHB_RF_QOS_CTRL_RESET                                                 0x0004
 #define REG_PUB_QOSC_AHB_RF_QOSC_CLK_CTRL                                                  0x0008
