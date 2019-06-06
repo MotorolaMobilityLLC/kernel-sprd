@@ -201,7 +201,7 @@ static struct clk_bit_field f_pll[PLL_FACT_MAX] = {
 };
 
 #define f_rpll f_pll
-static SPRD_PLL_WITH_ITABLE_K_FVCO(rpll_clk, "rpll", "rpll-gate", 0x0,
+static SPRD_PLL_WITH_ITABLE_K_FVCO(rpll_clk, "rpll", "ext-26m", 0x0,
 				   3, ftable, f_rpll, 240,
 				   1000, 1000, 1, 750000000);
 
@@ -264,7 +264,7 @@ static struct sprd_clk_desc sharkl5pro_g3_pll_desc = {
 
 /* pll clock at gc */
 #define f_twpll f_pll
-static SPRD_PLL_WITH_ITABLE_K_FVCO(twpll_clk, "twpll", "twpll-gate", 0x0,
+static SPRD_PLL_WITH_ITABLE_K_FVCO(twpll_clk, "twpll", "ext-26m", 0x0,
 				   3, ftable, f_twpll, 240,
 				   1000, 1000, 1, 750000000);
 static CLK_FIXED_FACTOR(twpll_768m, "twpll-768m", "twpll", 2, 1, 0);
