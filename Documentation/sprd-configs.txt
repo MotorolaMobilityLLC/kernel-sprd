@@ -5389,7 +5389,7 @@ CONFIG_INPUT_MOUSEDEV_SCREEN_Y
 	[function] Vertical screen resolution
 CONFIG_INPUT_SC27XX_VIBRA
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] input
 	[must] user
