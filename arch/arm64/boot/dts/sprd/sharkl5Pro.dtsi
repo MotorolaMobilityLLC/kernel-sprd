@@ -179,7 +179,8 @@
 				reg = <0 0x70000000 0 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "uart", "source";
-				clocks = <&apapb_gate CLK_UART0_EB>;
+				clocks = <&apapb_gate CLK_UART0_EB>,
+					<&ap_clk CLK_AP_UART0>, <&ext_26m>;
 				status = "disabled";
 			};
 
@@ -189,7 +190,8 @@
 				reg = <0 0x70100000 0 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "uart", "source";
-				clocks = <&apapb_gate CLK_UART1_EB>;
+				clocks = <&apapb_gate CLK_UART1_EB>,
+					<&ap_clk CLK_AP_UART1>, <&ext_26m>;
 				status = "disabled";
 			};
 
