@@ -311,6 +311,9 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 {
 	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
 
+	if (usb_phy->otg->state == OTG_STATE_A_HOST)
+		return 0;
+
 	if (event)
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
 	else
