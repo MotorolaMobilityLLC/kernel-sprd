@@ -10,12 +10,46 @@
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
 
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+
 / {
 	/*
 	* When create a new node, we should use the key word __overlay__,
 	* otherwise u-boot can not analyze it.
 	*/
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			gpio-keys {
+				compatible = "gpio-keys";
 
+				key-volumedown {
+					label = "Volume Down Key";
+					linux,code = <KEY_VOLUMEDOWN>;
+					gpios = <&eic_debounce 2 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
+
+				key-volumeup {
+					label = "Volume Up Key";
+					linux,code = <KEY_VOLUMEUP>;
+					gpios = <&pmic_eic 10 GPIO_ACTIVE_HIGH>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
+
+				key-power {
+					label = "Power Key";
+					linux,code = <KEY_POWER>;
+					gpios = <&pmic_eic 1 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
+			};
+		};
+	};
 };
 
 &i2c3 {
