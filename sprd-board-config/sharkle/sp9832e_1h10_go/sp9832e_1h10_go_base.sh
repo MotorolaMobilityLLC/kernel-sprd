@@ -6,7 +6,7 @@ if [ -z $BSP_KERNEL_PATH ]; then
 fi
 
 export BSP_KERNEL_CROSS_COMPILE="$BSP_KERNEL_PATH/../../toolchain/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/bin/arm-linux-androideabi-"
-export BSP_BOARD_NAME="sp9832e_1h10"
+export BSP_BOARD_NAME="sp9832e_1h10_go"
 
 export BSP_BOARD_WCN_CONFIG=""
 export BSP_BOARD_EXT_PMIC_CONFIG=""
