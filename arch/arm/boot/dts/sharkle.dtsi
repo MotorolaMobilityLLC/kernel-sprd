@@ -159,6 +159,8 @@
 				compatible = "sprd,hwspinlock-r3p0";
 				reg = <0x33000000 0x10000>;
 				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
 
 			eic_debounce: gpio@40210000 {
