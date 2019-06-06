@@ -149,6 +149,23 @@
 			};
 		};
 
+		ap-ahb {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			ap_dma: dma-controller@20100000 {
+				compatible = "sprd,sharkle-dma";
+				reg = <0x20100000 0x4000>;
+				interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
+				#dma-cells = <1>;
+				#dma-channels = <28>;
+				clock-names = "enable";
+				clocks = <&apahb_gate DMA_PUB_EB>;
+			};
+		};
+
 		aon {
 			compatible = "simple-bus";
 			#address-cells = <1>;
@@ -161,6 +178,15 @@
 				#hwlock-cells = <1>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
+
+			aon_dma: dma-controller@40100000 {
+				compatible = "sprd,sharkle-dma";
+				reg = <0x40100000 0x4000>;
+				#dma-cells = <1>;
+				#dma-channels = <8>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_AON_DMA_EB>;
 			};
 
 			eic_debounce: gpio@40210000 {
