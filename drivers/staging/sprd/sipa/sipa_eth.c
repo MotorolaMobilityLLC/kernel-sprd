@@ -80,6 +80,8 @@ static void sipa_eth_prepare_skb(struct SIPA_ETH *sipa_eth, struct sk_buff *skb)
 		skb->protocol = eth_type_trans(skb, sipa_eth->netdev);
 		skb_set_network_header(skb, ETH_HLEN);
 	} else {
+		if (pdata->mac_h)
+			skb_pull_inline(skb, ETH_HLEN);
 		skb_reset_network_header(skb);
 		iph = ip_hdr(skb);
 		if (iph->version == 4)
@@ -232,7 +234,7 @@ static int sipa_eth_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	netid = pdata->netid;
 	/* eth is rawip, so pull 14 bytes */
-	if (netid >= 0)
+	if (pdata->mac_h)
 		skb_pull_inline(skb, ETH_HLEN);
 
 	ret = sipa_nic_tx(sipa_eth->nic_id, pdata->term_type, netid, skb);
@@ -267,8 +269,8 @@ static int sipa_eth_open(struct net_device *dev)
 	struct sipa_eth_init_data *pdata = sipa_eth->pdata;
 	int ret = 0;
 
-	pr_info("open %s netid %d term_type %d\n",
-		dev->name, pdata->netid, pdata->term_type);
+	pr_info("open %s netid %d term_type %d mac_h %d\n",
+		dev->name, pdata->netid, pdata->term_type, pdata->mac_h);
 	ret = sipa_nic_open(
 		pdata->term_type,
 		pdata->netid,
@@ -370,9 +372,12 @@ static int sipa_eth_parse_dt(
 	}
 
 	pdata->term_type = udata;
+
+	pdata->mac_h = of_property_read_bool(np, "sprd,mac-header");
+
 	*init = pdata;
-	pr_debug("after dt parse, name %s netid %d term-type %d\n",
-		 pdata->name, pdata->netid, pdata->term_type);
+	pr_debug("after dt parse, name %s netid %d term-type %d mac_h %d\n",
+		 pdata->name, pdata->netid, pdata->term_type, pdata->mac_h);
 	return 0;
 }
 
@@ -502,9 +507,9 @@ static int sipa_eth_debug_show(struct seq_file *m, void *v)
 	stats = &sipa_eth->dt_stats;
 
 	seq_puts(m, "*************************************************\n");
-	seq_printf(m, "DEVICE: %s, term_type %d, netid %d, state %s\n",
+	seq_printf(m, "DEVICE: %s, term_type %d, netid %d, state %s mac_h %d\n",
 		   pdata->name, pdata->term_type, pdata->netid,
-		   sipa_eth->state == DEV_ON ? "UP" : "DOWN");
+		   sipa_eth->state == DEV_ON ? "UP" : "DOWN", pdata->mac_h);
 	seq_puts(m, "\nRX statistics:\n");
 	seq_printf(m, "rx_sum=%u, rx_cnt=%u\n",
 		   stats->rx_sum,

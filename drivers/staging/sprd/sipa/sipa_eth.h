@@ -31,5 +31,6 @@ struct sipa_eth_init_data {
 	char name[IFNAMSIZ];
 	u32 term_type;
 	s32 netid;
+	bool mac_h;
 };
 #endif
