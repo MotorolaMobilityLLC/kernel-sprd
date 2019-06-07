@@ -163,6 +163,23 @@ static const struct snd_pcm_hardware sprd_i2s_pcm_hardware = {
 	.buffer_bytes_max = I2S_BUFFER_BYTES_MAX,
 };
 
+int agdsp_access_enable(void)
+	__attribute__ ((weak, alias("__agdsp_access_enable")));
+static int __agdsp_access_enable(void)
+{
+	pr_debug("%s\n", __func__);
+	return 0;
+}
+
+int agdsp_access_disable(void)
+	__attribute__ ((weak, alias("__agdsp_access_disable")));
+static int __agdsp_access_disable(void)
+{
+	pr_debug("%s\n", __func__);
+	return 0;
+}
+
+
 static inline int sprd_is_i2s(struct snd_soc_dai *cpu_dai)
 {
 	return (cpu_dai->driver->id == I2S_MAGIC_ID);
@@ -1123,6 +1140,13 @@ static int sprd_pcm_hw_free(struct snd_pcm_substream *substream)
 	snd_pcm_set_runtime_buffer(substream, NULL);
 
 	if (dma) {
+		int ret;
+		/* dma dma_release_channel need to access auio dsp sys */
+		ret = agdsp_access_enable();
+		if (ret) {
+			pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
+			return ret;
+		}
 		normal_dma_protect_mutex_lock(substream);
 		for (i = 0; i < rtd->hw_chan; i++) {
 			if (rtd->dma_chn[i]) {
@@ -1139,6 +1163,7 @@ static int sprd_pcm_hw_free(struct snd_pcm_substream *substream)
 		}
 		rtd->params = NULL;
 		normal_dma_protect_mutex_unlock(substream);
+		agdsp_access_disable();
 	}
 
 	return 0;
@@ -1511,12 +1536,19 @@ static struct snd_soc_platform_driver sprd_soc_platform = {
 static void pm_normal_dma_chan_release(struct sprd_runtime_data *rtd)
 {
 	int i;
+	int ret;
 	struct dma_chan *temp_dma_chan;
 	struct audio_pm_dma *pm_dma;
 
 	pm_dma = get_pm_dma();
 	if (!rtd) {
 		pr_warn("%s, rtd is null\n", __func__);
+		return;
+	}
+	/* dma dma_release_channel need to access auio dsp sys */
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
 		return;
 	}
 	/* mutex lock and spinlock is normal only if enter this function */
@@ -1536,6 +1568,7 @@ static void pm_normal_dma_chan_release(struct sprd_runtime_data *rtd)
 			pr_info("%s i=%d has released\n", __func__, i);
 	}
 	mutex_unlock(&pm_dma->pm_mtx_dma_prot);
+	agdsp_access_disable();
 }
 
 /* notify function only care dma does not care vbc */
