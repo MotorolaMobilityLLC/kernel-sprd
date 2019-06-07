@@ -278,11 +278,28 @@ static int enqueue(struct msg_q *q, unsigned char *msg)
 	return OK;
 }
 
+/*
+ * (a) "volatile" on kernel data is basically always a bug, and you should
+ *  use locking. "volatile" doesn't help anything at all with memory
+ *  ordering and friends, so it's insane to think it "solves" anything on
+ *  its own.
+ * (b) on "iomem" pointers it does make sense, but those need special
+ *  accessor functions _anyway_, so things like test_bit() wouldn't work
+ *  on them.
+ * (c)if you spin on a value [that's] changing, you should use "cpu_relax()" or
+ *  "barrier()" anyway, which will force gcc to re-load any values from
+ *  memory over the loop.
+ */
 static int dscr_polling(struct desc *dscr, int loop)
 {
 	do {
 		if (dscr->chn_trans_len.bit.rf_chn_done)
 			return 0;
+		/*
+		 * Make sure to reread dscr->chn_trans_len.bit.rf_chn_done each
+		 * time. or use cpu_relax()
+		 */
+		barrier();
 	} while (loop--);
 
 	return -1;
