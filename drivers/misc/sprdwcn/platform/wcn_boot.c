@@ -2199,6 +2199,11 @@ int start_marlin(u32 subsys)
 
 	if (marlin_dev->first_power_on_flag == 1) {
 		stop_marlin(MARLIN_GNSS);
+		if (subsys == MARLIN_GNSS) {
+			marlin_dev->first_power_on_flag = 2;
+			mutex_unlock(&marlin_dev->power_lock);
+			start_marlin(MARLIN_GNSS);
+		}
 		loopcheck_ready_set();
 	}
 
