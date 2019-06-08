@@ -439,10 +439,13 @@ int dw_pcie_host_init(struct pcie_port *pp)
 	}
 
 	ret = pci_scan_root_bus_bridge(bridge);
-	if (ret)
+	if (ret) {
+		dev_err(dev, "Is the EP ready for establish link?\n");
 		goto error;
+	}
 
 	bus = bridge->bus;
+	pp->bridge = bridge;
 
 	if (pp->ops->scan_bus)
 		pp->ops->scan_bus(pp);

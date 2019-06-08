@@ -220,6 +220,9 @@ struct pcie_port {
 	struct irq_domain	*irq_domain;
 	unsigned long		msi_data;
 	DECLARE_BITMAP(msi_irq_in_use, MAX_MSI_IRQS);
+
+	/* SPRD: Add these structs for PCIe EP power on/off */
+	struct pci_host_bridge *bridge;
 };
 
 enum dw_pcie_as_type {

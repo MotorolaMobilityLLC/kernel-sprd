@@ -76,6 +76,7 @@ static void sprd_pcie_assert_reset(struct pcie_port *pp)
 
 static int sprd_pcie_host_init(struct pcie_port *pp)
 {
+	int ret;
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 
 	sprd_pcie_assert_reset(pp);
@@ -85,7 +86,12 @@ static int sprd_pcie_host_init(struct pcie_port *pp)
 	if (IS_ENABLED(CONFIG_PCI_MSI))
 		dw_pcie_msi_init(pp);
 
-	return dw_pcie_wait_for_link(pci);
+	ret = dw_pcie_wait_for_link(pci);
+	if (ret)
+		dev_warn(pci->dev,
+			 "pcie ep may has not been powered yet, ignore it\n");
+
+	return 0;
 }
 
 static const struct dw_pcie_host_ops sprd_pcie_host_ops = {
@@ -304,6 +310,43 @@ static void sprd_pcie_stop_link(struct dw_pcie *pci)
 	/* TODO */
 }
 
+static int sprd_pcie_host_uninit(struct platform_device *pdev)
+{
+	int ret;
+	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = sprd_pcie->pci;
+
+	sprd_pcie_save_dwc_reg(pci);
+
+	ret = sprd_pcie_enter_pcipm_l2(pci);
+	if (ret < 0)
+		dev_warn(&pdev->dev,
+			"NOTE: RC can't enter l2\n");
+
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-suspend-syscons");
+	if (ret < 0)
+		dev_err(&pdev->dev,
+			"set pcie uninit syscons fail, return %d\n", ret);
+
+	return ret;
+}
+
+static int sprd_pcie_host_shutdown(struct platform_device *pdev)
+{
+	int ret;
+	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = sprd_pcie->pci;
+
+	sprd_pcie_save_dwc_reg(pci);
+
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-shutdown-syscons");
+	if (ret < 0)
+		dev_err(&pdev->dev,
+			"set pcie shutdown syscons fail, return %d\n", ret);
+
+	return ret;
+}
+
 static const struct dw_pcie_ops dw_pcie_ops = {
 	.start_link = sprd_pcie_establish_link,
 	.stop_link = sprd_pcie_stop_link,
@@ -392,27 +435,129 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	if (!dw_pcie_link_up(pci)) {
+		dev_info(dev,
+			 "the EP has not been ready yet, power off the RC\n");
+		sprd_pcie_host_shutdown(pdev);
+	}
+
 	return 0;
 }
+
+static int sprd_pcie_host_reinit(struct platform_device *pdev)
+{
+	int ret;
+	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = sprd_pcie->pci;
+	struct pcie_port *pp = &pci->pp;
+
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-resume-syscons");
+	if (ret < 0) {
+		dev_err(&pdev->dev,
+			"set pcie reinit syscons fail, return %d\n", ret);
+		return ret;
+	}
+	dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
+			   LTSSM_EN | L1_AUXCLK_EN);
+
+	dw_pcie_setup_rc(pp);
+	ret = dw_pcie_wait_for_link(pci);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "reinit fail, pcie can't establish link\n");
+		return ret;
+	}
+
+	sprd_pcie_restore_dwc_reg(pci);
+
+	return 0;
+}
+
+static struct pci_host_bridge *to_bridge_from_pdev(struct platform_device *pdev)
+{
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = ctrl->pci;
+	struct pcie_port *pp = &pci->pp;
+
+	return pp->bridge;
+}
+
+static void sprd_pcie_rescan_bus(struct pci_bus *bus)
+{
+	struct pci_bus *child;
+
+	pci_scan_child_bus(bus);
+
+	pci_assign_unassigned_bus_resources(bus);
+
+	list_for_each_entry(child, &bus->children, node)
+		pcie_bus_configure_settings(child);
+
+	pci_bus_add_devices(bus);
+}
+
+static void sprd_pcie_remove_bus(struct pci_bus *bus)
+{
+	struct pci_dev *pci_dev;
+
+	list_for_each_entry(pci_dev, &bus->devices, bus_list) {
+		struct pci_bus *child_bus = pci_dev->subordinate;
+
+		pci_stop_and_remove_bus_device(pci_dev);
+
+		if (child_bus) {
+			dev_dbg(&bus->dev,
+				"all pcie devices have been removed\n");
+			return;
+		}
+	}
+}
+
+int sprd_pcie_configure_device(struct platform_device *pdev)
+{
+	int ret;
+	struct pci_host_bridge *bridge;
+
+	ret = sprd_pcie_host_reinit(pdev);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "pcie rescan fail\n");
+		return ret;
+	}
+
+	bridge = to_bridge_from_pdev(pdev);
+	sprd_pcie_rescan_bus(bridge->bus);
+
+	return 0;
+}
+EXPORT_SYMBOL(sprd_pcie_configure_device);
+
+int sprd_pcie_unconfigure_device(struct platform_device *pdev)
+{
+	int ret;
+	struct pci_bus *bus;
+	struct pci_host_bridge *bridge;
+
+	bridge = to_bridge_from_pdev(pdev);
+	bus = bridge->bus;
+
+	sprd_pcie_remove_bus(bus);
+
+	ret = sprd_pcie_host_uninit(pdev);
+	if (ret < 0)
+		dev_warn(&pdev->dev,
+			 "please ignore pcie unconfigure failure\n");
+
+	return 0;
+}
+EXPORT_SYMBOL(sprd_pcie_unconfigure_device);
 
 static int sprd_pcie_suspend_noirq(struct device *dev)
 {
 	int ret;
 	struct platform_device *pdev = to_platform_device(dev);
-	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
-	struct dw_pcie *pci = sprd_pcie->pci;
 
-	sprd_pcie_save_dwc_reg(pci);
-
-	ret = sprd_pcie_enter_pcipm_l2(pci);
+	ret = sprd_pcie_host_uninit(pdev);
 	if (ret < 0)
-		dev_warn(dev, "note: RC doesn't enter l2\n");
-
-	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-suspend-syscons");
-	if (ret < 0) {
-		dev_err(dev, "set pcie suspend syscons fail, return %d\n", ret);
-		return ret;
-	}
+		dev_err(dev, "suspend noirq warning\n");
 
 	return 0;
 }
@@ -421,31 +566,10 @@ static int sprd_pcie_resume_noirq(struct device *dev)
 {
 	int ret;
 	struct platform_device *pdev = to_platform_device(dev);
-	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
-	struct dw_pcie *pci = sprd_pcie->pci;
-	struct pcie_port *pp = &pci->pp;
 
-	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-resume-syscons");
-	if (ret < 0) {
-		dev_err(dev, "set pcie resume syscons fail, return %d\n", ret);
-		return ret;
-	}
-
-	dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
-			   LTSSM_EN | L1_AUXCLK_EN);
-
-	dw_pcie_setup_rc(pp);
-	ret = dw_pcie_wait_for_link(pci);
-	if (ret < 0) {
-		dev_err(dev, "resume fail, pcie can't establish link\n");
-		return ret;
-	}
-
-	sprd_pcie_restore_dwc_reg(pci);
-
-	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-aspml1p2-syscons");
+	ret = sprd_pcie_host_reinit(pdev);
 	if (ret < 0)
-		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
+		dev_err(dev, "resume noirq warning\n");
 
 	return 0;
 }
