@@ -658,7 +658,7 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	int out_ipaifindex, in_ipaifindex;
 	u8  l4proto;
 
-	if (!get_sfp_enable() || skb->sk)
+	if (!get_sfp_enable())
 		return 0;
 
 	ct = nf_ct_get(skb, &ctinfo);
