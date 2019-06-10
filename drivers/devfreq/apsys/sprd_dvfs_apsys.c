@@ -103,18 +103,36 @@ static ssize_t apsys_hold_en_store(struct device *dev,
 	return count;
 }
 
-static ssize_t apsys_clk_gate_store(struct device *dev,
+static ssize_t apsys_force_en_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct apsys_dev *apsys = to_apsys(dev);
-	int ret, clk_gate;
+	int ret, force_en;
 
-	ret = sscanf(buf, "%d\n", &clk_gate);
+	ret = sscanf(buf, "%d\n", &force_en);
 	if (ret == 0)
 		return -EINVAL;
 
-	if (apsys->dvfs_ops && apsys->dvfs_ops->apsys_clk_gate)
-		apsys->dvfs_ops->apsys_clk_gate(clk_gate);
+	if (apsys->dvfs_ops && apsys->dvfs_ops->apsys_force_en)
+		apsys->dvfs_ops->apsys_force_en(force_en);
+	else
+		pr_info("%s: apsys ops null\n", __func__);
+
+	return count;
+}
+
+static ssize_t apsys_auto_gate_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct apsys_dev *apsys = to_apsys(dev);
+	int ret, gate_sel;
+
+	ret = sscanf(buf, "%d\n", &gate_sel);
+	if (ret == 0)
+		return -EINVAL;
+
+	if (apsys->dvfs_ops && apsys->dvfs_ops->apsys_auto_gate)
+		apsys->dvfs_ops->apsys_auto_gate(gate_sel);
 	else
 		pr_info("%s: apsys ops null\n", __func__);
 
@@ -159,14 +177,16 @@ static ssize_t apsys_min_volt_store(struct device *dev,
 
 static DEVICE_ATTR(cur_volt, 0444, top_cur_volt_show, NULL);
 static DEVICE_ATTR(hold_en, 0200, NULL, apsys_hold_en_store);
-static DEVICE_ATTR(clk_gate, 0200, NULL, apsys_clk_gate_store);
+static DEVICE_ATTR(force_en, 0200, NULL, apsys_force_en_store);
+static DEVICE_ATTR(auto_gate, 0200, NULL, apsys_auto_gate_store);
 static DEVICE_ATTR(wait_window, 0200, NULL, apsys_wait_window_store);
 static DEVICE_ATTR(min_volt, 0200, NULL, apsys_min_volt_store);
 
 static struct attribute *apsys_attrs[] = {
 	&dev_attr_cur_volt.attr,
 	&dev_attr_hold_en.attr,
-	&dev_attr_clk_gate.attr,
+	&dev_attr_force_en.attr,
+	&dev_attr_auto_gate.attr,
 	&dev_attr_wait_window.attr,
 	&dev_attr_min_volt.attr,
 	NULL,
@@ -175,6 +195,28 @@ static struct attribute *apsys_attrs[] = {
 static const struct attribute_group apsys_group = {
 	.attrs = apsys_attrs,
 };
+
+static __maybe_unused int apsys_dvfs_suspend(struct device *dev)
+{
+	pr_info("%s()\n", __func__);
+
+	return 0;
+}
+
+static __maybe_unused int apsys_dvfs_resume(struct device *dev)
+{
+	struct apsys_dev *apsys = dev_get_drvdata(dev);
+
+	pr_info("%s()\n", __func__);
+
+	if (apsys->dvfs_ops && apsys->dvfs_ops->dvfs_init)
+		apsys->dvfs_ops->dvfs_init(apsys);
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(apsys_dvfs_pm, apsys_dvfs_suspend,
+			 apsys_dvfs_resume);
 
 static int apsys_dvfs_class_init(void)
 {
@@ -258,7 +300,7 @@ static int apsys_dvfs_probe(struct platform_device *pdev)
 	if (apsys->dvfs_ops && apsys->dvfs_ops->dvfs_init)
 		apsys->dvfs_ops->dvfs_init(apsys);
 
-	pr_info("Succeeded to register a apsys dvfs device\n");
+	pr_info("apsys module registered\n");
 
 	return 0;
 }
@@ -282,6 +324,7 @@ static struct platform_driver apsys_dvfs_driver = {
 	.remove	= apsys_dvfs_remove,
 	.driver = {
 		.name = "apsys-dvfs",
+		.pm	= &apsys_dvfs_pm,
 		.of_match_table = apsys_dvfs_of_match,
 	},
 };

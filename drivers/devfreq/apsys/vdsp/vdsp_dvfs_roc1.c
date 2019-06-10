@@ -11,6 +11,8 @@
  * GNU General Public License for more details.
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/of.h>
@@ -148,9 +150,6 @@ static void set_vdsp_work_index(int index)
 
 	reg->vdsp_dvfs_index_cfg = index;
 	udelay(100);
-
-	//top_apsys_dvfs_current_volt(vdsp);
-	//apsys_dvfs_read_current_volt(vdsp);
 }
 
 static int get_vdsp_work_index(void)
@@ -167,9 +166,6 @@ static void set_vdsp_idle_index(int index)
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
 
 	reg->vdsp_dvfs_index_idle_cfg = index;
-
-	//top_apsys_dvfs_current_volt(devfreq);
-	//apsys_dvfs_read_current_volt(devfreq);
 }
 
 static int get_vdsp_idle_index(void)
@@ -292,38 +288,45 @@ static int vdsp_dvfs_parse_dt(struct vdsp_dvfs *vdsp,
 {
 	int ret;
 
+	pr_info("%s()\n", __func__);
+
 	ret = of_property_read_u32(np, "sprd,gfree-wait-delay",
 			&vdsp->dvfs_coffe.gfree_wait_delay);
-	if (!ret)
-		set_vdsp_gfree_wait_delay(vdsp->dvfs_coffe.gfree_wait_delay);
+	if (ret)
+		vdsp->dvfs_coffe.gfree_wait_delay = 0x100;
 
 	ret = of_property_read_u32(np, "sprd,freq-upd-hdsk-en",
 			&vdsp->dvfs_coffe.freq_upd_hdsk_en);
-	if (!ret)
-		set_vdsp_freq_upd_hdsk_en(vdsp->dvfs_coffe.freq_upd_hdsk_en);
+	if (ret)
+		vdsp->dvfs_coffe.freq_upd_hdsk_en = 1;
 
 	ret = of_property_read_u32(np, "sprd,freq-upd-delay-en",
 			&vdsp->dvfs_coffe.freq_upd_delay_en);
-	if (!ret)
-		set_vdsp_freq_upd_delay_en(vdsp->dvfs_coffe.freq_upd_delay_en);
+	if (ret)
+		vdsp->dvfs_coffe.freq_upd_delay_en = 1;
 
 	ret = of_property_read_u32(np, "sprd,freq-upd-en-byp",
 			&vdsp->dvfs_coffe.freq_upd_en_byp);
-	if (!ret)
-		set_vdsp_freq_upd_en_byp(vdsp->dvfs_coffe.freq_upd_en_byp);
+	if (ret)
+		vdsp->dvfs_coffe.freq_upd_en_byp = 0;
 
 	ret = of_property_read_u32(np, "sprd,sw-trig-en",
 			&vdsp->dvfs_coffe.sw_trig_en);
-	if (!ret)
-		set_vdsp_dvfs_swtrig_en(vdsp->dvfs_coffe.sw_trig_en);
+	if (ret)
+		vdsp->dvfs_coffe.sw_trig_en = 0;
 
 	return ret;
 }
 
 static int vdsp_dvfs_init(struct vdsp_dvfs *vdsp)
 {
-	vdsp_dvfs_map_cfg();
+	pr_info("%s()\n", __func__);
 
+	vdsp_dvfs_map_cfg();
+	set_vdsp_gfree_wait_delay(vdsp->dvfs_coffe.gfree_wait_delay);
+	set_vdsp_freq_upd_hdsk_en(vdsp->dvfs_coffe.freq_upd_hdsk_en);
+	set_vdsp_freq_upd_delay_en(vdsp->dvfs_coffe.freq_upd_delay_en);
+	set_vdsp_freq_upd_en_byp(vdsp->dvfs_coffe.freq_upd_en_byp);
 	set_vdsp_work_index(vdsp->dvfs_coffe.work_index_def);
 	set_vdsp_idle_index(vdsp->dvfs_coffe.idle_index_def);
 	vdsp_hw_dfs_en(vdsp->dvfs_coffe.hw_dfs_en);

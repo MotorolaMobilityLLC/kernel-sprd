@@ -461,6 +461,28 @@ static struct devfreq_dev_profile dpu_dvfs_profile = {
 	.get_cur_freq       = dpu_dvfs_get_cur_freq,
 };
 
+static __maybe_unused int dpu_dvfs_suspend(struct device *dev)
+{
+	pr_info("%s()\n", __func__);
+
+	return 0;
+}
+
+static __maybe_unused int dpu_dvfs_resume(struct device *dev)
+{
+	struct dpu_dvfs *dpu = dev_get_drvdata(dev);
+
+	pr_info("%s()\n", __func__);
+
+	if (dpu->dvfs_ops && dpu->dvfs_ops->dvfs_init)
+		dpu->dvfs_ops->dvfs_init(dpu);
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(dpu_dvfs_pm, dpu_dvfs_suspend,
+			 dpu_dvfs_resume);
+
 static int userspace_init(struct devfreq *devfreq)
 {
 	int ret = 0;
@@ -534,6 +556,8 @@ static int dpu_dvfs_parse_dt(struct dpu_dvfs *dpu,
 {
 	int ret;
 
+	pr_info("%s()\n", __func__);
+
 	ret = of_property_read_u32(np, "sprd,hw-dfs-en",
 			&dpu->dvfs_coffe.hw_dfs_en);
 	ret |= of_property_read_u32(np, "sprd,work-index-def",
@@ -606,7 +630,7 @@ static int dpu_dvfs_probe(struct platform_device *pdev)
 	if (dpu->dvfs_ops && dpu->dvfs_ops->dvfs_init)
 		dpu->dvfs_ops->dvfs_init(dpu);
 
-	pr_info("Succeeded to register a dpu dvfs device\n");
+	pr_info("dpu dvfs module registered\n");
 
 	return 0;
 err:
@@ -637,6 +661,7 @@ static struct platform_driver dpu_dvfs_driver = {
 	.remove	= dpu_dvfs_remove,
 	.driver = {
 		.name = "dpu-dvfs",
+		.pm	= &dpu_dvfs_pm,
 		.of_match_table = dpu_dvfs_of_match,
 	},
 };

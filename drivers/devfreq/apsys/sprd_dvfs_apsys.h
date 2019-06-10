@@ -43,10 +43,10 @@ struct apsys_regmap {
 struct apsys_dvfs_coffe {
 	u32 sw_dvfs_en;
 	u32 dvfs_hold_en;
-	u32 dvfs_clk_gate;
 	u32 dvfs_wait_window;
 	u32 dvfs_min_volt;
 	u32 dvfs_force_en;
+	u32 dvfs_auto_gate;
 	u32 sw_cgb_enable;
 };
 
@@ -95,7 +95,8 @@ struct apsys_dvfs_ops {
 	int (*parse_dt)(struct apsys_dev *apsys, struct device_node *np);
 	void (*dvfs_init)(struct apsys_dev *apsys);
 	void (*apsys_hold_en)(u32 hold_en);
-	void (*apsys_clk_gate)(u32 clk_gate);
+	void (*apsys_force_en)(u32 force_en);
+	void (*apsys_auto_gate)(u32 gate_sel);
 	void (*apsys_wait_window)(u32 wait_window);
 	void (*apsys_min_volt)(u32 min_volt);
 

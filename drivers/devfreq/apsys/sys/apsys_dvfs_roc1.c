@@ -11,6 +11,8 @@
  * GNU General Public License for more details.
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
@@ -92,26 +94,26 @@ char *roc1_vsp_val_to_freq(u32 val)
 	}
 }
 
-static void apsys_dvfs_auto_gate_sel(u32 enable)
+static void apsys_dvfs_force_en(u32 force_en)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
 
-	if (enable)
-		reg->cgm_ap_dvfs_clk_gate_ctrl |= BIT(0);
-	else
-		reg->cgm_ap_dvfs_clk_gate_ctrl &= ~BIT(0);
-}
-
-static void apsys_dvfs_force_en(u32 enable)
-{
-	struct apsys_dvfs_reg *reg =
-		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
-
-	if (enable)
+	if (force_en)
 		reg->cgm_ap_dvfs_clk_gate_ctrl |= BIT(1);
 	else
 		reg->cgm_ap_dvfs_clk_gate_ctrl &= ~BIT(1);
+}
+
+static void apsys_dvfs_auto_gate(u32 gate_sel)
+{
+	struct apsys_dvfs_reg *reg =
+		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+
+	if (gate_sel)
+		reg->cgm_ap_dvfs_clk_gate_ctrl |= BIT(0);
+	else
+		reg->cgm_ap_dvfs_clk_gate_ctrl &= ~BIT(0);
 }
 
 static void apsys_dvfs_hold_en(u32 hold_en)
@@ -120,11 +122,6 @@ static void apsys_dvfs_hold_en(u32 hold_en)
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
 
 	reg->ap_dvfs_hold_ctrl = hold_en;
-}
-
-static void apsys_dvfs_clk_gate(u32 clk_gate)
-{
-	apsys_dvfs_auto_gate_sel(clk_gate);
 }
 
 static void apsys_dvfs_wait_window(u32 wait_window)
@@ -157,30 +154,32 @@ static int apsys_dvfs_parse_dt(struct apsys_dev *apsys,
 {
 	int ret;
 
+	pr_info("%s()\n", __func__);
+
 	ret = of_property_read_u32(np, "sprd,ap-dvfs-hold",
 			&apsys->dvfs_coffe.dvfs_hold_en);
-	if (!ret)
-		apsys_dvfs_hold_en(apsys->dvfs_coffe.dvfs_hold_en);
+	if (ret)
+		apsys->dvfs_coffe.dvfs_hold_en = 0;
 
-	ret = of_property_read_u32(np, "sprd,ap-dvfs-clk-gate",
-			&apsys->dvfs_coffe.dvfs_clk_gate);
-	if (!ret)
-		apsys_dvfs_clk_gate(apsys->dvfs_coffe.dvfs_clk_gate);
-
-	ret = of_property_read_u32(np, "sprd,ap-dvfs-wait_window",
-			&apsys->dvfs_coffe.dvfs_wait_window);
-	if (!ret)
-		apsys_dvfs_wait_window(apsys->dvfs_coffe.dvfs_wait_window);
-
-	ret = of_property_read_u32(np, "sprd,ap-dvfs-min_volt",
-			&apsys->dvfs_coffe.dvfs_min_volt);
-	if (!ret)
-		apsys_dvfs_min_volt(apsys->dvfs_coffe.dvfs_min_volt);
-
-	ret = of_property_read_u32(np, "sprd,ap-dvfs-force_en",
+	ret = of_property_read_u32(np, "sprd,ap-dvfs-force-en",
 			&apsys->dvfs_coffe.dvfs_force_en);
-	if (!ret)
-		apsys_dvfs_force_en(apsys->dvfs_coffe.dvfs_force_en);
+	if (ret)
+		apsys->dvfs_coffe.dvfs_force_en = 1;
+
+	ret = of_property_read_u32(np, "sprd,ap-dvfs-auto-gate",
+			&apsys->dvfs_coffe.dvfs_auto_gate);
+	if (ret)
+		apsys->dvfs_coffe.dvfs_auto_gate = 0;
+
+	ret = of_property_read_u32(np, "sprd,ap-dvfs-wait-window",
+			&apsys->dvfs_coffe.dvfs_wait_window);
+	if (ret)
+		apsys->dvfs_coffe.dvfs_wait_window = 0x10080;
+
+	ret = of_property_read_u32(np, "sprd,ap-dvfs-min-volt",
+			&apsys->dvfs_coffe.dvfs_min_volt);
+	if (ret)
+		apsys->dvfs_coffe.dvfs_min_volt = 0;
 
 	return ret;
 }
@@ -189,17 +188,25 @@ static void apsys_dvfs_init(struct apsys_dev *apsys)
 {
 	void __iomem *base;
 
+	pr_info("%s()\n", __func__);
+
 	base = ioremap_nocache(0x322a0000, 0x150);
 	if (IS_ERR(base))
 		pr_err("ioremap top dvfs address failed\n");
 
 	regmap_ctx.top_base = (unsigned long)base;
+
+	apsys_dvfs_hold_en(apsys->dvfs_coffe.dvfs_hold_en);
+	apsys_dvfs_force_en(apsys->dvfs_coffe.dvfs_force_en);
+	apsys_dvfs_auto_gate(apsys->dvfs_coffe.dvfs_auto_gate);
+	apsys_dvfs_wait_window(apsys->dvfs_coffe.dvfs_wait_window);
+	apsys_dvfs_min_volt(apsys->dvfs_coffe.dvfs_min_volt);
 }
 
 static struct apsys_dvfs_ops apsys_dvfs_ops = {
 	.parse_dt = apsys_dvfs_parse_dt,
 	.dvfs_init = apsys_dvfs_init,
-	.apsys_clk_gate = apsys_dvfs_clk_gate,
+	.apsys_auto_gate = apsys_dvfs_auto_gate,
 	.apsys_hold_en = apsys_dvfs_hold_en,
 	.apsys_wait_window = apsys_dvfs_wait_window,
 	.apsys_min_volt = apsys_dvfs_min_volt,

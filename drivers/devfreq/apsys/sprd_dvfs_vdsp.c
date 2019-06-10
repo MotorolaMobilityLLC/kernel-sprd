@@ -469,6 +469,28 @@ static struct devfreq_dev_profile vdsp_dvfs_profile = {
 	.get_cur_freq       = vdsp_dvfs_get_cur_freq,
 };
 
+static __maybe_unused int vdsp_dvfs_suspend(struct device *dev)
+{
+	pr_info("%s()\n", __func__);
+
+	return 0;
+}
+
+static __maybe_unused int vdsp_dvfs_resume(struct device *dev)
+{
+	struct vdsp_dvfs *vdsp = dev_get_drvdata(dev);
+
+	pr_info("%s()\n", __func__);
+
+	if (vdsp->dvfs_ops && vdsp->dvfs_ops->dvfs_init)
+		vdsp->dvfs_ops->dvfs_init(vdsp);
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(vdsp_dvfs_pm, vdsp_dvfs_suspend,
+			 vdsp_dvfs_resume);
+
 static int userspace_init(struct devfreq *devfreq)
 {
 	int ret = 0;
@@ -543,6 +565,8 @@ static int vdsp_dvfs_parse_dt(struct vdsp_dvfs *vdsp,
 {
 	int ret;
 
+	pr_info("%s()\n", __func__);
+
 	ret = of_property_read_u32(np, "sprd,hw-dfs-en",
 			&vdsp->dvfs_coffe.hw_dfs_en);
 	ret |= of_property_read_u32(np, "sprd,work-index-def",
@@ -616,7 +640,7 @@ static int vdsp_dvfs_probe(struct platform_device *pdev)
 	if (vdsp->dvfs_ops && vdsp->dvfs_ops->dvfs_init)
 		vdsp->dvfs_ops->dvfs_init(vdsp);
 
-	pr_emerg("Succeeded to register a vdsp dvfs device\n");
+	pr_emerg("vdsp dvfs module registered\n");
 
 	return 0;
 err:
@@ -644,7 +668,8 @@ static struct platform_driver vdsp_dvfs_driver = {
 	.probe	= vdsp_dvfs_probe,
 	.remove	= vdsp_dvfs_remove,
 	.driver = {
-	.name = "vdsp-dvfs",
+		.name = "vdsp-dvfs",
+		.pm	= &vdsp_dvfs_pm,
 		.of_match_table = vdsp_dvfs_of_match,
 	},
 };
