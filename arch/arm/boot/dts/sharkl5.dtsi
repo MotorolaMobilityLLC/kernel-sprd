@@ -349,8 +349,13 @@
 					MASK_GPU_DVFS_APB_GPU_DVFS_REQ_SW)>,
 				<&gpu_dvfs_apb_regs
 					REG_GPU_DVFS_APB_GPU_PROACTIVE_DVFS_CFG
-					MASK_GPU_DVFS_APB_GPU_PROACTIVE_DVFS_SEL
-					>;
+					MASK_GPU_DVFS_APB_GPU_PROACTIVE_DVFS_SEL>,
+				<&gpu_dvfs_apb_regs
+					REG_GPU_DVFS_APB_GPU_FREQ_UPD_TYPE_CFG
+					(MASK_GPU_DVFS_APB_GPU_CORE_FREQ_UPD_HDSK_EN |
+					MASK_GPU_DVFS_APB_GPU_CORE_FREQ_UPD_DELAY_EN |
+					MASK_GPU_DVFS_APB_GPU_MEM_FREQ_UPD_HDSK_EN |
+					MASK_GPU_DVFS_APB_GPU_MEM_FREQ_UPD_DELAY_EN)>;
 
 				syscon-names = "top_force_shutdown",
 					"rgx_dust_force_shutdown",
@@ -359,7 +364,8 @@
 					"gpu_qos",
 					"dvfs_index_cfg",
 					"sw_dvfs_ctrl",
-					"pdvfs_cfg";
+					"pdvfs_cfg",
+					"freq_upd_cfg";
 				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
 
 				operating-points = <
