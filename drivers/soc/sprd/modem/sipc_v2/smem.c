@@ -186,19 +186,23 @@ static void soc_modem_ram_unmap(const void *mem)
 	struct smem_map *map, *next;
 	unsigned long flags;
 	struct smem_map_list *smem = &mem_mp;
+	bool found = false;
 
 	if (smem->inited) {
 		spin_lock_irqsave(&smem->lock, flags);
 		list_for_each_entry_safe(map, next, &smem->map_head, map_list) {
 			if (map->mem == mem) {
 				list_del(&map->map_list);
-				vm_unmap_ram(mem - offset_in_page(mem),
-					     map->count);
-				kfree(map);
+				found = true;
 				break;
 			}
 		}
 		spin_unlock_irqrestore(&smem->lock, flags);
+
+		if (found) {
+			vm_unmap_ram(mem - offset_in_page(mem), map->count);
+			kfree(map);
+		}
 	}
 }
 
