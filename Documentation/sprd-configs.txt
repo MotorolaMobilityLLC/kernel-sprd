@@ -3662,7 +3662,7 @@ CONFIG_FW_LOADER_USER_HELPER_FALLBACK
 	direct file loading in kernel fails.
 CONFIG_GENERIC_ADC_THERMAL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[plat] all
 	[field] make
 	[subsys] thermal
 	[must] user
