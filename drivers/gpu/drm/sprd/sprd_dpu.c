@@ -128,7 +128,7 @@ static int sprd_plane_prepare_fb(struct drm_plane *plane,
 	for (i = 0; i < fb->format->num_planes; i++) {
 		obj = drm_gem_fb_get_obj(fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		if (sprd_gem->sgtb && sprd_gem->sgtb->nents > 1)
+		if (sprd_gem->need_iommu)
 			sprd_dpu_iommu_map(&dpu->dev, sprd_gem);
 	}
 
@@ -159,7 +159,7 @@ static void sprd_plane_cleanup_fb(struct drm_plane *plane,
 	for (i = 0; i < fb->format->num_planes; i++) {
 		obj = drm_gem_fb_get_obj(fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		if (sprd_gem->sgtb && sprd_gem->sgtb->nents > 1)
+		if (sprd_gem->need_iommu)
 			sprd_dpu_iommu_unmap(&dpu->dev, sprd_gem);
 	}
 }

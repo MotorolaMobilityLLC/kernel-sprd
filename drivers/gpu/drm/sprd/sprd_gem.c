@@ -194,6 +194,7 @@ struct drm_gem_object *sprd_gem_prime_import_sg_table(struct drm_device *drm,
 		struct dma_buf_attachment *attach, struct sg_table *sgtb)
 {
 	struct sprd_gem_obj *sprd_gem;
+	bool reserved;
 
 	sprd_gem = sprd_gem_obj_create(drm, attach->dmabuf->size);
 	if (IS_ERR(sprd_gem))
@@ -205,6 +206,11 @@ struct drm_gem_object *sprd_gem_prime_import_sg_table(struct drm_device *drm,
 		sprd_gem->dma_addr = sg_dma_address(sgtb->sgl);
 
 	sprd_gem->sgtb = sgtb;
+
+	if (sprd_ion_is_reserved(-1, attach->dmabuf, &reserved))
+		DRM_ERROR("sprd_ion_is_reserved fail\n");
+	else
+		sprd_gem->need_iommu = !reserved;
 
 	return &sprd_gem->base;
 }

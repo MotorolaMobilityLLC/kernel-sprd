@@ -17,11 +17,12 @@
 #include <drm/drm_gem.h>
 
 struct sprd_gem_obj {
-	struct drm_gem_object	base;
-	dma_addr_t		dma_addr;
-	struct sg_table		*sgtb;
-	void			*vaddr;
-	bool			fb_reserved;
+	struct drm_gem_object base;
+	dma_addr_t dma_addr;
+	struct sg_table *sgtb;
+	void *vaddr;
+	bool fb_reserved;
+	bool need_iommu;
 };
 
 #define to_sprd_gem_obj(x)	container_of(x, struct sprd_gem_obj, base)
