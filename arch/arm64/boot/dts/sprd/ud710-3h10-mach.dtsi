@@ -54,6 +54,8 @@
 		sprd,hw-dfs-en = <0>;
 		sprd,work-index-def = <4>;
 		sprd,idle-index-def = <2>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
 
 		operating-points = <
 			/* kHz    uV */
@@ -70,6 +72,8 @@
 		sprd,hw-dvfs-en = <0>;
 		sprd,work-index-def = <5>;
 		sprd,idle-index-def = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
 
 		operating-points = <
 			/* kHz    uV */
