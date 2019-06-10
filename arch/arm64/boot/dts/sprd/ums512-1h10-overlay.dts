@@ -5,6 +5,14 @@
 #include <dt-bindings/gpio/gpio.h>
 
 / {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			sprd-wlan {
+				compatible = "sprd,sc2355-wifi";
+			};
+		};
+	};
 	dtbo: dtbo {
 		compatible = "sprd,dtbo-test";
 		reg = <0x11>;
