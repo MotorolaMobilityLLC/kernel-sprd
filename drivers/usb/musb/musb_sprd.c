@@ -715,6 +715,8 @@ static void sprd_musb_work(struct work_struct *work)
 		 */
 		spin_lock_irqsave(&glue->lock, flags);
 		glue->charging_mode = false;
+		if (glue->dr_mode == USB_DR_MODE_HOST)
+			musb->xceiv->otg->state = OTG_STATE_A_HOST;
 		spin_unlock_irqrestore(&glue->lock, flags);
 
 		if (!charging_only && !(glue->power_always_on
