@@ -15,9 +15,9 @@
 #include "apsys_dvfs_sharkl5.h"
 
 struct ip_dvfs_map_cfg vsp_dvfs_config_table[] = {
-	{0, VOLT70, VSP_CLK_INDEX_256, VSP_CLK256},
-	{1, VOLT70, VSP_CLK_INDEX_307, VSP_CLK307},
-	{2, VOLT75, VSP_CLK_INDEX_384, VSP_CLK384},
+	{0, VOLT70, VSP_CLK_INDEX_256, VSP_CLK256, "0.7v " },
+	{1, VOLT70, VSP_CLK_INDEX_307, VSP_CLK307, "0.7v " },
+	{2, VOLT75, VSP_CLK_INDEX_384, VSP_CLK384, "0.75v" },
 };
 
 /* userspace interface */
@@ -48,6 +48,7 @@ static void get_vsp_dvfs_table(struct ip_dvfs_map_cfg *dvfs_table)
 		dvfs_table[i].volt_level = vsp_dvfs_config_table[i].volt_level;
 		dvfs_table[i].clk_level = vsp_dvfs_config_table[i].clk_level;
 		dvfs_table[i].clk_rate = vsp_dvfs_config_table[i].clk_rate;
+		dvfs_table[i].volt_val = vsp_dvfs_config_table[i].volt_val;
 	}
 }
 
@@ -276,12 +277,50 @@ static void vsp_dvfs_map_cfg(void)
 	reg->vsp_index2_map = vsp_dvfs_config_table[2].clk_level |
 		vsp_dvfs_config_table[2].volt_level << 2;
 }
+static int vsp_dvfs_parse_dt(struct vsp_dvfs *vsp,
+				struct device_node *np)
+{
+	int ret;
+
+	pr_info("%s()\n", __func__);
+
+	ret = of_property_read_u32(np, "sprd,gfree-wait-delay",
+			&vsp->ip_coeff.gfree_wait_delay);
+	if (ret)
+		vsp->ip_coeff.gfree_wait_delay = 0x100;
+
+	ret = of_property_read_u32(np, "sprd,freq-upd-hdsk-en",
+			&vsp->ip_coeff.freq_upd_hdsk_en);
+	if (ret)
+		vsp->ip_coeff.freq_upd_hdsk_en = 1;
+
+	ret = of_property_read_u32(np, "sprd,freq-upd-delay-en",
+			&vsp->ip_coeff.freq_upd_delay_en);
+	if (ret)
+		vsp->ip_coeff.freq_upd_delay_en = 1;
+
+	ret = of_property_read_u32(np, "sprd,freq-upd-en-byp",
+			&vsp->ip_coeff.freq_upd_en_byp);
+	if (ret)
+		vsp->ip_coeff.freq_upd_en_byp = 0;
+
+	ret = of_property_read_u32(np, "sprd,sw-trig-en",
+			&vsp->ip_coeff.sw_trig_en);
+	if (ret)
+		vsp->ip_coeff.sw_trig_en = 0;
+
+	return ret;
+}
 
 static int vsp_dvfs_init(struct vsp_dvfs *vsp)
 {
-	pr_info("dvfs ops: vsp%s\n", __func__);
+	pr_info("%s()\n", __func__);
 
 	vsp_dvfs_map_cfg();
+	set_vsp_gfree_wait_delay(vsp->ip_coeff.gfree_wait_delay);
+	set_vsp_freq_upd_hdsk_en(vsp->ip_coeff.freq_upd_hdsk_en);
+	set_vsp_freq_upd_delay_en(vsp->ip_coeff.freq_upd_delay_en);
+	set_vsp_freq_upd_en_byp(vsp->ip_coeff.freq_upd_en_byp);
 
 	set_vsp_work_freq(vsp->work_freq);
 	set_vsp_idle_freq(vsp->idle_freq);
@@ -301,6 +340,7 @@ static void updata_vsp_target_freq(u32 freq, set_freq_type freq_type)
 }
 
 struct ip_dvfs_ops vsp_dvfs_ops  =  {
+	.parse_dt = vsp_dvfs_parse_dt,
 	.dvfs_init = vsp_dvfs_init,
 	.hw_dvfs_en = vsp_hw_dvfs_en,
 

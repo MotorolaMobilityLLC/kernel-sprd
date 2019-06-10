@@ -288,9 +288,10 @@ static ssize_t get_dvfs_table_info_show(struct device *dev,
 
 	len = sprintf(buf, "map_index\tvolt_level\tclk_level\tclk_rate\n");
 	for (i = 0; i < vsp->max_freq_level; i++) {
-		len += sprintf(buf+len, "%d\t\t%d\t\t%d\t\t%d\t\t\n",
+		len += sprintf(buf+len, "%d\t\t%d (%s)\t%d\t\t%d\t\t\n",
 				dvfs_table[i].map_index,
 				dvfs_table[i].volt_level,
+				dvfs_table[i].volt_val,
 				dvfs_table[i].clk_level,
 				dvfs_table[i].clk_rate);
 	}
@@ -544,6 +545,9 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 		goto ret;
 	}
 	device_rename(&vsp->devfreq->dev, "vsp");
+
+	if (vsp->dvfs_ops && vsp->dvfs_ops->parse_dt)
+		vsp->dvfs_ops->parse_dt(vsp, np);
 	if (vsp->dvfs_ops && vsp->dvfs_ops->dvfs_init)
 		vsp->dvfs_ops->dvfs_init(vsp);
 
@@ -563,11 +567,34 @@ static int vsp_dvfs_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static __maybe_unused int vsp_dvfs_suspend(struct device *dev)
+{
+	pr_info("%s()\n", __func__);
+
+	return 0;
+}
+
+static __maybe_unused int vsp_dvfs_resume(struct device *dev)
+{
+	struct vsp_dvfs *vsp = dev_get_drvdata(dev);
+
+	pr_info("%s()\n", __func__);
+
+	if (vsp->dvfs_ops && vsp->dvfs_ops->dvfs_init)
+		vsp->dvfs_ops->dvfs_init(vsp);
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(vsp_dvfs_pm, vsp_dvfs_suspend,
+			 vsp_dvfs_resume);
+
 static struct platform_driver vsp_dvfs_driver = {
 	.probe    = vsp_dvfs_probe,
 	.remove     = vsp_dvfs_remove,
 	.driver = {
 		.name = "vsp-dvfs",
+		.pm = &vsp_dvfs_pm,
 		.of_match_table = vsp_dvfs_of_match,
 	},
 };

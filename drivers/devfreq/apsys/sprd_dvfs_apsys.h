@@ -66,6 +66,7 @@ struct ip_dvfs_map_cfg {
 	u32 volt_level;
 	u32 clk_level;
 	u32 clk_rate;
+	char *volt_val;
 };
 
 struct ip_dvfs_status {
