@@ -240,8 +240,16 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{1, 0x40088000, 0x28c}, /* BTWF_APB */
 	{1, 0x40844200, 0x144}, /* AON_CLK */
 	{1, 0x40844000, 0x48}, /* PRE_DIV_CLK */
+#ifdef CONFIG_WCN_PCIE
+	{1, 0x40160000, 0x3c}, /* edma global regs */
+	{1, 0x40161000, 0x480}, /* edma chn regs(0~17) */
+	{1, 0x40180000, 0x17c}, /* pcie config */
+	{1, 0x40180720, 0x30}, /* pcie status */
+	{1, 0x40180e50, 0x30}, /* pcie Sub system */
+#else
 	/* SDIO regs */
 	{1, 0x40140000, 0x10000}, /* SDIO regs */
+#endif
 	/* WIFI regs */
 	{1, 0x400f0000, WIFI_AON_MAC_SIZE}, /* WIFI_AON_MAC */
 	{1, 0x400f1000, 0xD100}, /* WIFI_RTN_PD_MAC */
@@ -350,6 +358,7 @@ static void mdbg_dump_str(char *str, int str_len)
  * dump cp wifi phy reg
  * wifi phy start[11,17]
  */
+ #ifndef CONFIG_WCN_PCIE
 static void wcn_dump_cp_register(struct wcn_dump_mem_reg *mem)
 {
 	int i;
@@ -359,6 +368,18 @@ static void wcn_dump_cp_register(struct wcn_dump_mem_reg *mem)
 		WCN_INFO("dump cp reg section[%d] ok!\n", i);
 	}
 }
+
+#else
+static void wcn_dump_cp_data(struct wcn_dump_mem_reg *mem, int start, int end)
+{
+	int i;
+
+	for (i = start; i <= end; i++) {
+		mdbg_dump_data(mem[i].addr, NULL, mem[i].len, 0);
+		WCN_INFO("dump cp data section[%d] ok!\n", i);
+	}
+}
+#endif
 
 #define  CACHE_STATUS_OFFSET  32
 #define  CACHE_START_OFFSET    36
@@ -1173,12 +1194,14 @@ int mdbg_dump_mem(void)
 		WCN_INFO("mdbg dump predivclk %ld ok!\n", count);
 	}
 
-
+#ifdef CONFIG_WCN_PCIE
+	wcn_dump_cp_data(s_wcn_dump_regs, 7, 11);
+#else
 	count = mdbg_dump_data(DUMP_SDIO_ADDR, "start_dump_sdio_reg",
 			       DUMP_SDIO_ADDR_SIZE,
 			      strlen("start_dump_sdio_reg"));
 	WCN_INFO("mdbg dump sdio %ld ok!\n", count);
-
+#endif
 	/* for dump wifi reg */
 	ret = check_wifi_power_domain_ison();
 	if (ret != 0) {
@@ -1207,8 +1230,11 @@ int mdbg_dump_mem(void)
 				       strlen("start_dump_wifi_352K_RAM_reg"));
 		WCN_INFO("mdbg dump wifi %ld ok!\n", count);
 	}
-
+#ifdef CONFIG_WCN_PCIE
+	wcn_dump_cp_data(s_wcn_dump_regs, 15, 21);
+#else
 	wcn_dump_cp_register(s_wcn_dump_regs);
+#endif
 
 next:
 	if (DUMP_INTC_ADDR) {
