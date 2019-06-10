@@ -23,3 +23,23 @@
 		};
 	};
 };
+
+&sdio3 {
+	sprd,hs400es-dly = <0x45 0x7f 0x30 0x30>;
+	sprd,hs400-dly = <0x45 0xaa 0x30 0x30>;
+	sprd,hs200-dly = <0x7f 0xaa 0xa8 0xa8>;
+	sprd,ddr52-dly = <0x48 0xf9 0x19 0x19>;
+	vmmc-supply = <&vddemmccore>;
+	voltage-ranges = <3000 3000>;
+	bus-width = <8>;
+	non-removable;
+	cap-mmc-hw-reset;
+	mmc-hs400-enhanced-strobe;
+	mmc-hs400-1_8v;
+	mmc-hs200-1_8v;
+	mmc-ddr-1_8v;
+	sprd,name = "sdio_emmc";
+	no-sdio;
+	no-sd;
+	status = "okay";
+};
