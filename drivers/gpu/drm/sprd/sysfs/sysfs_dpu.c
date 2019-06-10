@@ -426,7 +426,7 @@ static ssize_t ltm_write(struct file *fp, struct kobject *kobj,
 		return -EIO;
 
 	/* I need to get my data in one piece */
-	if (off != 0 || count != attr->size)
+	if (off != 0)
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
@@ -435,7 +435,7 @@ static ssize_t ltm_write(struct file *fp, struct kobject *kobj,
 
 	return count;
 }
-static BIN_ATTR_RW(ltm, 16);
+static BIN_ATTR_RW(ltm, 48);
 
 static ssize_t gamma_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,

@@ -191,6 +191,9 @@ struct enhance_module {
 	u32 slp_en: 1;
 	u32 gamma_en: 1;
 	u32 blp_en: 1;
+	u32 ltm_en: 1;
+	u32 slp_mask_en: 1;
+	u32 cabc_en: 1;
 };
 
 struct scale_cfg {
@@ -251,11 +254,25 @@ struct cm_cfg {
 
 struct slp_cfg {
 	u8 brightness;
-	u8 conversion_matrix;
-	u8 brightness_step;
-	u8 second_bright_factor;
-	u8 first_percent_th;
-	u8 first_max_bright_th;
+	u16 brightness_step;
+	u8 fst_max_bright_th;
+	u8 fst_max_bright_th_step[5];
+	u8 hist_exb_no;
+	u8 hist_exb_percent;
+	u16 mask_height;
+	u8 fst_pth_index[4];
+	u8 hist9_index[9];
+	u8 glb_x[3];
+	u16 glb_s[3];
+	u16 limit_hclip;
+	u16 limit_lclip;
+	u16 limit_clip_step;
+	u8 fast_ambient_th;
+	u8 scene_change_percent_th;
+	u8 local_weight;
+	u8 fst_pth;
+	u8 cabc_endv;
+	u8 cabc_startv;
 };
 
 struct dpu_cfg1 {
@@ -1034,6 +1051,16 @@ static void dpu_flip(struct dpu_context *ctx,
 			   DISPC_INT_MMU_INV_WR_MASK;
 }
 
+static void dpu_epf_set(struct dpu_reg *reg, struct epf_cfg *epf)
+{
+	reg->epf_epsilon = (epf->epsilon1 << 16) | epf->epsilon0;
+	reg->epf_gain0_3 = (epf->gain3 << 24) | (epf->gain2 << 16) |
+				(epf->gain1 << 8) | epf->gain0;
+	reg->epf_gain4_7 = (epf->gain7 << 24) | (epf->gain6 << 16) |
+				(epf->gain5 << 8) | epf->gain4;
+	reg->epf_diff = (epf->max_diff << 8) | epf->min_diff;
+}
+
 static void dpu_dpi_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -1130,13 +1157,6 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
-		/* disable slp */
-		if (*p & BIT(4)) {
-			if (!(enhance_en & BIT(0))) {
-				*p |= BIT(1);
-				pr_info("enhance module epf need to be disabled\n");
-			}
-		}
 		enhance_en &= ~(*p);
 		pr_info("enhance module disable backup: 0x%x\n", *p);
 		break;
@@ -1157,6 +1177,9 @@ static void dpu_enhance_backup(u32 id, void *param)
 		enhance_en |= BIT(3);
 		pr_info("enhance cm backup\n");
 		break;
+	case ENHANCE_CFG_ID_LTM:
+		enhance_en |= BIT(6);
+		pr_info("enhance ltm backup\n");
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
 		enhance_en |= BIT(4);
@@ -1185,6 +1208,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	struct slp_cfg *slp;
 	struct gamma_lut *gamma;
 	struct hsv_lut *hsv;
+	struct epf_cfg *epf_slp;
 	u32 *p;
 	int i;
 
@@ -1244,15 +1268,47 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		reg->dpu_enhance_cfg |= BIT(3);
 		pr_info("enhance cm set\n");
 		break;
+	case ENHANCE_CFG_ID_LTM:
+		enhance_en |= BIT(6);
+		pr_info("enhance ltm set\n");
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
 		slp = &slp_copy;
-		reg->slp_cfg0 = (slp->second_bright_factor << 24) |
-				(slp->brightness_step << 16) |
-				(slp->conversion_matrix << 8) |
-				slp->brightness;
-		reg->slp_cfg1 = (slp->first_max_bright_th << 8) |
-				slp->first_percent_th;
+		reg->slp_cfg0 = (slp->brightness_step << 0)|
+			((slp->brightness & 0x7f) << 16);
+		reg->slp_cfg1 = ((slp->fst_max_bright_th & 0x7f) << 21) |
+			((slp->fst_max_bright_th_step[0] & 0x7f) << 14) |
+			((slp->fst_max_bright_th_step[1] & 0x7f) << 7) |
+			((slp->fst_max_bright_th_step[2] & 0x7f) << 0);
+		reg->slp_cfg2 = ((slp->fst_max_bright_th_step[3] & 0x7f) << 25) |
+			((slp->fst_max_bright_th_step[4] & 0x7f) << 18) |
+			((slp->hist_exb_no & 0x3) << 16) |
+			((slp->hist_exb_percent & 0x7f) << 9);
+		reg->slp_cfg3 = ((slp->mask_height & 0xfff) << 19) |
+			((slp->fst_pth_index[0] & 0xf) << 15) |
+			((slp->fst_pth_index[1] & 0xf) << 11) |
+			((slp->fst_pth_index[2] & 0xf) << 7) |
+			((slp->fst_pth_index[3] & 0xf) << 3);
+		reg->slp_cfg4 = (slp->hist9_index[0] << 24) |
+			(slp->hist9_index[1] << 16) | (slp->hist9_index[2] << 8) |
+			(slp->hist9_index[3] << 0);
+		reg->slp_cfg5 = (slp->hist9_index[4] << 24) |
+			(slp->hist9_index[5] << 16) | (slp->hist9_index[6] << 8) |
+			(slp->hist9_index[7] << 0);
+		reg->slp_cfg6 = (slp->hist9_index[8] << 24) |
+			(slp->glb_x[0] << 16) | (slp->glb_x[1] << 8) |
+			(slp->glb_x[2] << 0);
+		reg->slp_cfg7 = ((slp->glb_s[0] & 0x1ff) << 23) |
+			((slp->glb_s[1] & 0x1ff) << 14) |
+			((slp->glb_s[2] & 0x1ff) << 5);
+		reg->slp_cfg8 = ((slp->limit_hclip & 0x1ff) << 23) |
+			((slp->limit_lclip & 0x1ff) << 14) |
+			((slp->limit_clip_step & 0x1fff) << 0);
+		reg->slp_cfg9 = ((slp->fast_ambient_th & 0x7f) << 25) |
+			(slp->scene_change_percent_th << 17) |
+			((slp->local_weight & 0xf) << 13) |
+			((slp->fst_pth & 0x7f) << 6);
+		reg->slp_cfg10 = (slp->cabc_endv << 8) | (slp->cabc_startv << 0);
 		reg->dpu_enhance_cfg |= BIT(4);
 		pr_info("enhance slp set\n");
 		break;
@@ -1270,6 +1326,13 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		}
 		reg->dpu_enhance_cfg |= BIT(5);
 		pr_info("enhance gamma set\n");
+		break;
+	case ENHANCE_CFG_ID_EPF:
+		memcpy(&epf_copy, param, sizeof(epf_copy));
+		epf_slp = &epf_copy;
+		dpu_epf_set(reg, epf_slp);
+		reg->dpu_enhance_cfg |= BIT(1);
+		pr_info("enhance epf set\n");
 		break;
 	default:
 		break;
@@ -1359,18 +1422,69 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		*p32++ = reg->cm_coef23_22;
 		pr_info("enhance cm get\n");
 		break;
+	case ENHANCE_CFG_ID_LTM:
 	case ENHANCE_CFG_ID_SLP:
 		slp = param;
-
 		val = reg->slp_cfg0;
-		slp->brightness = val;
-		slp->conversion_matrix = val >> 8;
-		slp->brightness_step = val >> 16;
-		slp->second_bright_factor = val >> 24;
+		slp->brightness = (val >> 16) & 0x7f;
+		slp->brightness_step = (val >> 0) & 0xffff;
 
 		val = reg->slp_cfg1;
-		slp->first_percent_th = val;
-		slp->first_max_bright_th = val >> 8;
+		slp->fst_max_bright_th = (val >> 21) & 0x7f;
+		slp->fst_max_bright_th_step[0] = (val >> 14) & 0x7f;
+		slp->fst_max_bright_th_step[1] = (val >> 7) & 0x7f;
+		slp->fst_max_bright_th_step[2] = (val >> 0) & 0x7f;
+
+		val = reg->slp_cfg2;
+		slp->fst_max_bright_th_step[3] = (val >> 25) & 0x7f;
+		slp->fst_max_bright_th_step[4] = (val >> 18) & 0x7f;
+		slp->hist_exb_no = (val >> 16) & 0x3;
+		slp->hist_exb_percent = (val >> 9) & 0x7f;
+
+		val = reg->slp_cfg3;
+		slp->mask_height = (val >> 19) & 0xfff;
+		slp->fst_pth_index[0] = (val >> 15) & 0xf;
+		slp->fst_pth_index[1] = (val >> 11) & 0xf;
+		slp->fst_pth_index[2] = (val >> 7) & 0xf;
+		slp->fst_pth_index[3] = (val >> 3) & 0xf;
+
+		val = reg->slp_cfg4;
+		slp->hist9_index[0] = (val >> 24) & 0xff;
+		slp->hist9_index[1] = (val >> 16) & 0xff;
+		slp->hist9_index[2] = (val >> 8) & 0xff;
+		slp->hist9_index[3] = (val >> 0) & 0xff;
+
+		val = reg->slp_cfg5;
+		slp->hist9_index[4] = (val >> 24) & 0xff;
+		slp->hist9_index[5] = (val >> 16) & 0xff;
+		slp->hist9_index[6] = (val >> 8) & 0xff;
+		slp->hist9_index[7] = (val >> 0) & 0xff;
+
+		val = reg->slp_cfg6;
+		slp->hist9_index[8] = (val >> 24) & 0xff;
+		slp->glb_x[0] = (val >> 16) & 0xff;
+		slp->glb_x[1] = (val >> 8) & 0xff;
+		slp->glb_x[2] = (val >> 0) & 0xff;
+
+		val = reg->slp_cfg7;
+		slp->glb_s[0] = (val >> 23) & 0x1ff;
+		slp->glb_s[1] = (val >> 14) & 0x1ff;
+		slp->glb_s[2] = (val >> 5) & 0x1ff;
+
+		val = reg->slp_cfg8;
+		slp->limit_hclip = (val >> 23) & 0x1ff;
+		slp->limit_lclip = (val >> 14) & 0x1ff;
+		slp->limit_clip_step = (val >> 0) & 0x1fff;
+
+		val = reg->slp_cfg9;
+		slp->fast_ambient_th = (val >> 25) & 0x7f;
+		slp->scene_change_percent_th = (val >> 17) & 0xff;
+		slp->local_weight = (val >> 13) & 0xf;
+		slp->fst_pth = (val >> 6) & 0x7f;
+
+		val = reg->slp_cfg10;
+		slp->cabc_endv = (val >> 8) & 0xff;
+		slp->cabc_startv = (val >> 0) & 0xff;
 		pr_info("enhance slp get\n");
 		break;
 	case ENHANCE_CFG_ID_GAMMA:
@@ -1402,6 +1516,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	struct slp_cfg *slp;
 	struct gamma_lut *gamma;
 	struct hsv_lut *hsv;
+	struct epf_cfg *epf;
 	int i;
 
 	if (enhance_en & BIT(0)) {
@@ -1412,12 +1527,14 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	}
 
 	if (enhance_en & BIT(1)) {
-		reg->epf_epsilon = (epf.epsilon1 << 16) | epf.epsilon0;
-		reg->epf_gain0_3 = (epf.gain3 << 24) | (epf.gain2 << 16) |
-				(epf.gain1 << 8) | epf.gain0;
-		reg->epf_gain4_7 = (epf.gain7 << 24) | (epf.gain6 << 16) |
-				(epf.gain5 << 8) | epf.gain4;
-		reg->epf_diff = (epf.max_diff << 8) | epf.min_diff;
+		epf = &epf_copy;
+		reg->epf_epsilon = (epf->epsilon1 << 16) | epf->epsilon0;
+		reg->epf_gain0_3 = (epf->gain3 << 24) | (epf->gain2 << 16) |
+				(epf->gain1 << 8) | epf->gain0;
+		reg->epf_gain4_7 = (epf->gain7 << 24) | (epf->gain6 << 16) |
+				(epf->gain5 << 8) | epf->gain4;
+		reg->epf_diff = (epf->max_diff << 8) | epf->min_diff;
+		pr_info("enhance epf reload\n");
 	}
 
 	if (enhance_en & BIT(2)) {
@@ -1444,12 +1561,41 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 
 	if (enhance_en & BIT(4)) {
 		slp = &slp_copy;
-		reg->slp_cfg0 = (slp->second_bright_factor << 24) |
-				(slp->brightness_step << 16) |
-				(slp->conversion_matrix << 8) |
-				slp->brightness;
-		reg->slp_cfg1 = (slp->first_max_bright_th << 8) |
-				slp->first_percent_th;
+		reg->slp_cfg0 = (slp->brightness_step << 0) |
+			((slp->brightness & 0x7f) << 16);
+		reg->slp_cfg1 = ((slp->fst_max_bright_th & 0x7f) << 21) |
+			((slp->fst_max_bright_th_step[0] & 0x7f) << 14) |
+			((slp->fst_max_bright_th_step[1] & 0x7f) << 7) |
+			((slp->fst_max_bright_th_step[2] & 0x7f) << 0);
+		reg->slp_cfg2 = \
+			((slp->fst_max_bright_th_step[3] & 0x7f) << 25) |
+			((slp->fst_max_bright_th_step[4] & 0x7f) << 18) |
+			((slp->hist_exb_no & 0x3) << 16) |
+			((slp->hist_exb_percent & 0x7f) << 9);
+		reg->slp_cfg3 = ((slp->mask_height & 0xfff) << 19) |
+			((slp->fst_pth_index[0] & 0xf) << 15) |
+			((slp->fst_pth_index[1] & 0xf) << 11) |
+			((slp->fst_pth_index[2] & 0xf) << 7) |
+			((slp->fst_pth_index[3] & 0xf) << 3);
+		reg->slp_cfg4 = (slp->hist9_index[0] << 24) |
+			(slp->hist9_index[1] << 16) | (slp->hist9_index[2] << 8) |
+			(slp->hist9_index[3] << 0);
+		reg->slp_cfg5 = (slp->hist9_index[4] << 24) |
+			(slp->hist9_index[5] << 16) |
+			(slp->hist9_index[6] << 8) |
+			(slp->hist9_index[7] << 0);
+		reg->slp_cfg6 = (slp->hist9_index[8] << 24) |
+			(slp->glb_x[0] << 16) | (slp->glb_x[1] << 8) |
+			(slp->glb_x[2] << 0);
+		reg->slp_cfg7 = ((slp->glb_s[0] & 0x1ff) << 23) |
+			((slp->glb_s[1] & 0x1ff) << 14) |
+			((slp->glb_s[2] & 0x1ff) << 5);
+		reg->slp_cfg9 = ((slp->fast_ambient_th & 0x7f) << 25) |
+			(slp->scene_change_percent_th << 17) |
+			((slp->local_weight & 0xf) << 13) |
+			((slp->fst_pth & 0x7f) << 6);
+		reg->slp_cfg10 = (slp->cabc_endv << 8) |
+			(slp->cabc_startv << 0);
 		pr_info("enhance slp reload\n");
 	}
 
@@ -1465,6 +1611,14 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 				gamma->r[i], gamma->g[i], gamma->b[i]);
 		}
 		pr_info("enhance gamma reload\n");
+	}
+
+	if (enhance_en & BIT(6)) {
+		slp = &slp_copy;
+		reg->slp_cfg8 = ((slp->limit_hclip & 0x1ff) << 23) |
+			((slp->limit_lclip & 0x1ff) << 14) |
+			((slp->limit_clip_step & 0x1fff) << 0);
+		pr_info("enhance ltm reload\n");
 	}
 
 	reg->dpu_enhance_cfg = enhance_en;
