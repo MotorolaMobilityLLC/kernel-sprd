@@ -7,7 +7,7 @@ CONFIG_64BIT
 	[function] Support 64 bit system.
 CONFIG_AARCH32_SHOW_AARCH64_CPUINFO
 	[arch] arm
-	[plat] sharkl5_32,sharkle32
+	[plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] user
@@ -21,7 +21,7 @@ CONFIG_ADVISE_SYSCALLS
 	[function] Enable madvise/fadvise syscalls
 CONFIG_AEABI
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -37,7 +37,7 @@ CONFIG_AIO
 		option saves about 7k.
 CONFIG_ALIGNMENT_TRAP
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -76,7 +76,7 @@ CONFIG_ANDROID_BINDER_IPC
 		between processes, and remote method invocation.
 CONFIG_ANDROID_LOW_MEMORY_KILLER
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] mm
 	[must] unknown
@@ -91,7 +91,7 @@ CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 	[function] Threshold table in lowmemorykiller.
 CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINFO
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] mm
 	[must] debug
@@ -218,7 +218,7 @@ CONFIG_ARCH_HAS_UBSAN_SANITIZE_ALL
 	[function]
 CONFIG_ARCH_HAVE_CUSTOM_GPIO_H
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] gpio
 	[must] user
@@ -232,7 +232,7 @@ CONFIG_ARCH_HIBERNATION_POSSIBLE
 	[function] PM_SLEEP_SMP depends on it.
 CONFIG_ARCH_MIGHT_HAVE_PC_PARPORT
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -281,42 +281,42 @@ CONFIG_ARCH_MMAP_RND_COMPAT_BITS_MIN
 	[function] Number of bits to use for ASLR of mmap base address for compatible applications.
 CONFIG_ARCH_MULTIPLATFORM
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Allow multiple platforms to be selected.
 CONFIG_ARCH_MULTI_V6_V7
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
 	[function] Enable system support ARM V6 V7.
 CONFIG_ARCH_MULTI_V7
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
 	[function] Enable system support ARM V6.
 CONFIG_ARCH_NR_GPIO
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] gpio
 	[must] console
 	[function] Maximum number of GPIOs in the system.
 CONFIG_ARCH_OPTIONAL_KERNEL_RWX
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_ARCH_OPTIONAL_KERNEL_RWX_DEFAULT
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -414,7 +414,7 @@ CONFIG_ARCH_SUSPEND_POSSIBLE
 	[function] PM_SLEEP_SMP depends on it.
 CONFIG_ARCH_USE_BUILTIN_BSWAP
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -451,7 +451,7 @@ CONFIG_ARCH_WANT_FRAME_POINTERS
 	[function] Enable kernel support frame pointer.
 CONFIG_ARCH_WANT_GENERAL_HUGETLB
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -465,14 +465,14 @@ CONFIG_ARCH_WANT_HUGE_PMD_SHARE
 	[function] Share pmd page for hugetlb.
 CONFIG_ARCH_WANT_IPC_PARSE_VERSION
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
 	[function] Support kernel ipc parse version.
 CONFIG_ARM
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -653,14 +653,14 @@ CONFIG_ARM_AMBA
 	   enable it to support coresight architecture.
 CONFIG_ARM_ARCH_TIMER
 	[arch] all
-	[plat] all
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] timer
 	[must] console
 	[function] Support arch timer.
 CONFIG_ARM_ARCH_TIMER_EVTSTREAM
 	[arch] all
-	[plat] all
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -674,35 +674,35 @@ CONFIG_ARM_ARCH_TIMER_OOL_WORKAROUND
 	[function]
 CONFIG_ARM_CPUIDLE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make
 	[subsys] cpuidle
 	[must] user
 	[function] Enable arm/arm64 cpuidle driver
 CONFIG_ARM_CPU_SUSPEND
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] power
 	[must] user
 	[function] Support arm cpu suspend.
 CONFIG_ARM_CPU_TOPOLOGY
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Support cpu topology definition.
 CONFIG_ARM_CRYPTO
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] none
 	[function] ARM Accelerated Cryptographic Algorithms
 CONFIG_ARM_DMA_MEM_BUFFERABLE
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] mm
 	[must] console
@@ -711,7 +711,7 @@ CONFIG_ARM_DMA_MEM_BUFFERABLE
 		this option is forced on.
 CONFIG_ARM_ERRATA_643719
 	[arch] arm
-	[plat] sharkl5_32
+	[plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -754,42 +754,42 @@ CONFIG_ARM_GIC_V3_ITS
 	[function] Support GIC_V3_ITS, depend on PCI and PCI_MSI.
 CONFIG_ARM_HAS_SG_CHAIN
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
 	[function] IF ARCH_SPRD, this config will select ARM_HAS_SG_CHAIN.
 CONFIG_ARM_HEAVY_MB
 	[arch] arm
-	[plat] sharkl5_32
+	[plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_ARM_L1_CACHE_SHIFT
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
 	[function] Set CPU L1 cache size 1<<6.
 CONFIG_ARM_L1_CACHE_SHIFT_6
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
 	[function] Set CPU L1 cache size 1<<6.
 CONFIG_ARM_PATCH_IDIV
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_ARM_PATCH_PHYS_VIRT
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -811,7 +811,7 @@ CONFIG_ARM_PSCI
 		   enable it to support hotplug
 CONFIG_ARM_PSCI_FW
 	[arch] all
-	[plat] all
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] user
@@ -819,7 +819,7 @@ CONFIG_ARM_PSCI_FW
 	   enable it to support hotplug
 CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] cpufreq
 	[must] user
@@ -832,29 +832,29 @@ CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
 	[must] user
 	[function] Enable apcpu hardware dvfs function in sharkl5 family SOCs.
 CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_ARM_THUMB
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Support Thumb user binaries.
 CONFIG_ARM_UNWIND
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] pike2,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_ARM_VIRT_EXT
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -868,7 +868,7 @@ CONFIG_ASHMEM
 	[function] Enable the Anonymous Shared Memory Subsystem,vts require.
 CONFIG_ASN1
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] security
 	[must] user
@@ -886,21 +886,21 @@ CONFIG_ASSOCIATIVE_ARRAY
 	[function] Generic associative array.
 CONFIG_ASYMMETRIC_KEY_TYPE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] security
 	[must] user
 	[function] Asymmetric (public-key cryptographic) key type, following pixel2.
 CONFIG_ASYMMETRIC_PUBLIC_KEY_SUBTYPE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] security
 	[must] user
 	[function] Asymmetric public-key crypto algorithm subtype
 CONFIG_ATAGS
 	[arch] arm
-	[plat] sharkl5_32
+	[plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -956,7 +956,7 @@ CONFIG_AUDIT_WATCH
 	[function]
 CONFIG_AUTO_ZRELADDR
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -1078,7 +1078,7 @@ CONFIG_BLK_DEV_INITRD
 	[function] vts require, Initial RAM filesystem and RAM disk (initramfs/initrd) support.
 CONFIG_BLK_DEV_IO_TRACE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -1100,21 +1100,21 @@ CONFIG_BLK_DEV_LOOP_MIN_COUNT
 	   at init time. we set this value to 0 for known problem.
 CONFIG_BLK_DEV_RAM
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] block
 	[must] user
 	[function] RAM block device support
 CONFIG_BLK_DEV_RAM_COUNT
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] block
 	[must] user
 	[function] Default number of RAM disks
 CONFIG_BLK_DEV_RAM_SIZE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] block
 	[must] user
@@ -1174,21 +1174,21 @@ CONFIG_BOOTPARAM_HUNG_TASK_PANIC_VALUE
 	[function] Trigger kernel panic when detect hung task.
 CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC_VALUE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] debug
 	[function] Trigger kernel panic when detect soft-lockup.
 CONFIG_BOUNCE
 	[arch] all
-	[plat] all
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] mm
 	[must] busybox_console
@@ -1233,14 +1233,14 @@ CONFIG_BRANCH_PROFILE_NONE
 	[function] No branch profiling
 CONFIG_BSD_PROCESS_ACCT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_BSD_PROCESS_ACCT_V3
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -1278,14 +1278,14 @@ CONFIG_BUILD_ARM64_DTC_FLAGS
 	[function] Parameters of DTC tools.
 CONFIG_BUILD_ARM_DTC
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
 	[function] Path of DTC tools. Compiling for dtb/dtbo.
 CONFIG_BUILD_ARM_DTC_FLAGS
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -1300,7 +1300,7 @@ CONFIG_BUILD_BIN2C
 	   enable by IKCONFIG
 CONFIG_CACHE_L2X0
 	[arch] arm
-	[plat] sharkl5_32
+	[plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -1395,7 +1395,7 @@ CONFIG_CGROUP_CPUACCT
 	total CPU consumed by the tasks in a cgroup.
 CONFIG_CGROUP_DEBUG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] debug
@@ -1416,14 +1416,14 @@ CONFIG_CGROUP_SCHED
 	[function] Group CPU scheduler(vts require)
 CONFIG_CHARGER_FAN54015
 	[arch] all
-	[plat] sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] power
 	[must] user
 	[function] This function is used to enable charge
 CONFIG_CHARGER_MANAGER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] power
 	[must] user
@@ -1437,7 +1437,7 @@ CONFIG_CHARGER_SC2703
 	[function] This function is used to enable charg
 CONFIG_CLEANCACHE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] memory
 	[must] user
@@ -1452,7 +1452,7 @@ CONFIG_CLKDEV_LOOKUP
 		for clock customer.
 CONFIG_CLKSRC_MMIO
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] clock
 	[must] console
@@ -1467,7 +1467,7 @@ CONFIG_CLONE_BACKWARDS
 	not the 5th one.
 CONFIG_CLZ_TAB
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] security
 	[must] user
@@ -1606,7 +1606,7 @@ CONFIG_CPUFREQ_DT_PLATDEV
 	[function]
 CONFIG_CPUSETS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -1615,56 +1615,56 @@ CONFIG_CPUSETS
 		assigning tasks to run only within those sets.
 CONFIG_CPU_32v6K
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
 	[function] Support 32 CPU ARM V6.
 CONFIG_CPU_32v7
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
 	[function] Support 32 CPU ARM V7.
 CONFIG_CPU_ABRT_EV7
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Support CPU type ABRT EV7.
 CONFIG_CPU_CACHE_V7
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] core
 	[must] console
 	[function] Support cpu cache in V7 version.
 CONFIG_CPU_CACHE_VIPT
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
 	[function] Enable kernel support VIPT(Virtual Index Physical Tag).
 CONFIG_CPU_COPY_V6
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Enable kernel support CPU copy version V6.
 CONFIG_CPU_CP15
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Enable kernel support CP15 processor.
 CONFIG_CPU_CP15_MMU
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -1685,14 +1685,14 @@ CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	[function]
 CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
 	[function] Enable schedutil as a default governor
 CONFIG_CPU_FREQ_GOV_ATTR_SET
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
@@ -1706,14 +1706,14 @@ CONFIG_CPU_FREQ_GOV_PERFORMANCE
 	[function] enable performance as an available governor
 CONFIG_CPU_FREQ_GOV_POWERSAVE
 	[arch] all
-	[plat] sharkl3,sharkl5_32,sharkle32
+	[plat] sharkl3,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
 	[function] enable powersave as an available governor
 CONFIG_CPU_FREQ_GOV_SCHEDUTIL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
@@ -1741,42 +1741,42 @@ CONFIG_CPU_FREQ_TIMES
 	[function] This driver exports CPU time-in-state information through procfs file system.
 CONFIG_CPU_HAS_ASID
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
 	[function] Enable kernel support ASID.
 CONFIG_CPU_IDLE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkle32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make
 	[subsys] cpuidle
 	[must] console
 	[function] CPU idle pm support.
 CONFIG_CPU_IDLE_GOV_LADDER
 	[arch] all
-	[plat] pike2,sharkl3,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_CPU_IDLE_GOV_MENU
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkle32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make
 	[subsys] cpuidle
 	[must] user
 	[function] Menu governor (for tickless system).
 CONFIG_CPU_IDLE_MULTIPLE_DRIVERS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make
 	[subsys] cpuidle
 	[must] user
 	[function] Support for multiple idle drivers.
 CONFIG_CPU_PABRT_V7
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -1798,35 +1798,35 @@ CONFIG_CPU_RMAP
 		objects with CPU affinities.
 CONFIG_CPU_SPECTRE
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_CPU_SW_DOMAIN_PAN
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] pike2,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_CPU_THUMB_CAPABLE
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_CPU_TLB_V7
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Support CPU TLB V7.
 CONFIG_CPU_V7
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -1854,7 +1854,7 @@ CONFIG_CRC32_SLICEBY8
 	[function] Slice by 8 bytes.
 CONFIG_CRC7
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] core
 	[must] core
@@ -1868,7 +1868,7 @@ CONFIG_CRC_CCITT
 	[function] Support CRC-CCITT functions.
 CONFIG_CRC_ITU_T
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] core
 	[must] console
@@ -1973,14 +1973,14 @@ CONFIG_CRYPTO_AES_ARM_BS
 	[function]
 CONFIG_CRYPTO_AES_ARM_CE
 	[arch] arm
-	[plat] sharkl5_32,sharkle32
+	[plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] none
 	[function] Accelerated AES using ARMv8 Crypto Extensions
 CONFIG_CRYPTO_AKCIPHER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] security
 	[must] user
@@ -2206,7 +2206,7 @@ CONFIG_CRYPTO_HASH2
 	[function] Selected by other configs.
 CONFIG_CRYPTO_HASH_INFO
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] security
 	[must] user
@@ -2220,7 +2220,7 @@ CONFIG_CRYPTO_HMAC
 	[function] HMAC support.
 CONFIG_CRYPTO_HW
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] security
 	[must] user
@@ -2241,7 +2241,7 @@ CONFIG_CRYPTO_KPP2
 	[function]
 CONFIG_CRYPTO_LZ4
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -2381,7 +2381,7 @@ CONFIG_CRYPTO_SHA256
 	[function] SHA224 and SHA256 digest algorithm.
 CONFIG_CRYPTO_SHA256_ARM
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] none
@@ -2402,7 +2402,7 @@ CONFIG_CRYPTO_SHA2_ARM64_CE
 	[function] SHA-224/SHA-256 digest algorithm (ARMv8 Crypto Extensions).
 CONFIG_CRYPTO_SHA2_ARM_CE
 	[arch] arm
-	[plat] sharkl5_32,sharkle32
+	[plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] none
@@ -2522,8 +2522,8 @@ CONFIG_DEBUG_FS
 	[must] debug
 	[function] Support Debug Filesystem.
 CONFIG_DEBUG_GPIO
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
@@ -2551,7 +2551,7 @@ CONFIG_DEBUG_LIST
 	[function]
 CONFIG_DEBUG_LL_INCLUDE
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] debug
 	[must] console
@@ -2579,7 +2579,7 @@ CONFIG_DEBUG_NOTIFIERS
 	[function]
 CONFIG_DEBUG_PERF_USE_VMALLOC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -2698,7 +2698,7 @@ CONFIG_DEFAULT_TCP_CONG
 	[function] default algorithm of congestion control
 CONFIG_DEFAULT_USE_ENERGY_AWARE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] sched
 	[must] user
@@ -2726,7 +2726,7 @@ CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND
 	[function] Support gpu dfs/dvfs logic.
 CONFIG_DEVFREQ_GOV_SPRD_SCENE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] devfreq
 	[must] none
@@ -2735,7 +2735,7 @@ CONFIG_DEVFREQ_GOV_SPRD_SCENE
 	   request to driver.
 CONFIG_DEVFREQ_SPRD_AUTO_DFS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] devfreq
 	[must] none
@@ -2764,7 +2764,7 @@ CONFIG_DIRECT_SWAPPINESS
 	[function] Allow to adjust direct reclaim swappiness
 CONFIG_DISP_PM_DOMAIN_SHARKL3
 	[arch] all
-	[plat] sharkl3,sharkl5_32
+	[plat] sharkl3,sharkl3_32,sharkl5_32
 	[field] make
 	[subsys] video
 	[must] home
@@ -2812,8 +2812,8 @@ CONFIG_DMA_VIRTUAL_CHANNELS
 	[must]
 	[function]
 CONFIG_DM_BOW
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
@@ -2859,7 +2859,7 @@ CONFIG_DM_VERITY_AVB
 	[function] Depends on DM_VERITY, Enables Android Verified Boot platform-specific error behavior.
 CONFIG_DM_VERITY_FEC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] md
 	[must] none
@@ -2899,91 +2899,91 @@ CONFIG_DRAGONRISE_FF
 	[function] DragonRise Inc. force feedback
 CONFIG_DRM
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] gpu
 	[must] home
 	[function] Direct Rendering Manager (XFree86 4.1.0 and higher DRI support)
 CONFIG_DRM_BRIDGE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] gpu
 	[must] home
 	[function] Display Interface Bridges
 CONFIG_DRM_FBDEV_EMULATION
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_FBDEV_OVERALLOC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_GEM_CMA_HELPER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_KMS_CMA_HELPER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_KMS_FB_HELPER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_KMS_HELPER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_MIPI_DSI
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_PANEL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_PANEL_BRIDGE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_SPRD_GSP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -3004,14 +3004,14 @@ CONFIG_DTC
 	[function] Support the device-tree-compiler.
 CONFIG_DT_IDLE_STATES
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make
 	[subsys] cpuidle
 	[must] user
 	[function] This macro is used to open cpuidle and light sleep function.
 CONFIG_DUAL_ROLE_USB_INTF
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] usb
 	[must] user
@@ -3033,35 +3033,35 @@ CONFIG_DYNAMIC_DEBUG
 	[function] Enable/disalbe dynamic debug function.
 CONFIG_DYNAMIC_FTRACE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] user
 	[function] Enable/disable function tracing dynamically.
 CONFIG_DYNAMIC_FTRACE_WITH_REGS
 	[arch] arm
-	[plat] pike2,sharkl5_32
+	[plat] pike2,sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_EDAC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] console
 	[function] EDAC (Error Detection And Correction) reporting.
 CONFIG_EDAC_ATOMIC_SCRUB
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
 	[function] Support EDAC atomic scrub.
 CONFIG_EDAC_LEGACY_SYSFS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -3103,7 +3103,7 @@ CONFIG_EMBEDDED
 	[function] vts require, Embedded system.
 CONFIG_ENABLE_DEFAULT_TRACERS
 	[arch] all
-	[plat] all
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] trace
 	[must] user
@@ -3186,15 +3186,15 @@ CONFIG_EXPERT
 	[must] console
 	[function] Configure standard kernel features (expert users).
 CONFIG_EXPORTFS
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field] code
 	[subsys] fs
 	[must]
 	[function] Making Filesystems Exportable
 CONFIG_EXT4_ENCRYPTION
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] fs
 	[must] none
@@ -3208,7 +3208,7 @@ CONFIG_EXT4_FS
 	[function] ext4 filesystem
 CONFIG_EXT4_FS_ENCRYPTION
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] fs
 	[must] none
@@ -3233,14 +3233,14 @@ CONFIG_EXT4_RESERVE_SPACE_FILTER
 	   feature.
 CONFIG_EXTCON
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_EXTCON_USB_GPIO
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -3254,7 +3254,7 @@ CONFIG_EXTRA_FIRMWARE
 	[function] External firmware blobs to build into the kernel binary, Set to "".
 CONFIG_E_SHOW_MEM
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkle32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make,code
 	[subsys] lib,mm
 	[must] console
@@ -3366,21 +3366,21 @@ CONFIG_FB
 	[function] vts function
 CONFIG_FB_CFB_COPYAREA
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FB_CFB_FILLRECT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FB_CFB_IMAGEBLIT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -3394,7 +3394,7 @@ CONFIG_FB_CMDLINE
 	[function] framebuffer cmdline support and vts function
 CONFIG_FB_DEFERRED_IO
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -3408,28 +3408,28 @@ CONFIG_FB_NOTIFY
 	[function]
 CONFIG_FB_SYS_COPYAREA
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FB_SYS_FILLRECT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FB_SYS_FOPS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FB_SYS_IMAGEBLIT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -3494,14 +3494,14 @@ CONFIG_FLASH_SC2703
 	[function] compile flash sc2703 driver
 CONFIG_FLATMEM
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] mm
 	[must] busybox_console
 	[function] Memory model.
 CONFIG_FLAT_NODE_MEM_MAP
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] mm
 	[must] busybox_console
@@ -3515,7 +3515,7 @@ CONFIG_FORCE_MAX_ZONEORDER
 	[function] Enable to allocate large continuous physical pages.
 CONFIG_FRAME_POINTER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] core
 	[must] debug
@@ -3574,7 +3574,7 @@ CONFIG_FTRACE
 	[function] Tracers
 CONFIG_FTRACE_MCOUNT_RECORD
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] debug
@@ -3588,28 +3588,28 @@ CONFIG_FTRACE_SYSCALLS
 	[function] Trace syscalls.
 CONFIG_FUEL_GAUGE_SC27XX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FUNCTION_GRAPH_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] debug
 	[function] Trace function graph.
 CONFIG_FUNCTION_PROFILER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] debug
 	[function] Trace function profiler.
 CONFIG_FUNCTION_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] debug
@@ -3662,7 +3662,7 @@ CONFIG_FW_LOADER_USER_HELPER_FALLBACK
 	direct file loading in kernel fails.
 CONFIG_GENERIC_ADC_THERMAL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -3825,7 +3825,7 @@ CONFIG_GENERIC_PCI_IOMAP
 	[function] Support pci iomap.
 CONFIG_GENERIC_PHY
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -3881,7 +3881,7 @@ CONFIG_GENERIC_TIME_VSYSCALL
 	[function] select by others.
 CONFIG_GENERIC_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] core
 	[must] debug
@@ -3929,15 +3929,15 @@ CONFIG_GPIO_GENERIC_PLATFORM
 	[must] user
 	[function] Generic gpio support
 CONFIG_GPIO_PLUS_SPRD
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field] make,code
 	[subsys] gpio
 	[must] user
 	[function] Sprd gpio plus support
 CONFIG_GPIO_PMIC_EIC_SPRD
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] gpio
 	[must] user
@@ -4021,7 +4021,7 @@ CONFIG_HAS_IOMEM
 	[function]
 CONFIG_HAS_IOPORT_MAP
 	[arch] all
-	[plat] pike2,roc1,sharkl5_32,sharkle32
+	[plat] pike2,roc1,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -4236,7 +4236,7 @@ CONFIG_HAVE_DYNAMIC_FTRACE
 	[function] If platform have dynamic ftrace function.
 CONFIG_HAVE_DYNAMIC_FTRACE_WITH_REGS
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -4258,7 +4258,7 @@ CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
 		without the use of get_unaligned/put_unaligned.
 CONFIG_HAVE_EXIT_THREAD
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -4286,7 +4286,7 @@ CONFIG_HAVE_FUNCTION_TRACER
 	[function] Have function tracer.
 CONFIG_HAVE_FUTEX_CMPXCHG
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -4337,35 +4337,35 @@ CONFIG_HAVE_IRQ_TIME_ACCOUNTING
 		support irq time accounting and then call enable_sched_clock_irqtime().
 CONFIG_HAVE_KERNEL_GZIP
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Enable the kernel has ability of uncompress KERNEL_GZIP.
 CONFIG_HAVE_KERNEL_LZ4
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Enable the kernel has ability of uncompress KERNEL_LZ4.
 CONFIG_HAVE_KERNEL_LZMA
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Enable the kernel has ability of uncompress KERNEL_LZMA.
 CONFIG_HAVE_KERNEL_LZO
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] Enable the kernel has ability of uncompress KERNEL_LZO.
 CONFIG_HAVE_KERNEL_XZ
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -4414,21 +4414,21 @@ CONFIG_HAVE_NET_DSA
 	[function] Support for the hardware switches supported by the Distributed Switch Architecture.
 CONFIG_HAVE_NMI
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_HAVE_OPROFILE
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
 	[function] Enable kernel support OPROFILE which OProfile system profiling.
 CONFIG_HAVE_OPTPROBES
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -4463,7 +4463,7 @@ CONFIG_HAVE_PERF_USER_STACK_DUMP
 	[function] Support user stack dumps for perf event samples.
 CONFIG_HAVE_PROC_CPU
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -4485,7 +4485,7 @@ CONFIG_HAVE_REGS_AND_STACK_ACCESS_API
 		the API needed to access registers and stack entries.
 CONFIG_HAVE_SMP
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -4515,7 +4515,7 @@ CONFIG_HAVE_VIRT_CPU_ACCOUNTING_GEN
 	no races in concurrent read/write of cputime_t.
 CONFIG_HDMI
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] gpu
 	[must] home
@@ -4550,7 +4550,7 @@ CONFIG_HID_ACRUX
 	[function] ACRUX game controller support
 CONFIG_HID_ACRUX_FF
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] hid
 	[must] user
@@ -4935,7 +4935,7 @@ CONFIG_HOTPLUG_CPU
 	[function] Enable arm/arm64 cpuhotplug/SMP function
 CONFIG_HVC_DRIVER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -4949,7 +4949,7 @@ CONFIG_HWSPINLOCK
 	[function] support Hardware Spinlock device.
 CONFIG_HWSPINLOCK_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] hwspinlock
 	[must] home
@@ -4977,14 +4977,14 @@ CONFIG_HZ_100
 	[function]
 CONFIG_HZ_250
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] time
 	[must] console
 	[function] HZ_250 showes good interactive responsiveness on sprd plat
 CONFIG_HZ_FIXED
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] clock
 	[must] console
@@ -4998,7 +4998,7 @@ CONFIG_I2C
 	[function] I2C support.
 CONFIG_I2C_ALGOBIT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] i2c
 	[must] user
@@ -5040,7 +5040,7 @@ CONFIG_I2C_SPRD
 	[function] Enable i2c that support hw channel
 CONFIG_I2C_SPRD_HW
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] i2c
 	[must] user
@@ -5054,28 +5054,28 @@ CONFIG_IIO
 	[function] enable industrial io system built in kernel
 CONFIG_IIO_BUFFER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] iio
 	[must] user
 	[function] iio buffer interface
 CONFIG_IIO_CONSUMERS_PER_TRIGGER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make, code
 	[subsys] iio
 	[must] user
 	[function] use in iio trigger module
 CONFIG_IIO_KFIFO_BUF
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] iio
 	[must] user
 	[function] iio fifo interface
 CONFIG_IIO_TRIGGER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] iio
 	[must] user
@@ -5204,7 +5204,7 @@ CONFIG_INET_IPCOMP
 	  needed for IPsec.
 CONFIG_INET_RAW_DIAG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -5305,7 +5305,7 @@ CONFIG_INPUT_FF_MEMLESS
 	[function] Support for memoryless force-feedback devices
 CONFIG_INPUT_GPIO
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] input
 	[must] unknown
@@ -5340,7 +5340,7 @@ CONFIG_INPUT_KEYRESET
 	[function] if you want to reboot when some keys are pressed
 CONFIG_INPUT_LEDS
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] input
 	[must] user
@@ -5368,7 +5368,7 @@ CONFIG_INPUT_MOUSEDEV
 	[function] Mouse interface
 CONFIG_INPUT_MOUSEDEV_PSAUX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -5389,7 +5389,7 @@ CONFIG_INPUT_MOUSEDEV_SCREEN_Y
 	[function] Vertical screen resolution
 CONFIG_INPUT_SC27XX_VIBRA
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] input
 	[must] user
@@ -5445,21 +5445,21 @@ CONFIG_ION
 	[function] An memory allocator for android.
 CONFIG_ION_CARVEOUT_HEAP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_ION_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] ion
 	[must] home
 	[function] This macro is to enable sprd-specific ion features.
 CONFIG_ION_SYSTEM_HEAP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -5588,7 +5588,7 @@ CONFIG_IP6_NF_TARGET_SYNPROXY
 	  forms of full Network Address Port Translation.
 CONFIG_IP6_NF_VOWIFI_DEC_TCPDUMP
 	[arch] all
-	[plat] pike2,sharkl3,sharkl5,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make
 	[subsys] net
 	[must] user
@@ -5822,7 +5822,7 @@ CONFIG_IP_NF_SECURITY
 	with Mandatory Access Control (MAC) policy.
 CONFIG_IP_NF_TARGET_ECN
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] net
 	[must] user
@@ -5875,7 +5875,7 @@ CONFIG_IP_NF_TARGET_SYNPROXY
 	during SYN-flood attacks.
 CONFIG_IP_NF_TARGET_TTL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] net
 	[must] user
@@ -5884,7 +5884,7 @@ CONFIG_IP_NF_TARGET_TTL
 	  CONFIG_NETFILTER_XT_TARGET_HL.
 CONFIG_IP_NF_VOWIFI_DEC_TCPDUMP
 	[arch] all
-	[plat] pike2,sharkl3,sharkl5,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make
 	[subsys] net
 	[must] user
@@ -5935,7 +5935,7 @@ CONFIG_IRQCHIP
 	[function] Support chip irq.
 CONFIG_IRQSOFF_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] debug
@@ -5949,7 +5949,7 @@ CONFIG_IRQ_DOMAIN
 	[function] irq domain support.
 CONFIG_IRQ_DOMAIN_DEBUG
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] interrupt
 	[must] debug
@@ -6056,21 +6056,21 @@ CONFIG_JBD2
 	   used by the ext4 and OCFS2 filesystems.
 CONFIG_JOYSTICK_XPAD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_JOYSTICK_XPAD_FF
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_JOYSTICK_XPAD_LEDS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -6105,7 +6105,7 @@ CONFIG_KALLSYMS_BASE_RELATIVE
 	[function]
 CONFIG_KERNEL_GZIP
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -6147,14 +6147,14 @@ CONFIG_KEYS_COMPAT
 	[function] Support for Key compat.
 CONFIG_KSM
 	[arch] all
-	[plat] sharkl3,sharkl5,sharkl5_32
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] mm
 	[must] busybox_console
 	[function] Enable KSM for page merging.
 CONFIG_KUSER_HELPERS
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] mm
 	[must] console
@@ -6168,7 +6168,7 @@ CONFIG_L2TP
 	[function] Support for L2tp.
 CONFIG_LBDAF
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] fs
 	[must] user
@@ -6182,7 +6182,7 @@ CONFIG_LEDS_CLASS
 	[function] LED Class Support
 CONFIG_LEDS_SC27XX_BLTC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] led
 	[must] user
@@ -6196,7 +6196,7 @@ CONFIG_LEDS_TRIGGERS
 	[function] LED Trigger support
 CONFIG_LEDS_TRIGGER_PATTERN
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] led
 	[must] user
@@ -6245,7 +6245,7 @@ CONFIG_LOCKDEP_SUPPORT
 	[function] Enable kernel support lockup.
 CONFIG_LOCKUP_DETECTOR
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] debug
@@ -6316,14 +6316,14 @@ CONFIG_LTO_NONE
 	[function]
 CONFIG_LZ4_COMPRESS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] lib
 	[must] zram
 	[function] compress algorithm.
 CONFIG_LZ4_DECOMPRESS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] lib
 	[must] busybox_console
@@ -6423,7 +6423,7 @@ CONFIG_MDIO_GPIO
 	[function]
 CONFIG_MEDIA_SUPPORT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -6460,7 +6460,7 @@ CONFIG_MEMCG_SWAP_ENABLED
 	[function] Memory Resource Controller Swap Extension enabled by default
 CONFIG_MEMORY_STATE_TIME
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] mm
 	[must] console
@@ -6481,7 +6481,7 @@ CONFIG_MFD_CORE
 	[function] Support for mfd device management
 CONFIG_MFD_SC2703
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] power
 	[must] user
@@ -6502,7 +6502,7 @@ CONFIG_MFD_SYSCON
 	[function] System Controller Register R/W Based on Regmap.
 CONFIG_MIGHT_HAVE_CACHE_L2X0
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -6510,7 +6510,7 @@ CONFIG_MIGHT_HAVE_CACHE_L2X0
 		or PL310 cache controller, but where its use is optional.
 CONFIG_MIGHT_HAVE_PCI
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -6561,7 +6561,7 @@ CONFIG_MMC_SPRD_SDHCR10
 	[function] add sprd mmc host controller driver[r10p0] to kernel
 CONFIG_MMC_SPRD_SDHCR11
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] mmc
 	[must] user
@@ -6590,7 +6590,7 @@ CONFIG_MODULES_TREE_LOOKUP
 	[function] PERF_EVENTS || TRACING chosen this.
 CONFIG_MODULES_USE_ELF_REL
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -6629,7 +6629,7 @@ CONFIG_MODVERSIONS
      boot the screen will print error info. eg.Bug 983051.
 CONFIG_MPILIB
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] security
 	[must] user
@@ -6685,7 +6685,7 @@ CONFIG_MULTIUSER
 	[function] Multiple users, groups and capabilities support.
 CONFIG_MULTI_IRQ_HANDLER
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -6699,7 +6699,7 @@ CONFIG_MUTEX_SPIN_ON_OWNER
 	[function] Enable kernel support mutex spin on owner.
 CONFIG_NAMESPACES
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -6721,7 +6721,7 @@ CONFIG_NEED_SG_DMA_LENGTH
 	[function] Used for decentralized/clustered DMA operations.
 CONFIG_NEON
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -6985,7 +6985,7 @@ CONFIG_NETFILTER_XT_MATCH_MULTIPORT
 	[function] "multiport" Multiple port match support
 CONFIG_NETFILTER_XT_MATCH_OWNER
 	[arch] all
-	[plat] pike2,sharkl3,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] menu,net
 	[subsys] net
 	[must] user
@@ -7131,7 +7131,7 @@ CONFIG_NETFILTER_XT_TARGET_CONNSECMARK
 	  2. vts require
 CONFIG_NETFILTER_XT_TARGET_CT
 	[arch] all
-	[plat] pike2,sharkl3,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] menu,net
 	[subsys] net
 	[must] user
@@ -7166,7 +7166,7 @@ CONFIG_NETFILTER_XT_TARGET_IDLETIMER
 	[function] vts require, IDLETIMER target support
 CONFIG_NETFILTER_XT_TARGET_LOG
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] net
 	[must] user
@@ -7279,7 +7279,7 @@ CONFIG_NET_CLS_ACT
 	result, instantly drop or redirect packets, etc.
 CONFIG_NET_CLS_BPF
 	[arch] all
-	[plat] pike2,sharkl3,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] menu,net
 	[subsys] net
 	[must] user
@@ -7308,7 +7308,7 @@ CONFIG_NET_CORE
 	[function] Network core driver support
 CONFIG_NET_EGRESS
 	[arch] all
-	[plat] pike2,sharkl3,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] menu,net
 	[subsys] net
 	[must] user
@@ -7429,7 +7429,7 @@ CONFIG_NET_SCH_HTB
 	packet scheduling algorithm
 CONFIG_NET_SCH_INGRESS
 	[arch] all
-	[plat] pike2,sharkl3,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] menu,net
 	[subsys] net
 	[must] user
@@ -7687,21 +7687,21 @@ CONFIG_NF_DUP_IPV6
 	  destination.
 CONFIG_NF_LOG_COMMON
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] net
 	[must] user
 	[function] Support for logging
 CONFIG_NF_LOG_IPV4
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] net
 	[must] user
 	[function] Support for IPv4 packet logging
 CONFIG_NF_LOG_IPV6
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] net
 	[must] user
@@ -8071,21 +8071,21 @@ CONFIG_OF_RESERVED_MEM
 	[function] Support Openfirmware reserved memory.
 CONFIG_OID_REGISTRY
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] security
 	[must] user
 	[function] needed by other configs
 CONFIG_OLD_MCOUNT
 	[arch] arm
-	[plat] pike2,sharkl5_32
+	[plat] pike2,sharkl3_32,sharkl5_32
 	[field] code
 	[subsys] debug
 	[must] console
 	[function] depends on FUNCTION_TRACER && FRAME_POINTER
 CONFIG_OLD_SIGACTION
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] core
@@ -8101,28 +8101,28 @@ CONFIG_OLD_SIGSUSPEND3
 	[function] Even weirder antique ABI - three-argument sigsuspend(2).
 CONFIG_OOM_NOTIFIER
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] mm
 	[must] unknown
 	[function] Using a Android-Style oom-killer instead of linux's native OOM_killer
 CONFIG_OUTER_CACHE
 	[arch] arm
-	[plat] sharkl5_32
+	[plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_OUTER_CACHE_SYNC
 	[arch] arm
-	[plat] sharkl5_32
+	[plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_OVERLAY_FS
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field] code
 	[subsys] fs
 	[must] none
@@ -8143,7 +8143,7 @@ CONFIG_PAGE_COUNTER
 	[function] The cgroup-memory subsystem is related.
 CONFIG_PAGE_OFFSET
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] mm
 	[must] console
@@ -8385,8 +8385,8 @@ CONFIG_PINCTRL_SPRD_ROC1
 	[must] user
 	[function] Spreadtrum Roc1 pinctrl driver
 CONFIG_PINCTRL_SPRD_SHARKL3
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
@@ -8414,7 +8414,7 @@ CONFIG_PINMUX
 	[function] Support pin multiplexing controllers.
 CONFIG_PKCS7_MESSAGE_PARSER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must]  user
@@ -8456,21 +8456,21 @@ CONFIG_PM_DEVFREQ
 	[function] Generic Dynamic Voltage and Frequency Scaling (DVFS) support
 CONFIG_PM_GENERIC_DOMAINS
 	[arch] all
-	[plat] sharkl3,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] device power
 	[must] user
 	[function] common driver of device power domain
 CONFIG_PM_GENERIC_DOMAINS_OF
 	[arch] all
-	[plat] sharkl3,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] device power
 	[must] user
 	[function] Device Tree based PM domain
 CONFIG_PM_GENERIC_DOMAINS_SLEEP
 	[arch] all
-	[plat] sharkl3,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] power
 	[must] user
@@ -8540,7 +8540,7 @@ CONFIG_POWER_RESET
 	[function] Provides a number of drivers which either reset a complete board.
 CONFIG_POWER_RESET_SC27XX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] reset
 	[must] user
@@ -8569,7 +8569,7 @@ CONFIG_PPP
 	  2. vts require
 CONFIG_PPPOE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] net
 	[must] user
@@ -8585,7 +8585,7 @@ CONFIG_PPPOL2TP
 	tunnels. L2TP is replacing PPTP for VPN uses.
 CONFIG_PPP_ASYNC
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] net
 	[must] user
@@ -8614,7 +8614,7 @@ CONFIG_PPP_DEFLATE
 	  2. vts require
 CONFIG_PPP_FILTER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,code
 	[subsys] net
 	[must] user
@@ -8634,7 +8634,7 @@ CONFIG_PPP_MPPE
 	  Microsoft Point-to-Point Tunneling Protocol. 2. vts require
 CONFIG_PPP_MULTILINK
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,code
 	[subsys] net
 	[must] user
@@ -8669,7 +8669,7 @@ CONFIG_PREEMPT_RCU
 	[function] vts require, Enable kernel support rcu preempt.
 CONFIG_PREEMPT_TRACER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] user
@@ -8697,7 +8697,7 @@ CONFIG_PRINTK_CPUID
 	[function] Add cpuid in kernel log.
 CONFIG_PRINTK_NMI
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -8724,8 +8724,8 @@ CONFIG_PROBE_EVENTS
 	[must]
 	[function]
 CONFIG_PROCESS_RECLAIM
-	[arch] arm64
-	[plat] sharkl3,sharkl5
+	[arch] all
+	[plat] sharkl3,sharkl3_32,sharkl5
 	[field]
 	[subsys]
 	[must]
@@ -8748,7 +8748,7 @@ CONFIG_PROC_PAGE_MONITOR
 	   /proc/pid/pagemap,/proc/kpagecount, and /proc/kpageflags
 CONFIG_PROC_PID_CPUSET
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -8775,8 +8775,8 @@ CONFIG_PROFILING
 	[must] console
 	[function] vts require, Profiling support.
 CONFIG_PSI
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field] make,code
 	[subsys] sched
 	[must] after kernel4.14
@@ -8825,7 +8825,7 @@ CONFIG_PWM
 	[function] PWM device core driver.
 CONFIG_PWM_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] pwm
 	[must] home
@@ -8888,7 +8888,7 @@ CONFIG_RANDOMIZE_MODULE_REGION_FULL
 	[function] Randomize the module region independently from the core kernel.
 CONFIG_RAS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] arch
 	[must] console
@@ -9038,7 +9038,7 @@ CONFIG_REGULATOR_DA9211
 	[function] SUPPORT DA9211 regulator function.
 CONFIG_REGULATOR_FAN53555
 	[arch] all
-	[plat] sharkl3,sharkl5_32
+	[plat] sharkl3,sharkl3_32,sharkl5_32
 	[field] make,code
 	[subsys] regulator
 	[must] user
@@ -9066,7 +9066,7 @@ CONFIG_REGULATOR_SC2720
 	[function]
 CONFIG_REGULATOR_SC2721
 	[arch] all
-	[plat] sharkl3,sharkle32
+	[plat] sharkl3,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -9080,7 +9080,7 @@ CONFIG_REGULATOR_SC2730
 	[function] SUPPORT SC2730 regulator function.
 CONFIG_RELAY
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] core
 	[must] debug
@@ -9363,7 +9363,7 @@ CONFIG_SCHED_INFO
 	[function] Collect scheduler  info
 CONFIG_SCHED_MC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] sched
 	[must] user
@@ -9377,14 +9377,14 @@ CONFIG_SCHED_STACK_END_CHECK
 	[function]
 CONFIG_SCHED_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5_32
 	[field] make,code
 	[subsys] core
 	[must] debug
 	[function] Scheduling Latency Tracer
 CONFIG_SCHED_TUNE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] sched
 	[must] user
@@ -9493,7 +9493,7 @@ CONFIG_SECURITY
 	[function] vts require
 CONFIG_SECURITYFS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -9679,7 +9679,7 @@ CONFIG_SLUB_DEBUG
 	[function] Increase debug efficiency for memory covered issue
 CONFIG_SLUB_DEBUG_ON
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] mm
 	[must] debug
@@ -9687,7 +9687,7 @@ CONFIG_SLUB_DEBUG_ON
 	   depends on SLUB && SLUB_DEBUG
 CONFIG_SLUB_STATS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] mm
 	[must] debug
@@ -9709,7 +9709,7 @@ CONFIG_SMP
 	[function] Enable kernel support symmetric Multi-Processing.
 CONFIG_SMP_ON_UP
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] home
@@ -9723,7 +9723,7 @@ CONFIG_SND
 	[function] enable Advanced Linux Sound Architecture
 CONFIG_SND_ARM
 	[arch] arm
-	[plat] sharkl5_32
+	[plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -9744,7 +9744,7 @@ CONFIG_SND_DRIVERS
 	[function] audio moudle base config
 CONFIG_SND_DYNAMIC_MINORS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] sound
 	[must] user
@@ -9758,7 +9758,7 @@ CONFIG_SND_HDA_PREALLOC_SIZE
 	[function] Pre-allocated buffer size for HD-audio driver
 CONFIG_SND_HWDEP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] snd-usb-audio
 	[must] debug
@@ -9766,21 +9766,21 @@ CONFIG_SND_HWDEP
 	   support USB Audio/MIDI driver.
 CONFIG_SND_JACK
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] sound
 	[must] user
 	[function] This macro is selected when using headphone
 CONFIG_SND_JACK_INPUT_DEV
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_MAX_CARDS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] sound
 	[must] user
@@ -9815,7 +9815,7 @@ CONFIG_SND_RAWMIDI
 	[function] sound Rawmidi interface
 CONFIG_SND_SOC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] sound
 	[must] user
@@ -9829,28 +9829,28 @@ CONFIG_SND_SOC_COMPRESS
 	[function] sound support compress
 CONFIG_SND_SOC_I2C_AND_SPI
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] enable I2C and SPI bus for audio codec
 CONFIG_SND_SOC_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] snd soc common code
 CONFIG_SND_SOC_SPRD_AUDIO_TWO_STAGE_DMAENGINE_SURPPORT
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_CODEC_SC2721
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
@@ -9863,29 +9863,29 @@ CONFIG_SND_SOC_SPRD_CODEC_SC2730
 	[must] user
 	[function] snd codec dai
 CONFIG_SND_SOC_SPRD_R1P0V3_SC2721
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_SHARKL3
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_VAUDIO
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_VBC_R1P0V3
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
@@ -9920,14 +9920,14 @@ CONFIG_SND_TIMER
 	[function] Support snd sound timer
 CONFIG_SND_USB
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] config
 	[subsys] snd
 	[must] debug
 	[function] This macro is used to support USB sound devices
 CONFIG_SND_USB_AUDIO
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] snd
 	[must] debug
@@ -9948,7 +9948,7 @@ CONFIG_SOCK_CGROUP_DATA
 	[function]
 CONFIG_SOFTLOCKUP_DETECTOR
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -10027,14 +10027,14 @@ CONFIG_SPI_MASTER
 	[function] SPI Master Support
 CONFIG_SPI_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] spi
 	[must] user
 	[function] Enable spreadtrum SPI controller
 CONFIG_SPI_SPRD_ADI
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] spi
 	[must] user
@@ -10048,7 +10048,7 @@ CONFIG_SPLIT_PTLOCK_CPUS
 	[function] Set the number of startup ARM cores.
 CONFIG_SPRD_7SRESET
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
@@ -10104,7 +10104,7 @@ CONFIG_SPRD_AUDIO_MCDT
 	[function] sound data transmission channel with dsp
 CONFIG_SPRD_AUDIO_MEMORY_MANAGER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] sound
 	[must] user
@@ -10118,28 +10118,28 @@ CONFIG_SPRD_AUDIO_SIPC
 	[function] sound communication with audio dsp
 CONFIG_SPRD_AUTOTEST
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make,code
 	[subsys] soc
 	[must] user
 	[function] Support Spreadtrum autotest
 CONFIG_SPRD_AUTOTEST_GPIO
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] soc
 	[must] user
 	[function] Spreadtrum gpio autotest support
 CONFIG_SPRD_AUTOTEST_PINCTRL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make,code
 	[subsys] soc
 	[must] user
 	[function] Spreadtrum pinctrl autotest support
 CONFIG_SPRD_BUSMONITOR
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] debug
 	[must] debug
@@ -10152,8 +10152,8 @@ CONFIG_SPRD_CACHE_EFUSE
 	[must] home
 	[function] get sprdtrum soc series efuse value using pre-reading mechanism
 CONFIG_SPRD_CAM_PW_DOMAIN_R5P0
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field] make,code
 	[subsys] camera
 	[must] user
@@ -10174,21 +10174,21 @@ CONFIG_SPRD_CLUSTER1_THERMAL
 	[function] enable virtual sensor driver for cluster1
 CONFIG_SPRD_COMMON_CLK
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SPRD_CPROC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sprd cproc module for modem boot.
 CONFIG_SPRD_CPU_COOLING
-	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5
+	[arch] all
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -10201,50 +10201,50 @@ CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	[must] user
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_DEVICE
-	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5
+	[arch] all
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5
 	[field] make
 	[subsys] thermal
 	[must] user
 	[function] sprd cpu power model
 CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] cpu hotplug
 	[must] user
 	[function] Enable cpu hotplug based on PM_QoS for IPA, powerhint and etc.
 CONFIG_SPRD_CPU_USAGE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] debug
 	[must] debug
 	[function] This function is used to record cpu usage for each cpu.
 CONFIG_SPRD_DEBUG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code,make,menu
 	[subsys] soc
 	[must] debug
 	[function] Enable/disable sprd debug function.
 CONFIG_SPRD_DEDICATE_THERMAL
 	[arch] all
-	[plat] pike2,sharkl3,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SPRD_DJTAG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] debug
 	[must] debug
 	[function] Enable Djtag function
 CONFIG_SPRD_DJTAG_CORE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] debug
 	[must] debug
@@ -10258,21 +10258,21 @@ CONFIG_SPRD_DMA
 	[function] Support Spreadtrum DMA.
 CONFIG_SPRD_DMC_DRV
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] debug
 	[must] debug
 	[function] Enable DMC core debug function, for example ddr info and pub monitor function
 CONFIG_SPRD_DMC_MPU
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] debug
 	[must] debug
 	[function] Enable MPU R4P0 debug function
 CONFIG_SPRD_DMC_MPU_CORE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] debug
 	[must] debug
@@ -10307,21 +10307,21 @@ CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[function] This config is enable modem DVFS function.
 CONFIG_SPRD_IMS_BRIDGE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] net
 	[must] user
 	[function] Add ims_bridge kernel module to compile.
 CONFIG_SPRD_IMS_BRIDGE_TEST
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make, code
 	[subsys] net
 	[must] user
 	[function] Add ims_bridged kernel test module to compile.
 CONFIG_SPRD_IOMMU
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] soc
 	[must] home
@@ -10342,49 +10342,49 @@ CONFIG_SPRD_IPA_SYS
 	[function]
 CONFIG_SPRD_IQ
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make, code
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable wcdma iq log function.
 CONFIG_SPRD_IRQS_MONITOR
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] soc
 	[must] debug
 	[function] This function is used to enable irq monistor
 CONFIG_SPRD_JPG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make,code
 	[subsys] misc
 	[must] user
 	[function] The JPG is the hardware accelerator for jpeg standard image compression.
 CONFIG_SPRD_JPG_CALL_VSP_PW_DOMAIN
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SPRD_LOOK_AT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SPRD_MAILBOX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make, code
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sprd mailbox module.
 CONFIG_SPRD_MAILBOX_R1P2
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make, code
 	[subsys] staging
 	[must] user
@@ -10398,7 +10398,7 @@ CONFIG_SPRD_MCD
 	[function] modem control device driver
 CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] staging
 	[must] user
@@ -10469,14 +10469,14 @@ CONFIG_SPRD_PMIC_SYSCON
 	[function] This function is used to calibrate PMIC 26M.
 CONFIG_SPRD_POWER_DEBUG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] soc
 	[must] debug
 	[function] Enable/disable sprd power debug function.
 CONFIG_SPRD_PTM
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] debug
 	[must] debug
@@ -10504,7 +10504,7 @@ CONFIG_SPRD_ROC1_USB2_PHY
 	[function]
 CONFIG_SPRD_SC7731E_CLK
 	[arch] arm
-	[plat] pike2
+	[plat] pike2,sharkl3_32
 	[field]
 	[subsys]
 	[must]
@@ -10518,14 +10518,14 @@ CONFIG_SPRD_SC9863A_CLK
 	[function]
 CONFIG_SPRD_SENSOR_HUB
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] iio
 	[must] user
 	[function] enable sensor hub driver built in kernel
 CONFIG_SPRD_SHARKL3_USB2_PHY
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
@@ -10567,42 +10567,42 @@ CONFIG_SPRD_SIPA_DELE_MINIAP_IN_AP
 	[function]
 CONFIG_SPRD_SIPC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make, code
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sipc function between modem and AP.
 CONFIG_SPRD_SIPC_MEM_CACHE_EN
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sipx share memmory cache.
 CONFIG_SPRD_SIPC_SETH
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] net
 	[must] user
 	[function] This driver supports the Spreadtrum Ethernet based on share memory.
 CONFIG_SPRD_SIPC_SETH_RAWIP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] net
 	[must] user
 	[function]  Support using zero copy rawip transfer
 CONFIG_SPRD_SIPC_SPIPE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable spipe function.
 CONFIG_SPRD_SIPC_SPOOL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make, code
 	[subsys] staging
 	[must] user
@@ -10623,7 +10623,7 @@ CONFIG_SPRD_SIPC_V2
 	[function]
 CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] staging
 	[must] user
@@ -10681,7 +10681,7 @@ CONFIG_SPRD_USB3_PHY
 	[function]
 CONFIG_SPRD_VSP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code,menu
 	[subsys] misc
 	[must] user
@@ -10730,7 +10730,7 @@ CONFIG_STACKTRACE_SUPPORT
 	[function] Keep stack trace of persistent data block lock holders.
 CONFIG_STACK_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code,make
 	[subsys] core
 	[must] debug
@@ -10744,7 +10744,7 @@ CONFIG_STAGING
 	[function] Support kernel Staging drivers.
 CONFIG_STANDALONE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] console
@@ -10800,7 +10800,7 @@ CONFIG_SWPHY
 	[function]
 CONFIG_SWP_EMULATE
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -10814,7 +10814,7 @@ CONFIG_SWP_EMULATION
 	[function] Emulate SWP/SWPB instructions.
 CONFIG_SW_SYNC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -10870,21 +10870,21 @@ CONFIG_SYSFS_SYSCALL
 	[function] Support sysfs system call.
 CONFIG_SYSTEM_TRUSTED_KEYRING
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] user
 	[function] support SYSTEM_TRUSTED_KEYRING.
 CONFIG_SYSTEM_TRUSTED_KEYS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] user
 	[function] Support SYSTEM_TRUSTED_KEYS.
 CONFIG_SYS_SUPPORTS_APM_EMULATION
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -11204,7 +11204,7 @@ CONFIG_TRACE_EVAL_MAP_FILE
 	[function]
 CONFIG_TRACE_IRQFLAGS
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] debug
@@ -11225,7 +11225,7 @@ CONFIG_TRACING
 	[function] To avoid circular dependencies to accomplish the hiding of the automatic options.
 CONFIG_TRACING_EVENTS_GPIO
 	[arch] all
-	[plat] pike2,sharkl3,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] debug
@@ -11246,7 +11246,7 @@ CONFIG_TREE_SRCU
 	[function]
 CONFIG_TRUSTY
 	[arch] all
-	[plat] all
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] tee
 	[must] home
@@ -11270,14 +11270,14 @@ CONFIG_TRUSTY_FIQ_ARM
 	[function]
 CONFIG_TRUSTY_LOG
 	[arch] all
-	[plat] all
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] tee
 	[must] debug
 	[function] This is used to dump trusty OS log and output to kernel log
 CONFIG_TRUSTY_VIRTIO
 	[arch] all
-	[plat] all
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] tee
 	[must] home
@@ -11285,7 +11285,7 @@ CONFIG_TRUSTY_VIRTIO
 		   back-end virtio driver in trusty OS
 CONFIG_TRUSTY_VIRTIO_IPC
 	[arch] all
-	[plat] all
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] tee
 	[must] home
@@ -11306,7 +11306,7 @@ CONFIG_TUN
 	[function] vts require, Universal TUN/TAP device driver support
 CONFIG_TYPEC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -11327,7 +11327,7 @@ CONFIG_TYPEC_TCPM
 	[function]
 CONFIG_TYPEC_UCSI
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -11376,7 +11376,7 @@ CONFIG_UMW2652
 	[function] This function is used to support wcn umw2652 chip
 CONFIG_UNCOMPRESS_INCLUDE
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] debug
 	[must] console
@@ -11789,7 +11789,7 @@ CONFIG_USB_GADGET
 	[function] USB Gadget Support
 CONFIG_USB_GADGET_DEBUG_FILES
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] config
 	[subsys] usb
 	[must] user
@@ -11831,7 +11831,7 @@ CONFIG_USB_LIBCOMPOSITE
 	[function] composite based drivers
 CONFIG_USB_MUSB_DUAL_ROLE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] usb
 	[must] user
@@ -11852,7 +11852,7 @@ CONFIG_USB_MUSB_HDRC
 	[function] This macro is to support Inventra Highspeed Dual Role Controller (TI, ADI, AW, ...).
 CONFIG_USB_MUSB_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] usb
 	[must] user
@@ -11880,7 +11880,7 @@ CONFIG_USB_OHCI_LITTLE_ENDIAN
 	[function] A controller type.
 CONFIG_USB_OTG_WAKELOCK
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] usb
 	[must] user
@@ -11894,7 +11894,7 @@ CONFIG_USB_PAM
 	[function]
 CONFIG_USB_PHY
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] usb
 	[must] user
@@ -11908,7 +11908,7 @@ CONFIG_USB_ROLE_SWITCH
 	[function]
 CONFIG_USB_SC27XX_TYPEC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -11922,14 +11922,14 @@ CONFIG_USB_SERIAL
 	[function] USB serial mode on host mode
 CONFIG_USB_SPRD_DMA
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] usb
 	[must] user
 	[function] This macro is to support SPRD DMA mode.
 CONFIG_USB_SPRD_DMA_V3
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] usb
 	[must] user
@@ -11985,7 +11985,7 @@ CONFIG_USB_XHCI_PLATFORM
 	[function]
 CONFIG_USE_OF
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -11999,7 +11999,7 @@ CONFIG_VDSO
 	[function]
 CONFIG_VECTORS_BASE
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
@@ -12015,21 +12015,21 @@ CONFIG_VFAT_FS
 		   systems with long filenames.
 CONFIG_VFP
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[function] VFP-format floating point maths.
 CONFIG_VFPv3
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
 	[function] VFPV3-format floating point maths.
 CONFIG_VIDEOMODE_HELPERS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] video
 	[must] home
@@ -12046,14 +12046,14 @@ CONFIG_VIRTIO
 		  or CONFIG_S390_GUEST.
 CONFIG_VIRTIO_CONSOLE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_VIRTIO_MMIO
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] net
 	[must] user
@@ -12061,7 +12061,7 @@ CONFIG_VIRTIO_MMIO
 		  virtio platform device driver.
 CONFIG_VIRTIO_NET
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] net
 	[must] user
@@ -12075,7 +12075,7 @@ CONFIG_VMAP_STACK
 	[function]
 CONFIG_VMSPLIT_3G
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] code
 	[subsys] mm
 	[must] console
@@ -12308,7 +12308,7 @@ CONFIG_WQ_POWER_EFFICIENT_DEFAULT
 	[function] power efficient work queue
 CONFIG_X509_CERTIFICATE_PARSER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] menu
 	[subsys] security
 	[must] user
@@ -12338,7 +12338,7 @@ CONFIG_XFRM_FRAGMENT
 		   sprd until now. It is used for vowifi.
 CONFIG_XFRM_INTERFACE
 	[arch] all
-	[plat] pike2,sharkl3,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] menu,net
 	[subsys] net
 	[must] user
@@ -12394,21 +12394,21 @@ CONFIG_XPS
 		/sys/class/net/<dev>/queues/tx-<n>/xps_cpus
 CONFIG_ZBOOT_ROM_BSS
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] core
 	[must] console
 	[function] Compressed ROM boot loader BSS address.
 CONFIG_ZBOOT_ROM_TEXT
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] core
 	[must] code
 	[function] Compressed ROM boot loader base address.
 CONFIG_ZBUD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] memory
 	[must] ZCACHE feature
@@ -12443,6 +12443,13 @@ CONFIG_ZRAM
 	[function] SWAP partition based on RAM is used to access the compressed anon page
 		   to avoid the influence of IO speed restriction on the system,
 		   which is equivalent to increasing the size of available memory.
+CONFIG_ZRAM_LZ4_COMPRESS
+	[arch] arm
+	[plat] sharkl3_32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_ZSMALLOC
 	[arch] all
 	[plat] all
