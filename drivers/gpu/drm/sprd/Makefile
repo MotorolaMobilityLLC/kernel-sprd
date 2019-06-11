@@ -20,6 +20,7 @@ obj-y += dsi/
 obj-y += dphy/
 obj-y += sysfs/
 
+obj-y += pike2/
 obj-y += sharkl3/
 obj-y += sharkl5/
 obj-y += sharkl5Pro/
