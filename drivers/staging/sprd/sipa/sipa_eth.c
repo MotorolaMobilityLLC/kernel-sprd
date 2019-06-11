@@ -349,9 +349,6 @@ static int sipa_eth_parse_dt(
 			 SIPA_ETH_IFACE_PREF, id);
 		break;
 	case 8:
-		strncpy(pdata->name, SIPA_USB_IFACE, IFNAMSIZ);
-		break;
-	case 9:
 		strncpy(pdata->name, SIPA_WLAN_IFACE, IFNAMSIZ);
 		break;
 	default:
