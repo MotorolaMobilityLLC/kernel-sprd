@@ -166,6 +166,12 @@ void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 
 	if (evt & SIPA_RECV_EVT)
 		wake_up(&receiver->recv_waitq);
+
+	if (evt & SIPA_RECV_WARN_EVT) {
+		pr_err("sipa maybe poor resources evt = 0x%x\n", evt);
+		receiver->tx_danger_cnt++;
+		wake_up(&receiver->recv_waitq);
+	}
 }
 
 static void trigger_nics_recv(struct sipa_skb_receiver *receiver)
@@ -315,7 +321,7 @@ void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 	/* timeout = 1 / ipa_sys_clk * 1024 * value */
 	attr.tx_intr_delay_us = 0x64;
 	attr.tx_intr_threshold = 0x30;
-	attr.flowctrl_in_tx_full = false;
+	attr.flowctrl_in_tx_full = true;
 	attr.flow_ctrl_cfg = flow_ctrl_rx_empty;
 	attr.flow_ctrl_irq_mode = enter_exit_flow_ctrl;
 	attr.rx_enter_flowctrl_watermark =
