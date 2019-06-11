@@ -4949,7 +4949,7 @@ CONFIG_HWSPINLOCK
 	[function] support Hardware Spinlock device.
 CONFIG_HWSPINLOCK_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field] menu
 	[subsys] hwspinlock
 	[must] home
