@@ -1277,48 +1277,56 @@
 		compatible = "sprd,sipa_eth";
 		sprd,netid = <1>;
 		sprd,term-type = <0x6>;
+		sprd,mac-header;
 	};
 
 	sipa_eth1: sipa-eth1 {
 		compatible = "sprd,sipa_eth";
 		sprd,netid = <2>;
 		sprd,term-type = <0x6>;
+		sprd,mac-header;
 	};
 
 	sipa_eth2: sipa-eth2 {
 		compatible = "sprd,sipa_eth";
 		sprd,netid = <3>;
 		sprd,term-type = <0x6>;
+		sprd,mac-header;
 	};
 
 	sipa_eth3: sipa-eth3 {
 		compatible = "sprd,sipa_eth";
 		sprd,netid = <4>;
 		sprd,term-type = <0x6>;
+		sprd,mac-header;
 	};
 
 	sipa_eth4: sipa-eth4 {
 		compatible = "sprd,sipa_eth";
 		sprd,netid = <5>;
 		sprd,term-type = <0x6>;
+		sprd,mac-header;
 	};
 
 	sipa_eth5: sipa-eth5 {
 		compatible = "sprd,sipa_eth";
 		sprd,netid = <6>;
 		sprd,term-type = <0x6>;
+		sprd,mac-header;
 	};
 
 	sipa_eth6: sipa-eth6 {
 		compatible = "sprd,sipa_eth";
 		sprd,netid = <7>;
 		sprd,term-type = <0x6>;
+		sprd,mac-header;
 	};
 
 	sipa_eth7: sipa-eth7 {
 		compatible = "sprd,sipa_eth";
 		sprd,netid = <8>;
 		sprd,term-type = <0x6>;
+		sprd,mac-header;
 	};
 
 	sipa_eth8:  sipa-wifi {
