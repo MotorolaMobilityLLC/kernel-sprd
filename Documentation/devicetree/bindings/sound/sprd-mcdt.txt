@@ -4,7 +4,7 @@ This node models spreadtrum sound audio muti channel data trasmit driver
 
 Required properties:
 
-- compatible = "sprd,sharkl5-mcdt";"sprd,roc1-mcdt";
+- compatible = "sprd,sharkl5-mcdt", "sprd,roc1-mcdt", "sprd,sharkl5pro-mcdt";
 - reg : register addreess and size of mcdt
 - interrupts : interrupt number
 - sprd,ap-addr-offset : mcdt address mapping offset between ap and audio cp

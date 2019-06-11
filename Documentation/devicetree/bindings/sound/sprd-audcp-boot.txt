@@ -5,7 +5,7 @@ This node models spreadtrum audio cp boot function from kernel.
 Required properties:
 
 - compatible : "sprd,sharkl5-audcp-boot", "sprd,roc1-audcp-boot",
-	"sprd,orca-audcp-boot"
+	"sprd,orca-audcp-boot","sprd,sharkl5pro-audcp-boot"
 - syscons : Pmu and aon registers used for audio cp boot.
 - syscon-names : The function name for dsp boot registers.
 

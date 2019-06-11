@@ -14,6 +14,7 @@
 #include "ums512-mach.dtsi"
 #include "ums512-modem.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
+#include "sprd-sound-fe-be.dtsi"
 
 / {
 	model = "Unisoc UMS512 1H10 board";
@@ -571,5 +572,20 @@
 };
 
 &mmsys_dvfs {
+	status = "okay";
+};
+
+&sprd_headset {
+	status = "okay";
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	hp-use-inter-pa = <1>;
+	fixed-sample-rate = <48000 48000 48000>;
+	digital-codec = <&sprd_audio_codec_dig>;
+};
+
+&sound_vbc_v4_sprd_codec {
 	status = "okay";
 };

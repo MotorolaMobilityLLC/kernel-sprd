@@ -4,7 +4,7 @@ This node models spreadtrum cpu dai driver of vbc
 
 Required properties:
 
-- compatible : "sprd,sharkl5-vbc", "sprd,roc1-vbc"
+- compatible : "sprd,sharkl5-vbc", "sprd,roc1-vbc", "sprd,sharkl5pro-vbc"
 - pinctrl-N : One property must exist for each entry in
 	pinctrl-names.  See ../pinctrl/sprd,sc9860-pinctrl.txt
 	for details of the property values.

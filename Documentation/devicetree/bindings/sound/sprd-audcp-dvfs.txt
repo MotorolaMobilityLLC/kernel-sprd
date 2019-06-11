@@ -6,6 +6,7 @@ Required properties:
 
 - compatible: should be one of followings:
 	"sprd,sharkl5-audcp-dvfs",
+	"sprd,sharkl5pro-audcp-dvfs",
 	"sprd,roc1-audcp-dvfs".
 - sprd,channel : the channel number for ap and audio co-processor
 	communication for dvfs(dynamic voltage and clock freqency).
