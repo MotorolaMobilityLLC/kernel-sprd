@@ -1,4 +1,4 @@
-Spreadtrum sipa-eth bindings
+Unisoc sipa-eth bindings
 
 This is only for virtual network interface controller that dealing with ipa data transferring.
 
@@ -13,16 +13,9 @@ aliases {
 	eth0 = &sipa_eth0;
 	...
 	eth8 = &sipa_eth8;
-	eth9 = &sipa_eth9;
 };
 
-sipa_eth8: sipa-usb {
-	compatible = "sprd,sipa_eth";
-	sprd,netid = <0>;
-	sprd,term-type = <0x1>;
-};
-
-sipa_eth9:  sipa-wifi {
+sipa_eth8:  sipa-wifi {
 	compatible = "sprd,sipa_eth";
 	sprd,netid = <0>;
 	sprd,term-type = <0x2>;

@@ -35,7 +35,6 @@
 		eth6 = &sipa_eth6;
 		eth7 = &sipa_eth7;
 		eth8 = &sipa_eth8;
-		eth9 = &sipa_eth9;
 		serdes0 = &serdes0;
 		serdes1 = &serdes1;
 		serdes2 = &serdes2;
@@ -1322,13 +1321,7 @@
 		sprd,term-type = <0x6>;
 	};
 
-	sipa_eth8: sipa-usb {
-		compatible = "sprd,sipa_eth";
-		sprd,netid = <0>;
-		sprd,term-type = <0x1>;
-	};
-
-	sipa_eth9:  sipa-wifi {
+	sipa_eth8:  sipa-wifi {
 		compatible = "sprd,sipa_eth";
 		sprd,netid = <0>;
 		sprd,term-type = <0x2>;
