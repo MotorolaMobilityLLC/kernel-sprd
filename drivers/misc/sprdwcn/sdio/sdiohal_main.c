@@ -805,75 +805,6 @@ int sdiohal_aon_writeb(unsigned int addr, unsigned char val)
 	return err;
 }
 
-#define WCN_SDIO_CARD_REMOVED	BIT(4)
-void sdiohal_remove_card(void)
-{
-	struct sdiohal_data_t *p_data = sdiohal_get_data();
-
-	if (!WCN_CARD_EXIST(&p_data->xmit_cnt))
-		return;
-
-	atomic_add(SDIOHAL_REMOVE_CARD_VAL, &p_data->xmit_cnt);
-	sdiohal_lock_scan_ws();
-	sdiohal_resume_check();
-	while (atomic_read(&p_data->xmit_cnt) > SDIOHAL_REMOVE_CARD_VAL)
-		usleep_range(4000, 6000);
-
-	init_completion(&p_data->remove_done);
-	p_data->sdio_dev_host->card->state |= WCN_SDIO_CARD_REMOVED;
-
-	/* enable remove the card */
-	p_data->sdio_dev_host->caps &= ~MMC_CAP_NONREMOVABLE;
-
-	mmc_detect_change(p_data->sdio_dev_host, 0);
-	if (wait_for_completion_timeout(&p_data->remove_done,
-					msecs_to_jiffies(5000)) == 0)
-		WCN_ERR("remove card time out\n");
-	else
-		WCN_INFO("remove card end\n");
-
-	sdiohal_unlock_scan_ws();
-}
-
-int sdiohal_scan_card(void)
-{
-	struct sdiohal_data_t *p_data = sdiohal_get_data();
-
-	WCN_INFO("%s\n", __func__);
-
-	if (p_data->sdio_dev_host == NULL) {
-		WCN_ERR("sdio_sdio_rescan get host failed!\n");
-		return -1;
-	}
-
-	if (WCN_CARD_EXIST(&p_data->xmit_cnt)) {
-		WCN_INFO("Already exist card!\n");
-		sdiohal_remove_card();
-		msleep(100);
-	}
-
-	sdiohal_lock_scan_ws();
-	sdiohal_resume_check();
-	init_completion(&p_data->scan_done);
-	mmc_detect_change(p_data->sdio_dev_host, 0);
-	if (wait_for_completion_timeout(&p_data->scan_done,
-		msecs_to_jiffies(2500)) == 0) {
-		sdiohal_unlock_scan_ws();
-		WCN_ERR("wait scan card time out\n");
-		return -ENODEV;
-	}
-
-	sdiohal_unlock_scan_ws();
-	WCN_INFO("scan end\n");
-
-	return 0;
-}
-
-void sdiohal_register_scan_notify(void *func)
-{
-	scan_card_notify = func;
-}
-
 unsigned long long sdiohal_get_rx_total_cnt(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
@@ -1353,6 +1284,78 @@ static struct sdio_driver sdiohal_driver = {
 		.pm = &sdiohal_pm_ops,
 	},
 };
+
+#define WCN_SDIO_CARD_REMOVED	BIT(4)
+void sdiohal_remove_card(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	if (!WCN_CARD_EXIST(&p_data->xmit_cnt))
+		return;
+
+	atomic_add(SDIOHAL_REMOVE_CARD_VAL, &p_data->xmit_cnt);
+	sdiohal_lock_scan_ws();
+	sdiohal_resume_check();
+	while (atomic_read(&p_data->xmit_cnt) > SDIOHAL_REMOVE_CARD_VAL)
+		usleep_range(4000, 6000);
+
+	init_completion(&p_data->remove_done);
+	p_data->sdio_dev_host->card->state |= WCN_SDIO_CARD_REMOVED;
+
+	/* enable remove the card */
+	p_data->sdio_dev_host->caps &= ~MMC_CAP_NONREMOVABLE;
+
+	mmc_detect_change(p_data->sdio_dev_host, 0);
+	if (wait_for_completion_timeout(&p_data->remove_done,
+					msecs_to_jiffies(5000)) == 0)
+		WCN_ERR("remove card time out\n");
+	else
+		WCN_INFO("remove card end\n");
+
+	sdio_unregister_driver(&sdiohal_driver);
+	sdiohal_unlock_scan_ws();
+}
+
+int sdiohal_scan_card(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	WCN_INFO("%s\n", __func__);
+
+	if (!p_data->sdio_dev_host) {
+		WCN_ERR("sdio_sdio_rescan get host failed!\n");
+		return -1;
+	}
+
+	if (WCN_CARD_EXIST(&p_data->xmit_cnt)) {
+		WCN_INFO("Already exist card!\n");
+		sdiohal_remove_card();
+		msleep(100);
+	}
+
+	sdiohal_lock_scan_ws();
+	sdiohal_resume_check();
+	init_completion(&p_data->scan_done);
+	sdio_register_driver(&sdiohal_driver);
+	mmc_detect_change(p_data->sdio_dev_host, 0);
+	if (wait_for_completion_timeout
+		(&p_data->scan_done,
+		 msecs_to_jiffies(2500)) == 0) {
+		sdiohal_unlock_scan_ws();
+		WCN_ERR("wait scan card time out\n");
+		return -ENODEV;
+	}
+
+	sdiohal_unlock_scan_ws();
+	WCN_INFO("scan end\n");
+
+	return 0;
+}
+
+void sdiohal_register_scan_notify(void *func)
+{
+	scan_card_notify = func;
+}
 
 int sdiohal_init(void)
 {
