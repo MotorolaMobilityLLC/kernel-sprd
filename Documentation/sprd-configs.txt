@@ -3937,7 +3937,7 @@ CONFIG_GPIO_PLUS_SPRD
 	[function] Sprd gpio plus support
 CONFIG_GPIO_PMIC_EIC_SPRD
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] gpio
 	[must] user
