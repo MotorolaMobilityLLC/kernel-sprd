@@ -57,6 +57,12 @@
 		};
 	};
 
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		ports = <&dpu_port>;
+		/*gsp = <&gsp>;*/
+	};
+
 	ramoops {
 		compatible = "ramoops";
 		memory-region = <&pstore>;

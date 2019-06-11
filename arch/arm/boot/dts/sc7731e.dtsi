@@ -70,6 +70,97 @@
 	};
 
 	soc {
+		ap-ahb {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			dpu: dpu@20800000 {
+				compatible = "sprd,display-processor";
+				reg = <0x20800000 0x1000>;
+				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
+
+				status = "disabled";
+
+				dma-coherent;
+
+				sprd,ip = "dpu-lite-r1p0";
+				sprd,soc = "pike2";
+
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+
+				dpu_port: port {
+					dpu_out: endpoint {
+						remote-endpoint = <&dsi_in>;
+					};
+				};
+			};
+
+			dsi: dsi@21800000 {
+				compatible = "sprd,dsi-host";
+				reg = <0x21800000 0x1000>;
+				interrupts = <GIC_SPI 48 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
+
+				status = "disabled";
+
+				sprd,ip = "sprd,dsi-ctrl", "r3p0";
+				sprd,soc = "pike2";
+
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					port@0 {
+						reg = <0>;
+						dsi_out: endpoint {
+							remote-endpoint = <&dphy_in>;
+						};
+					};
+
+					port@1 {
+						reg = <1>;
+						dsi_in: endpoint {
+							remote-endpoint = <&dpu_out>;
+						};
+					};
+				};
+			};
+
+			dphy: dphy {
+				compatible = "sprd,dsi-phy";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0x21800000 0x1000>;
+
+				status = "disabled";
+
+				sprd,ip = "sprd,megacores-sharkle";
+				sprd,soc = "pike2";
+
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+
+				/* output port */
+				port@0 {
+					reg = <0>;
+					dphy_out: endpoint {
+						remote-endpoint = <&panel_in>;
+					};
+				};
+
+				/* input port*/
+				port@1 {
+					reg = <1>;
+					dphy_in: endpoint {
+						remote-endpoint = <&dsi_out>;
+					};
+				};
+			};
+		};
+
 		pmu_gate: pmu-gate {
 			compatible = "sprd,sc7731e-pmu-gate"; /* 0x402b0000 */
 			sprd,syscon = <&pmu_apb_regs>;
@@ -179,4 +270,9 @@
 	clock-names ="enable", "i2c", "source";
 	clocks = <&apapb_gate CLK_I2C2_EB>,
 	<&ap_clk CLK_AP_I2C2>, <&ext_26m>;
+};
+
+&dsi {
+	clock-names = "clk_ap_ahb_dsi_eb";
+	clocks = <&apahb_gate CLK_DSI_EB>;
 };

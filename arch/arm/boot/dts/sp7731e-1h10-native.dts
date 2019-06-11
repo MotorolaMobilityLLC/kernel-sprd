@@ -6,9 +6,12 @@
  * This file is licensed under a dual GPLv2 or X11 license.
  */
 
+#include <dt-bindings/gpio/gpio.h>
+
 #include "sc7731e.dtsi"
 #include "sc2720.dtsi"
 #include "sp7731e-common.dtsi"
+#include "lcd/lcd_ili9881c_3lane_mipi_fhd.dtsi"
 
 / {
 	model = "Spreadtrum Pike2 SC7731e Board";
@@ -99,4 +102,33 @@
 		polling-delay = <0>;
 		thermal-sensors = <&tboard_thermistor>;
 	};
+};
+
+&dpu {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	panel: panel {
+		compatible = "sprd,generic-mipi-panel";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
+
+		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
+		port {
+			reg = <1>;
+			panel_in: endpoint {
+				remote-endpoint = <&dphy_out>;
+			};
+		};
+	};
+};
+
+&dphy {
+	status = "okay";
 };
