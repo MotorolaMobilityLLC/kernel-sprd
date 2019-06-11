@@ -298,7 +298,7 @@ static int recv_thread(void *data)
 
 		recv_cnt = do_recv(receiver);
 		atomic_add(recv_cnt, &receiver->need_fill_cnt);
-		if (atomic_read(&receiver->need_fill_cnt) > 0)
+		if (atomic_read(&receiver->need_fill_cnt) > 0x30)
 			wake_up(&receiver->fill_recv_waitq);
 
 		trigger_nics_recv(receiver);
