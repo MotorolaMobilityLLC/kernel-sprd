@@ -76,7 +76,7 @@ CONFIG_ANDROID_BINDER_IPC
 		between processes, and remote method invocation.
 CONFIG_ANDROID_LOW_MEMORY_KILLER
 	[arch] arm
-	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[plat] pike2,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] mm
 	[must] unknown
@@ -91,7 +91,7 @@ CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 	[function] Threshold table in lowmemorykiller.
 CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINFO
 	[arch] arm
-	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[plat] pike2,sharkl5_32,sharkle32
 	[field] code
 	[subsys] mm
 	[must] debug
@@ -8101,7 +8101,7 @@ CONFIG_OLD_SIGSUSPEND3
 	[function] Even weirder antique ABI - three-argument sigsuspend(2).
 CONFIG_OOM_NOTIFIER
 	[arch] arm
-	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[plat] pike2,sharkl5_32,sharkle32
 	[field] code
 	[subsys] mm
 	[must] unknown
@@ -9284,7 +9284,7 @@ CONFIG_SBITMAP
 	[function]
 CONFIG_SC2342_INTEG
 	[arch] all
-	[plat] sharkl3,sharkl5,sharkl5_32
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -9298,7 +9298,7 @@ CONFIG_SC2355
 	[function] This function is used to support wcn sc2355 chip
 CONFIG_SC23XX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] msic
 	[must] user
@@ -9836,21 +9836,21 @@ CONFIG_SND_SOC_I2C_AND_SPI
 	[function] enable I2C and SPI bus for audio codec
 CONFIG_SND_SOC_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl5,sharkl5_32
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] snd soc common code
 CONFIG_SND_SOC_SPRD_AUDIO_TWO_STAGE_DMAENGINE_SURPPORT
-	[arch] all
-	[plat] sharkl3,sharkl3_32
+	[arch] arm64
+	[plat] sharkl3
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_CODEC_SC2721
-	[arch] all
-	[plat] sharkl3,sharkl3_32
+	[arch] arm64
+	[plat] sharkl3
 	[field]
 	[subsys]
 	[must]
@@ -9863,29 +9863,29 @@ CONFIG_SND_SOC_SPRD_CODEC_SC2730
 	[must] user
 	[function] snd codec dai
 CONFIG_SND_SOC_SPRD_R1P0V3_SC2721
-	[arch] all
-	[plat] sharkl3,sharkl3_32
+	[arch] arm64
+	[plat] sharkl3
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_SHARKL3
-	[arch] all
-	[plat] sharkl3,sharkl3_32
+	[arch] arm64
+	[plat] sharkl3
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_VAUDIO
-	[arch] all
-	[plat] sharkl3,sharkl3_32
+	[arch] arm64
+	[plat] sharkl3
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_VBC_R1P0V3
-	[arch] all
-	[plat] sharkl3,sharkl3_32
+	[arch] arm64
+	[plat] sharkl3
 	[field]
 	[subsys]
 	[must]
@@ -10608,8 +10608,8 @@ CONFIG_SPRD_SIPC_SPOOL
 	[must] user
 	[function] This function is used to enable spool function.
 CONFIG_SPRD_SIPC_SWCNBLK
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field] make, code
 	[subsys] staging
 	[must] user
@@ -12145,14 +12145,14 @@ CONFIG_WCN_PCIE
 	[function] support pcie bus for wcn chip
 CONFIG_WCN_PLATFORM
 	[arch] all
-	[plat] sharkl3,sharkl5,sharkl5_32
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] wcn
 	[must] user
 	[function] wcn intergation 2342 chip support
 CONFIG_WCN_SIPC
 	[arch] all
-	[plat] sharkl3,sharkl5,sharkl5_32
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] wcn
 	[must] user
@@ -12443,13 +12443,6 @@ CONFIG_ZRAM
 	[function] SWAP partition based on RAM is used to access the compressed anon page
 		   to avoid the influence of IO speed restriction on the system,
 		   which is equivalent to increasing the size of available memory.
-CONFIG_ZRAM_LZ4_COMPRESS
-	[arch] arm
-	[plat] sharkl3_32
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_ZSMALLOC
 	[arch] all
 	[plat] all
