@@ -2899,84 +2899,84 @@ CONFIG_DRAGONRISE_FF
 	[function] DragonRise Inc. force feedback
 CONFIG_DRM
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] gpu
 	[must] home
 	[function] Direct Rendering Manager (XFree86 4.1.0 and higher DRI support)
 CONFIG_DRM_BRIDGE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] gpu
 	[must] home
 	[function] Display Interface Bridges
 CONFIG_DRM_FBDEV_EMULATION
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_FBDEV_OVERALLOC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_GEM_CMA_HELPER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_KMS_CMA_HELPER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_KMS_FB_HELPER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_KMS_HELPER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_MIPI_DSI
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_PANEL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_PANEL_BRIDGE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DRM_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -3366,21 +3366,21 @@ CONFIG_FB
 	[function] vts function
 CONFIG_FB_CFB_COPYAREA
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FB_CFB_FILLRECT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FB_CFB_IMAGEBLIT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -3394,7 +3394,7 @@ CONFIG_FB_CMDLINE
 	[function] framebuffer cmdline support and vts function
 CONFIG_FB_DEFERRED_IO
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -3408,28 +3408,28 @@ CONFIG_FB_NOTIFY
 	[function]
 CONFIG_FB_SYS_COPYAREA
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FB_SYS_FILLRECT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FB_SYS_FOPS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_FB_SYS_IMAGEBLIT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -4515,7 +4515,7 @@ CONFIG_HAVE_VIRT_CPU_ACCOUNTING_GEN
 	no races in concurrent read/write of cputime_t.
 CONFIG_HDMI
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] gpu
 	[must] home
@@ -4998,7 +4998,7 @@ CONFIG_I2C
 	[function] I2C support.
 CONFIG_I2C_ALGOBIT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu
 	[subsys] i2c
 	[must] user
@@ -5445,21 +5445,21 @@ CONFIG_ION
 	[function] An memory allocator for android.
 CONFIG_ION_CARVEOUT_HEAP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_ION_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] ion
 	[must] home
 	[function] This macro is to enable sprd-specific ion features.
 CONFIG_ION_SYSTEM_HEAP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -12029,7 +12029,7 @@ CONFIG_VFPv3
 	[function] VFPV3-format floating point maths.
 CONFIG_VIDEOMODE_HELPERS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] video
 	[must] home
