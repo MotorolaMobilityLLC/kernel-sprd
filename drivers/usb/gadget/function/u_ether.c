@@ -128,6 +128,7 @@ struct eth_dev {
 
 #ifdef CONFIG_SPRD_SIPA
 	int state;
+	atomic_t rx_busy;
 	enum sipa_nic_id nic_id;
 	struct napi_struct napi;/* Napi instance */
 	/* Record data_transfer statistics */
@@ -1406,8 +1407,10 @@ static int sipa_usb_rx_poll_handler(struct napi_struct *napi, int budget)
 	 * __raise_softirq_irqoff.(See napi_poll for details)
 	 * So do not do napi_complete in that case.
 	 */
-	if (pkts < budget)
+	if (pkts < budget) {
 		napi_complete(napi);
+		atomic_dec(&dev->rx_busy);
+	}
 	return pkts;
 }
 
@@ -1420,12 +1423,15 @@ static void sipa_usb_rx_handler (void *priv)
 		return;
 	}
 
-	napi_schedule(&dev->napi);
-	/*
-	 * Trigger a NET_RX_SOFTIRQ softirq directly
-	 * otherwise there will be a delay
-	 */
-	raise_softirq(NET_RX_SOFTIRQ);
+	/* If the poll handler has been done, trigger to schedule*/
+	if (!atomic_cmpxchg(&dev->rx_busy, 0, 1)) {
+		napi_schedule(&dev->napi);
+		/*
+		 * Trigger a NET_RX_SOFTIRQ softirq directly
+		 * otherwise there will be a delay
+		 */
+		raise_softirq(NET_RX_SOFTIRQ);
+	}
 }
 
 static void sipa_usb_flowctrl_handler(void *priv, int flowctrl)
@@ -1489,6 +1495,7 @@ static int sipa_usb_open(struct net_device *net)
 	if (!netif_carrier_ok(net))
 		netif_carrier_on(net);
 
+	atomic_set(&dev->rx_busy, 0);
 	napi_enable(&dev->napi);
 	netif_start_queue(net);
 
@@ -1619,6 +1626,7 @@ static int sipa_usb_debug_show(struct seq_file *m, void *v)
 		   stats->rx_cnt);
 	seq_printf(m, "rx_fail=%u\n",
 		   stats->rx_fail);
+	seq_printf(m, "rx_busy=%d\n", atomic_read(&dev->rx_busy));
 
 	seq_puts(m, "\nTX statistics:\n");
 	seq_printf(m, "tx_sum=%u, tx_cnt=%u\n",
@@ -1802,6 +1810,7 @@ struct net_device *gether_setup_name_default(const char *netname)
 	pdata->term_type = 0x1;
 	dev->net = net;
 	dev->pdata = pdata;
+	atomic_set(&dev->rx_busy, 0);
 	net->watchdog_timeo = 1 * HZ;
 	net->irq = 0;
 	net->dma = 0;
