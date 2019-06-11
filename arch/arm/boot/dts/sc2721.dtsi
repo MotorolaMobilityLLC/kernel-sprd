@@ -17,6 +17,17 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
+		pmic_eic: gpio-controller@280 {
+			compatible = "sprd,sc27xx-eic", "sprd,sc2721-eic";
+			reg = <0x280>;
+			interrupts = <4 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-parent = <&sc2721_pmic>;
+			gpio-controller;
+			#gpio-cells = <2>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
 		efuse@300 {
 			compatible = "sprd,sc27xx-efuse", "sprd,sc2721-efuse";
 			reg = <0x300>;
