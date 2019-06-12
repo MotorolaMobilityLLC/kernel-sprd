@@ -820,18 +820,6 @@ bool sipa_hal_check_rx_priv_fifo_is_empty(sipa_hal_hdl hdl,
 }
 EXPORT_SYMBOL(sipa_hal_check_rx_priv_fifo_is_empty);
 
-u32 sipa_hal_get_rx_priv_fifo_left_num(sipa_hal_hdl hdl,
-				       enum sipa_cmn_fifo_index fifo_id)
-{
-	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
-	struct sipa_common_fifo_cfg_tag *fifo_cfg =
-			&hal_cfg->cmn_fifo_cfg[fifo_id];
-
-	return fifo_cfg->rx_fifo.depth - kfifo_len(&fifo_cfg->rx_priv_fifo) /
-		sizeof(struct sipa_node_description_tag);
-}
-EXPORT_SYMBOL(sipa_hal_get_rx_priv_fifo_left_num);
-
 bool sipa_hal_check_rx_priv_fifo_is_full(sipa_hal_hdl hdl,
 					 enum sipa_cmn_fifo_index fifo_id)
 {

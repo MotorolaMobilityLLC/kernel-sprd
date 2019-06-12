@@ -218,7 +218,7 @@ int sipa_nic_tx(enum sipa_nic_id nic_id, enum sipa_term_type dst,
 		return -ENODEV;
 
 	ret = sipa_skb_sender_send_data(sender, skb, dst, netid);
-	if (ret == -EAGAIN || ret == -ENOMEM)
+	if (ret == -EAGAIN)
 		s_sipa_ctrl.nic[nic_id]->flow_ctrl_status = true;
 
 	return ret;
@@ -266,9 +266,6 @@ int sipa_nic_trigger_flow_ctrl_work(enum sipa_nic_id nic_id, int err)
 		return -ENODEV;
 
 	switch (err) {
-	case -ENOMEM:
-		sender->send_notify_net = true;
-		break;
 	case -EAGAIN:
 		sender->free_notify_net = true;
 		break;

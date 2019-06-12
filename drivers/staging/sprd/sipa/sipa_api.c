@@ -982,14 +982,10 @@ static void sipa_notify_sender_flow_ctrl(struct work_struct *work)
 	struct sipa_control *sipa_ctrl = container_of(work, struct sipa_control,
 						      flow_ctrl_work);
 
-	for (i = 0; i < SIPA_PKT_TYPE_MAX; i++) {
+	for (i = 0; i < SIPA_PKT_TYPE_MAX; i++)
 		if (sipa_ctrl->sender[i] &&
 		    sipa_ctrl->sender[i]->free_notify_net)
 			wake_up(&sipa_ctrl->sender[i]->free_waitq);
-		if (sipa_ctrl->sender[i] &&
-		    sipa_ctrl->sender[i]->send_notify_net)
-			wake_up(&sipa_ctrl->sender[i]->send_waitq);
-	}
 }
 
 static int sipa_plat_drv_probe(struct platform_device *pdev_p)

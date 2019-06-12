@@ -132,24 +132,12 @@ static int sipa_send_thread(void *data)
 	sched_setscheduler(current, SCHED_RR, &param);
 
 	while (!kthread_should_stop()) {
-		u32 num;
 		ret = wait_event_interruptible(sender->send_waitq,
-			(!sipa_hal_check_rx_priv_fifo_is_empty(sender->ctx->hdl,
-					sender->ep->send_fifo.idx) ||
-					sender->send_notify_net));
-		if (!ret) {
+			!sipa_hal_check_rx_priv_fifo_is_empty(sender->ctx->hdl,
+					sender->ep->send_fifo.idx));
+		if (!ret)
 			sipa_hal_put_rx_fifo_items(sender->ctx->hdl,
 						   sender->ep->send_fifo.idx);
-			num = sipa_hal_get_rx_priv_fifo_left_num(
-						sender->ctx->hdl,
-						sender->ep->send_fifo.idx);
-			if (sender->send_notify_net && num >
-			    sender->ep->send_fifo.rx_fifo.fifo_depth / 4) {
-				sender->send_notify_net = false;
-				sipa_inform_evt_to_nics(sender,
-							SIPA_LEAVE_FLOWCTRL);
-			}
-		}
 	}
 
 	return 0;
@@ -336,16 +324,6 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 	item.src = sender->ep->send_fifo.src_id;
 
 	spin_lock_irqsave(&sender->send_lock, flags);
-	if (sipa_hal_check_rx_priv_fifo_is_full(sender->ctx->hdl,
-						sender->ep->send_fifo.idx)) {
-		spin_unlock_irqrestore(&sender->send_lock, flags);
-		dma_unmap_single(sender->ctx->pdev,
-				 dma_addr,
-				 skb->len + skb_headroom(skb),
-				 DMA_TO_DEVICE);
-		sender->no_mem_cnt++;
-		return -ENOMEM;
-	}
 	node = list_first_entry(&sender->pair_free_list,
 				struct sipa_skb_dma_addr_node,
 				list);
