@@ -288,6 +288,11 @@
 						114889 57
 						124872 43 >;
 	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &reserved_memory {
@@ -437,4 +442,18 @@
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-real = <10000>;
 	sprd,calib-resistance-spec = <20000>;
+};
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+};
+
+&usb {
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
+};
+
+&pmic_typec {
+	status = "okay";
 };
