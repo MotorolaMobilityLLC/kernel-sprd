@@ -176,6 +176,37 @@ static const struct file_operations sipa_flow_ctrl_fops = {
 	.release = single_release,
 };
 
+static int sipa_nic_debug_show(struct seq_file *s, void *unused)
+{
+	int i;
+	struct sipa_control *ipa = (struct sipa_control *)s->private;
+
+	for (i = 0; i < SIPA_NIC_MAX; i++) {
+		if (!ipa->nic[i])
+			continue;
+
+		seq_printf(s, "open = %d src_mask = %d netid = %d flow_ctrl_status = %d\n",
+			   atomic_read(&ipa->nic[i]->status),
+			   ipa->nic[i]->src_mask,
+			   ipa->nic[i]->netid,
+			   ipa->nic[i]->flow_ctrl_status);
+	}
+
+	return 0;
+}
+
+static int sipa_nic_debug_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sipa_nic_debug_show, inode->i_private);
+}
+
+static const struct file_operations sipa_nic_debug_fops = {
+	.open = sipa_nic_debug_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
 int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa,
 		      struct sipa_control *ctrl)
 {
@@ -203,6 +234,13 @@ int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa,
 
 	file = debugfs_create_file("flow_ctrl", 0444, root, ctrl,
 				   &sipa_flow_ctrl_fops);
+	if (!file) {
+		ret = -ENOMEM;
+		goto err1;
+	}
+
+	file = debugfs_create_file("nic", 0444, root, ctrl,
+				   &sipa_nic_debug_fops);
 	if (!file) {
 		ret = -ENOMEM;
 		goto err1;
