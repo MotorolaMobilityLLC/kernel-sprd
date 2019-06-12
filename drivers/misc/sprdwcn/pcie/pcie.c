@@ -12,9 +12,14 @@
 
 #include <linux/delay.h>
 #include <linux/interrupt.h>
+#include <linux/mod_devicetable.h>
 #include <linux/msi.h>
+#include <linux/of.h>
+#include <linux/of_platform.h>
 #include <linux/pci.h>
 #include <linux/pci_ids.h>
+#include <linux/pcie-rc-sprd.h>
+#include <linux/platform_device.h>
 #include <misc/wcn_bus.h>
 
 #include "edma_engine.h"
@@ -23,15 +28,18 @@
 #include "pcie.h"
 #include "pcie_dbg.h"
 #include "pcie_pm.h"
+#include "wcn_boot.h"
 #include "wcn_log.h"
 #include "wcn_op.h"
 #include "wcn_procfs.h"
+#include "wcn_txrx.h"
 
 /* 4M align */
 #define EP_INBOUND_ALIGN 0x400000
 /* 4K align */
 #define EP_OUTBOUND_ALIGN 0x1000
-
+#define WAIT_AT_DONE_MAX_CNT 30
+static int (*scan_card_notify)(void);
 static struct wcn_pcie_info *g_pcie_dev;
 
 struct wcn_pcie_info *get_wcn_device_info(void)
@@ -163,12 +171,12 @@ int dmfree(struct wcn_pcie_info *priv, struct dma_buf *dm)
 		WCN_ERR("%s(NULL)\n", __func__);
 		return ERROR;
 	}
-	WCN_INFO("dma_free_coherent(%d,0x%lx,0x%lx)\n",
+	WCN_INFO("dma_free_coherent(0x%x,0x%lx,0x%lx)\n",
 		 dm->size, dm->vir, dm->phy);
 	dma_free_coherent(dev, dm->size, (void *)(dm->vir), dm->phy);
 	memset(dm, 0x00, sizeof(struct dma_buf));
 
-	return ERROR;
+	return 0;
 }
 
 unsigned char *ibreg_base(struct wcn_pcie_info *priv, char region)
@@ -490,6 +498,132 @@ int wcn_pcie_get_bus_status(void)
 	return g_pcie_dev->pci_status;
 }
 
+void sprd_pcie_set_carddump_status(unsigned int flag)
+{
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+
+	WCN_INFO("carddump flag set[%d]\n", flag);
+	priv->card_dump_flag = flag;
+}
+
+unsigned int sprd_pcie_get_carddump_status(void)
+{
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+
+	return priv->card_dump_flag;
+}
+
+static struct platform_device *to_pdev_from_ep_node(struct device_node *ep_node)
+{
+	struct device_node *pdev_node;
+
+	WCN_INFO("%s\n", __func__);
+	pdev_node = of_parse_phandle(ep_node, "sprd,rc-ctrl", 0);
+	if (!pdev_node) {
+		WCN_ERR("%s: pcie ep lacks property sprd,rc-ctrl\n", __func__);
+		return NULL;
+	}
+
+	return of_find_device_by_node(pdev_node);
+}
+
+/* called by chip_power_on */
+int sprd_pcie_scan_card(void *wcn_dev)
+{
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+	struct platform_device *pdev;
+	struct device *dev;
+	struct marlin_device *marlin_dev = wcn_dev;
+
+	init_completion(&priv->scan_done);
+	WCN_INFO("device node name: %s\n", marlin_dev->np->name);
+	pdev = to_pdev_from_ep_node(marlin_dev->np);
+	if (!pdev) {
+		WCN_ERR("can't get pcie rc node\n");
+		return 0;
+	}
+	dev = &pdev->dev;
+	WCN_INFO("%s: rc node name: %s\n",
+			__func__, dev->of_node->name);
+	sprd_pcie_configure_device(pdev);
+
+	if (wait_for_completion_timeout(&priv->scan_done,
+		msecs_to_jiffies(5000)) == 0) {
+
+		WCN_ERR("wait scan card time out\n");
+		return -ENODEV;
+	}
+	WCN_INFO("scan end\n");
+
+	return 0;
+}
+
+void sprd_pcie_register_scan_notify(void *func)
+{
+	scan_card_notify = func;
+}
+static void disable_pcie_irq(void)
+{
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+	int i;
+
+	if (priv->msix_en == 1) {
+		for (i = 0; i < priv->irq_num; i++) {
+			disable_irq(priv->msix[i].vector);
+			WCN_INFO("%s disable_irq(%d) ok\n", __func__,
+				 priv->msix[i].vector);
+		}
+	}
+}
+
+extern unsigned long chn_init_flags;
+/* called by chip_power_off */
+void sprd_pcie_remove_card(void *wcn_dev)
+{
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+	struct platform_device *pdev;
+	struct device *dev;
+	struct marlin_device *marlin_dev = wcn_dev;
+	int wait_cnt = 0;
+
+	atomic_add(BUS_REMOVE_CARD_VAL, &priv->xmit_cnt);
+	disable_pcie_irq();
+	/* wait at_cmd send done */
+	while ((atomic_read(&priv->xmit_cnt) > BUS_REMOVE_CARD_VAL)
+		   && (wait_cnt < WAIT_AT_DONE_MAX_CNT)) {
+		usleep_range(4000, 6000);
+		wait_cnt++;
+	}
+	WCN_INFO("wait_cnt=0x%x,xmit_cnt=0x%x\n", wait_cnt,
+			 atomic_read(&priv->xmit_cnt));
+	wcn_bus_change_state(priv, WCN_BUS_DOWN);
+
+	if (edma_hw_pause() < 0)
+		WCN_ERR("edma_hw_pause fail\n");
+	init_completion(&priv->remove_done);
+	/* for proc_fs_exit, loopcheck/at/assert */
+	mdbg_fs_channel_destroy();
+	/* for log_dev_exit */
+	mdbg_pt_ring_unreg();
+	ioctlcmd_deinit(priv);
+	edma_deinit();
+	pdev = to_pdev_from_ep_node(marlin_dev->np);
+	if (!pdev) {
+		WCN_ERR("can't get pcie rc node\n");
+		return;
+	}
+	dev = &pdev->dev;
+	WCN_INFO("%s: rc node name: %s\n",
+			__func__, dev->of_node->name);
+	sprd_pcie_unconfigure_device(pdev);
+
+	if (wait_for_completion_timeout(&priv->remove_done,
+					msecs_to_jiffies(5000)) == 0)
+		WCN_ERR("remove card time out\n");
+	else
+		WCN_INFO("remove card end\n");
+
+}
 static int sprd_pcie_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *pci_id)
 {
@@ -500,11 +634,11 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 
 	WCN_INFO("%s Enter\n", __func__);
 
-	priv = kzalloc(sizeof(struct wcn_pcie_info), GFP_KERNEL);
-	if (!priv)
-		return -ENOMEM;
-
-	g_pcie_dev = priv;
+	priv = get_wcn_device_info();
+	if (priv == NULL) {
+		WCN_ERR("priv is NULL\n");
+		goto err_out;
+	}
 	priv->dev = pdev;
 	pci_set_drvdata(pdev, priv);
 
@@ -644,25 +778,70 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	ret = sprd_ep_addr_map(priv);
 	if (ret < 0)
 		return ret;
+
+	wcn_bus_change_state(priv, WCN_BUS_UP);
+	atomic_set(&priv->xmit_cnt, 0x0);
+	complete(&priv->scan_done);
+
 	wcn_aspm_enable(pdev);
 	edma_init(priv);
 	dbg_attach_bus(priv);
-	proc_fs_init();
-	log_dev_init();
-	wcn_op_init();
+	/* for proc_fs_init */
+	mdbg_fs_channel_init();
+	/* for log_dev_init */
+	mdbg_pt_ring_reg();
 	pci_read_config_dword(pdev, 0x0728, &val32);
 	WCN_INFO("EP link status 728=0x%x\n", val32);
 	pci_read_config_dword(pdev, 0x072c, &val32);
 	WCN_INFO("EP link status 72c=0x%x\n", val32);
+	/* calling rescan callback to inform download */
+	if (scan_card_notify != NULL)
+		scan_card_notify();
 	WCN_INFO("%s ok\n", __func__);
-	wcn_bus_change_state(priv, WCN_BUS_UP);
-
 	return 0;
 
 err_out:
 	kfree(priv);
 
 	return ret;
+}
+
+static void sprd_pcie_remove(struct pci_dev *pdev)
+{
+	int i;
+	struct wcn_pcie_info *priv;
+
+	WCN_INFO("%s\n", __func__);
+	priv = (struct wcn_pcie_info *) pci_get_drvdata(pdev);
+
+	if (priv->legacy_en == 1)
+		free_irq(priv->irq, (void *)priv);
+
+	if (priv->msi_en == 1) {
+		for (i = 0; i < priv->irq_num; i++)
+			free_irq(priv->irq + i, (void *)priv);
+
+		pci_disable_msi(pdev);
+	}
+	if (priv->msix_en == 1) {
+		WCN_INFO("disable MSI-X");
+		for (i = 0; i < priv->irq_num; i++)
+			free_irq(priv->msix[i].vector, (void *)priv);
+
+		pci_disable_msix(pdev);
+	}
+	for (i = 0; i < priv->bar_num; i++) {
+		if (priv->bar[i].mem)
+			iounmap(priv->bar[i].mem);
+	}
+	complete(&priv->remove_done);
+	pci_release_regions(pdev);
+	//kfree(priv);
+	pci_set_drvdata(pdev, NULL);
+	pci_disable_device(pdev);
+	/* chip power off, edma reg config flag need be cleard */
+	chn_init_flags = 0;
+	WCN_INFO("%s end\n", __func__);
 }
 
 static int sprd_ep_suspend(struct device *dev)
@@ -753,41 +932,6 @@ const struct dev_pm_ops sprd_ep_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(sprd_ep_suspend, sprd_ep_resume)
 };
 
-static void sprd_pcie_remove(struct pci_dev *pdev)
-{
-	int i;
-	struct wcn_pcie_info *priv;
-
-	priv = (struct wcn_pcie_info *) pci_get_drvdata(pdev);
-	edma_deinit();
-	ioctlcmd_deinit(priv);
-	mpool_free();
-	if (priv->legacy_en == 1)
-		free_irq(priv->irq, (void *)priv);
-
-	if (priv->msi_en == 1) {
-		for (i = 0; i < priv->irq_num; i++)
-			free_irq(priv->irq + i, (void *)priv);
-
-		pci_disable_msi(pdev);
-	}
-	if (priv->msix_en == 1) {
-		WCN_INFO("disable MSI-X");
-		for (i = 0; i < priv->irq_num; i++)
-			free_irq(priv->msix[i].vector, (void *)priv);
-
-		pci_disable_msix(pdev);
-	}
-	for (i = 0; i < priv->bar_num; i++) {
-		if (priv->bar[i].mem)
-			iounmap(priv->bar[i].mem);
-	}
-	pci_release_regions(pdev);
-	kfree(priv);
-	pci_set_drvdata(pdev, NULL);
-	pci_disable_device(pdev);
-}
-
 static struct pci_device_id sprd_pcie_tbl[] = {
 	{0x1db3, 0x2355, PCI_ANY_ID, PCI_ANY_ID, 0, 0, 0},
 	{0,}
@@ -807,8 +951,14 @@ static struct pci_driver sprd_pcie_driver = {
 static int __init sprd_pcie_init(void)
 {
 	int ret = 0;
+	struct wcn_pcie_info *priv;
 
 	WCN_INFO("%s init\n", __func__);
+	priv = kzalloc(sizeof(struct wcn_pcie_info), GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
+
+	g_pcie_dev = priv;
 
 	ret = pci_register_driver(&sprd_pcie_driver);
 	WCN_INFO("pci_register_driver ret %d\n", ret);
@@ -818,8 +968,11 @@ static int __init sprd_pcie_init(void)
 
 static void __exit sprd_pcie_exit(void)
 {
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+
 	WCN_INFO("%s\n", __func__);
 	pci_unregister_driver(&sprd_pcie_driver);
+	kfree(priv);
 }
 
 module_init(sprd_pcie_init);

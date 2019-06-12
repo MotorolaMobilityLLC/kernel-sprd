@@ -51,7 +51,7 @@ enum wcn_chip_id_type {
 const char *wcn_get_chip_name(void);
 enum wcn_chip_id_type wcn_get_chip_type(void);
 void marlin_power_off(enum marlin_sub_sys subsys);
-int marlin_get_power(enum marlin_sub_sys subsys);
+int marlin_get_power(void);
 int marlin_set_wakeup(enum marlin_sub_sys subsys);
 int marlin_set_sleep(enum marlin_sub_sys subsys, bool enable);
 int marlin_reset_reg(void);

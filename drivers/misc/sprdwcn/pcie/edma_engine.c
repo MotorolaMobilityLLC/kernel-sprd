@@ -11,8 +11,8 @@
  */
 
 #include <linux/delay.h>
+#include <misc/marlin_platform.h>
 #include <misc/wcn_bus.h>
-
 #include "edma_engine.h"
 #include "mchn.h"
 #include "pcie_dbg.h"
@@ -92,8 +92,12 @@ void *mpool_malloc(int len)
 
 	if (mpool_buffer == NULL) {
 		ret = dmalloc(edma->pcie_info, &mpool_dm, MPOOL_SIZE);
-		if (ret != 0)
+		if (ret != 0) {
+			WCN_ERR("%s dmalloc fail\n", __func__);
 			return NULL;
+		}
+		/* reset total length */
+		total_len = 0;
 		mpool_buffer = (unsigned char *)(mpool_dm.vir);
 		WCN_INFO("%s {0x%lx,0x%lx} -- {0x%lx,0x%lx}\n",
 			 __func__, mpool_dm.vir, mpool_dm.phy,
@@ -121,6 +125,8 @@ int mpool_free(void)
 
 	if ((mpool_dm.vir != 0) && (mpool_dm.phy != 0))
 		dmfree(edma->pcie_info, &mpool_dm);
+	mpool_buffer = NULL;
+
 	return 0;
 }
 
@@ -214,7 +220,7 @@ static int create_queue(struct msg_q *q, int size, int num)
 
 	WCN_DBG("[+]%s(0x%p, %d, %d)\n", __func__,
 		 (void *)virt_to_phys((void *)(q)), size, num);
-	q->mem = mpool_malloc(size * num);
+	q->mem = kmalloc(size * num, GFP_KERNEL);
 	if (q->mem == NULL) {
 		WCN_INFO("%s malloc err\n", __func__);
 		return ERROR;
@@ -551,7 +557,6 @@ int edma_hw_pause(void)
 	struct edma_info *edma = edma_info();
 	union dma_glb_pause_reg tmp;
 	u32 retries;
-
 
 	tmp.reg = readl_relaxed((void *)(&edma->dma_glb_reg->dma_pause.reg));
 	tmp.bit.rf_dma_pause = 1;
@@ -981,7 +986,8 @@ static int edma_rx_pop_isr(int chn)
 	struct desc *end;
 	void *head, *tail;
 	struct edma_info *edma = edma_info();
-
+	if ((marlin_get_power() == 0) && (chn == 15))
+		return 0;
 	edma_hw_next_dscr(chn, edma->chn_sw[chn].inout, &end);
 	end = mpool_phy_to_vir(end);
 	if (end == edma->chn_sw[chn].dscr_ring.head)
@@ -1277,14 +1283,32 @@ static void edma_tasklet(unsigned long data)
 
 }
 
-static int dscr_ring_init(struct dscr_ring *dscr_ring, int inout, int size,
-		   unsigned char *mem)
+static void dscr_ring_deinit(int chn)
+{
+	struct desc *dscr;
+	struct dscr_ring *dscr_ring;
+	struct edma_info *edma = edma_info();
+
+	dscr_ring = &(edma->chn_sw[chn].dscr_ring);
+	dscr_ring->free = dscr_ring->size;
+	dscr_ring->head = dscr_ring->tail = dscr =
+					(struct desc *) dscr_ring->mem;
+	dscr_zero(dscr);
+}
+
+static int dscr_ring_init(int chn, struct dscr_ring *dscr_ring,
+			int inout, int size, unsigned char *mem,
+			int dscr_ring_flag)
 {
 	int i;
 	unsigned int tmp;
 	struct desc *dscr;
 
 	WCN_INFO("[+]%s(0x%p, 0x%p)\n", __func__, dscr_ring, mem);
+
+	/* mpool not free, so dscr_ring just init one-time */
+	if (dscr_ring_flag & (1 << chn))
+		return 0;
 
 	if (!mem)
 		dscr_ring->mem =
@@ -1346,10 +1370,14 @@ static int dscr_ring_init(struct dscr_ring *dscr_ring, int inout, int size,
 	return 0;
 }
 
-static int edma_pending_q_init(int chn, int max)
+static int edma_pending_q_init(int chn, int max, int dscr_ring_flag)
 {
 	struct edma_pending_q *q;
 	struct edma_info *edma = edma_info();
+
+	/* mpool not free, so dscr_ring just init one-time */
+	if (dscr_ring_flag & (1 << chn))
+		return 0;
 
 	q = &(edma->chn_sw[chn].pending_q);
 	memset((char *)q, 0x00, sizeof(struct edma_pending_q));
@@ -1360,7 +1388,8 @@ static int edma_pending_q_init(int chn, int max)
 	return OK;
 }
 
-int edma_chn_init(int chn, int mode, int inout, int max_trans)
+int edma_chn_init(int chn, int mode, int inout, int max_trans,
+		  int dscr_ring_flag)
 {
 	int ret, dir = 0;
 	struct dscr_ring *dscr_ring;
@@ -1382,7 +1411,8 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 	switch (mode) {
 	case TWO_LINK_MODE:
 		dscr_ring = &(edma->chn_sw[chn].dscr_ring);
-		ret = dscr_ring_init(dscr_ring, inout, max_trans, NULL);
+		ret = dscr_ring_init(chn, dscr_ring, inout, max_trans, NULL,
+				     dscr_ring_flag);
 		if (ret)
 			return ERROR;
 		/* 1:enable channel; 0:disable channel */
@@ -1419,7 +1449,8 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 			/* clear semaphore value */
 			dma_cfg.bit.rf_chn_sem_value = 0xFF;
 		}
-		edma_pending_q_init(chn, mchn_hw_max_pending(chn));
+		edma_pending_q_init(chn, mchn_hw_max_pending(chn),
+				    dscr_ring_flag);
 		break;
 	case ONE_LINK_MODE:
 		/* 0:to cp . 1:to AP */
@@ -1480,6 +1511,13 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans)
 	dma_cfg.reg = edma->dma_chn_reg[chn].dma_cfg.reg;
 	WCN_INFO("[-]%s\n", __func__);
 
+	return 0;
+}
+
+int edma_chn_deinit(int chn)
+{
+	/* TODO: need add more deinit operation */
+	dscr_ring_deinit(chn);
 	return 0;
 }
 
@@ -1648,6 +1686,7 @@ int edma_deinit(void)
 {
 	struct isr_msg_queue msg = { 0 };
 	struct edma_info *edma = edma_info();
+	struct msg_q *q = &(edma->isr_func.q);
 
 	WCN_INFO("[+]%s\n", __func__);
 	do {
@@ -1662,7 +1701,12 @@ int edma_deinit(void)
 #if CONFIG_TASKLET_SUPPORT
 	tasklet_disable(edma->isr_func.q.event.tasklet);
 	tasklet_kill(edma->isr_func.q.event.tasklet);
+	kfree(edma->isr_func.q.event.tasklet);
 #endif
+	kfree(q->lock.irq_spinlock_p);
+	delete_queue(q);
+	/* TODO: need free mpool */
+	mpool_free();
 	WCN_INFO("[-]%s\n", __func__);
 
 	return 0;

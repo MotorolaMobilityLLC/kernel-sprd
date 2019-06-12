@@ -1286,7 +1286,7 @@ static struct sdio_driver sdiohal_driver = {
 };
 
 #define WCN_SDIO_CARD_REMOVED	BIT(4)
-void sdiohal_remove_card(void)
+void sdiohal_remove_card(void *wcn_dev)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
@@ -1316,7 +1316,7 @@ void sdiohal_remove_card(void)
 	sdiohal_unlock_scan_ws();
 }
 
-int sdiohal_scan_card(void)
+int sdiohal_scan_card(void *wcn_dev)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
@@ -1329,7 +1329,7 @@ int sdiohal_scan_card(void)
 
 	if (WCN_CARD_EXIST(&p_data->xmit_cnt)) {
 		WCN_INFO("Already exist card!\n");
-		sdiohal_remove_card();
+		sdiohal_remove_card(wcn_dev);
 		msleep(100);
 	}
 

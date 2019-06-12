@@ -137,9 +137,9 @@ struct sprdwcn_bus_ops {
 	int (*runtime_get)(void);
 	int (*runtime_put)(void);
 
-	int (*rescan)(void);
+	int (*rescan)(void *wcn_dev);
 	void (*register_rescan_cb)(void *);
-	void (*remove_card)(void);
+	void (*remove_card)(void *wcn_dev);
 
 	int (*register_pt_rx_process)(unsigned int type,
 				unsigned int subtype, void *func);
@@ -446,14 +446,14 @@ int sprdwcn_bus_runtime_put(void)
 }
 
 static inline
-int sprdwcn_bus_rescan(void)
+int sprdwcn_bus_rescan(void *wcn_dev)
 {
 	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
 
 	if (!bus_ops || !bus_ops->rescan)
 		return 0;
 
-	return bus_ops->rescan();
+	return bus_ops->rescan(wcn_dev);
 }
 
 static inline
@@ -468,14 +468,14 @@ void sprdwcn_bus_register_rescan_cb(void *func)
 }
 
 static inline
-void sprdwcn_bus_remove_card(void)
+void sprdwcn_bus_remove_card(void *wcn_dev)
 {
 	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
 
 	if (!bus_ops || !bus_ops->remove_card)
 		return;
 
-	bus_ops->remove_card();
+	bus_ops->remove_card(wcn_dev);
 }
 
 static inline

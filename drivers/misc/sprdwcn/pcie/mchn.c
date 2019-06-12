@@ -17,7 +17,7 @@
 #include "mchn.h"
 
 static struct mchn_info_t g_mchn;
-static unsigned long chn_init_flags;
+unsigned long chn_init_flags;
 
 struct mchn_info_t *mchn_info(void)
 {
@@ -211,6 +211,12 @@ int mchn_push_link(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 	int ret = -1;
 	struct mchn_info_t *mchn = mchn_info();
 
+	if (wcn_pcie_get_bus_status() == WCN_BUS_DOWN) {
+		WCN_ERR("%s: chn=%d, WCN_BUS_DOWN, direct return\n",
+				__func__, chn);
+		return ret;
+	}
+
 	if ((chn >= 16) || (mchn->ops[chn] == NULL) || (head == NULL) ||
 	    (tail == NULL) || (num > mchn->ops[chn]->pool_size)) {
 		WCN_ERR("%s: chn=%d, num=%d, pool_num=%d,head=%p, tail=%p\n",
@@ -297,18 +303,13 @@ int mchn_init(struct mchn_ops_t *ops)
 	}
 	mchn->ops[ops->channel] = ops;
 
-	if (test_bit(ops->channel, &chn_init_flags)) {
-		WCN_INFO("chn=%d have inited\n", ops->channel);
-		return 0;
-	}
 	switch (ops->hif_type) {
 	case HW_TYPE_SDIO:
 		ret = 0;
 		break;
 	case HW_TYPE_PCIE:
 		ret = edma_chn_init(ops->channel, 0, ops->inout,
-				    ops->pool_size);
-		set_bit(ops->channel, &chn_init_flags);
+				    ops->pool_size, chn_init_flags);
 		break;
 	default:
 		break;
@@ -317,6 +318,7 @@ int mchn_init(struct mchn_ops_t *ops)
 	if ((ret == 0) && (ops->pool_size > 0))
 		ret = mbuf_pool_init(&(mchn->chn_public[ops->channel].pool),
 				     ops->pool_size, 0);
+	set_bit(ops->channel, &chn_init_flags);
 	WCN_INFO("[-]%s(%d)\n", __func__, ops->channel);
 
 	return ret;
@@ -330,9 +332,6 @@ int mchn_deinit(struct mchn_ops_t *ops)
 
 	WCN_INFO("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
 
-	mchn->ops[ops->channel] = NULL;
-
-	return ret;
 	if ((mchn->ops[ops->channel] == NULL) ||
 	    ((ops->hif_type != HW_TYPE_SDIO) &&
 	    (ops->hif_type != HW_TYPE_PCIE))) {
@@ -343,6 +342,8 @@ int mchn_deinit(struct mchn_ops_t *ops)
 	case HW_TYPE_SDIO:
 		break;
 	case HW_TYPE_PCIE:
+		ret = edma_chn_deinit(ops->channel);
+		clear_bit(ops->channel, &chn_init_flags);
 		break;
 	default:
 		break;

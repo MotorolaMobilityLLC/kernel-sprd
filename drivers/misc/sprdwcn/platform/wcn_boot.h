@@ -61,6 +61,7 @@ struct marlin_device {
 
 	struct clk *clk_parent;
 	struct clk *clk_enable;
+	struct device_node *np;
 	struct mutex power_lock;
 	struct completion carddetect_done;
 	struct completion download_done;

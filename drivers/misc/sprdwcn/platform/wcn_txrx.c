@@ -20,6 +20,9 @@
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
 
+#define	LOG_BUF_NUM	16
+#define	LOG_BUF_SIZE	1500
+
 #ifdef CONFIG_WCN_PCIE
 int mdbg_log_cb(int channel, struct mbuf_t *head, struct mbuf_t *tail, int num);
 int mdbg_log_push(int chn, struct mbuf_t **head,
@@ -285,17 +288,80 @@ int mdbg_tx_cb(int channel, struct mbuf_t *head,
 	return 0;
 }
 
-static void mdbg_pt_ring_reg(void)
+#ifdef CONFIG_WCN_PCIE
+static struct dma_buf log_buf[LOG_BUF_NUM];
+
+static int free_prepare_buf(struct dma_buf *dm)
 {
+	struct wcn_pcie_info *pcie_dev;
+
+	pcie_dev = get_wcn_device_info();
+	if (!pcie_dev) {
+		WCN_ERR("%s:PCIE device link error\n", __func__);
+		return -1;
+	}
+
+	if ((dm->vir != 0) && (dm->phy != 0))
+		dmfree(pcie_dev, dm);
+
+	return 0;
+}
+
+int prepare_free_buf_for_log(int chn, int size, int num)
+{
+	int ret, i;
+	struct mbuf_t *mbuf, *head, *tail;
+	struct wcn_pcie_info *pcie_dev;
+
+	pcie_dev = get_wcn_device_info();
+	if (!pcie_dev) {
+		WCN_ERR("%s:PCIE device link error\n", __func__);
+		return -1;
+	}
+	ret = sprdwcn_bus_list_alloc(chn, &head, &tail, &num);
+	if (ret != 0)
+		return -1;
+	for (i = 0, mbuf = head; i < num; i++) {
+		ret = dmalloc(pcie_dev, &log_buf[i], size);
+		if (ret != 0)
+			return -1;
+		mbuf->buf = (unsigned char *)(log_buf[i].vir);
+		mbuf->phy = (unsigned long)(log_buf[i].phy);
+		mbuf->len = log_buf[i].size;
+		memset(mbuf->buf, 0x0, mbuf->len);
+		mbuf = mbuf->next;
+		WCN_INFO("dma_alloc_coherent(0x%x) vir=0x%lx, phy=0x%lx\n",
+		 log_buf[i].size, log_buf[i].vir,
+		 log_buf[i].phy);
+	}
+
+	ret = sprdwcn_bus_push_list(chn, head, tail, num);
+
+	return ret;
+}
+#endif
+
+void mdbg_pt_ring_reg(void)
+{
+	WCN_INFO("%s\n", __func__);
 	sprdwcn_bus_chn_init(&mdbg_ringc_ops);
 #ifdef CONFIG_WCN_PCIE
-	prepare_free_buf(15, 1500, 16);
+	prepare_free_buf_for_log(15, LOG_BUF_SIZE, LOG_BUF_NUM);
 #endif
 }
 
-static void mdbg_pt_ring_unreg(void)
+void mdbg_pt_ring_unreg(void)
 {
+#ifdef CONFIG_WCN_PCIE
+	int i;
+#endif
+
+	WCN_INFO("%s\n", __func__);
 	sprdwcn_bus_chn_deinit(&mdbg_ringc_ops);
+#ifdef CONFIG_WCN_PCIE
+	for (i = 0; i < LOG_BUF_NUM; i++)
+		free_prepare_buf(&log_buf[i]);
+#endif
 }
 
 int mdbg_ring_init(void)
@@ -319,7 +385,9 @@ int mdbg_ring_init(void)
 	tasklet_init(&ring_dev->rx_task, mdbg_ring_rx_task,
 		(unsigned long int)ring_dev);
 	ring_dev->flag_smp = 0;
+#ifndef CONFIG_WCN_PCIE
 	mdbg_pt_ring_reg();
+#endif
 	WCN_INFO("success!");
 
 	mdbg_dev->ring_dev = ring_dev;
@@ -332,7 +400,9 @@ void mdbg_ring_remove(void)
 	struct ring_rx_data *pos, *next;
 
 	MDBG_FUNC_ENTERY;
+#ifndef CONFIG_WCN_PCIE
 	mdbg_pt_ring_unreg();
+#endif
 	wakeup_source_destroy(&ring_dev->rw_wake_lock);
 	mdbg_ring_destroy(ring_dev->ring);
 	tasklet_kill(&ring_dev->rx_task);

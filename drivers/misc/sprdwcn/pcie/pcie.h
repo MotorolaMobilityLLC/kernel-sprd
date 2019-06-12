@@ -48,6 +48,9 @@
 #define PCIE_ATU_ENABLE			(0x1 << 31)
 #define PCIE_ATU_BAR_MODE_ENABLE	(0x1 << 30)
 
+#define BUS_REMOVE_CARD_VAL 0x8000
+#define WCN_CARD_EXIST(xmit) \
+	(atomic_read(xmit) < BUS_REMOVE_CARD_VAL)
 
 struct bar_info {
 	resource_size_t mmio_start;
@@ -85,8 +88,12 @@ struct wcn_pcie_info {
 	unsigned short sub_system_id;
 	unsigned short vendor_id;
 	unsigned short device_id;
+	unsigned int card_dump_flag;
 	struct char_drv_info *p_char;
 	enum wcn_bus_state pci_status;
+	struct completion scan_done;
+	struct completion remove_done;
+	atomic_t xmit_cnt;
 };
 
 struct inbound_reg {
@@ -108,7 +115,6 @@ struct outbound_reg {
 	unsigned int lower_target_addr;
 	unsigned int upper_target_addr;
 } __packed;
-
 int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset, void *buf,
 		   int len);
 int pcie_bar_read(struct wcn_pcie_info *priv, int bar, int offset, void *buf,
@@ -128,6 +134,11 @@ int sprd_pcie_update_bits(unsigned int reg, unsigned int mask,
 			  unsigned int val);
 struct wcn_pcie_info *get_wcn_device_info(void);
 int wcn_pcie_get_bus_status(void);
+void sprd_pcie_set_carddump_status(unsigned int flag);
+unsigned int sprd_pcie_get_carddump_status(void);
+int sprd_pcie_scan_card(void *wcn_dev);
+void sprd_pcie_register_scan_notify(void *func);
+void sprd_pcie_remove_card(void *wcn_dev);
 u32 sprd_pcie_read_reg32(struct wcn_pcie_info *priv, int offset);
 void sprd_pcie_write_reg32(struct wcn_pcie_info *priv, u32 reg_offset,
 			   u32 value);

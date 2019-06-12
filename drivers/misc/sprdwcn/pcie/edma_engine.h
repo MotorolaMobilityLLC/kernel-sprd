@@ -471,7 +471,9 @@ struct edma_info {
 int edma_init(struct wcn_pcie_info *pcie_info);
 int edma_deinit(void);
 
-int edma_chn_init(int chn, int mode, int inout, int max_trans);
+int edma_chn_init(int chn, int mode, int inout, int max_trans,
+		  int dscr_ring_flag);
+int edma_chn_deinit(int chn);
 int edma_one_link_dscr_buf_bind(struct desc *dscr, unsigned char *dst,
 				       unsigned char *src, unsigned short len);
 struct edma_info *edma_info(void);

@@ -390,8 +390,8 @@ int sdiohal_runtime_get(void);
 int sdiohal_runtime_put(void);
 
 void sdiohal_register_scan_notify(void *func);
-int sdiohal_scan_card(void);
-void sdiohal_remove_card(void);
+int sdiohal_scan_card(void *wcn_dev);
+void sdiohal_remove_card(void *wcn_dev);
 
 extern int mmc_detect_card_removed(struct mmc_host *host);
 

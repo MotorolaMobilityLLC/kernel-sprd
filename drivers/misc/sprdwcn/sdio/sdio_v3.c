@@ -95,9 +95,9 @@ static int sdio_runtime_put(void)
 	return sdiohal_runtime_put();
 }
 
-static int sdio_rescan(void)
+static int sdio_rescan(void *wcn_dev)
 {
-	return sdiohal_scan_card();
+	return sdiohal_scan_card(wcn_dev);
 }
 
 static void sdio_register_rescan_cb(void *func)
@@ -105,9 +105,9 @@ static void sdio_register_rescan_cb(void *func)
 	return sdiohal_register_scan_notify(func);
 }
 
-static void sdio_remove_card(void)
+static void sdio_remove_card(void *wcn_dev)
 {
-	return sdiohal_remove_card();
+	return sdiohal_remove_card(wcn_dev);
 }
 
 static struct sprdwcn_bus_ops sdiohal_bus_ops = {

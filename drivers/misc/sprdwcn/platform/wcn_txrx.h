@@ -120,6 +120,8 @@ enum {
 
 extern struct mchn_ops_t mdbg_proc_ops[MDBG_ASSERT_RX_OPS + 1];
 
+void mdbg_pt_ring_reg(void);
+void mdbg_pt_ring_unreg(void);
 int mdbg_ring_init(void);
 void mdbg_ring_remove(void);
 long int mdbg_send(char *buf, long int len, unsigned int subtype);

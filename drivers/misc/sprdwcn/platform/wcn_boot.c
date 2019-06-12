@@ -505,14 +505,19 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 	file = filp_open(GNSS_FIRMWARE_PATH, O_RDONLY, 0);
 	for (i = 1; i <= opn_num_max; i++) {
 		if (IS_ERR(file)) {
-			WCN_INFO("try open file %s,count_num:%d,%s\n",
-				GNSS_FIRMWARE_PATH, i, __func__);
+			WCN_INFO("try open file %s,count_num:%d,errno=%ld,%s\n",
+				GNSS_FIRMWARE_PATH, i, PTR_ERR(file), __func__);
+			if (PTR_ERR(file) == -ENOENT)
+				WCN_ERR("No such file or directory\n");
+			if (PTR_ERR(file) == -EACCES)
+				WCN_ERR("Permission denied\n");
 			ssleep(1);
 			file = filp_open(GNSS_FIRMWARE_PATH, O_RDONLY, 0);
 		} else {
 			break;
 		}
 	}
+
 	if (IS_ERR(file)) {
 		WCN_ERR("%s marlin3 gnss open file %s error\n",
 			GNSS_FIRMWARE_PATH, __func__);
@@ -1129,7 +1134,7 @@ void marlin_read_cali_data(void)
 
 	complete(&marlin_dev->download_done);
 }
-
+#ifndef CONFIG_WCN_PCIE
 static int marlin_write_cali_data(void)
 {
 	int ret = 0, init_state = 0, cali_data_offset = 0;
@@ -1184,7 +1189,8 @@ static int marlin_write_cali_data(void)
 
 	return ret;
 }
-
+#endif
+#ifndef CONFIG_WCN_PCIE
 static int spi_read_rf_reg(unsigned int addr, unsigned int *data)
 {
 	unsigned int reg_data = 0;
@@ -1231,7 +1237,7 @@ static int check_cp_clock_mode(void)
 
 	return ret;
 }
-
+#endif
 /* release CPU */
 static int marlin_start_run(void)
 {
@@ -1572,9 +1578,9 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 {
 	if (btwifi_download_firmware() == 0 &&
 		marlin_start_run() == 0) {
+#ifndef CONFIG_WCN_PCIE
 		check_cp_clock_mode();
 		marlin_write_cali_data();
-#ifndef CONFIG_WCN_PCIE
 		mem_pd_save_bin();
 #endif
 		check_cp_ready();
@@ -1583,17 +1589,15 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 	sprdwcn_bus_runtime_get();
 }
 
-#ifndef CONFIG_WCN_PCIE
-static void sdio_scan_card(void)
+static void bus_scan_card(void)
 {
 	init_completion(&marlin_dev->carddetect_done);
-	sprdwcn_bus_rescan();
+	sprdwcn_bus_rescan(marlin_dev);
 	if (wait_for_completion_timeout(&marlin_dev->carddetect_done,
 		msecs_to_jiffies(CARD_DETECT_WAIT_MS)) == 0)
-		WCN_ERR("wait SDIO rescan card time out\n");
+		WCN_ERR("wait bus rescan card time out\n");
 
 }
-#endif
 
 void wifipa_enable(int enable)
 {
@@ -1613,6 +1617,7 @@ void wifipa_enable(int enable)
 			if (ret)
 				WCN_ERR("fail to enable wifipa\n");
 		} else {
+#ifndef CONFIG_WCN_PCIE
 			if (regulator_is_enabled(marlin_dev->avdd33)) {
 				ret =
 				regulator_disable(marlin_dev->avdd33);
@@ -1620,10 +1625,10 @@ void wifipa_enable(int enable)
 					WCN_ERR("fail to disable wifipa\n");
 				WCN_INFO(" wifi pa disable\n");
 			}
+#endif
 		}
 	}
 }
-
 
 void set_wifipa_status(int subsys, int val)
 {
@@ -1671,18 +1676,21 @@ static int chip_power_on(int subsys)
 	usleep_range(50, 60);
 	wifipa_enable(1);
 	wcn_wifipa_bound_xtl(true);
-#ifndef CONFIG_WCN_PCIE
-	sdio_scan_card();
+	bus_scan_card();
 	loopcheck_ready_set();
+#ifndef CONFIG_WCN_PCIE
 	mem_pd_poweroff_deinit();
 	sdio_pub_int_poweron(true);
 #endif
-
 	return 0;
 }
 
 static int chip_power_off(int subsys)
 {
+	marlin_dev->power_state = 0;
+#ifdef CONFIG_WCN_PCIE
+	sprdwcn_bus_remove_card(marlin_dev);
+#endif
 	wcn_avdd12_bound_xtl(false);
 	wcn_wifipa_bound_xtl(false);
 	wcn_avdd12_parent_bound_chip(true);
@@ -1694,10 +1702,9 @@ static int chip_power_off(int subsys)
 	marlin_analog_power_enable(false);
 	chip_reset_release(0);
 	marlin_dev->wifi_need_download_ini_flag = 0;
-	marlin_dev->power_state = 0;
 #ifndef CONFIG_WCN_PCIE
 	mem_pd_poweroff_deinit();
-	sprdwcn_bus_remove_card();
+	sprdwcn_bus_remove_card(marlin_dev);
 #endif
 	loopcheck_ready_clear();
 #ifndef CONFIG_WCN_PCIE
@@ -1862,6 +1869,15 @@ static int marlin_set_power(int subsys, int val)
 				marlin_set_power(WCN_AUTO, false);
 				return 0;
 			}
+			/* if first power on is GNSS, must power off after cali finish,
+			   and then re-power on it, this is gnss requirement.
+			*/
+			if (subsys == MARLIN_GNSS) {
+				marlin_set_power(MARLIN_GNSS, false);
+				marlin_set_power(MARLIN_GNSS, true);
+				return 0;
+			}
+
 			return 0;
 		}
 		/* 2. the second time, WCN_AUTO coming */
@@ -2062,12 +2078,9 @@ void marlin_power_off(enum marlin_sub_sys subsys)
 	marlin_set_power(subsys, false);
 }
 
-int marlin_get_power(enum marlin_sub_sys subsys)
+int marlin_get_power(void)
 {
-	if (subsys == MARLIN_ALL)
-		return marlin_dev->power_state != 0;
-	else
-		return test_bit(subsys, &marlin_dev->power_state);
+	return marlin_dev->power_state;
 }
 EXPORT_SYMBOL_GPL(marlin_get_power);
 
@@ -2153,7 +2166,7 @@ int marlin_reset_reg(void)
 	init_completion(&marlin_dev->carddetect_done);
 	marlin_reset(true);
 	mdelay(1);
-	sprdwcn_bus_rescan();
+	sprdwcn_bus_rescan(marlin_dev);
 	if (wait_for_completion_timeout(&marlin_dev->carddetect_done,
 		msecs_to_jiffies(CARD_DETECT_WAIT_MS))) {
 		return 0;
@@ -2166,53 +2179,6 @@ EXPORT_SYMBOL_GPL(marlin_reset_reg);
 
 int start_marlin(u32 subsys)
 {
-#ifdef CONFIG_WCN_PCIE
-	int ret;
-
-	mutex_lock(&marlin_dev->power_lock);
-	WCN_INFO("%s [%s],power_status=0x%lx\n", __func__, strno(subsys),
-		 marlin_dev->power_state);
-
-	marlin_dev->first_power_on_flag++;
-	if ((subsys == MARLIN_GNSS) && (!marlin_dev->gnss_dl_finish_flag))
-		gnss_powerdomain_open();
-
-	if ((marlin_dev->download_finish_flag == 1) &&
-	    (marlin_dev->gnss_dl_finish_flag)) {
-		WCN_INFO("firmware have download\n");
-		set_bit(subsys, &marlin_dev->power_state);
-		marlin_dev->first_power_on_flag = 2;
-		power_state_notify_or_not(subsys, 1);
-		mutex_unlock(&marlin_dev->power_lock);
-		return 0;
-	}
-
-	ret = pcie_boot(subsys, marlin_dev);
-	if (ret < 0) {
-		WCN_INFO("pcie boot fail\n");
-		power_state_notify_or_not(subsys, 1);
-		mutex_unlock(&marlin_dev->power_lock);
-		return -1;
-	}
-	set_bit(subsys, &marlin_dev->power_state);
-	marlin_dev->download_finish_flag = 1;
-
-	if (marlin_dev->first_power_on_flag == 1) {
-		stop_marlin(MARLIN_GNSS);
-		if (subsys == MARLIN_GNSS) {
-			marlin_dev->first_power_on_flag = 2;
-			mutex_unlock(&marlin_dev->power_lock);
-			start_marlin(MARLIN_GNSS);
-		}
-		loopcheck_ready_set();
-	}
-
-	marlin_dev->first_power_on_flag = 2;
-	power_state_notify_or_not(subsys, 1);
-	mutex_unlock(&marlin_dev->power_lock);
-
-	return 0;
-#else
 	WCN_INFO("%s [%s]\n", __func__, strno(subsys));
 	if (sprdwcn_bus_get_carddump_status() != 0) {
 		WCN_ERR("%s SDIO card dump\n", __func__);
@@ -2234,8 +2200,10 @@ int start_marlin(u32 subsys)
 			marlin_dev->wifi_need_download_ini_flag = 2;
 	}
 	marlin_set_power(subsys, true);
-
+#ifndef CONFIG_WCN_PCIE
 	return mem_pd_mgr(subsys, true);
+#else
+	return 0;
 #endif
 }
 EXPORT_SYMBOL_GPL(start_marlin);
@@ -2243,7 +2211,6 @@ EXPORT_SYMBOL_GPL(start_marlin);
 int stop_marlin(u32 subsys)
 {
 	WCN_INFO("%s [%s]\n", __func__, strno(subsys));
-#ifndef CONFIG_WCN_PCIE
 	if (sprdwcn_bus_get_carddump_status() != 0) {
 		WCN_ERR("%s SDIO card dump\n", __func__);
 		return -1;
@@ -2253,19 +2220,10 @@ int stop_marlin(u32 subsys)
 		WCN_ERR("%s loopcheck status is fail\n", __func__);
 		return -1;
 	}
-
+#ifndef CONFIG_WCN_PCIE
 	mem_pd_mgr(subsys, false);
-	return marlin_set_power(subsys, false);
-#else
-	if (subsys == MARLIN_GNSS) {
-		gnss_powerdomain_close();
-		marlin_dev->gnss_dl_finish_flag = 0;
-	}
-	clear_bit(subsys, &marlin_dev->power_state);
-	power_state_notify_or_not(subsys, 0);
-
-	return 0;
 #endif
+	return marlin_set_power(subsys, false);
 }
 EXPORT_SYMBOL_GPL(stop_marlin);
 
@@ -2295,6 +2253,11 @@ static int marlin_probe(struct platform_device *pdev)
 		WCN_ERR("%s write buffer low memory\n", __func__);
 		return -ENOMEM;
 	}
+
+	marlin_dev->np = pdev->dev.of_node;
+	WCN_INFO("%s: device node name: %s\n",
+		__func__, marlin_dev->np->name);
+
 	mutex_init(&(marlin_dev->power_lock));
 	marlin_dev->power_state = 0;
 	err = marlin_parse_dt(pdev);
@@ -2322,15 +2285,11 @@ static int marlin_probe(struct platform_device *pdev)
 #ifndef CONFIG_WCN_PCIE
 	sdio_pub_int_init(marlin_dev->int_ap);
 	mem_pd_init();
+#endif
 	proc_fs_init();
 	log_dev_init();
 	wcn_op_init();
-#endif
 	flag_reset = 0;
-#ifdef CONFIG_WCN_PCIE
-	chip_power_on(WCN_AUTO);
-#endif
-
 	INIT_WORK(&marlin_dev->download_wq, pre_btwifi_download_sdio);
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);
 

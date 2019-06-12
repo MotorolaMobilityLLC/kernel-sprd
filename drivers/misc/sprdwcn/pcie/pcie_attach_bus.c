@@ -89,6 +89,31 @@ int pcie_get_bus_status(void)
 	return wcn_pcie_get_bus_status();
 }
 
+static unsigned int pcie_get_carddump_status(void)
+{
+	return sprd_pcie_get_carddump_status();
+}
+
+static void pcie_set_carddump_status(unsigned int flag)
+{
+	return sprd_pcie_set_carddump_status(flag);
+}
+
+static int pcie_rescan(void *wcn_dev)
+{
+	return sprd_pcie_scan_card(wcn_dev);
+}
+
+static void pcie_register_rescan_cb(void *func)
+{
+	return sprd_pcie_register_scan_notify(func);
+}
+
+static void pcie_remove_card(void *wcn_dev)
+{
+	return sprd_pcie_remove_card(wcn_dev);
+}
+
 static struct sprdwcn_bus_ops pcie_bus_ops = {
 	.preinit = pcie_preinit,
 	.deinit = pcie_preexit,
@@ -105,6 +130,11 @@ static struct sprdwcn_bus_ops pcie_bus_ops = {
 	.write_l = pcie_write32,
 	.update_bits = pcie_update_bits,
 	.get_bus_status = pcie_get_bus_status,
+	.get_carddump_status = pcie_get_carddump_status,
+	.set_carddump_status = pcie_set_carddump_status,
+	.register_rescan_cb = pcie_register_rescan_cb,
+	.rescan = pcie_rescan,
+	.remove_card = pcie_remove_card,
 };
 
 void module_bus_init(void)

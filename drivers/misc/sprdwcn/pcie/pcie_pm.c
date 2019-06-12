@@ -229,7 +229,8 @@ void wcn_aspm_l1_2(struct pci_dev *pdev)
 
 	wcn_aspm_l1(pdev);
 }
-
+/* TODO: RC chip bug, need work around */
+#if 0
 /*
  * 1.0x158 set [0] = 1'b1
  * 2.0x080 [8] = 1'b1
@@ -267,12 +268,11 @@ void wcn_aspm_l1clk(struct pci_dev *pdev)
 
 	wcn_aspm_l1(pdev);
 }
-
+#endif
 void wcn_aspm_enable(struct pci_dev *pdev)
 {
 	wcn_aspm_l0s(pdev);
 	wcn_aspm_l1_1(pdev);
 	wcn_aspm_l1_2(pdev);
-	wcn_aspm_l1clk(pdev);
 	wcn_aspm_l1(pdev);
 }

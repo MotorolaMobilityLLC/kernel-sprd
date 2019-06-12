@@ -202,10 +202,23 @@ static int mdbg_tx_comptele_cb(int chn, int timeout)
 	return 0;
 }
 
-int prepare_free_buf(int chn, int size, int num)
+static int free_prepare_buf(struct dma_buf *dm)
+{
+	pcie_dev = get_wcn_device_info();
+	if (!pcie_dev) {
+		WCN_ERR("%s:PCIE device link error\n", __func__);
+		return -1;
+	}
+
+	if ((dm->vir != 0) && (dm->phy != 0))
+		dmfree(pcie_dev, dm);
+
+	return 0;
+}
+
+int prepare_free_buf(struct dma_buf *dm, int chn, int size, int num)
 {
 	int ret, i;
-	struct dma_buf temp = {0};
 	struct mbuf_t *mbuf, *head, *tail;
 
 	pcie_dev = get_wcn_device_info();
@@ -217,12 +230,12 @@ int prepare_free_buf(int chn, int size, int num)
 	if (ret != 0)
 		return -1;
 	for (i = 0, mbuf = head; i < num; i++) {
-		ret = dmalloc(pcie_dev, &temp, size);
+		ret = dmalloc(pcie_dev, dm, size);
 		if (ret != 0)
 			return -1;
-		mbuf->buf = (unsigned char *)(temp.vir);
-		mbuf->phy = (unsigned long)(temp.phy);
-		mbuf->len = temp.size;
+		mbuf->buf = (unsigned char *)(dm->vir);
+		mbuf->phy = (unsigned long)(dm->phy);
+		mbuf->len = dm->size;
 		memset(mbuf->buf, 0x0, mbuf->len);
 		mbuf = mbuf->next;
 	}
@@ -459,6 +472,11 @@ static ssize_t mdbg_proc_read(struct file *filp,
 				WCN_INFO("loopcheck status:%d\n",
 					mdbg_proc->fail_count);
 			}
+#ifdef CONFIG_WCN_PCIE
+			pcie_dev = get_wcn_device_info();
+			if (!(atomic_dec_and_test(&pcie_dev->xmit_cnt)))
+				atomic_set(&pcie_dev->xmit_cnt, 0x0);
+#endif
 		} else {
 			if (copy_to_user((void __user *)buf, "poweroff", 8))
 				return -EFAULT;
@@ -489,7 +507,6 @@ static ssize_t mdbg_proc_read(struct file *filp,
 		mdbg_proc->at_cmd.rcv_len = 0;
 		memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
 	}
-
 	return len;
 }
 /**************************************************
@@ -796,6 +813,16 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		WCN_ERR("%s:PCIE device link error\n", __func__);
 		return -1;
 	}
+	/* make sure don't send at cmd to pcie when chip has power off */
+	if ((strncmp(mdbg_proc->write_buf, "at+loopcheck", 12) == 0)) {
+		if (atomic_inc_return(&pcie_dev->xmit_cnt) >=
+			BUS_REMOVE_CARD_VAL) {
+			atomic_dec(&pcie_dev->xmit_cnt);
+			WCN_INFO("ignore AT, chip has powroff\n");
+			return count;
+		}
+	}
+
 	ret = sprdwcn_bus_list_alloc(0, &head, &tail, &num);
 	if (ret || head == NULL || tail == NULL) {
 		WCN_ERR("%s:%d mbuf_link_alloc fail\n", __func__, __LINE__);
@@ -845,7 +872,7 @@ static unsigned int mdbg_proc_poll(struct file *filp, poll_table *wait)
 
 	if (strcmp(type, "loopcheck") == 0) {
 		poll_wait(filp, &mdbg_proc->loopcheck.rxwait, wait);
-		WCN_LOG("loopcheck:power_state_changed:%d\n",
+		WCN_INFO("loopcheck:power_state_changed:%d\n",
 			wcn_get_module_status_changed());
 		if (wcn_get_module_status_changed()) {
 			wcn_set_module_status_changed(false);
@@ -964,26 +991,34 @@ struct mchn_ops_t mdbg_proc_ops[MDBG_ASSERT_RX_OPS + 1] = {
 	},
 };
 #endif
-
-static void mdbg_fs_channel_destroy(void)
+#ifdef CONFIG_WCN_PCIE
+static struct dma_buf at_buf[3];
+#endif
+void mdbg_fs_channel_destroy(void)
 {
 	int i;
 
 	for (i = 0; i <= MDBG_ASSERT_RX_OPS; i++)
 		sprdwcn_bus_chn_deinit(&mdbg_proc_ops[i]);
+#ifdef CONFIG_WCN_PCIE
+	free_prepare_buf(&at_buf[0]);
+	free_prepare_buf(&at_buf[1]);
+	free_prepare_buf(&at_buf[2]);
+#endif
 }
 
-static void mdbg_fs_channel_init(void)
+void mdbg_fs_channel_init(void)
 {
 	int i;
 
 	for (i = 0; i <= MDBG_ASSERT_RX_OPS; i++)
 		sprdwcn_bus_chn_init(&mdbg_proc_ops[i]);
+
 #ifdef CONFIG_WCN_PCIE
-	/* PCIe: malloc for rx buf */
-	prepare_free_buf(12, 256, 1);
-	prepare_free_buf(13, 256, 1);
-	prepare_free_buf(14, 256, 1);
+		/* PCIe: malloc for rx buf */
+		prepare_free_buf(&at_buf[0], 12, 256, 1);
+		prepare_free_buf(&at_buf[1], 13, 256, 1);
+		prepare_free_buf(&at_buf[2], 14, 256, 1);
 #endif
 }
 
@@ -1039,9 +1074,9 @@ int proc_fs_init(void)
 						mdbg_proc->procdir,
 						&mdbg_snap_shoot_seq_fops,
 						&(mdbg_proc->snap_shoot));
-
+#ifndef CONFIG_WCN_PCIE
 	mdbg_fs_channel_init();
-
+#endif
 	init_completion(&mdbg_proc->assert.completed);
 	init_completion(&mdbg_proc->loopcheck.completed);
 	init_completion(&mdbg_proc->at_cmd.completed);
