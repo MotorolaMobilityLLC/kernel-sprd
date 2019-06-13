@@ -531,6 +531,23 @@
 			regulator-name = "vddvbus";
 		};
 	};
+
+	flash_ic: flash-ic@63 {
+		compatible = "sprd,flash-ocp8137";
+		reg = <0x63>;
+		sprd,flash-ic = <8137>;
+		sprd,torch = <1>;
+		sprd,preflash = <1>;
+		sprd,highlight = <1>;
+		sprd,torch-level = <128>;
+		sprd,preflash-level = <128>;
+		sprd,highlight-level = <128>;
+		sprd,lvfm-enable = <1>;
+		flash-chip-en-gpios = <&ap_gpio 136 0>;
+		flash-torch-en-gpios = <&ap_gpio 139 0>;
+		flash-en-gpios = <&ap_gpio 137 0>;
+		flash-sync-gpios = <&ap_gpio 138 0>;
+	};
 };
 
 &pwms {
