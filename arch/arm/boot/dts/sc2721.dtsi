@@ -55,6 +55,11 @@
 			nvmem-cell-names = "big_scale_calib", "small_scale_calib";
 		};
 
+		syscon@c00 {
+			compatible = "sprd,sc27xx-syscon";
+			reg = <0xc00>, <0xecc>;
+		};
+
 		power-controller@c00 {
 			compatible = "sprd,sc27xx-regulator", "sprd,sc2721-regulator";
 
