@@ -78,6 +78,19 @@ static const char * const sc2703_fast_charger_supply_name[] = {
 	"sc2730_fast_charger",
 };
 
+static bool is_calib_mode;
+
+static int __init boot_calibration_mode(char *str)
+{
+	if (str && !strncmp(str, "cali", strlen("cali")))
+		is_calib_mode = true;
+	else
+		is_calib_mode = false;
+
+	return 0;
+}
+__setup("androidboot.mode=", boot_calibration_mode);
+
 static bool sc2703_charger_is_bat_present(struct sc2703_charger_info *info)
 {
 	struct power_supply *psy;
@@ -513,12 +526,16 @@ static int sc2703_charger_start_charge(struct sc2703_charger_info *info)
 static void sc2703_charger_stop_charge(struct sc2703_charger_info *info,
 				       bool present)
 {
-	int ret;
+	int mask, ret;
+
+	if (is_calib_mode)
+		mask = SC2703_CHG_EN_MASK | SC2703_DCDC_EN_MASK;
+	else
+		mask = SC2703_CHG_EN_MASK;
 
 	if (present) {
 		ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
-					 SC2703_CHG_EN_MASK |
-					 SC2703_DCDC_EN_MASK, 0);
+					 mask, 0);
 		if (ret)
 			dev_err(info->dev,
 				"Failed to set chg_en and dcdc_en:%d\n", ret);
