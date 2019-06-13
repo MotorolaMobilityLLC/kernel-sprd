@@ -210,6 +210,24 @@
 				clocks = <&aonapb_gate CLK_AON_DMA_EB>;
 			};
 
+			pwms: pwm@40260000 {
+				compatible = "sprd,pike2-pwm", "sprd,sharkl5-pwm";
+				reg = <0x40260000 0x10000>;
+				clock-names = "clk_parent",
+					"clk_pwm0", "clk_pwm0_eb",
+					"clk_pwm1", "clk_pwm1_eb",
+					"clk_pwm2", "clk_pwm2_eb";
+				clocks = <&ext_26m>,
+					<&aon_clk CLK_PWM0>,
+					<&aonapb_gate CLK_PWM0_EB>,
+					<&aon_clk CLK_PWM1>,
+					<&aonapb_gate CLK_PWM1_EB>,
+					<&aon_clk CLK_PWM2>,
+					<&aonapb_gate CLK_PWM2_EB>;
+				#pwm-cells = <2>;
+				status = "disabled";
+			};
+
 			adi_bus: spi@403c0000 {
 				compatible = "sprd,pike2-adi";
 				reg = <0x403c0000 0x10000>;
