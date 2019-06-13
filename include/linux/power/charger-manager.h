@@ -256,6 +256,8 @@ struct charger_desc {
 
 	u32 wdt_interval;
 
+	int thm_adjust_cur;
+
 	struct charger_jeita_table *jeita_tab;
 	u32 jeita_tab_size;
 };
