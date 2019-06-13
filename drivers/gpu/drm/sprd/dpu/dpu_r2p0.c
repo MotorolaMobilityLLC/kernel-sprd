@@ -255,6 +255,7 @@ static bool evt_stop;
 static int wb_en;
 static int max_vsync_count;
 static int vsync_count;
+static u32 prev_y2r_coef;
 //static struct sprd_adf_hwlayer wb_layer;
 //static struct wb_region region[3];
 //static int wb_xfbc_en = 1;
@@ -609,7 +610,9 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->panel_size = size;
 	reg->blend_size = size;
 
-	reg->dpu_cfg0 = 0;
+	reg->dpu_cfg0 = BIT(4) | BIT(5);
+	prev_y2r_coef = 3;
+
 	reg->dpu_cfg1 = 0x004466da;
 	reg->dpu_cfg2 = 0;
 
@@ -653,7 +656,56 @@ enum {
 	DPU_LAYER_FORMAT_MAX_TYPES,
 };
 
-static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
+enum {
+	DPU_LAYER_ROTATION_0,
+	DPU_LAYER_ROTATION_90,
+	DPU_LAYER_ROTATION_180,
+	DPU_LAYER_ROTATION_270,
+	DPU_LAYER_ROTATION_0_M,
+	DPU_LAYER_ROTATION_90_M,
+	DPU_LAYER_ROTATION_180_M,
+	DPU_LAYER_ROTATION_270_M,
+};
+
+static u32 to_dpu_rotation(u32 angle)
+{
+	u32 rot = DPU_LAYER_ROTATION_0;
+
+	switch (angle) {
+	case 0:
+	case DRM_MODE_ROTATE_0:
+		rot = DPU_LAYER_ROTATION_0;
+		break;
+	case DRM_MODE_ROTATE_90:
+		rot = DPU_LAYER_ROTATION_90;
+		break;
+	case DRM_MODE_ROTATE_180:
+		rot = DPU_LAYER_ROTATION_180;
+		break;
+	case DRM_MODE_ROTATE_270:
+		rot = DPU_LAYER_ROTATION_270;
+		break;
+	case DRM_MODE_REFLECT_Y:
+		rot = DPU_LAYER_ROTATION_180_M;
+		break;
+	case (DRM_MODE_REFLECT_Y | DRM_MODE_ROTATE_90):
+		rot = DPU_LAYER_ROTATION_90_M;
+		break;
+	case DRM_MODE_REFLECT_X:
+		rot = DPU_LAYER_ROTATION_0_M;
+		break;
+	case (DRM_MODE_REFLECT_X | DRM_MODE_ROTATE_90):
+		rot = DPU_LAYER_ROTATION_270_M;
+		break;
+	default:
+		pr_err("rotation convert unsupport angle (drm)= 0x%x\n", angle);
+		break;
+	}
+
+	return rot;
+}
+
+static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 rotation)
 {
 	int reg_val = 0;
 
@@ -708,9 +760,9 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 		/* 2-Lane: Yuv420 */
 		reg_val |= DPU_LAYER_FORMAT_YUV420_2PLANE << 4;
 		/* Y endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 8;
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
 		/* UV endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 10;
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 10;
 		break;
 	case DRM_FORMAT_NV21:
 		/* 2-Lane: Yuv420 */
@@ -718,7 +770,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 		/* Y endian */
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
 		/* UV endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 10;
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 10;
 		break;
 	case DRM_FORMAT_NV16:
 		/* 2-Lane: Yuv422 */
@@ -771,7 +823,36 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression)
 		break;
 	}
 
+	rotation = to_dpu_rotation(rotation);
+	reg_val |= (rotation & 0x7) << 20;
+
 	return reg_val;
+}
+
+static int check_layer_y2r_coef(struct sprd_dpu_layer layers[], u8 count)
+{
+	int i;
+
+	for (i = (count - 1); i >= 0; i--) {
+		switch (layers[i].format) {
+		case DRM_FORMAT_NV12:
+		case DRM_FORMAT_NV21:
+		case DRM_FORMAT_NV16:
+		case DRM_FORMAT_NV61:
+		case DRM_FORMAT_YUV420:
+			if (layers[i].y2r_coef == prev_y2r_coef)
+				return -1;
+
+			/* need to config dpu y2r coef */
+			prev_y2r_coef = layers[i].y2r_coef;
+			return prev_y2r_coef;
+		default:
+			break;
+		}
+	}
+
+	/* not find yuv layer */
+	return -1;
 }
 
 static void dpu_clean_all(struct dpu_context *ctx)
@@ -861,7 +942,7 @@ static void dpu_layer(struct dpu_context *ctx,
 		layer->pitch = hwlayer->pitch[0] / wd;
 
 	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-		hwlayer->xfbc);
+		hwlayer->xfbc, hwlayer->rotation);
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
@@ -876,6 +957,7 @@ static void dpu_flip(struct dpu_context *ctx,
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	int i;
+	int y2r_coef;
 
 	/*
 	 * Make sure the dpu is in stop status. DPU_R2P0 has no shadow
@@ -884,6 +966,17 @@ static void dpu_flip(struct dpu_context *ctx,
 	 */
 	if (ctx->if_type == SPRD_DISPC_IF_EDPI)
 		dpu_wait_stop_done(ctx);
+
+	/* set Y2R conversion coef */
+	y2r_coef = check_layer_y2r_coef(layers, count);
+	if (y2r_coef >= 0) {
+		/* write dpu_cfg0 register after dpu is in idle status */
+		if (ctx->if_type == SPRD_DISPC_IF_DPI)
+			dpu_stop(ctx);
+
+		reg->dpu_cfg0 &= ~(0x7 << 4);
+		reg->dpu_cfg0 |= (y2r_coef << 4);
+	}
 
 	/* reset the bgcolor to black */
 	reg->bg_color = 0;
@@ -900,6 +993,10 @@ static void dpu_flip(struct dpu_context *ctx,
 		if (!ctx->is_stopped) {
 			reg->dpu_ctrl |= BIT(2);
 			dpu_wait_update_done(ctx);
+		} else if (y2r_coef >= 0) {
+			reg->dpu_ctrl |= BIT(0);
+			ctx->is_stopped = false;
+			pr_info("dpu start\n");
 		}
 
 		reg->dpu_int_en |= DISPC_INT_ERR_MASK;
