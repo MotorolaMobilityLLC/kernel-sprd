@@ -117,6 +117,7 @@ struct sprd_runtime_data {
 #ifdef CONFIG_SND_VERBOSE_PROCFS
 	struct snd_info_entry *proc_info_entry;
 #endif
+	bool is_access_enabled;
 };
 
 struct dma_chan_index_name {
@@ -333,6 +334,17 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 		goto out;
 	runtime->private_data = rtd;
 	mutex_lock(&pm_dma->pm_mtx_cnt);
+	/* dma related need to access auio dsp sys */
+	if (!is_no_pcm_dai(srtd->cpu_dai->id)) {
+		ret = agdsp_access_enable();
+		if (ret) {
+			mutex_unlock(&pm_dma->pm_mtx_cnt);
+			pr_err("%s:agdsp_access_enable:error:%d",
+				__func__, ret);
+			goto out;
+		}
+		rtd->is_access_enabled = true;
+	}
 	if (!sprd_is_normal_playback(srtd->cpu_dai->id,
 		substream->stream))
 		pm_dma->no_pm_cnt++;
@@ -352,14 +364,16 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 				&size_inout);
 		if (!rtd->dma_cfg_phy[0]) {
 			pr_err("audio_smem_alloc failed for rtd->dma_cfg_phy[0]");
-			return -ENOMEM;
+			ret = -ENOMEM;
+			goto err;
 		}
 	} else {
 		rtd->dma_cfg_phy[0] =
 			audio_mem_alloc(DDR32, &size_inout);
 		if (!rtd->dma_cfg_phy[0]) {
 			pr_err("audio_smem_alloc failed for rtd->dma_cfg_phy[0]");
-			return -ENOMEM;
+			ret = -ENOMEM;
+			goto err;
 		}
 	}
 	rtd->dma_cfg_virt[0] = audio_mem_vmap(
@@ -436,6 +450,13 @@ static int sprd_pcm_open(struct snd_pcm_substream *substream)
 
 err:
 	pr_err("ERR:dma_pdata alloc failed!\n");
+	mutex_lock(&pm_dma->pm_mtx_cnt);
+	/* dma related need to access auio dsp sys */
+	if (rtd->is_access_enabled) {
+		agdsp_access_disable();
+		rtd->is_access_enabled = false;
+	}
+	mutex_unlock(&pm_dma->pm_mtx_cnt);
 	if (rtd->dma_cfg_array) {
 		devm_kfree(dev, rtd->dma_cfg_array);
 		rtd->dma_cfg_array = NULL;
@@ -526,6 +547,11 @@ static int sprd_pcm_close(struct snd_pcm_substream *substream)
 		}
 	} else
 		pm_dma->normal_rtd = NULL;
+
+	if (rtd && rtd->is_access_enabled) {
+		agdsp_access_disable();
+		rtd->is_access_enabled = false;
+	}
 	mutex_unlock(&pm_dma->pm_mtx_cnt);
 	if (is_no_pcm_dai(srtd->cpu_dai->id)) {
 		devm_kfree(dev, rtd);
@@ -1140,13 +1166,6 @@ static int sprd_pcm_hw_free(struct snd_pcm_substream *substream)
 	snd_pcm_set_runtime_buffer(substream, NULL);
 
 	if (dma) {
-		int ret;
-		/* dma dma_release_channel need to access auio dsp sys */
-		ret = agdsp_access_enable();
-		if (ret) {
-			pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
-			return ret;
-		}
 		normal_dma_protect_mutex_lock(substream);
 		for (i = 0; i < rtd->hw_chan; i++) {
 			if (rtd->dma_chn[i]) {
@@ -1163,7 +1182,6 @@ static int sprd_pcm_hw_free(struct snd_pcm_substream *substream)
 		}
 		rtd->params = NULL;
 		normal_dma_protect_mutex_unlock(substream);
-		agdsp_access_disable();
 	}
 
 	return 0;
@@ -1536,19 +1554,12 @@ static struct snd_soc_platform_driver sprd_soc_platform = {
 static void pm_normal_dma_chan_release(struct sprd_runtime_data *rtd)
 {
 	int i;
-	int ret;
 	struct dma_chan *temp_dma_chan;
 	struct audio_pm_dma *pm_dma;
 
 	pm_dma = get_pm_dma();
 	if (!rtd) {
 		pr_warn("%s, rtd is null\n", __func__);
-		return;
-	}
-	/* dma dma_release_channel need to access auio dsp sys */
-	ret = agdsp_access_enable();
-	if (ret) {
-		pr_err("%s:agdsp_access_enable:error:%d", __func__, ret);
 		return;
 	}
 	/* mutex lock and spinlock is normal only if enter this function */
@@ -1568,7 +1579,6 @@ static void pm_normal_dma_chan_release(struct sprd_runtime_data *rtd)
 			pr_info("%s i=%d has released\n", __func__, i);
 	}
 	mutex_unlock(&pm_dma->pm_mtx_dma_prot);
-	agdsp_access_disable();
 }
 
 /* notify function only care dma does not care vbc */
@@ -1583,9 +1593,14 @@ static int sprd_pcm_pm_notifier(struct notifier_block *notifier,
 	case PM_SUSPEND_PREPARE:
 		pr_info("%s, PM_SUSPEND_PREPARE.\n", __func__);
 		mutex_lock(&pm_dma->pm_mtx_cnt);
-		if (pm_dma->no_pm_cnt == 0)
+		if (pm_dma->no_pm_cnt == 0) {
 			pm_normal_dma_chan_release(pm_dma->normal_rtd);
-
+			if (pm_dma->normal_rtd &&
+				pm_dma->normal_rtd->is_access_enabled) {
+				agdsp_access_disable();
+				pm_dma->normal_rtd->is_access_enabled = false;
+			}
+		}
 		mutex_unlock(&pm_dma->pm_mtx_cnt);
 		break;
 	case PM_POST_SUSPEND:
