@@ -48,6 +48,20 @@ enum wcn_chip_id_type {
 	WCN_CHIP_ID_AD,
 };
 
+enum wcn_clock_type {
+	WCN_CLOCK_TYPE_UNKNOWN,
+	WCN_CLOCK_TYPE_TCXO,
+	WCN_CLOCK_TYPE_TSX,
+};
+
+enum wcn_clock_mode {
+	WCN_CLOCK_MODE_UNKNOWN,
+	WCN_CLOCK_MODE_XO,
+	WCN_CLOCK_MODE_BUFFER,
+};
+
+enum wcn_clock_type wcn_get_xtal_26m_clk_type(void);
+enum wcn_clock_mode wcn_get_xtal_26m_clk_mode(void);
 const char *wcn_get_chip_name(void);
 enum wcn_chip_id_type wcn_get_chip_type(void);
 void marlin_power_off(enum marlin_sub_sys subsys);

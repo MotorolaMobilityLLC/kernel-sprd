@@ -1,6 +1,8 @@
 #ifndef _WCN_BOOT
 #define _WCN_BOOT
 
+#include <misc/marlin_platform.h>
+
 #include "rf/rf.h"
 
 struct wcn_sync_info_t {
@@ -33,7 +35,18 @@ struct wcn_pmic_config {
 	u32 config[WCN_BOUND_CONFIG_NUM];
 };
 
+struct wcn_clock_info {
+	enum wcn_clock_type type;
+	enum wcn_clock_mode mode;
+	/*
+	 * xtal-26m-clk-type-gpio config in the dts.
+	 * if xtal-26m-clk-type config in the dts,this gpio unvalid.
+	 */
+	int gpio;
+};
+
 struct marlin_device {
+	struct wcn_clock_info clk_xtal_26m;
 	int wakeup_ap;
 	int reset;
 	int chip_en;

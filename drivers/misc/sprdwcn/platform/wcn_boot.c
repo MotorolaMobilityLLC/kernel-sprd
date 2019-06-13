@@ -788,6 +788,8 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct regmap *pmu_apb_gpr;
 	int ret;
+	char *buf;
+	struct wcn_clock_info *clk;
 
 	if (!marlin_dev)
 		return -1;
@@ -814,6 +816,26 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	if (!gpio_is_valid(marlin_dev->int_ap)) {
 		WCN_ERR("Get int irq error!\n");
 		return -EINVAL;
+	}
+
+	clk = &marlin_dev->clk_xtal_26m;
+	clk->gpio = of_get_named_gpio(np, "xtal-26m-clk-type-gpio", 0);
+	if (!gpio_is_valid(clk->gpio))
+		WCN_INFO("xtal-26m-clk gpio not config\n");
+
+	/* xtal-26m-clk-type has priority over than xtal-26m-clk-type-gpio */
+	ret = of_property_read_string(np, "xtal-26m-clk-type",
+				      (const char **)&buf);
+	if (!ret) {
+		WCN_INFO("force config xtal 26m clk %s\n", buf);
+		if (!strncmp(buf, "TCXO", 4))
+			clk->type = WCN_CLOCK_TYPE_TCXO;
+		else if (!strncmp(buf, "TSX", 3))
+			clk->type = WCN_CLOCK_TYPE_TSX;
+		else
+			WCN_ERR("force config xtal 26m clk %s err!\n", buf);
+	} else {
+		WCN_INFO("unforce config xtal 26m clk:%d", clk->type);
 	}
 
 	marlin_dev->dvdd12 = devm_regulator_get(&pdev->dev, "dvdd12");
@@ -894,6 +916,12 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		WCN_ERR("gpio_rst request err: %d\n",
 				marlin_dev->int_ap);
 
+	if (gpio_is_valid(clk->gpio)) {
+		ret = gpio_request(clk->gpio, "wcn_xtal_26m_type");
+		if (ret)
+			WCN_ERR("xtal 26m gpio request err: %d\n", ret);
+	}
+
 	WCN_INFO("BTWF_FIRMWARE_PATH len=%ld\n",
 		 (long)strlen(BTWF_FIRMWARE_PATH));
 	ret = of_property_read_string(np, "sprd,btwf-file-name",
@@ -954,6 +982,8 @@ static int marlin_gpio_free(struct platform_device *pdev)
 	gpio_free(marlin_dev->reset);
 	gpio_free(marlin_dev->chip_en);
 	gpio_free(marlin_dev->int_ap);
+	if (!gpio_is_valid(marlin_dev->clk_xtal_26m.gpio))
+		gpio_free(marlin_dev->clk_xtal_26m.gpio);
 
 	return 0;
 }
@@ -1191,6 +1221,19 @@ static int marlin_write_cali_data(void)
 	return ret;
 }
 #endif
+
+enum wcn_clock_type wcn_get_xtal_26m_clk_type(void)
+{
+	return marlin_dev->clk_xtal_26m.type;
+}
+EXPORT_SYMBOL_GPL(wcn_get_xtal_26m_clk_type);
+
+enum wcn_clock_mode wcn_get_xtal_26m_clk_mode(void)
+{
+	return marlin_dev->clk_xtal_26m.mode;
+}
+EXPORT_SYMBOL_GPL(wcn_get_xtal_26m_clk_mode);
+
 #ifndef CONFIG_WCN_PCIE
 static int spi_read_rf_reg(unsigned int addr, unsigned int *data)
 {
@@ -1216,27 +1259,67 @@ static int spi_read_rf_reg(unsigned int addr, unsigned int *data)
 	return 0;
 }
 
-static int check_cp_clock_mode(void)
+static void wcn_check_xtal_26m_clk(void)
 {
 	int ret = 0;
 	unsigned int temp_val;
+	struct wcn_clock_info *clk;
 
-	WCN_INFO("%s\n", __func__);
+	clk = &marlin_dev->clk_xtal_26m;
+	if (likely(clk->type != WCN_CLOCK_TYPE_UNKNOWN) &&
+	    likely(clk->mode != WCN_CLOCK_MODE_UNKNOWN)) {
+		WCN_INFO("xtal 26m clk type:%s mode:%s\n",
+			 (clk->type == WCN_CLOCK_TYPE_TSX) ? "TSX" : "TCXO",
+			 (clk->mode == WCN_CLOCK_MODE_XO) ? "XO" : "BUFFER");
+		return;
+	}
 
 	ret = spi_read_rf_reg(AD_DCXO_BONDING_OPT, &temp_val);
 	if (ret < 0) {
 		WCN_ERR("read AD_DCXO_BONDING_OPT error:%d\n", ret);
-		return ret;
+		return;
 	}
 	WCN_INFO("read AD_DCXO_BONDING_OPT val:0x%x\n", temp_val);
 	if ((temp_val & tsx_mode) == tsx_mode) {
-		WCN_INFO("clock mode: TSX\n");
+		WCN_INFO("xtal_26m clock BUFFER mode\n");
+		clk->mode = WCN_CLOCK_MODE_BUFFER;
+		if (clk->type == WCN_CLOCK_TYPE_UNKNOWN)
+			clk->type = WCN_CLOCK_TYPE_TSX;
 	} else {
-		WCN_INFO("clock mode: TCXO, outside clock\n");
+		WCN_INFO("xtal_26m clock XO mode\n");
+		clk->mode = WCN_CLOCK_MODE_XO;
+		if (clk->type == WCN_CLOCK_TYPE_UNKNOWN) {
+			if (gpio_is_valid(clk->gpio)) {
+				gpio_direction_input(clk->gpio);
+				ret = gpio_get_value(clk->gpio);
+				clk->type = ret ? WCN_CLOCK_TYPE_TSX :
+					    WCN_CLOCK_TYPE_TCXO;
+				WCN_INFO("xtal gpio clk type:%d %d\n",
+					 clk->type, ret);
+			} else {
+				WCN_ERR("xtal_26m clk type erro by gpio!\n");
+			}
+		}
+	}
+}
+
+static int check_cp_clock_mode(void)
+{
+	struct wcn_clock_info *clk;
+
+	WCN_INFO("%s\n", __func__);
+
+	clk = &marlin_dev->clk_xtal_26m;
+	if (clk->mode == WCN_CLOCK_MODE_XO) {
+		WCN_INFO("xtal_26m clock use XO mode\n");
 		marlin_avdd18_dcxo_enable(false);
+		return 0;
+	} else if (clk->mode == WCN_CLOCK_MODE_BUFFER) {
+		WCN_INFO("xtal_26m clock use buffer mode\n");
+		return 0;
 	}
 
-	return ret;
+	return -1;
 }
 #endif
 /* release CPU */
@@ -1684,7 +1767,9 @@ static int chip_power_on(int subsys)
 #ifndef CONFIG_WCN_PCIE
 	mem_pd_poweroff_deinit();
 	sdio_pub_int_poweron(true);
+	wcn_check_xtal_26m_clk();
 #endif
+
 	return 0;
 }
 
