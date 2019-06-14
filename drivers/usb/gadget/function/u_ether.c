@@ -1244,10 +1244,7 @@ static int eth_stop(struct net_device *net)
 		 */
 		in = link->in_ep->desc;
 		out = link->out_ep->desc;
-#ifdef CONFIG_USB_PAM
-		link->in_ep->uether = false;
-		link->out_ep->uether = false;
-#endif
+
 		usb_ep_disable(link->in_ep);
 		usb_ep_disable(link->out_ep);
 		if (netif_carrier_ok(net)) {
@@ -2116,6 +2113,11 @@ struct net_device *gether_connect(struct gether *link)
 		}
 	}
 
+#ifdef CONFIG_USB_PAM
+	link->in_ep->uether = true;
+	link->out_ep->uether = true;
+#endif
+
 	link->in_ep->driver_data = dev;
 	result = usb_ep_enable(link->in_ep);
 	if (result != 0) {
@@ -2269,6 +2271,11 @@ void gether_disconnect(struct gether *link)
 	link->in_ep->linkfifo = false;
 	link->out_ep->linkfifo = false;
 #endif
+#ifdef CONFIG_USB_PAM
+	link->in_ep->uether = false;
+	link->out_ep->uether = false;
+#endif
+
 	/* finish forgetting about this USB link episode */
 	dev->header_len = 0;
 	dev->unwrap = NULL;

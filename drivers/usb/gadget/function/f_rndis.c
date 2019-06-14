@@ -661,10 +661,6 @@ static int rndis_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 				goto fail;
 			}
 		}
-#ifdef CONFIG_USB_PAM
-		rndis->port.in_ep->uether = true;
-		rndis->port.out_ep->uether = true;
-#endif
 
 		/* Avoid ZLPs; they can be troublesome. */
 		rndis->port.is_zlp_ok = false;
