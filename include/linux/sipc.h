@@ -80,6 +80,10 @@ enum {
 	SMSG_CH_DATA7,
 	SMSG_CH_DATA8,
 	SMSG_CH_DATA9,
+	SMSG_CH_DATA10,
+	SMSG_CH_DATA11,
+	SMSG_CH_DATA12,
+	SMSG_CH_DATA13,
 
 	/* general pipe channel,  channel 40~59 */
 	SMSG_CH_PIPE_BASE = 40,
@@ -186,6 +190,12 @@ static const struct sipc_config sipc_cfg[] = {
 	{SMSG_CH_DATA5, "seth5"}, /* chanel 20 */
 	{SMSG_CH_DATA6, "seth6"}, /* chanel 24 */
 	{SMSG_CH_DATA7, "seth7"}, /* chanel 25 */
+	{SMSG_CH_DATA8, "seth8"}, /* chanel 26 */
+	{SMSG_CH_DATA9, "seth9"}, /* chanel 27 */
+	{SMSG_CH_DATA10, "seth10"}, /* chanel 28 */
+	{SMSG_CH_DATA11, "seth11"}, /* chanel 29 */
+	{SMSG_CH_DATA12, "seth12"}, /* chanel 30 */
+	{SMSG_CH_DATA13, "seth13"}, /* chanel 31 */
 	{SMSG_CH_VBC, "audio control"}, /* chanel 10 */
 	{SMSG_CH_PLAYBACK, "audio playback"}, /* chanel 11 */
 	{SMSG_CH_CAPTURE, "audio capture"}, /* chanel 12 */
