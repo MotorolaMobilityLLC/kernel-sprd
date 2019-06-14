@@ -1414,6 +1414,36 @@
 			MASK_PMU_APB_REG_PCIE2_PERST_N_ASSERT
 			0>;
 
+	sprd,pcie-shutdown-syscons =
+		<&pmu_apb_regs 0 5
+			REG_PMU_APB_PCIE_PERST_CTRL_CFG
+			MASK_PMU_APB_REG_PCIE2_PERST_N_ASSERT
+			(0x1 << 1)>,
+		<&anlg_phy_g13_regs 0 0
+			REG_ANLG_PHY_G13_ANALOG_PCIEPLL_H_PCIEPLL_H_CTRL0
+			MASK_ANLG_PHY_G6_ANALOG_PCIEPLL_V_DIFF_OR_SING_SEL
+			0>,
+		<&ipa_ahb_regs 0 0
+			REG_IPA_AHB_IPA_EB
+			MASK_IPA_AHB_PCIE2_EB
+			0>,
+		<&ipa_ahb_regs 0 0
+			REG_IPA_AHB_IPA_EB
+			MASK_IPA_AHB_CM4_EB
+			0>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_ANALOG_PHY_PWRON_CFG
+			MASK_PMU_APB_PCIE2_PWRON_REG
+			0>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_ANALOG_PHY_PD_CFG
+			MASK_PMU_APB_PCIE2_PD_REG
+			(0x1 << 2)>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_PCIEPLL_H_REL_CFG
+			MASK_PMU_APB_PCIEPLL_H_FRC_ON
+			0>;
+
 	sprd,pcie-resume-syscons =
 		<&pmu_apb_regs 0 0
 			REG_PMU_APB_PCIEPLL_H_REL_CFG
