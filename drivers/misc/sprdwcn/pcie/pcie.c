@@ -213,6 +213,7 @@ static int sprd_ep_addr_map(struct wcn_pcie_info *priv)
 	struct inbound_reg *ibreg0;
 	struct outbound_reg *obreg0;
 	struct outbound_reg *obreg1;
+	u32 retries, val;
 
 	if (!pcie_bar_vmem(priv, 4)) {
 		WCN_INFO("get bar4 base err\n");
@@ -231,22 +232,55 @@ static int sprd_ep_addr_map(struct wcn_pcie_info *priv)
 	ibreg0->type    = 0x00000000;
 	ibreg0->limit   = 0x00FFFFFF;
 	ibreg0->en      = REGION_EN | BAR_MATCH_MODE;
+	/*
+	 * Make sure ATU enable takes effect before any subsequent config
+	 * and I/O accesses.
+	 */
+	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
+		val = readl_relaxed((void *)(&ibreg0->en));
+		if (val & PCIE_ATU_ENABLE)
+			return 0;
+		WCN_INFO("%s:ibreg0 retries=%d\n", __func__, retries);
+		mdelay(LINK_WAIT_IATU);
+	}
 
 	obreg0->type    = 0x00000000;
-	obreg0->en      = REGION_EN & ADDR_MATCH_MODE;
 	obreg0->lower_base_addr  = 0x00000000;
 	obreg0->upper_base_addr  = 0x00000080;
 	obreg0->limit   = 0xffffffff;
 	obreg0->lower_target_addr = 0x00000000;
 	obreg0->upper_target_addr = 0x00000000;
+	obreg0->en      = REGION_EN & ADDR_MATCH_MODE;
+	/*
+	 * Make sure ATU enable takes effect before any subsequent config
+	 * and I/O accesses.
+	 */
+	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
+		val = readl_relaxed((void *)(&obreg0->en));
+		if (val & PCIE_ATU_ENABLE)
+			return 0;
+		WCN_INFO("%s:obreg0 retries=%d\n", __func__, retries);
+		mdelay(LINK_WAIT_IATU);
+	}
 
 	obreg1->type    = 0x00000000;
-	obreg1->en      = REGION_EN & ADDR_MATCH_MODE;
 	obreg1->lower_base_addr  = 0x00000000;
 	obreg1->upper_base_addr  = 0x00000081;
 	obreg1->limit   = 0xffffffff;
 	obreg1->lower_target_addr = 0x00000000;
 	obreg1->upper_target_addr = 0x00000001;
+	obreg1->en      = REGION_EN & ADDR_MATCH_MODE;
+	/*
+	 * Make sure ATU enable takes effect before any subsequent config
+	 * and I/O accesses.
+	 */
+	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
+		val = readl_relaxed((void *)(&obreg1->en));
+		if (val & PCIE_ATU_ENABLE)
+			return 0;
+		WCN_INFO("%s:obreg1 retries=%d\n", __func__, retries);
+		mdelay(LINK_WAIT_IATU);
+	}
 
 	return 0;
 }
@@ -694,11 +728,9 @@ static int sprd_ep_resume(struct device *dev)
 	ret = pci_enable_wake(pdev, PCI_D0, 0);
 	WCN_INFO("pci_enable_wake(PCI_D0) ret %d\n", ret);
 
-	usleep_range(50000, 51000);
 	ret = sprd_ep_addr_map(priv);
 	if (ret)
 		return ret;
-	usleep_range(10000, 11000);
 
 	edma_hw_restore();
 
