@@ -15,6 +15,8 @@
 
 #include <dt-bindings/clock/sprd,roc1-clk.h>
 
+#include <linux/regulator/consumer.h>
+
 #include "common.h"
 #include "composite.h"
 #include "div.h"
@@ -748,7 +750,7 @@ static SPRD_DIV_CLK(ipa_mtx_clk, "ipa-mtx-clk", "ipa-core-clk", 0x24,
 static SPRD_DIV_CLK(ipa_apb_clk, "ipa-apb-clk", "ipa-core-clk", 0x28,
 		    8, 2, 0);
 
-static const char * const pcie2_aux_parents[] = { "ext-2m", "rco-2m" };
+static const char * const pcie2_aux_parents[] = { "clk-2m", "rco-2m" };
 static SPRD_MUX_CLK(pcie2_aux_clk, "pcie2-aux-clk", pcie2_aux_parents, 0x2c,
 		     0, 1, ROC1_MUX_FLAG);
 static SPRD_MUX_CLK(pcie3_aux_clk, "pcie3-aux-clk", pcie2_aux_parents, 0x30,
@@ -759,13 +761,13 @@ static SPRD_MUX_CLK(usb_ref_clk, "usb-ref-clk", usb_ref_parents, 0x34,
 		     0, 1, ROC1_MUX_FLAG);
 
 static SPRD_GATE_CLK(usb_pipe, "usb-pipe", "ext-26m", 0x38,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 static SPRD_GATE_CLK(usb_utmi, "usb-utmi", "ext-26m", 0x3c,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 static SPRD_GATE_CLK(pcie2_pipe, "pcie2-pipe", "ext-26m", 0x40,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 static SPRD_GATE_CLK(pcie3_pipe, "pcie3-pipe", "ext-26m", 0x44,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static const char * const ipa_uart_parents[] = { "ext-26m", "twpll-128m" };
 static SPRD_COMP_CLK(ipa_uart_clk, "ipa-uart-clk", ipa_uart_parents, 0x4c,
@@ -2276,6 +2278,8 @@ static int roc1_clk_probe(struct platform_device *pdev)
 	const struct of_device_id *match;
 	const struct sprd_clk_desc *desc;
 	int ret;
+	struct regulator *vpower_supply;
+	struct device_node *node = pdev->dev.of_node;
 
 	match = of_match_node(sprd_roc1_clk_ids, pdev->dev.of_node);
 	if (!match) {
@@ -2284,6 +2288,31 @@ static int roc1_clk_probe(struct platform_device *pdev)
 	}
 
 	desc = match->data;
+
+	if (of_find_property(node, "vpower-supply", NULL)) {
+		vpower_supply = devm_regulator_get(&pdev->dev, "vpower");
+		if (IS_ERR(vpower_supply)) {
+			ret = PTR_ERR(vpower_supply);
+			dev_err(&pdev->dev,
+				"unable to get vpower supply %d\n", ret);
+			return ret;
+		}
+
+		if (regulator_enable(vpower_supply) < 0)
+			dev_err(&pdev->dev, "enable vpower failed\n");
+
+		ret = sprd_clk_regmap_init(pdev, desc);
+		if (!ret)
+			ret = sprd_clk_probe(&pdev->dev, desc->hw_clks);
+
+		if (regulator_disable(vpower_supply) < 0)
+			dev_err(&pdev->dev, "disable vpower failed\n");
+
+		devm_regulator_put(vpower_supply);
+
+		return ret;
+	}
+
 	ret = sprd_clk_regmap_init(pdev, desc);
 	if (ret)
 		return ret;
