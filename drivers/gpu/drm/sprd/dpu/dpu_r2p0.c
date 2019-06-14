@@ -15,6 +15,7 @@
 #include <linux/wait.h>
 #include <linux/workqueue.h>
 #include "sprd_dpu.h"
+#include "sprd_corner.h"
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -256,11 +257,11 @@ static int wb_en;
 static int max_vsync_count;
 static int vsync_count;
 static u32 prev_y2r_coef;
+static bool sprd_corner_support;
+static int sprd_corner_radius;
 //static struct sprd_adf_hwlayer wb_layer;
 //static struct wb_region region[3];
 //static int wb_xfbc_en = 1;
-//static bool sprd_corner_support;
-//static int sprd_corner_radius;
 //module_param(wb_xfbc_en, int, 0644);
 //module_param(max_vsync_count, int, 0644);
 
@@ -278,7 +279,6 @@ static u32 dpu_get_version(struct dpu_context *ctx)
 	return reg->dpu_version;
 }
 
-#if 0
 static int dpu_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
@@ -290,21 +290,26 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 		sprd_corner_support = 1;
 		pr_info("round corner support, radius = %d.\n",
 					sprd_corner_radius);
-	} else
-		return 0;
-
-	if (sprd_corner_support) {
-		sprd_corner_hwlayer_init(ctx->panel->height,
-				ctx->panel->width, sprd_corner_radius);
-
-		/* change id value based on different dpu chip */
-		corner_layer_top.hwlayer_id = 5;
-		corner_layer_bottom.hwlayer_id = 6;
 	}
 
 	return 0;
 }
-#endif
+
+static void dpu_corner_init(struct dpu_context *ctx)
+{
+	static bool corner_is_inited;
+
+	if (!corner_is_inited && sprd_corner_support) {
+		sprd_corner_hwlayer_init(ctx->vm.vactive, ctx->vm.hactive,
+				sprd_corner_radius);
+
+		/* change id value based on different cpu chip */
+		corner_layer_top.index = 5;
+		corner_layer_bottom.index = 6;
+		corner_is_inited = 1;
+	}
+
+}
 
 static void dpu_dump(struct dpu_context *ctx)
 {
@@ -631,6 +636,8 @@ static int dpu_init(struct dpu_context *ctx)
 	dpu_enhance_reload(ctx);
 
 	//dpu_write_back_config(ctx);
+
+	dpu_corner_init(ctx);
 
 	return 0;
 }
@@ -987,6 +994,12 @@ static void dpu_flip(struct dpu_context *ctx,
 	/* start configure dpu layers */
 	for (i = 0; i < count; i++)
 		dpu_layer(ctx, &layers[i]);
+
+	/* special case for round corner */
+	if (sprd_corner_support) {
+		dpu_layer(ctx, &corner_layer_top);
+		dpu_layer(ctx, &corner_layer_bottom);
+	}
 
 	/* update trigger and wait */
 	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
@@ -1507,7 +1520,7 @@ static int dpu_capability(struct dpu_context *ctx,
 }
 
 static struct dpu_core_ops dpu_r2p0_ops = {
-//	.parse_dt = dpu_parse_dt,
+	.parse_dt = dpu_parse_dt,
 	.version = dpu_get_version,
 	.init = dpu_init,
 	.uninit = dpu_uninit,
