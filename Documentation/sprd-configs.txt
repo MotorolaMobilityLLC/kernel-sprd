@@ -8540,7 +8540,7 @@ CONFIG_POWER_RESET
 	[function] Provides a number of drivers which either reset a complete board.
 CONFIG_POWER_RESET_SC27XX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] reset
 	[must] user
@@ -10048,7 +10048,7 @@ CONFIG_SPLIT_PTLOCK_CPUS
 	[function] Set the number of startup ARM cores.
 CONFIG_SPRD_7SRESET
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
