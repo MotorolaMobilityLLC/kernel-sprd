@@ -26,8 +26,9 @@ HOST MODE
    interrupt-map-mask,
    interrupt-map: as specified in ../designware-pcie.txt
 
- - sprd,pcie-startup-syscons: the global registers of pcie when pcie startup.
-			      each group syscon has 6 cells as follows:
+ - sprd,pcie-startup-syscons:
+	The global registers of pcie are used when pcie startup.
+	Each group syscon has 6 cells as follows:
 	- phandle of pcie syscon for used for pcie host controller
 	- the type of syscon:
           0： set/clear, use regmap_update_bits() to operate these registers
@@ -38,17 +39,20 @@ HOST MODE
 	- mask: the mask of the syscon register
 	- value: the value to be set to the syscon register mask
 
- - sprd,pcie-resume-syscons: the global registers of pcie when pcie resume.
-			      This property is the same as
-			      sprd,pcie-startup-syscons.
+ - sprd,pcie-shutdown-syscons:
+	The global registers of pcie are used when pcie shutdown.
+	This property is the same as sprd,pcie-startup-syscons.
+ - sprd,pcie-resume-syscons:
+	The global registers of pcie are used when pcie resume.
+	This property is the same as sprd,pcie-startup-syscons.
 
- - sprd,pcie-suspend-syscons: the global registers of pcie when pcie suspend.
-			      This property is the same as
-			      sprd,pcie-startup-syscons.
+ - sprd,pcie-suspend-syscons:
+	The global registers of pcie are used when pcie suspend.
+	This property is the same as sprd,pcie-startup-syscons.
 
- - sprd,pcie-aspml1p2-syscons: the global registers of pcie when pcie enter ASPM
-			       L1.2. This property is the same as
-			       sprd,pcie-startup-syscons.
+ - sprd,pcie-aspml1p2-syscons:
+	The global registers of pcie are used when pcie enter ASPM L1.2.
+	This property is the same as sprd,pcie-startup-syscons.
 
  - dummy@0 and dummy@1: dummy nodes.
 	   some pcie controllers have two or more interrupt lines. one connect
