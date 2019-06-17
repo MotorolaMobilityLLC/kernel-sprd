@@ -33,6 +33,7 @@
 #include "wcn_misc.h"
 #include "wcn_glb.h"
 #include "wcn_log.h"
+#include "wcn_misc.h"
 #include "wcn_procfs.h"
 #include "wcn_txrx.h"
 #include "mdbg_type.h"
@@ -804,6 +805,30 @@ static ssize_t mdbg_proc_write(struct file *filp,
 			}
 		}
 		return count;
+	}
+#endif
+
+	/*
+	 * One AP Code used for many different CP2.
+	 * But some CP2 already producted, it can't
+	 * change code any more, so use the macro
+	 * to disable SharkLE-Marlin2/SharkL3-Marlin2
+	 * Pike2-Marlin2.
+	 */
+#ifndef CONFIG_SC2342_INTEG
+	/* loopcheck add kernel time ms/1000 */
+	if (strncmp(mdbg_proc->write_buf, "at+loopcheck", 12) == 0) {
+		/* struct timespec now; */
+		unsigned long int ns = local_clock();
+		unsigned long int time = marlin_bootup_time_get();
+		unsigned int ap_t = MARLIN_64B_NS_TO_32B_MS(ns);
+		unsigned int marlin_boot_t = MARLIN_64B_NS_TO_32B_MS(time);
+
+		sprintf(mdbg_proc->write_buf, "at+loopcheck=%u,%u\r",
+			ap_t, marlin_boot_t);
+		/* Be care the count value changed here before send to CP2 */
+		count = strlen(mdbg_proc->write_buf);
+		WCN_INFO("%s, count = %d", mdbg_proc->write_buf, (int)count);
 	}
 #endif
 

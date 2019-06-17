@@ -44,6 +44,7 @@
 #include "wcn_boot.h"
 #include "wcn_dump.h"
 #include "wcn_log.h"
+#include "wcn_misc.h"
 #include "wcn_procfs.h"
 #include "wcn_gnss.h"
 #include "mdbg_type.h"
@@ -1266,6 +1267,8 @@ static int marlin_start_run(void)
 		WCN_ERR("%s write reset reg error:%d\n", __func__, ret);
 		return ret;
 	}
+	/* update the time at once */
+	marlin_bootup_time_update();
 
 	ret = sprdwcn_bus_reg_read(CP_RESET_REG, &ss_val, 4);
 	if (ret < 0) {

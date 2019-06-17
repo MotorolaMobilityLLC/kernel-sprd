@@ -13,8 +13,8 @@ MARLINOFILES += wcn_txrx.o
 MARLINOFILES += wcn_op.o
 ifdef CONFIG_SC2342_INTEG
 MARLINOFILES += rf/rf.o
-MARLINOFILES += wcn_misc.o
 endif
+MARLINOFILES += wcn_misc.o
 MARLINOFILES += wcn_parn_parser.o
 MARLINOFILES += rdc_debug.o
 MARLINOFILES += wcn_log.o
@@ -37,10 +37,10 @@ wcn_platform-c-objs +=  wcn_procfs.o \
 			wcn_txrx.o \
 			rdc_debug.o \
 			wcn_log.o \
+			wcn_misc.o\
 			rf/rf.o \
 			bufring.o
 ifeq ($(CONFIG_SC2342_INTEG),y)
-wcn_platform-c-objs +=  wcn_dump_integrate.o \
-			wcn_misc.o
+wcn_platform-c-objs +=  wcn_dump_integrate.o
 endif
 wcn_platform-objs += $(wcn_platform-c-objs)
