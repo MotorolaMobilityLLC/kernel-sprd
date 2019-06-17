@@ -85,7 +85,7 @@ static void test_vprintk(const struct test *test,
 {
 	test_printk_emit(test,
 			 level[1] - '0',
-			 "test %s: %pV", test->name, vaf);
+			 "kunit %s: %pV", test->name, vaf);
 }
 
 static void test_fail(struct test *test, struct test_stream *stream)
