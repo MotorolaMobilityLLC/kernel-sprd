@@ -1526,6 +1526,7 @@ static ssize_t ts_suspend_show(struct device *dev,
 static ssize_t ts_suspend_store(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count)
 {
+#if 0
 	struct ts_data *pdata = platform_get_drvdata(to_platform_device(dev));
 
 	if ((buf[0] == '1') && !pdata->suspend)
@@ -1533,6 +1534,7 @@ static ssize_t ts_suspend_store(struct device *dev,
 	else if ((buf[0] == '0') && pdata->suspend)
 		ts_resume(to_platform_device(dev));
 
+#endif
 	return count;
 }
 

@@ -637,7 +637,7 @@ int ts_board_init(void)
 		TS_ERR("parsing board info failed!");
 		return -ENODEV;
 	}
-	board->suspend_on_init = true;
+	board->suspend_on_init = false;
 
 	g_board = board;
 	bus_type = ts_bus_init(pn->parent, board->controller == NULL);
