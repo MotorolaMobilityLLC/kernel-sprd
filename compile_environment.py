@@ -32,6 +32,9 @@ dict_project={
 	'ums518_zebu_native-userdebug'		: { 'path' : 'sprd-board-config/sharkl5Pro/ums518_zebu/', },
 	'ums518_haps_bkd_native-userdebug'	: { 'path' : 'sprd-board-config/sharkl5Pro/ums518_haps_bkd/', },
 
+	#roc1-5h10
+	'ud710_5h10_native-userdebug'		: { 'path' : 'sprd-board-config/roc1/ud710_5h10/', },
+
 	#roc1-3h10
 	'ud710_3h10_native-userdebug'		: { 'path' : 'sprd-board-config/roc1/ud710_3h10/', },
 	'ud710_3h10u_native-userdebug'		: { 'path' : 'sprd-board-config/roc1/ud710_3h10u/', },
