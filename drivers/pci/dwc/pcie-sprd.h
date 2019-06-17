@@ -40,6 +40,9 @@ struct sprd_pcie {
 	/* Save sysnopsys-specific PCIe configuration registers  */
 	u32 save_msi_ctrls[MAX_MSI_CTRLS][3];
 
+	/* keep track of pcie rc state */
+	unsigned int is_powered:1;
+
 	size_t label_len; /* pcie controller device length + 10 */
 	char wakeup_label[0];
 };

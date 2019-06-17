@@ -337,6 +337,8 @@ static int sprd_pcie_host_shutdown(struct platform_device *pdev)
 	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
 	struct dw_pcie *pci = sprd_pcie->pci;
 
+	sprd_pcie->is_powered = 0;
+
 	sprd_pcie_save_dwc_reg(pci);
 
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-shutdown-syscons");
@@ -422,6 +424,7 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 					       "sprd,pcie-aspml1p2-syscons");
 		if (ret < 0)
 			dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
+		sprd_pcie->is_powered = 1;
 		break;
 	case DW_PCIE_EP_TYPE:
 		ret = sprd_add_pcie_ep(sprd_pcie, pdev);
@@ -554,6 +557,10 @@ static int sprd_pcie_suspend_noirq(struct device *dev)
 {
 	int ret;
 	struct platform_device *pdev = to_platform_device(dev);
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+
+	if (!ctrl->is_powered)
+		return 0;
 
 	ret = sprd_pcie_host_uninit(pdev);
 	if (ret < 0)
@@ -566,6 +573,10 @@ static int sprd_pcie_resume_noirq(struct device *dev)
 {
 	int ret;
 	struct platform_device *pdev = to_platform_device(dev);
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+
+	if (!ctrl->is_powered)
+		return 0;
 
 	ret = sprd_pcie_host_reinit(pdev);
 	if (ret < 0)
