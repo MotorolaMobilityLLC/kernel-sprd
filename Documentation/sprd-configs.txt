@@ -1423,7 +1423,7 @@ CONFIG_CHARGER_FAN54015
 	[function] This function is used to enable charge
 CONFIG_CHARGER_MANAGER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] power
 	[must] user
@@ -1435,6 +1435,13 @@ CONFIG_CHARGER_SC2703
 	[subsys] power
 	[must] user
 	[function] This function is used to enable charg
+CONFIG_CHARGER_SC2720
+	[arch] arm
+	[plat] pike2
+	[field] make
+	[subsys] power
+	[must] user
+	[function] This function is used to enable charge
 CONFIG_CLEANCACHE
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
@@ -3233,7 +3240,7 @@ CONFIG_EXT4_RESERVE_SPACE_FILTER
 	   feature.
 CONFIG_EXTCON
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -3588,7 +3595,7 @@ CONFIG_FTRACE_SYSCALLS
 	[function] Trace syscalls.
 CONFIG_FUEL_GAUGE_SC27XX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
