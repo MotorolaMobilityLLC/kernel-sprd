@@ -499,6 +499,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 static void musb_sprd_detect_cable(struct sprd_glue *glue)
 {
 	unsigned long flags;
+	struct extcon_dev *id_ext = glue->id_edev ? glue->id_edev : glue->edev;
 
 	spin_lock_irqsave(&glue->lock, flags);
 	if (extcon_get_state(glue->edev, EXTCON_USB) == true) {
@@ -512,7 +513,7 @@ static void musb_sprd_detect_cable(struct sprd_glue *glue)
 		glue->vbus_active = 1;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
-	} else if (extcon_get_state(glue->edev, EXTCON_USB_HOST) == true) {
+	} else if (extcon_get_state(id_ext, EXTCON_USB_HOST) == true) {
 		if (glue->vbus_active == 1) {
 			spin_unlock_irqrestore(&glue->lock, flags);
 			dev_info(glue->dev,
