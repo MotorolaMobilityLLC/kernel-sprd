@@ -276,3 +276,12 @@
 	clock-names = "clk_ap_ahb_dsi_eb";
 	clocks = <&apahb_gate CLK_DSI_EB>;
 };
+
+&gpu {
+	clocks = <&aon_apb_regs CLK_GPU_EB>,
+		   <&gpu_clk CLK_GPU>,
+		   <&pll CLK_TWPLL_153M6>, <&pll CLK_TWPLL_192M>,
+		   <&pll CLK_TWPLL_256M>, <&pll CLK_TWPLL_307M2>,
+		   <&pll CLK_TWPLL_384M>, <&pll CLK_TWPLL_512M>,
+		   <&pll CLK_GPLL>;
+};

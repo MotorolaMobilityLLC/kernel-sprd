@@ -213,3 +213,11 @@
 	clocks = <&apapb_gate CLK_I2C4_EB>,
 	<&ap_clk CLK_I2C4>, <&ext_26m>;
 };
+
+&gpu {
+	clocks = <&aon_apb_regs CLK_GPU_EB>,
+		<&gpu_clk CLK_GPU>,
+		<&pll CLK_TWPLL_256M>, <&pll CLK_TWPLL_307M2>,
+		<&pll CLK_TWPLL_384M>, <&pll CLK_TWPLL_512M>,
+		<&pll CLK_GPLL>;
+};

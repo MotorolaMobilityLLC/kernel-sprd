@@ -6,6 +6,8 @@
  * This file is licensed under a dual GPLv2 or X11 license.
  */
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/soc/sprd,sharkle-regs.h>
+#include <dt-bindings/soc/sprd,sharkle-mask.h>
 / {
 	interrupt-parent = <&gic>;
 	#address-cells = <1>;
@@ -384,6 +386,56 @@
 				hwlocks = <&hwlock 0>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+			};
+		};
+
+		mm {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			gpu: gpu@60000000 {
+				compatible = "sprd,mali-midgard";
+				reg = <0x60000000 0x4000>;
+				gpu-supply = <&vddcore>;
+				syscons = <&pmu_apb_regs
+					REG_PMU_APB_PD_GPU_TOP_CFG
+					MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>;
+				syscon-names = "top_force_shutdown";
+
+				interrupts = <GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "JOB",
+					"MMU",
+					"GPU";
+
+				operating-points = <
+					/* kHz    uV */
+					256000    900000
+					384000    900000
+					512000    900000
+					600000    900000
+					680000    900000
+					>;
+
+				sprd,dfs-lists = <
+					/* kHz  uV      idx div */
+					256000  900000   2    1
+					384000  900000   4    1
+					512000  900000   5    1
+					600000  900000   6    1
+					680000  900000   6    1
+					>;
+
+				sprd,dfs-default = <1>;
+				sprd,dfs-scene-extreme = <3>;
+				sprd,dfs-scene-high = <2>;
+				sprd,dfs-scene-medium = <1>;
+				sprd,dfs-scene-low = <0>;
+				sprd,dfs-range-max = <3>;
+				sprd,dfs-range-min = <0>;
 			};
 		};
 	};
