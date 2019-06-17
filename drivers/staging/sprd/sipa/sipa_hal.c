@@ -11,6 +11,7 @@
 #include <linux/of_reserved_mem.h>
 #include <linux/dma-mapping.h>
 #include <linux/regulator/consumer.h>
+#include <linux/delay.h>
 
 #ifdef CONFIG_SIPA_TEST
 #include <linux/kthread.h>
@@ -930,6 +931,12 @@ int sipa_swap_hash_table(struct sipa_hash_table *new_tbl,
 		hal_cfg->glb_ops.hash_table_switch(
 			hal_cfg->phy_virt_res.glb_base,
 			addrl, addrh, new_tbl->depth);
+		/*
+		 * Because return done does not mean that the hash table is
+		 * actually written to ddr, so add delay ensure that IPA gets
+		 * the latest hash table.
+		 */
+		udelay(500);
 	}
 
 	return 0;
