@@ -77,6 +77,7 @@ struct mbox_operations_tag {
 	void (*process_bak_msg)(void);
 	u32 (*phy_core_fifo_full)(int);
 	void (*phy_just_sent)(u8, u64);
+	bool (*outbox_has_irq)(void);
 };
 
 struct mbox_device_tag {

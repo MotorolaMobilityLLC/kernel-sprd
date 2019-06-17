@@ -779,6 +779,16 @@ static void mbox_phy_just_sent(u8 core_id, u64 msg)
 	g_send_cnt[core_id]++;
 }
 
+static bool mbox_phy_outbox_has_irq(void)
+{
+	u32 irq_sts;
+
+	irq_sts = readl_relaxed(
+		(void __iomem *)(sprd_outbox_base + MBOX_IRQ_STS));
+
+	return (irq_sts & MBOX_IRQ_OUTBOX_CLR_BIT);
+}
+
 static void mbox_cfg_printk(void)
 {
 	pr_debug("mbox:inbox_base = 0x%x, outbox_base = 0x%x\n",
@@ -1043,6 +1053,7 @@ static const struct mbox_operations_tag mbox_r2p0_operation = {
 	.process_bak_msg = mailbox_process_bak_msg,
 	.phy_core_fifo_full = mbox_phy_core_fifo_full,
 	.phy_just_sent = mbox_phy_just_sent,
+	.outbox_has_irq = mbox_phy_outbox_has_irq
 };
 
 static struct mbox_device_tag mbox_r2p0_device = {

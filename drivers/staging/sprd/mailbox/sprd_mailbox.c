@@ -11,6 +11,7 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/cpu_pm.h>
 #include <linux/debugfs.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -320,6 +321,19 @@ static int mbox_parse_dts(void)
 	return 0;
 }
 
+static int mbox_pm_notifier(struct notifier_block *self,
+			    unsigned long cmd, void *v)
+{
+	if (cmd == CPU_CLUSTER_PM_EXIT && mbox_ops->fops->outbox_has_irq())
+		sipc_set_wakeup_flag();
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block mbox_pm_notifier_block = {
+	.notifier_call = mbox_pm_notifier,
+};
+
 static int __init mbox_init(void)
 {
 	int ret;
@@ -338,6 +352,10 @@ static int __init mbox_init(void)
 	if (ret != 0) {
 		return -EINVAL;
 	}
+
+	ret = cpu_pm_register_notifier(&mbox_pm_notifier_block);
+	if (ret)
+		return ret;
 
 	init_waitqueue_head(&g_send_wait);
 	g_send_thread = kthread_create(mbox_send_thread,
