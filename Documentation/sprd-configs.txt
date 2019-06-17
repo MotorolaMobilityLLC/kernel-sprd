@@ -10497,7 +10497,7 @@ CONFIG_SPRD_PIKE2_USB2_PHY
 	[function]
 CONFIG_SPRD_PMIC_SYSCON
 	[arch] all
-	[plat] pike2,roc1,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] soc
 	[must] debug
