@@ -1915,6 +1915,13 @@ CONFIG_CRYPTO_ACOMP2
 	[subsys]
 	[must]
 	[function]
+CONFIG_CRYPTO_ADIANTUM
+	[arch] arm
+	[plat] pike2
+	[field]make
+	[subsys]crypto
+	[must]user
+	[function]support google adiantum algrothsm
 CONFIG_CRYPTO_AEAD
 	[arch] all
 	[plat] all
@@ -2062,6 +2069,20 @@ CONFIG_CRYPTO_CBC
 	[subsys] security
 	[must] user
 	[function] CBC support.
+CONFIG_CRYPTO_CHACHA20
+	[arch] arm
+	[plat] pike2
+	[field]make
+	[subsys]crypto
+	[must]user
+	[function]ChaCha stream cipher algorithms
+CONFIG_CRYPTO_CHACHA20_NEON
+	[arch] arm
+	[plat] pike2
+	[field]make
+	[subsys]crypsto
+	[must]user
+	[function]NEON accelerated ChaCha stream cipher algorithms
 CONFIG_CRYPTO_CMAC
 	[arch] all
 	[plat] all
@@ -2302,6 +2323,20 @@ CONFIG_CRYPTO_MD5
 	[subsys] security
 	[must] user
 	[function]  MD5 digest algorithm.
+CONFIG_CRYPTO_NHPOLY1305
+	[arch] arm
+	[plat] pike2
+	[field]make
+	[subsys]crypto
+	[must]user
+	[function]support CRYPTO_NHPOLY1305
+CONFIG_CRYPTO_NHPOLY1305_NEON
+	[arch] arm
+	[plat] pike2
+	[field]make
+	[subsys]crypto
+	[must]user
+	[function]NEON accelerated NHPoly1305 hash function (for Adiantum)
 CONFIG_CRYPTO_NULL
 	[arch] all
 	[plat] all
@@ -2316,6 +2351,13 @@ CONFIG_CRYPTO_NULL2
 	[subsys] security
 	[must] user
 	[function] Selected by other configs.
+CONFIG_CRYPTO_POLY1305
+	[arch] arm
+	[plat] pike2
+	[field]make
+	[subsys]crypto
+	[must]user
+	[function]Poly1305 authenticator algorithm
 CONFIG_CRYPTO_RNG
 	[arch] all
 	[plat] all
