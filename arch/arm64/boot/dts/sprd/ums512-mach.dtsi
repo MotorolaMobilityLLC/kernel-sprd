@@ -97,13 +97,13 @@
 	};
 
 	thm_zone: thermal-zones {
-		prometheus6_thmzone0: prometheus6-thmzone0 {
+		prometheus6_tzone0: prometheus6-tzone0 {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&ap_thm0 0>;
 		};
 
-		prometheus6_thmzone1: prometheus6-thmzone1 {
+		prometheus6_tzone1: prometheus6-tzone1 {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&ap_thm0 1>;
