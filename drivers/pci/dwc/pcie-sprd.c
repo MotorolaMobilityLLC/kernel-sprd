@@ -76,7 +76,6 @@ static void sprd_pcie_assert_reset(struct pcie_port *pp)
 
 static int sprd_pcie_host_init(struct pcie_port *pp)
 {
-	int ret;
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 
 	sprd_pcie_assert_reset(pp);
@@ -86,8 +85,7 @@ static int sprd_pcie_host_init(struct pcie_port *pp)
 	if (IS_ENABLED(CONFIG_PCI_MSI))
 		dw_pcie_msi_init(pp);
 
-	ret = dw_pcie_wait_for_link(pci);
-	if (ret)
+	if (dw_pcie_wait_for_link(pci))
 		dev_warn(pci->dev,
 			 "pcie ep may has not been powered yet, ignore it\n");
 
@@ -127,14 +125,14 @@ static struct dw_pcie_ep_ops pcie_ep_ops = {
 	.raise_irq = sprd_pcie_ep_raise_irq,
 };
 
-static int sprd_add_pcie_ep(struct sprd_pcie *sprd_pcie,
+static int sprd_add_pcie_ep(struct sprd_pcie *ctrl,
 			    struct platform_device *pdev)
 {
 	int ret;
 	struct dw_pcie_ep *ep;
 	struct resource *res;
 	struct device *dev = &pdev->dev;
-	struct dw_pcie *pci = sprd_pcie->pci;
+	struct dw_pcie *pci = ctrl->pci;
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dbi");
 	pci->dbi_base = devm_ioremap(dev, res->start, resource_size(res));
@@ -175,8 +173,8 @@ static int sprd_add_pcie_ep(struct sprd_pcie *sprd_pcie,
  */
 static irqreturn_t sprd_pcie_wakeup_irq(int irq, void *data)
 {
-	struct sprd_pcie *sprd_pcie = data;
-	int value = gpiod_get_value(sprd_pcie->gpiod_wakeup);
+	struct sprd_pcie *ctrl = data;
+	int value = gpiod_get_value(ctrl->gpiod_wakeup);
 	u32 irq_flags = irq_get_trigger_type(irq);
 
 	if (!value) {
@@ -194,7 +192,7 @@ static irqreturn_t sprd_pcie_wakeup_irq(int irq, void *data)
 
 static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 {
-	struct sprd_pcie *sprd_pcie;
+	struct sprd_pcie *ctrl;
 	struct pcie_port *pp;
 	struct device *dev = &pdev->dev;
 	struct fwnode_handle *child;
@@ -213,16 +211,16 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 	dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
 			   LTSSM_EN | L1_AUXCLK_EN);
 
-	sprd_pcie = platform_get_drvdata(to_platform_device(pci->dev));
+	ctrl = platform_get_drvdata(to_platform_device(pci->dev));
 
 	device_for_each_child_node(dev, child) {
 		if (fwnode_property_read_string(child, "label",
-						&sprd_pcie->label)) {
+						&ctrl->label)) {
 			dev_err(dev, "without interrupt property\n");
 			fwnode_handle_put(child);
 			return -EINVAL;
 		}
-		if (!strcmp(sprd_pcie->label, "parent_gic_intc")) {
+		if (!strcmp(ctrl->label, "parent_gic_intc")) {
 			irq = irq_of_parse_and_map(to_of_node(child), 0);
 			if (irq < 0) {
 				dev_err(dev, "cannot get msi irq\n");
@@ -241,36 +239,36 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 		}
 
 #ifdef CONFIG_SPRD_IPA_INTC
-		if (!strcmp(sprd_pcie->label, "parent_ipa_intc")) {
+		if (!strcmp(ctrl->label, "parent_ipa_intc")) {
 			irq = irq_of_parse_and_map(to_of_node(child), 0);
 			if (irq < 0) {
 				dev_err(dev, "cannot get legacy irq\n");
 				return irq;
 			}
-			sprd_pcie->interrupt_line = irq;
+			ctrl->interrupt_line = irq;
 		}
 #endif
 	}
 
-	sprd_pcie->gpiod_wakeup =
+	ctrl->gpiod_wakeup =
 		devm_gpiod_get_index(dev, "pcie-wakeup", 0, GPIOD_IN);
-	if (IS_ERR(sprd_pcie->gpiod_wakeup)) {
+	if (IS_ERR(ctrl->gpiod_wakeup)) {
 		dev_warn(dev, "Please set pcie-wakeup gpio in DTS\n");
 		goto no_wakeup;
 	}
 
-	sprd_pcie->wakeup_irq = gpiod_to_irq(sprd_pcie->gpiod_wakeup);
-	if (sprd_pcie->wakeup_irq < 0) {
+	ctrl->wakeup_irq = gpiod_to_irq(ctrl->gpiod_wakeup);
+	if (ctrl->wakeup_irq < 0) {
 		dev_warn(dev, "cannot get wakeup irq\n");
 		goto no_wakeup;
 	}
 
-	snprintf(sprd_pcie->wakeup_label, sprd_pcie->label_len,
+	snprintf(ctrl->wakeup_label, ctrl->label_len,
 		 "%s wakeup", dev_name(dev));
-	ret = devm_request_threaded_irq(dev, sprd_pcie->wakeup_irq,
+	ret = devm_request_threaded_irq(dev, ctrl->wakeup_irq,
 					sprd_pcie_wakeup_irq, NULL,
 					IRQF_TRIGGER_LOW,
-					sprd_pcie->wakeup_label, sprd_pcie);
+					ctrl->wakeup_label, ctrl);
 	if (ret < 0)
 		dev_warn(dev, "cannot request wakeup irq\n");
 
@@ -313,8 +311,8 @@ static void sprd_pcie_stop_link(struct dw_pcie *pci)
 static int sprd_pcie_host_uninit(struct platform_device *pdev)
 {
 	int ret;
-	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
-	struct dw_pcie *pci = sprd_pcie->pci;
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = ctrl->pci;
 
 	sprd_pcie_save_dwc_reg(pci);
 
@@ -334,10 +332,10 @@ static int sprd_pcie_host_uninit(struct platform_device *pdev)
 static int sprd_pcie_host_shutdown(struct platform_device *pdev)
 {
 	int ret;
-	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
-	struct dw_pcie *pci = sprd_pcie->pci;
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = ctrl->pci;
 
-	sprd_pcie->is_powered = 0;
+	ctrl->is_powered = 0;
 
 	sprd_pcie_save_dwc_reg(pci);
 
@@ -358,7 +356,7 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct dw_pcie *pci;
-	struct sprd_pcie *sprd_pcie;
+	struct sprd_pcie *ctrl;
 	int ret;
 	size_t len = strlen(dev_name(dev)) + 10;
 	const struct sprd_pcie_of_data *data;
@@ -398,8 +396,8 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	sprd_pcie = devm_kzalloc(dev, sizeof(*sprd_pcie) + len, GFP_KERNEL);
-	if (!sprd_pcie)
+	ctrl = devm_kzalloc(dev, sizeof(*ctrl) + len, GFP_KERNEL);
+	if (!ctrl)
 		return -ENOMEM;
 
 	pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
@@ -408,10 +406,10 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 
 	pci->dev = dev;
 	pci->ops = &dw_pcie_ops;
-	sprd_pcie->pci = pci;
-	sprd_pcie->label_len = len;
+	ctrl->pci = pci;
+	ctrl->label_len = len;
 
-	platform_set_drvdata(pdev, sprd_pcie);
+	platform_set_drvdata(pdev, ctrl);
 
 	switch (mode) {
 	case DW_PCIE_RC_TYPE:
@@ -424,10 +422,10 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 					       "sprd,pcie-aspml1p2-syscons");
 		if (ret < 0)
 			dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
-		sprd_pcie->is_powered = 1;
+		ctrl->is_powered = 1;
 		break;
 	case DW_PCIE_EP_TYPE:
-		ret = sprd_add_pcie_ep(sprd_pcie, pdev);
+		ret = sprd_add_pcie_ep(ctrl, pdev);
 		if (ret) {
 			dev_err(dev, "cannot initialize ep host\n");
 			return ret;
@@ -450,8 +448,8 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 static int sprd_pcie_host_reinit(struct platform_device *pdev)
 {
 	int ret;
-	struct sprd_pcie *sprd_pcie = platform_get_drvdata(pdev);
-	struct dw_pcie *pci = sprd_pcie->pci;
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = ctrl->pci;
 	struct pcie_port *pp = &pci->pp;
 
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-resume-syscons");

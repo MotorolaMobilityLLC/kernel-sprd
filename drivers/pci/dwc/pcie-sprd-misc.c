@@ -35,7 +35,7 @@ int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 
 	if (!of_find_property(np, env, NULL)) {
 		dev_info(&pdev->dev,
-			 "it's not a real SoC, please ignore pcie syscons\n");
+			 "there isn't property %s in dts\n", env);
 		return 0;
 	}
 
