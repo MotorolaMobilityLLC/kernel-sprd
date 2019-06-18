@@ -8575,21 +8575,21 @@ CONFIG_PM_DEVFREQ
 	[function] Generic Dynamic Voltage and Frequency Scaling (DVFS) support
 CONFIG_PM_GENERIC_DOMAINS
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5_32
 	[field] make,code
 	[subsys] device power
 	[must] user
 	[function] common driver of device power domain
 CONFIG_PM_GENERIC_DOMAINS_OF
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5_32
 	[field] code
 	[subsys] device power
 	[must] user
 	[function] Device Tree based PM domain
 CONFIG_PM_GENERIC_DOMAINS_SLEEP
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5_32
 	[field] code
 	[subsys] power
 	[must] user
@@ -10284,6 +10284,13 @@ CONFIG_SPRD_CACHE_EFUSE
 	[subsys] nvmem
 	[must] home
 	[function] get sprdtrum soc series efuse value using pre-reading mechanism
+CONFIG_SPRD_CAM_PW_DOMAIN_R4P0
+	[arch] arm
+	[plat] pike2
+	[field] make,code
+	[subsys] camera
+	[must] user
+	[function] Camera and vsp power domain
 CONFIG_SPRD_CAM_PW_DOMAIN_R5P0
 	[arch] all
 	[plat] sharkl3,sharkl3_32
