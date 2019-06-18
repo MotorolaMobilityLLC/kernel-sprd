@@ -64,7 +64,7 @@
 
 			vddcore: DCDC_CORE {
 				regulator-name = "vddcore";
-				regulator-min-microvolt = <0>;
+				regulator-min-microvolt = <200000>;
 				regulator-max-microvolt = <1596875>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
