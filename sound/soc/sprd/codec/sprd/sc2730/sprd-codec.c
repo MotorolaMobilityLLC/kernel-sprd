@@ -168,6 +168,7 @@ static int sprd_codec_spk_pga_get(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol);
 static int sprd_codec_spk_pga_put(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol);
+static void sprd_codec_sdm_init(struct snd_soc_codec *codec);
 
 static int sprd_codec_get_ctrl(struct snd_soc_codec *codec, char *name);
 static void sprd_codec_psg_state_init(struct snd_soc_codec *codec);
@@ -743,6 +744,7 @@ static void sprd_das_dc_os_set(struct snd_soc_codec *codec)
 {
 	int mask, val;
 
+	sprd_codec_sdm_init(codec);
 	mask = DAS_OS(0xFFFF);
 	val = DAS_OS(1);
 	snd_soc_update_bits(codec, SOC_REG(ANA_CDC6), mask, val);
@@ -1157,6 +1159,7 @@ static int dalr_dc_os_event(struct snd_soc_dapm_widget *w,
 	sp_asoc_pr_dbg("%s Event is %s\n", __func__, get_event_name(event));
 
 	if (on) {
+		sprd_codec_sdm_init(codec);
 		sprd_dalr_dc_os_set(codec);
 
 		snd_soc_update_bits(codec, SOC_REG(ANA_CDC5),
