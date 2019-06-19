@@ -314,7 +314,7 @@ static int get_charger_current(struct charger_manager *cm, int *cur)
 {
 	union power_supply_propval val;
 	struct power_supply *psy;
-	int i, ret;
+	int i, ret = -ENODEV;
 
 	/* If at least one of them has one, it's yes. */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
@@ -350,7 +350,7 @@ static int get_charger_limit_current(struct charger_manager *cm, int *cur)
 {
 	union power_supply_propval val;
 	struct power_supply *psy;
-	int i, ret;
+	int i, ret = -ENODEV;
 
 	/* If at least one of them has one, it's yes. */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
