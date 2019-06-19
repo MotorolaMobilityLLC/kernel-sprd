@@ -153,6 +153,7 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 
 	return nic_id;
 }
+EXPORT_SYMBOL(sipa_nic_open);
 
 void sipa_nic_close(enum sipa_nic_id nic_id)
 {
@@ -173,6 +174,7 @@ void sipa_nic_close(enum sipa_nic_id nic_id)
 	sender = s_sipa_ctrl.sender[s_spia_nic_statics[nic_id].pkt_type];
 	sipa_skb_sender_remove_nic(sender, nic);
 }
+EXPORT_SYMBOL(sipa_nic_close);
 
 void sipa_nic_notify_evt(struct sipa_nic *nic, enum sipa_evt_type evt)
 {
