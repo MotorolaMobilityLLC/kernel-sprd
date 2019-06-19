@@ -208,7 +208,8 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		if ((vsp_hw_dev.version == SHARKL3
 			|| vsp_hw_dev.version == SHARKL5
-			|| vsp_hw_dev.version == ROC1)
+			|| vsp_hw_dev.version == ROC1
+			|| vsp_hw_dev.version == SHARKL5Pro)
 			&& vsp_hw_dev.iommu_exist_flag)
 			sprd_iommu_restore(vsp_hw_dev.vsp_dev);
 
@@ -367,10 +368,17 @@ static const struct sprd_vsp_cfg_data roc1_vsp_data = {
 	.qos_reg_offset = 0x1fc,
 };
 
+static const struct sprd_vsp_cfg_data sharkl5pro_vsp_data = {
+	.version = SHARKL5Pro,
+	.max_freq_level = 3,
+	.qos_reg_offset = 0x1fc,
+};
+
 static const struct of_device_id of_match_table_vsp[] = {
 	{.compatible = "sprd,sharkl3-vsp", .data = &sharkl3_vsp_data},
 	{.compatible = "sprd,sharkl5-vsp", .data = &sharkl5_vsp_data},
 	{.compatible = "sprd,roc1-vsp", .data = &roc1_vsp_data},
+	{.compatible = "sprd,sharkl5pro-vsp", .data = &sharkl5pro_vsp_data},
 	{},
 };
 

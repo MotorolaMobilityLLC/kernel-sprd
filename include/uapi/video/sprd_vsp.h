@@ -89,6 +89,7 @@ typedef enum {
 	SHARKL3 = 16,
 	SHARKL5 = 17,
 	ROC1 = 18,
+	SHARKL5Pro  = 19,
 	MAX_VERSIONS,
 } VSP_VERSION_E;
 
