@@ -66,7 +66,7 @@ static ssize_t top_cur_volt_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct apsys_dev *apsys = to_apsys(dev);
-	int ret, cur_volt;
+	int ret, cur_volt = 3;
 
 	if (apsys->dvfs_ops && apsys->dvfs_ops->top_cur_volt)
 		cur_volt = apsys->dvfs_ops->top_cur_volt();
