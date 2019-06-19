@@ -211,12 +211,6 @@ int mchn_push_link(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 	int ret = -1;
 	struct mchn_info_t *mchn = mchn_info();
 
-	if (wcn_pcie_get_bus_status() == WCN_BUS_DOWN) {
-		WCN_ERR("%s: chn=%d, WCN_BUS_DOWN, direct return\n",
-				__func__, chn);
-		return ret;
-	}
-
 	if ((chn >= 16) || (mchn->ops[chn] == NULL) || (head == NULL) ||
 	    (tail == NULL) || (num > mchn->ops[chn]->pool_size)) {
 		WCN_ERR("%s: chn=%d, num=%d, pool_num=%d,head=%p, tail=%p\n",

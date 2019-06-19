@@ -35,6 +35,7 @@ int mdbg_log_read(int channel, struct mbuf_t *head,
 static struct ring_device *ring_dev;
 static unsigned long long rx_count;
 static unsigned long long rx_count_last;
+static atomic_t ring_reg_flag;
 
 #ifdef CONFIG_WCN_PCIE
 static struct mchn_ops_t mdbg_ringc_ops = {
@@ -241,6 +242,11 @@ int mdbg_log_cb(int channel, struct mbuf_t *head, struct mbuf_t *tail, int num)
 	WCN_INFO("%s:seq=0x%x, num=%d\n", __func__,
 		 *((u32 *)(head->buf + 12)), num);
 
+	if ((atomic_read(&ring_reg_flag)) == 0) {
+		WCN_INFO("mdbg ring has do unreg, so discard it\n");
+		return 0;
+	}
+
 	for (i = 0, mbuf_node = head; i < num; i++, mbuf_node = mbuf_node->next)
 		mdbg_ring_write(ring_dev->ring, mbuf_node->buf, mbuf_node->len);
 
@@ -344,6 +350,7 @@ int prepare_free_buf_for_log(int chn, int size, int num)
 void mdbg_pt_ring_reg(void)
 {
 	WCN_INFO("%s\n", __func__);
+	atomic_set(&ring_reg_flag, 0x1);
 	sprdwcn_bus_chn_init(&mdbg_ringc_ops);
 #ifdef CONFIG_WCN_PCIE
 	prepare_free_buf_for_log(15, LOG_BUF_SIZE, LOG_BUF_NUM);
@@ -357,6 +364,7 @@ void mdbg_pt_ring_unreg(void)
 #endif
 
 	WCN_INFO("%s\n", __func__);
+	atomic_set(&ring_reg_flag, 0x0);
 	sprdwcn_bus_chn_deinit(&mdbg_ringc_ops);
 #ifdef CONFIG_WCN_PCIE
 	for (i = 0; i < LOG_BUF_NUM; i++)
