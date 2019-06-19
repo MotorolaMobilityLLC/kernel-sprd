@@ -90,6 +90,7 @@
 				regulator-min-microvolt = <1400000>;
 				regulator-max-microvolt = <2187500>;
 				regulator-ramp-delay = <25000>;
+				regulator-always-on;
 			};
 
 			vddcamio: LDO_VDDCAMIO {
@@ -104,6 +105,7 @@
 				regulator-min-microvolt = <1400000>;
 				regulator-max-microvolt = <2187500>;
 				regulator-ramp-delay = <25000>;
+				regulator-always-on;
 			};
 
 			vddrf18b: LDO_VDDRF18B {
@@ -111,6 +113,7 @@
 				regulator-min-microvolt = <1400000>;
 				regulator-max-microvolt = <2187500>;
 				regulator-ramp-delay = <25000>;
+				regulator-always-on;
 			};
 
 			vddcamd: LDO_VDDCAMD {
@@ -132,6 +135,7 @@
 				regulator-min-microvolt = <800000>;
 				regulator-max-microvolt = <1587500>;
 				regulator-ramp-delay = <25000>;
+				regulator-always-on;
 			};
 
 			vddsim0: LDO_VDDSIM0 {
@@ -195,6 +199,7 @@
 				regulator-min-microvolt = <1612500>;
 				regulator-max-microvolt = <3200000>;
 				regulator-ramp-delay = <25000>;
+				regulator-always-on;
 			};
 
 			vddwifipa: LDO_VDDWIFIPA {
@@ -209,6 +214,7 @@
 				regulator-min-microvolt = <1500000>;
 				regulator-max-microvolt = <3087500>;
 				regulator-ramp-delay = <25000>;
+				regulator-always-on;
 			};
 
 			vddusb33: LDO_VDDUSB33 {
