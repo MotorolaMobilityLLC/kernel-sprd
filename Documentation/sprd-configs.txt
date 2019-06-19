@@ -12371,7 +12371,7 @@ CONFIG_XFRM_ALGO
 	[function] support for xfrm algorithum
 CONFIG_XFRM_FRAGMENT
 	[arch] all
-	[plat] pike2,sharkl5,sharkle32
+	[plat] pike2,sharkl3,sharkl5,sharkle32
 	[field] menu
 	[subsys] net
 	[must] user
