@@ -70,8 +70,7 @@ struct dpu_reg {
 	u32 wb_ctrl;
 	u32 wb_cfg;
 	u32 wb_pitch;
-	struct wb_region_reg region[3];
-	u32 reserved_0x01D8_0x01DC[2];
+	u32 reserved_0x01C0_0x01DC[8];
 	u32 dpu_int_en;
 	u32 dpu_int_clr;
 	u32 dpu_int_sts;
@@ -172,47 +171,13 @@ struct dpu_reg {
 	u32 cabc_hist30;
 	u32 cabc_hist31;
 	u32 reserved_0x047C_0x04FC[32];
-	u32 top_corner_config0;
-	u32 top_corner_config1;
-	u32 bot_corner_config0;
-	u32 bot_corner_config1;
-	u32 notch_lut_addr;
-	u32 notch_lut_wdata;
-	u32 notch_lut_rdata;
-	u32 reserved_0x051C_0x7FC[185];
-	u32 mmu_version;
-	u32 mmu_en;
-	u32 mmu_update;
-	u32 mmu_reg_au_manage;
-	u32 mmu_pt_addr;
-	u32 mmu_default_page_rd;
-	u32 mmu_default_page_wd;
-	u32 mmu_min_vpn;
-	u32 mmu_vpn_range;
-	u32 mmu_min_ppn1;
-	u32 mmu_ppn_range1;
-	u32 mmu_min_ppn2;
-	u32 mmu_ppn_range2;
-	u32 mmu_min_ppn3;
-	u32 mmu_ppn_range3;
-	u32 mmu_min_ppn4;
-	u32 mmu_ppn_range4;
-	u32 mmu_vpn_paor_rd;
-	u32 mmu_vpn_paor_wr;
-	u32 mmu_ppn_paor_rd;
-	u32 mmu_ppn_paor_wr;
-	u32 mmu_or_addr_rd;
-	u32 mmu_or_addr_wr;
-	u32 mmu_inv_addr_rd;
-	u32 mmu_inv_addr_wr;
-	u32 mmu_uns_addr_rd;
-	u32 mmu_uns_addr_wr;
-	u32 mmu_page_rd_ch;
-	u32 mmu_page_wr_ch;
-	u32 mmu_debug_user;
-	u32 mmu_miss_cnt;
-	u32 mmu_read_page_latency_cnt;
-	u32 mmu_page_max_latency;
+	u32 corner_config;
+	u32 top_corner_lut_addr;
+	u32 top_corner_lut_wdata;
+	u32 top_corner_lut_rdata;
+	u32 bot_corner_lut_addr;
+	u32 bot_corner_lut_wdata;
+	u32 bot_corner_lut_rdata;
 };
 
 struct wb_region {
@@ -298,6 +263,13 @@ struct slp_cfg {
 	u8 first_max_bright_th;
 };
 
+struct dpu_cfg1 {
+	u8 arqos_low;
+	u8 arqos_high;
+	u8 awqos_low;
+	u8 awqos_high;
+};
+
 static struct epf_cfg epf = {
 	.epsilon0 = 30,
 	.epsilon1 = 1000,
@@ -312,6 +284,14 @@ static struct epf_cfg epf = {
 	.max_diff = 80,
 	.min_diff = 40,
 };
+
+static struct dpu_cfg1 qos_cfg = {
+	.arqos_low = 0x1,
+	.arqos_high = 0x7,
+	.awqos_low = 0x1,
+	.awqos_high = 0x7,
+};
+
 static struct scale_cfg scale_copy;
 static struct cm_cfg cm_copy;
 static struct slp_cfg slp_copy;
@@ -351,33 +331,38 @@ static u32 dpu_get_version(struct dpu_context *ctx)
 	return reg->dpu_version;
 }
 
-#if 0
 static int dpu_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
 	int ret = 0;
+	struct device_node *qos_np = NULL;
 
-	ret = of_property_read_u32(np, "sprd,corner-radius",
-					&sprd_corner_radius);
-	if (!ret) {
-		sprd_corner_support = 1;
-		pr_info("round corner support, radius = %d.\n",
-					sprd_corner_radius);
-	} else
-		return 0;
+	qos_np = of_parse_phandle(np, "sprd,qos", 0);
+	if (!qos_np)
+		pr_warn("can't find dpu qos cfg node\n");
 
-	if (sprd_corner_support) {
-		sprd_corner_hwlayer_init(ctx->panel->height,
-				ctx->panel->width, sprd_corner_radius);
+	ret = of_property_read_u8(qos_np, "arqos-low",
+					&qos_cfg.arqos_low);
+	if (ret)
+		pr_warn("read arqos-low failed, use default\n");
 
-		/* change id value based on different dpu chip */
-		corner_layer_top.hwlayer_id = 5;
-		corner_layer_bottom.hwlayer_id = 6;
-	}
+	ret = of_property_read_u8(qos_np, "arqos-high",
+					&qos_cfg.arqos_high);
+	if (ret)
+		pr_warn("read arqos-high failed, use default\n");
 
-	return 0;
+	ret = of_property_read_u8(qos_np, "awqos-low",
+					&qos_cfg.awqos_low);
+	if (ret)
+		pr_warn("read awqos_low failed, use default\n");
+
+	ret = of_property_read_u8(qos_np, "awqos-high",
+					&qos_cfg.awqos_high);
+	if (ret)
+		pr_warn("read awqos-high failed, use default\n");
+
+	return ret;
 }
-#endif
 
 static void check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 {
@@ -637,8 +622,11 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->blend_size = size;
 
 	reg->dpu_cfg0 = 0;
-	reg->dpu_cfg1 = 0x004466da;
-	reg->dpu_cfg2 = 0;
+	reg->dpu_cfg1 = (qos_cfg.awqos_high << 12) |
+		(qos_cfg.awqos_low << 8) |
+		(qos_cfg.arqos_high << 4) |
+		(qos_cfg.arqos_low) | BIT(18) | BIT(22);
+	reg->dpu_cfg2 = 0x14002;
 
 	if (ctx->is_stopped)
 		dpu_clean_all(ctx);
@@ -1407,7 +1395,7 @@ static int dpu_capability(struct dpu_context *ctx,
 	if (!cap)
 		return -EINVAL;
 
-	cap->max_layers = 6;
+	cap->max_layers = 4;
 	cap->fmts_ptr = primary_fmts;
 	cap->fmts_cnt = ARRAY_SIZE(primary_fmts);
 
@@ -1415,7 +1403,7 @@ static int dpu_capability(struct dpu_context *ctx,
 }
 
 static struct dpu_core_ops dpu_r4p0_ops = {
-//	.parse_dt = dpu_parse_dt,
+	.parse_dt = dpu_parse_dt,
 	.version = dpu_get_version,
 	.init = dpu_init,
 	.uninit = dpu_uninit,

@@ -62,16 +62,40 @@ static int dphy_glb_parse_dt(struct dphy_context *ctx,
 
 static void dphy_glb_enable(struct dphy_context *ctx)
 {
-
+	regmap_update_bits(ctx_enable.regmap,
+		ctx_enable.ctrl_reg,
+		ctx_enable.ctrl_mask,
+		ctx_enable.ctrl_mask);
 }
 
 static void dphy_glb_disable(struct dphy_context *ctx)
 {
-
+	regmap_update_bits(ctx_enable.regmap,
+		ctx_enable.ctrl_reg,
+		ctx_enable.ctrl_mask,
+		(unsigned int)(~ctx_enable.ctrl_mask));
 }
 
 static void dphy_power_domain(struct dphy_context *ctx, int enable)
 {
+	if (enable) {
+		regmap_update_bits(ctx_power.regmap,
+			ctx_power.ctrl_reg,
+			ctx_power.ctrl_mask,
+			(unsigned int)(~ctx_power.ctrl_mask));
+
+		/* Dphy has a random wakeup failed after poweron,
+		 * this will caused testclr reset failed and
+		 * writing pll configuration parameter failed.
+		 * Delay 100us after dphy poweron, waiting for pll is stable.
+		 */
+		udelay(100);
+	} else {
+		regmap_update_bits(ctx_power.regmap,
+			ctx_power.ctrl_reg,
+			ctx_power.ctrl_mask,
+			ctx_power.ctrl_mask);
+	}
 }
 
 static struct dphy_glb_ops dphy_glb_ops = {
