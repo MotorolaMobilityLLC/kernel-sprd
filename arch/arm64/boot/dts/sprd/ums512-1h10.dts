@@ -13,8 +13,7 @@
 #include "sc2730.dtsi"
 #include "ums512-mach.dtsi"
 #include "ums512-modem.dtsi"
-#include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
-#include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 
 / {
 	model = "Unisoc UMS512 1H10 board";
@@ -468,6 +467,10 @@
 	};
 };
 
+&pwms {
+	status = "okay";
+};
+
 &dpu {
 	status = "okay";
 };
@@ -477,12 +480,14 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	panel {
+	panel: panel {
 		compatible = "sprd,generic-mipi-panel";
 		#address-cells = <1>;
 		#size-cells = <0>;
 		reg = <0>;
 
+		avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
+		avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
 		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 		port {
 			reg = <1>;
@@ -491,22 +496,6 @@
 			};
 		};
 	};
-};
-
-&lcd_nt35596_boe_mipi_fhd {
-	sprd,phy-bit-clock = <300000>; /* kbps */
-};
-
-&lcd_nt35596_fhd_timing0 {
-	clock-frequency = <6500000>;
-};
-
-&lcd_nt35695_truly_mipi_fhd {
-	sprd,phy-bit-clock = <300000>; /* kbps */
-};
-
-&lcd_nt35695_fhd_timing0 {
-	clock-frequency = <6500000>;
 };
 
 &dphy {
