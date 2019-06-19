@@ -1079,7 +1079,7 @@ dtb-$(CONFIG_ARCH_SPRD) += \
 
 dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9832e-1h10-gofu-overlay.dtbo \
-	sp9863a-1h10_go_32b_Natv-overlay.dtb \
+	sp9863a-1h10_go_32b_Natv-overlay.dtbo \
 	sp7731e-1h10-overlay.dtbo \
 	ums312-1h10-go-overlay.dtbo \
 	ums312-2h10-go-overlay.dtbo
