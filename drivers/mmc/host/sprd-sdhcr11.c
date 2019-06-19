@@ -2099,9 +2099,11 @@ static int sprd_sdhc_suspend(struct device *dev)
 	struct platform_device *pdev =
 		container_of(dev, struct platform_device, dev);
 	struct sprd_sdhc_host *host = platform_get_drvdata(pdev);
+
+	sprd_sdhc_runtime_pm_get(host);
+	pm_runtime_disable(&pdev->dev);
 	if (mmc_card_keep_power(host->mmc))
 		sprd_sdhc_save_dly(host);
-	sprd_sdhc_runtime_pm_get(host);
 	disable_irq(host->irq);
 	clk_disable_unprepare(host->clk);
 	clk_disable_unprepare(host->sdio_ahb);
@@ -2133,7 +2135,7 @@ static int sprd_sdhc_resume(struct device *dev)
 	host->mmc->ops->set_ios(host->mmc, &ios);
 	if (mmc_card_keep_power(host->mmc))
 		sprd_sdhc_restore_dly(host);
-
+	pm_runtime_enable(&pdev->dev);
 	sprd_sdhc_runtime_pm_put(host);
 
 	return 0;
