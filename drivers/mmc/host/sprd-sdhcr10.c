@@ -1777,7 +1777,13 @@ static int sprd_get_ext_resource(struct sprd_sdhc_host *host)
 
 	host->data_timeout_val = 0;
 
-	mmc_regulator_get_supply(mmc);
+	err = mmc_regulator_get_supply(mmc);
+	if (err) {
+		if (err != -EPROBE_DEFER)
+			pr_err("%s:: Could not get vmmc supply\n",
+			       host->device_name);
+		return err;
+	}
 	host->mmc = mmc;
 	err = request_irq(host->irq, sprd_sdhc_irq,
 			IRQF_SHARED, mmc_hostname(host->mmc), host);
