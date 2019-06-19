@@ -486,6 +486,10 @@
 	status = "okay";
 };
 
+&vsp {
+	status = "okay";
+};
+
 &dsi {
 	status = "okay";
 	#address-cells = <1>;

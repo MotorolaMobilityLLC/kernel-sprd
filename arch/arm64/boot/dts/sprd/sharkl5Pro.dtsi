@@ -707,6 +707,35 @@
 					};
 				};
 			};
+
+			vsp: video-codec@20500000 {
+				compatible = "sprd,sharkl5pro-vsp";
+				reg = <0 0x20500000 0 0xc000>;
+				interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
+
+				syscons = <&ap_ahb_regs REG_AP_AHB_RF_AHB_RST
+					(MASK_AP_AHB_RF_VSP_SOFT_RST |
+					MASK_AP_AHB_RF_VSP_GLOBAL_SOFT_RST)>,
+					<&pmu_apb_regs
+					REG_PMU_APB_RF_PD_AP_VSP_CFG
+					MASK_PMU_APB_RF_PD_AP_VSP_FORCE_SHUTDOWN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_RF_PD_AP_VSP_CFG
+					MASK_PMU_APB_RF_PD_AP_VSP_AUTO_SHUTDOWN_EN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_RF_PWR_STATUS0_DBG
+					MASK_PMU_APB_RF_PD_AP_VSP_STATE>,
+					<&aon_apb_regs
+					REG_AON_APB_RF_APB_EB1
+					MASK_AON_APB_RF_AP_SYST_EB>;
+				syscon-names = "reset",
+					"pmu_vsp_force_shutdown",
+					"pmu_vsp_auto_shutdown",
+					"pmu_pwr_status",
+					"vsp_domain_eb";
+
+				status = "disabled";
+			};
 		};
 
 		agcp {
