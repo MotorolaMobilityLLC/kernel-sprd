@@ -229,6 +229,8 @@ static int sc27xx_tsensor_get_temp(void *data, int *temp)
 		ret = sc27xx_tsensor_osc_temp_read(tsen, temp);
 	else if (tsen->id == 1)
 		ret = sc27xx_tsensor_out_temp_read(tsen, temp);
+	else
+		ret = -ENOTSUPP;
 
 	return ret;
 }
