@@ -937,6 +937,13 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 	if (dpu->core && dpu->core->isr)
 		int_mask = dpu->core->isr(ctx);
 
+	if (int_mask & DISPC_INT_TE_MASK) {
+		if (ctx->te_check_en) {
+			ctx->evt_te = true;
+			wake_up_interruptible_all(&ctx->te_wq);
+		}
+	}
+
 	if (int_mask & DISPC_INT_ERR_MASK)
 		DRM_WARN("Warning: dpu underflow!\n");
 

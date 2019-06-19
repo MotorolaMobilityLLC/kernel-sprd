@@ -46,6 +46,11 @@ enum {
 	SPRD_DSI_MODE_VIDEO_SYNC_EVENT,
 };
 
+enum {
+	ESD_MODE_REG_CHECK,
+	ESD_MODE_TE_CHECK,
+};
+
 struct dsi_cmd_desc {
 	u8 data_type;
 	u8 wait;

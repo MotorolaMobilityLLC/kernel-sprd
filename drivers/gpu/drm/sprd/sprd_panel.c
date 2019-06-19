@@ -19,6 +19,7 @@
 #include <video/of_display_timing.h>
 #include <video/videomode.h>
 
+#include "sprd_dpu.h"
 #include "sprd_panel.h"
 #include "dsi/sprd_dsi_api.h"
 #include "sysfs/sysfs_display.h"
@@ -279,6 +280,49 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 	return 0;
 }
 
+static int sprd_panel_te_check(struct sprd_panel *panel)
+{
+	static int te_wq_inited;
+	struct sprd_dpu *dpu;
+	int ret;
+
+	if (!panel->base.connector ||
+	    !panel->base.connector->encoder ||
+	    !panel->base.connector->encoder->crtc) {
+		return 0;
+	}
+
+	dpu = container_of(panel->base.connector->encoder->crtc,
+		struct sprd_dpu, crtc);
+
+	if (!te_wq_inited) {
+		init_waitqueue_head(&dpu->ctx.te_wq);
+		te_wq_inited = 1;
+		dpu->ctx.evt_te = false;
+		DRM_INFO("%s init te waitqueue\n", __func__);
+	}
+
+	/* DPU TE irq maybe enabled in kernel */
+	if (!dpu->ctx.is_inited)
+		return 0;
+
+	dpu->ctx.te_check_en = true;
+
+	/* wait for TE interrupt */
+	ret = wait_event_interruptible_timeout(dpu->ctx.te_wq,
+		dpu->ctx.evt_te, msecs_to_jiffies(500));
+
+	dpu->ctx.te_check_en = false;
+	dpu->ctx.evt_te = false;
+
+	if (!ret) {
+		DRM_ERROR("TE esd timeout\n");
+		return -1;
+	}
+
+	return ret < 0 ? ret : 0;
+}
+
 static void sprd_panel_esd_work_func(struct work_struct *work)
 {
 	struct sprd_panel *panel = container_of(work, struct sprd_panel,
@@ -286,20 +330,28 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 	struct panel_info *info = &panel->info;
 	int ret;
 
-	/*
-	 * TODO:
-	 * Currently, we just supprot esd_check_mode = 0, which
-	 * is DDIC status register check. Please add TE check
-	 * support for esd_check_mode = 1 in the future.
-	 */
-	ret = sprd_panel_esd_check(panel);
-	if (ret) {
+	if (info->esd_check_mode == ESD_MODE_REG_CHECK)
+		ret = sprd_panel_esd_check(panel);
+	else if (info->esd_check_mode == ESD_MODE_TE_CHECK)
+		ret = sprd_panel_te_check(panel);
+	else {
+		DRM_ERROR("unknown esd check mode:%d\n", info->esd_check_mode);
+		return;
+	}
+
+	if (ret && panel->base.connector && panel->base.connector->encoder) {
 		const struct drm_encoder_helper_funcs *funcs;
 		struct drm_encoder *encoder;
 
 		encoder = panel->base.connector->encoder;
 		funcs = encoder->helper_private;
 		panel->esd_work_pending = false;
+
+		if (encoder->crtc && encoder->crtc->state &&
+		    !encoder->crtc->state->active) {
+			DRM_INFO("skip esd recovery during panel suspend\n");
+			return;
+		}
 
 		DRM_INFO("====== esd recovery start ========\n");
 		funcs->disable(encoder);
