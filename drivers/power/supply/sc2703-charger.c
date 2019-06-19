@@ -483,7 +483,8 @@ static int sc2703_charger_start_charge(struct sc2703_charger_info *info)
 
 	sc2703_clear_event(info);
 	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
-				 SC2703_CHG_EN_MASK, SC2703_CHG_EN_MASK);
+				 SC2703_CHG_EN_MASK | SC2703_DCDC_EN_MASK,
+				 SC2703_CHG_EN_MASK | SC2703_DCDC_EN_MASK);
 	if (ret) {
 		dev_err(info->dev, "Failed to enable sc2703 charge:%d\n", ret);
 		return ret;
