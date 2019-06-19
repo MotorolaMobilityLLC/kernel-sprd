@@ -455,6 +455,12 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
+	ucp1301_smartpa: ucp1301@58 {
+		compatible = "sprd,ucp1301-smartpa";
+		reg = <0x58>;
+		reset-gpios = <&ap_gpio 134 GPIO_ACTIVE_HIGH>;
+	};
+
 	fan54015_chg: charger@6a {
 		compatible = "fairchild,fan54015_chg";
 		reg = <0x6a>;
@@ -592,4 +598,18 @@
 
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
+	sprd-audio-card,widgets =
+		"Headphone", "inter HP PA",
+		"Speaker", "inter Ear PA";
+	sprd-audio-card,routing =
+		"HPMIC Pin", "HP Mic Jack",
+		"MIC Pin", "Mic Jack",
+		"MIC2 Pin", "Aux Mic Jack",
+		"inter HP PA", "HP Pin",
+		"Ext Spk", "SPK Pin",
+		"DMIC Pin", "DMic Jack",
+		"DMIC1 Pin", "DMic1 Jack",
+		"inter Ear PA", "EAR Pin";
+
+	sprd,ucp-smart-pa;
 };
