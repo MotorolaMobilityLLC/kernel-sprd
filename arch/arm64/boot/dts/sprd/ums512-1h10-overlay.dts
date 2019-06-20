@@ -108,3 +108,7 @@
 			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 	};
 };
+
+&panel {
+	sprd,backlight = <&pwm_backlight>;
+};

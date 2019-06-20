@@ -636,7 +636,7 @@
 				iova-base = <0x30000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
-				status = "okay";
+				status = "disabled";
 				#iommu-cells = <0>;
 			};
 
