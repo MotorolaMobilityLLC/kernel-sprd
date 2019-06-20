@@ -1563,8 +1563,8 @@ static ssize_t version_show(struct device *dev, struct device_attribute *attr,
 }
 static DEVICE_ATTR_RO(version);
 
-static ssize_t raw_data0_show(struct device *dev, struct device_attribute *attr,
-			      char *buf)
+static ssize_t raw_data_acc_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	u8 data[6];
@@ -1585,10 +1585,10 @@ static ssize_t raw_data0_show(struct device *dev, struct device_attribute *attr,
 	}
 	return sprintf(buf, "%d %u %u %u\n", err, ptr[0], ptr[1], ptr[2]);
 }
-static DEVICE_ATTR_RO(raw_data0);
+static DEVICE_ATTR_RO(raw_data_acc);
 
-static ssize_t raw_data1_show(struct device *dev, struct device_attribute *attr,
-			      char *buf)
+static ssize_t raw_data_mag_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	u8 data[6];
@@ -1608,10 +1608,10 @@ static ssize_t raw_data1_show(struct device *dev, struct device_attribute *attr,
 	}
 	return sprintf(buf, "%d %u %u %u\n", err, ptr[0], ptr[1], ptr[2]);
 }
-static DEVICE_ATTR_RO(raw_data1);
+static DEVICE_ATTR_RO(raw_data_mag);
 
-static ssize_t raw_data2_show(struct device *dev, struct device_attribute *attr,
-			      char *buf)
+static ssize_t raw_data_gyro_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	u8 data[6];
@@ -1631,10 +1631,10 @@ static ssize_t raw_data2_show(struct device *dev, struct device_attribute *attr,
 	}
 	return sprintf(buf, "%d %u %u %u\n", err, ptr[0], ptr[1], ptr[2]);
 }
-static DEVICE_ATTR_RO(raw_data2);
+static DEVICE_ATTR_RO(raw_data_gyro);
 
-static ssize_t raw_data3_show(struct device *dev, struct device_attribute *attr,
-			      char *buf)
+static ssize_t raw_data_als_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	u8 data[2];
@@ -1655,10 +1655,10 @@ static ssize_t raw_data3_show(struct device *dev, struct device_attribute *attr,
 	}
 	return sprintf(buf, "%d\n", ptr[0]);
 }
-static DEVICE_ATTR_RO(raw_data3);
+static DEVICE_ATTR_RO(raw_data_als);
 
-static ssize_t raw_data4_show(struct device *dev, struct device_attribute *attr,
-			      char *buf)
+static ssize_t raw_data_ps_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	u8 data[2];
@@ -1677,7 +1677,7 @@ static ssize_t raw_data4_show(struct device *dev, struct device_attribute *attr,
 	}
 	return sprintf(buf, "%d\n", ptr[0]);
 }
-static DEVICE_ATTR_RO(raw_data4);
+static DEVICE_ATTR_RO(raw_data_ps);
 
 static ssize_t sensorhub_show(struct device *dev,
 			      struct device_attribute *attr, char *buf)
@@ -1930,11 +1930,11 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_calibrator_data.attr,
 	&dev_attr_light_sensor_calibrator.attr,
 	&dev_attr_version.attr,
-	&dev_attr_raw_data0.attr,
-	&dev_attr_raw_data1.attr,
-	&dev_attr_raw_data2.attr,
-	&dev_attr_raw_data3.attr,
-	&dev_attr_raw_data4.attr,
+	&dev_attr_raw_data_acc.attr,
+	&dev_attr_raw_data_mag.attr,
+	&dev_attr_raw_data_gyro.attr,
+	&dev_attr_raw_data_als.attr,
+	&dev_attr_raw_data_ps.attr,
 	&dev_attr_sensorhub.attr,
 	&dev_attr_hwsensor_id.attr,
 	&dev_attr_sensor_info.attr,
