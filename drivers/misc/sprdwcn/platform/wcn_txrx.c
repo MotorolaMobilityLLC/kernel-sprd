@@ -76,7 +76,7 @@ bool mdbg_rx_count_change(void)
 {
 	rx_count = sprdwcn_bus_get_rx_total_cnt();
 
-	WCN_INFO("rx_count:0x%llx rx_count_last:0x%llx\n",
+	WCN_DBG("rx_count:0x%llx rx_count_last:0x%llx\n",
 		rx_count, rx_count_last);
 
 	if ((rx_count == 0) && (rx_count_last == 0)) {
@@ -239,8 +239,8 @@ int mdbg_log_cb(int channel, struct mbuf_t *head, struct mbuf_t *tail, int num)
 	struct mbuf_t *mbuf_node;
 	int i;
 
-	WCN_INFO("%s:seq=0x%x, num=%d\n", __func__,
-		 *((u32 *)(head->buf + 12)), num);
+	WCN_INFO("%s:type=0x%x,seq=0x%x, num=%d\n", __func__,
+		 *(head->buf + 7), *((u32 *)(head->buf + 12)), num);
 
 	if ((atomic_read(&ring_reg_flag)) == 0) {
 		WCN_INFO("mdbg ring has do unreg, so discard it\n");

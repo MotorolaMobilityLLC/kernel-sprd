@@ -14,6 +14,9 @@
 #include <misc/wcn_bus.h>
 
 #include "bufring.h"
+#ifdef CONFIG_WCN_PCIE
+#include "edma_engine.h"
+#endif
 #include "rdc_debug.h"
 #include "wcn_txrx.h"
 #include "wcn_log.h"
@@ -1134,7 +1137,13 @@ int mdbg_dump_mem(void)
 {
 	long int count;
 	int ret;
+#ifdef CONFIG_WCN_PCIE
+	int i;
 
+	edma_dump_glb_reg();
+	for (i = 0; i < 16; i++)
+		edma_dump_chn_reg(i);
+#endif
 	/* DUMP ARM REG */
 	dump_arm_reg();
 	mdbg_clear_log();

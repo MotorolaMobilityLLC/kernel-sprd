@@ -11,6 +11,7 @@
  */
 
 #include <linux/delay.h>
+#include <linux/timer.h>
 #include <misc/marlin_platform.h>
 #include <misc/wcn_bus.h>
 #include "edma_engine.h"
@@ -22,6 +23,7 @@
 #define RX 0
 #define MPOOL_SIZE	0x10000
 #define MAX_PRINT_BYTE_NUM 8
+#define EDMA_TX_TIMER_INTERVAL_MS	1000
 
 static int hisrfunc_debug;
 static int hisrfunc_line;
@@ -534,7 +536,12 @@ static int edma_hw_tx_req(int chn)
 {
 	struct edma_info *edma = edma_info();
 
+	/* 1s timeout */
+	mod_timer(&edma->edma_tx_timer, jiffies +
+		  EDMA_TX_TIMER_INTERVAL_MS * HZ / 1000);
 	edma->dma_chn_reg[chn].dma_tx_req.reg = 1;
+
+	set_bit(chn, &edma->cur_chn_status);
 
 	return 0;
 }
@@ -567,10 +574,11 @@ int edma_hw_pause(void)
 					(&edma->dma_glb_reg->dma_pause.reg));
 		if (tmp.bit.rf_dma_pause_status == 1)
 			return 0;
-		WCN_INFO("%s:retries=%d\n", __func__, retries);
+		WCN_INFO("%s:retries=%d, value=0x%x\n", __func__, retries,
+			 tmp.reg);
 		udelay(10);
 	}
-
+	edma_dump_glb_reg();
 	WCN_INFO("%s  fail\n", __func__);
 
 	return -1;
@@ -738,6 +746,9 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 		WARN_ON(1);
 		return -1;
 	}
+
+	__pm_stay_awake(&edma->edma_push_ws);
+
 	if (inout == TX)
 		edma_print_mbuf_data(chn, head, tail, __func__);
 
@@ -785,6 +796,7 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 	} else
 		edma_hw_rx_req(chn);
 
+	__pm_relax(&edma->edma_push_ws);
 
 	return 0;
 }
@@ -815,7 +827,7 @@ int edma_push_link_async(int chn, void *head, void *tail, int num)
 	struct edma_info *edma = edma_info();
 	struct edma_pending_q *q = &(edma->chn_sw[chn].pending_q);
 
-	if (edma->chn_sw[chn].inout == 0) {
+	if (edma->chn_sw[chn].inout == RX) {
 		ret = edma_push_link(chn, head, tail, num);
 		return ret;
 	}
@@ -1196,7 +1208,12 @@ int msi_irq_handle(int irq)
 	chn = (irq - 0) / 2;
 	dma_int.reg = edma->dma_chn_reg[chn].dma_int.reg;
 	msg.chn = chn;
+
+	__pm_wakeup_event(&edma->edma_pop_ws, jiffies_to_msecs(HZ / 2));
+
 	if (edma->chn_sw[chn].inout == TX) {
+		clear_bit(chn, &edma->cur_chn_status);
+		del_timer(&edma->edma_tx_timer);
 		if (irq % 2 == 0) {
 			dma_int.bit.rf_chn_tx_pop_int_clr = 1;
 			edma->dma_chn_reg[chn].dma_int.reg = dma_int.reg;
@@ -1226,16 +1243,19 @@ int msi_irq_handle(int irq)
 		enqueue(&(edma->isr_func.q), (unsigned char *)(&msg));
 		WCN_DBG(" callback not in irq\n");
 		set_wcnevent(&(edma->isr_func.q.event));
+		WCN_INFO("cb not irq=%ld, chn=%d\n", irq_flags, chn);
 		local_irq_restore(irq_flags);
 		return 0;
 	} else if (mchn_hw_cb_in_irq(chn) == -1) {
 		local_irq_restore(irq_flags);
+		WCN_ERR(" irq=%ld, chn=%d\n", irq_flags, chn);
 		return -1;
 	}
 
 	WCN_DBG("callback in irq\n");
 	hisrfunc(&msg);
 
+	WCN_INFO("cb in irq=%ld, chn=%d\n", irq_flags, chn);
 	local_irq_restore(irq_flags);
 
 	return 0;
@@ -1618,6 +1638,20 @@ int edma_dump_glb_reg(void)
 	return 0;
 }
 
+static void edma_tx_timer_expire(unsigned long data)
+{
+	struct edma_info *edma = (struct edma_info *)data;
+	int i;
+
+	WCN_ERR("edma tx send timeout\n");
+	edma_dump_glb_reg();
+	for (i = 0; i < 16; i++) {
+		if (test_bit(i, &edma->cur_chn_status))
+			edma_dump_chn_reg(i);
+	}
+
+}
+
 int edma_init(struct wcn_pcie_info *pcie_info)
 {
 	unsigned int i, ret, *reg;
@@ -1671,6 +1705,15 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 		create_wcnevent(&(edma->chn_sw[i].event), i);
 		edma->chn_sw[i].mode = -1;
 	}
+
+	wakeup_source_init(&edma->edma_push_ws, "wcn edma txrx push");
+	wakeup_source_init(&edma->edma_pop_ws, "wcn edma txrx callback");
+
+	/* Init edma tx send timeout timer */
+	init_timer(&edma->edma_tx_timer);
+	edma->edma_tx_timer.data = (unsigned long) edma;
+	edma->edma_tx_timer.function = edma_tx_timer_expire;
+
 	WCN_INFO("%s done\n", __func__);
 
 	return 0;
@@ -1697,6 +1740,8 @@ int edma_deinit(void)
 	tasklet_kill(edma->isr_func.q.event.tasklet);
 	kfree(edma->isr_func.q.event.tasklet);
 #endif
+	wakeup_source_trash(&edma->edma_push_ws);
+	wakeup_source_trash(&edma->edma_pop_ws);
 	kfree(q->lock.irq_spinlock_p);
 	delete_queue(q);
 	/* TODO: need free mpool */

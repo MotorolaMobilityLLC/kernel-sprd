@@ -36,7 +36,7 @@ int mbuf_link_alloc(int chn, struct mbuf_t **head, struct mbuf_t **tail,
 	struct mchn_info_t *mchn = mchn_info();
 	struct buffer_pool *pool = &(mchn->chn_public[chn].pool);
 
-	WCN_INFO("pool=%p, chn=%d, free=%d\n", pool, chn, pool->free);
+	WCN_DBG("pool=%p, chn=%d, free=%d\n", pool, chn, pool->free);
 	spin_lock_irqsave(&(pool->lock), pool->irq_flags);
 	if ((*num <= 0) || (pool->free <= 0)) {
 		WCN_ERR("[+]%s err, num %d, free %d)\n",

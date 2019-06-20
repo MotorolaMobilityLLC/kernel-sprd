@@ -198,7 +198,7 @@ EXPORT_SYMBOL_GPL(mdbg_at_cmd_read);
 #ifdef CONFIG_WCN_PCIE
 static int mdbg_tx_comptele_cb(int chn, int timeout)
 {
-	WCN_INFO("%s: chn=%d, timeout=%d\n", __func__, chn, timeout);
+	WCN_DBG("%s: chn=%d, timeout=%d\n", __func__, chn, timeout);
 
 	return 0;
 }
@@ -456,7 +456,7 @@ static ssize_t mdbg_proc_read(struct file *filp,
 				len = 13;
 			} else if (mdbg_rx_count_change()) {
 			/* fix the error(ack slow),use rx count to verify CP */
-				WCN_INFO("CP run well with rx_cnt change\n");
+				WCN_DBG("CP run well with rx_cnt change\n");
 				if (copy_to_user((void __user *)buf,
 							"loopcheck_ack", 13))
 					return -EFAULT;
@@ -867,7 +867,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 	memset(mbuf->buf, 0x0, mbuf->len);
 	memcpy(mbuf->buf, mdbg_proc->write_buf, count);
 	mbuf->next = NULL;
-	WCN_INFO("mbuf->buf:%s\n", mbuf->buf);
+	WCN_DBG("mbuf->buf:%s\n", mbuf->buf);
 
 	ret = sprdwcn_bus_push_list(0, head, tail, num);
 	if (ret)
@@ -897,7 +897,7 @@ static unsigned int mdbg_proc_poll(struct file *filp, poll_table *wait)
 
 	if (strcmp(type, "loopcheck") == 0) {
 		poll_wait(filp, &mdbg_proc->loopcheck.rxwait, wait);
-		WCN_INFO("loopcheck:power_state_changed:%d\n",
+		WCN_DBG("loopcheck:power_state_changed:%d\n",
 			wcn_get_module_status_changed());
 		if (wcn_get_module_status_changed()) {
 			wcn_set_module_status_changed(false);
