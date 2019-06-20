@@ -138,7 +138,7 @@ function add_diffconfig()
 		BSP_DEVICE_WCN_CONFIG=$BSP_KERNEL_DIFF_CONFIG_COMMON/wcn_built_in_diff_config
 	fi
 
-	if [ -n $BSP_BSP_DEVICE_WCN_CONFIG ]; then
+	if [ -n "$BSP_DEVICE_WCN_CONFIG" ]; then
 		sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_DEVICE_WCN_CONFIG
 	fi
 
