@@ -311,7 +311,8 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 {
 	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
 
-	if (usb_phy->otg->state == OTG_STATE_A_HOST)
+	if (usb_phy->otg->state == OTG_STATE_A_HOST ||
+	    usb_phy->otg->state == OTG_STATE_A_WAIT_BCON)
 		return 0;
 
 	if (event)
