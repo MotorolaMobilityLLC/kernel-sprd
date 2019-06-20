@@ -9,7 +9,7 @@
 #include <dt-bindings/gpio/gpio.h>
 #include "sc7731e.dtsi"
 #include "sc2720.dtsi"
-#include "sp7731e-common.dtsi"
+#include "sp7731e-mach.dtsi"
 #include "lcd/lcd_ili9881c_3lane_mipi_fhd.dtsi"
 
 / {
@@ -28,11 +28,6 @@
 		reg = <0x80000000 0x40000000>;
 	};
 
-	reserved-memory {
-		tos_reserved: tos-mem@94020000{
-			reg = <0x94020000 0x001fe0000>;
-		};
-	};
 
 	chosen {
 		stdout-path = &uart1;
@@ -174,6 +169,12 @@
 				cm-cable-name = "USB";
 			};
 		};
+	};
+};
+
+&reserved_memory {
+	tos_reserved: tos-mem@94020000 {
+		reg = <0x94020000 0x001fe0000>;
 	};
 };
 
