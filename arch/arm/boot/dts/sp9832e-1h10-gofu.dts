@@ -91,6 +91,12 @@
 	};
 };
 
+&reserved_memory {
+	tos_reserved: tos-mem@94020000 {
+		reg = <0x94020000 0x01fe0000>;
+	};
+};
+
 &uart1 {
 	status = "okay";
 };
