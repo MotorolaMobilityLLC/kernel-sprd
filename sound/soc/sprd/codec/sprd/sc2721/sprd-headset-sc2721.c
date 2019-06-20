@@ -1176,8 +1176,10 @@ retry_again:
 	headset_set_adc_to_headmic(1);
 	sprd_msleep(10);
 	adc_mic_average = headset_get_adc_value(adc_chan);
+	hdst->cal_in_big_scale = true;
 	adc_mic_average = headset_adc_get_ideal(adc_mic_average,
 						pdata->coefficient);
+	hdst->cal_in_big_scale = false;
 	if ((adc_mic_average > pdata->sprd_stable_value) ||
 					(adc_mic_average == -1)) {
 		if (retry_times < 10) {
@@ -1187,7 +1189,6 @@ retry_again:
 				retry_times, adc_mic_average);
 			goto  retry_again;
 		}
-		return HEADSET_TYPE_ERR;
 	}
 	pr_info("adc_mic_average = %d\n", adc_mic_average);
 
@@ -1206,6 +1207,13 @@ retry_again:
 	pr_info("adc_left_average = %d\n", adc_left_average);
 	if (-1 == adc_left_average)
 		return HEADSET_TYPE_ERR;
+
+	if (retry_times >= 10) {
+		if (adc_left_average < pdata->sprd_one_half_adc_gnd)
+			return HEADSET_NO_MIC;
+		if (adc_left_average >= pdata->sprd_one_half_adc_gnd)
+			return HEADSET_TYPE_ERR;
+	}
 
 	/* Get adc value of headmic in. */
 	headset_set_adc_to_headmic(1);
@@ -2658,6 +2666,7 @@ static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient)
 	int64_t exp1, exp2, exp3, exp4;
 	u64 dividend;
 	u32 divisor;
+	struct sprd_headset *hdst = sprd_hdst;
 
 	if (adc_cal_headset.cal_type != SPRD_HEADSET_AUXADC_CAL_DO) {
 		pr_warn("efuse A,B,E hasn't been calculated!\n");
@@ -2680,7 +2689,10 @@ static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient)
 
 	pr_debug("exp1=%lld, exp2=%lld, exp3=%lld, exp4=%lld\n",
 		exp1, exp2, exp3, exp4);
-	denominator = exp3 + exp4;
+	if (hdst->cal_in_big_scale)
+		denominator = exp3 + 4 * exp4;
+	else
+		denominator = exp3 + exp4;
 	numerator = coefficient * (exp1 + 1200) * exp2;
 	pr_debug("denominator=%lld, numerator=%lld\n",
 			denominator, numerator);
