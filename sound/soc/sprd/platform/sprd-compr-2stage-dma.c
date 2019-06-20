@@ -199,6 +199,7 @@ struct sprd_compr_rtd {
 #ifdef CONFIG_SND_VERBOSE_PROCFS
 	struct snd_info_entry *proc_info_entry;
 #endif
+	bool is_access_enabled;
 };
 
 struct sprd_compr_pdata {
@@ -246,6 +247,22 @@ static uint8_t *g_buff;
 static void *compr_cb_data;
 static struct mutex g_lock;
 #endif
+
+int agdsp_access_enable(void)
+	__attribute__ ((weak, alias("__agdsp_access_enable")));
+static int __agdsp_access_enable(void)
+{
+	pr_debug("%s\n", __func__);
+	return 0;
+}
+
+int agdsp_access_disable(void)
+	__attribute__ ((weak, alias("__agdsp_access_disable")));
+static int __agdsp_access_disable(void)
+{
+	pr_debug("%s\n", __func__);
+	return 0;
+}
 
 
 static void sprd_compr_drain_work(struct work_struct *work)
@@ -1221,7 +1238,13 @@ static int sprd_platform_compr_open(struct snd_compr_stream *cstream)
 
 	dev_ctrl = &pdata->dev_ctrl;
 	mutex_lock(&dev_ctrl->mutex);
-
+	result = agdsp_access_enable();
+	if (result) {
+		pr_err("%s:agdsp_access_enable:error:%d",
+			__func__, result);
+		goto out_ops;
+	}
+	srtd->is_access_enabled = true;
 	sp_asoc_pr_dbg("%s: before send open cmd\n", __func__);
 
 	result = sprd_platform_send_cmd(COMPR_CMD_OPEN, stream_id, 0, 0);
@@ -1238,6 +1261,10 @@ static int sprd_platform_compr_open(struct snd_compr_stream *cstream)
 
 out_ops:
 	sp_asoc_pr_dbg("%s failed\n", __func__);
+	if (srtd && srtd->is_access_enabled) {
+		agdsp_access_disable();
+		srtd->is_access_enabled = false;
+	}
 	mutex_unlock(&dev_ctrl->mutex);
 err:
 	return -1;
@@ -1282,6 +1309,11 @@ static int sprd_platform_compr_free(struct snd_compr_stream *cstream)
 	ret = sprd_platform_send_cmd(COMPR_CMD_CLOSE, stream_id, 0, 0);
 	if (ret < 0)
 		sp_asoc_pr_info("send COMPR_CMD_CLOSE ret %d\n", ret);
+
+	if (srtd->is_access_enabled) {
+		agdsp_access_disable();
+		srtd->is_access_enabled = false;
+	}
 	mutex_unlock(&dev_ctrl->mutex);
 
 	return 0;
