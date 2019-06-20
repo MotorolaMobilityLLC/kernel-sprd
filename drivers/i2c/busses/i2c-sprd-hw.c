@@ -88,6 +88,9 @@
 /* Absolutely safe for wait pending update at 400kHz */
 #define I2C_400K_WRITE_WAIT	1000	/* us */
 
+/* Absolutely safe for wait pending update at 1MHz */
+#define I2C_1M_WRITE_WAIT	600	/* us */
+
 /* Absolutely safe for wait pending update at 3.4MHz */
 #define I2C_3M4_WRITE_WAIT	200	/* us */
 
@@ -102,6 +105,9 @@
 
 /* For 3.4MHz speed */
 #define I2C_CLK_3M4	3400000
+
+/* For 1MHz speed */
+#define I2C_CLK_1M	1000000
 
 /* For 3.4MHz clock adjustment */
 #define I2C_CLK_3M4_HIGH_ADJUST	1
@@ -370,6 +376,10 @@ static void  sprd_i2c_hw_set_clk(struct sprd_i2c_hw *i2c_dev, u32 freq)
 	case I2C_CLK_3M4:
 		writel((18 * apb_clk) / 100000000, i2c_dev->base + ADDR_STA0_DVD);
 		i2c_dev->write_wait_time = I2C_3M4_WRITE_WAIT;
+		break;
+	case I2C_CLK_1M:
+		writel((8 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
+		i2c_dev->write_wait_time = I2C_1M_WRITE_WAIT;
 		break;
 	case I2C_CLK_400K:
 		writel((6 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
