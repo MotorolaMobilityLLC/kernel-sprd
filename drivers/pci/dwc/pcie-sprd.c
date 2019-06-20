@@ -25,24 +25,6 @@
 #include "pcie-designware.h"
 #include "pcie-sprd.h"
 
-static void sprd_pcie_fix_class(struct pci_dev *dev)
-{
-	struct pcie_port *pp = dev->bus->sysdata;
-
-	if (dev->class != PCI_CLASS_NOT_DEFINED)
-		return;
-
-	if (dev->bus->number == pp->root_bus_nr)
-		dev->class = 0x0604 << 8;
-	else
-		dev->class = 0x080d << 8;
-
-	dev_info(&dev->dev,
-		 "%s: The class of device %04x:%04x is changed to: 0x%06x\n",
-		 __func__, dev->device, dev->vendor, dev->class);
-}
-DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_SYNOPSYS, 0xabcd, sprd_pcie_fix_class);
-
 #ifdef CONFIG_SPRD_IPA_INTC
 static void sprd_pcie_fix_interrupt_line(struct pci_dev *dev)
 {
@@ -95,74 +77,6 @@ static int sprd_pcie_host_init(struct pcie_port *pp)
 static const struct dw_pcie_host_ops sprd_pcie_host_ops = {
 	.host_init = sprd_pcie_host_init,
 };
-
-static void sprd_pcie_ep_init(struct dw_pcie_ep *ep)
-{
-	dw_pcie_setup_ep(ep);
-}
-
-static int sprd_pcie_ep_raise_irq(struct dw_pcie_ep *ep,
-				     enum pci_epc_irq_type type,
-				     u8 interrupt_num)
-{
-	struct dw_pcie *pci = to_dw_pcie_from_ep(ep);
-
-	switch (type) {
-	case PCI_EPC_IRQ_LEGACY:
-		/* TODO*/
-		break;
-	case  PCI_EPC_IRQ_MSI:
-		return dw_pcie_ep_raise_msi_irq(ep, interrupt_num);
-	default:
-		dev_err(pci->dev, "UNKNOWN IRQ type\n");
-	}
-
-	return 0;
-}
-
-static struct dw_pcie_ep_ops pcie_ep_ops = {
-	.ep_init = sprd_pcie_ep_init,
-	.raise_irq = sprd_pcie_ep_raise_irq,
-};
-
-static int sprd_add_pcie_ep(struct sprd_pcie *ctrl,
-			    struct platform_device *pdev)
-{
-	int ret;
-	struct dw_pcie_ep *ep;
-	struct resource *res;
-	struct device *dev = &pdev->dev;
-	struct dw_pcie *pci = ctrl->pci;
-
-	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dbi");
-	pci->dbi_base = devm_ioremap(dev, res->start, resource_size(res));
-	if (!pci->dbi_base)
-		return -ENOMEM;
-
-	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dbi2");
-	pci->dbi_base2 = devm_ioremap(dev, res->start, resource_size(res));
-	if (!pci->dbi_base2)
-		return -ENOMEM;
-
-	ep = &pci->ep;
-	ep->ops = &pcie_ep_ops;
-	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "addr_space");
-	if (!res) {
-		dev_err(dev, "pci can't get addr space\n");
-		return -EINVAL;
-	}
-
-	ep->phys_base = res->start;
-	ep->addr_size = resource_size(res);
-
-	ret = dw_pcie_ep_init(ep);
-	if (ret) {
-		dev_err(dev, "failed to initialize endpoint\n");
-		return ret;
-	}
-
-	return 0;
-}
 
 /*
  * WAKE# (low active)from endpoint to wake up AP.
@@ -277,36 +191,12 @@ no_wakeup:
 	return dw_pcie_host_init(&pci->pp);
 }
 
-static const struct sprd_pcie_of_data sprd_pcie_rc_of_data = {
-	.mode = DW_PCIE_RC_TYPE,
-};
-
-static const struct sprd_pcie_of_data sprd_pcie_ep_of_data = {
-	.mode = DW_PCIE_EP_TYPE,
-};
-
 static const struct of_device_id sprd_pcie_of_match[] = {
 	{
 		.compatible = "sprd,pcie",
-		.data = &sprd_pcie_rc_of_data,
-	},
-	{
-		.compatible = "sprd,pcie-ep",
-		.data = &sprd_pcie_ep_of_data,
 	},
 	{},
 };
-
-static int sprd_pcie_establish_link(struct dw_pcie *pci)
-{
-	/* TODO */
-	return 0;
-}
-
-static void sprd_pcie_stop_link(struct dw_pcie *pci)
-{
-	/* TODO */
-}
 
 static int sprd_pcie_host_uninit(struct platform_device *pdev)
 {
@@ -348,8 +238,6 @@ static int sprd_pcie_host_shutdown(struct platform_device *pdev)
 }
 
 static const struct dw_pcie_ops dw_pcie_ops = {
-	.start_link = sprd_pcie_establish_link,
-	.stop_link = sprd_pcie_stop_link,
 };
 
 static int sprd_pcie_probe(struct platform_device *pdev)
@@ -359,13 +247,8 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	struct sprd_pcie *ctrl;
 	int ret;
 	size_t len = strlen(dev_name(dev)) + 10;
-	const struct sprd_pcie_of_data *data;
-	enum dw_pcie_device_mode mode;
 	/* Dirty: must be deleted. Only for marlin3 driver temperarily */
 	static int probe_defer_count;
-
-	data = (struct sprd_pcie_of_data *)of_device_get_match_data(dev);
-	mode = data->mode;
 
 	/*
 	 *  Dirty:
@@ -383,12 +266,10 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	 *  -3. As EP: This controller is selected to EP mode for ORCA:
 	 *	It must run earlier than RC. So it can't be probed.
 	 */
-	if (mode == DW_PCIE_RC_TYPE) {
-		if ((probe_defer_count++) < 10)
-			return -EPROBE_DEFER;
-		dev_info(dev, "%s: defer probe %d times to wait wcn\n",
+	if ((probe_defer_count++) < 10)
+		return -EPROBE_DEFER;
+	dev_info(dev, "%s: defer probe %d times to wait wcn\n",
 			 __func__, probe_defer_count);
-	}
 
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-startup-syscons");
 	if (ret < 0) {
@@ -411,30 +292,17 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, ctrl);
 
-	switch (mode) {
-	case DW_PCIE_RC_TYPE:
-		ret = sprd_add_pcie_port(pci, pdev);
-		if (ret) {
-			dev_err(dev, "cannot initialize rc host\n");
-			return ret;
-		}
-		ret = sprd_pcie_syscon_setting(pdev,
-					       "sprd,pcie-aspml1p2-syscons");
-		if (ret < 0)
-			dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
-		ctrl->is_powered = 1;
-		break;
-	case DW_PCIE_EP_TYPE:
-		ret = sprd_add_pcie_ep(ctrl, pdev);
-		if (ret) {
-			dev_err(dev, "cannot initialize ep host\n");
-			return ret;
-		}
-		break;
-	default:
-		dev_err(dev, "INVALID device type %d\n", mode);
-		return -EINVAL;
+	ret = sprd_add_pcie_port(pci, pdev);
+	if (ret) {
+		dev_err(dev, "cannot initialize rc host\n");
+		return ret;
 	}
+
+	ret = sprd_pcie_syscon_setting(pdev,
+				       "sprd,pcie-aspml1p2-syscons");
+	if (ret < 0)
+		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
+	ctrl->is_powered = 1;
 
 	if (!dw_pcie_link_up(pci)) {
 		dev_info(dev,

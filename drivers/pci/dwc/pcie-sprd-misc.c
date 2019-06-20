@@ -26,6 +26,24 @@
 
 #define NUM_OF_ARGS 5
 
+static void sprd_pcie_fix_class(struct pci_dev *dev)
+{
+	struct pcie_port *pp = dev->bus->sysdata;
+
+	if (dev->class != PCI_CLASS_NOT_DEFINED)
+		return;
+
+	if (dev->bus->number == pp->root_bus_nr)
+		dev->class = 0x0604 << 8;
+	else
+		dev->class = 0x080d << 8;
+
+	dev_info(&dev->dev,
+		 "The class of device %04x:%04x is changed to: 0x%06x\n",
+		 dev->device, dev->vendor, dev->class);
+}
+DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_SYNOPSYS, 0xabcd, sprd_pcie_fix_class);
+
 int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 {
 	struct device_node *np = pdev->dev.of_node;
