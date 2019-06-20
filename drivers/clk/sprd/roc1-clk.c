@@ -217,7 +217,7 @@ static struct clk_bit_field f_rpll[PLL_FACT_MAX] = {
 	{ .shift = 25,	.width = 1 },	/* postdiv	*/
 };
 
-static SPRD_PLL_WITH_ITABLE_K_FVCO(rpll_clk, "rpll", "rpll-gate", 0x8,
+static SPRD_PLL_WITH_ITABLE_K_FVCO(rpll_clk, "rpll", "ext-26m", 0x8,
 				   4, ftable, f_rpll, 240,
 				   1000, 1000, 1, 750000000ULL);
 
@@ -304,7 +304,7 @@ static struct clk_bit_field f_twpll[PLL_FACT_MAX] = {
 	{ .shift = 0,	.width = 0 },	/* prediv	*/
 	{ .shift = 0,	.width = 0 },	/* postdiv	*/
 };
-static SPRD_PLL_WITH_ITABLE_1K(twpll_clk, "twpll", "twpll-gate", 0x14,
+static SPRD_PLL_WITH_ITABLE_1K(twpll_clk, "twpll", "ext-26m", 0x14,
 				   2, ftable, f_twpll, 240);
 static CLK_FIXED_FACTOR(twpll_768m, "twpll-768m", "twpll", 2, 1, 0);
 static CLK_FIXED_FACTOR(twpll_384m, "twpll-384m", "twpll", 4, 1, 0);
