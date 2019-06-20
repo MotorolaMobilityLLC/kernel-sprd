@@ -110,6 +110,7 @@
 		reset-gpios = <&ap_gpio 97 GPIO_ACTIVE_LOW>;
 		enable-gpios = <&ap_gpio 143 GPIO_ACTIVE_LOW>;
 		m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
+		xtal-26m-clk-type = "TCXO";
 		avdd12-supply = <&vddwcn>;
 		avdd33-supply = <&vddwifipa>;
 		dcxo18-supply = <&vddsim2>;
@@ -124,8 +125,9 @@
 		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
 		adma-tx;
 		adma-rx;
-		/* bound parameter:
-		 *	[0]:addr offset, [1]:mask, [2]:unboundval, [3]:boundval
+		/*
+		 * bound parameter:
+		 * [0]:addr offset, [1]:mask, [2]:unboundval, [3]:boundval
 		 */
 		avdd12-parent-bound-chip = <0x1a4c 0x1 0x0 0x1>;
 		avdd12-bound-wbreq = <0x1ac8 0x1000 0x0 0x1000>;
