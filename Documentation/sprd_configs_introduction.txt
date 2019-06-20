@@ -33,11 +33,23 @@ Documentation/sprd-configs.txt填写说明
 	例2: TRUSTY, 位于driver/trusty,是基于ARM64的安全方案,应填写arm64.
 
 [plat]
-	选项: < pike2 | sharkl3 | sharkl3_32 | sharkle | sharkle32 | sharkle32_fp | sharkl5 | sharkl5_32 > [ , ..... ] >  |  < all >
+	选项: < pike2 | sharkl3 | sharkl3_32 | sharkle | sharkle32 | sharkle32_fp | sharkl5 | sharkl5_32 | roc1> [ , ..... ] >  |  < all >
 		(多选用","分隔,如sharkl3,sharkle32,sharkle; all只能独立使用)
 	Ø 描述目的: 实际应用在哪个展讯SoC项目上。
 	Ø 检查规则: 当发现有提交在描述之外的平台打开此宏,则对该笔提交aiaiai -1。
 	Ø 填写说明: 填写使用该宏的SoC平台。
+	Ø 当新增项目时,defconfig的初始创建 会参照同类型的其它项目, 例sharkl5Pro 参照sharkl5。
+	Ø 新项目在bringup完成且回到主线后, 在config稳定状态下, 新增该项目plat。
+	Ø 具体参数说明 (根据项目动态增加);
+		pike2: pike2项目（Cortex A7，ARMv7架构，只有32位）
+		sharkl3: sharkl3 64位项目
+		sharkl3_32: sharkl3 32位项目
+		sharkle: sharkle 64位项目
+		sharkle32: sharkle 32位项目
+		sharkle32_fp: sharkle 32位 feature phone项目
+		sharkl5: sharkl5 64位项目
+		sharkl5_32: sharkl5 32位项目
+		roc1: roc1 64位项目
 
 [field]
 	Ø 选项: < make | code | make,code >  | < menu > (menu只能独立使用)
