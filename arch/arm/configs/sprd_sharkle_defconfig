@@ -4757,3 +4757,8 @@ CONFIG_E_SHOW_MEM=y
 CONFIG_SBITMAP=y
 # CONFIG_STRING_SELFTEST is not set
 # CONFIG_VIRTUALIZATION is not set
+
+#
+# KUnit support
+#
+# CONFIG_TEST is not set

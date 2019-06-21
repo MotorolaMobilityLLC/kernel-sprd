@@ -95,8 +95,8 @@
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
 
-#define CREATE_TRACE_POINTS
-#include <trace/events/initcall.h>
+//#define CREATE_TRACE_POINTS
+//#include <trace/events/initcall.h>
 
 #include <test/test.h>
 

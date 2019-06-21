@@ -170,6 +170,7 @@ SECTIONS
 		SECURITY_INITCALL
 		INIT_RAM_FS
 		*(.init.rodata.* .init.bss)	/* from the EFI stub */
+		KUNIT_TEST_MODULES
 	}
 	.exit.data : {
 		ARM_EXIT_KEEP(EXIT_DATA)
