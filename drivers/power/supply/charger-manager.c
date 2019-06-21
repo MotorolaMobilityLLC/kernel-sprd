@@ -1689,7 +1689,7 @@ charger_set_property(struct power_supply *psy,
 		     const union power_supply_propval *val)
 {
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
-	union power_supply_propval *thermal_val;
+	union power_supply_propval thermal_val;
 	int cur_temp, cur_jeita_status;
 	int ret = 0;
 	int i;
@@ -1749,9 +1749,9 @@ charger_set_property(struct power_supply *psy,
 		if (cm->desc->jeita_tab_size) {
 			cur_jeita_status = cm_manager_get_jeita_status(cm, cur_temp);
 			if (val->intval > cm->desc->jeita_tab[cur_jeita_status].current_ua)
-				thermal_val->intval = cm->desc->jeita_tab[cur_jeita_status].current_ua;
+				thermal_val.intval = cm->desc->jeita_tab[cur_jeita_status].current_ua;
 		} else {
-			thermal_val->intval = val->intval;
+			thermal_val.intval = val->intval;
 		}
 
 		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
@@ -1764,7 +1764,7 @@ charger_set_property(struct power_supply *psy,
 
 			ret = power_supply_set_property(psy,
 							POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
-							(const union power_supply_propval *)thermal_val);
+							(const union power_supply_propval *)&thermal_val);
 			if (!ret) {
 				power_supply_put(psy);
 				break;
@@ -1772,7 +1772,7 @@ charger_set_property(struct power_supply *psy,
 
 			ret = power_supply_set_property(psy,
 							POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
-							(const union power_supply_propval *)thermal_val);
+							(const union power_supply_propval *)&thermal_val);
 			if (!ret) {
 				power_supply_put(psy);
 				break;
