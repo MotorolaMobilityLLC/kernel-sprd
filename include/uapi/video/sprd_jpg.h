@@ -69,6 +69,7 @@ enum jpg_version_e {
 	SHARKL3 = 15,
 	SHARKL5 = 16,
 	ROC1 = 17,
+	SHARKL5PRO = 18,
 	MAX_VERSIONS,
 };
 

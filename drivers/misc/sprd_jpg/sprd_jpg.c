@@ -126,11 +126,18 @@ static const struct sprd_jpg_cfg_data roc1_jpg_data = {
 	.qos_reg_offset = 0x30
 };
 
+static const struct sprd_jpg_cfg_data sharkl5pro_jpg_data = {
+	.version = SHARKL5PRO,
+	.max_freq_level = 4,
+	.qos_reg_offset = 0x30
+};
+
 static const struct of_device_id of_match_table_jpg[] = {
 
 	{.compatible = "sprd,sharkl3-jpg", .data = &sharkl3_jpg_data},
 	{.compatible = "sprd,sharkl5-jpg", .data = &sharkl5_jpg_data},
 	{.compatible = "sprd,roc1-jpg", .data = &roc1_jpg_data},
+	{.compatible = "sprd,sharkl5pro-jpg", .data = &sharkl5pro_jpg_data},
 	{},
 };
 
