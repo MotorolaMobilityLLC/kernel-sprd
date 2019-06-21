@@ -320,7 +320,7 @@ static SPRD_MUX_CLK(otg_ref, "otg-ref", otg_ref_parents, 0x28,
 		    0, 1, SC9832E_MUX_FLAG);
 
 static SPRD_GATE_CLK(otg_utmi, "otg-utmi", "ap-apb", 0x2c,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static const char * const uart_parents[] = { "ext-26m", "twpll-48m",
 					     "twpll-51m2", "twpll-96m" };
@@ -1265,39 +1265,39 @@ static struct sprd_clk_desc sc9832e_gpu_clk_desc = {
 
 /* 0x20e00000 ap_ahb gate clocks */
 static SPRD_SC_GATE_CLK(dsi_eb, "dsi-eb", "ap-axi", 0x0, 0x1000,
-			BIT(0), 0, 0);
+			BIT(0), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dispc_eb, "dispc-eb", "ap-axi", 0x0, 0x1000,
-			BIT(1), 0, 0);
+			BIT(1), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(vsp_eb, "vsp-eb", "ap-axi", 0x0, 0x1000,
-			BIT(2), 0, 0);
+			BIT(2), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(gsp_eb, "gsp-eb", "ap-axi", 0x0, 0x1000,
-			BIT(3), 0, 0);
+			BIT(3), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(otg_eb, "otg-eb", "ap-axi", 0x0, 0x1000,
-			BIT(4), 0, 0);
+			BIT(4), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dma_pub_eb, "dma-pub-eb", "ap-axi", 0x0, 0x1000,
-			BIT(5), 0, 0);
+			BIT(5), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ce_pub_eb, "ce-pub-eb", "ap-axi", 0x0, 0x1000,
-			BIT(6), 0, 0);
+			BIT(6), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ahb_ckg_eb, "ahb-ckg-eb", "ap-axi", 0x0, 0x1000,
-			BIT(7), 0, 0);
+			BIT(7), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sdio0_eb, "sdio0-eb", "ap-axi", 0x0, 0x1000,
-			BIT(8), 0, 0);
+			BIT(8), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sdio1_eb, "sdio1-eb", "ap-axi", 0x0, 0x1000,
-			BIT(9), 0, 0);
+			BIT(9), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(nandc_eb, "nandc-eb", "ap-axi", 0x0, 0x1000,
-			BIT(10), 0, 0);
+			BIT(10), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(emmc_eb, "emmc-eb", "ap-axi", 0x0, 0x1000,
-			BIT(11), 0, 0);
+			BIT(11), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(spinlock_eb, "spinlock-eb", "ap-axi", 0x0, 0x1000,
-			BIT(13), 0, 0);
+			BIT(13), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(ce_efuse_eb, "ce-efuse-eb", "ap-axi", 0x0, 0x1000,
-			BIT(23), 0, 0);
+			BIT(23), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(emmc_32k_eb, "emmc-32k-eb", "ap-axi", 0x0, 0x1000,
-			BIT(27), 0, 0);
+			BIT(27), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sdio0_32k_eb, "sdio0-32k-eb", "ap-axi", 0x0, 0x1000,
-			BIT(28), 0, 0);
+			BIT(28), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(sdio1_32k_eb, "sdio1-32k-eb", "ap-axi", 0x0, 0x1000,
-			BIT(29), 0, 0);
+			BIT(29), CLK_IGNORE_UNUSED, 0);
 
 static const char * const mcu_parents[] = { "ext-26m", "twpll-512m",
 					    "twpll-768m", "mpll" };
