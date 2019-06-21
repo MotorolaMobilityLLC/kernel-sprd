@@ -46,11 +46,6 @@
 			};
 		};
 	};
-
-dtbo: dtbo {
-	compatible = "sprd,dtbo-test";
-		reg = <0x11>;
-	};
 };
 
 &panel {
