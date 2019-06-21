@@ -25,12 +25,12 @@
 #include <linux/rbtree.h>
 #include <linux/sched.h>
 #include <linux/shrinker.h>
+#include <linux/sprd_iommu.h>
 #include <linux/types.h>
 #include <linux/miscdevice.h>
 
 #include "../uapi/ion.h"
 
-#define IOMAP_MAX    16
 #define ion_phys_addr_t unsigned long
 
 /**
@@ -88,7 +88,7 @@ struct ion_buffer {
 	void *vaddr;
 	struct sg_table *sg_table;
 	struct list_head attachments;
-	int iomap_cnt[IOMAP_MAX];
+	int iomap_cnt[SPRD_IOMMU_MAX];
 };
 void ion_buffer_destroy(struct ion_buffer *buffer);
 

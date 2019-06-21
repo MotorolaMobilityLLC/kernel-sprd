@@ -31,6 +31,7 @@
 #include <linux/rbtree.h>
 #include <linux/slab.h>
 #include <linux/seq_file.h>
+#include <linux/sprd_ion.h>
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
 #include <linux/debugfs.h>
@@ -152,6 +153,8 @@ static void _ion_buffer_destroy(struct ion_buffer *buffer)
 	mutex_lock(&dev->buffer_lock);
 	rb_erase(&buffer->node, &dev->buffers);
 	mutex_unlock(&dev->buffer_lock);
+
+	sprd_ion_unmap_dma((void *)buffer);
 
 	if (heap->flags & ION_HEAP_FLAG_DEFER_FREE)
 		ion_heap_freelist_add(heap, buffer);

@@ -33,6 +33,8 @@ void sprd_ion_set_dma(void *buf, int id);
 
 void sprd_ion_put_dma(void *buf, int id);
 
+void sprd_ion_unmap_dma(void *buffer);
+
 int sprd_ion_get_phys_addr(int fd, struct dma_buf *dmabuf,
 				unsigned long *phys_addr, size_t *size);
 
