@@ -198,6 +198,7 @@
 &sdio1 {
 	bus-width = <4>;
 	sprd,name = "sdio_wifi";
+	sprd,sdio-adma;
 	no-sd;
 	no-mmc;
 	status = "disabled";
