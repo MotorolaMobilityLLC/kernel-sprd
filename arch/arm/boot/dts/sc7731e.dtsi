@@ -272,6 +272,18 @@
 	<&ap_clk CLK_AP_I2C2>, <&ext_26m>;
 };
 
+&spi0 {
+	clock-names ="enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI0_EB>,
+	<&ap_clk CLK_AP_SPI0>, <&ext_26m>;
+};
+
+&spi1 {
+	clock-names ="enable", "spi", "source";
+	clocks = <&aonapb_gate CLK_AP_HS_SPI_EB>,
+	<&aon_clk CLK_AP_HS_SPI>, <&ext_26m>;
+};
+
 &dsi {
 	clock-names = "clk_ap_ahb_dsi_eb";
 	clocks = <&apahb_gate CLK_DSI_EB>;
