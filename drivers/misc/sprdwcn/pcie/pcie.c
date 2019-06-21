@@ -576,7 +576,6 @@ static void disable_pcie_irq(void)
 	}
 }
 
-extern unsigned long chn_init_flags;
 /* called by chip_power_off */
 void sprd_pcie_remove_card(void *wcn_dev)
 {
@@ -839,8 +838,6 @@ static void sprd_pcie_remove(struct pci_dev *pdev)
 	//kfree(priv);
 	pci_set_drvdata(pdev, NULL);
 	pci_disable_device(pdev);
-	/* chip power off, edma reg config flag need be cleard */
-	chn_init_flags = 0;
 	WCN_INFO("%s end\n", __func__);
 }
 

@@ -17,7 +17,6 @@
 #include "mchn.h"
 
 static struct mchn_info_t g_mchn;
-unsigned long chn_init_flags;
 
 struct mchn_info_t *mchn_info(void)
 {
@@ -303,7 +302,7 @@ int mchn_init(struct mchn_ops_t *ops)
 		break;
 	case HW_TYPE_PCIE:
 		ret = edma_chn_init(ops->channel, 0, ops->inout,
-				    ops->pool_size, chn_init_flags);
+				    ops->pool_size);
 		break;
 	default:
 		break;
@@ -312,7 +311,6 @@ int mchn_init(struct mchn_ops_t *ops)
 	if ((ret == 0) && (ops->pool_size > 0))
 		ret = mbuf_pool_init(&(mchn->chn_public[ops->channel].pool),
 				     ops->pool_size, 0);
-	set_bit(ops->channel, &chn_init_flags);
 	WCN_INFO("[-]%s(%d)\n", __func__, ops->channel);
 
 	return ret;
@@ -337,7 +335,6 @@ int mchn_deinit(struct mchn_ops_t *ops)
 		break;
 	case HW_TYPE_PCIE:
 		ret = edma_chn_deinit(ops->channel);
-		clear_bit(ops->channel, &chn_init_flags);
 		break;
 	default:
 		break;

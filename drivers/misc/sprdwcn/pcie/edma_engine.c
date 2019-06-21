@@ -114,7 +114,7 @@ void *mpool_malloc(int len)
 		WCN_ERR("mpool used done!size=0x%x\n", total_len);
 		return NULL;
 	}
-	WCN_INFO("%s(%d) totle:0x%x= {0x%p, 0x%p}\n", __func__, len, total_len,
+	WCN_INFO("%s(0x%x) totle:0x%x= {0x%p, 0x%p}\n", __func__, len, total_len,
 		 p, mpool_vir_to_phy((void *)p));
 	return p;
 }
@@ -1297,25 +1297,26 @@ static void dscr_ring_deinit(int chn)
 }
 
 static int dscr_ring_init(int chn, struct dscr_ring *dscr_ring,
-			int inout, int size, unsigned char *mem,
-			int dscr_ring_flag)
+			int inout, int size)
 {
 	int i;
 	unsigned int tmp;
 	struct desc *dscr;
 
-	WCN_INFO("[+]%s(0x%p, 0x%p)\n", __func__, dscr_ring, mem);
+	WCN_INFO("[+]%s(0x%p, 0x%p)\n", __func__, dscr_ring,
+			 dscr_ring->mem);
 
-	/* mpool not free, so dscr_ring just init one-time */
-	if (dscr_ring_flag & (1 << chn))
-		return 0;
-
-	if (!mem)
+	/* mpool not free, so dscr_ring->mem not change and
+	   don't need re-init.
+	*/
+	if (dscr_ring->mem == NULL) {
 		dscr_ring->mem =
 		    (unsigned char *)mpool_malloc(sizeof(struct desc) *
 						     (size + 1));
-	else
-		dscr_ring->mem = mem;
+		if (dscr_ring->mem == NULL)
+			return ERROR;
+	}
+
 	dscr_ring->size = size;
 	memset(dscr_ring->mem, 0x00, sizeof(struct desc) * (size + 1));
 
@@ -1370,14 +1371,10 @@ static int dscr_ring_init(int chn, struct dscr_ring *dscr_ring,
 	return 0;
 }
 
-static int edma_pending_q_init(int chn, int max, int dscr_ring_flag)
+static int edma_pending_q_init(int chn, int max)
 {
 	struct edma_pending_q *q;
 	struct edma_info *edma = edma_info();
-
-	/* mpool not free, so dscr_ring just init one-time */
-	if (dscr_ring_flag & (1 << chn))
-		return 0;
 
 	q = &(edma->chn_sw[chn].pending_q);
 	memset((char *)q, 0x00, sizeof(struct edma_pending_q));
@@ -1388,8 +1385,7 @@ static int edma_pending_q_init(int chn, int max, int dscr_ring_flag)
 	return OK;
 }
 
-int edma_chn_init(int chn, int mode, int inout, int max_trans,
-		  int dscr_ring_flag)
+int edma_chn_init(int chn, int mode, int inout, int max_trans)
 {
 	int ret, dir = 0;
 	struct dscr_ring *dscr_ring;
@@ -1411,8 +1407,7 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans,
 	switch (mode) {
 	case TWO_LINK_MODE:
 		dscr_ring = &(edma->chn_sw[chn].dscr_ring);
-		ret = dscr_ring_init(chn, dscr_ring, inout, max_trans, NULL,
-				     dscr_ring_flag);
+		ret = dscr_ring_init(chn, dscr_ring, inout, max_trans);
 		if (ret)
 			return ERROR;
 		/* 1:enable channel; 0:disable channel */
@@ -1449,8 +1444,7 @@ int edma_chn_init(int chn, int mode, int inout, int max_trans,
 			/* clear semaphore value */
 			dma_cfg.bit.rf_chn_sem_value = 0xFF;
 		}
-		edma_pending_q_init(chn, mchn_hw_max_pending(chn),
-				    dscr_ring_flag);
+		edma_pending_q_init(chn, mchn_hw_max_pending(chn));
 		break;
 	case ONE_LINK_MODE:
 		/* 0:to cp . 1:to AP */
@@ -1707,6 +1701,7 @@ int edma_deinit(void)
 	delete_queue(q);
 	/* TODO: need free mpool */
 	mpool_free();
+	memset(edma, 0x00, sizeof(edma_info));
 	WCN_INFO("[-]%s\n", __func__);
 
 	return 0;
