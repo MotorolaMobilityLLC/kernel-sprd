@@ -215,7 +215,7 @@
 };
 
 &gpu {
-	clocks = <&aon_apb_regs CLK_GPU_EB>,
+	clocks = <&aonapb_gate CLK_GPU_EB>,
 		<&gpu_clk CLK_GPU>,
 		<&pll CLK_TWPLL_256M>, <&pll CLK_TWPLL_307M2>,
 		<&pll CLK_TWPLL_384M>, <&pll CLK_TWPLL_512M>,

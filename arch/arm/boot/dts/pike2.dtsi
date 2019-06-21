@@ -41,6 +41,7 @@
 
 		pmu_apb_regs: syscon@402b0000 {
 			compatible = "syscon";
+			#syscon-cells = <2>;
 			reg = <0x402b0000 0x10000>;
 		};
 
