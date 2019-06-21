@@ -41,6 +41,15 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 			hwlocks = <&hwlock 12>;
+
+			fgu_calib: calib@6 {
+				reg = <0x6 0x2>;
+			};
+
+			cccv_calib: calib@1a {
+				reg = <0x1a 0x2>;
+			};
+
 			adc_bcal: calib@24 {
 				reg = <0x24 0x2>;
 			};
@@ -59,6 +68,18 @@
 			hwlocks = <&hwlock 4>;
 			nvmem-cells = <&adc_bcal>, <&adc_scal>;
 			nvmem-cell-names = "big_scale_calib", "small_scale_calib";
+		};
+
+		pmic_fgu: fgu@a00 {
+			compatible = "sprd,sc27xx-fgu", "sprd,sc2720-fgu";
+			reg = <0xa00>;
+			bat-detect-gpio = <&pmic_eic 8 GPIO_ACTIVE_HIGH>;
+			nvmem-cell-names = "fgu_calib";
+			nvmem-cells = <&fgu_calib>;
+			io-channels = <&pmic_adc 0>, <&pmic_adc 14>;
+			io-channel-names = "bat-temp", "charge-vol";
+			interrupt-parent = <&sc2720_pmic>;
+			interrupts = <3 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
 		syscon@c00 {
@@ -230,6 +251,14 @@
 				regulator-max-microvolt = <3687500>;
 				regulator-ramp-delay = <25000>;
 			};
+		};
+
+		pmic_charger: charger@e0c {
+			compatible = "sprd,sc27xx-charger", "sprd,sc2720-charger";
+			reg = <0xe0c>;
+			nvmem-cell-names = "cccv_calib";
+			nvmem-cells = <&cccv_calib>;
+			status = "disabled";
 		};
 	};
 };
