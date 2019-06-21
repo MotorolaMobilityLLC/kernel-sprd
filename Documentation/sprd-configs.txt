@@ -10223,14 +10223,14 @@ CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[function] Enable cpu hotplug based on PM_QoS for IPA, powerhint and etc.
 CONFIG_SPRD_CPU_USAGE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] debug
 	[must] debug
 	[function] This function is used to record cpu usage for each cpu.
 CONFIG_SPRD_DEBUG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field] code,make,menu
 	[subsys] soc
 	[must] debug
@@ -10291,6 +10291,13 @@ CONFIG_SPRD_EFUSE
 	[subsys] nvmem
 	[must] home
 	[function] get sprdtrum soc series efuse value
+CONFIG_SPRD_EIRQSOFF
+	[arch] arm
+	[plat] pike2
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_EXT_MODEM
 	[arch] arm64
 	[plat] roc1
@@ -10375,9 +10382,16 @@ CONFIG_SPRD_JPG_CALL_VSP_PW_DOMAIN
 	[subsys]
 	[must]
 	[function]
+CONFIG_SPRD_LAST_REGS
+	[arch] arm
+	[plat] pike2,sharkle32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_LOOK_AT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field]
 	[subsys]
 	[must]
@@ -10413,7 +10427,7 @@ CONFIG_SPRD_MEM_OVERLAY_CHECK
 		   reserved-memory.
 CONFIG_SPRD_MINI_SYSDUMP
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkle32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -11267,7 +11281,7 @@ CONFIG_TREE_SRCU
 	[function]
 CONFIG_TRUSTY
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] all
 	[field] make,code
 	[subsys] tee
 	[must] home
@@ -11291,14 +11305,14 @@ CONFIG_TRUSTY_FIQ_ARM
 	[function]
 CONFIG_TRUSTY_LOG
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] all
 	[field] make
 	[subsys] tee
 	[must] debug
 	[function] This is used to dump trusty OS log and output to kernel log
 CONFIG_TRUSTY_VIRTIO
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] all
 	[field] make
 	[subsys] tee
 	[must] home
@@ -11306,7 +11320,7 @@ CONFIG_TRUSTY_VIRTIO
 		   back-end virtio driver in trusty OS
 CONFIG_TRUSTY_VIRTIO_IPC
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] all
 	[field] make
 	[subsys] tee
 	[must] home
