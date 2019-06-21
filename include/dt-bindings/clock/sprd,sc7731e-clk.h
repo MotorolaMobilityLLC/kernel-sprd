@@ -50,7 +50,7 @@
 #define CLK_MPLL		33
 #define CLK_DPLL		34
 #define CLK_GPLL		35
-#define	CLK_BBPLL_416M		4
+#define	CLK_BBPLL_416M		36
 #define CLK_AON_PLL_NUM		(CLK_BBPLL_416M + 1)
 
 #define CLK_DSI_EB		0
