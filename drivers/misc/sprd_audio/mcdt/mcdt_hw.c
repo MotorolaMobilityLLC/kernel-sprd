@@ -14,11 +14,20 @@
 #define pr_fmt(fmt) "[MCDT] "fmt
 
 #include <linux/debugfs.h>
+#include <linux/of.h>
+#include <linux/mfd/syscon.h>
+#include <linux/regmap.h>
 #include "mcdt_hw.h"
 #include "mcdt_phy_v0.h"
 
 #define MCDT_REG_SIZE			(0x160 + 0x10)
 #define MCDT_DMA_AP_CHANNEL		5
+
+/* AGCP AHB registers doesn't defined by global header file. So
+ * define them here.
+ */
+#define REG_AGCP_AHB_MODULE_EB0_STS	0x00
+#define BIT_MCDT_EN	BIT(12)
 
 static unsigned long membase;
 static unsigned long memphys;
@@ -34,11 +43,21 @@ static int mcdt_adc_dma_channel[MCDT_DMA_AP_CHANNEL];
 static int mcdt_dac_dma_channel[MCDT_DMA_AP_CHANNEL];
 static struct mutex mcdt_mutex;
 
+static struct regmap *agcp_ahb_gpr;
+
 static DEFINE_SPINLOCK(mcdt_lock);
 
 static bool check_agcp_mcdt_clock(void)
 {
-	/* to do check mcdt_clock */
+	u32 val;
+	int ret;
+
+	if (agcp_ahb_gpr) {
+		ret = regmap_read(agcp_ahb_gpr, REG_AGCP_AHB_MODULE_EB0_STS,
+				  &val);
+		if (!ret)
+			return (val & BIT_MCDT_EN) ? true : false;
+	}
 	return true;
 }
 
@@ -1265,6 +1284,14 @@ static int mcdt_probe(struct platform_device *pdev)
 	if (ret) {
 		pr_err("ERR: %s :no property of 'reg'\n", __func__);
 		return -EINVAL;
+	}
+
+	agcp_ahb_gpr = syscon_regmap_lookup_by_phandle(node,
+						       "sprd,syscon-agcp-ahb");
+	if (IS_ERR(agcp_ahb_gpr)) {
+		pr_warn("ERR: [%s] Get the agcp ahb syscon failed!\n",
+			__func__);
+		agcp_ahb_gpr = NULL;
 	}
 
 	memphys = res->start;
