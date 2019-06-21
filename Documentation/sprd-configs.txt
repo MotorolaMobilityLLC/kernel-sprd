@@ -96,6 +96,13 @@ CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINFO
 	[subsys] mm
 	[must] debug
 	[function] Show memory information when lmk kills process
+CONFIG_ANDROID_PARANOID_NETWORK
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_ANON_INODES
 	[arch] all
 	[plat] all
