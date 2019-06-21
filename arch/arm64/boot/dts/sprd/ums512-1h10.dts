@@ -496,6 +496,10 @@
 	status = "okay";
 };
 
+&jpg {
+	status = "okay";
+};
+
 &dsi {
 	status = "okay";
 	#address-cells = <1>;
