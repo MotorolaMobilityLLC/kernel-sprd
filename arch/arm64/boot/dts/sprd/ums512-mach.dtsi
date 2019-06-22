@@ -97,6 +97,10 @@
 		};
 	};
 
+	audio-mem-mgr {
+		memory-region = <&audio_reserved &audiodsp_reserved>;
+	};
+
 	thm_zone: thermal-zones {
 		prometheus6_tzone0: prometheus6-tzone0 {
 			polling-delay-passive = <0>;
