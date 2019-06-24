@@ -1355,6 +1355,16 @@
 	clocks = <&aonapb_gate CLK_DISP_EB>;
 };
 
+&gsp_core0 {
+	clock-names = "clk_dpu_core_src",
+			"clk_dpu_core",
+			"clk_aon_apb_disp_eb";
+
+	clocks = <&pll CLK_TWPLL_384M>,
+		<&aon_clk CLK_DPU>,
+		<&aonapb_gate CLK_DISP_EB>;
+};
+
 &spi0 {
 	clock-names = "enable", "spi", "source";
 	clocks = <&apapb_gate CLK_SPI0_EB>,
