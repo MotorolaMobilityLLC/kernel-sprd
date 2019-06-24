@@ -77,7 +77,6 @@ struct agdsp_access_state {
 };
 
 struct agdsp_access {
-	struct hwspinlock	*hw_lock;
 	struct agdsp_access_state *state;
 	u32 smem_phy_addr;
 	u32 smem_size;
@@ -100,6 +99,7 @@ struct agdsp_access {
 	u32 audcp_pmu_slp_state_mask;
 	u32 ap_access_ena_reg;
 	u32 ap_access_ena_mask;
+	spinlock_t spin_lock;
 };
 
 static struct agdsp_access  *g_agdsp_access;
@@ -175,7 +175,6 @@ static int agdsp_access_initialize(struct platform_device *pdev,
 	struct agdsp_access *dsp_ac;
 	int args_count;
 	unsigned int args[2];
-	int hwspin_num = 0;
 	int ret = -EINVAL;
 
 	g_agdsp_access = kzalloc(sizeof(struct agdsp_access), GFP_KERNEL);
@@ -264,19 +263,8 @@ static int agdsp_access_initialize(struct platform_device *pdev,
 	dsp_ac->state->ap_enable_cnt = 0;
 	dsp_ac->state->cp_enable_cnt = 0;
 
-	hwspin_num = of_hwspin_lock_get_id(node, 0);
-	if (hwspin_num < 0) {
-		ret = hwspin_num;
-		pr_err("of_hwspin_lock_get_id of_hwspin_lock_get_id:%d\n",
-			hwspin_num);
-		goto error;
-	}
-	dsp_ac->hw_lock = hwspin_lock_request_specific(hwspin_num);
-	if (IS_ERR(dsp_ac->hw_lock)) {
-		pr_err("agdsp_access_init can not get the hardware spinlock.\n");
-		ret = -EINVAL;
-		goto error;
-	}
+	spin_lock_init(&g_agdsp_access->spin_lock);
+
 	if (g_agdsp_access->auto_agcp_access == 0) {
 		pr_dbg("agdsp access init, ready.\n");
 		if (!dsp_ac->auto_agcp_access) {
@@ -402,7 +390,6 @@ int agdsp_can_access(void)
 int agdsp_access_enable(void)
 {
 	int ret = 0;
-	unsigned long flags;
 	int cnt = 0;
 	int val = 0;
 	struct agdsp_access *dsp_ac = g_agdsp_access;
@@ -419,12 +406,9 @@ int agdsp_access_enable(void)
 			dsp_ac->ready, dsp_ac->state);
 		return -EPROBE_DEFER;
 	}
-	ret = hwspin_lock_timeout_irqsave(dsp_ac->hw_lock,
-					  HWSPINLOCK_TIMEOUT, &flags);
-	if (ret) {
-		pr_err("agdsp access, Read: lock the hw lock failed.\n");
-		return ret;
-	}
+
+	spin_lock(&dsp_ac->spin_lock);
+
 	if (!dsp_ac->auto_agcp_access) {
 		ret = regmap_update_bits(dsp_ac->agcp_ahb,
 			dsp_ac->ap_access_ena_reg,
@@ -500,8 +484,7 @@ int agdsp_access_enable(void)
 	pr_info("%s out\n", __func__);
 
 exit:
-	hwspin_unlock_irqrestore(dsp_ac->hw_lock, &flags);
-
+	spin_unlock(&dsp_ac->spin_lock);
 	pr_dbg("%s, ap_enable_cnt=%d, cp_enable_cnt=%d.cnt=%d\n",
 		__func__, dsp_ac->state->ap_enable_cnt,
 		dsp_ac->state->cp_enable_cnt, cnt);
@@ -514,7 +497,6 @@ EXPORT_SYMBOL(agdsp_access_enable);
 int agdsp_access_disable(void)
 {
 	int ret = 0;
-	unsigned long flags;
 	struct agdsp_access *dsp_ac = g_agdsp_access;
 
 	pr_dbg("%s entry\n", __func__);
@@ -524,12 +506,7 @@ int agdsp_access_disable(void)
 	if (!dsp_ac->ready || !dsp_ac->state)
 		return -EINVAL;
 
-	ret = hwspin_lock_timeout_irqsave(dsp_ac->hw_lock,
-					  HWSPINLOCK_TIMEOUT, &flags);
-	if (ret) {
-		pr_err("agdsp access, Read: lock the hw lock failed.\n");
-		return ret;
-	}
+	spin_lock(&dsp_ac->spin_lock);
 
 	if (AGCP_READL(&dsp_ac->state->ap_enable_cnt) > 0) {
 		AGCP_WRITEL(AGCP_READL(&dsp_ac->state->ap_enable_cnt) - 1,
@@ -544,7 +521,8 @@ int agdsp_access_disable(void)
 				__func__, ret);
 		}
 	}
-	hwspin_unlock_irqrestore(dsp_ac->hw_lock, &flags);
+
+	spin_unlock(&dsp_ac->spin_lock);
 
 	pr_dbg("%s,dsp_ac->state->ap_enable_cnt=%d,dsp_ac->state->cp_enable_cnt=%d.\n",
 		__func__, dsp_ac->state->ap_enable_cnt,
@@ -562,7 +540,6 @@ static int restore_auto_access(void)
 int restore_access(void)
 {
 	int ret;
-	unsigned long flags;
 	int cnt = 0;
 	int val;
 	struct agdsp_access *dsp_ac = g_agdsp_access;
@@ -583,12 +560,9 @@ int restore_access(void)
 			   dsp_ac->ready, dsp_ac->state);
 		return -EINVAL;
 	}
-	ret = hwspin_lock_timeout_irqsave(dsp_ac->hw_lock,
-					  HWSPINLOCK_TIMEOUT, &flags);
-	if (ret) {
-		pr_err("agdsp access, Read: lock the hw lock failed.\n");
-		return ret;
-	}
+
+	spin_lock(&dsp_ac->spin_lock);
+
 	if (!dsp_ac->auto_agcp_access) {
 		ret = regmap_update_bits(dsp_ac->agcp_ahb,
 			dsp_ac->ap_access_ena_reg,
@@ -646,7 +620,7 @@ exit:
 	pr_info("%s, ap_enable_cnt=%d, cp_enable_cnt=%d.cnt=%d, access value=%#x\n",
 			__func__, dsp_ac->state->ap_enable_cnt,
 			dsp_ac->state->cp_enable_cnt, cnt, val);
-	hwspin_unlock_irqrestore(dsp_ac->hw_lock, &flags);
+	spin_unlock(&dsp_ac->spin_lock);
 
 	return ret;
 }
@@ -656,7 +630,6 @@ EXPORT_SYMBOL(restore_access);
 int disable_access_force(void)
 {
 	int ret;
-	unsigned long flags;
 	int retval;
 	struct agdsp_access *dsp_ac = g_agdsp_access;
 
@@ -673,12 +646,8 @@ int disable_access_force(void)
 		return -EINVAL;
 	}
 
-	ret = hwspin_lock_timeout_irqsave(dsp_ac->hw_lock,
-				HWSPINLOCK_TIMEOUT, &flags);
-	if (ret) {
-		pr_err("agdsp access, Read: lock the hw lock failed.\n");
-		return ret;
-	}
+	spin_lock(&dsp_ac->spin_lock);
+
 	ret = regmap_update_bits(dsp_ac->agcp_ahb,
 		dsp_ac->ap_access_ena_reg,
 		dsp_ac->ap_access_ena_mask, 0);
@@ -686,7 +655,7 @@ int disable_access_force(void)
 	pr_info("%s,update register AUDACCESS_APB_AGCP_CTRL, ret=%d, access value =%#x\n",
 		__func__, ret, retval);
 
-	hwspin_unlock_irqrestore(dsp_ac->hw_lock, &flags);
+	spin_unlock(&dsp_ac->spin_lock);
 
 	return 0;
 }
@@ -733,7 +702,6 @@ static int agdsp_access_debug_info_show(struct seq_file *m, void *private)
 	seq_printf(m, "ap_enable_cnt:%d  cp_enable_cnt=%d\n",
 		g_agdsp_access->state->ap_enable_cnt,
 		g_agdsp_access->state->cp_enable_cnt);
-	seq_printf(m, "hw_lock:0x%p\n", g_agdsp_access->hw_lock);
 	seq_printf(m, "smem_phy_addr:0x%x  size=%d\n",
 		g_agdsp_access->smem_phy_addr, g_agdsp_access->smem_size);
 	seq_printf(m, "thread:0x%p\n", g_agdsp_access->thread);
