@@ -98,7 +98,7 @@ static int serdes_cut_off(struct serdes_drv_data *serdes, int cut_off)
 
 static int serdes_dc_blnc_fix(struct serdes_drv_data *serdes, int fix)
 {
-	reg_write(s_reg(serdes, DC_BLNC_REG), !!fix);
+	reg_write(s_reg(serdes, DC_BLNC_REG), fix);
 	return 0;
 }
 

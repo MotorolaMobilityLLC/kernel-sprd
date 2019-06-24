@@ -383,6 +383,11 @@ static int dbg_log_probe(struct platform_device *pdev)
 	dbg->serdes.base = serdes_apb;
 	dbg->serdes.cut_off = 0x20;
 
+	if (of_property_read_bool(pdev->dev.of_node, "sprd,dcfix")) {
+		DEBUG_LOG_PRINT("dcfix enable\n");
+		dbg->serdes.dc_blnc_fix = 3;
+	}
+
 	count = of_property_count_strings(pdev->dev.of_node, "sprd,ch-name");
 	DEBUG_LOG_PRINT("ch_num %d\n", count);
 
