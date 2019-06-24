@@ -962,6 +962,7 @@ static int sprd_dpu_irq_request(struct sprd_dpu *dpu)
 		return -EINVAL;
 	}
 	dpu->ctx.irq = irq_num;
+	dpu->ctx.dpu_isr = sprd_dpu_isr;
 
 	return 0;
 }

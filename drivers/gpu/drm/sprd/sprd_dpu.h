@@ -174,6 +174,7 @@ struct dpu_context {
 	struct work_struct wb_work;
 	struct work_struct dvfs_work;
 	u32 wb_addr_p;
+	irqreturn_t (*dpu_isr)(int irq, void *data);
 };
 
 struct sprd_dpu {
