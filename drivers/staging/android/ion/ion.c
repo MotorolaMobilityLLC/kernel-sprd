@@ -493,7 +493,7 @@ int ion_phys(int fd, unsigned long *phys_addr, size_t *size)
 		*phys_addr = sg_phys(buffer->sg_table->sgl);
 		*size = buffer->size;
 	} else {
-		ret = -EPERM;
+		return -EPERM;
 	}
 	dma_buf_put(dmabuf);
 
