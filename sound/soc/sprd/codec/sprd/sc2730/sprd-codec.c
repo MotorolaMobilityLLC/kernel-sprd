@@ -1166,7 +1166,6 @@ static int dalr_dc_os_event(struct snd_soc_dapm_widget *w,
 			DAL_EN|DAR_EN, DAL_EN|DAR_EN);
 		sprd_codec_wait(1);
 		update_switch(codec, SDALHPL | SDARHPR, on);
-		sprd_codec_sdm_ramp(codec, on);
 	} else {
 		sprd_codec_sdm_ramp(codec, on);
 		update_switch(codec, SDALHPL | SDARHPR, on);
@@ -1189,8 +1188,11 @@ static int dalr_dc_os_event(struct snd_soc_dapm_widget *w,
 	if (i >= 20)
 		sp_asoc_pr_info("%s Dpop failed!\n", __func__);
 	else
-		sp_asoc_pr_info("%s Dpop sucessed! i=%d\n",
-			__func__, i);
+		sp_asoc_pr_info("%s Dpop sucessed! i=%d, ANA_STS1=0x%x\n",
+			__func__, i, state);
+
+	if (on)
+		sprd_codec_sdm_ramp(codec, on);
 
 	return 0;
 }
