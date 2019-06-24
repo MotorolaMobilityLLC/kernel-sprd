@@ -3088,6 +3088,9 @@ void scheduler_tick(void)
 	trigger_load_balance(rq);
 #endif
 	rq_last_tick_reset(rq);
+
+	if (curr->sched_class == &fair_sched_class)
+		check_for_migration(rq, curr);
 }
 
 #ifdef CONFIG_NO_HZ_FULL
@@ -5969,6 +5972,7 @@ void __init sched_init(void)
 		rq->cpu_capacity = rq->cpu_capacity_orig = SCHED_CAPACITY_SCALE;
 		rq->balance_callback = NULL;
 		rq->active_balance = 0;
+		rq->push_task = NULL;
 		rq->next_balance = jiffies;
 		rq->push_cpu = 0;
 		rq->cpu = i;
