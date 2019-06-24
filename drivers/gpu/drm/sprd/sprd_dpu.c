@@ -614,6 +614,9 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 	pm_runtime_get_sync(dpu->dev.parent);
 
 	sprd_dpu_init(dpu);
+
+	enable_irq(dpu->ctx.irq);
+
 	sprd_iommu_restore(&dpu->dev);
 }
 
@@ -657,6 +660,8 @@ static void sprd_crtc_atomic_disable(struct drm_crtc *crtc,
 		return;
 
 	sprd_crtc_wait_last_commit_complete(crtc);
+
+	disable_irq(dpu->ctx.irq);
 
 	sprd_dpu_uninit(dpu);
 
@@ -978,7 +983,9 @@ static int sprd_dpu_irq_request(struct sprd_dpu *dpu)
 	}
 	DRM_INFO("dpu irq_num = %d\n", irq_num);
 
-	err = request_irq(irq_num, sprd_dpu_isr, 0, "DISPC", dpu);
+	irq_set_status_flags(irq_num, IRQ_NOAUTOEN);
+	err = devm_request_irq(&dpu->dev, irq_num, sprd_dpu_isr,
+					0, "DISPC", dpu);
 	if (err) {
 		DRM_ERROR("error: dpu request irq failed\n");
 		return -EINVAL;

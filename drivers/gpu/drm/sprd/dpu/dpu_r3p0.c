@@ -741,7 +741,7 @@ static void dpu_dvfs_work_func(struct work_struct *data)
 	down(&ctx->refresh_lock);
 	if (!ctx->is_inited) {
 		up(&ctx->refresh_lock);
-		pr_err("dpu is not initialized\n");
+		pr_info("dpu is not initialized\n");
 		return;
 	}
 
@@ -873,6 +873,8 @@ static void dpu_uninit(struct dpu_context *ctx)
 	reg->dpu_int_clr = 0xff;
 
 	panel_ready = false;
+
+	cancel_work_sync(&ctx->dvfs_work);
 }
 
 enum {
