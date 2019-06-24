@@ -247,29 +247,6 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	struct sprd_pcie *ctrl;
 	int ret;
 	size_t len = strlen(dev_name(dev)) + 10;
-	/* Dirty: must be deleted. Only for marlin3 driver temperarily */
-	static int probe_defer_count;
-
-	/*
-	 *  Dirty:
-	 *	These codes must be delete atfer marlin3 EP power-on sequence
-	 *	is okay.
-	 *  There two device type of the PCIe controller: RC and EP.
-	 *  -1. As RC + marlin3 PCIe EP:
-	 *	Marlin3 power on and init is too late. Before establishing PCIe
-	 *	link we must wait, wait... If marlin3 PCIe power on sequence is
-	 *	nice, we will remove these dirty codes.
-	 *  -2. As RC + ORCA PCIe EP:
-	 *	Because orca EP power on in uboot, if the probe() continue, PCIe
-	 *	will establish link. It's not nesseary to defer probe in this
-	 *	situation. However, it's harmless to defer probe.
-	 *  -3. As EP: This controller is selected to EP mode for ORCA:
-	 *	It must run earlier than RC. So it can't be probed.
-	 */
-	if ((probe_defer_count++) < 10)
-		return -EPROBE_DEFER;
-	dev_info(dev, "%s: defer probe %d times to wait wcn\n",
-			 __func__, probe_defer_count);
 
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-startup-syscons");
 	if (ret < 0) {
