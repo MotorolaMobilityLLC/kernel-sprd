@@ -190,3 +190,7 @@
 &pcie1 {
 	status = "disabled";
 };
+
+&pcie0 {
+	status = "okay";
+};
