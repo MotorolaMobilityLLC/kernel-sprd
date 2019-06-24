@@ -1023,6 +1023,10 @@ static int compr_stream_hw_free(struct snd_compr_stream *cstream)
 		audio_mem_unmap(srtd->buffer);
 		srtd->buffer = 0;
 	}
+	if (srtd->is_access_enabled) {
+		agdsp_access_disable();
+		srtd->is_access_enabled = false;
+	}
 	srtd->dma_cfg_virt[1] = 0;
 	srtd->dma_cfg_phy[1] = 0;
 
@@ -1310,10 +1314,6 @@ static int sprd_platform_compr_free(struct snd_compr_stream *cstream)
 	if (ret < 0)
 		sp_asoc_pr_info("send COMPR_CMD_CLOSE ret %d\n", ret);
 
-	if (srtd->is_access_enabled) {
-		agdsp_access_disable();
-		srtd->is_access_enabled = false;
-	}
 	mutex_unlock(&dev_ctrl->mutex);
 
 	return 0;
