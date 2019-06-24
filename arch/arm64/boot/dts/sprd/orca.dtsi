@@ -1108,7 +1108,7 @@
 
 			pcie0: pcie0@2b100000 {
 				compatible = "sprd,pcie", "snps,dw-pcie";
-				reg = <0x0 0x2b100000 0x0 0x2000>,
+				reg = <0x0 0x2b100000 0x0 0x100000>,
 				      <0x2 0x00000000 0x0 0x2000>;
 				reg-names = "dbi", "config";
 				#address-cells = <3>;
