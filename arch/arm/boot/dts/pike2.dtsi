@@ -468,6 +468,78 @@
 			#size-cells = <1>;
 			ranges;
 
+			cam_domain: cam-domain {
+				compatible = "sprd,cam-domain";
+				sprd,aon-apb-syscon = <&aon_apb_regs>;
+				sprd,cam-ahb-syscon = <&ap_ahb_regs>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+			};
+
+			mipi_csi_phy0: mipi-csi-phy0 {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <0>;
+				status = "disabled";
+			};
+
+			dcam: dcam@60800000 {
+				compatible = "sprd,dcam";
+				reg = <0x60800000 0x4000>;
+				interrupts = <GIC_SPI 45 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,cam-ahb-syscon = <&aon_apb_regs>;
+				sprd,aon-apb-syscon = <&aon_apb_regs>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				sprd,isp = <&isp>;
+				sprd,dcam-count = <1>;
+				iommus = <&iommu_dcam>;
+				status = "disable";
+			};
+
+			iommu_dcam: iommu@60800000 {
+				compatible = "sprd,iommuexpk2-dcam";
+				reg = <0x60800000 0x200>,
+					<0x60800200 0x60>,
+					<0x40000000 0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg",
+						"iova pool";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			isp: isp@60a00000 {
+				compatible = "sprd,isp";
+				reg = <0x60a00000 0x100000>;
+				interrupts = <GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,cam-ahb-syscon = <&ap_ahb_regs>;
+				sprd,aon-apb-syscon = <&aon_apb_regs>;
+				sprd,isp-count = <1>;
+				iommus = <&iommu_isp>;
+				status = "disable";
+			};
+
+			iommu_isp: iommu@60a00000 {
+				compatible = "sprd,iommuexpk2-isp";
+				reg = <0x60a00000 0x800>,
+					<0x60a00800 0x400>,
+					<0x50000000 0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg",
+					"iova pool";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			csi0: csi@60c00000 {
+				compatible = "sprd,csi-controller";
+				reg = <0x60c00000 0x1000>;
+				interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,cam-ahb-syscon = <&ap_ahb_regs>;
+				sprd,ana-apb-syscon = <&aon_apb_regs>;
+				sprd,csi-id = <0>;
+				sprd,ip-version = <0x100>;
+				status = "disable";
+			};
+
 			gpu: gpu@60000000 {
 				compatible = "sprd,mali-midgard";
 				reg = <0x60000000 0x4000>;

@@ -448,3 +448,14 @@
 		   <&pll CLK_TWPLL_384M>, <&pll CLK_TWPLL_512M>,
 		   <&pll CLK_GPLL>;
 };
+
+&cam_domain {
+	clock-names = "clk_gate_eb",
+			"clk_mm_eb",
+			"clk_mm_ahb",
+			"clk_mm_ahb_parent";
+	clocks = <&mm_gate CLK_MM_CKG_EB>,
+			<&aonapb_gate CLK_MM_EB>,
+			<&mm_clk CLK_MM_AHB>,
+			<&pll CLK_TWPLL_153M6>;
+};
