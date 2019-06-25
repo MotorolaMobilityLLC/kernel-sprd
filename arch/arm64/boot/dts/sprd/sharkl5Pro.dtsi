@@ -425,7 +425,7 @@
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
 				/*iommus = <&iommu_dcam>;*/
-				status = "okay";
+				status = "disabled";
 			};
 
 			fd: fd@62a00000 {
