@@ -696,12 +696,40 @@ static int vsp_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int vsp_suspend(struct device *dev)
+{
+	int instance_cnt = atomic_read(&vsp_instance_cnt);
+
+	while (instance_cnt > 0) {
+		vsp_pw_off(VSP_PW_DOMAIN_VSP);
+		instance_cnt--;
+	}
+
+	return 0;
+}
+
+static int vsp_resume(struct device *dev)
+{
+	int instance_cnt = atomic_read(&vsp_instance_cnt);
+
+	while (instance_cnt > 0) {
+		vsp_pw_on(VSP_PW_DOMAIN_VSP);
+		instance_cnt--;
+	}
+
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(vsp_sprd_pm_ops, vsp_suspend,
+			vsp_resume);
+
 static struct platform_driver vsp_driver = {
 	.probe = vsp_probe,
 	.remove = vsp_remove,
 
 	.driver = {
 		   .name = "sprd_vsp",
+		   .pm = &vsp_sprd_pm_ops,
 		   .of_match_table = of_match_ptr(of_match_table_vsp),
 		   },
 };
