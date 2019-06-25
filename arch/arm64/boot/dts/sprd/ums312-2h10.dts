@@ -315,6 +315,11 @@
 	};
 };
 
+&topdvfs_controller {
+	dcdc-modem-mm-share;
+	dcdc-modem-mm-share-en = <0x170 0>;
+};
+
 &thm_zone {
 	bd_thmzone: board-thmzone {
 		polling-delay-passive = <0>;
