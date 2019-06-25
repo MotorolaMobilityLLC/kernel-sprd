@@ -749,7 +749,7 @@
 			REG_ANLG_PHY_G2_RF_ANALOG_PCIE_GEN2_1T1R_REG_SEL_CFG_0
 			MASK_ANLG_PHY_G2_RF_ANALOG_PCIE_GEN2_1T1R_PIPE_RESERVEDIN
 			0x1>,
-		<&anlg_phy_g2_regs 0 0
+		<&anlg_phy_g2_regs 1 0
 			REG_ANLG_PHY_G2_RF_ANALOG_PCIE_GEN2_1T1R_ANA_PCIE31_CTRL2
 			(0x1 << 16)	/* no corresponding macro */
 			(0x1 << 16)>,
