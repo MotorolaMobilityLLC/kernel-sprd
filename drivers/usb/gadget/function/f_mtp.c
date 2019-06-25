@@ -942,6 +942,10 @@ static void receive_file_work(struct work_struct *data)
 				&offset);
 			DBG(cdev, "vfs_write %d\n", ret);
 			if (ret != write_req->actual) {
+				/* wait for our last read to complete */
+				if (read_req)
+					ret = wait_event_interruptible(dev->read_wq,
+					    dev->rx_done || dev->state != STATE_BUSY);
 				r = -EIO;
 				dev->state = STATE_ERROR;
 				break;
