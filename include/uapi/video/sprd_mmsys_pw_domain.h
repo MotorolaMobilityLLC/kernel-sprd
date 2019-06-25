@@ -23,6 +23,7 @@ int sprd_cam_pw_on(void);
 int sprd_cam_pw_off(void);
 int sprd_cam_domain_eb(void);
 int sprd_cam_domain_disable(void);
+int sprd_cache_flush(void *work_buf_vaddr, int pase_size);
 
 /* power on/off call back function, use as follow:
  * 1: static int ssss_event(struct notifier_block *self, unsigned long event,

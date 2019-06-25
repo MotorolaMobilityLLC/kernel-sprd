@@ -23,6 +23,7 @@
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <video/sprd_mmsys_pw_domain.h>
+#include <asm/cacheflush.h>
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -123,8 +124,6 @@ static int sprd_campw_init(struct platform_device *pdev)
 	struct regmap *tregmap;
 	uint32_t args[2];
 
-	pr_info("power init begin\n");
-
 	pw_info = devm_kzalloc(&pdev->dev, sizeof(*pw_info), GFP_KERNEL);
 	if (!pw_info)
 		return -ENOMEM;
@@ -218,7 +217,6 @@ static int sprd_campw_init(struct platform_device *pdev)
 
 	mutex_init(&pw_info->mlock);
 	atomic_set(&pw_info->inited, 1);
-	pr_info("power init end\n");
 
 	return 0;
 }
@@ -264,20 +262,18 @@ int sprd_cam_pw_off(void)
 					&power_state2);
 			if (ret)
 				goto err_pw_off;
-
 			ret = regmap_read_mmsys(&pw_info->regs[PWR_STATUS0],
 					&power_state3);
 			if (ret)
 				goto err_pw_off;
-
 		} while (((power_state1 != (PD_MM_DOWN_FLAG << shift)) &&
 			(read_count < 10)) ||
 				(power_state1 != power_state2) ||
 				(power_state2 != power_state3));
 		if (power_state1 != (PD_MM_DOWN_FLAG << shift)) {
 			pr_err("failed, power_state1=0x%x\n", power_state1);
-			ret = -1;
-			goto err_pw_off;
+			//ret = -1;
+			//goto err_pw_off;
 		}
 	}
 	mutex_unlock(&pw_info->mlock);
@@ -296,75 +292,27 @@ err_pw_off:
 }
 EXPORT_SYMBOL(sprd_cam_pw_off);
 
+int sprd_cache_flush(void *work_buf_vaddr, int pase_size)
+{
+#ifdef CONFIG_64BIT
+	__flush_dcache_area(work_buf_vaddr, pase_size);
+#else
+	flush_kernel_vmap_range(work_buf_vaddr, pase_size);
+#endif
+	return 0;
+}
+EXPORT_SYMBOL(sprd_cache_flush);
+
 int sprd_cam_pw_on(void)
 {
-#if 0
-	int val = 0;
-	int pw_on_status = 0;
-#endif
-#if 1
 	int ret = 0;
 	unsigned int power_state1;
 	unsigned int power_state2;
 	unsigned int power_state3;
 	unsigned int read_count = 0;
-#endif
+
 	pr_info("sprd cam pw on\n");
-#if 0
-	if (!pw_on_status) {
-		{
-	/* pmu */
-		reg_owr(0x327e0024, (BIT_24|BIT_25));
-		reg_awr(0x327e0024, ~(BIT_24|BIT_25));
-		}
 
-		udelay(2);
-		{
-		/* ap apb */
-		reg_owr(0x71000000, BIT_4);
-		val = reg_rd(0x71000000);
-		}
-		{
-		/* aon apb */
-		reg_owr(0x327d0000, BIT_9);
-		val = reg_rd(0x327d0000);
-		}
-
-		{
-		/* aon apb rst */
-		reg_owr(0x327d0004, (BIT_1|BIT_4|BIT_5|BIT_13));
-		val = reg_rd(0x327d0004);
-		}
-
-		{
-		/* aon apb */
-		reg_owr(0x327d0008, (BIT_7|BIT_8|BIT_11|BIT_12|BIT_13));
-		reg_owr(0x327d0008, (BIT_14|BIT_15|BIT_16|BIT_17|BIT_18));
-		val = reg_rd(0x327d0008);
-		}
-
-		{
-		/* MM AHB */
-		reg_owr(0x62200000, (BIT_0|BIT_2|BIT_3|BIT_4|BIT_5|
-			BIT_6|BIT_7|BIT_8));
-		val = reg_rd(0x62200000);
-		}
-		reg_owr(0x62200008, (BIT_0|BIT_1|BIT_2|BIT_3|BIT_4|
-			BIT_5|BIT_6|BIT_7|BIT_8));
-		val = reg_rd(0x62200008);
-
-		usleep_range(100, 150);
-
-		reg_owr(0x62200004, 0x1FFF);
-		usleep_range(300, 350);
-
-		reg_awr(0x62200004, 0xFFFFE000);
-		usleep_range(300, 350);
-		pw_on_status = 1;
-	}
-#endif
-pr_info("sprd cam pw on end\n");
-#if 1
 	ret = check_drv_init();
 	if (ret) {
 		pr_info("uses: %d, cb: %p, ret %d\n",
@@ -389,25 +337,22 @@ pr_info("sprd cam pw on end\n");
 					&power_state1);
 			if (ret)
 				goto err_pw_on;
-
 			ret = regmap_read_mmsys(&pw_info->regs[PWR_STATUS0],
 					&power_state2);
 			if (ret)
 				goto err_pw_on;
-
 			ret = regmap_read_mmsys(&pw_info->regs[PWR_STATUS0],
 					&power_state3);
 			if (ret)
 				goto err_pw_on;
-
 		} while ((power_state1 && read_count < 10) ||
 				(power_state1 != power_state2) ||
 				(power_state2 != power_state3));
 
 		if (power_state1) {
 			pr_err("cam domain pw on failed 0x%x\n", power_state1);
-			ret = -1;
-			goto err_pw_on;
+			//ret = -1;
+			//goto err_pw_on;
 		}
 	}
 	mutex_unlock(&pw_info->mlock);
@@ -415,15 +360,13 @@ pr_info("sprd cam pw on end\n");
 	pr_info("Done, uses: %d, read count %d, cb: %p\n",
 		atomic_read(&pw_info->users_pw), read_count,
 		__builtin_return_address(0));
-#endif
+	pr_info("sprd cam pw on end\n");
 	return 0;
-#if 1
 err_pw_on:
 	atomic_dec_return(&pw_info->users_pw);
 	mutex_unlock(&pw_info->mlock);
 	pr_info("cam domain, failed to power on, ret = %d\n", ret);
 	return ret;
-#endif
 }
 EXPORT_SYMBOL(sprd_cam_pw_on);
 
@@ -431,7 +374,6 @@ int sprd_cam_domain_eb(void)
 {
 	int ret = 0;
 	uint32_t tmp = 0;
-
 	ret = check_drv_init();
 	if (ret) {
 		pr_err("fail to get init state %d, cb %p, ret %d\n",
@@ -470,7 +412,6 @@ int sprd_cam_domain_eb(void)
 
 	}
 	mutex_unlock(&pw_info->mlock);
-
 	return 0;
 }
 EXPORT_SYMBOL(sprd_cam_domain_eb);
@@ -478,7 +419,6 @@ EXPORT_SYMBOL(sprd_cam_domain_eb);
 int sprd_cam_domain_disable(void)
 {
 	int ret = 0;
-
 	ret = check_drv_init();
 	if (ret) {
 		pr_err("fail to get init state %d, cb %p, ret %d\n",
@@ -501,10 +441,9 @@ int sprd_cam_domain_disable(void)
 		clk_disable_unprepare(pw_info->cam_mtx_clk);
 
 		clk_disable_unprepare(pw_info->cam_mm_ahb_eb);
-		//clk_disable_unprepare(pw_info->cam_mm_eb);
+		clk_disable_unprepare(pw_info->cam_mm_eb);
 	}
 	mutex_unlock(&pw_info->mlock);
-
 	return 0;
 }
 EXPORT_SYMBOL(sprd_cam_domain_disable);
