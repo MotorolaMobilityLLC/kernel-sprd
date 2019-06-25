@@ -16,7 +16,7 @@
 #include <linux/thermal.h>
 #include <linux/cpufreq.h>
 
-#ifdef CONFIG_ARM_SPRD_CPUFREQ
+#if defined(CONFIG_ARM_SPRD_HW_CPUFREQ) || defined(CONFIG_ARM_SPRD_SW_CPUFREQ)
 #include <linux/sprd-cpufreq.h>
 #endif
 
@@ -1435,7 +1435,7 @@ static int cpufreq_update_max_freq(struct thermal_cooling_device *cdev,
 	struct cpufreq_cooling_device *cpufreq_device = cdev->devdata;
 	unsigned int cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 
-#ifdef CONFIG_ARM_SPRD_CPUFREQ
+#if defined(CONFIG_ARM_SPRD_HW_CPUFREQ) || defined(CONFIG_ARM_SPRD_SW_CPUFREQ)
 	allow_max_freq = sprd_cpufreq_update_opp(cpu, tz->temperature);
 #endif
 
