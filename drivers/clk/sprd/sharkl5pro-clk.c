@@ -538,18 +538,19 @@ static struct sprd_clk_desc sharkl5pro_gpu_clk_desc = {
 
 /* mm clocks */
 static const char * const mm_ahb_parents[] = { "ext-26m", "twpll-96m",
-					"twpll-128m", "twpll-153m6" };
+					       "twpll-128m", "twpll-153m6" };
 static SPRD_MUX_CLK(mm_ahb_clk, "mm-ahb-clk", mm_ahb_parents, 0x20,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
 static const char * const mm_mtx_parents[] = { "twpll-76m8", "twpll-128m",
-					"twpll-256m", "twpll-307m2",
-					"twpll-384m", "isppll-468m" };
+					       "twpll-256m", "twpll-307m2",
+					       "twpll-384m", "isppll-468m",
+					       "twpll-512m" };
 static SPRD_MUX_CLK(mm_mtx_clk, "mm-mtx-clk", mm_mtx_parents, 0x24,
 		    0, 3, SHARKL5PRO_MUX_FLAG);
 
 static const char * const sensor_parents[] = { "ext-26m", "twpll-48m",
-					"twpll-76m8", "twpll-96m" };
+					       "twpll-76m8", "twpll-96m" };
 static SPRD_COMP_CLK(sensor0_clk, "sensor0-clk", sensor_parents, 0x28,
 		     0, 2, 8, 3, 0);
 static SPRD_COMP_CLK(sensor1_clk, "sensor1-clk", sensor_parents, 0x2c,
@@ -558,17 +559,17 @@ static SPRD_COMP_CLK(sensor2_clk, "sensor2-clk", sensor_parents, 0x30,
 		     0, 2, 8, 3, 0);
 
 static const char * const cpp_parents[] = { "twpll-76m8", "twpll-128m",
-					"twpll-256m", "twpll-307m2" };
+					    "twpll-256m", "twpll-384m" };
 static SPRD_MUX_CLK(cpp_clk, "cpp-clk", cpp_parents, 0x34,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
 static const char * const jpg_parents[] = { "twpll-76m8", "twpll-128m",
-					"twpll-192m", "twpll-256m" };
+					    "twpll-256m", "twpll-384m" };
 static SPRD_MUX_CLK(jpg_clk, "jpg-clk", jpg_parents, 0x38,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
 static const char * const fd_parents[] = { "twpll-76m8", "twpll-192m",
-					"twpll-307m2", "twpll-384m" };
+					   "twpll-307m2", "twpll-384m" };
 static SPRD_MUX_CLK(fd_clk, "fd-clk", fd_parents, 0x3c,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
@@ -578,11 +579,10 @@ static const char * const dcam_if_parents[] = { "twpll-192m", "twpll-256m",
 static SPRD_MUX_CLK(dcam_if_clk, "dcam-if-clk", dcam_if_parents, 0x40,
 		    0, 3, SHARKL5PRO_MUX_FLAG);
 
-static const char * const dcam_axi_parents[] = { "twpll-192m", "twpll-256m",
-						 "twpll-307m2", "twpll-384m",
-						 "isppll-468m" };
+static const char * const dcam_axi_parents[] = { "twpll-256m", "twpll-307m2",
+						 "twpll-384", "isppll-468m" };
 static SPRD_MUX_CLK(dcam_axi_clk, "dcam-axi-clk", dcam_axi_parents, 0x44,
-		    0, 3, SHARKL5PRO_MUX_FLAG);
+		    0, 2, SHARKL5PRO_MUX_FLAG);
 
 static const char * const isp_parents[] = { "twpll-256m", "twpll-307m2",
 					    "twpll-384m", "isppll-468m",
