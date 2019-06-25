@@ -87,6 +87,7 @@
 			 <&aonapb_gate CLK_AUX0_EB>;
 		sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/wcnmodem";
 		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
+		sprd,rc-ctrl = <&pcie0>;
 	};
 
 	sprd-wlan {
