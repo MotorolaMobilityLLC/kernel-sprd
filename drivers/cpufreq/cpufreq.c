@@ -669,7 +669,7 @@ show_one(cpuinfo_max_freq, cpuinfo.max_freq);
 show_one(cpuinfo_transition_latency, cpuinfo.transition_latency);
 show_one(scaling_min_freq, min);
 show_one(scaling_max_freq, max);
-
+show_one(scaling_fix_freq, fix);
 __weak unsigned int arch_freq_get_on_cpu(int cpu)
 {
 	return 0;
@@ -722,6 +722,37 @@ static ssize_t store_##file_name					\
 
 store_one(scaling_min_freq, min);
 store_one(scaling_max_freq, max);
+
+static ssize_t store_scaling_fix_freq(struct cpufreq_policy *policy,
+					const char *buf, size_t count)
+{
+	unsigned int fix_freq = 0;
+	unsigned int ret;
+
+	ret = sscanf(buf, "%u", &fix_freq);
+	if (ret != 1)
+		return -EINVAL;
+
+	if (fix_freq != 0) {
+		struct cpufreq_frequency_table *table = policy->freq_table;
+		struct cpufreq_frequency_table *pos;
+		unsigned int freq = 0;
+		if (fix_freq > policy->cpuinfo.max_freq || fix_freq < policy->cpuinfo.min_freq)
+			return -EINVAL;
+		cpufreq_for_each_valid_entry(pos, table) {
+			freq = pos->frequency;
+			if (freq == fix_freq)
+				break;
+		}
+		if (freq != fix_freq)
+			return -EINVAL;
+	}
+	policy->fix = fix_freq;
+	smp_wmb();
+	 __cpufreq_driver_target(policy, policy->target_freq, CPUFREQ_RELATION_F);
+
+	return count;
+}
 
 /**
  * show_cpuinfo_cur_freq - current CPU frequency as detected by hardware
@@ -896,6 +927,7 @@ cpufreq_freq_attr_ro(related_cpus);
 cpufreq_freq_attr_ro(affected_cpus);
 cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
+cpufreq_freq_attr_rw(scaling_fix_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
 
@@ -905,6 +937,7 @@ static struct attribute *default_attrs[] = {
 	&cpuinfo_transition_latency.attr,
 	&scaling_min_freq.attr,
 	&scaling_max_freq.attr,
+	&scaling_fix_freq.attr,
 	&affected_cpus.attr,
 	&related_cpus.attr,
 	&scaling_governor.attr,
@@ -2051,25 +2084,30 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 
 	if (cpufreq_disabled())
 		return -ENODEV;
+	if (unlikely(policy->fix)) {
+		target_freq = policy->fix;
+		relation = CPUFREQ_RELATION_F;
+		pr_warn("target for CPU %u is fixed to %u kHz, only be used for test!\n",
+			policy->cpu, target_freq);
+	} else {
+		/* Make sure that target freq is within qos request range */
+		cluster_id = topology_physical_package_id(policy->cpu);
+		if (CPU_CLUSTER0 == cluster_id) {
+			qos_max_freq = pm_qos_request(PM_QOS_CLUSTER0_FREQ_MAX);
+			qos_min_freq = pm_qos_request(PM_QOS_CLUSTER0_FREQ_MIN);
+		} else if (CPU_CLUSTER1 == cluster_id) {
+			qos_max_freq = pm_qos_request(PM_QOS_CLUSTER1_FREQ_MAX);
+			qos_min_freq = pm_qos_request(PM_QOS_CLUSTER1_FREQ_MIN);
+		} else
+			pr_warn("more cluster id is not support yet!\n");
+		target_freq = clamp_val(target_freq, qos_min_freq, qos_max_freq);
 
-	/* Make sure that target freq is within qos request range */
-	cluster_id = topology_physical_package_id(policy->cpu);
-	if (CPU_CLUSTER0 == cluster_id) {
-		qos_max_freq = pm_qos_request(PM_QOS_CLUSTER0_FREQ_MAX);
-		qos_min_freq = pm_qos_request(PM_QOS_CLUSTER0_FREQ_MIN);
-	} else if (CPU_CLUSTER1 == cluster_id) {
-		qos_max_freq = pm_qos_request(PM_QOS_CLUSTER1_FREQ_MAX);
-		qos_min_freq = pm_qos_request(PM_QOS_CLUSTER1_FREQ_MIN);
-	} else
-		pr_warn("more cluster id is not support yet!\n");
-	target_freq = clamp_val(target_freq, qos_min_freq, qos_max_freq);
+		/* Make sure that target_freq is within supported range */
+		target_freq = clamp_val(target_freq, policy->min, policy->max);
 
-	/* Make sure that target_freq is within supported range */
-	target_freq = clamp_val(target_freq, policy->min, policy->max);
-
-	pr_debug("target for CPU %u: %u kHz, relation %u, requested %u kHz\n",
-		 policy->cpu, target_freq, relation, old_target_freq);
-
+		pr_debug("target for CPU %u: %u kHz, relation %u, requested %u kHz\n",
+			 policy->cpu, target_freq, relation, old_target_freq);
+	}
 	/*
 	 * This might look like a redundant call as we are checking it again
 	 * after finding index. But it is left intentionally for cases where
