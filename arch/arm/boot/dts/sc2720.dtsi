@@ -253,12 +253,22 @@
 			};
 		};
 
+		poweroff@c20 {
+			compatible = "sprd,sc27xx-poweroff", "sprd,sc2720-poweroff";
+			reg = <0xc20>;
+		};
+
 		pmic_charger: charger@e0c {
 			compatible = "sprd,sc27xx-charger", "sprd,sc2720-charger";
 			reg = <0xe0c>;
 			nvmem-cell-names = "cccv_calib";
 			nvmem-cells = <&cccv_calib>;
 			status = "disabled";
+		};
+
+		hw-reset@e68 {
+			compatible = "sprd,sc27xx-7sreset", "sprd,sc2720-7sreset";
+			reg = <0xe68>, <0xe38>;
 		};
 	};
 };
