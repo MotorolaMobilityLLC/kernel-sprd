@@ -1122,6 +1122,13 @@ static int _mmc_sd_suspend(struct mmc_host *host)
 
 	mmc_claim_host(host);
 
+	/*
+	 * For bad SDcard,that has been removed power,must to
+	 * return without error.
+	 */
+	if (mmc_card_removed(host->card))
+		goto out;
+
 	if (mmc_card_suspended(host->card))
 		goto out;
 
@@ -1166,6 +1173,13 @@ static int _mmc_sd_resume(struct mmc_host *host)
 #endif
 
 	mmc_claim_host(host);
+
+	/*
+	 * For bad SDcard,that has been removed power,must to
+	 * return without error.
+	 */
+	if (mmc_card_removed(host->card))
+		goto out;
 
 	if (!mmc_card_suspended(host->card))
 		goto out;
