@@ -7,6 +7,7 @@ Required properties:
     "sprd,sharkl5-phy",
     "sprd,roc1-phy"
     "sprd,pike2-phy"
+    "sprd,sharkle-phy"
   - reg: must be the PHY controller base address
   - reg-names: "phy_glb_regs" for the usb phy global register
   - sprd,syscon-enables: specify the handle for aon apb syscon
