@@ -111,14 +111,12 @@
 			reg = <1>;
 			label = "carveout_mm";
 			type = <2>;
-			memory-region = <&mm_reserved>;
 		};
 
 		heap@2 {
 			reg = <2>;
 			label = "carveout_overlay";
 			type = <2>;
-			/* memory-region = <&overlay_reserved>;*/
 		};
 
 		heap@3 {
@@ -335,10 +333,6 @@
 };
 
 &reserved_memory {
-	mm_reserved: mm-mem {
-		reg = <0x0 0xa0000000 0x0 0x1c000000>;
-	};
-
 	fb_reserved: framebuffer-mem {
 		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
 	};
@@ -570,7 +564,15 @@
 	status = "okay";
 };
 
+&iommu_vsp {
+	status = "okay";
+};
+
 &jpg {
+	status = "okay";
+};
+
+&iommu_jpg {
 	status = "okay";
 };
 
@@ -578,11 +580,23 @@
 	status = "okay";
 };
 
+&iommu_dcam {
+	status = "okay";
+};
+
 &isp {
 	status = "okay";
 };
 
+&iommu_isp {
+	status = "okay";
+};
+
 &cpp {
+	status = "okay";
+};
+
+&iommu_cpp {
 	status = "okay";
 };
 

@@ -273,8 +273,19 @@
 					"isp_vau_reset",
 					"isp_enable";
 				sprd,isp-count = <1>;
-				/*iommus = <&iommu_isp>;*/
+				iommus = <&iommu_isp>;
 				status = "disabled";
+			};
+
+			iommu_isp: iommu@62000000 {
+				compatible = "sprd,iommuvaul5p-isp";
+				reg = <0x0 0x62000000 0x0 0xff000>,
+				      <0x0 0x620ff000 0x0 0x80>;
+				iova-base = <0x40000000>;
+				iova-size = <0x20000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
 			};
 
 			csi0: csi00@62300000 {
@@ -355,7 +366,19 @@
 						MASK_AON_APB_RF_MM_EB>;
 				syscon-names = "reset",
 					"aon_apb_eb";
+				iommus = <&iommu_jpg>;
 				status = "disabled";
+			};
+
+			iommu_jpg: iommu@62700000 {
+				compatible = "sprd,iommuvaul5p-jpg";
+				reg = <0x0 0x62700000 0x0 0x300>,
+				      <0x0 0x62700300 0x0 0x80>;
+				iova-base = <0x60000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
 			};
 
 			cpp: cpp@62800000 {
@@ -371,8 +394,19 @@
 					<&mm_clk CLK_CPP>,
 					<&pll2 CLK_TWPLL_384M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
-				/*iommus = <&iommu_cpp>;*/
+				iommus = <&iommu_cpp>;
 				status = "disabled";
+			};
+
+			iommu_cpp: iommu@62800000 {
+				compatible = "sprd,iommuvaul5p-cpp";
+				reg = <0x0 0x62800000 0x0 0x200>,
+				      <0x0 0x62800200 0x0 0x80>;
+				iova-base = <0x40000000>;
+				iova-size = <0x20000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
 			};
 
 			dcam: dcam@62900000 {
@@ -424,8 +458,19 @@
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
-				/*iommus = <&iommu_dcam>;*/
+				iommus = <&iommu_dcam>;
 				status = "disabled";
+			};
+
+			iommu_dcam: iommu@62900000 {
+				compatible = "sprd,iommuvaul5p-dcam";
+				reg = <0x0 0x62900000 0x0 0xf000>,
+				      <0x0 0x6290f000 0x0 0x80>;
+				iova-base = <0x40000000>;
+				iova-size = <0x20000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
 			};
 
 			fd: fd@62a00000 {
@@ -748,8 +793,19 @@
 					"pmu_vsp_auto_shutdown",
 					"pmu_pwr_status",
 					"vsp_domain_eb";
-
+				iommus = <&iommu_vsp>;
 				status = "disabled";
+			};
+
+			iommu_vsp: iommu@20500000 {
+				compatible = "sprd,iommuvaul5p-vsp";
+				reg = <0x0 0x20500000 0x0 0x80>,
+				      <0x0 0x20500000 0x0 0x80>;
+				iova-base = <0x20000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
 			};
 		};
 
