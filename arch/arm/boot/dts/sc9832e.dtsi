@@ -214,6 +214,25 @@
 	<&ap_clk CLK_I2C4>, <&ext_26m>;
 };
 
+
+&spi0 {
+	clock-names ="enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI0_EB>,
+	<&ap_clk CLK_SPI0>, <&pll CLK_TWPLL_192M>;
+};
+
+&spi1 {
+	clock-names ="enable", "spi", "source";
+	clocks = <&aonapb_gate CLK_AP_HS_SPI_EB>,
+	<&ap_clk CLK_HS_SPI>, <&pll CLK_TWPLL_192M>;
+};
+
+&spi2 {
+	clock-names ="enable", "spi", "source";
+	clocks = <&apapb_gate CLK_SPI2_EB>,
+	<&ap_clk CLK_SPI2>, <&pll CLK_TWPLL_192M>;
+};
+
 &gpu {
 	clocks = <&aonapb_gate CLK_GPU_EB>,
 		<&gpu_clk CLK_GPU>,
