@@ -437,7 +437,7 @@ CONFIG_ARCH_USE_CMPXCHG_LOCKREF
 		improvements with Linus' simple stat() test case of up to 50% on a 30 cpu system.
 CONFIG_ARCH_VIRT
 	[arch] arm
-	[plat] sharkl5_32
+	[plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -660,14 +660,14 @@ CONFIG_ARM_AMBA
 	   enable it to support coresight architecture.
 CONFIG_ARM_ARCH_TIMER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] all
 	[field] make,code
 	[subsys] timer
 	[must] console
 	[function] Support arch timer.
 CONFIG_ARM_ARCH_TIMER_EVTSTREAM
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -747,7 +747,7 @@ CONFIG_ARM_GIC_V2M
 	   implement ARM Generic Interrupt Controller: GICv2m.
 CONFIG_ARM_GIC_V3
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -810,7 +810,7 @@ CONFIG_ARM_PMU
 	[function] ARM PMU framework.
 CONFIG_ARM_PSCI
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] arm
 	[must] user
@@ -818,7 +818,7 @@ CONFIG_ARM_PSCI
 		   enable it to support hotplug
 CONFIG_ARM_PSCI_FW
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] all
 	[field] make,code
 	[subsys] core
 	[must] user
@@ -854,7 +854,7 @@ CONFIG_ARM_THUMB
 	[function] Support Thumb user binaries.
 CONFIG_ARM_UNWIND
 	[arch] arm
-	[plat] pike2,sharkl3_32,sharkle32
+	[plat] pike2,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -1195,7 +1195,7 @@ CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC_VALUE
 	[function] Trigger kernel panic when detect soft-lockup.
 CONFIG_BOUNCE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] all
 	[field] make,code
 	[subsys] mm
 	[must] busybox_console
@@ -1748,7 +1748,7 @@ CONFIG_CPU_FREQ_STAT
 	[function] statistical information for dvfs
 CONFIG_CPU_FREQ_TIMES
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] cpufreq
 	[must] debug
@@ -4148,7 +4148,7 @@ CONFIG_HAVE_ARCH_VMAP_STACK
 	[function]
 CONFIG_HAVE_ARM_ARCH_TIMER
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -4914,14 +4914,14 @@ CONFIG_HID_ZYDACRON
 	[function] Zydacron remote control support
 CONFIG_HIGHMEM
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] mm
 	[must] busybox_console
 	[function] High Memory Support. Disabled on featurephone.
 CONFIG_HIGHPTE
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] mm
 	[must] user
@@ -6161,7 +6161,7 @@ CONFIG_KEYS_COMPAT
 	[function] Support for Key compat.
 CONFIG_KSM
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] sharkl3,sharkl5,sharkl5_32
 	[field] make,code
 	[subsys] mm
 	[must] busybox_console
@@ -6620,7 +6620,7 @@ CONFIG_MODULES_USE_ELF_RELA
 	relocations will give an error.
 CONFIG_MODULE_FORCE_UNLOAD
 	[arch] arm
-	[plat] sharkl5_32
+	[plat] sharkl3_32,sharkl5_32
 	[field] menu
 	[subsys] core
 	[must] console
@@ -8192,7 +8192,7 @@ CONFIG_PANTHERLORD_FF
 	[function] Pantherlord force feedback support
 CONFIG_PARTITION_ADVANCED
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] fs
 	[must] none
@@ -8200,7 +8200,7 @@ CONFIG_PARTITION_ADVANCED
 		   system running on a different architecture than linux system.
 CONFIG_PARTITION_PERCPU
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -10546,7 +10546,7 @@ CONFIG_SPRD_ROC1_USB2_PHY
 	[function]
 CONFIG_SPRD_SC7731E_CLK
 	[arch] arm
-	[plat] pike2,sharkl3_32
+	[plat] pike2
 	[field]
 	[subsys]
 	[must]
@@ -10559,8 +10559,8 @@ CONFIG_SPRD_SC9832E_CLK
 	[must]
 	[function]
 CONFIG_SPRD_SC9863A_CLK
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
