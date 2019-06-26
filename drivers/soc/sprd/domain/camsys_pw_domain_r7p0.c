@@ -81,6 +81,24 @@ struct camsys_power_info {
 };
 
 static struct camsys_power_info *pw_info;
+static BLOCKING_NOTIFIER_HEAD(mmsys_chain);
+/* register */
+int sprd_mm_pw_notify_register(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_register(&mmsys_chain, nb);
+}
+EXPORT_SYMBOL(sprd_mm_pw_notify_register);
+
+/* unregister */
+int sprd_mm_pw_notify_unregister(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_unregister(&mmsys_chain, nb);
+}
+
+static int mmsys_notifier_call_chain(unsigned long val, void *v)
+{
+	return blocking_notifier_call_chain(&mmsys_chain, val, v);
+}
 
 static void regmap_update_bits_mmsys(struct register_gpr *p, uint32_t val)
 {
@@ -123,6 +141,8 @@ static int sprd_campw_init(struct platform_device *pdev)
 	const char *pname;
 	struct regmap *tregmap;
 	uint32_t args[2];
+
+	pr_info("cam power init begin\n");
 
 	pw_info = devm_kzalloc(&pdev->dev, sizeof(*pw_info), GFP_KERNEL);
 	if (!pw_info)
@@ -218,6 +238,8 @@ static int sprd_campw_init(struct platform_device *pdev)
 	mutex_init(&pw_info->mlock);
 	atomic_set(&pw_info->inited, 1);
 
+	pr_info("cam power init end\n");
+
 	return 0;
 }
 
@@ -272,8 +294,8 @@ int sprd_cam_pw_off(void)
 				(power_state2 != power_state3));
 		if (power_state1 != (PD_MM_DOWN_FLAG << shift)) {
 			pr_err("failed, power_state1=0x%x\n", power_state1);
-			//ret = -1;
-			//goto err_pw_off;
+			ret = -1;
+			goto err_pw_off;
 		}
 	}
 	mutex_unlock(&pw_info->mlock);
@@ -351,8 +373,8 @@ int sprd_cam_pw_on(void)
 
 		if (power_state1) {
 			pr_err("cam domain pw on failed 0x%x\n", power_state1);
-			//ret = -1;
-			//goto err_pw_on;
+			ret = -1;
+			goto err_pw_on;
 		}
 	}
 	mutex_unlock(&pw_info->mlock);
@@ -410,6 +432,7 @@ int sprd_cam_domain_eb(void)
 		regmap_update_bits_mmsys(&pw_info->regs[QOS_AW],
 			tmp << SHIFT_MASK(pw_info->regs[QOS_AW].mask));
 
+		mmsys_notifier_call_chain(_E_PW_ON, NULL);
 	}
 	mutex_unlock(&pw_info->mlock);
 	return 0;
@@ -432,6 +455,7 @@ int sprd_cam_domain_disable(void)
 
 	mutex_lock(&pw_info->mlock);
 	if (atomic_dec_return(&pw_info->users_clk) == 0) {
+		mmsys_notifier_call_chain(_E_PW_OFF, NULL);
 		clk_set_parent(pw_info->cam_ahb_clk,
 			pw_info->cam_ahb_clk_default);
 		clk_disable_unprepare(pw_info->cam_ahb_clk);
