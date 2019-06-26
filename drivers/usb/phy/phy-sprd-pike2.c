@@ -22,7 +22,7 @@
 #include <linux/regmap.h>
 #include <linux/usb/phy.h>
 #include <linux/usb/otg.h>
-#include <linux/power/sc2721-usb-charger.h>
+#include <linux/power/sc2720-usb-charger.h>
 #include <dt-bindings/soc/sprd,pike2-mask.h>
 #include <dt-bindings/soc/sprd,pike2-regs.h>
 
