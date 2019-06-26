@@ -3067,7 +3067,7 @@ CONFIG_DT_IDLE_STATES
 	[function] This macro is used to open cpuidle and light sleep function.
 CONFIG_DUAL_ROLE_USB_INTF
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] usb
 	[must] user
@@ -3289,7 +3289,7 @@ CONFIG_EXT4_RESERVE_SPACE_FILTER
 	   feature.
 CONFIG_EXTCON
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field]
 	[subsys]
 	[must]
@@ -10635,6 +10635,13 @@ CONFIG_SPRD_SHARKL5_USB2_PHY
 	[subsys] usb
 	[must] user
 	[function] usb phy init
+CONFIG_SPRD_SHARKLE_USB2_PHY
+	[arch] arm
+	[plat] sharkle32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_SIPA
 	[arch] arm64
 	[plat] roc1
@@ -11985,7 +11992,7 @@ CONFIG_USB_PAM
 	[function]
 CONFIG_USB_PHY
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] usb
 	[must] user

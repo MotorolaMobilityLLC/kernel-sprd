@@ -243,6 +243,14 @@ config SPRD_ROC1_USB2_PHY
 	  This driver takes care of all the PHY functionality, normally paired with
 	  DesignWare USB20 (DRD) Controller.
 
+config SPRD_SHARKLE_USB2_PHY
+	tristate "Spreadtrum Sharkle USB2 PHY Driver"
+	select USB_PHY
+	help
+	  Enable this to support the SPRD SHARKLE USB2 PHY that is part of SOC.
+	  This driver takes care of all the PHY functionality, normally paired with
+	  DesignWare USB20 (DRD) Controller.
+
 config SPRD_SHARKL5_USB2_PHY
 	tristate "Spreadtrum Sharkl5 USB2 PHY Driver"
 	select USB_PHY
