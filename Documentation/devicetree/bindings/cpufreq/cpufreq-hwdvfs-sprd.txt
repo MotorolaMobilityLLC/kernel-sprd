@@ -84,6 +84,10 @@ Required properties:
 					control bit is 5, and the hw dvfs
 					function should be disabled.
 Optional properties:
+- dcdc-modem-mm-share-en: The register information to enable dcdc-modem and
+			dcdc-mm shared, for example, <0x170 0> means the
+			register offest in top dvfs is 0x170, the control bit is
+			0.
 - supply-type-sel: A property to select power supply mode for dcdc cpu
 - top-dvfs-adi-state: A property describing the way to get
 			current top dvfs fsm state. for example,<0x70 0 0xF>
@@ -109,6 +113,9 @@ Optional properties:
 			controller is 0x16c, the left shift base bit is 3, the
 			mask is 0x7, the idle voltage grade to set into the
 			register whose offset is 0x16c is 6.
+- dcdc-modem-mm-share: A bool flag, if this flag is defined in board dts, it
+			means the power domains dcdc-modem and dcdc-mm are
+			shared in hardware design.
 
 Node cpudvfs_dev
 -----------------------------------
@@ -343,6 +350,10 @@ dvfs_dcdc_cpu1_supply: dvfs-dcdc-cpu1-supply {
 	tuning-latency-us = <200>;
 };
 
+&topdvfs_controller {
+	dcdc-modem-mm-share-en = <0x170 0>;
+	dcdc-modem-mm-share;
+};
 
 Example 2: Example for cpudvfs_dev
 ---------
