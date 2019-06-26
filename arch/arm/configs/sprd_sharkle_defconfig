@@ -2643,12 +2643,16 @@ CONFIG_USB_MUSB_DUAL_ROLE=y
 #
 # Platform Glue Layer
 #
-# CONFIG_USB_MUSB_SPRD is not set
+CONFIG_USB_MUSB_SPRD=y
 
 #
 # MUSB DMA mode
 #
 # CONFIG_MUSB_PIO_ONLY is not set
+CONFIG_USB_SPRD_DMA=y
+# CONFIG_USB_SPRD_DMA_V3 is not set
+# CONFIG_USB_SPRD_OFFLOAD is not set
+# CONFIG_USB_SPRD_LINKFIFO is not set
 # CONFIG_USB_DWC3 is not set
 # CONFIG_USB_DWC2 is not set
 # CONFIG_USB_CHIPIDEA is not set
