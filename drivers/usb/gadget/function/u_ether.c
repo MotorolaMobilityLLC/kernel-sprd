@@ -1567,10 +1567,11 @@ static int sipa_usb_start_xmit(struct sk_buff *skb, struct net_device *net)
 	ret = sipa_nic_tx(dev->nic_id, pdata->term_type, netid, skb);
 	if (unlikely(ret != 0)) {
 		ERROR(dev, "sipa_usb fail to send skb, ret %d\n", ret);
-		if (ret == -ENOMEM || ret == -EAGAIN) {
+		if (ret == -EAGAIN) {
 			dt_stats->tx_fail++;
 			dev->stats.tx_errors++;
 			netif_stop_queue(net);
+			sipa_nic_trigger_flow_ctrl_work(dev->nic_id, ret);
 			return NETDEV_TX_BUSY;
 		}
 	}
