@@ -536,8 +536,7 @@ int agdsp_access_disable(void)
 			&dsp_ac->state->ap_enable_cnt);
 	}
 	if (!dsp_ac->auto_agcp_access) {
-		if ((AGCP_READL(&dsp_ac->state->ap_enable_cnt) == 0) &&
-			(AGCP_READL(&dsp_ac->state->cp_enable_cnt) == 0)) {
+		if ((AGCP_READL(&dsp_ac->state->ap_enable_cnt) == 0)) {
 			ret = regmap_update_bits(dsp_ac->agcp_ahb,
 				dsp_ac->ap_access_ena_reg,
 				dsp_ac->ap_access_ena_mask, 0);
