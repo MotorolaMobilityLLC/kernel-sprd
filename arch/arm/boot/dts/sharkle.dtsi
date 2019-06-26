@@ -266,6 +266,7 @@
 				syscon-names = "reset";
 				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
+				iommus = <&iommu_dispc>;
 
 				dma-coherent;
 
