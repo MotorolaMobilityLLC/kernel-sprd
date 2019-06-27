@@ -2348,20 +2348,6 @@ static void musb_offload_enable(struct musb *musb, u8 bchannel)
 	musb_writel(mbase, MUSB_DMA_CHN_CFG(bchannel), val);
 }
 
-static void musb_offload_disable(struct musb *musb, u8 bchannel)
-{
-	u32 val;
-	void __iomem *mbase = musb->mregs;
-
-	val  = musb_readl(mbase, MUSB_AUDIO_IIS_DMA_CHN);
-	val &= ~(1 << bchannel);
-	musb_writel(mbase, MUSB_AUDIO_IIS_DMA_CHN, val);
-
-	val  = musb_readl(mbase, MUSB_DMA_CHN_CFG(bchannel));
-	val  &= ~CHN_EN;
-	musb_writel(mbase, MUSB_DMA_CHN_CFG(bchannel), val);
-}
-
 static bool musb_offload_detect(struct musb *musb,
 	struct usb_endpoint_descriptor *epd)
 {
@@ -2398,6 +2384,7 @@ static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
 	u32 tmp, clkm;
 	u16 intr;
 	u8 bchannel;
+	unsigned long flags;
 
 	if (!is_host_active(musb) || !musb->is_active)
 		return;
@@ -2419,11 +2406,10 @@ static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
 		"ep:0x%x dir:%d mono:%d pcm:%d width:%d rate:%d offload:%d\n",
 		ep_num,	dir, mono, is_pcm_24, width, rate, offload_used);
 
-	if (musb->offload_used == 0) {
-		musb_offload_disable(musb, bchannel);
+	if (musb->offload_used == 0)
 		return;
-	}
 
+	spin_lock_irqsave(&musb->lock, flags);
 	if (ep_num & 0x80) {
 		intr = musb_readw(mbase, MUSB_INTRRXE);
 		intr &= ~(1 << (ep_num & 0xf));
@@ -2492,6 +2478,7 @@ static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
 	musb_writel(mbase, MUSB_AUDIO_IIS_EN, tmp);
 
 	musb_offload_enable(musb, bchannel);
+	spin_unlock_irqrestore(&musb->lock, flags);
 }
 
 static void musb_offload_enqueue(struct usb_hcd *hcd, struct urb *urb)
