@@ -1775,12 +1775,12 @@ charger_set_property(struct power_supply *psy,
 			return ret;
 		}
 
+		thermal_val.intval = val->intval;
+
 		if (cm->desc->jeita_tab_size) {
 			cur_jeita_status = cm_manager_get_jeita_status(cm, cur_temp);
 			if (val->intval > cm->desc->jeita_tab[cur_jeita_status].current_ua)
 				thermal_val.intval = cm->desc->jeita_tab[cur_jeita_status].current_ua;
-		} else {
-			thermal_val.intval = val->intval;
 		}
 
 		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
