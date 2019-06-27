@@ -534,10 +534,6 @@
      <&aonapb_gate CLK_SDPHY_CFG_EB>, <&aonapb_gate CLK_SDPHY_REF_EB>, <&aonapb_gate CLK_DSI_CSI_TEST_EB>, <&aonapb_gate CLK_CPHY_CFG_EN>;
 };
 
-&adi_bus {
-	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>, <17 0x1844>, <19 0x1844>, <30 0x1820>, <35 0x19b8>, <39 0x19ac>;
-};
-
 &sc2730_pmic {
 	interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
 };
