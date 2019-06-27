@@ -1572,25 +1572,25 @@ int edma_dump_chn_reg(int chn)
 
 	WCN_INFO("------------[ chn=%d ]------------\n", chn);
 	value = sprd_pcie_read_reg32(pdev, CHN_DMA_INT(chn));
-	WCN_INFO("[dma_int  ] =\t0x%08x\n",  value);
+	WCN_INFO("[dma_int  ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_DMA_TX_REQ(chn));
-	WCN_INFO("[tx_req   ] =\t0x%08x\n",  value);
+	WCN_INFO("[tx_req   ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_DMA_RX_REQ(chn));
-	WCN_INFO("[rx_req   ] =\t0x%08x\n",  value);
+	WCN_INFO("[rx_req   ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_DMA_CFG(chn));
-	WCN_INFO("[dma_cfg  ] =\t0x%08x\n",  value);
+	WCN_INFO("[dma_cfg  ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_TRANS_LEN(chn));
-	WCN_INFO("[tran_len ] =\t0x%08x\n",  value);
+	WCN_INFO("[tran_len ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_PTR_HIGH(chn));
-	WCN_INFO("[PTR_high ] =\t0x%08x\n",  value);
+	WCN_INFO("[PTR_high ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_TX_NEXT_DSCR_PTR_LOW(chn));
-	WCN_INFO("[tx_next  ] =\t0x%08x\n",  value);
+	WCN_INFO("[tx_next  ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_RX_NEXT_DSCR_PTR_LOW(chn));
-	WCN_INFO("[rx_next  ] =\t0x%08x\n",  value);
+	WCN_INFO("[rx_next  ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_DATA_SRC_ADDR_LOW(chn));
-	WCN_INFO("[src_addr ] =\t0x%08x\n",  value);
+	WCN_INFO("[src_addr ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, CHN_DATA_DEST_ADDR_LOW(chn));
-	WCN_INFO("[dest_addr] =\t0x%08x\n",  value);
+	WCN_INFO("[dest_addr] = 0x%08x\n",  value);
 
 	return 0;
 }
@@ -1607,33 +1607,33 @@ int edma_dump_glb_reg(void)
 	}
 	WCN_INFO("------------[ DMA glb Reg ]------------\n");
 	value = sprd_pcie_read_reg32(pdev, DMA_PAUSE);
-	WCN_INFO("[dma_pause  ] =\t0x%08x\n", value);
+	WCN_INFO("[dma_pause  ] = 0x%08x\n", value);
 	value = sprd_pcie_read_reg32(pdev, DMA_INT_RAW_STATUS);
-	WCN_INFO("[int_sts    ] =\t0x%08x\n",  value);
+	WCN_INFO("[int_sts    ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_INT_MASK_STATUS);
-	WCN_INFO("[mask_sts   ] =\t0x%08x\n",  value);
+	WCN_INFO("[mask_sts   ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_REQ_STATUS);
-	WCN_INFO("[req_sts    ] =\t0x%08x\n",  value);
+	WCN_INFO("[req_sts    ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_DEBUG_STATUS);
-	WCN_INFO("[debug_sts  ] =\t0x%08x\n",  value);
+	WCN_INFO("[debug_sts  ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_ARB_SEL_STATUS);
-	WCN_INFO("[arb_sel_sts] =\t0x%08x\n",  value);
+	WCN_INFO("[arb_sel_sts] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_CHN_ARPROT);
-	WCN_INFO("[arport     ] =\t0x%08x\n",  value);
+	WCN_INFO("[arport     ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_CHN_AWPROT);
-	WCN_INFO("[awport     ] =\t0x%08x\n",  value);
+	WCN_INFO("[awport     ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_CHN_PROT_FLAG);
-	WCN_INFO("[prot_flag  ] =\t0x%08x\n",  value);
+	WCN_INFO("[prot_flag  ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_GLB_PROT);
-	WCN_INFO("[glb_port   ]=\t0x%08x\n",  value);
+	WCN_INFO("[glb_port   ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_REQ_CID_PROT);
-	WCN_INFO("[req_cid    ] =\t0x%08x\n",  value);
+	WCN_INFO("[req_cid    ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_SYNC_SEC_NORMAL);
-	WCN_INFO("[sync       ] =\t0x%08x\n",  value);
+	WCN_INFO("[sync       ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_PCIE_MSIX_REG_ADDR_LO);
-	WCN_INFO("[msix_reg   ] =\t0x%08x\n",  value);
+	WCN_INFO("[msix_reg   ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_PCIE_MSIX_VALUE);
-	WCN_INFO("[msix_val   ] =\t0x%08x\n",  value);
+	WCN_INFO("[msix_val   ] = 0x%08x\n",  value);
 
 	return 0;
 }
@@ -1725,7 +1725,7 @@ int edma_deinit(void)
 	struct edma_info *edma = edma_info();
 	struct msg_q *q = &(edma->isr_func.q);
 
-	WCN_INFO("[+]%s\n", __func__);
+	WCN_INFO("[+]%s:fun_status=%d\n", __func__, edma->isr_func.state);
 	do {
 		usleep_range(10000, 11000);
 		if (edma->isr_func.state == 0)
@@ -1736,10 +1736,12 @@ int edma_deinit(void)
 		set_wcnevent(&(edma->isr_func.q.event));
 	} while (edma->isr_func.state);
 #if CONFIG_TASKLET_SUPPORT
+	WCN_INFO("tasklet exit\n");
 	tasklet_disable(edma->isr_func.q.event.tasklet);
 	tasklet_kill(edma->isr_func.q.event.tasklet);
 	kfree(edma->isr_func.q.event.tasklet);
 #endif
+	WCN_INFO("wakeup_source exit\n");
 	wakeup_source_trash(&edma->edma_push_ws);
 	wakeup_source_trash(&edma->edma_pop_ws);
 	kfree(q->lock.irq_spinlock_p);
