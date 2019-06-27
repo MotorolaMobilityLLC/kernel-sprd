@@ -178,7 +178,7 @@
 		cm-battery-stat = <2>;
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
-		cm-fullbatt-vchkdrop-volt = <60000>;
+		cm-fullbatt-vchkdrop-volt = <12000>;
 		cm-fullbatt-voltage = <4320000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
