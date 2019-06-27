@@ -281,5 +281,15 @@
 				regulator-ramp-delay = <25000>;
 			};
 		};
+
+		poweroff@efc {
+			compatible = "sprd,sc27xx-poweroff", "sprd,sc2721-poweroff";
+			reg = <0xefc>;
+		};
+
+		hw-reset@f1c{
+			compatible = "sprd,sc27xx-7sreset", "sprd,sc2721-7sreset";
+			reg = <0xf1c>, <0xeec>;
+		};
 	};
 };
