@@ -303,6 +303,35 @@ static int get_batt_cap(struct charger_manager *cm, int *cap)
 }
 
 /**
+ * set_batt_cap - Set the cap level of the battery
+ * @cm: the Charger Manager representing the battery.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int set_batt_cap(struct charger_manager *cm)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge) {
+		dev_err(cm->dev, "can not find fuel gauge device\n");
+		return -ENODEV;
+	}
+
+	val.intval = cm->desc->cap;
+	ret = power_supply_set_property(fuel_gauge, POWER_SUPPLY_PROP_CAPACITY,
+					&val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		dev_err(cm->dev, "failed to save current battery capacity\n");
+
+	return ret;
+}
+
+/**
  * get_charger_current - Get the charging current from charging ic
  * @cm: the Charger Manager representing the battery.
  * @cur: the charging current returned.
@@ -2662,6 +2691,7 @@ static void cm_batt_works(struct work_struct *work)
 	if (fuel_cap != cm->desc->cap) {
 		cm->desc->cap = fuel_cap;
 		cm->desc->update_capacity_time = cur_time.tv_sec;
+		set_batt_cap(cm);
 		power_supply_changed(cm->charger_psy);
 	}
 
@@ -2934,23 +2964,8 @@ static int charger_manager_remove(struct platform_device *pdev)
 static void charger_manager_shutdown(struct platform_device *pdev)
 {
 	struct charger_manager *cm = platform_get_drvdata(pdev);
-	struct charger_desc *desc = cm->desc;
-	union power_supply_propval val;
-	struct power_supply *fuel_gauge;
-	int ret;
 
-	fuel_gauge = power_supply_get_by_name(desc->psy_fuel_gauge);
-	if (!fuel_gauge) {
-		dev_err(cm->dev, "can not find fuel gauge device\n");
-		return;
-	}
-
-	val.intval = desc->cap;
-	ret = power_supply_set_property(fuel_gauge, POWER_SUPPLY_PROP_CAPACITY,
-					&val);
-	power_supply_put(fuel_gauge);
-	if (ret)
-		dev_err(cm->dev, "failed to save current battery capacity\n");
+	set_batt_cap(cm);
 }
 
 static const struct platform_device_id charger_manager_id[] = {
