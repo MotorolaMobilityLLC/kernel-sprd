@@ -93,6 +93,14 @@ static struct sprd_iommu_list_data sprd_iommu_list[SPRD_IOMMU_MAX] = {
 	{ .iommu_id = SPRD_IOMMU_EDP,
 	   .enabled = false,
 	   .iommu_dev = NULL},
+
+	{ .iommu_id = SPRD_IOMMU_IDMA,
+	   .enabled = false,
+	   .iommu_dev = NULL},
+
+	{ .iommu_id = SPRD_IOMMU_VDMA,
+	   .enabled = false,
+	   .iommu_dev = NULL},
 };
 
 static const struct of_device_id sprd_iommu_ids[] = {
@@ -236,6 +244,12 @@ static const struct of_device_id sprd_iommu_ids[] = {
 
 	{ .compatible = "sprd,iommuvaul5p-edp",
 	  .data = (void *)(IOMMU_VAUL5P_EDP)},
+
+	{ .compatible = "sprd,iommuvaul5p-idma",
+	  .data = (void *)(IOMMU_VAUL5P_IDMA)},
+
+	{ .compatible = "sprd,iommuvaul5p-vdma",
+	  .data = (void *)(IOMMU_VAUL5P_VDMA)},
 };
 
 static struct platform_driver iommu_driver = {
@@ -291,6 +305,11 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 		sprd_iommu_list[SPRD_IOMMU_ISP].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_ISP;
 		break;
+	case IOMMU_EX_EPP:
+		sprd_iommu_list[SPRD_IOMMU_EPP].enabled = true;
+		sprd_iommu_list[SPRD_IOMMU_EPP].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_EPP;
+		break;
 	case IOMMU_EX_EDP:
 		sprd_iommu_list[SPRD_IOMMU_EDP].enabled = true;
 		sprd_iommu_list[SPRD_IOMMU_EDP].iommu_dev = iommu_dev;
@@ -301,6 +320,17 @@ static void sprd_iommu_set_list(struct sprd_iommu_dev *iommu_dev)
 		sprd_iommu_list[SPRD_IOMMU_FD].iommu_dev = iommu_dev;
 		iommu_dev->id = SPRD_IOMMU_FD;
 		break;
+	case IOMMU_EX_IDMA:
+		sprd_iommu_list[SPRD_IOMMU_IDMA].enabled = true;
+		sprd_iommu_list[SPRD_IOMMU_IDMA].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_IDMA;
+		break;
+	case IOMMU_EX_VDMA:
+		sprd_iommu_list[SPRD_IOMMU_VDMA].enabled = true;
+		sprd_iommu_list[SPRD_IOMMU_VDMA].iommu_dev = iommu_dev;
+		iommu_dev->id = SPRD_IOMMU_VDMA;
+		break;
+
 	default:
 		pr_err("%s, no iommu id: %d\n", __func__,
 			iommu_dev->init_data->id);
@@ -329,6 +359,30 @@ static struct sprd_iommu_dev *sprd_iommu_get_subnode(struct device *dev)
 	struct of_phandle_args args;
 
 	ret = of_parse_phandle_with_args(np, "iommus", "#iommu-cells", 0,
+					 &args);
+	if (ret) {
+		IOMMU_ERR("of_parse_phandle_with_args(%s) => %d\n",
+			np->full_name, ret);
+		return NULL;
+	}
+
+	if (args.args_count != 0) {
+		IOMMU_ERR("err param for %s (found %d, expected 0)\n",
+			args.np->full_name, args.args_count);
+		return NULL;
+	}
+
+	return args.np->data;
+}
+
+static struct sprd_iommu_dev *sprd_iommu_get_subnode_with_idx(
+		struct device *dev, int idx)
+{
+	struct device_node *np = dev->of_node;
+	int ret;
+	struct of_phandle_args args;
+
+	ret = of_parse_phandle_with_args(np, "iommus", "#iommu-cells", idx,
 					 &args);
 	if (ret) {
 		IOMMU_ERR("of_parse_phandle_with_args(%s) => %d\n",
@@ -689,6 +743,122 @@ out:
 }
 EXPORT_SYMBOL(sprd_iommu_map);
 
+int sprd_iommu_map_with_idx(
+		struct device *dev,
+		struct sprd_iommu_map_data *data, int idx)
+{
+	int ret = 0;
+	struct sprd_iommu_dev *iommu_dev = NULL;
+	unsigned long iova = 0;
+	unsigned long flag = 0;
+	bool buf_cached = false;
+	bool buf_insert = true;
+	struct sg_table *table = NULL;
+
+	if (dev == NULL || data == NULL) {
+		IOMMU_ERR("null parameter err! dev %p data %p\n", dev, data);
+		return -EINVAL;
+	}
+
+	if (data->buf == NULL) {
+		IOMMU_ERR("null buf pointer!\n");
+		return -EINVAL;
+	}
+
+
+	iommu_dev = sprd_iommu_get_subnode_with_idx(dev, idx);
+	if (iommu_dev == NULL) {
+		IOMMU_ERR("get null iommu dev idx %d\n", idx);
+		return -EINVAL;
+	}
+
+	spin_lock_irqsave(&iommu_dev->pgt_lock, flag);
+
+	ret = sprd_ion_get_sg(data->buf, &table);
+	if (ret || table == NULL) {
+		IOMMU_ERR("%s sg error,buf %p size 0x%zx ret %d table %p\n",
+			  iommu_dev->init_data->name,
+			  data->buf, data->iova_size, ret, table);
+		data->iova_addr = 0;
+		ret = -EINVAL;
+		goto out;
+	}
+
+	/*record iommu map count in ion buffer for checking iova leak*/
+	sprd_ion_set_dma(data->buf, iommu_dev->id);
+
+	/**search the sg_cache_pool to identify if buf already mapped;*/
+	/* if yes, return cached iova directly, otherwise, */
+	/* alloc new iova for it;*/
+	buf_cached = sprd_iommu_target_buf(iommu_dev,
+				data->buf,
+				(unsigned long *)&iova);
+	if (buf_cached) {
+		data->iova_addr = iova;
+		ret = 0;
+		IOMMU_DEBUG("%s cached iova 0x%lx size 0x%zx buf %p\n",
+			  iommu_dev->init_data->name, iova,
+			  data->iova_size, data->buf);
+		goto out;
+	}
+
+	/*new sg, alloc for it*/
+	iova = iommu_dev->ops->iova_alloc(iommu_dev,
+			data->iova_size, data);
+	if (iova == 0) {
+		IOMMU_ERR("%s alloc error iova 0x%lx size 0x%zx buf %p\n",
+			  iommu_dev->init_data->name, iova,
+			  data->iova_size, data->buf);
+		data->iova_addr = 0;
+		ret = -ENOMEM;
+		goto out1;
+	}
+
+	ret = iommu_dev->ops->iova_map(iommu_dev,
+			iova, data->iova_size, table, data);
+	if (ret) {
+		IOMMU_ERR("%s error, iova 0x%lx size 0x%zx ret %d buf %p\n",
+			  iommu_dev->init_data->name,
+			  iova, data->iova_size, ret, data->buf);
+		iommu_dev->ops->iova_free(iommu_dev, iova, data->iova_size);
+		data->iova_addr = 0;
+		ret = -ENOMEM;
+		goto out1;
+	}
+	iommu_dev->map_count++;
+	data->iova_addr = iova;
+	buf_insert = sprd_iommu_insert_slot(iommu_dev,
+				(unsigned long)table,
+				data->buf,
+				data->iova_addr,
+				data->iova_size);
+	if (!buf_insert) {
+		IOMMU_ERR("%s error pool full iova 0x%lx size 0x%zx buf %p\n",
+				iommu_dev->init_data->name, iova,
+				data->iova_size, data->buf);
+		iommu_dev->ops->iova_unmap(iommu_dev,
+				iova, data->iova_size);
+		iommu_dev->ops->iova_free(iommu_dev, iova, data->iova_size);
+		ret = -ENOMEM;
+		goto out1;
+	}
+
+	IOMMU_DEBUG("%s iova 0x%lx size 0x%zx buf %p\n",
+		  iommu_dev->init_data->name, iova,
+		  data->iova_size, data->buf);
+
+	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
+	return ret;
+
+out1:
+	sprd_ion_put_dma(data->buf, iommu_dev->id);
+out:
+	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
+
+	return ret;
+}
+EXPORT_SYMBOL(sprd_iommu_map_with_idx);
+
 int sprd_iommu_unmap(struct device *dev, struct sprd_iommu_unmap_data *data)
 {
 	int ret = 0;
@@ -771,6 +941,87 @@ out:
 	return ret;
 }
 EXPORT_SYMBOL(sprd_iommu_unmap);
+
+int sprd_iommu_unmap_with_idx(
+		struct device *dev,
+		struct sprd_iommu_unmap_data *data, int idx)
+{
+	int ret = 0;
+	struct sprd_iommu_dev *iommu_dev = NULL;
+	bool be_free = false;
+	unsigned long flag = 0;
+	bool valid_iova = false;
+	bool valid_buf = false;
+	void *buf;
+	unsigned long iova;
+
+	if (dev == NULL || data == NULL) {
+		IOMMU_ERR("null parameter err! dev %p data %p\n", dev, data);
+		return -EINVAL;
+	}
+
+	iommu_dev = sprd_iommu_get_subnode_with_idx(dev, idx);
+	if (iommu_dev == NULL) {
+		IOMMU_ERR("get null iommu dev idx %d\n", idx);
+		return -EINVAL;
+	}
+
+	spin_lock_irqsave(&iommu_dev->pgt_lock, flag);
+
+	/*check iova legal*/
+	valid_iova = sprd_iommu_target_iova_find_buf(iommu_dev,
+				data->iova_addr, data->iova_size, &buf);
+	if (valid_iova) {
+		iova = data->iova_addr;
+	} else {
+		valid_buf = sprd_iommu_target_buf_find_iova(iommu_dev,
+					data->buf,
+					data->iova_size, &iova);
+		if (valid_buf) {
+			buf = data->buf;
+			data->iova_addr = iova;
+		} else {
+			IOMMU_ERR("%s illegal error iova 0x%lx buf %p size 0x%zx\n",
+				iommu_dev->init_data->name,
+				data->iova_addr, data->buf,
+				data->iova_size);
+			ret = -EINVAL;
+			goto out;
+		}
+	}
+
+	sprd_ion_put_dma(buf, iommu_dev->id);
+
+	sprd_iommu_remove_sg_iova(iommu_dev, iova, &be_free);
+	if (be_free) {
+		iommu_dev->ch_type = data->ch_type;
+		iommu_dev->channel_id = data->channel_id;
+		ret = iommu_dev->ops->iova_unmap(iommu_dev,
+				iova, data->iova_size);
+		if (ret)
+			IOMMU_ERR("%s error iova 0x%lx 0x%zx buf %p\n",
+				iommu_dev->init_data->name,
+				iova, data->iova_size, buf);
+		iommu_dev->map_count--;
+		iommu_dev->ops->iova_free(iommu_dev,
+			iova, data->iova_size);
+		iommu_dev->ch_type = SPRD_IOMMU_CH_TYPE_INVALID;
+		IOMMU_DEBUG("%s iova 0x%lx size 0x%zx buf %p\n",
+			  iommu_dev->init_data->name,
+			  iova, data->iova_size, buf);
+	} else {
+		IOMMU_DEBUG("%s cached iova 0x%lx size 0x%zx buf %p\n",
+			  iommu_dev->init_data->name,
+			  iova, data->iova_size, buf);
+		ret = 0;
+	}
+
+out:
+	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
+
+	return ret;
+}
+EXPORT_SYMBOL(sprd_iommu_unmap_with_idx);
 
 int sprd_iommu_unmap_orphaned(struct sprd_iommu_unmap_data *data)
 {
@@ -1222,6 +1473,8 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	case IOMMU_VAUL5P_AI:
 	case IOMMU_VAUL5P_EPP:
 	case IOMMU_VAUL5P_EDP:
+	case IOMMU_VAUL5P_IDMA:
+	case IOMMU_VAUL5P_VDMA:
 	{
 		pdata->iommuex_rev = 12;
 		iommu_dev->ops = &sprd_iommuvau_hw_ops;
@@ -1245,6 +1498,10 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 			pdata->id = IOMMU_EX_EPP;
 		else if (pdata->id == IOMMU_VAUL5P_EDP)
 			pdata->id = IOMMU_EX_EDP;
+		else if (pdata->id == IOMMU_VAUL5P_IDMA)
+			pdata->id = IOMMU_EX_IDMA;
+		else if (pdata->id == IOMMU_VAUL5P_VDMA)
+			pdata->id = IOMMU_EX_VDMA;
 
 
 		break;

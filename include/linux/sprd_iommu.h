@@ -60,6 +60,8 @@ enum sprd_iommu_id {
 	SPRD_IOMMU_AI,
 	SPRD_IOMMU_EPP,
 	SPRD_IOMMU_EDP,
+	SPRD_IOMMU_IDMA,
+	SPRD_IOMMU_VDMA,
 	SPRD_IOMMU_MAX,
 };
 
@@ -137,8 +139,14 @@ struct sprd_iommu_list_data {
 int sprd_iommu_attach_device(struct device *dev);
 int sprd_iommu_dettach_device(struct device *dev);
 
-int sprd_iommu_map(struct device *dev, struct sprd_iommu_map_data *data);
-int sprd_iommu_unmap(struct device *dev, struct sprd_iommu_unmap_data *data);
+int sprd_iommu_map(struct device *dev,
+		struct sprd_iommu_map_data *data);
+int sprd_iommu_map_with_idx(struct device *dev,
+		struct sprd_iommu_map_data *data, int idx);
+int sprd_iommu_unmap(struct device *dev,
+		struct sprd_iommu_unmap_data *data);
+int sprd_iommu_unmap_with_idx(struct device *dev,
+		struct sprd_iommu_unmap_data *data, int idx);
 int sprd_iommu_unmap_orphaned(struct sprd_iommu_unmap_data *data);
 int sprd_iommu_suspend(struct device *dev);
 int sprd_iommu_resume(struct device *dev);
@@ -223,6 +231,8 @@ enum IOMMU_ID {
 	IOMMU_EX_AI,
 	IOMMU_EX_EPP,
 	IOMMU_EX_EDP,
+	IOMMU_EX_IDMA,
+	IOMMU_EX_VDMA,
 	/*for sharkle*/
 	IOMMU_EXLE_VSP,
 	IOMMU_EXLE_DCAM,
@@ -276,6 +286,8 @@ enum IOMMU_ID {
 	IOMMU_VAUL5P_AI,
 	IOMMU_VAUL5P_EPP,
 	IOMMU_VAUL5P_EDP,
+	IOMMU_VAUL5P_IDMA,
+	IOMMU_VAUL5P_VDMA,
 	IOMMU_MAX,
 };
 extern struct sprd_iommu_ops sprd_iommuex_hw_ops;
