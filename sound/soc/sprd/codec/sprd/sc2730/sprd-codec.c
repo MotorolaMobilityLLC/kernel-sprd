@@ -1383,6 +1383,7 @@ static int sprd_codec_digital_open(struct snd_soc_codec *codec)
 		snd_soc_update_bits(codec, SOC_REG(AUD_ADC1_I2S_CTL),
 			BIT(ADC1_LR_SEL), BIT(ADC1_LR_SEL));
 
+	snd_soc_update_bits(codec, SOC_REG(AUD_DNS_SW), BIT(RG_DNS_SW), 0);
 	return ret;
 }
 

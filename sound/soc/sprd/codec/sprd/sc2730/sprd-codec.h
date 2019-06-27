@@ -107,6 +107,9 @@
 #define DAC_SDM_DC_R		0
 #define DAC_SDM_DC_R_MASK	0xff
 
+/* AUD_DNS_SW */
+#define RG_DNS_SW		0
+
 /*VB_V*/
 #define LDO_V_3000		4
 #define LDO_V_3025		5
@@ -157,7 +160,8 @@
 #define AUD_ADC1_I2S_CTL		(SPRD_CODEC_DP_BASE + 0x0034)
 #define AUD_DAC_SDM_L		(SPRD_CODEC_DP_BASE + 0x0038)
 #define AUD_DAC_SDM_H		(SPRD_CODEC_DP_BASE + 0x003C)
-#define SPRD_CODEC_DP_END	(SPRD_CODEC_DP_BASE + 0x0040)
+#define AUD_DNS_SW		(SPRD_CODEC_DP_BASE + 0x0088)
+#define SPRD_CODEC_DP_END	(SPRD_CODEC_DP_BASE + 0x0090)
 #define IS_SPRD_CODEC_DP_RANG(reg) (((reg) >= SPRD_CODEC_DP_BASE) \
 	&& ((reg) < SPRD_CODEC_DP_END))
 
