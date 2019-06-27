@@ -10083,7 +10083,7 @@ CONFIG_SPI_MASTER
 	[function] SPI Master Support
 CONFIG_SPI_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] spi
 	[must] user
