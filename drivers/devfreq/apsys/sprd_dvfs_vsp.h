@@ -87,12 +87,15 @@ typedef enum {
 	VSP_CLK256 = 256000000, //256
 	VSP_CLK307 = 307200000, //307
 	VSP_CLK384 = 384000000, //384
+	VSP_CLK512 = 512000000, //512
+
 } vsp_clock_freq;
 
 typedef enum {
 	VSP_CLK_INDEX_256 = 0,
 	VSP_CLK_INDEX_307 = 1,
 	VSP_CLK_INDEX_384 = 2,
+	VSP_CLK_INDEX_512 = 3
 } vsp_clock_level;
 
 #define MAX_FREQ_LEVEL 8
