@@ -1992,9 +1992,11 @@ unknown:
 			break;
 		}
 try_fun_setup:
-		if (f && f->setup)
+		if (f && f->setup) {
+			spin_lock(&cdev->lock);
 			value = f->setup(f, ctrl);
-		else {
+			spin_unlock(&cdev->lock);
+		} else {
 			struct usb_configuration	*c;
 
 			c = cdev->config;
@@ -2012,8 +2014,11 @@ try_fun_setup:
 				goto done;
 			f = list_first_entry(&c->functions, struct usb_function,
 					     list);
-			if (f->setup)
+			if (f->setup) {
+				spin_lock(&cdev->lock);
 				value = f->setup(f, ctrl);
+				spin_unlock(&cdev->lock);
+			}
 		}
 
 		goto done;
