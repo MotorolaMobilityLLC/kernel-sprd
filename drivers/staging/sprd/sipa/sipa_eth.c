@@ -241,7 +241,7 @@ static int sipa_eth_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	netid = pdata->netid;
 	/* eth is rawip, so pull 14 bytes */
-	if (pdata->mac_h)
+	if (!pdata->mac_h)
 		skb_pull_inline(skb, ETH_HLEN);
 
 	ret = sipa_nic_tx(sipa_eth->nic_id, pdata->term_type, netid, skb);
