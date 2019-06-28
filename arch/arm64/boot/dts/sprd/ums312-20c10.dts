@@ -276,7 +276,7 @@
 				<3 0x3c 0x12c 21 0x7f>,
 				<4 0x41 0x130 0 0x7f>,
 				<5 0x46 0x130 7 0x7f>;
-		tuning-latency-us = <300>;
+		tuning-latency-us = <200>;
 		chnl-in-i2c = <1>;
 	};
 

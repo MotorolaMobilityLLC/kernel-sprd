@@ -305,7 +305,7 @@
 				<250 0x88 0 0xffff 0x1900>,
 				<300 0x88 16 0xffff 0x1e00>,
 				<350 0x11c 0 0xffff 0x2300>;
-		tuning-latency-us = <150>;
+		tuning-latency-us = <200>;
 		chnl-in-i2c = <1>;
 	};
 
