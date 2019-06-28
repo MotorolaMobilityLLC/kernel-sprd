@@ -10165,6 +10165,13 @@ CONFIG_SPRD_AUDIO_MEMORY_MANAGER
 	[subsys] sound
 	[must] user
 	[function] audio memory allocation
+CONFIG_SPRD_AUDIO_SAUDIO
+	[arch] all
+	[plat] sharkl3,sharkl3_32
+	[field] make
+	[subsys] misc
+	[must] user
+	[function] For audio voip voice.
 CONFIG_SPRD_AUDIO_SIPC
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5_32
