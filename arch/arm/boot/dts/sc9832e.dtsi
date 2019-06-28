@@ -83,6 +83,13 @@
 	};
 
 	soc {
+		tmc@01003000 {
+			compatible = "arm,coresight-tmc", "arm,primecell";
+			reg = <0x01003000 0x1000>;
+			clocks = <&ext_26m>;
+			clock-names = "apb_pclk";
+		};
+
 		pmu_gate: pmu-gate {
 			compatible = "sprd,sc9832e-pmu-gate";
 			sprd,syscon = <&pmu_apb_regs>; /* 0x402b0000 */
