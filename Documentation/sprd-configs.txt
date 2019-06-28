@@ -3296,7 +3296,7 @@ CONFIG_EXTCON
 	[function]
 CONFIG_EXTCON_USB_GPIO
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field]
 	[subsys]
 	[must]
@@ -11404,7 +11404,7 @@ CONFIG_TUN
 	[function] vts require, Universal TUN/TAP device driver support
 CONFIG_TYPEC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -11425,7 +11425,7 @@ CONFIG_TYPEC_TCPM
 	[function]
 CONFIG_TYPEC_UCSI
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -12006,7 +12006,7 @@ CONFIG_USB_ROLE_SWITCH
 	[function]
 CONFIG_USB_SC27XX_TYPEC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field]
 	[subsys]
 	[must]
