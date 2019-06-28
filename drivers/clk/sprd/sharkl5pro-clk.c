@@ -580,7 +580,7 @@ static SPRD_MUX_CLK(dcam_if_clk, "dcam-if-clk", dcam_if_parents, 0x40,
 		    0, 3, SHARKL5PRO_MUX_FLAG);
 
 static const char * const dcam_axi_parents[] = { "twpll-256m", "twpll-307m2",
-						 "twpll-384", "isppll-468m" };
+						 "twpll-384m", "isppll-468m" };
 static SPRD_MUX_CLK(dcam_axi_clk, "dcam-axi-clk", dcam_axi_parents, 0x44,
 		    0, 2, SHARKL5PRO_MUX_FLAG);
 
