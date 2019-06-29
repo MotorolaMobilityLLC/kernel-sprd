@@ -56,6 +56,9 @@ struct topdvfs_dev {
 	struct dvfs_dcdc_pwr *pwr;
 	u32 module_eb_reg;
 	u32 module_eb_bit;
+	u32 dcdc_share_reg;
+	u32 dcdc_share_off;
+	bool dcdc_modem_mm_shared;
 	u32 device_dcdc_num;
 	bool parse_done;
 };
@@ -151,6 +154,11 @@ static int sprd_topdvfs_common_config(struct topdvfs_dev *pdev)
 		}
 	}
 
+	if (pdev->dcdc_modem_mm_shared)
+		top_dvfs_bits_update(pdev, pdev->dcdc_share_reg,
+				     1 << pdev->dcdc_share_off,
+				     1 << pdev->dcdc_share_off);
+
 	return 0;
 }
 
@@ -171,6 +179,27 @@ int topdvfs_device_dt_parse(struct topdvfs_dev *pdev)
 	if (!of_find_property(pdev->of_node, "module-enable-cfg", &len)) {
 		pr_err("No 'module-enable-cfg' property found\n");
 		return -EPERM;
+	}
+
+	pdev->dcdc_modem_mm_shared =
+		of_property_read_bool(pdev->of_node, "dcdc-modem-mm-share");
+
+	if (pdev->dcdc_modem_mm_shared) {
+		ret = of_property_read_u32_index(pdev->of_node,
+						 "dcdc-modem-mm-share-en",
+						 0, &pdev->dcdc_share_reg);
+		if (ret) {
+			pr_err("Failed to get dcdc-modem-mm-share-en reg offset\n");
+			return ret;
+		}
+
+		ret = of_property_read_u32_index(pdev->of_node,
+						 "dcdc-modem-mm-share-en",
+						 1, &pdev->dcdc_share_off);
+		if (ret) {
+			pr_err("Failed to get bit to enable dcdc-modem-mm-share-en\n");
+			return ret;
+		}
 	}
 
 	if (len / sizeof(u32) == 2) {
