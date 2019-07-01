@@ -141,7 +141,8 @@ struct wcn_special_share_mem {
 	struct gnss_special_share_mem gnss;
 };
 
-typedef int (*marlin_reset_callback) (void *para);
+/* Already defined in include/misc/marlin_platform.h */
+//typedef int (*marlin_reset_callback) (void *para);
 
 extern struct platform_chip_id g_platform_chip_id;
 extern char functionmask[8];
