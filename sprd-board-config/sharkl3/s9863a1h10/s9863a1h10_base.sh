@@ -4,7 +4,16 @@ export BSP_KERNEL_DIFF_CONFIG_COMMON="sprd-diffconfig/sharkl3/common"
 if [ -z $BSP_KERNEL_PATH ]; then
 	BSP_KERNEL_PATH="."
 fi
-export BSP_KERNEL_CROSS_COMPILE="$BSP_KERNEL_PATH/../../toolchain/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
+export BSP_KERNEL_CROSS_COMPILE=$(readlink -f "$BSP_KERNEL_PATH/../../toolchain/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-")
+
+# BSP_CC_LD_ARGS can't include null-value-fields "CC=" "LD="(just remove the null-value-field)
+# Sample: export BSP_CC_LD_ARG="CC=clang"
+# export BSP_CC_LD_ARG="CC=clang"
+BSP_CLANG_PREBUILT_BIN=$(readlink -f "$BSP_KERNEL_PATH/../../toolchain/prebuilts/clang/host/linux-x86/clang-r353983c/bin")
+export CLANG_TRIPLE=aarch64-linux-gnu-
+export BSP_TOOL_PATH=$BSP_CLANG_PREBUILT_BIN
+export PATH=${BSP_TOOL_PATH}:${PATH//"${BSP_TOOL_PATH}:"}
+
 export BSP_BOARD_NAME="s9863a1h10"
 
 export BSP_BOARD_WCN_CONFIG=""
