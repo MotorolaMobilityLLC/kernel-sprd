@@ -222,6 +222,17 @@
 				status = "disabled";
 			};
 
+			iommu_dispc: iommu@20800000 {
+				compatible = "sprd,iommuexpk2-dispc";
+				reg = <0x20800000 0x800>,
+				      <0x20800800 0x60>;
+				iova-base = <0x30000000>;
+				iova-size = <0x08000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
 			hsphy: hsphy@20e00000 {
 				compatible = "sprd,pike2-phy";
 				reg = <0x20e00000 0x3030>;
