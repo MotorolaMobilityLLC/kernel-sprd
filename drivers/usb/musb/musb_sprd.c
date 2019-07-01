@@ -84,8 +84,6 @@ struct sprd_glue {
 
 static int boot_charging;
 
-static u64 sprd_device_dma_mask = DMA_BIT_MASK(BITS_PER_LONG);
-
 static inline struct musb *dev_to_musb_sprd(struct device *dev)
 {
 	return dev_get_drvdata(dev);
@@ -402,6 +400,8 @@ static struct musb_fifo_cfg sprd_musb_host_mode_cfg[] = {
 	MUSB_EP_FIFO_DOUBLE(15, FIFO_RX, 8),
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 static struct musb_hdrc_config sprd_musb_hdrc_config = {
 	.fifo_cfg = sprd_musb_device_mode_cfg,
 	.host_fifo_cfg = sprd_musb_host_mode_cfg,
@@ -413,6 +413,7 @@ static struct musb_hdrc_config sprd_musb_hdrc_config = {
 	.ram_bits = SPRD_MUSB_RAM_BITS,
 	.dma = 0,
 };
+#pragma GCC diagnostic pop
 
 static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 				unsigned long event, void *data)
@@ -981,7 +982,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	pinfo.num_res = pdev->num_resources;
 	pinfo.data = &pdata;
 	pinfo.size_data = sizeof(pdata);
-	pinfo.dma_mask = sprd_device_dma_mask;
+	pinfo.dma_mask = DMA_BIT_MASK(BITS_PER_LONG);
 
 	if (of_property_read_bool(node, "multipoint"))
 		pdata.config->multipoint = true;
