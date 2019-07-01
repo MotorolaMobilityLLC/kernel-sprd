@@ -168,7 +168,7 @@ static int sprd_iommuex_iova_map(struct sprd_iommu_dev *dev, unsigned long iova,
 
 	memset(&map_param, 0, sizeof(map_param));
 	/*TODO:warning need deal*/
-	map_param.channel_type = p_param->ch_type;
+	map_param.channel_type = (enum sprd_iommu_ch_type)p_param->ch_type;
 	map_param.channel_bypass = 0;
 	map_param.start_virt_addr = iova;
 	map_param.total_map_size = iova_length;
