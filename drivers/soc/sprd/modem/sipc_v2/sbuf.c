@@ -58,49 +58,58 @@ enum task_type {
 
 static struct sbuf_mgr *sbufs[SIPC_ID_NR][SMSG_VALID_CH_NR];
 
-static struct task_struct *sbuf_wait_get_task(wait_queue_entry_t *pos,
-					      u32 *b_select)
+static bool sbuf_is_task_pointer(const void *ptr)
+{
+	struct task_struct *task;
+	struct thread_info *thread_info;
+
+	task = (struct task_struct *)ptr;
+	if (IS_ERR_OR_NULL(task) || !virt_addr_valid(task))
+		return false;
+
+#ifndef CONFIG_THREAD_INFO_IN_TASK
+	/* in this case thread_info is in the same addres with stack thread_union*/
+	if (IS_ERR_OR_NULL(task->stack) || !virt_addr_valid(task->stack))
+		return false;
+#endif
+
+	thread_info = task_thread_info(task);
+	if (IS_ERR_OR_NULL(thread_info) || !virt_addr_valid(thread_info))
+		return false;
+
+	return (thread_info->addr_limit == KERNEL_DS ||
+		thread_info->addr_limit == USER_DS);
+}
+
+static struct task_struct *sbuf_wait_get_task(wait_queue_entry_t *pos, u32 *b_select)
 {
 	struct task_struct *task;
 	struct poll_wqueues *table;
-	char name[TASK_COMM_LEN + 2];
-	u32 len;
 
-	/* if the wait is put into list by sbuf_read, the struct of
+	if (!pos->private)
+		return NULL;
+
+	/* if the private is put into wait list by sbuf_read, the struct of
 	 * pos->private is struct task_struct
-	 * if the wait is put into list by sbuf_poll, the struct of
+	 * if the private is put into list by sbuf_poll, the struct of
 	 * pos->private is struct poll_wqueues
 	 */
 
-	/* firstly, try convert it with the struct task_struct */
-	task = (struct task_struct *)pos->private;
-	if (!task)
-		return NULL;
-
-	*b_select = 0;
-	if (task->state > -2 &&
-	    (uintptr_t)task->stack > TASK_SIZE &&
-	    task->pid > 0 &&
-	    task->pid < PID_MAX_LIMIT &&
-	    task->tgid > 0 &&
-	    task->tgid < PID_MAX_LIMIT &&
-	    kern_addr_valid((unsigned long)task->comm)) {
-		memcpy(name, task->comm, sizeof(name));
-		name[TASK_COMM_LEN + 1] = 0;
-		len = strlen(name);
-		if (len > 0 && len < TASK_COMM_LEN)
-			return task;
-	}
-
-	/* than, it must be struct poll_wqueues */
+	/* firstly, try struct poll_wqueues */
 	table = (struct poll_wqueues *)pos->private;
 	task = table->polling_task;
-	if (!task)
-		return NULL;
-
-	*b_select = 1;
-	if (kern_addr_valid((unsigned long)task->comm))
+	if (sbuf_is_task_pointer(task)) {
+		*b_select = 1;
 		return task;
+	}
+
+	/* firstly, try convert it with the struct task_struct */
+	task = (struct task_struct *)pos->private;
+
+	if (sbuf_is_task_pointer(task)) {
+		*b_select = 0;
+		return task;
+	}
 
 	return NULL;
 }
