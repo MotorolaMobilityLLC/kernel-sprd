@@ -31,6 +31,14 @@ void pcie_aspm_powersave_config_link(struct pci_dev *pdev);
 void pci_disable_link_state(struct pci_dev *pdev, int state);
 void pci_disable_link_state_locked(struct pci_dev *pdev, int state);
 void pcie_no_aspm(void);
+/*
+ * ASPM can be disabled or enabled at runtime via
+ * /sys/module/pcie_aspm/parameters/policy.
+ * However, some endpoint (e.g. wcn pcie) drivers want to disabled
+ * or enabled it directly. Therefore, we supply these two APIs.
+ */
+ssize_t sprd_pcie_aspm_set_policy(struct pci_dev *pdev, int val);
+ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, char *buf);
 #else
 static inline void pcie_aspm_init_link_state(struct pci_dev *pdev)
 {
@@ -49,6 +57,14 @@ static inline void pci_disable_link_state(struct pci_dev *pdev, int state)
 }
 static inline void pcie_no_aspm(void)
 {
+}
+static inline ssize_t sprd_pcie_aspm_set_policy(struct pci_dev *pdev, int val)
+{
+	return -EINVAL;
+}
+static inline ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, char *buf)
+{
+	return -EINVAL;
 }
 #endif
 

@@ -1115,6 +1115,35 @@ static int pcie_aspm_get_policy(char *buffer, const struct kernel_param *kp)
 module_param_call(policy, pcie_aspm_set_policy, pcie_aspm_get_policy,
 	NULL, 0644);
 
+ssize_t sprd_pcie_aspm_set_policy(struct pci_dev *pdev, int val)
+{
+	struct pcie_link_state *link, *root = pdev->link_state->root;
+
+	if (val > ARRAY_SIZE(policy_str) || val < 0) {
+		pr_err("%s: ASPM policy is invalid, please input 0 ~ 3\n",
+		       __func__);
+		return -EINVAL;
+	}
+
+	down_read(&pci_bus_sem);
+	mutex_lock(&aspm_lock);
+	aspm_policy = val;
+	list_for_each_entry(link, &link_list, sibling) {
+		if (link->root != root)
+			continue;
+		pcie_config_aspm_link(link, policy_to_aspm_state(link));
+	}
+	mutex_unlock(&aspm_lock);
+	up_read(&pci_bus_sem);
+
+	return 0;
+}
+
+ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, char *buf)
+{
+	return pcie_aspm_get_policy(buf, NULL);
+}
+
 #ifdef CONFIG_PCIEASPM_DEBUG
 static ssize_t link_state_show(struct device *dev,
 		struct device_attribute *attr,
