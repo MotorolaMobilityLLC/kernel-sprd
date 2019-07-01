@@ -8289,6 +8289,27 @@ CONFIG_PCI
 	[subsys] pci
 	[must] user
 	[function] Enable support for PCI bus system.
+CONFIG_PCIEASPM
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] PCI Express ASPM control for L1SS.
+CONFIG_PCIEASPM_DEBUG
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Enable PCI Express debug support.
+CONFIG_PCIEASPM_DEFAULT
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Use the BIOS defaults for PCIe Express ASPM.
 CONFIG_PCIEPORTBUS
 	[arch] arm64
 	[plat] roc1
