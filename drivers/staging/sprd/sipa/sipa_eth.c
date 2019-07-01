@@ -69,6 +69,7 @@ static void sipa_eth_prepare_skb(struct SIPA_ETH *sipa_eth, struct sk_buff *skb)
 {
 	int netid;
 	struct iphdr *iph;
+	struct ethhdr *peth;
 	struct net_device *dev;
 	struct sipa_eth_init_data *pdata = sipa_eth->pdata;
 
@@ -80,14 +81,42 @@ static void sipa_eth_prepare_skb(struct SIPA_ETH *sipa_eth, struct sk_buff *skb)
 		skb->protocol = eth_type_trans(skb, sipa_eth->netdev);
 		skb_set_network_header(skb, ETH_HLEN);
 	} else {
-		if (pdata->mac_h)
-			skb_pull_inline(skb, ETH_HLEN);
-		skb_reset_network_header(skb);
+		/*
+		 * The purpose of adding a fake mac header is
+		 * to prevent a "out-of order" issue
+		 * when doing napi_gro_receive.
+		 *
+		 * On ORCA CPE, ASIC has set a 14byte offset
+		 * in a skb for mac header,
+		 * but the content of this mac header is not initialized,
+		 * so we need to fulfill this offset with a fake mac header.
+		 *
+		 * On Roc1+Orca, a skb arrives at sipa_eth
+		 * has no mac header or a offset.
+		 * But it has a 64 byte header room,
+		 * We have to take advantage of the 64-byte header room,
+		 * because the information in the header room
+		 * is no longer useful for IP layer.
+		 */
+		if (pdata->mac_h) {
+			skb_reset_mac_header(skb);
+			peth = (struct ethhdr *)skb->data;
+		} else {
+			peth = (struct ethhdr *)skb_push(skb, ETH_HLEN);
+			skb_reset_mac_header(skb);
+		}
+		ether_addr_copy(peth->h_source, "12345");
+		ether_addr_copy(peth->h_dest, "54321");
+
+		skb_set_network_header(skb, ETH_HLEN);
 		iph = ip_hdr(skb);
 		if (iph->version == 4)
 			skb->protocol = htons(ETH_P_IP);
 		else
 			skb->protocol = htons(ETH_P_IPV6);
+
+		peth->h_proto = skb->protocol;
+		skb_pull_inline(skb, ETH_HLEN);
 	}
 
 	/* TODO chechsum ... */
