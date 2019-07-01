@@ -183,6 +183,8 @@ static struct dma_chan *dma_chan[DMA_CHAN_MAX] = { NULL };
 #define SPRD_SNDRV_PCM_FMTBIT (SNDRV_PCM_FMTBIT_S16_LE | \
 			       SNDRV_PCM_FMTBIT_S24_LE)
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 int sprd_lightsleep_disable(const char *id, int disalbe)
 __attribute__ ((weak, alias("__sprd_lightsleep_disable")));
 
@@ -258,6 +260,7 @@ static int __sprd_lightsleep_disable(const char *id, int disable)
 	sp_asoc_pr_dbg("NO lightsleep control function %d\n", disable);
 	return 0;
 }
+#pragma GCC diagnostic pop
 
 static void sprd_pcm_proc_init(struct snd_pcm_substream *substream);
 static void sprd_pcm_proc_done(struct snd_pcm_substream *substream);
@@ -3041,7 +3044,11 @@ static struct snd_pcm_ops sprd_pcm_ops = {
 };
 
 #ifdef CONFIG_ARM64
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma clang diagnostic ignored "-Wshift-count-overflow"
 static u64 sprd_pcm_dmamask = DMA_BIT_MASK(64);
+#pragma GCC diagnostic pop
 #else
 static u64 sprd_pcm_dmamask = DMA_BIT_MASK(32);
 #endif

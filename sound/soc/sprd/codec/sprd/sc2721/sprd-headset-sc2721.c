@@ -88,6 +88,8 @@
 #define headset_reg_set_bits(reg, bits) \
 	sci_adi_set(CODEC_REG((reg)), (bits))
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 int dsp_fm_mute_by_set_dg(void)
 	__attribute__ ((weak, alias("__dsp_fm_mute_by_set_dg")));
 
@@ -96,6 +98,7 @@ static int __dsp_fm_mute_by_set_dg(void)
 	pr_err("ERR: dsp_fm_mute_by_set_dg is not defined!\n");
 	return -1;
 }
+#pragma GCC diagnostic pop
 
 static inline int headset_reg_get_bits(unsigned int reg, int bits)
 {
@@ -142,6 +145,8 @@ static bool fast_charge_finished;
 
 /* ========================  audio codec  ======================== */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 int vbc_close_fm_dggain(bool mute)
 	__attribute__ ((weak, alias("__vbc_close_fm_dggain")));
 static int __vbc_close_fm_dggain(bool mute)
@@ -149,6 +154,7 @@ static int __vbc_close_fm_dggain(bool mute)
 	pr_err("ERR: vbc_close_fm_dggain is not defined!\n");
 	return -1;
 }
+#pragma GCC diagnostic pop
 
 /* When remove headphone, disconnect the headphone
  * dapm DA path in codec driver.

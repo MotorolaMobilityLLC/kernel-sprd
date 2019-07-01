@@ -30,6 +30,8 @@
 #include "sprd-headset.h"
 #include "sprd-audio.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 int agdsp_access_enable(void)
 	__attribute__ ((weak, alias("__agdsp_access_enable")));
 static int __agdsp_access_enable(void)
@@ -45,6 +47,7 @@ static int __agdsp_access_disable(void)
 	pr_debug("%s\n", __func__);
 	return 0;
 }
+#pragma GCC diagnostic pop
 
 #define sprd_priv_to_dev(priv) ((priv)->snd_card.dev)
 #define sprd_priv_to_link(priv, i) ((priv)->snd_card.dai_link + i)

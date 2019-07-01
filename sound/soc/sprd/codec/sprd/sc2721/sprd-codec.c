@@ -226,6 +226,8 @@ struct sprd_codec_mixer {
 	sprd_codec_mixer_set set;
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 int xtlbuf1_eb_set(void)
 __attribute__ ((weak, alias("__xtlbuf1_eb_set")));
 
@@ -269,6 +271,7 @@ static int __agdsp_access_disable(void)
 	pr_debug("%s\n", __func__);
 	return 0;
 }
+#pragma GCC diagnostic pop
 
 struct sprd_codec_ldo_v_map {
 	int ldo_v_level;
