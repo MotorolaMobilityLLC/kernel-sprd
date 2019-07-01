@@ -440,7 +440,7 @@
 		mipi-switch-en-gpios = <&ap_gpio 55 0>;
 		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
 		sprd,phyid = <1>;
-		csi = <&csi1>;
+		csi = <&csi0>;
 	};
 };
 
