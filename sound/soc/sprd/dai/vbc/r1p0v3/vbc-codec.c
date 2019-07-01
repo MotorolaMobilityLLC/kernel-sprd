@@ -2482,7 +2482,7 @@ static void vbc_eq_reg_apply(struct snd_soc_codec *codec, void *data,
 				effect_paras = data;
 			} else {
 				pr_info("%s default eq\n", __func__);
-				effect_paras = &vbc_da_eq_profile_default;
+				effect_paras = (void *)&vbc_da_eq_profile_default;
 			}
 		} else {
 			pr_info("eq6 dynamic eq %s line[%d]\n",
@@ -2505,7 +2505,7 @@ static void vbc_eq_reg_apply(struct snd_soc_codec *codec, void *data,
 			if (val & BIT_RF_DAC_ALC_EN)
 				effect_paras = data;
 			else
-				effect_paras = &vbc_da_eq_profile_default;
+				effect_paras = (void *)&vbc_da_eq_profile_default;
 		}
 		vbc_da_alc_reg_set(effect_paras, vbc_codec);
 
@@ -2540,12 +2540,12 @@ static void vbc_eq_profile_close(struct snd_soc_codec *codec, int vbc_eq_idx)
 	switch (vbc_eq_idx) {
 	case VBC_DA_EQ:
 		vbc_eq_profile_apply(codec,
-				     &vbc_da_eq_profile_default, vbc_eq_idx);
+				     (void *)&vbc_da_eq_profile_default, vbc_eq_idx);
 		break;
 	case VBC_AD01_EQ:
 	case VBC_AD23_EQ:
 		vbc_eq_profile_apply(codec,
-				     &vbc_ad_eq_profile_default, vbc_eq_idx);
+				     (void *)&vbc_ad_eq_profile_default, vbc_eq_idx);
 		break;
 	default:
 		break;
