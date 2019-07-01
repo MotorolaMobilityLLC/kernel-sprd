@@ -1430,7 +1430,7 @@ CONFIG_CHARGER_FAN54015
 	[function] This function is used to enable charge
 CONFIG_CHARGER_MANAGER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] power
 	[must] user
@@ -3644,7 +3644,7 @@ CONFIG_FTRACE_SYSCALLS
 	[function] Trace syscalls.
 CONFIG_FUEL_GAUGE_SC27XX
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field]
 	[subsys]
 	[must]
@@ -10403,6 +10403,13 @@ CONFIG_SPRD_IPA_PCIE_WORKROUND
 	[subsys]
 	[must]
 	[function]
+CONFIG_SPRD_IPA_SUPPORT
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_IPA_SYS
 	[arch] arm64
 	[plat] roc1
@@ -10621,6 +10628,20 @@ CONFIG_SPRD_SENSOR_HUB
 	[subsys] iio
 	[must] user
 	[function] enable sensor hub driver built in kernel
+CONFIG_SPRD_SFP_SUPPORT
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_SPRD_SFP_TEST
+	[arch] arm64
+	[plat] roc1
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_SHARKL3_USB2_PHY
 	[arch] all
 	[plat] sharkl3,sharkl3_32
