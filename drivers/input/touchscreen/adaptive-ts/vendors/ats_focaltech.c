@@ -369,7 +369,7 @@ static enum ts_result focaltech_handle_event(
 	struct focaltech_controller *ftc = to_focaltech_controller(c);
 	unsigned char val = 0, a3 = 0, a8 = 0;
 	struct device_node *pn = NULL;
-	enum ts_event ret = TSRESULT_EVENT_HANDLED;
+	enum ts_result ret = TSRESULT_EVENT_HANDLED;
 
 	switch (event) {
 	case TSEVENT_POWER_ON:
