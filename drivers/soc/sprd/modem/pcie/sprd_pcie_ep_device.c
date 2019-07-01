@@ -21,6 +21,7 @@
 #include <linux/pci.h>
 #include <linux/pci_regs.h>
 #include <linux/pci_ids.h>
+#include <linux/pcie-rc-sprd.h>
 #include <linux/sched.h>
 #include <uapi/linux/sched/types.h>
 #include <linux/soc/sprd/sprd_pcie_ep_device.h>
@@ -40,6 +41,7 @@ enum dev_pci_barno {
 #define MAX_SUPPORT_IRQ	32
 #define REQUEST_BASE_IRQ	16
 #define REQUEST_MAX_IRQ	(REQUEST_BASE_IRQ + PCIE_EP_MAX_IRQ)
+#define IPA_HW_IRQ_CNT 4
 
 #ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
 /* the bar0 and the bar1 are used for ipa */
@@ -783,6 +785,16 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 				pdev->irq + i, i + 1);
 	}
 
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+	for (i = 0; i < IPA_HW_IRQ_CNT; i++) {
+		err = devm_request_irq(dev, pdev->irq + i,
+				       sprd_pci_ep_dev_irqhandler,
+				       IRQF_SHARED, DRV_MODULE_NAME, ep_dev);
+		if (!err)
+			sprd_pcie_teardown_msi_irq(pdev->irq + i);
+	}
+#endif
+
 	for (bar = BAR_0; bar <= BAR_5; bar++) {
 		res = &pdev->resource[bar];
 		dev_info(dev, "ep: BAR[%d] %pR\n", bar, res);
@@ -834,8 +846,13 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 	return 0;
 
 err_free_irq:
-for (i = REQUEST_BASE_IRQ; i < REQUEST_MAX_IRQ; i++)
-	devm_free_irq(&pdev->dev, pdev->irq + i, ep_dev);
+	for (i = REQUEST_BASE_IRQ; i < REQUEST_MAX_IRQ; i++)
+		devm_free_irq(&pdev->dev, pdev->irq + i, ep_dev);
+
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+	for (i = 0; i < IPA_HW_IRQ_CNT; i++)
+		devm_free_irq(&pdev->dev, pdev->irq + i, ep_dev);
+#endif
 
 err_disable_msi:
 	pci_disable_msi(pdev);
@@ -866,6 +883,11 @@ static void sprd_pci_ep_dev_remove(struct pci_dev *pdev)
 
 	for (i = REQUEST_BASE_IRQ; i < REQUEST_MAX_IRQ; i++)
 		devm_free_irq(&pdev->dev, pdev->irq + i, ep_dev);
+
+#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+	for (i = 0; i < IPA_HW_IRQ_CNT; i++)
+		devm_free_irq(&pdev->dev, pdev->irq + i, ep_dev);
+#endif
 
 	pci_disable_msi(pdev);
 	pci_release_regions(pdev);
