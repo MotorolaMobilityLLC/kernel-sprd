@@ -395,7 +395,7 @@ static int gsp_dev_alloc(struct device *dev, struct gsp_dev **gsp)
 		GSP_ERR("read name failed\n");
 		return ret;
 	}
-	strlcpy((*gsp)->name, name, strlen(name) + 1);
+	strlcpy((*gsp)->name, name, sizeof((*gsp)->name));
 	GSP_INFO("gsp device name: %s\n", (*gsp)->name);
 
 	ret = of_property_read_u32(np, "io-cnt", &cnt);

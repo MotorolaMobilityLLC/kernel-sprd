@@ -145,7 +145,7 @@ int gsp_interface_attach(struct gsp_interface **interface,
 		GSP_WARN("no match interface for gsp\n");
 		goto error;
 	}
-	strlcpy((*interface)->name, name, strlen(name) + 1);
+	strlcpy((*interface)->name, name, sizeof((*interface)->name));
 
 	/* here get core[0] device node as default */
 	core = gsp_dev_to_core(gsp, 0);
