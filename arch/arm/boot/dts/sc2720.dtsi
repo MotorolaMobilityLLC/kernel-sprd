@@ -258,6 +258,11 @@
 			reg = <0xc20>;
 		};
 
+		vibrator@e00 {
+			compatible = "sprd,sc27xx-vibrator", "sprd,sc2721-vibrator", "sprd,sc2720-vibrator";
+			reg = <0xe00>;
+		};
+
 		pmic_charger: charger@e0c {
 			compatible = "sprd,sc27xx-charger", "sprd,sc2720-charger";
 			reg = <0xe0c>;
