@@ -189,17 +189,28 @@
 };
 
 &sdio0 {
+	sprd,sdr104-dly = <0x7f 0x73 0x72 0x72>;
+	sprd,sdr50-dly = <0x6e 0x7f 0x01 0x01>;
+	sprd,sdhs-dly = <0x7f 0x1a 0x9a 0x9a>;
+	sprd,legacy-dly = <0x7f 0x1a 0x9a 0x9a>;
 	vmmc-supply = <&vddsdcore>;
 	vqmmc-supply = <&vddsdio>;
 	voltage-ranges = <3000 3000>;
 	bus-width = <4>;
+	sd-uhs-sdr104;
+	sd-uhs-sdr50;
 	sprd,name = "sdio_sd";
+	sprd,sdio-adma;
 	no-sdio;
 	no-mmc;
 	status = "okay";
 };
 
 &sdio1 {
+	sprd,sdr104-dly = <0x7f 0x76 0x69 0x69>;
+	sprd,sdr50-dly = <0x7f 0xf7 0xf5 0xf5>;
+	sd-uhs-sdr104;
+	sd-uhs-sdr50;
 	bus-width = <4>;
 	sprd,name = "sdio_wifi";
 	sprd,sdio-adma;
@@ -209,12 +220,22 @@
 };
 
 &sdio3 {
+	sprd,hs400es-dly = <0x40 0x7f 0x2d 0x2d>;
+	sprd,hs400-dly = <0x3f 0xdf 0x2f 0x2f>;
+	sprd,hs200-dly = <0x7f 0xde 0xd4 0xd4>;
+	sprd,ddr52-dly = <0x3e 0x37 0x24 0x24>;
+	sprd,mmchs-dly = <0x60 0xb7 0x34 0x34>;
 	vmmc-supply = <&vddemmccore>;
 	voltage-ranges = <3000 3000>;
 	bus-width = <8>;
 	non-removable;
 	cap-mmc-hw-reset;
+	mmc-hs400-enhanced-strobe;
+	mmc-hs400-1_8v;
+	mmc-hs200-1_8v;
+	mmc-ddr-1_8v;
 	sprd,name = "sdio_emmc";
+	sprd,sdio-adma;
 	no-sdio;
 	no-sd;
 	status = "okay";
