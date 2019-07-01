@@ -23,14 +23,20 @@
 #include "../pci.h"
 #include "portdrv.h"
 
-/* If this switch is set, PCIe port native services should not be enabled. */
-bool pcie_ports_disabled;
+/*
+ * If this switch is set, PCIe port native services should not be enabled.
+ * However, Unisoc PCIe can't support pcie ports by default. It's better to
+ * disable pcie ports here than to disable it in DTS.
+ */
+bool pcie_ports_disabled = true;
 
 /*
  * If this switch is set, ACPI _OSC will be used to determine whether or not to
  * enable PCIe port native services.
+ * Unisoc PCIe can't support pcie ports by default. So we pcie_ports_auto to
+ * false
  */
-bool pcie_ports_auto = true;
+bool pcie_ports_auto;
 
 static int __init pcie_port_setup(char *str)
 {

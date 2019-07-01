@@ -270,16 +270,17 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, ctrl);
 
+	ret = sprd_pcie_syscon_setting(pdev,
+				       "sprd,pcie-aspml1p2-syscons");
+	if (ret < 0)
+		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
+
 	ret = sprd_add_pcie_port(pci, pdev);
 	if (ret) {
 		dev_err(dev, "cannot initialize rc host\n");
 		return ret;
 	}
 
-	ret = sprd_pcie_syscon_setting(pdev,
-				       "sprd,pcie-aspml1p2-syscons");
-	if (ret < 0)
-		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
 	ctrl->is_powered = 1;
 
 	if (!dw_pcie_link_up(pci)) {
@@ -315,6 +316,10 @@ static int sprd_pcie_host_reinit(struct platform_device *pdev)
 	}
 
 	sprd_pcie_restore_dwc_reg(pci);
+	ret = sprd_pcie_syscon_setting(pdev,
+				       "sprd,pcie-aspml1p2-syscons");
+	if (ret < 0)
+		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
 
 	return 0;
 }

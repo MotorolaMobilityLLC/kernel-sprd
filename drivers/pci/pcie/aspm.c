@@ -206,6 +206,14 @@ static void pcie_clkpm_cap_init(struct pcie_link_state *link, int blacklist)
 		if (!(reg16 & PCI_EXP_LNKCTL_CLKREQ_EN))
 			enabled = 0;
 	}
+
+	/*
+	 * Unisoc PCIe RC can't support clkpm, so we disabled this function
+	 * regardless of whether an endpoint support it or not.
+	 */
+	capable = 0;
+	enabled = 0;
+
 	link->clkpm_enabled = enabled;
 	link->clkpm_default = enabled;
 	link->clkpm_capable = (blacklist) ? 0 : capable;

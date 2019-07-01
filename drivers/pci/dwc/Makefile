@@ -28,6 +28,6 @@ obj-$(CONFIG_PCIE_KIRIN) += pcie-kirin.o
 
 obj-$(CONFIG_ARM64) += pcie-hisi.o
 
-obj-$(CONFIG_PCIE_SPRD) += pcie-sprd-misc.o pcie-sprd-rc.o
+obj-$(CONFIG_PCIE_SPRD) += pcie-sprd-misc.o
 obj-$(CONFIG_PCIE_SPRD_HOST) += pcie-sprd.o
 obj-$(CONFIG_PCIE_SPRD_EP) += pcie-sprd-ep.o
