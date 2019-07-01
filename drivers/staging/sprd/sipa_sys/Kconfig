@@ -4,8 +4,10 @@ menu "Sipa System Modules"
 config SPRD_IPA_SYS
 	tristate "Spreadtrum Ipa Sys Power Management"
 	default n
+	select PM_GENERIC_DOMAINS if PM
 	help
 	  Sipa sys is a module that manages ipa low power.
-	  Its main function is to provide a power interface to the outside.
+	  When you select this feature, it will enable the pm generic
+	  power domain for ipa_sys module.
 
 endmenu
