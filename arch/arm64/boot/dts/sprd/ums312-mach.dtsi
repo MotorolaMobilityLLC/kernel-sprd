@@ -235,7 +235,7 @@
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
 			<  3320     (-7489)      5692      (-1423)>;
 			sprd,efuse-switch = <0>;
-			sprd,hotplug-period = <0>;
+			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <768000>;
 			sprd,min-cpunum = <3>;
 			sprd,core-base = <3930>;
@@ -279,7 +279,7 @@
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
 			<  3320     (-7489)      5692      (-1423)>;
 			sprd,efuse-switch = <0>;
-			sprd,hotplug-period = <0>;
+			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <1228800>;
 			sprd,min-cpunum = <0>;
 			sprd,core-base = <11464>;
