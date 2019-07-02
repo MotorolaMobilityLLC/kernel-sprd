@@ -289,7 +289,7 @@ int sprd_cam_pw_off(void)
 			if (ret)
 				goto err_pw_off;
 		} while (((power_state1 != (PD_MM_DOWN_FLAG << shift)) &&
-			(read_count < 10)) ||
+			(read_count < 30)) ||
 				(power_state1 != power_state2) ||
 				(power_state2 != power_state3));
 		if (power_state1 != (PD_MM_DOWN_FLAG << shift)) {
@@ -367,7 +367,7 @@ int sprd_cam_pw_on(void)
 					&power_state3);
 			if (ret)
 				goto err_pw_on;
-		} while ((power_state1 && read_count < 10) ||
+		} while ((power_state1 && read_count < 30) ||
 				(power_state1 != power_state2) ||
 				(power_state2 != power_state3));
 

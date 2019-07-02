@@ -296,7 +296,7 @@
 				sprd,csi-id = <0>;
 				sprd,dcam-id = <0>;
 				sprd,ip-version = <0x200>;
-				status = "disable";
+				status = "disabled";
 			};
 
 			csi1: csi01@62400000 {
@@ -318,7 +318,7 @@
 				sprd,csi-id = <1>;
 				sprd,dcam-id = <1>;
 				sprd,ip-version = <0x200>;
-				status = "disable";
+				status = "disabled";
 			};
 
 			csi2: csi02@62500000 {
@@ -340,7 +340,7 @@
 				sprd,csi-id = <2>;
 				sprd,dcam-id = <2>;
 				sprd,ip-version = <0x200>;
-				status = "disable";
+				status = "disabled";
 			};
 
 			jpg: jpg-codec@62700000{
