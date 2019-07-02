@@ -1675,14 +1675,17 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 	sprdwcn_bus_runtime_get();
 }
 
-static void bus_scan_card(void)
+static int bus_scan_card(void)
 {
 	init_completion(&marlin_dev->carddetect_done);
 	sprdwcn_bus_rescan(marlin_dev);
 	if (wait_for_completion_timeout(&marlin_dev->carddetect_done,
-		msecs_to_jiffies(CARD_DETECT_WAIT_MS)) == 0)
+		msecs_to_jiffies(CARD_DETECT_WAIT_MS)) == 0) {
 		WCN_ERR("wait bus rescan card time out\n");
+		return -1;
+	}
 
+	return 0;
 }
 
 void wifipa_enable(int enable)
@@ -1762,7 +1765,8 @@ static int chip_power_on(int subsys)
 	usleep_range(50, 60);
 	wifipa_enable(1);
 	wcn_wifipa_bound_xtl(true);
-	bus_scan_card();
+	if (bus_scan_card() < 0)
+		return -1;
 	loopcheck_ready_set();
 #ifndef CONFIG_WCN_PCIE
 	mem_pd_poweroff_deinit();
@@ -1923,7 +1927,11 @@ static int marlin_set_power(int subsys, int val)
 		if (marlin_dev->first_power_on_flag == 1) {
 			WCN_INFO("the first power on start\n");
 
-			chip_power_on(subsys);
+			if (chip_power_on(subsys) < 0) {
+				mutex_unlock(&marlin_dev->power_lock);
+				return -1;
+			}
+
 			set_bit(subsys, &marlin_dev->power_state);
 
 			WCN_INFO("GNSS start to auto download\n");
@@ -2024,7 +2032,10 @@ static int marlin_set_power(int subsys, int val)
 		/* 5. when GNSS close, marlin close.no module to power on */
 		else {
 			WCN_INFO("no module to power on, start to power on\n");
-			chip_power_on(subsys);
+			if (chip_power_on(subsys) < 0) {
+				mutex_unlock(&marlin_dev->power_lock);
+				return -1;
+			}
 			set_bit(subsys, &marlin_dev->power_state);
 
 			/* 5.1 first download marlin, and then download gnss */
@@ -2287,7 +2298,8 @@ int start_marlin(u32 subsys)
 			/* not need write cali */
 			marlin_dev->wifi_need_download_ini_flag = 2;
 	}
-	marlin_set_power(subsys, true);
+	if (marlin_set_power(subsys, true) < 0)
+		return -1;
 #ifndef CONFIG_WCN_PCIE
 	return mem_pd_mgr(subsys, true);
 #else
