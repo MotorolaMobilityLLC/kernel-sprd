@@ -9540,11 +9540,12 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 		}
 
 
-		if (cpu_overutilized(i))
+		if (cpu_overutilized(i)) {
 			*overutilized = true;
 
-		if (rq->misfit_task_load)
-			*misfit_task = true;
+			if (rq->misfit_task_load)
+				*misfit_task = true;
+		}
 	}
 
 	/* Adjust by relative CPU capacity of the group */
