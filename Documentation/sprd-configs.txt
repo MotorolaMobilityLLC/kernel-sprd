@@ -6238,7 +6238,7 @@ CONFIG_LEDS_CLASS
 	[function] LED Class Support
 CONFIG_LEDS_SC27XX_BLTC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] led
 	[must] user
@@ -6252,7 +6252,7 @@ CONFIG_LEDS_TRIGGERS
 	[function] LED Trigger support
 CONFIG_LEDS_TRIGGER_PATTERN
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] led
 	[must] user
