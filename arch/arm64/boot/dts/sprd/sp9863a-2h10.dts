@@ -91,6 +91,7 @@
 		reset-gpios = <&ap_gpio 95 GPIO_ACTIVE_LOW>;
 		enable-gpios = <&ap_gpio 94 GPIO_ACTIVE_LOW>;
 		m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
+		xtal-26m-clk-type = "TCXO";
 		dvdd12-supply = <&vddcon>;
 		avdd12-supply = <&vddcon>;
 		avdd33-supply = <&vddwifipa>;

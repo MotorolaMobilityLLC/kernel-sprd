@@ -77,6 +77,7 @@
 		reset-gpios = <&ap_gpio 126 GPIO_ACTIVE_LOW>;
 		enable-gpios = <&ap_gpio 77 GPIO_ACTIVE_LOW>;
 		m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
+		xtal-26m-clk-type = "TCXO";
 		/* no need config dvdd12 because of share vddmem to DDR */
 		avdd12-supply = <&vddgen1>;
 		avdd33-supply = <&vddwifipa>;
