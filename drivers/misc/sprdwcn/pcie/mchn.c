@@ -11,10 +11,14 @@
  */
 
 #include <linux/kernel.h>
+#include <misc/marlin_platform.h>
 #include <misc/wcn_bus.h>
 
 #include "edma_engine.h"
 #include "mchn.h"
+
+#define TX 1
+#define RX 0
 
 static struct mchn_info_t g_mchn;
 
@@ -216,6 +220,16 @@ int mchn_push_link(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 			__func__, chn, num, mchn->ops[chn]->pool_size, head,
 			tail);
 		dump_stack();
+		return -1;
+	}
+
+	if (!wcn_get_edma_status() && (mchn->ops[chn]->inout == RX)) {
+		WCN_ERR("%s:edma not ready, chn=%d\n", __func__, chn);
+		return -1;
+	}
+
+	if (!marlin_get_download_status() && (mchn->ops[chn]->inout == TX)) {
+		WCN_ERR("%s:boot not ready, chn=%d\n", __func__, chn);
 		return -1;
 	}
 

@@ -47,6 +47,13 @@ struct wcn_pcie_info *get_wcn_device_info(void)
 	return g_pcie_dev;
 }
 
+int wcn_get_edma_status(void)
+{
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+
+	return atomic_read(&priv->edma_ready);
+}
+
 static void wcn_bus_change_state(struct wcn_pcie_info *bus,
 				 enum wcn_bus_state state)
 {
@@ -586,6 +593,7 @@ void sprd_pcie_remove_card(void *wcn_dev)
 	int wait_cnt = 0;
 
 	atomic_add(BUS_REMOVE_CARD_VAL, &priv->xmit_cnt);
+	atomic_set(&priv->edma_ready, 0x0);
 	disable_pcie_irq();
 	/* wait at_cmd send done */
 	while ((atomic_read(&priv->xmit_cnt) > BUS_REMOVE_CARD_VAL)
@@ -782,13 +790,16 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	atomic_set(&priv->xmit_cnt, 0x0);
 	complete(&priv->scan_done);
 
-	wcn_aspm_enable(pdev);
 	edma_init(priv);
+	atomic_set(&priv->edma_ready, 0x1);
+
 	dbg_attach_bus(priv);
+
 	/* for proc_fs_init */
 	mdbg_fs_channel_init();
 	/* for log_dev_init */
 	mdbg_pt_ring_reg();
+
 	pci_read_config_dword(pdev, 0x0728, &val32);
 	WCN_INFO("EP link status 728=0x%x\n", val32);
 	pci_read_config_dword(pdev, 0x072c, &val32);

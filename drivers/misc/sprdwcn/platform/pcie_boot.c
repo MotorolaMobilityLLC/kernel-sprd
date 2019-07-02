@@ -234,11 +234,11 @@ int handle_btwf_boot(struct wcn_pcie_info *pcie_info,
 			    BTWF_FIRMWARE_SIZE_MAX);
 	if (temp < 0) {
 		WCN_ERR("BTWF boot up fail\n");
-		marlin_dev->download_finish_flag = 0;
+		atomic_set(&marlin_dev->download_finish_flag, 0);
 		return -1;
 	}
 
-	marlin_dev->download_finish_flag = 1;
+	atomic_set(&marlin_dev->download_finish_flag, 1);
 
 	return 0;
 }
@@ -249,7 +249,7 @@ int wcn_boot_init(struct wcn_pcie_info *pcie_info,
 	int temp = 0;
 
 	WCN_INFO("%s enter\n", __func__);
-	if (!marlin_dev->download_finish_flag) {
+	if (!atomic_read(&marlin_dev->download_finish_flag)) {
 		handle_gnss_boot(pcie_info, marlin_dev, subsys);
 		temp = handle_btwf_boot(pcie_info, marlin_dev, subsys);
 		return temp;

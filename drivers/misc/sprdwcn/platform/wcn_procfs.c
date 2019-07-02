@@ -23,6 +23,7 @@
 #include <linux/sched/clock.h>
 #include <linux/seq_file.h>
 #include <linux/wait.h>
+#include <misc/marlin_platform.h>
 #include <misc/wcn_bus.h>
 
 #ifdef CONFIG_WCN_PCIE
@@ -773,6 +774,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		WCN_INFO("fail_count is value %d\n", mdbg_proc->fail_count);
 		WCN_INFO("fail_reset is value %d\n", flag_reset);
 		mdbg_proc->fail_count = 0;
+		marlin_set_download_status(0);
 		sprdwcn_bus_set_carddump_status(false);
 		marlin_chip_en(false, true);
 		if (marlin_reset_func != NULL)
@@ -784,6 +786,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		WCN_INFO("marlin gnss need reset\n");
 		WCN_INFO("fail_count is value %d\n", mdbg_proc->fail_count);
 		mdbg_proc->fail_count = 0;
+		marlin_set_download_status(0);
 		sprdwcn_bus_set_carddump_status(false);
 		marlin_chip_en(false, true);
 		if (marlin_reset_func != NULL)

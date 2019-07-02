@@ -90,7 +90,7 @@ struct marlin_device {
 	bool is_gnss_in_sysfs;
 	int wifi_need_download_ini_flag;
 	int first_power_on_flag;
-	unsigned char download_finish_flag;
+	atomic_t download_finish_flag;
 	unsigned char gnss_dl_finish_flag;
 	int loopcheck_status_change;
 	struct wcn_sync_info_t sync_f;

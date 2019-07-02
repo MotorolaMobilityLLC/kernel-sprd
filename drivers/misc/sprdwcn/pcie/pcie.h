@@ -94,6 +94,7 @@ struct wcn_pcie_info {
 	struct completion scan_done;
 	struct completion remove_done;
 	atomic_t xmit_cnt;
+	atomic_t edma_ready;
 };
 
 struct inbound_reg {
@@ -142,4 +143,5 @@ void sprd_pcie_remove_card(void *wcn_dev);
 u32 sprd_pcie_read_reg32(struct wcn_pcie_info *priv, int offset);
 void sprd_pcie_write_reg32(struct wcn_pcie_info *priv, u32 reg_offset,
 			   u32 value);
+int wcn_get_edma_status(void);
 #endif

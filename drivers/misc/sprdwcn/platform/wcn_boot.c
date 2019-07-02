@@ -47,6 +47,7 @@
 #include "wcn_misc.h"
 #include "wcn_procfs.h"
 #include "wcn_gnss.h"
+#include "wcn_txrx.h"
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
 #include "../include/wcn_glb_reg.h"
@@ -1954,7 +1955,7 @@ static int marlin_set_power(int subsys, int val)
 				WCN_ERR("marlin download timeout\n");
 				goto out;
 			}
-			marlin_dev->download_finish_flag = 1;
+			atomic_set(&marlin_dev->download_finish_flag, 1);
 			WCN_INFO("then marlin download finished and run ok\n");
 
 			marlin_dev->first_power_on_flag = 2;
@@ -2049,8 +2050,8 @@ static int marlin_set_power(int subsys, int val)
 					WCN_ERR("marlin download timeout\n");
 					goto out;
 				}
-				marlin_dev->download_finish_flag = 1;
-
+				atomic_set(&marlin_dev->download_finish_flag,
+					   1);
 				WCN_INFO("marlin dl finished and run ok\n");
 
 				WCN_INFO("GNSS start to download\n");
@@ -2078,7 +2079,8 @@ static int marlin_set_power(int subsys, int val)
 					WCN_ERR("marlin download timeout\n");
 					goto out;
 				}
-				marlin_dev->download_finish_flag = 1;
+				atomic_set(&marlin_dev->download_finish_flag,
+					   1);
 				WCN_INFO("BTWF download finished and run ok\n");
 				gnss_powerdomain_close();
 			}
@@ -2115,7 +2117,7 @@ static int marlin_set_power(int subsys, int val)
 			}
 		}
 
-		if (!marlin_dev->download_finish_flag)
+		if (!atomic_read(&marlin_dev->download_finish_flag))
 			goto check_power_state_notify;
 
 		set_wifipa_status(subsys, val);
@@ -2135,7 +2137,7 @@ static int marlin_set_power(int subsys, int val)
 		sprdwcn_bus_runtime_put();
 		chip_power_off(subsys);
 		WCN_INFO("marlin power off!\n");
-		marlin_dev->download_finish_flag = 0;
+		atomic_set(&marlin_dev->download_finish_flag, 0);
 		if (flag_reset)
 			flag_reset = FALSE;
 	} /* power off end */
@@ -2155,6 +2157,7 @@ out:
 	marlin_analog_power_enable(false);
 	chip_reset_release(0);
 	marlin_dev->power_state = 0;
+	atomic_set(&marlin_dev->download_finish_flag, 0);
 	mutex_unlock(&marlin_dev->power_lock);
 
 	return -1;
@@ -2185,9 +2188,15 @@ EXPORT_SYMBOL_GPL(marlin_get_power);
 
 bool marlin_get_download_status(void)
 {
-	return marlin_dev->download_finish_flag;
+	return atomic_read(&marlin_dev->download_finish_flag);
 }
 EXPORT_SYMBOL_GPL(marlin_get_download_status);
+
+void marlin_set_download_status(int f)
+{
+	atomic_set(&marlin_dev->download_finish_flag, f);
+}
+EXPORT_SYMBOL_GPL(marlin_set_download_status);
 
 int wcn_get_module_status_changed(void)
 {
@@ -2242,7 +2251,7 @@ int marlin_set_wakeup(enum marlin_sub_sys subsys)
 	int ret = 0;	/* temp */
 
 	return 0;
-	if (unlikely(marlin_dev->download_finish_flag != true))
+	if (!atomic_read(&marlin_dev->download_finish_flag))
 		return -1;
 
 	return ret;
@@ -2253,7 +2262,7 @@ int marlin_set_sleep(enum marlin_sub_sys subsys, bool enable)
 {
 	return 0;	/* temp */
 
-	if (unlikely(marlin_dev->download_finish_flag != true))
+	if (!atomic_read(&marlin_dev->download_finish_flag))
 		return -1;
 
 	return 0;
