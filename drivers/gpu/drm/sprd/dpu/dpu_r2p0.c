@@ -250,7 +250,7 @@ static u32 enhance_en;
 static DECLARE_WAIT_QUEUE_HEAD(wait_queue);
 static bool panel_ready = true;
 static bool need_scale;
-//static bool is_scaling;
+static bool mode_changed;
 static bool evt_update;
 static bool evt_stop;
 static int wb_en;
@@ -265,6 +265,7 @@ static int sprd_corner_radius;
 //module_param(wb_xfbc_en, int, 0644);
 //module_param(max_vsync_count, int, 0644);
 
+static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_enhance_reload(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
@@ -959,6 +960,32 @@ static void dpu_layer(struct dpu_context *ctx,
 				hwlayer->src_w, hwlayer->src_h);
 }
 
+static void dpu_scaling(struct dpu_context *ctx,
+			struct sprd_dpu_layer layers[], u8 count)
+{
+	int i;
+	struct sprd_dpu_layer *top_layer;
+
+	if (mode_changed) {
+		top_layer = &layers[count - 1];
+		pr_debug("------------------------------------\n");
+		for (i = 0; i < count; i++) {
+			pr_debug("layer[%d] : %dx%d --- (%d)\n", i,
+				layers[i].dst_w, layers[i].dst_h,
+				scale_copy.in_w);
+		}
+
+		if  (top_layer->dst_w <= scale_copy.in_w) {
+			dpu_sr_config(ctx);
+			mode_changed = false;
+
+			pr_info("do scaling enhace: 0x%x, top layer(%dx%d)\n",
+				enhance_en, top_layer->dst_w,
+				top_layer->dst_h);
+		}
+	}
+}
+
 static void dpu_flip(struct dpu_context *ctx,
 		     struct sprd_dpu_layer layers[], u8 count)
 {
@@ -990,6 +1017,9 @@ static void dpu_flip(struct dpu_context *ctx,
 
 	/* disable all the layers */
 	dpu_clean_all(ctx);
+
+	/* to check if dpu need scaling the frame for SR */
+	dpu_scaling(ctx, layers, count);
 
 	/* start configure dpu layers */
 	for (i = 0; i < count; i++)
@@ -1478,6 +1508,38 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	reg->dpu_enhance_cfg = enhance_en;
 }
 
+static void dpu_sr_config(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+	reg->blend_size = (scale_copy.in_h << 16) | scale_copy.in_w;
+	if (need_scale) {
+#ifdef EPF_ENABLED
+		/* SLP is disabled mode or bypass mode */
+		if (slp_copy.brightness <= SLP_BRIGHTNESS_THRESHOLD) {
+
+		/*
+		 * valid range of gain3 is [128,255];dpu_scaling maybe
+		 * called before epf_copy is assinged a value
+		 */
+			if (epf_copy.gain3 > 0) {
+				dpu_epf_set(reg, &epf_copy);
+				enhance_en |= BIT(1);
+			}
+		}
+#endif
+		enhance_en |= BIT(0);
+		reg->dpu_enhance_cfg = enhance_en;
+	} else {
+		if (slp_copy.brightness <= SLP_BRIGHTNESS_THRESHOLD)
+			enhance_en &= ~(BIT(1));
+
+		enhance_en &= ~(BIT(0));
+		reg->dpu_enhance_cfg = enhance_en;
+	}
+}
+
+
 static int dpu_modeset(struct dpu_context *ctx,
 		struct drm_mode_modeinfo *mode)
 {
@@ -1485,11 +1547,12 @@ static int dpu_modeset(struct dpu_context *ctx,
 	scale_copy.in_h = mode->vdisplay;
 
 	if ((mode->hdisplay != ctx->vm.hactive) ||
-	    (mode->vdisplay != ctx->vm.vactive))
+		(mode->vdisplay != ctx->vm.vactive))
 		need_scale = true;
 	else
 		need_scale = false;
 
+	mode_changed = true;
 	pr_info("begin switch to %u x %u\n", mode->hdisplay, mode->vdisplay);
 
 	return 0;
