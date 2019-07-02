@@ -1011,6 +1011,7 @@
 				clock-names = "core_clk", "ref_clk", "susp_clk",
 					"ipa_usb_ref", "ipa_usb_ref_source";
 				usb-phy = <&ssphy>, <&ssphy>;
+				power-domains = <&pd_ipa_sys>;
 
 				dwc3@20f00000 {
 					compatible = "snps,dwc3";
