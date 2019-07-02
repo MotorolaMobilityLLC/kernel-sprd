@@ -58,6 +58,16 @@ static int get_iommuex_type(int revision, int *pchip)
 	enum sprd_iommu_type type = SPRD_IOMMU_NOT_SUPPORT;
 
 	switch (revision) {
+	case 7:
+	{
+		type = SPRD_IOMMUEX_SHARKLE;
+		break;
+	}
+	case 8:
+	{
+		type = SPRD_IOMMUEX_PIKE2;
+		break;
+	}
 	case 9:
 	{
 		type = SPRD_IOMMUEX_SHARKL3;
