@@ -2494,8 +2494,9 @@ static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
 	musb_offload_enable(musb, bchannel);
 }
 
-static void musb_offload_enqueue(struct musb *musb, struct urb *urb)
+static void musb_offload_enqueue(struct usb_hcd *hcd, struct urb *urb)
 {
+	struct musb			*musb = hcd_to_musb(hcd);
 	struct usb_host_endpoint	*hep = urb->ep;
 	struct usb_endpoint_descriptor	*epd = &hep->desc;
 	u8 ep_num = usb_endpoint_num(epd);
@@ -2556,7 +2557,38 @@ static void musb_offload_enqueue(struct musb *musb, struct urb *urb)
 		qh.epnum, dir, qh.maxpacket, qh.type, qh.addr_reg,
 		qh.type_reg, qh.intv_reg);
 
-	musb_writeb(musb->mregs, MUSB_FADDR, qh.addr_reg);
+	/* precompute addressing for external hub/tt ports */
+	if (musb->is_multipoint) {
+		struct usb_device	*parent = urb->dev->parent;
+
+		if (parent != hcd->self.root_hub) {
+			qh.h_addr_reg = (u8) parent->devnum;
+
+			/* set up tt info if needed */
+			if (urb->dev->tt) {
+				qh.h_port_reg = (u8) urb->dev->ttport;
+				if (urb->dev->tt->hub)
+					qh.h_addr_reg =
+						(u8) urb->dev->tt->hub->devnum;
+				if (urb->dev->tt->multi)
+					qh.h_addr_reg |= 0x80;
+			}
+		}
+
+		/* target addr and (for multipoint) hub addr/port */
+		if (dir) {
+			musb_write_txfunaddr(musb, qh.epnum, qh.addr_reg);
+			musb_write_txhubaddr(musb, qh.epnum, qh.h_addr_reg);
+			musb_write_txhubport(musb, qh.epnum, qh.h_port_reg);
+		} else {
+			musb_write_rxfunaddr(musb, qh.epnum, qh.addr_reg);
+			musb_write_rxhubaddr(musb, qh.epnum, qh.h_addr_reg);
+			musb_write_rxhubport(musb, qh.epnum, qh.h_port_reg);
+		}
+	} else {
+		musb_writeb(musb->mregs, MUSB_FADDR, qh.addr_reg);
+	}
+
 	musb_writeb(epio, MUSB_TXINTERVAL, qh.intv_reg);
 	if (dir) {
 		/* out */
@@ -2599,7 +2631,7 @@ static void musb_offload_config(struct usb_hcd *hcd, int ep_num, int mono,
 		int is_pcm_24, int width, int rate, int offload_used)
 {}
 
-static void musb_offload_enqueue(struct musb *musb, struct urb *urb)
+static void musb_offload_enqueue(struct usb_hcd *hcd, struct urb *urb)
 {}
 
 static void musb_set_offload_mode(struct usb_hcd *hcd, bool is_offload)
@@ -2636,7 +2668,7 @@ static int musb_urb_enqueue(
 	if (musb->is_offload &&
 		musb_offload_detect(musb, epd)) {
 		dev_dbg(musb->controller, "Don't need to transfer urb\n");
-		musb_offload_enqueue(musb, urb);
+		musb_offload_enqueue(hcd, urb);
 		return 0;
 	}
 	/* DMA mapping was already done, if needed, and this urb is on
