@@ -459,6 +459,10 @@
 	status = "okay";
 };
 
+&sdio0 {
+	cd-gpios = <&eic_async 9 1>;
+};
+
 &i2c7 {
 	status = "okay";
 	clock-frequency = <400000>;
