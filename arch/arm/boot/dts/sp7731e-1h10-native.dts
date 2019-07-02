@@ -170,6 +170,10 @@
 			};
 		};
 	};
+
+	sprd-wlan {
+		compatible = "sprd,sp7731e";
+	};
 };
 
 &reserved_memory {
