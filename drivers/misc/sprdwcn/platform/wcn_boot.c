@@ -508,7 +508,8 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 	for (i = 1; i <= opn_num_max; i++) {
 		if (IS_ERR(file)) {
 			WCN_INFO("try open file %s,count_num:%d,errno=%ld,%s\n",
-				GNSS_FIRMWARE_PATH, i, PTR_ERR(file), __func__);
+				 GNSS_FIRMWARE_PATH, i,
+				 PTR_ERR(file), __func__);
 			if (PTR_ERR(file) == -ENOENT)
 				WCN_ERR("No such file or directory\n");
 			if (PTR_ERR(file) == -EACCES)
@@ -1166,6 +1167,7 @@ void marlin_read_cali_data(void)
 
 	complete(&marlin_dev->download_done);
 }
+
 #ifndef CONFIG_WCN_PCIE
 static int marlin_write_cali_data(void)
 {
@@ -1966,9 +1968,11 @@ static int marlin_set_power(int subsys, int val)
 				marlin_set_power(WCN_AUTO, false);
 				return 0;
 			}
-			/* if first power on is GNSS, must power off after cali finish,
-			   and then re-power on it, this is gnss requirement.
-			*/
+			/*
+			 * If first power on is GNSS, must power off it
+			 * after cali finish, and then re-power on it.
+			 * This is gnss requirement.
+			 */
 			if (subsys == MARLIN_GNSS) {
 				marlin_set_power(MARLIN_GNSS, false);
 				marlin_set_power(MARLIN_GNSS, true);
@@ -2365,7 +2369,7 @@ static int marlin_probe(struct platform_device *pdev)
 
 	marlin_dev->np = pdev->dev.of_node;
 	WCN_INFO("%s: device node name: %s\n",
-		__func__, marlin_dev->np->name);
+		 __func__, marlin_dev->np->name);
 
 	mutex_init(&(marlin_dev->power_lock));
 	marlin_dev->power_state = 0;

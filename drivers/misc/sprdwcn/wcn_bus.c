@@ -97,6 +97,7 @@ static int buf_pool_check(struct buffer_pool_t *pool)
 
 	return 0;
 }
+
 /* mbuf init and list, current payload is zero */
 static int buf_pool_init(struct buffer_pool_t *pool, int size, int payload)
 {
@@ -148,6 +149,7 @@ static int buf_pool_deinit(struct buffer_pool_t *pool)
 
 	return 0;
 }
+
 /* take mbuf from pool list */
 int buf_list_alloc(int chn, struct mbuf_t **head,
 		   struct mbuf_t **tail, int *num)

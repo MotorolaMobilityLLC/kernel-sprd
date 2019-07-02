@@ -550,13 +550,11 @@ int sprd_pcie_scan_card(void *wcn_dev)
 		return 0;
 	}
 	dev = &pdev->dev;
-	WCN_INFO("%s: rc node name: %s\n",
-			__func__, dev->of_node->name);
+	WCN_INFO("%s: rc node name: %s\n", __func__, dev->of_node->name);
 	sprd_pcie_configure_device(pdev);
 
 	if (wait_for_completion_timeout(&priv->scan_done,
-		msecs_to_jiffies(5000)) == 0) {
-
+	    msecs_to_jiffies(5000)) == 0) {
 		WCN_ERR("wait scan card time out\n");
 		return -ENODEV;
 	}

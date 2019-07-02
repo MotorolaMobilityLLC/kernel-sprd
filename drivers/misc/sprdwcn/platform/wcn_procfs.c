@@ -212,7 +212,7 @@ static int free_prepare_buf(struct dma_buf *dm)
 		return -1;
 	}
 
-	if ((dm->vir != 0) && (dm->phy != 0))
+	if (dm->vir && dm->phy)
 		dmfree(pcie_dev, dm);
 
 	return 0;

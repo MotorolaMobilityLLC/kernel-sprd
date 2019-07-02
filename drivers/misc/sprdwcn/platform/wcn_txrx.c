@@ -307,7 +307,7 @@ static int free_prepare_buf(struct dma_buf *dm)
 		return -1;
 	}
 
-	if ((dm->vir != 0) && (dm->phy != 0))
+	if (dm->vir && dm->phy)
 		dmfree(pcie_dev, dm);
 
 	return 0;
@@ -337,8 +337,7 @@ int prepare_free_buf_for_log(int chn, int size, int num)
 		memset(mbuf->buf, 0x0, mbuf->len);
 		mbuf = mbuf->next;
 		WCN_INFO("dma_alloc_coherent(0x%x) vir=0x%lx, phy=0x%lx\n",
-		 log_buf[i].size, log_buf[i].vir,
-		 log_buf[i].phy);
+			 log_buf[i].size, log_buf[i].vir, log_buf[i].phy);
 	}
 
 	ret = sprdwcn_bus_push_list(chn, head, tail, num);
