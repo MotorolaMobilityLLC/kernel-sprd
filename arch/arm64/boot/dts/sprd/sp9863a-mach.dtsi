@@ -20,6 +20,16 @@
 		thm-sensor11 = &cpu_thmzone;
 	};
 
+	firmware {
+		android {
+			compatible = "android,firmware";
+			vbmeta {
+				compatible = "android,vbmeta";
+				parts = "socko,odmko";
+			};
+		};
+	};
+
 	thm_zone: thermal-zones {
 
 		cpu_thmzone: cpu-thmzone {
