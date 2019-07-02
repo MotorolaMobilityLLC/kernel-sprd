@@ -1,6 +1,7 @@
 #ifndef _PCIE_RC_SPRD_H
 #define _PCIE_RC_SPRD_H
 
+#include  <linux/platform_device.h>
 /*
  * SPRD PCIe root complex (e.g. UD710 SoC) can't support PCI hotplug
  * capability. Therefore, the standard hotplug driver can't be used.

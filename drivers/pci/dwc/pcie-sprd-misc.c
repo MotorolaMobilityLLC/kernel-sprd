@@ -19,6 +19,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/msi.h>
 #include <linux/of_device.h>
+#include <linux/pcie-rc-sprd.h>
 #include <linux/platform_device.h>
 
 #include "pcie-designware.h"
