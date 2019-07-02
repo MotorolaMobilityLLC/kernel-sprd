@@ -76,32 +76,6 @@
 		sprd,mapping-offs = <0x0>;
 	};
 
-	gpu: gpu@60000000 {
-		compatible = "sprd,mali-gondul";
-		reg = <0 0x60000000 0 0x4000>;
-		interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>,
-			<GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>,
-			<GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "JOB",
-			"MMU",
-			"GPU";
-		operating-points = <
-			850000 0
-			768000 0
-			512000 0 >;
-		sprd,dfs-lists = <
-			512000 2 1
-			768000 3 1
-			850000 4 1 >;
-		sprd,dfs-default = <2>;
-		sprd,dfs-scene-extreme = <2>;
-		sprd,dfs-scene-high = <1>;
-		sprd,dfs-scene-medium = <1>;
-		sprd,dfs-scene-low = <0>;
-		sprd,dfs-range-max = <2>;
-		sprd,dfs-range-min = <0>;
-	};
-
 	ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;

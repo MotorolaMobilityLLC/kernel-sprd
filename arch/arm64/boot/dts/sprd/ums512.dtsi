@@ -577,3 +577,15 @@
 			<&pll2 CLK_TWPLL_256M>,
 			<&pll2 CLK_TWPLL_384M>;
 };
+
+&gpu {
+	clocks = <&aonapb_gate CLK_GPU_EB>,
+		<&gpu_clk CLK_GPU_CORE_EB>,
+		<&gpu_clk CLK_GPU_MEM_EB>,
+		<&gpu_clk CLK_GPU_SYS_EB>,
+		<&pll2 CLK_TWPLL_384M>,
+		<&pll2 CLK_TWPLL_512M>,
+		<&pll2 CLK_LPLL_614M4>,
+		<&pll2 CLK_TWPLL_768M>,
+		<&pll2 CLK_GPLL>;
+};
