@@ -2655,6 +2655,9 @@ static int musb_urb_enqueue(
 	/* host role must be active */
 	if (!is_host_active(musb) || !musb->is_active)
 		return -ENODEV;
+	if (!musb->is_multipoint && usb_endpoint_num(epd)
+		&& (hcd->self.root_hub != urb->dev->parent))
+		return -ENODEV;
 
 	trace_musb_urb_enq(musb, urb);
 
@@ -2909,7 +2912,13 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 	struct musb_qh		*qh;
 	unsigned long		flags;
 	int			is_in  = usb_pipein(urb->pipe);
+	struct usb_host_endpoint	*hep = urb->ep;
+	struct usb_endpoint_descriptor	*epd = &hep->desc;
 	int			ret;
+
+	if (!musb->is_multipoint && usb_endpoint_num(epd)
+		&& (hcd->self.root_hub != urb->dev->parent))
+		return 0;
 
 	trace_musb_urb_deq(musb, urb);
 
