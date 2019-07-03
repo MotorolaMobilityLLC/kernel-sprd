@@ -53,7 +53,7 @@
 
 	dpu_dvfs: dpu-dvfs {
 		compatible = "sprd,hwdvfs-dpu-sharkl5";
-		sprd,hw-dfs-en = <1>;
+		sprd,hw-dfs-en = <0>;
 		sprd,work-index-def = <3>;
 		sprd,idle-index-def = <1>;
 		sprd,freq-upd-delay-en = <0>;
