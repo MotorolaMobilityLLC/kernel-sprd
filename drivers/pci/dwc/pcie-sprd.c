@@ -209,8 +209,7 @@ static int sprd_pcie_host_uninit(struct platform_device *pdev)
 
 	ret = sprd_pcie_enter_pcipm_l2(pci);
 	if (ret < 0)
-		dev_warn(&pdev->dev,
-			"NOTE: RC can't enter l2\n");
+		dev_warn(&pdev->dev, "NOTE: RC can't enter l2\n");
 
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-suspend-syscons");
 	if (ret < 0)
@@ -218,110 +217,6 @@ static int sprd_pcie_host_uninit(struct platform_device *pdev)
 			"set pcie uninit syscons fail, return %d\n", ret);
 
 	return ret;
-}
-
-static int sprd_pcie_host_shutdown(struct platform_device *pdev)
-{
-	int ret;
-	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
-	struct dw_pcie *pci = ctrl->pci;
-
-	ctrl->is_powered = 0;
-
-	sprd_pcie_save_dwc_reg(pci);
-
-	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-shutdown-syscons");
-	if (ret < 0)
-		dev_err(&pdev->dev,
-			"set pcie shutdown syscons fail, return %d\n", ret);
-
-	return ret;
-}
-
-static const struct dw_pcie_ops dw_pcie_ops = {
-};
-
-static int sprd_pcie_probe(struct platform_device *pdev)
-{
-	struct device *dev = &pdev->dev;
-	struct dw_pcie *pci;
-	struct sprd_pcie *ctrl;
-	int ret;
-	size_t len = strlen(dev_name(dev)) + 10;
-
-	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-startup-syscons");
-	if (ret < 0) {
-		dev_err(dev, "get pcie syscons fail, return %d\n", ret);
-		return ret;
-	}
-
-	ctrl = devm_kzalloc(dev, sizeof(*ctrl) + len, GFP_KERNEL);
-	if (!ctrl)
-		return -ENOMEM;
-
-	pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
-	if (!pci)
-		return -ENOMEM;
-
-	pci->dev = dev;
-	pci->ops = &dw_pcie_ops;
-	ctrl->pci = pci;
-	ctrl->label_len = len;
-
-	platform_set_drvdata(pdev, ctrl);
-
-	ret = sprd_pcie_syscon_setting(pdev,
-				       "sprd,pcie-aspml1p2-syscons");
-	if (ret < 0)
-		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
-
-	ret = sprd_add_pcie_port(pci, pdev);
-	if (ret) {
-		dev_err(dev, "cannot initialize rc host\n");
-		return ret;
-	}
-
-	ctrl->is_powered = 1;
-
-	if (!dw_pcie_link_up(pci)) {
-		dev_info(dev,
-			 "the EP has not been ready yet, power off the RC\n");
-		sprd_pcie_host_shutdown(pdev);
-	}
-
-	return 0;
-}
-
-static int sprd_pcie_host_reinit(struct platform_device *pdev)
-{
-	int ret;
-	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
-	struct dw_pcie *pci = ctrl->pci;
-	struct pcie_port *pp = &pci->pp;
-
-	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-resume-syscons");
-	if (ret < 0) {
-		dev_err(&pdev->dev,
-			"set pcie reinit syscons fail, return %d\n", ret);
-		return ret;
-	}
-	dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
-			   LTSSM_EN | L1_AUXCLK_EN);
-
-	dw_pcie_setup_rc(pp);
-	ret = dw_pcie_wait_for_link(pci);
-	if (ret < 0) {
-		dev_err(&pdev->dev, "reinit fail, pcie can't establish link\n");
-		return ret;
-	}
-
-	sprd_pcie_restore_dwc_reg(pci);
-	ret = sprd_pcie_syscon_setting(pdev,
-				       "sprd,pcie-aspml1p2-syscons");
-	if (ret < 0)
-		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
-
-	return 0;
 }
 
 static struct pci_host_bridge *to_bridge_from_pdev(struct platform_device *pdev)
@@ -364,10 +259,73 @@ static void sprd_pcie_remove_bus(struct pci_bus *bus)
 	}
 }
 
+static int sprd_pcie_host_shutdown(struct platform_device *pdev)
+{
+	int ret;
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = ctrl->pci;
+	struct pci_bus *bus;
+	struct pci_host_bridge *bridge;
+
+	bridge = to_bridge_from_pdev(pdev);
+	bus = bridge->bus;
+
+	/*
+	 * Before disabled pcie controller, it's better to remove pcie devices.
+	 * pci_sysfs_init is called by late_initcall(fn). When it is called,
+	 * pcie controller may be disabled and its EB is 0. In this case,
+	 * it will cause kernel panic if a pcie device reads its owner
+	 * configuration spaces.
+	 */
+	sprd_pcie_remove_bus(bus);
+	sprd_pcie_save_dwc_reg(pci);
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-shutdown-syscons");
+	if (ret < 0)
+		dev_err(&pdev->dev,
+			"set pcie shutdown syscons fail, return %d\n", ret);
+
+	return ret;
+}
+
+static const struct dw_pcie_ops dw_pcie_ops = {
+};
+
+static int sprd_pcie_host_reinit(struct platform_device *pdev)
+{
+	int ret;
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+	struct dw_pcie *pci = ctrl->pci;
+	struct pcie_port *pp = &pci->pp;
+
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-resume-syscons");
+	if (ret < 0) {
+		dev_err(&pdev->dev,
+			"set pcie reinit syscons fail, return %d\n", ret);
+		return ret;
+	}
+	dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
+			   LTSSM_EN | L1_AUXCLK_EN);
+
+	dw_pcie_setup_rc(pp);
+	ret = dw_pcie_wait_for_link(pci);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "reinit fail, pcie can't establish link\n");
+		return ret;
+	}
+
+	sprd_pcie_restore_dwc_reg(pci);
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-aspml1p2-syscons");
+	if (ret < 0)
+		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
+
+	return 0;
+}
+
 int sprd_pcie_configure_device(struct platform_device *pdev)
 {
 	int ret;
 	struct pci_host_bridge *bridge;
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
 
 	ret = sprd_pcie_host_reinit(pdev);
 	if (ret < 0) {
@@ -377,6 +335,7 @@ int sprd_pcie_configure_device(struct platform_device *pdev)
 
 	bridge = to_bridge_from_pdev(pdev);
 	sprd_pcie_rescan_bus(bridge->bus);
+	ctrl->is_powered = 1;
 
 	return 0;
 }
@@ -387,6 +346,7 @@ int sprd_pcie_unconfigure_device(struct platform_device *pdev)
 	int ret;
 	struct pci_bus *bus;
 	struct pci_host_bridge *bridge;
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
 
 	bridge = to_bridge_from_pdev(pdev);
 	bus = bridge->bus;
@@ -397,10 +357,62 @@ int sprd_pcie_unconfigure_device(struct platform_device *pdev)
 	if (ret < 0)
 		dev_warn(&pdev->dev,
 			 "please ignore pcie unconfigure failure\n");
+	ctrl->is_powered = 0;
 
 	return 0;
 }
 EXPORT_SYMBOL(sprd_pcie_unconfigure_device);
+
+static int sprd_pcie_probe(struct platform_device *pdev)
+{
+	struct device *dev = &pdev->dev;
+	struct dw_pcie *pci;
+	struct sprd_pcie *ctrl;
+	int ret;
+	size_t len = strlen(dev_name(dev)) + 10;
+
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-startup-syscons");
+	if (ret < 0) {
+		dev_err(dev, "get pcie syscons fail, return %d\n", ret);
+		return ret;
+	}
+
+	ctrl = devm_kzalloc(dev, sizeof(*ctrl) + len, GFP_KERNEL);
+	if (!ctrl)
+		return -ENOMEM;
+
+	pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
+	if (!pci)
+		return -ENOMEM;
+
+	pci->dev = dev;
+	pci->ops = &dw_pcie_ops;
+	ctrl->pci = pci;
+	ctrl->label_len = len;
+
+	platform_set_drvdata(pdev, ctrl);
+
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-aspml1p2-syscons");
+	if (ret < 0)
+		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
+
+	ret = sprd_add_pcie_port(pci, pdev);
+	if (ret) {
+		dev_err(dev, "cannot initialize rc host\n");
+		return ret;
+	}
+
+	ctrl->is_powered = 1;
+
+	if (!dw_pcie_link_up(pci)) {
+		dev_info(dev,
+			 "the EP has not been ready yet, power off the RC\n");
+		sprd_pcie_host_shutdown(pdev);
+		ctrl->is_powered = 0;
+	}
+
+	return 0;
+}
 
 static int sprd_pcie_suspend_noirq(struct device *dev)
 {
