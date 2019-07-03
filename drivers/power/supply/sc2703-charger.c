@@ -79,17 +79,18 @@ static const char * const sc2703_fast_charger_supply_name[] = {
 };
 
 static bool is_calib_mode;
+static bool is_autotest_mode;
 
-static int __init boot_calibration_mode(char *str)
+static int __init boot_mode(char *str)
 {
 	if (str && !strncmp(str, "cali", strlen("cali")))
 		is_calib_mode = true;
-	else
-		is_calib_mode = false;
+	else if (str && !strncmp(str, "autotest", strlen("autotest")))
+		is_autotest_mode = true;
 
 	return 0;
 }
-__setup("androidboot.mode=", boot_calibration_mode);
+__setup("androidboot.mode=", boot_mode);
 
 static bool sc2703_charger_is_bat_present(struct sc2703_charger_info *info)
 {
@@ -529,7 +530,7 @@ static void sc2703_charger_stop_charge(struct sc2703_charger_info *info,
 {
 	int mask, ret;
 
-	if (is_calib_mode)
+	if (is_calib_mode || is_autotest_mode)
 		mask = SC2703_CHG_EN_MASK | SC2703_DCDC_EN_MASK;
 	else
 		mask = SC2703_CHG_EN_MASK;
