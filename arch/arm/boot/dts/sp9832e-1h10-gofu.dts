@@ -167,6 +167,10 @@
 			};
 		};
 	};
+
+	sprd-wlan {
+		 compatible = "sprd,sp9832e";
+	};
 };
 
 &reserved_memory {
