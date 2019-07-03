@@ -76,6 +76,9 @@
 		sprd,region = <&iq_reserved>;
 		sprd,mapping-offs = <0x0>;
 	};
+	sprd-hotplug {
+		enable-dynamic-hotplug;
+	};
 };
 
 &sdio0 {
