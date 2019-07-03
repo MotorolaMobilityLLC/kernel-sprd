@@ -102,6 +102,8 @@ static void sprd_musb_enable(struct musb *musb)
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl);
 		otgextcsr = musb_readb(musb->mregs, MUSB_OTG_EXT_CSR);
 		otgextcsr |= MUSB_HOST_FORCE_EN;
+		if (musb->is_multipoint)
+			otgextcsr |= MUSB_TX_CMPL_MODE;
 		musb_writeb(musb->mregs, MUSB_OTG_EXT_CSR, otgextcsr);
 		dev_info(glue->dev, "%s:HOST ENABLE %02x\n",
 			__func__, devctl);

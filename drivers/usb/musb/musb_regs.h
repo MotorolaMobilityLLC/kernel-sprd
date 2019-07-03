@@ -309,6 +309,7 @@
 #define MUSB_HOST_FORCE_EN	0x01
 #define MUSB_CLEAR_TXBUFF	0x10
 #define MUSB_CLEAR_RXBUFF	0x20
+#define MUSB_TX_CMPL_MODE	0x40
 
 static inline void musb_write_txfifosz(void __iomem *mbase, u8 c_size)
 {
