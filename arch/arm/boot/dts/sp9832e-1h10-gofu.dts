@@ -200,6 +200,10 @@
 	status = "okay";
 };
 
+&iommu_dispc {
+	status = "okay";
+};
+
 &dsi {
 	status = "okay";
 	#address-cells = <1>;
