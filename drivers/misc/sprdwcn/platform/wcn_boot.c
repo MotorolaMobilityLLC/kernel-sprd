@@ -1067,7 +1067,7 @@ static int marlin_analog_power_enable(bool enable)
 	int ret = 0;
 
 	if (marlin_dev->avdd12 != NULL) {
-		msleep(20);
+		usleep_range(4000, 5000);
 		if (enable) {
 #ifdef CONFIG_WCN_PCIE
 			WCN_INFO("%s avdd12 set 1.35v\n", __func__);
@@ -1171,26 +1171,24 @@ void marlin_read_cali_data(void)
 #ifndef CONFIG_WCN_PCIE
 static int marlin_write_cali_data(void)
 {
+	int i;
 	int ret = 0, init_state = 0, cali_data_offset = 0;
-	int i = 0;
 
 	WCN_INFO("tsx_dac_data:%d\n", marlin_dev->tsxcali.tsxdata.dac);
 	cali_data_offset = (unsigned long)(&(marlin_dev->sync_f.tsx_dac_data))
 		- (unsigned long)(&(marlin_dev->sync_f));
 	WCN_INFO("cali_data_offset:0x%x\n", cali_data_offset);
 
-	do {
-		i++;
+	for (i = 0; i <= 65; i++) {
 		ret = sprdwcn_bus_reg_read(SYNC_ADDR, &init_state, 4);
 		if (ret < 0) {
 			WCN_ERR("%s marlin3 read SYNC_ADDR error:%d\n",
 				__func__, ret);
 			return ret;
 		}
-		WCN_INFO("%s sync init_state:0x%x\n", __func__, init_state);
 
 		if (init_state != SYNC_CALI_WAITING)
-			msleep(20);
+			usleep_range(3000, 5000);
 		/* wait cp in the state of waiting cali data */
 		else {
 			/* write cali data to cp */
@@ -1212,16 +1210,14 @@ static int marlin_write_cali_data(void)
 				return ret;
 			}
 
-			i = 0;
 			WCN_INFO("marlin_write_cali_data finish\n");
 			return ret;
 		}
+	}
 
-		if (i > 10)
-			i = 0;
-	} while (i);
+	WCN_ERR("%s sync init_state:0x%x\n", __func__, init_state);
 
-	return ret;
+	return -1;
 }
 #endif
 
@@ -1366,13 +1362,12 @@ static int marlin_start_run(void)
 	return ret;
 }
 
+/* return 0 is ready, other values is error */
 static int check_cp_ready(void)
 {
-	int ret = 0;
-	int i = 0;
+	int i, ret = 0;
 
-	do {
-		i++;
+	for (i = 0; i <= 25; i++) {
 		ret = sprdwcn_bus_direct_read(SYNC_ADDR,
 			&(marlin_dev->sync_f), sizeof(struct wcn_sync_info_t));
 		if (ret < 0) {
@@ -1380,18 +1375,17 @@ static int check_cp_ready(void)
 				__func__, ret);
 			return ret;
 		}
-		WCN_INFO("%s sync val:0x%x, prj_type val:0x%x\n", __func__,
-				marlin_dev->sync_f.init_status,
-				marlin_dev->sync_f.prj_type);
 		if (marlin_dev->sync_f.init_status == SYNC_IN_PROGRESS)
-			msleep(20);
+			usleep_range(3000, 5000);
 		if (marlin_dev->sync_f.init_status == SYNC_ALL_FINISHED)
-			i = 0;
-		if (i > 4)
-			i = 0;
-	} while (i);
+			return 0;
+	}
 
-	return 0;
+	WCN_ERR("%s sync val:0x%x, prj_type val:0x%x\n", __func__,
+		marlin_dev->sync_f.init_status,
+		marlin_dev->sync_f.prj_type);
+
+	return -1;
 }
 
 static int gnss_start_run(void)
@@ -1697,7 +1691,7 @@ void wifipa_enable(int enable)
 
 	if (marlin_dev->avdd33) {
 		WCN_INFO("wifipa 3v3 %d\n", enable);
-		msleep(20);
+		usleep_range(4000, 5000);
 		if (enable) {
 #ifndef CONFIG_WCN_PCIE
 			if (regulator_is_enabled(marlin_dev->avdd33))
@@ -1761,7 +1755,7 @@ static int chip_power_on(int subsys)
 	marlin_clk_enable(true);
 	marlin_digital_power_enable(true);
 	marlin_chip_en(true, false);
-	msleep(20);
+	usleep_range(4000, 5000);
 	chip_reset_release(1);
 	marlin_analog_power_enable(true);
 	wcn_avdd12_bound_xtl(true);
