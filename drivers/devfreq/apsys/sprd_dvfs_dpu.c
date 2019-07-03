@@ -28,6 +28,8 @@
 
 #include "sprd_dvfs_dpu.h"
 
+static int DPU_DVFS_ENABLE = 1;
+
 LIST_HEAD(dpu_dvfs_head);
 BLOCKING_NOTIFIER_HEAD(dpu_dvfs_chain);
 
@@ -95,11 +97,10 @@ static ssize_t set_hw_dfs_store(struct device *dev,
 	if (ret == 0)
 		return -EINVAL;
 
-	dpu->dvfs_coffe.hw_dfs_en = dfs_en;
-
-	if (dpu->dvfs_ops && dpu->dvfs_ops->hw_dfs_en)
-		dpu->dvfs_ops->hw_dfs_en(dpu->dvfs_coffe.hw_dfs_en);
-	else
+	if (dpu->dvfs_ops && dpu->dvfs_ops->hw_dfs_en) {
+		dpu->dvfs_ops->hw_dfs_en(dfs_en);
+		dpu->dvfs_coffe.hw_dfs_en = dfs_en;
+	} else
 		pr_info("%s: ip ops null\n", __func__);
 
 	return count;
@@ -512,14 +513,15 @@ static int dpu_gov_get_target(struct devfreq *devfreq,
 
 	pr_debug("devfreq_governor-->get_target_freq\n");
 
+	if (dpu->freq_type == DVFS_WORK)
+		adjusted_freq = dpu->work_freq;
+	else
+		adjusted_freq = dpu->idle_freq;
+
 	if (devfreq->max_freq && adjusted_freq > devfreq->max_freq)
 		adjusted_freq = devfreq->max_freq;
 	else if (devfreq->min_freq && adjusted_freq < devfreq->min_freq)
 		adjusted_freq = devfreq->min_freq;
-	else if (dpu->freq_type == DVFS_WORK)
-		adjusted_freq = dpu->work_freq;
-	else
-		adjusted_freq = dpu->idle_freq;
 
 	*freq = adjusted_freq;
 
@@ -622,7 +624,7 @@ static int dpu_dvfs_probe(struct platform_device *pdev)
 
 	device_rename(&dpu->devfreq->dev, "dpu");
 
-	dpu->dvfs_enable = dpu->dvfs_coffe.hw_dfs_en;
+	dpu->dvfs_enable = DPU_DVFS_ENABLE;
 
 	if (dpu->dvfs_ops && dpu->dvfs_ops->parse_dt)
 		dpu->dvfs_ops->parse_dt(dpu, np);

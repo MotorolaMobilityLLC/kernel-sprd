@@ -180,9 +180,12 @@ static void set_vdsp_gfree_wait_delay(u32 para)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
+	u32 temp;
 
 	mutex_lock(&apsys_glb_reg_lock);
-	reg->ap_gfree_wait_delay_cfg |= para << 20;
+	temp = reg->ap_gfree_wait_delay_cfg;
+	temp &= GENMASK(19, 0);
+	reg->ap_gfree_wait_delay_cfg = para << 20 | temp;
 	mutex_unlock(&apsys_glb_reg_lock);
 }
 
