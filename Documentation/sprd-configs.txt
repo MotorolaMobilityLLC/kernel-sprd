@@ -10272,7 +10272,7 @@ CONFIG_SPRD_CPU_COOLING_DEVICE
 	[function] sprd cpu power model
 CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] cpu hotplug
 	[must] user
