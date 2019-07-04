@@ -37,6 +37,7 @@
 #define CM_DEFAULT_CHARGE_TEMP_MAX	500
 #define CM_CAP_CYCLE_TRACK_TIME		15
 #define CM_UVLO_OFFSET			50000
+#define CM_FORCE_SET_FUEL_CAP_FULL	100
 
 static const char * const default_event_names[] = {
 	[CM_EVENT_UNKNOWN] = "Unknown",
@@ -332,6 +333,34 @@ static int set_batt_cap(struct charger_manager *cm)
 }
 
 /**
+ * adjust_fuel_cap - Adjust the fuel cap level
+ * @cm: the Charger Manager representing the battery.
+ * @cap: the adjust fuel cap level.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int adjust_fuel_cap(struct charger_manager *cm, int cap)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	val.intval = cap;
+	ret = power_supply_set_property(fuel_gauge,
+					POWER_SUPPLY_PROP_CALIBRATE, &val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		dev_err(cm->dev, "failed to adjust fuel cap\n");
+
+	return ret;
+}
+
+/**
  * get_charger_current - Get the charging current from charging ic
  * @cm: the Charger Manager representing the battery.
  * @cur: the charging current returned.
@@ -522,6 +551,7 @@ static bool is_full_charged(struct charger_manager *cm)
 				} else {
 					is_full = false;
 					cm->desc->force_set_full = true;
+					adjust_fuel_cap(cm, CM_FORCE_SET_FUEL_CAP_FULL);
 				}
 			} else {
 				is_full = false;
