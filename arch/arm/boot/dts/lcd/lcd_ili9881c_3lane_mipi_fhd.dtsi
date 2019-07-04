@@ -233,8 +233,8 @@
 				hfront-porch = <52>;
 				vback-porch = <9>;
 				vfront-porch = <5>;
-				hsync-len = <10>;
-				vsync-len = <26>;
+				hsync-len = <25>;
+				vsync-len = <2>;
 			};
 		};
 	};
