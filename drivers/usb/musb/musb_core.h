@@ -583,7 +583,7 @@ extern irqreturn_t musb_interrupt(struct musb *);
 
 extern void musb_hnp_stop(struct musb *musb);
 
-extern void musb_reset_all_fifo_2_default(struct musb *musb);
+extern int musb_reset_all_fifo_2_default(struct musb *musb);
 
 extern void musb_force_single_fifo(struct musb *musb, u8 epnum, u8 is_tx);
 

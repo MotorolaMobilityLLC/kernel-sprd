@@ -1433,10 +1433,10 @@ done:
 	return 0;
 }
 
-void musb_reset_all_fifo_2_default(struct musb *musb)
+int musb_reset_all_fifo_2_default(struct musb *musb)
 {
 	pr_debug("set %s FIFO setting\n", is_host_active(musb) ? "Host" : "Device");
-	ep_config_from_table(musb);
+	return ep_config_from_table(musb);
 }
 
 /*

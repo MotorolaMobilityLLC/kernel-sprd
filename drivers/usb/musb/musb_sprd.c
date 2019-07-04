@@ -376,8 +376,8 @@ static struct musb_fifo_cfg sprd_musb_host_mode_cfg[] = {
 	MUSB_EP_FIFO_DOUBLE(2, FIFO_RX, 512),
 	MUSB_EP_FIFO_DOUBLE(3, FIFO_TX, 512),
 	MUSB_EP_FIFO_DOUBLE(3, FIFO_RX, 512),
-	MUSB_EP_FIFO_DOUBLE(4, FIFO_TX, 1024),
-	MUSB_EP_FIFO_DOUBLE(4, FIFO_RX, 4096),
+	MUSB_EP_FIFO_SINGLE(4, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(4, FIFO_RX, 4096),
 	MUSB_EP_FIFO_DOUBLE(5, FIFO_TX, 512),
 	MUSB_EP_FIFO_DOUBLE(5, FIFO_RX, 512),
 	MUSB_EP_FIFO_DOUBLE(6, FIFO_TX, 1024),
@@ -711,7 +711,18 @@ static void sprd_musb_work(struct work_struct *work)
 			dev_err(glue->dev, "Resume sprd_musb core failed!\n");
 			goto end;
 		}
-		musb_reset_all_fifo_2_default(musb);
+
+		ret = musb_reset_all_fifo_2_default(musb);
+		if (ret) {
+			device_for_each_child(glue->dev, NULL,
+					      musb_sprd_suspend_child);
+			pm_runtime_put_sync(glue->dev);
+			spin_lock_irqsave(&glue->lock, flags);
+			glue->dr_mode = USB_DR_MODE_UNKNOWN;
+			spin_unlock_irqrestore(&glue->lock, flags);
+			dev_err(glue->dev, "Failed to config ep fifo!\n");
+			goto end;
+		}
 
 		/*
 		 * We have resumed the dwc3 device to do enumeration,
