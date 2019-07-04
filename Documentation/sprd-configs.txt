@@ -10279,7 +10279,7 @@ CONFIG_SPRD_COMMON_CLK
 	[function]
 CONFIG_SPRD_CPROC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make
 	[subsys] staging
 	[must] user
@@ -10454,7 +10454,7 @@ CONFIG_SPRD_IPA_SYS
 	[function]
 CONFIG_SPRD_IQ
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make, code
 	[subsys] staging
 	[must] user
@@ -10496,14 +10496,14 @@ CONFIG_SPRD_LOOK_AT
 	[function]
 CONFIG_SPRD_MAILBOX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make, code
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sprd mailbox module.
 CONFIG_SPRD_MAILBOX_R1P2
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make, code
 	[subsys] staging
 	[must] user
@@ -10735,14 +10735,14 @@ CONFIG_SPRD_SIPA_DELE_MINIAP_IN_AP
 	[function]
 CONFIG_SPRD_SIPC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make, code
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable sipc function between modem and AP.
 CONFIG_SPRD_SIPC_MEM_CACHE_EN
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] code
 	[subsys] staging
 	[must] user
@@ -10763,14 +10763,14 @@ CONFIG_SPRD_SIPC_SETH_RAWIP
 	[function]  Support using zero copy rawip transfer
 CONFIG_SPRD_SIPC_SPIPE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make
 	[subsys] staging
 	[must] user
 	[function] This function is used to enable spipe function.
 CONFIG_SPRD_SIPC_SPOOL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make, code
 	[subsys] staging
 	[must] user
@@ -10791,7 +10791,7 @@ CONFIG_SPRD_SIPC_V2
 	[function]
 CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make
 	[subsys] staging
 	[must] user
