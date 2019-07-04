@@ -145,6 +145,7 @@ static int sc27xx_fgu_cap_to_clbcnt(struct sc27xx_fgu_data *data, int capacity);
 static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 						int cap, int int_mode);
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp);
+static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap);
 
 static const char * const sc27xx_charger_supply_name[] = {
 	"sc2731_charger",
@@ -813,6 +814,11 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 			dev_err(data->dev, "failed to save battery capacity\n");
 		break;
 
+	case POWER_SUPPLY_PROP_CALIBRATE:
+		sc27xx_fgu_adjust_cap(data, val->intval);
+		ret = 0;
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -833,6 +839,7 @@ static int sc27xx_fgu_property_is_writeable(struct power_supply *psy,
 {
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CAPACITY:
+	case POWER_SUPPLY_PROP_CALIBRATE:
 		return 1;
 
 	default:
@@ -853,7 +860,8 @@ static enum power_supply_property sc27xx_fgu_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
-	POWER_SUPPLY_PROP_ENERGY_NOW
+	POWER_SUPPLY_PROP_ENERGY_NOW,
+	POWER_SUPPLY_PROP_CALIBRATE
 };
 
 static const struct power_supply_desc sc27xx_fgu_desc = {
