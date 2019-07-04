@@ -80,6 +80,9 @@
 			reg = <0x94020000 0x002e0000>;
 		};
 	};
+	sprd-hotplug {
+		enable-dynamic-hotplug;
+	};
 };
 
 &sdio3 {
