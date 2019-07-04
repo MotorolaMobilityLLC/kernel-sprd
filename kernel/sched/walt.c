@@ -603,8 +603,6 @@ static void update_history(struct rq *rq, struct task_struct *p,
 			max = hist[widx];
 	}
 
-	p->ravg.sum = 0;
-
 	if (walt_window_stats_policy == WINDOW_STATS_RECENT) {
 		demand = runtime;
 	} else if (walt_window_stats_policy == WINDOW_STATS_MAX) {
@@ -650,6 +648,9 @@ static void add_to_task_demand(struct rq *rq, struct task_struct *p,
 	p->ravg.sum += delta;
 	if (unlikely(p->ravg.sum > walt_ravg_window))
 		p->ravg.sum = walt_ravg_window;
+	p->ravg.sum_latest += delta;
+	if (unlikely(p->ravg.sum_latest > walt_ravg_window))
+		p->ravg.sum_latest = walt_ravg_window;
 }
 
 /*
@@ -709,10 +710,11 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 	u64 delta, window_start = rq->window_start;
 	int new_window, nr_full_windows;
 	u32 window_size = walt_ravg_window;
+	u32 window_scale = scale_exec_time(window_size, rq);
 
 	new_window = mark_start < window_start;
 	if (!account_busy_for_task_demand(p, event)) {
-		if (new_window)
+		if (new_window) {
 			/* If the time accounted isn't being accounted as
 			 * busy time, and a new window started, only the
 			 * previous window need be closed out with the
@@ -720,6 +722,9 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 			 * elapsed, but since empty windows are dropped,
 			 * it is not necessary to account those. */
 			update_history(rq, p, p->ravg.sum, 1, event);
+			p->ravg.sum = 0;
+		}
+		p->ravg.sum_latest = 0;
 		return;
 	}
 
@@ -759,10 +764,12 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 
 	/* Push new sample(s) into task's demand history */
 	update_history(rq, p, p->ravg.sum, 1, event);
-	if (nr_full_windows)
-		update_history(rq, p, scale_exec_time(window_size, rq),
+	p->ravg.sum = p->ravg.sum_latest;
+	if (nr_full_windows) {
+		update_history(rq, p, window_scale,
 			       nr_full_windows, event);
-
+		p->ravg.sum = window_scale;
+	}
 	/* Roll window_start back to current to process any remainder
 	 * in current window. */
 	window_start += (u64)nr_full_windows * (u64)window_size;

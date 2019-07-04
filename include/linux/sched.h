@@ -516,7 +516,7 @@ struct ravg {
 	 * statistics (rq->prev_runnable_sum) in previous window
 	 */
 	u64 mark_start;
-	u32 sum, demand;
+	u32 sum, demand, sum_latest;
 	u32 sum_history[RAVG_HIST_SIZE_MAX];
 	u32 curr_window, prev_window;
 	u16 active_windows;
