@@ -1,5 +1,6 @@
 /dts-v1/;
 /plugin/;
+#include <dt-bindings/gpio/gpio.h>
 
 / {
 	fragment {
@@ -50,6 +51,24 @@
 dtbo: dtbo {
 	compatible = "sprd,dtbo-test";
 		reg = <0x11>;
+	};
+};
+
+&i2c3 {
+	status = "okay";
+
+	adaptive-touchscreen@38 {
+		compatible = "adaptive-touchscreen";
+		reg = <0x38>;
+		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
+			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		controller = "focaltech,FT5436";
+		touchscreen-size-x = <720>;
+		touchscreen-size-y = <1520>;
+
+		private-data {
+			a8 = /bits/ 8 <0x5a>;
+		};
 	};
 };
 
