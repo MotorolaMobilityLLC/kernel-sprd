@@ -24,18 +24,10 @@
 #define DISPC_OFFSET_V             (0x80 << 16)
 #define DISPC_SATURATION_V         (0x100 << 0)
 
-#define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
-#define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
-
 #define DISPC_INT_MMU_INV_WR_MASK	BIT(19)
 #define DISPC_INT_MMU_INV_RD_MASK	BIT(18)
 #define DISPC_INT_MMU_VAOR_WR_MASK	BIT(17)
 #define DISPC_INT_MMU_VAOR_RD_MASK	BIT(16)
-
-#define XFBC8888_HEADER_SIZE(w, h) (ALIGN((w) * (h) / (8 * 8) / 2, 128))
-#define XFBC8888_PAYLOAD_SIZE(w, h) (w * h * 4)
-#define XFBC8888_BUFFER_SIZE(w, h) (XFBC8888_HEADER_SIZE(w, h) \
-				+ XFBC8888_PAYLOAD_SIZE(w, h))
 
 struct layer_reg {
 	u32 addr[4];
@@ -112,10 +104,16 @@ static bool evt_stop;
 static int wb_en;
 static int max_vsync_count;
 static int vsync_count;
+static int flip_cnt;
+static bool wb_config;
+static int wb_disable;
 static struct sprd_dpu_layer wb_layer;
-module_param(max_vsync_count, int, 0644);
 
 static void dpu_clean_all(struct dpu_context *ctx);
+static void dpu_clean_lite(struct dpu_context *ctx);
+static void dpu_layer(struct dpu_context *ctx,
+		    struct sprd_dpu_layer *hwlayer);
+static void dpu_write_back(struct dpu_context *ctx, int enable);
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_dpu_layer *hwlayer);
 
@@ -190,7 +188,7 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	if (reg_val & DISPC_INT_DPI_VSYNC_MASK) {
 		/* write back feature */
 		if ((vsync_count == max_vsync_count) && wb_en)
-			schedule_work(&ctx->wb_work);
+			dpu_write_back(ctx, true);
 		vsync_count++;
 	}
 
@@ -208,13 +206,12 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		 * no need to display. Otherwise the new frame will be covered
 		 * by the write back buffer, which is not what we wanted.
 		 */
-		if ((vsync_count > max_vsync_count) && wb_en) {
-			wb_en = false;
-			schedule_work(&ctx->wb_work);
-			/*reg_val |= DISPC_INT_FENCE_SIGNAL_REQUEST;*/
+		wb_en = false;
+		if (vsync_count > max_vsync_count) {
+			dpu_layer(ctx, &wb_layer);
+			dpu_clean_lite(ctx);
 		}
-
-		pr_debug("wb done\n");
+		dpu_write_back(ctx, false);
 	}
 
 	/* dpu write back error isr */
@@ -225,18 +222,6 @@ static u32 dpu_isr(struct dpu_context *ctx)
 			wb_en = true;
 			vsync_count = 0;
 		}
-	}
-
-	/* dpu ifbc payload error isr */
-	if (reg_val & DISPC_INT_FBC_PLD_ERR_MASK) {
-		int_mask |= DISPC_INT_FBC_PLD_ERR_MASK;
-		pr_err("dpu ifbc payload error\n");
-	}
-
-	/* dpu ifbc header error isr */
-	if (reg_val & DISPC_INT_FBC_HDR_ERR_MASK) {
-		int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
-		pr_err("dpu ifbc header error\n");
 	}
 
 	int_mask |= check_mmu_isr(ctx, reg_val);
@@ -327,61 +312,42 @@ static void dpu_run(struct dpu_context *ctx)
 	}
 }
 
-static void dpu_write_back(struct dpu_context *ctx, bool enable)
+static void dpu_write_back(struct dpu_context *ctx, int enable)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	reg->wb_base_addr = wb_layer.addr[0];
-	reg->wb_pitch = ctx->vm.hactive;
+	reg->wb_base_addr = ctx->wb_addr_p;
+	reg->wb_pitch = ALIGN(ctx->vm.hactive, 16);
 
 	if (enable)
 		reg->wb_ctrl = 1;
 	else
 		reg->wb_ctrl = 0;
 
-	dpu_wait_update_done(ctx);
-
-	pr_debug("write back trigger\n");
-}
-
-static void dpu_wb_flip(struct dpu_context *ctx)
-{
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-
-	dpu_clean_all(ctx);
-	dpu_layer(ctx, &wb_layer);
-
-	reg->dpu_ctrl |= BIT(2);
-	dpu_wait_update_done(ctx);
-
-	pr_debug("write back flip\n");
+	 schedule_work(&ctx->wb_work);
 }
 
 static void dpu_wb_work_func(struct work_struct *data)
 {
+	int ret;
 	struct dpu_context *ctx =
 		container_of(data, struct dpu_context, wb_work);
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	down(&ctx->refresh_lock);
-
+	ret = down_trylock(&ctx->refresh_lock);
 	if (!ctx->is_inited) {
-		up(&ctx->refresh_lock);
-		pr_err("dpu is not initialized\n");
+		pr_err("dpu is suspended\n");
+		if (ret != 1)
+			up(&ctx->refresh_lock);
 		return;
 	}
 
-	if (ctx->disable_flip) {
+	if (ret != 1) {
+		reg->dpu_ctrl |= BIT(5);
+		dpu_wait_update_done(ctx);
 		up(&ctx->refresh_lock);
-		pr_warn("dpu flip is disabled\n");
-		return;
-	}
-
-	if (wb_en && (vsync_count > max_vsync_count))
-		dpu_write_back(ctx, false);
-	else if (!wb_en)
-		dpu_wb_flip(ctx);
-
-	up(&ctx->refresh_lock);
+	} else
+		pr_debug("cannot acquire lock for wb_lock\n");
 }
 
 static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
@@ -419,16 +385,26 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	int ret;
 	static int need_config;
 	size_t wb_buf_size;
+
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 
+	if (wb_disable) {
+		pr_debug("write back disabled\n");
+		return -1;
+	}
 	if (!need_config) {
-		pr_debug("write back has configed\n");
+		pr_err("write back info has configed\n");
 		return 0;
 	}
 
+	wb_en = 0;
+	max_vsync_count = 0;
+	vsync_count = 0;
+
 	wb_buf_size = ALIGN(ctx->vm.hactive, 16) * ctx->vm.vactive * 4;
 	ret = dpu_wb_buf_alloc(dpu, wb_buf_size, &ctx->wb_addr_p);
+
 	if (ret) {
 		max_vsync_count = 0;
 		return -1;
@@ -443,11 +419,9 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	wb_layer.pitch[0] = ctx->vm.hactive * 4;
 	wb_layer.addr[0] = ctx->wb_addr_p;
 
-	max_vsync_count = 4;
+	max_vsync_count = 3;
+
 	need_config = 0;
-
-	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
-
 	return 0;
 }
 
@@ -471,7 +445,7 @@ static int dpu_init(struct dpu_context *ctx)
 	/* set dpu output size */
 	size = (ctx->vm.vactive << 16) | ctx->vm.hactive;
 	reg->dpu_size = size;
-	reg->dpu_qos = 0x4e6eb;
+	reg->dpu_qos = 0x411f0;
 	reg->y2r_ctrl = 1;
 	reg->y2r_y_param = DISPC_BRIGHTNESS | DISPC_CONTRAST;
 	reg->y2r_u_param = DISPC_OFFSET_U | DISPC_SATURATION_U;
@@ -482,7 +456,8 @@ static int dpu_init(struct dpu_context *ctx)
 
 	reg->dpu_int_clr = 0xffff;
 
-	dpu_write_back_config(ctx);
+	if (!ctx->wb_work.func)
+		INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
 
 	return 0;
 }
@@ -500,15 +475,11 @@ static void dpu_uninit(struct dpu_context *ctx)
 enum {
 	DPU_LAYER_FORMAT_YUV422_2PLANE,
 	DPU_LAYER_FORMAT_YUV420_2PLANE,
-	DPU_LAYER_FORMAT_YUV420_3PLANE,
 	DPU_LAYER_FORMAT_ARGB8888,
 	DPU_LAYER_FORMAT_RGB565,
-	DPU_LAYER_FORMAT_XFBC_ARGB8888 = 8,
-	DPU_LAYER_FORMAT_XFBC_RGB565,
-	DPU_LAYER_FORMAT_MAX_TYPES,
 };
 
-static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
+static u32 dpu_img_ctrl(u32 format, u32 blending)
 {
 	int reg_val = 0;
 
@@ -519,10 +490,6 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 	case DRM_FORMAT_BGRA8888:
 		/* BGRA8888 -> ARGB8888 */
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 8;
-		if (compression)
-			/* XFBC-ARGB8888 */
-			reg_val |= (DPU_LAYER_FORMAT_XFBC_ARGB8888 << 4);
-		else
 			reg_val |= (DPU_LAYER_FORMAT_ARGB8888 << 4);
 		break;
 	case DRM_FORMAT_RGBX8888:
@@ -533,31 +500,19 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 		/* rb switch */
 		reg_val |= BIT(10);
 	case DRM_FORMAT_ARGB8888:
-		if (compression)
-			/* XFBC-ARGB8888 */
-			reg_val |= (DPU_LAYER_FORMAT_XFBC_ARGB8888 << 4);
-		else
-			reg_val |= (DPU_LAYER_FORMAT_ARGB8888 << 4);
+		reg_val |= (DPU_LAYER_FORMAT_ARGB8888 << 4);
 		break;
 	case DRM_FORMAT_XBGR8888:
 		/* rb switch */
 		reg_val |= BIT(10);
 	case DRM_FORMAT_XRGB8888:
-		if (compression)
-			/* XFBC-ARGB8888 */
-			reg_val |= (DPU_LAYER_FORMAT_XFBC_ARGB8888 << 4);
-		else
-			reg_val |= (DPU_LAYER_FORMAT_ARGB8888 << 4);
+		reg_val |= (DPU_LAYER_FORMAT_ARGB8888 << 4);
 		break;
 	case DRM_FORMAT_BGR565:
 		/* rb switch */
 		reg_val |= BIT(12);
 	case DRM_FORMAT_RGB565:
-		if (compression)
-			/* XFBC-RGB565 */
-			reg_val |= (DPU_LAYER_FORMAT_XFBC_RGB565 << 4);
-		else
-			reg_val |= (DPU_LAYER_FORMAT_RGB565 << 4);
+		reg_val |= (DPU_LAYER_FORMAT_RGB565 << 4);
 		break;
 	case DRM_FORMAT_NV12:
 		/*2-Lane: Yuv420 */
@@ -590,20 +545,6 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
 		/*UV endian */
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 10;
-		break;
-	case DRM_FORMAT_YUV420:
-		reg_val |= DPU_LAYER_FORMAT_YUV420_3PLANE << 4;
-		/*Y endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
-		/*UV endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 10;
-		break;
-	case DRM_FORMAT_YVU420:
-		reg_val |= DPU_LAYER_FORMAT_YUV420_3PLANE << 4;
-		/*Y endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
-		/*UV endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 10;
 		break;
 
 	default:
@@ -638,8 +579,6 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef)
 		break;
 	}
 
-	reg_val |= y2r_coef << 28;
-
 	return reg_val;
 }
 
@@ -664,7 +603,7 @@ static void dpu_bgcolor(struct dpu_context *ctx, u32 color)
 	dpu_clean_all(ctx);
 
 	if ((ctx->if_type == SPRD_DISPC_IF_DPI) && !ctx->is_stopped) {
-		reg->dpu_ctrl |= BIT(2);
+		reg->dpu_ctrl |= BIT(5);
 		dpu_wait_update_done(ctx);
 	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
 		reg->dpu_ctrl |= BIT(0);
@@ -707,10 +646,6 @@ static void dpu_layer(struct dpu_context *ctx,
 	for (i = 0; i < hwlayer->planes; i++) {
 		addr = hwlayer->addr[i];
 
-		/* dpu r2p0 just support xfbc-rgb */
-		if (hwlayer->xfbc)
-			addr += hwlayer->header_size_r;
-
 		if (addr % 16)
 			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
 				i, addr);
@@ -723,15 +658,9 @@ static void dpu_layer(struct dpu_context *ctx,
 	layer->alpha = hwlayer->alpha;
 
 	wd = drm_format_plane_cpp(hwlayer->format, 0);
-	if (hwlayer->planes == 3)
-		/* UV pitch is 1/2 of Y pitch*/
-		layer->pitch = (hwlayer->pitch[0] / wd) |
-				(hwlayer->pitch[0] / wd << 15);
-	else
-		layer->pitch = hwlayer->pitch[0] / wd;
 
-	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
-		hwlayer->xfbc, hwlayer->y2r_coef);
+	layer->pitch = hwlayer->pitch[0] / wd;
+	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending);
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
@@ -741,20 +670,40 @@ static void dpu_layer(struct dpu_context *ctx,
 				hwlayer->src_w, hwlayer->src_h);
 }
 
+static void dpu_clean_lite(struct dpu_context *ctx)
+{
+	int i;
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+	for (i = 0; i < 5; i++)
+		reg->layers[i].ctrl = 0;
+
+}
+
 static void dpu_flip(struct dpu_context *ctx,
 		     struct sprd_dpu_layer layers[], u8 count)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	int i;
+	int i, ret;
 
 	vsync_count = 0;
-	if (max_vsync_count > 0 && count > 1)
+	if (!wb_config && !wb_disable) {
+		flip_cnt++;
+		if (flip_cnt == 2) {
+			ret = dpu_write_back_config(ctx);
+			if (!ret)
+				wb_config = true;
+		}
+	}
+	if (max_vsync_count && count > 1)
 		wb_en = true;
+	else
+		wb_en = false;
 
 	/*
-	 * Make sure the dpu is in stop status. DPU_LITE_R2P0 has no shadow
-	 * registers in EDPI mode. So the config registers can only be
-	 * updated in the rising edge of DPU_RUN bit.
+	 * Make sure the dpu is in stop status. In EDPI mode, the shadow
+	 * registers can only be updated in the rising edge of DPU_RUN bit.
+	 * And actually run when TE signal occurred.
 	 */
 	if (ctx->if_type == SPRD_DISPC_IF_EDPI)
 		dpu_wait_stop_done(ctx);
@@ -772,7 +721,7 @@ static void dpu_flip(struct dpu_context *ctx,
 	/* update trigger and wait */
 	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
 		if (!ctx->is_stopped) {
-			reg->dpu_ctrl |= BIT(2);
+			reg->dpu_ctrl |= BIT(5);
 			dpu_wait_update_done(ctx);
 		}
 
@@ -788,12 +737,10 @@ static void dpu_flip(struct dpu_context *ctx,
 	 * If the following interrupt was disabled in isr,
 	 * re-enable it.
 	 */
-	reg->dpu_int_en |= DISPC_INT_FBC_PLD_ERR_MASK |
-			   DISPC_INT_FBC_HDR_ERR_MASK |
-			   DISPC_INT_MMU_VAOR_RD_MASK |
-			   DISPC_INT_MMU_VAOR_WR_MASK |
-			   DISPC_INT_MMU_INV_RD_MASK |
-			   DISPC_INT_MMU_INV_WR_MASK;
+	reg->dpu_int_en |= DISPC_INT_MMU_VAOR_RD_MASK |
+				DISPC_INT_MMU_VAOR_WR_MASK |
+				DISPC_INT_MMU_INV_RD_MASK |
+				DISPC_INT_MMU_INV_WR_MASK;
 }
 
 static void dpu_dpi_init(struct dpu_context *ctx)
@@ -850,10 +797,6 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		int_mask |= DISPC_INT_TE_MASK;
 	}
 
-	/* enable ifbc payload error INT */
-	int_mask |= DISPC_INT_FBC_PLD_ERR_MASK;
-	/* enable ifbc header error INT */
-	int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
 	/* enable iommu va out of range read error INT */
 	int_mask |= DISPC_INT_MMU_VAOR_RD_MASK;
 	/* enable iommu va out of range write error INT */
@@ -888,7 +831,6 @@ static const u32 primary_fmts[] = {
 	DRM_FORMAT_RGB565, DRM_FORMAT_BGR565,
 	DRM_FORMAT_NV12, DRM_FORMAT_NV21,
 	DRM_FORMAT_NV16, DRM_FORMAT_NV61,
-	DRM_FORMAT_YUV420, DRM_FORMAT_YVU420,
 };
 
 static int dpu_capability(struct dpu_context *ctx,

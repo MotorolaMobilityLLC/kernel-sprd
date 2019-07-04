@@ -137,8 +137,8 @@ static int dpu_glb_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
 	pr_err("dpu glb parse dt\n");
-	base1 = ioremap_nocache(0x21500000, 0x10000);
-	base2 = ioremap_nocache(0x20e00000, 0x10000);
+	base1 = ioremap_nocache(0x20e00000, 0x10000);
+	base2 = ioremap_nocache(0x21500000, 0x10000);
 
 
 	return 0;
