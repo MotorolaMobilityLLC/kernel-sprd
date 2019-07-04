@@ -8,7 +8,7 @@ export BSP_KERNEL_CROSS_COMPILE=$(readlink -f "$BSP_KERNEL_PATH/../../toolchain/
 
 # BSP_MAKE_EXTRA_ARGS can't include null-value-fields "CC=" "LD="(just remove the null-value-field)
 # Sample: export BSP_MAKE_EXTRA_ARGS="CC=clang"
-export BSP_MAKE_EXTRA_ARGS=""
+export BSP_MAKE_EXTRA_ARGS="CC=clang"
 BSP_CLANG_PREBUILT_BIN=$(readlink -f "$BSP_KERNEL_PATH/../../toolchain/prebuilts/clang/host/linux-x86/clang-r353983c/bin")
 export CLANG_TRIPLE=aarch64-linux-gnu-
 export BSP_TOOL_PATH=$BSP_CLANG_PREBUILT_BIN
