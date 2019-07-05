@@ -274,6 +274,7 @@
 					<&mm_ahb_regs REG_MM_AHB_RF_AHB_RST MASK_MM_AHB_RF_ISP_AHB_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_RF_AHB_RST MASK_MM_AHB_RF_ISP_VAU_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_RF_AHB_EB MASK_MM_AHB_RF_ISP_EB>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				syscon-names = "isp_reset",
 					"isp_ahb_reset",
 					"isp_vau_reset",
