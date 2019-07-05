@@ -46,6 +46,8 @@ struct dwc3_sprd {
 	struct clk		*core_clk;
 	struct clk		*ref_clk;
 	struct clk		*susp_clk;
+	struct clk		*ipa_usb_ref_clk;
+	struct clk		*ipa_usb_ref_parent;
 
 	struct usb_phy		*hs_phy;
 	struct usb_phy		*ss_phy;
@@ -689,6 +691,21 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		}
 	}
 
+	sdwc->ipa_usb_ref_clk = devm_clk_get(dev, "ipa_usb_ref");
+	if (IS_ERR(sdwc->ipa_usb_ref_clk)) {
+		dev_warn(dev, "usb3 can't get the ipa usb ref clock\n");
+		sdwc->ipa_usb_ref_clk = NULL;
+	}
+
+	sdwc->ipa_usb_ref_parent = devm_clk_get(dev, "ipa_usb_ref_source");
+	if (IS_ERR(sdwc->ipa_usb_ref_parent)) {
+		dev_warn(dev, "usb can't get the ipa usb ref source\n");
+		sdwc->ipa_usb_ref_parent = NULL;
+	}
+
+	if (sdwc->ipa_usb_ref_clk && sdwc->ipa_usb_ref_parent)
+		clk_set_parent(sdwc->ipa_usb_ref_clk, sdwc->ipa_usb_ref_parent);
+
 	/* perpare clock */
 	sdwc->core_clk = devm_clk_get(dev, "core_clk");
 	if (IS_ERR(sdwc->core_clk)) {
@@ -892,6 +909,8 @@ static int dwc3_sprd_pm_resume(struct device *dev)
 
 static void dwc3_sprd_enable(struct dwc3_sprd *sdwc)
 {
+	if (sdwc->ipa_usb_ref_clk && sdwc->ipa_usb_ref_parent)
+		clk_set_parent(sdwc->ipa_usb_ref_clk, sdwc->ipa_usb_ref_parent);
 	clk_prepare_enable(sdwc->core_clk);
 	clk_prepare_enable(sdwc->ref_clk);
 	clk_prepare_enable(sdwc->susp_clk);
