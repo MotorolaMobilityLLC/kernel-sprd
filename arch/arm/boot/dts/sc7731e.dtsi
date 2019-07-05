@@ -499,3 +499,22 @@
 			<&mm_clk CLK_MM_AHB>,
 			<&pll CLK_TWPLL_153M6>;
 };
+
+&vsp {
+	clock-names = "clk_mm_eb",
+				"clk_vsp_mq_ahb_eb",
+				"clk_axi_gate_vsp",
+				"clk_ahb_gate_vsp_eb",
+				"clk_src_128m",
+				"clk_src_256m",
+				"clk_src_307m2",
+				"clk_vsp";
+	clocks = <&aonapb_gate CLK_MM_VSP_EB>,
+				<&mm_gate CLK_VSP_MQ_EB>,
+				<&mm_gate CLK_MM_CKG_EB>,
+				<&mm_gate CLK_VSP_EB>,
+				<&pll CLK_TWPLL_128M>,
+				<&pll CLK_TWPLL_256M>,
+				<&pll CLK_TWPLL_307M2>,
+				<&mm_clk CLK_VSP>;
+};

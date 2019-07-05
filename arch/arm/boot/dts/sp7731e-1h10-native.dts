@@ -314,3 +314,11 @@
 &pwms {
 	status = "okay";
 };
+
+&vsp {
+	status = "okay";
+};
+
+&iommu_vsp {
+	status = "okay";
+};

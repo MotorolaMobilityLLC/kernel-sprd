@@ -584,6 +584,44 @@
 				sprd,dfs-range-max = <5>;
 				sprd,dfs-range-min = <0>;
 			};
+
+			vsp: video-codec@60900000{
+				compatible = "sprd,pike2-vsp";
+				reg = <0x60900000 0xc000>;
+				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+				syscons = <&mm_ahb_regs  REG_AP_AHB_AHB_RST
+					MASK_MM_AHB_VSP_SOFT_RST>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PD_MM_TOP_CFG
+					MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PD_MM_TOP_CFG
+					MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PWR_STATUS0_DBG
+					MASK_PMU_APB_PD_MM_TOP_STATE>,
+					<&aon_apb_regs
+					REG_AON_APB_APB_EB0
+					MASK_AON_APB_MM_EB>;
+				syscon-names = "reset",
+					"pmu_vsp_force_shutdown",
+					"pmu_vsp_auto_shutdown",
+					"pmu_pwr_status",
+					"vsp_domain_eb";
+				iommus = <&iommu_vsp>;
+				status = "disabled";
+			};
+
+			iommu_vsp: iommu@60900000 {
+				compatible = "sprd,iommuexpk2-vsp";
+				reg = <0x60900000 0x1140>,
+				<0x60901140 0x60>;
+				iova-base = <0x20000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
 		};
 	};
 
