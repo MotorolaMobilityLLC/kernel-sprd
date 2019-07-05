@@ -1427,10 +1427,6 @@
 			0>,
 		<&ipa_ahb_regs 0 0
 			REG_IPA_AHB_IPA_EB
-			MASK_IPA_AHB_PCIE2_EB
-			0>,
-		<&ipa_ahb_regs 0 0
-			REG_IPA_AHB_IPA_EB
 			MASK_IPA_AHB_CM4_EB
 			0>,
 		<&pmu_apb_regs 0 0
