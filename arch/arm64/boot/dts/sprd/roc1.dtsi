@@ -1005,8 +1005,11 @@
 
 				clocks = <&ipa_gate CLK_IPA_USB_EB>,
 					<&ipa_gate CLK_IPA_USB_SUSPEND_EB>,
-					<&ipa_gate CLK_IPA_USB_REF_EB>;
-				clock-names = "core_clk", "ref_clk", "susp_clk";
+					<&ipa_gate CLK_IPA_USB_REF_EB>,
+					<&ipa_clk CLK_USB_REF>,
+					<&g12_pll CLK_TWPLL_24M>;
+				clock-names = "core_clk", "ref_clk", "susp_clk",
+					"ipa_usb_ref", "ipa_usb_ref_source";
 				usb-phy = <&ssphy>, <&ssphy>;
 
 				dwc3@20f00000 {

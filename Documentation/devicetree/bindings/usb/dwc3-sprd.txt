@@ -14,6 +14,12 @@ Required properties:
  - ranges	: allows valid 1:1 translation between child's address space and
 		  parent's address space
 
+ - clocks	: a list of phandle + clock-specifier pairs, one of each
+		  entry on clock-names
+
+ - clock-names	: Should contain "core_clk", "ref_clk", "susp_clk".
+		  "ipa_usb_ref" and "ipa_usb_ref_source" are optional properties.
+
 Sub-nodes:
 The dwc3 core should be added as subnode to SPRD DWC3 glue as shown in the
 example below. The DT binding details of dwc3 can be found in:
@@ -32,6 +38,13 @@ usb3: usb3@20f00000 {
 	#address-cells = <2>;
 	#size-cells = <2>;
 	ranges;
+	clocks = <&ipa_gate CLK_IPA_USB_EB>,
+		<&ipa_gate CLK_IPA_USB_SUSPEND_EB>,
+		<&ipa_gate CLK_IPA_USB_REF_EB>;
+		<&ipa_clk CLK_USB_REF>,
+		<&g12_pll CLK_TWPLL_24M>;
+	clock-names = "core_clk", "ref_clk", "susp_clk",
+		"ipa_usb_ref", "ipa_usb_ref_source";
 
 	dwc3@20f00000 {
 		compatible = "synopsys,dwc3";
