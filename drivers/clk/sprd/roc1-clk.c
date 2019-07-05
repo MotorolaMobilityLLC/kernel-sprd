@@ -742,7 +742,7 @@ static struct sprd_clk_desc roc1_ipa_gate_desc = {
 
 /* ipa clocks */
 static const char * const ipa_core_parents[] = { "ext-26m", "twpll-192m",
-					       "twpll-384m", "twpll-409m6" };
+					       "twpll-384m", "lpll-409m6" };
 static SPRD_MUX_CLK(ipa_core_clk, "ipa-core-clk", ipa_core_parents, 0x20,
 			0, 2, ROC1_MUX_FLAG);
 static SPRD_DIV_CLK(ipa_mtx_clk, "ipa-mtx-clk", "ipa-core-clk", 0x24,
