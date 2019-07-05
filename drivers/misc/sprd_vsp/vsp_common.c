@@ -238,6 +238,7 @@ int vsp_get_mm_clk(struct vsp_dev_t *vsp_hw_dev)
 {
 	int ret = 0;
 	struct clk *clk_mm_eb;
+	struct clk *clk_vsp_mq_ahb_eb;
 	struct clk *clk_vsp_ahb_mmu_eb;
 	struct clk *clk_axi_gate_vsp;
 	struct clk *clk_ahb_gate_vsp_eb;
@@ -248,7 +249,7 @@ int vsp_get_mm_clk(struct vsp_dev_t *vsp_hw_dev)
 	struct clk *clk_emc_vsp;
 	struct clk *clk_parent;
 
-	if (vsp_hw_dev->version == SHARKL3) {
+	if (vsp_hw_dev->version == SHARKL3  || vsp_hw_dev->version == PIKE2) {
 		clk_mm_eb = devm_clk_get(vsp_hw_dev->vsp_dev, "clk_mm_eb");
 
 		if (IS_ERR_OR_NULL(clk_mm_eb)) {
@@ -357,6 +358,21 @@ int vsp_get_mm_clk(struct vsp_dev_t *vsp_hw_dev)
 			vsp_hw_dev->clk_vsp_ahb_mmu_eb = clk_vsp_ahb_mmu_eb;
 	}
 
+	if (vsp_hw_dev->version == PIKE2) {
+		clk_vsp_mq_ahb_eb =
+		    devm_clk_get(vsp_hw_dev->vsp_dev, "clk_vsp_mq_ahb_eb");
+
+		if (IS_ERR(clk_vsp_mq_ahb_eb)) {
+			pr_err("Failed: Can't get clock [%s]! %p\n",
+			       "clk_vsp_mq_ahb_eb", clk_vsp_mq_ahb_eb);
+			ret = PTR_ERR(clk_vsp_mq_ahb_eb);
+			vsp_hw_dev->clk_vsp_mq_ahb_eb = NULL;
+			goto errout;
+		} else {
+			vsp_hw_dev->clk_vsp_mq_ahb_eb = clk_vsp_mq_ahb_eb;
+		}
+	}
+
 errout:
 	return ret;
 }
@@ -365,6 +381,17 @@ int vsp_clk_enable(struct vsp_dev_t *vsp_hw_dev)
 {
 	int ret = 0;
 
+	if (vsp_hw_dev->version == SHARKL3  || vsp_hw_dev->version == PIKE2) {
+		if (vsp_hw_dev->clk_mm_eb) {
+			ret = clk_prepare_enable(vsp_hw_dev->clk_mm_eb);
+			if (ret) {
+				pr_err("vsp clk_mm_eb: clk_enable failed!\n");
+				return ret;
+			}
+			pr_debug("vsp clk_mm_eb: clk_prepare_enable ok.\n");
+		}
+	}
+
 	if (vsp_hw_dev->clk_ahb_gate_vsp_eb != NULL) {
 		ret = clk_prepare_enable(vsp_hw_dev->clk_ahb_gate_vsp_eb);
 		if (ret) {
@@ -372,6 +399,26 @@ int vsp_clk_enable(struct vsp_dev_t *vsp_hw_dev)
 			return ret;
 		}
 		pr_debug("clk_ahb_gate_vsp_eb: clk_prepare_enable ok.\n");
+	}
+
+	if (vsp_hw_dev->version == PIKE2) {
+		if (vsp_hw_dev->clk_axi_gate_vsp) {
+			ret = clk_prepare_enable(vsp_hw_dev->clk_axi_gate_vsp);
+			if (ret) {
+				pr_err("clk_axi_gate_vsp: clk_prepare_enable fail!\n");
+				return ret;
+			}
+			pr_debug("clk_axi_gate_vsp: clk_prepare_enable ok.\n");
+		}
+
+		if (vsp_hw_dev->clk_vsp_mq_ahb_eb) {
+			ret = clk_prepare_enable(vsp_hw_dev->clk_vsp_mq_ahb_eb);
+			if (ret) {
+				pr_err("clk_vsp_mq_ahb_eb: clk_enable fail!\n");
+				return ret;
+			}
+			pr_debug("clk_vsp_mq_ahb_eb: clk_prepare_enable ok.\n");
+		}
 	}
 
 #if !IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
@@ -390,13 +437,6 @@ int vsp_clk_enable(struct vsp_dev_t *vsp_hw_dev)
 #endif
 
 	if (vsp_hw_dev->version == SHARKL3) {
-		ret = clk_prepare_enable(vsp_hw_dev->clk_mm_eb);
-		if (ret) {
-			pr_err("vsp clk_mm_eb: clk_prepare_enable failed!\n");
-			return ret;
-		}
-		pr_debug("vsp clk_mm_eb: clk_prepare_enable ok.\n");
-
 		ret = clk_prepare_enable(vsp_hw_dev->clk_vsp_ahb_mmu_eb);
 		if (ret) {
 			pr_err("clk_vsp_ahb_mmu_eb: clk_prepare_enable failed!\n");
@@ -458,8 +498,12 @@ void vsp_clk_disable(struct vsp_dev_t *vsp_hw_dev)
 #if !IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
 	clk_disable_unprepare(vsp_hw_dev->vsp_clk);
 #endif
+	if (vsp_hw_dev->version == PIKE2) {
+		clk_disable_unprepare(vsp_hw_dev->clk_axi_gate_vsp);
+		clk_disable_unprepare(vsp_hw_dev->clk_vsp_mq_ahb_eb);
+	}
 	clk_disable_unprepare(vsp_hw_dev->clk_ahb_gate_vsp_eb);
-	if (vsp_hw_dev->version == SHARKL3)
+	if (vsp_hw_dev->version == SHARKL3  || vsp_hw_dev->version == PIKE2)
 		clk_disable_unprepare(vsp_hw_dev->clk_mm_eb);
 }
 

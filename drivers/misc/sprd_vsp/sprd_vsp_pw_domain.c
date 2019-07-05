@@ -25,9 +25,14 @@
 #include <uapi/video/sprd_vsp_pw_domain.h>
 #include "vsp_common.h"
 
+#if IS_ENABLED(CONFIG_SPRD_VSP_CALL_CAM_PW_DOMAIN)
+#include <linux/platform_device.h>
+#include <uapi/video/sprd_mmsys_pw_domain.h>
+#endif
 
 struct vsp_pw_domain_info_t *vsp_pw_domain_info;
 
+#if IS_ENABLED(CONFIG_SPRD_VSP_PW_DOMAIN)
 static int is_vsp_domain_power_on(void)
 {
 	int power_count = 0;
@@ -199,6 +204,32 @@ pw_off_exit:
 }
 EXPORT_SYMBOL(vsp_pw_off);
 
+#elif IS_ENABLED(CONFIG_SPRD_VSP_CALL_CAM_PW_DOMAIN)
+int vsp_pw_on(u8 client)
+{
+	return sprd_cam_pw_on();
+}
+EXPORT_SYMBOL(vsp_pw_on);
+
+int vsp_pw_off(u8 client)
+{
+	return sprd_cam_pw_off();
+}
+EXPORT_SYMBOL(vsp_pw_off);
+
+#else
+int vsp_pw_on(u8 client)
+{
+	return 0;
+}
+EXPORT_SYMBOL(vsp_pw_on);
+
+int vsp_pw_off(u8 client)
+{;
+	return 0;
+}
+EXPORT_SYMBOL(vsp_pw_off);
+#endif
 static int __init vsp_pw_domain_init(void)
 {
 	int i = 0;

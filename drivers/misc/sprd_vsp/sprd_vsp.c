@@ -207,7 +207,8 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				__func__, __LINE__);
 		}
 
-		if ((vsp_hw_dev.version == SHARKLE
+		if ((vsp_hw_dev.version == PIKE2
+			|| vsp_hw_dev.version == SHARKLE
 			|| vsp_hw_dev.version == SHARKL3
 			|| vsp_hw_dev.version == SHARKL5
 			|| vsp_hw_dev.version == ROC1
@@ -359,6 +360,11 @@ static const struct sprd_vsp_cfg_data sharkle_vsp_data = {
 	.max_freq_level = 4,
 };
 
+static const struct sprd_vsp_cfg_data pike2_vsp_data = {
+	.version = PIKE2,
+	.max_freq_level = 4,
+};
+
 static const struct sprd_vsp_cfg_data sharkl3_vsp_data = {
 	.version = SHARKL3,
 	.max_freq_level = 5,
@@ -384,6 +390,7 @@ static const struct sprd_vsp_cfg_data sharkl5pro_vsp_data = {
 
 static const struct of_device_id of_match_table_vsp[] = {
 	{.compatible = "sprd,sharkle-vsp", .data = &sharkle_vsp_data},
+	{.compatible = "sprd,pike2-vsp", .data = &pike2_vsp_data},
 	{.compatible = "sprd,sharkl3-vsp", .data = &sharkl3_vsp_data},
 	{.compatible = "sprd,sharkl5-vsp", .data = &sharkl5_vsp_data},
 	{.compatible = "sprd,roc1-vsp", .data = &roc1_vsp_data},
@@ -651,6 +658,7 @@ static int vsp_probe(struct platform_device *pdev)
 	vsp_hw_dev.vsp_parent_clk = NULL;
 	vsp_hw_dev.clk_mm_eb = NULL;
 	vsp_hw_dev.clk_axi_gate_vsp = NULL;
+	vsp_hw_dev.clk_vsp_mq_ahb_eb = NULL;
 	vsp_hw_dev.clk_ahb_gate_vsp_eb = NULL;
 	vsp_hw_dev.clk_vsp_ahb_mmu_eb = NULL;
 	vsp_hw_dev.vsp_fp = NULL;
