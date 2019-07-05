@@ -933,7 +933,7 @@
 				sprd,syscon-enable = <&aon_apb_regs>;
 				sprd,syscon-anag3 = <&anlg_phy_g3_regs>;
 				sprd,syscon-anatop = <&anlg_phy_top_regs>;
-				sprd,syscon-anatop1 = <&anlg_phy_top1_regs>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 				sprd,vdd-voltage = <3300000>;
 				#phy-cells = <0>;
 			};
