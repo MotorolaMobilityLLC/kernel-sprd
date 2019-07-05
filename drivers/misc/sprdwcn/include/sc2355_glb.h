@@ -268,13 +268,12 @@
 
 /*
  * For SPI interface
- * bit[15]:1'b0: TCXO mode, outside clock
- * bit[15]:1'b1: Crystal/TSX mode
+ * bit[15]:1'b0: BUFFER mode,outside clock
+ * bit[15]:1'b1: XO mode,Crystal/TSX mode
  */
 #define SPI_BASE_ADDR		0x408a0000
 #define AD_DCXO_BONDING_OPT	0x5030
-#define tsx_mode		BIT(15)
+#define WCN_BOUND_XO_MODE	BIT(15)
 #define SPI_BIT31		BIT(31)
-
 
 #endif
