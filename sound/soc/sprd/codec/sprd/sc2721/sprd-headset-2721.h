@@ -133,7 +133,6 @@ struct sprd_headset {
 	struct wakeup_source det_wakelock;
 	struct wakeup_source det_all_wakelock;
 	struct wakeup_source btn_wakelock;
-	bool cal_in_big_scale;
 };
 
 struct sprd_headset_global_vars {

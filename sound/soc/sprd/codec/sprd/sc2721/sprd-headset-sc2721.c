@@ -1058,7 +1058,7 @@ static int headset_gpio_2_button_state(int gpio_button_value_current)
 	return button_state_current; /* 0==released, 1==pressed */
 }
 
-static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient);
+static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient, bool big_scale);
 /* summer: softflow  limit the read adc time */
 
 #if 0
@@ -1182,10 +1182,8 @@ retry_again:
 	headset_set_adc_to_headmic(1);
 	sprd_msleep(10);
 	adc_mic_average = headset_get_adc_value(adc_chan);
-	hdst->cal_in_big_scale = true;
 	adc_mic_average = headset_adc_get_ideal(adc_mic_average,
-						pdata->coefficient);
-	hdst->cal_in_big_scale = false;
+						pdata->coefficient, true);
 	if ((adc_mic_average > pdata->sprd_stable_value) ||
 					(adc_mic_average == -1)) {
 		if (retry_times < 10) {
@@ -1227,7 +1225,7 @@ retry_again:
 	pr_info("adc_mic_average = %d\n", adc_mic_average);
 
 	adc_mic_ideal = headset_adc_get_ideal(adc_mic_average,
-						pdata->coefficient);
+						pdata->coefficient, false);
 	if (adc_mic_ideal >= 0)
 		adc_mic_average = adc_mic_ideal;
 
@@ -1351,7 +1349,7 @@ static void headset_button_work_func(struct work_struct *work)
 				goto out;
 			}
 			adc_ideal = headset_adc_get_ideal(adc_mic_average,
-						pdata->coefficient);
+						pdata->coefficient, false);
 			pr_info("adc_mic_average=%d, adc_ideal=%d\n",
 				adc_mic_average, adc_ideal);
 			if (adc_ideal >= 0)
@@ -2663,7 +2661,7 @@ static int sprd_headset_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient)
+static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient, bool big_scale)
 {
 	int64_t numerator = 0;
 	int64_t denominator = 0;
@@ -2672,7 +2670,6 @@ static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient)
 	int64_t exp1, exp2, exp3, exp4;
 	u64 dividend;
 	u32 divisor;
-	struct sprd_headset *hdst = sprd_hdst;
 
 	if (adc_cal_headset.cal_type != SPRD_HEADSET_AUXADC_CAL_DO) {
 		pr_warn("efuse A,B,E hasn't been calculated!\n");
@@ -2695,7 +2692,7 @@ static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient)
 
 	pr_debug("exp1=%lld, exp2=%lld, exp3=%lld, exp4=%lld\n",
 		exp1, exp2, exp3, exp4);
-	if (hdst->cal_in_big_scale)
+	if (big_scale)
 		denominator = exp3 + 4 * exp4;
 	else
 		denominator = exp3 + exp4;
