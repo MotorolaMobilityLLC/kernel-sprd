@@ -58,6 +58,30 @@
 	};
 };
 
+&i2c1 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	accelerometer@19 {
+		compatible = "st,lis2dh", "st,lis2dh12";
+		reg = <0x19>;
+	};
+
+	proximity-sensor@23 {
+		compatible = "LITEON,ltr_558als";
+		reg = <0x23>;
+		gpios = <&ap_gpio 56 GPIO_ACTIVE_HIGH>;
+		/*
+		 *low sensitve(def):1500,250,220,1800,1600,1;
+		 *have no sensitve=<> as def.
+		 * High sensitve:1000,40,35,1200,1000,48
+		 */
+		sensitive = <1000 40 35
+					1200 1000 48>;
+		luxcorrection = <3500>;
+	};
+};
+
 &i2c2 {
 	status = "okay";
 	clock-frequency = <400000>;

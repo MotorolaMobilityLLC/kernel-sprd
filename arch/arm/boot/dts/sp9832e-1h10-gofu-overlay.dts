@@ -52,6 +52,30 @@
 	};
 };
 
+&i2c2 {
+	status = "okay";
+	clock-frequency = <400000>;
+	bma2x2@19{
+		compatible = "BOSCH,bma2x2";
+		reg = <0x19>;
+		gpios = <&ap_gpio 55 GPIO_ACTIVE_HIGH>;
+	};
+
+	akm-09911@0d{
+		compatible = "ak,akm099xx";
+		reg = <0x0d>;
+		gpios = <&ap_gpio 53 GPIO_ACTIVE_HIGH>;
+	};
+
+	ltr-558als@23{
+		compatible = "LITEON,ltr_558als";
+		reg = <0x23>;
+		gpios = <&ap_gpio 52 GPIO_ACTIVE_HIGH>;
+		sensitive = <1000 40 35 1200 1000 48>;
+		luxcorrection = <3500>;
+	};
+};
+
 &i2c3 {
 	status = "okay";
 	clock-frequency = <400000>;
