@@ -366,7 +366,6 @@
 			sprd,syscon = <&ipa_ahb_regs>;
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
-			vpower-supply = <&vddipa>;
 		};
 
 		ipa_clk: clock-controller@21050000 {
@@ -374,7 +373,6 @@
 			reg = <0 0x21050000 0 0x1000>;
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
-			vpower-supply = <&vddipa>;
 		};
 
 		aon_clk: clock-controller@32080000 {
