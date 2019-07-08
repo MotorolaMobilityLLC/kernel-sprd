@@ -206,9 +206,9 @@
 		};
 		BIG_CORE_PD: big_core_pd {
 			compatible = "arm,idle-state";
-			entry-latency-us = <0xffffffff>;
-			exit-latency-us = <0xffffffff>;
-			min-residency-us = <0xffffffff>;
+			entry-latency-us = <4000>;
+			exit-latency-us = <4000>;
+			min-residency-us = <10000>;
 			local-timer-stop;
 			arm,psci-suspend-param = <0x00010000>;
 		};
