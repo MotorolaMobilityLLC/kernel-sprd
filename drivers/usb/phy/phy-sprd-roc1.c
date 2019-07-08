@@ -43,7 +43,9 @@ struct sprd_hsphy {
 };
 
 #define TUNEHSAMP_3_9MA		(3 << 25)
-#define TFREGRES_TUNE_VALUE	(0xe << 19)
+#define TFREGRES_TUNE_VALUE	(0x1c << 19)
+#define TRUNE_OTG_VALUE   (0x3 << 9)
+#define TUNEDSC_VALUE     (0x3 << 7)
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 {
@@ -213,6 +215,22 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, &reg);
 	reg &= ~msk;
 	reg |= TFREGRES_TUNE_VALUE;
+	ret |= regmap_write(phy->ana_g3,
+		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, reg);
+
+	msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_TUNEOTG;
+	ret |= regmap_read(phy->ana_g3,
+		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, &reg);
+	reg &= ~msk;
+	reg |= TRUNE_OTG_VALUE;
+	ret |= regmap_write(phy->ana_g3,
+		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, reg);
+
+	msk = MASK_ANLG_PHY_G3_ANALOG_USB20_USB20_TUNEDSC;
+	ret |= regmap_read(phy->ana_g3,
+		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, &reg);
+	reg &= ~msk;
+	reg |= TUNEDSC_VALUE;
 	ret |= regmap_write(phy->ana_g3,
 		REG_ANLG_PHY_G3_ANALOG_USB20_USB20_TRIMMING, reg);
 
