@@ -11,6 +11,7 @@
  * General Public License for more details.
  */
 
+#include <linux/clk.h>
 #include <linux/device.h>
 #include <linux/init.h>
 #include <linux/io.h>
@@ -67,6 +68,8 @@ struct sipa_sys_register {
 struct sipa_sys_pd_drv {
 	struct device *dev;
 	struct generic_pm_domain gpd;
+	struct clk *ipa_core_clk;
+	struct clk *ipa_core_parent;
 	bool regu_on;
 	bool pd_on;
 	struct sipa_sys_register regs[0];
@@ -117,7 +120,29 @@ static int sipa_sys_do_power_on(struct sipa_sys_pd_drv *drv)
 		if (ret < 0)
 			pr_warn("%s: update cm4eb fail", __func__);
 	}
+
+	/* set ipa core clock */
+	if (drv->ipa_core_clk && drv->ipa_core_parent)
+		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_parent);
+
 	return ret;
+}
+
+static int sipa_sys_clk_init(struct sipa_sys_pd_drv *drv)
+{
+	drv->ipa_core_clk = devm_clk_get(drv->dev, "ipa_core");
+	if (IS_ERR(drv->ipa_core_clk)) {
+		dev_warn(drv->dev, "sipa_sys can't get the IPA core clock\n");
+		return PTR_ERR(drv->ipa_core_clk);
+	}
+
+	drv->ipa_core_parent = devm_clk_get(drv->dev, "ipa_core_source");
+	if (IS_ERR(drv->ipa_core_parent)) {
+		dev_warn(drv->dev, "sipa_sys can't get the ipa core source\n");
+		return PTR_ERR(drv->ipa_core_parent);
+	}
+
+	return 0;
 }
 
 static int sipa_sys_do_power_off(struct sipa_sys_pd_drv *drv)
@@ -335,6 +360,10 @@ static int sipa_sys_drv_probe(struct platform_device *pdev_p)
 
 	platform_set_drvdata(pdev_p, drv);
 	drv->dev = &pdev_p->dev;
+
+	ret = sipa_sys_clk_init(drv);
+	if (ret)
+		return ret;
 
 	ret = sipa_sys_parse_dts(drv);
 	if (ret)
