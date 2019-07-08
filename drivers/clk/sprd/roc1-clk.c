@@ -364,7 +364,7 @@ static struct clk_bit_field f_isppll[PLL_FACT_MAX] = {
 	{ .shift = 96,	.width = 1 },	/* postdiv	*/
 };
 
-static SPRD_PLL_WITH_ITABLE_K_FVCO(isppll_clk, "isppll", "ext-26m", 0x40,
+static SPRD_PLL_WITH_ITABLE_K_FVCO(isppll_clk, "isppll", "isppll-gate", 0x40,
 				   3, ftable, f_isppll, 240,
 				   1000, 1000, 1, 750000000ULL);
 static CLK_FIXED_FACTOR(isppll_702m, "isppll-702m", "isppll", 2, 1, 0);
