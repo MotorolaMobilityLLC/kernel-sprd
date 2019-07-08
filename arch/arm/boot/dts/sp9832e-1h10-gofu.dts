@@ -190,6 +190,7 @@
 
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
 };
 
 &thm_zone {
