@@ -2141,6 +2141,13 @@
 		clock-output-names = "ext-32k";
 	};
 
+	ext_26m_aud: ext-26m-aud {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+		clock-output-names = "ext-26m-aud";
+	};
+
 	rco_100m: rco-100m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
