@@ -2235,6 +2235,10 @@
 					"ipa-sys-s5-autogaten";
 				#power-domain-cells = <0>;
 
+				clocks = <&ipa_clk CLK_IPA_CORE>,
+					<&g12_pll CLK_LPLL_409M6>;
+				clock-names = "ipa_core", "ipa_core_source";
+
 				vddipa:vdd-ipa {
 					regulator-name = "IPA_SYS_VPOWER";
 				};

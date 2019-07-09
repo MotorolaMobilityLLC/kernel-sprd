@@ -10,6 +10,10 @@ Required properties:
 	ipa-sys-pciepllvsel: clear bit will unbind between PCIEPLL_V and IPA_SYS.
 	ipa-sys-xtlbufpciehsel: clear bit will unbind between XTLBUF_PCIEH and IPA_SYS.
 	ipa-sys-xtlbufpcievsel: clear bit will unbind between XTLBUF_PCIEV and IPA_SYS.
+- clocks: Reference to a phandle of a clock provider node, see the common clock bindings.
+- clock-names: the following clocks are required:
+  * "ipa_core"
+  * "ipa_core_source"
 Optional Properties:
 - vddipa: Provide a handle to the modules ipa_sys to operate power supply.
 - #power-domain-cells: Must be 0
@@ -84,6 +88,10 @@ Examples:
 			"ipa-sys-xtlbufpciehsel",
 			"ipa-sys-xtlbufpcievsel";
 		#power-domain-cells = <0>;
+
+		clocks = <&ipa_clk CLK_IPA_CORE>,
+			<&g12_pll CLK_LPLL_409M6>;
+		clock-names = "ipa_core", "ipa_core_source";
 
 		vddipa:vdd-ipa {
 			regulator-name = "IPA_SYS_VPOWER";
