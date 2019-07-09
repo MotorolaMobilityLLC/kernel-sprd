@@ -490,7 +490,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending)
 	case DRM_FORMAT_BGRA8888:
 		/* BGRA8888 -> ARGB8888 */
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 8;
-			reg_val |= (DPU_LAYER_FORMAT_ARGB8888 << 4);
+		reg_val |= (DPU_LAYER_FORMAT_ARGB8888 << 4);
 		break;
 	case DRM_FORMAT_RGBX8888:
 	case DRM_FORMAT_RGBA8888:
@@ -498,19 +498,19 @@ static u32 dpu_img_ctrl(u32 format, u32 blending)
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 8;
 	case DRM_FORMAT_ABGR8888:
 		/* rb switch */
-		reg_val |= BIT(10);
+		reg_val |= BIT(15);
 	case DRM_FORMAT_ARGB8888:
 		reg_val |= (DPU_LAYER_FORMAT_ARGB8888 << 4);
 		break;
 	case DRM_FORMAT_XBGR8888:
 		/* rb switch */
-		reg_val |= BIT(10);
+		reg_val |= BIT(15);
 	case DRM_FORMAT_XRGB8888:
 		reg_val |= (DPU_LAYER_FORMAT_ARGB8888 << 4);
 		break;
 	case DRM_FORMAT_BGR565:
 		/* rb switch */
-		reg_val |= BIT(12);
+		reg_val |= BIT(15);
 	case DRM_FORMAT_RGB565:
 		reg_val |= (DPU_LAYER_FORMAT_RGB565 << 4);
 		break;
@@ -562,14 +562,10 @@ static u32 dpu_img_ctrl(u32 format, u32 blending)
 		reg_val |= BIT(2);
 		break;
 	case DRM_MODE_BLEND_COVERAGE:
-		/* alpha mode select - combo alpha */
-		reg_val |= BIT(3);
 		/* blending mode select - normal mode */
 		reg_val &= (~BIT(16));
 		break;
 	case DRM_MODE_BLEND_PREMULTI:
-		/* alpha mode select - combo alpha */
-		reg_val |= BIT(3);
 		/* blending mode select - pre-mult mode */
 		reg_val |= BIT(16);
 		break;
@@ -755,6 +751,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* disable Halt function for SPRD DSI */
 		reg->dpi_ctrl &= ~BIT(16);
 
+		/* dpu pixel data width is 24 bit*/
+		reg->dpi_ctrl |= BIT(7);
+
 		/* set dpi timing */
 		reg->dpi_h_timing = (ctx->vm.hsync_len << 0) |
 				    (ctx->vm.hback_porch << 8) |
@@ -763,7 +762,7 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 				    (ctx->vm.vback_porch << 8) |
 				    (ctx->vm.vfront_porch << 20);
 		if (ctx->vm.vsync_len + ctx->vm.vback_porch < 32)
-			pr_warn("Warning: (vsync + vbp) < 32, "
+			pr_warn("Warning: (vsync + vbp) < 16, "
 				"underflow risk!\n");
 
 		/* enable dpu update done INT */
