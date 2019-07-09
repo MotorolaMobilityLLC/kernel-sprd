@@ -94,6 +94,7 @@ static void pamu3_set_netid(struct sprd_pamu3 *pamu3, u8 netid)
 {
 	u32 value;
 
+	sipa_rm_enable_usb_tether();
 	value = readl_relaxed(pamu3->base + PAM_U3_UL_NODE_HEADER);
 	value &= ~PAMU3_MASK_NETID;
 	value |= netid;
