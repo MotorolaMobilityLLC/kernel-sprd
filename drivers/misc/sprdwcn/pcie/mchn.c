@@ -216,9 +216,8 @@ int mchn_push_link(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 
 	if ((chn >= 16) || (mchn->ops[chn] == NULL) || (head == NULL) ||
 	    (tail == NULL) || (num > mchn->ops[chn]->pool_size)) {
-		WCN_ERR("%s: chn=%d, num=%d, pool_num=%d,head=%p, tail=%p\n",
-			__func__, chn, num, mchn->ops[chn]->pool_size, head,
-			tail);
+		WCN_ERR("%s: chn=%d, num=%d,head=%p, tail=%p\n", __func__,
+			chn, num, head, tail);
 		dump_stack();
 		return -1;
 	}

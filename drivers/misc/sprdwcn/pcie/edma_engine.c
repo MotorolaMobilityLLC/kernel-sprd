@@ -1204,6 +1204,10 @@ int msi_irq_handle(int irq)
 	struct edma_info *edma = edma_info();
 
 	WCN_INFO("irq msi handle=%d\n", irq);
+	if (!wcn_get_edma_status()) {
+		WCN_ERR("do not handle this irq, card removed\n");
+		return -1;
+	}
 	local_irq_save(irq_flags);
 	chn = (irq - 0) / 2;
 	dma_int.reg = edma->dma_chn_reg[chn].dma_int.reg;
