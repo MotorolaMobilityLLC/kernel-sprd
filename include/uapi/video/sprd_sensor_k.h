@@ -68,6 +68,8 @@ struct sensor_if_cfg_tag {
 	uint32_t phy_id;
 	uint32_t lane_num;
 	uint32_t bps_per_lane;
+	uint32_t is_cphy;
+	uint64_t lane_seq;
 };
 
 struct sensor_socid_tag {
