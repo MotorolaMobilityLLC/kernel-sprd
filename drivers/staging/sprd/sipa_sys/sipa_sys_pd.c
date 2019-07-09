@@ -403,7 +403,7 @@ static int __init sipa_sys_pd_init(void)
 	return platform_driver_register(&sipa_sys_drv);
 }
 
-subsys_initcall(sipa_sys_pd_init);
+module_init(sipa_sys_pd_init);
 
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("Spreadtrum sipa sys power domain device driver");

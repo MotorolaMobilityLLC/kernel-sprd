@@ -1291,7 +1291,7 @@ static int __init sipa_module_init(void)
 	/* Register as a platform device driver */
 	return platform_driver_register(&sipa_plat_drv);
 }
-subsys_initcall(sipa_module_init);
+module_init(sipa_module_init);
 
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("Spreadtrum IPA HW device driver");
