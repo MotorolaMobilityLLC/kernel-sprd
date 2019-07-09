@@ -1620,7 +1620,7 @@ CONFIG_CPUFREQ_DT_PLATDEV
 	[function]
 CONFIG_CPUSETS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -8825,7 +8825,7 @@ CONFIG_PROC_PAGE_MONITOR
 	   /proc/pid/pagemap,/proc/kpagecount, and /proc/kpageflags
 CONFIG_PROC_PID_CPUSET
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
