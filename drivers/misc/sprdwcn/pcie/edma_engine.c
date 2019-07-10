@@ -1648,6 +1648,8 @@ static void edma_tx_timer_expire(unsigned long data)
 	int i;
 
 	WCN_ERR("edma tx send timeout\n");
+	if (!wcn_get_edma_status())
+		return;
 	edma_dump_glb_reg();
 	for (i = 0; i < 16; i++) {
 		if (test_bit(i, &edma->cur_chn_status))

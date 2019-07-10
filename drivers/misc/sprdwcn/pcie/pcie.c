@@ -579,6 +579,13 @@ static void disable_pcie_irq(void)
 				 priv->msix[i].vector);
 		}
 	}
+
+	if (priv->msi_en == 1) {
+		for (i = 0; i < priv->irq_num; i++)
+			free_irq(priv->irq + i, (void *)priv);
+
+		pci_disable_msi(priv->dev);
+	}
 }
 
 /* called by chip_power_off */
@@ -825,12 +832,6 @@ static void sprd_pcie_remove(struct pci_dev *pdev)
 	if (priv->legacy_en == 1)
 		free_irq(priv->irq, (void *)priv);
 
-	if (priv->msi_en == 1) {
-		for (i = 0; i < priv->irq_num; i++)
-			free_irq(priv->irq + i, (void *)priv);
-
-		pci_disable_msi(pdev);
-	}
 	if (priv->msix_en == 1) {
 		WCN_INFO("disable MSI-X");
 		for (i = 0; i < priv->irq_num; i++)
