@@ -368,12 +368,24 @@ sprd_dsi_connector_mode_valid(struct drm_connector *connector,
 			 struct drm_display_mode *mode)
 {
 	struct sprd_dsi *dsi = connector_to_dsi(connector);
+	struct drm_display_mode *pmode;
 
 	DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__, DRM_MODE_ARG(mode));
 
 	if (mode->type & DRM_MODE_TYPE_PREFERRED) {
 		dsi->mode = mode;
 		drm_display_mode_to_videomode(dsi->mode, &dsi->ctx.vm);
+	}
+
+	if (mode->type & DRM_MODE_TYPE_BUILTIN) {
+		list_for_each_entry(pmode, &connector->modes, head) {
+			if (pmode->type & DRM_MODE_TYPE_PREFERRED) {
+				list_del(&pmode->head);
+				drm_mode_destroy(connector->dev, pmode);
+				dsi->mode = mode;
+				break;
+			}
+		}
 	}
 
 	return MODE_OK;

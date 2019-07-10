@@ -211,7 +211,7 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 	drm_mode_probed_add(p->connector, mode);
 	mode_count++;
 
-	for (i = 1; i < panel->info.num_biuldin_modes; i++)	{
+	for (i = 1; i < panel->info.num_buildin_modes; i++)	{
 		mode = drm_mode_duplicate(p->drm,
 			&(panel->info.buildin_modes[i]));
 		if (!mode) {
@@ -234,9 +234,9 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 		vm.pixelclock = surface_width * surface_height * 60;
 
 		mode = drm_mode_create(p->drm);
-		/* TODO:  How to do low simulator resolution? */
 
-		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED;
+		mode->type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_BUILTIN |
+			DRM_MODE_TYPE_CRTC_C;
 		mode->vrefresh = 60;
 		drm_display_mode_from_videomode(&vm, mode);
 		drm_mode_probed_add(p->connector, mode);
@@ -472,7 +472,7 @@ static int of_get_buildin_modes(struct panel_info *info,
 		info->buildin_modes[i].height_mm = info->mode.height_mm;
 		info->buildin_modes[i].vrefresh = info->mode.vrefresh;
 	}
-	info->num_biuldin_modes = num_timings;
+	info->num_buildin_modes = num_timings;
 	DRM_INFO("info->num_buildin_modes = %d\n", num_timings);
 	goto done;
 

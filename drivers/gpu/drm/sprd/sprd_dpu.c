@@ -547,8 +547,19 @@ static struct drm_plane *sprd_plane_init(struct drm_device *drm,
 static void sprd_crtc_mode_set_nofb(struct drm_crtc *crtc)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+	struct drm_display_mode *mode = &crtc->state->adjusted_mode;
 
 	DRM_INFO("%s() set mode: %s\n", __func__, dpu->mode->name);
+
+	/*
+	 * TODO:
+	 * Currently, low simulator resolution only support
+	 * DPI mode, support for EDPI in the future.
+	 */
+	if (mode->type & DRM_MODE_TYPE_BUILTIN) {
+		dpu->ctx.if_type = SPRD_DISPC_IF_DPI;
+		return;
+	}
 
 	if ((dpu->mode->hdisplay == dpu->mode->htotal) ||
 	    (dpu->mode->vdisplay == dpu->mode->vtotal))
@@ -560,8 +571,7 @@ static void sprd_crtc_mode_set_nofb(struct drm_crtc *crtc)
 		if (crtc->state->mode_changed) {
 			struct drm_mode_modeinfo umode;
 
-			drm_mode_convert_to_umode(&umode,
-				&crtc->state->adjusted_mode);
+			drm_mode_convert_to_umode(&umode, mode);
 			dpu->core->modeset(&dpu->ctx, &umode);
 		}
 	}
@@ -581,6 +591,9 @@ static enum drm_mode_status sprd_crtc_mode_valid(struct drm_crtc *crtc,
 		dpu->mode = (struct drm_display_mode *)mode;
 		drm_display_mode_to_videomode(dpu->mode, &dpu->ctx.vm);
 	}
+
+	if (mode->type & DRM_MODE_TYPE_BUILTIN)
+		dpu->mode = (struct drm_display_mode *)mode;
 
 	return MODE_OK;
 }
