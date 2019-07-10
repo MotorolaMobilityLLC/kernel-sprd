@@ -10410,13 +10410,6 @@ CONFIG_SPRD_IPA_SUPPORT
 	[subsys]
 	[must]
 	[function]
-CONFIG_SPRD_IPA_SUPPORT
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_SPRD_IPA_SYS
 	[arch] arm64
 	[plat] roc1
