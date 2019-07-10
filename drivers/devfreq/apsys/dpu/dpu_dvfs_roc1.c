@@ -244,6 +244,7 @@ static int get_dpu_dvfs_table(struct ip_dvfs_map_cfg *dvfs_table)
 		dvfs_table[i].volt_level = map_table[i].volt_level;
 		dvfs_table[i].clk_level = map_table[i].clk_level;
 		dvfs_table[i].clk_rate = map_table[i].clk_rate;
+		dvfs_table[i].volt_val = NULL;
 	}
 
 	return i;
