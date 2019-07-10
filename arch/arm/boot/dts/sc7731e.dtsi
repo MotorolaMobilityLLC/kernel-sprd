@@ -10,6 +10,7 @@
 
 #include <dt-bindings/clock/sprd,sc7731e-clk.h>
 #include "pike2.dtsi"
+#include "sc7731e-modem.dtsi"
 / {
 	cpuinfo_hardware = "Unisoc SC7731e";
 
