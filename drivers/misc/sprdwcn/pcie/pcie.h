@@ -84,6 +84,13 @@ struct dma_buf {
 	int size;
 };
 
+struct sub_sys_pm_state {
+	unsigned int bt:2;
+	unsigned int wifi:2;
+	unsigned int fm:2;
+	unsigned int state:2;
+	unsigned int rsvd:26;
+};
 struct wcn_pcie_info {
 	struct pci_dev *dev;
 	struct pci_saved_state *saved_state;
@@ -97,6 +104,7 @@ struct wcn_pcie_info {
 	int bar_num;
 	struct bar_info bar[8];
 	struct msix_entry msix[100];
+	struct sub_sys_pm_state pm_state;
 	/* board info */
 	unsigned char revision;
 	unsigned char irq_pin;
@@ -114,6 +122,7 @@ struct wcn_pcie_info {
 	atomic_t edma_ready;
 	atomic_t tx_complete;
 	atomic_t card_exist;
+	struct mutex pm_lock;
 };
 
 struct inbound_reg {
@@ -153,6 +162,8 @@ int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len);
 int sprd_pcie_update_bits(unsigned int reg, unsigned int mask,
 			  unsigned int val);
 struct wcn_pcie_info *get_wcn_device_info(void);
+int sprd_pcie_set_aspm_policy(enum sub_sys subsys, enum wcn_bus_pm_state state);
+enum wcn_bus_pm_state sprd_pcie_get_aspm_policy(void);
 int wcn_pcie_get_bus_status(void);
 void sprd_pcie_set_carddump_status(unsigned int flag);
 unsigned int sprd_pcie_get_carddump_status(void);

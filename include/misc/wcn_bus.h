@@ -14,6 +14,19 @@ enum wcn_bus_state {
 	WCN_BUS_UP		/* Ready for frame transfers */
 };
 
+enum wcn_bus_pm_state {
+	BUS_PM_DISABLE = 1,	/* Disable ASPM */
+	BUS_PM_L0s_L1_ENABLE,	/* Enable ASPM L0s/L1 */
+	BUS_PM_ALL_ENABLE	/* Enalbe Everything(e.g. L0s/L1/L1.1/L1.2) */
+};
+
+enum sub_sys {
+	BLUETOOTH = 0,
+	WIFI,
+	FM,
+	AUTO,
+};
+
 struct mbuf_t {
 	struct mbuf_t *next;
 	unsigned char *buf;
@@ -130,7 +143,8 @@ struct sprdwcn_bus_ops {
 	int (*read_l)(unsigned int system_addr, void *buf);
 	int (*update_bits)(unsigned int reg, unsigned int mask,
 			   unsigned int val);
-
+	int (*get_pm_policy)(void);
+	int (*set_pm_policy)(enum sub_sys subsys, enum wcn_bus_pm_state state);
 	unsigned int (*get_carddump_status)(void);
 	void (*set_carddump_status)(unsigned int flag);
 	unsigned long long (*get_rx_total_cnt)(void);
@@ -390,6 +404,28 @@ int sprdwcn_bus_aon_writeb(unsigned int addr, unsigned char val)
 		return 0;
 
 	return bus_ops->writebyte(addr, val);
+}
+
+static inline
+enum wcn_bus_pm_state sprdwcn_bus_get_pm_policy(void)
+{
+	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
+
+	if (!bus_ops || !bus_ops->writebyte)
+		return 0;
+
+	return bus_ops->get_pm_policy();
+}
+
+static inline
+int sprdwcn_bus_set_pm_policy(enum sub_sys subsys, enum wcn_bus_pm_state state)
+{
+	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
+
+	if (!bus_ops || !bus_ops->writebyte)
+		return 0;
+
+	return bus_ops->set_pm_policy(subsys, state);
 }
 
 static inline

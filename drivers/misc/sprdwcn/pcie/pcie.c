@@ -9,7 +9,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
+#include <linux/pci-aspm.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/mod_devicetable.h>
@@ -35,6 +35,13 @@
 #include "wcn_txrx.h"
 
 #define WAIT_AT_DONE_MAX_CNT 5
+
+#define WCN_PCIE_PHY_DEBUG_R0		0x728
+#define LTSSM_STATE_MASK		0x3f
+#define LTSSM_STATE_L0			0x11
+#define LTSSM_STATE_L0S			0x12
+#define LTSSM_STATE_L1_IDLE		0x14
+#define LTSSM_STATE_L2_IDLE		0x15
 
 static int (*scan_card_notify)(void);
 static struct wcn_pcie_info *g_pcie_dev;
@@ -516,6 +523,73 @@ int wcn_pcie_get_bus_status(void)
 	return g_pcie_dev->pci_status;
 }
 
+static int wcn_pcie_wait_for_link(struct pci_dev *pdev)
+{
+	int retries;
+	u32 val;
+
+	/* check if the link is up or not */
+	for (retries = 0; retries < 10; retries++) {
+		pci_read_config_dword(pdev, WCN_PCIE_PHY_DEBUG_R0, &val);
+		if ((val & LTSSM_STATE_MASK) == LTSSM_STATE_L0) {
+			WCN_INFO("retry_cnt=%d\n", retries);
+			return 0;
+		}
+		usleep_range(100, 150);
+	}
+
+	WCN_ERR("%s: wcn pcie can't link up, link status: 0x%x\n",
+		__func__, val);
+
+	return -ETIMEDOUT;
+}
+
+enum wcn_bus_pm_state sprd_pcie_get_aspm_policy(void)
+{
+	int state;
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+
+	sprd_pcie_aspm_get_policy(priv->dev->bus->self, &state);
+	return	state;
+}
+
+int sprd_pcie_set_aspm_policy(enum sub_sys subsys, enum wcn_bus_pm_state state)
+{
+	int ret;
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+
+	WCN_INFO("aspm_policy sys:%d, set[%d]\n", subsys, state);
+	if (subsys == WIFI)
+		priv->pm_state.wifi = state;
+	else if (subsys == BLUETOOTH)
+		priv->pm_state.bt = state;
+	else if (subsys == FM)
+		priv->pm_state.fm = state;
+
+	if (sprd_pcie_get_aspm_policy() == state) {
+		WCN_INFO("aspm_policy not change, direct return\n");
+		return 0;
+	}
+
+	/* TODO: if bt/fm also set aspm, then need handle state set */
+	mutex_lock(&priv->pm_lock);
+	ret = sprd_pcie_aspm_set_policy(priv->dev->bus->self, state);
+	if (ret) {
+		WCN_ERR("%s: aspm_policy set fail\n", __func__);
+		mutex_unlock(&priv->pm_lock);
+		return ret;
+	}
+
+	if (state == BUS_PM_DISABLE) {
+		ret = wcn_pcie_wait_for_link(priv->dev);
+		if (ret)
+			WCN_ERR("%s: aspm_policy can't restore to L0\n",
+				__func__);
+	}
+	mutex_unlock(&priv->pm_lock);
+	return	ret;
+}
+
 void sprd_pcie_set_carddump_status(unsigned int flag)
 {
 	struct wcn_pcie_info *priv = get_wcn_device_info();
@@ -662,6 +736,7 @@ void sprd_pcie_remove_card(void *wcn_dev)
 	mdbg_pt_ring_unreg();
 	ioctlcmd_deinit(priv);
 	edma_deinit();
+	mutex_destroy(&priv->pm_lock);
 	pdev = to_pdev_from_ep_node(marlin_dev->np);
 	if (!pdev) {
 		WCN_ERR("can't get pcie rc node\n");
@@ -844,6 +919,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 
 	edma_init(priv);
 	atomic_set(&priv->edma_ready, 0x1);
+	mutex_init(&priv->pm_lock);
 
 	dbg_attach_bus(priv);
 
@@ -851,7 +927,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	mdbg_fs_channel_init();
 	/* for log_dev_init */
 	mdbg_pt_ring_reg();
-
+	sprd_pcie_set_aspm_policy(AUTO, BUS_PM_ALL_ENABLE);
 	pci_read_config_dword(pdev, 0x0728, &val32);
 	WCN_INFO("EP link status 728=0x%x\n", val32);
 	pci_read_config_dword(pdev, 0x072c, &val32);
@@ -859,6 +935,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	/* calling rescan callback to inform download */
 	if (scan_card_notify != NULL)
 		scan_card_notify();
+
 	WCN_INFO("%s ok\n", __func__);
 	return 0;
 
