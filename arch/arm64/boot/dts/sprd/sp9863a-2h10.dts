@@ -79,13 +79,6 @@
 
 		heap@2 {
 			reg = <2>;
-			label = "carveout_overlay";
-			type = <2>;
-			memory-region = <&overlay_reserved>;
-		};
-
-		heap@3 {
-			reg = <3>;
 			label = "carveout_fb";
 			type = <2>;
 			memory-region = <&fb_reserved>;
@@ -166,6 +159,21 @@
 						104880 75
 						114889 57
 						124872 43 >;
+	};
+};
+
+&reserved_memory {
+
+	wb_reserved: writeback@fd580000{
+		reg = <0x0 0xfd580000 0x0 0x007e9000>;
+	};
+
+	camera_reserved: camera@fdd69000{
+		reg = <0x0 0xfdd69000 0x0 0x00a00000>;
+	};
+
+	fb_reserved: framebuffer@fe769000 {
+		reg = <0x0 0xfe769000 0x0 0x1817000>;
 	};
 };
 
