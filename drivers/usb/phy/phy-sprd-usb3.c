@@ -437,11 +437,19 @@ static int sprd_ssphy_vbus_notify(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
 	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
+	struct sprd_ssphy *phy = container_of(usb_phy, struct sprd_ssphy, phy);
 
-	if (event)
+	if (event) {
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
-	else
+	} else {
+		u32 msk = MASK_IPA_AHB_UTMISRP_BVALID_REG |
+			MASK_IPA_AHB_OTG_VBUS_VALID_PHYREG;
+
+		/* dwc3 vbus invalid */
+		regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_USB_CTL0, msk, 0);
+
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
+	}
 
 	return 0;
 }
