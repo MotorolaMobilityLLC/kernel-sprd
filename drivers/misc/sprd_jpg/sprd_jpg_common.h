@@ -64,6 +64,7 @@ struct jpg_dev_t {
 	struct clk *jpg_parent_clk;
 	struct clk *jpg_parent_clk_df;
 	struct clk *jpg_domain_eb;
+	struct clk *clk_vsp_mq_ahb_eb;
 	struct clk *clk_aon_jpg_emc_eb;
 	struct clk *jpg_dev_eb;
 	struct clk *jpg_ckg_eb;

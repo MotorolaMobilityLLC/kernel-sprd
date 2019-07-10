@@ -114,6 +114,11 @@ static const struct sprd_jpg_cfg_data sharkle_jpg_data = {
 	.max_freq_level = 4,
 };
 
+static const struct sprd_jpg_cfg_data pike2_jpg_data = {
+	.version = PIKE2,
+	.max_freq_level = 4,
+};
+
 static const struct sprd_jpg_cfg_data sharkl3_jpg_data = {
 	.version = SHARKL3,
 	.max_freq_level = 4,
@@ -138,7 +143,9 @@ static const struct sprd_jpg_cfg_data sharkl5pro_jpg_data = {
 };
 
 static const struct of_device_id of_match_table_jpg[] = {
+
 	{.compatible = "sprd,sharkle-jpg", .data = &sharkle_jpg_data},
+	{.compatible = "sprd,pike2-jpg", .data = &pike2_jpg_data},
 	{.compatible = "sprd,sharkl3-jpg", .data = &sharkl3_jpg_data},
 	{.compatible = "sprd,sharkl5-jpg", .data = &sharkl5_jpg_data},
 	{.compatible = "sprd,roc1-jpg", .data = &roc1_jpg_data},
@@ -561,7 +568,7 @@ static int jpg_probe(struct platform_device *pdev)
 	jpg_hw_dev.jpg_clk = NULL;
 	jpg_hw_dev.jpg_parent_clk = NULL;
 	jpg_hw_dev.jpg_domain_eb = NULL;
-
+	jpg_hw_dev.clk_vsp_mq_ahb_eb = NULL;
 	jpg_hw_dev.jpg_dev_eb = NULL;
 	jpg_hw_dev.jpg_ckg_eb = NULL;
 
@@ -613,6 +620,8 @@ static int jpg_remove(struct platform_device *pdev)
 		clk_put(jpg_hw_dev.jpg_dev_eb);
 	if (jpg_hw_dev.jpg_domain_eb)
 		clk_put(jpg_hw_dev.jpg_domain_eb);
+	if (jpg_hw_dev.clk_vsp_mq_ahb_eb)
+		clk_put(jpg_hw_dev.clk_vsp_mq_ahb_eb);
 
 	pr_info("%s Success !\n", __func__);
 	return 0;

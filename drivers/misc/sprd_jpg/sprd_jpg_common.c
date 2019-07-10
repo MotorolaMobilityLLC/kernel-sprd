@@ -41,8 +41,10 @@ int sprd_jpg_pw_off(void)
 int sprd_jpg_domain_eb(void) { return 0; }
 int sprd_jpg_domain_disable(void) { return 0; }
 
-#elif (IS_ENABLED(CONFIG_SPRD_MM_PW_DOMAIN_R6P0) || \
+#elif (IS_ENABLED(CONFIG_SPRD_CAM_PW_DOMAIN_R4P0) || \
+	IS_ENABLED(CONFIG_SPRD_MM_PW_DOMAIN_R6P0) || \
 	IS_ENABLED(CONFIG_SPRD_CAM_PW_DOMAIN_R7P0))
+
 int sprd_jpg_pw_on(void)
 {
 	int ret = 0;
@@ -123,6 +125,7 @@ int jpg_get_mm_clk(struct jpg_dev_t *jpg_hw_dev)
 	struct clk *clk_aon_jpg_emc_eb;
 	struct clk *jpg_dev_eb;
 	struct clk *jpg_ckg_eb;
+	struct clk *clk_vsp_mq_ahb_eb;
 	struct clk *clk_ahb_vsp;
 	struct clk *clk_emc_vsp;
 	struct clk *jpg_clk;
@@ -174,6 +177,20 @@ int jpg_get_mm_clk(struct jpg_dev_t *jpg_hw_dev)
 		ret = PTR_ERR(jpg_ckg_eb);
 	} else {
 		jpg_hw_dev->jpg_ckg_eb = jpg_ckg_eb;
+	}
+
+	if (jpg_hw_dev->version == PIKE2) {
+		clk_vsp_mq_ahb_eb =
+		    devm_clk_get(jpg_hw_dev->jpg_dev, "clk_vsp_mq_ahb_eb");
+
+		if (IS_ERR(clk_vsp_mq_ahb_eb)) {
+			pr_err("Failed: Can't get clock [%s]! %p\n",
+			       "clk_vsp_mq_ahb_eb", clk_vsp_mq_ahb_eb);
+			jpg_hw_dev->clk_vsp_mq_ahb_eb = NULL;
+			ret = PTR_ERR(clk_vsp_mq_ahb_eb);
+		} else {
+			jpg_hw_dev->clk_vsp_mq_ahb_eb = clk_vsp_mq_ahb_eb;
+		}
 	}
 
 	if (jpg_hw_dev->version == SHARKL3) {
@@ -585,31 +602,43 @@ int jpg_clk_enable(struct jpg_dev_t *jpg_hw_dev)
 		pr_debug("clk_emc_vsp: clk_prepare_enable ok.\n");
 	}
 
-	ret = clk_set_parent(jpg_hw_dev->jpg_clk,
-			jpg_hw_dev->jpg_parent_clk_df);
-	if (ret) {
-		pr_err("clock[%s]: clk_set_parent() failed!",
-			"clk_jpg");
-		goto clk_disable_5;
+	if (jpg_hw_dev->clk_vsp_mq_ahb_eb) {
+		ret = clk_prepare_enable(jpg_hw_dev->clk_vsp_mq_ahb_eb);
+		if (ret) {
+			pr_err("clk_vsp_mq_ahb_eb: clk_prepare_enable failed!");
+			goto clk_disable_5;
+		}
+		pr_debug("jpg clk_vsp_mq_ahb_eb clk_prepare_enable ok.\n");
 	}
-
+	if (jpg_hw_dev->version != PIKE2) {
+		ret = clk_set_parent(jpg_hw_dev->jpg_clk,
+			jpg_hw_dev->jpg_parent_clk_df);
+		if (ret) {
+			pr_err("clock[%s]: clk_set_parent() failed!",
+				"clk_jpg");
+			goto clk_disable_6;
+		}
+	}
 	ret = clk_set_parent(jpg_hw_dev->jpg_clk,
 			jpg_hw_dev->jpg_parent_clk);
 	if (ret) {
 		pr_err("clock[%s]: clk_set_parent() failed!",
 			"clk_jpg");
-		goto clk_disable_5;
+		goto clk_disable_6;
 	}
 
 	ret = clk_prepare_enable(jpg_hw_dev->jpg_clk);
 	if (ret) {
 		pr_err("jpg_clk clk_prepare_enable failed!\n");
-		goto clk_disable_5;
+		goto clk_disable_6;
 	}
 
 	pr_info("jpg_clk clk_prepare_enable ok.\n");
 	return ret;
 
+clk_disable_6:
+	if (jpg_hw_dev->version == PIKE2)
+		clk_disable_unprepare(jpg_hw_dev->clk_vsp_mq_ahb_eb);
 clk_disable_5:
 	if (jpg_hw_dev->version == SHARKL3)
 		clk_disable_unprepare(jpg_hw_dev->clk_emc_vsp);
@@ -643,6 +672,8 @@ void jpg_clk_disable(struct jpg_dev_t *jpg_hw_dev)
 		if (jpg_hw_dev->clk_aon_jpg_emc_eb)
 			clk_disable_unprepare(jpg_hw_dev->clk_aon_jpg_emc_eb);
 	}
+	if (jpg_hw_dev->clk_vsp_mq_ahb_eb)
+		clk_disable_unprepare(jpg_hw_dev->clk_vsp_mq_ahb_eb);
 	clk_disable_unprepare(jpg_hw_dev->jpg_ckg_eb);
 	clk_disable_unprepare(jpg_hw_dev->jpg_dev_eb);
 	clk_disable_unprepare(jpg_hw_dev->jpg_domain_eb);
