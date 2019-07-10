@@ -87,6 +87,8 @@ struct fan54015_charger_info {
 	u32 charger_detect;
 	u32 charger_pd;
 	u32 charger_pd_mask;
+	struct gpio_desc *gpiod;
+	struct extcon_dev *edev;
 };
 
 static bool fan54015_charger_is_bat_present(struct fan54015_charger_info *info)
@@ -825,12 +827,14 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 			struct fan54015_charger_info, otg_work);
 	int ret;
 
-	ret = fan54015_update_bits(info, FAN54015_REG_1,
-				   FAN54015_REG_HZ_MODE_MASK |
-				   FAN54015_REG_OPA_MODE_MASK,
-				   FAN54015_REG_OPA_MODE_MASK);
-	if (ret)
-		dev_err(info->dev, "restart fan54015 charger otg failed\n");
+	if (!extcon_get_state(info->edev, EXTCON_USB)) {
+		ret = fan54015_update_bits(info, FAN54015_REG_1,
+					   FAN54015_REG_HZ_MODE_MASK |
+					   FAN54015_REG_OPA_MODE_MASK,
+					   FAN54015_REG_OPA_MODE_MASK);
+		if (ret)
+			dev_err(info->dev, "restart fan54015 charger otg failed\n");
+	}
 
 	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(500));
 }
@@ -979,6 +983,12 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(dev, "failed to find USB phy\n");
 		return PTR_ERR(info->usb_phy);
+	}
+
+	info->edev = extcon_get_edev_by_phandle(info->dev, 0);
+	if (IS_ERR(info->edev)) {
+		dev_err(dev, "failed to find vbus extcon device.\n");
+		return PTR_ERR(info->edev);
 	}
 
 	ret = fan54015_charger_register_vbus_regulator(info);
