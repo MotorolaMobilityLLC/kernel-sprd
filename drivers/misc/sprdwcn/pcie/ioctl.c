@@ -353,10 +353,14 @@ static int pcie_cmd_proc(struct char_drv_info *dev, unsigned char *input,
 		WCN_INFO("inbound(%d,%ld,%d)\n", offset, size, run);
 
 		mem = kmalloc(size, GFP_KERNEL);
+		if (!mem) {
+			WCN_ERR("kmalloc mem (%ld) err\n", size);
+			return -1;
+		}
 		buf = kmalloc(size, GFP_KERNEL);
-		if ((!mem) || (!buf)) {
-			WCN_ERR("kmalloc(%ld) err\n", size);
-			return 0;
+		if (!buf) {
+			WCN_ERR("kmalloc buf (%ld) err\n", size);
+			return -1;
 		}
 		for (i = 0; i < run; i++) {
 			memcpy(buf + 0, (char *)(&i), 4);
