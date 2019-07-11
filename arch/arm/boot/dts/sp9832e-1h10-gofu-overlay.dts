@@ -48,6 +48,12 @@
 					wakeup-source;
 				};
 			};
+
+			sunwave-fp {
+				compatible = "sunwave,fingerprint";
+				sunwave,reset-gpio = <&ap_gpio 131 0>;
+				sunwave,irq-gpio = <&eic_async 13 0>;
+			};
 		};
 	};
 };
