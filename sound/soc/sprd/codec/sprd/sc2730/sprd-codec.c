@@ -1526,6 +1526,8 @@ static int audio_dcl_event(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
+		msk = HP_DPOP_GAIN_T(0xffff);
+		snd_soc_update_bits(codec, SOC_REG(ANA_DCL9), msk, 0);
 		val = RCV_DCCAL_SEL(1);
 		msk = RCV_DCCAL_SEL(0xFFFF);
 		snd_soc_update_bits(codec, SOC_REG(ANA_DCL7), msk, val);
@@ -1815,6 +1817,9 @@ static int hp_depop_event(struct snd_soc_dapm_widget *w,
 			HP_DPOP_FDOUT_EN | HPL_DPOP_CHG | HPR_DPOP_CHG;
 		ret = snd_soc_update_bits(codec, SOC_REG(ANA_DCL5),
 			0xFF, val);
+
+		val = HPRCV_OPA_IBIAS_MODE_SEL | HPRCV_DCCALI_IBIAS_MODE_SEL;
+		snd_soc_update_bits(codec, SOC_REG(ANA_CDC13), val, val);
 	}
 	return ret;
 }
