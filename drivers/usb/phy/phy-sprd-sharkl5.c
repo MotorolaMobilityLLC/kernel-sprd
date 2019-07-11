@@ -153,7 +153,8 @@ static int sprd_hsphy_init(struct usb_phy *x)
 
 	/* Turn On VDD */
 	regulator_set_voltage(phy->vdd, phy->vdd_vol, phy->vdd_vol);
-	ret = regulator_enable(phy->vdd);
+  	if (!regulator_is_enabled(phy->vdd))
+		ret = regulator_enable(phy->vdd);
 	if (ret)
 		return ret;
 
@@ -250,7 +251,8 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		MASK_AON_APB_CGM_DPHY_REF_EN;
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
 
-	regulator_disable(phy->vdd);
+	if (regulator_is_enabled(phy->vdd))
+		regulator_disable(phy->vdd);
 
 	atomic_set(&phy->inited, 0);
 	atomic_set(&phy->reset, 0);
@@ -260,7 +262,8 @@ static int sprd_hsphy_post_init(struct usb_phy *x)
 {
 	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
 
-	regulator_disable(phy->vdd);
+	if (regulator_is_enabled(phy->vdd))
+		regulator_disable(phy->vdd);
 
 	return 0;
 }
@@ -454,7 +457,8 @@ static int sprd_hsphy_remove(struct platform_device *pdev)
 
 	sysfs_remove_groups(&pdev->dev.kobj, usb_hsphy_groups);
 	usb_remove_phy(&phy->phy);
-	regulator_disable(phy->vdd);
+	if (regulator_is_enabled(phy->vdd))
+		regulator_disable(phy->vdd);
 
 	return 0;
 }
