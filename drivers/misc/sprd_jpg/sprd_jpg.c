@@ -287,9 +287,7 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case JPG_ENABLE:
 		pr_debug("jpg ioctl JPG_ENABLE\n");
-#if IS_ENABLED(CONFIG_SPRD_MM_PW_DOMAIN_R6P0)
-		sprd_cam_domain_eb();
-#endif
+		sprd_jpg_domain_eb();
 		ret = jpg_clk_enable(jpg_hw_dev);
 		if (ret == 0)
 			jpg_fp->is_clock_enabled = 1;
@@ -300,9 +298,7 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			jpg_clk_disable(jpg_hw_dev);
 
 		jpg_fp->is_clock_enabled = 0;
-#if IS_ENABLED(CONFIG_SPRD_MM_PW_DOMAIN_R6P0)
-		sprd_cam_domain_disable();
-#endif
+		sprd_jpg_domain_disable();
 		pr_info("jpg ioctl JPG_DISABLE\n");
 		break;
 	case JPG_ACQUAIRE:
@@ -484,6 +480,7 @@ static int jpg_release(struct inode *inode, struct file *filp)
 	if (jpg_fp->is_clock_enabled) {
 		pr_err("error occurred and close clock\n");
 		jpg_clk_disable(&jpg_hw_dev);
+		sprd_jpg_domain_disable();
 		jpg_fp->is_clock_enabled = 0;
 	}
 

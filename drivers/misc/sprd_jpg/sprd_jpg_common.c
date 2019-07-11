@@ -38,6 +38,8 @@ int sprd_jpg_pw_off(void)
 	return ret;
 }
 
+int sprd_jpg_domain_eb(void) { return 0; }
+int sprd_jpg_domain_disable(void) { return 0; }
 
 #elif IS_ENABLED(CONFIG_SPRD_MM_PW_DOMAIN_R6P0)
 int sprd_jpg_pw_on(void)
@@ -56,6 +58,15 @@ int sprd_jpg_pw_off(void)
 	return ret;
 }
 
+int sprd_jpg_domain_eb(void)
+{
+	return sprd_cam_domain_eb();
+}
+
+int sprd_jpg_domain_disable(void)
+{
+	return sprd_cam_domain_disable();
+}
 #else
 int sprd_jpg_pw_on(void)
 {
@@ -68,6 +79,9 @@ int sprd_jpg_pw_off(void)
 	int ret = 0;
 	return ret;
 }
+
+int sprd_jpg_domain_eb(void) { return 0; }
+int sprd_jpg_domain_disable(void) { return 0; }
 
 #endif
 

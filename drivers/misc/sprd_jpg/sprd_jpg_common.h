@@ -133,6 +133,8 @@ int jpg_free_iova(struct jpg_dev_t *jpg_hw_dev,
 		  struct jpg_iommu_map_data *ummapdata);
 int sprd_jpg_pw_on(void);
 int sprd_jpg_pw_off(void);
+int sprd_jpg_domain_eb(void);
+int sprd_jpg_domain_disable(void);
 int jpg_clk_enable(struct jpg_dev_t *jpg_hw_dev);
 void jpg_clk_disable(struct jpg_dev_t *jpg_hw_dev);
 
