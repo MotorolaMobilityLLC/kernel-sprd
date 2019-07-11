@@ -9468,7 +9468,7 @@ CONFIG_SCHED_TUNE
 	[function] Enable boost for fair sched class tasks
 CONFIG_SCHED_WALT
 	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5Pro
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] sched
 	[must] user
