@@ -1592,7 +1592,7 @@ CONFIG_CORESIGHT_SOURCE_ETM3X
 	[function]
 CONFIG_CORESIGHT_SOURCE_ETM4X
 	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] kernel core
 	[must] debug
