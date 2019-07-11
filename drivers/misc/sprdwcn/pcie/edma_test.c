@@ -145,7 +145,8 @@ static int lo_rx_push(int chn, struct mbuf_t **head, struct mbuf_t **tail,
 static int lo_rx_pop(int chn, struct mbuf_t *head, struct mbuf_t *tail,
 		     int num)
 {
-	int i, pos;
+	int i;
+	int pos = 0;
 	unsigned char string[128];
 	struct mbuf_t *tx_mbuf, *rx_mbuf;
 	struct loopback *lo = &g_lo;
