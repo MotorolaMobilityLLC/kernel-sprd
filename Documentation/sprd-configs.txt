@@ -10251,7 +10251,7 @@ CONFIG_SPRD_CPROC
 	[function] This function is used to enable sprd cproc module for modem boot.
 CONFIG_SPRD_CPU_COOLING
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -10265,7 +10265,7 @@ CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_DEVICE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -10397,13 +10397,6 @@ CONFIG_SPRD_IOMMU
 	[must] home
 	[function] This macro is to support Sprd iommu.
 CONFIG_SPRD_IPA_PCIE_WORKROUND
-	[arch] arm64
-	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_SPRD_IPA_SUPPORT
 	[arch] arm64
 	[plat] roc1
 	[field]
@@ -11158,7 +11151,7 @@ CONFIG_THERMAL_GOV_POWER_ALLOCATOR
 	[function] Power allocator thermal governor.
 CONFIG_THERMAL_GOV_STEP_WISE
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl5_32
 	[field] make
 	[subsys] thermal
 	[must] user
