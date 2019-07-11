@@ -48,6 +48,11 @@
 					wakeup-source;
 				};
 			};
+
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&eic_async 13 0>;
+			};
 		};
 	};
 };
