@@ -153,7 +153,7 @@ static void sprd_hsphy_emphasis_set(struct usb_phy *x, bool enabled)
 static int sprd_hsphy_init(struct usb_phy *x)
 {
 	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
-	int ret, reg, msk;
+	int ret = 0, reg, msk;
 
 	if (atomic_read(&phy->inited)) {
 		dev_dbg(x->dev, "%s is already inited!\n", __func__);
