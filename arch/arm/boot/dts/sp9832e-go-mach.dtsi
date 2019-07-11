@@ -5,7 +5,10 @@
  *
  * This file is licensed under a dual GPLv2 or X11 license.
  */
+
 #include <dt-bindings/thermal/thermal.h>
+#include "sc9832e-modem.dtsi"
+
 / {
 	aliases {
 		thm-sensor11 = &cpu_thmzone;

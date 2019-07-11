@@ -407,6 +407,18 @@
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
 
+			aon_mailbox: mailbox@400a0000 {
+				compatible = "sprd,mailbox";
+				reg = <0x400a0000 0x8000>,
+				      <0x400a8000 0x8000>;
+				syscons = <&aon_apb_regs 0x4 0x200000>;
+				syscon-names = "clk";
+				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,core-cnt = <7>;
+				sprd,version = <0x102>;
+			};
+
 			aon_dma: dma-controller@40100000 {
 				compatible = "sprd,sharkle-dma";
 				reg = <0x40100000 0x4000>;
