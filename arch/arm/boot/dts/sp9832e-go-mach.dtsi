@@ -18,7 +18,7 @@
 			polling-delay-passive = <100>;
 			polling-delay = <1000>;
 			sustainable-power = <1000>;
-			thermal-sensors = <&cpu_thm 1>;
+			thermal-sensors = <&cpu_thm 0>;
 			trips {
 				cpu_threshold: trip-point@0 {
 					temperature = <70000>;
