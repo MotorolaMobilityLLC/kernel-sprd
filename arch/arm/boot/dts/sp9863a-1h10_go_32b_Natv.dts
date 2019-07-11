@@ -87,13 +87,6 @@
 
 		heap@2 {
 			reg = <2>;
-			label = "carveout_overlay";
-			type = <2>;
-			memory-region = <&overlay_reserved>;
-		};
-
-		heap@3 {
-			reg = <3>;
 			label = "carveout_fb";
 			type = <2>;
 			memory-region = <&fb_reserved>;
@@ -225,6 +218,29 @@
 
 	sprd-wlan {
 		compatible = "sprd,sp9863a";
+	};
+};
+
+&reserved_memory {
+
+	wcn_reserved: wcn-mem@88000000 {
+		reg = <0x88000000 0x00300000>;
+	};
+
+	gnss_reserved: gnss-mem@88300000 {
+		reg = <0x88300000 0x0015b000>;
+	};
+
+	wb_reserved: writeback@bda80000 {
+		reg = <0xbda80000 0x7e9000>;
+	};
+
+	fd_reserved: faceid-mem@be269000 {
+		reg = <0xbe269000 0x00500000>;
+	};
+
+	fb_reserved: framebuffer@be769000 {
+		reg = <0xbe769000 0x1817000>;
 	};
 };
 
