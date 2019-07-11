@@ -539,7 +539,7 @@ static int restore_auto_access(void)
 
 int restore_access(void)
 {
-	int ret;
+	int ret = -EINVAL;
 	int cnt = 0;
 	int val;
 	struct agdsp_access *dsp_ac = g_agdsp_access;
