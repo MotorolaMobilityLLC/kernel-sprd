@@ -197,7 +197,7 @@ static int sipa_sys_register_regulator(struct sipa_sys_pd_drv *drv)
 {
 	struct regulator_config cfg = {};
 	struct regulator_dev *reg;
-	int ret;
+	int ret = 0;
 
 	cfg.dev = drv->dev;
 	cfg.driver_data = drv;
