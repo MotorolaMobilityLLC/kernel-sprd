@@ -757,6 +757,7 @@ static void sprd_musb_work(struct work_struct *work)
 			musb_writeb(musb->mregs, MUSB_DEVCTL,
 				devctl & ~MUSB_DEVCTL_SESSION);
 			musb->shutdowning = 1;
+			usb_phy_post_init(glue->xceiv);
 			cnt = 10;
 			while (musb->shutdowning && cnt-- > 0)
 				msleep(50);
