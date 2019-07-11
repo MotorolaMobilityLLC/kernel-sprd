@@ -108,32 +108,34 @@
 	energy-costs {
 		CPU_COST_0: core-cost0 {
 			busy-cost-data = <
-				165	59		//614MHz
-				206	76		//768MHz
-				329	120		//1229MHz
-				397	156		//1482MHz
-				418	182		//1560MHz
-				460	218		//1716MHz
-				488	254		//1820MHz
+				164	30		//614MHz
+				206	42		//768MHz
+				257	56	        //962MHz
+				307	70		//1144MHz
+				329	85		//1229MHz
+				397	115		//1482MHz
+				412	134		//1536MHz
+				460	166		//1716MHz
+				488	194		//1820MHz
 			>;
 			idle-cost-data = <
-				31		/* ACTIVE-IDLE */
-				31		/* WFI */
+				6		/* ACTIVE-IDLE */
+				6		/* WFI */
 				0		/* CORE_PD */
 			>;
 		};
 		CPU_COST_1: core-cost1 {
 			busy-cost-data = <
-				621	472		//1229MHz
-				748	623		//1482MHz
-				776	720		//1536MHz
-				880	897		//1742MHz
-				945	1063		//1872MHz
-				1024	1265		//2028MHz
+				621	331		//1229MHz
+				748	454		//1482MHz
+				776	540		//1536MHz
+				880	683		//1742MHz
+				945	820		//1872MHz
+				1024	984		//2028MHz
 			>;
 			idle-cost-data = <
-				108		/* ACTIVE-IDLE */
-				108		/* WFI */
+				37		/* ACTIVE-IDLE */
+				37		/* WFI */
 				0		/* CORE_PD */
 			>;
 		};
@@ -141,11 +143,13 @@
 			busy-cost-data = <
 				164	1		//614MHz
 				206	2		//768MHz
-				329	3		//1229MHz
-				397	4		//1482MHz
-				412	5		//1560MHz
-				460	6		//1716MHz
-				488	7		//1820MHz
+				257	3		//962MHz
+				307	4		//1144MHz
+				329	5		//1229MHz
+				397	6		//1482MHz
+				412	7		//1536MHz
+				460	8		//1716MHz
+				488	9		//1820MHz
 			>;
 			idle-cost-data = <
 				0		/* ACTIVE-IDLE */
@@ -155,17 +159,17 @@
 		};
 		CLUSTER_COST_1: cluster-cost1 {
 			busy-cost-data = <
-				621	36		//1229MHz
-				748	40		//1482MHz
-				776	43		//1536MHz
-				880	47		//1742MHz
-				945	52		//1872MHz
-				1024	58		//2028MHz
+				621	13		//1229MHz
+				748	17		//1482MHz
+				776	21		//1536MHz
+				880	25		//1742MHz
+				945	30		//1872MHz
+				1024	35		//2028MHz
 			>;
 			idle-cost-data = <
-				45		/* ACTIVE-IDLE */
-				45		/* WFI */
-				45		/* CORE_PD */
+				23		/* ACTIVE-IDLE */
+				23		/* WFI */
+				23		/* CORE_PD */
 			>;
 		};
 	};
