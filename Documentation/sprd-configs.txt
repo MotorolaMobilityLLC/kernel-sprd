@@ -2754,7 +2754,7 @@ CONFIG_DEFAULT_TCP_CONG
 	[function] default algorithm of congestion control
 CONFIG_DEFAULT_USE_ENERGY_AWARE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make,code
 	[subsys] sched
 	[must] user
