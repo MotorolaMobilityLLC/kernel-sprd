@@ -1246,15 +1246,15 @@ static int mbox_cfg_init(struct mbox_dts_cfg_tag *mbox_dts_cfg, u8 *mbox_inited)
 	if ((mbox_cfg.outbox_sensor_irq) && (mbox_cfg.sensor_core <= MBOX_MAX_CORE_CNT)) {
 		ret = request_irq(mbox_cfg.outbox_sensor_irq,
 				  mbox_sensor_recv_irqhandle,
-				  IRQF_NO_SUSPEND,
-				  "sprd-mailbox_target",
+				  0,
+				  "sprd-sensorbox_target",
 				  NULL);
 		if (ret) {
 			pr_err("mbox:ERR on line %d!\n", __LINE__);
 			return -EINVAL;
 		}
 
-		enable_irq_wake(mbox_cfg.outbox_sensor_irq);
+		disable_irq_wake(mbox_cfg.outbox_sensor_irq);
 	}
 
 #ifdef SPRD_MAILBOX_TEST
