@@ -44,6 +44,12 @@
 		};
 	};
 
+	ddr_dfs: scene-frequency {
+		compatible = "sprd,dfs";
+		freq-num = <8>;
+		backdoor = <1866>;
+	};
+
 	sprd-sensorhub {
 		 compatible = "sprd,sharkl5Pro-sensorhub";
 	};
