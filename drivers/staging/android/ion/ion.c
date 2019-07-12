@@ -84,6 +84,7 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 	struct sg_table *table;
 	int i, ret;
 	struct scatterlist *sg;
+	struct timeval time;
 
 	buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);
 	if (!buffer)
@@ -125,6 +126,12 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 	mutex_lock(&dev->buffer_lock);
 	ion_buffer_add(dev, buffer);
 	mutex_unlock(&dev->buffer_lock);
+
+	buffer->pid = task_pid_nr(current->group_leader);
+	do_gettimeofday(&time);
+	time.tv_sec -= sys_tz.tz_minuteswest * 60;
+	buffer->alloc_time = time;
+
 	return buffer;
 
 err1:
@@ -638,6 +645,67 @@ out:
 	up_read(&dev->lock);
 	return ret;
 }
+
+#ifdef CONFIG_E_SHOW_MEM
+int ion_debug_heap_show_printk(struct ion_heap *heap,
+			       enum e_show_mem_type type,
+			       void *data)
+{
+	struct ion_device *dev = heap->dev;
+	struct rb_node *n;
+	size_t total_size = 0;
+	unsigned long pool_used = 0;
+	unsigned long *total_used = data;
+	struct tm t;
+
+	pr_info("Heap: %s\n", heap->name);
+	pr_info("Detail:\n");
+	pr_info("%10s %6s %10s\n", "size", "pid",  "alloc_time");
+	mutex_lock(&dev->buffer_lock);
+	for (n = rb_first(&dev->buffers); n; n = rb_next(n)) {
+		struct ion_buffer *buffer = rb_entry(n, struct ion_buffer,
+						     node);
+		if (buffer->heap->id != heap->id)
+			continue;
+		time_to_tm(buffer->alloc_time.tv_sec, 0, &t);
+		pr_info("%10zu %5d  %ld.%d.%d-%d:%d:%d.%ld\n",
+			   buffer->size, buffer->pid,
+			   t.tm_year + 1900, t.tm_mon + 1,
+			   t.tm_mday, t.tm_hour, t.tm_min,
+			   t.tm_sec, buffer->alloc_time.tv_usec);
+		total_size += buffer->size;
+	}
+	mutex_unlock(&dev->buffer_lock);
+	pr_info("----------------------------------------------------\n");
+	pr_info("%16s %16zu\n", "total ", total_size);
+	if (heap->flags & ION_HEAP_FLAG_DEFER_FREE)
+		pr_info("%16s %16zu\n", "deferred free",	heap->free_list_size);
+	pr_info("----------------------------------------------------\n");
+
+	if (heap->debug_show) {
+		/* just get pool used */
+		heap->debug_show(heap, 0, (void *)(&pool_used));
+		/* printk detail infos */
+		if (E_SHOW_MEM_BASIC != type)
+			heap->debug_show(heap, 0, 0);
+	}
+
+	pr_info("%16.s %lu\n", "total pooled", pool_used);
+	pr_info("----------------------------------------------------------\n");
+	pr_info("Total used: %lu kB\n", (unsigned long)(total_size +
+				pool_used + heap->free_list_size) / 1024);
+	pr_info("----------------------------------------------------------\n");
+	pr_info("\n");
+
+	if (heap->type == ION_HEAP_TYPE_SYSTEM ||
+	    heap->type == ION_HEAP_TYPE_SYSTEM_CONTIG) {
+		*total_used += (unsigned long)(total_size + pool_used +
+					       heap->free_list_size);
+	}
+
+	return 0;
+}
+#endif
 
 static const struct file_operations ion_fops = {
 	.owner          = THIS_MODULE,

@@ -89,6 +89,8 @@ struct ion_buffer {
 	struct sg_table *sg_table;
 	struct list_head attachments;
 	int iomap_cnt[SPRD_IOMMU_MAX];
+	pid_t pid;
+	struct timeval alloc_time;
 };
 void ion_buffer_destroy(struct ion_buffer *buffer);
 
@@ -369,6 +371,7 @@ int ion_free(struct dma_buf *dmabuf);
 
 struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data);
 #ifdef CONFIG_E_SHOW_MEM
-int ion_debug_heap_show_printk(enum e_show_mem_type type, void *data);
+int ion_debug_heap_show_printk(struct ion_heap *heap,
+			       enum e_show_mem_type type, void *data);
 #endif
 #endif /* _ION_H */

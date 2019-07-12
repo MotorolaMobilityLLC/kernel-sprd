@@ -26,10 +26,8 @@
 #include <linux/uaccess.h>
 #include "../ion.h"
 
-struct ion_device *idev;
-EXPORT_SYMBOL(idev);
 static int num_heaps;
-static struct ion_heap **heaps;
+struct ion_heap **heaps;
 
 static struct ion_buffer *get_ion_buffer(int fd, struct dma_buf *dmabuf)
 {
@@ -385,13 +383,22 @@ out:
 static int ion_e_show_mem_handler(struct notifier_block *nb,
 				unsigned long val, void *data)
 {
+	int i;
 	enum e_show_mem_type type = (enum e_show_mem_type)val;
-	unsigned long total = 0;
+	unsigned long total_used = 0;
 
-	pr_info("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 	pr_info("Enhanced Mem-info :ION\n");
-	ion_debug_heap_show_printk(type, &total);
-	pr_info("Total allocated from Buddy: %lu kB\n", total / 1024);
+	for (i = 0; i <= num_heaps; i++) {
+		if ((E_SHOW_MEM_BASIC != type) ||
+		    (ION_HEAP_TYPE_SYSTEM == heaps[i]->type ||
+		     ION_HEAP_TYPE_SYSTEM_CONTIG == heaps[i]->type)) {
+			pr_info("%s: heap_id %d\n", __func__, heaps[i]->id);
+			ion_debug_heap_show_printk(heaps[i], type, &total_used);
+		}
+	}
+
+	pr_info("Total allocated from Buddy: %lu kB\n", total_used / 1024);
 	return 0;
 }
 
@@ -426,15 +433,15 @@ static int sprd_ion_probe(struct platform_device *pdev)
 		need_free_pdata = 0;
 	}
 
-	heaps = kcalloc(num_heaps, sizeof(struct ion_heap *), GFP_KERNEL);
+	heaps = kcalloc(num_heaps + 1, sizeof(struct ion_heap *), GFP_KERNEL);
 	if (!heaps) {
 		ret = -ENOMEM;
 		goto out1;
 	}
 
 	/* create the heaps as specified in the board file */
-	for (i = 0; i < num_heaps; i++) {
-		struct ion_platform_heap *heap_data = &ion_heaps[i];
+	for (i = 1; i <= num_heaps; i++) {
+		struct ion_platform_heap *heap_data = &ion_heaps[i - 1];
 
 		if (!pdev->dev.of_node)
 			heap_data->priv = &pdev->dev;
@@ -501,4 +508,4 @@ static void __exit sprd_ion_exit(void)
 	platform_driver_unregister(&ion_driver);
 }
 
-device_initcall(sprd_ion_init);
+subsys_initcall(sprd_ion_init);
