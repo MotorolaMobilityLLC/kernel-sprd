@@ -64,6 +64,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <544>;
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 		CPU2: cpu@200 {
 			device_type = "cpu";
@@ -73,6 +74,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <544>;
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 		CPU3: cpu@300 {
 			device_type = "cpu";
@@ -82,6 +84,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <544>;
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 		CPU4: cpu@400 {
 			device_type = "cpu";
@@ -91,6 +94,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <544>;
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 		CPU5: cpu@500 {
 			device_type = "cpu";
@@ -100,6 +104,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <544>;
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 		CPU6: cpu@600 {
 			device_type = "cpu";
@@ -109,6 +114,7 @@
 			cpu-idle-states = <&BIG_CORE_PD>;
 			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
 			capacity-dmips-mhz = <1024>;
+			cpufreq-data-v1 = <&cpufreq_clus1>;
 		};
 		CPU7: cpu@700 {
 			device_type = "cpu";
@@ -118,6 +124,7 @@
 			cpu-idle-states = <&BIG_CORE_PD>;
 			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
 			capacity-dmips-mhz = <1024>;
+			cpufreq-data-v1 = <&cpufreq_clus1>;
 		};
 	};
 
@@ -549,6 +556,24 @@
 			962000  800000
 			768000  800000
 			614400  700000
+		>;
+	};
+
+	cpufreq_clus1: cpufreq-clus1 {
+		cpufreq-cluster-id = <1>;
+		cpufreq-sub-clusters =  <&cpufreq_scu>,
+				<&cpufreq_periph>,
+				<&cpufreq_gic>;
+		clock-latency = <50000>;
+		voltage-tolerance = <6413>;
+		operating-points = <
+			/* kHZ   uV */
+			2028000 1000000
+			1872000 1000000
+			1742000 1000000
+			1536000	1000000
+			1482000	 800000
+			1228800	 750000
 		>;
 	};
 
