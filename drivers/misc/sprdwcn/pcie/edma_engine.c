@@ -47,6 +47,7 @@ void edma_print_mbuf_data(int channel, struct mbuf_t *head,
 		WARN_ON(1);
 		return;
 	}
+	print_len = head->len;
 	sprintf(print_str, "WCN PCIE: %s bt:  ", func);
 	print_hex_dump(KERN_INFO, print_str, DUMP_PREFIX_NONE,
 		16, 1, head->buf, (print_len < MAX_PRINT_BYTE_NUM ?
