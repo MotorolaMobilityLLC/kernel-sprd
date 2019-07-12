@@ -188,7 +188,7 @@
 		cm-fuel-gauge = "sc27xx-fgu";
 
 		/* in deci centigrade */
-		cm-battery-cold = <50>;
+		cm-battery-cold = <200>;
 		cm-battery-cold-in-minus;
 		cm-battery-hot = <800>;
 		cm-battery-temp-diff = <100>;
@@ -212,6 +212,7 @@
 		cm-charge-voltage-max = <6500000>;
 		/* drop voltage in microVolts to restart charging */
 		cm-charge-voltage-drop = <700000>;
+		cm-thermal-zone = "board-thmzone";
 
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
