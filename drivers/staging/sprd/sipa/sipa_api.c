@@ -970,13 +970,6 @@ static int sipa_req_ipa_prod(void *user_data)
 		return ret;
 	}
 
-	ret = sipa_set_enabled(cfg, true);
-	if (ret) {
-		sipa_force_wakeup(cfg, false);
-		pr_err("sipa: sipa_hal_init failed %d\n", ret);
-		return ret;
-	}
-
 	return ret;
 }
 
@@ -984,12 +977,6 @@ static int sipa_rls_ipa_prod(void *user_data)
 {
 	int ret;
 	struct sipa_plat_drv_cfg *cfg = &s_sipa_cfg;
-
-	ret = sipa_set_enabled(cfg, false);
-	if (ret) {
-		pr_err("sipa: sipa_hal_init failed %d\n", ret);
-		return ret;
-	}
 
 	ret = sipa_force_wakeup(cfg, false);
 	if (ret) {
