@@ -617,6 +617,7 @@ static void pci_clear_and_set_dword(struct pci_dev *pdev, int pos,
 /* Configure the ASPM L1 substates */
 static void pcie_config_aspm_l1ss(struct pcie_link_state *link, u32 state)
 {
+	u16 reg16;
 	u32 val, enable_req;
 	struct pci_dev *child = link->downstream, *parent = link->pdev;
 	u32 up_cap_ptr = link->l1ss.up_cap_ptr;
@@ -670,6 +671,17 @@ static void pcie_config_aspm_l1ss(struct pcie_link_state *link, u32 state)
 					0xE3FF0000, link->l1ss.ctl1);
 		pci_clear_and_set_dword(child, dw_cap_ptr + PCI_L1SS_CTL1,
 					0xE3FF0000, link->l1ss.ctl1);
+
+		/*
+		 * Unisoc PCIe needs to config these registers in order to enter
+		 * ASPM L1.2. Otherwise, PCIe can only enter ASPM L1.1.
+		 */
+		pcie_capability_read_word(parent, PCI_EXP_DEVCTL2, &reg16);
+		reg16 |= PCI_EXP_DEVCTL2_LTR_EN;
+		pcie_capability_write_word(parent, PCI_EXP_DEVCTL2, reg16);
+		pcie_capability_read_word(child, PCI_EXP_DEVCTL2, &reg16);
+		reg16 |= PCI_EXP_DEVCTL2_LTR_EN;
+		pcie_capability_write_word(child, PCI_EXP_DEVCTL2, reg16);
 	}
 
 	val = 0;
