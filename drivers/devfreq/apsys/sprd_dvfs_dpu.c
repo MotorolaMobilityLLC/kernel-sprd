@@ -651,6 +651,8 @@ static const struct of_device_id dpu_dvfs_of_match[] = {
 	  .data = "sharkl5" },
 	{ .compatible = "sprd,hwdvfs-dpu-roc1",
 	  .data = "roc1" },
+	{ .compatible = "sprd,hwdvfs-dpu-sharkl5pro",
+	  .data = "sharkl5pro" },
 	{ }
 };
 
