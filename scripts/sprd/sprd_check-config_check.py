@@ -38,6 +38,7 @@ d_defconfig_path={
             'sharkl5':{'defconfig':'arch/arm64/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm64'},
             'sharkl5_32':{'defconfig':'arch/arm/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm'},
             'sharkle32':{'defconfig':'arch/arm/configs/sprd_sharkle_defconfig', 'diffconfig':'sprd-diffconfig/sharkle', 'arch':'arm'},
+            'sharkl5Pro':{'defconfig':'arch/arm64/configs/sprd_sharkl5Pro_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5Pro', 'arch':'arm64'},
         },
 }
 
