@@ -67,6 +67,8 @@
 #define FAN54015_REG_LIMIT_CURRENT_MASK			GENMASK(7, 6)
 #define FAN54015_REG_LIMIT_CURRENT_SHIFT		6
 
+#define FAN54015_DISABLE_PIN_MASK			0x1
+
 struct fan54015_charger_info {
 	struct i2c_client *client;
 	struct device *dev;
@@ -83,6 +85,7 @@ struct fan54015_charger_info {
 	struct regmap *pmic;
 	u32 charger_detect;
 	struct gpio_desc *gpiod;
+	u32 disable_pin_reg;
 };
 
 static bool fan54015_charger_is_bat_present(struct fan54015_charger_info *info)
@@ -309,6 +312,13 @@ static int fan54015_charger_start_charge(struct fan54015_charger_info *info)
 {
 	int ret;
 
+	ret = regmap_update_bits(info->pmic, info->disable_pin_reg,
+				 FAN54015_DISABLE_PIN_MASK, 0);
+	if (ret) {
+		dev_err(info->dev, "failed to set disable pin to low.\n");
+		return ret;
+	}
+
 	ret = fan54015_update_bits(info, FAN54015_REG_1,
 				   FAN54015_REG_CHARGE_CONTROL_MASK,
 				   FAN54015_REG_CHARGE_DISABLE);
@@ -329,6 +339,12 @@ static int fan54015_charger_start_charge(struct fan54015_charger_info *info)
 static void fan54015_charger_stop_charge(struct fan54015_charger_info *info)
 {
 	int ret;
+
+	ret = regmap_update_bits(info->pmic, info->disable_pin_reg,
+				 FAN54015_DISABLE_PIN_MASK,
+				 FAN54015_DISABLE_PIN_MASK);
+	if (ret)
+		dev_err(info->dev, "failed to set disable pin to high.\n");
 
 	ret = fan54015_update_bits(info, FAN54015_REG_1,
 				   FAN54015_REG_CHARGE_CONTROL_MASK,
@@ -1014,6 +1030,13 @@ static int fan54015_charger_probe(struct i2c_client *client,
 					 &info->charger_detect);
 	if (ret) {
 		dev_err(dev, "failed to get charger_detect\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32_index(regmap_np, "reg", 2,
+					 &info->disable_pin_reg);
+	if (ret) {
+		dev_err(dev, "failed to get fan54015 disable pin reg\n");
 		return -EINVAL;
 	}
 
