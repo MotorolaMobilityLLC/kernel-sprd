@@ -11,7 +11,6 @@ Optional Properties:
 - charge-term-current-microamp: current for charge termination phase.
 - constant-charge-voltage-max-microvolt: maximum constant input voltage.
   See Documentation/devicetree/bindings/power/supply/battery.txt
-- otg-detect-gpio: used to detect if otg is enable.
 Example:
 
 	bat: battery {
@@ -30,6 +29,5 @@ Example:
 			reg = <0x6a>;
 			phys = <&hsphy>;
 			monitored-battery = <&bat>;
-			otg-detect-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 		};
 	};

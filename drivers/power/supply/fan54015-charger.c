@@ -843,21 +843,14 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct fan54015_charger_info *info = container_of(dwork,
 			struct fan54015_charger_info, otg_work);
-	u32 vbus_gpio_value;
 	int ret;
 
-	if (!info->gpiod)
-		return;
-
-	vbus_gpio_value = gpiod_get_value_cansleep(info->gpiod);
-	if (!vbus_gpio_value) {
-		ret = fan54015_update_bits(info, FAN54015_REG_1,
-					   FAN54015_REG_HZ_MODE_MASK |
-					   FAN54015_REG_OPA_MODE_MASK,
-					   FAN54015_REG_OPA_MODE_MASK);
-		if (ret)
-			dev_err(info->dev, "restart fan54015 charger otg failed\n");
-	}
+	ret = fan54015_update_bits(info, FAN54015_REG_1,
+				   FAN54015_REG_HZ_MODE_MASK |
+				   FAN54015_REG_OPA_MODE_MASK,
+				   FAN54015_REG_OPA_MODE_MASK);
+	if (ret)
+		dev_err(info->dev, "restart fan54015 charger otg failed\n");
 
 	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(1500));
 }
@@ -1001,12 +994,6 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	info->dev = dev;
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, fan54015_charger_work);
-
-	info->gpiod = devm_gpiod_get(dev, "otg-detect", GPIOD_IN);
-	if (IS_ERR(info->gpiod)) {
-		dev_warn(dev, "failed to get charger detection GPIO\n");
-		info->gpiod = NULL;
-	}
 
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
