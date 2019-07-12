@@ -12476,7 +12476,7 @@ CONFIG_WLAN_VENDOR_ZYDAS
 	[function]
 CONFIG_WQ_POWER_EFFICIENT_DEFAULT
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
 	[field] code
 	[subsys] power
 	[must] user
