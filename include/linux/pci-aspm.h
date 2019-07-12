@@ -38,7 +38,7 @@ void pcie_no_aspm(void);
  * or enabled it directly. Therefore, we supply these two APIs.
  */
 ssize_t sprd_pcie_aspm_set_policy(struct pci_dev *pdev, int val);
-ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, char *buf);
+ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, int *val);
 #else
 static inline void pcie_aspm_init_link_state(struct pci_dev *pdev)
 {
@@ -62,7 +62,7 @@ static inline ssize_t sprd_pcie_aspm_set_policy(struct pci_dev *pdev, int val)
 {
 	return -EINVAL;
 }
-static inline ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, char *buf)
+static inline ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, int *val)
 {
 	return -EINVAL;
 }

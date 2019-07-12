@@ -1151,9 +1151,11 @@ ssize_t sprd_pcie_aspm_set_policy(struct pci_dev *pdev, int val)
 	return 0;
 }
 
-ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, char *buf)
+ssize_t sprd_pcie_aspm_get_policy(struct pci_dev *pdev, int *val)
 {
-	return pcie_aspm_get_policy(buf, NULL);
+	*val = aspm_policy;
+
+	return 0;
 }
 
 #ifdef CONFIG_PCIEASPM_DEBUG
