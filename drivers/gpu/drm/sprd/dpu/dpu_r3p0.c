@@ -848,7 +848,7 @@ static int dpu_init(struct dpu_context *ctx)
 		(qos_cfg.arqos_high << 4) |
 		(qos_cfg.arqos_low) |
 		BIT(22);
-	reg->dpu_cfg2 = 0x14002;
+	reg->dpu_cfg2 = 0x13002;
 
 	if (ctx->is_stopped)
 		dpu_clean_all(ctx);
