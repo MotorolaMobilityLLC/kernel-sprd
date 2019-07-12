@@ -63,7 +63,7 @@
 
 /* HW_CTL */
 #define HW_CTL_VALUE		0x30
-#define PRIL_HIGH_APB		0x24
+#define PRIL_HIGH_APB		0x64
 
 /* ARM_CMD_WR */
 #define REG_ADDR_OFFSET		2
