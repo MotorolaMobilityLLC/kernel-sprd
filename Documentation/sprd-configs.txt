@@ -9913,21 +9913,21 @@ CONFIG_SND_SOC_I2C_AND_SPI
 	[function] enable I2C and SPI bus for audio codec
 CONFIG_SND_SOC_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] snd soc common code
 CONFIG_SND_SOC_SPRD_AUDIO_TWO_STAGE_DMAENGINE_SURPPORT
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_CODEC_SC2721
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
@@ -9947,29 +9947,29 @@ CONFIG_SND_SOC_SPRD_PA_UCP1301
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_R1P0V3_SC2721
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_SHARKL3
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_VAUDIO
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_VBC_R1P0V3
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
