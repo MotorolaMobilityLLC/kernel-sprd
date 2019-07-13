@@ -1514,7 +1514,6 @@ static void dpu_sr_config(struct dpu_context *ctx)
 
 	reg->blend_size = (scale_copy.in_h << 16) | scale_copy.in_w;
 	if (need_scale) {
-#ifdef EPF_ENABLED
 		/* SLP is disabled mode or bypass mode */
 		if (slp_copy.brightness <= SLP_BRIGHTNESS_THRESHOLD) {
 
@@ -1527,7 +1526,6 @@ static void dpu_sr_config(struct dpu_context *ctx)
 				enhance_en |= BIT(1);
 			}
 		}
-#endif
 		enhance_en |= BIT(0);
 		reg->dpu_enhance_cfg = enhance_en;
 	} else {
