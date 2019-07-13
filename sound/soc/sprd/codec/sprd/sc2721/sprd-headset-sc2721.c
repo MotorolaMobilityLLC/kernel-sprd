@@ -2663,8 +2663,8 @@ static int sprd_headset_probe(struct platform_device *pdev)
 
 static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient, bool big_scale)
 {
-	int64_t numerator = 0;
-	int64_t denominator = 0;
+	u64 numerator = 0;
+	u64 denominator = 0;
 	u32 adc_ideal = 0;
 	u32 a, b, e1, e2;
 	int64_t exp1, exp2, exp3, exp4;
@@ -2713,7 +2713,7 @@ static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient, bool big_scale)
 			denominator, numerator);
 
 	divisor = (u32)(denominator);
-	dividend = (u64)(numerator);
+	dividend = numerator;
 	pr_info("divisor=%u, dividend=%llu\n", divisor, dividend);
 
 	do_div(dividend, divisor);
