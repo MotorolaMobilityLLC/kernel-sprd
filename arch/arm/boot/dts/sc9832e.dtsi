@@ -275,3 +275,77 @@
 	clocks = <&apahb_gate CLK_DSI_EB>;
 };
 
+&dcam {
+	clock-names = "dcam_eb",
+			"clk_gate_eb",
+			"clk_cphy_cfg_gate_eb",
+			"clk_mm_eb",
+			"clk_mm_ahb",
+			"clk_mm_ahb_parent",
+			"dcam_clk",
+			"dcam_clk_76m8",
+			"dcam_clk_153m6",
+			"dcam_clk_256m",
+			"dcam_clk_307m2",
+			"dcam_clk_parent";
+	clocks = <&mm_gate CLK_DCAM_EB>,
+		<&mm_gate CLK_MAHB_CKG_EB>,
+		<&mm_gate CLK_CPHY_CFG_EB>,
+		<&aonapb_gate CLK_MM_EB>,
+		<&mm_clk CLK_MM_AHB>,
+		<&pll CLK_TWPLL_153M6>,
+		<&mm_clk CLK_DCAM_IF>,
+		<&pll CLK_TWPLL_76M8>,
+		<&pll CLK_TWPLL_153M6>,
+		<&pll CLK_TWPLL_256M>,
+		<&pll CLK_TWPLL_307M2>,
+		<&pll CLK_TWPLL_307M2>;
+};
+
+&isp {
+	clock-names = "isp_eb", "isp_axi_eb",
+			"isp_clk",
+			"isp_clk_128m",
+			"isp_clk_256m",
+			"isp_clk_307m2",
+			"isp_clk_384m",
+			"isp_clk_468m",
+			"isp_clk_parent";
+	clocks = <&mm_gate CLK_ISP_EB>,
+		<&mm_gate CLK_ISP_AXI_EB>,
+		<&aon_prediv CLK_MM_ISP>,
+		<&pll CLK_TWPLL_128M>,
+		<&pll CLK_TWPLL_256M>,
+		<&pll CLK_TWPLL_307M2>,
+		<&pll CLK_TWPLL_384M>,
+		<&pll CLK_ISPPLL_468M>,
+		<&pll CLK_ISPPLL_468M>;
+};
+
+&cpp {
+	clock-names = "cpp_eb",
+			"cpp_axi_eb";
+	clocks = <&mm_gate CLK_CPP_EB>,
+		<&aonapb_gate CLK_MM_VSP_EB>;
+	/* hw: cpp, isp use the same clk */
+	ref-node = <&isp>;
+};
+
+&csi0 {
+	clock-names = "clk_mipi_csi_gate_eb",
+			"clk_csi_eb",
+			"clk_csi_from";
+	clocks = <&mm_gate CLK_MIPI_CSI_EB>,
+		<&mm_gate CLK_CSI_EB>,
+		<&mm_clk CLK_MIPI_CSI>;
+};
+
+&csi1 {
+	clock-names = "clk_mipi_csi_gate_eb",
+			"clk_csi_eb",
+			"clk_csi_from";
+	clocks = <&mm_gate CLK_MIPI_CSI_S_EB>,
+		<&mm_gate CLK_CSI_S_EB>,
+		<&mm_clk CLK_MCSI_S>;
+};
+
