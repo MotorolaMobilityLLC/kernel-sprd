@@ -110,10 +110,175 @@ static struct sipa_nic_statics_info s_spia_nic_statics[SIPA_NIC_MAX] = {
 	},
 };
 
+static void sipa_nic_rm_res_release(struct sipa_nic *nic);
+
+static void sipa_nic_rm_res_granted(struct sipa_nic *nic)
+{
+	unsigned long flags;
+	struct sipa_nic_cons_res *res = &nic->rm_res;
+
+	spin_lock_irqsave(&res->lock, flags);
+	res->request_in_progress = false;
+	spin_unlock_irqrestore(&res->lock, flags);
+}
+
+static void sipa_nic_rm_notify_cb(void *user_data,
+				  enum sipa_rm_event event,
+				  unsigned long data)
+{
+	struct sipa_nic *nic = user_data;
+
+	pr_debug("%s: event %d\n", __func__, event);
+	switch (event) {
+	case SIPA_RM_EVT_GRANTED:
+		sipa_nic_rm_res_granted(nic);
+		if (atomic_read(&nic->status) == NIC_OPEN)
+			nic->cb(nic->cb_priv, SIPA_LEAVE_FLOWCTRL, 0);
+
+		sipa_nic_rm_res_release(nic);
+		break;
+	case SIPA_RM_EVT_RELEASED:
+		break;
+	default:
+		pr_err("%s: unknown event %d\n", __func__, event);
+		break;
+	}
+}
+
+static int sipa_nic_register_rm(struct sipa_nic *nic,
+				enum sipa_nic_id nic_id)
+{
+	struct sipa_rm_register_params r_param;
+
+	if (s_spia_nic_statics[nic_id].cons != SIPA_RM_RES_CONS_WWAN_UL)
+		return 0;
+
+	r_param.user_data = nic;
+	r_param.notify_cb = sipa_nic_rm_notify_cb;
+
+	return sipa_rm_register(SIPA_RM_RES_CONS_WWAN_UL, &r_param);
+}
+
+static int sipa_nic_deregister_rm(struct sipa_nic *nic,
+				  enum sipa_nic_id nic_id)
+{
+	struct sipa_rm_register_params r_param;
+
+	if (s_spia_nic_statics[nic_id].cons != SIPA_RM_RES_CONS_WWAN_UL)
+		return 0;
+
+	r_param.user_data = nic;
+	r_param.notify_cb = sipa_nic_rm_notify_cb;
+
+	return sipa_rm_deregister(SIPA_RM_RES_CONS_WWAN_UL, &r_param);
+}
+
+static void sipa_nic_rm_timer_func(struct work_struct *work)
+{
+	struct sipa_nic_cons_res *res = container_of(to_delayed_work(work),
+						     struct sipa_nic_cons_res,
+						     work);
+	unsigned long flags;
+
+	pr_debug("timer expired for resource %d!\n",
+		 res->cons);
+
+	spin_lock_irqsave(&res->lock, flags);
+	/* need check resource not used any more */
+	if (res->reschedule_work || !res->chk_func(res->chk_priv)) {
+		pr_debug("setting delayed work\n");
+		res->reschedule_work = false;
+		queue_delayed_work(system_unbound_wq,
+				   &res->work,
+				   res->jiffies);
+	} else if (res->resource_requested) {
+		pr_debug("not calling release\n");
+		res->release_in_progress = false;
+	} else {
+		pr_debug("calling release_resource on resource %d!\n",
+			 res->cons);
+		sipa_rm_release_resource(res->cons);
+		res->need_request = true;
+		res->release_in_progress = false;
+	}
+	spin_unlock_irqrestore(&res->lock, flags);
+}
+
+static int sipa_nic_rm_init(struct sipa_nic_cons_res *res,
+			    struct sipa_skb_sender *sender,
+			    enum sipa_rm_res_id cons,
+			    unsigned long msecs)
+{
+	if (res->initied)
+		return -EEXIST;
+
+	res->initied = true;
+	res->cons = cons;
+	spin_lock_init(&res->lock);
+	res->chk_func = (sipa_check_send_completed)
+		sipa_skb_sender_check_send_complete;
+	res->chk_priv = sender;
+	res->jiffies = msecs_to_jiffies(msecs);
+	res->resource_requested = false;
+	res->reschedule_work = false;
+	res->release_in_progress = false;
+	res->need_request = true;
+	res->request_in_progress = false;
+
+	INIT_DELAYED_WORK(&res->work,
+			  sipa_nic_rm_timer_func);
+
+	return 0;
+}
+
+static int sipa_nic_rm_res_request(struct sipa_nic *nic)
+{
+	int ret = 0;
+	unsigned long flags;
+	struct sipa_nic_cons_res *res = &nic->rm_res;
+
+	spin_lock_irqsave(&res->lock, flags);
+	res->resource_requested = true;
+	if (res->need_request) {
+		res->need_request = false;
+		ret = sipa_rm_request_resource(nic->rm_res.cons);
+		if (ret == -EINPROGRESS)
+			res->request_in_progress = true;
+		else
+			res->request_in_progress = false;
+	} else {
+		ret = res->request_in_progress ? -EINPROGRESS : 0;
+	}
+	spin_unlock_irqrestore(&res->lock, flags);
+
+	return ret;
+}
+
+static void sipa_nic_rm_res_release(struct sipa_nic *nic)
+{
+	unsigned long flags;
+	struct sipa_nic_cons_res *res = &nic->rm_res;
+
+	spin_lock_irqsave(&res->lock, flags);
+	res->resource_requested = false;
+	if (res->release_in_progress) {
+		res->reschedule_work = true;
+		spin_unlock_irqrestore(&res->lock, flags);
+		return;
+	}
+
+	res->release_in_progress = true;
+	res->reschedule_work = false;
+	queue_delayed_work(system_unbound_wq,
+			   &res->work,
+			   res->jiffies);
+	spin_unlock_irqrestore(&res->lock, flags);
+}
+
 int sipa_nic_open(enum sipa_term_type src, int netid,
 		  sipa_notify_cb cb, void *priv)
 {
-	int i;
+	int i, ret;
 	struct sipa_nic *nic = NULL;
 	struct sk_buff *skb;
 	enum sipa_nic_id nic_id = SIPA_NIC_MAX;
@@ -151,6 +316,15 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 	}
 
 	sender = ctrl->sender[s_spia_nic_statics[nic_id].pkt_type];
+
+	/* sipa rm operations */
+	sipa_nic_rm_init(&nic->rm_res,
+			 sender,
+			 s_spia_nic_statics[nic_id].cons,
+			 SIPA_NIC_RM_INACTIVE_TIMER);
+	ret = sipa_nic_register_rm(nic, nic_id);
+	if (ret)
+		return ret;
 
 	atomic_set(&nic->status, NIC_OPEN);
 	nic->nic_id = nic_id;
@@ -192,6 +366,7 @@ void sipa_nic_close(enum sipa_nic_id nic_id)
 
 	nic = ctrl->nic[nic_id];
 
+	sipa_nic_deregister_rm(nic, nic_id);
 	atomic_set(&nic->status, NIC_CLOSE);
 	/* free all  pending skbs */
 	while ((skb = skb_dequeue(&nic->rx_skb_q)) != NULL)
@@ -250,9 +425,15 @@ int sipa_nic_tx(enum sipa_nic_id nic_id, enum sipa_term_type dst,
 	if (!sender)
 		return -ENODEV;
 
+	ret = sipa_nic_rm_res_request(ctrl->nic[nic_id]);
+	if (ret)
+		return ret;
+
 	ret = sipa_skb_sender_send_data(sender, skb, dst, netid);
 	if (ret == -EAGAIN)
 		ctrl->nic[nic_id]->flow_ctrl_status = true;
+
+	sipa_nic_rm_res_release(ctrl->nic[nic_id]);
 
 	return ret;
 }
