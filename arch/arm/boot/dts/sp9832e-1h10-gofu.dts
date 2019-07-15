@@ -10,6 +10,7 @@
 #include <dt-bindings/gpio/gpio.h>
 #include "sc9832e.dtsi"
 #include "sp9832e-go-mach.dtsi"
+#include "sc9832e-wcn.dtsi"
 #include "sc2721.dtsi"
 #include "lcd/lcd_ili9881c_truly_mipi_hd.dtsi"
 
