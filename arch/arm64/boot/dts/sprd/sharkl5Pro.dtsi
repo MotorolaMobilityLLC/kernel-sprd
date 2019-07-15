@@ -542,25 +542,25 @@
 					512000    750000
 					614400    750000
 					768000    800000
-					800000    800000
+					850000    800000
 					>;
 
 				sprd,dvfs-lists = <
 					/* kHz   uV      idx div */
-					384000  700000    6    1
-					512000  750000    7    1
-					614400  750000    8    1
-					768000  800000    9    1
-					800000  800000    10   1
+					384000  700000    4    1
+					512000  750000    5    1
+					614400  750000    6    1
+					768000  800000    7    1
+					850000  800000    8    1
 					>;
 
 				sprd,dvfs-default = <0>;
 				sprd,qos = <&gpu_qos>;
-				sprd,dvfs-scene-extreme = <2>;
-				sprd,dvfs-scene-high = <1>;
+				sprd,dvfs-scene-extreme = <3>;
+				sprd,dvfs-scene-high = <2>;
 				sprd,dvfs-scene-medium = <1>;
 				sprd,dvfs-scene-low = <0>;
-				sprd,dvfs-range-max = <2>;
+				sprd,dvfs-range-max = <4>;
 				sprd,dvfs-range-min = <0>;
 			};
 
