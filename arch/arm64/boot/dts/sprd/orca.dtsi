@@ -1115,12 +1115,18 @@
 				#size-cells = <2>;
 				device_type = "pci";
 				ranges = <0x03000000 0x0 0x10000000 0x2 0x00000000 0x0 0x06000000>;
-				interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
 				bus-range = <0  15>;
 				num-lanes = <1>;
 				num-vectors = <256>;
 				num-viewport = <8>;
 				status = "disabled";
+				dummy@0 {
+					label = "parent_gic_intc";
+					interrupt-parent = <&gic>;
+					#interrupt-cells = <3>;
+					interrupts = <GIC_SPI 22
+						      IRQ_TYPE_LEVEL_HIGH>;
+				};
 			};
 
 			pcie1: pcie1@2b100000 {
