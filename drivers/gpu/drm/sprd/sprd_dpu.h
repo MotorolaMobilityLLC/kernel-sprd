@@ -172,7 +172,7 @@ struct dpu_context {
 	struct videomode vm;
 	struct semaphore refresh_lock;
 	struct work_struct wb_work;
-	struct work_struct dvfs_work;
+	struct tasklet_struct dvfs_task;
 	u32 wb_addr_p;
 	irqreturn_t (*dpu_isr)(int irq, void *data);
 	wait_queue_head_t te_wq;
