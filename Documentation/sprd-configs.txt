@@ -3194,7 +3194,7 @@ CONFIG_ENCRYPTED_KEYS
 	[function] tristate "ENCRYPTED KEYS"
 CONFIG_ENHANCE_SMAPS_INFO
 	[arch] arm64
-	[plat] roc1,sharkl5
+	[plat] roc1,sharkl5,sharkl5Pro
 	[field] make
 	[subsys] mm
 	[must] debug
