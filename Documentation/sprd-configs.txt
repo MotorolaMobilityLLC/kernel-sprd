@@ -3250,7 +3250,7 @@ CONFIG_EXPERT
 	[function] Configure standard kernel features (expert users).
 CONFIG_EXPORTFS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] code
 	[subsys] fs
 	[must]
@@ -8192,7 +8192,7 @@ CONFIG_OUTER_CACHE_SYNC
 	[function]
 CONFIG_OVERLAY_FS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] code
 	[subsys] fs
 	[must] none
