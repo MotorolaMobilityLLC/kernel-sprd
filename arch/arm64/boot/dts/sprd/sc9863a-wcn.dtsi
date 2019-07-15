@@ -12,7 +12,7 @@
 		compatible = "sprd,integrate_marlin";
 		sprd,name = "wcn_btwf";
 		sprd,syscon-ap-apb = <&aon_apb_regs>;
-		sprd,syscon-ap-pmu = <&pmu_regs>;
+		sprd,syscon-ap-pmu = <&pmu_apb_regs>;
 		/* <PIKE2 just uses for DTS parse. SHARKLE use it> */
 		sprd,syscon-ap-pub-apb = <&pub_apb_regs>;
 		sprd,syscon-anlg-wrap-wcn = <&anlg_wrap_wcn_regs>;
@@ -55,7 +55,7 @@
 		compatible = "sprd,integrate_gnss";
 		sprd,name = "wcn_gnss";
 		sprd,syscon-ap-apb = <&aon_apb_regs>;
-		sprd,syscon-ap-pmu = <&pmu_regs>;
+		sprd,syscon-ap-pmu = <&pmu_apb_regs>;
 		sprd,syscon-ap-pub-apb = <&pub_apb_regs>;
 		sprd,syscon-anlg-wrap-wcn =
 			<&anlg_wrap_wcn_regs>;

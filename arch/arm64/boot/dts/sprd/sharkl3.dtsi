@@ -89,7 +89,7 @@
 			reg = <0 0x40200000 0 0x10000>;
 		};
 
-		pmu_regs: syscon@402b0000 {
+		pmu_apb_regs: syscon@402b0000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
 			reg = <0 0x402b0000 0 0x10000>;
@@ -98,7 +98,7 @@
 		disp_pd: power-domain@402b0058 {
 			compatible = "sprd,sharkl3-disp-domain";
 			reg = <0x0 0x402b0058 0x0 0x20>;
-			syscons = <&pmu_regs REG_PMU_APB_PD_DISP_CFG
+			syscons = <&pmu_apb_regs REG_PMU_APB_PD_DISP_CFG
 				MASK_PMU_APB_PD_DISP_FORCE_SHUTDOWN>;
 			syscon-names = "power";
 			#power-domain-cells = <0>;
@@ -474,7 +474,7 @@
 				reg = <0x40020000 0x10000>;
 				sprd,clk-stable = <0x402d0060 0x4>;
 				sprd,syscon-aon-apb = <&aon_apb_regs>;
-				sprd,syscon-pmu-apb = <&pmu_regs>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 				sprd,dynamic-eq-support = <0>;
 				 /* da01, ad01, ad23 */
 				sprd,vbc-iis-lr-invert = <0 1 1>;
@@ -899,10 +899,10 @@
 
 			cam_domain: cam-domain {
 				compatible = "sprd,cam-domain";
-				syscons = <&pmu_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>,
-					<&pmu_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
-					<&pmu_regs REG_PMU_APB_PWR_STATUS0_DBG 0xf8000000>,
-					<&pmu_regs REG_PMU_APB_BUS_STATUS0 0x80000>,
+				syscons = <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>,
+					<&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
+					<&pmu_apb_regs REG_PMU_APB_PWR_STATUS0_DBG 0xf8000000>,
+					<&pmu_apb_regs REG_PMU_APB_BUS_STATUS0 0x80000>,
 					<&aon_apb_regs REG_AON_APB_AON_CLK_TOP_CFG
 					(MASK_AON_APB_CLK_MM_EMC_EB |
 					MASK_AON_APB_CLK_MM_AHB_EB |
@@ -926,11 +926,11 @@
 			gpu: gpu@60000000 {
 			compatible = "sprd,rogue";
 			reg = <0x60000000 0x100000>;
-			syscons = <&pmu_regs REG_PMU_APB_PD_GPU_TOP_CFG
+			syscons = <&pmu_apb_regs REG_PMU_APB_PD_GPU_TOP_CFG
 					MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>,
-				  <&pmu_regs REG_PMU_APB_PD_GPU_CORE_CFG
+				  <&pmu_apb_regs REG_PMU_APB_PD_GPU_CORE_CFG
 					MASK_PMU_APB_PD_GPU_CORE_FORCE_SHUTDOWN>,
-				  <&pmu_regs REG_PMU_APB_PD_GPU_CORE_CFG
+				  <&pmu_apb_regs REG_PMU_APB_PD_GPU_CORE_CFG
 					MASK_PMU_APB_PD_GPU_CORE_AUTO_SHUTDOWN_EN>;
 			syscon-names = "top_force_shutdown",
 				"core_force_shutdown",
@@ -1010,14 +1010,14 @@
 				syscons = <&mm_vsp_ahb_regs  REG_MM_VSP_AHB_AHB_RST
 					(MASK_MM_VSP_AHB_VSP_SOFT_RST |
 					MASK_MM_VSP_AHB_VSP_GLB_SOFT_RST)>,
-					<&pmu_regs
+					<&pmu_apb_regs
 					REG_PMU_APB_PD_MM_VSP_CFG
 					MASK_PMU_APB_PD_MM_VSP_FORCE_SHUTDOWN>,
-					<&pmu_regs
+					<&pmu_apb_regs
 					REG_PMU_APB_PD_MM_VSP_CFG
 					MASK_PMU_APB_PD_MM_VSP_AUTO_SHUTDOWN_EN>
 					,
-					<&pmu_regs
+					<&pmu_apb_regs
 					REG_PMU_APB_PWR_STATUS5_DBG
 					MASK_PMU_APB_PD_MM_VSP_STATE>,
 					<&aon_apb_regs
@@ -1515,7 +1515,7 @@
 		 */
 		sprd,dma-2stage-usecase = <2>;
 		sprd,node-count-2stage-level-1 = <1>;
-		sprd,syscon-pmu-apb = <&pmu_regs>;
+		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 		/* 0: no interrupt, 1: from arm, 2:from ap
 		 * note:if use arm ap should not register dma interrupt,
 		 * and you should register intterupt in arm code.
@@ -1534,7 +1534,7 @@
 		dma-names = "iis0_tx", "iis0_rx";
 		sprd,dma-2stage-usecase = <2>;
 		sprd,node-count-2stage-level-1 = <1>;
-		sprd,syscon-pmu-apb = <&pmu_regs>;
+		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 		sprd,dma-2stage-level-1-int-source = <1>;
 	};
 

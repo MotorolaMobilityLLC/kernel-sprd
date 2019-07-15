@@ -137,7 +137,7 @@
 			#sound-dai-cells = <1>;
 			reg = <0x700>;
 			interrupts = <6 IRQ_TYPE_NONE>;
-			sprd,syscon-pmu-apb = <&pmu_regs>;
+			sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 			status = "disabled";
 		};
 

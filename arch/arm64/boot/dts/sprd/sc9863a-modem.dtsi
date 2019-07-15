@@ -28,8 +28,8 @@
 			sprd,name = "pmic";
 			/* 0xff is invaild register offset */
 			syscons = <&aon_apb_regs 0xff 0x0>,
-					<&pmu_regs 0xff 0x100000>,
-					<&pmu_regs 0xb0 0x80>,
+					<&pmu_apb_regs 0xff 0x100000>,
+					<&pmu_apb_regs 0xb0 0x80>,
 					<&aon_apb_regs 0xff 0x0>,
 					<&aon_apb_regs 0xff 0x0>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
@@ -57,10 +57,10 @@
 			sprd,decoup = "cproc-use-decoup";
 			sprd,name = "cptl";
 			/* 0xff is invaild register offset */
-			syscons = <&pmu_regs 0x48 0x2000000>,
-					<&pmu_regs 0xcc 0x40000>,
+			syscons = <&pmu_apb_regs 0x48 0x2000000>,
+					<&pmu_apb_regs 0xcc 0x40000>,
 					<&aon_apb_regs 0x284 0x400>,
-					<&pmu_regs 0xb0 0x2>,
+					<&pmu_apb_regs 0xb0 0x2>,
 					<&aon_apb_regs 0xff 0x0>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
 						"sysreset", "getstatus";
