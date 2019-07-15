@@ -373,7 +373,7 @@
 			| MASK_AP_APB_SIM0_EB )
 			0x00000000>;
 
-		sprd,sys-pmu-apb = <&pmu_regs>;
+		sprd,sys-pmu-apb = <&pmu_apb_regs>;
 
 		sprd,pmu-apb-reg-tbl =
 			<REG_PMU_APB_SLEEP_CTRL
@@ -744,7 +744,7 @@
 	soc {
 		pmu_gate: pmu-gate {
 			compatible = "sprd,sc9863a-pmu-gate";
-			sprd,syscon = <&pmu_regs>; /* 0x402b0000 */
+			sprd,syscon = <&pmu_apb_regs>; /* 0x402b0000 */
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
 		};
