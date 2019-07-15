@@ -7,11 +7,17 @@
 #ifndef _DT_BINDINGS_CLK_SC9860_H_
 #define _DT_BINDINGS_CLK_SC9860_H_
 
-#define CLK_ISPPLL_GATE		0
-#define	CLK_MPLL_GATE		1
-#define	CLK_DPLL_GATE		2
-#define	CLK_LPLL_GATE		3
-#define	CLK_GPLL_GATE		4
+#define CLK_FAC_13M		0
+#define CLK_FAC_6M5		1
+#define CLK_FAC_4M3		2
+#define CLK_FAC_2M		3
+#define CLK_FAC_1M		4
+#define CLK_FAC_250K		5
+#define CLK_ISPPLL_GATE		6
+#define	CLK_MPLL_GATE		7
+#define	CLK_DPLL_GATE		8
+#define	CLK_LPLL_GATE		9
+#define	CLK_GPLL_GATE		10
 #define	CLK_PMU_GATE_NUM	(CLK_GPLL_GATE + 1)
 
 #define	CLK_AUDIO_GATE		0
