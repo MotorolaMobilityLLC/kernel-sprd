@@ -10827,8 +10827,8 @@ CONFIG_SPRD_THERMAL
 	[must] user
 	[function] This function is used to config thermal moudle.
 CONFIG_SPRD_TIMER
-	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[arch] all
+	[plat] all
 	[field] make
 	[subsys] timer
 	[must] console

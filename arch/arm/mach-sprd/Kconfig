@@ -13,6 +13,7 @@ config ARCH_SPRD
 	select CLKSRC_MMIO
 	select CLKSRC_OF
 	select COMMON_CLK
+	select SPRD_TIMER
 	select ARCH_HAS_CPUFREQ
 	select ARM_HAS_SG_CHAIN
 	select HAVE_FUTEX_CMPXCHG if MMU && FUTEX
