@@ -836,6 +836,7 @@ enum {
 	DPU_LAYER_FORMAT_RGB565,
 	DPU_LAYER_FORMAT_XFBC_ARGB8888 = 8,
 	DPU_LAYER_FORMAT_XFBC_RGB565,
+	DPU_LAYER_FORMAT_XFBC_YUV420,
 	DPU_LAYER_FORMAT_MAX_TYPES,
 };
 
@@ -941,20 +942,26 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 			reg_val |= (DPU_LAYER_FORMAT_RGB565 << 4);
 		break;
 	case DRM_FORMAT_NV12:
-		/*2-Lane: Yuv420 */
-		reg_val |= DPU_LAYER_FORMAT_YUV420_2PLANE << 4;
-		/*Y endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 8;
-		/*UV endian */
-		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 10;
-		break;
-	case DRM_FORMAT_NV21:
-		/*2-Lane: Yuv420 */
-		reg_val |= DPU_LAYER_FORMAT_YUV420_2PLANE << 4;
+		if (compression)
+			/*2-Lane: Yuv420 */
+			reg_val |= DPU_LAYER_FORMAT_XFBC_YUV420 << 4;
+		else
+			reg_val |= DPU_LAYER_FORMAT_YUV420_2PLANE << 4;
 		/*Y endian */
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
 		/*UV endian */
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 10;
+		break;
+	case DRM_FORMAT_NV21:
+		if (compression)
+			/*2-Lane: Yuv420 */
+			reg_val |= DPU_LAYER_FORMAT_XFBC_YUV420 << 4;
+		else
+			reg_val |= DPU_LAYER_FORMAT_YUV420_2PLANE << 4;
+		/*Y endian */
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
+		/*UV endian */
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 10;
 		break;
 	case DRM_FORMAT_NV16:
 		/*2-Lane: Yuv422 */
