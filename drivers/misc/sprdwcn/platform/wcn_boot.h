@@ -89,7 +89,7 @@ struct marlin_device {
 	bool is_btwf_in_sysfs;
 	bool is_gnss_in_sysfs;
 	int wifi_need_download_ini_flag;
-	int first_power_on_flag;
+	int first_power_on_ready;
 	atomic_t download_finish_flag;
 	unsigned char gnss_dl_finish_flag;
 	int loopcheck_status_change;

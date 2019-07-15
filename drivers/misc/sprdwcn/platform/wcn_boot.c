@@ -1622,8 +1622,7 @@ static void pre_gnss_download_firmware(struct work_struct *work)
 	int ret;
 
 	/* ./fstab.xxx is prevent for user space progress */
-	if (marlin_dev->first_power_on_flag == 1)
-		find_firmware_path();
+	find_firmware_path();
 
 	if (gnss_download_firmware() != 0) {
 		WCN_ERR("gnss download firmware fail\n");
@@ -1936,8 +1935,7 @@ static int marlin_set_power(int subsys, int val)
 		 * 1. when the first open:
 		 * `- first download gnss, and then download btwifi
 		 */
-		marlin_dev->first_power_on_flag++;
-		if (marlin_dev->first_power_on_flag == 1) {
+		if (unlikely(!marlin_dev->first_power_on_ready)) {
 			WCN_INFO("the first power on start\n");
 
 			if (chip_power_on(subsys) < 0) {
@@ -1958,6 +1956,10 @@ static int marlin_set_power(int subsys, int val)
 			}
 			WCN_INFO("gnss auto download finished and run ok\n");
 
+			if (subsys & MARLIN_MASK)
+				gnss_powerdomain_close();
+			marlin_dev->first_power_on_ready = 1;
+
 			WCN_INFO("then marlin start to download\n");
 			schedule_work(&marlin_dev->download_wq);
 			timeleft = wait_for_completion_timeout(
@@ -1970,7 +1972,6 @@ static int marlin_set_power(int subsys, int val)
 			atomic_set(&marlin_dev->download_finish_flag, 1);
 			WCN_INFO("then marlin download finished and run ok\n");
 
-			marlin_dev->first_power_on_flag = 2;
 			set_wifipa_status(subsys, val);
 			mutex_unlock(&marlin_dev->power_lock);
 			power_state_notify_or_not(subsys, val);
