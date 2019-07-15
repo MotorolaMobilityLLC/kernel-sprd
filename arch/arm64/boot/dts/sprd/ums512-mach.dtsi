@@ -108,6 +108,13 @@
 	};
 
 	thm_zone: thermal-zones {
+		soc_thmzone: soc-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			sustainable-power = <2000>;
+			thermal-sensors = <&soc_sensor  17>;
+		};
+
 		prometheus6_tzone0: prometheus6-tzone0 {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
@@ -178,6 +185,20 @@
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&ap_thm2 0>;
+		};
+
+		cluster0_thmzone: cluster0-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			sustainable-power = <2000>;
+			thermal-sensors = <&cluster0_sensor  15>;
+		};
+
+		cluster1_thmzone: cluster1-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			sustainable-power = <2000>;
+			thermal-sensors = <&cluster1_sensor  16>;
 		};
 
 		osctsen_thmzone: osctsen-thmzone {
