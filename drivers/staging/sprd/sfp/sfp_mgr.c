@@ -657,6 +657,7 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	int out_ifindex;
 	int out_ipaifindex, in_ipaifindex;
 	u8  l4proto;
+	int dir;
 
 	if (!get_sfp_enable())
 		return 0;
@@ -665,17 +666,23 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	if (!ct)
 		return 0;
 
+	if (!test_bit(IPS_CONFIRMED_BIT, &ct->status))
+		return 0;
+
 	tuple = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple;
 	l4proto = tuple->dst.protonum;
+	dir = CTINFO2DIR(ctinfo);
 
 	if (l4proto == IPPROTO_TCP && sfp_tcp_flag_chk(ct))
 		return 0;
 
-	if (CTINFO2DIR(ctinfo) == IP_CT_DIR_ORIGINAL) {
+	if (dir == IP_CT_DIR_ORIGINAL) {
 		if (l4proto == IPPROTO_TCP &&
 		    test_bit(IPS_ASSURED_BIT, &ct->status))
 			sfp_mgr_fwd_ct_tcp_sure(ct);
-		return 0;
+
+		if (l4proto != IPPROTO_UDP)
+			return 0;
 	}
 
 	net = nf_ct_net(ct);
@@ -705,13 +712,21 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 		return 0;
 	}
 
-	out_ifindex = skb->dev->ifindex;
-	in_ifindex = rt->dst.dev->ifindex;
-	out_ipaifindex = get_hw_iface_by_dev(skb->dev);
-	in_ipaifindex = get_hw_iface_by_dev(rt->dst.dev);
-	FP_PRT_DBG(FP_PRT_DEBUG, "iface info [%s %d, %s %d] [%d, %d]\n",
+	if (dir == IP_CT_DIR_REPLY) {
+		out_ifindex = skb->dev->ifindex;
+		in_ifindex = rt->dst.dev->ifindex;
+		out_ipaifindex = get_hw_iface_by_dev(skb->dev);
+		in_ipaifindex = get_hw_iface_by_dev(rt->dst.dev);
+	} else {
+		in_ifindex = skb->dev->ifindex;
+		out_ifindex = rt->dst.dev->ifindex;
+		in_ipaifindex = get_hw_iface_by_dev(skb->dev);
+		out_ipaifindex = get_hw_iface_by_dev(rt->dst.dev);
+	}
+
+	FP_PRT_DBG(FP_PRT_DEBUG, "iface info [%s %d, %s %d] [%d, %d], dir %d\n",
 		   rt->dst.dev->name, in_ifindex, skb->dev->name,
-		   out_ifindex, in_ipaifindex, out_ipaifindex);
+		   out_ifindex, in_ipaifindex, out_ipaifindex, dir);
 	create_mgr_fwd_entries_in_forward(skb, ct,
 					  in_ifindex, out_ifindex,
 					  in_ipaifindex, out_ipaifindex);
