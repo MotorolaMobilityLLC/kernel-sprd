@@ -90,7 +90,6 @@ static void set_vdsp_work_freq(u32 freq)
 			break;
 		}
 	}
-	udelay(100);
 }
 
 static u32 get_vdsp_work_freq(void)
@@ -149,7 +148,6 @@ static void set_vdsp_work_index(int index)
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
 
 	reg->vdsp_dvfs_index_cfg = index;
-	udelay(100);
 }
 
 static int get_vdsp_work_index(void)

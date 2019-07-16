@@ -98,7 +98,7 @@ struct dpu_dvfs_ops {
 };
 
 extern struct list_head dpu_dvfs_head;
-extern struct blocking_notifier_head dpu_dvfs_chain;
+extern struct atomic_notifier_head dpu_dvfs_chain;
 
 #if IS_ENABLED(CONFIG_SPRD_APSYS_DVFS_DEVFREQ)
 int dpu_dvfs_notifier_call_chain(void *data);

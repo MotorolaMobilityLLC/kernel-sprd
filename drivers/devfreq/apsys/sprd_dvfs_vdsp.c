@@ -26,8 +26,9 @@
 #include <linux/slab.h>
 #include "../governor.h"
 
-
 #include "sprd_dvfs_vdsp.h"
+
+static int VDSP_DVFS_ENABLE = 1;
 
 LIST_HEAD(vdsp_dvfs_head);
 BLOCKING_NOTIFIER_HEAD(vdsp_dvfs_chain);
@@ -99,11 +100,10 @@ static ssize_t set_hw_dfs_store(struct device *dev,
 	if (ret == 0)
 		return -EINVAL;
 
-	vdsp->dvfs_coffe.hw_dfs_en = dfs_en;
-
-	if (vdsp->dvfs_ops && vdsp->dvfs_ops->hw_dfs_en)
-		vdsp->dvfs_ops->hw_dfs_en(vdsp->dvfs_coffe.hw_dfs_en);
-	else
+	if (vdsp->dvfs_ops && vdsp->dvfs_ops->hw_dfs_en) {
+		vdsp->dvfs_ops->hw_dfs_en(dfs_en);
+		vdsp->dvfs_coffe.hw_dfs_en = dfs_en;
+	} else
 		pr_info("%s: ip ops null\n", __func__);
 
 	return count;
@@ -520,14 +520,15 @@ static int vdsp_gov_get_target(struct devfreq *devfreq,
 
 	pr_emerg("devfreq_governor-->get_target_freq\n");
 
+	if (vdsp->freq_type == DVFS_WORK)
+		adjusted_freq = vdsp->work_freq;
+	else
+		adjusted_freq = vdsp->idle_freq;
+
 	if (devfreq->max_freq && adjusted_freq > devfreq->max_freq)
 		adjusted_freq = devfreq->max_freq;
 	else if (devfreq->min_freq && adjusted_freq < devfreq->min_freq)
 		adjusted_freq = devfreq->min_freq;
-	else if (vdsp->freq_type == DVFS_WORK)
-		adjusted_freq = vdsp->work_freq;
-	else
-		adjusted_freq = vdsp->idle_freq;
 
 	*freq = adjusted_freq;
 
@@ -632,7 +633,7 @@ static int vdsp_dvfs_probe(struct platform_device *pdev)
 
 	device_rename(&vdsp->devfreq->dev, "vdsp");
 
-	vdsp->dvfs_enable = vdsp->dvfs_coffe.hw_dfs_en;
+	vdsp->dvfs_enable = VDSP_DVFS_ENABLE;
 
 	if (vdsp->dvfs_ops && vdsp->dvfs_ops->parse_dt)
 		vdsp->dvfs_ops->parse_dt(vdsp, np);

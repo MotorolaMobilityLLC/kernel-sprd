@@ -31,13 +31,64 @@
 static int DPU_DVFS_ENABLE = 1;
 
 LIST_HEAD(dpu_dvfs_head);
-BLOCKING_NOTIFIER_HEAD(dpu_dvfs_chain);
+ATOMIC_NOTIFIER_HEAD(dpu_dvfs_chain);
 
 int dpu_dvfs_notifier_call_chain(void *data)
 {
-	return blocking_notifier_call_chain(&dpu_dvfs_chain, 0, data);
+	return atomic_notifier_call_chain(&dpu_dvfs_chain, 0, data);
 }
 EXPORT_SYMBOL_GPL(dpu_dvfs_notifier_call_chain);
+
+/**
+ * sprd_update_devfreq() - Reevaluate the device and configure
+ * frequency.
+ * @devfreq:	the devfreq instance.
+ *
+ *	 This function is exported for governors.
+ */
+int sprd_update_devfreq(struct devfreq *devfreq)
+{
+	unsigned long freq;
+	int err = 0;
+	u32 flags = 0;
+
+	if (!devfreq->governor)
+		return -EINVAL;
+
+	/* Reevaluate the proper frequency */
+	err = devfreq->governor->get_target_freq(devfreq, &freq);
+	if (err)
+		return err;
+
+	/*
+	 * Adjust the frequency with user freq and QoS.
+	 *
+	 * List from the highest priority
+	 * max_freq
+	 * min_freq
+	 */
+
+	if (devfreq->min_freq && freq < devfreq->min_freq) {
+		freq = devfreq->min_freq;
+		flags &= ~DEVFREQ_FLAG_LEAST_UPPER_BOUND; /* Use GLB */
+	}
+	if (devfreq->max_freq && freq > devfreq->max_freq) {
+		freq = devfreq->max_freq;
+		flags |= DEVFREQ_FLAG_LEAST_UPPER_BOUND; /* Use LUB */
+	}
+
+	err = devfreq->profile->target(devfreq->dev.parent, &freq, flags);
+	if (err)
+		return err;
+
+	if (devfreq->profile->freq_table)
+		if (devfreq_update_status(devfreq, freq))
+			dev_err(&devfreq->dev,
+				"Couldn't update frequency transition information.\n");
+
+	devfreq->previous_freq = freq;
+	return err;
+}
 
 static ssize_t dpu_dvfs_enable_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -365,12 +416,8 @@ static int dpu_dvfs_notify_callback(struct notifier_block *nb,
 	struct dpu_dvfs *dpu = container_of(nb, struct dpu_dvfs, dpu_dvfs_nb);
 	u32 dvfs_freq = *(int *)data;
 
-	mutex_lock(&dpu->devfreq->lock);
-
-	if (!dpu->dvfs_enable) {
-		mutex_unlock(&dpu->devfreq->lock);
+	if (!dpu->dvfs_enable)
 		return NOTIFY_DONE;
-	}
 
 	//if (dpu->work_freq == dvfs_freq) {
 	//	pr_info("request freq is the same as last, nothing to do");
@@ -380,9 +427,7 @@ static int dpu_dvfs_notify_callback(struct notifier_block *nb,
 
 	dpu->work_freq = dvfs_freq;
 	dpu->freq_type = DVFS_WORK;
-	update_devfreq(dpu->devfreq);
-
-	mutex_unlock(&dpu->devfreq->lock);
+	sprd_update_devfreq(dpu->devfreq);
 
 	return NOTIFY_OK;
 }
@@ -603,7 +648,7 @@ static int dpu_dvfs_probe(struct platform_device *pdev)
 	}
 
 	dpu->dpu_dvfs_nb.notifier_call = dpu_dvfs_notify_callback;
-	ret = blocking_notifier_chain_register(&dpu_dvfs_chain, &dpu->dpu_dvfs_nb);
+	ret = atomic_notifier_chain_register(&dpu_dvfs_chain, &dpu->dpu_dvfs_nb);
 	if (ret) {
 		dev_err(&pdev->dev,
 			"failed to register dpu layer change notifier\n");
@@ -637,7 +682,7 @@ static int dpu_dvfs_probe(struct platform_device *pdev)
 	return 0;
 err:
 	dev_pm_opp_of_remove_table(dev);
-	blocking_notifier_chain_unregister(&dpu_dvfs_chain, &dpu->dpu_dvfs_nb);
+	atomic_notifier_chain_unregister(&dpu_dvfs_chain, &dpu->dpu_dvfs_nb);
 
 	return ret;
 }
