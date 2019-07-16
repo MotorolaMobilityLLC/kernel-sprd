@@ -207,7 +207,8 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				__func__, __LINE__);
 		}
 
-		if ((vsp_hw_dev.version == SHARKL3
+		if ((vsp_hw_dev.version == SHARKLE
+			|| vsp_hw_dev.version == SHARKL3
 			|| vsp_hw_dev.version == SHARKL5
 			|| vsp_hw_dev.version == ROC1
 			|| vsp_hw_dev.version == SHARKL5Pro)
@@ -352,6 +353,12 @@ static irqreturn_t vsp_isr(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+
+static const struct sprd_vsp_cfg_data sharkle_vsp_data = {
+	.version = SHARKLE,
+	.max_freq_level = 4,
+};
+
 static const struct sprd_vsp_cfg_data sharkl3_vsp_data = {
 	.version = SHARKL3,
 	.max_freq_level = 5,
@@ -376,6 +383,7 @@ static const struct sprd_vsp_cfg_data sharkl5pro_vsp_data = {
 };
 
 static const struct of_device_id of_match_table_vsp[] = {
+	{.compatible = "sprd,sharkle-vsp", .data = &sharkle_vsp_data},
 	{.compatible = "sprd,sharkl3-vsp", .data = &sharkl3_vsp_data},
 	{.compatible = "sprd,sharkl5-vsp", .data = &sharkl5_vsp_data},
 	{.compatible = "sprd,roc1-vsp", .data = &roc1_vsp_data},
