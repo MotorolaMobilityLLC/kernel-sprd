@@ -470,11 +470,23 @@
 	status = "okay";
 };
 
+&iommu_dcam {
+	status = "okay";
+};
+
 &isp {
 	status = "okay";
 };
 
+&iommu_isp {
+	status = "okay";
+};
+
 &cpp {
+	status = "okay";
+};
+
+&iommu_cpp {
 	status = "okay";
 };
 
@@ -518,11 +530,6 @@
 	status = "okay";
 };
 
-/*&iommu_cpp{
- *	status = "okay";
- *};
- */
-
 &pmic_fgu {
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-real = <10000>;
@@ -538,7 +545,15 @@
 	status = "okay";
 };
 
+&iommu_vsp {
+	status = "okay";
+};
+
 &jpg {
+	status = "okay";
+};
+
+&iommu_jpg {
 	status = "okay";
 };
 
