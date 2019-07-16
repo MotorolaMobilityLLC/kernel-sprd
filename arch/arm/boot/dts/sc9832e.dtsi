@@ -270,6 +270,21 @@
 		<&apahb_gate DISPC_EB>;
 };
 
+&vsp {
+	clock-names = "clk_ahb_gate_vsp_eb",
+			"clk_src_76m8",
+			"clk_src_128m",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"clk_vsp";
+	clocks = <&apahb_gate VSP_EB>,
+		<&pll CLK_TWPLL_76M8>,
+		<&pll CLK_TWPLL_128M>,
+		<&pll CLK_TWPLL_256M>,
+		<&pll CLK_TWPLL_307M2>,
+		<&ap_clk CLK_VSP>;
+};
+
 &dsi {
 	clock-names = "clk_ap_ahb_dsi_eb";
 	clocks = <&apahb_gate CLK_DSI_EB>;

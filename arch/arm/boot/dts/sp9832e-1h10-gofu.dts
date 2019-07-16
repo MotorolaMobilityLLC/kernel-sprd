@@ -206,6 +206,14 @@
 	status = "okay";
 };
 
+&vsp {
+	status = "okay";
+};
+
+&iommu_vsp {
+	status = "okay";
+};
+
 &iommu_dispc {
 	status = "okay";
 };
