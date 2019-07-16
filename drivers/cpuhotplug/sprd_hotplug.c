@@ -745,7 +745,8 @@ static int cluster1_hotplug_qos_handler(struct notifier_block *b,
 	mutex_lock(&cpu_num_lock[CLUSTER1]);
 	sd_tuners->cpu_num_max_limit[CLUSTER1] = online_cpu_max;
 	sd_tuners->cpu_num_min_limit[CLUSTER1] = online_cpu_min;
-
+	if (online_cpu_max == 0)
+		__cpufreq_offline(cpumask_first(&sd_tuners->cluster_mask[CLUSTER1]));
 	/*
 	 * make sure num of cores within min and max
 	 * for PM_QOS_CLUSTER1_CORE_MIN and PM_QOS_CLUSTER1_CORE_MAX class

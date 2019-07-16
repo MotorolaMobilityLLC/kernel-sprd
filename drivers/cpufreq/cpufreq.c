@@ -1493,6 +1493,11 @@ unlock:
 	return 0;
 }
 
+int __cpufreq_offline(unsigned int cpu)
+{
+       return cpufreq_offline(cpu);
+}
+
 /**
  * cpufreq_remove_dev - remove a CPU device
  *
