@@ -313,7 +313,7 @@
 
 		pll: pll {
 			compatible = "sprd,sc7731e-pll";
-			sprd,syscon = <&anlg_phy_g1_regs>; /* 0x40350000 */
+			sprd,syscon = <&aon_apb_regs>; /* 0x402e0000 */
 			clocks = <&pmu_gate 0>;
 			#clock-cells = <1>;
 		};
