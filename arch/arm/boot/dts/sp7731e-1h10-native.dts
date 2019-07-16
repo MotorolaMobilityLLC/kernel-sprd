@@ -239,3 +239,7 @@
 &pmic_charger {
 	status = "okay";
 };
+
+&pwms {
+	status = "okay";
+};

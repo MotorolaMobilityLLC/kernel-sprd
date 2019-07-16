@@ -324,3 +324,7 @@
 	sprd,calib-resistance-real = <20000>;
 	sprd,calib-resistance-spec = <20000>;
 };
+
+&pwms {
+	status = "okay";
+};
