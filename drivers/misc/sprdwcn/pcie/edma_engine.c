@@ -93,6 +93,7 @@ void *mpool_malloc(int len)
 	static int total_len;
 	struct edma_info *edma = edma_info();
 
+	mutex_lock(&edma->mpool_lock);
 	if (mpool_buffer == NULL) {
 		ret = dmalloc(edma->pcie_info, &mpool_dm, MPOOL_SIZE);
 		if (ret != 0) {
@@ -119,6 +120,9 @@ void *mpool_malloc(int len)
 	}
 	WCN_INFO("%s(0x%x) totle:0x%x= {0x%p, 0x%p}\n", __func__, len, total_len,
 		 p, mpool_vir_to_phy((void *)p));
+
+	mutex_unlock(&edma->mpool_lock);
+
 	return p;
 }
 
@@ -1715,6 +1719,7 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 
 	wakeup_source_init(&edma->edma_push_ws, "wcn edma txrx push");
 	wakeup_source_init(&edma->edma_pop_ws, "wcn edma txrx callback");
+	mutex_init(&edma->mpool_lock);
 
 	/* Init edma tx send timeout timer */
 	init_timer(&edma->edma_tx_timer);
@@ -1751,6 +1756,7 @@ int edma_deinit(void)
 	WCN_INFO("wakeup_source exit\n");
 	wakeup_source_trash(&edma->edma_push_ws);
 	wakeup_source_trash(&edma->edma_pop_ws);
+	mutex_destroy(&edma->mpool_lock);
 	kfree(q->lock.irq_spinlock_p);
 	delete_queue(q);
 	/* TODO: need free mpool */

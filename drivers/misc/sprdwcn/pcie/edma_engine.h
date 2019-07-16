@@ -382,6 +382,7 @@ struct edma_info {
 	struct wakeup_source edma_pop_ws;
 	struct timer_list edma_tx_timer;
 	unsigned long cur_chn_status;
+	struct mutex mpool_lock;
 };
 
 #define DMA_PAUSE			0x160000
