@@ -1809,20 +1809,6 @@ static int gnss_powerdomain_open(void)
 	unsigned int temp;
 
 	WCN_INFO("%s\n", __func__);
-
-	ret = sprdwcn_bus_reg_read(CGM_GNSS_FAKE_CFG, &temp, 4);
-	if (ret < 0) {
-		WCN_ERR("%s read CGM_GNSS_FAKE_CFG error:%d\n", __func__, ret);
-		return ret;
-	}
-	WCN_INFO("%s CGM_GNSS_FAKE_CFG:0x%x\n", __func__, temp);
-	temp = temp & (~(CGM_GNSS_FAKE_SEL));
-	ret = sprdwcn_bus_reg_write(CGM_GNSS_FAKE_CFG, &temp, 4);
-	if (ret < 0) {
-		WCN_ERR("write CGM_GNSS_FAKE_CFG err:%d\n", ret);
-		return ret;
-	}
-
 	ret = sprdwcn_bus_reg_read(PD_GNSS_SS_AON_CFG4, &temp, 4);
 	if (ret < 0) {
 		WCN_ERR("%s read PD_GNSS_SS_AON_CFG4 err:%d\n", __func__, ret);
@@ -1855,13 +1841,44 @@ static int gnss_powerdomain_open(void)
 	return 0;
 }
 
+/*
+ * CGM_GNSS_FAKE_CFG : 0x0: for 26M clock; 0x2: for 266M clock
+ * gnss should select 26M clock before powerdomain close
+ *
+ * PD_GNSS_SS_AON_CFG4: 0x4041308->0x4041300 bit3=0 power on
+ */
 static int gnss_powerdomain_close(void)
 {
 	/* add by this. */
 	int ret = 0;
+	int i = 0;
 	unsigned int temp;
 
 	WCN_INFO("%s\n", __func__);
+
+	ret = sprdwcn_bus_reg_read(CGM_GNSS_FAKE_CFG, &temp, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read CGM_GNSS_FAKE_CFG error:%d\n", __func__, ret);
+		return ret;
+	}
+	WCN_INFO("%s R_CGM_GNSS_FAKE_CFG:0x%x\n", __func__, temp);
+	temp = temp & (~(CGM_GNSS_FAKE_SEL));
+	ret = sprdwcn_bus_reg_write(CGM_GNSS_FAKE_CFG, &temp, 4);
+	if (ret < 0) {
+		WCN_ERR("write CGM_GNSS_FAKE_CFG err:%d\n", ret);
+		return ret;
+	}
+retry:
+	ret = sprdwcn_bus_reg_read(CGM_GNSS_FAKE_CFG, &temp, 4);
+	if (ret < 0) {
+		WCN_ERR("%s read CGM_GNSS_FAKE_CFG error:%d\n", __func__, ret);
+		return ret;
+	}
+	i++;
+	if ((temp & 0x3) && (i < 3)) {
+		WCN_ERR("FAKE_CFG:0x%x, GNSS select clk err\n", temp);
+		goto retry;
+	}
 
 	ret = sprdwcn_bus_reg_read(PD_GNSS_SS_AON_CFG4, &temp, 4);
 	if (ret < 0) {
