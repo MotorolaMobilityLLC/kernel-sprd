@@ -408,10 +408,10 @@ static int dscr_zero(struct desc *dscr)
 	dscr->chn_trans_len.reg = 0;
 	dscr->chn_trans_len.bit.rf_chn_tx_intr = 0;
 	dscr->chn_trans_len.bit.rf_chn_rx_intr = 0;
-	dscr->chn_ptr_high.bit.rf_chn_src_data_addr_high = 0xFF;
-	dscr->chn_ptr_high.bit.rf_chn_dst_data_addr_high = 0xFF;
-	dscr->rf_chn_data_src_addr_low = 0xFFFFFFFF;
-	dscr->rf_chn_data_dst_addr_low = 0xFFFFFFFF;
+	dscr->chn_ptr_high.bit.rf_chn_src_data_addr_high = 0x00;
+	dscr->chn_ptr_high.bit.rf_chn_dst_data_addr_high = 0x00;
+	dscr->rf_chn_data_src_addr_low = 0x10b000;
+	dscr->rf_chn_data_dst_addr_low = 0x10b000;
 
 	return 0;
 }

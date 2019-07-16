@@ -1850,7 +1850,7 @@ static int gnss_powerdomain_open(void)
 static int gnss_powerdomain_close(void)
 {
 	/* add by this. */
-	int ret = 0;
+	int ret;
 	int i = 0;
 	unsigned int temp;
 
