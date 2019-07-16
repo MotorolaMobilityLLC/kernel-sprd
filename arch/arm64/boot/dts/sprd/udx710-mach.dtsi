@@ -7,6 +7,7 @@
  */
 
 #include "udx710-modem.dtsi"
+#include <dt-bindings/thermal/thermal.h>
 
 / {
 	reserved-memory {
@@ -41,6 +42,13 @@
 
 	thm_zone: thermal-zones {
 
+		soc_thmzone: soc-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			sustainable-power = <1000>;
+			thermal-sensors = <&soc_sensor  17>;
+		};
+
 		apcpu0_thmzone: apcpu0-thmzone {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
@@ -69,6 +77,13 @@
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&ap_thm2 2>;
+		};
+
+		cluster0_thmzone: cluster0-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			sustainable-power = <1000>;
+			thermal-sensors = <&cluster0_sensor  15>;
 		};
 	};
 };

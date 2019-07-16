@@ -38,6 +38,8 @@
 		serdes0 = &serdes0;
 		serdes1 = &serdes1;
 		serdes2 = &serdes2;
+		thm-sensor15 = &cluster0_sensor;
+		thm-sensor17 = &soc_sensor;
 	};
 
 	soc: soc {
@@ -664,6 +666,28 @@
 					nvmem-cells = <&thm2_sen2>;
 					nvmem-cell-names = "sen_delta_cal";
 				};
+			};
+
+			cluster0_sensor: cluster0-sensor@15 {
+				compatible = "sprd,cluster0-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "ank0-thmzone","ank1-thmzone";
+				k-po = <128>;
+				k-pu = <256>;
+				k-i = <1>;
+				k-d = <0>;
+				cutoff = <0>;
+			};
+
+			soc_sensor: soc-sensor@17 {
+				compatible = "sprd,soc-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "cluster0-thmzone";
+				k-po = <0>;
+				k-pu = <0>;
+				k-i = <1>;
+				k-d = <0>;
+				cutoff = <0>;
 			};
 
 			topdvfs_controller: topdvfsctrl@63980000 {
