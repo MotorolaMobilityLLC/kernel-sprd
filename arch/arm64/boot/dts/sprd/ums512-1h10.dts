@@ -8,7 +8,6 @@
 /dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
-#include "ums512-mm-dvfs.dtsi"
 #include "ums512.dtsi"
 #include "sc2730.dtsi"
 #include "ums512-mach.dtsi"
