@@ -290,8 +290,10 @@ static ssize_t get_dvfs_table_info_show(struct device *dev,
 
 	if (vsp->dvfs_ops && vsp->dvfs_ops->get_dvfs_table)
 		vsp->dvfs_ops->get_dvfs_table(dvfs_table);
-	else
+	else {
 		pr_info("%s: ip ops null\n", __func__);
+		return len;
+	}
 
 	len = sprintf(buf, "map_index\tvolt_level\tclk_level\tclk_rate\n");
 	for (i = 0; i < vsp->max_freq_level; i++) {
