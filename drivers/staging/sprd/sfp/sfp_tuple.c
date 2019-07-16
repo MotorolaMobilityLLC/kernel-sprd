@@ -116,14 +116,13 @@ int sfp_ipv6_skip_exthdr(void *data, u8 start, u8 *nexthdrp)
 
 	while (ipv6_ext_hdr(nexthdr)) {
 		struct ipv6_opt_hdr *hp;
-		int hdrlen;
 
 		if (nexthdr == NEXTHDR_NONE)
 			return -1;
 		hp = (struct ipv6_opt_hdr *)(data + start);
 
 		nexthdr = hp->nexthdr;
-		start += hdrlen;
+		start += hp->hdrlen;
 	}
 	*nexthdrp = nexthdr;
 	return start;
