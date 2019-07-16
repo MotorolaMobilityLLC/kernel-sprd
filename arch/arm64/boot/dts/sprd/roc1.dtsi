@@ -2646,7 +2646,9 @@
 				reg = <0 0x6fc00000 0 0x10000>;
 				interrupts = <GIC_SPI 132 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "ai_powervr";
-				power-domains = <&pd_ai_powervr>;
+				power-domains = <&pd_ai_powervr>,
+					<&pd_ai_cambricon>;
+				#power-domain-cells = <1>;
 				syscon-names = "reset";
 				syscons = <&ai_apb_regs REG_AI_APB_APB_RST
 					MASK_AI_APB_POWERVR_SOFT_RST>;
@@ -2677,7 +2679,9 @@
 					<GIC_SPI 134 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "ai_cambricon", "ai_mmu";
 				iommus = <&iommu_ai>;
-				power-domains = <&pd_ai_cambricon>;
+				power-domains = <&pd_ai_cambricon>,
+					<&pd_ai_powervr>;
+				#power-domain-cells = <1>;
 				syscon-names = "reset";
 				syscons = <&ai_apb_regs
 					REG_AI_APB_AI_CAMBRICON_SOFT_RST
