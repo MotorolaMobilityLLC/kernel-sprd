@@ -32,7 +32,15 @@ int handle_vsp_interrupt(struct vsp_dev_t *vsp_hw_dev, int *status,
 	int mmu_status;
 
 	int_status = readl_relaxed(vsp_glb_reg_base + VSP_INT_STS_OFF);
-	mmu_status = readl_relaxed(sprd_vsp_base + VSP_MMU_INT_STS_OFF);
+
+	if (vsp_hw_dev->version >= SHARKL3) {
+		*status |= int_status | (mmu_status << 16);
+		mmu_status = readl_relaxed(sprd_vsp_base + VSP_MMU_INT_STS_OFF);
+	} else {
+		*status = int_status;
+		mmu_status = (int_status >> 10) & 0xff;
+		int_status = *status & 0x3f;
+	}
 
 	if (((int_status & 0x1fff) == 0) &&
 		((mmu_status & 0xff) == 0)) {
@@ -59,7 +67,7 @@ int handle_vsp_interrupt(struct vsp_dev_t *vsp_hw_dev, int *status,
 	if (mmu_status & 0xff) {
 		/* mmu ERR */
 		pr_err("vsp iommu addr: 0x%x\n",
-			readl_relaxed(sprd_vsp_base + VSP_MMU_INT_RAW_OFF));
+		       readl_relaxed(sprd_vsp_base + VSP_MMU_INT_RAW_OFF));
 
 		for (i = 0x18; i <= 0x2c; i += 4)
 			pr_info("addr 0x%x is 0x%x\n", i,
@@ -76,7 +84,6 @@ int handle_vsp_interrupt(struct vsp_dev_t *vsp_hw_dev, int *status,
 	if (mmu_status & 0xaa)
 		BUG_ON(1);
 
-	*status |= int_status | (mmu_status << 16);
 	/* clear VSP accelerator interrupt bit */
 	clr_vsp_interrupt_mask(vsp_hw_dev, sprd_vsp_base, vsp_glb_reg_base);
 
@@ -109,11 +116,12 @@ void clr_vsp_interrupt_mask(struct vsp_dev_t *vsp_hw_dev,
 
 	/* set the interrupt mask 0 */
 	writel_relaxed(0, vsp_glb_reg_base + VSP_INT_MASK_OFF);
-	writel_relaxed(0, sprd_vsp_base + VSP_MMU_INT_MASK_OFF);
+	if (vsp_hw_dev->version >= SHARKL3)
+		writel_relaxed(0, sprd_vsp_base + VSP_MMU_INT_MASK_OFF);
 
 	/* clear vsp int */
 	writel_relaxed(vsp_int_mask, vsp_glb_reg_base + VSP_INT_CLR_OFF);
-	writel_relaxed(mmu_int_mask, sprd_vsp_base + VSP_MMU_INT_CLR_OFF);
+	if (vsp_hw_dev->version >= SHARKL3)
+		writel_relaxed(mmu_int_mask,
+			       sprd_vsp_base + VSP_MMU_INT_CLR_OFF);
 }
-
-
