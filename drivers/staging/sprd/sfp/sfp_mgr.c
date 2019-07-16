@@ -68,7 +68,7 @@ static const char * const sfp_netdev[] = {
 
 #define IPA_TERM_MAX 32
 static const char * const ipa_netdev[IPA_TERM_MAX] = {
-				    [1] = "sipa_usb",
+				    [1] = "usb",
 				    [2] = "wlan",
 				    [6] = "sipa_eth",
 				  };
