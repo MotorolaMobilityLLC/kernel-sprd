@@ -114,15 +114,15 @@ static bool is_filter_port(u8 l4proto, u16 src_port, u16 dst_port)
 {
 	/* We want to pass FTP control stream packets to Linux */
 	if (l4proto == IPPROTO_TCP) {
-		if ((ntohs(src_port) == FTP_CTRL_PORT) ||
-		    (ntohs(dst_port) == FTP_CTRL_PORT))
+		if ((src_port == FTP_CTRL_PORT) ||
+		    (dst_port == FTP_CTRL_PORT))
 			return true;
 	} else if (l4proto == IPPROTO_UDP) {
-		if ((ntohs(src_port) == DHCP_PORT) ||
-		    (ntohs(dst_port) == DHCP_PORT))
+		if ((src_port == DHCP_PORT) ||
+		    (dst_port == DHCP_PORT))
 			return true;
-		else if ((ntohs(src_port) == DNS_PORT) ||
-			 (ntohs(dst_port) == DNS_PORT))
+		else if ((src_port == DNS_PORT) ||
+			 (dst_port == DNS_PORT))
 			return true;
 	}
 	return false;
