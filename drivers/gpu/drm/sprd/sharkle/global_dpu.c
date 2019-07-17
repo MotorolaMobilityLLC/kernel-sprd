@@ -52,8 +52,6 @@ static struct dpu_glb_context {
 	struct regmap *regmap;
 } ctx_reset, ctx_qos;
 
-static void __iomem *base1;
-
 static struct clk *val_to_clk(struct dpu_clk_context *ctx, u32 val)
 {
 	switch (val) {
@@ -137,8 +135,6 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 		clk_ctx->clk_dpu_dpi = NULL;
 	}
 
-	base1 = ioremap_nocache(0x21500000, 0x10000);
-
 	return 0;
 }
 
@@ -185,16 +181,9 @@ static int dpu_clk_init(struct dpu_context *ctx)
 	if (ret)
 		pr_warn("set dpi clk source failed\n");
 
-	//ret = clk_set_rate(clk_ctx->clk_dpu_dpi, ctx->vm.pixelclock);
-	//if (ret)
-	//	pr_err("dpu update dpi clk rate failed\n");
-
-	/*
-	 * FIXME:
-	 * Use clk interface instead when the clock driver is ok.
-	 */
-	writel(0x3, base1 + 0x00a0);
-	writel(0x101, base1 + 0x00a4);
+	ret = clk_set_rate(clk_ctx->clk_dpu_dpi, ctx->vm.pixelclock);
+	if (ret)
+		pr_err("dpu update dpi clk rate failed\n");
 
 	return ret;
 }
