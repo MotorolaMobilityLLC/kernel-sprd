@@ -78,15 +78,19 @@ static const char * const sc2703_fast_charger_supply_name[] = {
 	"sc2730_fast_charger",
 };
 
-static bool is_calib_mode;
-static bool is_autotest_mode;
+static bool need_disable_dcdc;
 
 static int __init boot_mode(char *str)
 {
-	if (str && !strncmp(str, "cali", strlen("cali")))
-		is_calib_mode = true;
-	else if (str && !strncmp(str, "autotest", strlen("autotest")))
-		is_autotest_mode = true;
+	if (!str)
+		return 0;
+
+	if (!strncmp(str, "cali", strlen("cali")))
+		need_disable_dcdc = true;
+	else if (!strncmp(str, "autotest", strlen("autotest")))
+		need_disable_dcdc = true;
+	else if (!strncmp(str, "factorytest", strlen("factorytest")))
+		need_disable_dcdc = true;
 
 	return 0;
 }
@@ -530,7 +534,7 @@ static void sc2703_charger_stop_charge(struct sc2703_charger_info *info,
 {
 	int mask, ret;
 
-	if (is_calib_mode || is_autotest_mode)
+	if (need_disable_dcdc)
 		mask = SC2703_CHG_EN_MASK | SC2703_DCDC_EN_MASK;
 	else
 		mask = SC2703_CHG_EN_MASK;
