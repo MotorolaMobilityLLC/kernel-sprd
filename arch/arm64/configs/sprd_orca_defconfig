@@ -3166,7 +3166,7 @@ CONFIG_SC27XX_EFUSE=y
 #
 # CPU Hotplug and touchboost scaling
 #
-# CONFIG_SPRD_CPU_HOTPLUG_GOV is not set
+CONFIG_SPRD_CPU_HOTPLUG_GOV=y
 # CONFIG_TEE is not set
 
 #
