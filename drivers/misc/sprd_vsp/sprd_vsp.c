@@ -51,6 +51,7 @@ static struct vsp_dev_t vsp_hw_dev;
 static struct wakeup_source vsp_wakelock;
 static atomic_t vsp_instance_cnt = ATOMIC_INIT(0);
 static char *vsp_clk_src[] = {
+	"clk_src_76m8",
 	"clk_src_96m",
 	"clk_src_128m",
 	"clk_src_153m6",
