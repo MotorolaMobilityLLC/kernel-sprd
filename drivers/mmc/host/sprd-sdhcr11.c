@@ -1177,7 +1177,7 @@ static void sprd_sdhc_enable_dpll(struct sprd_sdhc_host *host)
 	mdelay(1);
 
 	tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_CFG);
-	tmp |= SPRD_SDHC_DLL_EN;
+	tmp |= (SPRD_SDHC_DLL_EN | SPRD_SDHC_DLL_HALF_MODE);
 	sprd_sdhc_writel(host, tmp, SPRD_SDHC_REG_32_DLL_CFG);
 	mdelay(1);
 
