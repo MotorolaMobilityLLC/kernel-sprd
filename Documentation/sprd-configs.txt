@@ -847,7 +847,7 @@ CONFIG_ARM_PSCI_FW
 	   enable it to support hotplug
 CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[field] make
 	[subsys] cpufreq
 	[must] user
@@ -860,8 +860,8 @@ CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
 	[must] user
 	[function] Enable apcpu hardware dvfs function in sharkl5 family SOCs.
 CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
