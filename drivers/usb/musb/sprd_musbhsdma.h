@@ -205,7 +205,7 @@ struct sprd_musb_dma_channel {
 
 struct sprd_musb_dma_controller {
 	struct dma_controller	controller;
-	struct sprd_musb_dma_channel	channel[MUSB_DMA_CHANNELS];
+	struct sprd_musb_dma_channel	channel[MUSB_DMA_CHANNELS+1];
 	void	*private_data;
 	void __iomem	*base;
 	u32	used_channels;
