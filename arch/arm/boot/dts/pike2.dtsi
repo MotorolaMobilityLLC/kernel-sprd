@@ -378,6 +378,22 @@
 					reg = <0x21 0x4>;
 					bits = <4 7>;
 				};
+
+				wcn_alpha: wcn-alpha@8 {
+					reg = <0x8 0x4>;
+				};
+
+				wcn_beta: wcn-beta@c {
+					reg = <0xc 0x4>;
+				};
+
+				wcn_gamma: wcn-gamma@10 {
+					reg = <0x10 0x4>;
+				};
+
+				wcn_delta: wcn-delta@20 {
+					reg = <0x20 0x4>;
+				};
 			};
 
 			ap_gpio: gpio@40280000 {

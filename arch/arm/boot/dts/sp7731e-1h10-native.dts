@@ -8,6 +8,7 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include "sc7731e.dtsi"
+#include "sc7731e-wcn.dtsi"
 #include "sc2720.dtsi"
 #include "sp7731e-mach.dtsi"
 #include "lcd/lcd_ili9881c_3lane_mipi_fhd.dtsi"
