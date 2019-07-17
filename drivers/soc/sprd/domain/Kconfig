@@ -17,6 +17,11 @@ config SPRD_CAM_PW_DOMAIN_R5P0
 	help
 	  This is a power domain driver for cam sys.
 
+config SPRD_CAM_PW_DOMAIN_R5P1
+	bool "SPRD Cam System Power Domain r5p1"
+	help
+	  This is a power domain driver for cam sys.
+
 config SPRD_CAM_PW_DOMAIN_R7P0
 	bool "SPRD Cam System Power Domain r7p0"
 	select PM_GENERIC_DOMAINS if PM

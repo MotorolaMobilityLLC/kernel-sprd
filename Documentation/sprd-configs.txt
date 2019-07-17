@@ -10270,6 +10270,13 @@ CONFIG_SPRD_CAM_PW_DOMAIN_R5P0
 	[subsys] camera
 	[must] user
 	[function] This function is used to enable cam power domain.
+CONFIG_SPRD_CAM_PW_DOMAIN_R5P1
+	[arch] arm
+	[plat] sharkle,sharkle32
+	[field] make,code
+	[subsys] camera
+	[must] user
+	[function] This function is used to enable cam power domain.
 CONFIG_SPRD_CAM_PW_DOMAIN_R7P0
 	[arch] arm64
 	[plat] sharkl5Pro
