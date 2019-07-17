@@ -1202,7 +1202,7 @@ int legacy_irq_handle(int data)
 
 int msi_irq_handle(int irq)
 {
-	int chn = 0;
+	int chn, i = 0;
 	unsigned long irq_flags;
 	union dma_chn_int_reg dma_int;
 	struct isr_msg_queue msg = { 0 };
@@ -1235,9 +1235,18 @@ int msi_irq_handle(int irq)
 	} else {
 		if (irq % 2 == 0) {
 			do {
+				i++;
 				dma_int.bit.rf_chn_rx_pop_int_clr = 1;
 				edma->dma_chn_reg[chn].dma_int.reg =
 								dma_int.reg;
+				if ((edma->dma_chn_reg[chn].dma_int.reg ==
+				    0xFFFFFFFF) || (i > 3000)) {
+					WCN_ERR("dma_int=0x%x, i=%d\n", i,
+						edma->dma_chn_reg[chn].dma_int
+						.reg);
+					local_irq_restore(irq_flags);
+					return -1;
+				}
 			} while (edma->dma_chn_reg[chn].dma_int.reg & 0x040400);
 
 			msg.evt = ISR_MSG_RX_POP;
