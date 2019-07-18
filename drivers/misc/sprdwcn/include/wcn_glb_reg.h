@@ -22,4 +22,8 @@
 #include "umw2652_glb.h"
 #endif
 
+#ifdef CONFIG_UMW2653
+#include "umw2653_glb.h"
+#endif
+
 #endif

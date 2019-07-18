@@ -21,4 +21,9 @@
 #include "wcn_dump.h"
 #endif
 
+#ifdef CONFIG_UMW2653
+#include "umw2653_glb.h"
+#include "wcn_dump.h"
+#endif
+
 #endif
