@@ -7,7 +7,7 @@
 #include "rdc_debug.h"
 
 /* log buf size */
-#define MDBG_RX_RING_SIZE		(64*1024)
+#define MDBG_RX_RING_SIZE		(96 * 1024)
 
 #define CP_START_ADDR		0x40500000
 #define CP_RESET_REG		0x40088288
