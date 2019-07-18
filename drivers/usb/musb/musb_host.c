@@ -800,6 +800,9 @@ bool musb_tx_dma_program(struct dma_controller *dma,
 	u8			mode;
 	void __iomem *epio = hw_ep->regs;
 	u16 csr;
+	bool toggle, next_toggle;
+	u16 ready, pac_num;
+	int cnt = 50;
 
 	if (musb_dma_inventra(hw_ep->musb) || musb_dma_ux500(hw_ep->musb))
 		musb_tx_dma_set_mode_mentor(dma, hw_ep, qh, urb, offset,
@@ -821,6 +824,38 @@ bool musb_tx_dma_program(struct dma_controller *dma,
 	 */
 	wmb();
 	csr = musb_readw(epio, MUSB_TXCSR);
+
+	if (musb_dma_sprd(hw_ep->musb) &&
+		hw_ep->musb->is_multipoint) {
+		do {
+			ready = csr & (MUSB_TXCSR_TXPKTRDY |
+				MUSB_TXCSR_FIFONOTEMPTY);
+			csr = musb_readw(epio, MUSB_TXCSR);
+		} while (ready && (--cnt > 0));
+
+		toggle = usb_gettoggle(urb->dev, qh->epnum, 1);
+
+		if (length % qh->maxpacket)
+			pac_num = length / qh->maxpacket + 1;
+		else
+			pac_num = length / qh->maxpacket;
+
+		if (pac_num & 0x1)
+			next_toggle = toggle ? 0 : 1;
+		else
+			next_toggle = toggle;
+
+		usb_settoggle(urb->dev, qh->epnum, 1, next_toggle);
+
+		if (toggle)
+			csr |= MUSB_TXCSR_H_WR_DATATOGGLE |
+				MUSB_TXCSR_H_DATATOGGLE;
+		else
+			csr |= MUSB_TXCSR_CLRDATATOG;
+
+		musb_writew(epio, MUSB_TXCSR, csr);
+	}
+
 	if (!dma->channel_program(channel, pkt_size, mode,
 			urb->transfer_dma + offset, length)) {
 		void __iomem *epio = hw_ep->regs;
