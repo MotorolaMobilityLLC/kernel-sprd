@@ -183,7 +183,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.relate_ep = SIPA_EP_WIFI,
 		.src_id = SIPA_TERM_WIFI,
 		.dst_id = SIPA_TERM_AP_ETH,
-		.is_to_ipa = 0,
+		.is_to_ipa = 1,
 		.is_pam = 1,
 	},
 	{
@@ -318,7 +318,7 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 		.relate_ep = SIPA_EP_WIFI,
 		.src_id = SIPA_TERM_WIFI,
 		.dst_id = SIPA_TERM_AP_ETH,
-		.is_to_ipa = 1,
+		.is_to_ipa = 0,
 		.is_pam = 1,
 	},
 	{
