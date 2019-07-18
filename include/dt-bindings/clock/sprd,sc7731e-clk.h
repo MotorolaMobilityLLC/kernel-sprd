@@ -7,11 +7,17 @@
 #ifndef _DT_BINDINGS_CLK_SC7731E_H_
 #define _DT_BINDINGS_CLK_SC7731E_H_
 
-#define	CLK_CPLL_GATE		0
-#define	CLK_GPLL_GATE		1
-#define	CLK_MPLL_GATE		2
-#define	CLK_DPLL_GATE		3
-#define	CLK_BBPLL_GATE		4
+#define CLK_FAC_13M		0
+#define CLK_FAC_6M5		1
+#define CLK_FAC_4M3		2
+#define CLK_FAC_2M		3
+#define CLK_FAC_1M		4
+#define CLK_FAC_250K		5
+#define	CLK_CPLL_GATE		6
+#define	CLK_GPLL_GATE		7
+#define	CLK_MPLL_GATE		8
+#define	CLK_DPLL_GATE		9
+#define	CLK_BBPLL_GATE		10
 #define	CLK_PMU_APB_NUM		(CLK_BBPLL_GATE + 1)
 
 #define CLK_TWPLL		0

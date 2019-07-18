@@ -26,6 +26,12 @@
 	(CLK_GET_RATE_NOCACHE | CLK_SET_RATE_NO_REPARENT)
 
 /* 0x402b0000 pmu apb, pll gates */
+static CLK_FIXED_FACTOR(fac_13m, "fac-13m", "ext-26m", 2, 1, 0);
+static CLK_FIXED_FACTOR(fac_6m5, "fac-6m5", "ext-26m", 4, 1, 0);
+static CLK_FIXED_FACTOR(fac_4m3, "fac-4m3", "ext-26m", 6, 1, 0);
+static CLK_FIXED_FACTOR(fac_2m, "fac-2m", "ext-26m", 13, 1, 0);
+static CLK_FIXED_FACTOR(fac_1m, "fac-1m", "ext-26m", 26, 1, 0);
+static CLK_FIXED_FACTOR(fac_250k, "fac-250k", "ext-26m", 104, 1, 0);
 SPRD_PLL_SC_GATE_CLK(cpll_gate, "cpll-gate", "ext-26m", 0x88,
 		     0x1000, BIT(0), CLK_IGNORE_UNUSED, 0, 240);
 SPRD_PLL_SC_GATE_CLK(gpll_gate, "gpll-gate", "ext-26m", 0x90,
@@ -47,11 +53,17 @@ static struct sprd_clk_common *sc7731e_pmu_gate_clks[] = {
 
 static struct clk_hw_onecell_data sc7731e_pmu_gate_hws = {
 	.hws	= {
-		[CLK_CPLL_GATE]	= &cpll_gate.common.hw,
-		[CLK_GPLL_GATE]	= &gpll_gate.common.hw,
-		[CLK_MPLL_GATE]	= &mpll_gate.common.hw,
-		[CLK_DPLL_GATE]	= &dpll_gate.common.hw,
-		[CLK_BBPLL_GATE] = &bbpll_gate.common.hw,
+		[CLK_FAC_13M]		= &fac_13m.hw,
+		[CLK_FAC_6M5]		= &fac_6m5.hw,
+		[CLK_FAC_4M3]		= &fac_4m3.hw,
+		[CLK_FAC_2M]		= &fac_2m.hw,
+		[CLK_FAC_1M]		= &fac_1m.hw,
+		[CLK_FAC_250K]		= &fac_250k.hw,
+		[CLK_CPLL_GATE]		= &cpll_gate.common.hw,
+		[CLK_GPLL_GATE]		= &gpll_gate.common.hw,
+		[CLK_MPLL_GATE]		= &mpll_gate.common.hw,
+		[CLK_DPLL_GATE]		= &dpll_gate.common.hw,
+		[CLK_BBPLL_GATE]	= &bbpll_gate.common.hw,
 	},
 	.num	= CLK_PMU_APB_NUM,
 };
@@ -447,7 +459,7 @@ static const char * const adi_parents[] = { "ext-26m", "cpll-50m",
 static SPRD_MUX_CLK(adi_clk, "adi-clk", adi_parents, 0x234,
 		    0, 2, SC7731E_MUX_FLAG);
 
-static const char * const pwm_parents[] = { "clk-32k", "ext-26m-cp",
+static const char * const pwm_parents[] = { "ext-32k", "ext-26m-cp",
 					"ext-26m", "cpll-40m",
 					"twpll-48m" };
 static SPRD_MUX_CLK(pwm0_clk, "pwm0-clk", pwm_parents, 0x248,
@@ -459,7 +471,7 @@ static SPRD_MUX_CLK(pwm2_clk, "pwm2-clk", pwm_parents, 0x250,
 static SPRD_MUX_CLK(pwm3_clk, "pwm3-clk", pwm_parents, 0x254,
 		    0, 3, SC7731E_MUX_FLAG);
 
-static const char * const aon_thm_parents[] = { "ext-32k", "clk-250k" };
+static const char * const aon_thm_parents[] = { "ext-32k", "fac-250k" };
 static SPRD_MUX_CLK(aon_thm_clk, "aon-thm-clk", aon_thm_parents, 0x268,
 		    0, 1, SC7731E_MUX_FLAG);
 
@@ -504,7 +516,7 @@ static SPRD_MUX_CLK(cpu_ts_clk, "cpu-ts-clk", cpu_ts_parents, 0x294,
 static SPRD_GATE_CLK(djtag_tck_clk, "djtag-tck-clk", "aon-apb", 0x298,
 		     BIT(16), 0, 0);
 
-static const char * const emc_ref_parents[] = { "clk-6m5", "clk-13m",
+static const char * const emc_ref_parents[] = { "fac-6m5", "fac-13m",
 						"ext-26m" };
 static SPRD_MUX_CLK(emc_ref_clk, "emc-ref-clk", emc_ref_parents, 0x2a8,
 		    0, 2, SC7731E_MUX_FLAG);
@@ -519,20 +531,20 @@ static SPRD_COMP_CLK(cssys_clk,	"cssys-clk", cssys_parents, 0x2ac,
 static SPRD_DIV_CLK(cssys_ca7_clk, "cssys-ca7-clk", "cssys-clk", 0x2b0,
 		    8, 1, 0);
 
-static const char * const sdio_parents[] = { "ext-1m", "ext-26m",
+static const char * const sdio_parents[] = { "fac-1m", "ext-26m",
 					"twpll-307m2", "twpll-384m",
 					"cpll-400m", "bbpll-416m" };
 static SPRD_MUX_CLK(sdio0_2x, "sdio0-2x", sdio_parents, 0x2bc,
 		    0, 3, SC7731E_MUX_FLAG);
 
-static const char * const nandc_parents[] = { "ext-1m", "ext-26m",
+static const char * const nandc_parents[] = { "fac-1m", "ext-26m",
 					"twpll-153m6", "twpll-170m6",
 					"cpll-200m", "twpll-219m4",
 					"cpll-228m57", "cpll-266m67" };
 static SPRD_MUX_CLK(nandc_2x, "nandc-2x", nandc_parents, 0x2c4,
 		    0, 3, SC7731E_MUX_FLAG);
 
-static const char * const emmc_parents[] = { "ext-1m", "ext-26m",
+static const char * const emmc_parents[] = { "fac-1m", "ext-26m",
 					"twpll-307m2", "twpll-384m",
 					"cpll-400m", "bbpll-416m" };
 static SPRD_MUX_CLK(emmc_2x, "emmc-2x", emmc_parents, 0x2cc,
