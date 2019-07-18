@@ -202,9 +202,6 @@ int mdbg_log_read(int channel, struct mbuf_t *head,
 {
 	struct ring_rx_data *rx;
 
-	/* type=0x98:trace log, type=0x9D:DSP log */
-	WCN_INFO("%s:type=0x%x,seq=0x%x, num=%d\n", __func__,
-		 *(head->buf + 7), *((u32 *)(head->buf + 12)), num);
 	if (ring_dev) {
 		mutex_lock(&ring_dev->mdbg_read_mutex);
 		rx = kmalloc(sizeof(*rx), GFP_KERNEL);
