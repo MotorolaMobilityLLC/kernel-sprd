@@ -528,6 +528,32 @@
 				#iommu-cells = <0>;
 			};
 
+			jpg: jpeg-codec@60b00000{
+				compatible = "sprd,pike2-jpg";
+				reg = <0x60b00000 0x8000>;
+				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
+				syscons = <&mm_ahb_regs  REG_AP_AHB_AHB_RST
+					MASK_MM_AHB_JPG_SOFT_RST>,
+					<&aon_apb_regs
+					REG_AON_APB_APB_EB0
+					MASK_AON_APB_MM_EB>;
+				syscon-names = "reset",
+					"aon_apb_eb";
+				iommus = <&iommu_jpg>;
+				status = "disabled";
+			};
+
+			iommu_jpg: iommu@60b00000 {
+				compatible = "sprd,iommuexpk2-jpg";
+				reg = <0x60b00000 0x100>,
+				<0x60b00100 0x400>;
+				iova-base = <0x70000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
 			csi0: csi@60c00000 {
 				compatible = "sprd,csi-controller";
 				reg = <0x60c00000 0x1000>;

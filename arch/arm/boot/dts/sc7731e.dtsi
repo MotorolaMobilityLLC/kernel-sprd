@@ -500,6 +500,25 @@
 			<&pll CLK_TWPLL_153M6>;
 };
 
+&jpg {
+	clock-names = "jpg_domain_eb",
+				"clk_vsp_mq_ahb_eb",
+				"jpg_ckg_eb",
+				"jpg_dev_eb",
+				"clk_src_76m8",
+				"clk_src_128m",
+				"clk_src_256m",
+				"jpg_clk";
+	clocks = <&aonapb_gate CLK_MM_EB>,
+				<&mm_gate CLK_VSP_MQ_EB>,
+				<&mm_gate CLK_MM_CKG_EB>,
+				<&mm_gate CLK_JPG_EB>,
+				<&pll CLK_TWPLL_76M8>,
+				<&pll CLK_TWPLL_128M>,
+				<&pll CLK_TWPLL_256M>,
+				<&mm_clk CLK_JPG>;
+};
+
 &vsp {
 	clock-names = "clk_mm_eb",
 				"clk_vsp_mq_ahb_eb",
