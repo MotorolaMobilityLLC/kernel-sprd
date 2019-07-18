@@ -8575,21 +8575,21 @@ CONFIG_PM_DEVFREQ
 	[function] Generic Dynamic Voltage and Frequency Scaling (DVFS) support
 CONFIG_PM_GENERIC_DOMAINS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] sharkl3,sharkl3_32,sharkl5_32
 	[field] make,code
 	[subsys] device power
 	[must] user
 	[function] common driver of device power domain
 CONFIG_PM_GENERIC_DOMAINS_OF
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] sharkl3,sharkl3_32,sharkl5_32
 	[field] code
 	[subsys] device power
 	[must] user
 	[function] Device Tree based PM domain
 CONFIG_PM_GENERIC_DOMAINS_SLEEP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] sharkl3,sharkl3_32,sharkl5_32
 	[field] code
 	[subsys] power
 	[must] user
