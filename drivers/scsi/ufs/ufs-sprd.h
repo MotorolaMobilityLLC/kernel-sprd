@@ -26,6 +26,7 @@ struct ufs_sprd_host {
 	void __iomem *unipro_reg;
 	void __iomem *ufs_ao_reg;
 	void __iomem *mphy_reg;
+	void __iomem *rus;
 	struct syscon_ufs ap_apb_ufs_en;
 	struct syscon_ufs ap_apb_ufs_rst;
 	struct syscon_ufs anlg_mphy_ufs_rst;
