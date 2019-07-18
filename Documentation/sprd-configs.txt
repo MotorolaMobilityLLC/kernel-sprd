@@ -9403,7 +9403,7 @@ CONFIG_SBITMAP
 	[function]
 CONFIG_SC2342_INTEG
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
@@ -9417,7 +9417,7 @@ CONFIG_SC2355
 	[function] This function is used to support wcn sc2355 chip
 CONFIG_SC23XX
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] menu
 	[subsys] msic
 	[must] user
@@ -10826,7 +10826,7 @@ CONFIG_SPRD_SIPC_SPOOL
 	[function] This function is used to enable spool function.
 CONFIG_SPRD_SIPC_SWCNBLK
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make, code
 	[subsys] staging
 	[must] user
@@ -12369,14 +12369,14 @@ CONFIG_WCN_PCIE
 	[function] support pcie bus for wcn chip
 CONFIG_WCN_PLATFORM
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] wcn
 	[must] user
 	[function] wcn intergation 2342 chip support
 CONFIG_WCN_SIPC
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
