@@ -479,9 +479,8 @@ static const struct sprd_clk_desc sc9832e_ap_clk_desc = {
 };
 
 /* 0x402d0000 aon clocks */
-static const char * const aon_apb_parents[] = { "ext-26m",
-						"twpll-38m4",
-						"twpll-51m2" };
+static const char * const aon_apb_parents[] = { "ext-26m", "twpll-76m8",
+						"twpll-96m", "twpll-128m" };
 static SPRD_COMP_CLK(aon_apb, "aon-apb", aon_apb_parents, 0x220,
 		     0, 2, 8, 2, 0);
 
