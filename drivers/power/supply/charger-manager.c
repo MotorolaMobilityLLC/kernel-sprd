@@ -82,6 +82,8 @@ static struct alarm *cm_timer;
 static bool cm_suspended;
 static bool cm_timer_set;
 static unsigned long cm_suspend_duration_ms;
+static enum cm_event_types cm_event_type;
+static char *cm_event_msg;
 
 /* About normal (not suspended) monitoring */
 static unsigned long polling_jiffy = ULONG_MAX; /* ULONG_MAX: no polling */
@@ -90,6 +92,7 @@ static struct workqueue_struct *cm_wq; /* init at driver add */
 static struct delayed_work cm_monitor_work; /* init at driver add */
 
 static bool is_calib_mode;
+static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg);
 
 static int __init boot_calibration_mode(char *str)
 {
@@ -2947,6 +2950,9 @@ static int charger_manager_probe(struct platform_device *pdev)
 	schedule_work(&setup_polling);
 	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME * HZ);
 
+	if (cm_event_type)
+		cm_notify_type_handle(cm, cm_event_type, cm_event_msg);
+
 	return 0;
 
 err_reg_sysfs:
@@ -3119,6 +3125,37 @@ static void __exit charger_manager_cleanup(void)
 module_exit(charger_manager_cleanup);
 
 /**
+ * cm_notify_type_handle - charger driver handle charger event
+ * @cm: the Charger Manager representing the battery
+ * @type: type of charger event
+ * @msg: optional message passed to uevent_notify function
+ */
+static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg)
+{
+	switch (type) {
+	case CM_EVENT_BATT_FULL:
+		fullbatt_handler(cm);
+		break;
+	case CM_EVENT_BATT_IN:
+	case CM_EVENT_BATT_OUT:
+		battout_handler(cm);
+		break;
+	case CM_EVENT_EXT_PWR_IN_OUT ... CM_EVENT_CHG_START_STOP:
+		misc_event_handler(cm, type);
+		break;
+	case CM_EVENT_UNKNOWN:
+	case CM_EVENT_OTHERS:
+		uevent_notify(cm, msg ? msg : default_event_names[type]);
+		break;
+	default:
+		dev_err(cm->dev, "%s: type not specified\n", __func__);
+		break;
+	}
+
+	power_supply_changed(cm->charger_psy);
+}
+
+/**
  * cm_notify_event - charger driver notify Charger Manager of charger event
  * @psy: pointer to instance of charger's power_supply
  * @type: type of charger event
@@ -3145,30 +3182,13 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 	}
 	mutex_unlock(&cm_list_mtx);
 
-	if (!found_power_supply)
+	if (!found_power_supply) {
+		cm_event_msg = msg;
+		cm_event_type = type;
 		return;
-
-	switch (type) {
-	case CM_EVENT_BATT_FULL:
-		fullbatt_handler(cm);
-		break;
-	case CM_EVENT_BATT_IN:
-	case CM_EVENT_BATT_OUT:
-		battout_handler(cm);
-		break;
-	case CM_EVENT_EXT_PWR_IN_OUT ... CM_EVENT_CHG_START_STOP:
-		misc_event_handler(cm, type);
-		break;
-	case CM_EVENT_UNKNOWN:
-	case CM_EVENT_OTHERS:
-		uevent_notify(cm, msg ? msg : default_event_names[type]);
-		break;
-	default:
-		dev_err(cm->dev, "%s: type not specified\n", __func__);
-		break;
 	}
 
-	power_supply_changed(cm->charger_psy);
+	cm_notify_type_handle(cm, type, msg);
 }
 EXPORT_SYMBOL_GPL(cm_notify_event);
 
