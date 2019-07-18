@@ -543,42 +543,6 @@
 		clock-output-names = "ext-32k";
 	};
 
-	ext_1m: ext-1m {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <26>;
-		clocks = <&ext_26m>;
-		clock-output-names = "ext-1m";
-	};
-
-	ext_6m5: ext-6m5 {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <4>;
-		clocks = <&ext_26m>;
-		clock-output-names = "ext-6m5";
-	};
-
-	ext_13m: ext-13m {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <2>;
-		clocks = <&ext_26m>;
-		clock-output-names = "ext-13m";
-	};
-
-	clk_250k: clk-250k {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <104>;
-		clocks = <&ext_26m>;
-		clock-output-names = "clk-250k";
-	};
-
 	bbpll: bbpll {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
