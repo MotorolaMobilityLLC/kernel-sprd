@@ -360,6 +360,7 @@ static int pcie_cmd_proc(struct char_drv_info *dev, unsigned char *input,
 		buf = kmalloc(size, GFP_KERNEL);
 		if (!buf) {
 			WCN_ERR("kmalloc buf (%ld) err\n", size);
+			kfree(mem);
 			return -1;
 		}
 		for (i = 0; i < run; i++) {
