@@ -207,9 +207,11 @@ static int sprd_pcie_host_uninit(struct platform_device *pdev)
 
 	sprd_pcie_save_dwc_reg(pci);
 
-	ret = sprd_pcie_enter_pcipm_l2(pci);
-	if (ret < 0)
-		dev_warn(&pdev->dev, "NOTE: RC can't enter l2\n");
+	if (ctrl->is_suspended) {
+		ret = sprd_pcie_enter_pcipm_l2(pci);
+		if (ret < 0)
+			dev_warn(&pdev->dev, "NOTE: RC can't enter l2\n");
+	}
 
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-suspend-syscons");
 	if (ret < 0)
@@ -423,6 +425,7 @@ static int sprd_pcie_suspend_noirq(struct device *dev)
 	if (!ctrl->is_powered)
 		return 0;
 
+	ctrl->is_suspended = 1;
 	ret = sprd_pcie_host_uninit(pdev);
 	if (ret < 0)
 		dev_err(dev, "suspend noirq warning\n");
@@ -438,6 +441,7 @@ static int sprd_pcie_resume_noirq(struct device *dev)
 
 	if (!ctrl->is_powered)
 		return 0;
+	ctrl->is_suspended = 0;
 
 	ret = sprd_pcie_host_reinit(pdev);
 	if (ret < 0)

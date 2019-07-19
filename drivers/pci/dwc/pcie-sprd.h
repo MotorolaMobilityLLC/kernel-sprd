@@ -42,6 +42,7 @@ struct sprd_pcie {
 
 	/* keep track of pcie rc state */
 	unsigned int is_powered:1;
+	unsigned int is_suspended:1;
 
 	size_t label_len; /* pcie controller device length + 10 */
 	char wakeup_label[0];
