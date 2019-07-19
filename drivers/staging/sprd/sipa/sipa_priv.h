@@ -109,6 +109,8 @@ struct sipa_plat_drv_cfg {
 	struct cdev cdev;
 
 	bool standalone_subsys;
+	spinlock_t enable_lock;
+	u32 enable_cnt;
 	struct regmap *sys_regmap;
 	u32 enable_reg;
 	u32 enable_mask;

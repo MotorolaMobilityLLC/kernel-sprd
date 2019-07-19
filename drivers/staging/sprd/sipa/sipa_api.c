@@ -570,6 +570,36 @@ int sipa_enable_receive(enum sipa_ep_id ep_id, bool enabled)
 }
 EXPORT_SYMBOL(sipa_enable_receive);
 
+int sipa_set_enabled(bool enable)
+{
+	int ret = 0;
+	unsigned long flags;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+	struct sipa_plat_drv_cfg *cfg = &ctrl->params_cfg;
+
+	spin_lock_irqsave(&cfg->enable_lock, flags);
+	if (enable) {
+		cfg->enable_cnt++;
+	} else {
+		if (WARN_ON(cfg->enable_cnt == 0)) {
+			spin_unlock_irqrestore(&cfg->enable_lock, flags);
+			return -EINVAL;
+		}
+
+		cfg->enable_cnt--;
+	}
+
+	if (cfg->enable_cnt == 0)
+		ret = sipa_hal_set_enabled(cfg, false);
+	else if (cfg->enable_cnt == 1)
+		ret = sipa_hal_set_enabled(cfg, true);
+
+	spin_unlock_irqrestore(&cfg->enable_lock, flags);
+
+	return ret;
+}
+EXPORT_SYMBOL(sipa_set_enabled);
+
 static int sipa_parse_dts_configuration(struct platform_device *pdev,
 					struct sipa_plat_drv_cfg *cfg)
 {
@@ -641,6 +671,9 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 		of_property_read_bool(pdev->dev.of_node,
 				      "sprd,tft-mode");
 
+	/* init enable register locks */
+	spin_lock_init(&cfg->enable_lock);
+	cfg->enable_cnt = 0;
 	/* get enable register informations */
 	cfg->sys_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
 						       "enable");
@@ -1194,7 +1227,7 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		return ret;
 	}
 
-	ret = sipa_set_enabled(&ctrl->params_cfg, true);
+	ret = sipa_set_enabled(true);
 	if (ret) {
 		dev_err(dev, "sipa power wq create failed\n");
 		return ret;

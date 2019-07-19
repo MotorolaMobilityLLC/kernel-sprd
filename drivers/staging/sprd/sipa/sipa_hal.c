@@ -301,7 +301,7 @@ sipa_hal_hdl sipa_hal_init(struct device *dev,
 }
 EXPORT_SYMBOL(sipa_hal_init);
 
-int sipa_set_enabled(struct sipa_plat_drv_cfg *cfg, bool enable)
+int sipa_hal_set_enabled(struct sipa_plat_drv_cfg *cfg, bool enable)
 {
 	int ret = 0;
 	u32 val = enable ? cfg->enable_mask : (~cfg->enable_mask);
@@ -318,7 +318,7 @@ int sipa_set_enabled(struct sipa_plat_drv_cfg *cfg, bool enable)
 	}
 	return ret;
 }
-EXPORT_SYMBOL(sipa_set_enabled);
+EXPORT_SYMBOL(sipa_hal_set_enabled);
 
 int sipa_force_wakeup(struct sipa_plat_drv_cfg *cfg, bool wake)
 {
