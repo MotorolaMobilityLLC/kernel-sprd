@@ -8547,7 +8547,7 @@ CONFIG_PM
 	[function] power management system
 CONFIG_PM_AUTOSLEEP
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] power
 	[must] user
@@ -10293,7 +10293,7 @@ CONFIG_SPRD_CAM_PW_DOMAIN_R5P0
 	[function] This function is used to enable cam power domain.
 CONFIG_SPRD_CAM_PW_DOMAIN_R5P1
 	[arch] arm
-	[plat] sharkle,sharkle32
+	[plat] sharkle32
 	[field] make,code
 	[subsys] camera
 	[must] user
