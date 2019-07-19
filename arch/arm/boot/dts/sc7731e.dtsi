@@ -41,13 +41,14 @@
 			compatible = "arm,cortex-a7";
 			enable-method = "psci";
 			reg = <0x0>;
-
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 		cpu1: cpu@1 {
 			device_type = "cpu";
 			compatible = "arm,cortex-a7";
 			enable-method = "psci";
 			reg = <0x1>;
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 
 		cpu2: cpu@2 {
@@ -55,6 +56,7 @@
 			compatible = "arm,cortex-a7";
 			enable-method = "psci";
 			reg = <0x2>;
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 
 		cpu3: cpu@3 {
@@ -62,7 +64,126 @@
 			compatible = "arm,cortex-a7";
 			enable-method = "psci";
 			reg = <0x3>;
+			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
+	};
+
+	cpufreq_clus0: cpufreq-clus0 {
+		clocks = <&apahb_gate CLK_MCU>,
+			<&pll CLK_TWPLL_768M>,
+			<&pll CLK_MPLL>;
+		clock-names = "core_clk",
+				"low_freq_clk_parent",
+				"high_freq_clk_parent";
+		clock-latency = <50000>;
+		cpu-gpu-vdd = <1>;
+		sprd,syscon-aon-apb = <&aon_apb_regs>;
+		voltage-tolerance = <0>;
+		default-efuse-blk-binning = <1>;
+		sprd,efuse-blk-binning = <43 0xf00>;
+		sprd,cpufreq-temp-threshold = <50>;
+		operating-points = <
+			/* kHz  uV */
+			1300000 1021875
+			1200000 990625
+			1150000 975000
+			1100000 962500
+			1000000 931250
+			900000  900000
+			768000  900000>;
+		operating-points-0-0 = <
+			/* kHz	uV */
+			1300000 1021875
+			1200000 990625
+			1150000 975000
+			1100000 962500
+			1000000 931250
+			900000  900000
+			768000  900000>;
+		operating-points-1-0 = <
+			/* kHz  uV */
+			1300000 950000
+			1200000 925000
+			1150000 912500
+			1100000 900000
+			1000000 900000
+			900000  900000
+			768000  900000>;
+		operating-points-2-0 = <
+			/* kHz	uV */
+			1300000 990625
+			1200000 962500
+			1150000 946875
+			1100000 931250
+			1000000 900000
+			900000  900000
+			768000  900000>;
+		operating-points-3-0 = <
+			/* kHz	uV */
+			1300000 1021875
+			1200000 990625
+			1150000 975000
+			1100000 962500
+			1000000 931250
+			900000  900000
+			768000  900000>;
+		operating-points-4-0 = <
+			/* kHz	uV */
+			1300000 1050000
+			1200000 1021875
+			1150000 1006250
+			1100000 990625
+			1000000 962500
+			900000  931250
+			768000  900000>;
+		operating-points-0-0-50 = <
+			/* kHz	uV */
+			1300000 1040625
+			1200000 1006250
+			1150000 987500
+			1100000 971875
+			1000000 937500
+			900000  900000
+			768000  900000>;
+		operating-points-1-0-50 = <
+			/* kHz	uV */
+			1300000 971875
+			1200000 937500
+			1150000 918750
+			1100000 900000
+			1000000 900000
+			900000  900000
+			768000  900000>;
+		operating-points-2-0-50 = <
+			/* kHz	uV */
+			1300000 1012500
+			1200000 975000
+			1150000 956250
+			1100000 937500
+			1000000 900000
+			900000  900000
+			768000  900000>;
+		operating-points-3-0-50 = <
+			/* kHz	uV */
+			1300000 1040625
+			1200000 1006250
+			1150000 987500
+			1100000 971875
+			1000000 937500
+			900000  900000
+			768000  900000>;
+		operating-points-4-0-50 = <
+			/* kHz	uV */
+			1200000 1037500
+			1150000 1021875
+			1100000 1003125
+			1000000 968750
+			900000  934375
+			768000  900000>;
+	};
+
+	sprd_swdvfs: sprd-swdvfs {
+		compatible = "sprd,pike2-swdvfs";
 	};
 
 	psci {

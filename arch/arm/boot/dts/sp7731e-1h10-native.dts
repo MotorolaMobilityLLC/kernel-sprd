@@ -330,3 +330,19 @@
 &iommu_jpg {
 	status = "okay";
 };
+
+&cpu0 {
+	cpu-supply = <&vddcore>;
+};
+
+&cpu1 {
+	cpu-supply = <&vddcore>;
+};
+
+&cpu2 {
+	cpu-supply = <&vddcore>;
+};
+
+&cpu3 {
+	cpu-supply = <&vddcore>;
+};
