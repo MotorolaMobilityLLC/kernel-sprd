@@ -773,6 +773,58 @@ static ssize_t scl_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(scl);
 
+static ssize_t lut3d_read(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->refresh_lock);
+		return -EINVAL;
+	}
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_LUT3D, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+
+static ssize_t lut3d_write(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_set)
+		return -EIO;
+
+	/* I need to get my data in one piece */
+	if (off != 0 || count != attr->size)
+		return -EINVAL;
+
+	down(&ctx->refresh_lock);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_LUT3D, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+static BIN_ATTR_RW(lut3d, 2916);
+
 static ssize_t enable_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
@@ -865,6 +917,7 @@ static struct bin_attribute *pq_bin_attrs[] = {
 	&bin_attr_cm,
 	&bin_attr_hsv,
 	&bin_attr_epf,
+	&bin_attr_lut3d,
 	&bin_attr_enable,
 	&bin_attr_disable,
 	NULL,

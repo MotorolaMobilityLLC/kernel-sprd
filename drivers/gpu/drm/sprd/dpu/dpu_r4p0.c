@@ -242,6 +242,10 @@ struct gamma_lut {
 	u16 b[256];
 };
 
+struct threed_lut {
+	uint32_t value[729];
+};
+
 struct cm_cfg {
 	short coef00;
 	short coef01;
@@ -313,6 +317,7 @@ static struct scale_cfg scale_copy;
 static struct cm_cfg cm_copy;
 static struct slp_cfg slp_copy;
 static struct gamma_lut gamma_copy;
+static struct threed_lut lut3d_copy;
 static struct hsv_lut hsv_copy;
 static struct epf_cfg epf_copy;
 static u32 enhance_en;
@@ -1376,6 +1381,11 @@ static void dpu_enhance_backup(u32 id, void *param)
 		enhance_en |= BIT(1);
 		pr_info("enhance epf backup\n");
 		break;
+	case ENHANCE_CFG_ID_LUT3D:
+		memcpy(&lut3d_copy, param, sizeof(lut3d_copy));
+		enhance_en |= BIT(9);
+		pr_info("enhance lut3d backup\n");
+		break;
 	default:
 		break;
 	}
@@ -1388,6 +1398,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	struct cm_cfg *cm;
 	struct slp_cfg *slp;
 	struct gamma_lut *gamma;
+	struct threed_lut *lut3d;
 	struct hsv_lut *hsv;
 	struct epf_cfg *epf_slp;
 	u32 *p;
@@ -1516,6 +1527,21 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		reg->dpu_enhance_cfg |= BIT(1);
 		pr_info("enhance epf set\n");
 		break;
+	case ENHANCE_CFG_ID_LUT3D:
+		memcpy(&lut3d_copy, param, sizeof(lut3d_copy));
+		lut3d = &lut3d_copy;
+		dpu_stop(ctx);
+		for (i = 0; i < 729; i++) {
+			reg->threed_lut_addr = i;
+			ndelay(1);
+			reg->threed_lut_wdata = lut3d->value[i];
+			pr_debug("0x%x:0x%x\n", i, lut3d->value[i]);
+		}
+		reg->dpu_enhance_cfg |= BIT(9);
+		dpu_run(ctx);
+		pr_info("enhance lut3d set\n");
+		enhance_en = reg->dpu_enhance_cfg;
+		return;
 	default:
 		break;
 	}
@@ -1543,6 +1569,7 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 	struct epf_cfg *ep;
 	struct slp_cfg *slp;
 	struct gamma_lut *gamma;
+	struct threed_lut *lut3d;
 	u32 *p32;
 	int i, val;
 
@@ -1696,6 +1723,18 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		dpu_run(ctx);
 		pr_info("enhance slp lut get\n");
 		break;
+	case ENHANCE_CFG_ID_LUT3D:
+		lut3d = param;
+		dpu_stop(ctx);
+		for (i = 0; i < 729; i++) {
+			reg->threed_lut_addr = i;
+			udelay(1);
+			lut3d->value[i] = reg->threed_lut_rdata;
+			pr_debug("0x%02x: 0x%x\n", i, lut3d->value[i]);
+		}
+		dpu_run(ctx);
+		pr_info("enhance lut3d get\n");
+		break;
 	default:
 		break;
 	}
@@ -1710,6 +1749,7 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	struct gamma_lut *gamma;
 	struct hsv_lut *hsv;
 	struct epf_cfg *epf;
+	struct threed_lut *lut3d;
 	int i;
 
 	for (i = 0; i < 256; i++) {
@@ -1819,6 +1859,17 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 			((slp->limit_lclip & 0x1ff) << 14) |
 			((slp->limit_clip_step & 0x1fff) << 0);
 		pr_info("enhance ltm reload\n");
+	}
+
+	if (enhance_en & BIT(9)) {
+		lut3d = &lut3d_copy;
+		for (i = 0; i < 729; i++) {
+			reg->threed_lut_addr = i;
+			udelay(1);
+			reg->threed_lut_wdata = lut3d->value[i];
+			pr_debug("0x%02x:0x%x\n", i, lut3d->value[i]);
+		}
+		pr_info("enhance lut3d reload\n");
 	}
 
 	reg->dpu_enhance_cfg = enhance_en;
