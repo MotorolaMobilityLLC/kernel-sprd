@@ -156,11 +156,17 @@
 			};
 		};
 
-		aon_timer0: timer@40050000 {
-			compatible = "sprd,bcevt-r4p0";
+		timer@40050000 {
+			compatible = "sprd,sharkle-timer";
 			reg = <0 0x40050000 0 0x14>;
 			interrupts = <GIC_SPI 28 IRQ_TYPE_LEVEL_HIGH>;
-			clock-frequency = <32768>;
+			clocks = <&ext_32k>;
+		};
+
+		timer@40050020 {
+			compatible = "sprd,sharkle-suspend-timer";
+			reg = <0 0x40050020 0 0x14>;
+			clocks = <&ext_32k>;
 		};
 
 		eic_debounce: gpio@40210000 {
