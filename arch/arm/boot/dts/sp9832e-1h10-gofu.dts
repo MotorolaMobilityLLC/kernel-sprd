@@ -206,6 +206,14 @@
 	status = "okay";
 };
 
+&jpg {
+	status = "okay";
+};
+
+&iommu_jpg {
+	status = "okay";
+};
+
 &vsp {
 	status = "okay";
 };
