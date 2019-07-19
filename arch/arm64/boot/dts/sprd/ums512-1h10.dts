@@ -518,6 +518,11 @@
 	};
 };
 
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
 &sdio0 {
 	cd-gpios = <&eic_sync 19 GPIO_ACTIVE_HIGH>;
 };
