@@ -34,13 +34,14 @@ static void cp_dele_on_commad(void *priv, u16 flag, u32 data)
 	pr_debug("prod_id:%d\n", delegator->prod_id);
 	switch (flag) {
 	case SMSG_FLG_DELE_ENABLE:
+		sipa_set_enabled(true);
 		sipa_dele_start_done_work(delegator,
 					  SMSG_FLG_DELE_ENABLE,
 					  SMSG_VAL_DELE_REQ_SUCCESS);
 		break;
 	case SMSG_FLG_DELE_DISABLE:
 		/* do release operation */
-
+		sipa_set_enabled(false);
 		break;
 	default:
 		break;
