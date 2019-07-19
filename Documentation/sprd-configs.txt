@@ -852,6 +852,13 @@ CONFIG_ARM_SPRD_SW_CPUFREQ
 	[subsys]
 	[must]
 	[function]
+CONFIG_ARM_SPRD_SW_CPUFREQ
+	[arch] arm
+	[plat] pike2
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_ARM_THUMB
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -1699,21 +1706,21 @@ CONFIG_CPU_FREQ
 	[function] enable cpufreq
 CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
 	[function] Enable schedutil as a default governor
 CONFIG_CPU_FREQ_GOV_ATTR_SET
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
@@ -1734,7 +1741,7 @@ CONFIG_CPU_FREQ_GOV_POWERSAVE
 	[function] enable powersave as an available governor
 CONFIG_CPU_FREQ_GOV_SCHEDUTIL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
