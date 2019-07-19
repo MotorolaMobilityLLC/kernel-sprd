@@ -39,6 +39,9 @@ static const struct of_device_id sprd_swdvfs_of_match[] = {
 	{
 		.compatible = "sprd,sharkl3-swdvfs",
 	},
+	{
+		.compatible = "sprd,pike2-swdvfs",
+	},
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_swdvfs_of_match);
