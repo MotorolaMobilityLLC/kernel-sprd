@@ -53,7 +53,7 @@ static void cpuidle_thread_wakeup(struct thermal_cooling_device *cdev,
 	struct cpufreq_cooling_device *cpufreq_device = cdev->devdata;
 
 	get_online_cpus();
-	cpu = cpumask_any_and(&cpufreq_device->allowed_cpus, cpu_online_mask);
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	if (cpu >= nr_cpu_ids) {
 		put_online_cpus();
 		return;
@@ -106,7 +106,7 @@ static int cpuidle_thread_create(struct thermal_cooling_device *cdev)
 	};
 
 	get_online_cpus();
-	cpu = cpumask_any_and(&cpufreq_device->allowed_cpus, cpu_online_mask);
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	if (cpu >= nr_cpu_ids) {
 		put_online_cpus();
 		return 0;
@@ -143,7 +143,7 @@ static int cpuidle_thread_exit(struct thermal_cooling_device *cdev)
 	struct cpufreq_cooling_device *cpufreq_device = cdev->devdata;
 
 	get_online_cpus();
-	cpu = cpumask_any_and(&cpufreq_device->allowed_cpus, cpu_online_mask);
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	if (cpu >= nr_cpu_ids) {
 		put_online_cpus();
 		return 0;
@@ -985,7 +985,7 @@ static int cpufreq_get_requested_power(struct thermal_cooling_device *cdev,
 	u32 *load_cpu = NULL;
 
 	get_online_cpus();
-	cpu = cpumask_any_and(&cpufreq_device->allowed_cpus, cpu_online_mask);
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 
 	/*
 	 * All the CPUs are offline, thus the requested power by
@@ -1128,8 +1128,7 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 #endif
 
 	get_online_cpus();
-	cpu = cpumask_any_and(&cpufreq_device->allowed_cpus, cpu_online_mask);
-
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	last_load = cpufreq_device->last_load ?: 1;
 
 	/* None of our cpus are online */
