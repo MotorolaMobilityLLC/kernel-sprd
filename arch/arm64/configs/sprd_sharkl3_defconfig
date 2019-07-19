@@ -1294,7 +1294,13 @@ CONFIG_SPRD_JPG_CALL_VSP_PW_DOMAIN=y
 #
 # Spreadtrum WCN Device Drivers
 #
-# CONFIG_SC23XX is not set
+CONFIG_SC23XX=y
+# CONFIG_SC2342_INTEG is not set
+# CONFIG_SC2355 is not set
+# CONFIG_UMW2652 is not set
+# CONFIG_UMW2653 is not set
+# CONFIG_SDIOHAL is not set
+# CONFIG_WCN_PCIE is not set
 # CONFIG_WCN_BOOT is not set
 # CONFIG_WCN_UTILS is not set
 

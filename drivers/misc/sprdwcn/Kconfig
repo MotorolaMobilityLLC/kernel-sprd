@@ -38,6 +38,15 @@ config UMW2652
 	  If you want to use umw2652 chip of spreadtrum.
 	  Please say "y".
 
+config UMW2653
+	tristate "UMW2653 chip Support"
+	depends on SC23XX
+	default n
+	help
+	  This is support wcn chip for spreadtrum.
+	  If you want to use umw2653 chip of spreadtrum.
+	  Please say "y".
+
 # sprd's SDIO device driver based on SC2355...,etc
 source "drivers/misc/sprdwcn/sdio/Kconfig"
 
