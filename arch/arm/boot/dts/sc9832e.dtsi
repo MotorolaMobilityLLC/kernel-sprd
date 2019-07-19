@@ -82,6 +82,14 @@
 		clock-frequency = <26000000>;
 	};
 
+	gsp: sprd-gsp {
+		compatible = "sprd,gsp-lite_r2p0-sharkle";
+		name = "sprd-gsp";
+		core-cnt = <1>;
+		io-cnt = <7>;
+		cores = <&gsp_core0>;
+	};
+
 	soc {
 		tmc@01003000 {
 			compatible = "arm,coresight-tmc", "arm,primecell";
