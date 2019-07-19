@@ -98,6 +98,7 @@ void *mpool_malloc(int len)
 		ret = dmalloc(edma->pcie_info, &mpool_dm, MPOOL_SIZE);
 		if (ret != 0) {
 			WCN_ERR("%s dmalloc fail\n", __func__);
+			mutex_unlock(&edma->mpool_lock);
 			return NULL;
 		}
 		/* reset total length */
@@ -108,14 +109,17 @@ void *mpool_malloc(int len)
 			 mpool_dm.vir + 0x10000,
 			 mpool_dm.phy + 0x10000);
 	}
-	if (len <= 0)
+	if (len <= 0) {
+		mutex_unlock(&edma->mpool_lock);
 		return NULL;
+	}
 	p = mpool_buffer;
 	memset(p, 0x56, len);
 	mpool_buffer += len;
 	total_len += len;
 	if (total_len > MPOOL_SIZE) {
 		WCN_ERR("mpool used done!size=0x%x\n", total_len);
+		mutex_unlock(&edma->mpool_lock);
 		return NULL;
 	}
 	WCN_INFO("%s(0x%x) totle:0x%x= {0x%p, 0x%p}\n", __func__, len, total_len,
