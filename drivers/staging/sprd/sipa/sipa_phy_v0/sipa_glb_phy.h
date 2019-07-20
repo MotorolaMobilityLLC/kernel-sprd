@@ -1605,7 +1605,7 @@ static inline u32 ipa_phy_get_int_status(void __iomem *reg_base)
  */
 static inline u32 ipa_phy_ctrl_ipa_action(void __iomem *reg_base, u32 enable)
 {
-	u32 ret;
+	u32 ret, timeout = 500;
 
 	if (enable) {
 		ret = readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL);
@@ -1616,9 +1616,18 @@ static inline u32 ipa_phy_ctrl_ipa_action(void __iomem *reg_base, u32 enable)
 		ret |= (IPA_SW_RESUME_IPA_MASK);
 		writel_relaxed(ret, reg_base + IPA_MODE_N_FLOWCTRL);
 
-		ret = readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL);
-		while ((ret & IPA_HW_READY_FOR_CHECK_MASK) == 0)
+		do {
 			ret = readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL);
+			if (!(ret & IPA_HW_READY_FOR_CHECK_MASK))
+				break;
+
+			cpu_relax();
+		} while (--timeout > 0);
+
+		if (!timeout) {
+			pr_err("sipa phy resume ipa failed\n");
+			return 0;
+		}
 	} else {
 		ret = readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL);
 		ret &= (~IPA_SW_RESUME_IPA_MASK);
@@ -1628,9 +1637,18 @@ static inline u32 ipa_phy_ctrl_ipa_action(void __iomem *reg_base, u32 enable)
 		ret |= IPA_SW_PAUSE_IPA_MASK;
 		writel_relaxed(ret, reg_base + IPA_MODE_N_FLOWCTRL);
 
-		ret = readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL);
-		while (ret & IPA_HW_READY_FOR_CHECK_MASK)
+		do {
 			ret = readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL);
+			if (ret & IPA_HW_READY_FOR_CHECK_MASK)
+				break;
+
+			cpu_relax();
+		} while (--timeout > 0);
+
+		if (!timeout) {
+			pr_err("sipa phy pause ipa failed\n");
+			return 0;
+		}
 	}
 
 	return TRUE;
