@@ -943,6 +943,33 @@ int sipa_swap_hash_table(struct sipa_hash_table *new_tbl,
 }
 EXPORT_SYMBOL(sipa_swap_hash_table);
 
+int sipa_hal_ctrl_action(u32 enable)
+{
+	struct sipa_hal_context *hal_cfg = &sipa_hal_ctx;
+
+	return hal_cfg->glb_ops.ctrl_ipa_action(hal_cfg->phy_virt_res.glb_base,
+						enable);
+}
+EXPORT_SYMBOL(sipa_hal_ctrl_action);
+
+bool sipa_hal_get_resume_status(void)
+{
+	struct sipa_hal_context *hal_cfg = &sipa_hal_ctx;
+	void __iomem *base = hal_cfg->phy_virt_res.glb_base;
+
+	return hal_cfg->glb_ops.get_resume_status(base);
+}
+EXPORT_SYMBOL(sipa_hal_get_resume_status);
+
+bool sipa_hal_get_pause_status(void)
+{
+	struct sipa_hal_context *hal_cfg = &sipa_hal_ctx;
+	void __iomem *base = hal_cfg->phy_virt_res.glb_base;
+
+	return hal_cfg->glb_ops.get_pause_status(base);
+}
+EXPORT_SYMBOL(sipa_hal_get_pause_status);
+
 void sipa_test_enable_periph_int_to_sw(void)
 {
 	struct sipa_hal_context *hal_cfg = &sipa_hal_ctx;

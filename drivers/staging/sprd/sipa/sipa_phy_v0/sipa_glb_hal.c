@@ -47,6 +47,16 @@ static u32 sipa_hal_ctrl_ipa_action(void __iomem *reg_base, u32 enable)
 	return ret;
 }
 
+static bool sipa_hal_check_resume_status(void __iomem *reg_base)
+{
+	return ipa_phy_get_resume_status(reg_base);
+}
+
+static bool sipa_hal_check_pause_status(void __iomem *reg_base)
+{
+	return ipa_phy_get_pause_status(reg_base);
+}
+
 static u32 sipa_hal_get_hw_ready_to_check_sts(void __iomem *reg_base)
 {
 	u32 ret = 0;
@@ -373,6 +383,10 @@ u32 sipa_glb_ops_init(
 		sipa_hal_ctrl_cp_work;
 	ops->enable_pcie_intr_write_reg_mode	=
 		sipa_hal_enable_pcie_intr_write_reg_mode;
+	ops->get_resume_status			=
+		sipa_hal_check_resume_status;
+	ops->get_pause_status			=
+		sipa_hal_check_pause_status;
 
 	return TRUE;
 }

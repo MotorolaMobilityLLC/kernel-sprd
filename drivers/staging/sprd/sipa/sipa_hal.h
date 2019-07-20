@@ -219,4 +219,7 @@ bool sipa_hal_check_rx_priv_fifo_is_full(sipa_hal_hdl hdl,
 int sipa_hal_set_tx_fifo_rptr(sipa_hal_hdl hdl, enum sipa_cmn_fifo_index id,
 			      u32 tmp);
 
+int sipa_hal_ctrl_action(u32 enable);
+bool sipa_hal_get_pause_status(void);
+bool sipa_hal_get_resume_status(void);
 #endif /* !_SIPA_HAL_H_ */

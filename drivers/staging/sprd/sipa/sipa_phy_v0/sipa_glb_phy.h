@@ -1654,6 +1654,18 @@ static inline u32 ipa_phy_ctrl_ipa_action(void __iomem *reg_base, u32 enable)
 	return TRUE;
 }
 
+static inline bool ipa_phy_get_resume_status(void __iomem *reg_base)
+{
+	return (IPA_SW_RESUME_IPA_MASK &
+		readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL));
+}
+
+static inline bool ipa_phy_get_pause_status(void __iomem *reg_base)
+{
+	return (IPA_SW_PAUSE_IPA_MASK &
+		readl_relaxed(reg_base + IPA_MODE_N_FLOWCTRL));
+}
+
 static inline u32 ipa_phy_enable_cp_through_pcie(void __iomem *reg_base,
 						 u32 enable)
 {

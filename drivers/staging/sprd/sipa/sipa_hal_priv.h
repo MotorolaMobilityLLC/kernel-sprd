@@ -245,6 +245,8 @@ struct sipa_hal_global_ops {
 	u32 (*set_cp_dl_cur_num)(void __iomem *reg_base, u32 cur);
 	u32 (*set_cp_dl_flow_ctrl_mode)(void __iomem *reg_base, u32 mode);
 	u32 (*ctrl_cp_work)(void __iomem *reg_base, bool enable);
+	bool (*get_resume_status)(void __iomem *reg_base);
+	bool (*get_pause_status)(void __iomem *reg_base);
 	void (*enable_pcie_intr_write_reg_mode)(void __iomem *reg_base,
 						bool enable);
 };
