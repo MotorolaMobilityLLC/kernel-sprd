@@ -237,6 +237,22 @@ ipa_common_fifo_hal_set_rx_depth(enum sipa_cmn_fifo_index id,
 }
 
 static u32
+ipa_common_fifo_hal_get_rx_depth(enum sipa_cmn_fifo_index id,
+				 struct sipa_common_fifo_cfg_tag *cfg_base)
+{
+	struct sipa_common_fifo_cfg_tag *ipa_term_fifo;
+
+	if (likely(id < SIPA_FIFO_MAX)) {
+		ipa_term_fifo = cfg_base + id;
+	} else {
+		pr_err("don't have this id %d\n", id);
+		return 0;
+	}
+
+	return ipa_phy_get_rx_fifo_total_depth(ipa_term_fifo->fifo_reg_base);
+}
+
+static u32
 ipa_common_fifo_hal_set_tx_depth(enum sipa_cmn_fifo_index id,
 				 struct sipa_common_fifo_cfg_tag *cfg_base,
 				 u32 depth)
@@ -255,6 +271,22 @@ ipa_common_fifo_hal_set_tx_depth(enum sipa_cmn_fifo_index id,
 					      depth);
 
 	return ret;
+}
+
+static u32
+ipa_common_fifo_hal_get_tx_depth(enum sipa_cmn_fifo_index id,
+				 struct sipa_common_fifo_cfg_tag *cfg_base)
+{
+	struct sipa_common_fifo_cfg_tag *ipa_term_fifo;
+
+	if (likely(id < SIPA_FIFO_MAX)) {
+		ipa_term_fifo = cfg_base + id;
+	} else {
+		pr_err("don't have this id %d\n", id);
+		return 0;
+	}
+
+	return ipa_phy_get_tx_fifo_total_depth(ipa_term_fifo->fifo_reg_base);
 }
 
 static u32
@@ -1024,6 +1056,72 @@ ipa_common_fifo_hal_get_rx_empty_status(enum sipa_cmn_fifo_index id,
 	return ret;
 }
 
+static bool
+ipa_common_fifo_set_rx_fifo_wptr(enum sipa_cmn_fifo_index id,
+				 struct sipa_common_fifo_cfg_tag *cfg_base,
+				 u32 wptr)
+{
+	u32 ret;
+	u32 rx_wptr;
+	struct sipa_common_fifo_cfg_tag *ipa_term_fifo;
+
+	if (likely(id < SIPA_FIFO_MAX)) {
+		ipa_term_fifo = cfg_base + id;
+	} else {
+		pr_err("don't have this id %d\n", id);
+		return false;
+	}
+
+	rx_wptr = ipa_phy_get_rx_fifo_wptr(ipa_term_fifo->fifo_reg_base);
+
+	if (wptr != rx_wptr) {
+		wptr = wptr & PTR_MASK(ipa_term_fifo->rx_fifo.depth);
+		ipa_term_fifo->rx_fifo.wr = wptr;
+		ret = ipa_phy_update_rx_fifo_wptr(ipa_term_fifo->fifo_reg_base,
+						  wptr);
+		if (!ret) {
+			pr_err("fifo id = %d update rx fifo wptr = 0x%x failed !!!",
+			       id, wptr);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static bool
+ipa_common_fifo_set_tx_fifo_wptr(enum sipa_cmn_fifo_index id,
+				 struct sipa_common_fifo_cfg_tag *cfg_base,
+				 u32 wptr)
+{
+	u32 ret;
+	u32 tx_wptr;
+	struct sipa_common_fifo_cfg_tag *ipa_term_fifo;
+
+	if (likely(id < SIPA_FIFO_MAX)) {
+		ipa_term_fifo = cfg_base + id;
+	} else {
+		pr_err("don't have this id %d\n", id);
+		return false;
+	}
+
+	tx_wptr = ipa_phy_get_tx_fifo_wptr(ipa_term_fifo->fifo_reg_base);
+
+	if (wptr != tx_wptr) {
+		wptr = wptr & PTR_MASK(ipa_term_fifo->rx_fifo.depth);
+		ipa_term_fifo->tx_fifo.wr = wptr;
+		ret = ipa_phy_update_tx_fifo_wptr(ipa_term_fifo->fifo_reg_base,
+						  wptr);
+		if (!ret) {
+			pr_err("fifo id = %d update tx fifo wptr = 0x%x failed !!!",
+			       id, wptr);
+			return false;
+		}
+	}
+
+	return true;
+}
+
 static u32
 ipa_common_fifo_set_rx_tx_fifo_wr_rd_ptr(enum sipa_cmn_fifo_index id,
 					 struct sipa_common_fifo_cfg_tag *cfg_base,
@@ -1228,6 +1326,12 @@ u32 sipa_fifo_ops_init(struct sipa_hal_fifo_ops *ops)
 	ops->set_tx_depth =
 		ipa_common_fifo_hal_set_tx_depth;
 
+	ops->get_rx_depth =
+		ipa_common_fifo_hal_get_rx_depth;
+
+	ops->get_tx_depth =
+		ipa_common_fifo_hal_get_tx_depth;
+
 	ops->get_tx_fifo_wr_rd_ptr =
 		ipa_common_fifo_hal_get_tx_ptr;
 
@@ -1253,6 +1357,12 @@ u32 sipa_fifo_ops_init(struct sipa_hal_fifo_ops *ops)
 
 	ops->set_rx_tx_fifo_wr_rd_ptr =
 		ipa_common_fifo_set_rx_tx_fifo_wr_rd_ptr;
+
+	ops->set_tx_fifo_wptr =
+		ipa_common_fifo_set_tx_fifo_wptr;
+
+	ops->set_rx_fifo_wptr =
+		ipa_common_fifo_set_rx_fifo_wptr;
 
 	ops->set_cur_dst_term =
 		ipa_common_fifo_hal_set_src_dst_term;

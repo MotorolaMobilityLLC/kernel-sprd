@@ -105,10 +105,20 @@ struct sipa_hal_fifo_ops {
 	u32 (*set_tx_depth)(enum sipa_cmn_fifo_index id,
 			    struct sipa_common_fifo_cfg_tag *cfg_base,
 			    u32 depth);
+	u32 (*get_rx_depth)(enum sipa_cmn_fifo_index id,
+			    struct sipa_common_fifo_cfg_tag *cfg_base);
+	u32 (*get_tx_depth)(enum sipa_cmn_fifo_index id,
+			    struct sipa_common_fifo_cfg_tag *cfg_base);
 	u32 (*set_rx_tx_fifo_wr_rd_ptr)(enum sipa_cmn_fifo_index id,
 					struct sipa_common_fifo_cfg_tag *cfg_base,
 					u32 rx_rd, u32 rx_wr,
 					u32 tx_rd, u32 tx_wr);
+	bool (*set_tx_fifo_wptr)(enum sipa_cmn_fifo_index id,
+				 struct sipa_common_fifo_cfg_tag *cfg_base,
+				 u32 wptr);
+	bool (*set_rx_fifo_wptr)(enum sipa_cmn_fifo_index id,
+				 struct sipa_common_fifo_cfg_tag *cfg_base,
+				 u32 wptr);
 	int (*update_tx_fifo_rptr)(enum sipa_cmn_fifo_index id,
 				   struct sipa_common_fifo_cfg_tag *cfg_base,
 				   u32 tx_rd);
