@@ -270,7 +270,8 @@ sipa_hal_hdl sipa_hal_init(struct device *dev,
 	hal_cfg->phy_virt_res.iram_phy = cfg->iram_phy;
 	hal_cfg->phy_virt_res.iram_size = cfg->iram_size;
 	hal_cfg->phy_virt_res.iram_base =
-		devm_ioremap_nocache(dev, cfg->iram_phy, cfg->iram_size);
+		memremap((resource_size_t)cfg->iram_phy,
+			 (size_t)cfg->iram_size, MEMREMAP_WT);
 	if (!hal_cfg->phy_virt_res.iram_base) {
 		pr_err("remap iram_base fail\n");
 		return NULL;

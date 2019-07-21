@@ -119,7 +119,7 @@ struct sipa_hal_fifo_item {
 
 struct sipa_reg_res_tag {
 	void __iomem *glb_base;
-	void __iomem *iram_base;
+	void *iram_base;
 	phys_addr_t glb_phy;
 	phys_addr_t iram_phy;
 	resource_size_t glb_size;
