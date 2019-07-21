@@ -103,6 +103,60 @@ struct sk_buff *alloc_recv_skb(u32 req_len, u8 rsvd)
 	return skb;
 }
 
+static void sipa_prepare_free_node_init(struct sipa_skb_receiver *receiver,
+					u32 cnt)
+{
+	struct sk_buff *skb;
+	u32 fail_cnt = 0;
+	int i;
+	u32 success_cnt = 0;
+	struct sipa_hal_fifo_item item;
+	dma_addr_t dma_addr;
+
+	for (i = 0; i < cnt; i++) {
+		skb = alloc_recv_skb(SIPA_RECV_BUF_LEN, receiver->rsvd);
+		if (skb) {
+			skb_put(skb, SIPA_RECV_BUF_LEN);
+			dma_addr = dma_map_single(receiver->ctx->pdev,
+						  skb->head,
+						  SIPA_RECV_BUF_LEN +
+						  skb_headroom(skb),
+						  DMA_FROM_DEVICE);
+			if (dma_mapping_error(receiver->ctx->pdev,
+					      dma_addr)) {
+				dev_err(receiver->ctx->pdev,
+					"prepare free node dma map err\n");
+				fail_cnt++;
+				break;
+			}
+
+			put_recv_array_node(&receiver->recv_array,
+					    skb, dma_addr);
+
+			item.addr = dma_addr;
+			item.len = skb->len;
+			item.offset = skb_headroom(skb);
+			item.dst = receiver->ep->recv_fifo.dst_id;
+			item.src = receiver->ep->recv_fifo.src_id;
+			item.intr = 0;
+			item.netid = 0;
+			item.err_code = 0;
+			sipa_hal_cache_rx_fifo_item(receiver->ctx->hdl,
+						    receiver->ep->recv_fifo.idx,
+						    &item);
+			success_cnt++;
+		} else {
+			fail_cnt++;
+			break;
+		}
+	}
+
+	if (fail_cnt)
+		dev_err(receiver->ctx->pdev,
+			"ep->id = %d fail_cnt = %d success_cnt = %d\n",
+			receiver->ep->id, fail_cnt, success_cnt);
+}
+
 void fill_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt)
 {
 	struct sk_buff *skb;
@@ -161,6 +215,15 @@ void fill_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt)
 		dev_err(receiver->ctx->pdev,
 			"fill free fifo fail_cnt = %d\n", fail_cnt);
 }
+
+void sipa_fill_free_node(struct sipa_skb_receiver *receiver, u32 cnt)
+{
+	sipa_hal_put_rx_fifo_items(receiver->ctx->hdl,
+				   receiver->ep->recv_fifo.idx);
+	if (atomic_read(&receiver->need_fill_cnt) > 0)
+		atomic_sub(cnt, &receiver->need_fill_cnt);
+}
+EXPORT_SYMBOL(sipa_fill_free_node);
 
 void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 			     unsigned long data)
@@ -322,6 +385,46 @@ static int recv_thread(void *data)
 	return 0;
 }
 
+int sipa_receiver_prepare_suspend(struct sipa_skb_receiver *receiver)
+{
+	if (!sipa_hal_is_tx_fifo_empty(receiver->ctx->hdl,
+				       receiver->ep->recv_fifo.idx)) {
+		pr_err("sipa recv fifo %d tx fifo is not empty\n",
+		       receiver->ep->recv_fifo.idx);
+		wake_up(&receiver->recv_waitq);
+		return -EAGAIN;
+	}
+
+	if (atomic_read(&receiver->need_fill_cnt)) {
+		pr_err("sipa recv fifo %d need_fill_cnt = %d\n",
+		       receiver->ep->recv_fifo.idx,
+		       atomic_read(&receiver->need_fill_cnt));
+		wake_up(&receiver->fill_recv_waitq);
+		return -EAGAIN;
+	}
+
+	return sipa_hal_cmn_fifo_set_receive(receiver->ctx->hdl,
+					     receiver->ep->recv_fifo.idx,
+					     true);
+}
+EXPORT_SYMBOL(sipa_receiver_prepare_suspend);
+
+int sipa_receiver_prepare_resume(struct sipa_skb_receiver *receiver)
+{
+	if (unlikely(receiver->init_flag)) {
+		dev_info(receiver->ctx->pdev, "receiver %d wake up thread\n",
+			 receiver->ep->id);
+		wake_up_process(receiver->thread);
+		wake_up_process(receiver->fill_thread);
+		receiver->init_flag = false;
+	}
+
+	return sipa_hal_cmn_fifo_set_receive(receiver->ctx->hdl,
+					     receiver->ep->recv_fifo.idx,
+					     false);
+}
+EXPORT_SYMBOL(sipa_receiver_prepare_resume);
+
 void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 {
 	u32 depth;
@@ -356,10 +459,10 @@ void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 
 	/* reserve space for dma flushing cache issue */
 	receiver->rsvd = rsvd;
+	receiver->init_flag = true;
+	depth = receiver->ep->recv_fifo.rx_fifo.fifo_depth;
 
-	depth = receiver->ep->recv_fifo.tx_fifo.fifo_depth;
-
-	fill_free_fifo(receiver, depth);
+	sipa_prepare_free_node_init(receiver, depth);
 }
 
 void sipa_receiver_add_nic(struct sipa_skb_receiver *receiver,
@@ -458,9 +561,6 @@ int create_sipa_skb_receiver(struct sipa_context *ipa,
 		kfree(receiver);
 		return ret;
 	}
-
-	wake_up_process(receiver->thread);
-	wake_up_process(receiver->fill_thread);
 
 	*receiver_pp = receiver;
 	return 0;

@@ -86,6 +86,13 @@ static void sipa_free_sent_items(struct sipa_skb_sender *sender)
 				"have node transfer err = %d\n", item.err_code);
 
 		spin_lock_irqsave(&sender->send_lock, flags);
+		if (list_empty(&sender->sending_list)) {
+			pr_err("fifo id %d: send list is empty\n",
+			       sender->ep->send_fifo.idx);
+			spin_unlock_irqrestore(&sender->send_lock, flags);
+			return;
+		}
+
 		list_for_each_entry_safe(iter, _iter,
 					 &sender->sending_list, list) {
 			if (iter->dma_addr == item.addr) {
@@ -139,6 +146,9 @@ static int sipa_send_thread(void *data)
 		if (!ret)
 			sipa_hal_put_rx_fifo_items(sender->ctx->hdl,
 						   sender->ep->send_fifo.idx);
+
+		if (sender->free_notify_net)
+			wake_up(&sender->free_waitq);
 	}
 
 	return 0;
@@ -184,10 +194,50 @@ static int sipa_skb_sender_init(struct sipa_skb_sender *sender)
 			      NULL,
 			      true,
 			      sipa_sender_notify_cb, sender);
+	sender->init_flag = true;
 
 	return 0;
 }
 
+int sipa_sender_prepare_suspend(struct sipa_skb_sender *sender)
+{
+	if (!list_empty(&sender->sending_list)) {
+		pr_err("pkt_type = %d sending list have unsend node\n",
+		       sender->type);
+		wake_up(&sender->free_waitq);
+		return -EAGAIN;
+	}
+
+	if (!sipa_hal_check_rx_priv_fifo_is_empty(sender->ctx->hdl,
+						  sender->ep->send_fifo.idx)) {
+		pr_err("pkt_type = %d rx priv fifo is not empty\n",
+		       sender->type);
+		wake_up(&sender->send_waitq);
+		return -EAGAIN;
+	}
+
+	if (!sipa_hal_check_send_cmn_fifo_com(sender->ctx->hdl,
+					      sender->ep->send_fifo.idx)) {
+		pr_err("pkt_type = %d sender have something to handle\n",
+		       sender->type);
+		return -EAGAIN;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_sender_prepare_suspend);
+
+int sipa_sender_prepare_resume(struct sipa_skb_sender *sender)
+{
+	if (unlikely(sender->init_flag)) {
+		wake_up_process(sender->send_thread);
+		wake_up_process(sender->free_thread);
+		sender->init_flag = false;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_sender_prepare_resume);
 
 int create_sipa_skb_sender(struct sipa_context *ipa,
 			   struct sipa_endpoint *ep,
@@ -255,9 +305,6 @@ int create_sipa_skb_sender(struct sipa_context *ipa,
 		kfree(sender);
 		return ret;
 	}
-
-	wake_up_process(sender->send_thread);
-	wake_up_process(sender->free_thread);
 
 	*sender_pp = sender;
 	return 0;
@@ -343,6 +390,7 @@ EXPORT_SYMBOL(sipa_skb_sender_send_data);
 
 bool sipa_skb_sender_check_send_complete(struct sipa_skb_sender *sender)
 {
-	return true;
+	return sipa_hal_check_send_cmn_fifo_com(sender->ctx->hdl,
+						sender->ep->send_fifo.idx);
 }
 EXPORT_SYMBOL(sipa_skb_sender_check_send_complete);

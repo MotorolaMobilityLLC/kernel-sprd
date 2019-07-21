@@ -276,6 +276,15 @@ struct sipa_rule_ops {
 			 u32 *timel);
 };
 
+struct sipa_open_fifo_param {
+	bool open_flag;
+	struct sipa_comm_fifo_params *attr;
+	struct sipa_ext_fifo_params *ext_attr;
+	bool force_sw_intr;
+	sipa_hal_notify_cb cb;
+	void *priv;
+};
+
 struct sipa_hal_context {
 	const char *name;
 	struct device *dev;
@@ -300,6 +309,7 @@ struct sipa_hal_context {
 	struct sipa_hal_fifo_ops fifo_ops;
 	struct sipa_hal_global_ops glb_ops;
 	struct sipa_reg_res_tag phy_virt_res;
+	struct sipa_open_fifo_param fifo_param[SIPA_FIFO_MAX];
 	struct sipa_common_fifo_cfg_tag cmn_fifo_cfg[SIPA_FIFO_MAX];
 };
 

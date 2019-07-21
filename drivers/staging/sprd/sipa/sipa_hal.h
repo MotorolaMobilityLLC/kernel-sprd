@@ -210,6 +210,8 @@ int sipa_close_common_fifo(sipa_hal_hdl hdl,
 int sipa_hal_reclaim_unuse_node(sipa_hal_hdl hdl,
 				enum sipa_cmn_fifo_index fifo_id);
 
+int sipa_resume_common_fifo(sipa_hal_hdl hdl, struct sipa_plat_drv_cfg *cfg);
+
 bool sipa_hal_check_rx_priv_fifo_is_empty(sipa_hal_hdl hdl,
 					  enum sipa_cmn_fifo_index fifo_id);
 
@@ -218,6 +220,20 @@ bool sipa_hal_check_rx_priv_fifo_is_full(sipa_hal_hdl hdl,
 
 int sipa_hal_set_tx_fifo_rptr(sipa_hal_hdl hdl, enum sipa_cmn_fifo_index id,
 			      u32 tmp);
+
+bool sipa_hal_bk_fifo_node(sipa_hal_hdl hdl,
+			   enum sipa_cmn_fifo_index fifo_id);
+
+bool sipa_hal_resume_fifo_node(sipa_hal_hdl hdl,
+			       enum sipa_cmn_fifo_index fifo_id);
+
+bool sipa_hal_cmn_fifo_open_status(sipa_hal_hdl hdl,
+				   enum sipa_cmn_fifo_index fifo_id);
+
+void sipa_resume_glb_reg_cfg(struct sipa_plat_drv_cfg *cfg);
+
+bool sipa_hal_check_send_cmn_fifo_com(sipa_hal_hdl hdl,
+				      enum sipa_cmn_fifo_index fifo_id);
 
 int sipa_hal_ctrl_action(u32 enable);
 bool sipa_hal_get_pause_status(void);

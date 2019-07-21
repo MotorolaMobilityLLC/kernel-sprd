@@ -33,6 +33,22 @@ enum sipa_nic_status_e {
 	NIC_CLOSE,
 };
 
+enum sipa_suspend_stage_e {
+	SIPA_THREAD_SUSPEND = BIT(0),
+	SIPA_EP_SUSPEND = BIT(1),
+	SIPA_BACKUP_SUSPEND = BIT(2),
+	SIPA_EB_SUSPEND = BIT(3),
+	SIPA_FORCE_SUSPEND = BIT(4),
+	SIPA_ACTION_SUSPEND = BIT(5),
+};
+
+#define SIPA_SUSPEND_MASK (SIPA_THREAD_SUSPEND | \
+			   SIPA_EP_SUSPEND | \
+			   SIPA_BACKUP_SUSPEND | \
+			   SIPA_EB_SUSPEND | \
+			   SIPA_FORCE_SUSPEND | \
+			   SIPA_ACTION_SUSPEND)
+
 enum flow_ctrl_mode_e {
 	flow_ctrl_rx_empty,
 	flow_ctrl_tx_full,
@@ -139,6 +155,9 @@ struct sipa_plat_drv_cfg {
 	resource_size_t glb_size;
 	phys_addr_t iram_phy;
 	resource_size_t iram_size;
+
+	u32 suspend_cnt;
+	u32 resume_cnt;
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs_root;
 	const void *debugfs_data;
@@ -212,6 +231,7 @@ struct sipa_skb_sender {
 	struct task_struct *free_thread;
 	struct task_struct *send_thread;
 
+	bool init_flag;
 	u32 no_mem_cnt;
 	u32 no_free_cnt;
 	u32 enter_flow_ctrl_cnt;
@@ -252,6 +272,7 @@ struct sipa_nic_cons_res {
 	bool reschedule_work;
 	bool release_in_progress;
 	bool need_request;
+	bool request_in_progress;
 	unsigned long jiffies;
 };
 
@@ -285,6 +306,7 @@ struct sipa_skb_receiver {
 	struct task_struct *fill_thread;
 	struct task_struct *thread;
 
+	bool init_flag;
 	u32 tx_danger_cnt;
 	u32 rx_danger_cnt;
 };
@@ -296,8 +318,15 @@ struct sipa_control {
 
 	struct sipa_plat_drv_cfg params_cfg;
 
-	/* IPA NIC interface */
 	struct work_struct flow_ctrl_work;
+
+	/* ipa low power*/
+	bool power_flag;
+	struct delayed_work suspend_work;
+	struct delayed_work resume_work;
+	struct workqueue_struct *power_wq;
+
+	/* IPA NIC interface */
 	struct sipa_nic *nic[SIPA_NIC_MAX];
 
 	/* sender & receiver */
@@ -306,6 +335,9 @@ struct sipa_control {
 
 	/* usb rm */
 	struct completion usb_rm_comp;
+	struct sipa_rm_create_params ipa_rm;
+
+	u32 suspend_stage;
 };
 
 int create_sipa_skb_sender(struct sipa_context *ipa,
@@ -314,6 +346,8 @@ int create_sipa_skb_sender(struct sipa_context *ipa,
 			   struct sipa_skb_sender **sender_pp);
 
 void destroy_sipa_skb_sender(struct sipa_skb_sender *sender);
+
+u32 sipa_get_suspend_status(void);
 
 struct sipa_control *sipa_get_ctrl_pointer(void);
 
@@ -347,4 +381,12 @@ void sipa_nic_push_skb(struct sipa_nic *nic, struct sk_buff *skb);
 
 int sipa_nic_rx_has_data(enum sipa_nic_id nic_id);
 
+int sipa_sender_prepare_suspend(struct sipa_skb_sender *sender);
+int sipa_sender_prepare_resume(struct sipa_skb_sender *sender);
+
+int sipa_receiver_prepare_suspend(struct sipa_skb_receiver *receiver);
+
+int sipa_receiver_prepare_resume(struct sipa_skb_receiver *receiver);
+
+void sipa_fill_free_node(struct sipa_skb_receiver *receiver, u32 cnt);
 #endif /* _SIPA_PRIV_H_ */

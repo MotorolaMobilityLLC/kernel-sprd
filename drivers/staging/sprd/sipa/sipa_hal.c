@@ -12,6 +12,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/regulator/consumer.h>
 #include <linux/delay.h>
+#include <linux/slab.h>
 
 #ifdef CONFIG_SIPA_TEST
 #include <linux/kthread.h>
@@ -237,6 +238,56 @@ static void siap_init_hal_cfg(struct sipa_plat_drv_cfg *cfg)
 	}
 }
 
+static void sipa_backup_open_fifo_params(sipa_hal_hdl hdl,
+					 enum sipa_cmn_fifo_index id,
+					 struct sipa_comm_fifo_params *attr,
+					 struct sipa_ext_fifo_params *ext_attr,
+					 bool force_sw_intr,
+					 sipa_hal_notify_cb cb,
+					 void *priv)
+{
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_open_fifo_param *fifo_param = &hal_cfg->fifo_param[id];
+
+	if (attr) {
+		if (!fifo_param->attr) {
+			fifo_param->attr = kzalloc(sizeof(*attr), GFP_KERNEL);
+			if (!fifo_param->attr)
+				return;
+		}
+		memcpy(fifo_param->attr, attr, sizeof(*attr));
+	}
+
+	if (ext_attr) {
+		if (!fifo_param->ext_attr) {
+			fifo_param->ext_attr = kzalloc(sizeof(*ext_attr),
+						       GFP_KERNEL);
+			if (!fifo_param->ext_attr)
+				return;
+		}
+		memcpy(fifo_param->ext_attr, ext_attr, sizeof(*ext_attr));
+	}
+
+	fifo_param->force_sw_intr = force_sw_intr;
+	fifo_param->cb = cb;
+	fifo_param->priv = priv;
+	fifo_param->open_flag = true;
+}
+
+static void sipa_remove_fifo_params(sipa_hal_hdl hdl,
+				    enum sipa_cmn_fifo_index id)
+{
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_open_fifo_param *fifo_param = &hal_cfg->fifo_param[id];
+
+	kfree(fifo_param->attr);
+	kfree(fifo_param->ext_attr);
+	fifo_param->attr = NULL;
+	fifo_param->ext_attr = NULL;
+
+	fifo_param->open_flag = false;
+}
+
 sipa_hal_hdl sipa_hal_init(struct device *dev,
 			   struct sipa_plat_drv_cfg *cfg)
 {
@@ -281,22 +332,6 @@ sipa_hal_hdl sipa_hal_init(struct device *dev,
 
 	sipa_init_fifo_reg_base(hal_cfg);
 
-	hal_cfg->glb_ops.enable_wiap_ul_dma(hal_cfg->phy_virt_res.glb_base,
-					    (u32)cfg->wiap_ul_dma);
-
-	hal_cfg->glb_ops.enable_cp_through_pcie(hal_cfg->phy_virt_res.glb_base,
-						(u32)cfg->need_through_pcie);
-
-	hal_cfg->glb_ops.enable_def_flowctrl_to_src_blk(
-		hal_cfg->phy_virt_res.glb_base);
-
-	hal_cfg->glb_ops.set_mode(hal_cfg->phy_virt_res.glb_base,
-				  cfg->is_bypass);
-
-	if (cfg->is_bypass) {
-		hal_cfg->glb_ops.enable_pcie_intr_write_reg_mode(
-			hal_cfg->phy_virt_res.glb_base, 1);
-	}
 	return ((sipa_hal_hdl)hal_cfg);
 }
 EXPORT_SYMBOL(sipa_hal_init);
@@ -353,6 +388,7 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 	struct sipa_hal_context *hal_cfg;
 	struct sipa_common_fifo_cfg_tag *fifo_cfg;
 	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+	ssize_t node_size = sizeof(struct sipa_node_description_tag);
 
 	if (unlikely(!hdl)) {
 		dev_err(ctrl->ctx->pdev, "hdl is null\n");
@@ -369,6 +405,29 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 		 fifo_cfg[fifo].is_pam,
 		 fifo_cfg[fifo].is_recv);
 
+	sipa_backup_open_fifo_params(hdl, fifo, attr, ext_attr, force_sw_intr,
+				     cb, priv);
+
+	if (!fifo_cfg[fifo].is_pam || (fifo_cfg[fifo].tx_fifo.in_iram &&
+				       fifo_cfg[fifo].rx_fifo.in_iram)) {
+		if (!kfifo_initialized(&fifo_cfg[fifo].tx_priv_fifo) &&
+		    !kfifo_initialized(&fifo_cfg[fifo].rx_priv_fifo)) {
+			ret = kfifo_alloc(&fifo_cfg[fifo].tx_priv_fifo,
+					  fifo_cfg[fifo].tx_fifo.depth *
+					  node_size, GFP_KERNEL);
+			if (ret)
+				return -ENOMEM;
+
+			ret = kfifo_alloc(&fifo_cfg[fifo].rx_priv_fifo,
+					  fifo_cfg[fifo].rx_fifo.depth *
+					  node_size, GFP_KERNEL);
+			if (ret) {
+				kfifo_free(&fifo_cfg[fifo].tx_priv_fifo);
+				return -ENOMEM;
+			}
+		}
+	}
+
 	if (ext_attr) {
 		fifo_cfg[fifo].rx_fifo.depth = ext_attr->rx_depth;
 		fifo_cfg[fifo].rx_fifo.fifo_base_addr_l = ext_attr->rx_fifo_pal;
@@ -380,6 +439,9 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 		fifo_cfg[fifo].tx_fifo.fifo_base_addr_h = ext_attr->tx_fifo_pah;
 		fifo_cfg[fifo].tx_fifo.virtual_addr = ext_attr->tx_fifo_va;
 	}
+
+	if (ctrl->suspend_stage & SIPA_EB_SUSPEND)
+		return 0;
 
 	hal_cfg->fifo_ops.open(fifo, fifo_cfg, NULL);
 	if (!force_sw_intr && fifo_cfg[fifo].is_pam) {
@@ -398,22 +460,6 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 		if (attr->tx_intr_delay_us)
 			hal_cfg->fifo_ops.set_interrupt_timeout(fifo, fifo_cfg,
 					1, attr->tx_intr_delay_us, NULL);
-	}
-	if (!fifo_cfg[fifo].is_pam) {
-		ret = kfifo_alloc(&fifo_cfg[fifo].tx_priv_fifo,
-				  fifo_cfg[fifo].tx_fifo.depth *
-				  sizeof(struct sipa_node_description_tag),
-				  GFP_KERNEL);
-		if (ret)
-			return -ENOMEM;
-		ret = kfifo_alloc(&fifo_cfg[fifo].rx_priv_fifo,
-				  fifo_cfg[fifo].rx_fifo.depth *
-				  sizeof(struct sipa_node_description_tag),
-				  GFP_KERNEL);
-		if (ret) {
-			kfifo_free(&fifo_cfg[fifo].tx_priv_fifo);
-			return -ENOMEM;
-		}
 	}
 
 	if (fifo_cfg[fifo].is_recv)
@@ -454,10 +500,91 @@ int sipa_close_common_fifo(sipa_hal_hdl hdl,
 	fifo_cfg = hal_cfg->cmn_fifo_cfg;
 
 	hal_cfg->fifo_ops.close(fifo, fifo_cfg);
+	sipa_remove_fifo_params(hdl, fifo);
 
 	return 0;
 }
 EXPORT_SYMBOL(sipa_close_common_fifo);
+
+static int sipa_resume_cmn_fifo_ptr(sipa_hal_hdl hdl,
+				    enum sipa_cmn_fifo_index id,
+				    struct sipa_plat_drv_cfg *cfg)
+{
+	u32 depth;
+	struct sipa_hal_context *hal_cfg = hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = hal_cfg->cmn_fifo_cfg;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+
+	switch (id) {
+	case SIPA_FIFO_CP_UL:
+		if (!cfg->wiap_ul_dma)
+			return 0;
+		depth = fifo_cfg[id].rx_fifo.depth;
+		hal_cfg->fifo_ops.set_rx_fifo_wptr(id, fifo_cfg, depth);
+		break;
+	case SIPA_FIFO_CP_DL:
+		depth = fifo_cfg[id].tx_fifo.depth;
+		hal_cfg->fifo_ops.set_tx_fifo_wptr(id, fifo_cfg, depth);
+		break;
+	case SIPA_FIFO_AP_IP_DL:
+		depth = fifo_cfg[id].rx_fifo.depth;
+		if (sipa_hal_check_rx_priv_fifo_is_full(&sipa_hal_ctx, id))
+			sipa_fill_free_node(ctrl->receiver[SIPA_PKT_IP],
+					    depth);
+		hal_cfg->fifo_ops.set_rx_fifo_wptr(id, fifo_cfg, depth);
+		break;
+	case SIPA_FIFO_AP_ETH_UL:
+		depth = fifo_cfg[id].rx_fifo.depth;
+		if (sipa_hal_check_rx_priv_fifo_is_full(&sipa_hal_ctx, id))
+			sipa_fill_free_node(ctrl->receiver[SIPA_PKT_ETH],
+					    depth);
+		hal_cfg->fifo_ops.set_rx_fifo_wptr(id, fifo_cfg, depth);
+		break;
+	default:
+		dev_info(ctrl->ctx->pdev,
+			 "this fifo %d do not need to update ptr", id);
+		break;
+	}
+
+	return 0;
+}
+
+int sipa_resume_common_fifo(sipa_hal_hdl hdl, struct sipa_plat_drv_cfg *cfg)
+{
+	int i;
+	struct sipa_open_fifo_param *iter;
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+
+	for (i = 0; i < SIPA_FIFO_MAX; i++) {
+		iter = &hal_cfg->fifo_param[i];
+
+		if (!iter->open_flag)
+			continue;
+
+		if (hal_cfg->fifo_ops.get_tx_depth(i, hal_cfg->cmn_fifo_cfg))
+			continue;
+
+		hal_cfg->cmn_fifo_cfg[i].state = false;
+		sipa_open_common_fifo(hdl, i, iter->attr,
+				      iter->ext_attr, iter->force_sw_intr,
+				      iter->cb, iter->priv);
+		sipa_resume_cmn_fifo_ptr(hdl, i, cfg);
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_resume_common_fifo);
+
+bool sipa_hal_cmn_fifo_open_status(sipa_hal_hdl hdl,
+				   enum sipa_cmn_fifo_index fifo)
+{
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg =
+		&hal_cfg->cmn_fifo_cfg[fifo];
+
+	return fifo_cfg->state;
+}
+EXPORT_SYMBOL(sipa_hal_cmn_fifo_open_status);
 
 int sipa_tft_mode_init(sipa_hal_hdl hdl)
 {
@@ -710,10 +837,25 @@ int sipa_hal_enable_wiap_dma(sipa_hal_hdl hdl, bool dma)
 }
 EXPORT_SYMBOL(sipa_hal_enable_wiap_dma);
 
+/**
+ * sipa_hal_reclaim_unuse_node() - reclaim that unfree description.
+ * @hdl: &sipa_hal_ctx.
+ * @fifo_id: the cmn fifo that need to reclaim.
+ *
+ * Some node descriptions that sent out may not be free normally,
+ * so wo need use soft method to reclaim these node description.
+ *
+ * Return:
+ *	0: reclaim success.
+ *	negative value: reclaim fail.
+ */
 int sipa_hal_reclaim_unuse_node(sipa_hal_hdl hdl,
 				enum sipa_cmn_fifo_index fifo_id)
 {
-	return sipa_hal_cmn_fifo_set_receive(hdl, fifo_id, true);
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = hal_cfg->cmn_fifo_cfg;
+
+	return hal_cfg->fifo_ops.reclaim_node_desc(fifo_id, fifo_cfg);
 }
 EXPORT_SYMBOL(sipa_hal_reclaim_unuse_node);
 
@@ -859,6 +1001,73 @@ bool sipa_hal_is_rx_fifo_full(sipa_hal_hdl hdl,
 }
 EXPORT_SYMBOL(sipa_hal_is_rx_fifo_full);
 
+bool sipa_hal_bk_fifo_node(sipa_hal_hdl hdl,
+			   enum sipa_cmn_fifo_index fifo_id)
+{
+	u32 ret;
+	ssize_t node_size = sizeof(struct sipa_node_description_tag);
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg =
+		&hal_cfg->cmn_fifo_cfg[fifo_id];
+
+	if (!fifo_cfg->state || !kfifo_initialized(&fifo_cfg->rx_priv_fifo) ||
+	    !kfifo_initialized(&fifo_cfg->tx_priv_fifo) || !fifo_cfg->is_pam)
+		return false;
+
+	kfifo_reset(&fifo_cfg->tx_priv_fifo);
+	kfifo_reset(&fifo_cfg->rx_priv_fifo);
+	ret = kfifo_in(&fifo_cfg->rx_priv_fifo,
+		       fifo_cfg->rx_fifo.virtual_addr,
+		       fifo_cfg->rx_fifo.depth * node_size);
+	if (ret != fifo_cfg->rx_fifo.depth * node_size)
+		pr_err("backup %d rx fifo failed ret = %d\n", fifo_id, ret);
+
+	ret = kfifo_in(&fifo_cfg->tx_priv_fifo,
+		       fifo_cfg->tx_fifo.virtual_addr,
+		       fifo_cfg->tx_fifo.depth * node_size);
+	if (ret != fifo_cfg->tx_fifo.depth * node_size)
+		pr_err("backup %d tx fifo failed ret = %d\n", fifo_id, ret);
+
+	return true;
+}
+EXPORT_SYMBOL(sipa_hal_bk_fifo_node);
+
+bool sipa_hal_resume_fifo_node(sipa_hal_hdl hdl,
+			       enum sipa_cmn_fifo_index fifo_id)
+{
+	u32 ret;
+	ssize_t node_size = sizeof(struct sipa_node_description_tag);
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg =
+		&hal_cfg->cmn_fifo_cfg[fifo_id];
+
+	if (!kfifo_initialized(&fifo_cfg->rx_priv_fifo) ||
+	    !kfifo_initialized(&fifo_cfg->tx_priv_fifo) || !fifo_cfg->is_pam)
+		return false;
+
+	if (!kfifo_is_full(&fifo_cfg->rx_priv_fifo) ||
+	    !kfifo_is_full(&fifo_cfg->tx_priv_fifo))
+		return false;
+
+	if (!hal_cfg->fifo_ops.get_tx_depth(fifo_id, hal_cfg->cmn_fifo_cfg))
+		return false;
+
+	ret = kfifo_out(&fifo_cfg->rx_priv_fifo,
+			fifo_cfg->rx_fifo.virtual_addr,
+			fifo_cfg->rx_fifo.depth * node_size);
+	if (ret != fifo_cfg->rx_fifo.depth * node_size)
+		pr_err("resume %d rx fifo node failed\n", fifo_id);
+
+	ret = kfifo_out(&fifo_cfg->tx_priv_fifo,
+			fifo_cfg->tx_fifo.virtual_addr,
+			fifo_cfg->tx_fifo.depth * node_size);
+	if (ret != fifo_cfg->tx_fifo.depth * node_size)
+		pr_err("resume %d tx fifo node failed\n", fifo_id);
+
+	return true;
+}
+EXPORT_SYMBOL(sipa_hal_resume_fifo_node);
+
 bool sipa_hal_is_tx_fifo_empty(sipa_hal_hdl hdl,
 			       enum sipa_cmn_fifo_index fifo_id)
 {
@@ -874,6 +1083,51 @@ bool sipa_hal_is_tx_fifo_empty(sipa_hal_hdl hdl,
 	return ret;
 }
 EXPORT_SYMBOL(sipa_hal_is_tx_fifo_empty);
+
+/**
+ * sipa_hal_check_send_cmn_fifo_com() - Check cmn fifo send and free whether
+ * completion
+ * @hdl: &sipa_hal_ctx
+ * @fifo_id: The cmn fifo id that need to be check.
+ *
+ * If fifo is not CP_DL, its tx/rx fifo's wptr/rptr should be equal,
+ * if fifo is CP_DL, its wptr of tx fifo should be greated than rx fifo
+ * wptr and rptr total depth.
+ *
+ * Return:
+ *	true: send and free complete.
+ *	false: send or free not complete.
+ */
+bool sipa_hal_check_send_cmn_fifo_com(sipa_hal_hdl hdl,
+				      enum sipa_cmn_fifo_index fifo_id)
+{
+	bool status;
+	u32 ret, tx_rptr, tx_wptr, rx_rptr, rx_wptr, depth;
+	struct sipa_hal_context *hal_cfg = (struct sipa_hal_context *)hdl;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg = hal_cfg->cmn_fifo_cfg;
+
+	depth = (fifo_cfg + fifo_id)->tx_fifo.depth;
+	ret = hal_cfg->fifo_ops.get_tx_empty_status(fifo_id, fifo_cfg);
+	hal_cfg->fifo_ops.get_tx_fifo_wr_rd_ptr(fifo_id, fifo_cfg,
+						&tx_wptr, &tx_rptr);
+	hal_cfg->fifo_ops.get_rx_fifo_wr_rd_ptr(fifo_id, fifo_cfg,
+						&rx_wptr, &rx_rptr);
+	if (fifo_id != SIPA_FIFO_CP_DL) {
+		status = (tx_wptr == tx_rptr) && (tx_rptr == rx_wptr) &&
+			(rx_wptr == rx_rptr);
+	} else {
+		status = (rx_wptr == rx_rptr) &&
+			(((depth | (depth - 1)) &
+			(rx_wptr + depth)) == tx_wptr);
+		ret = true;
+	}
+
+	if (status && ret)
+		return true;
+
+	return false;
+}
+EXPORT_SYMBOL(sipa_hal_check_send_cmn_fifo_com);
 
 int sipa_hal_free_tx_rx_fifo_buf(sipa_hal_hdl hdl,
 				 enum sipa_cmn_fifo_index fifo_id,
@@ -991,3 +1245,21 @@ void sipa_test_enable_periph_int_to_sw(void)
 }
 EXPORT_SYMBOL(sipa_test_enable_periph_int_to_sw);
 
+void sipa_resume_glb_reg_cfg(struct sipa_plat_drv_cfg *cfg)
+{
+	struct sipa_hal_context *hal_cfg = &sipa_hal_ctx;
+	void __iomem *glb_base = hal_cfg->phy_virt_res.glb_base;
+
+	hal_cfg->glb_ops.enable_wiap_ul_dma(glb_base, (u32)cfg->wiap_ul_dma);
+
+	hal_cfg->glb_ops.enable_cp_through_pcie(glb_base,
+						(u32)cfg->need_through_pcie);
+
+	hal_cfg->glb_ops.enable_def_flowctrl_to_src_blk(glb_base);
+
+	hal_cfg->glb_ops.set_mode(glb_base, cfg->is_bypass);
+
+	if (cfg->is_bypass)
+		hal_cfg->glb_ops.enable_pcie_intr_write_reg_mode(glb_base, 1);
+}
+EXPORT_SYMBOL(sipa_resume_glb_reg_cfg);
