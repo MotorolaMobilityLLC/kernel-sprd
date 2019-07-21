@@ -332,9 +332,6 @@ struct sipa_common_fifo_info sipa_common_fifo_statics[SIPA_FIFO_MAX] = {
 	},
 };
 
-struct sipa_control s_sipa_ctrl;
-struct sipa_plat_drv_cfg s_sipa_cfg;
-
 static const struct file_operations sipa_local_drv_fops = {
 	.owner = THIS_MODULE,
 	.open = NULL,
@@ -346,10 +343,13 @@ static const struct file_operations sipa_local_drv_fops = {
 #endif
 };
 
+struct sipa_control *s_sipa_ctrl;
+
 int sipa_get_ep_info(enum sipa_ep_id id,
 		     struct sipa_to_pam_info *out)
 {
-	struct sipa_endpoint *ep = s_sipa_ctrl.eps[id];
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+	struct sipa_endpoint *ep = ctrl->eps[id];
 
 	if (!ep) {
 		pr_err("%s: ep id:%d not create!", __func__, id);
@@ -370,7 +370,8 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 {
 	u32 i;
 	struct sipa_hal_fifo_item fifo_item;
-	struct sipa_endpoint *ep = s_sipa_ctrl.eps[in->id];
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+	struct sipa_endpoint *ep = ctrl->eps[in->id];
 
 	if (!ep) {
 		pr_err("sipa_pam_connect: ep id:%d not create!", in->id);
@@ -427,7 +428,8 @@ EXPORT_SYMBOL(sipa_pam_connect);
 
 int sipa_ext_open_pcie(struct sipa_pcie_open_params *in)
 {
-	struct sipa_endpoint *ep = s_sipa_ctrl.eps[SIPA_EP_PCIE];
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+	struct sipa_endpoint *ep = ctrl->eps[SIPA_EP_PCIE];
 
 	if (ep) {
 		pr_err("%s: pcie already create!", __func__);
@@ -437,12 +439,12 @@ int sipa_ext_open_pcie(struct sipa_pcie_open_params *in)
 		if (!ep)
 			return -ENOMEM;
 
-		s_sipa_ctrl.eps[SIPA_EP_PCIE] = ep;
+		ctrl->eps[SIPA_EP_PCIE] = ep;
 	}
 
 	ep->id = SIPA_EP_PCIE;
 
-	ep->sipa_ctx = s_sipa_ctrl.ctx;
+	ep->sipa_ctx = ctrl->ctx;
 	ep->send_fifo.idx = SIPA_FIFO_PCIE_UL;
 	ep->send_fifo.rx_fifo.fifo_depth = in->ext_send_param.rx_depth;
 	ep->send_fifo.tx_fifo.fifo_depth = in->ext_send_param.tx_depth;
@@ -488,7 +490,8 @@ int sipa_pam_init_free_fifo(enum sipa_ep_id id,
 {
 	u32 i;
 	struct sipa_hal_fifo_item iterms;
-	struct sipa_endpoint *ep = s_sipa_ctrl.eps[id];
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+	struct sipa_endpoint *ep = ctrl->eps[id];
 
 	for (i = 0; i < num; i++) {
 		iterms.addr = addr[i];
@@ -508,7 +511,8 @@ EXPORT_SYMBOL(sipa_sw_connect);
 
 int sipa_disconnect(enum sipa_ep_id ep_id, enum sipa_disconnect_id stage)
 {
-	struct sipa_endpoint *ep = s_sipa_ctrl.eps[ep_id];
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+	struct sipa_endpoint *ep = ctrl->eps[ep_id];
 
 	if (!ep) {
 		pr_err("sipa_disconnect: ep id:%d not create!", ep_id);
@@ -524,7 +528,7 @@ int sipa_disconnect(enum sipa_ep_id ep_id, enum sipa_disconnect_id stage)
 	switch (stage) {
 	case SIPA_DISCONNECT_START:
 		if (SIPA_EP_USB == ep_id || SIPA_EP_WIFI == ep_id)
-			return sipa_hal_reclaim_unuse_node(s_sipa_ctrl.ctx->hdl,
+			return sipa_hal_reclaim_unuse_node(ctrl->ctx->hdl,
 							   ep->recv_fifo.idx);
 		break;
 	case SIPA_DISCONNECT_END:
@@ -539,9 +543,16 @@ int sipa_disconnect(enum sipa_ep_id ep_id, enum sipa_disconnect_id stage)
 }
 EXPORT_SYMBOL(sipa_disconnect);
 
+struct sipa_control *sipa_get_ctrl_pointer(void)
+{
+	return s_sipa_ctrl;
+}
+EXPORT_SYMBOL(sipa_get_ctrl_pointer);
+
 int sipa_enable_receive(enum sipa_ep_id ep_id, bool enabled)
 {
-	struct sipa_endpoint *ep = s_sipa_ctrl.eps[ep_id];
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+	struct sipa_endpoint *ep = ctrl->eps[ep_id];
 
 	if (!ep) {
 		pr_err("sipa_disconnect: ep id:%d not create!", ep_id);
@@ -720,7 +731,8 @@ static int ipa_pre_init(struct sipa_plat_drv_cfg *cfg)
 	return 0;
 }
 
-static int create_sipa_ep_from_fifo_idx(enum sipa_cmn_fifo_index fifo_idx,
+static int create_sipa_ep_from_fifo_idx(struct device *dev,
+					enum sipa_cmn_fifo_index fifo_idx,
 					struct sipa_plat_drv_cfg *cfg,
 					struct sipa_context *ipa)
 {
@@ -728,18 +740,19 @@ static int create_sipa_ep_from_fifo_idx(enum sipa_cmn_fifo_index fifo_idx,
 	struct sipa_common_fifo *fifo;
 	struct sipa_endpoint *ep = NULL;
 	struct sipa_common_fifo_info *fifo_info;
+	struct sipa_control *ctrl = dev_get_drvdata(dev);
 
 	fifo_info = (struct sipa_common_fifo_info *)sipa_common_fifo_statics;
 	ep_id = (fifo_info + fifo_idx)->relate_ep;
 
-	ep = s_sipa_ctrl.eps[ep_id];
+	ep = ctrl->eps[ep_id];
 	if (!ep) {
 		ep = kzalloc(sizeof(*ep), GFP_KERNEL);
 		if (!ep) {
 			pr_err("create_sipa_ep: kzalloc err.\n");
 			return -ENOMEM;
 		}
-		s_sipa_ctrl.eps[ep_id] = ep;
+		ctrl->eps[ep_id] = ep;
 	}
 
 	ep->sipa_ctx = ipa;
@@ -771,35 +784,39 @@ static int create_sipa_ep_from_fifo_idx(enum sipa_cmn_fifo_index fifo_idx,
 	return 0;
 }
 
-static void destroy_sipa_ep_from_fifo_idx(enum sipa_cmn_fifo_index fifo_idx,
+static void destroy_sipa_ep_from_fifo_idx(struct device *dev,
+					  enum sipa_cmn_fifo_index fifo_idx,
 					  struct sipa_plat_drv_cfg *cfg,
 					  struct sipa_context *ipa)
 {
 	struct sipa_endpoint *ep = NULL;
+	struct sipa_control *ctrl = dev_get_drvdata(dev);
 	enum sipa_ep_id ep_id = sipa_common_fifo_statics[fifo_idx].relate_ep;
 
-	ep = s_sipa_ctrl.eps[ep_id];
+	ep = ctrl->eps[ep_id];
 	if (!ep)
 		return;
 
 	kfree(ep);
-	s_sipa_ctrl.eps[ep_id] = NULL;
+	ctrl->eps[ep_id] = NULL;
 }
 
 
-static void destroy_sipa_eps(struct sipa_plat_drv_cfg *cfg,
+static void destroy_sipa_eps(struct device *dev,
+			     struct sipa_plat_drv_cfg *cfg,
 			     struct sipa_context *ipa)
 {
 	int i;
 
 	for (i = 0; i < SIPA_FIFO_MAX; i++) {
 		if (cfg->common_fifo_cfg[i].tx_fifo.fifo_size > 0)
-			destroy_sipa_ep_from_fifo_idx(i, cfg, ipa);
+			destroy_sipa_ep_from_fifo_idx(dev, i, cfg, ipa);
 	}
 }
 
 
-static int create_sipa_eps(struct sipa_plat_drv_cfg *cfg,
+static int create_sipa_eps(struct device *dev,
+			   struct sipa_plat_drv_cfg *cfg,
 			   struct sipa_context *ipa)
 {
 	int i;
@@ -808,7 +825,7 @@ static int create_sipa_eps(struct sipa_plat_drv_cfg *cfg,
 	pr_info("%s start\n", __func__);
 	for (i = 0; i < SIPA_FIFO_MAX; i++) {
 		if (cfg->common_fifo_cfg[i].tx_fifo.fifo_size > 0) {
-			ret = create_sipa_ep_from_fifo_idx(i, cfg, ipa);
+			ret = create_sipa_ep_from_fifo_idx(dev, i, cfg, ipa);
 			if (ret)
 				return ret;
 		}
@@ -817,38 +834,38 @@ static int create_sipa_eps(struct sipa_plat_drv_cfg *cfg,
 	return 0;
 }
 
-static int sipa_create_skb_xfer(struct sipa_context *ipa,
-				struct sipa_plat_drv_cfg *cfg)
+static int sipa_create_skb_xfer(struct device *dev,
+				struct sipa_context *ipa)
 {
 	int ret = 0;
+	struct sipa_control *ctrl = dev_get_drvdata(dev);
 
-
-	ret = create_sipa_skb_sender(ipa, s_sipa_ctrl.eps[SIPA_EP_AP_ETH],
+	ret = create_sipa_skb_sender(ipa, ctrl->eps[SIPA_EP_AP_ETH],
 				     SIPA_PKT_ETH,
-				     &s_sipa_ctrl.sender[SIPA_PKT_ETH]);
+				     &ctrl->sender[SIPA_PKT_ETH]);
 	if (ret) {
 		ret = -EFAULT;
 		goto sender_fail;
 	}
 
-	ret = create_sipa_skb_sender(ipa, s_sipa_ctrl.eps[SIPA_EP_AP_IP],
+	ret = create_sipa_skb_sender(ipa, ctrl->eps[SIPA_EP_AP_IP],
 				     SIPA_PKT_IP,
-				     &s_sipa_ctrl.sender[SIPA_PKT_IP]);
+				     &ctrl->sender[SIPA_PKT_IP]);
 	if (ret) {
 		ret = -EFAULT;
 		goto receiver_fail;
 	}
 
-	ret = create_sipa_skb_receiver(ipa, s_sipa_ctrl.eps[SIPA_EP_AP_ETH],
-				       &s_sipa_ctrl.receiver[SIPA_PKT_ETH]);
+	ret = create_sipa_skb_receiver(ipa, ctrl->eps[SIPA_EP_AP_ETH],
+				       &ctrl->receiver[SIPA_PKT_ETH]);
 
 	if (ret) {
 		ret = -EFAULT;
 		goto receiver_fail;
 	}
 
-	ret = create_sipa_skb_receiver(ipa, s_sipa_ctrl.eps[SIPA_EP_AP_IP],
-				       &s_sipa_ctrl.receiver[SIPA_PKT_IP]);
+	ret = create_sipa_skb_receiver(ipa, ctrl->eps[SIPA_EP_AP_IP],
+				       &ctrl->receiver[SIPA_PKT_IP]);
 
 	if (ret) {
 		ret = -EFAULT;
@@ -863,23 +880,23 @@ static int sipa_create_skb_xfer(struct sipa_context *ipa,
 	return 0;
 
 receiver_fail:
-	if (s_sipa_ctrl.receiver[SIPA_PKT_IP]) {
-		destroy_sipa_skb_receiver(s_sipa_ctrl.receiver[SIPA_PKT_IP]);
-		s_sipa_ctrl.receiver[SIPA_PKT_IP] = NULL;
+	if (ctrl->receiver[SIPA_PKT_IP]) {
+		destroy_sipa_skb_receiver(ctrl->receiver[SIPA_PKT_IP]);
+		ctrl->receiver[SIPA_PKT_IP] = NULL;
 	}
-	if (s_sipa_ctrl.receiver[SIPA_PKT_ETH]) {
-		destroy_sipa_skb_receiver(s_sipa_ctrl.receiver[SIPA_PKT_ETH]);
-		s_sipa_ctrl.receiver[SIPA_PKT_ETH] = NULL;
+	if (ctrl->receiver[SIPA_PKT_ETH]) {
+		destroy_sipa_skb_receiver(ctrl->receiver[SIPA_PKT_ETH]);
+		ctrl->receiver[SIPA_PKT_ETH] = NULL;
 	}
 
 sender_fail:
-	if (s_sipa_ctrl.sender[SIPA_PKT_IP]) {
-		destroy_sipa_skb_sender(s_sipa_ctrl.sender[SIPA_PKT_IP]);
-		s_sipa_ctrl.sender[SIPA_PKT_IP] = NULL;
+	if (ctrl->sender[SIPA_PKT_IP]) {
+		destroy_sipa_skb_sender(ctrl->sender[SIPA_PKT_IP]);
+		ctrl->sender[SIPA_PKT_IP] = NULL;
 	}
-	if (s_sipa_ctrl.sender[SIPA_PKT_ETH]) {
-		destroy_sipa_skb_sender(s_sipa_ctrl.sender[SIPA_PKT_ETH]);
-		s_sipa_ctrl.sender[SIPA_PKT_ETH] = NULL;
+	if (ctrl->sender[SIPA_PKT_ETH]) {
+		destroy_sipa_skb_sender(ctrl->sender[SIPA_PKT_ETH]);
+		ctrl->sender[SIPA_PKT_ETH] = NULL;
 	}
 
 	return ret;
@@ -887,21 +904,23 @@ sender_fail:
 
 static void sipa_destroy_skb_xfer(void)
 {
-	if (s_sipa_ctrl.receiver[SIPA_PKT_IP]) {
-		destroy_sipa_skb_receiver(s_sipa_ctrl.receiver[SIPA_PKT_IP]);
-		s_sipa_ctrl.receiver[SIPA_PKT_IP] = NULL;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+
+	if (ctrl->receiver[SIPA_PKT_IP]) {
+		destroy_sipa_skb_receiver(ctrl->receiver[SIPA_PKT_IP]);
+		ctrl->receiver[SIPA_PKT_IP] = NULL;
 	}
-	if (s_sipa_ctrl.receiver[SIPA_PKT_ETH]) {
-		destroy_sipa_skb_receiver(s_sipa_ctrl.receiver[SIPA_PKT_ETH]);
-		s_sipa_ctrl.receiver[SIPA_PKT_ETH] = NULL;
+	if (ctrl->receiver[SIPA_PKT_ETH]) {
+		destroy_sipa_skb_receiver(ctrl->receiver[SIPA_PKT_ETH]);
+		ctrl->receiver[SIPA_PKT_ETH] = NULL;
 	}
-	if (s_sipa_ctrl.sender[SIPA_PKT_IP]) {
-		destroy_sipa_skb_sender(s_sipa_ctrl.sender[SIPA_PKT_IP]);
-		s_sipa_ctrl.sender[SIPA_PKT_IP] = NULL;
+	if (ctrl->sender[SIPA_PKT_IP]) {
+		destroy_sipa_skb_sender(ctrl->sender[SIPA_PKT_IP]);
+		ctrl->sender[SIPA_PKT_IP] = NULL;
 	}
-	if (s_sipa_ctrl.sender[SIPA_PKT_ETH]) {
-		destroy_sipa_skb_sender(s_sipa_ctrl.sender[SIPA_PKT_ETH]);
-		s_sipa_ctrl.sender[SIPA_PKT_ETH] = NULL;
+	if (ctrl->sender[SIPA_PKT_ETH]) {
+		destroy_sipa_skb_sender(ctrl->sender[SIPA_PKT_ETH]);
+		ctrl->sender[SIPA_PKT_ETH] = NULL;
 	}
 	sipa_rm_inactivity_timer_destroy(SIPA_RM_RES_CONS_WWAN_UL);
 }
@@ -962,7 +981,8 @@ static void sipa_destroy_rm_cons(void)
 static int sipa_req_ipa_prod(void *user_data)
 {
 	int ret;
-	struct sipa_plat_drv_cfg *cfg = &s_sipa_cfg;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+	struct sipa_plat_drv_cfg *cfg = &ctrl->params_cfg;
 
 	ret = sipa_force_wakeup(cfg, true);
 	if (ret) {
@@ -976,7 +996,8 @@ static int sipa_req_ipa_prod(void *user_data)
 static int sipa_rls_ipa_prod(void *user_data)
 {
 	int ret;
-	struct sipa_plat_drv_cfg *cfg = &s_sipa_cfg;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+	struct sipa_plat_drv_cfg *cfg = &ctrl->params_cfg;
 
 	ret = sipa_force_wakeup(cfg, false);
 	if (ret) {
@@ -1068,7 +1089,7 @@ static int sipa_init(struct sipa_context **ipa_pp,
 	}
 
 	/* init sipa eps */
-	ret = create_sipa_eps(cfg, ipa);
+	ret = create_sipa_eps(ipa_dev, cfg, ipa);
 	if (ret)
 		goto ep_fail;
 
@@ -1094,7 +1115,7 @@ static int sipa_init(struct sipa_context **ipa_pp,
 
 	/* init sipa skb transfer layer */
 	if (!cfg->is_bypass) {
-		ret = sipa_create_skb_xfer(ipa, cfg);
+		ret = sipa_create_skb_xfer(ipa_dev, ipa);
 		if (ret) {
 			ret = -EFAULT;
 			goto xfer_fail;
@@ -1122,7 +1143,7 @@ usb_fail:
 cons_fail:
 	sipa_rm_exit();
 ep_fail:
-	destroy_sipa_eps(cfg, ipa);
+	destroy_sipa_eps(ipa_dev, cfg, ipa);
 
 	if (ipa)
 		kfree(ipa);
@@ -1145,7 +1166,7 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 {
 	int ret;
 	struct device *dev = &pdev_p->dev;
-	struct sipa_plat_drv_cfg *cfg;
+	struct sipa_control *ctrl;
 	/*
 	* SIPA probe function can be called for multiple times as the same probe
 	* function handles multiple compatibilities
@@ -1153,40 +1174,44 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 	pr_debug("sipa: IPA driver probing started for %s\n",
 		 pdev_p->dev.of_node->name);
 
-	cfg = &s_sipa_cfg;
-	memset(cfg, 0, sizeof(*cfg));
+	ctrl = kzalloc(sizeof(*ctrl), GFP_KERNEL);
+	if (!ctrl)
+		return -ENOMEM;
 
-	ret = sipa_parse_dts_configuration(pdev_p, cfg);
+	s_sipa_ctrl = ctrl;
+	dev_set_drvdata(&pdev_p->dev, ctrl);
+
+	ret = sipa_parse_dts_configuration(pdev_p, &ctrl->params_cfg);
 	if (ret) {
 		pr_err("sipa: dts parsing failed\n");
 		return ret;
 	}
 
-	ret = ipa_pre_init(cfg);
+	ret = ipa_pre_init(&ctrl->params_cfg);
 	if (ret) {
 		pr_err("sipa: pre init failed\n");
 		return ret;
 	}
 
-	ret = sipa_force_wakeup(cfg, true);
+	ret = sipa_force_wakeup(&ctrl->params_cfg, true);
 	if (ret) {
 		pr_err("sipa: sipa_hal_init failed %d\n", ret);
 		return ret;
 	}
 
-	ret = sipa_set_enabled(cfg, true);
+	ret = sipa_set_enabled(&ctrl->params_cfg, true);
 	if (ret) {
 		pr_err("sipa: sipa_hal_init failed %d\n", ret);
 		return ret;
 	}
 
-	INIT_WORK(&s_sipa_ctrl.flow_ctrl_work, sipa_notify_sender_flow_ctrl);
-	ret = sipa_init(&s_sipa_ctrl.ctx, cfg, dev);
+	INIT_WORK(&ctrl->flow_ctrl_work, sipa_notify_sender_flow_ctrl);
+	ret = sipa_init(&ctrl->ctx, &ctrl->params_cfg, dev);
 	if (ret) {
 		pr_err("sipa: sipa_init failed %d\n", ret);
 		return ret;
 	}
-	sipa_init_debugfs(cfg, &s_sipa_ctrl);
+	sipa_init_debugfs(&ctrl->params_cfg, ctrl);
 	return ret;
 }
 

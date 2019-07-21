@@ -471,8 +471,6 @@ static const struct ipa_fifo_iterm_map sipa_common_fifo_map[] = {
 	 SIPA_CACHE_LINE_CTRL_AND_STS_OFFSET}
 };
 
-extern struct sipa_hal_context sipa_hal_ctx;
-extern struct sipa_plat_drv_cfg s_sipa_cfg;
 void sipa_dbg(struct sipa_plat_drv_cfg *sipa, const char *fmt, ...);
 #ifdef CONFIG_DEBUG_FS
 int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa,

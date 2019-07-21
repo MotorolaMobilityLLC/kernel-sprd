@@ -17,16 +17,16 @@
 #include "sipa_priv.h"
 #include "sipa_hal.h"
 
-extern struct sipa_control s_sipa_ctrl;
-
 static void sipa_usb_rm_notify_cb(void *user_data,
 				  enum sipa_rm_event event,
 				  unsigned long data)
 {
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+
 	pr_debug("%s: event %d\n", __func__, event);
 	switch (event) {
 	case SIPA_RM_EVT_GRANTED:
-		complete(&s_sipa_ctrl.usb_rm_comp);
+		complete(&ctrl->usb_rm_comp);
 		break;
 	case SIPA_RM_EVT_RELEASED:
 		break;
@@ -39,10 +39,11 @@ static void sipa_usb_rm_notify_cb(void *user_data,
 int sipa_rm_usb_cons_init(void)
 {
 	struct sipa_rm_register_params r_param;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
-	init_completion(&s_sipa_ctrl.usb_rm_comp);
+	init_completion(&ctrl->usb_rm_comp);
 
-	r_param.user_data = &s_sipa_ctrl;
+	r_param.user_data = ctrl;
 	r_param.notify_cb = sipa_usb_rm_notify_cb;
 	return sipa_rm_register(SIPA_RM_RES_CONS_USB, &r_param);
 }
@@ -51,8 +52,9 @@ EXPORT_SYMBOL(sipa_rm_usb_cons_init);
 void sipa_rm_usb_cons_deinit(void)
 {
 	struct sipa_rm_register_params r_param;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
-	r_param.user_data = &s_sipa_ctrl;
+	r_param.user_data = ctrl;
 	r_param.notify_cb = sipa_usb_rm_notify_cb;
 	sipa_rm_deregister(SIPA_RM_RES_CONS_USB, &r_param);
 }
@@ -61,14 +63,15 @@ EXPORT_SYMBOL(sipa_rm_usb_cons_deinit);
 int sipa_rm_set_usb_eth_up(void)
 {
 	int ret;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
 	sipa_rm_request_resource(SIPA_RM_RES_CONS_USB);
-	reinit_completion(&s_sipa_ctrl.usb_rm_comp);
+	reinit_completion(&ctrl->usb_rm_comp);
 	ret = sipa_rm_request_resource(SIPA_RM_RES_CONS_USB);
 	if (ret) {
 		if (ret != -EINPROGRESS)
 			return ret;
-		wait_for_completion(&s_sipa_ctrl.usb_rm_comp);
+		wait_for_completion(&ctrl->usb_rm_comp);
 	}
 
 	return ret;
@@ -77,7 +80,9 @@ EXPORT_SYMBOL(sipa_rm_set_usb_eth_up);
 
 void sipa_rm_set_usb_eth_down(void)
 {
-	reinit_completion(&s_sipa_ctrl.usb_rm_comp);
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
+
+	reinit_completion(&ctrl->usb_rm_comp);
 
 	sipa_rm_release_resource(SIPA_RM_RES_CONS_USB);
 

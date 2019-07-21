@@ -292,6 +292,8 @@ struct sipa_control {
 	struct sipa_context *ctx;
 	struct sipa_endpoint *eps[SIPA_EP_MAX];
 
+	struct sipa_plat_drv_cfg params_cfg;
+
 	/* IPA NIC interface */
 	struct work_struct flow_ctrl_work;
 	struct sipa_nic *nic[SIPA_NIC_MAX];
@@ -310,6 +312,8 @@ int create_sipa_skb_sender(struct sipa_context *ipa,
 			   struct sipa_skb_sender **sender_pp);
 
 void destroy_sipa_skb_sender(struct sipa_skb_sender *sender);
+
+struct sipa_control *sipa_get_ctrl_pointer(void);
 
 int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 			      struct sk_buff *skb,
@@ -340,7 +344,5 @@ void sipa_nic_notify_evt(struct sipa_nic *nic, enum sipa_evt_type evt);
 void sipa_nic_push_skb(struct sipa_nic *nic, struct sk_buff *skb);
 
 int sipa_nic_rx_has_data(enum sipa_nic_id nic_id);
-
-extern struct sipa_control s_sipa_ctrl;
 
 #endif /* _SIPA_PRIV_H_ */

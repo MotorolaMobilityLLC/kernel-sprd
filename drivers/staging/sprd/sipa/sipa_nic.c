@@ -119,7 +119,12 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 	enum sipa_nic_id nic_id = SIPA_NIC_MAX;
 	struct sipa_skb_receiver *receiver;
 	struct sipa_skb_sender *sender;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
+	if (!ctrl) {
+		pr_err("sipa driver may not register\n");
+		return -EINVAL;
+	}
 	for (i = 0; i < SIPA_NIC_MAX; i++) {
 		if ((s_spia_nic_statics[i].src_mask & (1 << src)) &&
 			netid == s_spia_nic_statics[i].netid) {
@@ -131,8 +136,8 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 	if (nic_id == SIPA_NIC_MAX)
 		return -EINVAL;
 
-	if (s_sipa_ctrl.nic[nic_id]) {
-		nic = s_sipa_ctrl.nic[nic_id];
+	if (ctrl->nic[nic_id]) {
+		nic = ctrl->nic[nic_id];
 		if  (atomic_read(&nic->status) == NIC_OPEN)
 			return -EBUSY;
 		while ((skb = skb_dequeue(&nic->rx_skb_q)) != NULL)
@@ -141,15 +146,15 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 		nic = kzalloc(sizeof(*nic), GFP_KERNEL);
 		if (!nic)
 			return -ENOMEM;
-		s_sipa_ctrl.nic[nic_id] = nic;
+		ctrl->nic[nic_id] = nic;
 		skb_queue_head_init(&nic->rx_skb_q);
 	}
 
-	sender = s_sipa_ctrl.sender[s_spia_nic_statics[nic_id].pkt_type];
+	sender = ctrl->sender[s_spia_nic_statics[nic_id].pkt_type];
 
 	atomic_set(&nic->status, NIC_OPEN);
 	nic->nic_id = nic_id;
-	nic->send_ep = s_sipa_ctrl.eps[s_spia_nic_statics[nic_id].send_ep];
+	nic->send_ep = ctrl->eps[s_spia_nic_statics[nic_id].send_ep];
 	nic->need_notify = 0;
 	nic->src_mask = s_spia_nic_statics[i].src_mask;
 	nic->netid = netid;
@@ -157,11 +162,11 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 	nic->cb_priv = priv;
 
 	/* every receiver may receive cp packets */
-	receiver = s_sipa_ctrl.receiver[s_spia_nic_statics[nic_id].pkt_type];
+	receiver = ctrl->receiver[s_spia_nic_statics[nic_id].pkt_type];
 	sipa_receiver_add_nic(receiver, nic);
 
 	if (SIPA_PKT_IP == s_spia_nic_statics[nic_id].pkt_type) {
-		receiver = s_sipa_ctrl.receiver[SIPA_PKT_ETH];
+		receiver = ctrl->receiver[SIPA_PKT_ETH];
 		sipa_receiver_add_nic(receiver, nic);
 	}
 
@@ -176,18 +181,23 @@ void sipa_nic_close(enum sipa_nic_id nic_id)
 	struct sipa_nic *nic = NULL;
 	struct sk_buff *skb;
 	struct sipa_skb_sender *sender;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
-	if (nic_id == SIPA_NIC_MAX || !s_sipa_ctrl.nic[nic_id])
+	if (!ctrl) {
+		pr_err("sipa driver may not register\n");
+		return;
+	}
+	if (nic_id == SIPA_NIC_MAX || !ctrl->nic[nic_id])
 		return;
 
-	nic = s_sipa_ctrl.nic[nic_id];
+	nic = ctrl->nic[nic_id];
 
 	atomic_set(&nic->status, NIC_CLOSE);
 	/* free all  pending skbs */
 	while ((skb = skb_dequeue(&nic->rx_skb_q)) != NULL)
 		dev_kfree_skb_any(skb);
 
-	sender = s_sipa_ctrl.sender[s_spia_nic_statics[nic_id].pkt_type];
+	sender = ctrl->sender[s_spia_nic_statics[nic_id].pkt_type];
 	sipa_skb_sender_remove_nic(sender, nic);
 }
 EXPORT_SYMBOL(sipa_nic_close);
@@ -230,14 +240,19 @@ int sipa_nic_tx(enum sipa_nic_id nic_id, enum sipa_term_type dst,
 {
 	int ret;
 	struct sipa_skb_sender *sender;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
-	sender = s_sipa_ctrl.sender[s_spia_nic_statics[nic_id].pkt_type];
+	if (!ctrl) {
+		pr_err("sipa driver may not register\n");
+		return -EINVAL;
+	}
+	sender = ctrl->sender[s_spia_nic_statics[nic_id].pkt_type];
 	if (!sender)
 		return -ENODEV;
 
 	ret = sipa_skb_sender_send_data(sender, skb, dst, netid);
 	if (ret == -EAGAIN)
-		s_sipa_ctrl.nic[nic_id]->flow_ctrl_status = true;
+		ctrl->nic[nic_id]->flow_ctrl_status = true;
 
 	return ret;
 }
@@ -247,12 +262,17 @@ int sipa_nic_rx(enum sipa_nic_id nic_id, struct sk_buff **out_skb)
 {
 	struct sk_buff *skb;
 	struct sipa_nic *nic;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
-	if (!s_sipa_ctrl.nic[nic_id] ||
-	    atomic_read(&s_sipa_ctrl.nic[nic_id]->status) == NIC_CLOSE)
+	if (!ctrl) {
+		pr_err("sipa driver may not register\n");
+		return -EINVAL;
+	}
+	if (!ctrl->nic[nic_id] ||
+	    atomic_read(&ctrl->nic[nic_id]->status) == NIC_CLOSE)
 		return -ENODEV;
 
-	nic = s_sipa_ctrl.nic[nic_id];
+	nic = ctrl->nic[nic_id];
 	skb = skb_dequeue(&nic->rx_skb_q);
 
 	*out_skb = skb;
@@ -264,12 +284,17 @@ EXPORT_SYMBOL(sipa_nic_rx);
 int sipa_nic_rx_has_data(enum sipa_nic_id nic_id)
 {
 	struct sipa_nic *nic;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
-	if (!s_sipa_ctrl.nic[nic_id] ||
-	    atomic_read(&s_sipa_ctrl.nic[nic_id]->status) == NIC_CLOSE)
+	if (!ctrl) {
+		pr_err("sipa driver may not register\n");
+		return -EINVAL;
+	}
+	if (!ctrl->nic[nic_id] ||
+	    atomic_read(&ctrl->nic[nic_id]->status) == NIC_CLOSE)
 		return 0;
 
-	nic = s_sipa_ctrl.nic[nic_id];
+	nic = ctrl->nic[nic_id];
 
 	return (!!nic->rx_skb_q.qlen);
 }
@@ -278,8 +303,13 @@ EXPORT_SYMBOL(sipa_nic_rx_has_data);
 int sipa_nic_trigger_flow_ctrl_work(enum sipa_nic_id nic_id, int err)
 {
 	struct sipa_skb_sender *sender;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
-	sender = s_sipa_ctrl.sender[s_spia_nic_statics[nic_id].pkt_type];
+	if (!ctrl) {
+		pr_err("sipa driver may not register\n");
+		return -EINVAL;
+	}
+	sender = ctrl->sender[s_spia_nic_statics[nic_id].pkt_type];
 	if (!sender)
 		return -ENODEV;
 
@@ -292,7 +322,7 @@ int sipa_nic_trigger_flow_ctrl_work(enum sipa_nic_id nic_id, int err)
 		break;
 	}
 
-	schedule_work(&s_sipa_ctrl.flow_ctrl_work);
+	schedule_work(&ctrl->flow_ctrl_work);
 	return 0;
 }
 EXPORT_SYMBOL(sipa_nic_trigger_flow_ctrl_work);

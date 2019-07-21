@@ -28,8 +28,9 @@
 
 static int sipa_regdump_show(struct seq_file *s, void *unused)
 {
-	struct sipa_plat_drv_cfg *sipa = &s_sipa_cfg;
-	struct sipa_hal_context *hal_cfg = &sipa_hal_ctx;
+	struct sipa_control *ctrl = s->private;
+	struct sipa_plat_drv_cfg *sipa = &ctrl->params_cfg;
+	struct sipa_hal_context *hal_cfg = ctrl->ctx->hdl;
 	void __iomem *glbbase = hal_cfg->phy_virt_res.glb_base;
 	const struct sipa_hw_data *sipa_regmap = sipa->debugfs_data;
 	unsigned int i, val;
@@ -84,7 +85,8 @@ static const struct file_operations sipa_regdump_fops = {
 
 static int sipa_commonfifo_show(struct seq_file *s, void *unused)
 {
-	struct sipa_hal_context *hal_cfg = &sipa_hal_ctx;
+	struct sipa_control *ctrl = s->private;
+	struct sipa_hal_context *hal_cfg = ctrl->ctx->hdl;
 	void __iomem *glbbase = hal_cfg->phy_virt_res.glb_base;
 	unsigned int i, j, val;
 
@@ -119,8 +121,7 @@ static const struct file_operations sipa_commonfifo_fops = {
 
 static int sipa_flow_ctrl_show(struct seq_file *s, void *unused)
 {
-	struct sipa_control *ipa =
-		(struct sipa_control *)s->private;
+	struct sipa_control *ipa = s->private;
 	struct sipa_skb_sender *eth_sender =
 		ipa->sender[SIPA_PKT_ETH];
 	struct sipa_skb_sender *ip_sender =
@@ -186,14 +187,14 @@ int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa,
 	if (!root)
 		return -ENOMEM;
 
-	file = debugfs_create_file("regdump", 0444, root, sipa,
+	file = debugfs_create_file("regdump", 0444, root, ctrl,
 				   &sipa_regdump_fops);
 	if (!file) {
 		ret = -ENOMEM;
 		goto err1;
 	}
 
-	file = debugfs_create_file("commonfifo_reg", 0444, root, sipa,
+	file = debugfs_create_file("commonfifo_reg", 0444, root, ctrl,
 				   &sipa_commonfifo_fops);
 	if (!file) {
 		ret = -ENOMEM;
