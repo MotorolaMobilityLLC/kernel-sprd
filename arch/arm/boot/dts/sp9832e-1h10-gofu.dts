@@ -345,3 +345,36 @@
 &pwms {
 	status = "okay";
 };
+
+&iommu_dcam {
+	status = "okay";
+};
+
+&iommu_isp {
+	status = "okay";
+};
+
+&iommu_cpp {
+	status = "okay";
+};
+
+&dcam {
+	status = "okay";
+};
+
+&isp {
+	sprd,isp-offbuf-count = <4>;
+	status = "okay";
+};
+
+&cpp {
+	status = "okay";
+};
+
+&csi0 {
+	status = "okay";
+};
+
+&csi1 {
+	status = "okay";
+};
