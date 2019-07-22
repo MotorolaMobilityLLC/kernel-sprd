@@ -434,6 +434,18 @@
 				status = "disabled";
 			};
 
+			sdio0: sdio@20300000 {
+				compatible  = "sprd,sdhc-r10";
+				reg = <0x20300000 0x1000>;
+				interrupts = <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio_clk","sdio_clk_source",
+					      "sdio_ahb_enable";
+				clocks = <&ap_clk CLK_SDIO0_2X>,
+					 <&rpll CLK_RPLL_390M>,
+					 <&apahb_gate SDIO0_EB>;
+				status = "disabled";
+			};
+
 			usb: usb@20200000 {
 				compatible  = "sprd,sharkle-musb";
 				reg = <0x20200000 0x2000>;
