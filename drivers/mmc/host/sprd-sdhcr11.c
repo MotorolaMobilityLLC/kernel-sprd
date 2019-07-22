@@ -1177,7 +1177,7 @@ static void sprd_sdhc_enable_dpll(struct sprd_sdhc_host *host)
 	mdelay(1);
 
 	tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_CFG);
-	tmp |= SPRD_SDHC_DLL_EN;
+	tmp |= (SPRD_SDHC_DLL_EN | SPRD_SDHC_DLL_HALF_MODE);
 	sprd_sdhc_writel(host, tmp, SPRD_SDHC_REG_32_DLL_CFG);
 	mdelay(1);
 
@@ -1601,6 +1601,7 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	dll_cfg &= ~(0xf << 24);
 	sprd_sdhc_writel(host, dll_cfg, SPRD_SDHC_REG_32_DLL_CFG);
 	dll_cnt = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS0) & 0xff;
+	dll_cnt = dll_cnt << 1;
 	length = (dll_cnt * 150) / 100;
 	pr_info("%s(%s): dll config 0x%08x, dll count %d, tuning length: %d\n",
 		__func__, host->device_name, dll_cfg, dll_cnt, length);
