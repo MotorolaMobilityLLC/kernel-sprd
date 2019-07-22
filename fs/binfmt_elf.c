@@ -20,6 +20,7 @@
 #include <linux/string.h>
 #include <linux/file.h>
 #include <linux/slab.h>
+#include <linux/statfs.h>
 #include <linux/personality.h>
 #include <linux/elfcore.h>
 #include <linux/init.h>
@@ -2176,6 +2177,46 @@ static void fill_extnum_info(struct elfhdr *elf, struct elf_shdr *shdr4extnum,
 	shdr4extnum->sh_info = segs;
 }
 
+#ifndef DATA_LIMIT_PRECENT
+#define DATA_LIMIT_PRECENT	10	/* Must less than 100 */
+#endif
+
+static int check_corefile_limit(struct file *core_file, size_t corefile_size)
+{
+	struct kstatfs sfs;
+	u64 avail_size = 0;
+	u64 total_size = 0;
+	int ret = 0;
+
+	if (!core_file) {
+		printk(KERN_ERR "Get corefile error\n");
+		return -ENOENT;
+	}
+
+	ret = vfs_statfs(&core_file->f_path, &sfs);
+	if (ret < 0 || sfs.f_blocks == 0) {
+		printk(KERN_ERR "Get data statfs error\n");
+		return -EACCES;
+	}
+
+	avail_size = sfs.f_bavail * sfs.f_bsize;
+	total_size = sfs.f_blocks * sfs.f_bsize;
+
+	/* Avoid dividing for  u64 (avail < total * N/100) */
+	if (sfs.f_bavail * 100 <= sfs.f_blocks * DATA_LIMIT_PRECENT ||
+		avail_size <= corefile_size)
+		ret = -ENOSPC;
+	else if ((avail_size - corefile_size) * 100 <= total_size * DATA_LIMIT_PRECENT)
+		ret = -ENOSPC;
+
+	if (ret != 0)
+		printk(KERN_WARNING "No more space:corefile need %zu, "\
+		"avail %llu(user), total %llu\n",
+		corefile_size, avail_size, total_size);
+
+	return ret;
+}
+
 /*
  * Actual dumper
  *
@@ -2279,6 +2320,9 @@ static int elf_core_dump(struct coredump_params *cprm)
 		vma_filesz[i++] = dump_size;
 		vma_data_size += dump_size;
 	}
+	/* Sprd add to limit corefie */
+	if (check_corefile_limit(cprm->file, vma_data_size))
+		goto end_coredump;
 
 	offset += vma_data_size;
 	offset += elf_core_extra_data_size();
