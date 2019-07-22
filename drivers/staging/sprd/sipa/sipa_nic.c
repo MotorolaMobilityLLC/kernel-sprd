@@ -316,13 +316,13 @@ int sipa_nic_trigger_flow_ctrl_work(enum sipa_nic_id nic_id, int err)
 	switch (err) {
 	case -EAGAIN:
 		sender->free_notify_net = true;
+		schedule_work(&ctrl->flow_ctrl_work);
 		break;
 	default:
 		pr_warn("don't have this err type\n");
 		break;
 	}
 
-	schedule_work(&ctrl->flow_ctrl_work);
 	return 0;
 }
 EXPORT_SYMBOL(sipa_nic_trigger_flow_ctrl_work);
