@@ -509,6 +509,16 @@
 				status = "disabled";
 			};
 
+			watchdog@40310000 {
+				compatible = "sprd,pike2-wdt", "sprd,sharkl3-wdt";
+				reg = <0x40310000 0x10000>;
+				interrupt = <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <12>;
+				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_CA53_WDG_EB>,
+					<&aonapb_gate CLK_CA53_WDG_RTC_EB>;
+			};
+
 			adi_bus: spi@403c0000 {
 				compatible = "sprd,pike2-adi";
 				reg = <0x403c0000 0x10000>;
