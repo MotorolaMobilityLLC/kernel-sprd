@@ -42,6 +42,23 @@
 #define IBREG0_OFFSET_ADDR	(0x10000 + (0 * 0x200) + 0x100)
 #define OBREG1_OFFSET_ADDR	(0x10000 + (1 * 0x200))
 #define IBREG1_OFFSET_ADDR	(0x10000 + (1 * 0x200) + 0x100)
+
+#ifdef CONFIG_UMW2653
+#define EP_IBAR0_BASE		(0X40800000)
+#define EDMA_GLB_REG_BASE	(0x600000)
+#define EDMA_CHN_REG_BASE	(0x601000)
+/* 8M align */
+#define EP_INBOUND_ALIGN	(0x800000)
+#else
+#define EP_IBAR0_BASE		(0x40000000)
+#define EDMA_GLB_REG_BASE	(0x160000)
+#define EDMA_CHN_REG_BASE	(0X161000)
+/* 4M align */
+#define EP_INBOUND_ALIGN	(0x400000)
+#endif
+/* 4K align */
+#define EP_OUTBOUND_ALIGN	(0x1000)
+
 /* Parameters for the waiting for iATU enabled routine */
 #define LINK_WAIT_MAX_IATU_RETRIES	5
 #define LINK_WAIT_IATU			9

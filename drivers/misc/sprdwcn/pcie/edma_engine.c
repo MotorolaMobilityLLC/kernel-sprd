@@ -1718,9 +1718,9 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 	reg = (unsigned int *)(pcie_bar_vmem(edma->pcie_info, 0) + 0x130004);
 	*reg = ((*reg) | 1 << 7);
 	edma->dma_glb_reg = (struct edma_glb_reg *)
-			(pcie_bar_vmem(edma->pcie_info, 0) + 0x160000);
+			(pcie_bar_vmem(edma->pcie_info, 0) + EDMA_GLB_REG_BASE);
 	edma->dma_chn_reg = (struct edma_chn_reg *)
-			(pcie_bar_vmem(edma->pcie_info, 0) + 0X161000);
+			(pcie_bar_vmem(edma->pcie_info, 0) + EDMA_CHN_REG_BASE);
 	WCN_INFO("WCN dma_chn_reg size is %ld\n", sizeof(struct edma_chn_reg));
 	for (i = 0; i < 16; i++) {
 		WCN_DBG("edma chn[%d] dma_int:0x%p, event:%p\n", i,

@@ -34,10 +34,6 @@
 #include "wcn_procfs.h"
 #include "wcn_txrx.h"
 
-/* 4M align */
-#define EP_INBOUND_ALIGN 0x400000
-/* 4K align */
-#define EP_OUTBOUND_ALIGN 0x1000
 #define WAIT_AT_DONE_MAX_CNT 30
 static int (*scan_card_notify)(void);
 static struct wcn_pcie_info *g_pcie_dev;
@@ -242,7 +238,7 @@ static int sprd_ep_addr_map(struct wcn_pcie_info *priv)
 	obreg1 = (struct outbound_reg *) (pcie_bar_vmem(priv, 4) +
 							OBREG1_OFFSET_ADDR);
 
-	ibreg0->lower_target_addr = 0x40000000;
+	ibreg0->lower_target_addr = EP_IBAR0_BASE;
 	ibreg0->upper_target_addr = 0x00000000;
 	ibreg0->type    = 0x00000000;
 	ibreg0->limit   = 0x00FFFFFF;
