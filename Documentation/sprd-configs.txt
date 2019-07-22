@@ -1326,6 +1326,20 @@ CONFIG_CACHE_L2X0
 	[subsys]
 	[must]
 	[function]
+CONFIG_CC_HAS_KASAN_GENERIC
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_CC_HAS_KASAN_SW_TAGS
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_CC_OPTIMIZE_FOR_SIZE
 	[arch] all
 	[plat] all
@@ -4125,6 +4139,13 @@ CONFIG_HAVE_ARCH_KASAN
 	[subsys] core
 	[must] console
 	[function] Enable kernel support KASAN.
+CONFIG_HAVE_ARCH_KASAN_SW_TAGS
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_HAVE_ARCH_KGDB
 	[arch] all
 	[plat] all
@@ -5331,6 +5352,13 @@ CONFIG_INIT_ENV_ARG_LIMIT
 	[must] console
 	[function] Maximum of each of the number of arguments and environment
 	variables passed to init from the kernel command line.
+CONFIG_INIT_STACK_NONE
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_INOTIFY_USER
 	[arch] all
 	[plat] all
@@ -6155,6 +6183,13 @@ CONFIG_KALLSYMS_BASE_RELATIVE
 	[subsys]
 	[must]
 	[function]
+CONFIG_KASAN_STACK
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_KERNEL_GZIP
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -6232,6 +6267,13 @@ CONFIG_LBDAF
 	[subsys] fs
 	[must] user
 	[function] This function is support large (2TB+) block devices and files.
+CONFIG_LDISC_AUTOLOAD
+	[arch] all
+	[plat] all
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_LEDS_CLASS
 	[arch] all
 	[plat] all
