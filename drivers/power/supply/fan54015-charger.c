@@ -698,7 +698,8 @@ static int fan54015_charger_usb_set_property(struct power_supply *psy,
 
 	mutex_lock(&info->lock);
 
-	if (!info->charging && psp != POWER_SUPPLY_PROP_STATUS) {
+	if (!info->charging && psp != POWER_SUPPLY_PROP_STATUS &&
+	    psp != POWER_SUPPLY_PROP_FEED_WATCHDOG) {
 		mutex_unlock(&info->lock);
 		return -ENODEV;
 	}

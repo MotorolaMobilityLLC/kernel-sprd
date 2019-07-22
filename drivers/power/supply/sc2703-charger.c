@@ -968,7 +968,7 @@ sc2703_charger_usb_set_property(struct power_supply *psy,
 
 	if (!info->charging && psp == POWER_SUPPLY_PROP_FEED_WATCHDOG) {
 		mutex_unlock(&info->lock);
-		return -ENODEV;
+		return 0;
 	}
 
 	switch (psp) {

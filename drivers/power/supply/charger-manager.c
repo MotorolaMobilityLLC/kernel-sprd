@@ -1055,7 +1055,7 @@ static int cm_feed_watchdog(struct charger_manager *cm)
 	struct power_supply *psy;
 	int err, i;
 
-	if (!cm->desc->wdt_interval || !cm->charger_enabled)
+	if (!cm->desc->wdt_interval)
 		return 0;
 
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
@@ -1293,6 +1293,13 @@ static bool _cm_monitor(struct charger_manager *cm)
 	int temp_alrt, ret;
 	int i;
 
+	/* Feed the charger watchdog if necessary */
+	ret = cm_feed_watchdog(cm);
+	if (ret) {
+		dev_warn(cm->dev, "Failed to feed charger watchdog\n");
+		return false;
+	}
+
 	for (i = 0; i < cm->desc->num_charger_regulators; i++) {
 		if (cm->desc->charger_regulators[i].externally_control) {
 			dev_info(cm->dev,
@@ -1307,13 +1314,6 @@ static bool _cm_monitor(struct charger_manager *cm)
 	if (temp_alrt && cm->emergency_stop) {
 		dev_warn(cm->dev,
 			 "Emergency stop, temperature alert = %d\n", temp_alrt);
-		return false;
-	}
-
-	/* Feed the charger watchdog if necessary */
-	ret = cm_feed_watchdog(cm);
-	if (ret) {
-		dev_warn(cm->dev, "Failed to feed charger watchdog\n");
 		return false;
 	}
 
