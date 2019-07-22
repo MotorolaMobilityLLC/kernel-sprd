@@ -94,6 +94,7 @@ int sprd_mm_pw_notify_unregister(struct notifier_block *nb)
 {
 	return blocking_notifier_chain_unregister(&mmsys_chain, nb);
 }
+EXPORT_SYMBOL(sprd_mm_pw_notify_unregister);
 
 static int mmsys_notifier_call_chain(unsigned long val, void *v)
 {
