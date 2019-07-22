@@ -284,6 +284,7 @@
 					"isp_enable";
 				sprd,isp-count = <1>;
 				iommus = <&iommu_isp>;
+				isp_qos = <&isp_qos>;
 				status = "disabled";
 			};
 
@@ -405,6 +406,7 @@
 					<&pll2 CLK_TWPLL_384M>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				iommus = <&iommu_cpp>;
+				cpp_qos = <&cpp_qos>;
 				status = "disabled";
 			};
 
@@ -469,6 +471,7 @@
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
 				iommus = <&iommu_dcam>;
+				dcam_qos = <&dcam_qos>;
 				status = "disabled";
 			};
 
@@ -490,6 +493,7 @@
 				interrupts_name = "fdraw";
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				/*iommus = <&iommu_fd>;*/
+				/*fd_qos = <&fd_qos>;*/
 				status = "disabled";
 			};
 
