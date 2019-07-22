@@ -19,6 +19,7 @@
 #include <net/udp.h>
 
 #include <linux/highmem.h>
+#include <uapi/linux/ims_bridge/ims_bridge.h>
 
 struct esp_skb_cb {
 	struct xfrm_skb_cb xfrm;
@@ -468,19 +469,35 @@ struct espheader {
 	u32 seq;
 };
 
-static int imsbr_cp_esp_sync;
-static struct espheader imsbr_ehs[MAX_ESPS];
+struct lowpower_esp {
+	u32 spi;
+	u32 seq;
+	bool sync;
+};
+
+static int lpst;
+static struct lowpower_esp lp_esp[MAX_ESPS];
+
+void imsbr_esp_update_lp_st(int lp_st)
+{
+	lpst = lp_st;
+}
 
 int imsbr_esp_update_esphs(char *esp)
 {
 	int i;
-
-	imsbr_cp_esp_sync = 1;
-	memcpy(imsbr_ehs, esp, sizeof(struct espheader) * MAX_ESPS);
+	struct espheader *eh;
 
 	for (i = 0; i < MAX_ESPS; i++) {
-		pr_debug("update esp info from cp, spi %x seq %d\n",
-			 imsbr_ehs[i].spi, imsbr_ehs[i].seq);
+		eh = (struct espheader *)(esp + sizeof(struct espheader) * i);
+		if (!eh->spi && !eh->seq)
+			continue;
+
+		lp_esp[i].spi = eh->spi;
+		lp_esp[i].seq = eh->seq;
+		lp_esp[i].sync = false;
+		pr_debug("esp info updated from cp, spi 0x%x seq %d, sync %d\n",
+			 lp_esp[i].spi, lp_esp[i].seq, lp_esp[i].sync);
 	}
 
 	return 0;
@@ -529,21 +546,26 @@ static int esp_output(struct xfrm_state *x, struct sk_buff *skb)
 	esph = esp.esph;
 	esph->spi = x->id.spi;
 
-	if (imsbr_cp_esp_sync) {
-		for (i = 0; i < MAX_ESPS; i++) {
-			if (imsbr_ehs[i].spi == ntohl(esph->spi)) {
-				u32 spi = imsbr_ehs[i].spi;
-				u32 seq = imsbr_ehs[i].seq;
+	for (i = 0; i < MAX_ESPS; i++) {
+		u32 spi = lp_esp[i].spi;
+		u32 seq = lp_esp[i].seq;
+		bool sync = lp_esp[i].sync;
 
-				pr_debug("modify spi 0x%x xstate oseq from %d to %d\n",
-					 spi,
-					 XFRM_SKB_CB(skb)->seq.output.low,
-					 seq + 1);
-				XFRM_SKB_CB(skb)->seq.output.low = seq + 1;
-				x->replay.oseq = seq + 1;
-			}
+		if (lpst == IMSBR_LOWPOWER_END &&
+		    spi == ntohl(esph->spi) &&
+		    seq != 0 &&
+		    seq > x->replay.oseq &&
+		    !sync) {
+			u32 new_seq = seq + 1;
+
+			pr_debug("modify spi 0x%x xstate oseq from %d to %d\n",
+				 spi,
+				 x->replay.oseq,
+				 new_seq);
+			XFRM_SKB_CB(skb)->seq.output.low = new_seq;
+			x->replay.oseq = new_seq;
+			lp_esp[i].sync = true;
 		}
-		imsbr_cp_esp_sync = 0;
 	}
 
 	esph->seq_no = htonl(XFRM_SKB_CB(skb)->seq.output.low);

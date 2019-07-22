@@ -30,6 +30,7 @@
 #include <net/netfilter/nf_conntrack_core.h>
 #include <linux/netfilter/nf_conntrack_common.h>
 #include <net/arp.h>
+#include <net/esp.h>
 #include <linux/if_ether.h>
 
 #include "imsbr_core.h"
@@ -153,6 +154,8 @@ imsbr_do_lp_state(struct sk_buff *skb, struct genl_info *info)
 	cur_lp_state = lp_st;
 	if (lp_st == IMSBR_LOWPOWER_START)
 		imsbr_sync_esq_seq();
+
+	imsbr_esp_update_lp_st(lp_st);
 
 	imsbr_notify_lowpower_state(cmd, lp_st);
 	return 0;

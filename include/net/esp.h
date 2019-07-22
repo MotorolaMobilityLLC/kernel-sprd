@@ -31,5 +31,6 @@ int esp6_output_head(struct xfrm_state *x, struct sk_buff *skb, struct esp_info 
 int esp6_output_tail(struct xfrm_state *x, struct sk_buff *skb, struct esp_info *esp);
 int esp6_input_done2(struct sk_buff *skb, int err);
 int imsbr_esp_update_esphs(char *esp);
+void imsbr_esp_update_lp_st(int lp_st);
 
 #endif
