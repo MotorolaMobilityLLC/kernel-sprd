@@ -109,6 +109,11 @@ static irqreturn_t jpg_isr(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static const struct sprd_jpg_cfg_data sharkle_jpg_data = {
+	.version = SHARKLE,
+	.max_freq_level = 4,
+};
+
 static const struct sprd_jpg_cfg_data sharkl3_jpg_data = {
 	.version = SHARKL3,
 	.max_freq_level = 4,
@@ -133,7 +138,7 @@ static const struct sprd_jpg_cfg_data sharkl5pro_jpg_data = {
 };
 
 static const struct of_device_id of_match_table_jpg[] = {
-
+	{.compatible = "sprd,sharkle-jpg", .data = &sharkle_jpg_data},
 	{.compatible = "sprd,sharkl3-jpg", .data = &sharkl3_jpg_data},
 	{.compatible = "sprd,sharkl5-jpg", .data = &sharkl5_jpg_data},
 	{.compatible = "sprd,roc1-jpg", .data = &roc1_jpg_data},
