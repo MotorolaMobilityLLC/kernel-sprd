@@ -65,7 +65,6 @@ int sipa_rm_set_usb_eth_up(void)
 	int ret;
 	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
-	sipa_rm_request_resource(SIPA_RM_RES_CONS_USB);
 	reinit_completion(&ctrl->usb_rm_comp);
 	ret = sipa_rm_request_resource(SIPA_RM_RES_CONS_USB);
 	if (ret) {
