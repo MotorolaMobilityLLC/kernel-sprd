@@ -301,7 +301,7 @@
 };
 
 &reserved_memory {
-	wb_reserved: writeback-mem {
+	wb_reserved: writeback-mem@ff562000 {
 		reg = <0x0 0xff562000 0x0 0x00a1e000>;
 	};
 };

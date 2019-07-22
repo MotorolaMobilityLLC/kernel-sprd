@@ -81,46 +81,46 @@
 		#size-cells = <2>;
 		ranges;
 
-		ddrbist_reserved: ddrbist-mem {
+		ddrbist_reserved: ddrbist-mem@80000000 {
 			reg = <0x0 0x80000000 0x0 0x00001000>;
 		};
 
-		audio_reserved: audio-mem {
+		audio_reserved: audio-mem@87400000 {
 			reg = <0x0 0x87400000 0x0 0x00400000>;
 		};
 
-		smem_reserved: sipc-mem {
+		smem_reserved: sipc-mem@87800000 {
 			reg = <0x0 0x87800000 0x0 0x00800000>;
 		};
 
-		sensorhub_reserved: sensorhub-mem {
+		sensorhub_reserved: sensorhub-mem@88000000 {
 			reg = <0x0 0x88000000 0x0 0x01000000>;
 		};
 
-		audiodsp_reserved: audiodsp-mem {
+		audiodsp_reserved: audiodsp-mem@89000000 {
 			reg = <0x0 0x89000000 0x0 0x00600000>;
 		};
 
-		cp_reserved: cp-mem {
+		cp_reserved: cp-mem@89600000 {
 			reg = <0x0 0x89600000 0x0 0x04600000>;
 		};
 
 		/* Only used for iq mode, will be removed in normal mode by uboot */
-		iq_reserved: iq-mem {
+		iq_reserved: iq-mem@90000000 {
 			compatible = "sprd,iq-mem";
 			reg = <0x0 0x90000000 0x0 0x04000000>;
 		};
 
 		/* must be 64M aligned */
-		sml_reserved: sml-mem {
+		sml_reserved: sml-mem@94000000 {
 			reg = <0x0 0x94000000 0x0 0x00020000>;
 		};
 
-		tos_reserved: tos-mem {
+		tos_reserved: tos-mem@94020000 {
 			reg = <0x0 0x94020000 0x0 0x01fe0000>;
 		};
 
-		pstore: pstore-mem {
+		pstore: pstore-mem@fff80000 {
 			reg = <0x0 0xfff80000 0x0 0x00040000>;
 		};
 
