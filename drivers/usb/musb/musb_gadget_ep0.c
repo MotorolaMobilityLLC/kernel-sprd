@@ -199,6 +199,9 @@ service_in_request(struct musb *musb, const struct usb_ctrlrequest *ctrlrequest)
  */
 static void musb_g_ep0_giveback(struct musb *musb, struct usb_request *req)
 {
+
+	if (!musb->gadget_driver || !musb->softconnect)
+		return;
 	musb_g_giveback(&musb->endpoints[0].ep_in, req, 0);
 }
 
@@ -670,7 +673,7 @@ __releases(musb->lock)
 __acquires(musb->lock)
 {
 	int retval;
-	if (!musb->gadget_driver)
+	if (!musb->gadget_driver || !musb->softconnect)
 		return -EOPNOTSUPP;
 	spin_unlock(&musb->lock);
 	retval = musb->gadget_driver->setup(&musb->g, ctrlrequest);
