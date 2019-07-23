@@ -23,10 +23,10 @@ struct glb_ctrl {
 	u32 mask;
 };
 
-struct glb_ctrl enable;
-struct glb_ctrl power_s;
-struct glb_ctrl power_l;
-struct glb_ctrl power_iso;
+static struct glb_ctrl enable;
+static struct glb_ctrl power_s;
+static struct glb_ctrl power_l;
+static struct glb_ctrl power_iso;
 
 static int dphy_glb_parse_dt(struct dphy_context *ctx,
 				struct device_node *np)
