@@ -221,13 +221,13 @@
 	};
 
 	dvfs_pubcp {
-		compatible = "sprd,sharkl5-pubcp-dvfs";
+		compatible = "sprd,sharkl5Pro-pubcp-dvfs";
 		sprd,core_id = <0>;
 		sprd,record_num = <10>;
 	};
 
 	dvfs_wtlcp {
-		compatible = "sprd,sharkl5-wtlcp-dvfs";
+		compatible = "sprd,sharkl5Pro-wtlcp-dvfs";
 		sprd,core_id = <1>;
 		sprd,record_num = <6>;
 	};
