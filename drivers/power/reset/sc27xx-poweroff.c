@@ -13,12 +13,15 @@
 #include <linux/regmap.h>
 #include <linux/syscore_ops.h>
 
+#define SC2720_PWR_PD_HW	0xc20
+#define SC2720_SLP_CTRL		0xd68
 #define SC2721_PWR_PD_HW	0xc20
 #define SC2721_SLP_CTRL		0xd98
 #define SC2730_PWR_PD_HW	0x1820
 #define SC2730_SLP_CTRL		0x1a48
 #define SC2731_PWR_PD_HW	0xc2c
 #define SC2731_SLP_CTRL		0xdf0
+#define SC2720_LDO_XTL_EN	BIT(2)
 #define SC2721_LDO_XTL_EN	BIT(2)
 #define SC2730_LDO_XTL_EN	BIT(2)
 #define SC2731_LDO_XTL_EN	BIT(3)
@@ -60,6 +63,12 @@ static void sc27xx_poweroff_do_poweroff(void)
 	regmap_write(regmap, pdata->sc27xx_poweroff_reg, SC27XX_PWR_OFF_EN);
 }
 
+static const struct sc27xx_poweroff_data sc2720_data = {
+	.sc27xx_poweroff_reg = SC2720_PWR_PD_HW,
+	.sc27xx_slp_ctrl_reg = SC2720_SLP_CTRL,
+	.sc27xx_ldo_xtl_en = SC2720_LDO_XTL_EN,
+};
+
 static const struct sc27xx_poweroff_data sc2721_data = {
 	.sc27xx_poweroff_reg = SC2721_PWR_PD_HW,
 	.sc27xx_slp_ctrl_reg = SC2721_SLP_CTRL,
@@ -99,6 +108,7 @@ static int sc27xx_poweroff_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id sc27xx_poweroff_of_match[] = {
+	{ .compatible = "sprd,sc2720-poweroff", .data = &sc2720_data},
 	{ .compatible = "sprd,sc2721-poweroff", .data = &sc2721_data},
 	{ .compatible = "sprd,sc2730-poweroff", .data = &sc2730_data},
 	{ .compatible = "sprd,sc2731-poweroff", .data = &sc2731_data},
