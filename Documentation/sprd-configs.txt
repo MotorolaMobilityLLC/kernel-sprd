@@ -845,6 +845,13 @@ CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3
 	[subsys]
 	[must]
 	[function]
+CONFIG_ARM_SPRD_SW_CPUFREQ
+	[arch] arm
+	[plat] sharkle32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_ARM_THUMB
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
