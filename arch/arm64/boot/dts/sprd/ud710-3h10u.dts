@@ -734,3 +734,163 @@
 		function = "func4";
 	};
 };
+
+&pcie0 {
+	sprd,pcie-startup-syscons =
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_RESERVED_REG
+			0x10000
+			0>,
+		<&anlg_phy_g13_regs 0 0
+			REG_ANLG_PHY_G13_ANALOG_PCIEPLL_H_PCIEPLL_H_CTRL0
+			MASK_ANLG_PHY_G6_ANALOG_PCIEPLL_V_DIFF_OR_SING_SEL
+			0>,
+		<&anlg_phy_g13_regs 1 0
+			REG_ANLG_PHY_G13_ANALOG_PCIEPLL_H_PCIEPLL_H_CTRL0
+			MASK_ANLG_PHY_G13_ANALOG_PCIEPLL_H_RG_PCIEPLLH_DIVN
+			(0x1f << 9)>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_PCIEPLL_H_REL_CFG
+			MASK_PMU_APB_PCIEPLL_H_FRC_ON
+			(0x1 << 8)>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_ANALOG_PHY_PWRON_CFG
+			MASK_PMU_APB_PCIE2_PWRON_REG
+			(0x1 << 2)>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_IPA_FORCE_WAKEUP_CFG
+			MASK_PMU_APB_IPA_FORCE_WAKEUP_PCIE2
+			0x1>,
+		<&pmu_apb_regs 2 1
+			REG_PMU_APB_SLEEP_STATUS
+			MASK_PMU_APB_IPA_SLP_STATUS
+			(0x6 << 24)>,
+		<&pmu_apb_regs 2 1
+			REG_PMU_APB_PWR_STATUS0_DBG
+			MASK_PMU_APB_PD_IPA_SYS_STATE
+			0x0>,
+		<&ipa_ahb_regs 0 0
+			REG_IPA_AHB_IPA_EB
+			MASK_IPA_AHB_PCIE2_EB
+			(0x1 << 8)>,
+		<&anlg_phy_g13_regs 0 0
+			REG_ANLG_PHY_G13_ANALOG_PCIEPLL_H_PCIEPLL_H_CTRL0
+			MASK_ANLG_PHY_G6_ANALOG_PCIEPLL_V_DIFF_OR_SING_SEL
+			1>,
+		<&pmu_apb_regs 0 5
+			REG_PMU_APB_PCIE_PERST_CTRL_CFG
+			MASK_PMU_APB_REG_PCIE2_PERST_N_ASSERT
+			0>;
+
+	sprd,pcie-shutdown-syscons =
+		<&pmu_apb_regs 0 5
+			REG_PMU_APB_PCIE_PERST_CTRL_CFG
+			MASK_PMU_APB_REG_PCIE2_PERST_N_ASSERT
+			(0x1 << 1)>,
+		<&anlg_phy_g13_regs 0 0
+			REG_ANLG_PHY_G13_ANALOG_PCIEPLL_H_PCIEPLL_H_CTRL0
+			MASK_ANLG_PHY_G6_ANALOG_PCIEPLL_V_DIFF_OR_SING_SEL
+			0>,
+		<&ipa_ahb_regs 0 0
+			REG_IPA_AHB_IPA_EB
+			MASK_IPA_AHB_PCIE2_EB
+			0>,
+		<&ipa_ahb_regs 0 0
+			REG_IPA_AHB_IPA_EB
+			MASK_IPA_AHB_CM4_EB
+			0>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_ANALOG_PHY_PWRON_CFG
+			MASK_PMU_APB_PCIE2_PWRON_REG
+			0>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_ANALOG_PHY_PD_CFG
+			MASK_PMU_APB_PCIE2_PD_REG
+			(0x1 << 2)>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_PCIEPLL_H_REL_CFG
+			MASK_PMU_APB_PCIEPLL_H_FRC_ON
+			0>;
+
+	sprd,pcie-resume-syscons =
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_PCIEPLL_H_REL_CFG
+			MASK_PMU_APB_PCIEPLL_H_FRC_ON
+			(0x1 << 8)>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_ANALOG_PHY_PWRON_CFG
+			MASK_PMU_APB_PCIE2_PWRON_REG
+			(0x1 << 2)>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_IPA_FORCE_WAKEUP_CFG
+			MASK_PMU_APB_IPA_FORCE_WAKEUP_PCIE2
+			0x1>,
+		<&pmu_apb_regs 2 1
+			REG_PMU_APB_SLEEP_STATUS
+			MASK_PMU_APB_IPA_SLP_STATUS
+			(0x6 << 24)>,
+		<&pmu_apb_regs 2 1
+			REG_PMU_APB_PWR_STATUS0_DBG
+			MASK_PMU_APB_PD_IPA_SYS_STATE
+			0x0>,
+		<&ipa_ahb_regs 0 0
+			REG_IPA_AHB_IPA_EB
+			MASK_IPA_AHB_PCIE2_EB
+			(0x1 << 8)>,
+		<&anlg_phy_g13_regs 1 0
+			REG_ANLG_PHY_G13_ANALOG_PCIEPLL_H_PCIEPLL_H_CTRL0
+			MASK_ANLG_PHY_G13_ANALOG_PCIEPLL_H_RG_PCIEPLLH_DIVN
+			(0x1f << 9)>,
+		<&anlg_phy_g13_regs 0 0
+			REG_ANLG_PHY_G13_ANALOG_PCIEPLL_H_PCIEPLL_H_CTRL0
+			MASK_ANLG_PHY_G6_ANALOG_PCIEPLL_V_DIFF_OR_SING_SEL
+			1>,
+		<&pmu_apb_regs 0 5
+			REG_PMU_APB_PCIE_PERST_CTRL_CFG
+			MASK_PMU_APB_REG_PCIE2_PERST_N_ASSERT
+			0>;
+
+	sprd,pcie-suspend-syscons =
+		<&pmu_apb_regs 0 5
+			REG_PMU_APB_PCIE_PERST_CTRL_CFG
+			MASK_PMU_APB_REG_PCIE2_PERST_N_ASSERT
+			(0x1 << 1)>,
+		<&anlg_phy_g13_regs 0 0
+			REG_ANLG_PHY_G13_ANALOG_PCIEPLL_H_PCIEPLL_H_CTRL0
+			MASK_ANLG_PHY_G6_ANALOG_PCIEPLL_V_DIFF_OR_SING_SEL
+			0>,
+		<&ipa_ahb_regs 0 0
+			REG_IPA_AHB_IPA_EB
+			MASK_IPA_AHB_PCIE2_EB
+			0>,
+		<&ipa_ahb_regs 0 0
+			REG_IPA_AHB_IPA_EB
+			MASK_IPA_AHB_CM4_EB
+			0>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_IPA_FORCE_WAKEUP_CFG
+			MASK_PMU_APB_IPA_FORCE_WAKEUP_PCIE2
+			0>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_ANALOG_PHY_PWRON_CFG
+			MASK_PMU_APB_PCIE2_PWRON_REG
+			0>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_ANALOG_PHY_PD_CFG
+			MASK_PMU_APB_PCIE2_PD_REG
+			(0x1 << 2)>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_PCIEPLL_H_REL_CFG
+			MASK_PMU_APB_PCIEPLL_H_FRC_ON
+			0>;
+
+	sprd,pcie-aspml1p2-syscons =
+		<&anlg_pcie20_phy_regs 1 0
+			REG_ANALOG_USB30_CFGA_ANA_CFG13
+			MASK_PIPE_CFGA_ANA_CFG13_CFG_FORCE_REFCLK_EN
+			(0x1 << 23)>,
+		<&pmu_apb_regs 1 0
+			REG_PMU_APB_RESERVED_REG
+			(0x1 << 16)     /* no corresponding macro */
+			(0x1 << 16)>;
+};
