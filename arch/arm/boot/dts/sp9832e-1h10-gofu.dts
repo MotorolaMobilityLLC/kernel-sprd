@@ -377,3 +377,19 @@
 &csi1 {
 	status = "okay";
 };
+
+&cpu0 {
+	cpu-supply = <&vddcpu>;
+};
+
+&cpu1 {
+	cpu-supply = <&vddcpu>;
+};
+
+&cpu2 {
+	cpu-supply = <&vddcpu>;
+};
+
+&cpu3 {
+	cpu-supply = <&vddcpu>;
+};
