@@ -621,6 +621,51 @@
 			<&pll CLK_TWPLL_153M6>;
 };
 
+&dcam {
+	clock-names = "dcam_eb",
+		"clk_gate_eb",
+		"dcam_axi_eb",
+		"dcam_clk",
+		"dcam_clk_parent",
+		"dcam_axi_clk",
+		"dcam_axi_clk_parent";
+	clocks = <&mm_gate CLK_DCAM_EB>,
+		<&mm_gate CLK_MM_CKG_EB>,
+		<&mm_gate CLK_MDCAM_AXI_EB>,
+		<&mm_clk CLK_DCAM_IF>,
+		<&pll CLK_TWPLL_307M2>,
+		<&mm_clk CLK_DCAM_AXI>,
+		<&pll CLK_TWPLL_512M>;
+};
+
+&isp {
+	clock-names = "isp_eb",
+		"isp_axi_eb",
+		"isp_clk",
+		"isp_clk_high_parent",
+		"isp_clk_low_parent",
+		"isp_axi_clk",
+		"isp_axi_clk_parent";
+	clocks = <&mm_gate CLK_ISP_EB>,
+		<&mm_gate CLK_MISP_AXI_EB>,
+		<&mm_clk CLK_ISP>,
+		<&pll CLK_TWPLL_307M2>,
+		<&pll CLK_TWPLL_128M>,
+		<&mm_clk CLK_ISP_AXI>,
+		<&pll CLK_TWPLL_512M>;
+};
+
+&csi0 {
+	clock-names = "clk_mipi_csi_gate_eb",
+		"clk_csi_eb",
+		"clk_cphy_cfg_gate_eb",
+		"mipi_csi_src_eb";
+	clocks =<&mm_gate CLK_CSI_EB>,
+		<&mm_gate CLK_MMIPI_CSI_EB>,
+		<&mm_gate CLK_MCPHY_CFG_EB>,
+		<&mm_clk CLK_MIPI_CSI>;
+};
+
 &jpg {
 	clock-names = "jpg_domain_eb",
 				"clk_vsp_mq_ahb_eb",

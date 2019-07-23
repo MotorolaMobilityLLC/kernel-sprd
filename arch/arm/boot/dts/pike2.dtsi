@@ -566,6 +566,7 @@
 				sprd,ana-apb-syscon = <&aon_apb_regs>;
 				sprd,csi-id = <0>;
 				sprd,ip-version = <0x100>;
+				sprd,dcam-id = <0>;
 				status = "disable";
 			};
 
