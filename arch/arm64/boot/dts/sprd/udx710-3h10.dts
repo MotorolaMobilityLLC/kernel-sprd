@@ -60,10 +60,26 @@
 	gpio-keys {
 		compatible = "gpio-keys";
 
+		key-factoryrst {
+			label = "Factory Rst Key";
+			linux,code = <KEY_F11>;
+			gpios = <&eic_debounce 2 GPIO_ACTIVE_LOW>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+
+		key-poweroff {
+			label = "Power Off Key";
+			linux,code = <KEY_F12>;
+			gpios = <&eic_debounce 1 GPIO_ACTIVE_LOW>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+
 		key-volumedown {
 			label = "Volume Down Key";
 			linux,code = <KEY_VOLUMEDOWN>;
-			gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
+			gpios = <&eic_debounce 0 GPIO_ACTIVE_LOW>;
 			debounce-interval = <2>;
 			wakeup-source;
 		};
