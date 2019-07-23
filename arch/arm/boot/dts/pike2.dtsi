@@ -225,10 +225,13 @@
 				reg = <0x20300000 0x1000>;
 				interrupts = <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "sdio_clk","sdio_clk_source",
-					      "sdio_ahb_enable";
+					      "sdio_ahb_enable","sdio_1x_eb",
+					      "sdio_2x_eb";
 				clocks = <&aon_clk CLK_SDIO0_2X>,
 					 <&pll CLK_TWPLL_384M>,
-					 <&apahb_gate CLK_SDIO0_EB>;
+					 <&apahb_gate CLK_SDIO0_EB>,
+					 <&aonapb_gate CLK_SDIO0_1X_EB>,
+					 <&aonapb_gate CLK_SDIO0_2X_EB>;
 				status = "disabled";
 			};
 
