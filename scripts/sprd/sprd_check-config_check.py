@@ -59,7 +59,7 @@ def add_diffconfig_to_dictconfig():
                 f=open(apath,'r')
                 lines = f.readlines()
                 for j in range(len(lines)):
-                    if 'ADD:' in lines[j] or 'MOD:' in lines[j]:
+                    if 'ADD:' == lines[j][:4] or 'MOD:' == lines[j][:4]:
                         tmp_arch = apath.split("/").pop(2)
                         tmp_plat = apath.split("/").pop(1)
 
