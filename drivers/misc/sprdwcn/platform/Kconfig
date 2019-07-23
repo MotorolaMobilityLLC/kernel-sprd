@@ -26,3 +26,13 @@ config WCN_PLATFORM
 
 	In order to control or debug your marlin chip, you will need to
 	support procfs command and memory dump,cp log and so on.
+
+config WCN_SWD
+	bool "wcn swd support"
+	depends on UMW2653
+	help
+	Choose Y here if you need to support SWD driver to access arm registers,
+	this is used for RD debug.
+
+	In order to control or debug your marlin chip, you will need to support
+	swd driver to access arm registers.
