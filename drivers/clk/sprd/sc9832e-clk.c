@@ -1141,7 +1141,7 @@ static SPRD_COMP_CLK(sensor1_clk, "sensor1-clk", sensor_parents, 0x28,
 		     0, 2, 8, 3, 0);
 
 static const char * const dcam_if_parents[] = { "twpll-76m8", "twpll-153m6",
-						"twpll-256m", "cpll-307m2" };
+						"twpll-256m", "twpll-307m2" };
 static SPRD_MUX_CLK(dcam_if_clk, "dcam-if-clk", dcam_if_parents, 0x2c,
 		    0, 2, SC9832E_MUX_FLAG);
 
