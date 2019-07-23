@@ -20,6 +20,10 @@
 #include "rdc_debug.h"
 #include "wcn_txrx.h"
 #include "wcn_log.h"
+#ifdef CONFIG_WCN_SWD
+#include "wcn_swd_dap.h"
+#endif
+
 #include "../include/wcn_glb_reg.h"
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
@@ -1145,7 +1149,13 @@ int mdbg_dump_mem(void)
 		edma_dump_chn_reg(i);
 #endif
 	/* DUMP ARM REG */
+#ifndef CONFIG_UMW2653
 	dump_arm_reg();
+#endif
+#ifdef CONFIG_WCN_SWD
+	swd_dump_arm_reg();
+#endif
+
 	mdbg_clear_log();
 	/* mdbg_atcmd_clean(); */
 	cp_dcache_clean_invalid_all();

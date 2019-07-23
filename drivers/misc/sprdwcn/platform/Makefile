@@ -8,6 +8,7 @@ MARLINOFILES += gnss/gnss_dump.o
 MARLINOFILES += wcn_boot.o
 marlin-$(CONFIG_WCN_PCIE) += pcie_boot.o
 MARLINOFILES += wcn_dump.o
+marlin-$(CONFIG_WCN_SWD) += wcn_swd_dap.o
 MARLINOFILES += bufring.o
 MARLINOFILES += wcn_txrx.o
 MARLINOFILES += wcn_op.o
