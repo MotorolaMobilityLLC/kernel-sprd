@@ -12208,8 +12208,8 @@ CONFIG_SDCARD_FS
 	[function] This function is used to open sdcardfs feature
 CONFIG_SDIOHAL
 	[arch] all
-	[plat] sharkl3,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,roc1,sharkl3_32,sharkle32
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -15902,8 +15902,8 @@ CONFIG_WCN_SIPC
 	[function] WCN integration chip 2342 sipc Support
 CONFIG_WCN_SLP
 	[arch] all
-	[plat] sharkl3,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,roc1,sharkl3_32,sharkle32
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
