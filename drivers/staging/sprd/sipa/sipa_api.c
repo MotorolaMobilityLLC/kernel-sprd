@@ -1211,6 +1211,8 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		pr_err("sipa: sipa_init failed %d\n", ret);
 		return ret;
 	}
+
+	device_init_wakeup(dev, true);
 	sipa_init_debugfs(&ctrl->params_cfg, ctrl);
 	return ret;
 }

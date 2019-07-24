@@ -255,8 +255,6 @@ sipa_hal_hdl sipa_hal_init(struct device *dev,
 	if (ret)
 		pr_err("request irq err ret = %d\n", ret);
 
-	enable_irq_wake(hal_cfg->ipa_intr);
-
 	hal_cfg->phy_virt_res.glb_phy = cfg->glb_phy;
 	hal_cfg->phy_virt_res.glb_size = cfg->glb_size;
 	hal_cfg->phy_virt_res.glb_base =

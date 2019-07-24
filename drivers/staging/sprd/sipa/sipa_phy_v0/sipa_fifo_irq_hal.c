@@ -1,5 +1,6 @@
 #include <asm/irq.h>
 #include <linux/sipa.h>
+#include <linux/pm_wakeup.h>
 
 #include "../sipa_hal_priv.h"
 #include "sipa_device.h"
@@ -102,6 +103,9 @@ u32 sipa_int_callback_func(int evt, void *cookie)
 					     cfg->cmn_fifo_cfg);
 		}
 	}
+
+	if (!cfg->dev->power.wakeup->active)
+		pm_wakeup_dev_event(cfg->dev, 500, true);
 
 	return TRUE;
 }
