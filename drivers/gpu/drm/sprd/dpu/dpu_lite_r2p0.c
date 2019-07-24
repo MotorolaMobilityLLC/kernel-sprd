@@ -798,7 +798,7 @@ static void dpu_dvfs_task_init(struct dpu_context *ctx)
 	static int need_config = 1;
 
 	if (!need_config)
-		pr_debug("dpu dvfs tasklet has inited\n");
+		return;
 
 	need_config = 0;
 	tasklet_init(&ctx->dvfs_task, dpu_dvfs_task_func,
