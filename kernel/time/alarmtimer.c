@@ -64,18 +64,6 @@ static struct wakeup_source *ws;
 static struct rtc_timer		rtctimer;
 static struct rtc_device	*rtcdev;
 static DEFINE_SPINLOCK(rtcdev_lock);
-static bool boot_charging;
-
-static int __init alarmtimer_charger_mode(char *str)
-{
-	if (strcmp(str, "charger"))
-		boot_charging = false;
-	else
-		boot_charging = true;
-
-	return 0;
-}
-__setup("androidboot.mode=", alarmtimer_charger_mode);
 
 /**
  * alarmtimer_get_rtcdev - Return selected rtcdevice
@@ -368,22 +356,6 @@ void alarmtimer_shutdown(struct platform_device *pdev)
 
 	if (min == 0) {
 		pr_info("No poweroff alarm found\n");
-
-		/*
-		 * In charging mode, if one poweroff alarm was fired, it will
-		 * disable the RTC alarm, as well as clearing the POWEROFF_ALM
-		 * flag, that will cause u-boot get one incorrect boot mode.
-		 *
-		 * So in charging mode, if the poweroff alarm was fired, we
-		 * should enable the RTC alarm again as one workaround to avoid
-		 * this issue.
-		 */
-		if (boot_charging && (rtc->flags & RTC_AF) &&
-		    rtc->ops->alarm_irq_enable) {
-			pr_info("Workaround: enable alarm in charging mode\n");
-			rtc->ops->alarm_irq_enable(rtc->dev.parent, true);
-		}
-
 		return;
 	} else if (ktime_to_ms(min) < 10 * MSEC_PER_SEC) {
 		pr_warn("Don't need to set poweroff alarm due to less than 10s\n");
