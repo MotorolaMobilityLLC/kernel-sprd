@@ -72,9 +72,9 @@
 #define BAD_FIQ		2
 #define BAD_ERROR	3
 
-#ifdef CONFIG_SPRD_DEBUG
+// #ifdef CONFIG_SPRD_DEBUG
 #define STACK_KEEP_SIZE	0x100
-#endif
+// #endif
 
 	.macro kernel_ventry, el, label, regsize = 64
 	.align 7
@@ -165,11 +165,11 @@ alternative_cb_end
 	.if	\regsize == 32
 	mov	w0, w0				// zero upper 32 bits of x0
 	.endif
-#ifdef CONFIG_SPRD_DEBUG
+// #ifdef CONFIG_SPRD_DEBUG
 	.if	\el != 0
 	sub	sp, sp, #STACK_KEEP_SIZE
 	.endif
-#endif
+// #endif
 	stp	x0, x1, [sp, #16 * 0]
 	stp	x2, x3, [sp, #16 * 1]
 	stp	x4, x5, [sp, #16 * 2]
@@ -208,9 +208,9 @@ alternative_cb_end
 #endif
 	.else
 	add	x21, sp, #S_FRAME_SIZE
-#ifdef CONFIG_SPRD_DEBUG
+// #ifdef CONFIG_SPRD_DEBUG
 	add	x21, x21, #STACK_KEEP_SIZE
-#endif
+// #endif
 	get_thread_info tsk
 	/* Save the task's original addr_limit and set USER_DS */
 	ldr	x20, [tsk, #TSK_TI_ADDR_LIMIT]
@@ -374,11 +374,11 @@ alternative_else_nop_endif
 	ldp	x26, x27, [sp, #16 * 13]
 	ldp	x28, x29, [sp, #16 * 14]
 	ldr	lr, [sp, #S_LR]
-#ifdef CONFIG_SPRD_DEBUG
+// #ifdef CONFIG_SPRD_DEBUG
 	.if	\el != 0
 	add	sp, sp, #STACK_KEEP_SIZE
 	.endif
-#endif
+// #endif
 	add	sp, sp, #S_FRAME_SIZE		// restore sp
 
 	.if	\el == 0
