@@ -41,37 +41,33 @@ def main():
 
 			f=open(apath,'r')
 			lines = f.readlines()
-			if '#' in lines:
-				continue
 			for j in range(len(lines)):
+				if '#' in lines[j]:
+					continue
+
 				if '"' in lines[j][-2:]:
 					tmpline = lines[j][:-2]
 				else:
 					tmpline = lines[j][:-1]
 
-				matchObj = re.search( r'sprd(.*)defconfig', tmpline)
+				matchObj = re.search(r'sprd(.*)defconfig', tmpline)
 				if matchObj:
 					kernel_defconfig=matchObj.group()
 
-				matchObj = re.search( r'KERNEL_ARCH(.*)=(.*)', tmpline)
+				matchObj = re.search(r'KERNEL_ARCH(.*)=(.*)', tmpline)
 				if matchObj:
-					arch=matchObj.group(2).lstrip('"').lstrip()
+					arch=matchObj.group(2).strip('"').strip()
 
 				if 'CROSS_COMPILE' in tmpline:
 					matchObj = re.search(r'(.*)-' ,tmpline.split("/").pop())
 					if matchObj:
 						cross_compile=matchObj.group(0)
 
-				if 'CC_LD_ARG' in tmpline and toolchain != 'clang':
+				if 'BSP_MAKE_EXTRA_ARGS' in tmpline and toolchain != 'clang':
 					toolchain="clang"
 				elif toolchain=="":
 					toolchain="gcc"
 
-				if 'CLANG_TRIPLE' in tmpline:
-					clang_toolchain=tmpline.split("=").pop().lstrip('"').lstrip()
-
-		if toolchain=="clang":
-			cross_compile=clang_toolchain
 		if kernel_defconfig!="" and arch!="" and cross_compile!="" and toolchain!="":
 			boardconfig_list.append(kernel_defconfig+","+arch+","+cross_compile+","+toolchain)
 
