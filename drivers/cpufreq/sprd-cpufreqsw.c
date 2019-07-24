@@ -1362,14 +1362,15 @@ put_np:
 		}
 	}
 
-	ret = cpufreq_register_driver(&sprd_cpufreq_driver);
-	if (ret) {
-		dev_err(&pdev->dev, "cpufreq driver register failed %d\n", ret);
+	ret = sprd_cpufreq_cpuhp_setup();
+	if (ret < 0) {
+		dev_err(&pdev->dev, "cpufreq_hotplug_setup failed!\n");
 		return ret;
 	}
-	ret = sprd_cpufreq_cpuhp_setup();
-	if (ret < 0)
-		dev_err(&pdev->dev, "cpufreq_hotplug_setup failed!\n");
+
+	ret = cpufreq_register_driver(&sprd_cpufreq_driver);
+	if (ret)
+		dev_err(&pdev->dev, "cpufreq driver register failed %d\n", ret);
 
 	return ret;
 }
