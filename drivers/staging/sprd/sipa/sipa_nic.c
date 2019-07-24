@@ -132,7 +132,7 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 			break;
 		}
 	}
-	pr_info("%s nic_id = %d\n", __func__, nic_id);
+	dev_info(ctrl->ctx->pdev, "%s nic_id = %d\n", __func__, nic_id);
 	if (nic_id == SIPA_NIC_MAX)
 		return -EINVAL;
 
@@ -319,7 +319,8 @@ int sipa_nic_trigger_flow_ctrl_work(enum sipa_nic_id nic_id, int err)
 		schedule_work(&ctrl->flow_ctrl_work);
 		break;
 	default:
-		pr_warn("don't have this err type\n");
+		dev_warn(ctrl->ctx->pdev,
+			 "don't have this flow ctrl err type\n");
 		break;
 	}
 

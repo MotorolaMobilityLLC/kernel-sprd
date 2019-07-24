@@ -56,7 +56,8 @@ void sipa_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 		wake_up(&sender->free_waitq);
 
 	if (evt & SIPA_HAL_TXFIFO_OVERFLOW) {
-		pr_err("sipa overflow on ep:%d\n", sender->ep->id);
+		dev_err(sender->ctx->pdev,
+			"sipa overflow on ep:%d\n", sender->ep->id);
 		BUG_ON(0);
 	}
 
@@ -83,7 +84,8 @@ static void sipa_free_sent_items(struct sipa_skb_sender *sender)
 						      sender->ep->send_fifo.idx,
 						      &item, i);
 		if (item.err_code > 1)
-			pr_err("have node transfer err = %d\n", item.err_code);
+			dev_err(sender->ctx->pdev,
+				"have node transfer err = %d\n", item.err_code);
 
 		spin_lock_irqsave(&sender->send_lock, flags);
 		list_for_each_entry_safe(iter, _iter,
@@ -119,8 +121,9 @@ static void sipa_free_sent_items(struct sipa_skb_sender *sender)
 		sipa_inform_evt_to_nics(sender, SIPA_LEAVE_FLOWCTRL);
 	}
 	if (num != success_cnt)
-		pr_err("recv num = %d release num = %d\n",
-		       num, success_cnt);
+		dev_err(sender->ctx->pdev,
+			"recv num = %d release num = %d\n",
+			num, success_cnt);
 }
 
 static int sipa_send_thread(void *data)
@@ -196,12 +199,10 @@ int create_sipa_skb_sender(struct sipa_context *ipa,
 	int i, ret;
 	struct sipa_skb_sender *sender = NULL;
 
-	pr_info("%s ep->id = %d start\n", __func__, ep->id);
+	dev_info(ipa->pdev, "%s ep->id = %d start\n", __func__, ep->id);
 	sender = kzalloc(sizeof(*sender), GFP_KERNEL);
-	if (!sender) {
-		pr_err("create_sipa_skb_sender: kzalloc err.\n");
+	if (!sender)
 		return -ENOMEM;
-	}
 
 	sender->pair_cache = kcalloc(ep->send_fifo.rx_fifo.fifo_depth,
 				     sizeof(struct sipa_skb_dma_addr_node),
@@ -237,8 +238,8 @@ int create_sipa_skb_sender(struct sipa_context *ipa,
 	sender->send_thread = kthread_create(sipa_send_thread, sender,
 					     "sipa-send-%d", ep->id);
 	if (IS_ERR(sender->send_thread)) {
-		pr_err("Failed to create kthread: ipa-send-%d\n",
-		       ep->id);
+		dev_err(ipa->pdev, "Failed to create kthread: ipa-send-%d\n",
+			ep->id);
 		ret = PTR_ERR(sender->send_thread);
 		kfree(sender->pair_cache);
 		kfree(sender);
@@ -249,8 +250,8 @@ int create_sipa_skb_sender(struct sipa_context *ipa,
 					     "sipa-free-%d", ep->id);
 	if (IS_ERR(sender->free_thread)) {
 		kthread_stop(sender->send_thread);
-		pr_err("Failed to create kthread: ipa-free-%d\n",
-		       ep->id);
+		dev_err(ipa->pdev, "Failed to create kthread: ipa-free-%d\n",
+			ep->id);
 		ret = PTR_ERR(sender->free_thread);
 		kfree(sender->pair_cache);
 		kfree(sender);

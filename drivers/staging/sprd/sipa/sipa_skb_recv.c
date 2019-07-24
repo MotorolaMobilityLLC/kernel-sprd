@@ -87,10 +87,11 @@ struct sk_buff *alloc_recv_skb(u32 req_len, u8 rsvd)
 {
 	struct sk_buff *skb;
 	u32 hr;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
 	skb = __dev_alloc_skb(req_len + rsvd, GFP_KERNEL | GFP_NOWAIT);
 	if (!skb) {
-		pr_err("failed to alloc skb!\n");
+		dev_err(ctrl->ctx->pdev, "failed to alloc skb!\n");
 		return NULL;
 	}
 
@@ -113,8 +114,9 @@ void fill_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt)
 
 	depth = receiver->ep->recv_fifo.rx_fifo.fifo_depth;
 	if (cnt > (depth - depth / 4)) {
-		pr_warn("ep id = %d free node is not enough,need fill %d\n",
-			receiver->ep->id, cnt);
+		dev_warn(receiver->ctx->pdev,
+			 "ep id = %d free node is not enough,need fill %d\n",
+			 receiver->ep->id, cnt);
 		receiver->rx_danger_cnt++;
 	}
 
@@ -156,7 +158,8 @@ void fill_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt)
 				   &receiver->need_fill_cnt);
 	}
 	if (fail_cnt)
-		pr_err("fill free fifo fail_cnt = %d\n", fail_cnt);
+		dev_err(receiver->ctx->pdev,
+			"fill free fifo fail_cnt = %d\n", fail_cnt);
 }
 
 void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
@@ -168,7 +171,8 @@ void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 		wake_up(&receiver->recv_waitq);
 
 	if (evt & SIPA_RECV_WARN_EVT) {
-		pr_err("sipa maybe poor resources evt = 0x%x\n", evt);
+		dev_err(receiver->ctx->pdev,
+			"sipa maybe poor resources evt = 0x%x\n", evt);
 		receiver->tx_danger_cnt++;
 		wake_up(&receiver->recv_waitq);
 	}
@@ -204,8 +208,9 @@ static int dispath_to_nic(struct sipa_skb_receiver *receiver,
 	if (dst_nic) {
 		sipa_nic_push_skb(dst_nic, skb);
 	} else {
-		pr_err("dispath_to_nic src:0x%x, netid:%d no nic matched\n",
-		       item->src, item->netid);
+		dev_err(receiver->ctx->pdev,
+			"dispath to nic src:0x%x, netid:%d no nic matched\n",
+			item->src, item->netid);
 		dev_kfree_skb_any(skb);
 	}
 
@@ -226,8 +231,9 @@ static int do_recv(struct sipa_skb_receiver *receiver)
 					 receiver->ep->recv_fifo.idx);
 
 	if (num > (depth - depth / 4)) {
-		pr_warn("ep id %d tx fifo not read in time num = %d\n",
-			receiver->ep->id, num);
+		dev_warn(receiver->ctx->pdev,
+			 "ep id %d tx fifo not read in time num = %d\n",
+			 receiver->ep->id, num);
 		receiver->tx_danger_cnt++;
 	}
 
@@ -238,16 +244,19 @@ static int do_recv(struct sipa_skb_receiver *receiver)
 		ret = get_recv_array_node(&receiver->recv_array,
 					  &recv_skb, &addr);
 		if (!item.addr) {
-			pr_err("phy addr is null = %llx\n", item.addr);
+			dev_err(receiver->ctx->pdev,
+				"phy addr is null = %llx\n", item.addr);
 			continue;
 		}
 		if (ret) {
-			pr_err("recv addr:0x%llx, butrecv_array is empty\n",
-			       item.addr);
+			dev_err(receiver->ctx->pdev,
+				"recv addr:0x%llx, butrecv_array is empty\n",
+				item.addr);
 			continue;
 		} else if (addr != item.addr) {
-			pr_err("recv addr:0x%llx, but recv_array addr:0x%llx not equal\n",
-			       item.addr, addr);
+			dev_err(receiver->ctx->pdev,
+				"recv addr:0x%llx, but recv_array addr:0x%llx not equal\n",
+				item.addr, addr);
 			continue;
 		}
 
@@ -331,11 +340,13 @@ void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 	attr.tx_enter_flowctrl_watermark = 0;
 	attr.tx_leave_flowctrl_watermark = 0;
 
-	pr_info("ep_id = %d fifo_id = %d rx_fifo depth = 0x%x\n",
-		receiver->ep->id,
-		receiver->ep->recv_fifo.idx,
-		receiver->ep->recv_fifo.rx_fifo.fifo_depth);
-	pr_info("recv status is %d\n", receiver->ep->recv_fifo.is_receiver);
+	dev_info(receiver->ctx->pdev,
+		 "ep_id = %d fifo_id = %d rx_fifo depth = 0x%x\n",
+		 receiver->ep->id,
+		 receiver->ep->recv_fifo.idx,
+		 receiver->ep->recv_fifo.rx_fifo.fifo_depth);
+	dev_info(receiver->ctx->pdev,
+		 "recv status is %d\n", receiver->ep->recv_fifo.is_receiver);
 	sipa_open_common_fifo(receiver->ctx->hdl,
 			      receiver->ep->recv_fifo.idx,
 			      &attr,
@@ -398,12 +409,10 @@ int create_sipa_skb_receiver(struct sipa_context *ipa,
 	int ret;
 	struct sipa_skb_receiver *receiver = NULL;
 
-	pr_info("%s ep->id = %d start\n", __func__, ep->id);
+	dev_info(ipa->pdev, "ep->id = %d start\n", ep->id);
 	receiver = kzalloc(sizeof(struct sipa_skb_receiver), GFP_KERNEL);
-	if (!receiver) {
-		pr_err("create_sipa_sipa_receiver: kzalloc err.\n");
+	if (!receiver)
 		return -ENOMEM;
-	}
 
 	receiver->ctx = ipa;
 	receiver->ep = ep;
@@ -414,7 +423,8 @@ int create_sipa_skb_receiver(struct sipa_context *ipa,
 	ret = create_recv_array(&receiver->recv_array,
 				receiver->ep->recv_fifo.rx_fifo.fifo_depth);
 	if (ret) {
-		pr_err("create_sipa_sipa_receiver: recv_array kzalloc err.\n");
+		dev_err(ipa->pdev,
+			"create_sipa_sipa_receiver: recv_array kzalloc err.\n");
 		kfree(receiver);
 		return -ENOMEM;
 	}
@@ -428,8 +438,9 @@ int create_sipa_skb_receiver(struct sipa_context *ipa,
 	receiver->thread = kthread_create(recv_thread, receiver,
 					  "sipa-recv-%d", ep->id);
 	if (IS_ERR(receiver->thread)) {
-		pr_err("Failed to create kthread: ipa-recv-%d\n",
-		       ep->id);
+		dev_err(ipa->pdev,
+			"Failed to create kthread: ipa-recv-%d\n",
+			ep->id);
 		ret = PTR_ERR(receiver->thread);
 		return ret;
 	}
@@ -438,8 +449,8 @@ int create_sipa_skb_receiver(struct sipa_context *ipa,
 					       "sipa-fill-%d", ep->id);
 	if (IS_ERR(receiver->fill_thread)) {
 		kthread_stop(receiver->thread);
-		pr_err("Failed to create kthread: ipa-fill-%d\n",
-		       ep->id);
+		dev_err(ipa->pdev, "Failed to create kthread: ipa-fill-%d\n",
+			ep->id);
 		ret = PTR_ERR(receiver->fill_thread);
 		kfree(receiver);
 		return ret;

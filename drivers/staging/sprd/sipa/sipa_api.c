@@ -352,7 +352,7 @@ int sipa_get_ep_info(enum sipa_ep_id id,
 	struct sipa_endpoint *ep = ctrl->eps[id];
 
 	if (!ep) {
-		pr_err("%s: ep id:%d not create!", __func__, id);
+		dev_err(ctrl->ctx->pdev, "ep id:%d not create!", id);
 		return -EPROBE_DEFER;
 	}
 	if (SIPA_EP_USB == id || SIPA_EP_WIFI == id || SIPA_EP_PCIE == id)
@@ -374,7 +374,9 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 	struct sipa_endpoint *ep = ctrl->eps[in->id];
 
 	if (!ep) {
-		pr_err("sipa_pam_connect: ep id:%d not create!", in->id);
+		dev_err(ctrl->ctx->pdev,
+			"sipa pam connect ep id:%d not create!",
+			in->id);
 		return -EPROBE_DEFER;
 	}
 
@@ -432,7 +434,7 @@ int sipa_ext_open_pcie(struct sipa_pcie_open_params *in)
 	struct sipa_endpoint *ep = ctrl->eps[SIPA_EP_PCIE];
 
 	if (ep) {
-		pr_err("%s: pcie already create!", __func__);
+		dev_err(ctrl->ctx->pdev, "pcie already create!");
 		return -EINVAL;
 	} else {
 		ep = kzalloc(sizeof(*ep), GFP_KERNEL);
@@ -515,7 +517,8 @@ int sipa_disconnect(enum sipa_ep_id ep_id, enum sipa_disconnect_id stage)
 	struct sipa_endpoint *ep = ctrl->eps[ep_id];
 
 	if (!ep) {
-		pr_err("sipa_disconnect: ep id:%d not create!", ep_id);
+		dev_err(ctrl->ctx->pdev,
+			"sipa disconnect ep id:%d not create!", ep_id);
 		return -ENODEV;
 	}
 
@@ -535,7 +538,7 @@ int sipa_disconnect(enum sipa_ep_id ep_id, enum sipa_disconnect_id stage)
 		ep->suspended = true;
 		break;
 	default:
-		pr_err("don't have this stage\n");
+		dev_err(ctrl->ctx->pdev, "don't have this stage\n");
 		return -EPERM;
 	}
 
@@ -555,7 +558,8 @@ int sipa_enable_receive(enum sipa_ep_id ep_id, bool enabled)
 	struct sipa_endpoint *ep = ctrl->eps[ep_id];
 
 	if (!ep) {
-		pr_err("sipa_disconnect: ep id:%d not create!", ep_id);
+		dev_err(ctrl->ctx->pdev,
+			"sipa_disconnect: ep id:%d not create!", ep_id);
 		return -ENODEV;
 	}
 
@@ -588,8 +592,7 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 						IORESOURCE_MEM,
 						"glb-base");
 	if (!resource) {
-		pr_err("%s :get resource failed for glb-base!\n",
-		       __func__);
+		dev_err(&pdev->dev, "get resource failed for glb-base!\n");
 		return -ENODEV;
 	}
 	cfg->glb_phy = resource->start;
@@ -600,7 +603,7 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 						IORESOURCE_MEM,
 						"iram-base");
 	if (!resource) {
-		pr_err("%s :get resource failed for iram-base!\n", __func__);
+		dev_err(&pdev->dev, "get resource failed for iram-base!\n");
 		return -ENODEV;
 	}
 	cfg->iram_phy = resource->start;
@@ -609,20 +612,19 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 	/* get IRQ numbers */
 	cfg->ipa_intr = platform_get_irq_byname(pdev, "local_ipa_irq");
 	if (cfg->ipa_intr == -ENXIO) {
-		pr_err("%s :get ipa-irq fail!\n",   __func__);
+		dev_err(&pdev->dev, "get ipa-irq fail!\n");
 		return -ENODEV;
 	}
-	pr_info("ipa intr num = %d\n", cfg->ipa_intr);
+	dev_info(&pdev->dev, "ipa intr num = %d\n", cfg->ipa_intr);
 
 	/* get IPA bypass mode */
 	ret = of_property_read_u32(pdev->dev.of_node,
 				   "sprd,sipa-bypass-mode",
 				   &cfg->is_bypass);
 	if (ret)
-		pr_debug("%s :using non-bypass mode by default\n",  __func__);
+		dev_info(&pdev->dev, "using non-bypass mode by default\n");
 	else
-		pr_debug("%s : using bypass mode =%d", __func__,
-			 cfg->is_bypass);
+		dev_info(&pdev->dev, "using bypass mode =%d", cfg->is_bypass);
 
 	/* get through pcie flag */
 	cfg->need_through_pcie =
@@ -643,12 +645,12 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 	cfg->sys_regmap = syscon_regmap_lookup_by_name(pdev->dev.of_node,
 						       "enable");
 	if (IS_ERR(cfg->sys_regmap))
-		pr_err("%s :get sys regmap fail!\n", __func__);
+		dev_err(&pdev->dev, "get sys regmap fail!\n");
 
 	ret = syscon_get_args_by_name(pdev->dev.of_node,
 				      "enable", 2, reg_info);
 	if (ret < 0 || ret != 2)
-		pr_warn("%s :get enable register info fail!\n", __func__);
+		dev_err(&pdev->dev, "get enable register info fail!\n");
 	else {
 		cfg->enable_reg = reg_info[0];
 		cfg->enable_mask = reg_info[1];
@@ -706,13 +708,14 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 static int ipa_pre_init(struct sipa_plat_drv_cfg *cfg)
 {
 	int ret;
+	struct sipa_control *ctrl = sipa_get_ctrl_pointer();
 
 	cfg->name = DRV_LOCAL_NAME;
 
 	cfg->class = class_create(THIS_MODULE, cfg->name);
 	ret = alloc_chrdev_region(&cfg->dev_num, 0, 1, cfg->name);
 	if (ret) {
-		pr_err("ipa alloc chr dev region err\n");
+		dev_err(ctrl->ctx->pdev, "ipa alloc chr dev region err\n");
 		return -1;
 	}
 
@@ -724,7 +727,7 @@ static int ipa_pre_init(struct sipa_plat_drv_cfg *cfg)
 
 	ret = cdev_add(&cfg->cdev, cfg->dev_num, 1);
 	if (ret) {
-		pr_err("%s add cdev failed\n", cfg->name);
+		dev_err(ctrl->ctx->pdev, "%s add cdev failed\n", cfg->name);
 		return -1;
 	}
 
@@ -748,19 +751,17 @@ static int create_sipa_ep_from_fifo_idx(struct device *dev,
 	ep = ctrl->eps[ep_id];
 	if (!ep) {
 		ep = kzalloc(sizeof(*ep), GFP_KERNEL);
-		if (!ep) {
-			pr_err("create_sipa_ep: kzalloc err.\n");
+		if (!ep)
 			return -ENOMEM;
-		}
+
 		ctrl->eps[ep_id] = ep;
 	}
 
 	ep->sipa_ctx = ipa;
 	ep->id = (fifo_info + fifo_idx)->relate_ep;
-	pr_info("idx = %d ep = %d ep_id = %d is_to_ipa = %d\n",
-		fifo_idx, ep->id, ep_id,
-		(fifo_info + fifo_idx)->is_to_ipa);
-
+	dev_info(dev, "idx = %d ep = %d ep_id = %d is_to_ipa = %d\n",
+		 fifo_idx, ep->id, ep_id,
+		 (fifo_info + fifo_idx)->is_to_ipa);
 	if (!(fifo_info + fifo_idx)->is_to_ipa) {
 		fifo = &ep->recv_fifo;
 		fifo->is_receiver = true;
@@ -822,7 +823,7 @@ static int create_sipa_eps(struct device *dev,
 	int i;
 	int ret = 0;
 
-	pr_info("%s start\n", __func__);
+	dev_info(dev, "create sipa eps start\n");
 	for (i = 0; i < SIPA_FIFO_MAX; i++) {
 		if (cfg->common_fifo_cfg[i].tx_fifo.fifo_size > 0) {
 			ret = create_sipa_ep_from_fifo_idx(dev, i, cfg, ipa);
@@ -986,7 +987,8 @@ static int sipa_req_ipa_prod(void *user_data)
 
 	ret = sipa_force_wakeup(cfg, true);
 	if (ret) {
-		pr_err("sipa: sipa_hal_init failed %d\n", ret);
+		dev_err(ctrl->ctx->pdev,
+			"sipa: sipa_hal_init failed %d\n", ret);
 		return ret;
 	}
 
@@ -1001,7 +1003,8 @@ static int sipa_rls_ipa_prod(void *user_data)
 
 	ret = sipa_force_wakeup(cfg, false);
 	if (ret) {
-		pr_err("sipa: sipa_hal_init failed %d\n", ret);
+		dev_err(ctrl->ctx->pdev,
+			"sipa: sipa_hal_init failed %d\n", ret);
 		return ret;
 	}
 
@@ -1028,14 +1031,14 @@ static int sipa_create_ipa_prod(struct sipa_context *ipa)
 	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_WWAN_UL,
 				     SIPA_RM_RES_PROD_IPA);
 	if (ret < 0 && ret != -EINPROGRESS) {
-		pr_err("sipa_init: add_dependency WWAN_UL fail.\n");
+		dev_err(ipa->pdev, "sipa_init: add_dependency WWAN_UL fail.\n");
 		sipa_rm_delete_resource(SIPA_RM_RES_PROD_IPA);
 		return ret;
 	}
 	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_WWAN_DL,
 				     SIPA_RM_RES_PROD_IPA);
 	if (ret < 0 && ret != -EINPROGRESS) {
-		pr_err("sipa_init: add_dependency WWAN_DL fail.\n");
+		dev_err(ipa->pdev, "sipa_init: add_dependency WWAN_DL fail.\n");
 		sipa_rm_delete_dependency(SIPA_RM_RES_CONS_WWAN_UL,
 					  SIPA_RM_RES_PROD_IPA);
 		sipa_rm_delete_resource(SIPA_RM_RES_PROD_IPA);
@@ -1044,7 +1047,7 @@ static int sipa_create_ipa_prod(struct sipa_context *ipa)
 	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_USB,
 				     SIPA_RM_RES_PROD_IPA);
 	if (ret < 0 && ret != -EINPROGRESS) {
-		pr_err("sipa_init: add_dependency USB fail.\n");
+		dev_err(ipa->pdev, "sipa_init: add_dependency USB fail.\n");
 		sipa_rm_delete_dependency(SIPA_RM_RES_CONS_WWAN_UL,
 					  SIPA_RM_RES_PROD_IPA);
 		sipa_rm_delete_dependency(SIPA_RM_RES_CONS_WWAN_DL,
@@ -1074,10 +1077,8 @@ static int sipa_init(struct sipa_context **ipa_pp,
 	struct sipa_context *ipa = NULL;
 
 	ipa = kzalloc(sizeof(struct sipa_context), GFP_KERNEL);
-	if (!ipa) {
-		pr_err("sipa_init: kzalloc err.\n");
+	if (!ipa)
 		return -ENOMEM;
-	}
 
 	ipa->pdev = ipa_dev;
 	ipa->bypass_mode = cfg->is_bypass;
@@ -1171,8 +1172,8 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 	* SIPA probe function can be called for multiple times as the same probe
 	* function handles multiple compatibilities
 	*/
-	pr_debug("sipa: IPA driver probing started for %s\n",
-		 pdev_p->dev.of_node->name);
+	dev_dbg(dev, "sipa: IPA driver probing started for %s\n",
+		pdev_p->dev.of_node->name);
 
 	ctrl = kzalloc(sizeof(*ctrl), GFP_KERNEL);
 	if (!ctrl)
@@ -1183,32 +1184,32 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 
 	ret = sipa_parse_dts_configuration(pdev_p, &ctrl->params_cfg);
 	if (ret) {
-		pr_err("sipa: dts parsing failed\n");
+		dev_err(dev, "sipa: dts parsing failed\n");
 		return ret;
 	}
 
 	ret = ipa_pre_init(&ctrl->params_cfg);
 	if (ret) {
-		pr_err("sipa: pre init failed\n");
+		dev_err(dev, "sipa: pre init failed\n");
 		return ret;
 	}
 
 	ret = sipa_force_wakeup(&ctrl->params_cfg, true);
 	if (ret) {
-		pr_err("sipa: sipa_hal_init failed %d\n", ret);
+		dev_err(dev, "sipa: sipa_hal_init failed %d\n", ret);
 		return ret;
 	}
 
 	ret = sipa_set_enabled(&ctrl->params_cfg, true);
 	if (ret) {
-		pr_err("sipa: sipa_hal_init failed %d\n", ret);
+		dev_err(dev, "sipa power wq create failed\n");
 		return ret;
 	}
 
 	INIT_WORK(&ctrl->flow_ctrl_work, sipa_notify_sender_flow_ctrl);
 	ret = sipa_init(&ctrl->ctx, &ctrl->params_cfg, dev);
 	if (ret) {
-		pr_err("sipa: sipa_init failed %d\n", ret);
+		dev_err(dev, "sipa: sipa_init failed %d\n", ret);
 		return ret;
 	}
 
@@ -1300,8 +1301,6 @@ static struct platform_driver sipa_plat_drv = {
 
 static int __init sipa_module_init(void)
 {
-	pr_debug("SIPA module init\n");
-
 	/* Register as a platform device driver */
 	return platform_driver_register(&sipa_plat_drv);
 }
