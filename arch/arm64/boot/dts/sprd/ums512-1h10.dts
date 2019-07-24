@@ -525,6 +525,15 @@
 
 &sdio0 {
 	cd-gpios = <&eic_sync 19 GPIO_ACTIVE_HIGH>;
+	syscons = <&aon_apb_regs REG_AON_APB_RF_AP_SDIO0_PHY_CTRL MASK_AON_APB_RF_AP_SDIO0_CARD_PRESENT_32K>,
+		  <&aon_apb_regs REG_AON_APB_RF_AP_SDIO0_PHY_CTRL MASK_AON_APB_RF_AP_SDIO0_CARD_PROTECT_32K>,
+		  <&aon_apb_regs REG_AON_APB_RF_AP_SDIO0_PHY_CTRL MASK_AON_APB_RF_AP_SDIO0_CARDDET_DBNC_EN_32K>,
+		  <&aon_apb_regs REG_AON_APB_RF_AP_SDIO0_PHY_CTRL MASK_AON_APB_RF_AP_SDIO0_CARDDET_DBNC_THD_32K>;
+	syscon-names = "sd_detect_pol",
+		       "sd_hotplug_protect_en",
+		       "sd_hotplug_debounce_en",
+		       "sd_hotplug_debounce_cn";
+
 };
 
 &pwms {
