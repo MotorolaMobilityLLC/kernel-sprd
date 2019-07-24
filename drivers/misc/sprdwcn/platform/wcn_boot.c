@@ -1728,16 +1728,16 @@ void set_wifipa_status(int subsys, int val)
 
 		if (((subsys != MARLIN_BLUETOOTH) && (subsys != MARLIN_WIFI)) &&
 		    ((marlin_dev->power_state & 0x5) == 0)) {
-			wifipa_enable(0);
 			wcn_wifipa_bound_xtl(false);
+			wifipa_enable(0);
 		}
 	} else {
 		if (((subsys == MARLIN_BLUETOOTH) &&
 		     ((marlin_dev->power_state & 0x4) == 0)) ||
 		    ((subsys == MARLIN_WIFI) &&
 		     ((marlin_dev->power_state & 0x1) == 0))) {
-			wifipa_enable(0);
 			wcn_wifipa_bound_xtl(false);
+			wifipa_enable(0);
 		}
 	}
 }
@@ -2443,8 +2443,8 @@ static int  marlin_remove(struct platform_device *pdev)
 	sprdwcn_bus_deinit();
 	if (marlin_dev->power_state != 0) {
 		WCN_INFO("marlin some subsys power is on, warning!\n");
-		wifipa_enable(0);
 		wcn_wifipa_bound_xtl(false);
+		wifipa_enable(0);
 		marlin_chip_en(false, false);
 	}
 	wcn_bus_deinit();
@@ -2465,9 +2465,9 @@ static void marlin_shutdown(struct platform_device *pdev)
 {
 	if (marlin_dev->power_state != 0) {
 		WCN_INFO("marlin some subsys power is on, warning!\n");
-		wifipa_enable(0);
 		wcn_avdd12_bound_xtl(false);
 		wcn_wifipa_bound_xtl(false);
+		wifipa_enable(0);
 		marlin_chip_en(false, false);
 	}
 	WCN_INFO("%s end\n", __func__);
