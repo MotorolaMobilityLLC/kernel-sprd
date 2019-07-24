@@ -508,7 +508,7 @@
 	sprd,sdio-adma;
 	no-sd;
 	no-mmc;
-	status = "disabled";
+	status = "okay";
 };
 
 &sdio3 {

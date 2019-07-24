@@ -79,16 +79,19 @@
 		m2-to-ap-irq-gpios = <&ap_gpio 96 GPIO_ACTIVE_LOW>;
 		xtal-26m-clk-type = "TCXO";
 		/* no need config dvdd12 because of share vddmem to DDR */
-		avdd12-supply = <&vddgen1>;
+		avdd12-supply = <&vddwcn>;
 		avdd33-supply = <&vddwifipa>;
-		dcxo18-supply = <&vddldo0>;
+		dcxo18-supply = <&vddsim2>;
 		clock-names = "clk_32k","source","enable";
 		clocks = <&aon_clk CLK_AON_AUX0>,
 			 <&ext_32k>,
 			 <&aonapb_gate CLK_AUX0_EB>;
+		sdhci-name = <&sdio1>;
 		sprd,btwf-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/wcnmodem";
 		sprd,gnss-file-name = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/gnssmodem";
-		sprd,rc-ctrl = <&pcie0>;
+		adma-tx;
+		adma-rx;
+		post-power-on-delay-ms = <20>;
 	};
 
 	sprd-wlan {
