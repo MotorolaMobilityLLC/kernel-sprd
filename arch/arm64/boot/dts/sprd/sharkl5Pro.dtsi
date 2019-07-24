@@ -569,102 +569,6 @@
 			};
 
 		};
-
-		xvp {
-			compatible = "cdns,xrp-hw-simple,sprd";
-			/*AHB CLK IPI PMU DVFS*/
-			reg = <0x0 0x20100000 0x0 0x10000>,
-				<0x0 0x20200000 0x0 0x10000>,
-				<0x0 0x20900000 0x0 0x10000>,
-				<0x0 0x327e0000 0x0 0x10000>,
-				<0x0 0x71700000 0x0 0x10000>;
-			queue-priority = <7 8 9>;
-			/* offset, bit#, IRQ# */
-			device-irq = <0 4 1>;
-			device-irq-host-offset = <0>;
-			device-irq-mode = <1>;
-			/* offset, bit# */
-			host-irq = <0x8 0>;
-			host-irq-mode = <1>;
-			interrupts = <GIC_SPI 169 IRQ_TYPE_LEVEL_HIGH>;
-			firmware-name = "vdsp_firmware.bin";
-			ranges = <0x0 0xbc000000 0x0 0xbc000000 0x0 0x01000000
-				0x0 0x80000000 0x0 0x80000000 0x0 0x00080000>;
-			iommus = <&iommu_vdsp_msti>,
-				<&iommu_vdsp_mstd>,
-				<&iommu_vdsp_idma>,
-				<&iommu_vdsp_vdma>;
-		};
-
-		iommu_vdsp_msti: iommu@20600000 {
-			compatible = "sprd,iommuvaul5p-epp";
-			reg = <0 0x20600000 0 0x400>,
-				<0 0x20600000 0 0x400>;
-			iova-base = <0x80000000>;
-			iova-size = <0x20000000>;
-			reg_name = "mmu_interrupt_reg","mmu_reg";
-			status = "okay";
-			#iommu-cells = <0>;
-		};
-
-		iommu_vdsp_mstd: iommu@20700000 {
-			compatible = "sprd,iommuvaul5p-edp";
-			reg = <0 0x20700000 0 0x400>,
-				<0 0x20700000 0 0x400>;
-			iova-base = <0x80000000>;
-			iova-size = <0x20000000>;
-			reg_name = "mmu_interrupt_reg","mmu_reg";
-			status = "okay";
-			#iommu-cells = <0>;
-		};
-
-		iommu_vdsp_idma: iommu@20800000 {
-			compatible = "sprd,iommuvaul5p-idma";
-			reg = <0 0x20800000 0 0x400>,
-				<0 0x20800000 0 0x400>;
-			iova-base = <0x80000000>;
-			iova-size = <0x20000000>;
-			reg_name = "mmu_interrupt_reg","mmu_reg";
-			status = "okay";
-			#iommu-cells = <0>;
-		};
-
-		iommu_vdsp_vdma: iommu@20a00000 {
-			compatible = "sprd,iommuvaul5p-vdma";
-			reg = <0 0x20a00000 0 0x400>,
-				<0 0x20a00000 0 0x400>;
-			iova-base = <0x80000000>;
-			iova-size = <0x20000000>;
-			reg_name = "mmu_interrupt_reg","mmu_reg";
-			status = "okay";
-			#iommu-cells = <0>;
-		};
-
-		cam_sipc_0: camsipc@0 {
-			compatible = "sprd,cam_sipc";
-			sprd,name = "sipc-vdsp";
-			sprd,type = "ipi";
-			sprd,dst = <1>;
-			sprd,client = <0>;
-			sprd,smem-type = <0>;
-			sprd,smem-info = <0x0 0x0 0x0>;
-			sprd,high-offset = <0x1  0x1>;
-			status = "okay";
-		};
-
-		cam-spipe {
-			compatible = "sprd,camspipe";
-			camspipe@0 {
-			sprd,name = "camspipe_log";
-			sprd,dst = <1>;
-			sprd,channel = <3>;
-			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0xb00>;
-			sprd,size-txbuf = <0x180>;
-				};
-		};
-
-
 		ap_apb_regs: syscon@71000000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
@@ -995,6 +899,105 @@
 				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
+			};
+
+			vdsp {
+				compatible = "sprd,sharkl5pro-vdsp";
+				/*AHB CLK IPI PMU DVFS*/
+				reg = <0x0 0x20100000 0x0 0x10000>,
+					  <0x0 0x20900000 0x0 0x10000>,
+					  <0x0 0x327e0000 0x0 0x10000>,
+					  <0x0 0x71700000 0x0 0x10000>;
+				clock-names = "vdsp_clk_set","vdsp_clk_512";
+				clocks = <&ap_clk CLK_VDSP>,
+					     <&pll2  CLK_TWPLL_512M>;
+				ranges = <0x0 0xbc000000 0x0 0xbc000000 0x0 0x01000000
+					     0x0 0x80000000 0x0 0x80000000 0x0 0x00080000>;
+				iommus = <&iommu_vdsp_msti>,
+					     <&iommu_vdsp_mstd>,
+					     <&iommu_vdsp_idma>,
+					     <&iommu_vdsp_vdma>;
+				queue-priority = <7 8 9>;
+				/* offset, bit#, IRQ# */
+				device-irq = <0 4 1>;
+				device-irq-host-offset = <0>;
+				device-irq-mode = <1>;
+				/* offset, bit# */
+				host-irq = <0x8 0>;
+				host-irq-mode = <1>;
+				interrupts = <GIC_SPI 169 IRQ_TYPE_LEVEL_HIGH>;
+				firmware-name = "vdsp_firmware.bin";
+				status = "okay";
+			};
+
+			iommu_vdsp_msti: iommu@20600000 {
+				compatible = "sprd,iommuvaul5p-epp";
+				reg = <0 0x20600000 0 0x400>,
+				      <0 0x20600000 0 0x400>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				iova-base = <0x80000000>;
+				iova-size = <0x20000000>;
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
+			iommu_vdsp_mstd: iommu@20700000 {
+				compatible = "sprd,iommuvaul5p-edp";
+				reg = <0 0x20700000 0 0x400>,
+				      <0 0x20700000 0 0x400>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				iova-base = <0x80000000>;
+				iova-size = <0x20000000>;
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
+			iommu_vdsp_idma: iommu@20800000 {
+				compatible = "sprd,iommuvaul5p-idma";
+				reg = <0 0x20800000 0 0x400>,
+				      <0 0x20800000 0 0x400>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				iova-base = <0x80000000>;
+				iova-size = <0x20000000>;
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
+			iommu_vdsp_vdma: iommu@20a00000 {
+				compatible = "sprd,iommuvaul5p-vdma";
+				reg = <0 0x20a00000 0 0x400>,
+				      <0 0x20a00000 0 0x400>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				iova-base = <0x80000000>;
+				iova-size = <0x20000000>;
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+
+			vdsp_sipc {
+				compatible = "sprd,vdsp_sipc";
+				sprd,name = "sipc-vdsp";
+				sprd,type = "ipi";
+				sprd,dst = <1>;
+				sprd,client = <0>;
+				sprd,smem-type = <0>;
+				sprd,smem-info = <0x0 0x0 0x0>;
+				sprd,high-offset = <0x1  0x1>;
+				status = "okay";
+			};
+
+			vdsp_spipe {
+				compatible = "sprd,vdsp_spipe";
+				status = "okay";
+				vdspspipe@0 {
+					sprd,name = "vdspspipe_log";
+					sprd,dst = <1>;
+					sprd,channel = <3>;
+					sprd,ringnr = <1>;
+					sprd,size-rxbuf = <0xb00>;
+					sprd,size-txbuf = <0x180>;
+					status = "okay";
+				};
 			};
 		};
 
