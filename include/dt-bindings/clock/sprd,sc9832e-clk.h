@@ -258,8 +258,8 @@
 #define EMMC_32K_EB		14
 #define SDIO0_32K_EB		15
 #define SDIO1_32K_EB		16
-#define SDIO1_MCU		17
-#define CLK_APAHB_GATE_NUM	(SDIO1_MCU + 1)
+#define CLK_MCU			17
+#define CLK_APAHB_GATE_NUM	(CLK_MCU + 1)
 
 #define CLK_SIM0_EB		0
 #define CLK_IIS0_EB		1

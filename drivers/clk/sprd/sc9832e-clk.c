@@ -1356,7 +1356,7 @@ static struct clk_hw_onecell_data sc9832e_apahb_gate_hws = {
 		[EMMC_32K_EB]		= &emmc_32k_eb.common.hw,
 		[SDIO0_32K_EB]		= &sdio0_32k_eb.common.hw,
 		[SDIO1_32K_EB]		= &sdio1_32k_eb.common.hw,
-		[SDIO1_MCU]		= &mcu_clk.common.hw,
+		[CLK_MCU]		= &mcu_clk.common.hw,
 	},
 	.num	= CLK_APAHB_GATE_NUM,
 };
