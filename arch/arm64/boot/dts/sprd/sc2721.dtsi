@@ -128,7 +128,7 @@
 
 		syscon@c00 {
 			compatible = "sprd,sc27xx-syscon";
-			reg = <0xc00>, <0xecc>;
+			reg = <0xc00>, <0xecc>, <0xec0>;
 		};
 
 		sprd_audio_codec_ana: audio-codec@700 {

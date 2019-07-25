@@ -154,7 +154,7 @@
 
 		syscon@1800 {
 			compatible = "sprd,sc27xx-syscon";
-			reg = <0x1800>, <0x1ba0>;
+			reg = <0x1800>, <0x1ba0>, <0x1b98>;
 		};
 
 		power-controller@1800 {
