@@ -363,7 +363,6 @@
 };
 
 &isp {
-	sprd,isp-offbuf-count = <4>;
 	status = "okay";
 };
 
