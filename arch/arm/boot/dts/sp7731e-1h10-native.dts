@@ -64,6 +64,23 @@
 		};
 	};
 
+	sprd-map-user {
+		compatible = "sprd,map-user";
+	};
+
+	ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		heap@4 {
+			reg = <4>;
+			label = "carveout_fd";
+			type = <2>;
+			memory-region = <&fd_reserved>;
+		};
+	};
+
 	tboard_thermistor:thermal-sensor {
 		compatible = "generic-adc-thermal";
 		#thermal-sensor-cells = <0>;
@@ -191,7 +208,11 @@
 
 &reserved_memory {
 	tos_reserved: tos-mem@94020000 {
-		reg = <0x94020000 0x001fe0000>;
+		reg = <0x94020000 0x01fe0000>;
+	};
+
+	fd_reserved: fd@96000000{
+		reg = <0x96000000 0x00500000>;
 	};
 };
 
