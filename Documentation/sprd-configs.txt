@@ -10454,7 +10454,7 @@ CONFIG_SPRD_HW_DEVICE_DVFS_AGCP
 	[function] This config is enable audiocp DVFS function.
 CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[arch] arm64
-	[plat] sharkl5
+	[plat] sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] cp
 	[must] user
