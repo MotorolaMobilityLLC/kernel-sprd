@@ -548,6 +548,7 @@ static int edma_hw_tx_req(int chn)
 	/* 1s timeout */
 	mod_timer(&edma->edma_tx_timer, jiffies +
 		  EDMA_TX_TIMER_INTERVAL_MS * HZ / 1000);
+	wcn_set_tx_complete_status(2);
 	edma->dma_chn_reg[chn].dma_tx_req.reg = 1;
 
 	set_bit(chn, &edma->cur_chn_status);
@@ -1225,6 +1226,7 @@ int msi_irq_handle(int irq)
 	__pm_wakeup_event(&edma->edma_pop_ws, jiffies_to_msecs(HZ / 2));
 
 	if (edma->chn_sw[chn].inout == TX) {
+		wcn_set_tx_complete_status(1);
 		clear_bit(chn, &edma->cur_chn_status);
 		del_timer(&edma->edma_tx_timer);
 		if (irq % 2 == 0) {
@@ -1670,12 +1672,20 @@ static void edma_tx_timer_expire(unsigned long data)
 	WCN_ERR("edma tx send timeout\n");
 	if (!wcn_get_edma_status())
 		return;
+	wcn_set_tx_complete_status(1);
 	edma_dump_glb_reg();
 	for (i = 0; i < 16; i++) {
 		if (test_bit(i, &edma->cur_chn_status))
 			edma_dump_chn_reg(i);
 	}
 
+}
+
+void edma_del_tx_timer(void)
+{
+	struct edma_info *edma = edma_info();
+
+	del_timer(&edma->edma_tx_timer);
 }
 
 int edma_init(struct wcn_pcie_info *pcie_info)
@@ -1746,6 +1756,19 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 	return 0;
 }
 
+int edma_tasklet_deinit(void)
+{
+	struct edma_info *edma = edma_info();
+
+#if CONFIG_TASKLET_SUPPORT
+	WCN_INFO("tasklet exit\n");
+	tasklet_disable(edma->isr_func.q.event.tasklet);
+	tasklet_kill(edma->isr_func.q.event.tasklet);
+	kfree(edma->isr_func.q.event.tasklet);
+#endif
+	return 0;
+}
+
 int edma_deinit(void)
 {
 	struct isr_msg_queue msg = { 0 };
@@ -1762,12 +1785,7 @@ int edma_deinit(void)
 		enqueue(&(edma->isr_func.q), (unsigned char *)&msg);
 		set_wcnevent(&(edma->isr_func.q.event));
 	} while (edma->isr_func.state);
-#if CONFIG_TASKLET_SUPPORT
-	WCN_INFO("tasklet exit\n");
-	tasklet_disable(edma->isr_func.q.event.tasklet);
-	tasklet_kill(edma->isr_func.q.event.tasklet);
-	kfree(edma->isr_func.q.event.tasklet);
-#endif
+
 	WCN_INFO("wakeup_source exit\n");
 	wakeup_source_trash(&edma->edma_push_ws);
 	wakeup_source_trash(&edma->edma_pop_ws);

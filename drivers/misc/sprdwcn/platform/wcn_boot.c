@@ -1777,6 +1777,9 @@ static int chip_power_on(int subsys)
 
 static int chip_power_off(int subsys)
 {
+#ifdef CONFIG_WCN_PCIE
+	sprdwcn_bus_remove_card(marlin_dev);
+#endif
 	marlin_dev->power_state = 0;
 	wcn_avdd12_bound_xtl(false);
 	wcn_wifipa_bound_xtl(false);
@@ -1791,8 +1794,8 @@ static int chip_power_off(int subsys)
 	marlin_dev->wifi_need_download_ini_flag = 0;
 #ifndef CONFIG_WCN_PCIE
 	mem_pd_poweroff_deinit();
-#endif
 	sprdwcn_bus_remove_card(marlin_dev);
+#endif
 	loopcheck_ready_clear();
 #ifndef CONFIG_WCN_PCIE
 	sdio_pub_int_poweron(false);

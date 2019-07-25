@@ -34,7 +34,8 @@
 #include "wcn_procfs.h"
 #include "wcn_txrx.h"
 
-#define WAIT_AT_DONE_MAX_CNT 30
+#define WAIT_AT_DONE_MAX_CNT 5
+
 static int (*scan_card_notify)(void);
 static struct wcn_pcie_info *g_pcie_dev;
 
@@ -48,6 +49,20 @@ int wcn_get_edma_status(void)
 	struct wcn_pcie_info *priv = get_wcn_device_info();
 
 	return atomic_read(&priv->edma_ready);
+}
+
+int wcn_get_tx_complete_status(void)
+{
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+
+	return atomic_read(&priv->tx_complete);
+}
+
+int wcn_set_tx_complete_status(int flag)
+{
+	struct wcn_pcie_info *priv = get_wcn_device_info();
+
+	return atomic_set(&priv->tx_complete, flag);
 }
 
 static void wcn_bus_change_state(struct wcn_pcie_info *bus,
@@ -549,7 +564,7 @@ int sprd_pcie_scan_card(void *wcn_dev)
 	WCN_INFO("%s: rc node name: %s\n", __func__, dev->of_node->name);
 
 	if (priv->dev && priv->dev->is_added)
-		sprd_pcie_remove_card(wcn_dev);
+		WCN_ERR("%s: card not NULL\n", __func__);
 
 	sprd_pcie_configure_device(pdev);
 
@@ -567,7 +582,8 @@ void sprd_pcie_register_scan_notify(void *func)
 {
 	scan_card_notify = func;
 }
-static void disable_pcie_irq(void)
+
+static int disable_pcie_irq(void)
 {
 	struct wcn_pcie_info *priv = get_wcn_device_info();
 	int i;
@@ -581,14 +597,28 @@ static void disable_pcie_irq(void)
 	}
 
 	if (priv->msi_en == 1) {
-		for (i = 0; i < priv->irq_num; i++)
-			free_irq(priv->irq + i, (void *)priv);
+		for (i = 0; i < priv->irq_num; i++) {
+			if (!free_irq(priv->irq + i, (void *)priv))
+				return -1;
+		}
 
 		pci_disable_msi(priv->dev);
 	}
+
+	return 0;
 }
 
-/* called by chip_power_off */
+/*
+ * called by chip_power_off
+ * 1. tx: disable send
+ * 2. tx: wait tx complete
+ * 3.  delete expire time
+ * 4. disable mis irq
+ * 5. edma tasklet kill
+ * 6. free some resource(desc, mem, buf,etc)(for free DMA buf depend on dev)
+ * 7. remove pcie ep
+ * 8. power down
+ */
 void sprd_pcie_remove_card(void *wcn_dev)
 {
 	struct wcn_pcie_info *priv = get_wcn_device_info();
@@ -597,17 +627,30 @@ void sprd_pcie_remove_card(void *wcn_dev)
 	struct marlin_device *marlin_dev = wcn_dev;
 	int wait_cnt = 0;
 
+	/* prevent at+loopcheck send */
 	atomic_add(BUS_REMOVE_CARD_VAL, &priv->xmit_cnt);
+	/* prevent tx send */
 	atomic_set(&priv->edma_ready, 0x0);
-	disable_pcie_irq();
-	/* wait at_cmd send done */
-	while ((atomic_read(&priv->xmit_cnt) > BUS_REMOVE_CARD_VAL)
-		   && (wait_cnt < WAIT_AT_DONE_MAX_CNT)) {
-		usleep_range(4000, 6000);
+	/* if tx have send, waiting complete */
+
+	while (!atomic_read(&priv->tx_complete) &&
+	       (wait_cnt < WAIT_AT_DONE_MAX_CNT)) {
+		usleep_range(100, 200);
 		wait_cnt++;
+		WCN_INFO("%s:wait cnt =%d\n", __func__, wait_cnt);
 	}
-	WCN_INFO("wait_cnt=0x%x,xmit_cnt=0x%x\n", wait_cnt,
-			 atomic_read(&priv->xmit_cnt));
+
+	edma_del_tx_timer();
+
+	/* rx: disable txrx irq */
+	if (disable_pcie_irq() < 0) {
+		WCN_ERR(" irq have free\n");
+		return;
+	}
+
+	/* rx: kill tasklet */
+	edma_tasklet_deinit();
+
 	wcn_bus_change_state(priv, WCN_BUS_DOWN);
 
 	if (edma_hw_pause() < 0)
@@ -629,7 +672,7 @@ void sprd_pcie_remove_card(void *wcn_dev)
 			__func__, dev->of_node->name);
 
 	if (!priv->dev || (priv->dev && !priv->dev->is_added))
-		return;
+		WCN_ERR("%s: card exist!\n", __func__);
 
 	sprd_pcie_unconfigure_device(pdev);
 
@@ -638,8 +681,8 @@ void sprd_pcie_remove_card(void *wcn_dev)
 		WCN_ERR("remove card time out\n");
 	else
 		WCN_INFO("remove card end\n");
-
 }
+
 static int sprd_pcie_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *pci_id)
 {
@@ -852,6 +895,7 @@ static void sprd_pcie_remove(struct pci_dev *pdev)
 	//kfree(priv);
 	pci_set_drvdata(pdev, NULL);
 	pci_disable_device(pdev);
+
 	WCN_INFO("%s end\n", __func__);
 }
 

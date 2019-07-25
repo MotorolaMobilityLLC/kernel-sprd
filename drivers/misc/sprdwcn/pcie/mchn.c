@@ -232,6 +232,9 @@ int mchn_push_link(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 		return -1;
 	}
 
+	if (mchn->ops[chn]->inout == TX)
+		wcn_set_tx_complete_status(0);
+
 	switch (mchn->ops[chn]->hif_type) {
 	case HW_TYPE_SDIO:
 		break;

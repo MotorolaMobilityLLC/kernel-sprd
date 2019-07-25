@@ -499,4 +499,6 @@ int edma_hw_pause(void);
 int edma_hw_restore(void);
 int edma_dump_chn_reg(int chn);
 int edma_dump_glb_reg(void);
+void edma_del_tx_timer(void);
+int edma_tasklet_deinit(void);
 #endif
