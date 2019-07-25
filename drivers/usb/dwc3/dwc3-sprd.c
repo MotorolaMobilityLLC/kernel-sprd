@@ -52,6 +52,7 @@ struct dwc3_sprd {
 	struct usb_phy		*hs_phy;
 	struct usb_phy		*ss_phy;
 	struct extcon_dev	*edev;
+	struct extcon_dev	*id_edev;
 	struct notifier_block	vbus_nb;
 	struct notifier_block	id_nb;
 	struct regulator	*vbus;
@@ -774,7 +775,7 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 
 		sdwc->edev = extcon_get_edev_by_phandle(sdwc->dev, 0);
 		if (IS_ERR(sdwc->edev)) {
-			dev_err(dev, "failed to find gpio extcon device.\n");
+			dev_err(dev, "failed to find vbus extcon device.\n");
 			goto err_susp_clk;
 		}
 
@@ -787,10 +788,19 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 			goto err_susp_clk;
 		}
 
-		sdwc->id_nb.notifier_call = dwc3_sprd_id_notifier;
+		sdwc->id_edev = extcon_get_edev_by_phandle(sdwc->dev, 1);
+		if (IS_ERR(sdwc->id_edev)) {
+			sdwc->id_edev = NULL;
+			dev_info(dev, "No separate ID extcon device.\n");
+		}
 
-		ret = extcon_register_notifier(sdwc->edev, EXTCON_USB_HOST,
-						   &sdwc->id_nb);
+		sdwc->id_nb.notifier_call = dwc3_sprd_id_notifier;
+		if (sdwc->id_edev)
+			ret = extcon_register_notifier(sdwc->id_edev,
+					 EXTCON_USB_HOST, &sdwc->id_nb);
+		else
+			ret = extcon_register_notifier(sdwc->edev,
+					 EXTCON_USB_HOST, &sdwc->id_nb);
 		if (ret) {
 			dev_err(dev,
 			"failed to register extcon USB HOST notifier.\n");
