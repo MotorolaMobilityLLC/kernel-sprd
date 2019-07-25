@@ -474,7 +474,7 @@
 			cam_domain: cam-domain {
 				compatible = "sprd,cam-domain";
 				sprd,aon-apb-syscon = <&aon_apb_regs>;
-				sprd,cam-ahb-syscon = <&ap_ahb_regs>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 			};
 
@@ -488,7 +488,7 @@
 				compatible = "sprd,dcam";
 				reg = <0x60800000 0x4000>;
 				interrupts = <GIC_SPI 45 IRQ_TYPE_LEVEL_HIGH>;
-				sprd,cam-ahb-syscon = <&aon_apb_regs>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,aon-apb-syscon = <&aon_apb_regs>;
 				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 				sprd,isp = <&isp>;
@@ -513,7 +513,7 @@
 				reg = <0x60a00000 0x100000>;
 				interrupts = <GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
-				sprd,cam-ahb-syscon = <&ap_ahb_regs>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,aon-apb-syscon = <&aon_apb_regs>;
 				sprd,isp-count = <1>;
 				iommus = <&iommu_isp>;
@@ -562,7 +562,7 @@
 				reg = <0x60c00000 0x1000>;
 				interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
-				sprd,cam-ahb-syscon = <&ap_ahb_regs>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,ana-apb-syscon = <&aon_apb_regs>;
 				sprd,csi-id = <0>;
 				sprd,ip-version = <0x100>;
