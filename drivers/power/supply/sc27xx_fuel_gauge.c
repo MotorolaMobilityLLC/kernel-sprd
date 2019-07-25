@@ -20,6 +20,8 @@
 #define SC27XX_CLK_EN0			0xc18
 #define SC2730_MODULE_EN0		0x1808
 #define SC2730_CLK_EN0			0x1810
+#define SC2720_MODULE_EN0		0xc08
+#define SC2720_CLK_EN0			0xc10
 #define SC27XX_FGU_EN			BIT(7)
 #define SC27XX_FGU_RTC_EN		BIT(6)
 
@@ -139,6 +141,11 @@ static const struct sc27xx_fgu_variant_data sc2731_info = {
 static const struct sc27xx_fgu_variant_data sc2730_info = {
 	.module_en = SC2730_MODULE_EN0,
 	.clk_en = SC2730_CLK_EN0,
+};
+
+static const struct sc27xx_fgu_variant_data sc2720_info = {
+	.module_en = SC2720_MODULE_EN0,
+	.clk_en = SC2720_CLK_EN0,
 };
 
 static int sc27xx_fgu_cap_to_clbcnt(struct sc27xx_fgu_data *data, int capacity);
@@ -1485,6 +1492,7 @@ static const struct dev_pm_ops sc27xx_fgu_pm_ops = {
 static const struct of_device_id sc27xx_fgu_of_match[] = {
 	{ .compatible = "sprd,sc2731-fgu", .data = &sc2731_info},
 	{ .compatible = "sprd,sc2730-fgu", .data = &sc2730_info},
+	{ .compatible = "sprd,sc2720-fgu", .data = &sc2720_info},
 	{ }
 };
 
