@@ -1335,6 +1335,8 @@ static void dscr_ring_deinit(int chn)
 	dscr_ring->free = dscr_ring->size;
 	dscr_ring->head = dscr_ring->tail = dscr =
 					(struct desc *) dscr_ring->mem;
+	if (!dscr)
+		return;
 	dscr_zero(dscr);
 }
 
