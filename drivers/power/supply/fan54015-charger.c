@@ -66,6 +66,10 @@
 #define FAN54015_REG_LIMIT_CURRENT_MASK			GENMASK(7, 6)
 #define FAN54015_REG_LIMIT_CURRENT_SHIFT		6
 
+#define FAN54015_DISABLE_PIN_MASK_2730			BIT(0)
+#define FAN54015_DISABLE_PIN_MASK_2721			BIT(15)
+#define FAN54015_DISABLE_PIN_MASK_2720			BIT(0)
+
 struct fan54015_charger_info {
 	struct i2c_client *client;
 	struct device *dev;
@@ -81,6 +85,8 @@ struct fan54015_charger_info {
 	struct delayed_work wdt_work;
 	struct regmap *pmic;
 	u32 charger_detect;
+	u32 charger_pd;
+	u32 charger_pd_mask;
 };
 
 static bool fan54015_charger_is_bat_present(struct fan54015_charger_info *info)
@@ -307,17 +313,8 @@ static int fan54015_charger_start_charge(struct fan54015_charger_info *info)
 {
 	int ret;
 
-	ret = fan54015_update_bits(info, FAN54015_REG_1,
-				   FAN54015_REG_CHARGE_CONTROL_MASK,
-				   FAN54015_REG_CHARGE_DISABLE);
-	if (ret) {
-		dev_err(info->dev, "disable fan54015 charge failed\n");
-		return ret;
-	}
-
-	ret = fan54015_update_bits(info, FAN54015_REG_1,
-				   FAN54015_REG_CHARGE_CONTROL_MASK,
-				   FAN54015_REG_CHARGE_ENABLE);
+	ret = regmap_update_bits(info->pmic, info->charger_pd,
+				 info->charger_pd_mask, 0);
 	if (ret)
 		dev_err(info->dev, "enable fan54015 charge failed\n");
 
@@ -328,9 +325,9 @@ static void fan54015_charger_stop_charge(struct fan54015_charger_info *info)
 {
 	int ret;
 
-	ret = fan54015_update_bits(info, FAN54015_REG_1,
-				   FAN54015_REG_CHARGE_CONTROL_MASK,
-				   FAN54015_REG_CHARGE_DISABLE);
+	ret = regmap_update_bits(info->pmic, info->charger_pd,
+				 info->charger_pd_mask,
+				 info->charger_pd_mask);
 	if (ret)
 		dev_err(info->dev, "disable fan54015 charge failed\n");
 }
@@ -1000,6 +997,24 @@ static int fan54015_charger_probe(struct i2c_client *client,
 					 &info->charger_detect);
 	if (ret) {
 		dev_err(dev, "failed to get charger_detect\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32_index(regmap_np, "reg", 2,
+					 &info->charger_pd);
+	if (ret) {
+		dev_err(dev, "failed to get charger_pd reg\n");
+		return ret;
+	}
+
+	if (of_device_is_compatible(regmap_np->parent, "sprd,sc2730"))
+		info->charger_pd_mask = FAN54015_DISABLE_PIN_MASK_2730;
+	else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2721"))
+		info->charger_pd_mask = FAN54015_DISABLE_PIN_MASK_2721;
+	else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2720"))
+		info->charger_pd_mask = FAN54015_DISABLE_PIN_MASK_2720;
+	else {
+		dev_err(dev, "failed to get charger_pd mask\n");
 		return -EINVAL;
 	}
 
