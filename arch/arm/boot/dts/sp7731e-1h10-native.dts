@@ -114,8 +114,8 @@
 		capacity-temp-table = <25 100>, <10 97>, <(-10) 60>;
 		resistance-temp-table = <20 100>, <10 243>, <(-10) 468>;
 		charge-sdp-current-microamp = <500000 500000>;
-		charge-dcp-current-microamp = <2000000 3000000>;
-		charge-cdp-current-microamp = <1150000 1150000>;
+		charge-dcp-current-microamp = <1000000 1000000>;
+		charge-cdp-current-microamp = <1000000 1000000>;
 		charge-unknown-current-microamp = <500000 500000>;
 	};
 
@@ -165,9 +165,10 @@
 			<1150 1180 700000 4350000>, <1450 1420 2000000 4350000>,
 			<1600 1570 700000 4100000>;
 		regulator@0 {
-			cm-regulator-name = "vddgen0";
+			cm-regulator-name = "vddgen";
 			cable@0 {
 				cm-cable-name = "USB";
+				extcon = <&extcon_gpio>;
 			};
 		};
 	};
@@ -348,6 +349,14 @@
 
 &pmic_charger {
 	status = "okay";
+	phys = <&hsphy>;
+	monitored-battery = <&bat>;
+};
+
+&pmic_fgu {
+	monitored-battery = <&bat>;
+	sprd,calib-resistance-real = <20000>;
+	sprd,calib-resistance-spec = <20000>;
 };
 
 &pwms {
