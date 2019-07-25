@@ -42,6 +42,7 @@
 			enable-method = "psci";
 			reg = <0x0>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
+			cpu-idle-states = <&LIGHT_SLEEP>;
 		};
 		cpu1: cpu@1 {
 			device_type = "cpu";
@@ -49,6 +50,7 @@
 			enable-method = "psci";
 			reg = <0x1>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
+			cpu-idle-states = <&LIGHT_SLEEP>;
 		};
 
 		cpu2: cpu@2 {
@@ -57,6 +59,7 @@
 			enable-method = "psci";
 			reg = <0x2>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
+			cpu-idle-states = <&LIGHT_SLEEP>;
 		};
 
 		cpu3: cpu@3 {
@@ -65,6 +68,24 @@
 			enable-method = "psci";
 			reg = <0x3>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
+			cpu-idle-states = <&LIGHT_SLEEP>;
+		};
+	};
+
+	idle-states {
+		LIGHT_SLEEP: light_sleep {
+			compatible = "sprd,pike2-idle-state";
+			entry-latency-us = <20>;
+			exit-latency-us = <10>;
+			min-residency-us = <50>;
+			local-timer-stop;
+		};
+		HEAVY_SLEEP: heavy_sleep {
+			compatible = "sprd,pike2-idle-state";
+			entry-latency-us = <400>;
+			exit-latency-us = <700>;
+			min-residency-us = <1200>;
+			local-timer-stop;
 		};
 	};
 
