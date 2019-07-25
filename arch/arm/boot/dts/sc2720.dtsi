@@ -39,6 +39,12 @@
 			};
 		};
 
+		pmic_flash: flash@1f4 {
+			compatible = "sprd,sc2720-flash";
+			reg = <0x1f4>;
+			status = "disabled";
+		};
+
 		rtc@200 {
 			compatible = "sprd,sc27xx-rtc", "sprd,sc2720-rtc";
 			reg = <0x200>;
