@@ -12,6 +12,16 @@
 		thm-sensor11 = &cpu_thmzone;
 	};
 
+	firmware {
+		android {
+			compatible = "android,firmware";
+			vbmeta {
+				compatible = "android,vbmeta";
+				parts = "socko,odmko,boot,recovery,dtbo,w_modem,pm_sys,w_gdsp";
+			};
+		};
+	};
+
 	reserved_memory: reserved-memory {
 		#address-cells = <1>;
 		#size-cells = <1>;

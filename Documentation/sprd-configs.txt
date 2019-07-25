@@ -3747,8 +3747,8 @@ CONFIG_DM_VERITY_AVB
 	[function] Depends on DM_VERITY, Enables Android Verified Boot platform-specific error behavior.
 CONFIG_DM_VERITY_FEC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] md
 	[must] none
