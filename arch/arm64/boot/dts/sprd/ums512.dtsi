@@ -55,6 +55,7 @@
 			cpufreq-data-v1 = <&cpufreq_clus0>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			capacity-dmips-mhz = <544>;
+			sugov_slack_timer;
 		};
 		CPU1: cpu@100 {
 			device_type = "cpu";
