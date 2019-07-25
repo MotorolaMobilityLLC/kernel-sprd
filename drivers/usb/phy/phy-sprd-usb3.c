@@ -93,6 +93,7 @@ struct sprd_ssphy {
 	atomic_t		reset;
 	atomic_t		inited;
 	atomic_t		susped;
+	bool			is_host;
 };
 
 /* Rest USB Core*/
@@ -162,6 +163,7 @@ static int sprd_ssphy_set_vbus(struct usb_phy *x, int on)
 		reg |= 0x200;
 		ret |= regmap_write(phy->ana_g3,
 			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, reg);
+		phy->is_host = true;
 	} else {
 		reg = msk = MASK_AON_APB_USB2_PHY_IDDIG;
 		ret |= regmap_update_bits(phy->aon_apb,
@@ -186,6 +188,7 @@ static int sprd_ssphy_set_vbus(struct usb_phy *x, int on)
 		reg &= ~msk;
 		ret |= regmap_write(phy->ana_g3,
 			REG_ANLG_PHY_G3_ANALOG_USB20_USB20_UTMI_CTL1, reg);
+		phy->is_host = false;
 	}
 
 	return ret;
@@ -438,6 +441,11 @@ static int sprd_ssphy_vbus_notify(struct notifier_block *nb,
 {
 	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
 	struct sprd_ssphy *phy = container_of(usb_phy, struct sprd_ssphy, phy);
+
+	if (phy->is_host) {
+		dev_info(usb_phy->dev, "USB PHY is host mode\n");
+		return 0;
+	}
 
 	if (event) {
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
