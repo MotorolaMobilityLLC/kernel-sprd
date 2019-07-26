@@ -228,16 +228,6 @@ static int sc2720_charger_hw_init(struct sc2720_charger_info *info)
 			return ret;
 		}
 
-		/* Set charge termination current */
-		ret = regmap_update_bits(info->regmap,
-					 info->base + SC2720_CHG_CFG0,
-					 SC2720_CHG_OVP_MASK,
-					 0x0 << SC2720_CHG_TERMINATION_CURRENT_MASK_SHIT);
-		if (ret) {
-			dev_err(info->dev, "failed to set charge termination current\n");
-			return ret;
-		}
-
 		/* Set charge over voltage protection value 6500mv */
 		ret = regmap_update_bits(info->regmap,
 					 info->base + SC2720_CHG_CFG1,
