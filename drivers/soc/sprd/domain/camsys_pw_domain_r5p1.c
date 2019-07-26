@@ -152,6 +152,7 @@ static int sprd_campw_init(struct platform_device *pdev)
 
 int sprd_cam_pw_off(void)
 {
+#if 0
 	int ret = 0;
 	unsigned int power_state1 = 0;
 	unsigned int power_state2 = 0;
@@ -160,7 +161,9 @@ int sprd_cam_pw_off(void)
 	unsigned int val = 0;
 	unsigned int pd_off_state = 0;
 	struct register_gpr *preg_gpr;
-
+#endif
+	return 0;
+#if 0
 	ret = sprd_campw_check_drv_init();
 	if (ret) {
 		pr_err("fail to get init state %d, cb %p, ret %d\n",
@@ -226,6 +229,7 @@ err_pw_off:
 	mutex_unlock(&pw_info->mlock);
 
 	return ret;
+#endif
 }
 EXPORT_SYMBOL(sprd_cam_pw_off);
 
@@ -359,8 +363,11 @@ EXPORT_SYMBOL(sprd_cam_domain_eb);
 
 int sprd_cam_domain_disable(void)
 {
+#if 0
 	int ret = 0;
-
+#endif
+	return 0;
+#if 0
 	ret = sprd_campw_check_drv_init();
 	if (ret) {
 		pr_err("fail to get init state %d, cb %p, ret %d\n",
@@ -385,6 +392,7 @@ int sprd_cam_domain_disable(void)
 	mutex_unlock(&pw_info->mlock);
 
 	return 0;
+#endif
 }
 EXPORT_SYMBOL(sprd_cam_domain_disable);
 
