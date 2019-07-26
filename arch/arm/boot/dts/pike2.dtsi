@@ -500,10 +500,10 @@
 			iommu_dcam: iommu@60800000 {
 				compatible = "sprd,iommuexpk2-dcam";
 				reg = <0x60800000 0x200>,
-					<0x60800200 0x60>,
-					<0x40000000 0x10000000>;
-				reg_name = "mmu_interrupt_reg","mmu_reg",
-						"iova pool";
+					<0x60800200 0x60>;
+				iova-base = <0x40000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -523,10 +523,10 @@
 			iommu_isp: iommu@60a00000 {
 				compatible = "sprd,iommuexpk2-isp";
 				reg = <0x60a00000 0x800>,
-					<0x60a00800 0x400>,
-					<0x50000000 0x10000000>;
-				reg_name = "mmu_interrupt_reg","mmu_reg",
-					"iova pool";
+					<0x60a00800 0x400>;
+				iova-base = <0x50000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
