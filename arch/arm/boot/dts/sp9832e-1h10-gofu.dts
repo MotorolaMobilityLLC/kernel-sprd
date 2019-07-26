@@ -246,6 +246,11 @@
 	status = "okay";
 };
 
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
 &i2c0 {
 	status = "okay";
 	clock-frequency = <400000>;
