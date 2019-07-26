@@ -14,8 +14,8 @@
 
 #define SC2720_BATTERY_NAME			"sc27xx-fgu"
 
-#define SC2720_CHG_CFG0				0x20c
-#define SC2720_CHG_CFG1				0x210
+#define SC2720_CHG_CFG0				0x0
+#define SC2720_CHG_CFG1				0x4
 
 #define SC2720_TERM_VOLTAGE_MIN			4200
 #define SC2720_TERM_VOLTAGE_MAX			4500
