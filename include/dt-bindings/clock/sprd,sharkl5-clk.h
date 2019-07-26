@@ -7,17 +7,25 @@
 #ifndef _DT_BINDINGS_CLK_SHARKL5_H_
 #define _DT_BINDINGS_CLK_SHARKL5_H_
 
-#define CLK_ISPPLL_GATE			0
-#define CLK_DPLL0_GATE			1
-#define CLK_DPLL1_GATE			2
-#define CLK_LPLL_GATE			3
-#define CLK_TWPLL_GATE			4
-#define CLK_GPLL_GATE			5
-#define CLK_RPLL_GATE			6
-#define CLK_CPPLL_GATE			7
-#define CLK_MPLL0_GATE			8
-#define CLK_MPLL1_GATE			9
-#define CLK_MPLL2_GATE			10
+#define CLK_FAC_13M			0
+#define CLK_FAC_6M5			1
+#define CLK_FAC_4M3			2
+#define CLK_FAC_1M			3
+#define CLK_FAC_250K			4
+#define	CLK_FAC_RCO25M			5
+#define	CLK_FAC_RCO4M			6
+#define	CLK_FAC_RCO2M			7
+#define CLK_ISPPLL_GATE			8
+#define CLK_DPLL0_GATE			9
+#define CLK_DPLL1_GATE			10
+#define CLK_LPLL_GATE			11
+#define CLK_TWPLL_GATE			12
+#define CLK_GPLL_GATE			13
+#define CLK_RPLL_GATE			14
+#define CLK_CPPLL_GATE			15
+#define CLK_MPLL0_GATE			16
+#define CLK_MPLL1_GATE			17
+#define CLK_MPLL2_GATE			18
 #define CLK_PMU_GATE_NUM		(CLK_MPLL2_GATE + 1)
 
 #define CLK_DPLL0			0
