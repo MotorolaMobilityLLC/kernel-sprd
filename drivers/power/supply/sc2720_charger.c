@@ -283,6 +283,7 @@ static int sc2720_charger_set_current(struct sc2720_charger_info *info, u32 cur)
 {
 	int temp, ret;
 
+	cur = cur / 1000;
 	if (cur < SC2720_CHG_CURRENT_MIN)
 		cur = SC2720_CHG_CURRENT_MIN;
 
@@ -335,7 +336,7 @@ static int sc2720_charger_get_current(struct sc2720_charger_info *info,
 	if (ret)
 		return ret;
 
-	if (val & SC2720_CHG_CC_MODE) {
+	if (!(val & SC2720_CHG_CC_MODE)) {
 		*cur = 0;
 		return 0;
 	}
