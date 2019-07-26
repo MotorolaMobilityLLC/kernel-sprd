@@ -586,6 +586,12 @@ static int get_static_power(struct cpufreq_cooling_device *cpufreq_device,
 
 	opp = dev_pm_opp_find_freq_exact(cpufreq_device->cpu_dev, freq_hz,
 					 true);
+	if (IS_ERR(opp)) {
+		dev_warn_ratelimited(cpufreq_device->cpu_dev,
+				"Failed to find OPP for frequency %lu: %ld\n",
+				freq_hz, PTR_ERR(opp));
+		return -EINVAL;
+	}
 	voltage = dev_pm_opp_get_voltage(opp);
 	dev_pm_opp_put(opp);
 
@@ -771,6 +777,12 @@ static int estimate_core_static_power(
 
 	opp = dev_pm_opp_find_freq_exact(cpufreq_device->cpu_dev, freq_hz,
 					 true);
+	if (IS_ERR(opp)) {
+		dev_warn_ratelimited(cpufreq_device->cpu_dev,
+				"Failed to find OPP for frequency %lu: %ld\n",
+				freq_hz, PTR_ERR(opp));
+		return -EINVAL;
+	}
 	voltage = dev_pm_opp_get_voltage(opp);
 	dev_pm_opp_put(opp);
 
@@ -1021,10 +1033,9 @@ static int cpufreq_get_requested_power(struct thermal_cooling_device *cdev,
 		i++;
 	}
 
+	freq = freq ?: cpufreq_device->freq_table[0];
 	total_load = total_load ?: 1;
 	cpufreq_device->last_load = total_load;
-
-	pr_debug("tz:%s temp:%d\n", tz->type, tz->temperature);
 
 	dynamic_power = get_dynamic_power(cpufreq_device, freq);
 	dynamic_power += get_dynamic_l2_power(cpufreq_device, freq);
@@ -1043,9 +1054,10 @@ static int cpufreq_get_requested_power(struct thermal_cooling_device *cdev,
 		kfree(load_cpu);
 	}
 
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	*power = static_power + dynamic_power;
-	pr_debug("request power:%u static_power:%u dyc_power:%u load:%u\n",
-		*power, static_power, dynamic_power,
+	pr_debug("cpu%d freq:%lu static:%u dynamic:%u load:%u\n",
+		cpu, freq, static_power, dynamic_power,
 		cpufreq_device->last_load);
 	return 0;
 }
@@ -1180,7 +1192,7 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 				cab->get_cluster_min_cpufreq_p(
 				cpufreq_device->power_model->cluster_id);
 		if (min_cpufreq)
-			target_freq = min(min_cpufreq, target_freq);
+			target_freq = max(min_cpufreq, target_freq);
 
 		cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 		*state = cpufreq_cooling_get_level(cpu, target_freq);
