@@ -113,6 +113,7 @@ static int sc2720_set_termination_voltage(struct sc2720_charger_info *info,
 	calib_data = calib_data & SC2720_CHG_CCCV_MASK;
 	kfree(buf);
 
+	vol = vol / 1000;
 	if (vol > SC2720_TERM_VOLTAGE_MAX)
 		vol = SC2720_TERM_VOLTAGE_MAX;
 
