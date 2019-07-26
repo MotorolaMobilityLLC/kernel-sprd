@@ -409,3 +409,7 @@
 &cpu3 {
 	cpu-supply = <&vddcpu>;
 };
+
+&pmic_flash {
+	status = "okay";
+};
