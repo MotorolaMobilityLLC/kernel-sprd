@@ -30,11 +30,18 @@ static const struct sprd_vsp_dvfs_data roc1_vsp_data = {
 	.max_freq_level = 4,
 };
 
+static const struct sprd_vsp_dvfs_data sharkl5pro_vsp_data = {
+	.ver = "sharkl5pro",
+	.max_freq_level = 3,
+};
+
 static const struct of_device_id vsp_dvfs_of_match[] = {
 	{ .compatible = "sprd,hwdvfs-vsp-sharkl5",
 	  .data = &sharkl5_vsp_data },
 	{ .compatible = "sprd,hwdvfs-vsp-roc1",
 	  .data = &roc1_vsp_data },
+	{ .compatible = "sprd,hwdvfs-vsp-sharkl5pro",
+	  .data = &sharkl5pro_vsp_data },
 	{ },
 };
 

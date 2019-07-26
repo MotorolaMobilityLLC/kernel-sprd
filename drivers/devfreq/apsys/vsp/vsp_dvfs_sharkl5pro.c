@@ -12,7 +12,7 @@
  */
 
 #include "sprd_dvfs_vsp.h"
-#include "apsys_dvfs_sharkl5.h"
+#include "apsys_dvfs_sharkl5pro.h"
 
 static struct ip_dvfs_map_cfg vsp_dvfs_config_table[] = {
 	{0, VOLT70, VSP_CLK_INDEX_256, VSP_CLK256, "0.7v " },
@@ -20,7 +20,6 @@ static struct ip_dvfs_map_cfg vsp_dvfs_config_table[] = {
 	{2, VOLT75, VSP_CLK_INDEX_384, VSP_CLK384, "0.75v" },
 };
 
-/* userspace interface */
 static void vsp_hw_dvfs_en(u32 dvfs_eb)
 {
 	struct apsys_dvfs_reg *reg =
@@ -34,7 +33,6 @@ static void vsp_hw_dvfs_en(u32 dvfs_eb)
 	mutex_unlock(&apsys_glb_reg_lock);
 }
 
-/* work-idle dvfs map ops */
 static void get_vsp_dvfs_table(struct ip_dvfs_map_cfg *dvfs_table)
 {
 	int i = 0;
@@ -54,6 +52,7 @@ static void get_vsp_index_from_table(u32 work_freq, u32 *index)
 	u32 i;
 
 	*index = 0;
+	pr_debug("dvfs ops: %s,work_freq=%u\n", __func__, work_freq);
 	for (i = 0; i < ARRAY_SIZE(vsp_dvfs_config_table); i++) {
 		set_clk = vsp_dvfs_config_table[i].clk_rate;
 		if (work_freq == set_clk) {
@@ -61,6 +60,7 @@ static void get_vsp_index_from_table(u32 work_freq, u32 *index)
 			break;
 		}
 	}
+	pr_debug("dvfs ops: %s,index=%d\n", __func__, *index);
 }
 
 static void set_vsp_work_freq(u32 work_freq)
@@ -127,7 +127,6 @@ static u32 get_vsp_idle_freq(void)
 	return freq;
 }
 
-/*work-idle dvfs index ops*/
 static void set_vsp_work_index(u32 index)
 {
 	struct apsys_dvfs_reg *reg =
@@ -135,7 +134,6 @@ static void set_vsp_work_index(u32 index)
 	reg->vsp_dvfs_index_cfg = index;
 }
 
-/*work-idle dvfs index ops*/
 static u32 get_vsp_work_index(void)
 {
 	struct apsys_dvfs_reg *reg =
@@ -151,7 +149,6 @@ static void set_vsp_idle_index(u32 index)
 	reg->vsp_dvfs_index_idle_cfg = index;
 }
 
-/*work-idle dvfs index ops*/
 static u32 get_vsp_idle_index(void)
 {
 	struct apsys_dvfs_reg *reg =
@@ -159,7 +156,6 @@ static u32 get_vsp_idle_index(void)
 	return reg->vsp_dvfs_index_idle_cfg;
 }
 
-/* get vsp current volt, clk & map index */
 static void get_vsp_dvfs_status(struct ip_dvfs_status *ip_status)
 {
 	struct apsys_dvfs_reg *reg =
@@ -167,22 +163,21 @@ static void get_vsp_dvfs_status(struct ip_dvfs_status *ip_status)
 
 	mutex_lock(&apsys_glb_reg_lock);
 	ip_status->apsys_cur_volt =
-		sharkl5_apsys_val_to_volt(reg->ap_dvfs_voltage_dbg >> 12 & 0x7);
+		sharkl5pro_apsys_val_to_volt(reg->ap_dvfs_voltage_dbg >> 12 & 0x7);
 	ip_status->vsp_vote_volt =
-		sharkl5_apsys_val_to_volt(reg->ap_dvfs_voltage_dbg >> 6 & 0x7);
+		sharkl5pro_apsys_val_to_volt(reg->ap_dvfs_voltage_dbg >> 6 & 0x7);
 	ip_status->dpu_vote_volt =
-		sharkl5_apsys_val_to_volt(reg->ap_dvfs_voltage_dbg >> 3 & 0x7);
+		sharkl5pro_apsys_val_to_volt(reg->ap_dvfs_voltage_dbg >> 3 & 0x7);
 	ip_status->vdsp_vote_volt = "N/A";
 
 	ip_status->vsp_cur_freq =
-		sharkl5_vsp_val_to_freq(reg->ap_dvfs_cgm_cfg_dbg >> 3);
+		sharkl5pro_vsp_val_to_freq(reg->ap_dvfs_cgm_cfg_dbg >> 3);
 	ip_status->dpu_cur_freq =
-		sharkl5_dpu_val_to_freq(reg->ap_dvfs_cgm_cfg_dbg & 0x7);
+		sharkl5pro_dpu_val_to_freq(reg->ap_dvfs_cgm_cfg_dbg & 0x7);
 	ip_status->vdsp_cur_freq = "N/A";
 	mutex_unlock(&apsys_glb_reg_lock);
 }
 
-/* coffe setting ops */
 static void set_vsp_gfree_wait_delay(u32 wind_para)
 {
 	struct apsys_dvfs_reg *reg =
@@ -330,7 +325,7 @@ static struct ip_dvfs_ops vsp_dvfs_ops  =  {
 };
 
 static struct dvfs_ops_entry vsp_dvfs_entry = {
-	.ver = "sharkl5",
+	.ver = "sharkl5pro",
 	.ops = &vsp_dvfs_ops,
 };
 

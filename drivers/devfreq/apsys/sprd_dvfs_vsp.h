@@ -49,7 +49,7 @@ struct vsp_dvfs {
 
 struct ip_dvfs_ops {
 	/* userspace interface */
-	int (*parse_dt)(struct vsp_dvfs *vsp, struct device_node *np);
+	void (*parse_dt)(struct vsp_dvfs *vsp, struct device_node *np);
 	int (*dvfs_init)(struct vsp_dvfs *vsp);
 	void (*hw_dvfs_en)(u32 dvfs_eb);
 

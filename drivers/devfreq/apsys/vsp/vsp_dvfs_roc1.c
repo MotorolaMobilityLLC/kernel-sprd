@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Spreadtrum Communications Inc.
+ * Copyright (C) 2019 Unisoc Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -57,7 +57,6 @@ static void get_vsp_index_from_table(u32 work_freq, u32 *index)
 	pr_debug("dvfs ops: %s,work_freq=%u\n", __func__, work_freq);
 	for (i = 0; i < ARRAY_SIZE(vsp_dvfs_config_table); i++) {
 		set_clk = vsp_dvfs_config_table[i].clk_rate;
-
 		if (work_freq == set_clk) {
 			*index = i;
 			break;
@@ -262,37 +261,28 @@ static void vsp_dvfs_map_cfg(void)
 	reg->vsp_index2_map = vsp_dvfs_config_table[2].clk_level |
 		vsp_dvfs_config_table[2].volt_level << 2;
 }
-static int vsp_dvfs_parse_dt(struct vsp_dvfs *vsp,
+static void vsp_dvfs_parse_dt(struct vsp_dvfs *vsp,
 				struct device_node *np)
 {
-	int ret;
-
-	ret = of_property_read_u32(np, "sprd,gfree-wait-delay",
-			&vsp->ip_coeff.gfree_wait_delay);
-	if (ret)
+	if (of_property_read_u32(np, "sprd,gfree-wait-delay",
+			&vsp->ip_coeff.gfree_wait_delay))
 		vsp->ip_coeff.gfree_wait_delay = 0x100;
 
-	ret = of_property_read_u32(np, "sprd,freq-upd-hdsk-en",
-			&vsp->ip_coeff.freq_upd_hdsk_en);
-	if (ret)
+	if (of_property_read_u32(np, "sprd,freq-upd-hdsk-en",
+			&vsp->ip_coeff.freq_upd_hdsk_en))
 		vsp->ip_coeff.freq_upd_hdsk_en = 1;
 
-	ret = of_property_read_u32(np, "sprd,freq-upd-delay-en",
-			&vsp->ip_coeff.freq_upd_delay_en);
-	if (ret)
+	if (of_property_read_u32(np, "sprd,freq-upd-delay-en",
+			&vsp->ip_coeff.freq_upd_delay_en))
 		vsp->ip_coeff.freq_upd_delay_en = 1;
 
-	ret = of_property_read_u32(np, "sprd,freq-upd-en-byp",
-			&vsp->ip_coeff.freq_upd_en_byp);
-	if (ret)
+	if (of_property_read_u32(np, "sprd,freq-upd-en-byp",
+			&vsp->ip_coeff.freq_upd_en_byp))
 		vsp->ip_coeff.freq_upd_en_byp = 0;
 
-	ret = of_property_read_u32(np, "sprd,sw-trig-en",
-			&vsp->ip_coeff.sw_trig_en);
-	if (ret)
+	if (of_property_read_u32(np, "sprd,sw-trig-en",
+			&vsp->ip_coeff.sw_trig_en))
 		vsp->ip_coeff.sw_trig_en = 0;
-
-	return ret;
 }
 
 static int vsp_dvfs_init(struct vsp_dvfs *vsp)
