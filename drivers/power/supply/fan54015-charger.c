@@ -6,7 +6,6 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
-#include <linux/gpio/consumer.h>
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/kernel.h>
@@ -82,7 +81,6 @@ struct fan54015_charger_info {
 	struct delayed_work wdt_work;
 	struct regmap *pmic;
 	u32 charger_detect;
-	struct gpio_desc *gpiod;
 };
 
 static bool fan54015_charger_is_bat_present(struct fan54015_charger_info *info)
