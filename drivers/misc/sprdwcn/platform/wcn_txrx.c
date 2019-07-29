@@ -333,7 +333,7 @@ int prepare_free_buf_for_log(int chn, int size, int num)
 		mbuf->len = log_buf[i].size;
 		memset(mbuf->buf, 0x0, mbuf->len);
 		mbuf = mbuf->next;
-		WCN_INFO("dma_alloc_coherent(0x%x) vir=0x%lx, phy=0x%lx\n",
+		WCN_DBG("dma_alloc_coherent(0x%x) vir=0x%lx, phy=0x%lx\n",
 			 log_buf[i].size, log_buf[i].vir, log_buf[i].phy);
 	}
 

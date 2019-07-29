@@ -174,7 +174,7 @@ int dmalloc(struct wcn_pcie_info *priv, struct dma_buf *dm, int size)
 	}
 	dm->size = size;
 	memset((unsigned char *)(dm->vir), 0x56, size);
-	WCN_INFO("dma_alloc_coherent(0x%x) vir=0x%lx, phy=0x%lx\n",
+	WCN_DBG("dma_alloc_coherent(0x%x) vir=0x%lx, phy=0x%lx\n",
 		 size, dm->vir, dm->phy);
 
 	return 0;
@@ -189,7 +189,7 @@ int dmfree(struct wcn_pcie_info *priv, struct dma_buf *dm)
 		WCN_ERR("%s(NULL)\n", __func__);
 		return ERROR;
 	}
-	WCN_INFO("dma_free_coherent(0x%x,0x%lx,0x%lx)\n",
+	WCN_DBG("dma_free_coherent(0x%x,0x%lx,0x%lx)\n",
 		 dm->size, dm->vir, dm->phy);
 	dma_free_coherent(dev, dm->size, (void *)(dm->vir), dm->phy);
 	memset(dm, 0x00, sizeof(struct dma_buf));
@@ -445,7 +445,7 @@ int sprd_pcie_mem_write(unsigned int addr, void *buf, unsigned int len)
 
 	if (base_addr != base_upper_addr)
 		WARN_ON(1);
-	WCN_INFO("%s: bar=%d, base=0x%x, offset=0x%x, upper=0x%x, len=0x%x\n",
+	WCN_DBG("%s: bar=%d, base=0x%x, offset=0x%x, upper=0x%x, len=0x%x\n",
 		 __func__, bar, base_addr, offset, base_upper_addr, len);
 
 	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr, region);
@@ -476,7 +476,7 @@ int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len)
 
 	if (base_addr != base_upper_addr)
 		WARN_ON(1);
-	WCN_INFO("%s: bar=%d, base=0x%x, offset=0x%x, upper=0x%x, len=0x%x\n",
+	WCN_DBG("%s: bar=%d, base=0x%x, offset=0x%x, upper=0x%x, len=0x%x\n",
 		 __func__, bar, base_addr, offset, base_upper_addr, len);
 
 	ret = sprd_pcie_bar_map(g_pcie_dev, bar, base_addr, region);

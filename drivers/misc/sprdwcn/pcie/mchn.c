@@ -302,7 +302,7 @@ int mchn_init(struct mchn_ops_t *ops)
 	int ret = -1;
 	struct mchn_info_t *mchn = mchn_info();
 
-	WCN_INFO("[+]%s(chn=%d)\n", __func__, ops->channel);
+	WCN_DBG("[+]%s(chn=%d)\n", __func__, ops->channel);
 	if (((ops->hif_type != HW_TYPE_SDIO) &&
 	     (ops->hif_type != HW_TYPE_PCIE))) {
 		WCN_INFO("%s err, hif_type %d\n", __func__, ops->hif_type);
@@ -327,7 +327,7 @@ int mchn_init(struct mchn_ops_t *ops)
 	if ((ret == 0) && (ops->pool_size > 0))
 		ret = mbuf_pool_init(&(mchn->chn_public[ops->channel].pool),
 				     ops->pool_size, 0);
-	WCN_INFO("[-]%s(%d)\n", __func__, ops->channel);
+	WCN_DBG("[-]%s(%d)\n", __func__, ops->channel);
 
 	return ret;
 }

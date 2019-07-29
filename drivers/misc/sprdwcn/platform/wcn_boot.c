@@ -1694,17 +1694,16 @@ void wifipa_enable(int enable)
 		WCN_INFO("wifipa 3v3 %d\n", enable);
 		usleep_range(4000, 5000);
 		if (enable) {
-#ifndef CONFIG_WCN_PCIE
+
 			if (regulator_is_enabled(marlin_dev->avdd33))
 				return;
-#endif
+
 			regulator_set_voltage(marlin_dev->avdd33,
 					      3300000, 3300000);
 			ret = regulator_enable(marlin_dev->avdd33);
 			if (ret)
 				WCN_ERR("fail to enable wifipa\n");
 		} else {
-#ifndef CONFIG_WCN_PCIE
 			if (regulator_is_enabled(marlin_dev->avdd33)) {
 				ret =
 				regulator_disable(marlin_dev->avdd33);
@@ -1712,7 +1711,6 @@ void wifipa_enable(int enable)
 					WCN_ERR("fail to disable wifipa\n");
 				WCN_INFO(" wifi pa disable\n");
 			}
-#endif
 		}
 	}
 }

@@ -122,7 +122,7 @@ void *mpool_malloc(int len)
 		mutex_unlock(&edma->mpool_lock);
 		return NULL;
 	}
-	WCN_INFO("%s(0x%x) totle:0x%x= {0x%p, 0x%p}\n", __func__, len, total_len,
+	WCN_DBG("%s(0x%x) totle:0x%x= {0x%p, 0x%p}\n", __func__, len, total_len,
 		 p, mpool_vir_to_phy((void *)p));
 
 	mutex_unlock(&edma->mpool_lock);
@@ -1349,7 +1349,7 @@ static int dscr_ring_init(int chn, struct dscr_ring *dscr_ring,
 	unsigned int tmp;
 	struct desc *dscr;
 
-	WCN_INFO("[+]%s(0x%p, 0x%p)\n", __func__, dscr_ring,
+	WCN_DBG("[+]%s(0x%p, 0x%p)\n", __func__, dscr_ring,
 			 dscr_ring->mem);
 
 	/* mpool not free, so dscr_ring->mem not change and
@@ -1407,13 +1407,14 @@ static int dscr_ring_init(int chn, struct dscr_ring *dscr_ring,
 		       (unsigned char *)(&tmp), 4);
 		dscr[0].chn_trans_len.bit.rf_chn_pause = 1;
 	}
-	WCN_INFO("dscr(0x%p-->0x%p)\n",
+	WCN_DBG("dscr(0x%p-->0x%p)\n",
 		 mpool_vir_to_phy(&dscr[i]),
 		 mpool_vir_to_phy(&dscr[0]));
 	dscr[i].next.p = &dscr[0];
 	dscr_ring->free = size;
-	WCN_INFO("[-]%s(0x%p, 0x%p, %d, %d)\n", __func__, dscr_ring,
+	WCN_DBG("[-]%s(0x%p, 0x%p, %d, %d)\n", __func__, dscr_ring,
 		 dscr_ring->mem, dscr_ring->size, dscr_ring->free);
+
 	return 0;
 }
 
