@@ -1819,13 +1819,11 @@ int timers_prepare_cpu(unsigned int cpu)
 	return 0;
 }
 
-int timers_dead_cpu(unsigned int cpu)
+static void migrate_timers(unsigned int cpu)
 {
 	struct timer_base *old_base;
 	struct timer_base *new_base;
 	int b, i;
-
-	BUG_ON(cpu_online(cpu));
 
 	for (b = 0; b < NR_BASES; b++) {
 		old_base = per_cpu_ptr(&timer_bases[b], cpu);
@@ -1852,8 +1850,21 @@ int timers_dead_cpu(unsigned int cpu)
 		raw_spin_unlock_irq(&new_base->lock);
 		put_cpu_ptr(&timer_bases);
 	}
+}
+
+int timers_dead_cpu(unsigned int cpu)
+{
+	BUG_ON(cpu_online(cpu));
+
+	migrate_timers(cpu);
 	return 0;
 }
+#ifdef CONFIG_SPRD_CORE_CTL
+void timer_quiesce_cpu(void *cpup)
+{
+	migrate_timers(*(unsigned int *)cpup);
+}
+#endif
 
 #endif /* CONFIG_HOTPLUG_CPU */
 

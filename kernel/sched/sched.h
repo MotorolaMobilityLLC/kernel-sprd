@@ -65,9 +65,11 @@ extern long calc_load_fold_active(struct rq *this_rq, long adjust);
 #ifdef CONFIG_SMP
 extern void cpu_load_update_active(struct rq *this_rq);
 extern void check_for_migration(struct rq *rq, struct task_struct *p);
+extern void init_sched_groups_capacity(int cpu, struct sched_domain *sd);
 #else
 static inline void cpu_load_update_active(struct rq *this_rq) { }
 static inline void check_for_migration(struct rq *rq, struct task_struct *p) { }
+static void init_sched_groups_capacity(int cpu, struct sched_domain *sd) { }
 #endif
 
 /*

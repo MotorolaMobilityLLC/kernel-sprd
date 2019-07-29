@@ -108,7 +108,10 @@ int cpupri_find(struct cpupri *cp, struct task_struct *p,
 
 		if (lowest_mask) {
 			cpumask_and(lowest_mask, &p->cpus_allowed, vec->mask);
-
+#ifdef CONFIG_SPRD_CORE_CTL
+			cpumask_andnot(lowest_mask, lowest_mask,
+				       cpu_isolated_mask);
+#endif
 			/*
 			 * We have to ensure that we have at least one bit
 			 * still set in the array, since the map could have

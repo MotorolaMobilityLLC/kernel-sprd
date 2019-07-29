@@ -960,6 +960,12 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen,
 	if (!cpu_present(cpu))
 		return -EINVAL;
 
+#ifdef CONFIG_SPRD_CORE_CTL
+	if (!tasks_frozen &&
+	    !cpu_isolated(cpu) &&
+	    num_online_uniso_cpus() == 1)
+		return -EBUSY;
+#endif
 	cpus_write_lock();
 
 	cpuhp_tasks_frozen = tasks_frozen;
@@ -2261,6 +2267,16 @@ EXPORT_SYMBOL(__cpu_present_mask);
 struct cpumask __cpu_active_mask __read_mostly;
 EXPORT_SYMBOL(__cpu_active_mask);
 
+#ifdef CONFIG_SPRD_CORE_CTL
+struct cpumask __cpu_isolated_mask __read_mostly;
+EXPORT_SYMBOL(__cpu_isolated_mask);
+
+void init_cpu_isolated(const struct cpumask *src)
+{
+	cpumask_copy(&__cpu_isolated_mask, src);
+}
+#endif
+
 void init_cpu_present(const struct cpumask *src)
 {
 	cpumask_copy(&__cpu_present_mask, src);
@@ -2288,6 +2304,9 @@ void __init boot_cpu_init(void)
 	set_cpu_active(cpu, true);
 	set_cpu_present(cpu, true);
 	set_cpu_possible(cpu, true);
+#ifdef CONFIG_SPRD_CORE_CTL
+	set_cpu_isolated(cpu, false);
+#endif
 
 #ifdef CONFIG_SMP
 	__boot_cpu_id = cpu;

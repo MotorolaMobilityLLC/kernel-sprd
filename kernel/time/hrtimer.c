@@ -1675,13 +1675,10 @@ static void migrate_hrtimer_list(struct hrtimer_clock_base *old_base,
 	}
 }
 
-int hrtimers_dead_cpu(unsigned int scpu)
+static void migrate_hrtimers(unsigned int scpu)
 {
 	struct hrtimer_cpu_base *old_base, *new_base;
 	int i;
-
-	BUG_ON(cpu_online(scpu));
-	tick_cancel_sched_timer(scpu);
 
 	local_irq_disable();
 	old_base = &per_cpu(hrtimer_bases, scpu);
@@ -1704,9 +1701,22 @@ int hrtimers_dead_cpu(unsigned int scpu)
 	/* Check, if we got expired work to do */
 	__hrtimer_peek_ahead_timers();
 	local_irq_enable();
-	return 0;
 }
 
+int hrtimers_dead_cpu(unsigned int scpu)
+{
+	BUG_ON(cpu_online(scpu));
+	tick_cancel_sched_timer(scpu);
+
+	migrate_hrtimers(scpu);
+	return 0;
+}
+#ifdef CONFIG_SPRD_CORE_CTL
+void hrtimer_quiesce_cpu(void *cpup)
+{
+	migrate_hrtimers(*(int *)cpup);
+}
+#endif
 #endif /* CONFIG_HOTPLUG_CPU */
 
 void __init hrtimers_init(void)

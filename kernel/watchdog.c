@@ -179,6 +179,9 @@ static DEFINE_PER_CPU(bool, soft_watchdog_warn);
 static DEFINE_PER_CPU(unsigned long, hrtimer_interrupts);
 static DEFINE_PER_CPU(unsigned long, soft_lockup_hrtimer_cnt);
 static DEFINE_PER_CPU(struct task_struct *, softlockup_task_ptr_saved);
+#ifdef CONFIG_SPRD_CORE_CTL
+static DEFINE_PER_CPU(unsigned int, watchdog_en);
+#endif
 #ifdef CONFIG_HARDLOCKUP_DETECTOR_OTHER_CPU
 static cpumask_t __read_mostly watchdog_cpus;
 static DEFINE_PER_CPU(bool, watchdog_other_cpu_touch);
@@ -552,10 +555,15 @@ static void watchdog_set_prio(unsigned int policy, unsigned int prio)
 	sched_setscheduler(current, policy, &param);
 }
 
-static void watchdog_enable(unsigned int cpu)
+void watchdog_enable(unsigned int cpu)
 {
 	struct hrtimer *hrtimer = this_cpu_ptr(&watchdog_hrtimer);
+#ifdef CONFIG_SPRD_CORE_CTL
+	unsigned int *enabled = this_cpu_ptr(&watchdog_en);
 
+	if (*enabled)
+		return;
+#endif
 	/*
 	 * Start the timer first to prevent the NMI watchdog triggering
 	 * before the timer has a chance to fire.
@@ -576,12 +584,27 @@ static void watchdog_enable(unsigned int cpu)
 #endif
 
 	watchdog_set_prio(SCHED_FIFO, MAX_RT_PRIO - 1);
+#ifdef CONFIG_SPRD_CORE_CTL
+	/*
+	 * Need to ensure above operations are observed by other CPUs before
+	 * indicating that timer is enabled. This is to synchronize core
+	┊* isolation and hotplug. Core isolation will wait for this flag to be
+	┊* set.
+	 */
+	mb();
+	*enabled = 1;
+#endif
 }
 
-static void watchdog_disable(unsigned int cpu)
+void watchdog_disable(unsigned int cpu)
 {
 	struct hrtimer *hrtimer = this_cpu_ptr(&watchdog_hrtimer);
+#ifdef CONFIG_SPRD_CORE_CTL
+	unsigned int *enabled = this_cpu_ptr(&watchdog_en);
 
+	if (!*enabled)
+		return;
+#endif
 	watchdog_set_prio(SCHED_NORMAL, 0);
 	/*
 	 * Disable the perf event first. That prevents that a large delay
@@ -593,7 +616,21 @@ static void watchdog_disable(unsigned int cpu)
 	watchdog_other_cpu_disable(cpu);
 #endif
 	hrtimer_cancel(hrtimer);
+#ifdef CONFIG_SPRD_CORE_CTL
+	/*
+	 * No need for barrier here since disabling the watchdog is
+	 * synchronized with hotplug lock
+	 */
+	*enabled = 0;
+#endif
 }
+
+#ifdef CONFIG_SPRD_CORE_CTL
+bool watchdog_configured(unsigned int cpu)
+{
+	return *per_cpu_ptr(&watchdog_en, cpu);
+}
+#endif
 
 static void watchdog_cleanup(unsigned int cpu, bool online)
 {

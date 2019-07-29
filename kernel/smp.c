@@ -738,7 +738,10 @@ void wake_up_all_idle_cpus(void)
 	for_each_online_cpu(cpu) {
 		if (cpu == smp_processor_id())
 			continue;
-
+#ifdef CONFIG_SPRD_CORE_CTL
+		if (cpu_isolated(cpu))
+			continue;
+#endif
 		wake_up_if_idle(cpu);
 	}
 	preempt_enable();

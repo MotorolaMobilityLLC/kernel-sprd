@@ -209,6 +209,12 @@ extern int mod_timer_pending(struct timer_list *timer, unsigned long expires);
  */
 #define NEXT_TIMER_MAX_DELTA	((1UL << 30) - 1)
 
+#ifdef CONFIG_SPRD_CORE_CTL
+extern void timer_quiesce_cpu(void *cpup);
+#else
+static inline void timer_quiesce_cpu(void *cpup) {}
+#endif
+
 extern void add_timer(struct timer_list *timer);
 
 extern int try_to_del_timer_sync(struct timer_list *timer);

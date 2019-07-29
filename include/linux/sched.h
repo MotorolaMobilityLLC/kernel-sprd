@@ -219,6 +219,44 @@ extern cpumask_var_t			cpu_isolated_map;
 
 extern void scheduler_tick(void);
 
+#ifdef CONFIG_SPRD_CORE_CTL
+extern int sched_isolate_count(const cpumask_t *mask, bool include_offline);
+extern int sched_isolate_cpu(int cpu);
+extern int sched_unisolate_cpu(int cpu);
+extern int sched_unisolate_cpu_unlocked(int cpu);
+extern int ctrl_max_min_core_api(unsigned int cpu_num,
+				int type, unsigned int cluster_id);
+extern int ctrl_core_api(struct cpumask *target, int type);
+#else
+static inline int sched_isolate_count(const cpumask_t *mask,
+				      bool include_offline)
+{
+	cpumask_t count_mask;
+
+	if (include_offline)
+		cpumask_andnot(&count_mask, mask, cpu_online_mask);
+	else
+		return 0;
+
+	return cpumask_weight(&count_mask);
+}
+
+static inline int sched_isolate_cpu(int cpu)
+{
+	return 0;
+}
+
+static inline int sched_unisolate_cpu(int cpu)
+{
+	return 0;
+}
+
+static inline int sched_unisolate_cpu_unlocked(int cpu)
+{
+	return 0;
+}
+#endif
+
 #define	MAX_SCHEDULE_TIMEOUT		LONG_MAX
 
 extern long schedule_timeout(long timeout);

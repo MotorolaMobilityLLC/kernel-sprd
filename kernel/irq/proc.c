@@ -143,6 +143,13 @@ static ssize_t write_irq_affinity(int type, struct file *file,
 		goto free_cpumask;
 	}
 
+#ifdef CONFIG_SPRD_CORE_CTL
+	if (cpumask_subset(new_value, cpu_isolated_mask)) {
+		err = -EINVAL;
+		goto free_cpumask;
+	}
+#endif
+
 	/*
 	 * Do not allow disabling IRQs completely - it's a too easy
 	 * way to make the system unusable accidentally :-) At least

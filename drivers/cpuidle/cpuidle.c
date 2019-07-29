@@ -13,6 +13,9 @@
 #include <linux/mutex.h>
 #include <linux/sched.h>
 #include <linux/sched/clock.h>
+#ifdef CONFIG_SPRD_CORE_CTL
+#include <linux/sched/idle.h>
+#endif
 #include <linux/notifier.h>
 #include <linux/pm_qos.h>
 #include <linux/cpu.h>
@@ -640,6 +643,28 @@ EXPORT_SYMBOL_GPL(cpuidle_register);
 
 #ifdef CONFIG_SMP
 
+#ifdef CONFIG_SPRD_CORE_CTL
+static void wake_up_idle_cpus(void *v)
+{
+	int cpu;
+	struct cpumask cpus;
+
+	preempt_disable();
+	if (v) {
+		cpumask_andnot(&cpus, v, cpu_isolated_mask);
+		cpumask_and(&cpus, &cpus, cpu_online_mask);
+	} else
+		cpumask_andnot(&cpus, cpu_online_mask, cpu_isolated_mask);
+
+	for_each_cpu(cpu, &cpus) {
+		if (cpu == smp_processor_id())
+			continue;
+		wake_up_if_idle(cpu);
+	}
+	preempt_enable();
+}
+#endif
+
 /*
  * This function gets called when a part of the kernel has a new latency
  * requirement.  This means we need to get all processors out of their C-state,
@@ -649,7 +674,12 @@ EXPORT_SYMBOL_GPL(cpuidle_register);
 static int cpuidle_latency_notify(struct notifier_block *b,
 		unsigned long l, void *v)
 {
+#ifdef CONFIG_SPRD_CORE_CTL
+	wake_up_idle_cpus(v);
+#else
 	wake_up_all_idle_cpus();
+#endif
+
 	return NOTIFY_OK;
 }
 

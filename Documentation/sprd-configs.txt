@@ -13355,6 +13355,15 @@ CONFIG_SPRD_COMMON_CLK
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_CORE_CTL
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_SPRD_CPROC
 	[arch] all
 	[plat] all

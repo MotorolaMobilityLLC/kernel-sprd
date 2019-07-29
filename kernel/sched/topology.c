@@ -975,7 +975,7 @@ build_sched_groups(struct sched_domain *sd, int cpu)
  * group having more cpu_capacity will pickup more load compared to the
  * group having less cpu_capacity.
  */
-static void init_sched_groups_capacity(int cpu, struct sched_domain *sd)
+void init_sched_groups_capacity(int cpu, struct sched_domain *sd)
 {
 	struct sched_group *sg = sd->groups;
 
@@ -984,7 +984,15 @@ static void init_sched_groups_capacity(int cpu, struct sched_domain *sd)
 	do {
 		int cpu, max_cpu = -1;
 
+#ifdef CONFIG_SPRD_CORE_CTL
+		cpumask_t avail_mask;
+
+		cpumask_andnot(&avail_mask, sched_group_span(sg),
+			       cpu_isolated_mask);
+		sg->group_weight = cpumask_weight(&avail_mask);
+#else
 		sg->group_weight = cpumask_weight(sched_group_span(sg));
+#endif
 
 		if (!(sd->flags & SD_ASYM_PACKING))
 			goto next;
