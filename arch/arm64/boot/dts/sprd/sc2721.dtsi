@@ -115,7 +115,7 @@
 		};
 
 		pmic_fgu: fgu@a00 {
-			compatible = "sprd,sc27xx-fgu", "sprd,sc2731-fgu";
+			compatible = "sprd,sc27xx-fgu", "sprd,sc2720-fgu", "sprd,sc2721-fgu";
 			reg = <0xa00>;
 			bat-detect-gpio = <&pmic_eic 9 0>;
 			nvmem-cell-names = "fgu_calib";
