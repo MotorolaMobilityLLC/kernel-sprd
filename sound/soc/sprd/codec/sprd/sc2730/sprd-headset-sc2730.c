@@ -61,7 +61,7 @@
 #define TYPEC_4POLE_MIC_MAX_VOLT 2685
 #define TYPEC_4POLE_MIC_MIN_VOLT 200
 #define TYPEC_3POLE_MIC_MAX_VOLT 100
-#define TYPEC_SELFIE_STICK_THRESHOLD 2500
+#define TYPEC_SELFIE_STICK_THRESHOLD 30
 
 #define CHIP_ID_2720 0x2720
 #define CHIP_ID_2730 0x2730
@@ -1321,7 +1321,7 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata;
 	int mic_vol_0, mic_vol_1, try_count = 0, vol_3pole,
-		left_vol_0, left_vol_1, left_vol_max, gnd_vol,
+		left_vol_0, left_vol_1, left_vol_min, gnd_vol,
 		mic_max_vol;
 
 	if (!hdst)
@@ -1376,33 +1376,25 @@ static enum sprd_headset_type sprd_headset_get_type(void)
 		return HEADSET_TYPE_ERR;
 	}
 	left_vol_1 = sprd_headset_typec_get_hpl_voltage(hdst);
-	left_vol_max = max(left_vol_0, left_vol_1);
+	left_vol_min = min(left_vol_0, left_vol_1);
 	mic_max_vol = max(mic_vol_0, mic_vol_1);
-	pr_info("typec mic_vol_0 %d, mic_vol_1 %d, vol_3pole %d, left_vol_max %d\n",
-		mic_vol_0, mic_vol_1, vol_3pole, left_vol_max);
+	pr_info("typec mic_vol_0 %d, mic_vol_1 %d, vol_3pole %d, left_vol_min %d\n",
+		mic_vol_0, mic_vol_1, vol_3pole, left_vol_min);
 	if (mic_vol_0 < vol_3pole &&
 		mic_vol_1 < vol_3pole) {
 		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 		return HEADSET_NO_MIC;
 	}
 
-	if (left_vol_max > gnd_vol &&
-		ABS(mic_max_vol - left_vol_max) < gnd_vol) {
-		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
-		return HEADSET_4POLE_NOT_NORMAL;
-	}
-
 	if (mic_vol_0 > mic_vol_1)
 		sprd_headset_typec_mic_switch(hdst, false, false);
 
-	if (max(mic_vol_0, mic_vol_1) <
-		TYPEC_SELFIE_STICK_THRESHOLD) {
+	if (left_vol_min <= TYPEC_SELFIE_STICK_THRESHOLD) {
 		/* typec headset */
 		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
 		return HEADSET_4POLE_NORMAL;
 	}
-	if (max(mic_vol_0, mic_vol_1) >
-		TYPEC_SELFIE_STICK_THRESHOLD) {
+	if (left_vol_min > TYPEC_SELFIE_STICK_THRESHOLD) {
 		/* typec selfie stick */
 		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 		return HEADSET_4POLE_NORMAL;
