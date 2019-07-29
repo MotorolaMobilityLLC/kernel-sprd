@@ -29,6 +29,9 @@
 
 #define DRV_NAME "sprd-sipa-sys"
 
+#define SPRD_IPA_POWERON_POLL_US 50
+#define SPRD_IPA_POWERON_TIMEOUT 5000
+
 static const char * const reg_name_tb[] = {
 	"ipa-sys-forcewakeup",
 	"ipa-sys-forceshutdown",
@@ -42,6 +45,7 @@ static const char * const reg_name_tb[] = {
 	"ipa-sys-cm4eb",
 	"ipa-sys-autogaten",
 	"ipa-sys-s5-autogaten",
+	"ipa-sys-pwr-state",
 };
 
 enum  {
@@ -57,6 +61,7 @@ enum  {
 	IPA_SYS_CM4EB,
 	IPA_SYS_AUTOGATEN,
 	IPA_SYS_S5_AUTOGATEN,
+	IPA_SYS_PWR_STATE,
 };
 
 struct sipa_sys_register {
@@ -92,6 +97,27 @@ static int sipa_sys_set_register(struct sipa_sys_register *reg_info,
 	return ret;
 }
 
+static int sipa_sys_wait_power_on(struct sipa_sys_register *reg_info)
+{
+	int ret = 0;
+	u32 val;
+
+	if (reg_info->rmap)
+		ret = regmap_read_poll_timeout(reg_info->rmap,
+					       reg_info->reg,
+					       val,
+					       !(val & reg_info->mask),
+					       SPRD_IPA_POWERON_POLL_US,
+					       SPRD_IPA_POWERON_TIMEOUT);
+	else
+		usleep_range((SPRD_IPA_POWERON_TIMEOUT >> 2) + 1, 5000);
+
+	if (ret)
+		pr_err("Polling check power on reg timed out: %x\n", val);
+
+	return ret;
+}
+
 static int sipa_sys_do_power_on(struct sipa_sys_pd_drv *drv)
 {
 	struct sipa_sys_register *reg_info = &drv->regs[IPA_SYS_FORCEWAKEUP];
@@ -108,7 +134,10 @@ static int sipa_sys_do_power_on(struct sipa_sys_pd_drv *drv)
 	}
 
 	/* access IPA_SYS_CM4EB register need wait ipa_sys power on */
-	usleep_range(200, 1000);
+	reg_info = &drv->regs[IPA_SYS_PWR_STATE];
+	ret = sipa_sys_wait_power_on(reg_info);
+	if (ret)
+		pr_warn("%s: wait pwr on timeout\n", __func__);
 
 	/* disable ipa_cm4 eb bit, for asic initail value fault */
 	reg_info = &drv->regs[IPA_SYS_CM4EB];
