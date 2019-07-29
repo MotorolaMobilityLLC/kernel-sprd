@@ -2616,11 +2616,6 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_SWITCH("HP", SND_SOC_NOPM,
 			0, 0, &hp_jack_switch),
 
-	SND_SOC_DAPM_PGA_S("DMIC Switch", 3, SOC_REG(AUD_DMIC_CTL),
-			   ADC_DMIC_EN, 0, NULL, 0),
-	SND_SOC_DAPM_PGA_S("DMIC1 Switch", 3, SOC_REG(AUD_DMIC_CTL),
-			   ADC1_DMIC1_EN, 0, NULL, 0),
-
 	SND_SOC_DAPM_MUX("Digital ADC In Sel", SND_SOC_NOPM, 0, 0,
 			 &dig_adc_in_sel),
 	SND_SOC_DAPM_MUX("Digital ADC1 In Sel", SND_SOC_NOPM, 0, 0,
@@ -2748,32 +2743,37 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADCR Switch", NULL, "ADCR Gain"},
 	{"ADie Digital ADCL Switch", NULL, "ADCL Switch"},
 	{"ADie Digital ADCR Switch", NULL, "ADCR Switch"},
-	{"Digital ADCL Switch", NULL, "ADie Digital ADCL Switch"},
-	{"Digital ADCR Switch", NULL, "ADie Digital ADCR Switch"},
-	{"Digital ADC1L Switch", NULL, "ADie Digital ADCL Switch"},
-	{"Digital ADC1R Switch", NULL, "ADie Digital ADCR Switch"},
+	{"Digital ADC In Sel", "ADC", "ADie Digital ADCL Switch"},
+	{"Digital ADC In Sel", "ADC", "ADie Digital ADCR Switch"},
+	{"Digital ADC1 In Sel", "ADC", "ADie Digital ADCL Switch"},
+	{"Digital ADC1 In Sel", "ADC", "ADie Digital ADCR Switch"},
 
-	{"ADC", NULL, "Digital ADCL Switch"},
-	{"ADC", NULL, "Digital ADCR Switch"},
-	{"ADC AP23", NULL, "Digital ADCL Switch"},
-	{"ADC AP23", NULL, "Digital ADCR Switch"},
-	{"ADC DSP_C", NULL, "Digital ADCL Switch"},
-	{"ADC DSP_C", NULL, "Digital ADCR Switch"},
-	{"ADC DSP_C_btsco_test", NULL, "Digital ADCL Switch"},
-	{"ADC DSP_C_btsco_test", NULL, "Digital ADCR Switch"},
-	{"ADC DSP_C_fm_test", NULL, "Digital ADCL Switch"},
-	{"ADC DSP_C_fm_test", NULL, "Digital ADCR Switch"},
-	{"ADC Voice", NULL, "Digital ADCL Switch"},
-	{"ADC Voice", NULL, "Digital ADCR Switch"},
-	{"ADC Voip", NULL, "Digital ADCL Switch"},
-	{"ADC Voip", NULL, "Digital ADCR Switch"},
-	{"ADC CODEC_TEST", NULL, "Digital ADCL Switch"},
-	{"ADC CODEC_TEST", NULL, "Digital ADCR Switch"},
-	{"ADC LOOP", NULL, "Digital ADCL Switch"},
-	{"ADC LOOP", NULL, "Digital ADCR Switch"},
+	{"Digital ADCL Switch", NULL, "Digital ADC In Sel"},
+	{"Digital ADCR Switch", NULL, "Digital ADC In Sel"},
+	{"Digital ADC1L Switch", NULL, "Digital ADC1 In Sel"},
+	{"Digital ADC1R Switch", NULL, "Digital ADC1 In Sel"},
 
-	{"ADC1", NULL, "Digital ADC1L Switch"},
-	{"ADC1", NULL, "Digital ADC1R Switch"},
+	{"ADC", NULL, "Digital ADC1L Switch"},
+	{"ADC", NULL, "Digital ADC1R Switch"},
+	{"ADC AP23", NULL, "Digital ADC1L Switch"},
+	{"ADC AP23", NULL, "Digital ADC1R Switch"},
+	{"ADC DSP_C", NULL, "Digital ADC1L Switch"},
+	{"ADC DSP_C", NULL, "Digital ADC1R Switch"},
+	{"ADC DSP_C_btsco_test", NULL, "Digital ADC1L Switch"},
+	{"ADC DSP_C_btsco_test", NULL, "Digital ADC1R Switch"},
+	{"ADC DSP_C_fm_test", NULL, "Digital ADC1L Switch"},
+	{"ADC DSP_C_fm_test", NULL, "Digital ADC1R Switch"},
+	{"ADC Voice", NULL, "Digital ADC1L Switch"},
+	{"ADC Voice", NULL, "Digital ADC1R Switch"},
+	{"ADC Voip", NULL, "Digital ADC1L Switch"},
+	{"ADC Voip", NULL, "Digital ADC1R Switch"},
+	{"ADC CODEC_TEST", NULL, "Digital ADC1L Switch"},
+	{"ADC CODEC_TEST", NULL, "Digital ADC1R Switch"},
+	{"ADC LOOP", NULL, "Digital ADC1L Switch"},
+	{"ADC LOOP", NULL, "Digital ADC1R Switch"},
+
+	{"ADC1", NULL, "Digital ADCL Switch"},
+	{"ADC1", NULL, "Digital ADCR Switch"},
 
 	{"ADC", NULL, "CLK_ADC"},
 	{"ADC1", NULL, "CLK_ADC"},
@@ -2827,13 +2827,9 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	/* DMIC0 */
 	{"DMIC Switch", NULL, "DMIC Pin"},
 	{"Digital ADC In Sel", "DMIC", "DMIC Switch"},
-	{"Digital ADCL Switch", NULL, "Digital ADC In Sel"},
-	{"Digital ADCR Switch", NULL, "Digital ADC In Sel"},
 	/* DMIC1 */
 	{"DMIC1 Switch", NULL, "DMIC1 Pin"},
 	{"Digital ADC1 In Sel", "DMIC", "DMIC1 Switch"},
-	{"Digital ADC1L Switch", NULL, "Digital ADC1 In Sel"},
-	{"Digital ADC1R Switch", NULL, "Digital ADC1 In Sel"},
 
 	/* virt path */
 	{"Virt Output", "Switch", "Digital DACL Switch"},
@@ -3265,7 +3261,7 @@ static int sprd_codec_pcm_hw_params(struct snd_pcm_substream *substream,
 		sp_asoc_pr_info("Playback rate is [%u]\n",
 			sprd_codec->da_sample_val);
 	} else {
-		if (dai->id != SPRD_CODEC_IIS1_ID) {
+		if (dai->id == SPRD_CODEC_IIS0_ID) {
 			sprd_codec->ad_sample_val = fixed_rate[CODEC_PATH_AD] ?
 				fixed_rate[CODEC_PATH_AD] : rate;
 			sprd_codec_set_ad_sample_rate(codec,
@@ -3663,7 +3659,7 @@ static struct snd_soc_dai_driver sprd_codec_dai[] = {
 	},
 	/* 10 */
 	{
-		.id = SPRD_CODEC_IIS1_ID,
+		.id = SPRD_CODEC_IIS0_ID,
 		.name = "sprd-codec-ad1",
 		.capture = {
 			.stream_name = "Ext-Capture",
@@ -3676,7 +3672,7 @@ static struct snd_soc_dai_driver sprd_codec_dai[] = {
 	},
 	/* 11 */
 	{
-		.id = SPRD_CODEC_IIS1_ID,
+		.id = SPRD_CODEC_IIS0_ID,
 		.name = "sprd-codec-ad1-voice",
 		.capture = {
 			.stream_name = "Ext-Voice-Capture",
@@ -3763,10 +3759,10 @@ static void codec_reconfig_dai_rate(struct snd_soc_codec *codec)
 	list_for_each_entry(dai, &codec->component.dai_list, list) {
 		if (fixed_rates[CODEC_PATH_DA])
 			dai->driver->playback.rates = SNDRV_PCM_RATE_CONTINUOUS;
-		if ((dai->driver->id == SPRD_CODEC_IIS1_ID &&
-		     fixed_rates[CODEC_PATH_AD1]) ||
-		    (dai->driver->id != SPRD_CODEC_IIS1_ID &&
-		     fixed_rates[CODEC_PATH_AD]))
+		if ((dai->driver->id == SPRD_CODEC_IIS0_ID &&
+		     fixed_rates[CODEC_PATH_AD]) ||
+		    (dai->driver->id != SPRD_CODEC_IIS0_ID &&
+		     fixed_rates[CODEC_PATH_AD1]))
 			dai->driver->capture.rates = SNDRV_PCM_RATE_CONTINUOUS;
 		else
 			dai->driver->capture.rates &= ~unsupported_rates;
