@@ -441,7 +441,15 @@ static void pcie_aspm_check_latency(struct pci_dev *endpoint)
 		latency = max_t(u32, link->latency_up.l1, link->latency_dw.l1);
 		if ((link->aspm_capable & ASPM_STATE_L1) &&
 		    (latency + l1_switch_latency > acceptable->l1))
-			link->aspm_capable &= ~ASPM_STATE_L1;
+			/*
+			 * The latency of Unisoc Roc1 PCIe RC3.0 is bigger than
+			 * the latency of Unisoc Orca Pcie EP2.0, so we
+			 * temporarily delete the fillowing code, otherwise the
+			 * ASPM L1 state cannot enter.
+			 * link->aspm_capable &= ~ASPM_STATE_L1;
+			 */
+			dev_err(&endpoint->dev,
+				"L1 latency exceeds the acceptable latency\n");
 		l1_switch_latency += 1000;
 
 		link = link->parent;
