@@ -55,11 +55,9 @@ void sipa_sender_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 	if (evt & SIPA_RECV_EVT)
 		wake_up(&sender->free_waitq);
 
-	if (evt & SIPA_HAL_TXFIFO_OVERFLOW) {
+	if (evt & SIPA_HAL_TXFIFO_OVERFLOW)
 		dev_err(sender->ctx->pdev,
 			"sipa overflow on ep:%d\n", sender->ep->id);
-		BUG_ON(0);
-	}
 
 	if (evt & SIPA_HAL_ENTER_FLOW_CTRL)
 		sender->enter_flow_ctrl_cnt++;
