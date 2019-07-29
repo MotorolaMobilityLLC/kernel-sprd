@@ -55,6 +55,47 @@ static struct ion_buffer *get_ion_buffer(int fd, struct dma_buf *dmabuf)
 	return buffer;
 }
 
+void get_ion_user_info(int fd, bool map)
+{
+	int i;
+	struct ion_buffer *buffer;
+	struct task_struct *task = current->group_leader;
+	pid_t pid = task_pid_nr(task);
+	struct dma_buf *dmabuf = dma_buf_get(fd);
+
+	if (IS_ERR_OR_NULL(dmabuf)) {
+		return;
+	}
+
+	if (strcmp(dmabuf->exp_name, "ion"))
+		goto out;
+
+	buffer = dmabuf->priv;
+	for (i = 0; i < MAX_MAP_USER; i++) {
+		if (map) {
+			if (!(buffer->mappers[i].fd)) {
+				buffer->mappers[i].pid = pid;
+				get_task_comm(buffer->mappers[i].task_name, task);
+				buffer->mappers[i].fd = fd;
+				buffer->mappers[i].valid = true;
+				do_gettimeofday(&(buffer->mappers[i].map_time));
+				buffer->mappers[i].map_time.tv_sec -= sys_tz.tz_minuteswest * 60;
+				break;
+			}
+		} else {
+			if (buffer->mappers[i].pid == pid && buffer->mappers[i].fd == fd && buffer->mappers[i].valid) {
+				memset((void *)(&buffer->mappers[i]), 0x0, sizeof(buffer->mappers[i]));
+				break;
+			}
+		}
+	}
+	if (map && i == MAX_MAP_USER)
+		pr_err("%s: pid %d fd %d\n", __func__, pid, fd);
+
+out:
+	dma_buf_put(dmabuf);
+}
+
 int sprd_ion_is_reserved(int fd, struct dma_buf *dmabuf, bool *reserved)
 {
 	struct ion_buffer *buffer;

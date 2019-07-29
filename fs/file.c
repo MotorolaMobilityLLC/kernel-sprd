@@ -610,9 +610,17 @@ void __fd_install(struct files_struct *files, unsigned int fd,
 	rcu_read_unlock_sched();
 }
 
+/* record the info of task mapped to specific ion buffer. */
+#ifdef CONFIG_ION_SPRD
+extern void get_ion_user_info(int fd, bool map);
+#endif
+
 void fd_install(unsigned int fd, struct file *file)
 {
 	__fd_install(current->files, fd, file);
+#ifdef CONFIG_ION_SPRD
+	get_ion_user_info(fd, true);
+#endif
 }
 
 EXPORT_SYMBOL(fd_install);
@@ -625,6 +633,9 @@ int __close_fd(struct files_struct *files, unsigned fd)
 	struct file *file;
 	struct fdtable *fdt;
 
+#ifdef CONFIG_ION_SPRD
+	get_ion_user_info(fd, false);
+#endif
 	spin_lock(&files->file_lock);
 	fdt = files_fdtable(files);
 	if (fd >= fdt->max_fds)

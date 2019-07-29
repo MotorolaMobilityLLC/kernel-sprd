@@ -32,6 +32,7 @@
 #include "../uapi/ion.h"
 
 #define ion_phys_addr_t unsigned long
+#define MAX_MAP_USER    15
 
 /**
  * struct ion_platform_heap - defines a heap in the given platform
@@ -54,6 +55,15 @@ struct ion_platform_heap {
 	size_t size;
 	phys_addr_t align;
 	void *priv;
+};
+
+struct ion_map_info {
+	pid_t pid;
+	char task_name[TASK_COMM_LEN];
+	int fd;
+	bool valid;
+	struct timeval map_time;
+	struct timeval unmap_time;
 };
 
 /**
@@ -90,7 +100,9 @@ struct ion_buffer {
 	struct list_head attachments;
 	int iomap_cnt[SPRD_IOMMU_MAX];
 	pid_t pid;
+	char task_name[TASK_COMM_LEN];
 	struct timeval alloc_time;
+	struct ion_map_info mappers[MAX_MAP_USER];
 };
 void ion_buffer_destroy(struct ion_buffer *buffer);
 

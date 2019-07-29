@@ -128,6 +128,7 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 	mutex_unlock(&dev->buffer_lock);
 
 	buffer->pid = task_pid_nr(current->group_leader);
+	get_task_comm(buffer->task_name, current->group_leader);
 	do_gettimeofday(&time);
 	time.tv_sec -= sys_tz.tz_minuteswest * 60;
 	buffer->alloc_time = time;
@@ -651,6 +652,7 @@ int ion_debug_heap_show_printk(struct ion_heap *heap,
 			       enum e_show_mem_type type,
 			       void *data)
 {
+	int i;
 	struct ion_device *dev = heap->dev;
 	struct rb_node *n;
 	size_t total_size = 0;
@@ -660,7 +662,7 @@ int ion_debug_heap_show_printk(struct ion_heap *heap,
 
 	pr_info("Heap: %s\n", heap->name);
 	pr_info("Detail:\n");
-	pr_info("%10s %6s %10s\n", "size", "pid",  "alloc_time");
+	pr_info("%-10s %-6s %-16s %-10s\n", "size", "pid", "name", "alloc_time");
 	mutex_lock(&dev->buffer_lock);
 	for (n = rb_first(&dev->buffers); n; n = rb_next(n)) {
 		struct ion_buffer *buffer = rb_entry(n, struct ion_buffer,
@@ -668,11 +670,22 @@ int ion_debug_heap_show_printk(struct ion_heap *heap,
 		if (buffer->heap->id != heap->id)
 			continue;
 		time_to_tm(buffer->alloc_time.tv_sec, 0, &t);
-		pr_info("%10zu %5d  %ld.%d.%d-%d:%d:%d.%ld\n",
-			   buffer->size, buffer->pid,
+		pr_info("%-10zu %-5d %-16s %ld.%d.%d-%d:%d:%d.%ld\n",
+			   buffer->size, buffer->pid, buffer->task_name,
 			   t.tm_year + 1900, t.tm_mon + 1,
 			   t.tm_mday, t.tm_hour, t.tm_min,
 			   t.tm_sec, buffer->alloc_time.tv_usec);
+		for (i = 0; i < MAX_MAP_USER; i++) {
+			if (buffer->mappers[i].valid) {
+				time_to_tm(buffer->mappers[i].map_time.tv_sec, 0, &t);
+				pr_info("       |---%-5d  %-5d  %-16s  %ld.%d.%d-%d:%d:%d.%ld\n",
+					buffer->mappers[i].pid, buffer->mappers[i].fd, buffer->mappers[i].task_name,
+					t.tm_year + 1900, t.tm_mon + 1,
+					t.tm_mday, t.tm_hour, t.tm_min,
+					t.tm_sec, buffer->mappers[i].map_time.tv_usec);
+			}
+		}
+
 		total_size += buffer->size;
 	}
 	mutex_unlock(&dev->buffer_lock);
