@@ -5046,15 +5046,15 @@ CONFIG_HZ
 	[must] console
 	[function] HZ must be set for different plat.
 CONFIG_HZ_100
-	[arch] all
-	[plat] pike2,sharkl5Pro,sharkle32
+	[arch] arm
+	[plat] pike2,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_HZ_250
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] menu
 	[subsys] time
 	[must] console
