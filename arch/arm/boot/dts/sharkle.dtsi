@@ -238,6 +238,16 @@
 				#size-cells = <0>;
 				status = "disabled";
 			};
+
+			i2s0: i2s@70d00000 {
+				compatible = "sprd,i2s";
+				reg = <0x70d00000 0x100000>;
+				sprd,dai_name = "i2s_bt_sco0";
+				sprd,hw_port = <0>;
+				sprd,syscon-ap-apb = <&ap_apb_regs>;
+				#sound-dai-cells = <0>;
+				status = "disable";
+			};
 		};
 
 		ap-ahb {
@@ -474,6 +484,52 @@
 			#size-cells = <1>;
 			ranges;
 
+			sprd_audio_codec_dig: audio-codec@40000000 {
+				compatible = "sprd,sharkl3-audio-codec","sprd,sharkle-audio-codec";
+				reg = <0x40000000 0x2000>;
+
+				interrupts = <GIC_SPI 20  IRQ_TYPE_NONE>;
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+				sprd,anlg-phy-g-syscon = <&anlg_phy_g6_regs>;
+			};
+
+			vbc: vbc@40020000 {
+				compatible = "sprd,vbc-r1p0v3";
+				#sound-dai-cells = <1>;
+				reg = <0x40020000 0x10000>;
+				sprd,clk-stable = <0x402d0060 0x4>;
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				sprd,dynamic-eq-support = <0>;
+				 /* da01, ad01, ad23 */
+				sprd,vbc-iis-lr-invert = <0 1 1>;
+				/*0: aon dma, 1: ap dma
+				 * da01, da23, ad01, ad23
+				 */
+				sprd,vbc-use-dma-type = <0 0 1 1>;
+				sprd,vbc-use-ad01-only = <1>;
+				pinctrl-names =
+				"vbc_iis1_0", "ap_iis0_0", "tgdsp_iis0_0",
+				"tgdsp_iis1_0", "pubcp_iis0_0",
+				"ap_iis0_1", "tgdsp_iis0_1",
+				"tgdsp_iis1_1", "pubcp_iis0_1",
+				"vbc_iis2_1", "vbc_iis3_1";
+
+				/* wcn iis/sys iis 0 */
+				pinctrl-0 = <&vbc_iis1_0>;
+				pinctrl-1 = <&ap_iis0_0>;
+				pinctrl-2 = <&tgdsp_iis0_0>;
+				pinctrl-3 = <&tgdsp_iis1_0>;
+				pinctrl-4 = <&pubcp_iis0_0>;
+				/* sys iis1 */
+				pinctrl-5 = <&ap_iis0_1>;
+				pinctrl-6 = <&tgdsp_iis0_1>;
+				pinctrl-7 = <&tgdsp_iis1_1>;
+				pinctrl-8 = <&pubcp_iis0_1>;
+				pinctrl-9 = <&vbc_iis2_1>;
+				pinctrl-10 = <&vbc_iis3_1>;
+			};
+
 			hwlock: hwspinlock@33000000{
 				compatible = "sprd,hwspinlock-r3p0";
 				reg = <0x33000000 0x10000>;
@@ -657,6 +713,50 @@
 			pin_controller: pinctrl@402a0000 {
 				compatible = "sprd,sharkle-pinctrl";
 				reg = <0x402a0000 0x10000>;
+				vbc_iis1_0: reg2-iis0-0 {
+					pins = "SHARKLE_WCN_IIS_SYS_SEL";
+					sprd,control = <0x0>;
+				};
+				ap_iis0_0: reg2-iis0-1 {
+					pins = "SHARKLE_WCN_IIS_SYS_SEL";
+					sprd,control = <0x1>;
+				};
+				tgdsp_iis0_0: reg3-iis0-2 {
+					pins = "SHARKLE_WCN_IIS_SYS_SEL";
+					sprd,control = <0x2>;
+				};
+				tgdsp_iis1_0: reg2-iis0-3 {
+					pins = "SHARKLE_WCN_IIS_SYS_SEL";
+					sprd,control = <0x3>;
+				};
+				pubcp_iis0_0: reg2-iis0-4 {
+					pins = "SHARKLE_WCN_IIS_SYS_SEL";
+					sprd,control = <0x4>;
+				};
+				ap_iis0_1: reg3-iis1-0 {
+					pins = "SHARKLE_IIS1_SYS_SEL";
+					sprd,control = <0x0>;
+				};
+				tgdsp_iis0_1: reg3-iis1-1 {
+					pins = "SHARKLE_IIS1_SYS_SEL";
+					sprd,control = <0x2>;
+				};
+				tgdsp_iis1_1: reg3-iis1-2 {
+					pins = "SHARKLE_IIS1_SYS_SEL";
+					sprd,control = <0x3>;
+				};
+				pubcp_iis0_1: reg3-iis1-3 {
+					pins = "SHARKLE_IIS1_SYS_SEL";
+					sprd,control = <0x1>;
+				};
+				vbc_iis2_1: reg3-iis1-4 {
+					pins = "SHARKLE_IIS1_SYS_SEL";
+					sprd,control = <0x4>;
+				};
+				vbc_iis3_1: reg3-iis1-5 {
+					pins = "SHARKLE_IIS1_SYS_SEL";
+					sprd,control = <0x5>;
+				};
 			};
 
 			gpu_thm: thermal@402f0000 {
@@ -941,4 +1041,60 @@
 		clock-output-names = "ext-26m-aud";
 	};
 
+	sprd_pcm: sprd-pcm-audio {
+		compatible = "sprd,sharkl3-pcm-platform","sprd,sharkle-pcm-platform";
+		#sound-dai-cells = <0>;
+		/* non-i2s playbacks use aon dma */
+		/* reference dma node dma-channels proporty
+		 * do not conflict with others
+		 * ap_dma (29-32 for security)
+		 */
+		dmas = <&aon_dma 1 &aon_dma 2
+			&aon_dma 3 &aon_dma 4
+			&aon_dma 5 &aon_dma 6
+			&aon_dma 7 &aon_dma 8
+			&ap_dma 1 &ap_dma 2>;
+		dma-names = "da01-l", "da01-r", "da23-l", "da23-r",
+			"normal-2stage-p", "normal-2stage-c",
+			"deep-2stage-p", "ad23-2stage-c",
+			"ad01-l", "ad01-r";
+		/* bit map for dma-2stage-usecase
+		 * bit[0] == 1, normal playback
+		 * bit[1] ==1, deepbuf playback
+		 * bit[2] ==1, caputre
+		 * other bit to do
+		 */
+		sprd,dma-2stage-usecase = <2>;
+		sprd,node-count-2stage-level-1 = <1>;
+		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+		/* 0: no interrupt, 1: from arm, 2:from ap
+		 * note:if use arm ap should not register dma interrupt,
+		 * and you should register intterupt in arm code.
+		 */
+		sprd,dma-2stage-level-1-int-source = <1>;
+	};
+	vaudio: vaudio {
+		compatible = "sprd,vaudio";
+		#sound-dai-cells = <1>;
+	};
+
+	sprd_pcm_iis: sprd-pcm-iis {
+		compatible = "sprd,sharkl3-pcm-platform","sprd,sharkle-pcm-platform";
+		#sound-dai-cells = <0>;
+		dmas = <&ap_dma 5 &ap_dma 6>;
+		dma-names = "iis0_tx", "iis0_rx";
+		sprd,dma-2stage-usecase = <2>;
+		sprd,node-count-2stage-level-1 = <1>;
+		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+		sprd,dma-2stage-level-1-int-source = <1>;
+	};
+
+	audio-mem-mgr {
+		compatible = "sprd,sharkl3-audio-mem","sprd,sharkle-audio-mem";
+		sprd,iram_phy_addr = <0x00003400 0xb000>;
+		/* note:mmap address must paga_size align */
+		sprd,iram_normal = <0x00003400 0x0>;
+		sprd,iram_deepbuf = <0x00003400 0xa000>;
+		sprd,iram_4arm7 = <0x0000d400 0x1000>;
+	};
 };
