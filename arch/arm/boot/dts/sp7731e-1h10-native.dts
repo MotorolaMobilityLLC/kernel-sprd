@@ -392,6 +392,14 @@
 	cpu-supply = <&vddcore>;
 };
 
+&spi1 {
+	/*used for fingerprint sensor*/
+	clock-names ="enable", "spi", "source";
+	clocks = <&aonapb_gate CLK_AP_HS_SPI_EB>,
+		<&aon_clk CLK_AP_HS_SPI>, <&pll CLK_TWPLL_192M>;
+	status = "okay";
+};
+
 &pmic_flash {
 	status = "okay";
 };
