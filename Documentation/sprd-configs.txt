@@ -8888,7 +8888,7 @@ CONFIG_PROFILING
 	[function] vts require, Profiling support.
 CONFIG_PSI
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkle32
+	[plat] sharkl3,sharkl3_32,sharkle32,pike2
 	[field] make,code
 	[subsys] sched
 	[must] after kernel4.14
