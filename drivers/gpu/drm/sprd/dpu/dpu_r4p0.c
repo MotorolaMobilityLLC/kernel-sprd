@@ -17,6 +17,7 @@
 #include <linux/workqueue.h>
 #include "sprd_dpu.h"
 #include "sprd_dvfs_dpu.h"
+#include "dpu_r4p0_corner_param.h"
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -325,10 +326,8 @@ static int wb_en;
 static int max_vsync_count;
 static int vsync_count;
 static struct sprd_dpu_layer wb_layer;
-//static struct wb_region region[3];
 static int wb_xfbc_en = 1;
-//static bool sprd_corner_support;
-//static int sprd_corner_radius;
+static int sprd_corner_radius;
 module_param(wb_xfbc_en, int, 0644);
 module_param(max_vsync_count, int, 0644);
 
@@ -350,6 +349,12 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 {
 	int ret = 0;
 	struct device_node *qos_np = NULL;
+
+	ret = of_property_read_u32(np, "sprd,corner-radius",
+					&sprd_corner_radius);
+	if (!ret)
+		pr_info("round corner support, radius = %d.\n",
+					sprd_corner_radius);
 
 	qos_np = of_parse_phandle(np, "sprd,qos", 0);
 	if (!qos_np)
@@ -376,6 +381,25 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 		pr_warn("read awqos-high failed, use default\n");
 
 	return ret;
+}
+
+static void dpu_corner_init(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	int i;
+
+	reg->corner_config = (sprd_corner_radius << 24) |
+				(sprd_corner_radius << 8);
+
+	for (i = 0; i < sprd_corner_radius; i++) {
+		reg->top_corner_lut_addr = i;
+		reg->top_corner_lut_wdata = corner_param[sprd_corner_radius][i];
+		reg->bot_corner_lut_addr = i;
+		reg->bot_corner_lut_wdata =
+			corner_param[sprd_corner_radius][sprd_corner_radius - i - 1];
+	}
+
+	reg->corner_config |= (TOP_CORNER_EN | BOT_CORNER_EN);
 }
 
 static void check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
@@ -818,6 +842,9 @@ static int dpu_init(struct dpu_context *ctx)
 	dpu_enhance_reload(ctx);
 
 	dpu_write_back_config(ctx);
+
+	if (sprd_corner_radius)
+		dpu_corner_init(ctx);
 
 	dpu_dvfs_task_init(ctx);
 
