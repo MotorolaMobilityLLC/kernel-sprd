@@ -2233,7 +2233,10 @@
 					  MASK_REG_FW0_IPA_S3_LPC_RD_SEC>,
 					  <&ipa_ahb_regs
 					  REG_IPA_AHB_S5_LPC
-					  MASK_REG_FW0_IPA_S3_LPC_WR_SEC>;
+					  MASK_REG_FW0_IPA_S3_LPC_WR_SEC>,
+					  <&pmu_apb_regs
+					  REG_PMU_APB_PWR_STATUS0_DBG
+					  MASK_PMU_APB_PD_IPA_SYS_STATE>;
 
 				syscon-names =
 					"ipa-sys-forcewakeup",
@@ -2247,7 +2250,8 @@
 					"ipa-sys-ipaeb",
 					"ipa-sys-cm4eb",
 					"ipa-sys-autogaten",
-					"ipa-sys-s5-autogaten";
+					"ipa-sys-s5-autogaten",
+					"ipa-sys-pwr-state";
 				#power-domain-cells = <0>;
 
 				clocks = <&ipa_clk CLK_IPA_CORE>,
