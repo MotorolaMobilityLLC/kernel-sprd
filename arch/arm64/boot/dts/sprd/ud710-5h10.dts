@@ -357,20 +357,6 @@
 		flash-chip-en-gpios = <&ap_gpio 143 0>;
 	};
 
-	sc2703_pmic: pmic@4C {
-		compatible = "sprd,sc2703";
-		reg = <0x4c>;
-		sc2703-charger {
-			compatible = "sprd,sc2703-charger";
-			phys = <&hsphy>;
-			monitored-battery = <&bat>;
-			extcon = <&pmic_typec>;
-			sprd,long-key-detection;
-			vddvbus:otg-vbus {
-				regulator-name = "vddvbus";
-			};
-		};
-	};
 	sc2703-disp@4b {
 		compatible = "sprd,sc2703-disp";
 		reg = <0x4b>;
@@ -556,17 +542,6 @@
 	status = "okay";
 };
 
-&pmic_fgu {
-	monitored-battery = <&bat>;
-	sprd,calib-resistance-real = <10000>;
-	sprd,calib-resistance-spec = <20000>;
-};
-
-&pmic_fchg {
-	sprd,input-voltage-microvolt = <9000000>;
-	phys = <&hsphy>;
-};
-
 &vsp {
 	status = "okay";
 };
@@ -598,7 +573,6 @@
 
 &usb {
 	extcon = <&pmic_typec>;
-	vbus-supply = <&vddvbus>;
 };
 
 &sprd_headset {
