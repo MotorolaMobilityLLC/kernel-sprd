@@ -170,8 +170,8 @@
 					<3765000 25>, <3750000 20>, <3726000 15>,
 					<3687000 10>, <3658000 5>, <3400000 0>;
 		charge-sdp-current-microamp = <500000 500000>;
-		charge-dcp-current-microamp = <1200000 3000000>;
-		charge-cdp-current-microamp = <1500000 1500000>;
+		charge-dcp-current-microamp = <1150000 3000000>;
+		charge-cdp-current-microamp = <1150000 1150000>;
 		charge-unknown-current-microamp = <500000 500000>;
 	};
 
@@ -184,7 +184,7 @@
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
 		cm-fullbatt-vchkdrop-volt = <60000>;
-		cm-fullbatt-voltage = <4330000>;
+		cm-fullbatt-voltage = <4300000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
@@ -193,13 +193,15 @@
 		cm-fuel-gauge = "sc27xx-fgu";
 
 		/* in deci centigrade */
-		cm-battery-cold = <50>;
+		cm-battery-cold = <200>;
 		cm-battery-cold-in-minus;
 		cm-battery-hot = <800>;
 		cm-battery-temp-diff = <100>;
 
 		/* Allow charging for 6hr */
-		cm-charging-max = <18000000>;
+		cm-charging-max = <21600000>;
+		/* recovery charging after stop charging 3hr */
+		cm-discharging-max = <10800000>;
 
 		/* the interval to feed charger watchdog */
 		cm-wdt-interval = <60>;
