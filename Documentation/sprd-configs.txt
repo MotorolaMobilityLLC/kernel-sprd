@@ -10342,14 +10342,14 @@ CONFIG_SPRD_DEDICATE_THERMAL
 	[function]
 CONFIG_SPRD_DJTAG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] debug
 	[must] debug
 	[function] Enable Djtag function
 CONFIG_SPRD_DJTAG_CORE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] debug
 	[must] debug
