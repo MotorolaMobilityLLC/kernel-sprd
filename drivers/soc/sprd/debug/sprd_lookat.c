@@ -149,8 +149,9 @@ static int sprd_read_pa(unsigned long preg, unsigned long *val)
 			*val = readl_relaxed((void __iomem *)io_addr);
 			iounmap(io_addr);
 		}
-	} else
-		*val = *(unsigned long *)addr;
+	} else {
+		*val = *(u32 *)addr;
+	}
 
 	return 0;
 }
