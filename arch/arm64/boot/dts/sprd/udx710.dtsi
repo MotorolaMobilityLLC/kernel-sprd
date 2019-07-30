@@ -793,6 +793,26 @@
 			REG_PMU_APB_RF_PCIE_SLP_CFG
 			MASK_PMU_APB_RF_REG_PERST_N_ASSERT
 			0x0>;
+
+	sprd,pcie-resume-syscons =
+		<&ap_ipa_ahb_regs 0 0
+			REG_AP_IPA_AHB_RF_AHB_EB
+			MASK_AP_IPA_AHB_RF_PCIE_EB
+			0x20>,
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_RF_PCIE_SLP_CFG
+			MASK_PMU_APB_RF_REG_PERST_N_ASSERT
+			0x0>;
+
+	sprd,pcie-suspend-syscons =
+		<&pmu_apb_regs 0 0
+			REG_PMU_APB_RF_PCIE_SLP_CFG
+			MASK_PMU_APB_RF_REG_PERST_N_ASSERT
+			0x10>,
+		<&ap_ipa_ahb_regs 0 0
+			REG_AP_IPA_AHB_RF_AHB_EB
+			MASK_AP_IPA_AHB_RF_PCIE_EB
+			0x0>;
 };
 
 &pcie1 {
