@@ -14,6 +14,9 @@
 #include <linux/module.h>
 #include <linux/of_address.h>
 #include <linux/platform_device.h>
+#include <linux/gpio/consumer.h>
+#include <linux/regulator/consumer.h>
+#include <linux/kernel.h>
 
 #include <video/sprd_mmsys_pw_domain.h>
 
@@ -25,6 +28,14 @@
 
 #define FREQ_OFFSET (50 * 1000)
 #define MATCH_FREQ(f, src_f) (abs((f) - (src_f)) <= FREQ_OFFSET)
+
+#ifdef CONFIG_SPRD_MIPI_SWITCH
+
+static struct regulator *vddio;
+static struct gpio_desc *mipi_switch_en;
+static struct gpio_desc *mipi_gpio_id;
+
+#endif
 
 static u32 s_freq_array[] = {
 	1500000,
@@ -48,8 +59,46 @@ static void dbg_phy_test_write(struct regmap *base, u8 address, u8 data)
 	regmap_write_bits(base, REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2P2L_TEST_DB, 0xFFFFFFFF, (data << 11));
 }
 
+#ifdef CONFIG_SPRD_MIPI_SWITCH
+
+/* set vddio power on */
+static int sprd_sensor_set_voltage(unsigned int val)
+{
+	int ret;
+
+	/* set power on */
+	ret = regulator_set_voltage(vddio, val, val);
+	if (ret) {
+		pr_err("vol set %d fail ret%d\n", val, ret);
+		return ret;
+	}
+	ret = regulator_enable(vddio);
+	if (ret) {
+		pr_err("Error in regulator_enable: ret %d", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+/* set mipi switch: enable mipi switch(gpio55 0),switch (gpio8 1) */
+static void sprd_sensor_set_mipi_level(u32 plus_level)
+{
+	gpiod_direction_output(mipi_switch_en, 0);
+	gpiod_direction_output(mipi_gpio_id, plus_level);
+}
+
+#endif
+
 static void inter_dbg_log_init(struct dbg_log_device *dbg)
 {
+#ifdef CONFIG_SPRD_MIPI_SWITCH
+
+	sprd_sensor_set_voltage(1800000);
+	sprd_sensor_set_mipi_level(1);
+
+#endif
+
 	DEBUG_LOG_PRINT("entry\n");
 
 	/* enable serdes DPHY_CFG_EB & DPHY_REF_EB */
@@ -255,6 +304,26 @@ static int dbg_log_probe(struct platform_device *pdev)
 		return PTR_ERR(addr);
 
 	serdes_apb = (void __iomem *)addr;
+
+#ifdef CONFIG_SPRD_MIPI_SWITCH
+
+	/* Get the vddio through the dts */
+	vddio = devm_regulator_get_optional(&pdev->dev, "vddio");
+	if (IS_ERR(vddio)) {
+		if (PTR_ERR(vddio) == -EPROBE_DEFER)
+			return -EPROBE_DEFER;
+		vddio = NULL;
+	}
+
+	mipi_switch_en = devm_gpiod_get_index(&pdev->dev, "mipi-switch-en", 0, GPIOD_IN);
+	if (IS_ERR(mipi_switch_en))
+		return PTR_ERR(mipi_switch_en);
+
+	mipi_gpio_id = devm_gpiod_get_index(&pdev->dev, "mipi-switch-mode", 0, GPIOD_IN);
+	if (IS_ERR(mipi_gpio_id))
+		return PTR_ERR(mipi_gpio_id);
+
+#endif
 
 	dsi_apb = syscon_regmap_lookup_by_phandle(pdev->dev.of_node, "sprd,syscon-dsi-apb");
 	if (IS_ERR(dsi_apb)) {

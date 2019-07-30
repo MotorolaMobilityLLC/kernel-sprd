@@ -24,7 +24,12 @@ Required properties:
 	value of dc_blnc_fix(fix DC balance issue of 8b/10b encoder). set to enable.
 - sprd,mm:
 	call sprd_cam_pw_on function to power mm on. set to enable.
-
+- vddio-supply:
+	To let sensor power on for MIPI SWITCH working. this property is optional.
+- mipi-switch-en-gpio:
+	enable the MIPI SWITCH
+- mipi-switch-mode-gpio:
+	select the rear camera for MIPI SWITCH
 
 Examples:
 	modem_dbg_log: modem-dbg-log@324f0000 {
