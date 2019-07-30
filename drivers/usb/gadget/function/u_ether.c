@@ -1489,6 +1489,9 @@ static int sipa_usb_open(struct net_device *net)
 	dev->nic_id = ret;
 	dev->state = DEV_ON;
 
+	/* for lowpower */
+	sipa_rm_set_usb_eth_up();
+
 	if (!netif_carrier_ok(net))
 		netif_carrier_on(net);
 
@@ -1521,6 +1524,9 @@ static int sipa_usb_close(struct net_device *net)
 	dev->state = DEV_OFF;
 	napi_disable(&dev->napi);
 	netif_stop_queue(net);
+
+	/* for lowpower */
+	sipa_rm_set_usb_eth_down();
 	/* ensure there are no more active requests */
 	spin_lock_irqsave(&dev->lock, flags);
 	if (dev->port_usb) {
