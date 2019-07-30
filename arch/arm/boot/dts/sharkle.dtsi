@@ -8,6 +8,7 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/soc/sprd,sharkle-regs.h>
 #include <dt-bindings/soc/sprd,sharkle-mask.h>
+#include <dt-bindings/clock/sprd,sc9832e-clk.h>
 
 / {
 	interrupt-parent = <&gic>;
@@ -777,6 +778,21 @@
 				#thermal-sensor-cells = <1>;
 				nvmem-cells = <&cthm_sign>, <&cthm_ratio>, <&cthm_delta>;
 				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal", "thm_delta_cal";
+			};
+
+			djtag: djtag@40340000 {
+				compatible = "sprd,djtag";
+				reg = <0x40340000 0x1000>;
+				syscon-names = "soft_rst";
+				syscons = <&aon_apb_regs REG_AON_APB_APB_RST2
+					MASK_AON_APB_DJTAG_SOFT_RST>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_DJTAG_EB>;
+				hwlocks = <&hwlock 10>;
+				hwlock-names = "djtag";
+
+				#address-cells = <1>;
+				#size-cells = <0>;
 			};
 
 			adi_bus: spi@40380000 {
