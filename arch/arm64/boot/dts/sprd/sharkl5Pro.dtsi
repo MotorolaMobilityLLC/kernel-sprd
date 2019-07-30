@@ -1769,6 +1769,18 @@
 				};
 			};
 
+			modem_dbg_log: modem-dbg-log@324f0000 {
+				compatible = "sprd,dbg-log-sharkl5", "sprd,dbg-log-sharkl5pro";
+				reg = <0 0x324f0000 0 0x4000>;
+				sprd,syscon-mm-ahb = <&mm_ahb_regs>;
+				sprd,syscon-dsi-apb = <&anlg_phy_g10_regs>;
+				sprd,ch-name = "TRAINING", "WTL", "MADR", "TPIU", "DBUS", "WCN";
+				sprd,ch-index = <15 1 0 2 3 4>;
+				sprd,dcfix;
+				sprd,mm;
+				status = "disabled";
+			};
+
 			hwlock: hwspinlock@327f0000 {
 				compatible = "sprd,hwspinlock-r3p0", "sprd,sharkl5pro-hwspinlock";
 				reg = <0 0x327f0000 0 0x10000>;

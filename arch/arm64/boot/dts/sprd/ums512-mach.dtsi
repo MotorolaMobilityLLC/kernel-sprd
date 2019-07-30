@@ -527,3 +527,10 @@
 &sc2730_pmic {
 	interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
 };
+
+&modem_dbg_log{
+	status = "okay";
+	clock-names = "serdes_eb", "mm_eb", "ana_eb", "dphy_cfg_eb", "dphy_ref_eb", "dsi_csi_test_eb", "cphy_cfg_eb";
+	clocks = <&aonapb_gate CLK_SERDES_EB>, <&aonapb_gate CLK_MM_EB>, <&aonapb_gate CLK_ANA_EB>, <&aonapb_gate CLK_SDPHY_CFG_EB>,
+		<&aonapb_gate CLK_SDPHY_REF_EB>, <&aonapb_gate CLK_DSI_CSI_TEST_EB>, <&aonapb_gate CLK_CPHY_CFG_EN>;
+};

@@ -842,3 +842,9 @@
 		function = "func4";
 	};
 };
+
+&modem_dbg_log {
+	vddio-supply = <&vddcamio>;
+	mipi-switch-en-gpios = <&ap_gpio 55 GPIO_ACTIVE_HIGH>;
+	mipi-switch-mode-gpios = <&ap_gpio 8 GPIO_ACTIVE_HIGH>;
+};
