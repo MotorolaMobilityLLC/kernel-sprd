@@ -966,7 +966,7 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 		break;
 	case DRM_FORMAT_BGR565:
 		/* rb switch */
-		reg_val |= BIT(10);
+		reg_val |= BIT(12);
 	case DRM_FORMAT_RGB565:
 		if (compression)
 			/* XFBC-RGB565 */
@@ -1034,11 +1034,15 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 y2r_coef,
 		reg_val |= BIT(2);
 		break;
 	case DRM_MODE_BLEND_COVERAGE:
-		/*Normal mode*/
+		/* alpha mode select - combo alpha */
+		reg_val |= BIT(3);
+		/* blending mode select - normal mode */
 		reg_val &= (~BIT(16));
 		break;
 	case DRM_MODE_BLEND_PREMULTI:
-		/*Pre-mult mode*/
+		/* alpha mode select - combo alpha */
+		reg_val |= BIT(3);
+		/* blending mode select - pre-mult mode */
 		reg_val |= BIT(16);
 		break;
 	default:
