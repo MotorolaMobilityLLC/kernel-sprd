@@ -3350,14 +3350,14 @@ static int aud_init_iram_addr(struct snd_soc_platform *platform)
 						   &priv_data->iram_size);
 	if (priv_data->iram_size > 0) {
 		priv_data->iram_virt_addr =
-		    (char *)devm_ioremap_nocache(platform->dev,
-						 priv_data->iram_phy_addr,
-						 priv_data->iram_size);
+		    (char *)audio_mem_vmap(priv_data->iram_phy_addr,
+						 priv_data->iram_size,
+						 1);
 		if (!priv_data->iram_virt_addr) {
 			pr_err("%s %d failed\n", __func__, __LINE__);
 			return -1;
 		}
-		memset_io((void *)priv_data->iram_virt_addr, 0,
+		memset((void *)priv_data->iram_virt_addr, 0,
 			  priv_data->iram_size);
 	}
 
@@ -3400,7 +3400,7 @@ static void aud_clear_iram_addr(struct snd_soc_platform *platform)
 	audio_mem_free(IRAM_BASE, priv_data->iram_phy_addr,
 		       priv_data->iram_size);
 	if (priv_data->iram_size > 0) {
-		devm_kfree(platform->dev, priv_data->iram_virt_addr);
+		audio_mem_unmap(priv_data->iram_virt_addr);
 		priv_data->iram_virt_addr = NULL;
 		priv_data->iram_size = 0;
 	}
