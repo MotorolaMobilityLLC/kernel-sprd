@@ -12,6 +12,13 @@
 				fpint-gpio = <&ap_gpio 130 0>;
 			};
 
+			flash-gpios {
+				compatible = "sprd,flash-wd3610da";
+				flash-ic = <3610>;
+				flash-torch-en-gpios = <&ap_gpio 132 0>;
+				flash-en-gpios = <&ap_gpio 133 0>;
+			};
+
 			pwm_backlight: sprd_backlight {
 				compatible = "pwm-backlight";
 				pwms = <&pwms 1 30000>;

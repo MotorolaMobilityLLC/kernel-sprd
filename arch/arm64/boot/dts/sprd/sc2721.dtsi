@@ -57,6 +57,12 @@
 			#interrupt-cells = <2>;
 		};
 
+		pmic_flash: flash@2a8 {
+			compatible = "sprd,sc27xx-flash", "sprd,sc2721-flash";
+			reg = <0x2a8>;
+			status = "disabled";
+		};
+
 		efuse@300 {
 			compatible = "sprd,sc27xx-efuse", "sprd,sc2721-efuse";
 			reg = <0x300>;
