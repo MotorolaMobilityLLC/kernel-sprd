@@ -316,13 +316,14 @@ static ssize_t irq_register_store(struct device *dev,
 		if (dpu->core->enable_vsync)
 			dpu->core->enable_vsync(ctx);
 
-		ret = request_irq(ctx->irq, ctx->dpu_isr,
-				0, "dpu", dpu);
+		ret = devm_request_irq(&dpu->dev, ctx->irq, ctx->dpu_isr,
+			0, "DISPC", dpu);
 		if (ret) {
 			up(&ctx->refresh_lock);
 			pr_err("error: dpu request irq failed\n");
 			return -EINVAL;
 		}
+		enable_irq(ctx->irq);
 		up(&ctx->refresh_lock);
 	}
 
@@ -334,7 +335,6 @@ static ssize_t irq_unregister_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	uint32_t value;
-	struct irq_desc *desc;
 	struct sprd_dpu *dpu = dev_get_drvdata(dev);
 	struct dpu_context *ctx = &dpu->ctx;
 
@@ -352,9 +352,7 @@ static ssize_t irq_unregister_store(struct device *dev,
 		}
 		if (dpu->core->disable_vsync)
 			dpu->core->disable_vsync(ctx);
-
-		desc = irq_to_desc(ctx->irq);
-		remove_irq(ctx->irq, desc->action);
+		devm_free_irq(&dpu->dev, ctx->irq, dpu);
 		pr_info("remove dpu irq = %d\n", ctx->irq);
 		up(&ctx->refresh_lock);
 	}
