@@ -747,6 +747,7 @@ static void sprd_musb_work(struct work_struct *work)
 		spin_unlock_irqrestore(&glue->lock, flags);
 		usb_gadget_set_state(&musb->g, USB_STATE_NOTATTACHED);
 		if (charging_only || pm_runtime_suspended(glue->dev)) {
+			glue->dr_mode = USB_DR_MODE_UNKNOWN;
 			dev_info(glue->dev,
 					"musb device had been in suspend status!\n");
 			goto end;
