@@ -23,6 +23,7 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			   ums312-20c10.dtb	\
 			   ums312-3h10-4pro.dtb      \
 			   ums512-1h10.dtb	\
+			   ums512-1h10-p.dtb	\
 			   ums518-haps.dtb	\
 			   ums518-haps-bkd.dtb  \
 			   sp9832ep-haps.dtb

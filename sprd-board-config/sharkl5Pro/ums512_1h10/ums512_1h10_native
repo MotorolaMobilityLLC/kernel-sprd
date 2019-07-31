@@ -8,7 +8,7 @@ endif
 KERNEL_DEFCONFIG := sprd_sharkl5Pro_defconfig
 
 #DTS
-TARGET_DTB := ums512-1h10
+TARGET_DTB := ums512-1h10-p
 TARGET_DTBO := ums512-1h10-overlay
 
 BOARD_TEE_CONFIG := trusty
