@@ -241,8 +241,9 @@
 		reg = <0xbe269000 0x00500000>;
 	};
 
+	/* fb_size(HD): 3 * (head + payload) = 0xa91580, 4k align: 0xa92000 */
 	fb_reserved: framebuffer@be769000 {
-		reg = <0xbe769000 0x1817000>;
+		reg = <0xbe769000 0xa92000>;
 	};
 };
 
