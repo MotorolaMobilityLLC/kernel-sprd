@@ -2565,7 +2565,7 @@ CONFIG_DEBUG_ALIGN_RODATA
 	[function]
 CONFIG_DEBUG_ATOMIC_SLEEP
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -2628,14 +2628,14 @@ CONFIG_DEBUG_LL_INCLUDE
 	[function] Support for debug include path.
 CONFIG_DEBUG_LOCK_ALLOC
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_DEBUG_MUTEXES
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -2656,7 +2656,7 @@ CONFIG_DEBUG_PERF_USE_VMALLOC
 	[function]
 CONFIG_DEBUG_PREEMPT
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -2670,7 +2670,7 @@ CONFIG_DEBUG_RODATA_TEST
 	[function]
 CONFIG_DEBUG_RT_MUTEXES
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -2684,7 +2684,7 @@ CONFIG_DEBUG_SG
 	[function]
 CONFIG_DEBUG_SPINLOCK
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -6315,7 +6315,7 @@ CONFIG_LOCALVERSION_AUTO
 	[function]
 CONFIG_LOCKDEP
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
