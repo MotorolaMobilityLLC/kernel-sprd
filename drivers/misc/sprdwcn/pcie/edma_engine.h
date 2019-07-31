@@ -383,6 +383,7 @@ struct edma_info {
 	struct timer_list edma_tx_timer;
 	unsigned long cur_chn_status;
 	struct mutex mpool_lock;
+	spinlock_t tasklet_lock;
 };
 
 #define DMA_PAUSE			(EDMA_GLB_REG_BASE + 0x0)

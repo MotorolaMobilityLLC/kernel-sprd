@@ -177,10 +177,16 @@ static int wait_wcnevent(struct event_t *event, int timeout)
 
 static int set_wcnevent(struct event_t *event)
 {
+	unsigned long flags;
+	struct edma_info *edma = edma_info();
+
+	spin_lock_irqsave(&edma->tasklet_lock, flags);
 	if (event->tasklet != NULL)
 		tasklet_schedule(event->tasklet);
 	else
 		up(&(event->wait_sem));
+	spin_unlock_irqrestore(&edma->tasklet_lock, flags);
+
 	return 0;
 }
 
@@ -1746,6 +1752,7 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 	wakeup_source_init(&edma->edma_push_ws, "wcn edma txrx push");
 	wakeup_source_init(&edma->edma_pop_ws, "wcn edma txrx callback");
 	mutex_init(&edma->mpool_lock);
+	spin_lock_init(&edma->tasklet_lock);
 
 	/* Init edma tx send timeout timer */
 	init_timer(&edma->edma_tx_timer);
@@ -1759,14 +1766,22 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 
 int edma_tasklet_deinit(void)
 {
+	unsigned long flags;
 	struct edma_info *edma = edma_info();
 
+	spin_lock_irqsave(&edma->tasklet_lock, flags);
 #if CONFIG_TASKLET_SUPPORT
-	WCN_INFO("tasklet exit\n");
+	WCN_INFO("tasklet exit start status=0x%lx, count=%d\n",
+		 edma->isr_func.q.event.tasklet->state,
+		 atomic_read(&edma->isr_func.q.event.tasklet->count));
 	tasklet_disable(edma->isr_func.q.event.tasklet);
 	tasklet_kill(edma->isr_func.q.event.tasklet);
 	kfree(edma->isr_func.q.event.tasklet);
+	edma->isr_func.q.event.tasklet = NULL;
+	WCN_INFO("tasklet exit end\n");
 #endif
+	spin_unlock_irqrestore(&edma->tasklet_lock, flags);
+
 	return 0;
 }
 
