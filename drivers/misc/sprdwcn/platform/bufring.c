@@ -278,6 +278,22 @@ int mdbg_ring_write(struct mdbg_ring_t *ring, void *buf, unsigned int len)
 	return len;
 }
 
+/* @timeout unit is ms */
+int mdbg_ring_write_timeout(struct mdbg_ring_t *ring, void *buf,
+			    unsigned int len, unsigned int timeout)
+{
+	unsigned  int cnt = timeout / 20;
+
+	while (cnt > 0 && (mdbg_ring_free_space(ring) - 1) < len) {
+		msleep(20);
+		if (--cnt == 0)
+			WCN_ERR("ringbuf is full, tiemout:%u\n",
+				timeout);
+	}
+
+	return mdbg_ring_write(ring, buf, len);
+}
+
 char *mdbg_ring_write_ext(struct mdbg_ring_t *ring, long int len)
 {
 	char *wp = NULL;
