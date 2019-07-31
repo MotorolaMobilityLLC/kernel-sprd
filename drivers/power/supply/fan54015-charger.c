@@ -832,7 +832,7 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 	if (ret)
 		dev_err(info->dev, "restart fan54015 charger otg failed\n");
 
-	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(1500));
+	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(500));
 }
 
 static int fan54015_charger_enable_otg(struct regulator_dev *dev)
