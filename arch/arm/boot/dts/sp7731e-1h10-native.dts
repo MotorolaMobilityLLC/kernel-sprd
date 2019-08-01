@@ -182,7 +182,7 @@
 
 	sprd_rotation {
 		compatible = "sprd,sprd_rotation";
-		sprd,cam-ahb-syscon = <&ap_ahb_regs>;
+		sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 		iommus = <&iommu_dcam>;
 		status = "okay";
 	};
