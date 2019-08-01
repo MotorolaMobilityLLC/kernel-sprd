@@ -420,14 +420,13 @@ static int dpu_dvfs_notify_callback(struct notifier_block *nb,
 		return NOTIFY_DONE;
 
 	//if (dpu->work_freq == dvfs_freq) {
-	//	pr_info("request freq is the same as last, nothing to do");
-	//	mutex_unlock(&dpu->devfreq->lock);
 	//	return NOTIFY_DONE;
 	//}
 
-	dpu->work_freq = dvfs_freq;
-	dpu->freq_type = DVFS_WORK;
-	sprd_update_devfreq(dpu->devfreq);
+	if (dpu->dvfs_ops && dpu->dvfs_ops->set_work_freq) {
+		dpu->dvfs_ops->set_work_freq(dvfs_freq);
+		pr_debug("set work freq = %u\n", dvfs_freq);
+	}
 
 	return NOTIFY_OK;
 }
