@@ -826,6 +826,7 @@ bool musb_tx_dma_program(struct dma_controller *dma,
 	csr = musb_readw(epio, MUSB_TXCSR);
 
 	if (musb_dma_sprd(hw_ep->musb) &&
+		usb_pipebulk(urb->pipe) &&
 		hw_ep->musb->is_multipoint) {
 		do {
 			ready = csr & (MUSB_TXCSR_TXPKTRDY |
