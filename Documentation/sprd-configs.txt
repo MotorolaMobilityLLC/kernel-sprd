@@ -1704,6 +1704,13 @@ CONFIG_CPU_FREQ
 	[subsys] cpufreq
 	[must] user
 	[function] enable cpufreq
+CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE
+	[arch] arm
+	[plat] pike2
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	[arch] arm
 	[plat] sharkle32
@@ -1713,7 +1720,7 @@ CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	[function]
 CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
@@ -1725,6 +1732,13 @@ CONFIG_CPU_FREQ_GOV_ATTR_SET
 	[subsys] cpufreq
 	[must] user
 	[function] Enable cpufreq governor sysfs interface
+CONFIG_CPU_FREQ_GOV_INTERACTIVE
+	[arch] arm
+	[plat] pike2
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_CPU_FREQ_GOV_PERFORMANCE
 	[arch] all
 	[plat] all
@@ -8888,7 +8902,7 @@ CONFIG_PROFILING
 	[function] vts require, Profiling support.
 CONFIG_PSI
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkle32,pike2
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make,code
 	[subsys] sched
 	[must] after kernel4.14
@@ -10188,7 +10202,7 @@ CONFIG_SPRD_APDU
 	[function] Spreadtrum apdu driver.
 CONFIG_SPRD_APSYS_DVFS_DEVFREQ
 	[arch] arm64
-	[plat] sharkl5
+	[plat] sharkl5,sharkl5Pro
 	[field] make
 	[subsys] devfreq
 	[must] user
