@@ -483,6 +483,26 @@ static int sc2720_charger_usb_get_property(struct power_supply *psy,
 		}
 		break;
 
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		if (!info->charging) {
+			val->intval = 0;
+		} else {
+			switch (info->usb_phy->chg_type) {
+			case SDP_TYPE:
+				val->intval = info->cur.sdp_cur;
+				break;
+			case DCP_TYPE:
+				val->intval = info->cur.dcp_cur;
+				break;
+			case CDP_TYPE:
+				val->intval = info->cur.cdp_cur;
+				break;
+			default:
+				val->intval = info->cur.unknown_cur;
+			}
+		}
+		break;
+
 	case POWER_SUPPLY_PROP_ONLINE:
 		ret = sc2720_charger_get_online(info, &online);
 		if (ret)
@@ -609,6 +629,7 @@ static enum power_supply_usb_type sc2720_charger_usb_types[] = {
 static enum power_supply_property sc2720_usb_props[] = {
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
+	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
 	POWER_SUPPLY_PROP_USB_TYPE,
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_ONLINE,
