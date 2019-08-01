@@ -1449,8 +1449,8 @@ struct ynr_param {
 	uint32_t ydenoise_radius;
 	uint32_t ydenoise_imgcenterx;
 	uint32_t ydenoise_imgcentery;
-	uint32_t ydenoise_sal_nr_str[8];
-	uint32_t ydenoise_sal_offset[8];
+	unsigned char ydenoise_sal_nr_str[8];
+	unsigned char ydenoise_sal_offset[8];
 };
 
 /*isp sub block: ynr*/
