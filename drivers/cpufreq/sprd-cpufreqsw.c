@@ -60,16 +60,14 @@ static int sprd_verify_opp_with_regulator(struct device *cpu_dev,
 		struct dev_pm_opp *opp;
 		unsigned long opp_uV, tol_uV;
 
-		rcu_read_lock();
 		opp = dev_pm_opp_find_freq_ceil(cpu_dev, &opp_freq);
 		if (IS_ERR(opp)) {
 			/* We dont have more freq in opp table, break the loop*/
-			rcu_read_unlock();
 			pr_err("invalid opp freq %lu\n", opp_freq);
 			break;
 		}
 		opp_uV = dev_pm_opp_get_voltage(opp);
-		rcu_read_unlock();
+		dev_pm_opp_put(opp);
 		tol_uV = opp_uV * volt_tol / 100;
 		if (regulator_is_supported_voltage(cpu_reg, opp_uV,
 						   opp_uV + tol_uV)) {
@@ -469,17 +467,15 @@ static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data
 	old_freq_hz = clk_get_rate(cpu_clk);
 	if (cpu_dev) {
 		/*For cpu device, get freq&volt from opp*/
-		rcu_read_lock();
 		opp = dev_pm_opp_find_freq_ceil(cpu_dev, &freq_Hz);
 		if (IS_ERR(opp)) {
-			rcu_read_unlock();
 			pr_err("failed to find OPP for %luKhz\n",
 			       freq_Hz / 1000);
 			return PTR_ERR(opp);
 		}
 		volt_new = dev_pm_opp_get_voltage(opp);
 		opp_freq_hz = dev_pm_opp_get_freq(opp);
-		rcu_read_unlock();
+		dev_pm_opp_put(opp);
 	} else {
 		/* For sub device, get freq&volt from table */
 		volt_new = cpufreq_data->freqvolt[idx].volt;
@@ -1107,13 +1103,12 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 	policy->dvfs_possible_from_any_cpu = true;
 
 	freq_Hz = policy->cur * 1000;
-	rcu_read_lock();
 	opp = dev_pm_opp_find_freq_ceil(cpu_dev, &freq_Hz);
 	c->volt_req = dev_pm_opp_get_voltage(opp);
 	c->freq_req = dev_pm_opp_get_freq(opp);
 	c->cpufreq_online = sprd_cpufreqsw_online;
 	c->cpufreq_offline = sprd_cpufreqsw_offline;
-	rcu_read_unlock();
+	dev_pm_opp_put(opp);
 
 	pr_info("init cpu%d is ok, freq=%ld, freq_req=%ld, volt_req=%ld\n",
 		cpu, freq_Hz, c->freq_req, c->volt_req);
