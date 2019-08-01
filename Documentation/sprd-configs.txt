@@ -6195,8 +6195,8 @@ CONFIG_KEYS_COMPAT
 	[must] console
 	[function] Support for Key compat.
 CONFIG_KSM
-	[arch] all
-	[plat] sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[arch] arm
+	[plat] sharkl5_32
 	[field] make,code
 	[subsys] mm
 	[must] busybox_console
