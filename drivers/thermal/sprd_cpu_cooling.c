@@ -718,7 +718,7 @@ static void set_online_cpus(struct cpufreq_cooling_device *cpufreq_dev,
 	int cpu;
 	struct cpumask our_online_cpus;
 	u32 current_online_cpus;
-	u32 min_cpunum = 0;
+	u32 min_cpunum = 0, min_cpufreq = 0;
 	struct online_data *online_data = &cpufreq_dev->online_data;
 
 	online_data->target_online_cpus += target_online_cpus;
@@ -737,6 +737,11 @@ static void set_online_cpus(struct cpufreq_cooling_device *cpufreq_dev,
 		    cpu_online_mask);
 	current_online_cpus = cpumask_weight(&our_online_cpus);
 
+	if (cpufreq_dev->power_model->cab->
+			get_cluster_min_cpufreq_p != NULL)
+			min_cpufreq = cpufreq_dev->power_model->
+				cab->get_cluster_min_cpufreq_p(
+				cpufreq_dev->power_model->cluster_id);
 	if (cpufreq_dev->power_model->cab->get_cluster_min_cpunum_p != NULL)
 		min_cpunum = cpufreq_dev->power_model->cab->
 			get_cluster_min_cpunum_p(
@@ -746,6 +751,11 @@ static void set_online_cpus(struct cpufreq_cooling_device *cpufreq_dev,
 		current_online_cpus, target_online_cpus, min_cpunum);
 
 	if (current_online_cpus != target_online_cpus) {
+
+		if ((current_online_cpus > target_online_cpus) &&
+				(cpufreq_dev->clipped_freq != min_cpufreq))
+			return;
+
 		cpufreq_dev->qos_cur_cpu = max(target_online_cpus, min_cpunum);
 		pm_qos_update_request(&cpufreq_dev->max_cpu_request,
 			cpufreq_dev->qos_cur_cpu);
@@ -803,11 +813,12 @@ static int estimate_core_static_power(
 static void hotplug_out_cpus(struct cpufreq_cooling_device *cpufreq_device,
 			u32 target_power, unsigned int target_freq)
 {
-	int i;
+	int i, cpu;
 	u32 raw_cpu_power, estimated_power, per_cpu_load;
 	unsigned int target_online_cpus, num_our_online_cpus;
 	struct cpumask our_online_cpus;
 
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	raw_cpu_power = cpu_freq_to_power(cpufreq_device, target_freq);
 	cpumask_and(&our_online_cpus,
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
@@ -818,11 +829,15 @@ static void hotplug_out_cpus(struct cpufreq_cooling_device *cpufreq_device,
 	per_cpu_load = per_cpu_load ?: 1;
 
 	estimated_power = 0;
+	pr_debug("cpu%d hotplug_out raw:%u load:%u\n",
+			cpu, raw_cpu_power, per_cpu_load);
 	for (i = 0; i <= num_our_online_cpus; i++) {
 		if (estimated_power > target_power)
 			break;
 
 		estimated_power += (raw_cpu_power * per_cpu_load) / 100;
+		pr_debug("cpu%d hotplug_out cpus:%d est_power:%u\n",
+				cpu, i, estimated_power);
 	}
 
 	target_online_cpus = max(i - 1, 0);
@@ -859,12 +874,15 @@ static void hotplug_in_cpus(struct cpufreq_cooling_device *cpufreq_device,
 		per_cpu_load = cpufreq_device->last_load;
 
 	per_cpu_load = per_cpu_load ?: 1;
-
+	pr_debug("cpu%d hotplug_in raw:%u sta:%u tar:%u load:%u\n",
+			cpu, raw_cpu_power, static_power, target_power, per_cpu_load);
 	for (i = 0; i <= allow_online_cpus; i++) {
 		estimated_power += (raw_cpu_power * per_cpu_load) / 100;
 		if (i >= curr_online_cpus)
 			estimated_power += static_power;
 
+		pr_debug("cpu%d hotplug_in cpus:%d est_power:%u\n",
+				cpu, i, estimated_power);
 		if (estimated_power > target_power)
 			break;
 	}
@@ -1034,7 +1052,7 @@ static int cpufreq_get_requested_power(struct thermal_cooling_device *cdev,
 	}
 
 	freq = freq ?: cpufreq_device->freq_table[0];
-	total_load = total_load ?: 1;
+	total_load = total_load ?: 100;
 	cpufreq_device->last_load = total_load;
 
 	dynamic_power = get_dynamic_power(cpufreq_device, freq);
@@ -1134,6 +1152,7 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	unsigned int min_cpufreq = 0;
 	static int last_temperature;
 	static int count;
+	s32 dyn_power;
 
 #ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	int curr_temp, tp, cpu_idx, max_temp;
@@ -1141,12 +1160,11 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 
 	get_online_cpus();
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
-	last_load = cpufreq_device->last_load ?: 1;
+	last_load = cpufreq_device->last_load ?: 100;
 
 	/* None of our cpus are online */
 	if (cpu < nr_cpu_ids) {
 		unsigned int cur_freq;
-		s32 dyn_power;
 		u32 static_power;
 		u32 l2_power;
 
@@ -1159,8 +1177,11 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 
 		l2_power = get_dynamic_l2_power(cpufreq_device, cur_freq);
 
-		dyn_power = power - static_power - l2_power;
-		dyn_power = dyn_power > 0 ? dyn_power : 0;
+		if (power > (static_power+l2_power))
+			dyn_power = power - static_power - l2_power;
+		else
+			dyn_power  = 0;
+
 		normalised_power = (dyn_power * 100) / last_load;
 		target_freq = cpu_power_to_freq(cpufreq_device,
 						normalised_power);
@@ -1181,9 +1202,13 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 					     target_freq, cpu);
 			return -EINVAL;
 		}
+
+		pr_debug("cpu%d dyn:%u sta:%u l2:%u allow:%u\n",
+				cpu, dyn_power, static_power, l2_power, power);
 	} else {
 		put_online_cpus();
-		normalised_power = (power * 100) / last_load;
+		dyn_power = power;
+		normalised_power = (dyn_power * 100) / last_load;
 		target_freq = cpu_power_to_freq(cpufreq_device,
 						normalised_power);
 		if (cpufreq_device->power_model->cab->
@@ -1247,11 +1272,11 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 		if (normalised_power <
 			cpu_freq_to_power(cpufreq_device, target_freq))
 			hotplug_out_cpus(cpufreq_device,
-				normalised_power, target_freq);
+				dyn_power, target_freq);
 		else if (num_our_online_cpus <
 			cpumask_weight(&cpufreq_device->allowed_cpus))
 			hotplug_in_cpus(cpufreq_device, tz,
-				normalised_power, target_freq);
+				dyn_power, target_freq);
 		else
 			hotplug_keep_cpus(cpufreq_device);
 	}
