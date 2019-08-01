@@ -1172,12 +1172,12 @@ static void sprd_sdhc_enable_dpll(struct sprd_sdhc_host *host)
 	tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_CFG);
 	tmp |= SPRD_SDHC_DLL_WAIT_CNT | SPRD_SDHC_DLL_ALL_CPST_EN |
 		 SPRD_SDHC_DLL_INIT_COUNT | SPRD_SDHC_DLL_PHA_INTERNAL |
-		 SPRD_SDHC_DLL_CPST_THRES;
+		 SPRD_SDHC_DLL_CPST_THRES | SPRD_SDHC_DLL_HALF_MODE;
 	sprd_sdhc_writel(host, tmp, SPRD_SDHC_REG_32_DLL_CFG);
 	mdelay(1);
 
 	tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_CFG);
-	tmp |= (SPRD_SDHC_DLL_EN | SPRD_SDHC_DLL_HALF_MODE);
+	tmp |= SPRD_SDHC_DLL_EN;
 	sprd_sdhc_writel(host, tmp, SPRD_SDHC_REG_32_DLL_CFG);
 	mdelay(1);
 
