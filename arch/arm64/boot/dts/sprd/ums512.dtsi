@@ -794,6 +794,12 @@
 			#clock-cells = <1>;
 		};
 
+		apcpu_sec_clk: apcpu-sec-clk {
+			compatible = "sprd,sharkl5pro-apcpu-clk-sec";
+			sprd,sec-clk;
+			#clock-cells = <1>;
+		};
+
 		/*    etm */
 		/* -> apcpu_funnel lit/big */
 		/* -> apcpu_etf lit/big */
