@@ -17,6 +17,7 @@
 #include <linux/workqueue.h>
 #include "sprd_dpu.h"
 #include "sprd_dvfs_dpu.h"
+#include "dpu_enhance_param.h"
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -1556,6 +1557,17 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		}
 		pr_info("enhance cabc get\n");
 		break;
+	case ENHANCE_CFG_ID_SLP_LUT:
+		dpu_stop(ctx);
+		p32 = param;
+		for (i = 0; i < 256; i++) {
+			reg->slp_lut_addr = i;
+			udelay(1);
+			*p32++ = reg->slp_lut_rdata;
+		}
+		dpu_run(ctx);
+		pr_info("enhance slp lut get\n");
+		break;
 	default:
 		break;
 	}
@@ -1571,6 +1583,13 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	struct hsv_lut *hsv;
 	struct epf_cfg *epf;
 	int i;
+
+	for (i = 0; i < 256; i++) {
+		reg->slp_lut_addr = i;
+		udelay(1);
+		reg->slp_lut_wdata = slp_lut[i];
+	}
+	pr_info("enhance slp lut reload\n");
 
 	if (enhance_en & BIT(0)) {
 		scale = &scale_copy;
