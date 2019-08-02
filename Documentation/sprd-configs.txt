@@ -10570,6 +10570,22 @@ CONFIG_PCI
 	[must] user
 	[missing plat description]
 	[function] Enable support for PCI bus system.
+CONFIG_PCIEAER
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Enable PCIe express Root Port Advanced Error Reporting driver
+		   support
+CONFIG_PCIEAER_INJECT
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] nables PCI Express Root Port Advanced Error Reporting (AER)
+		   software error injector.
 CONFIG_PCIEASPM
 	[arch] arm64
 	[plat] roc1
@@ -10624,6 +10640,13 @@ CONFIG_PCIE_DW_HOST
 	[must] user
 	[missing plat description]
 	[function] Enable Synopsys DesignWare PCIe host controller driver.
+CONFIG_PCIE_ECRC
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[function] Used to override firmware/bios settings for PCI Express ECRC
 CONFIG_PCIE_PME
 	[arch] arm64
 	[plat] roc1
