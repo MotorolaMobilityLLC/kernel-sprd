@@ -696,6 +696,7 @@
 				syscon-names = "reset",
 					"aon_apb_eb";
 				iommus = <&iommu_jpg>;
+				sprd,qos = <&jpg_qos>;
 				status = "disabled";
 			};
 
@@ -1162,6 +1163,7 @@
 					"pmu_pwr_status",
 					"vsp_domain_eb";
 				iommus = <&iommu_vsp>;
+				sprd,qos = <&vsp_qos>;
 				status = "disabled";
 			};
 
