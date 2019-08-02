@@ -48,6 +48,7 @@ struct dwc3_sprd {
 	struct clk		*susp_clk;
 	struct clk		*ipa_usb_ref_clk;
 	struct clk		*ipa_usb_ref_parent;
+	struct clk		*ipa_usb_ref_default;
 
 	struct usb_phy		*hs_phy;
 	struct usb_phy		*ss_phy;
@@ -331,7 +332,7 @@ static int dwc3_sprd_start(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 		 * Before enable OTG power, we should disable VBUS irq, in case
 		 * extcon notifies the incorrect connecting events.
 		 */
-		if (!regulator_is_enabled(sdwc->vbus)) {
+		if (sdwc->vbus && !regulator_is_enabled(sdwc->vbus)) {
 			ret = regulator_enable(sdwc->vbus);
 			if (ret) {
 				dev_err(sdwc->dev,
@@ -402,7 +403,8 @@ static int dwc3_sprd_stop(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 
 	if (mode == USB_DR_MODE_PERIPHERAL)
 		dwc3_flush_all_events(sdwc);
-	else if (mode == USB_DR_MODE_HOST && regulator_is_enabled(sdwc->vbus)) {
+	else if (mode == USB_DR_MODE_HOST && sdwc->vbus &&
+		 regulator_is_enabled(sdwc->vbus)) {
 		ret = regulator_disable(sdwc->vbus);
 		if (ret) {
 			dev_err(sdwc->dev,
@@ -686,9 +688,8 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 	    IS_ENABLED(CONFIG_USB_DWC3_HOST)) {
 		sdwc->vbus = devm_regulator_get(dev, "vbus");
 		if (IS_ERR(sdwc->vbus)) {
-			ret = PTR_ERR(sdwc->vbus);
-			dev_err(dev, "unable to get vbus supply %d\n", ret);
-			return ret;
+			dev_warn(dev, "unable to get vbus supply\n");
+			sdwc->vbus = NULL;
 		}
 	}
 
@@ -702,6 +703,12 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 	if (IS_ERR(sdwc->ipa_usb_ref_parent)) {
 		dev_warn(dev, "usb can't get the ipa usb ref source\n");
 		sdwc->ipa_usb_ref_parent = NULL;
+	}
+
+	sdwc->ipa_usb_ref_default = devm_clk_get(dev, "ipa_usb_ref_default");
+	if (IS_ERR(sdwc->ipa_usb_ref_default)) {
+		dev_warn(dev, "usb can't get the ipa usb ref default\n");
+		sdwc->ipa_usb_ref_default = NULL;
 	}
 
 	if (sdwc->ipa_usb_ref_clk && sdwc->ipa_usb_ref_parent)
@@ -820,7 +827,8 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		 */
 		sdwc->vbus_active = true;
 
-		if (IS_ENABLED(CONFIG_USB_DWC3_HOST))
+		if (IS_ENABLED(CONFIG_USB_DWC3_HOST) ||
+		    IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE))
 			sdwc->dr_mode = USB_DR_MODE_HOST;
 		else
 			sdwc->dr_mode = USB_DR_MODE_PERIPHERAL;
@@ -843,6 +851,8 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 
 	if (of_property_read_bool(node, "extcon"))
 		dwc3_sprd_detect_cable(sdwc);
+	else
+		queue_work(system_unbound_wq, &sdwc->work);
 
 	return 0;
 
@@ -935,6 +945,14 @@ static void dwc3_sprd_disable(struct dwc3_sprd *sdwc)
 	clk_disable_unprepare(sdwc->susp_clk);
 	clk_disable_unprepare(sdwc->ref_clk);
 	clk_disable_unprepare(sdwc->core_clk);
+	/*
+	 * set usb ref clock to default when dwc3 was not used,
+	 * or else the clock can't be really switch to another
+	 * parent within dwc3_sprd_enable.
+	 */
+	if (sdwc->ipa_usb_ref_clk && sdwc->ipa_usb_ref_default)
+		clk_set_parent(sdwc->ipa_usb_ref_clk,
+			       sdwc->ipa_usb_ref_default);
 }
 
 static int dwc3_sprd_resume_child(struct device *dev, void *data)
