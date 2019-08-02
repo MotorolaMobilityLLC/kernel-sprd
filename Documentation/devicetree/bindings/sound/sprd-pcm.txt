@@ -5,7 +5,7 @@ This node models spreadtrum sound pcm platform driver
 Required properties:
 
 - compatible : "sprd,sharkl5-pcm-platform", "sprd,roc1-pcm-platform", "sprd,sharkl3-pcm-platform",
-	"sprd,sharkl5pro-pcm-platform"
+	"sprd,sharkl5pro-pcm-platform",sprd,7731e-pcm-platform
 - dmas : pcm platform used dma channels
 - dma-names : dma names of dma channels
 - #sound-dai-cells : only support 0, it means use default

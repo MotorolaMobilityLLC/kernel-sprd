@@ -10,6 +10,7 @@
 #include "sc7731e.dtsi"
 #include "sc7731e-wcn.dtsi"
 #include "sc2720.dtsi"
+#include "sprd-sound.dtsi"
 #include "sp7731e-mach.dtsi"
 #include "lcd/lcd_ili9881c_3lane_mipi_fhd.dtsi"
 
@@ -401,5 +402,35 @@
 };
 
 &pmic_flash {
+	status = "okay";
+};
+&sprd_audio_codec_ana {
+	status = "okay";
+	digital-codec = <&sprd_audio_codec_dig>;
+};
+
+&sprd_headset {
+	status = "okay";
+	io-channels = <&pmic_adc 20>;
+	io-channel-names = "headmic_in_little";
+	gpios = <&pmic_eic 3 GPIO_ACTIVE_HIGH>, <&pmic_eic 7 GPIO_ACTIVE_HIGH>,
+		<&pmic_eic 11 GPIO_ACTIVE_HIGH>, <&pmic_eic 5 GPIO_ACTIVE_HIGH>,
+		<&pmic_eic 12 GPIO_ACTIVE_HIGH>;
+	gpio-trigger-levels = <1 1 1 1 1>;
+	gpio-dbnc-intervals = <30 100 100 100 100>;
+	gpio-names = "button", "detect_l",
+		"detect_h", "detect_mic",
+		"detect_all";
+	adc-threshold-3pole-detect = <2950>;
+	sprd,adc-gnd = <450>;
+	sprd,stable-value = <2170>;
+	sprd,coefficient = <917280>;
+};
+
+&sound_vbc_r1p0v3_sprd_codec {
+	status = "okay";
+};
+
+&sound_sprd_ap_alliis {
 	status = "okay";
 };

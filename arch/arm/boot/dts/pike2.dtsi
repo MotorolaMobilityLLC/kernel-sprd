@@ -180,6 +180,16 @@
 				#size-cells = <0>;
 				status = "disabled";
 			};
+
+			i2s0: i2s@70d00000  {
+				compatible = "sprd,i2s";
+				#sound-dai-cells = <0>;
+				reg = <0x70d00000 0x100000>;
+				sprd,dai_name = "i2s_bt_sco0";
+				sprd,hw_port = <0>;
+				sprd,syscon-ap-apb = <&ap_apb_regs>;
+				status = "disable";
+			};
 		};
 
 		ap-ahb {
@@ -290,6 +300,49 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 			ranges;
+
+			sprd_audio_codec_dig: audio-codec@40000000 {
+				compatible = "sprd,sharkl3-audio-codec";
+				reg = <0x40000000 0x2000>;
+				sprd,def-da-fs = <44100>;
+				interrupts = <GIC_SPI 20 IRQ_TYPE_NONE>;
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+			};
+
+			vbc: vbc@40020000 {
+				compatible = "sprd,vbc-r1p0v3";
+				#sound-dai-cells = <1>;
+				reg = <0x40020000 0x10000>;
+				sprd,clk-stable = <0x402d0060 0x4>;
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				sprd,dynamic-eq-support = <0>;
+				/* da01, ad01, ad23 */
+				sprd,vbc-iis-lr-invert = <0 1 1>;
+				/* 0: aon dma, 1: ap dma
+				 * da01, da23, ad01, ad23
+				 */
+				sprd,vbc-use-dma-type = <0 0 1 1>;
+				sprd,iis_not_set_same_num = <1>;
+				sprd,vbc-use-ad01-only = <1>;
+				pinctrl-names =
+				/* sys iis 0 */
+				"ap_iis0_0", "pubcp_iis0_0",
+				"tgdsp_iis0_0",
+				"vbc_iis2_0",
+				/* sys iis 1 */
+				"ap_iis0_1", "pubcp_iis0_1",
+				"tgdsp_iis0_1",
+				"vbc_iis1_1";
+				pinctrl-0 = <&ap_iis0_0>;
+				pinctrl-1 = <&pubcp_iis0_0>;
+				pinctrl-2 = <&tgdsp_iis0_0>;
+				pinctrl-3 = <&vbc_iis2_0>;
+				pinctrl-4 = <&ap_iis0_1>;
+				pinctrl-5 = <&pubcp_iis0_1>;
+				pinctrl-6 = <&tgdsp_iis0_1>;
+				pinctrl-7 = <&vbc_iis1_1>;
+			};
 
 			timer@40050000 {
 				compatible = "sprd,pike2-timer";
@@ -453,6 +506,39 @@
 			pin_controller: pinctrl@402a0000 {
 				compatible = "sprd,pike2-pinctrl";
 				reg = <0x402a0000 0x10000>;
+
+				ap_iis0_0: ap-iis0-0 {
+					pins = "PIKE2_IIS0_SYS_SEL";
+					sprd,control = <0x0>;
+				};
+				tgdsp_iis0_0: tgdsp-iis0-0 {
+					pins = "PIKE2_IIS0_SYS_SEL";
+					sprd,control = <0x1>;
+				};
+				pubcp_iis0_0: pubcp-iis0-0 {
+					pins = "PIKE2_IIS0_SYS_SEL";
+					sprd,control = <0x2>;
+				};
+				vbc_iis2_0: vbc-iis2-0 {
+					pins = "PIKE2_IIS0_SYS_SEL";
+					sprd,control = <0x3>;
+				};
+				ap_iis0_1: ap-iis0-1 {
+					pins = "PIKE2_IIS1_SYS_SEL";
+					sprd,control = <0x0>;
+				};
+				tgdsp_iis0_1: tgdsp-iis0-1 {
+					pins = "PIKE2_IIS1_SYS_SEL";
+					sprd,control = <0x1>;
+				};
+				pubcp_iis0_1: pubcp-iis0-1 {
+					pins = "PIKE2_IIS1_SYS_SEL";
+					sprd,control = <0x2>;
+				};
+				vbc_iis1_1: vbc-iis1-1 {
+					pins = "PIKE2_IIS1_SYS_SEL";
+					sprd,control = <0x3>;
+				};
 			};
 
 			cpu_thm: thermal@402f0000 {
@@ -669,6 +755,100 @@
 				#iommu-cells = <0>;
 			};
 		};
+	};
+
+	sprd_pcm: sprd-pcm-audio {
+		compatible = "sprd,7731e-pcm-platform",
+			"sprd,sharkl3-pcm-platform";
+		#sound-dai-cells = <0>;
+		/* non-i2s playbacks use aon dma */
+		/* reference dma node dma-channels proporty
+		 * do not conflict with others
+		 * ap_dma (29-32 for security)
+		 */
+		dmas = <&aon_dma 1 &aon_dma 2
+			&aon_dma 3 &aon_dma 4
+			&aon_dma 5 &aon_dma 6
+			&aon_dma 7 &aon_dma 8
+			&ap_dma 1 &ap_dma 2
+			&ap_dma 3 &ap_dma 4>;
+		dma-names = "da01-l", "da01-r", "da23-l", "da23-r",
+			"normal-2stage-p", "normal-2stage-c",
+			"deep-2stage-p", "ad23-2stage-c",
+			"ad01-l", "ad01-r", "ad23-l", "ad23-r";
+		/* bit map for dma-2stage-usecase
+		 * bit[0] == 1, normal playback
+		 * bit[1] ==1, deepbuf playback
+		 * bit[2] ==1, caputre
+		 * other bit to do
+		 */
+		sprd,dma-2stage-usecase = <2>;
+		sprd,node-count-2stage-level-1 = <1>;
+		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+		/* 0: no interrupt, 1: from arm, 2:from ap
+		* note:if use arm ap should not register dma interrupt,
+		* and you should register intterupt in arm code.
+		*/
+		sprd,dma-2stage-level-1-int-source = <1>;
+	};
+
+	sprd_pcm_iis: sprd-pcm-iis {
+		compatible = "sprd,7731e-pcm-platform",
+			"sprd,sharkl3-pcm-platform";
+		#sound-dai-cells = <0>;
+		dmas = <&ap_dma 5 &ap_dma 6
+			&ap_dma 7 &ap_dma 8
+			&ap_dma 9 &ap_dma 10
+			&ap_dma 11 &ap_dma 12>;
+		dma-names = "iis0_tx", "iis0_rx",
+			"iis1_tx", "iis1_rx",
+			"iis2_tx", "iis2_rx",
+			"iis3_tx", "iis3_rx";
+		sprd,dma-2stage-usecase = <2>;
+		sprd,node-count-2stage-level-1 = <1>;
+		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+		sprd,dma-2stage-level-1-int-source = <1>;
+	};
+
+	vaudio: vaudio {
+		compatible = "sprd,vaudio";
+		#sound-dai-cells = <1>;
+		clocks = <&aonapb_gate 9>;
+		clock-names = "tuned_26m";
+	};
+
+	saudio_lte{
+		compatible = "sprd,saudio";
+		sprd,saudio-dst-id = <5>;	/* SIPC_ID_LTE */
+		sprd,ctrl_channel = <10>;	/* SMSG_CH_VBC */
+		sprd,playback_channel = <11 131>;	/* SMSG_CH_PLAYBACK */
+		sprd,capture_channel = <12>;	/* SMSG_CH_CAPTURE */
+		sprd,monitor_channel = <13>;	/*SMSG_CH_MONITOR_AUDIO */
+		sprd,device = <2>;
+		sprd,saudio-names = "saudiolte";
+	};
+
+	saudio_voip{
+		compatible = "sprd,saudio";
+		sprd,saudio-dst-id = <5>;	/* SIPC_ID_LTE */
+		sprd,ctrl_channel = <14>;	/* SMSG_CH_CTRL_VOIP */
+		sprd,playback_channel = <15 151>;	/* SMSG_CH_PLAYBACK_VOIP */
+		sprd,capture_channel = <16>;	/* SMSG_CH_CAPTURE_VOIP */
+		sprd,monitor_channel = <17>;	/*SMSG_CH_MONITOR_VOIP */
+		sprd,device = <2>;
+		sprd,saudio-names = "saudiovoip";
+	};
+
+	audio-mem-mgr {
+		compatible = "sprd,sharkl3-audio-mem",
+			"sprd,pike2-audio-mem";
+		sprd,iram_phy_addr = <0x50000000 0xb000>;
+		/* note:mmap address must paga_size align */
+		/* normal 18k for data, 2k for linklist */
+		sprd,iram_normal = <0x50000000 0x0>;
+		/* deepbuf 18k for data, 2k for linklist */
+		sprd,iram_deepbuf = <0x50000000 0xa000>;
+		sprd,iram_4arm7 = <0x5000a000 0x1000>;
 	};
 
 	ext_26m: ext-26m {

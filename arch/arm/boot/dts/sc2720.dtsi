@@ -98,6 +98,17 @@
 			nvmem-cell-names = "big_scale_calib", "small_scale_calib";
 		};
 
+		sprd_audio_codec_ana: audio-codec@700 {
+			compatible = "sprd,sc2720-audio-codec",
+				"sprd,sc27xx-audio-codec";
+			#sound-dai-cells = <1>;
+			reg = <0x700>;
+			interrupts = <5 IRQ_TYPE_NONE>;
+			interrupt-parent = <&sc2720_pmic>;
+			sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+			status = "disabled";
+		};
+
 		pmic_fgu: fgu@a00 {
 			compatible = "sprd,sc27xx-fgu", "sprd,sc2720-fgu";
 			reg = <0xa00>;
