@@ -54,6 +54,17 @@ config SND_SOC_SPRD_SHARKL3
 	help
 	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
 	  boards using sharkl3 chip
+config SND_SOC_SPRD_SHARKLE
+	tristate "ASoC Spreadtrum sound card for sharklE chip"
+	help
+	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
+	  boards using sharklE chip
+
+config SND_SOC_SPRD_PIKE2
+	tristate "ASoC Spreadtrum sound card for pike2 chip"
+	help
+	  Say Y or M here if you want to add support for ASoC audio on Spreadtrum
+	  boards using pike2 chip
 
 source "sound/soc/sprd/dai/vbc/Kconfig"
 source "sound/soc/sprd/dai/i2s/Kconfig"

@@ -9850,14 +9850,14 @@ CONFIG_SND_HWDEP
 	   support USB Audio/MIDI driver.
 CONFIG_SND_JACK
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] all
 	[field] make,code
 	[subsys] sound
 	[must] user
 	[function] This macro is selected when using headphone
 CONFIG_SND_JACK_INPUT_DEV
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] all
 	[field]
 	[subsys]
 	[must]
@@ -9899,7 +9899,7 @@ CONFIG_SND_RAWMIDI
 	[function] sound Rawmidi interface
 CONFIG_SND_SOC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] all
 	[field] make,code
 	[subsys] sound
 	[must] user
@@ -9913,28 +9913,28 @@ CONFIG_SND_SOC_COMPRESS
 	[function] sound support compress
 CONFIG_SND_SOC_I2C_AND_SPI
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] enable I2C and SPI bus for audio codec
 CONFIG_SND_SOC_SPRD
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] snd soc common code
 CONFIG_SND_SOC_SPRD_AUDIO_TWO_STAGE_DMAENGINE_SURPPORT
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_CODEC_SC2721
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -9946,6 +9946,20 @@ CONFIG_SND_SOC_SPRD_CODEC_SC2730
 	[subsys] sound
 	[must] user
 	[function] snd codec dai
+CONFIG_SND_SOC_SPRD_I2S
+	[arch] arm
+	[plat] pike2,sharkle32
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_SND_SOC_SPRD_I2S_DUMMY
+	[arch] arm
+	[plat] pike2,sharkle32
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SND_SOC_SPRD_PA_UCP1301
 	[arch] arm64
 	[plat] sharkl5Pro
@@ -9953,30 +9967,44 @@ CONFIG_SND_SOC_SPRD_PA_UCP1301
 	[subsys]
 	[must]
 	[function]
+CONFIG_SND_SOC_SPRD_PIKE2
+	[arch] arm
+	[plat] pike2
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SND_SOC_SPRD_R1P0V3_SC2721
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_SHARKL3
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkle32
+	[plat] sharkl3,sharkl3_32
+	[field]
+	[subsys]
+	[must]
+	[function]
+CONFIG_SND_SOC_SPRD_SHARKLE
+	[arch] arm
+	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_VAUDIO
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_VBC_R1P0V3
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -10195,14 +10223,14 @@ CONFIG_SPRD_AUDIO_MCDT
 	[function] sound data transmission channel with dsp
 CONFIG_SPRD_AUDIO_MEMORY_MANAGER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] all
 	[field] make
 	[subsys] sound
 	[must] user
 	[function] audio memory allocation
 CONFIG_SPRD_AUDIO_SAUDIO
 	[arch] all
-	[plat] sharkl3,sharkl3_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] misc
 	[must] user
