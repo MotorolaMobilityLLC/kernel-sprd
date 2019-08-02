@@ -803,6 +803,13 @@ static u32 dpu_img_ctrl(u32 format, u32 blending, u32 compression, u32 rotation)
 		/* UV endian */
 		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 10;
 		break;
+	case DRM_FORMAT_YVU420:
+		reg_val |= DPU_LAYER_FORMAT_YUV420_3PLANE << 4;
+		/* Y endian */
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B0B1B2B3 << 8;
+		/* UV endian */
+		reg_val |= SPRD_IMG_DATA_ENDIAN_B3B2B1B0 << 10;
+		break;
 	default:
 		pr_err("error: invalid format %c%c%c%c\n", format,
 						format >> 8,
@@ -848,6 +855,7 @@ static int check_layer_y2r_coef(struct sprd_dpu_layer layers[], u8 count)
 		case DRM_FORMAT_NV16:
 		case DRM_FORMAT_NV61:
 		case DRM_FORMAT_YUV420:
+		case DRM_FORMAT_YVU420:
 			if (layers[i].y2r_coef == prev_y2r_coef)
 				return -1;
 
@@ -1564,7 +1572,7 @@ static const u32 primary_fmts[] = {
 	DRM_FORMAT_RGB565, DRM_FORMAT_BGR565,
 	DRM_FORMAT_NV12, DRM_FORMAT_NV21,
 	DRM_FORMAT_NV16, DRM_FORMAT_NV61,
-	DRM_FORMAT_YUV420,
+	DRM_FORMAT_YUV420, DRM_FORMAT_YVU420,
 };
 
 static int dpu_capability(struct dpu_context *ctx,
