@@ -1706,14 +1706,7 @@ CONFIG_CPU_FREQ
 	[function] enable cpufreq
 CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 	[arch] arm
-	[plat] pike2
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
-	[arch] arm
-	[plat] sharkle32
+	[plat] pike2,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -1727,14 +1720,14 @@ CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL
 	[function] Enable schedutil as a default governor
 CONFIG_CPU_FREQ_GOV_ATTR_SET
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
 	[function] Enable cpufreq governor sysfs interface
 CONFIG_CPU_FREQ_GOV_INTERACTIVE
 	[arch] arm
-	[plat] pike2
+	[plat] pike2,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -1755,7 +1748,7 @@ CONFIG_CPU_FREQ_GOV_POWERSAVE
 	[function] enable powersave as an available governor
 CONFIG_CPU_FREQ_GOV_SCHEDUTIL
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
