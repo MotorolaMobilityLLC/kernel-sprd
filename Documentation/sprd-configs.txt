@@ -5246,7 +5246,7 @@ CONFIG_INET_IPCOMP
 	  needed for IPsec.
 CONFIG_INET_RAW_DIAG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field]
 	[subsys]
 	[must]
@@ -5864,7 +5864,7 @@ CONFIG_IP_NF_SECURITY
 	with Mandatory Access Control (MAC) policy.
 CONFIG_IP_NF_TARGET_ECN
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] menu
 	[subsys] net
 	[must] user
@@ -5917,7 +5917,7 @@ CONFIG_IP_NF_TARGET_SYNPROXY
 	during SYN-flood attacks.
 CONFIG_IP_NF_TARGET_TTL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] menu
 	[subsys] net
 	[must] user
@@ -7208,7 +7208,7 @@ CONFIG_NETFILTER_XT_TARGET_IDLETIMER
 	[function] vts require, IDLETIMER target support
 CONFIG_NETFILTER_XT_TARGET_LOG
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] menu,make
 	[subsys] net
 	[must] user
@@ -7729,21 +7729,21 @@ CONFIG_NF_DUP_IPV6
 	  destination.
 CONFIG_NF_LOG_COMMON
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] net
 	[must] user
 	[function] Support for logging
 CONFIG_NF_LOG_IPV4
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] net
 	[must] user
 	[function] Support for IPv4 packet logging
 CONFIG_NF_LOG_IPV6
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] net
 	[must] user
@@ -8639,7 +8639,7 @@ CONFIG_PPP
 	  2. vts require
 CONFIG_PPPOE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] menu,make
 	[subsys] net
 	[must] user
@@ -8655,7 +8655,7 @@ CONFIG_PPPOL2TP
 	tunnels. L2TP is replacing PPTP for VPN uses.
 CONFIG_PPP_ASYNC
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] menu,make
 	[subsys] net
 	[must] user
@@ -8684,7 +8684,7 @@ CONFIG_PPP_DEFLATE
 	  2. vts require
 CONFIG_PPP_FILTER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] menu,code
 	[subsys] net
 	[must] user
@@ -8704,7 +8704,7 @@ CONFIG_PPP_MPPE
 	  Microsoft Point-to-Point Tunneling Protocol. 2. vts require
 CONFIG_PPP_MULTILINK
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] menu,code
 	[subsys] net
 	[must] user
@@ -10419,14 +10419,14 @@ CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[function] This config is enable modem DVFS function.
 CONFIG_SPRD_IMS_BRIDGE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] make
 	[subsys] net
 	[must] user
 	[function] Add ims_bridge kernel module to compile.
 CONFIG_SPRD_IMS_BRIDGE_TEST
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] make, code
 	[subsys] net
 	[must] user
@@ -12251,7 +12251,7 @@ CONFIG_VIRTIO_MMIO
 		  virtio platform device driver.
 CONFIG_VIRTIO_NET
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] menu
 	[subsys] net
 	[must] user
@@ -12526,7 +12526,7 @@ CONFIG_XFRM_ALGO
 	[function] support for xfrm algorithum
 CONFIG_XFRM_FRAGMENT
 	[arch] all
-	[plat] pike2,sharkl3,sharkl5,sharkl5Pro,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
 	[field] menu
 	[subsys] net
 	[must] user
