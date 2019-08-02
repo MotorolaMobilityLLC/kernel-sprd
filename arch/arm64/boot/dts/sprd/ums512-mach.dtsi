@@ -60,26 +60,9 @@
 
 			vbmeta {
 				compatible = "android,vbmeta";
-				parts = "vbmeta,boot,recovery,system,vendor,product";
+				parts = "socko,odmko,boot,recovery,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp";
 			};
 
-			fstab {
-				compatible = "android,fstab";
-				vendor {
-					compatible = "android,vendor";
-					dev = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/vendor";
-					type = "ext4";
-					mnt_flags = "ro,barrier=1";
-					fsmgr_flags = "wait";
-				};
-				product {
-					compatible = "android,product";
-					dev = "/dev/block/platform/soc/soc:ap-apb/71400000.sdio/by-name/product";
-					type = "ext4";
-					mnt_flags = "ro,barrier=1";
-					fsmgr_flags = "wait";
-				};
-			};
 		};
 	};
 
