@@ -46,6 +46,13 @@
 				};
 			};
 
+			flash-gpios {
+				compatible = "sprd,flash-wd3124da";
+				flash-ic = <3124>;
+				flash-torch-en-gpios = <&ap_gpio 12 0>;
+				flash-en-gpios = <&ap_gpio 13 0>;
+			};
+
 			pwm_backlight: sprd_backlight {
 				compatible = "pwm-backlight";
 				pwms = <&pwms 1 20000>;
