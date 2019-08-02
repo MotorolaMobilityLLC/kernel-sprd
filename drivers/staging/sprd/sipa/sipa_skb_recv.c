@@ -442,6 +442,8 @@ int create_sipa_skb_receiver(struct sipa_context *ipa,
 			"Failed to create kthread: ipa-recv-%d\n",
 			ep->id);
 		ret = PTR_ERR(receiver->thread);
+		kfree(receiver->recv_array.array);
+		kfree(receiver);
 		return ret;
 	}
 
@@ -452,6 +454,7 @@ int create_sipa_skb_receiver(struct sipa_context *ipa,
 		dev_err(ipa->pdev, "Failed to create kthread: ipa-fill-%d\n",
 			ep->id);
 		ret = PTR_ERR(receiver->fill_thread);
+		kfree(receiver->recv_array.array);
 		kfree(receiver);
 		return ret;
 	}

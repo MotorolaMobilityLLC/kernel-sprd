@@ -881,24 +881,18 @@ static int sipa_create_skb_xfer(struct device *dev,
 	return 0;
 
 receiver_fail:
-	if (ctrl->receiver[SIPA_PKT_IP]) {
-		destroy_sipa_skb_receiver(ctrl->receiver[SIPA_PKT_IP]);
+	if (ctrl->receiver[SIPA_PKT_IP])
 		ctrl->receiver[SIPA_PKT_IP] = NULL;
-	}
-	if (ctrl->receiver[SIPA_PKT_ETH]) {
-		destroy_sipa_skb_receiver(ctrl->receiver[SIPA_PKT_ETH]);
+
+	if (ctrl->receiver[SIPA_PKT_ETH])
 		ctrl->receiver[SIPA_PKT_ETH] = NULL;
-	}
 
 sender_fail:
-	if (ctrl->sender[SIPA_PKT_IP]) {
-		destroy_sipa_skb_sender(ctrl->sender[SIPA_PKT_IP]);
+	if (ctrl->sender[SIPA_PKT_IP])
 		ctrl->sender[SIPA_PKT_IP] = NULL;
-	}
-	if (ctrl->sender[SIPA_PKT_ETH]) {
-		destroy_sipa_skb_sender(ctrl->sender[SIPA_PKT_ETH]);
+
+	if (ctrl->sender[SIPA_PKT_ETH])
 		ctrl->sender[SIPA_PKT_ETH] = NULL;
-	}
 
 	return ret;
 }
