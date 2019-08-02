@@ -45,17 +45,6 @@
 	};
 };
 
-&i2c3 {
-	status = "okay";
-
-	synaptics-touch@20 {
-		compatible = "synaptics,dsx";
-		reg = <0x20>;
-		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
-			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
-	};
-};
-
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 		"camhigh", "camveryhigh";

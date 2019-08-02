@@ -1008,9 +1008,11 @@
 					<&ipa_gate CLK_IPA_USB_SUSPEND_EB>,
 					<&ipa_gate CLK_IPA_USB_REF_EB>,
 					<&ipa_clk CLK_USB_REF>,
-					<&g12_pll CLK_TWPLL_24M>;
+					<&g12_pll CLK_TWPLL_24M>,
+					<&ext_32k>;
 				clock-names = "core_clk", "ref_clk", "susp_clk",
-					"ipa_usb_ref", "ipa_usb_ref_source";
+					"ipa_usb_ref", "ipa_usb_ref_source",
+					"ipa_usb_ref_default";
 				usb-phy = <&ssphy>, <&ssphy>;
 				power-domains = <&pd_ipa_sys>;
 

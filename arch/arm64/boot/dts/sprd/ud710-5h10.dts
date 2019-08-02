@@ -570,10 +570,26 @@
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&pmic_typec>;
+	status = "disabled";
 };
 
 &usb {
 	extcon = <&pmic_typec>;
+	status = "disabled";
+};
+
+&ssphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&pmic_typec>;
+	status = "okay";
+};
+
+&usb3 {
+	status = "okay";
+};
+
+&pmic_typec {
+	status = "okay";
 };
 
 &sprd_headset {
