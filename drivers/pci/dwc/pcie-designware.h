@@ -158,8 +158,10 @@
  * Maximum number of MSI IRQs can be 256 per controller. But keep
  * it 32 as of now. Probably we will never need more than 32. If needed,
  * then increment it in multiple of 32.
+ * However, unisoc needs more than 32 MSI IRQs: marlin3 needs 32 and
+ * port driver(AER/PME) needs 1 MSI IRQs.
  */
-#define MAX_MSI_IRQS			32
+#define MAX_MSI_IRQS			64
 #define MAX_MSI_CTRLS			(MAX_MSI_IRQS / 32)
 
 struct pcie_port;
