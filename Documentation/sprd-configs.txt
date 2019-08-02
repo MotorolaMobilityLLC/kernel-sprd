@@ -2577,13 +2577,6 @@ CONFIG_DEBUG_ALIGN_RODATA
 	[subsys]
 	[must]
 	[function]
-CONFIG_DEBUG_ATOMIC_SLEEP
-	[arch] arm
-	[plat] sharkle32
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_DEBUG_BUGVERBOSE
 	[arch] all
 	[plat] all
@@ -2640,20 +2633,6 @@ CONFIG_DEBUG_LL_INCLUDE
 	[subsys] debug
 	[must] console
 	[function] Support for debug include path.
-CONFIG_DEBUG_LOCK_ALLOC
-	[arch] arm
-	[plat] sharkle32
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_DEBUG_MUTEXES
-	[arch] arm
-	[plat] sharkle32
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_DEBUG_NOTIFIERS
 	[arch] arm
 	[plat] pike2,sharkle32
@@ -2668,13 +2647,6 @@ CONFIG_DEBUG_PERF_USE_VMALLOC
 	[subsys]
 	[must]
 	[function]
-CONFIG_DEBUG_PREEMPT
-	[arch] arm
-	[plat] sharkle32
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_DEBUG_RODATA_TEST
 	[arch] arm
 	[plat] sharkl5_32
@@ -2682,23 +2654,9 @@ CONFIG_DEBUG_RODATA_TEST
 	[subsys]
 	[must]
 	[function]
-CONFIG_DEBUG_RT_MUTEXES
-	[arch] arm
-	[plat] sharkle32
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_DEBUG_SG
 	[arch] arm
 	[plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_DEBUG_SPINLOCK
-	[arch] arm
-	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -6323,13 +6281,6 @@ CONFIG_LOCALVERSION
 CONFIG_LOCALVERSION_AUTO
 	[arch] arm64
 	[plat] roc1
-	[field]
-	[subsys]
-	[must]
-	[function]
-CONFIG_LOCKDEP
-	[arch] arm
-	[plat] sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -10934,7 +10885,7 @@ CONFIG_SPRD_VSP_PW_DOMAIN
 	[function] power on vsp domain.
 CONFIG_SPRD_WATCHDOG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
@@ -12363,21 +12314,21 @@ CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED
 	[function]
 CONFIG_WATCHDOG_PRETIMEOUT_DEFAULT_GOV_PANIC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
 	[function] watchdog pretimeout default gov panic
 CONFIG_WATCHDOG_PRETIMEOUT_GOV
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
 	[function] watchdog pretimeout gov
 CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
