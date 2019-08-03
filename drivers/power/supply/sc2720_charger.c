@@ -571,7 +571,7 @@ sc2720_charger_usb_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
-		ret = sc2720_charger_set_current(info, val->intval / 1000);
+		ret = sc2720_charger_set_current(info, val->intval);
 		if (ret < 0)
 			dev_err(info->dev, "set charge current failed\n");
 		break;
@@ -583,7 +583,7 @@ sc2720_charger_usb_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
-		ret = sc2720_set_termination_voltage(info, val->intval / 1000);
+		ret = sc2720_set_termination_voltage(info, val->intval);
 		if (ret < 0)
 			dev_err(info->dev, "failed to set terminate voltage\n");
 		break;
