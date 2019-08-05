@@ -1184,6 +1184,11 @@ static int _mmc_sd_resume(struct mmc_host *host)
 	if (!mmc_card_suspended(host->card))
 		goto out;
 
+	if (mmc_card_is_removable(host) && host->ops->get_cd &&
+		host->ops->get_cd(host) == 0) {
+		mmc_card_set_removed(host->card);
+		goto clean;
+	}
 	mmc_power_up(host, host->card->ocr);
 #ifdef CONFIG_MMC_PARANOID_SD_INIT
 	retries = 5;
@@ -1202,6 +1207,7 @@ static int _mmc_sd_resume(struct mmc_host *host)
 #else
 	err = mmc_sd_init_card(host, host->card->ocr, host->card);
 #endif
+clean:
 	mmc_card_clr_suspended(host->card);
 
 out:
