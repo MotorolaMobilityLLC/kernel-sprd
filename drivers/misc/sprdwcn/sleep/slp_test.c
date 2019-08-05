@@ -18,14 +18,14 @@ static int sleep_test_thread(void *data)
 		else
 			msleep(30000);
 
-		slp_mgr_drv_sleep(MARLIN_GNSS, FALSE);
-		slp_mgr_wakeup(MARLIN_GNSS);
+		slp_mgr_drv_sleep(DT_READ, FALSE);
+		slp_mgr_wakeup(DT_READ);
 
 		sprdwcn_bus_reg_read(CP_START_ADDR, &ram_val, 0x4);
 		WCN_INFO("ram_val is 0x%x\n", ram_val);
 
 		msleep(5000);
-		slp_mgr_drv_sleep(MARLIN_GNSS, TRUE);
+		slp_mgr_drv_sleep(DT_READ, TRUE);
 		test_cnt++;
 	}
 

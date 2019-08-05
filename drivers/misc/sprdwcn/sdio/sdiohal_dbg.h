@@ -1,5 +1,5 @@
 #ifndef __SDIO_DBG_H__
-#define __SDIO_DBG_H_
+#define __SDIO_DBG_H__
 
 #include "../include/wcn_dbg.h"
 
