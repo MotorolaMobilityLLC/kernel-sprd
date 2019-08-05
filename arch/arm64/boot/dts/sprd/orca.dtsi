@@ -701,6 +701,10 @@
 					dcdc-judge-vol-sw = <0x80 1 0x7 7>;
 					dcdc-subsys-tune-enable = <0x300 2 1>;
 					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu0_supply>;
+					syscons = <&pmu_apb_regs
+						REG_PMU_APB_RF_DVFS_BLOCK_SHUTDOWN_CFG
+						MASK_PMU_APB_RF_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
+					syscon-names = "dvfs-blk-dcdc-sd";
 				};
 			};
 
