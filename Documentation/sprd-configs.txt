@@ -10573,17 +10573,21 @@ CONFIG_PCI
 CONFIG_PCIEAER
 	[arch] arm64
 	[plat] roc1
+	[missing plat]
 	[field] make,code
 	[subsys] pci
 	[must] user
+	[missing plat description]
 	[function] Enable PCIe express Root Port Advanced Error Reporting driver
 		   support
 CONFIG_PCIEAER_INJECT
 	[arch] arm64
 	[plat] roc1
+	[missing plat]
 	[field] make,code
 	[subsys] pci
 	[must] user
+	[missing plat description]
 	[function] nables PCI Express Root Port Advanced Error Reporting (AER)
 		   software error injector.
 CONFIG_PCIEASPM
@@ -10643,9 +10647,11 @@ CONFIG_PCIE_DW_HOST
 CONFIG_PCIE_ECRC
 	[arch] arm64
 	[plat] roc1
+	[missing plat]
 	[field] make,code
 	[subsys] pci
 	[must] user
+	[missing plat description]
 	[function] Used to override firmware/bios settings for PCI Express ECRC
 CONFIG_PCIE_PME
 	[arch] arm64
@@ -14884,8 +14890,8 @@ CONFIG_UID_SYS_STATS
 	[function] vts require, Per-UID statistics
 CONFIG_UMW2652
 	[arch] all
-	[plat] sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkle32
+	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] menu
 	[subsys] wcn
 	[must] user
