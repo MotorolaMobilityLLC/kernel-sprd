@@ -424,7 +424,7 @@
 			dmc_controller: dmc-controller@61050000  {
 				compatible = "sprd,orca-dmc";
 				reg = <0x0 0x61050000 0x0 0x7000>,
-					<0x0 0x60000 0x0 0x1000>;
+					<0x0 0x6000 0x0 0x1000>;
 			};
 			ptm_trace: ptm@61060000 {
 				compatible = "sprd,orca-ptm";
