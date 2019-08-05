@@ -16,6 +16,7 @@
 #include <linux/wait.h>
 #include <linux/workqueue.h>
 #include "sprd_dpu.h"
+#include "sprd_corner.h"
 
 #define DISPC_BRIGHTNESS           (0x00 << 16)
 #define DISPC_CONTRAST             (0x100 << 0)
@@ -104,6 +105,8 @@ static bool evt_stop;
 static int wb_en;
 static int max_vsync_count;
 static int vsync_count;
+static bool sprd_corner_support;
+static int sprd_corner_radius;
 static int flip_cnt;
 static bool wb_config;
 static int wb_disable;
@@ -122,6 +125,37 @@ static u32 dpu_get_version(struct dpu_context *ctx)
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
 	return reg->dpu_version;
+}
+
+static int dpu_parse_dt(struct dpu_context *ctx,
+				struct device_node *np)
+{
+	int ret = 0;
+
+	ret = of_property_read_u32(np, "sprd,corner-radius",
+					&sprd_corner_radius);
+	if (!ret) {
+		sprd_corner_support = 1;
+		pr_info("round corner support, radius = %d.\n",
+					sprd_corner_radius);
+	}
+
+	return 0;
+}
+
+static void dpu_corner_init(struct dpu_context *ctx)
+{
+	static bool corner_is_inited;
+
+	if (!corner_is_inited && sprd_corner_support) {
+		sprd_corner_hwlayer_init(ctx->vm.vactive, ctx->vm.hactive,
+				sprd_corner_radius);
+
+		/* change id value based on different cpu chip */
+		corner_layer_top.index = 4;
+		corner_layer_bottom.index = 5;
+		corner_is_inited = 1;
+	}
 }
 
 static void dpu_dump(struct dpu_context *ctx)
@@ -459,6 +493,8 @@ static int dpu_init(struct dpu_context *ctx)
 	if (!ctx->wb_work.func)
 		INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
 
+	dpu_corner_init(ctx);
+
 	return 0;
 }
 
@@ -714,6 +750,12 @@ static void dpu_flip(struct dpu_context *ctx,
 	for (i = 0; i < count; i++)
 		dpu_layer(ctx, &layers[i]);
 
+	/* special case for round corner */
+	if (sprd_corner_support) {
+		dpu_layer(ctx, &corner_layer_top);
+		dpu_layer(ctx, &corner_layer_bottom);
+	}
+
 	/* update trigger and wait */
 	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
 		if (!ctx->is_stopped) {
@@ -846,6 +888,7 @@ static int dpu_capability(struct dpu_context *ctx,
 }
 
 static struct dpu_core_ops dpu_lite_r1p0_ops = {
+	.parse_dt = dpu_parse_dt,
 	.version = dpu_get_version,
 	.init = dpu_init,
 	.uninit = dpu_uninit,
