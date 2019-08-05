@@ -754,6 +754,7 @@
 						sel-get = <0x38 0 3>;
 						div-get = <0x38 2 7>;
 						vol-get = <0x30 0 7>;
+						dfs-idle-disable = <0x308 0 1>;
 
 					};
 					lit_core1_dev: lit-core1-dev {
@@ -761,6 +762,7 @@
 						sel-get = <0x38 5 3>;
 						div-get = <0x38 7 7>;
 						vol-get = <0x30 3 7>;
+						dfs-idle-disable = <0x308 1 1>;
 
 					};
 
@@ -802,6 +804,7 @@
 						sel-get = <0x3c 10 7>;
 						div-get = <0x3c 13 7>;
 						vol-get = <0x34 0 7>;
+						dfs-idle-disable = <0x308 8 1>;
 					};
 					ace_dev: ace-dev {
 						device-name = "ace";
@@ -838,6 +841,7 @@
 						sel-get = <0x3c 19 3>;
 						div-get = <0x3c 21 7>;
 						vol-get = <0x34 6 7>;
+						dfs-idle-disable = <0x308 10 1>;
 					};
 				};
 
@@ -869,6 +873,7 @@
 						sel-get = <0x40 0 3>;
 						div-get = <0x40 2 7>;
 						vol-get = <0x34 9 7>;
+						dfs-idle-disable = <0x308 11 1>;
 					};
 				};
 
