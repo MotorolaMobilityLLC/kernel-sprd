@@ -476,7 +476,7 @@
 };
 
 &vddsim2 {
-	status = "disabled";
+	status = "okay";
 };
 
 &dcam {
