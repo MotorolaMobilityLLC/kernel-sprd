@@ -91,15 +91,17 @@ static unsigned long next_polling; /* Next appointed polling time */
 static struct workqueue_struct *cm_wq; /* init at driver add */
 static struct delayed_work cm_monitor_work; /* init at driver add */
 
-static bool is_calib_mode;
+static bool allow_charger_enable;
 static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg);
 
 static int __init boot_calibration_mode(char *str)
 {
-	if (str && !strncmp(str, "cali", strlen("cali")))
-		is_calib_mode = true;
-	else
-		is_calib_mode = false;
+	if (!str)
+		return 0;
+
+	if (!strncmp(str, "cali", strlen("cali")) ||
+	    !strncmp(str, "autotest", strlen("autotest")))
+		allow_charger_enable = true;
 
 	return 0;
 }
@@ -662,7 +664,7 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		 * even if use fake battery.
 		 * So it will not return in calibration mode.
 		 */
-		if (!is_batt_present(cm) && !is_calib_mode)
+		if (!is_batt_present(cm) && !allow_charger_enable)
 			return 0;
 		/*
 		 * Save start time of charging to limit
