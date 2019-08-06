@@ -393,20 +393,36 @@ def output_allconfigs():
 
 
 def help_info():
-    print(
-    """usage: sprdconfig_check.py [option] [project]
-    sprdconfig_check.py : Check the uncompleted configs and output to need_completed.txt
-    Options:
-        sort        : Resort the sprd-configs.txt
-        incomplete  : Check the sprd-configs.txt incompleted config and output to need_completed.txt
-        check       : Need [project]. Check the defconfig of project.
-                      Found need add/del configs and output to sprd_configs_modified.txt
-        modify      : Need [project]. First do as check, then merge the diffconfig to sprd-configs.
-        allconfigs  : Output allconfigs of sprd-configs.txt to all_sprdconfigs.txt
-        help        : Print the help information.
-    """
-    )
-    print("Project must be one or more of {}".format(list(d_defconfig_path[kernel_version])))
+        print(
+        """
+        SCRIPT_NAME : sprd_check-config_check.py
+        DESCRIPTION : This script must be executed in the kernel root directory. This script is mainly used to check and update the ./Documentation/sprdconfigs.txt,
+                      it also provides some other functions, which are all defined by the Python3 standard.
+        USAGE       : script [option]
+        EXAMPLE     : ./script/sprd/sprd_check-config_check.py update
+        OPTIONS     :
+                sort        : Resort the sprd-configs.txt by CONFIG in alphabetical order.
+
+                incomplete  : Check the sprd-configs.txt incompleted config and output to need_completed.txt.
+
+                check       : Check the defconfig and diffconfig, if there is any new defconfig(key=y) or diffconfig, then merge it into sprdconfig
+                              and output all configs's project_status to allconfigs_status.txt.
+
+                update      : Update only [CONFIG_NAME],[arch],[plat] of sprd-configs.txt now.
+
+                allconfigs  : Output allconfigs of sprd-configs.txt to all_sprdconfigs.txt.
+
+                aiaiai      : Find out the changes of defconfigs and diffconfigs, the diffences between CODE with DOC from lastest.diff, then print
+                              the guide information.
+
+                support     : Print all archs and plats supported.
+
+                scan        : Scan all configs to export a statistical file named 'config_plat_scan.csv', which include Config_name, Enable_archs,
+                              Enable_plats, ARM_lack_plats and ARM64_lack_plats.
+
+                help        : Print the help information.
+        """
+        )
 
 def sprdconfigs_check():
     ret = 0
