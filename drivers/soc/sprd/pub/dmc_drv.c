@@ -189,7 +189,7 @@ static const struct dmc_data roc1_data = {
 	},
 };
 static const struct dmc_data orca_data = {
-	.proc_res = INVALID_RES_IDX,
+	.proc_res = 1,
 	.mon_res = 0,
 	.size_l_offset = ORCA_SIZE_L_OFFSET,
 	.size_h_offset = ORCA_SIZE_H_OFFSET,
