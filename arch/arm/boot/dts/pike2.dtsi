@@ -44,6 +44,12 @@
 			reg = <0x33100000 0x10000>;
 		};
 
+		aon_intc_regs: syscon@40200000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0x40200000 0x10000>;
+		};
+
 		pmu_apb_regs: syscon@402b0000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
