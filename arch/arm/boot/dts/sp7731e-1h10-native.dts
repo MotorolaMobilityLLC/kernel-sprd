@@ -354,6 +354,10 @@
 	sprd,calib-resistance-spec = <20000>;
 };
 
+&sdio0 {
+	cd-gpios = <&ap_gpio 2 1>;
+};
+
 &pwms {
 	status = "okay";
 };
