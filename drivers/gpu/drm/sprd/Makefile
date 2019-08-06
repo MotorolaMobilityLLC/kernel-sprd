@@ -29,3 +29,5 @@ obj-y += sharkl5Pro/
 obj-y += roc1/
 
 obj-$(CONFIG_DRM_SPRD_GSP) += gsp/
+
+obj-$(CONFIG_DRM_SPRD_HDMI) += lt9611_i2c.o
