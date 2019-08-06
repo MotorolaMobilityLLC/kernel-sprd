@@ -249,12 +249,8 @@
 		reset-gpios = <&ap_gpio 37 0>;
 		power-down-gpios = <&ap_gpio 38 0>;
 		host = "dcam0";
+		sprd,phyid = <0>;
 		csi = <&csi0>;
-		port {
-			sensor_main_0: endpoint {
-				remote-endpoint = <&phy0_out_main>;
-			};
-		};
 	};
 
 	sensor_sub: sensor-sub@21 {
@@ -276,30 +272,8 @@
 		reset-gpios = <&ap_gpio 46 0>;
 		power-down-gpios = <&ap_gpio 39 0>;
 		host = "dcam0";
+		sprd,phyid = <0>;
 		csi = <&csi0>;
-		port {
-			sensor_sub_0: endpoint {
-				remote-endpoint = <&phy0_out_sub>;
-			};
-		};
-	};
-};
-
-&mipi_csi_phy0 {
-	status = "okay";
-	sprd,phycfg = <0x00>;
-	sprd,csi = <&csi0>;
-	port {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		phy0_out_main: endpoint@0 {
-			reg = <0>;
-			remote-endpoint = <&sensor_main_0>;
-		};
-		phy0_out_sub: endpoint@1 {
-			reg = <1>;
-			remote-endpoint = <&sensor_sub_0>;
-		};
 	};
 };
 
