@@ -295,6 +295,8 @@
 		#size-cells = <0>;
 		reg = <0>;
 
+		sprd,surface-width = <480>;
+		sprd,surface-height = <854>;
 		reset-gpio = <&ap_gpio 32 GPIO_ACTIVE_HIGH>;
 		port {
 			reg = <1>;

@@ -124,6 +124,8 @@
 		reg = <0x38>;
 		gpios = <&ap_gpio 63 GPIO_ACTIVE_HIGH
 			&ap_gpio 64 GPIO_ACTIVE_HIGH>;
+		surface-width = <480>;
+		surface-height = <854>;
 		controller = "focaltech,FT5436";
 		virtualkeys = <580 60 1320 60 45
 			172 360 1320 60 45
