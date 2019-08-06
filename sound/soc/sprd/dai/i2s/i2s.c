@@ -242,13 +242,13 @@ static int i2s_calc_clk(struct i2s_priv *i2s)
 	case 8000:
 	case 16000:
 	case 32000:
-		clk_parent = clk_get(NULL, "clk_twpll_128m");
+		clk_parent = devm_clk_get(i2s->dev, "clk_twpll_128m");
 		break;
 	case 9600:
 	case 12000:
 	case 24000:
 	case 48000:
-		clk_parent = clk_get(NULL, "clk_twpll_153m6");
+		clk_parent = devm_clk_get(i2s->dev, "clk_twpll_153m6");
 		break;
 	default:
 		pr_err("ERR:I2S Can't Support %d Clock\n", config->fs);
@@ -293,13 +293,13 @@ static int i2s_calc_clk_m_n(struct i2s_priv *i2s, uint div_mode,
 	case 8000:
 	case 16000:
 	case 32000:
-		clk_parent = clk_get(NULL, "clk_twpll_128m");
+		clk_parent = devm_clk_get(i2s->dev, "clk_twpll_128m");
 		break;
 	case 9600:
 	case 12000:
 	case 24000:
 	case 48000:
-		clk_parent = clk_get(NULL, "clk_twpll_153m6");
+		clk_parent = devm_clk_get(i2s->dev, "clk_twpll_153m6");
 		break;
 	default:
 		pr_err("ERR:%s Can't Support %d Clock\n", __func__, config->fs);
@@ -722,8 +722,8 @@ static int i2s_open(struct i2s_priv *i2s)
 
 	atomic_inc(&i2s->open_cnt);
 	if (atomic_read(&i2s->open_cnt) == 1) {
-		i2s->i2s_clk =
-		    clk_get(NULL, arch_audio_i2s_clk_name(i2s->config.hw_port));
+		i2s->i2s_clk = devm_clk_get(i2s->dev,
+			arch_audio_i2s_clk_name(i2s->config.hw_port));
 		if (IS_ERR(i2s->i2s_clk)) {
 			ret = PTR_ERR(i2s->i2s_clk);
 			pr_err("ERR:I2S Get clk Error %d!\n", ret);
