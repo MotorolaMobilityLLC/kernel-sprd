@@ -1343,6 +1343,7 @@ CONFIG_IR_XMP_DECODER=y
 #
 # ACP (Audio CoProcessor) Configuration
 #
+# CONFIG_DRM_SPRD_HDMI is not set
 # CONFIG_DRM_LIB_RANDOM is not set
 
 #

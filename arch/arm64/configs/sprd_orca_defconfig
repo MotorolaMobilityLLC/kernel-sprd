@@ -1961,6 +1961,7 @@ CONFIG_REGULATOR_SC2730=y
 #
 # ACP (Audio CoProcessor) Configuration
 #
+# CONFIG_DRM_SPRD_HDMI is not set
 # CONFIG_DRM_LIB_RANDOM is not set
 
 #

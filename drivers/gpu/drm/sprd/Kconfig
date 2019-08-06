@@ -16,3 +16,8 @@ config DRM_SPRD
 #SPRD DRM GSP driver
 #
 source "drivers/gpu/drm/sprd/gsp/Kconfig"
+
+config DRM_SPRD_HDMI
+	bool "SPRD DRM HDMI DRIVER"
+	help
+	  Choose this option when you need mipi switch hdmi.

@@ -3906,12 +3906,21 @@ CONFIG_DRM_SPRD
 	[function]
 CONFIG_DRM_SPRD_GSP
 	[arch] all
-	[plat] all
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[missing plat] none
 	[field]
 	[subsys]
 	[must]
 	[missing plat description] none
+	[function]
+CONFIG_DRM_SPRD_HDMI
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
 	[function]
 CONFIG_DST_CACHE
 	[arch] all
