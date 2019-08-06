@@ -535,7 +535,7 @@ static int wcn_pcie_wait_for_link(struct pci_dev *pdev)
 			WCN_INFO("retry_cnt=%d\n", retries);
 			return 0;
 		}
-		usleep_range(100, 150);
+		udelay(100);
 	}
 
 	WCN_ERR("%s: wcn pcie can't link up, link status: 0x%x\n",
