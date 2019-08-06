@@ -18,6 +18,7 @@
 #include "sprd_dpu.h"
 #include "sprd_dvfs_dpu.h"
 #include "dpu_r4p0_corner_param.h"
+#include "dpu_enhance_param.h"
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -208,11 +209,11 @@ struct scale_cfg {
 struct epf_cfg {
 	u16 epsilon0;
 	u16 epsilon1;
-	s8 gain0;
+	u8 gain0;
 	u8 gain1;
 	u8 gain2;
 	u8 gain3;
-	s8 gain4;
+	u8 gain4;
 	u8 gain5;
 	u8 gain6;
 	u8 gain7;
@@ -1492,7 +1493,8 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 			((slp->local_weight & 0xf) << 13) |
 			((slp->fst_pth & 0x7f) << 6);
 		reg->slp_cfg10 = (slp->cabc_endv << 8) | (slp->cabc_startv << 0);
-		reg->dpu_enhance_cfg |= BIT(4);
+		enhance_en |= BIT(4);
+		reg->dpu_enhance_cfg = enhance_en;
 		pr_info("enhance slp set\n");
 		break;
 	case ENHANCE_CFG_ID_GAMMA:
@@ -1686,6 +1688,17 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		dpu_run(ctx);
 		pr_info("enhance gamma get\n");
 		break;
+	case ENHANCE_CFG_ID_SLP_LUT:
+		dpu_stop(ctx);
+		p32 = param;
+		for (i = 0; i < 256; i++) {
+			reg->slp_lut_addr = i;
+			udelay(1);
+			*p32++ = reg->slp_lut_rdata;
+		}
+		dpu_run(ctx);
+		pr_info("enhance slp lut get\n");
+		break;
 	default:
 		break;
 	}
@@ -1701,6 +1714,13 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	struct hsv_lut *hsv;
 	struct epf_cfg *epf;
 	int i;
+
+	for (i = 0; i < 256; i++) {
+		reg->slp_lut_addr = i;
+		udelay(1);
+		reg->slp_lut_wdata = slp_lut[i];
+	}
+	pr_info("enhance slp lut reload\n");
 
 	if (enhance_en & BIT(0)) {
 		scale = &scale_copy;

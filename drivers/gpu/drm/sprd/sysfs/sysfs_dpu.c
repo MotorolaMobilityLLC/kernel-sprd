@@ -487,6 +487,37 @@ static ssize_t gamma_write(struct file *fp, struct kobject *kobj,
 }
 static BIN_ATTR_RW(gamma, 1536);
 
+static ssize_t slp_lut_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+	u32 data[256];
+	int ret = 0;
+	int i;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->refresh_lock);
+		return -EINVAL;
+	}
+
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_SLP_LUT, data);
+	up(&ctx->refresh_lock);
+
+	for (i = 0; i < 256; i++)
+		ret += snprintf(buf + ret, PAGE_SIZE,
+			"0x%x: 0x%x\n",
+			i, data[i]);
+
+	return ret;
+}
+static DEVICE_ATTR_RO(slp_lut);
+
 static ssize_t slp_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
@@ -824,6 +855,7 @@ static DEVICE_ATTR_RO(status);
 static struct attribute *pq_ascii_attrs[] = {
 	&dev_attr_scl.attr,
 	&dev_attr_status.attr,
+	&dev_attr_slp_lut.attr,
 	NULL,
 };
 static struct bin_attribute *pq_bin_attrs[] = {
