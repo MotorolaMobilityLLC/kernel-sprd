@@ -14,7 +14,7 @@
 #include "ud710-5h10-mach.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 #include "ud710-3h10-modem.dtsi"
-#include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_lt9611_mipi_fhd.dtsi"
 
 / {
 	model = "Spreadtrum UD710 5h10 Board";

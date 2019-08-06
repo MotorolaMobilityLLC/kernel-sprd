@@ -45,6 +45,16 @@
 	};
 };
 
+&i2c2 {
+	status = "okay";
+	clock-frequency = <100000>;
+	lt9611-i2c@3b {
+		compatible = "lt9611,i2c";
+		test-node = "0937";
+		reg = <0x3b>;
+	};
+};
+
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 		"camhigh", "camveryhigh";
