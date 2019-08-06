@@ -298,6 +298,10 @@
 	status = "disable";
 };
 
+&sdio0 {
+	cd-gpios = <&eic_async 9 1>;
+};
+
 &dpu {
 	status = "okay";
 };
