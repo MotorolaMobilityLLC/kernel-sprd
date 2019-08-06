@@ -246,6 +246,9 @@ int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa,
 		goto err1;
 	}
 
+	debugfs_create_symlink("sipa", NULL,
+			       "/sys/kernel/debug/local_ipa");
+
 	sipa->debugfs_root = root;
 
 	return 0;
