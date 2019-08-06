@@ -162,6 +162,8 @@ static unsigned int sprd_read_reg_value(unsigned int reg)
 #define T32 sprd_read_reg_value(ANA_INT32)
 #define T34 sprd_read_reg_value(ANA_INT34)
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 int dsp_fm_mute_by_set_dg(void)
 	__attribute__ ((weak, alias("__dsp_fm_mute_by_set_dg")));
 
@@ -170,6 +172,15 @@ static int __dsp_fm_mute_by_set_dg(void)
 	pr_err("ERR: dsp_fm_mute_by_set_dg is not defined!\n");
 	return -1;
 }
+
+int vbc_close_fm_dggain(bool mute)
+	__attribute__ ((weak, alias("__vbc_close_fm_dggain")));
+static int __vbc_close_fm_dggain(bool mute)
+{
+	pr_err("ERR: vbc_close_fm_dggain is not defined!\n");
+	return -1;
+}
+#pragma GCC diagnostic pop
 
 static inline int sprd_get_reg_bits(unsigned int reg, int bits)
 {
@@ -210,14 +221,6 @@ static struct sprd_headset_auxadc_cal_l adc_cal_headset = {
 };
 
 static struct sprd_headset *sprd_hdst;
-
-int vbc_close_fm_dggain(bool mute)
-	__attribute__ ((weak, alias("__vbc_close_fm_dggain")));
-static int __vbc_close_fm_dggain(bool mute)
-{
-	pr_err("ERR: vbc_close_fm_dggain is not defined!\n");
-	return -1;
-}
 
 static void sprd_enable_hmicbias_polling(bool enable, bool force_disable);
 /*

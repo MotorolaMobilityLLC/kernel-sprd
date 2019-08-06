@@ -248,6 +248,8 @@ static void *compr_cb_data;
 static struct mutex g_lock;
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 int agdsp_access_enable(void)
 	__attribute__ ((weak, alias("__agdsp_access_enable")));
 static int __agdsp_access_enable(void)
@@ -263,7 +265,7 @@ static int __agdsp_access_disable(void)
 	pr_debug("%s\n", __func__);
 	return 0;
 }
-
+#pragma GCC diagnostic pop
 
 static void sprd_compr_drain_work(struct work_struct *work)
 {

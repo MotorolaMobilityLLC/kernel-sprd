@@ -123,6 +123,8 @@ static inline const char *sprd_codec_chan_get_name(int chan_id)
 	return sprd_codec_chan_name[chan_id];
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 int agdsp_access_enable(void)
 	__attribute__ ((weak, alias("__agdsp_access_enable")));
 static int __agdsp_access_enable(void)
@@ -138,6 +140,7 @@ static int __agdsp_access_disable(void)
 	pr_debug("%s\n", __func__);
 	return 0;
 }
+#pragma GCC diagnostic pop
 
 struct inter_pa {
 	/* FIXME little endian */

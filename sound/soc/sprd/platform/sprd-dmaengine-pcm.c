@@ -164,6 +164,8 @@ static const struct snd_pcm_hardware sprd_i2s_pcm_hardware = {
 	.buffer_bytes_max = I2S_BUFFER_BYTES_MAX,
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 int agdsp_access_enable(void)
 	__attribute__ ((weak, alias("__agdsp_access_enable")));
 static int __agdsp_access_enable(void)
@@ -179,7 +181,7 @@ static int __agdsp_access_disable(void)
 	pr_debug("%s\n", __func__);
 	return 0;
 }
-
+#pragma GCC diagnostic pop
 
 static inline int sprd_is_i2s(struct snd_soc_dai *cpu_dai)
 {
@@ -1439,8 +1441,6 @@ static int sprd_pcm_preallocate_dma_ddr32_buffer(struct snd_pcm *pcm,
 	return 0;
 }
 
-static u64 sprd_pcm_dmamask = DMA_BIT_MASK(64);
-
 static int sprd_pcm_new(struct snd_soc_pcm_runtime *rtd)
 {
 	struct snd_card *card = rtd->card->snd_card;
@@ -1450,7 +1450,7 @@ static int sprd_pcm_new(struct snd_soc_pcm_runtime *rtd)
 	sp_asoc_pr_dbg("%s %s\n", __func__, sprd_dai_pcm_name(cpu_dai));
 
 	if (!card->dev->dma_mask)
-		card->dev->dma_mask = &sprd_pcm_dmamask;
+		dma_set_mask(card->dev, DMA_BIT_MASK(64));
 #ifdef CONFIG_ARM64
 	card->dev->coherent_dma_mask = DMA_BIT_MASK(64);
 #else
