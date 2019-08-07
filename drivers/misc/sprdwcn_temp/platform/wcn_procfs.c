@@ -154,6 +154,7 @@ static int mdbg_loopcheck_read(int channel, struct mbuf_t *head,
 		(char *)(mdbg_proc->loopcheck.buf));
 	mdbg_proc->fail_count = 0;
 	complete(&mdbg_proc->loopcheck.completed);
+	complete_kernel_loopcheck();
 	sprdwcn_bus_push_list(channel, head, tail, num);
 
 	return 0;

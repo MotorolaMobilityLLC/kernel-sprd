@@ -43,6 +43,7 @@
 #include "rdc_debug.h"
 #include "wcn_boot.h"
 #include "wcn_dump.h"
+#include "wcn_glb.h"
 #include "wcn_log.h"
 #include "wcn_misc.h"
 #include "wcn_procfs.h"
@@ -1572,6 +1573,7 @@ static void power_state_notify_or_not(int subsys, int poweron)
 		test_bit(MARLIN_WIFI, &marlin_dev->power_state) +
 		test_bit(MARLIN_MDBG, &marlin_dev->power_state)) == 1) {
 		WCN_INFO("only one module open, need to notify loopcheck\n");
+		start_loopcheck_timer();
 		marlin_dev->loopcheck_status_change = 1;
 		wakeup_loopcheck_int();
 	}
@@ -1579,6 +1581,7 @@ static void power_state_notify_or_not(int subsys, int poweron)
 	if (((marlin_dev->power_state) & MARLIN_MASK) == 0) {
 
 		WCN_INFO("marlin close, need to notify loopcheck\n");
+		stop_loopcheck_timer();
 		marlin_dev->loopcheck_status_change = 1;
 		wakeup_loopcheck_int();
 	}
@@ -2414,6 +2417,7 @@ static int marlin_probe(struct platform_device *pdev)
 	log_dev_init();
 	wcn_op_init();
 	flag_reset = 0;
+	loopcheck_init();
 	INIT_WORK(&marlin_dev->download_wq, pre_btwifi_download_sdio);
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);
 
@@ -2433,6 +2437,7 @@ static int  marlin_remove(struct platform_device *pdev)
 	cancel_work_sync(&marlin_dev->download_wq);
 	cancel_work_sync(&marlin_dev->gnss_dl_wq);
 	cancel_delayed_work_sync(&marlin_dev->power_wq);
+	loopcheck_deinit();
 	wcn_op_exit();
 	log_dev_exit();
 	proc_fs_exit();

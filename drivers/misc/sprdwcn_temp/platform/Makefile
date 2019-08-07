@@ -19,6 +19,7 @@ MARLINOFILES += wcn_parn_parser.o
 MARLINOFILES += rdc_debug.o
 MARLINOFILES += wcn_log.o
 MARLINOFILES += wcn_procfs.o
+MARLINOFILES += loopcheck.o
 marlin-$(CONFIG_SDIOHAL) += mem_pd_mgr.o
 marlin-$(CONFIG_WCN_UTILS) += \
 		wcn_debugfs.o
