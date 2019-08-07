@@ -43,6 +43,7 @@ struct sprd_hsphy {
 	u32			vdd_vol;
 	atomic_t		reset;
 	atomic_t		inited;
+	bool			is_host;
 };
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
@@ -97,6 +98,7 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 		regmap_update_bits(phy->ana_g4,
 			REG_ANLG_PHY_G4_ANALOG_USB20_USB20_UTMI_CTL1,
 			msk, msk);
+		phy->is_host = true;
 	} else {
 		reg = msk = MASK_ANLG_PHY_G4_ANALOG_USB20_UTMIOTG_IDDG;
 		regmap_update_bits(phy->ana_g4,
@@ -118,6 +120,7 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 		regmap_update_bits(phy->ana_g4,
 			REG_ANLG_PHY_G4_ANALOG_USB20_USB20_UTMI_CTL1,
 			msk, 0);
+		phy->is_host = false;
 	}
 	return 0;
 }
@@ -291,6 +294,12 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 				  unsigned long event, void *data)
 {
 	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
+	struct sprd_hsphy *phy = container_of(usb_phy, struct sprd_hsphy, phy);
+
+	if (phy->is_host) {
+		dev_info(phy->dev, "USB PHY is host mode\n");
+		return 0;
+	}
 
 	if (event)
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
