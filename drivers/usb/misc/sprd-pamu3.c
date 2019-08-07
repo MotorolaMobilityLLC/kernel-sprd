@@ -481,10 +481,9 @@ static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 			if (!timeout--) {
 				dev_warn(pamu3->dev,
 					 "failed to stop PAMU3!!!\n");
-				return 0;
+				break;
 			}
 		} while (!(value & PAMU3_CTL0_BIT_DONE));
-		sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_END);
 	} else {
 		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
 		value &= ~(PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN |
@@ -492,6 +491,7 @@ static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
 		clk_disable_unprepare(pamu3->clk);
 		atomic_set(&pamu3->inited, 0);
+		sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_END);
 	}
 	return 0;
 }
