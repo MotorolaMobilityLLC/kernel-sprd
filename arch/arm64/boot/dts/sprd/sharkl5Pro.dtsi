@@ -379,6 +379,7 @@
 				syscon-names = "reset",
 					"aon_apb_eb";
 				iommus = <&iommu_jpg>;
+				sprd,qos = <&jpg_qos>;
 				status = "disabled";
 			};
 
