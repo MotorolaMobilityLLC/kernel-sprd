@@ -2257,8 +2257,10 @@
 				#power-domain-cells = <0>;
 
 				clocks = <&ipa_clk CLK_IPA_CORE>,
-					<&g12_pll CLK_LPLL_409M6>;
-				clock-names = "ipa_core", "ipa_core_source";
+					<&g12_pll CLK_LPLL_409M6>,
+					<&ext_26m>;
+				clock-names = "ipa_core", "ipa_core_source",
+					      "ipa_core_default";
 
 				vddipa:vdd-ipa {
 					regulator-name = "IPA_SYS_VPOWER";
