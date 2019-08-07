@@ -121,5 +121,10 @@
 };
 
 &pcie1 {
+	sprd,pcie-startup-syscons =
+		<&aon_apb_regs 0 0
+			REG_AON_APB_RF_PCIE_SLV_ADDR_OFFSET
+			MASK_AON_APB_RF_PCIE_SLV_ADDR_OFFSET
+			0x1>;
 	status = "okay";
 };
