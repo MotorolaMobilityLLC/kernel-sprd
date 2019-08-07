@@ -59,6 +59,8 @@ HOST MODE
 	   to ipa level2 interrupt controller (e.g. pcie legacy irq), which
 	   may belong to dummy@0. and the others connect to GIC(e.g. MSI
 	   controller), which may belong to dummy@1
+
+ - no-pcie: no pcie device.
  - label: describe the interrupt connect to which interrupt controller
  - interrupt-parent: specifies the phandle to the parent interrupt controller
 		     this one is cascaded from.
@@ -151,6 +153,7 @@ Example:
 			#interrupt-cells = <1>;
 			interrupts = <20>;
 		};
+		no-pcie;
 	};
 
 	pcie1@2b100000 {
