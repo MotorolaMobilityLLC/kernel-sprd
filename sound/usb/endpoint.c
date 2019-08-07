@@ -974,8 +974,8 @@ int snd_usb_endpoint_start(struct snd_usb_endpoint *ep)
 	unsigned int i;
 	struct snd_usb_substream *subs = ep->data_subs;
 	struct usb_hcd *hcd;
-	int is_mono;
-	int is_pcm_24bit;
+	int is_mono = 0;
+	int is_pcm_24bit = 0;
 	int is_offload_mod;
 	int iis_width;
 	int ofld_rate;

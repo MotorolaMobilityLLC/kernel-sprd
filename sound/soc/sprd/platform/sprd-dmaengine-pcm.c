@@ -972,7 +972,7 @@ static int sprd_pcm_config_dma(struct snd_pcm_substream *substream,
 				dma_buff_phys[i] += (period/ch_cnt);
 			pr_info("sg_dma_len=%zu, periods=%zu, sg_dma_address=%p, flag:%lx, chan=%d node=%d\n",
 				period, periods, (void *)sg_dma_address(sg),
-				cfg->dma_config_flag, i, j);
+				(j == 0) ? cfg->dma_config_flag : 0, i, j);
 		}
 		if (period > totsize)
 			period = totsize;

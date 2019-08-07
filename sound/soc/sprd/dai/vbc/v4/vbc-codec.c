@@ -260,15 +260,14 @@ static int vbc_dg_put(struct snd_kcontrol *kcontrol,
 	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
 	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
-	u32 val1, val2;
+	u32 val1 = ucontrol->value.integer.value[0], val2 =
+		ucontrol->value.integer.value[1];
 	int id = mc->shift;
 
 	if (id == OFFLOAD_DG &&
 	    (val1 > OFFLOAD_DG_MAX || val2 > OFFLOAD_DG_MAX))
 		return -EINVAL;
 
-	val1 = ucontrol->value.integer.value[0];
-	val2 = ucontrol->value.integer.value[1];
 	vbc_codec->dg[id].dg_id = id;
 	vbc_codec->dg[id].dg_left = val1;
 	vbc_codec->dg[id].dg_right = val2;

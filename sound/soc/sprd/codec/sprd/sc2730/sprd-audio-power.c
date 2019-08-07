@@ -389,7 +389,7 @@ static int power_sleep(void *data, int en)
 {
 	struct sprd_audio_power_info *info = data;
 	int reg, mask, value;
-	int ret;
+	int ret = -EINVAL;
 
 	switch (info->desc.id) {
 	case SPRD_AUDIO_POWER_VB:
@@ -428,7 +428,7 @@ static int power_sleep(void *data, int en)
 static int power_enable(struct sprd_audio_power_info *info)
 {
 	int reg, value;
-	int ret;
+	int ret = -EINVAL;
 
 	switch (info->desc.id) {
 	case SPRD_AUDIO_POWER_MICBIAS1:
@@ -476,7 +476,7 @@ static int power_enable(struct sprd_audio_power_info *info)
 static int power_disable(struct sprd_audio_power_info *info)
 {
 	int reg, mask;
-	int ret;
+	int ret = -EINVAL;
 
 	switch (info->desc.id) {
 	case SPRD_AUDIO_POWER_MICBIAS1:

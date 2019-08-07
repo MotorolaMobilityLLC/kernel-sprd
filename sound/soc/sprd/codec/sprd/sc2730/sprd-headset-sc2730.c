@@ -2022,7 +2022,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
-	int plug_state_current, insert_all_data_last, ret;
+	int plug_state_current = 0, insert_all_data_last, ret;
 	bool trig_level, insert_status, detect_value = false;
 
 	if (!hdst) {
@@ -3255,7 +3255,7 @@ static int sprd_headset_read_efuse(struct platform_device *pdev,
 static int sprd_get_adc_cal_from_efuse(struct platform_device *pdev)
 {
 	u8 delta[4];
-	u32 test[2], ret, data;
+	u32 test[2], ret, data = 0;
 	unsigned int adie_chip_id;
 
 	pr_info("%s enter\n", __func__);
