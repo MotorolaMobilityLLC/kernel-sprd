@@ -145,9 +145,6 @@
 		/* Allow charging for 6hr */
 		cm-charging-max = <18000000>;
 
-		/* the interval to feed charger watchdog */
-		cm-wdt-interval = <60>;
-
 		/* drop voltage in microVolts to allow shutdown */
 		cm-shutdown-voltage = <3100000>;
 
