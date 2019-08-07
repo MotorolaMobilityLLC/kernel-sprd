@@ -379,6 +379,11 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	if (device_property_read_bool(dev, "no-pcie")) {
+		dev_info(dev, "no pcie device\n");
+		return 0;
+	}
+
 	ctrl = devm_kzalloc(dev, sizeof(*ctrl) + len, GFP_KERNEL);
 	if (!ctrl)
 		return -ENOMEM;
