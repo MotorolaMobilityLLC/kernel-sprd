@@ -96,7 +96,7 @@ static u32 get_vdsp_work_freq(void)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
-	u32 freq;
+	u32 freq = 0;
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(map_table); i++) {
@@ -128,7 +128,7 @@ static u32 get_vdsp_idle_freq(void)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
-	u32 freq;
+	u32 freq = 0;
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(map_table); i++) {
