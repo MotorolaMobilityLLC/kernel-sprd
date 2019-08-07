@@ -212,6 +212,7 @@
 					<&pll2 CLK_TWPLL_153M6>,
 					<&mm_clk CLK_MM_MTX>,
 					<&pll2 CLK_TWPLL_512M>;
+				mm_qos_threshold = <&mm_qos_threshold>;
 			};
 
 			mipi_csi_phy0: mipi-csi-phy0 {
