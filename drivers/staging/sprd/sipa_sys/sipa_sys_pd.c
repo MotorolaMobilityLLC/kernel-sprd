@@ -75,6 +75,7 @@ struct sipa_sys_pd_drv {
 	struct generic_pm_domain gpd;
 	struct clk *ipa_core_clk;
 	struct clk *ipa_core_parent;
+	struct clk *ipa_core_default;
 	bool regu_on;
 	bool pd_on;
 	struct sipa_sys_register regs[0];
@@ -171,6 +172,12 @@ static int sipa_sys_clk_init(struct sipa_sys_pd_drv *drv)
 		return PTR_ERR(drv->ipa_core_parent);
 	}
 
+	drv->ipa_core_default = devm_clk_get(drv->dev, "ipa_core_default");
+	if (IS_ERR(drv->ipa_core_default)) {
+		dev_err(drv->dev, "sipa_sys can't get the ipa core default\n");
+		return PTR_ERR(drv->ipa_core_default);
+	}
+
 	return 0;
 }
 
@@ -180,6 +187,10 @@ static int sipa_sys_do_power_off(struct sipa_sys_pd_drv *drv)
 	int ret = 0;
 
 	dev_dbg(drv->dev, "do power off\n");
+	/* set ipa core clock to default */
+	if (drv->ipa_core_clk && drv->ipa_core_default)
+		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_default);
+
 	if (reg_info->rmap) {
 		ret = regmap_update_bits(reg_info->rmap,
 					 reg_info->reg,
