@@ -589,7 +589,7 @@ static void dpu_wb_trigger(struct dpu_context *ctx,
 	 * update register operation must be connected immediately.
 	 * There can be no vsync interrupts between them.
 	 */
-	if (vcnt * 100 / wb_layer.dst_w < 95) {
+	if (vcnt * 100 / wb_layer.dst_w < 70) {
 		if (debug)
 			/* writeback debug trigger */
 			reg->wb_ctrl = BIT(1);
