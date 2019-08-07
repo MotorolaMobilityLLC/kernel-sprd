@@ -39,3 +39,25 @@ i2c0: i2c@fed40000 {
 	st,i2c-min-scl-pulse-width-us = <0>;
 	st,i2c-min-sda-pulse-width-us = <5>;
 };
+ams_tcs3430: tcs3430@39 {
+	compatible = "ams,tcs3430";
+	reg = <0x39>;
+	als_name = "ams_als";
+	persist = <0>;
+	als_time_ms = <100>;
+	als_gain = <64>;
+	int_config = <0>;
+	als_can_wake = <1>;
+	irq_gpios = <112>;
+	interrupt-parent = <&ap_gpio>;
+	interrupts = <112 IRQ_TYPE_LEVEL_LOW>;
+};
+
+stm_vl53l0: vl53l0@52 {
+	compatible = "st,stmvl53l0";
+	reg = <0x52>;
+	reset_gpios = <86>;
+	irq_gpios = <87>;
+	interrupt-parent = <&ap_gpio>;
+	interrupts = <87 IRQ_TYPE_LEVEL_LOW>;
+};
