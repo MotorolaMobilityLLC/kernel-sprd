@@ -9968,15 +9968,15 @@ CONFIG_SND_SOC_SPRD_CODEC_SC2730
 	[must] user
 	[function] snd codec dai
 CONFIG_SND_SOC_SPRD_I2S
-	[arch] arm
-	[plat] pike2,sharkle32
+	[arch] all
+	[plat] pike2,sharkl3,sharkle32
 	[field]
 	[subsys]
 	[must]
 	[function]
 CONFIG_SND_SOC_SPRD_I2S_DUMMY
-	[arch] arm
-	[plat] pike2,sharkle32
+	[arch] all
+	[plat] pike2,sharkl3,sharkle32
 	[field]
 	[subsys]
 	[must]
