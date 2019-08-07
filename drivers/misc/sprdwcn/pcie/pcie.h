@@ -162,8 +162,22 @@ int sprd_pcie_mem_read(unsigned int addr, void *buf, unsigned int len);
 int sprd_pcie_update_bits(unsigned int reg, unsigned int mask,
 			  unsigned int val);
 struct wcn_pcie_info *get_wcn_device_info(void);
+
+#ifdef CONFIG_PCIEASPM
 int sprd_pcie_set_aspm_policy(enum sub_sys subsys, enum wcn_bus_pm_state state);
 enum wcn_bus_pm_state sprd_pcie_get_aspm_policy(void);
+#else
+static inline int sprd_pcie_set_aspm_policy(enum sub_sys subsys,
+					    enum wcn_bus_pm_state state)
+{
+	return -EINVAL;
+}
+static inline enum wcn_bus_pm_state sprd_pcie_get_aspm_policy(void)
+{
+	return 0;
+}
+#endif
+
 int wcn_pcie_get_bus_status(void);
 void sprd_pcie_set_carddump_status(unsigned int flag);
 unsigned int sprd_pcie_get_carddump_status(void);

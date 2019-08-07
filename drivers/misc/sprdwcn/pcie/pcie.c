@@ -523,6 +523,7 @@ int wcn_pcie_get_bus_status(void)
 	return g_pcie_dev->pci_status;
 }
 
+#ifdef CONFIG_PCIEASPM
 static int wcn_pcie_wait_for_link(struct pci_dev *pdev)
 {
 	int retries;
@@ -589,6 +590,7 @@ int sprd_pcie_set_aspm_policy(enum sub_sys subsys, enum wcn_bus_pm_state state)
 	mutex_unlock(&priv->pm_lock);
 	return	ret;
 }
+#endif
 
 void sprd_pcie_set_carddump_status(unsigned int flag)
 {
