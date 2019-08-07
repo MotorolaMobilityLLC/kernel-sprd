@@ -1008,6 +1008,8 @@ static void irq_work(struct irq_work *irq_work)
 {
 	struct interactive_cpu *icpu = container_of(irq_work, struct
 						    interactive_cpu, irq_work);
+	if (!icpu || !(icpu->ipolicy))
+		return;
 
 	cpufreq_interactive_update(icpu);
 	icpu->work_in_progress = false;
