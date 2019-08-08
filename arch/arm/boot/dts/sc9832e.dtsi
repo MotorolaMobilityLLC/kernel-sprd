@@ -299,6 +299,14 @@
 		clock-frequency = <26000000>;
 	};
 
+	pmu {
+		compatible = "arm,cortex-a53-pmu";
+		interrupts = <GIC_SPI 92 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 93 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 94 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH>;
+	};
+
 	gsp: sprd-gsp {
 		compatible = "sprd,gsp-lite_r2p0-sharkle";
 		name = "sprd-gsp";
