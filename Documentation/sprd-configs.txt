@@ -8423,6 +8423,15 @@ CONFIG_MFD_SYSCON
 	[must] user
 	[missing plat description] none
 	[function] System Controller Register R/W Based on Regmap.
+CONFIG_MICROCHIP_PHY
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_MIGHT_HAVE_CACHE_L2X0
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -8454,7 +8463,7 @@ CONFIG_MIGRATION
 	while the virtual addresses are not changed.
 CONFIG_MII
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat]
 	[field]
 	[subsys]
@@ -14996,6 +15005,24 @@ CONFIG_USB_ARCH_HAS_HCD
 	[must] user
 	[missing plat description] none
 	[function] USB host feature.
+CONFIG_USB_ARMLINUX
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_USB_BELKIN
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_USB_COMMON
 	[arch] all
 	[plat] all
@@ -15473,6 +15500,15 @@ CONFIG_USB_HIDDEV
 	[must] user
 	[missing plat description] none
 	[function] /dev/hiddev raw HID device support
+CONFIG_USB_LAN78XX
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_USB_LIBCOMPOSITE
 	[arch] all
 	[plat] all
@@ -15518,9 +15554,90 @@ CONFIG_USB_MUSB_SPRD
 	[must] user
 	[missing plat description] none
 	[function] This macro is to suppor SPRD platforms musb driver.
+CONFIG_USB_NET_AX88179_178A
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_USB_NET_AX8817X
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_USB_NET_CDCETHER
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_USB_NET_CDC_NCM
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_USB_NET_CDC_SUBSET
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_USB_NET_CDC_SUBSET_ENABLE
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_USB_NET_DRIVERS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_USB_NET_NET1080
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_USB_NET_RNDIS_HOST
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_USB_NET_ZAURUS
+	[arch] arm64
+	[plat] roc1
 	[missing plat]
 	[field]
 	[subsys]
@@ -15662,6 +15779,15 @@ CONFIG_USB_SUPPORT
 	[must] user
 	[missing plat description] none
 	[function] This option adds core support for Universal Serial Bus (USB).
+CONFIG_USB_USBNET
+	[arch] arm64
+	[plat] roc1
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_USB_U_ETHER
 	[arch] all
 	[plat] all
