@@ -6,6 +6,91 @@
 #include "sipa_glb_phy.h"
 #include "sipa_fifo_phy.h"
 
+static int
+ipa_reclaim_tx_fifo_unread_node_desc(struct sipa_common_fifo_cfg_tag *fifo_cfg,
+				     u32 tx_rptr, u32 tx_wptr,
+				     u32 rx_rptr,  u32 rx_wptr)
+{
+	u32 index, tmp, depth;
+	ssize_t node_size = sizeof(struct sipa_node_description_tag);
+	struct sipa_node_description_tag *fill_node, *free_node;
+
+	fill_node = fifo_cfg->tx_fifo.virtual_addr;
+	free_node = fifo_cfg->rx_fifo.virtual_addr;
+	depth = (tx_wptr - rx_wptr) & PTR_MASK(fifo_cfg->rx_fifo.depth);
+
+	index = rx_wptr & (fifo_cfg->tx_fifo.depth - 1);
+	if (index + depth <= fifo_cfg->rx_fifo.depth) {
+		memcpy(free_node + index, fill_node + index,
+		       node_size * depth);
+	} else {
+		tmp = fifo_cfg->rx_fifo.depth - index;
+		memcpy(free_node + index, fill_node + index,
+		       node_size * tmp);
+		tmp = depth - tmp;
+		memcpy(free_node, fill_node, node_size * tmp);
+	}
+
+	/* Ensure that data copy completion before we update rptr/wptr */
+	smp_wmb();
+
+	tx_rptr = (tx_rptr + depth) &
+		PTR_MASK(fifo_cfg->tx_fifo.depth);
+	if (!ipa_phy_update_tx_fifo_rptr(fifo_cfg->fifo_reg_base,
+					 tx_rptr)) {
+		pr_err("sipa reclaim update tx_fifo rptr failed\n");
+		return -EIO;
+	}
+	rx_wptr = (rx_wptr + depth) &
+		PTR_MASK(fifo_cfg->rx_fifo.depth);
+	if (!ipa_phy_update_rx_fifo_wptr(fifo_cfg->fifo_reg_base,
+					 rx_wptr)) {
+		pr_err("sipa reclaim update rx_fifo wptr failed\n");
+		return -EIO;
+	}
+
+	return 0;
+}
+
+static int
+ipa_reclaim_unfree_node_desc(struct sipa_common_fifo_cfg_tag *fifo_cfg,
+			     u32 tx_rptr, u32 tx_wptr,
+			     u32 rx_rptr, u32 rx_wptr)
+{
+	u32 index, tmp, num;
+	ssize_t node_size = sizeof(struct sipa_node_description_tag);
+	struct sipa_node_description_tag *fill_node, *free_node;
+
+	fill_node = fifo_cfg->tx_fifo.virtual_addr;
+	free_node = fifo_cfg->rx_fifo.virtual_addr;
+	num = (tx_wptr - rx_wptr) & PTR_MASK(fifo_cfg->rx_fifo.depth);
+
+	index = rx_wptr & (fifo_cfg->rx_fifo.depth - 1);
+	if (index + num <= fifo_cfg->rx_fifo.depth) {
+		memcpy(free_node + index, fill_node + index,
+		       node_size * num);
+	} else {
+		tmp = fifo_cfg->rx_fifo.depth - index;
+		memcpy(free_node + index, fill_node + index,
+		       node_size * tmp);
+		tmp = num - tmp;
+		memcpy(free_node, fill_node, node_size * tmp);
+	}
+
+	/* Ensure that data copy completion before we update rptr/wptr */
+	smp_wmb();
+
+	rx_wptr = (rx_wptr + num) &
+		PTR_MASK(fifo_cfg->rx_fifo.depth);
+	if (!ipa_phy_update_rx_fifo_wptr(fifo_cfg->fifo_reg_base,
+					 rx_wptr)) {
+		pr_err("sipa reclaim unfree update rx_fifo wptr failed\n");
+		return -EIO;
+	}
+
+	return 0;
+}
+
 static inline int
 ipa_put_pkts_to_rx_fifo(struct device *dev,
 			struct sipa_common_fifo_cfg_tag *fifo_cfg,
@@ -1239,6 +1324,38 @@ ipa_get_tx_fifo_node_pointer(enum sipa_cmn_fifo_index id,
 	return node + tmp;
 }
 
+static int ipa_reclaim_cmn_fifo(enum sipa_cmn_fifo_index id,
+				struct sipa_common_fifo_cfg_tag *cfg_base)
+{
+	int ret = 0;
+	u32 tx_rptr, tx_wptr, rx_wptr, rx_rptr;
+	struct sipa_common_fifo_cfg_tag *fifo_cfg;
+
+	if (unlikely(id >= SIPA_FIFO_MAX))
+		return -EINVAL;
+
+	fifo_cfg = cfg_base + id;
+	if (!fifo_cfg->is_pam) {
+		pr_err("sipa reclaim fifo id is err\n");
+		return -EINVAL;
+	}
+	rx_rptr = ipa_phy_get_rx_fifo_rptr(fifo_cfg->fifo_reg_base);
+	rx_wptr = ipa_phy_get_rx_fifo_wptr(fifo_cfg->fifo_reg_base);
+	tx_rptr = ipa_phy_get_tx_fifo_rptr(fifo_cfg->fifo_reg_base);
+	tx_wptr = ipa_phy_get_tx_fifo_wptr(fifo_cfg->fifo_reg_base);
+
+	if (tx_wptr != tx_rptr)
+		ret = ipa_reclaim_tx_fifo_unread_node_desc(fifo_cfg,
+							   tx_rptr, tx_wptr,
+							   rx_rptr, rx_wptr);
+	else if (tx_wptr != rx_wptr)
+		ret = ipa_reclaim_unfree_node_desc(fifo_cfg,
+						   tx_rptr, tx_wptr,
+						   rx_rptr, rx_wptr);
+
+	return ret;
+}
+
 static int ipa_set_tx_fifo_rptr(enum sipa_cmn_fifo_index id,
 				struct sipa_common_fifo_cfg_tag *cfg_base,
 				u32 tx_rd)
@@ -1372,6 +1489,7 @@ u32 sipa_fifo_ops_init(struct sipa_hal_fifo_ops *ops)
 
 	ops->update_tx_fifo_rptr = ipa_set_tx_fifo_rptr;
 	ops->get_tx_fifo_node = ipa_get_tx_fifo_node_pointer;
+	ops->reclaim_node_desc = ipa_reclaim_cmn_fifo;
 
 	return TRUE;
 }

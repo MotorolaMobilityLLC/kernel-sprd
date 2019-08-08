@@ -215,6 +215,8 @@ struct sipa_hal_fifo_ops {
 	u32 (*ctrl_receive)(enum sipa_cmn_fifo_index id,
 			    struct sipa_common_fifo_cfg_tag *cfg_base,
 			    bool stop);
+	int (*reclaim_node_desc)(enum sipa_cmn_fifo_index id,
+				 struct sipa_common_fifo_cfg_tag *cfg_base);
 };
 
 struct sipa_hal_global_ops {

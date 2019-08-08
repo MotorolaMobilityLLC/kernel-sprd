@@ -423,12 +423,17 @@ void lt9611_mipi_pcr(struct video_timing *video_timing)
 	hdmi_writei2c_byte(0x11, 0xfa);
 }
 
-void lt9611_pll(struct video_timing *video_timing)
+int lt9611_pll(struct video_timing *video_timing)
 {
 	u32 pclk;
 	u8 pll_lock_flag;
 	u8 hdmi_post_div;
 	u8 i;
+
+	if (video_timing == NULL) {
+		LT_ERR("video_timing is null\n");
+		return -EINVAL;
+	}
 
 	pclk = video_timing->pclk_khz;
 	LT_INFO("set rx pll = %d\n", pclk); //Dec
@@ -504,6 +509,8 @@ void lt9611_pll(struct video_timing *video_timing)
 			LT_INFO("hdmi pll unlocked, reset pll\n");
 		}
 	}
+
+	return 0;
 }
 
 void lt9611_hdmi_tx_phy(void)
@@ -865,8 +872,10 @@ void lt9611_dphy_debug(void)
 #endif
 }
 
-void lt9611_init(void)
+int lt9611_init(void)
 {
+	int ret = 0;
+
 	//reset_lt9611();
 	lt9611_system_init();
 	//lt9611_rst_rd_init();
@@ -876,7 +885,12 @@ void lt9611_init(void)
 	msleep(1000);
 	lt9611_video_check();
 
-	lt9611_pll(video);
+	ret = lt9611_pll(video);
+	if (ret) {
+		LT_ERR("lt9611 init failed\n");
+		return ret;
+	}
+
 	lt9611_mipi_pcr(video); //pcr setup
 
 	lt9611_audio_init();
@@ -909,11 +923,15 @@ void lt9611_init(void)
 	lt9611_dphy_debug();
 	lt9611_htotal_sysclk();
 	lt9611_pcr_mk_lt_info();
+
+	return 0;
 }
 
 static int lt9611_i2c_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
+	int ret = 0;
+
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		LT_ERR("I2C check functionality fail!");
 		return -ENODEV;
@@ -924,7 +942,13 @@ static int lt9611_i2c_probe(struct i2c_client *client,
 		lt_slave_addr, client->addr);
 	lt9611_i2c.client = client;
 	lt9611_chip_id();
-	lt9611_init();
+
+	ret = lt9611_init();
+	if (ret) {
+		LT_ERR("I2C device probe failed\n");
+		return ret;
+	}
+
 	LT_INFO("I2C device probe OK\n");
 
 	return 0;
