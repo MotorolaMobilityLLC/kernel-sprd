@@ -472,10 +472,11 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
-	ucp1301_smartpa: ucp1301@58 {
-		compatible = "sprd,ucp1301-smartpa";
+	ucp1301_spk: ucp1301@58 {
+		compatible = "sprd,ucp1301-spk";
 		reg = <0x58>;
 		reset-gpios = <&ap_gpio 134 GPIO_ACTIVE_HIGH>;
+		#sound-dai-cells = <1>;
 	};
 
 	fan54015_chg: charger@6a {
@@ -742,18 +743,38 @@
 	status = "okay";
 	sprd-audio-card,widgets =
 		"Headphone", "inter HP PA",
+		"Speaker", "inter Spk PA",
 		"Speaker", "inter Ear PA";
 	sprd-audio-card,routing =
 		"HPMIC Pin", "HP Mic Jack",
 		"MIC Pin", "Mic Jack",
 		"MIC2 Pin", "Aux Mic Jack",
 		"inter HP PA", "HP Pin",
-		"Ext Spk", "SPK Pin",
+		"UCP1301 SPK ON", "SPK Pin",
+		"inter Spk PA", "UCP1301 SPK",
 		"DMIC Pin", "DMic Jack",
 		"DMIC1 Pin", "DMic1 Jack",
 		"inter Ear PA", "EAR Pin";
 
-	sprd,ucp-smart-pa;
+	/* 35: ucp1301 normal ap01 */
+	sprd-audio-card,dai-link@53 {
+		ignore-suspend = <1>;
+		link-name = "BE_NORMAL_AP01_UCPSPK";
+		stream-name = "BE_ST_NORMAL_AP01_UCPSPK";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 3>;
+		};
+		codec {
+			sound-dai = <&ucp1301_spk 0>;
+		};
+	};
 };
 
 &adi_bus {
