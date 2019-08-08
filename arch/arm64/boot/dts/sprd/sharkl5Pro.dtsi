@@ -1763,6 +1763,19 @@
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
 
+			timer@32050000 {
+				compatible = "sprd,sharkl5Pro-timer";
+				reg = <0 0x32050000 0 0x20>;
+				interrupts = <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&ext_32k>;
+			};
+
+			timer@32050020 {
+				compatible = "sprd,sharkl5Pro-suspend-timer";
+				reg = <0 0x32050020 0 0x20>;
+				clocks = <&ext_32k>;
+			};
+
 			usb: usb@5fff0000 {
 				compatible = "sprd,sharkl5-musb", "sprd,sharkl5pro-musb";
 				reg = <0 0x5fff0000 0 0x2000>;
