@@ -5,7 +5,7 @@
  * Copyright (c) 2019 Dialog Semiconductor.
  */
 #include "sprd-asoc-debug.h"
-#define pr_fmt(fmt) pr_sprd_fmt("UCP_PA")""fmt
+#define pr_fmt(fmt) pr_sprd_fmt("ucp1301")""fmt
 
 #include <linux/i2c.h>
 #include <linux/gpio/consumer.h>
@@ -175,7 +175,7 @@ static void ucp1301_depop_ab_boost_bypass(struct ucp1301_t *ucp1301,
 					 BIT_CHIP_EN, 0);
 	}
 	if (ret)
-		dev_err(ucp1301->dev, "set BIT_CHIP_EN to %d fail, %d\n",
+		dev_err(ucp1301->dev, "boost_bypass, set BIT_CHIP_EN to %d fail, %d\n",
 			enable, ret);
 	/* pcc time */
 	sprd_msleep(30);
@@ -203,7 +203,7 @@ static void ucp1301_d_boost_on(struct ucp1301_t *ucp1301, bool on)
 	ret = regmap_update_bits(ucp1301->regmap, REG_MODULE_EN,
 				 BIT_CHIP_EN, temp);
 	if (ret) {
-		dev_err(ucp1301->dev, "set BIT_CHIP_EN to %d fail, %d\n",
+		dev_err(ucp1301->dev, "boost_on, set BIT_CHIP_EN to %d fail, %d\n",
 			on, ret);
 		return;
 	}
@@ -234,7 +234,7 @@ static void ucp1301_d_bypass(struct ucp1301_t *ucp1301, bool on)
 	ret = regmap_update_bits(ucp1301->regmap, REG_MODULE_EN,
 				 BIT_CHIP_EN, temp);
 	if (ret) {
-		dev_err(ucp1301->dev, "set BIT_CHIP_EN to %d fail, %d\n",
+		dev_err(ucp1301->dev, "d_bypass, set BIT_CHIP_EN to %d fail, %d\n",
 			on, ret);
 		return;
 	}
@@ -280,7 +280,8 @@ static void ucp1301_bst_bypass_switch(struct ucp1301_t *ucp1301, bool on)
 	ret = regmap_update_bits(ucp1301->regmap, REG_MODULE_EN, BIT_CHIP_EN,
 				 BIT_CHIP_EN);
 	if (ret)
-		dev_err(ucp1301->dev, "set BIT_CHIP_EN to 1 fail, %d\n", ret);
+		dev_err(ucp1301->dev, "bypass_switch, set BIT_CHIP_EN to 1 fail, %d\n",
+			ret);
 }
 
 static int ucp1301_read_efs_data(struct ucp1301_t *ucp1301)
@@ -295,6 +296,8 @@ static int ucp1301_read_efs_data(struct ucp1301_t *ucp1301)
 				efs_data_reg[i], ret);
 			return ret;
 		}
+		dev_dbg(ucp1301->dev, "efs[%d] 0x%x\n",
+			i, ucp1301->efs_data[i]);
 	} while (++i < UCP_EFS_DATA_REG_COUNTS);
 
 	return 0;
@@ -378,11 +381,9 @@ int ucp1301_hw_on(struct ucp1301_t *ucp1301, bool on)
 	} else {
 		ret = regmap_update_bits(ucp1301->regmap, REG_MODULE_EN,
 					 BIT_CHIP_EN, 0);
-		if (ret) {
-			dev_err(ucp1301->dev, "set BIT_CHIP_EN to 0 fail, %d\n",
-				ret);
-			return ret;
-		}
+		if (ret)
+			dev_warn(ucp1301->dev, "hw_on, set BIT_CHIP_EN to 0 fail, %d\n",
+				 ret);
 		gpiod_set_value_cansleep(ucp1301->reset_gpio, false);
 		usleep_range(2000, 2050);
 		ucp1301->hw_enabled = false;
@@ -585,7 +586,7 @@ static ssize_t ucp1301_set_mode(struct device *dev,
 		ucp1301->mode_to_set = RCV_D;
 		break;
 	default:
-		dev_err(ucp1301->dev, "set mode, unknown mode type %d\n",
+		dev_err(ucp1301->dev, "unknown mode type %d, set to default\n",
 			databuf);
 		ucp1301->mode_to_set = HW_OFF;
 	}
