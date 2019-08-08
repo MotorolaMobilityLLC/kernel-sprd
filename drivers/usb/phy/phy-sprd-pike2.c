@@ -41,6 +41,7 @@ struct sprd_hsphy {
 	u32			phy_tune;
 	atomic_t		reset;
 	atomic_t		inited;
+	bool			is_host;
 };
 
 static inline void __reset_core(void __iomem *addr)
@@ -81,6 +82,7 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 		reg1 = readl_relaxed(phy->base + REG_AP_AHB_OTG_CTRL0);
 		reg1 |= BYPASS_FSLS_DISCONNECTED;
 		writel_relaxed(reg1, phy->base + REG_AP_AHB_OTG_CTRL0);
+		phy->is_host = true;
 	} else {
 		reg1 = readl_relaxed(phy->base + REG_AP_AHB_OTG_PHY_CTRL);
 		reg1 |= MASK_AP_AHB_USB2_PHY_IDDIG;
@@ -91,6 +93,7 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 		reg1 = readl_relaxed(phy->base + REG_AP_AHB_OTG_CTRL0);
 		reg1 &= ~BYPASS_FSLS_DISCONNECTED;
 		writel_relaxed(reg1, phy->base + REG_AP_AHB_OTG_CTRL0);
+		phy->is_host = false;
 	}
 	return 0;
 }
@@ -308,6 +311,12 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 				  unsigned long event, void *data)
 {
 	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
+	struct sprd_hsphy *phy = container_of(usb_phy, struct sprd_hsphy, phy);
+
+	if (phy->is_host) {
+		dev_info(phy->dev, "USB PHY is host mode\n");
+		return 0;
+	}
 
 	if (event)
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
