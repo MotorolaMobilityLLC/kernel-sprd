@@ -4773,16 +4773,6 @@ static int get_user_cpu_mask(unsigned long __user *user_mask_ptr, unsigned len,
 	return copy_from_user(new_mask, user_mask_ptr, len) ? -EFAULT : 0;
 }
 
-long sched_setaffinity_userspace(pid_t pid, const struct cpumask *in_mask)
-{
-	if (unlikely(!cpumask_intersects(&min_cap_cpu_mask, in_mask) &&
-	    cpumask_weight(in_mask) == 1)) {
-		return 0;
-	}
-
-	return sched_setaffinity(pid, in_mask);
-}
-
 /**
  * sys_sched_setaffinity - set the CPU affinity of a process
  * @pid: pid of the process
@@ -4802,7 +4792,7 @@ SYSCALL_DEFINE3(sched_setaffinity, pid_t, pid, unsigned int, len,
 
 	retval = get_user_cpu_mask(user_mask_ptr, len, new_mask);
 	if (retval == 0)
-		retval = sched_setaffinity_userspace(pid, new_mask);
+		retval = sched_setaffinity(pid, new_mask);
 	free_cpumask_var(new_mask);
 	return retval;
 }
