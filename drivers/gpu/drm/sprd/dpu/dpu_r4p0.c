@@ -583,6 +583,8 @@ static void dpu_wb_trigger(struct dpu_context *ctx,
 	else
 		reg->wb_cfg = 0;
 
+	reg->wb_base_addr = ctx->wb_addr_p;
+
 	vcnt = (reg->dpu_sts[0] & 0x1FFF);
 	/*
 	 * Due to AISC design problem, after the wb enable, Dpu
@@ -681,7 +683,6 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	int ret;
 	static int need_config = 1;
 	size_t wb_buf_size;
-	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
 
@@ -704,8 +705,6 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	wb_layer.alpha = 0xff;
 	wb_layer.format = DRM_FORMAT_ABGR8888;
 	wb_layer.addr[0] = ctx->wb_addr_p;
-
-	reg->wb_base_addr = ctx->wb_addr_p;
 
 	max_vsync_count = 4;
 	need_config = 0;
