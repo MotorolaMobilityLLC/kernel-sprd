@@ -1566,6 +1566,56 @@ static const struct snd_kcontrol_new ucp1301_snd_controls[] = {
 		       ucp1301_get_i2c_index, NULL),
 };
 
+static const struct snd_kcontrol_new ucp1301_snd_controls_spk2[] = {
+	SOC_SINGLE_EXT("UCP1301 AGC Enable SPK2", 0, 0, 1, 0,
+		       ucp1301_get_agc_en, ucp1301_set_agc_en),
+	SOC_SINGLE_EXT("UCP1301 AGC Gain SPK2", 0, 0, 0x7F, 0,
+		       ucp1301_get_agc_gain, ucp1301_set_agc_gain),
+	SOC_SINGLE_EXT("UCP1301 CLSD Trim SPK2", 0, 0, 0x1f, 0,
+		       ucp1301_get_clasd_trim, ucp1301_set_clasd_trim),
+	SOC_SINGLE_EXT("UCP1301 R Load SPK2", 0, 0, INT_MAX, 0,
+		       ucp1301_get_r_load, ucp1301_set_r_load),
+	SOC_SINGLE_EXT("UCP1301 Power Limit P2 SPK2", 0, 0, INT_MAX, 0,
+		       ucp1301_get_limit_p2, ucp1301_set_limit_p2),
+	SOC_SINGLE_EXT("UCP1301 Class Mode SPK2", 0, 0, MODE_MAX, 0,
+		       ucp1301_get_class_mode, ucp1301_set_class_mode),
+	SOC_SINGLE_EXT("UCP1301 Product ID SPK2", 0, 0, 0xf, 0,
+		       ucp1301_get_product_id, NULL),
+	SOC_SINGLE_EXT("UCP1301 HW Enable SPK2", 0, 0, 1, 0,
+		       ucp1301_get_pdn, ucp1301_set_pdn),
+	SOC_DOUBLE_EXT("UCP1301 Regs Control SPK2", 0, 0, 0, INT_MAX, 0,
+		       ucp1301_get_regs, ucp1301_set_regs),
+	SOC_SINGLE_EXT("UCP1301 IVsense SPK2", 0, 0, 3, 0,
+		       ucp1301_ivsense_get_mode, ucp1301_ivsense_set_mode),
+	SOC_SINGLE_EXT("UCP1301 I2C Index SPK2", 0, 0, 0xf, 0,
+		       ucp1301_get_i2c_index, NULL),
+};
+
+static const struct snd_kcontrol_new ucp1301_snd_controls_rcv[] = {
+	SOC_SINGLE_EXT("UCP1301 AGC Enable RCV", 0, 0, 1, 0,
+		       ucp1301_get_agc_en, ucp1301_set_agc_en),
+	SOC_SINGLE_EXT("UCP1301 AGC Gain RCV", 0, 0, 0x7F, 0,
+		       ucp1301_get_agc_gain, ucp1301_set_agc_gain),
+	SOC_SINGLE_EXT("UCP1301 CLSD Trim RCV", 0, 0, 0x1f, 0,
+		       ucp1301_get_clasd_trim, ucp1301_set_clasd_trim),
+	SOC_SINGLE_EXT("UCP1301 R Load RCV", 0, 0, INT_MAX, 0,
+		       ucp1301_get_r_load, ucp1301_set_r_load),
+	SOC_SINGLE_EXT("UCP1301 Power Limit P2 RCV", 0, 0, INT_MAX, 0,
+		       ucp1301_get_limit_p2, ucp1301_set_limit_p2),
+	SOC_SINGLE_EXT("UCP1301 Class Mode RCV", 0, 0, MODE_MAX, 0,
+		       ucp1301_get_class_mode, ucp1301_set_class_mode),
+	SOC_SINGLE_EXT("UCP1301 Product ID RCV", 0, 0, 0xf, 0,
+		       ucp1301_get_product_id, NULL),
+	SOC_SINGLE_EXT("UCP1301 HW Enable RCV", 0, 0, 1, 0,
+		       ucp1301_get_pdn, ucp1301_set_pdn),
+	SOC_DOUBLE_EXT("UCP1301 Regs Control RCV", 0, 0, 0, INT_MAX, 0,
+		       ucp1301_get_regs, ucp1301_set_regs),
+	SOC_SINGLE_EXT("UCP1301 IVsense RCV", 0, 0, 3, 0,
+		       ucp1301_ivsense_get_mode, ucp1301_ivsense_set_mode),
+	SOC_SINGLE_EXT("UCP1301 I2C Index RCV", 0, 0, 0xf, 0,
+		       ucp1301_get_i2c_index, NULL),
+};
+
 void ucp1301_audio_on(struct ucp1301_t *ucp1301, bool on_off)
 {
 	enum ucp1301_class_mode class_mode;
@@ -1636,9 +1686,37 @@ static const struct snd_soc_dapm_widget ucp1301_dapm_widgets[] = {
 	SND_SOC_DAPM_OUTPUT("UCP1301 SPK"),
 };
 
+static const struct snd_soc_dapm_widget ucp1301_dapm_widgets_spk2[] = {
+	SND_SOC_DAPM_AIF_IN("UCP1301 PLAY SPK2", "Playback_SPK2",
+			    0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_PGA_E("UCP1301 SPK2 ON", SND_SOC_NOPM, 0, 0, NULL, 0,
+			   ucp1301_power_on,
+			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_OUTPUT("UCP1301 SPK2"),
+};
+
+static const struct snd_soc_dapm_widget ucp1301_dapm_widgets_rcv[] = {
+	SND_SOC_DAPM_AIF_IN("UCP1301 PLAY RCV", "Playback_RCV",
+			    0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_PGA_E("UCP1301 RCV ON", SND_SOC_NOPM, 0, 0, NULL, 0,
+			   ucp1301_power_on,
+			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_OUTPUT("UCP1301 RCV"),
+};
+
 static const struct snd_soc_dapm_route ucp1301_intercon[] = {
 	{"UCP1301 SPK", NULL, "UCP1301 PLAY"},
 	{"UCP1301 SPK", NULL, "UCP1301 SPK ON"},
+};
+
+static const struct snd_soc_dapm_route ucp1301_intercon_spk2[] = {
+	{"UCP1301 SPK2", NULL, "UCP1301 PLAY SPK2"},
+	{"UCP1301 SPK2", NULL, "UCP1301 SPK2 ON"},
+};
+
+static const struct snd_soc_dapm_route ucp1301_intercon_rcv[] = {
+	{"UCP1301 RCV", NULL, "UCP1301 PLAY RCV"},
+	{"UCP1301 RCV", NULL, "UCP1301 RCV ON"},
 };
 
 static struct snd_soc_codec_driver soc_codec_dev_ucp1301 = {
@@ -1650,6 +1728,30 @@ static struct snd_soc_codec_driver soc_codec_dev_ucp1301 = {
 		.num_dapm_widgets = ARRAY_SIZE(ucp1301_dapm_widgets),
 		.dapm_routes = ucp1301_intercon,
 		.num_dapm_routes = ARRAY_SIZE(ucp1301_intercon),
+	}
+};
+
+static struct snd_soc_codec_driver soc_codec_dev_ucp1301_spk2 = {
+	.idle_bias_off = true,
+	.component_driver = {
+		.controls = ucp1301_snd_controls_spk2,
+		.num_controls = ARRAY_SIZE(ucp1301_snd_controls_spk2),
+		.dapm_widgets = ucp1301_dapm_widgets_spk2,
+		.num_dapm_widgets = ARRAY_SIZE(ucp1301_dapm_widgets_spk2),
+		.dapm_routes = ucp1301_intercon_spk2,
+		.num_dapm_routes = ARRAY_SIZE(ucp1301_intercon_spk2),
+	}
+};
+
+static struct snd_soc_codec_driver soc_codec_dev_ucp1301_rcv = {
+	.idle_bias_off = true,
+	.component_driver = {
+		.controls = ucp1301_snd_controls_rcv,
+		.num_controls = ARRAY_SIZE(ucp1301_snd_controls_rcv),
+		.dapm_widgets = ucp1301_dapm_widgets_rcv,
+		.num_dapm_widgets = ARRAY_SIZE(ucp1301_dapm_widgets_rcv),
+		.dapm_routes = ucp1301_intercon_rcv,
+		.num_dapm_routes = ARRAY_SIZE(ucp1301_intercon_rcv),
 	}
 };
 
@@ -1709,6 +1811,34 @@ static struct snd_soc_dai_driver ucp1301_dai[] = {
 			.channels_max = 2,
 			.rates = UCP1301_RATES,
 			.formats = UCP1301_FORMATS,
+		},
+		.ops = &ucp1301_dai_ops,
+	},
+};
+
+static struct snd_soc_dai_driver ucp1301_dai_spk2[] = {
+	{
+		.name = "ucp1301-SPK2",
+		.playback = {
+		       .stream_name = "Playback_SPK2",
+		       .channels_min = 1,
+		       .channels_max = 2,
+		       .rates = UCP1301_RATES,
+		       .formats = UCP1301_FORMATS,
+		},
+		.ops = &ucp1301_dai_ops,
+	},
+};
+
+static struct snd_soc_dai_driver ucp1301_dai_rcv[] = {
+	{
+		.name = "ucp1301-RCV",
+		.playback = {
+		       .stream_name = "Playback_RCV",
+		       .channels_min = 1,
+		       .channels_max = 2,
+		       .rates = UCP1301_RATES,
+		       .formats = UCP1301_FORMATS,
 		},
 		.ops = &ucp1301_dai_ops,
 	},
@@ -1844,6 +1974,14 @@ static int ucp1301_i2c_probe(struct i2c_client *client,
 		ret = snd_soc_register_codec(dev, &soc_codec_dev_ucp1301,
 					     &ucp1301_dai[0],
 					     ARRAY_SIZE(ucp1301_dai));
+	} else if (strcmp(client->name, ucp1301_type[1]) == 0) {
+		ret = snd_soc_register_codec(dev, &soc_codec_dev_ucp1301_spk2,
+					     &ucp1301_dai_spk2[0],
+					     ARRAY_SIZE(ucp1301_dai_spk2));
+	} else if (strcmp(client->name, ucp1301_type[2]) == 0) {
+		ret = snd_soc_register_codec(dev, &soc_codec_dev_ucp1301_rcv,
+					     &ucp1301_dai_rcv[0],
+					     ARRAY_SIZE(ucp1301_dai_rcv));
 	} else {
 		dev_warn(&client->dev, "iic client name error, %s\n",
 			 client->name);
@@ -1872,6 +2010,8 @@ static const struct i2c_device_id ucp1301_i2c_id[] = {
 
 static const struct of_device_id extpa_of_match[] = {
 	{ .compatible = "sprd,ucp1301-spk" },
+	{ .compatible = "sprd,ucp1301-spk2" },
+	{ .compatible = "sprd,ucp1301-rcv" },
 	{},
 };
 
