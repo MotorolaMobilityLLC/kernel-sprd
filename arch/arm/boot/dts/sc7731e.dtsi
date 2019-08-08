@@ -448,6 +448,15 @@
 			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_LOW)>;
 		clock-frequency = <26000000>;
 	};
+
+	pmu {
+		compatible = "arm,cortex-a7-pmu";
+		interrupts =
+			<GIC_SPI 92 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 93 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 94 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SPI 95 IRQ_TYPE_LEVEL_HIGH>;
+	};
 };
 
 &hwlock {
