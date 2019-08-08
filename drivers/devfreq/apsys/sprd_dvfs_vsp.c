@@ -455,6 +455,7 @@ static int vsp_dvfs_target(struct device *dev, unsigned long *freq,
 
 	target_freq = dev_pm_opp_get_freq(opp);
 	pr_debug("target freq from opp %lu\n", target_freq);
+	dev_pm_opp_put(opp);
 
 	if (vsp->freq_type == DVFS_WORK)
 		vsp->work_freq = target_freq;
