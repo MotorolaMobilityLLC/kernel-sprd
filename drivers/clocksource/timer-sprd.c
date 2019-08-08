@@ -225,3 +225,6 @@ TIMER_OF_DECLARE(sharkle_persistent_timer, "sprd,sharkle-suspend-timer",
 TIMER_OF_DECLARE(pike2_timer, "sprd,pike2-timer", sprd_timer_init);
 TIMER_OF_DECLARE(pike2_persistent_timer, "sprd,pike2-suspend-timer",
 		 sprd_suspend_timer_init);
+TIMER_OF_DECLARE(sharkl5Pro_timer, "sprd,sharkl5Pro-timer", sprd_timer_init);
+TIMER_OF_DECLARE(sharkl5Pro_persistent_timer, "sprd,sharkl5Pro-suspend-timer",
+		 sprd_suspend_timer_init);
