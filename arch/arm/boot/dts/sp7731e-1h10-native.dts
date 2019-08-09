@@ -216,6 +216,10 @@
 	fd_reserved: fd@96000000{
 		reg = <0x96000000 0x00500000>;
 	};
+
+	wb_reserved: writeback-mem {
+		reg = <0x9b000000 0x00384000>;
+	};
 };
 
 &uart1 {

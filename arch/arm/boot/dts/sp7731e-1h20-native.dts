@@ -194,6 +194,10 @@
 	tos_reserved: tos-mem@94020000 {
 		reg = <0x94020000 0x002e0000>;
 	};
+
+	wb_reserved: writeback-mem {
+		reg = <0x9b000000 0x00384000>;
+	};
 };
 
 &uart1 {
