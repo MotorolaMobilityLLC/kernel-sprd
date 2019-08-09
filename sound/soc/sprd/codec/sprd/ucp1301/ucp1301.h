@@ -571,12 +571,4 @@
 
 #define BIT_RG_RESERVED1(x)                                (((x) & 0xFFFF))
 
-#ifdef CONFIG_SND_SOC_SPRD_PA_UCP1301
-void ucp1301_audio_on(bool on_off);
-#else
-static inline void ucp1301_audio_on(bool on_off)
-{
-}
-#endif
-
 #endif /* _ANA_APB_IF_REG_H */

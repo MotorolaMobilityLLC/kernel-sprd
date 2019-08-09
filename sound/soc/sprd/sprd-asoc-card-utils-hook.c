@@ -21,7 +21,6 @@
 
 #include "sprd-asoc-card-utils.h"
 #include "sprd-asoc-common.h"
-#include "./codec/sprd/ucp1301/ucp1301.h"
 
 struct sprd_asoc_ext_hook_map {
 	const char *name;
@@ -70,7 +69,6 @@ enum {
 #define EN_LEVEL 1
 
 static int select_mode;
-static bool exist_ucp_smart_pa;
 
 static ssize_t select_mode_show(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buff)
@@ -145,15 +143,6 @@ static void hook_gpio_pulse_control(unsigned int gpio, unsigned int mode)
 static int hook_spk_aw87xx(int id, int on)
 {
 	int gpio, mode;
-
-	if (exist_ucp_smart_pa) {
-		if (on)
-			ucp1301_audio_on(true);
-		else
-			ucp1301_audio_on(false);
-
-		return HOOK_OK;
-	}
 
 	gpio = hook_spk_priv.gpio[id];
 	if (gpio < 0) {
@@ -236,14 +225,6 @@ static int sprd_asoc_card_parse_hook_spk(struct device *dev,
 	unsigned long gpio_flag;
 	unsigned int ext_ctrl_type, share_gpio, hook_sel, priv_data;
 	u32 *buf;
-
-	if (device_property_read_bool(dev, "sprd,ucp-smart-pa")) {
-		pr_info("exist ucp1301 smart pa\n");
-		ext_hook->ext_ctrl[EXT_CTRL_SPK] =
-			 speaker_hook[EXT_CTRL_SPK].hook;
-		exist_ucp_smart_pa = true;
-		return 0;
-	}
 
 	elem_cnt = of_property_count_u32_elems(np, prop_pa_info);
 	if (elem_cnt <= 0) {
