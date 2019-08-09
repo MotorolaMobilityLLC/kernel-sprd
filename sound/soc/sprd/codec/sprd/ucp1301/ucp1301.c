@@ -29,7 +29,7 @@
 #define UCP_READ_EFS_POLL_TIMEOUT	800
 #define UCP_READ_EFS_POLL_DELAY_US	200
 
-enum ucp1301_audio_mode {
+enum ucp1301_class_mode {
 	HW_OFF,
 	SPK_AB,
 	RCV_AB,
@@ -54,19 +54,11 @@ struct ucp1301_t {
 	bool hw_enabled;
 	bool class_ab;/* true class AB, false class D */
 	bool bypass;/* true bypass, false boost */
-	/*
-	 * enabled in class D mode only, true: remote mode, false local mode,
-	 * 1301 use remote mode, 1300A/B use local mode
-	 */
-	bool ivsense_mode_curt;
-	bool ivsense_mode_to_set;
 	enum ucp1301_ivsense_mode ivsense_mode;
 	u32 vosel;/* value of RG_BST_VOSEL */
 	u32 efs_data[4];/* 0 L, 1 M, 2 H, 3 T */
 	u32 calib_code;
-	enum ucp1301_audio_mode mode_curt;/* current mode */
-	enum ucp1301_audio_mode mode_to_set;
-	enum ucp1301_audio_mode class_mode;
+	enum ucp1301_class_mode class_mode;
 	u32 clsd_trim;
 };
 
@@ -440,7 +432,6 @@ int ucp1301_hw_on(struct ucp1301_t *ucp1301, bool on)
 		gpiod_set_value_cansleep(ucp1301->reset_gpio, false);
 		usleep_range(2000, 2050);
 		ucp1301->hw_enabled = false;
-		ucp1301->mode_curt = HW_OFF;
 	}
 
 	return 0;
@@ -451,7 +442,6 @@ int ucp1301_audio_receiver(struct ucp1301_t *ucp1301, bool on)
 	if (on) {
 		ucp1301_hw_on(ucp1301, true);
 		ucp1301_depop_ab_boost_bypass(ucp1301, true);
-		ucp1301->mode_curt = RCV_AB;
 	} else {
 		ucp1301_depop_ab_boost_bypass(ucp1301, false);
 		ucp1301_hw_on(ucp1301, false);
@@ -465,7 +455,6 @@ int ucp1301_audio_speaker(struct ucp1301_t *ucp1301, bool on)
 	if (on) {
 		ucp1301_hw_on(ucp1301, true);
 		ucp1301_depop_ab_boost_on(ucp1301, true);
-		ucp1301->mode_curt = SPK_AB;
 	} else {
 		ucp1301_depop_ab_boost_on(ucp1301, false);
 		ucp1301_hw_on(ucp1301, false);
@@ -479,7 +468,6 @@ int ucp1301_audio_receiver_d(struct ucp1301_t *ucp1301, bool on)
 	if (on) {
 		ucp1301_hw_on(ucp1301, true);
 		ucp1301_d_bypass(ucp1301, true);
-		ucp1301->mode_curt = RCV_D;
 	} else {
 		ucp1301_d_bypass(ucp1301, false);
 		ucp1301_hw_on(ucp1301, false);
@@ -492,7 +480,6 @@ int ucp1301_audio_speaker_d(struct ucp1301_t *ucp1301, bool on)
 	if (on) {
 		ucp1301_hw_on(ucp1301, true);
 		ucp1301_d_boost_on(ucp1301, true);
-		ucp1301->mode_curt = SPK_D;
 	} else {
 		ucp1301_d_boost_on(ucp1301, false);
 		ucp1301_hw_on(ucp1301, false);
@@ -1048,16 +1035,12 @@ static int ucp1301_debug_sysfs_init(struct ucp1301_t *ucp1301)
 
 void ucp1301_audio_on(bool on_off)
 {
-	enum ucp1301_audio_mode mode;
+	enum ucp1301_class_mode class_mode = ucp1301_g->class_mode;
 
-	pr_info("ucp1301 audio on, on_off %d, mode_to_set %d, mode_curt %d\n",
-		on_off, ucp1301_g->mode_to_set, ucp1301_g->mode_curt);
-	if (ucp1301_g->mode_to_set != ucp1301_g->mode_curt)
-		mode = ucp1301_g->mode_to_set;
-	else
-		mode = ucp1301_g->mode_curt;
+	dev_info(ucp1301_g->dev, "audio_on, on_off %d, class_mode %d\n",
+		 on_off, ucp1301_g->class_mode);
 
-	switch (mode) {
+	switch (class_mode) {
 	case HW_OFF:
 		ucp1301_hw_on(ucp1301_g, on_off);
 		break;
@@ -1075,11 +1058,11 @@ void ucp1301_audio_on(bool on_off)
 		break;
 	default:
 		dev_err(ucp1301_g->dev, "ucp1301 audio on, power down for mode error %d\n",
-			mode);
+			class_mode);
 		ucp1301_hw_on(ucp1301_g, false);
 	}
 
-	if (on_off && (mode == SPK_D || mode == RCV_D)) {
+	if (on_off && (class_mode == SPK_D || class_mode == RCV_D)) {
 		ucp1301_ivsense_set(ucp1301_g);
 		/* temp source code, wait for kcontrol about */
 		regmap_update_bits(ucp1301_g->regmap, REG_AGC_GAIN0,
@@ -1183,10 +1166,7 @@ static int ucp1301_i2c_probe(struct i2c_client *client,
 	ucp1301_debug_sysfs_init(ucp1301);
 	ucp1301_hw_on(ucp1301, false);
 	ucp1301->init_flag = true;
-	ucp1301->mode_curt = SPK_D;
-	ucp1301->mode_to_set = SPK_D;
-	ucp1301->ivsense_mode_curt = true;
-	ucp1301->ivsense_mode_to_set = true;
+	ucp1301->class_mode = SPK_D;
 
 	return 0;
 }
