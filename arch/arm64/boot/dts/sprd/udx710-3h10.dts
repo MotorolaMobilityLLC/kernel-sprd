@@ -229,18 +229,10 @@
 			REG_PMU_APB_RF_PCIEPLL_H_REL_CFG
 			MASK_PMU_APB_RF_PCIEPLL_H_FRC_OFF
 			0x0>,
-		<&pmu_apb_regs 0 0
-			REG_PMU_APB_RF_PCIEPLL_H_REL_CFG
-			MASK_PMU_APB_RF_PCIEPLL_H_FRC_ON
-			0x100>,
 		<&ap_ipa_ahb_regs 0 0
 			REG_AP_IPA_AHB_RF_AHB_EB
 			MASK_AP_IPA_AHB_RF_PCIE_SEL
 			0x0>,
-		<&ap_ipa_ahb_regs 0 0
-			REG_AP_IPA_AHB_RF_AHB_EB
-			MASK_AP_IPA_AHB_RF_IPA_EB
-			0x80>,
 		<&ap_ipa_ahb_regs 0 0
 			REG_AP_IPA_AHB_RF_AHB_EB
 			MASK_AP_IPA_AHB_RF_PCIE_AUX_EB
