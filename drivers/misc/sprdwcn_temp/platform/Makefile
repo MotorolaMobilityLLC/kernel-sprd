@@ -20,11 +20,17 @@ MARLINOFILES += rdc_debug.o
 MARLINOFILES += wcn_log.o
 MARLINOFILES += wcn_procfs.o
 MARLINOFILES += loopcheck.o
+MARLINOFILES += reset.o
+MARLINOFILES += reset_test.o
 marlin-$(CONFIG_SDIOHAL) += mem_pd_mgr.o
 marlin-$(CONFIG_WCN_UTILS) += \
 		wcn_debugfs.o
 
 marlin-objs += $(MARLINOFILES)
+
+ifeq ($(TARGET_BUILD_VARIANT),user)
+ccflags-y += -DCONFIG_WCN_USER
+endif
 
 #WCN_PLATFORM
 obj-$(CONFIG_WCN_PLATFORM) := wcn_platform.o

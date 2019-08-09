@@ -84,4 +84,6 @@ int marlin_reset_unregister_notify(void);
 int is_first_power_on(enum marlin_sub_sys subsys);
 int cali_ini_need_download(enum marlin_sub_sys subsys);
 const char *strno(int subsys);
+void wcn_chip_power_on(void);
+void wcn_chip_power_off(void);
 #endif

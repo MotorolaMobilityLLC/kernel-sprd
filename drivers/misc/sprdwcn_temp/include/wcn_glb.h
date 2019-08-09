@@ -6,6 +6,7 @@
 #include "bufring.h"
 #include "loopcheck.h"
 #include "mdbg_type.h"
+#include "reset.h"
 #include "wcn_dbg.h"
 #include "wcn_parn_parser.h"
 #include "wcn_txrx.h"

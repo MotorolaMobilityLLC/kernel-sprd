@@ -1804,6 +1804,18 @@ static int chip_power_off(int subsys)
 	return 0;
 }
 
+void wcn_chip_power_on(void)
+{
+	chip_power_on(0);
+}
+EXPORT_SYMBOL_GPL(wcn_chip_power_on);
+
+void wcn_chip_power_off(void)
+{
+	chip_power_off(0);
+}
+EXPORT_SYMBOL_GPL(wcn_chip_power_off);
+
 static int gnss_powerdomain_open(void)
 {
 	/* add by this. */
@@ -2418,6 +2430,7 @@ static int marlin_probe(struct platform_device *pdev)
 	wcn_op_init();
 	flag_reset = 0;
 	loopcheck_init();
+	reset_test_init();
 	INIT_WORK(&marlin_dev->download_wq, pre_btwifi_download_sdio);
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);
 

@@ -44,16 +44,6 @@ int loopcheck_send(char *buf, unsigned int len)
 	return len;
 }
 
-static void reset_cp(void)
-{
-	marlin_chip_en(0, 0);
-	if (cp_assert_cb_matrix[0])
-		cp_assert_cb_matrix[0](0);
-	if (cp_assert_cb_matrix[1])
-		cp_assert_cb_matrix[1](1);
-
-}
-
 static void loopcheck_work_queue(struct work_struct *work)
 {
 	unsigned long timeleft;
@@ -66,10 +56,11 @@ static void loopcheck_work_queue(struct work_struct *work)
 	if (!timeleft) {
 		WCN_ERR("didn't get loopcheck ack\n");
 		WCN_INFO("start dump CP2 mem\n");
-		if (USERDEBUG)
-			mdbg_dump_mem();
-		else
-			reset_cp();
+#ifdef CONFIG_WCN_USER
+		wcn_reset_cp2();
+#else
+		mdbg_dump_mem();
+#endif
 
 		stop_loopcheck_timer();
 	}
@@ -101,7 +92,7 @@ void start_loopcheck_timer(void)
 {
 	WCN_INFO("%s\n", __func__);
 
-#ifndef CONFIG_CPLOG_DEBUG
+#ifdef CONFIG_WCN_USER
 	close_cp2_log();
 #endif
 

@@ -7,6 +7,8 @@
 #define CHN_MAX_NUM 32
 #define PUB_HEAD_RSV 4
 
+extern struct atomic_notifier_head wcn_reset_notifier_list;
+
 enum wcn_bus_state {
 	WCN_BUS_DOWN,	/* Not ready for frame transfers */
 	WCN_BUS_UP		/* Ready for frame transfers */
