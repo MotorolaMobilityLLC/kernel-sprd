@@ -1508,61 +1508,55 @@ static int sprd_sdhc_prepare_hs400_tuning(struct mmc_host *mmc,
 	return 0;
 }
 
-static int sprd_calc_tuning_range(struct sprd_sdhc_host *host, bool *first_vl,
-				int *value_t)
+static int sprd_calc_tuning_range(struct sprd_sdhc_host *host, int *value_t)
 {
 	int i;
-	bool temp_prev_vl = 0;
+	bool prev_vl = 0;
 	int range_count = 0;
 	u32 dll_cnt = host->dll_cnt;
 	u32 mid_dll_cnt = host->mid_dll_cnt;
 	struct ranges_t *ranges = host->ranges;
 
-	for (i = 0; i < dll_cnt; i++) {
-		if (i == 0)
-			*first_vl = value_t[i] && value_t[i + dll_cnt];
-
-		if ((!temp_prev_vl) && value_t[i] &&
-		     value_t[i + dll_cnt] && (i < mid_dll_cnt)) {
+	/*
+	 * first: 0 <= i < mid_dll_cnt
+	 * tuning range: (0 ~ mid_dll_cnt) && (dll_cnt ~ dll_cnt + mid_dll_cnt)
+	 */
+	for (i = 0; i < mid_dll_cnt; i++) {
+		if ((!prev_vl) && value_t[i] && value_t[i + dll_cnt]) {
 			range_count++;
 			ranges[range_count - 1].start = i;
 		}
 
-		if (i < mid_dll_cnt) {
-			if (value_t[i] && value_t[i + dll_cnt]) {
-				ranges[range_count - 1].end = i;
-				pr_debug("%s overlap tuning ok, i = %d\n",
-					 host->device_name, i);
-			} else
-				pr_debug("%s overlap tuning fail, i = %d\n",
-					host->device_name, i);
+		if (value_t[i] && value_t[i + dll_cnt]) {
+			ranges[range_count - 1].end = i;
+			pr_debug("%s recalculate tuning ok: %d\n",
+				 host->device_name, i);
+		} else
+			pr_debug("%s recalculate tuning fail: %d\n",
+				 host->device_name, i);
+
+		prev_vl = value_t[i] && value_t[i + dll_cnt];
+	}
+
+	/*
+	 * second: mid_dll_cnt <= i < dll_cnt
+	 * tuning range: mid_dll_cnt ~ dll_cnt
+	 */
+	for (i = mid_dll_cnt; i < dll_cnt; i++) {
+		if ((!prev_vl) && value_t[i]) {
+			range_count++;
+			ranges[range_count - 1].start = i;
 		}
 
-		if ((!temp_prev_vl) && value_t[i] && (i >= mid_dll_cnt)) {
-			if (value_t[i] && value_t[i - 1] &&
-			    value_t[i + dll_cnt - 1] && (i == mid_dll_cnt))
-				pr_debug("%s connect ok\n", host->device_name);
-			else {
-				range_count++;
-				ranges[range_count - 1].start = i;
-			}
-		}
+		if (value_t[i]) {
+			ranges[range_count - 1].end = i;
+			pr_debug("%s recalculate tuning ok: %d\n",
+				 host->device_name, i);
+		} else
+			pr_debug("%s recalculate tuning fail: %d\n",
+				 host->device_name, i);
 
-		if (i >= mid_dll_cnt) {
-			if (value_t[i] && (i >= mid_dll_cnt)) {
-				ranges[range_count - 1].end = i;
-				pr_debug("%s not overlap tuning ok i = %d\n",
-					host->device_name, i);
-			} else
-				pr_debug("%s not overlap tuning fail i = %d\n",
-					host->device_name, i);
-
-		}
-
-		if (i < mid_dll_cnt)
-			temp_prev_vl = value_t[i] && value_t[i + dll_cnt];
-		else
-			temp_prev_vl = value_t[i];
+		prev_vl = value_t[i];
 	}
 
 	host->ranges = ranges;
@@ -1596,7 +1590,6 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	spin_lock_irqsave(&host->lock, flags);
 
 	sprd_sdhc_reset(host, SPRD_SDHC_BIT_RST_CMD | SPRD_SDHC_BIT_RST_DAT);
-
 
 	dll_cfg = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_CFG);
 	dll_cfg &= ~(0xf << 24);
@@ -1634,8 +1627,6 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		spin_unlock_irqrestore(&host->lock, flags);
 		value = !mmc_send_tuning(mmc, opcode, NULL);
 		spin_lock_irqsave(&host->lock, flags);
-		if (i == 0)
-			first_vl = value;
 
 		if ((!prev_vl) && value) {
 			range_count++;
@@ -1658,7 +1649,8 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	host->mid_dll_cnt = mid_dll_cnt;
 	host->ranges = ranges;
 
-	range_count = sprd_calc_tuning_range(host, &first_vl, value_t);
+	first_vl = (value_t[0] && value_t[dll_cnt]);
+	range_count = sprd_calc_tuning_range(host, value_t);
 
 	if (range_count == 0) {
 		pr_warn("%s(%s): all tuning phases fail!\n",
