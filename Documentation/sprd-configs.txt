@@ -1,24 +1,3 @@
-:CONFIG_ANDROID_LOW_MEMORY_KILLER
-	[arch] arm
-	[plat] pike2,sharkl3_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[function]
-:CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINF
-	[arch] arm
-	[plat] pike2,sharkl3_32
-	[field]
-	[subsys]
-	[must]
-	[function]
-:CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINFO
-	[arch] arm
-	[plat] sharkle32
-	[field]
-	[subsys]
-	[must]
-	[function]
 CONFIG_64BIT
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -7062,7 +7041,7 @@ CONFIG_NETFILTER_XT_MATCH_MULTIPORT
 	[function] "multiport" Multiple port match support
 CONFIG_NETFILTER_XT_MATCH_OWNER
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[field] menu,net
 	[subsys] net
 	[must] user
@@ -7083,7 +7062,7 @@ CONFIG_NETFILTER_XT_MATCH_POLICY
 	[function] vts require, IPsec "policy" match support
 CONFIG_NETFILTER_XT_MATCH_QTAGUID
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl5,sharkl5_32
 	[field] menu,make
 	[subsys] net
 	[must] user
@@ -7208,7 +7187,7 @@ CONFIG_NETFILTER_XT_TARGET_CONNSECMARK
 	  2. vts require
 CONFIG_NETFILTER_XT_TARGET_CT
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[field] menu,net
 	[subsys] net
 	[must] user
