@@ -800,9 +800,6 @@ bool musb_tx_dma_program(struct dma_controller *dma,
 	u8			mode;
 	void __iomem *epio = hw_ep->regs;
 	u16 csr;
-	bool toggle, next_toggle;
-	u16 ready, pac_num;
-	int cnt = 50;
 
 	if (musb_dma_inventra(hw_ep->musb) || musb_dma_ux500(hw_ep->musb))
 		musb_tx_dma_set_mode_mentor(dma, hw_ep, qh, urb, offset,
@@ -824,39 +821,6 @@ bool musb_tx_dma_program(struct dma_controller *dma,
 	 */
 	wmb();
 	csr = musb_readw(epio, MUSB_TXCSR);
-
-	if (musb_dma_sprd(hw_ep->musb) &&
-		usb_pipebulk(urb->pipe) &&
-		hw_ep->musb->is_multipoint) {
-		do {
-			ready = csr & (MUSB_TXCSR_TXPKTRDY |
-				MUSB_TXCSR_FIFONOTEMPTY);
-			csr = musb_readw(epio, MUSB_TXCSR);
-		} while (ready && (--cnt > 0));
-
-		toggle = usb_gettoggle(urb->dev, qh->epnum, 1);
-
-		if (length % qh->maxpacket)
-			pac_num = length / qh->maxpacket + 1;
-		else
-			pac_num = length / qh->maxpacket;
-
-		if (pac_num & 0x1)
-			next_toggle = toggle ? 0 : 1;
-		else
-			next_toggle = toggle;
-
-		usb_settoggle(urb->dev, qh->epnum, 1, next_toggle);
-
-		if (toggle)
-			csr |= MUSB_TXCSR_H_WR_DATATOGGLE |
-				MUSB_TXCSR_H_DATATOGGLE;
-		else
-			csr |= MUSB_TXCSR_CLRDATATOG;
-
-		musb_writew(epio, MUSB_TXCSR, csr);
-	}
-
 	if (!dma->channel_program(channel, pkt_size, mode,
 			urb->transfer_dma + offset, length)) {
 		void __iomem *epio = hw_ep->regs;
@@ -883,6 +847,53 @@ bool musb_tx_dma_program(struct dma_controller *dma,
 		}
 	}
 	return true;
+}
+
+static void musb_tx_toggle_count_sprd(u8 last_addr, struct musb_hw_ep *hw_ep,
+				      struct musb_qh *qh, struct urb *urb,
+				      u32 length)
+{
+	void __iomem *epio = hw_ep->regs;
+	struct musb *musb = hw_ep->musb;
+	u16 csr, pac_num;
+	bool toggle, next_toggle;
+	int cnt = 1000;
+
+	toggle = usb_gettoggle(urb->dev, qh->epnum, 1);
+
+	if (length % qh->maxpacket)
+		pac_num = length / qh->maxpacket + 1;
+	else
+		pac_num = length / qh->maxpacket;
+
+	if (pac_num & 0x1)
+		next_toggle = toggle ? 0 : 1;
+	else
+		next_toggle = toggle;
+
+	usb_settoggle(urb->dev, qh->epnum, 1, next_toggle);
+
+	if (qh->addr_reg == last_addr)
+		return;
+
+	do {
+		csr = musb_readw(epio, MUSB_TXCSR);
+		if (!(csr & (MUSB_TXCSR_TXPKTRDY | MUSB_TXCSR_FIFONOTEMPTY)))
+			break;
+
+		cpu_relax();
+	} while (--cnt > 0);
+
+	if (!cnt)
+		dev_warn(musb->controller, "Controller read timeout\n");
+
+	if (toggle)
+		csr |= MUSB_TXCSR_H_WR_DATATOGGLE |
+			MUSB_TXCSR_H_DATATOGGLE;
+	else
+		csr |= MUSB_TXCSR_CLRDATATOG;
+
+	musb_writew(epio, MUSB_TXCSR, csr);
 }
 
 /*
@@ -944,6 +955,7 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 		u16	csr;
 		u16	int_txe;
 		u16	load_count;
+		u8	last_addr;
 
 		csr = musb_readw(epio, MUSB_TXCSR);
 
@@ -999,6 +1011,15 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 
 		/* target addr and (for multipoint) hub addr/port */
 		if (musb->is_multipoint) {
+			if (musb_dma_sprd(musb) &&
+				usb_pipebulk(urb->pipe)) {
+				last_addr = musb_readb(musb->mregs,
+						       musb->io.busctl_offset
+						       (hw_ep->epnum,
+							MUSB_TXFUNCADDR));
+				musb_tx_toggle_count_sprd(last_addr, hw_ep, qh,
+							  urb, len);
+			}
 			musb_write_txfunaddr(musb, epnum, qh->addr_reg);
 			musb_write_txhubaddr(musb, epnum, qh->h_addr_reg);
 			musb_write_txhubport(musb, epnum, qh->h_port_reg);
