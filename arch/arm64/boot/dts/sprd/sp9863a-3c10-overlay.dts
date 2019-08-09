@@ -67,6 +67,7 @@ dtbo: dtbo {
 		touchscreen-size-x = <720>;
 		touchscreen-size-y = <1520>;
 
+		virtualkey-report-abs;
 		private-data {
 			a8 = /bits/ 8 <0x5a>;
 		};
