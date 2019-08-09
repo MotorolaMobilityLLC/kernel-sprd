@@ -62,6 +62,9 @@ struct ucp1301_t {
 	struct regmap *regmap;
 	struct device *dev;
 	struct gpio_desc *reset_gpio;
+	/* protect paras which can be modified by kcontrol */
+	struct mutex ctrl_lock;
+	u8 i2c_index;
 	bool init_flag;
 	bool hw_enabled;
 	bool class_ab;/* true class AB, false class D */
@@ -85,6 +88,11 @@ struct ucp1301_t {
 };
 
 struct ucp1301_t *ucp1301_g;
+static const char * const ucp1301_type[UCP_TYPE_MAX] = {
+	"ucp1301-spk",
+	"ucp1301-spk2",
+	"ucp1301-rcv"
+};
 
 static u32 efs_data_reg[4] = {
 	REG_EFS_RD_DATA_L,/* low */
@@ -97,6 +105,31 @@ static const struct regmap_config ucp1301_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 16,
 };
+
+static const char *ucp1301_get_event_name(int event)
+{
+	const char *ev_name;
+
+	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
+		ev_name = "PRE_PMU";
+		break;
+	case SND_SOC_DAPM_POST_PMU:
+		ev_name = "POST_PMU";
+		break;
+	case SND_SOC_DAPM_PRE_PMD:
+		ev_name = "PRE_PMD";
+		break;
+	case SND_SOC_DAPM_POST_PMD:
+		ev_name = "POST_PMD";
+		break;
+	default:
+		WARN_ON(1);
+		return 0;
+	}
+
+	return ev_name;
+}
 
 static void ucp1301_write_agc_en(struct ucp1301_t *ucp1301, bool agc_en)
 {
@@ -171,6 +204,21 @@ static void ucp1301_write_agc_gain(struct ucp1301_t *ucp1301, u32 agc_gain0)
 	if (ret)
 		dev_warn(ucp1301->dev, "update BIT_AGC_GAIN0 fail, %d\n",
 			 ret);
+}
+
+static int ucp1301_read_agc_gain(struct ucp1301_t *ucp1301, u32 *agc_gain0)
+{
+	u32 val_temp;
+	int ret;
+
+	ret = regmap_read(ucp1301->regmap, REG_AGC_GAIN0, &val_temp);
+	if (ret < 0) {
+		dev_err(ucp1301->dev, "read REG_AGC_GAIN0 reg fail, %d\n", ret);
+		return ret;
+	}
+
+	*agc_gain0 = val_temp;
+	return ret;
 }
 
 static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
@@ -587,12 +635,19 @@ int ucp1301_hw_on(struct ucp1301_t *ucp1301, bool on)
 		usleep_range(2000, 2050);
 		ucp1301->hw_enabled = true;
 		ucp1301_reg_init(ucp1301);
+		/*
+		 * following is reruning kcontrol settings, because some
+		 * kcontrols are called before power on, it is invalid,
+		 * so rerun them here.
+		 */
+		mutex_lock(&ucp1301->ctrl_lock);
 		ucp1301_write_clsd_trim(ucp1301, ucp1301->clsd_trim);
 		ucp1301_power_param_init(ucp1301);
 		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
 				    ucp1301->power_p1, ucp1301->power_pb);
 		ucp1301_write_agc_en(ucp1301, ucp1301->agc_en);
 		ucp1301_write_agc_gain(ucp1301, ucp1301->agc_gain0);
+		mutex_unlock(&ucp1301->ctrl_lock);
 	} else {
 		ret = regmap_update_bits(ucp1301->regmap, REG_MODULE_EN,
 					 BIT_CHIP_EN, 0);
@@ -1106,7 +1161,11 @@ static void ucp1301_ivsense_local(struct ucp1301_t *ucp1301)
 
 static void ucp1301_ivsense_set(struct ucp1301_t *ucp1301)
 {
-	enum ucp1301_ivsense_mode ivsense_mode = ucp1301->ivsense_mode;
+	enum ucp1301_ivsense_mode ivsense_mode;
+
+	mutex_lock(&ucp1301->ctrl_lock);
+	ivsense_mode = ucp1301->ivsense_mode;
+	mutex_unlock(&ucp1301->ctrl_lock);
 
 	switch (ivsense_mode) {
 	case IVS_UCP1300A:
@@ -1192,23 +1251,331 @@ static struct attribute_group ucp1301_attribute_group = {
 	.attrs = ucp1301_attributes
 };
 
-static int ucp1301_debug_sysfs_init(struct ucp1301_t *ucp1301)
+static int ucp1301_get_agc_en(struct snd_kcontrol *kcontrol,
+			      struct snd_ctl_elem_value *ucontrol)
 {
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = ucp1301->agc_en;
+
+	return 0;
+}
+
+static int ucp1301_set_agc_en(struct snd_kcontrol *kcontrol,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] > 1)
+		return -EINVAL;
+
+	mutex_lock(&ucp1301->ctrl_lock);
+	ucp1301->agc_en = ucontrol->value.integer.value[0];
+	ucp1301_write_agc_en(ucp1301, ucp1301->agc_en);
+	mutex_unlock(&ucp1301->ctrl_lock);
+
+	dev_dbg(ucp1301->dev, "set_agc_en %d\n", ucp1301->agc_en);
+
+	return 0;
+}
+
+static int ucp1301_get_agc_gain(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+	u32 val_temp;
 	int ret;
 
-	ret = sysfs_create_group(&ucp1301->dev->kobj, &ucp1301_attribute_group);
-	if (ret < 0)
-		dev_info(ucp1301->dev, "fail to create sysfs attr files\n");
+	ret = ucp1301_read_agc_gain(ucp1301, &val_temp);
+	if (ret < 0) {
+		ucontrol->value.integer.value[0] = ucp1301->agc_gain0;
+		return 0;
+	}
+	ucontrol->value.integer.value[0] = val_temp & BIT_AGC_GAIN0(0x7f);
 
-	return ret;
+	return 0;
 }
+
+static int ucp1301_set_agc_gain(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] > BIT_AGC_GAIN0(0x7f))
+		return -EINVAL;
+
+	mutex_lock(&ucp1301->ctrl_lock);
+	ucp1301->agc_gain0 = ucontrol->value.integer.value[0];
+	ucp1301_write_agc_gain(ucp1301, ucp1301->agc_gain0);
+	mutex_unlock(&ucp1301->ctrl_lock);
+
+	dev_dbg(ucp1301->dev, "set_agc_gain %d\n", ucp1301->agc_gain0);
+
+	return 0;
+}
+
+static int ucp1301_get_clasd_trim(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+	u32 clsd_trim;
+	int ret;
+
+	ret = ucp1301_read_clsd_trim(ucp1301, &clsd_trim);
+	if (ret) {
+		dev_warn(ucp1301->dev, "get_clasd_trim fail %d\n", ret);
+		ucontrol->value.integer.value[0] = ucp1301->clsd_trim;
+		return 0;
+	}
+	ucontrol->value.integer.value[0] = clsd_trim;
+
+	return 0;
+}
+
+static int ucp1301_set_clasd_trim(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	mutex_lock(&ucp1301->ctrl_lock);
+	ucp1301->clsd_trim = ucontrol->value.integer.value[0];
+	ucp1301_write_clsd_trim(ucp1301, ucp1301->clsd_trim);
+	mutex_unlock(&ucp1301->ctrl_lock);
+
+	dev_dbg(ucp1301->dev, "set_clasd_trim %d\n", ucp1301->clsd_trim);
+
+	return 0;
+}
+
+static int ucp1301_get_r_load(struct snd_kcontrol *kcontrol,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = ucp1301->r_load;
+
+	return 0;
+}
+
+static int ucp1301_set_r_load(struct snd_kcontrol *kcontrol,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	if (ucp1301->r_load != ucontrol->value.integer.value[0]) {
+		mutex_lock(&ucp1301->ctrl_lock);
+		ucp1301->r_load = ucontrol->value.integer.value[0];
+		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
+				    ucp1301->power_p1, ucp1301->power_pb);
+		mutex_unlock(&ucp1301->ctrl_lock);
+	}
+	dev_dbg(ucp1301->dev, "set_r_load %d\n", ucp1301->r_load);
+
+	return 0;
+}
+
+static int ucp1301_get_limit_p2(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = ucp1301->power_p2;
+
+	return 0;
+}
+
+static int ucp1301_set_limit_p2(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	if (ucp1301->power_p2 != ucontrol->value.integer.value[0]) {
+		mutex_lock(&ucp1301->ctrl_lock);
+		ucp1301->power_p2 = ucontrol->value.integer.value[0];
+		ucp1301->power_p1 = ucp1301->power_p2 + UCP_EXTRA_MAX_POWER;
+		ucp1301->power_pb = ucp1301->power_p2 - UCP_EXTRA_MIN_POWER;
+		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
+				    ucp1301->power_p1, ucp1301->power_pb);
+		mutex_unlock(&ucp1301->ctrl_lock);
+	}
+	dev_dbg(ucp1301->dev, "set_limit_p2 %d\n", ucp1301->power_p2);
+
+	return 0;
+}
+
+static int ucp1301_get_class_mode(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = ucp1301->class_mode;
+
+	return 0;
+}
+
+static int ucp1301_set_class_mode(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+	u32 mode;
+
+	mode = ucontrol->value.integer.value[0];
+	mutex_lock(&ucp1301->ctrl_lock);
+	ucp1301_save_mode(ucp1301, mode);
+	mutex_unlock(&ucp1301->ctrl_lock);
+
+	dev_dbg(ucp1301->dev, "set_class_mode %d\n", mode);
+	return 0;
+}
+
+static int ucp1301_get_product_id(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = ucp1301->product_id;
+
+	return 0;
+}
+
+static int ucp1301_get_pdn(struct snd_kcontrol *kcontrol,
+			   struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = ucp1301->hw_enabled;
+
+	return 0;
+}
+
+static int ucp1301_set_pdn(struct snd_kcontrol *kcontrol,
+			   struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+	bool reset_state = ucontrol->value.integer.value[0];
+
+	dev_dbg(ucp1301->dev, "set_pdn to %d\n", reset_state);
+	ucp1301_hw_on(ucp1301, reset_state);
+
+	return 0;
+}
+
+static int ucp1301_get_regs(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_value *ucontrol)
+{
+	return -EINVAL;
+}
+
+static int ucp1301_set_regs(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+	u32 reg_addr = ucontrol->value.integer.value[0];
+	u32 reg_value = ucontrol->value.integer.value[1];
+
+	regmap_update_bits(ucp1301->regmap, reg_addr, 0xff, reg_value);
+	dev_dbg(ucp1301->dev, "set_regs, reg_addr 0x%x, reg_value 0x%x\n",
+		reg_addr, reg_value);
+
+	return 0;
+}
+
+static int ucp1301_ivsense_get_mode(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = ucp1301->ivsense_mode;
+
+	return 0;
+}
+
+static int ucp1301_ivsense_set_mode(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] > IVS_UCP1300B ||
+	    ucontrol->value.integer.value[0] < IVS_UCP1301) {
+		dev_err(ucp1301->dev, "ivsense_set_mode, out of range %ld\n",
+			ucontrol->value.integer.value[0]);
+		return -EINVAL;
+	}
+
+	mutex_lock(&ucp1301->ctrl_lock);
+	ucp1301->ivsense_mode = ucontrol->value.integer.value[0];
+	mutex_unlock(&ucp1301->ctrl_lock);
+
+	dev_dbg(ucp1301->dev, "set ivsense, ivsense_mode %d\n",
+		ucp1301->ivsense_mode);
+
+	return 0;
+}
+
+static int ucp1301_get_i2c_index(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = ucp1301->i2c_index;
+
+	return 0;
+}
+
+static const struct snd_kcontrol_new ucp1301_snd_controls[] = {
+	SOC_SINGLE_EXT("UCP1301 AGC Enable", 0, 0, 1, 0,
+		       ucp1301_get_agc_en, ucp1301_set_agc_en),
+	SOC_SINGLE_EXT("UCP1301 AGC Gain", 0, 0, 0x7F, 0,
+		       ucp1301_get_agc_gain, ucp1301_set_agc_gain),
+	SOC_SINGLE_EXT("UCP1301 CLSD Trim", 0, 0, 0x1f, 0,
+		       ucp1301_get_clasd_trim, ucp1301_set_clasd_trim),
+	SOC_SINGLE_EXT("UCP1301 R Load", 0, 0, INT_MAX, 0,
+		       ucp1301_get_r_load, ucp1301_set_r_load),
+	SOC_SINGLE_EXT("UCP1301 Power Limit P2", 0, 0, INT_MAX, 0,
+		       ucp1301_get_limit_p2, ucp1301_set_limit_p2),
+	SOC_SINGLE_EXT("UCP1301 Class Mode", 0, 0, MODE_MAX, 0,
+		       ucp1301_get_class_mode, ucp1301_set_class_mode),
+	SOC_SINGLE_EXT("UCP1301 Product ID", 0, 0, 0xf, 0,
+		       ucp1301_get_product_id, NULL),
+	SOC_SINGLE_EXT("UCP1301 HW Enable", 0, 0, 1, 0,
+		       ucp1301_get_pdn, ucp1301_set_pdn),
+	SOC_DOUBLE_EXT("UCP1301 Regs Control", 0, 0, 0, INT_MAX, 0,
+		       ucp1301_get_regs, ucp1301_set_regs),
+	SOC_SINGLE_EXT("UCP1301 IVsense", 0, 0, 3, 0,
+		       ucp1301_ivsense_get_mode, ucp1301_ivsense_set_mode),
+	SOC_SINGLE_EXT("UCP1301 I2C Index", 0, 0, 0xf, 0,
+		       ucp1301_get_i2c_index, NULL),
+};
 
 void ucp1301_audio_on(struct ucp1301_t *ucp1301, bool on_off)
 {
-	enum ucp1301_class_mode class_mode = ucp1301_g->class_mode;
+	enum ucp1301_class_mode class_mode;
 
-	dev_info(ucp1301->dev, "audio_on, on_off %d, class_mode %d\n",
-		 on_off, ucp1301->class_mode);
+	dev_dbg(ucp1301->dev, "audio_on, on_off %d, class_mode %d\n",
+		on_off, ucp1301->class_mode);
+
+	mutex_lock(&ucp1301->ctrl_lock);
+	class_mode = ucp1301->class_mode;
+	mutex_unlock(&ucp1301->ctrl_lock);
 
 	switch (class_mode) {
 	case HW_OFF:
@@ -1234,6 +1601,128 @@ void ucp1301_audio_on(struct ucp1301_t *ucp1301, bool on_off)
 
 	if (on_off)
 		ucp1301_ivsense_set(ucp1301);
+}
+
+static int ucp1301_power_on(struct snd_soc_dapm_widget *w,
+			    struct snd_kcontrol *k, int event)
+{
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	dev_dbg(ucp1301->dev, "wname %s, %s, class_mode %d\n",
+		w->name, ucp1301_get_event_name(event), ucp1301->class_mode);
+
+	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
+	case SND_SOC_DAPM_POST_PMU:
+		ucp1301_audio_on(ucp1301, true);
+		break;
+	case SND_SOC_DAPM_PRE_PMD:
+	case SND_SOC_DAPM_POST_PMD:
+		ucp1301_audio_on(ucp1301, false);
+		break;
+	default:
+		dev_err(ucp1301->dev, "unknown widget event type %d\n", event);
+	}
+
+	return 0;
+}
+
+static const struct snd_soc_dapm_widget ucp1301_dapm_widgets[] = {
+	SND_SOC_DAPM_AIF_IN("UCP1301 PLAY", "Playback", 0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_PGA_E("UCP1301 SPK ON", SND_SOC_NOPM, 0, 0, NULL, 0,
+			   ucp1301_power_on,
+			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_OUTPUT("UCP1301 SPK"),
+};
+
+static const struct snd_soc_dapm_route ucp1301_intercon[] = {
+	{"UCP1301 SPK", NULL, "UCP1301 PLAY"},
+	{"UCP1301 SPK", NULL, "UCP1301 SPK ON"},
+};
+
+static struct snd_soc_codec_driver soc_codec_dev_ucp1301 = {
+	.idle_bias_off = true,
+	.component_driver = {
+		.controls = ucp1301_snd_controls,
+		.num_controls = ARRAY_SIZE(ucp1301_snd_controls),
+		.dapm_widgets = ucp1301_dapm_widgets,
+		.num_dapm_widgets = ARRAY_SIZE(ucp1301_dapm_widgets),
+		.dapm_routes = ucp1301_intercon,
+		.num_dapm_routes = ARRAY_SIZE(ucp1301_intercon),
+	}
+};
+
+static int ucp1301_hw_params(struct snd_pcm_substream *substream,
+			     struct snd_pcm_hw_params *params,
+			     struct snd_soc_dai *dai)
+{
+	return 0;
+}
+
+static int ucp1301_set_dai_sysclk(struct snd_soc_dai *dai, int clk_id,
+				  unsigned int freq, int dir)
+{
+	return 0;
+}
+
+static int ucp1301_set_dai_fmt(struct snd_soc_dai *dai, unsigned int fmt)
+{
+	return 0;
+}
+
+static int ucp1301_trigger(struct snd_pcm_substream *substream, int cmd,
+			   struct snd_soc_dai *dai)
+{
+	return 0;
+}
+
+static int ucp1301_set_dai_mute(struct snd_soc_dai *dai, int mute)
+{
+	return 0;
+}
+
+#define UCP1301_RATES	(SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_11025 |\
+			SNDRV_PCM_RATE_16000 | SNDRV_PCM_RATE_22050 |\
+			SNDRV_PCM_RATE_32000 | SNDRV_PCM_RATE_44100 |\
+			SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_88200 |\
+			SNDRV_PCM_RATE_96000 | SNDRV_PCM_RATE_176400 |\
+			SNDRV_PCM_RATE_192000)
+
+#define UCP1301_FORMATS	(SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE | \
+			 SNDRV_PCM_FMTBIT_S32_LE)
+
+static struct snd_soc_dai_ops ucp1301_dai_ops = {
+	.hw_params = ucp1301_hw_params,
+	.set_sysclk = ucp1301_set_dai_sysclk,
+	.set_fmt = ucp1301_set_dai_fmt,
+	.trigger = ucp1301_trigger,
+	.digital_mute = ucp1301_set_dai_mute,
+};
+
+static struct snd_soc_dai_driver ucp1301_dai[] = {
+	{
+		.name = "ucp1301-SPK",
+		.playback = {
+			.stream_name = "Playback",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = UCP1301_RATES,
+			.formats = UCP1301_FORMATS,
+		},
+		.ops = &ucp1301_dai_ops,
+	},
+};
+
+static int ucp1301_debug_sysfs_init(struct ucp1301_t *ucp1301)
+{
+	int ret;
+
+	ret = sysfs_create_group(&ucp1301->dev->kobj, &ucp1301_attribute_group);
+	if (ret < 0)
+		dev_err(ucp1301->dev, "fail to create sysfs attr files\n");
+
+	return ret;
 }
 
 static int ucp1301_parse_dt(struct ucp1301_t *ucp1301, struct device_node *np)
@@ -1301,6 +1790,7 @@ static int ucp1301_i2c_probe(struct i2c_client *client,
 
 	ucp1301->dev = dev;
 	ucp1301->i2c_client = client;
+	ucp1301->i2c_index = client->adapter->nr;
 	i2c_set_clientdata(client, ucp1301);
 	ucp1301_g = ucp1301;
 
@@ -1317,6 +1807,7 @@ static int ucp1301_i2c_probe(struct i2c_client *client,
 		dev_err(&client->dev, "failed to parse device tree node\n");
 		return ret;
 	}
+	mutex_init(&ucp1301->ctrl_lock);
 
 	ucp1301_hw_on(ucp1301, true);
 	ret = ucp1301_read_chipid(ucp1301);
@@ -1349,13 +1840,26 @@ static int ucp1301_i2c_probe(struct i2c_client *client,
 	ucp1301->power_p1 = ucp1301->power_p2 + UCP_EXTRA_MAX_POWER;
 	ucp1301->power_pb = ucp1301->power_p2 - UCP_EXTRA_MIN_POWER;
 
-	return 0;
+	if (strcmp(client->name, ucp1301_type[0]) == 0) {
+		ret = snd_soc_register_codec(dev, &soc_codec_dev_ucp1301,
+					     &ucp1301_dai[0],
+					     ARRAY_SIZE(ucp1301_dai));
+	} else {
+		dev_warn(&client->dev, "iic client name error, %s\n",
+			 client->name);
+	}
+	if (ret)
+		dev_err(&client->dev, " %s register codec fail, %d\n",
+			client->name, ret);
+
+	return ret;
 }
 
 static int ucp1301_i2c_remove(struct i2c_client *client)
 {
 	struct ucp1301_t *ucp1301 = i2c_get_clientdata(client);
 
+	snd_soc_unregister_codec(&client->dev);
 	sysfs_remove_group(&ucp1301->dev->kobj, &ucp1301_attribute_group);
 
 	return 0;
@@ -1367,7 +1871,7 @@ static const struct i2c_device_id ucp1301_i2c_id[] = {
 };
 
 static const struct of_device_id extpa_of_match[] = {
-	{ .compatible = "sprd,ucp1301-smartpa" },
+	{ .compatible = "sprd,ucp1301-spk" },
 	{},
 };
 
