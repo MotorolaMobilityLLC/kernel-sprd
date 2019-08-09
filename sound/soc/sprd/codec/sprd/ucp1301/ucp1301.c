@@ -38,6 +38,13 @@ enum ucp1301_audio_mode {
 	MODE_MAX
 };
 
+enum ucp1301_ivsense_mode {
+	IVS_UCP1301,
+	IVS_UCP1300A,
+	IVS_UCP1300B,
+	IVS_MODE_MAX
+};
+
 struct ucp1301_t {
 	struct i2c_client *i2c_client;
 	struct regmap *regmap;
@@ -53,11 +60,14 @@ struct ucp1301_t {
 	 */
 	bool ivsense_mode_curt;
 	bool ivsense_mode_to_set;
+	enum ucp1301_ivsense_mode ivsense_mode;
 	u32 vosel;/* value of RG_BST_VOSEL */
 	u32 efs_data[4];/* 0 L, 1 M, 2 H, 3 T */
 	u32 calib_code;
 	enum ucp1301_audio_mode mode_curt;/* current mode */
 	enum ucp1301_audio_mode mode_to_set;
+	enum ucp1301_audio_mode class_mode;
+	u32 clsd_trim;
 };
 
 struct ucp1301_t *ucp1301_g;
@@ -73,6 +83,49 @@ static const struct regmap_config ucp1301_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 16,
 };
+
+static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
+{
+	u32 val;
+	int new_trim, ret;
+
+	/* check current state */
+	ret = regmap_read(ucp1301->regmap, REG_BST_REG0, &val);
+	if (ret < 0) {
+		dev_err(ucp1301->dev, "set clsd trim, read reg 0x%x fail, %d\n",
+			REG_BST_REG0, ret);
+		return ret;
+	}
+	ucp1301->bypass = (val & BIT_RG_BST_BYPASS) > 0 ? true : false;
+	dev_dbg(ucp1301->dev, "set clsd trim, databuf %d, bypass %d, calib_code %d(0x%x)\n",
+		clsd_trim, ucp1301->bypass, ucp1301->calib_code,
+		ucp1301->calib_code);
+
+	if (ucp1301->bypass) {
+		dev_err(ucp1301->dev, "you can't set clsd_trim when bypass mode is on\n");
+		return -EINVAL;
+	}
+
+	new_trim = ucp1301->calib_code + clsd_trim / 100 - 16;
+	if (new_trim < 0)
+		new_trim = 0;
+	else
+		new_trim = new_trim & BIT_RG_PMU_OSC1P6M_CLSD_TRIM(0x1f);
+
+	if (new_trim != ucp1301->calib_code) {
+		regmap_update_bits(ucp1301->regmap, REG_PMU_REG1,
+				   BIT_PMU_OSC1P6M_CLSD_SW_SEL,
+				   BIT_PMU_OSC1P6M_CLSD_SW_SEL);
+		regmap_update_bits(ucp1301->regmap, REG_PMU_REG1,
+				   BIT_RG_PMU_OSC1P6M_CLSD_TRIM(0x1f),
+				   new_trim);
+		ucp1301->calib_code = new_trim;
+		pr_info("set clsd trim, calib_code %d(0x%x)\n",
+			ucp1301->calib_code, ucp1301->calib_code);
+	}
+
+	return 0;
+}
 
 /* class AB depop boost on mode(spk + bst mode) */
 static void ucp1301_depop_ab_boost_on(struct ucp1301_t *ucp1301, bool enable)
@@ -546,12 +599,36 @@ static ssize_t ucp1301_get_mode(struct device *dev,
 	struct ucp1301_t *ucp1301 = dev_get_drvdata(dev);
 	ssize_t len;
 
-	len = sprintf(buf, "current mode %d, mode to set %d\n",
-		      ucp1301->mode_curt, ucp1301->mode_to_set);
+	len = sprintf(buf, "current mode %d\n", ucp1301->class_mode);
 	len += sprintf(buf + len,
 		       "mode: 0 hwoff, 1 spk ab, 2 rcv ab, 3 spk d, 4 rev d\n");
 
 	return len;
+}
+
+static void ucp1301_save_mode(struct ucp1301_t *ucp1301, u32 mode_type)
+{
+	switch (mode_type) {
+	case 0:
+		ucp1301->class_mode = HW_OFF;
+		break;
+	case 1:
+		ucp1301->class_mode = SPK_AB;
+		break;
+	case 2:
+		ucp1301->class_mode = RCV_AB;
+		break;
+	case 3:
+		ucp1301->class_mode = SPK_D;
+		break;
+	case 4:
+		ucp1301->class_mode = RCV_D;
+		break;
+	default:
+		dev_err(ucp1301->dev, "unknown mode type %d, set to default\n",
+			mode_type);
+		ucp1301->class_mode = SPK_D;
+	}
 }
 
 static ssize_t ucp1301_set_mode(struct device *dev,
@@ -559,37 +636,17 @@ static ssize_t ucp1301_set_mode(struct device *dev,
 				const char *buf, size_t len)
 {
 	struct ucp1301_t *ucp1301 = dev_get_drvdata(dev);
-	u32 databuf;
+	u32 mode_type;
 	int ret;
 
-	ret = kstrtouint(buf, 10, &databuf);
+	ret = kstrtouint(buf, 10, &mode_type);
 	if (ret) {
 		dev_err(ucp1301->dev, "set mode,fail %d, buf %s\n", ret, buf);
 		return ret;
 	}
 
-	pr_info("set mode, databuf %d, buf %s\n", databuf, buf);
-	switch (databuf) {
-	case 0:
-		ucp1301->mode_to_set = HW_OFF;
-		break;
-	case 1:
-		ucp1301->mode_to_set = SPK_AB;
-		break;
-	case 2:
-		ucp1301->mode_to_set = RCV_AB;
-		break;
-	case 3:
-		ucp1301->mode_to_set = SPK_D;
-		break;
-	case 4:
-		ucp1301->mode_to_set = RCV_D;
-		break;
-	default:
-		dev_err(ucp1301->dev, "unknown mode type %d, set to default\n",
-			databuf);
-		ucp1301->mode_to_set = HW_OFF;
-	}
+	pr_info("set mode, mode_type %d, buf %s\n", mode_type, buf);
+	ucp1301_save_mode(ucp1301, mode_type);
 
 	return len;
 }
@@ -774,15 +831,9 @@ static ssize_t ucp1301_set_vosel(struct device *dev,
 	return len;
 }
 
-/*
- * return current /ori clsd_trim value, ori clsd_trim value is
- * 0xf, corresponding clock output frequency is 1.6 MHz
- */
-static ssize_t ucp1301_get_clsd_trim(struct device *dev,
-				     struct device_attribute *attr, char *buf)
+static int ucp1301_read_clsd_trim(struct ucp1301_t *ucp1301, u32 *clsd_trim)
 {
-	struct ucp1301_t *ucp1301 = dev_get_drvdata(dev);
-	u32 val, clsd_trim;
+	u32 val;
 	int ret;
 
 	/* read clsd_trim */
@@ -792,7 +843,7 @@ static ssize_t ucp1301_get_clsd_trim(struct device *dev,
 			REG_PMU_REG1, ret);
 		return ret;
 	}
-	clsd_trim = val & BIT_RG_PMU_OSC1P6M_CLSD_TRIM(0x1f);
+	*clsd_trim = val & BIT_RG_PMU_OSC1P6M_CLSD_TRIM(0x1f);
 
 	/* read bypass state */
 	ret = regmap_read(ucp1301->regmap, REG_BST_REG0, &val);
@@ -804,8 +855,27 @@ static ssize_t ucp1301_get_clsd_trim(struct device *dev,
 	ucp1301->bypass = (val & BIT_RG_BST_BYPASS) > 0 ? true : false;
 
 	dev_dbg(ucp1301->dev, "get clsd trim, calib_code %d(0x%x), clsd_trim 0x%x, bypass %d\n",
-		ucp1301->calib_code, ucp1301->calib_code, clsd_trim,
+		ucp1301->calib_code, ucp1301->calib_code, *clsd_trim,
 		ucp1301->bypass);
+
+	return 0;
+}
+
+/*
+ * return current /ori clsd_trim value, ori clsd_trim value is
+ * 0xf, corresponding clock output frequency is 1.6 MHz
+ */
+static ssize_t ucp1301_get_clsd_trim(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+	struct ucp1301_t *ucp1301 = dev_get_drvdata(dev);
+	u32 clsd_trim;
+	int ret;
+
+	ret = ucp1301_read_clsd_trim(ucp1301, &clsd_trim);
+	if (ret)
+		dev_warn(ucp1301->dev, "get clsd trim fail, %d\n", ret);
+
 	return sprintf(buf,
 		       "current calib_code %d(0x%x), clsd_trim 0x%x, bypass %d\n",
 		       ucp1301->calib_code, ucp1301->calib_code,
@@ -818,8 +888,8 @@ static ssize_t ucp1301_set_clsd_trim(struct device *dev,
 				     const char *buf, size_t len)
 {
 	struct ucp1301_t *ucp1301 = dev_get_drvdata(dev);
-	u32 databuf, val;
-	int new_trim, ret;
+	u32 databuf;
+	int ret;
 
 	ret = kstrtouint(buf, 10, &databuf);
 	if (ret) {
@@ -828,39 +898,10 @@ static ssize_t ucp1301_set_clsd_trim(struct device *dev,
 		return ret;
 	}
 
-	/* check current state */
-	ret = regmap_read(ucp1301->regmap, REG_BST_REG0, &val);
-	if (ret < 0) {
-		dev_err(ucp1301->dev, "set clsd trim, read reg 0x%x fail, %d\n",
-			REG_BST_REG0, ret);
+	ucp1301->clsd_trim = databuf;
+	ret = ucp1301_write_clsd_trim(ucp1301, ucp1301->clsd_trim);
+	if (ret)
 		return ret;
-	}
-	ucp1301->bypass = (val & BIT_RG_BST_BYPASS) > 0 ? true : false;
-	dev_dbg(ucp1301->dev, "set clsd trim, databuf %d, bypass %d, calib_code %d(0x%x), buf %s\n",
-		databuf, ucp1301->bypass, ucp1301->calib_code,
-		 ucp1301->calib_code, buf);
-
-	if (ucp1301->bypass) {
-		dev_err(ucp1301->dev, "you can't set clsd_trim when bypass mode is on\n");
-		return -EINVAL;
-	}
-	new_trim = ucp1301->calib_code + (databuf / 100) - 16;
-	if (new_trim < 0)
-		new_trim = 0;
-	else
-		new_trim = new_trim & BIT_RG_PMU_OSC1P6M_CLSD_TRIM(0x1f);
-
-	if (new_trim != ucp1301->calib_code) {
-		regmap_update_bits(ucp1301->regmap, REG_PMU_REG1,
-				   BIT_PMU_OSC1P6M_CLSD_SW_SEL,
-				   BIT_PMU_OSC1P6M_CLSD_SW_SEL);
-		regmap_update_bits(ucp1301->regmap, REG_PMU_REG1,
-				   BIT_RG_PMU_OSC1P6M_CLSD_TRIM(0x1f),
-				   new_trim);
-		ucp1301->calib_code = new_trim;
-		pr_info("set clsd trim, calib_code %d(0x%x)\n",
-			ucp1301->calib_code, ucp1301->calib_code);
-	}
 
 	return len;
 }
@@ -908,19 +949,19 @@ static void ucp1301_ivsense_local(struct ucp1301_t *ucp1301)
 
 static void ucp1301_ivsense_set(struct ucp1301_t *ucp1301)
 {
-	bool mode_to_set;
+	enum ucp1301_ivsense_mode ivsense_mode = ucp1301->ivsense_mode;
 
-	dev_dbg(ucp1301->dev, "ivsense_set, ivsense_mode_curt %d, ivsense_mode_to_set %d\n",
-		ucp1301->ivsense_mode_curt, ucp1301->ivsense_mode_to_set);
-	if (ucp1301->ivsense_mode_curt == ucp1301->ivsense_mode_to_set)
-		mode_to_set = ucp1301->ivsense_mode_curt;
-	else
-		mode_to_set = ucp1301->ivsense_mode_to_set;
-
-	if (!mode_to_set)
+	switch (ivsense_mode) {
+	case IVS_UCP1300A:
 		ucp1301_ivsense_local(ucp1301);
-	else
+		break;
+	case IVS_UCP1301:
 		ucp1301_ivsense_remote(ucp1301);
+		break;
+	default:
+		dev_info(ucp1301->dev, "ivsense_set, this is ucp1300b or others %d\n",
+			 ivsense_mode);
+	}
 }
 
 static ssize_t ucp1301_get_ivsense_mode(struct device *dev,
@@ -932,10 +973,8 @@ static ssize_t ucp1301_get_ivsense_mode(struct device *dev,
 	ssize_t len;
 
 	len = sprintf(buf,
-		      "ivsense_mode_curt %d, ivsense_mode_to_set %d\n",
-		      ucp1301->ivsense_mode_curt,
-		      ucp1301->ivsense_mode_to_set);
-	len += sprintf(buf + len, "mode: 0 local, 1 remote\n");
+		      "ivsense_mode %d\n", ucp1301->ivsense_mode);
+	len += sprintf(buf + len, "mode: 0 remote, 1 local, 2 no\n");
 
 	return len;
 }
@@ -946,22 +985,25 @@ static ssize_t ucp1301_set_ivsense_mode(struct device *dev,
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct ucp1301_t *ucp1301 = i2c_get_clientdata(client);
-	u32 databuf;
+	u32 ivsense_mode;
 	int ret;
 
-	ret = kstrtouint(buf, 10, &databuf);
+	ret = kstrtouint(buf, 10, &ivsense_mode);
 	if (ret) {
 		dev_err(ucp1301->dev, "set ivsense, fail %d, buf %s\n",
 			ret, buf);
 		return ret;
 	}
 
-	dev_dbg(ucp1301->dev, "set ivsense, databuf %d, buf %s\n",
-		databuf, buf);
-	if (databuf)
-		ucp1301->ivsense_mode_to_set = true;
-	else
-		ucp1301->ivsense_mode_to_set = false;
+	if (ivsense_mode > IVS_UCP1300B) {
+		dev_err(ucp1301->dev, "set ivsense, out of range %d\n",
+			ivsense_mode);
+		return -EINVAL;
+	}
+
+	ucp1301->ivsense_mode = ivsense_mode;
+	dev_dbg(ucp1301->dev, "set ivsense, ivsense_mode %d\n",
+		ucp1301->ivsense_mode);
 
 	return len;
 }
