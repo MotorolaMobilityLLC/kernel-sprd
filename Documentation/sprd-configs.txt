@@ -3317,7 +3317,7 @@ CONFIG_E_SHOW_MEM
 	[function] show enhanced meminfo.
 CONFIG_F2FS_CHECK_FS
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5_32,sharkle32
+	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] code
 	[subsys] fs
 	[must] user
