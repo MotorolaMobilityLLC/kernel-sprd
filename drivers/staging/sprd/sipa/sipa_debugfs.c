@@ -176,6 +176,49 @@ static const struct file_operations sipa_flow_ctrl_fops = {
 	.release = single_release,
 };
 
+static int sipa_no_recycled_show(struct seq_file *s, void *unused)
+{
+	struct sipa_control *ipa = s->private;
+	struct sipa_skb_sender *sender;
+	struct sipa_skb_dma_addr_node *iter, *_iter;
+
+	sender = ipa->sender[SIPA_PKT_ETH];
+	if (list_empty(&sender->sending_list)) {
+		seq_puts(s, "[ETH_SEND] sending list is empty\n");
+	} else {
+		list_for_each_entry_safe(iter, _iter,
+					 &sender->sending_list, list)
+			seq_printf(s,
+				   "[ETH_SEND] skb = 0x%p, phy addr = 0x%llx\n",
+				   iter->skb, (u64)iter->dma_addr);
+	}
+
+	sender = ipa->sender[SIPA_PKT_IP];
+	if (list_empty(&sender->sending_list)) {
+		seq_puts(s, "[IP_SEND] sending list is empty\n");
+	} else {
+		list_for_each_entry_safe(iter, _iter,
+					 &sender->sending_list, list)
+			seq_printf(s,
+				   "[IP_SEND] skb = 0x%p, phy addr = 0x%llx\n",
+				   iter->skb, (u64)iter->dma_addr);
+	}
+
+	return 0;
+}
+
+static int sipa_no_recycled_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sipa_no_recycled_show, inode->i_private);
+}
+
+static const struct file_operations sipa_no_recycled_fops = {
+	.open = sipa_no_recycled_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
 static int sipa_nic_debug_show(struct seq_file *s, void *unused)
 {
 	int i;
@@ -241,6 +284,13 @@ int sipa_init_debugfs(struct sipa_plat_drv_cfg *sipa,
 
 	file = debugfs_create_file("nic", 0444, root, ctrl,
 				   &sipa_nic_debug_fops);
+	if (!file) {
+		ret = -ENOMEM;
+		goto err1;
+	}
+
+	file = debugfs_create_file("no_recycled", 0444, root, ctrl,
+				   &sipa_no_recycled_fops);
 	if (!file) {
 		ret = -ENOMEM;
 		goto err1;
