@@ -218,13 +218,22 @@ enum _id_status {
 	_IDSTA_FAIL = 2,
 };
 
+enum show_order {
+	ORDER_ACC = 1,
+	ORDER_MAG = 2,
+	ORDER_GYRO = 4,
+	ORDER_LIGHT = 5,
+	ORDER_PRS = 6,
+	ORDER_PROX = 8,
+};
+
 #define _HW_SENSOR_TOTAL 6
 #define VENDOR_ID_OFFSET 256
 struct hw_sensor_id_tag {
 	u8 id_status;
 	u8 vendor_id;
 	u8 chip_id;
-	char *pname;
+	char pname[128];
 };
 
 struct id_to_name_tag {

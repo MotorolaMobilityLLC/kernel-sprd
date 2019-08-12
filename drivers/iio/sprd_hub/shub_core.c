@@ -66,7 +66,6 @@ static struct hw_sensor_id_tag hw_sensor_id[_HW_SENSOR_TOTAL] = {
 	{0, 0xFF, 0xFF, ""},
 };
 
-static int get_sensor_id(struct shub_data *sensor);
 const char calibration_filename[SENSOR_ID_END][CALIB_PATH_MAX_LENG] = {
 	"none",
 	"acc",
@@ -111,6 +110,25 @@ static struct sensor_cali_info mag_cali_info;
 static struct sensor_cali_info light_cali_info;
 static struct sensor_cali_info prox_cali_info;
 static struct sensor_cali_info pressure_cali_info;
+
+static void get_sensor_info(char **sensor_name, int sensor_type, int success_num)
+{
+	int i, now_order = 0;
+	int show_info_order[_HW_SENSOR_TOTAL] = {ORDER_ACC, ORDER_MAG,
+						 ORDER_GYRO, ORDER_PROX,
+						 ORDER_LIGHT, ORDER_PRS};
+
+	for (i = 0; i < _HW_SENSOR_TOTAL; i++) {
+		if (show_info_order[i] == sensor_type) {
+			now_order = i;
+			break;
+		}
+	}
+
+	memcpy(hw_sensor_id[now_order].pname, sensor_name[success_num],
+					strlen(sensor_name[success_num]));
+	hw_sensor_id[now_order].id_status = _IDSTA_OK;
+}
 
 /**
  *send data
@@ -544,7 +562,7 @@ static void request_send_firmware(struct shub_data *sensor,
 			continue;
 		}
 		kfree(fw_data);
-
+		get_sensor_info(sensor_firms, sensor_type, i);
 		dev_info(&sensor->sensor_pdev->dev, "init sensor success\n");
 		success = 1;
 		break;
@@ -823,22 +841,9 @@ static void shub_download_calibration_data_work(struct work_struct *work)
 {
 	struct shub_data *sensor = container_of(work,
 		struct shub_data, download_cali_data_work);
-	int i;
-	int ret;
 
 	if (sensor->mcu_mode == SHUB_NORMAL) {
 		shub_download_calibration_data(sensor);
-		/* try to read id */
-		for (i = 0; i < 5; i++) {
-			ret = get_sensor_id(sensor);
-			if (ret >= 0)
-				break;
-			msleep(200);
-		}
-		if (i >= 5) {/* fail */
-			for (i = 0; i < _HW_SENSOR_TOTAL; i++)
-				hw_sensor_id[i].id_status = _IDSTA_FAIL;
-		}
 	}
 }
 
@@ -1699,80 +1704,6 @@ static ssize_t sensorhub_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(sensorhub);
 
-/* sensor id */
-static char *id_toname(u32 v_id)
-{/* id = VENDOR_ID_OFFSET * vendorid + chip id */
-	static const struct id_to_name_tag name_list[] = {
-		{0x0000, "don't know"},
-		{0x0011, "icm20600,Acc and Gyro DEVICE"},
-		{0x00AE, "icm20608"},
-		{0x00D1, "bmi160,Acc and Gyro DEVICE"},
-		{0x00F8, "BOSCH, bma223"},
-		{0x003d, "st,lis3mdl"},
-		{0x0069, "st,lsm6ds3"},
-		{0x006A, "st,lsm6dsl"},
-		{0x0033, "st,lis3dh"},
-		{0x00BD, "st,lps25h"},
-		{0x0020, "mc3416"},
-		{0x0002, "mxc4005"},
-		{0x00B0, "qma6981"},
-		{0x00E0, "rpr0521,ALSPRX DEVICE"},
-		{0x0006, "DYNA, ap3426"},
-		{0x0092, "ltr553"},
-		{0x0080, "ltr558"},
-		{0x001C, "ltr568"},
-		{0x00B1, "ltr578"},
-		{0x0052, "stk3332"},
-		{0x0058, "stk3338v"},
-		{0x0068, "epl2182"},
-		{0x0088, "epl2590"},
-		{0x0048, "akm0991x,Magnetometer"},
-		{0x0050, "af8133i"},
-		{0x0060, "af9133"},
-		{0x000A, "mmc3630"},
-		{0x0031, "qmc6983"},
-	};
-	int i;
-
-	for (i = 0; i < sizeof(name_list) / sizeof(struct id_to_name_tag);
-	     i++) {
-		if (v_id == name_list[i].id)
-			return name_list[i].pname;
-	}
-	return name_list[0].pname;
-}
-
-static int get_sensor_id(struct shub_data *sensor)
-{
-	u8 buf[2 * _HW_SENSOR_TOTAL];/* 2bytes per sensor */
-	int err;
-	int i;
-
-	err = shub_sipc_read(sensor,
-			     SHUB_GET_SENSORINFO_SUBTYPE,
-			     buf, sizeof(buf));
-	if (err < 0) {
-		dev_err(&sensor->sensor_pdev->dev,
-			"spic read fail, err %d\n", err);
-		return err;
-	}
-
-	for (i = 0; i < _HW_SENSOR_TOTAL; i++) {
-		if (sensor->log_control.udata[LOG_CTL_OUTPUT_FLAG] == 1)
-			dev_info(&sensor->sensor_pdev->dev,
-				 "[%d]0x%02x 0x%02x\n", i,
-				 buf[i * 2], buf[i * 2 + 1]);
-
-		hw_sensor_id[i].id_status = buf[i * 2];
-		hw_sensor_id[i].vendor_id = 0x00;
-		hw_sensor_id[i].chip_id = buf[i * 2 + 1];
-		hw_sensor_id[i].pname = id_toname(hw_sensor_id[i].chip_id);
-		if (hw_sensor_id[i].id_status == _IDSTA_NOT)
-			hw_sensor_id[i].id_status = _IDSTA_FAIL;
-	}
-	return 0;
-}
-
 static ssize_t hwsensor_id_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -1791,8 +1722,7 @@ static ssize_t hwsensor_id_show(struct device *dev,
 			TB_TYPENAME[i],
 			hw_sensor_id[i].id_status);
 
-		if (hw_sensor_id[i].id_status == _IDSTA_OK &&
-		    hw_sensor_id[i].pname) {
+		if (hw_sensor_id[i].id_status == _IDSTA_OK) {
 			temp_id = hw_sensor_id[i].vendor_id * VENDOR_ID_OFFSET +
 					hw_sensor_id[i].chip_id;
 			len += snprintf(buf + len, 32, "(0x%04x, %s)",
@@ -1820,10 +1750,10 @@ static ssize_t sensor_info_show(struct device *dev,
 			(hw_sensor_id[i].id_status == _IDSTA_OK),
 			SENSOR_TYPENAME[i]);
 
-		if (hw_sensor_id[i].id_status == _IDSTA_OK &&
-		    hw_sensor_id[i].pname) {
-			len += snprintf(buf + len, 32, "%s",
-				hw_sensor_id[i].pname);
+		if (hw_sensor_id[i].id_status == _IDSTA_OK) {
+			len += snprintf(buf + len,
+					sizeof(hw_sensor_id[i].pname),
+					"%s", hw_sensor_id[i].pname);
 		}
 
 		len += sprintf(buf + len, "\n");
