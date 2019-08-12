@@ -203,9 +203,6 @@
 	ddr_dfs: scene-frequency {
 		compatible = "sprd,dfs";
 		freq-num = <8>;
-		sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
-			"camhigh", "camveryhigh";
-		sprd-freq = <933 311 233 400 622 933>;
 	};
 
 	reserved_memory: reserved-memory {

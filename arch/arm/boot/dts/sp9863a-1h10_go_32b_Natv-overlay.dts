@@ -73,3 +73,9 @@
 		};
 	};
 };
+
+&ddr_dfs {
+	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+			"camhigh", "camveryhigh";
+	sprd-freq = <933 400 233 400 622 933>;
+};
