@@ -308,6 +308,10 @@
 	status = "okay";
 };
 
+&sdio0 {
+	cd-gpios = <&eic_sync 9 1>;
+};
+
 &dpu {
 	status = "okay";
 };
