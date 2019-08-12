@@ -226,6 +226,8 @@ static int sched_energy_probe(struct platform_device *pdev)
 
 		opp = dev_pm_opp_find_freq_floor(cpu_dev,
 						 &max_frequencies[cpu]);
+		dev_pm_opp_put(opp);
+
 		if (IS_ERR_OR_NULL(opp)) {
 			if (!opp || PTR_ERR(opp) == -ENODEV)
 				ret = -EPROBE_DEFER;
