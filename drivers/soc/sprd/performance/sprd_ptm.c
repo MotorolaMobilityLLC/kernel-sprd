@@ -1041,6 +1041,18 @@ static int sprd_ptm_probe(struct platform_device *pdev)
 	if (!sdev)
 		return -ENOMEM;
 
+	/* get number of ddr channel */
+	if (of_property_read_u32_index(pdev->dev.of_node,
+				       "sprd,ddr-chn",
+				       0, &sdev->pub_chn)) {
+		dev_err(&pdev->dev, "Error: Can't get chns number!\n");
+		return -EINVAL;
+	}
+
+	/* inaccuracy DDR AXI channel number */
+	if (!sdev->pub_chn)
+		return -EINVAL;
+
 	sdev->sprd_ptm_list = devm_kzalloc(&pdev->dev,
 				sdev->pub_chn * sizeof(char *),
 				GFP_KERNEL);
@@ -1072,13 +1084,6 @@ static int sprd_ptm_probe(struct platform_device *pdev)
 		return PTR_ERR(tpiu_base);
 	}
 
-	/* get number of ddr channel */
-	if (of_property_read_u32_index(pdev->dev.of_node,
-				       "sprd,ddr-chn",
-				       0, &sdev->pub_chn)) {
-		dev_err(&pdev->dev, "Error: Can't get chns number!\n");
-		return -EINVAL;
-	}
 	/* get name of each ddr channel */
 	for (i = 0; i < sdev->pub_chn; i++) {
 		if (of_property_read_string_index(pdev->dev.of_node,
