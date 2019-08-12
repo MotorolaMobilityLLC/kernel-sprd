@@ -28,6 +28,18 @@
 /* Timeout (us) of polling the status */
 #define UCP_READ_EFS_POLL_TIMEOUT	800
 #define UCP_READ_EFS_POLL_DELAY_US	200
+#define UCP_AGC_GAIN0		0x65
+#define UCP_PRODUCT_ID_MASK	0xe
+#define UCP_POWER_BASE_DATA	(1383 * 1383ULL)
+#define UCP_BASE_DIVISOR	10000000000ULL
+#define UCP_LIMIT_P2		1000
+#define UCP_EXTRA_MAX_POWER	400
+#define UCP_EXTRA_MIN_POWER	300
+#define UCP_R_LOAD		8000
+#define UCP_AGC_N2		2
+#define UCP_AGC_N1		1
+#define UCP_AGC_NB		16
+#define UCP_TYPE_MAX		3
 
 enum ucp1301_class_mode {
 	HW_OFF,
@@ -59,7 +71,17 @@ struct ucp1301_t {
 	u32 efs_data[4];/* 0 L, 1 M, 2 H, 3 T */
 	u32 calib_code;
 	enum ucp1301_class_mode class_mode;
+	bool agc_en;
+	u32 agc_gain0;
 	u32 clsd_trim;
+	u32 power_p2;
+	u32 power_p1;
+	u32 power_pb;
+	u32 r_load;
+	u32 agc_n1;
+	u32 agc_n2;
+	u32 agc_nb;
+	u32 product_id;
 };
 
 struct ucp1301_t *ucp1301_g;
@@ -75,6 +97,81 @@ static const struct regmap_config ucp1301_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 16,
 };
+
+static void ucp1301_write_agc_en(struct ucp1301_t *ucp1301, bool agc_en)
+{
+	regmap_update_bits(ucp1301->regmap, REG_AGC_EN, BIT_AGC_EN,
+			   agc_en);
+}
+
+static void ucp1301_set_agc_n2(struct ucp1301_t *ucp1301, u32 agc_n2)
+{
+	int ret;
+
+	ret = regmap_update_bits(ucp1301->regmap, REG_AGC_N2,
+				 BIT_AGC_N2(0xff),
+				 agc_n2);
+	if (ret)
+		dev_warn(ucp1301->dev, "update BIT_AGC_N2 fail, %d\n",
+			 ret);
+}
+
+static void ucp1301_set_agc_n1(struct ucp1301_t *ucp1301, u32 agc_n1)
+{
+	int ret;
+
+	ret = regmap_update_bits(ucp1301->regmap, REG_AGC_N1,
+				 BIT_AGC_N1(0xff),
+				 agc_n1);
+	if (ret)
+		dev_warn(ucp1301->dev, "update BIT_AGC_N1 fail, %d\n",
+			 ret);
+}
+
+static void ucp1301_set_agc_nb(struct ucp1301_t *ucp1301, u32 agc_nb)
+{
+	int ret;
+
+	ret = regmap_update_bits(ucp1301->regmap, REG_AGC_NB,
+				 BIT_AGC_NB(0xff),
+				 agc_nb);
+	if (ret)
+		dev_warn(ucp1301->dev, "update BIT_AGC_NB fail, %d\n",
+			 ret);
+}
+
+static void ucp1301_set_agc_vcut(struct ucp1301_t *ucp1301, u32 agc_vcut)
+{
+	int ret;
+
+	ret = regmap_update_bits(ucp1301->regmap, REG_AGC_VCUT,
+				 BIT_AGC_VCUT(0x3ff), agc_vcut);
+	if (ret)
+		dev_warn(ucp1301->dev, "update BIT_AGC_VCUT fail, %d\n",
+			 ret);
+}
+
+static void ucp1301_set_agc_mk2(struct ucp1301_t *ucp1301, u32 agc_mk2)
+{
+	int ret;
+
+	ret = regmap_update_bits(ucp1301->regmap, REG_AGC_MK2,
+				 BIT_AGC_MK2(0xff), agc_mk2);
+	if (ret)
+		dev_warn(ucp1301->dev, "update BIT_AGC_MK2 fail, %d\n",
+			 ret);
+}
+
+static void ucp1301_write_agc_gain(struct ucp1301_t *ucp1301, u32 agc_gain0)
+{
+	int ret;
+
+	ret = regmap_update_bits(ucp1301->regmap, REG_AGC_GAIN0,
+				 BIT_AGC_GAIN0(0x7f), agc_gain0);
+	if (ret)
+		dev_warn(ucp1301->dev, "update BIT_AGC_GAIN0 fail, %d\n",
+			 ret);
+}
 
 static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
 {
@@ -117,6 +214,53 @@ static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
 	}
 
 	return 0;
+}
+
+static void ucp1301_calcu_power(struct ucp1301_t *ucp1301, u32 r_load,
+				u32 power_p2, u32 power_p1, u32 power_pb)
+{
+	u64 temp_val;
+	u32 value;
+
+	/* calculate limit_p2 */
+	temp_val = UCP_POWER_BASE_DATA * power_p2 * r_load * ucp1301->agc_n2;
+	temp_val /= UCP_BASE_DIVISOR;
+	dev_dbg(ucp1301->dev, "power_p2 %u, r_load %u, agc_n2 %u, agc_n1 %u, agc_nb %u, temp_val 0x%llx\n",
+		power_p2, r_load, ucp1301->agc_n2, ucp1301->agc_n1,
+		ucp1301->agc_nb, temp_val);
+	value = temp_val & BIT_AGC_P2_L(0xffff);
+	regmap_update_bits(ucp1301->regmap, REG_AGC_P2_L, BIT_AGC_P2_L(0xffff),
+			   value);
+
+	value = (temp_val >> 16) & BIT_AGC_P2_H(0x7f);
+	regmap_update_bits(ucp1301->regmap, REG_AGC_P2_H, BIT_AGC_P2_H(0x7f),
+			   value);
+
+	/* calculate p1, p1 is max output power */
+	temp_val = UCP_POWER_BASE_DATA * power_p1 * r_load * ucp1301->agc_n1;
+	temp_val /= UCP_BASE_DIVISOR;
+	dev_dbg(ucp1301->dev, "power_p1 %u, temp_val 0x%llx\n",
+		power_p1, temp_val);
+	value = temp_val & BIT_AGC_P1_L(0xffff);
+	regmap_update_bits(ucp1301->regmap, REG_AGC_P1_L, BIT_AGC_P1_L(0xffff),
+			   value);
+
+	value = (temp_val >> 16) & BIT_AGC_P1_H(0x7f);
+	regmap_update_bits(ucp1301->regmap, REG_AGC_P1_H, BIT_AGC_P1_H(0x7f),
+			   value);
+
+	/* calculate pb, pb is min output power */
+	temp_val = UCP_POWER_BASE_DATA * power_pb * r_load * ucp1301->agc_nb;
+	temp_val /= UCP_BASE_DIVISOR;
+	dev_dbg(ucp1301->dev, "power_pb %u, temp_val 0x%llx\n",
+		power_pb, temp_val);
+	value = temp_val & BIT_AGC_PB_L(0xffff);
+	regmap_update_bits(ucp1301->regmap, REG_AGC_PB_L, BIT_AGC_PB_L(0xffff),
+			   value);
+
+	value = (temp_val >> 16) & BIT_AGC_PB_H(0x7f);
+	regmap_update_bits(ucp1301->regmap, REG_AGC_PB_H, BIT_AGC_PB_H(0x7f),
+			   value);
 }
 
 /* class AB depop boost on mode(spk + bst mode) */
@@ -350,7 +494,7 @@ static int ucp1301_read_efs_data(struct ucp1301_t *ucp1301)
 
 static int ucp1301_read_efuse(struct ucp1301_t *ucp1301)
 {
-	u32 val;
+	u32 val, product_id;
 	int ret;
 
 	ret = regmap_read_poll_timeout(ucp1301->regmap, REG_EFS_STATUS, val,
@@ -397,14 +541,35 @@ static int ucp1301_read_efuse(struct ucp1301_t *ucp1301)
 		ucp1301->calib_code =
 			(ucp1301->efs_data[0] &
 			 BIT_EFS_RD_DATA_L_OSC1P6M_CLSD_TRIM(0x1f)) >> 9;
+		product_id = ucp1301->efs_data[0] & UCP_PRODUCT_ID_MASK;
+		ucp1301->product_id = product_id >> 1;
 	} else {
 		ucp1301->calib_code = 0xf;/* set default value if  */
+		ucp1301->product_id = 1;/* treat as ucp1301 in default */
 		pr_warn("chip not calibrated, set default value 0xf for calib_code\n");
 	}
 
 	pr_info("read efuse, calib_code 0x%x\n", ucp1301->calib_code);
 
 	return 0;
+}
+
+static void ucp1301_power_param_init(struct ucp1301_t *ucp1301)
+{
+	ucp1301_set_agc_n2(ucp1301, UCP_AGC_N2);
+	ucp1301->agc_n2 = UCP_AGC_N2;
+
+	ucp1301_set_agc_n1(ucp1301, UCP_AGC_N1);
+	ucp1301->agc_n1 = UCP_AGC_N1;
+
+	ucp1301_set_agc_nb(ucp1301, UCP_AGC_NB);
+	ucp1301->agc_nb = UCP_AGC_NB;
+}
+
+static void ucp1301_reg_init(struct ucp1301_t *ucp1301)
+{
+	ucp1301_set_agc_vcut(ucp1301, 0x1c9);
+	ucp1301_set_agc_mk2(ucp1301, 0x1);
 }
 
 int ucp1301_hw_on(struct ucp1301_t *ucp1301, bool on)
@@ -418,11 +583,16 @@ int ucp1301_hw_on(struct ucp1301_t *ucp1301, bool on)
 
 	dev_dbg(ucp1301->dev, "hw_on, on %d\n", on);
 	if (on) {
-		gpiod_set_value_cansleep(ucp1301->reset_gpio, false);
-		usleep_range(2000, 2050);
 		gpiod_set_value_cansleep(ucp1301->reset_gpio, true);
 		usleep_range(2000, 2050);
 		ucp1301->hw_enabled = true;
+		ucp1301_reg_init(ucp1301);
+		ucp1301_write_clsd_trim(ucp1301, ucp1301->clsd_trim);
+		ucp1301_power_param_init(ucp1301);
+		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
+				    ucp1301->power_p1, ucp1301->power_pb);
+		ucp1301_write_agc_en(ucp1301, ucp1301->agc_en);
+		ucp1301_write_agc_gain(ucp1301, ucp1301->agc_gain0);
 	} else {
 		ret = regmap_update_bits(ucp1301->regmap, REG_MODULE_EN,
 					 BIT_CHIP_EN, 0);
@@ -1033,43 +1203,37 @@ static int ucp1301_debug_sysfs_init(struct ucp1301_t *ucp1301)
 	return ret;
 }
 
-void ucp1301_audio_on(bool on_off)
+void ucp1301_audio_on(struct ucp1301_t *ucp1301, bool on_off)
 {
 	enum ucp1301_class_mode class_mode = ucp1301_g->class_mode;
 
-	dev_info(ucp1301_g->dev, "audio_on, on_off %d, class_mode %d\n",
-		 on_off, ucp1301_g->class_mode);
+	dev_info(ucp1301->dev, "audio_on, on_off %d, class_mode %d\n",
+		 on_off, ucp1301->class_mode);
 
 	switch (class_mode) {
 	case HW_OFF:
-		ucp1301_hw_on(ucp1301_g, on_off);
+		ucp1301_hw_on(ucp1301, on_off);
 		break;
 	case SPK_AB:
-		ucp1301_audio_speaker(ucp1301_g, on_off);
+		ucp1301_audio_speaker(ucp1301, on_off);
 		break;
 	case RCV_AB:
-		ucp1301_audio_receiver(ucp1301_g, on_off);
+		ucp1301_audio_receiver(ucp1301, on_off);
 		break;
 	case SPK_D:
-		ucp1301_audio_speaker_d(ucp1301_g, on_off);
+		ucp1301_audio_speaker_d(ucp1301, on_off);
 		break;
 	case RCV_D:
-		ucp1301_audio_receiver_d(ucp1301_g, on_off);
+		ucp1301_audio_receiver_d(ucp1301, on_off);
 		break;
 	default:
-		dev_err(ucp1301_g->dev, "ucp1301 audio on, power down for mode error %d\n",
+		dev_err(ucp1301->dev, "unknown mode type error, replace it with SPK_D, %d\n",
 			class_mode);
-		ucp1301_hw_on(ucp1301_g, false);
+		ucp1301_audio_speaker_d(ucp1301, on_off);
 	}
 
-	if (on_off && (class_mode == SPK_D || class_mode == RCV_D)) {
-		ucp1301_ivsense_set(ucp1301_g);
-		/* temp source code, wait for kcontrol about */
-		regmap_update_bits(ucp1301_g->regmap, REG_AGC_GAIN0,
-				   BIT_AGC_GAIN0(0x7f), BIT_AGC_GAIN0(0x57));
-		regmap_update_bits(ucp1301_g->regmap, REG_AGC_EN, BIT_AGC_EN,
-				   BIT_AGC_EN);
-	}
+	if (on_off)
+		ucp1301_ivsense_set(ucp1301);
 }
 
 static int ucp1301_parse_dt(struct ucp1301_t *ucp1301, struct device_node *np)
@@ -1163,10 +1327,27 @@ static int ucp1301_i2c_probe(struct i2c_client *client,
 	}
 	ucp1301_read_efuse(ucp1301);
 
+	switch (ucp1301->product_id) {
+	case 2:
+		ucp1301->ivsense_mode = IVS_UCP1300A;
+		break;
+	case 4:
+		ucp1301->ivsense_mode = IVS_UCP1300B;
+		break;
+	default:
+		ucp1301->ivsense_mode = IVS_UCP1301;
+	}
+
 	ucp1301_debug_sysfs_init(ucp1301);
 	ucp1301_hw_on(ucp1301, false);
 	ucp1301->init_flag = true;
 	ucp1301->class_mode = SPK_D;
+	ucp1301->agc_en = false;
+	ucp1301->agc_gain0 = UCP_AGC_GAIN0;
+	ucp1301->r_load = UCP_R_LOAD;
+	ucp1301->power_p2 = UCP_LIMIT_P2;
+	ucp1301->power_p1 = ucp1301->power_p2 + UCP_EXTRA_MAX_POWER;
+	ucp1301->power_pb = ucp1301->power_p2 - UCP_EXTRA_MIN_POWER;
 
 	return 0;
 }
