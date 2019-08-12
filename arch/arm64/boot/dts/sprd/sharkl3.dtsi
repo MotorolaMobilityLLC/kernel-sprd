@@ -1212,7 +1212,7 @@
 				reg = <0x60a00000 0xc000>,
 					<0x60a0c000 0x60>;
 				iova-base = <0x40000000>;
-				iova-size = <0x10000000>;
+				iova-size = <0x20000000>;
 				reg_name = "mmu_interrupt_reg", "mmu_reg",
 					   "iova pool";
 				status = "disabled";
@@ -1227,6 +1227,7 @@
 				interrupts_name = "ch0", "ch1";
 				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_LOG_SOFT_RST>;
 				syscon-names = "reset";
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp-count = <1>;
 				iommus = <&iommu_isp>;
 				status = "disable";
@@ -1238,7 +1239,7 @@
 				reg = <0x60b00000 0xffc00>,
 					<0x60bffc00 0x400>;
 				iova-base = <0x50000000>;
-				iova-size = <0x10000000>;
+				iova-size = <0x20000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg",
 					"iova pool";
 				status = "disabled";
