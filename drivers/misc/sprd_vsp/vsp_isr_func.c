@@ -31,15 +31,15 @@ int handle_vsp_interrupt(struct vsp_dev_t *vsp_hw_dev, int *status,
 	int int_status;
 	int mmu_status;
 
-	int_status = readl_relaxed(vsp_glb_reg_base + VSP_INT_STS_OFF);
+	int_status = readl_relaxed(vsp_glb_reg_base + VSP_INT_RAW_OFF);
 
 	if (vsp_hw_dev->version >= SHARKL3) {
+		mmu_status = readl_relaxed(sprd_vsp_base + VSP_MMU_INT_RAW_OFF);
 		*status |= int_status | (mmu_status << 16);
-		mmu_status = readl_relaxed(sprd_vsp_base + VSP_MMU_INT_STS_OFF);
 	} else {
 		*status = int_status;
 		mmu_status = (int_status >> 10) & 0xff;
-		int_status = *status & 0x3f;
+		int_status = *status & 0x3ff;
 	}
 
 	if (((int_status & 0x1fff) == 0) &&
