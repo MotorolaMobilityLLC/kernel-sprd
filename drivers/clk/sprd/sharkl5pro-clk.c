@@ -111,6 +111,7 @@ static struct clk_bit_field f_dpll0[PLL_FACT_MAX] = {
 };
 static SPRD_PLL_WITH_ITABLE_1K(dpll0_clk, "dpll0", "dpll0-gate", 0x4,
 			       3, dpll0_ftable, f_dpll0, 240);
+static CLK_FIXED_FACTOR(dpll0_58m31, "dpll0-58m31", "dpll0", 32, 1, 0);
 
 static struct sprd_clk_common *sharkl5pro_g0_pll_clks[] = {
 	/* address base is 0x32390000 */
@@ -119,7 +120,8 @@ static struct sprd_clk_common *sharkl5pro_g0_pll_clks[] = {
 
 static struct clk_hw_onecell_data sharkl5pro_g0_pll_hws = {
 	.hws	= {
-		[CLK_DPLL0]	= &dpll0_clk.common.hw,
+		[CLK_DPLL0]		= &dpll0_clk.common.hw,
+		[CLK_DPLL0_58M31]	= &dpll0_58m31.hw,
 	},
 	.num	= CLK_ANLG_PHY_G0_NUM,
 };
@@ -157,6 +159,7 @@ static struct clk_bit_field f_mpll[PLL_FACT_MAX] = {
 static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll1_clk, "mpll1", "mpll1-gate", 0x0,
 				   3, mpll_ftable, f_mpll, 240,
 				   1000, 1000, 1, 1200000000);
+static CLK_FIXED_FACTOR(mpll1_63m38, "mpll1-63m38", "mpll1", 32, 1, 0);
 
 static struct sprd_clk_common *sharkl5pro_g2_pll_clks[] = {
 	/* address base is 0x323B0000 */
@@ -165,7 +168,8 @@ static struct sprd_clk_common *sharkl5pro_g2_pll_clks[] = {
 
 static struct clk_hw_onecell_data sharkl5pro_g2_pll_hws = {
 	.hws	= {
-		[CLK_MPLL1]	= &mpll1_clk.common.hw,
+		[CLK_MPLL1]		= &mpll1_clk.common.hw,
+		[CLK_MPLL1_63M38]	= &mpll1_63m38.hw,
 	},
 	.num	= CLK_ANLG_PHY_G2_NUM,
 };
@@ -224,6 +228,7 @@ static struct clk_bit_field f_mpll2[PLL_FACT_MAX] = {
 static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll0_clk, "mpll0", "mpll0-gate", 0x54,
 				   3, mpll_ftable, f_mpll, 240,
 				   1000, 1000, 1, 1200000000);
+static CLK_FIXED_FACTOR(mpll0_56m88, "mpll0-56m88", "mpll0", 32, 1, 0);
 
 static struct freq_table mpll2_ftable[6] = {
 	{ .ibias = 0, .max_freq = 1200000000ULL },
@@ -237,6 +242,7 @@ static struct freq_table mpll2_ftable[6] = {
 static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll2_clk, "mpll2", "mpll2-gate", 0x9c,
 				   3, mpll2_ftable, f_mpll2, 240,
 				   1000, 1000, 1, 1000000000);
+static CLK_FIXED_FACTOR(mpll2_47m13, "mpll2-47m13", "mpll2", 32, 1, 0);
 
 static struct sprd_clk_common *sharkl5pro_g3_pll_clks[] = {
 	/* address base is 0x323c0000 */
@@ -251,7 +257,9 @@ static struct clk_hw_onecell_data sharkl5pro_g3_pll_hws = {
 		[CLK_RPLL]		= &rpll_clk.common.hw,
 		[CLK_AUDIO_GATE]	= &audio_gate.common.hw,
 		[CLK_MPLL0]		= &mpll0_clk.common.hw,
+		[CLK_MPLL0_56M88]	= &mpll0_56m88.hw,
 		[CLK_MPLL2]		= &mpll2_clk.common.hw,
+		[CLK_MPLL2_47M13]	= &mpll2_47m13.hw,
 	},
 	.num	= CLK_ANLG_PHY_G3_NUM,
 };
@@ -306,11 +314,13 @@ static CLK_FIXED_FACTOR(isppll_78m, "isppll-78m", "isppll", 12, 1, 0);
 static SPRD_PLL_WITH_ITABLE_K_FVCO(gpll_clk, "gpll", "gpll-gate", 0x48,
 				   3, ftable, f_gpll, 240,
 				   1000, 1000, 1, 750000000);
+static CLK_FIXED_FACTOR(gpll_40m, "gpll-40m", "gpll", 20, 1, 0);
 
 #define f_cppll f_twpll
 static SPRD_PLL_WITH_ITABLE_K_FVCO(cppll_clk, "cppll", "cppll-gate", 0x60,
 				   3, ftable, f_cppll, 240,
 				   1000, 1000, 1, 750000000);
+static CLK_FIXED_FACTOR(cppll_39m32, "cppll-39m32", "cppll", 26, 1, 0);
 
 static struct sprd_clk_common *sharkl5pro_gc_pll_clks[] = {
 	/* address base is 0x323e0000 */
@@ -351,7 +361,9 @@ static struct clk_hw_onecell_data sharkl5pro_gc_pll_hws = {
 		[CLK_ISPPLL_468M]	= &isppll_468m.hw,
 		[CLK_ISPPLL_78M]	= &isppll_78m.hw,
 		[CLK_GPLL]		= &gpll_clk.common.hw,
+		[CLK_GPLL_40M]		= &gpll_40m.hw,
 		[CLK_CPPLL]		= &cppll_clk.common.hw,
+		[CLK_CPPLL_39M32]	= &cppll_39m32.hw,
 	},
 	.num	= CLK_ANLG_PHY_GC_NUM,
 };
@@ -1087,15 +1099,20 @@ static const char * const adi_parents[] = { "rco-4m", "ext-26m",
 static SPRD_MUX_CLK(adi_clk, "adi-clk", adi_parents, 0x224,
 		    0, 3, SHARKL5PRO_MUX_FLAG);
 
-static const char * const aux_parents[] = { "ext-32k", "ext-26m" };
+static const char * const aux_parents[] = { "ext-32k", "ext-26m",
+					    "ext-26m-aud", "rco-25m",
+					    "cppll-39m32", "mpll0-56m88",
+					    "mpll1-63m38", "mpll2-47m13",
+					    "dpll0-58m31", "gpll-40m",
+					    "twpll-48m"};
 static SPRD_COMP_CLK(aux0_clk, "aux0-clk", aux_parents, 0x228,
-		     0, 1, 8, 4, 0);
+		     0, 5, 8, 4, 0);
 static SPRD_COMP_CLK(aux1_clk, "aux1-clk", aux_parents, 0x22c,
-		     0, 1, 8, 4, 0);
+		     0, 5, 8, 4, 0);
 static SPRD_COMP_CLK(aux2_clk, "aux2-clk", aux_parents, 0x230,
-		     0, 1, 8, 4, 0);
+		     0, 5, 8, 4, 0);
 static SPRD_COMP_CLK(probe_clk, "probe-clk", aux_parents, 0x234,
-		     0, 1, 8, 4, 0);
+		     0, 5, 8, 4, 0);
 
 static const char * const pwm_parents[] = { "clk-32k", "ext-26m",
 					"rco-4m", "rco-25m", "twpll-48m" };

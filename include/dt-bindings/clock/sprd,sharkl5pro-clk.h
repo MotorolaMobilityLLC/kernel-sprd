@@ -21,16 +21,20 @@
 #define CLK_PMU_GATE_NUM		(CLK_MPLL2_GATE + 1)
 
 #define CLK_DPLL0			0
-#define CLK_ANLG_PHY_G0_NUM		(CLK_DPLL0 + 1)
+#define CLK_DPLL0_58M31			1
+#define CLK_ANLG_PHY_G0_NUM		(CLK_DPLL0_58M31 + 1)
 
 #define CLK_MPLL1			0
-#define CLK_ANLG_PHY_G2_NUM		(CLK_MPLL1 + 1)
+#define CLK_MPLL1_63M38			1
+#define CLK_ANLG_PHY_G2_NUM		(CLK_MPLL1_63M38 + 1)
 
 #define CLK_RPLL			0
 #define CLK_AUDIO_GATE			1
 #define CLK_MPLL0			2
-#define CLK_MPLL2			3
-#define CLK_ANLG_PHY_G3_NUM		(CLK_MPLL2 + 1)
+#define CLK_MPLL0_56M88			3
+#define CLK_MPLL2			4
+#define CLK_MPLL2_47M13			5
+#define CLK_ANLG_PHY_G3_NUM		(CLK_MPLL2_47M13 + 1)
 
 #define CLK_TWPLL			0
 #define CLK_TWPLL_768M			1
@@ -60,8 +64,10 @@
 #define CLK_ISPPLL_468M			25
 #define CLK_ISPPLL_78M			26
 #define CLK_GPLL			27
-#define CLK_CPPLL			28
-#define CLK_ANLG_PHY_GC_NUM		(CLK_CPPLL + 1)
+#define CLK_GPLL_40M			28
+#define CLK_CPPLL			29
+#define CLK_CPPLL_39M32			30
+#define CLK_ANLG_PHY_GC_NUM		(CLK_CPPLL_39M32 + 1)
 
 #define CLK_AP_APB			0
 #define CLK_IPI			        1
