@@ -42,7 +42,7 @@
 		compatible = "sprd,hwdvfs-vsp-sharkl5pro";
 		sprd,dvfs-work-freq = <384000000>;
 		sprd,dvfs-idle-freq = <256000000>;
-		sprd,dvfs-enable-flag = <0>;
+		sprd,dvfs-enable-flag = <1>;
 		sprd,freq-upd-delay-en = <0>;
 		sprd,freq-upd-hdsk-en = <1>;
 
