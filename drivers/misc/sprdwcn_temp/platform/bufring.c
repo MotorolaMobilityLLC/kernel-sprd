@@ -206,6 +206,13 @@ int mdbg_ring_read(struct mdbg_ring_t *ring, void *buf, int len)
  */
 int mdbg_ring_write(struct mdbg_ring_t *ring, void *buf, unsigned int len)
 {
+#ifdef CONFIG_WCN_RDCDBG
+	if (ring->is_mem == 1)
+		dumpmem_rx_callback(buf, len);
+	else
+		log_rx_callback(buf, len);
+	return len;
+#endif
 	int len1, len2 = 0;
 	char *pstart = NULL;
 	char *pend = NULL;

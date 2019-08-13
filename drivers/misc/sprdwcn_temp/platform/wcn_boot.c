@@ -1670,6 +1670,9 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 		marlin_write_cali_data();
 		mem_pd_save_bin();
 #endif
+#ifdef CONFIG_WCN_RDCDBG
+		wcn_rdc_debug_init();
+#endif
 		check_cp_ready();
 		complete(&marlin_dev->download_done);
 	}

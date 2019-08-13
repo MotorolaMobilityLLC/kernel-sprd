@@ -1144,6 +1144,7 @@ int mdbg_dump_mem(void)
 	for (i = 0; i < 16; i++)
 		edma_dump_chn_reg(i);
 #endif
+	mdbg_dev->ring_dev->ring->is_mem = 1;
 	/* DUMP ARM REG */
 	dump_arm_reg();
 	mdbg_clear_log();
@@ -1418,9 +1419,10 @@ end:
 
 	mdbg_dump_str(WCN_DUMP_END_STRING, strlen(WCN_DUMP_END_STRING));
 	WCN_INFO("mdbg dump memory finish\n");
+#ifdef CONFIG_WCN_RDCDBG
 	if ((functionmask[7] & CP2_FLAG_YLOG) == 1)
 		complete(&dumpmem_complete);
-
+#endif
 	return 0;
 }
 

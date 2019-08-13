@@ -16,7 +16,8 @@ MARLINOFILES += rf/rf.o
 endif
 MARLINOFILES += wcn_misc.o
 MARLINOFILES += wcn_parn_parser.o
-MARLINOFILES += rdc_debug.o
+marlin-$(CONFIG_WCN_RDCDBG) += \
+			rdc_debug.o
 MARLINOFILES += wcn_log.o
 MARLINOFILES += wcn_procfs.o
 MARLINOFILES += loopcheck.o
