@@ -13,6 +13,8 @@ TARGET_PREBUILT_KERNEL := $(KERNEL_OUT)/arch/$(TARGET_KERNEL_ARCH)/boot/Image
 
 TARGET_BOARD_SPEC_CONFIG := $(KERNEL_DIFF_CONFIG_ARCH)/$(TARGET_BOARD)_diff_config
 
+BOARD_OS_VERSION_CONFIG := $(KERNEL_DIFF_CONFIG_ARCH)/androidp_diff_config
+
 ifdef BUILD_FROM_KERNEL
 $(KERNEL_CONFIG): arch/$(TARGET_KERNEL_ARCH)/configs/$(KERNEL_DEFCONFIG)
 	$(MAKE) ARCH=$(TARGET_KERNEL_ARCH) $(KERNEL_DEFCONFIG)
@@ -105,6 +107,9 @@ ifeq ($(strip $(PRODUCT_GO_DEVICE)),true)
 	$(call sprd_create_user_config, $(KERNEL_CONFIG), $(TARGET_GO_DEVICE_CONFIG))
 endif
 
+ifeq ($(strip $(BOARD_OS_VERSION)),androidp)
+	$(call sprd_create_user_config, $(KERNEL_CONFIG), $(BOARD_OS_VERSION_CONFIG))
+endif
 
 $(KERNEL_OUT)/config : $(KERNEL_OUT) $(USER_CONFIG)
 
