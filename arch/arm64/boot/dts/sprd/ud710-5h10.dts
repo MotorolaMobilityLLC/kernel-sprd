@@ -303,6 +303,12 @@
 
 };
 
+&reserved_memory {
+	tos_reserved: tos-mem@94020000 {
+		reg = <0x0 0x94020000 0x0 0x003e0000>;
+	};
+};
+
 &dpu {
 	status = "okay";
 };
