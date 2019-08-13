@@ -1386,7 +1386,7 @@
 					};
 				};
 				dcdc_modem: dcdc-modem {
-					dcdc-dvfs-enable = <0x3c 20 0>;
+					dcdc-dvfs-enable = <0x3c 20 1>;
 					dcdc-judge-vol-sw = <0x3c 1 0x7 2>;
 					dcdc-subsys-cells = <&pubcp_sys>,
 							<&wtlcp_sys>,
@@ -1398,7 +1398,7 @@
 						dcdc-subsys-tune-enable = <0x150 3 0>;
 					};
 					ap_sys: ap-sys {
-						dcdc-subsys-tune-enable = <0x150 0 0>;
+						dcdc-subsys-tune-enable = <0x150 0 1>;
 					};
 				};
 			};
