@@ -690,17 +690,14 @@
 				clock-names = "clk_parent",
 					"clk_pwm0", "clk_pwm0_eb",
 					"clk_pwm1", "clk_pwm1_eb",
-					"clk_pwm2", "clk_pwm2_eb",
-					"clk_pwm3", "clk_pwm3_eb";
+					"clk_pwm2", "clk_pwm2_eb";
 				clocks = <&ext_26m>,
 					<&aon_prediv CLK_PWM0>,
 					<&aonapb_gate CLK_PWM0_EB>,
 					<&aon_prediv CLK_PWM1>,
 					<&aonapb_gate CLK_PWM1_EB>,
 					<&aon_prediv CLK_PWM2>,
-					<&aonapb_gate CLK_PWM2_EB>,
-					<&aon_prediv CLK_PWM3>,
-					<&aonapb_gate CLK_PWM3_EB>;
+					<&aonapb_gate CLK_PWM2_EB>;
 				#pwm-cells = <2>;
 				status = "disabled";
 			};
