@@ -341,12 +341,6 @@ static int gnss_tsen_disable(int type)
 		}
 	}
 	GNSSCOMM_ERR("%s, base 0x%x\n", __func__, base);
-	regmap_read(regmap, (REGS_ANA_APB_BASE + XTL_WAIT_CTRL0), &value);
-	GNSSCOMM_ERR("%s, XTL_WAIT_CTRL0 value read 0x%x\n", __func__, value);
-	temp = value & ~BIT_XTL_EN;
-	regmap_write(regmap, (REGS_ANA_APB_BASE + XTL_WAIT_CTRL0), temp);
-	regmap_read(regmap, (REGS_ANA_APB_BASE + XTL_WAIT_CTRL0), &value);
-	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
 
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL0), &value);
 	GNSSCOMM_ERR("%s, TSEN_CTRL0 value read 0x%x\n", __func__, value);
