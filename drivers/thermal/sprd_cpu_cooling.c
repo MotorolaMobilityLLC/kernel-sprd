@@ -89,7 +89,7 @@ static int cpuidle_thread_fn(void *data)
 
 		pr_debug("force cpu%ld enter into idle for cooling\n", cpu);
 		set_current_state(TASK_RUNNING);
-		play_idle(5);
+		play_idle(10);
 	}
 	clear_bit(cpu, cpuidle_tsk_mask);
 
