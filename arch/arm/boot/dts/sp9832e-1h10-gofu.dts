@@ -418,3 +418,19 @@
 &pmic_flash {
 	status = "okay";
 };
+
+&vddrf18 {
+	status = "disabled";
+};
+
+&vddrf125 {
+	status = "disabled";
+};
+
+&vddsim2 {
+	status = "disabled";
+};
+
+&vddldomem {
+	status = "disabled";
+};
