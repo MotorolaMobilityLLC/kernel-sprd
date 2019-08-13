@@ -1115,6 +1115,7 @@ struct vbc_codec_priv {
 	char firmware_path[AUD_FIRMWARE_PATHNAME_LEN_MAX];
 	u32 iis_bt_fm_loop[2];
 	unsigned short iis_bt_fm_loop_en;
+	struct mutex access_mutex;
 };
 
 static const char *vbc_get_name(int vbc_idx);
