@@ -346,6 +346,16 @@ static int dwc3_sprd_start(struct dwc3_sprd *sdwc, enum usb_dr_mode mode)
 		 * Before enable OTG power, we should disable VBUS irq, in case
 		 * extcon notifies the incorrect connecting events.
 		 */
+
+		/* If vbus is NULL, we should get vbus regulator again */
+		if (!sdwc->vbus) {
+			sdwc->vbus = devm_regulator_get(sdwc->dev, "vbus");
+			if (IS_ERR(sdwc->vbus)) {
+				dev_err(sdwc->dev, "unable to get vbus supply\n");
+				sdwc->vbus = NULL;
+			}
+		}
+
 		if (sdwc->vbus && !regulator_is_enabled(sdwc->vbus)) {
 			ret = regulator_enable(sdwc->vbus);
 			if (ret) {
