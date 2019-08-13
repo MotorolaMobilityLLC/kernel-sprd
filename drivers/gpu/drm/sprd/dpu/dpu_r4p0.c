@@ -566,22 +566,16 @@ static void dpu_wb_trigger(struct dpu_context *ctx,
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	u32 vcnt;
 
-	int mode_width  = reg->blend_size & 0xFFFF;
-	int mode_height = reg->blend_size >> 16;
-
-	wb_layer.dst_w = mode_width;
-	wb_layer.dst_h = mode_height;
 	wb_layer.xfbc = wb_xfbc_en;
-	wb_layer.pitch[0] = ALIGN(mode_width, 16) * 4;
-	wb_layer.header_size_r = XFBC8888_HEADER_SIZE(mode_width,
-					mode_height) / 128;
 
-	reg->wb_pitch = ALIGN((mode_width), 16);
-
-	if (wb_xfbc_en && !debug)
+	if (wb_xfbc_en && !debug) {
+		wb_layer.pitch[0] = ALIGN(ctx->vm.hactive, 16) * 4;
 		reg->wb_cfg = (wb_layer.header_size_r << 16) | BIT(0);
-	else
+	} else {
+		wb_layer.pitch[0] = ctx->vm.hactive * 4;
 		reg->wb_cfg = 0;
+	}
+	reg->wb_pitch = wb_layer.pitch[0] / 4;
 
 	reg->wb_base_addr = ctx->wb_addr_p;
 
@@ -591,7 +585,7 @@ static void dpu_wb_trigger(struct dpu_context *ctx,
 	 * update register operation must be connected immediately.
 	 * There can be no vsync interrupts between them.
 	 */
-	if (vcnt * 100 / wb_layer.dst_w < 70) {
+	if (vcnt * 100 / ctx->vm.vactive < 70) {
 		if (debug)
 			/* writeback debug trigger */
 			reg->wb_ctrl = BIT(1);
@@ -703,8 +697,12 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	wb_layer.index = 7;
 	wb_layer.planes = 1;
 	wb_layer.alpha = 0xff;
+	wb_layer.dst_w = ctx->vm.hactive;
+	wb_layer.dst_h = ctx->vm.vactive;
 	wb_layer.format = DRM_FORMAT_ABGR8888;
 	wb_layer.addr[0] = ctx->wb_addr_p;
+	wb_layer.header_size_r = XFBC8888_HEADER_SIZE(ctx->vm.hactive,
+					ctx->vm.vactive) / 128;
 
 	max_vsync_count = 4;
 	need_config = 0;
@@ -1917,6 +1915,7 @@ static struct dpu_core_ops dpu_r4p0_ops = {
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,
+	.write_back = dpu_wb_trigger,
 };
 
 static struct ops_entry entry = {
