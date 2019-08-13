@@ -237,7 +237,7 @@
 			<  791     (-1867)      1581      (-405)>;
 			sprd,efuse-switch = <0>;
 			sprd,hotplug-period = <0>;
-			sprd,min-cpufreq = <768000>;
+			sprd,min-cpufreq = <614400>;
 			sprd,min-cpunum = <3>;
 			sprd,core-base = <2778>;
 			sprd,cluster-base = <3920>;
@@ -251,8 +251,8 @@
 				"littlecore1-thmzone",
 				"littlecore2-thmzone",
 				"littlecore3-thmzone";
-			sprd,cii-per-core-tp = <105000 100000 95000 90000>;
-			sprd,cii-max-tp-core = <90000>;
+			sprd,cii-per-core-tp = <100000 95000 92000 90000>;
+			sprd,cii-max-tp-core = <0>;
 		};
 
 		cluster1_cooling: cluster1-cooling {
@@ -298,8 +298,8 @@
 				"bigcore5-thmzone",
 				"bigcore6-thmzone",
 				"bigcore7-thmzone";
-			sprd,cii-per-core-tp = <85000 80000 75000 70000>;
-			sprd,cii-max-tp-core = <75000>;
+			sprd,cii-per-core-tp = <95000 92000 92000 90000>;
+			sprd,cii-max-tp-core = <0>;
 		};
 	};
 
