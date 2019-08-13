@@ -1382,7 +1382,7 @@ static int find_maximum_vol_diff(unsigned long *vol, int *max_diff_val,
 {
 	int i, j;
 	u32 tmp_diff, max_diff = 0;
-	int max_i, max_j;
+	int max_i = 0, max_j = 0;
 
 	if (n == vol_size - 1)
 		return 0;
@@ -1408,7 +1408,7 @@ static int sprd_cpudvfs_udelay_update(void *data, int cluster)
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
 	struct dvfs_cluster *clu;
 	int ret = 0, i;
-	u32 max_value;
+	u32 max_value = 0;
 	struct pmic_data *pm;
 	u32 slew_rate, module_clk_khz, margin;
 	u32 cycle, reg, off, msk;
@@ -1478,7 +1478,7 @@ static int sprd_cpudvfs_index_tbl_update(void *data, char *opp_name,
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
 	struct dvfs_cluster *clu, *slave;
-	char *temp;
+	char *temp = NULL;
 	int ret, idx = 0;
 
 	if (!pdev->priv)
