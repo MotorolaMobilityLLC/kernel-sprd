@@ -424,8 +424,16 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 static int sprd_pcie_suspend_noirq(struct device *dev)
 {
 	int ret;
-	struct platform_device *pdev = to_platform_device(dev);
-	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+	struct platform_device *pdev;
+	struct sprd_pcie *ctrl;
+
+	if (device_property_read_bool(dev, "no-pcie")) {
+		dev_info(dev, "no pcie device, do nothing in pcie suspend\n");
+		return 0;
+	}
+
+	pdev = to_platform_device(dev);
+	ctrl = platform_get_drvdata(pdev);
 
 	if (!ctrl->is_powered)
 		return 0;
@@ -441,8 +449,16 @@ static int sprd_pcie_suspend_noirq(struct device *dev)
 static int sprd_pcie_resume_noirq(struct device *dev)
 {
 	int ret;
-	struct platform_device *pdev = to_platform_device(dev);
-	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+	struct platform_device *pdev;
+	struct sprd_pcie *ctrl;
+
+	if (device_property_read_bool(dev, "no-pcie")) {
+		dev_info(dev, "no pcie device, do nothing in pcie resume\n");
+		return 0;
+	}
+
+	pdev = to_platform_device(dev);
+	ctrl = platform_get_drvdata(pdev);
 
 	if (!ctrl->is_powered)
 		return 0;
