@@ -464,6 +464,11 @@
 		compatible = "sprd,hwdvfs-mmsys";
 		status = "disabled";
 	};
+
+	autotest:autotest{
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
 };
 
 &sdio0 {

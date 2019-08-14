@@ -797,3 +797,48 @@
 			 <17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
 			 <35 0x19b8>, <39 0x19ac>;
 };
+
+&pin_controller {
+	pinctrl-names =
+	/* keyout0 ~ keyout2 */
+	"gpio_121", "gpio_122", "gpio_123",
+	/* keyin0 ~ keyin2 */
+	"gpio_124", "gpio_125", "gpio_126";
+
+	pinctrl-0 = <&gpio_121>;
+	pinctrl-1 = <&gpio_122>;
+	pinctrl-2 = <&gpio_123>;
+	pinctrl-3 = <&gpio_124>;
+	pinctrl-4 = <&gpio_125>;
+	pinctrl-5 = <&gpio_126>;
+
+	gpio_121: keyout0 {
+		pins = "SHARKL5PRO_KEYOUT0";
+		function = "func4";
+	};
+
+	gpio_122: keyout1 {
+		pins = "SHARKL5PRO_KEYOUT1";
+		function = "func4";
+	};
+
+	gpio_123: keyout2 {
+		pins = "SHARKL5PRO_KEYOUT2";
+		function = "func4";
+	};
+
+	gpio_124: keyin0 {
+		pins = "SHARKL5PRO_KEYIN0";
+		function = "func4";
+	};
+
+	gpio_125: keyin1 {
+		pins = "SHARKL5PRO_KEYIN1";
+		function = "func4";
+	};
+
+	gpio_126: keyin2 {
+		pins = "SHARKL5PRO_KEYIN2";
+		function = "func4";
+	};
+};
