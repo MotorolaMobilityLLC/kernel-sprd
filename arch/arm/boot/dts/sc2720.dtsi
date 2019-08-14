@@ -46,7 +46,7 @@
 		};
 
 		rtc@200 {
-			compatible = "sprd,sc27xx-rtc", "sprd,sc2720-rtc";
+			compatible = "sprd,sc27xx-rtc", "sprd,sc2720-rtc", "sprd,sc2721-rtc";
 			reg = <0x200>;
 			interrupt-parent = <&sc2720_pmic>;
 			interrupts = <1 IRQ_TYPE_LEVEL_HIGH>;
