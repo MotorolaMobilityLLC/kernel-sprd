@@ -10580,8 +10580,8 @@ CONFIG_SPRD_MINI_SYSDUMP
 	[must]
 	[function]
 CONFIG_SPRD_MIPI_LOG_R4P2
-	[arch] arm64
-	[plat] sharkl3
+	[arch] all
+	[plat] sharkl3,sharkl3_32
 	[field]
 	[subsys]
 	[must]
@@ -10601,8 +10601,8 @@ CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[must] console
 	[function] This function is used to enable mm power domain.
 CONFIG_SPRD_MODEM_DEBUG
-	[arch] arm64
-	[plat] sharkl3,sharkl5,sharkl5Pro
+	[arch] all
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro
 	[field]
 	[subsys]
 	[must]
