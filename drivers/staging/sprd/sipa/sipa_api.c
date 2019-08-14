@@ -346,6 +346,51 @@ static const struct file_operations sipa_local_drv_fops = {
 
 struct sipa_control *s_sipa_ctrl;
 
+static void sipa_resume_for_pamu3(struct sipa_control *ctrl)
+{
+	int i;
+	sipa_hal_hdl hdl = ctrl->ctx->hdl;
+	struct sipa_plat_drv_cfg *cfg = &ctrl->params_cfg;
+	struct sipa_common_fifo_cfg *fifo = cfg->common_fifo_cfg;
+	struct sipa_skb_receiver **receiver = ctrl->receiver;
+
+	mutex_lock(&ctrl->resume_lock);
+	if (!ctrl->suspend_stage) {
+		mutex_unlock(&ctrl->resume_lock);
+		return;
+	}
+
+	if (sipa_hal_get_pause_status() || sipa_hal_get_resume_status())
+		goto early_resume;
+
+	if (ctrl->suspend_stage & SIPA_BACKUP_SUSPEND) {
+		for (i = 0; i < SIPA_FIFO_MAX; i++)
+			if (fifo[i].tx_fifo.in_iram &&
+			    fifo[i].rx_fifo.in_iram)
+				sipa_hal_resume_fifo_node(hdl, i);
+
+		sipa_resume_glb_reg_cfg(cfg);
+		if (cfg->tft_mode)
+			sipa_tft_mode_init(hdl);
+		sipa_resume_common_fifo(hdl, &ctrl->params_cfg);
+		ctrl->suspend_stage &= ~SIPA_BACKUP_SUSPEND;
+	}
+
+early_resume:
+	if (!cfg->is_bypass && (ctrl->suspend_stage & SIPA_THREAD_SUSPEND)) {
+		sipa_receiver_prepare_resume(receiver[SIPA_PKT_IP]);
+		sipa_receiver_prepare_resume(receiver[SIPA_PKT_ETH]);
+		ctrl->suspend_stage &= ~SIPA_THREAD_SUSPEND;
+	}
+
+	if (ctrl->suspend_stage & SIPA_ACTION_SUSPEND) {
+		sipa_hal_ctrl_action(true);
+		ctrl->suspend_stage &= ~SIPA_ACTION_SUSPEND;
+	}
+
+	mutex_unlock(&ctrl->resume_lock);
+}
+
 /**
  * sipa_prepare_resume() - Restore IPA related configuration
  * @ctrl: s_sipa_ctrl
@@ -363,8 +408,11 @@ static void sipa_prepare_resume(struct sipa_control *ctrl)
 	struct sipa_common_fifo_cfg *fifo = cfg->common_fifo_cfg;
 	struct sipa_skb_receiver **receiver = ctrl->receiver;
 
-	if (!ctrl->suspend_stage)
+	mutex_lock(&ctrl->resume_lock);
+	if (!ctrl->suspend_stage) {
+		mutex_unlock(&ctrl->resume_lock);
 		return;
+	}
 
 	if (ctrl->suspend_stage & SIPA_EB_SUSPEND) {
 		sipa_set_enabled(true);
@@ -413,6 +461,8 @@ early_resume:
 		sipa_hal_ctrl_action(true);
 		ctrl->suspend_stage &= ~SIPA_ACTION_SUSPEND;
 	}
+
+	mutex_unlock(&ctrl->resume_lock);
 }
 
 /**
@@ -676,6 +726,9 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 	       sizeof(struct sipa_comm_fifo_params));
 	memcpy(&ep->recv_fifo_param, &in->recv_param,
 	       sizeof(struct sipa_comm_fifo_params));
+
+	if (ctrl->suspend_stage)
+		sipa_resume_for_pamu3(ctrl);
 
 	sipa_open_common_fifo(ep->sipa_ctx->hdl, ep->send_fifo.idx,
 			      &ep->send_fifo_param, NULL, false,
@@ -1471,6 +1524,7 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		return ret;
 	}
 
+	mutex_init(&ctrl->resume_lock);
 	INIT_WORK(&ctrl->flow_ctrl_work, sipa_notify_sender_flow_ctrl);
 	INIT_DELAYED_WORK(&ctrl->resume_work, sipa_resume_work);
 	INIT_DELAYED_WORK(&ctrl->suspend_work, sipa_prepare_suspend_work);

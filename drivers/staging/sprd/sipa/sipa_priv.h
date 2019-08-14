@@ -318,6 +318,8 @@ struct sipa_control {
 
 	struct sipa_plat_drv_cfg params_cfg;
 
+	/* avoid pam connect and power_wq race */
+	struct mutex resume_lock;
 	struct work_struct flow_ctrl_work;
 
 	/* ipa low power*/
