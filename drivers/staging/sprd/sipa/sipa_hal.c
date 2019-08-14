@@ -440,7 +440,7 @@ int sipa_open_common_fifo(sipa_hal_hdl hdl,
 		fifo_cfg[fifo].tx_fifo.virtual_addr = ext_attr->tx_fifo_va;
 	}
 
-	if (ctrl->suspend_stage & SIPA_EB_SUSPEND)
+	if (!ctrl->params_cfg.enable_cnt)
 		return 0;
 
 	hal_cfg->fifo_ops.open(fifo, fifo_cfg, NULL);
