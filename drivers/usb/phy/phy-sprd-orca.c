@@ -50,6 +50,11 @@ struct sprd_ssphy {
 	u32			mode;
 };
 
+#define USB20_0_TFREGRES_VALUE    (0x1 << 29)
+#define USB20_0_TUNEHSAMP_VALUE   (0x11 << 23)
+#define USB20_1_TFREGRES_VALUE    (0x1 << 29)
+#define USB20_1_TUNEHSAMP_VALUE   (0x11 << 23)
+
 /* Rest USB Core*/
 static void sprd_ssphy_reset_core(struct sprd_ssphy *phy)
 {
@@ -144,6 +149,28 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	ret |= regmap_update_bits(phy->ana_g4,
 		    REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_UTMI_CTL1,
 		    msk, reg);
+
+	ret |= regmap_read(phy->ana_g4,
+			   REG_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_TRIMMING,
+			   &reg);
+	msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_TUNEHSAMP |
+		MASK_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_TFREGRES;
+	reg &= ~msk;
+	reg |= USB20_0_TUNEHSAMP_VALUE | USB20_0_TFREGRES_VALUE;
+	ret |= regmap_write(phy->ana_g4,
+			    REG_ANLG_PHY_G4_RF_ANALOG_USB20_0_USB20_TRIMMING,
+			    reg);
+
+	ret |= regmap_read(phy->ana_g4,
+			   REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_TRIMMING,
+			   &reg);
+	msk = MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_TUNEHSAMP |
+		MASK_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_TFREGRES;
+	reg &= ~msk;
+	reg |= USB20_1_TUNEHSAMP_VALUE | USB20_1_TFREGRES_VALUE;
+	ret |= regmap_write(phy->ana_g4,
+			    REG_ANLG_PHY_G4_RF_ANALOG_USB20_1_USB20_TRIMMING,
+			    reg);
 
 	/* Reset PHY */
 	sprd_ssphy_reset_core(phy);
