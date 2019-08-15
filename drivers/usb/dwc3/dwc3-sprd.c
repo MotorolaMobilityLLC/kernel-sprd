@@ -79,6 +79,7 @@ struct dwc3_sprd {
 #define DWC3_EXTCON_DELAY	1000
 
 static int boot_charging;
+static bool boot_calibration;
 
 static int dwc3_sprd_suspend_child(struct device *dev, void *data);
 static int dwc3_sprd_resume_child(struct device *dev, void *data);
@@ -224,6 +225,19 @@ static __init int dwc3_sprd_charger_mode(char *str)
 	return 0;
 }
 __setup("androidboot.mode=", dwc3_sprd_charger_mode);
+
+static int __init dwc3_sprd_calibration_mode(char *str)
+{
+	if (!str)
+		return 0;
+
+	if (!strncmp(str, "cali", strlen("cali")) ||
+	    !strncmp(str, "autotest", strlen("autotest")))
+		boot_calibration = true;
+
+	return 0;
+}
+__setup("androidboot.mode=", dwc3_sprd_calibration_mode);
 
 static int dwc3_sprd_is_udc_start(struct dwc3_sprd *sdwc)
 {
@@ -827,11 +841,15 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		 */
 		sdwc->vbus_active = true;
 
-		if (IS_ENABLED(CONFIG_USB_DWC3_HOST) ||
-		    IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE))
-			sdwc->dr_mode = USB_DR_MODE_HOST;
-		else
+		if (boot_calibration) {
 			sdwc->dr_mode = USB_DR_MODE_PERIPHERAL;
+		} else {
+			if (IS_ENABLED(CONFIG_USB_DWC3_HOST) ||
+			    IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE))
+				sdwc->dr_mode = USB_DR_MODE_HOST;
+			else
+				sdwc->dr_mode = USB_DR_MODE_PERIPHERAL;
+		}
 
 		dev_info(dev, "DWC3 is always running as %s\n",
 			 sdwc->dr_mode == USB_DR_MODE_PERIPHERAL ? "DEVICE" : "HOST");
