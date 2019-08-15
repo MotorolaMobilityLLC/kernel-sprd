@@ -179,6 +179,8 @@ struct dpu_context {
 	wait_queue_head_t te_wq;
 	bool te_check_en;
 	bool evt_te;
+	unsigned long logo_addr;
+	unsigned long logo_size;
 };
 
 struct sprd_dpu {
