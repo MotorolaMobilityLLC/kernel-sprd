@@ -973,6 +973,7 @@
 
 				sprd,ip = "dpu-r2p0";
 				sprd,soc = "sharkl3";
+				sprd,logo-memory = <&logo_reserved>;
 
 				syscons = <&aon_apb_regs REG_AON_APB_APB_RST1
 					MASK_AON_APB_DISP_SOFT_RST>;

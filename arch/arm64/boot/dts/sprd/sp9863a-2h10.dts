@@ -165,7 +165,7 @@
 
 &reserved_memory {
 
-	wb_reserved: writeback@fd580000{
+	logo_reserved: logobuffer@fd580000{
 		reg = <0x0 0xfd580000 0x0 0x007e9000>;
 	};
 
