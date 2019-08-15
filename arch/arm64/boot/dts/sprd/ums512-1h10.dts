@@ -91,6 +91,13 @@
 			label = "carveout_overlay";
 			type = <2>;
 		};
+
+		heap@3 {
+			reg = <3>;
+			label = "carveout_fb";
+			type = <2>;
+			memory-region = <&fb_reserved>;
+		};
 	};
 
 	sprd_marlin3: sprd-marlin3 {
@@ -301,6 +308,10 @@
 };
 
 &reserved_memory {
+	fb_reserved: framebuffer-mem {
+		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
+	};
+
 	wb_reserved: writeback-mem@ff562000 {
 		reg = <0x0 0xff562000 0x0 0x00a1e000>;
 	};
