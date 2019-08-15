@@ -10188,7 +10188,7 @@ CONFIG_SPRD_APDU
 	[function] Spreadtrum apdu driver.
 CONFIG_SPRD_APSYS_DVFS_DEVFREQ
 	[arch] arm64
-	[plat] sharkl5
+	[plat] sharkl5,sharkl5Pro
 	[field] make
 	[subsys] devfreq
 	[must] user
