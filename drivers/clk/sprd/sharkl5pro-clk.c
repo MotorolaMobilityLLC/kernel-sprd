@@ -381,9 +381,9 @@ static SPRD_COMP_CLK_SEC(acore5_clk, "acore5-clk", acore_parents, 5,
 static const char * const pcore_parents[] = { "ext-26m", "lpll",
 					      "twpll", "mpll1" };
 static SPRD_COMP_CLK_SEC(pcore0_clk, "pcore0-clk", pcore_parents, 6,
-			 0, 3, 4, 3, 0);
+			 16, 3, 20, 3, 0);
 static SPRD_COMP_CLK_SEC(pcore1_clk, "pcore1-clk", pcore_parents, 7,
-			 0, 3, 4, 3, 0);
+			 24, 3, 28, 3, 0);
 
 static const char * const scu_parents[] = { "ext-26m", "twpll-768m",
 					    "lpll", "mpll2" };
