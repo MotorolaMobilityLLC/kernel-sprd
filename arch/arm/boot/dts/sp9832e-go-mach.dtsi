@@ -139,10 +139,7 @@
 		/* debug region: not reserved in normal mode, it */
 		/* will be proccessed in u-boot */
 		cp_reserved: cp-modem@89600000 {
-			reg = <0x89600000 0x03c80000>;
-			/* This prop specifies the size of debug region */
-			/* in the cp tail */
-			sprd,cpdbg-size = <0x280000>;
+			reg = <0x89600000 0x03fc0000>;
 		};
 
 		/* Only used for iq, will be removed in normal mode by uboot */
