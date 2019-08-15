@@ -1475,9 +1475,7 @@ static void configfs_composite_unbind(struct usb_gadget *gadget)
 
 	kfree(otg_desc[0]);
 	otg_desc[0] = NULL;
-	spin_lock_irqsave(&gi->slock, flags);
 	purge_configs_funcs(gi);
-	spin_unlock_irqrestore(&gi->slock, flags);
 	composite_dev_cleanup(cdev);
 	spin_lock_irqsave(&gi->slock, flags);
 	usb_ep_autoconfig_reset(cdev->gadget);
