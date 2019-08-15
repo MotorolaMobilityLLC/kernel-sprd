@@ -10593,6 +10593,13 @@ CONFIG_SPRD_MIPI_LOG_R5P0
 	[subsys]
 	[must]
 	[function]
+CONFIG_SPRD_MIPI_SWITCH
+	[arch] arm64
+	[plat] sharkl5Pro
+	[field]
+	[subsys]
+	[must]
+	[function]
 CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5_32
