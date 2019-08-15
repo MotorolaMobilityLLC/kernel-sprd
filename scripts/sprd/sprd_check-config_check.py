@@ -4,7 +4,7 @@ import os
 import sys
 import csv
 
-tmp_path="./tmp_config_check/"
+tmp_path_def="./tmp_config_check/"
 d_sprdconfig={}
 d_defconfig={}
 d_diffconfig={}
@@ -77,20 +77,20 @@ def create_diffconfigs_dict():
                             tmp_plat = 'sharkl5_32'
                         elif tmp_arch == 'common' and tmp_plat == 'sharkle':
                             if kernel_version == 'kernel4.4':
-                               tmp_arch= 'arm,arm64'
-                               tmp_plat= 'sharkle,sharkle32'
+                                tmp_arch= 'arm,arm64'
+                                tmp_plat= 'sharkle,sharkle32'
                             elif kernel_version == 'kernel4.14':
-                                 tmp_arch='arm'
-                                 tmp_plat='sharkle32'
+                                tmp_arch='arm'
+                                tmp_plat='sharkle32'
                         elif tmp_arch == 'common' and tmp_plat == 'sharkl3':
                             if kernel_version == 'kernel4.14':
                                 tmp_arch = 'arm64'
                             else:
-                               tmp_arch='arm,arm64'
-                               tmp_plat='sharkl3,sharkl3_32'
+                                tmp_arch='arm,arm64'
+                                tmp_plat='sharkl3,sharkl3_32'
                         elif tmp_arch == 'common' and tmp_plat == 'sharkl5':
-                             tmp_arch='arm,arm64'
-                             tmp_plat='sharkl5,sharkl5_32'
+                            tmp_arch='arm,arm64'
+                            tmp_plat='sharkl5,sharkl5_32'
                         elif tmp_arch == 'common' and tmp_plat == 'roc1':
                             tmp_arch = 'arm64'
 
@@ -169,14 +169,17 @@ def print_incomplete_info(file_name):
 
 def incomplete_item():
     global not_defined
-    file_name=tmp_path+'need_completed.txt'
+
+    file_name = os.path.join(tmp_path,'need_completed.txt')
     if os.path.exists(file_name):
         os.remove(file_name)
     f_need_completed=open(file_name, 'a+')
     tmp_list = list(d_sprdconfig)
     tmp_list.sort()
     for key in tmp_list:
-        if d_sprdconfig[key]['subsys'] == "":
+        if d_sprdconfig[key]['subsys'].strip() == "" or d_sprdconfig[key]['function'].strip() == "" or \
+            d_sprdconfig[key]['field'].strip() == "" or d_sprdconfig[key]['must'].strip() == "" or \
+            d_sprdconfig[key]['arch'].strip() == "" or d_sprdconfig[key]['plat'].strip() == "":
             not_defined += 1
             f_need_completed.write(key+'\n')
     f_need_completed.close()
@@ -248,17 +251,14 @@ def create_defconfig_dict():
 
 #print all config defined in Documentation/sprd-configs.txt
 def output_allconfigs():
-    file_name=tmp_path + 'all_sprdconfigs.txt'
+    file_name=os.path.join(tmp_path,'all_sprdconfigs_status.txt')
     if os.path.exists(file_name):
         os.remove(file_name)
     f=open(file_name,'a')
 
-    for key_sprdconfig in l_sprdconfig:
-        f.write(key_sprdconfig+'\n')
-
+    for key_config in l_corrected_config:
+        f.write(key_config+' :\t'+d_corrected_config[key_config]['plat']+"\n")
     f.close()
-
-
 
 def help_info():
         print(
@@ -269,26 +269,26 @@ def help_info():
         USAGE       : script [option]
         EXAMPLE     : ./script/sprd/sprd_check-config_check.py update
         OPTIONS     :
-                sort        : Resort the sprd-configs.txt by CONFIG in alphabetical order.
+                sort          : Resort the sprd-configs.txt by CONFIG in alphabetical order.
 
-                incomplete  : Check the sprd-configs.txt incompleted config and output to need_completed.txt.
+                incomplete    : Check the sprd-configs.txt incompleted config and output to need_completed.txt.
 
-                check       : Check the defconfig and diffconfig, if there is any new defconfig(key=y) or diffconfig, then merge it into sprdconfig
-                              and output all configs's project_status to allconfigs_status.txt.
+                check         : Check the defconfig and diffconfig, if there is any new defconfig(key=y) or diffconfig, then merge it into sprdconfig
+                                and output all configs's project_status to allconfigs_status.txt.
 
-                update      : Update only [CONFIG_NAME],[arch],[plat] of sprd-configs.txt now.
+                update        : Update only [CONFIG_NAME],[arch],[plat] of sprd-configs.txt now.
 
-                allconfigs  : Output allconfigs of sprd-configs.txt to all_sprdconfigs.txt.
+                allconfigs    : Output allconfigs of sprd-configs.txt to all_sprdconfigs.txt.
 
-                aiaiai      : Find out the changes of defconfigs and diffconfigs, the diffences between CODE with DOC from lastest.diff, then print
-                              the guide information.
+                aiaiai        : Find out the changes of defconfigs and diffconfigs, the diffences between CODE with DOC from lastest.diff, then print
+                                the guide information.
 
-                support     : Print all archs and plats supported.
+                support       : Print all archs and plats supported.
 
-                scan        : Scan all configs to export a statistical file named 'config_plat_scan.csv', which include Config_name, Enable_archs,
-                              Enable_plats, ARM_lack_plats and ARM64_lack_plats.
+                scan          : Scan all configs to export a statistical file named 'config_plat_scan.csv', which include Config_name, Enable_archs,
+                                Enable_plats, ARM_lack_plats and ARM64_lack_plats.
 
-                help        : Print the help information.
+                help          : Print the help information.
         """
         )
 
@@ -313,16 +313,16 @@ def sprdconfigs_check():
 def create_corrected_dict():
     global d_corrected_config
     for key_defproject in l_defproject:
-         l_defconfig=list(d_defconfig[key_defproject])
-         l_defconfig.sort()
-         for key_defconfig in l_defconfig:
-             if key_defconfig not in d_corrected_config:
+        l_defconfig=list(d_defconfig[key_defproject])
+        l_defconfig.sort()
+        for key_defconfig in l_defconfig:
+            if key_defconfig not in d_corrected_config:
                 if d_defconfig[key_defproject][key_defconfig] == 'y':
-                   d_corrected_config[key_defconfig]={'arch':'','plat':''}
+                    d_corrected_config[key_defconfig]={'arch':'','plat':''}
 
     for key_diffconfig in l_diffconfig:
         if key_diffconfig in d_corrected_config:
-           continue
+            continue
         d_corrected_config[key_diffconfig]={'arch':'','plat':''}
 
     global l_corrected_config
@@ -334,7 +334,6 @@ def create_corrected_dict():
         tmp_plat=''
         for project in l_defproject:
             if key in d_defconfig[project]:
-
                 if d_defconfig[project][key] == 'y':
                     tmp_plat = tmp_plat + project + ','
                 else:
@@ -384,7 +383,7 @@ def aiaiai_check():
     d_del_config={}
     d_add_config={}
 
-    file_name=tmp_path+"lastest.diff"
+    file_name=tmp_path_def+"lastest.diff"
     os.system("git show HEAD -1 > " + file_name)
 
     f_diff = open(file_name, 'r')
@@ -539,7 +538,7 @@ def aiaiai_check():
     print("=========END=========")
 
 def clean():
-    os.system("rm -rf " + tmp_path)
+    os.system("rm -rf " + tmp_path_def)
 
 def print_support_arch_plat():
     print("Current kernel information\n[arch]:{}\n[plat]:{}".format(all_arch,all_plat))
@@ -548,17 +547,17 @@ def update_sprd_configs():
 
     print_support_arch_plat()
 
-   # write current status to dict d_sprdconfig
+    # write current status to dict d_sprdconfig
     d_del_sprdconfig={}
     for key in d_corrected_config:
         if key not in d_sprdconfig:
-           d_sprdconfig[key]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
+            d_sprdconfig[key]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
     for key in d_sprdconfig:
         if key not in d_corrected_config:
-           d_del_sprdconfig[key]=d_sprdconfig[key]
+            d_del_sprdconfig[key]=d_sprdconfig[key]
         else:
-           d_sprdconfig[key]['arch']=d_corrected_config[key]['arch']
-           d_sprdconfig[key]['plat']=d_corrected_config[key]['plat']
+            d_sprdconfig[key]['arch']=d_corrected_config[key]['arch']
+            d_sprdconfig[key]['plat']=d_corrected_config[key]['plat']
     for key in d_del_sprdconfig:
         del d_sprdconfig[key]
 
@@ -582,7 +581,7 @@ def scan():
     str_all_arm_plat = str_all_arm_plat[:-1]
     str_all_arm64_plat = str_all_arm64_plat[:-1]
 
-    csv_filename = "config_plat_scan.csv"
+    csv_filename=os.path.join(tmp_path,"config_plat_scan.csv")
     if os.path.exists(csv_filename):
         os.remove(csv_filename)
     csv_fd = open(csv_filename, 'a+')
@@ -650,12 +649,12 @@ def print_script_info():
     """
     If sprd_check-config_check error, please using script to update Documentation/sprd-configs.txt.
     The step as following:
-    1) Enter kernel root path. (kernel4.4 / kernel4.14)
-    2) Using script to update [arch] & [plat] automatically which in Documentation/sprd-configs.txt.
+    1)  Enter kernel root path. (kernel4.4 / kernel4.14)
+    2)  Using script to update [arch] & [plat] automatically which in Documentation/sprd-configs.txt.
         Command: ./scripts/sprd/sprd_check-config_check.py update
-    3) Check the Documentation/sprd-configs.txt. Please don't modify the [arch] & [plat].
-       The others such as [field] [subsys] [must] [sound] need to fill in by owner.
-       The sprd_configs.txt introduction refer to Documentation/sprd_configs_introduction.txt
+    3)  Check the Documentation/sprd-configs.txt. Please don't modify the [arch] & [plat].
+        The others such as [field] [subsys] [must] [sound] need to fill in by owner.
+        The sprd_configs.txt introduction refer to Documentation/sprd_configs_introduction.txt
     """)
 
 def prepare_info_second():
@@ -672,9 +671,13 @@ def prepare_info_second():
     l_diffconfig.sort()
 
 def main():
+    global tmp_path
+
+    tmp_path=tmp_path_def
     folder = os.path.exists(tmp_path)
     if not folder:
         os.makedirs(tmp_path)
+
     prepare_info_first()
     create_defconfig_dict()
     create_diffconfigs_dict()
@@ -682,40 +685,49 @@ def main():
     prepare_info_second()
     create_corrected_dict()
 
-
-    if len(sys.argv) > 1:
-        if sys.argv[1] == 'allconfigs':
-            output_allconfigs()
-        elif sys.argv[1] == 'sort':
+    if len(sys.argv) ==2:
+        if sys.argv[1] == 'sort':
             configs_resort()
             print("The sprd-configs.txt has been resorted.")
         elif sys.argv[1] == 'help':
             help_info()
         elif sys.argv[1] == 'aiaiai':
             print_script_info()
-            if len(sys.argv) == 2:
-                sprdconfigs_check()
-
-                aiaiai_check()
-                clean()
-            else:
-                print("PARAMETERS ERROR:")
-                print("./script/sprd/sprd_check-config_check.py aiaiai")
-        elif sys.argv[1] == 'incomplete':
-            incomplete_item()
+            sprdconfigs_check()
+            aiaiai_check()
+            clean()
         elif sys.argv[1] == 'update':
             update_sprd_configs()
             clean()
         elif sys.argv[1] == 'support':
             print_support_arch_plat()
+        elif sys.argv[1] == 'allconfigs':
+            output_allconfigs()
+        elif sys.argv[1] == 'incomplete':
+            incomplete_item()
+        elif sys.argv[1] == 'scan':
+            scan()
+        else:
+            print("PARAMETERS ERROR:")
+            help_info()
+    elif len(sys.argv)  ==3:
+        tmp_path=sys.argv[2]
+        folder = os.path.exists(tmp_path)
+        if not folder:
+            os.makedirs(tmp_path)
+
+        if sys.argv[1] == 'allconfigs':
+            output_allconfigs()
+        elif sys.argv[1] == 'incomplete':
+            incomplete_item()
         elif sys.argv[1] == 'scan':
             scan()
         else:
             print("PARAMETERS ERROR:")
             help_info()
     else:
-       print("PARAMETERS ERROR:")
-       help_info()
+        print("PARAMETERS ERROR:")
+        help_info()
 
 if __name__ == '__main__':
     main()
