@@ -438,6 +438,7 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 
 	sc->var_data = pdata;
 	sc->typec_cap.type = mode;
+	sc->typec_cap.data = TYPEC_PORT_DRD;
 	sc->typec_cap.dr_set = sc27xx_typec_dr_set;
 	sc->typec_cap.pr_set = sc27xx_typec_pr_set;
 	sc->typec_cap.vconn_set = sc27xx_typec_vconn_set;
