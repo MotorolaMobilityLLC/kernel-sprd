@@ -10798,14 +10798,14 @@ CONFIG_SPRD_SIPC_MEM_CACHE_EN
 	[function] This function is used to enable sipx share memmory cache.
 CONFIG_SPRD_SIPC_SETH
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] menu,make
 	[subsys] net
 	[must] user
 	[function] This driver supports the Spreadtrum Ethernet based on share memory.
 CONFIG_SPRD_SIPC_SETH_RAWIP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] all
 	[field] menu,make
 	[subsys] net
 	[must] user
