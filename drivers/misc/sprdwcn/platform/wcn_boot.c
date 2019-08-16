@@ -2225,10 +2225,14 @@ EXPORT_SYMBOL_GPL(wcn_set_module_status_changed);
 int marlin_get_module_status(void)
 {
 	if (test_bit(MARLIN_BLUETOOTH, &marlin_dev->power_state) ||
-		test_bit(MARLIN_FM, &marlin_dev->power_state) ||
-		test_bit(MARLIN_WIFI, &marlin_dev->power_state) ||
-		test_bit(MARLIN_MDBG, &marlin_dev->power_state))
-		return 1;
+	    test_bit(MARLIN_FM, &marlin_dev->power_state) ||
+	    test_bit(MARLIN_WIFI, &marlin_dev->power_state) ||
+	    test_bit(MARLIN_MDBG, &marlin_dev->power_state))
+		/*
+		 * Can't send mdbg cmd before download flag ok
+		 * If download flag not ready,loopcheck get poweroff
+		 */
+		return atomic_read(&marlin_dev->download_finish_flag);
 	else
 		return 0;
 }
