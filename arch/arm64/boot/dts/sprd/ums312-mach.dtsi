@@ -460,6 +460,10 @@
 		wb_reserved: writeback {
 			reg = <0x0 0xbfc30000 0x0 0x00390000>;
 		};
+
+		logo_reserved: logobuffer {
+			reg = <0x0 0x9e000000 0x0 0x00384000>;
+		};
 	};
 
 	rebootescrow@0 {
