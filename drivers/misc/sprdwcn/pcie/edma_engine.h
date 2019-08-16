@@ -451,6 +451,11 @@ struct edma_info {
 	(BIT(16) | BIT(17) | BIT(18) | BIT(19) | \
 	 BIT(20) | BIT(21) | BIT(22) | BIT(23))
 #define RF_CHN_ERR_STATUS_BIT		(BIT(24) | BIT(25) | BIT(26))
+/*
+ * bit24 = 1 : trans len is 0
+ * bit25 = 1 : AXI read channel error
+ * bit26 = 1 : AXI write channel error
+ */
 #define RF_CHN_MSI_INT_MAP_BIT		(BIT(27) | BIT(28) | BIT(29) | BIT(30))
 /***********************************************************/
 #define CHN_TRANS_LEN(n)		(EDMA_CHN_REG_BASE + 0x10 + n * 0x40)

@@ -1632,6 +1632,7 @@ int edma_dump_glb_reg(void)
 {
 	struct wcn_pcie_info *pdev;
 	u32 value;
+	struct edma_info *edma = edma_info();
 
 	pdev = get_wcn_device_info();
 	if (!pdev) {
@@ -1650,6 +1651,10 @@ int edma_dump_glb_reg(void)
 	value = sprd_pcie_read_reg32(pdev, DMA_DEBUG_STATUS);
 	WCN_INFO("[debug_sts  ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_ARB_SEL_STATUS);
+
+	if (value)
+		set_bit((value - 1), &edma->cur_chn_status);
+
 	WCN_INFO("[arb_sel_sts] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_CHN_ARPROT);
 	WCN_INFO("[arport     ] = 0x%08x\n",  value);
