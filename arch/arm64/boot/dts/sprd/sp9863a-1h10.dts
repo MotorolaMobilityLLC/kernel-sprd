@@ -232,6 +232,11 @@
 	sprd-wlan {
 		compatible = "sprd,sp9863a";
 	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &reserved_memory {
@@ -299,11 +304,11 @@
 
 &hsphy {
 	vdd-supply = <&vddusb33>;
-	extcon = <&pmic_typec>;
+	extcon = <&extcon_gpio>;
 };
 
 &usb {
-	extcon = <&pmic_typec>;
+	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
 };
 
