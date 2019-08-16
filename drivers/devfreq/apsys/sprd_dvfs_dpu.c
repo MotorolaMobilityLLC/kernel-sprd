@@ -39,57 +39,6 @@ int dpu_dvfs_notifier_call_chain(void *data)
 }
 EXPORT_SYMBOL_GPL(dpu_dvfs_notifier_call_chain);
 
-/**
- * sprd_update_devfreq() - Reevaluate the device and configure
- * frequency.
- * @devfreq:	the devfreq instance.
- *
- *	 This function is exported for governors.
- */
-int sprd_update_devfreq(struct devfreq *devfreq)
-{
-	unsigned long freq;
-	int err = 0;
-	u32 flags = 0;
-
-	if (!devfreq->governor)
-		return -EINVAL;
-
-	/* Reevaluate the proper frequency */
-	err = devfreq->governor->get_target_freq(devfreq, &freq);
-	if (err)
-		return err;
-
-	/*
-	 * Adjust the frequency with user freq and QoS.
-	 *
-	 * List from the highest priority
-	 * max_freq
-	 * min_freq
-	 */
-
-	if (devfreq->min_freq && freq < devfreq->min_freq) {
-		freq = devfreq->min_freq;
-		flags &= ~DEVFREQ_FLAG_LEAST_UPPER_BOUND; /* Use GLB */
-	}
-	if (devfreq->max_freq && freq > devfreq->max_freq) {
-		freq = devfreq->max_freq;
-		flags |= DEVFREQ_FLAG_LEAST_UPPER_BOUND; /* Use LUB */
-	}
-
-	err = devfreq->profile->target(devfreq->dev.parent, &freq, flags);
-	if (err)
-		return err;
-
-	if (devfreq->profile->freq_table)
-		if (devfreq_update_status(devfreq, freq))
-			dev_err(&devfreq->dev,
-				"Couldn't update frequency transition information.\n");
-
-	devfreq->previous_freq = freq;
-	return err;
-}
-
 static ssize_t dpu_dvfs_enable_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -414,19 +363,22 @@ static int dpu_dvfs_notify_callback(struct notifier_block *nb,
 			unsigned long action, void *data)
 {
 	struct dpu_dvfs *dpu = container_of(nb, struct dpu_dvfs, dpu_dvfs_nb);
-	u32 dvfs_freq = *(int *)data;
+	u32 freq = *(int *)data;
 
-	if (!dpu->dvfs_enable)
+	if (!dpu->dvfs_enable || dpu->work_freq == freq)
 		return NOTIFY_DONE;
 
-	//if (dpu->work_freq == dvfs_freq) {
-	//	return NOTIFY_DONE;
-	//}
-
 	if (dpu->dvfs_ops && dpu->dvfs_ops->set_work_freq) {
-		dpu->dvfs_ops->set_work_freq(dvfs_freq);
-		pr_debug("set work freq = %u\n", dvfs_freq);
+		dpu->dvfs_ops->set_work_freq(freq);
+		pr_debug("set work freq = %u\n", freq);
 	}
+
+	if (dpu->devfreq->profile->freq_table)
+		devfreq_update_status(dpu->devfreq, freq);
+
+	dpu->work_freq = freq;
+	dpu->freq_type = DVFS_WORK;
+	dpu->devfreq->previous_freq = freq;
 
 	return NOTIFY_OK;
 }
