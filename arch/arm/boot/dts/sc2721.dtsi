@@ -58,7 +58,7 @@
 		};
 
 		pmic_flash: flash@2a8 {
-			compatible = "sprd,sc2721-flash";
+			compatible = "sprd,sc27xx-flash", "sprd,sc2721-flash";
 			reg = <0x2a8>;
 			status = "disabled";
 		};
