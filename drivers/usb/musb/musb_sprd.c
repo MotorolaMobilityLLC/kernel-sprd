@@ -505,27 +505,27 @@ static void musb_sprd_detect_cable(struct sprd_glue *glue)
 	struct extcon_dev *id_ext = glue->id_edev ? glue->id_edev : glue->edev;
 
 	spin_lock_irqsave(&glue->lock, flags);
-	if (extcon_get_state(glue->edev, EXTCON_USB) == true) {
+	if (extcon_get_state(id_ext, EXTCON_USB_HOST) == true) {
 		if (glue->vbus_active == 1) {
 			spin_unlock_irqrestore(&glue->lock, flags);
 			dev_info(glue->dev,
-				"ignore device connection detected from VBUS GPIO.\n");
-			return;
-		}
-
-		glue->vbus_active = 1;
-		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
-		queue_work(system_unbound_wq, &glue->work);
-	} else if (extcon_get_state(id_ext, EXTCON_USB_HOST) == true) {
-		if (glue->vbus_active == 1) {
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_info(glue->dev,
-				"ignore host connection detected from ID GPIO.\n");
+				"ignore device connection detected from ID GPIO.\n");
 			return;
 		}
 
 		glue->vbus_active = 1;
 		glue->wq_mode = USB_DR_MODE_HOST;
+		queue_work(system_unbound_wq, &glue->work);
+	} else if (extcon_get_state(glue->edev, EXTCON_USB) == true) {
+		if (glue->vbus_active == 1) {
+			spin_unlock_irqrestore(&glue->lock, flags);
+			dev_info(glue->dev,
+				"ignore host connection detected from VBUS GPIO.\n");
+			return;
+		}
+
+		glue->vbus_active = 1;
+		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
 	}
 	spin_unlock_irqrestore(&glue->lock, flags);
