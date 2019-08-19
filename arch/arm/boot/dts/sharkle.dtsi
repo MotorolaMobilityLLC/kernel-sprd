@@ -9,6 +9,7 @@
 #include <dt-bindings/soc/sprd,sharkle-regs.h>
 #include <dt-bindings/soc/sprd,sharkle-mask.h>
 #include <dt-bindings/clock/sprd,sc9832e-clk.h>
+#include <dt-bindings/debug/busmonitor/busmonitor.h>
 
 / {
 	interrupt-parent = <&gic>;
@@ -795,6 +796,32 @@
 
 				#address-cells = <1>;
 				#size-cells = <0>;
+
+				aon-busmonitor@3{
+					compatible  = "sprd,sharkl5-busmonitor", "sprd,sharkle-busmonitor";
+					interrupts = <GIC_SPI 34
+					IRQ_TYPE_LEVEL_HIGH>;
+					reg = <0x3>;
+					sprd,bm-num = <4>;
+					sprd,bm-name =
+						"AP", "WTLCP", "PUBCP","WCN";
+					sprd,bm-type =
+					<AXI>, <AXI>, <AXI>, <AXI>;
+					sprd,bm-dap = <1>, <2>, <3>, <4>;
+					sprd,bm-config =
+						<DISABLE MON_READ MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>;
+					sprd,bm-id =
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>;
+					sprd,bm-ranges =
+						<0 0>, <0 0>,
+						<0 0>, <0 0>;
+				};
 			};
 
 			adi_bus: spi@40380000 {
