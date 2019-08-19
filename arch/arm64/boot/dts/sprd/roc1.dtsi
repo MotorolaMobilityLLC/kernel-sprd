@@ -1200,14 +1200,21 @@
 				power-domains = <&pd_ipa_sys>;
 
 				dummy@0 {
-					label = "parent_gic_intc";
+					label = "msi_int";
 					interrupt-parent = <&gic>;
 					#interrupt-cells = <3>;
 					interrupts = <GIC_SPI 153
 						      IRQ_TYPE_LEVEL_HIGH>;
 				};
 				dummy@1 {
-					label = "parent_ipa_intc";
+					label = "aer_int";
+					interrupt-parent = <&gic>;
+					#interrupt-cells = <3>;
+					interrupts = <GIC_SPI 154
+						      IRQ_TYPE_LEVEL_HIGH>;
+				};
+				dummy@2 {
+					label = "ipa_int";
 					interrupt-parent = <&ipa_intc>;
 					#interrupt-cells = <1>;
 					interrupts = <20>;
@@ -1234,14 +1241,21 @@
 				power-domains = <&pd_ipa_sys>;
 
 				dummy@0 {
-					label = "parent_gic_intc";
+					label = "msi_int";
 					interrupt-parent = <&gic>;
 					#interrupt-cells = <3>;
 					interrupts = <GIC_SPI 148
 						      IRQ_TYPE_LEVEL_HIGH>;
 				};
 				dummy@1 {
-					label = "parent_ipa_intc";
+					label = "aer_int";
+					interrupt-parent = <&gic>;
+					#interrupt-cells = <3>;
+					interrupts = <GIC_SPI 149
+						      IRQ_TYPE_LEVEL_HIGH>;
+				};
+				dummy@2 {
+					label = "ipa_int";
 					interrupt-parent = <&ipa_intc>;
 					#interrupt-cells = <1>;
 					interrupts = <11>;
