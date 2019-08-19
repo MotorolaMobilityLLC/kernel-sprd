@@ -315,6 +315,10 @@
 	wb_reserved: writeback-mem@ff562000 {
 		reg = <0x0 0xff562000 0x0 0x00a1e000>;
 	};
+
+	logo_reserved: logobuffer@9e000000{
+		reg = <0x0 0x9e000000 0x0 0x009e4000>;
+	};
 };
 
 &thm_zone {
