@@ -19,4 +19,13 @@ extern int sprd_pcie_configure_device(struct platform_device *pdev);
 extern int sprd_pcie_unconfigure_device(struct platform_device *pdev);
 extern void sprd_pcie_teardown_msi_irq(unsigned int irq);
 
+#ifdef CONFIG_SPRD_PCIE_AER
+void sprd_pcie_alloc_irq_vectors(struct pci_dev *dev, int *irqs, int services);
+#else
+static inline void sprd_pcie_alloc_irq_vectors(struct pci_dev *dev, int *irqs,
+					       int services)
+{
+}
+#endif
+
 #endif

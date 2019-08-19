@@ -135,11 +135,11 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 			fwnode_handle_put(child);
 			return -EINVAL;
 		}
-		if (!strcmp(ctrl->label, "parent_gic_intc")) {
+		if (!strcmp(ctrl->label, "msi_int")) {
 			irq = irq_of_parse_and_map(to_of_node(child), 0);
-			if (irq < 0) {
+			if (!irq) {
 				dev_err(dev, "cannot get msi irq\n");
-				return irq;
+				return -EINVAL;
 			}
 
 			pp->msi_irq = (int)irq;
@@ -153,12 +153,26 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 			}
 		}
 
-#ifdef CONFIG_SPRD_IPA_INTC
-		if (!strcmp(ctrl->label, "parent_ipa_intc")) {
+#ifdef CONFIG_SPRD_PCIE_AER
+		if (!strcmp(ctrl->label, "aer_int")) {
 			irq = irq_of_parse_and_map(to_of_node(child), 0);
-			if (irq < 0) {
+			if (!irq) {
+				dev_err(dev, "cannot get aer irq\n");
+				return -EINVAL;
+			}
+
+			ctrl->aer_irq = irq;
+			dev_info(dev,
+				 "sprd itself defines aer irq is %d\n", irq);
+		}
+#endif
+
+#ifdef CONFIG_SPRD_IPA_INTC
+		if (!strcmp(ctrl->label, "ipa_int")) {
+			irq = irq_of_parse_and_map(to_of_node(child), 0);
+			if (!irq) {
 				dev_err(dev, "cannot get legacy irq\n");
-				return irq;
+				return -EINVAL;
 			}
 			ctrl->interrupt_line = irq;
 		}

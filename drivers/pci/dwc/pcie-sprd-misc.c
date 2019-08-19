@@ -217,3 +217,23 @@ void sprd_pcie_teardown_msi_irq(unsigned int irq)
 	dw_pcie_writel_dbi(pci,  PCIE_MSI_INTR0_ENABLE + msi_ctrls, val);
 }
 EXPORT_SYMBOL(sprd_pcie_teardown_msi_irq);
+
+#ifdef CONFIG_SPRD_PCIE_AER
+void sprd_pcie_alloc_irq_vectors(struct pci_dev *dev, int *irqs, int services)
+{
+	struct pcie_port *pp = dev->bus->sysdata;
+	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+	struct platform_device *pdev = to_platform_device(pci->dev);
+	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
+
+	/*
+	 * Unisoc PCIe RC only supports the following port service type
+	 * (please see pcieport_if.h):
+	 * -1. Power Management Event (PME)
+	 * -2. Advanced Error Reporting (AER)
+	 *  However, only AER irq is used right now.
+	 */
+	irqs[1] = ctrl->aer_irq;
+}
+EXPORT_SYMBOL(sprd_pcie_alloc_irq_vectors);
+#endif
