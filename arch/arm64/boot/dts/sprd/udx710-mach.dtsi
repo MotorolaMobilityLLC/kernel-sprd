@@ -20,7 +20,7 @@
 		ranges;
 
 		ddrbist_reserved: ddrbist-mem@80000000 {
-			reg = <0x0 0x80000000 0x0 0x00000080>;
+			reg = <0x0 0x80000000 0x0 0x00004000>;
 		};
 
 		sml_reserved: sml-mem@85300000 {
