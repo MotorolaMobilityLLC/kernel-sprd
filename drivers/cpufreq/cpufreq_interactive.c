@@ -1037,12 +1037,17 @@ static void update_util_handler(struct update_util_data *data, u64 time,
 	if ((s64)delta_ns < tunables->sampling_rate * NSEC_PER_USEC)
 		return;
 
-	icpu->last_sample_time = time;
-	icpu->next_sample_jiffies = usecs_to_jiffies(tunables->sampling_rate) +
-				    jiffies;
+	if (unlikely(!down_read_trylock(&icpu->enable_sem)))
+		return;
+	if (likely(icpu->ipolicy)) {
+		icpu->last_sample_time = time;
+		icpu->next_sample_jiffies = usecs_to_jiffies(tunables->sampling_rate) +
+					    jiffies;
 
-	icpu->work_in_progress = true;
-	irq_work_queue(&icpu->irq_work);
+		icpu->work_in_progress = true;
+		irq_work_queue(&icpu->irq_work);
+	}
+	up_read(&icpu->enable_sem);
 }
 
 static void gov_set_update_util(struct interactive_policy *ipolicy)
@@ -1269,9 +1274,8 @@ void cpufreq_interactive_stop(struct cpufreq_policy *policy)
 	for_each_cpu(cpu, policy->cpus) {
 		icpu = &per_cpu(interactive_cpu, cpu);
 
-		icpu_cancel_work(icpu);
-
 		down_write(&icpu->enable_sem);
+		icpu_cancel_work(icpu);
 		icpu->ipolicy = NULL;
 		up_write(&icpu->enable_sem);
 	}
