@@ -13,7 +13,6 @@ Required properties:
 	Each entry is a pair of strings, the first being the
 	connection's sink, the second being the connection's
 	source.
-- sprd,ucp1301-smart-pa : boolean, whether support ucp smart pa
 - sprd-audio-card,headset : reference node of sprd_headset
 
 Dai-link subnode properties and subnodes:
