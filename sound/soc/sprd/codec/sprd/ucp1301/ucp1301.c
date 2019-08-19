@@ -620,7 +620,7 @@ static void ucp1301_reg_init(struct ucp1301_t *ucp1301)
 	ucp1301_set_agc_mk2(ucp1301, 0x1);
 }
 
-int ucp1301_hw_on(struct ucp1301_t *ucp1301, bool on)
+static int ucp1301_hw_on(struct ucp1301_t *ucp1301, bool on)
 {
 	int ret;
 
@@ -662,7 +662,7 @@ int ucp1301_hw_on(struct ucp1301_t *ucp1301, bool on)
 	return 0;
 }
 
-int ucp1301_audio_receiver(struct ucp1301_t *ucp1301, bool on)
+static int ucp1301_audio_receiver(struct ucp1301_t *ucp1301, bool on)
 {
 	if (on) {
 		ucp1301_hw_on(ucp1301, true);
@@ -675,7 +675,7 @@ int ucp1301_audio_receiver(struct ucp1301_t *ucp1301, bool on)
 	return 0;
 }
 
-int ucp1301_audio_speaker(struct ucp1301_t *ucp1301, bool on)
+static int ucp1301_audio_speaker(struct ucp1301_t *ucp1301, bool on)
 {
 	if (on) {
 		ucp1301_hw_on(ucp1301, true);
@@ -688,7 +688,7 @@ int ucp1301_audio_speaker(struct ucp1301_t *ucp1301, bool on)
 	return 0;
 }
 
-int ucp1301_audio_receiver_d(struct ucp1301_t *ucp1301, bool on)
+static int ucp1301_audio_receiver_d(struct ucp1301_t *ucp1301, bool on)
 {
 	if (on) {
 		ucp1301_hw_on(ucp1301, true);
@@ -700,7 +700,7 @@ int ucp1301_audio_receiver_d(struct ucp1301_t *ucp1301, bool on)
 	return 0;
 }
 
-int ucp1301_audio_speaker_d(struct ucp1301_t *ucp1301, bool on)
+static int ucp1301_audio_speaker_d(struct ucp1301_t *ucp1301, bool on)
 {
 	if (on) {
 		ucp1301_hw_on(ucp1301, true);
@@ -1616,7 +1616,7 @@ static const struct snd_kcontrol_new ucp1301_snd_controls_rcv[] = {
 		       ucp1301_get_i2c_index, NULL),
 };
 
-void ucp1301_audio_on(struct ucp1301_t *ucp1301, bool on_off)
+static void ucp1301_audio_on(struct ucp1301_t *ucp1301, bool on_off)
 {
 	enum ucp1301_class_mode class_mode;
 
