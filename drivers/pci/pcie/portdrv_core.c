@@ -17,6 +17,9 @@
 #include <linux/slab.h>
 #include <linux/pcieport_if.h>
 #include <linux/aer.h>
+#ifdef CONFIG_SPRD_PCIE_AER
+#include <linux/pcie-rc-sprd.h>
+#endif
 
 #include "../pci.h"
 #include "portdrv.h"
@@ -56,6 +59,13 @@ static void release_pcie_device(struct device *dev)
 static int pcie_port_enable_irq_vec(struct pci_dev *dev, int *irqs, int mask)
 {
 	int nr_entries, entry, nvec = 0;
+
+#ifdef CONFIG_SPRD_PCIE_AER
+	/* Unisoc uses its own AER irq number (not legacy irq) instead of MSI */
+	sprd_pcie_alloc_irq_vectors(dev, irqs, PCIE_PORT_DEVICE_MAXSERVICES);
+
+	return 0;
+#endif
 
 	/*
 	 * Allocate as many entries as the port wants, so that we can check
