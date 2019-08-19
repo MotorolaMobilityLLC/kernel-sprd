@@ -555,16 +555,14 @@ static bool is_full_charged(struct charger_manager *cm)
 					is_full = true;
 				} else {
 					is_full = false;
-					cm->desc->force_set_full = true;
 					adjust_fuel_cap(cm, CM_FORCE_SET_FUEL_CAP_FULL);
 				}
+				cm->desc->force_set_full = true;
 			} else {
 				is_full = false;
-				cm->desc->force_set_full = false;
 			}
 			goto out;
 		} else {
-			cm->desc->force_set_full = false;
 			is_full = false;
 			desc->trigger_cnt = 0;
 			goto out;
@@ -802,7 +800,6 @@ static void fullbatt_vchk(struct work_struct *work)
 	dev_info(cm->dev, "VBATT dropped %duV after full-batt\n", diff);
 
 	if (diff >= desc->fullbatt_vchkdrop_uV) {
-		cm->desc->force_set_full = false;
 		try_charger_restart(cm);
 		uevent_notify(cm, "Recharging");
 	}
@@ -2622,7 +2619,7 @@ static void cm_batt_works(struct work_struct *work)
 	period_time = cur_time.tv_sec - cm->desc->last_query_time;
 	cm->desc->last_query_time = cur_time.tv_sec;
 
-	if (cm->desc->force_set_full)
+	if (cm->desc->force_set_full && is_ext_pwr_online(cm))
 		cm->desc->charger_status = POWER_SUPPLY_STATUS_FULL;
 	else
 		cm->desc->charger_status = chg_sts;
