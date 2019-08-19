@@ -1195,10 +1195,23 @@
 					<GIC_SPI 159 IRQ_TYPE_LEVEL_HIGH>;
 				interrupts_name = "dcam0", "dcam1",
 					"dcam2";
+				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM_ALL_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM0_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM1_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM2_SOFT_RST>;
+				syscon-names = "dcam_all_reset",
+						"dcam0_reset",
+						"dcam1_reset",
+						"dcam2_reset";
 				sprd,aon-apb-syscon = <&aon_apb_regs>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
+				sprd,project-id = <0>;
 				iommus = <&iommu_dcam>;
 				status = "disable";
 			};
