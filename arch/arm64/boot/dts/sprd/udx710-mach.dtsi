@@ -44,6 +44,13 @@
 		};
 	};
 
+	ddr_dfs: scene-frequency {
+		compatible = "sprd,dfs";
+		freq-num = <7>;
+		sprd-scene = "test";
+		sprd-freq = <1536>;
+	};
+
 	thm_zone: thermal-zones {
 
 		soc_thmzone: soc-thmzone {
