@@ -56,7 +56,6 @@
 #include <linux/file.h>
 #include <linux/psi.h>
 #include <net/sock.h>
-#include <linux/cpu.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/cgroup.h>
@@ -4396,12 +4395,9 @@ static ssize_t cgroup_procs_write(struct kernfs_open_file *of,
 	struct task_struct *task;
 	ssize_t ret;
 
-	cpu_hotplug_disable();
 	dst_cgrp = cgroup_kn_lock_live(of->kn, false);
-	if (!dst_cgrp) {
-		cpu_hotplug_enable();
+	if (!dst_cgrp)
 		return -ENODEV;
-	}
 
 	task = cgroup_procs_write_start(buf, true);
 	ret = PTR_ERR_OR_ZERO(task);
@@ -4424,7 +4420,6 @@ out_finish:
 	cgroup_procs_write_finish(task);
 out_unlock:
 	cgroup_kn_unlock(of->kn);
-	cpu_hotplug_enable();
 
 	return ret ?: nbytes;
 }

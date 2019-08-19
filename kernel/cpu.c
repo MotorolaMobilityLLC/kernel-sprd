@@ -30,7 +30,6 @@
 #include <linux/relay.h>
 #include <linux/slab.h>
 #include <linux/percpu-rwsem.h>
-#include <linux/delay.h>
 
 #include <trace/events/power.h>
 #define CREATE_TRACE_POINTS
@@ -1020,22 +1019,8 @@ static int cpu_down_maps_locked(unsigned int cpu, enum cpuhp_state target)
 static int do_cpu_down(unsigned int cpu, enum cpuhp_state target)
 {
 	int err;
-	int count = 20;
 
-	do {
-		cpu_maps_update_begin();
-		if (cpu_hotplug_disabled) {
-			cpu_maps_update_done();
-			usleep_range(500, 600);
-		} else
-			break;
-	} while (count--);
-
-	if (cpu_hotplug_disabled) {
-		pr_err("cpu%d can't power down because cpu_hotplug_disabled is still set!\n", cpu);
-		return -EBUSY;
-	}
-
+	cpu_maps_update_begin();
 	err = cpu_down_maps_locked(cpu, target);
 	cpu_maps_update_done();
 	return err;
@@ -1156,7 +1141,6 @@ out:
 static int do_cpu_up(unsigned int cpu, enum cpuhp_state target)
 {
 	int err = 0;
-	int count = 20;
 
 	if (!cpu_possible(cpu)) {
 		pr_err("can't online cpu %d because it is not configured as may-hotadd at boot time\n",
@@ -1171,20 +1155,12 @@ static int do_cpu_up(unsigned int cpu, enum cpuhp_state target)
 	if (err)
 		return err;
 
-	do {
-		cpu_maps_update_begin();
-		if (cpu_hotplug_disabled) {
-			cpu_maps_update_done();
-			usleep_range(500, 600);
-		} else
-			break;
-	} while (count--);
+	cpu_maps_update_begin();
 
 	if (cpu_hotplug_disabled) {
-		pr_err("cpu%d can't power up because cpu_hotplug_disabled is still set!\n", cpu);
-		return -EBUSY;
+		err = -EBUSY;
+		goto out;
 	}
-
 	if (!cpu_smt_allowed(cpu)) {
 		err = -EPERM;
 		goto out;

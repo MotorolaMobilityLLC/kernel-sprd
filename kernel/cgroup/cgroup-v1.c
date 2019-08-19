@@ -15,7 +15,6 @@
 #include <linux/cgroupstats.h>
 
 #include <trace/events/cgroup.h>
-#include <linux/cpu.h>
 
 /*
  * pidlists linger the following amount before being destroyed.  The goal
@@ -525,12 +524,9 @@ static ssize_t __cgroup1_procs_write(struct kernfs_open_file *of,
 	const struct cred *cred, *tcred;
 	ssize_t ret;
 
-	cpu_hotplug_disable();
 	cgrp = cgroup_kn_lock_live(of->kn, false);
-	if (!cgrp) {
-		cpu_hotplug_enable();
+	if (!cgrp)
 		return -ENODEV;
-	}
 
 	task = cgroup_procs_write_start(buf, threadgroup);
 	ret = PTR_ERR_OR_ZERO(task);
@@ -558,7 +554,6 @@ out_finish:
 	cgroup_procs_write_finish(task);
 out_unlock:
 	cgroup_kn_unlock(of->kn);
-	cpu_hotplug_enable();
 
 	return ret ?: nbytes;
 }
