@@ -1566,13 +1566,16 @@ static int charger_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		if (is_charging(cm))
+		if (is_charging(cm)) {
 			val->intval = POWER_SUPPLY_STATUS_CHARGING;
-		else if (is_ext_pwr_online(cm))
-			val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
-		else
+		} else if (is_ext_pwr_online(cm)) {
+			if (is_full_charged(cm) || cm->desc->force_set_full)
+				val->intval = POWER_SUPPLY_STATUS_FULL;
+			else
+				val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
+		} else {
 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
-		break;
+		}
 	case POWER_SUPPLY_PROP_HEALTH:
 		if (cm->emergency_stop > 0)
 			val->intval = POWER_SUPPLY_HEALTH_OVERHEAT;
