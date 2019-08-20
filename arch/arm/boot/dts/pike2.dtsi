@@ -10,6 +10,7 @@
 #include <dt-bindings/soc/sprd,pike2-regs.h>
 #include <dt-bindings/soc/sprd,pike2-mask.h>
 #include <dt-bindings/clock/sprd,sc7731e-clk.h>
+#include <dt-bindings/debug/busmonitor/busmonitor.h>
 
 / {
 	interrupt-parent = <&gic>;
@@ -670,6 +671,35 @@
 
 				#address-cells = <1>;
 				#size-cells = <0>;
+
+				aon-busmonitor@3{
+					compatible  = "sprd,sharkl5-busmonitor", "sprd,pike2-busmonitor";
+					interrupts =
+						<GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>,
+						<GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>,
+						<GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>,
+						<GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
+					reg = <0x3>;
+					sprd,bm-num = <4>;
+					sprd,bm-name =
+						"WCN", "AP", "WTLCP", "PUBCP";
+					sprd,bm-type =
+					<AXI>, <AXI>, <AXI>, <AXI>;
+					sprd,bm-dap = <1>, <2>, <3>, <4>;
+					sprd,bm-config =
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>;
+					sprd,bm-id =
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>;
+					sprd,bm-ranges =
+						<0 0>, <0 0>,
+						<0 0>, <0 0>;
+				};
 			};
 		};
 
