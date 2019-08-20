@@ -422,8 +422,11 @@ static int sipa_eth_parse_dt(
 static void s_setup(struct net_device *dev)
 {
 	ether_setup(dev);
-	/* avoid mdns to be send */
-	dev->flags &= ~(IFF_BROADCAST | IFF_MULTICAST);
+	/*
+	 * avoid mdns to be send
+	 * also disable arp
+	 */
+	dev->flags &= ~(IFF_BROADCAST | IFF_MULTICAST | IFF_NOARP);
 }
 
 static int sipa_eth_probe(struct platform_device *pdev)
