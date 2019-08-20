@@ -1326,10 +1326,15 @@ static void cpufreq_interactive_slack_timer(unsigned long data)
 	 */
 	struct interactive_cpu *icpu = &per_cpu(interactive_cpu, smp_processor_id());
 
-	if (icpu->work_in_progress)
+	if (unlikely(!down_read_trylock(&icpu->enable_sem)))
 		return;
-	icpu->work_in_progress = true;
-	irq_work_queue(&icpu->irq_work);
+	if (likely(icpu->ipolicy)) {
+		if (!icpu->work_in_progress) {
+			icpu->work_in_progress = true;
+			irq_work_queue(&icpu->irq_work);
+		}
+	}
+	up_read(&icpu->enable_sem);
 }
 
 static int __init cpufreq_interactive_gov_init(void)
