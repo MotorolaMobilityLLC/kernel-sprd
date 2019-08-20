@@ -114,12 +114,12 @@ static bool is_filter_port(u8 l4proto, u16 src_port, u16 dst_port)
 {
 	/* We want to pass FTP control stream packets to Linux */
 	if (l4proto == IPPROTO_TCP) {
-		if ((src_port == FTP_CTRL_PORT) ||
-		    (dst_port == FTP_CTRL_PORT))
+		if (src_port == FTP_CTRL_PORT ||
+		    dst_port == FTP_CTRL_PORT)
 			return true;
 	} else if (l4proto == IPPROTO_UDP) {
-		if ((src_port == DHCP_PORT) ||
-		    (dst_port == DHCP_PORT))
+		if (src_port == DHCP_PORT ||
+		    dst_port == DHCP_PORT)
 			return true;
 		else if ((src_port == DNS_PORT) ||
 			 (dst_port == DNS_PORT))
@@ -384,32 +384,50 @@ static bool sfp_ct_mac_init(struct sk_buff *skb,
 			    struct nf_conn *ct,
 			    struct sfp_conn *sfp_ct)
 {
+	enum ip_conntrack_info ctinfo;
+	int dir;
 	u8 orig_src[ETH_ALEN];
 	u8 orig_dst[ETH_ALEN];
 	u8 reply_src[ETH_ALEN];
 	u8 reply_dst[ETH_ALEN];
+	u8 *in_src, *in_dst, *out_src, *out_dst;
 	char *skb_mac = skb_mac_header(skb);
 	int is_v4 = sfp_get_ip_version(skb);
 	char *def_mac = "000000";
 	struct rtable *rt = skb_rtable(skb);
 	struct sfp_mgr_fwd_tuple_hash *thptr;
 
-	mac_addr_copy(reply_src, skb_mac + 6);
-	mac_addr_copy(reply_dst, skb_mac);
+	nf_ct_get(skb, &ctinfo);
+	dir = CTINFO2DIR(ctinfo);
+
+	if (dir == IP_CT_DIR_REPLY) {
+		in_src = reply_src;
+		in_dst = reply_dst;
+		out_src = orig_src;
+		out_dst = orig_dst;
+	} else {
+		in_src = orig_src;
+		in_dst = orig_dst;
+		out_src = reply_src;
+		out_dst = reply_dst;
+	}
+
+	mac_addr_copy(in_src, skb_mac + 6);
+	mac_addr_copy(in_dst, skb_mac);
 
 	if (rt->dst.dev->flags & IFF_NOARP) {
 		FP_PRT_DBG(FP_PRT_DEBUG, "noarp iface\n");
-		mac_addr_copy(orig_src, skb->dev->dev_addr);
-		mac_addr_copy(orig_dst, (u8 *)def_mac);
+		mac_addr_copy(out_dst, rt->dst.dev->dev_addr);
+		mac_addr_copy(out_src, (u8 *)def_mac);
 	} else {
 		if (!sfp_get_mac_by_ipaddr(
-			&ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.u3,
-			orig_src, is_v4)) {
+			&ct->tuplehash[!dir].tuple.src.u3,
+			out_src, is_v4)) {
 			FP_PRT_DBG(FP_PRT_WARN, "get orig_src_mac fail\n");
 			return false;
 		}
 
-		mac_addr_copy(orig_dst, rt->dst.dev->dev_addr);
+		mac_addr_copy(out_dst, rt->dst.dev->dev_addr);
 	}
 
 	FP_PRT_DBG(FP_PRT_DEBUG,
