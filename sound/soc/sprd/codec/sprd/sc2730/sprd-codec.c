@@ -1097,6 +1097,8 @@ static int spk_pa_event(struct snd_soc_dapm_widget *w,
 	} else {
 		sprd_codec_pa_d_en(codec, 0, 0);
 		sprd_codec_pa_en(codec, 0);
+		/* PA close need take some time, 2ms is advice from ASIC */
+		sprd_codec_wait(2);
 	}
 
 	return 0;
