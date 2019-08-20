@@ -237,7 +237,7 @@ static int modem_gpios_init(struct modem_ctrl_device *mcd_dev, int soc_type)
 	return 0;
 }
 
-void modem_ctrl_send_abnormal_to_ap(int status, u32 time_us)
+void modem_ctrl_send_abnormal_to_ap(int status, u32 time_ms)
 {
 	struct gpio_desc *gpiodesc;
 
@@ -265,18 +265,17 @@ void modem_ctrl_send_abnormal_to_ap(int status, u32 time_us)
 	}
 	mcd_dev->init->modem_status = status;
 	dev_info(mcd_dev->dev,
-		"operation unnormal status %d %d us send to ap\n",
-		status, time_us);
+		"operation unnormal status %d %d ms send to ap\n",
+		status, time_ms);
 	if (!IS_ERR(gpiodesc)) {
 		gpiod_set_value_cansleep(gpiodesc, 0);
-		/* Use 50us looks like good,base test */
-		if (time_us)
-			udelay(time_us);
+		if (time_ms)
+			msleep(time_ms);
 		gpiod_set_value_cansleep(gpiodesc, 1);
 	}
 }
 
-static void modem_ctrl_send_cmd_to_cp(int status, u32 time_us)
+static void modem_ctrl_send_cmd_to_cp(int status, u32 time_ms)
 {
 	struct gpio_desc *gpiodesc = NULL;
 
@@ -292,13 +291,12 @@ static void modem_ctrl_send_cmd_to_cp(int status, u32 time_us)
 
 	mcd_dev->init->modem_status = status;
 	dev_info(mcd_dev->dev,
-		"operation  cmd %d %d us send to cp\n",
-		status, time_us);
+		"operation  cmd %d %d ms send to cp\n",
+		status, time_ms);
 	if (!IS_ERR(gpiodesc)) {
 		gpiod_set_value_cansleep(gpiodesc, 0);
-		/* Use 50us looks like good,base test */
-		if (time_us)
-			udelay(time_us);
+		if (time_ms)
+			msleep(time_ms);
 		gpiod_set_value_cansleep(gpiodesc, 1);
 	}
 }
@@ -317,7 +315,7 @@ static void modem_ctrl_notify_abnormal_status(int status)
 		       "operation not be allowed for status %d\n", status);
 		return;
 	}
-	modem_ctrl_send_abnormal_to_ap(status, 50);
+	modem_ctrl_send_abnormal_to_ap(status, 20);
 }
 
 static void modem_ctrl_poweron_modem(int on)
@@ -378,7 +376,7 @@ static void modem_ctrl_poweron_modem(int on)
 #endif
 		break;
 	case MDM_POWER_OFF:
-		modem_ctrl_send_cmd_to_cp(MDM_POWER_OFF, 50);
+		modem_ctrl_send_cmd_to_cp(MDM_POWER_OFF, 20);
 		break;
 	default:
 		dev_err(mcd_dev->dev, "cmd not support: %d\n", on);
@@ -724,7 +722,7 @@ static int modem_ctrl_remove(struct platform_device *pdev)
 static void modem_ctrl_shutdown(struct platform_device *pdev)
 {
 	if (mcd_dev->soc_type == ROC1_SOC) {
-		modem_ctrl_send_cmd_to_cp(MDM_POWER_OFF, 50);
+		modem_ctrl_send_cmd_to_cp(MDM_POWER_OFF, 20);
 		/* Sleep 500ms for cp to deal power down process otherwise
 		 * cp will not power down clearly.
 		 */
