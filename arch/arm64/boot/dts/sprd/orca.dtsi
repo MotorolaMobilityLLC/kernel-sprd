@@ -1154,7 +1154,7 @@
 				num-viewport = <8>;
 				status = "disabled";
 				dummy@0 {
-					label = "parent_gic_intc";
+					label = "msi_int";
 					interrupt-parent = <&gic>;
 					#interrupt-cells = <3>;
 					interrupts = <GIC_SPI 22
