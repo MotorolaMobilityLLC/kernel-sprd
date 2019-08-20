@@ -13652,6 +13652,15 @@ CONFIG_SPRD_PAM_IPA
 	[must]
 	[missing plat description]
 	[function]
+CONFIG_SPRD_PCIE_AER
+	[arch] arm64
+	[plat] roc1
+	[field] make,code
+	[subsys] soc
+	[must] debug
+	[function] This enables SPRD PCI Express Root Port Advanced Error
+		   Reporting (AER) irq number which is defined by SPRD itself
+		   not by MSI.
 CONFIG_SPRD_PCIE_EP_DEVICE
 	[arch] arm64
 	[plat] roc1

@@ -193,6 +193,16 @@ config PCIE_SPRD_HOST
 	 Say Y here if you want PCIe controller to work in host(RC) mode on
 	 Spreadtrum SoC
 
+config SPRD_PCIE_AER
+	bool "SPRD Root Port Advanced Error Reporting support"
+	depends on PCIE_SPRD_HOST
+	help
+	  This enables SPRD PCI Express Root Port Advanced Error Reporting
+	  (AER) irq number which is defined by SPRD itself. Error reporting
+	  messages sent to Root Port will be handled by PCI Express AER driver.
+	  Say N here if you want to use MSI number as AER irq number on
+	  Spreadtrum SoC.
+
 config PCIE_SPRD_EP
 	bool "Spreadtrum PCIe Endpoint Mode"
 	depends on ARCH_SPRD
