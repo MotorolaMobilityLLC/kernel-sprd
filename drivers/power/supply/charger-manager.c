@@ -2537,7 +2537,7 @@ static void cm_batt_works(struct work_struct *work)
 	struct timespec64 cur_time;
 	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
 	int period_time, flush_time;
-	int chg_cur, chg_limit_cur;
+	int chg_cur = 0, chg_limit_cur = 0;
 
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
