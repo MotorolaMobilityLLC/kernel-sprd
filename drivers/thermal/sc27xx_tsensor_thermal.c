@@ -210,26 +210,26 @@ static int sc27xx_tsensor_out_temp_read(struct sc27xx_tsen *tsen, int *temp)
 	return ret;
 }
 
-static int sc27xx_tsensor_disable(struct sc27xx_tsen *tsen)
+static int sc27xx_tsensor_disable(struct regmap *regmap, u32 base)
 {
 	int ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + SC27XX_TSEN_CTRL0,
+	ret = regmap_update_bits(regmap, base + SC27XX_TSEN_CTRL0,
 				SC27XX_TSEN_CLK_SRC_SEL, SC27XX_TSEN_CLK_SRC_SEL);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + SC27XX_TSEN_CTRL3,
+	ret = regmap_update_bits(regmap, base + SC27XX_TSEN_CTRL3,
 				SC27XX_TSEN_EN | SC27XX_TSEN_SEL_CH | SC27XX_TSEN_SEL_EN, 0);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + SC27XX_TSEN_CTRL1,
+	ret = regmap_update_bits(regmap, base + SC27XX_TSEN_CTRL1,
 				SC27XX_TSEN_SDADC_EN | SC27XX_TSEN_UGBUF_EN, 0);
 	if (ret)
 		return ret;
 
-	return regmap_update_bits(tsen->regmap, tsen->base + SC27XX_TSEN_CTRL0,
+	return regmap_update_bits(regmap, base + SC27XX_TSEN_CTRL0,
 				SC27XX_TSEN_ADCLDO_EN, 0);
 }
 
@@ -311,7 +311,7 @@ static int sc27xx_tsen_probe(struct platform_device *pdev)
 		}
 	}
 
-	return sc27xx_tsensor_disable(tsen);
+	return sc27xx_tsensor_disable(regmap, base);
 }
 
 static const struct of_device_id sc27xx_tsen_of_match[] = {
