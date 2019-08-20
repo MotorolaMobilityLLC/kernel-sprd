@@ -302,6 +302,8 @@ static int apsys_dvfs_probe(struct platform_device *pdev)
 	if (apsys->dvfs_ops && apsys->dvfs_ops->dvfs_init)
 		apsys->dvfs_ops->dvfs_init(apsys);
 
+	if (apsys->dvfs_ops && apsys->dvfs_ops->top_dvfs_init)
+		apsys->dvfs_ops->top_dvfs_init();
 	pr_info("apsys module registered\n");
 
 	return 0;

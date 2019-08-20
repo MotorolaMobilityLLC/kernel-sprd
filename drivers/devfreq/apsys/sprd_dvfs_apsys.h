@@ -101,6 +101,7 @@ struct apsys_dvfs_ops {
 	void (*apsys_min_volt)(u32 min_volt);
 
 	/* top common ops */
+	void (*top_dvfs_init)(void);
 	int (*top_cur_volt)(void);
 };
 

@@ -117,6 +117,19 @@ static void apsys_dvfs_min_volt(u32 min_volt)
 	reg->ap_min_voltage_cfg = min_volt;
 }
 
+static void apsys_top_dvfs_init(void)
+{
+	void __iomem *base;
+
+	pr_info("%s()\n", __func__);
+
+	base = ioremap_nocache(0x322a0000, 0x150);
+	if (IS_ERR(base))
+		pr_err("ioremap top dvfs address failed\n");
+
+	regmap_ctx.top_base = (unsigned long)base;
+}
+
 static int dcdc_modem_cur_volt(void)
 {
 	volatile u32 rw32;
@@ -163,16 +176,6 @@ static int apsys_dvfs_parse_dt(struct apsys_dev *apsys,
 
 static void apsys_dvfs_init(struct apsys_dev *apsys)
 {
-	void __iomem *base;
-
-	pr_info("%s()\n", __func__);
-
-	base = ioremap_nocache(0x322a0000, 0x150);
-	if (IS_ERR(base))
-		pr_err("ioremap top dvfs address failed\n");
-
-	regmap_ctx.top_base = (unsigned long)base;
-
 	apsys_dvfs_hold_en(apsys->dvfs_coffe.dvfs_hold_en);
 	apsys_dvfs_force_en(apsys->dvfs_coffe.dvfs_force_en);
 	apsys_dvfs_auto_gate(apsys->dvfs_coffe.dvfs_auto_gate);
@@ -187,6 +190,7 @@ static struct apsys_dvfs_ops apsys_dvfs_ops = {
 	.apsys_hold_en = apsys_dvfs_hold_en,
 	.apsys_wait_window = apsys_dvfs_wait_window,
 	.apsys_min_volt = apsys_dvfs_min_volt,
+	.top_dvfs_init = apsys_top_dvfs_init,
 	.top_cur_volt = dcdc_modem_cur_volt,
 };
 
