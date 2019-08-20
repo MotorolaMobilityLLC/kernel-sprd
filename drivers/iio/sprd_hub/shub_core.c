@@ -1847,6 +1847,58 @@ static ssize_t shub_debug_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(shub_debug);
 
+static ssize_t cm4_operate_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct shub_data *sensor = dev_get_drvdata(dev);
+	char l[50], m[50];
+
+	snprintf(l, sizeof(l), "[cm4_operate]operate:0x%x interface:0x%x ",
+		 sensor->cm4_operate_data[0],
+		 sensor->cm4_operate_data[1]);
+
+	snprintf(m, sizeof(m),
+		 "addr:0x%x reg:0x%x value:0x%x status:0x%x\n\n",
+		 sensor->cm4_operate_data[2],
+		 sensor->cm4_operate_data[3],
+		 sensor->cm4_operate_data[4],
+		 sensor->cm4_operate_data[5]);
+
+	return sprintf(buf, "\nDescription :\n"
+		 "\techo \"op intf addr reg value mask\" > cm4_operate\n"
+		 "\tcat cm4_operate\n\n"
+		 "Detail :\n"
+		 "\top: 1:read 2:write 3:check_reg 4:set_delay 5:set_gpio\n"
+		 "\tintf(i2c interface): 0:i2c0 1:i2c1\n"
+		 "\taddr: IC slave_addr.if find from opcode,need >>1\n"
+		 "\treg: IC reg or set_gpio reg\n"
+		 "\tvalue: i2c writen value or set_gpio value.\n"
+		 "\tmask: i2c r/w bit operate or set_elay value(ms)\n\n"
+		 "\tstatus: show execution result. 1:success 0:fail\n\n"
+		 "%s%s\n", l, m);
+}
+
+static ssize_t cm4_operate_store(struct device *dev,
+				 struct device_attribute *attr,
+				 const char *buf, size_t count)
+{
+	u8 cm4_buf[6];
+	struct shub_data *sensor = dev_get_drvdata(dev);
+
+	if (sscanf(buf, "%4hhx %4hhx %4hhx %4hhx %4hhx %4hhx\n", &cm4_buf[0],
+		   &cm4_buf[1], &cm4_buf[2], &cm4_buf[3], &cm4_buf[4],
+		   &cm4_buf[5]) != 6)
+		return -EINVAL;
+
+	shub_send_command(sensor, SHUB_NODATA,
+			  SHUB_CM4_OPERATE, cm4_buf,
+			  sizeof(cm4_buf));
+
+	return count;
+}
+
+static DEVICE_ATTR_RW(cm4_operate);
+
 static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_debug_data.attr,
 	&dev_attr_reader_enable.attr,
@@ -1870,6 +1922,7 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_sensor_info.attr,
 	&dev_attr_mag_cali_flag.attr,
 	&dev_attr_shub_debug.attr,
+	&dev_attr_cm4_operate.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(sensorhub);

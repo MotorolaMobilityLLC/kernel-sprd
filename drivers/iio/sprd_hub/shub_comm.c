@@ -27,6 +27,12 @@ static void shub_get_data(struct cmd_data *packet)
 					packet->length);
 		break;
 
+	case SHUB_CM4_OPERATE:
+		memcpy(g_sensor->cm4_operate_data,
+		       packet->buff,
+		       sizeof(g_sensor->cm4_operate_data));
+		break;
+
 	case SHUB_SEND_DEBUG_DATA:
 		memcpy(g_sensor->log_control.debug_data,
 		       packet->buff,
