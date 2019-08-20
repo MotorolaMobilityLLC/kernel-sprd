@@ -32,9 +32,12 @@
 #define UCP_PRODUCT_ID_MASK	0xe
 #define UCP_POWER_BASE_DATA	(1383 * 1383ULL)
 #define UCP_BASE_DIVISOR	10000000000ULL
+/* coefficient of p1, 10^(0.15) = 1.412538 */
+#define UCP_P1_RATIO	1412538
+/* coefficient of pb, 10^(-0.15) = 0.707946 */
+#define UCP_PB_RATIO	707946
+#define UCP_P1_PB_DIVISOR	1000000
 #define UCP_LIMIT_P2		1000
-#define UCP_EXTRA_MAX_POWER	400
-#define UCP_EXTRA_MIN_POWER	300
 #define UCP_R_LOAD		8000
 #define UCP_AGC_N2		2
 #define UCP_AGC_N1		1
@@ -1402,8 +1405,10 @@ static int ucp1301_set_limit_p2(struct snd_kcontrol *kcontrol,
 	if (ucp1301->power_p2 != ucontrol->value.integer.value[0]) {
 		mutex_lock(&ucp1301->ctrl_lock);
 		ucp1301->power_p2 = ucontrol->value.integer.value[0];
-		ucp1301->power_p1 = ucp1301->power_p2 + UCP_EXTRA_MAX_POWER;
-		ucp1301->power_pb = ucp1301->power_p2 - UCP_EXTRA_MIN_POWER;
+		ucp1301->power_p1 =
+			ucp1301->power_p2 * UCP_P1_RATIO / UCP_P1_PB_DIVISOR;
+		ucp1301->power_pb =
+			ucp1301->power_p2 * UCP_PB_RATIO / UCP_P1_PB_DIVISOR;
 		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
 				    ucp1301->power_p1, ucp1301->power_pb);
 		mutex_unlock(&ucp1301->ctrl_lock);
@@ -1967,8 +1972,10 @@ static int ucp1301_i2c_probe(struct i2c_client *client,
 	ucp1301->agc_gain0 = UCP_AGC_GAIN0;
 	ucp1301->r_load = UCP_R_LOAD;
 	ucp1301->power_p2 = UCP_LIMIT_P2;
-	ucp1301->power_p1 = ucp1301->power_p2 + UCP_EXTRA_MAX_POWER;
-	ucp1301->power_pb = ucp1301->power_p2 - UCP_EXTRA_MIN_POWER;
+	ucp1301->power_p1 =
+		ucp1301->power_p2 * UCP_P1_RATIO / UCP_P1_PB_DIVISOR;
+	ucp1301->power_pb =
+		ucp1301->power_p2 * UCP_PB_RATIO / UCP_P1_PB_DIVISOR;
 
 	if (strcmp(client->name, ucp1301_type[0]) == 0) {
 		ret = snd_soc_register_codec(dev, &soc_codec_dev_ucp1301,
