@@ -297,7 +297,7 @@ static int gnss_tsen_enable(int type)
 
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
 	GNSSCOMM_ERR("%s, TSEN_CTRL3 value read 0x%x\n", __func__, value);
-	temp = value | BIT_TSEN_EN;
+	temp = (value | BIT_TSEN_EN) & (~BIT_TSEN_SEL_EN);
 	temp = (temp & (~BIT_TSEN_TIME_SEL_MASK)) | BIT_TSEN_TIME_sel(2);
 	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), temp);
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
@@ -360,7 +360,7 @@ static int gnss_tsen_disable(int type)
 
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
 	GNSSCOMM_ERR("%s, TSEN_CTRL3 value read 0x%x\n", __func__, value);
-	temp = value & ~BIT_TSEN_EN;
+	temp = (value & (~BIT_TSEN_EN)) | BIT_TSEN_SEL_EN;
 	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), temp);
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
 	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
