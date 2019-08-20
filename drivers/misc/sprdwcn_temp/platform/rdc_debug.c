@@ -20,7 +20,6 @@
 static struct task_struct *wcn_debug_thread;
 struct completion dumpmem_complete;
 static struct file *log_file;
-static struct file *log_dir;
 static struct file *dump_file;
 static loff_t log_pos;
 static loff_t mem_pos;
@@ -84,7 +83,7 @@ int dumpmem_rx_callback(void *addr, unsigned int len)
 	WCN_INFO("%s\n", __func__);
 	if (IS_ERR(dump_file))
 		return -1;
-	ret = kernel_write(dump_file, addr, len, mem_pos);
+	ret = kernel_write(dump_file, addr, len, &mem_pos);
 	if (ret != len) {
 		WCN_ERR("wcn mem write to file failed: %zd\n", ret);
 		return ret < 0 ? ret : -ENODEV;
