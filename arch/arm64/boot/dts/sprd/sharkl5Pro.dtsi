@@ -279,7 +279,7 @@
 					<&mm_ahb_regs REG_MM_AHB_RF_AHB_RST MASK_MM_AHB_RF_ISP_VAU_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_RF_AHB_EB MASK_MM_AHB_RF_ISP_EB>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
-				syscon-names = "isp_reset",
+				syscon-names = "reset",
 					"isp_ahb_reset",
 					"isp_vau_reset",
 					"isp_enable";
@@ -469,9 +469,22 @@
 					<&pll2 CLK_TWPLL_384M>,
 					<&pll2 CLK_ISPPLL_468M>,
 					<&pll2 CLK_ISPPLL_468M>;
+				syscons = <&mm_ahb_regs REG_MM_AHB_RF_AHB_RST
+					MASK_MM_AHB_RF_DCAM_ALL_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_RF_AHB_RST
+					MASK_MM_AHB_RF_DCAM0_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_RF_AHB_RST
+					MASK_MM_AHB_RF_DCAM1_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_RF_AHB_RST
+					MASK_MM_AHB_RF_DCAM2_SOFT_RST>;
+				syscon-names = "dcam_all_reset",
+						"dcam0_reset",
+						"dcam1_reset",
+						"dcam2_reset";
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
+				sprd,project-id = <3>;
 				iommus = <&iommu_dcam>;
 				dcam_qos = <&dcam_qos>;
 				status = "disabled";
