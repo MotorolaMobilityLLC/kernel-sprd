@@ -859,7 +859,7 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 
 	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
 		/*use edpi as interface */
-		reg->dpu_ctrl |= BIT(1);
+		reg->dpu_ctrl |= BIT(2);
 
 		/* use external te */
 		reg->dpi_ctrl |= BIT(10);
