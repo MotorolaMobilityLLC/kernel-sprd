@@ -37,8 +37,6 @@
 #define DEV_OFF 0
 
 #define SIPA_ETH_NAPI_WEIGHT 64
-#define SIPA_USB_IFACE "sipa_usb0"
-#define SIPA_WLAN_IFACE "sipa_wlan0"
 #define SIPA_ETH_IFACE_PREF "sipa_eth"
 
 static struct dentry *root;
@@ -67,57 +65,50 @@ static inline void sipa_eth_tx_stats_update(
 
 static void sipa_eth_prepare_skb(struct SIPA_ETH *sipa_eth, struct sk_buff *skb)
 {
-	int netid;
 	struct iphdr *iph;
 	struct ethhdr *peth;
 	struct net_device *dev;
 	struct sipa_eth_init_data *pdata = sipa_eth->pdata;
 
-	netid = pdata->netid;
 	dev = sipa_eth->netdev;
 
 	/* eth is rawip */
-	if (netid == -1) {
-		skb->protocol = eth_type_trans(skb, sipa_eth->netdev);
-		skb_set_network_header(skb, ETH_HLEN);
+	/*
+	 * The purpose of adding a fake mac header is
+	 * to prevent a "out-of order" issue
+	 * when doing napi_gro_receive.
+	 *
+	 * On ORCA CPE, ASIC has set a 14byte offset
+	 * in a skb for mac header,
+	 * but the content of this mac header is not initialized,
+	 * so we need to fulfill this offset with a fake mac header.
+	 *
+	 * On Roc1+Orca, a skb arrives at sipa_eth
+	 * has no mac header or a offset.
+	 * But it has a 64 byte header room,
+	 * We have to take advantage of the 64-byte header room,
+	 * because the information in the header room
+	 * is no longer useful for IP layer.
+	 */
+	if (pdata->mac_h) {
+		skb_reset_mac_header(skb);
+		peth = (struct ethhdr *)skb->data;
 	} else {
-		/*
-		 * The purpose of adding a fake mac header is
-		 * to prevent a "out-of order" issue
-		 * when doing napi_gro_receive.
-		 *
-		 * On ORCA CPE, ASIC has set a 14byte offset
-		 * in a skb for mac header,
-		 * but the content of this mac header is not initialized,
-		 * so we need to fulfill this offset with a fake mac header.
-		 *
-		 * On Roc1+Orca, a skb arrives at sipa_eth
-		 * has no mac header or a offset.
-		 * But it has a 64 byte header room,
-		 * We have to take advantage of the 64-byte header room,
-		 * because the information in the header room
-		 * is no longer useful for IP layer.
-		 */
-		if (pdata->mac_h) {
-			skb_reset_mac_header(skb);
-			peth = (struct ethhdr *)skb->data;
-		} else {
-			peth = (struct ethhdr *)skb_push(skb, ETH_HLEN);
-			skb_reset_mac_header(skb);
-		}
-		ether_addr_copy(peth->h_source, "12345");
-		ether_addr_copy(peth->h_dest, "54321");
-
-		skb_set_network_header(skb, ETH_HLEN);
-		iph = ip_hdr(skb);
-		if (iph->version == 4)
-			skb->protocol = htons(ETH_P_IP);
-		else
-			skb->protocol = htons(ETH_P_IPV6);
-
-		peth->h_proto = skb->protocol;
-		skb_pull_inline(skb, ETH_HLEN);
+		peth = (struct ethhdr *)skb_push(skb, ETH_HLEN);
+		skb_reset_mac_header(skb);
 	}
+	ether_addr_copy(peth->h_source, "12345");
+	ether_addr_copy(peth->h_dest, "54321");
+
+	skb_set_network_header(skb, ETH_HLEN);
+	iph = ip_hdr(skb);
+	if (iph->version == 4)
+		skb->protocol = htons(ETH_P_IP);
+	else
+		skb->protocol = htons(ETH_P_IPV6);
+
+	peth->h_proto = skb->protocol;
+	skb_pull_inline(skb, ETH_HLEN);
 
 	/* TODO chechsum ... */
 	skb->ip_summed = CHECKSUM_NONE;
@@ -388,10 +379,8 @@ static int sipa_eth_parse_dt(
 		snprintf(pdata->name, IFNAMSIZ, "%s%d",
 			 SIPA_ETH_IFACE_PREF, id);
 		break;
-	case 8:
-		strncpy(pdata->name, SIPA_WLAN_IFACE, IFNAMSIZ);
-		break;
 	default:
+		pr_err("wrong alias id from dts, id %d\n", id);
 		return -EINVAL;
 	}
 
@@ -446,18 +435,12 @@ static int sipa_eth_probe(struct platform_device *pdev)
 		pdev->dev.platform_data = pdata;
 	}
 
-	if (!strcmp(SIPA_USB_IFACE, pdata->name)) {
-		return 0;
-	}
-
 	strlcpy(ifname, pdata->name, IFNAMSIZ);
 	netdev = alloc_netdev(
 		sizeof(struct SIPA_ETH),
 		ifname,
 		NET_NAME_UNKNOWN,
-		strncmp(SIPA_ETH_IFACE_PREF, ifname,
-			strlen(SIPA_ETH_IFACE_PREF)) == 0 ?
-			s_setup : ether_setup);
+		s_setup);
 
 	if (!netdev) {
 		pr_err("alloc_netdev() failed.\n");
@@ -470,8 +453,7 @@ static int sipa_eth_probe(struct platform_device *pdev)
 	 * this will casue ipv6 fail in some test environment.
 	 * So set the sipa_eth net_device's type to ARPHRD_RAWIP here.
 	 */
-	if (!strncmp(SIPA_ETH_IFACE_PREF, pdata->name, 8))
-		netdev->type = ARPHRD_RAWIP;
+	netdev->type = ARPHRD_RAWIP;
 
 	sipa_eth = netdev_priv(netdev);
 	sipa_eth_dt_stats_init(&sipa_eth->dt_stats);
