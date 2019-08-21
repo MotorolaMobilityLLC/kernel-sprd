@@ -2543,6 +2543,7 @@ static void musb_save_context(struct musb *musb)
 		musb->context.index_regs[i].rxhubport =
 			musb_read_rxhubport(musb, i);
 	}
+	musb->restore_complete = false;
 }
 
 static void musb_restore_context(struct musb *musb)
@@ -2552,6 +2553,9 @@ static void musb_restore_context(struct musb *musb)
 	void __iomem *epio;
 	u8 power;
 
+	if (musb->restore_complete)
+		return;
+	musb->restore_complete = true;
 	musb_writew(musb_base, MUSB_FRAME, musb->context.frame);
 	musb_writeb(musb_base, MUSB_TESTMODE, musb->context.testmode);
 	musb_write_ulpi_buscontrol(musb->mregs, musb->context.busctl);

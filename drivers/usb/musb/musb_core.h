@@ -466,6 +466,7 @@ struct musb {
 #ifdef CONFIG_USB_MUSB_SPRD
 	bool power_always_on;
 #endif
+	bool restore_complete;
 };
 
 /* This must be included after struct musb is defined */
