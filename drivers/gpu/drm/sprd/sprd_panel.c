@@ -12,9 +12,11 @@
  */
 
 #include <drm/drm_atomic_helper.h>
+#include <linux/backlight.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_gpio.h>
+#include <linux/pm_runtime.h>
 #include <video/mipi_display.h>
 #include <video/of_display_timing.h>
 #include <video/videomode.h>
@@ -447,7 +449,7 @@ static int of_parse_reset_seq(struct device_node *np,
 	return 0;
 }
 
-static int of_get_buildin_modes(struct panel_info *info,
+static int of_parse_buildin_modes(struct panel_info *info,
 	struct device_node *lcd_node)
 {
 	int i, rc, num_timings;
@@ -495,6 +497,153 @@ done:
 	return 0;
 }
 
+static int of_parse_oled_cmds(struct sprd_oled *oled,
+		const void *data, int size)
+{
+	const struct dsi_cmd_desc *cmds = data;
+	struct dsi_cmd_desc *p;
+	u16 len;
+	int i, total;
+
+	if (cmds == NULL)
+		return -EINVAL;
+
+	/*
+	 * TODO:
+	 * Currently, we only support the same length cmds
+	 * for oled brightness level. So we take the first
+	 * cmd payload length as all.
+	 */
+	len = (cmds->wc_h << 8) | cmds->wc_l;
+	total =  size / (len + 4);
+
+	p = (struct dsi_cmd_desc *)kzalloc(size, GFP_KERNEL);
+	if (!p)
+		return -ENOMEM;
+
+	memcpy(p, cmds, size);
+	for (i = 0; i < total; i++) {
+		oled->cmds[i] = p;
+		p = (struct dsi_cmd_desc *)(p->payload + len);
+	}
+
+	oled->cmds_total = total;
+	oled->cmd_len = len + 4;
+
+	return 0;
+}
+
+static int sprd_oled_set_brightness(struct backlight_device *bdev)
+{
+	int level, brightness;
+	struct sprd_oled *oled = bl_get_data(bdev);
+	struct sprd_panel *panel = oled->panel;
+
+	if (!regulator_is_enabled(panel->supply)) {
+		DRM_WARN("oled panel has been powered off\n");
+		return -ENXIO;
+	}
+
+	brightness = bdev->props.brightness;
+	level = brightness * oled->max_level / 255;
+
+	DRM_INFO("%s level: %d\n", __func__, level);
+
+	sprd_panel_send_cmds(panel->slave,
+			     panel->info.cmds[CMD_OLED_REG_LOCK],
+			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
+
+	if (oled->cmds_total == 1) {
+		oled->cmds[0]->payload[1] = level;
+		sprd_panel_send_cmds(panel->slave,
+			     oled->cmds[0],
+			     oled->cmd_len);
+	} else
+		sprd_panel_send_cmds(panel->slave,
+			     oled->cmds[level],
+			     oled->cmd_len);
+
+	sprd_panel_send_cmds(panel->slave,
+			     panel->info.cmds[CMD_OLED_REG_UNLOCK],
+			     panel->info.cmds_len[CMD_OLED_REG_UNLOCK]);
+
+	return 0;
+}
+
+static const struct backlight_ops sprd_oled_backlight_ops = {
+	.update_status = sprd_oled_set_brightness,
+};
+
+static int sprd_oled_backlight_init(struct sprd_panel *panel)
+{
+	struct sprd_oled *oled;
+	struct device_node *oled_node;
+	struct panel_info *info = &panel->info;
+	const void *p;
+	int bytes, rc;
+	u32 temp;
+
+	oled_node = of_get_child_by_name(info->of_node,
+				"oled-backlight");
+	if (!oled_node)
+		return 0;
+
+	oled = devm_kzalloc(&panel->dev,
+			sizeof(struct sprd_oled), GFP_KERNEL);
+	if (!oled)
+		return -ENOMEM;
+
+	oled->bdev = devm_backlight_device_register(&panel->dev,
+			"sprd_backlight", &panel->dev, oled,
+			&sprd_oled_backlight_ops, NULL);
+	if (IS_ERR(oled->bdev)) {
+		DRM_ERROR("failed to register oled backlight ops\n");
+		return PTR_ERR(oled->bdev);
+	}
+
+	p = of_get_property(oled_node, "brightness-levels", &bytes);
+	if (p) {
+		info->cmds[CMD_OLED_BRIGHTNESS] = p;
+		info->cmds_len[CMD_OLED_BRIGHTNESS] = bytes;
+	} else
+		DRM_ERROR("can't find brightness-levels property\n");
+
+	p = of_get_property(oled_node, "sprd,reg-lock", &bytes);
+	if (p) {
+		info->cmds[CMD_OLED_REG_LOCK] = p;
+		info->cmds_len[CMD_OLED_REG_LOCK] = bytes;
+	} else
+		DRM_INFO("can't find sprd,reg-lock property\n");
+
+	p = of_get_property(oled_node, "sprd,reg-unlock", &bytes);
+	if (p) {
+		info->cmds[CMD_OLED_REG_UNLOCK] = p;
+		info->cmds_len[CMD_OLED_REG_UNLOCK] = bytes;
+	} else
+		DRM_INFO("can't find sprd,reg-unlock property\n");
+
+	rc = of_property_read_u32(oled_node, "default-brightness-level", &temp);
+	if (!rc)
+		oled->bdev->props.brightness = temp;
+	else
+		oled->bdev->props.brightness = 25;
+
+	rc = of_property_read_u32(oled_node, "sprd,max-level", &temp);
+	if (!rc)
+		oled->max_level = temp;
+	else
+		oled->max_level = 255;
+
+	oled->bdev->props.max_brightness = 255;
+	oled->panel = panel;
+	of_parse_oled_cmds(oled,
+			panel->info.cmds[CMD_OLED_BRIGHTNESS],
+			panel->info.cmds_len[CMD_OLED_BRIGHTNESS]);
+
+	DRM_INFO("%s() ok\n", __func__);
+
+	return 0;
+}
 
 static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 {
@@ -639,7 +788,7 @@ static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 	}
 
 	info->mode.vrefresh = drm_mode_vrefresh(&info->mode);
-	of_get_buildin_modes(info, lcd_node);
+	of_parse_buildin_modes(info, lcd_node);
 
 	return 0;
 }
@@ -710,6 +859,12 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 	ret = sprd_panel_device_create(&slave->dev, panel);
 	if (ret) {
 		DRM_ERROR("panel device create failed\n");
+		return ret;
+	}
+
+	ret = sprd_oled_backlight_init(panel);
+	if (ret) {
+		DRM_ERROR("oled backlight init failed\n");
 		return ret;
 	}
 
