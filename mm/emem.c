@@ -39,7 +39,11 @@
 #include <linux/workqueue.h>
 
 #define  DEFAULT_PROC_ADJ    900
-
+#ifdef CONFIG_SPRD_DEBUG
+#define EMEM_SHOW_INTERVAL	2
+#else
+#define EMEM_SHOW_INTERVAL	5
+#endif
 /*
  * The written value is the killed process adj, then trigger to show enhance
  * memory information. it's written to /proc/sys/vm/emem_trigger
@@ -98,7 +102,7 @@ static void enhance_meminfo(void)
 	static u64 last_time = 0;
 
 	do_gettimeofday(&val);
-	if (val.tv_sec - last_time > 1) {
+	if (val.tv_sec - last_time > EMEM_SHOW_INTERVAL) {
 		pr_info("+++++++++++++++++++++++++++++++++++++++++++++++++\n");
 		pr_info("The killed process adj = %d\n", sysctl_emem_trigger);
 		enhanced_show_mem(E_SHOW_MEM_ALL);
