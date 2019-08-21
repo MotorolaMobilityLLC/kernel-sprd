@@ -209,7 +209,7 @@
 			cm-regulator-name = "vddgen0";
 			cable@0 {
 				cm-cable-name = "USB";
-				extcon = <&pmic_typec>;
+				extcon = <&extcon_gpio>;
 			};
 		};
 	};
@@ -433,8 +433,6 @@
 		reg = <0x6a>;
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
-		extcon = <&pmic_typec>;
-		otg-detect-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
