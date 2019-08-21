@@ -415,6 +415,7 @@ struct musb {
 #ifdef CONFIG_DEBUG_FS
 	struct dentry		*debugfs_root;
 #endif
+	bool	restore_complete;
 };
 
 /* This must be included after struct musb is defined */
