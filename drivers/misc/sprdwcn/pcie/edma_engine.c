@@ -1253,7 +1253,7 @@ int msi_irq_handle(int irq)
 								dma_int.reg;
 				if ((edma->dma_chn_reg[chn].dma_int.reg ==
 				    0xFFFFFFFF) || (i > 3000)) {
-					WCN_ERR("dma_int=0x%x, i=%d\n", i,
+					WCN_ERR("i=%d, dma_int=0x%08x\n", i,
 						edma->dma_chn_reg[chn].dma_int
 						.reg);
 					local_irq_restore(irq_flags);
@@ -1652,8 +1652,10 @@ int edma_dump_glb_reg(void)
 	WCN_INFO("[debug_sts  ] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_ARB_SEL_STATUS);
 
-	if (value)
+	if ((value > 0) && (value < 31))
 		set_bit((value - 1), &edma->cur_chn_status);
+	else if (value == 0xffffffff)
+		return -1;
 
 	WCN_INFO("[arb_sel_sts] = 0x%08x\n",  value);
 	value = sprd_pcie_read_reg32(pdev, DMA_CHN_ARPROT);
@@ -1685,7 +1687,8 @@ static void edma_tx_timer_expire(unsigned long data)
 	if (!wcn_get_edma_status())
 		return;
 	wcn_set_tx_complete_status(1);
-	edma_dump_glb_reg();
+	if (edma_dump_glb_reg() < 0)
+		return;
 	for (i = 0; i < 16; i++) {
 		if (test_bit(i, &edma->cur_chn_status))
 			edma_dump_chn_reg(i);
