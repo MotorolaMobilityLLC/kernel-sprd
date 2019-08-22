@@ -1478,7 +1478,7 @@ static int sprd_cpudvfs_index_tbl_update(void *data, char *opp_name,
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
 	struct dvfs_cluster *clu, *slave;
-	char *temp = NULL;
+	char *temp = "";
 	int ret, idx = 0;
 
 	if (!pdev->priv)
