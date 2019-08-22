@@ -111,6 +111,7 @@ static int flip_cnt;
 static bool wb_config;
 static int wb_disable;
 static struct sprd_dpu_layer wb_layer;
+static bool int_te_occur;
 
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_clean_lite(struct dpu_context *ctx);
@@ -125,6 +126,31 @@ static u32 dpu_get_version(struct dpu_context *ctx)
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
 	return reg->dpu_version;
+}
+
+static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	u32 val;
+
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		up(&ctx->refresh_lock);
+		pr_err("dpu is not initialized\n");
+		return false;
+	}
+
+	val = reg->dpu_int_raw;
+	up(&ctx->refresh_lock);
+
+	if (val & mask)
+		return true;
+
+	if ((mask == DISPC_INT_TE_MASK) && int_te_occur)
+		return true;
+
+	pr_err("dpu_int_raw:0x%x\n", val);
+	return false;
 }
 
 static int dpu_parse_dt(struct dpu_context *ctx,
@@ -256,6 +282,12 @@ static u32 dpu_isr(struct dpu_context *ctx)
 			wb_en = true;
 			vsync_count = 0;
 		}
+	}
+
+	if (reg_val & DISPC_INT_TE_MASK) {
+		int_te_occur = false;
+		if (ctx->te_check_en)
+			int_te_occur = true;
 	}
 
 	int_mask |= check_mmu_isr(ctx, reg_val);
@@ -793,6 +825,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* disable Halt function for SPRD DSI */
 		reg->dpi_ctrl &= ~BIT(16);
 
+		/* select te from external pad */
+		reg->dpi_ctrl |= BIT(10);
+
 		/* dpu pixel data width is 24 bit*/
 		reg->dpi_ctrl |= BIT(7);
 
@@ -901,6 +936,7 @@ static struct dpu_core_ops dpu_lite_r1p0_ops = {
 	.bg_color = dpu_bgcolor,
 	.enable_vsync = enable_vsync,
 	.disable_vsync = disable_vsync,
+	.check_raw_int = dpu_check_raw_int,
 };
 
 static struct ops_entry entry = {

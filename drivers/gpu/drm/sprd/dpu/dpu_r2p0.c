@@ -259,6 +259,7 @@ static int vsync_count;
 static u32 prev_y2r_coef;
 static bool sprd_corner_support;
 static int sprd_corner_radius;
+static bool int_te_occur;
 //static struct sprd_adf_hwlayer wb_layer;
 //static struct wb_region region[3];
 //static int wb_xfbc_en = 1;
@@ -278,6 +279,31 @@ static u32 dpu_get_version(struct dpu_context *ctx)
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
 	return reg->dpu_version;
+}
+
+static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	u32 val;
+
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		up(&ctx->refresh_lock);
+		pr_err("dpu is not initialized\n");
+		return false;
+	}
+
+	val = reg->dpu_int_raw;
+	up(&ctx->refresh_lock);
+
+	if (val & mask)
+		return true;
+
+	if ((mask == DISPC_INT_TE_MASK) && int_te_occur)
+		return true;
+
+	pr_err("dpu_int_raw:0x%x\n", val);
+	return false;
 }
 
 static int dpu_parse_dt(struct dpu_context *ctx,
@@ -425,6 +451,12 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	if (reg_val & DISPC_INT_FBC_HDR_ERR_MASK) {
 		int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
 		pr_err("dpu ifbc header error\n");
+	}
+
+	if (reg_val & DISPC_INT_TE_MASK) {
+		int_te_occur = false;
+		if (ctx->te_check_en)
+			int_te_occur = true;
 	}
 
 	int_mask |= check_mmu_isr(ctx, reg_val);
@@ -1086,6 +1118,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* disable Halt function for SPRD DSI */
 		reg->dpi_ctrl &= ~BIT(16);
 
+		/* select te from external pad */
+		reg->dpi_ctrl |= BIT(10);
+
 		/* set dpi timing */
 		reg->dpi_h_timing = (ctx->vm.hsync_len << 0) |
 				    (ctx->vm.hback_porch << 8) |
@@ -1609,6 +1644,7 @@ static struct dpu_core_ops dpu_r2p0_ops = {
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,
+	.check_raw_int = dpu_check_raw_int,
 };
 
 static struct ops_entry entry = {

@@ -139,6 +139,7 @@ struct dpu_core_ops {
 	void (*enhance_get)(struct dpu_context *ctx, u32 id, void *param);
 	int (*modeset)(struct dpu_context *ctx,
 			struct drm_mode_modeinfo *mode);
+	bool (*check_raw_int)(struct dpu_context *ctx, u32 mask);
 };
 
 struct dpu_clk_ops {
