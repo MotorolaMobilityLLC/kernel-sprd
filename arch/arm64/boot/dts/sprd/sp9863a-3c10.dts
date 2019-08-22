@@ -72,6 +72,12 @@
 		memory-region-se = <&tos_reserved>, <&sml_reserved>;
 	};
 
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
+	};
+
 	ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
