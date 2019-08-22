@@ -236,7 +236,7 @@
 	};
 
 	logo_reserved: logobuffer@fd580000{
-		reg = <0x0 0xfd580000 0x0 0x0042cc00>;
+		reg = <0x0 0xfd580000 0x0 0x0042d000>;
 	};
 
 	camera_reserved: camera@fdd69000{
