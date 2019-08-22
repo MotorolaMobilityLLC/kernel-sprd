@@ -1468,7 +1468,6 @@ static int digital_power_event(struct snd_soc_dapm_widget *w,
 		mutex_unlock(&sprd_codec->dig_access_mutex);
 
 		codec_digital_reg_enable(codec);
-		arch_audio_codec_digital_reset();
 		sprd_codec_digital_open(codec);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
