@@ -1882,6 +1882,12 @@
 				status = "disabled";
 			};
 
+			dmc_controller: dmc-controller@31050000  {
+				compatible = "sprd,sharkl5pro-dmc";
+				reg = <0x0 0x31050000 0x0 0x7000>,
+					<0x0 0x3000 0x0 0x1000>;
+			};
+
 			ptm_trace: ptm@31060000 {
 				compatible = "sprd,sharkl5pro-ptm";
 				reg = <0x0 0x31060000 0x0 0x10000>,
