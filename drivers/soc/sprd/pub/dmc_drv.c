@@ -89,6 +89,12 @@ struct dmc_drv_data {
 #define SHARKL5_CS0_MR_OFFSET	0xc
 #define SHARKL5_CS1_MR_OFFSET	0x10
 
+#define SHARKL5PRO_SIZE_L_OFFSET 0x0
+#define SHARKL5PRO_SIZE_H_OFFSET 0x4
+#define SHARKL5PRO_TYPE_OFFSET	 0x8
+#define SHARKL5PRO_CS0_MR_OFFSET 0xc
+#define SHARKL5PRO_CS1_MR_OFFSET 0x10
+
 #define ROC1_SIZE_L_OFFSET	0x0
 #define ROC1_SIZE_H_OFFSET	0x4
 #define ROC1_TYPE_OFFSET	0x8
@@ -125,6 +131,17 @@ static const struct dmc_data sharkl5_data = {
 	},
 };
 
+static const struct dmc_data sharkl5pro_data = {
+	.proc_res = 1,
+	.mon_res = 0,
+	.size_l_offset = SHARKL5PRO_SIZE_L_OFFSET,
+	.size_h_offset = SHARKL5PRO_SIZE_H_OFFSET,
+	.type_offset = SHARKL5PRO_TYPE_OFFSET,
+	.mr_offset = {
+		SHARKL5PRO_CS0_MR_OFFSET,
+		SHARKL5PRO_CS1_MR_OFFSET,
+	},
+};
 static const struct dmc_data roc1_data = {
 	.proc_res = 1,
 	.mon_res = 0,
@@ -483,6 +500,7 @@ static int sprd_dmc_remove(struct platform_device *pdev)
 static const struct of_device_id sprd_dmc_of_match[] = {
 	{.compatible = "sprd,sharkl3-dmc", .data = &sharkl3_data},
 	{.compatible = "sprd,sharkl5-dmc", .data = &sharkl5_data},
+	{.compatible = "sprd,sharkl5pro-dmc", .data = &sharkl5pro_data},
 	{.compatible = "sprd,roc1-dmc", .data = &roc1_data},
 	{.compatible = "sprd,orca-dmc", .data = &orca_data},
 	{},
