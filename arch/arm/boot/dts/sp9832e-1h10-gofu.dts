@@ -269,6 +269,10 @@
 	status = "okay";
 };
 
+&sdio0 {
+	cd-gpios= <&ap_gpio 78 1>;
+};
+
 &spi0 {
 	/*used for fingerprint sensor*/
 	status = "okay";
