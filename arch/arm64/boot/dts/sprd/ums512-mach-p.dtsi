@@ -54,6 +54,30 @@
 			>;
 	};
 
+	vdsp_dvfs: vdsp-dvfs {
+		compatible = "sprd,hwdvfs-vdsp-sharkl5pro";
+		sprd,hw-dfs-en = <0>;
+		sprd,work-index-def = <5>;
+		sprd,idle-index-def = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+		operating-points = <
+			/* kHz    uV */
+			256000    700000
+			384000    700000
+			512000    700000
+			614400    750000
+			768000    750000
+			936000    800000
+		>;
+		clock-names = "vdsp_twpll",
+				"vdsp_lpll",
+				"vdsp_isppll";
+		clocks = <&pll2 CLK_TWPLL>,
+			<&pll2 CLK_LPLL>,
+			<&pll2 CLK_ISPPLL>;
+	};
+
 	firmware {
 		android {
 			compatible = "android,firmware";
