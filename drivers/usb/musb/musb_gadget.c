@@ -2069,11 +2069,11 @@ static int musb_gadget_start(struct usb_gadget *g,
 	unsigned long		flags;
 	int			retval = 0;
 
-	musb->softconnect = 0;
 	musb->gadget_driver = driver;
 	if (is_host_active(musb))
 		return 0;
 
+	musb->softconnect = 0;
 	if (driver->max_speed < USB_SPEED_HIGH) {
 		retval = -EINVAL;
 		goto err;
