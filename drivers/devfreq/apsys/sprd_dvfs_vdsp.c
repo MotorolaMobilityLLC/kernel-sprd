@@ -413,11 +413,13 @@ static int vdsp_dvfs_target(struct device *dev, unsigned long *freq,
 
 	if (vdsp->freq_type == DVFS_WORK) {
 		if (vdsp->dvfs_ops && vdsp->dvfs_ops->set_work_freq) {
+			vdsp->work_freq = target_freq;
 			vdsp->dvfs_ops->set_work_freq(target_freq);
 			pr_info("set work freq = %u\n", target_freq);
 		}
 	} else {
 		if (vdsp->dvfs_ops && vdsp->dvfs_ops->set_idle_freq) {
+			vdsp->idle_freq = target_freq;
 			vdsp->dvfs_ops->set_idle_freq(target_freq);
 			pr_info("set idle freq = %u\n", target_freq);
 		}
@@ -637,7 +639,8 @@ static int vdsp_dvfs_probe(struct platform_device *pdev)
 
 	if (vdsp->dvfs_ops && vdsp->dvfs_ops->parse_dt)
 		vdsp->dvfs_ops->parse_dt(vdsp, np);
-
+	if (vdsp->dvfs_ops && vdsp->dvfs_ops->parse_pll)
+		vdsp->dvfs_ops->parse_pll(vdsp, dev);
 	if (vdsp->dvfs_ops && vdsp->dvfs_ops->dvfs_init)
 		vdsp->dvfs_ops->dvfs_init(vdsp);
 
@@ -660,7 +663,9 @@ static int vdsp_dvfs_remove(struct platform_device *pdev)
 static const struct of_device_id vdsp_dvfs_of_match[] = {
 	{ .compatible = "sprd,hwdvfs-vdsp-roc1",
 	  .data = "roc1" },
-	{ }
+	{ .compatible = "sprd,hwdvfs-vdsp-sharkl5pro",
+	  .data = "sharkl5pro" },
+	{ },
 };
 
 MODULE_DEVICE_TABLE(of, vdsp_dvfs_of_match);

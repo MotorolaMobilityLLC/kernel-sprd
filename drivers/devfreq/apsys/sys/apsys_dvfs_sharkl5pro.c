@@ -71,6 +71,27 @@ char *sharkl5pro_vsp_val_to_freq(u32 val)
 	}
 }
 
+char *sharkl5pro_vdsp_val_to_freq(u32 val)
+{
+	switch (val) {
+	case 0:
+		return "256M";
+	case 1:
+		return "384M";
+	case 2:
+		return "512M";
+	case 3:
+		return "614.4M";
+	case 4:
+		return "768M";
+	case 5:
+		return "936M";
+	default:
+		pr_err("invalid frequency value %u\n", val);
+		return "N/A";
+	}
+}
+
 static void apsys_dvfs_force_en(u32 force_en)
 {
 	struct apsys_dvfs_reg *reg =

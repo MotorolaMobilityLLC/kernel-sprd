@@ -89,6 +89,7 @@ struct vdsp_dvfs {
 struct vdsp_dvfs_ops {
 	/* initialization interface */
 	int (*parse_dt)(struct vdsp_dvfs *vdsp, struct device_node *np);
+	int (*parse_pll)(struct vdsp_dvfs *vdsp, struct device *dev);
 	int (*dvfs_init)(struct vdsp_dvfs *vdsp);
 	void (*hw_dfs_en)(bool dfs_en);
 
