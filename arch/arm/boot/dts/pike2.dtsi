@@ -664,8 +664,9 @@
 				syscon-names = "soft_rst";
 				syscons = <&aon_apb_regs REG_AON_APB_APB_RST2
 					MASK_AON_APB_DJTAG_SOFT_RST>;
-				clock-names = "enable";
-				clocks = <&aonapb_gate CLK_DJTAG_EB>;
+				clock-names = "enable", "tck";
+				clocks = <&aonapb_gate CLK_DJTAG_EB>,
+					<&aonapb_gate CLK_DISP_EMC_EB>;
 				hwlocks = <&hwlock 10>;
 				hwlock-names = "djtag";
 
