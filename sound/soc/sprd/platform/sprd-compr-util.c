@@ -85,11 +85,11 @@ static int compr_send_cmd(u32 cmd, void *para, int32_t para_size)
 }
 
 static int compr_send_cmd_no_wait(uint16_t channel, u32 cmd,
-	u32 total_size, void *reserve)
+	u32 total_size, u32 reserve)
 {
 	struct aud_smsg msend = {0};
 
-	aud_smsg_set(&msend, channel, cmd, total_size, 0, 0, 0);
+	aud_smsg_set(&msend, channel, cmd, total_size, reserve, 0, 0);
 
 	return aud_smsg_send(AUD_IPC_AGDSP, &msend);
 }

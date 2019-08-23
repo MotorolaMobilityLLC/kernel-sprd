@@ -94,6 +94,7 @@
 /* only 9bits in register, could not set 512 */
 #define MCDT_FULL_WMK		(512 - 1)
 #define MCDT_FIFO_SIZE		(512)
+#define MCDT_FIFO_SIZE_BYTE	2048
 
 struct sprd_compr_dma_cb_data {
 	struct snd_compr_stream *substream;
@@ -122,6 +123,13 @@ struct sprd_compr_dma_rtd {
 	u32			buffer_size;
 	u32			received;
 	u32			copied;
+};
+
+struct sprd_compr_drain_info {
+	u32 stream_id;
+	u32 padding_cnt;
+	u32 received_total[2];
+	wait_queue_head_t stream_avail_wait;
 };
 
 struct sprd_compr_rtd {
@@ -164,6 +172,7 @@ struct sprd_compr_rtd {
 
 	u32 copied_total;
 	u32 received_total;
+	u32 iram_write_pos;
 	u32 received_stage0;
 	u32 received_stage1;
 	u32 avail_total;
@@ -200,6 +209,7 @@ struct sprd_compr_rtd {
 	struct snd_info_entry *proc_info_entry;
 #endif
 	bool is_access_enabled;
+	struct sprd_compr_drain_info drain_info;
 };
 
 struct sprd_compr_pdata {
@@ -272,7 +282,7 @@ static void sprd_compr_drain_work(struct work_struct *work)
 	struct sprd_compr_rtd *srtd =
 			container_of(work, struct sprd_compr_rtd, drain_work);
 	int ret = 0, value = 0;
-	int s;
+
 	struct snd_compr_stream *cstream = srtd->cstream;
 
 	sp_asoc_pr_info(
@@ -284,42 +294,39 @@ static void sprd_compr_drain_work(struct work_struct *work)
 	sp_asoc_pr_info("%s: drain finished, ret=%d\n",
 		__func__, ret);
 
-	dmaengine_pause(srtd->dma_chn[0]);
-	memset_io((void *)srtd->info_vaddr,
-				0,
-				sizeof(struct sprd_compr_playinfo));
-
 	if (srtd->next_track) {
+		sp_asoc_pr_info("%s,before,app_pointer=%d,copied_total=%d\n",
+				__func__, srtd->app_pointer,
+				srtd->copied_total);
+
 		spin_lock_irq(&srtd->lock);
-		atomic_set(&srtd->start, 0);
-		atomic_set(&srtd->pause, 0);
 
-		srtd->copied_total = srtd->avail_total;
-		srtd->app_pointer  = 0;
+		/*
+		 * adjust copied_total,
+		 * otherwise next track data will be out of range.
+		 * If copied_total less than avail_total, that mean's some data
+		 * is still left in second buffer(DDR), we could not fill next
+		 * track data into this period; But copied_total maybe less
+		 * than 0 sometimes, so we change total_bytes_available, they
+		 * are same.
+		 */
+		cstream->runtime->total_bytes_available +=
+			srtd->drain_info.padding_cnt;
+
+		/*
+		 * if next_track is true, that mean's we get next track data,
+		 * we should count it from 0.
+		 */
 		srtd->received_total = 0;
-		srtd->received_stage0 = 0;
-		srtd->received_stage1 = 0;
-		memset_io((void *)srtd->info_vaddr,
-					0, sizeof(struct sprd_compr_playinfo));
-
 		spin_unlock_irq(&srtd->lock);
 
-		if (cstream->direction == SND_COMPRESS_PLAYBACK)
-			mcdt_dac_dma_disable(MCDT_CHN_COMPR);
-		else
-			mcdt_adc_dma_disable(MCDT_CHN_COMPR);
-
-		if (cstream->direction == SND_COMPRESS_PLAYBACK)
-			mcdt_da_fifo_clr(MCDT_CHN_COMPR);
-		else
-			mcdt_ad_fifo_clr(MCDT_CHN_COMPR);
-
-		for (s = 0; s < srtd->dma_stage; s++)
-			if (srtd->dma_chn[s]) {
-				dma_release_channel(srtd->dma_chn[s]);
-				srtd->dma_chn[s] = 0;
-			}
-
+		sp_asoc_pr_info("%s,after,app_pointer=%d,copied_total=%d,avail_total=%d\n",
+				__func__, srtd->app_pointer,
+				srtd->copied_total, srtd->avail_total);
+	} else {
+		dmaengine_pause(srtd->dma_chn[0]);
+		memset_io((void *)srtd->info_vaddr, 0,
+			  sizeof(struct sprd_compr_playinfo));
 	}
 
 	mutex_lock(&cstream->device->lock);
@@ -587,8 +594,6 @@ static void sprd_compr_dma_buf_done(void *data)
 #endif
 	s_buf_done_count++;
 	srtd->copied_total += srtd->params.tran_len;
-	if (srtd->copied_total > srtd->avail_total)
-		srtd->copied_total = srtd->avail_total;
 	pr_info("%s, DMA copied totol=%d, avail_total=%d, buf_done_count=%d\n",
 		__func__, srtd->copied_total, srtd->avail_total,
 		s_buf_done_count);
@@ -1071,7 +1076,11 @@ static int compr_stream_trigger(struct snd_compr_stream *substream, int cmd)
 	 * case SNDRV_PCM_TRIGGER_RESUME:
 	 * case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 	 */
-		if (srtd->next_track || srtd->dma_paused == true) {
+		if (srtd->next_track) {
+			srtd->next_track--;
+			break;
+		}
+		if (srtd->dma_paused == true) {
 			struct sprd_compr_dma_params *params;
 			for (i = 0; i < srtd->dma_stage; i++)
 				if (srtd->dma_chn[i]) {
@@ -1321,6 +1330,38 @@ static int sprd_platform_compr_free(struct snd_compr_stream *cstream)
 	return 0;
 }
 
+static int sprd_platform_compr_update_params(struct snd_compr_stream *cstream)
+{
+	struct snd_compr_runtime *runtime = cstream->runtime;
+	struct sprd_compr_rtd *srtd = runtime->private_data;
+	struct snd_soc_pcm_runtime *rtd = cstream->private_data;
+	struct sprd_compr_pdata *pdata =
+		snd_soc_platform_get_drvdata(rtd->platform);
+	struct sprd_compr_dev_ctrl *dev_ctrl = &pdata->dev_ctrl;
+	struct cmd_prepare prepare = {};
+	int result = 0;
+
+	ADEBUG();
+
+	prepare.common.command = COMPR_CMD_PARAMS;
+	prepare.common.sub_cmd = cstream->direction;
+	prepare.samplerate = srtd->sample_rate;
+	prepare.channels = srtd->num_channels;
+	prepare.format = srtd->codec;
+	prepare.info_paddr =
+		audio_addr_ap2dsp(IRAM_OFFLOAD, srtd->info_paddr, 0);
+	prepare.info_size = srtd->info_size;
+	prepare.mcdt_chn = MCDT_CHN_COMPR;
+	prepare.rate = srtd->codec_param.codec.bit_rate;
+
+	mutex_lock(&dev_ctrl->mutex);
+	result = sprd_platform_send_param(COMPR_CMD_PARAMS, 0, &prepare,
+					  sizeof(prepare));
+	mutex_unlock(&dev_ctrl->mutex);
+
+	return result;
+}
+
 static int sprd_platform_compr_set_params(struct snd_compr_stream *cstream,
 					struct snd_compr_params *params)
 {
@@ -1439,6 +1480,7 @@ static int sprd_platform_compr_trigger(
 			struct snd_compr_stream *cstream,
 								int cmd)
 {
+	int drain_cmd = COMPR_CMD_DRAIN;
 	struct snd_compr_runtime *runtime = cstream->runtime;
 	struct snd_soc_pcm_runtime *rtd = cstream->private_data;
 	struct sprd_compr_pdata *pdata =
@@ -1449,6 +1491,7 @@ static int sprd_platform_compr_trigger(
 
 	struct sprd_compr_rtd *srtd = runtime->private_data;
 	struct sprd_compr_dev_ctrl *dev_ctrl = &pdata->dev_ctrl;
+	u32 padding_cnt;
 
 	ADEBUG();
 
@@ -1464,6 +1507,12 @@ static int sprd_platform_compr_trigger(
 		atomic_set(&srtd->start, 1);
 		srtd->stream_state = COMPR_TRIGGERED;
 		spin_unlock_irq(&srtd->lock);
+
+		if (srtd->received_total < runtime->fragment_size &&
+		    srtd->received_stage0 >= runtime->fragment_size)
+			srtd->iram_write_pos = srtd->received_total;
+		else
+			srtd->iram_write_pos = 0;
 
 		mutex_lock(&dev_ctrl->mutex);
 		result =
@@ -1493,10 +1542,12 @@ static int sprd_platform_compr_trigger(
 		srtd->received_stage0 = 0;
 		srtd->received_stage1 = 0;
 		srtd->avail_total = 0;
+		srtd->iram_write_pos = 0;
 		memset_io((void *)srtd->info_vaddr,
 					0,
 					sizeof(struct sprd_compr_playinfo));
-
+		if (srtd->next_track)
+			srtd->next_track--;
 		spin_unlock_irq(&srtd->lock);
 
 		mutex_lock(&dev_ctrl->mutex);
@@ -1552,6 +1603,44 @@ static int sprd_platform_compr_trigger(
 
 		break;
 	case SND_COMPR_TRIGGER_PARTIAL_DRAIN:
+		drain_cmd = COMPR_CMD_PARTIAL_DRAIN;
+		srtd->iram_write_pos = 0;
+
+		sp_asoc_pr_info("partial drain,app_pointer=%d, received_stage0=%d\n",
+				srtd->app_pointer,
+				srtd->received_stage0);
+
+		if (srtd->received_stage0 < runtime->fragment_size) {
+			padding_cnt = runtime->fragment_size -
+				(srtd->received_stage0 %
+				runtime->fragment_size);
+
+			if ((padding_cnt <= MCDT_FIFO_SIZE_BYTE * 2)) {
+				padding_cnt += runtime->fragment_size;
+				srtd->app_pointer = runtime->fragment_size;
+				srtd->app_pointer = srtd->app_pointer %
+					srtd->buffer_size;
+			}
+			srtd->received_stage0 = runtime->fragment_size;
+		} else {
+			padding_cnt = runtime->fragment_size -
+				(srtd->app_pointer % runtime->fragment_size);
+			memset(srtd->buffer + srtd->app_pointer,
+			       0x5a, padding_cnt);
+
+			if (padding_cnt <= MCDT_FIFO_SIZE_BYTE * 2)
+				padding_cnt += runtime->fragment_size;
+			srtd->app_pointer += padding_cnt;
+			srtd->app_pointer = srtd->app_pointer %
+				srtd->buffer_size;
+		}
+		srtd->drain_info.padding_cnt = padding_cnt;
+		srtd->received_total += padding_cnt;
+
+		sp_asoc_pr_info("partial drain,padding_cnt=%d,app_pointer=%d, received_stage0=%d\n",
+				srtd->drain_info.padding_cnt,
+				srtd->app_pointer,
+				srtd->received_stage0);
 	case SND_COMPR_TRIGGER_DRAIN:
 		sp_asoc_pr_info("%s: SNDRV_COMPRESS_DRAIN, cmd=%d, total=%d\n",
 			__func__, cmd, srtd->received_total);
@@ -1561,7 +1650,9 @@ static int sprd_platform_compr_trigger(
 		mutex_lock(&dev_ctrl->mutex);
 
 		result = compr_send_cmd_no_wait(AMSG_CH_MP3_OFFLOAD_DRAIN,
-			COMPR_CMD_DRAIN, srtd->received_total, 0);
+						drain_cmd,
+						srtd->received_total,
+						srtd->drain_info.padding_cnt);
 		if (result < 0) {
 			sp_asoc_pr_info("drain out err!");
 			goto out_ops;
@@ -1577,7 +1668,17 @@ static int sprd_platform_compr_trigger(
 		break;
 	case SND_COMPR_TRIGGER_NEXT_TRACK:
 		sp_asoc_pr_info("%s: SND_COMPR_TRIGGER_NEXT_TRACK\n", __func__);
-		srtd->next_track = 1;
+		srtd->next_track++;
+		srtd->drain_info.stream_id =
+			(srtd->drain_info.stream_id + 1) % 2;
+		srtd->drain_info.received_total[srtd->drain_info.stream_id] =
+			srtd->received_total;
+		sp_asoc_pr_info("%s: next_track=%d,receive_total[%d]=%d\n",
+				__func__,
+				srtd->next_track,
+				srtd->drain_info.stream_id,
+				srtd->drain_info.received_total[
+				srtd->drain_info.stream_id]);
 		break;
 	default:
 		sp_asoc_pr_info("%s: no responsed cmd=%d\n", __func__, cmd);
@@ -1648,6 +1749,7 @@ static int sprd_platform_compr_copy(struct snd_compr_stream *cstream,
 	u32 copy;
 	u32 bytes_available = 0;
 	u32 count_bak = count;
+	char __user *buf_bak = buf;
 
 	if (srtd->wake_locked) {
 		sp_asoc_pr_info("wake_lock released\n");
@@ -1731,6 +1833,35 @@ static int sprd_platform_compr_copy(struct snd_compr_stream *cstream,
 #endif
 	}
 
+	if (srtd->iram_write_pos) {
+		void *dst_buf = NULL;
+		u32 iram_avail_buf_size = 0;
+		u32 copy_size = 0;
+
+		sp_asoc_pr_info("%s: iram_write_pos = %d, before\n",
+				__func__,
+				srtd->iram_write_pos);
+
+		if (srtd->iram_write_pos < runtime->fragment_size)
+			iram_avail_buf_size = runtime->fragment_size
+				- srtd->iram_write_pos;
+		else
+			srtd->iram_write_pos = 0;
+		copy_size = iram_avail_buf_size > count_bak ?
+			count_bak : iram_avail_buf_size;
+		dst_buf = (char *)srtd->iram_buff + srtd->iram_write_pos;
+		if (unalign_copy_from_user(dst_buf, buf_bak, copy_size))
+			return -EFAULT;
+		srtd->iram_write_pos += copy_size;
+		if (srtd->iram_write_pos == runtime->fragment_size)
+			srtd->iram_write_pos = 0;
+
+		sp_asoc_pr_info("%s: iram_write_pos = %d,copy_size=%d\n",
+				__func__,
+				srtd->iram_write_pos,
+				copy_size);
+	}
+
 #if COMPR_DUMP_DEBUG
 	set_fs(old_fs);
 #endif
@@ -1742,13 +1873,14 @@ copy_done:
 	srtd->avail_total += count_bak;
 
 	sp_asoc_pr_info(
-		"%s: count=%zu,stage0=%u,stage1=%u,total=%u,avail_total=%u\n",
+		"%s: count=%zu,stage0=%u,stage1=%u,total=%u,avail_total=%u,app_pointer=%u\n",
 		__func__,
 		count,
 		srtd->received_stage0,
 		srtd->received_stage1,
 		srtd->received_total,
-		srtd->avail_total);
+		srtd->avail_total,
+		srtd->app_pointer);
 
 	/* return all the count we copied , including stage 0 */
 	return count_bak;
@@ -1819,10 +1951,15 @@ static int sprd_platform_compr_get_codec_caps(struct snd_compr_stream *cstream,
 static int sprd_platform_compr_set_metadata(struct snd_compr_stream *cstream,
 					struct snd_compr_metadata *metadata)
 {
+	struct snd_compr_runtime *runtime = cstream->runtime;
+	struct sprd_compr_rtd *srtd = runtime->private_data;
+
 	ADEBUG();
 
 	if (!metadata || !cstream)
 		return -EINVAL;
+
+	ADEBUG();
 
 	if (metadata->key == SNDRV_COMPRESS_ENCODER_PADDING) {
 		sp_asoc_pr_dbg("%s, got encoder padding %u\n",
@@ -1832,12 +1969,28 @@ static int sprd_platform_compr_set_metadata(struct snd_compr_stream *cstream,
 		sp_asoc_pr_dbg("%s, got encoder delay %u\n",
 							__func__,
 							metadata->value[0]);
+	} else if (metadata->key == SNDRV_COMPRESS_BITRATE) {
+		sp_asoc_pr_info("set_metadata,bitrate=%d\n",
+				metadata->value[0]);
+		srtd->codec_param.codec.bit_rate = metadata->value[0];
+		sprd_platform_compr_update_params(cstream);
+	} else if (metadata->key == SNDRV_COMPRESS_SAMPLERATE) {
+		sp_asoc_pr_info("set_metadata,samplerate=%d\n",
+				metadata->value[0]);
+		srtd->codec_param.codec.sample_rate = metadata->value[0];
+		srtd->sample_rate = metadata->value[0];
+		sprd_platform_compr_update_params(cstream);
+	} else if (metadata->key == SNDRV_COMPRESS_CHANNEL) {
+		sp_asoc_pr_info("set_metadata,channel=%d\n",
+				metadata->value[0]);
+		srtd->codec_param.codec.ch_in = metadata->value[0];
+		srtd->num_channels = metadata->value[0];
+		sprd_platform_compr_update_params(cstream);
 	}
-
-	ADEBUG();
 
 	return 0;
 }
+
 #ifdef CONFIG_PROC_FS
 static void sprd_compress_proc_read(struct snd_info_entry *entry,
 				 struct snd_info_buffer *buffer)

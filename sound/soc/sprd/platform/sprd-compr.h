@@ -31,6 +31,7 @@ enum {
 	COMPR_CMD_POINTER,
 	COMPR_CMD_FLUSH,
 	COMPR_CMD_DRAIN,
+	COMPR_CMD_PARTIAL_DRAIN,
 };
 
 #define COMPR_DATA_PCM						0x00000020
@@ -51,6 +52,10 @@ enum {
 #define FORMAT_AAC							0x2
 
 #define SPRD_COMPR_CARD_NAME_LEN_MAX		32
+
+#define SNDRV_COMPRESS_SAMPLERATE	100
+#define SNDRV_COMPRESS_BITRATE		101
+#define SNDRV_COMPRESS_CHANNEL		102
 
 struct cmd_common {
 	u32 command;
