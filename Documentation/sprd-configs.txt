@@ -2343,7 +2343,7 @@ CONFIG_CRYPTO_MD5
 	[field] menu
 	[subsys] security
 	[must] user
-	[function]  MD5 digest algorithm.
+	[function] MD5 digest algorithm.
 CONFIG_CRYPTO_NHPOLY1305
 	[arch] arm
 	[plat] pike2
@@ -4495,7 +4495,7 @@ CONFIG_HAVE_PATA_PLATFORM
 	[field] make,code
 	[subsys] ata
 	[must] user
-	[function]  ARCH_VEXPRESS and ARCH_RPC platform support
+	[function] ARCH_VEXPRESS and ARCH_RPC platform support
 CONFIG_HAVE_PERF_EVENTS
 	[arch] all
 	[plat] all
@@ -4596,7 +4596,7 @@ CONFIG_HID_A4TECH
 	[field] menu,make
 	[subsys] hid
 	[must] user
-	[function]  A4 tech mice
+	[function] A4 tech mice
 CONFIG_HID_ACRUX
 	[arch] all
 	[plat] all
@@ -5733,7 +5733,7 @@ CONFIG_IPV6_VTI
 	[field] menu,make
 	[subsys] net
 	[must] user
-	[function]  This can be used with xfrm mode tunnel to give
+	[function] This can be used with xfrm mode tunnel to give
 	the notion of a secure tunnel for IPSEC and then use routing protocol
 	on top.
 	If don't enable this config, the phone will have the internal problem.
@@ -5960,10 +5960,6 @@ CONFIG_IP_PNP
 	access to boot (in which case you want to say Y to "Root file system
 	on NFS" as well), because all other machines configure the network
 	in their startup scripts.
-[field]
-[subsys]
-[must]
-[function]
 CONFIG_IP_PNP_DHCP
 	[arch] all
 	[plat] all
@@ -7403,7 +7399,7 @@ CONFIG_NET_FLOW_LIMIT
 	[field] menu,make
 	[subsys] net
 	[must] user
-	[function]  The network stack has to drop packets when a receive processing CPU's
+	[function] The network stack has to drop packets when a receive processing CPU's
 	backlog reaches netdev_max_backlog. If a few out of many active flows
 	generate the vast majority of load, drop their traffic earlier to
 	maintain capacity for the other flows. This feature provides servers
@@ -8501,7 +8497,7 @@ CONFIG_PKCS7_MESSAGE_PARSER
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
-	[must]  user
+	[must] user
 	[function] Support PKCS7_MESSAGE_PARSER.
 CONFIG_PM
 	[arch] all
@@ -9408,7 +9404,7 @@ CONFIG_SC27XX_TSENSOR_THERMAL
 	[field] make
 	[subsys] thermal
 	[must] usr
-	[function] 	[function]This function is used to config thermal moudle to get
+	[function] This function is used to config thermal moudle to get
 	osc and extern cystal temperature.
 CONFIG_SCAN_BALANCE_ANON_FILE
 	[arch] all
@@ -10085,7 +10081,7 @@ CONFIG_SPARSEMEM
 	[field] code
 	[subsys] mm
 	[must] busybox_console
-	[function]  Sparsemem memory model.
+	[function] Sparsemem memory model.
 CONFIG_SPARSEMEM_EXTREME
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -10816,7 +10812,7 @@ CONFIG_SPRD_SIPC_SETH_RAWIP
 	[field] menu,make
 	[subsys] net
 	[must] user
-	[function]  Support using zero copy rawip transfer
+	[function] Support using zero copy rawip transfer
 CONFIG_SPRD_SIPC_SPIPE
 	[arch] all
 	[plat] all

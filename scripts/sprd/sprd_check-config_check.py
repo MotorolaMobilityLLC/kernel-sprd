@@ -116,48 +116,45 @@ def create_sprdconfigs_dict():
 
     f_sprdconfig = open(config_path,'r')
     lines = f_sprdconfig.readlines()
+    values=['[arch]','[plat]','[field]','[subsys]','[must]','[function]']
     for i in range(len(lines)):
         if lines[i][:7] == "CONFIG_":
             config_name=lines[i][:-1]
             d_sprdconfig[config_name]={'arch':'','plat':'','field':'','subsys':'','must':'','function':''}
-            if i+6 < len(lines):
-                if "[arch]" in lines[i+1]:
-                    if lines[i+1][-7:-1] == '[arch]':
-                        d_sprdconfig[config_name]['arch']=''
-                    else:
-                        d_sprdconfig[config_name]['arch']=lines[i+1].split('[arch] ').pop()[:-1]
-                if "[plat]" in lines[i+2]:
-                    if lines[i+2][-7:-1] == '[plat]':
-                        d_sprdconfig[config_name]['plat']=''
-                    else:
-                        d_sprdconfig[config_name]['plat']=lines[i+2].split('[plat] ').pop()[:-1]
-                if "[field]" in lines[i+3]:
-                    if lines[i+3][-8:-1] == '[field]':
-                        d_sprdconfig[config_name]['field']=''
-                    else:
-                        d_sprdconfig[config_name]['field']=lines[i+3].split('[field] ').pop()[:-1]
-                if "[subsys]" in lines[i+4]:
-                    if lines[i+4][-9:-1] == '[subsys]':
-                        d_sprdconfig[config_name]['subsys']=''
-                    else:
-                        d_sprdconfig[config_name]['subsys']=lines[i+4].split('[subsys] ').pop()[:-1]
-                if "[must]" in lines[i+5]:
-                    if lines[i+5][-7:-1] == '[must]':
-                        d_sprdconfig[config_name]['must']=''
-                    else:
-                        d_sprdconfig[config_name]['must']=lines[i+5].split('[must] ').pop()[:-1]
-                if "[function]" in lines[i+6]:
-                    if lines[i+6][-11:-1] == '[function]':
-                        d_sprdconfig[config_name]['function']=''
-                    else:
-                        d_sprdconfig[config_name]['function']=lines[i+6].split('[function] ').pop()[:-1]
+            num=0
+            values_exist=[]
+            for n in range(i+1,len(lines)):
+                num+=1
+                if lines[n][:7] =="CONFIG_":
+                    break
+                if n==len(lines)-1:
+                    num+=1
+                    break
 
-                    for j in range(15):
-                        if i+7+j >= len(lines):
-                            break
-                        if lines[i+7+j][:7] == "CONFIG_":
-                            break
-                        d_sprdconfig[config_name]['function']+='\n'+lines[i+7+j][:-1]
+            for j in range(1,num):
+                for value in values:
+                    if value in lines[i+j]:
+                        if value not in values_exist:
+                            values_exist.append(value)
+                            value_sprd=value.split('[').pop().split(']').pop(0)
+                            d_sprdconfig[config_name][value_sprd]=lines[i+j].split(value).pop().strip(' \n')
+                        if value == '[function]':
+                            for m in range(j+1,num):
+                                if '[arch]' in lines[i+m]:
+                                    break
+                                if '[plat]' in lines[i+m]:
+                                    break
+                                if '[field]' in lines[i+m]:
+                                    break
+                                if '[subsys]' in lines[i+m]:
+                                    break
+                                if '[must]' in lines[i+m]:
+                                    break
+                                if '[function]' in lines[i+m]:
+                                    break
+                                if lines[i+m].strip()=='':
+                                    continue
+                                d_sprdconfig[config_name]['function']+='\n'+lines[i+m][:-1]
     f_sprdconfig.close()
 
     # create the d_sprdconfig by Documentation/sprdconfigs.txt
