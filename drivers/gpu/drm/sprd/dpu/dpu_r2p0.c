@@ -259,7 +259,6 @@ static int vsync_count;
 static u32 prev_y2r_coef;
 static bool sprd_corner_support;
 static int sprd_corner_radius;
-static bool int_te_occur;
 //static struct sprd_adf_hwlayer wb_layer;
 //static struct wb_region region[3];
 //static int wb_xfbc_en = 1;
@@ -297,9 +296,6 @@ static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
 	up(&ctx->refresh_lock);
 
 	if (val & mask)
-		return true;
-
-	if ((mask == DISPC_INT_TE_MASK) && int_te_occur)
 		return true;
 
 	pr_err("dpu_int_raw:0x%x\n", val);
@@ -451,12 +447,6 @@ static u32 dpu_isr(struct dpu_context *ctx)
 	if (reg_val & DISPC_INT_FBC_HDR_ERR_MASK) {
 		int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
 		pr_err("dpu ifbc header error\n");
-	}
-
-	if (reg_val & DISPC_INT_TE_MASK) {
-		int_te_occur = false;
-		if (ctx->te_check_en)
-			int_te_occur = true;
 	}
 
 	int_mask |= check_mmu_isr(ctx, reg_val);

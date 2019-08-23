@@ -111,7 +111,6 @@ static int flip_cnt;
 static bool wb_config;
 static int wb_disable;
 static struct sprd_dpu_layer wb_layer;
-static bool int_te_occur;
 
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_clean_lite(struct dpu_context *ctx);
@@ -144,9 +143,6 @@ static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
 	up(&ctx->refresh_lock);
 
 	if (val & mask)
-		return true;
-
-	if ((mask == DISPC_INT_TE_MASK) && int_te_occur)
 		return true;
 
 	pr_err("dpu_int_raw:0x%x\n", val);
@@ -282,12 +278,6 @@ static u32 dpu_isr(struct dpu_context *ctx)
 			wb_en = true;
 			vsync_count = 0;
 		}
-	}
-
-	if (reg_val & DISPC_INT_TE_MASK) {
-		int_te_occur = false;
-		if (ctx->te_check_en)
-			int_te_occur = true;
 	}
 
 	int_mask |= check_mmu_isr(ctx, reg_val);
