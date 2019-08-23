@@ -13,9 +13,15 @@
 		seth2 = &seth_ch9;
 		seth3 = &seth_ch18;
 		seth4 = &seth_ch19;
-		seth5 = &seth_ch29;
+		seth5 = &seth_ch20;
 		seth6 = &seth_ch24;
 		seth7 = &seth_ch25;
+		seth8 = &seth_ch26;
+		seth9 = &seth_ch27;
+		seth10 = &seth_ch28;
+		seth11 = &seth_ch29;
+		seth12 = &seth_ch30;
+		seth13 = &seth_ch31;
 	};
 
 	scproc-pubcp {
@@ -112,7 +118,7 @@
 			sprd,dst = <5>;
 			sprd,channel = <21>;
 			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x40000>; /* 256*1024*/
+			sprd,size-rxbuf = <0x20000>; /* 256*1024*/
 			sprd,size-txbuf = <0x8000>; /* 32*1024 */
 		};
 
@@ -182,7 +188,7 @@
 		sprd,blknum = <256>;
 	};
 
-	seth_ch29: seth@5 {
+	seth_ch20: seth@5 {
 		compatible = "sprd,seth";
 		sprd,dst = <5>;
 		sprd,channel = <20>;
@@ -200,6 +206,48 @@
 		compatible = "sprd,seth";
 		sprd,dst = <5>;
 		sprd,channel = <25>;
+		sprd,blknum = <256>;
+	};
+
+	seth_ch26: seth@8 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <26>;
+		sprd,blknum = <256>;
+	};
+
+	seth_ch27: seth@9 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <27>;
+		sprd,blknum = <256>;
+	};
+
+	seth_ch28: seth@10 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <28>;
+		sprd,blknum = <256>;
+	};
+
+	seth_ch29: seth@11 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <29>;
+		sprd,blknum = <256>;
+	};
+
+	seth_ch30: seth@12 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <30>;
+		sprd,blknum = <256>;
+	};
+
+	seth_ch31: seth@13 {
+		compatible = "sprd,seth";
+		sprd,dst = <5>;
+		sprd,channel = <31>;
 		sprd,blknum = <256>;
 	};
 };
