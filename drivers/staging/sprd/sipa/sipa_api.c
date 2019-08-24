@@ -488,10 +488,14 @@ static void sipa_resume_work(struct work_struct *work)
 	}
 
 	sipa_prepare_resume(ctrl);
+
+	if (!ctrl->params_cfg.is_bypass) {
+		sipa_sender_prepare_resume(ctrl->sender[SIPA_PKT_ETH]);
+		sipa_sender_prepare_resume(ctrl->sender[SIPA_PKT_IP]);
+	}
+
 	sipa_rm_notify_completion(SIPA_RM_EVT_GRANTED,
 				  SIPA_RM_RES_PROD_IPA);
-	sipa_sender_prepare_resume(ctrl->sender[SIPA_PKT_ETH]);
-	sipa_sender_prepare_resume(ctrl->sender[SIPA_PKT_IP]);
 
 	ctrl->suspend_stage = 0;
 }
