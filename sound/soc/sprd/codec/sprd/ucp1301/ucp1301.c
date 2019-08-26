@@ -254,15 +254,11 @@ static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
 	dev_dbg(ucp1301->dev, "new_trim 0x%x, calib_code 0x%x, clsd_trim 0x%x\n",
 		new_trim, ucp1301->calib_code, ucp1301->clsd_trim);
 
-	if (new_trim != ucp1301->calib_code) {
-		regmap_update_bits(ucp1301->regmap, REG_PMU_REG1,
-				   BIT_PMU_OSC1P6M_CLSD_SW_SEL,
-				   BIT_PMU_OSC1P6M_CLSD_SW_SEL);
-		regmap_update_bits(ucp1301->regmap, REG_PMU_REG1,
-				   BIT_RG_PMU_OSC1P6M_CLSD_TRIM(0x1f),
-				   new_trim);
-		ucp1301->calib_code = new_trim;
-	}
+	regmap_update_bits(ucp1301->regmap, REG_PMU_REG1,
+			   BIT_PMU_OSC1P6M_CLSD_SW_SEL,
+			   BIT_PMU_OSC1P6M_CLSD_SW_SEL);
+	regmap_update_bits(ucp1301->regmap, REG_PMU_REG1,
+			   BIT_RG_PMU_OSC1P6M_CLSD_TRIM(0x1f), new_trim);
 
 	return 0;
 }
