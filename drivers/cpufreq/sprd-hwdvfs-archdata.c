@@ -77,6 +77,7 @@ static struct pmic_data pmic_array[MAX_PMIC_TYPE_NUM] = {
 	},
 };
 
+/* UMS312 Private data */
 static struct volt_grades_table ums312_volt_grades_tbl[] = {
 	[DCDC_CPU0] = {
 		.regs_array = {
@@ -165,6 +166,17 @@ static struct udelay_tbl ums312_down_udelay_tbl[] = {
 	},
 };
 
+static struct reg_info ums312_volt_misc_cfg_array[] = {
+	GENREGVALSET(0, 0, 0, 0),
+};
+
+static struct reg_info ums312_freq_misc_cfg_array[] = {
+	/* Set default work index 7 for lit core */
+	GENREGVALSET(0x214, 0, 0xf, 7),
+	/* Set default work index 3 for big core */
+	GENREGVALSET(0x224, 0, 0xf, 3),
+};
+
 static struct mpll_index_tbl ums312_mpll_index_tbl[MAX_MPLL] = {
 	[MPLL1] = {
 		.entry = {
@@ -183,6 +195,11 @@ static struct topdvfs_volt_manager ums312_volt_manager = {
 	.grade_tbl = ums312_volt_grades_tbl,
 	.up_udelay_tbl =  ums312_up_udelay_tbl,
 	.down_udelay_tbl = ums312_down_udelay_tbl,
+	.misc_cfg_array = ums312_volt_misc_cfg_array,
+};
+
+static struct cpudvfs_freq_manager ums312_freq_manager = {
+	.misc_cfg_array = ums312_freq_misc_cfg_array,
 };
 
 static struct mpll_freq_manager ums312_mpll_manager = {
@@ -193,5 +210,6 @@ const struct dvfs_private_data ums312_dvfs_private_data = {
 	.module_clk_khz = 128000,
 	.pmic = pmic_array,
 	.volt_manager = &ums312_volt_manager,
+	.freq_manager = &ums312_freq_manager,
 	.mpll_manager = &ums312_mpll_manager,
 };

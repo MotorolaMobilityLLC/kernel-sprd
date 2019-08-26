@@ -54,6 +54,7 @@ struct cpudvfs_phy_ops {
 	int (*dcdc_vol_delay_time_setup)(void *data, u32 dcdc_num);
 	int (*set_dcdc_idle_voltage)(void *data, u32 dcdc_num, u32 grade);
 	int (*mpll_index_table_init)(void *data, u32 mpll_num);
+	int (*hw_dvfs_misc_config)(void *data);
 };
 
 struct device_name {

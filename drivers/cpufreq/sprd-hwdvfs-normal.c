@@ -1099,6 +1099,56 @@ static int sprd_mpll_table_init(void *data, u32 mpll_num)
 	return 0;
 }
 
+static int sprd_hw_dvfs_misc_config(void *data)
+{
+	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
+	struct topdvfs_volt_manager *volt_manager;
+	struct cpudvfs_freq_manager *freq_manager;
+	struct reg_info *en;
+	struct regmap *map;
+	int i, ret;
+
+	if (!pdev->priv)
+		return 0;
+
+	volt_manager = pdev->priv->volt_manager;
+	freq_manager = pdev->priv->freq_manager;
+
+	if (!volt_manager || !freq_manager) {
+		pr_err("Voltage or frequency manger is NULL\n");
+		return -EINVAL;
+	}
+
+	map = pdev->topdvfs_map;
+	/* Voltage related configurations */
+	for (i = 0; i < MAX_TOP_DVFS_MISC_CFG_ENTRY; ++i) {
+		en = &volt_manager->misc_cfg_array[i];
+		if (!en->reg && !en->off && !en->msk && !en->val)
+			break;
+		pr_debug("TOP_DVFS_MISC_CFG[%d]: reg = 0x%x, msk = 0x%x, off = %d, val = 0x%x\n",
+			 i, en->reg, en->msk, en->off, en->val);
+
+		ret = regmap_update_bits(map, en->reg, en->msk << en->off,
+					 en->val << en->off);
+		if (ret)
+			return ret;
+	}
+
+	/* Frequency related configurations */
+	for (i = 0; i < MAX_APCPU_DVFS_MISC_CFG_ENTRY; ++i) {
+		en = &freq_manager->misc_cfg_array[i];
+		if (!en->reg && !en->off && !en->msk && !en->val)
+			break;
+		pr_debug("APCPU_DVFS_MISC_CFG[%d]: reg = 0x%x, msk = 0x%x, off = %d, val = 0x%x\n",
+			 i, en->reg, en->msk, en->off, en->val);
+
+		cpu_dvfs_bits_update(pdev, en->reg, en->msk << en->off,
+				     en->val << en->off);
+	}
+
+	return 0;
+}
+
 int sprd_setup_i2c_channel(void *data, u32 dcdc_nr)
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
@@ -1257,6 +1307,7 @@ struct cpudvfs_phy_ops sprd_cpudvfs_phy_ops = {
 	.dcdc_vol_delay_time_setup = sprd_dcdc_vol_delay_time_setup,
 	.set_dcdc_idle_voltage = sprd_set_dcdc_idle_voltage,
 	.mpll_index_table_init = sprd_mpll_table_init,
+	.hw_dvfs_misc_config = sprd_hw_dvfs_misc_config,
 };
 
 static void hardware_dvfs_tuning_result_judge(struct dvfs_cluster *clu)
@@ -2841,6 +2892,12 @@ static int sprd_cpudvfs_common_init(struct cpudvfs_archdata *pdev)
 	ret = pdev->phy_ops->hw_dvfs_map_table_init(pdev);
 	if (ret) {
 		pr_err("Error in initializing dvfs map tbls\n");
+		return ret;
+	}
+
+	ret = pdev->phy_ops->hw_dvfs_misc_config(pdev);
+	if (ret) {
+		pr_err("Error in initializing misc configurations\n");
 		return ret;
 	}
 

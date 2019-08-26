@@ -19,6 +19,8 @@
 #define MAX_VOLT_GRADE_NUM	16
 #define MAX_MPLL_INDEX_NUM	8
 #define MAX_DCDC_CPU_ADI_NUM	4
+#define MAX_APCPU_DVFS_MISC_CFG_ENTRY	16
+#define MAX_TOP_DVFS_MISC_CFG_ENTRY	16
 
 #define GENREGSET(r, o, m)		{.reg = r, .off = o, .msk = m, .val = 0}
 #define GENREGVALSET(r, o, m, v)	{.reg = r, .off = o, .msk = m, .val = v}
@@ -79,6 +81,11 @@ struct udelay_tbl {
 struct  topdvfs_volt_manager {
 	struct volt_grades_table *grade_tbl;
 	struct udelay_tbl *up_udelay_tbl, *down_udelay_tbl;
+	struct reg_info *misc_cfg_array;
+};
+
+struct cpudvfs_freq_manager {
+	struct reg_info *misc_cfg_array;
 };
 
 struct mpll_freq_manager {
@@ -101,5 +108,6 @@ struct dvfs_private_data {
 	u32 module_clk_khz;
 	struct pmic_data *pmic;
 	struct topdvfs_volt_manager *volt_manager;
+	struct cpudvfs_freq_manager *freq_manager;
 	struct mpll_freq_manager *mpll_manager;
 };
