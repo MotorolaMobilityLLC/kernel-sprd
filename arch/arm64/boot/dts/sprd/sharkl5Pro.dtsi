@@ -944,6 +944,7 @@
 				host-irq-mode = <1>;
 				interrupts = <GIC_SPI 169 IRQ_TYPE_LEVEL_HIGH>;
 				firmware-name = "vdsp_firmware.bin";
+				vdsp-qos = <&vdsp_qos>;
 				status = "okay";
 			};
 
