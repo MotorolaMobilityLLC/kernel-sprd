@@ -316,7 +316,7 @@
 	};
 
 	soc {
-		tmc@01003000 {
+		etb@1003000 {
 			compatible = "arm,coresight-tmc", "arm,primecell";
 			reg = <0x01003000 0x1000>;
 			clocks = <&ext_26m>;
