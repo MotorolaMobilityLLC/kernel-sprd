@@ -237,9 +237,6 @@ static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
 		return ret;
 	}
 	ucp1301->bypass = (val & BIT_RG_BST_BYPASS) > 0 ? true : false;
-	dev_dbg(ucp1301->dev, "set clsd trim, databuf %d, bypass %d, calib_code %d(0x%x)\n",
-		clsd_trim, ucp1301->bypass, ucp1301->calib_code,
-		ucp1301->calib_code);
 
 	if (ucp1301->bypass) {
 		dev_err(ucp1301->dev, "you can't set clsd_trim when bypass mode is on\n");
@@ -252,6 +249,9 @@ static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
 	else
 		new_trim = new_trim & BIT_RG_PMU_OSC1P6M_CLSD_TRIM(0x1f);
 
+	dev_dbg(ucp1301->dev, "new_trim 0x%x, calib_code 0x%x, clsd_trim 0x%x\n",
+		new_trim, ucp1301->calib_code, ucp1301->clsd_trim);
+
 	if (new_trim != ucp1301->calib_code) {
 		regmap_update_bits(ucp1301->regmap, REG_PMU_REG1,
 				   BIT_PMU_OSC1P6M_CLSD_SW_SEL,
@@ -260,8 +260,6 @@ static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
 				   BIT_RG_PMU_OSC1P6M_CLSD_TRIM(0x1f),
 				   new_trim);
 		ucp1301->calib_code = new_trim;
-		pr_info("set clsd trim, calib_code %d(0x%x)\n",
-			ucp1301->calib_code, ucp1301->calib_code);
 	}
 
 	return 0;
@@ -1069,8 +1067,8 @@ static int ucp1301_read_clsd_trim(struct ucp1301_t *ucp1301, u32 *clsd_trim)
 	}
 	ucp1301->bypass = (val & BIT_RG_BST_BYPASS) > 0 ? true : false;
 
-	dev_dbg(ucp1301->dev, "get clsd trim, calib_code %d(0x%x), clsd_trim 0x%x, bypass %d\n",
-		ucp1301->calib_code, ucp1301->calib_code, *clsd_trim,
+	dev_dbg(ucp1301->dev, "get clsd trim 0x%x, ori clsd_trim 0x%x, calib_code 0x%x, bypass %d\n",
+		*clsd_trim, ucp1301->clsd_trim, ucp1301->calib_code,
 		ucp1301->bypass);
 
 	return 0;
@@ -1092,9 +1090,8 @@ static ssize_t ucp1301_get_clsd_trim(struct device *dev,
 		dev_warn(ucp1301->dev, "get clsd trim fail, %d\n", ret);
 
 	return sprintf(buf,
-		       "current calib_code %d(0x%x), clsd_trim 0x%x, bypass %d\n",
-		       ucp1301->calib_code, ucp1301->calib_code,
-		       clsd_trim, ucp1301->bypass);
+		       "calib_code 0x%x, clsd_trim 0x%x, bypass %d\n",
+		       ucp1301->calib_code, clsd_trim, ucp1301->bypass);
 }
 
 /* the unit is KHz, if databuf[0] = 100, it means 100 KHz */
@@ -1350,8 +1347,6 @@ static int ucp1301_set_clasd_trim(struct snd_kcontrol *kcontrol,
 	ucp1301->clsd_trim = ucontrol->value.integer.value[0];
 	ucp1301_write_clsd_trim(ucp1301, ucp1301->clsd_trim);
 	mutex_unlock(&ucp1301->ctrl_lock);
-
-	dev_dbg(ucp1301->dev, "set_clasd_trim %d\n", ucp1301->clsd_trim);
 
 	return 0;
 }
@@ -1825,11 +1820,11 @@ static struct snd_soc_dai_driver ucp1301_dai_spk2[] = {
 	{
 		.name = "ucp1301-SPK2",
 		.playback = {
-		       .stream_name = "Playback_SPK2",
-		       .channels_min = 1,
-		       .channels_max = 2,
-		       .rates = UCP1301_RATES,
-		       .formats = UCP1301_FORMATS,
+			.stream_name = "Playback_SPK2",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = UCP1301_RATES,
+			.formats = UCP1301_FORMATS,
 		},
 		.ops = &ucp1301_dai_ops,
 	},
@@ -1839,11 +1834,11 @@ static struct snd_soc_dai_driver ucp1301_dai_rcv[] = {
 	{
 		.name = "ucp1301-RCV",
 		.playback = {
-		       .stream_name = "Playback_RCV",
-		       .channels_min = 1,
-		       .channels_max = 2,
-		       .rates = UCP1301_RATES,
-		       .formats = UCP1301_FORMATS,
+			.stream_name = "Playback_RCV",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = UCP1301_RATES,
+			.formats = UCP1301_FORMATS,
 		},
 		.ops = &ucp1301_dai_ops,
 	},
