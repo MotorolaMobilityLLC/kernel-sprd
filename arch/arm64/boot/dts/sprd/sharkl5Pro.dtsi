@@ -426,7 +426,7 @@
 			};
 
 			dcam: dcam@62900000 {
-				compatible = "sprd,dcam";
+				compatible = "unisoc,sharkl5pro-cam";
 				reg = <0 0x62900000 0 0x1000>,
 					<0 0x62901000 0 0x1000>,
 					<0 0x62902000 0 0x1000>,
