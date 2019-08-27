@@ -833,14 +833,14 @@ CONFIG_ARM_SPRD_CPUIDLE
 	[function] sprd cortex-a7 cpuidle driver.
 CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make
 	[subsys] cpufreq
 	[must] user
 	[function] Enable apcpu hardware dvfs function.
 CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
+	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make
 	[subsys] cpufreq
 	[must] user
