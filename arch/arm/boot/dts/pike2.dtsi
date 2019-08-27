@@ -105,6 +105,30 @@
 			reg = <0x71300000 0x100000>;
 		};
 
+		intc0_controller: syscon@71400000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0x71400000 0x100000>;
+		};
+
+		intc1_controller: syscon@71500000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0x71500000 0x100000>;
+		};
+
+		intc2_controller: syscon@71600000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0x71600000 0x100000>;
+		};
+
+		intc3_controller: syscon@71700000 {
+			compatible = "syscon";
+			#syscon-cells = <2>;
+			reg = <0x71700000 0x100000>;
+		};
+
 		ap-apb {
 			compatible = "simple-bus";
 			#address-cells = <1>;
@@ -901,6 +925,18 @@
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
+		};
+
+		sprd-sleep {
+			compatible = "sprd,pike2-sleep";
+			sprd,sys-ap-ahb = <&ap_ahb_regs>;
+			sprd,sys-ap-apb = <&ap_apb_regs>;
+			sprd,sys-aon-apb = <&aon_apb_regs>;
+			sprd,sys-pmu-apb = <&pmu_apb_regs>;
+			sprd,sys-ap-intc0 = <&intc0_controller>;
+			sprd,sys-ap-intc1 = <&intc1_controller>;
+			sprd,sys-ap-intc2 = <&intc2_controller>;
+			sprd,sys-ap-intc3 = <&intc3_controller>;
 		};
 	};
 
