@@ -1186,8 +1186,7 @@ static void sprd_sdhc_enable_dpll(struct sprd_sdhc_host *host)
 	mdelay(1);
 
 	tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS0);
-	while (((tmp & SPRD_SDHC_DLL_LOCKED) != SPRD_SDHC_DLL_LOCKED) ||
-		((tmp & SPRD_SDHC_DLL_ERROR) == SPRD_SDHC_DLL_ERROR)) {
+	while ((tmp & SPRD_SDHC_DLL_LOCKED) != SPRD_SDHC_DLL_LOCKED) {
 		pr_info("+++++++++ sprd sdhc dpll locked faile +++++++++!\n");
 		pr_info("sprd sdhc dpll register DLL_STS0 : 0x%x\n", tmp);
 		tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_CFG);
