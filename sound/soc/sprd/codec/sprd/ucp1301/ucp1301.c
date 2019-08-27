@@ -1366,13 +1366,12 @@ static int ucp1301_set_r_load(struct snd_kcontrol *kcontrol,
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
 
-	if (ucp1301->r_load != ucontrol->value.integer.value[0]) {
-		mutex_lock(&ucp1301->ctrl_lock);
-		ucp1301->r_load = ucontrol->value.integer.value[0];
-		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
-				    ucp1301->power_p1, ucp1301->power_pb);
-		mutex_unlock(&ucp1301->ctrl_lock);
-	}
+	mutex_lock(&ucp1301->ctrl_lock);
+	ucp1301->r_load = ucontrol->value.integer.value[0];
+	ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
+			    ucp1301->power_p1, ucp1301->power_pb);
+	mutex_unlock(&ucp1301->ctrl_lock);
+
 	dev_dbg(ucp1301->dev, "set_r_load %d\n", ucp1301->r_load);
 
 	return 0;
@@ -1395,17 +1394,16 @@ static int ucp1301_set_limit_p2(struct snd_kcontrol *kcontrol,
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
 
-	if (ucp1301->power_p2 != ucontrol->value.integer.value[0]) {
-		mutex_lock(&ucp1301->ctrl_lock);
-		ucp1301->power_p2 = ucontrol->value.integer.value[0];
-		ucp1301->power_p1 =
-			ucp1301->power_p2 * UCP_P1_RATIO / UCP_P1_PB_DIVISOR;
-		ucp1301->power_pb =
-			ucp1301->power_p2 * UCP_PB_RATIO / UCP_P1_PB_DIVISOR;
-		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
-				    ucp1301->power_p1, ucp1301->power_pb);
-		mutex_unlock(&ucp1301->ctrl_lock);
-	}
+	mutex_lock(&ucp1301->ctrl_lock);
+	ucp1301->power_p2 = ucontrol->value.integer.value[0];
+	ucp1301->power_p1 =
+		ucp1301->power_p2 * UCP_P1_RATIO / UCP_P1_PB_DIVISOR;
+	ucp1301->power_pb =
+		ucp1301->power_p2 * UCP_PB_RATIO / UCP_P1_PB_DIVISOR;
+	ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
+			    ucp1301->power_p1, ucp1301->power_pb);
+	mutex_unlock(&ucp1301->ctrl_lock);
+
 	dev_dbg(ucp1301->dev, "set_limit_p2 %d\n", ucp1301->power_p2);
 
 	return 0;
