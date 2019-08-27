@@ -667,7 +667,9 @@ static int asoc_sprd_card_parse_of(struct device_node *node,
 		priv->snd_card.name = priv->snd_card.dai_link->name;
 
 	ret = sprd_asoc_card_parse_ext_hook(dev, &priv->ext_hook);
-	if (ret < 0)
+	if (!ret)
+		sprd_asoc_ext_hook_register(&priv->ext_hook);
+	else if (ret == -EPROBE_DEFER)
 		return ret;
 
 	return sprd_asoc_card_parse_smartamp_boost(dev, &priv->boost_data);
@@ -765,8 +767,6 @@ int asoc_sprd_card_probe(struct platform_device *pdev,
 	snd_soc_card_set_drvdata(&priv->snd_card, priv);
 
 	*card = &priv->snd_card;
-
-	sprd_asoc_ext_hook_register(&priv->ext_hook);
 
 err:
 	asoc_sprd_card_unref(&priv->snd_card);
