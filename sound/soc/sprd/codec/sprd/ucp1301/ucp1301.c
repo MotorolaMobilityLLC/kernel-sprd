@@ -134,6 +134,33 @@ static const char *ucp1301_get_event_name(int event)
 	return ev_name;
 }
 
+static void ucp1301_sw_reset(struct ucp1301_t *ucp1301)
+{
+	switch (ucp1301->product_id) {
+	case 2:
+		ucp1301->ivsense_mode = IVS_UCP1300A;
+		break;
+	case 4:
+		ucp1301->ivsense_mode = IVS_UCP1300B;
+		break;
+	default:
+		ucp1301->ivsense_mode = IVS_UCP1301;
+	}
+
+	ucp1301->init_flag = true;
+	ucp1301->class_mode = SPK_D;
+	ucp1301->agc_en = false;
+	ucp1301->agc_gain0 = UCP_AGC_GAIN0;
+	/* set to 1600 KHz in default, corresponding reg value is 0xf */
+	ucp1301->clsd_trim = 0xf;
+	ucp1301->r_load = UCP_R_LOAD;
+	ucp1301->power_p2 = UCP_LIMIT_P2;
+	ucp1301->power_p1 =
+		ucp1301->power_p2 * UCP_P1_RATIO / UCP_P1_PB_DIVISOR;
+	ucp1301->power_pb =
+		ucp1301->power_p2 * UCP_PB_RATIO / UCP_P1_PB_DIVISOR;
+}
+
 static void ucp1301_write_agc_en(struct ucp1301_t *ucp1301, bool agc_en)
 {
 	regmap_update_bits(ucp1301->regmap, REG_AGC_EN, BIT_AGC_EN,
@@ -1943,30 +1970,9 @@ static int ucp1301_i2c_probe(struct i2c_client *client,
 		return ret;
 	}
 	ucp1301_read_efuse(ucp1301);
-
-	switch (ucp1301->product_id) {
-	case 2:
-		ucp1301->ivsense_mode = IVS_UCP1300A;
-		break;
-	case 4:
-		ucp1301->ivsense_mode = IVS_UCP1300B;
-		break;
-	default:
-		ucp1301->ivsense_mode = IVS_UCP1301;
-	}
-
 	ucp1301_debug_sysfs_init(ucp1301);
 	ucp1301_hw_on(ucp1301, false);
-	ucp1301->init_flag = true;
-	ucp1301->class_mode = SPK_D;
-	ucp1301->agc_en = false;
-	ucp1301->agc_gain0 = UCP_AGC_GAIN0;
-	ucp1301->r_load = UCP_R_LOAD;
-	ucp1301->power_p2 = UCP_LIMIT_P2;
-	ucp1301->power_p1 =
-		ucp1301->power_p2 * UCP_P1_RATIO / UCP_P1_PB_DIVISOR;
-	ucp1301->power_pb =
-		ucp1301->power_p2 * UCP_PB_RATIO / UCP_P1_PB_DIVISOR;
+	ucp1301_sw_reset(ucp1301);
 
 	if (strcmp(client->name, ucp1301_type[0]) == 0) {
 		ret = snd_soc_register_codec(dev, &soc_codec_dev_ucp1301,
