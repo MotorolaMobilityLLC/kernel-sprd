@@ -426,6 +426,9 @@ static void dump_header(struct oom_control *oc, struct task_struct *p)
 		show_mem(SHOW_MEM_FILTER_NODES, oc->nodemask);
 	if (sysctl_oom_dump_tasks)
 		dump_tasks(oc->memcg, oc->nodemask);
+#ifdef CONFIG_E_SHOW_MEM
+	enhanced_mem(E_SHOW_MEM_BASIC);
+#endif
 }
 
 /*

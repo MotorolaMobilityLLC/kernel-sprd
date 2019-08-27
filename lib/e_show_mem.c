@@ -62,3 +62,22 @@ void enhanced_show_mem(enum e_show_mem_type type)
 	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 }
 
+void enhanced_mem(enum e_show_mem_type type)
+{
+	/* Module used pages */
+	unsigned long used = 0;
+
+	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	if (E_SHOW_MEM_BASIC == type)
+		printk("E_SHOW_MEM_BASIC\n");
+	else if (E_SHOW_MEM_CLASSIC == type)
+		printk("E_SHOW_MEM_CLASSIC\n");
+	else
+		printk("E_SHOW_MEM_ALL\n");
+	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	blocking_notifier_call_chain(&e_show_mem_notify_list,
+				(unsigned long)type, &used);
+	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+}
