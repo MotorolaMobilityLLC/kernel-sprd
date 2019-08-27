@@ -1367,7 +1367,7 @@
 				device-dcdc-cells = <&dcdc_mm>, <&dcdc_modem>;
 				dcdc_cpu0: dcdc-cpu0{
 					dcdc-dvfs-enable = <0x68 20 1>;
-					dcdc-judge-vol-sw = <0x68 1 0x7 6>;
+					dcdc-judge-vol-sw = <0x68 1 0x7 0>;
 					dcdc-subsys-tune-enable = <0x150 6 1>;
 					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu0_supply>;
 					syscons = <&pmu_apb_regs REG_PMU_APB_RF_DVFS_BLOCK_SHUTDOWN_CFG MASK_PMU_APB_RF_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
@@ -1376,7 +1376,7 @@
 				};
 				dcdc_cpu1: dcdc-cpu1{
 					dcdc-dvfs-enable = <0x94 0 1>;
-					dcdc-judge-vol-sw = <0x138 15 0x7 5>;
+					dcdc-judge-vol-sw = <0x138 15 0x7 0>;
 					dcdc-subsys-tune-enable = <0x150 7 1>;
 					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu1_supply>;
 					syscons = <&pmu_apb_regs REG_PMU_APB_RF_DVFS_BLOCK_SHUTDOWN_CFG MASK_PMU_APB_RF_DCDC_CPU1_DVFS_BLOCK_SHUTDOWN_EN>;
