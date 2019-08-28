@@ -230,7 +230,7 @@ static int sprd_asoc_card_parse_hook_spk(struct device *dev,
 	if (elem_cnt <= 0) {
 		dev_info(dev,
 			"Count '%s' failed!(%d)\n", prop_pa_info, elem_cnt);
-		return 0;
+		return -EINVAL;
 	}
 
 	if (elem_cnt % CELL_NUMBER) {
