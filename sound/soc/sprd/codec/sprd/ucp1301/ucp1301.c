@@ -238,11 +238,6 @@ static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
 	}
 	ucp1301->bypass = (val & BIT_RG_BST_BYPASS) > 0 ? true : false;
 
-	if (ucp1301->bypass) {
-		dev_err(ucp1301->dev, "you can't set clsd_trim when bypass mode is on\n");
-		return -EINVAL;
-	}
-
 	new_trim = ucp1301->calib_code + clsd_trim / 100 - 16;
 	if (new_trim < 0)
 		new_trim = 0;
