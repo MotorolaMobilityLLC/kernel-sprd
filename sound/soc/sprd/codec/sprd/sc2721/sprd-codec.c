@@ -1903,7 +1903,10 @@ static int sprd_codec_charge_ext_cap(struct snd_soc_codec *codec)
 	snd_soc_update_bits(codec, SOC_REG(ANA_STS2), BIT(DEPOP_CHG_START),
 			    BIT(DEPOP_CHG_START));
 
-	/* Waiting for charging finish. */
+	if (headset_get_plug_state() != 1)
+		return 0;
+
+	/* Waiting for charging finish. only headset plug in need to waiting */
 	cnt = WAIT_CNT_CHG_CAP;
 	do {
 		val = snd_soc_read(codec, SOC_REG(ANA_STS2));
@@ -1964,7 +1967,10 @@ static int hp_drv_path_switch_event(struct snd_soc_dapm_widget *w,
 		      SPRD_CODEC_HP_MIXER_MAX, SPRD_CODEC_RIGHT,
 		       on, 0);
 
-	/* Wait for RDAC status */
+	/* Wait for RDAC status  only headset plug in need to waiting */
+	if (headset_get_plug_state() != 1)
+		return 0;
+
 	while (--cnt) {
 		val = snd_soc_read(codec, SOC_REG(ANA_DCL5));
 		pr_debug("ANA_DCL5: %#x\n", val);
@@ -2801,10 +2807,11 @@ static int codec_hp_dc_cal(struct snd_soc_codec *codec)
 
 	snd_soc_update_bits(codec, SOC_REG(ANA_DCL0), BIT(DPOP_AUTO_RST), 0);
 
-	cnt = 10;
-	while (!headset_fast_charge_finished() && cnt--)
-		sprd_codec_wait(5);
-
+	if (headset_get_plug_state() == 1) {
+		cnt = 10;
+		while (!headset_fast_charge_finished() && cnt--)
+			sprd_codec_wait(5);
+	}
 	snd_soc_update_bits(codec, SOC_REG(ANA_CDC2),
 			    BIT(HPBUF_EN), BIT(HPBUF_EN));
 	mask = BIT(CALDC_ENO) | BIT(CALDC_EN);
@@ -2828,25 +2835,27 @@ static int codec_hp_dc_cal(struct snd_soc_codec *codec)
 	/* Waiting for DCCAL process finish.
 	 * Twice read for anti-glitch.
 	 */
-	cnt = WAIT_CNT_DCCAL;
-	do {
-		val = snd_soc_read(codec, SOC_REG(ANA_STS2));
-		pr_debug("1st ANA_STS2: %#x\n", val);
-		if ((val & BIT(DCCAL_STS)) && (val & BIT(HP_DPOP_DVLD))) {
-			sprd_codec_wait(5);
+	if (headset_get_plug_state() == 1) {
+		cnt = WAIT_CNT_DCCAL;
+		do {
 			val = snd_soc_read(codec, SOC_REG(ANA_STS2));
-			pr_debug("2nd ANA_STS2: %#x\n", val);
-			if ((val & BIT(DCCAL_STS)) && (val & BIT(HP_DPOP_DVLD)))
-				break;
+			pr_debug("1st ANA_STS2: %#x\n", val);
+			if ((val & BIT(DCCAL_STS)) && (val & BIT(HP_DPOP_DVLD))) {
+				sprd_codec_wait(5);
+				val = snd_soc_read(codec, SOC_REG(ANA_STS2));
+				pr_debug("2nd ANA_STS2: %#x\n", val);
+				if ((val & BIT(DCCAL_STS)) && (val & BIT(HP_DPOP_DVLD)))
+					break;
+			}
+			sprd_codec_wait(15);
+		} while (--cnt);
+		if (!cnt) {
+			ret = -1;
+			pr_err("%s, waiting for DCCAL finish timeout!\n", __func__);
 		}
-		sprd_codec_wait(15);
-	} while (--cnt);
-	if (!cnt) {
-		ret = -1;
-		pr_err("%s, waiting for DCCAL finish timeout!\n", __func__);
-	}
-	pr_debug("DC-CAL takes about %dms. cnt: %d\n",
+		pr_debug("DC-CAL takes about %dms. cnt: %d\n",
 		 (WAIT_CNT_DCCAL - cnt) * 15 + (cnt ? 5 : 0), cnt);
+	}
 
 	mask = ~0u & ~(BIT(DAS_EN) | BIT(PA_EN));
 	snd_soc_update_bits(codec, SOC_REG(ANA_CDC2), mask, 0);
