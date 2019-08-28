@@ -189,7 +189,9 @@ static int dapm_jack_switch_control(struct snd_soc_codec *codec, bool on)
 static void headset_jack_report(struct sprd_headset *hdst,
 	struct snd_soc_jack *jack, int status, int mask)
 {
-	if (mask & SND_JACK_HEADPHONE)
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+
+	if (mask & SND_JACK_HEADPHONE && (!pdata->hpr_spk))
 		dapm_jack_switch_control(hdst->codec, !!status);
 
 	snd_soc_jack_report(jack, status, mask);
@@ -1447,9 +1449,11 @@ int headset_fast_charge_finished(void)
 
 static void headset_fast_charge(struct sprd_headset *hdst)
 {
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
 	unsigned int mask = ~0u & ~(BIT(DAS_EN) | BIT(PA_EN));
 
-	headset_reg_clr_bits(ANA_CDC2, mask);
+	if (!pdata->hpr_spk)
+		headset_reg_clr_bits(ANA_CDC2, mask);
 	headset_reg_set_bits(ANA_STS2, BIT(CALDC_ENO));
 	headset_reg_set_bits(ANA_STS0, BIT(DC_CALI_RDACI_ADJ));
 	usleep_range(1000, 1100); /* Wait for 1mS */
@@ -2398,6 +2402,9 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 		pdata->jack_type = JACK_TYPE_NO;
 	}
 	pdata->jack_type = val ? JACK_TYPE_NC : JACK_TYPE_NO;
+
+	/* Parse configs for whether speaker use headset path. */
+	pdata->hpr_spk = of_property_read_bool(np, "sprd,spk-route-hp");
 
 	/* Parse gpios. */
 	/* Parse for the gpio of EU/US jack type switch. */

@@ -71,6 +71,7 @@ struct sprd_headset_platform_data {
 	u32 nbuttons;
 	int (*external_headmicbias_power_on)(int);
 	bool do_fm_mute;
+	bool hpr_spk;
 };
 
 struct sprd_headset_power {
