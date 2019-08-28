@@ -238,7 +238,14 @@ static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
 	}
 	ucp1301->bypass = (val & BIT_RG_BST_BYPASS) > 0 ? true : false;
 
-	new_trim = ucp1301->calib_code + clsd_trim / 100 - 16;
+	/*
+	 * formula:
+	 * para convert to frequence(unit: KHz): x = (clsd_trim + 1) * 100
+	 * new_trim = ucp1301->calib_code + x / 100 - 16
+	 *               = ucp1301->calib_code + clsd_trim + 1 - 16
+	 *               = ucp1301->calib_code + clsd_trim - 15
+	 */
+	new_trim = ucp1301->calib_code + clsd_trim - 15;
 	if (new_trim < 0)
 		new_trim = 0;
 	else
