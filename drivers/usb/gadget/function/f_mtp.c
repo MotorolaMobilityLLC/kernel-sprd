@@ -435,8 +435,12 @@ static void mtp_complete_in(struct usb_ep *ep, struct usb_request *req)
 {
 	struct mtp_dev *dev = _mtp_dev;
 
-	if (req->status != 0)
-		dev->state = STATE_ERROR;
+	if (req->status != 0) {
+		if (req->status == -ESHUTDOWN)
+			dev->state = STATE_OFFLINE;
+		else
+			dev->state = STATE_ERROR;
+	}
 
 	mtp_req_put(dev, &dev->tx_idle, req);
 
@@ -448,8 +452,12 @@ static void mtp_complete_out(struct usb_ep *ep, struct usb_request *req)
 	struct mtp_dev *dev = _mtp_dev;
 
 	dev->rx_done = 1;
-	if (req->status != 0)
-		dev->state = STATE_ERROR;
+	if (req->status != 0) {
+		if (req->status == -ESHUTDOWN)
+			dev->state = STATE_OFFLINE;
+		else
+			dev->state = STATE_ERROR;
+	}
 
 	wake_up(&dev->read_wq);
 }
@@ -458,8 +466,12 @@ static void mtp_complete_intr(struct usb_ep *ep, struct usb_request *req)
 {
 	struct mtp_dev *dev = _mtp_dev;
 
-	if (req->status != 0)
-		dev->state = STATE_ERROR;
+	if (req->status != 0) {
+		if (req->status == -ESHUTDOWN)
+			dev->state = STATE_OFFLINE;
+		else
+			dev->state = STATE_ERROR;
+	}
 
 	mtp_req_put(dev, &dev->intr_idle, req);
 
@@ -931,7 +943,8 @@ static void receive_file_work(struct work_struct *data)
 			ret = usb_ep_queue(dev->ep_out, read_req, GFP_KERNEL);
 			if (ret < 0) {
 				r = -EIO;
-				dev->state = STATE_ERROR;
+				if (dev->state != STATE_OFFLINE)
+					dev->state = STATE_ERROR;
 				break;
 			}
 		}
@@ -947,7 +960,8 @@ static void receive_file_work(struct work_struct *data)
 					ret = wait_event_interruptible(dev->read_wq,
 					    dev->rx_done || dev->state != STATE_BUSY);
 				r = -EIO;
-				dev->state = STATE_ERROR;
+				if (dev->state != STATE_OFFLINE)
+					dev->state = STATE_ERROR;
 				break;
 			}
 			write_req = NULL;
