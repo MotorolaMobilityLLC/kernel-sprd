@@ -308,6 +308,11 @@
 		tuning-latency-us = <250>;
 		chnl-in-i2c = <1>;
 	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &thm_zone {
@@ -463,8 +468,7 @@
 		reg = <0x6a>;
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
-		extcon = <&pmic_typec>;
-		otg-detect-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+		extcon = <&extcon_gpio>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
