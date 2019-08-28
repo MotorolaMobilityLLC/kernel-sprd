@@ -93,6 +93,17 @@ static struct volt_grades_table ums312_volt_grades_tbl[] = {
 	},
 	[DCDC_CPU1] = {
 		.regs_array = {
+			GENREGSET(0x100, 0, 0x1ff),
+			GENREGSET(0x100, 9, 0x1ff),
+			GENREGSET(0x100, 18, 0x1ff),
+			GENREGSET(0x104, 0, 0x1ff),
+			GENREGSET(0x104, 9, 0x1ff),
+			GENREGSET(0x104, 18, 0x1ff),
+		},
+		.grade_count = 6,
+	},
+	[DCDC_CPU1_I2C] = {
+		.regs_array = {
 			GENREGSET(0x12c, 0, 0x7f),
 			GENREGSET(0x12c, 7, 0x7f),
 			GENREGSET(0x12c, 14, 0x7f),

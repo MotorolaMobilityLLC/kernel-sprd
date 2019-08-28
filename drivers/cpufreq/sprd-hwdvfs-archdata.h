@@ -18,6 +18,7 @@
 
 #define MAX_VOLT_GRADE_NUM	16
 #define MAX_MPLL_INDEX_NUM	8
+#define MAX_DCDC_CPU_ADI_NUM	4
 
 #define GENREGSET(r, o, m)		{.reg = r, .off = o, .msk = m, .val = 0}
 #define GENREGVALSET(r, o, m, v)	{.reg = r, .off = o, .msk = m, .val = v}
@@ -33,6 +34,9 @@ enum sprd_cpudvfs_pmic {
 enum dcdc_name {
 	DCDC_CPU0,
 	DCDC_CPU1,
+	/* Add DCDC_CPUx here */
+	DCDC_CPU0_I2C = MAX_DCDC_CPU_ADI_NUM,
+	DCDC_CPU1_I2C,
 };
 
 enum mpll_name {

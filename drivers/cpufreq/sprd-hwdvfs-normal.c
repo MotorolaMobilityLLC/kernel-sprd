@@ -1271,7 +1271,7 @@ static int voltage_grade_value_update(struct dvfs_cluster *clu,
 		(struct cpudvfs_archdata *)clu->parent_dev;
 	struct reg_info *regdata;
 	struct pmic_data *pm;
-	int ret, count;
+	int ret, count, grade_index = clu->dcdc;
 	u32 pmic_num, grade_id;
 
 	if (!pdev->priv)
@@ -1299,13 +1299,18 @@ static int voltage_grade_value_update(struct dvfs_cluster *clu,
 		return -EINVAL;
 	}
 
-	pmic_num = pdev->pwr[clu->id].pmic_num;
+	pmic_num = pdev->pwr[clu->dcdc].pmic_num;
 	if (pmic_num < 0 || pmic_num >= pdev->pmic_type_sum) {
 		pr_err("Incorrect pmic sequenc number\n");
 		return -EINVAL;
 	}
 
-	regdata = pdev->priv->volt_manager->grade_tbl[clu->id].regs_array;
+	if (pdev->pwr[clu->dcdc].i2c_used)
+		grade_index += MAX_DCDC_CPU_ADI_NUM;
+
+	pr_debug("grade_index in volt grade table array is %d\n", grade_index);
+
+	regdata = pdev->priv->volt_manager->grade_tbl[grade_index].regs_array;
 
 	pm = &pdev->priv->pmic[pmic_num];
 
