@@ -5046,12 +5046,12 @@ CONFIG_GENERIC_STRNLEN_USER
 	[function] Support strnlen from user.
 CONFIG_GENERIC_TIME_VSYSCALL
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl5,sharkl5Pro
-	[lacked plat] sharkl3_32,sharkl5_32,sharkle32
+	[plat] all
+	[lacked plat] none
 	[field] make,code
 	[subsys] soc
 	[must] user
-	[lacked plat description]
+	[lacked plat description] none
 	[function] select by others.
 CONFIG_GENERIC_TRACER
 	[arch] all
@@ -15653,12 +15653,12 @@ CONFIG_USE_OF
 	[function] Flattened Device Tree support.
 CONFIG_VDSO
 	[arch] arm
-	[plat] pike2
-	[lacked plat] sharkl3_32,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[lacked plat] none
 	[field]
 	[subsys]
 	[must]
-	[lacked plat description]
+	[lacked plat description] none
 	[function]
 CONFIG_VECTORS_BASE
 	[arch] arm
