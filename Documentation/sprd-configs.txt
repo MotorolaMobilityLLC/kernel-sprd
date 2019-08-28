@@ -3551,7 +3551,7 @@ CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND
 	[function] Support gpu dfs/dvfs logic.
 CONFIG_DEVFREQ_GOV_SPRD_SCENE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[missing plat] pike2,sharkle32
 	[field] make,code
 	[subsys] devfreq
@@ -3562,7 +3562,7 @@ CONFIG_DEVFREQ_GOV_SPRD_SCENE
 	   request to driver.
 CONFIG_DEVFREQ_SPRD_AUTO_DFS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[missing plat] pike2,sharkle32
 	[field] make,code
 	[subsys] devfreq
