@@ -6439,7 +6439,9 @@ void __init sched_init(void)
 
 	scheduler_running = 1;
 
+#ifdef CONFIG_GENERIC_ARCH_TOPOLOGY
 	cpumask_copy(&min_cap_cpu_mask, cpu_possible_mask);
+#endif
 }
 
 #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
