@@ -454,6 +454,7 @@ requeue_req:
 	/* wait for a request to complete */
 	ret = wait_event_interruptible(dev->read_wq, dev->rx_done);
 	if (ret < 0) {
+		usb_ep_dequeue(dev->ep_out, req);
 		dev->rd_error = 1;
 		r = ret;
 		goto done;
