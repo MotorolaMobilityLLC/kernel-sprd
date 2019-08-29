@@ -1134,6 +1134,28 @@
 		sprd,dma-2stage-level-1-int-source = <1>;
 	};
 
+	saudio_lte{
+		compatible = "sprd,saudio";
+		sprd,saudio-dst-id = <5>;               /* SIPC_ID_LTE */
+		sprd,ctrl_channel = <10>;               /* SMSG_CH_VBC */
+		sprd,playback_channel = <11 131>; /* SMSG_CH_PLAYBACK */
+		sprd,capture_channel = <12>;    /* SMSG_CH_CAPTURE */
+		sprd,monitor_channel = <13>;    /*SMSG_CH_MONITOR_AUDIO */
+		sprd,device = <2>;
+		sprd,saudio-names = "saudiolte";
+	};
+
+	saudio_voip{
+		compatible = "sprd,saudio";
+		sprd,saudio-dst-id = <5>;               /* SIPC_ID_LTE */
+		sprd,ctrl_channel = <14>;               /* SMSG_CH_CTRL_VOIP */
+		sprd,playback_channel = <15 151>;/* SMSG_CH_PLAYBACK_VOIP */
+		sprd,capture_channel = <16>;    /* SMSG_CH_CAPTURE_VOIP */
+		sprd,monitor_channel = <17>;    /*SMSG_CH_MONITOR_VOIP */
+		sprd,device = <2>;
+		sprd,saudio-names = "saudiovoip";
+	};
+
 	audio-mem-mgr {
 		compatible = "sprd,sharkl3-audio-mem","sprd,sharkle-audio-mem";
 		sprd,iram_phy_addr = <0x00003400 0xb000>;
