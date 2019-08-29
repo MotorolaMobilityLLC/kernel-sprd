@@ -1367,8 +1367,14 @@ static int __queue_discard_cmd(struct f2fs_sb_info *sbi,
 		struct block_device *bdev, block_t blkstart, block_t blklen)
 {
 	block_t lblkstart = blkstart;
+	struct request_queue *q = bdev_get_queue(bdev);
+	unsigned int max_discard_blocks =
+			SECTOR_TO_BLOCK(q->limits.max_discard_sectors);
 
 	if (!f2fs_bdev_support_discard(bdev))
+		return 0;
+
+	if (!max_discard_blocks)
 		return 0;
 
 	trace_f2fs_queue_discard(bdev, blkstart, blklen);
