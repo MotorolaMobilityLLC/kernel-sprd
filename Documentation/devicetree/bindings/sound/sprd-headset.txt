@@ -27,6 +27,7 @@ Required properties:
 - switch-supply: typec analog headset power supply
 - sprd,switch-voltage: typec analog headset voltage value
 - code: headset key ID
+- sprd,spk-route-hp: boolean,ext speaker use hp path
 
 Example:
 sprd_headset: sprd-headset {
