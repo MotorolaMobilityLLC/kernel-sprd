@@ -159,7 +159,7 @@
 					<3770000 25>, <3752000 20>, <3730000 15>,
 					<3698000 10>, <3687000 5>, <3400000 0>;
 		charge-sdp-current-microamp = <500000 500000>;
-		charge-dcp-current-microamp = <1150000 3000000>;
+		charge-dcp-current-microamp = <1450000 3000000>;
 		charge-cdp-current-microamp = <1150000 1150000>;
 		charge-unknown-current-microamp = <500000 500000>;
 	};
