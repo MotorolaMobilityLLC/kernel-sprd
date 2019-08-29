@@ -117,11 +117,11 @@ def create_sprdconfigs_dict():
 
     f_sprdconfig = open(config_path,'r')
     lines = f_sprdconfig.readlines()
-    values_of_config = ['[arch]','[plat]','[lacked plat]','[field]','[subsys]','[must]','[lacked plat description]','[function]']
+    values_of_config = ['[arch]','[plat]','[missing plat]','[field]','[subsys]','[must]','[missing plat description]','[function]']
     for i in range(len(lines)):
         if lines[i][:7] == "CONFIG_":
             config_name = lines[i][:-1]
-            d_sprdconfig[config_name] = {'arch':'','plat':'','lacked plat':'','field':'','subsys':'','must':'','lacked plat description':'','function':''}
+            d_sprdconfig[config_name] = {'arch':'','plat':'','missing plat':'','field':'','subsys':'','must':'','missing plat description':'','function':''}
             num_lines_in_config = 0
             values_exist = []
             for n in range(i+1,len(lines)):
@@ -144,7 +144,7 @@ def create_sprdconfigs_dict():
                                     break
                                 if '[plat]' in lines[i+m]:
                                     break
-                                if '[lacked plat]' in lines[i+m]:
+                                if '[missing plat]' in lines[i+m]:
                                     break
                                 if '[field]' in lines[i+m]:
                                     break
@@ -152,13 +152,13 @@ def create_sprdconfigs_dict():
                                     break
                                 if '[must]' in lines[i+m]:
                                     break
-                                if '[lacked plat description]' in lines[i+m]:
+                                if '[missing plat description]' in lines[i+m]:
                                     break
                                 if '[function]' in lines[i+m]:
                                     break
                                 if lines[i+m].strip() == '':
                                     continue
-                                if value == '[function]' or value == '[lacked plat description]':
+                                if value == '[function]' or value == '[missing plat description]':
                                     d_sprdconfig[config_name][value_sprd] += '\n'+lines[i+m][:-1]
                                 else:
                                     d_sprdconfig[config_name][value_sprd] += lines[i+m][:-1].strip(' \n\t')
@@ -212,10 +212,10 @@ def configs_resort():
         else:
             f.write("\t[plat] {}\n".format(d_sprdconfig[line]['plat']))
 
-        if d_sprdconfig[line]['lacked plat'] == 'none':
-            f.write("\t[lacked plat] none\n")
+        if d_sprdconfig[line]['missing plat'] == 'none':
+            f.write("\t[missing plat] none\n")
         else:
-            f.write("\t[lacked plat] {}".format(d_sprdconfig[line]['lacked plat']).strip(' ') + '\n')
+            f.write("\t[missing plat] {}".format(d_sprdconfig[line]['missing plat']).strip(' ') + '\n')
 
         if d_sprdconfig[line]['field'] == '':
             f.write("\t[field]\n")
@@ -232,10 +232,10 @@ def configs_resort():
         else:
             f.write("\t[must] {}\n".format(d_sprdconfig[line]['must']))
 
-        if d_sprdconfig[line]['lacked plat description'] == 'none':
-            f.write("\t[lacked plat description] none\n")
+        if d_sprdconfig[line]['missing plat description'] == 'none':
+            f.write("\t[missing plat description] none\n")
         else:
-            f.write("\t[lacked plat description]{}".format(d_sprdconfig[line]['lacked plat description']).strip(' ') + '\n')
+            f.write("\t[missing plat description]{}".format(d_sprdconfig[line]['missing plat description']).strip(' ') + '\n')
 
         if d_sprdconfig[line]['function'] == '':
             f.write("\t[function]\n")
@@ -303,7 +303,7 @@ def help_info():
                 support       : Print all archs and plats supported.
 
                 scan          : Scan all configs to export a statistical file named 'config_plat_scan.csv', which include Config_name, Enable_archs,
-                                Enable_plats, ARM_lack_plats and ARM64_lack_plats.
+                                Enable_plats, ARM_missing_plats and ARM64_missing_plats.
 
                 help          : Print the help information.
         """
@@ -430,7 +430,7 @@ def update_sprd_configs():
     d_del_sprdconfig = {}
     for key in d_corrected_config:
         if key not in d_sprdconfig:
-            d_sprdconfig[key] = {'arch':'','plat':'','lacked plat':'','field':'','subsys':'','must':'','lacked plat description':'','function':''}
+            d_sprdconfig[key] = {'arch':'','plat':'','missing plat':'','field':'','subsys':'','must':'','missing plat description':'','function':''}
     for key in d_sprdconfig:
         if key not in d_corrected_config:
             d_del_sprdconfig[key] = d_sprdconfig[key]
@@ -440,72 +440,72 @@ def update_sprd_configs():
     for key in d_del_sprdconfig:
         del d_sprdconfig[key]
 
-    update_lacked_plat()
+    update_missing_plat()
 
     # regenerate sprd-configs.txt with dict d_sprdconfig
     configs_resort()
     print("\n\tsprd-configs.txt has been updated now")
 
-def update_lacked_plat():
-    update_lacked_plat_flag = 0
-    if update_lacked_plat_flag == 1:
+def update_missing_plat():
+    update_missing_plat_flag = 0
+    if update_missing_plat_flag == 1:
         for key in d_sprdconfig:
-            lacked_plat = ''
+            missing_plat = ''
             if d_sprdconfig[key]['arch'] == 'all':
                 if d_sprdconfig[key]['plat'] == 'all':
-                    lacked_plat = ''
+                    missing_plat = ''
                 else:
                     for plat in all_plat:
                         if plat not in d_sprdconfig[key]['plat'].split(","):
-                            lacked_plat = lacked_plat + plat + ","
+                            missing_plat = missing_plat + plat + ","
 
             elif d_sprdconfig[key]['plat'] != d_all_plat[d_sprdconfig[key]['arch']][:-1]:
                 for plat in d_all_plat[d_sprdconfig[key]['arch']].split(',')[:-1]:
                     if plat not in d_sprdconfig[key]['plat'].split(','):
-                        lacked_plat = lacked_plat + plat + ','
-            d_sprdconfig[key]['lacked plat'] = lacked_plat[:-1]
+                        missing_plat = missing_plat + plat + ','
+            d_sprdconfig[key]['missing plat'] = missing_plat[:-1]
 
     for key in d_sprdconfig:
         if d_sprdconfig[key]['arch'] == 'all':
             if d_sprdconfig[key]['plat'] == 'all':
-                d_sprdconfig[key]['lacked plat'] = 'none'
-                d_sprdconfig[key]['lacked plat description'] = 'none'
+                d_sprdconfig[key]['missing plat'] = 'none'
+                d_sprdconfig[key]['missing plat description'] = 'none'
         elif d_sprdconfig[key]['plat'] == d_all_plat[d_sprdconfig[key]['arch']][:-1]:
-            d_sprdconfig[key]['lacked plat'] = 'none'
-            d_sprdconfig[key]['lacked plat description'] = 'none'
+            d_sprdconfig[key]['missing plat'] = 'none'
+            d_sprdconfig[key]['missing plat description'] = 'none'
 
 def special_scan():
-    csv_filename = os.path.join(tmp_path,"special_lack_scan.csv")
+    csv_filename = os.path.join(tmp_path,"unreasonable_missing_scan.csv")
     if os.path.exists(csv_filename):
         os.remove(csv_filename)
     csv_fd = open(csv_filename, 'a+')
     csv_writer = csv.writer(csv_fd)
-    csv_writer.writerow(["Config name", "Enalbe arch", "Current enable plats","Current_lacked_plat","Reasonable_lacked_plat","Lacked_plat_description"])
+    csv_writer.writerow(["Config name", "Enalbe arch", "Current enable plats","Current_missing_plat","Reasonable_missing_plat","Missing_plat_description"])
     for key in l_sprdconfig:
         l_write = []
-        lacked_plat = ''
+        missing_plat = ''
         if d_sprdconfig[key]['arch'] == 'all':
             if d_sprdconfig[key]['plat'] == 'all':
-                lacked_plat = ''
+                missing_plat = ''
             else:
                 for plat in all_plat:
                     if plat not in d_sprdconfig[key]['plat'].split(","):
-                        lacked_plat = lacked_plat + plat + ","
+                        missing_plat = missing_plat + plat + ","
 
         elif d_sprdconfig[key]['plat'] != d_all_plat[d_sprdconfig[key]['arch']][:-1]:
             for plat in d_all_plat[d_sprdconfig[key]['arch']].split(',')[:-1]:
                 if plat not in d_sprdconfig[key]['plat'].split(','):
-                    lacked_plat = lacked_plat + plat + ','
+                    missing_plat = missing_plat + plat + ','
 
-        if lacked_plat != '':
+        if missing_plat != '':
             l_write_flag = 0
-            if d_sprdconfig[key]['lacked plat'] != lacked_plat[:-1]:
+            if d_sprdconfig[key]['missing plat'] != missing_plat[:-1]:
                 l_write_flag = 1
-            elif d_sprdconfig[key]['lacked plat description'] =='' or d_sprdconfig[key]['lacked plat description'] == 'none':
+            elif d_sprdconfig[key]['missing plat description'] =='' or d_sprdconfig[key]['missing plat description'] == 'none':
                 l_write_flag = 1
             if l_write_flag == 1:
-                l_write = [key, d_sprdconfig[key]['arch'], d_sprdconfig[key]['plat'], lacked_plat[:-1], d_sprdconfig[key]['lacked plat'], \
-                            d_sprdconfig[key]['lacked plat description']]
+                l_write = [key, d_sprdconfig[key]['arch'], d_sprdconfig[key]['plat'], missing_plat[:-1], d_sprdconfig[key]['missing plat'], \
+                            d_sprdconfig[key]['missing plat description']]
                 csv_writer.writerow(l_write)
     csv_fd.close()
 
@@ -525,46 +525,46 @@ def scan():
     str_all_arm_plat = str_all_arm_plat[:-1]
     str_all_arm64_plat = str_all_arm64_plat[:-1]
 
-    csv_filename=os.path.join(tmp_path,"config_plat_scan.csv")
+    csv_filename=os.path.join(tmp_path,"all_missing_plat_scan.csv")
     if os.path.exists(csv_filename):
         os.remove(csv_filename)
     csv_fd = open(csv_filename, 'a+')
     csv_writer = csv.writer(csv_fd)
-    csv_writer.writerow(["Config name", "Enalbe arch", "Current enable plats", "ARM lack plat", "ARM64 lack plat"])
+    csv_writer.writerow(["Config name", "Enalbe arch", "Current enable plats", "ARM missing plat", "ARM64 missing plat"])
     for key_config in l_corrected_config:
         for key_arch in range(len(d_corrected_config[key_config]['arch'].split(","))):
-            str_lack_arm = ""
-            str_lack_arm64 = ""
+            str_missing_arm = ""
+            str_missing_arm64 = ""
             l_write = []
             if d_corrected_config[key_config]['arch'] == 'all':
                 if d_corrected_config[key_config]['plat'] == 'all':
                     continue
                 for i in range(len(str_all_arm_plat.split(","))):
                     if str_all_arm_plat.split(",").pop(i) not in d_corrected_config[key_config]['plat'].split(","):
-                        str_lack_arm = str_lack_arm + str_all_arm_plat.split(",").pop(i) + ","
+                        str_missing_arm = str_missing_arm + str_all_arm_plat.split(",").pop(i) + ","
                         continue
                 for i in range(len(str_all_arm64_plat.split(","))):
                     if str_all_arm64_plat.split(",").pop(i) not in d_corrected_config[key_config]['plat'].split(","):
-                        str_lack_arm64 = str_lack_arm64 + str_all_arm64_plat.split(",").pop(i) + ","
+                        str_missing_arm64 = str_missing_arm64 + str_all_arm64_plat.split(",").pop(i) + ","
                         continue
-                if str_lack_arm != "" or str_lack_arm64 != "":
-                    l_write = [key_config, d_corrected_config[key_config]['arch'], d_corrected_config[key_config]['plat'], str_lack_arm[:-1], str_lack_arm64[:-1]]
+                if str_missing_arm != "" or str_missing_arm64 != "":
+                    l_write = [key_config, d_corrected_config[key_config]['arch'], d_corrected_config[key_config]['plat'], str_missing_arm[:-1], str_missing_arm64[:-1]]
                     csv_writer.writerow(l_write)
             elif d_corrected_config[key_config]['arch'] == 'arm':
                 for i in range(len(str_all_arm_plat.split(","))):
                     if str_all_arm_plat.split(",").pop(i) not in d_corrected_config[key_config]['plat'].split(","):
-                        str_lack_arm = str_lack_arm + str_all_arm_plat.split(",").pop(i) + ","
+                        str_missing_arm = str_missing_arm + str_all_arm_plat.split(",").pop(i) + ","
                         continue
-                if str_lack_arm != "":
-                    l_write = [key_config, d_corrected_config[key_config]['arch'], d_corrected_config[key_config]['plat'], str_lack_arm[:-1], ""]
+                if str_missing_arm != "":
+                    l_write = [key_config, d_corrected_config[key_config]['arch'], d_corrected_config[key_config]['plat'], str_missing_arm[:-1], ""]
                     csv_writer.writerow(l_write)
             elif d_corrected_config[key_config]['arch'] == 'arm64':
                 for i in range(len(str_all_arm64_plat.split(","))):
                     if str_all_arm64_plat.split(",").pop(i) not in d_corrected_config[key_config]['plat'].split(","):
-                        str_lack_arm64 = str_lack_arm64 + str_all_arm64_plat.split(",").pop(i) + ","
+                        str_missing_arm64 = str_missing_arm64 + str_all_arm64_plat.split(",").pop(i) + ","
                         continue
-                if str_lack_arm64 != "":
-                    l_write = [key_config, d_corrected_config[key_config]['arch'], d_corrected_config[key_config]['plat'], "", str_lack_arm64[:-1]]
+                if str_missing_arm64 != "":
+                    l_write = [key_config, d_corrected_config[key_config]['arch'], d_corrected_config[key_config]['plat'], "", str_missing_arm64[:-1]]
                     csv_writer.writerow(l_write)
     csv_fd.close()
 
