@@ -3033,7 +3033,8 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 
 	/* Kick the first URB off the hardware, if needed */
 	qh->is_ready = 0;
-	if (musb_ep_get_qh(qh->hw_ep, is_in) == qh) {
+	if ((musb_ep_get_qh(qh->hw_ep, is_in) == qh) &&
+		qh->hep && !list_empty(&qh->hep->urb_list)) {
 		urb = next_urb(qh);
 
 		/* make software (then hardware) stop ASAP */
