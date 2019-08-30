@@ -44,7 +44,7 @@
 static struct task_struct *thread;
 static struct task_struct *thread_nwu;
 static DECLARE_WAIT_QUEUE_HEAD(waiter);
-static int reader_flag;
+static int reader_flag, probe_retry_count;
 struct shub_data *g_sensor;
 static struct wakeup_source sensorhub_wake_lock;
 
@@ -2156,6 +2156,12 @@ static int shub_probe(struct platform_device *pdev)
 	struct shub_data *mcu;
 	struct iio_dev *indio_dev;
 	int error;
+
+	if (probe_retry_count < 1) {
+		probe_retry_count++;
+		pr_info("probe_retry_count = %d\n", probe_retry_count);
+		return -EPROBE_DEFER;
+	}
 
 	indio_dev = iio_device_alloc(sizeof(*mcu));
 	if (!indio_dev) {
