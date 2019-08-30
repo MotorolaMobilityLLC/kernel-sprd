@@ -298,8 +298,8 @@ static int mdbg_dump_share_memory(struct wcn_dump_mem_reg *mem)
 		return -1;
 	}
 	count = 0;
-	/* 10s timeout */
-	timeout = jiffies + msecs_to_jiffies(10000);
+	/* 20s timeout */
+	timeout = jiffies + msecs_to_jiffies(20000);
 	while (count < len) {
 		trans_size = (len - count) > DUMP_PACKET_SIZE ?
 			DUMP_PACKET_SIZE : (len - count);
