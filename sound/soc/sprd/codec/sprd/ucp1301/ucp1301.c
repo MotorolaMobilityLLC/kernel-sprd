@@ -1178,10 +1178,10 @@ static void ucp1301_ivsense_local(struct ucp1301_t *ucp1301)
 	ucp1301_ivsense_remote(ucp1301);
 	mask = BIT_RG_AUD_PA_ISNS_EN | BIT_RG_AUD_PA_SISNSAD;
 	regmap_update_bits(ucp1301->regmap, REG_IV_SENSE_FILTER_REG0, mask,
-			   mask);
+			   0);
 
 	mask = BIT_RG_AUD_ADC_I_EN;
-	regmap_update_bits(ucp1301->regmap, REG_IV_SENSE_ADC_REG0, mask, mask);
+	regmap_update_bits(ucp1301->regmap, REG_IV_SENSE_ADC_REG0, mask, 0);
 }
 
 static void ucp1301_ivsense_set(struct ucp1301_t *ucp1301)
