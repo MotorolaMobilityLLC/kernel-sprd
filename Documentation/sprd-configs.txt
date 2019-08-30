@@ -12493,16 +12493,6 @@ CONFIG_SLUB_DEBUG_ON
 	[missing plat description]
 	[function] Increase debug efficiency for memory covered issue,
 	   depends on SLUB && SLUB_DEBUG
-CONFIG_SLUB_STATS
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field] code
-	[subsys] mm
-	[must] debug
-	[missing plat description]
-	[function] SLUB statistics are useful to debug SLUBs allocation
-	  behavior
 CONFIG_SMARTJOYPLUS_FF
 	[arch] all
 	[plat] all
