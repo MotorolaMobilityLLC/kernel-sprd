@@ -783,6 +783,16 @@
 				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal", "thm_delta_cal";
 			};
 
+			watchdog@40310000 {
+				compatible = "sprd,sharkle-wdt", "sprd,sharkl3-wdt";
+				reg = <0x40310000 0x10000>;
+				interrupt = <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <12>;
+				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_CA53_WDG_EB>,
+					<&aonapb_gate CLK_CA53_WDG_RTC_EB>;
+			};
+
 			djtag: djtag@40340000 {
 				compatible = "sprd,djtag";
 				reg = <0x40340000 0x1000>;
