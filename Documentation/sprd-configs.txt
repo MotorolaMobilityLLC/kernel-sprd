@@ -13987,12 +13987,12 @@ CONFIG_SPRD_VSP_PW_DOMAIN
 	[function] power on vsp domain.
 CONFIG_SPRD_WATCHDOG
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu,code
 	[subsys] core
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] Spreadtrum watchdog driver.
 CONFIG_SPRD_WATCHDOG_SYS
 	[arch] all
@@ -15838,30 +15838,30 @@ CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED
 	[function]
 CONFIG_WATCHDOG_PRETIMEOUT_DEFAULT_GOV_PANIC
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu,code
 	[subsys] core
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] watchdog pretimeout default gov panic
 CONFIG_WATCHDOG_PRETIMEOUT_GOV
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu,code
 	[subsys] core
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] watchdog pretimeout gov
 CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu,code
 	[subsys] core
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] watchdog pretimeout gov panic
 CONFIG_WCN_BOOT
 	[arch] all
