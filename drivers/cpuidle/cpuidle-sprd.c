@@ -17,7 +17,7 @@
 #include <asm/proc-fns.h>
 #include <asm/suspend.h>
 #include "dt_idle_states.h"
-#include "cpuidle-sprd.h"
+#include <linux/cpuidle-sprd.h>
 
 enum {
 	STANDBY = 0,  /* WFI */
@@ -27,6 +27,12 @@ enum {
 };
 
 static struct sprd_cpuidle_operations *sprd_cpuidle_ops;
+
+int sprd_cpuidle_ops_init(struct sprd_cpuidle_operations *cpuidle_ops)
+{
+	sprd_cpuidle_ops = cpuidle_ops;
+	return 0;
+}
 
 static void sprd_cpuidle_core_pd_en(void)
 {

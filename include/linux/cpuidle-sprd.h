@@ -10,4 +10,6 @@ struct sprd_cpuidle_operations {
 	void (*doze_en)(void);
 	void (*doze_dis)(void);
 };
+
+int sprd_cpuidle_ops_init(struct sprd_cpuidle_operations *cpuidle_ops);
 #endif
