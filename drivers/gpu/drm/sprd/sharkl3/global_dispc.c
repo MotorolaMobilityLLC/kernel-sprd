@@ -127,19 +127,9 @@ static int dpu_clk_parse_dt(struct dpu_context *ctx,
 	return 0;
 }
 
-static u32 calc_dpu_core_clk(u32 pclk)
+static u32 calc_dpu_core_clk(void)
 {
-	int i;
-
-	pclk *= 2;
-
-	for (i = 0; i < ARRAY_SIZE(dpu_core_clk); i++) {
-		if (pclk <= dpu_core_clk[i])
-			return dpu_core_clk[i];
-	}
-
-	pr_err("calc DPU_CORE_CLK failed, use default\n");
-	return 256000000;
+	return dpu_core_clk[ARRAY_SIZE(dpu_core_clk) - 1];
 }
 
 static u32 calc_dpi_clk_src(u32 pclk)
@@ -163,7 +153,7 @@ static int dpu_clk_init(struct dpu_context *ctx)
 	struct clk *clk_src;
 	struct dpu_clk_context *clk_ctx = &dpu_clk_ctx;
 
-	dpu_core_val = calc_dpu_core_clk(ctx->vm.pixelclock);
+	dpu_core_val = calc_dpu_core_clk();
 	dpi_src_val = calc_dpi_clk_src(ctx->vm.pixelclock);
 
 	pr_info("DPU_CORE_CLK = %u, DPI_CLK_SRC = %u\n",
