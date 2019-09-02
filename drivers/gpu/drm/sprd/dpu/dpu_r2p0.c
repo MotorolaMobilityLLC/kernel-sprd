@@ -311,6 +311,7 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 					&sprd_corner_radius);
 	if (!ret) {
 		sprd_corner_support = 1;
+		ctx->corner_size = sprd_corner_radius;
 		pr_info("round corner support, radius = %d.\n",
 					sprd_corner_radius);
 	}

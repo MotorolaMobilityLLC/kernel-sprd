@@ -166,6 +166,7 @@ struct dpu_context {
 	unsigned long base;
 	u32 base_offset[2];
 	const char *version;
+	u32 corner_size;
 	int irq;
 	u8 if_type;
 	u8 id;

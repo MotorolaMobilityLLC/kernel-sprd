@@ -806,6 +806,16 @@ static int sprd_crtc_create_properties(struct drm_crtc *crtc)
 	}
 	drm_object_attach_property(&crtc->base, prop, blob->base.id);
 
+	/* create corner size property */
+	prop = drm_property_create(drm,
+		DRM_MODE_PROP_IMMUTABLE | DRM_MODE_PROP_RANGE,
+		"corner size", 0);
+	if (!prop) {
+		DRM_ERROR("drm_property_create corner size failed\n");
+		return -ENOMEM;
+	}
+	drm_object_attach_property(&crtc->base, prop, dpu->ctx.corner_size);
+
 	return 0;
 }
 
