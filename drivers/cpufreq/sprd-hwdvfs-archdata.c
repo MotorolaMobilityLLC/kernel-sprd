@@ -179,10 +179,12 @@ static struct reg_info ums312_volt_misc_cfg_array[] = {
 };
 
 static struct reg_info ums312_freq_misc_cfg_array[] = {
-	/* Set default work index 7 for lit core */
-	GENREGVALSET(0x214, 0, 0xf, 7),
-	/* Set default work index 3 for big core */
-	GENREGVALSET(0x224, 0, 0xf, 3),
+	/* Set default work index 2 to twpll for lit core */
+	GENREGVALSET(0x214, 0, 0xf, 2),
+	/* Set default work index 1 to ltepll for big core */
+	GENREGVALSET(0x224, 0, 0xf, 1),
+	/* Set default work index 3 to twppll for scu */
+	GENREGVALSET(0x22c, 0, 0xf, 3),
 };
 
 static struct mpll_index_tbl ums312_mpll_index_tbl[MAX_MPLL] = {
