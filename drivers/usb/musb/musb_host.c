@@ -849,53 +849,6 @@ bool musb_tx_dma_program(struct dma_controller *dma,
 	return true;
 }
 
-static void musb_tx_toggle_count_sprd(u8 last_addr, struct musb_hw_ep *hw_ep,
-				      struct musb_qh *qh, struct urb *urb,
-				      u32 length)
-{
-	void __iomem *epio = hw_ep->regs;
-	struct musb *musb = hw_ep->musb;
-	u16 csr, pac_num;
-	bool toggle, next_toggle;
-	int cnt = 1000;
-
-	toggle = usb_gettoggle(urb->dev, qh->epnum, 1);
-
-	if (length % qh->maxpacket)
-		pac_num = length / qh->maxpacket + 1;
-	else
-		pac_num = length / qh->maxpacket;
-
-	if (pac_num & 0x1)
-		next_toggle = toggle ? 0 : 1;
-	else
-		next_toggle = toggle;
-
-	usb_settoggle(urb->dev, qh->epnum, 1, next_toggle);
-
-	if (qh->addr_reg == last_addr)
-		return;
-
-	do {
-		csr = musb_readw(epio, MUSB_TXCSR);
-		if (!(csr & (MUSB_TXCSR_TXPKTRDY | MUSB_TXCSR_FIFONOTEMPTY)))
-			break;
-
-		cpu_relax();
-	} while (--cnt > 0);
-
-	if (!cnt)
-		dev_warn(musb->controller, "Controller read timeout\n");
-
-	if (toggle)
-		csr |= MUSB_TXCSR_H_WR_DATATOGGLE |
-			MUSB_TXCSR_H_DATATOGGLE;
-	else
-		csr |= MUSB_TXCSR_CLRDATATOG;
-
-	musb_writew(epio, MUSB_TXCSR, csr);
-}
-
 /*
  * Program an HDRC endpoint as per the given URB
  * Context: irqs blocked, controller lock held
@@ -955,7 +908,6 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 		u16	csr;
 		u16	int_txe;
 		u16	load_count;
-		u8	last_addr;
 
 		csr = musb_readw(epio, MUSB_TXCSR);
 
@@ -1011,15 +963,6 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 
 		/* target addr and (for multipoint) hub addr/port */
 		if (musb->is_multipoint) {
-			if (musb_dma_sprd(musb) &&
-				usb_pipebulk(urb->pipe)) {
-				last_addr = musb_readb(musb->mregs,
-						       musb->io.busctl_offset
-						       (hw_ep->epnum,
-							MUSB_TXFUNCADDR));
-				musb_tx_toggle_count_sprd(last_addr, hw_ep, qh,
-							  urb, len);
-			}
 			musb_write_txfunaddr(musb, epnum, qh->addr_reg);
 			musb_write_txhubaddr(musb, epnum, qh->h_addr_reg);
 			musb_write_txhubport(musb, epnum, qh->h_port_reg);
@@ -2272,6 +2215,8 @@ static int musb_schedule(
 	u8			txtype;
 	struct urb		*urb = next_urb(qh);
 	u8			epno = usb_pipeendpoint(urb->pipe);
+	u8			last_addr;
+	struct usb_host_endpoint	*hep = qh->hep;
 
 	/* use fixed hardware for control and bulk */
 	if (qh->type == USB_ENDPOINT_XFER_CONTROL) {
@@ -2309,6 +2254,26 @@ static int musb_schedule(
 
 		if (epnum < 2 + epno)
 			continue;
+
+		if (musb_dma_sprd(musb) && (musb->is_multipoint)) {
+			if (is_in)
+				last_addr = musb_readb(musb->mregs,
+						       musb->io.busctl_offset
+						       (epnum,
+							MUSB_RXFUNCADDR));
+			else
+				last_addr = musb_readb(musb->mregs,
+						       musb->io.busctl_offset
+						       (epnum,
+							MUSB_TXFUNCADDR));
+			if (last_addr != 0) {
+				if (last_addr != qh->addr_reg)
+					continue;
+
+				best_end = epnum;
+				break;
+			}
+		}
 
 		if (is_in)
 			diff = hw_ep->max_packet_sz_rx;
@@ -2376,6 +2341,8 @@ static int musb_schedule(
 	idle = 1;
 	qh->mux = 0;
 	hw_ep = musb->endpoints + best_end;
+	if (musb_dma_sprd(musb) && (musb->is_multipoint))
+		hw_ep->hep[!is_in] = hep;
 	musb_dbg(musb, "qh %p periodic slot %d", qh, best_end);
 success:
 	if (head) {
@@ -3013,6 +2980,49 @@ done:
 	return ret;
 }
 
+static void musb_clear_epinfo_sprd(struct usb_hcd *hcd,
+				   struct usb_host_endpoint *hep)
+{
+	u8			is_in = hep->desc.bEndpointAddress & USB_DIR_IN;
+	struct musb		*musb = hcd_to_musb(hcd);
+	struct musb_hw_ep	*hw_ep = NULL;
+	u16			csr;
+	u8			epnum;
+	struct usb_host_endpoint	*hep_use;
+
+	epnum = hep->desc.bEndpointAddress & USB_ENDPOINT_NUMBER_MASK;
+	if (!epnum)
+		return;
+
+	for (epnum = 1, hw_ep = musb->endpoints + 1;
+	     epnum < musb->nr_endpoints;
+	     epnum++, hw_ep++) {
+		hep_use = hw_ep->hep[!is_in];
+		if (hep_use != hep)
+			continue;
+
+		hw_ep->hep[!is_in] = NULL;
+		break;
+	}
+
+	if (epnum > USB_ENDPOINT_NUMBER_MASK)
+		return;
+
+	if (is_in) {
+		musb_write_rxfunaddr(musb, epnum, 0x0);
+		csr = musb_readw(hw_ep->regs, MUSB_RXCSR);
+		csr |= MUSB_RXCSR_CLRDATATOG;
+		musb_writew(hw_ep->regs, MUSB_RXCSR, csr);
+		musb_writew(hw_ep->regs, MUSB_RXCSR, 0x0);
+	} else {
+		musb_write_txfunaddr(musb, epnum, 0x0);
+		csr = musb_readw(hw_ep->regs, MUSB_TXCSR);
+		csr |= MUSB_TXCSR_CLRDATATOG;
+		musb_writew(hw_ep->regs, MUSB_TXCSR, csr);
+		musb_writew(hw_ep->regs, MUSB_TXCSR, 0x0);
+	}
+}
+
 /* disable an endpoint */
 static void
 musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
@@ -3024,6 +3034,9 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 	struct urb		*urb;
 
 	spin_lock_irqsave(&musb->lock, flags);
+
+	if (musb_dma_sprd(musb) && (musb->is_multipoint))
+		musb_clear_epinfo_sprd(hcd, hep);
 
 	qh = hep->hcpriv;
 	if (qh == NULL)
