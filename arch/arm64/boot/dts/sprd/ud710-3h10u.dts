@@ -173,9 +173,8 @@
 		/* drop voltage in microVolts to restart charging */
 		cm-charge-voltage-drop = <700000>;
 
-		cm-jeita-temp-table = <900 930 0 4200000>, <1000 1030 100000 4200000>,
-			<1100 1130 500000 4350000>, <1450 1420 2000000 4350000>,
-			<1500 1470 700000 4350000>;
+		cm-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
+			<1450 1420 2000000 4400000>, <1600 1570 700000 4100000>;
 
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
