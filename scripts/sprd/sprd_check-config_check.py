@@ -3,6 +3,7 @@
 import os
 import sys
 import csv
+import re
 
 tmp_path_def = "./tmp_config_check/"
 d_sprdconfig = {}
@@ -134,36 +135,23 @@ def create_sprdconfigs_dict():
 
             for j in range(1,num_lines_in_config):
                 for value in values_of_config:
+                    value_sprd = value.split('[').pop().split(']').pop(0)
                     if value in lines[i+j]:
                         if value not in values_exist:
                             values_exist.append(value)
-                            value_sprd = value.split('[').pop().split(']').pop(0)
                             d_sprdconfig[config_name][value_sprd] = lines[i+j].split(value).pop().strip(' \n')
-                            for m in range(j+1,num_lines_in_config):
-                                if '[arch]' in lines[i+m]:
-                                    break
-                                if '[plat]' in lines[i+m]:
-                                    break
-                                if '[missing plat]' in lines[i+m]:
-                                    break
-                                if '[field]' in lines[i+m]:
-                                    break
-                                if '[subsys]' in lines[i+m]:
-                                    break
-                                if '[must]' in lines[i+m]:
-                                    break
-                                if '[missing plat description]' in lines[i+m]:
-                                    break
-                                if '[function]' in lines[i+m]:
-                                    break
-                                if lines[i+m].strip() == '':
-                                    continue
-                                if value == '[function]' or value == '[missing plat description]':
-                                    d_sprdconfig[config_name][value_sprd] += '\n'+lines[i+m][:-1]
-                                else:
-                                    d_sprdconfig[config_name][value_sprd] += lines[i+m][:-1].strip(' \n\t')
-                            j = m
-                            break
+                        elif value in values_exist:
+                            if d_sprdconfig[config_name][value_sprd] == '':
+                                if len(lines[i+j]) > len(value):
+                                    d_sprdconfig[config_name][value_sprd] = lines[i+j].split(value).pop().strip(' \n')
+                        for m in range(j+1,num_lines_in_config):
+                            if '[' in lines[i+m] and ']' in lines[i+m]:
+                                break
+                            if lines[i+m].strip() == '':
+                                continue
+                            d_sprdconfig[config_name][value_sprd] += '\n'+lines[i+m][:-1]
+                        j = m
+                        break
             i = i + num_lines_in_config
     f_sprdconfig.close()
 
@@ -235,7 +223,7 @@ def configs_resort():
         if d_sprdconfig[line]['missing plat description'] == 'none':
             f.write("\t[missing plat description] none\n")
         else:
-            f.write("\t[missing plat description]{}".format(d_sprdconfig[line]['missing plat description']).strip(' ') + '\n')
+            f.write("\t[missing plat description] {}".format(d_sprdconfig[line]['missing plat description']).strip(' ') + '\n')
 
         if d_sprdconfig[line]['function'] == '':
             f.write("\t[function]\n")
@@ -474,6 +462,14 @@ def update_missing_plat():
             d_sprdconfig[key]['missing plat'] = 'none'
             d_sprdconfig[key]['missing plat description'] = 'none'
 
+        if d_sprdconfig[key]['missing plat'] != 'none':
+            l_missing_plat = re.split(',| ',d_sprdconfig[key]['missing plat'])
+            l_missing_plat.sort()
+            for plat in l_missing_plat:
+                if plat not in all_plat:
+                    l_missing_plat.remove(plat)
+            d_sprdconfig[key]['missing plat'] = ','.join(l_missing_plat).strip(' ,')
+
 def special_scan():
     csv_filename = os.path.join(tmp_path,"unreasonable_missing_scan.csv")
     if os.path.exists(csv_filename):
@@ -501,7 +497,7 @@ def special_scan():
             l_write_flag = 0
             if d_sprdconfig[key]['missing plat'] != missing_plat[:-1]:
                 l_write_flag = 1
-            elif d_sprdconfig[key]['missing plat description'] =='' or d_sprdconfig[key]['missing plat description'] == 'none':
+            elif d_sprdconfig[key]['missing plat description'] == '' or d_sprdconfig[key]['missing plat description'] == 'none':
                 l_write_flag = 1
             if l_write_flag == 1:
                 l_write = [key, d_sprdconfig[key]['arch'], d_sprdconfig[key]['plat'], missing_plat[:-1], d_sprdconfig[key]['missing plat'], \
