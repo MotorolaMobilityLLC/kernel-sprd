@@ -77,6 +77,8 @@ struct camsys_power_info {
 	struct clk *cam_mtx_clk_parent;
 	struct clk *cam_mtx_clk_default;
 
+	struct clk *isppll_clk;
+
 	struct register_gpr regs[ARRAY_SIZE(syscon_name)];
 };
 
@@ -139,6 +141,7 @@ static int sprd_campw_init(struct platform_device *pdev)
 	int i, ret = 0;
 	struct device_node *np = pdev->dev.of_node;
 	struct device_node *np_qos;
+
 	const char *pname;
 	struct regmap *tregmap;
 	uint32_t args[2];
@@ -189,6 +192,10 @@ static int sprd_campw_init(struct platform_device *pdev)
 		clk_get_parent(pw_info->cam_mtx_clk);
 	if (IS_ERR_OR_NULL(pw_info->cam_mtx_clk_default))
 		return PTR_ERR(pw_info->cam_mtx_clk_default);
+
+	pw_info->isppll_clk = of_clk_get_by_name(np, "clk_isppll");
+	if (IS_ERR_OR_NULL(pw_info->isppll_clk))
+		return PTR_ERR(pw_info->isppll_clk);
 
 	/* read global register */
 	for (i = 0; i < ARRAY_SIZE(syscon_name); i++) {
@@ -424,6 +431,8 @@ int sprd_cam_domain_eb(void)
 			pw_info->cam_mtx_clk_parent);
 		clk_prepare_enable(pw_info->cam_mtx_clk);
 
+		clk_prepare_enable(pw_info->isppll_clk);
+
 		/* Qos ar */
 		tmp = pw_info->mm_qos_ar;
 		regmap_update_bits_mmsys(&pw_info->regs[QOS_AR],
@@ -457,6 +466,9 @@ int sprd_cam_domain_disable(void)
 	mutex_lock(&pw_info->mlock);
 	if (atomic_dec_return(&pw_info->users_clk) == 0) {
 		mmsys_notifier_call_chain(_E_PW_OFF, NULL);
+
+		clk_disable_unprepare(pw_info->isppll_clk);
+
 		clk_set_parent(pw_info->cam_ahb_clk,
 			pw_info->cam_ahb_clk_default);
 		clk_disable_unprepare(pw_info->cam_ahb_clk);

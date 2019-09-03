@@ -205,13 +205,15 @@
 					"clk_mm_ahb",
 					"clk_mm_ahb_parent",
 					"clk_mm_mtx",
-					"clk_mm_mtx_parent";
+					"clk_mm_mtx_parent",
+					"clk_isppll";
 				clocks = <&aonapb_gate CLK_MM_EB>,
 					<&mm_gate CLK_MM_CKG_EB>,
 					<&mm_clk CLK_MM_AHB>,
 					<&pll2 CLK_TWPLL_153M6>,
 					<&mm_clk CLK_MM_MTX>,
-					<&pll2 CLK_TWPLL_512M>;
+					<&pll2 CLK_TWPLL_512M>,
+					<&pll2 CLK_ISPPLL_468M>;
 				mm_qos_threshold = <&mm_qos_threshold>;
 			};
 
