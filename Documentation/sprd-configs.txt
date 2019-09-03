@@ -3752,7 +3752,7 @@ CONFIG_DM_VERITY_FEC
 	[field] make
 	[subsys] md
 	[must] none
-	[missing plat description]
+	[missing plat description] none
 	[function] Depends on DM_VERITY, add forward error correction support to dm-verity.
 CONFIG_DNOTIFY
 	[arch] all
@@ -8023,12 +8023,12 @@ CONFIG_LEDS_CLASS
 	[function] LED Class Support
 CONFIG_LEDS_SC27XX_BLTC
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu,make
 	[subsys] led
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] LED support for the SC27xx breathing light controller
 CONFIG_LEDS_TRIGGERS
 	[arch] all
@@ -8041,12 +8041,12 @@ CONFIG_LEDS_TRIGGERS
 	[function] LED Trigger support
 CONFIG_LEDS_TRIGGER_PATTERN
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu,make
 	[subsys] led
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] LED Pattern Trigger
 CONFIG_LIBCRC32C
 	[arch] all
