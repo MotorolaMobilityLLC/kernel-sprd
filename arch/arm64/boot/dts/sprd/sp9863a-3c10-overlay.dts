@@ -75,6 +75,7 @@ dtbo: dtbo {
 		touchscreen-size-y = <1520>;
 
 		virtualkey-report-abs;
+		firmware-auto-upgrade;
 		private-data {
 			a8 = /bits/ 8 <0x5a>;
 		};
