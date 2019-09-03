@@ -1085,8 +1085,7 @@ enum cm_manager_jeita_status {
 	STATUS_T0_TO_T1,
 	STATUS_T1_TO_T2,
 	STATUS_T2_TO_T3,
-	STATUS_T3_TO_T4,
-	STATUS_ABOVE_T4
+	STATUS_ABOVE_T3,
 };
 
 static bool cm_manager_adjust_current(struct charger_manager *cm,
@@ -1179,27 +1178,21 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 	}
 
 	switch (i) {
-	case 4:
-		jeita_status = STATUS_ABOVE_T4;
-		break;
-
 	case 3:
-		if (jeita_status != STATUS_ABOVE_T4 ||
-		    cur_temp <= desc->jeita_tab[4].recovery_temp)
-			jeita_status = STATUS_T3_TO_T4;
+		jeita_status = STATUS_ABOVE_T3;
 		break;
 
 	case 2:
-		if ((jeita_status != STATUS_T3_TO_T4 ||
-		     cur_temp <= desc->jeita_tab[3].recovery_temp) &&
-		    (jeita_status != STATUS_T1_TO_T2 ||
-		     cur_temp >= desc->jeita_tab[2].recovery_temp))
+		if (jeita_status != STATUS_ABOVE_T3 ||
+		    cur_temp <= desc->jeita_tab[3].recovery_temp)
 			jeita_status = STATUS_T2_TO_T3;
 		break;
 
 	case 1:
-		if (jeita_status != STATUS_T0_TO_T1 ||
-		    cur_temp >= desc->jeita_tab[1].recovery_temp)
+		if ((jeita_status != STATUS_T2_TO_T3 ||
+		     cur_temp <= desc->jeita_tab[2].recovery_temp) &&
+		    (jeita_status != STATUS_T0_TO_T1 ||
+		     cur_temp >= desc->jeita_tab[1].recovery_temp))
 			jeita_status = STATUS_T1_TO_T2;
 		break;
 
