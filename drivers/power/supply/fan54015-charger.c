@@ -695,12 +695,6 @@ static int fan54015_charger_usb_set_property(struct power_supply *psy,
 
 	mutex_lock(&info->lock);
 
-	if (!info->charging && psp != POWER_SUPPLY_PROP_STATUS &&
-	    psp != POWER_SUPPLY_PROP_FEED_WATCHDOG) {
-		mutex_unlock(&info->lock);
-		return -ENODEV;
-	}
-
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 		ret = fan54015_charger_set_current(info, val->intval);
@@ -724,6 +718,13 @@ static int fan54015_charger_usb_set_property(struct power_supply *psy,
 		if (ret < 0)
 			dev_err(info->dev, "feed charger watchdog failed\n");
 		break;
+
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
+		ret = fan54015_charger_set_termina_vol(info, val->intval / 1000);
+		if (ret < 0)
+			dev_err(info->dev, "failed to set terminate voltage\n");
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
