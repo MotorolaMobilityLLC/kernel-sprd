@@ -3590,21 +3590,21 @@ CONFIG_DEVFREQ_SPRD_EXT_VOTE_UMS512
 	[function] Roc1 configure for EXT_VOTE
 CONFIG_DEVTMPFS
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[missing plat] sharkl5Pro
 	[field] make,code
 	[subsys] core
 	[must] console
-	[missing plat description] none
+	[missing plat description] devtmpfs causes selinux rejections.
 	[function] Maintain a devtmpfs filesystem to mount at /dev.
 CONFIG_DEVTMPFS_MOUNT
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[missing plat] sharkl5Pro
 	[field] code
 	[subsys] core
 	[must] console
-	[missing plat description] none
+	[missing plat description] devtmpfs causes selinux rejections.
 	[function] Automount devtmpfs at /dev, after the kernel mounted the rootfs.
 CONFIG_DIRECT_SWAPPINESS
 	[arch] all
