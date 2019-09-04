@@ -288,8 +288,6 @@ u32 sprd_iommuvau_cll_map(sprd_iommu_hdl  p_iommu_hdl,
 	} else
 		mmu_vau_update(p_iommu_priv->mmu_reg_addr,
 			       iommu_id, iommu_type);
-	/*for sharkle dcam_if r4p0*/
-	mmu_vau_frc_copy(p_iommu_priv->master_reg_addr, iommu_id, iommu_type);
 
 	p_iommu_priv->map_cnt++;
 
@@ -491,8 +489,6 @@ u32 sprd_iommuvau_cll_enable(sprd_iommu_hdl p_iommu_hdl)
 
 	mmu_vau_vaorbypass_clkgate_enable_combined(p_iommu_priv->mmu_reg_addr,
 		iommu_id);
-	/*for sharkle dcam_if r4p0*/
-	mmu_vau_frc_copy(p_iommu_priv->master_reg_addr, iommu_id, iommu_type);
 
 	return SPRD_NO_ERR;
 }
@@ -541,8 +537,6 @@ u32 sprd_iommuvau_cll_disable(sprd_iommu_hdl  p_iommu_hdl)
 	}
 
 	mmu_vau_enable(p_iommu_priv->mmu_reg_addr, iommu_id, 0);
-
-	mmu_vau_frc_copy(p_iommu_priv->master_reg_addr, iommu_id, iommu_type);
 
 	return SPRD_NO_ERR;
 }

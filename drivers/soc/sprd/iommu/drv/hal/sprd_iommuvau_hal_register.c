@@ -260,16 +260,6 @@ u32 mmu_vau_read_page_entry(ulong page_table_addr, u32 entry_index)
 	return phy_addr;
 }
 
-void mmu_vau_frc_copy(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
-{
-	ulong reg_addr;
-
-	if (iommu_id == IOMMU_EX_DCAM) {
-		reg_addr = ctrl_base_addr + 0x3010;
-		putbit(reg_addr, 1, 0);
-	}
-}
-
 void mmu_vau_int_enable(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
 {
 	ulong reg_addr = ctrl_base_addr + MMU_INT_EN;
