@@ -13613,6 +13613,15 @@ CONFIG_SPRD_PCIE_EP_DEVICE
 	[must]
 	[missing plat description]
 	[function]
+CONFIG_SPRD_PIKE2_SLEEP
+	[arch] arm
+	[plat] pike2
+	[missing plat]
+	[field] make
+	[subsys]soc
+	[must] user
+	[missing plat description]
+	[function] This function is used to enable pike light sleep.
 CONFIG_SPRD_PIKE2_USB2_PHY
 	[arch] arm
 	[plat] pike2
