@@ -8451,6 +8451,15 @@ CONFIG_MIGRATION
 	[missing plat description] none
 	[function] Allows the migration of the physical location of pages of processes
 	while the virtual addresses are not changed.
+CONFIG_MII
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_MISC_FILESYSTEMS
 	[arch] all
 	[plat] all
@@ -15470,6 +15479,15 @@ CONFIG_USB_MUSB_SPRD
 	[must] user
 	[missing plat description] none
 	[function] This macro is to suppor SPRD platforms musb driver.
+CONFIG_USB_NET_DRIVERS
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_USB_OHCI_HCD
 	[arch] all
 	[plat] all
@@ -15528,6 +15546,15 @@ CONFIG_USB_ROLE_SWITCH
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_USB_RTL8152
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[missing plat]
 	[field]
 	[subsys]
 	[must]
