@@ -96,8 +96,8 @@
 			"high_freq_clk_parent";
 		clock-latency = <50000>;
 		voltage-tolerance = <0>;
-		sprd,efuse-blk-binning-low-volt = <39 0x20000000>;
-		sprd,efuse-blk-binning = <39 0xf00>;
+		nvmem-cells = <&dvfs_bin_cpu0>, <&dvfs_bin_low_volt_cpu0>;
+		nvmem-cell-names = "dvfs_bin", "dvfs_bin_low_volt";
 		sprd,cpufreq-temp-threshold = <65>;
 		sprd,ss-waferid-names =
 			"T8F619_1","T8F619_2",

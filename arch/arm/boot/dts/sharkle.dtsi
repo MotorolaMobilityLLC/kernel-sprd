@@ -684,6 +684,16 @@
 				wcn_ratio: wcn-ratio@20 {
 					reg = <0x20 0x4>;
 				};
+
+				dvfs_bin_cpu0: dvfs-bin-cpu0@d {
+					reg = <0xd 0x4>;
+					bits = <0 4>;
+				};
+
+				dvfs_bin_low_volt_cpu0: low-volt-cpu0@f {
+					reg = <0xf 4>;
+					bits = <5 1>;
+				};
 			};
 
 			pwms: pwm@40260000 {
