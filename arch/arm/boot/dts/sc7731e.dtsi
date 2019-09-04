@@ -214,6 +214,103 @@
 		method = "smc";
 	};
 
+	power: power-debug {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		sprd,sys-ap-ahb = <&ap_ahb_regs>;
+
+		/* <reg-addr mask expect-value> */
+		sprd,ap-ahb-reg-tbl =
+			<REG_AP_AHB_AHB_EB 0xFFFFFFFF 0x00000000>,
+			<REG_AP_AHB_CA7_STANDBY_STATUS 0xFFFFFFFF 0x00000000>;
+
+		sprd,sys-ap-apb = <&ap_apb_regs>;
+
+		sprd,ap-apb-reg-tbl =
+			<REG_AP_APB_APB_EB 0xFFFFFFFF 0x00000000>;
+
+		sprd,sys-pmu-apb = <&pmu_apb_regs>;
+
+		sprd,pmu-apb-reg-tbl =
+			<REG_PMU_APB_SLEEP_CTRL 0xFFFFFFFF 0xFFFFFFFF>,
+			<REG_PMU_APB_SLEEP_STATUS 0xFFFFFFFF 0x00000000>,
+			<REG_PMU_APB_DDR_SLEEP_CTRL 0xFFFFFFFF 0x00000000>,
+			<REG_PMU_APB_CP_SLP_STATUS_DBG0 0xFFFFFFFF 0x00000000>,
+			<REG_PMU_APB_PD_AP_SYS_CFG 0xFFFFFFFF 0x00000000>,
+			<REG_PMU_APB_PD_MM_TOP_CFG 0xFFFFFFFF 0x00000000>,
+			<REG_PMU_APB_PD_PUB_SYS_CFG 0xFFFFFFFF 0x00000000>;
+
+		sprd,sys-aon-apb = <&aon_apb_regs>;
+
+		sprd,aon-apb-reg-tbl =
+			<REG_AON_APB_APB_EB0 0xFFFFFFFF 0x00000000>,
+			<REG_AON_APB_APB_EB1 0xFFFFFFFF 0x00000000>,
+			<REG_AON_APB_APB_EB2 0xFFFFFFFF 0x00000000>,
+			<REG_AON_APB_PWR_CTRL 0xFFFFFFFF 0x00000000>;
+
+		sprd,sys-ap-intc = <&aon_intc_regs>;
+
+		sprd,ap-intc = <&sprd_ap_intc0>;
+
+		sprd,pdm-name = <&sprd_pwr_status0 &sprd_pwr_status1
+				&sprd_pwr_status2>;
+
+		sprd_pwr_status0: pwr-status@bc {
+			reg = <0x00bc>;
+			sprd,bit-width = <4>;
+			sprd,bit-index = <0 4 8 12 16 20 24 28>;
+			sprd,pdm-names = "PD_CA7_TOP_STATE",
+				"PD_CA7_C0_STATE",
+				"PD_CA7_C1_STATE",
+				"PD_CA7_C2_STATE",
+				"PD_CA7_C3_STATE",
+				"PD_AP_SYS_STATE",
+				"PD_GPU_TOP_STATE",
+				"PD_MM_TOP_STATE";
+		};
+		sprd_pwr_status1: pwr-status@c0 {
+			reg = <0x00c0>;
+			sprd,bit-width = <4>;
+			sprd,bit-index = <0 4 8 12 16 20 24>;
+			sprd,pdm-names = "PD_CP_SYS_STATE",
+				"PD_WTLCP_HU3GE_A_STATE",
+				"PD_WTLCP_TGDSP_STATE",
+				"PD_PUB_SYS_STATE",
+				"PD_WCN_TOP_STATE",
+				"PD_WCN_WIFI_STATE",
+				"PD_WCN_GNSS_STATE";
+		};
+		sprd_pwr_status2: pwr-status@d4 {
+			reg = <0x00d4>;
+			sprd,bit-width = <5>;
+			sprd,bit-index = <0 8 12 20>;
+			sprd,pdm-names = "AP_SLP_STATUS", "CP_SLP_STATUS",
+				"WCN_SLP_STATUS", "CM4_SLP_STATUS";
+		};
+
+		sprd_ap_intc0: ap-intc@0 {
+			reg = <0x0000>;
+			sprd,int-names = "null", "null", "int_req_ap_tmr",
+				"int_req_vbc","int_req_aon_peri",
+				"int_req_mm_top", "int_req_gpu",
+				"int_req_cp_wdg", "int_req_slf_wdg",
+				"int_req_lp_mon", "int_req_pub_busmon",
+				"int_req_mbox_tar_cm4","int_req_mbox_tar_ap",
+				"int_req_dma", "int_req_sec",
+				"int_req_wtlcp_busmon", "int_req_pubcp_busmon",
+				"int_req_busmon_aon", "int_req_chn_start_chn0",
+				"int_req_chn_start_chn1",
+				"int_req_chn_start_chn2",
+				"int_req_chn_start_chn3",
+				"int_sec_req_dma", "dfi_bus_monitor_int",
+				"wcn_btwf_wdg_int", "wcn_gnss_wdg_int",
+				"rf_wdg_int", "null", "int_req_sec_eic",
+				"int_req_sec_eic_non_lat",
+				"int_req_eic", "int_req_eic_non_lat";
+		};
+	};
+
 	gsp: sprd-gsp {
 		compatible = "sprd,gsp-lite_r2p0-pike2";
 		name = "sprd-gsp";
