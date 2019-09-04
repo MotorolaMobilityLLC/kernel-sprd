@@ -11654,6 +11654,60 @@ static void rq_offline_fair(struct rq *rq)
 	unthrottle_offline_cfs_rqs(rq);
 }
 
+static inline int
+kick_active_balance(struct rq *rq, struct task_struct *p, int new_cpu)
+{
+	int rc = 0;
+
+	/* Invoke active balance to force migrate currently running task */
+	raw_spin_lock(&rq->lock);
+	if (!rq->active_balance) {
+		rq->active_balance = 1;
+		rq->push_cpu = new_cpu;
+		get_task_struct(p);
+		rq->push_task = p;
+		rc = 1;
+	}
+	raw_spin_unlock(&rq->lock);
+
+	return rc;
+}
+
+static DEFINE_RAW_SPINLOCK(migration_lock);
+void check_for_migration(struct rq *rq, struct task_struct *p)
+{
+	int active_balance;
+	int new_cpu = -1;
+	int cpu = smp_processor_id();
+	int prev_cpu = task_cpu(p);
+	struct sched_domain *sd = NULL;
+
+	if (energy_aware() && rq->misfit_task_load) {
+		if (rq->curr->state != TASK_RUNNING ||
+		    cpumask_subset(&rq->curr->cpus_allowed, &min_cap_cpu_mask))
+			return;
+
+		raw_spin_lock(&migration_lock);
+
+		rcu_read_lock();
+		new_cpu = find_energy_efficient_cpu(sd, p, cpu, prev_cpu, 0);
+		rcu_read_unlock();
+
+		if ((new_cpu != -1) &&
+		    (capacity_orig_of(new_cpu) > capacity_orig_of(cpu))) {
+			active_balance = kick_active_balance(rq, p, new_cpu);
+
+			if (active_balance) {
+				raw_spin_unlock(&migration_lock);
+				stop_one_cpu_nowait(cpu,
+					active_load_balance_cpu_stop, rq,
+					&rq->active_balance_work);
+				return;
+			}
+		}
+		raw_spin_unlock(&migration_lock);
+	}
+}
 #endif /* CONFIG_SMP */
 
 /*
@@ -12226,59 +12280,4 @@ __init void init_sched_fair_class(void)
 	alloc_eenv();
 #endif /* SMP */
 
-}
-
-static inline int
-kick_active_balance(struct rq *rq, struct task_struct *p, int new_cpu)
-{
-	int rc = 0;
-
-	/* Invoke active balance to force migrate currently running task */
-	raw_spin_lock(&rq->lock);
-	if (!rq->active_balance) {
-		rq->active_balance = 1;
-		rq->push_cpu = new_cpu;
-		get_task_struct(p);
-		rq->push_task = p;
-		rc = 1;
-	}
-	raw_spin_unlock(&rq->lock);
-
-	return rc;
-}
-
-static DEFINE_RAW_SPINLOCK(migration_lock);
-void check_for_migration(struct rq *rq, struct task_struct *p)
-{
-	int active_balance;
-	int new_cpu = -1;
-	int cpu = smp_processor_id();
-	int prev_cpu = task_cpu(p);
-	struct sched_domain *sd = NULL;
-
-	if (energy_aware() && rq->misfit_task_load) {
-		if (rq->curr->state != TASK_RUNNING ||
-		    cpumask_subset(&rq->curr->cpus_allowed, &min_cap_cpu_mask))
-			return;
-
-		raw_spin_lock(&migration_lock);
-
-		rcu_read_lock();
-		new_cpu = find_energy_efficient_cpu(sd, p, cpu, prev_cpu, 0);
-		rcu_read_unlock();
-
-		if ((new_cpu != -1) &&
-		    (capacity_orig_of(new_cpu) > capacity_orig_of(cpu))) {
-			active_balance = kick_active_balance(rq, p, new_cpu);
-
-			if (active_balance) {
-				raw_spin_unlock(&migration_lock);
-				stop_one_cpu_nowait(cpu,
-					active_load_balance_cpu_stop, rq,
-					&rq->active_balance_work);
-				return;
-			}
-		}
-		raw_spin_unlock(&migration_lock);
-	}
 }
