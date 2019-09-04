@@ -17,6 +17,7 @@
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/nvmem-consumer.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/pm_opp.h>
@@ -528,6 +529,7 @@ static int sprd_hardware_cpufreq_probe(struct platform_device *pdev)
 	struct device *cpu_dev = NULL;
 	struct device_node *np = NULL;
 	struct device_node *cpu_np;
+	struct nvmem_cell *cell;
 	int ret;
 	int cpu = 0; /* just core0 do probe */
 
@@ -552,6 +554,13 @@ static int sprd_hardware_cpufreq_probe(struct platform_device *pdev)
 		return -ENOENT;
 	}
 
+	cell = of_nvmem_cell_get(np, "dvfs_bin");
+	ret = PTR_ERR(cell);
+	if (!IS_ERR(cell))
+		nvmem_cell_put(cell);
+	else if (ret == -EPROBE_DEFER)
+		goto exit;
+
 	sprd_cpufreq_cpuhp_setup();
 
 	ret = cpufreq_register_driver(&sprd_hardware_cpufreq_driver);
@@ -560,6 +569,8 @@ static int sprd_hardware_cpufreq_probe(struct platform_device *pdev)
 	else
 		dev_info(&pdev->dev, "Succeeded to register cpufreq driver\n");
 
+exit:
+	of_node_put(np);
 	of_node_put(cpu_np);
 
 	return ret;

@@ -17,6 +17,7 @@
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/nvmem-consumer.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/pm_opp.h>
@@ -35,36 +36,218 @@ __weak struct sprd_cpudvfs_device *sprd_hardware_dvfs_device_get(void)
 	return NULL;
 }
 
+static int sprd_cpufreq_bin_read(struct device_node *np,
+				 const char *cell_id,
+				 u32 *val)
+{
+	struct nvmem_cell *cell;
+	void *buf;
+	size_t len;
+
+	cell = of_nvmem_cell_get(np, cell_id);
+	if (IS_ERR(cell))
+		return PTR_ERR(cell);
+
+	buf = nvmem_cell_read(cell, &len);
+	nvmem_cell_put(cell);
+
+	if (IS_ERR(buf))
+		return PTR_ERR(buf);
+
+	memcpy(val, buf, min(len, sizeof(u32)));
+	kfree(buf);
+
+	return 0;
+}
+
+static int sprd_cpufreq_bin_low_volt(struct device_node *np, u32 *p_binning)
+{
+	u32 binning;
+	int ret;
+
+	if (!np || !p_binning)
+		return -ENOENT;
+
+	ret = sprd_cpufreq_bin_read(np, "dvfs_bin_low_volt", &binning);
+	if (ret) {
+		/* dvfs_bin_low_volt is optional */
+		pr_debug("can not get dvfs_bin_low_volt ret %d\n", ret);
+		return ret;
+	}
+
+	pr_debug("%s get BIN %u for low volt\n", __func__, binning);
+
+	if (!binning)
+		return -EINVAL;
+
+	*p_binning = binning;
+
+	return 0;
+}
+
+int sprd_cpufreq_bin_main(struct device_node *np, u32 *p_binning)
+{
+	u32 binning;
+	int ret;
+
+	if (!np || !p_binning) {
+		pr_warn("inputs are NULL!\n");
+		return -ENOENT;
+	}
+
+	ret = sprd_cpufreq_bin_read(np, "dvfs_bin", &binning);
+	if (ret) {
+		pr_warn("can not get dvfs_bin ret %d\n", ret);
+		return ret;
+	}
+
+	pr_debug("%s get BIN %u\n", __func__, binning);
+
+	if (!binning || binning > 4)
+		return -EINVAL;
+
+	*p_binning = binning;
+
+	return 0;
+}
+
+static int sprd_cpufreq_bin_temp(struct device_node *np,
+				 struct sprd_cpufreq_driver_data *cpufreq_data,
+				 char *opp_temp)
+{
+	const struct property *prop;
+	int i, temp_index;
+	u32 temp_threshold;
+	const __be32 *val;
+
+	if (!np || !cpufreq_data || !opp_temp) {
+		pr_warn("inputs are NULL\n");
+		return -ENOENT;
+	}
+
+	prop = of_find_property(np, "sprd,cpufreq-temp-threshold", NULL);
+	if (!prop)
+		return -ENODATA;
+
+	if (prop->length < sizeof(u32)) {
+		pr_err("Invalid %s(prop->length %d)\n",
+			__func__, prop->length);
+		return -EINVAL;
+	}
+
+	cpufreq_data->temp_max_freq = 0;
+	cpufreq_data->temp_max = 0;
+	temp_index = -1;
+	val = prop->value;
+
+	for (i = 0;
+	     i < (prop->length / sizeof(u32)) && i < SPRD_CPUFREQ_MAX_TEMP;
+	     i++) {
+		/* TODO: need to compatible with negative degree */
+		temp_threshold = be32_to_cpup(val++);
+		if (cpufreq_data->temp_now >= temp_threshold) {
+			temp_index = i;
+			sprintf(opp_temp, "-%d", temp_threshold);
+		}
+		cpufreq_data->temp_list[i] = temp_threshold;
+		cpufreq_data->temp_max++;
+		pr_debug("found temp %u\n", temp_threshold);
+	}
+
+	cpufreq_data->temp_bottom = temp_index < 0 ?
+		SPRD_CPUFREQ_TEMP_MIN :
+		cpufreq_data->temp_list[temp_index];
+	cpufreq_data->temp_top = (temp_index + 1) >= cpufreq_data->temp_max ?
+		SPRD_CPUFREQ_TEMP_MAX :
+		cpufreq_data->temp_list[temp_index + 1];
+
+	pr_debug("max num=%d bottom=%d top=%d\n",
+		 cpufreq_data->temp_max,
+		 cpufreq_data->temp_bottom,
+		 cpufreq_data->temp_top);
+
+	pr_debug("%s[%s] by temp %d\n",
+		 __func__, opp_temp, cpufreq_data->temp_now);
+
+	return 0;
+}
+
 /* Initializes OPP tables based on old-deprecated bindings */
 int dev_pm_opp_of_add_table_binning(int cluster,
 				    struct device *dev,
-				    struct device_node *np_cpufreq_data,
-				 struct sprd_cpufreq_driver_data *cpufreq_data)
+				    struct device_node *np_cpufreq_in,
+				    struct sprd_cpufreq_driver_data *cdata)
 {
-	const struct property *prop = NULL, *prop1 = NULL;
+	struct device_node *np_cpufreq, *np_cpu;
+	const struct property *prop = NULL;
 	struct sprd_cpudvfs_device *pdevice;
 	struct sprd_cpudvfs_ops *driver;
 	char opp_string[30] = "operating-points";
-	int count = 0;
+	char buf[30] = "";
+	int count = 0, ret = 0, index = 0;
+	u32 binning = 0, binning_low_volt = 0;
 	const __be32 *val;
 	int nr;
 
-	if ((!dev && !np_cpufreq_data) || !cpufreq_data) {
+	if ((!dev && !np_cpufreq_in) || !cdata) {
 		pr_err("empty input parameter\n");
 		return -ENOENT;
 	}
 
-	if (dev)
-		prop = of_find_property(dev->of_node, opp_string, NULL);
-	prop1 = of_find_property(np_cpufreq_data, opp_string, NULL);
-	if (!prop && !prop1)
-		return -ENODEV;
-	if (prop && !prop->value)
-		return -ENODATA;
-	if (prop1 && !prop1->value)
-		return -ENODATA;
-	if (prop1)
-		prop = prop1;
+	if (!np_cpufreq_in) {
+		np_cpu = of_node_get(dev->of_node);
+		if (!np_cpu) {
+			dev_err(dev, "sprd_cpufreq: failed to find cpu\n");
+			return -ENOENT;
+		}
+
+		np_cpufreq = of_parse_phandle(np_cpu,
+						   "cpufreq-data-v1", 0);
+		if (!np_cpufreq) {
+			dev_err(dev, "sprd_cpufreq: failed to get cpufreq\n");
+			of_node_put(np_cpu);
+			return -ENOENT;
+		}
+		pr_debug("%s: created np_cpufreq\n", __func__);
+	} else {
+		np_cpufreq = np_cpufreq_in;
+	}
+
+	ret = sprd_cpufreq_bin_main(np_cpufreq, &binning);
+	if (ret == -EPROBE_DEFER)
+		goto exit;
+
+	/* got cpu BIN */
+	if (!ret) {
+		pr_debug("%s: binning=0x%x by BIN\n", __func__, binning);
+		if (binning > 0) {
+			index = strlen(opp_string);
+			opp_string[index++] = '-';
+			opp_string[index++] = '0' + binning;
+			opp_string[index] = '\0';
+		}
+		if (!sprd_cpufreq_bin_low_volt(np_cpufreq,
+					       &binning_low_volt)) {
+			opp_string[index++] = '-';
+			opp_string[index++] = '0' + binning_low_volt;
+			opp_string[index] = '\0';
+		}
+		/*select dvfs table by temp only if bin is not zero*/
+		if (!sprd_cpufreq_bin_temp(np_cpufreq, cdata, buf))
+			strcat(opp_string, buf);
+	} else {
+		ret = 0;
+	}
+	/* TODO: else get dvfs table by wafer id */
+
+	pr_debug("opp_string[%s]\n", opp_string);
+
+	prop = of_find_property(np_cpufreq, opp_string, NULL);
+	if (!prop || !prop->value) {
+		pr_err("%s: not found opp_string\n", __func__);
+		ret = -ENODATA;
+		goto exit;
+	}
 	/*
 	 * Each OPP is a set of tuples consisting of frequency and
 	 * voltage like <freq-kHz vol-uV>.
@@ -72,10 +255,11 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 	nr = prop->length / sizeof(u32);
 	if (nr % 2) {
 		dev_err(dev, "Invalid OPP list\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	}
 
-	cpufreq_data->freqvolts = 0;
+	cdata->freqvolts = 0;
 	val = prop->value;
 	while (nr) {
 		unsigned long freq = be32_to_cpup(val++) * 1000;
@@ -87,13 +271,13 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 		if (dev && dev_pm_opp_add(dev, freq, volt)) {
 			dev_warn(dev, "dev_pm Failed to add OPP %ld\n", freq);
 		} else {
-			if (freq / 1000 > cpufreq_data->temp_max_freq)
-				cpufreq_data->temp_max_freq = freq / 1000;
+			if (freq / 1000 > cdata->temp_max_freq)
+				cdata->temp_max_freq = freq / 1000;
 		}
 		if (count < SPRD_CPUFREQ_MAX_FREQ_VOLT) {
-			cpufreq_data->freqvolt[count].freq = freq;
-			cpufreq_data->freqvolt[count].volt = volt;
-			cpufreq_data->freqvolts++;
+			cdata->freqvolt[count].freq = freq;
+			cdata->freqvolt[count].volt = volt;
+			cdata->freqvolts++;
 		}
 
 		count++;
@@ -103,27 +287,36 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 	pdevice = sprd_hardware_dvfs_device_get();
 
 	if (!pdevice)
-		return 0;
+		goto exit;
 
 	driver = &pdevice->ops;
-
 	if (!driver->probed || !driver->opp_add) {
 		pr_err("driver opertions is empty\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	if (!driver->probed(pdevice->archdata, cluster)) {
 		pr_err("the cpu dvfs device has not been probed\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto exit;
 	}
 
 	while (count-- > 0)
 		driver->opp_add(pdevice->archdata, cluster,
-				cpufreq_data->freqvolt[count].freq,
-				cpufreq_data->freqvolt[count].volt,
-				cpufreq_data->freqvolts - 1 - count);
+				cdata->freqvolt[count].freq,
+				cdata->freqvolt[count].volt,
+				cdata->freqvolts - 1 - count);
 
-	return 0;
+exit:
+	/* should put np opened by this func */
+	if (np_cpufreq_in == NULL) {
+		of_node_put(np_cpufreq);
+		of_node_put(np_cpu);
+	}
+
+	pr_debug("%s: exit %d\n", __func__, ret);
+	return ret;
 }
 
 static int dev_pm_opp_of_add_table_binning_slave(

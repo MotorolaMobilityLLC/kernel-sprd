@@ -129,6 +129,7 @@ struct sprd_cpudvfs_device {
 extern struct sprd_cpufreq_driver_data
 	*cpufreq_datas[SPRD_CPUFREQ_MAX_MODULE];
 
+int sprd_cpufreq_bin_main(struct device_node *np, u32 *p_binning);
 int dev_pm_opp_of_add_table_binning(int cluster,
 				    struct device *dev,
 				    struct device_node *np_cpufreq_data,
