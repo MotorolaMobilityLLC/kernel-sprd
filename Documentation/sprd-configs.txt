@@ -13643,12 +13643,12 @@ CONFIG_SPRD_PMIC_SYSCON
 	[function] This function is used to calibrate PMIC 26M.
 CONFIG_SPRD_POWER_DEBUG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] soc
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Enable/disable sprd power debug function.
 CONFIG_SPRD_PTM
 	[arch] all
