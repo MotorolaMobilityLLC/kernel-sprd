@@ -12721,7 +12721,7 @@ CONFIG_SND_SOC_SPRD_CODEC_SC2730
 	[function] snd codec dai
 CONFIG_SND_SOC_SPRD_I2S
 	[arch] all
-	[plat] pike2,sharkl3,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field]
 	[subsys]
@@ -12730,7 +12730,7 @@ CONFIG_SND_SOC_SPRD_I2S
 	[function]
 CONFIG_SND_SOC_SPRD_I2S_DUMMY
 	[arch] all
-	[plat] pike2,sharkl3,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field]
 	[subsys]
