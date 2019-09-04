@@ -348,7 +348,6 @@ static int sprd_thm_probe(struct platform_device *pdev)
 {
 	struct sprd_thermal_data *thm = NULL;
 	struct resource *res;
-	struct clk *clk;
 	int ret;
 	int sensor_id = 0;
 	struct device_node *np = pdev->dev.of_node;
@@ -395,7 +394,6 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		goto disable_clk;
 
 	thm->id = sensor_id;
-	thm->clk = clk;
 	thm->dev = &pdev->dev;
 
 	INIT_DELAYED_WORK(&thm->thm_resume_work, sprd_thm_resume_work);
