@@ -86,7 +86,7 @@ static int __sprd_get_max_temp(int *temp)
 		sum_temp += sensor_temp[i];
 	}
 
-	if (cluster0_temp >= 70000)
+	if (cluster0_temp >= 30000)
 		*temp = cluster0_temp;
 	else
 		*temp = sum_temp / psensor->nsensor;

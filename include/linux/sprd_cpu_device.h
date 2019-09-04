@@ -30,6 +30,8 @@ struct power_model_callback {
 
 	int (*get_max_temp_core_p)(int cooling_id, int cpu, int *temp);
 
+	int (*get_min_temp_core_p)(int cooling_id, int cpu, int *temp);
+
 	int (*get_all_core_temp_p)(int cooling_id, int cpu);
 
 	void (*get_core_temp_p)(int cooling_id, int cpu, int *temp);

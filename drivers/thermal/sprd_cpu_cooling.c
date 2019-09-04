@@ -12,6 +12,9 @@
  * GNU General Public License for more details.
  *
  */
+
+#define pr_fmt(fmt) "sprd_cpu_cooling: " fmt
+
 #include <linux/module.h>
 #include <linux/thermal.h>
 #include <linux/cpufreq.h>
@@ -41,162 +44,6 @@ static unsigned int cpufreq_dev_count;
 static DEFINE_MUTEX(cooling_list_lock);
 static LIST_HEAD(cpufreq_dev_list);
 
-#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-static struct task_struct * __percpu *cpuidle_tsk;
-static unsigned long *cpuidle_tsk_mask;
-
-static void cpuidle_thread_wakeup(struct thermal_cooling_device *cdev,
-		unsigned int wakeup_cpu)
-{
-	unsigned long cpu;
-	struct task_struct *thread;
-	struct cpufreq_cooling_device *cpufreq_device = cdev->devdata;
-
-	get_online_cpus();
-	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
-	if (cpu >= nr_cpu_ids) {
-		put_online_cpus();
-		return;
-	}
-
-	for_each_cpu(cpu, &cpufreq_device->allowed_cpus) {
-		if (cpu_online(cpu) && cpu == wakeup_cpu) {
-			if (test_bit(cpu, cpuidle_tsk_mask)) {
-				thread = *per_cpu_ptr(cpuidle_tsk, cpu);
-				if (likely(!IS_ERR(thread))) {
-					pr_debug("wakeup cpuidle/%u task\n", wakeup_cpu);
-					wake_up_process(thread);
-					break;
-				}
-			}
-			break;
-		}
-	}
-
-	put_online_cpus();
-}
-static int cpuidle_thread_fn(void *data)
-{
-	unsigned long cpu = (unsigned long)data;
-
-	while (1) {
-		set_current_state(TASK_INTERRUPTIBLE);
-		if (cpu_online(cpu)) {
-			schedule();
-			if (kthread_should_stop())
-				break;
-		}
-
-		pr_debug("force cpu%ld enter into idle for cooling\n", cpu);
-		set_current_state(TASK_RUNNING);
-		play_idle(10);
-	}
-	clear_bit(cpu, cpuidle_tsk_mask);
-
-	return 0;
-}
-
-static int cpuidle_thread_create(struct thermal_cooling_device *cdev)
-{
-	unsigned long cpu;
-	struct task_struct *thread;
-	struct cpufreq_cooling_device *cpufreq_device = cdev->devdata;
-	static const struct sched_param param = {
-		.sched_priority = MAX_USER_RT_PRIO/2,
-	};
-
-	get_online_cpus();
-	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
-	if (cpu >= nr_cpu_ids) {
-		put_online_cpus();
-		return 0;
-	}
-	for_each_cpu(cpu, &cpufreq_device->allowed_cpus) {
-		if (cpu_online(cpu)) {
-			struct task_struct **p =
-				per_cpu_ptr(cpuidle_tsk, cpu);
-			thread = kthread_create_on_node(cpuidle_thread_fn,
-						(void *) cpu,
-						cpu_to_node(cpu),
-						"cpuidle/%ld", cpu);
-			if (likely(!IS_ERR(thread))) {
-				kthread_bind(thread, cpu);
-				sched_setscheduler_nocheck(
-						thread, SCHED_FIFO, &param);
-				*p = thread;
-				set_bit(cpu, cpuidle_tsk_mask);
-				wake_up_process(thread);
-			}
-		}
-
-	}
-
-	put_online_cpus();
-
-	return 0;
-}
-
-static int cpuidle_thread_exit(struct thermal_cooling_device *cdev)
-{
-	unsigned long cpu;
-	struct task_struct *thread;
-	struct cpufreq_cooling_device *cpufreq_device = cdev->devdata;
-
-	get_online_cpus();
-	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
-	if (cpu >= nr_cpu_ids) {
-		put_online_cpus();
-		return 0;
-	}
-	for_each_cpu(cpu, &cpufreq_device->allowed_cpus) {
-		if (cpu_online(cpu)) {
-			thread = *per_cpu_ptr(cpuidle_tsk, cpu);
-			if (likely(!IS_ERR(thread)))
-				kthread_stop(thread);
-		}
-	}
-
-	put_online_cpus();
-
-	return 0;
-}
-
-static int cpuidle_cpu_online(unsigned int hpcpu)
-{
-	struct task_struct *thread;
-	unsigned long cpu = (unsigned long)hpcpu;
-	static const struct sched_param param = {
-		.sched_priority = MAX_USER_RT_PRIO/2,
-	};
-	struct task_struct **p = per_cpu_ptr(cpuidle_tsk, cpu);
-
-	thread = kthread_create_on_node(cpuidle_thread_fn,
-			(void *)cpu, cpu_to_node(cpu), "cpuidle/%ld", cpu);
-	if (likely(!IS_ERR(thread))) {
-		kthread_bind(thread, cpu);
-		sched_setscheduler_nocheck(
-				thread, SCHED_FIFO, &param);
-		*p = thread;
-		set_bit(cpu, cpuidle_tsk_mask);
-		wake_up_process(thread);
-	}
-
-	return 0;
-}
-
-static int cpuidle_cpu_predown(unsigned int cpu)
-{
-	struct task_struct **p =
-				per_cpu_ptr(cpuidle_tsk, cpu);
-
-	if (test_bit(cpu, cpuidle_tsk_mask)) {
-		kthread_stop(*p);
-		clear_bit(cpu, cpuidle_tsk_mask);
-	}
-
-	return 0;
-}
-#endif
 /**
  * get_idr - function to get a unique id.
  * @idr: struct idr * handle used to create a id.
@@ -574,9 +421,13 @@ static int get_static_power(struct cpufreq_cooling_device *cpufreq_device,
 	unsigned long freq_hz = freq * 1000;
 	int temperature;
 
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	cpumask_and(&our_online_cpus,
+		&cpufreq_device->allowed_cpus, &cpufreq_device->active_cpus);
+#else
 	cpumask_and(&our_online_cpus,
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
-
+#endif
 	if (!cpufreq_device->plat_get_static_power ||
 					!cpufreq_device->cpu_dev ||
 					cpumask_empty(&our_online_cpus)) {
@@ -633,8 +484,13 @@ static u32 get_dynamic_l2_power(struct cpufreq_cooling_device *cpufreq_device,
 	struct cpumask our_online_cpus;
 	unsigned int num_our_online_cpus;
 
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	cpumask_and(&our_online_cpus,
+		&cpufreq_device->allowed_cpus, &cpufreq_device->active_cpus);
+#else
 	cpumask_and(&our_online_cpus,
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
+#endif
 	num_our_online_cpus = cpumask_weight(&our_online_cpus);
 	if (num_our_online_cpus == 0)
 		load = 0;
@@ -707,6 +563,118 @@ static int init_pm_qos_request(struct cpufreq_cooling_device *cpufreq_dev)
 	return 0;
 }
 
+#if defined(CONFIG_SPRD_CPU_COOLING_CPUIDLE) && defined(CONFIG_SPRD_CORE_CTL)
+static void corectl_do_cpuidle(struct cpufreq_cooling_device *cpufreq_device)
+{
+	int cpu, max_temp;
+	struct cpumask cpus;
+
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
+	cpu = cpufreq_device->power_model->cab->get_max_temp_core_p(
+			cpufreq_device->power_model->cluster_id,
+			cpu, &max_temp);
+
+	cpumask_clear(&cpus);
+	if (cpu_online(cpu) && !cpu_isolated(cpu)) {
+
+		pr_info("cpu%d max_temp:%d do cpuidle\n", cpu, max_temp);
+		cpumask_set_cpu(cpu, &cpus);
+		if (ctrl_core_api(&cpus, 0)) {
+
+			cpumask_clear_cpu(cpu, &cpufreq_device->idle_cpus);
+			return;
+		}
+
+		cpumask_set_cpu(cpu, &cpufreq_device->idle_cpus);
+		cpumask_clear_cpu(cpu, &cpufreq_device->active_cpus);
+
+	}
+
+}
+
+static void corectl_exit_cpuidle(struct cpufreq_cooling_device *cpufreq_device)
+{
+	int cpu, min_temp;
+	struct cpumask cpus;
+
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
+	cpu = cpufreq_device->power_model->cab->get_min_temp_core_p(
+			cpufreq_device->power_model->cluster_id,
+			cpu, &min_temp);
+
+	cpumask_clear(&cpus);
+	if (cpu_online(cpu) && cpu_isolated(cpu)) {
+
+		pr_info("cpu%d min_temp:%d exit cpuidle\n", cpu, min_temp);
+		cpumask_set_cpu(cpu, &cpus);
+		if (ctrl_core_api(&cpus, 1))
+			return;
+
+		cpumask_clear_cpu(cpu, &cpufreq_device->idle_cpus);
+		cpumask_set_cpu(cpu, &cpufreq_device->active_cpus);
+	}
+
+}
+
+static void corectl_allow_max_cpus(struct cpufreq_cooling_device *cpufreq_device)
+{
+	unsigned int cpu;
+	struct cpumask cpus;
+
+	cpumask_clear(&cpus);
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
+
+	for_each_cpu(cpu, &cpufreq_device->allowed_cpus) {
+		if (cpu_online(cpu) && cpu_isolated(cpu)) {
+			cpumask_set_cpu(cpu, &cpus);
+
+			cpumask_clear_cpu(cpu, &cpufreq_device->idle_cpus);
+			cpumask_set_cpu(cpu, &cpufreq_device->active_cpus);
+
+		}
+	}
+
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
+	pr_info("cpu%d all core exit cpuidle\n", cpu);
+	ctrl_core_api(&cpus, 1);
+
+}
+
+static void corectl_adjust_cpus(struct cpufreq_cooling_device *cpufreq_device)
+{
+	int cpu;
+	struct cpumask isolate_mask, allow_mask;
+	u32 isolate_cpus, idle_cpus, active_cpus;
+
+	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
+	cpumask_and(&isolate_mask, &cpufreq_device->allowed_cpus,
+		    cpu_isolated_mask);
+	isolate_cpus = cpumask_weight(&isolate_mask);
+	idle_cpus = cpumask_weight(&cpufreq_device->idle_cpus);
+
+	if (isolate_cpus != idle_cpus) {
+
+		pr_info("cpu%d isolate_cpus:%u idle_cpus:%u adjust cpus!!!\n",
+				cpu, isolate_cpus, idle_cpus);
+
+		cpumask_andnot(&allow_mask, &cpufreq_device->allowed_cpus,
+				cpu_isolated_mask);
+
+		cpumask_copy(&cpufreq_device->active_cpus, &allow_mask);
+		cpumask_copy(&cpufreq_device->idle_cpus, &isolate_mask);
+
+
+		idle_cpus = cpumask_weight(&cpufreq_device->idle_cpus);
+		active_cpus = cpumask_weight(&cpufreq_device->active_cpus);
+		cpufreq_device->qos_cur_cpu = idle_cpus;
+
+		pr_info("cpu%d active_cpus:%u idle_cpus:%u adjust ok!\n",
+				cpu, active_cpus, idle_cpus);
+
+	}
+}
+#endif
+
 /*
  * We only change the online cpus after being called
  * hotplug_refractory_period times and then we average all the rounds.
@@ -733,8 +701,15 @@ static void set_online_cpus(struct cpufreq_cooling_device *cpufreq_dev,
 	online_data->rounds = 0;
 
 	cpu = cpumask_any(&cpufreq_dev->allowed_cpus);
+
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	cpumask_and(&our_online_cpus, &cpufreq_dev->allowed_cpus,
+			&cpufreq_dev->active_cpus);
+#else
 	cpumask_and(&our_online_cpus, &cpufreq_dev->allowed_cpus,
 		    cpu_online_mask);
+#endif
+
 	current_online_cpus = cpumask_weight(&our_online_cpus);
 
 	if (cpufreq_dev->power_model->cab->
@@ -757,16 +732,26 @@ static void set_online_cpus(struct cpufreq_cooling_device *cpufreq_dev,
 			return;
 
 		cpufreq_dev->qos_cur_cpu = max(target_online_cpus, min_cpunum);
+
+#if defined(CONFIG_SPRD_CPU_COOLING_CPUIDLE) && defined(CONFIG_SPRD_CORE_CTL)
+		if (current_online_cpus >
+				cpufreq_dev->qos_cur_cpu)
+			corectl_do_cpuidle(cpufreq_dev);
+		else if (target_online_cpus ==
+				cpumask_weight(&cpufreq_dev->allowed_cpus))
+			corectl_allow_max_cpus(cpufreq_dev);
+		else
+			corectl_exit_cpuidle(cpufreq_dev);
+#else
 		pm_qos_update_request(&cpufreq_dev->max_cpu_request,
 			cpufreq_dev->qos_cur_cpu);
 
 		pr_info("cpu%d trigger hotplug... pm_qos_max_online:%d\n", cpu,
 			cpufreq_dev->qos_cur_cpu);
-
+#endif
 	}
 }
 
-#ifndef CONFIG_SPRD_CPU_COOLING_CPUIDLE
 static int estimate_core_static_power(
 				struct cpufreq_cooling_device *cpufreq_device,
 				struct thermal_zone_device *tz, unsigned long freq,
@@ -820,8 +805,15 @@ static void hotplug_out_cpus(struct cpufreq_cooling_device *cpufreq_device,
 
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	raw_cpu_power = cpu_freq_to_power(cpufreq_device, target_freq);
+
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	cpumask_and(&our_online_cpus,
+			&cpufreq_device->allowed_cpus, &cpufreq_device->active_cpus);
+#else
 	cpumask_and(&our_online_cpus,
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
+#endif
+
 	num_our_online_cpus = cpumask_weight(&our_online_cpus);
 	if (!num_our_online_cpus)
 		return;
@@ -857,10 +849,15 @@ static void hotplug_in_cpus(struct cpufreq_cooling_device *cpufreq_device,
 
 	raw_cpu_power = cpu_freq_to_power(cpufreq_device, target_freq);
 
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	cpumask_and(&our_online_cpus,
+			&cpufreq_device->allowed_cpus, &cpufreq_device->active_cpus);
+#else
 	cpumask_and(&our_online_cpus,
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
-	curr_online_cpus = cpumask_weight(&our_online_cpus);
+#endif
 
+	curr_online_cpus = cpumask_weight(&our_online_cpus);
 	cpumask_clear(&clip_cpus);
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	cpumask_set_cpu(cpu, &clip_cpus);
@@ -896,11 +893,16 @@ static void hotplug_keep_cpus(struct cpufreq_cooling_device *cpufreq_device)
 {
 	struct cpumask current_online_cpus;
 
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	cpumask_and(&current_online_cpus,
+			&cpufreq_device->allowed_cpus, &cpufreq_device->active_cpus);
+#else
 	cpumask_and(&current_online_cpus,
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
+#endif
+
 	set_online_cpus(cpufreq_device, cpumask_weight(&current_online_cpus));
 }
-#endif
 
 /* cpufreq cooling device callback functions are defined below */
 
@@ -1055,6 +1057,10 @@ static int cpufreq_get_requested_power(struct thermal_cooling_device *cdev,
 	total_load = total_load ?: 100;
 	cpufreq_device->last_load = total_load;
 
+#if defined(CONFIG_SPRD_CPU_COOLING_CPUIDLE) && defined(CONFIG_SPRD_CORE_CTL)
+	corectl_adjust_cpus(cpufreq_device);
+#endif
+
 	dynamic_power = get_dynamic_power(cpufreq_device, freq);
 	dynamic_power += get_dynamic_l2_power(cpufreq_device, freq);
 
@@ -1154,10 +1160,6 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	static int count;
 	s32 dyn_power;
 
-#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-	int curr_temp, tp, cpu_idx, max_temp;
-#endif
-
 	get_online_cpus();
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	last_load = cpufreq_device->last_load ?: 100;
@@ -1230,43 +1232,13 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 	}
 
 #ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
-	tp = cpufreq_device->power_model->cab->get_cpuidle_temp_point_p(
-			cpufreq_device->power_model->cluster_id);
-	if (tp) {
-		cpu_idx = cpufreq_device->power_model->cab->get_max_temp_core_p(
-								cpufreq_device->power_model->cluster_id,
-								cpu, &max_temp);
-		if (max_temp > tp) {
-			pr_debug("cpu%d max_temp:%d\n", cpu_idx, max_temp);
-			cpuidle_thread_wakeup(cdev, cpu_idx);
-		}
-	} else {
-		cpu_idx = cpu;
-		cpufreq_device->power_model->cab->get_all_core_temp_p(
-				cpufreq_device->power_model->cluster_id,
-				cpu);
-
-		for_each_cpu(cpu_idx, &cpufreq_device->allowed_cpus) {
-
-			cpufreq_device->power_model->cab->get_core_temp_p(
-					cpufreq_device->power_model->cluster_id,
-					cpu_idx, &curr_temp);
-
-			cpufreq_device->power_model->cab->get_core_cpuidle_tp_p(
-					cpufreq_device->power_model->cluster_id,
-					cpu, cpu_idx, &tp);
-
-			if (curr_temp > tp) {
-
-				pr_debug("cpu%d curr_temp:%d\n", cpu_idx, curr_temp);
-				cpuidle_thread_wakeup(cdev, cpu_idx);
-			}
-		}
-	}
+	cpumask_and(&our_online_cpus, &cpufreq_device->allowed_cpus,
+			&cpufreq_device->active_cpus);
 #else
 	cpumask_and(&our_online_cpus,
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
+#endif
+
 	num_our_online_cpus = cpumask_weight(&our_online_cpus);
 	if (cpufreq_device->hotplug_refractory_period) {
 		if (normalised_power <
@@ -1280,12 +1252,17 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 		else
 			hotplug_keep_cpus(cpufreq_device);
 	}
-#endif
 	trace_thermal_power_cpu_limit(&cpufreq_device->allowed_cpus,
 				      target_freq, *state, power);
 
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	cpumask_and(&our_online_cpus, &cpufreq_device->allowed_cpus,
+			&cpufreq_device->active_cpus);
+#else
 	cpumask_and(&our_online_cpus,
 		&cpufreq_device->allowed_cpus, cpu_online_mask);
+#endif
+
 	num_our_online_cpus = cpumask_weight(&our_online_cpus);
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
 	if (count == 5) {
@@ -1575,6 +1552,10 @@ __cpufreq_cooling_register(struct device_node *np,
 
 	cpumask_copy(&cpufreq_dev->allowed_cpus, clip_cpus);
 
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	cpumask_copy(&cpufreq_dev->active_cpus, clip_cpus);
+#endif
+
 	if (power_model != NULL) {
 		cpufreq_cooling_ops.get_requested_power =
 			cpufreq_get_requested_power;
@@ -1639,46 +1620,11 @@ __cpufreq_cooling_register(struct device_node *np,
 		cpufreq_register_notifier(&thermal_cpufreq_notifier_block,
 					  CPUFREQ_POLICY_NOTIFIER);
 
-#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-		cpuidle_tsk = alloc_percpu(struct task_struct *);
-		if (!cpuidle_tsk) {
-			mutex_unlock(&cooling_cpufreq_lock);
-			goto remove_idr;
-		}
-
-		cpuidle_tsk_mask = kzalloc(
-				BITS_TO_LONGS(num_possible_cpus()) * sizeof(long),
-				GFP_KERNEL);
-		if (!cpuidle_tsk_mask) {
-			mutex_unlock(&cooling_cpufreq_lock);
-			goto free_cpuidle_tsk;
-		}
-
-		ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
-					   "thermal/cpuidle:online",
-					   cpuidle_cpu_online,
-					   cpuidle_cpu_predown);
-		if (ret < 0) {
-			mutex_unlock(&cooling_cpufreq_lock);
-			goto free_cpuidle_tsk_mask;
-		}
-#endif
-
 	}
 	mutex_unlock(&cooling_cpufreq_lock);
 
-#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-	cpuidle_thread_create(cool_dev);
-#endif
-
 	return cool_dev;
 
-#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-free_cpuidle_tsk_mask:
-	kfree(cpuidle_tsk_mask);
-free_cpuidle_tsk:
-	free_percpu(cpuidle_tsk);
-#endif
 remove_idr:
 	release_idr(&cpufreq_idr, cpufreq_dev->id);
 free_power_table:
@@ -1820,9 +1766,6 @@ void cpufreq_cooling_unregister(struct thermal_cooling_device *cdev)
 
 	cpufreq_dev = cdev->devdata;
 
-#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-	cpuidle_thread_exit(cpufreq_dev->cool_dev);
-#endif
 
 	/* Unregister the notifier for the last cpufreq cooling device */
 	mutex_lock(&cooling_cpufreq_lock);
@@ -1830,10 +1773,6 @@ void cpufreq_cooling_unregister(struct thermal_cooling_device *cdev)
 		cpufreq_unregister_notifier(&thermal_cpufreq_notifier_block,
 					    CPUFREQ_POLICY_NOTIFIER);
 
-#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-		free_percpu(cpuidle_tsk);
-		kfree(cpuidle_tsk_mask);
-#endif
 	}
 	mutex_lock(&cooling_list_lock);
 	list_del(&cpufreq_dev->node);
