@@ -1420,7 +1420,7 @@ CONFIG_BLK_DEV_LOOP
 	[subsys] core
 	[must] debug
 	[missing plat description] none
-	[function] Loopback device support
+	[function] Loopback device support.
 CONFIG_BLK_DEV_LOOP_MIN_COUNT
 	[arch] all
 	[plat] all
@@ -1430,7 +1430,8 @@ CONFIG_BLK_DEV_LOOP_MIN_COUNT
 	[must] user
 	[missing plat description] none
 	[function] Static number of loop devices to be unconditionally pre-created
-	   at init time. we set this value to 0 for known problem.
+                   at init time. we set this value to 0 for known problem.
+                   The historic default is 8 and vts test requires it no more than 16.
 CONFIG_BLK_DEV_RAM
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
