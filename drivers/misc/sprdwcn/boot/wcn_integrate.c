@@ -514,6 +514,11 @@ int wcn_power_enable_sys_domain(bool enable)
 	u32 gnss_open = false;
 	static u32 sys_domain;
 
+	if (!s_wcn_device.btwf_device) {
+		WCN_ERR("dev is NULL\n");
+		return -ENODEV;
+	}
+
 	if (s_wcn_device.btwf_device &&
 	    s_wcn_device.btwf_device->wcn_open_status & WCN_MARLIN_MASK)
 		btwf_open = true;
