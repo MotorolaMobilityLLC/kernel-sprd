@@ -861,8 +861,6 @@ static inline void wcn_platform_fs_init(struct wcn_device *wcn_dev)
 		wcn_dev->platform_fs.entrys[i].flag = flag;
 
 		mode |= (S_IRUSR | S_IWUSR);
-		if (flag & (BE_CPDUMP | BE_MNDUMP))
-			mode |= S_IROTH;
 
 		WCN_INFO("entry name is %s type 0x%x addr: 0x%p\n",
 			 wcn_dev->platform_fs.entrys[i].name,
