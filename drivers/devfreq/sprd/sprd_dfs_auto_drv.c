@@ -115,7 +115,7 @@ struct dfs_data {
 	unsigned int *freq_table;
 	unsigned int *overflow;
 	unsigned int *underflow;
-	unsigned int scene_num;
+	int scene_num;
 	struct scene_freq *scenes;
 	unsigned int force_freq;
 	unsigned int backdoor_freq;
@@ -729,7 +729,7 @@ static int dfs_auto_freq_probe(struct platform_device *pdev)
 	struct dfs_data *data;
 	struct device *dev = &pdev->dev;
 	unsigned int freq_num;
-	unsigned int scene_num;
+	int scene_num;
 	void *p;
 	int err, i;
 
