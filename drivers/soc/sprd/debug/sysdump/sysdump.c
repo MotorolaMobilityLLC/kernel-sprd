@@ -515,7 +515,8 @@ void sysdump_enter(int enter_id, const char *reason, struct pt_regs *regs)
 	pr_emerg("*****************************************************\n");
 	pr_emerg("\n");
 
-	sysdump_prepare_info(enter_id, reason, regs);
+	if (reason != NULL)
+		sysdump_prepare_info(enter_id, reason, regs);
 
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
 	/* when track regs use pregs_die,  others use now regs*/
@@ -1062,17 +1063,16 @@ static int prepare_minidump_info(struct pt_regs *regs)
 
 	pr_emerg("%s in .\n", __func__);
 	/*	*/
-	if (regs) {
+	if (regs != NULL) {
 
 		/*	struct pt_regs part: save minidump_regs_g contents */
 		memcpy(&minidump_regs_g, regs, sizeof(struct pt_regs));
+		/*      memory amount regs part: save minidump_regs_g contents */
+		prepare_minidump_reg_memory(regs);
 
 	} else {
-		/*      when regs is NULL, use current task regs  */
-		//memcpy(&minidump_regs_g, task_pt_regs(current), sizeof(struct pt_regs));
+		pr_emerg("%s regs NULL .\n", __func__);
 	}
-	/*      memory amount regs part: save minidump_regs_g contents */
-	prepare_minidump_reg_memory(regs);
 	/*      prepare pt contents */
 	//prepare_pt_no_pgd();
 
