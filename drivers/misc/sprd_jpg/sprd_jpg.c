@@ -486,8 +486,10 @@ static int jpg_release(struct inode *inode, struct file *filp)
 	struct jpg_fh *jpg_fp = filp->private_data;
 	int ret = 0;
 
-	if (!jpg_fp)
+	if (!jpg_fp) {
 		pr_err("%s,%d jpg_fp NULL !\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	if (jpg_fp->is_clock_enabled) {
 		pr_err("error occurred and close clock\n");
@@ -501,11 +503,11 @@ static int jpg_release(struct inode *inode, struct file *filp)
 		up(&jpg_hw_dev.jpg_mutex);
 	}
 
-	pr_info("%s %p\n", __func__, jpg_fp);
-	kfree(filp->private_data);
-
 	ret = sprd_jpg_pw_off();
 	pr_info("jpg pw_off: ret %d", ret);
+
+	pr_info("%s %p\n", __func__, jpg_fp);
+	kfree(filp->private_data);
 
 	return 0;
 }
