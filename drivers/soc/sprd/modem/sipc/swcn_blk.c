@@ -271,6 +271,11 @@ int swcnblk_create(struct swcnblk_create_info *info,
 	VOLA_SWCNBLK_RING *ringhd = NULL;
 	VOLA_SWCNBLK_RING *poolhd = NULL;
 
+	if (!info) {
+		pr_err("info is NULL\n");
+		return -EINVAL;
+	}
+
 	ch_index = sipc_channel2index(info->channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
 		pr_err("%s:channel %d invalid!\n", __func__, info->channel);
