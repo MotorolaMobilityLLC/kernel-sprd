@@ -17,6 +17,7 @@
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/nvmem-consumer.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/pm_opp.h>
@@ -1278,7 +1279,7 @@ static int sprd_cpufreq_probe(struct platform_device *pdev)
 	struct device_node *np = NULL, *np1 = NULL;
 	int ret = 0;
 	unsigned int cpu;
-
+	struct nvmem_cell *cell;
 	boot_done_timestamp = jiffies + SPRD_CPUFREQ_DRV_BOOST_DURATOIN;
 
 	for_each_present_cpu(cpu) {
@@ -1306,6 +1307,16 @@ static int sprd_cpufreq_probe(struct platform_device *pdev)
 		}
 		if (np1)
 			np = np1;
+
+		cell = of_nvmem_cell_get(np, "dvfs_bin");
+		ret = PTR_ERR(cell);
+
+		if (!IS_ERR(cell)) {
+			nvmem_cell_put(cell);
+			ret = 0;
+		} else if (ret == -EPROBE_DEFER) {
+			goto put_np;
+		}
 
 		cpu_clk = of_clk_get_by_name(np, CORE_CLK);
 		if (IS_ERR(cpu_clk)) {
