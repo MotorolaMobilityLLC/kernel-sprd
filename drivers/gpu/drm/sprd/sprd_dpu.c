@@ -101,7 +101,8 @@ static void sprd_dpu_iommu_unmap(struct device *dev,
 	iommu_data.iova_addr = sprd_gem->dma_addr;
 	iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 
-	sprd_iommu_unmap(dev, &iommu_data);
+	if (sprd_iommu_unmap(dev, &iommu_data))
+		DRM_ERROR("failed to unmap iommu address\n");
 }
 
 static int of_get_logo_memory_info(struct sprd_dpu *dpu,
