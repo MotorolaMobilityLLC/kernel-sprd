@@ -979,8 +979,12 @@ static int  wcn_remove(struct platform_device *pdev)
 {
 	struct wcn_device *wcn_dev = platform_get_drvdata(pdev);
 
-	if (wcn_dev)
-		WCN_INFO("dev name %s\n", wcn_dev->name);
+	if (!wcn_dev) {
+		WCN_ERR("dev is NULL!\n");
+		return -ENODEV;
+	}
+
+	WCN_INFO("dev name %s\n", wcn_dev->name);
 
 	wcn_platform_fs_exit(wcn_dev);
 	kfree(wcn_dev);
