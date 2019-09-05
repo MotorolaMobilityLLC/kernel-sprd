@@ -46,12 +46,14 @@ static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
 static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 				const void *data, int size)
 {
-	struct sprd_panel *panel = mipi_dsi_get_drvdata(dsi);
+	struct sprd_panel *panel;
 	const struct dsi_cmd_desc *cmds = data;
 	u16 len;
 
 	if ((cmds == NULL) || (dsi == NULL))
 		return -EINVAL;
+
+	panel = mipi_dsi_get_drvdata(dsi);
 
 	while (size > 0) {
 		len = (cmds->wc_h << 8) | cmds->wc_l;
