@@ -281,7 +281,6 @@ static int shub_collect_data(struct shub_data_processor *stream,
 				     data_crc, crc_inframe);
 			}
 		}
-		stream->state = SHUB_RECV_COMPLETE;
 		stream->state = SHUB_RECV_SEARCH_FLAG;
 		stream->head_size = 0;
 		stream->received_data_len = 0;
