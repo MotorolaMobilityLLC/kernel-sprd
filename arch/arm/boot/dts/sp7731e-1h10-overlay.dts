@@ -148,3 +148,10 @@
 &panel {
 	sprd,backlight = <&pwm_backlight>;
 };
+
+&ddr_dfs {
+	sprd-scene = "lcdon", "lcdoff", "camlow", "camhigh";
+	sprd-freq = <256 256 384 533>;
+	overflow = <6140000 9216000 4294967295 4294967295>;
+	underflow = <1 6040000 8216000 4294967295>;
+};
