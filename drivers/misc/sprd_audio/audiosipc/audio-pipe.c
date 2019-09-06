@@ -34,11 +34,17 @@
 #define	AUDIO_PIPE_MARGIC		'A'
 
 #define	AUDIO_PIPE_WAKEUP		_IOW(AUDIO_PIPE_MARGIC, 0, int)
+#define	AUDIO_PIPE_BTHAL_STATE_SET		_IOW(AUDIO_PIPE_MARGIC, 1, int)
+#define	AUDIO_PIPE_BTHAL_STATE_GET		_IOR(AUDIO_PIPE_MARGIC, 0, int)
+
+#define BTHAL_STATE_RUNNING		0
+#define BTHAL_STATE_IDLE		1
 
 enum {
 	SPRD_PIPE_VOICE,
 	SPRD_PIPE_EFFECT,
 	SPRD_PIPE_RECORD_PROCESS,
+	SPRD_PIPE_BTHAL,
 	SPRD_PIPE_TYPE_MAX,
 };
 
@@ -54,6 +60,8 @@ struct aud_pipe_device {
 	u32 maxwritebufsize;
 	struct mutex mutex;
 };
+
+static u32 g_bthal_state = BTHAL_STATE_IDLE;
 
 static int aud_pipe_recv_cmd(uint16_t channel, struct aud_smsg *o_msg,
 	int32_t timeout)
@@ -286,6 +294,7 @@ static long aud_pipe_ioctl(struct file *filp,
 	unsigned int cmd, unsigned long arg)
 {
 	struct aud_pipe_device *aud_pipe_dev = filp->private_data;
+	void __user *argp = (void __user *)(arg);
 
 	if (!aud_pipe_dev)
 		return -EINVAL;
@@ -293,6 +302,16 @@ static long aud_pipe_ioctl(struct file *filp,
 	switch (cmd) {
 	case AUDIO_PIPE_WAKEUP:
 		aud_smsg_wakeup_ch(AUD_IPC_AGDSP, aud_pipe_dev->channel);
+		break;
+	case AUDIO_PIPE_BTHAL_STATE_SET:
+		if (get_user(g_bthal_state, (u32 __user *)argp))
+			return -EFAULT;
+		pr_info("BTHAL_STATE_SET:%d\n", g_bthal_state);
+		break;
+	case AUDIO_PIPE_BTHAL_STATE_GET:
+		pr_info("BTHAL_STATE_GET:%d\n", g_bthal_state);
+		if (put_user(g_bthal_state, (u32 __user *)argp))
+			return -EFAULT;
 		break;
 	default:
 		return -EINVAL;
@@ -306,7 +325,9 @@ static const struct file_operations audio_pipe_fops = {
 	.read = aud_pipe_read,
 	.write = aud_pipe_write,
 	.unlocked_ioctl = aud_pipe_ioctl,
+#ifdef CONFIG_COMPAT
 	.compat_ioctl = aud_pipe_ioctl,
+#endif
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
@@ -318,6 +339,8 @@ static const struct of_device_id audio_pipe_match_table[] = {
 		.data = (void *)SPRD_PIPE_EFFECT},
 	{.compatible = "sprd,audio_pipe_recordproc",
 		.data = (void *)SPRD_PIPE_RECORD_PROCESS},
+	{.compatible = "sprd,audio_pipe_bthal",
+		.data = (void *)SPRD_PIPE_BTHAL},
 	{ },
 };
 
@@ -355,6 +378,10 @@ static int aud_pipe_parse_dt(struct device *dev,
 	case SPRD_PIPE_RECORD_PROCESS:
 		strncpy(aud_pipe_dev->device_name,
 			"audio_pipe_recordproc", SPRD_PIPE_NAME_MAX);
+		break;
+	case SPRD_PIPE_BTHAL:
+		strncpy(aud_pipe_dev->device_name,
+			"audio_pipe_bthal", SPRD_PIPE_NAME_MAX);
 		break;
 	default:
 		ret = -EINVAL;

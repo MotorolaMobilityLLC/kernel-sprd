@@ -492,9 +492,11 @@ int aud_smsg_recv(u8 dst, struct aud_smsg *msg, int timeout)
 			ipc->dsp_ready = false;
 			aud_smsg_dump_func(is_timeout);
 			aud_smsg_reset(ipc);
-			msg.channel = AMSG_CH_DSP_ASSERT_CTL;
+			msg.channel = AMSG_CH_DSP_BTHAL;
 			msg.command = AGDSP_COMMUNICATION_TIMEOUT;
 			msg.parameter0 = AGDSP_COMMUNICATION_TIMEOUT;
+			aud_smsg_ch_send(ipc, (struct aud_smsg *)&msg);
+			msg.channel = AMSG_CH_DSP_ASSERT_CTL;
 			aud_smsg_ch_send(ipc, (struct aud_smsg *)&msg);
 			spin_unlock_irqrestore(&(ipc->rxpinlock), flags_rx);
 			spin_unlock_irqrestore(&(ipc->txpinlock), flags_tx);
