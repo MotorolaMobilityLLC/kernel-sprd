@@ -68,6 +68,7 @@
 
 #define SC27XX_FGU_CUR_BASIC_ADC	8192
 #define SC27XX_FGU_SAMPLE_HZ		2
+#define SC27XX_FGU_TEMP_BUFF_CNT	10
 
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))));
@@ -122,6 +123,8 @@ struct sc27xx_fgu_data {
 	int calib_resist_real;
 	int calib_resist_spec;
 	int comp_resistance;
+	int index;
+	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_vol_temp_table *temp_table;
 	struct power_supply_capacity_temp_table *cap_temp_table;
@@ -612,6 +615,37 @@ static int sc27xx_fgu_vol_to_temp(struct power_supply_vol_temp_table *table,
 	return temp - 1000;
 }
 
+static int sc27xx_fgu_get_average_temp(struct sc27xx_fgu_data *data, int temp)
+{
+	int i, min, max;
+	int sum = 0;
+
+	if (data->temp_buff[0] == -500) {
+		for (i = 0; i < SC27XX_FGU_TEMP_BUFF_CNT; i++)
+			data->temp_buff[i] = temp;
+	}
+
+	if (data->index >= SC27XX_FGU_TEMP_BUFF_CNT)
+		data->index = 0;
+
+	data->temp_buff[data->index++] = temp;
+	min = max = data->temp_buff[0];
+
+	for (i = 0; i < SC27XX_FGU_TEMP_BUFF_CNT; i++) {
+		if (data->temp_buff[i] > max)
+			max = data->temp_buff[i];
+
+		if (data->temp_buff[i] < min)
+			min = data->temp_buff[i];
+
+		sum += data->temp_buff[i];
+	}
+
+	sum = sum - max - min;
+
+	return sum / (SC27XX_FGU_TEMP_BUFF_CNT - 2);
+}
+
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 {
 	int vol, ret;
@@ -649,6 +683,8 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 	}
 	*temp = sc27xx_fgu_vol_to_temp(data->temp_table,
 				       data->temp_table_len, vol * 1000);
+	*temp = sc27xx_fgu_get_average_temp(data, *temp);
+
 	return 0;
 }
 
@@ -1135,6 +1171,11 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 			power_supply_put_battery_info(data->battery, &info);
 			return -ENOMEM;
 		}
+
+		/*
+		 * We should give a initial temperature value of temp_buff.
+		 */
+		data->temp_buff[0] = -500;
 	}
 
 	data->cap_table_len = info.cap_table_size;
