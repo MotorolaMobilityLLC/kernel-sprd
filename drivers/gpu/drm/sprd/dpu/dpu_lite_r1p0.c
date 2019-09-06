@@ -713,6 +713,10 @@ static void dpu_layer(struct dpu_context *ctx,
 	layer->alpha = hwlayer->alpha;
 
 	wd = drm_format_plane_cpp(hwlayer->format, 0);
+	if (wd == 0) {
+		pr_err("layer[%d] bytes per pixel is invalid\n", hwlayer->index);
+		return;
+	}
 
 	layer->pitch = hwlayer->pitch[0] / wd;
 	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending);
