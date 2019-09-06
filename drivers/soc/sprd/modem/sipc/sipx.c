@@ -1765,8 +1765,10 @@ int sipx_chan_create(u8 dst, u8 channel)
 	struct sipx_channel *sipx_chan = NULL;
 	int ret = 0;
 
-	WARN_ON(dst >= SIPC_ID_NR);
-
+	if (dst >= SIPC_ID_NR) {
+		SIPX_ERR("Input Param Error: dst = %d\n", dst);
+		return -EINVAL;
+	}
 	/* check and create main ctrl */
 	sipx = sipxs[dst];
 

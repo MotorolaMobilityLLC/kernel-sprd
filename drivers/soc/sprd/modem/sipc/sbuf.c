@@ -993,9 +993,9 @@ void sbuf_get_status(u8 dst, char *status_info, int size)
 	struct name_node *node = NULL;
 #endif
 
-	len = strlen(status_info);
 	if (!status_info || size < 0 || dst >= SIPC_ID_NR)
 		return;
+	len = strlen(status_info);
 
 	for (i = 0;  i < SMSG_VALID_CH_NR; i++) {
 		sbuf = sbufs[dst][i];
