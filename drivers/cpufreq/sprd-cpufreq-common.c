@@ -62,7 +62,7 @@ static int sprd_cpufreq_bin_read(struct device_node *np,
 
 static int sprd_cpufreq_bin_low_volt(struct device_node *np, u32 *p_binning)
 {
-	u32 binning;
+	u32 binning = 0;
 	int ret;
 
 	if (!np || !p_binning)
@@ -87,7 +87,7 @@ static int sprd_cpufreq_bin_low_volt(struct device_node *np, u32 *p_binning)
 
 int sprd_cpufreq_bin_main(struct device_node *np, u32 *p_binning)
 {
-	u32 binning;
+	u32 binning = 0;
 	int ret;
 
 	if (!np || !p_binning) {
