@@ -3552,23 +3552,23 @@ CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND
 	[function] Support gpu dfs/dvfs logic.
 CONFIG_DEVFREQ_GOV_SPRD_SCENE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] devfreq
 	[must] none
-	[missing plat description]
+	[missing plat description] none
 	[function] Sprd govanor can selected by Sprd_auto_dfs driver.
 	   Userspace set scene to this govanor and then govnor send freq
 	   request to driver.
 CONFIG_DEVFREQ_SPRD_AUTO_DFS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] devfreq
 	[must] none
-	[missing plat description]
+	[missing plat description] none
 	[function] This function is used to enable ddr auto dfs function
 	   on DDRC v1 and and later version
 CONFIG_DEVFREQ_SPRD_EXT_VOTE
@@ -13619,7 +13619,7 @@ CONFIG_SPRD_PIKE2_SLEEP
 	[plat] pike2
 	[missing plat]
 	[field] make
-	[subsys]soc
+	[subsys] soc
 	[must] user
 	[missing plat description]
 	[function] This function is used to enable pike light sleep.
