@@ -533,7 +533,7 @@ static struct nvm_name_table *cali_table_match(struct nvm_cali_cmd *cmd)
 	struct nvm_name_table *pTable = NULL;
 	int len = sizeof(g_cali_table) / sizeof(struct nvm_name_table);
 
-	if ((cmd == NULL) || (cmd->itm == NULL))
+	if (cmd == NULL)
 		return NULL;
 	for (i = 0; i < len; i++) {
 		if (g_cali_table[i].itm == NULL)
