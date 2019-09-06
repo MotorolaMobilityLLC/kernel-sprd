@@ -469,7 +469,8 @@ int gsp_dev_get_capability(struct gsp_dev *gsp,
 	}
 
 	capability = gsp_core_get_capability(core);
-	if (IS_ERR_OR_NULL(capa)) {
+	if (IS_ERR_OR_NULL(capa)
+	    || IS_ERR_OR_NULL(capability)) {
 		GSP_ERR("get core[0] capability failed\n");
 		return -1;
 	}
@@ -579,8 +580,10 @@ int sprd_gsp_get_capability_ioctl(struct drm_device *drm_dev, void *data,
 	else
 		ret = gsp_dev_get_capability(gsp, &capa);
 
-	if (ret)
+	if (ret) {
 		GSP_ERR("get capability error\n");
+		return -1;
+	}
 
 	ret = copy_to_user((void __user *)drm_capa->cap,
 				   (const void *)capa, size);
