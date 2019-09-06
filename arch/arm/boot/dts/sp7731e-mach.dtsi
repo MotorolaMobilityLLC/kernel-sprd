@@ -202,6 +202,7 @@
 	mmc-hs200-1_8v;
 	mmc-ddr-1_8v;
 	sprd,name = "sdio_emmc";
+	sprd,sdio-adma;
 	no-sdio;
 	no-sd;
 	status = "okay";
