@@ -12126,8 +12126,8 @@ CONFIG_SCHED_TUNE
 	[missing plat description]
 	[function] Enable boost for fair sched class tasks
 CONFIG_SCHED_WALT
-	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[arch] all
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro
 	[missing plat] none
 	[field] make,code
 	[subsys] sched
