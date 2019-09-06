@@ -79,11 +79,14 @@ static int sprd_campw_check_drv_init(void)
 {
 	int ret = 0;
 
-	if (!pw_info)
+	if (!pw_info) {
 		ret = -1;
-	if (atomic_read(&pw_info->inited) == 0)
+		return ret;
+	}
+	if (atomic_read(&pw_info->inited) == 0) {
 		ret = -2;
-
+		return ret;
+	}
 	return ret;
 }
 
