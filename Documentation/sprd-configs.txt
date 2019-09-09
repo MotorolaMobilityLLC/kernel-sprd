@@ -13309,12 +13309,12 @@ CONFIG_SPRD_DMA
 	[function] Support Spreadtrum DMA.
 CONFIG_SPRD_DMC_DRV
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] debug
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Enable DMC core debug function, for example ddr info and pub monitor function
 CONFIG_SPRD_DMC_MPU
 	[arch] all
