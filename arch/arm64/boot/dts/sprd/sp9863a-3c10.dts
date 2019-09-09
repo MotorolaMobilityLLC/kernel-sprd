@@ -313,6 +313,7 @@
 };
 
 &sdio0 {
+	/delete-property/ sd-uhs-sdr104;
 	cd-gpios = <&eic_async 9 0>;
 };
 
