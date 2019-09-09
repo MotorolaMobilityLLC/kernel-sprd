@@ -207,9 +207,9 @@
 		entry-method = "arm,psci";
 		LIT_CORE_PD: lit_core_pd {
 			compatible = "arm,idle-state";
-			entry-latency-us = <4000>;
-			exit-latency-us = <4000>;
-			min-residency-us = <10000>;
+			entry-latency-us = <1000>;
+			exit-latency-us = <500>;
+			min-residency-us = <2500>;
 			local-timer-stop;
 			arm,psci-suspend-param = <0x00010000>;
 		};
