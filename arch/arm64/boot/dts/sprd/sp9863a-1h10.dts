@@ -664,3 +664,73 @@
 		volt-max-step-microvolt = <1200004>;
 	};
 };
+
+&pin_controller {
+	pinctrl-names =
+	/* keyout0 ~ keyout2 */
+	"gpio_121", "gpio_122", "gpio_123",
+	/* keyin0 ~ keyin2 */
+	"gpio_124", "gpio_125", "gpio_126",
+	/* extint0, extint1, scl3, sda3 */
+	"gpio_144", "gpio_145", "gpio_146", "gpio_147";
+	pinctrl-0 = <&gpio_121>;
+	pinctrl-1 = <&gpio_122>;
+	pinctrl-2 = <&gpio_123>;
+	pinctrl-3 = <&gpio_124>;
+	pinctrl-4 = <&gpio_125>;
+	pinctrl-5 = <&gpio_126>;
+	pinctrl-6 = <&gpio_144>;
+	pinctrl-7 = <&gpio_145>;
+	pinctrl-8 = <&gpio_146>;
+	pinctrl-9 = <&gpio_147>;
+
+	gpio_121: keyout0 {
+		pins = "SHARKL3_KEYOUT0";
+		function = "func4";
+	};
+
+	gpio_122: keyout1 {
+		pins = "SHARKL3_KEYOUT1";
+		function = "func4";
+	};
+
+	gpio_123: keyout2 {
+		pins = "SHARKL3_KEYOUT2";
+		function = "func4";
+	};
+
+	gpio_124: keyin0 {
+		pins = "SHARKL3_KEYIN0";
+		function = "func4";
+	};
+
+	gpio_125: keyin1 {
+		pins = "SHARKL3_KEYIN1";
+		function = "func4";
+	};
+
+	gpio_126: keyin2 {
+		pins = "SHARKL3_KEYIN2";
+		function = "func4";
+	};
+
+	gpio_144: extint0 {
+		pins = "SHARKL3_EXTINT0";
+		function = "func4";
+	};
+
+	gpio_145: extint1 {
+		pins = "SHARKL3_EXTINT1";
+		function = "func4";
+	};
+
+	gpio_146: scl3 {
+		pins = "SHARKL3_SCL3";
+		function = "func4";
+	};
+
+	gpio_147: sda3 {
+		pins = "SHARKL3_SDA3";
+		function = "func4";
+	};
+};
