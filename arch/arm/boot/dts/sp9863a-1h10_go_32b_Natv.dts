@@ -313,6 +313,10 @@
 	regulator-always-on;
 };
 
+&vddsim2 {
+	status = "disabled";
+};
+
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&extcon_gpio>;
