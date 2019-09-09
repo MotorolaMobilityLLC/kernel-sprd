@@ -78,6 +78,10 @@
 		sprd,mapping-offs = <0x0>;
 	};
 
+	sprd-map-user {
+		compatible = "sprd,map-user";
+	};
+
 	ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
@@ -94,6 +98,13 @@
 			label = "carveout_fb";
 			type = <2>;
 			memory-region = <&fb_reserved>;
+		};
+
+		heap@4 {
+			reg = <4>;
+			label = "carveout_camera";
+			type = <2>;
+			memory-region = <&camera_reserved>;
 		};
 	};
 
