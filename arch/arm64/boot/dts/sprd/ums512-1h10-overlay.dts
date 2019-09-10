@@ -131,6 +131,10 @@
 	sprd,backlight = <&pwm_backlight>;
 };
 
+&dpu {
+	sprd,backlight = <&pwm_backlight>;
+};
+
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 		"camhigh", "camveryhigh";
