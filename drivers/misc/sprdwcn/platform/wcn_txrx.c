@@ -410,7 +410,7 @@ void mdbg_ring_remove(void)
 #ifndef CONFIG_WCN_PCIE
 	mdbg_pt_ring_unreg();
 #endif
-	wakeup_source_destroy(&ring_dev->rw_wake_lock);
+	wakeup_source_trash(&ring_dev->rw_wake_lock);
 	mdbg_ring_destroy(ring_dev->ring);
 	tasklet_kill(&ring_dev->rx_task);
 	list_for_each_entry_safe(pos, next, &ring_dev->rx_head, entry) {
