@@ -2114,9 +2114,6 @@ static int marlin_set_power(int subsys, int val)
 			goto check_power_state_notify;
 		}
 
-		if (flag_reset)
-			marlin_dev->power_state = 0;
-
 		if (marlin_dev->keep_power_on) {
 			if (!flag_reset) {
 				if (subsys != WCN_AUTO) {
@@ -2132,12 +2129,9 @@ static int marlin_set_power(int subsys, int val)
 			}
 		}
 
-		if (!atomic_read(&marlin_dev->download_finish_flag))
-			goto check_power_state_notify;
-
 		set_wifipa_status(subsys, val);
 		clear_bit(subsys, &marlin_dev->power_state);
-		if (marlin_dev->power_state != 0) {
+		if ((marlin_dev->power_state != 0) && (!flag_reset)) {
 			WCN_INFO("can not power off, other module is on\n");
 			if (subsys == MARLIN_GNSS)
 				gnss_powerdomain_close();
@@ -2153,8 +2147,10 @@ static int marlin_set_power(int subsys, int val)
 		chip_power_off(subsys);
 		WCN_INFO("marlin power off!\n");
 		atomic_set(&marlin_dev->download_finish_flag, 0);
-		if (flag_reset)
+		if (flag_reset) {
 			flag_reset = FALSE;
+			marlin_dev->power_state = 0;
+		}
 	} /* power off end */
 
 	/* power on off together's Action */
@@ -2179,7 +2175,7 @@ out:
 
 check_power_state_notify:
 	power_state_notify_or_not(subsys, val);
-	WCN_INFO("mutex_unlock\n");
+	WCN_DBG("mutex_unlock\n");
 	mutex_unlock(&marlin_dev->power_lock);
 
 	return 0;

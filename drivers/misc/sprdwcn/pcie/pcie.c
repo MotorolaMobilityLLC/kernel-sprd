@@ -551,6 +551,10 @@ int sprd_pcie_scan_card(void *wcn_dev)
 	}
 	dev = &pdev->dev;
 	WCN_INFO("%s: rc node name: %s\n", __func__, dev->of_node->name);
+
+	if (priv->dev && priv->dev->is_added)
+		sprd_pcie_remove_card(wcn_dev);
+
 	sprd_pcie_configure_device(pdev);
 
 	if (wait_for_completion_timeout(&priv->scan_done,
@@ -627,6 +631,10 @@ void sprd_pcie_remove_card(void *wcn_dev)
 	dev = &pdev->dev;
 	WCN_INFO("%s: rc node name: %s\n",
 			__func__, dev->of_node->name);
+
+	if (!priv->dev || (priv->dev && !priv->dev->is_added))
+		return;
+
 	sprd_pcie_unconfigure_device(pdev);
 
 	if (wait_for_completion_timeout(&priv->remove_done,
