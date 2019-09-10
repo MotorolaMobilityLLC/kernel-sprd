@@ -1083,6 +1083,18 @@
 				#iommu-cells = <0>;
 			};
 		};
+
+		pub {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			dmc_controller: dmc-controller@30000000 {
+				compatible = "sprd,sharkle-dmc";
+				reg = <0x30000000 0x1000>;
+			};
+		};
 	};
 
 	ext_26m: ext-26m {

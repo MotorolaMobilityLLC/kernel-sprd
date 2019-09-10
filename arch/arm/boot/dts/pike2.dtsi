@@ -942,6 +942,18 @@
 			sprd,sys-ap-intc2 = <&intc2_controller>;
 			sprd,sys-ap-intc3 = <&intc3_controller>;
 		};
+
+		pub {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			dmc_controller: dmc-controller@30000000 {
+				compatible = "sprd,pike2-dmc";
+				reg = <0x30000000 0x1000>;
+			};
+		};
 	};
 
 	sprd_pcm: sprd-pcm-audio {
