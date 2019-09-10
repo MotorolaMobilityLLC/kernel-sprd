@@ -32,7 +32,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 loglevel=1 console=ttyS1,115200n8 init=/init root=/dev/ram0 rw androidboot.hardware=sp7731e_1h20 androidboot.dtbo_idx=0 androidboot.selinux=permissive printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 loglevel=1 console=ttyS1,115200n8 init=/init root=/dev/ram0 rw androidboot.hardware=sp7731e_1h20 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
 	};
 
 	ipi: interrupt-controller {
@@ -61,6 +61,12 @@
 		log {
 			compatible = "android,trusty-log-v1";
 		};
+	};
+
+	ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
 	};
 
 	tboard_thermistor:thermal-sensor {
@@ -337,6 +343,10 @@
 	sprd,calib-resistance-spec = <20000>;
 };
 
+&sdio0 {
+	cd-gpios = <&ap_gpio 2 GPIO_ACTIVE_LOW>;
+};
+
 &pwms {
 	status = "okay";
 };
@@ -371,6 +381,10 @@
 
 &cpu3 {
 	cpu-supply = <&vddcore>;
+};
+
+&pmic_flash {
+	status = "okay";
 };
 
 &sprd_audio_codec_ana {
