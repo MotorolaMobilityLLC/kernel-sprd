@@ -1374,7 +1374,7 @@ static int voltage_grade_value_update(struct dvfs_cluster *clu,
 
 	grade_id = clu->tmp_vol_grade++;
 
-	if (grade_id > MAX_VOLT_GRADE_NUM) {
+	if (grade_id >= MAX_VOLT_GRADE_NUM) {
 		pr_err("The volt grade number(%d) is beyond the maximun(%d)\n",
 		       grade_id, MAX_VOLT_GRADE_NUM);
 		return -EINVAL;
