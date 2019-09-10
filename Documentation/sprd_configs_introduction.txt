@@ -4,18 +4,22 @@ Documentation/sprd-configs.txt填写说明
 例如:
 	kernel4.14$ ./scripts/sprd/sprd_check-config_check.py support
 	Current kernel information
-	[arch]:['arm64', 'arm']
-	[plat]:['roc1', 'sharkl5', 'sharkl5_32']
+	[arch]: ['arm', 'arm64']
+	[plat]: ['pike2', 'roc1', 'sharkl3', 'sharkl3_32', 'sharkl5', 'sharkl5_32']
 	表明当前kernel统计的架构有arm64,arm, 若是全部支持则需填all
-	表明当前kernel统计的项目有roc1,sharkl5,sharkl5_32, 若是全部支持则需填all
+	表明当前kernel统计的项目有pike2,roc1,sharkl3,sharkl3_32,sharkle,sharkle32, 若是全部支持则需填all
 
 例子:
 	SPRD_SIPC_SWCNBLK
 		[arch] arm,arm64
 		[plat] sharkle32,sharkle,pike2
+		[missing plat] roc1,sharkl3,sharkl3_32
 		[field] make,code
 		[subsys] sipc
 		[must] user
+		[missing plat description] missing roc1 because...,
+					   missing sharkl3 because...,
+					   missing sharkl3_32 because...
 		[function] This function is used to enable wcnblk function for wifi ht.
 
 说明:
@@ -33,7 +37,7 @@ Documentation/sprd-configs.txt填写说明
 	例2: TRUSTY, 位于driver/trusty,是基于ARM64的安全方案,应填写arm64.
 
 [plat]
-	选项: < pike2 | sharkl3 | sharkl3_32 | sharkle | sharkle32 | sharkle32_fp | sharkl5 | sharkl5_32 | roc1> [ , ..... ] >  |  < all >
+	选项: < pike2 | sharkl3 | sharkl3_32 | sharkle | sharkle32 | sharkle32_fp | sharkl5 | sharkl5_32 | roc1 | sharkl5Pro > [ , ..... ] > | < all >
 		(多选用","分隔,如sharkl3,sharkle32,sharkle; all只能独立使用)
 	Ø 描述目的: 实际应用在哪个展讯SoC项目上。
 	Ø 检查规则: 当发现有提交在描述之外的平台打开此宏,则对该笔提交aiaiai -1。
@@ -50,6 +54,24 @@ Documentation/sprd-configs.txt填写说明
 		sharkl5: sharkl5 64位项目
 		sharkl5_32: sharkl5 32位项目
 		roc1: roc1 64位项目
+
+[missing plat]
+	选项: < none > | < pike2 | sharkl3 | sharkl3_32 | sharkle | sharkle32 | sharkle32_fp | sharkl5 | sharkl5_32 | roc1 | sharkl5_Pro >
+		(选用","为分隔标准, 如 "sharkl3,sharkle32,sharkle", none只能独立使用)
+	Ø 描述目的: 该宏未应用的展讯SoC项目
+	Ø 检查规则: 当该值与该宏未支持的平台不相符,或该值不是项目关键字, 则对该笔提交aiaiai -1。
+	Ø 填写说明: 填写当前arch下未使用该宏的SoC平台. 若该宏支持当前arch下所有展讯SoC项目,则填写none.
+
+	例: CONFIG_64BIT 在当前arch=arm64下的所有项目roc1,sharkl3,sharkl5,sharkl5Pro均打开,则应填写none.
+
+[missing plat description]
+	选项:< none > | < ...缺失项目原因描述... >
+	Ø 描述目的: 描述该宏在某些项目未支持的原因,或仅支持某些项目的原因
+	Ø 检查规则: 当[missing plat] 为none,则该项亦为none; 当[missing plat]存在缺失项,则该项必不为空或none; 否则对该笔提交aiaiai -1。
+	Ø 填写说明: 该项是对宏未支持项目的原因进行描述,故其描述内容应与[missing plat]一一对应,或描述内容完备地包含[missing plat]
+
+	例1: CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3 该宏是与sharkl3硬件平台相关的专有驱动, 因此只在sharkl3平台应用.
+	例2: CONFIG_64BIT 支持所有arch=arm64下的展讯SoC项目,[missing plat]为none, 则该项亦应填none.
 
 [field]
 	Ø 选项: < make | code | make,code >  | < menu > (menu只能独立使用)
