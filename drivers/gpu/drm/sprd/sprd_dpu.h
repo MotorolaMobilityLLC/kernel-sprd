@@ -184,6 +184,8 @@ struct dpu_context {
 	bool evt_te;
 	unsigned long logo_addr;
 	unsigned long logo_size;
+	struct work_struct cabc_work;
+	struct work_struct cabc_bl_update;
 };
 
 struct sprd_dpu {
