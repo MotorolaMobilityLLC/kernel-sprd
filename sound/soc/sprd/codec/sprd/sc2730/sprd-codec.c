@@ -407,6 +407,13 @@ static const struct snd_kcontrol_new virt_output_switch =
 static const struct snd_kcontrol_new ivsence_switch =
 	SOC_DAPM_SINGLE_VIRT("Switch", 1);
 
+static const struct snd_kcontrol_new aud_adc_switch[] = {
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+	SOC_DAPM_SINGLE_VIRT("Switch", 1),
+};
+
 static const u16 ocp_pfm_cfg_table[16] = {
 	0x0406, 0x1618, 0x292b, 0x3a3b, 0x4344, 0x5457, 0x6668, 0x787a,
 	0x8082, 0x9095, 0xa4a7, 0xb6b8, 0xc0c0, 0xd0d3, 0xe3e5, 0xf5f6
@@ -2346,6 +2353,14 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	SND_SOC_DAPM_MIXER("ADCR Mixer", SND_SOC_NOPM, 0, 0,
 		&adcr_mixer_controls[0],
 		ARRAY_SIZE(adcr_mixer_controls)),
+	SND_SOC_DAPM_SWITCH("AUD ADC0L", SND_SOC_NOPM, 0, 1,
+			    &aud_adc_switch[0]),
+	SND_SOC_DAPM_SWITCH("AUD ADC0R", SND_SOC_NOPM, 0, 1,
+			    &aud_adc_switch[1]),
+	SND_SOC_DAPM_SWITCH("AUD ADC1L", SND_SOC_NOPM, 0, 1,
+			    &aud_adc_switch[2]),
+	SND_SOC_DAPM_SWITCH("AUD ADC1R", SND_SOC_NOPM, 0, 1,
+			    &aud_adc_switch[3]),
 
 	SND_SOC_DAPM_PGA_E("ADCL Gain", SOC_REG(ANA_CDC0), ADPGAL_EN_S, 0,
 		adcl_pga_controls, 1, NULL, 0),
@@ -2755,27 +2770,54 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"Digital ADC1L Switch", NULL, "Digital ADC1 In Sel"},
 	{"Digital ADC1R Switch", NULL, "Digital ADC1 In Sel"},
 
-	{"ADC", NULL, "Digital ADC1L Switch"},
-	{"ADC", NULL, "Digital ADC1R Switch"},
-	{"ADC AP23", NULL, "Digital ADC1L Switch"},
-	{"ADC AP23", NULL, "Digital ADC1R Switch"},
-	{"ADC DSP_C", NULL, "Digital ADC1L Switch"},
-	{"ADC DSP_C", NULL, "Digital ADC1R Switch"},
-	{"ADC DSP_C_btsco_test", NULL, "Digital ADC1L Switch"},
-	{"ADC DSP_C_btsco_test", NULL, "Digital ADC1R Switch"},
-	{"ADC DSP_C_fm_test", NULL, "Digital ADC1L Switch"},
-	{"ADC DSP_C_fm_test", NULL, "Digital ADC1R Switch"},
-	{"ADC Voice", NULL, "Digital ADC1L Switch"},
-	{"ADC Voice", NULL, "Digital ADC1R Switch"},
-	{"ADC Voip", NULL, "Digital ADC1L Switch"},
-	{"ADC Voip", NULL, "Digital ADC1R Switch"},
-	{"ADC CODEC_TEST", NULL, "Digital ADC1L Switch"},
-	{"ADC CODEC_TEST", NULL, "Digital ADC1R Switch"},
-	{"ADC LOOP", NULL, "Digital ADC1L Switch"},
-	{"ADC LOOP", NULL, "Digital ADC1R Switch"},
+	{"AUD ADC0L", "Switch", "Digital ADCL Switch"},
+	{"AUD ADC0R", "Switch", "Digital ADCR Switch"},
+	{"AUD ADC1L", "Switch", "Digital ADC1L Switch"},
+	{"AUD ADC1R", "Switch", "Digital ADC1R Switch"},
 
-	{"ADC1", NULL, "Digital ADCL Switch"},
-	{"ADC1", NULL, "Digital ADCR Switch"},
+	/* AUD ADC0 */
+	{"ADC DSP_C", NULL, "AUD ADC0L"},
+	{"ADC DSP_C", NULL, "AUD ADC0R"},
+	{"ADC DSP_C_btsco_test", NULL, "AUD ADC0L"},
+	{"ADC DSP_C_btsco_test", NULL, "AUD ADC0R"},
+	{"ADC DSP_C_fm_test", NULL, "AUD ADC0L"},
+	{"ADC DSP_C_fm_test", NULL, "AUD ADC0R"},
+	{"ADC Voice", NULL, "AUD ADC0L"},
+	{"ADC Voice", NULL, "AUD ADC0R"},
+	{"ADC Voip", NULL, "AUD ADC0L"},
+	{"ADC Voip", NULL, "AUD ADC0R"},
+	{"ADC CODEC_TEST", NULL, "AUD ADC0L"},
+	{"ADC CODEC_TEST", NULL, "AUD ADC0R"},
+	{"ADC LOOP", NULL, "AUD ADC0L"},
+	{"ADC LOOP", NULL, "AUD ADC0R"},
+	{"ADC", NULL, "AUD ADC0L"},
+	{"ADC", NULL, "AUD ADC0R"},
+	{"ADC AP23", NULL, "AUD ADC0L"},
+	{"ADC AP23", NULL, "AUD ADC0R"},
+	{"ADC1", NULL, "AUD ADC0L"},
+	{"ADC1", NULL, "AUD ADC0R"},
+
+	/* AUD ADC1 */
+	{"ADC DSP_C", NULL, "AUD ADC1L"},
+	{"ADC DSP_C", NULL, "AUD ADC1R"},
+	{"ADC DSP_C_btsco_test", NULL, "AUD ADC1L"},
+	{"ADC DSP_C_btsco_test", NULL, "AUD ADC1R"},
+	{"ADC DSP_C_fm_test", NULL, "AUD ADC1L"},
+	{"ADC DSP_C_fm_test", NULL, "AUD ADC1R"},
+	{"ADC Voice", NULL, "AUD ADC1L"},
+	{"ADC Voice", NULL, "AUD ADC1R"},
+	{"ADC Voip", NULL, "AUD ADC1L"},
+	{"ADC Voip", NULL, "AUD ADC1R"},
+	{"ADC CODEC_TEST", NULL, "AUD ADC1L"},
+	{"ADC CODEC_TEST", NULL, "AUD ADC1R"},
+	{"ADC LOOP", NULL, "AUD ADC1L"},
+	{"ADC LOOP", NULL, "AUD ADC1R"},
+	{"ADC", NULL, "AUD ADC1L"},
+	{"ADC", NULL, "AUD ADC1R"},
+	{"ADC AP23", NULL, "AUD ADC1L"},
+	{"ADC AP23", NULL, "AUD ADC1R"},
+	{"ADC1", NULL, "AUD ADC1L"},
+	{"ADC1", NULL, "AUD ADC1R"},
 
 	{"ADC", NULL, "CLK_ADC"},
 	{"ADC1", NULL, "CLK_ADC"},
@@ -3263,22 +3305,20 @@ static int sprd_codec_pcm_hw_params(struct snd_pcm_substream *substream,
 		sp_asoc_pr_info("Playback rate is [%u]\n",
 			sprd_codec->da_sample_val);
 	} else {
-		if (dai->id == SPRD_CODEC_IIS0_ID) {
-			sprd_codec->ad_sample_val = fixed_rate[CODEC_PATH_AD] ?
-				fixed_rate[CODEC_PATH_AD] : rate;
-			sprd_codec_set_ad_sample_rate(codec,
-				sprd_codec->ad_sample_val, mask, shift);
-			sp_asoc_pr_info("Capture rate is [%u]\n",
-				sprd_codec->ad_sample_val);
-		} else {
-			sprd_codec->ad1_sample_val = fixed_rate[CODEC_PATH_AD1]
-				? fixed_rate[CODEC_PATH_AD1] : rate;
-			sprd_codec_set_ad_sample_rate(codec,
-				sprd_codec->ad1_sample_val,
-				ADC1_SRC_N_MASK, ADC1_SRC_N);
-			sp_asoc_pr_info("Capture(ADC1) rate is [%u]\n",
-				sprd_codec->ad1_sample_val);
-		}
+		sprd_codec->ad_sample_val = fixed_rate[CODEC_PATH_AD] ?
+			fixed_rate[CODEC_PATH_AD] : rate;
+		sprd_codec_set_ad_sample_rate(codec,
+			sprd_codec->ad_sample_val, mask, shift);
+		sp_asoc_pr_info("Capture rate is [%u]\n",
+			sprd_codec->ad_sample_val);
+
+		sprd_codec->ad1_sample_val = fixed_rate[CODEC_PATH_AD1]
+			? fixed_rate[CODEC_PATH_AD1] : rate;
+		sprd_codec_set_ad_sample_rate(codec,
+			sprd_codec->ad1_sample_val,
+			ADC1_SRC_N_MASK, ADC1_SRC_N);
+		sp_asoc_pr_info("Capture(ADC1) rate is [%u]\n",
+			sprd_codec->ad1_sample_val);
 	}
 
 	return 0;
