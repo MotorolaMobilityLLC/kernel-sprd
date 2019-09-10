@@ -2,7 +2,8 @@ Spreadtrum dmc driver interface
 This binding follows the generic dmc bindings defined in sprd,dmc.txt.
 
 Required properties:
-- compatible: Maybe "sprd,sharkl5-dmc","sprd,roc1-dmc" or "sprd,sharkl3-dmc".
+- compatible: Maybe "sprd,sharkl5-dmc","sprd,roc1-dmc" or "sprd,sharkl3-dmc"
+"sprd,pike2-dmc" or "sprd,sharkle-dmc".
 - reg: Address range of ddr mode registers and pub monitor registers.
 
 Example:

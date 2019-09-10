@@ -76,6 +76,17 @@ struct dmc_drv_data {
 	u32 reg_clk_ctrl;
 	u64 size;
 };
+#define PIKE2_SIZE_L_OFFSET	0x1b4
+#define PIKE2_SIZE_H_OFFSET	0x1b8
+#define PIKE2_TYPE_OFFSET	0x1bc
+#define PIKE2_CS0_MR_OFFSET	0x1c0
+#define PIKE2_CS1_MR_OFFSET	0x1c4
+
+#define SHARKLE_SIZE_L_OFFSET	0x1b4
+#define SHARKLE_SIZE_H_OFFSET	0x1b8
+#define SHARKLE_TYPE_OFFSET	0x1bc
+#define SHARKLE_CS0_MR_OFFSET	0x1c0
+#define SHARKLE_CS1_MR_OFFSET	0x1c4
 
 #define SHARKL3_SIZE_L_OFFSET	0x1c4
 #define SHARKL3_SIZE_H_OFFSET	0x1c8
@@ -106,6 +117,30 @@ struct dmc_drv_data {
 #define ORCA_TYPE_OFFSET	0x8
 #define ORCA_CS0_MR_OFFSET	0xc
 #define ORCA_CS1_MR_OFFSET	0x10
+
+static const struct dmc_data pike2_data = {
+	.proc_res = 0,
+	.mon_res = INVALID_RES_IDX,
+	.size_l_offset = PIKE2_SIZE_L_OFFSET,
+	.size_h_offset = PIKE2_SIZE_H_OFFSET,
+	.type_offset = PIKE2_TYPE_OFFSET,
+	.mr_offset = {
+		PIKE2_CS0_MR_OFFSET,
+		PIKE2_CS1_MR_OFFSET,
+	},
+};
+
+static const struct dmc_data sharkle_data = {
+	.proc_res = 0,
+	.mon_res = INVALID_RES_IDX,
+	.size_l_offset = SHARKLE_SIZE_L_OFFSET,
+	.size_h_offset = SHARKLE_SIZE_H_OFFSET,
+	.type_offset = SHARKLE_TYPE_OFFSET,
+	.mr_offset = {
+		SHARKLE_CS0_MR_OFFSET,
+		SHARKLE_CS1_MR_OFFSET,
+	},
+};
 
 static const struct dmc_data sharkl3_data = {
 	.proc_res = 0,
@@ -498,6 +533,8 @@ static int sprd_dmc_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id sprd_dmc_of_match[] = {
+	{.compatible = "sprd,pike2-dmc", .data = &pike2_data},
+	{.compatible = "sprd,sharkle-dmc", .data = &sharkle_data},
 	{.compatible = "sprd,sharkl3-dmc", .data = &sharkl3_data},
 	{.compatible = "sprd,sharkl5-dmc", .data = &sharkl5_data},
 	{.compatible = "sprd,sharkl5pro-dmc", .data = &sharkl5pro_data},
