@@ -309,6 +309,10 @@
 	regulator-always-on;
 };
 
+&vddsim2 {
+	regulator-always-on;
+};
+
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&extcon_gpio>;
