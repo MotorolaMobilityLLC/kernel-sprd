@@ -852,6 +852,17 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 			};
+
+			modem-dbg-log@40470000 {
+				compatible = "sprd,dbg-log-sharkle";
+				reg = <0x40470000 0x1000>,
+					<0x403e0000 0x1000>,
+					<0x40420000 0x1000>;
+				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+				sprd,syscon-aon-apb = <&aon_apb_regs>;
+				sprd,syscon-mm-ahb = <&mm_ahb_regs>;
+				sprd,syscon-anlg-phy-g7 = <&anlg_phy_g7_regs>;
+			};
 		};
 
 		mm {
