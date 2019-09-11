@@ -139,6 +139,10 @@
 #define SPRD_DMA_SRC_TRSF_STEP_OFFSET	0
 #define SPRD_DMA_TRSF_STEP_MASK		GENMASK(15, 0)
 
+/* SPRD DMA_SRC_BLK_STEP register definition */
+#define SPRD_DMA_LLIST_HIGH_MASK	GENMASK(31, 28)
+#define SPRD_DMA_LLIST_HIGH_SHIFT	28
+
 /* define DMA channel mode mask */
 #define SPRD_DMA_CHN_MODE_MASK		GENMASK(7, 0)
 #define SPRD_DMA_TRG_MODE_MASK		GENMASK(7, 0)
@@ -782,6 +786,7 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 	u32 req_mode = (flags >> SPRD_DMA_REQ_SHIFT) & SPRD_DMA_REQ_MODE_MASK;
 	int int_mode, src_datawidth, dst_datawidth, src_step, dst_step, data_format;
 	u32 temp, fix_mode = 0, fix_en = 0;
+	dma_addr_t linklist_ptr;
 
 	if (dir == DMA_MEM_TO_DEV) {
 		src_step = slave_cfg->step ? slave_cfg->step :
@@ -897,7 +902,11 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 		 * Set the link-list pointer point to next link-list
 		 * configuration's physical address.
 		 */
-		hw->llist_ptr = schan->linklist.phy_addr + temp;
+		linklist_ptr = schan->linklist.phy_addr + temp;
+		hw->llist_ptr = (u32)linklist_ptr;
+		hw->src_blk_step = (u32)(((u64)linklist_ptr >> 32) << SPRD_DMA_LLIST_HIGH_SHIFT) &
+			SPRD_DMA_LLIST_HIGH_MASK;
+
 		/* Notice! It only supports linklist dest wrap. */
 		if (schan->linklist.wrap_ptr) {
 			hw->wrap_ptr |= schan->linklist.wrap_ptr &
@@ -906,10 +915,10 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 		}
 	} else {
 		hw->llist_ptr = 0;
+		hw->src_blk_step = 0;
 	}
 
 	hw->frg_step = 0;
-	hw->src_blk_step = 0;
 	hw->des_blk_step = 0;
 	return 0;
 }
