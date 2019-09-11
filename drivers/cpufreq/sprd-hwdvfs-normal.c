@@ -1560,11 +1560,6 @@ static int sprd_cpudvfs_index_tbl_update(void *data, char *opp_name,
 	 * Use the default dts_tbl_name, if opp name is "operating-points",
 	 * otherwise change the dts_tbl_name.
 	 */
-	if (!clu->dts_tbl_name) {
-		pr_err("The name of the dvfs module's index table is null\n");
-		return -EINVAL;
-	}
-
 	strcpy(clu->dts_tbl_name, clu->default_tbl_name);
 
 	if (!strcmp(opp_name, "operating-points-1")) {
@@ -1611,10 +1606,6 @@ static int sprd_cpudvfs_index_tbl_update(void *data, char *opp_name,
 
 	while (slave) {
 		if (!slave->is_host_cluster && slave->dcdc == clu->dcdc) {
-			if (!slave->dts_tbl_name) {
-				pr_err("The name of the dvfs module's index table is null\n");
-				return -EINVAL;
-			}
 			strcpy(slave->dts_tbl_name, slave->default_tbl_name);
 			strcat(slave->dts_tbl_name, temp);
 
