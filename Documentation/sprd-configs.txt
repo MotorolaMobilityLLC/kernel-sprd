@@ -13598,6 +13598,15 @@ CONFIG_SPRD_MINI_SYSDUMP
 	[must]
 	[missing plat description]
 	[function]
+CONFIG_SPRD_MIPI_LOG_R2P0
+	[arch] arm
+	[plat] sharkle32
+	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32
+	[field] make
+	[subsys] staging
+	[must] debug
+	[missing plat description] SPRD_MIPI_LOG_R2P0 is just for sharkle32 and other projects have their own driver.
+	[function] This function is used to enable modem MIPI log function for modem log capture.
 CONFIG_SPRD_MIPI_LOG_R4P2
 	[arch] all
 	[plat] sharkl3,sharkl3_32
@@ -13636,7 +13645,7 @@ CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[function] This function is used to enable mm power domain.
 CONFIG_SPRD_MODEM_DEBUG
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
 	[missing plat] pike2,roc1,sharkl5_32,sharkle32
 	[field]
 	[subsys]
