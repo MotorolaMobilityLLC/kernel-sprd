@@ -88,7 +88,7 @@
 #include <linux/io.h>
 #include <linux/cache.h>
 #include <linux/rodata_test.h>
-
+#include <linux/pasr.h>
 #include <asm/io.h>
 #include <asm/bugs.h>
 #include <asm/setup.h>
@@ -539,6 +539,9 @@ asmlinkage __visible void __init start_kernel(void)
 	add_latent_entropy();
 	add_device_randomness(command_line, strlen(command_line));
 	boot_init_stack_canary();
+#ifdef CONFIG_PASR
+	early_pasr_setup();
+#endif
 	mm_init_cpumask(&init_mm);
 	setup_command_line(command_line);
 	setup_nr_cpu_ids();
@@ -626,6 +629,10 @@ asmlinkage __visible void __init start_kernel(void)
 	local_irq_enable();
 
 	kmem_cache_init_late();
+
+#ifdef CONFIG_PASR
+	late_pasr_setup();
+#endif
 
 	/*
 	 * HACK ALERT! This is early. We're enabling the console before
