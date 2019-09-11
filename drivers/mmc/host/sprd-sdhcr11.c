@@ -1271,7 +1271,6 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	} else if (ios->clock != host->ios.clock) {
 		div = sprd_sdhc_calc_div(host->base_clk, ios->clock);
 		sprd_sdhc_sd_clk_off(host);
-		udelay(100);
 		clkchg_flag = 1;
 		mmiowb();
 		sprd_sdhc_clk_set_and_on(host, div);
