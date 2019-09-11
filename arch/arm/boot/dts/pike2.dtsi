@@ -355,17 +355,17 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 				reg = <0x21800000 0x1000>;
-				syscons = <&ap_ahb_regs
+				syscons = <&aon_apb_regs
 					REG_AP_AHB_MISC_CKG_EN
 					(MASK_AP_AHB_DPHY_REF_CKG_EN |
 					MASK_AP_AHB_DPHY_CFG_CKG_EN)>,
-					<&ap_ahb_regs REG_AON_APB_PWR_CTRL
+					<&aon_apb_regs REG_AON_APB_PWR_CTRL
 					MASK_AON_APB_MIPI_DSI_PS_PD_S>,
-					<&ap_ahb_regs REG_AON_APB_PWR_CTRL
+					<&aon_apb_regs REG_AON_APB_PWR_CTRL
 					MASK_AON_APB_MIPI_DSI_PS_PD_L>,
-					<&ap_ahb_regs REG_AON_APB_PWR_CTRL
+					<&aon_apb_regs REG_AON_APB_PWR_CTRL
 					MASK_AON_APB_FORCE_DSI_PHY_SHUTDOWNZ>,
-					<&ap_ahb_regs REG_AON_APB_ANALOG_IOS_CFG
+					<&aon_apb_regs REG_AON_APB_ANALOG_IOS_CFG
 					MASK_AON_APB_DSI_ISO_EN>;
 				syscon-names = "enable", "power_small",
 						"power_large", "power_shutdown",
