@@ -49,6 +49,7 @@
  *     OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  *     EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stdio.h>
 #include "libfdt_env.h"
 
 #include <fdt.h>
@@ -527,8 +528,10 @@ static int overlay_fixup_phandle(void *fdt, void *fdto, int symbols_off,
 		ret = overlay_fixup_one_phandle(fdt, fdto, symbols_off,
 						path, path_len, name, name_len,
 						poffset, label);
-		if (ret)
+		if (ret) {
+			fprintf(stderr, "\033[;31mError : No label or path \"%s\" for \"%s\" \033[0m\n", label, path);
 			return ret;
+		}
 	} while (len > 0);
 
 	return 0;
@@ -785,8 +788,10 @@ static int overlay_symbol_update(void *fdt, void *fdto)
 
 		/* get fragment name first */
 		s = strchr(path + 1, '/');
-		if (!s)
+		if (!s) {
+			fprintf(stderr, "\033[;31mError : label or path \"%s\" is a bad overlay node in overlay dts\033[0m\n", name);
 			return -FDT_ERR_BADOVERLAY;
+		}
 
 		frag_name = path + 1;
 		frag_name_len = s - path - 1;

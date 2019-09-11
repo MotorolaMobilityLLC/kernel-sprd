@@ -60,7 +60,7 @@ static void fill_fullpaths(struct node *tree, const char *prefix)
 
 /* Usage related data. */
 static const char usage_synopsis[] = "dtc [options] <input file>";
-static const char usage_short_opts[] = "qI:O:o:V:d:R:S:p:a:fb:i:H:sW:E:@Ahv";
+static const char usage_short_opts[] = "qI:O:o:V:d:R:S:p:a:fb:i:H:sW:E:@AhvM";
 static struct option const usage_long_opts[] = {
 	{"quiet",            no_argument, NULL, 'q'},
 	{"in-format",         a_argument, NULL, 'I'},
@@ -83,6 +83,7 @@ static struct option const usage_long_opts[] = {
 	{"auto-alias",       no_argument, NULL, 'A'},
 	{"help",             no_argument, NULL, 'h'},
 	{"version",          no_argument, NULL, 'v'},
+	{"dtbo merge check", no_argument, NULL, 'M'},
 	{NULL,               no_argument, NULL, 0x0},
 };
 static const char * const usage_opts_help[] = {
@@ -119,6 +120,7 @@ static const char * const usage_opts_help[] = {
 	"\n\tEnable auto-alias of labels",
 	"\n\tPrint this help and exit",
 	"\n\tPrint version and exit",
+	"\n\tdtb apply dtbo file",
 	NULL,
 };
 
@@ -267,6 +269,12 @@ int main(int argc, char *argv[])
 
 		case 'h':
 			usage(NULL);
+			break;
+		case 'M':
+			if (dtbo_merge_chk_main(argc, argv))
+				die("check dtb apply dtbo!\n");
+			else
+				exit(0);
 		default:
 			usage("unknown option");
 		}
