@@ -77,9 +77,6 @@ static int sprd_cpufreq_bin_low_volt(struct device_node *np, u32 *p_binning)
 
 	pr_debug("%s get BIN %u for low volt\n", __func__, binning);
 
-	if (!binning)
-		return -EINVAL;
-
 	*p_binning = binning;
 
 	return 0;
