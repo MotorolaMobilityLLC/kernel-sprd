@@ -1110,7 +1110,7 @@ CONFIG_ARM_THUMB
 	[function] Support Thumb user binaries.
 CONFIG_ARM_UNWIND
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] pike2,sharkl3_32,sharkle32
 	[missing plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
