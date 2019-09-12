@@ -435,7 +435,9 @@ static int ion_system_heap_create(void)
 	if (IS_ERR(heap))
 		return PTR_ERR(heap);
 	heap->name = "system";
-	heaps[0] = heap;
+
+	if (heaps)
+		heaps[0] = heap;
 	ion_device_add_heap(heap);
 
 	return 0;

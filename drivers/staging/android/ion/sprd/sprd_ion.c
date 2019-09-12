@@ -328,10 +328,11 @@ static struct ion_platform_heap *sprd_ion_parse_dt(struct platform_device *pdev)
 
 	for_each_child_of_node(parent, child)
 		num_heaps++;
-	if (!num_heaps)
-		return ERR_PTR(-EINVAL);
 
 	pr_info("%s: num_heaps=%d\n", __func__, num_heaps);
+
+	if (!num_heaps)
+		return NULL;
 
 	ion_heaps = kcalloc(num_heaps, sizeof(struct ion_platform_heap),
 			    GFP_KERNEL);
@@ -428,6 +429,9 @@ static int ion_e_show_mem_handler(struct notifier_block *nb,
 	enum e_show_mem_type type = (enum e_show_mem_type)val;
 	unsigned long total_used = 0;
 
+	if (!heaps)
+		return -EINVAL;
+
 	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 	pr_info("Enhanced Mem-info :ION\n");
 	for (i = 0; i <= num_heaps; i++) {
@@ -452,26 +456,12 @@ static int sprd_ion_probe(struct platform_device *pdev)
 {
 	int i = 0, ret = -1;
 	struct ion_platform_heap *ion_heaps = NULL;
-	u32 need_free_pdata;
 
-	num_heaps = 0;
-
-	if (pdev->dev.of_node) {
-		ion_heaps = sprd_ion_parse_dt(pdev);
-		if (IS_ERR(ion_heaps))
-			return PTR_ERR(ion_heaps);
-		need_free_pdata = 1;
-	} else {
-		ion_heaps = pdev->dev.platform_data;
-
-		if (!ion_heaps) {
-			pr_err("%s failed: No platform data!\n", __func__);
-			return -ENODEV;
-		}
-
-		if (!num_heaps)
-			return -EINVAL;
-		need_free_pdata = 0;
+	ion_heaps = sprd_ion_parse_dt(pdev);
+	if (IS_ERR(ion_heaps)) {
+		pr_err("%s: parse dt failed with err %ld\n",
+			__func__, PTR_ERR(ion_heaps));
+		return PTR_ERR(ion_heaps);
 	}
 
 	heaps = kcalloc(num_heaps + 1, sizeof(struct ion_heap *), GFP_KERNEL);
@@ -498,15 +488,14 @@ static int sprd_ion_probe(struct platform_device *pdev)
 	register_e_show_mem_notifier(&ion_e_show_mem_notifier);
 #endif
 
-	if (need_free_pdata)
+	if (ion_heaps)
 		kfree(ion_heaps);
-
 	return 0;
+
 out:
 	kfree(heaps);
 out1:
-	if (need_free_pdata)
-		kfree(ion_heaps);
+	kfree(ion_heaps);
 
 	return ret;
 }
