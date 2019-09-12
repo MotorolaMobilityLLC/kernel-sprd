@@ -91,6 +91,10 @@ struct fan54015_charger_info {
 	struct extcon_dev *edev;
 };
 
+static int
+fan54015_charger_set_limit_current(struct fan54015_charger_info *info,
+				   u32 limit_cur);
+
 static bool fan54015_charger_is_bat_present(struct fan54015_charger_info *info)
 {
 	struct power_supply *psy;
@@ -304,8 +308,15 @@ static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 			return ret;
 		}
 		ret = fan54015_charger_set_termina_vol(info, voltage_max_microvolt);
-		if (ret)
+		if (ret) {
 			dev_err(info->dev, "set fan54015 terminal vol failed\n");
+			return ret;
+		}
+
+		ret = fan54015_charger_set_limit_current(info,
+							 info->cur.unknown_cur);
+		if (ret)
+			dev_err(info->dev, "set fan54015 limit current failed\n");
 	}
 
 	return ret;
