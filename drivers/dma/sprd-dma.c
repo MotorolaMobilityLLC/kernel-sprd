@@ -786,7 +786,7 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 	u32 req_mode = (flags >> SPRD_DMA_REQ_SHIFT) & SPRD_DMA_REQ_MODE_MASK;
 	int int_mode, src_datawidth, dst_datawidth, src_step, dst_step, data_format;
 	u32 temp, fix_mode = 0, fix_en = 0;
-	dma_addr_t linklist_ptr;
+	phys_addr_t llist_ptr;
 
 	if (dir == DMA_MEM_TO_DEV) {
 		src_step = slave_cfg->step ? slave_cfg->step :
@@ -902,9 +902,9 @@ static int sprd_dma_fill_desc(struct dma_chan *chan,
 		 * Set the link-list pointer point to next link-list
 		 * configuration's physical address.
 		 */
-		linklist_ptr = schan->linklist.phy_addr + temp;
-		hw->llist_ptr = (u32)linklist_ptr;
-		hw->src_blk_step = (u32)(((u64)linklist_ptr >> 32) << SPRD_DMA_LLIST_HIGH_SHIFT) &
+		llist_ptr = schan->linklist.phy_addr + temp;
+		hw->llist_ptr = lower_32_bits(llist_ptr);
+		hw->src_blk_step = (upper_32_bits(llist_ptr) << SPRD_DMA_LLIST_HIGH_SHIFT) &
 			SPRD_DMA_LLIST_HIGH_MASK;
 
 		/* Notice! It only supports linklist dest wrap. */
