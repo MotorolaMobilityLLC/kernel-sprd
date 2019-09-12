@@ -1162,7 +1162,8 @@ static void ucp1301_ivsense_remote(struct ucp1301_t *ucp1301)
 
 	mask = BIT_RG_AUD_ADPGA_IBIAS_EN | BIT_RG_AUD_VCM_VREF_BUF_EN |
 		BIT_RG_AUD_AD_CLK_EN_V | BIT_RG_AUD_AD_CLK_EN_I |
-		BIT_RG_AUD_ADC_V_EN | BIT_RG_AUD_ADC_I_EN;
+		BIT_RG_AUD_ADC_V_EN | BIT_RG_AUD_ADC_I_EN |
+		BIT_RG_AUD_AD_DATA_INVERSE_V;
 	regmap_update_bits(ucp1301->regmap, REG_IV_SENSE_ADC_REG0, mask, mask);
 
 	mask = BIT_RG_AUD_PA_VS_G(0x3) | BIT_RG_AUD_PA_IS_G(0x3);
