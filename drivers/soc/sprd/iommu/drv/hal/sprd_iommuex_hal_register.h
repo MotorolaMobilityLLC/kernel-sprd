@@ -56,7 +56,6 @@ bool mmu_ex_check_en(ulong ctrl_base_addr, u32 iommu_id);
 void mmu_ex_enable(ulong ctrl_base_addr, u32 iommu_id, u32 mmu_enable);
 void mmu_ex_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 	u32 iommu_id);
-void mmu_ex_clock_gate_enable(ulong ctrl_base_addr, u32 cg_enable);
 void mmu_ex_vaout_bypass_enable(ulong ctrl_base_addr, u32 iommu_id,
 		u32 iommu_type, bool vaor_bp_en);
 void mmuex_tlb_enable(ulong ctrl_base_addr, u32 r_enable, u32 w_enable);
@@ -73,9 +72,6 @@ void mmu_ex_mini_ppn1(ulong ctrl_base_addr, u32 iommu_id, ulong ppn1);
 void mmu_ex_ppn1_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn1_range);
 void mmu_ex_mini_ppn2(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2);
 void mmu_ex_ppn2_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2_range);
-void mmu_ex_reg_authority(ulong ctrl_base_addr, u32 iommu_id, ulong reg_ctrl);
-void mmu_ex_write_pate_totable(ulong pgt_base_addr,
-	u32 entry_index, u32 ppn_addr);
 u32 mmu_ex_read_page_entry(ulong page_table_addr, u32 entry_index);
 void mmu_ex_frc_copy(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type);
 

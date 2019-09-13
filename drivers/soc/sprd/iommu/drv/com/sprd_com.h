@@ -23,7 +23,6 @@
 	((virt_addr-base_addr)/MMU_MAPING_PAGESIZE)
 #define MAP_SIZE_PAGE_ALIGN_UP(length) \
 	((length + MMU_MAPING_PAGE_MASK) & (~MMU_MAPING_PAGE_MASK))
-#define SIZE_TO_ENTRYS(size) (size/MMU_MAPING_PAGESIZE)
 #define SIZE_TO_ENTRIES(size) (size/MMU_MAPING_PAGESIZE)
 
 

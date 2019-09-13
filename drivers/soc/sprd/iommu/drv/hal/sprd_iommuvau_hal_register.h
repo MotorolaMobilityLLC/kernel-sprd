@@ -57,12 +57,9 @@
 void mmu_vau_enable(ulong ctrl_base_addr, u32 iommu_id, u32 mmu_enable);
 void mmu_vau_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 	u32 iommu_id);
-void mmu_vau_clock_gate_enable(ulong ctrl_base_addr, u32 cg_enable);
 void mmu_vau_vaout_bypass_enable(ulong ctrl_base_addr, u32 iommu_id,
 		u32 iommu_type, bool vaor_bp_en);
 void mmuvau_tlb_enable(ulong ctrl_base_addr, u32 r_enable, u32 w_enable);
-void mmu_vau_tlb_update(ulong ctrl_base_addr, enum sprd_iommu_ch_type ch_type,
-		       u32 ch_id);
 void mmu_vau_update(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type);
 void mmu_vau_first_vpn(ulong ctrl_base_addr, u32 iommu_id, u32 vp_addr);
 void mmu_vau_vpn_range(ulong ctrl_base_addr, u32 iommu_id, u32 vp_range);
@@ -74,9 +71,6 @@ void mmu_vau_mini_ppn1(ulong ctrl_base_addr, u32 iommu_id, ulong ppn1);
 void mmu_vau_ppn1_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn1_range);
 void mmu_vau_mini_ppn2(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2);
 void mmu_vau_ppn2_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2_range);
-void mmu_vau_reg_authority(ulong ctrl_base_addr, u32 iommu_id, ulong reg_ctrl);
-void mmu_vau_write_pate_totable(ulong pgt_base_addr,
-	u32 entry_index, u32 ppn_addr);
 u32 mmu_vau_read_page_entry(ulong page_table_addr, u32 entry_index);
 void mmu_vau_int_enable(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type);
 

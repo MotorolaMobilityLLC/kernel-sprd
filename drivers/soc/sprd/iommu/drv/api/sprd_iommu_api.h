@@ -51,10 +51,9 @@ struct sprd_iommu_init_param {
 	u32 pgt_size;
 	ulong ctrl_reg_addr;
 
-	ulong fm_base_addr;/*fullmode virtual pool base address*/
-	u32 fm_ram_size;
+	ulong vpn_base_addr;/*fullmode virtual pool base address*/
+	u32 vpn_range;
 	u64 faultpage_addr;/* Enabel fault page function */
-	u8 ram_clk_div;/*Clock divisor*/
 	unsigned long pagt_base_ddr;
 	unsigned int pagt_ddr_size;
 
@@ -63,7 +62,6 @@ struct sprd_iommu_init_param {
 	u64 ppn1_range;
 	u64 mini_ppn2;
 	u64 ppn2_range;
-	int chip;
 };
 
 /******************************************************

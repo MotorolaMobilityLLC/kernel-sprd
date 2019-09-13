@@ -51,14 +51,6 @@ void mmu_ex_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 
 }
 
-
-void mmu_ex_clock_gate_enable(ulong ctrl_base_addr, u32 cg_enable)
-{
-	ulong reg_addr = ctrl_base_addr;
-
-	putbit(reg_addr, cg_enable, 1);
-}
-
 void mmu_ex_vaout_bypass_enable(ulong ctrl_base_addr, u32 iommu_id,
 		u32 iommu_type, bool vaor_bp_en)
 {
@@ -237,26 +229,6 @@ void mmu_ex_ppn2_range(ulong ctrl_base_addr, u32 iommu_id, ulong ppn2_range)
 		reg_addr = ctrl_base_addr + PPN2_RANGE_OFFSET;
 
 	reg_write_dword(reg_addr, (ppn2_range >> 20));
-}
-
-void mmu_ex_reg_authority(ulong ctrl_base_addr, u32 iommu_id, ulong reg_ctrl)
-{
-	ulong reg_addr = ctrl_base_addr;
-
-	if (iommu_id == IOMMU_EX_ISP)
-		reg_addr += 0x3FC;
-	else
-		reg_addr += REG_AUTHORITY_OFFSET;
-
-	putbit(reg_addr, reg_ctrl, 0);
-}
-
-void mmu_ex_write_pate_totable(ulong pgt_base_addr,
-	u32 entry_index, u32 ppn_addr)
-{
-	ulong pgt_addr = pgt_base_addr + entry_index * 4;
-
-	reg_write_dword(pgt_addr, ppn_addr);
 }
 
 u32 mmu_ex_read_page_entry(ulong page_table_addr, u32 entry_index)

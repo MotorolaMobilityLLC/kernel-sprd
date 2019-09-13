@@ -241,13 +241,11 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 	}
 #endif
 
-	sprd_iommu_resume(vsp_hw_dev->vsp_dev);
 	ret = sprd_ion_get_buffer(mapdata->fd, NULL,
 					&(iommu_map_data.buf),
 					&iommu_map_data.iova_size);
 	if (ret) {
 		pr_err("get_sg_table failed, ret %d\n", ret);
-		sprd_iommu_suspend(vsp_hw_dev->vsp_dev);
 		vsp_clk_disable(vsp_hw_dev);
 		return ret;
 	}
@@ -271,14 +269,12 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 					sizeof(struct vsp_iommu_map_data));
 		if (ret) {
 			pr_err("copy_to_user failed, ret %d\n", ret);
-			sprd_iommu_suspend(vsp_hw_dev->vsp_dev);
 			vsp_clk_disable(vsp_hw_dev);
 			return ret;
 		}
 	} else
 		pr_err("vsp iommu map failed, ret %d, map size 0x%zx\n",
 			ret, iommu_map_data.iova_size);
-	sprd_iommu_suspend(vsp_hw_dev->vsp_dev);
 	vsp_clk_disable(vsp_hw_dev);
 	return ret;
 }
@@ -289,7 +285,6 @@ int vsp_free_iova(struct vsp_dev_t *vsp_hw_dev,
 	struct sprd_iommu_unmap_data iommu_ummap_data;
 
 	vsp_clk_enable(vsp_hw_dev);
-	sprd_iommu_resume(vsp_hw_dev->vsp_dev);
 	iommu_ummap_data.iova_addr = ummapdata->iova_addr;
 	iommu_ummap_data.iova_size = ummapdata->size;
 	iommu_ummap_data.ch_type = SPRD_IOMMU_FM_CH_RW;
@@ -304,7 +299,6 @@ int vsp_free_iova(struct vsp_dev_t *vsp_hw_dev,
 	else
 		pr_debug("vsp iommu-unmap success iova addr 0x%lx size 0x%zx\n",
 			ummapdata->iova_addr, ummapdata->size);
-	sprd_iommu_suspend(vsp_hw_dev->vsp_dev);
 	vsp_clk_disable(vsp_hw_dev);
 
 	return ret;

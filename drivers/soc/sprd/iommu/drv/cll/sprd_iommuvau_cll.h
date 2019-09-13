@@ -36,13 +36,9 @@ struct sprd_iommuvau_priv {
 	unsigned int pagt_ddr_size;
 	unsigned long pagt_base_phy_ddr;
 
-	u8 ram_clk_div;/*Clock divisor*/
-
 	u8 map_cnt;
 	enum sprd_iommu_type iommu_type;
 	enum IOMMU_ID iommu_id;
-	int chip;
-	struct sprd_iommuvau_interrupt st_interrupt;
 };
 
 u32 sprd_iommuvau_cll_init(struct sprd_iommu_init_param *p_init_param,
@@ -63,7 +59,6 @@ u32 sprd_iommuvau_cll_reset(sprd_iommu_hdl  p_iommu_hdl, u32 channel_num);
 u32 sprd_iommuvau_cll_set_bypass(sprd_iommu_hdl  p_iommu_hdl, bool vaor_bp_en);
 u32 sprd_iommuvau_cll_virt_to_phy(sprd_iommu_hdl p_iommu_hdl,
 			u64 virt_addr, u64 *dest_addr);
-u32 sprd_iommuvau_reg_authority(sprd_iommu_hdl  p_iommu_hdl, u8 authority);
 void sprd_iommuvau_flush_pgt(ulong ppn_base, u32 start_entry, u32 end_entry);
 
 #endif  /* _SPRD_IOMMU_CLL_H_ */
