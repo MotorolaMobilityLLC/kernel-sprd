@@ -636,6 +636,11 @@
 				wcn_delta: wcn-delta@20 {
 					reg = <0x20 0x4>;
 				};
+
+				dvfs_bin_cpu0: dvfs-bin-cpu0@1d {
+					reg = <0x1d 0x4>;
+					bits = <0 4>;
+				};
 			};
 
 			ap_gpio: gpio@40280000 {

@@ -102,6 +102,8 @@
 		voltage-tolerance = <0>;
 		default-efuse-blk-binning = <1>;
 		sprd,efuse-blk-binning = <43 0xf00>;
+		nvmem-cells = <&dvfs_bin_cpu0>;
+		nvmem-cell-names = "dvfs_bin";
 		sprd,cpufreq-temp-threshold = <50>;
 		operating-points = <
 			/* kHz  uV */
@@ -112,7 +114,7 @@
 			1000000 931250
 			900000  900000
 			768000  900000>;
-		operating-points-0-0 = <
+		operating-points-0 = <
 			/* kHz	uV */
 			1300000 1021875
 			1200000 990625
@@ -121,7 +123,7 @@
 			1000000 931250
 			900000  900000
 			768000  900000>;
-		operating-points-1-0 = <
+		operating-points-1 = <
 			/* kHz  uV */
 			1300000 950000
 			1200000 925000
@@ -130,7 +132,7 @@
 			1000000 900000
 			900000  900000
 			768000  900000>;
-		operating-points-2-0 = <
+		operating-points-2 = <
 			/* kHz	uV */
 			1300000 990625
 			1200000 962500
@@ -139,7 +141,7 @@
 			1000000 900000
 			900000  900000
 			768000  900000>;
-		operating-points-3-0 = <
+		operating-points-3 = <
 			/* kHz	uV */
 			1300000 1021875
 			1200000 990625
@@ -148,7 +150,7 @@
 			1000000 931250
 			900000  900000
 			768000  900000>;
-		operating-points-4-0 = <
+		operating-points-4 = <
 			/* kHz	uV */
 			1300000 1050000
 			1200000 1021875
@@ -157,7 +159,7 @@
 			1000000 962500
 			900000  931250
 			768000  900000>;
-		operating-points-0-0-50 = <
+		operating-points-0-50 = <
 			/* kHz	uV */
 			1300000 1040625
 			1200000 1006250
@@ -166,7 +168,7 @@
 			1000000 937500
 			900000  900000
 			768000  900000>;
-		operating-points-1-0-50 = <
+		operating-points-1-50 = <
 			/* kHz	uV */
 			1300000 971875
 			1200000 937500
@@ -175,7 +177,7 @@
 			1000000 900000
 			900000  900000
 			768000  900000>;
-		operating-points-2-0-50 = <
+		operating-points-2-50 = <
 			/* kHz	uV */
 			1300000 1012500
 			1200000 975000
@@ -184,7 +186,7 @@
 			1000000 900000
 			900000  900000
 			768000  900000>;
-		operating-points-3-0-50 = <
+		operating-points-3-50 = <
 			/* kHz	uV */
 			1300000 1040625
 			1200000 1006250
@@ -193,7 +195,7 @@
 			1000000 937500
 			900000  900000
 			768000  900000>;
-		operating-points-4-0-50 = <
+		operating-points-4-50 = <
 			/* kHz	uV */
 			1200000 1037500
 			1150000 1021875
