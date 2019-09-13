@@ -408,6 +408,9 @@
 
 &sound_vbc_r1p0v3_sprd_codec {
 	status = "okay";
+	sprd,smartamp-boost-names = "boost_enable", "boost_mode";
+	sprd,smartamp-boost-gpios = <&ap_gpio 121 0>,
+				<&ap_gpio 85 0>;
 };
 
 &sound_sprd_ap_alliis {
