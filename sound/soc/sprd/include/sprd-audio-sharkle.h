@@ -686,7 +686,7 @@ static inline int arch_audio_i2s_tx_dma_info(int id)
 
 	switch (id) {
 	case 0:
-		ret = DMA_REQ_IIS0_RX;
+		ret = DMA_REQ_IIS0_TX;
 		break;
 	case 1:
 	case 2:
@@ -705,7 +705,7 @@ static inline int arch_audio_i2s_rx_dma_info(int id)
 
 	switch (id) {
 	case 0:
-		ret = DMA_REQ_IIS0_TX;
+		ret = DMA_REQ_IIS0_RX;
 		break;
 	case 1:
 	case 2:
