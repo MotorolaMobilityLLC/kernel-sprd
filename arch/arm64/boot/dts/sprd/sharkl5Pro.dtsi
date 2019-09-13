@@ -1049,6 +1049,7 @@
 				reg = <0 0x33490000 0 0x170>;
 				interrupts = <GIC_SPI 182 IRQ_TYPE_LEVEL_HIGH>;
 				sprd,ap-addr-offset = <0x32000000>;
+				sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
 			};
 
 			agcp_dma: dma-controller@33580000 {
