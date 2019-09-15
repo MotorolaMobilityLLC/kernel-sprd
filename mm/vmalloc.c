@@ -2672,6 +2672,12 @@ void print_vmalloc_info(enum e_show_mem_type type)
 
 		v = va->vm;
 		if (v->nr_pages) {
+#ifdef CONFIG_VMAP_STACK
+			char vcaller[128];
+			snprintf(vcaller, sizeof(vcaller), "%pS", v->caller);
+			if (strncmp(vcaller, "_do_fork", 8) == 0)
+				continue;
+#endif
 			total_pages += v->nr_pages;
 			if (E_SHOW_MEM_BASIC == type) {
 				/* 1M Bytes */
