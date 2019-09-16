@@ -119,7 +119,7 @@ function add_diffconfig()
 	sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_BOARD_SPEC_CONFIG
 
 	if [ "$BSP_BOARD_TEE_CONFIG" == "trusty" ]; then
-		if [ -n $BSP_BOARD_TEE_64BIT ]; then
+		if [ -n "$BSP_BOARD_TEE_64BIT" ]; then
 			if [ "$BSP_BOARD_TEE_64BIT" == "false" ]; then
 				BSP_DEVICE_TRUSTY_CONFIG=$BSP_KERNEL_DIFF_CONFIG_ARCH/trusty_aarch32_diff_config
 			else
