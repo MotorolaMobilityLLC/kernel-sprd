@@ -168,7 +168,7 @@
 
 	ddr_dfs: scene-frequency {
 		compatible = "sprd,dfs";
-		freq-num = <3>;
+		freq-num = <4>;
 	};
 };
 
