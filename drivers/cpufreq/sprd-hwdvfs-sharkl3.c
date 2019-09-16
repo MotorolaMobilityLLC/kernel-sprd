@@ -1646,7 +1646,7 @@ static int sprd_hwdvfs_l3_set_target(void *drvdata, u32 cluster, u32 idx_volt)
 
 static unsigned int sprd_hwdvfs_l3_get(void *drvdata, int cluster)
 {
-	unsigned int regval, reg = 0, freq_khz;
+	unsigned int regval = 0, reg = 0, freq_khz;
 
 	if (hwdvfs_l3 == NULL || !hwdvfs_l3->probed)
 		return -ENODEV;
