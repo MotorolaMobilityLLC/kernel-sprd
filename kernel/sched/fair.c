@@ -7854,8 +7854,8 @@ static int find_energy_efficient_cpu(struct sched_domain *sd,
 		target_cpu = find_best_target(p, &eenv->cpu[EAS_CPU_BKP].cpu_id,
 					      boosted, prefer_idle);
 
-		/* Immediately return a found idle CPU for a prefer_idle task */
-		if ((prefer_idle && target_cpu >= 0 && idle_cpu(target_cpu)) ||
+		/* Immediately return a found idle CPU for a prefer_idle or boosted task */
+		if (((prefer_idle || boosted > 0) && target_cpu >= 0 && idle_cpu(target_cpu)) ||
 		    cpumask_test_cpu(target_cpu, &min_cap_cpu_mask))
 			return target_cpu;
 
