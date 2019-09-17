@@ -861,6 +861,7 @@
 
 				sprd,ip = "sprd,megacores-sharkl5";
 				sprd,soc = "sharkl5Pro";
+				sprd,mipi-drive-capability = <7>;
 
 				/* output port */
 				port@0 {
