@@ -575,6 +575,7 @@ enum KCTL_TYPE {
 	SND_KCTL_TYPE_SBCPARA_SET,
 	SND_KCTL_TYPE_MAIN_MIC_PATH_FROM,
 	SND_KCTL_TYPE_IVSENCE_FUNC,
+	SND_KCTL_TYPE_EXT_INNER_IIS_MST_SEL,
 	SND_KCTL_TYPE_END,
 };
 
@@ -1141,6 +1142,28 @@ struct mainmic_from_para {
 	enum VBC_MAINMIC_PATH_VAL main_mic_from;
 };
 
+/*
+ * SND_KCTL_TYPE_EXT_INNER_IIS_MST_SEL
+ * selection for vbc iis master from which iis controler.
+ */
+enum VBC_IIS_MST_SEL_ID {
+	IIS_MST_SEL_0,
+	IIS_MST_SEL_1,
+	IIS_MST_SEL_2,
+	IIS_MST_SEL_3,
+	IIS_MST_SEL_ID_MAX,
+};
+
+enum VBC_MASTER_TYPE_VAL {
+	VBC_MASTER_EXTERNAL,
+	VBC_MASTER_INTERNAL,
+	VBC_MASTER_TYPE_MAX,
+};
+
+struct vbc_iis_mst_sel_para {
+	enum VBC_IIS_MST_SEL_ID id;
+	enum VBC_MASTER_TYPE_VAL mst_type;
+};
 
 /**********************************************************************
  * define for SND_VBC_DSP_IO_SHAREMEM_GET / SND_VBC_DSP_IO_SHAREMEM_SET
@@ -1380,6 +1403,7 @@ struct vbc_codec_priv {
 	struct sbcenc_param_t sbcenc_para;
 	char firmware_path[AUD_FIRMWARE_PATHNAME_LEN_MAX];
 	struct mainmic_from_para mainmic_from[MAINMIC_USED_MAINMIC_TYPE_MAX];
+	struct vbc_iis_mst_sel_para mst_sel_para[IIS_MST_SEL_ID_MAX];
 	/* to do */
 	atomic_t aux_iis_master_start;
 	int32_t ivs_smtpa_ctl_enable;
@@ -1449,6 +1473,7 @@ int dsp_vbc_iis_tx_width_set(int id, u32 width);
 int dsp_vbc_iis_tx_lr_mod_set(int id, u32 lr_mod);
 int dsp_vbc_iis_rx_width_set(int id, u32 width);
 int dsp_vbc_iis_rx_lr_mod_set(int id, u32 lr_mod);
+int dsp_vbc_mst_sel_type_set(int id, u32 type);
 int dsp_vbc_iis_master_start(u32 enable);
 int dsp_vbc_mainmic_path_set(int type, int val);
 int dsp_ivsence_func(int enable, int iv_adc_id);

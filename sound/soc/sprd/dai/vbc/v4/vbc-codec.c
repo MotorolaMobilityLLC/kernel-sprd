@@ -2002,6 +2002,56 @@ static int vbc_put_iis_rx_lr_mod_sel(struct snd_kcontrol *kcontrol,
 	return 1;
 }
 
+static const char * const vbc_iis_mst_sel_txt[VBC_MASTER_TYPE_MAX] = {
+	[VBC_MASTER_EXTERNAL] = TO_STRING(VBC_MASTER_EXTERNAL),
+	[VBC_MASTER_INTERNAL] = TO_STRING(VBC_MASTER_INTERNAL),
+};
+
+static const struct soc_enum vbc_iis_mst_sel_enum[IIS_MST_SEL_ID_MAX] = {
+	SPRD_VBC_ENUM(IIS_MST_SEL_0, VBC_MASTER_TYPE_MAX, vbc_iis_mst_sel_txt),
+	SPRD_VBC_ENUM(IIS_MST_SEL_1, VBC_MASTER_TYPE_MAX, vbc_iis_mst_sel_txt),
+	SPRD_VBC_ENUM(IIS_MST_SEL_2, VBC_MASTER_TYPE_MAX, vbc_iis_mst_sel_txt),
+	SPRD_VBC_ENUM(IIS_MST_SEL_3, VBC_MASTER_TYPE_MAX, vbc_iis_mst_sel_txt),
+};
+
+static int vbc_get_mst_sel_type(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	u32 id = e->reg;
+
+	ucontrol->value.enumerated.item[0] =
+		vbc_codec->mst_sel_para[id].mst_type;
+
+	return 0;
+}
+
+static int vbc_put_mst_sel_type(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	u32 value;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	u32 id = e->reg;
+
+	if (ucontrol->value.enumerated.item[0] >= texts->items) {
+		pr_err("mst_sel_type, index outof bounds error\n");
+		return -EINVAL;
+	}
+
+	value = ucontrol->value.enumerated.item[0];
+	vbc_codec->mst_sel_para[id].id = id;
+	vbc_codec->mst_sel_para[id].mst_type = value;
+	sp_asoc_pr_dbg("mst_sel_type id %d, value %d\n", id, value);
+	dsp_vbc_mst_sel_type_set(id, value);
+
+	return 0;
+}
+
 /* IIS MASTER */
 static const struct soc_enum
 vbc_iis_master_enum = SPRD_VBC_ENUM(SND_SOC_NOPM, 2, enable_disable_txt);
@@ -3400,6 +3450,18 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 		     vbc_get_iis_rx_lr_mod_sel, vbc_put_iis_rx_lr_mod_sel),
 	SOC_ENUM_EXT("VBC_IIS_MASTER_ENALBE", vbc_iis_master_enum,
 		     vbc_get_iis_master_en, vbc_put_iis_master_en),
+	SOC_ENUM_EXT("VBC_IIS_MST_SEL_0_TYPE",
+		     vbc_iis_mst_sel_enum[IIS_MST_SEL_0], vbc_get_mst_sel_type,
+		     vbc_put_mst_sel_type),
+	SOC_ENUM_EXT("VBC_IIS_MST_SEL_1_TYPE",
+		     vbc_iis_mst_sel_enum[IIS_MST_SEL_1], vbc_get_mst_sel_type,
+		     vbc_put_mst_sel_type),
+	SOC_ENUM_EXT("VBC_IIS_MST_SEL_2_TYPE",
+		     vbc_iis_mst_sel_enum[IIS_MST_SEL_2], vbc_get_mst_sel_type,
+		     vbc_put_mst_sel_type),
+	SOC_ENUM_EXT("VBC_IIS_MST_SEL_3_TYPE",
+		     vbc_iis_mst_sel_enum[IIS_MST_SEL_3], vbc_get_mst_sel_type,
+		     vbc_put_mst_sel_type),
 	SOC_ENUM_EXT("VBC_DSP_MAINMIC_PATH_SEL",
 		     vbc_mainmic_path_enum[MAINMIC_USED_DSP_NORMAL_ADC],
 		     vbc_mainmic_path_sel_val_get,

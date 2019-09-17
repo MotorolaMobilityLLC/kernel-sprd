@@ -1245,6 +1245,23 @@ int dsp_vbc_iis_rx_lr_mod_set(int id, u32 lr_mod)
 	return 0;
 }
 
+/* SND_KCTL_TYPE_EXT_INNER_IIS_MST_SEL */
+int dsp_vbc_mst_sel_type_set(int id, u32 type)
+{
+	int ret;
+	struct vbc_iis_mst_sel_para iis_mst_sel_type = { };
+
+	iis_mst_sel_type.id = id;
+	iis_mst_sel_type.mst_type = type;
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL, SND_KCTL_TYPE_EXT_INNER_IIS_MST_SEL,
+			   -1, SND_VBC_DSP_IO_KCTL_SET, &iis_mst_sel_type,
+			   sizeof(iis_mst_sel_type), AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_err("mst_sel_type_set failed %d\n", ret);
+
+	return ret;
+}
+
 /* SND_KCTL_TYPE_VBC_IIS_MASTER_START */
 int dsp_vbc_iis_master_start(u32 enable)
 {
