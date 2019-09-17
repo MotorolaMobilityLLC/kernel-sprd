@@ -491,6 +491,25 @@
 	};
 };
 
+&i2c2 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	ak4377_hifi: ak4377@10 {
+		compatible = "akm,ak4376";
+		reg = <0x10>;
+		#sound-dai-cells = <1>;
+		vddldo1-supply = <&vddldo1>;
+		sprd,vddldo1-voltage = <3300000>;
+		ak4377,pdn-gpio = <&ap_gpio 116 GPIO_ACTIVE_HIGH>;
+
+		clock-names = "clk_48M", "source", "enable";
+		clocks = <&aon_clk CLK_AUX1>,
+			 <&pll2 CLK_TWPLL_48M>,
+			 <&aonapb_gate CLK_AUX1_EB>;
+	};
+};
+
 &i2c4 {
 	status = "okay";
 	clock-frequency = <400000>;
@@ -797,6 +816,190 @@
 		};
 		codec {
 			sound-dai = <&ucp1301_spk 0>;
+		};
+	};
+
+	/*
+	 * node 54 and node 55 (index 36 and 37) are reserved for
+	 * "ucp1301-spk2" and "ucp1301-rcv"
+	 */
+	/* 38: akm hifi normal ap01 */
+	sprd-audio-card,dai-link@56 {
+		ignore-suspend = <1>;
+		link-name = "BE_NORMAL_AP01_HIFI";
+		stream-name = "BE_ST_NORMAL_AP01_HIFI";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 34>;
+		};
+		codec {
+			sound-dai = <&ak4377_hifi 0>;
+		};
+	};
+
+	/* 39: akm hifi normal ap23 */
+	sprd-audio-card,dai-link@57 {
+		ignore-suspend = <1>;
+		link-name = "BE_NORMAL_AP23_HIFI";
+		stream-name = "BE_ST_NORMAL_AP23_HIFI";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 35>;
+		};
+		codec {
+			sound-dai = <&ak4377_hifi 0>;
+		};
+	};
+
+	/* 40: akm hifi fast playback */
+	sprd-audio-card,dai-link@58 {
+		ignore-suspend = <1>;
+		link-name = "BE_FAST_P_HIFI";
+		stream-name = "BE_ST_FAST_P_HIFI";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 36>;
+		};
+		codec {
+			sound-dai = <&ak4377_hifi 0>;
+		};
+	};
+
+	/* 41: akm hifi offload */
+	sprd-audio-card,dai-link@59 {
+		ignore-suspend = <1>;
+		link-name = "BE_OFFLOAD_HIFI";
+		stream-name = "BE_ST_OFFLOAD_HIFI";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 37>;
+		};
+		codec {
+			sound-dai = <&ak4377_hifi 0>;
+		};
+	};
+
+	/* 42: akm hifi voice */
+	sprd-audio-card,dai-link@60 {
+		ignore-suspend = <1>;
+		link-name = "BE_VOICE_HIFI";
+		stream-name = "BE_ST_VOICE_HIFI";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 38>;
+		};
+		codec {
+			sound-dai = <&ak4377_hifi 0>;
+		};
+	};
+
+	/* 43: akm hifi voip */
+	sprd-audio-card,dai-link@61 {
+		ignore-suspend = <1>;
+		link-name = "BE_VOIP_HIFI";
+		stream-name = "BE_DAI_ID_VOIP_HIFI";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 39>;
+		};
+		codec {
+			sound-dai = <&ak4377_hifi 0>;
+		};
+	};
+
+	/* 44: akm hifi fm */
+	sprd-audio-card,dai-link@62 {
+		ignore-suspend = <1>;
+		link-name = "BE_FM_HIFI";
+		stream-name = "BE_ST_FM_HIFI";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 40>;
+		};
+		codec {
+			sound-dai = <&ak4377_hifi 0>;
+		};
+	};
+
+	/* 45: akm hifi loopback */
+	sprd-audio-card,dai-link@63 {
+		ignore-suspend = <1>;
+		link-name = "BE_LOOP_HIFI";
+		stream-name = "BE_ST_LOOP_HIFI";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 41>;
+		};
+		codec {
+			sound-dai = <&ak4377_hifi 0>;
+		};
+	};
+
+	/* 46: akm hifi fm dsp */
+	sprd-audio-card,dai-link@64 {
+		ignore-suspend = <1>;
+		link-name = "BE_FM_DSP_HIFI";
+		stream-name = "BE_ST_FM_DSP_HIFI";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 42>;
+		};
+		codec {
+			sound-dai = <&ak4377_hifi 0>;
 		};
 	};
 };
