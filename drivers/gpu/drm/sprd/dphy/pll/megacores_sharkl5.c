@@ -167,6 +167,13 @@ struct pll_regs {
 		u8 val;
 	} _0f;
 
+	union __reg_25__ {
+		struct __25 {
+			u8 ldoop4_sel: 3;
+			u8 reserved: 5;
+		} bits;
+		u8 val;
+	} _25;
 };
 
 struct dphy_pll {
@@ -348,6 +355,17 @@ FAIL:
 	return -1;
 }
 
+static void mipi_drive_capability_config(struct regmap *regmap,
+					struct dphy_context *ctx)
+{
+	if (ctx->capability) {
+		regs._25.bits.ldoop4_sel =  ctx->capability;
+		regmap_write(regmap, 0x25, regs._25.val);
+		pr_info("Set the mipi drive capability to the highest\n");
+	} else
+		pr_info("Use the default mipi drive capability\n");
+}
+
 static int dphy_pll_config(struct dphy_context *ctx)
 {
 	int ret;
@@ -362,6 +380,8 @@ static int dphy_pll_config(struct dphy_context *ctx)
 	ret = dphy_set_pll_reg(regmap, &pll);
 	if (ret)
 		goto FAIL;
+
+	mipi_drive_capability_config(regmap, ctx);
 
 	return 0;
 

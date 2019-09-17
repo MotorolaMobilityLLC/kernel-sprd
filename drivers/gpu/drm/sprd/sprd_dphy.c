@@ -205,6 +205,9 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 	if (!of_property_read_u32(np, "dev-id", &tmp))
 		dphy->ctx.id = tmp;
 
+	if (!of_property_read_u32(np, "sprd,mipi-drive-capability", &tmp))
+		dphy->ctx.capability = tmp;
+
 	mutex_init(&dphy->ctx.hop_lock);
 
 	return 0;

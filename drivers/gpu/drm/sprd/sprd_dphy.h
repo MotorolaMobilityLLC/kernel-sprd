@@ -18,6 +18,7 @@ struct dphy_context {
 	u32 freq;
 	u8 lanes;
 	u8 id;
+	u8 capability;
 };
 
 struct dphy_pll_ops {
