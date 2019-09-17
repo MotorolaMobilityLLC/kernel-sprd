@@ -57,6 +57,9 @@ LIST_HEAD(dpu_core_head);
 LIST_HEAD(dpu_clk_head);
 LIST_HEAD(dpu_glb_head);
 
+static unsigned long frame_count;
+module_param(frame_count, ulong, 0444);
+
 static int sprd_dpu_init(struct sprd_dpu *dpu);
 static int sprd_dpu_uninit(struct sprd_dpu *dpu);
 
@@ -745,8 +748,10 @@ static void sprd_crtc_atomic_flush(struct drm_crtc *crtc,
 	DRM_DEBUG("%s()\n", __func__);
 
 	if (dpu->core && dpu->core->flip &&
-	    dpu->pending_planes && !dpu->ctx.disable_flip)
+	    dpu->pending_planes && !dpu->ctx.disable_flip) {
 		dpu->core->flip(&dpu->ctx, dpu->layers, dpu->pending_planes);
+		frame_count++;
+	}
 
 	up(&dpu->ctx.refresh_lock);
 
