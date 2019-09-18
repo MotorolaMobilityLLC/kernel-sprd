@@ -135,6 +135,17 @@ static const char *dai_id_to_str(int dai_id)
 		[BE_DAI_ID_FAST_P_BTSCO] = TO_STRING(BE_DAI_ID_FAST_P_BTSCO),
 		[BE_DAI_ID_NORMAL_AP01_P_BTSCO] =
 			TO_STRING(BE_DAI_ID_NORMAL_AP01_P_BTSCO),
+		[BE_DAI_ID_NORMAL_AP01_P_HIFI] =
+			TO_STRING(BE_DAI_ID_NORMAL_AP01_P_HIFI),
+		[BE_DAI_ID_NORMAL_AP23_HIFI] =
+			TO_STRING(BE_DAI_ID_NORMAL_AP23_HIFI),
+		[BE_DAI_ID_FAST_P_HIFI] = TO_STRING(BE_DAI_ID_FAST_P_HIFI),
+		[BE_DAI_ID_OFFLOAD_HIFI] = TO_STRING(BE_DAI_ID_OFFLOAD_HIFI),
+		[BE_DAI_ID_VOICE_HIFI] = TO_STRING(BE_DAI_ID_VOICE_HIFI),
+		[BE_DAI_ID_VOIP_HIFI] = TO_STRING(BE_DAI_ID_VOIP_HIFI),
+		[BE_DAI_ID_FM_HIFI] = TO_STRING(BE_DAI_ID_FM_HIFI),
+		[BE_DAI_ID_LOOP_HIFI] = TO_STRING(BE_DAI_ID_LOOP_HIFI),
+		[BE_DAI_ID_FM_DSP_HIFI] = TO_STRING(BE_DAI_ID_FM_DSP_HIFI),
 	};
 
 	if (dai_id >= BE_DAI_ID_MAX) {
@@ -259,11 +270,13 @@ static int check_be_dai_id(int be_dai_id)
 	case BE_DAI_ID_NORMAL_AP01_CODEC:
 	case BE_DAI_ID_NORMAL_AP01_USB:
 	case BE_DAI_ID_NORMAL_AP01_P_BTSCO:
+	case BE_DAI_ID_NORMAL_AP01_P_HIFI:
 	case BE_DAI_ID_DUMP:
 		scene_id = VBC_DAI_ID_NORMAL_AP01;
 		break;
 	case BE_DAI_ID_NORMAL_AP23_CODEC:
 	case BE_DAI_ID_NORMAL_AP23_USB:
+	case BE_DAI_ID_NORMAL_AP23_HIFI:
 		scene_id = VBC_DAI_ID_NORMAL_AP23;
 		break;
 	case BE_DAI_ID_CAPTURE_DSP_CODEC:
@@ -273,29 +286,35 @@ static int check_be_dai_id(int be_dai_id)
 	case BE_DAI_ID_FAST_P_CODEC:
 	case BE_DAI_ID_FAST_P_USB:
 	case BE_DAI_ID_FAST_P_BTSCO:
+	case BE_DAI_ID_FAST_P_HIFI:
 		scene_id = VBC_DAI_ID_FAST_P;
 		break;
 	case BE_DAI_ID_OFFLOAD_CODEC:
 	case BE_DAI_ID_OFFLOAD_USB:
+	case BE_DAI_ID_OFFLOAD_HIFI:
 		scene_id = VBC_DAI_ID_OFFLOAD;
 		break;
 	case BE_DAI_ID_VOICE_CODEC:
 	case BE_DAI_ID_VOICE_USB:
 	case BE_DAI_ID_VOICE_BT:
+	case BE_DAI_ID_VOICE_HIFI:
 		scene_id = VBC_DAI_ID_VOICE;
 		break;
 	case BE_DAI_ID_VOIP_CODEC:
 	case BE_DAI_ID_VOIP_USB:
 	case BE_DAI_ID_VOIP_BT:
+	case BE_DAI_ID_VOIP_HIFI:
 		scene_id = VBC_DAI_ID_VOIP;
 		break;
 	case BE_DAI_ID_FM_CODEC:
 	case BE_DAI_ID_FM_USB:
+	case BE_DAI_ID_FM_HIFI:
 		scene_id = VBC_DAI_ID_FM;
 		break;
 	case BE_DAI_ID_LOOP_CODEC:
 	case BE_DAI_ID_LOOP_USB:
 	case BE_DAI_ID_LOOP_BT:
+	case BE_DAI_ID_LOOP_HIFI:
 		scene_id = VBC_DAI_ID_LOOP;
 		break;
 	case BE_DAI_ID_PCM_A2DP:
@@ -321,6 +340,7 @@ static int check_be_dai_id(int be_dai_id)
 		break;
 	case BE_DAI_ID_FM_DSP_CODEC:
 	case BE_DAI_ID_FM_DSP_USB:
+	case BE_DAI_ID_FM_DSP_HIFI:
 		scene_id = VBC_DAI_ID_FM_DSP;
 		break;
 	default:
@@ -5699,6 +5719,150 @@ static struct snd_soc_dai_driver vbc_dais[BE_DAI_ID_MAX] = {
 		},
 		.probe = sprd_dai_vbc_probe,
 		.ops = &normal_ops,
+	},
+	/* 34: BE_DAI_ID_NORMAL_AP01_P_HIFI */
+	{
+		.name = TO_STRING(BE_DAI_ID_NORMAL_AP01_P_HIFI),
+		.id = BE_DAI_ID_NORMAL_AP01_P_HIFI,
+		.playback = {
+			.stream_name = "BE_DAI_ID_NORMAL_AP01_P_HIFI",
+			.aif_name = "BE_IF_NORMAL_AP01_HIFI_P",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &normal_ops,
+	},
+	/* 35: BE_DAI_ID_NORMAL_AP23_HIFI */
+	{
+		.name = TO_STRING(BE_DAI_ID_NORMAL_AP23_HIFI),
+		.id = BE_DAI_ID_NORMAL_AP23_HIFI,
+		.playback = {
+			.stream_name = "BE_DAI_ID_NORMAL_AP23_HIFI",
+			.aif_name = "BE_IF_ID_NORMAL_AP23_HIFI",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &normal_ap23_ops,
+	},
+	/* 36: BE_DAI_ID_FAST_P_HIFI */
+	{
+		.name = TO_STRING(BE_DAI_ID_FAST_P_HIFI),
+		.id = BE_DAI_ID_FAST_P_HIFI,
+		.playback = {
+			.stream_name = "BE_DAI_ID_FAST_P_HIFI",
+			.aif_name = "BE_IF_ID_FAST_P_HIFI",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &fast_ops,
+	},
+	/* 37: BE_DAI_ID_OFFLOAD_HIFI */
+	{
+		.name = TO_STRING(BE_DAI_ID_OFFLOAD_HIFI),
+		.id = BE_DAI_ID_OFFLOAD_HIFI,
+		.playback = {
+			.stream_name = "BE_DAI_ID_OFFLOAD_HIFI",
+			.aif_name = "BE_IF_ID_OFFLOAD_HIFI",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &offload_ops,
+	},
+	/* 38: BE_DAI_ID_VOICE_HIFI */
+	{
+		.name = TO_STRING(BE_DAI_ID_VOICE_HIFI),
+		.id = BE_DAI_ID_VOICE_HIFI,
+		.playback = {
+			.stream_name = "BE_DAI_ID_VOICE_HIFI",
+			.aif_name = "BE_IF_ID_VOICE_HIFI",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &voice_ops,
+	},
+	/* 39: BE_DAI_ID_VOIP_HIFI */
+	{
+		.name = TO_STRING(BE_DAI_ID_VOIP_HIFI),
+		.id = BE_DAI_ID_VOIP_HIFI,
+		.playback = {
+			.stream_name = "BE_DAI_ID_VOIP_HIFI",
+			.aif_name = "BE_IF_ID_VOIP_HIFI",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &voip_ops,
+	},
+	/* 40: BE_DAI_ID_FM_HIFI */
+	{
+		.name = TO_STRING(BE_DAI_ID_FM_HIFI),
+		.id = BE_DAI_ID_FM_HIFI,
+		.playback = {
+			.stream_name = "BE_DAI_ID_FM_HIFI",
+			.aif_name = "BE_IF_ID_FM_HIFI",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &fm_ops,
+	},
+	/* 41: BE_DAI_ID_LOOP_HIFI */
+	{
+		.name = TO_STRING(BE_DAI_ID_LOOP_HIFI),
+		.id = BE_DAI_ID_LOOP_HIFI,
+		.playback = {
+			.stream_name = "BE_DAI_ID_LOOP_HIFI",
+			.aif_name = "BE_IF_ID_LOOP_HIFI",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &loop_ops,
+	},
+	/* 42: BE_DAI_ID_FM_DSP_HIFI */
+	{
+		.name = TO_STRING(BE_DAI_ID_FM_DSP_HIFI),
+		.id = BE_DAI_ID_FM_DSP_HIFI,
+		.playback = {
+			.stream_name = "BE_DAI_ID_FM_DSP_HIFI",
+			.aif_name = "BE_IF_ID_FM_DSP_HIFI",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.rate_max = 192000,
+			.formats = SPRD_VBC_DAI_PCM_FORMATS,
+		},
+		.probe = sprd_dai_vbc_probe,
+		.ops = &fm_dsp_ops,
 	},
 };
 
