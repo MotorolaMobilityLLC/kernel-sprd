@@ -97,7 +97,7 @@ static ssize_t maximum_speed_show(struct device *dev,
 	if (!dwc)
 		return -EINVAL;
 
-	return sprintf(buf, "%s\n", usb_speed_string(dwc->maximum_speed));
+	return sprintf(buf, "%s\n", usb_speed_string(dwc->gadget.max_speed));
 }
 
 static ssize_t maximum_speed_store(struct device *dev,
@@ -121,7 +121,7 @@ static ssize_t maximum_speed_store(struct device *dev,
 	if (!dwc)
 		return -EINVAL;
 
-	dwc->maximum_speed = max_speed;
+	dwc->gadget.max_speed = max_speed;
 	return size;
 }
 static DEVICE_ATTR_RW(maximum_speed);
