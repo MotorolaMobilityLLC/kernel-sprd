@@ -395,10 +395,26 @@ def aiaiai_check():
                             " CODE:[arch]:" + d_corrected_config[key]['arch'] + \
                             " DOC:[arch]:" + d_sprdconfig[key]['arch'])
                 elif d_corrected_config[key]['plat'] != d_sprdconfig[key]['plat']:
-                    print("ERROR: doc: Value is different between code and sprd-configs.txt." + \
-                            " CONFIG:" + key + \
-                            " CODE:[plat]:" + d_corrected_config[key]['plat'] + \
-                            " DOC:[plat]:" + d_sprdconfig[key]['plat'])
+                    plat_num_in_both = 0
+                    plat_num_in_sprd = len(d_sprdconfig[key]['plat'].strip(' ,;.').split(','))
+                    error_occur = 0
+
+                    for plat in d_corrected_config[key]['plat'].split(','):
+                        if plat not in d_sprdconfig[key]['plat'].split(','):
+                            error_occur = 1
+                            break
+                        else:
+                            plat_num_in_both += 1
+                            continue
+
+                    if plat_num_in_both != plat_num_in_sprd:
+                        error_occur = 1
+
+                    if error_occur == 1:
+                        print("ERROR: doc: Value is different between code and sprd-configs.txt." + \
+                                " CONFIG:" + key + \
+                                " CODE:[plat]:" + d_corrected_config[key]['plat'] + \
+                                " DOC:[plat]:" + d_sprdconfig[key]['plat'])
                 else:
                     continue
     f_diff.close()
