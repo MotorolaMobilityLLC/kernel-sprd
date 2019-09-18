@@ -967,6 +967,7 @@
 				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				iommus = <&iommu_dispc>;
+				power-domains = <&disp_pd>;
 
 				dma-coherent;
 
@@ -1077,6 +1078,7 @@
 				interrupts = <GIC_SPI 48 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
+				power-domains = <&disp_pd>;
 
 				sprd,ip = "sprd,dsi-ctrl", "r3p0";
 				sprd,soc = "sharkl3";
