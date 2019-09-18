@@ -18,6 +18,7 @@
 #define UCP1301_I2C_NAME    "ucp1301"
 #define UCP1301_DRIVER_VERSION  "v1.0.0"
 #define UCP1301_CHIP_ID 0x1301a000
+#define UCP1301_NEW_CHIP_ID 0x1301a001
 
 #define UCP_I2C_RETRIES 5
 #define UCP_I2C_RETRY_DELAY 2
@@ -1913,7 +1914,8 @@ static int ucp1301_read_chipid(struct ucp1301_t *ucp1301)
 		}
 		chip_id |= val_temp;
 
-		if (chip_id == UCP1301_CHIP_ID) {
+		if (chip_id == UCP1301_CHIP_ID ||
+		    chip_id == UCP1301_NEW_CHIP_ID) {
 			pr_info("read chipid successful 0x%x\n", chip_id);
 			return 0;
 		}
