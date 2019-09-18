@@ -625,6 +625,15 @@ static u32 dpu_img_ctrl(u32 format, u32 blending)
 		reg_val &= (~BIT(16));
 		break;
 	case DRM_MODE_BLEND_PREMULTI:
+		if (format == DRM_FORMAT_BGR565 ||
+		    format == DRM_FORMAT_RGB565) {
+			/* when pre-mult mode, dpu_lite_r1p0
+			 * default pixel alpha is zero, the 565
+			 * layer will not display.so when 565 format
+			 * alpha mode is selected to layer alpha.
+			 */
+			reg_val |= BIT(2);
+		}
 		/* blending mode select - pre-mult mode */
 		reg_val |= BIT(16);
 		break;
