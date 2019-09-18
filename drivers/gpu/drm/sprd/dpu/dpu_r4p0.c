@@ -297,6 +297,8 @@ static struct gamma_lut gamma_copy;
 static struct threed_lut lut3d_copy;
 static struct hsv_lut hsv_copy;
 static struct epf_cfg epf_copy;
+static struct epf_cfg sr_epf;
+static bool sr_epf_ready;
 static u32 enhance_en;
 
 static DECLARE_WAIT_QUEUE_HEAD(wait_queue);
@@ -1413,6 +1415,12 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
+		if (*p & BIT(1)) {
+			if ((enhance_en & BIT(0)) && sr_epf_ready) {
+				*p &= ~BIT(1);
+				pr_info("enhance backup epf shouldn't be disabled\n");
+			}
+		}
 		enhance_en &= ~(*p);
 		pr_info("enhance module disable backup: 0x%x\n", *p);
 		break;
@@ -1460,6 +1468,21 @@ static void dpu_enhance_backup(u32 id, void *param)
 		enhance_en |= BIT(9);
 		pr_info("enhance lut3d backup\n");
 		break;
+	case ENHANCE_CFG_ID_SR_EPF:
+		memcpy(&sr_epf, param, sizeof(sr_epf));
+		/* valid range of gain3 is [128,255]; */
+		if (sr_epf.gain3 == 0) {
+			/* eye comfort and super resolution are enabled*/
+			if (!(enhance_en & BIT(2)) && (enhance_en & BIT(0))) {
+				enhance_en &= ~BIT(1);
+				pr_info("enhance[ID_SR_EPF] backup disable epf\n");
+			}
+			sr_epf_ready = 0;
+		} else {
+			sr_epf_ready = 1;
+			pr_info("enhance[ID_SR_EPF] epf backup\n");
+		}
+		break;
 	default:
 		break;
 	}
@@ -1494,6 +1517,13 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
+		if (*p & BIT(1)) {
+			if ((enhance_en & BIT(0)) && sr_epf_ready) {
+				*p &= ~BIT(1);
+				dpu_epf_set(reg, &sr_epf);
+				pr_info("enhance epf shouldn't be disabled\n");
+			}
+		}
 		reg->dpu_enhance_cfg &= ~(*p);
 		pr_info("enhance module disable: 0x%x\n", *p);
 		break;
@@ -1606,11 +1636,51 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_EPF:
 		memcpy(&epf_copy, param, sizeof(epf_copy));
-		epf_slp = &epf_copy;
+		if (((enhance_en & BIT(4)) &&
+			(slp_copy.brightness > SLP_BRIGHTNESS_THRESHOLD)) ||
+			!(enhance_en & BIT(0)) || !sr_epf_ready) {
+			epf_slp = &epf_copy;
+			pr_info("enhance epf set\n");
+		} else {
+			epf_slp = &sr_epf;
+			pr_info("enhance epf(sr) set\n");
+		}
+
 		dpu_epf_set(reg, epf_slp);
 		reg->dpu_enhance_cfg |= BIT(1);
-		pr_info("enhance epf set\n");
 		break;
+	case ENHANCE_CFG_ID_SR_EPF:
+		memcpy(&sr_epf, param, sizeof(sr_epf));
+		/* valid range of gain3 is [128,255]; */
+		if (sr_epf.gain3 == 0) {
+			sr_epf_ready = 0;
+
+			if ((enhance_en & BIT(2)) && (enhance_en & BIT(0))) {
+				epf_slp = &epf_copy;
+				dpu_epf_set(reg, epf_slp);
+				reg->dpu_enhance_cfg |= BIT(1);
+				pr_info("enhance[ID_SR_EPF] epf set\n");
+				break;
+			} else if (enhance_en & BIT(0)) {
+				reg->dpu_enhance_cfg &= ~BIT(1);
+				pr_info("enhance[ID_SR_EPF] disable epf\n");
+				break;
+			}
+			return;
+		}
+
+		sr_epf_ready = 1;
+		if ((enhance_en & BIT(0)) && (!(enhance_en & BIT(4)) ||
+			(slp_copy.brightness <= SLP_BRIGHTNESS_THRESHOLD))) {
+			epf_slp = &sr_epf;
+			dpu_epf_set(reg, epf_slp);
+			reg->dpu_enhance_cfg |= BIT(1);
+			pr_info("enhance[ID_SR_EPF] epf(sr) set\n");
+			break;
+		}
+
+		pr_info("enhance[ID_SR_EPF] epf(sr) set delay\n");
+		return;
 	case ENHANCE_CFG_ID_LUT3D:
 		memcpy(&lut3d_copy, param, sizeof(lut3d_copy));
 		lut3d = &lut3d_copy;
@@ -1851,14 +1921,17 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 	}
 
 	if (enhance_en & BIT(1)) {
-		epf = &epf_copy;
-		reg->epf_epsilon = (epf->epsilon1 << 16) | epf->epsilon0;
-		reg->epf_gain0_3 = (epf->gain3 << 24) | (epf->gain2 << 16) |
-				(epf->gain1 << 8) | epf->gain0;
-		reg->epf_gain4_7 = (epf->gain7 << 24) | (epf->gain6 << 16) |
-				(epf->gain5 << 8) | epf->gain4;
-		reg->epf_diff = (epf->max_diff << 8) | epf->min_diff;
-		pr_info("enhance epf reload\n");
+		if (((enhance_en & BIT(4)) &&
+			(slp_copy.brightness > SLP_BRIGHTNESS_THRESHOLD)) ||
+			!(enhance_en & BIT(0)) || !sr_epf_ready) {
+			epf = &epf_copy;
+			pr_info("enhance epf reload\n");
+		} else {
+			epf = &sr_epf;
+			pr_info("enhance epf(sr) reload\n");
+		}
+
+		dpu_epf_set(reg, epf);
 	}
 
 	if (enhance_en & BIT(2)) {
@@ -1965,24 +2038,25 @@ static void dpu_sr_config(struct dpu_context *ctx)
 
 	reg->blend_size = (scale_copy.in_h << 16) | scale_copy.in_w;
 	if (need_scale) {
-#ifdef EPF_ENABLED
 		/* SLP is disabled mode or bypass mode */
-		if (slp_copy.brightness <= SLP_BRIGHTNESS_THRESHOLD) {
+		if ((slp_copy.brightness <= SLP_BRIGHTNESS_THRESHOLD) ||
+			!(enhance_en & BIT(4))) {
 
 		/*
 		 * valid range of gain3 is [128,255];dpu_scaling maybe
 		 * called before epf_copy is assinged a value
 		 */
-			if (epf_copy.gain3 > 0) {
-				dpu_epf_set(reg, &epf_copy);
+			if (sr_epf.gain3 > 0) {
+				dpu_epf_set(reg, &sr_epf);
 				enhance_en |= BIT(1);
 			}
 		}
-#endif
 		enhance_en |= BIT(0);
 		reg->dpu_enhance_cfg = enhance_en;
 	} else {
-		if (slp_copy.brightness <= SLP_BRIGHTNESS_THRESHOLD)
+		if (enhance_en & BIT(6))
+			dpu_epf_set(reg, &epf_copy);
+		else
 			enhance_en &= ~(BIT(1));
 
 		enhance_en &= ~(BIT(0));
