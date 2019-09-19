@@ -878,6 +878,7 @@ static ssize_t maximum_speed_store(struct device *dev,
 		return -EINVAL;
 
 	musb->config->maximum_speed = max_speed;
+	musb->g.max_speed = max_speed;
 	return size;
 }
 static DEVICE_ATTR_RW(maximum_speed);

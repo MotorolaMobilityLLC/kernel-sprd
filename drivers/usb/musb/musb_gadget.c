@@ -1819,6 +1819,13 @@ static struct usb_ep *musb_match_ep(struct usb_gadget *g,
 static int musb_gadget_start(struct usb_gadget *g,
 		struct usb_gadget_driver *driver);
 static int musb_gadget_stop(struct usb_gadget *g);
+static void musb_set_speed(struct usb_gadget *g,
+				  enum usb_device_speed speed)
+{
+	struct musb	*musb = gadget_to_musb(g);
+
+	musb->config->maximum_speed = speed;
+}
 
 static const struct usb_gadget_ops musb_gadget_operations = {
 	.get_frame		= musb_gadget_get_frame,
@@ -1830,6 +1837,7 @@ static const struct usb_gadget_ops musb_gadget_operations = {
 	.udc_start		= musb_gadget_start,
 	.udc_stop		= musb_gadget_stop,
 	.match_ep		= musb_match_ep,
+	.udc_set_speed		= musb_set_speed,
 };
 
 /* ----------------------------------------------------------------------- */
