@@ -71,6 +71,16 @@ static int sprd_dsi_suspend(struct sprd_dsi *dsi)
 	return 0;
 }
 
+/* FIXME: This should be removed in the feature. */
+static void sprd_sharkl3_workaround(struct sprd_dsi *dsi)
+{
+	/* the sharkl3 AA Chip needs to reset D-PHY before HS transmition */
+	if (dsi->phy->ctx.chip_id == 0) {
+		sprd_dphy_reset(dsi->phy);
+		mdelay(1);
+	}
+}
+
 static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 {
 	struct sprd_dsi *dsi = encoder_to_dsi(encoder);
@@ -113,6 +123,8 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 
 	sprd_dsi_set_work_mode(dsi, dsi->ctx.work_mode);
 	sprd_dsi_state_reset(dsi);
+
+	sprd_sharkl3_workaround(dsi);
 
 	if (dsi->ctx.nc_clk_en)
 		sprd_dsi_nc_clk_en(dsi, true);

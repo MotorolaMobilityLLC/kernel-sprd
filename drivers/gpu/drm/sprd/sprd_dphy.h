@@ -19,6 +19,7 @@ struct dphy_context {
 	u8 lanes;
 	u8 id;
 	u8 capability;
+	u32 chip_id;
 };
 
 struct dphy_pll_ops {

@@ -78,6 +78,8 @@ static int dphy_glb_parse_dt(struct dphy_context *ctx,
 	} else
 		pr_warn("failed to get args for syscon-name power_iso\n");
 
+	regmap_read(enable.regmap, 0x00F8, &ctx->chip_id);
+
 	return 0;
 }
 

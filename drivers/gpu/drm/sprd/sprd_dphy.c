@@ -177,6 +177,8 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 	struct resource r;
 	u32 tmp;
 
+	dphy->ctx.chip_id = 0xffffffff;
+
 	if (dphy->glb && dphy->glb->parse_dt)
 		dphy->glb->parse_dt(&dphy->ctx, np);
 
