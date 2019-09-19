@@ -171,6 +171,13 @@
 			reg = <0x99800000 0x384000>;
 		};
 	};
+
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
+	};
+
 	sprd-hotplug {
 		enable-dynamic-hotplug;
 	};
