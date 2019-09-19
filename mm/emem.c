@@ -112,11 +112,16 @@ static void enhance_meminfo(void)
 
 static void emem_workfn(struct work_struct *work)
 {
-	if (sysctl_emem_trigger > killed_proc_adj_threshold)
-		return;
+	struct sysinfo si;
 
-	if (enable_enhance_meminfo)
-		enhance_meminfo();
+	if (enable_enhance_meminfo) {
+		si_swapinfo(&si);
+
+		if (sysctl_emem_trigger <= killed_proc_adj_threshold)
+			enhance_meminfo();
+		else if (si.freeswap < si.totalswap / 10)
+			dump_tasks_info();
+	}
 }
 
 int sysctl_emem_trigger_handler(struct ctl_table *table, int write,
@@ -128,7 +133,7 @@ int sysctl_emem_trigger_handler(struct ctl_table *table, int write,
 	if (ret || !write)
 		return -1;
 
-	if (sysctl_emem_trigger < DEFAULT_PROC_ADJ) {
+	if (sysctl_emem_trigger <= DEFAULT_PROC_ADJ) {
 		spin_lock(&emem_lock);
 		queue_work(system_power_efficient_wq, &emem_work);
 		spin_unlock(&emem_lock);
