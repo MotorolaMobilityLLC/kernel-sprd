@@ -3247,9 +3247,6 @@ static void warn_alloc_show_mem(gfp_t gfp_mask, nodemask_t *nodemask)
 		filter &= ~SHOW_MEM_FILTER_NODES;
 
 	show_mem(filter, nodemask);
-#ifdef CONFIG_E_SHOW_MEM
-	enhanced_mem(E_SHOW_MEM_ALL);
-#endif
 }
 
 void warn_alloc(gfp_t gfp_mask, nodemask_t *nodemask, const char *fmt, ...)
