@@ -720,7 +720,8 @@ static int gs_start_io(struct gs_port *port)
 		tty_wakeup(port->port.tty);
 	} else {
 		gs_free_requests(ep, head, &port->read_allocated);
-		gs_free_requests(port->port_usb->in, &port->write_pool,
+		if (port->port_usb)
+			gs_free_requests(port->port_usb->in, &port->write_pool,
 			&port->write_allocated);
 		status = -EIO;
 	}
@@ -821,7 +822,9 @@ static int gs_open(struct tty_struct *tty, struct file *file)
 		struct gserial	*gser = port->port_usb;
 
 		pr_debug("gs_open: start ttyGS%d\n", port->port_num);
-		gs_start_io(port);
+		status = gs_start_io(port);
+		if (status < 0)
+			goto exit_unlock_port;
 
 		if (gser->connect)
 			gser->connect(gser);
@@ -1472,7 +1475,11 @@ int gserial_connect(struct gserial *gser, u8 port_num)
 	 */
 	if (port->port.count) {
 		pr_debug("gserial_connect: start ttyGS%d\n", port->port_num);
-		gs_start_io(port);
+		status = gs_start_io(port);
+		if (status < 0) {
+			spin_unlock_irqrestore(&port->port_lock, flags);
+			goto fail_out;
+		}
 		if (gser->connect)
 			gser->connect(gser);
 	} else {
