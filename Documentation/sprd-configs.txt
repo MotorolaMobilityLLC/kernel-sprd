@@ -9468,7 +9468,7 @@ CONFIG_NET_CORE
 	[function] Network core driver support
 CONFIG_NET_EGRESS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
 	[field] menu,net
 	[subsys] net
@@ -9617,8 +9617,8 @@ CONFIG_NET_SCH_HTB
 	packet scheduling algorithm
 CONFIG_NET_SCH_INGRESS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] menu,net
 	[subsys] net
 	[must] user
