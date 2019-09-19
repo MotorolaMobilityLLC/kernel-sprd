@@ -27,6 +27,7 @@
 #include "sysfs/sysfs_display.h"
 
 #define SPRD_MIPI_DSI_FMT_DSC 0xff
+static DEFINE_MUTEX(panel_lock);
 
 const char *lcd_name;
 static int __init lcd_name_get(char *str)
@@ -146,6 +147,7 @@ static int sprd_panel_disable(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
+	mutex_lock(&panel_lock);
 	/*
 	 * FIXME:
 	 * The cancel work should be executed before DPU stop,
@@ -169,6 +171,9 @@ static int sprd_panel_disable(struct drm_panel *p)
 			     panel->info.cmds[CMD_CODE_SLEEP_IN],
 			     panel->info.cmds_len[CMD_CODE_SLEEP_IN]);
 
+	panel->is_enabled = false;
+	mutex_unlock(&panel_lock);
+
 	return 0;
 }
 
@@ -178,6 +183,7 @@ static int sprd_panel_enable(struct drm_panel *p)
 
 	DRM_INFO("%s()\n", __func__);
 
+	mutex_lock(&panel_lock);
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_CODE_INIT],
 			     panel->info.cmds_len[CMD_CODE_INIT]);
@@ -193,6 +199,9 @@ static int sprd_panel_enable(struct drm_panel *p)
 				      msecs_to_jiffies(1000));
 		panel->esd_work_pending = true;
 	}
+
+	panel->is_enabled = true;
+	mutex_unlock(&panel_lock);
 
 	return 0;
 }
@@ -546,7 +555,9 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
 
-	if (!regulator_is_enabled(panel->supply)) {
+	mutex_lock(&panel_lock);
+	if (!panel->is_enabled) {
+		mutex_unlock(&panel_lock);
 		DRM_WARN("oled panel has been powered off\n");
 		return -ENXIO;
 	}
@@ -573,6 +584,8 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_UNLOCK],
 			     panel->info.cmds_len[CMD_OLED_REG_UNLOCK]);
+
+	mutex_unlock(&panel_lock);
 
 	return 0;
 }
@@ -912,6 +925,8 @@ static int sprd_panel_probe(struct mipi_dsi_device *slave)
 				      msecs_to_jiffies(2000));
 		panel->esd_work_pending = true;
 	}
+
+	panel->is_enabled = true;
 
 	DRM_INFO("panel driver probe success\n");
 

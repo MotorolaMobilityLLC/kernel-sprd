@@ -106,6 +106,7 @@ struct sprd_panel {
 	struct regulator *supply;
 	struct delayed_work esd_work;
 	bool esd_work_pending;
+	bool is_enabled;
 };
 
 struct sprd_oled {
