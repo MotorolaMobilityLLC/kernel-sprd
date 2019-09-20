@@ -1413,7 +1413,7 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
-		if (*p & BIT(4)) {
+		if (!cabc_disable && (*p & BIT(4))) {
 			*p &= (~BIT(4));
 
 			memset(&slp_copy, 0, sizeof(slp_copy));
@@ -1498,7 +1498,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
-		if (*p & BIT(4)) {
+		if (!cabc_disable && (*p & BIT(4))) {
 			*p &= (~BIT(4));
 
 			memset(&slp_copy, 0, sizeof(slp_copy));
