@@ -184,6 +184,7 @@
 	sd-uhs-sdr104;
 	sd-uhs-sdr50;
 	sprd,name = "sdio_sd";
+	sprd,sdio-adma;
 	no-sdio;
 	no-mmc;
 	status = "okay";
