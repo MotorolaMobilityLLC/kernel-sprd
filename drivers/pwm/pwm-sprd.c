@@ -59,7 +59,7 @@ static int sprd_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 {
 	struct sprd_pwm_chip *spc = container_of(chip,
 		struct sprd_pwm_chip, chip);
-	u64 clk_rate, div, val;
+	u64 clk_rate, div, val, tmp;
 	int rc, prescale, level;
 
 	if (!duty_ns)
@@ -74,7 +74,8 @@ static int sprd_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		spc->eb_enabled[pwm->hwpwm] = true;
 	}
 
-	level = duty_ns * PWM_MOD_MAX / period_ns;
+	tmp = duty_ns * PWM_MOD_MAX;
+	level = DIV_ROUND_CLOSEST_ULL(tmp, period_ns);
 	dev_dbg(chip->dev, "duty_ns = %d, period_ns = %d, level = %d\n",
 		duty_ns, period_ns, level);
 
@@ -93,7 +94,8 @@ static int sprd_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	div = div * PWM_MOD_MAX;
 	val = clk_rate * period_ns;
 	prescale = div64_u64(val, div) - 1;
-
+	if (prescale < 0)
+		prescale = 0;
 	sprd_pwm_writel(spc, pwm->hwpwm, PWM_MOD, PWM_MOD_MAX);
 	sprd_pwm_writel(spc, pwm->hwpwm, PWM_DUTY, level);
 	sprd_pwm_writel(spc, pwm->hwpwm, PWM_PAT_LOW, PWM_REG_MSK);
