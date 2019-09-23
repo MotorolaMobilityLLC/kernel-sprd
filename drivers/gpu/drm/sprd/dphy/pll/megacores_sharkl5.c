@@ -242,7 +242,7 @@ static int dphy_calc_pll_param(struct dphy_pll *pll)
 		/* vco band control */
 		pll->vco_band = 0x0;
 		/* low pass filter control */
-		pll->lpf_sel = 1;
+		pll->lpf_sel = 0;
 	} else if (pll->fvco > VCO_BAND_MID && pll->fvco <= VCO_BAND_HIGH) {
 		pll->vco_band = 0x1;
 		pll->lpf_sel = 0;
@@ -299,14 +299,6 @@ FAIL:
 
 static int dphy_set_pll_reg(struct regmap *regmap, struct dphy_pll *pll)
 {
-	int i;
-	u8 *val;
-
-	u8 regs_addr[] = {
-		0x03, 0x04, 0x06, 0x07, 0x08, 0x09,
-		0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
-	};
-
 	if (!pll || !pll->fvco)
 		goto FAIL;
 
@@ -340,12 +332,18 @@ static int dphy_set_pll_reg(struct regmap *regmap, struct dphy_pll *pll)
 	regs._0f.bits.det_delay = pll->det_delay;
 	regs._0f.bits.kdelta =  pll->kdelta >> 12;
 
-	val = (u8 *)&regs;
-
-	for (i = 0; i < sizeof(regs_addr); ++i) {
-		regmap_write(regmap, regs_addr[i], val[i]);
-		pr_debug("%02x: %02x\n", regs_addr[i], val[i]);
-	}
+	regmap_write(regmap, 0x03, regs._04.val);
+	regmap_write(regmap, 0x04, regs._04.val);
+	regmap_write(regmap, 0x07, regs._07.val);
+	regmap_write(regmap, 0x08, regs._08.val);
+	regmap_write(regmap, 0x09, regs._09.val);
+	regmap_write(regmap, 0x0a, regs._0a.val);
+	regmap_write(regmap, 0x0b, regs._0b.val);
+	regmap_write(regmap, 0x0c, regs._0c.val);
+	regmap_write(regmap, 0x0d, regs._0d.val);
+	regmap_write(regmap, 0x0e, regs._0e.val);
+	regmap_write(regmap, 0x0f, regs._0f.val);
+	regmap_write(regmap, 0x06, regs._06.val);
 
 	return 0;
 
