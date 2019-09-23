@@ -27,8 +27,12 @@
 		#size-cells = <1>;
 		ranges;
 
-		pstore: pstore-mem@877c0000 {
+		pstore_reserved: ramoops@877c0000 {
+			compatible = "ramoops";
 			reg = <0x877c0000 0x00040000>;
+			record-size = <0x8000>;
+			console-size = <0x8000>;
+			pmsg-size = <0x8000>;
 		};
 
 		smem_reserved: sipc-mem@87800000 {
@@ -147,14 +151,6 @@
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
-	};
-
-	ramoops {
-		compatible = "ramoops";
-		memory-region = <&pstore>;
-		record-size	= <0x0 0x00008000>;
-		console-size	= <0x0 0x00008000>;
-		pmsg-size	= <0x0 0x00008000>;
 	};
 
 	sprd-iq {

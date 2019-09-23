@@ -141,8 +141,12 @@
 			reg = <0x88300000 0x0015b000>;
 		};
 
-		pstore: pstore@895c0000 {
+		pstore_reserved: ramoops@895c0000 {
+			compatible = "ramoops";
 			reg = <0x895c0000 0x00040000>;
+			record-size = <0x8000>;
+			console-size = <0x8000>;
+			pmsg-size = <0x8000>;
 		};
 
 		/* cp_reserved = cp region + debug region */
