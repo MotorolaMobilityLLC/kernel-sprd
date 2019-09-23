@@ -1227,6 +1227,16 @@ static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
 		return 0;
 	}
 
+	if (desc->jeita_disabled) {
+		if (last_jeita_status != STATUS_T1_TO_T2) {
+			dev_info(cm->dev, "Disable jeita and force jeita state to STATUS_T1_TO_T2\n");
+			last_jeita_status = STATUS_T1_TO_T2;
+			cm_manager_adjust_current(cm, last_jeita_status);
+		}
+
+		return 0;
+	}
+
 	ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery temperature\n");
@@ -2098,6 +2108,37 @@ static ssize_t charger_state_show(struct device *dev,
 	return sprintf(buf, "%s\n", state ? "enabled" : "disabled");
 }
 
+static ssize_t jeita_control_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator,
+			     attr_jeita_control);
+	struct charger_desc *desc = charger->cm->desc;
+
+	return sprintf(buf, "%d\n", !desc->jeita_disabled);
+}
+
+static ssize_t jeita_control_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	int ret;
+	struct charger_regulator *charger =
+		container_of(attr, struct charger_regulator,
+			     attr_jeita_control);
+	struct charger_desc *desc = charger->cm->desc;
+	bool enabled;
+
+	ret =  kstrtobool(buf, &enabled);
+	if (ret)
+		return ret;
+
+	desc->jeita_disabled = !enabled;
+
+	return count;
+}
+
 static ssize_t charger_stop_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -2251,7 +2292,8 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 		charger->attrs[1] = &charger->attr_state.attr;
 		charger->attrs[2] = &charger->attr_externally_control.attr;
 		charger->attrs[3] = &charger->attr_stop_charge.attr;
-		charger->attrs[4] = NULL;
+		charger->attrs[4] = &charger->attr_jeita_control.attr;
+		charger->attrs[5] = NULL;
 		charger->attr_g.name = str;
 		charger->attr_g.attrs = charger->attrs;
 
@@ -2270,6 +2312,12 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 		charger->attr_stop_charge.attr.mode = 0644;
 		charger->attr_stop_charge.show = charger_stop_show;
 		charger->attr_stop_charge.store = charger_stop_store;
+
+		sysfs_attr_init(&charger->attr_jeita_control.attr);
+		charger->attr_jeita_control.attr.name = "jeita_control";
+		charger->attr_jeita_control.attr.mode = 0644;
+		charger->attr_jeita_control.show = jeita_control_show;
+		charger->attr_jeita_control.store = jeita_control_store;
 
 		sysfs_attr_init(&charger->attr_externally_control.attr);
 		charger->attr_externally_control.attr.name
