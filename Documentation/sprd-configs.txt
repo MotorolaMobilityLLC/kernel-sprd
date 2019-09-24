@@ -9642,6 +9642,15 @@ CONFIG_NEW_LEDS
 	[must] user
 	[missing plat description] none
 	[function] LED Support
+CONFIG_NFC
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat]
+	[field]menu
+	[subsys]core
+	[must]none
+	[missing plat description]none
+	[function]enable nfc driver build in kernel
 CONFIG_NF_CONNTRACK
 	[arch] all
 	[plat] all
@@ -14634,6 +14643,15 @@ CONFIG_TOUCHSCREEN_ADAPTIVE_VENDOR_MSTAR
 	[must]
 	[missing plat description]
 	[function]
+CONFIG_TOUCHSCREEN_FTS
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat]none
+	[field] make
+	[subsys]input
+	[must]unknown
+	[missing plat description]none
+	[function]for touchscreen driver
 CONFIG_TOUCHSCREEN_PROPERTIES
 	[arch] all
 	[plat] all
