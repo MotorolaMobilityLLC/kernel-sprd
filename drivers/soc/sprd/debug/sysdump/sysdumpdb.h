@@ -90,6 +90,40 @@ struct minidump_data_desc{
 	char minidump_data[CONTENTS_DESC_SIZE];
 };
 
+
+#define DEVICE_NAME_YLOG "ylog_buffer"
+#define YLOG_BUF_SIZE (1 * 1024 * 1024)
+#define EXCEPTION_INFO_SIZE_SHORT 256
+#define EXCEPTION_INFO_SIZE_MID 512
+#define EXCEPTION_INFO_SIZE_LONG  0x2000
+#define MAX_STACK_TRACE_DEPTH 32
+#ifdef __aarch64__
+#define reg_pc  pc
+#define reg_lr  regs[30]
+#define reg_sp  sp
+#define reg_fp  regs[29]
+#else
+#define reg_pc  ARM_pc
+#define reg_lr  ARM_lr
+#define reg_sp  ARM_sp
+#define reg_ip  ARM_ip
+#define reg_fp  ARM_fp
+#endif
+
+struct exception_info_item {
+	char kernel_magic[4];  /* "K2.0" :make sure excep data valid */
+	char exception_serialno[EXCEPTION_INFO_SIZE_SHORT];
+	char exception_kernel_version[EXCEPTION_INFO_SIZE_MID];
+	char exception_reboot_reason[EXCEPTION_INFO_SIZE_SHORT];
+	char exception_panic_reason[EXCEPTION_INFO_SIZE_SHORT];
+	char exception_time[EXCEPTION_INFO_SIZE_SHORT];
+	char exception_file_info[EXCEPTION_INFO_SIZE_SHORT];
+	int  exception_task_id;
+	char exception_task_family[EXCEPTION_INFO_SIZE_SHORT];
+	char exception_pc_symbol[EXCEPTION_INFO_SIZE_SHORT];
+	char exception_stack_info[EXCEPTION_INFO_SIZE_LONG];
+};
+
 enum reg_arch_type {
 	ARM,
 	ARM64,
@@ -141,6 +175,7 @@ struct minidump_info{
 	struct minidump_data_desc  desc;		  /* minidump contents description */
 	int minidump_data_size;				  /* minidump data total size: regs_all_size + reg_memory_all_size + section_all_size  */
 	int compressed;					  /* indicate if minidump data compressed */
+	struct exception_info_item exception_info;	  /* exception info */
 };
 
 #endif /* __SYSDUMPDB_H__ */
