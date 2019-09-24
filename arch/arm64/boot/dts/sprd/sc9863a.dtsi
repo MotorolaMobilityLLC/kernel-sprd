@@ -883,7 +883,7 @@
 		core-cnt = <1>;
 		io-cnt = <7>;
 		cores = <&gsp_core0>;
-		/*power-domains = <&disp_pd>;*/
+		power-domains = <&disp_pd>;
 	};
 
 	soc {
