@@ -14,6 +14,8 @@
 #include <drm/drm_crtc_helper.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/of.h>
+#include <linux/of_fdt.h>
 #include <linux/sysfs.h>
 #include <linux/pm_runtime.h>
 #include <linux/platform_device.h>
@@ -376,6 +378,45 @@ static ssize_t resume_store(struct device *dev,
 }
 static DEVICE_ATTR_WO(resume);
 
+static ssize_t load_lcddtb_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct sprd_panel *panel = dev_get_drvdata(dev);
+	struct device_node *root = NULL;
+	struct device_node *lcdnp = NULL;
+	int enable;
+	static void *blob;
+	int ret;
+
+	if (kstrtoint(buf, 10, &enable)) {
+		pr_err("invalid input for panelinfo enable\n");
+		return -EINVAL;
+	}
+
+	if (enable > 0) {
+		if (blob) {
+			kfree(blob);
+			blob = NULL;
+		}
+		ret = load_dtb_to_mem("/data/lcd.dtb", &blob);
+		if (ret < 0) {
+			pr_err("parse lcd dtb file failed\n");
+			return -EINVAL;
+		}
+		of_fdt_unflatten_tree(blob, NULL, &root);
+		lcdnp = root->child->child;
+		if (lcdnp) {
+			pr_err("lcd device node name %s\n", lcdnp->full_name);
+			sprd_panel_parse_lcddtb(lcdnp, panel);
+		}
+	}
+
+	return count;
+
+}
+static DEVICE_ATTR_WO(load_lcddtb);
+
 static struct attribute *panel_attrs[] = {
 	&dev_attr_name.attr,
 	&dev_attr_lane_num.attr,
@@ -391,6 +432,7 @@ static struct attribute *panel_attrs[] = {
 	&dev_attr_esd_check_value.attr,
 	&dev_attr_suspend.attr,
 	&dev_attr_resume.attr,
+	&dev_attr_load_lcddtb.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(panel);

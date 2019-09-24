@@ -665,24 +665,17 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 	return 0;
 }
 
-static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
+int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
+	struct sprd_panel *panel)
 {
 	u32 val;
-	struct device_node *lcd_node;
 	struct panel_info *info = &panel->info;
 	int bytes, rc;
 	const void *p;
 	const char *str;
-	char lcd_path[60];
 
-	rc = of_property_read_string(np, "sprd,force-attached", &str);
-	if (!rc)
-		lcd_name = str;
-
-	sprintf(lcd_path, "/lcds/%s", lcd_name);
-	lcd_node = of_find_node_by_path(lcd_path);
 	if (!lcd_node) {
-		DRM_ERROR("%pOF: could not find %s node\n", np, lcd_name);
+		DRM_ERROR("Lcd node from dtb is Null\n");
 		return -ENODEV;
 	}
 	info->of_node = lcd_node;
@@ -809,6 +802,30 @@ static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 
 	info->mode.vrefresh = drm_mode_vrefresh(&info->mode);
 	of_parse_buildin_modes(info, lcd_node);
+
+	return 0;
+}
+
+static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
+{
+	struct device_node *lcd_node;
+	int rc;
+	const char *str;
+	char lcd_path[60];
+
+	rc = of_property_read_string(np, "sprd,force-attached", &str);
+	if (!rc)
+		lcd_name = str;
+
+	sprintf(lcd_path, "/lcds/%s", lcd_name);
+	lcd_node = of_find_node_by_path(lcd_path);
+	if (!lcd_node) {
+		DRM_ERROR("%pOF: could not find %s node\n", np, lcd_name);
+		return -ENODEV;
+	}
+	rc = sprd_panel_parse_lcddtb(lcd_node, panel);
+	if (rc)
+		return rc;
 
 	return 0;
 }

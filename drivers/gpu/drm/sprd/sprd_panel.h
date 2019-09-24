@@ -118,4 +118,7 @@ struct sprd_oled {
 	int max_level;
 };
 
+int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
+	struct sprd_panel *panel);
+
 #endif
