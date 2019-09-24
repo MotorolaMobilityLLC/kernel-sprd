@@ -36,6 +36,9 @@
 #include <linux/pm_qos.h>
 #include <uapi/linux/sched/types.h>
 #include <linux/sched/task.h>
+#include <linux/proc_fs.h>
+#include <linux/vmalloc.h>
+#include <linux/uaccess.h>
 
 /* On-demand governor macros */
 #define DEF_SAMPLING_DOWN_FACTOR		(1)
@@ -133,6 +136,8 @@ struct sd_dbs_tuners {
 	struct cpumask cluster_mask[CLUSTER_ALL];
 	bool boost_cluster[CLUSTER_ALL];
 	bool passion_mode;
+	struct proc_dir_entry *proc_dir;
+	struct proc_dir_entry *proc_entry;
 };
 
 static struct kobject hotplug_kobj;
@@ -1054,27 +1059,19 @@ static ssize_t show_hotplug_mode(struct kobject *kobj,
 	return strlen(buf) + 1;
 }
 
-static ssize_t store_dynamic_load_disable(struct kobject *kobj,
-		struct kobj_attribute *attr, const char *buf, size_t count)
+static void sprd_dynamic_load_disable(unsigned int disable)
 {
 	struct sd_dbs_tuners *sd_tuners = g_sd_tuners;
 	unsigned long flags;
-	unsigned int input;
-	int ret;
 
-	ret = kstrtouint(buf, 0, &input);
-	if (ret < 0)
-		return ret;
-
-	if (sd_tuners->cpu_hotplug_disable == input)
-		return count;
-
-	sd_tuners->cpu_hotplug_disable = input;
+	if (sd_tuners->cpu_hotplug_disable == disable)
+		return;
+	sd_tuners->cpu_hotplug_disable = disable;
 	/*
 	 * Retrigger dynamic-load timer function. here we call
 	 * resched timer, but the timer would defer executer.
 	 */
-	if (!input)
+	if (!disable)
 		mod_timer(&sd_tuners->dynamic_load_timer, jiffies);
 
 	/*
@@ -1104,6 +1101,20 @@ static ssize_t store_dynamic_load_disable(struct kobject *kobj,
 			} while (num_online_cpus() < max_num && i++ < 10);
 		}
 	} while (0);
+}
+
+static ssize_t store_dynamic_load_disable(struct kobject *kobj,
+		struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int input;
+	int ret;
+
+	ret = kstrtouint(buf, 0, &input);
+	if (ret < 0)
+		return ret;
+
+	sprd_dynamic_load_disable(input);
+
 	return count;
 }
 
@@ -1639,6 +1650,54 @@ static int sprd_add_sysfs_files(struct sd_dbs_tuners *tuners)
 
 	return ret;
 }
+static int sprd_hotplug_proc_show(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%d\n", !g_sd_tuners->cpu_hotplug_disable);
+	return 0;
+}
+
+static ssize_t sprd_hotplug_proc_write(struct file *file,
+const char *buffer, size_t len, loff_t *off)
+{
+	char input;
+
+	if (len != 2)
+		return -EFAULT;
+	if (copy_from_user(&input, buffer, len - 1) != 0)
+		return -EFAULT;
+	sprd_dynamic_load_disable(!(input - '0'));
+
+	return len;
+}
+
+static int sprd_hotplug_proc_open(struct inode *inode, struct  file *file)
+{
+	return single_open(file, sprd_hotplug_proc_show, NULL);
+}
+
+static const struct file_operations sprd_hotplug_proc_fileops = {
+	.owner = THIS_MODULE,
+	.open = sprd_hotplug_proc_open,
+	.read = seq_read,
+	.write = sprd_hotplug_proc_write,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
+static int sprd_add_proc_files(struct sd_dbs_tuners *tuners)
+{
+	if (!tuners->cpu_hotplug_disable) {
+		tuners->proc_dir = proc_mkdir("hps", NULL);
+		if (!tuners->proc_dir)
+			return -ENOMEM;
+		tuners->proc_entry = proc_create("enabled", 0644, tuners->proc_dir, &sprd_hotplug_proc_fileops);
+		if (!tuners->proc_entry) {
+			remove_proc_entry("hps", NULL);
+			return -ENOMEM;
+		}
+	}
+	return 0;
+}
 
 static int __init sprd_hotplug_init(void)
 {
@@ -1670,6 +1729,12 @@ static int __init sprd_hotplug_init(void)
 	ret = sprd_add_sysfs_files(g_sd_tuners);
 	if (ret) {
 		pr_err("%s: Failed to add sys files\n", __func__);
+		goto out_free_mem;
+	}
+
+	ret = sprd_add_proc_files(g_sd_tuners);
+	if (ret) {
+		pr_err("%s: Failed to add proc files\n", __func__);
 		goto out_free_mem;
 	}
 
