@@ -10947,7 +10947,7 @@ CONFIG_PM
 	[function] power management system
 CONFIG_PM_AUTOSLEEP
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl5,sharkl5_32
 	[missing plat] pike2,sharkl3_32
 	[field] make,code
 	[subsys] power
@@ -13655,9 +13655,11 @@ CONFIG_SPRD_PAM_IPA
 CONFIG_SPRD_PCIE_AER
 	[arch] arm64
 	[plat] roc1
+	[missing plat]
 	[field] make,code
 	[subsys] soc
 	[must] debug
+	[missing plat description]
 	[function] This enables SPRD PCI Express Root Port Advanced Error
 		   Reporting (AER) irq number which is defined by SPRD itself
 		   not by MSI.
