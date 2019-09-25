@@ -1463,6 +1463,8 @@ static void sc2703_shutdown(struct platform_device *pdev)
 	struct sc2703_charger_info *info = platform_get_drvdata(pdev);
 	int ret;
 
+	cancel_delayed_work_sync(&info->otg_work);
+
 	ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
 				 SC2703_OTG_EN_MASK, 0);
 	if (ret)
