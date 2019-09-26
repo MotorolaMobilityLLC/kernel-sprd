@@ -135,6 +135,25 @@ static const char *ucp1301_get_event_name(int event)
 	return ev_name;
 }
 
+static int ucp1301_widget_event(struct snd_soc_dapm_widget *w,
+				struct snd_kcontrol *kcontrol, int event)
+{
+	int ret = 0;
+
+	pr_debug("wname %s %s\n", w->name, ucp1301_get_event_name(event));
+
+	switch (event) {
+	case SND_SOC_DAPM_PRE_PMU:
+	case SND_SOC_DAPM_POST_PMD:
+		break;
+	default:
+		WARN_ON(1);
+		ret = -EINVAL;
+	}
+
+	return ret;
+}
+
 static void ucp1301_sw_reset(struct ucp1301_t *ucp1301)
 {
 	switch (ucp1301->product_id) {
@@ -1704,8 +1723,9 @@ static int ucp1301_power_on(struct snd_soc_dapm_widget *w,
 }
 
 static const struct snd_soc_dapm_widget ucp1301_dapm_widgets[] = {
-	SND_SOC_DAPM_AIF_IN("UCP1301 PLAY", "Playback_SPK", 0, SND_SOC_NOPM,
-			    0, 0),
+	SND_SOC_DAPM_AIF_IN_E("UCP1301 PLAY", "Playback_SPK", 0, SND_SOC_NOPM,
+			      0, 0, ucp1301_widget_event,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 	SND_SOC_DAPM_PGA_E("UCP1301 SPK ON", SND_SOC_NOPM, 0, 0, NULL, 0,
 			   ucp1301_power_on,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
@@ -1745,7 +1765,59 @@ static const struct snd_soc_dapm_route ucp1301_intercon_rcv[] = {
 	{"UCP1301 RCV", NULL, "UCP1301 RCV ON"},
 };
 
+static int ucp1301_soc_probe(struct snd_soc_codec *codec)
+{
+	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	if (!dapm) {
+		dev_err(ucp1301->dev, "spk dapm %p, ucp1301 %p, NULL error\n",
+			dapm, ucp1301);
+		return -EINVAL;
+	}
+
+	snd_soc_dapm_ignore_suspend(dapm, "Playback_SPK");
+	snd_soc_dapm_ignore_suspend(dapm, "UCP1301 SPK");
+
+	return 0;
+}
+
+static int ucp1301_spk2_soc_probe(struct snd_soc_codec *codec)
+{
+	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	if (!dapm) {
+		dev_err(ucp1301->dev, "spk2 dapm %p, ucp1301 %p, NULL error\n",
+			dapm, ucp1301);
+		return -EINVAL;
+	}
+
+	snd_soc_dapm_ignore_suspend(dapm, "Playback_SPK2");
+	snd_soc_dapm_ignore_suspend(dapm, "UCP1301 SPK2");
+
+	return 0;
+}
+
+static int ucp1301_rcv_soc_probe(struct snd_soc_codec *codec)
+{
+	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
+	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
+
+	if (!dapm) {
+		dev_err(ucp1301->dev, "rcv dapm %p, ucp1301 %p, NULL error\n",
+			dapm, ucp1301);
+		return -EINVAL;
+	}
+
+	snd_soc_dapm_ignore_suspend(dapm, "Playback_RCV");
+	snd_soc_dapm_ignore_suspend(dapm, "UCP1301 RCV");
+
+	return 0;
+}
+
 static struct snd_soc_codec_driver soc_codec_dev_ucp1301 = {
+	.probe = ucp1301_soc_probe,
 	.idle_bias_off = true,
 	.component_driver = {
 		.controls = ucp1301_snd_controls,
@@ -1758,6 +1830,7 @@ static struct snd_soc_codec_driver soc_codec_dev_ucp1301 = {
 };
 
 static struct snd_soc_codec_driver soc_codec_dev_ucp1301_spk2 = {
+	.probe = ucp1301_spk2_soc_probe,
 	.idle_bias_off = true,
 	.component_driver = {
 		.controls = ucp1301_snd_controls_spk2,
@@ -1770,6 +1843,7 @@ static struct snd_soc_codec_driver soc_codec_dev_ucp1301_spk2 = {
 };
 
 static struct snd_soc_codec_driver soc_codec_dev_ucp1301_rcv = {
+	.probe = ucp1301_rcv_soc_probe,
 	.idle_bias_off = true,
 	.component_driver = {
 		.controls = ucp1301_snd_controls_rcv,
