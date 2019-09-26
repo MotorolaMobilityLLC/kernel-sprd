@@ -784,10 +784,6 @@
 
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
-	sprd-audio-card,widgets =
-		"Headphone", "inter HP PA",
-		"Speaker", "inter Spk PA",
-		"Speaker", "inter Ear PA";
 	sprd-audio-card,routing =
 		"HPMIC Pin", "HP Mic Jack",
 		"MIC Pin", "Mic Jack",
