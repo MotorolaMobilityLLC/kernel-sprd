@@ -363,7 +363,9 @@ void sdiohal_resume_wait(void)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
 	while (!atomic_read(&p_data->flag_resume)) {
-		WCN_ERR("sleep 5ms wait for sdio resume\n");
+		printk_ratelimited(
+			KERN_ERR
+			"WCN SDIOHAL error: 5ms wait for sdio resume\n");
 		usleep_range(4000, 6000);
 	}
 }
