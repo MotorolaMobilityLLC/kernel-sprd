@@ -503,7 +503,7 @@
 		reg = <0x10>;
 		#sound-dai-cells = <1>;
 		vddldo1-supply = <&vddldo1>;
-		sprd,vddldo1-voltage = <3300000>;
+		sprd,vddldo1-voltage = <1800000>;
 		ak4377,pdn-gpio = <&ap_gpio 116 GPIO_ACTIVE_HIGH>;
 
 		clock-names = "clk_48M", "source", "enable";
