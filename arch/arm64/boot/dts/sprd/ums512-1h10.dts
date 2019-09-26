@@ -789,6 +789,7 @@
 		"MIC Pin", "Mic Jack",
 		"MIC2 Pin", "Aux Mic Jack",
 		"inter HP PA", "HP Pin",
+		"inter Spk PA", "SPK Pin",
 		"UCP1301 SPK ON", "SPK Pin",
 		"inter Spk PA", "UCP1301 SPK",
 		"DMIC Pin", "DMic Jack",
