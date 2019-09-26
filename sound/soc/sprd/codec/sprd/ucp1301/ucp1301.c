@@ -1704,7 +1704,8 @@ static int ucp1301_power_on(struct snd_soc_dapm_widget *w,
 }
 
 static const struct snd_soc_dapm_widget ucp1301_dapm_widgets[] = {
-	SND_SOC_DAPM_AIF_IN("UCP1301 PLAY", "Playback", 0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("UCP1301 PLAY", "Playback_SPK", 0, SND_SOC_NOPM,
+			    0, 0),
 	SND_SOC_DAPM_PGA_E("UCP1301 SPK ON", SND_SOC_NOPM, 0, 0, NULL, 0,
 			   ucp1301_power_on,
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
@@ -1831,7 +1832,7 @@ static struct snd_soc_dai_driver ucp1301_dai[] = {
 	{
 		.name = "ucp1301-SPK",
 		.playback = {
-			.stream_name = "Playback",
+			.stream_name = "Playback_SPK",
 			.channels_min = 1,
 			.channels_max = 2,
 			.rates = UCP1301_RATES,
