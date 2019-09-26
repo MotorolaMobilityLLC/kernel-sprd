@@ -102,14 +102,14 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 		return;
 	}
 
-	pm_runtime_get_sync(dsi->dev.parent);
-
 	if (is_enabled) {
 		is_enabled = false;
 		dsi->ctx.is_inited = true;
 		mutex_unlock(&dsi_lock);
 		return;
 	}
+
+	pm_runtime_get_sync(dsi->dev.parent);
 
 	sprd_dsi_resume(dsi);
 	sprd_dphy_resume(dsi->phy);
@@ -725,6 +725,11 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 	const char *str;
 	int ret;
 
+	if (calibration_mode) {
+		DRM_WARN("Calibration Mode! Don't register sprd dsi driver\n");
+		return -ENODEV;
+	}
+
 	dsi = devm_kzalloc(&pdev->dev, sizeof(*dsi), GFP_KERNEL);
 	if (!dsi) {
 		DRM_ERROR("failed to allocate dsi data.\n");
@@ -753,6 +758,8 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_get_noresume(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);
 
 	return component_add(&pdev->dev, &dsi_component_ops);

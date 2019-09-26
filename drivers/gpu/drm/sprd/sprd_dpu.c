@@ -57,11 +57,22 @@ LIST_HEAD(dpu_core_head);
 LIST_HEAD(dpu_clk_head);
 LIST_HEAD(dpu_glb_head);
 
+bool calibration_mode;
 static unsigned long frame_count;
 module_param(frame_count, ulong, 0444);
 
 static int sprd_dpu_init(struct sprd_dpu *dpu);
 static int sprd_dpu_uninit(struct sprd_dpu *dpu);
+
+static int boot_mode_check(char *str)
+{
+	if (str != NULL && !strncmp(str, "cali", strlen("cali")))
+		calibration_mode = true;
+	else
+		calibration_mode = false;
+	return 0;
+}
+__setup("androidboot.mode=", boot_mode_check);
 
 static inline struct sprd_plane *to_sprd_plane(struct drm_plane *plane)
 {
@@ -643,6 +654,7 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 				   struct drm_crtc_state *old_state)
 {
 	struct sprd_dpu *dpu = crtc_to_dpu(crtc);
+	static bool is_enabled = true;
 
 	DRM_INFO("%s()\n", __func__);
 
@@ -652,7 +664,10 @@ static void sprd_crtc_atomic_enable(struct drm_crtc *crtc,
 	if (crtc->state->mode_changed && !crtc->state->active_changed)
 		return;
 
-	pm_runtime_get_sync(dpu->dev.parent);
+	if (is_enabled)
+		is_enabled = false;
+	else
+		pm_runtime_get_sync(dpu->dev.parent);
 
 	sprd_dpu_init(dpu);
 
@@ -1156,6 +1171,11 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	const char *str;
 	int ret;
 
+	if (calibration_mode) {
+		DRM_WARN("Calibration Mode! Don't register sprd dpu driver\n");
+		return -ENODEV;
+	}
+
 	dpu = devm_kzalloc(&pdev->dev, sizeof(*dpu), GFP_KERNEL);
 	if (!dpu)
 		return -ENOMEM;
@@ -1180,6 +1200,8 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	sprd_dpu_sysfs_init(&dpu->dev);
 	platform_set_drvdata(pdev, dpu);
 
+	pm_runtime_set_active(&pdev->dev);
+	pm_runtime_get_noresume(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);
 
 	return component_add(&pdev->dev, &dpu_component_ops);
