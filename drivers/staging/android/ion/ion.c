@@ -583,22 +583,9 @@ struct dma_buf *ion_new_alloc(size_t len, unsigned int heap_id_mask,
 }
 EXPORT_SYMBOL(ion_new_alloc);
 
-int ion_free(struct dma_buf *dmabuf)
+void ion_free(struct dma_buf *dmabuf)
 {
-	struct ion_buffer *buffer;
-
-	if (!dmabuf) {
-		pr_err("%s: invalid dmabuf\n", __func__);
-		return -EINVAL;
-	}
-
-	buffer = dmabuf->priv;
-	if (!buffer) {
-		pr_err("%s: invalid ionbuffer\n", __func__);
-		return -EINVAL;
-	}
-
-	return dmabuf->file->f_op->release(NULL, dmabuf->file);
+	dma_buf_put(dmabuf);
 }
 EXPORT_SYMBOL(ion_free);
 

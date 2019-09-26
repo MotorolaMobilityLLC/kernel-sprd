@@ -379,7 +379,7 @@ long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 int ion_query_heaps(struct ion_heap_query *query);
 struct dma_buf *ion_new_alloc(size_t len, unsigned int heap_id_mask,
 			      unsigned int flags);
-int ion_free(struct dma_buf *dmabuf);
+void ion_free(struct dma_buf *dmabuf);
 
 struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data);
 #ifdef CONFIG_E_SHOW_MEM
