@@ -1434,30 +1434,30 @@ CONFIG_BLK_DEV_LOOP_MIN_COUNT
                    The historic default is 8 and vts test requires it no more than 16.
 CONFIG_BLK_DEV_RAM
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] block
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] RAM block device support
 CONFIG_BLK_DEV_RAM_COUNT
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] block
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] Default number of RAM disks
 CONFIG_BLK_DEV_RAM_SIZE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] block
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] Default RAM disk size (kbytes).
 CONFIG_BLK_DEV_SD
 	[arch] all
