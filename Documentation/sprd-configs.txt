@@ -16324,8 +16324,8 @@ CONFIG_XFRM_FRAGMENT
 		   sprd until now. It is used for vowifi.
 CONFIG_XFRM_INTERFACE
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] menu,net
 	[subsys] net
 	[must] user
