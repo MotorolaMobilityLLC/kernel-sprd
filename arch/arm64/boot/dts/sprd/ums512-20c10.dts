@@ -12,8 +12,8 @@
 #include "sc2730.dtsi"
 #include "ums512-mach.dtsi"
 #include "ums512-modem.dtsi"
-#include "lcd/lcd_ft8006p_huaxian_mipi_720_1600_hs.dtsi"
-#include "lcd/lcd_ft8006p_hlt_mipi_720_1600_hs.dtsi"
+#include "lcd/lcd_ft8006p_hlt_mipi_hdp.dtsi"
+#include "lcd/lcd_ft8006p_huaxian_mipi_hdp.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 
 / {
