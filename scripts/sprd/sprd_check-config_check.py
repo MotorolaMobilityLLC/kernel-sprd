@@ -95,6 +95,8 @@ def create_diffconfigs_dict():
                             tmp_plat = 'sharkl5,sharkl5_32'
                         elif tmp_arch == 'common' and tmp_plat == 'roc1':
                             tmp_arch = 'arm64'
+                        elif tmp_arch == 'common' and tmp_plat == 'sharkl5Pro':
+                            tmp_arch = 'arm64'
 
                         if lines[j][4:-1] in d_diffconfig:
                             if tmp_arch not in d_diffconfig[lines[j][4:-1]]['arch'].split(','):

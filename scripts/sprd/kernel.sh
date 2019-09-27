@@ -118,6 +118,11 @@ function add_diffconfig()
 	BSP_BOARD_SPEC_CONFIG=$BSP_KERNEL_DIFF_CONFIG_ARCH/$BSP_BOARD_NAME"_diff_config"
 	sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_BOARD_SPEC_CONFIG
 
+        if [ "$BSP_BOARD_DEBIAN_CONFIG" == "true" ]; then
+                BSP_DEVICE_DEBIAN_CONFIG=$BSP_KERNEL_DIFF_CONFIG_COMMON/debian_diff_config
+                sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_DEVICE_DEBIAN_CONFIG
+        fi
+
 	if [ "$BSP_BOARD_TEE_CONFIG" == "trusty" ]; then
 		if [ -n "$BSP_BOARD_TEE_64BIT" ]; then
 			if [ "$BSP_BOARD_TEE_64BIT" == "false" ]; then
