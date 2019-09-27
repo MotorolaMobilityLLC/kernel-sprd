@@ -208,6 +208,9 @@ void gsp_r8p0_core_dump(struct gsp_core *c)
 		reg_struct.y2y_v_param[icnt].value =
 			gsp_core_reg_read(R8P0_Y2Y_V_PARAM(
 				(c->base + icnt * R8P0_LIMG_OFFSET)));
+		reg_struct.limg_des_scl_size[icnt].value =
+			gsp_core_reg_read(R8P0_LIMG_DES_SIZE(
+				(c->base + icnt * R8P0_LIMG_OFFSET)));
 	}
 
 	for (icnt = 0; icnt < R8P0_OSDL_NUM; icnt++) {
@@ -337,6 +340,12 @@ void gsp_r8p0_core_dump(struct gsp_core *c)
 				reg_struct.y2y_y_param[icnt].value,
 				reg_struct.y2y_u_param[icnt].value,
 				reg_struct.y2y_v_param[icnt].value);
+
+			GSP_DUMP("des_scl[%d, %d],TAP_MOD[%d, %d]\n",
+				reg_struct.limg_des_scl_size[icnt].DES_SCL_W,
+				reg_struct.limg_des_scl_size[icnt].DES_SCL_H,
+				reg_struct.limg_des_scl_size[icnt].HTAP_MOD,
+				reg_struct.limg_des_scl_size[icnt].VTAP_MOD);
 		}
 	}
 
