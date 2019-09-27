@@ -27,8 +27,11 @@
 #include <linux/kthread.h>
 #include <linux/list.h>
 #include <linux/sprd_dfs_drv.h>
+#include <trace/events/power.h>
 
 #include "sprd_dfs_trace.h"
+
+#define FTRACE_DDR_NAME    "unisoc-ddr"
 
 static int backdoor_status;
 static int trace_poll_time;
@@ -54,6 +57,7 @@ static void poll_all_status(void)
 
 	trace_sprd_dfs_poll(cur_freq, ap_freq, cp_freq,
 			force_freq, on_off, auto_on_off);
+	trace_clock_set_rate(FTRACE_DDR_NAME, cur_freq, raw_smp_processor_id());
 }
 
 static void trace_poll_callback(struct work_struct *work)
