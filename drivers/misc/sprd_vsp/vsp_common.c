@@ -171,6 +171,7 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 {
 	int ret = 0;
 	struct sprd_iommu_map_data iommu_map_data;
+	u32 power_state1, vsp_eb_reg;
 
 	vsp_clk_enable(vsp_hw_dev);
 	sprd_iommu_resume(vsp_hw_dev->vsp_dev);
@@ -183,6 +184,14 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 		vsp_clk_disable(vsp_hw_dev);
 		return ret;
 	}
+
+	regmap_read(regs[PMU_PWR_STATUS].gpr, regs[PMU_PWR_STATUS].reg,
+		&power_state1);
+	regmap_read(regs[VSP_DOMAIN_EB].gpr, regs[VSP_DOMAIN_EB].reg,
+		&vsp_eb_reg);
+	pr_info("reg 0x%x, vsp_power 0x%x, reg 0x%x, vsp_eb 0x%x\n",
+		regs[PMU_PWR_STATUS].reg, power_state1, regs[VSP_DOMAIN_EB].reg,
+		vsp_eb_reg);
 
 	iommu_map_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 	ret = sprd_iommu_map(vsp_hw_dev->vsp_dev, &iommu_map_data);
