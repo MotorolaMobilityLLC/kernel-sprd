@@ -1603,6 +1603,8 @@ static int aud_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		vbc_eq_idx = vbc_idx_to_eq_idx(vbc_idx);
+		if (vbc_eq_idx < 0)
+			return -EINVAL;
 		/*eq setting */
 		if (!p_eq_setting->codec)
 			p_eq_setting->codec = codec;
@@ -1991,6 +1993,8 @@ int vbc_component_startup(int vbc_idx, struct snd_soc_dai *dai)
 	}
 
 	vbc_eq_idx = vbc_idx_to_eq_idx(vbc_idx);
+	if (vbc_eq_idx < 0)
+		return -EINVAL;
 	if (p_eq_setting->is_active[vbc_eq_idx]
 	    && p_eq_setting->data[vbc_eq_idx]) {
 		pr_info("%s line[%d] active vbc_eq_idx[%d]\n",
