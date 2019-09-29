@@ -1,5 +1,7 @@
 #!/bin/bash
 
+IFS=$'\n'
+
 FN="$2"
 SCR_PATH=`dirname $0`
 
