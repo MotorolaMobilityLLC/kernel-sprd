@@ -952,13 +952,15 @@ static int vbc_ad_src_set(int rate, int ad_src_idx)
 	unsigned int en_sel = 0;
 	unsigned int val = 0;
 	unsigned int mask = 0;
-	struct sprd_vbc_src_reg_info *reg_info =
-	    &vbc_ad_src[ad_src_idx].reg_info;
+	struct sprd_vbc_src_reg_info *reg_info;
 
 	if (ad_src_idx < 0) {
 		pr_warn("invalid ad_src_idx[%d]\n", ad_src_idx);
 		return -EINVAL;
 	}
+
+	reg_info = &vbc_ad_src[ad_src_idx].reg_info;
+
 	if (!vbc_ad_src[ad_src_idx].reg_info.reg)
 		return -EINVAL;
 
