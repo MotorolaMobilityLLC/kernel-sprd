@@ -11,3 +11,9 @@ config SPRD_DMC_MPU
 	select SPRD_DMC_MPU_CORE
 	help
 	  Say Y here to support dmc mpu support.
+
+config SPRD_DMC_MPU_R3P0
+	bool "Spreadtrum DMC MPU R3P0 Support"
+	depends on SPRD_DEBUG
+	help
+	  Say Y here to support R3P0 dmc mpu support.

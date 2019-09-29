@@ -13390,6 +13390,15 @@ CONFIG_SPRD_DMC_MPU_CORE
 	[must] debug
 	[missing plat description]
 	[function] Enable MPU core function
+CONFIG_SPRD_DMC_MPU_R3P0
+	[arch] all
+	[plat] pike2,sharkle32
+	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[field] make
+	[subsys] debug
+	[must] debug
+	[missing plat description]
+	[function] Enable MPU R3P0 debug function
 CONFIG_SPRD_EFUSE
 	[arch] all
 	[plat] all
