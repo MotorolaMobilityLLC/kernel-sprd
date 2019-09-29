@@ -9646,11 +9646,11 @@ CONFIG_NFC
 	[arch] arm64
 	[plat] sharkl5Pro
 	[missing plat]
-	[field]menu
-	[subsys]core
-	[must]none
-	[missing plat description]none
-	[function]enable nfc driver build in kernel
+	[field] menu
+	[subsys] core
+	[must] none
+	[missing plat description] none
+	[function] enable nfc driver build in kernel
 CONFIG_NF_CONNTRACK
 	[arch] all
 	[plat] all
@@ -13158,30 +13158,30 @@ CONFIG_SPRD_AUDIO_SIPC
 	[function] sound communication with audio dsp
 CONFIG_SPRD_AUTOTEST
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu,make,code
 	[subsys] soc
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] Support Spreadtrum autotest
 CONFIG_SPRD_AUTOTEST_GPIO
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu,make
 	[subsys] soc
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] Spreadtrum gpio autotest support
 CONFIG_SPRD_AUTOTEST_PINCTRL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu,make,code
 	[subsys] soc
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] Spreadtrum pinctrl autotest support
 CONFIG_SPRD_BUSMONITOR
 	[arch] all
@@ -14646,12 +14646,12 @@ CONFIG_TOUCHSCREEN_ADAPTIVE_VENDOR_MSTAR
 CONFIG_TOUCHSCREEN_FTS
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat]none
+	[missing plat] none
 	[field] make
-	[subsys]input
-	[must]unknown
-	[missing plat description]none
-	[function]for touchscreen driver
+	[subsys] input
+	[must] unknown
+	[missing plat description] none
+	[function] for touchscreen driver
 CONFIG_TOUCHSCREEN_PROPERTIES
 	[arch] all
 	[plat] all
