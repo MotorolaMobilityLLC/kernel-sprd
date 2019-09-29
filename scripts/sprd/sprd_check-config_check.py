@@ -6,6 +6,8 @@ import csv
 import re
 
 tmp_path_def = "./tmp_config_check/"
+base_config_path = "./../../../kernel/configs/"
+d_baseconfig = {}
 d_sprdconfig = {}
 d_defconfig = {}
 d_diffconfig = {}
@@ -16,12 +18,12 @@ config_path = "Documentation/sprd-configs.txt"
 list_configs = []
 tool_name = sys.argv[0][2:-3]
 kernel_version = ''
-
 all_arch = []
 all_plat = []
 l_sprdconfig = []
 l_defproject = []
 l_diffconfig = []
+l_platform = [] # [p,q]
 
 d_defconfig_path = {
         'kernel4.4':{
@@ -33,16 +35,73 @@ d_defconfig_path = {
             'sharkl3_32':{'defconfig':'arch/arm/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3', 'arch':'arm'},
         },
         'kernel4.14':{
-            'pike2':{'defconfig':'arch/arm/configs/sprd_pike2_defconfig', 'diffconfig':'sprd-diffconfig/pike2', 'arch':'arm'},
-            'roc1':{'defconfig':'arch/arm64/configs/sprd_roc1_defconfig', 'diffconfig':'sprd-diffconfig/roc1','arch':'arm64'},
-            'sharkl3':{'defconfig':'arch/arm64/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3','arch':'arm64'},
-            'sharkl3_32':{'defconfig':'arch/arm/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3', 'arch':'arm'},
-            'sharkl5':{'defconfig':'arch/arm64/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm64'},
-            'sharkl5_32':{'defconfig':'arch/arm/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm'},
-            'sharkle32':{'defconfig':'arch/arm/configs/sprd_sharkle_defconfig', 'diffconfig':'sprd-diffconfig/sharkle', 'arch':'arm'},
-            'sharkl5Pro':{'defconfig':'arch/arm64/configs/sprd_sharkl5Pro_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5Pro', 'arch':'arm64'},
+            'pike2':{'defconfig':'arch/arm/configs/sprd_pike2_defconfig', 'diffconfig':'sprd-diffconfig/pike2', 'arch':'arm','platform':'q'},
+            'roc1':{'defconfig':'arch/arm64/configs/sprd_roc1_defconfig', 'diffconfig':'sprd-diffconfig/roc1','arch':'arm64','platform':'p'},
+            'sharkl3':{'defconfig':'arch/arm64/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3','arch':'arm64','platform':'q'},
+            'sharkl3_32':{'defconfig':'arch/arm/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3', 'arch':'arm','platform':'q'},
+            'sharkl5':{'defconfig':'arch/arm64/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm64','platform':'p'},
+            'sharkl5_32':{'defconfig':'arch/arm/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5','arch':'arm','platform':'p'},
+            'sharkle32':{'defconfig':'arch/arm/configs/sprd_sharkle_defconfig', 'diffconfig':'sprd-diffconfig/sharkle', 'arch':'arm','platform':'q'},
+            'sharkl5Pro':{'defconfig':'arch/arm64/configs/sprd_sharkl5Pro_defconfig', 'diffconfig':'sprd-diffconfig/sharkl5Pro', 'arch':'arm64','platform':'q'},
         },
 }
+
+def create_baseconfig_dict():
+# **** d_baseconfig[platform][arch][config] = 'y' ****
+    for platform in l_platform:
+        d_baseconfig[platform] = {}
+        dpath = os.path.join(base_config_path,platform,kernel_version_plus)
+        os.path.abspath(dpath)
+
+        for maindir,subdir,filename_list in os.walk(dpath):
+            for filename in filename_list:
+                if "android-base" in filename:
+                    arch = filename.split('.').pop(0).split('-').pop()
+                    d_baseconfig[platform][arch] = {}
+
+                    fpath = os.path.join(maindir,filename)
+                    f = open(fpath,'r')
+                    lines = f.readlines()
+                    for j in range(len(lines)):
+                        if '=' in lines[j]:
+                            config_name = lines[j].split('=')[0]
+                            d_baseconfig[platform][arch][config_name] = 'y'
+                        elif 'is not set' in lines[j]:
+                            config_name = lines[j].split(' ')[1]
+                            d_baseconfig[platform][arch][config_name] = 'n'
+                    f.close()
+
+def check_base_vs_defconfig():
+    for plat in d_defconfig_path[kernel_version]:
+        platform = d_defconfig_path[kernel_version][plat]['platform']
+        arch_base = d_defconfig_path[kernel_version][plat]['arch']
+        print("\tBEGIN check " + plat + " vs " + platform + "_base\n")
+
+# **** check base_arm/arm64.config(if exists) vs plat(arm/arm64)
+        if arch_base in d_baseconfig[platform]:
+            for config in d_baseconfig[platform][arch_base]:
+                if config not in d_defconfig[plat]:
+                    if d_baseconfig[platform][arch_base][config] == 'n':
+                        print("WARNING: missing configuration: base:" + config + " " + d_baseconfig[platform][arch_base][config])
+                    else:
+                        print("ERROR: missing configuration: base:" + config + " " + d_baseconfig[platform][arch_base][config])
+                elif config in d_defconfig[plat]:
+                    if d_baseconfig[platform][arch_base][config] != d_defconfig[plat][config]:
+                        print("ERROR: different configuration: base:" + config + " " + d_baseconfig[platform][arch_base][config] + "\t"\
+                            + plat + ":" + config + " " + d_defconfig[plat][config])
+# **** check base.config vs plat(no matter what arch)
+        for config in d_baseconfig[platform]['base']:
+            if config not in d_defconfig[plat]:
+                if d_baseconfig[platform]['base'][config] == 'n':
+                    print("WARNING: missing configuration: base:" + config + " " + d_baseconfig[platform]['base'][config])
+                else:
+                    print("ERROR: missing configuration: base:" + config + " " + d_baseconfig[platform][arch_base][config])
+            elif config in d_defconfig[plat]:
+                if d_baseconfig[platform]['base'][config] != d_defconfig[plat][config]:
+                    print("ERROR: different configuration: base:" + config + " " + d_baseconfig[platform]['base'][config] + "\t"\
+                        + plat + ":" + config + " " + d_defconfig[plat][config])
+
+        print("\n\tEND check " + plat + "\n")
 
 def create_diffconfigs_dict():
     result = []
@@ -593,19 +652,22 @@ def prepare_info_first():
     f.close
     global kernel_version
     kernel_version = 'kernel' + version[:-1] + '.' + patchlevel[:-1]
+    global kernel_version_plus
+    kernel_version_plus = 'android-' +version[:-1] + '.' + patchlevel[:-1]
 
     l_defconfig_path = list(d_defconfig_path[kernel_version])
     l_defconfig_path.sort()
-    for key in l_defconfig_path:
-        all_plat.append(key)
 
+    for key in l_defconfig_path:
+        if d_defconfig_path[kernel_version][key]['platform'] not in l_platform:
+            l_platform.append(d_defconfig_path[kernel_version][key]['platform'])
+
+        all_plat.append(key)
         if d_defconfig_path[kernel_version][key]['arch'] not in all_arch:
             all_arch.append(d_defconfig_path[kernel_version][key]['arch'])
 
-    for arch in all_arch:
-        d_all_plat.setdefault(arch,'')
-    for key in l_defconfig_path:
-         if key not in d_all_plat[d_defconfig_path[kernel_version][key]['arch']]:
+        d_all_plat.setdefault(d_defconfig_path[kernel_version][key]['arch'],'')
+        if key not in d_all_plat[d_defconfig_path[kernel_version][key]['arch']]:
              d_all_plat[d_defconfig_path[kernel_version][key]['arch']] = d_all_plat[d_defconfig_path[kernel_version][key]['arch']] + key + ","
 
 def print_script_info():
@@ -648,6 +710,7 @@ def main():
     create_sprdconfigs_dict()
     prepare_info_second()
     create_corrected_dict()
+    create_baseconfig_dict()
 
     if len(sys.argv) == 2:
         if sys.argv[1] == 'sort':
@@ -671,6 +734,8 @@ def main():
         elif sys.argv[1] == 'scan':
             scan()
             special_scan()
+        elif sys.argv[1] == 'checkbase':
+            check_base_vs_defconfig()
         else:
             print("PARAMETERS ERROR:")
             help_info()
