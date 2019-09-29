@@ -307,7 +307,7 @@ static void marlin_write_efuse_data(void)
 static void marlin_write_efuse_temperature(void)
 {
 	phys_addr_t phy_addr;
-	u32 magic, val;
+	u32 magic;
 
 	magic = WCN_EFUSE_TEMPERATURE_MAGIC;
 	if (wcn_efuse_val[3] == 0) {
@@ -318,7 +318,8 @@ static void marlin_write_efuse_temperature(void)
 	WCN_INFO("temperature efuse read 0x%x\n", wcn_efuse_val[3]);
 	phy_addr = s_wcn_device.btwf_device->base_addr +
 		  (phys_addr_t)&s_wssm_phy_offset_p->efuse_temper_val;
-	wcn_write_data_to_phy_addr(phy_addr, &val, sizeof(val));
+	wcn_write_data_to_phy_addr(phy_addr, &wcn_efuse_val[3],
+				   sizeof(wcn_efuse_val[3]));
 out:
 	phy_addr = s_wcn_device.btwf_device->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->efuse_temper_magic;
