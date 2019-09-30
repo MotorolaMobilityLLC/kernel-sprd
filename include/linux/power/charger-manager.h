@@ -267,6 +267,8 @@ struct charger_desc {
 
 	u32 charge_voltage_max;
 	u32 charge_voltage_drop;
+	u32 fast_charge_voltage_max;
+	u32 fast_charge_voltage_drop;
 
 	int charger_status;
 	int trigger_cnt;

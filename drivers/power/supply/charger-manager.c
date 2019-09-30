@@ -3033,6 +3033,10 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			     &desc->charge_voltage_max);
 	of_property_read_u32(np, "cm-charge-voltage-drop",
 			     &desc->charge_voltage_drop);
+	of_property_read_u32(np, "cm-fast-charge-voltage-max",
+			     &desc->fast_charge_voltage_max);
+	of_property_read_u32(np, "cm-fast-charge-voltage-drop",
+			     &desc->fast_charge_voltage_drop);
 
 	/* Initialize the jeita temperature table. */
 	ret = cm_init_jeita_table(desc, dev);

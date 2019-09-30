@@ -32,6 +32,8 @@ Optional properties :
  - cm-dis/charging-max = limits of charging duration
  - cm-charge-voltage-max: maximum charge voltage in microVolts
  - cm-charge-voltage-drop: drop voltage in microVolts to allow recharging
+ - cm-fast-charge-voltage-max: maximum fast charge voltage in microVolts
+ - cm-fast-charge-voltage-drop: drop voltage in microVolts to allow restart fast charging
  - cm-shutdown-voltage: drop voltage in microVolts to allow shutdown
  - cm-tickle-time-out: when 99% of the time is exceeded, it will be forced to 100%
  - cm-one-cap-time: how much time to allow capacity change
@@ -82,6 +84,8 @@ Example :
 		cm-discharging-max = <7200000>;
 		cm-charge-voltage-max = <6500000>;
 		cm-charge-voltage-drop = <700000>;
+		cm-fast-charge-voltage-max = <11000000>;
+		cm-fast-charge-voltage-drop  = <1000000>;
 		cm-shutdown-voltage = <3100000>;
 		cm-tickle-time-out = <1500>;
 		cm-one-cap-time = <30>;
