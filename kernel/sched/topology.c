@@ -301,10 +301,10 @@ static int init_rootdomain(struct root_domain *rd)
 
 	if (cpupri_init(&rd->cpupri) != 0)
 		goto free_cpudl;
-
+#ifdef CONFIG_SMP
 	rd->max_cap_orig_cpu = rd->min_cap_orig_cpu = -1;
 	rd->mid_cap_orig_cpu = -1;
-
+#endif
 	init_max_cpu_capacity(&rd->max_cpu_capacity);
 
 	return 0;
@@ -1896,6 +1896,7 @@ build_sched_domains(const struct cpumask *cpu_map, struct sched_domain_attr *att
 		cpu_attach_domain(sd, d.rd, i);
 	}
 
+#ifdef COMFIG_SMP
 	/* set the mid capacity cpu (assumes only 3 capacities) */
 	for_each_cpu(i, cpu_map) {
 		int max_cpu = READ_ONCE(d.rd->max_cap_orig_cpu);
@@ -1909,6 +1910,7 @@ build_sched_domains(const struct cpumask *cpu_map, struct sched_domain_attr *att
 			break;
 		}
 	}
+#endif
 	rcu_read_unlock();
 
 	if (!cpumask_empty(cpu_map))

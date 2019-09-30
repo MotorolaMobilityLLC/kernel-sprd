@@ -861,10 +861,11 @@ static void update_curr(struct cfs_rq *cfs_rq)
 		      max(delta_exec, curr->statistics.exec_max));
 
 	curr->sum_exec_runtime += delta_exec;
-
+#ifdef CONFIG_SMP
 	if (cpumask_test_cpu(cpu, &min_cap_cpu_mask))
 		curr->s_sum_exec_runtime += delta_exec;
 	else
+#endif
 		curr->b_sum_exec_runtime += delta_exec;
 
 	schedstat_add(cfs_rq->exec_clock, delta_exec);
@@ -7387,9 +7388,11 @@ static int start_cpu(struct task_struct *p, bool boosted)
 	if (boosted)
 		return rd->max_cap_orig_cpu;
 
+#ifdef CONFIG_SMP
 	if (rd->min_cap_orig_cpu != -1
 	    && task_fits_capacity(p, rd->min_cap_orig_cpu))
 		start_cpu = rd->min_cap_orig_cpu;
+#endif
 	else if (rd->mid_cap_orig_cpu != -1
 	    && task_fits_capacity(p, rd->mid_cap_orig_cpu))
 		start_cpu = rd->mid_cap_orig_cpu;

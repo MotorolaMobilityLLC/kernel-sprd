@@ -1143,10 +1143,11 @@ static void update_curr_dl(struct rq *rq)
 		      max(curr->se.statistics.exec_max, delta_exec));
 
 	curr->se.sum_exec_runtime += delta_exec;
-
+#ifdef CONFIG_SMP
 	if (cpumask_test_cpu(cpu, &min_cap_cpu_mask))
 		curr->se.s_sum_exec_runtime += delta_exec;
 	else
+#endif
 		curr->se.b_sum_exec_runtime += delta_exec;
 
 	account_group_exec_runtime(curr, delta_exec);

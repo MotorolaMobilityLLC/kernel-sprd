@@ -113,6 +113,7 @@ int test_init_test(struct test *test, const char *name)
 {
 	INIT_LIST_HEAD(&test->resources);
 	INIT_LIST_HEAD(&test->post_conditions);
+	spin_lock_init(&test->lock);
 	test->name = name;
 	test->vprintk = test_vprintk;
 	test->fail = test_fail;
