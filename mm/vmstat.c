@@ -1051,6 +1051,7 @@ const char * const vmstat_text[] = {
 	"nr_zspages",
 #endif
 	"nr_free_cma",
+	"nr_high_atomic",
 
 	/* enum numa_stat_item counters */
 #ifdef CONFIG_NUMA
