@@ -111,6 +111,7 @@ struct interactive_policy {
 
 /* Separate instance required for each CPU */
 struct interactive_cpu {
+	int cpu;
 	struct update_util_data update_util;
 	struct interactive_policy *ipolicy;
 
@@ -350,9 +351,7 @@ static u64 update_load(struct interactive_cpu *icpu, int cpu)
 		active_time = 0;
 	else
 		active_time = delta_time - delta_idle;
-
 	icpu->cputime_speedadj += active_time * icpu->ipolicy->policy->cur;
-
 	icpu->time_in_idle = now_idle;
 	icpu->time_in_idle_timestamp = now;
 
@@ -369,10 +368,10 @@ static void eval_target_freq(struct interactive_cpu *icpu)
 	unsigned int new_freq, loadadjfreq, index, delta_time;
 	unsigned long flags;
 	int cpu_load;
-	int cpu = smp_processor_id();
+	int cpu = icpu->cpu;
 
 	spin_lock_irqsave(&icpu->load_lock, flags);
-	now = update_load(icpu, smp_processor_id());
+	now = update_load(icpu, cpu);
 	delta_time = (unsigned int)(now - icpu->cputime_speedadj_timestamp);
 	cputime_speedadj = icpu->cputime_speedadj;
 	spin_unlock_irqrestore(&icpu->load_lock, flags);
@@ -471,7 +470,7 @@ exit:
 static void cpufreq_interactive_update(struct interactive_cpu *icpu)
 {
 	eval_target_freq(icpu);
-	slack_timer_resched(icpu, smp_processor_id(), true);
+	slack_timer_resched(icpu, icpu->cpu, true);
 }
 
 static void cpufreq_interactive_get_policy_info(struct cpufreq_policy *policy,
@@ -1345,7 +1344,7 @@ static int __init cpufreq_interactive_gov_init(void)
 
 	for_each_possible_cpu(cpu) {
 		icpu = &per_cpu(interactive_cpu, cpu);
-
+		icpu->cpu = cpu;
 		init_irq_work(&icpu->irq_work, irq_work);
 		spin_lock_init(&icpu->load_lock);
 		spin_lock_init(&icpu->target_freq_lock);
