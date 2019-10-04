@@ -15,13 +15,12 @@ struct sprd_iommu_init_data {
 
 	unsigned long iova_base;            /* io virtual address base */
 	size_t iova_size;            /* io virtual address size */
-	unsigned long pgt_base;             /* iommu page table base address */
+	unsigned long frc_reg_addr;  /* force copy reg address */
 	size_t pgt_size;             /* iommu page table array size */
 	unsigned long ctrl_reg;             /* iommu control register */
 	unsigned long fault_page;
 	unsigned int iommu_rev;
 
-	/*add for 9860 interlace ddr*/
 	/*iommu reserved memory of pf page table*/
 	unsigned long pagt_base_ddr;
 	unsigned long pagt_ddr_size;
@@ -54,7 +53,7 @@ enum sprd_iommu_id {
 	SPRD_IOMMU_ISP,
 	SPRD_IOMMU_ISP1,
 	SPRD_IOMMU_FD,
-	SPRD_IOMMU_AI,
+	SPRD_IOMMU_NPU,
 	SPRD_IOMMU_EPP,
 	SPRD_IOMMU_EDP,
 	SPRD_IOMMU_IDMA,
@@ -194,66 +193,24 @@ enum IOMMU_ID {
 	IOMMU_EX_ISP,
 	IOMMU_EX_NEWISP,
 	IOMMU_EX_FD,
-	IOMMU_EX_AI,
+	IOMMU_EX_NPU,
 	IOMMU_EX_EPP,
 	IOMMU_EX_EDP,
 	IOMMU_EX_IDMA,
 	IOMMU_EX_VDMA,
-	/*for sharkle*/
-	IOMMU_EXLE_VSP,
-	IOMMU_EXLE_DCAM,
-	IOMMU_EXLE_CPP,
-	IOMMU_EXLE_GSP,
-	IOMMU_EXLE_JPG,
-	IOMMU_EXLE_DISP,
-	IOMMU_EXLE_ISP,
-	/*for pike2*/
-	IOMMU_EXPK2_VSP,
-	IOMMU_EXPK2_DCAM,
-	IOMMU_EXPK2_CPP,
-	IOMMU_EXPK2_GSP,
-	IOMMU_EXPK2_JPG,
-	IOMMU_EXPK2_DISP,
-	IOMMU_EXPK2_ISP,
-	/*for sharkl3*/
-	IOMMU_EXL3_VSP,
-	IOMMU_EXL3_DCAM,
-	IOMMU_EXL3_CPP,
-	IOMMU_EXL3_JPG,
-	IOMMU_EXL3_DISP,
-	IOMMU_EXL3_ISP,
-	/*for sharkl5*/
-	IOMMU_EXL5_VSP,
-	IOMMU_EXL5_DCAM,
-	IOMMU_EXL5_CPP,
-	IOMMU_EXL5_JPG,
-	IOMMU_EXL5_DISP,
-	IOMMU_EXL5_ISP,
-	IOMMU_EXL5_FD,
-	/*for roc1*/
-	IOMMU_EXROC1_VSP,
-	IOMMU_EXROC1_DCAM,
-	IOMMU_EXROC1_CPP,
-	IOMMU_EXROC1_JPG,
-	IOMMU_EXROC1_DISP,
-	IOMMU_EXROC1_ISP,
-	IOMMU_EXROC1_FD,
-	IOMMU_EXROC1_AI,
-	IOMMU_EXROC1_EPP,
-	IOMMU_EXROC1_EDP,
 	/*for sharkl5pro*/
-	IOMMU_VAUL5P_VSP,
-	IOMMU_VAUL5P_DCAM,
-	IOMMU_VAUL5P_CPP,
-	IOMMU_VAUL5P_JPG,
-	IOMMU_VAUL5P_DISP,
-	IOMMU_VAUL5P_ISP,
-	IOMMU_VAUL5P_FD,
-	IOMMU_VAUL5P_AI,
-	IOMMU_VAUL5P_EPP,
-	IOMMU_VAUL5P_EDP,
-	IOMMU_VAUL5P_IDMA,
-	IOMMU_VAUL5P_VDMA,
+	IOMMU_VAU_VSP,
+	IOMMU_VAU_DCAM,
+	IOMMU_VAU_CPP,
+	IOMMU_VAU_JPG,
+	IOMMU_VAU_DISP,
+	IOMMU_VAU_ISP,
+	IOMMU_VAU_FD,
+	IOMMU_VAU_NPU,
+	IOMMU_VAU_EPP,
+	IOMMU_VAU_EDP,
+	IOMMU_VAU_IDMA,
+	IOMMU_VAU_VDMA,
 	IOMMU_MAX,
 };
 extern struct sprd_iommu_ops sprd_iommuex_hw_ops;

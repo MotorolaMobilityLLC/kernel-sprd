@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2019 Spreadtrum Communications Inc.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/device.h>
@@ -45,9 +58,9 @@ static int pgt_show(struct seq_file *s, void *unused)
 	struct sprd_iommu_dev *iommu_dev = (struct sprd_iommu_dev *)s->private;
 	unsigned long i = 0;
 
-	seq_printf(s, "%s pgt_base:0x%lx pgt_size:0x%zx iova_base:0x%lx iova_size:0x%zx\n",
+	seq_printf(s, "%s frc_reg_addr:0x%lx pgt_size:0x%zx iova_base:0x%lx iova_size:0x%zx\n",
 		iommu_dev->init_data->name,
-		iommu_dev->init_data->pgt_base,
+		iommu_dev->init_data->frc_reg_addr,
 		iommu_dev->init_data->pgt_size,
 		iommu_dev->init_data->iova_base,
 		iommu_dev->init_data->iova_size);
@@ -55,11 +68,11 @@ static int pgt_show(struct seq_file *s, void *unused)
 	for (i = 0; i < (iommu_dev->init_data->pgt_size >> 2); i++) {
 		if (i % 16 == 0) {
 			seq_printf(s, "\n0x%lx[0x%lx]: ",
-				iommu_dev->init_data->pgt_base + i*4,
+				iommu_dev->init_data->frc_reg_addr + i*4,
 				iommu_dev->init_data->iova_base + i*4096);
 		}
 		seq_printf(s, "%x,",
-			*(((uint32_t *)iommu_dev->init_data->pgt_base) + i));
+			*(((uint32_t *)iommu_dev->init_data->frc_reg_addr) + i));
 	}
 
 	return 0;
@@ -86,7 +99,7 @@ int sprd_iommu_sysfs_create(struct sprd_iommu_dev *device,
 	if (ERR_PTR(-ENODEV) == iommu_debugfs_dir)
 		iommu_debugfs_dir = NULL;
 	else {
-		if (NULL != iommu_debugfs_dir) {
+		if (iommu_debugfs_dir) {
 			debugfs_create_file("iova",
 							0444,
 							iommu_debugfs_dir,
@@ -106,7 +119,7 @@ int sprd_iommu_sysfs_create(struct sprd_iommu_dev *device,
 int sprd_iommu_sysfs_destroy(struct sprd_iommu_dev *device,
 							const char *dev_name)
 {
-	if (NULL != iommu_debugfs_dir)
+	if (iommu_debugfs_dir)
 		debugfs_remove_recursive(iommu_debugfs_dir);
 
 	return 0;

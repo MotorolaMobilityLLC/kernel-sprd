@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2019 Spreadtrum Communications Inc.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include "sprd_iommuex_hal_register.h"
 
 bool mmu_ex_check_en(ulong ctrl_base_addr, u32 iommu_id)
@@ -52,7 +65,7 @@ void mmu_ex_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 }
 
 void mmu_ex_vaout_bypass_enable(ulong ctrl_base_addr, u32 iommu_id,
-		u32 iommu_type, bool vaor_bp_en)
+				bool vaor_bp_en)
 {
 	ulong reg_addr = ctrl_base_addr;
 	u32 reg_value;
@@ -112,7 +125,7 @@ void mmu_ex_tlb_update(ulong ctrl_base_addr, enum sprd_iommu_ch_type ch_type,
 	reg_write_dword(reg_addr, new_value);
 }
 
-void mmu_ex_update(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
+void mmu_ex_update(ulong ctrl_base_addr, u32 iommu_id)
 {
 	ulong reg_addr = ctrl_base_addr + UPDATE_OFFSET;
 	reg_write_dword(reg_addr, 0xffffffff);
@@ -240,21 +253,8 @@ u32 mmu_ex_read_page_entry(ulong page_table_addr, u32 entry_index)
 	return phy_addr;
 }
 
-void mmu_ex_frc_copy(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
+void mmu_ex_frc_copy(ulong frc_reg_addr, u32 iommu_id)
 {
-	ulong reg_addr;
-
-	if (iommu_id == IOMMU_EX_DCAM) {
-		if (iommu_type == SPRD_IOMMUEX_SHARKLE)
-			reg_addr = ctrl_base_addr + 0x2010;
-		else if (iommu_type == SPRD_IOMMUEX_PIKE2)
-			reg_addr = ctrl_base_addr + 0x4;
-		else if (iommu_type == SPRD_IOMMUEX_SHARKL3
-			 || iommu_type == SPRD_IOMMUEX_SHARKL5)
-			reg_addr = ctrl_base_addr + 0x3010;
-		else
-			return;
-
-		putbit(reg_addr, 1, 0);
-	}
+	if (iommu_id == IOMMU_EX_DCAM)
+		putbit(frc_reg_addr, 1, 0);
 }
