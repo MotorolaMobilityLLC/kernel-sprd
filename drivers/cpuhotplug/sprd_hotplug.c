@@ -432,6 +432,10 @@ ops_end:
 		}
 		pr_err("hotplug ops err: %d\n", ret);
 	} else {
+		if (ret == 1) {
+			pr_err("dev->offline error, ret=%d\n", ret);
+			return ret;
+		}
 		count = 0;
 	}
 	/*
