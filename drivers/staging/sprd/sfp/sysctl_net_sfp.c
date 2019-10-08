@@ -30,6 +30,13 @@
 #include "sfp.h"
 
 int sysctl_net_sfp_enable  __read_mostly;
+/*
+ * sysctl_net_sfp_tether_scheme default value is 0
+ * roc1+orca only supports usb tether, so it should use IPA.
+ * orca cpe supports both pcie tether/usb tether,
+ * so 0 stands for IPA, 1 stands for SFP.
+ */
+int sysctl_net_sfp_tether_scheme  __read_mostly;
 int sysctl_tcp_aging_time  __read_mostly = DEFAULT_SFP_TCP_AGING_TIME;
 int sysctl_udp_aging_time  __read_mostly = DEFAULT_SFP_UDP_AGING_TIME;
 

@@ -343,6 +343,7 @@ extern struct hlist_head sfp_fwd_entries[SFP_ENTRIES_HASH_SIZE];
 extern struct sfp_ipa_tbl_mgr ipa_tbl_mgr;
 extern struct net init_net;
 extern int sysctl_net_sfp_enable;
+extern int sysctl_net_sfp_tether_scheme;
 extern int sysctl_tcp_aging_time;
 extern int sysctl_udp_aging_time;
 extern spinlock_t mgr_lock;
@@ -508,6 +509,7 @@ void sfp_update_checksum(void *ipheader,
 			 u8 l4proto,
 			 u32 l4offset);
 int get_sfp_enable(void);
+int get_sfp_tether_scheme(void);
 int add_in_sfp_fwd_table(
 	const struct sfp_mgr_fwd_tuple_hash *fwd_hash_entry,
 	struct sfp_conn *sfp_ct);

@@ -158,7 +158,6 @@ static int snfp_test_thread_2(void *arg)
 	return 0;
 }
 
-#ifdef CONFIG_SPRD_IPA_SUPPORT
 static struct task_struct *snfp_test_task3;
 
 static void make_ct_tuple(struct tuple_info *ti, struct nf_conn *ct)
@@ -529,7 +528,6 @@ int snfp_test_thread_n(void *arg)
 	sfp_ipa_tbl_add_2048(n);
 	return 0;
 }
-#endif
 
 int sfp_test_init(int count)
 {
@@ -548,62 +546,62 @@ int sfp_test_init(int count)
 			return 1;
 	}
 
-#ifdef CONFIG_SPRD_IPA_SUPPORT
-	if (count == 10) {
-		snfp_test_task3 = kthread_run(
-			snfp_test_thread_3,
-			NULL, "ipa_hash_init_delete");
-		if (IS_ERR(snfp_test_task3))
-			return 1;
-	}
+	if (!get_sfp_tether_scheme()) {
+		if (count == 10) {
+			snfp_test_task3 = kthread_run(
+				snfp_test_thread_3,
+				NULL, "ipa_hash_init_delete");
+			if (IS_ERR(snfp_test_task3))
+				return 1;
+		}
 
-	if (count == 11) {
-		snfp_test_task3 = kthread_run(
-			snfp_test_thread_4,
-			NULL, "ipa_hash_timer");
-		if (IS_ERR(snfp_test_task3))
-			return 1;
-	}
+		if (count == 11) {
+			snfp_test_task3 = kthread_run(
+				snfp_test_thread_4,
+				NULL, "ipa_hash_timer");
+			if (IS_ERR(snfp_test_task3))
+				return 1;
+		}
 
-	if (count == 12) {
-		snfp_test_task3 = kthread_run(
-			snfp_test_thread_5,
-			NULL, "ipa_hash_tbl_2048");
-		if (IS_ERR(snfp_test_task3))
-			return 1;
-	}
+		if (count == 12) {
+			snfp_test_task3 = kthread_run(
+				snfp_test_thread_5,
+				NULL, "ipa_hash_tbl_2048");
+			if (IS_ERR(snfp_test_task3))
+				return 1;
+		}
 
-	if (count == 13) {
-		snfp_test_task3 = kthread_run(
-			snfp_test_thread_6,
-			NULL, "sfp_ipa_tbl_hash_collision");
-		if (IS_ERR(snfp_test_task3))
-			return 1;
-	}
+		if (count == 13) {
+			snfp_test_task3 = kthread_run(
+				snfp_test_thread_6,
+				NULL, "sfp_ipa_tbl_hash_collision");
+			if (IS_ERR(snfp_test_task3))
+				return 1;
+		}
 
-	if (count == 14) {
-		snfp_test_task3 = kthread_run(
-			snfp_test_thread_7,
-			NULL, "sfp_ipa_timer_test_2");
-		if (IS_ERR(snfp_test_task3))
-			return 1;
-	}
+		if (count == 14) {
+			snfp_test_task3 = kthread_run(
+				snfp_test_thread_7,
+				NULL, "sfp_ipa_timer_test_2");
+			if (IS_ERR(snfp_test_task3))
+				return 1;
+		}
 
-	if (count == 15) {
-		snfp_test_task3 = kthread_run(
-			snfp_test_thread_8,
-			NULL, "sfp_ipa_tbl_add_2048_timer");
-		if (IS_ERR(snfp_test_task3))
-			return 1;
-	}
+		if (count == 15) {
+			snfp_test_task3 = kthread_run(
+				snfp_test_thread_8,
+				NULL, "sfp_ipa_tbl_add_2048_timer");
+			if (IS_ERR(snfp_test_task3))
+				return 1;
+		}
 
-	if (count > 15) {
-		snfp_test_task3 = kthread_run(
-			snfp_test_thread_n,
-			&count, "ipa_hash_tbl_2048");
-		if (IS_ERR(snfp_test_task3))
-			return 1;
+		if (count > 15) {
+			snfp_test_task3 = kthread_run(
+				snfp_test_thread_n,
+				&count, "ipa_hash_tbl_2048");
+			if (IS_ERR(snfp_test_task3))
+				return 1;
+		}
 	}
-#endif
 	return 0;
 }

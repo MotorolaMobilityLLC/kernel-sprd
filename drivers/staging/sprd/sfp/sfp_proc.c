@@ -27,7 +27,7 @@ static struct proc_dir_entry *sfp_proc_mgr_fwd;
 static struct proc_dir_entry *sfp_proc_debug;
 static struct proc_dir_entry *sfp_proc_fwd;
 static struct proc_dir_entry *sfp_proc_enable;
-
+static struct proc_dir_entry *sfp_proc_tether_scheme;
 #ifdef CONFIG_SPRD_SFP_TEST
 static struct proc_dir_entry *sfp_test;
 #endif
@@ -515,6 +515,54 @@ static const struct file_operations proc_mgr_sfp_file_fwd_ops = {
 	.release = seq_release
 };
 
+int get_sfp_tether_scheme(void)
+{
+	return sysctl_net_sfp_tether_scheme;
+}
+EXPORT_SYMBOL(get_sfp_tether_scheme);
+
+static int sfp_net_tether_scheme_proc_show(struct seq_file *seq, void *v)
+{
+	seq_puts(seq, sysctl_net_sfp_tether_scheme ? "1\n" : "0\n");
+	return 0;
+}
+
+static int sfp_net_tether_scheme_proc_open(struct inode *inode,
+					   struct file *file)
+{
+	return single_open(file, sfp_net_tether_scheme_proc_show, NULL);
+}
+
+static ssize_t sfp_net_tether_scheme_proc_write(
+					struct file *file,
+					const char __user *buffer,
+					size_t count,
+					loff_t *pos)
+{
+	char mode;
+	int status = 0;
+
+	if (count > 0) {
+		if (get_user(mode, buffer))
+			return -EFAULT;
+
+		status = (mode != '0');
+		if (status == 1 && sysctl_net_sfp_tether_scheme == 0)
+			sysctl_net_sfp_tether_scheme = 1;
+		else if (status == 0 && sysctl_net_sfp_tether_scheme == 1)
+			sysctl_net_sfp_tether_scheme = 0;
+	}
+	return count;
+}
+
+static const struct file_operations proc_sfp_file_tether_scheme_ops = {
+	.open  = sfp_net_tether_scheme_proc_open,
+	.read  = seq_read,
+	.write  = sfp_net_tether_scheme_proc_write,
+	.llseek  = seq_lseek,
+	.release = single_release,
+};
+
 int sfp_proc_create(void)
 {
 #ifdef CONFIG_PROC_FS
@@ -562,6 +610,18 @@ int sfp_proc_create(void)
 		ret = -ENOMEM;
 		goto no_debug_entry;
 	}
+
+	sfp_proc_tether_scheme = proc_create_data(
+					"tether_scheme", proc_nfp_perms,
+					procdir,
+					&proc_sfp_file_tether_scheme_ops,
+					NULL);
+	if (!sfp_proc_tether_scheme) {
+		pr_err("nfp: failed to create sfp/tether_scheme file\n");
+		ret = -ENOMEM;
+		goto no_tether_scheme_entry;
+	}
+
 #ifdef CONFIG_SPRD_SFP_TEST
 	sfp_test = proc_create_data("test", proc_nfp_perms,
 				    procdir,
@@ -579,6 +639,8 @@ int sfp_proc_create(void)
 no_test_entry:
 	remove_proc_entry("debug", procdir);
 #endif
+no_tether_scheme_entry:
+	remove_proc_entry("tether_scheme", procdir);
 no_enable_entry:
 	remove_proc_entry("enable", procdir);
 no_debug_entry:
@@ -597,6 +659,7 @@ int nfp_proc_exit(void)
 {
 	remove_proc_entry("test", procdir);
 	remove_proc_entry("debug", procdir);
+	remove_proc_entry("tether_scheme", procdir);
 	remove_proc_entry("enable", procdir);
 	remove_proc_entry("sfp_fwd_entries", procdir);
 	remove_proc_entry("mgr_fwd_entries", procdir);
