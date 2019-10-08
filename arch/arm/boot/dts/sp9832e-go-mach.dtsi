@@ -199,7 +199,6 @@
 	vqmmc-supply = <&vddsdio>;
 	voltage-ranges = <3000 3000>;
 	bus-width = <4>;
-	sd-uhs-sdr104;
 	sd-uhs-sdr50;
 	sprd,name = "sdio_sd";
 	sprd,sdio-adma;
