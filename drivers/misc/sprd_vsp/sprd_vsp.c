@@ -79,6 +79,8 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	struct vsp_iommu_map_data mapdata;
 	struct vsp_iommu_map_data ummapdata;
 	struct vsp_fh *vsp_fp = filp->private_data;
+	u8 need_rst_axi = 0;
+	u32 tmp_rst_msk = 0;
 
 	if (vsp_fp == NULL) {
 		pr_err("%s error occurred, vsp_fp == NULL\n", __func__);
@@ -192,8 +194,31 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case VSP_RESET:
 		pr_debug("vsp ioctl VSP_RESET\n");
 
+		if ((vsp_hw_dev.version == SHARKL3) ||
+			(vsp_hw_dev.version == PIKE2))
+			need_rst_axi = (readl_relaxed(vsp_glb_reg_base +
+						VSP_AXI_STS_OFF) & 0x7) > 0;
+		else
+			need_rst_axi = 0;
+
+		if (need_rst_axi) {
+			pr_info("vsp_axi_busy");
+			switch (vsp_hw_dev.version) {
+			case SHARKL3:
+				tmp_rst_msk = regs[RESET].mask | BIT(1);
+				break;
+			case PIKE2:
+				tmp_rst_msk = regs[RESET].mask | BIT(12);
+				break;
+			default:
+				tmp_rst_msk = regs[RESET].mask;
+				break;
+			}
+		} else
+			tmp_rst_msk = regs[RESET].mask;
+
 		ret = regmap_update_bits(regs[RESET].gpr, regs[RESET].reg,
-				   regs[RESET].mask, regs[RESET].mask);
+				   tmp_rst_msk, tmp_rst_msk);
 		if (ret) {
 			pr_err("regmap_update_bits failed %s, %d\n",
 				__func__, __LINE__);
@@ -201,7 +226,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 
 		ret = regmap_update_bits(regs[RESET].gpr, regs[RESET].reg,
-				   regs[RESET].mask, 0);
+				   tmp_rst_msk, 0);
 		if (ret) {
 			pr_err("regmap_update_bits failed %s, %d\n",
 				__func__, __LINE__);

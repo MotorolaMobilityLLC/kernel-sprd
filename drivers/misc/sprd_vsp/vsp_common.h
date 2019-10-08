@@ -19,6 +19,7 @@ extern unsigned int codec_instance_count[VSP_CODEC_INSTANCE_COUNT_MAX];
 #define VSP_INT_MASK_OFF	0x04
 #define VSP_INT_CLR_OFF		0x08
 #define VSP_INT_RAW_OFF		0x0c
+#define VSP_AXI_STS_OFF		0x1c
 
 #define VSP_MMU_INT_STS_OFF	0x60
 #define VSP_MMU_INT_MASK_OFF	0x6c
