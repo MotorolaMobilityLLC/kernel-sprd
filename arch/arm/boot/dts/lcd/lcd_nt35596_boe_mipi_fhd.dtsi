@@ -514,6 +514,7 @@
 		sprd,sleep-in-command =  [
 			13 0A 00 01 28
 			13 78 00 01 10
+			23 0a 00 02 4F 01
 			];
 		sprd,sleep-out-command = [
 			13 78 00 01 11

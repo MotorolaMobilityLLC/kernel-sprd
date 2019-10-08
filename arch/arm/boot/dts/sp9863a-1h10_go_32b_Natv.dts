@@ -370,6 +370,7 @@
 
 &dphy {
 	status = "okay";
+	sprd,ulps-disabled;
 };
 
 &i2c0 {
