@@ -20,6 +20,7 @@ struct dphy_context {
 	u8 id;
 	u8 capability;
 	u32 chip_id;
+	bool ulps_enable;
 };
 
 struct dphy_pll_ops {
