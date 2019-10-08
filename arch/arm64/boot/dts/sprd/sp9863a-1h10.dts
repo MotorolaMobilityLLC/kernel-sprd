@@ -355,6 +355,7 @@
 
 &dphy {
 	status = "okay";
+	sprd,ulps-disabled;
 };
 
 &lcd_nt35532_truly_mipi_fhd {
