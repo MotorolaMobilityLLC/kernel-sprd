@@ -119,7 +119,7 @@ function add_diffconfig()
 	sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_BOARD_SPEC_CONFIG
 
         if [ "$BSP_BOARD_DEBIAN_CONFIG" == "true" ]; then
-                BSP_DEVICE_DEBIAN_CONFIG=$BSP_KERNEL_DIFF_CONFIG_COMMON/debian_diff_config
+                BSP_DEVICE_DEBIAN_CONFIG=sprd-diffconfig/debian/debian_diff_config
                 sprd_create_user_config $BSP_OUT_KERNEL_CONFIG $BSP_DEVICE_DEBIAN_CONFIG
         fi
 

@@ -1,6 +1,6 @@
 export BSP_KERNEL_ARCH="arm"
-export BSP_KERNEL_DIFF_CONFIG_ARCH="sprd-diffconfig/sharkle/$BSP_KERNEL_ARCH"
-export BSP_KERNEL_DIFF_CONFIG_COMMON="sprd-diffconfig/sharkle/common"
+export BSP_KERNEL_DIFF_CONFIG_ARCH="sprd-diffconfig/android/sharkle/$BSP_KERNEL_ARCH"
+export BSP_KERNEL_DIFF_CONFIG_COMMON="sprd-diffconfig/android/sharkle/common"
 if [ -z $BSP_KERNEL_PATH ]; then
 	BSP_KERNEL_PATH="."
 fi

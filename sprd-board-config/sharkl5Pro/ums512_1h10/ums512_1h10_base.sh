@@ -1,6 +1,6 @@
 export BSP_KERNEL_ARCH="arm64"
-export BSP_KERNEL_DIFF_CONFIG_ARCH="sprd-diffconfig/sharkl5Pro/$BSP_KERNEL_ARCH"
-export BSP_KERNEL_DIFF_CONFIG_COMMON="sprd-diffconfig/sharkl5Pro/common"
+export BSP_KERNEL_DIFF_CONFIG_ARCH="sprd-diffconfig/android/sharkl5Pro/$BSP_KERNEL_ARCH"
+export BSP_KERNEL_DIFF_CONFIG_COMMON="sprd-diffconfig/android/sharkl5Pro/common"
 if [ -z $BSP_KERNEL_PATH ]; then
 	BSP_KERNEL_PATH="."
 fi
