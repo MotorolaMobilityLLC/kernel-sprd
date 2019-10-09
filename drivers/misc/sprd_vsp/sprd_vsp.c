@@ -380,7 +380,7 @@ static const struct sprd_vsp_cfg_data sharkl3_vsp_data = {
 
 static const struct sprd_vsp_cfg_data sharkl5_vsp_data = {
 	.version = SHARKL5,
-	.max_freq_level = 4,
+	.max_freq_level = 3,
 	.qos_reg_offset = 0x1f8,
 };
 
