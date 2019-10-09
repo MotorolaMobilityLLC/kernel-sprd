@@ -175,7 +175,7 @@ static void get_vsp_dvfs_status(struct ip_dvfs_status *ip_status)
 	ip_status->vdsp_vote_volt = "N/A";
 
 	ip_status->vsp_cur_freq =
-		sharkl5_vsp_val_to_freq(reg->ap_dvfs_cgm_cfg_dbg >> 3);
+		sharkl5_vsp_val_to_freq(reg->ap_dvfs_cgm_cfg_dbg >> 3 & 0x3);
 	ip_status->dpu_cur_freq =
 		sharkl5_dpu_val_to_freq(reg->ap_dvfs_cgm_cfg_dbg & 0x7);
 	ip_status->vdsp_cur_freq = "N/A";
