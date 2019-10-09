@@ -1944,15 +1944,6 @@ CONFIG_CMDLINE
 	[must] user
 	[missing plat description] none
 	[function] Default kernel command string. Set to NULL.
-CONFIG_CMDLINE_FORCE
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function] Required by debian.
 CONFIG_COMMON_CLK
 	[arch] all
 	[plat] all
@@ -2021,15 +2012,6 @@ CONFIG_CONSOLE_LOGLEVEL_DEFAULT
 	[must]
 	[missing plat description] none
 	[function]
-CONFIG_CONSOLE_TRANSLATIONS
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function] Required by debian.
 CONFIG_CONTEXT_SWITCH_TRACER
 	[arch] all
 	[plat] all
@@ -3609,24 +3591,22 @@ CONFIG_DEVFREQ_SPRD_EXT_VOTE_UMS512
 	[function] Roc1 configure for EXT_VOTE
 CONFIG_DEVTMPFS
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[missing plat] sharkl5Pro
 	[field] make,code
 	[subsys] core
 	[must] console
-	[missing plat description] none
+	[missing plat description] devtmpfs causes selinux rejections.
 	[function] Maintain a devtmpfs filesystem to mount at /dev.
-		devtmpfs causes selinux rejections. Required by debian.
 CONFIG_DEVTMPFS_MOUNT
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[missing plat] sharkl5Pro
 	[field] code
 	[subsys] core
 	[must] console
-	[missing plat description] none
+	[missing plat description] devtmpfs causes selinux rejections.
 	[function] Automount devtmpfs at /dev, after the kernel mounted the rootfs.
-		devtmpfs causes selinux rejections. Required by debian.
 CONFIG_DIRECT_SWAPPINESS
 	[arch] all
 	[plat] all
@@ -3988,15 +3968,6 @@ CONFIG_DUMMY
 	[missing plat description] none
 	[function] Dummy net driver support:This is essentially a bit-bucket device (i.e. traffic you send to
 	this device is consigned into oblivion) with a configurable IP address.
-CONFIG_DUMMY_CONSOLE
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function] Required by debian.
 CONFIG_DYNAMIC_DEBUG
 	[arch] all
 	[plat] all
@@ -4523,15 +4494,6 @@ CONFIG_FB_SYS_IMAGEBLIT
 	[must]
 	[missing plat description] none
 	[function]
-CONFIG_FHANDLE
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function] Required by debian.
 CONFIG_FIB_RULES
 	[arch] all
 	[plat] all
@@ -6487,15 +6449,6 @@ CONFIG_HWSPINLOCK_SPRD
 	[must] home
 	[missing plat description] none
 	[function] support the Spreadtrum Hardware Spinlock device.
-CONFIG_HW_CONSOLE
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function] Required by debian.
 CONFIG_HW_PERF_EVENTS
 	[arch] all
 	[plat] all
@@ -16087,33 +16040,6 @@ CONFIG_VM_EVENT_COUNTERS
 	[must] busybox_console
 	[missing plat description] none
 	[function] Enable VM event counters for /proc/vmstat.
-CONFIG_VT
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function] Required by debian.
-CONFIG_VT_CONSOLE
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function] Required by debian.
-CONFIG_VT_CONSOLE_SLEEP
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function] Required by debian.
 CONFIG_WATCHDOG
 	[arch] all
 	[plat] all
