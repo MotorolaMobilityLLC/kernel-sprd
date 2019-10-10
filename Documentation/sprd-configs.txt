@@ -3379,6 +3379,24 @@ CONFIG_DEBUG_LL_INCLUDE
 	[must] console
 	[missing plat description] none
 	[function] Support for debug include path.
+CONFIG_DEBUG_LOCK_ALLOC
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] code
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] Check whether any held lock is incorrectly freed
+CONFIG_DEBUG_MUTEXES
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] Allows mutex semantics violations to be detected and reported
 CONFIG_DEBUG_NOTIFIERS
 	[arch] arm
 	[plat] pike2,sharkle32
@@ -3406,6 +3424,15 @@ CONFIG_DEBUG_RODATA_TEST
 	[must]
 	[missing plat description]
 	[function]
+CONFIG_DEBUG_RT_MUTEXES
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] Deadlock detected and reported automatically
 CONFIG_DEBUG_SG
 	[arch] arm
 	[plat] pike2,sharkle32
@@ -3415,6 +3442,15 @@ CONFIG_DEBUG_SG
 	[must]
 	[missing plat description]
 	[function]
+CONFIG_DEBUG_SPINLOCK
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] spinlock basic checks and certain other kinds of spinlock errors
 CONFIG_DECOMPRESS_BZIP2
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
@@ -7889,12 +7925,12 @@ CONFIG_KALLSYMS
 	[function] load all symbols for debugging/ksymoops
 CONFIG_KALLSYMS_ALL
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
-	[missing plat] sharkl5Pro
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] include all symbols in kallsyms
 CONFIG_KALLSYMS_BASE_RELATIVE
 	[arch] all
@@ -8094,6 +8130,15 @@ CONFIG_LOCALVERSION_AUTO
 	[must]
 	[missing plat description]
 	[function]
+CONFIG_LOCKDEP
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] lock dependency engine will do additional runtime checks to debug itself
 CONFIG_LOCKDEP_SUPPORT
 	[arch] all
 	[plat] all
@@ -8122,6 +8167,15 @@ CONFIG_LOCK_SPIN_ON_OWNER
 	[missing plat description] none
 	[function] An MCS like lock especially tailored for optimistic spinning for sleeping
 	lock implementations.
+CONFIG_LOCK_STAT
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] code
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] Enables tracking lock contention points
 CONFIG_LOGIG940_FF
 	[arch] all
 	[plat] all
@@ -11415,6 +11469,24 @@ CONFIG_PROFILING
 	[must] console
 	[missing plat description] none
 	[function] vts require, Profiling support.
+CONFIG_PROVE_LOCKING
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] Report locking related deadlocks before they actually occur
+CONFIG_PROVE_RCU
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] code
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] Invoking this outside of an RCU read-side critical section
 CONFIG_PSI
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
@@ -14763,12 +14835,12 @@ CONFIG_TRACE_EVAL_MAP_FILE
 	[function]
 CONFIG_TRACE_IRQFLAGS
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Enable/disable irq flags trace.
 CONFIG_TRACE_IRQFLAGS_SUPPORT
 	[arch] all
