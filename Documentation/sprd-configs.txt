@@ -3159,8 +3159,8 @@ CONFIG_CRYPTO_SHA1_ARM_CE
 	[field] make
 	[subsys] crypto
 	[must] none
-	[missing plat description]
-	[function] SHA2 digest algorithm (ARM-crypto-extension)
+	[missing plat description] pike2 doesn't support ARM CE
+	[function] SHA1 digest algorithm (ARM-crypto-extension)
 CONFIG_CRYPTO_SHA1_ARM_NEON
 	[arch] arm
 	[plat] pike2,sharkle32
