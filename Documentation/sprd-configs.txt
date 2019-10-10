@@ -3136,12 +3136,12 @@ CONFIG_CRYPTO_SHA1
 	[function] SHA1 digest algorithm.
 CONFIG_CRYPTO_SHA1_ARM
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[missing plat] none
 	[field] make
 	[subsys] crypto
 	[must] none
-	[missing plat description]
+	[missing plat description] none
 	[function] SHA1 digest algorithm (ARM-asm)
 CONFIG_CRYPTO_SHA1_ARM64_CE
 	[arch] arm64
@@ -3154,8 +3154,8 @@ CONFIG_CRYPTO_SHA1_ARM64_CE
 	[function] SHA-1 digest algorithm (ARMv8 Crypto Extensions).
 CONFIG_CRYPTO_SHA1_ARM_CE
 	[arch] arm
-	[plat] sharkl5_32,sharkle32
-	[missing plat] pike2,sharkl3_32
+	[plat] sharkl3_32,sharkl5_32,sharkle32
+	[missing plat] pike2
 	[field] make
 	[subsys] crypto
 	[must] none
