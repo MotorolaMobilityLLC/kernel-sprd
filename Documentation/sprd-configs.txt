@@ -2278,7 +2278,7 @@ CONFIG_CPU_FREQ_STAT
 	[function] statistical information for dvfs
 CONFIG_CPU_FREQ_TIMES
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[missing plat] roc1,sharkl5Pro
 	[field] make,code
 	[subsys] cpufreq
