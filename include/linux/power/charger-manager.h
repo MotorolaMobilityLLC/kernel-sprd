@@ -45,6 +45,15 @@ enum cm_event_types {
 	CM_EVENT_OTHERS,
 };
 
+enum cm_jeita_types {
+	CM_JEITA_DCP = 0,
+	CM_JEITA_SDP,
+	CM_JEITA_CDP,
+	CM_JEITA_UNKNOWN,
+	CM_JEITA_FCHG,
+	CM_JEITA_MAX,
+};
+
 enum cm_charge_status {
 	CM_CHARGE_TEMP_OVERHEAT = BIT(0),
 	CM_CHARGE_TEMP_COLD = BIT(1),
@@ -205,7 +214,16 @@ struct cm_track_capacity {
  *	Maximum possible duration for discharging with charger cable
  *	after full-batt. If discharging duration exceed 'discharging
  *	max_duration_ms', cm start charging.
+ * @normal_charge_voltage_max:
+ *	maximum normal charge voltage in microVolts
+ * @normal_charge_voltage_drop:
+ *	drop voltage in microVolts to allow restart normal charging
+ * @fast_charge_voltage_max:
+ *	maximum fast charge voltage in microVolts
+ * @fast_charge_voltage_drop:
+ *	drop voltage in microVolts to allow restart fast charging
  * @charger_status: Recording state of charge
+ * @charger_type: Recording type of charge
  * @trigger_cnt: The number of times the battery is fully charged
  * @low_temp_trigger_cnt: The number of times the battery temperature
  *	is less than 10 degree.
@@ -225,6 +243,8 @@ struct cm_track_capacity {
  * @jeita_tab: Specify the jeita temperature table, which is used to
  *	adjust the charging current according to the battery temperature.
  * @jeita_tab_size: Specify the size of jeita temperature table.
+ * @jeita_tab_array: Specify the jeita temperature table array, which is used to
+ *	save the point of adjust the charging current according to the battery temperature.
  * @jeita_disabled: disable jeita function when needs
  * @temperature: the battery temperature
  * @internal_resist: the battery internal resistance in mOhm
@@ -267,10 +287,13 @@ struct charger_desc {
 
 	u32 charge_voltage_max;
 	u32 charge_voltage_drop;
+	u32 normal_charge_voltage_max;
+	u32 normal_charge_voltage_drop;
 	u32 fast_charge_voltage_max;
 	u32 fast_charge_voltage_drop;
 
 	int charger_status;
+	u32 charger_type;
 	int trigger_cnt;
 	int low_temp_trigger_cnt;
 
@@ -292,6 +315,8 @@ struct charger_desc {
 
 	struct charger_jeita_table *jeita_tab;
 	u32 jeita_tab_size;
+	struct charger_jeita_table *jeita_tab_array[CM_JEITA_MAX];
+
 	bool jeita_disabled;
 
 	int temperature;
