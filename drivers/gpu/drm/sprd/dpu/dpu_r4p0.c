@@ -1413,14 +1413,6 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
-		if (!cabc_disable && (*p & BIT(4))) {
-			*p &= (~BIT(4));
-
-			memset(&slp_copy, 0, sizeof(slp_copy));
-			slp_copy.local_weight = 8;
-			slp_copy.cabc_startv = 0;
-			slp_copy.cabc_endv = 255;
-		}
 		enhance_en &= ~(*p);
 		pr_info("enhance module disable backup: 0x%x\n", *p);
 		break;
@@ -1446,6 +1438,10 @@ static void dpu_enhance_backup(u32 id, void *param)
 		pr_info("enhance ltm backup\n");
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
+		if (!cabc_disable) {
+			slp_copy.cabc_startv = 0;
+			slp_copy.cabc_endv = 255;
+		}
 		enhance_en |= BIT(4);
 		pr_info("enhance slp backup\n");
 		break;
@@ -1498,58 +1494,6 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_DISABLE:
 		p = param;
-		if (!cabc_disable && (*p & BIT(4))) {
-			*p &= (~BIT(4));
-
-			memset(&slp_copy, 0, sizeof(slp_copy));
-			slp_copy.local_weight = 8;
-			slp_copy.cabc_startv = 0;
-			slp_copy.cabc_endv = 255;
-			reg->slp_cfg0 = (slp_copy.brightness_step << 0) |
-				((slp_copy.brightness & 0x7f) << 16);
-			reg->slp_cfg1 = ((slp_copy.fst_max_bright_th &
-				0x7f) << 21) |
-				((slp_copy.fst_max_bright_th_step[0] &
-				0x7f) << 14) |
-				((slp_copy.fst_max_bright_th_step[1] &
-				0x7f) << 7) |
-				((slp_copy.fst_max_bright_th_step[2] &
-				0x7f) << 0);
-			reg->slp_cfg2 =
-				((slp_copy.fst_max_bright_th_step[3] &
-				0x7f) << 25) |
-				((slp_copy.fst_max_bright_th_step[4] &
-				0x7f) << 18) |
-				((slp_copy.hist_exb_no & 0x3) << 16) |
-				((slp_copy.hist_exb_percent & 0x7f) << 9);
-			reg->slp_cfg3 = ((slp_copy.mask_height & 0xfff) << 19) |
-				((slp_copy.fst_pth_index[0] & 0xf) << 15) |
-				((slp_copy.fst_pth_index[1] & 0xf) << 11) |
-				((slp_copy.fst_pth_index[2] & 0xf) << 7) |
-				((slp_copy.fst_pth_index[3] & 0xf) << 3);
-			reg->slp_cfg4 = (slp_copy.hist9_index[0] << 24) |
-				(slp_copy.hist9_index[1] << 16) |
-				(slp_copy.hist9_index[2] << 8) |
-				(slp_copy.hist9_index[3] << 0);
-			reg->slp_cfg5 = (slp_copy.hist9_index[4] << 24) |
-				(slp_copy.hist9_index[5] << 16) |
-				(slp_copy.hist9_index[6] << 8) |
-				(slp_copy.hist9_index[7] << 0);
-			reg->slp_cfg6 = (slp_copy.hist9_index[8] << 24) |
-				(slp_copy.glb_x[0] << 16) |
-				(slp_copy.glb_x[1] << 8) |
-				(slp_copy.glb_x[2] << 0);
-			reg->slp_cfg7 = ((slp_copy.glb_s[0] & 0x1ff) << 23) |
-				((slp_copy.glb_s[1] & 0x1ff) << 14) |
-				((slp_copy.glb_s[2] & 0x1ff) << 5);
-			reg->slp_cfg9 =
-				((slp_copy.fast_ambient_th & 0x7f) << 25) |
-				(slp_copy.scene_change_percent_th << 17) |
-				((slp_copy.local_weight & 0xf) << 13) |
-				((slp_copy.fst_pth & 0x7f) << 6);
-			reg->slp_cfg10 = (slp_copy.cabc_endv << 8) |
-				(slp_copy.cabc_startv << 0);
-		}
 		reg->dpu_enhance_cfg &= ~(*p);
 		pr_info("enhance module disable: 0x%x\n", *p);
 		break;
@@ -1601,6 +1545,10 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		pr_info("enhance ltm set\n");
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
+		if (!cabc_disable) {
+			slp_copy.cabc_startv = 0;
+			slp_copy.cabc_endv = 255;
+		}
 		slp = &slp_copy;
 		reg->slp_cfg0 = (slp->brightness_step << 0)|
 			((slp->brightness & 0x7f) << 16);
@@ -2088,17 +2036,6 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 		enhance_en |= BIT(3);
 		enhance_en |= BIT(8);
 
-		if ((enhance_en & BIT(4)) == 0) {
-			reg->dpu_enhance_cfg |= BIT(4);
-			enhance_en |= BIT(4);
-
-			slp_copy.local_weight = 8;
-			reg->slp_cfg9 =
-			((slp_copy.fast_ambient_th & 0x7f) << 25) |
-			(slp_copy.scene_change_percent_th << 17) |
-			((slp_copy.local_weight & 0xf) << 13) |
-			((slp_copy.fst_pth & 0x7f) << 6);
-		}
 		slp_copy.cabc_startv = 0;
 		slp_copy.cabc_endv = 255;
 		reg->slp_cfg10 = (slp_copy.cabc_endv << 8) |
