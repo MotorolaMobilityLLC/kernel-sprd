@@ -3145,13 +3145,13 @@ CONFIG_CRYPTO_SHA1_ARM_CE
 	[function] SHA1 digest algorithm (ARM-crypto-extension)
 CONFIG_CRYPTO_SHA1_ARM_NEON
 	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[plat] pike2
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
+	[field] make
+	[subsys] crypto
+	[must] none
+	[missing plat description] sharkl3_32,sharkl5_32,sharkle32 support ARM_CE
+	[function] SHA1 digest algorithm (ARM-NEON)
 CONFIG_CRYPTO_SHA256
 	[arch] all
 	[plat] all
