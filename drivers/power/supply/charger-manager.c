@@ -1231,6 +1231,7 @@ static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
 		if (last_jeita_status != STATUS_T1_TO_T2) {
 			dev_info(cm->dev, "Disable jeita and force jeita state to STATUS_T1_TO_T2\n");
 			last_jeita_status = STATUS_T1_TO_T2;
+			desc->thm_adjust_cur = -EINVAL;
 			cm_manager_adjust_current(cm, last_jeita_status);
 		}
 
