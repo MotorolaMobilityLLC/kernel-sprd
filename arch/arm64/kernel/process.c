@@ -189,7 +189,7 @@ static void show_data(unsigned long addr, int nbytes, const char *name)
 		return;
 
 	if (addr > VMALLOC_START && addr < VMALLOC_END) {
-		vaddr = find_vm_area((const void *)addr);
+		vaddr = find_vm_area_no_wait((const void *)addr);
 		if (!vaddr || ((vaddr->flags & VM_IOREMAP) == VM_IOREMAP))
 			return;
 	}

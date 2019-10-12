@@ -1480,6 +1480,28 @@ struct vm_struct *find_vm_area(const void *addr)
 }
 
 /**
+ *	find_vm_area_no_wait  -  find a continuous kernel virtual area
+ *	@addr:		base address
+ *
+ *	Search for the kernel VM area starting at @addr, and return it.
+ *	It is up to the caller to do all required locking to keep the returned
+ *	pointer valid. Won't wait if getting vmap_area_lock failed.
+ */
+struct vm_struct *find_vm_area_no_wait(const void *addr)
+{
+	struct vmap_area *va;
+
+	if (spin_trylock(&vmap_area_lock)) {
+		va = __find_vmap_area((unsigned long)addr);
+		spin_unlock(&vmap_area_lock);
+		if (va && va->flags & VM_VM_AREA)
+			return va->vm;
+	}
+
+	return NULL;
+}
+
+/**
  *	remove_vm_area  -  find and remove a continuous kernel virtual area
  *	@addr:		base address
  *
