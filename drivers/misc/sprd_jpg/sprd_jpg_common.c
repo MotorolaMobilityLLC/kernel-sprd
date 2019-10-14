@@ -610,15 +610,15 @@ int jpg_clk_enable(struct jpg_dev_t *jpg_hw_dev)
 		}
 		pr_debug("jpg clk_vsp_mq_ahb_eb clk_prepare_enable ok.\n");
 	}
-	if (jpg_hw_dev->version != PIKE2) {
-		ret = clk_set_parent(jpg_hw_dev->jpg_clk,
-			jpg_hw_dev->jpg_parent_clk_df);
-		if (ret) {
-			pr_err("clock[%s]: clk_set_parent() failed!",
+
+	ret = clk_set_parent(jpg_hw_dev->jpg_clk,
+		jpg_hw_dev->jpg_parent_clk_df);
+	if (ret) {
+		pr_err("clock[%s]: clk_set_parent() failed!",
 				"clk_jpg");
-			goto clk_disable_6;
-		}
+		goto clk_disable_6;
 	}
+
 	ret = clk_set_parent(jpg_hw_dev->jpg_clk,
 			jpg_hw_dev->jpg_parent_clk);
 	if (ret) {
