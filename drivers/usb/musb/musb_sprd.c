@@ -339,7 +339,7 @@ static const struct musb_platform_ops sprd_musb_ops = {
 #define SPRD_MUSB_RAM_BITS	13
 static struct musb_fifo_cfg sprd_musb_device_mode_cfg[] = {
 	MUSB_EP_FIFO_DOUBLE(1, FIFO_TX, 512),
-	MUSB_EP_FIFO_SINGLE(1, FIFO_RX, 512),
+	MUSB_EP_FIFO_DOUBLE(1, FIFO_RX, 512),
 	MUSB_EP_FIFO_DOUBLE(2, FIFO_TX, 512),
 	MUSB_EP_FIFO_DOUBLE(2, FIFO_RX, 512),
 	MUSB_EP_FIFO_DOUBLE(3, FIFO_TX, 512),
