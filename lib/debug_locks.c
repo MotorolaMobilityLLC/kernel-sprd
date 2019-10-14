@@ -39,7 +39,8 @@ int debug_locks_off(void)
 {
 	if (debug_locks && __debug_locks_off()) {
 		if (!debug_locks_silent) {
-			console_verbose();
+			/* disbale the loglevel 15, workaround for lockdep debug */
+			/* console_verbose(); */
 			return 1;
 		}
 	}
