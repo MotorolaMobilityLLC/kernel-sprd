@@ -7282,7 +7282,7 @@ static inline int select_idle_sibling_cstate_aware(struct task_struct *p, int pr
 	struct sched_domain *sd;
 	struct sched_group *sg;
 	int best_idle_cpu = -1;
-	int best_idle_cstate = -1;
+	int best_idle_cstate = INT_MAX;
 	int best_idle_capacity = INT_MAX;
 	int i;
 
