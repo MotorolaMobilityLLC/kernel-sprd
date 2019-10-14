@@ -27,6 +27,12 @@ config SPRD_PMIC_SYSCON
         help
           Enable this configuration option to enable pmic global driver.
 
+config SPRD_TIMER_SYSFRT
+	bool "Spreadtrum sysfrt timer driver"
+	depends on ARCH_SPRD
+	help
+	  Support system free running timer driver.
+
 source drivers/soc/sprd/iommu/Kconfig
 source "drivers/soc/sprd/modem/Kconfig"
 source "drivers/soc/sprd/domain/Kconfig"

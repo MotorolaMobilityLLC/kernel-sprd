@@ -14125,6 +14125,15 @@ CONFIG_SPRD_TIMER
 	[must] console
 	[missing plat description] none
 	[function] Support for Spreadtrum ARM based SoCs.
+CONFIG_SPRD_TIMER_SYSFRT
+	[arch] arm
+	[plat] pike2
+	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkl3,sharkl3_32
+	[field] make
+	[subsys] timer
+	[must] userdebug
+	[missing plat description] only pike2 required this function.
+	[function] Support system free running timer.
 CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[arch] arm64
 	[plat] roc1,sharkl5,sharkl5Pro
