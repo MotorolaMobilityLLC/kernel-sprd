@@ -627,7 +627,10 @@ static u32 dpu_img_ctrl(u32 format, u32 blending)
 	case DRM_MODE_BLEND_PREMULTI:
 		if (format == DRM_FORMAT_BGR565 ||
 		    format == DRM_FORMAT_RGB565 ||
-		    format == DRM_FORMAT_RGBX8888) {
+		    format == DRM_FORMAT_XRGB8888 ||
+		    format == DRM_FORMAT_XBGR8888 ||
+		    format == DRM_FORMAT_RGBX8888 ||
+		    format == DRM_FORMAT_BGRX8888) {
 			/* When the format is rgb565 or
 			 * rgbx888, pixel alpha is zero.
 			 * Layer alpha should be configured
