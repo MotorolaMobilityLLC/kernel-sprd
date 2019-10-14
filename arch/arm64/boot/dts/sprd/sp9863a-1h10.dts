@@ -67,6 +67,36 @@
 		};
 	};
 
+	/* WCN BASE mem adjust */
+	wcn_btwf: cpwcn_btwf {
+		sprd,ctrl-value = <0x03000000 0x0102 0x03000000
+				  0x00080000 0x00010400 0x80>;
+		reg = <0x0 0x84000000 0x0 0x180000>;
+	};
+
+	wcn_gnss: cpwcn_gnss {
+		sprd,ctrl-value = <0x00300000 0x0102 0x03000000
+				  0x00080000 0x00010800 0x40>;
+		reg = <0x0 0x84300000 0x0 0x100000>;
+	};
+
+	wcn_sipc {
+		/delete-node/ sipc@88180000;
+		/delete-node/ sipc@8841b000;
+		sipc2: sipc@84180000 {
+			sprd,name = "sipc-wcn";
+			sprd,dst = <3 5>; /* <dst core-id> */
+			/* <ap-addr dst-maped-addr size> */
+			sprd,smem-info = <0x84180000 0x00180000 0x180000>;
+		};
+		sipc3: sipc@8441b000 {
+			sprd,name = "sipc-gnss";
+			sprd,dst = <4 6>; /* <dst core-id> */
+			/* <ap-addr dst-maped-addr size> */
+			sprd,smem-info = <0x8441b000 0x11b000 0x32000>;
+		};
+	};
+
 	sprd-sysdump {
 		memory-region = <&memory>;
 		memory-region-re = <&cp_reserved>, <&scproc_pubpm>, <&smem_reserved>,
@@ -247,12 +277,12 @@
 
 &reserved_memory {
 
-	wcn_reserved: wcn-mem@88000000 {
-		reg = <0x0 0x88000000 0x0 0x00300000>;
+	wcn_reserved: wcn-mem@84000000 {
+		reg = <0x0 0x84000000 0x0 0x00300000>;
 	};
 
-	gnss_reserved: gnss-mem@88300000 {
-		reg = <0x0 0x88300000 0x0 0x0015b000>;
+	gnss_reserved: gnss-mem@84300000 {
+		reg = <0x0 0x84300000 0x0 0x0015b000>;
 	};
 
 	logo_reserved: logobuffer@fd580000{
