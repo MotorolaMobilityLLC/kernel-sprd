@@ -131,10 +131,13 @@ struct sensor_muti_aec_i2c_tag {
 	uint16_t msize;
 	struct sensor_reg_tag __user *slave_i2c_tab;
 	uint16_t ssize;
+	/* TODO optimize this later */
+	struct sensor_reg_tag __user *slave_i2c_tab_2;
+	uint16_t ssize_2;
 };
 
 #define AEC_I2C_SETTINGS_MAX 64
-#define AEC_I2C_SENSOR_MAX 2
+#define AEC_I2C_SENSOR_MAX 3
 
 #define SENSOR_IOC_MAGIC			'R'
 
