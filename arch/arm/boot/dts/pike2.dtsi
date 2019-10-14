@@ -479,6 +479,12 @@
 				pinctrl-7 = <&vbc_iis1_1>;
 			};
 
+			aon_sysfrt: timer@40040000 {
+				compatible = "sprd,sysfrt-timer";
+				reg = <0x40040000 0x10>;
+				clocks = <&ext_32k>;
+			};
+
 			timer@40050000 {
 				compatible = "sprd,pike2-timer";
 				reg = <0x40050000 0x14>;
