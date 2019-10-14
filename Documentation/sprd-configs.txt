@@ -16067,15 +16067,6 @@ CONFIG_VIRTIO_MMIO
 	[missing plat description]
 	[function] This drivers provides support for memory mapped
 		  virtio platform device driver.
-CONFIG_VIRTIO_NET
-	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
-	[field] menu
-	[subsys] net
-	[must] user
-	[missing plat description]
-	[function] It is the virtual network driver for virtio.
 CONFIG_VIRTUALIZATION
 	[arch] arm64
 	[plat] sharkl5Pro
