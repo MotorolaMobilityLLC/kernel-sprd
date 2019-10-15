@@ -41,22 +41,25 @@
 					<&pmu_apb_regs 0xb0 0xc000>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
 						"sysreset", "getstatus", "dspreset";
-			reg = <0x0 0x800000 0x0 0x40000>;
+			reg = <0x0 0x800000 0x0 0x4E000>,
+				<0x0 0x800000 0x0 0x4E000>;
+
 			#address-cells = <1>;
 			#size-cells = <1>;
 			/* segnr=1 */
+
 			/*TODO: ranges use to limit pm-sys & cali_lib memory region. it's not
 				standard use, need modify if possible*/
-			ranges = <0x0 0x0 0x800000 0x3b000>,
-					<0x3b000 0x0 0x83b000 0x5000>;
-			pm-sys@0 {
+			ranges = <0x88040000 0x0 0x88040000 0x200000>,/* ddr */
+				<0x49000 0x0 0x849000 0x5000>; /* iram */
+			pm-sys@88040000 {
 				cproc,name = "pm_sys";
-				reg = <0x0 0x3b000>;
+				reg = <0x88040000 0x200000>;
 			};
 
-			cali_lib@3b000 {
+			cali_lib@49000 {
 				cproc,name = "cali_lib";
-				reg = <0x3b000 0x5000>; /* <cali_lib_addr size> */
+				reg = <0x49000 0x5000>; /*<cali_lib_addr size>*/
 			};
 		};
 
@@ -88,7 +91,8 @@
 			sprd,name = "sipc-pmsys";
 			sprd,dst = <6 1 6>; /* <dst core-id> */
 			/* <ap-addr dst-maped-addr size> */
-			sprd,smem-info = <0xdc00 0x2000bc00 0x2000>;
+			sprd,smem-info = <0xdc00 0x2000bc00 0x2000>,
+					<0x88000000 0x18000000 0x40000>;
 		};
 	};
 
@@ -146,6 +150,16 @@
 			sprd,ringnr = <32>;
 			sprd,size-rxbuf = <0x0800>; /* 2*1024*/
 			sprd,size-txbuf = <0x0800>; /* 2*1024 */
+		};
+
+		spipe@6 {
+			sprd,name = "data0_gnss";
+			sprd,dst = <6>;
+			sprd,smem = <1>;
+			sprd,channel = <7>;
+			sprd,ringnr = <1>;
+			sprd,size-rxbuf = <0x20000>;
+			sprd,size-txbuf = <0x18000>;
 		};
 	};
 
