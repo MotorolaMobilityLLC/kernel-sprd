@@ -233,6 +233,10 @@
 			reg = <0x94020000 0x01fe0000>;
 		};
 
+		logo_reserved: logobuffer@9e000000 {
+			reg = <0x9e000000 0x007e9000>;
+		};
+
 		pstore_reserved: ramoops@bff80000 {
 			compatible = "ramoops";
 			reg = <0xbff80000 0x00040000>;

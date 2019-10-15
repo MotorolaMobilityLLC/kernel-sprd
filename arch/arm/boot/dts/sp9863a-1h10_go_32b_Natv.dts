@@ -263,17 +263,13 @@
 		reg = <0x88300000 0x0015b000>;
 	};
 
-	logo_reserved: logobuffer@bda80000 {
-		reg = <0xbda80000 0x7e9000>;
-	};
-
-	fd_reserved: faceid-mem@be269000 {
-		reg = <0xbe269000 0x00500000>;
+	fd_reserved: faceid-mem@befee000 {
+		reg = <0xbefee000 0x00500000>;
 	};
 
 	/* fb_size(HD): 3 * (head + payload) = 0xa91580, 4k align: 0xa92000 */
-	fb_reserved: framebuffer@be769000 {
-		reg = <0xbe769000 0xa92000>;
+	fb_reserved: framebuffer@bf4ee000 {
+		reg = <0xbf4ee000 0x00a92000>;
 	};
 };
 
