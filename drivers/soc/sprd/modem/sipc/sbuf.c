@@ -319,7 +319,8 @@ static int sbuf_thread(void *data)
 	return 0;
 }
 
-int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
+int sbuf_create_ex(u8 dst, u8 channel, u32 smem_idx,
+		   u32 bufnum, u32 txbufsize, u32 rxbufsize)
 {
 	struct sbuf_mgr *sbuf;
 	struct sipc_device *sdev;
@@ -359,6 +360,7 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 	sbuf->state = SBUF_STATE_IDLE;
 	sbuf->dst = dst;
 	sbuf->channel = channel;
+	sbuf->smem = smem_idx;
 	sbuf->ringnr = bufnum;
 
 	/* allocate smem */
@@ -366,14 +368,16 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 		sizeof(struct sbuf_ring_header) * bufnum;
 	sbuf->smem_size = hsize + (txbufsize + rxbufsize) * bufnum;
 	sbuf->smem_addr = smem_alloc_ex(sbuf->smem_size,
-					sdev->pdata->smem_base);
+					sdev->pdata->smem_ptr[sbuf->smem].base);
 	if (!sbuf->smem_addr) {
 		pr_err("Failed to allocate smem for sbuf\n");
 		kfree(sbuf);
 		return -ENOMEM;
 	}
-	sbuf->mapped_smem_addr = sbuf->smem_addr - sdev->pdata->smem_base +
-		sdev->pdata->mapped_smem_base;
+
+	sbuf->mapped_smem_addr = sbuf->smem_addr -
+				sdev->pdata->smem_ptr[sbuf->smem].base +
+				sdev->pdata->smem_ptr[sbuf->smem].mapped_base;
 
 	pr_debug("sbuf_create dst=%d, chanel=%d,bufnum=%d, smem_addr=0x%x, smem_size=0x%x, mapped_smem_addr=0x%x\n",
 		 dst,
@@ -464,7 +468,7 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 
 	return 0;
 }
-EXPORT_SYMBOL_GPL(sbuf_create);
+EXPORT_SYMBOL_GPL(sbuf_create_ex);
 
 void sbuf_set_no_need_wake_lock(u8 dst, u8 channel, u32 bufnum)
 {

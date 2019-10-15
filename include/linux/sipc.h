@@ -507,6 +507,7 @@ void *shmem_ram_vmap_cache(phys_addr_t start, size_t size);
 
 void sbuf_set_no_need_wake_lock(u8 dst, u8 channel, u32 bufnum);
 
+#ifdef CONFIG_SPRD_SIPC_V2
 /**
  * sbuf_create -- create pipe ring buffers on a channel
  *
@@ -520,6 +521,23 @@ void sbuf_set_no_need_wake_lock(u8 dst, u8 channel, u32 bufnum);
 
 int sbuf_create(u8 dst, u8 channel, u32 bufnum,
 		u32 txbufsize, u32 rxbufsize);
+#else
+/**
+ * sbuf_create_ex -- create pipe ring buffers on a channel
+ *
+ * @dst: dest processor ID
+ * @channel: channel ID
+ * @smem: smem ID,default is 0
+ * @txbufsize: tx buffer size
+ * @rxbufsize: rx buffer size
+ * @bufnum: how many buffers to be created
+ * @return: 0 on success, <0 on failure
+ */
+int sbuf_create_ex(u8 dst, u8 channel, u32 smem, u32 bufnum,
+			u32 txbufsize, u32 rxbufsize);
+#define sbuf_create(dst, channel, bufnum, txbufsize, rxbufsize) \
+	sbuf_create_ex(dst, channel, 0, bufnum, txbufsize, rxbufsize)
+#endif
 
 /**
  * sbuf_destroy -- destroy the pipe ring buffers on a channel

@@ -48,10 +48,20 @@ struct sipc_child_node_info {
 	void *smem_vbase;
 };
 
+struct smem_item {
+	u32	base;
+	u32	size;
+	u32	mapped_base;
+};
+
 struct sipc_init_data {
 	int is_alloc;
 	u32 chd_nr;
 	u32 newchd_nr;
+
+	u32 smem_cnt;
+	struct smem_item *smem_ptr;
+
 	u32 smem_base;
 	u32 smem_size;
 	u32 mapped_smem_base;

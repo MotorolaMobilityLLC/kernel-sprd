@@ -19,6 +19,7 @@ struct spipe_init_data {
 	char			*sipc_name;
 	u8			dst;
 	u8			channel;
+	u32		smem;
 	u32		ringnr;
 	u32		txbuf_size;
 	u32		rxbuf_size;

@@ -183,6 +183,46 @@ static int sipc_create(struct sipc_device *sipc)
 	return ret;
 }
 
+static int sipc_get_smem_info(struct sipc_init_data *pdata,
+			      struct device_node *np)
+{
+	struct smem_item *smem_ptr;
+	int i, count;
+	const __be32 *list;
+
+	list = of_get_property(np, "sprd,smem-info", &count);
+	if (!list || !count) {
+		pr_err("no smem-info\n");
+		return -ENODEV;
+	}
+
+	count = count / sizeof(*smem_ptr);
+	smem_ptr = kcalloc(count,
+			   sizeof(*smem_ptr),
+			   GFP_KERNEL);
+	if (!smem_ptr)
+		return -ENOMEM;
+
+	for (i = 0; i < count; i++) {
+		smem_ptr[i].base = be32_to_cpu(*list++);
+		smem_ptr[i].mapped_base = be32_to_cpu(*list++);
+		smem_ptr[i].size = be32_to_cpu(*list++);
+		pr_debug("sipc:smem=%d, base=0x%x, dstbase=0x%x, size=0x%x\n",
+			 i, smem_ptr[i].base,
+			 smem_ptr[i].mapped_base, smem_ptr[i].size);
+	}
+
+	pdata->smem_cnt = count;
+	pdata->smem_ptr = smem_ptr;
+
+	/* default mem */
+	pdata->smem_base = smem_ptr[0].base;
+	pdata->mapped_smem_base = smem_ptr[0].mapped_base;
+	pdata->smem_size = smem_ptr[0].size;
+
+	return 0;
+}
+
 static int sipc_parse_dt(struct sipc_init_data **init, struct device_node *node)
 {
 #ifdef CONFIG_SPRD_MAILBOX
@@ -245,19 +285,9 @@ static int sipc_parse_dt(struct sipc_init_data **init, struct device_node *node)
 		info->is_new = 0;
 	}
 
-	ret = of_property_read_u32_array(np,
-					 "sprd,smem-info",
-					 val,
-					 3);
-	if (ret) {
-		pr_err("sipc: parse smem info failed.\n");
-		goto error;
-	}
-	pdata->smem_base = val[0];
-	pdata->mapped_smem_base = val[1];
-	pdata->smem_size = val[2];
-	pr_info("sipc: smem_base = 0x%x, mapped_smem_base = 0x%x, smem_size = 0x%x\n",
-		pdata->smem_base, pdata->mapped_smem_base, pdata->smem_size);
+	ret = sipc_get_smem_info(pdata, np);
+	if (ret)
+		return ret;
 
 	*init = pdata;
 
@@ -308,6 +338,7 @@ static int sipc_probe(struct platform_device *pdev)
 	int i, j = 0;
 	struct device_node *np, *chd;
 	int segnr;
+	struct smem_item *smem_ptr;
 
 	if (!pdata && pdev->dev.of_node) {
 		of_id = of_match_node(sipc_match_table, pdev->dev.of_node);
@@ -382,7 +413,11 @@ static int sipc_probe(struct platform_device *pdev)
 			    dst == SIPC_ID_CPW)
 				smem_set_default_pool(pdata->smem_base);
 
-			smem_init(pdata->smem_base, pdata->smem_size, dst);
+			smem_ptr = pdata->smem_ptr;
+			for (i = 0; i < pdata->smem_cnt; i++)
+				smem_init(smem_ptr[i].base,
+					  smem_ptr[i].size, dst);
+
 			smsg_suspend_init();
 
 			sipc_create(sipc);
@@ -398,6 +433,7 @@ static int sipc_remove(struct platform_device *pdev)
 	struct sipc_device *sipc = platform_get_drvdata(pdev);
 
 	sipc_destroy_pdata(&sipc->pdata, &pdev->dev);
+	kfree(sipc->pdata->smem_ptr);
 	devm_kfree(&pdev->dev, sipc->smsg_inst);
 	devm_kfree(&pdev->dev, sipc);
 	return 0;

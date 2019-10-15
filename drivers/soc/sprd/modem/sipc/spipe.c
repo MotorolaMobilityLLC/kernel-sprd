@@ -150,6 +150,10 @@ static int spipe_parse_dt(struct spipe_init_data **init, struct device_node *nod
 		goto error;
 	pdata->channel = (u8)data;
 
+	ret = of_property_read_u32(np, "sprd,smem", (u32 *)&data);
+	if (!ret)
+		pdata->smem = (u32)data;
+
 	ret = of_property_read_u32(np,
 				   "sprd,ringnr",
 				   (u32 *)&pdata->ringnr);
@@ -215,8 +219,10 @@ static int spipe_probe(struct platform_device *pdev)
 				init->rxbuf_size,
 				init->txbuf_size);
 
-			rval = sbuf_create(init->dst, init->channel, init->ringnr,
-					   init->txbuf_size, init->rxbuf_size);
+			rval = sbuf_create_ex(init->dst, init->channel,
+					      init->smem, init->ringnr,
+					      init->txbuf_size,
+					      init->rxbuf_size);
 			if (rval != 0) {
 				pr_err("Failed to create sbuf: %d\n", rval);
 				spipe_destroy_pdata(&init, &pdev->dev);
