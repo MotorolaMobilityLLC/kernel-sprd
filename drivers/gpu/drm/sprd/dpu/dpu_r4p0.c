@@ -1526,9 +1526,9 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		memcpy(&cm_copy, param, sizeof(cm_copy));
 		memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
 		if (cabc_para.gain) {
-			cm.coef00 *= cabc_para.gain;
-			cm.coef11 *= cabc_para.gain;
-			cm.coef22 *= cabc_para.gain;
+			cm.coef00 = (cm.coef00 * cabc_para.gain) / 0x400;
+			cm.coef11 = (cm.coef11 * cabc_para.gain) / 0x400;
+			cm.coef22 = (cm.coef22 * cabc_para.gain) / 0x400;
 		}
 
 		reg->cm_coef01_00 = (cm.coef01 << 16) | cm.coef00;
