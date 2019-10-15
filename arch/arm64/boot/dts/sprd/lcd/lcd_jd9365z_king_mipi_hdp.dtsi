@@ -15,7 +15,7 @@
 
 		sprd,phy-bit-clock = <550000>; /* kbps */
 
-		sprd,esd-check-enable = <0>;
+		sprd,esd-check-enable = <1>;
 		sprd,esd-check-mode = <1>;
 		sprd,esd-check-period = <2000>;
 
