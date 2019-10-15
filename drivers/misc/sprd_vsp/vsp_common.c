@@ -184,15 +184,15 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 		vsp_clk_disable(vsp_hw_dev);
 		return ret;
 	}
-
-	regmap_read(regs[PMU_PWR_STATUS].gpr, regs[PMU_PWR_STATUS].reg,
-		&power_state1);
-	regmap_read(regs[VSP_DOMAIN_EB].gpr, regs[VSP_DOMAIN_EB].reg,
-		&vsp_eb_reg);
-	pr_info("reg 0x%x, vsp_power 0x%x, reg 0x%x, vsp_eb 0x%x\n",
-		regs[PMU_PWR_STATUS].reg, power_state1, regs[VSP_DOMAIN_EB].reg,
-		vsp_eb_reg);
-
+	if (vsp_hw_dev->version == SHARKL3) {
+		regmap_read(regs[PMU_PWR_STATUS].gpr, regs[PMU_PWR_STATUS].reg,
+			&power_state1);
+		regmap_read(regs[VSP_DOMAIN_EB].gpr, regs[VSP_DOMAIN_EB].reg,
+			&vsp_eb_reg);
+		pr_info("reg 0x%x, vsp_power 0x%x, reg 0x%x, vsp_eb 0x%x\n",
+			regs[PMU_PWR_STATUS].reg, power_state1, regs[VSP_DOMAIN_EB].reg,
+			vsp_eb_reg);
+	}
 	iommu_map_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 	ret = sprd_iommu_map(vsp_hw_dev->vsp_dev, &iommu_map_data);
 	if (!ret) {
