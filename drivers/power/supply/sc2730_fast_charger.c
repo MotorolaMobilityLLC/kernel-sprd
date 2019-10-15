@@ -7,7 +7,9 @@
 #include <linux/usb/phy.h>
 #include <linux/regmap.h>
 #include <linux/notifier.h>
+#include <linux/nvmem-consumer.h>
 #include <linux/of.h>
+#include <linux/slab.h>
 
 #define FCHG1_TIME1				0x0
 #define FCHG1_TIME2				0x4
@@ -32,6 +34,12 @@
 #define ANA_REG_GLB_MODULE_EN0			0x1808
 #define ANA_REG_GLB_RTC_CLK_EN0			0x1810
 
+#define ANA_REG_IB_CTRL				0x1b84
+#define ANA_REG_IB_TRIM_MASK			GENMASK(6, 0)
+#define ANA_REG_IB_TRIM_SHIFT			2
+#define ANA_REG_IB_TRIM_EM_SEL_BIT		BIT(1)
+#define ANA_REG_IB_TRUM_OFFSET			0x1e
+
 #define FAST_CHARGE_MODULE_EN0_BIT		BIT(11)
 #define FAST_CHARGE_RTC_CLK_EN0_BIT		BIT(4)
 
@@ -42,6 +50,8 @@
 #define FCHG_TIME2_MASK				GENMASK(11, 0)
 #define FCHG_DET_VOL_MASK			GENMASK(1, 0)
 #define FCHG_DET_VOL_SHIFT			3
+#define FCHG_CALI_MASK				GENMASK(15, 9)
+#define FCHG_CALI_SHIFT				9
 
 #define FCHG_ERR0_BIT				BIT(1)
 #define FCHG_ERR1_BIT				BIT(2)
@@ -75,6 +85,57 @@ struct sc2730_fchg_info {
 	int input_vol;
 	u32 limit;
 };
+
+static int sc2730_fchg_internal_cur_calibration(struct sc2730_fchg_info *info)
+{
+	struct nvmem_cell *cell;
+	int calib_data, calib_current, ret;
+	void *buf;
+	size_t len;
+
+	cell = nvmem_cell_get(info->dev, "fchg_cur_calib");
+	if (IS_ERR(cell))
+		return PTR_ERR(cell);
+
+	buf = nvmem_cell_read(cell, &len);
+	nvmem_cell_put(cell);
+
+	if (IS_ERR(buf))
+		return PTR_ERR(buf);
+
+	memcpy(&calib_data, buf, min(len, sizeof(u32)));
+	kfree(buf);
+
+	/*
+	 * In the handshake protocol behavior of sfcp, the current source
+	 * of the fast charge internal module is small, we improve it
+	 * by set the register ANA_REG_IB_CTRL. Now we add 30 level compensation.
+	 */
+	calib_current = (calib_data & FCHG_CALI_MASK) >> FCHG_CALI_SHIFT;
+	calib_current += ANA_REG_IB_TRUM_OFFSET;
+
+	ret = regmap_update_bits(info->regmap,
+				 ANA_REG_IB_CTRL,
+				 ANA_REG_IB_TRIM_MASK << ANA_REG_IB_TRIM_SHIFT,
+				 (calib_current & ANA_REG_IB_TRIM_MASK) << ANA_REG_IB_TRIM_SHIFT);
+	if (ret) {
+		dev_err(info->dev, "failed to calibrate fast charger current.\n");
+		return ret;
+	}
+
+	/*
+	 * Fast charge dm current source calibration mode, enable soft calibration mode.
+	 */
+	ret = regmap_update_bits(info->regmap, ANA_REG_IB_CTRL,
+				 ANA_REG_IB_TRIM_EM_SEL_BIT,
+				 0);
+	if (ret) {
+		dev_err(info->dev, "failed to select ib trim mode.\n");
+		return ret;
+	}
+
+	return 0;
+}
 
 static irqreturn_t sc2730_fchg_interrupt(int irq, void *dev_id)
 {
@@ -165,6 +226,19 @@ static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 	else
 		value = 3;
 
+	/*
+	 * Due to the the current source of the fast charge internal module is small
+	 * we need to dynamically calibrate it through the software during the process
+	 * of identifying fast charge. After fast charge recognition is completed, we
+	 * disable soft calibration compensate function, in order to prevent the dm current
+	 * source from deviating in accuracy when used in other modules.
+	 */
+	ret = sc2730_fchg_internal_cur_calibration(info);
+	if (ret) {
+		dev_err(info->dev, "failed to set fast charger calibration.\n");
+		return ret;
+	}
+
 	ret = regmap_update_bits(info->regmap, ANA_REG_GLB_MODULE_EN0,
 				 FAST_CHARGE_MODULE_EN0_BIT,
 				 FAST_CHARGE_MODULE_EN0_BIT);
@@ -224,6 +298,18 @@ static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 	if (!timeout) {
 		dev_err(info->dev, "timeout to get fast charger status\n");
 		return POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+	}
+
+	/*
+	 * Fast charge dm current source calibration mode, select efuse calibration
+	 * as default.
+	 */
+	ret = regmap_update_bits(info->regmap, ANA_REG_IB_CTRL,
+				 ANA_REG_IB_TRIM_EM_SEL_BIT,
+				 ANA_REG_IB_TRIM_EM_SEL_BIT);
+	if (ret) {
+		dev_err(info->dev, "failed to select ib trim mode.\n");
+		return ret;
 	}
 
 	return info->state;
