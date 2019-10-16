@@ -1182,7 +1182,10 @@ static SPRD_MUX_CLK(clk_vsp, "vsp-clk", vsp_parents, 0x2c,
 		    0, 2, SC7731E_MUX_FLAG);
 static SPRD_MUX_CLK(isp_clk, "isp-clk", vsp_parents, 0x30,
 		    0, 2, SC7731E_MUX_FLAG);
-static SPRD_MUX_CLK(jpg_clk, "jpg-clk", vsp_parents, 0x34,
+
+static const char * const jpg_parents[] = { "twpll-76m8", "twpll-128m",
+					    "twpll-256m", "cpll-266m67" };
+static SPRD_MUX_CLK(jpg_clk, "jpg-clk", jpg_parents, 0x34,
 		    0, 2, SC7731E_MUX_FLAG);
 
 static SPRD_GATE_CLK(mipi_csi_clk, "mipi-csi-clk", "mm-ahb", 0x38,
