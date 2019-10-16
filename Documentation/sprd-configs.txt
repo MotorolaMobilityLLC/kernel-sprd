@@ -1265,6 +1265,15 @@ CONFIG_BACKLIGHT_CLASS_DEVICE
 	[must] home
 	[missing plat description] none
 	[function] Backlight sysfs and core driver.
+CONFIG_BACKLIGHT_KTD3137
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] none
+	[field] make
+	[subsys] video
+	[must] home
+	[missing plat description] none
+	[function] Enable ktd3137 backlight driver.
 CONFIG_BACKLIGHT_LCD_SUPPORT
 	[arch] all
 	[plat] all
