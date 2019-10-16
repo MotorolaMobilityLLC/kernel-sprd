@@ -115,11 +115,11 @@
 &i2c3 {
 	status = "okay";
 
-	ktd@36 {
+	ktd3137_backlight: sprd_backlight {
 		status = "okay";
-		compatible = "ktd,ktd3137";
+		compatible = "sprd,ktd3137";
 		reg = <0x36>;
-		ktd,hwen-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
+		hwen-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
 		ktd,using-lsb;
 		ktd,using-linear;
 		ktd,bl-fscal-led = <0x99>;/*default 20.2mA*/
@@ -131,6 +131,10 @@
 		ktd,inductor-current = <1800>; /*dfault 2600mA*/
 		ktd,switching-frequency = <1000>;/*dfault 1000KHz*/
 	};
+};
+
+&panel {
+	sprd,backlight = <&ktd3137_backlight>;
 };
 
 &ddr_dfs {
