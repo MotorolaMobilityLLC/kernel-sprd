@@ -386,14 +386,10 @@
 		gpu_clk: clock-controller@60100000 {
 			compatible = "sprd,sc9832e-gpu-clk";
 			reg = <0x60100000 0x1000>; /* 0x60100000 */
+			syscons = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_GPU_EB>,
+				  <&pmu_apb_regs REG_PMU_APB_PD_GPU_TOP_CFG MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>;
+			syscon-names = "enable", "power";
 			clocks = <&ext_26m>;
-			#clock-cells = <1>;
-		};
-
-		mm_gate: mm-gate {
-			compatible = "sprd,sc9832e-mm-gate";
-			sprd,syscon = <&mm_ahb_regs>; /* 0x60d00000 */
-			clocks = <&aonapb_gate CLK_MM_EB>;
 			#clock-cells = <1>;
 		};
 
@@ -401,6 +397,16 @@
 			compatible = "sprd,sc9832e-mm-clk";
 			reg = <0x60e00000 0x1000>; /* 0x60e00000 */
 			clocks = <&aon_prediv CLK_MM_AHB>;
+			#clock-cells = <1>;
+		};
+
+		mm_gate: mm-gate {
+			compatible = "sprd,sc9832e-mm-gate";
+			sprd,syscon = <&mm_ahb_regs>; /* 0x60d00000 */
+			syscons = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_MM_EB>,
+				  <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>;
+			syscon-names = "enable", "power";
+			clocks = <&aonapb_gate CLK_MM_EB>;
 			#clock-cells = <1>;
 		};
 
