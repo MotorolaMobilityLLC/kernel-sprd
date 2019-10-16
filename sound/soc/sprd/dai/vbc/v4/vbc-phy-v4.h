@@ -1345,6 +1345,7 @@ enum vbc_dump_position_e {
 	DUMP_POS_A1,
 	DUMP_POS_V2,
 	DUMP_POS_V1,
+	DUMP_POS_DAC0_TO_ADC1,
 	DUMP_POS_MAX,
 };
 
@@ -1401,6 +1402,7 @@ struct vbc_codec_priv {
 	 */
 	int need_aud_top_clk;
 	enum vbc_dump_position_e vbc_dump_position;
+	enum vbc_dump_position_e vbc_dump_position_cmd;
 	struct sbcenc_param_t sbcenc_para;
 	char firmware_path[AUD_FIRMWARE_PATHNAME_LEN_MAX];
 	struct mainmic_from_para mainmic_from[MAINMIC_USED_MAINMIC_TYPE_MAX];
@@ -1435,6 +1437,7 @@ int ap_vbc_fifo_enable(int fifo_id, int chan, int enable);
 void ap_vbc_fifo_clear(int fifo_id);
 void ap_vbc_aud_dma_chn_en(int fifo_id, int vbc_chan, int enable);
 void vbc_phy_audply_set_src_mode(int en, int mode);
+void scene_dump_set(enum vbc_dump_position_e pos);
 
 /********************************************************************
  * dsp phy define interface

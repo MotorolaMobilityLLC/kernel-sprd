@@ -2979,6 +2979,7 @@ static const char * const vbc_dump_pos_txt[DUMP_POS_MAX] = {
 	[DUMP_POS_A1] = TO_STRING(DUMP_POS_A1),
 	[DUMP_POS_V2] = TO_STRING(DUMP_POS_V2),
 	[DUMP_POS_V1] = TO_STRING(DUMP_POS_V1),
+	[DUMP_POS_DAC0_TO_ADC1] = TO_STRING(DUMP_POS_DAC0_TO_ADC1),
 };
 
 static const struct soc_enum vbc_dump_pos_enum =
@@ -2996,6 +2997,7 @@ static const char *vbc_dumppos2name(int pos)
 		[DUMP_POS_A1] = TO_STRING(DUMP_POS_A1),
 		[DUMP_POS_V2] = TO_STRING(DUMP_POS_V2),
 		[DUMP_POS_V1] = TO_STRING(DUMP_POS_V1),
+		[DUMP_POS_DAC0_TO_ADC1] = TO_STRING(DUMP_POS_DAC0_TO_ADC1),
 	};
 
 	if (pos >= DUMP_POS_MAX) {
@@ -3038,6 +3040,37 @@ static int vbc_put_dump_pos(struct snd_kcontrol *kcontrol,
 	sp_asoc_pr_dbg("%s %s -> %s\n", __func__,
 		       vbc_dumppos2name(val), texts->texts[val]);
 	vbc_codec->vbc_dump_position = val;
+
+	return 0;
+}
+
+static int vbc_get_dump_pos_cmd(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->vbc_dump_position_cmd;
+
+	return 0;
+}
+
+static int vbc_put_dump_pos_cmd(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+	int val = ucontrol->value.integer.value[0];
+
+	if (val >= texts->items) {
+		pr_err("put_dump_pos_cmd index outof bounds error\n");
+		return -EINVAL;
+	}
+
+	vbc_codec->vbc_dump_position_cmd = val;
+	sp_asoc_pr_dbg("%s -> %s\n", vbc_dumppos2name(val), texts->texts[val]);
+	scene_dump_set(vbc_codec->vbc_dump_position_cmd);
 
 	return 0;
 }
@@ -3550,6 +3583,8 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 		       vbc_reg_get, vbc_reg_put),
 	SOC_ENUM_EXT("VBC_DUMP_POS", vbc_dump_pos_enum,
 		vbc_get_dump_pos, vbc_put_dump_pos),
+	SOC_ENUM_EXT("VBC_DUMP_POS_CMD", vbc_dump_pos_enum,
+		     vbc_get_dump_pos_cmd, vbc_put_dump_pos_cmd),
 	SND_SOC_BYTES_EXT("SBC_PARAS", SBC_PARA_BYTES,
 		sbc_paras_get, sbc_paras_put),
 
