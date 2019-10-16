@@ -332,7 +332,7 @@ static int dphy_set_pll_reg(struct regmap *regmap, struct dphy_pll *pll)
 	regs._0f.bits.det_delay = pll->det_delay;
 	regs._0f.bits.kdelta =  pll->kdelta >> 12;
 
-	regmap_write(regmap, 0x03, regs._04.val);
+	regmap_write(regmap, 0x03, regs._03.val);
 	regmap_write(regmap, 0x04, regs._04.val);
 	regmap_write(regmap, 0x07, regs._07.val);
 	regmap_write(regmap, 0x08, regs._08.val);
