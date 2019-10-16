@@ -1186,7 +1186,7 @@ static SPRD_MUX_CLK(jpg_clk, "jpg-clk", vsp_parents, 0x34,
 		    0, 2, SC7731E_MUX_FLAG);
 
 static SPRD_GATE_CLK(mipi_csi_clk, "mipi-csi-clk", "mm-ahb", 0x38,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static const char * const dcam_axi_parents[] = { "twpll-307m2", "cpll-320m",
 						"twpll-512m", "cpll-533m" };
