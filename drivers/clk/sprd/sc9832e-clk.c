@@ -1148,9 +1148,9 @@ static SPRD_MUX_CLK(dcam_if_clk, "dcam-if-clk", dcam_if_parents, 0x2c,
 static SPRD_MUX_CLK(jpg_clk, "jpg-clk", vsp_parents, 0x30,
 		    0, 2, SC9832E_MUX_FLAG);
 static SPRD_GATE_CLK(mipi_csi_clk, "mipi-csi-clk", "mm-ahb", 0x34,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 static SPRD_GATE_CLK(mcsi_s_clk, "mcsi-s-clk", "mm-ahb", 0x3c,
-		     BIT(16), 0, 0);
+		     BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *sc9832e_mm_clk[] = {
 	&mm_ahb.common,
