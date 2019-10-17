@@ -165,10 +165,7 @@ static int sdiohal_simple_test_tx(size_t count)
 	int tx_debug_num = 4;
 	int i;
 
-	memset(test_buf, 0x30, 256);
-	memset(test_buf + 256, 0x31, 256);
-	memset(test_buf + 512, 0x32, 256);
-	memset(test_buf + 768, 0x33, 256);
+	memset(test_buf, 0, 1024);
 
 	if (!sprdwcn_bus_list_alloc(at_tx_ops.channel,
 		&head, &tail, &tx_debug_num)) {
