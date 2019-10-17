@@ -1253,8 +1253,6 @@ static int mbox_cfg_init(struct mbox_dts_cfg_tag *mbox_dts_cfg, u8 *mbox_inited)
 			pr_err("mbox:ERR on line %d!\n", __LINE__);
 			return -EINVAL;
 		}
-
-		disable_irq_wake(mbox_cfg.outbox_sensor_irq);
 	}
 
 #ifdef SPRD_MAILBOX_TEST
