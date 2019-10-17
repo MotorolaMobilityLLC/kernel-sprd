@@ -1999,6 +1999,15 @@ CONFIG_COMPAT_OLD_SIGACTION
 	[must] Enable kernel support compat old signal action.
 	[missing plat description] none
 	[function]
+CONFIG_COMPILE_TOOL
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] menu
+	[subsys]
+	[must] debug
+	[missing plat description] none
+	[function] It provides the information of toolchain type for aiaiai check system.
 CONFIG_CONFIGFS_FS
 	[arch] all
 	[plat] all
