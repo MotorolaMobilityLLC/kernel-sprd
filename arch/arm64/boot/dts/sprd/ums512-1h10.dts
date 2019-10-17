@@ -686,6 +686,10 @@
 	status = "okay";
 };
 
+&lcd_td4310_truly_mipi_fhd {
+	sprd,phy-bit-clock = <1104000>;  /* kbps */
+};
+
 &aon_i2c0 {
 	status = "okay";
 	clock-frequency = <400000>;
