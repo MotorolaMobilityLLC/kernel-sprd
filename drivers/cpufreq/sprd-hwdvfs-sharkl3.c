@@ -342,7 +342,7 @@ struct sprd_hwdvfs_l3 {
 	void __iomem *base;
 	const struct sprd_hwdvfs_l3_info *info;
 	struct i2c_client *i2c_client;
-	struct completion i2c_done;
+	struct completion dvfs_done[HWDVFS_CHNL_MAX];
 	unsigned int on_i2c[HWDVFS_CHNL_MAX];
 	unsigned int dcdc_index[HWDVFS_CHNL_MAX];
 	int irq;
@@ -709,35 +709,26 @@ static int sprd_hwdvfs_l3_i2c_trylock(struct i2c_adapter *adapter)
 		return rt_mutex_trylock(&adapter->bus_lock);
 }
 
-static int sprd_hwdvfs_l3_i2c_unlocking(unsigned int cluster)
+static int sprd_hwdvfs_l3_completing(unsigned int cluster)
 {
-	if (!wait_for_completion_timeout(&(hwdvfs_l3->i2c_done),
+	if (!wait_for_completion_timeout(&(hwdvfs_l3->dvfs_done[cluster]),
 					 msecs_to_jiffies(2000)))
-		pr_info("CHNL%u I2C gets dvfs timeout\n", cluster);
-
-	i2c_unlock_adapter(hwdvfs_l3->i2c_client->adapter);
-
-	return 0;
-}
-
-static int sprd_hwdvfs_l3_i2c_unlock_sync(unsigned int cluster)
-{
+		pr_err("CHNL%u gets dvfs timeout\n", cluster);
 
 	if (hwdvfs_l3->on_i2c[cluster] &&
 	    hwdvfs_l3->i2c_client != NULL) {
-		sprd_hwdvfs_l3_i2c_unlocking(cluster);
+		i2c_unlock_adapter(hwdvfs_l3->i2c_client->adapter);
 		pr_debug("CHNL%u DONE i2c_unlock_adapter\n", cluster);
 	}
 
 	return 0;
 }
-static int sprd_hwdvfs_l3_i2c_unlock_async(unsigned int cluster)
+
+static int sprd_hwdvfs_l3_complete(unsigned int cluster)
 {
-	if (hwdvfs_l3->on_i2c[cluster] &&
-	    hwdvfs_l3->i2c_client != NULL &&
-	    atomic_read(&hwdvfs_l3->state[cluster]) ==
+	if (atomic_read(&hwdvfs_l3->state[cluster]) ==
 	    HWDVFS_STATE_RUNNING) {
-		complete(&hwdvfs_l3->i2c_done);
+		complete(&hwdvfs_l3->dvfs_done[cluster]);
 		pr_debug("CHNL%u i2c_unlock_async\n", cluster);
 	}
 	return 0;
@@ -798,7 +789,7 @@ static int sprd_hwdvfs_l3_try_lock_clst1(void)
 	return ret;
 }
 
-static void sprd_hwdvfs_l3_unlock(unsigned int cluster, bool unlock_i2c)
+static void sprd_hwdvfs_l3_unlock(unsigned int cluster, bool complete)
 {
 	if (atomic_read(&hwdvfs_l3->state[cluster]) !=
 	    HWDVFS_STATE_RUNNING) {
@@ -806,8 +797,8 @@ static void sprd_hwdvfs_l3_unlock(unsigned int cluster, bool unlock_i2c)
 		sprd_hwdvfs_l3_dump(false);
 	}
 
-	if (unlock_i2c)
-		sprd_hwdvfs_l3_i2c_unlock_async(cluster);
+	if (complete)
+		sprd_hwdvfs_l3_complete(cluster);
 	hwdvfs_l3->busy[cluster] = 0;
 	atomic_set(&hwdvfs_l3->state[cluster],
 		   HWDVFS_STATE_DONE);
@@ -1072,16 +1063,14 @@ static int sprd_hwdvfs_set_clst0(unsigned int scalecode00,
 		BIT_DVFS_CTRL_IRQ_DONE_CHNL00,
 		REG_DVFS_CTRL_STS_CHNL00);
 
-	if (hwdvfs_l3->on_i2c[HWDVFS_CHNL00] &&
-	    hwdvfs_l3->i2c_client != NULL)
-		reinit_completion(&hwdvfs_l3->i2c_done);
+	reinit_completion(&hwdvfs_l3->dvfs_done[HWDVFS_CHNL00]);
 
 	dvfs_wr(BIT_DVFS_CTRL_SW_TRG_CHNL00 |
 		BIT_DVFS_CTRL_SW_SCL_CHNL00(scalecode00),
 		REG_DVFS_CTRL_SW_TRG_CHNL00);
 
 	hwdvfs_l3->triggered[HWDVFS_CHNL00] = true;
-	sprd_hwdvfs_l3_i2c_unlock_sync(HWDVFS_CHNL00);
+	sprd_hwdvfs_l3_completing(HWDVFS_CHNL00);
 
 	if (!sync)
 		return 0;
@@ -1170,9 +1159,7 @@ static int sprd_hwdvfs_set_clst1(unsigned int scalecode01,
 		BIT_DVFS_CTRL_IRQ_DONE_CHNL01,
 		REG_DVFS_CTRL_STS_CHNL01);
 
-	if (hwdvfs_l3->on_i2c[HWDVFS_CHNL01] &&
-	    hwdvfs_l3->i2c_client != NULL)
-		reinit_completion(&hwdvfs_l3->i2c_done);
+	reinit_completion(&hwdvfs_l3->dvfs_done[HWDVFS_CHNL01]);
 
 	dvfs_wr(BIT_DVFS_CTRL_SW_TRG_CHNL01 |
 		BIT_DVFS_CTRL_SW_SCL_CHNL01(scalecode01),
@@ -1180,7 +1167,7 @@ static int sprd_hwdvfs_set_clst1(unsigned int scalecode01,
 
 	hwdvfs_l3->triggered[HWDVFS_CHNL01] = true;
 
-	sprd_hwdvfs_l3_i2c_unlock_sync(HWDVFS_CHNL01);
+	sprd_hwdvfs_l3_completing(HWDVFS_CHNL01);
 
 	if (!sync)
 		return 0;
@@ -1268,16 +1255,14 @@ static int sprd_hwdvfs_set_scu(unsigned int scalecode02, bool sync, bool force)
 		BIT_DVFS_CTRL_IRQ_DONE_CHNL02,
 		REG_DVFS_CTRL_STS_CHNL02);
 
-	if (hwdvfs_l3->on_i2c[HWDVFS_CHNL02] &&
-	    hwdvfs_l3->i2c_client != NULL)
-		reinit_completion(&hwdvfs_l3->i2c_done);
+	reinit_completion(&hwdvfs_l3->dvfs_done[HWDVFS_CHNL02]);
 
 	dvfs_wr(BIT_DVFS_CTRL_SW_TRG_CHNL02 |
 		BIT_DVFS_CTRL_SW_SCL_CHNL02(scalecode02),
 		REG_DVFS_CTRL_SW_TRG_CHNL02);
 
 	hwdvfs_l3->triggered[HWDVFS_CHNL02] = true;
-	sprd_hwdvfs_l3_i2c_unlock_sync(HWDVFS_CHNL02);
+	sprd_hwdvfs_l3_completing(HWDVFS_CHNL02);
 
 	if (!sync)
 		return 0;
@@ -1376,9 +1361,7 @@ static int sprd_hwdvfs_set_clst1_scu(unsigned int scalecode01, bool sync,
 		BIT_DVFS_CTRL_IRQ_DONE_CHNL02,
 		REG_DVFS_CTRL_STS_CHNL02);
 
-	if (hwdvfs_l3->on_i2c[HWDVFS_CHNL01] &&
-	    hwdvfs_l3->i2c_client != NULL)
-		reinit_completion(&hwdvfs_l3->i2c_done);
+	reinit_completion(&hwdvfs_l3->dvfs_done[HWDVFS_CHNL01]);
 
 	dvfs_wr(BIT_DVFS_CTRL_SW_TRG_CHNL02 |
 		BIT_DVFS_CTRL_SW_SCL_CHNL02(scalecode01),
@@ -1390,7 +1373,7 @@ static int sprd_hwdvfs_set_clst1_scu(unsigned int scalecode01, bool sync,
 	hwdvfs_l3->triggered[HWDVFS_CHNL01] = true;
 	hwdvfs_l3->triggered[HWDVFS_CHNL02] = true;
 
-	sprd_hwdvfs_l3_i2c_unlock_sync(HWDVFS_CHNL01);
+	sprd_hwdvfs_l3_completing(HWDVFS_CHNL01);
 
 	if (!sync)
 		return 0;
@@ -1906,7 +1889,7 @@ static int sprd_hwdvfs_l3_probe(struct platform_device *pdev)
 	struct regmap *anlg_phy_g4_ctrl_base;
 	const struct sprd_hwdvfs_l3_info *pdata;
 	void __iomem *base;
-	int ret;
+	int ret, i;
 	struct device_node *np = pdev->dev.of_node;
 
 	if (!np) {
@@ -1945,7 +1928,9 @@ static int sprd_hwdvfs_l3_probe(struct platform_device *pdev)
 	hwdvfs_l3->anlg_phy_g4_ctrl = anlg_phy_g4_ctrl_base;
 	hwdvfs_l3->info = pdata;
 
-	init_completion(&hwdvfs_l3->i2c_done);
+	for (i = HWDVFS_CHNL00; i < HWDVFS_CHNL_MAX; i++)
+		init_completion(&hwdvfs_l3->dvfs_done[i]);
+
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	base = devm_ioremap_resource(&pdev->dev, res);
 	if (!base) {
