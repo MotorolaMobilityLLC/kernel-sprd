@@ -112,7 +112,8 @@ static int ktd3137_bled_update_status(struct backlight_device *bd)
 	int brightness = bd->props.brightness;
 	struct ktd3137_bl *bl = bl_get_data(bd);
 
-	if (bd->props.fb_blank != FB_BLANK_UNBLANK ||
+	if (bd->props.power != FB_BLANK_UNBLANK ||
+	   bd->props.fb_blank != FB_BLANK_UNBLANK ||
 	   bd->props.state & BL_CORE_FBBLANK)
 		brightness = 0;
 
