@@ -3373,3 +3373,32 @@ void musb_host_poke_root_hub(struct musb *musb)
 	else
 		usb_hcd_resume_root_hub(musb->hcd);
 }
+
+void musb_host_start(struct musb *musb)
+{
+	struct usb_otg		*otg = musb->xceiv->otg;
+	unsigned long		flags;
+
+	musb->softconnect = 0;
+
+	pm_runtime_get_sync(musb->controller);
+
+	spin_lock_irqsave(&musb->lock, flags);
+	musb->is_active = 1;
+
+	otg_set_peripheral(otg, &musb->g);
+	musb->xceiv->otg->state = OTG_STATE_B_IDLE;
+	spin_unlock_irqrestore(&musb->lock, flags);
+
+	musb_start(musb);
+
+	/* REVISIT:  funcall to other code, which also
+	 * handles power budgeting ... this way also
+	 * ensures HdrcStart is indirectly called.
+	 */
+	if (musb->xceiv->last_event == USB_EVENT_ID)
+		musb_platform_set_vbus(musb, 1);
+
+	pm_runtime_mark_last_busy(musb->controller);
+	pm_runtime_put_autosuspend(musb->controller);
+}

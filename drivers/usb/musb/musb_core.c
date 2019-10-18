@@ -932,7 +932,7 @@ b_host:
 	 */
 	if (int_usb & MUSB_INTR_RESET) {
 		handled = IRQ_HANDLED;
-		if ((devctl & MUSB_DEVCTL_HM) || is_host_active(musb)) {
+		if (devctl & MUSB_DEVCTL_HM) {
 			/*
 			 * When BABBLE happens what we can depends on which
 			 * platform MUSB is running, because some platforms

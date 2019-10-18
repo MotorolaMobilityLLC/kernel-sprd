@@ -76,7 +76,6 @@ struct sprd_glue {
 	bool		power_always_on;
 	bool		is_suspend;
 	int		host_disabled;
-	int		musb_work_running;
 	u32		usb_pub_slp_poll_offset;
 	u32		usb_pub_slp_poll_mask;
 	bool		suspending;
@@ -626,13 +625,11 @@ static void sprd_musb_work(struct work_struct *work)
 	while (glue->is_suspend)
 		msleep(20);
 
-	if ((glue->musb_work_running == 0) &&
-	    (glue->wq_mode == USB_DR_MODE_HOST)) {
-		while (!musb->gadget_driver)
-			msleep(50);
-		msleep(50);
-	}
-	glue->musb_work_running = 1;
+	if (IS_ENABLED(CONFIG_USB_MUSB_DUAL_ROLE) &&
+		(glue->wq_mode == USB_DR_MODE_HOST) &&
+		!musb->gadget_driver)
+		musb_host_start(musb);
+
 	glue->dr_mode = glue->wq_mode;
 	dev_dbg(glue->dev, "%s enter: vbus = %d mode = %d\n",
 			__func__, glue->vbus_active, glue->dr_mode);

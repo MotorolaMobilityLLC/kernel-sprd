@@ -1714,9 +1714,10 @@ static void musb_pullup(struct musb *musb, int is_on)
 		is_on ? "on" : "off");
 	musb_writeb(musb->mregs, MUSB_POWER, power);
 
-	if (!is_on)
-		musb->xceiv->otg->state = OTG_STATE_UNDEFINED;
-	else {
+	if (!is_on) {
+		if (!is_host_active(musb))
+			musb->xceiv->otg->state = OTG_STATE_UNDEFINED;
+	} else {
 		musb_writeb(musb_base, MUSB_INTRUSBE, 0xf6);
 		musb->shutdowning = 0;
 	}
@@ -1763,9 +1764,6 @@ static int musb_gadget_pullup(struct usb_gadget *gadget, int is_on)
 {
 	struct musb	*musb = gadget_to_musb(gadget);
 	unsigned long	flags;
-
-	if (is_host_active(musb))
-		return 0;
 
 	is_on = !!is_on;
 
