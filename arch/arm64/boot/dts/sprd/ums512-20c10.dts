@@ -167,7 +167,7 @@
 				      <204000 1400>, <175000 1450>, <150000 1500>,
 				      <129000 1550>, <111000 1600>, <96000 1650>;
 		charge-sdp-current-microamp = <500000 500000>;
-		charge-dcp-current-microamp = <1980000 2000000>;
+		charge-dcp-current-microamp = <2000000 3000000>;
 		charge-cdp-current-microamp = <1150000 1150000>;
 		charge-unknown-current-microamp = <500000 500000>;
 	};
@@ -641,17 +641,12 @@
 		dvfs-dcdc-i2c = <1>;
 	};
 
-	bq2560x_chg: bq2560x_chg@6b {
-		compatible = "ti,bq25600-charger";
+	bq2560x_chg: charger@6b {
+		compatible = "ti,bq2560x_chg";
 		reg = <0x6b>;
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>;
-		ti,bq2560x,precharge-current = <256>;
-		ti,bq2560x,boost-voltage = <5000>;
-		ti,bq2560x,boost-current = <1200>;
-		ti,bq2560x,vac-ovp-threshold = <6500>;
-
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
