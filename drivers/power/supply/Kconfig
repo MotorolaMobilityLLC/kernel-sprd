@@ -631,6 +631,12 @@ config CHARGER_FAN54015
 	help
 	  Say Y to include support for Fairchild FAN54015 Battery Charger.
 
+config CHARGER_BQ2560X
+	tristate "TI BQ2560X Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for TI BQ2560X Battery Charger.
+
 config CHARGER_SC2720
 	tristate "Spreadtrum SC2720 charger driver"
 	depends on MFD_SC27XX_PMIC || COMPILE_TEST

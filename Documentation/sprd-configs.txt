@@ -1861,6 +1861,15 @@ CONFIG_CGROUP_SCHED
 	[must] user
 	[missing plat description] none
 	[function] Group CPU scheduler(vts require)
+CONFIG_CHARGER_BQ2560X
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[field] make
+	[subsys] power
+	[must] user
+	[missing plat description]
+	[function] This function is used to enable charge
 CONFIG_CHARGER_FAN54015
 	[arch] all
 	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
