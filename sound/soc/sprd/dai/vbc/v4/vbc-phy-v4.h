@@ -1222,6 +1222,29 @@ enum VBC_AD_ID_E {
 	VBC_AD_MAX,
 };
 
+#define VBC_DMIC_ADC_ID_SHIFT 8
+
+/* bit8 DMIC0_L, bit9 DMIC0_R, bit10 DMIC1_L, bit11 DMIC1_R */
+enum VBC_DMIC_SEL_E {
+	VBC_DMIC_NONE,
+	VBC_DMIC_0L,
+	VBC_DMIC_0R,
+	VBC_DMIC_0L_0R,
+	VBC_DMIC_1L,
+	VBC_DMIC_0L_1L,
+	VBC_DMIC_0R_1L,
+	VBC_DMIC_0L_0R_1L,
+	VBC_DMIC_1R,
+	VBC_DMIC_0L_1R,
+	VBC_DMIC_0R_1R,
+	VBC_DMIC_0L_0R_1R,
+	VBC_DMIC_1L_1R,
+	VBC_DMIC_0L_1L_1R,
+	VBC_DMIC_0R_1L_1R,
+	VBC_DMIC_0L_0R_1L_1R,
+	VBC_DMIC_MAX,
+};
+
 struct snd_pcm_stream_info {
 	char name[32];
 	int id;
@@ -1407,6 +1430,7 @@ struct vbc_codec_priv {
 	char firmware_path[AUD_FIRMWARE_PATHNAME_LEN_MAX];
 	struct mainmic_from_para mainmic_from[MAINMIC_USED_MAINMIC_TYPE_MAX];
 	struct vbc_iis_mst_sel_para mst_sel_para[IIS_MST_SEL_ID_MAX];
+	enum VBC_DMIC_SEL_E dmic_chn_sel;
 	/* to do */
 	atomic_t aux_iis_master_start;
 	int32_t ivs_smtpa_ctl_enable;

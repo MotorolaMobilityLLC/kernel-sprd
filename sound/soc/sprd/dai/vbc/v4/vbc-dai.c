@@ -808,7 +808,15 @@ static void fill_dsp_startup_data(struct vbc_codec_priv *vbc_codec,
 	info->id = scene_id;
 	info->stream = stream;
 	para->dac_id = get_startup_scene_dac_id(scene_id);
-	para->adc_id = get_startup_scene_adc_id(scene_id);
+
+	pr_debug("adc_id %d, dmic_chn_sel 0x%x\n", para->adc_id,
+		 vbc_codec->dmic_chn_sel << VBC_DMIC_ADC_ID_SHIFT);
+	if (vbc_codec->dmic_chn_sel)
+		para->adc_id |=
+			vbc_codec->dmic_chn_sel << VBC_DMIC_ADC_ID_SHIFT;
+	else
+		para->adc_id = get_startup_scene_adc_id(scene_id);
+
 	/* vbc_if or iis */
 	for (i = VBC_MUX_ADC0_SOURCE; i < VBC_MUX_ADC_SOURCE_MAX; i++) {
 		para->adc_source[i].id = vbc_codec->mux_adc_source[i].id;
