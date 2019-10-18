@@ -144,8 +144,11 @@ static bool migrate_one_irq(struct irq_desc *desc)
 				    irq_default_affinity);
 		else if (cpumask_empty(&available_cpus))
 			affinity = cpu_online_mask;
-#endif
+
 		affinity = cpumask_of(cpumask_any(affinity));
+#else
+		affinity = cpu_online_mask;
+#endif
 		brokeaff = true;
 	}
 	/*
