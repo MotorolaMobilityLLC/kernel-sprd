@@ -13402,8 +13402,8 @@ CONFIG_SPRD_CPU_COOLING
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	[arch] arm64
-	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[plat] sharkl5Pro
+	[missing plat] sharkl3,sharkl5
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -14146,7 +14146,7 @@ CONFIG_SPRD_TIMER
 CONFIG_SPRD_TIMER_SYSFRT
 	[arch] arm
 	[plat] pike2
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkl3,sharkl3_32
+	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make
 	[subsys] timer
 	[must] userdebug
