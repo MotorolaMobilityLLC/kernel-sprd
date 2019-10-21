@@ -663,6 +663,7 @@ static int get_hw_iface_by_dev(struct net_device *dev)
 		if (ipa_netdev[i] &&
 		    strncasecmp(dev->name, ipa_netdev[i],
 				strlen(ipa_netdev[i])) == 0) {
+			dev_put(dev);
 			return i;
 		}
 	}
