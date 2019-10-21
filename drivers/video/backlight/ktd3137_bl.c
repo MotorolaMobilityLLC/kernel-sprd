@@ -352,7 +352,7 @@ static int ktd3137_probe(struct i2c_client *client,
 
 static int ktd3137_remove(struct i2c_client *client)
 {
-	struct ktd3137_bl *bl;
+	struct ktd3137_bl *bl = i2c_get_clientdata(client);
 
 	ktd3137_update_brightness(bl, 0);
 	devm_gpiod_put(&client->dev, bl->hwen_gpio);
