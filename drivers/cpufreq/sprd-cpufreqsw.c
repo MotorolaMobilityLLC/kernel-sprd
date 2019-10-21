@@ -437,10 +437,15 @@ static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data
 	int cluster;
 	int ret = 0;
 
-	if (!cpufreq_data ||
-	    (cpufreq_data && idx >= cpufreq_data->freqvolts)) {
+	if (!cpufreq_data) {
+		ret = -ENODEV;
+		return ret;
+	}
+	mutex_lock(cpufreq_data->volt_lock);
+	if (cpufreq_data && idx >= cpufreq_data->freqvolts) {
 		pr_err("invalid cpufreq_data/idx%u, returning\n", idx);
-		return -ENODEV;
+		ret = -ENODEV;
+		goto exit_unlock;
 	}
 
 	pr_debug("setting target for cluster %d, freq idx %u freqvolts %u\n",
@@ -451,7 +456,8 @@ static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data
 	if (IS_ERR_OR_NULL(cpufreq_data->clk) ||
 	    IS_ERR_OR_NULL(cpufreq_data->reg)) {
 		pr_err("no reg/clk for cluster %d\n", cpufreq_data->cluster);
-		return -ENODEV;
+		ret = -ENODEV;
+		goto exit_unlock;
 	}
 
 	if (idx > cpufreq_data->freqvolts - 1)
@@ -464,6 +470,8 @@ static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data
 	cpu_reg = cpufreq_data->reg;
 	cluster = cpufreq_data->cluster;
 	freq_Hz = cpufreq_data->freqvolt[idx].freq;
+	mutex_unlock(cpufreq_data->volt_lock);
+
 	new_freq_hz = freq_Hz;
 	old_freq_hz = clk_get_rate(cpu_clk);
 	if (cpu_dev) {
@@ -562,11 +570,11 @@ static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data
 		 cpufreq_data->cluster,
 		 clk_get_rate(cpufreq_data->clk) / 1000000,
 		 regulator_get_voltage(cpu_reg) / 1000);
+	goto exit_unlock;
 
-	mutex_unlock(cpufreq_data->volt_lock);
-	return ret;
 exit_err:
 	sprd_volt_share_slaves_notify(cpufreq_data, volt_old);
+exit_unlock:
 	mutex_unlock(cpufreq_data->volt_lock);
 	return ret;
 }
