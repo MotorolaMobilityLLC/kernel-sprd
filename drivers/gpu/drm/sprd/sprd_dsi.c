@@ -89,12 +89,18 @@ static void sprd_dsi_encoder_enable(struct drm_encoder *encoder)
 
 	DRM_INFO("%s()\n", __func__);
 
-	/* add if condition to avoid resume dsi for SR feature */
-	if (encoder->crtc->state->mode_changed &&
-	    !encoder->crtc->state->active_changed)
-		return;
-
 	mutex_lock(&dsi_lock);
+
+	/* add if condition to avoid resume dsi for SR feature.
+	 * if esd recovery happened during display suspend, skip dsi resume.
+	 */
+	if (!encoder->crtc || !encoder->crtc->state->active ||
+	    (encoder->crtc->state->mode_changed &&
+	     !encoder->crtc->state->active_changed)) {
+		DRM_INFO("skip dsi resume\n");
+		mutex_unlock(&dsi_lock);
+		return;
+	}
 
 	if (dsi->ctx.is_inited) {
 		mutex_unlock(&dsi_lock);

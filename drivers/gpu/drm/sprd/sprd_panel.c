@@ -371,19 +371,14 @@ static void sprd_panel_esd_work_func(struct work_struct *work)
 		funcs = encoder->helper_private;
 		panel->esd_work_pending = false;
 
-		if (encoder->crtc && encoder->crtc->state &&
-		    !encoder->crtc->state->active) {
+		if (!encoder->crtc || (encoder->crtc->state &&
+		    !encoder->crtc->state->active)) {
 			DRM_INFO("skip esd recovery during panel suspend\n");
 			return;
 		}
 
 		DRM_INFO("====== esd recovery start ========\n");
 		funcs->disable(encoder);
-
-		if (!encoder->crtc->state->active) {
-			DRM_INFO("skip esd recovery if panel suspend\n");
-			return;
-		}
 		funcs->enable(encoder);
 		DRM_INFO("======= esd recovery end =========\n");
 	} else
