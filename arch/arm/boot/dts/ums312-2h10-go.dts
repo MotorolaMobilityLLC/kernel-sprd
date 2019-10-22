@@ -529,11 +529,12 @@
 
 &hsphy {
 	vdd-supply = <&vddusb33>;
-	extcon = <&pmic_typec>;
+	extcon = <&extcon_gpio>;
 };
 
 &usb {
-	extcon = <&pmic_typec>;
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
 };
 
 &pmic_typec {
