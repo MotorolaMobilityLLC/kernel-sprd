@@ -2277,6 +2277,10 @@ void composite_suspend(struct usb_gadget *gadget)
 	struct usb_composite_dev	*cdev = get_gadget_data(gadget);
 	struct usb_function		*f;
 
+	if (cdev == NULL) {
+		WARN(1, "%s: calling on a Gadget disconnected\n", __func__);
+		return;
+	}
 	/* REVISIT:  should we have config level
 	 * suspend/resume callbacks?
 	 */
@@ -2301,6 +2305,10 @@ void composite_resume(struct usb_gadget *gadget)
 	struct usb_function		*f;
 	u16				maxpower;
 
+	if (cdev == NULL) {
+		WARN(1, "%s: calling on a Gadget disconnected\n", __func__);
+		return;
+	}
 	/* REVISIT:  should we have config level
 	 * suspend/resume callbacks?
 	 */
