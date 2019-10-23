@@ -190,6 +190,11 @@
 		compatible = "sprd,dfs";
 		freq-num = <4>;
 	};
+
+	autotest:autotest{
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
 };
 
 &sdio0 {
