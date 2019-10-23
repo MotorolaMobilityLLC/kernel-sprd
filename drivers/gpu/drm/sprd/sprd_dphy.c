@@ -129,6 +129,7 @@ int sprd_dphy_resume(struct sprd_dphy *dphy)
 
 	ret = sprd_dphy_configure(dphy);
 	if (ret) {
+		mutex_unlock(&dphy->ctx.lock);
 		DRM_ERROR("sprd dphy init failed\n");
 		return -EINVAL;
 	}

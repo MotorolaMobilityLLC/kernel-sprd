@@ -166,6 +166,7 @@ static ssize_t ssc_store(struct device *dev,
 
 	ret = kstrtoint(buf, 10, &ssc_en);
 	if (ret) {
+		mutex_unlock(&dphy->ctx.lock);
 		pr_err("Invalid input value\n");
 		return -EINVAL;
 	}
@@ -205,6 +206,7 @@ static ssize_t hop_store(struct device *dev,
 
 	ret = kstrtoint(buf, 10, &hop_freq);
 	if (ret) {
+		mutex_unlock(&dphy->ctx.lock);
 		pr_err("Invalid input freq\n");
 		return -EINVAL;
 	}
@@ -255,6 +257,7 @@ static ssize_t ulps_store(struct device *dev,
 
 	ret = kstrtoint(buf, 10, &ulps_en);
 	if (ret) {
+		mutex_unlock(&dphy->ctx.lock);
 		pr_err("Invalid input freq\n");
 		return -EINVAL;
 	}
