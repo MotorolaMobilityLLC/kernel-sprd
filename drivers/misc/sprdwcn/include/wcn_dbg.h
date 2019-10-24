@@ -22,6 +22,9 @@ extern u32 wcn_print_level;
 #define WCN_DBG(fmt, args...)\
 	pr_debug(" dbg: " fmt, ## args)
 
+#define WCN_WARN(fmt, args...)\
+	pr_warn(" warning: " fmt, ## args)
+
 #define WCN_DEBUG(fmt, args...) do { \
 	if (wcn_print_level ==  WCN_DEBUG_ON)\
 		pr_info(" debug: " fmt, ## args);\

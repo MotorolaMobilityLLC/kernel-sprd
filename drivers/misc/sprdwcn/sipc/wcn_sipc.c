@@ -196,7 +196,7 @@ static void wcn_sipc_sbuf_notifer(int event, void *data)
 		WCN_DEBUG("sbuf chn[%s] read cnt=%d\n",
 			  sipc_chn_tostr(sipc_chn->chn, 0), cnt);
 		if (cnt < 0) {
-			WCN_ERR("sbuf read cnt[%d] invalid\n", cnt);
+			WCN_WARN("sbuf read cnt[%d] invalid\n", cnt);
 			kfree(buf);
 			return;
 		}

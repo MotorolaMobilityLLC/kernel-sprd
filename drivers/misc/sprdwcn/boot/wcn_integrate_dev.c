@@ -715,10 +715,13 @@ static int wcn_parse_dt(struct platform_device *pdev,
 			WCN_ERR("wcn_efuse_blk2 read error, ret %d\n", ret);
 		}
 		/*only just sharkle*/
-		ret = wcn_efuse_cal_read(np, "wcn_efuse_blk3",
-					 &wcn_efuse_val[3]);
-		if (ret)
-			WCN_ERR("wcn_efuse_blk3 read error, ret %d\n", ret);
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKLE) {
+			ret = wcn_efuse_cal_read(np, "wcn_efuse_blk3",
+						 &wcn_efuse_val[3]);
+			if (ret)
+				WCN_ERR("wcn_efuse_blk3 read error, ret %d\n",
+					ret);
+		}
 	}
 	/*get gnss efuse values from dts*/
 	if (strcmp(wcn_dev->name, WCN_GNSS_DEV_NAME) == 0) {

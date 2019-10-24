@@ -111,7 +111,7 @@ static long int mdbg_comm_write(char *buf,
 	int num = 1;
 
 	if (unlikely(marlin_get_module_status() != true)) {
-		WCN_ERR("WCN module have not open\n");
+		WCN_WARN("WCN module have not open\n");
 		return -EIO;
 	}
 	send_buf = kzalloc(len + PUB_HEAD_RSV + 1, GFP_KERNEL);
@@ -172,7 +172,7 @@ static void mdbg_ring_rx_task(unsigned long data)
 	if (rx) {
 		list_del(&rx->entry);
 	} else {
-		WCN_ERR("tasklet something err\n");
+		WCN_WARN("tasklet something err\n");
 		spin_unlock_bh(&ring_dev->rw_lock);
 		return;
 	}

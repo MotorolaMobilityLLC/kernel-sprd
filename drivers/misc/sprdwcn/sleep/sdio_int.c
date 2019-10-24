@@ -216,7 +216,7 @@ int sdio_pub_int_regcb(enum PUB_INT_BIT bit,
 
 	sdio_int.pub_int_cb[bit] = isr_handler;
 
-	WCN_ERR("0X%x pub_int_RegCb\n", bit);
+	WCN_INFO("0X%x pub_int_RegCb\n", bit);
 
 	return 0;
 }
