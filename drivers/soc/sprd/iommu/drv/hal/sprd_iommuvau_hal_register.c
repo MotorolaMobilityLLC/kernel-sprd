@@ -28,14 +28,14 @@ void mmu_vau_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 		reg_write_dword(reg_addr, 0);
 		reg_addr += 0xC;
 		reg_value = reg_read_dword(reg_addr);
-		reg_write_dword(reg_addr, reg_addr | 0x1);
+		reg_write_dword(reg_addr, reg_value | 0x1);
 	} else if (iommu_id == IOMMU_EX_DCAM  || iommu_id == IOMMU_EX_VSP ||
 		iommu_id == IOMMU_EX_JPG || iommu_id == IOMMU_EX_CPP) {
 		reg_value = reg_read_dword(reg_addr);
-		reg_write_dword(reg_addr, reg_addr | 0x3);
+		reg_write_dword(reg_addr, reg_value | 0x3);
 	} else {
 		reg_value = reg_read_dword(reg_addr);
-		reg_write_dword(reg_addr, reg_addr | 0x13);
+		reg_write_dword(reg_addr, reg_value | 0x13);
 	}
 
 }
