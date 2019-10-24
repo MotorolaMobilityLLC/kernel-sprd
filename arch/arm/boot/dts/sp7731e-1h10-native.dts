@@ -441,12 +441,12 @@
 
 &pin_controller {
 	pinctrl-names =
-	/* keyout0 ~ keyout2 */
-	"gpio_55", "gpio_56", "gpio_57",
 	/* keyin0 ~ keyin2 */
 	"gpio_52", "gpio_53", "gpio_54",
-	/* extint0, extint1, scl2, sda2 */
-	"gpio_64", "gpio_63", "gpio_65", "gpio_66";
+	/* keyout0 ~ keyout2 */
+	"gpio_55", "gpio_56", "gpio_57",
+	/* extint1, extint0, scl2, sda2 */
+	"gpio_63", "gpio_64", "gpio_65", "gpio_66";
 	pinctrl-0 = <&gpio_52>;
 	pinctrl-1 = <&gpio_53>;
 	pinctrl-2 = <&gpio_54>;
@@ -458,32 +458,32 @@
 	pinctrl-8 = <&gpio_65>;
 	pinctrl-9 = <&gpio_66>;
 
-	gpio_52: keyout0 {
+	gpio_52: keyin0 {
 		pins = "PIKE2_KEYOUT0";
 		function = "func4";
 	};
 
-	gpio_53: keyout1 {
+	gpio_53: keyin1 {
 		pins = "PIKE2_KEYOUT1";
 		function = "func4";
 	};
 
-	gpio_54: keyout2 {
+	gpio_54: keyin2 {
 		pins = "PIKE2_KEYOUT2";
 		function = "func4";
 	};
 
-	gpio_55: keyin0 {
+	gpio_55: keyout0 {
 		pins = "PIKE2_KEYIN0";
 		function = "func4";
 	};
 
-	gpio_56: keyin1 {
+	gpio_56: keyout1 {
 		pins = "PIKE2_KEYIN1";
 		function = "func4";
 	};
 
-	gpio_57: keyin2 {
+	gpio_57: keyout2 {
 		pins = "PIKE2_KEYIN2";
 		function = "func4";
 	};
