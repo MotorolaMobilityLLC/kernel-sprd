@@ -1498,6 +1498,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	struct threed_lut *lut3d;
 	struct hsv_lut *hsv;
 	struct epf_cfg *epf_slp;
+	bool dpu_stopped;
 	u32 *p;
 	int i;
 
@@ -1684,6 +1685,8 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	case ENHANCE_CFG_ID_LUT3D:
 		memcpy(&lut3d_copy, param, sizeof(lut3d_copy));
 		lut3d = &lut3d_copy;
+		dpu_stopped = ctx->is_stopped;
+
 		dpu_stop(ctx);
 		for (i = 0; i < 729; i++) {
 			reg->threed_lut_addr = i;
@@ -1692,7 +1695,8 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 			pr_debug("0x%x:0x%x\n", i, lut3d->value[i]);
 		}
 		reg->dpu_enhance_cfg |= BIT(9);
-		dpu_run(ctx);
+		if ((ctx->if_type == SPRD_DISPC_IF_DPI) && !dpu_stopped)
+			dpu_run(ctx);
 		pr_info("enhance lut3d set\n");
 		enhance_en = reg->dpu_enhance_cfg;
 		return;
