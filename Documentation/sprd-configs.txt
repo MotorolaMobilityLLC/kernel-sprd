@@ -13535,15 +13535,6 @@ CONFIG_SPRD_EFUSE
 	[must] home
 	[missing plat description] none
 	[function] get sprdtrum soc series efuse value
-CONFIG_SPRD_EIRQSOFF
-	[arch] arm
-	[plat] pike2
-	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_SPRD_EXT_MODEM
 	[arch] arm64
 	[plat] roc1
