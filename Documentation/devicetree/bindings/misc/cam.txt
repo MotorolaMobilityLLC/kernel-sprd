@@ -1,14 +1,14 @@
-Unisoc Camera devices
+Spreadtrum Camera devices
 
-This node provides properties for controlling the Unisoc Camera device.
+This node provides properties for controlling the Spreadtrum Camera device.
 
 Required properties:
 
  - compatible should be one of following:
-	"unisoc,sharkl3-cam"
-	"unisoc,sharkl5pro-cam"
+	"sprd,sharkl3-cam"
+	"sprd,sharkl5pro-cam"
 
 Example:
 dcam: dcam@60a00000 {
-	compatible = "unisoc,sharkl3-cam";
+	compatible = "sprd,sharkl3-cam";
 }

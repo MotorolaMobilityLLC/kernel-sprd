@@ -319,7 +319,6 @@ solomon        Solomon Systech Limited
 sony	Sony Corporation
 spansion	Spansion Inc.
 sprd	Spreadtrum Communications Inc.
-unisoc  Unisoc Communications Inc.
 st	STMicroelectronics
 starry	Starry Electronic Technology (ShenZhen) Co., LTD
 startek	Startek
