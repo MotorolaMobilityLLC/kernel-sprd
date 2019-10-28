@@ -441,6 +441,7 @@
 		vddcama-supply = <&vddcama1>;
 		vddcamd-supply = <&vddcamd1>;
 		vddcammot-supply = <&vddcammot>;
+		avdd-gpios = <&ap_gpio 33 0>;
 		mot-gpios = <&ap_gpio 88 0>;
 		reset-gpios = <&ap_gpio 45 0>;
 		power-down-gpios = <&ap_gpio 47 0>;
