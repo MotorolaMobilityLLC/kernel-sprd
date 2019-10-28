@@ -49,7 +49,7 @@ static int otg_pre_test(struct autotest_handler *handler, void *data)
 		return -ENODEV;
 	}
 
-	gpio_num = of_get_named_gpio(otg_node, "id-gpios", 0);
+	gpio_num = of_get_named_gpio(otg_node, "id-gpio", 0);
 	of_node_put(otg_node);
 
 	pr_info("%s, gpio_num: %d\n", __func__, gpio_num);
