@@ -77,8 +77,8 @@ int dtbo_merge_chk_main(int argc, char *argv[])
 	if (ret < 0)
 		fprintf(stderr, "\033[;31mError: dtb apply dtbo error value is %s\033[0m\n", fdt_strerror(ret));
 	else {
-		path = (char *)malloc(strlen(argv[2] + 10));
-		memset(path, 0, (strlen(argv[2] + 10)));
+		path = (char *)malloc(strlen(argv[2]) + 10);
+		memset(path, 0, (strlen(argv[2]) + 10));
 		path_tmp = strrchr(argv[2], '/');
 		if (path_tmp) {
 			strncpy(path, argv[2], path_tmp - argv[2] + 1);
