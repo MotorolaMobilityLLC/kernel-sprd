@@ -12,6 +12,7 @@ menuconfig INPUT_TOUCHSCREEN
 if INPUT_TOUCHSCREEN
 
 source drivers/input/touchscreen/adaptive-ts/Kconfig
+source drivers/input/touchscreen/focaltech_spi/Kconfig
 
 config TOUCHSCREEN_PROPERTIES
 	def_tristate INPUT
@@ -1248,4 +1249,14 @@ config TOUCHSCREEN_ROHM_BU21023
 	  To compile this driver as a module, choose M here: the
 	  module will be called bu21023_ts.
 
+config TOUCHSCREEN_FTS
+	tristate "Focaltech Touchscreen test"
+	depends on SPI_MASTER
+	help
+	  Say Y here if you have Focaltech touch panel.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called focal_spi_ts.
 endif

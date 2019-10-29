@@ -14725,6 +14725,15 @@ CONFIG_TOUCHSCREEN_FTS
 	[must] unknown
 	[missing plat description] none
 	[function] for touchscreen driver
+CONFIG_TOUCHSCREEN_FTS_DIRECTORY
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] none
+	[field] make
+	[subsys] input
+	[must] unknown
+	[missing plat description]
+	[function] for touchscreen driver
 CONFIG_TOUCHSCREEN_PROPERTIES
 	[arch] all
 	[plat] all
