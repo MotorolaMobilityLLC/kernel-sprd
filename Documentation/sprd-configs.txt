@@ -12148,7 +12148,7 @@ CONFIG_SC27XX_TSENSOR_THERMAL
 	osc and extern cystal temperature.
 CONFIG_SCAN_BALANCE_ANON_FILE
 	[arch] all
-	[plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] pike2,roc1,sharkl5,sharkl5_32,sharkle32
 	[missing plat] none
 	[field] make
 	[subsys] mm
