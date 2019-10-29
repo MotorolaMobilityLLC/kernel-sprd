@@ -1255,7 +1255,7 @@ struct snd_pcm_startup_paras {
 	struct vbc_mixer_para mixer_para[VBC_MIXER_MAX];
 	struct sbcenc_param_t sbcenc_para;
 	struct ivsense_smartpa_t ivs_smtpa;
-	int32_t reserved[STARTUP_RESERVED_CNT];
+	struct vbc_iis_mst_sel_para mst_sel_para[IIS_MST_SEL_ID_MAX];
 };
 
 struct sprd_vbc_stream_startup_shutdown {

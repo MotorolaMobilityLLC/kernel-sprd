@@ -802,7 +802,6 @@ static void fill_dsp_startup_data(struct vbc_codec_priv *vbc_codec,
 	int i;
 	struct snd_pcm_startup_paras *para = &startup_info->startup_para;
 	struct snd_pcm_stream_info *info = &startup_info->stream_info;
-	struct vbc_iis_mst_sel_para *p_mst_sel_para;
 
 	if (!vbc_codec)
 		return;
@@ -851,9 +850,8 @@ static void fill_dsp_startup_data(struct vbc_codec_priv *vbc_codec,
 
 	/* iis master external or internal */
 	for (i = IIS_MST_SEL_0; i < IIS_MST_SEL_ID_MAX; i++) {
-		p_mst_sel_para = (struct vbc_iis_mst_sel_para *)para->reserved;
-		p_mst_sel_para[i].id = vbc_codec->mst_sel_para[i].id;
-		p_mst_sel_para[i].mst_type =
+		para->mst_sel_para[i].id = vbc_codec->mst_sel_para[i].id;
+		para->mst_sel_para[i].mst_type =
 			vbc_codec->mst_sel_para[i].mst_type;
 	}
 
