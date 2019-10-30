@@ -25,11 +25,6 @@
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
 
-#define DISPC_INT_MMU_INV_WR_MASK	BIT(19)
-#define DISPC_INT_MMU_INV_RD_MASK	BIT(18)
-#define DISPC_INT_MMU_VAOR_WR_MASK	BIT(17)
-#define DISPC_INT_MMU_VAOR_RD_MASK	BIT(16)
-
 #define XFBC8888_HEADER_SIZE(w, h) (ALIGN((ALIGN((w), 16)) * \
 				(ALIGN((h), 16)) / 16, 128))
 #define XFBC8888_PAYLOAD_SIZE(w, h) (ALIGN((w), 16) * ALIGN((h), 16) * 4)
@@ -407,21 +402,17 @@ static void dpu_corner_init(struct dpu_context *ctx)
 	reg->corner_config |= (TOP_CORNER_EN | BOT_CORNER_EN);
 }
 
-static void check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
-{
-}
-
 static u32 dpu_isr(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	u32 reg_val;
+	u32 reg_val, int_mask = 0;
 
 	reg_val = reg->dpu_int_sts;
 	reg->dpu_int_clr = reg_val;
 
 	/* disable err interrupt */
 	if (reg_val & DISPC_INT_ERR_MASK)
-		reg->dpu_int_en &= ~DISPC_INT_ERR_MASK;
+		int_mask |= DISPC_INT_ERR_MASK;
 
 	/* dpu update done isr */
 	if (reg_val & DISPC_INT_UPDATE_DONE_MASK) {
@@ -482,15 +473,20 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		vsync_count = 0;
 	}
 
-	/* dpu ifbc payload error isr */
-	if (reg_val & DISPC_INT_FBC_PLD_ERR_MASK)
-		pr_err("dpu ifbc payload error\n");
+	/* dpu afbc payload error isr */
+	if (reg_val & DISPC_INT_FBC_PLD_ERR_MASK) {
+		int_mask |= DISPC_INT_FBC_PLD_ERR_MASK;
+		pr_err("dpu afbc payload error\n");
+	}
 
-	/* dpu ifbc header error isr */
-	if (reg_val & DISPC_INT_FBC_HDR_ERR_MASK)
-		pr_err("dpu ifbc header error\n");
+	/* dpu afbc header error isr */
+	if (reg_val & DISPC_INT_FBC_HDR_ERR_MASK) {
+		int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
+		pr_err("dpu afbc header error\n");
+	}
 
-	check_mmu_isr(ctx, reg_val);
+	reg->dpu_int_clr = reg_val;
+	reg->dpu_int_en &= ~int_mask;
 
 	return reg_val;
 }
@@ -1302,11 +1298,7 @@ static void dpu_flip(struct dpu_context *ctx,
 	 * re-enable it.
 	 */
 	reg->dpu_int_en |= DISPC_INT_FBC_PLD_ERR_MASK |
-			   DISPC_INT_FBC_HDR_ERR_MASK |
-			   DISPC_INT_MMU_VAOR_RD_MASK |
-			   DISPC_INT_MMU_VAOR_WR_MASK |
-			   DISPC_INT_MMU_INV_RD_MASK |
-			   DISPC_INT_MMU_INV_WR_MASK;
+			   DISPC_INT_FBC_HDR_ERR_MASK;
 }
 
 static void dpu_epf_set(struct dpu_reg *reg, struct epf_cfg *epf)
@@ -1377,14 +1369,6 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 	int_mask |= DISPC_INT_FBC_PLD_ERR_MASK;
 	/* enable ifbc header error INT */
 	int_mask |= DISPC_INT_FBC_HDR_ERR_MASK;
-	/* enable iommu va out of range read error INT */
-	int_mask |= DISPC_INT_MMU_VAOR_RD_MASK;
-	/* enable iommu va out of range write error INT */
-	int_mask |= DISPC_INT_MMU_VAOR_WR_MASK;
-	/* enable iommu invalid read error INT */
-	int_mask |= DISPC_INT_MMU_INV_RD_MASK;
-	/* enable iommu invalid write error INT */
-	int_mask |= DISPC_INT_MMU_INV_WR_MASK;
 
 	reg->dpu_int_en = int_mask;
 }
