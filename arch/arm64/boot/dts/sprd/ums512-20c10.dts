@@ -406,8 +406,8 @@
 		status = "okay";
 	};
 
-	sensor_sub2: sensor-sub2@2e {
-		compatible = "sprd,sensor-sub2";
+	sensor_main3: sensor-main3@2e {
+		compatible = "sprd,sensor-main3";
 		reg = <0x2e>;
 		clock-names = "clk_src","sensor_eb",
 			"clk_96m","clk_76m8",
@@ -425,8 +425,8 @@
 		status = "okay";
 	};
 
-	sensor_main3: sensor-main3@40 {
-		compatible = "sprd,sensor-main3";
+	sensor_sub2: sensor-sub2@40 {
+		compatible = "sprd,sensor-sub2";
 		reg = <0x40>;
 		clock-names = "clk_src","sensor_eb",
 			"clk_96m","clk_76m8",
