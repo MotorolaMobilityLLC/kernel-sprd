@@ -309,6 +309,7 @@ static int cabc_step0 = 2;
 static int cabc_step1 = 5;
 static int cabc_step2 = 30;
 static int cabc_scene_change_thr = 80;
+static int cabc_min_backlight = 102;
 static int cabc_bl_set_delay;
 static struct cabc_para cabc_para;
 static struct backlight_device *backlight;
@@ -327,6 +328,7 @@ module_param(cabc_step1, int, 0644);
 module_param(cabc_step2, int, 0644);
 module_param(cabc_scene_change_thr, int, 0644);
 module_param(cabc_bl_set_delay, int, 0644);
+module_param(cabc_min_backlight, int, 0644);
 
 static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_enhance_reload(struct dpu_context *ctx);
@@ -2118,8 +2120,8 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 		else
 			cabc_para.is_VSP_working = true;
 
-		step_set(cabc_step0, cabc_step1,
-			cabc_step2, cabc_scene_change_thr);
+		step_set(cabc_step0, cabc_step1, cabc_step2,
+			cabc_scene_change_thr, cabc_min_backlight);
 		cabc_trigger(&cabc_para, frame_no);
 
 		memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));

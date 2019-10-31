@@ -68,11 +68,13 @@ void clip(int *input, u8 bottom, u8 top)
 		*input = bottom;
 }
 
-void step_set(int step0, int step1, int step2, int scene_change_thr)
+void step_set(int step0, int step1, int step2,
+	int scene_change_thr, int min_backlight)
 {
 	g_step0 = (u8)step0;
 	g_step1 = (u8)step1;
 	g_step2 = (u8)step2;
+	g_min_backlight = (u8)min_backlight;
 }
 
 int max_hist(int *hist_diff)
@@ -161,19 +163,19 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 	} else {
 		if (s_pre_is_VSP_working == 0)
 			bl_ptr->pre_fix_video = bl_ptr->pre_fix_ui;
-			if (frame_no == 1) {
-				bl_ptr->cur_fix_video = bl_ptr->cur;
-				para->bl_fix = para->cur_bl;
-			} else {
-				backlight_fix_video(s_max_hist, s_scene_change,
-					step0, bl_ptr);
-				clip(&bl_ptr->cur_fix_video, g_min_backlight,
-					g_max_backlight);
-			}
-			para->bl_fix = para->cur_bl *
-				(u16)bl_ptr->cur_fix_video / 255;
-			compensation_gain(bl_ptr->cur_fix_video, &s_gain);
-			bl_ptr->pre_fix_video = bl_ptr->cur_fix_video;
+		if (frame_no == 1) {
+			bl_ptr->cur_fix_video = bl_ptr->cur;
+			para->bl_fix = para->cur_bl;
+		} else {
+			backlight_fix_video(s_max_hist, s_scene_change,
+				step0, bl_ptr);
+			clip(&bl_ptr->cur_fix_video, g_min_backlight,
+				g_max_backlight);
+		}
+		para->bl_fix = para->cur_bl *
+			(u16)bl_ptr->cur_fix_video / 255;
+		compensation_gain(bl_ptr->cur_fix_video, &s_gain);
+		bl_ptr->pre_fix_video = bl_ptr->cur_fix_video;
 	}
 	para->gain = s_gain;
 	s_max_hist.max_hist_num_pre_2 = s_max_hist.max_hist_num_pre_1;
