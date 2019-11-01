@@ -4543,7 +4543,7 @@ CONFIG_FILE_LOCKING
 	   system call.
 CONFIG_FIQ
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] pike2,sharkl3_32,sharkle32
 	[missing plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
@@ -4552,7 +4552,7 @@ CONFIG_FIQ
 	[function]
 CONFIG_FIQ_GLUE
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] pike2,sharkl3_32,sharkle32
 	[missing plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
@@ -12597,7 +12597,7 @@ CONFIG_SLUB_DEBUG
 	[function] Increase debug efficiency for memory covered issue
 CONFIG_SLUB_DEBUG_ON
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] sharkle32
 	[field] code
 	[subsys] mm
@@ -14137,7 +14137,7 @@ CONFIG_SPRD_WATCHDOG
 	[function] Spreadtrum watchdog driver.
 CONFIG_SPRD_WATCHDOG_SYS
 	[arch] all
-	[plat] all
+	[plat] roc1,sharkl5,sharkl5_32
 	[missing plat] none
 	[field] make,code
 	[subsys] watchdog
@@ -14873,8 +14873,8 @@ CONFIG_TRUSTY
 		  Trusty driver is used on all ARM architecture-based platforms
 		  with trusty OS integrated
 CONFIG_TRUSTY_FIQ
-	[arch] arm
-	[plat] pike2,sharkle32
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
@@ -14883,8 +14883,17 @@ CONFIG_TRUSTY_FIQ
 	[function]
 CONFIG_TRUSTY_FIQ_ARM
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] pike2,sharkl3_32,sharkle32
 	[missing plat] sharkl3_32,sharkl5_32
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
+CONFIG_TRUSTY_FIQ_ARM64
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat]
 	[field]
 	[subsys]
 	[must]
@@ -16087,12 +16096,12 @@ CONFIG_WATCHDOG
 	[function] Generic Watchdog Controller support.
 CONFIG_WATCHDOG_CORE
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] core
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] Generic Watchdog Core sys support.
 CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED
 	[arch] all
