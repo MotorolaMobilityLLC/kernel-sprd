@@ -9,6 +9,8 @@
 
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/mfd/sprd,sc2730-regs.h>
+#include <dt-bindings/mfd/sprd,sc2730-mask.h>
 
 #include "ums312.dtsi"
 #include "sc2730.dtsi"
@@ -129,10 +131,9 @@
 		 * bound parameter:
 		 * [0]:addr offset, [1]:mask, [2]:unboundval, [3]:boundval
 		 */
-		avdd12-parent-bound-chip = <0x1a4c 0x1 0x0 0x1>;
-		avdd12-bound-wbreq = <0x1ac8 0x1000 0x0 0x1000>;
-		avdd33-bound-wbreq = <0x1acc 0x4 0x0 0x4>;
-		post-power-on-delay-ms = <20>;
+		avdd12-parent-bound-chip = <REG_ANA_SLP_DCDC_PD_CTRL MASK_ANA_SLP_DCDCGEN1_PD_EN 0x0 MASK_ANA_SLP_DCDCGEN1_PD_EN>;
+		avdd12-bound-wbreq = <REG_ANA_LDO_XTL_EN10 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN>;
+		avdd33-bound-wbreq = <REG_ANA_LDO_XTL_EN11 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN>;
 	};
 
 	sprd-mtty {
