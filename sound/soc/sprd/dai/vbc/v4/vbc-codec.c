@@ -3757,6 +3757,15 @@ static void init_vbc_codec_data(struct vbc_codec_priv *vbc_codec)
 	/* default vbc iis2 connect to aon usb audio */
 	vbc_codec->vbc_iis_inf_sys_sel = 1;
 
+	/* iis master control */
+	vbc_codec->mst_sel_para[IIS_MST_SEL_0].id = IIS_MST_SEL_0;
+	vbc_codec->mst_sel_para[IIS_MST_SEL_0].mst_type = VBC_MASTER_EXTERNAL;
+	vbc_codec->mst_sel_para[IIS_MST_SEL_1].id = IIS_MST_SEL_1;
+	vbc_codec->mst_sel_para[IIS_MST_SEL_1].mst_type = VBC_MASTER_EXTERNAL;
+	vbc_codec->mst_sel_para[IIS_MST_SEL_2].id = IIS_MST_SEL_2;
+	vbc_codec->mst_sel_para[IIS_MST_SEL_2].mst_type = VBC_MASTER_EXTERNAL;
+	vbc_codec->mst_sel_para[IIS_MST_SEL_3].id = IIS_MST_SEL_3;
+	vbc_codec->mst_sel_para[IIS_MST_SEL_3].mst_type = VBC_MASTER_EXTERNAL;
 }
 
 int sprd_vbc_codec_probe(struct platform_device *pdev)
