@@ -83,11 +83,6 @@ struct sprd_glue {
 
 static int boot_charging;
 
-static inline struct musb *dev_to_musb_sprd(struct device *dev)
-{
-	return dev_get_drvdata(dev);
-}
-
 static void sprd_musb_enable(struct musb *musb)
 {
 	struct sprd_glue *glue = dev_get_drvdata(musb->controller->parent);
@@ -1076,9 +1071,8 @@ err_core_clk:
 
 static int musb_sprd_remove(struct platform_device *pdev)
 {
-	struct device *dev = &pdev->dev;
-	struct musb *musb = dev_to_musb_sprd(dev);
 	struct sprd_glue *glue = platform_get_drvdata(pdev);
+	struct musb *musb = platform_get_drvdata(glue->musb);
 
 	/* this gets called on rmmod.
 	 *  - Host mode: host may still be active
