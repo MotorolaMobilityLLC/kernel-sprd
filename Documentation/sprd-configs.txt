@@ -13267,6 +13267,15 @@ CONFIG_SPRD_EFUSE
 	[must] home
 	[missing plat description] none
 	[function] get sprdtrum soc series efuse value
+CONFIG_SPRD_EMERGENCY_RESTART
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] reboot
+	[must] reboot
+	[missing plat description] none
+	[function] add sprd_emergency_restart function to transfer argument
 CONFIG_SPRD_EXT_MODEM
 	[arch] arm64
 	[plat] roc1
