@@ -29,16 +29,20 @@ int dtbo_merge_chk_main(int argc, char *argv[])
 		fseek(fp_dtb, 0L, SEEK_END);
 		len_dtb = ftell(fp_dtb);
 		fseek(fp_dtb, 0L, SEEK_SET);
-	} else
+	} else {
 		printf("dtb not exit\n");
+		goto error;
+	}
 
 	fp_dtbo = fopen(argv[3], "rb");
 	if (fp_dtbo) {
 		fseek(fp_dtbo, 0L, SEEK_END);
 		len_dtbo = ftell(fp_dtbo);
 		fseek(fp_dtbo, 0L, SEEK_SET);
-	} else
+	} else {
 		printf("dtbo not exit\n");
+		goto error;
+	}
 
 	if (len_dtb) {
 		dtb_addr = malloc(len_dtb + FDT_ADD_SIZE);
@@ -46,8 +50,13 @@ int dtbo_merge_chk_main(int argc, char *argv[])
 			printf("malloc fail\n");
 			goto error;
 		}
-		if (!fread(dtb_addr, 1, len_dtb, fp_dtb))
+		if (!fread(dtb_addr, 1, len_dtb, fp_dtb)) {
 			printf("Maybe read %s error!\n", argv[2]);
+			goto error;
+		}
+	} else {
+		printf("dtb file data error (0 Bytes)\n");
+		goto error;
 	}
 
 	if (len_dtbo) {
@@ -56,8 +65,13 @@ int dtbo_merge_chk_main(int argc, char *argv[])
 			printf("malloc fail\n");
 			goto error;
 		}
-		if (!fread(dtbo_addr, 1, len_dtbo, fp_dtbo))
+		if (!fread(dtbo_addr, 1, len_dtbo, fp_dtbo)) {
 			printf("Maybe read %s error!\n", argv[3]);
+			goto error;
+		}
+	} else {
+		printf("dtbo file data error (0 Bytes)\n");
+		goto error;
 	}
 
 	fdt_size = fdt_totalsize(dtb_addr);
