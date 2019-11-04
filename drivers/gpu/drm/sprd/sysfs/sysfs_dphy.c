@@ -316,7 +316,10 @@ static ssize_t suspend_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
-	pm_runtime_put_sync(dev->parent);
+	struct sprd_dphy *dphy = dev_get_drvdata(dev);
+
+	sprd_dphy_suspend(dphy);
+
 	return count;
 }
 static DEVICE_ATTR_WO(suspend);
@@ -325,7 +328,10 @@ static ssize_t resume_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
-	pm_runtime_get_sync(dev->parent);
+	struct sprd_dphy *dphy = dev_get_drvdata(dev);
+
+	sprd_dphy_resume(dphy);
+
 	return count;
 }
 static DEVICE_ATTR_WO(resume);

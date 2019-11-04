@@ -275,29 +275,6 @@ static int sprd_dphy_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int dphy_runtime_resume(struct device *dev)
-{
-	struct sprd_dphy *dphy = dev_get_drvdata(dev);
-
-	sprd_dphy_resume(dphy);
-
-	return 0;
-}
-
-static int dphy_runtime_suspend(struct device *dev)
-{
-	struct sprd_dphy *dphy = dev_get_drvdata(dev);
-
-	sprd_dphy_suspend(dphy);
-
-	return 0;
-}
-
-static const struct dev_pm_ops dphy_pm_ops = {
-	.runtime_suspend = dphy_runtime_suspend,
-	.runtime_resume = dphy_runtime_resume,
-};
-
 static const struct of_device_id dt_ids[] = {
 	{ .compatible = "sprd,dsi-phy", },
 	{},
@@ -308,7 +285,6 @@ static struct platform_driver sprd_dphy_driver = {
 	.driver = {
 		.name  = "sprd-dphy-drv",
 		.of_match_table	= of_match_ptr(dt_ids),
-		.pm = &dphy_pm_ops,
 	}
 };
 
