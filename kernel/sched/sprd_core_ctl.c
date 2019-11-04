@@ -281,9 +281,6 @@ static ssize_t show_global_state(const struct cluster_data *state, char *buf)
 				  "\tActive CPUs: %u\n",
 				  get_active_cpu_count(cluster));
 		count += scnprintf(buf + count, PAGE_SIZE - count,
-				  "\t2Active CPUs: %u\n",
-				  cluster->active_cpus);
-		count += scnprintf(buf + count, PAGE_SIZE - count,
 				  "\tNeed CPUs: %u\n",
 				  cluster->need_cpus);
 		count += scnprintf(buf + count, PAGE_SIZE - count,

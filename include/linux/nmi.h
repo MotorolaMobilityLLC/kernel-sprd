@@ -47,7 +47,11 @@ static inline void lockup_detector_cleanup(void) { }
 #ifdef CONFIG_SPRD_CORE_CTL
 static inline void watchdog_enable(unsigned int cpu) {}
 static inline void watchdog_disable(unsigned int cpu) {}
-static inline bool watchdog_configured(unsigned int cpu) {}
+static inline bool watchdog_configured(unsigned int cpu)
+{
+	return true;
+}
+
 #endif
 
 #endif /* !CONFIG_LOCKUP_DETECTOR */
