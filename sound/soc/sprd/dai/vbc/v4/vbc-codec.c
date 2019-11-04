@@ -2213,7 +2213,7 @@ static void vbc_profile_try_apply(struct snd_soc_codec *codec,
 
 static int audio_load_firmware_data(struct firmware *fw, char *firmware_path)
 {
-	int read_len, size;
+	int read_len, size, cnt;
 	char *buf;
 	char *audio_image_buffer;
 	int image_size;
@@ -2245,7 +2245,8 @@ static int audio_load_firmware_data(struct firmware *fw, char *firmware_path)
 		pr_err("%s no memory\n", __func__);
 		return -ENOMEM;
 	}
-	pr_info("audio_image_buffer=%p\n", audio_image_buffer);
+	memset(audio_image_buffer, 0, image_size);
+	pr_info("audio_image_buffer=%px\n", audio_image_buffer);
 	size = image_size;
 	buf = audio_image_buffer;
 	do {
@@ -2253,13 +2254,21 @@ static int audio_load_firmware_data(struct firmware *fw, char *firmware_path)
 		if (read_len > 0) {
 			size -= read_len;
 			buf += read_len;
+		} else if (read_len == -EINTR || read_len == -EAGAIN) {
+			cnt++;
+			pr_warn("%s, read failed,read_len=%d, cnt=%d\n",
+				__func__, read_len, cnt);
+			if (cnt < 3) {
+				msleep(50);
+				continue;
+			}
 		}
 	} while (read_len > 0 && size > 0);
 	filp_close(file, NULL);
 	fw->data = audio_image_buffer;
 	fw->size = image_size;
-	pr_info("After read, audio_image_buffer=%p, size=%zd pos:%zd,finish.\n",
-		fw->data, fw->size, (size_t)pos);
+	pr_info("After read, audio_image_buffer=%px, size=%zd, pos:%zd, read_len:%d, finish.\n",
+		fw->data, fw->size, (size_t)pos, read_len);
 
 	return 0;
 }
