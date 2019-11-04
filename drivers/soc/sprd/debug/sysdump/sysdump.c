@@ -461,10 +461,14 @@ static inline void sprd_debug_save_context(void)
 }
 
 
-void sysdump_enter(int enter_id, const char *reason, struct pt_regs *regs)
+static int sysdump_panic_event(struct notifier_block *self,
+					unsigned long val,
+					void *reason)
 {
-	struct pt_regs *pregs;
+	struct pt_regs *pregs = NULL;
+	static int enter_id;
 
+	pr_emerg("(%s) ------ in (%d)\n", __func__, enter_id);
 	bust_spinlocks(1);
 	if (sprd_sysdump_init == 0) {
 		unsigned long sprd_sysdump_info_paddr;
@@ -479,7 +483,6 @@ void sysdump_enter(int enter_id, const char *reason, struct pt_regs *regs)
 
 		sprd_sysdump_info = (struct sysdump_info *)phys_to_virt(sprd_sysdump_info_paddr);
 		pr_emerg("vaddr is %p, paddr is %p.\n", sprd_sysdump_info, (void *)sprd_sysdump_info_paddr);
-
 		crash_notes = &crash_notes_temp;
 	}
 
@@ -487,10 +490,7 @@ void sysdump_enter(int enter_id, const char *reason, struct pt_regs *regs)
 	sprd_sysdump_extra.enter_cpu = smp_processor_id();
 
 	pregs = &sprd_sysdump_extra.cpu_context[sprd_sysdump_extra.enter_cpu];
-	if (regs)
-		memcpy(pregs, regs, sizeof(*regs));
-	else
-		crash_setup_regs((struct pt_regs *)pregs, NULL);
+	crash_setup_regs((struct pt_regs *)pregs, NULL);
 
 	crash_note_save_cpu(pregs, sprd_sysdump_extra.enter_cpu);
 	sprd_debug_save_context();
@@ -512,7 +512,7 @@ void sysdump_enter(int enter_id, const char *reason, struct pt_regs *regs)
 	pr_emerg("\n");
 
 	if (reason != NULL)
-		sysdump_prepare_info(enter_id, reason, regs);
+		sysdump_prepare_info(enter_id, reason, pregs);
 
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
 	/* when track regs use pregs_die,  others use now regs*/
@@ -563,18 +563,7 @@ void sysdump_enter(int enter_id, const char *reason, struct pt_regs *regs)
 		while (1)
 			;
 #endif
-
-	if (reason != NULL && strstr(reason, "tospanic")) {
-		machine_restart("tospanic");
-		return;
-	}
-#ifdef CONFIG_X86_64
-	if (!is_x86_mobilevisor())
-#endif
-	{
-		machine_restart("panic");
-	}
-	return;
+	return NOTIFY_DONE;
 }
 
 void sysdump_ipi(struct pt_regs *regs)
@@ -1437,6 +1426,12 @@ static int prepare_exception_info(struct pt_regs *regs,
 	return 0;
 }
 #endif  /*	minidump code end	*/
+
+static struct notifier_block sysdump_panic_event_nb = {
+	.notifier_call	= sysdump_panic_event,
+	.priority	= INT_MAX,
+};
+
 int sysdump_sysctl_init(void)
 {
 	/*get_sprd_sysdump_info_paddr(); */
@@ -1467,6 +1462,9 @@ int sysdump_sysctl_init(void)
 	if (sysdump_shash_init())
 		return -ENOMEM;
 
+	/*	register sysdump panic notifier  */
+	atomic_notifier_chain_register(&panic_notifier_list,
+					&sysdump_panic_event_nb);
 	sprd_sysdump_init = 1;
 
 	sprd_sysdump_enable_prepare();
