@@ -503,7 +503,7 @@
 		#size-cells = <0>;
 		reg = <0>;
 
-		sprd,force-attached = "lcd_r61350_truly_mipi_hd";
+		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 
 		port {
 			reg = <1>;

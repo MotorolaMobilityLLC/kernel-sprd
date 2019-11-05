@@ -24,7 +24,7 @@
 		awqos-high	= [0a];
 		awqos-low	= [0a];
 		arqos-high	= [0d];
-		arqos-low	= [0a];
+		arqos-low	= [0c];
 		arqos-threshold = [0c];
 		awqos-threshold = [0f];
 	};
