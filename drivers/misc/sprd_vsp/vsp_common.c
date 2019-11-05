@@ -22,6 +22,9 @@
 #include <linux/sprd_ion.h>
 #include <linux/uaccess.h>
 #include "vsp_common.h"
+#if IS_ENABLED(CONFIG_SPRD_VSP_PW_DOMAIN)
+#include <linux/mfd/syscon.h>
+#endif
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -177,8 +180,67 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 	int ret = 0;
 	struct sprd_iommu_map_data iommu_map_data;
 	u32 power_state1, vsp_eb_reg;
+#if IS_ENABLED(CONFIG_SPRD_VSP_PW_DOMAIN)
+	u32 mm_vsp_ahb_reg;
+	u32 ap_ahb_regs;
+#endif
 
 	vsp_clk_enable(vsp_hw_dev);
+#if IS_ENABLED(CONFIG_SPRD_VSP_PW_DOMAIN)
+	if (vsp_hw_dev->version == SHARKL3) {
+		regmap_read(regs[PMU_PWR_STATUS].gpr, regs[PMU_PWR_STATUS].reg,
+			&power_state1);
+		regmap_read(regs[VSP_DOMAIN_EB].gpr, regs[VSP_DOMAIN_EB].reg, &vsp_eb_reg);
+		if ((vsp_eb_reg & 0x4000) != 0x4000) {
+			ret = regmap_update_bits(regs[VSP_DOMAIN_EB].gpr, regs[VSP_DOMAIN_EB].reg,
+						BIT(14), BIT(14));
+			if (ret) {
+				pr_err("iova regmap_update_bits failed %s, %d\n",
+					__func__, __LINE__);
+			}
+			regmap_read(regs[VSP_DOMAIN_EB].gpr, regs[VSP_DOMAIN_EB].reg, &vsp_eb_reg);
+		}
+
+		if (((power_state1 & 0x1f) == 0x0) &&
+			((vsp_eb_reg & 0x4000) == 0x4000)) {
+			regmap_read(regs[RESET].gpr, 0x0, &mm_vsp_ahb_reg);
+			if ((mm_vsp_ahb_reg & 0x3) != 0x3) {
+				pr_info("mm vsp ahb 0x%x\n", mm_vsp_ahb_reg);
+				ret = regmap_update_bits(regs[RESET].gpr, 0x0, BIT(1) | BIT(0),
+							BIT(1) | BIT(0));
+				if (ret) {
+					pr_err("vsp_iova regmap_update_bits failed %s, %d\n",
+						__func__, __LINE__);
+				}
+			}
+		} else {
+			pr_info("offset 0x%x,power 0x%x,offset 0x%x,vsp eb 0x%x\n",
+				regs[PMU_PWR_STATUS].reg, power_state1,
+				regs[VSP_DOMAIN_EB].reg, vsp_eb_reg);
+		}
+	}
+
+	if (vsp_hw_dev->version == SHARKL5Pro) {
+		regmap_read(regs[PMU_PWR_STATUS].gpr, regs[PMU_PWR_STATUS].reg,
+			&power_state1);
+
+		if ((power_state1 & regs[PMU_PWR_STATUS].mask) == 0x0) {
+			regmap_read(regs[RESET].gpr, 0x0, &ap_ahb_regs);
+			if ((ap_ahb_regs & (BIT(7) | BIT(2))) != (BIT(7) | BIT(2))) {
+				pr_info("ap ahb 0x%x\n", ap_ahb_regs);
+				ret = regmap_update_bits(regs[RESET].gpr, 0x0, BIT(7) | BIT(2),
+							BIT(7) | BIT(2));
+				if (ret) {
+					pr_err("vsp_iova regmap_update_bits failed %s, %d\n",
+							__func__, __LINE__);
+				}
+			}
+		} else {
+			pr_info("offset 0x%x, power 0x%x\n", regs[PMU_PWR_STATUS].reg, power_state1);
+		}
+	}
+#endif
+
 	sprd_iommu_resume(vsp_hw_dev->vsp_dev);
 	ret = sprd_ion_get_buffer(mapdata->fd, NULL,
 					&(iommu_map_data.buf),
