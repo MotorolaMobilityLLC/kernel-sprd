@@ -2,10 +2,6 @@ config ARCH
 	string
 	option env="ARCH"
 
-config COMPILE_TOOL
-	string "gcc/clang/all"
-	default "gcc"
-
 config KERNELVERSION
 	string
 	option env="KERNELVERSION"
@@ -58,6 +54,13 @@ config INIT_ENV_ARG_LIMIT
 	  Maximum of each of the number of arguments and environment
 	  variables passed to init from the kernel command line.
 
+config COMPILE_TOOL
+	string "choose toolchain for compiling"
+	default "gcc"
+	help
+	  This config now is used to provide compile toolchain information for script "aiaiai_info.py".
+	  The value of it has to be one of "gcc/clang/all". When you choose "all", it means "gcc"
+	  and "clang" are both chosen.
 
 config CROSS_COMPILE
 	string "Cross-compiler tool prefix"
