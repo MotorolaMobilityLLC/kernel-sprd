@@ -504,6 +504,17 @@
 		nxp,ven-gpio   = <&ap_gpio 26 0>;
 		status = "ok";
 	};
+
+	bq2560x_chg: charger@6b {
+		compatible = "ti,bq2560x_chg";
+		reg = <0x6b>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
 };
 
 &spi0 {
@@ -647,17 +658,6 @@
 		compatible = "sprd,cpudvfs-regulator-sharkl5pro";
 		reg = <0x62>;
 		dvfs-dcdc-i2c = <1>;
-	};
-
-	bq2560x_chg: charger@6b {
-		compatible = "ti,bq2560x_chg";
-		reg = <0x6b>;
-		phys = <&hsphy>;
-		monitored-battery = <&bat>;
-		extcon = <&extcon_gpio>;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
-		};
 	};
 };
 
