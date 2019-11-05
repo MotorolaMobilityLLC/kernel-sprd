@@ -223,6 +223,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		} else
 			tmp_rst_msk = regs[RESET].mask;
 
+		tmp_rst_msk = regs[RESET].mask;
 		ret = regmap_update_bits(regs[RESET].gpr, regs[RESET].reg,
 				   tmp_rst_msk, tmp_rst_msk);
 		if (ret) {
