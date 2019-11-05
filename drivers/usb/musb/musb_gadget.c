@@ -1172,6 +1172,7 @@ struct usb_request *musb_alloc_request(struct usb_ep *ep, gfp_t gfp_flags)
 	request->request.dma = DMA_ADDR_INVALID;
 	request->epnum = musb_ep->current_epnum;
 	request->ep = musb_ep;
+	INIT_LIST_HEAD(&request->request.list);
 
 	trace_musb_req_alloc(request);
 	return &request->request;
