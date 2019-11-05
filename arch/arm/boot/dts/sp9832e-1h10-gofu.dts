@@ -203,8 +203,8 @@
 		reg = <0x94020000 0x01fe0000>;
 	};
 
-	fd_reserved: fd-mem@96000000 {
-		reg = <0x96000000 0x00500000>;
+	fd_reserved: fd-mem@bfa80000 {
+		reg = <0xbfa80000 0x00500000>;
 	};
 };
 

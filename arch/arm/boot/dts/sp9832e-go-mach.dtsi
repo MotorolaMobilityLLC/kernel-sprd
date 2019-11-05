@@ -141,14 +141,6 @@
 			reg = <0x88300000 0x0015b000>;
 		};
 
-		pstore_reserved: ramoops@895c0000 {
-			compatible = "ramoops";
-			reg = <0x895c0000 0x00040000>;
-			record-size = <0x8000>;
-			console-size = <0x8000>;
-			pmsg-size = <0x8000>;
-		};
-
 		/* cp_reserved = cp region + debug region */
 		/* debug region: not reserved in normal mode, it */
 		/* will be proccessed in u-boot */
@@ -171,8 +163,16 @@
 			reg = <0x94020000 0x002e0000>;
 		};
 
-		logo_reserved: logobuffer@99800000 {
-			reg = <0x99800000 0x384000>;
+		logo_reserved: logobuffer@9e000000 {
+			reg = <0x9e000000 0x384000>;
+		};
+
+		pstore_reserved: ramoops@bff80000 {
+			compatible = "ramoops";
+			reg = <0xbff80000 0x00040000>;
+			record-size = <0x8000>;
+			console-size = <0x8000>;
+			pmsg-size = <0x8000>;
 		};
 	};
 
