@@ -361,8 +361,8 @@ static void  sprd_i2c_hw_set_clk(struct sprd_i2c_hw *i2c_dev, u32 freq)
 		high = (((i2c_dvd -  I2C_CLK_3M4_HIGH_ADJUST) << 1) * 3) / 10;
 		low = (((i2c_dvd -  I2C_CLK_3M4_LOW_ADJUST) << 1) * 7) / 10;
 	} else {
-		high = ((i2c_dvd << 1) * 2) / 5;
-		low = ((i2c_dvd << 1) * 3) / 5;
+		high = ((i2c_dvd << 1) * 2) / 6;
+		low = ((i2c_dvd << 1) * 3) / 6;
 	}
 
 	div0 = (high & TIMIMG_MAST_L) << 16 | (low & TIMIMG_MAST_L);
