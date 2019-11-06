@@ -1,7 +1,9 @@
 FAIRCHILD FAN54015 PMIC battery charger binding
 
 Required properties:
- - compatible: Should be "fairchild, fan54015_chg".
+ - compatible: Should be one of the following:
+ "fairchild, fan54015_chg",
+ "prisemi,psc5415z_chg".
  - reg: Address offset of charger register.
  - phys: Contains a phandle to the USB phy.
 
