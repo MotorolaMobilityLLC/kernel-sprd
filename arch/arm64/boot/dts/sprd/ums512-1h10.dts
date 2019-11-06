@@ -708,7 +708,7 @@
 
 &aon_i2c0 {
 	status = "okay";
-	clock-frequency = <400000>;
+	clock-frequency = <1000000>;
 
 	fan53555_dcdc: regulator@60 {
 		compatible = "fcs,fan53555";
