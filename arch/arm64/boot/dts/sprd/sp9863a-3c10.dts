@@ -460,7 +460,7 @@
 	clock-frequency = <400000>;
 
 	fan54015_chg: charger@6a {
-		compatible = "fairchild,fan54015_chg";
+		compatible = "prisemi,psc5415z_chg";
 		reg = <0x6a>;
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
