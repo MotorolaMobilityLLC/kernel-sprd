@@ -12148,7 +12148,7 @@ CONFIG_SC27XX_TSENSOR_THERMAL
 	osc and extern cystal temperature.
 CONFIG_SCAN_BALANCE_ANON_FILE
 	[arch] all
-	[plat] pike2,roc1,sharkl5,sharkl5_32,sharkle32
+	[plat] roc1,sharkl5,sharkl5_32,sharkle32
 	[missing plat] none
 	[field] make
 	[subsys] mm
@@ -12597,7 +12597,7 @@ CONFIG_SLUB_DEBUG
 	[function] Increase debug efficiency for memory covered issue
 CONFIG_SLUB_DEBUG_ON
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] sharkle32
 	[field] code
 	[subsys] mm
