@@ -803,36 +803,41 @@ static void hotplug_out_cpus(struct cpufreq_cooling_device *cpufreq_device,
 	unsigned int target_online_cpus, num_our_online_cpus;
 	struct cpumask our_online_cpus;
 
-	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
-	raw_cpu_power = cpu_freq_to_power(cpufreq_device, target_freq);
+	if (target_power) {
+
+		cpu = cpumask_any(&cpufreq_device->allowed_cpus);
+		raw_cpu_power = cpu_freq_to_power(cpufreq_device, target_freq);
 
 #ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
-	cpumask_and(&our_online_cpus,
+		cpumask_and(&our_online_cpus,
 			&cpufreq_device->allowed_cpus, &cpufreq_device->active_cpus);
 #else
-	cpumask_and(&our_online_cpus,
-		&cpufreq_device->allowed_cpus, cpu_online_mask);
+		cpumask_and(&our_online_cpus,
+			&cpufreq_device->allowed_cpus, cpu_online_mask);
 #endif
 
-	num_our_online_cpus = cpumask_weight(&our_online_cpus);
-	if (!num_our_online_cpus)
-		return;
-	per_cpu_load = cpufreq_device->last_load / num_our_online_cpus;
-	per_cpu_load = per_cpu_load ?: 1;
+		num_our_online_cpus = cpumask_weight(&our_online_cpus);
+		if (!num_our_online_cpus)
+			return;
+		per_cpu_load = cpufreq_device->last_load / num_our_online_cpus;
+		per_cpu_load = per_cpu_load ?: 1;
 
-	estimated_power = 0;
-	pr_debug("cpu%d hotplug_out raw:%u load:%u\n",
-			cpu, raw_cpu_power, per_cpu_load);
-	for (i = 0; i <= num_our_online_cpus; i++) {
-		if (estimated_power > target_power)
-			break;
+		estimated_power = 0;
+		pr_debug("cpu%d hotplug_out raw:%u load:%u\n",
+				cpu, raw_cpu_power, per_cpu_load);
+		for (i = 0; i <= num_our_online_cpus; i++) {
+			if (estimated_power > target_power)
+				break;
 
-		estimated_power += (raw_cpu_power * per_cpu_load) / 100;
-		pr_debug("cpu%d hotplug_out cpus:%d est_power:%u\n",
-				cpu, i, estimated_power);
-	}
+			estimated_power += (raw_cpu_power * per_cpu_load) / 100;
+			pr_debug("cpu%d hotplug_out cpus:%d est_power:%u\n",
+					cpu, i, estimated_power);
+		}
 
-	target_online_cpus = max(i - 1, 0);
+		target_online_cpus = max(i - 1, 0);
+
+	} else
+		target_online_cpus = 0;
 
 	set_online_cpus(cpufreq_device, target_online_cpus);
 

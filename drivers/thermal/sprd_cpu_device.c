@@ -1016,7 +1016,6 @@ ERR_RET:
 int destroy_cpu_cooling_device(void)
 {
 	struct device_node *np, *child;
-	struct cpu_power_model_t *power_model = NULL;
 
 	unregister_pm_notifier(&cpu_cooling_pm_nb);
 
@@ -1035,9 +1034,8 @@ int destroy_cpu_cooling_device(void)
 
 		sprd_cpu_remove_attr(&cpufreq_dev->cool_dev->device);
 
-		cpufreq_cooling_unregister(cpufreq_dev->cool_dev);
 		kfree(cpufreq_dev->power_model);
-		power_model = NULL;
+		cpufreq_cooling_unregister(cpufreq_dev->cool_dev);
 	}
 
 	kfree(cluster_data);
