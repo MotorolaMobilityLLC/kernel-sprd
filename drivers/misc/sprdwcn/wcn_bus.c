@@ -156,7 +156,7 @@ int buf_list_alloc(int chn, struct mbuf_t **head,
 {
 	int i;
 	struct buffer_pool_t *pool;
-	struct mbuf_t *cur, *temp_head, *temp_tail = NULL;
+	struct mbuf_t *temp_tail;
 	struct chn_info_t *chn_inf = chn_info();
 
 	pool = &(chn_inf->pool[chn]);
@@ -174,17 +174,14 @@ int buf_list_alloc(int chn, struct mbuf_t **head,
 	if (*num > pool->free)
 		*num = pool->free;
 
-	for (i = 0, cur = temp_head = pool->head; i < *num; i++) {
-		if (i == (*num - 1))
-			temp_tail = cur;
-		cur = cur->next;
-	}
-	*head = temp_head;
-	if (temp_tail)
-		temp_tail->next = NULL;
+	for (i = 1, temp_tail = pool->head; i < *num; i++)
+		temp_tail = temp_tail->next;
+
+	*head = pool->head;
 	*tail = temp_tail;
+	pool->head = temp_tail->next;
+	temp_tail->next = NULL;
 	pool->free -= *num;
-	pool->head = cur;
 	buf_list_check(pool, *head, *tail, *num);
 	spin_unlock_bh(&(pool->lock));
 
