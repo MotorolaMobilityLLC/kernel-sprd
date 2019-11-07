@@ -291,13 +291,12 @@
 				status = "disabled";
 			};
 
-			iommu_isp: iommu@62000000 {
-				compatible = "sprd,iommuvaul5p-isp";
-				reg = <0x0 0x62000000 0x0 0xff000>,
-				      <0x0 0x620ff000 0x0 0x80>;
-				iova-base = <0x40000000>;
-				iova-size = <0x20000000>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
+			iommu_isp: iommu@620ff000 {
+				compatible = "sprd,iommuvau-isp";
+				reg = <0x0 0x620ff000 0x0 0x80>;
+				sprd,iova-base = <0x40000000>;
+				sprd,iova-size = <0x20000000>;
+				reg_name = "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -385,13 +384,12 @@
 				status = "disabled";
 			};
 
-			iommu_jpg: iommu@62700000 {
-				compatible = "sprd,iommuvaul5p-jpg";
-				reg = <0x0 0x62700000 0x0 0x300>,
-				      <0x0 0x62700300 0x0 0x80>;
-				iova-base = <0x60000000>;
-				iova-size = <0x10000000>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
+			iommu_jpg: iommu@62700300 {
+				compatible = "sprd,iommuvau-jpg";
+				reg = <0x0 0x62700300 0x0 0x80>;
+				sprd,iova-base = <0x60000000>;
+				sprd,iova-size = <0x10000000>;
+				reg_name = "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -414,13 +412,12 @@
 				status = "disabled";
 			};
 
-			iommu_cpp: iommu@62800000 {
-				compatible = "sprd,iommuvaul5p-cpp";
-				reg = <0x0 0x62800000 0x0 0x200>,
-				      <0x0 0x62800200 0x0 0x80>;
-				iova-base = <0x40000000>;
-				iova-size = <0x20000000>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
+			iommu_cpp: iommu@62800200 {
+				compatible = "sprd,iommuvau-cpp";
+				reg = <0x0 0x62800200 0x0 0x80>;
+				sprd,iova-base = <0x40000000>;
+				sprd,iova-size = <0x20000000>;
+				reg_name = "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -493,13 +490,12 @@
 				status = "disabled";
 			};
 
-			iommu_dcam: iommu@62900000 {
-				compatible = "sprd,iommuvaul5p-dcam";
-				reg = <0x0 0x62900000 0x0 0xf000>,
-				      <0x0 0x6290f000 0x0 0x80>;
-				iova-base = <0x40000000>;
-				iova-size = <0x40000000>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
+			iommu_dcam: iommu@6290f000 {
+				compatible = "sprd,iommuvau-dcam";
+				reg = <0x0 0x6290f000 0x0 0x80>;
+				sprd,iova-base = <0x40000000>;
+				sprd,iova-size = <0x40000000>;
+				reg_name = "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -534,14 +530,12 @@
 				status = "disabled";
 			};
 
-			iommu_fd: iommu@62a00000 {
-				compatible = "sprd,iommuvaul5p-fd";
-				reg = <0 0x62a00000 0 0x200>,
-				      <0 0x62a00110 0 0x80>;
-				iova-base = <0x10000000>;
-				iova-size = <0x10000000>;
-				reg_name = "mmu_interrupt_reg","mmu_reg",
-					"iova pool";
+			iommu_fd: iommu@62a00110 {
+				compatible = "sprd,iommuvau-fd";
+				reg = <0 0x62a00110 0 0x80>;
+				sprd,iova-base = <0x10000000>;
+				sprd,iova-size = <0x10000000>;
+				reg_name = "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -884,13 +878,12 @@
 				iommus = <&iommu_dispc>;
 			};
 
-			iommu_dispc: iommu@20300000 {
-				compatible = "sprd,iommuvaul5p-dispc";
-				reg = <0x0 0x20300000 0x0 0x800>,
-				      <0x0 0x20300800 0x0 0x80>;
-				iova-base = <0x30000000>;
-				iova-size = <0x10000000>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
+			iommu_dispc: iommu@20300800 {
+				compatible = "sprd,iommuvau-dispc";
+				reg = <0x0 0x20300800 0x0 0x80>;
+				sprd,iova-base = <0x30000000>;
+				sprd,iova-size = <0x10000000>;
+				reg_name = "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -995,12 +988,11 @@
 			};
 
 			iommu_vsp: iommu@20500000 {
-				compatible = "sprd,iommuvaul5p-vsp";
-				reg = <0x0 0x20500000 0x0 0x80>,
-				      <0x0 0x20500000 0x0 0x80>;
-				iova-base = <0x20000000>;
-				iova-size = <0x10000000>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
+				compatible = "sprd,iommuvau-vsp";
+				reg = <0x0 0x20500000 0x0 0x80>;
+				sprd,iova-base = <0x20000000>;
+				sprd,iova-size = <0x10000000>;
+				reg_name = "mmu_reg";
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
@@ -1036,45 +1028,41 @@
 			};
 
 			iommu_vdsp_msti: iommu@20600000 {
-				compatible = "sprd,iommuvaul5p-epp";
-				reg = <0 0x20600000 0 0x400>,
-				      <0 0x20600000 0 0x400>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
-				iova-base = <0x80000000>;
-				iova-size = <0x20000000>;
+				compatible = "sprd,iommuvau-epp";
+				reg = <0 0x20600000 0 0x400>;
+				reg_name = "mmu_reg";
+				sprd,iova-base = <0x80000000>;
+				sprd,iova-size = <0x20000000>;
 				status = "okay";
 				#iommu-cells = <0>;
 			};
 
 			iommu_vdsp_mstd: iommu@20700000 {
-				compatible = "sprd,iommuvaul5p-edp";
-				reg = <0 0x20700000 0 0x400>,
-				      <0 0x20700000 0 0x400>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
-				iova-base = <0x80000000>;
-				iova-size = <0x20000000>;
+				compatible = "sprd,iommuvau-edp";
+				reg = <0 0x20700000 0 0x400>;
+				reg_name = "mmu_reg";
+				sprd,iova-base = <0x80000000>;
+				sprd,iova-size = <0x20000000>;
 				status = "okay";
 				#iommu-cells = <0>;
 			};
 
 			iommu_vdsp_idma: iommu@20800000 {
-				compatible = "sprd,iommuvaul5p-idma";
-				reg = <0 0x20800000 0 0x400>,
-				      <0 0x20800000 0 0x400>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
-				iova-base = <0x80000000>;
-				iova-size = <0x20000000>;
+				compatible = "sprd,iommuvau-idma";
+				reg = <0 0x20800000 0 0x400>;
+				reg_name = "mmu_reg";
+				sprd,iova-base = <0x80000000>;
+				sprd,iova-size = <0x20000000>;
 				status = "okay";
 				#iommu-cells = <0>;
 			};
 
 			iommu_vdsp_vdma: iommu@20a00000 {
-				compatible = "sprd,iommuvaul5p-vdma";
-				reg = <0 0x20a00000 0 0x400>,
-				      <0 0x20a00000 0 0x400>;
-				reg_name = "mmu_interrupt_reg","mmu_reg";
-				iova-base = <0x80000000>;
-				iova-size = <0x20000000>;
+				compatible = "sprd,iommuvau-vdma";
+				reg = <0 0x20a00000 0 0x400>;
+				reg_name = "mmu_reg";
+				sprd,iova-base = <0x80000000>;
+				sprd,iova-size = <0x20000000>;
 				status = "okay";
 				#iommu-cells = <0>;
 			};
