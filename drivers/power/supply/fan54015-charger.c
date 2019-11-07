@@ -251,16 +251,23 @@ static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 		current_max_ua = bat_info.constant_charge_current_max_ua / 1000;
 		power_supply_put_battery_info(info->psy_usb, &bat_info);
 
-		ret = fan54015_charger_set_safety_vol(info, voltage_max_microvolt);
-		if (ret) {
-			dev_err(info->dev, "set fan54015 safety vol failed\n");
-			return ret;
-		}
+		if (of_device_is_compatible(info->dev->of_node,
+					    "fairchild,fan54015_chg")) {
+			ret = fan54015_charger_set_safety_vol(info,
+						voltage_max_microvolt);
+			if (ret) {
+				dev_err(info->dev,
+					"set fan54015 safety vol failed\n");
+				return ret;
+			}
 
-		ret = fan54015_charger_set_safety_cur(info, info->cur.dcp_cur);
-		if (ret) {
-			dev_err(info->dev, "set fan54015 safety cur failed\n");
-			return ret;
+			ret = fan54015_charger_set_safety_cur(info,
+						info->cur.dcp_cur);
+			if (ret) {
+				dev_err(info->dev,
+					"set fan54015 safety cur failed\n");
+				return ret;
+			}
 		}
 
 		ret = fan54015_update_bits(info, FAN54015_REG_4,
@@ -269,6 +276,25 @@ static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 		if (ret) {
 			dev_err(info->dev, "reset fan54015 failed\n");
 			return ret;
+		}
+
+		if (of_device_is_compatible(info->dev->of_node,
+					    "prisemi,psc5415z_chg")) {
+			ret = fan54015_charger_set_safety_vol(info,
+						voltage_max_microvolt);
+			if (ret) {
+				dev_err(info->dev,
+					"set psc5415z safety vol failed\n");
+				return ret;
+			}
+
+			ret = fan54015_charger_set_safety_cur(info,
+						info->cur.dcp_cur);
+			if (ret) {
+				dev_err(info->dev,
+					"set psc5415z safety cur failed\n");
+				return ret;
+			}
 		}
 
 		ret = fan54015_update_bits(info, FAN54015_REG_1,
@@ -1100,7 +1126,8 @@ static const struct i2c_device_id fan54015_i2c_id[] = {
 };
 
 static const struct of_device_id fan54015_charger_of_match[] = {
-	{ .compatible = "fairchild, fan54015_chg", },
+	{ .compatible = "fairchild,fan54015_chg", },
+	{ .compatible = "prisemi,psc5415z_chg", },
 	{ }
 };
 
