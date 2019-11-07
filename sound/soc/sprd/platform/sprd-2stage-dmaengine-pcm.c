@@ -114,6 +114,7 @@ struct sprd_runtime_data {
 	int dma_addr_offset;
 	struct sprd_pcm_dma_params *params;
 	struct dma_chan *dma_chn[2];
+	void *dma_callback1_func[2];
 	struct sprd_dma_cfg *dma_config_ptr[SPRD_PCM_CHANNEL_MAX];
 	struct sprd_dma_callback_data *dma_cb_ptr[SPRD_PCM_CHANNEL_MAX];
 	dma_addr_t dma_linklist_cfg_phy[2];
@@ -134,6 +135,7 @@ struct sprd_runtime_data {
 	s32 interleaved2;
 	struct dma_chan *dma_chn2;
 	struct sprd_dma_cfg *dma_cfg_buf2;
+	void *dma_callback2_func;
 	struct sprd_dma_callback_data *dma_callback_data2;
 	dma_addr_t dma_linklist_cfg_phy2;
 	void *dma_linklist_cfg_virt2;
@@ -2027,6 +2029,7 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 			callback_1 = NULL;
 			callback_param_1 = NULL;
 		}
+		rtd->dma_callback1_func[i] = callback_1;
 		/* set flag */
 		if (i == 0) {
 			if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
@@ -2148,6 +2151,7 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 		callback_2 = sprd_pcm_dma_buf_done_level2;
 		callback_param_2 = (void *)(rtd->dma_callback_data2);
 	}
+	rtd->dma_callback2_func = callback_2;
 	if (srtd->cpu_dai->id == VBC_DAI_NORMAL) {
 		flag_2 = SPRD_DMA_FLAGS(SPRD_DMA_DST_CHN1,
 					SPRD_DMA_TRANS_DONE_TRG,
@@ -2492,7 +2496,8 @@ static int sprd_pcm_hw_params1(struct snd_pcm_substream *substream,
 		flag = SPRD_DMA_FLAGS(0,
 				      0, SPRD_DMA_FRAG_REQ, SPRD_DMA_NO_INT);
 	}
-
+	rtd->dma_callback1_func[0] = callback;
+	rtd->dma_callback1_func[1] = callback;
 	normal_dma_protect_mutex_lock(substream);
 	/*
 	 * if PM_POST_SUSPEND resumed the dma_chn has become null,
@@ -2530,7 +2535,8 @@ static int sprd_pcm_hw_params1(struct snd_pcm_substream *substream,
 		}
 		tmp_tx_des =
 			dma_cfg_hw(rtd->dma_chn[i], rtd->dma_config_ptr[i],
-				   callback, rtd->dma_cb_ptr[i]);
+				   rtd->dma_callback1_func[i],
+				   rtd->dma_cb_ptr[i]);
 		if (!tmp_tx_des) {
 			normal_dma_protect_mutex_unlock(substream);
 			pr_err("%s, dma_cfg_hw failed!\n", __func__);
@@ -2752,24 +2758,39 @@ static int sprd_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		if (is_use_2stage_dma(srtd, substream->stream)) {
 			/*copy form ddr to iram */
 			init_iram_data_2stage(substream);
+			if (!rtd->dma_tx_des2) {
+				rtd->dma_tx_des2 =
+					dma_cfg_hw(rtd->dma_chn2,
+					rtd->dma_cfg_buf2,
+					rtd->dma_callback2_func,
+					rtd->dma_callback_data2);
+			}
 			if (rtd->dma_tx_des2)
 				rtd->cookie2 =
-				    dmaengine_submit(rtd->dma_tx_des2);
+					dmaengine_submit(rtd->dma_tx_des2);
+			else {
+				pr_err("%s, dma2_cfg_hw failed!\n", __func__);
+				return -ENOMEM;
+			}
 		} else {
 			dma_chanall_lslp_ena(true);
 		}
 		normal_dma_protect_spin_lock(substream);
-		if (!rtd->dma_tx_des[0]) {
-			normal_dma_protect_spin_unlock(substream);
-			pr_info("%s dma_tx_des[0] is null\n",
-				__func__);
-			return 0;
-		}
-
 		for (i = 0; i < rtd->hw_chan; i++) {
-			if (rtd->dma_tx_des[i])
-				rtd->cookie[i] =
-				    dmaengine_submit(rtd->dma_tx_des[i]);
+			if (!rtd->dma_tx_des[i]) {
+				rtd->dma_tx_des[i] =
+				dma_cfg_hw(rtd->dma_chn[i],
+					rtd->dma_config_ptr[i],
+					rtd->dma_callback1_func[i],
+					rtd->dma_cb_ptr[i]);
+				if (!rtd->dma_tx_des[i]) {
+					pr_err("%s, dma_cfg_hw :%d failed!\n",
+						__func__, i);
+					return -ENOMEM;
+				}
+			}
+			rtd->cookie[i] =
+			    dmaengine_submit(rtd->dma_tx_des[i]);
 		}
 
 		if (rtd->dma_chn2)
@@ -2793,12 +2814,16 @@ static int sprd_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 			return 0;
 		}
 		for (i = 0; i < rtd->hw_chan; i++) {
-			if (rtd->dma_chn[i])
-				dmaengine_pause(rtd->dma_chn[i]);
+			if (rtd->dma_chn[i]) {
+				dmaengine_terminate_all(rtd->dma_chn[i]);
+				rtd->dma_tx_des[i] = NULL;
+			}
 		}
 		normal_dma_protect_spin_unlock(substream);
-		if (rtd->dma_chn2)
-			dmaengine_pause(rtd->dma_chn2);
+		if (rtd->dma_chn2) {
+			dmaengine_terminate_all(rtd->dma_chn2);
+			rtd->dma_tx_des2 = NULL;
+		}
 		rtd->cb_called = 0;
 		if (is_use_2stage_dma(srtd, substream->stream) == false)
 			dma_chanall_lslp_ena(false);
