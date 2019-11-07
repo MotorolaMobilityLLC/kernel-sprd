@@ -13544,6 +13544,15 @@ CONFIG_SPRD_EXT_MODEM
 	[must]
 	[missing plat description]
 	[function]
+CONFIG_SPRD_HWFEATURE
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_SPRD_HW_DEVICE_DVFS_AGCP
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32

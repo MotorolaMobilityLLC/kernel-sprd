@@ -11,4 +11,5 @@ obj-$(CONFIG_SPRD_SYSDUMP)      += debug/sysdump/
 obj-y				+= performance/
 obj-y				+= pub/
 obj-y				+= autotest/
+obj-$(CONFIG_SPRD_HWFEATURE) += sprd_hwfeature.o
 obj-$(CONFIG_SPRD_PIKE2_SLEEP)  += sprd_pike2_sleep.o

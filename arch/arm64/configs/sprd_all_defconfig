@@ -3825,6 +3825,7 @@ CONFIG_SPRD_TIMER=y
 #
 # Qualcomm SoC drivers
 #
+# CONFIG_SPRD_HWFEATURE is not set
 CONFIG_SPRD_MEMDISK=y
 # CONFIG_SPRD_7SRESET is not set
 # CONFIG_SPRD_PMIC_SYSCON is not set
