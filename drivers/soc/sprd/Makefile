@@ -8,6 +8,7 @@ obj-y				+= modem/
 obj-y				+= domain/
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/
 obj-$(CONFIG_SPRD_SYSDUMP)      += debug/sysdump/
+obj-$(CONFIG_SPRD_NATIVE_HANG_MONITOR)  += debug/native_hang_monitor/
 obj-y				+= performance/
 obj-y				+= pub/
 obj-y				+= autotest/

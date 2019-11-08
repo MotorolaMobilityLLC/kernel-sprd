@@ -13551,6 +13551,16 @@ CONFIG_SPRD_MODEM_LOADER
 	[must] user
 	[missing plat description] missing plat without external modem, Roc1 unique feature
 	[function] This function is used to load modem image
+CONFIG_SPRD_NATIVE_HANG_MONITOR
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] roc1,sharkl5,sharkl5Pro
+	[field] make,debug
+	[subsys] debug
+	[must] debug
+	[missing plat description] missing plat include roc1,sharkl5,sharkl5Pro
+					are notsupported for this.
+	[function] This function is used to save debug information when native hang
 CONFIG_SPRD_PAMU3
 	[arch] arm64
 	[plat] roc1
