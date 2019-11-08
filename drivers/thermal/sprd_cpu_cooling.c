@@ -725,19 +725,18 @@ static void set_online_cpus(struct cpufreq_cooling_device *cpufreq_dev,
 	pr_debug("cpu%d curr_online:%d target_online:%d min_online:%d", cpu,
 		current_online_cpus, target_online_cpus, min_cpunum);
 
-	if (current_online_cpus != target_online_cpus) {
+	cpufreq_dev->qos_cur_cpu = max(target_online_cpus, min_cpunum);
+	if (current_online_cpus != cpufreq_dev->qos_cur_cpu) {
 
-		if ((current_online_cpus > target_online_cpus) &&
+		if ((current_online_cpus > cpufreq_dev->qos_cur_cpu) &&
 				(cpufreq_dev->clipped_freq != min_cpufreq))
 			return;
-
-		cpufreq_dev->qos_cur_cpu = max(target_online_cpus, min_cpunum);
 
 #if defined(CONFIG_SPRD_CPU_COOLING_CPUIDLE) && defined(CONFIG_SPRD_CORE_CTL)
 		if (current_online_cpus >
 				cpufreq_dev->qos_cur_cpu)
 			corectl_do_cpuidle(cpufreq_dev);
-		else if (target_online_cpus ==
+		else if (cpufreq_dev->qos_cur_cpu ==
 				cpumask_weight(&cpufreq_dev->allowed_cpus))
 			corectl_allow_max_cpus(cpufreq_dev);
 		else
