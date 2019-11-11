@@ -761,6 +761,10 @@ static int set_config(struct usb_composite_dev *cdev,
 	unsigned		power = gadget_is_otg(gadget) ? 8 : 100;
 	int			tmp;
 
+	if (gadget->state == USB_STATE_CONFIGURED && cdev->config &&
+	    cdev->config->bConfigurationValue == number)
+		return 0;
+
 	if (number) {
 		list_for_each_entry(c, &cdev->configs, list) {
 			if (c->bConfigurationValue == number) {
