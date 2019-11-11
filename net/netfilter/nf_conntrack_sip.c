@@ -792,6 +792,18 @@ static int ct_sip_parse_sdp_addr(const struct nf_conn *ct, const char *dptr,
 	return 1;
 }
 
+static void release_conflicting_expect(const struct nf_conn *ct,
+				       const struct nf_conntrack_expect *expect,
+				       const enum sip_expectation_classes class)
+{
+	struct nf_conntrack_expect *exp;
+	struct net *net = nf_ct_net(ct);
+
+	exp = __nf_ct_expect_find(net, nf_ct_zone(ct), &expect->tuple);
+	if (exp && exp->master != ct && exp->class == class)
+		nf_ct_unexpect_related(exp);
+}
+
 static int refresh_signalling_expectation(struct nf_conn *ct,
 					  union nf_inet_addr *addr,
 					  u8 proto, __be16 port,
@@ -938,11 +950,23 @@ static int set_expected_rtp_rtcp(struct sk_buff *skb, unsigned int protoff,
 				       datalen, rtp_exp, rtcp_exp,
 				       mediaoff, medialen, daddr);
 	else {
-		if (nf_ct_expect_related(rtp_exp) == 0) {
-			if (nf_ct_expect_related(rtcp_exp) != 0)
-				nf_ct_unexpect_related(rtp_exp);
-			else
+		int errp;
+
+		release_conflicting_expect(ct, rtp_exp, class);
+		release_conflicting_expect(ct, rtcp_exp, class);
+		/* -EALREADY handling works around end-points that send
+		 * SDP messages with identical port but different media type,
+		 * we pretend expectation was set up.
+		 */
+		errp = nf_ct_expect_related(rtp_exp);
+
+		if (errp == 0 || errp == -EALREADY) {
+			int errcp = nf_ct_expect_related(rtcp_exp);
+
+			if (errcp == 0 || errcp == -EALREADY)
 				ret = NF_ACCEPT;
+			else if (errp == 0)
+				nf_ct_unexpect_related(rtp_exp);
 		}
 	}
 	nf_ct_expect_put(rtcp_exp);
