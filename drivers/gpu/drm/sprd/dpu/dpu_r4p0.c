@@ -851,12 +851,8 @@ static void dpu_dvfs_task_func(unsigned long data)
 	 * Every IP here may be different, so need to modify it
 	 * according to the actual dpu core clock.
 	 */
-	if (max <= 2)
-		dvfs_freq = 256000000;
-	else if (max == 3)
+	if (max <= 3)
 		dvfs_freq = 307200000;
-	else if (max == 4)
-		dvfs_freq = 384000000;
 	else
 		dvfs_freq = 384000000;
 
