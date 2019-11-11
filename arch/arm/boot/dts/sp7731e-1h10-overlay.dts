@@ -98,12 +98,6 @@
 	};
 };
 
-&reserved_memory {
-	fd_reserved: faceid-mem {
-		reg = <0x9f000000 0x00500000>;
-	};
-};
-
 &i2c1 {
 	status = "okay";
 	clock-frequency = <400000>;

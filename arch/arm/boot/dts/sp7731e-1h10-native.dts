@@ -212,12 +212,12 @@
 		reg = <0x94020000 0x01fe0000>;
 	};
 
-	fd_reserved: fd@96000000{
-		reg = <0x96000000 0x00500000>;
+	fd_reserved: fd@bf6fc000 {
+		reg = <0xbf6fc000 0x00500000>;
 	};
 
-	wb_reserved: writeback-mem {
-		reg = <0x9b000000 0x00384000>;
+	wb_reserved: writeback-mem@bfbfc000 {
+		reg = <0xbfbfc000 0x00384000>;
 	};
 };
 

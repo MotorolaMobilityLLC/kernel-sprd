@@ -27,14 +27,6 @@
 		#size-cells = <1>;
 		ranges;
 
-		pstore_reserved: ramoops@877c0000 {
-			compatible = "ramoops";
-			reg = <0x877c0000 0x00040000>;
-			record-size = <0x8000>;
-			console-size = <0x8000>;
-			pmsg-size = <0x8000>;
-		};
-
 		smem_reserved: sipc-mem@87800000 {
 			reg = <0x87800000 0x00200000>;
 		};
@@ -66,6 +58,19 @@
 		tos_reserved: tos-mem@94020000 {
 			reg = <0x94020000 0x002e0000>;
 		};
+
+		logo_reserved: logobuffer@9e000000 {
+			reg = <0x9e000000 0x384000>;
+		};
+
+		pstore_reserved: ramoops@bff80000 {
+			compatible = "ramoops";
+			reg = <0xbff80000 0x00040000>;
+			record-size = <0x8000>;
+			console-size = <0x8000>;
+			pmsg-size = <0x8000>;
+		};
+
 	};
 
 	thm_zone: thermal-zones {
