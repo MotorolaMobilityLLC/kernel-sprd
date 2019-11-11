@@ -580,6 +580,18 @@
 				interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			aon_systimer: timer@40230000 {
+				compatible = "sprd,syst-timer";
+				reg = <0x40230000 0x10>;
+				clocks = <&ext_1k>;
+			};
+
+			aon_sysfrt: timer@40040000 {
+				compatible = "sprd,sysfrt-timer";
+				reg = <0x40040000 0x10>;
+				clocks = <&ext_32k>;
+			};
+
 			timer@40050000 {
 				compatible = "sprd,sharkl3-timer";
 				reg = <0x40050000 0x14>;
@@ -1488,6 +1500,13 @@
 		#clock-cells = <0>;
 		clock-frequency = <32768>;
 		clock-output-names = "ext_32k";
+	};
+
+	ext_1k: ext-1k {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <1024>;
+		clock-output-names = "ext_1k";
 	};
 
 	ext_1m: ext-1m {
