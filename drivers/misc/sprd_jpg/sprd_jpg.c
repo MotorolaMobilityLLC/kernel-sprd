@@ -514,7 +514,6 @@ static int jpg_release(struct inode *inode, struct file *filp)
 
 static const struct file_operations jpg_fops = {
 	.owner = THIS_MODULE,
-	.unlocked_ioctl = jpg_ioctl,
 	.mmap = jpg_nocache_mmap,
 	.open = jpg_open,
 	.release = jpg_release,
