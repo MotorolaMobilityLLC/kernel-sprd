@@ -335,18 +335,6 @@ static void dpu_corner_init(struct dpu_context *ctx)
 
 }
 
-static void dpu_dump(struct dpu_context *ctx)
-{
-	u32 *reg = (u32 *)ctx->base;
-	int i;
-
-	pr_info("      0          4          8          C\n");
-	for (i = 0; i < 256; i += 4) {
-		pr_info("%04x: 0x%08x 0x%08x 0x%08x 0x%08x\n",
-			i * 4, reg[i], reg[i + 1], reg[i + 2], reg[i + 3]);
-	}
-}
-
 static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -355,22 +343,32 @@ static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 			DISPC_INT_MMU_INV_RD_MASK |
 			DISPC_INT_MMU_INV_WR_MASK);
 	u32 val = reg_val & mmu_mask;
+	int i;
 
 	if (val) {
-		pr_err("--- iommu interrupt err: 0x%04x ---\n", val);
+		pr_err("iommu interrupt err: 0x%04x\n", val);
 
-		pr_err("iommu invalid read error, addr: 0x%08x\n",
-			reg->mmu_inv_addr_rd);
-		pr_err("iommu invalid write error, addr: 0x%08x\n",
-			reg->mmu_inv_addr_wr);
-		pr_err("iommu va out of range read error, addr: 0x%08x\n",
-			reg->mmu_vaor_addr_rd);
-		pr_err("iommu va out of range write error, addr: 0x%08x\n",
-			reg->mmu_vaor_addr_wr);
-		pr_err("BUG: iommu failure at %s:%d/%s()!\n",
-			__FILE__, __LINE__, __func__);
+		if (val & DISPC_INT_MMU_INV_RD_MASK)
+			pr_err("iommu invalid read error, addr: 0x%08x\n",
+				reg->mmu_inv_addr_rd);
+		if (val & DISPC_INT_MMU_INV_WR_MASK)
+			pr_err("iommu invalid write error, addr: 0x%08x\n",
+				reg->mmu_inv_addr_wr);
+		if (val & DISPC_INT_MMU_VAOR_RD_MASK)
+			pr_err("iommu va out of range read error, addr: 0x%08x\n",
+				reg->mmu_vaor_addr_rd);
+		if (val & DISPC_INT_MMU_VAOR_WR_MASK)
+			pr_err("iommu va out of range write error, addr: 0x%08x\n",
+				reg->mmu_vaor_addr_wr);
 
-		dpu_dump(ctx);
+		for (i = 0; i < 8; i++) {
+			if (reg->layers[i].ctrl & 0x1)
+				pr_info("layer%d: 0x%08x 0x%08x 0x%08x ctrl: 0x%08x\n",
+					i, reg->layers[i].addr[0],
+					reg->layers[i].addr[1],
+					reg->layers[i].addr[2],
+					reg->layers[i].ctrl);
+		}
 
 		/* panic("iommu panic\n"); */
 	}
