@@ -55,10 +55,11 @@
 				};
 			};
 
-			pwm_flash: sy7807-flash {
-				compatible = "sprd, pwm-sy7807";
-				pwms = <&pwms 0 30000>, <&pwms 1 30000>;
-				pwm-names = "flash_sy7807";
+			pwm_flash: pwm_flash {
+					compatible = "sprd,pwm-sy7807";
+					pwms = <&pwms 0 40000 &pwms 1 40000>;
+					pwm-names = "pwm0","pwm1";
+					#pwm-cells = <2>;
 			};
 		};
 	};
