@@ -1,9 +1,0 @@
-
-config SPRD_CAMERA
-	tristate "Spreadtrum Camera Driver"
-	depends on ARCH_SPRD && ION_SPRD
-	help
-	    This is a camera driver for Spreadtrum SOCs.
-
-source "drivers/misc/sprd_camera/cpp/Kconfig"
-source "drivers/misc/sprd_camera/sensor/Kconfig"
