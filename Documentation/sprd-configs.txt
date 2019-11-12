@@ -980,15 +980,6 @@ CONFIG_ARM_HAS_SG_CHAIN
 	[must] console
 	[missing plat description] none
 	[function] IF ARCH_SPRD, this config will select ARM_HAS_SG_CHAIN.
-CONFIG_ARM_HEAVY_MB
-	[arch] arm
-	[plat] sharkl3_32,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_ARM_L1_CACHE_SHIFT
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -1695,15 +1686,6 @@ CONFIG_BUILD_BIN2C
 	[missing plat description] none
 	[function] vts require, Enable file format exchange from BIN to C.
 	   enable by IKCONFIG
-CONFIG_CACHE_L2X0
-	[arch] arm
-	[plat] sharkl3_32,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_CC_HAS_KASAN_GENERIC
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -1907,13 +1889,13 @@ CONFIG_CHARGER_SC2720
 	[missing plat description]
 	[function] This function is used to enable charge
 CONFIG_CLEANCACHE
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
 	[field] make
 	[subsys] memory
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] This function is used to enable charge
 CONFIG_CLKDEV_LOOKUP
 	[arch] all
@@ -10578,24 +10560,6 @@ CONFIG_OOM_NOTIFIER
 	[must] unknown
 	[missing plat description]
 	[function] Using a Android-Style oom-killer instead of linux's native OOM_killer
-CONFIG_OUTER_CACHE
-	[arch] arm
-	[plat] sharkl3_32,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_OUTER_CACHE_SYNC
-	[arch] arm
-	[plat] sharkl3_32,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_OVERLAY_FS
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
