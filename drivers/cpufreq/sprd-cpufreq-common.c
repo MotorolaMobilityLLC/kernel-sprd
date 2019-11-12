@@ -490,15 +490,25 @@ EXPORT_SYMBOL_GPL(sprd_cpufreq_update_opp);
 
 static int sprd_cpufreq_cpuhp_online(unsigned int cpu)
 {
-	unsigned int olcpu = 0;
+	unsigned int olcpu, cluster_id;
 	struct sprd_cpufreq_driver_data *c;
 
-	if (!is_big_cluster(cpu))
+	if (cpu >= nr_cpu_ids || !cpu_possible(cpu)) {
+		pr_err("Invalid CPU%d\n", cpu);
+		return NOTIFY_DONE;
+	}
+
+	cluster_id = topology_physical_package_id(cpu);
+	if (!cluster_id)
 		return NOTIFY_DONE;
 
-	for_each_online_cpu(olcpu)
-		if (is_big_cluster(olcpu))
+	for_each_online_cpu(olcpu) {
+		if (olcpu >= NR_CPUS || !cpu_possible(olcpu))
 			return NOTIFY_DONE;
+		cluster_id = topology_physical_package_id(olcpu);
+		if (cluster_id)
+			return NOTIFY_DONE;
+	}
 
 	c = sprd_cpufreq_data(cpu);
 	if (c && c->cpufreq_online)
@@ -510,15 +520,25 @@ static int sprd_cpufreq_cpuhp_online(unsigned int cpu)
 
 static int sprd_cpufreq_cpuhp_offline(unsigned int cpu)
 {
-	unsigned int olcpu = 0;
+	unsigned int olcpu, cluster_id;
 	struct sprd_cpufreq_driver_data *c;
 
-	if (!is_big_cluster(cpu))
+	if (cpu >= nr_cpu_ids || !cpu_possible(cpu)) {
+		pr_err("Invalid CPU%d\n", cpu);
+		return NOTIFY_DONE;
+	}
+
+	cluster_id = topology_physical_package_id(cpu);
+	if (!cluster_id)
 		return NOTIFY_DONE;
 
-	for_each_online_cpu(olcpu)
-		if (is_big_cluster(olcpu))
+	for_each_online_cpu(olcpu) {
+		if (olcpu >= NR_CPUS || !cpu_possible(olcpu))
 			return NOTIFY_DONE;
+		cluster_id = topology_physical_package_id(olcpu);
+		if (cluster_id)
+			return NOTIFY_DONE;
+	}
 
 	c = sprd_cpufreq_data(cpu);
 	if (c && c->cpufreq_offline)
