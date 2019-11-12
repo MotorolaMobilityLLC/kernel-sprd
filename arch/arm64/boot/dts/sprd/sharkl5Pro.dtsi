@@ -1490,22 +1490,21 @@
 					lit-core-dvfs-tbl = <
 							0 0 0 0 0 0 0
 							1 1 0 1 1 1 0
-							2 1 2 2 2 2 0
-							3 0 2 3 2 3 0
-							3 0 2 4 3 4 1
-							1 0 2 5 4 4 0
-							3 0 4 6 4 4 2
-							2 0 4 7 4 4 0
-							3 0 6 8 4 5 3
-							3 0 6 9 5 5 4
-							>;
+							2 1 1 2 2 2 0
+							3 0 1 3 2 3 0
+							3 0 1 4 3 4 1
+							1 0 1 5 4 4 0
+							3 0 2 6 4 4 2
+							2 0 2 7 4 4 0
+							3 0 3 8 4 5 3
+							3 0 3 9 5 5 4
+						>;
 					lit_core0_dev:lit-core0-dev {
 						device-name = "cpu0";
 						sel-get = <0x38 0 3>;
 						div-get = <0x38 2 7>;
 						vol-get = <0x30 0 7>;
 						dfs-idle-disable = <0x1c 0 1>;
-
 					};
 					lit_core1_dev:lit-core1-dev {
 						device-name = "cpu1";
@@ -1513,7 +1512,6 @@
 						div-get = <0x38 7 7>;
 						vol-get = <0x30 3 7>;
 						dfs-idle-disable = <0x1c 1 1>;
-
 					};
 					lit_core2_dev:lit-core2-dev {
 						device-name = "cpu2";
@@ -1562,11 +1560,11 @@
 							0 0 0 0 0 0 0
 							1 0 0 3 3 4 0
 							3 0 1 5 4 4 0
-							2 0 3 6 4 4 0
-							3 0 5 7 4 5 1
-							3 0 5 8 4 5 2
-							3 0 5 9 5 5 3
-							>;
+							2 0 2 6 4 4 0
+							3 0 3 7 4 5 1
+							3 0 3 8 4 5 3
+							3 0 3 9 5 5 4
+						>;
 					big_core0_dev: big-core0-dev {
 						device-name = "cpu6";
 						sel-get = <0x40 10 3>;
@@ -1594,19 +1592,19 @@
 					column-entry-start-bit = <0 2 11 5 8>;
 					column-entry-mask = <0x3 0x7 0x7 0x7 0x7>;
 					cluster-devices = <&scu_dev>, <&ace_dev>;
-					/*sel div vol ace_div mpllx */
+					/* sel div vol ace_div mpllx */
 					scu-dvfs-tbl = <
-							0 0 0 0 0
-							3 0 0 1 0
-							3 0 2 1 1
-							1 0 2 1 0
-							3 0 2 1 2
-							3 0 2 1 3
-							3 0 4 1 4
-							3 0 4 1 5
-							3 0 6 1 6
-							3 0 6 1 7
-							>;
+						0 0 0 0 0
+						3 0 0 1 0
+						3 0 1 1 1
+						1 0 1 1 0
+						3 0 1 1 2
+						3 0 1 1 3
+						3 0 2 1 4
+						3 0 3 1 5
+						3 0 3 1 6
+						3 0 3 1 7
+					>;
 					scu_dev: scu-dev {
 						device-name = "scu";
 						sel-get = <0x38 20 3>;
@@ -1633,15 +1631,15 @@
 					column-entry-start-bit = <0 2 5>;
 					column-entry-mask = <0x3 0x7 0x7>;
 					cluster-devices = <&periph_dev>;
-					/*sel div vol*/
+					/* sel div vol */
 					periph-dvfs-tbl = <
-							0 0 0
-							1 0 0
-							2 1 2
-							3 1 2
-							2 0 2
-							3 0 6
-							>;
+						0 0 0
+						1 0 0
+						2 1 1
+						3 1 1
+						2 0 1
+						3 0 3
+					>;
 					periph_dev: periph-dev {
 						device-name = "periph";
 						sel-get = <0x3C 0 3>;
@@ -1665,13 +1663,13 @@
 					cluster-devices = <&gic_dev>;
 					/*sel div vol*/
 					gic-dvfs-tbl = <
-							0 0 0
-							1 0 0
-							2 1 2
-							3 1 2
-							2 0 2
-							3 0 2
-							>;
+						0 0 0
+						1 0 0
+						2 1 1
+						3 1 1
+						2 0 1
+						3 0 1
+					>;
 					gic_dev: gic-dev {
 						device-name = "gic";
 						sel-get = <0x3c 12 3>;

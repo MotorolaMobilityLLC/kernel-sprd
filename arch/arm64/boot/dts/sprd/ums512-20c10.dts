@@ -9,6 +9,8 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include "ums512.dtsi"
+#include "ums512-t610dvfs.dtsi"
+#include "ums512-t618dvfs.dtsi"
 #include "sc2730.dtsi"
 #include "ums512-mach.dtsi"
 #include "ums512-modem.dtsi"
@@ -229,6 +231,8 @@
 	};
 
 	dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
+		pmic-type-num = <0>;
+		slew-rate = <9375>; /* 9375uV/us */
 		top-dvfs-adi-state = <0x70 0 0xf>;
 		voltage-grade-num = <7>;
 		voltage-grade = <0 0xf0 0xf4 0 0x1ff>,
@@ -256,6 +260,10 @@
 		chnl-in-i2c = <0>;
 	};
 	dvfs_dcdc_cpu1_supply: dvfs-dcdc-cpu1-supply {
+		chnl-i2c-used;
+		third-pmic-used;
+		pmic-type-num = <2>;
+		slew-rate = <4000>; /* 4000uV/us */
 		supply-type-sel = <0x120 0 1>;
 		top-dvfs-i2c-state = <0x9c 4 0xf>;
 		voltage-grade-num = <6>;
