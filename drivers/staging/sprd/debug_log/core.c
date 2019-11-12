@@ -113,7 +113,7 @@ struct dbg_log_device *dbg_log_device_register(struct device *parent,
 
 	dbg->dev.parent = parent;
 	dbg->dev.of_node = parent->of_node;
-	dev_set_name(&dbg->dev, serdes_name);
+	dev_set_name(&dbg->dev, "%s", serdes_name);
 
 	dev_set_drvdata(&dbg->dev, dbg);
 
