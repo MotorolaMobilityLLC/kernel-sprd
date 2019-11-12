@@ -36,6 +36,30 @@ __weak struct sprd_cpudvfs_device *sprd_hardware_dvfs_device_get(void)
 	return NULL;
 }
 
+static int sprd_cpufreq_read_soc_version(char *p_version)
+{
+	char version_default[10] = "-1";
+
+	sprd_kproperty_get("lwfq/type", p_version, version_default);
+	if (!strcmp(p_version, "0") || !strcmp(p_version, "1"))
+		return 0;
+	return -EINVAL;
+}
+
+static void sprd_cpufreq_read_soc_version_opp_string(char *opp_string)
+{
+	char ver_str[30] = "-v", version[20] = "", tmp_version[64] = "";
+	int ret, len;
+
+	len = sizeof(version);
+	ret = sprd_cpufreq_read_soc_version(tmp_version);
+	if (!ret) {
+		strncpy(version, tmp_version, len);
+		strcat(ver_str, version);
+		strcat(opp_string, ver_str);
+	}
+}
+
 static int sprd_cpufreq_bin_read(struct device_node *np,
 				 const char *cell_id,
 				 u32 *val)
@@ -179,7 +203,7 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 	const struct property *prop = NULL;
 	struct sprd_cpudvfs_device *pdevice;
 	struct sprd_cpudvfs_ops *driver;
-	char opp_string[30] = "operating-points";
+	char opp_string[64] = "operating-points";
 	char buf[30] = "";
 	int count = 0, ret = 0, index = 0;
 	u32 binning = 0, binning_low_volt = 0;
@@ -210,6 +234,13 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 		np_cpufreq = np_cpufreq_in;
 	}
 
+	cdata->version_judge = of_property_read_bool(np_cpufreq, "sprd,multi-version");
+	if (cdata->version_judge) {
+		pr_debug("dts node need to distinguish version\n");
+		sprd_cpufreq_read_soc_version_opp_string(opp_string);
+	}
+
+	index = strlen(opp_string);
 	ret = sprd_cpufreq_bin_main(np_cpufreq, &binning);
 	if (ret == -EPROBE_DEFER)
 		goto exit;
@@ -218,7 +249,6 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 	if (!ret) {
 		pr_debug("%s: binning=0x%x by BIN\n", __func__, binning);
 		if (binning > 0) {
-			index = strlen(opp_string);
 			opp_string[index++] = '-';
 			opp_string[index++] = '0' + binning;
 			opp_string[index] = '\0';

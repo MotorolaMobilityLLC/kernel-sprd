@@ -40,6 +40,8 @@
 #include "sprd-cpufreqhw.h"
 #include "sprd-hwdvfs-normal.h"
 
+int sprd_cpufreq_read_soc_version_str(char *version_string);
+
 static const struct of_device_id sprd_cpudvfs_of_match[] = {
 	{
 		.compatible = "sprd,sharkl5-cpudvfs",
@@ -50,6 +52,7 @@ static const struct of_device_id sprd_cpudvfs_of_match[] = {
 	},
 	{
 		.compatible = "sprd,sharkl5pro-cpudvfs",
+		.data = &ums512_dvfs_private_data,
 	},
 	{
 		.compatible = "sprd,orca-cpudvfs",
@@ -123,6 +126,32 @@ static struct i2c_driver cpudvfs_i2c_driver[] = {
 	}
 
 };
+
+static
+int sprd_get_dts_tbl_based_on_opp_string(char *dts_tbl_str,
+					 char *opp_str,
+					 char *tmp)
+{
+	const char opp_strhead[64] = "operating-points";
+	int len = strlen(opp_strhead), size = sizeof(opp_strhead);
+
+	if (!dts_tbl_str || !opp_str) {
+		pr_err("no existence of dts_tbl_str or opp_str\n");
+		return -EINVAL;
+	}
+	if (size < strlen(opp_str)) {
+		pr_err("A error opp_str length\n");
+		return -EINVAL;
+	}
+	if (strncmp(opp_str, opp_strhead, len)) {
+		pr_err("Invalid operating-points name%s\n", opp_str);
+		return -EINVAL;
+	}
+	if (!strcat(tmp, opp_str + len))
+		return -EINVAL;
+	strcat(dts_tbl_str, tmp);
+	return 0;
+}
 
 static
 void cpu_dvfs_bits_update(struct cpudvfs_archdata *pdev,
@@ -1370,7 +1399,7 @@ static int voltage_grade_value_update(struct dvfs_cluster *clu,
 		return -EINVAL;
 	}
 
-	count = pdev->priv->volt_manager->grade_tbl[clu->id].grade_count;
+	count = pdev->priv->volt_manager->grade_tbl[grade_index].grade_count;
 
 	grade_id = clu->tmp_vol_grade++;
 
@@ -1534,7 +1563,7 @@ static int sprd_cpudvfs_index_tbl_update(void *data, char *opp_name,
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
 	struct dvfs_cluster *clu, *slave;
-	char *temp = "";
+	char temp[20] = "";
 	int ret, idx = 0;
 
 	if (!pdev->priv)
@@ -1562,38 +1591,13 @@ static int sprd_cpudvfs_index_tbl_update(void *data, char *opp_name,
 	 */
 	strcpy(clu->dts_tbl_name, clu->default_tbl_name);
 
-	if (!strcmp(opp_name, "operating-points-1")) {
-		strcat(clu->dts_tbl_name, "-1");
-		temp = "-1";
-	} else if (!strcmp(opp_name, "operating-points-2")) {
-		strcat(clu->dts_tbl_name, "-2");
-		temp = "-2";
-	} else if (!strcmp(opp_name, "operating-points-3")) {
-		strcat(clu->dts_tbl_name, "-3");
-		temp = "-3";
-	} else if (!strcmp(opp_name, "operating-points-4")) {
-		strcat(clu->dts_tbl_name, "-4");
-		temp = "-4";
-	} else if (!strcmp(opp_name, "operating-points-1-65")) {
-		strcat(clu->dts_tbl_name, "-1-65");
-		temp = "-1-65";
-	} else if (!strcmp(opp_name, "operating-points-2-65")) {
-		strcat(clu->dts_tbl_name, "-2-65");
-		temp = "-2-65";
-	} else if (!strcmp(opp_name, "operating-points-3-65")) {
-		strcat(clu->dts_tbl_name, "-3-65");
-		temp = "-3-65";
-	} else if (!strcmp(opp_name, "operating-points-4-65")) {
-		strcat(clu->dts_tbl_name, "-4-65");
-		temp = "-4-65";
-	} else if (strcmp(opp_name, "operating-points")) {
-		pr_err("Invalid operating-points name\n");
-		return -EINVAL;
-	}
+	ret = sprd_get_dts_tbl_based_on_opp_string(clu->dts_tbl_name,
+						   opp_name, temp);
+	if (ret)
+		return ret;
 
 	pr_debug("Update dvfs index map table for hoster cluster%d host-tbl-name: %s\n",
 		 cluster, clu->dts_tbl_name);
-
 	ret = clu->driver->map_tbl_init(clu);
 	if (ret < 0)
 		return ret;

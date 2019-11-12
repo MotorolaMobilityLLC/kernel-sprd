@@ -25,6 +25,7 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/of_platform.h>
+#include <linux/soc/sprd/hwfeature.h>
 
 /* Default voltage_tolerance */
 #define DEF_VOLT_TOL			0
@@ -106,6 +107,9 @@ struct sprd_cpufreq_driver_data {
 	/*cpufreq points to hotplug notify*/
 	int (*cpufreq_online)(unsigned int cpu);
 	int (*cpufreq_offline)(unsigned int cpu);
+
+	/* judge soc version */
+	bool version_judge;
 };
 
 #define CPUFREQHW_NAME_LEN			30
