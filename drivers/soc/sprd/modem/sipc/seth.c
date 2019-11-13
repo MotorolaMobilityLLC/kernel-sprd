@@ -673,6 +673,9 @@ static int seth_open(struct net_device *dev)
 	seth->state = DEV_ON;
 	netif_start_queue(dev);
 
+	/* In case some pkts arrive before set DEV_ON */
+	seth_rx_handler(seth);
+
 	return 0;
 }
 
