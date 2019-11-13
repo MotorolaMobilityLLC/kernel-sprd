@@ -2041,8 +2041,8 @@ CONFIG_CONSOLE_LOGLEVEL_DEFAULT
 	[function]
 CONFIG_CONSOLE_POLL
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
 	[must] console
@@ -2050,8 +2050,8 @@ CONFIG_CONSOLE_POLL
 	[function] Enable cosole polling IO support
 CONFIG_CONSOLE_TRANSLATIONS
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
 	[must] console
@@ -4015,8 +4015,8 @@ CONFIG_DUMMY
 	this device is consigned into oblivion) with a configurable IP address.
 CONFIG_DUMMY_CONSOLE
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] make code
 	[subsys] video
 	[must] console
@@ -4024,8 +4024,8 @@ CONFIG_DUMMY_CONSOLE
 	[function] Enable dummy console
 CONFIG_DUMMY_CONSOLE_COLUMNS
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] video
 	[must] console
@@ -4033,8 +4033,8 @@ CONFIG_DUMMY_CONSOLE_COLUMNS
 	[function] Initial number of console screen columns
 CONFIG_DUMMY_CONSOLE_ROWS
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] video
 	[must] console
@@ -6523,8 +6523,8 @@ CONFIG_HWSPINLOCK_SPRD
 	[function] support the Spreadtrum Hardware Spinlock device.
 CONFIG_HW_CONSOLE
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
 	[must] console
@@ -8060,8 +8060,8 @@ CONFIG_KEYS_COMPAT
 	[function] Support for Key compat.
 CONFIG_KGDB
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] menu,make,code
 	[subsys] debug
 	[must] debug
@@ -8069,8 +8069,8 @@ CONFIG_KGDB
 	[function] Remotely debug the kernel using gdb
 CONFIG_KGDB_SERIAL_CONSOLE
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] debug
 	[must] debug
@@ -16168,8 +16168,8 @@ CONFIG_VM_EVENT_COUNTERS
 	[function] Enable VM event counters for /proc/vmstat.
 CONFIG_VT
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
 	[must] debug
@@ -16177,8 +16177,8 @@ CONFIG_VT
 	[function] Enable virtual terminal
 CONFIG_VT_CONSOLE
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
 	[must] debug
@@ -16186,8 +16186,8 @@ CONFIG_VT_CONSOLE
 	[function] Support for console on virtual terminal
 CONFIG_VT_CONSOLE_SLEEP
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkle
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
 	[must] debug
