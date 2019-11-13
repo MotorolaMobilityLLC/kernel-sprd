@@ -27,6 +27,7 @@
 
 #include <linux/sprd_cpu_cooling.h>
 #include <linux/sprd_cpu_device.h>
+#include <linux/sched.h>
 #include <linux/cpumask.h>
 
 #include <linux/cpu.h>
@@ -276,9 +277,11 @@ static void get_core_temp(int cluster_id, int cpu, int *temp)
 	*temp = cpc->core_temp[cpu];
 
 }
-static int get_max_temp_core(int cluster_id, int cpu, int *temp)
+
+#if defined(CONFIG_SPRD_CPU_COOLING_CPUIDLE) && defined(CONFIG_SPRD_CORE_CTL)
+static int get_min_temp_isolated_core(int cluster_id, int cpu, int *temp)
 {
-	int i, ret, max_temp, id;
+	int i, ret, min_temp = 0, id = -1, first, find;
 	struct thermal_zone_device *tz = NULL;
 	struct cluster_power_coefficients *cpc;
 	int sensor_temp[MAX_SENSOR_NUMBER];
@@ -300,59 +303,85 @@ static int get_max_temp_core(int cluster_id, int cpu, int *temp)
 		pr_debug("%s:%d\n", tz->type, sensor_temp[cpu+i]);
 	}
 
-	max_temp = sensor_temp[cpu];
-	id = cpu;
-	*temp = max_temp;
-	for (i = cpu; i < (cpu+cpc->nsensor); i++) {
-		if (sensor_temp[i] >= max_temp) {
-			max_temp = sensor_temp[i];
-			id = i;
-			*temp = max_temp;
-		}
-	}
-	pr_debug("cpu%d:max_temp:%d\n", id, *temp);
-
-	return id;
-}
-
-static int get_min_temp_core(int cluster_id, int cpu, int *temp)
-{
-	int i, ret, min_temp, id;
-	struct thermal_zone_device *tz = NULL;
-	struct cluster_power_coefficients *cpc;
-	int sensor_temp[MAX_SENSOR_NUMBER];
-
-	cpc = &cluster_data[cluster_id];
-	for (i = 0; i < (cpc->nsensor); i++) {
-		tz = cpc->thm_zones[i];
-		if (!tz || IS_ERR(tz) || !tz->ops->get_temp) {
-			pr_err("get thermal zone failed\n");
-			return -1;
-		}
-
-		ret = tz->ops->get_temp(tz, &sensor_temp[cpu+i]);
-		if (ret) {
-			pr_err("get thermal %s temp failed\n", tz->type);
-			return -1;
-		}
-
-		pr_debug("%s:%d\n", tz->type, sensor_temp[cpu+i]);
-	}
-
-	min_temp = sensor_temp[cpu];
-	id = cpu;
-	*temp = min_temp;
-	for (i = cpu; i < (cpu+cpc->nsensor); i++) {
-		if (sensor_temp[i] < min_temp) {
-			min_temp = sensor_temp[i];
-			id = i;
+	for (first = cpu; first < (cpu+cpc->nsensor); first++) {
+		if (cpu_isolated(first)) {
+			min_temp = sensor_temp[first];
+			id = first;
 			*temp = min_temp;
+			find = 1;
+			break;
 		}
 	}
-	pr_debug("cpu%d:min_temp:%d\n", id, *temp);
+
+	if (find) {
+		for (i = cpu; i < (cpu+cpc->nsensor); i++) {
+			if (cpu_isolated(i)) {
+				if (sensor_temp[i] < min_temp) {
+					min_temp = sensor_temp[i];
+					id = i;
+					*temp = min_temp;
+				}
+			}
+		}
+		pr_debug("isolated cpu%d:min_temp:%d\n", id, *temp);
+	} else
+		id = -1;
 
 	return id;
 }
+
+static int get_min_temp_unisolated_core(int cluster_id, int cpu, int *temp)
+{
+	int i, ret, min_temp = 0, id = -1, first, find;
+	struct thermal_zone_device *tz = NULL;
+	struct cluster_power_coefficients *cpc;
+	int sensor_temp[MAX_SENSOR_NUMBER];
+
+	cpc = &cluster_data[cluster_id];
+	for (i = 0; i < (cpc->nsensor); i++) {
+		tz = cpc->thm_zones[i];
+		if (!tz || IS_ERR(tz) || !tz->ops->get_temp) {
+			pr_err("get thermal zone failed\n");
+			return -1;
+		}
+
+		ret = tz->ops->get_temp(tz, &sensor_temp[cpu+i]);
+		if (ret) {
+			pr_err("get thermal %s temp failed\n", tz->type);
+			return -1;
+		}
+
+		pr_debug("%s:%d\n", tz->type, sensor_temp[cpu+i]);
+	}
+
+	for (first = cpu; first < (cpu+cpc->nsensor); first++) {
+		if (!cpu_isolated(first)) {
+			min_temp = sensor_temp[first];
+			id = first;
+			*temp = min_temp;
+			find = 1;
+			break;
+		}
+	}
+
+	if (find) {
+		for (i = cpu; i < (cpu+cpc->nsensor); i++) {
+			if (!cpu_isolated(i)) {
+				if (sensor_temp[i] <= min_temp) {
+					min_temp = sensor_temp[i];
+					id = i;
+					*temp = min_temp;
+				}
+			}
+		}
+		pr_debug("unisolated cpu%d:min_temp:%d\n", id, *temp);
+
+	} else
+		id = -1;
+
+	return id;
+}
+#endif
 
 static u32 get_core_cpuidle_tp(int cluster_id,
 		int first_cpu, int cpu, int *temp)
@@ -868,8 +897,11 @@ static struct power_model_callback pm_call = {
 		.get_cluster_min_cpufreq_p = get_cluster_min_cpufreq,
 		.get_cluster_min_cpunum_p = get_cluster_min_cpunum,
 		.get_cluster_resistance_ja_p = get_cluster_resistance_ja,
-		.get_max_temp_core_p = get_max_temp_core,
-		.get_min_temp_core_p = get_min_temp_core,
+
+#if defined(CONFIG_SPRD_CPU_COOLING_CPUIDLE) && defined(CONFIG_SPRD_CORE_CTL)
+		.get_min_temp_unisolated_core_p = get_min_temp_unisolated_core,
+		.get_min_temp_isolated_core_p = get_min_temp_isolated_core,
+#endif
 		.get_core_temp_p = get_core_temp,
 		.get_all_core_temp_p = get_all_core_temp,
 		.get_core_cpuidle_tp_p = get_core_cpuidle_tp,

@@ -566,18 +566,21 @@ static int init_pm_qos_request(struct cpufreq_cooling_device *cpufreq_dev)
 #if defined(CONFIG_SPRD_CPU_COOLING_CPUIDLE) && defined(CONFIG_SPRD_CORE_CTL)
 static void corectl_do_cpuidle(struct cpufreq_cooling_device *cpufreq_device)
 {
-	int cpu, max_temp;
+	int cpu, min_temp;
 	struct cpumask cpus;
 
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
-	cpu = cpufreq_device->power_model->cab->get_max_temp_core_p(
+	cpu = cpufreq_device->power_model->cab->get_min_temp_unisolated_core_p(
 			cpufreq_device->power_model->cluster_id,
-			cpu, &max_temp);
+			cpu, &min_temp);
+
+	if (cpu < 0)
+		return;
 
 	cpumask_clear(&cpus);
 	if (cpu_online(cpu) && !cpu_isolated(cpu)) {
 
-		pr_info("cpu%d max_temp:%d do cpuidle\n", cpu, max_temp);
+		pr_info("cpu%d min_temp:%d do cpuidle\n", cpu, min_temp);
 		cpumask_set_cpu(cpu, &cpus);
 		if (ctrl_core_api(&cpus, 0)) {
 
@@ -598,9 +601,12 @@ static void corectl_exit_cpuidle(struct cpufreq_cooling_device *cpufreq_device)
 	struct cpumask cpus;
 
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
-	cpu = cpufreq_device->power_model->cab->get_min_temp_core_p(
+	cpu = cpufreq_device->power_model->cab->get_min_temp_isolated_core_p(
 			cpufreq_device->power_model->cluster_id,
 			cpu, &min_temp);
+
+	if (cpu < 0)
+		return;
 
 	cpumask_clear(&cpus);
 	if (cpu_online(cpu) && cpu_isolated(cpu)) {
@@ -745,7 +751,7 @@ static void set_online_cpus(struct cpufreq_cooling_device *cpufreq_dev,
 		pm_qos_update_request(&cpufreq_dev->max_cpu_request,
 			cpufreq_dev->qos_cur_cpu);
 
-		pr_info("cpu%d trigger hotplug... pm_qos_max_online:%d\n", cpu,
+		pr_debug("cpu%d trigger hotplug... pm_qos_max_online:%d\n", cpu,
 			cpufreq_dev->qos_cur_cpu);
 #endif
 	}
@@ -1269,7 +1275,7 @@ static int cpufreq_power2state(struct thermal_cooling_device *cdev,
 
 	num_our_online_cpus = cpumask_weight(&our_online_cpus);
 	cpu = cpumask_any(&cpufreq_device->allowed_cpus);
-	if (count == 5) {
+	if (count == 49) {
 		if (tz->temperature != last_temperature)
 		pr_info("cpu%u temp:%u target_freq:%u online:%u qos_cpu:%u power:%u\n",
 			cpu, tz->temperature, target_freq, num_our_online_cpus,
