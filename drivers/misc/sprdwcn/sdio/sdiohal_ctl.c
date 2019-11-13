@@ -718,10 +718,12 @@ static void sdiohal_gnss_dump_wq(struct work_struct *work)
 		reg_val, GNSS_DUMP_DATA_SIZE);
 	if (ret < 0) {
 		WCN_ERR("%s read reg error:%d\n", __func__, ret);
+		kfree(reg_val);
 		return;
 	}
 	for (i = 0; i < 2000; i++)
 		WCN_INFO("%d 0x%x\n", i, reg_val[i]);
+	kfree(reg_val);
 }
 
 static irqreturn_t sdiohal_public_isr(int irq, void *para)
