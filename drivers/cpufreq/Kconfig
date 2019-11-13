@@ -222,6 +222,14 @@ config CPU_FREQ_GOV_INTERACTIVE
 
 	  If in doubt, say N.
 
+config INTERACTIVE_TIMER_MODE
+	tristate "enable 'interactive' cpufreq policy governor with timer mode"
+	depends on CPU_FREQ_GOV_INTERACTIVE
+	default n
+	help
+	  enable 'interactive' cpufreq policy governor with timer mode.
+	  If in doubt, say N.
+
 config CPU_FREQ_GOV_SCHEDUTIL
 	bool "'schedutil' cpufreq policy governor"
 	depends on CPU_FREQ && SMP

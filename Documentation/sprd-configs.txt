@@ -2258,6 +2258,15 @@ CONFIG_CPU_FREQ_GOV_INTERACTIVE
 	[must]
 	[missing plat description]
 	[function]
+CONFIG_INTERACTIVE_TIMER_MODE
+	[arch] arm
+	[plat] pike2
+	[missing plat] sharkle32,sharkl3_32,sharkl5_32
+	[field] make,code
+	[subsys] cpufreq
+	[must] user
+	[missing plat description] no need on missing plat
+	[function] enable timer mode for interactive on pike2
 CONFIG_CPU_FREQ_GOV_PERFORMANCE
 	[arch] all
 	[plat] all

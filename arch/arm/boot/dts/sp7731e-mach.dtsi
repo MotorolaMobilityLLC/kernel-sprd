@@ -164,6 +164,10 @@
 		sprd,mapping-offs = <0x0>;
 	};
 
+	sprd-hotplug {
+		enable-dynamic-hotplug;
+	};
+
 	ddr_dfs: scene-frequency {
 		compatible = "sprd,dfs";
 		freq-num = <4>;
