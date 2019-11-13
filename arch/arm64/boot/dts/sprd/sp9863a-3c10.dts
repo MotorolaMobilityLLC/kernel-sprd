@@ -160,28 +160,22 @@
 
 	bat: battery {
 		compatible = "simple-battery";
-		charge-full-design-microamp-hours = <2780000>;
+		charge-full-design-microamp-hours = <4098000>;
 		charge-term-current-microamp = <120000>;
-		constant_charge_voltage_max_microvolt = <4350000>;
-		factory-internal-resistance-micro-ohms = <320000>;
+		constant_charge_voltage_max_microvolt = <4400000>;
+		factory-internal-resistance-micro-ohms = <286000>;
 		voltage-min-design-microvolt = <3450000>;
 		ocv-capacity-celsius = <20>;
-		ocv-capacity-table-0 = <4360000 100>, <4249000 95>, <4189000 90>,
-					<4133000 85>, <4081000 80>, <4034000 75>,
-					<3991000 70>, <3953000 65>, <3910000 60>,
-					<3866000 55>, <3836000 50>, <3813000 45>,
-					<3795000 40>, <3782000 35>, <3774000 30>,
-					<3765000 25>, <3750000 20>, <3726000 15>,
-					<3687000 10>, <3658000 5>, <3400000 0>;
-		voltage-temp-table = <1095000 800>, <986000 850>, <878000 900>,
-				      <775000 950>, <678000 1000>, <590000 1050>,
-				      <510000 1100>, <440000 1150>, <378000 1200>,
-				      <324000 1250>, <278000 1300>, <238000 1350>,
-				      <204000 1400>, <175000 1450>, <150000 1500>,
-				      <129000 1550>, <111000 1600>, <96000 1650>;
+		ocv-capacity-table-0 = <4377000 100>, <4307000 95>, <4246000 90>,
+					<4187000 85>, <4131000 80>, <4078000 75>,
+					<4029000 70>, <3979000 65>, <3939000 60>,
+					<3887000 55>, <3850000 50>, <3824000 45>,
+					<3803000 40>, <3787000 35>, <3775000 30>,
+					<3763000 25>, <3744000 20>, <3718000 15>,
+					<3688000 10>, <3671000 5>, <3400000 0>;
 		charge-sdp-current-microamp = <500000 500000>;
-		charge-dcp-current-microamp = <1200000 3000000>;
-		charge-cdp-current-microamp = <1500000 1500000>;
+		charge-dcp-current-microamp = <1150000 3000000>;
+		charge-cdp-current-microamp = <1150000 1150000>;
 		charge-unknown-current-microamp = <500000 500000>;
 	};
 
@@ -194,7 +188,7 @@
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
 		cm-fullbatt-vchkdrop-volt = <60000>;
-		cm-fullbatt-voltage = <4330000>;
+		cm-fullbatt-voltage = <4300000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
@@ -209,7 +203,9 @@
 		cm-battery-temp-diff = <100>;
 
 		/* Allow charging for 6hr */
-		cm-charging-max = <18000000>;
+		cm-charging-max = <21600000>;
+		/* recovery charging after stop charging 3hr */
+		cm-discharging-max = <10800000>;
 
 		/* the interval to feed charger watchdog */
 		cm-wdt-interval = <60>;
@@ -227,10 +223,6 @@
 		cm-charge-voltage-max = <6500000>;
 		/* drop voltage in microVolts to restart charging */
 		cm-charge-voltage-drop = <700000>;
-		cm-jeita-temp-table = <1000 1030 0 4350000>,
-				<1150 1180 700000 4350000>,
-				<1450 1420 1150000 4350000>,
-				<1600 1570 700000 4100000>;
 
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
@@ -498,8 +490,8 @@
 
 &pmic_fgu {
 	monitored-battery = <&bat>;
-	sprd,calib-resistance-real = <20000>;
-	sprd,calib-resistance-spec = <20000>;
+	sprd,calib-resistance-real = <10000>;
+	sprd,calib-resistance-spec = <10000>;
 };
 
 &jpg {
