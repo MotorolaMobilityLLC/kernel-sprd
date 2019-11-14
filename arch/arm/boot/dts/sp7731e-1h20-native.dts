@@ -438,32 +438,32 @@
 	pinctrl-9 = <&gpio_66>;
 
 	gpio_52: keyin0 {
-		pins = "PIKE2_KEYOUT0";
-		function = "func4";
-	};
-
-	gpio_53: keyin1 {
-		pins = "PIKE2_KEYOUT1";
-		function = "func4";
-	};
-
-	gpio_54: keyin2 {
-		pins = "PIKE2_KEYOUT2";
-		function = "func4";
-	};
-
-	gpio_55: keyout0 {
 		pins = "PIKE2_KEYIN0";
 		function = "func4";
 	};
 
-	gpio_56: keyout1 {
+	gpio_53: keyin1 {
 		pins = "PIKE2_KEYIN1";
 		function = "func4";
 	};
 
-	gpio_57: keyout2 {
+	gpio_54: keyin2 {
 		pins = "PIKE2_KEYIN2";
+		function = "func4";
+	};
+
+	gpio_55: keyout0 {
+		pins = "PIKE2_KEYOUT0";
+		function = "func4";
+	};
+
+	gpio_56: keyout1 {
+		pins = "PIKE2_KEYOUT1";
+		function = "func4";
+	};
+
+	gpio_57: keyout2 {
+		pins = "PIKE2_KEYOUT2";
 		function = "func4";
 	};
 
