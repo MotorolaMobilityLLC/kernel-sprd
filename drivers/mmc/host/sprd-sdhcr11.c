@@ -162,6 +162,11 @@ static int sprd_get_delay_value(struct platform_device *pdev)
 		timing_dly->sdr104_dly = SPRD_SDHC_DLY_TIMING(dly_vl[0],
 					dly_vl[1], dly_vl[2], dly_vl[3]);
 
+	ret = of_property_read_u32_array(np, "sprd,ddr50-dly", dly_vl, 4);
+	if (!ret)
+		timing_dly->ddr50_dly = SPRD_SDHC_DLY_TIMING(dly_vl[0],
+					dly_vl[1], dly_vl[2], dly_vl[3]);
+
 	ret = of_property_read_u32_array(np, "sprd,ddr52-dly", dly_vl, 4);
 	if (!ret)
 		timing_dly->ddr52_dly = SPRD_SDHC_DLY_TIMING(dly_vl[0],
@@ -240,6 +245,15 @@ static void sprd_set_delay_value(struct sprd_sdhc_host *host)
 			dev_info(dev,
 				 "sdr104 default timing delay value 0x%08x\n",
 				 host->dll_dly);
+		}
+		break;
+	case MMC_TIMING_UHS_DDR50:
+		if (host->ios.clock == 50000000) {
+			host->dll_dly = host->timing_dly->ddr50_dly;
+			sprd_sdhc_writel(host, host->dll_dly,
+					SPRD_SDHC_REG_32_DLL_DLY);
+			pr_info("(%s) ddr50 default timing delay value 0x%08x\n",
+				host->device_name, host->dll_dly);
 		}
 		break;
 	case MMC_TIMING_MMC_DDR52:
