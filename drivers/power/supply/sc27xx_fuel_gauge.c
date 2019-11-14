@@ -169,16 +169,12 @@ static const char * const sc27xx_charger_supply_name[] = {
 
 static int sc27xx_fgu_adc_to_current(struct sc27xx_fgu_data *data, int adc)
 {
-	u64 temp = (u64)adc * 1000;
-
-	return DIV_ROUND_CLOSEST_ULL(temp, data->cur_1000ma_adc);
+	return DIV_ROUND_CLOSEST(adc * 1000, data->cur_1000ma_adc);
 }
 
 static int sc27xx_fgu_adc_to_voltage(struct sc27xx_fgu_data *data, int adc)
 {
-	u64 temp = (u64)adc * 1000;
-
-	return DIV_ROUND_CLOSEST_ULL(temp, data->vol_1000mv_adc);
+	return DIV_ROUND_CLOSEST(adc * 1000, data->vol_1000mv_adc);
 }
 
 static int sc27xx_fgu_voltage_to_adc(struct sc27xx_fgu_data *data, int vol)
