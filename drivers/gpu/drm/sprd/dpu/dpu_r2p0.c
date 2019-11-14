@@ -930,7 +930,7 @@ static void dpu_layer(struct dpu_context *ctx,
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct layer_reg *layer;
-	u32 addr, size, offset, wd, i;
+	u32 addr, size, offset, wd, i, ctrl;
 
 	layer = &reg->layers[hwlayer->index];
 	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
@@ -987,8 +987,21 @@ static void dpu_layer(struct dpu_context *ctx,
 	else
 		layer->pitch = hwlayer->pitch[0] / wd;
 
-	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
+	ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
 		hwlayer->xfbc, hwlayer->rotation);
+
+	/*
+	 * if layer0 blend mode is premult mode, and layer alpha value
+	 * is 0xff, use layer alpha.
+	 */
+	if (hwlayer->index == 0 &&
+		(hwlayer->blending == DRM_MODE_BLEND_PREMULTI) &&
+		(hwlayer->alpha == 0xff)) {
+		ctrl &= ~BIT(3);
+		ctrl |= BIT(2);
+	}
+
+	layer->ctrl = ctrl;
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
