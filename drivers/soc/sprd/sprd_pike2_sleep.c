@@ -193,7 +193,8 @@ void sprd_pike2_light_en(void)
 				   MASK_AP_AHB_MCU_SYS_SLEEP_EN);
 
 	pm_sync_gic_intc();
-	pm_ca7_core_auto_gate_enable(1);
+	if (num_online_cpus() == 1)
+		pm_ca7_core_auto_gate_enable(1);
 	regmap_update_bits(cpuidle_syscon_apahb,
 			   REG_AP_AHB_MCU_PAUSE,
 			   MASK_AP_AHB_MCU_LIGHT_SLEEP_EN,
