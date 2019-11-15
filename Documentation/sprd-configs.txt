@@ -2040,8 +2040,8 @@ CONFIG_CONSOLE_LOGLEVEL_DEFAULT
 	[missing plat description] none
 	[function]
 CONFIG_CONSOLE_POLL
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
@@ -2049,8 +2049,8 @@ CONFIG_CONSOLE_POLL
 	[missing plat description] support this function in sharkl3
 	[function] Enable cosole polling IO support
 CONFIG_CONSOLE_TRANSLATIONS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
@@ -4014,8 +4014,8 @@ CONFIG_DUMMY
 	[function] Dummy net driver support:This is essentially a bit-bucket device (i.e. traffic you send to
 	this device is consigned into oblivion) with a configurable IP address.
 CONFIG_DUMMY_CONSOLE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] roc1,sharkl5
 	[field] make code
 	[subsys] video
@@ -6522,8 +6522,8 @@ CONFIG_HWSPINLOCK_SPRD
 	[missing plat description] none
 	[function] support the Spreadtrum Hardware Spinlock device.
 CONFIG_HW_CONSOLE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
@@ -8059,8 +8059,8 @@ CONFIG_KEYS_COMPAT
 	[missing plat description] none
 	[function] Support for Key compat.
 CONFIG_KGDB
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] roc1,sharkl5
 	[field] menu,make,code
 	[subsys] debug
@@ -8068,8 +8068,8 @@ CONFIG_KGDB
 	[missing plat description] support this function in sharkl3
 	[function] Remotely debug the kernel using gdb
 CONFIG_KGDB_SERIAL_CONSOLE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] debug
@@ -16167,8 +16167,8 @@ CONFIG_VM_EVENT_COUNTERS
 	[missing plat description] none
 	[function] Enable VM event counters for /proc/vmstat.
 CONFIG_VT
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
@@ -16176,8 +16176,8 @@ CONFIG_VT
 	[missing plat description] support this function in sharkl3
 	[function] Enable virtual terminal
 CONFIG_VT_CONSOLE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
@@ -16185,8 +16185,8 @@ CONFIG_VT_CONSOLE
 	[missing plat description] support this function in sharkl3
 	[function] Support for console on virtual terminal
 CONFIG_VT_CONSOLE_SLEEP
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[missing plat] roc1,sharkl5
 	[field] config
 	[subsys] tty
