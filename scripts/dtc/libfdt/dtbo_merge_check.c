@@ -15,8 +15,9 @@ int dtbo_merge_chk_main(int argc, char *argv[])
 	FILE *fp_dtb = NULL;
 	FILE *fp_dtbo = NULL;
 	FILE *fp_fdt = NULL;
-	unsigned int len_dtb = 0;
-	unsigned int len_dtbo = 0;
+	int len_dtb = 0;
+	int len_dtbo = 0;
+	size_t len = 0;
 	unsigned int fdt_size = 0;
 
 	if (argc != 4) {
@@ -44,13 +45,14 @@ int dtbo_merge_chk_main(int argc, char *argv[])
 		goto error;
 	}
 
-	if (len_dtb) {
+	if (len_dtb > 0) {
 		dtb_addr = malloc(len_dtb + FDT_ADD_SIZE);
 		if (!dtb_addr) {
 			printf("malloc fail\n");
 			goto error;
 		}
-		if (!fread(dtb_addr, 1, len_dtb, fp_dtb)) {
+		len = fread(dtb_addr, 1, len_dtb, fp_dtb);
+		if (!len) {
 			printf("Maybe read %s error!\n", argv[2]);
 			goto error;
 		}
@@ -59,13 +61,14 @@ int dtbo_merge_chk_main(int argc, char *argv[])
 		goto error;
 	}
 
-	if (len_dtbo) {
+	if (len_dtbo > 0) {
 		dtbo_addr = malloc(len_dtbo);
 		if (NULL == dtbo_addr) {
 			printf("malloc fail\n");
 			goto error;
 		}
-		if (!fread(dtbo_addr, 1, len_dtbo, fp_dtbo)) {
+		len = fread(dtbo_addr, 1, len_dtbo, fp_dtbo);
+		if (!len) {
 			printf("Maybe read %s error!\n", argv[3]);
 			goto error;
 		}
