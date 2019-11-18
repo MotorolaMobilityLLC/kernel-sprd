@@ -13663,12 +13663,12 @@ CONFIG_SPRD_MCD
 	[function] modem control device driver
 CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] staging
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] This function is used to detected overlay region in
 		   reserved-memory.
 CONFIG_SPRD_MINI_SYSDUMP
