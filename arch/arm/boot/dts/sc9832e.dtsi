@@ -38,7 +38,7 @@
 			compatible = "arm,aarch32";
 			reg = <0x0>;
 			enable-method = "psci";
-			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 		cpu1: cpu@1 {
@@ -46,7 +46,7 @@
 			compatible = "arm,aarch32";
 			reg = <0x1>;
 			enable-method = "psci";
-			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 		cpu2: cpu@2 {
@@ -54,7 +54,7 @@
 			compatible = "arm,aarch32";
 			reg = <0x2>;
 			enable-method = "psci";
-			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 		cpu3: cpu@3 {
@@ -62,7 +62,7 @@
 			compatible = "arm,aarch32";
 			reg = <0x3>;
 			enable-method = "psci";
-			cpu-idle-states = <&CORE_PD &CLUSTER_PD>;
+			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_clus0>;
 		};
 	};
@@ -71,19 +71,11 @@
 		entry-method = "arm,psci";
 		CORE_PD: core_pd {
 			compatible = "arm,idle-state";
-			entry-latency-us = <1000>;
-			exit-latency-us = <500>;
+			entry-latency-us = <100>;
+			exit-latency-us = <700>;
 			min-residency-us = <2500>;
 			local-timer-stop;
 			arm,psci-suspend-param = <0x00010000>;
-		};
-		CLUSTER_PD: cluster_pd {
-			compatible = "arm,idle-state";
-			entry-latency-us = <0xffffffff>;
-			exit-latency-us = <0xffffffff>;
-			min-residency-us = <0xffffffff>;
-			local-timer-stop;
-			arm,psci-suspend-param = <0x01010000>;
 		};
 	};
 
