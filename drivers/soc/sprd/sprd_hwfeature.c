@@ -12,17 +12,24 @@
  * GNU General Public License for more details.
  */
 
+#define pr_fmt(fmt)	"hwfeature: " fmt
+
 #include <linux/hash.h>
+#include <linux/libfdt.h>
+#include <linux/of_fdt.h>
+#include <linux/of.h>
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/soc/sprd/hwfeature.h>
+#include <linux/stat.h>
 #include <linux/string.h>
 
-/* After bootloader turns on dtb auto creating, 0 should be set, otherwise 1 */
-#define HWFEATURE_EARLY_PARAM_PARSER_ENABLED    1
-#define HWFEATURE_STR_SIZE_LIMIT_KEY            1024
-#define HWFEATURE_HASH_BITS                     4
-#define HWFEATURE_TABLE_SIZE                    (1 << HWFEATURE_HASH_BITS)
-#define HWFEATURE_TABLE_MASK                    (HWFEATURE_TABLE_SIZE - 1)
+#define HWFEATURE_STR_SIZE_LIMIT_KEY         1024
+#define HWFEATURE_HASH_BITS                  4
+#define HWFEATURE_TABLE_SIZE                 (1 << HWFEATURE_HASH_BITS)
+#define HWFEATURE_TABLE_MASK                 (HWFEATURE_TABLE_SIZE - 1)
+#define HWFEATURE_ROOT_NAME                  "/hwfeature"
 
 static struct hlist_head hwf_table[HWFEATURE_TABLE_SIZE];
 struct hwf_property {
@@ -31,67 +38,6 @@ struct hwf_property {
 	const char *value;
 };
 static void __init sprd_kproperty_append(const char *key, const char *value);
-
-#if HWFEATURE_EARLY_PARAM_PARSER_ENABLED
-static void __init *hwfeature_strdup(char *old_str)
-{
-	char *p;
-	unsigned long len = strlen(old_str) + 1;
-
-	p = kzalloc(len, GFP_ATOMIC);
-	if (!p) {
-		pr_err("hwfeature kzalloc failed\n");
-		return NULL;
-	}
-
-	memcpy(p, old_str, len);
-	return p;
-}
-
-#define HWFEATURE_EARLY_INIT_MAX 4
-static struct {
-	char key[HWFEATURE_STR_SIZE_LIMIT_KEY];
-	char value[HWFEATURE_STR_SIZE_LIMIT];
-} early_init_hwpara_data[HWFEATURE_EARLY_INIT_MAX] __initdata;
-static int early_init_hwpara_idx __initdata = -1;
-
-static void __init early_init_hwpara_data_append(const char *key, const char *value)
-{
-	int idx;
-
-	if (early_init_hwpara_idx >= HWFEATURE_EARLY_INIT_MAX) {
-		pr_warn("hwfeature temp cache is full\n");
-		return;
-	}
-
-	idx = ++early_init_hwpara_idx;
-	strlcpy(early_init_hwpara_data[idx].key, key, HWFEATURE_STR_SIZE_LIMIT_KEY);
-	strlcpy(early_init_hwpara_data[idx].value, value, HWFEATURE_STR_SIZE_LIMIT);
-}
-
-static int __init hwfeature_lwfq_type(char *str)
-{
-	/* kzalloc is not ready for use at this stage */
-	early_init_hwpara_data_append("lwfq/type", str);
-	return 0;
-}
-early_param("androidboot.lwfq.type", hwfeature_lwfq_type);
-
-static void __init early_init_hwpara(void)
-{
-	int i;
-	char *key;
-	char *value;
-
-	for (i = 0; i <= early_init_hwpara_idx; i++) {
-		key = early_init_hwpara_data[i].key;
-		value = early_init_hwpara_data[i].value;
-		sprd_kproperty_append(hwfeature_strdup(key), hwfeature_strdup(value));
-	}
-}
-#else
-static void __init early_init_hwpara(void) {}
-#endif
 
 static unsigned int hash_str(const char *str)
 {
@@ -104,16 +50,54 @@ static unsigned int hash_str(const char *str)
 	return h & HWFEATURE_TABLE_MASK;
 }
 
+static void __init process_hwfeatures_node(struct device_node *np)
+{
+	char *value, *prop_name;
+	struct property *pp;
+	const char *full_name;
+	char key_buf[HWFEATURE_STR_SIZE_LIMIT_KEY];
+	int len = strlen(HWFEATURE_ROOT_NAME);
+
+	for_each_property_of_node(np, pp) {
+		if (!pp->next)
+			continue;
+		value = pp->value;
+		full_name = of_node_full_name(np);
+		prop_name = pp->name;
+		pr_info("%s/%s=%s\n", full_name, prop_name, value);
+		snprintf(key_buf, sizeof(key_buf), "%s/%s", full_name, prop_name);
+		sprd_kproperty_append(kstrdup_const(key_buf + len, GFP_KERNEL),
+			kstrdup_const(value, GFP_KERNEL));
+	}
+}
+
+static void __init early_init_fdt_hwfeature(void)
+{
+	struct device_node *np, *hwf;
+
+	hwf = of_find_node_by_path(HWFEATURE_ROOT_NAME);
+	if (!hwf)
+		return;
+
+	for_each_of_allnodes_from(hwf, np) {
+		if (hwf->sibling == np)
+			break;
+		process_hwfeatures_node(np);
+	}
+	process_hwfeatures_node(hwf);
+}
+
 static void __init sprd_kproperty_append(const char *key, const char *value)
 {
 	struct hlist_head *head;
 	struct hwf_property *hp;
 
-	hp = kzalloc(sizeof(*hp), GFP_ATOMIC);
-	if (!hp) {
-		pr_err("hwfeature kzalloc failed\n");
+	if (!key || !value)
 		return;
-	}
+
+	hp = kzalloc(sizeof(*hp), GFP_ATOMIC);
+	if (!hp)
+		return;
 
 	INIT_HLIST_NODE(&hp->hlist);
 	hp->key = key;
@@ -130,11 +114,25 @@ static int __init hwfeature_init(void)
 	for (i = 0; i < HWFEATURE_TABLE_SIZE; i++)
 		INIT_HLIST_HEAD(&hwf_table[i]);
 
-	early_init_hwpara();
+	early_init_fdt_hwfeature();
 
 	return 0;
 }
 early_initcall(hwfeature_init);
+
+int sprd_kproperty_eq(const char *key, const char *value)
+{
+	struct hlist_head *head;
+	struct hwf_property *hp;
+
+	head = &hwf_table[hash_str(key)];
+	hlist_for_each_entry(hp, head, hlist) {
+		if (!strcmp(hp->key, key) && !strcmp(value, hp->value))
+			return 1;
+	}
+	return 0;
+}
+EXPORT_SYMBOL(sprd_kproperty_eq);
 
 void sprd_kproperty_get(const char *key, char *value, const char *default_value)
 {

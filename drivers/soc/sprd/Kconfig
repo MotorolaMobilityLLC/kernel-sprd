@@ -8,9 +8,8 @@ config SPRD_PIKE2_SLEEP
 	  Select this to enable light sleep function for pike2 soc.
 
 config SPRD_HWFEATURE
-		bool "Spreadtrum hwfeature globe driver"
+	bool "Spreadtrum hwfeature driver"
 	depends on ARCH_SPRD
-	default n
 	help
 	  Select this to enable hwfeature property function for all platform board
 
