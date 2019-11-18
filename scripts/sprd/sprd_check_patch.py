@@ -1,0 +1,347 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+
+import os
+import sys
+import commands
+
+MAIN_PATH = ''
+TAGS_FILE_NAME = '../../Documentation/sprd-tags.txt'
+
+GET_PATCH_INFO_COMMANDS = 'git log -1'
+GET_PATCH_MODIFY_FILE_INFO = 'git log -1 --pretty="format:" --name-only'
+
+ATTRIBUTE_TAGS  = []
+SUBSYSTEM1_TAGS = []
+SUBSYSTEM2_TAGS = []
+SUBSYSTEM3_TAGS = []
+SUBSYSTEM1_TAGS_NOCHECK = ['include', 'dt-bindings', 'documentation']
+
+def read_line(path, file_name):
+    read_file = path + '/' + file_name
+    f = open(read_file, 'rb')
+    lines = f.readlines()
+    f.close()
+    return lines
+
+def get_tags():
+    global MAIN_PATH
+    global ATTRIBUTE_TAGS
+    global SUBSYSTEM1_TAGS
+    global SUBSYSTEM2_TAGS
+    global SUBSYSTEM3_TAGS
+
+    MAIN_PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+#print "main path: %s" % MAIN_PATH
+
+    read_tags_list = read_line(MAIN_PATH, TAGS_FILE_NAME)
+
+    for x in read_tags_list:
+        if "\n" in x:
+            x = x.strip("\n")
+        if ":" in x:
+            subsystem1_tags = ''
+            subsystem2_tags = ''
+            subsystem3_tags = ''
+
+            subsystem_list = x.split(":")
+#print "subsystem tags:%s %d" % (subsystem_list,len(subsystem_list))
+
+            subsystem1_tags = subsystem_list[0].replace(' ','')
+            if len(subsystem_list) >= 4:
+                subsystem2_tags = subsystem_list[1].replace(' ','')
+                subsystem3_tags = subsystem_list[2].replace(' ','')
+            elif len(subsystem_list) >= 3:
+                subsystem2_tags = subsystem_list[1].replace(' ','')
+
+#print "subsystem tags: 1:%s,2:%s,3:%s" % (subsystem1_tags,subsystem2_tags,subsystem3_tags)
+
+            if subsystem1_tags not in SUBSYSTEM1_TAGS:
+                SUBSYSTEM1_TAGS.append(subsystem1_tags)
+                SUBSYSTEM2_TAGS.append([subsystem2_tags])
+                SUBSYSTEM3_TAGS.append([subsystem3_tags])
+            else:
+                if len(subsystem_list) >= 4:
+                    if subsystem2_tags not in SUBSYSTEM2_TAGS[SUBSYSTEM1_TAGS.index(subsystem1_tags)]:
+                        SUBSYSTEM2_TAGS[SUBSYSTEM1_TAGS.index(subsystem1_tags)].append(subsystem2_tags)
+                    if subsystem3_tags not in SUBSYSTEM3_TAGS[SUBSYSTEM1_TAGS.index(subsystem1_tags)]:
+                        SUBSYSTEM3_TAGS[SUBSYSTEM1_TAGS.index(subsystem1_tags)].append(subsystem3_tags)
+                elif len(subsystem_list) >= 3:
+                    if subsystem2_tags not in SUBSYSTEM2_TAGS[SUBSYSTEM1_TAGS.index(subsystem1_tags)]:
+                        SUBSYSTEM2_TAGS[SUBSYSTEM1_TAGS.index(subsystem1_tags)].append(subsystem2_tags)
+
+#print "SUBSYSTEM1_TAGS: %s" % SUBSYSTEM1_TAGS
+#print "SUBSYSTEM2_TAGS: %s" % SUBSYSTEM2_TAGS
+#print "SUBSYSTEM3_TAGS: %s" % SUBSYSTEM3_TAGS
+
+        elif "," in x:
+            ATTRIBUTE_TAGS = x.split(",")
+#           print "attribute tags:%s" % ATTRIBUTE_TAGS
+
+#    print "SUBSYSTEM1_TAGS: %s" % SUBSYSTEM1_TAGS
+#    print "SUBSYSTEM1_TAGS num = %d" % len(SUBSYSTEM1_TAGS)
+
+def find_last_char(string, p):
+    index = 0
+    i = 0
+    for x in string:
+        if p == x:
+            index = i
+        i += 1
+
+    return index
+
+def check_tags_commit_id(patch_info_list):
+    check_title_flag = 1
+    check_tags_flag = 1
+    check_commit_id_flag = 0
+    tags_list_start_num = 0
+    ret_hit_tags_list = []
+    attribute_temp = []
+
+    get_tags()
+
+    for x in patch_info_list:
+        if check_title_flag == 1 and "Bug #" in x:
+            print("Patch title:\n%s" % x)
+            check_title_flag = 0
+
+            if "：" in x:
+                return (-1, "The patch title contains : of chinese")
+            if ":" not in x:
+                return (-1, "The patch donot contains tag")
+
+            if len(x.split(":")) != len(x.split(": ")):
+                return (-1, "expected ' ' after ':'")
+
+            tags_list = x[x.index("Bug #") + len("Bug #"):find_last_char(x, ":")].split(' ')[1:]
+#            print "tags list:%s" % tags_list
+
+            if "BACKPORT" in tags_list[tags_list_start_num]:
+                tags_list_start_num += 1
+
+            if tags_list[tags_list_start_num].strip(":") in ATTRIBUTE_TAGS:
+                if tags_list[tags_list_start_num].strip(":") in ATTRIBUTE_TAGS[0:ATTRIBUTE_TAGS.index("FROMLIST") + 1]:
+                    check_tags_flag = 0
+                    check_commit_id_flag = 0
+                elif tags_list[tags_list_start_num].strip(":") in  ATTRIBUTE_TAGS[ATTRIBUTE_TAGS.index("SECURITY"):]:
+                    check_tags_flag = 1
+                else:
+                    check_tags_flag = 0
+                    check_commit_id_flag = 1
+                tags_list_start_num += 1
+
+            if check_tags_flag == 1:
+                if tags_list_start_num < len(tags_list):
+                    if tags_list[tags_list_start_num].strip(":") in SUBSYSTEM1_TAGS:
+                        ret_hit_tags_list.append(tags_list[tags_list_start_num].strip(":"))
+                        if tags_list[tags_list_start_num].strip(":") in SUBSYSTEM1_TAGS_NOCHECK:
+                            for index_tags in range(tags_list_start_num + 1, len(tags_list)):
+                                ret_hit_tags_list.append(tags_list[index_tags].strip(":"))
+                            continue
+                        tags_list_start_num += 1
+                        if tags_list_start_num < len(tags_list):
+                            if tags_list[tags_list_start_num].strip(":") in SUBSYSTEM2_TAGS[SUBSYSTEM1_TAGS.index(tags_list[tags_list_start_num - 1].strip(":"))]:
+                                ret_hit_tags_list.append(tags_list[tags_list_start_num].strip(":"))
+                                tags_list_start_num += 1
+                                if tags_list_start_num < len(tags_list):
+                                    if tags_list[tags_list_start_num].strip(":") in SUBSYSTEM3_TAGS[SUBSYSTEM1_TAGS.index(tags_list[tags_list_start_num - 2].strip(":"))]:
+                                        ret_hit_tags_list.append(tags_list[tags_list_start_num].strip(":"))
+                                        continue
+                                    else:
+                                        return (-1, "The subsystem 3 tag is error")
+                                else:
+                                    continue
+                            else:
+                                return (-1, "The subsystem 2 tag is error")
+                        else:
+                            continue
+                    else:
+                        return (-1, "The subsystem 1 tag is error")
+                else:
+                    return (-1, "The string donot contains subsystem 1 tag")
+        elif check_commit_id_flag == 1 and "commit" in x:
+            # check commit id ok
+            print("check commit id ok")
+            return (0, ret_hit_tags_list)
+
+    if check_commit_id_flag == 1:
+        return (-1, "The patch donot contains commit id")
+
+    return (0, ret_hit_tags_list)
+
+def check_tags_file(modfiy_file_list, tags_list):
+    file_name_list_temp = []
+    inconsistent_file_list = []
+    file_add_inconsistent_flag = 0
+
+    if "asoc" in tags_list:
+        tags_list[tags_list.index("asoc")] = 'sound'
+
+    for x in modfiy_file_list:
+        if len(x) < 2:
+            continue
+        elif "." in x:
+            file_name_list_temp = x.split(".")[0].split("/")
+        else:
+            file_name_list_temp = x.split("/")
+
+        print("Modfied file name: %s" % x)
+
+        for y in tags_list:
+            if y not in file_name_list_temp:
+                file_add_inconsistent_flag = 1
+                for z in file_name_list_temp:
+                    if z in y:
+                        file_add_inconsistent_flag = 0
+                        break
+                if file_add_inconsistent_flag == 1:
+                    inconsistent_file_list.append(x)
+                    break
+
+    if len(inconsistent_file_list) > 0:
+        if 'configs' in tags_list:
+            return (-2, inconsistent_file_list)
+        return (-1, inconsistent_file_list)
+
+    return (0, inconsistent_file_list)
+
+if __name__ == '__main__':
+    ret_info = []
+    ret_check_file = []
+    get_patch_info_list = []
+    get_patch_modfiy_file_list = []
+
+    status,output=commands.getstatusoutput(GET_PATCH_INFO_COMMANDS)
+
+    get_patch_info_list = output.split('\n')
+
+#print "get patch info:"
+#for x in get_patch_info_list:
+#print "%s" % x
+
+    ret_info = check_tags_commit_id(get_patch_info_list)
+    if ret_info[0] != 0:
+        print("\nERROR: %s" %  ret_info[1])
+    else:
+        print("\nCheck tags OK, tags list: %s\n" % ret_info[1])
+
+        status,output=commands.getstatusoutput(GET_PATCH_MODIFY_FILE_INFO)
+        get_patch_modfiy_file_list = output.split('\n')
+
+        ret_check_file = check_tags_file(get_patch_modfiy_file_list, ret_info[1])
+
+        if ret_check_file[0] != 0:
+            if ret_check_file[0] == -1:
+                print("\nERROR: Tags and modified files are inconsistent!\ninconsistent file list:")
+            else:
+                print("\nINFO: Tags and modified files are inconsistent!\ninconsistent file list:")
+            for x in ret_check_file[1]:
+                print("%s" % x)
+        else:
+            print("\nTags and modified files are consistent!")
+
+
+#test code
+'''
+if __name__ == '__main__':
+    test_list = []
+    ret_info = []
+#test 1 tags
+    test_list = []
+    test_list.append("Bug #987917 sched: open eas,set schedtune and set default schedutil governor @samer.xie")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test 2 tags
+    test_list = []
+    test_list.append("e79b6a3eaac9 Bug #986255 spi: sprd: Add reset function for Sharkl3 platform @Bruce Chen")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test 3 tags
+    test_list = []
+    test_list.append("Bug #898471 soc: sprd: iommu: bypass dcam/isp iommu for sharkl5 @sheng.xu")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test include tags
+    test_list = []
+    test_list.append("Bug #885833 include: power123: Add helper function to detect charger type @Baolin Wang")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test donot need check tags and commit id
+    test_list = []
+    test_list.append("Bug #898471 FROMLIST: soc: sprda: iommu: bypass dcam/isp iommu for sharkl5 @sheng.xu")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test donot need check tags, need check commit id
+    test_list = []
+    test_list.append("Bug #898471 UPSTREAM: socs: sprd: iommu: bypass dcam/isp iommu for sharkl5 @sheng.xu")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test donot need check commit id,need check tags
+    test_list = []
+    test_list.append("Bug #898471 SECURITY: soc: sprda: iommu: bypass dcam/isp iommu for sharkl5 @sheng.xu")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test 1 tags error
+    test_list = []
+    test_list.append("Bug #898471 soca: sprd: iommu: bypass dcam/isp iommu for sharkl5 @sheng.xu")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test 2 tags error
+    test_list = []
+    test_list.append("Bug #898471 soc: sprda: iommu: bypass dcam/isp iommu for sharkl5 @sheng.xu")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test 3 tags error
+    test_list = []
+    test_list.append("Bug #898471 soc: sprd: iommua: bypass dcam/isp iommu for sharkl5 @sheng.xu")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test BACKPORT, FROMLIST:
+    test_list = []
+    test_list.append("Bug #898471 BACKPORT, FROMLIST: soc: sprda: iommua: bypass dcam/isp iommu for sharkl5 @sheng.xu")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+#test BACKPORT: FROMGIT:
+    test_list = []
+    test_list.append("Bug #898471 BACKPORT: FROMGIT: soc: sprda: iommua: bypass dcam/isp iommu for sharkl5 @sheng.xu")
+    ret_info = check_tags_commit_id(test_list)
+    if ret_info[0] != 0:
+        print "error code: %s, error info: %s" % (ret_info[0], ret_info[1])
+    else:
+        print "check OK: tags list: %s" % ret_info[1]
+'''
