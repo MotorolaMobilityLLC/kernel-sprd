@@ -87,12 +87,12 @@
 
 &reserved_memory {
 
-	fd_reserved: faceid-mem@f04ae000 {
-		reg = <0x0 0xf04ae000 0x0 0x00f00000>;
+	fd_reserved: faceid-mem@efaae000 {
+		reg = <0x0 0xefaae000 0x0 0x00f00000>;
 	};
 
-	vdsp_reserved: vdsp-mem@f13ae000 {
-		reg = <0x0 0xf13ae000 0x0 0x02d00000>;
+	vdsp_reserved: vdsp-mem@f09ae000 {
+		reg = <0x0 0xf09ae000 0x0 0x03700000>;
 	};
 /*
 	gpu_reserved: gpu-mem@fb8ae000 {
