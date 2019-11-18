@@ -1551,6 +1551,9 @@ static void misc_event_handler(struct charger_manager *cm,
 	else
 		try_charger_enable(cm, false);
 
+	if (cm->desc->force_set_full)
+		cm->desc->force_set_full = false;
+
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		schedule_work(&setup_polling);
 	uevent_notify(cm, default_event_names[type]);
@@ -2742,7 +2745,7 @@ static void cm_batt_works(struct work_struct *work)
 
 	case POWER_SUPPLY_STATUS_FULL:
 		cm->desc->update_capacity_time = cur_time.tv_sec;
-		if ((batt_ocV < (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 150000))
+		if ((batt_ocV < (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 50000))
 		    && (bat_uA < 0))
 			cm->desc->force_set_full = false;
 		if (is_ext_pwr_online(cm)) {
