@@ -4,11 +4,6 @@
 #include <linux/scatterlist.h>
 #include <asm/cacheflush.h>
 
-#define GSP_VSP_IOMMU_SIZE		(2 * 256 * 1024)
-#define DCAM_ISP_IOMMU_SIZE	(26 * 100 * 1024)
-#define CPP_JPEG_IOMMU_SIZE		(12 * 100 * 1024)
-#define DISPC_IOMMU_SIZE		(5 * 100 * 1024)
-
 struct sprd_iommu_init_data {
 	int id;                        /* iommu id */
 	char *name;                    /* iommu name */
@@ -17,9 +12,10 @@ struct sprd_iommu_init_data {
 	size_t iova_size;            /* io virtual address size */
 	unsigned long frc_reg_addr;  /* force copy reg address */
 	size_t pgt_size;             /* iommu page table array size */
-	unsigned long ctrl_reg;             /* iommu control register */
+	unsigned long ctrl_reg;             /* iommu control register base */
+	u32 *dump_regs;         /* iommu regs dump array*/
+	size_t dump_size;        /* iommu regs dump range */
 	unsigned long fault_page;
-	unsigned int iommu_rev;
 
 	/*iommu reserved memory of pf page table*/
 	unsigned long pagt_base_ddr;
@@ -115,9 +111,10 @@ struct sprd_iommu_list_data {
 
 /*kernel API for Iommu map/unmap*/
 #if IS_ENABLED(CONFIG_SPRD_IOMMU)
+void sprd_iommu_pool_show(struct device *dev);
+void sprd_iommu_reg_dump(struct device *dev);
+void sprd_iommu_reg_show(struct device *dev);
 int sprd_iommu_attach_device(struct device *dev);
-int sprd_iommu_dettach_device(struct device *dev);
-
 int sprd_iommu_map(struct device *dev,
 		struct sprd_iommu_map_data *data);
 int sprd_iommu_map_with_idx(struct device *dev,
@@ -130,12 +127,22 @@ int sprd_iommu_unmap_orphaned(struct sprd_iommu_unmap_data *data);
 int sprd_iommu_restore(struct device *dev);
 int sprd_iommu_set_cam_bypass(bool vaor_bp_en);
 #else
-static inline int sprd_iommu_attach_device(struct device *dev)
+void sprd_iommu_pool_show(struct device *dev)
 {
 	return -ENODEV;
 }
 
-static inline int sprd_iommu_dettach_device(struct device *dev)
+void sprd_iommu_reg_dump(struct device *dev)
+{
+	return -ENODEV;
+}
+
+void sprd_iommu_reg_show(struct device *dev)
+{
+	return -ENODEV;
+}
+
+static inline int sprd_iommu_attach_device(struct device *dev)
 {
 	return -ENODEV;
 }
