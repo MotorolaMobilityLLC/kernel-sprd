@@ -79,7 +79,7 @@ early_param("androidboot.lwfq.type", hwfeature_lwfq_type);
 
 static void __init early_init_hwpara(void)
 {
-	unsigned int i;
+	int i;
 	char *key;
 	char *value;
 
