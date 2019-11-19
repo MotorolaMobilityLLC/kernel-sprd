@@ -30,6 +30,7 @@
 enum sprd_cpudvfs_pmic {
 	PMIC_SC2730,
 	PMIC_SC2703,
+	PMIC_FAN53555,
 	MAX_PMIC_TYPE_NUM = 8,
 };
 
@@ -111,3 +112,5 @@ struct dvfs_private_data {
 	struct cpudvfs_freq_manager *freq_manager;
 	struct mpll_freq_manager *mpll_manager;
 };
+
+extern const struct dvfs_private_data ums512_dvfs_private_data;
