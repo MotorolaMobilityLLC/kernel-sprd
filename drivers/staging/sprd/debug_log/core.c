@@ -122,18 +122,19 @@ struct dbg_log_device *dbg_log_device_register(struct device *parent,
 		goto phy_free;
 	}
 
-	DEBUG_LOG_PRINT("start dbg_log_sysfs_init\n");
 	if (dbg_log_sysfs_init(&dbg->dev)) {
 		pr_err("create sysfs node failed\n");
 		goto phy_free;
 	}
-	DEBUG_LOG_PRINT("end dbg_log_sysfs_init\n");
 
-	if (!dbg->serdes.ch_str[0]) {
-		dbg->serdes.ch_num = ARRAY_SIZE(ch_str);
-		for (i = 0; i < ARRAY_SIZE(ch_str); i++)
-			dbg->serdes.ch_str[i] = ch_str[i];
+	dbg->serdes.ch_num = ARRAY_SIZE(ch_str);
+	if (ARRAY_SIZE(ch_str) >= CH_MAX) {
+		dev_err(&dbg->dev, "error: array ch_str out of range.\n");
+		goto phy_free;
 	}
+
+	for (i = 0; i < ARRAY_SIZE(ch_str); i++)
+		dbg->serdes.ch_str[i] = ch_str[i];
 
 	return dbg;
 
