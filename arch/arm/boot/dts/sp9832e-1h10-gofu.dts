@@ -508,52 +508,52 @@
 	pinctrl-9 = <&gpio_147>;
 
 	gpio_121: keyout0 {
-		pins = "SHARKL3_KEYOUT0";
+		pins = "SHARKLE_KEYOUT0";
 		function = "func4";
 	};
 
 	gpio_122: keyout1 {
-		pins = "SHARKL3_KEYOUT1";
+		pins = "SHARKLE_KEYOUT1";
 		function = "func4";
 	};
 
 	gpio_123: keyout2 {
-		pins = "SHARKL3_KEYOUT2";
+		pins = "SHARKLE_KEYOUT2";
 		function = "func4";
 	};
 
 	gpio_124: keyin0 {
-		pins = "SHARKL3_KEYIN0";
+		pins = "SHARKLE_KEYIN0";
 		function = "func4";
 	};
 
 	gpio_125: keyin1 {
-		pins = "SHARKL3_KEYIN1";
+		pins = "SHARKLE_KEYIN1";
 		function = "func4";
 	};
 
 	gpio_126: keyin2 {
-		pins = "SHARKL3_KEYIN2";
+		pins = "SHARKLE_KEYIN2";
 		function = "func4";
 	};
 
 	gpio_144: extint0 {
-		pins = "SHARKL3_EXTINT0";
+		pins = "SHARKLE_EXTINT0";
 		function = "func4";
 	};
 
 	gpio_145: extint1 {
-		pins = "SHARKL3_EXTINT1";
+		pins = "SHARKLE_EXTINT1";
 		function = "func4";
 	};
 
 	gpio_146: scl3 {
-		pins = "SHARKL3_SCL3";
+		pins = "SHARKLE_SCL3";
 		function = "func4";
 	};
 
 	gpio_147: sda3 {
-		pins = "SHARKL3_SDA3";
+		pins = "SHARKLE_SDA3";
 		function = "func4";
 	};
 };
