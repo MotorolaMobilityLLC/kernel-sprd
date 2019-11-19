@@ -296,7 +296,11 @@ static int ion_system_heap_shrink(struct ion_heap *heap, gfp_t gfp_mask,
 	if (!nr_to_scan)
 		only_scan = 1;
 
+#ifdef CONFIG_ARM64
+	for (i = NUM_ORDERS - 1; i >= 0 ; i--) {
+#else
 	for (i = 0; i < NUM_ORDERS; i++) {
+#endif
 		uncached_pool = sys_heap->uncached_pools[i];
 		cached_pool = sys_heap->cached_pools[i];
 
