@@ -41,6 +41,7 @@ Optional properties:
 	- voltage-tolerance: Specify the CPU voltage tolerance in percentage.
 	- dual-phase-supply - boolean flag used only if SOC have shared power supply for Big and
 		Little clusters, and we are not defining cpu-supply for this cpu.
+	-sprd,multi-version: A boolean property to illustrate whether there are multi-version of the same SOC.
 - sprd_swdvfs node.
 	- compatible: Describe which soc will use swdvfs driver,for example:
 			"sprd,sharkl3-swdvfs";
@@ -258,5 +259,19 @@ Example 4: Example for A specific soc will use swdvfs driver.
 ---------
 	sprd_swdvfs: sprd-swdvfs {
 		compatible = "sprd,sharkl3-swdvfs";
+	};
+
+Example 5: Example for A specific soc will be discerned of multi-version
+---------
+	cpufreq_clus0: cpufreq-clus0 {
+		clocks = <&clk_lit_mcu>,
+			<&clk_twpll_768m>,
+			<&clk_mpll0>;
+		clock-names = "core_clk",
+			"low_freq_clk_parent",
+			"high_freq_clk_parent";
+		clock-latency = <50000>;
+		voltage-tolerance = <0>;
+		sprd,multi-version;
 	};
 
