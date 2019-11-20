@@ -995,15 +995,16 @@ struct MOCK(void) {
 	void		*trgt;
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-static inline struct mock *from_void_ptr_to_mock(const void *ptr)
+//comments this for it not working with gcc 4.9
+//#pragma GCC diagnostic push
+//#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+static inline struct mock *from_void_ptr_to_mock(void *ptr)
 {
 	struct MOCK(void) *mock_void_ptr = ptr;
 
 	return mock_get_ctrl(mock_void_ptr);
 }
-#pragma GCC diagnostic pop
+//#pragma GCC diagnostic pop
 
 #define DEFINE_VOID_CLASS_MOCK_HANDLE_INDEX_INTERNAL(name,		       \
 						     handle_index,	       \
