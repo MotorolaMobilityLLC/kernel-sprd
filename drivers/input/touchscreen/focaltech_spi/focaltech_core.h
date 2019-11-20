@@ -262,4 +262,7 @@ int fts_ex_mode_recovery(struct fts_ts_data *ts_data);
 
 void fts_irq_disable(void);
 void fts_irq_enable(void);
+
+int fts_ts_suspend(struct device *dev);
+int fts_ts_resume(struct device *dev);
 #endif /* __LINUX_FOCALTECH_CORE_H__ */

@@ -67,8 +67,6 @@ struct fts_ts_data *fts_data;
 /*****************************************************************************
  * Static function prototypes
  *****************************************************************************/
-static int fts_ts_suspend(struct device *dev);
-static int fts_ts_resume(struct device *dev);
 
 /*****************************************************************************
  *  Name: fts_wait_tp_to_valid
@@ -1406,6 +1404,10 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 	if (ret)
 		FTS_ERROR("create sysfs node fail");
 
+	ret = sysfs_create_link(NULL, &ts_data->dev->kobj, "touchscreen");
+	if (ret)
+		FTS_ERROR("link touchscreen fail");
+
 #if FTS_POINT_REPORT_CHECK_EN
 	ret = fts_point_report_check_init(ts_data);
 	if (ret)
@@ -1534,7 +1536,7 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
 	return 0;
 }
 
-static int fts_ts_suspend(struct device *dev)
+int fts_ts_suspend(struct device *dev)
 {
 	int ret = 0;
 	struct fts_ts_data *ts_data = fts_data;
@@ -1578,7 +1580,7 @@ static int fts_ts_suspend(struct device *dev)
 	return 0;
 }
 
-static int fts_ts_resume(struct device *dev)
+int fts_ts_resume(struct device *dev)
 {
 	struct fts_ts_data *ts_data = fts_data;
 

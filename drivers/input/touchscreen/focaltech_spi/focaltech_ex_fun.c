@@ -1146,6 +1146,32 @@ static ssize_t fts_log_level_store(struct device *dev,
 
 	return count;
 }
+static ssize_t fts_light_suspend_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	struct fts_ts_data *ts_data = fts_data;
+
+	return sprintf(buf, "%s\n",
+		ts_data->suspended ? "true" : "false");
+}
+
+static ssize_t fts_light_suspend_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	unsigned int input;
+
+	if (kstrtouint(buf, 10, &input))
+		return -EINVAL;
+
+	if (input == 1)
+		fts_ts_suspend(dev);
+	else if (input == 0)
+		fts_ts_resume(dev);
+	else
+		return -EINVAL;
+
+	return count;
+}
 
 /* get the fw version  example:cat fw_version */
 static DEVICE_ATTR(fts_fw_version, 0644, fts_tpfwver_show,
@@ -1186,6 +1212,8 @@ static DEVICE_ATTR(fts_touch_point, 0644, fts_tpbuf_show,
 		   fts_tpbuf_store);
 static DEVICE_ATTR(fts_log_level, 0644, fts_log_level_show,
 		   fts_log_level_store);
+static DEVICE_ATTR(ts_suspend, 0664, fts_light_suspend_show,
+		fts_light_suspend_store);
 
 /* add your attr in here*/
 static struct attribute *fts_attributes[] = {
@@ -1200,6 +1228,7 @@ static struct attribute *fts_attributes[] = {
 	&dev_attr_fts_boot_mode.attr,
 	&dev_attr_fts_touch_point.attr,
 	&dev_attr_fts_log_level.attr,
+	&dev_attr_ts_suspend.attr,
 	NULL
 };
 
