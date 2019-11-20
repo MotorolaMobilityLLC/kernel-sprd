@@ -478,8 +478,8 @@ static void sdiohal_tx_test_init(void)
 		init_completion(&sdiohal_thread_info[chn].tx_completed);
 		tx_thread =
 			kthread_create(sdiohal_thread_info[chn].thread_func,
-					NULL,
-					sdiohal_thread_info[chn].thread_name);
+				       NULL, "%s",
+				       sdiohal_thread_info[chn].thread_name);
 		if (tx_thread)
 			wake_up_process(tx_thread);
 		else {
