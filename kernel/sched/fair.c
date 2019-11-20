@@ -7439,21 +7439,6 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	if (!sd)
 		return -1;
 
-	/* fast path for prev_cpu */
-#ifdef CONFIG_SPRD_CORE_CTL
-	if ((capacity_orig_of(prev_cpu) == capacity_orig_of(cpu)) &&
-	    !cpu_isolated(prev_cpu) && cpu_online(prev_cpu) &&
-	    idle_cpu(prev_cpu)) {
-#else
-	if ((capacity_orig_of(prev_cpu) == capacity_orig_of(cpu)) &&
-	     cpu_online(prev_cpu) && idle_cpu(prev_cpu)) {
-#endif
-		target_cpu = -1;
-		trace_sched_find_best_target(p, prefer_idle, min_util, cpu,
-					     -1, -1, target_cpu);
-		return target_cpu;
-	}
-
 	/* Scan CPUs in all SDs */
 	sg = sd->groups;
 	do {
