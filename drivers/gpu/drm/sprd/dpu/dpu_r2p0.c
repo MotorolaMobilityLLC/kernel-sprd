@@ -285,16 +285,7 @@ static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	u32 val;
 
-	down(&ctx->refresh_lock);
-	if (!ctx->is_inited) {
-		up(&ctx->refresh_lock);
-		pr_err("dpu is not initialized\n");
-		return false;
-	}
-
 	val = reg->dpu_int_raw;
-	up(&ctx->refresh_lock);
-
 	if (val & mask)
 		return true;
 

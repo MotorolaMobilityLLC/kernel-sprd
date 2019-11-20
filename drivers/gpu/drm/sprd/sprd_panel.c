@@ -298,7 +298,7 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 	static int te_wq_inited;
 	struct sprd_dpu *dpu;
 	int ret;
-	bool irq_occur;
+	bool irq_occur = false;
 
 	if (!panel->base.connector ||
 	    !panel->base.connector->encoder ||
@@ -328,8 +328,11 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 	if (!ret) {
 		/* double check TE interrupt through dpu_int_raw register */
 		if (dpu->core && dpu->core->check_raw_int) {
-			irq_occur = dpu->core->check_raw_int(&dpu->ctx,
-				DISPC_INT_TE_MASK);
+			down(&dpu->ctx.refresh_lock);
+			if (dpu->ctx.is_inited)
+				irq_occur = dpu->core->check_raw_int(&dpu->ctx,
+					DISPC_INT_TE_MASK);
+			up(&dpu->ctx.refresh_lock);
 			if (!irq_occur) {
 				DRM_ERROR("TE esd timeout.\n");
 				ret = -1;
