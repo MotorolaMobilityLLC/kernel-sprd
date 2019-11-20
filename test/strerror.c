@@ -151,7 +151,7 @@ static const char * const errmap[] = {
 	MAKE_ERROR(EHWPOISON)
 };
 
-const char *strerror(int errno)
+const char *_strerror(int errno)
 {
 	if (errno < 0 || errno >= ARRAY_SIZE(errmap))
 		return NULL;
@@ -160,7 +160,7 @@ const char *strerror(int errno)
 
 const char *strerror_r(int errno, char *buf, size_t buflen)
 {
-	const char *err = strerror(errno);
+	const char *err = _strerror(errno);
 
 	if (!buflen)
 		return NULL;

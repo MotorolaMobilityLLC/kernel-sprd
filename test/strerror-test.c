@@ -13,8 +13,8 @@
 
 static void test_strerror_returns_null_for_unknown_errors(struct test *test)
 {
-	EXPECT_NULL(test, strerror(-1));
-	EXPECT_NULL(test, strerror(MAX_ERRNO + 1));
+	EXPECT_NULL(test, _strerror(-1));
+	EXPECT_NULL(test, _strerror(MAX_ERRNO + 1));
 }
 
 static void test_strerror_r_returns_null_if_buflen_is_zero(struct test *test)
@@ -27,7 +27,7 @@ static void test_strerror_returns_string(struct test *test)
 	const char *err;
 	char buf[64];
 
-	err = strerror(EAGAIN);
+	err = _strerror(EAGAIN);
 	ASSERT_NOT_NULL(test, err);
 	EXPECT_STREQ(test, err, "EAGAIN");
 

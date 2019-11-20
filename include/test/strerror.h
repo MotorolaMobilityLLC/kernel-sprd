@@ -17,7 +17,7 @@
  * EPERM, ENOENT, ESRCH, etc). For unsupported errors this function returns
  * NULL.
  */
-const char *strerror(int errno);
+const char *_strerror(int errno);
 
 /**
  * strerror_r() - returns a string representation of the given error code.
