@@ -486,6 +486,7 @@
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
+				sprd,dcam-superzoom = <2>;
 				sprd,project-id = <3>;
 				iommus = <&iommu_dcam>;
 				dcam_qos = <&dcam_qos>;

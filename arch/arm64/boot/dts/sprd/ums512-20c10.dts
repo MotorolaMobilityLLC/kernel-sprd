@@ -581,6 +581,7 @@
 
 &dcam {
 	status = "okay";
+	sprd,dcam-superzoom = <0>;
 };
 
 &iommu_dcam {
