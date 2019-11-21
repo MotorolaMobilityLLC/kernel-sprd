@@ -105,13 +105,13 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 	struct bl_out_tag *bl_ptr = &g_backlight;
 
 	hist_pre[0] = para->cabc_hist[31];
-	for (j = 30; j >= 18; j--)
+	for (j = 30; j >= 0; j--)
 		hist_pre[30 - (j - 1)] = hist_pre[30 - j] + para->cabc_hist[j];
-	hist_diff_pre[0] = hist_pre[0];
-	for (i = 1; i < HIST_BIN_CABC; i++)
-		hist_diff_pre[i] = hist_pre[i] - hist_pre[i-1];
+	for (i = 0; i < HIST_BIN_CABC; i++)
+		hist_diff_pre[i] = para->cabc_hist[HIST_BIN_CABC-1-i];
+
 	s_max_hist.max_hist_num_cur = max_hist(hist_diff_pre);
-	s_hist_cabc_num_diff = hist_pre[13] - hist_pre[13];
+	s_hist_cabc_num_diff = hist_pre[13] - hist_pre_pre[13];
 	if (s_hist_cabc_num_diff < 0) {
 		s_hist_cabc_num_diff = -s_hist_cabc_num_diff;
 		sign_num_diff = -1;
@@ -135,7 +135,7 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 
 	if (frame_no > 1) {
 		max_hist_cabc = (sign_num_diff > 0) ?
-			hist_pre[13] : hist_pre[13];
+		hist_pre[HIST_BIN_CABC-1] : hist_pre_pre[HIST_BIN_CABC-1];
 		scene_detection(hist_pre, hist_pre_pre, hist_diff_pre,
 			hist_diff_pre_pre, max_hist_cabc,
 			s_cabc_ctx.pixel_total_num,

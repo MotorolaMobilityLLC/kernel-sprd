@@ -18,7 +18,7 @@
 #include <linux/kernel.h>
 
 #define STEP2_INIT   2
-#define HIST_BIN_CABC  14
+#define HIST_BIN_CABC  32
 
 #define PRE  0
 #define PRE_PRE 1

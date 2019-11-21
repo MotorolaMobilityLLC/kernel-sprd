@@ -16,7 +16,7 @@
 
 #include "cabc_definition.h"
 
-extern u8 g_brightness_step[15];
+extern u16 g_brightness_step[32];
 extern u16 g_backlight_compensation_table[256];
 extern int g_cabc_percent_th;
 extern u8 g_min_backlight;
