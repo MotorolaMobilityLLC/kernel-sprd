@@ -14,7 +14,7 @@
 
 #define NUM_PWM		4
 #define PWM_REGS_SHIFT	5
-#define PWM_MOD_MAX	GENMASK(7, 0)
+#define PWM_MOD_MAX	GENMASK(9, 0)
 #define PWM_REG_MSK	GENMASK(15, 0)
 
 #define PWM_PRESCALE	0x0
@@ -193,9 +193,9 @@ static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 	 * PV = (PWM_CLK_RATE * period_ns) / (10^9 * (PRESCALE + 1))
 	 * DC = (PWM_CLK_RATE * duty_ns) / (10^9 * (PRESCALE + 1))
 	 */
-	val = (prescale + 1) * 1000000000 * PWM_MOD_MAX;
+	val = ((u64)prescale + 1) * NSEC_PER_SEC * PWM_MOD_MAX;
 	period_ns = div64_u64(val, clk_rate);
-	val = (prescale + 1) * 1000000000 * duty;
+	val = ((u64)prescale + 1) * NSEC_PER_SEC * duty;
 	duty_ns = div64_u64(val, clk_rate);
 
 	state->period = period_ns;
