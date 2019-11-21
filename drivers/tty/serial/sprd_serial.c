@@ -848,7 +848,7 @@ static int sprd_probe(struct platform_device *pdev)
 	if (!sprd_ports_num) {
 		ret = uart_register_driver(&sprd_uart_driver);
 		if (ret < 0) {
-			pr_err("Failed to register SPRD-UART driver\n");
+			dev_err(&pdev->dev, "Failed to register SPRD-UART driver\n");
 			return ret;
 		}
 	}
