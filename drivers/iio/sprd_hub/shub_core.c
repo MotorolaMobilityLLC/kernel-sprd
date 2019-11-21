@@ -1084,18 +1084,25 @@ static int shub_download_calibration_data(struct shub_data *sensor)
 		if (err) {
 			dev_err(&sensor->sensor_pdev->dev,
 				"Failed to find file stat, err = %d\n", err);
+			if (pfile)
+				filp_close(pfile, NULL);
 			continue;
 		}
 		cal_file_size = (int)stat.size;
 		dev_info(&sensor->sensor_pdev->dev,
 			 "cal_file_size=%d\n", cal_file_size);
 		/* check data size */
-		if (cal_file_size != CALIBRATION_DATA_LENGTH)
+		if (cal_file_size != CALIBRATION_DATA_LENGTH) {
+			if (pfile)
+				filp_close(pfile, NULL);
 			continue;
+		}
 		raw_cali_data = kmalloc(cal_file_size, GFP_KERNEL);
 		if (!raw_cali_data) {
 			dev_err(&sensor->sensor_pdev->dev,
 				"Failed to allocate raw_cali_data memory\n");
+			if (pfile)
+				filp_close(pfile, NULL);
 			continue;
 		}
 		if (kernel_read(pfile, raw_cali_data,
