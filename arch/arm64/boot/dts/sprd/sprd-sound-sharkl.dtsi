@@ -50,17 +50,18 @@
 		compatible = "sprd,vbc-r1p0v3-codec-sc2721";
 		status = "disabled";
 		sprd-audio-card,name = "sprdphone";
-		sprd-audio-card,widgets =
-			"Headphone", "inter HP PA",
-			"Speaker", "inter Spk PA",
-			"Speaker", "inter Ear PA";
 		sprd-audio-card,routing =
-			"HPMIC", "HP Mic Jack",
-			"MIC", "Mic Jack",
-			"AUXMIC", "Aux Mic Jack",
-			"inter HP PA", "HP PA",
-			"inter Spk PA", "Spk PA",
-			"inter Ear PA", "EAR",
+			"HPMIC Pin", "HP Mic Jack",
+			"MIC Pin", "Mic Jack",
+			"MIC2 Pin", "Aux Mic Jack",
+			"HeadPhone Jack", "HP Pin",
+			"Ext Spk", "HP Pin",
+			"Ext Spk1", "HP Pin",
+			"Ext Spk", "SPK Pin",
+			"Ext Spk1", "SPK Pin",
+			"Ext Ear", "EAR Pin",
+			"Ext Ear", "SPK Pin",
+			"Ext Ear", "HP Pin",
 			"DMIC", "DMic Jack",
 			"DMIC1", "DMic1 Jack",
 

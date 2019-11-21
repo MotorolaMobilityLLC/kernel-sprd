@@ -45,17 +45,18 @@
 		compatible = "sprd,vbc-v4-codec-sc2730";
 		status = "disabled";
 		sprd-audio-card,name = "sprdphone-sc2730";
-		sprd-audio-card,widgets =
-			"Headphone", "inter HP PA",
-			"Speaker", "inter Spk PA",
-			"Speaker", "inter Ear PA";
 		sprd-audio-card,routing =
 			"HPMIC Pin", "HP Mic Jack",
 			"MIC Pin", "Mic Jack",
 			"MIC2 Pin", "Aux Mic Jack",
-			"inter HP PA", "HP Pin",
-			"inter Spk PA", "SPK Pin",
-			"inter Ear PA", "EAR Pin";
+			"HeadPhone Jack", "HP Pin",
+			"Ext Spk", "HP Pin",
+			"Ext Spk1", "HP Pin",
+			"Ext Spk", "SPK Pin",
+			"Ext Spk1", "SPK Pin",
+			"Ext Ear", "EAR Pin",
+			"Ext Ear", "SPK Pin",
+			"Ext Ear", "HP Pin";
 		sprd-audio-card,headset = <&sprd_headset>;
 		sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
 		 /* fe dai-links */
