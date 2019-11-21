@@ -3200,15 +3200,14 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 
 	SND_SOC_DAPM_INPUT("DMIC"),
 	SND_SOC_DAPM_INPUT("DMIC1"),
-	SND_SOC_DAPM_OUTPUT("EAR"),
 
-	SND_SOC_DAPM_OUTPUT("HP PA"),
-	SND_SOC_DAPM_OUTPUT("Spk PA"),
-	SND_SOC_DAPM_OUTPUT("Spk2 PA"),
+	SND_SOC_DAPM_OUTPUT("EAR Pin"),
+	SND_SOC_DAPM_OUTPUT("HP Pin"),
+	SND_SOC_DAPM_OUTPUT("SPK Pin"),
 
-	SND_SOC_DAPM_INPUT("MIC"),
-	SND_SOC_DAPM_INPUT("AUXMIC"),
-	SND_SOC_DAPM_INPUT("HPMIC"),
+	SND_SOC_DAPM_INPUT("MIC Pin"),
+	SND_SOC_DAPM_INPUT("MIC2 Pin"),
+	SND_SOC_DAPM_INPUT("HPMIC Pin"),
 
 	/* In sc2721, no such outputs. However, define them here for mute
 	 * function, like "Speaker Mute" and "HeadPhone Mute" in the
@@ -3330,7 +3329,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"HPR Gain", NULL, "HPR Switch"},
 	{"Virt HP Jack", "Switch", "HPL Gain"},
 	{"Virt HP Jack", "Switch", "HPR Gain"},
-	{"HP PA", NULL, "Virt HP Jack"},
+	{"HP Pin", NULL, "Virt HP Jack"},
 
 	{"SPKL Mixer", "DACLSPKL Switch", "DACS Switch"},
 
@@ -3349,7 +3348,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"SPKR Switch", NULL, "SPKR Mixer"},
 	{"SPKL Gain", NULL, "SPKL Switch"},
 
-	{"Spk PA", NULL, "Spk PA Switch"},
+	{"SPK Pin", NULL, "Spk PA Switch"},
 	{"Spk PA Switch", NULL, "SPKL Gain"},
 	{"Spk PA Switch", NULL, "PA Short Check"},
 
@@ -3358,7 +3357,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"DALR DC Offset", NULL, "EAR Drv Path Switch"},
 	{"EAR Switch", "EAR", "HPL EAR Sel2"},
 	{"EAR Gain", NULL, "EAR Switch"},
-	{"EAR", NULL, "EAR Gain"},
+	{"EAR Pin", NULL, "EAR Gain"},
 
 	{"ADCL Mute", NULL, "ADCL Mixer"},
 	{"ADCR Mute", NULL, "ADCR Mixer"},
@@ -3392,9 +3391,9 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADC1 Ext", NULL, "Digital ADC1L Switch"},
 	{"ADC1 Ext", NULL, "Digital ADC1R Switch"},
 
-	{"Mic Bias", NULL, "MIC"},
-	{"Mic Bias", NULL, "AUXMIC"},
-	{"HeadMic Bias", NULL, "HPMIC"},
+	{"Mic Bias", NULL, "MIC Pin"},
+	{"Mic Bias", NULL, "MIC2 Pin"},
+	{"HeadMic Bias", NULL, "HPMIC Pin"},
 
 	/* DMIC0 */
 	{"DMIC Switch", NULL, "DMIC"},
