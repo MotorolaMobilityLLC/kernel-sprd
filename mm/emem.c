@@ -44,6 +44,8 @@
 #else
 #define EMEM_SHOW_INTERVAL	5
 #endif
+#define EMEM_SHOW_KILL_ADJ900_INTERVAL  600
+
 /*
  * The written value is the killed process adj, then trigger to show enhance
  * memory information. it's written to /proc/sys/vm/emem_trigger
@@ -96,13 +98,13 @@ static void dump_tasks_info(void)
 	rcu_read_unlock();
 }
 
-static void enhance_meminfo(void)
+static void enhance_meminfo(u64 interval)
 {
 	struct timeval val;
 	static u64 last_time = 0;
 
 	do_gettimeofday(&val);
-	if (val.tv_sec - last_time > EMEM_SHOW_INTERVAL) {
+	if (val.tv_sec - last_time > interval) {
 		pr_info("+++++++++++++++++++++++++++++++++++++++++++++++++\n");
 		pr_info("The killed process adj = %d\n", sysctl_emem_trigger);
 		enhanced_show_mem(E_SHOW_MEM_ALL);
@@ -118,8 +120,11 @@ static void emem_workfn(struct work_struct *work)
 		si_swapinfo(&si);
 
 		if (sysctl_emem_trigger <= killed_proc_adj_threshold)
-			enhance_meminfo();
-		else if (si.freeswap < si.totalswap / 10)
+			enhance_meminfo(EMEM_SHOW_INTERVAL);
+		else
+			enhance_meminfo(EMEM_SHOW_KILL_ADJ900_INTERVAL);
+
+		if (si.freeswap < si.totalswap / 10)
 			dump_tasks_info();
 	}
 }
