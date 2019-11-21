@@ -627,6 +627,60 @@ static void sprd_drm_shutdown(struct platform_device *pdev)
 	drm_atomic_helper_shutdown(drm);
 }
 
+static int sprd_drm_pm_suspend(struct device *dev)
+{
+	struct drm_device *drm = dev_get_drvdata(dev);
+	struct drm_atomic_state *state;
+	struct sprd_drm *sprd;
+
+	if (!drm) {
+		DRM_WARN("drm device is not available, no suspend\n");
+		return 0;
+	}
+
+	DRM_INFO("%s()\n", __func__);
+
+	drm_kms_helper_poll_disable(drm);
+
+	state = drm_atomic_helper_suspend(drm);
+	if (IS_ERR(state)) {
+		drm_kms_helper_poll_enable(drm);
+		DRM_WARN("suspend fail\n");
+		return PTR_ERR(state);
+	}
+
+	sprd = drm->dev_private;
+	sprd->state = state;
+
+	return 0;
+}
+
+static int sprd_drm_pm_resume(struct device *dev)
+{
+	struct drm_device *drm = dev_get_drvdata(dev);
+	struct sprd_drm *sprd;
+
+	if (!drm) {
+		DRM_WARN("drm device is not available, no resume\n");
+		return 0;
+	}
+
+	DRM_INFO("%s()\n", __func__);
+
+	sprd = drm->dev_private;
+	if (sprd->state) {
+		drm_atomic_helper_resume(drm, sprd->state);
+		drm_kms_helper_poll_enable(drm);
+		sprd->state = NULL;
+	}
+
+	return 0;
+}
+
+static const struct dev_pm_ops sprd_drm_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(sprd_drm_pm_suspend, sprd_drm_pm_resume)
+};
+
 static const struct of_device_id drm_match_table[] = {
 	{ .compatible = "sprd,display-subsystem",},
 	{},
@@ -640,6 +694,7 @@ static struct platform_driver sprd_drm_driver = {
 	.driver = {
 		.name = "sprd-drm-drv",
 		.of_match_table = drm_match_table,
+		.pm = &sprd_drm_pm_ops,
 	},
 };
 

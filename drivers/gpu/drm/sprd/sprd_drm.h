@@ -18,7 +18,6 @@
 #include <drm/drm_atomic.h>
 
 struct sprd_drm {
-	struct drm_device *drm;
 	struct drm_atomic_state *state;
 	struct device *dpu_dev;
 	struct device *gsp_dev;
