@@ -15,7 +15,7 @@
 #include "bl_decision.h"
 #include "cabc_global.h"
 
-int sign_diff(u8 a, u8 b)
+int sign_diff(u16 a, u16 b)
 {
 	if (a > b)
 		return 1;
@@ -25,30 +25,30 @@ int sign_diff(u8 a, u8 b)
 		return 0;
 }
 
-u8 smooth_step2(u8 diff, u8 div_result, u8 step2, u8 step)
+u8 smooth_step2(u16 diff, u8 div_result, u8 step2, u8 step)
 {
-	u8 step_result;
+	u16 step_result;
 
-	if (diff <= 20)
+	if (diff <= 80)
 		step_result = step2 + div_result * step;
-	else if (diff <= 40)
+	else if (diff <= 160)
 		step_result = step2 + div_result * (2 + step);
-	else if (diff <= 60)
+	else if (diff <= 240)
 		step_result = step2 + div_result * (4 + step);
 	else
-		step_result = step2 + 100;
+		step_result = step2 + 400;
 	return step_result;
 }
 
 u8 gen_step2(int cur_pre, int pre_pre2, int pre2_pre3, int scene_flag,
-	u8 div_result, u8 *step2, u8 step0, u8 step02, u8 abs_diff_bl_cur_pre)
+	u8 div_result, u8 *step2, u8 step0, u8 step02, u16 abs_diff_bl_cur_pre)
 {
 	u8 temp_step2;
 
 	if ((cur_pre < 0) && (pre_pre2 <= 0) && (pre2_pre3 <= 0)) {
 		/* darker gradually with smaller step*/
-		if ((scene_flag == 1) && (div_result > 4))
-			*step2 = step02 + 2;
+		if ((scene_flag == 1) && (div_result > 16))
+			*step2 = step02 + 8;
 		else
 			*step2 = smooth_step2(abs_diff_bl_cur_pre,
 			div_result, step02, 0);
@@ -61,18 +61,18 @@ u8 gen_step2(int cur_pre, int pre_pre2, int pre2_pre3, int scene_flag,
 		temp_step2 = *step2;
 	} else if ((cur_pre > 0) && (pre_pre2 == 0) && (pre2_pre3 == 0)) {
 		/* brighter gradually with bigger step ,first frame*/
-		if ((div_result > 4) && (scene_flag == 0))
+		if ((div_result > 16) && (scene_flag == 0))
 			*step2 = smooth_step2(abs_diff_bl_cur_pre, div_result,
 			step02, 3);
-		else if ((div_result > 4) && (scene_flag == 1))
-			*step2 = step02 + 2;
+		else if ((div_result > 16) && (scene_flag == 1))
+			*step2 = step02 + 8;
 		else
 			*step2 = smooth_step2(abs_diff_bl_cur_pre,
 			div_result, step02, 1);
 		temp_step2 = *step2;
 	} else if ((cur_pre > 0) && ((pre_pre2 != 0) || (pre2_pre3 != 0))) {
 		if (scene_flag == 1)
-			*step2 = step02 + 2;
+			*step2 = step02 + 8;
 		else
 			*step2 = smooth_step2(abs_diff_bl_cur_pre,
 			div_result, step02, 3);
@@ -88,17 +88,12 @@ void backlight_decision(int *hist_cabc, struct bl_out_tag *bl, int max_hist_num)
 {
 	int i;
 
-	if (max_hist_num >= 10) {
-		bl->cur = g_min_backlight;
-	} else {
-		bl->cur = g_min_backlight + g_brightness_step[14];
-		for (i = 0; i < 10; i++) {
-			if ((hist_cabc[i] * 100) >= (hist_cabc[13] *
-				g_cabc_percent_th)) {
-				bl->cur = g_min_backlight +
-					g_brightness_step[i];
-				break;
-			}
+	bl->cur = g_min_backlight;
+	for (i = 0; i < 32; i++) {
+		if ((hist_cabc[i] * 100) >= (hist_cabc[31] *
+			g_cabc_percent_th)) {
+			bl->cur = g_brightness_step[i];
+			break;
 		}
 	}
 }
@@ -113,7 +108,7 @@ void backlight_fix_ui(struct bl_out_tag *bl, struct max_hist_num_tag max_hist,
 	int diff_bl_cur_pre = bl->cur - bl->pre;
 	int diff_bl_pre_pre2 = sign_diff(bl->pre, bl->pre2);
 	int diff_bl_pre2_pre3 = sign_diff(bl->pre2, bl->pre3);
-	u8 abs_diff_bl_cur_pre = abs(diff_bl_cur_pre);
+	u16 abs_diff_bl_cur_pre = abs(diff_bl_cur_pre);
 	u8  cur_max_hist = max_hist.max_hist_num_cur;
 	u8  pre_max_hist = max_hist.max_hist_num_pre;
 	u8  pre_1_max_hist = max_hist.max_hist_num_pre_1;
@@ -148,7 +143,7 @@ void backlight_fix_ui(struct bl_out_tag *bl, struct max_hist_num_tag max_hist,
 						bl->cur_fix_ui = bl->pre_fix_ui;
 					else
 						bl->cur_fix_ui =
-						bl->pre_fix_ui -
+						bl->pre_fix_ui +
 						step1 * abs(80 - change_ratio);
 				}
 			}
@@ -203,9 +198,7 @@ void backlight_fix_video(struct max_hist_num_tag max_hist, u8 s_scene_change,
 	int sign_diff_cur_pre = sign_diff(bl->cur, bl->pre);
 	int sign_diff_cur_pre_fix = sign_diff(bl->cur, bl->pre_fix_video);
 
-	if ((s_scene_change == 0) &&
-		((max_hist.max_hist_num_cur < 13) ||
-		(max_hist.max_hist_num_pre < 13))) {
+	if (s_scene_change == 0) {
 		sign_diff_1 = sign_diff(bl->pre2, bl->pre3);
 		sign_diff_2 = sign_diff(bl->pre, bl->pre2);
 		sign_diff_3 = sign_diff(bl->cur, bl->pre);

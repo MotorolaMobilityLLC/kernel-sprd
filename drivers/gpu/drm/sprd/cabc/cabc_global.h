@@ -19,8 +19,8 @@
 extern u16 g_brightness_step[32];
 extern u16 g_backlight_compensation_table[256];
 extern int g_cabc_percent_th;
-extern u8 g_min_backlight;
-extern u8 g_max_backlight;
+extern u16 g_min_backlight;
+extern u16 g_max_backlight;
 extern u8 g_step0;
 extern u8 g_step1;
 extern u8 g_step2;

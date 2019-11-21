@@ -24,14 +24,14 @@
 #define PRE_PRE 1
 
 struct bl_out_tag {
-	u8 cur;
-	u8 pre;
-	u8 pre2;
-	u8 pre3;
+	u16 cur;
+	u16 pre;
+	u16 pre2;
+	u16 pre3;
 	int cur_fix_ui;
-	u8 pre_fix_ui;
+	u16 pre_fix_ui;
 	int cur_fix_video;
-	u8 pre_fix_video;
+	u16 pre_fix_video;
 };
 
 struct cabc_context_tag {

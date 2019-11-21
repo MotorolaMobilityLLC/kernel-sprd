@@ -23,11 +23,11 @@ int s_scene_detect_thr = 30;
 struct cabc_context_tag s_cabc_ctx;
 struct max_hist_num_tag  s_max_hist;
 bool s_pre_is_VSP_working;
-int g_cabc_percent_th = 20;
+int g_cabc_percent_th = 10;
 u8 s_scene_change;
 int s_ui_menu_frame_flag;
-u8 g_min_backlight = 102;
-u8 g_max_backlight = 255;
+u16 g_min_backlight = 408;
+u16 g_max_backlight = 1020;
 u8 s_smooth_final_flag;
 struct bl_out_tag g_backlight;
 u8 g_step0 = 2;
@@ -60,7 +60,7 @@ void init_cabc(int img_width, int img_height)
 	s_max_hist.max_hist_num_pre_2 = 0;
 }
 
-void clip(int *input, u8 bottom, u8 top)
+void clip(int *input, u16 bottom, u16 top)
 {
 	if (*input > top)
 		*input = top;
@@ -74,14 +74,14 @@ void step_set(int step0, int step1, int step2,
 	g_step0 = (u8)step0;
 	g_step1 = (u8)step1;
 	g_step2 = (u8)step2;
-	g_min_backlight = (u8)min_backlight;
+	g_min_backlight = (u16)min_backlight;
 }
 
 int max_hist(int *hist_diff)
 {
 	int i;
 
-	for (i = 0; i < (HIST_BIN_CABC - 3); i++) {
+	for (i = 0; i < (HIST_BIN_CABC - 2); i++) {
 		if (hist_diff[i] <= 2) {
 			if (hist_diff[i + 1] >= 2)
 				return (i + 1);
@@ -157,8 +157,8 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 		}
 		clip(&bl_ptr->cur_fix_ui, g_min_backlight, g_max_backlight);
 		para->bl_fix = para->cur_bl *
-			(u16)bl_ptr->cur_fix_ui / 255;
-		compensation_gain(bl_ptr->cur_fix_ui, &s_gain);
+			(u16)bl_ptr->cur_fix_ui / 1020;
+		compensation_gain(bl_ptr->cur_fix_ui / 4, &s_gain);
 		bl_ptr->pre_fix_ui = bl_ptr->cur_fix_ui;
 	} else {
 		if (s_pre_is_VSP_working == 0)
@@ -173,8 +173,8 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 				g_max_backlight);
 		}
 		para->bl_fix = para->cur_bl *
-			(u16)bl_ptr->cur_fix_video / 255;
-		compensation_gain(bl_ptr->cur_fix_video, &s_gain);
+			(u16)bl_ptr->cur_fix_video / 1020;
+		compensation_gain(bl_ptr->cur_fix_video / 4, &s_gain);
 		bl_ptr->pre_fix_video = bl_ptr->cur_fix_video;
 	}
 	para->gain = s_gain;
