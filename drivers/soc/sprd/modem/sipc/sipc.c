@@ -287,7 +287,7 @@ static int sipc_parse_dt(struct sipc_init_data **init, struct device_node *node)
 
 	ret = sipc_get_smem_info(pdata, np);
 	if (ret)
-		return ret;
+		goto error;
 
 	*init = pdata;
 
