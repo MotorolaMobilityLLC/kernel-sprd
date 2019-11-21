@@ -212,6 +212,9 @@ static void sprd_musb_set_vbus(struct musb *musb, int is_on)
 	u8 devctl;
 	unsigned long timeout = 0;
 
+	if (pm_runtime_suspended(musb->controller))
+		return;
+
 	devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 
 	if (is_on) {
