@@ -1675,7 +1675,6 @@ static int ts_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, pdata);
 	pdata->pdev = pdev;
 	pdata->board = pdev->dev.platform_data;
-	wakeup_source_init(&pdata->upgrade_lock, "adaptive_ts upgrade");
 
 	/* GPIO request first */
 	retval = ts_request_gpio(pdata);
@@ -1776,6 +1775,7 @@ static int ts_probe(struct platform_device *pdev)
 		TS_WARN("error in register external event!");
 
 	TS_INFO("ts platform device probe OK");
+	wakeup_source_init(&pdata->upgrade_lock, "adaptive_ts upgrade");
 	return 0;
 }
 
