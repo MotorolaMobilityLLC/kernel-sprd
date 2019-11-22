@@ -972,8 +972,6 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		}
 	}
 
-	wakeup_source_init(&glue->wake_lock, "musb-sprd");
-	wakeup_source_init(&glue->pd_wake_lock, "musb-sprd-pd");
 	spin_lock_init(&glue->lock);
 	INIT_WORK(&glue->work, sprd_musb_work);
 	INIT_DELAYED_WORK(&glue->recover_work, sprd_musb_recover_work);
@@ -1047,6 +1045,9 @@ static int musb_sprd_probe(struct platform_device *pdev)
 			goto err_extcon_vbus;
 		}
 	}
+
+	wakeup_source_init(&glue->wake_lock, "musb-sprd");
+	wakeup_source_init(&glue->pd_wake_lock, "musb-sprd-pd");
 
 	ret = sysfs_create_groups(&glue->dev->kobj, musb_sprd_groups);
 	if (ret)
