@@ -17,6 +17,8 @@
 #include <linux/kernel.h>
 #include <linux/nvmem-consumer.h>
 #include <linux/slab.h>
+#include <linux/of_gpio.h>
+#include <linux/gpio/consumer.h>
 
 /* registers definitions for controller REGS_TYPEC */
 #define SC27XX_EN			0x00
@@ -132,6 +134,7 @@ struct sc27xx_typec {
 	u32 base;
 	int irq;
 	struct extcon_dev *edev;
+	struct gpio_desc *gpiod;
 	bool usb20_only;
 
 	enum sc27xx_typec_connection_state state;
@@ -190,6 +193,8 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 		break;
 	case SC27XX_ATTACHED_SRC:
 		sc->pre_state = SC27XX_ATTACHED_SRC;
+		if (!IS_ERR(sc->gpiod) && gpiod_get_value(sc->gpiod))
+			return 0;
 		extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, true);
 		break;
 	case SC27XX_AUDIO_CABLE:
@@ -380,7 +385,7 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 	struct device_node *node = pdev->dev.of_node;
 	struct sc27xx_typec *sc;
 	const struct sprd_typec_variant_data *pdata;
-	int mode, ret;
+	int mode, ret, gpio_num;
 
 	pdata = of_device_get_match_data(dev);
 	if (!pdata) {
@@ -434,6 +439,21 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 		mode = TYPEC_PORT_UFP;
 		sc->usb20_only = true;
 		dev_info(dev, "usb 2.0 only is enabled\n");
+	}
+
+	node = of_find_compatible_node(NULL, NULL, "linux,extcon-usb-gpio");
+	if (!node) {
+		dev_warn(dev, "failed to find vbus gpio node.\n");
+	} else {
+		gpio_num = of_get_named_gpio(node, "vbus-gpio", 0);
+		of_node_put(node);
+		if (gpio_is_valid(gpio_num)) {
+			sc->gpiod = gpio_to_desc(gpio_num);
+			if (IS_ERR(sc->gpiod))
+				dev_warn(dev, "failed to get vbus gpio.\n");
+		} else {
+			dev_warn(dev, "failed to get valid vbus gpio.\n");
+		}
 	}
 
 	sc->var_data = pdata;
