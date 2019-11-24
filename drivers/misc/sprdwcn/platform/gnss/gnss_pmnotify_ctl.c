@@ -133,6 +133,7 @@ static int __init gnss_pmnotify_ctl_init(void)
 static void __exit gnss_pmnotify_ctl_cleanup(void)
 {
 	misc_deregister(&gnss_pmnotify_ctl_device);
+	unregister_pm_notifier(&gnss_pm_notifier);
 }
 
 module_init(gnss_pmnotify_ctl_init);
