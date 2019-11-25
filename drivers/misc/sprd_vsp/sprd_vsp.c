@@ -713,7 +713,7 @@ static int vsp_probe(struct platform_device *pdev)
 	if (ret) {
 		pr_err("cannot register miscdev on minor=%d (%d)\n",
 		       VSP_MINOR, ret);
-		goto errout;
+		return ret;
 	}
 
 	/* register isr */
