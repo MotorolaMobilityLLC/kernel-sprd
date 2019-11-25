@@ -876,7 +876,6 @@
 
 				operating-points = <
 					/* kHz    uV */
-					153600    900000
 					256000    900000
 					384000    900000
 					512000    900000
@@ -886,7 +885,6 @@
 
 				sprd,dfs-lists = <
 					/* kHz  uV      idx div */
-					153600  900000   2    1
 					256000  900000   4    1
 					384000  900000   6    1
 					512000  900000   7    1
@@ -894,12 +892,12 @@
 					600000  1000000  8    1
 					>;
 
-				sprd,dfs-default = <1>;
+				sprd,dfs-default = <0>;
 				sprd,dfs-scene-extreme = <3>;
 				sprd,dfs-scene-high = <2>;
 				sprd,dfs-scene-medium = <1>;
 				sprd,dfs-scene-low = <0>;
-				sprd,dfs-range-max = <5>;
+				sprd,dfs-range-max = <4>;
 				sprd,dfs-range-min = <0>;
 			};
 
