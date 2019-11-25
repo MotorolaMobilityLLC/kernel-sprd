@@ -23,6 +23,7 @@
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 #include <linux/platform_device.h>
+#include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
 #include <linux/regulator/consumer.h>
 #include <linux/sysfs.h>
@@ -40,6 +41,19 @@
 #define CM_FORCE_SET_FUEL_CAP_FULL	100
 #define CM_LOW_TEMP_REGION		100
 #define CM_LOW_TEMP_SHUTDOWN_VALTAGE	3200000
+#define CM_TRACK_CAPACITY_SHUTDOWN_START_VOLTAGE	3500000
+#define CM_TRACK_CAPACITY_START_VOLTAGE	3650000
+#define CM_TRACK_CAPACITY_START_CURRENT	30000
+#define CM_TRACK_CAPACITY_KEY0		0x20160726
+#define CM_TRACK_CAPACITY_KEY1		0x15211517
+#define CM_TRACK_CAPACITY_VOLTAGE_OFFSET	5000
+#define CM_TRACK_CAPACITY_CURRENT_OFFSET	5000
+#define CM_TRACK_HIGH_TEMP_THRESHOLD	450
+#define CM_TRACK_LOW_TEMP_THRESHOLD	150
+#define CM_TRACK_TIMEOUT_THRESHOLD	108000
+#define CM_TRACK_START_CAP_THRESHOLD	20
+
+#define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
 
 static const char * const default_event_names[] = {
 	[CM_EVENT_UNKNOWN] = "Unknown",
@@ -94,6 +108,7 @@ static struct workqueue_struct *cm_wq; /* init at driver add */
 static struct delayed_work cm_monitor_work; /* init at driver add */
 
 static bool allow_charger_enable;
+static bool is_charger_mode;
 static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg);
 
 static int __init boot_calibration_mode(char *str)
@@ -104,6 +119,8 @@ static int __init boot_calibration_mode(char *str)
 	if (!strncmp(str, "cali", strlen("cali")) ||
 	    !strncmp(str, "autotest", strlen("autotest")))
 		allow_charger_enable = true;
+	else if (!strncmp(str, "charger", strlen("charger")))
+		is_charger_mode =  true;
 
 	return 0;
 }
@@ -339,6 +356,25 @@ static int get_batt_vol_now(struct charger_manager *cm, int *ocv)
 	return 0;
 }
 
+static int get_batt_boot_vol(struct charger_manager *cm, int *boot_volt)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge,
+				POWER_SUPPLY_PROP_VOLTAGE_BOOT, &val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	*boot_volt = val.intval;
+	return 0;
+}
 /**
  * get_batt_cap - Get the cap level of the battery
  * @cm: the Charger Manager representing the battery.
@@ -365,6 +401,95 @@ static int get_batt_cap(struct charger_manager *cm, int *cap)
 
 	*cap = val.intval;
 	return 0;
+}
+
+/**
+ * get_batt_total_cap - Get the total capacity level of the battery
+ * @cm: the Charger Manager representing the battery.
+ * @uV: the total_cap level returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_batt_total_cap(struct charger_manager *cm, u32 *total_cap)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge,
+					POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
+					&val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	*total_cap = val.intval;
+
+	return 0;
+}
+
+/**
+ * get_batt_energy_now - Get the energy_now of the battery
+ * @cm: the Charger Manager representing the battery.
+ * @value: the energy_now returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_batt_energy_now(struct charger_manager *cm, int *value)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge,
+					POWER_SUPPLY_PROP_ENERGY_NOW,
+					&val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	*value = val.intval;
+
+	return 0;
+}
+
+/**
+ * set_batt_total_cap - Set the total_cap level of the battery
+ * @cm: the Charger Manager representing the battery.
+ * @total_cap: the total_cap level to set.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int set_batt_total_cap(struct charger_manager *cm, int total_cap)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	val.intval = total_cap * 1000;
+	ret = power_supply_set_property(fuel_gauge,
+					POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
+					&val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		dev_err(cm->dev, "failed to set battery capacity\n");
+
+	return ret;
 }
 
 /**
@@ -2516,6 +2641,294 @@ static const struct of_device_id charger_manager_match[] = {
 	{},
 };
 
+static void cm_track_capacity_work(struct work_struct *work)
+{
+	struct charger_manager *cm = container_of(work,
+						  struct charger_manager,
+						  track.track_capacity_work.work);
+	u32 total_cap, capacity, check_capacity, file_buf[2];
+	struct file *filep;
+	loff_t pos = 0;
+	static int retry_cnt = 5;
+	int ret;
+
+	filep = filp_open(CM_TRACK_FILE_PATH,
+			  O_RDWR | O_CREAT,
+			  S_IRUGO | S_IWUSR);
+	if (IS_ERR(filep)) {
+		dev_warn(cm->dev, "failed to open track file.\n");
+		if (cm->track.state == CAP_TRACK_INIT && retry_cnt > 0) {
+			dev_err(cm->dev, "track file not ready.\n");
+			retry_cnt--;
+			queue_delayed_work(system_power_efficient_wq,
+					   &cm->track.track_capacity_work,
+					   5 * HZ);
+		} else {
+			cm->track.state = CAP_TRACK_ERR;
+		}
+		return;
+	}
+
+	ret = get_batt_total_cap(cm, &total_cap);
+	if (ret) {
+		dev_err(cm->dev, "failed to get total cap.\n");
+		goto out;
+	}
+	total_cap = total_cap / 1000;
+
+	switch (cm->track.state) {
+	case CAP_TRACK_INIT:
+		/*
+		 * When the capacity tracking function starts to work,
+		 * need to read the last saved capacity value from the
+		 * file system, for security reasons we need to decrypt,
+		 * in contrast, when writing data to the file system,
+		 * we need to encrypt it.
+		 */
+		cm->track.state = CAP_TRACK_IDLE;
+		if (kernel_read(filep, (char *)&file_buf, sizeof(file_buf), &pos) < 0) {
+			dev_err(cm->dev, "track file is empty or read error\n");
+			goto out;
+		}
+
+		capacity = file_buf[0] ^ CM_TRACK_CAPACITY_KEY0;
+		check_capacity = file_buf[1] ^ CM_TRACK_CAPACITY_KEY1;
+		if (capacity != check_capacity) {
+			dev_err(cm->dev, "track file data error.\n");
+			goto out;
+		}
+
+		if (abs(total_cap - capacity) < total_cap / 2)
+			set_batt_total_cap(cm, capacity);
+		break;
+
+	case CAP_TRACK_DONE:
+		cm->track.state = CAP_TRACK_IDLE;
+		file_buf[0] = total_cap ^ CM_TRACK_CAPACITY_KEY0;
+		file_buf[1] = total_cap ^ CM_TRACK_CAPACITY_KEY1;
+		ret = kernel_write(filep, &file_buf, sizeof(file_buf), &pos);
+		if (ret < 0) {
+			dev_err(cm->dev, "write file_buf data error\n");
+			goto out;
+		}
+		break;
+
+	default:
+		cm->track.state = CAP_TRACK_IDLE;
+		break;
+	}
+
+out:
+	if (!IS_ERR(filep))
+		filp_close(filep, NULL);
+}
+
+static void cm_track_capacity_monitor(struct charger_manager *cm)
+{
+	int cur_temp, cur_now, ret;
+	int capacity, clbcnt, ocv, boot_volt, batt_uV;
+	u32 total_cap;
+
+	if (!cm->track.cap_tracking)
+		return;
+
+	if (!is_batt_present(cm)) {
+		dev_err(cm->dev, "battery is not present, cancel monitor.\n");
+		return;
+	}
+
+	ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
+	if (ret) {
+		dev_err(cm->dev, "failed to get battery temperature\n");
+		return;
+	}
+
+	if (cur_temp > CM_TRACK_HIGH_TEMP_THRESHOLD ||
+	    cur_temp < CM_TRACK_LOW_TEMP_THRESHOLD) {
+		dev_err(cm->dev, "exceed temperature range, cancel monitor.\n");
+		return;
+	}
+
+	ret = get_batt_cur_now(cm, &cur_now);
+	if (ret) {
+		dev_err(cm->dev, "failed to get relax current.\n");
+		return;
+	}
+
+	ret = get_batt_uV(cm, &batt_uV);
+	if (ret) {
+		dev_err(cm->dev, "failed to get battery voltage.\n");
+		return;
+	}
+	ret = get_batt_ocv(cm, &ocv);
+	if (ret) {
+		dev_err(cm->dev, "get ocv error\n");
+		return;
+	}
+
+	ret = get_batt_boot_vol(cm, &boot_volt);
+	if (ret) {
+		dev_err(cm->dev, "get boot voltage error\n");
+		return;
+	}
+	/*
+	 * If the capacity tracking monitor in idle state, we will
+	 * record the start battery coulomb. when the capacity
+	 * tracking monitor meet end condition, also will record
+	 * the end battery coulomb, we can calculate the actual
+	 * battery capacity by delta coulomb.
+	 * if the following formula , we will replace the standard
+	 * capacity with the calculated actual capacity.
+	 * formula:
+	 * abs(current_capacity -capacity) < capacity / 2
+	 */
+	switch (cm->track.state) {
+	case CAP_TRACK_ERR:
+		dev_err(cm->dev, "track status error, cancel monitor.\n");
+		return;
+
+	case CAP_TRACK_IDLE:
+		/*
+		 * The capacity tracking monitor start condition is
+		 * divided into two types:
+		 * 1.poweroff charging mode:
+		 * the boot voltage is less than 3500000uv, because
+		 * we set the ocv minimum value is 3400000uv, so the
+		 * the tracking start voltage value we set needs to
+		 * be infinitely close to the shutdown value.
+		 * 2.power on normal mode:
+		 * the current less than 30000ua and the voltage
+		 * less than 3650000uv. When meet the above conditions,
+		 * the battery is almost empty, which is the result of
+		 * multiple test data, so this point suitable as a
+		 * starting condition.
+		 */
+		if (is_charger_mode) {
+			if (boot_volt > CM_TRACK_CAPACITY_SHUTDOWN_START_VOLTAGE ||
+			    ocv > CM_TRACK_CAPACITY_START_VOLTAGE) {
+				dev_info(cm->dev, "not satisfy shutdown start condition.\n");
+				return;
+			}
+		} else {
+			if (abs(cur_now) > CM_TRACK_CAPACITY_START_CURRENT ||
+			    ocv > CM_TRACK_CAPACITY_START_VOLTAGE) {
+				dev_info(cm->dev, "not satisfy power on start condition.\n");
+				return;
+			}
+		}
+
+		/*
+		 * Parse the capacity table to look up the correct capacity percent
+		 * according to current battery's corresponding OCV values.
+		 */
+		if (is_charger_mode)
+			cm->track.start_cap = power_supply_ocv2cap_simple(cm->desc->cap_table,
+							      cm->desc->cap_table_len,
+							      boot_volt);
+		else
+			cm->track.start_cap = power_supply_ocv2cap_simple(cm->desc->cap_table,
+							      cm->desc->cap_table_len,
+							      ocv);
+		/*
+		 * When the capacity tracking start condition is met,
+		 * the battery is almost empty,so we set a starting
+		 * threshold, if it is greater than it will not enable
+		 * the capacity tracking function, now we set the capacity
+		 * tracking monitor initial percentage threshold to 20%.
+		 */
+		if (cm->track.start_cap > CM_TRACK_START_CAP_THRESHOLD) {
+			cm->track.start_cap = 0;
+			dev_info(cm->dev,
+				 "does not satisfy the track start condition, start_cap = %d\n",
+				 cm->track.start_cap);
+			return;
+		}
+
+		ret = get_batt_energy_now(cm, &clbcnt);
+		if (ret) {
+			dev_err(cm->dev, "failed to get energy now.\n");
+			return;
+		}
+
+		cm->track.start_time =
+			ktime_divns(ktime_get_boottime(), NSEC_PER_SEC);
+		cm->track.start_clbcnt = clbcnt;
+		cm->track.state = CAP_TRACK_UPDATING;
+		break;
+
+	case CAP_TRACK_UPDATING:
+		if ((ktime_divns(ktime_get_boottime(), NSEC_PER_SEC) -
+		     cm->track.start_time) > CM_TRACK_TIMEOUT_THRESHOLD) {
+			cm->track.state = CAP_TRACK_IDLE;
+			dev_err(cm->dev, "track capacity time out.\n");
+			return;
+		}
+
+		/*
+		 * When the capacity tracking end condition is met,
+		 * the battery voltage is almost full, so we use full
+		 * stop charging condition as the the capacity
+		 * tracking end condition.
+		 */
+		if (batt_uV > cm->track.end_vol &&
+		    cur_now < cm->track.end_cur) {
+			ret = get_batt_energy_now(cm, &clbcnt);
+			if (ret) {
+				dev_err(cm->dev, "failed to get energy now.\n");
+				return;
+			}
+
+			ret = get_batt_total_cap(cm, &total_cap);
+			if (ret) {
+				dev_err(cm->dev, "failed to get relax voltage.\n");
+				return;
+			}
+			total_cap = total_cap / 1000;
+
+			/*
+			 * Due to the capacity tracking function started, the
+			 * coulomb amount corresponding to the initial
+			 * percentage was not counted, so we need to
+			 * compensate initial coulomb with following
+			 * formula, we assume that coulomb and capacity
+			 * are directly proportional.
+			 *
+			 * For example:
+			 * if capacity tracking function started,  the battery
+			 * percentage is 3%, we will count the capacity from
+			 * 3% to 100%, it will discard capacity from 0% to 3%
+			 * so we use "total_cap * (start_cap / 100)" to
+			 * compensate.
+			 *
+			 * formula:
+			 * capacity = total_cap * (start_cap / 100) + capacity
+			 */
+			capacity = (clbcnt - cm->track.start_clbcnt) / 1000;
+			capacity =
+				(total_cap * cm->track.start_cap) / 100 + capacity;
+
+			if (abs(capacity - total_cap) < total_cap / 2) {
+				set_batt_total_cap(cm, capacity);
+				cm->track.state = CAP_TRACK_DONE;
+				queue_delayed_work(system_power_efficient_wq,
+						   &cm->track.track_capacity_work,
+						   0);
+				dev_info(cm->dev,
+					 "track capacity is done capacity = %d\n",
+					 capacity);
+			} else {
+				cm->track.state = CAP_TRACK_IDLE;
+				dev_info(cm->dev,
+					 "less than half standard capacity.\n");
+			}
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
 static struct charger_desc *of_cm_parse_desc(struct device *dev)
 {
 	struct charger_desc *desc;
@@ -2665,6 +3078,55 @@ static inline struct charger_desc *cm_get_drv_data(struct platform_device *pdev)
 	return dev_get_platdata(&pdev->dev);
 }
 
+static int cm_get_bat_info(struct charger_manager *cm)
+{
+	struct power_supply_battery_info info = { };
+	struct power_supply_battery_ocv_table *table;
+	int ret;
+
+	ret = power_supply_get_battery_info(cm->charger_psy, &info);
+	if (ret) {
+		dev_err(cm->dev, "failed to get battery information\n");
+		return ret;
+	}
+
+	cm->desc->internal_resist = info.factory_internal_resistance_uohm / 1000;
+
+	/*
+	 * For CHARGER MANAGER device, we only use one ocv-capacity
+	 * table in normal temperature 20 Celsius.
+	 */
+	table = power_supply_find_ocv2cap_table(&info, 20, &cm->desc->cap_table_len);
+	if (!table)
+		return -EINVAL;
+
+	cm->desc->cap_table = devm_kmemdup(cm->dev, table,
+				     cm->desc->cap_table_len * sizeof(*table),
+				     GFP_KERNEL);
+	if (!cm->desc->cap_table) {
+		power_supply_put_battery_info(cm->charger_psy, &info);
+		return -ENOMEM;
+	}
+
+	power_supply_put_battery_info(cm->charger_psy, &info);
+
+	return 0;
+}
+
+static void cm_track_capacity_init(struct charger_manager *cm)
+{
+	INIT_DELAYED_WORK(&cm->track.track_capacity_work,
+			  cm_track_capacity_work);
+	cm->track.end_vol =
+		cm->desc->fullbatt_uV - CM_TRACK_CAPACITY_VOLTAGE_OFFSET;
+	cm->track.end_cur =
+		cm->desc->fullbatt_uA + CM_TRACK_CAPACITY_CURRENT_OFFSET;
+	cm->track.state = CAP_TRACK_INIT;
+	queue_delayed_work(system_power_efficient_wq,
+			   &cm->track.track_capacity_work,
+			   5 * HZ);
+}
+
 static void cm_batt_works(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -2773,9 +3235,10 @@ static void cm_batt_works(struct work_struct *work)
 	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
 		 "capacity = %d, charger status = %d, force set full = %d, "
 		 "charging current = %d, charging limit current = %d, "
-		 "battery temperature = %d\n",
+		 "battery temperature = %d track state = %d\n",
 		 batt_uV, batt_ocV, bat_uA, fuel_cap, cm->desc->charger_status,
-		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp);
+		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp,
+		 cm->track.state);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
@@ -2881,10 +3344,13 @@ static void cm_batt_works(struct work_struct *work)
 	queue_delayed_work(system_power_efficient_wq,
 			   &cm->cap_update_work,
 			   CM_CAP_CYCLE_TRACK_TIME * HZ);
+
+	cm_track_capacity_monitor(cm);
 }
 
 static int charger_manager_probe(struct platform_device *pdev)
 {
+	struct device_node *np = pdev->dev.of_node;
 	struct charger_desc *desc = cm_get_drv_data(pdev);
 	struct charger_manager *cm;
 	int ret, i = 0;
@@ -3057,6 +3523,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&cm->fullbatt_vchk_work, fullbatt_vchk);
 	INIT_DELAYED_WORK(&cm->cap_update_work, cm_batt_works);
 
+	psy_cfg.of_node = np;
 	cm->charger_psy = power_supply_register(&pdev->dev,
 						&cm->charger_psy_desc,
 						&psy_cfg);
@@ -3104,6 +3571,20 @@ static int charger_manager_probe(struct platform_device *pdev)
 	cm_monitor();
 
 	schedule_work(&setup_polling);
+
+	cm->track.cap_tracking =
+		device_property_read_bool(&pdev->dev, "cm-capacity-track");
+
+	if (cm->track.cap_tracking) {
+		ret = cm_get_bat_info(cm);
+		if (ret) {
+			dev_err(&pdev->dev, "Failed to get battery information\n");
+			goto err_reg_sysfs;
+		}
+
+		cm_track_capacity_init(cm);
+	}
+
 	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME * HZ);
 
 	if (cm_event_type)
@@ -3142,6 +3623,8 @@ static int charger_manager_remove(struct platform_device *pdev)
 	cancel_work_sync(&setup_polling);
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
+	if (cm->track.cap_tracking)
+		cancel_delayed_work_sync(&cm->track.track_capacity_work);
 
 	for (i = 0 ; i < desc->num_charger_regulators ; i++)
 		regulator_put(desc->charger_regulators[i].consumer);
@@ -3204,6 +3687,8 @@ static int cm_suspend_prepare(struct device *dev)
 		cancel_delayed_work_sync(&cm_monitor_work);
 		cancel_delayed_work(&cm->fullbatt_vchk_work);
 		cancel_delayed_work_sync(&cm->cap_update_work);
+		if (cm->track.cap_tracking)
+			cancel_delayed_work_sync(&cm->track.track_capacity_work);
 	}
 
 	return 0;
