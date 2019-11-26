@@ -2983,12 +2983,12 @@ CONFIG_CRYPTO_KPP2
 	[function]
 CONFIG_CRYPTO_LZ4
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_CRYPTO_LZO
 	[arch] all
@@ -8286,21 +8286,21 @@ CONFIG_LTO_NONE
 	[function]
 CONFIG_LZ4_COMPRESS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] lib
 	[must] zram
-	[missing plat description]
+	[missing plat description] none
 	[function] compress algorithm.
 CONFIG_LZ4_DECOMPRESS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] lib
 	[must] busybox_console
-	[missing plat description]
+	[missing plat description] none
 	[function] uncompress algorithm.
 CONFIG_LZO_COMPRESS
 	[arch] all
