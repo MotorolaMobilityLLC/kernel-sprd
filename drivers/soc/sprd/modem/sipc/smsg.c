@@ -128,18 +128,16 @@ static void get_channel_status(u8 dst, char *status, int size)
 }
 
 #ifdef CONFIG_SPRD_MAILBOX
-static irqreturn_t smsg_irq_handler(void *ptr, void *private)
+static irqreturn_t smsg_process(struct smsg *msg,
+				struct smsg_ipc *ipc,
+				bool need_wakelock)
 {
-	struct smsg_ipc *ipc = (struct smsg_ipc *)private;
 	struct smsg_assert_notify *assert_notify;
-	struct smsg *msg;
 	struct smsg_channel *ch = NULL;
 	u32 wr;
 	u8 ch_index;
 
 	assert_notify = &g_smsg_assert_notify[ipc->dst];
-
-	msg = ptr;
 	/* if the first msg come after the irq wake up by sipc,
 	 * use prin_fo to output log
 	*/
@@ -225,9 +223,23 @@ static irqreturn_t smsg_irq_handler(void *ptr, void *private)
 	wake_up_interruptible_all(&ch->rxwait);
 	atomic_dec(&ipc->busy[ch_index]);
 
-	__pm_wakeup_event(&ch->sipc_wake_lock, jiffies_to_msecs(HZ / 2));
+	if (need_wakelock)
+		__pm_wakeup_event(&ch->sipc_wake_lock,
+				  jiffies_to_msecs(HZ / 2));
 
 	return IRQ_HANDLED;
+}
+
+static irqreturn_t smsg_commom_mbox_irq_handler(void *ptr, void *private)
+{
+	/* commom box need wakelock */
+	return smsg_process(ptr, private, true);
+}
+
+static irqreturn_t smsg_sensor_mbox_irq_handler(void *ptr, void *private)
+{
+	/* sensor box no need wakelock */
+	return smsg_process(ptr, private, false);
 }
 #else
 static irqreturn_t smsg_irq_handler(int irq, void *private)
@@ -353,15 +365,14 @@ int smsg_ipc_create(u8 dst, struct smsg_ipc *ipc)
 {
 	int rval;
 
-	if (!ipc->irq_handler)
-		ipc->irq_handler = smsg_irq_handler;
-
 	spin_lock_init(&ipc->txpinlock);
 	smsg_init_channel2index();
 	smsg_ipcs[dst] = ipc;
 
 #ifdef CONFIG_SPRD_MAILBOX
-	rval = mbox_register_irq_handle(ipc->core_id, ipc->irq_handler, ipc);
+	rval = mbox_register_irq_handle(ipc->core_id,
+					smsg_commom_mbox_irq_handler,
+					ipc);
 	if (rval != 0) {
 		pr_err("Failed to register irq handler in mailbox: %s\n",
 		       ipc->name);
@@ -370,7 +381,8 @@ int smsg_ipc_create(u8 dst, struct smsg_ipc *ipc)
 
 	if ((dst == SIPC_ID_PM_SYS) && (ipc->core_sensor_id < RECV_MBOX_SENSOR_ID)) {
 		rval = mbox_register_irq_handle(ipc->core_sensor_id,
-						ipc->irq_handler, ipc);
+						smsg_sensor_mbox_irq_handler,
+						ipc);
 		if (rval != 0) {
 			pr_err("Failed to register irq handler in mailbox: %s\n",
 			       ipc->name);
@@ -379,6 +391,9 @@ int smsg_ipc_create(u8 dst, struct smsg_ipc *ipc)
 	}
 
 #else
+	if (!ipc->irq_handler)
+		ipc->irq_handler = smsg_irq_handler;
+
 	/* explicitly call irq handler in case of missing irq on boot */
 	ipc->irq_handler(ipc->irq, ipc);
 
