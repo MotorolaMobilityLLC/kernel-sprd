@@ -601,9 +601,10 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 {
 	struct sbuf_mgr *sbuf;
 	u8 ch_index;
-	int ret;
+	int ret, i;
 	struct smsg_ipc *sipc = NULL;
 	struct sched_param param = {.sched_priority = 10};
+	struct sbuf_ring *ring;
 
 	sipc = smsg_ipcs[dst];
 	ch_index = sipc_channel2index(channel);
@@ -635,6 +636,11 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 	if (!sipc->client) {
 		ret = sbuf_host_init(sipc, sbuf, bufnum, txbufsize, rxbufsize);
 		if (ret) {
+			for (i = 0; i < bufnum; i++) {
+				ring = &sbuf->rings[i];
+				wakeup_source_trash(&ring->tx_wake_lock);
+				wakeup_source_trash(&ring->rx_wake_lock);
+			}
 			kfree(sbuf);
 			return ret;
 		}
@@ -645,6 +651,11 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 	if (IS_ERR(sbuf->thread)) {
 		pr_err("Failed to create kthread: sbuf-%d-%d\n", dst, channel);
 		if (!sipc->client) {
+			for (i = 0; i < bufnum; i++) {
+				ring = &sbuf->rings[i];
+				wakeup_source_trash(&ring->tx_wake_lock);
+				wakeup_source_trash(&ring->rx_wake_lock);
+			}
 			kfree(sbuf->rings);
 			shmem_ram_unmap(dst, sbuf->smem_virt);
 			smem_free(dst, sbuf->smem_addr, sbuf->smem_size);

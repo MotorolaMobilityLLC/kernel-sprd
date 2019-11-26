@@ -328,6 +328,7 @@ int sbuf_create_ex(u8 dst, u8 channel, u32 smem_idx,
 	VOLA_SBUF_RING *ringhd;
 	int hsize, i, result;
 	u8 ch_index;
+	struct sbuf_ring *ring;
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
@@ -409,8 +410,6 @@ int sbuf_create_ex(u8 dst, u8 channel, u32 smem_idx,
 	smem = (VOLA_SBUF_SMEM *)sbuf->smem_virt;
 	smem->ringnr = bufnum;
 	for (i = 0; i < bufnum; i++) {
-		struct sbuf_ring *ring;
-
 		ringhd = (VOLA_SBUF_RING *)&smem->headers[i];
 		ringhd->txbuf_addr = sbuf->mapped_smem_addr + hsize +
 				(txbufsize + rxbufsize) * i;
@@ -454,6 +453,11 @@ int sbuf_create_ex(u8 dst, u8 channel, u32 smem_idx,
 			"sbuf-%d-%d", dst, channel);
 	if (IS_ERR(sbuf->thread)) {
 		pr_err("Failed to create kthread: sbuf-%d-%d\n", dst, channel);
+		for (i = 0; i < bufnum; i++) {
+			ring = &sbuf->rings[i];
+			wakeup_source_trash(&ring->tx_wake_lock);
+			wakeup_source_trash(&ring->rx_wake_lock);
+		}
 		kfree(sbuf->rings);
 		shmem_ram_unmap(sbuf->smem_virt);
 		smem_free(sbuf->smem_addr, sbuf->smem_size);

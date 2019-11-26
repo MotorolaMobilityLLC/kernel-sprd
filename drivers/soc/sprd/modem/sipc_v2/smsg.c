@@ -636,6 +636,7 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 		while (atomic_read(&ipc->busy[ch_index]))
 			;
 
+		wakeup_source_trash(&ch->sipc_wake_lock);
 		kfree(ch);
 
 		return rval;
@@ -662,6 +663,7 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 			while (atomic_read(&ipc->busy[ch_index]))
 				;
 
+			wakeup_source_trash(&ch->sipc_wake_lock);
 			kfree(ch);
 			return rval;
 		}
