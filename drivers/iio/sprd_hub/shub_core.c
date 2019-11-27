@@ -518,14 +518,19 @@ static void request_send_firmware(struct shub_data *sensor,
 		sprintf(firmware_name, "/mnt/vendor/sensorhub/shub_fw_%s",
 			sensor_firms[i]);
 		file = filp_open(firmware_name, O_RDONLY, 0);
-		if (IS_ERR(file))
+		if (IS_ERR(file)) {
+			kfree(cali_info->data);
+			cali_info->size = 0;
 			continue;
+		}
 
 		size = get_file_size(file);
 		if (size <= 0) {
 			dev_warn(&sensor->sensor_pdev->dev,
 				 "load file:%s error\n", firmware_name);
 			filp_close(file, NULL);
+			kfree(cali_info->data);
+			cali_info->size = 0;
 			continue;
 		}
 
@@ -535,6 +540,8 @@ static void request_send_firmware(struct shub_data *sensor,
 			dev_warn(&sensor->sensor_pdev->dev,
 				 "kmalloc fw_data failed\n");
 			filp_close(file, NULL);
+			kfree(cali_info->data);
+			cali_info->size = 0;
 			continue;
 		}
 		kernel_read(file, (void __user *)fw_data, size, pos);
@@ -559,6 +566,8 @@ static void request_send_firmware(struct shub_data *sensor,
 			dev_err(&sensor->sensor_pdev->dev,
 				"Failed to init sensor, ret = %d\n", ret);
 			kfree(fw_data);
+			kfree(cali_info->data);
+			cali_info->size = 0;
 			continue;
 		}
 		kfree(fw_data);
@@ -627,18 +636,30 @@ static int shub_download_opcode(struct shub_data *sensor)
 	cali_data[5] = pressure_cali_info.size;
 	cali_data[6] = sizeof(sensor_fusion_mode);
 	p = &cali_data[7];
-	memcpy(p, mag_cali_info.data, mag_cali_info.size);
-	p += mag_cali_info.size;
-	memcpy(p, prox_cali_info.data, prox_cali_info.size);
-	p += prox_cali_info.size;
-	memcpy(p, light_cali_info.data, light_cali_info.size);
-	p += light_cali_info.size;
-	memcpy(p, acc_cali_info.data, acc_cali_info.size);
-	p += acc_cali_info.size;
-	memcpy(p, gryo_cali_info.data, gryo_cali_info.size);
-	p += gryo_cali_info.size;
-	memcpy(p, pressure_cali_info.data, pressure_cali_info.size);
-	p += pressure_cali_info.size;
+	if (mag_cali_info.data != NULL) {
+		memcpy(p, mag_cali_info.data, mag_cali_info.size);
+		p += mag_cali_info.size;
+	}
+	if (prox_cali_info.data != NULL) {
+		memcpy(p, prox_cali_info.data, prox_cali_info.size);
+		p += prox_cali_info.size;
+	}
+	if (light_cali_info.data != NULL) {
+		memcpy(p, light_cali_info.data, light_cali_info.size);
+		p += light_cali_info.size;
+	}
+	if (acc_cali_info.data != NULL) {
+		memcpy(p, acc_cali_info.data, acc_cali_info.size);
+		p += acc_cali_info.size;
+	}
+	if (gryo_cali_info.data != NULL) {
+		memcpy(p, gryo_cali_info.data, gryo_cali_info.size);
+		p += gryo_cali_info.size;
+	}
+	if (pressure_cali_info.data != NULL) {
+		memcpy(p, pressure_cali_info.data, pressure_cali_info.size);
+		p += pressure_cali_info.size;
+	}
 	memcpy(p, &sensor_fusion_mode, sizeof(sensor_fusion_mode));
 	p += sizeof(sensor_fusion_mode);
 	dev_info(&sensor->sensor_pdev->dev,
@@ -669,12 +690,18 @@ static int shub_download_opcode(struct shub_data *sensor)
 	kfree(cali_data);
 
 release_cali_info:
-	kfree(acc_cali_info.data);
-	kfree(gryo_cali_info.data);
-	kfree(mag_cali_info.data);
-	kfree(light_cali_info.data);
-	kfree(prox_cali_info.data);
-	kfree(pressure_cali_info.data);
+	if (acc_cali_info.data != NULL)
+		kfree(acc_cali_info.data);
+	if (gryo_cali_info.data != NULL)
+		kfree(gryo_cali_info.data);
+	if (mag_cali_info.data != NULL)
+		kfree(mag_cali_info.data);
+	if (light_cali_info.data != NULL)
+		kfree(light_cali_info.data);
+	if (prox_cali_info.data != NULL)
+		kfree(prox_cali_info.data);
+	if (pressure_cali_info.data != NULL)
+		kfree(pressure_cali_info.data);
 
 	return ret;
 }
