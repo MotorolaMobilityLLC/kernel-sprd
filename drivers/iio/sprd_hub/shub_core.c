@@ -616,7 +616,8 @@ static int shub_download_opcode(struct shub_data *sensor)
 	if (!cali_data) {
 		dev_err(&sensor->sensor_pdev->dev,
 			"malloc cali_data %d failed\n", cali_data_size);
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto release_cali_info;
 	}
 	cali_data[0] = mag_cali_info.size;
 	cali_data[1] = prox_cali_info.size;
@@ -666,6 +667,8 @@ static int shub_download_opcode(struct shub_data *sensor)
 	dev_info(&sensor->sensor_pdev->dev,
 		 "send cali command ret = %d\n", ret);
 	kfree(cali_data);
+
+release_cali_info:
 	kfree(acc_cali_info.data);
 	kfree(gryo_cali_info.data);
 	kfree(mag_cali_info.data);
