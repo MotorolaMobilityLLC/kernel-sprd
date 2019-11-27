@@ -4568,24 +4568,6 @@ CONFIG_FILE_LOCKING
 	[function] This option enables standard file locking support,
 	   required for filesystems like NFS and for the flock()
 	   system call.
-CONFIG_FIQ
-	[arch] arm
-	[plat] pike2,sharkl3_32,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_FIQ_GLUE
-	[arch] arm
-	[plat] pike2,sharkl3_32,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_FIRMWARE_IN_KERNEL
 	[arch] all
 	[plat] all
