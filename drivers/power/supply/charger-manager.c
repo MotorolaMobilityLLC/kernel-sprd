@@ -196,14 +196,42 @@ static bool is_ext_pwr_online(struct charger_manager *cm)
 }
 
  /**
- * get_batt_uA - Get the current level of the battery
- * @cm: the Charger Manager representing the battery.
- * @uA: the current level returned.
- *
- * Returns 0 if there is no error.
- * Returns a negative value on error.
- */
+  * get_batt_uA - Get the current level of the battery
+  * @cm: the Charger Manager representing the battery.
+  * @uA: the current level returned.
+  *
+  * Returns 0 if there is no error.
+  * Returns a negative value on error.
+  */
 static int get_batt_uA(struct charger_manager *cm, int *uA)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge,
+					POWER_SUPPLY_PROP_CURRENT_AVG, &val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	*uA = val.intval;
+	return 0;
+}
+
+ /**
+  * get_batt_cur_now - Get the current level of the battery
+  * @cm: the Charger Manager representing the battery.
+  * @uA: the current level returned.
+  *
+  * Returns 0 if there is no error.
+  * Returns a negative value on error.
+  */
+static int get_batt_cur_now(struct charger_manager *cm, int *uA)
 {
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
@@ -243,7 +271,7 @@ static int get_batt_uV(struct charger_manager *cm, int *uV)
 		return -ENODEV;
 
 	ret = power_supply_get_property(fuel_gauge,
-				POWER_SUPPLY_PROP_VOLTAGE_NOW, &val);
+				POWER_SUPPLY_PROP_VOLTAGE_AVG, &val);
 	power_supply_put(fuel_gauge);
 	if (ret)
 		return ret;
@@ -272,6 +300,35 @@ static int get_batt_ocv(struct charger_manager *cm, int *ocv)
 
 	ret = power_supply_get_property(fuel_gauge,
 				POWER_SUPPLY_PROP_VOLTAGE_OCV, &val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	*ocv = val.intval;
+	return 0;
+}
+
+/*
+ * get_batt_now - Get the battery voltage now
+ * level of the battery.
+ * @cm: the Charger Manager representing the battery.
+ * @uV: the voltage level returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_batt_vol_now(struct charger_manager *cm, int *ocv)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge,
+				POWER_SUPPLY_PROP_VOLTAGE_NOW, &val);
 	power_supply_put(fuel_gauge);
 	if (ret)
 		return ret;
@@ -1595,17 +1652,23 @@ static int charger_get_property(struct power_supply *psy,
 		else
 			val->intval = 0;
 		break;
-	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+	case POWER_SUPPLY_PROP_VOLTAGE_AVG:
 		ret = get_batt_uV(cm, &val->intval);
 		break;
-	case POWER_SUPPLY_PROP_CURRENT_NOW:
+	case POWER_SUPPLY_PROP_CURRENT_AVG:
 		fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
 		if (!fuel_gauge) {
 			ret = -ENODEV;
 			break;
 		}
 		ret = power_supply_get_property(fuel_gauge,
-				POWER_SUPPLY_PROP_CURRENT_NOW, val);
+				POWER_SUPPLY_PROP_CURRENT_AVG, val);
+		break;
+	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+		ret = get_batt_vol_now(cm, &val->intval);
+		break;
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		ret = get_batt_cur_now(cm, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
 		return cm_get_battery_temperature_by_psy(cm, &val->intval);
@@ -1884,11 +1947,14 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+	POWER_SUPPLY_PROP_VOLTAGE_AVG,
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
+	POWER_SUPPLY_PROP_CURRENT_NOW,
+	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
 	/*
