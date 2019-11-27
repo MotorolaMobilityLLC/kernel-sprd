@@ -149,19 +149,19 @@
 
 	bat: battery {
 		compatible = "simple-battery";
-		charge-full-design-microamp-hours = <3690000>;
+		charge-full-design-microamp-hours = <5000000>;
 		charge-term-current-microamp = <120000>;
 		constant_charge_voltage_max_microvolt = <4400000>;
-		factory-internal-resistance-micro-ohms = <147000>;
+		factory-internal-resistance-micro-ohms = <174000>;
 		voltage-min-design-microvolt = <3450000>;
 		ocv-capacity-celsius = <20>;
-		ocv-capacity-table-0 = <4380000 100>, <4317000 95>, <4258000 90>,
-					<4200000 85>, <4145000 80>, <4092000 75>,
-					<4047000 70>, <3990000 65>, <3955000 60>,
-					<3900000 55>, <3861000 50>, <3834000 45>,
-					<3813000 40>, <3796000 35>, <3783000 30>,
-					<3770000 25>, <3752000 20>, <3730000 15>,
-					<3698000 10>, <3687000 5>, <3400000 0>;
+		ocv-capacity-table-0 = <4379000 100>, <4315000 95>, <4256000 90>,
+					<4199000 85>, <4143000 80>, <4090000 75>,
+					<4042000 70>, <3989000 65>, <3950000 60>,
+					<3895000 55>, <3857000 50>, <3830000 45>,
+					<3809000 40>, <3792000 35>, <3778000 30>,
+					<3761000 25>, <3742000 20>, <3719000 15>,
+					<3689000 10>, <3674000 5>, <3400000 0>;
 		voltage-temp-table = <1095000 800>, <986000 850>, <878000 900>,
 				      <775000 950>, <678000 1000>, <590000 1050>,
 				      <510000 1100>, <440000 1150>, <378000 1200>,
@@ -182,8 +182,8 @@
 		cm-battery-stat = <2>;
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
-		cm-fullbatt-vchkdrop-volt = <60000>;
-		cm-fullbatt-voltage = <4300000>;
+		cm-fullbatt-vchkdrop-volt = <20000>;
+		cm-fullbatt-voltage = <4370000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
