@@ -173,7 +173,11 @@ int sprd_dphy_data_ulps_enter(struct sprd_dphy *dphy)
 
 	dphy_wait_datalane_ulps_active(dphy, lane_mask);
 
-	dphy_hal_datalane_ulps_rqst(dphy, 0);
+	/*
+	 * WARNING:
+	 * Don't clear ulps_request signal here, otherwise the
+	 * Mark-1 patten could not be generated when ULPS exit.
+	 */
 
 	return 0;
 }
@@ -183,6 +187,8 @@ int sprd_dphy_data_ulps_exit(struct sprd_dphy *dphy)
 	u8 lane_mask = (1 << dphy->ctx.lanes) - 1;
 
 	dphy_hal_datalane_ulps_exit(dphy, 1);
+
+	dphy_hal_datalane_ulps_rqst(dphy, 0);
 
 	dphy_wait_datalane_stop_state(dphy, lane_mask);
 
@@ -197,7 +203,11 @@ int sprd_dphy_clk_ulps_enter(struct sprd_dphy *dphy)
 
 	dphy_wait_clklane_ulps_active(dphy);
 
-	dphy_hal_clklane_ulps_rqst(dphy, 0);
+	/*
+	 * WARNING:
+	 * Don't clear ulps_request signal here, otherwise the
+	 * Mark-1 patten could not be generated when ULPS exit.
+	 */
 
 	return 0;
 }
@@ -205,6 +215,8 @@ int sprd_dphy_clk_ulps_enter(struct sprd_dphy *dphy)
 int sprd_dphy_clk_ulps_exit(struct sprd_dphy *dphy)
 {
 	dphy_hal_clklane_ulps_exit(dphy, 1);
+
+	dphy_hal_clklane_ulps_rqst(dphy, 0);
 
 	dphy_wait_clklane_stop_state(dphy);
 
