@@ -175,7 +175,7 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 	else if (vol >= 4440)
 		reg_val = 0x2e;
 	else
-		reg_val = (vol - 3499) / 20;
+		reg_val = (vol - 3856) / 32;
 
 	return bq2560x_update_bits(info, BQ2560X_REG_4,
 				   BQ2560X_REG_TERMINAL_VOLTAGE_MASK,
