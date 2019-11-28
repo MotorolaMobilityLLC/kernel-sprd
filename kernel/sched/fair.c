@@ -7610,11 +7610,6 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	if (*backup_cpu == prev_cpu)
 		*backup_cpu = -1;
 
-	if (target_cpu == prev_cpu) {
-		target_cpu = *backup_cpu;
-		*backup_cpu = -1;
-	}
-
 	trace_sched_find_best_target(p, prefer_idle, min_util, cpu,
 				     best_idle_cpu, best_active_cpu,
 				     target_cpu);
@@ -7889,6 +7884,12 @@ static int find_energy_efficient_cpu(struct sched_domain *sd,
 		if (((prefer_idle || boosted > 0) && target_cpu >= 0 && idle_cpu(target_cpu)) ||
 		    cpumask_test_cpu(target_cpu, &min_cap_cpu_mask))
 			return target_cpu;
+
+
+		if (target_cpu == prev_cpu) {
+			target_cpu = eenv->cpu[EAS_CPU_BKP].cpu_id;
+			eenv->cpu[EAS_CPU_BKP].cpu_id = -1;
+		}
 
 #ifdef CONFIG_SCHED_WALT
 		if (!walt_disabled && sysctl_sched_use_walt_cpu_util &&
