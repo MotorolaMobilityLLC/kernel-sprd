@@ -312,16 +312,28 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 {
 	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
 	struct sprd_hsphy *phy = container_of(usb_phy, struct sprd_hsphy, phy);
+	u32 reg;
 
 	if (phy->is_host) {
 		dev_info(phy->dev, "USB PHY is host mode\n");
 		return 0;
 	}
 
-	if (event)
+	if (event) {
+		/* usb vbus valid */
+		reg = readl_relaxed(phy->base + REG_AP_AHB_OTG_PHY_TEST);
+		reg |= (MASK_AP_AHB_OTG_VBUS_VALID_EXT |
+			 MASK_AP_AHB_OTG_VBUS_VALID_PHYREG);
+		writel_relaxed(reg, phy->base + REG_AP_AHB_OTG_PHY_TEST);
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
-	else
+	} else {
+		/* usb vbus invalid */
+		reg = readl_relaxed(phy->base + REG_AP_AHB_OTG_PHY_TEST);
+		reg &= ~(MASK_AP_AHB_OTG_VBUS_VALID_PHYREG |
+			MASK_AP_AHB_OTG_VBUS_VALID_EXT);
+		writel_relaxed(reg, phy->base + REG_AP_AHB_OTG_PHY_TEST);
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
+	}
 
 	return 0;
 }
