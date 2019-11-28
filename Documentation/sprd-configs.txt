@@ -13284,7 +13284,9 @@ CONFIG_SPRD_CAM_PW_DOMAIN_R4P0
 	[field] make,code
 	[subsys] camera
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3_32 because the hardware is defferent
+	                           missing sharkl5_32 because the hardware is defferent
+	                           missing sharkle32 because the hardware is defferent
 	[function] Camera and vsp power domain
 CONFIG_SPRD_CAM_PW_DOMAIN_R5P0
 	[arch] all
@@ -13293,7 +13295,12 @@ CONFIG_SPRD_CAM_PW_DOMAIN_R5P0
 	[field] make,code
 	[subsys] camera
 	[must] user
-	[missing plat description]
+	[missing plat description] missing pike2 because the hardware is defferent
+	                           missing roc1 because the hardware is defferent
+	                           missing sharkl5 because the hardware is defferent
+	                           missing sharkl5Pro because the hardware is defferent
+	                           missing sharkl5_32 because the hardware is defferent
+	                           missing sharkle32 because the hardware is defferent
 	[function] This function is used to enable cam power domain.
 CONFIG_SPRD_CAM_PW_DOMAIN_R5P1
 	[arch] arm
@@ -13302,17 +13309,21 @@ CONFIG_SPRD_CAM_PW_DOMAIN_R5P1
 	[field] make,code
 	[subsys] camera
 	[must] user
-	[missing plat description]
+	[missing plat description] missing pike2 because the hardware is defferent
+	                           missing sharkl3_32 because the hardware is defferent
+	                           missing sharkl5_32 because the hardware is defferent
 	[function] This function is used to enable cam power domain.
 CONFIG_SPRD_CAM_PW_DOMAIN_R7P0
 	[arch] arm64
 	[plat] sharkl5Pro
 	[missing plat] roc1,sharkl3,sharkl5
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] camera
+	[must] user
+	[missing plat description] missing roc1 because the hardware is defferent
+	                           missing sharkl3 because the hardware is defferent
+	                           missing sharkl5 because the hardware is defferent
+	[function] This function is used to enable cam power domain.
 CONFIG_SPRD_CLUSTER0_THERMAL
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
@@ -13726,7 +13737,11 @@ CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[field] make,code
 	[subsys] misc
 	[must] console
-	[missing plat description]
+	[missing plat description] missing pike2 because the hardware is different
+	                           missing sharkl3 because the hardware is different
+	                           missing sharkl3_32 because the hardware is different
+	                           missing sharkl5Pro because the hardware is different
+	                           missing sharkle32 because the hardware is different
 	[function] This function is used to enable mm power domain.
 CONFIG_SPRD_MODEM_DEBUG
 	[arch] all
@@ -14153,7 +14168,9 @@ CONFIG_SPRD_VSP_CALL_CAM_PW_DOMAIN
 	[field] make,code,menu
 	[subsys] misc
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3_32 because the hardware is defferent
+	                           missing sharkl5_32 because the hardware is defferent
+	                           missing sharkle32 because the hardware is defferent
 	[function] Vsp and camera share the power on/off interface.
 		Vsp calls the interface implemented by camera.
 CONFIG_SPRD_VSP_PW_DOMAIN
@@ -14163,7 +14180,8 @@ CONFIG_SPRD_VSP_PW_DOMAIN
 	[field] make,code,menu
 	[subsys] misc
 	[must] user
-	[missing plat description]
+	[missing plat description] missing pike2 because the hardware is defferent
+	                           missing sharkle32 because the hardware is defferent
 	[function] power on vsp domain.
 CONFIG_SPRD_WATCHDOG
 	[arch] all
