@@ -13303,12 +13303,12 @@ CONFIG_SPRD_COMMON_CLK
 CONFIG_SPRD_CORE_CTL
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32,sharkl5
+	[field] make,code
+	[subsys] sched
+	[must] user
+	[missing plat description] because core sensor does not exist
+	[function] similar effect as hotplug but at lower latency cost
 CONFIG_SPRD_CPROC
 	[arch] all
 	[plat] all
