@@ -312,7 +312,7 @@ static int sprd_musb_recover(struct musb *musb)
 {
 	struct sprd_glue *glue = dev_get_drvdata(musb->controller->parent);
 
-	if (is_host_active(musb) && glue->wq_mode == USB_DR_MODE_HOST)
+	if (is_host_active(musb) && glue->dr_mode == USB_DR_MODE_HOST)
 		schedule_delayed_work(&glue->recover_work,
 			msecs_to_jiffies(MUSB_RECOVER_TIMEOUT));
 	return 0;
@@ -604,10 +604,20 @@ static void sprd_musb_work(struct work_struct *work)
 {
 	struct sprd_glue *glue = container_of(work, struct sprd_glue, work);
 	struct musb *musb = platform_get_drvdata(glue->musb);
+	int current_state;
+	enum usb_dr_mode current_mode;
 	unsigned long flags;
 	bool charging_only = false;
 	int ret;
 	int cnt = 100;
+
+	spin_lock_irqsave(&glue->lock, flags);
+	current_mode = glue->wq_mode;
+	current_state = glue->vbus_active;
+	glue->wq_mode = USB_DR_MODE_UNKNOWN;
+	spin_unlock_irqrestore(&glue->lock, flags);
+	if (current_mode == USB_DR_MODE_UNKNOWN)
+		return;
 
 	/*
 	 * There is a hidden danger, when system is going to suspend.
@@ -624,16 +634,22 @@ static void sprd_musb_work(struct work_struct *work)
 		msleep(20);
 
 	if (IS_ENABLED(CONFIG_USB_MUSB_DUAL_ROLE) &&
-		(glue->wq_mode == USB_DR_MODE_HOST) &&
+		(current_mode == USB_DR_MODE_HOST) &&
 		!musb->gadget_driver)
 		musb_host_start(musb);
 
-	glue->dr_mode = glue->wq_mode;
+	glue->dr_mode = current_mode;
 	dev_dbg(glue->dev, "%s enter: vbus = %d mode = %d\n",
-			__func__, glue->vbus_active, glue->dr_mode);
+			__func__, current_state, current_mode);
 
 	disable_irq_nosync(glue->vbus_irq);
-	if (glue->vbus_active) {
+	if (current_state) {
+		if ((musb->g.state != USB_STATE_NOTATTACHED) &&
+		    pm_runtime_active(glue->dev)) {
+			dev_info(glue->dev, "musb device is resumed!\n");
+			goto end;
+		}
+
 		if (glue->dr_mode == USB_DR_MODE_PERIPHERAL)
 			usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
 
