@@ -646,6 +646,7 @@ static int sysdump_connect(struct input_handler *handler,
  err_unregister:
 	input_unregister_handle(sysdump_handle);
  err_free:
+	kfree(sysdump_handle);
 	return error;
 }
 
