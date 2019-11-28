@@ -1437,7 +1437,7 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_GAMMA:
 		memcpy(&gamma_copy, param, sizeof(gamma_copy));
-		enhance_en |= BIT(5);
+		enhance_en |= BIT(5) | BIT(10);
 		pr_info("enhance gamma backup\n");
 		break;
 	case ENHANCE_CFG_ID_EPF:
@@ -1614,7 +1614,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 			pr_debug("0x%02x: r=%u, g=%u, b=%u\n", i,
 				gamma->r[i], gamma->g[i], gamma->b[i]);
 		}
-		reg->dpu_enhance_cfg |= BIT(5);
+		reg->dpu_enhance_cfg |= BIT(5) | BIT(10);
 		pr_info("enhance gamma set\n");
 		break;
 	case ENHANCE_CFG_ID_EPF:
