@@ -84,7 +84,7 @@ u8 gen_step2(int cur_pre, int pre_pre2, int pre2_pre3, int scene_flag,
 	return temp_step2;
 }
 
-void backlight_decision(int *hist_cabc, struct bl_out_tag *bl, int max_hist_num)
+void backlight_decision(int *hist_cabc, struct bl_out_tag *bl)
 {
 	int i;
 
@@ -98,25 +98,16 @@ void backlight_decision(int *hist_cabc, struct bl_out_tag *bl, int max_hist_num)
 	}
 }
 
-void backlight_fix_ui(struct bl_out_tag *bl, struct max_hist_num_tag max_hist,
+void backlight_fix_ui(struct bl_out_tag *bl,
 	u8 *s_step2, u8 step0, u8 step1, u8 step2, u8 scene_flag,
-	int hist_num, int change_num_diff, u8 *change_cnt,
-	int sign_num_diff)
+	int hist_num, int change_num_diff, u8 *change_flag)
 {
 	u8 div_result, temp_step2;
-	int change_ratio, flag = 1;
+	int change_ratio;
 	int diff_bl_cur_pre = bl->cur - bl->pre;
 	int diff_bl_pre_pre2 = sign_diff(bl->pre, bl->pre2);
 	int diff_bl_pre2_pre3 = sign_diff(bl->pre2, bl->pre3);
 	u16 abs_diff_bl_cur_pre = abs(diff_bl_cur_pre);
-	u8  cur_max_hist = max_hist.max_hist_num_cur;
-	u8  pre_max_hist = max_hist.max_hist_num_pre;
-	u8  pre_1_max_hist = max_hist.max_hist_num_pre_1;
-	u8  pre_2_max_hist = max_hist.max_hist_num_pre_2;
-	int sign_diff_max_hist_num_1 = sign_diff(cur_max_hist, pre_max_hist);
-	int sign_diff_max_hist_num_2 = sign_diff(pre_max_hist, pre_1_max_hist);
-	int sign_diff_max_hist_num_3 = sign_diff(pre_1_max_hist,
-		pre_2_max_hist);
 	int sign_diff_pre_fix_cur = sign_diff(bl->pre_fix_ui, bl->cur);
 
 	if (change_num_diff != 0)
@@ -124,61 +115,45 @@ void backlight_fix_ui(struct bl_out_tag *bl, struct max_hist_num_tag max_hist,
 	else
 		change_ratio = hist_num;
 	div_result = abs_diff_bl_cur_pre / 10;
-	if ((sign_diff_max_hist_num_1 == 0) && (sign_diff_max_hist_num_2 == 0)
-		&& (sign_diff_max_hist_num_3 == 0)) {
-		/* coming in a stable status*/
-		*change_cnt = 0;
-		if ((diff_bl_cur_pre == 0) && (diff_bl_pre_pre2) == 0) {
-			if (change_ratio >= 80) {
-				bl->cur_fix_ui = bl->pre_fix_ui - step0 *
-					sign_diff_pre_fix_cur;
+
+	/* coming in a stable status*/
+	if ((diff_bl_cur_pre == 0) && (diff_bl_pre_pre2) == 0) {
+		if (change_ratio >= 80) {
+			if ((bl->cur == 52) && (*change_flag == 0)) {
+				bl->cur_fix_ui = bl->pre_fix_ui + step1;
 			} else {
-				if ((cur_max_hist == 11) &&
-					(sign_num_diff > 0)) {
-					bl->cur_fix_ui = bl->pre_fix_ui +
-						step0 * abs(60 - change_ratio);
-					flag = 0;
-				} else {
-					if (sign_diff_pre_fix_cur >= 0)
-						bl->cur_fix_ui = bl->pre_fix_ui;
-					else
-						bl->cur_fix_ui =
-						bl->pre_fix_ui +
-						step1 * abs(80 - change_ratio);
-				}
+				*change_flag = 1;
+				bl->cur_fix_ui = bl->pre_fix_ui - step0 *
+				sign_diff_pre_fix_cur;
 			}
 		} else {
-			bl->cur_fix_ui = bl->pre_fix_ui - step0 *
-					sign_diff_pre_fix_cur;
+			*change_flag = 1;
+			if (sign_diff_pre_fix_cur >= 0) {
+				bl->cur_fix_ui = bl->pre_fix_ui;
+			} else {
+				bl->cur_fix_ui = bl->pre_fix_ui
+				+ step1 * abs(80 - change_ratio);
+			}
 		}
 	} else {
-		/* ui menu coming  or exiting ,first frame*/
-		if ((sign_diff_max_hist_num_2 == 0) &&
-			(sign_diff_max_hist_num_3 == 0)) {
-			*change_cnt = 1;
-			/* to avoid ui menu flicking  configure menu*/
-			bl->cur_fix_ui = bl->pre_fix_ui + step0;
-		}  else if ((sign_diff_max_hist_num_1 == 0) &&
-			(sign_diff_max_hist_num_3 == 0) && (*change_cnt == 1)) {
-			/* ui menu coming  or exiting ,second frame*/
-			*change_cnt = *change_cnt + 1;
-			/* to avoid ui menu flicking   configure menu*/
-			bl->cur_fix_ui = bl->pre_fix_ui + step0;
-		} else if ((sign_diff_max_hist_num_1 == 0) &&
-			(sign_diff_max_hist_num_2 == 0) && (*change_cnt == 2)) {
-			*change_cnt = 0;
-			/* to avoid ui menu flicking   configure menu*/
-			bl->cur_fix_ui = bl->pre_fix_ui + step0;
+		if ((diff_bl_pre_pre2 == 0) &&
+			(diff_bl_pre2_pre3 == 0) &&
+			(diff_bl_cur_pre < 0) && (bl->cur == 52)) {
+			*change_flag = 0;
+			bl->cur_fix_ui = bl->pre_fix_ui + step1;
+		} else if ((diff_bl_cur_pre == 0)  &&
+			(bl->cur == 52) && (*change_flag == 0)) {
+			bl->cur_fix_ui = bl->pre_fix_ui + step1;
 		} else {
-			*change_cnt = 0;
+			*change_flag = 1;
 			temp_step2 = gen_step2(diff_bl_cur_pre,
-				diff_bl_pre_pre2, diff_bl_pre2_pre3,
-				scene_flag, div_result, s_step2,
+			diff_bl_pre_pre2, diff_bl_pre2_pre3,
+			scene_flag, div_result, s_step2,
 			step0, step2, abs_diff_bl_cur_pre);
 			bl->cur_fix_ui = bl->pre_fix_ui + temp_step2;
 		}
 	}
-	if (flag) {
+	if (*change_flag) {
 		if (((sign_diff_pre_fix_cur > 0) &&
 			(bl->cur_fix_ui < bl->cur)) ||
 			((sign_diff_pre_fix_cur < 0) &&
@@ -189,7 +164,7 @@ void backlight_fix_ui(struct bl_out_tag *bl, struct max_hist_num_tag max_hist,
 	}
 }
 
-void backlight_fix_video(struct max_hist_num_tag max_hist, u8 s_scene_change,
+void backlight_fix_video(u8 s_scene_change,
 	u8 step0, struct bl_out_tag *bl)
 {
 	int sign_diff_1, sign_diff_2, sign_diff_3;

@@ -16,13 +16,11 @@
 
 #include"cabc_definition.h"
 
-void backlight_decision(int *hist_cabc, struct bl_out_tag *bl,
-	int max_hist_num);
-void backlight_fix_ui(struct bl_out_tag *bl, struct max_hist_num_tag max_hist,
+void backlight_decision(int *hist_cabc, struct bl_out_tag *bl);
+void backlight_fix_ui(struct bl_out_tag *bl,
 	u8 *s_step2, u8 step0, u8 step1, u8 step2, u8 scene_flag,
-	int hist_num, int change_num_diff, u8 *change_cnt,
-	int sign_diff);
-void backlight_fix_video(struct max_hist_num_tag max_hist, u8 s_scene_change,
+	int hist_num, int change_num_diff, u8 *change_cnt);
+void backlight_fix_video(u8 s_scene_change,
 	u8 step, struct bl_out_tag *bl);
 
 #endif

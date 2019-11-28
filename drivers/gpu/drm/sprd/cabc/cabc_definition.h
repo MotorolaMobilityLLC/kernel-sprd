@@ -40,12 +40,6 @@ struct cabc_context_tag {
 	int pixel_total_num;
 };
 
-struct max_hist_num_tag {
-	int max_hist_num_cur;
-	int  max_hist_num_pre;
-	int  max_hist_num_pre_1;
-	int  max_hist_num_pre_2;
-};
 struct cabc_para {
 	u32 cabc_hist[32];
 	u16 gain;

@@ -17,7 +17,7 @@
 #include"cabc_definition.h"
 
 void scene_detection(int *hist, int *hist_pre, int *hist_diff,
-int *hist_pre_diff, int sum_num, int num, u8 *scene_flag,
-int scene_detect_thr, int max_hist_num);
+int *hist_pre_diff, int num, u8 *scene_flag,
+int scene_detect_thr);
 
 #endif

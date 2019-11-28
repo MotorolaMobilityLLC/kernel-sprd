@@ -21,7 +21,6 @@ int s_hist_cabc[2][HIST_BIN_CABC];
 int s_hist_cabc_diff[2][HIST_BIN_CABC];
 int s_scene_detect_thr = 30;
 struct cabc_context_tag s_cabc_ctx;
-struct max_hist_num_tag  s_max_hist;
 bool s_pre_is_VSP_working;
 int g_cabc_percent_th = 10;
 u8 s_scene_change;
@@ -33,7 +32,7 @@ struct bl_out_tag g_backlight;
 u8 g_step0 = 2;
 u8 g_step1 = 2;
 u8 s_bl_cur_fix_video;
-u8 s_change_cnt;
+u8 s_change_cnt = 1;
 u8 g_step2 = STEP2_INIT;
 u16 g_scene_change_thr = 80;
 static int s_vsp_working_cnt;
@@ -54,10 +53,6 @@ void init_cabc(int img_width, int img_height)
 	g_backlight.pre = g_max_backlight;
 	g_backlight.pre2 = g_max_backlight;
 	g_backlight.pre3 = g_max_backlight;
-	s_max_hist.max_hist_num_cur = 0;
-	s_max_hist.max_hist_num_pre = 0;
-	s_max_hist.max_hist_num_pre_1 = 0;
-	s_max_hist.max_hist_num_pre_2 = 0;
 }
 
 void clip(int *input, u16 bottom, u16 top)
@@ -76,26 +71,8 @@ void step_set(int step0, int step1, int step2,
 	g_step2 = (u8)step2;
 	g_min_backlight = (u16)min_backlight;
 }
-
-int max_hist(int *hist_diff)
-{
-	int i;
-
-	for (i = 0; i < (HIST_BIN_CABC - 2); i++) {
-		if (hist_diff[i] <= 2) {
-			if (hist_diff[i + 1] >= 2)
-				return (i + 1);
-		} else {
-			return i;
-		}
-	}
-	return i;
-}
-
 int cabc_trigger(struct cabc_para *para, int frame_no)
 {
-	int max_hist_cabc;
-	int sign_num_diff;
 	u8 step0, step1, step2;
 	int i, j, k;
 	int *hist_pre = s_hist_cabc[PRE];
@@ -110,14 +87,7 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 	for (i = 0; i < HIST_BIN_CABC; i++)
 		hist_diff_pre[i] = para->cabc_hist[HIST_BIN_CABC-1-i];
 
-	s_max_hist.max_hist_num_cur = max_hist(hist_diff_pre);
 	s_hist_cabc_num_diff = hist_pre[13] - hist_pre_pre[13];
-	if (s_hist_cabc_num_diff < 0) {
-		s_hist_cabc_num_diff = -s_hist_cabc_num_diff;
-		sign_num_diff = -1;
-	} else {
-		sign_num_diff = 1;
-	}
 	if (para->is_VSP_working) {
 		s_vsp_working_cnt++;
 		if (s_vsp_working_cnt < 20)
@@ -134,15 +104,13 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 	step2 = k * g_step2;
 
 	if (frame_no > 1) {
-		max_hist_cabc = (sign_num_diff > 0) ?
-		hist_pre[HIST_BIN_CABC-1] : hist_pre_pre[HIST_BIN_CABC-1];
 		scene_detection(hist_pre, hist_pre_pre, hist_diff_pre,
-			hist_diff_pre_pre, max_hist_cabc,
+			hist_diff_pre_pre,
 			s_cabc_ctx.pixel_total_num,
-			&s_scene_change, s_scene_detect_thr,
-			s_max_hist.max_hist_num_cur);
+			&s_scene_change, s_scene_detect_thr);
 	}
-	backlight_decision(hist_pre, bl_ptr, s_max_hist.max_hist_num_cur);
+
+	backlight_decision(hist_pre, bl_ptr);
 	if (para->is_VSP_working == 0) {
 		if (s_pre_is_VSP_working == 1)
 			bl_ptr->pre_fix_ui = bl_ptr->pre_fix_video;
@@ -150,10 +118,10 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 			bl_ptr->cur_fix_ui = g_max_backlight;
 			para->bl_fix = para->cur_bl;
 		} else {
-			backlight_fix_ui(bl_ptr, s_max_hist, &s_step2, step0,
+			backlight_fix_ui(bl_ptr, &s_step2, step0,
 				step1, step2, s_scene_change,
 			s_cabc_ctx.pixel_total_num, s_hist_cabc_num_diff,
-				&s_change_cnt, sign_num_diff);
+				&s_change_cnt);
 		}
 		clip(&bl_ptr->cur_fix_ui, g_min_backlight, g_max_backlight);
 		para->bl_fix = para->cur_bl *
@@ -167,7 +135,7 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 			bl_ptr->cur_fix_video = bl_ptr->cur;
 			para->bl_fix = para->cur_bl;
 		} else {
-			backlight_fix_video(s_max_hist, s_scene_change,
+			backlight_fix_video(s_scene_change,
 				step0, bl_ptr);
 			clip(&bl_ptr->cur_fix_video, g_min_backlight,
 				g_max_backlight);
@@ -178,9 +146,6 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 		bl_ptr->pre_fix_video = bl_ptr->cur_fix_video;
 	}
 	para->gain = s_gain;
-	s_max_hist.max_hist_num_pre_2 = s_max_hist.max_hist_num_pre_1;
-	s_max_hist.max_hist_num_pre_1 = s_max_hist.max_hist_num_pre;
-	s_max_hist.max_hist_num_pre = s_max_hist.max_hist_num_cur;
 	bl_ptr->pre3 = bl_ptr->pre2;
 	bl_ptr->pre2 = bl_ptr->pre;
 	bl_ptr->pre = bl_ptr->cur;
