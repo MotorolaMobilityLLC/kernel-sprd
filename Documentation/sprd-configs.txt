@@ -12004,7 +12004,8 @@ CONFIG_SC2342_INTEG
 	[field] make,code
 	[subsys] core
 	[must] console
-	[missing plat description]
+	[missing plat description] This macro is a proprietary driver related to pike2,sharkl3,sharkl3_32,sharkle32.
+		The missing plat is not relevant.
 	[function] This is support wcn chip for spreadtrum.
 CONFIG_SC2355
 	[arch] all
@@ -12013,7 +12014,8 @@ CONFIG_SC2355
 	[field] menu
 	[subsys] wcn
 	[must] user
-	[missing plat description]
+	[missing plat description] This macro is a proprietary driver related to roc1,sharkl3,sharkl5,sharkl5_32.
+		The missing plat is not relevant.
 	[function] This function is used to support wcn sc2355 chip
 CONFIG_SC23XX
 	[arch] all
@@ -13919,7 +13921,8 @@ CONFIG_SPRD_SIPC_SWCNBLK
 	[field] make, code
 	[subsys] staging
 	[must] user
-	[missing plat description]
+	[missing plat description] This macro is related to project that use sipc as a data path.
+		But roc1 use pcie, the other missing plats use sdio.
 	[function] This function is used to enable wcnblk function for wifi ht.
 CONFIG_SPRD_SIPC_V2
 	[arch] arm64
@@ -14954,7 +14957,8 @@ CONFIG_UMW2652
 	[field] menu
 	[subsys] wcn
 	[must] user
-	[missing plat description]
+	[missing plat description] This macro is a proprietary driver related to marlin3 lite driver.
+		The missing plat is not marlin3 lite.
 	[function] This function is used to support wcn umw2652 chip
 CONFIG_UNCOMPRESS_INCLUDE
 	[arch] arm
@@ -16076,7 +16080,8 @@ CONFIG_WCN_BOOT
 	[field] make
 	[subsys] wcn
 	[must] user
-	[missing plat description]
+	[missing plat description] This macro is a proprietary driver related to roc1,sharkl5,sharkl5Pro,sharkl5_32.
+		The missing plat is not relevant.
 	[function] wcn boot up for 2355 chip.
 CONFIG_WCN_PCIE
 	[arch] arm64
@@ -16085,7 +16090,8 @@ CONFIG_WCN_PCIE
 	[field] make
 	[subsys] wcn
 	[must] user
-	[missing plat description]
+	[missing plat description] This macro is only a proprietary driver related to roc1.
+		The missing plat is not relevant.
 	[function] support pcie bus for wcn chip
 CONFIG_WCN_PLATFORM
 	[arch] all
@@ -16094,7 +16100,8 @@ CONFIG_WCN_PLATFORM
 	[field] make,code
 	[subsys] wcn
 	[must] user
-	[missing plat description]
+	[missing plat description] This macro is a proprietary driver related to pike2,sharkl3_32,sharkle32.
+		The missing plat is not relevant.
 	[function] wcn intergation 2342 chip support
 CONFIG_WCN_SIPC
 	[arch] all
@@ -16103,7 +16110,8 @@ CONFIG_WCN_SIPC
 	[field] make
 	[subsys] wcn
 	[must] user
-	[missing plat description]
+	[missing plat description] This macro is a proprietary driver related to pike2,sharkl3,sharkl3_32,sharkle32.
+		The missing plat is not relevant.
 	[function] WCN integration chip 2342 sipc Support
 CONFIG_WCN_SLP
 	[arch] all
@@ -16112,16 +16120,18 @@ CONFIG_WCN_SLP
 	[field] make
 	[subsys] wcn
 	[must] user
-	[missing plat description]
+	[missing plat description] This macro is a proprietary driver related to marlin3 lite project.
+		The missing plat is not relevant.
 	[function] wcn sleep and wakeup for 2355 chip
 CONFIG_WCN_UTILS
 	[arch] all
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
-	[missing plat description]
+	[missing plat description] This macro is a proprietary driver related to marlin3 lite project.
+		The missing plat is not relevant.
 	[function] debug tool for wcn chip
 CONFIG_WIRELESS
 	[arch] all
