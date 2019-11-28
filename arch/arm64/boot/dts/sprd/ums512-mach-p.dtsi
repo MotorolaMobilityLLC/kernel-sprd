@@ -165,6 +165,10 @@
 			reg = <0x0 0xfff80000 0x0 0x00040000>;
 		};
 
+		debug_reserved: debug-mem {
+			reg = <0x1 0x00000000 0x0 0x00001000>;
+		};
+
 	};
 
 	audio-mem-mgr {

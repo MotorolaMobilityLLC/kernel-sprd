@@ -153,6 +153,11 @@
 			pmsg-size = <0x8000>;
 		};
 
+		debug_reserved: debug-mem@100000000 {
+			reg = <0x1 0x00000000 0x0 0x00001000>;
+		};
+
+
 	};
 
 	audio-mem-mgr {
