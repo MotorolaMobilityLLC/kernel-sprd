@@ -257,7 +257,7 @@
 			<250 0x5c 0 0xffff 0x1900>,
 			<300 0x5c 16 0xffff 0x1e00>,
 			<350 0x114 0 0xffff 0x2300>;
-		tuning-latency-us = <200>;
+		tuning-latency-us = <0>;
 		chnl-in-i2c = <0>;
 	};
 	dvfs_dcdc_cpu1_supply: dvfs-dcdc-cpu1-supply {
@@ -288,7 +288,7 @@
 			<250 0x88 0 0xffff 0x1900>,
 			<300 0x88 16 0xffff 0x1e00>,
 			<350 0x11c 0 0xffff 0x2300>;
-		tuning-latency-us = <300>;
+		tuning-latency-us = <0>;
 		chnl-in-i2c = <1>;
 	};
 
