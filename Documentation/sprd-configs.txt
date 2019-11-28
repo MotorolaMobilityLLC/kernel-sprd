@@ -13196,11 +13196,11 @@ CONFIG_SPRD_COMMON_CLK
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] clk
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] This function is used to enable sprd common clock driver.
 CONFIG_SPRD_CORE_CTL
 	[arch] arm64
 	[plat] sharkl5Pro
@@ -13708,11 +13708,12 @@ CONFIG_SPRD_ROC1_CLK
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] clk
+	[must] home
+	[missing plat description] CONFIG_SPRD_ROC1_CLK is only for roc1 platform and other projects
+	have their own driver.
+	[function] This function is used to enable roc1 platform clock driver.
 CONFIG_SPRD_ROC1_USB2_PHY
 	[arch] arm64
 	[plat] roc1
@@ -13726,29 +13727,32 @@ CONFIG_SPRD_SC7731E_CLK
 	[arch] arm
 	[plat] pike2
 	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] clk
+	[must] home
+	[missing plat description] CONFIG_SPRD_SC7731E_CLK is only for pike2 platform and other
+	projects have their own driver.
+	[function] This function is used to enable pike2 platform clock driver.
 CONFIG_SPRD_SC9832E_CLK
 	[arch] arm
 	[plat] sharkle32
 	[missing plat] pike2,sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] clk
+	[must] home
+	[missing plat description] CONFIG_SPRD_SC9832E_CLK is only for sharkle platform and other
+	projects have their own driver.
+	[function] This function is used to enable sharkle platform clock driver.
 CONFIG_SPRD_SC9863A_CLK
 	[arch] all
 	[plat] sharkl3,sharkl3_32
 	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] clk
+	[must] home
+	[missing plat description] CONFIG_SPRD_SC9863A_CLK is only for sharkl3 platform and other
+	projects have their own driver.
+	[function] This function is used to enable sharkl3 platform clock driver.
 CONFIG_SPRD_SENSOR_HUB
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
@@ -13789,20 +13793,22 @@ CONFIG_SPRD_SHARKL5PRO_CLK
 	[arch] arm64
 	[plat] sharkl5Pro
 	[missing plat] roc1,sharkl3,sharkl5
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] clk
+	[must] home
+	[missing plat description] CONFIG_SPRD_SHARKL5PRO_CLK is only for sharkl5pro platform and
+	other projects have their own driver.
+	[function] This function is used to enable sharkl5pro platform clock driver.
 CONFIG_SPRD_SHARKL5_CLK
 	[arch] all
 	[plat] sharkl5,sharkl5_32
 	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] clk
+	[must] home
+	[missing plat description] CONFIG_SPRD_SHARKL5_CLK is only for sharkl5 platform and other
+	projects have their own driver.
+	[function] This function is used to enable sharkl5 platform clock driver.
 CONFIG_SPRD_SHARKL5_USB2_PHY
 	[arch] all
 	[plat] sharkl5,sharkl5Pro,sharkl5_32
