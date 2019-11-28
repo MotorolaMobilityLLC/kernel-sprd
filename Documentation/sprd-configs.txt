@@ -14067,7 +14067,7 @@ CONFIG_SPRD_SIP_FW
 	[field] make,code
 	[subsys] firmware
 	[must] user
-	[missing plat description]
+	[missing plat description] Need to be supported from sharkl5.
 	[function] Provides interfaces to SoC implementation-specific secure
 	           services.
 CONFIG_SPRD_SOC_THERMAL
