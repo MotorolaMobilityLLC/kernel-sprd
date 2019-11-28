@@ -1392,7 +1392,7 @@ int sdiohal_init(void)
 
 	WCN_INFO("%s ok\n", __func__);
 
-	return sdio_register_driver(&sdiohal_driver);
+	return 0;
 }
 
 void sdiohal_exit(void)
