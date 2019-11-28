@@ -223,17 +223,15 @@ static int sprd_cluster1_thm_probe(struct platform_device *pdev)
 	}
 
 	pzone = devm_kzalloc(&pdev->dev, sizeof(*pzone), GFP_KERNEL);
-	if (!pzone) {
-		ret = -ENOMEM;
-		goto err;
-	}
+	if (!pzone)
+		return -ENOMEM;
 
 	mutex_init(&pzone->th_lock);
 
 	sensor_id = of_alias_get_id(np, "thm-sensor");
-	if (sensor_id == -ENODEV) {
+	if (sensor_id < 0) {
 		dev_err(&pdev->dev, "fail to get id\n");
-		goto err;
+		return -ENODEV;
 	}
 	pr_info("sprd cluster1 sensor id %d\n", sensor_id);
 
@@ -243,10 +241,10 @@ static int sprd_cluster1_thm_probe(struct platform_device *pdev)
 	strlcpy(pzone->name, np->name, sizeof(pzone->name));
 
 	ret = sprd_thermal_init(pzone);
-	if (ret) {
+	if (ret < 0) {
 		dev_err(&pdev->dev,
 			"cluster1 sensor sw init error id =%d\n", pzone->id);
-		goto err;
+		return ret;
 	}
 
 	sprd_ipa_info_copy(pzone, pcluster1_sensor);
@@ -254,9 +252,6 @@ static int sprd_cluster1_thm_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, pzone);
 
 	return 0;
-err:
-	kfree(pzone);
-	return ret;
 }
 
 static int sprd_cluster1_thm_remove(struct platform_device *pdev)
