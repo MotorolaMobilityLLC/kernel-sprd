@@ -251,7 +251,17 @@ struct acc_gyro_cali_data {
 	int z_raw_data;
 };
 
+#pragma pack(1)
+struct prox_cali_data {
+	int ground_noise;
+	int high_threshold;
+	int low_threshold;
+	u8 cali_flag;
+};
+#pragma pack()
+
 #define ACC_MAX_X_Y_BIAS_VALUE 20000 /* units: (1/10000) m/s^2 */
 #define ACC_MAX_Z_BIAS_VALUE 25000 /* units: (1/10000) m/s^2 */
+#define GYRO_MAX_X_Y_Z_BIAS_VALUE 4000 /* units: (1/10000) rad/s */
 
 #endif

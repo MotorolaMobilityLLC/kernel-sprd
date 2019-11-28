@@ -988,30 +988,79 @@ static ssize_t logctl_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(logctl);
 
-static int check_acc_cali_data(void *cali_data)
+static int check_proximity_cali_data(void *cali_data)
 {
-	struct acc_gyro_cali_data acc_cali_data;
+	struct prox_cali_data prox_cali;
 	struct shub_data *sensor = container_of(cali_data, struct shub_data,
 		calibrated_data);
 
-	memcpy(&acc_cali_data, cali_data, sizeof(acc_cali_data));
+	memcpy(&prox_cali, cali_data, sizeof(prox_cali));
 
 	dev_info(&sensor->sensor_pdev->dev,
-			"x_bias = %d; y_bias = %d; z_bias = %d\n",
-			acc_cali_data.x_bias,
-			acc_cali_data.y_bias,
-			acc_cali_data.z_bias);
+		"ground_noise = %d; high_thrd = %d; low_thrd = %d; cali_flag = %d\n",
+		prox_cali.ground_noise,
+		prox_cali.high_threshold,
+		prox_cali.low_threshold,
+		prox_cali.cali_flag);
 
-	if (abs(acc_cali_data.x_bias) > ACC_MAX_X_Y_BIAS_VALUE ||
-		abs(acc_cali_data.y_bias) > ACC_MAX_X_Y_BIAS_VALUE ||
-		abs(acc_cali_data.z_bias) > ACC_MAX_Z_BIAS_VALUE) {
+	if ((prox_cali.cali_flag & 0x06) == 0x06 &&
+		prox_cali.high_threshold < prox_cali.low_threshold) {
+		dev_err(&sensor->sensor_pdev->dev,
+			"prox sensor cali failed! the high_thrd < low_thrd!\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int check_acc_cali_data(void *cali_data)
+{
+	struct acc_gyro_cali_data acc_cali;
+	struct shub_data *sensor = container_of(cali_data, struct shub_data,
+		calibrated_data);
+
+	memcpy(&acc_cali, cali_data, sizeof(acc_cali));
+
+	dev_info(&sensor->sensor_pdev->dev,
+		"acc_cali x_bias = %d; y_bias = %d; z_bias = %d\n",
+		acc_cali.x_bias,
+		acc_cali.y_bias,
+		acc_cali.z_bias);
+
+	if (abs(acc_cali.x_bias) > ACC_MAX_X_Y_BIAS_VALUE ||
+		abs(acc_cali.y_bias) > ACC_MAX_X_Y_BIAS_VALUE ||
+		abs(acc_cali.z_bias) > ACC_MAX_Z_BIAS_VALUE) {
 		dev_err(&sensor->sensor_pdev->dev,
 			"acc sensor cali failed! the bias is too big!\n");
 		return -EINVAL;
 	}
 
 	return 0;
+}
 
+static int check_gyro_cali_data(void *cali_data)
+{
+	struct acc_gyro_cali_data gyro_cali;
+	struct shub_data *sensor = container_of(cali_data, struct shub_data,
+		calibrated_data);
+
+	memcpy(&gyro_cali, cali_data, sizeof(gyro_cali));
+
+	dev_info(&sensor->sensor_pdev->dev,
+		"gyro_cali x_bias = %d; y_bias = %d; z_bias = %d\n",
+		gyro_cali.x_bias,
+		gyro_cali.y_bias,
+		gyro_cali.z_bias);
+
+	if (abs(gyro_cali.x_bias) > GYRO_MAX_X_Y_Z_BIAS_VALUE ||
+		abs(gyro_cali.y_bias) > GYRO_MAX_X_Y_Z_BIAS_VALUE ||
+		abs(gyro_cali.z_bias) > GYRO_MAX_X_Y_Z_BIAS_VALUE) {
+		dev_err(&sensor->sensor_pdev->dev,
+			"gyro sensor cali failed! the bias is too big!\n");
+		return -EINVAL;
+	}
+
+	return 0;
 }
 
 /**
@@ -1026,13 +1075,23 @@ static void shub_save_calibration_data(struct work_struct *work)
 	struct shub_data *sensor = container_of(work,
 		struct shub_data, savecalifile_work);
 
-	if (sensor->cal_id == SENSOR_ACCELEROMETER) {
+	switch (sensor->cal_id) {
+	case SENSOR_ACCELEROMETER:
 		err = check_acc_cali_data(sensor->calibrated_data);
+		break;
+	case SENSOR_GYROSCOPE:
+		err = check_gyro_cali_data(sensor->calibrated_data);
+		break;
+	case SENSOR_PROXIMITY:
+		err = check_proximity_cali_data(sensor->calibrated_data);
+		break;
+	default:
+		break;
+	}
 
-		if (err < 0) {
-			sensor->cal_savests = err;
-			return;
-		}
+	if (err < 0) {
+		sensor->cal_savests = err;
+		return;
 	}
 
 	sprintf(file_path, CALIBRATION_NODE "%s",
