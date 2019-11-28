@@ -89,6 +89,9 @@ int sysctl_sched_rt_runtime = 950000;
 /* CPUs with isolated domains */
 cpumask_var_t cpu_isolated_map;
 
+/* record the min capacity cpus */
+struct cpumask min_cap_cpu_mask;
+
 /*
  * __task_rq_lock - lock the rq @p resides on.
  */
@@ -6439,9 +6442,7 @@ void __init sched_init(void)
 
 	scheduler_running = 1;
 
-#ifdef CONFIG_GENERIC_ARCH_TOPOLOGY
-	cpumask_copy(&min_cap_cpu_mask, cpu_possible_mask);
-#endif
+	cpumask_clear(&min_cap_cpu_mask);
 }
 
 #ifdef CONFIG_DEBUG_ATOMIC_SLEEP

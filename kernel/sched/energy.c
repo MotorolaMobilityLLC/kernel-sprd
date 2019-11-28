@@ -67,8 +67,6 @@ void check_max_cap_vs_cpu_scale(int cpu, struct sched_group_energy *sge)
 		max_cap, cpu_scale);
 }
 
-struct cpumask min_cap_cpu_mask;
-
 void init_sched_energy_costs(void)
 {
 	struct device_node *cn, *cp;
