@@ -2183,42 +2183,7 @@ CONFIG_IR_SHARP_DECODER=y
 CONFIG_IR_MCE_KBD_DECODER=y
 CONFIG_IR_XMP_DECODER=y
 # CONFIG_RC_DEVICES is not set
-CONFIG_MEDIA_SUPPORT=y
-
-#
-# Multimedia core support
-#
-# CONFIG_MEDIA_CAMERA_SUPPORT is not set
-# CONFIG_MEDIA_ANALOG_TV_SUPPORT is not set
-# CONFIG_MEDIA_DIGITAL_TV_SUPPORT is not set
-# CONFIG_MEDIA_RADIO_SUPPORT is not set
-# CONFIG_MEDIA_SDR_SUPPORT is not set
-# CONFIG_MEDIA_CEC_SUPPORT is not set
-# CONFIG_VIDEO_ADV_DEBUG is not set
-# CONFIG_VIDEO_FIXED_MINOR_RANGES is not set
-# CONFIG_TTPCI_EEPROM is not set
-
-#
-# Media drivers
-#
-# CONFIG_MEDIA_USB_SUPPORT is not set
-
-#
-# Supported MMC/SDIO adapters
-#
-# CONFIG_CYPRESS_FIRMWARE is not set
-
-#
-# Media ancillary drivers (tuners, sensors, i2c, spi, frontends)
-#
-
-#
-# Customise DVB Frontends
-#
-
-#
-# Tools to develop new frontends
-#
+# CONFIG_MEDIA_SUPPORT is not set
 
 #
 # Graphics support

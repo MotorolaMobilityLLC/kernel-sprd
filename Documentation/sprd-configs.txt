@@ -7676,83 +7676,83 @@ CONFIG_IR_JVC_DECODER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable IR raw decoder for the JVC protocol.
 CONFIG_IR_MCE_KBD_DECODER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable IR raw decoder for the MCE keyboard/mouse protocol.
 CONFIG_IR_NEC_DECODER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable IR raw decoder for the NEC protocol.
 CONFIG_IR_RC5_DECODER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable IR raw decoder for the RC-5 protocol.
 CONFIG_IR_RC6_DECODER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable IR raw decoder for the RC6 protocol.
 CONFIG_IR_SANYO_DECODER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable IR raw decoder for the Sanyo protocol.
 CONFIG_IR_SHARP_DECODER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable IR raw decoder for the Sharp protocol.
 CONFIG_IR_SONY_DECODER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable IR raw decoder for the Sony protocol.
 CONFIG_IR_XMP_DECODER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable IR raw decoder for the XMP protocol.
 CONFIG_JBD2
 	[arch] all
 	[plat] all
@@ -8230,15 +8230,6 @@ CONFIG_MDIO_GPIO
 	[arch] arm
 	[plat] pike2,sharkle32
 	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_MEDIA_SUPPORT
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
 	[field]
 	[subsys]
 	[must]
@@ -11488,29 +11479,29 @@ CONFIG_RC_CORE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Remote Controller support.
 CONFIG_RC_DECODERS
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Remote controller decoders.
 CONFIG_RC_MAP
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] media
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Compile Remote Controller keymap modules.
 CONFIG_RD_GZIP
 	[arch] all
 	[plat] all
