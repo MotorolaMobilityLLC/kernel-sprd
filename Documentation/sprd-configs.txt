@@ -2036,20 +2036,20 @@ CONFIG_CONSOLE_LOGLEVEL_DEFAULT
 CONFIG_CONSOLE_POLL
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] config
 	[subsys] tty
 	[must] console
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1,sharkl5,sharkl5_32 will no longer need to support
 	[function] Enable cosole polling IO support
 CONFIG_CONSOLE_TRANSLATIONS
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] config
 	[subsys] tty
 	[must] console
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1,sharkl5,sharkl5_32 will no longer need to support
 	[function] Enable character translations in console
 CONFIG_CONTEXT_SWITCH_TRACER
 	[arch] all
@@ -3949,11 +3949,11 @@ CONFIG_DUMMY
 CONFIG_DUMMY_CONSOLE
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] make code
 	[subsys] video
 	[must] console
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1,sharkl5,sharkl5_32 will no longer need to support
 	[function] Enable dummy console
 CONFIG_DUMMY_CONSOLE_COLUMNS
 	[arch] arm64
@@ -3962,7 +3962,7 @@ CONFIG_DUMMY_CONSOLE_COLUMNS
 	[field] config
 	[subsys] video
 	[must] console
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1 and sharkl5 will no longer need to support
 	[function] Initial number of console screen columns
 CONFIG_DUMMY_CONSOLE_ROWS
 	[arch] arm64
@@ -3971,7 +3971,7 @@ CONFIG_DUMMY_CONSOLE_ROWS
 	[field] config
 	[subsys] video
 	[must] console
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1 and sharkl5 will no longer need to support
 	[function] Initial number of console screen rows
 CONFIG_DYNAMIC_DEBUG
 	[arch] all
@@ -6386,11 +6386,11 @@ CONFIG_HWSPINLOCK_SPRD
 CONFIG_HW_CONSOLE
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] config
 	[subsys] tty
 	[must] console
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1,sharkl5,sharkl5_32 will no longer need to support
 	[function] Enable hw console
 CONFIG_HW_PERF_EVENTS
 	[arch] all
@@ -7883,20 +7883,20 @@ CONFIG_KEYS_COMPAT
 CONFIG_KGDB
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] menu,make,code
 	[subsys] debug
 	[must] debug
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1,sharkl5,sharkl5_32 will no longer need to support
 	[function] Remotely debug the kernel using gdb
 CONFIG_KGDB_SERIAL_CONSOLE
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] config
 	[subsys] debug
 	[must] debug
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1,sharkl5,sharkl5_32 will no longer need to support
 	[function] Use kgdb over the serial console
 CONFIG_KSM
 	[arch] arm
@@ -16078,29 +16078,29 @@ CONFIG_VM_EVENT_COUNTERS
 CONFIG_VT
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] config
 	[subsys] tty
 	[must] debug
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1,sharkl5,sharkl5_32 will no longer need to support
 	[function] Enable virtual terminal
 CONFIG_VT_CONSOLE
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] config
 	[subsys] tty
 	[must] debug
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1,sharkl5,sharkl5_32 will no longer need to support
 	[function] Support for console on virtual terminal
 CONFIG_VT_CONSOLE_SLEEP
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] config
 	[subsys] tty
 	[must] debug
-	[missing plat description] support this function in sharkl3
+	[missing plat description] roc1,sharkl5,sharkl5_32 will no longer need to support
 	[function] Enable vt console sleep
 CONFIG_WATCHDOG
 	[arch] all
