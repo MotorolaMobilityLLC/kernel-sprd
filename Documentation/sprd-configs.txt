@@ -3439,15 +3439,6 @@ CONFIG_DEBUG_SG
 	[must]
 	[missing plat description]
 	[function]
-CONFIG_DECOMPRESS_BZIP2
-	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[field] make,code
-	[subsys] core
-	[must] console
-	[missing plat description]
-	[function] Support bzip2 decompress format.
 CONFIG_DECOMPRESS_GZIP
 	[arch] all
 	[plat] all
@@ -3457,15 +3448,6 @@ CONFIG_DECOMPRESS_GZIP
 	[must] console
 	[missing plat description] none
 	[function] Support kernel decompress gzip.
-CONFIG_DECOMPRESS_LZMA
-	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[field] make,code
-	[subsys] core
-	[must] console
-	[missing plat description]
-	[function] Support lzma decompress format.
 CONFIG_DEFAULT_CFQ
 	[arch] all
 	[plat] all
@@ -11515,11 +11497,11 @@ CONFIG_PSTORE_ZLIB_COMPRESS
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] This option enables ZLIB compression algorithm support.
 CONFIG_PWM
 	[arch] all
 	[plat] all
@@ -11685,15 +11667,6 @@ CONFIG_RC_MAP
 	[must]
 	[missing plat description] none
 	[function]
-CONFIG_RD_BZIP2
-	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[field] make
-	[subsys] core
-	[must] console
-	[missing plat description]
-	[function] Support initial ramdisks compressed using bzip2.
 CONFIG_RD_GZIP
 	[arch] all
 	[plat] all
@@ -11703,15 +11676,6 @@ CONFIG_RD_GZIP
 	[must] console
 	[missing plat description] none
 	[function] CtsLiblogTestCases testcase needed, Support initial ramdisks compressed using gzip.
-CONFIG_RD_LZMA
-	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[field] make
-	[subsys] core
-	[must] console
-	[missing plat description]
-	[function] Support initial ramdisks compressed using LZMA.
 CONFIG_REED_SOLOMON
 	[arch] all
 	[plat] all
