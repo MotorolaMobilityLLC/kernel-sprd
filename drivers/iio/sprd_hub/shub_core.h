@@ -16,7 +16,7 @@
 #include "shub_common.h"
 
 #define SENSOR_TYPE_CALIBRATION_CFG				26
-#define SHUB_NAME                   "SPRDSensor"
+#define SHUB_NAME                   "sprd-sensor"
 #define SHUB_RD                   "shub_rd"
 #define SHUB_RD_NWU                   "shub_rd_nwu"
 #define SHUB_SENSOR_NUM		7

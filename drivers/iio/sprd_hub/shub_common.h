@@ -18,9 +18,9 @@
 #include "shub_protocol.h"
 
 #define MAIN_VERSION	"2016_1116"
-#define MODNAME				"[SensorHub]"
+#define MODNAME				"sprd-sensor"
 #undef pr_fmt
-#define pr_fmt(fmt)  MODNAME "%s %d:" fmt, __func__, __LINE__
+#define pr_fmt(fmt)  MODNAME ": %s %d:" fmt, __func__, __LINE__
 #define TRANSFER_NODE       "/dev/spipe_pm0"
 #define CALIBRATION_NODE    "/mnt/vendor/productinfo/sensor_calibration_data/"
 /* calibration data format */
