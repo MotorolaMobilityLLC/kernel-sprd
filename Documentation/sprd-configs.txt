@@ -11341,11 +11341,11 @@ CONFIG_PRINTK_SAFE_LOG_BUF_SHIFT
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] Temporary per-CPU printk log buffer size
 CONFIG_PRINTK_TIME
 	[arch] all
 	[plat] all
