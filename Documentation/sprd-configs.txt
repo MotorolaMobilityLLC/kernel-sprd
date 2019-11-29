@@ -1605,20 +1605,23 @@ CONFIG_BSD_PROCESS_ACCT
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] code
+	[subsys] core
+	[must] user
+	[missing plat description] These configs are advanced features, low memory devices are recommended to disable them.
+	[function] a user level program will be able to instruct the kernel (via a special system call)
+	to write process accounting information to a file
 CONFIG_BSD_PROCESS_ACCT_V3
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] code
+	[subsys] core
+	[must] user
+	[missing plat description] These configs are advanced features, low memory devices are recommended to disable them.
+	[function] If you say Y here, the process accounting information is written in a new file format
+	that also logs the process IDs of each process and it's parent. Note that this file format is incompatible
+	with previous v0/v1/v2 file formats, so you will need updated tools for processing it.
 CONFIG_BUG
 	[arch] all
 	[plat] all
@@ -1995,7 +1998,7 @@ CONFIG_COMPILE_TOOL
 	[plat] all
 	[missing plat] none
 	[field] menu
-	[subsys]
+	[subsys] core
 	[must] debug
 	[missing plat description] none
 	[function] It provides the information of toolchain type for aiaiai check system.
