@@ -216,3 +216,7 @@
 	status = "okay";
 };
 
+&adi_bus {
+	sprd,hw-channels = <3 0x8c68>, <33 0x8c20>,
+		<35 0x8cc0>, <36 0x8ccc>;
+};

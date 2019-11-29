@@ -232,3 +232,7 @@
 	no-sd;
 	status = "okay";
 };
+
+&adi_bus {
+	sprd,hw-channels = <30 0x8c20>;
+};
