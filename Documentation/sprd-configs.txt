@@ -4958,11 +4958,11 @@ CONFIG_GENERIC_PINMUX_FUNCTIONS
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,core
+	[subsys] pinctrl
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Generic pin function selection support.
 CONFIG_GENERIC_SCHED_CLOCK
 	[arch] all
 	[plat] all
@@ -10771,7 +10771,8 @@ CONFIG_PINCTRL_SPRD_PIKE2
 	[field] menu,make,code
 	[subsys] pinctrl
 	[must] user
-	[missing plat description]
+	[missing plat description] CONFIG_PINCTRL_SPRD_PIKE2 is only for pike2 platform and
+	other projects have their own driver.
 	[function] Spreadtrum Pike2 pinctrl driver
 CONFIG_PINCTRL_SPRD_ROC1
 	[arch] arm64
@@ -10780,17 +10781,19 @@ CONFIG_PINCTRL_SPRD_ROC1
 	[field] menu,make,code
 	[subsys] pinctrl
 	[must] user
-	[missing plat description]
+	[missing plat description] CONFIG_PINCTRL_SPRD_ROC1 is only for Roc1 platform and other
+	projects have their own driver.
 	[function] Spreadtrum Roc1 pinctrl driver
 CONFIG_PINCTRL_SPRD_SHARKL3
 	[arch] all
 	[plat] sharkl3,sharkl3_32
 	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] menu,make,code
+	[subsys] pinctrl
+	[must] user
+	[missing plat description] CONFIG_PINCTRL_SPRD_SHARKL3 is only for sharkl3 platform and
+	other projects have their own driver.
+	[function] Spreadtrum Sharkl3 pinctrl driver
 CONFIG_PINCTRL_SPRD_SHARKL5
 	[arch] all
 	[plat] sharkl5,sharkl5_32
@@ -10798,16 +10801,18 @@ CONFIG_PINCTRL_SPRD_SHARKL5
 	[field] menu,make,code
 	[subsys] pinctrl
 	[must] user
-	[missing plat description]
+	[missing plat description] CONFIG_PINCTRL_SPRD_SHARKL5 is only for sharkl5 platform and
+	other projects have their own driver.
 	[function] Spreadtrum Sharkl5 pinctrl driver
 CONFIG_PINCTRL_SPRD_SHARKL5PRO
 	[arch] arm64
 	[plat] sharkl5Pro
 	[missing plat] roc1,sharkl3,sharkl5
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
+	[field] menu,make,code
+	[subsys] pinctrl
+	[must] user
+	[missing plat description] CONFIG_PINCTRL_SPRD_SHARKL5PRO is only for sharkl5pro platform
+	and other projects have their own driver.
 	[function]
 CONFIG_PINCTRL_SPRD_SHARKLE
 	[arch] arm
@@ -10816,7 +10821,8 @@ CONFIG_PINCTRL_SPRD_SHARKLE
 	[field] menu,make,code
 	[subsys] pinctrl
 	[must] user
-	[missing plat description]
+	[missing plat description] CONFIG_PINCTRL_SPRD_SHARKLE is only for sharkle platform and
+	other projects have their own driver.
 	[function] Spreadtrum Sharkle pinctrl driver
 CONFIG_PINMUX
 	[arch] all
