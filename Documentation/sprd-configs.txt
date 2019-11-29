@@ -3785,83 +3785,83 @@ CONFIG_DRM_FBDEV_EMULATION
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] drm
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] DRM_FBDEV_EMULATION is used to enable tegra drm framebuffer init function.
 CONFIG_DRM_FBDEV_OVERALLOC
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] drm
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] CONFIG_DRM_FBDEV_OVERALLOC is used to explain the default overallocation of the fbdev buffer.
 CONFIG_DRM_GEM_CMA_HELPER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] drm
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] DRM_GEM_CMA_HELPER is used to enable compiling gem cma helper.
 CONFIG_DRM_KMS_CMA_HELPER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] drm
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] DRM_KMS_CMA_HELPER is used to enable kms cma helper.
 CONFIG_DRM_KMS_FB_HELPER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] staging
+	[must] debug
 	[missing plat description] none
-	[function]
+	[function] DRM_KMS_FB_HELPER is used to fill framebuffer deferred io.
 CONFIG_DRM_KMS_HELPER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] drm
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] DRM_KMS_HELPER is used to enable kms helper.
 CONFIG_DRM_MIPI_DSI
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] drm
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] DRM_MIPI_DSI is used to enbale mipi_dsi function.
 CONFIG_DRM_PANEL
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] drm
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] DRM_PANEL is used to enanle choosing panel node variable.
 CONFIG_DRM_PANEL_BRIDGE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,core
+	[subsys] drm
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] DRM_PANEL_BRIDGE is used to enable panel function.
 CONFIG_DRM_SPRD
 	[arch] all
 	[plat] all
@@ -3875,20 +3875,20 @@ CONFIG_DRM_SPRD_GSP
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] drm
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] DRM_SPRD_GSP is used for enable gsp.
 CONFIG_DRM_SPRD_HDMI
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[field] make
+	[subsys] gpu
+	[must] user
+	[missing plat description] DRM_SPRD_HDMI is just for roc1 and other projects have their own driver.
+	[function] This function is used to enable HDMI interface function.
 CONFIG_DST_CACHE
 	[arch] all
 	[plat] all
@@ -4402,29 +4402,29 @@ CONFIG_FB_CFB_COPYAREA
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] core
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] FB_CFB_COPYAREA is used for framebuffer display to copy framebuffer area.
 CONFIG_FB_CFB_FILLRECT
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] core
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] FB_CFB_COPYAREA is used for framebuffer display to fill rectangle.
 CONFIG_FB_CFB_IMAGEBLIT
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] core
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] FB_CFB_IMAGEBLIT is used for framebuffer display interface.
 CONFIG_FB_CMDLINE
 	[arch] all
 	[plat] all
@@ -4438,56 +4438,56 @@ CONFIG_FB_DEFERRED_IO
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] core
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] FB_DEFERRED_IO is used for framebuffer display io interface.
 CONFIG_FB_NOTIFY
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] core
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] FB_DEFERRED_IO is used for framebuffer event notification.
 CONFIG_FB_SYS_COPYAREA
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] video
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] FB_SYS_COPYAREA is used for framebuffer display to copy framebuffer area.
 CONFIG_FB_SYS_FILLRECT
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] video
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] FB_SYS_FILLRECT is used for framebuffer display to fill rectangle.
 CONFIG_FB_SYS_FOPS
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] video
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] FB_SYS_FOPS is used for framebuffer display interface.
 CONFIG_FB_SYS_IMAGEBLIT
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] video
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] FB_SYS_IMAGEBLIT is used for framebuffer display interface.
 CONFIG_FIB_RULES
 	[arch] all
 	[plat] all
@@ -13479,29 +13479,30 @@ CONFIG_SPRD_MIPI_LOG_R4P2
 	[arch] all
 	[plat] sharkl3,sharkl3_32
 	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] staging
+	[must] debug
+	[missing plat description] SPRD_MIPI_LOG_R4P2 is just for sharkl3 & sharkl3_32 and other projects
+	have their own driver.
+	[function] This function is used to enable modem MIPI log function for modem log capture.
 CONFIG_SPRD_MIPI_LOG_R5P0
 	[arch] arm64
 	[plat] sharkl5,sharkl5Pro
-	[missing plat] roc1,sharkl3
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5_32,sharkle32
+	[field] make
+	[subsys] staging
+	[must] debug
+	[missing plat description] SPRD_MIPI_LOG_R5P0 is just for sharkl5 & sharkl5Pro and other projects have their own driver.
+        [function] This function is used to enable modem MIPI log function for modem log capture.
 CONFIG_SPRD_MIPI_SWITCH
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] roc1,sharkl3,sharkl5
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[field] code
+	[subsys] staging
+	[must] debug
+	[missing plat description] SPRD_MIPI_SWITCH is just for sharkl5Pro and other projects have their own driver.
+	[function] This function is used to enable set MIPI level and voltage function for debug_log.
 CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5_32
