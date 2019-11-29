@@ -228,6 +228,7 @@ static int memdisk_init(void)
 {
 	int i = 0;
 	int ret = 0;
+	int initialized_node_num = 0;
 	const char *name;
 	struct resource res = { 0 };
 	struct device_node *np = NULL;
@@ -249,34 +250,38 @@ static int memdisk_init(void)
 	for_each_child_of_node(np, child)
 		memdisks_count++;
 
-	memdisks =
-	kzalloc(sizeof(struct memdisk_dev) + memdisks_count * sizeof(void *), GFP_KERNEL);
-
+	memdisks = kzalloc(sizeof(struct memdisk_dev) +
+		memdisks_count * sizeof(void *), GFP_KERNEL);
 	if (!memdisks)
 		return -ENOMEM;
 
 	for_each_child_of_node(np, child) {
-
-		memdiskp =
-		kzalloc(sizeof(struct memdisk_partition_info), GFP_KERNEL);
-		if (!memdiskp)
-			return -ENOMEM;
+		memdiskp = kzalloc(sizeof(struct memdisk_partition_info),
+			GFP_KERNEL);
+		if (!memdiskp) {
+			ret = -ENOMEM;
+			goto err_1;
+		}
 
 		memnp = of_parse_phandle(child, "memory-region", 0);
-		if (!memnp)
-			return -ENODEV;
+		if (!memnp) {
+			ret = -ENODEV;
+			goto err_2;
+		}
 
 		ret = of_address_to_resource(memnp, 0, &res);
 		if (0 != ret) {
 			pr_notice("of_address_to_resource failed!\n");
-			return -EINVAL;
+			ret = -EINVAL;
+			goto err_2;
 		}
 
 
 		ret = of_property_read_string(child, "label", &name);
 		if (ret) {
 			pr_notice("para lable failed!\n");
-			return -EINVAL;
+			ret = -EINVAL;
+			goto err_2;
 		}
 
 #ifdef CONFIG_64BIT
@@ -290,14 +295,17 @@ static int memdisk_init(void)
 		    memdisk_ram_vmap(res.start, resource_size(&res), 0);
 		if (!memdiskp->data) {
 			pr_notice("sprd memdisk%d map error!\n", i);
-			return -ENOMEM;
+			ret = -ENOMEM;
+			goto err_2;
 		}
 
 		memdiskp->partition_name = name;
 		memdiskp->size = resource_size(&res) / hardsect_size;
 		memdiskp->start = (i == 0 ? 0 : memdisks->memdiskp[i-1]->start + memdisks->memdiskp[i-1]->size);
 		memdisks->memdiskp[i] = memdiskp;
+
 		i++;
+		initialized_node_num++;
 	}
 
 	memdisk_setup_device();
@@ -306,6 +314,22 @@ static int memdisk_init(void)
 	pr_notice("memdisk_init finished. \n");
 
 	return 0;
+
+err_2:
+	kfree(memdiskp);
+
+err_1:
+	for (i = 0; i < memdisks_count; i++)
+		if (memdisks->memdiskp[i]->data)
+			vm_unmap_ram(memdisks->memdiskp[i]->data,
+				memdisks->memdiskp[i]->size * hardsect_size);
+
+	for (i = 0; i < initialized_node_num; i++)
+		kfree(memdisks->memdiskp[i]);
+
+	kfree(memdisks);
+
+	return ret;
 }
 
 static void memdisk_exit(void)
@@ -313,6 +337,11 @@ static void memdisk_exit(void)
 	int i;
 
 	pr_notice("memdisk_exit. \n");
+
+	for (i = 0; i < memdisks_count; i++)
+		if (memdisks->memdiskp[i]->data)
+			vm_unmap_ram(memdisks->memdiskp[i]->data,
+				memdisks->memdiskp[i]->size * hardsect_size);
 
 	if (memdisks->gd) {
 		del_gendisk(memdisks->gd);
