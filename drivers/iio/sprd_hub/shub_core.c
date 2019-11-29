@@ -636,27 +636,27 @@ static int shub_download_opcode(struct shub_data *sensor)
 	cali_data[5] = pressure_cali_info.size;
 	cali_data[6] = sizeof(sensor_fusion_mode);
 	p = &cali_data[7];
-	if (mag_cali_info.data != NULL) {
+	if (mag_cali_info.size != 0) {
 		memcpy(p, mag_cali_info.data, mag_cali_info.size);
 		p += mag_cali_info.size;
 	}
-	if (prox_cali_info.data != NULL) {
+	if (prox_cali_info.size != 0) {
 		memcpy(p, prox_cali_info.data, prox_cali_info.size);
 		p += prox_cali_info.size;
 	}
-	if (light_cali_info.data != NULL) {
+	if (light_cali_info.size != 0) {
 		memcpy(p, light_cali_info.data, light_cali_info.size);
 		p += light_cali_info.size;
 	}
-	if (acc_cali_info.data != NULL) {
+	if (acc_cali_info.size != 0) {
 		memcpy(p, acc_cali_info.data, acc_cali_info.size);
 		p += acc_cali_info.size;
 	}
-	if (gryo_cali_info.data != NULL) {
+	if (gryo_cali_info.size != 0) {
 		memcpy(p, gryo_cali_info.data, gryo_cali_info.size);
 		p += gryo_cali_info.size;
 	}
-	if (pressure_cali_info.data != NULL) {
+	if (pressure_cali_info.size != 0) {
 		memcpy(p, pressure_cali_info.data, pressure_cali_info.size);
 		p += pressure_cali_info.size;
 	}
@@ -690,17 +690,17 @@ static int shub_download_opcode(struct shub_data *sensor)
 	kfree(cali_data);
 
 release_cali_info:
-	if (acc_cali_info.data != NULL)
+	if (acc_cali_info.size != 0)
 		kfree(acc_cali_info.data);
-	if (gryo_cali_info.data != NULL)
+	if (gryo_cali_info.size != 0)
 		kfree(gryo_cali_info.data);
-	if (mag_cali_info.data != NULL)
+	if (mag_cali_info.size != 0)
 		kfree(mag_cali_info.data);
-	if (light_cali_info.data != NULL)
+	if (light_cali_info.size != 0)
 		kfree(light_cali_info.data);
-	if (prox_cali_info.data != NULL)
+	if (prox_cali_info.size != 0)
 		kfree(prox_cali_info.data);
-	if (pressure_cali_info.data != NULL)
+	if (pressure_cali_info.size != 0)
 		kfree(pressure_cali_info.data);
 
 	return ret;
