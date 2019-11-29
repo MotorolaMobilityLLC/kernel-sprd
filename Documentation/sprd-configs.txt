@@ -1401,12 +1401,12 @@ CONFIG_BLK_DEV_INITRD
 	[function] vts require, Initial RAM filesystem and RAM disk (initramfs/initrd) support.
 CONFIG_BLK_DEV_IO_TRACE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Trace block device IO function.
 CONFIG_BLK_DEV_LOOP
 	[arch] all
@@ -1565,13 +1565,13 @@ CONFIG_BPF
 	[function] Enable kernel support Berkeley Packet Filter.
 CONFIG_BPF_EVENTS
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] This allows the user to attach BPF programs to kprobe events.
 CONFIG_BPF_SYSCALL
 	[arch] all
 	[plat] all
@@ -3610,15 +3610,6 @@ CONFIG_DMADEVICES
 	[must] none
 	[missing plat description] none
 	[function] Support DMA devices.
-CONFIG_DMA_API_DEBUG
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] none
-	[field] code
-	[subsys] dma
-	[must] user
-	[missing plat description] none
-	[function] Enable debugging of DMA-API usage.
 CONFIG_DMA_ENGINE
 	[arch] all
 	[plat] all
@@ -3987,22 +3978,22 @@ CONFIG_DYNAMIC_DEBUG
 	[function] Enable/disalbe dynamic debug function.
 CONFIG_DYNAMIC_FTRACE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] Enable/disable function tracing dynamically.
 CONFIG_DYNAMIC_FTRACE_WITH_REGS
 	[arch] arm
-	[plat] pike2,sharkl3_32,sharkl5_32
-	[missing plat] sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[missing plat] none
+	[field] code
+	[subsys] ftrace
+	[must] user
+	[missing plat description] none
+	[function] support dynamic ftrace with registers.
 CONFIG_EDAC
 	[arch] all
 	[plat] all
@@ -4587,12 +4578,12 @@ CONFIG_FORCE_MAX_ZONEORDER
 	[function] Enable to allocate large continuous physical pages.
 CONFIG_FRAME_POINTER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Compile the kernel with frame pointers, kernel image will be slightly
 	larger and slower, but it gives very useful debugging information in case of kernel bugs.
 CONFIG_FRAME_WARN
@@ -4662,21 +4653,21 @@ CONFIG_FTRACE
 	[function] Tracers
 CONFIG_FTRACE_MCOUNT_RECORD
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Trace mcount record.
 CONFIG_FTRACE_SYSCALLS
 	[arch] all
-	[plat] pike2,roc1
-	[missing plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code,make
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Trace syscalls.
 CONFIG_FUEL_GAUGE_SC27XX
 	[arch] all
@@ -4689,30 +4680,30 @@ CONFIG_FUEL_GAUGE_SC27XX
 	[function]
 CONFIG_FUNCTION_GRAPH_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Trace function graph.
 CONFIG_FUNCTION_PROFILER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Trace function profiler.
 CONFIG_FUNCTION_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Enable/disable function tracer.
 CONFIG_FUSE_FS
 	[arch] all
@@ -5046,12 +5037,12 @@ CONFIG_GENERIC_TIME_VSYSCALL
 	[function] select by others.
 CONFIG_GENERIC_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Enable/disalbe generic tracer.
 CONFIG_GLOB
 	[arch] all
@@ -5493,11 +5484,11 @@ CONFIG_HAVE_DYNAMIC_FTRACE_WITH_REGS
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] ftrace
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] enable it to support function dynamic ftrace with registers.
 CONFIG_HAVE_EBPF_JIT
 	[arch] all
 	[plat] all
@@ -7621,12 +7612,12 @@ CONFIG_IRQCHIP
 	[function] Support chip irq.
 CONFIG_IRQSOFF_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Enable/disable trace irq off.
 CONFIG_IRQ_DOMAIN
 	[arch] all
@@ -10325,12 +10316,12 @@ CONFIG_OID_REGISTRY
 	[function] needed by other configs
 CONFIG_OLD_MCOUNT
 	[arch] arm
-	[plat] pike2,sharkl3_32,sharkl5_32
-	[missing plat] sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[missing plat] none
 	[field] code
 	[subsys] debug
 	[must] console
-	[missing plat description]
+	[missing plat description] none
 	[function] depends on FUNCTION_TRACER && FRAME_POINTER
 CONFIG_OLD_SIGACTION
 	[arch] arm
@@ -11221,12 +11212,12 @@ CONFIG_PREEMPT_RCU
 	[function] vts require, Enable kernel support rcu preempt.
 CONFIG_PREEMPT_TRACER
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] Preemption-off Latency Tracer.
 CONFIG_PREVENT_FIRMWARE_BUILD
 	[arch] all
@@ -11303,13 +11294,13 @@ CONFIG_PRINTK_TIME_TYPE
 	[function] Timestamps format value of printk() 0-4.
 CONFIG_PROBE_EVENTS
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] trace probe status bit
 CONFIG_PROCESS_RECLAIM
 	[arch] all
 	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
@@ -11731,12 +11722,12 @@ CONFIG_REGULATOR_SC2730
 	[function] SUPPORT SC2730 regulator function.
 CONFIG_RELAY
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] support for relay interface support in certain file systems
 CONFIG_RELOCATABLE
 	[arch] arm64
@@ -12065,7 +12056,7 @@ CONFIG_SCHED_MC
 	[function] Multi-core scheduler support
 CONFIG_SCHED_STACK_END_CHECK
 	[arch] arm
-	[plat] pike2,sharkle32,sharkl3_32,sharkl5_32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
 	[field] menu
 	[subsys] core
@@ -12074,12 +12065,12 @@ CONFIG_SCHED_STACK_END_CHECK
 	[function] Detect stack corruption
 CONFIG_SCHED_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5_32
-	[missing plat] sharkl5,sharkl5Pro,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Scheduling Latency Tracer
 CONFIG_SCHED_TUNE
 	[arch] all
@@ -14116,12 +14107,12 @@ CONFIG_STACKTRACE_SUPPORT
 	[function] Keep stack trace of persistent data block lock holders.
 CONFIG_STACK_TRACER
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code,make
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Support stack tracer.
 CONFIG_STAGING
 	[arch] all
@@ -14689,15 +14680,6 @@ CONFIG_TRACEPOINTS
 	[must] debug
 	[missing plat description] none
 	[function] Place an empty function call at each tracepoint site.
-CONFIG_TRACEPOINT_BENCHMARK
-	[arch] arm
-	[plat] sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_TRACER_MAX_TRACE
 	[arch] all
 	[plat] all
@@ -14734,23 +14716,14 @@ CONFIG_TRACE_CLOCK
 	[must] debug
 	[missing plat description] none
 	[function] Report clock of trace.
-CONFIG_TRACE_EVAL_MAP_FILE
-	[arch] arm
-	[plat] sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_TRACE_IRQFLAGS
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Enable/disable irq flags trace.
 CONFIG_TRACE_IRQFLAGS_SUPPORT
 	[arch] all
@@ -14772,12 +14745,12 @@ CONFIG_TRACING
 	[function] To avoid circular dependencies to accomplish the hiding of the automatic options.
 CONFIG_TRACING_EVENTS_GPIO
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5_32,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5Pro
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Trace gpio events
 CONFIG_TRACING_SUPPORT
 	[arch] all
@@ -14997,22 +14970,25 @@ CONFIG_UNMAP_KERNEL_AT_EL0
 	[function] meltdown/spectre fix
 CONFIG_UPROBES
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Uprobes is the user-space counterpart to kprobes: they enable instrumentation applications
+	(such as 'perf probe') to establish unintrusive probes in user-space binaries and libraries,
+	by executing handler functions when the probes are hit by user-space applications
 CONFIG_UPROBE_EVENTS
 	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function] Enable uprobes-based dynamic events
+	[function] This allows the user to add tracing events on top of userspace dynamic events
+	(similar to tracepoints) on the fly via the trace events interface.
 CONFIG_USB
 	[arch] all
 	[plat] all
