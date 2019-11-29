@@ -1101,13 +1101,13 @@ CONFIG_ARM_THUMB
 	[function] Support Thumb user binaries.
 CONFIG_ARM_UNWIND
 	[arch] arm
-	[plat] pike2,sharkl3_32,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[missing plat] none
+	[field] code,make
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] Enable stack unwinding support (EXPERIMENTAL).
 CONFIG_ARM_VIRT_EXT
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
