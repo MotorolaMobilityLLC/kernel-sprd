@@ -97,30 +97,30 @@ CONFIG_ANDROID_BINDER_IPC
 CONFIG_ANDROID_LOW_MEMORY_KILLER
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field] make,code
 	[subsys] mm
 	[must] unknown
-	[missing plat description]
+	[missing plat description] none
 	[function] Registers processes to be killed when low memory conditions,
 	    this is useful in android-go.
 CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field] code
 	[subsys] mm
 	[must] unknown
-	[missing plat description]
+	[missing plat description] none
 	[function] Threshold table in lowmemorykiller.
 CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINFO
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field] code
 	[subsys] mm
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Show memory information when lmk kills process
 CONFIG_ANDROID_PARANOID_NETWORK
 	[arch] all
@@ -1565,11 +1565,11 @@ CONFIG_BPF
 CONFIG_BPF_EVENTS
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_BPF_SYSCALL
 	[arch] all
@@ -3243,11 +3243,11 @@ If don't enable this, when luncher boot the screen will print error info. eg.Bug
 CONFIG_CRYPTO_SHA512_ARM
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field] make
 	[subsys] crypto
 	[must] none
-	[missing plat description]
+	[missing plat description] none
 	[function] SHA512 digest algorithm (ARM-asm)
 CONFIG_CRYPTO_SIMD
 	[arch] all
@@ -6437,15 +6437,6 @@ CONFIG_HOTPLUG_CPU
 	[must] user
 	[missing plat description] none
 	[function] Enable arm/arm64 cpuhotplug/SMP function
-CONFIG_HVC_DRIVER
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_HWSPINLOCK
 	[arch] all
 	[plat] all
@@ -8321,11 +8312,11 @@ CONFIG_MANDATORY_FILE_LOCKING
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable Mandatory file locking.
 CONFIG_MAY_USE_DEVLINK
 	[arch] all
 	[plat] all
@@ -8675,20 +8666,20 @@ CONFIG_MQ_IOSCHED_DEADLINE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] block
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] MQ deadline I/O scheduler.
 CONFIG_MQ_IOSCHED_KYBER
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] block
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Kyber I/O scheduler.
 CONFIG_MSDOS_FS
 	[arch] all
 	[plat] all
@@ -8710,11 +8701,11 @@ CONFIG_MSDOS_PARTITION
 CONFIG_MULTIPLE_OOM_KILLER
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field] code
 	[subsys] mm
 	[must] unknown
-	[missing plat description]
+	[missing plat description] none
 	[function] lmk can kill multiple processes
 CONFIG_MULTIPLE_OOM_KILL_COUNT
 	[arch] arm
@@ -10524,11 +10515,11 @@ CONFIG_OLD_SIGSUSPEND3
 CONFIG_OOM_NOTIFIER
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field] code
 	[subsys] mm
 	[must] unknown
-	[missing plat description]
+	[missing plat description] none
 	[function] Using a Android-Style oom-killer instead of linux's native OOM_killer
 CONFIG_OVERLAY_FS
 	[arch] all
@@ -10818,11 +10809,11 @@ CONFIG_PELT_UTIL_HALFLIFE_32
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Use 32ms as PELT half-life value
 CONFIG_PERF_EVENTS
 	[arch] all
 	[plat] all
@@ -10874,11 +10865,11 @@ CONFIG_PHY_XGENE
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] net
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] APM X-Gene 15Gbps PHY support.
 CONFIG_PINCONF
 	[arch] all
 	[plat] all
@@ -11117,11 +11108,11 @@ CONFIG_POSIX_TIMERS
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] timer
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Support Posix Clocks & timers.
 CONFIG_POWER_RESET
 	[arch] all
 	[plat] all
@@ -11332,11 +11323,11 @@ CONFIG_PRINTK_NMI
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] debug
+	[must] debug
 	[missing plat description] none
-	[function]
+	[function] Support for printk in NMI.
 CONFIG_PRINTK_SAFE_LOG_BUF_SHIFT
 	[arch] all
 	[plat] all
@@ -11377,11 +11368,11 @@ CONFIG_PRINTK_TIME_TYPE
 CONFIG_PROBE_EVENTS
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_PROCESS_RECLAIM
 	[arch] all
@@ -11625,11 +11616,11 @@ CONFIG_RCU_NEED_SEGCBLIST
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] rcu
+	[must] core
 	[missing plat description] none
-	[function]
+	[function] RCU support SECC LIST, select by ( TREE_RCU || PREEMPT_RCU || TREE_SRCU ).
 CONFIG_RCU_STALL_COMMON
 	[arch] all
 	[plat] all
@@ -11778,11 +11769,11 @@ CONFIG_REGULATOR_FAN53555
 CONFIG_REGULATOR_FIXED_VOLTAGE
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field] make,code
 	[subsys] regulator
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] This driver provides support for fixed voltage regulators
 CONFIG_REGULATOR_SC2703
 	[arch] all
@@ -12073,11 +12064,11 @@ CONFIG_SBITMAP
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Support sbitmap feature.
 CONFIG_SC2342_INTEG
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
@@ -12503,11 +12494,11 @@ CONFIG_SG_POOL
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code,make
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Provides a helper to allocate chained scatterlists.
 CONFIG_SHMEM
 	[arch] all
 	[plat] all
@@ -12958,11 +12949,11 @@ CONFIG_SOCK_CGROUP_DATA
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] net
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Support cgroup. Select by NET_PRIO and NET_CLASSID.
 CONFIG_SOFTLOCKUP_DETECTOR
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
@@ -14226,20 +14217,20 @@ CONFIG_STRICT_KERNEL_RWX
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Make kernel text and rodata read-only.
 CONFIG_STRICT_MODULE_RWX
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Set loadable kernel module data as NX and text as RO.
 CONFIG_SUSPEND
 	[arch] all
 	[plat] all
@@ -14316,11 +14307,11 @@ CONFIG_SYNC_FILE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Explicit Synchronization Framework.
 CONFIG_SYN_COOKIES
 	[arch] all
 	[plat] all
@@ -14470,9 +14461,11 @@ CONFIG_TASKS_RCU
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] rcu
+	[must] Enables a task-based RCU implementation that uses
+		only voluntary context switch (not preemption!), idle, and
+		user-mode execution as quiescent states.
 	[missing plat description] none
 	[function]
 CONFIG_TASK_IO_ACCOUNTING
@@ -14614,11 +14607,12 @@ CONFIG_THIN_ARCHIVES
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code,make
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Select this if the architecture wants to use thin archives
+		instead of ld -r to create the built-in.o files.
 CONFIG_THREAD_INFO_IN_TASK
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -14662,20 +14656,20 @@ CONFIG_TIMER_OF
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code,make
+	[subsys] timer
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Support timer device node function interface.
 CONFIG_TIMER_PROBE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code,make
+	[subsys] timer
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Support timer probe feature.
 CONFIG_TMPFS
 	[arch] all
 	[plat] all
@@ -14870,11 +14864,11 @@ CONFIG_TREE_SRCU
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code,make
+	[subsys] rcu
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] This option selects the full-fledged version of SRCU.
 CONFIG_TRUSTY
 	[arch] all
 	[plat] all
@@ -15098,21 +15092,21 @@ CONFIG_UNMAP_KERNEL_AT_EL0
 CONFIG_UPROBES
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_UPROBE_EVENTS
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] sharkl3_32
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
-	[function]
+	[missing plat description] none
+	[function] Enable uprobes-based dynamic events
 CONFIG_USB
 	[arch] all
 	[plat] all
@@ -15981,11 +15975,11 @@ CONFIG_VDSO
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code,make
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable VDSO for acceleration of some system calls
 CONFIG_VECTORS_BASE
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -16045,15 +16039,6 @@ CONFIG_VIRTIO
 		  the virtio bus, such as CONFIG_VIRTIO_PCI,
 		  CONFIG_VIRTIO_MMIO, CONFIG_LGUEST, CONFIG_RPMSG
 		  or CONFIG_S390_GUEST.
-CONFIG_VIRTIO_CONSOLE
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_VIRTIO_MMIO
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
@@ -16064,15 +16049,6 @@ CONFIG_VIRTIO_MMIO
 	[missing plat description]
 	[function] This drivers provides support for memory mapped
 		  virtio platform device driver.
-CONFIG_VIRTUALIZATION
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] roc1,sharkl3,sharkl5
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_VMAP_STACK
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -16149,11 +16125,11 @@ CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Update boot-enabled watchdog until userspace takes over
 CONFIG_WATCHDOG_PRETIMEOUT_DEFAULT_GOV_PANIC
 	[arch] all
 	[plat] all
