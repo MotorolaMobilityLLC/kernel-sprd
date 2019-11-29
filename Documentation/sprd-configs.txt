@@ -5933,24 +5933,6 @@ CONFIG_HID_A4TECH
 	[must] user
 	[missing plat description] none
 	[function] A4 tech mice
-CONFIG_HID_ACRUX
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] menu,make
-	[subsys] hid
-	[must] user
-	[missing plat description] none
-	[function] ACRUX game controller support
-CONFIG_HID_ACRUX_FF
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field] menu,make
-	[subsys] hid
-	[must] user
-	[missing plat description]
-	[function] ACRUX force feedback support
 CONFIG_HID_APPLE
 	[arch] all
 	[plat] all
@@ -6929,15 +6911,6 @@ CONFIG_INPUT_GPIO
 	[must] unknown
 	[missing plat description]
 	[function] GPIO driver support
-CONFIG_INPUT_JOYSTICK
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] menu,make
-	[subsys] input
-	[must] unknown
-	[missing plat description] none
-	[function] Joystick interface
 CONFIG_INPUT_KEYBOARD
 	[arch] all
 	[plat] all
@@ -6974,15 +6947,6 @@ CONFIG_INPUT_LEDS
 	[must] user
 	[missing plat description]
 	[function] Export input device LEDs in sysfs
-CONFIG_INPUT_MATRIXKMAP
-	[arch] arm
-	[plat] sharkle32
-	[missing plat] pike2,sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_INPUT_MISC
 	[arch] all
 	[plat] all
@@ -7003,13 +6967,13 @@ CONFIG_INPUT_MOUSEDEV
 	[function] Mouse interface
 CONFIG_INPUT_MOUSEDEV_PSAUX
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[plat] all
+	[missing plat] none
+	[field] menu,make
+	[subsys] input
+	[must] user
+	[missing plat description] none
+	[function] Mouse interface
 CONFIG_INPUT_MOUSEDEV_SCREEN_X
 	[arch] all
 	[plat] all
@@ -7866,33 +7830,6 @@ CONFIG_JBD2
 	[function] Generic journaling layer for block devices that support
 	   both 32-bit and 64-bit block numbers. It is currently
 	   used by the ext4 and OCFS2 filesystems.
-CONFIG_JOYSTICK_XPAD
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_JOYSTICK_XPAD_FF
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_JOYSTICK_XPAD_LEDS
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_JUMP_LABEL
 	[arch] all
 	[plat] all
@@ -7965,15 +7902,6 @@ CONFIG_KERNFS
 	[must] busybox_console
 	[missing plat description] none
 	[function] Kernfs support.
-CONFIG_KEYBOARD_ATKBD
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] roc1,sharkl3,sharkl5
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_KEYBOARD_GPIO
 	[arch] all
 	[plat] all
@@ -12453,33 +12381,6 @@ CONFIG_SERIAL_SPRD_CONSOLE
 	[must] busybox_console
 	[missing plat description] none
 	[function] Support for early debug console using Spreadtrum's serial
-CONFIG_SERIO
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make,code
-	[subsys] tty
-	[must] console
-	[missing plat description] none
-	[function] Serial I/O support.
-CONFIG_SERIO_LIBPS2
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make,code
-	[subsys] tty
-	[must] console
-	[missing plat description] none
-	[function] Serial I/O support.
-CONFIG_SERIO_SERPORT
-	[arch] arm
-	[plat] pike2
-	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_SETEND_EMULATION
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
