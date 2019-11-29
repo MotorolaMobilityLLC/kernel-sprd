@@ -3367,15 +3367,6 @@ CONFIG_DEBUG_FS
 	[must] debug
 	[missing plat description] none
 	[function] Support Debug Filesystem.
-CONFIG_DEBUG_GPIO
-	[arch] all
-	[plat] sharkl3,sharkl3_32
-	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_DEBUG_INFO
 	[arch] all
 	[plat] all
