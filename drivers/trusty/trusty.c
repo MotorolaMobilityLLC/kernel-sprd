@@ -163,9 +163,6 @@ EXPORT_SYMBOL(trusty_fast_call32_power);
 
 s32 trusty_fast_call32(struct device *dev, u32 smcnr, u32 a0, u32 a1, u32 a2)
 {
-	struct trusty_state *s = platform_get_drvdata(to_platform_device(dev));
-
-	BUG_ON(!s);
 	BUG_ON(!SMC_IS_FASTCALL(smcnr));
 	BUG_ON(SMC_IS_SMC64(smcnr));
 
