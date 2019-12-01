@@ -13722,12 +13722,13 @@ CONFIG_SPRD_PAMU3
 CONFIG_SPRD_PAM_IPA
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[field] make
+	[subsys] staging
+	[must] user
+	[missing plat description] missing plat without this hardware IP, Roc1 unique feature.
+	[function] Perform dma copy and offset of address segment on network
+		   ul and dl data packets.
 CONFIG_SPRD_PCIE_AER
 	[arch] arm64
 	[plat] roc1
@@ -13922,30 +13923,34 @@ CONFIG_SPRD_SHARKLE_USB2_PHY
 CONFIG_SPRD_SIPA
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[field] make
+	[subsys] staging
+	[must] user
+	[missing plat description] missing plat without this hardware IP, Roc1 unique feature.
+	[function] Routing and forwarding network packets.
 CONFIG_SPRD_SIPA_DELEGATE
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[field] make
+	[subsys] staging
+	[must] user
+	[missing plat description] missing plat without this hardware IP, so this feature is
+				   not needed, Roc1 unique feature.
+	[function] Enable delegate for modem side sipa
 CONFIG_SPRD_SIPA_DELE_MINIAP_IN_AP
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[field] make,code
+	[subsys] staging
+	[must] user
+	[missing plat description] missing plat without this hardware IP, so this feature is
+				   not needed, Roc1 unique feature.
+	[function] Enable a miniap delegate feature in ap side.
+		   And this option enables ap to create a
+		   delegator for miniap.
 CONFIG_SPRD_SIPC
 	[arch] all
 	[plat] all
