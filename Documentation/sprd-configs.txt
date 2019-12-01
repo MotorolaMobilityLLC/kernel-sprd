@@ -13697,7 +13697,8 @@ CONFIG_SPRD_PTM
 	[field] make
 	[subsys] debug
 	[must] debug
-	[missing plat description]
+	[missing plat description] pike2 and sharkle32 is not used, hardware have supported this
+                 feature, need software to enable it. 
 	[function] Support Spreadtrum PTM.
 CONFIG_SPRD_REGMAP_DEBUG
 	[arch] arm
