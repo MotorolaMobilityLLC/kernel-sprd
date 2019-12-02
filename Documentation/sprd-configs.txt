@@ -13099,7 +13099,7 @@ CONFIG_SPRD_CLUSTER0_THERMAL
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description]
+	[missing plat description] don't support per-core sensor
 	[function] enable virtual sensor driver for cluster0
 CONFIG_SPRD_CLUSTER1_THERMAL
 	[arch] all
@@ -13108,7 +13108,7 @@ CONFIG_SPRD_CLUSTER1_THERMAL
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description]
+	[missing plat description] don't support per-core sensor
 	[function] enable virtual sensor driver for cluster1
 CONFIG_SPRD_COMMON_CLK
 	[arch] all
@@ -13140,29 +13140,29 @@ CONFIG_SPRD_CPROC
 CONFIG_SPRD_CPU_COOLING
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[missing plat] none
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] sharkl3,sharkl5
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description]
+	[missing plat description] don't support cpu isolate
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_DEVICE
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[missing plat] none
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] sprd cpu power model
 CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[arch] all
@@ -13618,7 +13618,7 @@ CONFIG_SPRD_PTM
 	[subsys] debug
 	[must] debug
 	[missing plat description] pike2 and sharkle32 is not used, hardware have supported this
-                 feature, need software to enable it. 
+                 feature, need software to enable it.
 	[function] Support Spreadtrum PTM.
 CONFIG_SPRD_REGMAP_DEBUG
 	[arch] arm
@@ -13882,7 +13882,7 @@ CONFIG_SPRD_SOC_THERMAL
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description]
+	[missing plat description] don't support per-core sensor
 	[function] enable virtual sensor for soc
 CONFIG_SPRD_SYSDUMP
 	[arch] all
@@ -14400,11 +14400,11 @@ CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] thermal
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] set emergency poweroff delay time
 CONFIG_THERMAL_GOV_POWER_ALLOCATOR
 	[arch] all
 	[plat] all
@@ -14417,11 +14417,11 @@ CONFIG_THERMAL_GOV_POWER_ALLOCATOR
 CONFIG_THERMAL_GOV_STEP_WISE
 	[arch] arm
 	[plat] sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
+	[missing plat] none
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] default thermal governor
 CONFIG_THERMAL_OF
 	[arch] all
