@@ -15561,20 +15561,22 @@ CONFIG_USB_MUSB_DUAL_ROLE
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[missing plat] pike2
-	[field] make
+	[field] make,code
 	[subsys] usb
 	[must] user
-	[missing plat description]
+	[missing plat description] missing pike2 because HOST not supported
 	[function] USB Dual Role mode support.
 CONFIG_USB_MUSB_GADGET
 	[arch] arm
 	[plat] pike2
 	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing sharkl3_32 because both GADGET and HOST supported
+		missing sharkl5_32 because both GADGET and HOST supported
+		missing sharkle32 because both GADGET and HOST supported
+	[function] Select this when you want to use MUSB in gadget mode only.
 CONFIG_USB_MUSB_HDRC
 	[arch] all
 	[plat] all
@@ -15789,7 +15791,7 @@ CONFIG_USB_SPRD_DMA_V3
 	[field] make,code
 	[subsys] usb
 	[must] user
-	[missing plat description]
+	[missing plat description] missing pike2 because it's linklist size is less than other plats's.
 	[function] DMA VERSION V3.
 CONFIG_USB_SPRD_OFFLOAD
 	[arch] all
@@ -15798,7 +15800,10 @@ CONFIG_USB_SPRD_OFFLOAD
 	[field] make,code
 	[subsys] usb
 	[must] user
-	[missing plat description]
+	[missing plat description] missing pike2 because SPRD DSP AUDIO mode not supported
+		missing sharkl3 because SPRD DSP AUDIO mode not supported
+		missing sharkl3_32 because SPRD DSP AUDIO mode not supported
+		missing sharkle32 because SPRD DSP AUDIO mode not supported
 	[function] This macro is to support SPRD OFFLOAD mode.
 CONFIG_USB_STORAGE
 	[arch] all
