@@ -938,11 +938,11 @@ CONFIG_ARM_GIC_MAX_NR
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] The number of GIC controller on SoC. All SPRD SoC set to 1.
 CONFIG_ARM_GIC_V2M
 	[arch] arm64
 	[plat] roc1
@@ -950,9 +950,10 @@ CONFIG_ARM_GIC_V2M
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] Roc1 using PCIE.
 	[function] Support for Message Signal Interrupts for system that
-	   implement ARM Generic Interrupt Controller: GICv2m.
+	   implement ARM Generic Interrupt Controller: GICv2m. Select by
+	   ARM64 [=y] && PCI [=n].
 CONFIG_ARM_GIC_V3
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
@@ -960,7 +961,7 @@ CONFIG_ARM_GIC_V3
 	[field] make,code
 	[subsys] core
 	[must] console
-	[missing plat description]
+	[missing plat description] Using GIC_V3 instead of GIC_V2 from sharkl3.
 	[function] Enable kernel support ARM GIC V3.
 CONFIG_ARM_GIC_V3_ITS
 	[arch] arm64
@@ -969,8 +970,9 @@ CONFIG_ARM_GIC_V3_ITS
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
-	[function] Support GIC_V3_ITS, depend on PCI and PCI_MSI.
+	[missing plat description] Roc1 using PCIE.
+	[function] Support GIC_V3_ITS, Select by ARM64 [=y] && PCI [=n],
+		depend on PCI and PCI_MSI.
 CONFIG_ARM_HAS_SG_CHAIN
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
