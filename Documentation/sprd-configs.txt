@@ -2349,7 +2349,7 @@ CONFIG_CPU_IDLE_GOV_MENU
 	[field] make
 	[subsys] cpuidle
 	[must] user
-	[missing plat description]
+	[missing plat description] cpuidle is not turned on.
 	[function] Menu governor (for tickless system).
 CONFIG_CPU_IDLE_MULTIPLE_DRIVERS
 	[arch] all
