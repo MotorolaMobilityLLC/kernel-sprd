@@ -3657,11 +3657,15 @@ CONFIG_DM_ANDROID_VERITY_AT_MOST_ONCE_DEFAULT_ENABLED
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkle32
 	[missing plat] sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] md
+	[must] none
+	[missing plat description] Google recommended enable on Go projects
+	[function] Verify data blocks only the first time they are read from the data device,
+	   rather than every time. This reduces the overhead of dm-verity so that it can be
+	   used on systems that are memory and/or CPU constrained.  However, it provides a
+	   reduced level of security because only offline tampering of the data device's
+	   content will be detected, not online tampering.
 CONFIG_DM_BOW
 	[arch] all
 	[plat] sharkl3,sharkl3_32
