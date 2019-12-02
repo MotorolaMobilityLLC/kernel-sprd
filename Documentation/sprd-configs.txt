@@ -13406,11 +13406,11 @@ CONFIG_SPRD_JPG_CALL_VSP_PW_DOMAIN
 	[arch] all
 	[plat] sharkl3,sharkl3_32
 	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] misc
+	[must] user
+	[missing plat description] the macro is only for sharkl3 platform
+	[function] The JPG can call VSP to enable power domain.
 CONFIG_SPRD_LAST_REGS
 	[arch] arm
 	[plat] pike2,sharkle32
