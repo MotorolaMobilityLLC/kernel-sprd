@@ -13243,7 +13243,7 @@ CONFIG_SPRD_DMC_MPU
 	[field] make
 	[subsys] debug
 	[must] debug
-	[missing plat description]
+	[missing plat description] pike2 sharkle32 use IP version is R3P0
 	[function] Enable MPU R4P0 debug function
 CONFIG_SPRD_DMC_MPU_CORE
 	[arch] all
@@ -13252,7 +13252,7 @@ CONFIG_SPRD_DMC_MPU_CORE
 	[field] make
 	[subsys] debug
 	[must] debug
-	[missing plat description]
+	[missing plat description] pike2 sharkle32 use IP version is R3P0
 	[function] Enable MPU core function
 CONFIG_SPRD_DMC_MPU_R3P0
 	[arch] arm
@@ -13261,7 +13261,7 @@ CONFIG_SPRD_DMC_MPU_R3P0
 	[field] make
 	[subsys] debug
 	[must] debug
-	[missing plat description]
+	[missing plat description] missing plat use IP version is R4P0
 	[function] Enable MPU R3P0 debug function
 CONFIG_SPRD_EFUSE
 	[arch] all
