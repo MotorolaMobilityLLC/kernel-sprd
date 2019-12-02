@@ -2417,7 +2417,7 @@ int dvfs_cluster_info_dt_parse(struct device_node *parent, void *data)
 
 	dev_nr = dev_nr / sizeof(u32);
 	size = dev_nr * sizeof(struct sub_device);
-	cluster->subdevs = kzalloc(dev_nr * size, GFP_KERNEL);
+	cluster->subdevs = kzalloc(size, GFP_KERNEL);
 	if (!cluster->subdevs) {
 		ret = -ENOMEM;
 		goto err_out;
