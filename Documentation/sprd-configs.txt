@@ -5006,15 +5006,6 @@ CONFIG_GENERIC_PCI_IOMAP
 	[must] console
 	[missing plat description] none
 	[function] Support pci iomap.
-CONFIG_GENERIC_PHY
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_GENERIC_PINCONF
 	[arch] all
 	[plat] all
@@ -10789,15 +10780,6 @@ CONFIG_PHYS_ADDR_T_64BIT
 	[must] busybox_console
 	[missing plat description] none
 	[function] Define the number of digits of phys_addr_t.
-CONFIG_PHY_XGENE
-	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
-	[missing plat] none
-	[field] make
-	[subsys] net
-	[must] user
-	[missing plat description] none
-	[function] APM X-Gene 15Gbps PHY support.
 CONFIG_PINCONF
 	[arch] all
 	[plat] all
