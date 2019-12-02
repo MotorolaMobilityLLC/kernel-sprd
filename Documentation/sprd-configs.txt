@@ -5075,24 +5075,6 @@ CONFIG_GPIO_EIC_SPRD
 	[must] user
 	[missing plat description] none
 	[function] Sprd gpio eic support
-CONFIG_GPIO_GENERIC
-	[arch] arm
-	[plat] sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
-	[field] make,code
-	[subsys] gpio
-	[must] user
-	[missing plat description]
-	[function] Gerneric gpio  support
-CONFIG_GPIO_GENERIC_PLATFORM
-	[arch] arm
-	[plat] sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
-	[field] make,code
-	[subsys] gpio
-	[must] user
-	[missing plat description]
-	[function] Generic gpio support
 CONFIG_GPIO_PLUS_SPRD
 	[arch] all
 	[plat] sharkl3,sharkl3_32
@@ -5100,7 +5082,7 @@ CONFIG_GPIO_PLUS_SPRD
 	[field] make,code
 	[subsys] gpio
 	[must] user
-	[missing plat description]
+	[missing plat description] Only sharkl3 support GPIO PLUS
 	[function] Sprd gpio plus support
 CONFIG_GPIO_PMIC_EIC_SPRD
 	[arch] all
@@ -5118,7 +5100,7 @@ CONFIG_GPIO_SPRD
 	[field] make,code
 	[subsys] gpio
 	[must] user
-	[missing plat description]
+	[missing plat description] Only sharkl3 support GPIO PLUS
 	[function] Generic gpio support
 CONFIG_GPIO_SYSFS
 	[arch] all
