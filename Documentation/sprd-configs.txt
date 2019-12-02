@@ -3491,7 +3491,7 @@ CONFIG_DEFAULT_USE_ENERGY_AWARE
 	[field] make,code
 	[subsys] sched
 	[must] user
-	[missing plat description]
+	[missing plat description] only a cluster should not open EAS.
 	[function] Enable EAS feature for schedule
 CONFIG_DEFCONFIG_LIST
 	[arch] all
@@ -12147,16 +12147,16 @@ CONFIG_SCHED_TUNE
 	[field] make,code
 	[subsys] sched
 	[must] user
-	[missing plat description]
+	[missing plat description] multi-cluster system should open the feature.
 	[function] Enable boost for fair sched class tasks
 CONFIG_SCHED_WALT
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro
-	[missing plat] none
+	[missing plat] pike2,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] sched
 	[must] user
-	[missing plat description] none
+	[missing plat description] use PELT to tracking load.
 	[function] Window Assisted Load Tracking switch
 CONFIG_SCSI
 	[arch] all
