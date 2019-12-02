@@ -105,7 +105,7 @@ struct sensor_cali_info {
 };
 
 static struct sensor_cali_info acc_cali_info;
-static struct sensor_cali_info gryo_cali_info;
+static struct sensor_cali_info gyro_cali_info;
 static struct sensor_cali_info mag_cali_info;
 static struct sensor_cali_info light_cali_info;
 static struct sensor_cali_info prox_cali_info;
@@ -594,7 +594,7 @@ static int shub_download_opcode(struct shub_data *sensor)
 	msleep(200);
 
 	request_send_firmware(sensor, gryo_firms,
-			      SENSOR_GYROSCOPE, &gryo_cali_info);
+			      SENSOR_GYROSCOPE, &gyro_cali_info);
 	msleep(200);
 
 	request_send_firmware(sensor, mag_firms,
@@ -615,7 +615,7 @@ static int shub_download_opcode(struct shub_data *sensor)
 
 	cali_data_size = 7 * sizeof(unsigned char);
 	cali_data_size += acc_cali_info.size;
-	cali_data_size += gryo_cali_info.size;
+	cali_data_size += gyro_cali_info.size;
 	cali_data_size += mag_cali_info.size;
 	cali_data_size += light_cali_info.size;
 	cali_data_size += prox_cali_info.size;
@@ -632,7 +632,7 @@ static int shub_download_opcode(struct shub_data *sensor)
 	cali_data[1] = prox_cali_info.size;
 	cali_data[2] = light_cali_info.size;
 	cali_data[3] = acc_cali_info.size;
-	cali_data[4] = gryo_cali_info.size;
+	cali_data[4] = gyro_cali_info.size;
 	cali_data[5] = pressure_cali_info.size;
 	cali_data[6] = sizeof(sensor_fusion_mode);
 	p = &cali_data[7];
@@ -652,9 +652,9 @@ static int shub_download_opcode(struct shub_data *sensor)
 		memcpy(p, acc_cali_info.data, acc_cali_info.size);
 		p += acc_cali_info.size;
 	}
-	if (gryo_cali_info.size != 0) {
-		memcpy(p, gryo_cali_info.data, gryo_cali_info.size);
-		p += gryo_cali_info.size;
+	if (gyro_cali_info.size != 0) {
+		memcpy(p, gyro_cali_info.data, gyro_cali_info.size);
+		p += gyro_cali_info.size;
 	}
 	if (pressure_cali_info.size != 0) {
 		memcpy(p, pressure_cali_info.data, pressure_cali_info.size);
@@ -671,7 +671,7 @@ static int shub_download_opcode(struct shub_data *sensor)
 	dev_info(&sensor->sensor_pdev->dev,
 		 "acc_cali_info.size = %d\n", acc_cali_info.size);
 	dev_info(&sensor->sensor_pdev->dev,
-		 "gryo_cali_info.size = %d\n", gryo_cali_info.size);
+		 "gyro_cali_info.size = %d\n", gyro_cali_info.size);
 	dev_info(&sensor->sensor_pdev->dev,
 		 "pressure_cali_info.size = %d\n", pressure_cali_info.size);
 	dev_info(&sensor->sensor_pdev->dev,
@@ -692,8 +692,8 @@ static int shub_download_opcode(struct shub_data *sensor)
 release_cali_info:
 	if (acc_cali_info.size != 0)
 		kfree(acc_cali_info.data);
-	if (gryo_cali_info.size != 0)
-		kfree(gryo_cali_info.data);
+	if (gyro_cali_info.size != 0)
+		kfree(gyro_cali_info.data);
 	if (mag_cali_info.size != 0)
 		kfree(mag_cali_info.data);
 	if (light_cali_info.size != 0)
