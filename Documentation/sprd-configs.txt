@@ -4896,11 +4896,11 @@ CONFIG_GENERIC_IRQ_EFFECTIVE_AFF_MASK
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Supports effective affinity mask.
 CONFIG_GENERIC_IRQ_MIGRATION
 	[arch] all
 	[plat] all
@@ -4942,18 +4942,18 @@ CONFIG_GENERIC_MSI_IRQ
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
-	[subsys] msi
+	[subsys] soc
 	[must] user
-	[missing plat description]
+	[missing plat description] only roc1 have pcie bus
 	[function] Generic MSI interrupt support.
 CONFIG_GENERIC_MSI_IRQ_DOMAIN
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
-	[subsys] msi
+	[subsys] soc
 	[must] user
-	[missing plat description]
+	[missing plat description] only roc1 have pcie bus
 	[function] Generic MSI interrupt domain support.
 CONFIG_GENERIC_NET_UTILS
 	[arch] all
@@ -7636,13 +7636,13 @@ CONFIG_IRQ_DOMAIN
 	[function] irq domain support.
 CONFIG_IRQ_DOMAIN_DEBUG
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
-	[subsys] interrupt
+	[subsys] core
 	[must] debug
-	[missing plat description]
-	[function] Support irq domain debug.
+	[missing plat description] none.
+	[function] Support irq domain debug by debugfs.
 CONFIG_IRQ_DOMAIN_HIERARCHY
 	[arch] all
 	[plat] all
@@ -7657,19 +7657,19 @@ CONFIG_IRQ_FORCED_THREADING
 	[plat] all
 	[missing plat] none
 	[field] code
-	[subsys] interrupt
-	[must] console
-	[missing plat description] none
-	[function]
-CONFIG_IRQ_TIME_ACCOUNTING
-	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[field] make,code
 	[subsys] core
 	[must] user
-	[missing plat description]
-	[function] enable fine granularity task irq time accounting
+	[missing plat description] none
+	[function] Support forced irq threading.
+CONFIG_IRQ_TIME_ACCOUNTING
+	[arch] all
+	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkl3,sharkl3_32
+	[missing plat] pike2,sharkle32
+	[field] code
+	[subsys] core
+	[must] debug
+	[missing plat description] should reduce a small performance, so exclunde pike2,sharkle32
+	[function] enable fine granularity task irq time accounting.
 CONFIG_IRQ_WORK
 	[arch] all
 	[plat] all
@@ -10460,11 +10460,11 @@ CONFIG_PARTITION_PERCPU
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] core
+	[must] user
+	[missing plat description] only gicv3 support this feature.
+	[function] Partitioning per-cpu interrupts for allowing percpu interrupts to be requested with target mask.
 CONFIG_PCI
 	[arch] arm64
 	[plat] roc1
@@ -13382,8 +13382,8 @@ CONFIG_SPRD_IRQS_MONITOR
 	[field] make,code
 	[subsys] soc
 	[must] debug
-	[missing plat description]
-	[function] This function is used to enable irq monistor
+	[missing plat description] possible impact on system power performance
+	[function] irq monistor can detect any irq-storm.
 CONFIG_SPRD_JPG
 	[arch] all
 	[plat] all
