@@ -134,7 +134,7 @@
 			busy-cost-data = <
 				164	30		//614MHz
 				206	42		//768MHz
-				257	56	        //962MHz
+				257	56		//962MHz
 				307	70		//1144MHz
 				329	85		//1229MHz
 				397	115		//1482MHz
@@ -143,6 +143,40 @@
 				488	194		//1820MHz
 			>;
 			idle-cost-data = <
+				6		/* ACTIVE-IDLE */
+				6		/* WFI */
+				0		/* CORE_PD */
+			>;
+
+			busy-cost-data-lp = <
+				183	34		//614MHz
+				229	54		//768MHz
+				287	67		//962MHz
+				342	78		//1144MHz
+				367	84		//1229MHz
+				443	127		//1482MHz
+				459	132		//1536MHz
+				513	182		//1716MHz
+				544	193		//1820MHz
+			>;
+			idle-cost-data-lp = <
+				5		/* ACTIVE-IDLE */
+				5		/* WFI */
+				0		/* CORE_PD */
+			>;
+
+			busy-cost-data-hp = <
+				167	34		//614MHz
+				209	54		//768MHz
+				261	67		//962MHz
+				311	78		//1144MHz
+				334	84		//1229MHz
+				403	127		//1482MHz
+				417	132		//1536MHz
+				466	182		//1716MHz
+				459	193		//1820MHz
+			>;
+			idle-cost-data-hp = <
 				6		/* ACTIVE-IDLE */
 				6		/* WFI */
 				0		/* CORE_PD */
@@ -160,6 +194,33 @@
 			idle-cost-data = <
 				37		/* ACTIVE-IDLE */
 				37		/* WFI */
+				0		/* CORE_PD */
+			>;
+
+			busy-cost-data-lp = <
+				691	360		//1229MHz
+				834	491		//1482MHz
+				864	644		//1536MHz
+				980	902		//1742MHz
+				1024	943		//1820MHz
+			>;
+			idle-cost-data-lp = <
+				21		/* ACTIVE-IDLE */
+				21		/* WFI */
+				0		/* CORE_PD */
+			>;
+
+			busy-cost-data-hp = <
+				629	360		//1229MHz
+				758	491		//1482MHz
+				786	644		//1536MHz
+				891	902		//1742MHz
+				931	943		//1820MHz
+				1024	1036		//2002MHz
+			>;
+			idle-cost-data-hp = <
+				21		/* ACTIVE-IDLE */
+				21		/* WFI */
 				0		/* CORE_PD */
 			>;
 		};
@@ -180,6 +241,41 @@
 				0		/* WFI */
 				0		/* CORE_PD */
 			>;
+
+			busy-cost-data-lp = <
+				183	1		//614MHz
+				229	2		//768MHz
+				287	3	        //962MHz
+				342	4		//1144MHz
+				367	5		//1229MHz
+				443	6		//1482MHz
+				459	7		//1536MHz
+				513	8		//1716MHz
+				544	9		//1820MHz
+			>;
+			idle-cost-data-lp = <
+				0		/* ACTIVE-IDLE */
+				0		/* WFI */
+				0		/* CORE_PD */
+			>;
+
+			busy-cost-data-hp = <
+				167	1		//614MHz
+				209	2		//768MHz
+				261	3		//962MHz
+				311	4		//1144MHz
+				334	5		//1229MHz
+				403	6		//1482MHz
+				417	7		//1536MHz
+				466	8		//1716MHz
+				459	9		//1820MHz
+				544	10		//2002MHz
+			>;
+			idle-cost-data-hp = <
+				0		/* ACTIVE-IDLE */
+				0		/* WFI */
+				0		/* CORE_PD */
+			>;
 		};
 		CLUSTER_COST_1: cluster-cost1 {
 			busy-cost-data = <
@@ -194,6 +290,33 @@
 				23		/* ACTIVE-IDLE */
 				23		/* WFI */
 				23		/* CORE_PD */
+			>;
+
+			busy-cost-data-lp = <
+				691	10		//1229MHz
+				834	22		//1482MHz
+				864	32		//1536MHz
+				980	44		//1742MHz
+				1024	46		//1820MHz
+			>;
+			idle-cost-data-lp = <
+				5		/* ACTIVE-IDLE */
+				5		/* WFI */
+				5		/* CORE_PD */
+			>;
+
+			busy-cost-data-hp = <
+				629	10		//1229MHz
+				758	22		//1482MHz
+				786	32		//1536MHz
+				891	40		//1742MHz
+				931	44		//1820MHz
+				1024	46		//2002MHz
+			>;
+			idle-cost-data-hp = <
+				5		/* ACTIVE-IDLE */
+				5		/* WFI */
+				5		/* CORE_PD */
 			>;
 		};
 	};
