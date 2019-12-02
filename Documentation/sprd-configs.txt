@@ -13406,11 +13406,12 @@ CONFIG_SPRD_LAST_REGS
 	[arch] arm
 	[plat] pike2,sharkle32
 	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] debug
+	[must] debug
+	[missing plat description] this is debug function, only enable when it's needed
+	[function] some time hang in access regs, don't know which regs.
+                   so add log to recored regs info when read or write reg.
 CONFIG_SPRD_LOOK_AT
 	[arch] all
 	[plat] all
