@@ -953,7 +953,7 @@ CONFIG_ARM_GIC_V2M
 	[missing plat description] Roc1 using PCIE.
 	[function] Support for Message Signal Interrupts for system that
 	   implement ARM Generic Interrupt Controller: GICv2m. Select by
-	   ARM64 [=y] && PCI [=n].
+	   ARM64=y and PCI=y.
 CONFIG_ARM_GIC_V3
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
@@ -3411,15 +3411,6 @@ CONFIG_DEBUG_NOTIFIERS
 	[must] debug
 	[missing plat description] none
 	[function] Debug notifier call chains
-CONFIG_DEBUG_SG
-	[arch] arm
-	[plat] sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_DECOMPRESS_GZIP
 	[arch] all
 	[plat] all
@@ -3625,6 +3616,15 @@ CONFIG_DMADEVICES
 	[must] none
 	[missing plat description] none
 	[function] Support DMA devices.
+CONFIG_DMA_API_DEBUG
+	[arch] all
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] none
+	[field] code
+	[subsys] dma
+	[must] user
+	[missing plat description] none
+	[function] Enable debugging of DMA-API usage.
 CONFIG_DMA_ENGINE
 	[arch] all
 	[plat] all
@@ -3656,11 +3656,11 @@ CONFIG_DMA_VIRTUAL_CHANNELS
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] dma
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Support virtual channel for DMA.
 CONFIG_DM_ANDROID_VERITY_AT_MOST_ONCE_DEFAULT_ENABLED
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkle32
@@ -4053,11 +4053,11 @@ CONFIG_ELFCORE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] fs
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] This option enables kernel/elfcore.o.
 CONFIG_ELF_CORE
 	[arch] all
 	[plat] all
@@ -4246,20 +4246,20 @@ CONFIG_EXTCON
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] extcon
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] External Connector Class (extcon) support.
 CONFIG_EXTCON_USB_GPIO
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] extcon
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] USB GPIO extcon support.
 CONFIG_EXTRA_FIRMWARE
 	[arch] all
 	[plat] all
@@ -4739,11 +4739,11 @@ CONFIG_FUTEX_PI
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Fast userspace mutex - Priority Inheritance.
 CONFIG_FW_LOADER
 	[arch] all
 	[plat] all
@@ -4796,11 +4796,11 @@ CONFIG_GENERIC_ARCH_TOPOLOGY
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] core
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] Enable support for architectures common topology code.
 CONFIG_GENERIC_BUG
 	[arch] all
 	[plat] all
@@ -5058,11 +5058,12 @@ CONFIG_GLOB
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] This option provides a glob_match function for performing
+		simple text pattern matching. Prompt "glob_match() function".
 CONFIG_GPIOLIB
 	[arch] all
 	[plat] all
@@ -5166,11 +5167,11 @@ CONFIG_HARDEN_BRANCH_PREDICTOR
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] mm
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Harden the branch predictor against aliasing attacks
 CONFIG_HARDIRQS_SW_RESEND
 	[arch] all
 	[plat] all
@@ -5203,10 +5204,10 @@ CONFIG_HAS_IOMEM
 	[plat] all
 	[missing plat] none
 	[field] make,code
-	[subsys] busybox_console
-	[must] Provide a facility for active usages of device memory to block pmem device unbind.
+	[subsys] mm
+	[must] busybox_console
 	[missing plat description] none
-	[function]
+	[function] Provide a facility for active usages of device memory to block pmem device unbind.
 CONFIG_HAS_IOPORT_MAP
 	[arch] all
 	[plat] pike2,roc1,sharkl3_32,sharkl5_32,sharkle32
@@ -5721,11 +5722,11 @@ CONFIG_HAVE_NMI
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] interrupt
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable for kernel support NMI function.
 CONFIG_HAVE_OPROFILE
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -7810,11 +7811,12 @@ CONFIG_KALLSYMS_BASE_RELATIVE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] debug
+	[must] debug
 	[missing plat description] none
-	[function]
+	[function] Instead of emitting them as absolute values in the native word size,
+		emit the symbol references in the kallsyms table as 32-bit entries.
 CONFIG_KASAN_STACK
 	[arch] all
 	[plat] all
@@ -8004,15 +8006,6 @@ CONFIG_LOCALVERSION
 	[must] console
 	[missing plat description] none
 	[function] Local version - append to kernel release. Set to "".
-CONFIG_LOCALVERSION_AUTO
-	[arch] arm64
-	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_LOCKDEP_SUPPORT
 	[arch] all
 	[plat] all
@@ -8108,11 +8101,11 @@ CONFIG_LTO_NONE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Using NONE for Link-Time Optimization (LTO) (EXPERIMENTAL).
 CONFIG_LZ4_COMPRESS
 	[arch] all
 	[plat] all
@@ -8180,11 +8173,11 @@ CONFIG_MAGIC_SYSRQ_SERIAL
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] debug
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable magic SysRq key over serial.
 CONFIG_MANDATORY_FILE_LOCKING
 	[arch] all
 	[plat] all
