@@ -1823,12 +1823,12 @@ CONFIG_CGROUP_CPUACCT
 	total CPU consumed by the tasks in a cgroup.
 CONFIG_CGROUP_DEBUG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Exports useful debugging information about the cgroups framework. Disabled on featurephone.
 CONFIG_CGROUP_FREEZER
 	[arch] all
@@ -3333,15 +3333,6 @@ CONFIG_DCACHE_WORD_ACCESS
 	[must] console
 	[missing plat description] none
 	[function] Access dcache in word.
-CONFIG_DEBUG_ALIGN_RODATA
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_DEBUG_BUGVERBOSE
 	[arch] all
 	[plat] all
@@ -3351,15 +3342,6 @@ CONFIG_DEBUG_BUGVERBOSE
 	[must] debug
 	[missing plat description] none
 	[function] For debug bugverbose.
-CONFIG_DEBUG_DRIVER
-	[arch] arm64
-	[plat] sharkl5,sharkl5Pro
-	[missing plat] roc1,sharkl3
-	[field] make,code
-	[subsys] core
-	[must] debug
-	[missing plat description]
-	[function] Enable the device debug information.
 CONFIG_DEBUG_FS
 	[arch] all
 	[plat] all
@@ -3388,14 +3370,14 @@ CONFIG_DEBUG_KERNEL
 	[missing plat description] none
 	[function] Enable kernel debug.
 CONFIG_DEBUG_LIST
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] Debug linked list manipulation.
 CONFIG_DEBUG_LL_INCLUDE
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -3406,35 +3388,17 @@ CONFIG_DEBUG_LL_INCLUDE
 	[missing plat description] none
 	[function] Support for debug include path.
 CONFIG_DEBUG_NOTIFIERS
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_DEBUG_PERF_USE_VMALLOC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_DEBUG_RODATA_TEST
-	[arch] arm
-	[plat] sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[plat] all
+	[missing plat] none
+	[field] code
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] Debug notifier call chains
 CONFIG_DEBUG_SG
 	[arch] arm
-	[plat] pike2,sharkle32
+	[plat] sharkle32
 	[missing plat] sharkl3_32,sharkl5_32
 	[field]
 	[subsys]
@@ -3646,15 +3610,6 @@ CONFIG_DMADEVICES
 	[must] none
 	[missing plat description] none
 	[function] Support DMA devices.
-CONFIG_DMA_API_DEBUG
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_DMA_ENGINE
 	[arch] all
 	[plat] all
@@ -10749,8 +10704,8 @@ CONFIG_PERF_EVENTS
 	[missing plat description] none
 	[function] Kernel performance events and counters.
 CONFIG_PERF_USE_VMALLOC
-	[arch] all
-	[plat] all
+	[arch] arm
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
 	[field] code
 	[subsys] core
@@ -13194,7 +13149,7 @@ CONFIG_SPRD_COMMON_CLK
 CONFIG_SPRD_CORE_CTL
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32,sharkl5
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make,code
 	[subsys] sched
 	[must] user
