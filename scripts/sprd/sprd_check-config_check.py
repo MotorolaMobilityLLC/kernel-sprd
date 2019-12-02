@@ -425,6 +425,50 @@ def create_corrected_dict():
         else:
             d_corrected_config[key]['plat'] = tmp_plat[:-1]
 
+def ai_check_missing_plat():
+     for key in l_sprdconfig:
+        missing_plat = ''
+        if d_sprdconfig[key]['arch'] == 'all':
+            if d_sprdconfig[key]['plat'] == 'all':
+                missing_plat = ''
+            else:
+                for plat in all_plat:
+                    if plat not in d_sprdconfig[key]['plat'].split(","):
+                        missing_plat = missing_plat + plat + ","
+
+        elif d_sprdconfig[key]['plat'] != d_all_plat[d_sprdconfig[key]['arch']][:-1]:
+            for plat in d_all_plat[d_sprdconfig[key]['arch']].split(',')[:-1]:
+                if plat not in d_sprdconfig[key]['plat'].split(','):
+                    missing_plat = missing_plat + plat + ','
+
+        if missing_plat != '':
+            l_txt_missing_plat = re.split(',| ',d_sprdconfig[key]['missing plat'])
+            l_txt_missing_plat.sort()
+
+            l_missing_plat = missing_plat[:-1].split(",")
+            l_missing_plat.sort()
+
+            if l_txt_missing_plat != l_missing_plat:
+                print("ERROR: doc: " + key + " : [missing plat] does not match [plat] in sprd-configs.txt.\n" \
+                        "\t[missing plat] in sprd-configs.txt:" + d_sprdconfig[key]['missing plat'] + "\n" +  \
+                        "\t[missing plat] based on [plat]:" + missing_plat[:-1])
+            if d_sprdconfig[key]['missing plat description'] == 'none':
+                print("ERROR: doc: " + key + " : [missing plat description] couldn't be none" \
+                        + " and should be modified to describe reason of missing plat.")
+        else:
+            if d_sprdconfig[key]['missing plat'] != 'none' or d_sprdconfig[key]['missing plat description'] != 'none':
+                print("ERROR: doc: " + key + " in sprd-configs.txt : [missing plat] and [missing plat description] should both be none, please check.")
+
+def ai_check_incomplete():
+     tmp_list = list(d_sprdconfig)
+     tmp_list.sort()
+     for key in tmp_list:
+         if d_sprdconfig[key]['subsys'].strip() == "" or d_sprdconfig[key]['function'].strip() == "" or \
+             d_sprdconfig[key]['field'].strip() == "" or d_sprdconfig[key]['must'].strip() == "" or \
+             d_sprdconfig[key]['arch'].strip() == "" or d_sprdconfig[key]['plat'].strip() == "" or \
+             d_sprdconfig[key]['missing plat'].strip() == "" or d_sprdconfig[key]['missing plat description'] == "":
+             print("ERROR: doc: " + key + ": Anyone of the options in sprd-configs.txt can not be empty, please check.")
+
 def aiaiai_check():
     print("========BEGIN========")
     file_name = tmp_path_def+"lastest.diff"
@@ -477,6 +521,8 @@ def aiaiai_check():
                                 " DOC:[plat]:" + d_sprdconfig[key]['plat'])
                 else:
                     continue
+        ai_check_missing_plat()
+        ai_check_incomplete()
     f_diff.close()
     print("=========END=========")
 
@@ -511,23 +557,21 @@ def update_sprd_configs():
     print("\n\tsprd-configs.txt has been updated now")
 
 def update_missing_plat():
-    update_missing_plat_flag = 0
-    if update_missing_plat_flag == 1:
-        for key in d_sprdconfig:
-            missing_plat = ''
-            if d_sprdconfig[key]['arch'] == 'all':
-                if d_sprdconfig[key]['plat'] == 'all':
-                    missing_plat = ''
-                else:
-                    for plat in all_plat:
-                        if plat not in d_sprdconfig[key]['plat'].split(","):
-                            missing_plat = missing_plat + plat + ","
+    for key in d_sprdconfig:
+        missing_plat = ''
+        if d_sprdconfig[key]['arch'] == 'all':
+            if d_sprdconfig[key]['plat'] == 'all':
+                missing_plat = ''
+            else:
+                for plat in all_plat:
+                    if plat not in d_sprdconfig[key]['plat'].split(","):
+                        missing_plat = missing_plat + plat + ","
 
-            elif d_sprdconfig[key]['plat'] != d_all_plat[d_sprdconfig[key]['arch']][:-1]:
-                for plat in d_all_plat[d_sprdconfig[key]['arch']].split(',')[:-1]:
-                    if plat not in d_sprdconfig[key]['plat'].split(','):
-                        missing_plat = missing_plat + plat + ','
-            d_sprdconfig[key]['missing plat'] = missing_plat[:-1]
+        elif d_sprdconfig[key]['plat'] != d_all_plat[d_sprdconfig[key]['arch']][:-1]:
+            for plat in d_all_plat[d_sprdconfig[key]['arch']].split(',')[:-1]:
+                if plat not in d_sprdconfig[key]['plat'].split(','):
+                    missing_plat = missing_plat + plat + ','
+        d_sprdconfig[key]['missing plat'] = missing_plat[:-1]
 
     for key in d_sprdconfig:
         if d_sprdconfig[key]['arch'] == 'all':

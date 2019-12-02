@@ -1055,7 +1055,7 @@ CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3
 CONFIG_ARM_SPRD_SW_CPUFREQ
 	[arch] arm
 	[plat] pike2,sharkle32
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
@@ -2485,7 +2485,7 @@ CONFIG_CRYPTO_ACOMP2
 CONFIG_CRYPTO_ADIANTUM
 	[arch] arm
 	[plat] pike2
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -2522,7 +2522,7 @@ CONFIG_CRYPTO_AES
 CONFIG_CRYPTO_AES_ARM
 	[arch] arm
 	[plat] pike2,sharkle32
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -2576,7 +2576,7 @@ CONFIG_CRYPTO_AES_ARM64_NEON_BLK
 CONFIG_CRYPTO_AES_ARM_BS
 	[arch] arm
 	[plat] pike2,sharkle32
-	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -2585,7 +2585,7 @@ CONFIG_CRYPTO_AES_ARM_BS
 CONFIG_CRYPTO_AES_ARM_CE
 	[arch] arm
 	[plat] sharkl3_32,sharkl5_32,sharkle32
-	[missing plat] pike2,roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] pike2
 	[field] make
 	[subsys] crypto
 	[must] none
@@ -2685,7 +2685,7 @@ CONFIG_CRYPTO_CBC
 CONFIG_CRYPTO_CHACHA20
 	[arch] arm
 	[plat] pike2
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -2695,7 +2695,7 @@ CONFIG_CRYPTO_CHACHA20
 CONFIG_CRYPTO_CHACHA20_NEON
 	[arch] arm
 	[plat] pike2
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -2881,7 +2881,7 @@ CONFIG_CRYPTO_GHASH_ARM64_CE
 CONFIG_CRYPTO_GHASH_ARM_CE
 	[arch] arm
 	[plat] sharkl5_32,sharkle32
-	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro
+	[missing plat] pike2,sharkl3_32
 	[field] make
 	[subsys] crypto
 	[must] none
@@ -3016,7 +3016,7 @@ CONFIG_CRYPTO_MD5
 CONFIG_CRYPTO_NHPOLY1305
 	[arch] arm
 	[plat] pike2
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -3026,7 +3026,7 @@ CONFIG_CRYPTO_NHPOLY1305
 CONFIG_CRYPTO_NHPOLY1305_NEON
 	[arch] arm
 	[plat] pike2
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -3054,7 +3054,7 @@ CONFIG_CRYPTO_NULL2
 CONFIG_CRYPTO_POLY1305
 	[arch] arm
 	[plat] pike2
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -3091,7 +3091,7 @@ CONFIG_CRYPTO_RNG_DEFAULT
 CONFIG_CRYPTO_RSA
 	[arch] arm
 	[plat] sharkle32
-	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[missing plat] pike2,sharkl3_32,sharkl5_32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -3137,7 +3137,7 @@ CONFIG_CRYPTO_SHA1_ARM64_CE
 CONFIG_CRYPTO_SHA1_ARM_CE
 	[arch] arm
 	[plat] sharkl3_32,sharkl5_32,sharkle32
-	[missing plat] pike2,roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] pike2
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -3147,7 +3147,7 @@ CONFIG_CRYPTO_SHA1_ARM_CE
 CONFIG_CRYPTO_SHA1_ARM_NEON
 	[arch] arm
 	[plat] pike2
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -3194,7 +3194,7 @@ CONFIG_CRYPTO_SHA2_ARM64_CE
 CONFIG_CRYPTO_SHA2_ARM_CE
 	[arch] arm
 	[plat] sharkl3_32,sharkl5_32,sharkle32
-	[missing plat] pike2,roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] pike2
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -3215,7 +3215,7 @@ CONFIG_CRYPTO_SHA512
 CONFIG_CRYPTO_SHA512_ARM
 	[arch] arm
 	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro
+	[missing plat] sharkl3_32
 	[field] make
 	[subsys] crypto
 	[must] none
@@ -3858,7 +3858,7 @@ CONFIG_DRM_SPRD_GSP
 CONFIG_DRM_SPRD_HDMI
 	[arch] arm64
 	[plat] roc1
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make
 	[subsys] gpu
 	[must] user
@@ -4698,7 +4698,7 @@ CONFIG_FUTEX_PI
 CONFIG_FW_CACHE
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5_32
-	[missing plat] sharkl3,sharkl3_32,sharkl5Pro,pike2
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[field] code
 	[subsys] core
 	[must] user
@@ -9265,7 +9265,7 @@ CONFIG_NET_CORE
 CONFIG_NET_EGRESS
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] sharkl5,sharkl5_32
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] menu,net
 	[subsys] net
 	[must] user
@@ -10862,7 +10862,7 @@ CONFIG_PM_DEVFREQ
 CONFIG_PM_GENERIC_DOMAINS
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32
-	[missing plat] pike2,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] pike2,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] make,code
 	[subsys] device power
 	[must] user
@@ -10874,7 +10874,7 @@ CONFIG_PM_GENERIC_DOMAINS
 CONFIG_PM_GENERIC_DOMAINS_OF
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32
-	[missing plat] pike2,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] pike2,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] code
 	[subsys] device power
 	[must] user
@@ -10886,7 +10886,7 @@ CONFIG_PM_GENERIC_DOMAINS_OF
 CONFIG_PM_GENERIC_DOMAINS_SLEEP
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32
-	[missing plat] pike2,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] pike2,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] code
 	[subsys] power
 	[must] user
@@ -12611,7 +12611,7 @@ CONFIG_SND_SOC_SPRD_CODEC_SC2730
 CONFIG_SND_SOC_SPRD_I2S
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make, code
 	[subsys] sound
 	[must] user
@@ -12620,7 +12620,7 @@ CONFIG_SND_SOC_SPRD_I2S
 CONFIG_SND_SOC_SPRD_I2S_DUMMY
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make, code
 	[subsys] sound
 	[must] user
@@ -13115,7 +13115,7 @@ CONFIG_SPRD_COMMON_CLK
 CONFIG_SPRD_CORE_CTL
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkle32
+	[missing plat] roc1,sharkl3,sharkl5
 	[field] make,code
 	[subsys] sched
 	[must] user
@@ -13252,7 +13252,7 @@ CONFIG_SPRD_DMC_MPU_CORE
 CONFIG_SPRD_DMC_MPU_R3P0
 	[arch] arm
 	[plat] pike2,sharkle32
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] make
 	[subsys] debug
 	[must] debug
@@ -13288,7 +13288,7 @@ CONFIG_SPRD_GPU_COOLING_DEVICE
 CONFIG_SPRD_HWFEATURE
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] none
+	[missing plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] hwfeature
 	[must] user
@@ -13309,7 +13309,7 @@ CONFIG_SPRD_HW_DEVICE_DVFS_AGCP
 CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[arch] arm64
 	[plat] sharkl5,sharkl5Pro
-	[missing plat] pike2,roc1,sharkl3,sharkle32
+	[missing plat] roc1,sharkl3
 	[field] make,code
 	[subsys] cp
 	[must] user
@@ -13345,7 +13345,7 @@ CONFIG_SPRD_IOMMU
 CONFIG_SPRD_IPA_PCIE_WORKROUND
 	[arch] arm64
 	[plat] roc1
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] staging
 	[must] user
@@ -13363,7 +13363,7 @@ CONFIG_SPRD_IPA_SUPPORT
 CONFIG_SPRD_IPA_SYS
 	[arch] arm64
 	[plat] roc1
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make
 	[subsys] staging
 	[must] user
@@ -13475,7 +13475,7 @@ CONFIG_SPRD_MINI_SYSDUMP
 CONFIG_SPRD_MIPI_LOG_R2P0
 	[arch] arm
 	[plat] sharkle32
-	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3_32,sharkl5_32
 	[field] make
 	[subsys] staging
 	[must] debug
@@ -13494,7 +13494,7 @@ CONFIG_SPRD_MIPI_LOG_R4P2
 CONFIG_SPRD_MIPI_LOG_R5P0
 	[arch] arm64
 	[plat] sharkl5,sharkl5Pro
-	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5_32,sharkle32
+	[missing plat] roc1,sharkl3
 	[field] make
 	[subsys] staging
 	[must] debug
@@ -13503,7 +13503,7 @@ CONFIG_SPRD_MIPI_LOG_R5P0
 CONFIG_SPRD_MIPI_SWITCH
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[missing plat] roc1,sharkl3,sharkl5
 	[field] code
 	[subsys] staging
 	[must] debug
@@ -13555,7 +13555,7 @@ CONFIG_SPRD_PAMU3
 CONFIG_SPRD_PAM_IPA
 	[arch] arm64
 	[plat] roc1
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make
 	[subsys] staging
 	[must] user
@@ -13595,7 +13595,7 @@ CONFIG_SPRD_PCIE_EP_DEVICE
 CONFIG_SPRD_PIKE2_SLEEP
 	[arch] arm
 	[plat] pike2
-	[missing plat]
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make
 	[subsys] soc
 	[must] user
@@ -13786,7 +13786,7 @@ CONFIG_SPRD_SHARKLE_USB2_PHY
 CONFIG_SPRD_SIPA
 	[arch] arm64
 	[plat] roc1
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make
 	[subsys] staging
 	[must] user
@@ -13795,7 +13795,7 @@ CONFIG_SPRD_SIPA
 CONFIG_SPRD_SIPA_DELEGATE
 	[arch] arm64
 	[plat] roc1
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make
 	[subsys] staging
 	[must] user
@@ -13805,7 +13805,7 @@ CONFIG_SPRD_SIPA_DELEGATE
 CONFIG_SPRD_SIPA_DELE_MINIAP_IN_AP
 	[arch] arm64
 	[plat] roc1
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] staging
 	[must] user
@@ -13928,7 +13928,7 @@ CONFIG_SPRD_SYSDUMP
 CONFIG_SPRD_SYSTIMER
 	[arch] all
 	[plat] pike2,sharkl3
-	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] make
 	[subsys] timer
 	[must] userdebug
@@ -14444,7 +14444,7 @@ CONFIG_THERMAL_GOV_POWER_ALLOCATOR
 CONFIG_THERMAL_GOV_STEP_WISE
 	[arch] arm
 	[plat] sharkl5_32
-	[missing plat] pike2,sharkl3_3,sharkle32
+	[missing plat] pike2,sharkl3_32,sharkle32
 	[field] make
 	[subsys] thermal
 	[must] user
