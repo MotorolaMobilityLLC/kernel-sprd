@@ -2145,7 +2145,7 @@ CONFIG_CPUSETS
 	[field] make,code
 	[subsys] core
 	[must] console
-	[missing plat description]
+	[missing plat description] pike2 Bug961852
 	[function] Let you create and manage CPUSETs which allow dynamically
 		partitioning a system into sets of CPUs and Memory Nodes and
 		assigning tasks to run only within those sets.
@@ -11254,7 +11254,7 @@ CONFIG_PROC_PID_CPUSET
 	[field] code
 	[subsys] core
 	[must] console
-	[missing plat description]
+	[missing plat description] pike2 Bug961852
 	[function] vts require, Include legacy /proc/<pid>/cpuset file.
 CONFIG_PROC_SYSCTL
 	[arch] all
