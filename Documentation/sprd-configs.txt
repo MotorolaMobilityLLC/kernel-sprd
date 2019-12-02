@@ -13497,11 +13497,11 @@ CONFIG_SPRD_LOOK_AT
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] soc
+	[must] debug
 	[missing plat description] none
-	[function]
+	[function] This config is used to enable lookat tool for debug.
 CONFIG_SPRD_MAILBOX
 	[arch] all
 	[plat] all
