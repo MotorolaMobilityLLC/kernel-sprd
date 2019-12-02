@@ -11,6 +11,7 @@
 #include <linux/major.h>
 #include <linux/proc_fs.h>
 #include <linux/printk.h>
+#include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/types.h>
 #include <linux/timer.h>
@@ -39,15 +40,15 @@ static int wcn_op_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-static int wcn_op_read(struct wcn_op_attr_t wcn_op_attr, unsigned int *pval)
+static int wcn_op_read(struct wcn_op_attr_t *wcn_op_attr, unsigned int *pval)
 {
 	int ret;
 
 	if (unlikely(marlin_get_download_status() != true))
 		return -EIO;
 
-	ret = sprdwcn_bus_direct_read(wcn_op_attr.addr, pval,
-					wcn_op_attr.length);
+	ret = sprdwcn_bus_direct_read(wcn_op_attr->addr, pval,
+				      wcn_op_attr->length);
 	if (ret < 0) {
 		pr_err("%s read reg error:%d\n", __func__, ret);
 		return ret;
@@ -56,15 +57,15 @@ static int wcn_op_read(struct wcn_op_attr_t wcn_op_attr, unsigned int *pval)
 	return 0;
 }
 
-static int wcn_op_write(struct wcn_op_attr_t wcn_op_attr)
+static int wcn_op_write(struct wcn_op_attr_t *wcn_op_attr)
 {
 	int ret = 0;
 
 	if (unlikely(marlin_get_download_status() != true))
 		return -EIO;
 
-	ret = sprdwcn_bus_direct_write(wcn_op_attr.addr,
-		&wcn_op_attr.val, wcn_op_attr.length);
+	ret = sprdwcn_bus_direct_write(wcn_op_attr->addr,
+				       &wcn_op_attr->val, wcn_op_attr->length);
 	if (ret < 0) {
 		pr_err("%s write reg error:%d\n", __func__, ret);
 		return ret;
@@ -76,15 +77,20 @@ static int wcn_op_write(struct wcn_op_attr_t wcn_op_attr)
 static long wcn_op_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int ret = -1;
-	struct wcn_op_attr_t wcn_op_attr;
+	struct wcn_op_attr_t *wcn_op_attr;
 	unsigned int __user *pbuf = (unsigned int __user *)arg;
 
 	if (pbuf == NULL)
 		return  ret;
-	if (copy_from_user(&wcn_op_attr, pbuf, sizeof(wcn_op_attr))) {
+
+	wcn_op_attr = kmalloc(sizeof(*wcn_op_attr), GFP_KERNEL);
+	if (!wcn_op_attr)
+		return -ENOMEM;
+
+	if (copy_from_user(wcn_op_attr, pbuf, sizeof(*wcn_op_attr))) {
 		pr_err("%s copy from user error!\n",
 				__func__);
-
+		kfree(wcn_op_attr);
 		return -EFAULT;
 	}
 
@@ -93,13 +99,12 @@ static long wcn_op_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 
 	case IOCTL_WCN_OP_READ:
-		ret = wcn_op_read(wcn_op_attr, &(wcn_op_attr.val));
+		ret = wcn_op_read(wcn_op_attr, &wcn_op_attr->val);
 		if (ret == 0) {
-			if (copy_to_user(pbuf, &wcn_op_attr,
-				sizeof(wcn_op_attr))) {
-				pr_err("%s copy from user error!\n",
-						__func__);
-
+			if (copy_to_user(pbuf, wcn_op_attr,
+					 sizeof(*wcn_op_attr))) {
+				pr_err("%s copy from user error!\n", __func__);
+				kfree(wcn_op_attr);
 				return -EFAULT;
 			}
 		} else
@@ -110,6 +115,8 @@ static long wcn_op_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		wcn_op_write(wcn_op_attr);
 		break;
 	}
+
+	kfree(wcn_op_attr);
 
 	return 0;
 }
