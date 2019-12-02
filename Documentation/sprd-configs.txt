@@ -13422,12 +13422,12 @@ CONFIG_SPRD_IOMMU
 CONFIG_SPRD_IPA_PCIE_WORKROUND
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[field] make,code
+	[subsys] staging
+	[must] user
+	[missing plat description] missing plat without IPA, Roc1 unique feature.
+	[function] This option enables sipa pcie workround.
 CONFIG_SPRD_IPA_SUPPORT
 	[arch] arm64
 	[plat] roc1
@@ -13440,12 +13440,14 @@ CONFIG_SPRD_IPA_SUPPORT
 CONFIG_SPRD_IPA_SYS
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[field] make
+	[subsys] staging
+	[must] user
+	[missing plat description] missing plat without this hardware IP, so this feature is
+				   not needed, Roc1 unique feature.
+	[function] Sipa sys is a module that manages ipa low power. When you select this
+		   feature, it will enable the pm generic power domain for ipa_sys module.
 CONFIG_SPRD_IQ
 	[arch] all
 	[plat] all
