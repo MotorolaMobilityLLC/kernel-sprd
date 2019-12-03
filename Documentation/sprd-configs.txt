@@ -1476,7 +1476,12 @@ CONFIG_BLK_MQ_PCI
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Provide a default queue mapping for pci device.
 CONFIG_BLK_MQ_VIRTIO
 	[arch] all
@@ -2521,7 +2526,7 @@ CONFIG_CRYPTO_ACOMP2
 CONFIG_CRYPTO_ADIANTUM
 	[arch] arm
 	[plat] pike2
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkl5Pro,sharkle32
+	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] make
 	[subsys] crypto
 	[must] user
@@ -10248,7 +10253,12 @@ CONFIG_OF_ADDRESS_PCI
 	[field] make,code
 	[subsys] pci
 	[must] make,code
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] PCI bus specific translator.
 CONFIG_OF_EARLY_FLATTREE
 	[arch] all
@@ -10311,7 +10321,12 @@ CONFIG_OF_PCI
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] OpenFirmware pci bus accessors.
 CONFIG_OF_PCI_IRQ
 	[arch] arm64
@@ -10320,7 +10335,12 @@ CONFIG_OF_PCI_IRQ
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] OpenFirmware PCI IRQ routing helpers.
 CONFIG_OF_RESERVED_MEM
 	[arch] all
@@ -10476,26 +10496,41 @@ CONFIG_PCI
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Enable support for PCI bus system.
 CONFIG_PCIEAER
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Enable PCIe express Root Port Advanced Error Reporting driver
 		   support
 CONFIG_PCIEAER_INJECT
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] nables PCI Express Root Port Advanced Error Reporting (AER)
 		   software error injector.
 CONFIG_PCIEASPM
@@ -10505,7 +10540,12 @@ CONFIG_PCIEASPM
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] PCI Express ASPM control for L1SS.
 CONFIG_PCIEASPM_DEBUG
 	[arch] arm64
@@ -10514,7 +10554,12 @@ CONFIG_PCIEASPM_DEBUG
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Enable PCI Express debug support.
 CONFIG_PCIEASPM_DEFAULT
 	[arch] arm64
@@ -10523,7 +10568,12 @@ CONFIG_PCIEASPM_DEFAULT
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Use the BIOS defaults for PCIe Express ASPM.
 CONFIG_PCIEPORTBUS
 	[arch] arm64
@@ -10532,7 +10582,12 @@ CONFIG_PCIEPORTBUS
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Enable PCI Express Port Bus support.
 CONFIG_PCIE_DW
 	[arch] arm64
@@ -10541,7 +10596,12 @@ CONFIG_PCIE_DW
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Enable Synopsys DesignWare PCIe host controller driver.
 CONFIG_PCIE_DW_HOST
 	[arch] arm64
@@ -10550,16 +10610,26 @@ CONFIG_PCIE_DW_HOST
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+			           missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Enable Synopsys DesignWare PCIe host controller driver.
 CONFIG_PCIE_ECRC
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Used to override firmware/bios settings for PCI Express ECRC
 CONFIG_PCIE_PME
 	[arch] arm64
@@ -10568,7 +10638,12 @@ CONFIG_PCIE_PME
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] PCI Express Native PME support.
 CONFIG_PCIE_SPRD
 	[arch] arm64
@@ -10577,7 +10652,12 @@ CONFIG_PCIE_SPRD
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Support Spreadtrum PCIe controller driver(RC and EP).
 CONFIG_PCIE_SPRD_HOST
 	[arch] arm64
@@ -10586,7 +10666,12 @@ CONFIG_PCIE_SPRD_HOST
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+			           platform does not use pci device.
 	[function] Support Spreadtrum PCIe host controller driver(only for RC).
 CONFIG_PCI_BUS_ADDR_T_64BIT
 	[arch] arm64
@@ -10595,7 +10680,12 @@ CONFIG_PCI_BUS_ADDR_T_64BIT
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Support 64 bit PCI address.
 CONFIG_PCI_DEBUG
 	[arch] arm64
@@ -10604,7 +10694,12 @@ CONFIG_PCI_DEBUG
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] PCI core can produce a bunch of debug messages to the
 	   system log.
 CONFIG_PCI_DOMAINS
@@ -10614,7 +10709,12 @@ CONFIG_PCI_DOMAINS
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+			           platform does not use pci device.
 	[function] Support PCI domain.
 CONFIG_PCI_DOMAINS_GENERIC
 	[arch] arm64
@@ -10623,7 +10723,12 @@ CONFIG_PCI_DOMAINS_GENERIC
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+			           missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Generic implementation for PCI domain support.
 CONFIG_PCI_MSI
 	[arch] arm64
@@ -10632,8 +10737,13 @@ CONFIG_PCI_MSI
 	[field] make,code
 	[subsys] pci
 	[must] Allow device driver to enable MSI(Message Signaled Interrupts).
-	[missing plat description]
-	[function]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
+	[function] Support MSI domain.
 CONFIG_PCI_MSI_IRQ_DOMAIN
 	[arch] arm64
 	[plat] roc1
@@ -10641,7 +10751,12 @@ CONFIG_PCI_MSI_IRQ_DOMAIN
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Support MSI IRQ domain.
 CONFIG_PCI_QUIRKS
 	[arch] arm64
@@ -10650,7 +10765,12 @@ CONFIG_PCI_QUIRKS
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+			           missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] Enable workarounds for various PCI chipset bugs/quirks.
 CONFIG_PCI_SYSCALL
 	[arch] arm64
@@ -10659,7 +10779,12 @@ CONFIG_PCI_SYSCALL
 	[field] make,code
 	[subsys] pci
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] For architectures where we want to allow direct access to
 	   the PCI config stuff.
 CONFIG_PELT_UTIL_HALFLIFE_32
@@ -13498,7 +13623,7 @@ CONFIG_SPRD_MIPI_LOG_R5P0
 	[subsys] staging
 	[must] debug
 	[missing plat description] SPRD_MIPI_LOG_R5P0 is just for sharkl5 & sharkl5Pro and other projects have their own driver.
-        [function] This function is used to enable modem MIPI log function for modem log capture.
+	[function] This function is used to enable modem MIPI log function for modem log capture.
 CONFIG_SPRD_MIPI_SWITCH
 	[arch] arm64
 	[plat] sharkl5Pro
@@ -13562,11 +13687,16 @@ CONFIG_SPRD_PAM_IPA
 CONFIG_SPRD_PCIE_AER
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
 	[subsys] soc
 	[must] debug
-	[missing plat description]
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
 	[function] This enables SPRD PCI Express Root Port Advanced Error
 		   Reporting (AER) irq number which is defined by SPRD itself
 		   not by MSI.
@@ -13574,11 +13704,16 @@ CONFIG_SPRD_PCIE_EP_DEVICE
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] pci
+	[must] user
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5 because sharkl3 hardware
+				   platform does not use pci device.
+				   missing sharkl5Pro because sharkl3 hardware
+				   platform does not use pci device.
+	[function] Support pci device with roc1.
 CONFIG_SPRD_PIKE2_SLEEP
 	[arch] arm
 	[plat] pike2
