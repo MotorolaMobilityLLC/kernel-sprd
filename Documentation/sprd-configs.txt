@@ -1181,11 +1181,11 @@ CONFIG_AUDITSYSCALL
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] security
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] selinux avc audit, depends on AUDIT && HAVE_ARCH_AUDITSYSCALL
 CONFIG_AUDIT_ARCH_COMPAT_GENERIC
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -1217,20 +1217,20 @@ CONFIG_AUDIT_TREE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] security
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] notify audit, depends on AUDITSYSCALL
 CONFIG_AUDIT_WATCH
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] security
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] watch audit, depends on AUDITSYSCALL
 CONFIG_AUTO_ZRELADDR
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -12234,13 +12234,13 @@ CONFIG_SECURITY
 	[function] vts require
 CONFIG_SECURITYFS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[plat] all
+	[missing plat] none
+	[field] make,core
+	[subsys] security
+	[must] user
+	[missing plat description] none
+	[function] create file/dir/symlink under securityfs
 CONFIG_SECURITY_NETWORK
 	[arch] all
 	[plat] all
