@@ -12917,7 +12917,7 @@ CONFIG_SPRD_APB_BUSMONITOR
 	[field] make
 	[subsys] debug
 	[must] debug
-	[missing plat description]
+	[missing plat description] missing plat don't use this IP
 	[function] Enable APB busmonitor function
 CONFIG_SPRD_APDU
 	[arch] arm64
