@@ -2101,11 +2101,13 @@ CONFIG_CORESIGHT_SOURCE_ETM3X
 	[arch] arm
 	[plat] pike2
 	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] kernel core
+	[must] debug
+	[missing plat description] missing sharkl3_32 because sharkl3 is ARMv8 arch only support ETM4X,
+				   missing sharkl5_32 because sharkl5 is ARMv8 arch only support ETM4X,
+				   missing sharkle32 because sharkle is ARMv8 arch only support ETM4X,
+	[function] This function is used to enable coresight etm3x modules.
 CONFIG_CORESIGHT_SOURCE_ETM4X
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
