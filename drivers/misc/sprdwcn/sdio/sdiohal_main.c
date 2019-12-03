@@ -1402,6 +1402,7 @@ void sdiohal_exit(void)
 #ifdef CONFIG_DEBUG_FS
 	sdiohal_debug_deinit();
 #endif
+	sdiohal_misc_deinit();
 	if (sdiohal_data) {
 		sdiohal_data->sdio_dev_host = NULL;
 		sdiohal_data->flag_init = false;
