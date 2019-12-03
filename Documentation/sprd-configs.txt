@@ -11970,15 +11970,6 @@ CONFIG_RTC_LIB
 	[must] user
 	[missing plat description] none
 	[function] RTC driver based on RTC lib.
-CONFIG_RTC_NVMEM
-	[arch] arm
-	[plat] sharkle32
-	[missing plat] pike2,sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_RTC_SYSTOHC
 	[arch] all
 	[plat] all
