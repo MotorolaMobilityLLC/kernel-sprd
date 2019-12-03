@@ -1496,11 +1496,11 @@ CONFIG_BLK_SCSI_REQUEST
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] block
+	[must] usr
 	[missing plat description] none
-	[function]
+	[function] support SCSI ioctl function in block layer.
 CONFIG_BLOCK
 	[arch] all
 	[plat] all
@@ -12205,11 +12205,16 @@ CONFIG_SCSI_LOWLEVEL
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] scsi
+	[must] usr
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use SCSI.
+				   missing sharkl5 because sharkl5 hardware
+				   platform does not use SCSI.
+				   missing sharkl5Pro because sharkl5Pro
+				   hardware platform does not use SCSI.
+	[function] support SCSI low-level drivers
 CONFIG_SCSI_MOD
 	[arch] all
 	[plat] all
@@ -12223,29 +12228,44 @@ CONFIG_SCSI_UFSHCD
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] ufs
+	[must] usr
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use UFS device.
+				   missing sharkl5 because sharkl5 hardware
+				   platform does not use UFS device.
+				   missing sharkl5Pro because sharkl5Pro
+				   hardware platform does not use UFS device
+	[function] support Universal Flash Storage Controller Driver Core
 CONFIG_SCSI_UFSHCD_PLATFORM
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] ufs
+	[must] usr
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use UFS device.
+				   missing sharkl5 because sharkl5 hardware
+				   platform does not use UFS device.
+				   missing sharkl5Pro because sharkl5Pro
+				   hardware platform does not use UFS device.
+	[function] Platform bus based UFS Controller support
 CONFIG_SCSI_UFS_SPRD
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] ufs
+	[must] usr
+	[missing plat description] missing sharkl3 because sharkl3 hardware
+				   platform does not use UFS device.
+				   missing sharkl5 because sharkl5 hardware
+				   platform does not use UFS device.
+				   missing sharkl5Pro because sharkl5Pro
+				   hardware platform does not use UFS device.
+	[function] SPRD specific hooks to UFS controller platform driver
 CONFIG_SDCARD_FS
 	[arch] all
 	[plat] all
