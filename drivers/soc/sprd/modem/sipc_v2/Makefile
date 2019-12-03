@@ -4,6 +4,4 @@ obj-$(CONFIG_SPRD_SIPC_SPIPE)	+= spipe.o
 
 obj-$(CONFIG_SPRD_SIPC_SPOOL)	+= spool.o
 
-obj-$(CONFIG_SPRD_SIPC_SETH)	+= seth.o
-
 obj-$(CONFIG_SPRD_SIPC_ZERO_COPY_SIPX) += sipx.o
