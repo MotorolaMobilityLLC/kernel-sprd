@@ -1528,21 +1528,21 @@ CONFIG_BOOTPARAM_HUNG_TASK_PANIC_VALUE
 	[function] Trigger kernel panic when detect hung task.
 CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
+	[plat] all
+	[missing plat] none
+	[field] menu
+	[subsys] watchdog
+	[must] debug
+	[missing plat description] none
 	[function]
 CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC_VALUE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
-	[subsys] core
+	[subsys] watchdog
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Trigger kernel panic when detect soft-lockup.
 CONFIG_BOUNCE
 	[arch] all
@@ -5179,12 +5179,12 @@ CONFIG_HARDIRQS_SW_RESEND
 	[function] Support hardware irqs resend by software.
 CONFIG_HARDLOCKUP_DETECTOR_OTHER_CPU
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[field]
+	[plat] all
+	[missing plat] none
+	[field] code
 	[subsys] watchdog
-	[must]
-	[missing plat description]
+	[must] debug
+	[missing plat description] none
 	[function] check the hrtimer irqs of the next cpu
 CONFIG_HAS_DMA
 	[arch] all
@@ -8008,12 +8008,12 @@ CONFIG_LOCKDEP_SUPPORT
 	[function] Enable kernel support lockup.
 CONFIG_LOCKUP_DETECTOR
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] enable kernel soft lockup and hard lockup
 CONFIG_LOCK_SPIN_ON_OWNER
 	[arch] all
@@ -12894,12 +12894,12 @@ CONFIG_SOCK_CGROUP_DATA
 	[function] Support cgroup. Select by NET_PRIO and NET_CLASSID.
 CONFIG_SOFTLOCKUP_DETECTOR
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
+	[plat] all
+	[missing plat] none
+	[field] code
+	[subsys] watchdog
+	[must] debug
+	[missing plat description] none
 	[function]
 CONFIG_SOUND
 	[arch] all
