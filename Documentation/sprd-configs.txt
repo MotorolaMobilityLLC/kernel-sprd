@@ -6520,7 +6520,8 @@ CONFIG_IIO_BUFFER
 	[field] make
 	[subsys] iio
 	[must] user
-	[missing plat description]
+	[missing plat description]missing pike2 because it don't use iio subsys,
+			missing sharkle32 because it don't use iio subsys
 	[function] iio buffer interface
 CONFIG_IIO_CONSUMERS_PER_TRIGGER
 	[arch] all
@@ -6529,7 +6530,8 @@ CONFIG_IIO_CONSUMERS_PER_TRIGGER
 	[field] make, code
 	[subsys] iio
 	[must] user
-	[missing plat description]
+	[missing plat description]missing pike2 because it don't use iio subsys,
+			missing sharkle32 because it don't use iio subsys
 	[function] use in iio trigger module
 CONFIG_IIO_KFIFO_BUF
 	[arch] all
@@ -6538,7 +6540,8 @@ CONFIG_IIO_KFIFO_BUF
 	[field] make
 	[subsys] iio
 	[must] user
-	[missing plat description]
+	[missing plat description]missing pike2 because it don't use iio subsys,
+			missing sharkle32 because it don't use iio subsys
 	[function] iio fifo interface
 CONFIG_IIO_TRIGGER
 	[arch] all
@@ -6547,7 +6550,8 @@ CONFIG_IIO_TRIGGER
 	[field] make
 	[subsys] iio
 	[must] user
-	[missing plat description]
+	[missing plat description]missing pike2 because it don't use iio subsys,
+			missing sharkle32 because it don't use iio subsys
 	[function] iio trigger interface
 CONFIG_IKCONFIG
 	[arch] all
@@ -13686,7 +13690,8 @@ CONFIG_SPRD_SENSOR_HUB
 	[field] make
 	[subsys] iio
 	[must] user
-	[missing plat description]
+	[missing plat description]missing pike2 because it don't support sensorhub,
+			missing sharkle32 because it don't support sensorhub
 	[function] enable sensor hub driver built in kernel
 CONFIG_SPRD_SFP_SUPPORT
 	[arch] arm64
