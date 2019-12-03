@@ -331,6 +331,8 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 		}
 	}
 
+	mutex_lock(data->volt_lock);
+
 	data->online  = true;
 	data->cpu_dev = cpu_dev;
 	data->cluster = curr_cluster;
@@ -401,6 +403,8 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 
 	policy->dvfs_possible_from_any_cpu = true;
 
+	mutex_unlock(data->volt_lock);
+
 	goto free_np;
 
 free_table:
@@ -412,6 +416,7 @@ free_opp:
 
 free_mem:
 	if (data->volt_lock) {
+		mutex_unlock(data->volt_lock);
 		mutex_destroy(data->volt_lock);
 		kfree(data->volt_lock);
 	}
@@ -457,6 +462,7 @@ static int sprd_hardware_cpufreq_exit(struct cpufreq_policy *policy)
 	ret = driver->enable(pdev->archdata,
 		       topology_physical_package_id(policy->cpu), false);
 	policy->driver_data = NULL;
+	data->online  = false;
 	mutex_unlock(data->volt_lock);
 
 	return ret;
