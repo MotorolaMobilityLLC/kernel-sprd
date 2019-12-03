@@ -15168,21 +15168,21 @@ CONFIG_USB_ARCH_HAS_HCD
 CONFIG_USB_ARMLINUX
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_BELKIN
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_COMMON
 	[arch] all
 	[plat] all
@@ -15667,12 +15667,12 @@ CONFIG_USB_HIDDEV
 CONFIG_USB_LAN78XX
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_LIBCOMPOSITE
 	[arch] all
 	[plat] all
@@ -15723,93 +15723,93 @@ CONFIG_USB_MUSB_SPRD
 CONFIG_USB_NET_AX88179_178A
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_NET_AX8817X
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_NET_CDCETHER
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_NET_CDC_NCM
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_NET_CDC_SUBSET
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_NET_CDC_SUBSET_ENABLE
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_NET_DRIVERS
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl5 sharkl5_32
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] sharkl5 usb host don't need support usb net.
+	[function] usb network driver
 CONFIG_USB_NET_NET1080
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_NET_RNDIS_HOST
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_NET_ZAURUS
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] adb over ethernet
 CONFIG_USB_OHCI_HCD
 	[arch] all
 	[plat] all
@@ -15877,12 +15877,12 @@ CONFIG_USB_ROLE_SWITCH
 CONFIG_USB_RTL8152
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] roc1 sharkl5 sharkl5_32
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] Don't need usb network driver
+	[function] usb network driver
 CONFIG_USB_SC27XX_TYPEC
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
@@ -15952,12 +15952,12 @@ CONFIG_USB_SUPPORT
 CONFIG_USB_USBNET
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
+	[function] usb over ethernet
 CONFIG_USB_U_ETHER
 	[arch] all
 	[plat] all
