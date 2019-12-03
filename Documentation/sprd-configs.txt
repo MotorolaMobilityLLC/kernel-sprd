@@ -13592,11 +13592,13 @@ CONFIG_SPRD_PIKE2_USB2_PHY
 	[arch] arm
 	[plat] pike2
 	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing sharkl3_32 because has different phy
+				   missing sharkl5_32 because has different phy
+				   missing sharkle32 because has different phy
+	[function] usb phy init.
 CONFIG_SPRD_PMIC_SYSCON
 	[arch] all
 	[plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
@@ -13648,11 +13650,13 @@ CONFIG_SPRD_ROC1_USB2_PHY
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing sharkl3 because has different phy
+				   missing sharkl5 because has different phy
+				   missing sharkl5Pro because has different phy
+	[function] usb phy init.
 CONFIG_SPRD_SC7731E_CLK
 	[arch] arm
 	[plat] pike2
@@ -13744,20 +13748,26 @@ CONFIG_SPRD_SHARKL5_USB2_PHY
 	[arch] all
 	[plat] sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkle32
-	[field] code
+	[field] make,code
 	[subsys] usb
 	[must] user
-	[missing plat description]
+	[missing plat description] missing pike2 because has different phy
+				   missing roc1 because has different phy
+				   missing sharkl3 because has different phy
+				   missing sharkl3_32 because has different phy
+				   missing sharkle32 because has different phy
 	[function] usb phy init
 CONFIG_SPRD_SHARKLE_USB2_PHY
 	[arch] arm
 	[plat] sharkle32
 	[missing plat] pike2,sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing pike2 because has different phy
+				   missing sharkl3_32 because has different phy
+				   missing sharkl5_32 because has different phy
+	[function] usb phy init
 CONFIG_SPRD_SIPA
 	[arch] arm64
 	[plat] roc1
@@ -13940,11 +13950,13 @@ CONFIG_SPRD_USB3_PHY
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing sharkl3 because the hardware is defferent
+				   missing sharkl5 because the hardware is defferent
+				   missing sharkl5Pro because the hardware is defferent
+	[function] Support USB30 function.
 CONFIG_SPRD_VSP
 	[arch] all
 	[plat] all
@@ -14802,38 +14814,42 @@ CONFIG_TYPEC
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[missing plat] pike2
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing pike2 because not support typec function
+	[function] pike2 plat not support typec function.
 CONFIG_TYPEC_TCPCI
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing sharkl3 because no need tcpci function
+				   missing sharkl5 because no need tcpci function
+				   missing sharkl5Pro because no need tcpci function
+	[function] tcpci function is for PD.
 CONFIG_TYPEC_TCPM
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing sharkl3 because no need tcpm function
+				   missing sharkl5 because no need tcpm function
+				   missing sharkl5Pro because no need tcpm function
+	[function] tcpm function is for PD.
 CONFIG_TYPEC_UCSI
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[missing plat] pike2
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing pike2 because not support typec function
+	[function] pike2 plat not support typec function.
 CONFIG_UEVENT_HELPER
 	[arch] all
 	[plat] all
@@ -15710,11 +15726,11 @@ CONFIG_USB_SC27XX_TYPEC
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[missing plat] pike2
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing pike2 because not support typec function
+	[function] pike2 plat not support typec function.
 CONFIG_USB_SERIAL
 	[arch] all
 	[plat] all
