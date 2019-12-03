@@ -55,6 +55,7 @@ struct sprd_glue {
 	struct regulator	*vbus;
 	struct wakeup_source	pd_wake_lock;
 	struct regmap		*pmu;
+	struct regmap		*aon_apb;
 
 	enum usb_dr_mode		dr_mode;
 	enum usb_dr_mode		wq_mode;
@@ -401,6 +402,70 @@ static struct musb_fifo_cfg sprd_musb_host_mode_cfg[] = {
 	MUSB_EP_FIFO_DOUBLE(15, FIFO_TX, 8),
 	MUSB_EP_FIFO_DOUBLE(15, FIFO_RX, 8),
 };
+static struct musb_fifo_cfg sprd_musb_device_mode_cfg_single[] = {
+	MUSB_EP_FIFO_DOUBLE(1, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(1, FIFO_RX, 512),
+	MUSB_EP_FIFO_DOUBLE(2, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(2, FIFO_RX, 512),
+	MUSB_EP_FIFO_DOUBLE(3, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(3, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(4, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(4, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(5, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(5, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(6, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(6, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(7, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(7, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(8, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(8, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(9, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(9, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(10, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(10, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(11, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(11, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(12, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(12, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(13, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(13, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(14, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(14, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(15, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(15, FIFO_RX, 512),
+};
+static struct musb_fifo_cfg sprd_musb_host_mode_cfg_single[] = {
+	MUSB_EP_FIFO_SINGLE(1, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(1, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(2, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(2, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(3, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(3, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(4, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(4, FIFO_RX, 4096),
+	MUSB_EP_FIFO_SINGLE(5, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(5, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(6, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(6, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(7, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(7, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(8, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(8, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(9, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(9, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(10, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(10, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(11, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(11, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(12, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(12, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(13, FIFO_TX, 8),
+	MUSB_EP_FIFO_SINGLE(13, FIFO_RX, 8),
+	MUSB_EP_FIFO_SINGLE(14, FIFO_TX, 8),
+	MUSB_EP_FIFO_SINGLE(14, FIFO_RX, 8),
+	MUSB_EP_FIFO_SINGLE(15, FIFO_TX, 8),
+	MUSB_EP_FIFO_SINGLE(15, FIFO_RX, 8),
+};
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -408,6 +473,18 @@ static struct musb_hdrc_config sprd_musb_hdrc_config = {
 	.fifo_cfg = sprd_musb_device_mode_cfg,
 	.host_fifo_cfg = sprd_musb_host_mode_cfg,
 	.fifo_cfg_size = (unsigned)ARRAY_SIZE(sprd_musb_device_mode_cfg),
+	.multipoint = false,
+	.dyn_fifo = true,
+	.soft_con = true,
+	.num_eps = SPRD_MUSB_MAX_EP_NUM,
+	.ram_bits = SPRD_MUSB_RAM_BITS,
+	.dma = 0,
+};
+
+static struct musb_hdrc_config sprd_musb_hdrc_config_single = {
+	.fifo_cfg = sprd_musb_device_mode_cfg_single,
+	.host_fifo_cfg = sprd_musb_host_mode_cfg_single,
+	.fifo_cfg_size = ARRAY_SIZE(sprd_musb_device_mode_cfg_single),
 	.multipoint = false,
 	.dyn_fifo = true,
 	.soft_con = true,
@@ -934,6 +1011,56 @@ static struct attribute *musb_sprd_attrs[] = {
 };
 ATTRIBUTE_GROUPS(musb_sprd);
 
+static bool musb_check_singlefifo(struct platform_device *pdev,
+				struct sprd_glue *glue)
+{
+	u32 offset, mask, value, check;
+	u32 buf[2];
+	int ret;
+
+	glue->aon_apb = syscon_regmap_lookup_by_name(pdev->dev.of_node,
+						     "chip_id");
+	if (IS_ERR(glue->aon_apb)) {
+		dev_warn(&pdev->dev, "get sys regmap fail!\n");
+		glue->aon_apb = NULL;
+		goto end;
+	} else {
+		ret = syscon_get_args_by_name(pdev->dev.of_node,
+					      "chip_id", 2, buf);
+		if (ret != 2) {
+			dev_warn(&pdev->dev,
+				 "failed to go get syscon parameters\n");
+			glue->aon_apb = NULL;
+			goto end;
+		} else {
+			offset = buf[0];
+			mask = buf[1];
+		}
+	}
+
+	if (of_property_read_u32_index(pdev->dev.of_node,
+			"usb-checksingle", 0, &check)) {
+		dev_warn(&pdev->dev, "fail to get usb-checksingle\n");
+		goto end;
+	}
+
+	if (glue->aon_apb != NULL) {
+		ret = regmap_read(glue->aon_apb, offset,
+				  &value);
+		if (ret) {
+			dev_warn(&pdev->dev, "read regmap error !\n");
+			goto end;
+		}
+	}
+
+	if (glue->aon_apb != NULL &&
+	    (value & mask) == check)
+		return true;
+
+end:
+	return false;
+}
+
 static int musb_sprd_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -1009,8 +1136,13 @@ static int musb_sprd_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, glue);
 
+	if (musb_check_singlefifo(pdev, glue)) {
+		pdata.config = &sprd_musb_hdrc_config_single;
+		dev_info(&pdev->dev, "config to singlefifo\n");
+	} else {
+		pdata.config = &sprd_musb_hdrc_config;
+	}
 	pdata.platform_ops = &sprd_musb_ops;
-	pdata.config = &sprd_musb_hdrc_config;
 	glue->power_always_on = of_property_read_bool(node, "wakeup-source");
 	pdata.board_data = &glue->power_always_on;
 	glue->is_suspend = false;
