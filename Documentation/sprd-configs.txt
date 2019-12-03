@@ -14,7 +14,7 @@ CONFIG_AARCH32_SHOW_AARCH64_CPUINFO
 	[field] code
 	[subsys] core
 	[must] user
-	[missing plat description]
+	[missing plat description] pike2 cpu isn't armv8.
 	[function] This option show cpuinfo ARMV8.
 CONFIG_ADVISE_SYSCALLS
 	[arch] all
@@ -642,11 +642,11 @@ CONFIG_ARM64_CONT_SHIFT
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] mm
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] Indicate the page size. Changed with page size.
 CONFIG_ARM64_CRYPTO
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -738,16 +738,6 @@ CONFIG_ARM64_HW_AFDBM
 	[missing plat description] none
 	[function] The ARMv8.1 architecture extensions introduce support for
 		hardware updates of the access and dirty information in page.
-CONFIG_ARM64_LSE_ATOMICS
-	[arch] arm64
-	[plat] roc1,sharkl5,sharkl5Pro
-	[missing plat] sharkl3
-	[field] make,code
-	[subsys] arch
-	[must] user
-	[missing plat description]
-	[function] ARMv8.1 introduces new atomic instructions that
-			are designed specifically to scale in very large systems.
 CONFIG_ARM64_MODULE_CMODEL_LARGE
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -1177,15 +1167,6 @@ CONFIG_ASYMMETRIC_PUBLIC_KEY_SUBTYPE
 	[must] user
 	[missing plat description] Following the previous configuration.
 	[function] Asymmetric public-key crypto algorithm subtype
-CONFIG_ATAGS
-	[arch] arm
-	[plat] sharkl3_32,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_AUDIT
 	[arch] all
 	[plat] all
@@ -2831,13 +2812,13 @@ CONFIG_CRYPTO_DES
 	[missing plat description] none
 	[function] DES and Triple DES EDE cipher algorithms.
 CONFIG_CRYPTO_DEV_VIRTIO
-	[arch] all
-	[plat] pike2,roc1,sharkl5,sharkl5Pro
-	[missing plat] sharkl3,sharkl3_32,sharkl5_32,sharkle32
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
 	[field] make
 	[subsys] crypto
 	[must] user
-	[missing plat description] Following the previous configuration.
+	[missing plat description] none
 	[function] Support VirtIO crypto driver.
 CONFIG_CRYPTO_DRBG
 	[arch] all
@@ -2885,13 +2866,13 @@ CONFIG_CRYPTO_ECHAINIV
 	[missing plat description] none
 	[function] Encrypted Chain IV Generator.
 CONFIG_CRYPTO_ENGINE
-	[arch] all
-	[plat] pike2,roc1,sharkl5,sharkl5Pro
-	[missing plat] sharkl3,sharkl3_32,sharkl5_32,sharkle32
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
 	[field] make
 	[subsys] crypto
 	[must] use
-	[missing plat description] Following the previous configuration.
+	[missing plat description] none
 	[function] Enable crypto Engine
 CONFIG_CRYPTO_GCM
 	[arch] all
@@ -3559,7 +3540,7 @@ CONFIG_DEVFREQ_SPRD_AUTO_DFS
 	[must] none
 	[missing plat description] none
 	[function] This function is used to enable ddr auto dfs function
-	   on DDRC v1 and and later version
+	   on DDRC v1 and the later version
 CONFIG_DEVFREQ_SPRD_EXT_VOTE
 	[arch] arm64
 	[plat] sharkl5Pro
@@ -4017,12 +3998,12 @@ CONFIG_DYNAMIC_FTRACE_WITH_REGS
 	[function]
 CONFIG_EDAC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] console
-	[missing plat description]
+	[missing plat description] none
 	[function] EDAC (Error Detection And Correction) reporting.
 CONFIG_EDAC_ATOMIC_SCRUB
 	[arch] arm
@@ -4035,12 +4016,12 @@ CONFIG_EDAC_ATOMIC_SCRUB
 	[function] Support EDAC atomic scrub.
 CONFIG_EDAC_LEGACY_SYSFS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] menu
 	[subsys] core
 	[must] console
-	[missing plat description]
+	[missing plat description] none
 	[function] EDAC legacy sysfs.
 CONFIG_EDAC_SUPPORT
 	[arch] all
@@ -5226,7 +5207,7 @@ CONFIG_HAS_IOPORT_MAP
 	[field] make,code
 	[subsys] core
 	[must] console
-	[missing plat description]
+	[missing plat description] ROC1 and the plat of arch arm don't enable NO_IOPORT_MAP.
 	[function] Support standard I/O routines.
 CONFIG_HAVE_ALIGNED_STRUCT_PAGE
 	[arch] arm64
@@ -7815,12 +7796,12 @@ CONFIG_KALLSYMS
 	[function] load all symbols for debugging/ksymoops
 CONFIG_KALLSYMS_ALL
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
-	[missing plat] sharkl5Pro
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] include all symbols in kallsyms
 CONFIG_KALLSYMS_BASE_RELATIVE
 	[arch] all
@@ -8500,15 +8481,6 @@ CONFIG_MODULES_USE_ELF_RELA
 	[missing plat description] none
 	[function] Modules only use ELF RELA relocations.  Modules with ELF REL
 	relocations will give an error.
-CONFIG_MODULE_FORCE_UNLOAD
-	[arch] arm
-	[plat] sharkl3_32,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field] menu
-	[subsys] core
-	[must] console
-	[missing plat description]
-	[function] Forced module unloading.
 CONFIG_MODULE_UNLOAD
 	[arch] all
 	[plat] all
@@ -8620,16 +8592,6 @@ CONFIG_MUTEX_SPIN_ON_OWNER
 	[must] console
 	[missing plat description] none
 	[function] Enable kernel support mutex spin on owner.
-CONFIG_NAMESPACES
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field] menu
-	[subsys] core
-	[must] console
-	[missing plat description]
-	[function] Provides the way to make tasks work with different objects using
-	the same id.
 CONFIG_NEED_DMA_MAP_STATE
 	[arch] all
 	[plat] all
@@ -10222,8 +10184,8 @@ CONFIG_NO_IOPORT_MAP
 	[missing plat] roc1
 	[field] make,code
 	[subsys] core
-	[must] debug
-	[missing plat description]
+	[must] user
+	[missing plat description] ROC1 using PCIE.
 	[function] Select by IF !PCI.
 CONFIG_NR_CPUS
 	[arch] all
@@ -11573,12 +11535,12 @@ CONFIG_RANDOMIZE_MODULE_REGION_FULL
 	[function] Randomize the module region independently from the core kernel.
 CONFIG_RAS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] arch
 	[must] console
-	[missing plat description]
+	[missing plat description] none
 	[function] Reliability, Availability and Serviceability (RAS) features.
 CONFIG_RATIONAL
 	[arch] all
@@ -14224,12 +14186,12 @@ CONFIG_STAGING
 	[function] Support kernel Staging drivers.
 CONFIG_STANDALONE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] code
 	[subsys] core
 	[must] console
-	[missing plat description]
+	[missing plat description] none
 	[function] Select only drivers that don't need compile-time external firmware.
 CONFIG_STRICT_KERNEL_RWX
 	[arch] all
@@ -14314,12 +14276,12 @@ CONFIG_SWP_EMULATION
 	[function] Emulate SWP/SWPB instructions.
 CONFIG_SW_SYNC
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] core
 	[must] console
-	[missing plat description]
+	[missing plat description] none
 	[function] Support Software synchronization objects.
 CONFIG_SYNC_FILE
 	[arch] all
@@ -16076,14 +16038,14 @@ CONFIG_VIRTIO
 		  or CONFIG_S390_GUEST.
 CONFIG_VIRTIO_MMIO
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] This drivers provides support for memory mapped
-		  virtio platform device driver.
+		virtio platform device driver.
 CONFIG_VMAP_STACK
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
