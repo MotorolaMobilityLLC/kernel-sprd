@@ -13538,11 +13538,12 @@ CONFIG_SPRD_PAMU3
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] The missing plat do not have PAMU3 IP,
+				   so They do not need this feature.
+	[function] This macro is to support SPREADTRUM PAMU3 driver.
 CONFIG_SPRD_PAM_IPA
 	[arch] arm64
 	[plat] roc1
@@ -15204,16 +15205,18 @@ CONFIG_USB_DWC3
 	[field] make
 	[subsys] usb
 	[must] user
-	[missing plat description]
+	[missing plat description] The missing plat do not have DWC3 IP,
+                                   so they do not need this feature.
 	[function] This macro is to support DWC3 USB driver.
 CONFIG_USB_DWC3_DUAL_ROLE
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field] make
+	[field] make,core
 	[subsys] usb
 	[must] user
-	[missing plat description]
+	[missing plat description] The missing plat do not have DWC3 IP,
+                                   so they do not need this feature.
 	[function] DWC3 USB Dual Role mode support.
 CONFIG_USB_DWC3_OF_SIMPLE
 	[arch] arm64
@@ -15222,17 +15225,19 @@ CONFIG_USB_DWC3_OF_SIMPLE
 	[field] make
 	[subsys] usb
 	[must] user
-	[missing plat description]
+	[missing plat description] The missing plat do not have DWC3 IP,
+				   so they do not need this feature.
 	[function] Support USB2/3 functionality in simple SoC integrations.
 CONFIG_USB_DWC3_SPRD
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] The missing plat do not have DWC3 IP,
+				   so they do not need this feature
+	[function] This macro is to support Unisoc USB3.0 Platform.
 CONFIG_USB_EHCI_HCD
 	[arch] all
 	[plat] all
@@ -15662,11 +15667,12 @@ CONFIG_USB_PAM
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] core
+	[subsys] usb
+	[must] user
+	[missing plat description] The missing plat do not have PAMU3 IP,
+				   so they do not need this macro
+	[function] This macro is to support PAMU3
 CONFIG_USB_PHY
 	[arch] all
 	[plat] all
@@ -15791,20 +15797,22 @@ CONFIG_USB_XHCI_HCD
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] The hardware IP of missing plat do not support xHCI,
+                                   so they do not need this feature.
+	[function] This macro is to support xHCI HCD (USB 3.0).
 CONFIG_USB_XHCI_PLATFORM
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] The hardware IP of missing plat do not support xHCI,
+				   so they do not need this feature.
+	[function] This macro is to support Generic xHCI driver for a platform device
 CONFIG_USE_OF
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
