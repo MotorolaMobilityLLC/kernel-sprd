@@ -555,7 +555,7 @@ static int cproc_proc_copy_iram(struct cproc_device *cproc)
 	return 0;
 }
 
-static unsigned long cproc_proc_copy_from_user(void *to,
+static ssize_t cproc_proc_copy_from_user(void *to,
 					       const void __user *from,
 					       unsigned long n)
 {
@@ -566,7 +566,7 @@ static unsigned long cproc_proc_copy_from_user(void *to,
 
 	buf = kzalloc(n, GFP_KERNEL);
 	if (!buf)
-		return n;
+		return -ENOMEM;
 
 	/* when the dst address is on aon sp iram, we use the function
 	 * copy_from_user or the function memcpy to copy data to the dst
