@@ -105,7 +105,7 @@ int smem_init(u32 addr, u32 size, u32 dst)
 
 	spool = kzalloc(sizeof(struct smem_pool), GFP_KERNEL);
 	if (!spool)
-		return -1;
+		return -ENOMEM;
 
 	spin_lock_irqsave(&phead->lock, flags);
 	list_add_tail(&spool->smem_plist, &phead->smem_phead);
@@ -136,13 +136,16 @@ int smem_init(u32 addr, u32 size, u32 dst)
 		spool->gen = gen_pool_create(SMEM_MIN_ORDER, -1);
 
 	if (!spool->gen) {
+		kfree(spool);
 		pr_err("Failed to create smem gen pool!\n");
-		return -1;
+		return -ENOMEM;
 	}
 
 	if (gen_pool_add(spool->gen, spool->addr, spool->size, -1) != 0) {
+		gen_pool_destroy(spool->gen);
+		kfree(spool);
 		pr_err("Failed to add smem gen pool!\n");
-		return -1;
+		return -ENOMEM;
 	}
 	pr_info("%s: pool addr = 0x%x, size = 0x%x added.\n",
 		__func__, spool->addr, spool->size);

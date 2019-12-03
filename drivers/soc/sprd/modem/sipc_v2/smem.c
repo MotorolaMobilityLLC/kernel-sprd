@@ -253,7 +253,7 @@ int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type)
 
 	spool = kzalloc(sizeof(struct smem_pool), GFP_KERNEL);
 	if (!spool)
-		return -1;
+		return -ENOMEM;
 
 	spin_lock_irqsave(&phead->lock, flags);
 	list_add_tail(&spool->smem_plist, &phead->smem_phead);
@@ -285,13 +285,16 @@ int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type)
 		spool->gen = gen_pool_create(SMEM_MIN_ORDER, -1);
 
 	if (!spool->gen) {
+		kfree(spool);
 		pr_err("Failed to create smem gen pool!\n");
-		return -1;
+		return -ENOMEM;
 	}
 
 	if (gen_pool_add(spool->gen, spool->addr, spool->size, -1) != 0) {
+		gen_pool_destroy(spool->gen);
+		kfree(spool);
 		pr_err("Failed to add smem gen pool!\n");
-		return -1;
+		return -ENOMEM;
 	}
 	pr_info("%s: pool addr = 0x%x, size = 0x%x added.\n",
 		__func__, spool->addr, spool->size);
@@ -301,11 +304,15 @@ int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type)
 #ifdef CONFIG_PCIE_EPF_SPRD
 		spool->pcie_base = sprd_epf_ipa_map(IPA_SRC_BASE,
 						    IPA_DST_BASE, IPA_SIZE);
-		if (!spool->pcie_base)
+		if (!spool->pcie_base) {
+			gen_pool_destroy(spool->gen);
+			kfree(spool);
 			return -ENOMEM;
-
+		}
 		spool->pcie_base += (addr - IPA_DST_BASE);
 #else
+		gen_pool_destroy(spool->gen);
+		kfree(spool);
 		pr_err("Failed to pcie map, can't br here!\n");
 		return -ENOMEM;
 #endif
