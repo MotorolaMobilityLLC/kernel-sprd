@@ -3584,7 +3584,9 @@ CONFIG_DEVFREQ_SPRD_EXT_VOTE
 	[field] make,code
 	[subsys] devfreq
 	[must] none
-	[missing plat description]
+	[missing plat description] missing roc1 because we no not implement this feature now
+				   missing sharkl3 because we no not implement this feature now
+				   missing sharkl5 because we no not implement this feature now
 	[function] This function is used to vote without cm4 for ddr dfs
 CONFIG_DEVFREQ_SPRD_EXT_VOTE_UMS512
 	[arch] arm64
@@ -3593,7 +3595,9 @@ CONFIG_DEVFREQ_SPRD_EXT_VOTE_UMS512
 	[field] make,code
 	[subsys] devfreq
 	[must] none
-	[missing plat description]
+	[missing plat description] missing roc1 because this feature is soc/IP specific
+				   missing sharkl3 because this feature is soc/IP specific
+				   missing sharkl5 because this feature is soc/IP specific
 	[function] Roc1 configure for EXT_VOTE
 CONFIG_DEVTMPFS
 	[arch] all
