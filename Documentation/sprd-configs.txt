@@ -11682,68 +11682,50 @@ CONFIG_REGULATOR
 	[must] user
 	[missing plat description] none
 	[function] Support regulator core.
-CONFIG_REGULATOR_DA9211
-	[arch] arm64
-	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field] menu,code
-	[subsys] regulator
-	[must] user
-	[missing plat description]
-	[function] SUPPORT DA9211 regulator function.
 CONFIG_REGULATOR_FAN53555
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,roc1,sharkl5,sharkle32
-	[field] make,code
+	[plat] sharkl3,sharkl3_32,sharkl5Pro
+	[missing plat] pike2,roc1,sharkl5,sharkl5_32,sharkle32
+	[field] make
 	[subsys] regulator
 	[must] user
-	[missing plat description]
+	[missing plat description] FAN53555 is used in sharkl3 and sharkl5pro so far
 	[function] Support for fan53555 pmic regulator.
-CONFIG_REGULATOR_FIXED_VOLTAGE
-	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] none
-	[field] make,code
-	[subsys] regulator
-	[must] user
-	[missing plat description] none
-	[function] This driver provides support for fixed voltage regulators
 CONFIG_REGULATOR_SC2703
 	[arch] all
 	[plat] roc1,sharkl3,sharkl5,sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkl5Pro,sharkle32
-	[field] menu,code
+	[missing plat] pike2,sharkl5Pro,sharkle32
+	[field] make
 	[subsys] regulator
 	[must] user
-	[missing plat description]
+	[missing plat description] SC2703 is used in roc1,sharkl3 and sharkl5 so far
 	[function] SUPPORT SC2703 regulator function.
 CONFIG_REGULATOR_SC2720
 	[arch] arm
 	[plat] pike2
 	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] regulator
+	[must] user
+	[missing plat description] SC2720 is only used in pike2 so far
+	[function] SUPPORT SC2720 regulator function
 CONFIG_REGULATOR_SC2721
 	[arch] all
 	[plat] sharkl3,sharkl3_32,sharkle32
 	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] regulator
+	[must] user
+	[missing plat description] SC2721 is used in sharkl3 and sharkle so far
+	[function] SUPPORT SC2721 regulator function
 CONFIG_REGULATOR_SC2730
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
-	[field] menu,code
+	[field] make
 	[subsys] regulator
 	[must] user
-	[missing plat description]
+	[missing plat description] SC2730 is used in roc1,sharkl5 and sharkl5pro so far
 	[function] SUPPORT SC2730 regulator function.
 CONFIG_RELAY
 	[arch] all
@@ -13715,7 +13697,7 @@ CONFIG_SPRD_PMIC_SYSCON
 	[field] make,code
 	[subsys] soc
 	[must] debug
-	[missing plat description]
+	[missing plat description] sharkl3 does not have this function
 	[function] This function is used to calibrate PMIC 26M.
 CONFIG_SPRD_POWER_DEBUG
 	[arch] all
