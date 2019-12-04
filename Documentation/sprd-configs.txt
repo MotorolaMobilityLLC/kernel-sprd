@@ -4150,7 +4150,7 @@ CONFIG_EXFAT_FS
 	[missing plat] none
 	[field] make
 	[subsys] fs
-	[must]
+	[must] user
 	[missing plat description] none
 	[function] exfat filesystem.
 CONFIG_EXFAT_VIRTUAL_XATTR
@@ -4159,7 +4159,7 @@ CONFIG_EXFAT_VIRTUAL_XATTR
 	[missing plat] none
 	[field] code
 	[subsys] fs
-	[must]
+	[must] user
 	[missing plat description] none
 	[function] exfat support extended attribute.
 CONFIG_EXFAT_VIRTUAL_XATTR_SELINUX_LABEL
@@ -4168,7 +4168,7 @@ CONFIG_EXFAT_VIRTUAL_XATTR_SELINUX_LABEL
 	[missing plat] none
 	[field] code
 	[subsys] fs
-	[must]
+	[must] user
 	[missing plat description] none
 	[function] exfat selinux label for sdcardf.
 CONFIG_EXPERT
@@ -4182,12 +4182,12 @@ CONFIG_EXPERT
 	[function] Configure standard kernel features (expert users).
 CONFIG_EXPORTFS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5_32
-	[field] code
+	[plat] all
+	[missing plat] none
+	[field] make,code
 	[subsys] fs
-	[must]
-	[missing plat description]
+	[must] user
+	[missing plat description] none
 	[function] Making Filesystems Exportable
 CONFIG_EXT4_ENCRYPTION
 	[arch] all
@@ -4195,8 +4195,8 @@ CONFIG_EXT4_ENCRYPTION
 	[missing plat] pike2
 	[field] menu
 	[subsys] fs
-	[must] none
-	[missing plat description]
+	[must] busybox_console
+	[missing plat description] Not encryption of ext4 but encryption of f2fs is enabled in pike2.
 	[function] Enable encryption of ext4 files and directories.
 CONFIG_EXT4_FS
 	[arch] all
@@ -4213,8 +4213,8 @@ CONFIG_EXT4_FS_ENCRYPTION
 	[missing plat] pike2
 	[field] make,code
 	[subsys] fs
-	[must] none
-	[missing plat description]
+	[must] busybox_console
+	[missing plat description] Not encryption of ext4 but encryption of f2fs is enabled in pike2.
 	[function] Enable encryption of ext4 files and directories.
 CONFIG_EXT4_FS_SECURITY
 	[arch] all
@@ -6525,7 +6525,7 @@ CONFIG_IIO_BUFFER
 	[field] make
 	[subsys] iio
 	[must] user
-	[missing plat description]missing pike2 because it don't use iio subsys,
+	[missing plat description] missing pike2 because it don't use iio subsys,
 			missing sharkle32 because it don't use iio subsys
 	[function] iio buffer interface
 CONFIG_IIO_CONSUMERS_PER_TRIGGER
@@ -6535,7 +6535,7 @@ CONFIG_IIO_CONSUMERS_PER_TRIGGER
 	[field] make, code
 	[subsys] iio
 	[must] user
-	[missing plat description]missing pike2 because it don't use iio subsys,
+	[missing plat description] missing pike2 because it don't use iio subsys,
 			missing sharkle32 because it don't use iio subsys
 	[function] use in iio trigger module
 CONFIG_IIO_KFIFO_BUF
@@ -6545,7 +6545,7 @@ CONFIG_IIO_KFIFO_BUF
 	[field] make
 	[subsys] iio
 	[must] user
-	[missing plat description]missing pike2 because it don't use iio subsys,
+	[missing plat description] missing pike2 because it don't use iio subsys,
 			missing sharkle32 because it don't use iio subsys
 	[function] iio fifo interface
 CONFIG_IIO_TRIGGER
@@ -6555,7 +6555,7 @@ CONFIG_IIO_TRIGGER
 	[field] make
 	[subsys] iio
 	[must] user
-	[missing plat description]missing pike2 because it don't use iio subsys,
+	[missing plat description] missing pike2 because it don't use iio subsys,
 			missing sharkle32 because it don't use iio subsys
 	[function] iio trigger interface
 CONFIG_IKCONFIG
@@ -10378,12 +10378,12 @@ CONFIG_OOM_NOTIFIER
 	[function] Using a Android-Style oom-killer instead of linux's native OOM_killer
 CONFIG_OVERLAY_FS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5_32
-	[field] code
+	[plat] all
+	[missing plat] none
+	[field] make
 	[subsys] fs
-	[must] none
-	[missing plat description]
+	[must] user
+	[missing plat description] none
 	[function] An overlay filesystem
 CONFIG_PACKET
 	[arch] all
@@ -13819,7 +13819,7 @@ CONFIG_SPRD_SENSOR_HUB
 	[field] make
 	[subsys] iio
 	[must] user
-	[missing plat description]missing pike2 because it don't support sensorhub,
+	[missing plat description] missing pike2 because it don't support sensorhub,
 			missing sharkle32 because it don't support sensorhub
 	[function] enable sensor hub driver built in kernel
 CONFIG_SPRD_SFP_SUPPORT
