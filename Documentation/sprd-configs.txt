@@ -6884,15 +6884,6 @@ CONFIG_INPUT_KEYRESET
 	[must] unknown
 	[missing plat description] none
 	[function] if you want to reboot when some keys are pressed
-CONFIG_INPUT_LEDS
-	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
-	[field] menu,make
-	[subsys] input
-	[must] user
-	[missing plat description]
-	[function] Export input device LEDs in sysfs
 CONFIG_INPUT_MISC
 	[arch] all
 	[plat] all
@@ -7646,7 +7637,7 @@ CONFIG_IRQ_DOMAIN_DEBUG
 	[field] code
 	[subsys] core
 	[must] debug
-	[missing plat description] none.
+	[missing plat description] none
 	[function] Support irq domain debug by debugfs.
 CONFIG_IRQ_DOMAIN_HIERARCHY
 	[arch] all
@@ -7668,7 +7659,7 @@ CONFIG_IRQ_FORCED_THREADING
 	[function] Support forced irq threading.
 CONFIG_IRQ_TIME_ACCOUNTING
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkl3,sharkl3_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] pike2,sharkle32
 	[field] code
 	[subsys] core
