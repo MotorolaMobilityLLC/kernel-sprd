@@ -1017,6 +1017,8 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, fan54015_charger_work);
 
+	i2c_set_clientdata(client, info);
+
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(dev, "failed to find USB phy\n");
