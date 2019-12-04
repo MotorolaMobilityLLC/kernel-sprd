@@ -4547,8 +4547,8 @@ CONFIG_FLASH_SC2703
 	[missing plat] pike2,roc1,sharkl3_32,sharkl5Pro,sharkle32
 	[field] make
 	[subsys] misc
-	[must] unknown
-	[missing plat description]
+	[must] user
+	[missing plat description] led flash not use sc2703 PMIC
 	[function] compile flash sc2703 driver
 CONFIG_FLATMEM
 	[arch] arm
