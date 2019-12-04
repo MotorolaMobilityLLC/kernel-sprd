@@ -1082,7 +1082,7 @@ CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3
 CONFIG_ARM_SPRD_SW_CPUFREQ
 	[arch] arm
 	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
+	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkl5Pro
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
