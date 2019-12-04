@@ -2213,7 +2213,7 @@ static void vbc_profile_try_apply(struct snd_soc_codec *codec,
 
 static int audio_load_firmware_data(struct firmware *fw, char *firmware_path)
 {
-	int read_len, size, cnt;
+	int read_len, size, cnt = 0;
 	char *buf;
 	char *audio_image_buffer;
 	int image_size;
