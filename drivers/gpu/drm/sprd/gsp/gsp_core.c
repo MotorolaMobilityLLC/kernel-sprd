@@ -99,6 +99,16 @@ int gsp_core_is_irq_handled(struct gsp_core *core)
 	return ret;
 }
 
+int gsp_core_is_irq_error(struct gsp_core *core)
+{
+	int ret = 0;
+
+	if (gsp_core_state_get(core) == CORE_STATE_IRQ_ERR)
+		ret = 1;
+
+	return ret;
+}
+
 int gsp_core_is_trigger(struct gsp_core *core)
 {
 	int ret = 0;
@@ -439,9 +449,13 @@ void gsp_core_release(struct kthread_work *work)
 	gsp = gsp_core_to_parent(core);
 	interface = gsp_dev_to_interface(gsp);
 
+	if (gsp_core_is_irq_error(core))
+		gsp_core_dump(core);
+
 	GSP_DEBUG("gsp core[%d] start release\n", gsp_core_to_id(core));
 	if (gsp_core_is_irq_handled(core)
-	    || gsp_core_is_suspend(core)) {
+	    || gsp_core_is_suspend(core)
+	    || gsp_core_is_irq_error(core)) {
 		kcfg = core->current_kcfg;
 	} else {
 		GSP_WARN("core can't release before irq handled\n");

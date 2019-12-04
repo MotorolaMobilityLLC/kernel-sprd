@@ -144,7 +144,6 @@ void gsp_r6p0_core_dump(struct gsp_core *c)
 	memset(&reg_struct, 0, sizeof(struct R6P0_GSP_CTL_REG_T));
 
 	reg_struct.glb_cfg.value = gsp_core_reg_read(R6P0_GSP_GLB_CFG(c->base));
-	reg_struct.int_cfg.value = gsp_core_reg_read(R6P0_GSP_INT(c->base));
 	reg_struct.mod_cfg.value = gsp_core_reg_read(R6P0_GSP_MOD_CFG(c->base));
 	reg_struct.secure_cfg.value =
 		gsp_core_reg_read(R6P0_GSP_SECURE_CFG(c->base));
@@ -248,9 +247,8 @@ void gsp_r6p0_core_dump(struct gsp_core *c)
 		gsp_core_reg_read(R6P0_GSP_DEBUG2(c->base));
 
 	/* core's ctl reg parsed */
-	GSP_DUMP("GSP_INT[0x%x], GSP_BUSY[0x%x], ERR_CODE[0x%x]\n",
-	reg_struct.int_cfg.value, reg_struct.glb_cfg.GSP_BUSY0,
-	reg_struct.glb_cfg.ERR_CODE);
+	GSP_DUMP("GSP_BUSY[0x%x], ERR_CODE[0x%x]\n",
+	reg_struct.glb_cfg.GSP_BUSY0, reg_struct.glb_cfg.ERR_CODE);
 
 	GSP_DUMP("ERR_FLAG[0x%x], GSP_RUN[0x%x], GSP_SECURE_CFG[0x%x]\n",
 		reg_struct.glb_cfg.ERR_FLG, reg_struct.glb_cfg.GSP_RUN0,
@@ -656,6 +654,7 @@ static irqreturn_t gsp_r6p0_core_irq_handler(int irq, void *data)
 {
 	struct gsp_core *core = NULL;
 	struct R6P0_GSP_INT_REG gsp_int_value;
+	enum gsp_core_state core_state = CORE_STATE_IRQ_HANDLED;
 
 	core = (struct gsp_core *)data;
 	if (gsp_core_verify(core)) {
@@ -675,12 +674,13 @@ static irqreturn_t gsp_r6p0_core_irq_handler(int irq, void *data)
 
 	if (gsp_int_value.INT_GERR_RAW ||
 		gsp_int_value.INT_CERR1_RAW) {
-		GSP_ERR("gsp error irq\n");
-		gsp_core_dump(core);
+		GSP_ERR("gsp error irq, GSP_INT[0x%x]\n",
+			gsp_int_value.value);
+		core_state = CORE_STATE_IRQ_ERR;
 	}
 
 	gsp_r6p0_int_clear_and_disable(core);
-	gsp_core_state_set(core, CORE_STATE_IRQ_HANDLED);
+	gsp_core_state_set(core, core_state);
 	kthread_queue_work(&core->kworker, &core->release);
 
 	return IRQ_HANDLED;
