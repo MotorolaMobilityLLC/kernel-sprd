@@ -12083,13 +12083,13 @@ CONFIG_SCHED_MC
 	[function] Multi-core scheduler support
 CONFIG_SCHED_STACK_END_CHECK
 	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[plat] pike2,sharkle32,sharkl3_32,sharkl5_32
+	[missing plat] none
+	[field] menu
+	[subsys] core
+	[must] debug
+	[missing plat description] none
+	[function] Detect stack corruption
 CONFIG_SCHED_TRACER
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5_32
