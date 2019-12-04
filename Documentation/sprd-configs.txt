@@ -12292,11 +12292,12 @@ CONFIG_SDIOHAL
 	[arch] all
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] pike2,sharkl3_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] menu, make
+	[subsys] wcn
+	[must] user
+	[missing plat description] This macro is a proprietary driver related to marlin3 lite driver.
+		The missing plat is not marlin3 lite.
+	[function] This function is used to support wcn umw2652 chip
 CONFIG_SECCOMP
 	[arch] all
 	[plat] all
