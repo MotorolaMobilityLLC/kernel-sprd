@@ -8422,7 +8422,10 @@ CONFIG_MMC_SPRD_SDHCR10
 	[field] make
 	[subsys] mmc
 	[must] user
-	[missing plat description]
+	[missing plat description] missing sharkl3_32 because sharkl3_32
+				used CONFIG_MMC_SPRD_SDHCR11.
+				missing sharkl5_32 because sharkl5_32 used
+				CONFIG_MMC_SPRD_SDHCR11.
 	[function] add sprd mmc host controller driver[r10p0] to kernel
 CONFIG_MMC_SPRD_SDHCR11
 	[arch] all
@@ -8431,7 +8434,10 @@ CONFIG_MMC_SPRD_SDHCR11
 	[field] make
 	[subsys] mmc
 	[must] user
-	[missing plat description]
+	[missing plat description] missing pike2 because pike2 used
+				CONFIG_MMC_SPRD_SDHCR10.
+				missing sharkle32 because sharkle32 used
+				CONFIG_MMC_SPRD_SDHCR10.
 	[function] add sprd mmc host controller driver(r11p0) to kernel.
 CONFIG_MMU
 	[arch] all
