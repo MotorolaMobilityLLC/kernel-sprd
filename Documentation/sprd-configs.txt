@@ -13422,11 +13422,11 @@ CONFIG_SPRD_HW_DEVICE_DVFS_AGCP
 CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[arch] arm64
 	[plat] sharkl5,sharkl5Pro
-	[missing plat] roc1,sharkl3
+	[missing plat] roc1,pike2,sharkle32,sharkl3
 	[field] make,code
 	[subsys] cp
 	[must] user
-	[missing plat description]
+	[missing plat description] missing plat without this hardware IP.
 	[function] This config is enable modem DVFS function.
 CONFIG_SPRD_IMS_BRIDGE
 	[arch] all
