@@ -7042,29 +7042,29 @@ CONFIG_ION_CARVEOUT_HEAP
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] ion
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] carveout heap is physically contiguous and reserved at boot.
 CONFIG_ION_SPRD
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field] make
+	[field] make,code
 	[subsys] ion
-	[must] home
+	[must] user
 	[missing plat description] none
 	[function] This macro is to enable sprd-specific ion features.
 CONFIG_ION_SYSTEM_HEAP
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] ion
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] system heap is allocated via vmalloc_user().
 CONFIG_IOSCHED_CFQ
 	[arch] all
 	[plat] all
