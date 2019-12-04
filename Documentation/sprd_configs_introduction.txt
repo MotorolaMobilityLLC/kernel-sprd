@@ -3,28 +3,42 @@ Documentation/sprd-configs.txt填写说明
 参与当前kernel统计的项目可以通过执行脚本来查看
 例如:
 	kernel4.14$ ./scripts/sprd/sprd_check-config_check.py support
+
 	Current kernel information
 	[arch]: ['arm', 'arm64']
-	[plat]: ['pike2', 'roc1', 'sharkl3', 'sharkl3_32', 'sharkl5', 'sharkl5_32']
+	[plat]:['pike2', 'roc1', 'sharkl3', 'sharkl3_32', 'sharkl5', 'sharkl5Pro', 'sharkl5_32', 'sharkle32']
 	表明当前kernel统计的架构有arm64,arm, 若是全部支持则需填all
-	表明当前kernel统计的项目有pike2,roc1,sharkl3,sharkl3_32,sharkle,sharkle32, 若是全部支持则需填all
+	表明当前kernel统计的项目有pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32, 若是全部支持则需填all
+注意:
+	不同分支统计项目不同,请以执行命令后的当前输出结果为准
 
-例子:
-	SPRD_SIPC_SWCNBLK
-		[arch] arm,arm64
-		[plat] sharkle32,sharkle,pike2
-		[missing plat] roc1,sharkl3,sharkl3_32
+例1:
+	CONFIG_SPRD_TEST_A
+		[arch] arm
+		[plat] pike2
+		[missing plat] sharkle32,sharkl5_32,sharkl3_32
 		[field] make,code
 		[subsys] sipc
 		[must] user
-		[missing plat description] missing roc1 because...,
-					   missing sharkl3 because...,
+		[missing plat description] missing sharkle32 because...,
+					   missing sharkl5_32 because...,
 					   missing sharkl3_32 because...
 		[function] This function is used to enable wcnblk function for wifi ht.
 
+例2:
+	CONFIG_SPRD_TEST_B
+		[arch] all
+		[plat] pike2,sharkl5Pro
+		[missing plat] sharkle32,sharkl5_32,sharkl3_32,roc1,sharkl5,sharkl3
+		[field] make,code
+		[subsys] sipc
+		[must] user
+		[missing plat description] Only enable on pike2 and sharkl5Pro because...
+		[function] This function is used to enable XXX.
+
 说明:
-	1921行  宏名(不含CONFIG_ ),按字母排序,顶头排列。
-	1922-1927行  描述项,tab开头。每行总体不能超过75字符,超过需要折行。折行和上一行"]"后第一个字符对齐。
+	宏名,按字母排序,顶头排列。
+	描述项,tab开头。每行总体不能超过75字符,超过需要折行。折行和上一行"]"后第一个字符对齐。
 	(注意: 因为此文件内容将由程序自动读取,请按格式规范填写,以免造成不必要的麻烦,延误合入时间)
 
 [arch]
