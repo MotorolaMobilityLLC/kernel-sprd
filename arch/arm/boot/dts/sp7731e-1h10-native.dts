@@ -303,6 +303,25 @@
 	};
 };
 
+&gpu {
+	operating-points = <
+		/* kHz    uV */
+		384000    900000
+		533000    900000
+		600000    1000000
+		>;
+
+	sprd,dfs-lists = <
+		/* kHz  uV      idx div */
+		384000  900000   6    1
+		533000  900000   8    1
+		600000  1000000  8    1
+		>;
+
+	sprd,dfs-scene-extreme = <2>;
+	sprd,dfs-range-max = <2>;
+};
+
 &dpu {
 	status = "okay";
 };
