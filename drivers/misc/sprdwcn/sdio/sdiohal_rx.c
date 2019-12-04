@@ -244,8 +244,15 @@ read_again:
 			if (ret != 0) {
 				WCN_ERR("adma read fail ret:%d\n", ret);
 				rx_dtbs = 0;
-				if (!p_data->debug_iq)
+				if (!p_data->debug_iq) {
+					sdiohal_rx_list_free(
+							data_list->mbuf_head,
+							data_list->mbuf_tail,
+							data_list->node_num);
+					kfree(data_list);
+					data_list = NULL;
 					goto submit_list;
+				}
 			}
 			rx_dtbs =  *((unsigned int *)(p_data->dtbs_buf
 				   + (SDIOHAL_DTBS_BUF_SIZE - 4)));
