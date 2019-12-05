@@ -11749,33 +11749,6 @@ CONFIG_RESET_CONTROLLER
 	[must] user
 	[missing plat description] none
 	[function] Generic Reset Controller support.
-CONFIG_RFKILL
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] menu,make
-	[subsys] arm64
-	[must] user
-	[missing plat description] none
-	[function] Support for set bluetooth power
-CONFIG_RFKILL_LEDS
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
-CONFIG_RFKILL_PM
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make
-	[subsys] net/rfkill
-	[must] user
-	[missing plat description] none
-	[function] Power off on suspend
 CONFIG_RFS_ACCEL
 	[arch] all
 	[plat] all
