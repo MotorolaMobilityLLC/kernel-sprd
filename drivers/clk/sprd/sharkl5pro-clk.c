@@ -294,6 +294,7 @@ static CLK_FIXED_FACTOR(twpll_76m8, "twpll-76m8", "twpll", 20, 1, 0);
 static CLK_FIXED_FACTOR(twpll_51m2, "twpll-51m2", "twpll", 30, 1, 0);
 static CLK_FIXED_FACTOR(twpll_38m4, "twpll-38m4", "twpll", 40, 1, 0);
 static CLK_FIXED_FACTOR(twpll_19m2, "twpll-19m2", "twpll", 80, 1, 0);
+static CLK_FIXED_FACTOR(twpll_12m29, "twpll-12m29", "twpll", 125, 1, 0);
 
 #define f_lpll f_twpll
 static SPRD_PLL_WITH_ITABLE_K_FVCO(lpll_clk, "lpll", "lpll-gate", 0x18,
@@ -302,6 +303,7 @@ static SPRD_PLL_WITH_ITABLE_K_FVCO(lpll_clk, "lpll", "lpll-gate", 0x18,
 static CLK_FIXED_FACTOR(lpll_614m4, "lpll-614m4", "lpll", 2, 1, 0);
 static CLK_FIXED_FACTOR(lpll_409m6, "lpll-409m6", "lpll", 3, 1, 0);
 static CLK_FIXED_FACTOR(lpll_245m76, "lpll-245m76", "lpll", 5, 1, 0);
+static CLK_FIXED_FACTOR(lpll_30m72, "lpll-30m72", "lpll", 40, 1, 0);
 
 #define f_isppll f_twpll
 static SPRD_PLL_WITH_ITABLE_K_FVCO(isppll_clk, "isppll", "isppll-gate", 0x30,
@@ -353,10 +355,12 @@ static struct clk_hw_onecell_data sharkl5pro_gc_pll_hws = {
 		[CLK_TWPLL_51M2]	= &twpll_51m2.hw,
 		[CLK_TWPLL_38M4]	= &twpll_38m4.hw,
 		[CLK_TWPLL_19M2]	= &twpll_19m2.hw,
+		[CLK_TWPLL_12M29]	= &twpll_12m29.hw,
 		[CLK_LPLL]		= &lpll_clk.common.hw,
 		[CLK_LPLL_614M4]	= &lpll_614m4.hw,
 		[CLK_LPLL_409M6]	= &lpll_409m6.hw,
 		[CLK_LPLL_245M76]	= &lpll_245m76.hw,
+		[CLK_LPLL_30M72]	= &lpll_30m72.hw,
 		[CLK_ISPPLL]		= &isppll_clk.common.hw,
 		[CLK_ISPPLL_468M]	= &isppll_468m.hw,
 		[CLK_ISPPLL_78M]	= &isppll_78m.hw,
@@ -1105,9 +1109,17 @@ static const char * const aux_parents[] = { "ext-32k", "ext-26m",
 					    "mpll1-63m38", "mpll2-47m13",
 					    "dpll0-58m31", "gpll-40m",
 					    "twpll-48m"};
+static const char * const aux1_parents[] = { "ext-32k", "ext-26m",
+					    "ext-26m-aud", "rco-25m",
+					    "cppll-39m32", "mpll0-56m88",
+					    "mpll1-63m38", "mpll2-47m13",
+					    "dpll0-58m31", "gpll-40m",
+					    "twpll-19m2", "lpll-30m72",
+					    "rpll", "twpll-48m",
+					    "twpll-12m29"};
 static SPRD_COMP_CLK(aux0_clk, "aux0-clk", aux_parents, 0x228,
 		     0, 5, 8, 4, 0);
-static SPRD_COMP_CLK(aux1_clk, "aux1-clk", aux_parents, 0x22c,
+static SPRD_COMP_CLK(aux1_clk, "aux1-clk", aux1_parents, 0x22c,
 		     0, 5, 8, 4, 0);
 static SPRD_COMP_CLK(aux2_clk, "aux2-clk", aux_parents, 0x230,
 		     0, 5, 8, 4, 0);

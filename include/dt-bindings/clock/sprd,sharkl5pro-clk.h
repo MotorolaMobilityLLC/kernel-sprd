@@ -56,17 +56,19 @@
 #define CLK_TWPLL_51M2			17
 #define CLK_TWPLL_38M4			18
 #define CLK_TWPLL_19M2			19
-#define CLK_LPLL			20
-#define CLK_LPLL_614M4			21
-#define CLK_LPLL_409M6			22
-#define CLK_LPLL_245M76			23
-#define CLK_ISPPLL			24
-#define CLK_ISPPLL_468M			25
-#define CLK_ISPPLL_78M			26
-#define CLK_GPLL			27
-#define CLK_GPLL_40M			28
-#define CLK_CPPLL			29
-#define CLK_CPPLL_39M32			30
+#define CLK_TWPLL_12M29			20
+#define CLK_LPLL			21
+#define CLK_LPLL_614M4			22
+#define CLK_LPLL_409M6			23
+#define CLK_LPLL_245M76			24
+#define CLK_LPLL_30M72			25
+#define CLK_ISPPLL			26
+#define CLK_ISPPLL_468M			27
+#define CLK_ISPPLL_78M			28
+#define CLK_GPLL			29
+#define CLK_GPLL_40M			30
+#define CLK_CPPLL			31
+#define CLK_CPPLL_39M32			32
 #define CLK_ANLG_PHY_GC_NUM		(CLK_CPPLL_39M32 + 1)
 
 #define CLK_AP_APB			0
