@@ -3670,11 +3670,12 @@ CONFIG_DM_BOW
 	[arch] all
 	[plat] sharkl3,sharkl3_32
 	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] md
+	[must] none
+	[missing plat description] disable considering the efficiency
+	[function] dm_bow is a device mapper driver that uses the free space on a device
+	   to back up data that is overwritten.
 CONFIG_DM_BUFIO
 	[arch] all
 	[plat] all
