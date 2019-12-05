@@ -594,6 +594,7 @@ static int sprd_i2c_hw_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM_I2C_SPRD_HW
 static int __maybe_unused sprd_i2c_hw_suspend_noirq(struct device *pdev)
 {
 	return pm_runtime_force_suspend(pdev);
@@ -641,6 +642,7 @@ static const struct dev_pm_ops sprd_i2c_hw_pm_ops = {
 	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(sprd_i2c_hw_suspend_noirq,
 				      sprd_i2c_hw_resume_noirq)
 };
+#endif
 
 static const struct of_device_id sprd_i2c_hw_of_match[] = {
 	{ .compatible = "sprd,sharkl5-hw-i2c", },
@@ -657,7 +659,9 @@ static struct platform_driver sprd_i2c_hw_driver = {
 	.driver = {
 		.name = "sprd-i2c-r9p0",
 		.of_match_table = sprd_i2c_hw_of_match,
+#ifdef CONFIG_PM_I2C_SPRD_HW
 		.pm = &sprd_i2c_hw_pm_ops,
+#endif
 	},
 };
 
