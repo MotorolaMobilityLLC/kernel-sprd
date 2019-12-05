@@ -166,8 +166,7 @@ static int jpg_parse_dt(struct platform_device *pdev)
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
-		dev_err(dev, "no reg of property specified\n");
-		pr_err("jpg: failed to parse_dt!\n");
+		dev_err(dev, "can't get IORESOURCE_MEM JPG\n");
 		return -EINVAL;
 	}
 
@@ -175,21 +174,21 @@ static int jpg_parse_dt(struct platform_device *pdev)
 	jpg_hw_dev.sprd_jpg_virt =
 		(unsigned long)devm_ioremap_resource(&pdev->dev, res);
 	if (!jpg_hw_dev.sprd_jpg_virt)
-		panic("ioremap failed!\n");
+		return -ENOMEM;
 
 	jpg_hw_dev.irq = platform_get_irq(pdev, 0);
 	jpg_hw_dev.dev_np = np;
 	jpg_hw_dev.jpg_dev = dev;
 
-	pr_info("sprd_jpg_phys jpg:  0X%lx   0x%lx\n", jpg_hw_dev.sprd_jpg_phys,
-		jpg_hw_dev.sprd_jpg_virt);
-	pr_info(" jpg_hw_dev.irq  0X%x\n", jpg_hw_dev.irq);
+	dev_info(dev, "sprd_jpg_phys jpg:  0X%lx\n", jpg_hw_dev.sprd_jpg_phys);
+	dev_info(dev, "sprd_jpg_virt jpg:  0x%lx\n", jpg_hw_dev.sprd_jpg_virt);
+	dev_info(dev, " jpg_hw_dev.irq  0X%x\n", jpg_hw_dev.irq);
 
 	for (i = 0; i < ARRAY_SIZE(syscon_name); i++) {
 		pname = syscon_name[i];
 		tregmap = syscon_regmap_lookup_by_name(np, pname);
 		if (IS_ERR(tregmap)) {
-			pr_err("Read Vsp Dts %s regmap fail\n",
+			dev_err(dev, "Read Vsp Dts %s regmap fail\n",
 				pname);
 			regs[i].gpr = NULL;
 			regs[i].reg = 0x0;
@@ -199,14 +198,14 @@ static int jpg_parse_dt(struct platform_device *pdev)
 
 		ret = syscon_get_args_by_name(np, pname, 2, syscon_args);
 		if (ret != 2) {
-			pr_err("Read Vsp Dts %s args fail, ret = %d\n",
+			dev_err(dev, "Read Vsp Dts %s args fail, ret = %d\n",
 				pname, ret);
 			continue;
 		}
 		regs[i].gpr = tregmap;
 		regs[i].reg = syscon_args[0];
 		regs[i].mask = syscon_args[1];
-		pr_info("VSP syscon[%s]%p, offset 0x%x, mask 0x%x\n",
+		dev_info(dev, "VSP syscon[%s]%p, offset 0x%x, mask 0x%x\n",
 			pname, regs[i].gpr, regs[i].reg, regs[i].mask);
 	}
 
@@ -217,7 +216,7 @@ static int jpg_parse_dt(struct platform_device *pdev)
 
 		clk_parent = of_clk_get_by_name(np, jpg_clk_src[i]);
 		if (IS_ERR_OR_NULL(clk_parent)) {
-			pr_info("clk %s not found,continue to find next clock\n",
+			dev_info(dev, "clk %s not found,continue to find next clock\n",
 				jpg_clk_src[i]);
 			continue;
 		}
@@ -227,7 +226,7 @@ static int jpg_parse_dt(struct platform_device *pdev)
 		clock_name_map[j].freq = frequency;
 		clock_name_map[j].clk_parent = clk_parent;
 
-		pr_info("jpg clk in dts file: clk[%d] = (%ld, %s)\n", j,
+		dev_info(dev, "jpg clk in dts file: clk[%d] = (%ld, %s)\n", j,
 			frequency, clock_name_map[j].name);
 		j++;
 	}
@@ -235,27 +234,27 @@ static int jpg_parse_dt(struct platform_device *pdev)
 
 	qos_np = of_parse_phandle(np, "jpg_qos", 0);
 	if (!qos_np) {
-		pr_warn("can't find jpg qos cfg node\n");
+		dev_warn(dev, "can't find jpg qos cfg node\n");
 		jpg_hw_dev.jpg_qos_exist_flag = 0;
 	} else {
 		ret = of_property_read_u8(qos_np, "awqos",
 						&qos_cfg.awqos);
 		if (ret)
-			pr_warn("read awqos_low failed, use default\n");
+			dev_warn(dev, "read awqos_low failed, use default\n");
 
 		ret = of_property_read_u8(qos_np, "arqos-low",
 						&qos_cfg.arqos_low);
 		if (ret)
-			pr_warn("read arqos-low failed, use default\n");
+			dev_warn(dev, "read arqos-low failed, use default\n");
 
 		ret = of_property_read_u8(qos_np, "arqos-high",
 						&qos_cfg.arqos_high);
 		if (ret)
-			pr_warn("read arqos-high failed, use default\n");
+			dev_warn(dev, "read arqos-high failed, use default\n");
 
 		jpg_hw_dev.jpg_qos_exist_flag = 1;
 	}
-	pr_info("%x, %x, %x, %x", qos_cfg.awqos, qos_cfg.arqos_high,
+	dev_info(dev, "%x, %x, %x, %x", qos_cfg.awqos, qos_cfg.arqos_high,
 		qos_cfg.arqos_low, qos_cfg.reg_offset);
 
 	return 0;
@@ -532,20 +531,20 @@ static struct miscdevice jpg_dev = {
 static int jpg_probe(struct platform_device *pdev)
 {
 	int ret;
+	struct device *dev = &pdev->dev;
 	const struct of_device_id *of_id;
 	struct device_node *node = pdev->dev.of_node;
-
-	pr_info("%s called !\n", __func__);
 
 	of_id = of_match_node(of_match_table_jpg, node);
 	if (of_id)
 		jpg_hw_dev.jpg_cfg_data =
 		    (struct sprd_jpg_cfg_data *)of_id->data;
-	else
-		panic("%s: Not find matched id!", __func__);
-
+	else {
+		dev_err(dev, "failed to find matched id for sprd_jpg\n");
+		return -ENODEV;
+	}
 	if (jpg_parse_dt(pdev)) {
-		pr_err("jpg_parse_dt failed\n");
+		dev_err(dev, "jpg_parse_dt failed\n");
 		return -EINVAL;
 	}
 
@@ -580,7 +579,7 @@ static int jpg_probe(struct platform_device *pdev)
 
 	ret = misc_register(&jpg_dev);
 	if (ret) {
-		pr_err("cannot register miscdev on minor=%d (%d)\n",
+		dev_err(dev, "cannot register miscdev on minor=%d (%d)\n",
 		       JPG_MINOR, ret);
 		goto errout;
 	}
@@ -590,7 +589,7 @@ static int jpg_probe(struct platform_device *pdev)
 	    devm_request_irq(&pdev->dev, jpg_hw_dev.irq, jpg_isr, 0, "JPG",
 			     &jpg_hw_dev);
 	if (ret) {
-		pr_err("jpg: failed to request irq!\n");
+		dev_err(dev, "jpg: failed to request irq!\n");
 		ret = -EINVAL;
 		goto errout2;
 	}
@@ -606,7 +605,6 @@ errout:
 
 static int jpg_remove(struct platform_device *pdev)
 {
-	pr_info("%s called !\n", __func__);
 	misc_deregister(&jpg_dev);
 
 	free_irq(jpg_hw_dev.irq, &jpg_hw_dev);
@@ -624,7 +622,6 @@ static int jpg_remove(struct platform_device *pdev)
 	if (jpg_hw_dev.clk_vsp_mq_ahb_eb)
 		clk_put(jpg_hw_dev.clk_vsp_mq_ahb_eb);
 
-	pr_info("%s Success !\n", __func__);
 	return 0;
 }
 
