@@ -8198,15 +8198,6 @@ CONFIG_MD
 	[function] The device mapper is a framework provided by the Linux kernel.
 	   for mapping physical block devices onto higher-level virtual block devices.
 	   must enable when DM_VERIFY function enable.
-CONFIG_MDIO_BITBANG
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_MDIO_BUS
 	[arch] all
 	[plat] all
@@ -8224,15 +8215,6 @@ CONFIG_MDIO_DEVICE
 	[subsys]
 	[must]
 	[missing plat description] none
-	[function]
-CONFIG_MDIO_GPIO
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
 	[function]
 CONFIG_MEMBARRIER
 	[arch] all
@@ -13045,7 +13027,8 @@ CONFIG_SPRD_APDU
 	[field] make,code
 	[subsys] misc
 	[must] user
-	[missing plat description]
+	[missing plat description] apdu is a self-developed IP, which is mainly used as a data channel for transmission
+					by ese and other subsys. Now only roc1 supports ese
 	[function] Spreadtrum apdu driver.
 CONFIG_SPRD_APSYS_DVFS_DEVFREQ
 	[arch] arm64
@@ -13423,7 +13406,7 @@ CONFIG_SPRD_HW_DEVICE_DVFS_AGCP
 CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[arch] arm64
 	[plat] sharkl5,sharkl5Pro
-	[missing plat] roc1,pike2,sharkle32,sharkl3
+	[missing plat] pike2,roc1,sharkl3,sharkle32
 	[field] make,code
 	[subsys] cp
 	[must] user
@@ -15132,7 +15115,7 @@ CONFIG_USB_ARCH_HAS_HCD
 CONFIG_USB_ARMLINUX
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15141,7 +15124,7 @@ CONFIG_USB_ARMLINUX
 CONFIG_USB_BELKIN
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15631,7 +15614,7 @@ CONFIG_USB_HIDDEV
 CONFIG_USB_LAN78XX
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15687,7 +15670,7 @@ CONFIG_USB_MUSB_SPRD
 CONFIG_USB_NET_AX88179_178A
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15696,7 +15679,7 @@ CONFIG_USB_NET_AX88179_178A
 CONFIG_USB_NET_AX8817X
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15705,7 +15688,7 @@ CONFIG_USB_NET_AX8817X
 CONFIG_USB_NET_CDCETHER
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15714,7 +15697,7 @@ CONFIG_USB_NET_CDCETHER
 CONFIG_USB_NET_CDC_NCM
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15723,7 +15706,7 @@ CONFIG_USB_NET_CDC_NCM
 CONFIG_USB_NET_CDC_SUBSET
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15732,7 +15715,7 @@ CONFIG_USB_NET_CDC_SUBSET
 CONFIG_USB_NET_CDC_SUBSET_ENABLE
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15741,7 +15724,7 @@ CONFIG_USB_NET_CDC_SUBSET_ENABLE
 CONFIG_USB_NET_DRIVERS
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] sharkl5 sharkl5_32
+	[missing plat] sharkl5,sharkl5_32
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15750,7 +15733,7 @@ CONFIG_USB_NET_DRIVERS
 CONFIG_USB_NET_NET1080
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15759,7 +15742,7 @@ CONFIG_USB_NET_NET1080
 CONFIG_USB_NET_RNDIS_HOST
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15768,7 +15751,7 @@ CONFIG_USB_NET_RNDIS_HOST
 CONFIG_USB_NET_ZAURUS
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15843,7 +15826,7 @@ CONFIG_USB_ROLE_SWITCH
 CONFIG_USB_RTL8152
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1 sharkl5 sharkl5_32
+	[missing plat] roc1,sharkl5,sharkl5_32
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15918,7 +15901,7 @@ CONFIG_USB_SUPPORT
 CONFIG_USB_USBNET
 	[arch] arm64
 	[plat] roc1
-	[missing plat] sharkl3 sharkl5 sharkl5Pro
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] code
 	[subsys] usb
 	[must] user
