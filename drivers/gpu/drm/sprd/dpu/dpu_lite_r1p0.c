@@ -174,14 +174,16 @@ static void dpu_corner_init(struct dpu_context *ctx)
 
 static void dpu_dump(struct dpu_context *ctx)
 {
-	u32 *reg = (u32 *)ctx->base;
-	int i;
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
-	pr_info("      0          4          8          C\n");
-	for (i = 0; i < 256; i += 4) {
-		pr_info("%04x: 0x%08x 0x%08x 0x%08x 0x%08x\n",
-			i * 4, reg[i], reg[i + 1], reg[i + 2], reg[i + 3]);
-	}
+	pr_info("layer0 addr0 = 0x%08x, addr1 = 0x%08x",
+		reg->layers[0].addr[0], reg->layers[0].addr[1]);
+	pr_info("layer1 addr0 = 0x%08x, addr1 = 0x%08x",
+		reg->layers[1].addr[0], reg->layers[1].addr[1]);
+	pr_info("layer2 addr0 = 0x%08x, addr1 = 0x%08x",
+		reg->layers[2].addr[0], reg->layers[2].addr[1]);
+	pr_info("layer3 addr0 = 0x%08x, addr1 = 0x%08x",
+		reg->layers[3].addr[0], reg->layers[3].addr[1]);
 }
 
 static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
