@@ -388,54 +388,6 @@
 	sprd,ulps-disabled;
 };
 
-&lcd_nt35532_truly_mipi_fhd {
-	display-timings {
-		timing1 {
-			clock-frequency = <153600000>;
-			hactive = <720>;
-			vactive = <1280>;
-			hback-porch = <16>;
-			hfront-porch = <176>;
-			vback-porch = <32>;
-			vfront-porch = <32>;
-			hsync-len = <10>;
-			vsync-len = <4>;
-		};
-	};
-};
-
-&lcd_nt35596_boe_mipi_fhd {
-	display-timings {
-		timing1 {
-			clock-frequency = <153600000>;
-			hactive = <720>;
-			vactive = <1280>;
-			hback-porch = <16>;
-			hfront-porch = <176>;
-			vback-porch = <32>;
-			vfront-porch = <32>;
-			hsync-len = <10>;
-			vsync-len = <4>;
-		};
-	};
-};
-
-&lcd_nt35695_truly_mipi_fhd {
-	display-timings {
-		timing1 {
-			clock-frequency = <153600000>;
-			hactive = <720>;
-			vactive = <1280>;
-			hback-porch = <16>;
-			hfront-porch = <176>;
-			vback-porch = <32>;
-			vfront-porch = <32>;
-			hsync-len = <10>;
-			vsync-len = <4>;
-		};
-	};
-};
-
 &i2c0 {
 	status = "okay";
 	clock-frequency = <400000>;
