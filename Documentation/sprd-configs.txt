@@ -11065,7 +11065,7 @@ CONFIG_POWER_RESET_SYSCON
 	[field] make
 	[subsys] reboot
 	[must] user
-	[missing plat description]
+	[missing plat description] enable it if you need, supported by all plat, now mark as: Need confirmed
 	[function] Generic Syscon Reboot Driver
 CONFIG_POWER_SUPPLY
 	[arch] all
