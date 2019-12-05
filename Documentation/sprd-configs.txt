@@ -672,7 +672,7 @@ CONFIG_ARM64_ERRATUM_819472
 	[field] code
 	[subsys] erratum
 	[must] console
-	[missing plat description]
+	[missing plat description] Keep current status.
 	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_ERRATUM_824069
 	[arch] arm64
@@ -681,7 +681,7 @@ CONFIG_ARM64_ERRATUM_824069
 	[field] code
 	[subsys] erratum
 	[must] console
-	[missing plat description]
+	[missing plat description] Keep current status.
 	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_ERRATUM_826319
 	[arch] arm64
@@ -690,7 +690,7 @@ CONFIG_ARM64_ERRATUM_826319
 	[field] code
 	[subsys] erratum
 	[must] console
-	[missing plat description]
+	[missing plat description] Keep current status.
 	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_ERRATUM_827319
 	[arch] arm64
@@ -699,7 +699,7 @@ CONFIG_ARM64_ERRATUM_827319
 	[field] code
 	[subsys] erratum
 	[must] console
-	[missing plat description]
+	[missing plat description] Keep current status.
 	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_ERRATUM_843419
 	[arch] arm64
@@ -708,7 +708,7 @@ CONFIG_ARM64_ERRATUM_843419
 	[field] code
 	[subsys] erratum
 	[must] console
-	[missing plat description]
+	[missing plat description] Keep current status.
 	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_ERRATUM_845719
 	[arch] arm64
@@ -717,17 +717,17 @@ CONFIG_ARM64_ERRATUM_845719
 	[field] code
 	[subsys] erratum
 	[must] console
-	[missing plat description]
+	[missing plat description] Keep current status.
 	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_ERRATUM_858921
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] code
+	[subsys] erratum
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] Work around for Arm Cortex-A53 erratum problem.
 CONFIG_ARM64_HW_AFDBM
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
