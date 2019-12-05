@@ -345,8 +345,10 @@ int log_dev_init(void)
 	init_waitqueue_head(&mdbg_dev->rxwait);
 	init_waitqueue_head(&mdbg_wait);
 	err = mdbg_ring_init();
-	if (err < 0)
+	if (err < 0) {
+		kfree(mdbg_dev);
 		return -ENOMEM;
+	}
 
 	log_cdev_init();
 	mdbg_dev->exit_flag = 0;
