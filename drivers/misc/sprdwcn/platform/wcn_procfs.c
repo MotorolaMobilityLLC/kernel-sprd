@@ -1112,8 +1112,10 @@ int proc_fs_init(void)
 	init_waitqueue_head(&mdbg_proc->loopcheck.rxwait);
 	mutex_init(&mdbg_proc->mutex);
 
-	if (mdbg_memory_alloc() < 0)
+	if (mdbg_memory_alloc() < 0) {
+		kfree(mdbg_proc);
 		return -ENOMEM;
+	}
 
 	return 0;
 }
