@@ -1031,10 +1031,7 @@ static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING)
 		return;
 
-	if ((ocv > data->cap_table[0].ocv && cap < 100) ||
-	    cap > 100) {
-		sc27xx_fgu_adjust_cap(data, 100);
-	} else if (ocv <= data->cap_table[data->table_len - 1].ocv) {
+	if (ocv <= data->cap_table[data->table_len - 1].ocv) {
 		sc27xx_fgu_adjust_cap(data, 0);
 	} else if ((ocv > data->cap_table[data->table_len - 1].ocv && cap <= 0) ||
 		(ocv > data->min_volt && cap <= data->alarm_cap)) {
