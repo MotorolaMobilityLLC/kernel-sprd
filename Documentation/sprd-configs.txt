@@ -14943,7 +14943,7 @@ CONFIG_TYPEC
 	[subsys] usb
 	[must] user
 	[missing plat description] missing pike2 because not support typec function
-	[function] pike2 plat not support typec function.
+	[function] Enable typec function.
 CONFIG_TYPEC_TCPCI
 	[arch] arm64
 	[plat] roc1
@@ -14974,7 +14974,7 @@ CONFIG_TYPEC_UCSI
 	[subsys] usb
 	[must] user
 	[missing plat description] missing pike2 because not support typec function
-	[function] pike2 plat not support typec function.
+	[function] USB typec Connector System Software Interface
 CONFIG_UEVENT_HELPER
 	[arch] all
 	[plat] all
@@ -15833,11 +15833,13 @@ CONFIG_USB_ROLE_SWITCH
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] usb
+	[must] user
+	[missing plat description] missing sharkl3 because not suppoet PD
+				   missing sharkl5 because not suppoet PD
+				   missing sharkl5Pro because not suppoet PD
+	[function] this function support typec tcpm for PD.
 CONFIG_USB_RTL8152
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
@@ -15855,7 +15857,7 @@ CONFIG_USB_SC27XX_TYPEC
 	[subsys] usb
 	[must] user
 	[missing plat description] missing pike2 because not support typec function
-	[function] pike2 plat not support typec function.
+	[function] pmic 27xx typec driver.
 CONFIG_USB_SERIAL
 	[arch] all
 	[plat] all
