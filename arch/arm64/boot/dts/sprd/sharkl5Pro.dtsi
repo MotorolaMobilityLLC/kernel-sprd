@@ -1247,6 +1247,7 @@
 				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "source", "enable", "i2c",
 						"clk_hw_i2c";
+				sprd,hw-channels = <5 0x6002>, <7 0x6000>;
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
