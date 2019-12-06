@@ -1059,7 +1059,7 @@ CONFIG_ARM_SPRD_HW_CPUFREQ
 	[field] make
 	[subsys] cpufreq
 	[must] user
-	[missing plat description]
+	[missing plat description] The plat don't have hardware dvfs ip.
 	[function] Enable apcpu hardware dvfs function.
 CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
 	[arch] all
@@ -1068,7 +1068,7 @@ CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
 	[field] make
 	[subsys] cpufreq
 	[must] user
-	[missing plat description]
+	[missing plat description] This plat don't have hwdvfs ip like sharkl5,roc1 and so on.
 	[function] Enable apcpu hardware dvfs function in sharkl5 family SOCs.
 CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3
 	[arch] all
@@ -2125,20 +2125,20 @@ CONFIG_CPUFREQ_DT
 	[arch] arm
 	[plat] sharkl5_32
 	[missing plat] pike2,sharkl3_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] cpufreq
+	[must] user
+	[missing plat description] we do not use cpufreq-dt driver in the plat.
+	[function] declare cpufreq-dt driver interfaces which are not user now.
 CONFIG_CPUFREQ_DT_PLATDEV
 	[arch] arm
 	[plat] sharkl5_32
 	[missing plat] pike2,sharkl3_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] cpufreq
+	[must] user
+	[missing plat description] we do not use cpufreq-dt device in our cpufreq driver.
+	[function] declare cpufreq-dt device for cpufreq-dt driver.
 CONFIG_CPUSETS
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
@@ -13013,7 +13013,9 @@ CONFIG_SPRD_APSYS_DVFS_DEVFREQ
 	[field] make
 	[subsys] devfreq
 	[must] user
-	[missing plat description]
+	[missing plat description] Since the project of sharkl5 can support apsys dvfs devfreq
+				   function, we will not user apsys dvfs devfreq function due to
+				   some reasons such as roc1.
 	[function] Enable apsys dvfs function.
 CONFIG_SPRD_AUDIO_AGDSP_ACCESS
 	[arch] all
@@ -14028,7 +14030,9 @@ CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[field] make
 	[subsys] devfreq
 	[must] user
-	[missing plat description]
+	[missing plat description] Since the project of sharkl5 can support scaling voltage and
+				   frequency ofsome devices which include gpu,modem and so
+				   on.sharkl3 don't have the function.
 	[function] Enable device dvfs function.
 CONFIG_SPRD_USB3_PHY
 	[arch] arm64
