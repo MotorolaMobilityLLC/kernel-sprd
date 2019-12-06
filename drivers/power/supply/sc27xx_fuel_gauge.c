@@ -71,6 +71,9 @@
 #define SC27XX_FGU_CUR_BASIC_ADC	8192
 #define SC27XX_FGU_SAMPLE_HZ		2
 #define SC27XX_FGU_TEMP_BUFF_CNT	10
+#define SC27XX_FGU_BOOT_CAPACITY_THRESHOLD	10
+#define SC27XX_FGU_DENSE_CAPACITY_HIGH	3850000
+#define SC27XX_FGU_DENSE_CAPACITY_LOW	3750000
 
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))));
@@ -375,21 +378,8 @@ static int sc27xx_fgu_read_last_cap(struct sc27xx_fgu_data *data, int *cap)
  */
 static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 {
-	int volt, cur, oci, ocv, ret;
+	int volt, cur, oci, ocv, saved_cap, ret;
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
-
-	/*
-	 * If system is not the first power on, we should use the last saved
-	 * battery capacity as the initial battery capacity. Otherwise we should
-	 * re-calculate the initial battery capacity.
-	 */
-	if (!is_first_poweron) {
-		ret = sc27xx_fgu_read_last_cap(data, cap);
-		if (ret)
-			return ret;
-
-		return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
-	}
 
 	/*
 	 * After system booting on, the SC27XX_FGU_CLBCNT_QMAXL register saved
@@ -421,6 +411,30 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	 */
 	*cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
 					   ocv);
+
+	/*
+	 * Since our fuel gauge can accumulate declination if the system works
+	 * for a long time, sometimes we will get a larger deviation using the
+	 * saved capacity as the initial battery capacity.
+	 *
+	 * To get a accurate initial battery capacity, if system is not the
+	 * first power on, and the deviation between the boot capacity
+	 * calculated by OCV table and the saved capacity in RTC reginon is
+	 * less than 10%, or current open circuit voltage of the battery is
+	 * in the dense capacity area, we should use the last saved battery
+	 * capacity as the initial battery capacity. Otherwise we should
+	 * re-calculate the initial battery capacity.
+	 */
+	if (!is_first_poweron) {
+		ret = sc27xx_fgu_read_last_cap(data, &saved_cap);
+		if (ret)
+			return ret;
+
+		if ((abs(*cap - saved_cap) < SC27XX_FGU_BOOT_CAPACITY_THRESHOLD) ||
+		    (ocv >= SC27XX_FGU_DENSE_CAPACITY_LOW &&
+		     ocv <= SC27XX_FGU_DENSE_CAPACITY_HIGH))
+			*cap = saved_cap;
+	}
 
 	ret = sc27xx_fgu_save_last_cap(data, *cap);
 	if (ret)
