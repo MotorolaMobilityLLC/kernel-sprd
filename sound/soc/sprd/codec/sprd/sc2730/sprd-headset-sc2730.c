@@ -1239,6 +1239,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 	if (adc_left_ideal > pdata->sprd_adc_gnd &&
 		ABS(adc_mic_ideal - adc_left_ideal) < pdata->sprd_adc_gnd) {
 		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_20mV);
+		sprd_hmicbias_hw_control_enable(false, pdata);
 		return HEADSET_4POLE_NOT_NORMAL;
 	} else if (adc_left_ideal > pdata->sprd_adc_gnd &&
 		ABS(adc_mic_ideal - adc_left_ideal) >= pdata->sprd_adc_gnd)
@@ -1249,6 +1250,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 		return HEADSET_NO_MIC;
 	} else if (adc_left_ideal < pdata->sprd_adc_gnd &&
 		adc_mic_ideal >= pdata->threshold_3pole) {
+		sprd_hmicbias_hw_control_enable(true, pdata);
 		val = sprd_headset_part_is_inserted(HDST_INSERT_MDET);
 		pr_debug("%s val %d\n", __func__, val);
 		if (val != 0 && adc_left_ideal < pdata->sprd_half_adc_gnd) {
@@ -1474,11 +1476,14 @@ static void sprd_headset_reset(struct sprd_headset *hdst)
 	sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
 	sprd_headset_button_release_verify();
 	sprd_headset_removed_verify(hdst);
+	if (!hdst->re_detect)
+		sprd_hmicbias_hw_control_enable(true, pdata);
 	sprd_headset_disable_power(hdst);
+	/* waiting HEADMICBIAS power down to avoid noise */
+	msleep(50);
 	sprd_headset_scale_set(0);
 	sprd_headset_sw_reset(hdst);
 	sprd_button_irq_threshold(0);
-	sprd_hmicbias_hw_control_enable(true, pdata);
 	sprd_headset_all_eic_enable(false);
 	sprd_headset_clear_all_eic();
 	sprd_set_all_eic_trig_level(true);
@@ -1742,7 +1747,10 @@ static void sprd_headset_set_hw_status(struct sprd_headset *hdst,
 	/* step 3 */
 	sprd_ldetl_filter_enable(true);
 	if (pdata->jack_type == JACK_TYPE_NO) {
-		sprd_hmicbias_hw_control_enable(true, pdata);
+		/* set PLGPD_EN to 0 while detecting, set to
+		 * 1 after detecting.
+		 */
+		sprd_hmicbias_hw_control_enable(false, pdata);
 		pr_debug("filter detect_l HDT2 0x%04x\n",
 			sprd_read_reg_value(ANA_HDT2));
 	} else if (pdata->jack_type == JACK_TYPE_NC) {
@@ -2067,11 +2075,6 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	pr_debug(LG, FC, S0, T5, T6, T7, T8, T11, T32, T34);
 	pr_info("%s plug_state_last %d\n", __func__, hdst->plug_state_last);
 
-	if (hdst->plug_state_last == 0) {
-		sprd_headset_set_hw_status(hdst, pdata);
-		sprd_msleep(10);
-	}
-
 	if (!pdata->support_typec_hdst) {
 		trig_level = sprd_get_eic_trig_level(10);
 		insert_status =
@@ -2087,6 +2090,11 @@ static void headset_detect_all_work_func(struct work_struct *work)
 			sprd_headset_reset(hdst);
 			goto out;
 		}
+	}
+
+	if (hdst->plug_state_last == 0) {
+		sprd_headset_set_hw_status(hdst, pdata);
+		sprd_msleep(10);
 	}
 
 	if (hdst->re_detect == true)
@@ -2114,6 +2122,10 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	}
 out:
 	if (!hdst->re_detect) {
+		/* set PLGPD_EN to 0 while detecting, set to
+		 * 1 after detecting.
+		 */
+		sprd_hmicbias_hw_control_enable(true, pdata);
 		sprd_ldetl_filter_enable(false);
 		sprd_headset_reset_hw_status(hdst);
 		sprd_headset_type_error(hdst);
