@@ -1083,7 +1083,7 @@ CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3
 CONFIG_ARM_SPRD_SW_CPUFREQ
 	[arch] arm
 	[plat] pike2,sharkle32
-	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkl5Pro
+	[missing plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
@@ -1278,7 +1278,7 @@ CONFIG_BACKLIGHT_PWM
 	[function] Enable pwm backlight driver.
 CONFIG_BACKLIGHT_SC2703
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
 	[missing plat] pike2,sharkl3_32,sharkl5Pro,sharkle32
 	[field] make
 	[subsys] video
@@ -1876,7 +1876,7 @@ CONFIG_CHARGER_MANAGER
 	[function] Manage battery capacity and monitor charge status
 CONFIG_CHARGER_SC2703
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] pike2,sharkl3_32,sharkle32
 	[field] make
 	[subsys] power
@@ -4551,8 +4551,8 @@ CONFIG_FIX_EARLYCON_MEM
 	[function] IF MMU, enable kernel support earlycon fixmap.
 CONFIG_FLASH_SC2703
 	[arch] all
-	[plat] sharkl3,sharkl5,sharkl5_32
-	[missing plat] pike2,roc1,sharkl3_32,sharkl5Pro,sharkle32
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[missing plat] pike2,roc1,sharkl5Pro,sharkle32
 	[field] make
 	[subsys] misc
 	[must] user
@@ -11686,8 +11686,8 @@ CONFIG_REGULATOR_FAN53555
 	[function] Support for fan53555 pmic regulator.
 CONFIG_REGULATOR_SC2703
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
-	[missing plat] pike2,sharkl5Pro,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[missing plat] pike2,sharkl3_32,sharkl5Pro,sharkle32
 	[field] make
 	[subsys] regulator
 	[must] user
@@ -11981,8 +11981,8 @@ CONFIG_SC2342_INTEG
 	[function] This is support wcn chip for spreadtrum.
 CONFIG_SC2355
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkl5Pro,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
+	[missing plat] pike2,sharkl5Pro,sharkle32
 	[field] menu
 	[subsys] wcn
 	[must] user
@@ -12211,8 +12211,8 @@ CONFIG_SDCARD_FS
 	[function] This function is used to open sdcardfs feature
 CONFIG_SDIOHAL
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkle32
 	[field] menu, make
 	[subsys] wcn
 	[must] user
@@ -16086,8 +16086,8 @@ CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC
 	[function] watchdog pretimeout gov panic
 CONFIG_WCN_BOOT
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
@@ -16126,8 +16126,8 @@ CONFIG_WCN_SIPC
 	[function] WCN integration chip 2342 sipc Support
 CONFIG_WCN_SLP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
@@ -16136,8 +16136,8 @@ CONFIG_WCN_SLP
 	[function] wcn sleep and wakeup for 2355 chip
 CONFIG_WCN_UTILS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user

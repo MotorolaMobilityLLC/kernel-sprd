@@ -146,9 +146,6 @@ def create_diffconfigs_dict():
                                 tmp_arch = 'arm'
                                 tmp_plat = 'sharkle32'
                         elif tmp_arch == 'common' and tmp_plat == 'sharkl3':
-                            if kernel_version == 'kernel4.14':
-                                tmp_arch = 'arm64'
-                            else:
                                 tmp_arch = 'arm,arm64'
                                 tmp_plat = 'sharkl3,sharkl3_32'
                         elif tmp_arch == 'common' and tmp_plat == 'sharkl5':
