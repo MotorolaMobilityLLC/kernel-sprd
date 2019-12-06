@@ -38,6 +38,7 @@
 #define PTM_CORESIGHT_LAR		0xfb0
 
 /* PTM_EN */
+#define PTM_TRACE_BW_IDLE_EN		BIT(15)
 #define PTM_BW_LTCY_ALL_TRACE_EN	BIT(5)
 #define PTM_TRACE_AREN			BIT(4)
 #define PTM_TRACE_AWEN			BIT(3)

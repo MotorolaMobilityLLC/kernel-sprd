@@ -506,7 +506,7 @@ static void sprd_ptm_init(struct device *dev)
 {
 	struct sprd_ptm_dev *sdev = dev_get_drvdata(dev);
 
-	writel_relaxed(0, sdev->base + PTM_EN);
+	writel_relaxed(0 | PTM_TRACE_BW_IDLE_EN, sdev->base + PTM_EN);
 	writel_relaxed(0, sdev->base + INT_STU);
 	writel_relaxed(0, sdev->base + FRE_CHG);
 	writel_relaxed(1, sdev->base + MOD_SEL);
