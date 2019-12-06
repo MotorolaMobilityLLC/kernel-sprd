@@ -10912,15 +10912,6 @@ CONFIG_PM
 	[must] user
 	[missing plat description] none
 	[function] power management system
-CONFIG_PM_AUTOSLEEP
-	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
-	[missing plat] pike2,sharkl3_32
-	[field] make,code
-	[subsys] power
-	[must] user
-	[missing plat description]
-	[function] vts require, Support for PM_AUTOSLEEP
 CONFIG_PM_CLK
 	[arch] all
 	[plat] all
