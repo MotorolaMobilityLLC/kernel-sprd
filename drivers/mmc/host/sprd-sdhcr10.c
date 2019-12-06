@@ -25,7 +25,7 @@
 
 #include "sprd-sdhcr10.h"
 
-#define DRIVER_NAME "sprd_sdhcr10"
+#define DRIVER_NAME "sprd-sdhcr10"
 
 #ifdef CONFIG_PM
 static int sprd_sdhc_runtime_pm_get(struct sprd_sdhc_host *host)
@@ -55,6 +55,7 @@ static void dump_adma_info(struct sprd_sdhc_host *host)
 	void *desc_header = host->adma_desc;
 	u64 desc_ptr;
 	unsigned long start = jiffies;
+	struct device *dev = &host->pdev->dev;
 
 	if (host->flags & SPRD_USE_64_BIT_DMA) {
 		desc_ptr = (u64)sprd_sdhc_readl(host,
@@ -65,39 +66,38 @@ static void dump_adma_info(struct sprd_sdhc_host *host)
 		desc_ptr = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_ADMA2_ADDR_L);
 	}
 
-	pr_info(" %s ADMA Err: 0x%08x EMMC_DEBUG0:0x%08x \
-		EMMC_DEBUG1:0x%08x \
-		EMMC_DEBUG2:0x%08x desc_ptr: 0x%llx\n",
-		host->device_name,
-		sprd_sdhc_readl(host, SPRD_SDHC_REG_ADMA_ERROR),
-		sprd_sdhc_readl(host, SPRD_SDHC_REG_EMMC_DEBUG0),
-		sprd_sdhc_readl(host, SPRD_SDHC_REG_EMMC_DEBUG1),
-		sprd_sdhc_readl(host, SPRD_SDHC_REG_EMMC_DEBUG2),
-		desc_ptr);
+	dev_info(dev, "ADMA desc_ptr: 0x%llx ERROR: 0x%08x\n",
+		 desc_ptr, sprd_sdhc_readl(host, SPRD_SDHC_REG_ADMA_ERROR));
+	dev_info(dev, "ADMA DEBUG0:0x%08x, DEBUG1:0x%08x DEBUG2:0x%08x\n",
+		 sprd_sdhc_readl(host, SPRD_SDHC_REG_EMMC_DEBUG0),
+		 sprd_sdhc_readl(host, SPRD_SDHC_REG_EMMC_DEBUG1),
+		 sprd_sdhc_readl(host, SPRD_SDHC_REG_EMMC_DEBUG2));
+
 
 	while (desc_ptr) {
 		if (host->flags & SPRD_USE_64_BIT_DMA) {
 			struct sprd_adma2_128_desc *dma_desc = desc_header;
 
-			pr_info("%s: all desc information 0x%p: \
-				DMA 0x%08x%08x, LEN 0x%x,  Attr=0x%x\n",
-				host->device_name, desc_header,
-				le32_to_cpu(dma_desc->addr_hi),
-				le32_to_cpu(dma_desc->addr_lo),
-				le32_to_cpu(dma_desc->len_cmd) >> 16,
-				le32_to_cpu(dma_desc->len_cmd) & 0xFFFF);
+			dev_info(dev, "ADMA desc 0x%p: addr: 0x%08x%08x\n",
+				 desc_header,
+				 le32_to_cpu(dma_desc->addr_hi),
+				 le32_to_cpu(dma_desc->addr_lo));
+			dev_info(dev, "ADMA len 0x%x,  attr=0x%x\n",
+				 le32_to_cpu(dma_desc->len_cmd) >> 16,
+				 le32_to_cpu(dma_desc->len_cmd) & 0xFFFF);
+
 			desc_header += host->adma_desc_sz;
 			if (dma_desc->len_cmd & cpu_to_le16(ADMA2_END))
 				break;
 		} else {
 			struct sdhci_adma2_32_desc *dma_desc = desc_header;
 
-			pr_info("%s: all desc information 0x%p: \
-				DMA 0x%08x, LEN 0x%x,  Attr=0x%x\n",
-				host->device_name, desc_header,
-				le32_to_cpu(dma_desc->addr),
-				le16_to_cpu(dma_desc->len),
-				le16_to_cpu(dma_desc->cmd));
+			dev_info(dev, "ADMA desc 0x%p: addr: 0x%08x\n",
+				 desc_header, le32_to_cpu(dma_desc->addr));
+			dev_info(dev, "ADMA len 0x%x,  attr=0x%x\n",
+				 le16_to_cpu(dma_desc->len),
+				 le16_to_cpu(dma_desc->cmd));
+
 
 			desc_header += host->adma_desc_sz;
 			if (dma_desc->cmd & cpu_to_le16(ADMA2_END))
@@ -105,8 +105,7 @@ static void dump_adma_info(struct sprd_sdhc_host *host)
 		}
 
 		if (time_after(jiffies, start + HZ)) {
-			pr_err("%s %s ADMA error have no end desc\n",
-				__func__, host->device_name);
+			dev_err(dev, "ADMA error have no end desc\n");
 			break;
 		}
 	}
@@ -114,8 +113,7 @@ static void dump_adma_info(struct sprd_sdhc_host *host)
 	desc_ptr = (u64)sprd_sdhc_readl(host,
 				SPRD_SDHC_REG_ADMA_PROCESS_H) << 32;
 	desc_ptr |= sprd_sdhc_readl(host, SPRD_SDHC_REG_ADMA_PROCESS_L);
-	pr_info(" %s ADMA current ADMA  desc_ptr: 0x%llx\n",
-		host->device_name, desc_ptr);
+	dev_info(dev, "Current ADMA  desc_ptr: 0x%llx\n", desc_ptr);
 }
 
 static void dump_sdio_reg(struct sprd_sdhc_host *host)
@@ -123,14 +121,12 @@ static void dump_sdio_reg(struct sprd_sdhc_host *host)
 	if (!host->mmc->card)
 		return;
 
-	print_hex_dump(KERN_INFO, "sdhc register: ", DUMP_PREFIX_OFFSET,
+	print_hex_dump(KERN_INFO, "sprd-sdhcr10", DUMP_PREFIX_OFFSET,
 			16, 4, host->ioaddr, 64, 0);
 
 	if ((host->flags & SPRD_USE_ADMA) &&
 			(strcmp(host->device_name, "sdio_wifi") != 0))
 		dump_adma_info(host);
-
-	pr_info(" ===========================================\n");
 }
 
 static int sprd_get_delay_value(struct platform_device *pdev)
@@ -187,14 +183,17 @@ static int sprd_get_delay_value(struct platform_device *pdev)
 
 static void sprd_set_delay_value(struct sprd_sdhc_host *host)
 {
+	struct device *dev = &host->pdev->dev;
+
 	switch (host->ios.timing) {
 	case MMC_TIMING_MMC_HS:
 		if (host->ios.clock == 52000000) {
 			host->dll_dly = host->timing_dly->mmchs_dly;
 			sprd_sdhc_writel(host, host->dll_dly,
 					SPRD_SDHC_REG_32_DLL_DLY);
-			pr_info("(%s) mmchs default timing delay value 0x%08x\n",
-				host->device_name, host->dll_dly);
+			dev_info(dev,
+				 "mmchs default timing delay value 0x%08x\n",
+				 host->dll_dly);
 		}
 		break;
 	case MMC_TIMING_UHS_SDR50:
@@ -202,8 +201,9 @@ static void sprd_set_delay_value(struct sprd_sdhc_host *host)
 			host->dll_dly = host->timing_dly->sdr50_dly;
 			sprd_sdhc_writel(host, host->dll_dly,
 					SPRD_SDHC_REG_32_DLL_DLY);
-			pr_info("(%s) sdr50 default timing delay value 0x%08x\n",
-				host->device_name, host->dll_dly);
+			dev_info(dev,
+				 "sdr50 default timing delay value 0x%08x\n",
+				 host->dll_dly);
 		}
 		break;
 	case MMC_TIMING_UHS_SDR104:
@@ -211,8 +211,9 @@ static void sprd_set_delay_value(struct sprd_sdhc_host *host)
 			host->dll_dly = host->timing_dly->sdr104_dly;
 			sprd_sdhc_writel(host, host->dll_dly,
 					SPRD_SDHC_REG_32_DLL_DLY);
-			pr_info("(%s) sdr104 default timing delay value 0x%08x\n",
-				host->device_name, host->dll_dly);
+			dev_info(dev,
+				 "sdr104 default timing delay value 0x%08x\n",
+				 host->dll_dly);
 		}
 		break;
 	case MMC_TIMING_MMC_DDR52:
@@ -220,8 +221,9 @@ static void sprd_set_delay_value(struct sprd_sdhc_host *host)
 			host->dll_dly = host->timing_dly->ddr52_dly;
 			sprd_sdhc_writel(host, host->dll_dly,
 					SPRD_SDHC_REG_32_DLL_DLY);
-			pr_info("(%s) ddr52 default timing delay value: 0x%08x\n",
-				host->device_name, host->dll_dly);
+			dev_info(dev,
+				 "ddr52 default timing delay value: 0x%08x\n",
+				 host->dll_dly);
 		}
 		break;
 	case MMC_TIMING_MMC_HS200:
@@ -229,8 +231,9 @@ static void sprd_set_delay_value(struct sprd_sdhc_host *host)
 			host->dll_dly = host->timing_dly->hs200_dly;
 			sprd_sdhc_writel(host, host->dll_dly,
 					SPRD_SDHC_REG_32_DLL_DLY);
-			pr_info("(%s) hs200 default timing delay value: 0x%08x\n",
-				host->device_name, host->dll_dly);
+			dev_info(dev,
+				 "hs200 default timing delay value: 0x%08x\n",
+				 host->dll_dly);
 		}
 		break;
 	case MMC_TIMING_MMC_HS400:
@@ -238,8 +241,9 @@ static void sprd_set_delay_value(struct sprd_sdhc_host *host)
 			host->dll_dly = host->timing_dly->hs400_dly;
 			sprd_sdhc_writel(host, host->dll_dly,
 					SPRD_SDHC_REG_32_DLL_DLY);
-			pr_info("(%s) hs400 final timing delay value: 0x%08x\n",
-				host->device_name, host->dll_dly);
+			dev_info(dev,
+				 "hs400 final timing delay value: 0x%08x\n",
+				 host->dll_dly);
 		}
 		break;
 	default:
@@ -562,6 +566,7 @@ static void sprd_sdmd_mode(struct sprd_sdhc_host *host, struct mmc_data *data)
 static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 {
 	struct mmc_data *data = cmd->data;
+	struct device *dev = &host->pdev->dev;
 	u32 flag = 0;
 	u16 rsp_type = 0;
 	int if_has_data = 0;
@@ -570,11 +575,11 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 	int if_dma = 0;
 	u16 auto_cmd = SPRD_SDHC_BIT_ACMD_DIS;
 
-	pr_debug("%s(%s)  CMD%d, arg 0x%x, flag 0x%x\n", __func__,
-		host->device_name, cmd->opcode, cmd->arg, cmd->flags);
+	dev_dbg(dev, "CMD%d, arg 0x%x, flag 0x%x\n",
+		cmd->opcode, cmd->arg, cmd->flags);
 	if (cmd->data)
-		pr_debug("%s(%s) block size %d, cnt %d\n", __func__,
-			host->device_name, cmd->data->blksz, cmd->data->blocks);
+		dev_dbg(dev, "block size %d, cnt %d\n",
+			cmd->data->blksz, cmd->data->blocks);
 	sprd_sdhc_disable_all_int(host);
 
 	if (cmd->opcode == MMC_ERASE) {
@@ -672,10 +677,10 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 	host->int_filter = flag;
 	host->int_come = 0;
 	sprd_sdhc_enable_int(host, flag);
-	pr_debug("sprd_sdhc %s CMD%d rsp:0x%x intflag:0x%x\n"
+	dev_dbg(dev, "CMD%d rsp:0x%x intflag:0x%x\n"
 		"if_mult:0x%x if_read:0x%x auto_cmd:0x%x if_dma:0x%x\n",
-		host->device_name, cmd->opcode, mmc_resp_type(cmd),
-		flag, if_mult, if_read, auto_cmd, if_dma);
+		cmd->opcode, mmc_resp_type(cmd), flag, if_mult, if_read,
+		auto_cmd, if_dma);
 
 	/* adma need stric squence*/
 	wmb();
@@ -686,6 +691,8 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 
 static int irq_err_handle(struct sprd_sdhc_host *host, u32 intmask)
 {
+	struct device *dev = &host->pdev->dev;
+
 	/* some error happened in command */
 	if (SPRD_SDHC_INT_FILTER_ERR_CMD & intmask) {
 		if (SPRD_SDHC_BIT_INT_ERR_CMD_TIMEOUT & intmask)
@@ -737,8 +744,7 @@ static int irq_err_handle(struct sprd_sdhc_host *host, u32 intmask)
 
 	if ((host->cmd->opcode != MMC_SEND_TUNING_BLOCK) &&
 		(host->cmd->opcode != MMC_SEND_TUNING_BLOCK_HS200)) {
-		pr_info("sprd_sdhc %s CMD%d int 0x%x\n",
-			host->device_name, host->cmd->opcode, intmask);
+		dev_info(dev, "CMD%d int 0x%x\n", host->cmd->opcode, intmask);
 		dump_sdio_reg(host);
 	}
 
@@ -845,6 +851,7 @@ static irqreturn_t sprd_sdhc_irq(int irq, void *param)
 {
 	u32 intmask;
 	struct sprd_sdhc_host *host = (struct sprd_sdhc_host *)param;
+	struct device *dev = &host->pdev->dev;
 	struct mmc_request *mrq = host->mrq;
 	struct mmc_command *cmd = host->cmd;
 	u32 ret_intmask = 0;
@@ -868,12 +875,11 @@ static irqreturn_t sprd_sdhc_irq(int irq, void *param)
 		(intmask & SPRD_SDHC_BIT_INT_ERR_DATA_CRC)) &&
 		(cmd->opcode != MMC_SEND_TUNING_BLOCK) &&
 		(cmd->opcode != MMC_SEND_TUNING_BLOCK_HS200))
-		pr_info("%s(%s): CMD%d, dll delay reg: 0x%x\n",
-			__func__, host->device_name, cmd->opcode,
-			sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_DLY));
+		dev_info(dev, "CMD%d, dll delay reg: 0x%x\n", cmd->opcode,
+			 sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_DLY));
 
-	pr_debug("%s(%s) CMD%d, intmask 0x%x, filter = 0x%x\n", __func__,
-		host->device_name, cmd->opcode, intmask, host->int_filter);
+	dev_dbg(dev, "CMD%d, intmask 0x%x, filter = 0x%x\n",
+		cmd->opcode, intmask, host->int_filter);
 
 	/*
 	 * sometimes an undesired interrupt will happen, so we must clear
@@ -934,11 +940,11 @@ static void sprd_sdhc_timeout(unsigned long data)
 {
 	struct sprd_sdhc_host *host = (struct sprd_sdhc_host *)data;
 	unsigned long flags;
+	struct device *dev = &host->pdev->dev;
 
 	spin_lock_irqsave(&host->lock, flags);
 	if (host->mrq) {
-		pr_info("%s(%s) Timeout waiting for hardware interrupt!\n",
-			__func__, host->device_name);
+		dev_info(dev, "Timeout waiting for hardware interrupt!\n");
 		dump_sdio_reg(host);
 		if (host->cmd->data)
 			host->cmd->data->error = -ETIMEDOUT;
@@ -962,6 +968,7 @@ static void sprd_sdhc_timeout(unsigned long data)
 static void sprd_sdhc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct sprd_sdhc_host *host = mmc_priv(mmc);
+	struct device *dev = &host->pdev->dev;
 	unsigned long flags;
 	int present;
 
@@ -985,9 +992,8 @@ static void sprd_sdhc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	 * in our control we can not use auto cmd12 and auto cmd23 together
 	 * so in following program we use auto cmd23 prior to auto cmd12
 	 */
-	pr_debug("%s(%s) CMD%d request %d %d %d\n", __func__,
-		host->device_name, mrq->cmd->opcode,
-		!!mrq->sbc, !!mrq->cmd, !!mrq->stop);
+	dev_dbg(dev, "CMD%d request %d %d %d\n",
+		mrq->cmd->opcode, !!mrq->sbc, !!mrq->cmd, !!mrq->stop);
 	host->auto_cmd_mode = SPRD_SDHC_BIT_ACMD_DIS;
 	if (!mrq->sbc && mrq->stop && SPRD_SDHC_FLAG_ENABLE_ACMD12) {
 		host->auto_cmd_mode = SPRD_SDHC_BIT_ACMD12;
@@ -1013,9 +1019,10 @@ static void sprd_sdhc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
 static void sprd_signal_voltage_on_off(struct sprd_sdhc_host *host, u32 on_off)
 {
+	struct device *dev = &host->pdev->dev;
+
 	if (IS_ERR(host->mmc->supply.vqmmc)) {
-		pr_err("%s(%s) there is no signal voltage!\n",
-			__func__, host->device_name);
+		dev_err(dev, "there is no signal voltage!\n");
 		return;
 	}
 
@@ -1023,56 +1030,44 @@ static void sprd_signal_voltage_on_off(struct sprd_sdhc_host *host, u32 on_off)
 		if (host->flags & SPRD_PINCTRL_AVOID_LEAK_VOLTAGE) {
 			if (pinctrl_select_state(
 				host->pinctrl, host->pins_sl_off))
-				pr_err("%s switch vddsdio sl off failed\n",
-					__func__);
-			else
-				pr_info("%s set vddsdio sl bit as 0\n",
-					__func__);
+				dev_err(dev, "switch vddsdio sl off failed\n");
 		}
 
 		if (!regulator_is_enabled(host->mmc->supply.vqmmc)) {
 			if (regulator_enable(host->mmc->supply.vqmmc))
-				pr_info("%s signal voltage enable fail!\n",
-					host->device_name);
+				dev_info(dev, "signal voltage enable fail!\n");
 			else if (regulator_is_enabled(host->mmc->supply.vqmmc))
-				pr_info("%s signal voltage enable success!\n",
-					host->device_name);
+				dev_info(dev,
+					 "signal voltage enable success!\n");
 			else
-				pr_info("%s signal voltage enable hw fail!\n",
-					host->device_name);
+				dev_info(dev,
+					 "signal voltage enable hw fail!\n");
+
 		}
 	} else {
 		if (host->flags & SPRD_PINCTRL_SWITCH_VOLTAGE) {
 			if (pinctrl_select_state(
 				host->pinctrl, host->pins_default))
-				pr_err("%s switch vddsdio ms pinctrl failed\n",
-					__func__);
-			else
-				pr_info("%s set vddsdio ms bit as 0\n",
-					__func__);
+				dev_err(dev,
+					"switch vddsdio ms pinctrl failed\n");
 		}
 
 		if (regulator_is_enabled(host->mmc->supply.vqmmc)) {
 			if (regulator_disable(host->mmc->supply.vqmmc))
-				pr_info("%s signal voltage disable fail\n",
-					host->device_name);
+				dev_info(dev, "signal voltage disable fail\n");
 			else if (!regulator_is_enabled(
 					host->mmc->supply.vqmmc))
-				pr_info("%s signal voltage disable success!\n",
-					host->device_name);
+				dev_info(dev,
+					 "signal voltage disable success!\n");
 			else
-				pr_info("%s signal voltage disable hw fail\n",
-					host->device_name);
+				dev_info(dev,
+					 "signal voltage disable hw fail\n");
 		}
 
 		if (host->flags & SPRD_PINCTRL_AVOID_LEAK_VOLTAGE) {
 			if (pinctrl_select_state(
 				host->pinctrl, host->pins_sl_on))
-				pr_err("%s switch vddsdio sl on failed\n",
-					__func__);
-			else
-				pr_info("%s set vddsdio sl bit as 1\n",
-					__func__);
+				dev_err(dev, "switch vddsdio sl on failed\n");
 		}
 	}
 }
@@ -1085,6 +1080,7 @@ static void sprd_signal_voltage_on_off(struct sprd_sdhc_host *host, u32 on_off)
 static int sprd_sdhc_set_vqmmc(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct sprd_sdhc_host *host = mmc_priv(mmc);
+	struct device *dev = &host->pdev->dev;
 	unsigned long flags;
 	int err;
 
@@ -1094,8 +1090,7 @@ static int sprd_sdhc_set_vqmmc(struct mmc_host *mmc, struct mmc_ios *ios)
 	if (IS_ERR(mmc->supply.vqmmc)) {
 		/* there are no 1.8v signal votage. */
 		err = 0;
-		pr_err("%s(%s) There is no signalling voltage\n",
-			__func__, host->device_name);
+		dev_err(dev, "There is no signalling voltage\n");
 		goto out;
 	}
 
@@ -1126,9 +1121,10 @@ static int sprd_sdhc_set_vqmmc(struct mmc_host *mmc, struct mmc_ios *ios)
 				err = pinctrl_select_state(
 					host->pinctrl, host->pins_uhs);
 				if (err)
-					pr_err("switch vddsdio ms pinctrl failed\n");
+					dev_err(dev,
+						"switch vddsdio mspinctrl failed\n");
 				else
-					pr_info("set vddsdio ms bit as 1 ok\n");
+					dev_info(dev, "set vddsdio ms bit as 1 ok\n");
 
 				udelay(300);
 			}
@@ -1145,8 +1141,8 @@ static int sprd_sdhc_set_vqmmc(struct mmc_host *mmc, struct mmc_ios *ios)
 		break;
 	default:
 		/* No signal voltage switch required */
-		pr_err("%s(%s) 0x%x is an unsupportted signal voltage\n",
-			__func__, host->device_name, ios->signal_voltage);
+		dev_err(dev, "0x%x is an unsupportted signal voltage\n",
+			ios->signal_voltage);
 		err = EIO;
 		break;
 	}
@@ -1154,8 +1150,7 @@ static int sprd_sdhc_set_vqmmc(struct mmc_host *mmc, struct mmc_ios *ios)
 	if (likely(!err))
 		host->ios.signal_voltage = ios->signal_voltage;
 	else
-		pr_warn("%s(%s): switching to signalling voltage failed\n",
-			__func__, host->device_name);
+		dev_warn(dev, "switching to signalling voltage failed\n");
 
 out:
 	mmiowb();
@@ -1168,6 +1163,7 @@ out:
 static void sprd_sdhc_enable_dpll(struct sprd_sdhc_host *host)
 {
 	u32 tmp = 0;
+	struct device *dev = &host->pdev->dev;
 
 	tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_CFG);
 	tmp &= ~(SPRD_SDHC_DLL_EN | SPRD_SDHC_DLL_ALL_CPST_EN);
@@ -1185,51 +1181,29 @@ static void sprd_sdhc_enable_dpll(struct sprd_sdhc_host *host)
 	sprd_sdhc_writel(host, tmp, SPRD_SDHC_REG_32_DLL_CFG);
 	mdelay(1);
 
-	tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS0);
-	while ((tmp & SPRD_SDHC_DLL_LOCKED) != SPRD_SDHC_DLL_LOCKED) {
-		pr_info("+++++++++ sprd sdhc dpll locked faile +++++++++!\n");
-		pr_info("sprd sdhc dpll register DLL_STS0 : 0x%x\n", tmp);
-		tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_CFG);
-		pr_info("sprd sdhc dpll register DLL_CFG : 0x%x\n", tmp);
-		tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_DLY);
-		pr_info("sprd sdhc dpll register DLL_DLY : 0x%x\n", tmp);
-		tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS1);
-		pr_info("sprd sdhc dpll register DLL_STS1 : 0x%x\n", tmp);
-		tmp = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS0);
+	while ((sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS0) &
+		SPRD_SDHC_DLL_LOCKED) != SPRD_SDHC_DLL_LOCKED) {
+		dev_warn(dev, "dpll locked faile!\n");
+		dev_info(dev, "DLL_STS0 : 0x%x, DLL_CFG : 0x%x\n",
+			 sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS0),
+			 sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_CFG));
+		dev_info(dev, "DLL_DLY : 0x%x, DLL_STS1 : 0x%x\n",
+			 sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_DLY),
+			 sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS1));
 		mdelay(1);
 	}
 
-	pr_info("%s(%s): dpll locked done\n", __func__, host->device_name);
+	dev_info(dev, "dpll locked done\n");
 }
 
 static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct sprd_sdhc_host *host = mmc_priv(mmc);
+	struct device *dev = &host->pdev->dev;
 	unsigned long flags;
 	u8 ctrl = 0;
 	u8 clkchg_flag = 0;
 	u32 div;
-
-	pr_debug("++++++++++sprd-sdhc %s ios : ++++++++++\n"
-		"sprd-sdhc clock = %d---->%d\n"
-		"sprd-sdhc vdd = %d---->%d\n"
-		"sprd-sdhc bus_mode = %d---->%d\n"
-		"sprd-sdhc chip_select = %d---->%d\n"
-		"sprd-sdhc power_mode = %d---->%d\n"
-		"sprd-sdhc bus_width = %d---->%d\n"
-		"sprd-sdhc timing = %d---->%d\n"
-		"sprd-sdhc signal_voltage = %d---->%d\n"
-		"sprd-sdhc drv_type = %d---->%d\n",
-		host->device_name,
-		host->ios.clock, ios->clock,
-		host->ios.vdd, ios->vdd,
-		host->ios.bus_mode, ios->bus_mode,
-		host->ios.chip_select, ios->chip_select,
-		host->ios.power_mode, ios->power_mode,
-		host->ios.bus_width, ios->bus_width,
-		host->ios.timing, ios->timing,
-		host->ios.signal_voltage, ios->signal_voltage,
-		host->ios.drv_type, ios->drv_type);
 
 	sprd_sdhc_runtime_pm_get(host);
 	spin_lock_irqsave(&host->lock, flags);
@@ -1292,8 +1266,7 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		mmiowb();
 		spin_unlock_irqrestore(&host->lock, flags);
 		if (!IS_ERR(mmc->supply.vmmc)) {
-			pr_info("%s(%s) 3.0 %d!\n", __func__,
-				host->device_name, ios->vdd);
+			dev_info(dev, "3.0 %d!\n", ios->vdd);
 			mmc_regulator_set_ocr(host->mmc,
 				mmc->supply.vmmc, ios->vdd);
 		}
@@ -1440,14 +1413,15 @@ static int sprd_sdhc_prepare_hs400_tuning(struct mmc_host *mmc,
 	struct mmc_ios *ios)
 {
 	struct sprd_sdhc_host *host = mmc_priv(mmc);
+	struct device *dev = &host->pdev->dev;
 	unsigned long flags;
 
 	sprd_sdhc_runtime_pm_get(host);
 	spin_lock_irqsave(&host->lock, flags);
 
 	host->flags |= SPRD_HS400_TUNING;
-	pr_info("%s (%s) hs400 default timing delay value: 0x%08x\n",
-		__func__, host->device_name, host->dll_dly);
+	dev_info(dev, "hs400 default timing delay value: 0x%08x\n",
+		 host->dll_dly);
 
 	mmiowb();
 	spin_unlock_irqrestore(&host->lock, flags);
@@ -1459,6 +1433,7 @@ static int sprd_sdhc_prepare_hs400_tuning(struct mmc_host *mmc,
 static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 {
 	struct sprd_sdhc_host *host = mmc_priv(mmc);
+	struct device *dev = &host->pdev->dev;
 
 	unsigned long flags;
 	int err = 0;
@@ -1492,8 +1467,8 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	sprd_sdhc_writel(host, dll_cfg, SPRD_SDHC_REG_32_DLL_CFG);
 	dll_cnt = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS0) & 0xff;
 	length = (dll_cnt * 105) / 100;
-	pr_info("%s(%s): dll config 0x%08x, dll count %d, tuning length: %d\n",
-		__func__, host->device_name, dll_cfg, dll_cnt, length);
+	dev_info(dev, "dll config 0x%08x, dll count %d, tuning length: %d\n",
+		 dll_cfg, dll_cnt, length);
 
 	mmiowb();
 	spin_unlock_irqrestore(&host->lock, flags);
@@ -1536,17 +1511,16 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 			ranges[range_count - 1].start = i;
 		}
 		if (value) {
-			pr_debug("%s tuning ok: %d\n", host->device_name, i);
+			dev_dbg(dev, "tuning ok: %d\n", i);
 			ranges[range_count - 1].end = i;
 		} else
-			pr_debug("%s tuning fail: %d\n", host->device_name, i);
+			dev_dbg(dev, "tuning fail: %d\n", i);
 
 		prev_vl = value;
 	} while (++i <= length);
 
 	if (range_count == 0) {
-		pr_warn("%s(%s): all tuning phases fail!\n",
-			__func__, host->device_name);
+		dev_warn(dev, "all tuning phases fail!\n");
 		err = -EIO;
 		goto out;
 	}
@@ -1562,9 +1536,8 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		if (len < 0)
 			len += length;
 
-		pr_info("%s(%s): good tuning phase range %d ~ %d\n",
-			__func__, host->device_name,
-			ranges[i].start, ranges[i].end);
+		dev_info(dev, "good tuning phase range %d ~ %d\n",
+			 ranges[i].start, ranges[i].end);
 
 		if (longest_range_len < len) {
 			longest_range_len = len;
@@ -1572,9 +1545,9 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		}
 
 	}
-	pr_info("%s(%s): the best tuning step range %d-%d(the length is %d)\n",
-		__func__, host->device_name, ranges[longest_range].start,
-		ranges[longest_range].end, longest_range_len);
+	dev_info(dev, "the best tuning step range %d-%d(the length is %d)\n",
+		 ranges[longest_range].start, ranges[longest_range].end,
+		 longest_range_len);
 
 	mid_step = ranges[longest_range].start + longest_range_len / 2;
 	mid_step %= (length+1);
@@ -1594,9 +1567,8 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 				((final_phase << 16) & SPRD_POSRD_DLY_MASK));
 	}
 
-	pr_info("%s(%s): the best step %d, phase 0x08%x, delay value 0x%08x\n",
-		__func__, host->device_name, mid_step,
-		final_phase, host->dll_dly);
+	dev_info(dev, "the best step %d, phase 0x%02x, delay value 0x%08x\n",
+		 mid_step, final_phase, host->dll_dly);
 	sprd_sdhc_writel(host, host->dll_dly, SPRD_SDHC_REG_32_DLL_DLY);
 	err = 0;
 
@@ -1615,6 +1587,7 @@ static void sprd_sdhc_hs400_enhanced_strobe(struct mmc_host *mmc,
 	struct mmc_ios *ios)
 {
 	struct sprd_sdhc_host *host = mmc_priv(mmc);
+	struct device *dev = &host->pdev->dev;
 	unsigned long flags;
 
 	sprd_sdhc_runtime_pm_get(host);
@@ -1626,8 +1599,8 @@ static void sprd_sdhc_hs400_enhanced_strobe(struct mmc_host *mmc,
 		sprd_sdhc_sd_clk_on(host);
 		host->dll_dly = host->timing_dly->hs400es_dly;
 		sprd_sdhc_writel(host, host->dll_dly, SPRD_SDHC_REG_32_DLL_DLY);
-		pr_info("%s(%s): hs400es final timing delay value: 0x%08x\n",
-			__func__, host->device_name, host->dll_dly);
+		dev_info(dev, "hs400es final timing delay value: 0x%08x\n",
+			 host->dll_dly);
 	}
 
 	mmiowb();
@@ -1651,16 +1624,17 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 		struct sprd_sdhc_host *host)
 {
 	struct device_node *np = pdev->dev.of_node;
+	struct device *dev = &pdev->dev;
 	int ret = 0;
 
 	host->res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!host->res)
 		return -ENOENT;
 
-	host->ioaddr = devm_ioremap_resource(&pdev->dev, host->res);
+	host->ioaddr = devm_ioremap_resource(dev, host->res);
 	if (IS_ERR(host->ioaddr)) {
 		ret = PTR_ERR(host->ioaddr);
-		dev_err(&pdev->dev, "can not map iomem: %d\n", ret);
+		dev_err(dev, "can not map iomem: %d\n", ret);
 		goto err;
 	}
 
@@ -1670,17 +1644,15 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 		goto err;
 	}
 
-	host->clk = devm_clk_get(&pdev->dev, "sdio_clk");
+	host->clk = devm_clk_get(dev, "sdio_clk");
 	if (IS_ERR(host->clk)) {
-		dev_warn(&pdev->dev,
-			"can't get the clock dts config: sdio_clk\n");
+		dev_warn(dev, "Can't get clock property: sdio_clk\n");
 		host->clk = NULL;
 	}
 	/* r10p0 need only one clock source */
 	host->clk_source = devm_clk_get(&pdev->dev, "sdio_clk_source");
 	if (IS_ERR(host->clk_source)) {
-		dev_warn(&pdev->dev,
-			"can't get the clock dts config: sdio_clk_source\n");
+		dev_warn(dev, "Can't get clock property: sdio_clk_source\n");
 		host->clk_source = NULL;
 	}
 
@@ -1688,34 +1660,30 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 	host->base_clk = clk_get_rate(host->clk_source);
 	if (!host->base_clk) {
 		host->base_clk = 26000000;
-		 dev_warn(&pdev->dev, "Can't find clk source-- switch to FPGA mode!\n");
+		 dev_warn(dev, "Can't find clk source, switch to FPGA mode!\n");
 	}
 	host->sdio_ahb = devm_clk_get(&pdev->dev, "sdio_ahb_enable");
 
 	if (IS_ERR(host->sdio_ahb)) {
-		dev_warn(&pdev->dev,
-			"sdio can't get the clock dts config: sdio_ahb_enable\n");
+		dev_warn(dev, "Can't get clock property: sdio_ahb_enable\n");
 		host->sdio_ahb = NULL;
 	}
 
 	host->sdio_ckg = devm_clk_get(&pdev->dev, "sdio_2x_eb");
 	if (IS_ERR(host->sdio_ckg)) {
-		dev_err(&pdev->dev,
-			"sdio can't get the clock dts config: sdio_2x_eb\n");
+		dev_err(dev, "Can't get clock property: sdio_2x_eb\n");
 		host->sdio_ckg = NULL;
 	}
 
 	host->sdio_1x_ckg = devm_clk_get(&pdev->dev, "sdio_1x_eb");
 	if (IS_ERR(host->sdio_1x_ckg)) {
-		dev_warn(&pdev->dev,
-			"sdio can't get sdio_1x eb in dts maybe default on\n");
+		dev_warn(dev, "Can't get sdio_1x eb in dts maybe default on\n");
 		host->sdio_1x_ckg = NULL;
 	}
 
 	ret = of_property_read_string(np, "sprd,name", &host->device_name);
 	if (ret) {
-		dev_err(&pdev->dev,
-			"can not read the property of sprd name\n");
+		dev_err(dev, "Can't read the property of sprd name\n");
 		goto err;
 	}
 
@@ -1725,7 +1693,7 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 #ifdef CONFIG_64BIT
 		host->flags |= SPRD_USE_64_BIT_DMA;
 #endif
-		dev_info(&pdev->dev, "find sdio-adma\n");
+		dev_info(dev, "find sdio-adma\n");
 	}
 
 	host->detect_gpio = of_get_named_gpio(np, "cd-gpios", 0);
@@ -1738,7 +1706,7 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 	if ((strcmp(host->device_name, "sdio_sd") == 0)) {
 		host->pinctrl = devm_pinctrl_get(&pdev->dev);
 		if (IS_ERR(host->pinctrl)) {
-			dev_err(&pdev->dev, "can not find pinctrl\n");
+			dev_err(dev, "Can't find pinctrl\n");
 			goto out;
 		}
 
@@ -1765,7 +1733,7 @@ out:
 	return 0;
 
 err:
-	dev_err(&pdev->dev, "sprd_sdhc get basic resource fail\n");
+	dev_err(dev, "get basic resource fail\n");
 	return ret;
 }
 
@@ -1773,14 +1741,14 @@ static int sprd_get_ext_resource(struct sprd_sdhc_host *host)
 {
 	int err;
 	struct mmc_host *mmc = host->mmc;
+	struct device *dev = &host->pdev->dev;
 
 	host->data_timeout_val = 0;
 
 	err = mmc_regulator_get_supply(mmc);
 	if (err) {
 		if (err != -EPROBE_DEFER)
-			pr_err("%s:: Could not get vmmc supply\n",
-			       host->device_name);
+			dev_err(dev, "Could not get vmmc supply\n");
 		return err;
 	}
 	host->mmc = mmc;
@@ -1788,7 +1756,7 @@ static int sprd_get_ext_resource(struct sprd_sdhc_host *host)
 			IRQF_SHARED, mmc_hostname(host->mmc), host);
 
 	if (err) {
-		pr_err("%s: can not request irq\n", host->device_name);
+		dev_err(dev, "Can't request irq\n");
 		return err;
 	}
 #if defined(CONFIG_X86)
@@ -1796,7 +1764,7 @@ static int sprd_get_ext_resource(struct sprd_sdhc_host *host)
 		int res;
 
 		res = irq_set_affinity(host->irq, cpumask_of(0));
-		pr_err("%s: affinity irq to cpu 0 result=%d\n",
+		dev_err(dev, "%s: affinity irq to cpu 0 result=%d\n",
 			host->device_name, res);
 	}
 #endif
@@ -1813,6 +1781,7 @@ static void sprd_set_mmc_struct(struct sprd_sdhc_host *host,
 				struct mmc_host *mmc)
 {
 	struct device_node *np = host->pdev->dev.of_node;
+	struct device *dev = &host->pdev->dev;
 	u32 host_caps;
 
 	mmc = host->mmc;
@@ -1885,10 +1854,9 @@ static void sprd_set_mmc_struct(struct sprd_sdhc_host *host,
 			host->align_buffer = NULL;
 			host->adma_table_sz = 0;
 			host->adma_desc_sz = 0;
-			pr_err("%s: Unable to allocate ADMA buffers.\n",
-				host->device_name);
+			dev_err(dev, "Unable to allocate ADMA buffers.\n");
 		} else
-			pr_info("%s using ADMA2\n", host->device_name);
+			dev_info(dev, "using ADMA2\n");
 	} else {
 		mmc->max_segs = 1;
 		mmc->max_seg_size = mmc->max_req_size;
@@ -1903,12 +1871,11 @@ static void sprd_set_mmc_struct(struct sprd_sdhc_host *host,
 
 	mmc->pm_flags |= MMC_PM_IGNORE_PM_NOTIFY;
 
-	pr_info("%s(%s): ocr avail = 0x%x, base clock = %u\n"
-		"pm_caps = 0x%x, caps: 0x%x, caps2: 0x%x,\n"
-		"host->flags:0x%x, host_caps:0x%x\n",
-		__func__, host->device_name, mmc->ocr_avail,
-		host->base_clk, mmc->pm_caps, mmc->caps,
-		mmc->caps2, host->flags, host_caps);
+	dev_info(dev, "ocr avail = 0x%x, base clock = %u\n"
+		 "pm_caps = 0x%x, caps: 0x%x, caps2: 0x%x,\n"
+		 "host->flags:0x%x, host_caps:0x%x\n",
+		 mmc->ocr_avail, host->base_clk, mmc->pm_caps,
+		 mmc->caps, mmc->caps2, host->flags, host_caps);
 }
 
 #ifdef CONFIG_PM_SLEEP
@@ -2022,12 +1989,13 @@ static int sprd_sdhc_probe(struct platform_device *pdev)
 {
 	struct mmc_host *mmc;
 	struct sprd_sdhc_host *host;
+	struct device *dev = &pdev->dev;
 	int ret;
 
 	/* globe resource */
 	mmc = mmc_alloc_host(sizeof(struct sprd_sdhc_host), &pdev->dev);
 	if (!mmc) {
-		dev_err(&pdev->dev, "no memory for mmc host\n");
+		dev_err(dev, "no memory for mmc host\n");
 		return -ENOMEM;
 	}
 
@@ -2041,13 +2009,13 @@ static int sprd_sdhc_probe(struct platform_device *pdev)
 	/* get basic resource from device tree */
 	ret = sprd_get_dt_resource(pdev, host);
 	if (ret) {
-		dev_err(&pdev->dev, "fail to get basic resource: %d\n", ret);
+		dev_err(dev, "fail to get basic resource: %d\n", ret);
 		goto err_free_host;
 	}
 
 	ret = sprd_get_ext_resource(host);
 	if (ret) {
-		dev_err(&pdev->dev, "fail to get external resource: %d\n", ret);
+		dev_err(dev, "fail to get external resource: %d\n", ret);
 		goto err_free_host;
 	}
 
@@ -2078,12 +2046,11 @@ static int sprd_sdhc_probe(struct platform_device *pdev)
 	/* add host */
 	ret = mmc_add_host(mmc);
 	if (ret) {
-		dev_err(&pdev->dev, "failed to add mmc host: %d\n", ret);
+		dev_err(dev, "failed to add mmc host: %d\n", ret);
 		goto err_free_host;
 	}
-	dev_info(&pdev->dev,
-		"%s[%s] host controller, irq %d\n",
-		host->device_name, mmc_hostname(mmc), host->irq);
+	dev_info(dev, "%s[%s] host controller, irq %d\n",
+		 host->device_name, mmc_hostname(mmc), host->irq);
 
 	return 0;
 
