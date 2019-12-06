@@ -861,12 +861,12 @@ CONFIG_ARM_ARCH_TIMER_OOL_WORKAROUND
 	[function] support workaround for XXX erratum device
 CONFIG_ARM_CPUIDLE
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] pike2,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] pike2
 	[field] make
 	[subsys] cpuidle
 	[must] user
-	[missing plat description]
+	[missing plat description] Pike2 used CONFIG_ARM_SPRD_CPUIDLE.
 	[function] Enable arm/arm64 cpuidle driver
 CONFIG_ARM_CPU_SUSPEND
 	[arch] arm
@@ -1049,7 +1049,8 @@ CONFIG_ARM_SPRD_CPUIDLE
 	[field] cpuidle
 	[subsys] make
 	[must] user
-	[missing plat description]
+	[missing plat description] This config is sprd cpuidle driver
+				   for cortex-a7,only used by pike2.
 	[function] sprd cortex-a7 cpuidle driver.
 CONFIG_ARM_SPRD_HW_CPUFREQ
 	[arch] all
@@ -2331,30 +2332,31 @@ CONFIG_CPU_HAS_ASID
 	[function] Enable kernel support ASID.
 CONFIG_CPU_IDLE
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] cpuidle
 	[must] console
-	[missing plat description]
+	[missing plat description] none
 	[function] CPU idle pm support.
 CONFIG_CPU_IDLE_GOV_MENU
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] cpuidle
 	[must] user
-	[missing plat description] cpuidle is not turned on.
+	[missing plat description] none
 	[function] Menu governor (for tickless system).
 CONFIG_CPU_IDLE_MULTIPLE_DRIVERS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] pike2,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] pike2
 	[field] make
 	[subsys] cpuidle
 	[must] user
-	[missing plat description]
+	[missing plat description] This config select by CONFIG_ARM_CPUIDLE,
+				    pike2 used CONFIG_ARM_SPRD_CPUIDLE.
 	[function] Support for multiple idle drivers.
 CONFIG_CPU_PABRT_V7
 	[arch] arm
@@ -3921,12 +3923,12 @@ CONFIG_DTC
 	[function] Support the device-tree-compiler.
 CONFIG_DT_IDLE_STATES
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] cpuidle
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] This macro is used to open cpuidle and light sleep function.
 CONFIG_DUAL_ROLE_USB_INTF
 	[arch] all
