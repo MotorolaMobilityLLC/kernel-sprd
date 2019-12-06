@@ -53,6 +53,14 @@
 					debounce-interval = <2>;
 					wakeup-source;
 				};
+
+				key-ai {
+					label = "AI Key";
+					linux,code = <766>;
+					gpios = <&ap_gpio 125 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
 			};
 
 			pwm_flash: pwm_flash {
