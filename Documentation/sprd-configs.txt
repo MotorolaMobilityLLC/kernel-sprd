@@ -15074,42 +15074,6 @@ CONFIG_USB_CONFIGFS
 	[must] user
 	[missing plat description] none
 	[function] A Linux USB "gadget" can be set up through configfs.
-CONFIG_USB_CONFIGFS_ACM
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_USB_CONFIGFS_ECM
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_USB_CONFIGFS_ECM_SUBSET
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_USB_CONFIGFS_EEM
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_USB_CONFIGFS_F_ACC
 	[arch] all
 	[plat] all
@@ -15137,15 +15101,6 @@ CONFIG_USB_CONFIGFS_F_FS
 	[must] user
 	[missing plat description] none
 	[function] Function filesystem (FunctionFS)
-CONFIG_USB_CONFIGFS_F_HID
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_USB_CONFIGFS_F_MBIM
 	[arch] arm64
 	[plat] roc1
@@ -15200,24 +15155,6 @@ CONFIG_USB_CONFIGFS_MASS_STORAGE
 	[must] user
 	[missing plat description] none
 	[function] This macro is to support USB Mass storage.
-CONFIG_USB_CONFIGFS_NCM
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_USB_CONFIGFS_OBEX
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_USB_CONFIGFS_RNDIS
 	[arch] all
 	[plat] all
@@ -15330,15 +15267,6 @@ CONFIG_USB_F_ACC
 	[must] user
 	[missing plat description] none
 	[function] USB gadget Accessory support
-CONFIG_USB_F_ACM
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_USB_F_AUDIO_SRC
 	[arch] all
 	[plat] all
@@ -15348,24 +15276,6 @@ CONFIG_USB_F_AUDIO_SRC
 	[must] user
 	[missing plat description] none
 	[function] USB gadget Audio Source support.
-CONFIG_USB_F_ECM
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_USB_F_EEM
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_USB_F_FS
 	[arch] all
 	[plat] all
@@ -15375,15 +15285,6 @@ CONFIG_USB_F_FS
 	[must] user
 	[missing plat description] none
 	[function] Function filesystem (FunctionFS)
-CONFIG_USB_F_HID
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_USB_F_MASS_STORAGE
 	[arch] all
 	[plat] all
@@ -15420,24 +15321,6 @@ CONFIG_USB_F_MTP
 	[must] user
 	[missing plat description] none
 	[function] USB gadget MTP support.
-CONFIG_USB_F_NCM
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
-CONFIG_USB_F_OBEX
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_USB_F_PTP
 	[arch] all
 	[plat] all
@@ -15465,15 +15348,6 @@ CONFIG_USB_F_SERIAL
 	[must] user
 	[missing plat description] none
 	[function] USB gadget SERIAL support.
-CONFIG_USB_F_SUBSET
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_USB_F_VSERIAL
 	[arch] all
 	[plat] all
@@ -15492,15 +15366,6 @@ CONFIG_USB_GADGET
 	[must] user
 	[missing plat description] none
 	[function] USB Gadget Support
-CONFIG_USB_GADGET_DEBUG_FILES
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field] config
-	[subsys] usb
-	[must] user
-	[missing plat description]
-	[function] This macro is to support gadget debug info.
 CONFIG_USB_GADGET_STORAGE_NUM_BUFFERS
 	[arch] all
 	[plat] all
@@ -15712,12 +15577,12 @@ CONFIG_USB_OHCI_LITTLE_ENDIAN
 	[function] A controller type.
 CONFIG_USB_OTG_WAKELOCK
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] usb
 	[must] user
-	[missing plat description]
+	[missing plat description] none
 	[function] This macro is to hold a wakelock when USB connected.
 CONFIG_USB_PAM
 	[arch] arm64
