@@ -496,11 +496,11 @@ CONFIG_ARCH_SUPPORTS_LTO_CLANG
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] it indicates whether arch supports clang LTO
 CONFIG_ARCH_SUPPORTS_MEMORY_FAILURE
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -1694,20 +1694,20 @@ CONFIG_CC_HAS_KASAN_GENERIC
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] For kasan function
 CONFIG_CC_HAS_KASAN_SW_TAGS
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] For kasan function
 CONFIG_CC_OPTIMIZE_FOR_SIZE
 	[arch] all
 	[plat] all
@@ -5567,11 +5567,11 @@ CONFIG_HAVE_GCC_PLUGINS
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] it indicates whether the arch supports building with GCC plugins
 CONFIG_HAVE_GENERIC_DMA_COHERENT
 	[arch] all
 	[plat] all
