@@ -1919,7 +1919,8 @@ struct reclaim_param reclaim_task_anon(struct task_struct *task,
 
 	down_read(&mm->mmap_sem);
 	for (vma = mm->mmap; vma; vma = vma->vm_next) {
-		if (is_vm_hugetlb_page(vma))
+		if (is_vm_hugetlb_page(vma) ||
+		   (vma->vm_flags & VM_MIXEDMAP))
 			continue;
 
 		if (vma->vm_file)
@@ -2027,7 +2028,8 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 		while (vma) {
 			if (vma->vm_start > end)
 				break;
-			if (is_vm_hugetlb_page(vma))
+			if (is_vm_hugetlb_page(vma) ||
+			   (vma->vm_flags & VM_MIXEDMAP))
 				continue;
 
 			rp.vma = vma;
@@ -2038,7 +2040,8 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 		}
 	} else {
 		for (vma = mm->mmap; vma; vma = vma->vm_next) {
-			if (is_vm_hugetlb_page(vma))
+			if (is_vm_hugetlb_page(vma) ||
+			   (vma->vm_flags & VM_MIXEDMAP))
 				continue;
 
 			if (type == RECLAIM_ANON && vma->vm_file)
