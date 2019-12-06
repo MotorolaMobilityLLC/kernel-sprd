@@ -14,6 +14,8 @@ obj-y += dummy/dummy_crtc.o
 obj-y += dummy/dummy_connector.o
 
 obj-y += disp_lib.o sprd_corner.o
+
+obj-y += sprd_bl.o
 obj-y += cabc/
 
 obj-y += dpu/
