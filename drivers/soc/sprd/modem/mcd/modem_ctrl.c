@@ -733,6 +733,7 @@ static void modem_ctrl_shutdown(struct platform_device *pdev)
 static const struct of_device_id modem_ctrl_match_table[] = {
 	{.compatible = "sprd,roc1-modem-ctrl", },
 	{.compatible = "sprd,orca-modem-ctrl", },
+	{ },
 };
 
 static struct platform_driver modem_ctrl_driver = {
