@@ -8341,14 +8341,14 @@ CONFIG_MIGRATION
 	[function] Allows the migration of the physical location of pages of processes
 	while the virtual addresses are not changed.
 CONFIG_MII
-	[arch] arm64
-	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field] code
-	[subsys] usb
-	[must] user
-	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
-	[function] network phy interface
+	[arch] all
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[missing plat]
+	[field]
+	[subsys]
+	[must]
+	[missing plat description]
+	[function]
 CONFIG_MISC_FILESYSTEMS
 	[arch] all
 	[plat] all
@@ -15500,14 +15500,14 @@ CONFIG_USB_NET_CDC_SUBSET_ENABLE
 	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
 	[function] adb over ethernet
 CONFIG_USB_NET_DRIVERS
-	[arch] arm64
-	[plat] roc1
-	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[arch] all
+	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[missing plat] sharkl5,sharkl5_32
 	[field] code
 	[subsys] usb
 	[must] user
-	[missing plat description] only roc1 baiduAI need adb function over usb ethernet
-	[function] adb over ethernet
+	[missing plat description] sharkl5 usb host don't need support usb net.
+	[function] usb network driver
 CONFIG_USB_NET_NET1080
 	[arch] arm64
 	[plat] roc1
@@ -15601,6 +15601,15 @@ CONFIG_USB_ROLE_SWITCH
 				   missing sharkl5 because not suppoet PD
 				   missing sharkl5Pro because not suppoet PD
 	[function] this function support typec tcpm for PD.
+CONFIG_USB_RTL8152
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[missing plat] roc1,sharkl5,sharkl5_32
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] Don't need usb network driver
+	[function] usb network driver
 CONFIG_USB_SC27XX_TYPEC
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
