@@ -3594,7 +3594,7 @@ CONFIG_DIRECT_SWAPPINESS
 	[function] Allow to adjust direct reclaim swappiness
 CONFIG_DISP_PM_DOMAIN_SHARKL3
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5_32
+	[plat] sharkl3,sharkl3_32
 	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkle32
 	[field] make
 	[subsys] video
@@ -10943,30 +10943,39 @@ CONFIG_PM_DEVFREQ
 	[function] Generic Dynamic Voltage and Frequency Scaling (DVFS) support
 CONFIG_PM_GENERIC_DOMAINS
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32
 	[missing plat] pike2,sharkl5,sharkl5Pro,sharkle32
 	[field] make,code
 	[subsys] device power
 	[must] user
-	[missing plat description]
+	[missing plat description] This config is common driver of device
+				   power domain, only IPA at roc1 and
+				   display at sharkl3 used it, other
+				   platform didn't used.
 	[function] common driver of device power domain
 CONFIG_PM_GENERIC_DOMAINS_OF
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32
 	[missing plat] pike2,sharkl5,sharkl5Pro,sharkle32
 	[field] code
 	[subsys] device power
 	[must] user
-	[missing plat description]
+	[missing plat description] This config selected by
+				   CONFIG_PM_GENERIC_DOMAINS,only IPA at
+				   roc1 and display at sharkl3 used it,
+				   other platform didn't used.
 	[function] Device Tree based PM domain
 CONFIG_PM_GENERIC_DOMAINS_SLEEP
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5_32
+	[plat] roc1,sharkl3,sharkl3_32
 	[missing plat] pike2,sharkl5,sharkl5Pro,sharkle32
 	[field] code
 	[subsys] power
 	[must] user
-	[missing plat description]
+	[missing plat description] This config selected by
+				   CONFIG_PM_GENERIC_DOMAINS,only IPA at
+				   roc1 and display at sharkl3 used it,
+				   other platform didn't used.
 	[function] without using except defconfig_update.sh checking
 CONFIG_PM_OPP
 	[arch] all
@@ -13645,7 +13654,9 @@ CONFIG_SPRD_PIKE2_SLEEP
 	[field] make
 	[subsys] soc
 	[must] user
-	[missing plat description]
+	[missing plat description] Only pike2 used this config to enable
+				   light sleep,other platform didn't
+				   used it.
 	[function] This function is used to enable pike light sleep.
 CONFIG_SPRD_PIKE2_USB2_PHY
 	[arch] arm
