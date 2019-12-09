@@ -1371,11 +1371,14 @@ int sdiohal_init(void)
 	}
 	sdiohal_data = p_data;
 
-	if (sdiohal_parse_dt() < 0)
+	if (sdiohal_parse_dt() < 0) {
+		kfree(p_data);
 		return -1;
+	}
 
 	ret = sdiohal_misc_init();
 	if (ret != 0) {
+		kfree(p_data);
 		WCN_ERR("sdiohal_misc_init error :%d\n", ret);
 		return -1;
 	}
