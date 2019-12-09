@@ -94,34 +94,6 @@ CONFIG_ANDROID_BINDER_IPC
 	[missing plat description] none
 	[function] vts require. Binder is used in Android for both communication
 		between processes, and remote method invocation.
-CONFIG_ANDROID_LOW_MEMORY_KILLER
-	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] none
-	[field] make,code
-	[subsys] mm
-	[must] unknown
-	[missing plat description] none
-	[function] Registers processes to be killed when low memory conditions,
-	    this is useful in android-go.
-CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
-	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] none
-	[field] code
-	[subsys] mm
-	[must] unknown
-	[missing plat description] none
-	[function] Threshold table in lowmemorykiller.
-CONFIG_ANDROID_LOW_MEMORY_KILLER_MEMINFO
-	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] none
-	[field] code
-	[subsys] mm
-	[must] debug
-	[missing plat description] none
-	[function] Show memory information when lmk kills process
 CONFIG_ANDROID_PARANOID_NETWORK
 	[arch] all
 	[plat] all
@@ -4104,12 +4076,12 @@ CONFIG_ENCRYPTED_KEYS
 	[function] tristate "ENCRYPTED KEYS"
 CONFIG_ENHANCE_SMAPS_INFO
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] mm
 	[must] debug
-	[missing plat description]
+	[missing plat description] none
 	[function] Show more smaps info.
 CONFIG_EPOLL
 	[arch] all
@@ -4261,12 +4233,12 @@ CONFIG_EXTRA_FIRMWARE
 	[function] External firmware blobs to build into the kernel binary, Set to "".
 CONFIG_E_SHOW_MEM
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] lib,mm
 	[must] console
-	[missing plat description]
+	[missing plat description] none
 	[function] show enhanced meminfo.
 CONFIG_F2FS_CHECK_FS
 	[arch] all
@@ -5266,7 +5238,7 @@ CONFIG_HAVE_ARCH_KASAN_SW_TAGS
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
+	[field] menu
 	[subsys]
 	[must]
 	[missing plat description] none
@@ -5345,7 +5317,7 @@ CONFIG_HAVE_ARCH_VMAP_STACK
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
+	[field] menu
 	[subsys]
 	[must]
 	[missing plat description] none
@@ -5576,11 +5548,11 @@ CONFIG_HAVE_GENERIC_GUP
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
-	[subsys]
+	[field] menu
+	[subsys] mm
 	[must]
 	[missing plat description] none
-	[function]
+	[function] Generic Fast GUP
 CONFIG_HAVE_HARDENED_USERCOPY_ALLOCATOR
 	[arch] all
 	[plat] all
@@ -6345,8 +6317,8 @@ CONFIG_HOLES_IN_ZONE
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
-	[subsys]
+	[field] menu
+	[subsys] mm
 	[must]
 	[missing plat description] none
 	[function]
@@ -7883,15 +7855,6 @@ CONFIG_KGDB_SERIAL_CONSOLE
 	[must] debug
 	[missing plat description] roc1,sharkl5,sharkl5_32 will no longer need to support
 	[function] Use kgdb over the serial console
-CONFIG_KSM
-	[arch] arm
-	[plat] sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
-	[field] make,code
-	[subsys] mm
-	[must] busybox_console
-	[missing plat description]
-	[function] Enable KSM for page merging.
 CONFIG_KUSER_HELPERS
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -8525,24 +8488,6 @@ CONFIG_MSDOS_PARTITION
 	[must] none
 	[missing plat description] none
 	[function] depends on PARTITION_ADVANCED
-CONFIG_MULTIPLE_OOM_KILLER
-	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] none
-	[field] code
-	[subsys] mm
-	[must] unknown
-	[missing plat description] none
-	[function] lmk can kill multiple processes
-CONFIG_MULTIPLE_OOM_KILL_COUNT
-	[arch] arm
-	[plat] pike2,sharkle32
-	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_MULTIUSER
 	[arch] all
 	[plat] all
@@ -10344,15 +10289,6 @@ CONFIG_OLD_SIGSUSPEND3
 	[must] console
 	[missing plat description] none
 	[function] Even weirder antique ABI - three-argument sigsuspend(2).
-CONFIG_OOM_NOTIFIER
-	[arch] arm
-	[plat] pike2,sharkl5_32,sharkle32
-	[missing plat] none
-	[field] code
-	[subsys] mm
-	[must] unknown
-	[missing plat description] none
-	[function] Using a Android-Style oom-killer instead of linux's native OOM_killer
 CONFIG_OVERLAY_FS
 	[arch] all
 	[plat] all
@@ -11304,12 +11240,12 @@ CONFIG_PROBE_EVENTS
 	[function] trace probe status bit
 CONFIG_PROCESS_RECLAIM
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] pike2,roc1,sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
-	[missing plat description]
+	[missing plat description] none
 	[function]
 CONFIG_PROC_FS
 	[arch] all
@@ -11369,12 +11305,12 @@ CONFIG_PROFILING
 	[function] vts require, Profiling support.
 CONFIG_PSI
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] sched
 	[must] after kernel4.14
-	[missing plat description]
+	[missing plat description] none
 	[function] Pressure stall information, which include memory/ IO/ CPU.
 CONFIG_PSTORE
 	[arch] all
@@ -12028,15 +11964,6 @@ CONFIG_SC27XX_TSENSOR_THERMAL
 	[missing plat description] Only enable on sharkl5 and sharkl5Pro because solution requirements.
 	[function] This function is used to config thermal moudle to get
 	osc and extern cystal temperature.
-CONFIG_SCAN_BALANCE_ANON_FILE
-	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
-	[missing plat] none
-	[field] make
-	[subsys] mm
-	[must] home
-	[missing plat description] none
-	[function] scan balance anonymous pages and page caches when reclaim
 CONFIG_SCHEDSTATS
 	[arch] all
 	[plat] all
@@ -12471,16 +12398,6 @@ CONFIG_SLUB_DEBUG
 	[must] debug
 	[missing plat description] none
 	[function] Increase debug efficiency for memory covered issue
-CONFIG_SLUB_DEBUG_ON
-	[arch] all
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
-	[field] code
-	[subsys] mm
-	[must] debug
-	[missing plat description]
-	[function] Increase debug efficiency for memory covered issue,
-	   depends on SLUB && SLUB_DEBUG
 CONFIG_SMARTJOYPLUS_FF
 	[arch] all
 	[plat] all
@@ -15855,7 +15772,7 @@ CONFIG_VMAP_STACK
 	[subsys]
 	[must]
 	[missing plat description] none
-	[function]
+	[function] the thread kernel stack is allocated by vmalloc, otherwise the continuous physical pages are allocated directly
 CONFIG_VMSPLIT_3G
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -16170,15 +16087,6 @@ CONFIG_ZBOOT_ROM_TEXT
 	[must] code
 	[missing plat description] none
 	[function] Compressed ROM boot loader base address.
-CONFIG_ZBUD
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field] make,code
-	[subsys] memory
-	[must] ZCACHE feature
-	[missing plat description]
-	[function] an memory allocator for storing compressed pages.
 CONFIG_ZLIB_DEFLATE
 	[arch] all
 	[plat] all
