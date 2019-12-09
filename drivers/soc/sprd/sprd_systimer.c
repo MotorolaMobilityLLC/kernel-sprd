@@ -42,7 +42,7 @@ static seqcount_t systimer_seq;
 u64 sprd_systimer_to_boottime(u64 counter, int src)
 {
 	unsigned long seq;
-	u64 delta, boottime;
+	u64 delta, boottime = 0;
 
 	if (src == SYSTEM_TIMER) {
 		if (!sprd_systimer_addr_base)
