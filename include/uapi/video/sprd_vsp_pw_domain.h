@@ -31,8 +31,8 @@ enum {
 	VSP_PW_DOMAIN_ON,
 };
 struct client_info_t {
-	u8 pw_state;
-	u8 pw_count;
+	u32 pw_state;
+	u32 pw_count;
 };
 
 struct vsp_pw_domain_info_t {
