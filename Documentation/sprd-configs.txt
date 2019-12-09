@@ -13344,11 +13344,11 @@ CONFIG_SPRD_EXT_MODEM
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make, code
+	[subsys] modem
+	[must] user
+	[missing plat description] missing plat without external modem, Roc1 unique feature
+	[function] Enable external modem function
 CONFIG_SPRD_HWFEATURE
 	[arch] arm64
 	[plat] sharkl5Pro
@@ -13512,11 +13512,11 @@ CONFIG_SPRD_MCD
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field] code
-	[subsys] mm
-	[must] busybox_console
-	[missing plat description]
-	[function] modem control device driver
+	[field] make, code
+	[subsys] modem
+	[must] user
+	[missing plat description] missing plat without external modem, Roc1 unique feature
+	[function] This driver is a modem control device driver for support external modem
 CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[arch] all
 	[plat] all
@@ -13599,11 +13599,11 @@ CONFIG_SPRD_MODEM_LOADER
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make, code
+	[subsys] modem
+	[must] user
+	[missing plat description] missing plat without external modem, Roc1 unique feature
+	[function] This function is used to load modem image
 CONFIG_SPRD_PAMU3
 	[arch] arm64
 	[plat] roc1
@@ -13645,7 +13645,7 @@ CONFIG_SPRD_PCIE_EP_DEVICE
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make,code
-	[subsys] pci
+	[subsys] modem
 	[must] user
 	[missing plat description] missing sharkl3 because sharkl3 hardware
 				   platform does not use pci device.
@@ -13944,11 +13944,11 @@ CONFIG_SPRD_SIPC_V2
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make, code
+	[subsys] modem
+	[must] user
+	[missing plat description] missing plat without external modem, Roc1 unique feature
+	[function] This driver is a sipc v2 driver for support pcie external modem
 CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[arch] all
 	[plat] all
