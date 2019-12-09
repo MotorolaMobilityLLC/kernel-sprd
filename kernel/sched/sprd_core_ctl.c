@@ -715,7 +715,6 @@ static int __ref cpuhp_core_ctl_offline(unsigned int cpu)
 	 * We don't want to have a CPU both offline and isolated.
 	 * So unisolate a CPU that went down if it was isolated by us.
 	 */
-	spin_lock_irqsave(&state_lock, flags);
 	if (state->isolated_by_us) {
 		sched_unisolate_cpu_unlocked(cpu);
 		state->isolated_by_us = false;
@@ -725,6 +724,7 @@ static int __ref cpuhp_core_ctl_offline(unsigned int cpu)
 		move_cpu_lru(state, true);
 	}
 
+	spin_lock_irqsave(&state_lock, flags);
 	cluster->active_cpus = get_active_cpu_count(cluster);
 	cluster->need_cpus = cluster->active_cpus;
 	spin_unlock_irqrestore(&state_lock, flags);
