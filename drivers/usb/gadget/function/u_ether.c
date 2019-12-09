@@ -23,8 +23,6 @@
 #include <linux/if_vlan.h>
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
-#include <linux/kthread.h>
-#include <uapi/linux/sched/types.h>
 
 #ifdef CONFIG_SPRD_SIPA
 #include <linux/interrupt.h>
@@ -60,8 +58,8 @@
  * frame sizes. Set the max size to 15k+52 to prevent allocating 32k
  * blocks and still have efficient handling. */
 #define GETHER_MAX_ETH_FRAME_LEN 15412
-#define UETHER_TASK_PRIO 80
 
+static struct workqueue_struct	*uether_wq;
 static struct workqueue_struct	*uether_tx_wq;
 static int tx_start_threshold = 1500;
 static int tx_stop_threshold = 2000;
@@ -125,7 +123,7 @@ struct eth_dev {
 						struct sk_buff_head *list);
 
 	struct work_struct	work;
-	struct task_struct	*rx_thread;
+	struct work_struct	rx_work;
 	struct work_struct	tx_work;
 
 #ifdef CONFIG_SPRD_SIPA
@@ -443,7 +441,11 @@ clean:
 	spin_unlock(&dev->req_lock);
 
 	if (queue)
-		wake_up_process(dev->rx_thread);
+#if defined(CONFIG_X86)
+		queue_work_on(2, uether_wq, &dev->rx_work);
+#else
+		queue_work(uether_wq, &dev->rx_work);
+#endif
 }
 
 static int prealloc_sg(struct list_head *list, struct usb_ep *ep, u32 n,
@@ -607,48 +609,36 @@ static void rx_fill(struct eth_dev *dev, gfp_t gfp_flags)
 	spin_unlock_irqrestore(&dev->req_lock, flags);
 }
 
-static int process_rx_w(void *data)
+static void process_rx_w(struct work_struct *work)
 {
-	struct eth_dev	*dev = (struct eth_dev *)data;
-	struct sched_param param;
+	struct eth_dev	*dev = container_of(work, struct eth_dev, rx_work);
 	struct sk_buff	*skb;
 	int		status = 0;
 
-	param.sched_priority = UETHER_TASK_PRIO;
-	sched_setscheduler(current, SCHED_FIFO, &param);
+	if (!dev->port_usb)
+		return;
 
-	while (!kthread_should_stop()) {
-		set_current_state(TASK_INTERRUPTIBLE);
-		schedule();
-		set_current_state(TASK_RUNNING);
-
-		if (!dev->port_usb)
+	while ((skb = skb_dequeue(&dev->rx_frames))) {
+		if (status < 0
+			|| ETH_HLEN > skb->len
+			|| skb->len > ETH_FRAME_LEN) {
+			dev->net->stats.rx_errors++;
+			dev->net->stats.rx_length_errors++;
+			DBG(dev, "rx length %d\n", skb->len);
+			dev_kfree_skb_any(skb);
 			continue;
-
-		while ((skb = skb_dequeue(&dev->rx_frames))) {
-			if (status < 0 || ETH_HLEN > skb->len
-			    || skb->len > ETH_FRAME_LEN) {
-				dev->net->stats.rx_errors++;
-				dev->net->stats.rx_length_errors++;
-				DBG(dev, "rx length %d\n", skb->len);
-				dev_kfree_skb_any(skb);
-				continue;
-			}
-
-			skb->protocol = eth_type_trans(skb, dev->net);
-			dev->net->stats.rx_packets++;
-			dev->net->stats.rx_bytes += skb->len;
-
-			local_bh_disable();
-			status = netif_receive_skb(skb);
-			local_bh_enable();
 		}
+		skb->protocol = eth_type_trans(skb, dev->net);
+		dev->net->stats.rx_packets++;
+		dev->net->stats.rx_bytes += skb->len;
 
-		if (netif_running(dev->net))
-			rx_fill(dev, GFP_KERNEL);
+		local_bh_disable();
+		status = netif_receive_skb(skb);
+		local_bh_enable();
 	}
 
-	return 0;
+	if (netif_running(dev->net))
+		rx_fill(dev, GFP_KERNEL);
 }
 
 static void eth_work(struct work_struct *work)
@@ -1748,6 +1738,7 @@ struct eth_dev *gether_setup_name(struct usb_gadget *g,
 	spin_lock_init(&dev->lock);
 	spin_lock_init(&dev->req_lock);
 	INIT_WORK(&dev->work, eth_work);
+	INIT_WORK(&dev->rx_work, process_rx_w);
 	INIT_LIST_HEAD(&dev->tx_reqs);
 	INIT_LIST_HEAD(&dev->rx_reqs);
 
@@ -1842,6 +1833,7 @@ struct net_device *gether_setup_name_default(const char *netname)
 	spin_lock_init(&dev->lock);
 	spin_lock_init(&dev->req_lock);
 	INIT_WORK(&dev->work, eth_work);
+	INIT_WORK(&dev->rx_work, process_rx_w);
 	INIT_WORK(&dev->tx_work, process_tx_w);
 	INIT_LIST_HEAD(&dev->tx_reqs);
 	INIT_LIST_HEAD(&dev->rx_reqs);
@@ -1884,19 +1876,11 @@ int gether_register_netdev(struct net_device *net)
 		return -EINVAL;
 	dev = netdev_priv(net);
 	g = dev->gadget;
-
-	dev->rx_thread = kthread_create(process_rx_w, dev, "uether_rx");
-	if (IS_ERR(dev->rx_thread)) {
-		ERROR(dev, "failed to create uether_rx\n");
-		return PTR_ERR(dev->rx_thread);
-	}
-	wake_up_process(dev->rx_thread);
-
 	status = register_netdev(net);
+
 #ifdef CONFIG_SPRD_SIPA
 	if (status < 0) {
 		ERROR(dev, "sipa_usb register usb0 dev failed (%d)\n", status);
-		kthread_stop(dev->rx_thread);
 		netif_napi_del(&dev->napi);
 		free_netdev(net);
 		return status;
@@ -2071,7 +2055,6 @@ void gether_cleanup(struct eth_dev *dev)
 
 	uether_debugfs_exit(dev);
 	unregister_netdev(dev->net);
-	kthread_stop(dev->rx_thread);
 	flush_work(&dev->work);
 	free_netdev(dev->net);
 }
@@ -2401,9 +2384,20 @@ static void __init sipa_usb_debugfs_init(void)
 
 static int __init gether_init(void)
 {
+#if defined(CONFIG_X86)
+	uether_wq  = create_workqueue("uether");
+#else
+	uether_wq  = create_singlethread_workqueue("uether");
+#endif
+	if (!uether_wq) {
+		pr_err("%s: Unable to create workqueue: uether\n", __func__);
+		return -ENOMEM;
+	}
+
 	uether_tx_wq = alloc_workqueue("uether_tx",
 				WQ_CPU_INTENSIVE | WQ_UNBOUND, 1);
 	if (!uether_tx_wq) {
+		destroy_workqueue(uether_wq);
 		pr_err("%s: Unable to create workqueue: uether\n", __func__);
 		return -ENOMEM;
 	}
@@ -2418,6 +2412,8 @@ module_init(gether_init);
 static void __exit gether_exit(void)
 {
 	destroy_workqueue(uether_tx_wq);
+	destroy_workqueue(uether_wq);
+
 }
 module_exit(gether_exit);
 MODULE_LICENSE("GPL");
