@@ -12493,11 +12493,12 @@ CONFIG_SND_ARM
 	[arch] arm
 	[plat] sharkl3_32,sharkl5_32
 	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] sound
+	[must] user
+	[missing plat description] This config surpport for all arm plats now, but there is no clear
+        	reason for disabling on these plats, so mark as: Need_confirmed
+	[function] Support for sound devices specific to ARM architectures
 CONFIG_SND_COMPRESS_OFFLOAD
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
@@ -12505,7 +12506,7 @@ CONFIG_SND_COMPRESS_OFFLOAD
 	[field] make
 	[subsys] sound
 	[must] user
-	[missing plat description]
+	[missing plat description] Don't support compress card
 	[function] audio compress offload support
 CONFIG_SND_DRIVERS
 	[arch] all
@@ -12523,7 +12524,8 @@ CONFIG_SND_DYNAMIC_MINORS
 	[field] code
 	[subsys] sound
 	[must] user
-	[missing plat description]
+	[missing plat description] This config surpport for all plats now, but there is no clear
+        	reason for disabling on these plats, so mark as: Need_confirmed
 	[function] sound support dynamic device allocation
 CONFIG_SND_HDA_PREALLOC_SIZE
 	[arch] all
@@ -12541,7 +12543,7 @@ CONFIG_SND_HWDEP
 	[field] make
 	[subsys] snd-usb-audio
 	[must] debug
-	[missing plat description]
+	[missing plat description] Don't support USB host
 	[function] This macro is selected when snd usb audio true
 	   support USB Audio/MIDI driver.
 CONFIG_SND_JACK
@@ -12557,11 +12559,11 @@ CONFIG_SND_JACK_INPUT_DEV
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] user, code
+	[subsys] sound
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] audio input device
 CONFIG_SND_MAX_CARDS
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
@@ -12569,7 +12571,7 @@ CONFIG_SND_MAX_CARDS
 	[field] code
 	[subsys] sound
 	[must] user
-	[missing plat description]
+	[missing plat description] less then 8 device
 	[function] support max 32 device
 CONFIG_SND_PCM
 	[arch] all
@@ -12623,7 +12625,7 @@ CONFIG_SND_SOC_COMPRESS
 	[field] make
 	[subsys] sound
 	[must] user
-	[missing plat description]
+	[missing plat description] Don't support compress card
 	[function] sound support compress
 CONFIG_SND_SOC_I2C_AND_SPI
 	[arch] all
@@ -12647,20 +12649,20 @@ CONFIG_SND_SOC_SPRD_AUDIO_TWO_STAGE_DMAENGINE_SURPPORT
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make, code
+	[subsys] sound
+	[must] user
+	[missing plat description] Don't support 2 stages DMA
+	[function] 2 stages DMA engine
 CONFIG_SND_SOC_SPRD_CODEC_SC2721
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make, code
+	[subsys] sound
+	[must] user
+	[missing plat description] codec is another one
+	[function] sc2721 codec driver
 CONFIG_SND_SOC_SPRD_CODEC_SC2730
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
@@ -12668,89 +12670,89 @@ CONFIG_SND_SOC_SPRD_CODEC_SC2730
 	[field] make, code
 	[subsys] sound
 	[must] user
-	[missing plat description]
-	[function] snd codec dai
+	[missing plat description] codec is another one
+	[function] snd codec driver of 2730
 CONFIG_SND_SOC_SPRD_I2S
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field]make, code
+	[subsys] sound
+	[must] user
+	[missing plat description] I2S go through AGDSP
+	[function] I2S sound card driver
 CONFIG_SND_SOC_SPRD_I2S_DUMMY
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make, code
+	[subsys] sound
+	[must] user
+	[missing plat description] I2S go through AGDSP
+	[function] I2S sound card
 CONFIG_SND_SOC_SPRD_PA_UCP1301
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] roc1,sharkl3,sharkl5
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3,sharkl5,roc1
+	[field] make, code
+	[subsys] sound
+	[must] user
+	[missing plat description] Don't support UCP1301
+	[function] UCP1301 driver
 CONFIG_SND_SOC_SPRD_PIKE2
 	[arch] arm
 	[plat] pike2
-	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkle32,sharkl5_32,sharkl3_32
+	[field] make, code
+	[subsys] sound
+	[must] user
+	[missing plat description] used only for pike2
+	[function] plat flag
 CONFIG_SND_SOC_SPRD_R1P0V3_SC2721
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] sound
+	[must] user
+	[missing plat description] use different VBC version
+	[function] VBC version flag
 CONFIG_SND_SOC_SPRD_SHARKL3
 	[arch] all
 	[plat] sharkl3,sharkl3_32
 	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make, code
+	[subsys] sound
+	[must] user
+	[missing plat description] usded only for sharkl3
+	[function] plat flag
 CONFIG_SND_SOC_SPRD_SHARKLE
 	[arch] arm
 	[plat] sharkle32
 	[missing plat] pike2,sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make, code
+	[subsys] sound
+	[must] user
+	[missing plat description] used only for sharkle32
+	[function] plat flag
 CONFIG_SND_SOC_SPRD_VAUDIO
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] sound
+	[must] user
+	[missing plat description] Audio arch is different
+	[function] virtual sound card
 CONFIG_SND_SOC_SPRD_VBC_R1P0V3
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] sound
+	[must] user
+	[missing plat description] VBC version is different
+	[function] VBC version flag
 CONFIG_SND_SOC_SPRD_VBC_V4
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
@@ -12758,8 +12760,8 @@ CONFIG_SND_SOC_SPRD_VBC_V4
 	[field] make
 	[subsys] sound
 	[must] user
-	[missing plat description]
-	[function] snd soc cpu dai
+	[missing plat description] VBC version is different
+	[function] VBC version flag
 CONFIG_SND_SOC_SPRD_VBC_V4_SC2730
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
@@ -12767,7 +12769,7 @@ CONFIG_SND_SOC_SPRD_VBC_V4_SC2730
 	[field] make
 	[subsys] sound
 	[must] user
-	[missing plat description]
+	[missing plat description] machine driver is different
 	[function] snd soc machine code
 CONFIG_SND_SUPPORT_OLD_API
 	[arch] all
@@ -12794,7 +12796,7 @@ CONFIG_SND_USB
 	[field] config
 	[subsys] snd
 	[must] debug
-	[missing plat description]
+	[missing plat description] pike2 don't support USB host
 	[function] This macro is used to support USB sound devices
 CONFIG_SND_USB_AUDIO
 	[arch] all
@@ -12803,7 +12805,7 @@ CONFIG_SND_USB_AUDIO
 	[field] make
 	[subsys] snd
 	[must] debug
-	[missing plat description]
+	[missing plat description] pike2 don't support USB host
 	[function] This macro is used to support USB Audio/MIDI driver
 CONFIG_SND_VERBOSE_PROCFS
 	[arch] all
@@ -12995,9 +12997,9 @@ CONFIG_SPRD_AUDIO_AGDSP_ACCESS
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
-	[subsys] sound
+	[subsys] misc
 	[must] user
-	[missing plat description]
+	[missing plat description] Don't have this HW module
 	[function] audio dsp access
 CONFIG_SPRD_AUDIO_CPBOOT
 	[arch] all
@@ -13006,7 +13008,7 @@ CONFIG_SPRD_AUDIO_CPBOOT
 	[field] make
 	[subsys] misc
 	[must] user
-	[missing plat description]
+	[missing plat description] Don't support this machanism
 	[function] Reboot audio cp from kernel.
 CONFIG_SPRD_AUDIO_DSP_DUMP
 	[arch] all
@@ -13015,7 +13017,7 @@ CONFIG_SPRD_AUDIO_DSP_DUMP
 	[field] make
 	[subsys] sound
 	[must] user
-	[missing plat description]
+	[missing plat description] used to dump AGDSP, but they don't have.
 	[function] audio dsp memory and log dump
 CONFIG_SPRD_AUDIO_MCDT
 	[arch] all
@@ -13024,7 +13026,8 @@ CONFIG_SPRD_AUDIO_MCDT
 	[field] make
 	[subsys] sound
 	[must] user
-	[missing plat description]
+	[missing plat description] used to transf data with AGDSP, but they
+				   don't have.
 	[function] sound data transmission channel with dsp
 CONFIG_SPRD_AUDIO_MEMORY_MANAGER
 	[arch] all
@@ -13040,18 +13043,18 @@ CONFIG_SPRD_AUDIO_SAUDIO
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
 	[field] make
-	[subsys] misc
+	[subsys] sound
 	[must] user
-	[missing plat description]
-	[function] For audio voip voice.
+	[missing plat description] Don't support saudio sound card
+	[function] For audio voip & voice call.
 CONFIG_SPRD_AUDIO_SIPC
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
-	[subsys] sound
+	[subsys] misc
 	[must] user
-	[missing plat description]
+	[missing plat description] Don't have audio SIPC HW module.
 	[function] sound communication with audio dsp
 CONFIG_SPRD_AUTOTEST
 	[arch] all
@@ -13364,7 +13367,8 @@ CONFIG_SPRD_HW_DEVICE_DVFS_AGCP
 	[field] make,code
 	[subsys] misc
 	[must] user
-	[missing plat description]
+	[missing plat description] Used to control AGDSP, but they don't
+				   have AGDSP.
 	[function] This config is enable audiocp DVFS function.
 CONFIG_SPRD_HW_DEVICE_DVFS_CP
 	[arch] arm64
