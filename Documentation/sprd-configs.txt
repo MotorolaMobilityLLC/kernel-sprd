@@ -98,11 +98,11 @@ CONFIG_ANDROID_PARANOID_NETWORK
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] security,net
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Only allow certain groups to create sockets
 CONFIG_ANON_INODES
 	[arch] all
 	[plat] all
@@ -1548,11 +1548,12 @@ CONFIG_BPF_SYSCALL
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] BPF
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Enable the bpf() system call that allows to manipulate
+		   eBPF programs and maps via file descriptors.
 CONFIG_BQL
 	[arch] all
 	[plat] all
@@ -5102,11 +5103,12 @@ CONFIG_GRO_CELLS
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] net
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] To bring GRO (Generic Receive Offload)
+		   capability to tunnels.
 CONFIG_HANDLE_DOMAIN_IRQ
 	[arch] all
 	[plat] all
@@ -6682,13 +6684,14 @@ CONFIG_INET_IPCOMP
 	  needed for IPsec.
 CONFIG_INET_RAW_DIAG
 	[arch] all
-	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] net
+	[must] user
+	[missing plat description] none
+	[function] Support for RAW socket monitoring interface used by
+		   the ss tool.
 CONFIG_INET_TCP_DIAG
 	[arch] all
 	[plat] all
@@ -7166,7 +7169,8 @@ CONFIG_IP6_NF_VOWIFI_DEC_TCPDUMP
 	[field] make
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] It is only for vowifi.There is no vowifi
+				   in roc1 and sharkl5_32.
 	[function] to debug for decode ipsec pkt for software engineer.
 	Use this module,the esp pkt which apk allowed, will be
 	save in the tcpdump with its original message.The module will
@@ -7532,7 +7536,8 @@ CONFIG_IP_NF_VOWIFI_DEC_TCPDUMP
 	[field] make
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] It is only for vowifi.There is no vowifi
+				   in roc1 and sharkl5_32.
 	[function] to debug for decode ipsec pkt for software engineer.Use this module,
 	the esp pkt which apk allowed, will be save in the tcpdump with its
 	original message.The module will save the ipv4 esp pkt.
@@ -8139,11 +8144,14 @@ CONFIG_MAY_USE_DEVLINK
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] net
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Drivers using the devlink infrastructure should have a
+		   dependency on MAY_USE_DEVLINK to ensure they do not
+		   cause link errors when devlink is a loadable module and
+		   the driver using it is built-in.
 CONFIG_MD
 	[arch] all
 	[plat] all
@@ -8597,15 +8605,6 @@ CONFIG_NETFILTER_NETLINK
 	[must] user
 	[missing plat description] none
 	[function] Support for netfilter netlink
-CONFIG_NETFILTER_NETLINK_GLUE_CT
-	[arch] arm
-	[plat] sharkle32
-	[missing plat] pike2,sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_NETFILTER_NETLINK_LOG
 	[arch] all
 	[plat] all
@@ -8872,7 +8871,8 @@ CONFIG_NETFILTER_XT_MATCH_OWNER
 	[field] menu,net
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] It is used for androidQ,there is
+				  no project in roc1,sharkl5 and sharkl5_32.
 	[function] AndroidQ Must Enable. "owner" match support.
 CONFIG_NETFILTER_XT_MATCH_PKTTYPE
 	[arch] all
@@ -8899,7 +8899,9 @@ CONFIG_NETFILTER_XT_MATCH_QTAGUID
 	[field] menu,make
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] Qtaguid is useless in AndroidQ,so
+				  the chip project is in androidQ,then
+				  the option is deleted.
 	[function] vts require,"quota, tag, owner" match and stats support
 CONFIG_NETFILTER_XT_MATCH_QUOTA
 	[arch] all
@@ -9056,7 +9058,7 @@ CONFIG_NETFILTER_XT_TARGET_CT
 	[field] menu,net
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] There is no plat project in Android Q.
 	[function] AndroidQ Must Enable. "CT" target support.
 CONFIG_NETFILTER_XT_TARGET_DSCP
 	[arch] all
@@ -9240,7 +9242,7 @@ CONFIG_NET_CLS_BPF
 	[field] menu,net
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] This is no chip project in Android Q.
 	[function] AndroidQ Must Enable. BPF-based classifier.
 CONFIG_NET_CLS_FW
 	[arch] all
@@ -9273,11 +9275,11 @@ CONFIG_NET_CORE
 CONFIG_NET_EGRESS
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] sharkl5,sharkl5_32
 	[field] menu,net
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] There is not chip project in kernel4.14.
 	[function] bool
 CONFIG_NET_EMATCH
 	[arch] all
@@ -9426,7 +9428,8 @@ CONFIG_NET_SCH_INGRESS
 	[field] menu,net
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] There is no shark5 ,sharkl5_32 and roc1
+				   chip project in Android Q.
 	[function] AndroidQ Must Enable. Ingress/classifier-action Qdisc.
 CONFIG_NET_UDP_TUNNEL
 	[arch] all
@@ -13355,11 +13358,11 @@ CONFIG_SPRD_IPA_SUPPORT
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] staging
+	[must] user
+	[missing plat description] missing plat without IPA,Roc1 unique feature.
+	[function] Sfp ipa configurations. This will enable hardware fast path.
 CONFIG_SPRD_IPA_SYS
 	[arch] arm64
 	[plat] roc1
@@ -13714,20 +13717,20 @@ CONFIG_SPRD_SFP_SUPPORT
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] net
+	[must] user
+	[missing plat description] There is no requirement in sharkl3,sharkl5 and sharkl5Pro.
+	[function] This module implements the fast forward of packets in netfilter.
 CONFIG_SPRD_SFP_TEST
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] net
+	[must] user
+	[missing plat description] There is no requirement in sharkl3,sharkl5 and sharkl5Pro.
+	[function] This module is a test module for SFP module.
 CONFIG_SPRD_SHARKL3_USB2_PHY
 	[arch] all
 	[plat] sharkl3,sharkl3_32
@@ -15995,7 +15998,9 @@ CONFIG_XFRM_FRAGMENT
 	[field] menu
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] It is depended on the vowifi app module.
+				   If vowifi app is opened,it should be opened
+				   in roc1 and sharkl5_32.
 	[function] Support pkt fragment in ip layer before esp. By using this
 		   one,control parameter will be set to one. It is only for
 		   sprd until now. It is used for vowifi.
@@ -16006,7 +16011,8 @@ CONFIG_XFRM_INTERFACE
 	[field] menu,net
 	[subsys] net
 	[must] user
-	[missing plat description]
+	[missing plat description] There is no roc1,sharkl5 and sharkl5_32
+				  project in AndroidQ.
 	[function] AndroidQ Must Enable. Transformation virtual interface.
 CONFIG_XFRM_IPCOMP
 	[arch] all
@@ -16017,15 +16023,6 @@ CONFIG_XFRM_IPCOMP
 	[must] user
 	[missing plat description] none
 	[function] support for ip comparing
-CONFIG_XFRM_MIGRATE
-	[arch] arm
-	[plat] pike2
-	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_XFRM_STATISTICS
 	[arch] all
 	[plat] all
