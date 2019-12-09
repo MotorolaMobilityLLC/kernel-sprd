@@ -11997,7 +11997,7 @@ CONFIG_SC27XX_TSENSOR_THERMAL
 	[field] make
 	[subsys] thermal
 	[must] usr
-	[missing plat description]
+	[missing plat description] Only enable on sharkl5 and sharkl5Pro because solution requirements.
 	[function] This function is used to config thermal moudle to get
 	osc and extern cystal temperature.
 CONFIG_SCAN_BALANCE_ANON_FILE
@@ -13096,7 +13096,8 @@ CONFIG_SPRD_CACHE_EFUSE
 	[field] make
 	[subsys] nvmem
 	[must] home
-	[missing plat description]
+	[missing plat description] Only enable on sharkl5 sharkl5_32 and sharkl5Pro
+				   because usage scheme of efuse
 	[function] get sprdtrum soc series efuse value using pre-reading mechanism
 CONFIG_SPRD_CAM_PW_DOMAIN_R4P0
 	[arch] arm
@@ -13248,11 +13249,13 @@ CONFIG_SPRD_DEDICATE_THERMAL
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] thermal
+	[must] user
+	[missing plat description] Only enable on pike2,sharkl3,sharkl3_32,
+				   sharkle32 because project thermal ip.
+	[function] This function is config thermal driver to support read
+		   temperature of monitored area.
 CONFIG_SPRD_DJTAG
 	[arch] all
 	[plat] all
@@ -13325,6 +13328,15 @@ CONFIG_SPRD_EFUSE
 	[must] home
 	[missing plat description] none
 	[function] get sprdtrum soc series efuse value
+CONFIG_NVMEM
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] nvmem
+	[must] home
+	[missing plat description] none
+	[function] Provide framework to get eFuse value get sprdtrum soc series efuse value
 CONFIG_SPRD_EXT_MODEM
 	[arch] arm64
 	[plat] roc1
@@ -13987,7 +13999,8 @@ CONFIG_SPRD_THERMAL
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description]
+	[missing plat description] Only enable on roc1,sharkl5,sharkl5Pro,sharkl5_32,
+				   because project thermal ip.
 	[function] This function is used to config thermal moudle.
 CONFIG_SPRD_TIMER
 	[arch] all
