@@ -1434,6 +1434,7 @@ static struct sprd_cproc_data g_cproc_data_pubcp = {
 static const struct of_device_id sprd_cproc_match_table[] = {
 	{ .compatible = "sprd,scproc", .data = &g_cproc_data},
 	{ .compatible = "sprd,scproc_pubcp", .data = &g_cproc_data_pubcp},
+	{ },
 };
 
 static int sprd_cproc_parse_dt(struct cproc_init_data **init,
