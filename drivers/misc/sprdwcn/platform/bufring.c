@@ -162,7 +162,7 @@ int mdbg_ring_read(struct mdbg_ring_t *ring, void *buf, int len)
 			memcpy(buf, ring->rp, len1);
 			memcpy((buf + len1), pstart, len2);
 		} else if (copy_to_user((__force void __user *)buf,
-					(void *)ring->rp, len1) |
+					(void *)ring->rp, len1) ||
 			   copy_to_user((__force void __user *)(buf + len1),
 					(void *)pstart, len2)) {
 			WCN_ERR("copy to user error!\n");
@@ -248,7 +248,7 @@ int mdbg_ring_write(struct mdbg_ring_t *ring, void *buf, unsigned int len)
 			memcpy(ring->wp, buf, len1);
 			memcpy(pstart, (buf + len1), len2);
 		} else if (copy_from_user((void *)ring->wp,
-					  (__force void __user *)buf, len1) |
+					  (__force void __user *)buf, len1) ||
 			    copy_from_user((void *)pstart,
 				(__force void __user *)(buf + len1), len2)) {
 			WCN_ERR("%s copy from user error!\n", __func__);
