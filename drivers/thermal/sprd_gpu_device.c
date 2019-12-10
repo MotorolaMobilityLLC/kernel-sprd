@@ -22,6 +22,7 @@
 #include <linux/slab.h>
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
+#include <linux/soc/sprd/hwfeature.h>
 
 #if defined(CONFIG_OTP_SPRD_AP_EFUSE)
 #include <linux/sprd_otp.h>
@@ -151,7 +152,7 @@ static unsigned long get_static_power(struct devfreq *df, unsigned long m_volt)
 	tcd = cluster_data[gpu_cluster].gpu_cooling;
 	if (IS_ERR_OR_NULL(tcd)) {
 		err = PTR_ERR(tcd);
-		pr_err("Failed to register cool-dev (%d)\n", err);
+		pr_err("fail to register cool-dev (%d)\n", err);
 		return 0ul;
 	}
 
@@ -342,16 +343,25 @@ int create_gpu_cooling_device(struct devfreq *gpudev, u64 *mask)
 	struct thermal_cooling_device *devfreq_cooling;
 	int cluster_count;
 	int ret = 0;
+	char chip_type[64];
+
+	memset(chip_type, 0, sizeof(chip_type));
+	sprd_kproperty_get("lwfq/type", chip_type, "-1");
+
+	if (!strncmp(chip_type, "1", strlen("1"))) {
+		pr_err("don't support gpu cooling\n");
+		return -ENODEV;
+	}
 
 	if (gpudev == NULL || mask == NULL) {
 		pr_err("params is not complete!\n");
-		return -ENOMEM;
+		return -ENODEV;
 	}
 
 	np = of_find_node_by_name(NULL, "gpu-cooling-devices");
 	if (!np) {
 		pr_err("unable to find thermal zones\n");
-		return 0; /* Run successfully on systems without thermal DT */
+		return -ENODEV;
 	}
 
 	cluster_count = of_get_child_count(np);
@@ -359,8 +369,8 @@ int create_gpu_cooling_device(struct devfreq *gpudev, u64 *mask)
 	cluster_data = kcalloc(cluster_count,
 		sizeof(struct cluster_power_coefficients), GFP_KERNEL);
 	if (cluster_data == NULL) {
-		ret = -ENOMEM;
-		goto ERR_RET;
+		pr_err("fail to allocate memory\n");
+		return -ENOMEM;
 	}
 
 	for_each_child_of_node(np, child) {
@@ -368,6 +378,7 @@ int create_gpu_cooling_device(struct devfreq *gpudev, u64 *mask)
 
 		if (!of_device_is_compatible(child, "sprd,mali-power-model")) {
 			pr_err("power_model incompatible\n");
+			ret = -ENODEV;
 			goto free_cluster;
 		}
 
@@ -378,6 +389,7 @@ int create_gpu_cooling_device(struct devfreq *gpudev, u64 *mask)
 		cluster_id = of_alias_get_id(child, "gpu-cooling");
 		if (cluster_id == -ENODEV) {
 			pr_err("fail to get cooling devices id\n");
+			ret = -ENODEV;
 			goto free_cluster;
 		}
 
@@ -393,8 +405,8 @@ int create_gpu_cooling_device(struct devfreq *gpudev, u64 *mask)
 
 		if (IS_ERR_OR_NULL(devfreq_cooling)) {
 			ret = PTR_ERR(devfreq_cooling);
-			pr_err("Failed to register cool-dev (%d)\n", ret);
-				goto free_cluster;
+			pr_err("fail to register cool-dev (%d)\n", ret);
+			goto free_cluster;
 		}
 
 		strlcpy(cluster_data[cluster_id].devname,
@@ -409,7 +421,7 @@ int create_gpu_cooling_device(struct devfreq *gpudev, u64 *mask)
 free_cluster:
 	kfree(cluster_data);
 	cluster_data = NULL;
-ERR_RET:
+
 	return ret;
 }
 EXPORT_SYMBOL_GPL(create_gpu_cooling_device);

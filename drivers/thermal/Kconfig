@@ -524,6 +524,14 @@ config SPRD_CPU_COOLING_DEVICE
 	  Say Y here to create cpu cooling device node and build power model for IPA.
 	  so that the sprd cooling devices can be bound to thermal zone trip points.
 
+config SPRD_GPU_COOLING_DEVICE
+	bool "sprd gpu cooling device"
+	depends on THERMAL
+	depends on DEVFREQ_THERMAL
+	help
+	  Say Y here to create gpu cooling device node and build power model for IPA.
+	  so that the sprd cooling devices can be bound to thermal zone trip points.
+
 config SPRD_CLUSTER0_THERMAL
 	bool "sprd cluster0 thermal"
 	depends on THERMAL && SPRD_THERMAL

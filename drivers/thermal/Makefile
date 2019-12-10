@@ -26,6 +26,7 @@ thermal_sys-$(CONFIG_CLOCK_THERMAL)	+= clock_cooling.o
 
 # devfreq cooling
 thermal_sys-$(CONFIG_DEVFREQ_THERMAL) += devfreq_cooling.o
+thermal_sys-$(CONFIG_SPRD_GPU_COOLING_DEVICE) += sprd_gpu_device.o
 
 thermal_sys-$(CONFIG_SPRD_CPU_COOLING)	+= sprd_cpu_cooling.o
 thermal_sys-$(CONFIG_SPRD_CPU_COOLING_DEVICE) += sprd_cpu_device.o
