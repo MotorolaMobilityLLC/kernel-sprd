@@ -1275,7 +1275,7 @@ static ssize_t batch_store(struct device *dev, struct device_attribute *attr,
 		   &batch_cmd.report_rate,
 		   &batch_cmd.batch_timeout) != 4)
 		return -EINVAL;
-	dev_info(&sensor->sensor_pdev->dev, "handle = %hu, rate = %d, enabled = %d\n",
+	dev_info(&sensor->sensor_pdev->dev, "handle = %d, rate = %d, enabled = %d\n",
 		 batch_cmd.handle,
 		 batch_cmd.report_rate, flag);
 
