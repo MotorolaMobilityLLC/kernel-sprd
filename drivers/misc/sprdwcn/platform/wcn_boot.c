@@ -404,8 +404,10 @@ static char *btwf_load_firmware_data(loff_t off, unsigned long int imag_size)
 	} while ((read_len > 0) && (size > 0));
 	fput(file);
 	WCN_INFO("%s finish read_Len:%d\n", __func__, read_len);
-	if (read_len <= 0)
+	if (read_len <= 0) {
+		vfree(buffer);
 		return NULL;
+	}
 
 	return data;
 }
