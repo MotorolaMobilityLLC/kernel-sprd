@@ -3142,6 +3142,19 @@ static int cm_suspend_prepare(struct device *dev)
 	if (!cm_suspended)
 		cm_suspended = true;
 
+	/*
+	 * In some situation, the system is not sleep between
+	 * the charger polling interval - 15s, it maybe occur
+	 * that charger manager will feed watchdog, but the
+	 * system has no work to do to suspend, and charger
+	 * manager also suspend. In this function, it will
+	 * cancel cm_monito_work, it cause that this time can't
+	 * feed watchdog until the next polling time, this means
+	 * that charger manager feed watchdog per 15s usually,
+	 * but this time need 30s, and the charger IC(fan54015)
+	 * watchdog timeout to reset.
+	 */
+	cm_feed_watchdog(cm);
 	cm_timer_set = cm_setup_timer();
 
 	if (cm_timer_set) {
