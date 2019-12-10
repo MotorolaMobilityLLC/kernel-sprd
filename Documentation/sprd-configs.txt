@@ -10177,11 +10177,11 @@ CONFIG_NVMEM
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] nvmem
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] Provide framework to get eFuse value get sprdtrum soc series efuse value
 CONFIG_OF
 	[arch] all
 	[plat] all
@@ -12703,7 +12703,7 @@ CONFIG_SND_SOC_SPRD_I2S
 	[arch] all
 	[plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[field]make, code
+	[field] make, code
 	[subsys] sound
 	[must] user
 	[missing plat description] I2S go through AGDSP
@@ -12720,7 +12720,7 @@ CONFIG_SND_SOC_SPRD_I2S_DUMMY
 CONFIG_SND_SOC_SPRD_PA_UCP1301
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] sharkl3,sharkl5,roc1
+	[missing plat] roc1,sharkl3,sharkl5
 	[field] make, code
 	[subsys] sound
 	[must] user
@@ -12729,7 +12729,7 @@ CONFIG_SND_SOC_SPRD_PA_UCP1301
 CONFIG_SND_SOC_SPRD_PIKE2
 	[arch] arm
 	[plat] pike2
-	[missing plat] sharkle32,sharkl5_32,sharkl3_32
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
 	[field] make, code
 	[subsys] sound
 	[must] user
@@ -13358,15 +13358,6 @@ CONFIG_SPRD_EFUSE
 	[must] home
 	[missing plat description] none
 	[function] get sprdtrum soc series efuse value
-CONFIG_NVMEM
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make
-	[subsys] nvmem
-	[must] home
-	[missing plat description] none
-	[function] Provide framework to get eFuse value get sprdtrum soc series efuse value
 CONFIG_SPRD_EXT_MODEM
 	[arch] arm64
 	[plat] roc1
