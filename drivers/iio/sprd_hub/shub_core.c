@@ -1094,8 +1094,15 @@ static void shub_save_calibration_data(struct work_struct *work)
 		return;
 	}
 
-	sprintf(file_path, CALIBRATION_NODE "%s",
-		calibration_filename[sensor->cal_id]);
+	if ((strlen(CALIBRATION_NODE) +
+	     strlen(calibration_filename[sensor->cal_id])) >
+	    (sizeof(file_path) - 1)) {
+		dev_err(&sensor->sensor_pdev->dev,
+			"calibration node path is oversize.\n");
+		return;
+	}
+	snprintf(file_path, sizeof(file_path), "%s%s",
+		 CALIBRATION_NODE, calibration_filename[sensor->cal_id]);
 	dev_info(&sensor->sensor_pdev->dev,
 		 "sensor_id=%d,file_path=%s\n", sensor->cal_id, file_path);
 	pfile = filp_open(file_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
@@ -1127,8 +1134,14 @@ static void shub_save_mag_offset(struct shub_data *sensor,
 	struct file *pfile = NULL;
 	char file_path[CALIB_PATH_MAX_LENG];
 
-	sprintf(file_path, CALIBRATION_NODE "%s",
-		calibration_filename[2]);
+	if ((strlen(CALIBRATION_NODE) + strlen(calibration_filename[2])) >
+	    (sizeof(file_path) - 1)) {
+		dev_err(&sensor->sensor_pdev->dev,
+			"calibration node path is oversize.\n");
+		return;
+	}
+	snprintf(file_path, sizeof(file_path), "%s%s",
+		 CALIBRATION_NODE, calibration_filename[2]);
 	dev_info(&sensor->sensor_pdev->dev, "file_path=%s\n", file_path);
 	pfile = filp_open(file_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
 	if (IS_ERR(pfile)) {
@@ -1160,8 +1173,15 @@ static int shub_download_calibration_data(struct shub_data *sensor)
 	int sensor_type = 0, j = 0;
 
 	for (sensor_type = 0; sensor_type < 9; sensor_type++) {
-		sprintf(file_path, CALIBRATION_NODE "%s",
-			calibration_filename[sensor_type]);
+		if ((strlen(CALIBRATION_NODE) +
+		     strlen(calibration_filename[sensor_type])) >
+		    (sizeof(file_path) - 1)) {
+			dev_err(&sensor->sensor_pdev->dev,
+				"calibration node path is oversize.\n");
+			continue;
+		}
+		snprintf(file_path, sizeof(file_path), "%s%s",
+			 CALIBRATION_NODE, calibration_filename[sensor_type]);
 		dev_info(&sensor->sensor_pdev->dev,
 			 "sensor_id=%d file_path=%s\n", sensor_type, file_path);
 
@@ -1380,8 +1400,14 @@ static int shub_save_als_cali_data(struct shub_data *sensor,
 	struct file *pfile;
 	char file_path[CALIB_PATH_MAX_LENG];
 
+	if ((strlen(CALIBRATION_NODE) + strlen(calibration_filename[5])) >
+	    (sizeof(file_path) - 1)) {
+		dev_err(&sensor->sensor_pdev->dev,
+			"calibration node path is oversize.\n");
+		return -EINVAL;
+	}
 	snprintf(file_path, sizeof(file_path), "%s%s",
-		CALIBRATION_NODE, calibration_filename[5]);
+		 CALIBRATION_NODE, calibration_filename[5]);
 	pfile = filp_open(file_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
 	if (IS_ERR(pfile)) {
 		err = PTR_ERR(pfile);
@@ -1489,8 +1515,13 @@ static ssize_t light_sensor_calibrator_show(struct device *dev,
 	char file_path[CALIB_PATH_MAX_LENG];
 	char *raw_cali_data = NULL;
 
+	if ((strlen(CALIBRATION_NODE) + strlen(calibration_filename[5])) >
+	    (sizeof(file_path) - 1)) {
+		pr_err("calibration node path is oversize.\n");
+		return -EINVAL;
+	}
 	snprintf(file_path, sizeof(file_path), "%s%s",
-		CALIBRATION_NODE, calibration_filename[5]);
+		 CALIBRATION_NODE, calibration_filename[5]);
 
 	pfile = filp_open(file_path, O_RDONLY, 0);
 	if (IS_ERR(pfile)) {
