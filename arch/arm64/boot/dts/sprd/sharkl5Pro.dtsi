@@ -1105,13 +1105,18 @@
 				pinctrl-names =
 				/* iis interface 0 */
 				"vbc_iis3_0", "vbc_iism0_0",
-				"vbc_iis_to_pad", "vbc_iis_to_aon_usb", "vbc_iism0_1", "vbc_iism0_3";
+				"vbc_iis_to_pad", "vbc_iis_to_aon_usb", "vbc_iism0_1", "vbc_iism0_3",
+				"vbc_iis0_3", "vbc_iis1_3", "vbc_iis2_3", "vbc_iis3_3";
 				pinctrl-0 = <&vbc_iis3_0>;
 				pinctrl-1 = <&vbc_iism0_0>;
 				pinctrl-2 = <&vbc_iis_to_pad>;
 				pinctrl-3 = <&vbc_iis_to_aon_usb>;
 				pinctrl-4 = <&vbc_iism0_1>;
 				pinctrl-5 = <&vbc_iism0_3>;
+				pinctrl-6 = <&vbc_iis0_3>;
+				pinctrl-7 = <&vbc_iis1_3>;
+				pinctrl-8 = <&vbc_iis2_3>;
+				pinctrl-9 = <&vbc_iis3_3>;
 			};
 
 			mcdt@33490000{
@@ -1795,6 +1800,26 @@
 				vbc_iism0_3: vbc-iism0-3 {
 					pins = "SHARKL5PRO_IIS_INF3_SYS_SEL";
 					sprd,control = <0xf>;
+				};
+
+				vbc_iis0_3: vbc-iis0-3 {
+					pins = "SHARKL5PRO_IIS_INF3_SYS_SEL";
+					sprd,control = <0xb>;
+				};
+
+				vbc_iis1_3: vbc-iis1-3 {
+					pins = "SHARKL5PRO_IIS_INF3_SYS_SEL";
+					sprd,control = <0xc>;
+				};
+
+				vbc_iis2_3: vbc-iis2-3 {
+					pins = "SHARKL5PRO_IIS_INF3_SYS_SEL";
+					sprd,control = <0xd>;
+				};
+
+				vbc_iis3_3: vbc-iis3-3 {
+					pins = "SHARKL5PRO_IIS_INF3_SYS_SEL";
+					sprd,control = <0xe>;
 				};
 			};
 
