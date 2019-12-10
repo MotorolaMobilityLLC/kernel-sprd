@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Unisoc Sharkl6pro platform DTS file
+ * Unisoc Qogirn6pro platform DTS file
  *
  * Copyright (C) 2019, Unisoc Communications Inc.
  */
 
-#include "sharkl6pro-haps.dtsi"
+#include "qogirn6pro-haps.dtsi"
 
 / {
 	cpuinfo_hardware = "Unisoc ums7520";
