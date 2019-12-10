@@ -250,6 +250,7 @@ static const struct of_device_id sprd_iommu_ids[] = {
 
 	{ .compatible = "sprd,iommuvaul5p-vdma",
 	  .data = (void *)(IOMMU_VAUL5P_VDMA)},
+	{},
 };
 
 static struct platform_driver iommu_driver = {
@@ -1108,8 +1109,7 @@ int sprd_iommu_resume(struct device *dev)
 	int ret = 0;
 
 	if (NULL == dev) {
-		IOMMU_ERR("%s null parameter err!\n",
-			iommu_dev->init_data->name);
+		IOMMU_ERR("null parameter err!\n");
 		return -EINVAL;
 	}
 
