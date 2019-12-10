@@ -679,6 +679,14 @@ static void corectl_adjust_cpus(struct cpufreq_cooling_device *cpufreq_device)
 
 	}
 }
+
+static void corectl_idle_func(struct work_struct *work)
+{
+	struct cpufreq_cooling_device *cpufreq_device = container_of(work,
+			struct cpufreq_cooling_device, idle_work.work);
+
+	corectl_do_cpuidle(cpufreq_device);
+}
 #endif
 
 /*
@@ -741,7 +749,7 @@ static void set_online_cpus(struct cpufreq_cooling_device *cpufreq_dev,
 #if defined(CONFIG_SPRD_CPU_COOLING_CPUIDLE) && defined(CONFIG_SPRD_CORE_CTL)
 		if (current_online_cpus >
 				cpufreq_dev->qos_cur_cpu)
-			corectl_do_cpuidle(cpufreq_dev);
+			schedule_delayed_work(&cpufreq_dev->idle_work, msecs_to_jiffies(80));
 		else if (cpufreq_dev->qos_cur_cpu ==
 				cpumask_weight(&cpufreq_dev->allowed_cpus))
 			corectl_allow_max_cpus(cpufreq_dev);
@@ -1564,6 +1572,8 @@ __cpufreq_cooling_register(struct device_node *np,
 
 #ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	cpumask_copy(&cpufreq_dev->active_cpus, clip_cpus);
+	INIT_DELAYED_WORK(&cpufreq_dev->idle_work,
+			corectl_idle_func);
 #endif
 
 	if (power_model != NULL) {
@@ -1776,6 +1786,9 @@ void cpufreq_cooling_unregister(struct thermal_cooling_device *cdev)
 
 	cpufreq_dev = cdev->devdata;
 
+#ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
+	cancel_delayed_work_sync(&cpufreq_dev->idle_work);
+#endif
 
 	/* Unregister the notifier for the last cpufreq cooling device */
 	mutex_lock(&cooling_cpufreq_lock);

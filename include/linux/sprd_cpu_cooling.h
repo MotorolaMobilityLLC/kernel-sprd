@@ -98,6 +98,7 @@ struct cpufreq_cooling_device {
 #ifdef CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	struct cpumask idle_cpus;
 	struct cpumask active_cpus;
+	struct delayed_work idle_work;
 #endif
 	struct list_head node;
 	u32 last_load;
