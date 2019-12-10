@@ -4526,11 +4526,11 @@ CONFIG_FIXED_PHY
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] phy
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] MDIO Bus/PHY emulation with fixed speed/link PHYs
 CONFIG_FIX_EARLYCON_MEM
 	[arch] all
 	[plat] all
@@ -8196,20 +8196,21 @@ CONFIG_MDIO_BUS
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] phy
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] This internal symbol is used for link time dependencies and it reflects
+		whether the mdio_bus/mdio_device code is built as a loadable module or built-in.
 CONFIG_MDIO_DEVICE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] phy
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] MDIO bus device drivers
 CONFIG_MEMBARRIER
 	[arch] all
 	[plat] all
@@ -14225,11 +14226,11 @@ CONFIG_SWPHY
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] phy
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] PHY Device support
 CONFIG_SWP_EMULATE
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
