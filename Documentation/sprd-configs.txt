@@ -8343,12 +8343,12 @@ CONFIG_MIGRATION
 CONFIG_MII
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl5,sharkl5_32
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] sharkl5 usb host don't need support usb net
+	[function] network phy interface
 CONFIG_MISC_FILESYSTEMS
 	[arch] all
 	[plat] all
@@ -15643,7 +15643,8 @@ CONFIG_USB_RTL8152
 	[field] code
 	[subsys] usb
 	[must] user
-	[missing plat description] Don't need usb network driver
+	[missing plat description] We don't need usb network driver anymore, but androidq tied it
+        	together with config_usb, so enable all androidq plats.
 	[function] usb network driver
 CONFIG_USB_SC27XX_TYPEC
 	[arch] all
