@@ -238,7 +238,6 @@ static int wcnlog_register_device(struct wcnlog_dev *dev, int index)
 	cdev_init(&dev->cdev, &wcnlog_fops);
 	ret = cdev_add(&dev->cdev, devno, 1);
 	if (ret != 0) {
-		kfree(dev);
 		unregister_chrdev_region(devno, 1);
 		WCN_ERR("Failed to add wcn log cdev\n");
 		return ret;
