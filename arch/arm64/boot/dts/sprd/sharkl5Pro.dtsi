@@ -1539,6 +1539,7 @@
 							2 0 2 7 4 4 0
 							3 0 3 8 4 5 3
 							3 0 3 9 5 5 4
+							3 0 3 9 5 5 4
 						>;
 					lit_core0_dev:lit-core0-dev {
 						device-name = "cpu0";
@@ -2397,6 +2398,16 @@
 		gpu_bin: gpu-bin@1b{
 			reg = <0x1b 0x4>;
 			bits = <3 3>;
+		};
+
+		dvfs_bin_cpu0: dvfs-bin@17{
+			reg = <0x17 0x4>;
+			bits = <0 3>;
+		};
+
+		dvfs_bin_cpu1: dvfs-bin@1b{
+			reg = <0x1b 0x4>;
+			bits = <0 3>;
 		};
 	};
 };
