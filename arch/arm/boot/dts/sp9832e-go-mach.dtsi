@@ -133,12 +133,12 @@
 		};
 
 		/* must be 32M aligned */
-		wcn_reserved: wcn-mem@88000000 {
-			reg = <0x88000000 0x00300000>;
+		wcn_reserved: wcn-mem@84000000 {
+			reg = <0x84000000 0x00300000>;
 		};
 
-		gnss_reserved: gnss-mem@88300000 {
-			reg = <0x88300000 0x0015b000>;
+		gnss_reserved: gnss-mem@84300000 {
+			reg = <0x84300000 0x0015b000>;
 		};
 
 		/* cp_reserved = cp region + debug region */
