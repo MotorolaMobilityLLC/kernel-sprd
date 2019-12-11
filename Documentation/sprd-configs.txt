@@ -1823,11 +1823,11 @@ CONFIG_CGROUP_SCHED
 CONFIG_CHARGER_BQ2560X
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
+	[missing plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] power
 	[must] user
-	[missing plat description]
+	[missing plat description] Not used in the project, so no configuration
 	[function] This function is used to enable charge
 CONFIG_CHARGER_FAN54015
 	[arch] all
@@ -1836,7 +1836,7 @@ CONFIG_CHARGER_FAN54015
 	[field] make
 	[subsys] power
 	[must] user
-	[missing plat description]
+	[missing plat description] Not used in the project, so no configuration
 	[function] This function is used to enable charge
 CONFIG_CHARGER_MANAGER
 	[arch] all
@@ -1850,11 +1850,11 @@ CONFIG_CHARGER_MANAGER
 CONFIG_CHARGER_SC2703
 	[arch] all
 	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
+	[missing plat] pike2,sharkle32
 	[field] make
 	[subsys] power
 	[must] user
-	[missing plat description]
+	[missing plat description] Not used in the project, so no configuration
 	[function] This function is used to enable charg
 CONFIG_CHARGER_SC2720
 	[arch] arm
@@ -1863,7 +1863,7 @@ CONFIG_CHARGER_SC2720
 	[field] make
 	[subsys] power
 	[must] user
-	[missing plat description]
+	[missing plat description] Not used in the project, so no configuration
 	[function] This function is used to enable charge
 CONFIG_CLEANCACHE
 	[arch] arm64
@@ -4347,7 +4347,7 @@ CONFIG_FAST_CHARGER_SC2730
 	[field] make
 	[subsys] power
 	[must] user
-	[missing plat description]
+	[missing plat description] Not used in the project, so no configuration
 	[function] This function is used to enable fast charger
 CONFIG_FAT_DEFAULT_CODEPAGE
 	[arch] all
@@ -4655,11 +4655,11 @@ CONFIG_FUEL_GAUGE_SC27XX
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] power
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] This function is used to get fgu data
 CONFIG_FUNCTION_GRAPH_TRACER
 	[arch] all
 	[plat] all
@@ -8263,7 +8263,7 @@ CONFIG_MFD_SC2703
 	[field] make,code
 	[subsys] power
 	[must] user
-	[missing plat description]
+	[missing plat description] Not used in the project, so no configuration
 	[function] Support for sc2703 charger management
 CONFIG_MFD_SC27XX_PMIC
 	[arch] all
