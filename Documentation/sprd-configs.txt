@@ -3541,7 +3541,7 @@ CONFIG_DEVFREQ_SPRD_EXT_VOTE_UMS512
 CONFIG_DEVFREQ_THERMAL
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkle32,roc1
+	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make,code
 	[subsys] gpu thermal
 	[must] user
@@ -13300,7 +13300,7 @@ CONFIG_SPRD_EXT_MODEM
 CONFIG_SPRD_GPU_COOLING_DEVICE
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkle32,roc1
+	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
 	[field] make,code
 	[subsys] gpu thermal
 	[must] user
