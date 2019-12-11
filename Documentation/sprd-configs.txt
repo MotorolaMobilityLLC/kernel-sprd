@@ -1249,9 +1249,9 @@ CONFIG_BACKLIGHT_PWM
 	[missing plat description] none
 	[function] Enable pwm backlight driver.
 CONFIG_BACKLIGHT_SC2703
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkl5Pro,sharkle32
+	[arch] arm64
+	[plat] roc1
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] make
 	[subsys] video
 	[must] home
@@ -1849,8 +1849,8 @@ CONFIG_CHARGER_MANAGER
 	[function] Manage battery capacity and monitor charge status
 CONFIG_CHARGER_SC2703
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] power
 	[must] user
@@ -4522,15 +4522,6 @@ CONFIG_FIX_EARLYCON_MEM
 	[must] console
 	[missing plat description] none
 	[function] IF MMU, enable kernel support earlycon fixmap.
-CONFIG_FLASH_SC2703
-	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32
-	[missing plat] pike2,roc1,sharkl5Pro,sharkle32
-	[field] make
-	[subsys] misc
-	[must] user
-	[missing plat description] led flash not use sc2703 PMIC
-	[function] compile flash sc2703 driver
 CONFIG_FLATMEM
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -11635,12 +11626,12 @@ CONFIG_REGULATOR_FAN53555
 	[function] Support for fan53555 pmic regulator.
 CONFIG_REGULATOR_SC2703
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkl5Pro,sharkle32
+	[plat] roc1,sharkl5,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
 	[field] make
 	[subsys] regulator
 	[must] user
-	[missing plat description] SC2703 is used in roc1,sharkl3 and sharkl5 so far
+	[missing plat description] SC2703 is used in roc1 and sharkl5 so far
 	[function] SUPPORT SC2703 regulator function.
 CONFIG_REGULATOR_SC2720
 	[arch] arm
