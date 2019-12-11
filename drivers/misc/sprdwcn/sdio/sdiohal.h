@@ -223,6 +223,8 @@ struct sdiohal_data_t {
 	struct sdiohal_list_t *list_tx[SDIO_CHN_TX_NUM];
 	/* rx data list for dispatch */
 	struct sdiohal_list_t *list_rx[SDIO_CHN_RX_NUM];
+	/* mbuf_t cache */
+	struct kmem_cache *rx_mbuf_cache;
 	/* mbuf list */
 	struct sdiohal_list_t list_rx_buf;
 	/* frag data buf */

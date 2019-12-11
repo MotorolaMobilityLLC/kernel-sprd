@@ -977,65 +977,99 @@ void *sdiohal_get_rx_free_buf(void)
 	return p;
 }
 
-static int sdiohal_alloc_rx_mbuf_nodes(int num)
+static int sdiohal_rx_mbuf_create(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	p_data->rx_mbuf_cache = kmem_cache_create(
+			"wcn_rx_mbuf", sizeof(struct mbuf_t), 0,
+			0, NULL);
+	if (p_data->rx_mbuf_cache)
+		return 0;
+
+	WCN_INFO("%s no mem for mbuf cache\n", __func__);
+
+	return -ENOMEM;
+}
+
+static void sdiohal_rx_mbuf_destroy(void)
+{
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	kmem_cache_destroy(p_data->rx_mbuf_cache);
+	p_data->rx_mbuf_cache = NULL;
+}
+
+static int sdiohal_alloc_rx_mbuf_nodes(struct sdiohal_list_t *plist, int num)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	struct mbuf_t *mbuf_node, *mbuf_temp = NULL;
 	int i;
 
+	if (unlikely(!p_data->rx_mbuf_cache))
+		return -ENOMEM;
+
 	for (i = 0; i < num; i++) {
-		mbuf_node = kzalloc(sizeof(struct mbuf_t), GFP_KERNEL);
+		mbuf_node = kmem_cache_alloc(p_data->rx_mbuf_cache, GFP_KERNEL);
+		memset(mbuf_node, 0, sizeof(struct mbuf_t));
 		if (i == 0) {
-			p_data->list_rx_buf.mbuf_head = mbuf_node;
-			p_data->list_rx_buf.mbuf_tail = mbuf_node;
+			plist->mbuf_head = mbuf_node;
+			plist->mbuf_tail = mbuf_node;
 		} else
 			mbuf_temp->next = mbuf_node;
 
 		mbuf_temp = mbuf_node;
-		p_data->list_rx_buf.node_num++;
+		plist->node_num++;
 	}
 	mbuf_temp->next = NULL;
-	p_data->list_rx_buf.mbuf_tail = mbuf_temp;
+	plist->mbuf_tail = mbuf_temp;
 
 	return 0;
 }
 
 static void sdiohal_rx_buf_init(void)
 {
-	sdiohal_alloc_rx_mbuf_nodes(SDIOHAL_RX_NODE_NUM);
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	sdiohal_alloc_rx_mbuf_nodes(&p_data->list_rx_buf, SDIOHAL_RX_NODE_NUM);
 }
 
-static int sdiohal_free_rx_mbuf_nodes(int num)
+static int sdiohal_free_rx_mbuf_nodes(struct sdiohal_list_t *plist, int num)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	struct mbuf_t *mbuf_node = NULL, *mbuf_temp = NULL;
 	int i;
 
-	mbuf_node = p_data->list_rx_buf.mbuf_head;
+	if (unlikely(!p_data->rx_mbuf_cache))
+		return -ENOMEM;
+
+	mbuf_node = plist->mbuf_head;
 	for (i = 0; i < num; i++) {
 		mbuf_temp = mbuf_node;
 		if (mbuf_temp->next) {
 			mbuf_node = mbuf_temp->next;
 			mbuf_temp->next = NULL;
-			kfree(mbuf_temp);
+			kmem_cache_free(p_data->rx_mbuf_cache, mbuf_temp);
 		} else {
 			if (i < num - 1)
 				WCN_ERR("%s mbuf_node error\n", __func__);
-			kfree(mbuf_temp);
+			kmem_cache_free(p_data->rx_mbuf_cache, mbuf_temp);
 			break;
 		}
 	}
 
-	p_data->list_rx_buf.mbuf_head = NULL;
-	p_data->list_rx_buf.mbuf_tail = NULL;
-	p_data->list_rx_buf.node_num = 0;
+	plist->mbuf_head = NULL;
+	plist->mbuf_tail = NULL;
+	plist->node_num = 0;
 
 	return 0;
 }
 
 static void sdiohal_rx_buf_deinit(void)
 {
-	sdiohal_free_rx_mbuf_nodes(SDIOHAL_RX_NODE_NUM);
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	sdiohal_free_rx_mbuf_nodes(&p_data->list_rx_buf, SDIOHAL_RX_NODE_NUM);
 }
 
 int sdiohal_list_push(int channel, struct mbuf_t *head,
@@ -1277,6 +1311,7 @@ int sdiohal_misc_init(void)
 	sdiohal_spinlock_init();
 	sdiohal_sleep_flag_init();
 	sdiohal_mutex_init();
+	sdiohal_rx_mbuf_create();
 	sdiohal_rx_buf_init();
 	sdiohal_dtbs_buf_init();
 	ret = sdiohal_list_init();
@@ -1296,6 +1331,7 @@ void sdiohal_misc_deinit(void)
 	sdiohal_list_deinit();
 	sdiohal_dtbs_buf_deinit();
 	sdiohal_rx_buf_deinit();
+	sdiohal_rx_mbuf_destroy();
 	sdiohal_mutex_deinit();
 	sdiohal_callback_lock_deinit();
 	sdiohal_wakelock_deinit();
