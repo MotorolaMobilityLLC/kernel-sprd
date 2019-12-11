@@ -6789,11 +6789,11 @@ CONFIG_INIT_STACK_NONE
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] core
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Disable automatic stack variable initialization at function entry
 CONFIG_INOTIFY_USER
 	[arch] all
 	[plat] all
