@@ -483,7 +483,7 @@ static DEVICE_ATTR_RW(gnss_subsys);
 static int gnss_status_get(void)
 {
 	phys_addr_t phy_addr;
-	u32 magic_value;
+	u32 magic_value = 0;
 
 	phy_addr = wcn_get_gnss_base_addr() + GNSS_STATUS_OFFSET;
 	wcn_read_data_from_phy_addr(phy_addr, &magic_value, sizeof(u32));
@@ -579,6 +579,23 @@ static ssize_t gnss_status_show(struct device *dev,
 	return i;
 }
 static DEVICE_ATTR_RO(gnss_status);
+
+#ifdef CONFIG_UMW2652
+static ssize_t gnss_clktype_show(struct device *dev,
+				 struct device_attribute *attr, char *buf)
+{
+	int i = 0;
+	enum wcn_clock_type clktype = WCN_CLOCK_TYPE_UNKNOWN;
+
+	clktype = wcn_get_xtal_26m_clk_type();
+	GNSSCOMM_INFO("%s: %d\n", __func__, clktype);
+	i = scnprintf(buf, PAGE_SIZE, "%d\n", clktype);
+
+	return i;
+}
+static DEVICE_ATTR_RO(gnss_clktype);
+#endif
+
 #ifndef CONFIG_SC2342_INTEG
 static uint gnss_op_reg;
 static uint gnss_indirect_reg_offset;
@@ -670,6 +687,9 @@ static struct attribute *gnss_common_ctl_attrs[] = {
 	&dev_attr_gnss_dump.attr,
 	&dev_attr_gnss_status.attr,
 	&dev_attr_gnss_subsys.attr,
+#ifdef CONFIG_UMW2652
+	&dev_attr_gnss_clktype.attr,
+#endif
 #ifndef CONFIG_SC2342_INTEG
 	&dev_attr_gnss_regr.attr,
 	&dev_attr_gnss_regaddr.attr,
