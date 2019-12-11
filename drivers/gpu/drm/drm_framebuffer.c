@@ -835,8 +835,15 @@ retry:
 			goto unlock;
 	}
 
-	if (plane_mask)
-		ret = drm_atomic_commit(state);
+	/*
+	 * FIXME:
+	 * Deleted by SPRD for HWC performance. There is no need to
+	 * disable old planes for sprd drm. Because the dpu driver
+	 * will clean all the planes first before flip each time.
+	 *
+	 * if (plane_mask)
+	 *	ret = drm_atomic_commit(state);
+	 */
 
 unlock:
 	if (plane_mask)
