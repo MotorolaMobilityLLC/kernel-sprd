@@ -1042,7 +1042,6 @@
 
 				operating-points = <
 					/* kHz    uV */
-					256000    900000
 					384000    900000
 					512000    900000
 					600000    900000
@@ -1051,14 +1050,13 @@
 
 				sprd,dfs-lists = <
 					/* kHz  uV      idx div */
-					256000  900000   2    1
 					384000  900000   4    1
 					512000  900000   5    1
 					600000  900000   6    1
 					680000  900000   6    1
 					>;
 
-				sprd,dfs-default = <1>;
+				sprd,dfs-default = <0>;
 				sprd,dfs-scene-extreme = <3>;
 				sprd,dfs-scene-high = <2>;
 				sprd,dfs-scene-medium = <1>;
