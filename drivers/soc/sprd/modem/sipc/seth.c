@@ -869,7 +869,8 @@ static int seth_probe(struct platform_device *pdev)
 		pdata->blocknum, SETH_BLOCK_SIZE, pdata->poolsize,
 		pdata->blocknum, SETH_BLOCK_SIZE, pdata->poolsize);
 	if (ret) {
-		dev_err(&pdev->dev, "create sblock failed (%d)\n", ret);
+		if (ret != -EPROBE_DEFER)
+			dev_err(&pdev->dev, "create sblock failed (%d)\n", ret);
 		netif_napi_del(&seth->napi);
 		free_netdev(netdev);
 		return ret;
