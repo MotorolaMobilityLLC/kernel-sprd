@@ -3538,6 +3538,15 @@ CONFIG_DEVFREQ_SPRD_EXT_VOTE_UMS512
 				   missing sharkl3 because this feature is soc/IP specific
 				   missing sharkl5 because this feature is soc/IP specific
 	[function] Roc1 configure for EXT_VOTE
+CONFIG_DEVFREQ_THERMAL
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkle32,roc1
+	[field] make,code
+	[subsys] gpu thermal
+	[must] user
+	[missing plat description] gpu don't support dvfs
+	[function] gpu thermal policy
 CONFIG_DEVTMPFS
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
@@ -13288,6 +13297,15 @@ CONFIG_SPRD_EXT_MODEM
 	[must] user
 	[missing plat description] missing plat without external modem, Roc1 unique feature
 	[function] Enable external modem function
+CONFIG_SPRD_GPU_COOLING_DEVICE
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkle32,roc1
+	[field] make,code
+	[subsys] gpu thermal
+	[must] user
+	[missing plat description] gpu don't support dvfs
+	[function] create gpu cooling device and build gpu power model
 CONFIG_SPRD_HWFEATURE
 	[arch] arm64
 	[plat] sharkl5Pro
