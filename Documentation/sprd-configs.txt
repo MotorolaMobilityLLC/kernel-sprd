@@ -5240,11 +5240,11 @@ CONFIG_HAVE_ARCH_KASAN_SW_TAGS
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field] menu
-	[subsys]
-	[must]
+	[field] make
+	[subsys] mm
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] This config refers to the generic KASAN mode.
 CONFIG_HAVE_ARCH_KGDB
 	[arch] all
 	[plat] all
@@ -5319,11 +5319,12 @@ CONFIG_HAVE_ARCH_VMAP_STACK
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field] menu
-	[subsys]
-	[must]
+	[field] make
+	[subsys] mm
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] An arch should select this symbol
+		if it can support kernel stacks in vmalloc space.
 CONFIG_HAVE_ARM_ARCH_TIMER
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -5550,9 +5551,9 @@ CONFIG_HAVE_GENERIC_GUP
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field] menu
+	[field] make
 	[subsys] mm
-	[must]
+	[must] console
 	[missing plat description] none
 	[function] Generic Fast GUP
 CONFIG_HAVE_HARDENED_USERCOPY_ALLOCATOR
@@ -6319,11 +6320,11 @@ CONFIG_HOLES_IN_ZONE
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field] menu
+	[field] make,code
 	[subsys] mm
-	[must]
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] let pfn_to_online_page() calls pfn_valid_within()
 CONFIG_HOTPLUG_CPU
 	[arch] all
 	[plat] all
@@ -7783,11 +7784,12 @@ CONFIG_KASAN_STACK
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] mm
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] The LLVM stack address sanitizer has a know problem
+		that causes excessive stack usage in a lot of functions
 CONFIG_KERNEL_GZIP
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -11251,11 +11253,11 @@ CONFIG_PROCESS_RECLAIM
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make, code
+	[subsys] mm
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] It allows to reclaim pages of the process by /proc/pid/reclaim.
 CONFIG_PROC_FS
 	[arch] all
 	[plat] all
@@ -12365,11 +12367,12 @@ CONFIG_SLAB_MERGE_DEFAULT
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] mm
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] For reduced kernel memory fragmentation, slab caches can be merged
+		when they share the same size and other characteristics.
 CONFIG_SLHC
 	[arch] all
 	[plat] all
@@ -15768,9 +15771,9 @@ CONFIG_VMAP_STACK
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] mm
+	[must] console
 	[missing plat description] none
 	[function] the thread kernel stack is allocated by vmalloc, otherwise the continuous physical pages are allocated directly
 CONFIG_VMSPLIT_3G
