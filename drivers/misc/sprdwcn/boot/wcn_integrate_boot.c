@@ -459,7 +459,7 @@ static void wcn_marlin_boot_finish(struct wcn_device *wcn_dev)
 static void gnss_clear_boot_flag(void)
 {
 	phys_addr_t phy_addr;
-	u32 magic_value;
+	u32 magic_value = 0;
 
 	phy_addr = wcn_get_gnss_base_addr() + GNSS_TEST_OFFSET;
 	wcn_read_data_from_phy_addr(phy_addr, &magic_value, sizeof(u32));
@@ -474,7 +474,7 @@ static void gnss_clear_boot_flag(void)
 static void gnss_read_boot_flag(void)
 {
 	phys_addr_t phy_addr;
-	u32 magic_value;
+	u32 magic_value = 0;
 	u32 wait_count;
 
 	phy_addr = wcn_get_gnss_base_addr() + GNSS_TEST_OFFSET;

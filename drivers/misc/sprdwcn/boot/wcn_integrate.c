@@ -226,7 +226,7 @@ u32 wcn_platform_chip_type(void)
 
 u32 wcn_get_cp2_comm_rx_count(void)
 {
-	u32 rx_count;
+	u32 rx_count = 0;
 	phys_addr_t phy_addr;
 
 	phy_addr = s_wcn_device.btwf_device->base_addr +
@@ -409,7 +409,7 @@ void wcn_regmap_read(struct regmap *cur_regmap,
 /* return val: 1 for send the cmd to CP2 */
 int wcn_send_force_sleep_cmd(struct wcn_device *wcn_dev)
 {
-	u32 val;
+	u32 val = 0;
 	phys_addr_t phy_addr;
 
 	phy_addr = wcn_dev->base_addr +
@@ -433,7 +433,7 @@ u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep)
 {
 	u32 sleep_status = 0;
 	u32 wcn_sleep_status_mask = 0xf000;
-	u32 val;
+	u32 val = 0;
 	phys_addr_t phy_addr;
 
 	if (wcn_dev_is_marlin(wcn_dev) && force_sleep) {
