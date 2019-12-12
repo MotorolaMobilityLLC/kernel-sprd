@@ -52,6 +52,14 @@
 #include "../include/wcn_dbg.h"
 #include "../include/wcn_glb_reg.h"
 
+#ifdef MODULE_PARAM_PREFIX
+#undef MODULE_PARAM_PREFIX
+#endif
+#define MODULE_PARAM_PREFIX	"marlin."
+
+static int clktype = -1;
+module_param(clktype, int, 0444);
+
 #ifndef REG_PMU_APB_XTL_WAIT_CNT0
 #define REG_PMU_APB_XTL_WAIT_CNT0 0xe42b00ac
 #endif
@@ -842,7 +850,16 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		else
 			WCN_ERR("force config xtal 26m clk %s err!\n", buf);
 	} else {
-		WCN_INFO("unforce config xtal 26m clk:%d", clk->type);
+		if (clktype == 0) {
+			WCN_INFO("cmd config clk TCXO\n");
+			clk->type = WCN_CLOCK_TYPE_TCXO;
+		} else if (clktype == 1) {
+			WCN_INFO("cmd config clk TSX\n");
+			clk->type = WCN_CLOCK_TYPE_TSX;
+		} else {
+			WCN_INFO("may be not config clktype:%d\n", clktype);
+			clk->type = WCN_CLOCK_TYPE_UNKNOWN;
+		}
 	}
 
 	marlin_dev->dvdd12 = devm_regulator_get(&pdev->dev, "dvdd12");
@@ -1287,7 +1304,7 @@ static void wcn_check_xtal_26m_clk(void)
 			WCN_INFO("xtal gpio clk type:%d %d\n",
 				 clk->type, ret);
 		} else {
-			WCN_ERR("xtal_26m clk type erro by gpio!\n");
+			WCN_ERR("xtal_26m clk type erro!\n");
 		}
 	}
 
