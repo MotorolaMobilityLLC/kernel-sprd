@@ -882,11 +882,11 @@ CONFIG_ARM_ERRATA_643719
 	[arch] arm
 	[plat] sharkl3_32,sharkl5_32
 	[missing plat] pike2,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] code
+	[subsys] soc
+	[must] unknown
+	[missing plat description] We don't use COrtex-A9 Core board, so mark as Need confirmed
+	[function] ARM errata of Cortex-A9: LoUIS bit field in CLIDR register is incorrect
 CONFIG_ARM_GIC
 	[arch] all
 	[plat] all
