@@ -190,8 +190,8 @@
 
 		/* Allow charging for 6hr */
 		cm-charging-max = <18000000>;
-		/* recovery charging after stop charging 3hr */
-		cm-discharging-max = <10800000>;
+		/* recovery charging after stop charging 45min */
+		cm-discharging-max = <2700000>;
 
 		/* the interval to feed charger watchdog */
 		cm-wdt-interval = <60>;
