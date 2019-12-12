@@ -547,8 +547,11 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 	} while ((read_len > 0) && (size > 0));
 	fput(file);
 	WCN_INFO("%s finish read_Len:%d\n", __func__, read_len);
-	if (read_len <= 0)
+
+	if (read_len <= 0) {
+		vfree(data);
 		return NULL;
+	}
 
 	return data;
 }
