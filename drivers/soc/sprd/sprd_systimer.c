@@ -142,11 +142,9 @@ static int __init sprd_systimer_init(void)
 		return -ENOMEM;
 
 	/* init the base value */
-	write_seqcount_begin(&systimer_seq);
 	cnter_to_boottime.last_boottime = ktime_get_boot_fast_ns();
 	cnter_to_boottime.last_systimer_counter = sprd_systimer_read();
 	cnter_to_boottime.last_sysfrt_counter = sprd_sysfrt_read();
-	write_seqcount_end(&systimer_seq);
 
 	hrtimer_init(&cnt_to_boot_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	cnt_to_boot_timer.function = sync_cnter_boottime;
@@ -155,5 +153,5 @@ static int __init sprd_systimer_init(void)
 	return 0;
 }
 
-device_initcall(sprd_systimer_init);
+arch_initcall(sprd_systimer_init);
 
