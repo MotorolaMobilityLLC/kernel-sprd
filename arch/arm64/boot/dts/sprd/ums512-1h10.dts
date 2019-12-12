@@ -516,7 +516,7 @@
 
 		clock-names = "clk_48M", "source", "enable";
 		clocks = <&aon_clk CLK_AUX1>,
-			 <&pll2 CLK_TWPLL_48M>,
+			 <&pll2 CLK_TWPLL_19M2>,
 			 <&aonapb_gate CLK_AUX1_EB>;
 	};
 };
