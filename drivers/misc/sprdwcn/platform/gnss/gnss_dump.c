@@ -238,7 +238,9 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 	pos = gnss_dump_file->f_pos;
-	ret = vfs_write(gnss_dump_file, (const char *)iram_buffer, len, &pos);
+	ret = vfs_write(gnss_dump_file,
+			(__force const char __user *)iram_buffer,
+			len, &pos);
 	gnss_dump_file->f_pos = pos;
 	kfree(buf);
 	vfree(iram_buffer);
@@ -315,7 +317,9 @@ static int gnss_dump_ap_register(void)
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 	pos = gnss_dump_file->f_pos;
-	ret = vfs_write(gnss_dump_file, (const char *)apreg_buffer, len, &pos);
+	ret = vfs_write(gnss_dump_file,
+			(__force const char __user *)apreg_buffer,
+			len, &pos);
 	gnss_dump_file->f_pos = pos;
 	vfree(apreg_buffer);
 	set_fs(fs);
@@ -400,7 +404,9 @@ static int gnss_dump_share_memory(u32 len)
 	memset(ddr_buffer, 0, len);
 	memcpy(ddr_buffer, virt_addr, len);
 	pos = gnss_dump_file->f_pos;
-	ret = vfs_write(gnss_dump_file, (const char *)ddr_buffer, len, &pos);
+	ret = vfs_write(gnss_dump_file,
+			(__force const char __user *)ddr_buffer,
+			len, &pos);
 	gnss_dump_file->f_pos = pos;
 	shmem_ram_unmap(virt_addr);
 	set_fs(fs);
@@ -493,7 +499,9 @@ static int gnss_ext_dump_data(unsigned int start_addr, int len)
 		}
 		count += trans;
 		pos = gnss_dump_file->f_pos;
-		ret = vfs_write(gnss_dump_file, (const char *)buf, trans, &pos);
+		ret = vfs_write(gnss_dump_file,
+				(__force const char __user *)buf,
+				trans, &pos);
 		gnss_dump_file->f_pos = pos;
 		if (ret != trans) {
 			GNSSDUMP_ERR("%s failed size is %d, ret %d\n", __func__,

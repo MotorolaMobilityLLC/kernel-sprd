@@ -66,8 +66,7 @@ static int mdbg_log_push(int chn, struct mbuf_t **head,
 
 	return 0;
 }
-#else
-#ifdef CONFIG_WCN_SIPC
+#elif defined  CONFIG_WCN_SIPC
 static int mdbg_sipc_log_cb(int channel, struct mbuf_t *head,
 			    struct mbuf_t *tail, int num)
 {
@@ -110,7 +109,6 @@ static int mdbg_log_read(int channel, struct mbuf_t *head,
 
 	return 0;
 }
-#endif
 #endif
 
 #ifdef CONFIG_WCN_PCIE
