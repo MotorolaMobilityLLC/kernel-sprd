@@ -1125,6 +1125,29 @@ static void srcu_advance_state(struct srcu_struct *sp)
 }
 
 /*
+ * Workaround check and update current srcu data if need.
+ * Some flow will make task stack data remaining in the srcu data
+ * even after the current task has exited, thus these stack
+ * addresses are inaccessible.
+ */
+void srcu_simple_check_update(struct srcu_data *sdp)
+{
+	unsigned int i = 0;
+	struct rcu_segcblist *rsclp = &sdp->srcu_cblist;
+
+	if (rsclp->len == 0) {
+		for (i = 0; i < RCU_CBLIST_NSEGS; i++) {
+			if (rsclp->tails[i] != &rsclp->head)
+				break;
+		}
+
+		if ((rsclp->head != NULL) || (i != RCU_CBLIST_NSEGS))
+			rcu_segcblist_init(rsclp);
+	}
+}
+
+
+/*
  * Invoke a limited number of SRCU callbacks that have passed through
  * their grace period.  If there are more to do, SRCU will reschedule
  * the workqueue.  Note that needed memory barriers have been executed
@@ -1170,6 +1193,7 @@ static void srcu_invoke_callbacks(struct work_struct *work)
 	rcu_segcblist_insert_count(&sdp->srcu_cblist, &ready_cbs);
 	(void)rcu_segcblist_accelerate(&sdp->srcu_cblist,
 				       rcu_seq_snap(&sp->srcu_gp_seq));
+	srcu_simple_check_update(sdp);
 	sdp->srcu_cblist_invoking = false;
 	more = rcu_segcblist_ready_cbs(&sdp->srcu_cblist);
 	raw_spin_unlock_irq_rcu_node(sdp);
