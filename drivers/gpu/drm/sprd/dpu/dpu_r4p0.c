@@ -17,6 +17,7 @@
 #include <linux/of_address.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
+#include "sprd_bl.h"
 #include "sprd_dpu.h"
 #include "sprd_dvfs_dpu.h"
 #include "dpu_r4p0_corner_param.h"
@@ -305,14 +306,14 @@ static bool evt_stop;
 static int frame_no;
 static bool cabc_bl_set;
 static int cabc_disable = CABC_DISABLED;
-static int cabc_step0 = 2;
-static int cabc_step1 = 5;
-static int cabc_step2 = 30;
+static int cabc_step0 = 8;
+static int cabc_step1 = 72;
+static int cabc_step2 = 28;
 static int cabc_scene_change_thr = 80;
-static int cabc_min_backlight = 102;
+static int cabc_min_backlight = 408;
 static int cabc_bl_set_delay;
 static struct cabc_para cabc_para;
-static struct backlight_device *backlight;
+static struct backlight_device *bl_dev;
 static int wb_en;
 static int max_vsync_count;
 static int vsync_count;
@@ -590,30 +591,20 @@ static void dpu_cabc_work_func(struct work_struct *data)
 
 static void dpu_cabc_bl_update_func(struct work_struct *data)
 {
-	static int cur_brightness, last_brightness;
+	struct sprd_backlight *bl = bl_get_data(bl_dev);
 
 	msleep(cabc_bl_set_delay);
-	if (cabc_disable == CABC_WORKING) {
-		if (backlight) {
-			if (last_brightness !=
-				backlight->props.brightness) {
-				cur_brightness =
-					backlight->props.brightness;
-				cabc_para.cur_bl = (u16)cur_brightness;
-			}
+	if (bl_dev) {
+		if (cabc_disable == CABC_WORKING) {
+			cabc_para.cur_bl = bl_dev->props.brightness *
+				(bl->max_level - bl->min_level) / 255;
 
-			backlight->props.brightness =
-			  (int)cabc_para.bl_fix;
-			last_brightness = backlight->props.brightness;
-
-			backlight_update_status(backlight);
-		}
-	} else {
-		if (backlight &&
-		    last_brightness == backlight->props.brightness) {
-			backlight->props.brightness = cur_brightness;
-			backlight_update_status(backlight);
-		}
+			bl->cabc_en = true;
+			bl->cabc_level = cabc_para.bl_fix;
+			bl->cabc_refer_level = cabc_para.cur_bl;
+			sprd_cabc_backlight_update(bl_dev);
+		} else
+			backlight_update_status(bl_dev);
 	}
 
 	cabc_bl_set = false;
@@ -2053,6 +2044,7 @@ static void dpu_sr_config(struct dpu_context *ctx)
 static int dpu_cabc_trigger(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	struct sprd_backlight *bl = bl_get_data(bl_dev);
 	struct cm_cfg cm;
 	int i;
 	struct device_node *backlight_node;
@@ -2077,11 +2069,11 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 	}
 
 	if (frame_no == 0) {
-		if (!backlight) {
+		if (!bl_dev) {
 			backlight_node = of_parse_phandle(g_np,
 						 "sprd,backlight", 0);
 			if (backlight_node) {
-				backlight =
+				bl_dev =
 				of_find_backlight_by_node(backlight_node);
 				of_node_put(backlight_node);
 			} else {
@@ -2109,7 +2101,8 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 		}
 
 		if (frame_no == 1)
-			 cabc_para.cur_bl = backlight->props.brightness;
+			 cabc_para.cur_bl = bl_dev->props.brightness *
+				(bl->max_level - bl->min_level) / 255;
 
 		if ((*(unsigned int *)vsp_pmu_addr) & 0x0000ff00)
 			cabc_para.is_VSP_working = false;
