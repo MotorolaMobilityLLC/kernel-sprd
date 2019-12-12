@@ -3,6 +3,7 @@
 #include <linux/ftrace.h>
 #include <linux/irq.h>
 #include <linux/irqnr.h>
+#include <linux/interrupt.h>
 #include <linux/kallsyms.h>
 #include <linux/kernel.h>
 #include <linux/kernel_stat.h>
@@ -30,7 +31,8 @@ struct irq_monitor_s {
 	int history_brust_value[BRUST_ARRAY_SIZE];
 };
 
-static struct hrtimer irq_monitor_timer;
+static struct timer_list *irq_monitor_timer;
+
 static int  monitor_enable = 1;
 static unsigned int  time_interval = DEFAULT_SAMPLE_TIMEVALE;
 static unsigned int  threshold_irq = DEFAULT_THRESHOLD_IRQ;
@@ -39,16 +41,26 @@ static struct irq_monitor_s *irq_monitor;
 static int save_nr_irqs;
 static struct task_struct *irqs_change_task;
 static bool Processing;
+static struct timespec64 ts_end;
 
-static enum hrtimer_restart scan_burst_irq(struct hrtimer *hr)
+
+static void scan_burst_irq(unsigned long data)
 {
 	int i, j, irq_occur_value, index;
 	unsigned int tmp_kstat_irq;
 	struct irq_desc *desc;
 	struct irqaction *action;
 	int stat = 0;
+	unsigned long hwirq;
+	struct irq_domain *domain;
+	struct timespec64 ts_start, ts_sub;
+	unsigned int delta;
 
-	spin_lock(&irq_monitor_lock);
+	getnstimeofday64(&ts_start);
+	ts_sub = timespec64_sub(ts_start, ts_end);
+	ts_end = ts_start;
+	delta = jiffies_to_msecs(timespec64_to_jiffies(&ts_sub));
+
 	for (i = 0; i < save_nr_irqs; i++) {
 		desc = irq_to_desc(i);
 		if (!desc)
@@ -61,12 +73,17 @@ static enum hrtimer_restart scan_burst_irq(struct hrtimer *hr)
 			continue;
 		}
 
+		domain = desc->irq_data.domain;
+		hwirq = desc->irq_data.hwirq;
+		raw_spin_unlock(&desc->lock);
+
 		tmp_kstat_irq = 0;
+		spin_lock(&irq_monitor_lock);
 		if (likely(irq_monitor[i].prev_kstat_irq != 0)) {
-			if ((irq_monitor[i].domain != desc->irq_data.domain) ||
-			    (irq_monitor[i].hwirq != desc->irq_data.hwirq)) {
+			if ((irq_monitor[i].domain != domain) ||
+			    (irq_monitor[i].hwirq != hwirq)) {
 				stat = 1;
-				raw_spin_unlock(&desc->lock);
+				spin_unlock(&irq_monitor_lock);
 				continue;
 			}
 
@@ -77,10 +94,10 @@ static enum hrtimer_restart scan_burst_irq(struct hrtimer *hr)
 			(int)(tmp_kstat_irq-irq_monitor[i].prev_kstat_irq);
 			if (irq_occur_value != 0) {
 				if (irq_occur_value > threshold_irq)
-					pr_warning("Irq_monitor:Irq %45s[%d]occur %11d times per %d ms\n",
+					pr_warning("Irq_monitor:Irq %45s[%d]occur %11d times interval %d ms\n",
 					action->name, i,
 					irq_occur_value,
-					time_interval);
+					delta);
 
 				if (irq_monitor[i].mark == true &&
 				(irq_occur_value > irq_monitor[i].brust_value)) {
@@ -97,23 +114,19 @@ static enum hrtimer_restart scan_burst_irq(struct hrtimer *hr)
 			for_each_present_cpu(j)
 				irq_monitor[i].prev_kstat_irq += kstat_irqs_cpu(i, j);
 
-			irq_monitor[i].domain = desc->irq_data.domain;
-			irq_monitor[i].hwirq = desc->irq_data.hwirq;
+			irq_monitor[i].domain = domain;
+			irq_monitor[i].hwirq = hwirq;
 		}
-		raw_spin_unlock(&desc->lock);
+		spin_unlock(&irq_monitor_lock);
 	}
 
 	if ((save_nr_irqs != nr_irqs || stat == 1) && Processing == false)
 		wake_up_process(irqs_change_task);
 
-	spin_unlock(&irq_monitor_lock);
-
-	hrtimer_forward_now(&irq_monitor_timer, ms_to_ktime(time_interval));
-
-	return HRTIMER_RESTART;
+	mod_timer(irq_monitor_timer, jiffies + HZ * time_interval / 1000);
 }
 
-static int irq_init(int irq, int max_irq_num)
+static int irq_init(int irq, u64 max_irq_num)
 {
 	u64 mid_value;
 	u32 res;
@@ -122,12 +135,12 @@ static int irq_init(int irq, int max_irq_num)
 	if (irq >= save_nr_irqs || irq < 0)
 		return -EINVAL;
 
-	if (max_irq_num < 0 || max_irq_num > MAX_TIMEVALE)
+	if (max_irq_num > MAX_TIMEVALE)
 		return -EINVAL;
 
 	spin_lock_irqsave(&irq_monitor_lock, flags);
-	irq_monitor[irq].scale_brust_value = max_irq_num;
-	mid_value = time_interval*max_irq_num;
+	irq_monitor[irq].scale_brust_value = (int) max_irq_num;
+	mid_value = time_interval * max_irq_num;
 	res = do_div(mid_value, DEFAULT_SAMPLE_TIMEVALE);
 	irq_monitor[irq].brust_value = (res == 0 ? mid_value:mid_value+1);
 	irq_monitor[irq].prev_kstat_irq = 0;
@@ -287,13 +300,12 @@ static ssize_t monitor_enable_write(struct file *filep,
 		return -EINVAL;
 
 	if (enable == 1) {
-		hrtimer_cancel(&irq_monitor_timer);
-		hrtimer_init(&irq_monitor_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-		irq_monitor_timer.function = scan_burst_irq;
-		hrtimer_start(&irq_monitor_timer, ms_to_ktime(time_interval),
-			      HRTIMER_MODE_REL);
+		del_timer(irq_monitor_timer);
+
+		irq_monitor_timer->expires = jiffies + (HZ * time_interval / 1000);
+		add_timer(irq_monitor_timer);
 	} else if (enable == 0) {
-		hrtimer_cancel(&irq_monitor_timer);
+		del_timer(irq_monitor_timer);
 	} else
 		return -EINVAL;
 
@@ -342,7 +354,8 @@ static ssize_t time_interval_write(struct file *filep,
 		return -EINVAL;
 
 	if (time_interval != interval) {
-		hrtimer_cancel(&irq_monitor_timer);
+		del_timer(irq_monitor_timer);
+
 		spin_lock(&irq_monitor_lock);
 		for (i = 0; i < save_nr_irqs; ++i) {
 			if (irq_monitor[i].mark) {
@@ -358,9 +371,9 @@ static ssize_t time_interval_write(struct file *filep,
 		res = do_div(mid_value, DEFAULT_SAMPLE_TIMEVALE);
 		threshold_irq = (unsigned int)mid_value;
 		spin_unlock(&irq_monitor_lock);
-		hrtimer_init(&irq_monitor_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-		irq_monitor_timer.function = scan_burst_irq;
-		hrtimer_start(&irq_monitor_timer, ms_to_ktime(interval), HRTIMER_MODE_REL);
+
+		irq_monitor_timer->expires = jiffies + (HZ * (int)interval / 1000);
+		add_timer(irq_monitor_timer);
 	}
 
 	time_interval = interval;
@@ -422,9 +435,11 @@ static int monitor_irqs_change(void *data)
 	struct irq_desc *desc;
 	struct irq_domain *domain;
 	struct irq_monitor_s *tmp_irq_monitor;
-	struct sched_param param = {.sched_priority = 90};
+	struct sched_param param = {.sched_priority = ((MAX_RT_PRIO * 7) << 2)};
 
 	/*set the thread as a real time thread, and its priority is 90*/
+	pr_notice("%s nr_irqs = %d,%d\n", __func__, save_nr_irqs, nr_irqs);
+
 	sched_setscheduler(current, SCHED_RR, &param);
 	while (!kthread_should_stop()) {
 		set_current_state(TASK_UNINTERRUPTIBLE);
@@ -478,16 +493,28 @@ static int monitor_irqs_change(void *data)
 	return 0;
 }
 
+static struct dentry *irq_burst_monitor_debugfs;
+static struct dentry *irq_debugfs;
+static struct dentry *time_interval_debugfs;
+static struct dentry *monitor_enable_debugfs;
+static struct dentry *threshold_debugfs;
+
 static int __init irq_monitor_init(void)
 {
-	struct dentry *irq_burst_monitor;
-
 	save_nr_irqs = nr_irqs;
 	Processing = false;
 	irq_monitor = kzalloc(sizeof(struct irq_monitor_s)*
 			      (save_nr_irqs), GFP_KERNEL);
 	if (!irq_monitor)
 		return -ENOMEM;
+
+	irq_monitor_timer = kzalloc(sizeof(struct timer_list), GFP_KERNEL);
+	if (!irq_monitor_timer) {
+		if (irq_monitor)
+			kfree(irq_monitor);
+
+		return -ENOMEM;
+	}
 
 	spin_lock_init(&irq_monitor_lock);
 
@@ -496,27 +523,84 @@ static int __init irq_monitor_init(void)
 	if (IS_ERR(irqs_change_task)) {
 		pr_err("create irqs_change_task failed");
 		kfree(irq_monitor);
+		irq_monitor = NULL;
+		irqs_change_task = NULL;
 		return -ENOMEM;
 	}
 
-	irq_burst_monitor = debugfs_create_dir("irq_burst_monitor",
+	irq_burst_monitor_debugfs = debugfs_create_dir("irq_burst_monitor",
 					       sprd_debugfs_entry(IRQ));
 
-	if (irq_burst_monitor) {
-		debugfs_create_file("irq", (S_IRUGO | S_IWUSR | S_IWGRP),
-				    irq_burst_monitor, NULL, &irq_fops);
-		debugfs_create_file("time_interval", (S_IRUGO | S_IWUSR | S_IWGRP),
-				    irq_burst_monitor, NULL, &time_interval_fops);
-		debugfs_create_file("monitor_enable", (S_IRUGO | S_IWUSR | S_IWGRP),
-				    irq_burst_monitor, NULL, &monitor_enable_fops);
-		debugfs_create_file("threshold_irq", (S_IRUGO | S_IWUSR | S_IWGRP),
-				    irq_burst_monitor, NULL, &threshold_irq_fops);
+	if (irq_burst_monitor_debugfs) {
+		irq_debugfs = debugfs_create_file("irq", (S_IRUGO | S_IWUSR | S_IWGRP),
+				    irq_burst_monitor_debugfs, NULL, &irq_fops);
+		if (!irq_debugfs)
+			pr_err("%s create irq_debugfs failed!\n", __func__);
+
+		time_interval_debugfs = debugfs_create_file("time_interval", (S_IRUGO | S_IWUSR | S_IWGRP),
+				    irq_burst_monitor_debugfs, NULL, &time_interval_fops);
+		if (!time_interval_debugfs)
+			pr_err("%s create time_interval_debugfs failed!\n", __func__);
+
+		monitor_enable_debugfs = debugfs_create_file("monitor_enable", (S_IRUGO | S_IWUSR | S_IWGRP),
+				    irq_burst_monitor_debugfs, NULL, &monitor_enable_fops);
+		if (!monitor_enable_debugfs)
+			pr_err("%s create monitor_enable_debugfs failed!\n", __func__);
+
+		threshold_debugfs = debugfs_create_file("threshold_irq", (S_IRUGO | S_IWUSR | S_IWGRP),
+				    irq_burst_monitor_debugfs, NULL, &threshold_irq_fops);
+		if (!threshold_debugfs)
+			pr_err("%s create threshold_debugfs failed!\n", __func__);
 	}
 
-	hrtimer_init(&irq_monitor_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	irq_monitor_timer.function = scan_burst_irq;
-	hrtimer_start(&irq_monitor_timer, ms_to_ktime(time_interval), HRTIMER_MODE_REL);
+	init_timer_deferrable(irq_monitor_timer);
+	irq_monitor_timer->function = scan_burst_irq;
+	irq_monitor_timer->expires = jiffies + (HZ);
+	add_timer(irq_monitor_timer);
+	getnstimeofday64(&ts_end);
 
 	return 0;
 }
-fs_initcall(irq_monitor_init);
+
+static void debugfs_remove_irq_monitor(struct dentry *irq_monitor_dentry)
+{
+	if (irq_monitor_dentry)
+		debugfs_remove(irq_monitor_dentry);
+
+	irq_monitor_dentry = NULL;
+}
+
+static void __exit irq_monitor_exit(void)
+{
+	pr_notice("%s start\n", __func__);
+
+	del_timer(irq_monitor_timer);
+
+	if (irqs_change_task) {
+		kthread_stop(irqs_change_task);
+		irqs_change_task = NULL;
+	}
+	if (irq_monitor) {
+		kfree(irq_monitor);
+		irq_monitor = NULL;
+	}
+	if (irq_debugfs)
+		debugfs_remove_irq_monitor(irq_debugfs);
+
+	if (time_interval_debugfs)
+		debugfs_remove_irq_monitor(time_interval_debugfs);
+
+	if (monitor_enable_debugfs)
+		debugfs_remove_irq_monitor(monitor_enable_debugfs);
+
+	if (threshold_debugfs)
+		debugfs_remove_irq_monitor(threshold_debugfs);
+
+	if (irq_burst_monitor_debugfs)
+		debugfs_remove_irq_monitor(irq_burst_monitor_debugfs);
+
+	pr_notice("%s end\n", __func__);
+}
+
+late_initcall(irq_monitor_init);
+__exitcall(irq_monitor_exit);
