@@ -56,7 +56,7 @@ static void __init process_hwfeatures_node(struct device_node *np)
 	struct property *pp;
 	const char *full_name;
 	char key_buf[HWFEATURE_STR_SIZE_LIMIT_KEY];
-	int len = strlen(HWFEATURE_ROOT_NAME);
+	int len = strlen(HWFEATURE_ROOT_NAME) + 1;
 
 	for_each_property_of_node(np, pp) {
 		if (!pp->next)

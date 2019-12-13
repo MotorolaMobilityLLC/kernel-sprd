@@ -26,7 +26,7 @@ static inline void sprd_kproperty_get(const char *key, char *value, const char *
 #define SPRD_KPROPERTY_EXPECTED_VALUE(name) \
 	static inline int sprd_kproperty_##name(const char *expected_value) \
 	{ \
-		return sprd_kproperty_eq("/auto/"#name, expected_value); \
+		return sprd_kproperty_eq("auto/"#name, expected_value); \
 	}
 
 SPRD_KPROPERTY_EXPECTED_VALUE(efuse)
