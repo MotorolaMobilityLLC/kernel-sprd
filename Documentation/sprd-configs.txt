@@ -4023,6 +4023,15 @@ CONFIG_DRM_SPRD_GSP
 	[must] home
 	[missing plat description] none
 	[function] DRM_SPRD_GSP is used for enable gsp.
+CONFIG_DRM_SPRD_GSP_IPC_TRUSTY
+	[arch] arm64
+	[plat] qogirl6
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[field] make,code
+	[subsys] drm
+	[must] home
+	[missing plat description] none
+	[function] DRM_SPRD_GSP_IPC_TRUSTY is used for enable gsp widevine.
 CONFIG_DST_CACHE
 	[arch] all
 	[plat] all
