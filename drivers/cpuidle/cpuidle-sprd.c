@@ -19,6 +19,11 @@
 #include "dt_idle_states.h"
 #include <linux/cpuidle-sprd.h>
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "arm-idle-sprd: " fmt
+
 enum {
 	STANDBY = 0,  /* WFI */
 	L_SLEEP,      /* Light Sleep, WFI & DDR Self-refresh & MCU_SYS_SLEEP */
@@ -94,7 +99,7 @@ static int sprd_enter_idle_state(struct cpuidle_device *dev,
 }
 
 static struct cpuidle_driver sprd_cpuidle_driver = {
-	.name = "arm_idle_sprd",
+	.name = "arm-idle-sprd",
 	.owner = THIS_MODULE,
 	/*
 	 * State at index 0 is standby wfi and considered standard
