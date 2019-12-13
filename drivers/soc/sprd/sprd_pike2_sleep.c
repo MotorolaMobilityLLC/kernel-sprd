@@ -589,7 +589,7 @@ static void sprd_ap_force_light(void)
 			   MASK_AON_APB_AP_PUB_AUTO_GATE_EN);
 }
 
-static int __init sprd_pike2_init(void)
+static int __init sprd_pike2_init(struct device *dev)
 {
 	struct device_node *node = NULL;
 	struct device_node *np = of_find_node_by_name(NULL, "sprd-sleep");
@@ -606,17 +606,17 @@ static int __init sprd_pike2_init(void)
 	if (IS_ERR(cpuidle_syscon_apahb) ||
 	    IS_ERR(cpuidle_syscon_aonapb) ||
 	    IS_ERR(cpuidle_syscon_pmuapb)) {
-		pr_err("%s:failed to find sprd,sys-syscon\n", __func__);
+		dev_err(dev, "failed to find sprd,sys-syscon\n");
 		return -EINVAL;
 	}
 
 	node = of_find_compatible_node(NULL, NULL, "arm,cortex-a9-gic");
 	if (!node)
-		pr_err("failed to get gic node\n");
+		dev_err(dev, "failed to get gic node\n");
 
 	sprd_ap_gic_base_vaddr = of_iomap(node, 0);
 	if (!sprd_ap_gic_base_vaddr) {
-		pr_err("failed to map sprd_ap_gic_base_vaddr\n");
+		dev_err(dev, "failed to map sprd_ap_gic_base_vaddr\n");
 		return -EINVAL;
 	}
 
@@ -633,7 +633,7 @@ static int __init sprd_pike2_init(void)
 	    IS_ERR(cpuidle_syscon_ap_intc1) ||
 	    IS_ERR(cpuidle_syscon_ap_intc2) ||
 	    IS_ERR(cpuidle_syscon_ap_intc1)) {
-		pr_err("%s:failed to find sprd,sys-ap-intc\n", __func__);
+		dev_err(dev, "failed to find sprd,sys-ap-intc\n");
 		return -EINVAL;
 	}
 
@@ -659,7 +659,7 @@ static int sprd_sleep_probe(struct platform_device *pdev)
 {
 	int ret;
 
-	ret = sprd_pike2_init();
+	ret = sprd_pike2_init(&pdev->dev);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to initialize pike2_sleep\n");
 		return ret;
@@ -672,7 +672,7 @@ static int sprd_sleep_probe(struct platform_device *pdev)
 
 static struct platform_driver sprd_sleep_platdrv = {
 	.driver = {
-		.name	= "sprd_sleep",
+		.name	= "sprd-sleep",
 	},
 	.probe		= sprd_sleep_probe,
 };
@@ -703,9 +703,9 @@ static int __init sprd_pike2_sleep_init(void)
 
 	err = platform_driver_register(&sprd_sleep_platdrv);
 
-	pdev = platform_device_register_simple("sprd_sleep", -1, NULL, 0);
+	pdev = platform_device_register_simple("sprd-sleep", -1, NULL, 0);
 	if (IS_ERR(pdev)) {
-		pr_err("failed to register sprd_sleep platform device\n");
+		dev_err(&pdev->dev, "failed to register sprd_sleep platform device\n");
 		return PTR_ERR(pdev);
 	}
 
