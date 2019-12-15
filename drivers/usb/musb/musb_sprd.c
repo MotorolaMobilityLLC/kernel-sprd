@@ -600,6 +600,19 @@ static void sprd_musb_recover_work(struct work_struct *work)
 	schedule_work(&glue->work);
 }
 
+static void sprd_musb_reset_context(struct musb *musb)
+{
+	int i;
+
+	musb->context.testmode = 0;
+	musb->test_mode_nr = 0;
+	musb->test_mode = false;
+	for (i = 0; i < musb->config->num_eps; ++i) {
+		musb->context.index_regs[i].txcsr = 0;
+		musb->context.index_regs[i].rxcsr = 0;
+	}
+}
+
 static void sprd_musb_work(struct work_struct *work)
 {
 	struct sprd_glue *glue = container_of(work, struct sprd_glue, work);
@@ -653,9 +666,7 @@ static void sprd_musb_work(struct work_struct *work)
 		if (glue->dr_mode == USB_DR_MODE_PERIPHERAL)
 			usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
 
-		musb->context.testmode = 0;
-		musb->test_mode_nr = 0;
-		musb->test_mode = false;
+		sprd_musb_reset_context(musb);
 		/*
 		 * If the charger type is not SDP or CDP type, it does
 		 * not need to resume the device, just charging.
