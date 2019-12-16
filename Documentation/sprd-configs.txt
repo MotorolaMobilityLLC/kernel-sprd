@@ -4697,12 +4697,12 @@ CONFIG_FUTEX_PI
 	[function] Fast userspace mutex - Priority Inheritance.
 CONFIG_FW_CACHE
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] roc1,sharkl5,sharkl5_32
+	[missing plat] sharkl3,sharkl3_32,sharkl5Pro,pike2
 	[field] code
 	[subsys] core
 	[must] user
-	[missing plat description] none
+	[missing plat description] firmware caching is not needed
 	[function] firmware caching control
 CONFIG_FW_LOADER
 	[arch] all
