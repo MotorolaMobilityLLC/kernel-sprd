@@ -4695,6 +4695,15 @@ CONFIG_FUTEX_PI
 	[must] user
 	[missing plat description] none
 	[function] Fast userspace mutex - Priority Inheritance.
+CONFIG_FW_CACHE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] code
+	[subsys] core
+	[must] user
+	[missing plat description] none
+	[function] firmware caching control
 CONFIG_FW_LOADER
 	[arch] all
 	[plat] all
