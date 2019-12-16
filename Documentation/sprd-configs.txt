@@ -1507,7 +1507,7 @@ CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC
 	[subsys] watchdog
 	[must] debug
 	[missing plat description] none
-	[function]
+	[function] Panic (Reboot) On Soft Lockups.
 CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC_VALUE
 	[arch] all
 	[plat] all
@@ -1795,7 +1795,7 @@ CONFIG_CGROUP_CPUACCT
 	total CPU consumed by the tasks in a cgroup.
 CONFIG_CGROUP_DEBUG
 	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] all
 	[missing plat] none
 	[field] code
 	[subsys] core
@@ -2381,11 +2381,11 @@ CONFIG_CPU_THUMB_CAPABLE
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu
+	[subsys] core
+	[must] console
 	[missing plat description] none
-	[function]
+	[function] Support thumb instruction, selected by CPU_V7.
 CONFIG_CPU_TLB_V7
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -2431,15 +2431,6 @@ CONFIG_CRC32_SLICEBY8
 	[must] console
 	[missing plat description] none
 	[function] Slice by 8 bytes.
-CONFIG_CRC7
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2
-	[field] make
-	[subsys] core
-	[must] core
-	[missing plat description]
-	[function] Support CRC7.
 CONFIG_CRC_CCITT
 	[arch] all
 	[plat] all
@@ -2449,15 +2440,6 @@ CONFIG_CRC_CCITT
 	[must] console
 	[missing plat description] none
 	[function] Support CRC-CCITT functions.
-CONFIG_CRC_ITU_T
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2
-	[field] make
-	[subsys] core
-	[must] console
-	[missing plat description]
-	[function] CRC ITU-T V.41 functions.
 CONFIG_CROSS_COMPILE
 	[arch] all
 	[plat] all
@@ -10263,8 +10245,8 @@ CONFIG_OID_REGISTRY
 	[field] menu
 	[subsys] security
 	[must] user
-	[missing plat description]
-	[function] needed by other configs
+	[missing plat description] armv8 use X509_CERTIFICATE_PARSER
+	[function] select by X509_CERTIFICATE_PARSER.
 CONFIG_OLD_MCOUNT
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -12790,7 +12772,7 @@ CONFIG_SOFTLOCKUP_DETECTOR
 	[subsys] watchdog
 	[must] debug
 	[missing plat description] none
-	[function]
+	[function] Detect Soft Lockups.
 CONFIG_SOUND
 	[arch] all
 	[plat] all
@@ -14356,11 +14338,11 @@ CONFIG_TASKS_RCU
 	[missing plat] none
 	[field] code
 	[subsys] rcu
-	[must] Enables a task-based RCU implementation that uses
+	[must] debug
+	[missing plat description] none
+	[function] Enables a task-based RCU implementation that uses
 		only voluntary context switch (not preemption!), idle, and
 		user-mode execution as quiescent states.
-	[missing plat description] none
-	[function]
 CONFIG_TASK_IO_ACCOUNTING
 	[arch] all
 	[plat] all
