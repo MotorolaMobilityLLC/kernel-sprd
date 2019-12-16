@@ -1659,7 +1659,7 @@ static int sprd_soc_platform_probe(struct platform_device *pdev)
 static int sprd_soc_platform_remove(struct platform_device *pdev)
 {
 	snd_soc_unregister_platform(&pdev->dev);
-
+	unregister_pm_notifier(&pm_dma->pm_nb);
 	return 0;
 }
 
