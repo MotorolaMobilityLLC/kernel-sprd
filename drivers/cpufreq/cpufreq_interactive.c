@@ -1297,6 +1297,8 @@ int cpufreq_interactive_start(struct cpufreq_policy *policy)
 		icpu->ipolicy = ipolicy;
 		up_write(&icpu->enable_sem);
 #ifdef CONFIG_INTERACTIVE_TIMER_MODE
+		del_timer_sync(&icpu->cpu_timer);
+		del_timer_sync(&icpu->slack_timer);
 		interactive_timer_resched(icpu, cpu, false);
 #endif
 		slack_timer_resched(icpu, cpu, false);
