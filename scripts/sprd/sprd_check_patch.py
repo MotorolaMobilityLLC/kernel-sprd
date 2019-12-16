@@ -15,7 +15,9 @@ ATTRIBUTE_TAGS  = []
 SUBSYSTEM1_TAGS = []
 SUBSYSTEM2_TAGS = []
 SUBSYSTEM3_TAGS = []
-SUBSYSTEM1_TAGS_NOCHECK = ['include', 'dt-bindings', 'documentation']
+SUBSYSTEM1_TAGS_NOCHECK = ['include', 'dt-bindings', 'Documentation']
+
+check_tags_flag = 1
 
 def read_line(path, file_name):
     read_file = path + '/' + file_name
@@ -30,6 +32,7 @@ def get_tags():
     global SUBSYSTEM1_TAGS
     global SUBSYSTEM2_TAGS
     global SUBSYSTEM3_TAGS
+    get_tags_flag = 0
 
     MAIN_PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
 
@@ -40,7 +43,14 @@ def get_tags():
     for x in read_tags_list:
         if "\n" in x:
             x = x.strip("\n")
-        if ":" in x:
+
+        if "[info]" in x and get_tags_flag == 0:
+            get_tags_flag = 1
+            continue
+        elif get_tags_flag == 0:
+            continue
+
+        if ":" in x and get_tags_flag == 1:
             subsystem1_tags = ''
             subsystem2_tags = ''
             subsystem3_tags = ''
@@ -75,7 +85,7 @@ def get_tags():
 #print "SUBSYSTEM2_TAGS: %s" % SUBSYSTEM2_TAGS
 #print "SUBSYSTEM3_TAGS: %s" % SUBSYSTEM3_TAGS
 
-        elif "," in x:
+        elif "," in x and get_tags_flag == 1:
             ATTRIBUTE_TAGS = x.split(",")
 #           print "attribute tags:%s" % ATTRIBUTE_TAGS
 
@@ -93,8 +103,8 @@ def find_last_char(string, p):
     return index
 
 def check_tags_commit_id(patch_info_list):
+    global check_tags_flag
     check_title_flag = 1
-    check_tags_flag = 1
     check_commit_id_flag = 0
     tags_list_start_num = 0
     ret_hit_tags_list = []
@@ -160,7 +170,7 @@ def check_tags_commit_id(patch_info_list):
                     else:
                         return (-1, "The subsystem 1 tag is error")
                 else:
-                    return (-1, "The string donot contains subsystem 1 tag")
+                    return (-1, "The title donot contains subsystem tag")
         elif check_commit_id_flag == 1 and "commit" in x:
             # check commit id ok
             print("check commit id ok")
@@ -171,15 +181,18 @@ def check_tags_commit_id(patch_info_list):
 
     return (0, ret_hit_tags_list)
 
-def check_tags_file(modfiy_file_list, tags_list):
+def check_tags_file(modify_file_list, tags_list):
     file_name_list_temp = []
     inconsistent_file_list = []
     file_add_inconsistent_flag = 0
+    file_and_tag_consistent_flag = 0
 
     if "asoc" in tags_list:
         tags_list[tags_list.index("asoc")] = 'sound'
 
-    for x in modfiy_file_list:
+    for x in modify_file_list:
+        file_add_inconsistent_flag = 0
+
         if len(x) < 2:
             continue
         elif "." in x:
@@ -187,7 +200,7 @@ def check_tags_file(modfiy_file_list, tags_list):
         else:
             file_name_list_temp = x.split("/")
 
-        print("Modfied file name: %s" % x)
+        print("Modified file name: %s" % x)
 
         for y in tags_list:
             if y not in file_name_list_temp:
@@ -200,18 +213,19 @@ def check_tags_file(modfiy_file_list, tags_list):
                     inconsistent_file_list.append(x)
                     break
 
-    if len(inconsistent_file_list) > 0:
-        if 'configs' in tags_list:
-            return (-2, inconsistent_file_list)
-        return (-1, inconsistent_file_list)
+        if file_add_inconsistent_flag == 0 and file_and_tag_consistent_flag == 0:
+            file_and_tag_consistent_flag = 1
 
-    return (0, inconsistent_file_list)
+    if file_and_tag_consistent_flag == 1:
+        return (0, inconsistent_file_list)
+
+    return (-1, inconsistent_file_list)
 
 if __name__ == '__main__':
     ret_info = []
     ret_check_file = []
     get_patch_info_list = []
-    get_patch_modfiy_file_list = []
+    get_patch_modify_file_list = []
 
     status,output=commands.getstatusoutput(GET_PATCH_INFO_COMMANDS)
 
@@ -224,24 +238,29 @@ if __name__ == '__main__':
     ret_info = check_tags_commit_id(get_patch_info_list)
     if ret_info[0] != 0:
         print("\nERROR: %s" %  ret_info[1])
+        print("Please read 'Documentation/sprd-tags.txt' file.")
     else:
         print("\nCheck tags OK, tags list: %s\n" % ret_info[1])
 
-        status,output=commands.getstatusoutput(GET_PATCH_MODIFY_FILE_INFO)
-        get_patch_modfiy_file_list = output.split('\n')
+        if check_tags_flag == 1:
+            status,output=commands.getstatusoutput(GET_PATCH_MODIFY_FILE_INFO)
+            get_patch_modify_file_list = output.split('\n')
 
-        ret_check_file = check_tags_file(get_patch_modfiy_file_list, ret_info[1])
+            ret_check_file = check_tags_file(get_patch_modify_file_list, ret_info[1])
 
-        if ret_check_file[0] != 0:
-            if ret_check_file[0] == -1:
-                print("\nERROR: Tags and modified files are inconsistent!\ninconsistent file list:")
+            if ret_check_file[0] != 0:
+                print("\nERROR: Tags and modified files are inconsistent!")
+                print("Please read 'Documentation/sprd-tags.txt' file.\n\ninconsistent file list:")
+            elif len(ret_check_file[1]) > 0:
+                print("\nWARNING: Tags and modified files are inconsistent.\n\ninconsistent file list:")
             else:
-                print("\nINFO: Tags and modified files are inconsistent!\ninconsistent file list:")
-            for x in ret_check_file[1]:
-                print("%s" % x)
-        else:
-            print("\nTags and modified files are consistent!")
+                print("\nTags and modified files are consistent!")
 
+            if len(ret_check_file[1]) > 0:
+                for x in ret_check_file[1]:
+                    print("%s" % x)
+        else:
+            print("\nINFO:Ignore check of tags and modified files!")
 
 #test code
 '''
