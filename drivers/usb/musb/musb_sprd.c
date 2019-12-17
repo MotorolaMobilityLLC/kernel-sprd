@@ -92,6 +92,16 @@ static void sprd_musb_enable(struct musb *musb)
 
 	/* soft connect */
 	if (glue->dr_mode == USB_DR_MODE_HOST) {
+		/* Musb controller process go as device default.
+		 * From asic,controller will wait 150ms and then check vbus
+		 * if vbus is powered up.
+		 * Session reg effects relay on vbus checked ok while seted.
+		 * If not sleep,it will contine cost 150ms to check vbus ok
+		 * before session take effect.Which may cause session effect
+		 * timeout and usb switch to host failed Sometimes.
+		 */
+		msleep(150);
+
 		devctl |= MUSB_DEVCTL_SESSION;
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl);
 		otgextcsr = musb_readb(musb->mregs, MUSB_OTG_EXT_CSR);
@@ -696,15 +706,6 @@ static void sprd_musb_work(struct work_struct *work)
 		if (glue->dr_mode == USB_DR_MODE_HOST)
 			MUSB_HST_MODE(musb);
 
-		ret = pm_runtime_get_sync(glue->dev);
-		if (ret) {
-			spin_lock_irqsave(&glue->lock, flags);
-			glue->dr_mode = USB_DR_MODE_UNKNOWN;
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_err(glue->dev, "Resume sprd_musb device failed!\n");
-			goto end;
-		}
-
 		if (glue->dr_mode == USB_DR_MODE_HOST) {
 			if (!glue->vbus) {
 				glue->vbus = devm_regulator_get(glue->dev, "vbus");
@@ -721,6 +722,15 @@ static void sprd_musb_work(struct work_struct *work)
 					"Failed to enable vbus: %d\n", ret);
 				goto end;
 			}
+		}
+
+		ret = pm_runtime_get_sync(glue->dev);
+		if (ret) {
+			spin_lock_irqsave(&glue->lock, flags);
+			glue->dr_mode = USB_DR_MODE_UNKNOWN;
+			spin_unlock_irqrestore(&glue->lock, flags);
+			dev_err(glue->dev, "Resume sprd_musb device failed!\n");
+			goto end;
 		}
 
 		ret = device_for_each_child(glue->dev, NULL,
