@@ -3529,7 +3529,7 @@ CONFIG_DEVFREQ_SPRD_EXT_VOTE_UMS512
 CONFIG_DEVFREQ_THERMAL
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
+	[missing plat] roc1,sharkl3,sharkl5
 	[field] make,code
 	[subsys] gpu thermal
 	[must] user
@@ -8281,7 +8281,7 @@ CONFIG_MICROCHIP_PHY
 	[subsys] net
 	[must] user
 	[missing plat description] only baidu AI project support MICROCHIP-PHY.
-	[function]micro-chip ethernet phy
+	[function] micro-chip ethernet phy
 CONFIG_MIGHT_HAVE_CACHE_L2X0
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -13142,16 +13142,16 @@ CONFIG_SPRD_CPROC
 CONFIG_SPRD_CPU_COOLING
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] none
+	[missing plat] sharkl5_32
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description] none
+	[missing plat description] no project requirement
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkle32
+	[missing plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] thermal
 	[must] user
@@ -13160,11 +13160,11 @@ CONFIG_SPRD_CPU_COOLING_CPUIDLE
 CONFIG_SPRD_CPU_COOLING_DEVICE
 	[arch] all
 	[plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] none
+	[missing plat] sharkl5_32
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description] none
+	[missing plat description] no project requirement
 	[function] sprd cpu power model
 CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[arch] all
@@ -13288,7 +13288,7 @@ CONFIG_SPRD_EXT_MODEM
 CONFIG_SPRD_GPU_COOLING_DEVICE
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] pike2,roc1,sharkl3,sharkl3_32,sharkl5,sharkle32
+	[missing plat] roc1,sharkl3,sharkl5
 	[field] make,code
 	[subsys] gpu thermal
 	[must] user
@@ -13534,7 +13534,7 @@ CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 CONFIG_SPRD_MODEM_DEBUG
 	[arch] all
 	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] pike2,roc1,sharkl5_32,sharkle
+	[missing plat] pike2,roc1,sharkl5_32
 	[field] make
 	[subsys] staging
 	[must] debug
@@ -14453,12 +14453,12 @@ CONFIG_THERMAL_GOV_POWER_ALLOCATOR
 CONFIG_THERMAL_GOV_STEP_WISE
 	[arch] arm
 	[plat] sharkl5_32
-	[missing plat] none
+	[missing plat] pike2,sharkl3_3,sharkle32
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description] none
-	[function] default thermal governor
+	[missing plat description] only support power allocator governor
+	[function] thermal governor
 CONFIG_THERMAL_OF
 	[arch] all
 	[plat] all
@@ -14598,7 +14598,7 @@ CONFIG_TOUCHSCREEN_ADAPTIVE_VENDOR_MSTAR
 	[subsys] input
 	[must] user
 	[missing plat description] those missing plats are not uesd this
-	[function]This macro is just to control the pike2 TP driver compilation.
+	[function] This macro is just to control the pike2 TP driver compilation.
 CONFIG_TOUCHSCREEN_PROPERTIES
 	[arch] all
 	[plat] all
