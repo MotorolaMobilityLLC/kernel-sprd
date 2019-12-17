@@ -14597,7 +14597,7 @@ CONFIG_TOUCHSCREEN_ADAPTIVE_VENDOR_MSTAR
 	[field] make
 	[subsys] input
 	[must] user
-	[missing plat description] TP driver compilation for pike2 only.
+	[missing plat description] those missing plats are not uesd this
 	[function]This macro is just to control the pike2 TP driver compilation.
 CONFIG_TOUCHSCREEN_PROPERTIES
 	[arch] all
