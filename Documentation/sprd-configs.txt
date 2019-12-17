@@ -14603,11 +14603,11 @@ CONFIG_TOUCHSCREEN_ADAPTIVE_VENDOR_MSTAR
 	[arch] arm
 	[plat] pike2
 	[missing plat] sharkl3_32,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] input
+	[must] user
+	[missing plat description] TP driver compilation for pike2 only.
+	[function]This macro is just to control the pike2 TP driver compilation.
 CONFIG_TOUCHSCREEN_PROPERTIES
 	[arch] all
 	[plat] all
