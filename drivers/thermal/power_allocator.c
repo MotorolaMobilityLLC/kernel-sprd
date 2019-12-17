@@ -214,7 +214,7 @@ static u32 pid_controller(struct thermal_zone_device *tz,
 
 	/* Calculate the proportional term */
 	p = mul_frac(err < 0 ? tz->tzp->k_po : tz->tzp->k_pu, err);
-	if ((err >= int_to_frac(5000)) && (params->err_integral < 0))
+	if ((err >= int_to_frac(2000)) && (params->err_integral < 0))
 		params->err_integral = 0;
 
 	/*
