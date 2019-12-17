@@ -952,11 +952,10 @@ static struct mmc_host *sdiohal_dev_get_host(struct device_node *np_node)
 	}
 
 	host_mmc = drv_data;
-	WCN_INFO("host_mmc:%p private data:0x%lx containerof:%p\n",
-		 host_mmc, *host_mmc->private,
-		 container_of(drv_data, struct mmc_host, private));
+	WCN_INFO("host_mmc:%p parent:%p, pdev->dev:%p\n",
+		 host_mmc, host_mmc->parent, &pdev->dev);
 
-	if (*(host_mmc->private) == (unsigned long)host_mmc)
+	if (host_mmc->parent == &pdev->dev)
 		return host_mmc;
 	else
 		return container_of(drv_data, struct mmc_host, private);
