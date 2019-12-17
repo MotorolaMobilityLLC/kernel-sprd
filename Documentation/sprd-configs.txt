@@ -1224,11 +1224,11 @@ CONFIG_BACKLIGHT_CLASS_DEVICE
 CONFIG_BACKLIGHT_KTD3137
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] none
+	[missing plat] roc1,sharkl3,sharkl5
 	[field] make
 	[subsys] video
 	[must] home
-	[missing plat description] none
+	[missing plat description] BACKLIGHT_KTD3137 is used for sharkl5pro plat only.
 	[function] Enable ktd3137 backlight driver.
 CONFIG_BACKLIGHT_LCD_SUPPORT
 	[arch] all
@@ -1255,7 +1255,7 @@ CONFIG_BACKLIGHT_SC2703
 	[field] make
 	[subsys] video
 	[must] home
-	[missing plat description]
+	[missing plat description] BACKLIGHT_SC2703 is only used for roc1 plat.
 	[function] Enable sc2703 backlight & display power
 CONFIG_BASE_FULL
 	[arch] all
@@ -3565,11 +3565,11 @@ CONFIG_DIRECT_SWAPPINESS
 CONFIG_DISP_PM_DOMAIN_SHARKL3
 	[arch] all
 	[plat] sharkl3,sharkl3_32
-	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
 	[field] make
 	[subsys] video
 	[must] home
-	[missing plat description]
+	[missing plat description] just used for sharkl3 and sharkl3_32 plat.
 	[function] SPRD display PM Generic Domain for SharkL3
 CONFIG_DMADEVICES
 	[arch] all
@@ -3841,11 +3841,11 @@ CONFIG_DRM_SPRD
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] drm
+	[must] home
 	[missing plat description] none
-	[function]
+	[function] CONFIG_DRM_SPRD is used to enable compile drm module.
 CONFIG_DRM_SPRD_GSP
 	[arch] all
 	[plat] all
