@@ -13534,12 +13534,14 @@ CONFIG_SPRD_MM_PW_DOMAIN_R6P0
 CONFIG_SPRD_MODEM_DEBUG
 	[arch] all
 	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] pike2,roc1,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] pike2,roc1,sharkl5_32,sharkle
+	[field] make
+	[subsys] staging
+	[must] debug
+	[missing plat description] missing plat include pike2,roc1,sharkl5_32,sharkle
+					are notsupported for this.
+	[function] Spreadtrum modem debug log is a module that just for modem engineers
+			to catch modem debug logs through MIPI D-PHY interface.
 CONFIG_SPRD_MODEM_LOADER
 	[arch] arm64
 	[plat] roc1
