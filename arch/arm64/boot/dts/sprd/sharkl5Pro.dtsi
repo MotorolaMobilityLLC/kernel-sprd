@@ -1897,6 +1897,11 @@
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
 
+			timer@32040000 {
+				compatible = "sprd,sysfrt-timer";
+				reg = <0 0x32040000 0 0x10>;
+			};
+
 			timer@32050000 {
 				compatible = "sprd,sharkl5Pro-timer";
 				reg = <0 0x32050000 0 0x20>;
@@ -1908,6 +1913,11 @@
 				compatible = "sprd,sharkl5Pro-suspend-timer";
 				reg = <0 0x32050020 0 0x20>;
 				clocks = <&ext_32k>;
+			};
+
+			timer@322e0000 {
+				compatible = "sprd,syst-timer";
+				reg = <0 0x322e0000 0 0x10>;
 			};
 
 			usb: usb@5fff0000 {
