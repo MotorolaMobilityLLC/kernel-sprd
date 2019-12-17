@@ -140,8 +140,10 @@ int wcn_op_init(void)
 
 	pr_info("%s\n", __func__);
 	ret = misc_register(&wcn_op_device);
-	if (ret)
+	if (ret) {
 		pr_err("wcn operation dev add failed!!!\n");
+		return ret;
+	}
 
 	return 0;
 }

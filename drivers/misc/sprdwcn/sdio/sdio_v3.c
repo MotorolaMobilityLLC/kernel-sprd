@@ -5,8 +5,7 @@
 
 static int sdio_preinit(void)
 {
-	sdiohal_init();
-	return 0;
+	return sdiohal_init();
 }
 
 static void sdio_preexit(void)

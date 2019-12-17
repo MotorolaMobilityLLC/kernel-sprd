@@ -2411,6 +2411,7 @@ static int marlin_probe(struct platform_device *pdev)
 	if (err < 0) {
 		WCN_INFO("marlin2 parse_dt some para not config\n");
 		if (err == -EPROBE_DEFER) {
+			devm_kfree(&pdev->dev, marlin_dev);
 			WCN_ERR("%s: get some resources fail, defer probe it\n",
 				__func__);
 			return err;
@@ -2427,15 +2428,46 @@ static int marlin_probe(struct platform_device *pdev)
 	/* register ops */
 	wcn_bus_init();
 	/* sdiom_init or pcie_init */
-	sprdwcn_bus_preinit();
+	err = sprdwcn_bus_preinit();
+	if (err) {
+		WCN_ERR("sprdwcn_bus_preinit error: %d\n", err);
+		goto error3;
+	}
+
 	sprdwcn_bus_register_rescan_cb(marlin_scan_finish);
 #ifndef CONFIG_WCN_PCIE
-	sdio_pub_int_init(marlin_dev->int_ap);
+	err = sdio_pub_int_init(marlin_dev->int_ap);
+	if (err) {
+		WCN_ERR("sdio_pub_int_init error: %d\n", err);
+		sprdwcn_bus_deinit();
+		wcn_bus_deinit();
+#ifdef CONFIG_WCN_SLP
+		slp_mgr_deinit();
+#endif
+		devm_kfree(&pdev->dev, marlin_dev);
+		return err;
+	}
+
 	mem_pd_init();
 #endif
-	proc_fs_init();
-	log_dev_init();
-	wcn_op_init();
+	err = proc_fs_init();
+	if (err) {
+		WCN_ERR("proc_fs_init error: %d\n", err);
+		goto error2;
+	}
+
+	err = log_dev_init();
+	if (err) {
+		WCN_ERR("log_dev_init error: %d\n", err);
+		goto error1;
+	}
+
+	err = wcn_op_init();
+	if (err) {
+		WCN_ERR("wcn_op_init: %d\n", err);
+		goto error0;
+	}
+
 	flag_reset = 0;
 	INIT_WORK(&marlin_dev->download_wq, pre_btwifi_download_sdio);
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);
@@ -2449,6 +2481,23 @@ static int marlin_probe(struct platform_device *pdev)
 	WCN_INFO("%s ok!\n", __func__);
 
 	return 0;
+error0:
+	log_dev_exit();
+error1:
+	proc_fs_exit();
+error2:
+#ifndef CONFIG_WCN_PCIE
+	mem_pd_exit();
+	sdio_pub_int_deinit();
+#endif
+	sprdwcn_bus_deinit();
+error3:
+	wcn_bus_deinit();
+#ifdef CONFIG_WCN_SLP
+	slp_mgr_deinit();
+#endif
+	devm_kfree(&pdev->dev, marlin_dev);
+	return err;
 }
 
 static int  marlin_remove(struct platform_device *pdev)
