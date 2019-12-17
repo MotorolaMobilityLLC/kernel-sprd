@@ -2209,8 +2209,8 @@ CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 	[plat] pike2,sharkle32
 	[missing plat] sharkl3_32,sharkl5_32
 	[field] make,code
-	[subsys]cpufreq
-	[must]user
+	[subsys] cpufreq
+	[must] user
 	[missing plat description] missing sharkl3_32 because the default governor is schedutil.
 				   missing sharkl5_32 because the default governor is schedutil.
 	[function] if the config is enabled, interactive will be the default governor.
@@ -2237,11 +2237,12 @@ CONFIG_CPU_FREQ_GOV_INTERACTIVE
 	[arch] arm
 	[plat] pike2,sharkle32
 	[missing plat] sharkl3_32,sharkl5_32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make,code
+	[subsys] cpufreq
+	[must] user
+	[missing plat description] missing sharkl3_32 because the governor is not used.
+                                   missing sharkl5_32 because the governor is not used.
+	[function] enable interactive as an available governor.
 CONFIG_CPU_FREQ_GOV_PERFORMANCE
 	[arch] all
 	[plat] all
