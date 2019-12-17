@@ -168,7 +168,7 @@
 		soc_thmzone: soc-thmzone {
 			polling-delay-passive = <100>;
 			polling-delay = <1000>;
-			sustainable-power = <2000>;
+			sustainable-power = <3000>;
 			thermal-sensors = <&soc_sensor  17>;
 			trips {
 				soc_threshold: trip-point@0 {
@@ -197,7 +197,7 @@
 				};
 				map1 {
 					trip = <&soc_target>;
-					contribution = <674>;
+					contribution = <410>;
 					cooling-device =
 					<&cluster1_cooling THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
