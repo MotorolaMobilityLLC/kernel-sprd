@@ -944,8 +944,7 @@ static ssize_t store_cluster1_core_max_limit(struct kobject *kobj,
 	ret = kstrtouint(buf, 0, &input);
 	if (ret < 0)
 		return ret;
-	if (input < CLU1_CPU_NUM_MIN
-		|| input > sd_tuners->cluster_cpu_ids[CLUSTER1])
+	if (input > sd_tuners->cluster_cpu_ids[CLUSTER1])
 		return -EINVAL;
 
 	pr_info("hotplug: userspace ops cluster1 max: %u\n", input);
@@ -971,8 +970,7 @@ static ssize_t store_cluster1_core_min_limit(struct kobject *kobj,
 	ret = kstrtouint(buf, 0, &input);
 	if (ret < 0)
 		return ret;
-	if (input < CLU1_CPU_NUM_MIN
-		|| input > sd_tuners->cluster_cpu_ids[CLUSTER1])
+	if (input > sd_tuners->cluster_cpu_ids[CLUSTER1])
 		return -EINVAL;
 
 	pr_info("hotplug: userspace ops cluster1 min: %u\n", input);
@@ -1048,7 +1046,7 @@ static ssize_t store_hotplug_mode(struct kobject *kobj,
 	if (ret < 0)
 		return ret;
 
-	if (input < NORMAL_MODE || input >= MODE_ALL)
+	if (input >= MODE_ALL)
 		return -EINVAL;
 
 	if (sd_tuners->hotplug_mode != input)
@@ -1745,8 +1743,10 @@ static int __init sprd_hotplug_init(void)
 	/* Initialize pm_qos request and handler */
 	cpu_hotplug_pm_qos_init(g_sd_tuners, hotplug_disable_save);
 	ret = register_pm_notifier(&hotplug_pm_notifer);
-	if (ret)
+	if (ret) {
 		pr_err("%s: Failed to register pm notify\n", __func__);
+		goto out_free_mem;
+	}
 	return ret;
 
 out_free_mem:
