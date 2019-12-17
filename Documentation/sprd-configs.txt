@@ -14015,15 +14015,6 @@ CONFIG_SPRD_WATCHDOG
 	[must] user
 	[missing plat description] none
 	[function] Spreadtrum watchdog driver.
-CONFIG_SPRD_WATCHDOG_SYS
-	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
-	[missing plat] none
-	[field] make,code
-	[subsys] watchdog
-	[must] user
-	[missing plat description] none
-	[function] add ap sys watchdog.
 CONFIG_SRCU
 	[arch] all
 	[plat] all
