@@ -8267,12 +8267,12 @@ CONFIG_MFD_SYSCON
 CONFIG_MICROCHIP_PHY
 	[arch] arm64
 	[plat] roc1
-	[missing plat]
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[field] menu
+	[subsys] net
+	[must] user
+	[missing plat description] only baidu AI project support MICROCHIP-PHY.
+	[function]micro-chip ethernet phy
 CONFIG_MIGHT_HAVE_CACHE_L2X0
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -13734,11 +13734,11 @@ CONFIG_SPRD_SHARKL3_USB2_PHY
 	[arch] all
 	[plat] sharkl3,sharkl3_32
 	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] just for sharkl3 USB PHY.
+	[function] sharkl3 USB phy
 CONFIG_SPRD_SHARKL5PRO_CLK
 	[arch] arm64
 	[plat] sharkl5Pro
@@ -15029,11 +15029,11 @@ CONFIG_USB_CONFIGFS_F_MBIM
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] menu
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 support MBIM.
+	[function] mobile broadband interface model.
 CONFIG_USB_CONFIGFS_F_MIDI
 	[arch] all
 	[plat] all
@@ -15222,11 +15222,11 @@ CONFIG_USB_F_MBIM
 	[arch] arm64
 	[plat] roc1
 	[missing plat] sharkl3,sharkl5,sharkl5Pro
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
+	[field] menu
+	[subsys] usb
+	[must] user
+	[missing plat description] only roc1 support MBIM.
+	[function] mobile broadband interface model.
 CONFIG_USB_F_MIDI
 	[arch] all
 	[plat] all
