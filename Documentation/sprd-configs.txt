@@ -14597,7 +14597,7 @@ CONFIG_TOUCHSCREEN_ADAPTIVE_VENDOR_FOCALTECH
 	[field] make
 	[subsys] input
 	[must] unknown
-	[missing plat description]
+	[missing plat description] sharkl5pro is not used this.
 	[function] This macro is to control the TP driver compilation.
 CONFIG_TOUCHSCREEN_ADAPTIVE_VENDOR_MSTAR
 	[arch] arm
