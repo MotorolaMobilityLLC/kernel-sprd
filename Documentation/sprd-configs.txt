@@ -3289,11 +3289,11 @@ CONFIG_DAX
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make,code
+	[subsys] mm
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] direct access to differentiated memory
 CONFIG_DCACHE_WORD_ACCESS
 	[arch] all
 	[plat] all
@@ -8219,15 +8219,6 @@ CONFIG_MEMCG_SWAP_ENABLED
 	[must] none
 	[missing plat description] none
 	[function] Memory Resource Controller Swap Extension enabled by default
-CONFIG_MEMORY_STATE_TIME
-	[arch] all
-	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
-	[field] make,code
-	[subsys] mm
-	[must] console
-	[missing plat description]
-	[function] Memory time statistics exported to /sys/kernel/memory_state_time.
 CONFIG_MESSAGE_LOGLEVEL_DEFAULT
 	[arch] all
 	[plat] all
