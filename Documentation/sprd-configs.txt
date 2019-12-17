@@ -2257,7 +2257,10 @@ CONFIG_CPU_FREQ_GOV_POWERSAVE
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
-	[missing plat description]
+	[missing plat description] missing pike2 because the governor is not used.
+				   missing roc1 because the governor is not used.
+				   missing sharkl5 because the governor is not used.
+				   missing sharkl5Pro because the governor is not used.
 	[function] enable powersave as an available governor
 CONFIG_CPU_FREQ_GOV_SCHEDUTIL
 	[arch] all
