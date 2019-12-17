@@ -13,7 +13,7 @@ def main():
 		print("3:",file_name_list)  #all subfiles
 		"""
 		for filename in file_name_list:
-			if "sprd" in filename and "defconfig" in filename and "minimum" not in filename and "all" not in filename:
+			if filename[:4] == "sprd" and filename[-9:] == "defconfig":
 				toolchain=""
 				cross_compile=""
 				kernel_defconfig=""
