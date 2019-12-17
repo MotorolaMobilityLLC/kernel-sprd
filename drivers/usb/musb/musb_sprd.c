@@ -553,7 +553,7 @@ static int musb_sprd_resume_child(struct device *dev, void *data)
 
 static int musb_sprd_suspend_child(struct device *dev, void *data)
 {
-	int ret, cnt = 100;
+	int ret, cnt = 300;
 
 	ret = pm_runtime_put_sync(dev);
 	if (ret)
