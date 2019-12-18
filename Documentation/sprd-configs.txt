@@ -6473,7 +6473,7 @@ CONFIG_I2C_SPRD_HW
 	[field] menu
 	[subsys] i2c
 	[must] user
-	[missing plat description]
+	[missing plat description] pike2 and sharkle32 not suppert i2c hw channel.
 	[function] Enable i2c which support hw channel
 CONFIG_IIO
 	[arch] all
@@ -10794,7 +10794,7 @@ CONFIG_PINCTRL_SPRD_SHARKL5PRO
 	[must] user
 	[missing plat description] CONFIG_PINCTRL_SPRD_SHARKL5PRO is only for sharkl5pro platform
 	and other projects have their own driver.
-	[function]
+	[function] Spreadtrum Sharkl5pro pinctrl driver
 CONFIG_PINCTRL_SPRD_SHARKLE
 	[arch] arm
 	[plat] sharkle32
@@ -11792,11 +11792,11 @@ CONFIG_RTC_I2C_AND_SPI
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] menu,make,code
+	[subsys] rtc
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] This macro associates I2C with SPI.
 CONFIG_RTC_INTF_DEV
 	[arch] all
 	[plat] all
