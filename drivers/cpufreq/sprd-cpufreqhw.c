@@ -250,6 +250,12 @@ static int sprd_hardware_cpufreq_init_slaves(
 	return 0;
 
 free_np:
+	for_each_set_bit(i, &c_host->sub_cluster_bits,
+			 SPRD_CPUFREQ_MAX_MODULE) {
+		kfree(cpufreq_datas[i]);
+		cpufreq_datas[i] = NULL;
+	}
+
 	if (np)
 		of_node_put(np);
 

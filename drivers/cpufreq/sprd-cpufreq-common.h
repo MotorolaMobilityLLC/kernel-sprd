@@ -85,7 +85,7 @@ struct sprd_cpufreq_driver_data {
 	unsigned int volt_tol;
 	unsigned int volt_tol_var;
 	/*BitX = 1 means sub_cluster exits*/
-	unsigned int sub_cluster_bits;
+	unsigned long sub_cluster_bits;
 	/*Volt requested by this cluster*/
 	unsigned long volt_req;/*uv*/
 	unsigned int volt_share_hosts_bits;
