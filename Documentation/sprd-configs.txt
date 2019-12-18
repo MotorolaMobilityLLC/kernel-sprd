@@ -7890,11 +7890,11 @@ CONFIG_LDISC_AUTOLOAD
 	[arch] all
 	[plat] all
 	[missing plat] none
-	[field]
-	[subsys]
-	[must]
+	[field] make
+	[subsys] tty
+	[must] user
 	[missing plat description] none
-	[function]
+	[function] Automatically load TTY Line Disciplines
 CONFIG_LEDS_CLASS
 	[arch] all
 	[plat] all
