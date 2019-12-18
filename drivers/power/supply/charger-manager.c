@@ -1613,6 +1613,9 @@ static void misc_event_handler(struct charger_manager *cm,
 	if (cm->desc->force_set_full)
 		cm->desc->force_set_full = false;
 
+	if (cm->charging_status)
+		cm->charging_status = 0;
+
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		schedule_work(&setup_polling);
 	uevent_notify(cm, default_event_names[type]);
