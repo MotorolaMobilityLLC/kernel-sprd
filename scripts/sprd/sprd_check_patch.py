@@ -16,7 +16,7 @@ SUBSYSTEM1_TAGS = []
 SUBSYSTEM2_TAGS = []
 SUBSYSTEM3_TAGS = []
 SUBSYSTEM1_TAGS_NOCHECK = ['include', 'dt-bindings', 'Documentation']
-
+SPECIAL_CHECK_TAGS = ['Documentation', 'dts']
 check_tags_flag = 1
 
 def read_line(path, file_name):
@@ -186,6 +186,7 @@ def check_tags_file(modify_file_list, tags_list):
     inconsistent_file_list = []
     file_add_inconsistent_flag = 0
     file_and_tag_consistent_flag = 0
+    special_inconsistent_flag = 0
 
     if "asoc" in tags_list:
         tags_list[tags_list.index("asoc")] = 'sound'
@@ -211,12 +212,19 @@ def check_tags_file(modify_file_list, tags_list):
                         break
                 if file_add_inconsistent_flag == 1:
                     inconsistent_file_list.append(x)
+                    for special_tag in SPECIAL_CHECK_TAGS:
+                        if special_tag in tags_list:
+                            special_inconsistent_flag = 1
+                            break
+                        if special_tag in file_name_list_temp:
+                            special_inconsistent_flag = 1
+                            break
                     break
 
         if file_add_inconsistent_flag == 0 and file_and_tag_consistent_flag == 0:
             file_and_tag_consistent_flag = 1
 
-    if file_and_tag_consistent_flag == 1:
+    if file_and_tag_consistent_flag == 1 and special_inconsistent_flag == 0:
         return (0, inconsistent_file_list)
 
     return (-1, inconsistent_file_list)
