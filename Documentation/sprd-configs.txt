@@ -13649,7 +13649,7 @@ CONFIG_SPRD_REGMAP_DEBUG
 	[field] menu,code
 	[subsys] core
 	[must] user
-	[missing plat description]
+	[missing plat description] L5 new add feature for debug.
 	[function] Spreadtrum syscon regmap debug.
 CONFIG_SPRD_ROC1_CLK
 	[arch] arm64
