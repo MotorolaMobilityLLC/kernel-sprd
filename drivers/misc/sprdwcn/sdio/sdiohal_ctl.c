@@ -28,6 +28,7 @@
 
 #define TP_TX_BUF_CNT 520
 #define TP_TX_BUF_LEN 2044
+#define TP_TX_POOL_SIZE 100
 
 #define FIRMWARE_PATH "/dev/block/platform/sdio_emmc/by-name/wcnmodem"
 #define FIRMWARE_MAX_SIZE 0x90c00
@@ -89,10 +90,10 @@ enum {
 	CHANNEL_27,
 };
 
-static char test_buf[1024];
+static char *test_buf;
 static char buf[SDIOHAL_WRITE_SIZE + PUB_HEAD_RSV];
 static char buf_list[CHANNEL_RX_BASE][SDIOHAL_WRITE_SIZE + PUB_HEAD_RSV];
-static char tp_tx_buf[TP_TX_BUF_CNT][TP_TX_BUF_LEN + PUB_HEAD_RSV];
+static char *tp_tx_buf[TP_TX_BUF_CNT];
 
 static struct mchn_ops_t at_tx_ops;
 static struct mchn_ops_t at_rx_ops;
@@ -165,7 +166,11 @@ static int sdiohal_simple_test_tx(size_t count)
 	int tx_debug_num = 4;
 	int i;
 
-	memset(test_buf, 0, 1024);
+	test_buf = kzalloc(1024, GFP_KERNEL);
+	if (!test_buf) {
+		WCN_ERR("test_buf kzalloc memory fail");
+		return -ENOMEM;
+	}
 
 	if (!sprdwcn_bus_list_alloc(at_tx_ops.channel,
 		&head, &tail, &tx_debug_num)) {
@@ -190,12 +195,33 @@ static int sdiohal_simple_test_tx(size_t count)
 			WCN_INFO("%s tx_debug_num=%d < 5\n",
 				 __func__, tx_debug_num);
 	}
+	kfree(test_buf);
 
 	return 0;
 }
 
 static int sdiohal_simple_test_rx(void)
 {
+	return 0;
+}
+
+static int sdiohal_throughput_tx_alloc(void)
+{
+	int i, j;
+
+	for (i = 0; i < TP_TX_BUF_CNT; i++) {
+		tp_tx_buf[i] = kzalloc(TP_TX_BUF_LEN + PUB_HEAD_RSV,
+			       GFP_KERNEL);
+		if (!tp_tx_buf[i]) {
+			WCN_ERR("%s kzalloc tp_tx_buf fail\n",
+				__func__);
+			for (j = 0; j < i; j++) {
+				kfree(tp_tx_buf[j]);
+				tp_tx_buf[j] = NULL;
+			}
+			return -ENOMEM;
+		}
+	}
 	return 0;
 }
 
@@ -936,11 +962,20 @@ static ssize_t at_cmd_write(struct file *filp,
 		do_gettimeofday(&tp_tx_start_time);
 		if ((tp_tx_buf_cnt <= TP_TX_BUF_CNT) &&
 			(tp_tx_buf_len <= TP_TX_BUF_LEN)) {
+			sprdwcn_bus_chn_deinit(&at_tx_ops);
+			at_tx_ops.pool_size = TP_TX_POOL_SIZE;
+			sprdwcn_bus_chn_init(&at_tx_ops);
 #if TCP_TEST_RX
 			sdiohal_launch_tp_tx_thread();
 #endif
-			sdiohal_log_level = 0;
-			sdiohal_throughput_tx();
+			if (!sdiohal_throughput_tx_alloc()) {
+				sdiohal_log_level = 0;
+				sdiohal_throughput_tx();
+			} else {
+				WCN_ERR("%s kzalloc send buf fail\n",
+					__func__);
+				return -ENOMEM;
+			}
 		} else
 			WCN_INFO("%s buf_cnt or buf_len false!!\n",
 				 __func__);
