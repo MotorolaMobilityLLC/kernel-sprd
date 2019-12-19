@@ -11,6 +11,8 @@
  * GNU General Public License for more details.
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/mm.h>
 #include <linux/notifier.h>
 #include <linux/swap.h>
@@ -36,20 +38,17 @@ void enhanced_show_mem(enum e_show_mem_type type)
 	unsigned long used = 0;
 	struct sysinfo si;
 
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	printk("Enhanced Mem-Info:");
+	pr_info("Enhanced Mem-Info:");
 	if (E_SHOW_MEM_BASIC == type)
-		printk("E_SHOW_MEM_BASIC\n");
+		pr_info("E_SHOW_MEM_BASIC\n");
 	else if (E_SHOW_MEM_CLASSIC == type)
-		printk("E_SHOW_MEM_CLASSIC\n");
+		pr_info("E_SHOW_MEM_CLASSIC\n");
 	else
-		printk("E_SHOW_MEM_ALL\n");
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	printk("Enhanced Mem-info :SHOW MEM\n");
+		pr_info("E_SHOW_MEM_ALL\n");
+	pr_info("Enhanced Mem-info :SHOW MEM\n");
 	show_mem(SHOW_MEM_FILTER_NODES, NULL);
 	si_meminfo(&si);
-	printk("MemTotal:       %8lu kB\n"
+	pr_info("MemTotal:       %8lu kB\n"
 		"Buffers:        %8lu kB\n"
 		"SwapCached:     %8lu kB\n",
 		(si.totalram) << (PAGE_SHIFT - 10),
@@ -58,8 +57,6 @@ void enhanced_show_mem(enum e_show_mem_type type)
 
 	blocking_notifier_call_chain(&e_show_mem_notify_list,
 				(unsigned long)type, &used);
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 }
 
 void enhanced_mem(enum e_show_mem_type type)
@@ -67,17 +64,14 @@ void enhanced_mem(enum e_show_mem_type type)
 	/* Module used pages */
 	unsigned long used = 0;
 
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("++++++++++++++++++++++E_SHOW_MEM_BEGIN++++++++++++++++++++\n");
 	if (E_SHOW_MEM_BASIC == type)
-		printk("E_SHOW_MEM_BASIC\n");
+		pr_info("E_SHOW_MEM_BASIC\n");
 	else if (E_SHOW_MEM_CLASSIC == type)
-		printk("E_SHOW_MEM_CLASSIC\n");
+		pr_info("E_SHOW_MEM_CLASSIC\n");
 	else
-		printk("E_SHOW_MEM_ALL\n");
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+		pr_info("E_SHOW_MEM_ALL\n");
 	blocking_notifier_call_chain(&e_show_mem_notify_list,
 				(unsigned long)type, &used);
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("++++++++++++++++++++++E_SHOW_MEM_END++++++++++++++++++++++\n");
 }

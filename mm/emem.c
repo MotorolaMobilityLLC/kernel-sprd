@@ -105,10 +105,11 @@ static void enhance_meminfo(u64 interval)
 
 	do_gettimeofday(&val);
 	if (val.tv_sec - last_time > interval) {
-		pr_info("+++++++++++++++++++++++++++++++++++++++++++++++++\n");
+		pr_info("++++++++++++++++++++++E_SHOW_MEM_BEGIN++++++++++++++++++++\n");
 		pr_info("The killed process adj = %d\n", sysctl_emem_trigger);
 		enhanced_show_mem(E_SHOW_MEM_ALL);
 		last_time = val.tv_sec;
+		pr_info("+++++++++++++++++++++++E_SHOW_MEM_END+++++++++++++++++++++\n");
 	}
 }
 
@@ -153,7 +154,6 @@ static int tasks_e_show_mem_handler(struct notifier_block *nb,
 	struct sysinfo si;
 
 	si_swapinfo(&si);
-	pr_info("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 	pr_info("Enhanced Mem-info :TASK\n");
 	pr_info("Detail:\n");
 	if (E_SHOW_MEM_CLASSIC == type || E_SHOW_MEM_ALL == type)

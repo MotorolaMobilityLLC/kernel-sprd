@@ -1101,17 +1101,17 @@ static int tasks_e_show_mem_handler(struct notifier_block *nb,
 	struct sysinfo si;
 
 	si_swapinfo(&si);
-	printk("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	printk("Enhanced Mem-info :TASK\n");
-	printk("Detail:\n");
+	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("Enhanced Mem-info :TASK\n");
+	pr_info("Detail:\n");
 	if (E_SHOW_MEM_CLASSIC == type || E_SHOW_MEM_ALL == type)
 		dump_tasks_info();
-	printk("Total used:\n");
-	printk("anon: %lu kB\n",
+	pr_info("Total used:\n");
+	pr_info("anon: %lu kB\n",
 	       ((global_node_page_state(NR_ACTIVE_ANON) +
 		global_node_page_state(NR_INACTIVE_ANON)) << PAGE_SHIFT)
 		 / 1024);
-	printk("swaped: %lu kB\n", ((si.totalswap - si.freeswap)
+	pr_info("swaped: %lu kB\n", ((si.totalswap - si.freeswap)
 		<< PAGE_SHIFT) / 1024);
 	return 0;
 }
