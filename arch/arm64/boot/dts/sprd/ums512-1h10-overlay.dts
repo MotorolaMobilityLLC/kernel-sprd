@@ -45,7 +45,7 @@
 				};
 			};
 
-			pwm_backlight: sprd-backlight {
+			pwm_backlight: backlight {
 				compatible = "sprd,sharkl5pro-backlight";
 				pwms = <&pwms 2 40000>;
 				pwm-names = "backlight";
