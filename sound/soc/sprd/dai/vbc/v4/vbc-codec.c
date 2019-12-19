@@ -2370,6 +2370,9 @@ int vbc_profile_loading(struct snd_soc_codec *codec, int profile_id)
 			goto profile_out;
 		}
 	}
+
+	if (len > (fw.size - offset))
+		 len = fw.size - offset;
 	unalign_memcpy(p_profile_setting->data[profile_id],
 		       fw_data + offset, len);
 	sp_asoc_pr_dbg("p_profile_setting->data[profile_id (%d)]",
