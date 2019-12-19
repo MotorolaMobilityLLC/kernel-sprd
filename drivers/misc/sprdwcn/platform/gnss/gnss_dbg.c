@@ -49,6 +49,7 @@ struct gnss_ring_t {
 	char *rp;
 	char *wp;
 	char *end;
+	bool reset_rp; /* Indication of setting rp equal to wp */
 	struct mutex *plock;
 	int (*memcpy_rd)(char*, char*, size_t);
 	int (*memcpy_wr)(char*, char*, size_t);
@@ -146,6 +147,7 @@ static struct gnss_ring_t *gnss_ring_init(unsigned long int size,
 		pring->rp = pring->pbuff;
 		pring->wp = pring->pbuff;
 		pring->end = (char *)((u_long)pring->pbuff + (pring->size - 1));
+		pring->reset_rp = false;
 		pring->memcpy_rd = rd;
 		pring->memcpy_wr = wr;
 		return pring;
@@ -170,6 +172,12 @@ static int gnss_ring_read(struct gnss_ring_t *pring, char *buf, int len)
 		return -GNSS_ERR_BAD_PARAM;
 	}
 	mutex_lock(pring->plock);
+	GNSS_DEBUG("reset_rp[%d] rp[%p] wp[%p]",
+		   pring->reset_rp, pring->rp, pring->wp);
+	if (pring->reset_rp == true) {
+		pring->rp = pring->wp;
+		pring->reset_rp = false;
+	}
 	cont_len = gnss_ring_content_len(pring);
 	read_len = cont_len >= len ? len : cont_len;
 	pstart = gnss_ring_start(pring);
@@ -215,8 +223,8 @@ static int gnss_ring_write(struct gnss_ring_t *pring, char *buf, int len)
 	}
 	pstart = gnss_ring_start(pring);
 	pend = gnss_ring_end(pring);
-	GNSS_DEBUG("pstart = %p, pend = %p, buf = %p, len = %d, pring->wp = %p",
-		   pstart, pend, buf, len, pring->wp);
+	GNSS_DEBUG("pstart=%p, pend=%p, buf=%p, len=%d, wp=%p, reset_rp[%d]",
+		   pstart, pend, buf, len, pring->wp, pring->reset_rp);
 
 	if (gnss_ring_over_loop(pring, len, GNSS_RING_W)) {
 		GNSS_DEBUG("Ring overloop.");
@@ -224,8 +232,11 @@ static int gnss_ring_write(struct gnss_ring_t *pring, char *buf, int len)
 		len2 = len - len1;
 		pring->memcpy_wr(pring->wp, buf, len1);
 		pring->memcpy_wr(pstart, (buf + len1), len2);
+		if (pring->wp < pring->rp)
+			pring->reset_rp = true;
+		else
+			check_rp = true;
 		pring->wp = (char *)((u_long)pstart + len2);
-		check_rp = true;
 	} else {
 		pring->memcpy_wr(pring->wp, buf, len);
 		if (pring->wp < pring->rp)
@@ -233,7 +244,7 @@ static int gnss_ring_write(struct gnss_ring_t *pring, char *buf, int len)
 		pring->wp += len;
 	}
 	if (check_rp && pring->wp > pring->rp)
-		pring->rp = pring->wp;
+		pring->reset_rp = true;
 	GNSS_DEBUG("Ring Wrote len = %d", len);
 
 	return len;
