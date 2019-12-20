@@ -680,7 +680,7 @@
 		<&mm_gate CLK_MISP_AXI_EB>,
 		<&mm_clk CLK_ISP>,
 		<&pll CLK_TWPLL_307M2>,
-		<&pll CLK_TWPLL_128M>,
+		<&pll CLK_TWPLL_256M>,
 		<&mm_clk CLK_ISP_AXI>,
 		<&pll CLK_TWPLL_512M>;
 };
