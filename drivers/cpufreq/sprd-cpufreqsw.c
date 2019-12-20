@@ -16,12 +16,14 @@
 #include <linux/cpufreq.h>
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
+#include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/nvmem-consumer.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/pm_opp.h>
 #include <linux/regulator/consumer.h>
+#include <linux/regmap.h>
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/of_platform.h>
@@ -31,6 +33,12 @@
 
 static unsigned long boot_done_timestamp;
 static int boost_mode_flag = 1;
+struct mutex cpu_gpu_volt_lock;
+static bool cpu_gpu_share_volt;
+static struct regmap *aon_apb_reg_base;
+static unsigned int cpu_target_volt_reg;
+static unsigned int gpu_target_volt_reg;
+struct regulator *gpu_cpu_reg;
 static struct cpufreq_driver sprd_cpufreq_driver;
 static int sprd_cpufreq_set_boost(int state);
 static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data,
@@ -49,6 +57,89 @@ static const struct of_device_id sprd_swdvfs_of_match[] = {
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_swdvfs_of_match);
+
+void sprd_cpu_gpu_volt_lock(void)
+{
+	mutex_lock(&cpu_gpu_volt_lock);
+}
+EXPORT_SYMBOL_GPL(sprd_cpu_gpu_volt_lock);
+
+void sprd_cpu_gpu_volt_unlock(void)
+{
+	mutex_unlock(&cpu_gpu_volt_lock);
+}
+EXPORT_SYMBOL_GPL(sprd_cpu_gpu_volt_unlock);
+
+struct regulator *sprd_get_cpu_gpu_regulator(void)
+{
+	if (gpu_cpu_reg == NULL)
+		pr_err("%s: failed to get regulator\n", __func__);
+	return gpu_cpu_reg;
+}
+EXPORT_SYMBOL_GPL(sprd_get_cpu_gpu_regulator);
+
+static unsigned int sprd_get_gpu_target_voltage(void)
+{
+	unsigned int gpu_vdd = 0;
+
+	if (cpu_gpu_share_volt)
+		regmap_read(aon_apb_reg_base, gpu_target_volt_reg, &gpu_vdd);
+	return gpu_vdd;
+}
+
+static void sprd_set_cpu_target_voltage(unsigned long cpu_vdd)
+{
+	if (cpu_gpu_share_volt)
+		regmap_write(aon_apb_reg_base, cpu_target_volt_reg, cpu_vdd);
+}
+
+static unsigned int sprd_get_cpu_target_voltage(void)
+{
+	unsigned int cpu_vdd = 0;
+
+	if (cpu_gpu_share_volt)
+		regmap_read(aon_apb_reg_base, cpu_target_volt_reg, &cpu_vdd);
+	return cpu_vdd;
+}
+
+static int sprd_get_cpu_gpu_volt_parameters(struct device_node *np)
+{
+	unsigned int reg_info[2];
+	int ret;
+
+	cpu_gpu_share_volt = of_property_read_bool(np,
+						   "sprd,cpu-gpu-share-volt");
+	if (!cpu_gpu_share_volt)
+		return 0;
+
+	mutex_init(&cpu_gpu_volt_lock);
+	aon_apb_reg_base = syscon_regmap_lookup_by_name(np,
+							"gpu_target_volt");
+	if (!IS_ERR(aon_apb_reg_base)) {
+		ret = syscon_get_args_by_name(np, "gpu_target_volt",
+						  2, reg_info);
+		if (ret != 2) {
+			pr_err("Failed to parse gpu_target_volt  syscon, ret = %d\n",
+				   ret);
+			return -EINVAL;
+		}
+		gpu_target_volt_reg = reg_info[0];
+	}
+	aon_apb_reg_base = syscon_regmap_lookup_by_name(np,
+							"cpu_target_volt");
+	if (!IS_ERR(aon_apb_reg_base)) {
+		ret = syscon_get_args_by_name(np, "cpu_target_volt",
+						  2, reg_info);
+		if (ret != 2) {
+			pr_err("Failed to parse cpu_target_volt  syscon, ret = %d\n",
+			       ret);
+			return -EINVAL;
+		}
+		cpu_target_volt_reg = reg_info[0];
+	}
+
+	return 0;
+}
 
 static int sprd_verify_opp_with_regulator(struct device *cpu_dev,
 					  struct regulator *cpu_reg,
@@ -528,8 +619,27 @@ static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data
 	/* Scaling up? scale voltage before frequency */
 	if (new_freq_hz > old_freq_hz) {
 		pr_debug("scaling up voltage to %lu\n", volt_new);
-		ret = regulator_set_voltage_tol(cpu_reg, volt_new, volt_tol);
+		if (cpu_gpu_share_volt) {
+			sprd_cpu_gpu_volt_lock();
+			sprd_set_cpu_target_voltage(volt_new);
+			volt_new = volt_new < sprd_get_gpu_target_voltage() ?
+				   sprd_get_gpu_target_voltage() : volt_new;
+			pr_debug("%ld mV to %ld mV, cpu_vdd:%dmV, gpu_vdd:%dmV\n",
+				 (volt_old > 0) ? volt_old / 1000 : -1,
+				 volt_new ? volt_new / 1000 : -1,
+				 sprd_get_cpu_target_voltage() / 1000,
+				 sprd_get_gpu_target_voltage() / 1000);
+			ret = regulator_set_voltage_tol(cpu_reg, volt_new, volt_tol);
+			sprd_cpu_gpu_volt_unlock();
+		} else {
+			ret = regulator_set_voltage_tol(cpu_reg, volt_new, volt_tol);
+		}
 		if (ret) {
+			if (cpu_gpu_share_volt) {
+				sprd_cpu_gpu_volt_lock();
+				sprd_set_cpu_target_voltage(volt_old);
+				sprd_cpu_gpu_volt_unlock();
+			}
 			pr_err("failed to scale voltage %lu %u up: %d\n",
 			       volt_new, volt_tol, ret);
 			goto exit_err;
@@ -542,7 +652,23 @@ static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data
 		      ret);
 		if (volt_old > 0 && new_freq_hz > old_freq_hz) {
 			pr_info("scaling to old voltage %lu\n", volt_old);
-			regulator_set_voltage_tol(cpu_reg, volt_old, volt_tol);
+			if (cpu_gpu_share_volt) {
+				sprd_cpu_gpu_volt_lock();
+				sprd_set_cpu_target_voltage(volt_old);
+				volt_old = volt_old < sprd_get_gpu_target_voltage() ?
+					   sprd_get_gpu_target_voltage() : volt_old;
+				pr_debug("%ld mV to %ld mV, cpu_vdd:%dmV, gpu_vdd:%dmV\n",
+					  (volt_old > 0) ? volt_old / 1000 : -1,
+					  volt_new ? volt_new / 1000 : -1,
+					  sprd_get_cpu_target_voltage() / 1000,
+					  sprd_get_gpu_target_voltage() / 1000);
+				ret = regulator_set_voltage_tol(cpu_reg,
+								volt_old,
+								volt_tol);
+				sprd_cpu_gpu_volt_unlock();
+			} else {
+				regulator_set_voltage_tol(cpu_reg, volt_old, volt_tol);
+			}
 		}
 		goto exit_err;
 	}
@@ -550,11 +676,34 @@ static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data
 	/* Scaling down?  scale voltage after frequency */
 	if (new_freq_hz < old_freq_hz) {
 		pr_debug("scaling down voltage to %lu\n", volt_new);
-		ret = regulator_set_voltage_tol(cpu_reg, volt_new, volt_tol);
+		if (cpu_gpu_share_volt) {
+			sprd_cpu_gpu_volt_lock();
+			sprd_set_cpu_target_voltage(volt_new);
+			volt_new = volt_new < sprd_get_gpu_target_voltage() ?
+				   sprd_get_gpu_target_voltage():volt_new;
+			pr_debug("cpu_gpu_cync: %ld mV to %ld mV, cpu_vdd:%dmV,gpu_vdd:%dmV\n",
+				 (volt_old > 0) ? volt_old / 1000 : -1,
+				 volt_new ? volt_new / 1000 : -1,
+				 sprd_get_cpu_target_voltage() / 1000,
+				 sprd_get_gpu_target_voltage() / 1000);
+			ret = regulator_set_voltage_tol(cpu_reg, volt_new, volt_tol);
+			sprd_cpu_gpu_volt_unlock();
+		} else {
+			ret = regulator_set_voltage_tol(cpu_reg, volt_new, volt_tol);
+		}
+
 		if (ret) {
 			pr_warn("failed to scale volt %lu %u down: %d\n",
 				volt_new, volt_tol, ret);
-			ret = sprd_cpufreq_set_clock(cpufreq_data, old_freq_hz);
+			if (cpu_gpu_share_volt) {
+				sprd_cpu_gpu_volt_lock();
+				sprd_set_cpu_target_voltage(volt_old);
+				pr_warn("now, cpu_vdd:%dmV, gpu_vdd:%dmV\n",
+				       sprd_get_cpu_target_voltage() / 1000,
+				       sprd_get_gpu_target_voltage() / 1000);
+				sprd_cpu_gpu_volt_unlock();
+			}
+				ret = sprd_cpufreq_set_clock(cpufreq_data, old_freq_hz);
 			goto exit_err;
 		}
 	}
@@ -1016,8 +1165,16 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 		transition_latency = CPUFREQ_ETERNAL;
 	if (of_property_read_u32(np, "voltage-tolerance", &volt_tol))
 		volt_tol = DEF_VOLT_TOL;
-	pr_debug("value of transition_latency %u, voltage_tolerance %u\n",
-		 transition_latency, volt_tol);
+
+	if (!cpu_gpu_share_volt) {
+		ret = sprd_get_cpu_gpu_volt_parameters(np);
+		if (ret) {
+			pr_err("get cpu gpu volt parameters failed!\n");
+			goto free_clk;
+		}
+	}
+	pr_debug("value of transition_latency %u, voltage_tolerance%u, cpu_gpu_share_volt%d\n",
+		 transition_latency, volt_tol, cpu_gpu_share_volt);
 
 	cpu_reg = sprd_volt_share_reg(c);
 	if (!cpu_reg)
@@ -1027,6 +1184,9 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 		ret = PTR_ERR(cpu_reg);
 		goto free_clk;
 	}
+
+	if (cpu_gpu_share_volt)
+		gpu_cpu_reg = cpu_reg;
 
 	/* TODO: need to get new temperature from thermal zone after hotplug */
 	if (cpufreq_datas[0])
@@ -1117,6 +1277,12 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 	c->freq_req = dev_pm_opp_get_freq(opp);
 	c->cpufreq_online = sprd_cpufreqsw_online;
 	c->cpufreq_offline = sprd_cpufreqsw_offline;
+
+	if (cpu_gpu_share_volt) {
+		sprd_cpu_gpu_volt_lock();
+		sprd_set_cpu_target_voltage(c->volt_req);
+		sprd_cpu_gpu_volt_unlock();
+	}
 	dev_pm_opp_put(opp);
 
 	pr_info("init cpu%d is ok, freq=%ld, freq_req=%ld, volt_req=%ld\n",
