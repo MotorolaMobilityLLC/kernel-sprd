@@ -65,14 +65,7 @@ static ssize_t vdsp_dvfs_enable_store(struct device *dev,
 
 	/* disable vdsp dvfs */
 	vdsp->dvfs_enable = user_en;
-#if 0
-	/* disable vdsp hw dvfs */
-	if (vdsp->dvfs_ops && vdsp->dvfs_ops->hw_dfs_en) {
-		vdsp->dvfs_ops->hw_dfs_en(user_en);
-		vdsp->dvfs_coffe.hw_dfs_en = user_en;
-	} else
-		pr_info("%s: ip ops null\n", __func__);
-#endif
+
 	return count;
 }
 
@@ -370,25 +363,20 @@ static int vdsp_dvfs_notify_callback(struct notifier_block *nb,
 
 	mutex_lock(&vdsp->devfreq->lock);
 
-	pr_emerg("%s enter", __func__);
+	pr_info("%s enter", __func__);
 
 	if (!vdsp->dvfs_enable) {
-		pr_emerg("vdsp dvfs is disabled, nothing to do");
+		pr_err("vdsp dvfs is disabled, nothing to do\n");
 		mutex_unlock(&vdsp->devfreq->lock);
 		return NOTIFY_DONE;
 	}
 
-	//if (vdsp->work_freq == dvfs_freq) {
-	//	pr_info("request freq is the same as last, nothing to do");
-	//	mutex_unlock(&vdsp->devfreq->lock);
-	//	return NOTIFY_DONE;
-	//}
 
 	vdsp->work_freq = dvfs_freq;
 	vdsp->freq_type = DVFS_WORK;
 	update_devfreq(vdsp->devfreq);
 
-	pr_emerg("%s exit", __func__);
+	pr_info("%s exit\n", __func__);
 	mutex_unlock(&vdsp->devfreq->lock);
 
 	return NOTIFY_OK;
@@ -401,7 +389,7 @@ static int vdsp_dvfs_target(struct device *dev, unsigned long *freq,
 	struct dev_pm_opp *opp;
 	u32 target_freq;
 
-	pr_emerg("devfreq_dev_profile-->target\n");
+	pr_info("devfreq_dev_profile-->target\n");
 
 	opp = devfreq_recommended_opp(dev, freq, flags);
 	if (IS_ERR(opp)) {
@@ -437,7 +425,7 @@ static int vdsp_dvfs_get_dev_status(struct device *dev,
 	struct devfreq_event_data edata;
 	int ret = 0;
 
-	pr_emerg("devfreq_dev_profile-->get_dev_status\n");
+	pr_info("devfreq_dev_profile-->get_dev_status\n");
 
 	ret = devfreq_event_get_event(vdsp->edev, &edata);
 	if (ret < 0)
@@ -520,7 +508,7 @@ static int vdsp_gov_get_target(struct devfreq *devfreq,
 	struct vdsp_dvfs *vdsp = dev_get_drvdata(devfreq->dev.parent);
 	u32 adjusted_freq = 0;
 
-	pr_emerg("devfreq_governor-->get_target_freq\n");
+	pr_info("devfreq_governor-->get_target_freq\n");
 
 	if (vdsp->freq_type == DVFS_WORK)
 		adjusted_freq = vdsp->work_freq;
@@ -542,7 +530,7 @@ static int vdsp_gov_event_handler(struct devfreq *devfreq,
 {
 	int ret = 0;
 
-	pr_emerg("devfreq_governor-->event_handler(%d)\n", event);
+	pr_info("devfreq_governor-->event_handler(%d)\n", event);
 	switch (event) {
 	case DEVFREQ_GOV_START:
 		ret = userspace_init(devfreq);
@@ -599,7 +587,7 @@ static int vdsp_dvfs_probe(struct platform_device *pdev)
 		pr_err("attach vdsp dvfs ops %s failed\n", str);
 		return -EINVAL;
 	}
-	pr_emerg("attach vdsp dvfs ops %s success\n", str);
+	pr_info("attach vdsp dvfs ops %s success\n", str);
 
 	ret = vdsp_dvfs_parse_dt(vdsp, np);
 	if (ret) {
@@ -644,7 +632,7 @@ static int vdsp_dvfs_probe(struct platform_device *pdev)
 	if (vdsp->dvfs_ops && vdsp->dvfs_ops->dvfs_init)
 		vdsp->dvfs_ops->dvfs_init(vdsp);
 
-	pr_emerg("vdsp dvfs module registered\n");
+	pr_info("vdsp dvfs module registered\n");
 
 	return 0;
 err:
