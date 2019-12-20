@@ -13927,8 +13927,8 @@ CONFIG_SPRD_SYSDUMP
         that dump the DDR except reserved memory.
 CONFIG_SPRD_SYSTIMER
 	[arch] all
-	[plat] pike2,sharkl3
-	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] pike2,sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl3_32,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] timer
 	[must] userdebug
