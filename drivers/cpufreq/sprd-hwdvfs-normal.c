@@ -1496,7 +1496,7 @@ static int sprd_cpudvfs_udelay_update(void *data, int cluster)
 	u32 max_value = 0;
 	struct pmic_data *pm;
 	u32 slew_rate, module_clk_khz, margin;
-	u32 cycle, reg, off, msk;
+	u32 cycle, reg, off, msk, pmic_num;
 	struct topdvfs_volt_manager *manager;
 
 	if (!pdev->priv)
@@ -1518,10 +1518,21 @@ static int sprd_cpudvfs_udelay_update(void *data, int cluster)
 
 	pr_debug("Update voltage delay time for dcdc%d\n\n", clu->dcdc);
 
-	pm = pdev->priv->pmic;
+	pmic_num = pdev->pwr[clu->dcdc].pmic_num;
+	if (pmic_num >= pdev->pmic_type_sum) {
+		pr_err("Incorrect pmic sequenc number\n");
+		return -EINVAL;
+	}
+
+	pm = &pdev->priv->pmic[pmic_num];
+	if (!pm) {
+		pr_err("Empty private data\n");
+		return -EINVAL;
+	}
+
 	slew_rate = pdev->pwr[clu->dcdc].slew_rate;
 	module_clk_khz = pdev->priv->module_clk_khz;
-	margin = pdev->priv->pmic[clu->dcdc].margin_us;
+	margin = pm->margin_us;
 	manager = pdev->priv->volt_manager;
 
 	for (i = 0; i <= clu->max_vol_grade; ++i) {
