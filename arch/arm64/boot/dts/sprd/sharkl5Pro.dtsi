@@ -550,6 +550,7 @@
 				compatible = "sprd,mali-gondul";
 				reg = <0x0 0x60000000 0x0 0x100000>;
 				gpu-supply = <&vddgpu>;
+				system-coherency = <31>;
 				syscons = <&pmu_apb_regs
 					REG_PMU_APB_RF_PD_GPU_TOP_CFG0
 					MASK_PMU_APB_RF_PD_GPU_TOP_FORCE_SHUTDOWN>,
