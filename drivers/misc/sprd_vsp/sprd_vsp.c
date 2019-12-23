@@ -42,6 +42,10 @@
 #include "vsp_common.h"
 #include "sprd_dvfs_vsp.h"
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-vsp: " fmt
 
 static unsigned long sprd_vsp_phys_addr;
 static void __iomem *sprd_vsp_base;
@@ -568,13 +572,13 @@ static int vsp_parse_dt(struct platform_device *pdev)
 
 static int vsp_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	pr_info("@vsp[%s]\n", __func__);
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 	vma->vm_pgoff = (sprd_vsp_phys_addr >> PAGE_SHIFT);
 	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
 			    vma->vm_end - vma->vm_start, vma->vm_page_prot))
 		return -EAGAIN;
-	pr_info("@vsp mmap %x,%lx,%x\n", (unsigned int)PAGE_SHIFT,
+
+	pr_info("mmap %x,%lx,%x\n", (unsigned int)PAGE_SHIFT,
 		(unsigned long)vma->vm_start,
 		(unsigned int)(vma->vm_end - vma->vm_start));
 	return 0;
@@ -609,9 +613,6 @@ static int vsp_open(struct inode *inode, struct file *filp)
 	}
 
 	atomic_inc_return(&vsp_instance_cnt);
-
-	pr_info("%s: ret %d\n", __func__, ret);
-
 	return ret;
 }
 
@@ -646,10 +647,8 @@ static int vsp_release(struct inode *inode, struct file *filp)
 	}
 	vsp_pw_off(VSP_PW_DOMAIN_VSP);
 
-	pr_info("%s %p\n", __func__, vsp_fp);
 	kfree(filp->private_data);
 	filp->private_data = NULL;
-
 	return 0;
 }
 
@@ -666,7 +665,7 @@ static const struct file_operations vsp_fops = {
 
 static struct miscdevice vsp_dev = {
 	.minor = VSP_MINOR,
-	.name = "sprd_vsp",
+	.name = "sprd-vsp",
 	.fops = &vsp_fops,
 };
 

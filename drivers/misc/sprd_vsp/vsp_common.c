@@ -23,6 +23,11 @@
 #include <linux/uaccess.h>
 #include "vsp_common.h"
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-vsp: " fmt
+
 unsigned int codec_instance_count[VSP_CODEC_INSTANCE_COUNT_MAX];
 struct register_gpr regs[ARRAY_SIZE(tb_name)];
 
@@ -189,7 +194,7 @@ int vsp_get_iova(struct vsp_dev_t *vsp_hw_dev,
 			&power_state1);
 		regmap_read(regs[VSP_DOMAIN_EB].gpr, regs[VSP_DOMAIN_EB].reg,
 			&vsp_eb_reg);
-		pr_info("reg 0x%x, vsp_power 0x%x, reg 0x%x, vsp_eb 0x%x\n",
+		pr_debug("reg 0x%x, vsp_power 0x%x, reg 0x%x, vsp_eb 0x%x\n",
 			regs[PMU_PWR_STATUS].reg, power_state1, regs[VSP_DOMAIN_EB].reg,
 			vsp_eb_reg);
 	}
