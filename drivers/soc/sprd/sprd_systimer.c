@@ -153,5 +153,6 @@ static int __init sprd_systimer_init(void)
 	return 0;
 }
 
-arch_initcall(sprd_systimer_init);
+/* using the lastest init stage before device_initcall */
+rootfs_initcall(sprd_systimer_init);
 
