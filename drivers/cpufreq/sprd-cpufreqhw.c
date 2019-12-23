@@ -506,6 +506,11 @@ static int sprd_hardware_cpufreq_suspend(struct cpufreq_policy *policy)
 		return 0;
 	}
 
+	if (boost_mode_flag) {
+		sprd_hardware_cpufreq_set_boost(0);
+		sprd_hardware_cpufreq_driver.boost_enabled = false;
+	}
+
 	return cpufreq_generic_suspend(policy);
 }
 
