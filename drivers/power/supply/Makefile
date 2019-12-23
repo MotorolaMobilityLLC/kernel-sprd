@@ -89,4 +89,5 @@ obj-$(CONFIG_CHARGER_SC2703)	+= sc2703-charger.o
 obj-$(CONFIG_CHARGER_FAN54015)	+= fan54015-charger.o
 obj-$(CONFIG_CHARGER_BQ2560X)	+= bq2560x-charger.o
 obj-$(CONFIG_CHARGER_SC2720)	+= sc2720_charger.o
+obj-$(CONFIG_CHARGER_SC2721)	+= sc2721_charger.o
 obj-$(CONFIG_FAST_CHARGER_SC2730) += sc2730_fast_charger.o
