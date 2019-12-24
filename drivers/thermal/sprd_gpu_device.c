@@ -348,7 +348,7 @@ int create_gpu_cooling_device(struct devfreq *gpudev, u64 *mask)
 	memset(chip_type, 0, sizeof(chip_type));
 	sprd_kproperty_get("lwfq/type", chip_type, "-1");
 
-	if (!strncmp(chip_type, "1", strlen("1"))) {
+	if (!strncmp(chip_type, "-1", strlen("-1"))) {
 		pr_err("don't support gpu cooling\n");
 		return -ENODEV;
 	}
