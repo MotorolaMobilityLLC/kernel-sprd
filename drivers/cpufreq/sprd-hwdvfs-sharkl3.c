@@ -793,7 +793,7 @@ static void sprd_hwdvfs_l3_unlock(unsigned int cluster, bool complete)
 {
 	if (atomic_read(&hwdvfs_l3->state[cluster]) !=
 	    HWDVFS_STATE_RUNNING) {
-		pr_info("ERROR! CHNL%u get multiple DVFS INT\n", cluster);
+		pr_err("ERROR! CHNL%u get multiple DVFS INT\n", cluster);
 		sprd_hwdvfs_l3_dump(false);
 	}
 
@@ -929,7 +929,7 @@ static int sprd_hwdvfs_l3_init_param(struct device_node *np)
 		REG_DVFS_CTRL_HW_DVFS_SEL);
 
 	regval = dvfs_rd(REG_DVFS_CTRL_VERSION);
-	pr_info("Project Name:0x%x-0x%x;Version:0x%x-0x%x\n",
+	pr_debug("Project Name:0x%x-0x%x;Version:0x%x-0x%x\n",
 		(char)(REG2VAL(regval, BIT_DVFS_CTRL_PROJ_NAME1)),
 		(char)(REG2VAL(regval, BIT_DVFS_CTRL_PROJ_NAME0)),
 		(REG2VAL(regval, BIT_DVFS_CTRL_VERSION1)),
@@ -1042,7 +1042,7 @@ static int sprd_hwdvfs_set_clst0(unsigned int scalecode00,
 		if (hwdvfs_l3->busy[HWDVFS_CHNL00] &&
 		    time_after(jiffies,
 			       hwdvfs_l3->busy[HWDVFS_CHNL00])) {
-			pr_info("CHNL0 busy expired! cur-%u ing-%u to-%u\n",
+			pr_warn("CHNL0 busy expired! cur-%u ing-%u to-%u\n",
 				REG2VAL(regval,
 					BIT_DVFS_CTRL_DONE_SCL_CHNL00(0xf)),
 				scalecodeing,
@@ -1082,7 +1082,7 @@ static int sprd_hwdvfs_set_clst0(unsigned int scalecode00,
 
 	if (i >= RETRY_MAX) {
 		regval = dvfs_rd(REG_DVFS_CTRL_STS_CHNL00);
-		pr_info("CHN0=%d fail (0x%x), DONE=0x%x,SCALE=0x%x\n",
+		pr_debug("CHN0=%d fail (0x%x), DONE=0x%x,SCALE=0x%x\n",
 			scalecode00, regval,
 			REG2VAL(regval, BIT_DVFS_CTRL_IRQ_DONE_CHNL00),
 			REG2VAL(regval,
@@ -1138,7 +1138,7 @@ static int sprd_hwdvfs_set_clst1(unsigned int scalecode01,
 		if (hwdvfs_l3->busy[HWDVFS_CHNL01] &&
 		    time_after(jiffies,
 			       hwdvfs_l3->busy[HWDVFS_CHNL01])) {
-			pr_info("CHNL1 busy expired! cur-%u ing-%u to-%u\n",
+			pr_warn("CHNL1 busy expired! cur-%u ing-%u to-%u\n",
 				REG2VAL(regval,
 					BIT_DVFS_CTRL_DONE_SCL_CHNL01(0xf)),
 				scalecodeing,
@@ -1234,7 +1234,7 @@ static int sprd_hwdvfs_set_scu(unsigned int scalecode02, bool sync, bool force)
 		if (hwdvfs_l3->busy[HWDVFS_CHNL02] &&
 		    time_after(jiffies,
 			       hwdvfs_l3->busy[HWDVFS_CHNL02])) {
-			pr_info("CHNL2 busy expired! cur-%u ing-%u to-%u\n",
+			pr_warn("CHNL2 busy expired! cur-%u ing-%u to-%u\n",
 				REG2VAL(regval,
 					BIT_DVFS_CTRL_DONE_SCL_CHNL02(0xf)),
 				scalecodeing,
@@ -1332,7 +1332,7 @@ static int sprd_hwdvfs_set_clst1_scu(unsigned int scalecode01, bool sync,
 		if (hwdvfs_l3->busy[HWDVFS_CHNL01] &&
 		    time_after(jiffies,
 			       hwdvfs_l3->busy[HWDVFS_CHNL01])) {
-			pr_info("CHNL1 CHNL2 busy expired! cur-%u ing-%u to-%u\n",
+			pr_warn("CHNL1 CHNL2 busy expired! cur-%u ing-%u to-%u\n",
 				REG2VAL(regval1,
 					BIT_DVFS_CTRL_DONE_SCL_CHNL01(0xf)),
 				scalecodeing,
@@ -1433,16 +1433,16 @@ static irqreturn_t sprd_hwdvfs_l3_isr(int irq, void *dev_id)
 
 	/* CHNL00: ERROR INTERRUPT */
 	if (regval00 & BIT_DVFS_CTRL_CONFLICT1_CHNL00)
-		pr_info("CHNL0 CONFLICT1\n");
+		pr_warn("CHNL0 CONFLICT1\n");
 
 	if (regval00 & BIT_DVFS_CTRL_CONFLICT0_CHNL00)
-		pr_info("CHNL0 CONFLICT0\n");
+		pr_warn("CHNL0 CONFLICT0\n");
 
 	if (regval00 & BIT_DVFS_CTRL_IRQ_TO_CHNL00)
-		pr_info("CHNL0 TIMEOUT\n");
+		pr_warn("CHNL0 TIMEOUT\n");
 
 	if (regval00 & BIT_DVFS_CTRL_IRQ_VREAD_MIS_CHNL00)
-		pr_info("CHNL0 VREAD_MIS in 0x%x\n",
+		pr_warn("CHNL0 VREAD_MIS in 0x%x\n",
 			REG2VAL(regval00,
 				BIT_DVFS_CTRL_DONE_SCL_CHNL00(0xf)));
 	if ((regval00 & BIT_DVFS_CTRL_IRQ_DONE_CHNL00) ||
@@ -1452,16 +1452,16 @@ static irqreturn_t sprd_hwdvfs_l3_isr(int irq, void *dev_id)
 
 	/* CHNL01: ERROR INTERRUPT */
 	if (regval01 & BIT_DVFS_CTRL_CONFLICT1_CHNL01)
-		pr_info("CHNL1 CONFLICT1\n");
+		pr_warn("CHNL1 CONFLICT1\n");
 
 	if (regval01 & BIT_DVFS_CTRL_CONFLICT0_CHNL01)
-		pr_info("CHNL1 CONFLICT0\n");
+		pr_warn("CHNL1 CONFLICT0\n");
 
 	if (regval01 & BIT_DVFS_CTRL_IRQ_TO_CHNL01)
-		pr_info("CHNL1 TIMEOUT\n");
+		pr_warn("CHNL1 TIMEOUT\n");
 
 	if (regval01 & BIT_DVFS_CTRL_IRQ_VREAD_MIS_CHNL01)
-		pr_info("CHNL1 VREAD_MIS in 0x%x\n",
+		pr_warn("CHNL1 VREAD_MIS in 0x%x\n",
 			REG2VAL(regval01,
 				BIT_DVFS_CTRL_DONE_SCL_CHNL01(0xf)));
 	if ((regval01 & BIT_DVFS_CTRL_IRQ_DONE_CHNL01) ||
@@ -1471,16 +1471,16 @@ static irqreturn_t sprd_hwdvfs_l3_isr(int irq, void *dev_id)
 
 	/* CHNL02: ERROR INTERRUPT */
 	if (regval02 & BIT_DVFS_CTRL_CONFLICT1_CHNL02)
-		pr_info("CHNL2 CONFLICT1\n");
+		pr_warn("CHNL2 CONFLICT1\n");
 
 	if (regval02 & BIT_DVFS_CTRL_CONFLICT0_CHNL02)
-		pr_info("CHNL2 CONFLICT0\n");
+		pr_warn("CHNL2 CONFLICT0\n");
 
 	if (regval02 & BIT_DVFS_CTRL_IRQ_TO_CHNL02)
-		pr_info("CHNL2 TIMEOUT\n");
+		pr_warn("CHNL2 TIMEOUT\n");
 
 	if (regval02 & BIT_DVFS_CTRL_IRQ_VREAD_MIS_CHNL02)
-		pr_info("CHNL2 VREAD_MIS in 0x%x\n",
+		pr_warn("CHNL2 VREAD_MIS in 0x%x\n",
 			REG2VAL(regval02,
 				BIT_DVFS_CTRL_DONE_SCL_CHNL02(0xf)));
 	if ((regval02 & BIT_DVFS_CTRL_IRQ_DONE_CHNL02) ||
@@ -1573,7 +1573,7 @@ static int sprd_hwdvfs_l3_opp_add(void *drvdata, unsigned int cluster,
 		break;
 	default:
 		ret = -ENODEV;
-		pr_err("hwdvfs_l3_opp_add cluster %u error!\n", cluster);
+		pr_warn("hwdvfs_l3_opp_add cluster %u error!\n", cluster);
 		break;
 	}
 
@@ -1730,24 +1730,24 @@ static bool sprd_hwdvfs_l3_enable(void *drvdata, int cluster, bool en)
 				dvfs_wr(regval1 |
 					VAL2REG(0x1, SW_CHNL00_EN_MSK),
 					REG_DVFS_CTRL_SW_CHNL_EN);
-			pr_info("SW_CHNL00_EN\n");
+			pr_debug("SW_CHNL00_EN\n");
 			break;
 		case HWDVFS_CHNL01:
 			if (!(regval1 & SW_CHNL01_EN_MSK))
 				dvfs_wr(regval1 |
 					VAL2REG(0x1, SW_CHNL01_EN_MSK),
 					REG_DVFS_CTRL_SW_CHNL_EN);
-			pr_info("SW_CHNL01_EN\n");
+			pr_debug("SW_CHNL01_EN\n");
 			break;
 		case HWDVFS_CHNL02:
 			if (!(regval1 & SW_CHNL02_EN_MSK))
 				dvfs_wr(regval1 |
 					VAL2REG(0x1, SW_CHNL02_EN_MSK),
 					REG_DVFS_CTRL_SW_CHNL_EN);
-			pr_info("SW_CHNL02_EN\n");
+			pr_debug("SW_CHNL02_EN\n");
 			break;
 		default:
-			pr_info("%s cluster %u error!\n", __func__, cluster);
+			pr_warn("%s cluster %u error!\n", __func__, cluster);
 			break;
 		}
 
@@ -1772,18 +1772,18 @@ static bool sprd_hwdvfs_l3_enable(void *drvdata, int cluster, bool en)
 		switch (cluster) {
 		case HWDVFS_CHNL00:
 			if (!sprd_hwdvfs_set_clst0(0, false, false))
-				pr_info("SW_CHNL00_DISABLE\n");
+				pr_debug("SW_CHNL00_DISABLE\n");
 			break;
 		case HWDVFS_CHNL01:
 			if (!sprd_hwdvfs_set_clst1(0, false, false))
-				pr_info("SW_CHNL01_DISABLE\n");
+				pr_debug("SW_CHNL01_DISABLE\n");
 			break;
 		case HWDVFS_CHNL02:
 			if (!sprd_hwdvfs_set_scu(0, false, false))
-				pr_info("SW_CHNL02_DISABLE\n");
+				pr_debug("SW_CHNL02_DISABLE\n");
 			break;
 		default:
-			pr_err("%s cluster %u error!\n", __func__, cluster);
+			pr_warn("%s cluster %u error!\n", __func__, cluster);
 			break;
 		}
 
@@ -1864,7 +1864,7 @@ static bool sprd_hwdvfs_l3_probed(void *drvdata, int cluster)
 		return false;
 
 	if (cluster > HWDVFS_CHNL_MAX) {
-		pr_info("%s cluster%u  error!\n", __func__, cluster);
+		pr_warn("%s cluster%u  error!\n", __func__, cluster);
 		return false;
 	}
 
