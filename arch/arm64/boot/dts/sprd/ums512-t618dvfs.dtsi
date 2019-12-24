@@ -26,7 +26,7 @@
 		614400  750000
 	>;
 
-	operating-points-v0-1-0 = <
+	operating-points-v0-1 = <
 		/* kHZ   uV */
 		2002000 1000000
 		1820000 940625
@@ -40,7 +40,7 @@
 		614400  750000
 	>;
 
-	operating-points-v0-2-0 = <
+	operating-points-v0-2 = <
 		/* kHZ   uV */
 		2002000 1050000
 		1820000 990625
@@ -93,7 +93,7 @@
 		1228800	 750000
 	>;
 
-	operating-points-v0-1-0 = <
+	operating-points-v0-1 = <
 		/* kHZ   uV */
 		2002000 1000000
 		1872000 950000
@@ -103,7 +103,7 @@
 		1228800	750000
 	>;
 
-	operating-points-v0-2-0 = <
+	operating-points-v0-2 = <
 		/* kHZ   uV */
 		2002000 1050000
 		1872000 1000000
@@ -147,7 +147,7 @@
 		546000  750000
 	>;
 
-	operating-points-v0-1-0 = <
+	operating-points-v0-1 = <
 		/* kHz   uV */
 		1404000 1000000
 		1326000 940625
@@ -160,7 +160,7 @@
 		546000  750000
 	>;
 
-	operating-points-v0-2-0 = <
+	operating-points-v0-2 = <
 		/* kHz   uV */
 		1404000 1050000
 		1326000 990625
@@ -209,7 +209,7 @@
 		153600 750000
 	>;
 
-	operating-points-v0-1-0 = <
+	operating-points-v0-1 = <
 		/* kHZ  uV */
 		768000 1000000
 		512000 825000
@@ -218,7 +218,7 @@
 		153600 750000
 	>;
 
-	operating-points-v0-2-0 = <
+	operating-points-v0-2 = <
 		/* kHZ  uV */
 		768000 1050000
 		512000 875000
@@ -257,7 +257,7 @@
 		153600 750000
 	>;
 
-	operating-points-v0-1-0 = <
+	operating-points-v0-1 = <
 		/* kHZ  uV */
 		512000 825000
 		384000 825000
@@ -266,7 +266,7 @@
 		153600 750000
 	>;
 
-	operating-points-v0-2-0 = <
+	operating-points-v0-2 = <
 		/* kHZ  uV */
 		512000 875000
 		384000 875000
@@ -304,7 +304,7 @@
 		153600 750000
 	>;
 
-	operating-points-v0-1-0 = <
+	operating-points-v0-1 = <
 		/* kHZ  uV */
 		768000 1000000
 		512000 825000
@@ -313,7 +313,7 @@
 		153600 750000
 	>;
 
-	operating-points-v0-2-0 = <
+	operating-points-v0-2 = <
 		/* kHZ  uV */
 		768000 1050000
 		512000 875000
@@ -360,7 +360,7 @@
 		3 0 3 9	5 5 4
 	>;
 
-	lit-core-dvfs-tbl-v0-1-0 = <
+	lit-core-dvfs-tbl-v0-1 = <
 		0 0 0 0 0 0 0
 		1 1 0 1 1 1 0
 		2 1 0 2 1 1 0
@@ -374,7 +374,7 @@
 		3 0 5 9 5 5 5
 	>;
 
-	lit-core-dvfs-tbl-v0-2-0 = <
+	lit-core-dvfs-tbl-v0-2 = <
 		0 0 0 0 0 0 0
 		1 1 0 1 1 1 0
 		2 1 0 2 1 1 0
@@ -429,7 +429,7 @@
 		3 0 3 9 5 5 4
 	>;
 
-	big-core-dvfs-tbl-v0-1-0 = <
+	big-core-dvfs-tbl-v0-1 = <
 		0 0 0 0 0 0 0
 		1 0 0 3 1 1 0
 		3 0 1 5 4 4 0
@@ -439,7 +439,7 @@
 		3 0 5 9 5 5 4
 	>;
 
-	big-core-dvfs-tbl-v0-2-0 = <
+	big-core-dvfs-tbl-v0-2 = <
 		0 0 0 0 0 0 0
 		1 0 0 3 1 1 0
 		3 0 1 5 4 4 0
@@ -485,7 +485,7 @@
 		3 0 3 1 7
 	>;
 
-	scu-dvfs-tbl-v0-1-0 = <
+	scu-dvfs-tbl-v0-1 = <
 		0 0 0 0 0
 		3 0 0 1 0
 		3 0 0 1 1
@@ -498,7 +498,7 @@
 		3 0 5 1 7
 	>;
 
-	scu-dvfs-tbl-v0-2-0 = <
+	scu-dvfs-tbl-v0-2 = <
 		0 0 0 0 0
 		3 0 0 1 0
 		3 0 0 1 1
@@ -549,7 +549,7 @@
 		3 0 3
 	>;
 
-	periph-dvfs-tbl-v0-1-0 = <
+	periph-dvfs-tbl-v0-1 = <
 		0 0 0
 		1 0 0
 		2 1 1
@@ -558,7 +558,7 @@
 		3 0 5
 	>;
 
-	periph-dvfs-tbl-v0-2-0 = <
+	periph-dvfs-tbl-v0-2 = <
 		0 0 0
 		1 0 0
 		2 1 2
@@ -597,7 +597,7 @@
 		3 0 1
 	>;
 
-	gic-dvfs-tbl-v0-1-0 = <
+	gic-dvfs-tbl-v0-1 = <
 		0 0 0
 		1 0 0
 		2 1 1
@@ -606,7 +606,7 @@
 		3 0 1
 	>;
 
-	gic-dvfs-tbl-v0-2-0 = <
+	gic-dvfs-tbl-v0-2 = <
 		0 0 0
 		1 0 0
 		2 1 2
