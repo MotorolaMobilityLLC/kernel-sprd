@@ -26,7 +26,7 @@
 #define DISPC_INT_MMU_VAOR_RD_MASK	BIT(16)
 
 #define XFBC8888_HEADER_SIZE(w, h) (ALIGN((w) * (h) / (8 * 8) / 2, 128))
-#define XFBC8888_PAYLOAD_SIZE(w, h) (w * h * 4)
+#define XFBC8888_PAYLOAD_SIZE(w, h) (ALIGN(w, 8) * ALIGN(h, 8) * 4)
 #define XFBC8888_BUFFER_SIZE(w, h) (XFBC8888_HEADER_SIZE(w, h) \
 				+ XFBC8888_PAYLOAD_SIZE(w, h))
 
@@ -545,12 +545,12 @@ static void dpu_write_back(struct dpu_context *ctx,
 	wb_layer.dst_h = h;
 	wb_layer.compression = wb_xfbc_en;
 	wb_layer.header_size_r = XFBC8888_HEADER_SIZE(w, h);
-	wb_layer.pitch[0] = w * 4;
+	wb_layer.pitch[0] = ALIGN(w, 8) * 4;
 
 	reg->region[0].pos = 0;
 	reg->region[0].size = (w >> 3) | ((h >> 3) << 16);
 	reg->wb_ctrl = BIT(0);
-	reg->wb_pitch = w;
+	reg->wb_pitch = ALIGN(w, 8);
 
 	if (wb_xfbc_en) {
 		reg->wb_cfg = (2 << 1) | BIT(0);
