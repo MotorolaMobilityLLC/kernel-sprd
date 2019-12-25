@@ -1865,6 +1865,15 @@ CONFIG_CHARGER_SC2720
 	[must] user
 	[missing plat description] Not used in the project, so no configuration
 	[function] This function is used to enable charge
+CONFIG_CHARGER_SC2721
+        [arch] arm
+        [plat] sharkle32
+        [missing plat] pike2,sharkl3_32,sharkl5_32
+        [field] make
+        [subsys] power
+        [must] user
+        [missing plat description] Not used in the project, so no configuration
+        [function] This function is used to enable charge
 CONFIG_CLEANCACHE
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
