@@ -188,6 +188,8 @@ struct charger_jeita_table {
  *	max_duration_ms', cm start charging.
  * @charger_status: Recording state of charge
  * @trigger_cnt: The number of times the battery is fully charged
+ * @low_temp_trigger_cnt: The number of times the battery temperature
+ *	is less than 10 degree.
  * @cap_one_time: The percentage of electricity is not
  *	allowed to change by 1% in cm->desc->cap_one_time
  * @trickle_time_out: If 99% lasts longer than it , will force set full statu
@@ -245,6 +247,7 @@ struct charger_desc {
 
 	int charger_status;
 	int trigger_cnt;
+	int low_temp_trigger_cnt;
 
 	u32 cap_one_time;
 
