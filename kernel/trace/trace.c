@@ -1170,8 +1170,48 @@ static struct {
 	{ ktime_get_mono_fast_ns,	"mono",		1 },
 	{ ktime_get_raw_fast_ns,	"mono_raw",	1 },
 	{ ktime_get_boot_fast_ns,	"boot",		1 },
+	{ ktime_get_real_fast_ns,	"real",		1 },
 	ARCH_TRACE_CLOCKS
 };
+
+static int trace_clock_intf __initdata = CONFIG_PRINTK_TIME_TYPE;
+
+enum trace_clock_sources {
+	TRACE_PRINTK_TIME_DISABLED = 0,
+	TRACE_PRINTK_TIME_LOCAL = 1,
+	TRACE_PRINTK_TIME_BOOT = 2,
+	TRACE_PRINTK_TIME_MONO = 3,
+	TRACE_PRINTK_TIME_REAL = 4,
+};
+
+static char trace_printk_get_ts[MAX_TRACER_SIZE] __initdata;
+
+static __init void
+trace_printk_set_ts_source(enum trace_clock_sources ts_source)
+{
+	switch (ts_source) {
+	case TRACE_PRINTK_TIME_LOCAL:
+		strcpy(trace_printk_get_ts, "local");
+		break;
+	case TRACE_PRINTK_TIME_BOOT:
+		strcpy(trace_printk_get_ts, "boot");
+		break;
+	case TRACE_PRINTK_TIME_MONO:
+		strcpy(trace_printk_get_ts, "mono");
+		break;
+	case TRACE_PRINTK_TIME_REAL:
+		strcpy(trace_printk_get_ts, "real");
+		break;
+	case TRACE_PRINTK_TIME_DISABLED:
+		/*
+		 * The timestamp is always stored into the log buffer.
+		 * Keep the current one.
+		 */
+		break;
+	default:
+		break;
+	}
+}
 
 /*
  * trace_parser_get_init - gets the buffer for trace parser
@@ -8345,6 +8385,16 @@ __init static int tracer_alloc_buffers(void)
 
 	if (global_trace.buffer_disabled)
 		tracing_off();
+
+	/*
+	 * Set the default trace_printk timestamp
+	 * according CONFIG_PRINTK_TIME_TYPE
+	 */
+	trace_printk_set_ts_source(trace_clock_intf);
+
+	/* Using parameters in command line if exist */
+	if (!trace_boot_clock)
+		trace_boot_clock = trace_printk_get_ts;
 
 	if (trace_boot_clock) {
 		ret = tracing_set_clock(&global_trace, trace_boot_clock);
