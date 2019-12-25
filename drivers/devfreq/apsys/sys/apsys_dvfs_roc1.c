@@ -88,6 +88,8 @@ char *roc1_vsp_val_to_freq(u32 val)
 		return "307.2M";
 	case 2:
 		return "384M";
+	case 3:
+		return "512M";
 	default:
 		pr_err("invalid frequency value %u\n", val);
 		return "N/A";
