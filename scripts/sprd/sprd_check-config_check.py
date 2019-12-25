@@ -37,14 +37,14 @@ d_defconfig_path = {
             'sharkl3_32':{'defconfig':'arch/arm/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/sharkl3', 'arch':'arm'},
         },
         'kernel4.14':{
-            'pike2':{'defconfig':'arch/arm/configs/sprd_pike2_defconfig', 'diffconfig':'sprd-diffconfig/android/pike2', 'arch':'arm','platform':'q'},
-            'roc1':{'defconfig':'arch/arm64/configs/sprd_roc1_defconfig', 'diffconfig':'sprd-diffconfig/android/roc1','arch':'arm64','platform':'p'},
-            'sharkl3':{'defconfig':'arch/arm64/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/android/sharkl3','arch':'arm64','platform':'q'},
-            'sharkl3_32':{'defconfig':'arch/arm/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/android/sharkl3', 'arch':'arm','platform':'q'},
-            'sharkl5':{'defconfig':'arch/arm64/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/android/sharkl5','arch':'arm64','platform':'p'},
-            'sharkl5_32':{'defconfig':'arch/arm/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/android/sharkl5','arch':'arm','platform':'p'},
-            'sharkle32':{'defconfig':'arch/arm/configs/sprd_sharkle_defconfig', 'diffconfig':'sprd-diffconfig/android/sharkle', 'arch':'arm','platform':'q'},
-            'sharkl5Pro':{'defconfig':'arch/arm64/configs/sprd_sharkl5Pro_defconfig', 'diffconfig':'sprd-diffconfig/android/sharkl5Pro', 'arch':'arm64','platform':'q'},
+            'pike2':{'defconfig':'arch/arm/configs/sprd_pike2_defconfig', 'diffconfig':'sprd-diffconfig/androidq/pike2', 'arch':'arm','platform':'q'},
+            'roc1':{'defconfig':'arch/arm64/configs/sprd_roc1_defconfig', 'diffconfig':'sprd-diffconfig/androidq/roc1','arch':'arm64','platform':'p'},
+            'sharkl3':{'defconfig':'arch/arm64/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/androidq/sharkl3','arch':'arm64','platform':'q'},
+            'sharkl3_32':{'defconfig':'arch/arm/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/androidq/sharkl3', 'arch':'arm','platform':'q'},
+            'sharkl5':{'defconfig':'arch/arm64/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/androidq/sharkl5','arch':'arm64','platform':'p'},
+            'sharkl5_32':{'defconfig':'arch/arm/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/androidq/sharkl5','arch':'arm','platform':'p'},
+            'sharkle32':{'defconfig':'arch/arm/configs/sprd_sharkle_defconfig', 'diffconfig':'sprd-diffconfig/androidq/sharkle', 'arch':'arm','platform':'q'},
+            'sharkl5Pro':{'defconfig':'arch/arm64/configs/sprd_sharkl5Pro_defconfig', 'diffconfig':'sprd-diffconfig/androidq/sharkl5Pro', 'arch':'arm64','platform':'q'},
         },
 }
 
