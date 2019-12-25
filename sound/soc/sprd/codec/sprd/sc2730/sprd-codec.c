@@ -407,6 +407,9 @@ static const struct snd_kcontrol_new virt_output_switch =
 static const struct snd_kcontrol_new ivsence_switch =
 	SOC_DAPM_SINGLE_VIRT("Switch", 1);
 
+static const struct snd_kcontrol_new hpr_pin_switch =
+	SOC_DAPM_SINGLE_VIRT("Switch", 1);
+
 static const struct snd_kcontrol_new aud_adc_switch[] = {
 	SOC_DAPM_SINGLE_VIRT("Switch", 1),
 	SOC_DAPM_SINGLE_VIRT("Switch", 1),
@@ -2639,6 +2642,8 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 	 */
 	SND_SOC_DAPM_SWITCH("HP", SND_SOC_NOPM,
 			0, 0, &hp_jack_switch),
+	SND_SOC_DAPM_SWITCH("HPR Pin", SND_SOC_NOPM,
+			0, 0, &hpr_pin_switch),
 
 	SND_SOC_DAPM_MUX("Digital ADC In Sel", SND_SOC_NOPM, 0, 0,
 			 &dig_adc_in_sel),
@@ -2742,8 +2747,9 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"HPR Switch", NULL, "HP BUF Switch"},
 	{"HPL Gain", NULL, "HPL Switch"},
 	{"HPR Gain", NULL, "HPR Switch"},
+	{"HPR Pin", "Switch", "HPR Gain"},
 	{"HP Pin", NULL, "HPL Gain"},
-	{"HP Pin", NULL, "HPR Gain"},
+	{"HP Pin", NULL, "HPR Pin"},
 
 /* EAR */
 	{"RCV DEPOP", NULL, "CP"},
