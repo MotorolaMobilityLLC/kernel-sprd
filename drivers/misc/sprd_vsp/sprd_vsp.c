@@ -58,7 +58,8 @@ static char *vsp_clk_src[] = {
 	"clk_src_192m",
 	"clk_src_256m",
 	"clk_src_307m2",
-	"clk_src_384m"
+	"clk_src_384m",
+	"clk_src_512m"
 };
 
 static struct clock_name_map_t clock_name_map[ARRAY_SIZE(vsp_clk_src)];
