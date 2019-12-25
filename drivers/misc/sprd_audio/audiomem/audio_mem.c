@@ -83,6 +83,7 @@ static int audio_smem_init(u32 addr, u32 size)
 
 	if (gen_pool_add(spool->gen, spool->addr, spool->size, -1) != 0) {
 		pr_err("Failed to add smem gen pool!\n");
+		gen_pool_destroy(spool->gen);
 		return -1;
 	}
 
