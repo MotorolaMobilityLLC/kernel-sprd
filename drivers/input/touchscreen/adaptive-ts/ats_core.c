@@ -42,6 +42,7 @@ static void ts_clear_points(struct ts_data *pdata)
 	int i = 0;
 	bool need_sync = false;
 	struct ts_point *p = NULL;
+	struct device *dev = &pdata->pdev->dev;
 
 	for (i = 0; i < TS_MAX_POINTS; i++) {
 		if (pdata->stashed_points[i].pressed) {
@@ -49,7 +50,7 @@ static void ts_clear_points(struct ts_data *pdata)
 			input_mt_slot(pdata->input, p->slot);
 			input_mt_report_slot_state(pdata->input, MT_TOOL_FINGER, false);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-				TS_DBG("Point[%d] UP: x=%d, y=%d", p->slot, p->x, p->y);
+				dev_dbg(dev, "TS Point[%d] UP: x=%d, y=%d", p->slot, p->x, p->y);
 			need_sync = true;
 			p->pressed = 0;
 		}
@@ -69,12 +70,13 @@ static int ts_report1(struct ts_data *pdata,
 {
 	int i;
 	struct ts_point *p;
+	struct device *dev = &pdata->pdev->dev;
 
 	if (counts == 0) {
 		input_report_key(pdata->input, BTN_TOUCH, 0);
 		input_mt_sync(pdata->input);
 		if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-			TS_DBG("UP: all points leave");
+			dev_dbg(dev, "UP: all points leave");
 	} else {
 		for (i = 0; i < counts; i++) {
 			p = points + i;
@@ -83,7 +85,7 @@ static int ts_report1(struct ts_data *pdata,
 			input_report_abs(pdata->input, ABS_MT_POSITION_Y, p->y);
 			input_mt_sync(pdata->input);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-				TS_DBG("DOWN: x%d=%d, y%d=%d", i, p->x, i, p->y);
+				dev_dbg(dev, "DOWN: x%d=%d, y%d=%d", i, p->x, i, p->y);
 		}
 	}
 
@@ -140,6 +142,7 @@ static inline void ts_report_translate_key(struct ts_data *pdata,
 		       bool *sync_abs, bool *sync_key, bool *btn_down)
 {
 	unsigned int kc, kc_last;
+	struct device *dev = &pdata->pdev->dev;
 
 	kc = ts_get_keycode(pdata, cur->x, cur->y);
 	kc_last = ts_get_keycode(pdata, last->x, last->y);
@@ -156,8 +159,8 @@ static inline void ts_report_translate_key(struct ts_data *pdata,
 			input_report_key(pdata->input, kc_last, 0);
 			input_report_key(pdata->input, kc, 1);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA)) {
-				TS_DBG("Key %s UP", ts_get_keyname(kc_last));
-				TS_DBG("Key %s DOWN", ts_get_keyname(kc));
+				dev_dbg(dev, "Key %s UP", ts_get_keyname(kc_last));
+				dev_dbg(dev, "Key %s DOWN", ts_get_keyname(kc));
 			}
 			*sync_key = true;
 		} else if (kc > 0) {
@@ -165,9 +168,9 @@ static inline void ts_report_translate_key(struct ts_data *pdata,
 			ts_report_abs(pdata, last, false);
 			input_report_key(pdata->input, kc, 1);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA)) {
-				TS_DBG("Point[%d] UP: x=%d, y=%d",
+				dev_dbg(dev, "Point[%d] UP: x=%d, y=%d",
 				       last->slot, last->x, last->y);
-				TS_DBG("Key %s DOWN", ts_get_keyname(kc));
+				dev_dbg(dev, "Key %s DOWN", ts_get_keyname(kc));
 			}
 			*sync_key = *sync_abs = true;
 		} else if (kc_last > 0) {
@@ -175,8 +178,8 @@ static inline void ts_report_translate_key(struct ts_data *pdata,
 			input_report_key(pdata->input, kc_last, 0);
 			ts_report_abs(pdata, cur, true);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA)) {
-				TS_DBG("Key %s UP", ts_get_keyname(kc));
-				TS_DBG("Point[%d] DOWN: x=%d, y=%d",
+				dev_dbg(dev, "Key %s UP", ts_get_keyname(kc));
+				dev_dbg(dev, "Point[%d] DOWN: x=%d, y=%d",
 				       last->slot, last->x, last->y);
 			}
 			*btn_down = true;
@@ -185,7 +188,7 @@ static inline void ts_report_translate_key(struct ts_data *pdata,
 			/* from screen to screen */
 			ts_report_abs(pdata, cur, true);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-				TS_DBG("Point[%d] MOVE TO: x=%d, y=%d",
+				dev_dbg(dev, "Point[%d] MOVE TO: x=%d, y=%d",
 				       cur->slot, cur->x, cur->y);
 			*btn_down = true;
 			*sync_abs = true;
@@ -195,13 +198,13 @@ static inline void ts_report_translate_key(struct ts_data *pdata,
 			/* virtual key pressed */
 			input_report_key(pdata->input, kc, 1);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-				TS_DBG("Key %s DOWN", ts_get_keyname(kc));
+				dev_dbg(dev, "Key %s DOWN", ts_get_keyname(kc));
 			*sync_key = true;
 		} else {
 			/* new point down */
 			ts_report_abs(pdata, cur, true);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-				TS_DBG("Point[%d] DOWN: x=%d, y=%d",
+				dev_dbg(dev, "Point[%d] DOWN: x=%d, y=%d",
 				       cur->slot, cur->x, cur->y);
 			*btn_down = true;
 			*sync_abs = true;
@@ -211,13 +214,13 @@ static inline void ts_report_translate_key(struct ts_data *pdata,
 			/* virtual key released */
 			input_report_key(pdata->input, kc_last, 0);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-				TS_DBG("Key %s UP", ts_get_keyname(kc_last));
+				dev_dbg(dev, "Key %s UP", ts_get_keyname(kc_last));
 			*sync_key = true;
 		} else {
 			/* point up */
 			ts_report_abs(pdata, last, false);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-				TS_DBG("Point[%d] UP: x=%d, y=%d",
+				dev_dbg(dev, "Point[%d] UP: x=%d, y=%d",
 				       last->slot, last->x, last->y);
 			*sync_abs = true;
 		}
@@ -228,12 +231,14 @@ static inline void ts_report_no_translate(struct ts_data *pdata,
 		      struct ts_point *cur, struct ts_point *last,
 		      bool *sync_abs, bool *btn_down)
 {
+	struct device *dev = &pdata->pdev->dev;
+
 	if (cur->pressed && last->pressed) {
 		*btn_down = true;
 		if (cur->x != last->x || cur->y != last->y) {
 			ts_report_abs(pdata, cur, true);
 			if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-				TS_DBG("Point[%d] MOVE TO: x=%d, y=%d",
+				dev_dbg(dev, "Point[%d] MOVE TO: x=%d, y=%d",
 				       cur->slot, cur->x, cur->y);
 			*sync_abs = true;
 		}
@@ -241,13 +246,13 @@ static inline void ts_report_no_translate(struct ts_data *pdata,
 		*btn_down = true;
 		ts_report_abs(pdata, cur, true);
 		if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-			TS_DBG("Point[%d] DOWN: x=%d, y=%d",
+			dev_dbg(dev, "Point[%d] DOWN: x=%d, y=%d",
 			       cur->slot, cur->x, cur->y);
 		*sync_abs = true;
 	} else if (last->pressed) {
 		ts_report_abs(pdata, last, false);
 		if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-			TS_DBG("Point[%d] UP: x=%d, y=%d",
+			dev_dbg(dev, "Point[%d] UP: x=%d, y=%d",
 			       last->slot, last->x, last->y);
 		*sync_abs = true;
 	}
@@ -258,6 +263,7 @@ static inline void ts_fix_UP_if_needed(struct ts_data *pdata,
 			bool *sync_key, bool *sync_abs)
 {
 	unsigned int kc;
+	struct device *dev = &pdata->pdev->dev;
 
 	if (status == TSSTASH_NEW && p->pressed) {
 		if (!ts_get_mode(pdata, TSMODE_VKEY_REPORT_ABS)) {
@@ -266,7 +272,7 @@ static inline void ts_fix_UP_if_needed(struct ts_data *pdata,
 				input_report_key(pdata->input, kc, 0);
 				*sync_key = true;
 				if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-					TS_DBG("Key %s UP",
+					dev_dbg(dev, "Key %s UP",
 						ts_get_keyname(kc));
 				return;
 			}
@@ -274,7 +280,7 @@ static inline void ts_fix_UP_if_needed(struct ts_data *pdata,
 		ts_report_abs(pdata, p, false);
 		*sync_abs = true;
 		if (ts_get_mode(pdata, TSMODE_DEBUG_RAW_DATA))
-			TS_DBG("Point[%d] UP: x=%d, y=%d",
+			dev_dbg(dev, "Point[%d] UP: x=%d, y=%d",
 				p->slot, p->x, p->y);
 	}
 }
@@ -285,18 +291,19 @@ static int ts_report3(struct ts_data *pdata,
 	struct ts_point *cur, *last;
 	int i;
 	bool sync_abs = false, btn_down = false, sync_key = false;
+	struct device *dev = &pdata->pdev->dev;
 
 	for (i = 0; i < counts; i++) {
 		cur = points + i;
 		if (cur->slot >= TS_MAX_POINTS) {
-			TS_ERR("invalid current slot number: %u", cur->slot);
+			dev_err(dev, "invalid current slot number: %u", cur->slot);
 			continue;
 		}
 
 		last = &pdata->stashed_points[cur->slot];
 		pdata->stashed_status[cur->slot] = TSSTASH_CONSUMED;
 		if (last->slot >= TS_MAX_POINTS) {
-			TS_ERR("invalid last slot number: %u", last->slot);
+			dev_err(dev, "invalid last slot number: %u", last->slot);
 			continue;
 		}
 
@@ -352,31 +359,32 @@ static int ts_request_gpio(struct ts_data *pdata)
 {
 	int retval;
 	struct ts_board *board = pdata->board;
+	struct device *dev = &pdata->pdev->dev;
 
 	if (!board->int_gpio) {
-		TS_WARN("no int on our board!");
+		dev_warn(dev, "no int on our board!");
 	} else {
 		retval = devm_gpio_request(&pdata->pdev->dev,
 			board->int_gpio, ATS_INT_LABEL);
 		if (retval < 0) {
-			TS_ERR("failed to request int gpio: %d, retval: %d!",
+			dev_err(dev, "failed to request int gpio: %d, retval: %d!",
 				board->int_gpio, retval);
 			return retval;
 		}
-		TS_DBG("request int gpio \"%d\"", board->int_gpio);
+		dev_dbg(dev, "request int gpio \"%d\"", board->int_gpio);
 	}
 
 	if (!board->rst_gpio) {
-		TS_WARN("no rst on our board!");
+		dev_dbg(dev, "no rst on our board!");
 	} else {
 		retval = devm_gpio_request(&pdata->pdev->dev,
 			board->rst_gpio, ATS_RST_LABEL);
 		if (retval < 0) {
-			TS_ERR("failed to request rst gpio: %d, retval: %d!",
+			dev_err(dev, "failed to request rst gpio: %d, retval: %d!",
 				board->rst_gpio, retval);
 			return retval;
 		}
-		TS_DBG("request rst gpio \"%d\"", board->rst_gpio);
+		dev_dbg(dev, "request rst gpio \"%d\"", board->rst_gpio);
 	}
 
 	return 0;
@@ -386,25 +394,26 @@ static int ts_export_gpio(struct ts_data *pdata)
 {
 	int retval;
 	struct ts_board *board = pdata->board;
+	struct device *dev = &pdata->pdev->dev;
 
 	if (board->int_gpio) {
 		retval = gpio_export(board->int_gpio, true);
 		if (retval < 0) {
-			TS_WARN("failed to export int gpio: %d, retval: %d!",
+			dev_warn(dev, "failed to export int gpio: %d, retval: %d!",
 				board->int_gpio, retval);
 			return retval;
 		}
-		TS_DBG("exported int gpio: %d", board->rst_gpio);
+		dev_dbg(dev, "exported int gpio: %d", board->rst_gpio);
 	}
 
 	if (board->rst_gpio) {
 		retval = gpio_export(board->rst_gpio, true);
 		if (retval < 0) {
-			TS_WARN("failed to export rst gpio: %d, retval: %d!",
+			dev_warn(dev, "failed to export rst gpio: %d, retval: %d!",
 				board->rst_gpio, retval);
 			return retval;
 		}
-		TS_DBG("exported rst gpio: %d", board->rst_gpio);
+		dev_dbg(dev, "exported rst gpio: %d", board->rst_gpio);
 	}
 
 	return 0;
@@ -423,19 +432,20 @@ static void ts_firmware_upgrade_worker(const struct firmware *fw, void *context)
 	struct ts_firmware_upgrade_param *param = context;
 	struct ts_data *pdata = param->pdata;
 	enum ts_result ret;
+	struct device *dev = &pdata->pdev->dev;
 
 	if (unlikely(fw == NULL)) {
-		TS_WARN("upgrading cancel: cannot find such a firmware file");
+		dev_warn(dev, "upgrading cancel: cannot find such a firmware file");
 		return;
 	}
 
 	if (!ts_get_mode(pdata, TSMODE_CONTROLLER_EXIST)) {
-		TS_ERR("controller not ready!");
+		dev_err(dev, "controller not ready!");
 		return;
 	}
 
 	if (!pdata->controller->upgrade_firmware) {
-		TS_ERR("controller \"%s\" does not support firmware upgrade",
+		dev_err(dev, "controller \"%s\" does not support firmware upgrade",
 			pdata->controller->name);
 		/* if controller doesn't support, don't hold firmware */
 		release_firmware(fw);
@@ -443,20 +453,20 @@ static void ts_firmware_upgrade_worker(const struct firmware *fw, void *context)
 	}
 
 	ts_set_mode(pdata, TSMODE_CONTROLLER_STATUS, false);
-	TS_DBG(">>> Upgrade Firmware Begin <<<");
+	dev_dbg(dev, ">>> Upgrade Firmware Begin <<<");
 	__pm_stay_awake(&pdata->upgrade_lock);
 	ret = pdata->controller->upgrade_firmware(pdata->controller,
 		fw->data, fw->size, param->force_upgrade);
 	__pm_relax(&pdata->upgrade_lock);
-	TS_DBG(">>> Upgrade Firmware End <<<");
+	dev_dbg(dev, ">>> Upgrade Firmware End <<<");
 	if (ret == TSRESULT_UPGRADE_FINISHED)
-		TS_INFO(">>> Upgrade Result: Success <<<");
+		dev_info(dev, ">>> Upgrade Result: Success <<<");
 	else if (ret == TSRESULT_INVALID_BINARY)
-		TS_ERR(">>> Upgrade Result: bad firmware file <<<");
+		dev_err(dev, ">>> Upgrade Result: bad firmware file <<<");
 	else if (ret == TSRESULT_OLDER_VERSION)
-		TS_WARN(">>> Upgrade Result: older version, no need to upgrade <<<");
+		dev_warn(dev, ">>> Upgrade Result: older version, no need to upgrade <<<");
 	else
-		TS_ERR(">>> Upgrade Result: other error <<<");
+		dev_err(dev, ">>> Upgrade Result: other error <<<");
 	ts_set_mode(pdata, TSMODE_CONTROLLER_STATUS, true);
 
 	release_firmware(fw);
@@ -470,16 +480,17 @@ static int ts_request_firmware_upgrade(struct ts_data *pdata,
 {
 	char *buf, *name;
 	struct ts_firmware_upgrade_param *param;
+	struct device *dev = &pdata->pdev->dev;
 
 	if (!ts_get_mode(pdata, TSMODE_CONTROLLER_EXIST)) {
-		TS_ERR("controller not exist!");
+		dev_err(dev, "controller not exist!");
 		return -EBUSY;
 	}
 
 	param = devm_kmalloc(&pdata->pdev->dev,
 		sizeof(struct ts_firmware_upgrade_param), GFP_KERNEL);
 	if (IS_ERR(param)) {
-		TS_ERR("fail to allocate firmware upgrade param");
+		dev_err(dev, "fail to allocate firmware upgrade param");
 		return -ENOMEM;
 	}
 	param->force_upgrade = force_upgrade;
@@ -488,7 +499,7 @@ static int ts_request_firmware_upgrade(struct ts_data *pdata,
 	if (!fw_name) {
 		buf = devm_kmalloc(&pdata->pdev->dev, 32, GFP_KERNEL);
 		if (IS_ERR(buf)) {
-			TS_ERR("fail to allocate buffer for firmware name");
+			dev_err(dev, "fail to allocate buffer for firmware name");
 			return -ENOMEM;
 		}
 		sprintf(buf, "%s-%s.bin", pdata->controller->vendor, pdata->controller->name);
@@ -497,10 +508,10 @@ static int ts_request_firmware_upgrade(struct ts_data *pdata,
 		name = (char *)fw_name;
 	}
 
-	TS_DBG("requesting firmware \"%s\"", name);
+	dev_dbg(dev, "requesting firmware \"%s\"", name);
 	if (request_firmware_nowait(THIS_MODULE, true, name, &pdata->pdev->dev,
 		GFP_KERNEL, param, ts_firmware_upgrade_worker) < 0) {
-		TS_ERR("request firmware failed");
+		dev_err(dev, "request firmware failed");
 		return -ENOENT;
 	}
 
@@ -512,10 +523,11 @@ static int ts_register_input_dev(struct ts_data *pdata)
 	int retval;
 	unsigned int i;
 	struct input_dev *input;
+	struct device *dev = &pdata->pdev->dev;
 
 	input = devm_input_allocate_device(&pdata->pdev->dev);
 	if (IS_ERR(input)) {
-		TS_ERR("Failed to allocate input device.");
+		dev_err(dev, "Failed to allocate input device.");
 		return -ENOMEM;
 	}
 
@@ -543,12 +555,12 @@ static int ts_register_input_dev(struct ts_data *pdata)
 
 	retval = input_register_device(input);
 	if (retval < 0) {
-		TS_ERR("Failed to register input device.");
+		dev_err(dev, "Failed to register input device.");
 		input_free_device(input);
 		return retval;
 	}
 
-	TS_DBG("Succeed to register input device.");
+	dev_dbg(dev, "Succeed to register input device.");
 	pdata->input = input;
 
 	return 0;
@@ -560,6 +572,7 @@ static int ts_register_input_dev(struct ts_data *pdata)
 static int ts_reset_controller(struct ts_data *pdata, bool hw_reset)
 {
 	int level;
+	struct device *dev = &pdata->pdev->dev;
 
 	if (ts_get_mode(pdata, TSMODE_CONTROLLER_EXIST)) {
 		if (hw_reset) {
@@ -569,7 +582,7 @@ static int ts_reset_controller(struct ts_data *pdata, bool hw_reset)
 			else
 				level = 1;
 
-			TS_INFO("hardware reset now...");
+			dev_info(dev, "hardware reset now...");
 			ts_gpio_output(TSGPIO_RST, level);
 			msleep(pdata->controller->reset_keep_ms);
 			ts_gpio_output(TSGPIO_RST, !level);
@@ -595,6 +608,7 @@ static void ts_configure(struct ts_data *pdata)
 	struct ts_data *p = pdata;
 	const struct ts_virtualkey_info *key_source;
 	int key_count = 0;
+	struct device *dev = &pdata->pdev->dev;
 
 	/* configure touch panel size */
 	if (b->panel_width) {
@@ -609,10 +623,8 @@ static void ts_configure(struct ts_data *pdata)
 			 */
 			p->width = c->panel_width * b->surface_width / b->lcd_width;
 			p->height = c->panel_height * b->surface_height / b->lcd_height;
-			TS_INFO(
-					"low resolution simulation, surface=%dx%d, lcd=%dx%d",
-					b->surface_width, b->surface_height,
-					b->lcd_width, b->lcd_height);
+			dev_info(dev, "low resolution simulation, surface=%dx%d, lcd=%dx%d",
+				b->surface_width, b->surface_height, b->lcd_width, b->lcd_height);
 		} else {
 			/*
 			 * nothing special, we just report real size of controller and
@@ -641,7 +653,7 @@ static void ts_configure(struct ts_data *pdata)
 		p->vkey_hitbox = devm_kzalloc(&p->pdev->dev,
 			sizeof(p->vkey_hitbox[0]) * p->vkey_count, GFP_KERNEL);
 		if (IS_ERR_OR_NULL(p->vkey_list) || IS_ERR_OR_NULL(p->vkey_hitbox)) {
-			TS_ERR("No memory for virtualkeys!");
+			dev_err(dev, "No memory for virtualkeys!");
 			p->vkey_count = 0;
 			p->vkey_list = NULL;
 			p->vkey_hitbox = NULL;
@@ -680,6 +692,7 @@ static int ts_open_controller(struct ts_data *pdata)
 {
 	struct ts_controller *c;
 	int result;
+	struct device *dev = &pdata->pdev->dev;
 
 	if (!ts_get_mode(pdata, TSMODE_CONTROLLER_EXIST))
 		return -ENODEV;
@@ -691,17 +704,18 @@ static int ts_open_controller(struct ts_data *pdata)
 			pdata->power = devm_regulator_get(&pdata->pdev->dev,
 				pdata->board->avdd_supply);
 			if (IS_ERR_OR_NULL(pdata->power)) {
-				TS_ERR("Cannot get regulator \"%s\"", pdata->board->avdd_supply);
+				dev_err(dev, "Cannot get regulator \"%s\"",
+					pdata->board->avdd_supply);
 				return -ENODEV;
 			}
-			TS_DBG("get regulator \"%s\"", pdata->board->avdd_supply);
+			dev_dbg(dev, "get regulator \"%s\"", pdata->board->avdd_supply);
 		}
 		if (regulator_enable(pdata->power)) {
-			TS_ERR("Cannot enable regulator \"%s\"", pdata->board->avdd_supply);
+			dev_err(dev, "Cannot enable regulator \"%s\"", pdata->board->avdd_supply);
 			devm_regulator_put(pdata->power);
 			pdata->power = NULL;
 		}
-		TS_DBG("enable regulator \"%s\"", pdata->board->avdd_supply);
+		dev_dbg(dev, "enable regulator \"%s\"", pdata->board->avdd_supply);
 	}
 
 	/* set gpio directions */
@@ -741,18 +755,19 @@ static void ts_close_controller(struct ts_data *pdata)
 static void ts_enable_irq(struct ts_data *pdata, bool enable)
 {
 	unsigned long irqflags = 0;
+	struct device *dev = &pdata->pdev->dev;
 
 	spin_lock_irqsave(&g_irqlock, irqflags);
 	if (enable && !ts_get_mode(pdata, TSMODE_IRQ_STATUS)) {
 		enable_irq(pdata->irq);
 		ts_set_mode(pdata, TSMODE_IRQ_STATUS, true);
-		TS_DBG("enable irq");
+		dev_dbg(dev, "enable irq");
 	} else if (!enable && ts_get_mode(pdata, TSMODE_IRQ_STATUS)) {
 		ts_set_mode(pdata, TSMODE_IRQ_STATUS, false);
 		disable_irq_nosync(pdata->irq);
-		TS_DBG("disable irq");
+		dev_dbg(dev, "disable irq");
 	} else {
-		TS_WARN("Irq status and enable(%s) mis-match!", enable ? "true" : "false");
+		dev_warn(dev, "Irq status and enable(%s) mis-match!", enable ? "true" : "false");
 	}
 	spin_unlock_irqrestore(&g_irqlock, irqflags);
 }
@@ -762,8 +777,10 @@ static void ts_enable_irq(struct ts_data *pdata, bool enable)
  */
 static void ts_enable_polling(struct ts_data *pdata, bool enable)
 {
+	struct device *dev = &pdata->pdev->dev;
+
 	ts_set_mode(pdata, TSMODE_POLLING_STATUS, enable ? true : false);
-	TS_DBG("%s polling", enable ? "enable" : "disable");
+	dev_dbg(dev, "%s polling", enable ? "enable" : "disable");
 }
 
 /*
@@ -774,14 +791,15 @@ static void ts_poll_handler(unsigned long _data)
 	struct ts_data *pdata = (struct ts_data *)_data;
 	struct ts_point points[TS_MAX_POINTS];
 	int counts;
+	struct device *dev = &pdata->pdev->dev;
 
 	memset(points, 0, sizeof(struct ts_point) * TS_MAX_POINTS);
 
 	if (ts_get_mode(pdata, TSMODE_POLLING_STATUS)) {
 		if (!ts_get_mode(pdata, TSMODE_CONTROLLER_EXIST)) {
-			TS_ERR("controller not exist");
+			dev_err(dev, "controller not exist");
 		} else if (!ts_get_mode(pdata, TSMODE_CONTROLLER_STATUS)) {
-			TS_WARN("controller is busy...");
+			dev_warn(dev, "controller is busy...");
 			/* wait for upgrading completion */
 			msleep(100);
 		} else {
@@ -799,25 +817,27 @@ static void ts_poll_handler(unsigned long _data)
  */
 static void ts_poll_control(struct ts_data *pdata, bool enable)
 {
+	struct device *dev = &pdata->pdev->dev;
+
 	if (enable) {
 		if (ts_get_mode(pdata, TSMODE_POLLING_MODE)) {
-			TS_WARN("polling mode already enabled");
+			dev_warn(dev, "polling mode already enabled");
 			return;
 		}
 
 		ts_enable_polling(pdata, true);
 		mod_timer(&pdata->poll_timer, jiffies + pdata->poll_interval);
 		ts_set_mode(pdata, TSMODE_POLLING_MODE, true);
-		TS_DBG("succeed to enable polling mode");
+		dev_dbg(dev, "succeed to enable polling mode");
 	} else {
 		if (!ts_get_mode(pdata, TSMODE_POLLING_MODE)) {
-			TS_WARN("polling mode already disabled");
+			dev_warn(dev, "polling mode already disabled");
 			return;
 		}
 
 		ts_enable_polling(pdata, false);
 		ts_set_mode(pdata, TSMODE_POLLING_MODE, false);
-		TS_DBG("succeed to disable polling mode");
+		dev_dbg(dev, "succeed to disable polling mode");
 	}
 }
 
@@ -829,11 +849,12 @@ static irqreturn_t ts_interrupt_handler(int irq, void *data)
 	struct ts_data *pdata = data;
 	static struct timespec64 last;
 	struct timespec64 cur;
+	struct device *dev = &pdata->pdev->dev;
 
 	/* TODO: change to async for performance reason */
 	if (ts_get_mode(pdata, TSMODE_DEBUG_IRQTIME)) {
 		getnstimeofday64(&cur);
-		TS_DBG("time elapsed in two interrupts: %ld ns",
+		dev_dbg(dev, "time elapsed in two interrupts: %ld ns",
 			timespec64_sub(cur, last).tv_nsec);
 		memcpy(&last, &cur, sizeof(struct timespec64));
 	}
@@ -868,10 +889,11 @@ static int ts_isr_control(struct ts_data *pdata, bool _register)
 {
 	int retval = 0;
 	unsigned long flags = IRQF_TRIGGER_FALLING;
+	struct device *dev = &pdata->pdev->dev;
 
 	if (_register) {
 		if (ts_get_mode(pdata, TSMODE_IRQ_MODE)) {
-			TS_WARN("interrupt handler already registered");
+			dev_warn(dev, "interrupt handler already registered");
 			return 0;
 		}
 
@@ -895,23 +917,23 @@ static int ts_isr_control(struct ts_data *pdata, bool _register)
 		retval = devm_request_threaded_irq(&pdata->pdev->dev, pdata->irq,
 			ts_interrupt_handler, ts_interrupt_worker, flags, ATS_IRQ_HANDLER, pdata);
 		if (retval < 0) {
-			TS_ERR("register interrupt handler fail, retval=%d", retval);
+			dev_err(dev, "register interrupt handler fail, retval=%d", retval);
 			return retval;
 		}
 
 		ts_set_mode(pdata, TSMODE_IRQ_MODE, true);
 		ts_set_mode(pdata, TSMODE_IRQ_STATUS, true);
-		TS_DBG("succeed to register interrupt handler, irq=%d", pdata->irq);
+		dev_dbg(dev, "succeed to register interrupt handler, irq=%d", pdata->irq);
 	} else {
 		if (!ts_get_mode(pdata, TSMODE_IRQ_MODE)) {
-			TS_WARN("interrupt handler already unregistered");
+			dev_warn(dev, "interrupt handler already unregistered");
 			return 0;
 		}
 
 		ts_enable_irq(pdata, false);
 		devm_free_irq(&pdata->pdev->dev, pdata->irq, pdata);
 		ts_set_mode(pdata, TSMODE_IRQ_MODE, false);
-		TS_DBG("succeed to unregister interrupt handler");
+		dev_dbg(dev, "succeed to unregister interrupt handler");
 	}
 
 	return retval;
@@ -923,8 +945,9 @@ static int ts_isr_control(struct ts_data *pdata, bool _register)
 static int ts_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct ts_data *pdata = platform_get_drvdata(pdev);
+	struct device *dev = &pdev->dev;
 
-	TS_INFO("now we're going to sleep...");
+	dev_info(dev, "now we're going to sleep...");
 
 	if (ts_get_mode(pdata, TSMODE_SUSPEND_STATUS))
 		return 0;
@@ -964,8 +987,9 @@ static int ts_suspend(struct platform_device *pdev, pm_message_t state)
 static int ts_resume(struct platform_device *pdev)
 {
 	struct ts_data *pdata = platform_get_drvdata(pdev);
+	struct device *dev = &pdev->dev;
 
-	TS_INFO("now we're going to wake up...");
+	dev_info(dev, "now we're going to wake up...");
 
 	if (!ts_get_mode(pdata, TSMODE_SUSPEND_STATUS))
 		return 0;
@@ -1010,11 +1034,11 @@ static void ts_notifier_worker(struct work_struct *work)
 		&& pdata->controller->handle_event) {
 		if (ts_get_mode(pdata, TSMODE_NOISE_STATUS)) {
 			ts_set_mode(pdata, TSMODE_NOISE_STATUS, false);
-		TS_INFO("trying to open hardware anti-noise algorithm...");
+			pr_info("trying to open hardware anti-noise algorithm...");
 			pdata->controller->handle_event(pdata->controller,
 			TSEVENT_NOISE_HIGH, NULL);
 		} else {
-			TS_INFO("closing hardware anti-noise algorithm...");
+			pr_info("closing hardware anti-noise algorithm...");
 			pdata->controller->handle_event(pdata->controller,
 			TSEVENT_NOISE_NORMAL, NULL);
 		}
@@ -1026,6 +1050,8 @@ static void ts_notifier_worker(struct work_struct *work)
  */
 static void ts_ext_event_handler(struct ts_data *pdata, enum ts_event event, void *data)
 {
+	struct device *dev = &pdata->pdev->dev;
+
 	switch (event) {
 	case TSEVENT_SUSPEND:
 		ts_suspend(pdata->pdev, PMSG_SUSPEND);
@@ -1038,11 +1064,12 @@ static void ts_ext_event_handler(struct ts_data *pdata, enum ts_event event, voi
 		break;
 	case TSEVENT_NOISE_HIGH:
 		ts_set_mode(pdata, TSMODE_NOISE_STATUS, true);
+		break;
 	case TSEVENT_NOISE_NORMAL:
 		queue_work(pdata->notifier_workqueue, &pdata->notifier_work);
 		break;
 	default:
-		TS_WARN("ignore unknown event: %d", event);
+		dev_info(dev, "ignore unknown event: %d", event);
 		break;
 	}
 }
@@ -1140,9 +1167,9 @@ static ssize_t ts_register_store(struct device *dev,
 	int value = 0;
 
 	if (kstrtoint(buf, 16, &value) < 0) {
-		TS_WARN("fail to convert \"%s\" to integer", buf);
+		pr_warn("fail to convert \"%s\" to integer", buf);
 	} else {
-		TS_INFO("receive register address: %d", value);
+		pr_info("receive register address: %d", value);
 		pdata->stashed_reg = value;
 	}
 
@@ -1453,29 +1480,29 @@ static ssize_t ts_mode_store(struct device *dev,
 	if (!strncmp(buf, "irq_enable", min(cmd_length, 10))) {
 		if (count  == cmd_length + 2) {
 			cmd = buf[count - 1] - '0';
-			TS_DBG("irq_enable, cmd = %d", cmd);
+			pr_info("irq_enable, cmd = %d", cmd);
 			ts_enable_irq(pdata, !!cmd);
 		}
 	} else if (!strncmp(buf, "raw_data", min(cmd_length, 8))) {
 		if (count == cmd_length + 2) {
 			cmd = buf[count - 1] - '0';
-			TS_DBG("raw_data, cmd = %d", cmd);
+			pr_info("raw_data, cmd = %d", cmd);
 			ts_set_mode(pdata, TSMODE_DEBUG_RAW_DATA, !!cmd);
 		}
 	} else if (!strncmp(buf, "up_down", min(cmd_length, 7))) {
 		if (count == cmd_length + 2) {
 			cmd = buf[count - 1] - '0';
-			TS_DBG("up_down, cmd = %d", cmd);
+			pr_info("up_down, cmd = %d", cmd);
 			ts_set_mode(pdata, TSMODE_DEBUG_UPDOWN, !!cmd);
 		}
 	} else if (!strncmp(buf, "irq_time", min(cmd_length, 8))) {
 		if (count == cmd_length + 2) {
 			cmd = buf[count - 1] - '0';
-			TS_DBG("irq_time, cmd = %d", cmd);
+			pr_info("irq_time, cmd = %d", cmd);
 			ts_set_mode(pdata, TSMODE_DEBUG_IRQTIME, !!cmd);
 		}
 	} else {
-		TS_DBG("unrecognized cmd");
+		pr_info("unrecognized cmd");
 	}
 
 	return count + 1;
@@ -1607,6 +1634,7 @@ static int ts_filesys_create(struct ts_data *pdata)
 {
 	int retval;
 	struct kobj_attribute *attr;
+	struct device *dev = &pdata->pdev->dev;
 
 	/* create sysfs virtualkey files */
 	if (ts_get_mode(pdata, TSMODE_VKEY_REPORT_ABS) && pdata->vkey_list) {
@@ -1620,30 +1648,30 @@ static int ts_filesys_create(struct ts_data *pdata)
 
 		pdata->vkey_obj = kobject_create_and_add("board_properties", NULL);
 		if (IS_ERR_OR_NULL(pdata->vkey_obj)) {
-			TS_ERR("Fail to create kobject!");
+			dev_err(dev, "Fail to create kobject!");
 			return -ENOMEM;
 		}
 		retval = sysfs_create_group(pdata->vkey_obj, &ts_virtualkey_attr_group);
 		if (retval < 0) {
-			TS_ERR("Fail to create virtualkey files!");
+			dev_err(dev, "Fail to create virtualkey files!");
 			kobject_put(pdata->vkey_obj);
 			return -ENOMEM;
 		}
-		TS_DBG("virtualkey sysfiles created");
+		dev_dbg(dev, "virtualkey sysfiles created");
 	}
 
 	/* create sysfs debug files	*/
 	retval = sysfs_create_group(&pdata->pdev->dev.kobj,
 		&ts_debug_attr_group);
 	if (retval < 0) {
-		TS_ERR("Fail to create debug files!");
+		dev_err(dev, "Fail to create debug files!");
 		return -ENOMEM;
 	}
 
 	/* convenient access to sysfs node */
 	retval = sysfs_create_link(NULL, &pdata->pdev->dev.kobj, "touchscreen");
 	if (retval < 0) {
-		TS_ERR("Failed to create link!");
+		dev_err(dev, "Failed to create link!");
 		return -ENOMEM;
 	}
 
@@ -1665,10 +1693,11 @@ static int ts_probe(struct platform_device *pdev)
 {
 	int retval;
 	struct ts_data *pdata;
+	struct device *dev = &pdev->dev;
 
 	pdata = devm_kzalloc(&pdev->dev, sizeof(struct ts_data), GFP_KERNEL);
 	if (IS_ERR(pdata)) {
-		TS_ERR("Failed to allocate platform data!");
+		dev_err(dev, "Failed to allocate platform data!");
 		return -ENOMEM;
 	}
 
@@ -1679,14 +1708,14 @@ static int ts_probe(struct platform_device *pdev)
 	/* GPIO request first */
 	retval = ts_request_gpio(pdata);
 	if (retval) {
-		TS_ERR("Failed to request gpios!");
+		dev_err(dev, "Failed to request gpios!");
 		return retval;
 	}
 
 	/* export GPIO for debug use */
 	retval = ts_export_gpio(pdata);
 	if (retval) {
-		TS_ERR("failed to export gpio");
+		dev_err(dev, "failed to export gpio");
 		return retval;
 	}
 
@@ -1694,13 +1723,13 @@ static int ts_probe(struct platform_device *pdev)
 	pdata->controller = ts_match_controller(pdata->board->controller);
 	if (pdata->controller) {
 		ts_set_mode(pdata, TSMODE_CONTROLLER_EXIST, true);
-		TS_INFO("selecting controller \"%s-%s\"", pdata->controller->vendor,
+		dev_info(dev, "selecting controller \"%s-%s\"", pdata->controller->vendor,
 			pdata->controller->name);
 
 		ts_configure(pdata);
 		retval = ts_open_controller(pdata);
 		if (retval < 0) {
-			TS_WARN("fail to open controller, maybe firmware is corrupted");
+			dev_warn(dev, "fail to open controller, maybe firmware is corrupted");
 			if (ts_get_mode(pdata, TSMODE_AUTO_UPGRADE_FW))
 				ts_request_firmware_upgrade(pdata, NULL, true);
 			ts_set_mode(pdata, TSMODE_CONTROLLER_STATUS, true);
@@ -1712,20 +1741,20 @@ static int ts_probe(struct platform_device *pdev)
 		if (pdata->board->suspend_on_init)
 			ts_suspend(pdata->pdev, PMSG_SUSPEND);
 	} else {
-		TS_WARN("no matched controller found!");
+		dev_warn(dev, "no matched controller found!");
 	}
 
 	/* next we create debug and virtualkey files */
 	retval = ts_filesys_create(pdata);
 	if (retval) {
-		TS_ERR("Failed to create sys files.");
+		dev_err(dev, "Failed to create sys files.");
 		return retval;
 	}
 
 	/* also we need to register input device */
 	retval = ts_register_input_dev(pdata);
 	if (retval) {
-		TS_ERR("Failed to register input device.");
+		dev_err(dev, "Failed to register input device.");
 		return retval;
 	}
 
@@ -1739,13 +1768,13 @@ static int ts_probe(struct platform_device *pdev)
 			== TSCONF_REPORT_MODE_IRQ) {
 			pdata->irq = gpio_to_irq(pdata->board->int_gpio);
 			if (likely(pdata->irq > 0) && !ts_isr_control(pdata, true))
-				TS_DBG("works in interrupt mode, irq=%d", pdata->irq);
+				dev_dbg(dev, "works in interrupt mode, irq=%d", pdata->irq);
 		}
 
 		/* if not supported, fallback to polling mode */
 		if (!ts_get_mode(pdata, TSMODE_IRQ_MODE)) {
 			ts_poll_control(pdata, true);
-			TS_DBG("works in polling mode");
+			dev_dbg(dev, "works in polling mode");
 		}
 	}
 
@@ -1753,7 +1782,7 @@ static int ts_probe(struct platform_device *pdev)
 	INIT_WORK(&pdata->resume_work, ts_resume_worker);
 	pdata->workqueue = create_singlethread_workqueue(ATS_WORKQUEUE);
 	if (IS_ERR(pdata->workqueue)) {
-		TS_WARN("failed to create workqueue!");
+		dev_warn(dev, "failed to create workqueue!");
 		ts_set_mode(pdata, TSMODE_WORKQUEUE_STATUS, false);
 	} else {
 		ts_set_mode(pdata, TSMODE_WORKQUEUE_STATUS, true);
@@ -1765,16 +1794,16 @@ static int ts_probe(struct platform_device *pdev)
 		ATS_NOTIFIER_WORKQUEUE);
 	if (IS_ERR(pdata->notifier_workqueue)) {
 		retval = -ESRCH;
-		TS_ERR("failed to create notifier_workqueue!");
+		dev_err(dev, "failed to create notifier_workqueue!");
 		return retval;
 	}
 
 	/* register external events */
 	retval = ts_register_ext_event_handler(pdata, ts_ext_event_handler);
 	if (retval < 0)
-		TS_WARN("error in register external event!");
+		dev_err(dev, "error in register external event!");
 
-	TS_INFO("ts platform device probe OK");
+	dev_info(dev, "ts platform device probe OK");
 	wakeup_source_init(&pdata->upgrade_lock, "adaptive_ts upgrade");
 	return 0;
 }
@@ -1823,7 +1852,7 @@ static int __init ts_init(void)
 
 	retval = ts_board_init();
 	if (retval) {
-		TS_ERR("board init failed!");
+		pr_err("board init failed!");
 		return retval;
 	}
 

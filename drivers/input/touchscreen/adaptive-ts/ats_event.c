@@ -41,7 +41,7 @@ static int ts_adf_event_handler(
 		return NOTIFY_DONE;
 
 	adf_event_data = *(int *)event->data;
-	TS_DBG("receive adf event with adf_event_data=%d", adf_event_data);
+	pr_debug("receive adf event with adf_event_data=%d", adf_event_data);
 
 	switch (adf_event_data) {
 	case DRM_MODE_DPMS_ON:
@@ -51,7 +51,7 @@ static int ts_adf_event_handler(
 		p->inform(p->pdata, TSEVENT_SUSPEND, NULL);
 		break;
 	default:
-		TS_WARN("receive adf event with error data, adf_event_data=%d",
+		pr_warn("receive adf event with error data, adf_event_data=%d",
 			adf_event_data);
 		break;
 	}
@@ -79,15 +79,15 @@ static int ts_usb_event_handler(
 
 	switch (action) {
 	case USB_CABLE_PLUG_IN:
-		TS_DBG("receive usb plug-in event");
+		pr_debug("receive usb plug-in event");
 		p->inform(p->pdata, TSEVENT_NOISE_HIGH, NULL);
 		break;
 	case USB_CABLE_PLUG_OUT:
-		TS_DBG("receive usb plug-out event");
+		pr_debug("receive usb plug-out event");
 		p->inform(p->pdata, TSEVENT_NOISE_NORMAL, NULL);
 		break;
 	default:
-		TS_WARN("receive usb event with unknown action: %lu", action);
+		pr_warn("receive usb event with unknown action: %lu", action);
 		break;
 	}
 	return NOTIFY_OK;
@@ -109,18 +109,18 @@ int ts_register_ext_event_handler(
 	receiver.adf_event_block.notifier_call = ts_adf_event_handler;
 	ret = adf_register_client(&receiver.adf_event_block);
 	if (ret < 0)
-		TS_WARN("register adf notifier fail, cannot sleep when screen off");
+		dev_warn(&pdata->pdev->dev, "register adf notifier fail, cannot sleep when screen off");
 	else
-		TS_DBG("register adf notifier succeed");
+		dev_dbg(&pdata->pdev->dev, "register adf notifier succeed");
 #endif
 
 #ifdef CONFIG_USB_SPRD_DWC
 	receiver.usb_event_block.notifier_call = ts_usb_event_handler;
 	ret = register_usb_notifier(&receiver.usb_event_block);
 	if (ret < 0)
-		TS_WARN("register usb notifier fail");
+		dev_warn(&pdata->pdev->dev, "register usb notifier fail");
 	else
-		TS_DBG("register usb notifier succeed");
+		dev_dbg(&pdata->pdev->dev, "register usb notifier succeed");
 #endif
 
 	return ret;
