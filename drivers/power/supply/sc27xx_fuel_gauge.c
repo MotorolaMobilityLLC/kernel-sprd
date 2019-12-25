@@ -71,6 +71,7 @@
 #define SC27XX_FGU_CUR_BASIC_ADC	8192
 #define SC27XX_FGU_SAMPLE_HZ		2
 #define SC27XX_FGU_TEMP_BUFF_CNT	10
+#define SC27XX_FGU_LOW_TEMP_REGION	100
 #define SC27XX_FGU_BOOT_CAPACITY_THRESHOLD	10
 #define SC27XX_FGU_DENSE_CAPACITY_HIGH	3850000
 #define SC27XX_FGU_DENSE_CAPACITY_LOW	3750000
@@ -752,9 +753,15 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 		if (vol < 0)
 			vol = 0;
 	}
-	*temp = sc27xx_fgu_vol_to_temp(data->temp_table,
-				       data->temp_table_len, vol * 1000);
-	*temp = sc27xx_fgu_get_average_temp(data, *temp);
+
+	if (data->temp_table_len > 0) {
+		*temp = sc27xx_fgu_vol_to_temp(data->temp_table,
+					       data->temp_table_len,
+					       vol * 1000);
+		*temp = sc27xx_fgu_get_average_temp(data, *temp);
+	} else {
+		*temp = 200;
+	}
 
 	return 0;
 }
@@ -1024,7 +1031,7 @@ static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap)
 static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 						int cap, int int_mode)
 {
-	int ret, ocv, chg_sts, adc;
+	int ret, ocv, chg_sts, adc, temp;
 
 	ret = sc27xx_fgu_get_vbat_ocv(data, &ocv);
 	if (ret) {
@@ -1038,11 +1045,19 @@ static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 		return;
 	}
 
+	ret = sc27xx_fgu_get_temp(data, &temp);
+	if (ret) {
+		dev_err(data->dev, "get battery temperature error.\n");
+		return;
+	}
+
 	/*
-	 * If we are in charging mode, then we do not need to calibrate the
+	 * If we are in charging mode or the battery temperature is
+	 * 10 degrees or less, then we do not need to calibrate the
 	 * lower capacity.
 	 */
-	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING)
+	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING ||
+	    temp <= SC27XX_FGU_LOW_TEMP_REGION)
 		return;
 
 	if (ocv <= data->cap_table[data->table_len - 1].ocv) {
