@@ -55,6 +55,7 @@ static void scan_burst_irq(unsigned long data)
 	struct irq_domain *domain;
 	struct timespec64 ts_start, ts_sub;
 	unsigned int delta;
+	unsigned long flags;
 
 	getnstimeofday64(&ts_start);
 	ts_sub = timespec64_sub(ts_start, ts_end);
@@ -66,16 +67,16 @@ static void scan_burst_irq(unsigned long data)
 		if (!desc)
 			continue;
 
-		raw_spin_lock(&desc->lock);
+		raw_spin_lock_irqsave(&desc->lock, flags);
 		action = desc->action;
 		if (action == NULL) {
-			raw_spin_unlock(&desc->lock);
+			raw_spin_unlock_irqrestore(&desc->lock, flags);
 			continue;
 		}
 
 		domain = desc->irq_data.domain;
 		hwirq = desc->irq_data.hwirq;
-		raw_spin_unlock(&desc->lock);
+		raw_spin_unlock_irqrestore(&desc->lock, flags);
 
 		tmp_kstat_irq = 0;
 		spin_lock(&irq_monitor_lock);
