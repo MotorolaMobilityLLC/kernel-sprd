@@ -128,11 +128,8 @@ static struct page_info *alloc_largest_available(struct ion_system_heap *heap,
 			continue;
 
 		page = alloc_buffer_page(heap, buffer, orders[i], &from_pool);
-		if (!page) {
-			pr_err("%s: failed to allocate memory from order %d\n",
-			       __func__, orders[i]);
+		if (!page)
 			continue;
-		}
 
 		info = kmalloc(sizeof(*info), GFP_KERNEL);
 		if (info) {
