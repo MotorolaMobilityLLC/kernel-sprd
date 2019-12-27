@@ -635,6 +635,7 @@ static int process_rx_w(void *data)
 				dev->net->stats.rx_length_errors++;
 				DBG(dev, "rx length %d\n", skb->len);
 				dev_kfree_skb_any(skb);
+				status = 0;
 				continue;
 			}
 
