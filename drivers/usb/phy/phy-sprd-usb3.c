@@ -454,7 +454,9 @@ static int sprd_ssphy_vbus_notify(struct notifier_block *nb,
 			MASK_IPA_AHB_OTG_VBUS_VALID_PHYREG;
 
 		/* dwc3 vbus invalid */
-		regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_USB_CTL0, msk, 0);
+		if (atomic_read(&phy->inited))
+			regmap_update_bits(phy->ipa_ahb, REG_IPA_AHB_USB_CTL0,
+					   msk, 0);
 
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
 	}
