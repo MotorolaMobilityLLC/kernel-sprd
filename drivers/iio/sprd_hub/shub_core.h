@@ -39,6 +39,8 @@
  * float data, so calibrate value multiply 10000
  */
 #define LIGHT_SENSOR_CALI_VALUE (400 * 10000)
+/* prox sensor auto calibrate ground noise min value is 0 */
+#define PROX_SENSOR_MIN_VALUE   0
 
 /* ms,-1 is wait  forever */
 #define SIPC_WRITE_TIMEOUT             -1
@@ -61,6 +63,7 @@ enum calib_type {
 };
 
 enum calib_status {
+	CALIB_STATUS_OUT_OF_MINRANGE = -3,
 	CALIB_STATUS_OUT_OF_RANGE = -2,
 	CALIB_STATUS_FAIL = -1,
 	CALIB_STATUS_NON = 0,

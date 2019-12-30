@@ -1002,7 +1002,15 @@ static int check_proximity_cali_data(void *cali_data)
 		prox_cali.high_threshold,
 		prox_cali.low_threshold,
 		prox_cali.cali_flag);
+/* prox sensor factory auto calibration */
+	if ((prox_cali.cali_flag & 0x01) == 0x01 &&
+		prox_cali.ground_noise < PROX_SENSOR_MIN_VALUE) {
+		dev_err(&sensor->sensor_pdev->dev,
+			"prox sensor auto cali out of minrange failed!\n");
+		return CALIB_STATUS_OUT_OF_MINRANGE;
+	}
 
+/* prox sensor factory manual calibration */
 	if ((prox_cali.cali_flag & 0x06) == 0x06 &&
 		prox_cali.high_threshold < prox_cali.low_threshold) {
 		dev_err(&sensor->sensor_pdev->dev,
