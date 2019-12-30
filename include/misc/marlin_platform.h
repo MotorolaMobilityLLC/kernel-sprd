@@ -86,4 +86,5 @@ int cali_ini_need_download(enum marlin_sub_sys subsys);
 const char *strno(int subsys);
 void wcn_chip_power_on(void);
 void wcn_chip_power_off(void);
+void mdbg_assert_interface(char *str);
 #endif
