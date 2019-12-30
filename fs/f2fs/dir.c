@@ -625,9 +625,9 @@ int f2fs_do_add_link(struct inode *dir, const struct qstr *name,
 	 * verify on-disk dentry one more time, which guarantees filesystem
 	 * consistency more.
 	 */
-	if (current != F2FS_I(dir)->task) {
-		de = __f2fs_find_entry(dir, &fname, &page);
-	}
+
+	de = __f2fs_find_entry(dir, &fname, &page);
+
 	if (de) {
 		f2fs_put_page(page, 0);
 		err = -EEXIST;
