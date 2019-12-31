@@ -2537,6 +2537,7 @@ static void marlin_shutdown(struct platform_device *pdev)
 {
 	if (marlin_dev->power_state != 0) {
 		WCN_INFO("marlin some subsys power is on, warning!\n");
+		sprdwcn_bus_set_carddump_status(true);
 		wcn_avdd12_bound_xtl(false);
 		wcn_wifipa_bound_xtl(false);
 		wifipa_enable(0);
