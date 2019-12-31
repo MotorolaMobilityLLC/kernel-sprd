@@ -83,6 +83,7 @@ static unsigned int pmic_reg;
 #ifdef CONFIG_SPRD_MINI_SYSDUMP /*	minidump code start	*/
 #define REG_SP_INDEX	31
 #define REG_PC_INDEX	32
+extern void stext(void);
 struct pt_regs pregs_die_g;
 int  die_notify_flag;
 struct pt_regs minidump_regs_g;
@@ -124,6 +125,7 @@ struct minidump_info  minidump_info_g =	{
 			{"per_cpu", (unsigned long)__per_cpu_start, (unsigned long)__per_cpu_end, 0, 0, 0},
 			{"log_buf", 0, 0, 0, 0, 0},
 			{"ylog_buf", 0, 0, 0, 0, 0},
+			{"kernel_pt", 0, 0, 0, 0, 0},
 			{"", 0, 0, 0, 0, 0},
 
 		},
@@ -1061,7 +1063,13 @@ void section_info_pt(int section_index)
 	unsigned long vaddr;
 	int len;
 	vaddr  = (unsigned long)swapper_pg_dir;
-	len = sizeof(swapper_pg_dir);
+
+#ifdef CONFIG_ARM
+		len = (unsigned long)stext - vaddr;
+#endif
+#ifdef CONFIG_ARM64
+		len = SWAPPER_DIR_SIZE;
+#endif
 	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
 	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + len;
 	minidump_info_g.section_info_total.section_info[i].section_start_paddr = __pa(vaddr);
@@ -1077,6 +1085,63 @@ void section_info_pt(int section_index)
 		" len :0x%x  section_index: %d\n",
 		vaddr, __pa(vaddr), len, i);
 #endif
+	return;
+}
+int add_extend_section(const char *name, unsigned long paddr_start, unsigned long paddr_end, int index)
+{
+	struct section_info *extend_section = &minidump_info_g.section_info_total.section_info[index];
+
+	if (SECTION_NUM_MAX <= index) {
+		pr_err("No space for new section \n");
+		return -1;
+	}
+	sprintf(extend_section->section_name, "%s", name);
+	extend_section->section_start_paddr = paddr_start;
+	extend_section->section_end_paddr = paddr_end;
+	extend_section->section_size = extend_section->section_end_paddr - extend_section->section_start_paddr;
+
+	minidump_info_g.section_info_total.total_size += extend_section->section_size;
+	minidump_info_g.section_info_total.total_num++;
+	minidump_info_g.minidump_data_size += extend_section->section_size  ;
+	return 0;
+}
+
+int extend_section_cm4dump(int index)
+{
+#define CM4_DUMP_IRAM "scproc"
+	struct device_node *node;
+	unsigned long cm4_dump_start, cm4_dump_end;
+	struct resource res;
+	int ret;
+
+	node = of_find_node_by_name(NULL, CM4_DUMP_IRAM);
+	if (!node) {
+		pr_err("Not find %s from dts \n", CM4_DUMP_IRAM);
+		return -1;
+	} else {
+		ret = of_address_to_resource(node, 0, &res);
+		if (!ret) {
+			cm4_dump_start = res.start;
+			cm4_dump_end = res.end;
+			pr_err("cm4_dump_start : 0x%lx cm4_dump_end :0x%lx , size : 0x%lx \n", cm4_dump_start, cm4_dump_end, cm4_dump_end - cm4_dump_start + 1);
+		} else {
+			pr_err("Not find cm4_reg property from %s node\n", CM4_DUMP_IRAM);
+			return -1;
+		}
+	}
+	add_extend_section(CM4_DUMP_IRAM, cm4_dump_start, cm4_dump_end, index);
+	return 0;
+}
+void section_info_per_cpu(int section_index)
+{
+	int i = section_index;
+	long vaddr = (long)(__per_cpu_start)+(long)(__per_cpu_offset[0]);
+	int len = (__per_cpu_offset[1] - __per_cpu_offset[0])*CONFIG_NR_CPUS;
+	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
+	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + len;
+	minidump_info_g.section_info_total.section_info[i].section_start_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_end_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_size = len;
 	return;
 }
 /*	init section_info_all_item : name,paddr,size 	return: total_size */
@@ -1098,6 +1163,10 @@ void minidump_info_init(void)
 			section_info_log_buf(i);
 		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, "ylog_buf", strlen("ylog_buf"))) {
 			section_info_ylog_buf(i);
+		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, "kernel_pt", strlen("kernel_pt"))) {
+			section_info_pt(i);
+		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, "per_cpu", strlen("per_cpu"))) {
+			section_info_per_cpu(i);
 		} else {
 			minidump_info_g.section_info_total.section_info[i].section_start_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
 			minidump_info_g.section_info_total.section_info[i].section_end_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
@@ -1110,6 +1179,7 @@ void minidump_info_init(void)
 
 	minidump_info_g.minidump_data_size =  minidump_info_g.regs_info.size + minidump_info_g.regs_memory_info.size + minidump_info_g.section_info_total.total_size;
 
+	extend_section_cm4dump(minidump_info_g.section_info_total.total_num);
 
 	return;
 }
