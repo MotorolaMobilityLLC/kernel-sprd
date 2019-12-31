@@ -752,8 +752,6 @@
 	extcon = <&pmic_typec>;
 	mic-gpios = <&ap_gpio 16 GPIO_ACTIVE_HIGH>;
 	lr-gpios = <&ap_gpio 15 GPIO_ACTIVE_HIGH>;
-	switch-supply = <&vddusb33>;
-	sprd,switch-voltage = <3300000>;
 	sprd,3pole-adc-threshold = <112>;
 };
 
