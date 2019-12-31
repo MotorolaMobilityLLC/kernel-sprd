@@ -67,6 +67,7 @@ static struct vsp_qos_cfg qos_cfg;
 static int max_freq_level = SPRD_VSP_CLK_LEVEL_NUM;
 
 static irqreturn_t vsp_isr(int irq, void *data);
+static irqreturn_t vsp_isr_thread(int irq, void *data);
 
 static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
@@ -365,7 +366,8 @@ static irqreturn_t vsp_isr(int irq, void *data)
 
 	if (vsp_fp == NULL) {
 		pr_err("%s error occurred, vsp_fp == NULL\n", __func__);
-		return IRQ_NONE;
+		__pm_stay_awake(&vsp_wakelock);
+		return IRQ_WAKE_THREAD;
 	}
 
 	if (vsp_fp->is_clock_enabled == 0) {
@@ -388,6 +390,24 @@ static irqreturn_t vsp_isr(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static irqreturn_t vsp_isr_thread(int irq, void *data)
+{
+	int ret;
+
+	ret = vsp_clk_enable(&vsp_hw_dev);
+	if (ret == 0) {
+		pr_info("VSP_INT_RAW 0x%x, 0x%x\n",
+			readl_relaxed(vsp_glb_reg_base + VSP_INT_RAW_OFF),
+			readl_relaxed(sprd_vsp_base + VSP_MMU_INT_RAW_OFF));
+		clr_vsp_interrupt_mask(&vsp_hw_dev,
+			sprd_vsp_base, vsp_glb_reg_base);
+
+		vsp_clk_disable(&vsp_hw_dev);
+	}
+	__pm_relax(&vsp_wakelock);
+
+	return IRQ_HANDLED;
+}
 
 static const struct sprd_vsp_cfg_data sharkle_vsp_data = {
 	.version = SHARKLE,
@@ -710,9 +730,8 @@ static int vsp_probe(struct platform_device *pdev)
 	}
 
 	/* register isr */
-	ret =
-	    devm_request_irq(&pdev->dev, vsp_hw_dev.irq, vsp_isr,
-			     0, "VSP", &vsp_hw_dev);
+	ret = devm_request_threaded_irq(&pdev->dev, vsp_hw_dev.irq, vsp_isr,
+			vsp_isr_thread, 0, "VSP", &vsp_hw_dev);
 	if (ret) {
 		dev_err(dev, "vsp: failed to request irq!\n");
 		ret = -EINVAL;
