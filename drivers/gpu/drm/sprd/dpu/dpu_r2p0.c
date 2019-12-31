@@ -259,6 +259,8 @@ static int vsync_count;
 static u32 prev_y2r_coef;
 static bool sprd_corner_support;
 static int sprd_corner_radius;
+static struct tasklet_struct dump_task;
+static u32 dump_reg[8][4];
 //static struct sprd_adf_hwlayer wb_layer;
 //static struct wb_region region[3];
 //static int wb_xfbc_en = 1;
@@ -337,29 +339,39 @@ static u32 check_mmu_isr(struct dpu_context *ctx, u32 reg_val)
 	int i;
 
 	if (val) {
-		pr_err("iommu interrupt err: 0x%04x\n", val);
-
 		if (val & DISPC_INT_MMU_INV_RD_MASK)
-			pr_err("iommu invalid read error, addr: 0x%08x\n",
-				reg->mmu_inv_addr_rd);
+			pr_err("iommu err: 0x%04x invalid read, addr: 0x%08x\n",
+				val, reg->mmu_inv_addr_rd);
 		if (val & DISPC_INT_MMU_INV_WR_MASK)
-			pr_err("iommu invalid write error, addr: 0x%08x\n",
-				reg->mmu_inv_addr_wr);
+			pr_err("iommu err: 0x%04x invalid write, addr: 0x%08x\n",
+				val, reg->mmu_inv_addr_wr);
 		if (val & DISPC_INT_MMU_VAOR_RD_MASK)
-			pr_err("iommu va out of range read error, addr: 0x%08x\n",
-				reg->mmu_vaor_addr_rd);
+			pr_err("iommu err: 0x%04x va out of range read, addr: 0x%08x\n",
+				val, reg->mmu_vaor_addr_rd);
 		if (val & DISPC_INT_MMU_VAOR_WR_MASK)
-			pr_err("iommu va out of range write error, addr: 0x%08x\n",
-				reg->mmu_vaor_addr_wr);
+			pr_err("iommu err: 0x%04x va out of range write, addr: 0x%08x\n",
+				val, reg->mmu_vaor_addr_wr);
 
 		for (i = 0; i < 8; i++) {
-			if (reg->layers[i].ctrl & 0x1)
-				pr_info("layer%d: 0x%08x 0x%08x 0x%08x ctrl: 0x%08x\n",
-					i, reg->layers[i].addr[0],
-					reg->layers[i].addr[1],
-					reg->layers[i].addr[2],
-					reg->layers[i].ctrl);
+			if (reg->layers[i].ctrl & 0x1) {
+				/*
+				 * if previous layer value hasn't printed, we
+				 * should skip it this time to prevent from
+				 * overwriting dump_reg value.
+				 */
+				if (dump_reg[i][0] == 0x0) {
+					dump_reg[i][0] = reg->layers[i].ctrl;
+					dump_reg[i][1] = reg->layers[i].addr[0];
+					dump_reg[i][2] = reg->layers[i].addr[1];
+					dump_reg[i][3] = reg->layers[i].addr[2];
+				} else {
+					pr_err("iommu err: skip dump layer.\n");
+					return val;
+				}
+			}
 		}
+
+		tasklet_schedule(&dump_task);
 
 		/* panic("iommu panic\n"); */
 	}
@@ -615,6 +627,31 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 }
 #endif
 
+static void dump_layer_task_func(unsigned long data)
+{
+	int i;
+
+	for (i = 7; i >= 0; i--) {
+		if (dump_reg[i][0] & 0x1)
+			pr_info("iommu err: layer%d ctrl 0x%08x addr 0x%08x 0x%08x 0x%08x\n",
+				i, dump_reg[i][0], dump_reg[i][1],
+				dump_reg[i][2], dump_reg[i][3]);
+
+		dump_reg[i][0] = 0;
+	}
+}
+
+static void dump_layer_task_init(void)
+{
+	static bool is_inited;
+
+	if (is_inited)
+		return;
+
+	is_inited = true;
+	tasklet_init(&dump_task, dump_layer_task_func, 0);
+}
+
 static int dpu_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -651,6 +688,8 @@ static int dpu_init(struct dpu_context *ctx)
 	//dpu_write_back_config(ctx);
 
 	dpu_corner_init(ctx);
+
+	dump_layer_task_init();
 
 	return 0;
 }
