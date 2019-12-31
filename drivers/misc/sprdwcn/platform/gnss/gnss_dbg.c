@@ -397,15 +397,22 @@ static int __init gnss_module_init(void)
 
 	do {
 		ret = gnss_device_init();
-		if (ret != 0)
+		if (ret != 0) {
+			gnss_ring_destroy(gnss_rx_ring);
 			break;
+		}
 
 		ret = misc_register(&gnss_dbg_device);
-		if (ret != 0)
+		if (ret != 0) {
+			gnss_ring_destroy(gnss_rx_ring);
+			gnss_device_destroy();
 			break;
+		}
 
 		ret = misc_register(&gnss_slog_device);
 		if (ret != 0) {
+			gnss_ring_destroy(gnss_rx_ring);
+			gnss_device_destroy();
 			misc_deregister(&gnss_dbg_device);
 			break;
 		}
