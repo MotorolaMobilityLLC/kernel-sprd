@@ -3105,9 +3105,10 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	ret = of_property_read_u32(np, "sprd,switch-voltage",
 				   &pdata->switch_vol);
 	if (ret < 0) {
-		pr_warn("parse 'sprd,switch-voltage' failed(%d).\n",
+		pr_warn("parse 'sprd,switch-voltage' failed(%d), not using switch supply\n",
 			ret);
-		pdata->switch_vol = 33000000;
+		pdata->switch_regu = NULL;
+		return 0;
 	}
 	pdata->switch_regu = devm_regulator_get(dev, "switch");
 	if (IS_ERR_OR_NULL(pdata->switch_regu)) {
