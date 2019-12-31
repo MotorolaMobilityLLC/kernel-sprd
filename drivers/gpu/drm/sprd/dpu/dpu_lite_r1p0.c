@@ -145,6 +145,10 @@ static int dpu_parse_dt(struct dpu_context *ctx,
 {
 	int ret = 0;
 
+	ret = of_property_read_u32(np, "sprd,wb-disable", &wb_disable);
+	if (wb_disable)
+		pr_info("dpu_lite_r1p0 wb disabled\n");
+
 	ret = of_property_read_u32(np, "sprd,corner-radius",
 					&sprd_corner_radius);
 	if (!ret) {
@@ -433,7 +437,7 @@ static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
 static int dpu_write_back_config(struct dpu_context *ctx)
 {
 	int ret;
-	static int need_config;
+	static int need_config = 1;
 	size_t wb_buf_size;
 
 	struct sprd_dpu *dpu =
@@ -466,7 +470,7 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 	wb_layer.dst_w = ctx->vm.hactive;
 	wb_layer.dst_h = ctx->vm.vactive;
 	wb_layer.format = DRM_FORMAT_ABGR8888;
-	wb_layer.pitch[0] = ctx->vm.hactive * 4;
+	wb_layer.pitch[0] = ALIGN(ctx->vm.hactive, 16) * 4;
 	wb_layer.addr[0] = ctx->wb_addr_p;
 
 	max_vsync_count = 3;
