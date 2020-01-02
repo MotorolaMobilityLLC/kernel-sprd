@@ -2031,7 +2031,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
 	int plug_state_current = 0, insert_all_data_last, ret;
-	bool trig_level, insert_status, detect_value = false;
+	bool trig_level, insert_status = false, detect_value = false;
 
 	if (!hdst) {
 		pr_err("%s: sprd_hdset is NULL!\n", __func__);
