@@ -571,7 +571,7 @@ static ssize_t slp_write(struct file *fp, struct kobject *kobj,
 		return -EIO;
 
 	/* I need to get my data in one piece */
-	if (off != 0 || count != attr->size)
+	if (off != 0)
 		return -EINVAL;
 
 	down(&ctx->refresh_lock);
@@ -580,7 +580,7 @@ static ssize_t slp_write(struct file *fp, struct kobject *kobj,
 
 	return count;
 }
-static BIN_ATTR_RW(slp, 6);
+static BIN_ATTR_RW(slp, 48);
 
 static ssize_t cm_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
