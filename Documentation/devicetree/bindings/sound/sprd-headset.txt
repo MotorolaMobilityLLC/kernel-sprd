@@ -21,15 +21,15 @@ Required properties:
 - sprd,headset-button: headset key
 - adc-min: minimum adc value of a headset key
 - adc-max: maximum adc value of a headset key
+- code: headset key ID
+
+Optional properties:
 - extcon: phandle for the extcon device pmic_typec uses to detect
 - mic-gpios: typec analog headset MIC/GND switch
 - lr-gpios: typec analog headset LR/USB switch
-- code: headset key ID
-- sprd,spk-route-hp: boolean,ext speaker use hp path
-
-Optional properties:
 - switch-supply: typec analog headset power supply
 - sprd,switch-voltage: typec analog headset voltage value
+- sprd,spk-route-hp: boolean,ext speaker use hp path
 
 Example:
 sprd_headset: sprd-headset {
