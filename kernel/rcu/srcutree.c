@@ -784,6 +784,28 @@ static void srcu_leak_callback(struct rcu_head *rhp)
 }
 
 /*
+ * Workaround check and update current srcu data if need.
+ * Some flow will make task stack data remaining in the srcu data
+ * even after the current task has exited, thus these stack
+ * addresses are inaccessible.
+ */
+void srcu_simple_check_update(struct srcu_data *sdp)
+{
+	unsigned int i = 0;
+	struct rcu_segcblist *rsclp = &sdp->srcu_cblist;
+
+	if (rsclp->len == 0) {
+		for (i = 0; i < RCU_CBLIST_NSEGS; i++) {
+			if (rsclp->tails[i] != &rsclp->head)
+				break;
+		}
+
+		if ((rsclp->head != NULL) || (i != RCU_CBLIST_NSEGS))
+			rcu_segcblist_init(rsclp);
+	}
+}
+
+/*
  * Enqueue an SRCU callback on the srcu_data structure associated with
  * the current CPU and the specified srcu_struct structure, initiating
  * grace-period processing if it is not already running.
@@ -831,6 +853,7 @@ void __call_srcu(struct srcu_struct *sp, struct rcu_head *rhp,
 	local_irq_save(flags);
 	sdp = this_cpu_ptr(sp->sda);
 	raw_spin_lock_rcu_node(sdp);
+	srcu_simple_check_update(sdp);
 	rcu_segcblist_enqueue(&sdp->srcu_cblist, rhp, false);
 	rcu_segcblist_advance(&sdp->srcu_cblist,
 			      rcu_seq_current(&sp->srcu_gp_seq));
@@ -1123,29 +1146,6 @@ static void srcu_advance_state(struct srcu_struct *sp)
 		srcu_gp_end(sp);  /* Releases ->srcu_gp_mutex. */
 	}
 }
-
-/*
- * Workaround check and update current srcu data if need.
- * Some flow will make task stack data remaining in the srcu data
- * even after the current task has exited, thus these stack
- * addresses are inaccessible.
- */
-void srcu_simple_check_update(struct srcu_data *sdp)
-{
-	unsigned int i = 0;
-	struct rcu_segcblist *rsclp = &sdp->srcu_cblist;
-
-	if (rsclp->len == 0) {
-		for (i = 0; i < RCU_CBLIST_NSEGS; i++) {
-			if (rsclp->tails[i] != &rsclp->head)
-				break;
-		}
-
-		if ((rsclp->head != NULL) || (i != RCU_CBLIST_NSEGS))
-			rcu_segcblist_init(rsclp);
-	}
-}
-
 
 /*
  * Invoke a limited number of SRCU callbacks that have passed through
