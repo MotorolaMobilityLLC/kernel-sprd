@@ -194,7 +194,6 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 	u8 *buf = NULL;
 	u8 *ptr = NULL;
 	long int ret;
-	void  *iram_buffer = NULL;
 	mm_segment_t fs;
 
 	GNSSDUMP_INFO(" start dump cp register!addr:%x,len:%d\n", addr, len);
@@ -214,14 +213,6 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 		}
 	}
 
-	iram_buffer = vmalloc(len);
-	if (!iram_buffer) {
-		GNSSDUMP_ERR("%s vmalloc iram_buffer error\n", __func__);
-		kfree(buf);
-		return -ENOMEM;
-	}
-	memset(iram_buffer, 0, len);
-
 	/* can't op cp reg when level is 1, just record 0 to buffer */
 	if (gnss_dump_level == 0) {
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
@@ -233,15 +224,13 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 			ptr = buf + i * 4;
 			wcn_regmap_read(regmap, ANLG_WCN_READ_ADDR, (u32 *)ptr);
 		}
-		memcpy(iram_buffer, buf, len);
 	}
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 	pos = gnss_dump_file->f_pos;
-	ret = vfs_write(gnss_dump_file, iram_buffer, len, &pos);
+	ret = vfs_write(gnss_dump_file, (const char *)buf, len, &pos);
 	gnss_dump_file->f_pos = pos;
 	kfree(buf);
-	vfree(iram_buffer);
 	set_fs(fs);
 	if (ret != len) {
 		GNSSDUMP_ERR("gnss_dump_cp_register_data failed  size is %ld\n",
@@ -264,7 +253,6 @@ static int gnss_dump_ap_register(void)
 	u32 len = 0;
 	u8 *ptr = NULL;
 	int ret;
-	void  *apreg_buffer = NULL;
 	struct regmap_dump *gnss_ap_reg = NULL;
 
 	GNSSDUMP_INFO("%s ap reg data\n", __func__);
@@ -288,10 +276,6 @@ static int gnss_dump_ap_register(void)
 		len = (GNSS_DUMP_REG_NUMBER + 1) * sizeof(u32);
 	}
 
-	apreg_buffer = vmalloc(len);
-	if (!apreg_buffer)
-		return -2;
-
 	ptr = (u8 *)&value[0];
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKLE)
 		value[0] = 0xF1;
@@ -311,14 +295,12 @@ static int gnss_dump_ap_register(void)
 				&value[i+1]);
 		}
 	}
-	memset(apreg_buffer, 0, len);
-	memcpy(apreg_buffer, ptr, len);
+
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 	pos = gnss_dump_file->f_pos;
-	ret = vfs_write(gnss_dump_file, apreg_buffer, len, &pos);
+	ret = vfs_write(gnss_dump_file, (const char *)ptr, len, &pos);
 	gnss_dump_file->f_pos = pos;
-	vfree(apreg_buffer);
 	set_fs(fs);
 	if (ret != len)
 		GNSSDUMP_ERR("%s not write completely,ret is 0x%x\n", __func__,
@@ -370,7 +352,6 @@ static int gnss_dump_share_memory(u32 len)
 	phys_addr_t base_addr;
 	long int ret;
 	mm_segment_t fs;
-	void  *ddr_buffer = NULL;
 
 	if (len == 0)
 		return -1;
@@ -393,19 +374,11 @@ static int gnss_dump_share_memory(u32 len)
 		}
 	}
 
-	ddr_buffer = vmalloc(len);
-	if (!ddr_buffer) {
-		GNSSDUMP_ERR(" %s vmalloc ddr_buffer fail\n", __func__);
-		return -1;
-	}
-	memset(ddr_buffer, 0, len);
-	memcpy(ddr_buffer, virt_addr, len);
 	pos = gnss_dump_file->f_pos;
-	ret = vfs_write(gnss_dump_file, ddr_buffer, len, &pos);
+	ret = vfs_write(gnss_dump_file, virt_addr, len, &pos);
 	gnss_dump_file->f_pos = pos;
 	shmem_ram_unmap(virt_addr);
 	set_fs(fs);
-	vfree(ddr_buffer);
 	if (ret != len) {
 		GNSSDUMP_ERR("%s dump ddr error,data len is %ld\n", __func__,
 			ret);
