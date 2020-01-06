@@ -430,32 +430,33 @@ def create_corrected_dict():
             d_corrected_config[key]['plat'] = tmp_plat[:-1]
 
 def ai_check_missing_plat():
-     for key in l_sprdconfig:
-        missing_plat = ''
-        if d_sprdconfig[key]['arch'] == 'all':
-            if d_sprdconfig[key]['plat'] == 'all':
-                missing_plat = ''
+     for key in d_corrected_config:
+        corrected_missing_plat = ''
+        if d_corrected_config[key]['arch'] == 'all':
+            if d_corrected_config[key]['plat'] == 'all':
+                corrected_missing_plat = ''
             else:
                 for plat in all_plat:
-                    if plat not in d_sprdconfig[key]['plat'].split(","):
-                        missing_plat = missing_plat + plat + ","
+                    if plat not in d_corrected_config[key]['plat'].split(","):
+                        corrected_missing_plat = corrected_missing_plat + plat + ","
 
-        elif d_sprdconfig[key]['plat'] != d_all_plat[d_sprdconfig[key]['arch']][:-1]:
-            for plat in d_all_plat[d_sprdconfig[key]['arch']].split(',')[:-1]:
-                if plat not in d_sprdconfig[key]['plat'].split(','):
-                    missing_plat = missing_plat + plat + ','
+        elif d_corrected_config[key]['plat'] != d_all_plat[d_corrected_config[key]['arch']][:-1]:
+            for plat in d_all_plat[d_corrected_config[key]['arch']].split(',')[:-1]:
+                if plat not in d_corrected_config[key]['plat'].split(','):
+                    corrected_missing_plat = corrected_missing_plat + plat + ','
 
-        if missing_plat != '':
-            l_txt_missing_plat = re.split(',| ',d_sprdconfig[key]['missing plat'])
-            l_txt_missing_plat.sort()
+        if corrected_missing_plat != '':
+            l_doc_missing_plat = re.split(',| ',d_sprdconfig[key]['missing plat'])
+            l_doc_missing_plat.sort()
 
-            l_missing_plat = missing_plat[:-1].split(",")
-            l_missing_plat.sort()
+            l_code_missing_plat = corrected_missing_plat[:-1].split(",")
+            l_code_missing_plat.sort()
 
-            if l_txt_missing_plat != l_missing_plat:
-                print("ERROR: doc: " + key + " : [missing plat] does not match [plat] in sprd-configs.txt.\n" \
-                        "\t[missing plat] in sprd-configs.txt:" + d_sprdconfig[key]['missing plat'] + "\n" +  \
-                        "\t[missing plat] based on [plat]:" + missing_plat[:-1])
+            if l_doc_missing_plat != l_code_missing_plat:
+                print("ERROR: doc: Value is different between code and sprd-configs.txt. " + \
+                        " CONFIG:" + key + \
+                        " CODE:[missing plat]:" + missing_plat[:-1] + \
+                        " DOC:[missing plat]:" + d_sprdconfig[key]['missing plat'])
             if d_sprdconfig[key]['missing plat description'] == 'none':
                 print("ERROR: doc: " + key + " : [missing plat description] couldn't be none" \
                         + " and should be modified to describe reason of missing plat.")
@@ -502,7 +503,7 @@ def aiaiai_check():
                             " CONFIG:" + key + \
                             " CODE:[arch]:" + d_corrected_config[key]['arch'] + \
                             " DOC:[arch]:" + d_sprdconfig[key]['arch'])
-                elif d_corrected_config[key]['plat'] != d_sprdconfig[key]['plat']:
+                if d_corrected_config[key]['plat'] != d_sprdconfig[key]['plat']:
                     plat_num_in_both = 0
                     plat_num_in_sprd = len(d_sprdconfig[key]['plat'].strip(' ,;.').split(','))
                     error_occur = 0
