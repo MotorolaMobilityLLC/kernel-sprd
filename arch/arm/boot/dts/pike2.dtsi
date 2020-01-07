@@ -864,8 +864,16 @@
 				gpu-supply = <&vddcore>;
 				syscons = <&pmu_apb_regs
 					REG_PMU_APB_PD_GPU_TOP_CFG
-					MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>;
-				syscon-names = "top_force_shutdown";
+					MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>,
+					<&aon_apb_regs
+					REG_AON_APB_RES_REG4
+					MASK_AON_APB_RES_REG4>,
+					<&aon_apb_regs
+					REG_AON_APB_RES_REG5
+					MASK_AON_APB_RES_REG5>;
+				syscon-names = "top_force_shutdown",
+					"gpu_target_volt",
+					"cpu_target_volt";
 
 				interrupts = <GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>,
