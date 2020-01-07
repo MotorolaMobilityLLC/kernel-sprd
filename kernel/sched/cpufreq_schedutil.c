@@ -1030,15 +1030,15 @@ static void sugov_stop(struct cpufreq_policy *policy)
 	struct sugov_policy *sg_policy = policy->governor_data;
 	unsigned int cpu;
 
-	if (slack_timer_setup)
-		del_timer_sync(&sg_policy->slack_timer);
-
 	del_timer_sync(&sg_policy->freq_margin_timer);
 
 	for_each_cpu(cpu, policy->cpus)
 		cpufreq_remove_update_util_hook(cpu);
 
 	synchronize_sched();
+
+	if (slack_timer_setup)
+		del_timer_sync(&sg_policy->slack_timer);
 
 	if (!policy->fast_switch_enabled) {
 		irq_work_sync(&sg_policy->irq_work);
