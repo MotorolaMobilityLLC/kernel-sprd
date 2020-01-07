@@ -19,6 +19,7 @@
 #include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/slab.h>
+#include <linux/soc/sprd/hwfeature.h>
 
 #include "sprd_dvfs_apsys.h"
 #include "sprd_dvfs_dpu.h"
@@ -301,6 +302,8 @@ static int dpu_dvfs_parse_dt(struct dpu_dvfs *dpu,
 
 static int dpu_dvfs_init(struct dpu_dvfs *dpu)
 {
+	char chip_type[10] = { 0 };
+
 	pr_info("%s()\n", __func__);
 
 	dpu_dvfs_map_cfg();
@@ -310,6 +313,13 @@ static int dpu_dvfs_init(struct dpu_dvfs *dpu)
 	set_dpu_freq_upd_en_byp(dpu->dvfs_coffe.freq_upd_en_byp);
 	set_dpu_work_index(dpu->dvfs_coffe.work_index_def);
 	set_dpu_idle_index(dpu->dvfs_coffe.idle_index_def);
+
+	sprd_kproperty_get("auto/chipid", chip_type, "-1");
+	if (!strncmp(chip_type, "UMS512-AB", strlen("UMS512-AB")))
+		dpu->dvfs_coffe.hw_dfs_en = 1;
+	else
+		dpu->dvfs_coffe.hw_dfs_en = 0;
+
 	dpu_hw_dfs_en(dpu->dvfs_coffe.hw_dfs_en);
 
 	return 0;
