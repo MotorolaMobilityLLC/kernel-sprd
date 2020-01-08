@@ -600,7 +600,8 @@ static void dpu_cabc_bl_update_func(struct work_struct *data)
 				(bl->max_level - bl->min_level) / 255;
 
 			bl->cabc_en = true;
-			bl->cabc_level = cabc_para.bl_fix;
+			bl->cabc_level = cabc_para.bl_fix *
+					cabc_para.cur_bl / 1020;
 			bl->cabc_refer_level = cabc_para.cur_bl;
 			sprd_cabc_backlight_update(bl_dev);
 		} else
@@ -2044,7 +2045,6 @@ static void dpu_sr_config(struct dpu_context *ctx)
 static int dpu_cabc_trigger(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
-	struct sprd_backlight *bl = bl_get_data(bl_dev);
 	struct cm_cfg cm;
 	int i;
 	struct device_node *backlight_node;
@@ -2099,10 +2099,6 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 			cabc_para.cabc_hist[i] = reg->cabc_hist[i];
 			udelay(1);
 		}
-
-		if (frame_no == 1)
-			 cabc_para.cur_bl = bl_dev->props.brightness *
-				(bl->max_level - bl->min_level) / 255;
 
 		if ((*(unsigned int *)vsp_pmu_addr) & 0x0000ff00)
 			cabc_para.is_VSP_working = false;

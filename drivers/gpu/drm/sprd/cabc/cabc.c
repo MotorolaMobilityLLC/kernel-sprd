@@ -124,8 +124,7 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 				&s_change_cnt);
 		}
 		clip(&bl_ptr->cur_fix_ui, g_min_backlight, g_max_backlight);
-		para->bl_fix = para->cur_bl *
-			(u16)bl_ptr->cur_fix_ui / 1020;
+		para->bl_fix = (u16)bl_ptr->cur_fix_ui;
 		compensation_gain(bl_ptr->cur_fix_ui / 4, &s_gain);
 		bl_ptr->pre_fix_ui = bl_ptr->cur_fix_ui;
 	} else {
@@ -140,8 +139,7 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 			clip(&bl_ptr->cur_fix_video, g_min_backlight,
 				g_max_backlight);
 		}
-		para->bl_fix = para->cur_bl *
-			(u16)bl_ptr->cur_fix_video / 1020;
+		para->bl_fix = (u16)bl_ptr->cur_fix_video;
 		compensation_gain(bl_ptr->cur_fix_video / 4, &s_gain);
 		bl_ptr->pre_fix_video = bl_ptr->cur_fix_video;
 	}
