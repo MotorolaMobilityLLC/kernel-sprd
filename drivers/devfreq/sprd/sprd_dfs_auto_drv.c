@@ -119,6 +119,8 @@ struct dfs_data {
 	struct scene_freq *scenes;
 	unsigned int force_freq;
 	unsigned int backdoor_freq;
+	unsigned int backdoor_count;
+	struct mutex backdoor_mutex;
 	unsigned int init_done;
 };
 
@@ -373,7 +375,10 @@ int scene_dfs_request(char *scenario)
 	}
 	add_scene(scene);
 	trace_sprd_scene(scene, 1);
-	err = send_scene_request(scene->vote_magic);
+	if (unlikely(scene->scene_freq == 0xbacd))
+		err = set_backdoor();
+	else
+		err = send_scene_request(scene->vote_magic);
 	return err;
 }
 EXPORT_SYMBOL(scene_dfs_request);
@@ -394,7 +399,10 @@ int scene_exit(char *scenario)
 	}
 	del_scene(scene);
 	trace_sprd_scene(scene, 0);
-	err = send_scene_request(scene->vote_magic);
+	if (unlikely(scene->scene_freq == 0xbacd))
+		err = reset_backdoor();
+	else
+		err = send_scene_request(scene->vote_magic);
 	return err;
 }
 EXPORT_SYMBOL(scene_exit);
@@ -440,18 +448,30 @@ int force_freq_request(unsigned int freq)
 
 int set_backdoor(void)
 {
+	int err;
 	if (g_dfs_data->backdoor_freq == 0)
 		return -EINVAL;
 
-	return force_freq_request(g_dfs_data->backdoor_freq);
+	mutex_lock(&g_dfs_data->backdoor_mutex);
+	if (g_dfs_data->backdoor_count == 0)
+		err = force_freq_request(g_dfs_data->backdoor_freq);
+	g_dfs_data->backdoor_count++;
+	mutex_unlock(&g_dfs_data->backdoor_mutex);
+	return err;
 }
 
 int reset_backdoor(void)
 {
+	int err;
 	if (g_dfs_data->backdoor_freq == 0)
 		return -EINVAL;
 
-	return dfs_auto_enable();
+	mutex_lock(&g_dfs_data->backdoor_mutex);
+	g_dfs_data->backdoor_count--;
+	if (g_dfs_data->backdoor_count == 0)
+		err = dfs_auto_enable();
+	mutex_unlock(&g_dfs_data->backdoor_mutex);
+	return err;
 }
 
 int get_dfs_status(unsigned int *data)
@@ -779,6 +799,8 @@ static int dfs_auto_freq_probe(struct platform_device *pdev)
 		pr_err("failed read freqnum\n");
 		data->backdoor_freq = 0;
 	}
+	data->backdoor_count = 0;
+	mutex_init(&data->backdoor_mutex);
 
 	err = of_property_read_u32_array(dev->of_node, "overflow",
 					data->overflow, freq_num);
