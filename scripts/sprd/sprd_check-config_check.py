@@ -132,6 +132,10 @@ def create_diffconfigs_dict():
                                 tmp_plat = 'sharkle32_fp'
                             else:
                                 tmp_plat = 'sharkle32'
+                        elif tmp_arch == 'arm64' and tmp_plat == 'sharkle':
+                            if kernel_version == 'kernel4.14':
+                                tmp_arch == ""
+                                tmp_plat == ""
                         elif tmp_arch == 'arm' and tmp_plat == 'sharkl3':
                             tmp_plat = 'sharkl3_32'
                         elif tmp_plat == 'pike2':
