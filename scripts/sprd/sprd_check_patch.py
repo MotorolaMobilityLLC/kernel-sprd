@@ -9,7 +9,7 @@ MAIN_PATH = ''
 TAGS_FILE_NAME = '../../Documentation/sprd-tags.txt'
 
 GET_PATCH_INFO_COMMANDS = 'git log -1'
-GET_PATCH_MODIFY_FILE_INFO = 'git log -1 --pretty="format:" --name-only'
+GET_PATCH_MODIFY_FILE_INFO = 'git log -1 --pretty="format:" --name-only --diff-filter=AM'
 
 ATTRIBUTE_TAGS  = []
 SUBSYSTEM1_TAGS = []
@@ -128,7 +128,7 @@ def check_tags_commit_id(patch_info_list):
             tags_list = x[x.index("Bug #") + len("Bug #"):find_last_char(x, ":")].split(' ')[1:]
 #            print "tags list:%s" % tags_list
 
-            if "BACKPORT" in tags_list[tags_list_start_num]:
+            if "BACKPORT" == tags_list[tags_list_start_num]:
                 tags_list_start_num += 1
 
             if tags_list[tags_list_start_num].strip(":") in ATTRIBUTE_TAGS:
