@@ -198,6 +198,7 @@ u32 sprd_iommuex_cll_map(sprd_iommu_hdl  p_iommu_hdl,
 	u32 align_map_size = 0;
 	struct sprd_iommu_widget *p_iommu_data = NULL;
 	struct sprd_iommuex_priv *p_iommu_priv = NULL;
+	u32 fault_page;
 	struct scatterlist *sg;
 	u32 sg_index = 0;
 	u32 iommu_id = -1;
@@ -219,26 +220,36 @@ u32 sprd_iommuex_cll_map(sprd_iommu_hdl  p_iommu_hdl,
 					      p_iommu_priv->vpn_base_addr);
 	total_page_entries = vir_base_entry;
 
-	for_each_sg(p_map_param->p_sg_table->sgl, sg,
-		     p_map_param->p_sg_table->nents, sg_index) {
-
-		align_map_size = MAP_SIZE_PAGE_ALIGN_UP(sg->length);
+	if (p_map_param->p_sg_table == NULL) {
+		align_map_size = MAP_SIZE_PAGE_ALIGN_UP(p_map_param->total_map_size);
 		valid_page_entries  = (u32)SIZE_TO_ENTRIES(align_map_size);
+		fault_page = p_iommu_priv->default_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
+		if (iommu_id == IOMMU_EX_ISP)
+			fault_page = fault_page | 0x80000000;
+		//memset32((void *)(p_iommu_priv->ppn_base_addr + vir_base_entry * 4),
+				  //fault_page, valid_page_entries);
+		total_page_entries += valid_page_entries;
+	} else {
+		for_each_sg(p_map_param->p_sg_table->sgl, sg,
+			    p_map_param->p_sg_table->nents, sg_index) {
 
-		for (entry_index = 0; entry_index < valid_page_entries;
-		      entry_index++) {
-			phy_addr = sg_to_phys(sg) +
-				(entry_index << MMU_MAPING_PAGESIZE_SHIFFT);
+			align_map_size = MAP_SIZE_PAGE_ALIGN_UP(sg->length);
+			valid_page_entries = (u32)SIZE_TO_ENTRIES(align_map_size);
 
-			phy_addr = phy_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
-			/*isp_iommu the hightest bit 1 indicates valid addr*/
-			if (iommu_id == IOMMU_EX_ISP)
-				phy_addr |= 0x80000000;
+			for (entry_index = 0; entry_index < valid_page_entries;
+			      entry_index++) {
+				phy_addr = sg_to_phys(sg) +
+					(entry_index << MMU_MAPING_PAGESIZE_SHIFFT);
+				phy_addr = phy_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
+				/*isp_iommu the hightest bit 1 indicates valid addr*/
+				if (iommu_id == IOMMU_EX_ISP)
+					phy_addr |= 0x80000000;
 
-			mmu_ex_write_pate_totable(p_iommu_priv->ppn_base_addr,
-				total_page_entries + entry_index, phy_addr);
+				mmu_ex_write_pate_totable(p_iommu_priv->ppn_base_addr,
+					total_page_entries + entry_index, phy_addr);
+			}
+			total_page_entries += entry_index;
 		}
-		total_page_entries += entry_index;
 	}
 
 	sprd_iommuex_cll_enable(p_iommu_hdl);
