@@ -6,59 +6,59 @@ information into kernel log, which will help to analyze the SoC system power
 exception.
 
 Required properties:
+- compatible: "sprd,power-debug".
+		There will be IP for power debug used in Spreadtrum SoC families.
 - sprd,sys-ap-ahb: Specify the ap-ahb address space node in the soc system
 - sprd,ap-ahb-reg-tbl: define the register records which should be checked in
-			the ap-ahb address space. each record includes three
-			element:
-			1) a register address offset in this address space
-			2) a mask value which used to identified the required
-			   checked bit
-			3) a 32 bits value which indicates the expected value
-			if the reg_val & mask is not equal to the expected
-			value, This driver will print these information into
-			kernel log.
+		the ap-ahb address space. each record includes three element:
+		1) a register address offset in this address space
+		2) a mask value which used to identified the required checked bit
+		3) a 32 bits value which indicates the expected value if the reg_val
+		& mask is not equal to the expected value, This driver will print
+		these information into kernel log.
 - sprd,sys-ap-apb: Specify the ap-apb address space node in the soc system
 - sprd,ap-apb-reg-tbl: define the register records which should be checked in
-			the ap-apb address space.
+		the ap-apb address space.
 - sprd,sys-pmu-apb: Specify the pmu-apb address space node in the soc system
 - sprd,pmu-apb-reg-tbl: define the register records which should be checked in
-			the pmu-apb address space.
+		the pmu-apb address space.
 - sprd,sys-aon-apb: Specify the aon-apb address space node in the soc system
 - sprd,aon-apb-reg-tbl: define the register records which should be checked in
-			the aon-apb address space.
+		the aon-apb address space.
 - sprd,sys-ap-intc: Specify a list in which every element expresses a INTC0
-			controller's address space.
+		controller's address space.
 - sprd,ap-intc: define the sprd_ap_intcx list.
 - sprd,pdm-name: define the sprd_pwr_statusx list.
 - sprd_pwr_statusx: define the pwr_status node information, details refer to the
-			following section-"subnode definattion" description.
+		following section-"subnode definattion" description.
 - sprd_ap_intcx: define the ap_intc node information, details refer to the
-			following section-"subnode definattion" description.
+		following section-"subnode definattion" description.
 
 optional properties:
 - sprd,sys-aon-sec: Specify the aon-sec address space node in the soc system
 - sprd,aon-sec-reg-tbl: define the register records which should be checked in
-			the aon-sec address space.
+		the aon-sec address space.
 
 subnode definition:
 1, sprd_pwr_statusx: describe a power state register
 - reg: the register address offset in the pmu-apb address space.
 - sprd,bit-width: define the bit width in the register of each power domain
 - sprd,bit-index: a list, each element in it define the bit start offset in
-			the register of the corresponding power domain
+		the register of the corresponding power domain
 - sprd,pdm-names: a string list which includes some sub power domain names. if
-			there is no definition to someone bits, uses "null" as
-			its name. the element number of the list is
-			[32 / pmu-state-bit-num].
+		there is no definition to someone bits, uses "null" as
+		its name. the element number of the list is
+		[32 / pmu-state-bit-num].
 
 2, sprd_ap_intcx: describe a interrupt state register
 - reg: the register address offset in the INTC controller's address
-			space
+		space
 - sprd,int-names: a interrupt names list which includes 32 interrupts. if there is
-			no interrupt to someone bit, uses "null" as its name.
+		no interrupt to someone bit, uses "null" as its name.
 
 Example:
 power: power-debug {
+		compatible = "sprd,power-debug";
 		#address-cells = <1>;
 		#size-cells = <0>;
 
