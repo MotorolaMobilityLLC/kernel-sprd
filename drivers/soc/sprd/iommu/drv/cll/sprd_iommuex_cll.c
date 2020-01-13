@@ -291,6 +291,7 @@ static u32 sprd_iommuex_cll_map(sprd_iommu_hdl  iommu_hdl,
 	u32 align_map_size = 0;
 	struct sprd_iommu_data *iommu_data = NULL;
 	struct sprd_iommuex_priv *iommu_priv = NULL;
+	u32 fault_page;
 	struct scatterlist *sg;
 	u32 sg_index = 0;
 	u32 iommu_id;
@@ -310,25 +311,36 @@ static u32 sprd_iommuex_cll_map(sprd_iommu_hdl  iommu_hdl,
 					      iommu_priv->vpn_base_addr);
 	total_page_entries = vir_base_entry;
 
-	for_each_sg(map_param->sg_table->sgl, sg,
-		     map_param->sg_table->nents, sg_index) {
-
-		align_map_size = MAP_SIZE_PAGE_ALIGN_UP(sg->length);
+	if (map_param->sg_table == NULL) {
+		align_map_size = MAP_SIZE_PAGE_ALIGN_UP(map_param->total_map_size);
 		valid_page_entries  = (u32)SIZE_TO_ENTRIES(align_map_size);
+		fault_page = iommu_priv->default_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
+		if (iommu_id == IOMMU_EX_ISP)
+			fault_page = fault_page | 0x80000000;
+		memset32((void *)(iommu_priv->ppn_base_addr + vir_base_entry * 4),
+				  fault_page, valid_page_entries);
+		total_page_entries += valid_page_entries;
+	} else {
+		for_each_sg(map_param->sg_table->sgl, sg,
+			     map_param->sg_table->nents, sg_index) {
 
-		for (entry_index = 0; entry_index < valid_page_entries;
-		      entry_index++) {
-			phy_addr = sg_to_phys(sg) +
-				(entry_index << MMU_MAPING_PAGESIZE_SHIFFT);
-			pte = phy_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
-			/*isp_iommu the hightest bit 1 indicates valid addr*/
-			if (iommu_id == IOMMU_EX_ISP)
-				pte |= 0x80000000;
-			ppn_addr = iommu_priv->ppn_base_addr
-				   + (total_page_entries + entry_index) * 4;
-			*(u32 *)ppn_addr =  pte;
+			align_map_size = MAP_SIZE_PAGE_ALIGN_UP(sg->length);
+			valid_page_entries = (u32)SIZE_TO_ENTRIES(align_map_size);
+
+			for (entry_index = 0; entry_index < valid_page_entries;
+			      entry_index++) {
+				phy_addr = sg_to_phys(sg) +
+					(entry_index << MMU_MAPING_PAGESIZE_SHIFFT);
+				pte = phy_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
+				/*isp_iommu the hightest bit 1 indicates valid addr*/
+				if (iommu_id == IOMMU_EX_ISP)
+					pte |= 0x80000000;
+				ppn_addr = iommu_priv->ppn_base_addr
+					   + (total_page_entries + entry_index) * 4;
+				*(u32 *)ppn_addr =  pte;
+			}
+			total_page_entries += entry_index;
 		}
-		total_page_entries += entry_index;
 	}
 
 	if (iommu_priv->pagt_base_phy_ddr == 0)
