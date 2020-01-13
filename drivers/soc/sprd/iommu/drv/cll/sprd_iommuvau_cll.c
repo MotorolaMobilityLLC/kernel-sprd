@@ -223,6 +223,7 @@ u32 sprd_iommuvau_cll_map(sprd_iommu_hdl  p_iommu_hdl,
 	u32 vir_base_entry = 0;
 	u32 total_page_entries = 0;
 	u32 align_map_size = 0;
+	u32 fault_page;
 	struct sprd_iommu_widget *p_iommu_data = NULL;
 	struct sprd_iommuvau_priv *p_iommu_priv = NULL;
 	struct scatterlist *sg;
@@ -246,26 +247,37 @@ u32 sprd_iommuvau_cll_map(sprd_iommu_hdl  p_iommu_hdl,
 					      p_iommu_priv->vpn_base_addr);
 	total_page_entries = vir_base_entry;
 
-	for_each_sg(p_map_param->p_sg_table->sgl, sg,
-		     p_map_param->p_sg_table->nents, sg_index) {
+	if (p_map_param->p_sg_table == NULL) {
+		align_map_size = MAP_SIZE_PAGE_ALIGN_UP(p_map_param->total_map_size);
+		valid_page_entries  = (u32)SIZE_TO_ENTRYS(align_map_size);
+		fault_page = p_iommu_priv->default_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
+		memset32((void *)(p_iommu_priv->ppn_base_addr +
+				  vir_base_entry * 4),
+				  fault_page, valid_page_entries);
+		total_page_entries += valid_page_entries;
 
-		align_map_size = MAP_SIZE_PAGE_ALIGN_UP(sg->length);
-		valid_page_entries  = (u32)SIZE_TO_ENTRIES(align_map_size);
+	} else {
+		for_each_sg(p_map_param->p_sg_table->sgl, sg,
+			     p_map_param->p_sg_table->nents, sg_index) {
 
-		for (entry_index = 0; entry_index < valid_page_entries;
-		      entry_index++) {
-			phy_addr = sg_to_phys(sg) +
-				(entry_index << MMU_MAPING_PAGESIZE_SHIFFT);
+			align_map_size = MAP_SIZE_PAGE_ALIGN_UP(sg->length);
+			valid_page_entries  = (u32)SIZE_TO_ENTRIES(align_map_size);
 
-			phy_addr = phy_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
-			/*isp_iommu the hightest bit 1 indicates valid addr*/
-			if (iommu_id == IOMMU_EX_ISP)
-				phy_addr |= 0x80000000;
+			for (entry_index = 0; entry_index < valid_page_entries;
+			      entry_index++) {
+				phy_addr = sg_to_phys(sg) +
+					(entry_index << MMU_MAPING_PAGESIZE_SHIFFT);
 
-			mmu_vau_write_pate_totable(p_iommu_priv->ppn_base_addr,
-				total_page_entries + entry_index, phy_addr);
+				phy_addr = phy_addr >> MMU_MAPING_PAGESIZE_SHIFFT;
+				/*isp_iommu the hightest bit 1 indicates valid addr*/
+				if (iommu_id == IOMMU_EX_ISP)
+					phy_addr |= 0x80000000;
+
+				mmu_vau_write_pate_totable(p_iommu_priv->ppn_base_addr,
+					total_page_entries + entry_index, phy_addr);
+			}
+			total_page_entries += entry_index;
 		}
-		total_page_entries += entry_index;
 	}
 
 	if (p_iommu_priv->pagt_base_phy_ddr == 0)
