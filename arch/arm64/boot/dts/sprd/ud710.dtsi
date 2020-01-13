@@ -837,6 +837,7 @@
 	};
 
 	power: power-debug {
+		compatible = "sprd,power-debug";
 		#address-cells = <1>;
 		#size-cells = <0>;
 
