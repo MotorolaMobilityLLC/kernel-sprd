@@ -116,7 +116,6 @@
 #define SAUDIO_SUBCMD_CAPTURE		0x0
 #define SAUDIO_SUBCMD_PLAYBACK		0x1
 
-#define SAUDIO_DEV_MAX			2
 #define SAUDIO_STREAM_MAX		2
 #define SAUDIO_CARD_NAME_LEN_MAX	16
 
@@ -634,7 +633,7 @@ static int snd_card_saudio_pcm_open(struct snd_pcm_substream *substream)
 	}
 	mutex_unlock(&saudio->mutex);
 
-	pr_info("%s IN, stream_id=%d\n", __func__, stream_id);
+	pr_info("%s IN, stream_id=%d dev=%d\n", __func__, stream_id, dev);
 	dev_ctrl = (struct saudio_dev_ctrl *)&saudio->dev_ctrl[dev];
 	stream = (struct saudio_stream *)&dev_ctrl->stream[stream_id];
 	stream->substream = substream;
@@ -977,7 +976,7 @@ static int  snd_card_saudio_pcm(struct snd_saudio *saudio, int device,
 
 	ADEBUG();
 	/* Note: pcm1 only need support playback */
-	if (device == 1)
+	if (device == 1 || device == 2)
 		capture_count = 0;
 	err = snd_pcm_new(saudio->card, "SAUDIO PCM", device,
 			  substreams, capture_count, &pcm);
@@ -1349,17 +1348,17 @@ static int saudio_snd_init_ipc(struct snd_saudio *saudio)
 		     result);
 		goto nodev;
 	}
-	pr_debug("saudio_thread sblock create result is %d\n", result);
+	pr_debug("saudio_thread sblock create result is %d device_num=%d\n", result, saudio->device_num);
 
 	for (i = 0; i < saudio->device_num; i++) {
 		dev_ctrl = &saudio->dev_ctrl[i];
 		for (j = 0; j < SAUDIO_STREAM_MAX; j++) {
 			stream = &dev_ctrl->stream[j];
-			/* Note: pcm 1 don't need register channel */
-			if (i == 1 && j == 1) {
+			/* Note: pcm 1 and pcm 2 don't need register channel */
+			if ((i == 1 || i == 2) && j == 1) {
 				result = 0;
-				pr_err("saudio:pcm 1 don't need register channel");
-				goto nodev;
+				pr_info("saudio:don't need register channel i=%d", i);
+				continue;
 			}
 			result =
 			    sblock_create(stream->dst, stream->channel,
@@ -1627,9 +1626,9 @@ static int snd_saudio_probe(struct platform_device *devptr)
 	}
 	pr_err("saudio: %s: %x in dt node\n",
 	       __func__, ap_addr_offset);
-	if (device_num == 2) {
+	if (device_num >= 2 && device_num <= SAUDIO_DEV_MAX) {
 		ret = of_property_read_u32_array(np, playback_channel,
-						 &playback_ch[0], 2);
+						 &playback_ch[0], device_num);
 		if (ret) {
 			pr_err("saudio: missing %s in dt node\n",
 			       playback_channel);
@@ -1643,6 +1642,9 @@ static int snd_saudio_probe(struct platform_device *devptr)
 			       playback_channel);
 			return ret;
 		}
+	} else {
+		pr_err("saudio: %s: device num error!\n", __func__);
+		return -EINVAL;
 	}
 	init_data->name = (char *)name;
 	init_data->dst = id;

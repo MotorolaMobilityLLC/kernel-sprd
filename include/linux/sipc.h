@@ -124,6 +124,7 @@ enum {
 	SMSG_CH_AUDIO_BASE = 130,
 	SMSG_CH_AGDSP_ACCESS = SMSG_CH_AUDIO_BASE,/* audio conrol channel */
 	SMSG_CH_PLAYBACK_DEEP,
+	SMSG_CH_PLAYBACK_CALLSCREEN,
 	SMSG_CH_AUDIO2,
 	SMSG_CH_AUDIO3,
 
@@ -212,6 +213,7 @@ static const struct sipc_config sipc_cfg[] = {
 	{SMSG_CH_DVFS, "dvfs"},  /* channel 41 */
 	{SMSG_CH_COMM_SIPA, "sipa"},  /* channel 120 */
 	{SMSG_CH_NV, "nvsync"}, /* channel 40 */
+	{SMSG_CH_PLAYBACK_CALLSCREEN, "audio mix uplink"},  /*channel 132*/
 };
 
 #define SMSG_VALID_CH_NR (sizeof(sipc_cfg)/sizeof(struct sipc_config))

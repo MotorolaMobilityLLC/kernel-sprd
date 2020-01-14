@@ -13,11 +13,13 @@
 #ifndef __SAUDIO_H
 #define  __SAUDIO_H
 
+#define SAUDIO_DEV_MAX 3
+
 struct saudio_init_data {
 	char	*name;
 	uint8_t	dst;
 	uint8_t	ctrl_channel;
-	uint8_t	playback_channel[2];
+	uint8_t	playback_channel[SAUDIO_DEV_MAX];
 	uint8_t	capture_channel;
 	uint8_t	monitor_channel;
 	uint8_t	device_num;
