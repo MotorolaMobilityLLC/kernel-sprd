@@ -39,6 +39,11 @@
 #include <uapi/video/sprd_jpg.h>
 #include "sprd_jpg_common.h"
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-jpg: " fmt
+
 static struct jpg_dev_t jpg_hw_dev;
 static char *jpg_clk_src[] = {
 	"clk_src_76m8",
@@ -436,7 +441,6 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 static int jpg_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	pr_info("@jpg[%s]\n", __func__);
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 	vma->vm_pgoff = (jpg_hw_dev.sprd_jpg_phys >> PAGE_SHIFT);
 	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
@@ -444,7 +448,7 @@ static int jpg_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 		pr_err("%s failed\n", __func__);
 		return -EAGAIN;
 	}
-	pr_info("@jpg mmap %x,%x,%x,%lx\n", (unsigned int)PAGE_SHIFT,
+	pr_info("mmap %x,%x,%x,%lx\n", (unsigned int)PAGE_SHIFT,
 		(unsigned int)vma->vm_start,
 		(unsigned int)(vma->vm_end - vma->vm_start),
 		jpg_hw_dev.sprd_jpg_phys);
@@ -524,7 +528,7 @@ static const struct file_operations jpg_fops = {
 
 static struct miscdevice jpg_dev = {
 	.minor = JPG_MINOR,
-	.name = "sprd_jpg",
+	.name = "sprd-jpg",
 	.fops = &jpg_fops,
 };
 
@@ -630,7 +634,7 @@ static struct platform_driver jpg_driver = {
 	.remove = jpg_remove,
 	.driver = {
 		   .owner = THIS_MODULE,
-		   .name = "sprd_jpg",
+		   .name = "sprd-jpg",
 		   .of_match_table = of_match_ptr(of_match_table_jpg),
 		   },
 };

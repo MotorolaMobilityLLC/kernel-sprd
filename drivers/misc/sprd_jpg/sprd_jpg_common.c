@@ -19,6 +19,11 @@
 #include <uapi/video/sprd_jpg.h>
 #include "sprd_jpg_common.h"
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-jpg: " fmt
+
 #if IS_ENABLED(CONFIG_SPRD_JPG_CALL_VSP_PW_DOMAIN)
 #include <uapi/video/sprd_vsp_pw_domain.h>
 
