@@ -302,7 +302,7 @@ static int dpu_dvfs_parse_dt(struct dpu_dvfs *dpu,
 
 static int dpu_dvfs_init(struct dpu_dvfs *dpu)
 {
-	char chip_type[10] = { 0 };
+	char chip_type[HWFEATURE_STR_SIZE_LIMIT];
 
 	pr_info("%s()\n", __func__);
 
