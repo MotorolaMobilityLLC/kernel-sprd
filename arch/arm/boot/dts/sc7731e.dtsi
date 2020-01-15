@@ -97,8 +97,11 @@
 				"low_freq_clk_parent",
 				"high_freq_clk_parent";
 		clock-latency = <50000>;
-		cpu-gpu-vdd = <1>;
-		sprd,syscon-aon-apb = <&aon_apb_regs>;
+		sprd,cpu-gpu-share-volt;
+		syscons = <&aon_apb_regs REG_AON_APB_RES_REG4 MASK_AON_APB_RES_REG4>,
+			<&aon_apb_regs REG_AON_APB_RES_REG5 MASK_AON_APB_RES_REG5>;
+		syscon-names = "gpu_target_volt",
+			       "cpu_target_volt";
 		voltage-tolerance = <0>;
 		default-efuse-blk-binning = <1>;
 		sprd,efuse-blk-binning = <43 0xf00>;
