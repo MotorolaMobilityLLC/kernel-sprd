@@ -155,7 +155,16 @@ static void panic_print_sys_info(void)
 	if (panic_print & PANIC_PRINT_FTRACE_INFO)
 		ftrace_dump(DUMP_ALL);
 }
-
+#ifdef CONFIG_SPRD_EMERGENCY_RESTART
+void sprd_emergency_restart(char *cmd)
+{
+	if (cmd != NULL && strstr(cmd, "tospanic")) {
+		machine_restart("tospanic");
+	} else {
+		machine_restart("panic");
+	}
+}
+#endif
 /**
  *	panic - halt the system
  *	@fmt: The text string to print
@@ -227,7 +236,6 @@ void panic(const char *fmt, ...)
 	 * running on them.
 	 */
 	kgdb_panic(buf);
-
 	/*
 	 * If we have crashed and we have a crash kernel loaded let it handle
 	 * everything else.
@@ -254,7 +262,6 @@ void panic(const char *fmt, ...)
 		 */
 		crash_smp_send_stop();
 	}
-
 	/*
 	 * Run any panic handlers, including those that might need to
 	 * add information to the kmsg dump output.
@@ -322,7 +329,11 @@ void panic(const char *fmt, ...)
 		 */
 		if (panic_reboot_mode != REBOOT_UNDEFINED)
 			reboot_mode = panic_reboot_mode;
+#ifdef CONFIG_SPRD_EMERGENCY_RESTART
+		sprd_emergency_restart(buf);
+#else
 		emergency_restart();
+#endif
 	}
 #ifdef __sparc__
 	{

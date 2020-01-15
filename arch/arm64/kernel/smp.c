@@ -877,7 +877,9 @@ static void ipi_cpu_crash_stop(unsigned int cpu, struct pt_regs *regs)
 	cpu_park_loop();
 #endif
 }
-
+#ifdef CONFIG_SPRD_SYSDUMP
+	extern void sysdump_ipi(struct pt_regs *regs);
+#endif
 /*
  * Main handler for inter-processor interrupts
  */
@@ -905,6 +907,9 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
 	case IPI_CPU_STOP:
 		trace_android_vh_ipi_stop_rcuidle(regs);
 		irq_enter();
+		#ifdef CONFIG_SPRD_SYSDUMP
+			sysdump_ipi(regs);
+		#endif
 		local_cpu_stop();
 		irq_exit();
 		break;

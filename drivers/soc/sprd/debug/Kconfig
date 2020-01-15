@@ -7,3 +7,4 @@ config SPRD_LOOK_AT
 	  view the content of arm/arm64 of the address space through usb port,
 	  such as the register of each module, DDR address space, etc.
 	  When in doubt, say n
+source "drivers/soc/sprd/debug/sysdump/Kconfig"
