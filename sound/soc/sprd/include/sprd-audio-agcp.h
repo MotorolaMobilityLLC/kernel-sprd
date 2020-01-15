@@ -192,4 +192,135 @@ static inline int arch_audio_codec_digital_reset(void)
 	return ret;
 }
 
+/* i2s setting */
+static inline const char *arch_audio_i2s_clk_name(int id)
+{
+	switch (id) {
+	case 0:
+		return "clk_iis0";
+	case 1:
+		return "clk_iis1";
+	case 2:
+		return "clk_iis2";
+	case 3:
+		return "clk_iis3";
+	default:
+		break;
+	}
+	return NULL;
+}
+
+
+/*AP_APB registers offset */
+#define REG_AP_APB_APB_EB		0x0000
+#define REG_AP_APB_APB_RST		0x0004
+
+/* REG_AP_APB_APB_EB */
+#define BIT_AP_APB_IIS0_EB		BIT(1)
+
+/* REG_AP_APB_APB_RST */
+#define BIT_AP_APB_IIS0_SOFT_RST	BIT(1)
+
+#define DMA_REQ_IIS0_RX			(2 + 1)
+#define DMA_REQ_IIS0_TX			(3 + 1)
+
+
+static inline int arch_audio_i2s_enable(int id)
+{
+	int ret = 0;
+
+	switch (id) {
+	case 0:
+		ap_apb_reg_set(REG_AP_APB_APB_EB, BIT_AP_APB_IIS0_EB);
+		break;
+	case 1:
+	case 2:
+	case 3:
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+static inline int arch_audio_i2s_disable(int id)
+{
+	int ret = 0;
+
+	switch (id) {
+	case 0:
+		ap_apb_reg_clr(REG_AP_APB_APB_EB, BIT_AP_APB_IIS0_EB);
+		break;
+	case 1:
+	case 2:
+	case 3:
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+static inline int arch_audio_i2s_tx_dma_info(int id)
+{
+	int ret = 0;
+
+
+	switch (id) {
+	case 0:
+		ret = DMA_REQ_IIS0_TX;
+		break;
+	case 1:
+	case 2:
+	case 3:
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+static inline int arch_audio_i2s_rx_dma_info(int id)
+{
+	int ret = 0;
+
+	switch (id) {
+	case 0:
+		ret = DMA_REQ_IIS0_RX;
+		break;
+	case 1:
+	case 2:
+	case 3:
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+static inline int arch_audio_i2s_reset(int id)
+{
+	int ret = 0;
+
+	switch (id) {
+	case 0:
+		ap_apb_reg_set(REG_AP_APB_APB_RST, BIT_AP_APB_IIS0_SOFT_RST);
+		udelay(10);
+		ap_apb_reg_clr(REG_AP_APB_APB_RST, BIT_AP_APB_IIS0_SOFT_RST);
+		break;
+	case 1:
+	case 2:
+	case 3:
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
 #endif/* __SPRD_AUDIO_AGCP_H_ */
