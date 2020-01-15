@@ -3168,7 +3168,8 @@ static int cm_suspend_prepare(struct device *dev)
 	 * but this time need 30s, and the charger IC(fan54015)
 	 * watchdog timeout to reset.
 	 */
-	cm_feed_watchdog(cm);
+	if (is_ext_pwr_online(cm))
+		cm_feed_watchdog(cm);
 	cm_timer_set = cm_setup_timer();
 
 	if (cm_timer_set) {
