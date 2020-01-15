@@ -1109,5 +1109,54 @@
 			};
 		};
 	};
+
+	sprd_pcm_iis: sprd-pcm-iis {
+		compatible = "sprd,sharkl5-pcm-platform";
+		#sound-dai-cells = <0>;
+		dmas = <&ap_dma 5 &ap_dma 6>;
+		dma-names = "iis0_tx", "iis0_rx";
+		sprd,dma-2stage-usecase = <2>;
+		sprd,node-count-2stage-level-1 = <1>;
+		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+		sprd,dma-2stage-level-1-int-source = <1>;
+	};
+
+	sound_sprd_ap_alliis: sound@1 {
+		compatible = "sprd,i2s-null-codec";
+		status = "disabled";
+		sprd-audio-card,name = "all-i2s";
+		/* dai-links */
+		sprd-audio-card,dai-link@0 {
+			plat {
+				sound-dai = <&sprd_pcm_iis>;
+			};
+			cpu {
+				sound-dai = <&i2s0>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+	};
 };
 
+
+&i2s0 {
+	sprd,config_type = "pcm";
+	sprd,slave_timeout = <0xF11>;
+	sprd,fs = <8000>;
+	sprd,bus_type = <1>;
+	sprd,rtx_mode = <3>;
+	sprd,byte_per_chan = <1>;
+	sprd,slave_mode = <0>;
+	sprd,lsb = <0>;
+	sprd,lrck = <0>;
+	sprd,low_for_left = <1>;
+	sprd,clk_inv = <0>;
+	sprd,pcm_short_frame = <1>;
+	sprd,pcm_slot = <0x1>;
+	sprd,pcm_cycle = <1>;
+	sprd,tx_watermark = <12>;
+	sprd,rx_watermark = <20>;
+	status = "disable";
+};
