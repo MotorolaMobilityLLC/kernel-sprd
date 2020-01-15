@@ -42,6 +42,8 @@ Optional properties:
 	- dual-phase-supply - boolean flag used only if SOC have shared power supply for Big and
 		Little clusters, and we are not defining cpu-supply for this cpu.
 	-sprd,multi-version: A boolean property to illustrate whether there are multi-version of the same SOC.
+	-sprd,cpu-gpu-share-volt: A boolean property to illustrate whether cpu and gpu share the same vdd domain.
+
 - sprd_swdvfs node.
 	- compatible: Describe which soc will use swdvfs driver,for example:
 			"sprd,sharkl3-swdvfs";
@@ -275,3 +277,13 @@ Example 5: Example for A specific soc will be discerned of multi-version
 		sprd,multi-version;
 	};
 
+Example 6: Example for a specific soc's cpu and gpu share the same vdd domain
+	cpufreq_clus0: cpufreq-clus0 {
+		clocks = <&clk_lit_mcu>,
+			<&clk_twpll_768m>,
+			<&clk_mpll0>;
+		clock-names = "core_clk",
+			"low_freq_clk_parent",
+			"high_freq_clk_parent";
+		sprd,cpu-gpu-share-volt;
+	};
