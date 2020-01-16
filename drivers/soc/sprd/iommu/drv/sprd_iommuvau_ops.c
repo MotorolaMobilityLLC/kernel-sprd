@@ -94,7 +94,7 @@ static int sprd_iommuvau_hw_init(struct sprd_iommu_dev *dev,
 		IOMMU_ERR("%s gen_pool_create error\n", data->name);
 		return -1;
 	}
-
+	gen_pool_set_algo(dev->pool, gen_pool_best_fit, NULL);
 	gen_pool_add(dev->pool, data->iova_base, data->iova_size, -1);
 	iommu_init_param.iommu_type =
 				get_iommuvau_type(data->iommuex_rev, &chip);
