@@ -35,6 +35,7 @@ subsystem tag和修改文件的检查规则：
     |subsystem tag必须至少在一个修改文件的路径上
     |dts、Documentation作为标签或在修改文件路径上时，subsystem tag必须在每一个修改文件的路径上
     |不检查subsystem tag的属性标签，不做此检查
+    |只有一级标签能带*，带*的一级标签在只检查一级标签，忽略其他标签的修改文件和标签一致的检查
 
 标签范围：
 [info]
@@ -149,7 +150,7 @@ pci:dwc:
 pci:dwc:sprd:
 scripts:dtc:
 scripts:sprd:
-sched:
+sched:*
 trace:
 trusty:
 firmware:sprd:
@@ -159,6 +160,6 @@ printk:
 arm:topology:
 arm64:topology:
 x86:topology:
-include:
-dt-bindings:
-Documentation:
+include:*
+dt-bindings:*
+Documentation:*
