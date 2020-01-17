@@ -442,6 +442,10 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 	struct resource *res = &adev->res;
 	struct coresight_desc desc = { 0 };
 	struct coresight_dev_list *dev_list = NULL;
+	const char *tmc_name;
+
+	/* Use device name as sysfs handle */
+	tmc_name = dev_name(dev);
 
 	ret = -ENOMEM;
 	drvdata = devm_kzalloc(dev, sizeof(*drvdata), GFP_KERNEL);
@@ -526,7 +530,15 @@ static int tmc_probe(struct amba_device *adev, const struct amba_id *id)
 		goto out;
 	}
 
-	drvdata->miscdev.name = desc.name;
+	/* fix etb dev name as "/dev/tmc_etb" for modem */
+	if (strnstr(tmc_name, "etb", strlen(tmc_name))) {
+		drvdata->miscdev.name = "tmc_etb";
+	} else {
+		snprintf(drvdata->etf_name, sizeof(drvdata->etf_name), "etf-%8lx",
+			(unsigned long)res->start);
+		drvdata->miscdev.name = drvdata->etf_name;
+	}
+
 	drvdata->miscdev.minor = MISC_DYNAMIC_MINOR;
 	drvdata->miscdev.fops = &tmc_fops;
 	ret = misc_register(&drvdata->miscdev);
