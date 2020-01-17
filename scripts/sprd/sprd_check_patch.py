@@ -15,7 +15,7 @@ ATTRIBUTE_TAGS  = []
 SUBSYSTEM1_TAGS = []
 SUBSYSTEM2_TAGS = []
 SUBSYSTEM3_TAGS = []
-SUBSYSTEM1_TAGS_NOCHECK = ['include', 'dt-bindings', 'Documentation']
+SUBSYSTEM1_TAGS_NOCHECK = []
 SPECIAL_CHECK_TAGS = ['Documentation', 'dts']
 check_tags_flag = 1
 
@@ -32,6 +32,7 @@ def get_tags():
     global SUBSYSTEM1_TAGS
     global SUBSYSTEM2_TAGS
     global SUBSYSTEM3_TAGS
+    global SUBSYSTEM1_TAGS_NOCHECK
     get_tags_flag = 0
 
     MAIN_PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -57,6 +58,9 @@ def get_tags():
 
             subsystem_list = x.split(":")
 #print "subsystem tags:%s %d" % (subsystem_list,len(subsystem_list))
+            if '*' in x:
+                SUBSYSTEM1_TAGS_NOCHECK.append(subsystem_list[0].replace(' ',''))
+                continue
 
             subsystem1_tags = subsystem_list[0].replace(' ','')
             if len(subsystem_list) >= 4:
@@ -89,6 +93,7 @@ def get_tags():
             ATTRIBUTE_TAGS = x.split(",")
 #           print "attribute tags:%s" % ATTRIBUTE_TAGS
 
+#    print "SUBSYSTEM1_TAGS_NOCHECK: %s" % SUBSYSTEM1_TAGS_NOCHECK
 #    print "SUBSYSTEM1_TAGS: %s" % SUBSYSTEM1_TAGS
 #    print "SUBSYSTEM1_TAGS num = %d" % len(SUBSYSTEM1_TAGS)
 
@@ -144,12 +149,10 @@ def check_tags_commit_id(patch_info_list):
 
             if check_tags_flag == 1:
                 if tags_list_start_num < len(tags_list):
-                    if tags_list[tags_list_start_num].strip(":") in SUBSYSTEM1_TAGS:
+                    if tags_list[tags_list_start_num].strip(":") in SUBSYSTEM1_TAGS_NOCHECK:
                         ret_hit_tags_list.append(tags_list[tags_list_start_num].strip(":"))
-                        if tags_list[tags_list_start_num].strip(":") in SUBSYSTEM1_TAGS_NOCHECK:
-                            for index_tags in range(tags_list_start_num + 1, len(tags_list)):
-                                ret_hit_tags_list.append(tags_list[index_tags].strip(":"))
-                            continue
+                   elif tags_list[tags_list_start_num].strip(":") in SUBSYSTEM1_TAGS:
+                        ret_hit_tags_list.append(tags_list[tags_list_start_num].strip(":"))
                         tags_list_start_num += 1
                         if tags_list_start_num < len(tags_list):
                             if tags_list[tags_list_start_num].strip(":") in SUBSYSTEM2_TAGS[SUBSYSTEM1_TAGS.index(tags_list[tags_list_start_num - 1].strip(":"))]:
@@ -208,6 +211,9 @@ def check_tags_file(modify_file_list, tags_list):
                 file_add_inconsistent_flag = 1
                 for z in file_name_list_temp:
                     if z in y:
+                        file_add_inconsistent_flag = 0
+                        break
+                    elif y in z:
                         file_add_inconsistent_flag = 0
                         break
                 if file_add_inconsistent_flag == 1:
