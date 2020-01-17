@@ -2009,7 +2009,7 @@ static ssize_t cm4_operate_show(struct device *dev,
 		 "\taddr: IC slave_addr.if find from opcode,need >>1\n"
 		 "\treg: IC reg or set_gpio reg\n"
 		 "\tvalue: i2c writen value or set_gpio value.\n"
-		 "\tmask: i2c r/w bit operate or set_elay value(ms)\n\n"
+		 "\tmask: i2c r/w bit operate or set_delay value(ms)\n\n"
 		 "\tstatus: show execution result. 1:success 0:fail\n\n"
 		 "%s%s\n", l, m);
 }
