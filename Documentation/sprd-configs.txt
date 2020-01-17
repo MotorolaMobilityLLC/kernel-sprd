@@ -6956,8 +6956,8 @@ CONFIG_INTEGRITY_AUDIT
 	[function] This function is used to enable integrity auditing support.
 CONFIG_INTERACTIVE_TIMER_MODE
 	[arch] arm
-	[plat] pike2
-	[missing plat] sharkl3_32,sharkl5_32,sharkle32
+	[plat] pike2,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] make,code
 	[subsys] cpufreq
 	[must] user
