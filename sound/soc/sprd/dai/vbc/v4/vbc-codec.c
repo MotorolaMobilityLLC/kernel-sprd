@@ -2089,6 +2089,42 @@ static int vbc_put_iis_master_en(struct snd_kcontrol *kcontrol,
 	return 1;
 }
 
+static const struct soc_enum vbc_iis_master_wd_width_enum =
+	SPRD_VBC_ENUM(SND_SOC_NOPM, 2, vbc_iis_width_txt);
+
+static int vbc_get_iis_master_width(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->iis_mst_width;
+
+	return 0;
+}
+
+static int vbc_put_iis_master_width(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	u32 value;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("set iis master wd width to %s\n", texts->texts[value]);
+
+	vbc_codec->iis_mst_width = value;
+	dsp_vbc_iis_master_width_set(value);
+
+	return 0;
+}
+
 static int vbc_mainmic_path_sel_val_get(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
@@ -3471,6 +3507,10 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 	SOC_ENUM_EXT("VBC_IIS_MST_SEL_3_TYPE",
 		     vbc_iis_mst_sel_enum[IIS_MST_SEL_3], vbc_get_mst_sel_type,
 		     vbc_put_mst_sel_type),
+
+	SOC_ENUM_EXT("VBC_IIS_MST_WIDTH_SET", vbc_iis_master_wd_width_enum,
+		     vbc_get_iis_master_width, vbc_put_iis_master_width),
+
 	SOC_ENUM_EXT("VBC_DSP_MAINMIC_PATH_SEL",
 		     vbc_mainmic_path_enum[MAINMIC_USED_DSP_NORMAL_ADC],
 		     vbc_mainmic_path_sel_val_get,
