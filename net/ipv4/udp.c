@@ -2570,6 +2570,14 @@ int udp_lib_setsockopt(struct sock *sk, int level, int optname,
 			udp_tunnel_encap_enable(sk->sk_socket);
 			release_sock(sk);
 			break;
+#ifdef CONFIG_XFRM_FRAGMENT
+		case UDP_ENCAP_ESPINUDP_V6:
+			up->encap_type = val;
+			up->encap_rcv = xfrm6_udp_encap_rcv;
+			udpv6_encap_enable();
+			break;
+#endif
+
 		default:
 			err = -ENOPROTOOPT;
 			break;

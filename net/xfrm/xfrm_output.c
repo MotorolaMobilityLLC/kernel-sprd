@@ -18,6 +18,11 @@
 
 #include "xfrm_inout.h"
 
+#ifdef CONFIG_XFRM_FRAGMENT
+#define IPV6_MINIMUM_MTU 1280
+static int xfrm_output_resume_frag(struct sk_buff *skb, int err);
+#endif
+
 static int xfrm_output2(struct net *net, struct sock *sk, struct sk_buff *skb);
 static int xfrm_inner_extract_output(struct xfrm_state *x, struct sk_buff *skb);
 
@@ -501,6 +506,14 @@ int xfrm_output_resume(struct sk_buff *skb, int err)
 {
 	struct net *net = xs_net(skb_dst(skb)->xfrm);
 
+#ifdef CONFIG_XFRM_FRAGMENT
+	/*err=0 means that hw crypto callback to call this func.
+	 *err=1 the normal processing flow.
+	 *author:junjie.wang@spreadtrum.com@6704
+	 */
+	if (net && get_xfrm_fragment())
+		return xfrm_output_resume_frag(skb, err);
+#endif
 	while (likely((err = xfrm_output_one(skb, err)) == 0)) {
 		nf_reset_ct(skb);
 
@@ -525,6 +538,175 @@ out:
 	return err;
 }
 EXPORT_SYMBOL_GPL(xfrm_output_resume);
+
+#ifdef CONFIG_XFRM_FRAGMENT
+static inline int ipv4v6_skb_dst_mtu(struct sk_buff *skb)
+{
+	struct iphdr *iph = ip_hdr(skb);
+
+	if (iph->version == 0x04) {
+		struct inet_sock *inet = skb->sk ? inet_sk(skb->sk) : NULL;
+
+		return (inet && inet->pmtudisc == IP_PMTUDISC_PROBE) ?
+			skb_dst(skb)->dev->mtu : dst_mtu(skb_dst(skb));
+	} else {
+		struct ipv6_pinfo *np = skb->sk ? inet6_sk(skb->sk) : NULL;
+
+		return (np && np->pmtudisc == IPV6_PMTUDISC_PROBE) ?
+			skb_dst(skb)->dev->mtu : dst_mtu(skb_dst(skb));
+	}
+}
+
+static int __xfrm_output_resume_ss_once(struct sk_buff *skb, int err)
+{
+	struct net *net = xs_net(skb_dst(skb)->xfrm);
+
+	err = xfrm_output_one(skb, err);
+	if (likely(err == 0)) {
+		nf_reset_ct(skb);
+		err = skb_dst(skb)->ops->local_out(net, skb->sk, skb);
+		/*local_out ->__ip_local_out*/
+		if (unlikely(err != 1))
+			goto out;
+
+		if (!skb_dst(skb)->xfrm)
+			return dst_output(net, skb->sk, skb);
+
+		err = nf_hook(skb_dst(skb)->ops->family,
+			      NF_INET_POST_ROUTING, net, skb->sk, skb,
+			      NULL, skb_dst(skb)->dev, xfrm_output2);
+		if (unlikely(err != 1))
+			goto out;
+	}
+	if (err == -EINPROGRESS)
+		err = 0;
+out:
+	return err;
+}
+
+static int __xfrm_output_resume_ss_after_frag(struct net *net,
+					      struct sock *sock,
+					      struct sk_buff *skb)
+{
+	return  __xfrm_output_resume_ss_once(skb, 1);
+}
+
+/*xfrm_output_resume_sub:
+ * parameter:
+ *  pmtu:the minimal mtu in data path.
+ */
+static int xfrm_output_resume_frag_sub(struct sk_buff *skb,
+				       int pmtu,
+				       int err,
+				       int *exit)
+{
+	struct dst_entry *dst = skb_dst(skb);
+	struct xfrm_state *x = dst->xfrm;
+	struct net *net = xs_net(skb_dst(skb)->xfrm);
+	*exit = 0;
+
+	if (((struct xfrm_dst *)skb_dst(skb))->child &&
+	    !(((struct xfrm_dst *)skb_dst(skb))->child)->xfrm) {
+		/*it is external xfrm,when done,exit the loop while*/
+		*exit = 1;
+	}
+	/*do the fragment,must meet the condition
+	 *1.tunnel mode
+	 *2.len > mtu
+	 *3.no gso
+	 *4.the return err is bigger than 0.
+	 */
+	pmtu = pmtu - x->props.header_len - x->props.trailer_len;
+	if (unlikely(pmtu < 0)) {
+		printk_ratelimited(KERN_ERR
+	"The mtu is too small,pmtu=%d,to keep communication,set the pmtu quals to 1400\n",
+				   pmtu);
+		pmtu = (1400
+			- x->props.header_len
+			- x->props.trailer_len);
+	}
+	if ((x->props.mode == XFRM_MODE_TUNNEL &&
+	     (skb->len > pmtu && !skb_is_gso(skb))) &&
+	     err > 0 &&
+	     (*exit == 1)) {
+		struct iphdr *iph = ip_hdr(skb);
+		int segs = 0;
+		int seg_pmtu = 0;
+		/* According to ip headr type v4 or v6
+		 * to choose which fragement to be done.
+		 */
+		/* Bug 707083 avoid too small pkt,
+		 * so be average divided into serval parts.
+		 */
+		segs = skb->len / pmtu;
+		segs++;
+		seg_pmtu = skb->len / segs;
+		seg_pmtu = (seg_pmtu / 4 + 1) * 4;
+		if (iph->version == 0x04) {
+			/* If skb payload is esp,do fragment.
+			 * even the esp payload is tcp.
+			 */
+			if (iph->protocol == IPPROTO_ESP &&
+			    skb->ignore_df == 0)
+				skb->ignore_df = 1;
+
+			seg_pmtu += iph->ihl * 4;
+			if (seg_pmtu > pmtu)
+				seg_pmtu = pmtu;
+			printk_ratelimited(KERN_ERR
+		"IPv4:The pkt is average divided into %d parts with mtu %d.\n",
+			segs, seg_pmtu);
+			return ip4_do_xfrm_frag(net, skb->sk, skb, seg_pmtu,
+					__xfrm_output_resume_ss_after_frag);
+		} else {
+			struct ipv6hdr *ip6h = ipv6_hdr(skb);
+			unsigned int hlen = 0;
+			u8 *prevhdr = NULL;
+			/* If skb payload is esp,do fragment.
+			 * even tht esp payload is tcp.
+			 */
+			if (ip6h->nexthdr == NEXTHDR_FRAGMENT)
+				goto  dont_frag;
+			hlen = ip6_find_1stfragopt(skb, &prevhdr);
+			seg_pmtu += sizeof(struct frag_hdr) + hlen;
+			if (seg_pmtu > pmtu)
+				seg_pmtu = pmtu;
+			else if (seg_pmtu < (IPV6_MINIMUM_MTU
+					     + sizeof(struct frag_hdr)
+					     + hlen))
+				seg_pmtu = IPV6_MINIMUM_MTU
+					   + sizeof(struct frag_hdr)
+					   + hlen;
+			printk_ratelimited(KERN_ERR
+		"IPv6:The pkt is divided into %d parts with mtu %d.\n",
+			segs, seg_pmtu);
+			if (ip6h->nexthdr == IPPROTO_ESP && skb->ignore_df == 0)
+				skb->ignore_df = 1;
+			return ip6_do_xfrm_frag(net, skb->sk, skb, seg_pmtu,
+					__xfrm_output_resume_ss_after_frag);
+		}
+	}
+dont_frag:
+	return __xfrm_output_resume_ss_once(skb, err);
+}
+
+static int xfrm_output_resume_frag(struct sk_buff *skb, int err)
+{
+	int exit = 0;
+	int pmtu = 1400;
+
+	pmtu = ipv4v6_skb_dst_mtu(skb);
+	while (1) {
+		err = xfrm_output_resume_frag_sub(skb, pmtu, err, &exit);
+		if (err == 1 && !exit) {
+			pmtu = ipv4v6_skb_dst_mtu(skb);
+			continue;
+		}
+		break;
+	}
+	return err;
+}
+#endif
 
 static int xfrm_output2(struct net *net, struct sock *sk, struct sk_buff *skb)
 {

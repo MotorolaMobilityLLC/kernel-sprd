@@ -15,7 +15,6 @@
 #include <net/ipv6.h>
 #include <net/ip6_route.h>
 #include <net/xfrm.h>
-
 int xfrm6_find_1stfragopt(struct xfrm_state *x, struct sk_buff *skb,
 			  u8 **prevhdr)
 {
@@ -174,9 +173,16 @@ static int __xfrm6_output(struct net *net, struct sock *sk, struct sk_buff *skb)
 		return -EMSGSIZE;
 	}
 
+#ifdef CONFIG_XFRM_FRAGMENT
+	if (!get_xfrm_fragment() &&
+	    (toobig || dst_allfrag(skb_dst(skb))))
+		return ip6_fragment(net, sk, skb,
+				    __xfrm6_output_finish);
+#else
 	if (toobig || dst_allfrag(skb_dst(skb)))
 		return ip6_fragment(net, sk, skb,
 				    __xfrm6_output_finish);
+#endif
 
 skip_frag:
 	return __xfrm6_output_state_finish(x, sk, skb);
@@ -184,8 +190,24 @@ skip_frag:
 
 int xfrm6_output(struct net *net, struct sock *sk, struct sk_buff *skb)
 {
+#ifdef CONFIG_XFRM_FRAGMENT
+	struct ipv6hdr *ipv6;
+
+	ipv6 = ipv6_hdr(skb);
+	if (likely(ipv6->version == 0x06))
+		return NF_HOOK_COND(NFPROTO_IPV6, NF_INET_POST_ROUTING,
+				    net, sk, skb,  NULL, skb_dst(skb)->dev,
+				    __xfrm6_output,
+				    !(IP6CB(skb)->flags & IP6SKB_REROUTED));
+	else
+		return NF_HOOK_COND(NFPROTO_IPV4, NF_INET_POST_ROUTING,
+				    net, sk, skb,  NULL, skb_dst(skb)->dev,
+				    __xfrm6_output,
+				    !(IP6CB(skb)->flags & IP6SKB_REROUTED));
+#else
 	return NF_HOOK_COND(NFPROTO_IPV6, NF_INET_POST_ROUTING,
 			    net, sk, skb,  NULL, skb_dst(skb)->dev,
 			    __xfrm6_output,
 			    !(IP6CB(skb)->flags & IP6SKB_REROUTED));
+#endif
 }
