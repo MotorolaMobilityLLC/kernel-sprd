@@ -163,3 +163,4 @@ x86:topology:
 include:*
 dt-bindings:*
 Documentation:*
+sprd-diffconfig:*
