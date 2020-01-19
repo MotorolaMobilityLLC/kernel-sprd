@@ -528,7 +528,7 @@ static const struct file_operations jpg_fops = {
 
 static struct miscdevice jpg_dev = {
 	.minor = JPG_MINOR,
-	.name = "sprd-jpg",
+	.name = "sprd_jpg",
 	.fops = &jpg_fops,
 };
 

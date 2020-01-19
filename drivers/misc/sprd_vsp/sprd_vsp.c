@@ -665,7 +665,7 @@ static const struct file_operations vsp_fops = {
 
 static struct miscdevice vsp_dev = {
 	.minor = VSP_MINOR,
-	.name = "sprd-vsp",
+	.name = "sprd_vsp",
 	.fops = &vsp_fops,
 };
 
