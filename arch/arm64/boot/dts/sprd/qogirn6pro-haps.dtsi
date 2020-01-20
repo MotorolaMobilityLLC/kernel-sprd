@@ -5,8 +5,8 @@
  * Copyright (C) 2019, Spreadtrum Communications Inc.
  */
 
-#include <dt-bindings/soc/sprd,sharkl5-regs.h>
-#include <dt-bindings/soc/sprd,sharkl5-mask.h>
+#include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
+#include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/clock/sprd,sharkl5-clk.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 
