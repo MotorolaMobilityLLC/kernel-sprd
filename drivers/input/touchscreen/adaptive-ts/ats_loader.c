@@ -96,12 +96,12 @@ static inline int ts_validate_controller(struct ts_controller *c)
 {
 	/* controller name and vendor is required */
 	if (!c->name || !c->vendor) {
-		TS_ERR("no name or vendor!");
+		pr_err("no name or vendor!\n");
 		return -EINVAL;
 	}
 
 	if (c->addr_count == 0 || !c->addrs) {
-		TS_ERR("should provide at least one valid address");
+		pr_err("should provide at least one valid address!\n");
 		return -EINVAL;
 	}
 
@@ -126,7 +126,7 @@ int ts_register_controller(struct ts_controller *controller)
 		return -ENODEV;
 
 	if (ts_validate_controller(controller) < 0) {
-		TS_WARN("ignore controller \"%s\" cuz validation failed!", controller->name);
+		pr_warn("ignore controller \"%s\" cuz validation failed!\n", controller->name);
 		return -EINVAL;
 	}
 
@@ -142,7 +142,7 @@ int ts_register_controller(struct ts_controller *controller)
 	spin_unlock(&controller_lock);
 
 	if (found) {
-		TS_WARN("ignore duplicated registration");
+		pr_warn("ignore duplicated registration.\n");
 		return -EEXIST;
 	}
 
@@ -168,7 +168,7 @@ int ts_register_controller(struct ts_controller *controller)
 	}
 	spin_unlock(&controller_lock);
 
-	TS_DBG("register controller: \"%s-%s\"",
+	pr_debug("register controller: \"%s-%s\"",
 		controller->vendor, controller->name);
 	return 0;
 }
@@ -196,10 +196,10 @@ void ts_unregister_controller(struct ts_controller *controller)
 	spin_unlock(&controller_lock);
 
 	if (del)
-		TS_DBG("unregister controller \"%s-%s\"",
+		pr_debug("unregister controller \"%s-%s\"",
 			controller->vendor, controller->name);
 	else
-		TS_WARN("controller \"%s-%s\" not found.",
+		pr_warn("controller \"%s-%s\" not found.",
 			controller->vendor, controller->name);
 }
 
@@ -235,7 +235,7 @@ struct ts_controller *ts_match_controller(const char *name)
 				while (s < ch)
 					*t++ = *s++;
 				*t = '\0';
-				TS_DBG("fallback to match vendor \"%s\"", buf);
+				pr_debug("fallback to match vendor \"%s\"", buf);
 				spin_lock(&controller_lock);
 				list_for_each_entry(c, &controllers, list) {
 					if (!strncmp(buf, c->vendor, ch - name)) {
@@ -271,7 +271,7 @@ struct ts_controller *ts_match_controller(const char *name)
 int ts_read(unsigned char *data, unsigned short length)
 {
 	if (IS_ERR_OR_NULL(g_board) || IS_ERR_OR_NULL(g_board->bus)) {
-		TS_ERR("Touchscreen not ready!");
+		pr_err("Touchscreen not ready!\n");
 		return -ENODEV;
 	}
 
@@ -281,7 +281,7 @@ int ts_read(unsigned char *data, unsigned short length)
 int ts_write(unsigned char *data, unsigned short length)
 {
 	if (IS_ERR_OR_NULL(g_board) || IS_ERR_OR_NULL(g_board->bus)) {
-		TS_ERR("Touchscreen not ready!");
+		pr_err("Touchscreen not ready!\n");
 		return -ENODEV;
 	}
 
@@ -291,7 +291,7 @@ int ts_write(unsigned char *data, unsigned short length)
 int ts_reg_read(unsigned short reg, unsigned char *data, unsigned short length)
 {
 	if (IS_ERR_OR_NULL(g_board) || IS_ERR_OR_NULL(g_board->bus)) {
-		TS_ERR("Touchscreen not ready!");
+		pr_err("Touchscreen not ready!\n");
 		return -ENODEV;
 	}
 
@@ -301,7 +301,7 @@ int ts_reg_read(unsigned short reg, unsigned char *data, unsigned short length)
 int ts_reg_write(unsigned short reg, unsigned char *data, unsigned short length)
 {
 	if (IS_ERR_OR_NULL(g_board) || IS_ERR_OR_NULL(g_board->bus)) {
-		TS_ERR("Touchscreen not ready!");
+		pr_err("Touchscreen not ready!\n");
 		return -ENODEV;
 	}
 
@@ -320,13 +320,15 @@ int ts_gpio_get(enum ts_gpio type)
 	if (TSGPIO_INT == type && board->int_gpio > 0) {
 		val = gpio_get_value(board->int_gpio);
 		if (val < 0)
-			TS_ERR("Failed to get INT gpio(%d), err: %d.", board->int_gpio, val);
+			pr_err("Failed to get INT gpio(%d), err: %d.\n",
+				board->int_gpio, val);
 	} else if (TSGPIO_RST == type && board->rst_gpio > 0) {
 		val = gpio_get_value(board->rst_gpio);
 		if (val < 0)
-			TS_ERR("Failed to set RST gpio(%d), err: %d.", board->rst_gpio, val);
+			pr_err("Failed to set RST gpio(%d), err: %d.\n",
+				board->rst_gpio, val);
 	} else {
-		TS_WARN("Unrecognized gpio type, ignore.");
+		pr_warn("Unrecognized gpio type, ignore.\n");
 	}
 
 	return val;
@@ -340,12 +342,12 @@ void ts_gpio_set(enum ts_gpio type, int level)
 
 	if (TSGPIO_INT == type && board->int_gpio) {
 		gpio_set_value(board->int_gpio, level);
-		TS_DBG("set gpio INT (%d) to %d", board->int_gpio, level);
+		pr_debug("set gpio INT (%d) to %d\n", board->int_gpio, level);
 	} else if (TSGPIO_RST == type && board->rst_gpio) {
 		gpio_set_value(board->rst_gpio, level);
-		TS_DBG("set gpio RST (%d) to %d", board->rst_gpio, level);
+		pr_debug("set gpio RST (%d) to %d\n", board->rst_gpio, level);
 	} else {
-		TS_WARN("Unrecognized gpio type, ignore.");
+		pr_warn("Unrecognized gpio type, ignore.\n");
 	}
 }
 int ts_gpio_input(enum ts_gpio type)
@@ -359,17 +361,19 @@ int ts_gpio_input(enum ts_gpio type)
 	if (TSGPIO_INT == type && board->int_gpio) {
 		retval = gpio_direction_input(board->int_gpio);
 		if (retval < 0)
-			TS_ERR("Failed to set gpio INT (%d) in, err: %d.", board->int_gpio, retval);
+			pr_err("Failed to set gpio INT (%d) in, err: %d.\n",
+				board->int_gpio, retval);
 		else
-			TS_DBG("set gpio INT (%d) to input", board->int_gpio);
+			pr_debug("set gpio INT (%d) to input\n", board->int_gpio);
 	} else if (TSGPIO_RST == type && board->rst_gpio) {
 		retval = gpio_direction_input(board->rst_gpio);
 		if (retval < 0)
-			TS_ERR("Failed to set gpio RST (%d) in, err: %d.", board->rst_gpio, retval);
+			pr_err("Failed to set gpio RST (%d) in, err: %d.\n",
+				board->rst_gpio, retval);
 		else
-			TS_DBG("set gpio RST (%d) to input", board->rst_gpio);
+			pr_debug("set gpio RST (%d) to input\n", board->rst_gpio);
 	} else {
-		TS_WARN("Unrecognized gpio type, ignore.");
+		pr_warn("Unrecognized gpio type, ignore.\n");
 	}
 
 	return retval;
@@ -385,19 +389,21 @@ int ts_gpio_output(enum ts_gpio type, int level)
 	if (TSGPIO_INT == type && board->int_gpio) {
 		retval = gpio_direction_output(board->int_gpio, level);
 		if (retval < 0)
-			TS_ERR("Failed to set gpio INT (%d) out to %d, err: %d.",
+			pr_err("Failed to set gpio INT (%d) out to %d, err: %d.\n",
 				board->int_gpio, level, retval);
 		else
-			TS_DBG("set gpio INT (%d) to output, level=%d", board->int_gpio, level);
+			pr_debug("set gpio INT (%d) to output, level=%d\n",
+				board->int_gpio, level);
 	} else if (TSGPIO_RST == type && board->rst_gpio) {
 		retval = gpio_direction_output(board->rst_gpio, level);
 		if (retval < 0)
-			TS_ERR("Failed to set gpio RST (%d) out to %d, err: %d.",
+			pr_err("Failed to set gpio RST (%d) out to %d, err: %d.\n",
 				board->rst_gpio, level, retval);
 		else
-			TS_DBG("set gpio RST (%d) to output, level=%d", board->rst_gpio, level);
+			pr_debug("set gpio RST (%d) to output, level=%d\n",
+				board->rst_gpio, level);
 	} else {
-		TS_WARN("Unrecognized gpio type, ignore.");
+		pr_warn("Unrecognized gpio type, ignore.\n");
 	}
 
 	return retval;
@@ -423,12 +429,12 @@ static struct ts_board *ts_parse_dt(struct device_node *pn)
 
 	rst = of_get_gpio(pn, TS_RST_INDEX);
 	if (rst < 0) {
-		TS_ERR("invalid reset gpio number: %d", rst);
+		pr_err("invalid reset gpio number: %d\n", rst);
 		return NULL;
 	}
 	irq = of_get_gpio(pn, TS_INT_INDEX);
 	if (irq < 0) {
-		TS_ERR("invalid irq gpio number: %d", irq);
+		pr_err("invalid irq gpio number: %d\n", irq);
 		return NULL;
 	}
 
@@ -437,7 +443,7 @@ static struct ts_board *ts_parse_dt(struct device_node *pn)
 		if (i > TS_VIRTUALKEY_DATA_LENGTH * TS_VIRTUALKEY_MAX_COUNT
 			|| i % TS_VIRTUALKEY_DATA_LENGTH) {
 			i = 0;
-			TS_ERR("invalid virtualkey data count: %d", i);
+			pr_err("invalid virtualkey data count: %d\n", i);
 		} else {
 			retval = of_property_read_u32_array(pn, TS_PROP_VIRTUALKEY,	buf, i);
 			if (!retval) {
@@ -445,7 +451,7 @@ static struct ts_board *ts_parse_dt(struct device_node *pn)
 				size += sizeof(struct ts_virtualkey_info) * i;
 			} else {
 				i = 0;
-				TS_ERR("failed to read virtualkey data, error: %d", retval);
+				pr_err("failed to read virtualkey data, error: %d\n", retval);
 			}
 		}
 	} else {
@@ -454,7 +460,7 @@ static struct ts_board *ts_parse_dt(struct device_node *pn)
 
 	board = kzalloc(size, GFP_KERNEL);
 	if (!board) {
-		TS_ERR("failed to allocate board info!!");
+		pr_err("failed to allocate board info!!\n");
 		return NULL;
 	}
 
@@ -496,34 +502,37 @@ static struct ts_board *ts_parse_dt(struct device_node *pn)
 	/* add private data */
 	board->priv = of_get_child_by_name(pn, TS_PROP_PRIV_NODE);
 
-	TS_INFO("board config: rst_gpio=%d, int_gpio=%d",
+	pr_info("board config: rst_gpio=%d, int_gpio=%d",
 			board->rst_gpio, board->int_gpio);
 	if (board->panel_width)
-		TS_INFO("board config: report_region=%ux%u",
+		pr_info("board config: report_region=%ux%u",
 				board->panel_width, board->panel_height);
 	if (board->surface_width)
-		TS_INFO("board config: surface_region=%ux%u",
+		pr_info("board config: surface_region=%ux%u",
 				board->surface_width, board->surface_height);
 	if (board->lcd_width)
-		TS_INFO("from cmdline: lcd_region=%ux%u",
+		pr_info("from cmdline: lcd_region=%ux%u",
 				board->lcd_width, board->lcd_height);
-	TS_INFO("board config: %strying to auto upgrade firmware", board->auto_upgrade_fw ? "" : "not ");
-	TS_INFO("board config: report virtual key as %s event", board->vkey_report_abs ? "ABS" : "KEY");
+	pr_info("board config: %strying to auto upgrade firmware",
+		board->auto_upgrade_fw ? "" : "not ");
+	pr_info("board config: report virtual key as %s event",
+		board->vkey_report_abs ? "ABS" : "KEY");
 	if (board->virtualkey_count) {
-		TS_INFO("board config: read %d virtualkeys", board->virtualkey_count);
+		pr_info("board config: read %d virtualkeys",
+			board->virtualkey_count);
 		for (i = 0; i < board->virtualkey_count; i++) {
-			TS_INFO("board config: x=%u, y=%u, w=%u, h=%u ------ %s",
+			pr_info("board config: x=%u, y=%u, w=%u, h=%u ------ %s",
 				board->virtualkeys[i].x, board->virtualkeys[i].y,
 				board->virtualkeys[i].width, board->virtualkeys[i].height,
 				ts_get_keyname(board->virtualkeys[i].keycode));
 		}
 	}
 	if (board->controller)
-		TS_INFO("board config: requesting controller=\"%s\"", board->controller);
+		pr_info("board config: requesting controller=\"%s\"", board->controller);
 	else
-		TS_INFO("board config: work in auto-detect mode");
+		pr_info("board config: work in auto-detect mode");
 	if (board->avdd_supply)
-		TS_INFO("board config: requesting avdd-supply=\"%s\"", board->avdd_supply);
+		pr_info("board config: requesting avdd-supply=\"%s\"", board->avdd_supply);
 
 	return board;
 }
@@ -551,14 +560,14 @@ int ts_register_bus_dev(struct device *parent)
 		|| !bus->read || !bus->write
 		|| !bus->simple_read || !bus->simple_write
 		|| !bus->simple_read_reg || !bus->simple_write_reg) {
-		TS_ERR("incomplete bus interface!");
+		pr_err("incomplete bus interface!");
 		return -ENXIO;
 	}
 	board->bus = bus;
 
 	pdev = kzalloc(sizeof(struct platform_device), GFP_KERNEL);
 	if (IS_ERR_OR_NULL(pdev)) {
-		TS_ERR("failed to allocate platform device!");
+		pr_err("failed to allocate platform device!");
 		return -ENOMEM;
 	}
 
@@ -571,13 +580,13 @@ int ts_register_bus_dev(struct device *parent)
 
 	retval = platform_device_register(pdev);
 	if (retval < 0) {
-		TS_ERR("failed to register platform device!");
+		pr_err("failed to register platform device!");
 		kfree(pdev);
 		return retval;
 	}
 
 	board->pdev = pdev;
-	TS_DBG("succeed to register platform device.");
+	pr_debug("succeed to register platform device.");
 	return 0;
 }
 
@@ -594,7 +603,7 @@ void ts_unregister_bus_dev(void)
 static enum ts_bustype ts_bus_init(struct device_node *bus_node, bool adaptive)
 {
 	if (IS_ERR_OR_NULL(bus_node)) {
-		TS_ERR("cannot decide bus type because of_node is null!");
+		pr_err("cannot decide bus type because of_node is null!");
 		return TSBUS_NONE;
 	}
 
@@ -610,7 +619,7 @@ static enum ts_bustype ts_bus_init(struct device_node *bus_node, bool adaptive)
 	} else if (!strncmp(bus_node->name, "spi", 3)) {
 		/* TODO add spi support */
 	} else {
-		TS_WARN("unknown bus type: \"%s\"", bus_node->name);
+		pr_warn("unknown bus type: \"%s\"", bus_node->name);
 	}
 
 	return TSBUS_NONE;
@@ -628,13 +637,13 @@ int ts_board_init(void)
 
 	pn = of_find_compatible_node(NULL, NULL, ATS_COMPATIBLE);
 	if (IS_ERR_OR_NULL(pn)) {
-		TS_ERR("cannot find compatible node \"%s\"", ATS_COMPATIBLE);
+		pr_err("cannot find compatible node \"%s\"", ATS_COMPATIBLE);
 		return -ENODEV;
 	}
 
 	board = ts_parse_dt(pn);
 	if (IS_ERR_OR_NULL(board)) {
-		TS_ERR("parsing board info failed!");
+		pr_err("parsing board info failed!");
 		return -ENODEV;
 	}
 	board->suspend_on_init = cali;
@@ -642,13 +651,13 @@ int ts_board_init(void)
 	g_board = board;
 	bus_type = ts_bus_init(pn->parent, board->controller == NULL);
 	if (bus_type == TSBUS_NONE) {
-		TS_ERR("bus init failed!");
+		pr_err("bus init failed!");
 		kfree(board);
 		g_board = NULL;
 		return -ENODEV;
 	}
 
-	TS_DBG("board init OK, bus type is %d.", bus_type);
+	pr_debug("board init OK, bus type is %d.", bus_type);
 	return 0;
 }
 

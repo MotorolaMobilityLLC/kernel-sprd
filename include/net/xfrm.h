@@ -335,7 +335,6 @@ int xfrm_policy_register_afinfo(const struct xfrm_policy_afinfo *afinfo, int fam
 void xfrm_policy_unregister_afinfo(const struct xfrm_policy_afinfo *afinfo);
 void km_policy_notify(struct xfrm_policy *xp, int dir,
 		      const struct km_event *c);
-void xfrm_policy_cache_flush(void);
 void km_state_notify(struct xfrm_state *x, const struct km_event *c);
 
 struct xfrm_tmpl;
@@ -581,6 +580,8 @@ struct xfrm_policy {
 	rwlock_t		lock;
 	refcount_t		refcnt;
 	struct timer_list	timer;
+
+	struct flow_cache_object flo;
 
 	atomic_t		genid;
 	u32			priority;
@@ -997,6 +998,7 @@ struct xfrm_dst {
 		struct rt6_info		rt6;
 	} u;
 	struct dst_entry *route;
+	struct flow_cache_object flo;
 	struct xfrm_policy *pols[XFRM_POLICY_TYPE_MAX];
 	int num_pols, num_xfrms;
 	u32 xfrm_genid;
@@ -1261,6 +1263,8 @@ static inline void xfrm_sk_free_policy(struct sock *sk)
 	}
 }
 
+void xfrm_garbage_collect(struct net *net);
+void xfrm_garbage_collect_deferred(struct net *net);
 #else
 
 static inline void xfrm_sk_free_policy(struct sock *sk) {}
@@ -1294,6 +1298,9 @@ static inline int xfrm6_policy_check_reverse(struct sock *sk, int dir,
 					     struct sk_buff *skb)
 {
 	return 1;
+}
+static inline void xfrm_garbage_collect(struct net *net)
+{
 }
 #endif
 
@@ -1529,7 +1536,7 @@ struct xfrm_state *xfrm_state_find(const xfrm_address_t *daddr,
 				   const struct flowi *fl,
 				   struct xfrm_tmpl *tmpl,
 				   struct xfrm_policy *pol, int *err,
-				   unsigned short family, u32 if_id);
+				   unsigned short family);
 struct xfrm_state *xfrm_stateonly_find(struct net *net, u32 mark, u32 if_id,
 				       xfrm_address_t *daddr,
 				       xfrm_address_t *saddr,

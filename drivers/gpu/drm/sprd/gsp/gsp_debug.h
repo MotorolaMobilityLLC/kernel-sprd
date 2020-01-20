@@ -15,21 +15,30 @@
 
 #include <linux/printk.h>
 
-#define GSP_TAG "[gsp]"
+#define GSP_TAG "sprd-gsp:"
 
-#define GSP_DEBUG(fmt, ...) \
-	pr_debug(GSP_TAG  " %s()-" pr_fmt(fmt), __func__, ##__VA_ARGS__)
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) GSP_TAG " %s()-" fmt, __func__
 
-#define GSP_ERR(fmt, ...) \
-	pr_err(GSP_TAG  " %s()-" pr_fmt(fmt), __func__, ##__VA_ARGS__)
+#define GSP_DEBUG pr_debug
 
-#define GSP_INFO(fmt, ...) \
-	pr_info(GSP_TAG  "%s()-" pr_fmt(fmt), __func__, ##__VA_ARGS__)
+#define GSP_ERR pr_err
 
-#define GSP_DUMP(fmt, ...) \
-	pr_info(GSP_TAG  "%s()-" pr_fmt(fmt), __func__, ##__VA_ARGS__)
+#define GSP_INFO pr_info
 
-#define GSP_WARN(fmt, ...) \
-	pr_warn(GSP_TAG  "%s()-" pr_fmt(fmt), __func__, ##__VA_ARGS__)
+#define GSP_DUMP pr_info
+
+#define GSP_WARN pr_warn
+
+#define GSP_DEV_DEBUG(dev, fmt, ...) \
+	dev_dbg(dev, "%s()-" fmt, __func__, ##__VA_ARGS__)
+
+#define GSP_DEV_ERR(dev, fmt, ...) \
+	dev_err(dev, "%s()-" fmt, __func__, ##__VA_ARGS__)
+
+#define GSP_DEV_INFO(dev, fmt, ...) \
+	dev_info(dev, "%s()-" fmt, __func__, ##__VA_ARGS__)
 
 #endif

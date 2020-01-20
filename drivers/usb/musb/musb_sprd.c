@@ -92,16 +92,6 @@ static void sprd_musb_enable(struct musb *musb)
 
 	/* soft connect */
 	if (glue->dr_mode == USB_DR_MODE_HOST) {
-		/* Musb controller process go as device default.
-		 * From asic,controller will wait 150ms and then check vbus
-		 * if vbus is powered up.
-		 * Session reg effects relay on vbus checked ok while seted.
-		 * If not sleep,it will contine cost 150ms to check vbus ok
-		 * before session take effect.Which may cause session effect
-		 * timeout and usb switch to host failed Sometimes.
-		 */
-		msleep(150);
-
 		devctl |= MUSB_DEVCTL_SESSION;
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl);
 		otgextcsr = musb_readb(musb->mregs, MUSB_OTG_EXT_CSR);
@@ -1316,6 +1306,16 @@ static int musb_sprd_runtime_resume(struct device *dev)
 		usb_phy_init(glue->xceiv);
 	if (glue->dr_mode == USB_DR_MODE_HOST) {
 		usb_phy_vbus_on(glue->xceiv);
+	       /* Musb controller process go as device default.
+		* From asic,controller will wait 150ms and then check vbus
+		* if vbus is powered up.
+		* Session reg effects relay on vbus checked ok while seted.
+		* If not sleep,it will contine cost 150ms to check vbus ok
+		* before session take effect.Which may cause session effect
+		* timeout and usb switch to host failed Sometimes.
+		*/
+		msleep(150);
+
 		sprd_musb_enable(musb);
 	}
 

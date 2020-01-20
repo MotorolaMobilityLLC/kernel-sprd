@@ -42,6 +42,10 @@
 #include "vsp_common.h"
 #include "sprd_dvfs_vsp.h"
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-vsp: " fmt
 
 static unsigned long sprd_vsp_phys_addr;
 static void __iomem *sprd_vsp_base;
@@ -58,7 +62,8 @@ static char *vsp_clk_src[] = {
 	"clk_src_192m",
 	"clk_src_256m",
 	"clk_src_307m2",
-	"clk_src_384m"
+	"clk_src_384m",
+	"clk_src_512m"
 };
 
 static struct clock_name_map_t clock_name_map[ARRAY_SIZE(vsp_clk_src)];
@@ -66,6 +71,7 @@ static struct vsp_qos_cfg qos_cfg;
 static int max_freq_level = SPRD_VSP_CLK_LEVEL_NUM;
 
 static irqreturn_t vsp_isr(int irq, void *data);
+static irqreturn_t vsp_isr_thread(int irq, void *data);
 
 static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
@@ -364,7 +370,8 @@ static irqreturn_t vsp_isr(int irq, void *data)
 
 	if (vsp_fp == NULL) {
 		pr_err("%s error occurred, vsp_fp == NULL\n", __func__);
-		return IRQ_NONE;
+		__pm_stay_awake(&vsp_wakelock);
+		return IRQ_WAKE_THREAD;
 	}
 
 	if (vsp_fp->is_clock_enabled == 0) {
@@ -387,6 +394,24 @@ static irqreturn_t vsp_isr(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static irqreturn_t vsp_isr_thread(int irq, void *data)
+{
+	int ret;
+
+	ret = vsp_clk_enable(&vsp_hw_dev);
+	if (ret == 0) {
+		pr_info("VSP_INT_RAW 0x%x, 0x%x\n",
+			readl_relaxed(vsp_glb_reg_base + VSP_INT_RAW_OFF),
+			readl_relaxed(sprd_vsp_base + VSP_MMU_INT_RAW_OFF));
+		clr_vsp_interrupt_mask(&vsp_hw_dev,
+			sprd_vsp_base, vsp_glb_reg_base);
+
+		vsp_clk_disable(&vsp_hw_dev);
+	}
+	__pm_relax(&vsp_wakelock);
+
+	return IRQ_HANDLED;
+}
 
 static const struct sprd_vsp_cfg_data sharkle_vsp_data = {
 	.version = SHARKLE,
@@ -547,13 +572,13 @@ static int vsp_parse_dt(struct platform_device *pdev)
 
 static int vsp_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	pr_info("@vsp[%s]\n", __func__);
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 	vma->vm_pgoff = (sprd_vsp_phys_addr >> PAGE_SHIFT);
 	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
 			    vma->vm_end - vma->vm_start, vma->vm_page_prot))
 		return -EAGAIN;
-	pr_info("@vsp mmap %x,%lx,%x\n", (unsigned int)PAGE_SHIFT,
+
+	pr_info("mmap %x,%lx,%x\n", (unsigned int)PAGE_SHIFT,
 		(unsigned long)vma->vm_start,
 		(unsigned int)(vma->vm_end - vma->vm_start));
 	return 0;
@@ -588,9 +613,6 @@ static int vsp_open(struct inode *inode, struct file *filp)
 	}
 
 	atomic_inc_return(&vsp_instance_cnt);
-
-	pr_info("%s: ret %d\n", __func__, ret);
-
 	return ret;
 }
 
@@ -625,10 +647,8 @@ static int vsp_release(struct inode *inode, struct file *filp)
 	}
 	vsp_pw_off(VSP_PW_DOMAIN_VSP);
 
-	pr_info("%s %p\n", __func__, vsp_fp);
 	kfree(filp->private_data);
 	filp->private_data = NULL;
-
 	return 0;
 }
 
@@ -709,9 +729,8 @@ static int vsp_probe(struct platform_device *pdev)
 	}
 
 	/* register isr */
-	ret =
-	    devm_request_irq(&pdev->dev, vsp_hw_dev.irq, vsp_isr,
-			     0, "VSP", &vsp_hw_dev);
+	ret = devm_request_threaded_irq(&pdev->dev, vsp_hw_dev.irq, vsp_isr,
+			vsp_isr_thread, 0, "VSP", &vsp_hw_dev);
 	if (ret) {
 		dev_err(dev, "vsp: failed to request irq!\n");
 		ret = -EINVAL;

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			   sp9860g-1h10.dtb	\
-			   sp9832e-1h10.dtb	\
+			   sl8541e-1h10.dtb	\
 			   sp9863a-1h10.dtb	\
 			   sp9863a-1c10.dtb	\
 			   sp9863a-2h10.dtb	\
@@ -36,6 +36,7 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9863a-1c10-overlay.dtbo \
 	sp9863a-2h10-overlay.dtbo \
 	sp9863a-3c10-overlay.dtbo \
+	sl8541e-1h10-overlay.dtbo \
 	ums518-zebu-overlay.dtbo \
 	ums312-haps-overlay.dtbo \
 	ums312-1h10-overlay.dtbo \

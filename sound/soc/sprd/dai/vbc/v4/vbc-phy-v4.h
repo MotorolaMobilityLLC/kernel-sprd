@@ -576,6 +576,7 @@ enum KCTL_TYPE {
 	SND_KCTL_TYPE_MAIN_MIC_PATH_FROM,
 	SND_KCTL_TYPE_IVSENCE_FUNC,
 	SND_KCTL_TYPE_EXT_INNER_IIS_MST_SEL,
+	SND_KCTL_TYPE_VBC_IIS_MASTER_WIDTH_SET,
 	SND_KCTL_TYPE_END,
 };
 
@@ -1408,6 +1409,7 @@ struct vbc_codec_priv {
 	atomic_t aux_iis_master_start;
 	int32_t ivs_smtpa_ctl_enable;
 	int32_t is_use_ivs_smtpa;
+	u32 iis_mst_width;
 };
 
 /********************************************************************
@@ -1475,6 +1477,7 @@ int dsp_vbc_iis_rx_width_set(int id, u32 width);
 int dsp_vbc_iis_rx_lr_mod_set(int id, u32 lr_mod);
 int dsp_vbc_mst_sel_type_set(int id, u32 type);
 int dsp_vbc_iis_master_start(u32 enable);
+void dsp_vbc_iis_master_width_set(u32 iis_width);
 int dsp_vbc_mainmic_path_set(int type, int val);
 int dsp_ivsence_func(int enable, int iv_adc_id);
 

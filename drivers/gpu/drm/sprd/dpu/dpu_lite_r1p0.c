@@ -872,6 +872,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* enable te */
 		reg->dpi_ctrl |= BIT(8);
 
+		/* dpu pixel data width is 24 bit*/
+		reg->dpi_ctrl |= BIT(7);
+
 		/* enable stop DONE INT */
 		int_mask |= DISPC_INT_DONE_MASK;
 		/* enable TE INT */

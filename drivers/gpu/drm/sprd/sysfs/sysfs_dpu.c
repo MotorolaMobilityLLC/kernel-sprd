@@ -311,8 +311,9 @@ static ssize_t irq_register_store(struct device *dev,
 		if (!ctx->is_inited) {
 			pr_err("dpu is not initialized!\n");
 			up(&ctx->refresh_lock);
-			return -1;
+			return -EINVAL;
 		}
+
 		if (dpu->core->enable_vsync)
 			dpu->core->enable_vsync(ctx);
 
@@ -321,8 +322,13 @@ static ssize_t irq_register_store(struct device *dev,
 		if (ret) {
 			up(&ctx->refresh_lock);
 			pr_err("error: dpu request irq failed\n");
-			return -EINVAL;
+			return ret;
 		}
+
+		/*
+		 *We request dpu isr on sprd crtc driver and set the IRQ_NOAUTOEN flag,
+		 *so if not clear this flag, need to call "enable_irq" enable it.
+		 */
 		enable_irq(ctx->irq);
 		up(&ctx->refresh_lock);
 	}
@@ -348,12 +354,18 @@ static ssize_t irq_unregister_store(struct device *dev,
 		if (!ctx->is_inited) {
 			pr_err("dpu is not initialized!\n");
 			up(&ctx->refresh_lock);
-			return -1;
+			return -EINVAL;
 		}
+
 		if (dpu->core->disable_vsync)
 			dpu->core->disable_vsync(ctx);
+
+		/*
+		 *We request dpu isr on sprd crtc driver and set the IRQ_NOAUTOEN flag,
+		 *so if not clear this flag, need to call "disable_irq" disable it.
+		 */
+		disable_irq(ctx->irq);
 		devm_free_irq(&dpu->dev, ctx->irq, dpu);
-		pr_info("remove dpu irq = %d\n", ctx->irq);
 		up(&ctx->refresh_lock);
 	}
 

@@ -525,8 +525,8 @@ static int sprd_apb_busmon_probe(struct platform_device *pdev)
 	ret = of_property_read_u32_array(np, "sprd,target-data", args, 2);
 	if (ret)
 		return ret;
-	apb_bm->cfg.addr = args[0];
-	apb_bm->cfg.addr_mask = args[1];
+	apb_bm->cfg.data = args[0];
+	apb_bm->cfg.data_mask = args[1];
 
 	sprd_apb_busmon_get_hw_cfg(apb_bm);
 	dev_set_drvdata(apb_bm->dev, apb_bm);

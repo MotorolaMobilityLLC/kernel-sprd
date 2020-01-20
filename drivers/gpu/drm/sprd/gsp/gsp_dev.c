@@ -279,7 +279,7 @@ struct gsp_core_ops *gsp_dev_to_core_ops(struct gsp_dev *gsp)
 
 	id = of_match_node(gsp_dt_ids, gsp->dev->of_node);
 	if (IS_ERR_OR_NULL(id)) {
-		GSP_ERR("find core ops failed\n");
+		GSP_DEV_ERR(gsp->dev, "find core ops failed\n");
 		return ops;
 	}
 
@@ -303,13 +303,13 @@ int gsp_dev_prepare(struct gsp_dev *gsp)
 	}
 
 	if (!gsp_interface_is_attached(gsp->interface)) {
-		GSP_ERR("gsp has not attached interface\n");
+		GSP_DEV_ERR(gsp->dev, "gsp has not attached interface\n");
 		return ret;
 	}
 
 	ret = gsp_interface_init(gsp->interface);
 	if (ret)
-		GSP_ERR("gsp interface prepare failed\n");
+		GSP_DEV_ERR(gsp->dev, "gsp interface prepare failed\n");
 
 	return ret;
 }
@@ -324,13 +324,13 @@ void gsp_dev_unprepare(struct gsp_dev *gsp)
 	}
 
 	if (!gsp_interface_is_attached(gsp->interface)) {
-		GSP_ERR("gsp has not attached interface\n");
+		GSP_DEV_ERR(gsp->dev, "gsp has not attached interface\n");
 		return;
 	}
 
 	ret = gsp_interface_deinit(gsp->interface);
 	if (ret)
-		GSP_ERR("gsp interface unprepare failed\n");
+		GSP_DEV_ERR(gsp->dev, "gsp interface unprepare failed\n");
 }
 
 int gsp_dev_init(struct gsp_dev *gsp)
@@ -343,13 +343,13 @@ int gsp_dev_init(struct gsp_dev *gsp)
 
 	ret = gsp_dev_sysfs_init(gsp);
 	if (ret) {
-		GSP_ERR("gsp sysfs initialize failed\n");
+		GSP_DEV_ERR(gsp->dev, "gsp sysfs initialize failed\n");
 		return ret;
 	}
 
 	ret = gsp_interface_attach(&gsp->interface, gsp);
 	if (ret) {
-		GSP_ERR("gsp interface attach failed\n");
+		GSP_DEV_ERR(gsp->dev, "gsp interface attach failed\n");
 		return ret;
 	}
 
@@ -358,21 +358,23 @@ int gsp_dev_init(struct gsp_dev *gsp)
 			return ret;
 
 		if (gsp_core_verify(core)) {
-			GSP_ERR("dev init core params error\n");
+			GSP_DEV_ERR(gsp->dev, "dev init core params error\n");
 			return ret;
 		}
 
 		ret = gsp_core_init(core);
 		if (ret) {
-			GSP_ERR("init core[%d] failed\n", gsp_core_to_id(core));
+			GSP_DEV_ERR(gsp->dev, "init core[%d] failed\n",
+				 gsp_core_to_id(core));
 			return ret;
 		}
-		GSP_INFO("initialize core[%d] success\n", gsp_core_to_id(core));
+		GSP_DEV_INFO(gsp->dev, "initialize core[%d] success\n",
+				 gsp_core_to_id(core));
 	}
 
 	ret = gsp_dev_prepare(gsp);
 	if (ret) {
-		GSP_ERR("gsp interface prepare failed\n");
+		GSP_DEV_ERR(gsp->dev, "gsp interface prepare failed\n");
 		goto exit;
 	}
 
@@ -403,38 +405,38 @@ static int gsp_dev_alloc(struct device *dev, struct gsp_dev **gsp)
 	np = dev->of_node;
 	ret = of_property_read_u32(np, "core-cnt", &cnt);
 	if (ret) {
-		GSP_ERR("read core count failed\n");
+		GSP_DEV_ERR(dev, "read core count failed\n");
 		return ret;
 	}
-	GSP_INFO("node count: %d\n", cnt);
+	GSP_DEV_INFO(dev, "node count: %d\n", cnt);
 	(*gsp)->core_cnt = cnt;
 
 	ret = of_property_read_string(np, "name", &name);
 	if (ret) {
-		GSP_ERR("read name failed\n");
+		GSP_DEV_ERR(dev, "read name failed\n");
 		return ret;
 	}
 	strlcpy((*gsp)->name, name, sizeof((*gsp)->name));
-	GSP_INFO("gsp device name: %s\n", (*gsp)->name);
+	GSP_DEV_INFO(dev, "gsp device name: %s\n", (*gsp)->name);
 
 	ret = of_property_read_u32(np, "io-cnt", &cnt);
 	if (ret) {
-		GSP_ERR("read io count failed\n");
+		GSP_DEV_ERR(dev, "read io count failed\n");
 		return ret;
 	}
-	GSP_INFO("io count: %d\n", cnt);
+	GSP_DEV_INFO(dev, "io count: %d\n", cnt);
 	(*gsp)->io_cnt = cnt;
 
 	ops = gsp_dev_to_core_ops(*gsp);
 	if (IS_ERR_OR_NULL(ops)) {
-		GSP_ERR("dev to core ops failed\n");
+		GSP_DEV_ERR(dev, "dev to core ops failed\n");
 		return ret;
 	}
 
 	for (i = 0; i < (*gsp)->core_cnt; i++) {
 		child = of_parse_phandle(np, "cores", i);
 		if (IS_ERR_OR_NULL(child)) {
-			GSP_ERR("parse core[%d] phandle failed\n", i);
+			GSP_DEV_ERR(dev, "parse core[%d] phandle failed\n", i);
 			ret = -1;
 			break;
 		}
@@ -442,7 +444,7 @@ static int gsp_dev_alloc(struct device *dev, struct gsp_dev **gsp)
 		ret = gsp_core_alloc(&core, ops, child);
 		if (ret)
 			break;
-		GSP_INFO("core[%d] allocate success\n", gsp_core_to_id(core));
+		GSP_DEV_INFO(dev, "core[%d] allocate success\n", gsp_core_to_id(core));
 		gsp_dev_add_core(*gsp, core);
 	}
 
@@ -464,14 +466,14 @@ int gsp_dev_get_capability(struct gsp_dev *gsp,
 	core = gsp_dev_to_core(gsp, 0);
 	if (IS_ERR_OR_NULL(core)
 	    || IS_ERR_OR_NULL(core->ops)) {
-		GSP_ERR("core ops has not been initialized\n");
+		GSP_DEV_ERR(gsp->dev, "core ops has not been initialized\n");
 		return -1;
 	}
 
 	capability = gsp_core_get_capability(core);
 	if (IS_ERR_OR_NULL(capa)
 	    || IS_ERR_OR_NULL(capability)) {
-		GSP_ERR("get core[0] capability failed\n");
+		GSP_DEV_ERR(gsp->dev, "get core[0] capability failed\n");
 		return -1;
 	}
 
@@ -492,7 +494,7 @@ void gsp_dev_start_work(struct gsp_dev *gsp)
 	for_each_gsp_core(core, gsp) {
 		if (!gsp_core_is_idle(core))
 			continue;
-		GSP_DEBUG("gsp core[%d] is idle to start work\n",
+		GSP_DEV_DEBUG(gsp->dev, "gsp core[%d] is idle to start work\n",
 			  gsp_core_to_id(core));
 		gsp_core_work(core);
 	}
@@ -511,22 +513,24 @@ int gsp_dev_resume_wait(struct gsp_dev *gsp)
 		time = wait_for_completion_interruptible_timeout
 				(&core->resume_done, GSP_CORE_RESUME_WAIT);
 		if (time == -ERESTARTSYS) {
-			GSP_ERR("core[%d] resume interrupt when resume wait\n",
+			GSP_DEV_ERR(gsp->dev,
+				"core[%d] resume interrupt when resume wait\n",
 				gsp_core_to_id(core));
 			resume_status = -1;
 		} else if (time == 0) {
-			GSP_ERR("core[%d] resume wait timeout\n",
+			GSP_DEV_ERR(gsp->dev, "core[%d] resume wait timeout\n",
 				gsp_core_to_id(core));
 			resume_status = -1;
 		} else if (time > 0) {
-			GSP_DEBUG("core[%d] resume wait success\n",
-				  gsp_core_to_id(core));
+			GSP_DEV_DEBUG(gsp->dev,
+				"core[%d] resume wait success\n",
+				gsp_core_to_id(core));
 		}
 
 		if (resume_status == 0)
 			reinit_completion(&core->resume_done);
 		else {
-			GSP_ERR("resume wait done fail!\n");
+			GSP_DEV_ERR(gsp->dev, "resume wait done fail!\n");
 			break;
 		}
 	}
@@ -561,13 +565,13 @@ int sprd_gsp_get_capability_ioctl(struct drm_device *drm_dev, void *data,
 
 	pdev = to_platform_device(dev);
 	if (IS_ERR_OR_NULL(pdev)) {
-		GSP_ERR("null pdev\n");
+		GSP_DEV_ERR(dev, "null pdev\n");
 		return -1;
 	}
 	gsp = platform_get_drvdata(pdev);
 
 	if (gsp_dev_verify(gsp)) {
-		GSP_ERR("ioctl with err dev\n");
+		GSP_DEV_ERR(dev, "ioctl with err dev\n");
 		ret = -EBADF;
 		return ret;
 	}
@@ -575,13 +579,13 @@ int sprd_gsp_get_capability_ioctl(struct drm_device *drm_dev, void *data,
 	size = drm_capa->size;
 
 	if (size < sizeof(*capa))
-		GSP_ERR("size: %zu less than request: %zu.\n",
-			size, sizeof(struct gsp_capability));
+		GSP_DEV_ERR(dev, "size: %zu less than request: %zu.\n",
+				size, sizeof(struct gsp_capability));
 	else
 		ret = gsp_dev_get_capability(gsp, &capa);
 
 	if (ret) {
-		GSP_ERR("get capability error\n");
+		GSP_DEV_ERR(dev, "get capability error\n");
 		return -1;
 	}
 
@@ -589,9 +593,9 @@ int sprd_gsp_get_capability_ioctl(struct drm_device *drm_dev, void *data,
 				   (const void *)capa, size);
 
 	if (ret)
-		GSP_ERR("get capability copy error\n");
+		GSP_DEV_ERR(dev, "get capability copy error\n");
 
-	GSP_INFO("get cap io_cnt:%d, core_cnt:%d ,size:%zu",
+	GSP_DEV_INFO(dev, "get cap io_cnt:%d, core_cnt:%d ,size:%zu",
 		capa->io_cnt, capa->core_cnt, size);
 
 	return ret;
@@ -629,13 +633,13 @@ int sprd_gsp_trigger_ioctl(struct drm_device *drm_dev, void *data,
 
 	pdev = to_platform_device(dev);
 	if (IS_ERR_OR_NULL(pdev)) {
-		GSP_ERR("null pdev\n");
+		GSP_DEV_ERR(dev, "null pdev\n");
 		return -1;
 	}
 	gsp = platform_get_drvdata(pdev);
 
 	if (gsp_dev_verify(gsp)) {
-		GSP_ERR("ioctl with err dev\n");
+		GSP_DEV_ERR(dev, "ioctl with err dev\n");
 		ret = -EBADF;
 		return ret;
 	}
@@ -645,16 +649,16 @@ int sprd_gsp_trigger_ioctl(struct drm_device *drm_dev, void *data,
 	split = cmd->split;
 	size = cmd->size;
 
-	GSP_DEBUG("async: %d, split: %d, cnt: %d\n", async, split, cnt);
+	GSP_DEV_DEBUG(dev, "async: %d, split: %d, cnt: %d\n", async, split, cnt);
 	if (cnt > GSP_MAX_IO_CNT(gsp)
 	    || cnt < 1) {
-		GSP_ERR("request error number kcfgs\n");
+		GSP_DEV_ERR(dev, "request error number kcfgs\n");
 		ret = -EINVAL;
 		goto exit;
 	}
 
 	if (size < sizeof(struct gsp_cfg)) {
-		GSP_ERR("error base cfg size: %zu\n", size);
+		GSP_DEV_ERR(dev, "error base cfg size: %zu\n", size);
 		ret = -EINVAL;
 		goto exit;
 	}
@@ -663,7 +667,7 @@ int sprd_gsp_trigger_ioctl(struct drm_device *drm_dev, void *data,
 
 	ret = gsp_kcfg_list_acquire(gsp, &kcfg_list, cnt);
 	if (ret) {
-		GSP_ERR("kcfg list acuqire failed\n");
+		GSP_DEV_ERR(dev, "kcfg list acuqire failed\n");
 		if (gsp_kcfg_list_is_empty(&kcfg_list))
 			goto exit;
 		else
@@ -672,13 +676,13 @@ int sprd_gsp_trigger_ioctl(struct drm_device *drm_dev, void *data,
 
 	ret = gsp_kcfg_list_fill(&kcfg_list, (void __user *)cmd->config);
 	if (ret) {
-		GSP_ERR("kcfg list fill failed\n");
+		GSP_DEV_ERR(dev, "kcfg list fill failed\n");
 		goto kcfg_list_put;
 	}
 
 	ret = gsp_kcfg_list_push(&kcfg_list);
 	if (ret) {
-		GSP_ERR("kcfg list push failed\n");
+		GSP_DEV_ERR(dev, "kcfg list push failed\n");
 		goto kcfg_list_release;
 	}
 
@@ -696,7 +700,7 @@ int sprd_gsp_trigger_ioctl(struct drm_device *drm_dev, void *data,
 	}
 
 	if (gsp_dev_is_suspend(gsp))
-		GSP_INFO("no need to process kcfg at suspend state\n");
+		GSP_DEV_INFO(dev, "no need to process kcfg at suspend state\n");
 
 	gsp_dev_start_work(gsp);
 
@@ -804,13 +808,13 @@ static int sprd_gsp_bind(struct device *dev, struct device *master, void *data)
 
 	ret = gsp_dev_init(gsp);
 	if (ret) {
-		GSP_ERR("dev init failed\n");
+		GSP_DEV_ERR(dev, "dev init failed\n");
 		goto dev_deinit;
 	}
 
 	gsp_drm_dev_set(drm_dev, dev);
 
-	GSP_INFO("dev bind success\n");
+	GSP_DEV_INFO(dev, "dev bind success\n");
 
 	return ret;
 
@@ -850,7 +854,7 @@ static int gsp_dev_probe(struct platform_device *pdev)
 
 	ret = gsp_miscdev_register(gsp);
 	if (ret) {
-		GSP_ERR("mdev register failed\n");
+		GSP_DEV_ERR(gsp->dev, "mdev register failed\n");
 		goto dev_free;
 	}
 
@@ -862,7 +866,7 @@ static int gsp_dev_probe(struct platform_device *pdev)
 
 	pm_runtime_enable(&pdev->dev);
 
-	GSP_INFO("probe success\n");
+	GSP_DEV_INFO(gsp->dev, "probe success\n");
 
 	return component_add(&pdev->dev, &gsp_component_ops);
 
@@ -881,7 +885,7 @@ static void gsp_dev_wait_suspend(struct gsp_dev *gsp)
 
 	for_each_gsp_core(core, gsp) {
 		if (gsp_core_verify(core)) {
-			GSP_ERR("wait work done params error\n");
+			GSP_DEV_ERR(gsp->dev, "wait work done params error\n");
 			break;
 		}
 
@@ -893,7 +897,7 @@ static void gsp_dev_wait_suspend(struct gsp_dev *gsp)
 		if (ret == 0)
 			gsp_core_suspend(core);
 		else
-			GSP_ERR("gsp_dev_wait suspend fail !\n");
+			GSP_DEV_ERR(gsp->dev, "gsp_dev_wait suspend fail !\n");
 	}
 }
 
@@ -903,7 +907,8 @@ static void gsp_dev_enter_suspending(struct gsp_dev *gsp)
 
 	for_each_gsp_core(core, gsp) {
 		if (gsp_core_verify(core)) {
-			GSP_ERR("check core verify params error\n");
+			GSP_DEV_ERR(gsp->dev,
+				"check core verify params error\n");
 			break;
 		}
 		gsp_core_suspend_state_set(core, CORE_STATE_SUSPEND_BEGIN);
@@ -916,7 +921,8 @@ static void gsp_dev_enter_suspend(struct gsp_dev *gsp)
 
 	for_each_gsp_core(core, gsp) {
 		if (gsp_core_verify(core)) {
-			GSP_ERR("check core verify params error\n");
+			GSP_DEV_ERR(gsp->dev,
+				"check core verify params error\n");
 			break;
 		}
 
@@ -931,13 +937,13 @@ static int gsp_dev_stop(struct gsp_dev *gsp)
 
 	for_each_gsp_core(core, gsp) {
 		if (gsp_core_verify(core)) {
-			GSP_ERR("stop device params error\n");
+			GSP_DEV_ERR(gsp->dev, "stop device params error\n");
 			break;
 		}
 
 		ret = gsp_core_stop(core);
 		if (ret) {
-			GSP_ERR("gsp core stop fail!\n");
+			GSP_DEV_ERR(gsp->dev, "gsp core stop fail!\n");
 			goto exit;
 		}
 	}
@@ -977,7 +983,7 @@ static int gsp_dev_suspend(struct device *dev)
 	gsp = platform_get_drvdata(pdev);
 
 	if (gsp_dev_is_suspend(gsp)) {
-		GSP_ERR("gsp dev already suspend, skip !\n");
+		GSP_DEV_ERR(dev, "gsp dev already suspend, skip !\n");
 		return 0;
 	}
 
@@ -990,7 +996,7 @@ static int gsp_dev_suspend(struct device *dev)
 
 	ret = gsp_dev_stop(gsp);
 	if (ret)
-		GSP_ERR("stop device failed\n");
+		GSP_DEV_ERR(dev, "stop device failed\n");
 
 	return 0;
 }
@@ -1007,7 +1013,7 @@ static int gsp_dev_resume(struct device *dev)
 
 	for_each_gsp_core(core, gsp) {
 		if (gsp_core_verify(core)) {
-			GSP_ERR("resume error core\n");
+			GSP_DEV_ERR(dev, "resume error core\n");
 			ret = -1;
 			break;
 		}
@@ -1018,16 +1024,19 @@ static int gsp_dev_resume(struct device *dev)
 			time = wait_for_completion_interruptible_timeout
 				(&core->suspend_done, GSP_CORE_SUSPEND_WAIT);
 			if (time == -ERESTARTSYS) {
-				GSP_ERR("core[%d] interrupt in suspend wait\n",
-					gsp_core_to_id(core));
+				GSP_DEV_ERR(dev,
+				    "core[%d] interrupt in suspend wait\n",
+				    gsp_core_to_id(core));
 				err++;
 			} else if (time == 0) {
-				GSP_ERR("core[%d] suspend wait timeout\n",
-					gsp_core_to_id(core));
+				GSP_DEV_ERR(dev,
+				    "core[%d] suspend wait timeout\n",
+				    gsp_core_to_id(core));
 				err++;
 			} else if (time > 0) {
-				GSP_DEBUG("core[%d] suspend wait success\n",
-					  gsp_core_to_id(core));
+				GSP_DEV_DEBUG(dev,
+				    "core[%d] suspend wait success\n",
+				    gsp_core_to_id(core));
 			}
 
 			if (err) {
@@ -1038,11 +1047,11 @@ static int gsp_dev_resume(struct device *dev)
 	}
 
 	if (ret)
-		GSP_INFO("resume wait not success, force exec resume!\n");
+		GSP_DEV_INFO(dev, "resume wait not success, force exec resume!\n");
 
 	ret = gsp_dev_prepare(gsp);
 	if (ret) {
-		GSP_ERR("gsp dev resume prepare fail !\n");
+		GSP_DEV_ERR(dev, "gsp dev resume prepare fail !\n");
 		goto exit;
 	}
 

@@ -995,36 +995,67 @@ int mcdt_adc_int_enable(unsigned int channel,
 	return 0;
 }
 
+static int mcdt_dma_channel_get(unsigned int channel)
+{
+	int dma_channel;
+
+	switch (channel) {
+	case MCDT_CHAN0:
+		dma_channel = MCDT_AP_DMA_CH0;
+		break;
+	case MCDT_CHAN1:
+		dma_channel = MCDT_AP_DMA_CH1;
+		break;
+	case MCDT_CHAN2:
+		dma_channel = MCDT_AP_DMA_CH2;
+		break;
+	case MCDT_CHAN3:
+		dma_channel = MCDT_AP_DMA_CH3;
+		break;
+	case MCDT_CHAN4:
+		dma_channel = MCDT_AP_DMA_CH4;
+		break;
+	default:
+		dma_channel = -EINVAL;
+		pr_err("adc no dma id for :%d", channel);
+		break;
+	}
+	return dma_channel;
+}
+
 /* return: uid, error if < 0 */
 int mcdt_dac_dma_enable(unsigned int channel, unsigned int emptymark)
 {
-	int i = 0;
 	int uid = -1;
+	int dma_channel;
 
 	if (g_dac_channel[channel].int_enabled == 1 ||
 	    g_dac_channel[channel].dma_enabled == 1)
 		return -1;
 
-	mutex_lock(&mcdt_mutex);
-	for (i = 0; i < MCDT_DMA_AP_CHANNEL; i++) {
-		if (!mcdt_dac_dma_channel[i]) {
-			mcdt_dac_dma_channel[i] = 1;
-			break;
-		}
+	dma_channel = mcdt_dma_channel_get(channel);
+	if (dma_channel < 0 ||
+		dma_channel >= MCDT_DMA_AP_CHANNEL) {
+		pr_err("dma_channel error:%d", dma_channel);
+		return -EINVAL;
 	}
+	mutex_lock(&mcdt_mutex);
+	if (mcdt_dac_dma_channel[dma_channel]) {
+		pr_err("dma_channel is already used:%d", dma_channel);
+		mutex_unlock(&mcdt_mutex);
+		return -EBUSY;
+	}
+	mcdt_dac_dma_channel[dma_channel] = 1;
 	mutex_unlock(&mcdt_mutex);
-
-	if (i == MCDT_DMA_AP_CHANNEL)
-		return -1;
 
 	mcdt_da_fifo_clr(channel);
 	mcdt_da_set_watermark(channel, FIFO_LENGTH - 1, emptymark);
-	uid = mcdt_send_data_use_dma(channel, i);
+	uid = mcdt_send_data_use_dma(channel, dma_channel);
 	if (uid > 0) {
 		pr_info("%s %d mcdt_dma_ap_channel=%d\n",
-			__func__, __LINE__, i);
+			__func__, __LINE__, dma_channel);
 		g_dac_channel[channel].dma_enabled = 1;
-		g_dac_channel[channel].dma_channel = i;
+		g_dac_channel[channel].dma_channel = dma_channel;
 	}
 
 	return uid;
@@ -1036,31 +1067,34 @@ int mcdt_dac_dma_enable(unsigned int channel, unsigned int emptymark)
 int mcdt_adc_dma_enable(unsigned int channel, unsigned int fullmark)
 {
 	int uid = -1;
-	int i = 0;
+	int dma_channel;
 
 	if (g_adc_channel[channel].int_enabled == 1 ||
 	    g_adc_channel[channel].dma_enabled == 1)
 		return -1;
-
-	mutex_lock(&mcdt_mutex);
-	for (i = 0; i < MCDT_DMA_AP_CHANNEL; i++) {
-		if (!mcdt_adc_dma_channel[i]) {
-			mcdt_adc_dma_channel[i] = 1;
-			break;
-		}
+	dma_channel = mcdt_dma_channel_get(channel);
+	if (dma_channel < 0 ||
+		dma_channel >= MCDT_DMA_AP_CHANNEL) {
+		pr_err("adc dma_channel error:%d", dma_channel);
+		return -EINVAL;
 	}
+	mutex_lock(&mcdt_mutex);
+	if (mcdt_adc_dma_channel[dma_channel]) {
+		pr_err("adc dma_channel is already used:%d", dma_channel);
+		mutex_unlock(&mcdt_mutex);
+		return -EBUSY;
+	}
+	mcdt_adc_dma_channel[dma_channel] = 1;
 	mutex_unlock(&mcdt_mutex);
-	if (i == MCDT_DMA_AP_CHANNEL)
-		return -1;
 
 	mcdt_ad_fifo_clr(channel);
 	mcdt_ad_set_watermark(channel, fullmark, FIFO_LENGTH - 1);
-	uid = mcdt_rev_data_use_dma(channel, i);
+	uid = mcdt_rev_data_use_dma(channel, dma_channel);
 	if (uid > 0) {
 		pr_info("%s %d mcdt_dma_ap_channel=%d\n",
-			__func__, __LINE__, i);
+			__func__, __LINE__, dma_channel);
 		g_adc_channel[channel].dma_enabled = 1;
-		g_adc_channel[channel].dma_channel = i;
+		g_adc_channel[channel].dma_channel = dma_channel;
 	}
 
 	return uid;

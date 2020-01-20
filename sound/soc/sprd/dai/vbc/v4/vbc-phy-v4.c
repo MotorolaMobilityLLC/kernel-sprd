@@ -1279,6 +1279,20 @@ int dsp_vbc_iis_master_start(u32 enable)
 	return 0;
 }
 
+void dsp_vbc_iis_master_width_set(u32 iis_width)
+{
+	int ret;
+	u32 iis_mst_width = iis_width;
+
+	ret = aud_send_cmd(AMSG_CH_VBC_CTL,
+			   SND_KCTL_TYPE_VBC_IIS_MASTER_WIDTH_SET,
+			   -1, SND_VBC_DSP_IO_KCTL_SET,
+			   &iis_mst_width, sizeof(iis_mst_width),
+			   AUDIO_SIPC_WAIT_FOREVER);
+	if (ret < 0)
+		pr_warn("Failed to set iis_mst_width, ret %d\n", ret);
+}
+
 /* SND_KCTL_TYPE_MAIN_MIC_PATH_FROM */
 int dsp_vbc_mainmic_path_set(int type, int val)
 {

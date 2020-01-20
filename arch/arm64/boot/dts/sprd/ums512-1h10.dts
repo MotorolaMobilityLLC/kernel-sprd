@@ -37,7 +37,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=ums512_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=ums512_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio swiotlb=1";
 	};
 
 	ipi: interrupt-controller {
@@ -181,7 +181,7 @@
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
 		cm-fullbatt-vchkdrop-volt = <60000>;
-		cm-fullbatt-voltage = <4300000>;
+		cm-fullbatt-voltage = <4370000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
@@ -789,8 +789,6 @@
 	extcon = <&pmic_typec>;
 	mic-gpios = <&ap_gpio 16 GPIO_ACTIVE_HIGH>;
 	lr-gpios = <&ap_gpio 15 GPIO_ACTIVE_HIGH>;
-	switch-supply = <&vddusb33>;
-	sprd,switch-voltage = <3300000>;
 	sprd,3pole-adc-threshold = <112>;
 };
 
@@ -840,6 +838,14 @@
 	 * "ucp1301-spk2" and "ucp1301-rcv"
 	 * nodes from 56 to 67 (index from 38 to 49) are used by HIFI
 	 */
+};
+
+&sound_sprd_ap_alliis {
+	status = "okay";
+};
+
+&i2s0 {
+	status = "okay";
 };
 
 &adi_bus {

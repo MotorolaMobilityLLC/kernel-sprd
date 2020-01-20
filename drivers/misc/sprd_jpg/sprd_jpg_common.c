@@ -19,6 +19,11 @@
 #include <uapi/video/sprd_jpg.h>
 #include "sprd_jpg_common.h"
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-jpg: " fmt
+
 #if IS_ENABLED(CONFIG_SPRD_JPG_CALL_VSP_PW_DOMAIN)
 #include <uapi/video/sprd_vsp_pw_domain.h>
 
@@ -43,6 +48,7 @@ int sprd_jpg_domain_disable(void) { return 0; }
 
 #elif (IS_ENABLED(CONFIG_SPRD_CAM_PW_DOMAIN_R4P0) || \
 	IS_ENABLED(CONFIG_SPRD_MM_PW_DOMAIN_R6P0) || \
+	IS_ENABLED(CONFIG_SPRD_CAM_PW_DOMAIN_R5P1) || \
 	IS_ENABLED(CONFIG_SPRD_CAM_PW_DOMAIN_R7P0))
 
 int sprd_jpg_pw_on(void)

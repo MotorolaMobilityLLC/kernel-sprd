@@ -22,6 +22,7 @@
 #include <linux/delay.h>
 #include <linux/debugfs.h>
 #include <linux/module.h>
+#include <linux/platform_device.h>
 #include <linux/wakeup_reason.h>
 
 #define BIT_NUM_IN_PER_REG 0x20
@@ -47,6 +48,7 @@ struct intc_info {
 };
 
 struct power_debug {
+	struct platform_device *pdev;
 	u32 pm_thread_interval;
 	u32 pm_thread_exit;
 	u32 pm_log_on;
@@ -93,14 +95,16 @@ static void sprd_pm_print_pdm_info(struct power_debug *pdebug_entry)
 		|| !pdebug_entry->ppdm_info)
 		return;
 
-	pr_info("###--PMU submodule power states--###\n");
+	dev_info(&p_power_debug_entry->pdev->dev,
+		"###--PMU submodule power states--###\n");
 	for (i = 0; i < pdebug_entry->pmu_pdm_num; i++) {
 		ppdm_info = &pdebug_entry->ppdm_info[i];
 
 		regmap_read(pdebug_entry->pmu_apb, ppdm_info->addr_offset,
 			&dbg_pwr_status);
 
-		pr_info(" ##--reg offset:0x%04x value:0x%08x:\n",
+		dev_info(&p_power_debug_entry->pdev->dev,
+			" ##--reg offset:0x%04x value:0x%08x:\n",
 			ppdm_info->addr_offset, dbg_pwr_status);
 
 		for (j = 0; j < MAX_STATES_NUM_PER_REG; j++) {
@@ -108,7 +112,9 @@ static void sprd_pm_print_pdm_info(struct power_debug *pdebug_entry)
 					> BIT_NUM_IN_PER_REG)
 				break;
 			if (ppdm_info->pdm_name[j]) {
-				pr_info("  #--%s STATE:0x%X\n", ppdm_info->pdm_name[j],
+				dev_info(&p_power_debug_entry->pdev->dev,
+					"  #--%s STATE:0x%X\n",
+					ppdm_info->pdm_name[j],
 					dbg_pwr_status >> ppdm_info->bit_index[j]
 					& ((1 << ppdm_info->pwd_bit_width) - 1));
 			}
@@ -135,13 +141,15 @@ static void sprd_pm_print_check_reg(struct regmap *pregmap, u32 reg_num,
 	if (!pregmap || !reg_num || !pentry_tbl)
 		return;
 
-	pr_info("###--PMU %s register check--###\n", module_name);
+	dev_info(&p_power_debug_entry->pdev->dev,
+		"###--PMU %s register check--###\n", module_name);
 	for (index = 0; index < reg_num; index++) {
 		pentry = &pentry_tbl[index];
 		regmap_read(pregmap, pentry->addr_offset, &reg_value);
 
 		if ((reg_value & pentry->value_mask) != pentry->expect_value) {
-			pr_info(OPT_FMT, pentry->addr_offset, reg_value,
+			dev_info(&p_power_debug_entry->pdev->dev,
+				OPT_FMT, pentry->addr_offset, reg_value,
 				pentry->value_mask, pentry->expect_value);
 		}
 	}
@@ -200,10 +208,12 @@ static void sprd_pm_print_intc_state(struct power_debug *pdebug_entry)
 		ret = regmap_read(pdebug_entry->ap_intc[i],
 				pintc_info->addr_offset, &reg_value);
 		if (ret)
-			pr_err("%s: Failed to get intc mask reg value.\n",
+			dev_err(&p_power_debug_entry->pdev->dev,
+				"%s: Failed to get intc mask reg value.\n",
 				__func__);
 		else
-			pr_info("##--Status of intc%d :0x%08x\n", i, reg_value);
+			dev_info(&p_power_debug_entry->pdev->dev,
+				"##--Status of intc%d :0x%08x\n", i, reg_value);
 	}
 }
 
@@ -232,7 +242,8 @@ static void sprd_pm_print_wakeup_source(struct power_debug *pdebug_entry)
 		ret = regmap_read(pdebug_entry->ap_intc[i],
 				pintc_info->addr_offset, &reg_value);
 		if (ret) {
-			pr_err("%s: Failed to get intc mask reg value.\n",
+			dev_err(&p_power_debug_entry->pdev->dev,
+				"%s: Failed to get intc mask reg value.\n",
 				__func__);
 			continue;
 		}
@@ -243,7 +254,8 @@ static void sprd_pm_print_wakeup_source(struct power_debug *pdebug_entry)
 		for (j = 0; j < BIT_NUM_IN_PER_REG; j++) {
 			if (reg_value & BIT(j)) {
 				log_wakeup_reason(i * BIT_NUM_IN_PER_REG + j);
-				pr_info("#--Wake up by %d(%s_%s)!\n",
+				dev_info(&p_power_debug_entry->pdev->dev,
+					"#--Wake up by %d(%s_%s)!\n",
 					i * BIT_NUM_IN_PER_REG + j, "INT_APCPU",
 					pintc_info->pint_name[j]);
 			}
@@ -291,7 +303,8 @@ static int sprd_pm_thread(void *data)
 			sprd_pm_print_pdm_info(p_power_debug_entry);
 
 			if (!pm_get_wakeup_count(&cnt, false)) {
-				pr_info("PM: has wakeup events in progress:\n");
+				dev_info(&p_power_debug_entry->pdev->dev,
+					"PM: has wakeup events in progress:\n");
 				pm_print_active_wakeup_sources();
 			}
 		}
@@ -307,7 +320,7 @@ static int sprd_pm_thread(void *data)
  * sprd_pm_debug_init - Initialize the debug thread
  * @p_entry: the pointer of the core structure of this driver
  */
-static void __init sprd_pm_debug_init(struct power_debug *p_entry)
+static void sprd_pm_debug_init(struct power_debug *p_entry)
 {
 	static struct dentry *dentry_debug_root;
 	struct task_struct *task;
@@ -322,7 +335,8 @@ static void __init sprd_pm_debug_init(struct power_debug *p_entry)
 	/* Debug fs config */
 	dentry_debug_root = debugfs_create_dir("power", NULL);
 	if (IS_ERR_OR_NULL(dentry_debug_root)) {
-		pr_err("%s, Failed to create debugfs directory\n", __func__);
+		dev_err(&p_power_debug_entry->pdev->dev,
+			"%s, Failed to create debugfs directory\n", __func__);
 		dentry_debug_root = NULL;
 		return;
 	}
@@ -338,7 +352,8 @@ static void __init sprd_pm_debug_init(struct power_debug *p_entry)
 
 	task = kthread_create(sprd_pm_thread, NULL, "sprd_pm_thread");
 	if (!task)
-		pr_err("%s, Failed to create print thread", __func__);
+		dev_err(&p_power_debug_entry->pdev->dev,
+			"%s, Failed to create print thread", __func__);
 	else
 		wake_up_process(task);
 }
@@ -351,7 +366,7 @@ static void __init sprd_pm_debug_init(struct power_debug *p_entry)
  * @ppreg_tbl: a pointer of pointer which want to be set the new
  *     allocate space
  */
-static int __init sprd_pm_parse_reg_tbl(const struct device_node *pnode,
+static int sprd_pm_parse_reg_tbl(const struct device_node *pnode,
 	const char *field_name, u32 reg_num,
 	struct reg_check **ppreg_tbl)
 {
@@ -391,7 +406,7 @@ static int __init sprd_pm_parse_reg_tbl(const struct device_node *pnode,
  * @ppintc_info: a pointer of pointer which want to be set the new
  *     allocate space
  */
-static int __init sprd_pm_parse_intc_info(const struct device_node *pnode,
+static int sprd_pm_parse_intc_info(const struct device_node *pnode,
 	u32 intc_num, struct intc_info **ppintc_info)
 {
 	u32 index, i;
@@ -412,14 +427,15 @@ static int __init sprd_pm_parse_intc_info(const struct device_node *pnode,
 	for (index = 0; index < intc_num; index++) {
 		psub_node = of_parse_phandle(pnode, "sprd,ap-intc", index);
 		if (!psub_node) {
-			pr_err("%s, Failed find intc[%d]\n", __func__, index);
+			dev_err(&p_power_debug_entry->pdev->dev,
+				"%s, Failed find intc[%d]\n", __func__, index);
 			kzfree(pintc_info);
 			return -ENODEV;
 		}
 
 		if (of_property_read_u32_index(psub_node, "reg",
 					0, &(pintc_info[index].addr_offset))) {
-			pr_err("can't read reg!\n");
+			dev_err(&p_power_debug_entry->pdev->dev, "can't read reg!\n");
 			of_node_put(psub_node);
 			kzfree(pintc_info);
 			return -ENODATA;
@@ -427,7 +443,8 @@ static int __init sprd_pm_parse_intc_info(const struct device_node *pnode,
 
 		prop = of_find_property(psub_node, "sprd,int-names", NULL);
 		if (!prop) {
-			pr_err("%s, Failed to find int-names\n", __func__);
+			dev_err(&p_power_debug_entry->pdev->dev,
+				"%s, Failed to find int-names\n", __func__);
 			of_node_put(psub_node);
 			kzfree(pintc_info);
 			return -ENODATA;
@@ -450,7 +467,7 @@ static int __init sprd_pm_parse_intc_info(const struct device_node *pnode,
  * @pppdm_info: a pointer of pointer which want to be set the new
  *     allocate space
  */
-static int __init sprd_pm_parse_pdm_info(const struct device_node *pnode,
+static int sprd_pm_parse_pdm_info(const struct device_node *pnode,
 	u32 pdm_state_num, struct pdm_info **pppdm_info)
 {
 	u32 index, i;
@@ -472,7 +489,8 @@ static int __init sprd_pm_parse_pdm_info(const struct device_node *pnode,
 	for (index = 0; index < pdm_state_num; index++) {
 		psub_node = of_parse_phandle(pnode, "sprd,pdm-name", index);
 		if (!psub_node) {
-			pr_err("%s,Failed find sprd_pwr_status[%d]\n",
+			dev_err(&p_power_debug_entry->pdev->dev,
+				"%s,Failed find sprd_pwr_status[%d]\n",
 				__func__, index);
 			kzfree(ppdm_info);
 			return -ENODEV;
@@ -480,14 +498,17 @@ static int __init sprd_pm_parse_pdm_info(const struct device_node *pnode,
 
 		if (of_property_read_u32_index(psub_node, "reg", 0,
 					&ppdm_info[index].addr_offset)) {
-			pr_err("%s, Failed to find reg\n", __func__);
+			dev_err(&p_power_debug_entry->pdev->dev,
+				"%s, Failed to find reg\n", __func__);
 			of_node_put(psub_node);
 			kzfree(ppdm_info);
 			return -ENODATA;
 		}
 		if (of_property_read_u32_index(psub_node, "sprd,bit-width", 0,
 					&ppdm_info[index].pwd_bit_width)) {
-			pr_err("%s, Failed to find sprd,bit-width\n", __func__);
+			dev_err(&p_power_debug_entry->pdev->dev,
+				"%s, Failed to find sprd,bit-width\n",
+				__func__);
 			of_node_put(psub_node);
 			kzfree(ppdm_info);
 			return -ENODATA;
@@ -501,7 +522,9 @@ static int __init sprd_pm_parse_pdm_info(const struct device_node *pnode,
 
 		prop = of_find_property(psub_node, "sprd,pdm-names", NULL);
 		if (!prop) {
-			pr_err("%s, Failed to find sprd,pdm-names\n", __func__);
+			dev_err(&p_power_debug_entry->pdev->dev,
+				"%s, Failed to find sprd,pdm-names\n",
+				__func__);
 			of_node_put(psub_node);
 			kzfree(ppdm_info);
 			return -ENODATA;
@@ -524,7 +547,7 @@ static int __init sprd_pm_parse_pdm_info(const struct device_node *pnode,
  * sprd_pm_parse_regmap - Parse the register base address regmap
  * @pnode: the pointer of the dts node
  */
-static int __init sprd_pm_parse_regmap(struct device_node *pnode)
+static int sprd_pm_parse_regmap(struct device_node *pnode)
 {
 	u32 i;
 	struct device_node *psub_node;
@@ -532,35 +555,40 @@ static int __init sprd_pm_parse_regmap(struct device_node *pnode)
 	p_power_debug_entry->ap_ahb = syscon_regmap_lookup_by_phandle(pnode,
 							"sprd,sys-ap-ahb");
 	if (IS_ERR(p_power_debug_entry->ap_ahb)) {
-		pr_err("%s, Failed to get ap-ahb regmap\n", __func__);
+		dev_err(&p_power_debug_entry->pdev->dev,
+			"%s, Failed to get ap-ahb regmap\n", __func__);
 		return PTR_ERR(p_power_debug_entry->ap_ahb);
 	}
 
 	p_power_debug_entry->ap_apb = syscon_regmap_lookup_by_phandle(pnode,
 							"sprd,sys-ap-apb");
 	if (IS_ERR(p_power_debug_entry->ap_apb)) {
-		pr_err("%s, Failed to get ap-apb regmap\n", __func__);
+		dev_err(&p_power_debug_entry->pdev->dev,
+			"%s, Failed to get ap-apb regmap\n", __func__);
 		return PTR_ERR(p_power_debug_entry->ap_apb);
 	}
 
 	p_power_debug_entry->pmu_apb = syscon_regmap_lookup_by_phandle(pnode,
 							"sprd,sys-pmu-apb");
 	if (IS_ERR(p_power_debug_entry->pmu_apb)) {
-		pr_err("%s, Failed to get pmu-apb regmap\n", __func__);
+		dev_err(&p_power_debug_entry->pdev->dev,
+			"%s, Failed to get pmu-apb regmap\n", __func__);
 		return PTR_ERR(p_power_debug_entry->pmu_apb);
 	}
 
 	p_power_debug_entry->aon_apb = syscon_regmap_lookup_by_phandle(pnode,
 							"sprd,sys-aon-apb");
 	if (IS_ERR(p_power_debug_entry->aon_apb)) {
-		pr_err("%s, Failed to get aon-apb regmap\n", __func__);
+		dev_err(&p_power_debug_entry->pdev->dev,
+			"%s, Failed to get aon-apb regmap\n", __func__);
 		return PTR_ERR(p_power_debug_entry->aon_apb);;
 	}
 
 	p_power_debug_entry->aon_sec = syscon_regmap_lookup_by_phandle(pnode,
 							"sprd,sys-aon-sec");
 	if (IS_ERR(p_power_debug_entry->aon_sec))
-		pr_info("%s, Warned to get aon-sec regmap\n", __func__);
+		dev_warn(&p_power_debug_entry->pdev->dev,
+			"%s, Warned to get aon-sec regmap\n", __func__);
 
 	for (i = 0; i < p_power_debug_entry->ap_intc_num; i++) {
 		psub_node = of_parse_phandle(pnode, "sprd,sys-ap-intc", i);
@@ -569,7 +597,8 @@ static int __init sprd_pm_parse_regmap(struct device_node *pnode)
 					syscon_node_to_regmap(psub_node);
 			of_node_put(psub_node);
 			if (IS_ERR(p_power_debug_entry->ap_intc[i])) {
-				pr_info("%s,Failed to get ap-intc[%d] regmap]\n",
+				dev_err(&p_power_debug_entry->pdev->dev,
+					"%s,Failed to get ap-intc[%d] regmap]\n",
 					__func__, i);
 				return PTR_ERR(p_power_debug_entry->ap_intc[i]);
 			}
@@ -586,14 +615,15 @@ static int __init sprd_pm_parse_regmap(struct device_node *pnode)
  *     such as xxx_num.
  * @pnode: the pointer of the dts node
  */
-static int __init sprd_pm_parse_reg_num(struct device_node *pnode)
+static int sprd_pm_parse_reg_num(struct device_node *pnode)
 {
 	int result;
 
 	result = of_property_count_elems_of_size(pnode,
 					"sprd,pdm-name", sizeof(u32));
 	if (result < 0) {
-		pr_err("no power state information!\n");
+		dev_err(&p_power_debug_entry->pdev->dev,
+			"no power state information!\n");
 		return result;
 	}
 
@@ -619,7 +649,8 @@ static int __init sprd_pm_parse_reg_num(struct device_node *pnode)
 				"sprd,aon-sec-reg-tbl", 3 * sizeof(u32));
 	p_power_debug_entry->aon_sec_reg_num = result > 0 ? result : 0;
 
-	pr_info("power-dbg-parameter:%d %d %d %d %d %d %d\n",
+	dev_info(&p_power_debug_entry->pdev->dev,
+		"power-dbg-parameter:%d %d %d %d %d %d %d\n",
 		p_power_debug_entry->ap_intc_num,
 		p_power_debug_entry->pmu_pdm_num,
 		p_power_debug_entry->ap_ahb_reg_num,
@@ -635,21 +666,22 @@ static int __init sprd_pm_parse_reg_num(struct device_node *pnode)
  * sprd_pm_parse_node - Parse the dts node information of this driver, and
  *     construct the core structure used in this driver.
  */
-static int __init sprd_pm_parse_node(void)
+static int sprd_pm_parse_node(struct platform_device *pdev)
 {
 	struct device_node *pnode;
 	int result;
 
-	pnode = of_find_node_by_name(NULL, "power-debug");
+	pnode = pdev->dev.of_node;
 	if (!pnode) {
-		pr_err("%s, Failed to find power-debug node\n", __func__);
+		dev_err(&pdev->dev,
+			"%s, Failed to find power-debug node\n", __func__);
 		return -ENODEV;
 	}
 
 	result = of_property_count_elems_of_size(pnode,
 					"sprd,sys-ap-intc", sizeof(u32));
 	if (result < 0) {
-		pr_err("no intc information!\n");
+		dev_err(&pdev->dev, "no intc information!\n");
 		return -ENODEV;
 	}
 
@@ -658,6 +690,7 @@ static int __init sprd_pm_parse_node(void)
 	if (!p_power_debug_entry)
 		return -ENOMEM;
 
+	p_power_debug_entry->pdev = pdev;
 	p_power_debug_entry->ap_intc_num = (u32)result;
 
 	result = sprd_pm_parse_reg_num(pnode);
@@ -732,18 +765,18 @@ free_debug_entry:
 }
 
 /*
- * sprd_pm_init - The initialization function of this driver
+ * sprd_powerdebug_probe - add the power debug driver
  */
-static int __init sprd_pm_init(void)
+static int sprd_powerdebug_probe(struct platform_device *pdev)
 {
 	int ret;
 
-	pr_info("##### Power debug log init start #####\n");
+	dev_info(&pdev->dev, "##### Power debug log init start #####\n");
 
 	/* Init register base address regmap */
-	ret = sprd_pm_parse_node();
+	ret = sprd_pm_parse_node(pdev);
 	if (ret) {
-		pr_err("##### Power debug log init failed #####\n");
+		dev_err(&pdev->dev, "##### Power debug log init failed #####\n");
 		return ret;
 	}
 
@@ -753,18 +786,18 @@ static int __init sprd_pm_init(void)
 	/* Register the callback function when system suspend or resume */
 	cpu_pm_register_notifier(&sprd_pm_notifier_block);
 
-	pr_info("##### Power debug log init successfully #####\n");
+	dev_info(&pdev->dev, "##### Power debug log init successfully #####\n");
 
 	return 0;
 }
 
 /*
- * sprd_pm_exit - The exit function of this driver
+ * sprd_powerdebug_remove - remove the power debug driver
  */
-static void __exit sprd_pm_exit(void)
+static int sprd_powerdebug_remove(struct platform_device *pdev)
 {
 	if (!p_power_debug_entry)
-		return;
+		return -ENOMEM;
 
 	kfree(p_power_debug_entry->ppdm_info);
 	kfree(p_power_debug_entry->pintc_info);
@@ -775,7 +808,29 @@ static void __exit sprd_pm_exit(void)
 	kfree(p_power_debug_entry->ap_ahb_reg);
 	kzfree(p_power_debug_entry);
 	p_power_debug_entry = NULL;
+
+	return 0;
 }
 
-module_init(sprd_pm_init);
-module_exit(sprd_pm_exit);
+static const struct of_device_id sprd_powerdebug_of_match[] = {
+	{
+		.compatible = "sprd,power-debug",
+	},
+	{},
+};
+MODULE_DEVICE_TABLE(of, sprd_powerdebug_of_match);
+
+static struct platform_driver sprd_powerdebug_driver = {
+	.probe = sprd_powerdebug_probe,
+	.remove = sprd_powerdebug_remove,
+	.driver = {
+		.name = "sprd-powerdebug",
+		.of_match_table = sprd_powerdebug_of_match,
+	},
+};
+
+module_platform_driver(sprd_powerdebug_driver);
+
+MODULE_LICENSE("GPL v2");
+MODULE_AUTHOR("Jamesj Chen<Jamesj.Chen@unisoc.com>");
+MODULE_DESCRIPTION("sprd power debug driver");

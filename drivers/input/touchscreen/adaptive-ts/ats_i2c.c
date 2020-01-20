@@ -32,11 +32,11 @@ static inline int ts_send_retry(
 		if (tx_len == num)
 			return tx_len;
 
-		TS_WARN("I2C failed %d times", retry - re);
+		pr_warn("I2C failed %d times\n", retry - re);
 		msleep(TS_I2C_RETRY_MSLEEP);
 	}
 
-	TS_ERR("I2C failed over limits");
+	pr_err("I2C failed over limits\n");
 	return tx_len;
 }
 
@@ -66,7 +66,7 @@ static int ts_i2c_simple_read(unsigned char *data, unsigned short length)
 	};
 
 	if (!i2c) {
-		TS_ERR("I2C dev not ready\n");
+		pr_err("I2C dev not ready\n");
 		return -EIO;
 	}
 
@@ -92,7 +92,7 @@ static int ts_i2c_simple_write(unsigned char *data, unsigned short length)
 	};
 
 	if (!i2c) {
-		TS_ERR("I2C dev not ready\n");
+		pr_err("I2C dev not ready\n");
 		return -EIO;
 	}
 
@@ -125,13 +125,13 @@ static int ts_i2c_simple_read_reg(
 	};
 
 	if (!i2c) {
-		TS_ERR("I2C dev not ready\n");
+		pr_err("I2C dev not ready\n");
 		return -EIO;
 	}
 
 	bus = (struct ts_bus_access *)i2c_get_clientdata(i2c);
 	if (bus->reg_width != 1 && bus->reg_width != 2) {
-		TS_ERR("bad reg width: %u", bus->reg_width);
+		pr_err("bad reg width: %u\n", bus->reg_width);
 		return -EIO;
 	}
 
@@ -159,19 +159,19 @@ static int ts_i2c_simple_write_reg(
 
 	i2c = g_client;
 	if (!i2c) {
-		TS_ERR("I2C dev not ready\n");
+		pr_err("I2C dev not ready\n");
 		return -EIO;
 	}
 
 	bus = (struct ts_bus_access *)i2c_get_clientdata(i2c);
 	if (bus->reg_width != 1 && bus->reg_width != 2) {
-		TS_ERR("bad reg width: %u", bus->reg_width);
+		pr_err("bad reg width: %u\n", bus->reg_width);
 		return -EIO;
 	}
 
 	tx_buf = devm_kzalloc(&i2c->dev, length + bus->reg_width, GFP_KERNEL);
 	if (IS_ERR_OR_NULL(tx_buf)) {
-		TS_ERR("failed to allocate memory");
+		pr_err("failed to allocate memory");
 		return -ENOMEM;
 	}
 
@@ -204,13 +204,13 @@ static int ts_i2c_read(
 	};
 
 	if (!i2c) {
-		TS_ERR("I2C dev not ready\n");
+		pr_err("I2C dev not ready\n");
 		return -EIO;
 	}
 
 	bus = (struct ts_bus_access *)i2c_get_clientdata(i2c);
 	if (bus->reg_width != 1 && bus->reg_width != 2) {
-		TS_ERR("bad reg width: %u", bus->reg_width);
+		pr_err("bad reg width: %u\n", bus->reg_width);
 		return -EIO;
 	}
 
@@ -231,7 +231,7 @@ static int ts_i2c_read(
 		tx = ts_send_retry(i2c->adapter,
 			msgs, ARRAY_SIZE(msgs), TS_I2C_MAX_RETRY);
 		if (tx != ARRAY_SIZE(msgs)) {
-			TS_ERR("I2C read error: %d", tx);
+			pr_err("I2C read error: %d\n", tx);
 			return tx;
 		}
 
@@ -259,13 +259,13 @@ static int ts_i2c_write(
 	};
 
 	if (!i2c) {
-		TS_ERR("I2C is not ready, please wait a moment.\n");
+		pr_err("I2C is not ready, please wait a moment.\n");
 		return -EIO;
 	}
 
 	bus = (struct ts_bus_access *)i2c_get_clientdata(i2c);
 	if (bus->reg_width != 1 && bus->reg_width != 2) {
-		TS_ERR("bad reg width: %u", bus->reg_width);
+		pr_err("bad reg width: %u\n", bus->reg_width);
 		return -EIO;
 	}
 
@@ -284,7 +284,7 @@ static int ts_i2c_write(
 		tx = ts_send_retry(i2c->adapter,
 			msgs, ARRAY_SIZE(msgs), TS_I2C_MAX_RETRY);
 		if (tx != ARRAY_SIZE(msgs)) {
-			TS_ERR("I2C read error: %d", tx);
+			pr_err("I2C read error: %d\n", tx);
 			return tx;
 		}
 
@@ -308,7 +308,7 @@ static struct ts_bus_access ts_i2c_bus_access = {
 static int ts_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
-		TS_ERR("I2C check functionality fail!");
+		dev_err(&client->dev, "I2C check functionality fail!\n");
 		return -ENODEV;
 	}
 
@@ -317,7 +317,7 @@ static int ts_i2c_probe(struct i2c_client *client, const struct i2c_device_id *i
 	ts_register_bus_dev(&client->dev);
 	g_client = client;
 
-	TS_INFO("I2C device probe OK");
+	dev_info(&client->dev, "I2C device probe OK\n");
 	return 0;
 }
 
@@ -357,13 +357,13 @@ int ts_i2c_init(struct device_node *pn, unsigned short *addrs)
 	struct i2c_board_info i2c_info;
 	struct i2c_client *client = NULL;
 
-	TS_DBG("init i2c in %sadaptive mode", addrs ? "" : "non-");
+	pr_debug("init i2c in %sadaptive mode", addrs ? "" : "non-");
 
 	if (addrs != NULL) {
 		/* works in adaptive mode */
 		adap = of_find_i2c_adapter_by_node(pn);
 		if (adap == NULL) {
-			TS_ERR("no adapter found on this i2c!");
+			pr_err("no adapter found on this i2c!\n");
 			return -ENODEV;
 		}
 
@@ -371,7 +371,7 @@ int ts_i2c_init(struct device_node *pn, unsigned short *addrs)
 		strlcpy(i2c_info.type, ATS_I2C_DEV, I2C_NAME_SIZE);
 		client = i2c_new_probed_device(adap, &i2c_info, addrs, NULL);
 		if (client == NULL) {
-			TS_ERR("i2c instantiating device failed");
+			pr_err("i2c instantiating device failed\n");
 			put_device(&adap->dev);
 			return -ENODEV;
 		}

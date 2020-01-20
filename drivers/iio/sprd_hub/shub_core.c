@@ -1002,7 +1002,15 @@ static int check_proximity_cali_data(void *cali_data)
 		prox_cali.high_threshold,
 		prox_cali.low_threshold,
 		prox_cali.cali_flag);
+/* prox sensor factory auto calibration */
+	if ((prox_cali.cali_flag & 0x01) == 0x01 &&
+		prox_cali.ground_noise < PROX_SENSOR_MIN_VALUE) {
+		dev_err(&sensor->sensor_pdev->dev,
+			"prox sensor auto cali out of minrange failed!\n");
+		return CALIB_STATUS_OUT_OF_MINRANGE;
+	}
 
+/* prox sensor factory manual calibration */
 	if ((prox_cali.cali_flag & 0x06) == 0x06 &&
 		prox_cali.high_threshold < prox_cali.low_threshold) {
 		dev_err(&sensor->sensor_pdev->dev,
@@ -2001,7 +2009,7 @@ static ssize_t cm4_operate_show(struct device *dev,
 		 "\taddr: IC slave_addr.if find from opcode,need >>1\n"
 		 "\treg: IC reg or set_gpio reg\n"
 		 "\tvalue: i2c writen value or set_gpio value.\n"
-		 "\tmask: i2c r/w bit operate or set_elay value(ms)\n\n"
+		 "\tmask: i2c r/w bit operate or set_delay value(ms)\n\n"
 		 "\tstatus: show execution result. 1:success 0:fail\n\n"
 		 "%s%s\n", l, m);
 }

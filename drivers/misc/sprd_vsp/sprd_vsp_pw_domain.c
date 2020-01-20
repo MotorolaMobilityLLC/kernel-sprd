@@ -25,6 +25,11 @@
 #include <uapi/video/sprd_vsp_pw_domain.h>
 #include "vsp_common.h"
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+
+#define pr_fmt(fmt) "sprd-vsp-pw: " fmt
 #if IS_ENABLED(CONFIG_SPRD_VSP_CALL_CAM_PW_DOMAIN)
 #include <linux/platform_device.h>
 #include <uapi/video/sprd_mmsys_pw_domain.h>
@@ -55,16 +60,16 @@ int vsp_pw_on(u8 client)
 	unsigned long timeout = jiffies + msecs_to_jiffies(__SPRD_VSP_TIMEOUT);
 	u32 read_count = 0;
 
-	pr_info("vsp_pw_domain:%s Enter client %d\n", __func__, client);
+	pr_info("%s Enter client %d\n", __func__, client);
 	if (client >= VSP_PW_DOMAIN_COUNT_MAX) {
-		pr_err("vsp_pw_domain:%s with error client\n", __func__);
+		pr_err("%s with error client\n", __func__);
 		return -1;
 	}
 
 	mutex_lock(&vsp_pw_domain_info->client_lock);
 
 	if (regs[PMU_VSP_AUTO_SHUTDOWN].gpr == NULL) {
-		pr_info("vsp_pw_domain: skip power on\n");
+		pr_info("skip power on\n");
 		ret = -1;
 		goto pw_on_exit;
 	}
@@ -117,14 +122,14 @@ int vsp_pw_on(u8 client)
 			 || (power_state2 != power_state3));
 
 		if (power_state1) {
-			pr_err("vsp_pw_domain:%s set failed 0x%x\n", __func__,
+			pr_err("%s set failed 0x%x\n", __func__,
 			       power_state1);
 			mutex_unlock(&vsp_pw_domain_info->client_lock);
 			return -1;
 		}
-		pr_info("vsp_pw_domain:%s set OK\n", __func__);
+		pr_info("%s set OK\n", __func__);
 	} else {
-		pr_info("vsp_pw_domain:vsp_domain is already power on\n");
+		pr_info("vsp_domain is already power on\n");
 	}
 
 	vsp_pw_domain_info->pw_vsp_info[client].pw_state = VSP_PW_DOMAIN_ON;
@@ -140,15 +145,15 @@ int vsp_pw_off(u8 client)
 {
 	int ret = 0;
 
-	pr_info("vsp_pw_domain: %s Enter client %d\n", __func__, client);
+	pr_info("%s Enter client %d\n", __func__, client);
 	if (client >= VSP_PW_DOMAIN_COUNT_MAX) {
-		pr_err("vsp_pw_domain:%s with error client\n", __func__);
+		pr_err("%s with error client\n", __func__);
 		return -1;
 	}
 	mutex_lock(&vsp_pw_domain_info->client_lock);
 
 	if (regs[PMU_VSP_AUTO_SHUTDOWN].gpr == NULL) {
-		pr_info("vsp_pw_domain: skip power off\n");
+		pr_info("skip power off\n");
 		ret = -1;
 		goto pw_off_exit;
 	}
@@ -188,13 +193,13 @@ int vsp_pw_off(u8 client)
 				goto pw_off_exit;
 			}
 
-			pr_info("vsp_pw_domain:%s set OK\n", __func__);
+			pr_info("%s set OK\n", __func__);
 		}
 	} else {
 		vsp_pw_domain_info->pw_vsp_info[client].pw_count = 0;
 		vsp_pw_domain_info->pw_vsp_info[client].pw_state =
 		    VSP_PW_DOMAIN_OFF;
-		pr_info("vsp_pw_domain:vsp_domain is already power off\n");
+		pr_info("vsp_domain is already power off\n");
 	}
 
 pw_off_exit:
@@ -234,7 +239,7 @@ static int __init vsp_pw_domain_init(void)
 {
 	int i = 0;
 
-	pr_info("vsp_pw_domain: %s\n", __func__);
+	pr_info("%s\n", __func__);
 	vsp_pw_domain_info =
 	    kmalloc(sizeof(struct vsp_pw_domain_info_t), GFP_KERNEL);
 

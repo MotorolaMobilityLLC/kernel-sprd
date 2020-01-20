@@ -39,10 +39,10 @@ static const struct file_operations last_regs_info_proc_fops = {
 	.release = single_release,
 };
 
-static u64 sprd_debug_dma_mask = DMA_BIT_MASK(sizeof(long)<<3);
+static u64 sprd_debug_dma_mask = ~0ULL;
 
 static struct device_dma_parameters sprd_debug_ddp = {
-		.segment_boundary_mask = DMA_BIT_MASK(sizeof(long)<<3),
+		.segment_boundary_mask = ~0UL,
 	};
 static struct device sprd_debug_device;
 
@@ -55,7 +55,7 @@ static __init int sprd_debug_last_regs_init(void)
 
 	memset(&sprd_debug_device, 0, sizeof(struct device));
 
-	sprd_debug_device.coherent_dma_mask = DMA_BIT_MASK(sizeof(long)<<3);
+	sprd_debug_device.coherent_dma_mask = ~0ULL;
 	sprd_debug_device.dma_mask = &sprd_debug_dma_mask;
 	sprd_debug_device.dma_parms = &sprd_debug_ddp;
 

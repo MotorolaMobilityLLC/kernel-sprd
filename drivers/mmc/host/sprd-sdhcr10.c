@@ -1360,7 +1360,7 @@ static int sprd_sdhc_get_cd(struct mmc_host *mmc)
 		return 1;
 	}
 
-	if (IS_ERR_VALUE(gpio_cd))
+	if (IS_ERR_VALUE((unsigned long)gpio_cd))
 		gpio_cd = 1;
 	mmiowb();
 	spin_unlock_irqrestore(&host->lock, flags);
