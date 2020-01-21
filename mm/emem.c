@@ -115,18 +115,12 @@ static void enhance_meminfo(u64 interval)
 
 static void emem_workfn(struct work_struct *work)
 {
-	struct sysinfo si;
-
 	if (enable_enhance_meminfo) {
-		si_swapinfo(&si);
 
 		if (sysctl_emem_trigger <= killed_proc_adj_threshold)
 			enhance_meminfo(EMEM_SHOW_INTERVAL);
 		else
 			enhance_meminfo(EMEM_SHOW_KILL_ADJ900_INTERVAL);
-
-		if (si.freeswap < si.totalswap / 10)
-			dump_tasks_info();
 	}
 }
 
