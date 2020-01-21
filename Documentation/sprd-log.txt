@@ -175,8 +175,10 @@ SPRDLINUX LOG 编写规则
     Loglevel 从emerg到info (0-6) 共7个级别总log输出量不超过10000字节/秒，即每秒
     Log输出不可超过1万个英文字母（含空格、标点符号、时间戳等）。
 
-4.2 Upstream代码log输出限额
-    不作限制，以原生代码为准。
+4.2 原生代码log输出限额
+    - 一般不作限制，保持原生代码输出，但不能超过总配额限制。
+    - 因我方自身原因，导致的Kernel原生log输出增多，该log增加量计入触发此log产生
+      的模块名下。 如：Selinux报xx模块权限警告，该log计入xx模块。
 
 4.3 Sprdlinux主线自有代码log输出限额
     按模块划分：见附件《sprdlinux驱动模块名称(Driver Name)总表》。
