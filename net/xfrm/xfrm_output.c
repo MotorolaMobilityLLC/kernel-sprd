@@ -21,6 +21,7 @@
 
 static int xfrm_output2(struct net *net, struct sock *sk, struct sk_buff *skb);
 #ifdef CONFIG_XFRM_FRAGMENT
+#define IPV6_MINIMUM_MTU 1280
 static int xfrm_output_resume_frag(struct sk_buff *skb, int err);
 #endif
 
@@ -321,8 +322,10 @@ static int xfrm_output_resume_frag_sub(struct sk_buff *skb,
 			seg_pmtu += sizeof(struct frag_hdr) + hlen;
 			if (seg_pmtu > pmtu)
 				seg_pmtu = pmtu;
+			else if (seg_pmtu < IPV6_MINIMUM_MTU + sizeof(struct frag_hdr) + hlen)
+				seg_pmtu = IPV6_MINIMUM_MTU + sizeof(struct frag_hdr) + hlen;
 			printk_ratelimited(KERN_ERR
-		"IPv6:The pkt is average divided into %d parts with mtu %d.\n",
+		"IPv6:The pkt is divided into %d parts with mtu %d.\n",
 			segs, seg_pmtu);
 			if (ip6h->nexthdr == IPPROTO_ESP && skb->ignore_df == 0)
 				skb->ignore_df = 1;
