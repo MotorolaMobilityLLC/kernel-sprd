@@ -2226,6 +2226,8 @@ make_dummy_bundle:
 	xdst->num_xfrms = num_xfrms;
 	memcpy(xdst->pols, pols, sizeof(struct xfrm_policy *) * num_pols);
 
+	/* We do need to return one reference for original caller */
+	dst_hold(&xdst->u.dst);
 	return &xdst->flo;
 
 inc_error:
@@ -2315,6 +2317,7 @@ struct dst_entry *xfrm_lookup(struct net *net,
 				goto no_transform;
 			}
 
+			dst_hold(&xdst->u.dst);
 			route = xdst->route;
 		}
 	}
