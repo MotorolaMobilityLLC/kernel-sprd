@@ -2317,7 +2317,6 @@ struct dst_entry *xfrm_lookup(struct net *net,
 				goto no_transform;
 			}
 
-			dst_hold(&xdst->u.dst);
 			route = xdst->route;
 		}
 	}
