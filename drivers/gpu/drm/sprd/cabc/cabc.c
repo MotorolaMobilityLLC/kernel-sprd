@@ -64,12 +64,14 @@ void clip(int *input, u16 bottom, u16 top)
 }
 
 void step_set(int step0, int step1, int step2,
-	int scene_change_thr, int min_backlight)
+	int scene_change_thr, int cabc_percent_thr, int min_backlight)
 {
 	g_step0 = (u8)step0;
 	g_step1 = (u8)step1;
 	g_step2 = (u8)step2;
 	g_min_backlight = (u16)min_backlight;
+	g_scene_change_thr = (u16)scene_change_thr;
+	g_cabc_percent_th = cabc_percent_thr;
 }
 int cabc_trigger(struct cabc_para *para, int frame_no)
 {
