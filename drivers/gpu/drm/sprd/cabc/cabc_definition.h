@@ -51,6 +51,6 @@ struct cabc_para {
 int cabc_trigger(struct cabc_para *para, int frame_no);
 void init_cabc(int img_width, int img_height);
 void step_set(int step0, int step1, int step2,
-	int scene_change_thr, int min_backlight);
+	int scene_change_thr, int cabc_percent_thr, int min_backlight);
 
 #endif
