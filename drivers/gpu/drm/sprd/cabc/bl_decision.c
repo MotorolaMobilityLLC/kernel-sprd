@@ -48,10 +48,10 @@ u8 gen_step2(int cur_pre, int pre_pre2, int pre2_pre3, int scene_flag,
 	if ((cur_pre < 0) && (pre_pre2 <= 0) && (pre2_pre3 <= 0)) {
 		/* darker gradually with smaller step*/
 		if ((scene_flag == 1) && (div_result > 16))
-			*step2 = step02 + 8;
+			*step2 = step0 + 8;
 		else
 			*step2 = smooth_step2(abs_diff_bl_cur_pre,
-			div_result, step02, 0);
+			div_result, step0, 0);
 		temp_step2 = *step2;
 	} else if ((cur_pre == 0) && (pre_pre2 > 0) && (pre2_pre3 == 0)) {
 		/* brighter gradually with bigger step ,second frame*/
@@ -63,17 +63,14 @@ u8 gen_step2(int cur_pre, int pre_pre2, int pre2_pre3, int scene_flag,
 		/* brighter gradually with bigger step ,first frame*/
 		if ((div_result > 16) && (scene_flag == 0))
 			*step2 = smooth_step2(abs_diff_bl_cur_pre, div_result,
-			step02, 3);
+			step0, 3);
 		else if ((div_result > 16) && (scene_flag == 1))
-			*step2 = step02 + 8;
+			*step2 = step0 + 8;
 		else
 			*step2 = smooth_step2(abs_diff_bl_cur_pre,
-			div_result, step02, 1);
+			div_result, step0, 1);
 		temp_step2 = *step2;
 	} else if ((cur_pre > 0) && ((pre_pre2 != 0) || (pre2_pre3 != 0))) {
-		if (scene_flag == 1)
-			*step2 = step02 + 8;
-		else
 			*step2 = smooth_step2(abs_diff_bl_cur_pre,
 			div_result, step02, 3);
 		temp_step2 = *step2;
@@ -90,7 +87,7 @@ void backlight_decision(int *hist_cabc, struct bl_out_tag *bl)
 
 	bl->cur = g_min_backlight;
 	for (i = 0; i < 32; i++) {
-		if ((hist_cabc[i] * 100) >= (hist_cabc[31] *
+		if ((hist_cabc[i] * 100) >= (hist_cabc[28] *
 			g_cabc_percent_th)) {
 			bl->cur = g_brightness_step[i];
 			break;
