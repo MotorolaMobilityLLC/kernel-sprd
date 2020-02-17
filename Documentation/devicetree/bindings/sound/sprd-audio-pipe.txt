@@ -5,7 +5,7 @@ This node models spreadtrum sound audio pipe driver
 Required properties:
 
 - compatible  : "sprd,audio_pipe_voice","sprd,audio_pipe_effect",
-	"sprd,audio_pipe_recordproc".
+	"sprd,audio_pipe_recordproc","sprd,audio_pipe_bthal".
 - sprd,writesync :  synchronous or asynchronous for pipe write,
 	we can not dependent user space f_flags O_NONBLOCK to decide
 	if write to pipe is synchronous or asynchronous, driver guarantee it.
