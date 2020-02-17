@@ -2197,6 +2197,13 @@
 		sprd,channel = <9>;
 	};
 
+	audio_pipe_bthal {
+		compatible = "sprd,audio_pipe_bthal";
+		sprd,writesync = <0>;
+		sprd,maxuserwritebufsize = <0>;
+		sprd,channel = <11>;
+	};
+
 	audiocp_dvfs {
 		compatible = "sprd,sharkl5-audcp-dvfs", "sprd,sharkl5pro-audcp-dvfs";
 		sprd,channel = <10>;
