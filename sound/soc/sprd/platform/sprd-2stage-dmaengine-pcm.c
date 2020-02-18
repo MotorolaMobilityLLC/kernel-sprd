@@ -747,6 +747,8 @@ static int sprd_pcm_alloc_dma_cfg(struct snd_pcm_substream *substream,
 	sprd_rtd->dma_cfg_buf2 =
 	    devm_kzalloc(dev,
 			 sprd_rtd->hw_chan2 * linklist_node_size2, GFP_KERNEL);
+	if (!sprd_rtd->dma_cfg_buf2)
+		return -ENOMEM;
 
 	sprd_rtd->dma_cfg_buf2->sg =
 		(struct scatterlist *)((u8 *)sprd_rtd->dma_cfg_buf2 +
@@ -756,11 +758,6 @@ static int sprd_pcm_alloc_dma_cfg(struct snd_pcm_substream *substream,
 	    ("%s cfg_buf2=%p, stage[%d] size=%#x\n",
 	     __func__, sprd_rtd->dma_cfg_buf2, stages,
 	     sprd_rtd->hw_chan2 * linklist_node_size2);
-	if (!sprd_rtd->dma_cfg_buf2) {
-		pr_err("%s %d alloc failed size =%#x\n", __func__, __LINE__,
-		       sprd_rtd->hw_chan2 * linklist_node_size2);
-		return -ENOMEM;
-	}
 
 	sprd_rtd->dma_callback_data2 =
 	    devm_kzalloc(dev, sprd_rtd->hw_chan2 *
