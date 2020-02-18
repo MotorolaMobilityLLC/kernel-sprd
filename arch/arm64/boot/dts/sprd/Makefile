@@ -30,7 +30,8 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			   ums518-haps-bkd.dtb  \
 			   ums9520-haps-native.dtb	\
 			   ums9520-zebu.dtb	\
-			   sp9832ep-haps.dtb
+			   sp9832ep-haps.dtb \
+			   ums9230-zebu.dtb
 
 dtbo-$(CONFIG_ARCH_SPRD) += \
 	sp9863a-1h10-overlay.dtbo \
@@ -58,7 +59,8 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	ums518-haps-bkd-overlay.dtbo \
 	ums9520-haps-native-overlay.dtbo \
 	ums9520-zebu-overlay.dtbo \
-	sp9832ep-haps-overlay.dtbo
+	sp9832ep-haps-overlay.dtbo \
+	ums9230-zebu-overlay.dtbo
 
 always		:= $(dtb-y) $(dtbo-y)
 subdir-y	:= $(dts-dirs)
