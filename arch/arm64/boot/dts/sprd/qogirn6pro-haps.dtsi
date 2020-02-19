@@ -28,7 +28,7 @@
 			ranges;
 
 			uart0: serial@70000000 {
-				compatible = "sprd,ums7520-uart",
+				compatible = "sprd,ums9520-uart",
 					     "sprd,sc9836-uart";
 				reg = <0x70000000 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
@@ -38,7 +38,7 @@
 			};
 
 			uart1: serial@70100000 {
-				compatible = "sprd,ums7520-uart",
+				compatible = "sprd,ums9520-uart",
 					     "sprd,sc9836-uart";
 				reg = <0x70100000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;

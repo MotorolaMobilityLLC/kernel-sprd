@@ -7,15 +7,15 @@
 
 /dts-v1/;
 
-#include "ums7520-zebu.dtsi"
-#include "ums7520-zebu-mach.dtsi"
+#include "ums9520-zebu.dtsi"
+#include "ums9520-zebu-mach.dtsi"
 
 / {
 	model = "qogirn6pro zebu board";
 
-	compatible = "sprd,ums7520-zebu";
+	compatible = "sprd,ums9520-zebu";
 
-	sprd,sc-id = <9862 1 0x20000>;
+	sprd,sc-id = <9520 1 0x20000>;
 
 	aliases {
 		serial0 = &uart0;
@@ -29,7 +29,7 @@
 
 	chosen {
 		stdout-path = &uart0;
-		bootargs = "earlycon loglevel=1 skip_initramfs init=/init root=/dev/memdisk0p1 rootfstype=ext4 ro rootwait androidboot.hardware=ums7520_zebu androidboot.dtbo_idx=0 androidboot.selinux=permissive printk.devkmsg=on";
+		bootargs = "earlycon loglevel=1 skip_initramfs init=/init root=/dev/memdisk0p1 rootfstype=ext4 ro rootwait androidboot.hardware=ums9520_zebu androidboot.dtbo_idx=0 androidboot.selinux=permissive printk.devkmsg=on";
 	};
 
 	reserved-memory {

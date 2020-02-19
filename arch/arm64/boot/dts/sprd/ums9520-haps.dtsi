@@ -8,7 +8,7 @@
 #include "qogirn6pro-haps.dtsi"
 
 / {
-	cpuinfo_hardware = "Unisoc ums7520";
+	cpuinfo_hardware = "Unisoc ums9520";
 
 	cpus {
 		#address-cells = <2>;

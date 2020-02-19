@@ -8,15 +8,15 @@
 /dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
-#include "ums7520-haps.dtsi"
-#include "ums7520-haps-mach.dtsi"
+#include "ums9520-haps.dtsi"
+#include "ums9520-haps-mach.dtsi"
 
 / {
-	model = "Unisoc UMS7520 Haps board";
+	model = "Unisoc UMS9520 Haps board";
 
-	compatible = "sprd,ums7520";
+	compatible = "sprd,ums9520";
 
-	sprd,sc-id = <7520 1 0x20000>;
+	sprd,sc-id = <9520 1 0x20000>;
 
 	aliases {
 		serial0 = &uart0;
@@ -30,7 +30,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums7520_haps androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.selinux=permissive";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums9520_haps androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.selinux=permissive";
 	};
 
 };

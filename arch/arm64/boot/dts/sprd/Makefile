@@ -28,8 +28,8 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			   ums512-1h10-p.dtb	\
 			   ums518-haps.dtb	\
 			   ums518-haps-bkd.dtb  \
-			   ums7520-haps-native.dtb	\
-			   ums7520-zebu.dtb	\
+			   ums9520-haps-native.dtb	\
+			   ums9520-zebu.dtb	\
 			   sp9832ep-haps.dtb
 
 dtbo-$(CONFIG_ARCH_SPRD) += \
@@ -56,8 +56,8 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 	ums512-20c10-overlay.dtbo \
 	ums518-haps-overlay.dtbo \
 	ums518-haps-bkd-overlay.dtbo \
-	ums7520-haps-native-overlay.dtbo \
-	ums7520-zebu-overlay.dtbo \
+	ums9520-haps-native-overlay.dtbo \
+	ums9520-zebu-overlay.dtbo \
 	sp9832ep-haps-overlay.dtbo
 
 always		:= $(dtb-y) $(dtbo-y)
