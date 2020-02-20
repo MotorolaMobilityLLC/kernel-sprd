@@ -7,3 +7,4 @@ obj-y				+= domain/
 obj-y				+= modem/
 obj-$(CONFIG_SPRD_IOMMU)        += iommu/
 obj-$(CONFIG_SPRD_MEMDISK)	+= sprd_memdisk.o
+obj-$(CONFIG_SPRD_SFP_SUPPORT)	+= sfp/
