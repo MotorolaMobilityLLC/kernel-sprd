@@ -2623,10 +2623,6 @@ static void musb_save_context(struct musb *musb)
 
 		musb->context.index_regs[i].rxfunaddr =
 			musb_read_rxfunaddr(musb, i);
-		musb->context.index_regs[i].rxhubaddr =
-			musb_read_rxhubaddr(musb, i);
-		musb->context.index_regs[i].rxhubport =
-			musb_read_rxhubport(musb, i);
 	}
 	musb->restore_complete = false;
 }
@@ -2708,10 +2704,6 @@ static void musb_restore_context(struct musb *musb)
 
 		musb_write_rxfunaddr(musb, i,
 				musb->context.index_regs[i].rxfunaddr);
-		musb_write_rxhubaddr(musb, i,
-				musb->context.index_regs[i].rxhubaddr);
-		musb_write_rxhubport(musb, i,
-				musb->context.index_regs[i].rxhubport);
 	}
 	musb_writeb(musb_base, MUSB_INDEX, musb->context.index);
 }
