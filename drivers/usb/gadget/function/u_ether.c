@@ -621,7 +621,7 @@ static int process_rx_w(void *data)
 		skb = skb_dequeue(&dev->rx_frames);
 		if (!skb) {
 			set_current_state(TASK_INTERRUPTIBLE);
-			schedule();
+			schedule_timeout(HZ/5);
 			set_current_state(TASK_RUNNING);
 			continue;
 		}
