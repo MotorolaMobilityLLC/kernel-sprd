@@ -122,10 +122,14 @@ def check_tags_commit_id(patch_info_list):
             print("Patch title:\n%s" % x)
             check_title_flag = 0
 
+            if "  " in x[x.index("Bug #"):]:
+                return (-1, "More than two consecutive spaces in the title")
             if "：" in x:
                 return (-1, "The patch title contains : of chinese")
             if ":" not in x:
                 return (-1, "The patch donot contains tag")
+            if not x[x.index('#') + 1:x.index(':')].replace(' ','').isalnum() :
+                return (-1, "Title contains special characters between bug id and tags")
 
             if len(x.split(":")) != len(x.split(": ")):
                 return (-1, "expected ' ' after ':'")
@@ -151,7 +155,7 @@ def check_tags_commit_id(patch_info_list):
                 if tags_list_start_num < len(tags_list):
                     if tags_list[tags_list_start_num].strip(":") in SUBSYSTEM1_TAGS_NOCHECK:
                         ret_hit_tags_list.append(tags_list[tags_list_start_num].strip(":"))
-                   elif tags_list[tags_list_start_num].strip(":") in SUBSYSTEM1_TAGS:
+                    elif tags_list[tags_list_start_num].strip(":") in SUBSYSTEM1_TAGS:
                         ret_hit_tags_list.append(tags_list[tags_list_start_num].strip(":"))
                         tags_list_start_num += 1
                         if tags_list_start_num < len(tags_list):
