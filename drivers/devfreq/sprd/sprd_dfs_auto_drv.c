@@ -448,7 +448,7 @@ int force_freq_request(unsigned int freq)
 
 int set_backdoor(void)
 {
-	int err;
+	int err = 0;
 	if (g_dfs_data->backdoor_freq == 0)
 		return -EINVAL;
 
@@ -462,7 +462,7 @@ int set_backdoor(void)
 
 int reset_backdoor(void)
 {
-	int err;
+	int err = 0;
 	if (g_dfs_data->backdoor_freq == 0)
 		return -EINVAL;
 
