@@ -11,7 +11,6 @@
  * GNU General Public License for more details.
  */
 #include <linux/clk.h>
-#include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
