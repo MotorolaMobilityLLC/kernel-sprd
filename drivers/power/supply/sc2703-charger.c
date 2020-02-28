@@ -44,6 +44,8 @@
 #define SC2703_OTG_RETRY_TIMES		10
 #define SC2703_OTG_VALID_MS		100
 #define SC2703_OTG_NORMAL_VALID_MS	1500
+#define SC2703_CHARGER_VOLTAGE_MAX	6500000
+#define SC2703_FAST_CHARGER_VOLTAGE_MAX	11000000
 
 struct sc2703_charger_info {
 	struct device *dev;
@@ -79,6 +81,9 @@ static const char * const sc2703_fast_charger_supply_name[] = {
 };
 
 static bool need_disable_dcdc;
+static bool sc2703_charger_is_support_fchg(struct sc2703_charger_info *info);
+static int sc2703_charger_get_online(struct sc2703_charger_info *info,
+				     u32 *online);
 
 static int __init boot_mode(char *str)
 {
@@ -529,10 +534,51 @@ static int sc2703_charger_start_charge(struct sc2703_charger_info *info)
 	return 0;
 }
 
+static int
+sc2703_charger_get_charge_voltage(struct sc2703_charger_info *info,
+				  u32 *charge_vol)
+{
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	psy = power_supply_get_by_name(SC2703_BATTERY_NAME);
+	if (!psy)
+		return -ENODEV;
+
+	ret = power_supply_get_property(psy,
+				POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+				&val);
+	power_supply_put(psy);
+	if (ret)
+		return ret;
+
+	*charge_vol = val.intval;
+
+	return 0;
+}
+
 static void sc2703_charger_stop_charge(struct sc2703_charger_info *info,
 				       bool present)
 {
-	int mask, ret;
+	int mask, charge_vol, online, ret;
+
+	ret = sc2703_charger_get_charge_voltage(info, &charge_vol);
+	if (ret)
+		return;
+
+	ret = sc2703_charger_get_online(info, &online);
+	if (ret)
+		return;
+
+	if (!online)
+		need_disable_dcdc = true;
+	else if (sc2703_charger_is_support_fchg(info) &&
+		 charge_vol > SC2703_FAST_CHARGER_VOLTAGE_MAX)
+		need_disable_dcdc = true;
+	else if (!sc2703_charger_is_support_fchg(info) &&
+		 charge_vol > SC2703_CHARGER_VOLTAGE_MAX)
+		need_disable_dcdc = true;
 
 	if (need_disable_dcdc)
 		mask = SC2703_CHG_EN_MASK | SC2703_DCDC_EN_MASK;
