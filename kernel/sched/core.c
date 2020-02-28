@@ -19,12 +19,14 @@
 #include <linux/rcupdate_wait.h>
 
 #include <linux/blkdev.h>
+#include <linux/kcov.h>
 #include <linux/kprobes.h>
 #include <linux/mmu_context.h>
 #include <linux/module.h>
 #include <linux/nmi.h>
 #include <linux/prefetch.h>
 #include <linux/profile.h>
+#include <linux/scs.h>
 #include <linux/security.h>
 #include <linux/syscalls.h>
 #include <linux/irq.h>
@@ -438,10 +440,11 @@ void wake_q_add(struct wake_q_head *head, struct task_struct *task)
 	 * its already queued (either by us or someone else) and will get the
 	 * wakeup due to that.
 	 *
-	 * This cmpxchg() implies a full barrier, which pairs with the write
-	 * barrier implied by the wakeup in wake_up_q().
+	 * In order to ensure that a pending wakeup will observe our pending
+	 * state, even in the failed case, an explicit smp_mb() must be used.
 	 */
-	if (cmpxchg(&node->next, NULL, WAKE_Q_TAIL))
+	smp_mb__before_atomic();
+	if (cmpxchg_relaxed(&node->next, NULL, WAKE_Q_TAIL))
 		return;
 
 	head->count++;
@@ -1115,7 +1118,8 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
 	if (cpumask_equal(&p->cpus_allowed, new_mask))
 		goto out;
 #ifndef CONFIG_SPRD_CORE_CTL
-	if (!cpumask_intersects(new_mask, cpu_valid_mask)) {
+	dest_cpu = cpumask_any_and(cpu_valid_mask, new_mask);
+	if (dest_cpu >= nr_cpu_ids) {
 		ret = -EINVAL;
 		goto out;
 	}
@@ -1152,9 +1156,6 @@ static int __set_cpus_allowed_ptr(struct task_struct *p,
 	if (cpumask_test_cpu(task_cpu(p), new_mask))
 		goto out;
 
-#ifndef CONFIG_SPRD_CORE_CTL
-	dest_cpu = cpumask_any_and(cpu_valid_mask, new_mask);
-#endif
 	if (task_running(rq, p) || p->state == TASK_WAKING) {
 		struct migration_arg arg = { p, dest_cpu };
 		/* Need help from migration thread: drop lock and wait. */
@@ -2717,6 +2718,7 @@ static inline void
 prepare_task_switch(struct rq *rq, struct task_struct *prev,
 		    struct task_struct *next)
 {
+	kcov_prepare_switch(prev);
 	sched_info_switch(rq, prev, next);
 	perf_event_task_sched_out(prev, next);
 	fire_sched_out_preempt_notifiers(prev, next);
@@ -2794,6 +2796,7 @@ static struct rq *finish_task_switch(struct task_struct *prev)
 	smp_mb__after_unlock_lock();
 	finish_lock_switch(rq, prev);
 	finish_arch_post_lock_switch();
+	kcov_finish_switch(current);
 
 	fire_sched_in_preempt_notifiers(current);
 	if (mm)
@@ -5201,7 +5204,7 @@ long __sched io_schedule_timeout(long timeout)
 }
 EXPORT_SYMBOL(io_schedule_timeout);
 
-void io_schedule(void)
+void __sched io_schedule(void)
 {
 	int token;
 
@@ -5416,14 +5419,16 @@ void init_idle(struct task_struct *idle, int cpu)
 	struct rq *rq = cpu_rq(cpu);
 	unsigned long flags;
 
+	__sched_fork(0, idle);
+
 	raw_spin_lock_irqsave(&idle->pi_lock, flags);
 	raw_spin_lock(&rq->lock);
 
-	__sched_fork(0, idle);
 	idle->state = TASK_RUNNING;
 	idle->se.exec_start = sched_clock();
 	idle->flags |= PF_IDLE;
 
+	scs_task_reset(idle);
 	kasan_unpoison_task_stack(idle);
 
 #ifdef CONFIG_SMP
@@ -6819,10 +6824,6 @@ static int cpu_cgroup_can_attach(struct cgroup_taskset *tset)
 	cgroup_taskset_for_each(task, css, tset) {
 #ifdef CONFIG_RT_GROUP_SCHED
 		if (!sched_rt_can_attach(css_tg(css), task))
-			return -EINVAL;
-#else
-		/* We don't support RT-tasks being in separate groups */
-		if (task->sched_class != &fair_sched_class)
 			return -EINVAL;
 #endif
 		/*

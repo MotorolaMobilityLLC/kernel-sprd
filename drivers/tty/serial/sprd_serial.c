@@ -239,7 +239,7 @@ static inline void sprd_rx(struct uart_port *port)
 		port->icount.rx++;
 
 		if (lsr & (SPRD_LSR_BI | SPRD_LSR_PE |
-			   SPRD_LSR_FE | SPRD_LSR_OE))
+			SPRD_LSR_FE | SPRD_LSR_OE))
 			if (handle_lsr_errors(port, &flag, &lsr))
 				continue;
 		if (uart_handle_sysrq_char(port, ch))
