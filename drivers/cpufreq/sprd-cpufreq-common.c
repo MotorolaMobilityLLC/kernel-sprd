@@ -10,7 +10,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
- #define pr_fmt(fmt)  "sprd_cpufreq: " fmt
+#define pr_fmt(fmt) "sprd-cpufreq-common: " fmt
 
 #include <linux/cpu.h>
 #include <linux/cpufreq.h>

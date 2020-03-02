@@ -12,7 +12,7 @@
  * GNU General Public License for more details.
  *
  */
-#define pr_fmt(fmt) "sprd_hwdvfs: " fmt
+#define pr_fmt(fmt) "sprd-hwdvfs-sharkl3: " fmt
 
 #include <linux/kernel.h>
 #include <linux/i2c.h>

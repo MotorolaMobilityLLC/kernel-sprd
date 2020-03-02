@@ -10,7 +10,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+#define pr_fmt(fmt) "sprd-cpufreqsw: " fmt
 
 #include <linux/cpu.h>
 #include <linux/cpufreq.h>
@@ -1564,7 +1564,7 @@ static struct platform_driver sprd_cpufreq_platdrv = {
 	.probe		= sprd_cpufreq_probe,
 	.remove		= sprd_cpufreq_remove,
 	.driver = {
-		.name	= "sprd_swdvfs",
+		.name	= "sprd-swdvfs",
 		.of_match_table	= sprd_swdvfs_of_match,
 	},
 };
