@@ -1158,7 +1158,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	int term_volt, target_cur, i, ret = -ENODEV;
 
 	if (cm->charging_status != 0 &&
-	    !(cm->charging_status & (CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD)))
+	    !(cm->charging_status & CM_CHARGE_TEMP_ABNORMAL))
 		return true;
 
 	if (jeita_status > desc->jeita_tab_size)
@@ -1167,15 +1167,8 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	if (jeita_status == 0 || jeita_status == desc->jeita_tab_size) {
 		dev_warn(cm->dev,
 			 "stop charging due to battery overheat or cold\n");
-		uevent_notify(cm, "Discharging");
 		try_charger_enable(cm, false);
-
-		if (jeita_status == 0)
-			cm->charging_status |= CM_CHARGE_TEMP_COLD;
-		else
-			cm->charging_status |= CM_CHARGE_TEMP_OVERHEAT;
-
-		power_supply_changed(cm->charger_psy);
+		cm->charging_status |= CM_CHARGE_TEMP_ABNORMAL;
 		return false;
 	}
 
@@ -1228,7 +1221,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		return false;
 
 	try_charger_enable(cm, true);
-	cm->charging_status &= ~(CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD);
+	cm->charging_status &= ~CM_CHARGE_TEMP_ABNORMAL;
 	return true;
 }
 
@@ -1653,9 +1646,9 @@ static int charger_get_property(struct power_supply *psy,
 		}
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
-		if (cm->emergency_stop > 0 || (cm->charging_status & CM_CHARGE_TEMP_OVERHEAT))
+		if (cm->emergency_stop > 0)
 			val->intval = POWER_SUPPLY_HEALTH_OVERHEAT;
-		else if (cm->emergency_stop < 0 || (cm->charging_status & CM_CHARGE_TEMP_COLD))
+		else if (cm->emergency_stop < 0)
 			val->intval = POWER_SUPPLY_HEALTH_COLD;
 		else if (cm->charging_status & CM_CHARGE_VOLTAGE_ABNORMAL)
 			val->intval = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
