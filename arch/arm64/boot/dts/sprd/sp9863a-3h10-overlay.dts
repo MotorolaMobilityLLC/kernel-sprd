@@ -1,0 +1,20 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&ap_gpio 130 0>;
+			};
+		};
+	};
+};
+
+&ddr_dfs {
+	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+			"camhigh", "camveryhigh";
+	sprd-freq = <933 400 233 400 622 933>;
+};
