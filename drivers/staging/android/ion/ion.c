@@ -780,6 +780,7 @@ void ion_device_add_heap(struct ion_heap *heap)
 	plist_node_init(&heap->node, -heap->id);
 	plist_add(&heap->node, &dev->heaps);
 
+#ifdef CONFIG_DEBUG_FS
 	if (heap->shrinker.count_objects && heap->shrinker.scan_objects) {
 		char debug_name[64];
 
@@ -795,6 +796,7 @@ void ion_device_add_heap(struct ion_heap *heap)
 			       path, debug_name);
 		}
 	}
+#endif
 
 	dev->heap_cnt++;
 	up_write(&dev->lock);
@@ -878,6 +880,7 @@ static int ion_device_create(void)
 		goto err_sysfs;
 	}
 
+#ifdef CONFIG_DEBUG_FS
 	idev->debug_root = debugfs_create_dir("ion", NULL);
 	if (!idev->debug_root) {
 		pr_err("ion: failed to create debugfs root directory.\n");
@@ -885,6 +888,8 @@ static int ion_device_create(void)
 	}
 
 debugfs_done:
+#endif
+
 	idev->buffers = RB_ROOT;
 	mutex_init(&idev->buffer_lock);
 	init_rwsem(&idev->lock);
