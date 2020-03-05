@@ -94,12 +94,12 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 
 	err = sscanf(buf, "%u\n", &force_freq);
 	if (err < 1) {
-		pr_err("%s: force freq para err: %d", __func__, err);
+		dev_warn(dev, "force freq para err: %d", err);
 		return count;
 	}
 	err = force_freq_request(force_freq);
 	if (err)
-		pr_err("%s: force freq fail: %d", __func__, err);
+		dev_err(dev, "force freq fail: %d", err);
 	trace_sprd_dfs_sysfs(__func__, force_freq);
 	return count;
 }
@@ -135,12 +135,12 @@ static ssize_t scaling_overflow_store(struct device *dev,
 
 	err = sscanf(buf, "%u %u\n", &sel, &overflow);
 	if (err < 2) {
-		pr_err("%s: overflow para err: %d", __func__, err);
+		dev_warn(dev, "overflow para err: %d", err);
 		return count;
 	}
 	err = set_overflow(overflow, sel);
 	if (err)
-		pr_err("%s: set overflow fail: %d", __func__, err);
+		dev_err(dev, "set overflow fail: %d", err);
 	return count;
 }
 
@@ -175,12 +175,12 @@ static ssize_t scaling_underflow_store(struct device *dev,
 
 	err = sscanf(buf, "%u %u\n", &sel, &underflow);
 	if (err < 2) {
-		pr_err("%s: overflow para err: %d", __func__, err);
+		dev_warn(dev, "overflow para err: %d", err);
 		return count;
 	}
 	err = set_underflow(underflow, sel);
 	if (err)
-		pr_err("%s: set underflow fail: %d", __func__, err);
+		dev_err(dev, "set underflow fail: %d", err);
 	return count;
 }
 
@@ -207,7 +207,7 @@ static ssize_t dfs_on_off_store(struct device *dev,
 
 	err = sscanf(buf, "%u\n", &enable);
 	if (err < 1) {
-		pr_err("%s: enable para err: %d", __func__, err);
+		dev_warn(dev, "enable para err: %d", err);
 		return count;
 	}
 	if (enable == 1)
@@ -217,7 +217,7 @@ static ssize_t dfs_on_off_store(struct device *dev,
 	else
 		err = -EINVAL;
 	if (err)
-		pr_err("%s: enable fail: %d", __func__, err);
+		dev_err(dev, "enable fail: %d", err);
 	trace_sprd_dfs_sysfs(__func__, enable);
 	return count;
 }
@@ -246,7 +246,7 @@ static ssize_t auto_dfs_on_off_store(struct device *dev,
 
 	err = sscanf(buf, "%u\n", &enable);
 	if (err < 1) {
-		pr_err("%s: enable para err: %d", __func__, err);
+		dev_warn(dev, "enable para err: %d", err);
 		return count;
 	}
 	if (enable == 1)
@@ -256,7 +256,7 @@ static ssize_t auto_dfs_on_off_store(struct device *dev,
 	else
 		err = -EINVAL;
 	if (err)
-		pr_err("%s: enable fail: %d", __func__, err);
+		dev_err(dev, "enable fail: %d", err);
 	trace_sprd_dfs_sysfs(__func__, enable);
 	return count;
 }
@@ -344,7 +344,7 @@ static ssize_t scenario_dfs_store(struct device *dev,
 	memcpy(arg, buf, name_len);
 	err = scene_dfs_request(arg);
 	if (err)
-		pr_err("%s: scene enter fail: %d", __func__, err);
+		dev_err(dev, "scene enter fail: %d", err);
 	kfree(arg);
 	return count;
 }
@@ -369,7 +369,7 @@ static ssize_t exit_scenario_store(struct device *dev,
 	memcpy(arg, buf, name_len);
 	err = scene_exit(arg);
 	if (err)
-		pr_err("%s: scene exit fail: %d", __func__, err);
+		dev_err(dev, "scene exit fail: %d", err);
 	kfree(arg);
 	return count;
 }
@@ -396,14 +396,14 @@ static ssize_t scene_freq_set_store(struct device *dev,
 
 	err = sscanf(&buf[name_len], "%u\n", &freq);
 	if (err < 1) {
-		pr_err("%s: enable para err: %d", __func__, err);
+		dev_warn(dev, "enable para err: %d", err);
 		kfree(arg);
 		return count;
 	}
 
 	err = change_scene_freq(arg, freq);
 	if (err)
-		pr_err("%s: scene freq set fail: %d", __func__, err);
+		dev_err(dev, "scene freq set fail: %d", err);
 	kfree(arg);
 	return count;
 }
@@ -418,7 +418,7 @@ static ssize_t scene_boost_dfs_store(struct device *dev,
 
 	err = sscanf(buf, "%u %u\n", &enable, &freq);
 	if (err < 2) {
-		pr_err("%s: overflow para err: %d", __func__, err);
+		dev_warn(dev, "overflow para err: %d", err);
 		return count;
 	}
 	if (enable == 1)
@@ -428,7 +428,7 @@ static ssize_t scene_boost_dfs_store(struct device *dev,
 	else
 		err = -EINVAL;
 	if (err)
-		pr_err("%s: scene exit fail: %d", __func__, err);
+		dev_err(dev, "scene exit fail: %d", err);
 	return count;
 }
 
@@ -472,7 +472,7 @@ static ssize_t backdoor_store(struct device *dev,
 
 	err = sscanf(buf, "%d\n", &backdoor);
 	if (err < 1) {
-		dev_err(dev, "set backdoor err: %d", err);
+		dev_warn(dev, "set backdoor err: %d", err);
 		return count;
 	}
 
@@ -487,7 +487,7 @@ static ssize_t backdoor_store(struct device *dev,
 		err = -EINVAL;
 
 	if (err)
-		pr_err("%s: set backdoor fail: %d", __func__, err);
+		dev_err(dev, "set backdoor fail: %d", err);
 	else
 		backdoor_status  = backdoor;
 
@@ -509,7 +509,7 @@ static ssize_t trace_poll_store(struct device *dev,
 
 	err = sscanf(buf, "%u\n", &time);
 	if (err < 1) {
-		dev_err(dev, "poll dfs store err: %d", err);
+		dev_warn(dev, "poll dfs store err: %d", err);
 		return count;
 	}
 	if (time > 5000)
@@ -590,7 +590,7 @@ static int devfreq_sprd_gov_start(struct devfreq *devfreq)
 
 	err = sysfs_create_group(&devfreq->dev.kobj, &dev_attr_group);
 	if (err)
-		pr_err("%s:sysfs create fail: %d", __func__, err);
+		pr_err("sysfs create fail: %d", err);
 	return err;
 }
 
@@ -652,7 +652,7 @@ static void __exit devfreq_sprd_gov_exit(void)
 
 	ret = devfreq_remove_governor(&devfreq_sprd_gov);
 	if (ret)
-		pr_err("%s: failed remove governor %d\n", __func__, ret);
+		pr_err("failed remove governor %d\n", ret);
 }
 
 module_exit(devfreq_sprd_gov_exit);
