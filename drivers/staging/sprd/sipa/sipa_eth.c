@@ -517,6 +517,7 @@ static struct platform_driver sipa_eth_driver = {
 	}
 };
 
+#ifdef CONFIG_DEBUG_FS
 static int sipa_eth_debug_show(struct seq_file *m, void *v)
 {
 	struct SIPA_ETH *sipa_eth = (struct SIPA_ETH *)(m->private);
@@ -582,6 +583,7 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_gro_enable,
 			debugfs_gro_enable_get,
 			debugfs_gro_enable_set,
 			"%llu\n");
+#endif /* CONFIG_DEBUG_FS */
 
 static int sipa_eth_debugfs_mknod(void *root, void *data)
 {
@@ -592,7 +594,7 @@ static int sipa_eth_debugfs_mknod(void *root, void *data)
 
 	if (!root)
 		return -ENXIO;
-
+#ifdef CONFIG_DEBUG_FS
 	debugfs_create_file(SIPA_ETH_IFACE_PREF,
 			    0444,
 			    (struct dentry *)root,
@@ -604,7 +606,7 @@ static int sipa_eth_debugfs_mknod(void *root, void *data)
 			    (struct dentry *)root,
 			    &gro_enable,
 			    &fops_gro_enable);
-
+#endif
 	return 0;
 }
 
