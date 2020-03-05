@@ -14,7 +14,7 @@ config SPRD_IMS_BRIDGE
 
 config SPRD_IMS_BRIDGE_TEST
 	bool "Spreadtrum ims stack bridge test suite feature"
-	depends on SPRD_IMS_BRIDGE
+	depends on SPRD_DEBUG && SPRD_IMS_BRIDGE
 	default y
 	help
 	  Support for ims bridge kernel test suite, the supported lists
