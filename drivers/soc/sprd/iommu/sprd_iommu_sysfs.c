@@ -11,6 +11,7 @@
 #include <linux/sprd_iommu.h>
 #include "sprd_iommu_sysfs.h"
 
+#ifdef SPRD_DEBUG
 static struct dentry *iommu_debugfs_dir;
 
 static int iova_show(struct seq_file *s, void *unused)
@@ -110,3 +111,4 @@ int sprd_iommu_sysfs_destroy(struct sprd_iommu_dev *device,
 
 	return 0;
 }
+#endif

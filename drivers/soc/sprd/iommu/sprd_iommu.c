@@ -1549,7 +1549,9 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	spin_lock_init(&iommu_dev->pgt_lock);
 	mutex_init(&iommu_dev->status_mutex);
 	memset(&iommu_dev->sg_pool, 0, sizeof(struct sprd_iommu_sg_pool));
+#ifdef SPRD_DEBUG
 	sprd_iommu_sysfs_create(iommu_dev, iommu_dev->init_data->name);
+#endif
 	platform_set_drvdata(pdev, iommu_dev);
 
 	np->data  = iommu_dev;
@@ -1568,7 +1570,9 @@ static int sprd_iommu_remove(struct platform_device *pdev)
 {
 	struct sprd_iommu_dev *iommu_dev = platform_get_drvdata(pdev);
 
+#ifdef SPRD_DEBUG
 	sprd_iommu_sysfs_destroy(iommu_dev, iommu_dev->init_data->name);
+#endif
 	iommu_dev->ops->exit(iommu_dev);
 	gen_pool_destroy(iommu_dev->pool);
 	kfree(iommu_dev);
