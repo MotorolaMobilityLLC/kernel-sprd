@@ -70,11 +70,11 @@
 
 	sprd-sipc {
 		compatible = "sprd,sipc";
-		sipc0: sipc@87800000 {
+		sipc0: sipc@89400000 {
 			sprd,name = "sipc-lte";
 			sprd,dst = <5 2>; /* <dst core-id> */
 			/* <ap-addr dst-maped-addr size> */
-			sprd,smem-info = <0x87800000 0x87800000 0x200000>;
+			sprd,smem-info = <0x89400000 0x89400000 0x200000>;
 		};
 
 		sipc1: sipc@5000b000 {
