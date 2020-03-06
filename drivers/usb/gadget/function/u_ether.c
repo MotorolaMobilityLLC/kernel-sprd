@@ -1632,6 +1632,7 @@ static const struct net_device_ops sipa_usb_ops = {
 	.ndo_validate_addr = eth_validate_addr,
 };
 
+#ifdef CONFIG_DEBUG_FS
 static int sipa_usb_debug_show(struct seq_file *m, void *v)
 {
 	struct eth_dev *dev = (struct eth_dev *)(m->private);
@@ -1697,6 +1698,7 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_gro_enable,
 			debugfs_gro_enable_get,
 			debugfs_gro_enable_set,
 			"%llu\n");
+#endif /* CONFIG_DEBUG_FS */
 
 static int sipa_usb_debugfs_mknod(void *root, void *data)
 {
@@ -1707,7 +1709,7 @@ static int sipa_usb_debugfs_mknod(void *root, void *data)
 
 	if (!root)
 		return -ENXIO;
-
+#ifdef CONFIG_DEBUG_FS
 	debugfs_create_file("sipa_usb",
 			    0444,
 			    (struct dentry *)root,
@@ -1719,7 +1721,7 @@ static int sipa_usb_debugfs_mknod(void *root, void *data)
 			    (struct dentry *)root,
 			    &gro_enable,
 			    &fops_gro_enable);
-
+#endif
 	return 0;
 }
 
