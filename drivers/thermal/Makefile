@@ -2,6 +2,12 @@
 #
 # Makefile for sensor chip drivers.
 #
+# UT kunit test GCOV
+ifdef CONFIG_TEST
+GCOV_PROFILE := y
+else
+GCOV_PROFILE := n
+endif
 
 obj-$(CONFIG_THERMAL)		+= thermal_sys.o
 thermal_sys-y			+= thermal_core.o thermal_sysfs.o \
@@ -71,3 +77,6 @@ obj-$(CONFIG_SPRD_CLUSTER0_THERMAL)      += sprd_cluster0_thm.o sprd_thm_comm.o
 obj-$(CONFIG_SPRD_CLUSTER1_THERMAL)      += sprd_cluster1_thm.o
 obj-$(CONFIG_SPRD_SOC_THERMAL)      += sprd_soc_thm.o
 obj-$(CONFIG_SC27XX_TSENSOR_THERMAL)	+= sc27xx_tsensor_thermal.o
+
+# UT kunit test
+obj-$(CONFIG_SPRD_CPU_COOLING_DEVICE_TEST)		+= sprd_cpu_device_test.o

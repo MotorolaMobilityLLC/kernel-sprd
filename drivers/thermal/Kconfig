@@ -524,6 +524,15 @@ config SPRD_CPU_COOLING_DEVICE
 	  Say Y here to create cpu cooling device node and build power model for IPA.
 	  so that the sprd cooling devices can be bound to thermal zone trip points.
 
+config SPRD_CPU_COOLING_DEVICE_TEST
+	bool "sprd cpu cooling device test"
+	depends on TEST
+	depends on SPRD_CPU_COOLING_DEVICE
+	default n
+	help
+	  This is a simple UT kunit test case and test sprd_cpu_device.c function.
+	  No effect if not opened CONFIG_TEST.
+
 config SPRD_GPU_COOLING_DEVICE
 	bool "sprd gpu cooling device"
 	depends on THERMAL
