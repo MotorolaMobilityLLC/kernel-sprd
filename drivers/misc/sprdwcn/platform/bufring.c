@@ -10,6 +10,8 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/uaccess.h>
+
 #include "bufring.h"
 #include "mdbg_type.h"
 #include "wcn_log.h"
@@ -158,7 +160,9 @@ int mdbg_ring_read(struct mdbg_ring_t *ring, void *buf, int len)
 		WCN_LOG("Ring loopover.");
 		len1 = pend - ring->rp + 1;
 		len2 = read_len - len1;
-		if ((uintptr_t)buf > TASK_SIZE) {
+
+		/* if ((uintptr_t)buf > TASK_SIZE) */
+		if (!access_ok(VERIFY_READ, buf, len)) {
 			memcpy(buf, ring->rp, len1);
 			memcpy((buf + len1), pstart, len2);
 		} else if (copy_to_user((__force void __user *)buf,
