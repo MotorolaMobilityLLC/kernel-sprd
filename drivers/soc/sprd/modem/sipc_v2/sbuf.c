@@ -863,7 +863,7 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 		tail = txpos + txsize - (ring->txbuf_virt + hd_op->tx_size);
 		if (tail > 0) {
 			/* ring buffer is rounded */
-			if ((uintptr_t)u_buf.buf > TASK_SIZE) {
+			if (!access_ok(VERIFY_READ, u_buf.buf, txsize)) {
 				unalign_memcpy(txpos, u_buf.buf, txsize - tail);
 				unalign_memcpy(ring->txbuf_virt,
 					       u_buf.buf + txsize - tail, tail);
@@ -883,7 +883,7 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 				}
 			}
 		} else {
-			if ((uintptr_t)u_buf.buf > TASK_SIZE) {
+			if (!access_ok(VERIFY_READ, u_buf.buf, txsize)) {
 				unalign_memcpy(txpos, u_buf.buf, txsize);
 			} else {
 				/* handle the user space address */
@@ -1068,7 +1068,7 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 
 		if (tail > 0) {
 			/* ring buffer is rounded */
-			if ((uintptr_t)u_buf.buf > TASK_SIZE) {
+			if (!access_ok(VERIFY_WRITE, u_buf.buf, rxsize)) {
 				unalign_memcpy(u_buf.buf, rxpos, rxsize - tail);
 				unalign_memcpy(u_buf.buf + rxsize - tail,
 					       ring->rxbuf_virt, tail);
@@ -1088,7 +1088,7 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 				}
 			}
 		} else {
-			if ((uintptr_t)u_buf.buf > TASK_SIZE) {
+			if (!access_ok(VERIFY_WRITE, u_buf.buf, rxsize)) {
 				unalign_memcpy(u_buf.buf, rxpos, rxsize);
 			} else {
 				/* handle the user space address */
