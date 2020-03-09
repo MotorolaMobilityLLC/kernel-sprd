@@ -6,6 +6,7 @@ import os
 import sys
 import csv
 import re
+import commands
 
 tmp_path_def = "./tmp_config_check/"
 base_config_path = "./../../../kernel/configs/"
@@ -486,6 +487,10 @@ def aiaiai_check():
         if "diff --git" in f_diff_lines[i]:
             if "sprd-diffconfig"  or "sprd-configs.txt" or "defconfig" in f_diff_lines[i]:
                 ai_check_flag = 1
+
+    (status, output)=commands.getstatusoutput("git cat-file -p HEAD | grep parent | wc -l")
+    if status == 0 and output >= "2":
+		ai_check_flag = 1
 
     if ai_check_flag == 1:
         for key in d_sprdconfig:

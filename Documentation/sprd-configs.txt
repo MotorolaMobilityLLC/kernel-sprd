@@ -103,15 +103,6 @@ CONFIG_ANDROID_PARANOID_NETWORK
 	[must] user
 	[missing plat description] none
 	[function] Only allow certain groups to create sockets
-CONFIG_ANON_INODES
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] menu
-	[subsys] core
-	[must] console
-	[missing plat description] none
-	[function] Enable kernel support anonymous inodes.
 CONFIG_ARCH_CLOCKSOURCE_DATA
 	[arch] all
 	[plat] all
@@ -203,6 +194,15 @@ CONFIG_ARCH_HAS_KCOV
 	[must] debug
 	[missing plat description] none
 	[function] support KCOV.
+CONFIG_ARCH_HAS_RELR
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] menu
+	[subsys] core
+	[must] console
+	[missing plat description] none
+	[function] select by RELOCATABLE.
 CONFIG_ARCH_HAS_SET_MEMORY
 	[arch] all
 	[plat] all
@@ -491,6 +491,25 @@ CONFIG_ARCH_SUPPORTS_NUMA_BALANCING
 	[must] busybox_console
 	[missing plat description] none
 	[function] adds support for automatic NUMA aware memory/task placement
+CONFIG_ARCH_SUPPORTS_SHADOW_CALL_STACK
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] menu
+	[subsys] core
+	[must] console
+	[missing plat description] none
+	[function] An architecture should select this if it supports Clang's Shadow
+		Call Stack.
+CONFIG_ARCH_SUPPORTS_THINLTO
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] menu
+	[subsys] core
+	[must] console
+	[missing plat description] none
+	[function] An architecture should select this if it supports clang's ThinLTO.
 CONFIG_ARCH_SUPPORTS_UPROBES
 	[arch] all
 	[plat] all
@@ -756,6 +775,15 @@ CONFIG_ARM64_SSBD
 	[must] user
 	[missing plat description] none
 	[function] This enables mitigation of the bypassing of previous stores by speculative loads.
+CONFIG_ARM64_TAGGED_ADDR_ABI
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] code
+	[subsys] core
+	[must] console
+	[missing plat description] none
+	[function] Enable the tagged user addresses syscall ABI.
 CONFIG_ARM64_UAO
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -1681,6 +1709,15 @@ CONFIG_CC_HAS_KASAN_SW_TAGS
 	[must] user
 	[missing plat description] none
 	[function] For kasan function
+CONFIG_CC_HAS_SANCOV_TRACE_PC
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] make
+	[subsys] core
+	[must] user
+	[missing plat description] none
+	[function] enable for GCOV flags -fsanitize-coverage=trace-pc.
 CONFIG_CC_OPTIMIZE_FOR_SIZE
 	[arch] all
 	[plat] all
@@ -1866,14 +1903,14 @@ CONFIG_CHARGER_SC2720
 	[missing plat description] Not used in the project, so no configuration
 	[function] This function is used to enable charge
 CONFIG_CHARGER_SC2721
-        [arch] arm
-        [plat] sharkle32
-        [missing plat] pike2,sharkl3_32,sharkl5_32
-        [field] make
-        [subsys] power
-        [must] user
-        [missing plat description] Not used in the project, so no configuration
-        [function] This function is used to enable charge
+	[arch] arm
+	[plat] sharkle32
+	[missing plat] pike2,sharkl3_32,sharkl5_32
+	[field] make
+	[subsys] power
+	[must] user
+	[missing plat description] Not used in the project, so no configuration
+	[function] This function is used to enable charge
 CONFIG_CLEANCACHE
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -4825,6 +4862,15 @@ CONFIG_GENERIC_CPU_AUTOPROBE
 	[must] console
 	[missing plat description] none
 	[function] Enable kernel support cpu auto probe.
+CONFIG_GENERIC_CPU_VULNERABILITIES
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] code
+	[subsys] core
+	[must] console
+	[missing plat description] none
+	[function] Enable kernel solve generic cpu vulnerabilities.
 CONFIG_GENERIC_CSUM
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
@@ -10727,6 +10773,15 @@ CONFIG_PHYS_ADDR_T_64BIT
 	[must] busybox_console
 	[missing plat description] none
 	[function] Define the number of digits of phys_addr_t.
+CONFIG_PID_IN_CONTEXTIDR
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] code
+	[subsys] core
+	[must] console
+	[missing plat description] none
+	[function] Write the current PID to the CONTEXTIDR register.
 CONFIG_PINCONF
 	[arch] all
 	[plat] all
@@ -11743,6 +11798,15 @@ CONFIG_RING_BUFFER_ALLOW_SWAP
 	[must] debug
 	[missing plat description] none
 	[function] Exchange two cpu ring buffer.
+CONFIG_ROP_PROTECTION_NONE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] menu
+	[subsys] core
+	[must] console
+	[missing plat description] none
+	[function] set none for Return-oriented programming (ROP) protection.
 CONFIG_RPS
 	[arch] all
 	[plat] all
@@ -12204,15 +12268,6 @@ CONFIG_SECURITY_NETWORK
 	[must] user
 	[missing plat description] none
 	[function] vts require
-CONFIG_SECURITY_PERF_EVENTS_RESTRICT
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] code
-	[subsys] security
-	[must] user
-	[missing plat description] none
-	[function] vts require, Restrict unprivileged use of performance events
 CONFIG_SECURITY_SELINUX
 	[arch] all
 	[plat] all
@@ -12249,6 +12304,15 @@ CONFIG_SECURITY_SELINUX_DEVELOP
 	[must] console
 	[missing plat description] none
 	[function] vts, cts, security
+CONFIG_SECURITY_SELINUX_SIDTAB_HASH_BITS
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] code
+	[subsys] core
+	[must] user
+	[missing plat description] none
+	[function] NSA SELinux sidtab hashtable size.
 CONFIG_SELECT_MEMORY_MODEL
 	[arch] arm64
 	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
