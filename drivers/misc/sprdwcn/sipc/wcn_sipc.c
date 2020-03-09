@@ -130,6 +130,7 @@ static inline int wcn_sipc_buf_list_free(int chn,
 
 static int wcn_sipc_recv(struct sipc_chn_info *sipc_chn, void *buf, int len)
 {
+	int ret;
 	struct mbuf_t *head, *tail;
 	struct mchn_ops_t *wcn_sipc_ops = NULL;
 
@@ -145,14 +146,16 @@ static int wcn_sipc_recv(struct sipc_chn_info *sipc_chn, void *buf, int len)
 	head->len = len;
 	head->next = NULL;
 	tail = head;
-	wcn_sipc_ops->pop_link(sipc_chn->index, head, tail, 1);
+	ret = wcn_sipc_ops->pop_link(sipc_chn->index, head, tail, 1);
+	if (ret)
+		kfree(head);
 
 	return 0;
 }
 
 static int wcn_sipc_sbuf_write(u8 index, void *buf, int len)
 {
-	int cnt = -1;
+	int cnt;
 	struct sipc_chn_info *sipc_chn;
 
 	if (SIPC_INVALID_CHN(index))
@@ -168,8 +171,8 @@ static int wcn_sipc_sbuf_write(u8 index, void *buf, int len)
 
 static void wcn_sipc_sbuf_notifer(int event, void *data)
 {
-	int cnt = -1;
-	int ret = -1;
+	int cnt;
+	int ret;
 	u8 *buf;
 	struct bus_puh_t *puh = NULL;
 	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;
@@ -214,7 +217,7 @@ static void wcn_sipc_sbuf_notifer(int event, void *data)
 
 static int wcn_sipc_sblk_write(u8 index, void *buf, int len)
 {
-	int ret = -1;
+	int ret;
 	u8 *addr = NULL;
 	struct sblock blk;
 	struct sipc_chn_info *sipc_chn;
@@ -251,7 +254,7 @@ static int wcn_sipc_sblk_write(u8 index, void *buf, int len)
 static void wcn_sipc_sblk_recv(struct sipc_chn_info *sipc_chn)
 {
 	u32 length = 0;
-	int ret = -1;
+	int ret;
 	struct sblock blk;
 
 	WCN_DEBUG("[%s]:recv sblock msg",

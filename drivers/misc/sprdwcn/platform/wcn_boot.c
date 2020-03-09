@@ -1044,7 +1044,10 @@ static int marlin_avdd18_dcxo_enable(bool enable)
 		}
 #endif
 		WCN_INFO("avdd18_dcxo set 1v8\n");
-		regulator_set_voltage(marlin_dev->dcxo18, 1800000, 1800000);
+		ret = regulator_set_voltage(marlin_dev->dcxo18,
+					    1800000, 1800000);
+		if (ret)
+			WCN_ERR("failed to set dcxo18: %d\n", ret);
 		if (!marlin_dev->bound_dcxo18) {
 			WCN_INFO("avdd18_dcxo power enable\n");
 			ret = regulator_enable(marlin_dev->dcxo18);
@@ -1073,12 +1076,18 @@ static int marlin_digital_power_enable(bool enable)
 		return 0;
 
 	if (enable) {
-		regulator_set_voltage(marlin_dev->dvdd12,
-					      1200000, 1200000);
+		ret = regulator_set_voltage(marlin_dev->dvdd12,
+					    1200000, 1200000);
+		if (ret)
+			WCN_ERR("failed to set dvdd12: %d\n", ret);
 		ret = regulator_enable(marlin_dev->dvdd12);
+		if (ret)
+			WCN_ERR("failed to enable dvdd12: %d\n", ret);
 	} else {
 		if (regulator_is_enabled(marlin_dev->dvdd12))
 			ret = regulator_disable(marlin_dev->dvdd12);
+			if (ret)
+				WCN_ERR("failed to disable dvdd12: %d\n", ret);
 	}
 
 	return ret;
@@ -1093,13 +1102,15 @@ static int marlin_analog_power_enable(bool enable)
 		if (enable) {
 #ifdef CONFIG_WCN_PCIE
 			WCN_INFO("%s avdd12 set 1.35v\n", __func__);
-			regulator_set_voltage(marlin_dev->avdd12,
-					      1350000, 1350000);
+			ret = regulator_set_voltage(marlin_dev->avdd12,
+						    1350000, 1350000);
 #else
 			WCN_INFO("%s avdd12 set 1.2v\n", __func__);
-			regulator_set_voltage(marlin_dev->avdd12,
-					      1200000, 1200000);
+			ret = regulator_set_voltage(marlin_dev->avdd12,
+						    1200000, 1200000);
 #endif
+			if (ret)
+				WCN_ERR("failed to set avdd12: %d\n", ret);
 			if (!marlin_dev->bound_avdd12) {
 				WCN_INFO("%s avdd12 power enable\n", __func__);
 				ret = regulator_enable(marlin_dev->avdd12);
@@ -1720,8 +1731,10 @@ void wifipa_enable(int enable)
 			if (regulator_is_enabled(marlin_dev->avdd33))
 				return;
 
-			regulator_set_voltage(marlin_dev->avdd33,
-					      3300000, 3300000);
+			ret = regulator_set_voltage(marlin_dev->avdd33,
+						    3300000, 3300000);
+			if (ret)
+				WCN_ERR("failed to set avdd33: %d\n", ret);
 			ret = regulator_enable(marlin_dev->avdd33);
 			if (ret)
 				WCN_ERR("fail to enable wifipa\n");

@@ -69,7 +69,7 @@ struct mdbg_ring_t *mdbg_ring_alloc(long int size)
 			WCN_ERR("size error:%ld\n", size);
 			break;
 		}
-		ring = kmalloc(sizeof(struct mdbg_ring_t), GFP_KERNEL);
+		ring = kzalloc(sizeof(struct mdbg_ring_t), GFP_KERNEL);
 		if (ring == NULL) {
 			WCN_ERR("Ring malloc Failed.\n");
 			break;

@@ -107,7 +107,8 @@ static long int mdbg_comm_write(char *buf,
 {
 	unsigned char *send_buf = NULL;
 	char *str = NULL;
-	struct mbuf_t *head, *tail;
+	struct mbuf_t *head = NULL;
+	struct mbuf_t *tail = NULL;
 	int num = 1;
 
 	if (unlikely(marlin_get_module_status() != true)) {
@@ -156,7 +157,7 @@ static void mdbg_ring_rx_task(unsigned long data)
 	struct ring_rx_data *rx = NULL;
 	struct mdbg_ring_t *ring = NULL;
 	struct mbuf_t *mbuf_node;
-	int i;
+	int i, ret = 0;
 #ifndef CONFIG_WCN_PCIE
 	struct bus_puh_t *puh = NULL;
 #endif
@@ -186,14 +187,20 @@ static void mdbg_ring_rx_task(unsigned long data)
 #ifndef CONFIG_WCN_PCIE
 		rx->addr = mbuf_node->buf + PUB_HEAD_RSV;
 		puh = (struct bus_puh_t *)mbuf_node->buf;
-		mdbg_ring_write(ring, rx->addr, puh->len);
+		ret = mdbg_ring_write(ring, rx->addr, puh->len);
 #else
-		mdbg_ring_write(ring, mbuf_node->buf, mbuf_node->len);
+		ret = mdbg_ring_write(ring, mbuf_node->buf, mbuf_node->len);
 #endif
 	}
-	sprdwcn_bus_push_list(mdbg_ringc_ops.channel,
-			      rx->head, rx->tail, rx->num);
+	if (ret < 0)
+		goto out;
+
+	ret = sprdwcn_bus_push_list(mdbg_ringc_ops.channel,
+				    rx->head, rx->tail, rx->num);
+	if (ret)
+		goto out;
 	wake_up_log_wait();
+out:
 	kfree(rx);
 }
 

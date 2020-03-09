@@ -42,8 +42,8 @@ struct wcn_special_share_mem *s_wssm_phy_offset_p =
 
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 {
-	u32 aon_chip_id;
-	u32 version_id;
+	u32 aon_chip_id = 0;
+	u32 version_id = 0;
 	int i;
 	struct regmap *regmap;
 
@@ -493,7 +493,7 @@ void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type)
 void wcn_xtl_auto_sel(bool enable)
 {
 	struct regmap *regmap;
-	u32 value;
+	u32 value = 0;
 
 	regmap = wcn_get_btwf_regmap(REGMAP_PMU_APB);
 	wcn_regmap_read(regmap, 0x338, &value);
@@ -601,7 +601,7 @@ void wcn_sys_soft_reset(void)
 void wcn_sys_ctrl_26m(bool enable)
 {
 	struct regmap *regmap;
-	u32 value;
+	u32 value = 0;
 
 	regmap = wcn_get_btwf_regmap(REGMAP_ANLG_PHY_G6);
 	wcn_regmap_read(regmap, 0x28, &value);
@@ -714,9 +714,14 @@ void wcn_sys_deep_sleep_en(void)
 /* The VDDCON default value is 1.6V, we should set it to 1.2v */
 void wcn_power_set_vddcon(u32 value)
 {
-	if (s_wcn_device.vddwcn)
-		regulator_set_voltage(s_wcn_device.vddwcn,
-				      value, value);
+	int ret = 0;
+
+	if (s_wcn_device.vddwcn) {
+		ret = regulator_set_voltage(s_wcn_device.vddwcn,
+					    value, value);
+		if (ret)
+			WCN_ERR("failed to set vddcon: %d\n", ret);
+	}
 }
 
 /*
@@ -779,11 +784,15 @@ int wcn_power_enable_vddcon(bool enable)
 /* The VDDCON default value is 1.6V, we should set it to 1.2v */
 void wcn_power_set_vddwifipa(u32 value)
 {
+	int ret = 0;
 	struct wcn_device *btwf_device = s_wcn_device.btwf_device;
 
-	if (btwf_device->vddwifipa)
-		regulator_set_voltage(btwf_device->vddwifipa,
-				      value, value);
+	if (btwf_device->vddwifipa) {
+		ret = regulator_set_voltage(btwf_device->vddwifipa,
+					    value, value);
+		if (ret)
+			WCN_ERR("failed to set vddwifipa: %d\n", ret);
+	}
 	WCN_INFO("value %d\n", value);
 }
 
@@ -848,7 +857,7 @@ u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev)
 void mdbg_hold_cpu(void)
 {
 	struct regmap *regmap;
-	u32 value;
+	u32 value = 0;
 	phys_addr_t init_addr;
 
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)

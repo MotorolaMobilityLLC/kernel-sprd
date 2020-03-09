@@ -257,7 +257,7 @@ static int wcn_efuse_cal_read(struct device_node *np, const char *cell_id,
 {
 	struct nvmem_cell *cell;
 	void *buf;
-	size_t len;
+	size_t len = 0;
 
 	cell = of_nvmem_cell_get(np, cell_id);
 	if (IS_ERR(cell))
@@ -394,6 +394,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	ret = of_property_read_string(np,
 				      "sprd,name",
 				      (const char **)&wcn_dev->name);
+	if (!ret)
+		WCN_INFO("sprd name: %s\n", wcn_dev->name);
 
 	/* get apb reg handle */
 	wcn_dev->rmap[REGMAP_AON_APB] =
