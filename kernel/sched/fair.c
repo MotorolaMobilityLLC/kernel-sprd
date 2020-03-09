@@ -10968,7 +10968,7 @@ static int active_load_balance_cpu_stop(void *data)
 	struct sched_domain *sd = NULL;
 	struct task_struct *p = NULL;
 	struct rq_flags rf;
-	struct task_struct *push_task = NULL;
+	struct task_struct *push_task = busiest_rq->push_task;
 	int push_task_detached = 0;
 	struct lb_env env = {
 		.sd         = sd,
@@ -11006,7 +11006,6 @@ static int active_load_balance_cpu_stop(void *data)
 	 */
 	BUG_ON(busiest_rq == target_rq);
 
-	push_task = busiest_rq->push_task;
 	if (push_task) {
 		if (task_on_rq_queued(push_task) &&
 		    push_task->state == TASK_RUNNING &&
