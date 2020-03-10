@@ -12065,12 +12065,12 @@ CONFIG_SCHED_INFO
 	[function] Collect scheduler  info
 CONFIG_SCHED_MC
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] roc1,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] pike2
 	[field] code
 	[subsys] sched
 	[must] user
-	[missing plat description] none
+	[missing plat description] only a cluster
 	[function] Multi-core scheduler support
 CONFIG_SCHED_STACK_END_CHECK
 	[arch] arm
