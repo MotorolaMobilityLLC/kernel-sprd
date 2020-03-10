@@ -1028,6 +1028,8 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 			ctx->evt_te = true;
 			wake_up_interruptible_all(&ctx->te_wq);
 		}
+		if (ctx->if_type == SPRD_DISPC_IF_EDPI)
+			drm_crtc_handle_vblank(&dpu->crtc);
 	}
 
 	if (int_mask & DISPC_INT_ERR_MASK)
