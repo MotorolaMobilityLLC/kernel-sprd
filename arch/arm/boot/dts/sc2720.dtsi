@@ -123,7 +123,7 @@
 
 		syscon@c00 {
 			compatible = "sprd,sc27xx-syscon";
-			reg = <0xc00>, <0xe18>;
+			reg = <0xc00>, <0xe18>, <0xe0c>;
 		};
 
 		power-controller@c00 {
