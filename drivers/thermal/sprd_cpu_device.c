@@ -43,6 +43,7 @@
 #endif
 #include <trace/events/thermal.h>
 
+#include <test/mock.h>
 #define MAX_SENSOR_NUMBER	8
 static atomic_t in_suspend;
 
@@ -243,7 +244,7 @@ static ssize_t sprd_cpu_store_min_core_num(struct device *dev,
 	return count;
 }
 
-static int get_all_core_temp(int cluster_id, int cpu)
+__visible_for_testing int get_all_core_temp(int cluster_id, int cpu)
 {
 	int i, ret;
 	struct thermal_zone_device *tz = NULL;
@@ -269,7 +270,7 @@ static int get_all_core_temp(int cluster_id, int cpu)
 	return ret;
 }
 
-static void get_core_temp(int cluster_id, int cpu, int *temp)
+__visible_for_testing void get_core_temp(int cluster_id, int cpu, int *temp)
 {
 	struct cluster_power_coefficients *cpc;
 
@@ -383,7 +384,7 @@ static int get_min_temp_unisolated_core(int cluster_id, int cpu, int *temp)
 }
 #endif
 
-static u32 get_core_cpuidle_tp(int cluster_id,
+__visible_for_testing u32 get_core_cpuidle_tp(int cluster_id,
 		int first_cpu, int cpu, int *temp)
 {
 	int i, id = first_cpu;
@@ -417,7 +418,7 @@ u64 get_core_dyn_power(int cluster_id,
 	return power;
 }
 
-static u32 get_cpuidle_temp_point(int cluster_id)
+__visible_for_testing u32 get_cpuidle_temp_point(int cluster_id)
 {
 	return cluster_data[cluster_id].temp_point;
 }
@@ -575,7 +576,7 @@ static int get_cluster_id(int cpu)
 }
 
 /* voltage in uV and temperature in mC */
-static int get_static_power(cpumask_t *cpumask, int interval,
+__visible_for_testing int get_static_power(cpumask_t *cpumask, int interval,
 		unsigned long u_volt, u32 *power, int temperature)
 {
 	unsigned long core_t_scale, core_v_scale;
@@ -635,8 +636,8 @@ static int get_static_power(cpumask_t *cpumask, int interval,
 }
 
 /* voltage in uV and temperature in mC */
-static int get_core_static_power(cpumask_t *cpumask, int interval,
-		unsigned long u_volt, u32 *power, int temperature)
+__visible_for_testing int get_core_static_power(cpumask_t *cpumask,
+	int interval, unsigned long u_volt, u32 *power, int temperature)
 {
 	unsigned long core_t_scale, core_v_scale;
 	u32 cpu_coeff;
@@ -1076,6 +1077,7 @@ int destroy_cpu_cooling_device(void)
 	return 0;
 }
 
+#if !defined(CONFIG_TEST)
 static int __init sprd_cpu_cooling_device_init(void)
 {
 	return create_cpu_cooling_device();
@@ -1088,3 +1090,4 @@ static void __exit sprd_cpu_cooling_device_exit(void)
 
 late_initcall(sprd_cpu_cooling_device_init);
 module_exit(sprd_cpu_cooling_device_exit);
+#endif
