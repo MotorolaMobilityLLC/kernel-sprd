@@ -102,7 +102,6 @@ static int tp_tx_cnt;
 static int tp_tx_flag;
 static int tp_tx_buf_cnt = TP_TX_BUF_CNT;
 static int tp_tx_buf_len = TP_TX_BUF_LEN;
-long int sdiohal_log_level;
 
 #if TCP_TEST_RX
 struct completion tp_rx_completed;

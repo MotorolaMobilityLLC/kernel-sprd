@@ -9,6 +9,7 @@ config WCN_BOOT
 
 config WCN_UTILS
 	bool "wcn debug for read and write register"
+	depends on SPRD_DEBUG
 	help
 	Choose Y here if you need to read/write register of wcn chip,
 	this is used for RD debug.
