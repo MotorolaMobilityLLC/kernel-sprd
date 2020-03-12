@@ -144,7 +144,7 @@ def check_tags_commit_id(patch_info_list):
                 if tags_list[tags_list_start_num].strip(":") in ATTRIBUTE_TAGS[0:ATTRIBUTE_TAGS.index("FROMLIST") + 1]:
                     check_tags_flag = 0
                     check_commit_id_flag = 0
-                elif tags_list[tags_list_start_num].strip(":") in  ATTRIBUTE_TAGS[ATTRIBUTE_TAGS.index("SECURITY"):]:
+                elif tags_list[tags_list_start_num].strip(":") in ATTRIBUTE_TAGS[ATTRIBUTE_TAGS.index("PRIVATE"):]:
                     check_tags_flag = 1
                 else:
                     check_tags_flag = 0
