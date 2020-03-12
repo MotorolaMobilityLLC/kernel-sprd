@@ -1155,7 +1155,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	struct charger_desc *desc = cm->desc;
 	union power_supply_propval val;
 	struct power_supply *psy;
-	int term_volt, target_cur, i, ret = -ENODEV;
+	int term_volt, target_cur, chg_limit_cur, i, ret = -ENODEV;
 
 	if (cm->charging_status != 0 &&
 	    !(cm->charging_status & CM_CHARGE_TEMP_ABNORMAL))
@@ -1180,6 +1180,15 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		target_cur = cm->desc->thm_adjust_cur;
 		dev_info(cm->dev, "thermel current is less than jeita current\n");
 	}
+
+	ret = get_charger_limit_current(cm, &chg_limit_cur);
+	if (ret) {
+		dev_err(cm->dev, "failed to get current limitation\n");
+		return false;
+	}
+
+	if (target_cur > chg_limit_cur)
+		target_cur = chg_limit_cur;
 
 	dev_info(cm->dev, "target terminate voltage = %d, target current = %d\n",
 		 term_volt, target_cur);
