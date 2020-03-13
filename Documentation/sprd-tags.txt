@@ -93,6 +93,7 @@ staging:sprd:sipa:
 staging:android:ion:
 soc:sprd:iommu:
 misc:audio:
+misc:sprdwcn:
 asoc:usb:
 asoc:sprd:codec:
 asoc:sprd:dai:
