@@ -941,6 +941,7 @@ static struct platform_driver seth_driver = {
 	}
 };
 
+#ifdef CONFIG_DEBUG_FS
 static int seth_debug_show(struct seq_file *m, void *v)
 {
 	struct seth *seth = (struct seth *)(m->private);
@@ -1036,19 +1037,20 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_gro_enable,
 			debugfs_gro_enable_get,
 			debugfs_gro_enable_set,
 			"%llu\n");
+#endif /* CONFIG_DEBUG_FS */
 
 static int __init seth_debugfs_init(void)
 {
 	root = debugfs_create_dir("seth", NULL);
 	if (!root)
 		return -ENODEV;
-
+#ifdef CONFIG_DEBUG_FS
 	debugfs_create_file("gro_enable",
 			    0600,
 			    root,
 			    &gro_enable,
 			    &fops_gro_enable);
-
+#endif
 	return 0;
 }
 
