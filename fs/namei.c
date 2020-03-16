@@ -43,6 +43,10 @@
 #include "internal.h"
 #include "mount.h"
 
+#ifdef CONFIG_SELINUX_AVC_BACKTRACE
+#include <linux/avc_backtrace.h>
+#endif
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/namei.h>
 
@@ -342,6 +346,13 @@ int generic_permission(struct inode *inode, int mask)
 	ret = acl_permission_check(inode, mask);
 	if (ret != -EACCES)
 		return ret;
+
+#ifdef CONFIG_SELINUX_AVC_BACKTRACE
+	if (avc_backtrace_enable == 1)
+		pr_info("check supplement group pid:%d comm:%s, uid:%d, gid:%d\n",
+		current->pid, current->comm,
+		inode->i_uid.val, inode->i_gid.val);
+#endif
 
 	if (S_ISDIR(inode->i_mode)) {
 		/* DACs are overridable for directories */

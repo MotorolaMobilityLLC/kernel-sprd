@@ -20,6 +20,10 @@
 #include "av_permissions.h"
 #include "security.h"
 
+#ifdef CONFIG_SELINUX_AVC_BACKTRACE
+#include <linux/avc_backtrace.h>
+#endif
+
 /*
  * An entry in the AVC.
  */
@@ -137,6 +141,36 @@ static inline int avc_audit(struct selinux_state *state,
 	/* fall back to ref-walk if we have to generate audit */
 	if (flags & MAY_NOT_BLOCK)
 		return -ECHILD;
+
+#ifdef CONFIG_SELINUX_AVC_BACKTRACE
+	if (avc_backtrace_enable == 1) {
+		int i;
+		kernel_siginfo_t info;
+
+		memset(&info, 0, sizeof(kernel_siginfo_t));
+		info.si_signo = AVC_BACKTRACE_SIGNAL;
+		info.si_code = SI_KERNEL_AVC;
+
+		if (avc_dump_all == 1) {
+			kill_pid_info(AVC_BACKTRACE_SIGNAL,
+			&info, find_vpid(current->pid));
+			dump_stack();
+		} else {
+			for (i = 0; i < AVC_BACKTRACE_COMM_NUM; i++) {
+				if (avc_backtrace_filter_ele[i]) {
+					if (!strcmp(current->comm, avc_backtrace_filter_ele[i])
+					|| (!strcmp(avc_backtrace_filter_ele[i], "Binder") && !strncmp(current->comm, "Binder", 6))) {
+						kill_pid_info(
+						AVC_BACKTRACE_SIGNAL,
+						&info, find_vpid(current->pid));
+						dump_stack();
+					}
+				}
+			}
+		}
+	}
+#endif
+
 	return slow_avc_audit(state, ssid, tsid, tclass,
 			      requested, audited, denied, result,
 			      a);
