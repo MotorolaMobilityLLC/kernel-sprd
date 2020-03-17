@@ -128,8 +128,9 @@ static struct dfs_data *g_dfs_data;
 
 static int dfs_msg_recv(struct smsg *msg, int timeout)
 {
-	int err = 0;
+	int err;
 	struct device *dev = g_dfs_data->dev;
+
 	err = smsg_recv(SIPC_ID_PM_SYS, msg, timeout);
 	if (err < 0) {
 		dev_err(dev, "dfs receive failed:%d\n", err);
@@ -144,7 +145,7 @@ static int dfs_msg_recv(struct smsg *msg, int timeout)
 static int dfs_msg_send(struct smsg *msg, unsigned int cmd, int timeout,
 		 unsigned int value)
 {
-	int err = 0;
+	int err;
 	struct device *dev = g_dfs_data->dev;
 
 	smsg_set(msg, SMSG_CH_PM_CTRL, SMSG_TYPE_DFS, cmd, value);
@@ -228,7 +229,7 @@ static int dfs_msg_parse_ret(struct smsg *msg)
 static int dfs_msg(unsigned int *data, unsigned int value,
 			unsigned int cmd, unsigned int wait)
 {
-	int err = 0;
+	int err;
 	struct smsg msg;
 	struct device *dev = g_dfs_data->dev;
 
@@ -265,7 +266,7 @@ static int dfs_vote(unsigned int freq, unsigned int magic)
 
 int dfs_enable(void)
 {
-	int err = 0;
+	int err;
 	unsigned int data;
 
 	err = dfs_msg(&data, 0, DFS_CMD_ENABLE, 2000);
@@ -275,7 +276,7 @@ int dfs_enable(void)
 
 int dfs_disable(void)
 {
-	int err = 0;
+	int err;
 	unsigned int data;
 
 	err = dfs_msg(&data, 0, DFS_CMD_DISABLE, 2000);
@@ -285,7 +286,7 @@ int dfs_disable(void)
 
 int dfs_auto_enable(void)
 {
-	int err = 0;
+	int err;
 	unsigned int data;
 
 	err = dfs_msg(&data, 0, DFS_CMD_AUTO_ENABLE, 2000);
@@ -295,7 +296,7 @@ int dfs_auto_enable(void)
 
 int dfs_auto_disable(void)
 {
-	int err = 0;
+	int err;
 	unsigned int data;
 
 	err = dfs_msg(&data, 0, DFS_CMD_AUTO_DISABLE, 2000);
@@ -842,7 +843,7 @@ static int dfs_auto_freq_probe(struct platform_device *pdev)
 	data->profile->exit = dfs_exit;
 
 	data->devfreq = devfreq_add_device(data->dev, data->profile,
-						"sprd_governor", NULL);
+						"sprd-governor", NULL);
 	if (IS_ERR(data->devfreq)) {
 		err = PTR_ERR(data->devfreq);
 		goto err_data;
@@ -894,7 +895,7 @@ static struct platform_driver dfs_auto_freq_drvier = {
 	.remove = dfs_auto_freq_remove,
 	.driver = {
 		.owner = THIS_MODULE,
-		.name = "sprd_dfs_auto",
+		.name = "sprd-dfs-auto",
 #ifdef CONFIG_OF
 		.of_match_table = dfs_auto_freq_match,
 #endif

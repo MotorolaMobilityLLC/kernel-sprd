@@ -580,13 +580,13 @@ static struct attribute *dev_entries[] = {
 /*****************userspace end********************/
 
 static struct attribute_group dev_attr_group = {
-	.name	= "sprd_governor",
+	.name	= "sprd-governor",
 	.attrs	= dev_entries,
 };
 
 static int devfreq_sprd_gov_start(struct devfreq *devfreq)
 {
-	int err = 0;
+	int err;
 
 	err = sysfs_create_group(&devfreq->dev.kobj, &dev_attr_group);
 	if (err)
@@ -633,7 +633,7 @@ static int devfreq_sprd_gov_handler(struct devfreq *devfreq,
 }
 
 struct devfreq_governor devfreq_sprd_gov = {
-	.name = "sprd_governor",
+	.name = "sprd-governor",
 	.get_target_freq = devfreq_sprd_gov_func,
 	.event_handler = devfreq_sprd_gov_handler,
 };
