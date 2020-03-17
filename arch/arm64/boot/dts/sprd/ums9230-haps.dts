@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Unisoc Qogirl6 platform DTS file
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ */
+
+/dts-v1/;
+
+#include "ums9230-haps.dtsi"
+#include "ums9230-haps-mach.dtsi"
+
+/ {
+	model = "Spreadtrum UMS9230 Haps Board";
+
+	compatible = "sprd,ums9230";
+
+	sprd,sc-id = <9230 1 0x20000>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0xffffffff>;
+	};
+
+	chosen {
+		stdout-path = "&uart1";
+		bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums9230_haps androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=memdisk0 androidboot.selinux=permissive androidboot.force_normal_boot=1";
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
