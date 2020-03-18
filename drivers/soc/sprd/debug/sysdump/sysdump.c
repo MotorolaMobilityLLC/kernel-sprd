@@ -570,7 +570,8 @@ void sysdump_ipi(struct pt_regs *regs)
 {
 	int cpu = smp_processor_id();
 
-	if (sprd_sysdump_extra.enter_cpu != -1) {
+	/*do flush and save only in oops path */
+	if (oops_in_progress) {
 		memcpy((void *)&(sprd_sysdump_extra.cpu_context[cpu]),
 		       (void *)regs, sizeof(struct pt_regs));
 		crash_note_save_cpu(regs, cpu);
