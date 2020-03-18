@@ -669,3 +669,28 @@
 	clocks = <&apapb_gate CLK_SPI3_EB>,
 	<&ap_clk CLK_AP_SPI3>, <&pll CLK_TWPLL_192M>;
 };
+
+&dpu {
+	clock-names = "clk_src_128m",
+			"clk_src_153m6",
+			"clk_src_192m",
+			"clk_src_256m",
+			"clk_src_384m",
+			"clk_dpu_core",
+			"clk_dpu_dpi",
+			"clk_aon_apb_disp_eb";
+
+	clocks = <&pll CLK_TWPLL_128M>,
+		<&pll CLK_TWPLL_153M6>,
+		<&pll CLK_TWPLL_192M>,
+		<&pll CLK_TWPLL_256M>,
+		<&pll CLK_TWPLL_384M>,
+		<&aon_clk CLK_DPU>,
+		<&aon_clk CLK_DPU_DPI>,
+		<&aonapb_gate CLK_DISP_EB>;
+};
+
+&dsi {
+	clock-names = "clk_aon_apb_disp_eb";
+	clocks = <&aonapb_gate CLK_DISP_EB>;
+};

@@ -5,6 +5,10 @@
  * Copyright (C) 2019, Unisoc Inc.
  */
 
+#include <dt-bindings/soc/sprd,sharkl3-regs.h>
+#include <dt-bindings/soc/sprd,sharkl3-mask.h>
+#include <dt-bindings/clock/sprd,sc9863a-clk.h>
+
 / {
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
@@ -340,6 +344,93 @@
 				reg = <0 0x41800000 0 0x200000>;
 				#address-cell = <1>;
 				#size-cell = <0>;
+			};
+		};
+
+		mm {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			dpu: dpu@63000000 {
+				compatible = "sprd,sharkl3-dpu";
+				reg = <0x0 0x63000000 0x0 0x1000>;
+				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+
+				reset-syscon = <&aon_apb_regs REG_AON_APB_APB_RST1
+						MASK_AON_APB_DISP_SOFT_RST>;
+
+				dpu_port: port {
+					dpu_out: endpoint {
+						remote-endpoint = <&dsi_in>;
+					};
+				};
+			};
+
+			dsi: dsi@63100000 {
+				compatible = "sprd,sharkl3-dsi-host";
+				reg = <0x0 0x63100000 0x0 0x1000>;
+				interrupts = <GIC_SPI 48 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+
+				reset-syscon = <&aon_apb_regs REG_AON_APB_JVL_DUMMY 0x04>;
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					port@0 {
+						reg = <0>;
+						dsi_out: endpoint {
+							remote-endpoint = <&dphy_in>;
+						};
+					};
+
+					port@1 {
+						reg = <1>;
+						dsi_in: endpoint {
+							remote-endpoint = <&dpu_out>;
+						};
+					};
+				};
+			};
+
+			dphy: dphy {
+				compatible = "sprd,sharkl3-dsi-phy";
+				reg = <0x0 0x63100000 0x0 0x1000>;
+				status = "disabled";
+
+				enable-syscon = <&aon_apb_regs REG_AON_APB_APB_EB2
+						(MASK_AON_APB_DPHY_REF_EB |
+						MASK_AON_APB_DPHY_CFG_EB)>;
+				power-small-syscon = <&aon_apb_regs REG_AON_APB_PWR_CTRL
+						MASK_AON_APB_MIPI_DSI_PS_PD_S>;
+				power-large-syscon = <&aon_apb_regs REG_AON_APB_PWR_CTRL
+						MASK_AON_APB_MIPI_DSI_PS_PD_L>;
+				power-iso-syscon = <&aon_apb_regs REG_AON_APB_PWR_CTRL
+						MASK_AON_APB_MIPI_DSI_ISO_SW_EN>;
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					port@0 {
+						reg = <0>;
+						dphy_out: endpoint {
+							remote-endpoint = <&panel_in>;
+						};
+					};
+
+					port@1 {
+						reg = <1>;
+						dphy_in: endpoint {
+							remote-endpoint = <&dsi_out>;
+						};
+					};
+				};
 			};
 		};
 	};

@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Unisoc SP9863A board common DTS file
+ *
+ * Copyright (C) 2019, Unisoc Inc.
+ *
+ */
+
+#include "lcd/lcd_dummy_mipi.dtsi"
+
+/ {
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		ports = <&dpu_port>;
+	};
+};
