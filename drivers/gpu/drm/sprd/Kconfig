@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config DRM_SPRD
+	tristate "DRM Support for Unisoc SoCs Platform"
+	depends on ARCH_SPRD || COMPILE_TEST
+	depends on DRM && OF
+	select DRM_KMS_HELPER
+	select DRM_GEM_CMA_HELPER
+	select DRM_KMS_CMA_HELPER
+	select VIDEOMODE_HELPERS
+	help
+	  Choose this option if you have a Unisoc chipsets.
+	  If M is selected the module will be called sprd-drm.
+
+if DRM_SPRD
+
+comment "Unisoc CRTCs"
+
+config DRM_SPRD_DPU0
+	bool "Primary Display Controller"
+	depends on DRM_SPRD
+	help
+	  Choose this option if you want to use primary display controller.
+
+comment "Unisoc Encoders and Bridges"
+
+config DRM_SPRD_DSI
+	bool "DSI Host Controller"
+	depends on DRM_SPRD
+	select DRM_MIPI_DSI
+	select DRM_PANEL
+	select BACKLIGHT_CLASS_DEVICE
+	help
+	  Choose this option if you want to use DSI host controller.
+
+endif
