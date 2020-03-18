@@ -62,6 +62,7 @@ struct sc2703_charger_info {
 	struct regmap *pmic;
 	u32 charger_detect;
 	bool long_key_detect;
+	bool otg_enable;
 };
 
 /* sc2703 input limit current, Milliamp */
@@ -1137,17 +1138,8 @@ static void sc2703_charger_detect_status(struct sc2703_charger_info *info)
 static int sc2703_charger_vbus_is_enabled(struct regulator_dev *dev)
 {
 	struct sc2703_charger_info *info = rdev_get_drvdata(dev);
-	int ret;
-	u32 val;
 
-	ret = regmap_read(info->regmap, SC2703_DCDC_CTRL_A, &val);
-	if (ret) {
-		dev_err(info->dev, "failed to get sc2703 otg status.\n");
-		return ret;
-	}
-	val &= SC2703_OTG_EN_MASK;
-
-	return val;
+	return info->otg_enable;
 }
 
 static int sc2703_charger_enable_otg(struct regulator_dev *dev)
@@ -1224,6 +1216,8 @@ static int sc2703_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	info->otg_enable = true;
+
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(SC2703_OTG_VALID_MS));
 
@@ -1235,6 +1229,7 @@ static int sc2703_charger_disable_otg(struct regulator_dev *dev)
 	struct sc2703_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 
+	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->otg_work);
 
 	/* Disable 2703 otg mode */
