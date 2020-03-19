@@ -43,6 +43,10 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(sched_overutilized_tp);
 
 DEFINE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
 EXPORT_SYMBOL_GPL(runqueues);
+/* Instead of adding push_task inside runqueues, make it as company
+ * per_cpu variable to runqueues because of GKI v1.0 compliance issue.
+ */
+DEFINE_PER_CPU_SHARED_ALIGNED(struct task_struct *, runqueues_push_task);
 
 #ifdef CONFIG_SCHED_DEBUG
 /*
@@ -3818,9 +3822,11 @@ void scheduler_tick(void)
 #ifdef CONFIG_SMP
 	rq->idle_balance = idle_cpu(cpu);
 	trigger_load_balance(rq);
-#endif
-
 	trace_android_vh_scheduler_tick(rq);
+
+	if (curr->sched_class == &fair_sched_class)
+		check_for_migration(rq, curr);
+#endif
 }
 
 #ifdef CONFIG_NO_HZ_FULL

@@ -1053,6 +1053,7 @@ static inline void update_idle_core(struct rq *rq) { }
 #endif
 
 DECLARE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
+DECLARE_PER_CPU_SHARED_ALIGNED(struct task_struct *, runqueues_push_task);
 
 #define cpu_rq(cpu)		(&per_cpu(runqueues, (cpu)))
 #define this_rq()		this_cpu_ptr(&runqueues)
@@ -1802,8 +1803,10 @@ static inline void set_next_task(struct rq *rq, struct task_struct *next)
 
 #ifdef CONFIG_SMP
 #define sched_class_highest (&stop_sched_class)
+extern void check_for_migration(struct rq *rq, struct task_struct *p);
 #else
 #define sched_class_highest (&dl_sched_class)
+static inline void check_for_migration(struct rq *rq, struct task_struct *p) {}
 #endif
 
 #define for_class_range(class, _from, _to) \
