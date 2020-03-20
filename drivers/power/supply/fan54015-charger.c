@@ -6,6 +6,7 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+#include <linux/alarmtimer.h>
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/kernel.h>
@@ -35,7 +36,10 @@
 #define BIT_DP_DM_BC_ENB				BIT(0)
 #define FAN54015_OTG_VALID_MS				500
 #define FAN54015_FEED_WATCHDOG_VALID_MS			50
+#define FAN54015_OTG_ALARM_TIMER_MS			15000
 
+#define FAN54015_REG_FAULT_MASK				0x7
+#define FAN54015_OTG_TIMER_FAULT			0x6
 #define FAN54015_REG_HZ_MODE_MASK			GENMASK(1, 1)
 #define FAN54015_REG_OPA_MODE_MASK			GENMASK(0, 0)
 
@@ -100,6 +104,8 @@ struct fan54015_charger_info {
 	u32 charger_pd_mask;
 	struct gpio_desc *gpiod;
 	struct extcon_dev *edev;
+	bool otg_enable;
+	struct alarm otg_timer;
 };
 
 static int
@@ -966,6 +972,7 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	info->otg_enable = true;
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(FAN54015_FEED_WATCHDOG_VALID_MS));
 	schedule_delayed_work(&info->otg_work,
@@ -979,6 +986,7 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
 	int ret;
 
+	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
 	ret = fan54015_update_bits(info, FAN54015_REG_1,
@@ -1074,6 +1082,9 @@ static int fan54015_charger_probe(struct i2c_client *client,
 		return -ENOMEM;
 	info->client = client;
 	info->dev = dev;
+
+	alarm_init(&info->otg_timer, ALARM_BOOTTIME, NULL);
+
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, fan54015_charger_work);
 
@@ -1182,6 +1193,62 @@ static int fan54015_charger_remove(struct i2c_client *client)
 	return 0;
 }
 
+#ifdef CONFIG_PM_SLEEP
+static int fan54015_charger_suspend(struct device *dev)
+{
+	struct fan54015_charger_info *info = dev_get_drvdata(dev);
+	ktime_t now, add;
+	unsigned int wakeup_ms = FAN54015_OTG_ALARM_TIMER_MS;
+	int ret;
+
+	if (!info->otg_enable)
+		return 0;
+
+	cancel_delayed_work_sync(&info->wdt_work);
+
+	/* feed watchdog first before suspend */
+	ret = fan54015_update_bits(info, FAN54015_REG_0,
+				   FAN54015_REG_RESET_MASK,
+				   FAN54015_REG_RESET);
+	if (ret)
+		dev_warn(info->dev, "reset fan54015 failed before suspend\n");
+
+	now = ktime_get_boottime();
+	add = ktime_set(wakeup_ms / MSEC_PER_SEC,
+			(wakeup_ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
+	alarm_start(&info->otg_timer, ktime_add(now, add));
+
+	return 0;
+}
+
+static int fan54015_charger_resume(struct device *dev)
+{
+	struct fan54015_charger_info *info = dev_get_drvdata(dev);
+	int ret;
+
+	if (!info->otg_enable)
+		return 0;
+
+	alarm_cancel(&info->otg_timer);
+
+	/* feed watchdog first after resume */
+	ret = fan54015_update_bits(info, FAN54015_REG_0,
+				   FAN54015_REG_RESET_MASK,
+				   FAN54015_REG_RESET);
+	if (ret)
+		dev_warn(info->dev, "reset fan54015 failed after resume\n");
+
+	schedule_delayed_work(&info->wdt_work, HZ * 15);
+
+	return 0;
+}
+#endif
+
+static const struct dev_pm_ops fan54015_charger_pm_ops = {
+	SET_SYSTEM_SLEEP_PM_OPS(fan54015_charger_suspend,
+				fan54015_charger_resume)
+};
+
 static const struct i2c_device_id fan54015_i2c_id[] = {
 	{"fan54015_chg", 0},
 	{}
@@ -1199,6 +1266,7 @@ static struct i2c_driver fan54015_charger_driver = {
 	.driver = {
 		.name = "fan54015-charger",
 		.of_match_table = fan54015_charger_of_match,
+		.pm = &fan54015_charger_pm_ops,
 	},
 	.probe = fan54015_charger_probe,
 	.remove = fan54015_charger_remove,
