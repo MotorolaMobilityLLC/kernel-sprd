@@ -1,0 +1,14 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			dtbo: dtbo {
+				compatible = "sprd,dtbo-test";
+				reg = <0x11>;
+			};
+		};
+	};
+};
