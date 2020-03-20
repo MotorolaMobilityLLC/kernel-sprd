@@ -1,0 +1,7 @@
+config SPRD_DEBUG
+	bool "Spreadtrum debug module"
+	depends on ARCH_SPRD || ARCH_SPRD=m || COMPILE_TEST
+	help
+	  Say y here to enable Debug support.
+
+source "drivers/soc/sprd/debug/Kconfig"
