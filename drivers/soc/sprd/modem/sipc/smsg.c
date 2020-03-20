@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-smsg: " fmt
+
 #include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
@@ -147,8 +152,7 @@ static irqreturn_t smsg_irq_handler(void *ptr, void *private)
 	if (msg->type >= SMSG_TYPE_NR ||
 	    ch_index == INVALID_CHANEL_INDEX) {
 		if (ch_index == INVALID_CHANEL_INDEX)
-			pr_err("%s:channel %d invalid!\n",
-			       __func__, msg->channel);
+			pr_err("channel %d invalid!\n", msg->channel);
 
 		/* invalid msg */
 		pr_info("invalid smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
@@ -256,8 +260,7 @@ static irqreturn_t smsg_irq_handler(int irq, void *private)
 		if (msg->type >= SMSG_TYPE_NR ||
 		    ch_index == INVALID_CHANEL_INDEX) {
 			if (ch_index == INVALID_CHANEL_INDEX)
-				pr_err("%s:channel %d invalid!\n",
-				       __func__, msg->channel);
+				pr_err("channel %d invalid!\n", msg->channel);
 
 			/* invalid msg */
 			pr_info("invalid smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
@@ -398,7 +401,7 @@ int smsg_ch_wake_unlock(u8 dst, u8 channel)
 
 	ch_index = channel2index[channel];
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -425,7 +428,7 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 
 	ch_index = channel2index[channel];
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -505,7 +508,7 @@ int smsg_ch_close(u8 dst, u8 channel,  int timeout)
 
 	ch_index = channel2index[channel];
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -604,7 +607,7 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 
 	ch_index = channel2index[msg->channel];
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, msg->channel);
+		pr_err("channel %d invalid!\n", msg->channel);
 		return -EINVAL;
 	}
 
@@ -678,7 +681,7 @@ int smsg_recv(u8 dst, struct smsg *msg, int timeout)
 
 	ch_index = channel2index[msg->channel];
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, msg->channel);
+		pr_err("channel %d invalid!\n", msg->channel);
 		return -EINVAL;
 	}
 

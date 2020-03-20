@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-spipe: " fmt
+
 #include <linux/cdev.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -198,20 +203,21 @@ static int spipe_probe(struct platform_device *pdev)
 	int i, rval;
 	struct device_node *np, *chd;
 	int segnr;
+	struct device *dev = &pdev->dev;
 
 	if (pdev->dev.of_node && !init) {
 		np = pdev->dev.of_node;
 		segnr = of_get_child_count(np);
-		pr_info("%s: segnr = %d\n", __func__, segnr);
+		dev_info(dev, "segnr = %d\n", segnr);
 
 		for_each_child_of_node(np, chd) {
 			rval = spipe_parse_dt(&init, chd);
 			if (rval) {
-				pr_err("Failed to parse spipe device tree, ret=%d\n",
+				dev_err(dev, "Failed to parse spipe device tree, ret=%d\n",
 					rval);
 				return rval;
 			}
-			pr_info("spipe: after parse device tree, name=%s, dst=%u, channel=%u, ringnr=%u,  rxbuf_size=0x%x, txbuf_size=0x%x\n",
+			dev_info(dev, "After parse device tree, name=%s, dst=%u, channel=%u, ringnr=%u,  rxbuf_size=0x%x, txbuf_size=0x%x\n",
 				init->name,
 				init->dst,
 				init->channel,
@@ -224,7 +230,8 @@ static int spipe_probe(struct platform_device *pdev)
 					      init->txbuf_size,
 					      init->rxbuf_size);
 			if (rval != 0) {
-				pr_err("Failed to create sbuf: %d\n", rval);
+				dev_err(dev, "Failed to create sbuf: %d\n",
+					rval);
 				spipe_destroy_pdata(&init, &pdev->dev);
 				return rval;
 			}
@@ -235,7 +242,6 @@ static int spipe_probe(struct platform_device *pdev)
 			if (spipe == NULL) {
 				sbuf_destroy(init->dst, init->channel);
 				spipe_destroy_pdata(&init, &pdev->dev);
-				pr_err("Failed to allocate spipe_device\n");
 				return -ENOMEM;
 			}
 
@@ -244,7 +250,7 @@ static int spipe_probe(struct platform_device *pdev)
 				sbuf_destroy(init->dst, init->channel);
 				devm_kfree(&pdev->dev, spipe);
 				spipe_destroy_pdata(&init, &pdev->dev);
-				pr_err("Failed to alloc spipe chrdev\n");
+				dev_err(dev, "Failed to alloc spipe chrdev\n");
 				return rval;
 			}
 
@@ -255,7 +261,7 @@ static int spipe_probe(struct platform_device *pdev)
 				devm_kfree(&pdev->dev, spipe);
 				unregister_chrdev_region(devid, init->ringnr);
 				spipe_destroy_pdata(&init, &pdev->dev);
-				pr_err("Failed to add spipe cdev\n");
+				dev_err(dev, "Failed to add spipe cdev\n");
 				return rval;
 			}
 
@@ -316,7 +322,7 @@ static const struct of_device_id spipe_match_table[] = {
 static struct platform_driver spipe_driver = {
 	.driver = {
 		.owner = THIS_MODULE,
-		.name = "spipe",
+		.name = "sprd-spipe",
 		.of_match_table = spipe_match_table,
 	},
 	.probe = spipe_probe,

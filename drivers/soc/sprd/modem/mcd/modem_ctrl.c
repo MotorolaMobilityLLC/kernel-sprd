@@ -386,7 +386,7 @@ static void modem_ctrl_poweron_modem(int on)
 #if defined(CONFIG_DEBUG_FS)
 static int modem_ctrl_debug_show(struct seq_file *m, void *private)
 {
-	dev_dbg(mcd_dev->dev, "%s\n", __func__);
+	dev_dbg(mcd_dev->dev, "show debug\n");
 	return 0;
 }
 
@@ -411,7 +411,7 @@ static int modem_ctrl_open(struct inode *inode, struct file *filp)
 	modem_ctrl = container_of(inode->i_cdev,
 				  struct modem_ctrl_device, cdev);
 	filp->private_data = modem_ctrl;
-	dev_dbg(modem_ctrl->dev, "modem_ctrl: %s\n", __func__);
+	dev_dbg(modem_ctrl->dev, "open\n");
 	return 0;
 }
 
@@ -421,7 +421,7 @@ static int modem_ctrl_release(struct inode *inode, struct file *filp)
 
 	modem_ctrl = container_of(inode->i_cdev,
 				  struct modem_ctrl_device, cdev);
-	dev_dbg(modem_ctrl->dev, "modem_ctrl: %s\n", __func__);
+	dev_dbg(modem_ctrl->dev, "release\n");
 
 	return 0;
 }
@@ -738,7 +738,7 @@ static const struct of_device_id modem_ctrl_match_table[] = {
 
 static struct platform_driver modem_ctrl_driver = {
 	.driver = {
-		.name = "modem_ctrl",
+		.name = "sprd-modem-ctrl",
 		.of_match_table = modem_ctrl_match_table,
 	},
 	.probe = modem_ctrl_probe,

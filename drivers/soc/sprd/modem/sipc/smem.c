@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-smem: " fmt
+
 #include <linux/debugfs.h>
 #include <linux/genalloc.h>
 #include <linux/kernel.h>
@@ -147,8 +152,8 @@ int smem_init(u32 addr, u32 size, u32 dst)
 		pr_err("Failed to add smem gen pool!\n");
 		return -ENOMEM;
 	}
-	pr_info("%s: pool addr = 0x%x, size = 0x%x added.\n",
-		__func__, spool->addr, spool->size);
+	pr_info("pool addr = 0x%x, size = 0x%x added.\n",
+		spool->addr, spool->size);
 
 	return 0;
 }
@@ -251,8 +256,6 @@ static void *shmem_ram_vmap(phys_addr_t start, size_t size, int noncached)
 
 	pages = kmalloc_array(page_count, sizeof(struct page *), GFP_KERNEL);
 	if (!pages) {
-		pr_err("%s: Failed to allocate array for %u pages\n",
-		       __func__, page_count);
 		kfree(map);
 		return NULL;
 	}

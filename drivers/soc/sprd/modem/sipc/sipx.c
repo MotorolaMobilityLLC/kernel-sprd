@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-sipx: " fmt
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/wait.h>
@@ -52,11 +57,6 @@
 #define IS_DL_BLK_ACK(sipx, blk) ((blk)->addr >= (sipx)->dl_ack_start)
 
 #define IS_UL_BLK_ACK(sipx, blk) ((blk)->addr >= (sipx)->ul_ack_start)
-
-/* debugging macros */
-#define SIPX_INFO(x...)		pr_info("SIPX: " x)
-#define SIPX_DEBUG(x...)	pr_debug("SIPX: " x)
-#define SIPX_ERR(x...)		pr_err("SIPX: [E] " x)
 
 /* #define UL_TEST */
 
@@ -153,8 +153,8 @@ static int sipx_put_item_into_pool(struct sipx_pool *pool, struct sblock *blk)
 		(*(u32 *)(&pool->fifo_buf[pos])) = item;
 		pool->fifo_info->fifo_wrptr = wr + 1;
 	} else {
-		SIPX_ERR("%s fail: wr:0x%x, rd:0x%x, size:%d\n",
-			 __func__, wr, rd, pool->fifo_size);
+		pr_err("fail: wr:0x%x, rd:0x%x, size:%d\n",
+			 wr, rd, pool->fifo_size);
 		ret = -1;
 	}
 	spin_unlock_irqrestore(&pool->lock, flags);
@@ -268,7 +268,7 @@ static int sipx_recover_channel(struct sipx_mgr *sipx,
 
 	/* clean dl record blk */
 	if (sipx_chan->dl_record_flag) {
-		SIPX_INFO("%s dl_record_flag = 1\n", __func__);
+		pr_info("dl_record_flag = 1\n");
 
 		blk = sipx_chan->dl_record_blk;
 		if (IS_DL_BLK_ACK(sipx, &blk))
@@ -285,8 +285,8 @@ static int sipx_recover_channel(struct sipx_mgr *sipx,
 	spin_lock_irqsave(&sipx_chan->dl_ring->lock, flags);
 
 	while (fifo_info->fifo_wrptr != fifo_info->fifo_rdptr) {
-		SIPX_INFO("%s %s 0x%p, wrptr: 0x%x, rdptr:0x%x\n",
-			  __func__, "dl_ring fifo_info:",
+		pr_info("%s 0x%p, wrptr: 0x%x, rdptr:0x%x\n",
+			  "dl_ring fifo_info:",
 			  (void *)fifo_info,
 			  (unsigned int)fifo_info->fifo_wrptr,
 			  (unsigned int)fifo_info->fifo_rdptr);
@@ -307,8 +307,8 @@ static int sipx_recover_channel(struct sipx_mgr *sipx,
 	spin_lock_irqsave(&sipx_chan->dl_ack_ring->lock, flags);
 
 	while (fifo_info->fifo_wrptr != fifo_info->fifo_rdptr) {
-		SIPX_INFO("%s %s0x%p, wrptr:0x%x, rdptr:0x%x\n",
-			  __func__, "dl_ack_ring fifo_info:",
+		pr_info("%s0x%p, wrptr:0x%x, rdptr:0x%x\n",
+			  "dl_ack_ring fifo_info:",
 			  (void *)fifo_info,
 			  (unsigned int)fifo_info->fifo_wrptr,
 			  (unsigned int)fifo_info->fifo_rdptr);
@@ -328,8 +328,8 @@ static int sipx_recover_channel(struct sipx_mgr *sipx,
 
 	spin_lock_irqsave(&sipx_chan->ul_ring->lock, flags);
 	while (fifo_info->fifo_wrptr != fifo_info->fifo_rdptr) {
-		SIPX_INFO("%s %s0x%p, wrptr:0x%x, rdptr:0x%x\n",
-			  __func__, "ul_ring fifo_info:",
+		pr_info("%s0x%p, wrptr:0x%x, rdptr:0x%x\n",
+			  "ul_ring fifo_info:",
 			  (void *)fifo_info,
 			  (unsigned int)fifo_info->fifo_wrptr,
 			  (unsigned int)fifo_info->fifo_rdptr);
@@ -349,8 +349,8 @@ static int sipx_recover_channel(struct sipx_mgr *sipx,
 
 	spin_lock_irqsave(&sipx_chan->ul_ack_ring->lock, flags);
 	while (fifo_info->fifo_wrptr != fifo_info->fifo_rdptr) {
-		SIPX_INFO("%s %s0x%p, wrptr:0x%x, rdptr:0x%x\n",
-			  __func__, "ul_ack_ring fifo_info:",
+		pr_info("%s0x%p, wrptr:0x%x, rdptr:0x%x\n",
+			  "ul_ack_ring fifo_info:",
 			  (void *)fifo_info,
 			  (unsigned int)fifo_info->fifo_wrptr,
 			  (unsigned int)fifo_info->fifo_rdptr);
@@ -367,7 +367,7 @@ static int sipx_recover_channel(struct sipx_mgr *sipx,
 
 	/* clean ul record blk */
 	if (sipx_chan->ul_record_flag) {
-		SIPX_INFO("%s ul_record_flag = 1\n", __func__);
+		pr_info("ul_record_flag = 1\n");
 
 		blk = sipx_chan->ul_record_blk;
 		if (IS_UL_BLK_ACK(sipx, &blk))
@@ -413,7 +413,7 @@ static int sipx_thread(void *data)
 	/* since the channel open may hang, we call it in the seblock thread */
 	rval = smsg_ch_open(sipx_chan->dst, sipx_chan->channel, -1);
 	if (rval != 0) {
-		SIPX_ERR("Failed to open channel %d\n", sipx_chan->channel);
+		pr_err("Failed to open channel %d\n", sipx_chan->channel);
 		/* assign NULL to thread poniter as failed to open channel */
 		sipx_chan->thread = NULL;
 		return rval;
@@ -430,7 +430,7 @@ static int sipx_thread(void *data)
 			continue;
 		}
 
-		SIPX_DEBUG("sipx thread recv msg: dst=%d, channel=%d, "
+		pr_debug("sipx thread recv msg: dst=%d, channel=%d, "
 			   "type=%d, flag=0x%04x, value=0x%08x\n",
 			   sipx_chan->dst, sipx_chan->channel,
 			   mrecv.type, mrecv.flag, mrecv.value);
@@ -455,7 +455,7 @@ static int sipx_thread(void *data)
 
 			/* handle channel recovery */
 			if (sipx_chan->sipx->recovery && (mrecv.value == 0)) {
-				SIPX_INFO("sipx_chan start recover! recv msg:"
+				pr_info("sipx_chan start recover! recv msg:"
 					  "dst=%d, channel=%d, type=%d "
 					  "flag=0x%04x, value=0x%08x\n",
 					  sipx_chan->dst,
@@ -498,7 +498,7 @@ static int sipx_thread(void *data)
 #ifdef UL_TEST
 				if (sipx_chan->channel == 7) {
 					g_flow_on = 1;
-					SIPX_INFO("channel 7 leave flow ctrl\n");
+					pr_info("channel 7 leave flow ctrl\n");
 				}
 #endif
 				if (sipx_chan->handler)
@@ -518,7 +518,7 @@ static int sipx_thread(void *data)
 		};
 
 		if (rval) {
-			SIPX_INFO("%s: %d-%d, %d, %d, %d\n",
+			pr_info("%s: %d-%d, %d, %d, %d\n",
 				  "non-handled sipx_chan msg",
 				  sipx_chan->dst, sipx_chan->channel,
 				  mrecv.type, mrecv.flag, mrecv.value);
@@ -526,7 +526,7 @@ static int sipx_thread(void *data)
 		}
 	}
 
-	SIPX_ERR("sipx_chan %d-%d thread stop",
+	pr_err("sipx_chan %d-%d thread stop",
 		 sipx_chan->dst, sipx_chan->channel);
 
 	return rval;
@@ -542,10 +542,8 @@ static int create_sipx_pool_ctrl(struct sipx_pool **out,
 	int i;
 
 	pool = kzalloc(sizeof(*pool), GFP_KERNEL);
-	if (!pool) {
-		SIPX_ERR("Failed to allocate seblock_fifo for seblock\n");
+	if (!pool)
 		return -ENOMEM;
-	}
 
 	pool->fifo_info = fifo_info;
 	pool->fifo_buf = fifo_virt;
@@ -614,10 +612,8 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 		return -ENODEV;
 	}
 	sipx = kzalloc(sizeof(*sipx), GFP_KERNEL);
-	if (!sipx) {
-		SIPX_ERR("Failed to kzalloc for sipx\n");
+	if (!sipx)
 		return -ENOMEM;
-	}
 
 	memset(sipx, 0, sizeof(struct sipx_mgr));
 	sipx->pdata = pdata;
@@ -683,7 +679,7 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 					sdev->pdata->smem_base);
 
 	if (!sipx->smem_addr) {
-		SIPX_ERR("Failed to allocate smem for sipx\n");
+		pr_err("Failed to allocate smem for sipx\n");
 		ret = -ENOMEM;
 		goto fail;
 	}
@@ -692,7 +688,6 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 	sipx->smem_virt = shmem_ram_vmap_nocache(sipx->smem_addr,
 						 sipx->smem_size);
 	if (!sipx->smem_virt) {
-		SIPX_ERR("Failed to map smem for sipx\n");
 		ret = -EFAULT;
 		goto fail;
 	}
@@ -702,7 +697,6 @@ static int create_sipx_mgr(struct sipx_mgr **out, struct sipx_init_data *pdata)
 						      sipx->smem_size);
 
 	if (!sipx->smem_cached_virt) {
-		SIPX_ERR("Failed to map cached smem for sipx\n");
 		ret = -EFAULT;
 		goto fail;
 	}
@@ -926,27 +920,27 @@ int sipx_get(u8 dst, u8 channel, struct sblock *blk, int is_ack)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	if (!sipx) {
-		SIPX_ERR("sipx-%d-%d %s sipx not exist!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d sipx not exist!\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	sipx_chan = sipx->channels[ch_index];
 
 	if (!sipx_chan) {
-		SIPX_ERR("sipx-%d-%d %s not exist\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not exist\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	if (sipx_chan->state != SBLOCK_STATE_READY) {
-		SIPX_ERR("sipx-%d-%d %s not ready!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not ready!\n",
+			 dst, channel);
 		return -EIO;
 	}
 
@@ -954,8 +948,8 @@ int sipx_get(u8 dst, u8 channel, struct sblock *blk, int is_ack)
 	if (is_ack) {
 		ret = sipx_get_item_from_pool(sipx->ul_ack_pool, blk);
 		if (ret) {
-			SIPX_INFO("%s %d-%d ack pool is empty!\n",
-				  __func__, dst, channel);
+			pr_info("%d-%d ack pool is empty!\n",
+				  dst, channel);
 			/* ack packet, when  ack pool is empty,
 			 * try normal pool
 			 */
@@ -967,8 +961,8 @@ int sipx_get(u8 dst, u8 channel, struct sblock *blk, int is_ack)
 	}
 
 	if (ret) {
-		SIPX_INFO("%s %d-%d ack:%d is empty!\n",
-			  __func__, dst, channel, is_ack);
+		pr_info("%d-%d ack:%d is empty!\n",
+			  dst, channel, is_ack);
 		return -EAGAIN;
 	}
 
@@ -994,27 +988,27 @@ int sipx_put(u8 dst, u8 channel, struct sblock *blk)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	if (!sipx) {
-		SIPX_ERR("sipx-%d-%d %s sipx not exist!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d sipx not exist!\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	sipx_chan = sipx->channels[ch_index];
 
 	if (!sipx_chan) {
-		SIPX_ERR("sipx-%d-%d %s not exist\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not exist\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	if (sipx_chan->state != SBLOCK_STATE_READY) {
-		SIPX_ERR("sipx-%d-%d %s not ready!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not ready!\n",
+			 dst, channel);
 		return -EIO;
 	}
 
@@ -1051,7 +1045,7 @@ static enum hrtimer_restart sipx_ul_trigger_timer_handler(struct hrtimer
 
 	spin_unlock_irqrestore(&sipx_chan->lock, flags);
 
-	SIPX_DEBUG("sipx trigger cp in timer func\n");
+	pr_debug("sipx trigger cp in timer func\n");
 
 	return HRTIMER_NORESTART;
 }
@@ -1074,7 +1068,7 @@ static void sipx_force_ul_trigger(struct sipx_channel *sipx_chan)
 
 	spin_unlock_irqrestore(&sipx_chan->lock, flags);
 
-	SIPX_DEBUG("sipx trigger cp force\n");
+	pr_debug("sipx trigger cp force\n");
 }
 
 
@@ -1105,27 +1099,27 @@ int sipx_flush(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	if (!sipx) {
-		SIPX_ERR("sipx-%d-%d %s sipx not exist!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d sipx not exist!\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	sipx_chan = sipx->channels[ch_index];
 
 	if (!sipx_chan) {
-		SIPX_ERR("sipx-%d-%d %s not exist\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not exist\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	if (sipx_chan->state != SBLOCK_STATE_READY) {
-		SIPX_ERR("sipx-%d-%d %s not ready!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not ready!\n",
+			 dst, channel);
 		return -EIO;
 	}
 
@@ -1145,31 +1139,31 @@ int sipx_send(u8 dst, u8 channel, struct sblock *blk)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	if (!sipx) {
-		SIPX_ERR("sipx-%d-%d %s sipx not exist!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d sipx not exist!\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	sipx_chan = sipx->channels[ch_index];
 
 	if (!sipx_chan) {
-		SIPX_ERR("sipx-%d-%d %s not exist\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not exist\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	if (sipx_chan->state != SBLOCK_STATE_READY) {
-		SIPX_ERR("sipx-%d-%d %s not ready!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not ready!\n",
+			 dst, channel);
 		return -EIO;
 	}
 
-	SIPX_DEBUG("dst=%d, channel=%d, addr=%p, len=%d\n",
+	pr_debug("dst=%d, channel=%d, addr=%p, len=%d\n",
 		   dst, channel, blk->addr, blk->length);
 
 	if (IS_UL_BLK_ACK(sipx, blk)) {
@@ -1201,27 +1195,27 @@ int sipx_receive(u8 dst, u8 channel, struct sblock *blk)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	if (!sipx) {
-		SIPX_ERR("sipx-%d-%d %s sipx not exist!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d sipx not exist!\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	sipx_chan = sipx->channels[ch_index];
 
 	if (!sipx_chan) {
-		SIPX_ERR("sipx-%d-%d %s not exist\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not exist\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	if (sipx_chan->state != SBLOCK_STATE_READY) {
-		SIPX_ERR("sipx-%d-%d %s not ready!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not ready!\n",
+			 dst, channel);
 		return -EIO;
 	}
 
@@ -1251,32 +1245,32 @@ int sipx_release(u8 dst, u8 channel, struct sblock *blk)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	if (!sipx) {
-		SIPX_ERR("sipx-%d-%d %s sipx not exist!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d sipx not exist!\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	sipx_chan = sipx->channels[ch_index];
 
 	if (!sipx_chan) {
-		SIPX_ERR("sipx-%d-%d %s not exist\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not exist\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	if (sipx_chan->state != SBLOCK_STATE_READY) {
-		SIPX_ERR("sipx-%d-%d %s not ready!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not ready!\n",
+			 dst, channel);
 		return -EIO;
 	}
 
-	SIPX_DEBUG("%s: dst=%d, channel=%d, addr=%p, len=%d, offset=%d\n",
-		   __func__, dst, channel,
+	pr_debug("dst=%d, channel=%d, addr=%p, len=%d, offset=%d\n",
+		   dst, channel,
 		   blk->addr, blk->length, blk->offset);
 
 	if (IS_DL_BLK_ACK(sipx, blk))
@@ -1299,27 +1293,27 @@ int sipx_get_arrived_count(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	if (!sipx) {
-		SIPX_ERR("sipx-%d-%d %s sipx not exist!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d sipx not exist!\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	sipx_chan = sipx->channels[ch_index];
 
 	if (!sipx_chan) {
-		SIPX_ERR("sipx-%d-%d %s not exist\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not exist\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	if (sipx_chan->state != SBLOCK_STATE_READY) {
-		SIPX_ERR("sipx-%d-%d %s not ready!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not ready!\n",
+			 dst, channel);
 		return -EIO;
 	}
 
@@ -1339,27 +1333,27 @@ int sipx_get_free_count(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	if (!sipx) {
-		SIPX_ERR("sipx-%d-%d %s sipx not exist!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d sipx not exist!\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	sipx_chan = sipx->channels[ch_index];
 
 	if (!sipx_chan) {
-		SIPX_ERR("sipx-%d-%d %s sipx_get not exist\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d sipx_get not exist\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	if (sipx_chan->state != SBLOCK_STATE_READY) {
-		SIPX_ERR("sipx-%d-%d %s not ready!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d not ready!\n",
+			 dst, channel);
 		return -EIO;
 	}
 
@@ -1378,10 +1372,8 @@ static int create_sipx_ring_ctrl(struct sipx_ring **out,
 	struct sipx_ring *ring = NULL;
 
 	ring = kzalloc(sizeof(*ring), GFP_KERNEL);
-	if (!ring) {
-		SIPX_ERR("Failed to allocate seblock_ring for seblock\n");
+	if (!ring)
 		return -ENOMEM;
-	}
 
 	ring->fifo_info = fifo_info;
 	ring->fifo_buf = fifo_virt;
@@ -1552,14 +1544,14 @@ static int create_sipx_channel_ctrl(struct sipx_mgr *sipx, u8 channel,
 
 	sdev = sipc_ap.sipc_dev[sipx->dst];
 	if (!sdev) {
-		pr_err("%s: sdev is null, dst = %d\n", __func__,
+		pr_err("sdev is null, dst = %d\n",
 		       sipx->dst);
 		return -ENODEV;
 	}
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -1594,13 +1586,13 @@ static int create_sipx_channel_ctrl(struct sipx_mgr *sipx, u8 channel,
 	sipx_chan->smem_size +=
 		sizeof(struct sipx_blk_item) * sipx->ul_ack_pool_size;
 
-	SIPX_DEBUG("sipx_chan->smem_size = %d\n", sipx_chan->smem_size);
+	pr_debug("sipx_chan->smem_size = %d\n", sipx_chan->smem_size);
 
 	/*single channel in smem*/
 	sipx_chan->smem_addr = smem_alloc_ex(sipx_chan->smem_size,
 					     sdev->pdata->smem_base);
 	if (!sipx_chan->smem_addr) {
-		SIPX_ERR("Failed to allocate smem for sipx_chan\n");
+		pr_err("Failed to allocate smem for sipx_chan\n");
 		kfree(sipx_chan);
 		return -ENOMEM;
 	}
@@ -1612,14 +1604,14 @@ static int create_sipx_channel_ctrl(struct sipx_mgr *sipx, u8 channel,
 				sipx_chan->smem_size);
 
 	if (!sipx_chan->smem_virt) {
-		SIPX_ERR("Failed to map smem for sipx_chan\n");
+		pr_err("Failed to map smem for sipx_chan\n");
 		kfree(sipx_chan);
 		return -EFAULT;
 	}
 	/* init ring/pool fifos in channel ctrl */
 	ret = init_sipx_channel_fifos(sipx, sipx_chan);
 	if (ret) {
-		SIPX_ERR("Failed init_sipx_channel_fifos!\n");
+		pr_err("Failed init_sipx_channel_fifos!\n");
 		kfree(sipx_chan);
 		return ret;
 	}
@@ -1648,7 +1640,7 @@ int sipx_chan_destroy(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -1687,21 +1679,21 @@ int sipx_chan_register_notifier(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		SIPX_ERR("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	if (!sipx) {
-		SIPX_ERR("sipx-%d-%d %s sipx is not exist!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d sipx is not exist!\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
 	sipx_chan = sipx->channels[ch_index];
 
 	if (!sipx_chan) {
-		SIPX_ERR("sipx-%d-%d %s se_chanl is not exist!\n",
-			 dst, channel, __func__);
+		pr_err("sipx-%d-%d se_chanl is not exist!\n",
+			 dst, channel);
 		return -ENODEV;
 	}
 
@@ -1724,7 +1716,7 @@ static int send_test_pkt(int i)
 	ret = sipx_get(5, 7, &blk, is_ack);
 	if (ret) {
 		g_flow_on = 0;
-		SIPX_INFO("channel 7 enter flow ctrl\n");
+		pr_info("channel 7 enter flow ctrl\n");
 		return -1;
 	}
 	blk.length = is_ack ? 40 : 1400;
@@ -1748,9 +1740,9 @@ static int sipx_ul_test_thread(void *data)
 				sipx_flush(5, 7);
 			}
 
-			SIPX_ERR("sipx_ul_test_thread sent %d pkts\n", 40 * 5);
+			pr_err("ul test thread sent %d pkts\n", 40 * 5);
 			usleep_range(1000, 1500);
-			SIPX_ERR("sipx_ul_test_thread sent start\n");
+			pr_err("ul test thread sent start\n");
 		} else {
 			msleep(100);
 		}
@@ -1766,21 +1758,21 @@ int sipx_chan_create(u8 dst, u8 channel)
 	int ret = 0;
 
 	if (dst >= SIPC_ID_NR) {
-		SIPX_ERR("Input Param Error: dst = %d\n", dst);
+		pr_err("Input Param Error: dst = %d\n", dst);
 		return -EINVAL;
 	}
 	/* check and create main ctrl */
 	sipx = sipxs[dst];
 
 	if (!sipx) {
-		SIPX_ERR("sipx == NULL: sipx-%d-%d\n", dst, channel);
+		pr_err("sipx == NULL: sipx-%d-%d\n", dst, channel);
 		return -EPROBE_DEFER;
 	}
 
 	ret = create_sipx_channel_ctrl(sipx, channel, &sipx_chan);
 
 	if (ret) {
-		SIPX_ERR("Failed in sipx_chan_create! ret = %d", ret);
+		pr_err("Failed! ret = %d", ret);
 		goto fail;
 	}
 
@@ -1788,7 +1780,7 @@ int sipx_chan_create(u8 dst, u8 channel)
 	sipx_chan->thread = kthread_create(sipx_thread, sipx_chan,
 					   "sipx-%d-%d", dst, channel);
 	if (IS_ERR(sipx_chan->thread)) {
-		SIPX_ERR("Failed to create kthread: sipx-%d-%d\n",
+		pr_err("Failed to create kthread: sipx-%d-%d\n",
 			 dst, channel);
 		ret = PTR_ERR(sipx_chan->thread);
 		goto fail;
@@ -1814,18 +1806,19 @@ static int sipx_probe(struct platform_device *pdev)
 {
 	struct sipx_init_data *pdata = pdev->dev.platform_data;
 	struct sipx_mgr *sipx = NULL;
+	struct device *dev = &pdev->dev;
 	int ret;
 
 	if (pdev->dev.of_node && !pdata) {
 		ret = sipx_parse_dt(&pdata, &pdev->dev);
 		if (ret) {
-			SIPX_ERR("failed to parse seth device tree, ret=%d\n",
+			dev_err(dev, "failed to parse seth device tree, ret=%d\n",
 				 ret);
 			return ret;
 		}
 	}
 
-	SIPX_INFO("parse dt, name=%s, dst=%u, pool size=%d, %d, %d, %d\n",
+	dev_info(dev, "parse dt, name=%s, dst=%u, pool size=%d, %d, %d, %d\n",
 		  pdata->name, pdata->dst,
 		  pdata->dl_pool_size,
 		  pdata->dl_ack_pool_size,
@@ -1837,7 +1830,8 @@ static int sipx_probe(struct platform_device *pdev)
 	if (!sipx) {
 		ret = create_sipx_mgr(&sipx, pdata);
 		if (ret) {
-			SIPX_ERR("failed to create_sipx_mgr, ret=%d\n", ret);
+			dev_err(dev, "failed to create_sipx_mgr, ret=%d\n",
+				ret);
 			sipx_destroy_pdata(&pdata, &pdev->dev);
 			return ret;
 		}
@@ -1879,7 +1873,7 @@ static struct platform_driver sipx_driver = {
 	.remove = sipx_remove,
 	.driver = {
 		.owner = THIS_MODULE,
-		.name = "sipx",
+		.name = "sprd-sipx",
 		.of_match_table = sipx_match_table,
 	}
 };

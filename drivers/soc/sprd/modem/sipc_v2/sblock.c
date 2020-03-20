@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-sblock: " fmt
+
 #include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
@@ -48,7 +53,7 @@ void sblock_put(u8 dst, u8 channel, struct sblock *blk)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return;
 	}
 
@@ -90,7 +95,7 @@ static int sblock_recover(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -168,15 +173,13 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 	sblock->txblknum = txblocknum;
 	sblock->rxblknum = rxblocknum;
 
-	pr_debug("%s: channel %d-%d, txblocksize=%#x, rxblocksize=%#x!\n",
-		 __func__,
+	pr_debug("channel %d-%d, txblocksize=%#x, rxblocksize=%#x!\n",
 		 sblock->dst,
 		 sblock->channel,
 		 txblocksize,
 		 rxblocksize);
 
-	pr_debug("%s: channel %d-%d, txblocknum=%#x, rxblocknum=%#x!\n",
-		 __func__,
+	pr_debug("channel %d-%d, txblocknum=%#x, rxblocknum=%#x!\n",
 		 sblock->dst,
 		 sblock->channel,
 		 txblocknum,
@@ -194,16 +197,10 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 		(txblocknum + rxblocknum) * sizeof(struct sblock_blks);
 
 	sblock->smem_addr = smem_alloc(dst, sblock->smem_size);
-	if (!sblock->smem_addr) {
-		pr_err("%s: channel %d-%d, Failed to alloc smem for sblock\n",
-		       __func__,
-		       sblock->dst,
-		       sblock->channel);
+	if (!sblock->smem_addr)
 		return -ENOMEM;
-	}
 
-	pr_debug("%s: channel %d-%d, smem_addr=%#llx, smem_size=%#x!\n",
-		 __func__,
+	pr_debug("channel %d-%d, smem_addr=%#llx, smem_size=%#x!\n",
 		 sblock->dst,
 		 sblock->channel,
 		 sblock->smem_addr + offset,
@@ -219,21 +216,15 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 	offset = sipc->high_offset;
 	offset = offset << 32;
 #endif
-	pr_debug("%s: channel %d-%d, offset = 0x%llx!\n",
-		 __func__,
+	pr_debug("channel %d-%d, offset = 0x%llx!\n",
 		 sblock->dst,
 		 sblock->channel,
 		 offset);
 	sblock->smem_virt = shmem_ram_vmap_nocache(dst,
 						   sblock->smem_addr + offset,
 						   sblock->smem_size);
-	if (!sblock->smem_virt) {
-		pr_err("%s: channel %d-%d, Failed to map smem for sblock\n",
-		       __func__,
-		       sblock->dst,
-		       sblock->channel);
+	if (!sblock->smem_virt)
 		goto sblock_host_smem_free;
-	}
 
 	/* initialize header */
 	ringhd = (volatile struct sblock_ring_header *)(sblock->smem_virt);
@@ -268,8 +259,7 @@ static int sblock_host_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock,
 	poolhd->rxblk_blks = poolhd->txblk_blks +
 		txblocknum * sizeof(struct sblock_blks);
 
-	pr_debug("%s: channel %d-%d, int ring!\n",
-		 __func__,
+	pr_debug("channel %d-%d, int ring!\n",
 		 sblock->dst,
 		 sblock->channel);
 
@@ -348,8 +338,7 @@ sblock_host_unmap:
 sblock_host_smem_free:
 	smem_free(dst, sblock->smem_addr, sblock->smem_size);
 
-	pr_err("%s: channel %d-%d, failed, ENOMEM!\n",
-	       __func__,
+	pr_err("channel %d-%d, failed, ENOMEM!\n",
 	       sblock->dst,
 	       sblock->channel);
 
@@ -370,8 +359,7 @@ static int sblock_client_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock)
 #ifdef CONFIG_PHYS_ADDR_T_64BIT
 	offset = sipc->high_offset;
 	offset = offset << 32;
-	pr_debug("%s: channel %d-%d, offset = 0x%llx!\n",
-		 __func__,
+	pr_debug("channel %d-%d, offset = 0x%llx!\n",
 		 sblock->dst,
 		 sblock->channel,
 		 offset);
@@ -382,13 +370,8 @@ static int sblock_client_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock)
 	sblock->smem_virt = shmem_ram_vmap_nocache(dst,
 						   sblock->smem_addr + offset,
 						   hsize);
-	if (!sblock->smem_virt) {
-		pr_err("%s: channel %d-%d, Failed to map smem for sblock\n",
-		       __func__,
-		       sblock->dst,
-		       sblock->channel);
+	if (!sblock->smem_virt)
 		return -ENOMEM;
-	}
 	ringhd = (volatile struct sblock_ring_header *)(sblock->smem_virt);
 	/* client mode, tx <==> rx */
 	txblocknum = ringhd->rxblk_count;
@@ -402,15 +385,13 @@ static int sblock_client_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock)
 	sblock->rxblknum = rxblocknum;
 	shmem_ram_unmap(dst, sblock->smem_virt);
 
-	pr_debug("%s: channel %d-%d, txblocksize=%#x, rxblocksize=%#x!\n",
-		 __func__,
+	pr_debug("channel %d-%d, txblocksize=%#x, rxblocksize=%#x!\n",
 		 sblock->dst,
 		 sblock->channel,
 		 txblocksize,
 		 rxblocksize);
 
-	pr_debug("%s: channel %d-%d, txblocknum=%#x, rxblocknum=%#x!\n",
-		 __func__,
+	pr_debug("channel %d-%d, txblocknum=%#x, rxblocknum=%#x!\n",
 		 sblock->dst,
 		 sblock->channel,
 		 txblocknum,
@@ -427,16 +408,10 @@ static int sblock_client_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock)
 		(txblocknum + rxblocknum) * sizeof(struct sblock_blks);
 
 	sblock->smem_addr_debug = smem_alloc(dst, sblock->smem_size);
-	if (!sblock->smem_addr_debug) {
-		pr_err("%s: channel %d-%d, Failed to allocate smem\n",
-		       __func__,
-		       sblock->dst,
-		       sblock->channel);
+	if (!sblock->smem_addr_debug)
 		return -ENOMEM;
-	}
 
-	pr_debug("%s: channel %d-%d, smem_addr=%#llx, smem_size=%#x!\n",
-		 __func__,
+	pr_debug("channel %d-%d, smem_addr=%#llx, smem_size=%#x!\n",
 		 sblock->dst,
 		 sblock->channel,
 		 sblock->smem_addr + offset,
@@ -449,13 +424,8 @@ static int sblock_client_init(struct smsg_ipc *sipc, struct sblock_mgr *sblock)
 	sblock->smem_virt = shmem_ram_vmap_nocache(dst,
 						   sblock->smem_addr + offset,
 						   sblock->smem_size);
-	if (!sblock->smem_virt) {
-		pr_err("%s: channel %d-%d, Failed to map smem for sblock!\n",
-			__func__,
-			sblock->dst,
-			sblock->channel);
+	if (!sblock->smem_virt)
 		goto sblock_client_smem_free;
-	}
 
 	/* initialize ring and header */
 	sblock->ring->txrecord = kcalloc(txblocknum, sizeof(int), GFP_KERNEL);
@@ -569,8 +539,7 @@ static int sblock_thread(void *data)
 		} while (mrecv.type != SMSG_TYPE_DONE ||
 			 mrecv.flag != SMSG_DONE_SBLOCK_INIT);
 		sblock->smem_addr = mrecv.value;
-		pr_info("%s: channel %d-%d, done_sblock_init, address=0x%x!\n",
-			__func__,
+		pr_info("channel %d-%d, done_sblock_init, address=0x%x!\n",
 			sblock->dst,
 			sblock->channel,
 			sblock->smem_addr);
@@ -632,8 +601,7 @@ static int sblock_thread(void *data)
 				smsg_send(sblock->dst, &mcmd, -1);
 				sblock->state = SBLOCK_STATE_READY;
 				recovery = 1;
-				pr_info("%s: channel %d-%d, SMSG_CMD_SBLOCK_INIT, dst address = 0x%x!\n",
-					__func__,
+				pr_info("channel %d-%d, SMSG_CMD_SBLOCK_INIT, dst address = 0x%x!\n",
 					sblock->dst,
 					sblock->channel,
 					sblock->dst_smem_addr);
@@ -692,7 +660,7 @@ static int sblock_mgr_create(uint8_t dst,
 	struct smsg_ipc *sipc = smsg_ipcs[dst];
 	int ret;
 
-	pr_debug("%s: dst=%d channel=%d\n", __func__, dst, channel);
+	pr_debug("dst=%d channel=%d\n", dst, channel);
 
 	if (!sipc)
 		return -EINVAL;
@@ -748,16 +716,16 @@ int sblock_create_ex(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	if (dst >= SIPC_ID_NR) {
-		pr_err("%s: dst = %d is invalid\n", __func__, dst);
+		pr_err("dst = %d is invalid\n", dst);
 		return -EINVAL;
 	}
 
-	pr_debug("%s: dst=%d channel=%d\n", __func__, dst, channel);
+	pr_debug("dst=%d channel=%d\n", dst, channel);
 
 	result = sblock_mgr_create(dst, channel, 0,
 				   txblocknum, txblocksize,
@@ -801,8 +769,8 @@ int sblock_create_ex(u8 dst, u8 channel,
 		wake_up_process(sblock->thread);
 	}
 
-	pr_debug("%s: sblock-%d-%d create over, result = %d\n",
-		__func__, dst, channel, result);
+	pr_debug("sblock-%d-%d create over, result = %d\n",
+		dst, channel, result);
 
 	return result;
 }
@@ -827,7 +795,7 @@ int sblock_pcfg_create(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 	if (dst >= SIPC_ID_NR) {
@@ -835,7 +803,7 @@ int sblock_pcfg_create(u8 dst, u8 channel,
 		return -EINVAL;
 	}
 
-	pr_debug("%s: dst=%d channel=%d\n", __func__, dst, channel);
+	pr_debug("dst=%d channel=%d\n", dst, channel);
 
 	result = sblock_mgr_create(dst,
 				   channel,
@@ -892,7 +860,7 @@ void sblock_destroy(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return;
 	}
 
@@ -943,14 +911,14 @@ int sblock_pcfg_open(uint8_t dest, uint8_t channel,
 	int ret;
 	struct sched_param param = {.sched_priority = 11};
 
-	pr_debug("%s: dst=%d channel=%d\n", __func__, dest, channel);
+	pr_debug("dst=%d channel=%d\n", dest, channel);
 
 	if (!notifier)
 		return -EINVAL;
 
 	idx = sipc_channel2index(channel);
 	if (idx == INVALID_CHANEL_INDEX) {
-		pr_err("%s: invalid channel %d!\n", __func__, channel);
+		pr_err("invalid channel %d!\n", channel);
 		return -ENODEV;
 	}
 
@@ -962,8 +930,7 @@ int sblock_pcfg_open(uint8_t dest, uint8_t channel,
 		return -EINVAL;
 
 	if (sblock->thread) {
-		pr_err("%s: SBLOCK %u/%u already open",
-		       __func__,
+		pr_err("SBLOCK %u/%u already open",
 		       (unsigned int)sblock->dst,
 		       (unsigned int)sblock->channel);
 		return -EPROTO;
@@ -973,7 +940,7 @@ int sblock_pcfg_open(uint8_t dest, uint8_t channel,
 	sblock->thread = kthread_create(sblock_thread, sblock,
 					"sblock-%d-%d", dest, channel);
 	if (IS_ERR(sblock->thread)) {
-		pr_err("%s: create thread error\n", __func__);
+		pr_err("create thread error\n");
 		sblock->thread = NULL;
 		ret = -EBUSY;
 	} else {
@@ -1006,14 +973,14 @@ int sblock_register_notifier(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 
 	if (!sblock) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return -ENODEV;
 	}
 #ifndef CONFIG_SPRD_SIPC_WCN
@@ -1040,7 +1007,7 @@ int sblock_get_smem_cp_addr(uint8_t dest, uint8_t channel,
 
 	idx = sipc_channel2index(channel);
 	if (idx == INVALID_CHANEL_INDEX) {
-		pr_err("%s: invalid channel %d!\n", __func__, channel);
+		pr_err("invalid channel %d!\n", channel);
 		return -ENODEV;
 	}
 
@@ -1068,14 +1035,14 @@ int sblock_get(u8 dst, u8 channel, struct sblock *blk, int timeout)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return sblock ? -EIO : -ENODEV;
 	}
 
@@ -1086,7 +1053,7 @@ int sblock_get(u8 dst, u8 channel, struct sblock *blk, int timeout)
 	if (*(poolhd_op->tx_rd_p) == *(poolhd_op->tx_wt_p)) {
 		if (timeout == 0) {
 			/* no wait */
-			pr_err("%s: %d-%d is empty!\n", __func__, dst, channel);
+			pr_err("%d-%d is empty!\n", dst, channel);
 			rval = -ENODATA;
 		} else if (timeout < 0) {
 			/* wait forever */
@@ -1094,10 +1061,10 @@ int sblock_get(u8 dst, u8 channel, struct sblock *blk, int timeout)
 							*(poolhd_op->tx_rd_p) != *(poolhd_op->tx_wt_p) ||
 							sblock->state == SBLOCK_STATE_IDLE);
 			if (rval < 0)
-				pr_debug("%s: wait interrupted!\n", __func__);
+				pr_debug("wait interrupted!\n");
 
 			if (sblock->state == SBLOCK_STATE_IDLE) {
-				pr_err("%s: state is idle!\n", __func__);
+				pr_err("state is idle!\n");
 				rval = -EIO;
 			}
 		} else {
@@ -1107,14 +1074,14 @@ int sblock_get(u8 dst, u8 channel, struct sblock *blk, int timeout)
 								sblock == SBLOCK_STATE_IDLE,
 				timeout);
 			if (rval < 0) {
-				pr_debug("%s: wait interrupted!\n", __func__);
+				pr_debug("wait interrupted!\n");
 			} else if (rval == 0) {
-				pr_info("%s: wait timeout!\n", __func__);
+				pr_info("wait timeout!\n");
 				rval = -ETIME;
 			}
 
 			if (sblock->state == SBLOCK_STATE_IDLE) {
-				pr_info("%s: state is idle!\n", __func__);
+				pr_info("state is idle!\n");
 				rval = -EIO;
 			}
 		}
@@ -1160,14 +1127,14 @@ static int sblock_send_ex(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return sblock ? -EIO : -ENODEV;
 	}
 
@@ -1234,13 +1201,13 @@ int sblock_send_finish(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return sblock ? -EIO : -ENODEV;
 	}
 
@@ -1270,42 +1237,42 @@ int sblock_receive(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return sblock ? -EIO : -ENODEV;
 	}
 
 	ring = sblock->ring;
 	ringhd_op = &(ring->header_op.ringhd_op);
 
-	pr_debug("%s: dst=%d, channel=%d, timeout=%d\n",
-		 __func__, dst, channel, timeout);
-	pr_debug("%s: channel=%d, wrptr=%d, rdptr=%d",
-		 __func__, channel,
+	pr_debug("dst=%d, channel=%d, timeout=%d\n",
+		 dst, channel, timeout);
+	pr_debug("channel=%d, wrptr=%d, rdptr=%d",
+		 channel,
 		 *(ringhd_op->rx_wt_p),
 		 *(ringhd_op->rx_rd_p));
 
 	if (*(ringhd_op->rx_wt_p) == *(ringhd_op->rx_rd_p)) {
 		if (timeout == 0) {
 			/* no wait */
-			pr_debug("%s: %d-%d is empty!\n",
-				 __func__, dst, channel);
+			pr_debug("%d-%d is empty!\n",
+				 dst, channel);
 			rval = -ENODATA;
 		} else if (timeout < 0) {
 			/* wait forever */
 			rval = wait_event_interruptible(ring->recvwait,
 				*(ringhd_op->rx_wt_p) != *(ringhd_op->rx_rd_p));
 			if (rval < 0)
-				pr_info("%s: wait interrupted!\n", __func__);
+				pr_info("wait interrupted!\n");
 
 			if (sblock->state == SBLOCK_STATE_IDLE) {
-				pr_info("%s: state is idle!\n", __func__);
+				pr_info("state is idle!\n");
 				rval = -EIO;
 			}
 
@@ -1315,14 +1282,14 @@ int sblock_receive(u8 dst, u8 channel,
 				*(ringhd_op->rx_wt_p) != *(ringhd_op->rx_rd_p),
 				timeout);
 			if (rval < 0) {
-				pr_info("%s: wait interrupted!\n", __func__);
+				pr_info("wait interrupted!\n");
 			} else if (rval == 0) {
-				pr_info("%s: wait timeout!\n", __func__);
+				pr_info("wait timeout!\n");
 				rval = -ETIME;
 			}
 
 			if (sblock->state == SBLOCK_STATE_IDLE) {
-				pr_info("%s: state is idle!\n", __func__);
+				pr_info("state is idle!\n");
 				rval = -EIO;
 			}
 		}
@@ -1343,8 +1310,8 @@ int sblock_receive(u8 dst, u8 channel,
 			    sblock->smem_virt;
 		blk->length = ring->r_rxblks[rxpos].length;
 		*(ringhd_op->rx_rd_p) = *(ringhd_op->rx_rd_p) + 1;
-		pr_debug("%s: channel=%d, rxpos=%d, addr=%p, len=%d\n",
-			 __func__, channel, rxpos, blk->addr, blk->length);
+		pr_debug("channel=%d, rxpos=%d, addr=%p, len=%d\n",
+			 channel, rxpos, blk->addr, blk->length);
 		index = sblock_get_index((blk->addr - ring->rxblk_virt),
 					 sblock->rxblksz);
 		ring->rxrecord[index] = SBLOCK_BLK_STATE_PENDING;
@@ -1368,13 +1335,13 @@ int sblock_get_arrived_count(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return -ENODEV;
 	}
 
@@ -1401,13 +1368,13 @@ int sblock_get_free_count(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return -ENODEV;
 	}
 
@@ -1435,18 +1402,18 @@ int sblock_release(u8 dst, u8 channel, struct sblock *blk)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return -ENODEV;
 	}
 
-	pr_debug("%s: dst=%d, channel=%d, addr=%p, len=%d\n",
-		 __func__, dst, channel, blk->addr, blk->length);
+	pr_debug("dst=%d, channel=%d, addr=%p, len=%d\n",
+		 dst, channel, blk->addr, blk->length);
 
 	ring = sblock->ring;
 	poolhd_op = &(ring->header_op.poolhd_op);
@@ -1458,7 +1425,7 @@ int sblock_release(u8 dst, u8 channel, struct sblock *blk)
 				     sblock->stored_smem_addr;
 	ring->p_rxblks[rxpos].length = poolhd_op->rx_size;
 	*(poolhd_op->rx_wt_p) = *(poolhd_op->rx_wt_p) + 1;
-	pr_debug("%s: addr=%x\n", __func__, ring->p_rxblks[rxpos].addr);
+	pr_debug("addr=%x\n", ring->p_rxblks[rxpos].addr);
 
 	if ((int)(*(poolhd_op->rx_wt_p) - *(poolhd_op->rx_rd_p)) == 1 &&
 	    sblock->state == SBLOCK_STATE_READY) {
@@ -1492,7 +1459,7 @@ unsigned int sblock_poll_wait(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return mask;
 	}
 	sblock = sblocks[dst][ch_index];
@@ -1504,8 +1471,8 @@ unsigned int sblock_poll_wait(u8 dst, u8 channel,
 	ringhd_op = &(ring->header_op.ringhd_op);
 
 	if (sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready to poll !\n",
-		       __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready to poll !\n",
+		       dst, channel);
 		return mask;
 	}
 	poll_wait(filp, &ring->recvwait, wait);
@@ -1525,7 +1492,7 @@ int sblock_query(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -1533,7 +1500,7 @@ int sblock_query(u8 dst, u8 channel)
 	if (!sblock)
 		return -ENODEV;
 	if (sblock->state != SBLOCK_STATE_READY) {
-		pr_debug("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_debug("sblock-%d-%d not ready!\n", dst, channel);
 		return -EINVAL;
 	}
 	return 0;

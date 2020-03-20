@@ -207,16 +207,19 @@ void __iomem *sprd_ep_map_memory(int ep,
 {
 	int bar;
 	void __iomem *bar_addr;
+	struct sprd_pci_ep_dev *ep_dev = g_ep_dev[ep];
+	struct pci_dev *pdev = ep_dev->pdev;
+	struct device *dev = &pdev->dev;
 
 	bar = sprd_ep_dev_get_bar(ep);
 	if (bar < 0) {
-		pr_err("%s: get bar err = %d\n", __func__, bar);
+		dev_err(dev, "get bar err = %d\n", bar);
 		return NULL;
 	}
 
 	bar_addr = sprd_ep_dev_map_bar(ep, bar, cpu_addr, size);
 	if (!bar_addr) {
-		pr_err("%s: map bar err\n", __func__);
+		dev_err(dev, "map bar err\n");
 		sprd_ep_dev_put_bar(ep, bar);
 		return NULL;
 	}

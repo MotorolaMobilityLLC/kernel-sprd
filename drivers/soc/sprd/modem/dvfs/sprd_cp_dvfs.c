@@ -618,7 +618,7 @@ static struct platform_driver cp_dvfs_driver = {
 	.remove = cp_dvfs_remove,
 	.driver = {
 		.owner = THIS_MODULE,
-		.name = "sprd_cp_dvfs",
+		.name = "sprd-cp-dvfs",
 		.of_match_table = of_match_ptr(cp_dvfs_match),
 	},
 };

@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-iq: " fmt
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/wait.h>
@@ -59,7 +64,6 @@
 #define IQ_TRANSFER_SIZE (500*1024)
 
 #define SPRD_IQ_CLASS_NAME		"sprd_iq"
-#define IQ_TAG					"sprd_iq "
 
 extern ssize_t vser_iq_write(char *buf, size_t count);
 extern void kernel_vser_register_callback(void *function);
@@ -127,7 +131,7 @@ module_param_named(iq_size, iq_size, uint, 0444);
 
 static int __init early_mode(char *str)
 {
-	pr_info(IQ_TAG "early_mode \n");
+	pr_info("early mode\n");
 	if (!memcmp(str, "iq", 2))
 		iq.mode = 1;
 
@@ -149,7 +153,7 @@ static ssize_t sprd_iq_write(u32 paddr, u32 length)
 	u32 send_num = 0;
 	ssize_t ret;
 
-	pr_info(IQ_TAG "sprd_iq_write 0x%x, 0x%x \n", paddr, length);
+	pr_info("iq write 0x%x, 0x%x\n", paddr, length);
 	while (length - send_num > 0) {
 		vaddr = NULL;
 
@@ -157,7 +161,7 @@ static ssize_t sprd_iq_write(u32 paddr, u32 length)
 			IQ_TRANSFER_SIZE : (length - send_num);
 		vaddr = __va(paddr + send_num);
 		if (!vaddr) {
-			pr_err(IQ_TAG "sprd iq no memory\n");
+			pr_err("no memory\n");
 			msleep(10);
 			continue;
 		}
@@ -170,7 +174,7 @@ static ssize_t sprd_iq_write(u32 paddr, u32 length)
 	}
 	return send_num;
 #else
-	pr_err(IQ_TAG "the usb mode is not support\n");
+	pr_err("the usb mode is not support\n");
 	return 0;
 #endif
 }
@@ -220,7 +224,7 @@ static int sprd_iq_thread(void *data)
 				wake_up_interruptible(&t_iq->wait);
 
 		} else {
-			pr_info(IQ_TAG "ch: %d, hand1: 0x%x, flag2: 0x%x\n",
+			pr_info("ch: %d, hand1: 0x%x, flag2: 0x%x\n",
 				iq.ch,
 				p_iq->head_1->WR_RD_FLAG,
 				p_iq->head_2->WR_RD_FLAG);
@@ -238,7 +242,7 @@ static void sprd_iq_complete(char *buf,  int length)
 	if (IQ_USB_MODE != iq.ch)
 		return;
 	vaddr = buf;
-	pr_info(IQ_TAG "sprd_iq_complete 0x%p, 0x%x \n", vaddr, length);
+	pr_info("complete 0x%p, 0x%x\n", vaddr, length);
 	if (vaddr + length == (char *)__va(iq.header_info->head_1->data_addr -
 					   iq.mapping_offs +
 			iq.header_info->head_1->data_len))
@@ -255,7 +259,7 @@ static long iq_mem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	struct iq_buf_info b_info;
 
-	pr_info(IQ_TAG "enter iq_mem_ioctl cmd = 0x%x\n", cmd);
+	pr_info("enter ioctl cmd = 0x%x\n", cmd);
 
 	if (NULL == iq.header_info->head_1 || NULL == iq.header_info->head_2)
 		return -EPERM;
@@ -277,7 +281,7 @@ static long iq_mem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		if (copy_to_user((void *)arg,
 				(void *)&b_info, sizeof(struct iq_buf_info))) {
-			pr_err(IQ_TAG "copy iq buf info to user space failed.\n");
+			pr_err("copy iq buf info to user space failed.\n");
 			return -EFAULT;
 		}
 
@@ -285,14 +289,14 @@ static long iq_mem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case CMD_GET_IQ_PB_INFO:
 		if (PLAY_BACK_MODE != iq.ch) {
-			pr_err(IQ_TAG "current mode is not playback mode\n");
+			pr_err("current mode is not playback mode\n");
 			return -EINVAL;
 		}
 
 		if (copy_to_user((void *)arg,
 				 (void *)(iq.header_info->ipd_head),
 				 sizeof(struct iq_pb_data_header))) {
-			pr_err(IQ_TAG "copy iq playback data info to user space failed.\n");
+			pr_err("copy iq playback data info to user space failed.\n");
 			return -EFAULT;
 		}
 
@@ -302,7 +306,7 @@ static long iq_mem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (IQ_USB_MODE <= arg && PLAY_BACK_MODE >= arg) {
 			iq.ch = arg;
 		} else {
-			pr_err(IQ_TAG "iq ch type invalid\n");
+			pr_err("iq ch type invalid\n");
 			return -EINVAL;
 		}
 
@@ -340,14 +344,14 @@ static long iq_mem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case CMD_SET_IQ_MOVE_FINISHED:
 		if (PLAY_BACK_MODE != iq.ch) {
-			pr_err(IQ_TAG "current mode is not playback mode\n");
+			pr_err("current mode is not playback mode\n");
 			return -EINVAL;
 		}
 
 		if (copy_from_user((void *)iq.header_info->ipd_head,
 				   (void *)arg,
 				   sizeof(struct iq_pb_data_header))) {
-			pr_err(IQ_TAG "copy iq playback data info from user space failed.\n");
+			pr_err("copy iq playback data info from user space failed.\n");
 			return -EFAULT;
 		}
 
@@ -386,7 +390,7 @@ static unsigned int iq_mem_poll(struct file *filp,
 		}
 	} else if (PLAY_BACK_MODE == iq.ch) {
 		if (DATA_AP_MOVING == iq.header_info->ipd_head->data_status) {
-			pr_err(IQ_TAG "I/Q playback status DATA_AP_MOVING\n");
+			pr_err("I/Q playback status DATA_AP_MOVING\n");
 			mask |= (POLLIN | POLLRDNORM);
 		}
 	}
@@ -398,10 +402,8 @@ static int iq_mem_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	size_t size = vma->vm_end - vma->vm_start;
 
-	pr_info(IQ_TAG "iq_mem_nocache_mmap\n");
-
 	if (iq.base == 0x0) {
-		pr_err(IQ_TAG "invalid iq_base(0x%llx).\n", (long long)iq.base);
+		pr_err("invalid iq_base(0x%llx).\n", (long long)iq.base);
 		return -EAGAIN;
 	}
 
@@ -412,16 +414,16 @@ static int iq_mem_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 			iq.base>>PAGE_SHIFT,
 			vma->vm_end - vma->vm_start,
 			vma->vm_page_prot)) {
-			pr_err(IQ_TAG "remap_pfn_range failed\n");
+			pr_err("remap_pfn_range failed\n");
 			return -EAGAIN;
 		}
 
 	} else {
-		pr_err(IQ_TAG "map size to big, exceed maxsize.\n");
+		pr_err("map size to big, exceed maxsize.\n");
 		return -EAGAIN;
 	}
 
-	pr_info(IQ_TAG "iq mmap %x,%x,%x\n", (unsigned int)PAGE_SHIFT,
+	pr_info("iq mmap %x,%x,%x\n", (unsigned int)PAGE_SHIFT,
 	       (unsigned int)vma->vm_start,
 	       (unsigned int)(vma->vm_end - vma->vm_start));
 	return 0;
@@ -429,13 +431,13 @@ static int iq_mem_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 
 static int iq_mem_open(struct inode *inode, struct file *filp)
 {
-	pr_info(IQ_TAG "iq_mem_open called\n");
+	pr_info("iq_mem_open called\n");
 	return 0;
 }
 
 static int iq_mem_release(struct inode *inode, struct file *filp)
 {
-	pr_info(IQ_TAG "iq_mem_release\n");
+	pr_info("iq_mem_release\n");
 	return 0;
 }
 
@@ -462,10 +464,10 @@ static int sprd_iq_parse_dt(struct platform_device *pdev,
 	struct device_node *np;
 	struct device_node *np_memory;
 	struct resource res;
+	struct device *dev = &pdev->dev;
 
-	pr_info(IQ_TAG "%s\n", __func__);
 	if (!pdev || !pdev->dev.of_node || !iq) {
-		pr_err(IQ_TAG "param error\n");
+		dev_err(dev, "param error\n");
 		return -EINVAL;
 	}
 
@@ -478,12 +480,12 @@ static int sprd_iq_parse_dt(struct platform_device *pdev,
 
 		ret = of_address_to_resource(np_memory, 0, &res);
 		if (ret) {
-			pr_err(IQ_TAG "get iq mem info failed\n");
+			dev_err(dev, "get iq mem info failed\n");
 			return -EINVAL;
 		}
 		iq->base = res.start;
 		iq->size = res.end - res.start + 1;
-		pr_info(IQ_TAG "iq base: 0x%lx, iq size: 0x%lx\n",
+		dev_info(dev, "iq base: 0x%lx, iq size: 0x%lx\n",
 			(unsigned long)iq->base, (unsigned long)iq->size);
 	}
 
@@ -496,7 +498,7 @@ static int sprd_iq_parse_dt(struct platform_device *pdev,
 	if (of_property_read_u32(np, "sprd,mapping-offs", &val) == 0)
 		iq->mapping_offs = val;
 
-	pr_info(IQ_TAG "iq mapping_offs: 0x%x\n", iq->mapping_offs);
+	dev_info(dev, "iq mapping_offs: 0x%x\n", iq->mapping_offs);
 
 	return 0;
 }
@@ -504,7 +506,7 @@ static int sprd_iq_parse_dt(struct platform_device *pdev,
 static int sprd_iq_probe(struct platform_device *pdev)
 {
 	int ret;
-	pr_info(IQ_TAG "%s\n", __func__);
+	struct device *dev = &pdev->dev;
 
 	/* if iq.base == 0, indicate that the  reserved_mem_iq_setup function
 	is not be called, the iq base must be gotten by sprd_iq_parse_dt
@@ -519,7 +521,6 @@ static int sprd_iq_probe(struct platform_device *pdev)
 
 	iq.header_info = kzalloc(sizeof(struct iq_header_info), GFP_KERNEL);
 	if (!iq.header_info) {
-		pr_err(IQ_TAG "kzalloc struct sprd_iq_mgr failed\n");
 		ret = -ENOMEM;
 		goto err0;
 	}
@@ -528,14 +529,13 @@ static int sprd_iq_probe(struct platform_device *pdev)
 
 	ret = misc_register(&iq_mem_dev);
 	if (ret) {
-		pr_err(IQ_TAG "cannot register iq_mmap_dev ret = (%d)\n", ret);
+		dev_err(dev, "cannot register iq_mmap_dev ret = (%d)\n", ret);
 		goto err1;
 	}
 
 	init_waitqueue_head(&iq.wait);
 	iq.vbase = shmem_ram_vmap_nocache(iq.base, iq.size);
 	if (NULL == iq.vbase) {
-		pr_err(IQ_TAG "iq.vbase is null\n");
 		ret = -ENOMEM;
 		goto err2;
 	}
@@ -544,7 +544,7 @@ static int sprd_iq_probe(struct platform_device *pdev)
 	if (set_memory_uc((unsigned long)page_address(
 					pfn_to_page(PFN_DOWN(iq.base))),
 			  iq.size / PAGE_SIZE)) {
-		pr_err(IQ_TAG "change memory type to uncache failed\n");
+		dev_err(dev, "change memory type to uncache failed\n");
 		goto err3;
 	}
 #endif
@@ -561,7 +561,7 @@ static int sprd_iq_probe(struct platform_device *pdev)
 
 	iq.iq_thread = kthread_create(sprd_iq_thread, (void *)&iq, "iq_thread");
 	if (IS_ERR(iq.iq_thread)) {
-		pr_err(IQ_TAG "create iq_thread error!\n");
+		dev_err(dev, "create iq_thread error!\n");
 		ret = PTR_ERR(iq.iq_thread);
 		goto err3;
 	}
@@ -601,7 +601,7 @@ static struct platform_driver iq_driver = {
 	.probe = sprd_iq_probe,
 	.remove = sprd_iq_remove,
 	.driver = {
-		.name = "iq",
+		.name = "sprd-iq",
 		.of_match_table = of_match_ptr(sprd_iq_ids),
 	}
 };
@@ -609,10 +609,10 @@ static struct platform_driver iq_driver = {
 static int __init sprd_iq_init(void)
 {
 	if (!in_iqmode()) {
-		pr_info(IQ_TAG "no in iq mode\n");
+		pr_err("no in iq mode\n");
 		return -ENODEV;
 	}
-	pr_info(IQ_TAG "in iq mode and register iq driver\n");
+	pr_debug("in iq mode and register iq driver\n");
 	return platform_driver_register(&iq_driver);
 }
 
@@ -630,7 +630,7 @@ static void __exit sprd_iq_exit(void)
  */
 static int __init reserved_mem_iq_setup(struct reserved_mem *rmem)
 {
-	pr_info(IQ_TAG "enter the rmem_iq_setup\n");
+	pr_debug("enter the rmem_iq_setup\n");
 	if (rmem == NULL)
 		return -EINVAL;
 
@@ -640,7 +640,7 @@ static int __init reserved_mem_iq_setup(struct reserved_mem *rmem)
 	iq_base = iq.base;
 	iq_size = iq.size;
 
-	pr_info(IQ_TAG "created iq memory at 0x%llx, size is 0x%llx\n",
+	pr_info("created iq memory at 0x%llx, size is 0x%llx\n",
 		(unsigned long long)iq.base, (unsigned long long)iq.size);
 
 	return 0;

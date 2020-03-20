@@ -948,7 +948,7 @@ static int  modem_remove(struct platform_device *pdev)
 
 static struct platform_driver modem_driver = {
 	.driver = {
-		.name = "modem",
+		.name = "sprd-modem",
 		.of_match_table = modem_match_table,
 	},
 	.probe = modem_probe,

@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-sblock: " fmt
+
 #include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
@@ -46,7 +51,7 @@ void sblock_put(u8 dst, u8 channel, struct sblock *blk)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return;
 	}
 
@@ -87,7 +92,7 @@ static int sblock_recover(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -158,8 +163,7 @@ static int sblock_thread(void *data)
 	/* since the channel open may hang, we call it in the sblock thread */
 	rval = smsg_ch_open(sblock->dst, sblock->channel, -1);
 	if (rval != 0) {
-		pr_info("Failed to open channel %d\n",
-			sblock->channel);
+		pr_info("Failed to open channel %d\n", sblock->channel);
 		/* assign NULL to thread poniter as failed to open channel */
 		sblock->thread = NULL;
 		return rval;
@@ -250,8 +254,7 @@ static int sblock_thread(void *data)
 		}
 	}
 
-	pr_info("sblock %d-%d thread stop",
-		sblock->dst, sblock->channel);
+	pr_info("sblock %d-%d thread stop", sblock->dst, sblock->channel);
 	return rval;
 }
 
@@ -270,7 +273,7 @@ int sblock_create_ex(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 	if (dst >= SIPC_ID_NR) {
@@ -321,7 +324,6 @@ int sblock_create_ex(u8 dst, u8 channel,
 	sblock->smem_virt = shmem_ram_vmap_nocache(sblock->smem_addr,
 					    sblock->smem_size);
 	if (!sblock->smem_virt) {
-		pr_err("Failed to map smem for sblock\n");
 		smem_free(sblock->smem_addr, sblock->smem_size);
 		kfree(sblock);
 		return -EFAULT;
@@ -330,7 +332,6 @@ int sblock_create_ex(u8 dst, u8 channel,
 	/* initialize ring and header */
 	sblock->ring = kzalloc(sizeof(struct sblock_ring), GFP_KERNEL);
 	if (!sblock->ring) {
-		pr_err("Failed to allocate ring for sblock\n");
 		shmem_ram_unmap(sblock->smem_virt);
 		smem_free(sblock->smem_addr, sblock->smem_size);
 		kfree(sblock);
@@ -473,7 +474,7 @@ void sblock_destroy(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return;
 	}
 
@@ -517,14 +518,14 @@ int sblock_register_notifier(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 
 	if (!sblock) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return -ENODEV;
 	}
 #ifndef CONFIG_SPRD_SIPC_WCN
@@ -553,14 +554,14 @@ int sblock_get(u8 dst, u8 channel, struct sblock *blk, int timeout)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return sblock ? -EIO : -ENODEV;
 	}
 
@@ -646,14 +647,14 @@ static int sblock_send_ex(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return sblock ? -EIO : -ENODEV;
 	}
 
@@ -720,13 +721,13 @@ int sblock_send_finish(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return sblock ? -EIO : -ENODEV;
 	}
 
@@ -756,14 +757,14 @@ int sblock_receive(u8 dst, u8 channel,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return sblock ? -EIO : -ENODEV;
 	}
 
@@ -852,13 +853,13 @@ int sblock_get_arrived_count(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return -ENODEV;
 	}
 
@@ -885,13 +886,13 @@ int sblock_get_free_count(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return -ENODEV;
 	}
 
@@ -920,13 +921,13 @@ int sblock_release(u8 dst, u8 channel, struct sblock *blk)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
 	sblock = sblocks[dst][ch_index];
 	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready!\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
 		return -ENODEV;
 	}
 
@@ -977,7 +978,7 @@ unsigned int sblock_poll_wait(u8 dst, u8 channel, struct file *filp, poll_table 
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 	sblock = sblocks[dst][ch_index];
@@ -988,8 +989,8 @@ unsigned int sblock_poll_wait(u8 dst, u8 channel, struct file *filp, poll_table 
 	ringhd = &ring->header->ring;
 	poolhd = &ring->header->pool;
 	if (sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready to poll !\n",
-		       __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready to poll !\n",
+		       dst, channel);
 		return -ENODEV;
 	}
 	poll_wait(filp, &ring->recvwait, wait);
@@ -1009,7 +1010,7 @@ int sblock_query(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -1017,7 +1018,7 @@ int sblock_query(u8 dst, u8 channel)
 	if (!sblock)
 		return -ENODEV;
 	if (sblock->state != SBLOCK_STATE_READY) {
-		pr_err("%s:sblock-%d-%d not ready !\n", __func__, dst, channel);
+		pr_err("sblock-%d-%d not ready !\n", dst, channel);
 		return -EINVAL;
 	}
 	return 0;

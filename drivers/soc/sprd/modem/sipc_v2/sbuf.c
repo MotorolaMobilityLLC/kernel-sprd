@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-sbuf: " fmt
+
 #include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/kernel.h>
@@ -255,16 +260,13 @@ static int sbuf_host_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf,
 		sizeof(struct sbuf_ring_header) * bufnum;
 	sbuf->smem_size = hsize + (txbufsize + rxbufsize) * bufnum;
 	sbuf->smem_addr = smem_alloc(dst, sbuf->smem_size);
-	if (!sbuf->smem_addr) {
-		pr_err("%s: channel %d-%d, Failed to allocate smem for sbuf\n",
-			__func__, sbuf->dst, sbuf->channel);
+	if (!sbuf->smem_addr)
 		return -ENOMEM;
-	}
+
 	sbuf->dst_smem_addr = sbuf->smem_addr - sipc->smem_base +
 		sipc->dst_smem_base;
 
-	pr_debug("%s: channel %d-%d, smem_addr=0x%x, smem_size=0x%x, dst_smem_addr=0x%x\n",
-		 __func__,
+	pr_debug("channel %d-%d, smem_addr=0x%x, smem_size=0x%x, dst_smem_addr=0x%x\n",
 		 sbuf->dst,
 		 sbuf->channel,
 		 sbuf->smem_addr,
@@ -276,14 +278,12 @@ static int sbuf_host_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf,
 	offset = offset << 32;
 #endif
 
-	pr_info("%s: channel %d-%d, offset = 0x%llx!\n",
-		__func__, sbuf->dst, sbuf->channel, offset);
+	pr_info("channel %d-%d, offset = 0x%llx!\n",
+		sbuf->dst, sbuf->channel, offset);
 	sbuf->smem_virt = shmem_ram_vmap_nocache(dst,
 						sbuf->smem_addr + offset,
 						sbuf->smem_size);
 	if (!sbuf->smem_virt) {
-		pr_err("%s: channel %d-%d, Failed to map smem for sbuf\n",
-			__func__, sbuf->dst, sbuf->channel);
 		smem_free(dst, sbuf->smem_addr, sbuf->smem_size);
 		return -EFAULT;
 	}
@@ -346,8 +346,8 @@ static int sbuf_client_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf)
 #ifdef CONFIG_PHYS_ADDR_T_64BIT
 	offset = sipc->high_offset;
 	offset = offset << 32;
-	pr_info("%s: channel %d-%d, offset = 0x%llx!\n",
-		__func__, sbuf->dst, sbuf->channel, offset);
+	pr_info("channel %d-%d, offset = 0x%llx!\n",
+		sbuf->dst, sbuf->channel, offset);
 #endif
 
 	/* get bufnum and bufsize */
@@ -356,11 +356,9 @@ static int sbuf_client_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf)
 	sbuf->smem_virt = shmem_ram_vmap_nocache(dst,
 						 sbuf->smem_addr + offset,
 						 hsize);
-	if (!sbuf->smem_virt) {
-		pr_err("%s: channel %d-%d, Failed to map smem for sbuf head\n",
-		       __func__, sbuf->dst, sbuf->channel);
+	if (!sbuf->smem_virt)
 		return -EFAULT;
-	}
+
 	smem = (VOLA_SBUF_SMEM *)sbuf->smem_virt;
 	sbuf->ringnr = smem->ringnr;
 	bufnum = sbuf->ringnr;
@@ -370,27 +368,22 @@ static int sbuf_client_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf)
 	hsize = sizeof(struct sbuf_smem_header) +
 	sizeof(struct sbuf_ring_header) * bufnum;
 	sbuf->smem_size = hsize + (txbufsize + rxbufsize) * bufnum;
-	pr_debug("%s: channel %d-%d, txbufsize = 0x%x, rxbufsize = 0x%x!\n",
-		 __func__, sbuf->dst, sbuf->channel, txbufsize, rxbufsize);
-	pr_debug("%s: channel %d-%d, smem_size = 0x%x, ringnr = %d!\n",
-		 __func__, sbuf->dst, sbuf->channel, sbuf->smem_size, bufnum);
+	pr_debug("channel %d-%d, txbufsize = 0x%x, rxbufsize = 0x%x!\n",
+		 sbuf->dst, sbuf->channel, txbufsize, rxbufsize);
+	pr_debug("channel %d-%d, smem_size = 0x%x, ringnr = %d!\n",
+		 sbuf->dst, sbuf->channel, sbuf->smem_size, bufnum);
 	shmem_ram_unmap(dst, sbuf->smem_virt);
 
 	/* alloc debug smem */
 	sbuf->smem_addr_debug = smem_alloc(dst, sbuf->smem_size);
-	if (!sbuf->smem_addr_debug) {
-		pr_err("%s: channel %d-%d,Failed to allocate debug smem for sbuf\n",
-			__func__, sbuf->dst, sbuf->channel);
+	if (!sbuf->smem_addr_debug)
 		return -ENOMEM;
-	}
 
 	/* get smem virtual address */
 	sbuf->smem_virt = shmem_ram_vmap_nocache(dst,
 						sbuf->smem_addr + offset,
 						sbuf->smem_size);
 	if (!sbuf->smem_virt) {
-		pr_err("%s: channel %d-%d,Failed to map smem for sbuf\n",
-			__func__, sbuf->dst, sbuf->channel);
 		smem_free(dst, sbuf->smem_addr_debug, sbuf->smem_size);
 		return -EFAULT;
 	}
@@ -402,8 +395,8 @@ static int sbuf_client_init(struct smsg_ipc *sipc, struct sbuf_mgr *sbuf)
 		shmem_ram_unmap(dst, sbuf->smem_virt);
 		return -ENOMEM;
 	}
-	pr_info("%s: channel %d-%d, ringns = 0x%p!\n",
-		 __func__, sbuf->dst, sbuf->channel, sbuf->rings);
+	pr_info("channel %d-%d, ringns = 0x%p!\n",
+		 sbuf->dst, sbuf->channel, sbuf->rings);
 
 	/* initialize all ring bufs */
 	smem = (VOLA_SBUF_SMEM *)sbuf->smem_virt;
@@ -464,8 +457,8 @@ static int sbuf_thread(void *data)
 		} while (mrecv.type != SMSG_TYPE_DONE ||
 			mrecv.flag != SMSG_DONE_SBUF_INIT);
 		sbuf->smem_addr = mrecv.value;
-		pr_info("%s: channel %d-%d, done_sbuf_init, address = 0x%x!\n",
-			__func__, sbuf->dst, sbuf->channel, sbuf->smem_addr);
+		pr_info("channel %d-%d, done_sbuf_init, address = 0x%x!\n",
+			sbuf->dst, sbuf->channel, sbuf->smem_addr);
 		if (sbuf_client_init(sipc, sbuf)) {
 			sbuf->thread = NULL;
 			return 0;
@@ -493,8 +486,8 @@ static int sbuf_thread(void *data)
 
 		switch (mrecv.type) {
 		case SMSG_TYPE_OPEN:
-			pr_info("%s: channel %d-%d, state=%d, recv open msg!\n",
-				__func__, sbuf->dst,
+			pr_info("channel %d-%d, state=%d, recv open msg!\n",
+				sbuf->dst,
 				sbuf->channel, sbuf->state);
 			if (sipc->client)
 				break;
@@ -518,8 +511,8 @@ static int sbuf_thread(void *data)
 			sbuf->state = SBUF_STATE_IDLE;
 			break;
 		case SMSG_TYPE_CMD:
-			pr_info("%s: channel %d-%d state = %d, recv cmd msg, flag = %d!\n",
-				__func__, sbuf->dst, sbuf->channel,
+			pr_info("channel %d-%d state = %d, recv cmd msg, flag = %d!\n",
+				sbuf->dst, sbuf->channel,
 				sbuf->state, mrecv.flag);
 			if (sipc->client)
 				break;
@@ -609,12 +602,11 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 	sipc = smsg_ipcs[dst];
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
-	pr_debug("%s dst=%d, chanel=%d, bufnum=%d, txbufsize=0x%x, rxbufsize=0x%x\n",
-		 __func__,
+	pr_debug("dst=%d, chanel=%d, bufnum=%d, txbufsize=0x%x, rxbufsize=0x%x\n",
 		 dst,
 		 channel,
 		 bufnum,
@@ -622,7 +614,7 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum, u32 txbufsize, u32 rxbufsize)
 		 rxbufsize);
 
 	if (dst >= SIPC_ID_NR  || !sipc) {
-		pr_err("%s: dst = %d is invalid\n", __func__, dst);
+		pr_err("dst = %d is invalid\n", dst);
 		return -EINVAL;
 	}
 
@@ -683,7 +675,7 @@ void sbuf_set_no_need_wake_lock(u8 dst, u8 channel, u32 bufnum)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return;
 	}
 
@@ -705,7 +697,7 @@ void sbuf_destroy(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return;
 	}
 
@@ -763,7 +755,7 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 	u_buf.buf = buf;
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -778,15 +770,13 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 		return -ENODEV;
 	}
 
-	pr_debug("%s: dst=%d, channel=%d, bufid=%d, len=%d, timeout=%d\n",
-		 __func__,
+	pr_debug("dst=%d, channel=%d, bufid=%d, len=%d, timeout=%d\n",
 		 dst,
 		 channel,
 		 bufid,
 		 len,
 		 timeout);
-	pr_debug("%s: channel=%d, wrptr=%d, rdptr=%d\n",
-		 __func__,
+	pr_debug("channel=%d, wrptr=%d, rdptr=%d\n",
 		 channel,
 		 *(hd_op->tx_wt_p),
 		 *(hd_op->tx_rd_p));
@@ -812,8 +802,8 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 		/* no wait */
 		if ((int)(*(hd_op->tx_wt_p) - *(hd_op->tx_rd_p)) >=
 				hd_op->tx_size) {
-			pr_info("%s: %d-%d ring %d txbuf is full!\n",
-				__func__, dst, channel, bufid);
+			pr_info("%d-%d ring %d txbuf is full!\n",
+				dst, channel, bufid);
 			rval = -EBUSY;
 		}
 	} else if (timeout < 0) {
@@ -824,10 +814,10 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 			hd_op->tx_size ||
 			sbuf->state == SBUF_STATE_IDLE);
 		if (rval < 0)
-			pr_debug("%s: wait interrupted!\n", __func__);
+			pr_debug("wait interrupted!\n");
 
 		if (sbuf->state == SBUF_STATE_IDLE) {
-			pr_err("%s: sbuf state is idle!\n", __func__);
+			pr_err("sbuf state is idle!\n");
 			rval = -EIO;
 		}
 	} else {
@@ -839,14 +829,14 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 			sbuf->state == SBUF_STATE_IDLE,
 			timeout);
 		if (rval < 0) {
-			pr_debug("%s: wait interrupted!\n", __func__);
+			pr_debug("wait interrupted!\n");
 		} else if (rval == 0) {
-			pr_info("%s: wait timeout!\n", __func__);
+			pr_info("wait timeout!\n");
 			rval = -ETIME;
 		}
 
 		if (sbuf->state == SBUF_STATE_IDLE) {
-			pr_err("%s: sbuf state is idle!\n", __func__);
+			pr_err("sbuf state is idle!\n");
 			rval = -EIO;
 		}
 	}
@@ -876,8 +866,7 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 					ring->txbuf_virt,
 					u_buf.ubuf + txsize - tail,
 					tail)) {
-					pr_err("%s:failed to copy from user!\n",
-					       __func__);
+					pr_err("failed to copy from user!\n");
 					rval = -EFAULT;
 					break;
 				}
@@ -891,16 +880,15 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 						txpos,
 						u_buf.ubuf,
 						txsize)) {
-					pr_err("%s:failed to copy from user!\n",
-					       __func__);
+					pr_err("failed to copy from user!\n");
 					rval = -EFAULT;
 					break;
 				}
 			}
 		}
 
-		pr_debug("%s: channel=%d, txpos=%p, txsize=%d\n",
-			 __func__, channel, txpos, txsize);
+		pr_debug("channel=%d, txpos=%p, txsize=%d\n",
+			 channel, txpos, txsize);
 
 		/* update tx wrptr */
 		*(hd_op->tx_wt_p) = *(hd_op->tx_wt_p) + txsize;
@@ -939,8 +927,8 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 	}
 	mutex_unlock(&ring->txlock);
 
-	pr_debug("%s: done, channel=%d, len=%d\n",
-		 __func__, channel, len - left);
+	pr_debug("done, channel=%d, len=%d\n",
+		 channel, len - left);
 
 	if (len == left)
 		return rval;
@@ -964,7 +952,7 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 	u_buf.buf = buf;
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 	sbuf = sbufs[dst][ch_index];
@@ -978,10 +966,9 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 		return -ENODEV;
 	}
 
-	pr_debug("%s:dst=%d, channel=%d, bufid=%d, len=%d, timeout=%d\n",
-		 __func__, dst, channel, bufid, len, timeout);
-	pr_debug("%s: channel=%d, wrptr=%d, rdptr=%d\n",
-		 __func__,
+	pr_debug("dst=%d, channel=%d, bufid=%d, len=%d, timeout=%d\n",
+		 dst, channel, bufid, len, timeout);
+	pr_debug("channel=%d, wrptr=%d, rdptr=%d\n",
 		 channel,
 		 *(hd_op->rx_wt_p),
 		 *(hd_op->rx_rd_p));
@@ -993,8 +980,8 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 		mutex_lock(&ring->rxlock);
 	} else {
 		if (!mutex_trylock(&ring->rxlock)) {
-			pr_debug("%s: busy!,dst=%d, channel=%d, bufid=%d\n",
-				 __func__, dst, channel, bufid);
+			pr_debug("busy!,dst=%d, channel=%d, bufid=%d\n",
+				 dst, channel, bufid);
 			return -EBUSY;
 		}
 	}
@@ -1006,8 +993,8 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 	if (*(hd_op->rx_wt_p) == *(hd_op->rx_rd_p)) {
 		if (timeout == 0) {
 			/* no wait */
-			pr_debug("%s: %d-%d ring %d rxbuf is empty!\n",
-				 __func__, dst, channel, bufid);
+			pr_debug("%d-%d ring %d rxbuf is empty!\n",
+				 dst, channel, bufid);
 			rval = -ENODATA;
 		} else if (timeout < 0) {
 			/* wait forever */
@@ -1016,10 +1003,10 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 				*(hd_op->rx_wt_p) != *(hd_op->rx_rd_p) ||
 				sbuf->state == SBUF_STATE_IDLE);
 			if (rval < 0)
-				pr_debug("%s: wait interrupted!\n", __func__);
+				pr_debug("wait interrupted!\n");
 
 			if (sbuf->state == SBUF_STATE_IDLE) {
-				pr_err("%s: sbuf state is idle!\n", __func__);
+				pr_err("sbuf state is idle!\n");
 				rval = -EIO;
 			}
 		} else {
@@ -1029,14 +1016,14 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 				*(hd_op->rx_wt_p) != *(hd_op->rx_rd_p) ||
 				sbuf->state == SBUF_STATE_IDLE, timeout);
 			if (rval < 0) {
-				pr_debug("%s: wait interrupted!\n", __func__);
+				pr_debug("wait interrupted!\n");
 			} else if (rval == 0) {
-				pr_info("%s: wait timeout!\n", __func__);
+				pr_info("wait timeout!\n");
 				rval = -ETIME;
 			}
 
 			if (sbuf->state == SBUF_STATE_IDLE) {
-				pr_err("%s: state is idle!\n", __func__);
+				pr_err("state is idle!\n");
 				rval = -EIO;
 			}
 		}
@@ -1051,8 +1038,7 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 		rxsize = (int)(*(hd_op->rx_wt_p) - *(hd_op->rx_rd_p));
 		/* check overrun */
 		if (rxsize > hd_op->rx_size)
-			pr_err("%s: bufid = %d, channel= %d rxsize=0x%x, rdptr=%d, wrptr=%d",
-			       __func__,
+			pr_err("bufid = %d, channel= %d rxsize=0x%x, rdptr=%d, wrptr=%d",
 			       bufid,
 			       channel,
 			       rxsize,
@@ -1061,8 +1047,8 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 
 		rxsize = min(rxsize, left);
 
-		pr_debug("%s: channel=%d, buf=%p, rxpos=%p, rxsize=%d\n",
-			 __func__, channel, u_buf.buf, rxpos, rxsize);
+		pr_debug("channel=%d, buf=%p, rxpos=%p, rxsize=%d\n",
+			 channel, u_buf.buf, rxpos, rxsize);
 
 		tail = rxpos + rxsize - (ring->rxbuf_virt + hd_op->rx_size);
 
@@ -1081,8 +1067,7 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 							 + rxsize - tail,
 							 ring->rxbuf_virt,
 							 tail)) {
-					pr_err("%s: failed to copy to user!\n",
-						__func__);
+					pr_err("failed to copy to user!\n");
 					rval = -EFAULT;
 					break;
 				}
@@ -1094,8 +1079,7 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 				/* handle the user space address */
 				if (unalign_copy_to_user(u_buf.ubuf,
 							 rxpos, rxsize)) {
-					pr_err("%s: failed to copy to user!\n",
-						__func__);
+					pr_err("failed to copy to user!\n");
 					rval = -EFAULT;
 					break;
 				}
@@ -1141,7 +1125,7 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 
 	mutex_unlock(&ring->rxlock);
 
-	pr_debug("%s: done, channel=%d, len=%d", __func__, channel, len - left);
+	pr_debug("done, channel=%d, len=%d", channel, len - left);
 
 	if (len == left)
 		return rval;
@@ -1161,7 +1145,7 @@ int sbuf_poll_wait(u8 dst, u8 channel, u32 bufid,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return mask;
 	}
 	sbuf = sbufs[dst][ch_index];
@@ -1194,7 +1178,7 @@ int sbuf_status(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 	sbuf = sbufs[dst][ch_index];
@@ -1217,7 +1201,7 @@ int sbuf_register_notifier(u8 dst, u8 channel, u32 bufid,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 	sbuf = sbufs[dst][ch_index];

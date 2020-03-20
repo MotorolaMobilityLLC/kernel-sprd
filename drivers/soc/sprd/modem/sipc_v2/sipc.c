@@ -102,11 +102,11 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 	if (ret)
 		return ret;
 
-	pr_debug("sipc: name=%s\n", ipc->name);
+	dev_dbg(dev, "name=%s\n", ipc->name);
 
 	/* get sipc type, optional */
 	if (of_property_read_string(np, "sprd,type", &type) == 0) {
-		pr_debug("sipc: type=%s\n", type);
+		dev_dbg(dev, "type=%s\n", type);
 		if (strcmp(MBOX_BAMK, type) == 0)
 			ipc->type = SIPC_BASE_MBOX;
 		else if (strcmp(PCIE_BAMK, type) == 0)
@@ -116,18 +116,18 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 	/* get sipc client, optional */
 	if (of_property_read_u32_array(np, "sprd,client", val, 1) == 0) {
 		ipc->client = (u8)val[0];
-		pr_debug("sipc: client=%d\n", ipc->client);
+		dev_dbg(dev, "client=%d\n", ipc->client);
 	}
 
 	/* get sipc dst */
 	ret = of_property_read_u32_array(np, "sprd,dst", val, 1);
 	if (!ret) {
 		ipc->dst = (u8)val[0];
-		pr_debug("sipc: dst =%d\n", ipc->dst);
+		dev_dbg(dev, "dst =%d\n", ipc->dst);
 	}
 
 	if (ret || ipc->dst >= SIPC_ID_NR) {
-		pr_err("sipc: dst err, ret =%d.\n", ret);
+		dev_err(dev, "dst err, ret =%d.\n", ret);
 		return ret;
 	}
 
@@ -138,9 +138,9 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 		ret = of_property_read_u32_array(np, "sprd,core", val, 1);
 		if (!ret) {
 			ipc->core_id = (u8)val[0];
-			pr_debug("sipc: core=%d\n", ipc->core_id);
+			dev_dbg(dev, "core=%d\n", ipc->core_id);
 		} else {
-			pr_err("sipc: core err, ret =%d.\n", ret);
+			dev_err(dev, "core err, ret =%d.\n", ret);
 			return ret;
 		}
 
@@ -149,7 +149,7 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 		if (of_property_read_u32_array(np, "sprd,core_sensor",
 					       val, 1) == 0) {
 			ipc->core_sensor_id = (u8)val[0];
-			pr_debug("sipc: core_sensor=%d\n", ipc->core_sensor_id);
+			dev_dbg(dev, "core_sensor=%d\n", ipc->core_sensor_id);
 		}
 	}
 #endif
@@ -161,9 +161,9 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 						 "sprd,ep-dev",
 						 &ipc->ep_dev,
 						 1);
-		pr_debug("sipc: ep_dev=%d\n", ipc->ep_dev);
+		dev_dbg(dev, "ep_dev=%d\n", ipc->ep_dev);
 		if (ret || ipc->ep_dev >= PCIE_EP_NR) {
-			pr_err("sipc: ep_dev err, ret =%d.\n", ret);
+			dev_err(dev, "ep_dev err, ret =%d.\n", ret);
 			return ret;
 		}
 	}
@@ -175,20 +175,20 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 						"sprd,ep-fun",
 						&ipc->ep_fun,
 						1);
-		pr_debug("sipc: ep_fun=%d\n", ipc->ep_fun);
+		dev_dbg(dev, "ep_fun=%d\n", ipc->ep_fun);
 		if (ret || ipc->ep_fun >= SPRD_FUNCTION_MAX) {
-			pr_err("sipc: ep_fun err, ret =%d.\n", ret);
+			dev_err(dev, "ep_fun err, ret =%d.\n", ret);
 			return ret;
 		}
 
 		/* parse doolbell irq */
 		ret = of_irq_get(np, 0);
 		if (ret < 0) {
-			pr_err("sipc: doorbell irq err, ret=%d\n", ret);
+			dev_err(dev, "doorbell irq err, ret=%d\n", ret);
 			return -EINVAL;
 		}
 		ipc->irq = ret;
-		pr_debug("sipc: irq=%d\n", ipc->irq);
+		dev_dbg(dev, "irq=%d\n", ipc->irq);
 	}
 #endif
 
@@ -200,7 +200,7 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 	if (ret)
 		ipc->smem_type = SMEM_LOCAL;
 
-	pr_debug("sipc: smem_type = %d, ret =%d\n", ipc->smem_type, ret);
+	dev_dbg(dev, "smem_type = %d, ret =%d\n", ipc->smem_type, ret);
 
 	/* get smem info */
 	ret = of_property_read_u32_array(np,
@@ -208,13 +208,13 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 					 val,
 					 3);
 	if (ret) {
-		pr_err("sipc: parse smem info failed.\n");
+		dev_err(dev, "parse smem info failed.\n");
 		return ret;
 	}
 	ipc->smem_base = val[0];
 	ipc->dst_smem_base = val[1];
 	ipc->smem_size = val[2];
-	pr_debug("sipc: smem_base=0x%x, dst_smem_base=0x%x, smem_size=0x%x\n",
+	dev_dbg(dev, "smem_base=0x%x, dst_smem_base=0x%x, smem_size=0x%x\n",
 		ipc->smem_base, ipc->dst_smem_base, ipc->smem_size);
 
 	/* try to get high_offset */
@@ -226,7 +226,7 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 		ipc->high_offset = val[0];
 		ipc->dst_high_offset = val[1];
 	}
-	pr_debug("sipc:  high_offset=0x%x, dst_high_offset=0x%x\n",
+	dev_dbg(dev, "high_offset=0x%x, dst_high_offset=0x%x\n",
 		ipc->high_offset, ipc->dst_high_offset);
 
 	if (ipc->type == SIPC_BASE_PCIE) {
@@ -234,7 +234,7 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 		ipc->suspend = 1;
 		/* pcie sipc, the host must use loacal SMEM_LOCAL */
 		if (!ipc->client && ipc->smem_type != SMEM_LOCAL) {
-			pr_err("sipc: host must use local smem!");
+			dev_err(dev, "host must use local smem!");
 			return -EINVAL;
 		}
 	}
@@ -246,6 +246,7 @@ static int sipc_probe(struct platform_device *pdev)
 {
 	struct smsg_ipc *ipc;
 	struct device_node *np;
+	struct device *dev = &pdev->dev;
 
 	if (pdev->dev.of_node) {
 		np = pdev->dev.of_node;
@@ -256,7 +257,7 @@ static int sipc_probe(struct platform_device *pdev)
 			return -ENOMEM;
 
 		if (sipc_parse_dt(ipc, np, &pdev->dev)) {
-			pr_err("%s: failed to parse dt!\n", __func__);
+			dev_err(dev, "failed to parse dt!\n");
 			return -ENODEV;
 		}
 
@@ -291,7 +292,7 @@ static const struct of_device_id sipc_match_table[] = {
 static struct platform_driver sipc_driver = {
 	.driver = {
 		.owner = THIS_MODULE,
-		.name = "sipc",
+		.name = "sprd-sipc",
 		.of_match_table = sipc_match_table,
 	},
 	.probe = sipc_probe,

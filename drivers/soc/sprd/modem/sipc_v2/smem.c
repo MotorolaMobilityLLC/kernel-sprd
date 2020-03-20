@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-smem: " fmt
+
 #include <linux/debugfs.h>
 #include <linux/genalloc.h>
 #include <linux/kernel.h>
@@ -155,7 +160,7 @@ static void *soc_modem_ram_vmap(phys_addr_t start, size_t size, int noncached)
 static void *pcie_modem_ram_vmap(phys_addr_t start, size_t size, int noncached)
 {
 	if (noncached == 0) {
-		pr_err("%s: cache not support!\n", __func__);
+		pr_err("cache not support!\n");
 		return NULL;
 	}
 
@@ -214,20 +219,20 @@ static void *shmem_ram_vmap(u8 dst, phys_addr_t start,
 
 	spool = shmem_find_pool(dst);
 	if (spool == NULL) {
-		pr_err("%s: pool dst %d is not existed!\n", __func__, dst);
+		pr_err("pool dst %d is not existed!\n", dst);
 		return NULL;
 	}
 
 	if (spool->mem_type == SMEM_PCIE) {
 		if (start < spool->addr
 		    || start + size > spool->addr + spool->size) {
-			pr_info("%s: error, start = 0x%llx, size = 0x%lx.\n",
-				__func__, start, size);
+			pr_info("error, start = 0x%llx, size = 0x%lx.\n",
+				start, size);
 			return NULL;
 		}
 
-		pr_info("%s: succ, start = 0x%llx, size = 0x%lx.\n",
-			__func__, start, size);
+		pr_info("succ, start = 0x%llx, size = 0x%lx.\n",
+			start, size);
 		return (spool->pcie_base + start - spool->addr);
 	}
 
@@ -296,8 +301,8 @@ int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type)
 		pr_err("Failed to add smem gen pool!\n");
 		return -ENOMEM;
 	}
-	pr_info("%s: pool addr = 0x%x, size = 0x%x added.\n",
-		__func__, spool->addr, spool->size);
+	pr_info("pool addr = 0x%x, size = 0x%x added.\n",
+		spool->addr, spool->size);
 
 	if (mem_type == SMEM_PCIE) {
 #ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
@@ -333,7 +338,7 @@ u32 smem_alloc(u8 dst, u32 size)
 
 	spool = shmem_find_pool(dst);
 	if (spool == NULL) {
-		pr_err("%s: pool dst %d is not existed!\n", __func__, dst);
+		pr_err("pool dst %d is not existed!\n", dst);
 		return 0;
 	}
 
@@ -348,8 +353,8 @@ u32 smem_alloc(u8 dst, u32 size)
 
 	addr = gen_pool_alloc(spool->gen, size);
 	if (!addr) {
-		pr_err("%s:pool dst=%d, size=0x%x failed to alloc smem!\n",
-		       __func__, dst, size);
+		pr_err("pool dst=%d, size=0x%x failed to alloc smem!\n",
+		       dst, size);
 		kfree(recd);
 		return 0;
 	}
@@ -375,7 +380,7 @@ void smem_free(u8 dst, u32 addr, u32 size)
 
 	spool = shmem_find_pool(dst);
 	if (spool == NULL) {
-		pr_err("%s: pool dst %d is not existed!\n", __func__, dst);
+		pr_err("pool dst %d is not existed!\n", dst);
 		return;
 	}
 
@@ -418,7 +423,7 @@ void shmem_ram_unmap(u8 dst, const void *mem)
 
 	spool = shmem_find_pool(dst);
 	if (spool == NULL) {
-		pr_err("%s: pool dst %d is not existed!\n", __func__, dst);
+		pr_err("pool dst %d is not existed!\n", dst);
 		return;
 	}
 

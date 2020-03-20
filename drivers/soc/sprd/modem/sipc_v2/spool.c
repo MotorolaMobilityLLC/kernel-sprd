@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-spool: " fmt
+
 #include <linux/cdev.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -103,7 +108,7 @@ static ssize_t spool_read(struct file *filp,
 		ret = sblock_receive(sblock->dst,
 				sblock->channel, &blk, timeout);
 		if (ret < 0) {
-			pr_debug("%s: failed to receive block!\n", __func__);
+			pr_debug("failed to receive block!\n");
 			return ret;
 		}
 		if (blk.length <= count)
@@ -116,7 +121,7 @@ static ssize_t spool_read(struct file *filp,
 	}
 
 	if (unalign_copy_to_user(buf, blk.addr + *ppos, rdsize)) {
-		pr_err("%s: failed to copy to user!\n", __func__);
+		pr_err("failed to copy to user!\n");
 		sblock->is_hold = 0;
 		*ppos = 0;
 		ret = -EFAULT;
@@ -127,7 +132,7 @@ static ssize_t spool_read(struct file *filp,
 
 	if (sblock->is_hold == 0) {
 		if (sblock_release(sblock->dst, sblock->channel, &blk))
-			pr_err("%s: failed to release block!\n", __func__);
+			pr_err("failed to release block!\n");
 	}
 
 	return ret;
@@ -150,13 +155,13 @@ static ssize_t spool_write(struct file *filp,
 	do {
 		ret = sblock_get(sblock->dst, sblock->channel, &blk, timeout);
 		if (ret < 0) {
-			pr_info("%s: failed to get block!\n", __func__);
+			pr_info("failed to get block!\n");
 			return ret;
 		}
 
 		wrsize = (blk.length > len ? len : blk.length);
 		if (unalign_copy_from_user(blk.addr, buf + pos, wrsize)) {
-			pr_info("%s: failed to copy from user!\n", __func__);
+			pr_info("failed to copy from user!\n");
 			ret = -EFAULT;
 		} else {
 			blk.length = wrsize;
@@ -165,7 +170,7 @@ static ssize_t spool_write(struct file *filp,
 		}
 
 		if (sblock_send(sblock->dst, sblock->channel, &blk))
-			pr_debug("%s: failed to send block!", __func__);
+			pr_debug("failed to send block!");
 	} while (len > 0 && ret == 0);
 
 	return count - len;
@@ -289,6 +294,7 @@ static int create_spool(struct platform_device *pdev,
 	struct spool_device *spool;
 	dev_t dev_no;
 	char sp_name[16];
+	struct device *dev = &pdev->dev;
 
 	snprintf(sp_name, sizeof(sp_name), "spool-%u-%u",
 		 (unsigned int)init->dst,
@@ -312,7 +318,7 @@ static int create_spool(struct platform_device *pdev,
 				     init->rxblocknum,
 				     init->rxblocksize);
 	if (rval) {
-		pr_info("Failed to create sblock: %d\n", rval);
+		dev_info(dev, "Failed to create sblock: %d\n", rval);
 		goto free_devno;
 	}
 
@@ -320,7 +326,6 @@ static int create_spool(struct platform_device *pdev,
 			     sizeof(struct spool_device),
 			     GFP_KERNEL);
 	if (!spool) {
-		pr_info("Failed to allocate spool_device\n");
 		rval = -ENOMEM;
 		goto free_sblock;
 	}
@@ -335,7 +340,7 @@ static int create_spool(struct platform_device *pdev,
 
 		rval = cdev_add(&spool->cdev, dev_no, 1);
 		if (rval) {
-			pr_info("Failed to add spool cdev\n");
+			dev_info(dev, "Failed to add spool cdev\n");
 			goto free_spool;
 		}
 	}
@@ -387,24 +392,25 @@ static int spool_probe(struct platform_device *pdev)
 	int rval;
 	struct spool_init_data *init;
 	struct spool_device *spool;
+	struct device *dev = &pdev->dev;
 
 	if (!np)
 		return -ENODEV;
 
 	rval = spool_parse_dt(&init, &pdev->dev, np);
 	if (rval) {
-		pr_err("Failed to parse spool device tree, ret=%d\n",
+		dev_err(dev, "Failed to parse spool device tree, ret=%d\n",
 		       rval);
 		return rval;
 	}
 
-	pr_info("spool: name=%s, dst=%u, channel=%u, pre_cfg=%u\n",
+	dev_info(dev, "name=%s, dst=%u, channel=%u, pre_cfg=%u\n",
 		init->name,
 		init->dst,
 		init->channel,
 		init->pre_cfg);
 
-	pr_info("spool: tx_num=%u, tx_size=%u, rx_num=%u, rx_size=%u\n",
+	dev_info(dev, "tx_num=%u, tx_size=%u, rx_num=%u, rx_size=%u\n",
 		init->txblocknum,
 		init->txblocksize,
 		init->rxblocknum,
@@ -412,7 +418,7 @@ static int spool_probe(struct platform_device *pdev)
 
 	rval = create_spool(pdev, init, &spool);
 	if (rval) {
-		pr_err("Failed to create spool device %u:%u, ret=%d\n",
+		dev_err(dev, "Failed to create spool device %u:%u, ret=%d\n",
 		       (unsigned int)init->dst,
 		       (unsigned int)init->channel, rval);
 		devm_kfree(&pdev->dev, init);
@@ -440,7 +446,7 @@ static const struct of_device_id spool_match_table[] = {
 static struct platform_driver spool_driver = {
 	.driver = {
 		.owner = THIS_MODULE,
-		.name = "spool",
+		.name = "sprd-spool",
 		.of_match_table = spool_match_table,
 	},
 	.probe = spool_probe,

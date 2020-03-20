@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-spool: " fmt
+
 #include <linux/cdev.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -245,10 +250,12 @@ static int spool_probe(struct platform_device *pdev)
 	struct spool_device *spool;
 	dev_t devid;
 	int rval;
+	struct device *dev = &pdev->dev;
+
 	if (!init && pdev->dev.of_node) {
 		rval = spool_parse_dt(&init, &pdev->dev);
 		if (rval) {
-			pr_err("Failed to parse spool device tree, ret=%d\n",
+			dev_err(dev, "Failed to parse spool device tree, ret=%d\n",
 			       rval);
 			return rval;
 		}
@@ -257,7 +264,7 @@ static int spool_probe(struct platform_device *pdev)
 	rval = sblock_create(init->dst, init->channel, init->txblocknum,
 		init->txblocksize, init->rxblocknum, init->rxblocksize);
 	if (rval != 0) {
-		pr_info("Failed to create sblock: %d\n", rval);
+		dev_info(dev, "Failed to create sblock: %d\n", rval);
 		return rval;
 	}
 
@@ -266,7 +273,6 @@ static int spool_probe(struct platform_device *pdev)
 			     GFP_KERNEL);
 	if (spool == NULL) {
 		sblock_destroy(init->dst, init->channel);
-		pr_info("Failed to allocate spool_device\n");
 		return -ENOMEM;
 	}
 
@@ -274,7 +280,7 @@ static int spool_probe(struct platform_device *pdev)
 	if (rval != 0) {
 		sblock_destroy(init->dst, init->channel);
 		devm_kfree(&pdev->dev, spool);
-		pr_info("Failed to alloc spool chrdev\n");
+		dev_info(dev, "Failed to alloc spool chrdev\n");
 		return rval;
 	}
 
@@ -285,7 +291,7 @@ static int spool_probe(struct platform_device *pdev)
 			sblock_destroy(init->dst, init->channel);
 			devm_kfree(&pdev->dev, spool);
 			unregister_chrdev_region(devid, 1);
-			pr_info("Failed to add spool cdev\n");
+			dev_info(dev, "Failed to add spool cdev\n");
 			return rval;
 		}
 	}
@@ -331,7 +337,7 @@ static const struct of_device_id spool_match_table[] = {
 static struct platform_driver spool_driver = {
 	.driver = {
 		.owner = THIS_MODULE,
-		.name = "spool",
+		.name = "sprd-spool",
 		.of_match_table = spool_match_table,
 	},
 	.probe = spool_probe,

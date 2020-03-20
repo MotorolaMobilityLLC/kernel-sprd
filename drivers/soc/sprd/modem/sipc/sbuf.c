@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-sbuf: " fmt
+
 #include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/kernel.h>
@@ -332,7 +337,7 @@ int sbuf_create_ex(u8 dst, u8 channel, u32 smem_idx,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -391,7 +396,6 @@ int sbuf_create_ex(u8 dst, u8 channel, u32 smem_idx,
 	sbuf->smem_virt = shmem_ram_vmap_nocache(sbuf->smem_addr,
 						sbuf->smem_size);
 	if (!sbuf->smem_virt) {
-		pr_err("Failed to map smem for sbuf\n");
 		smem_free(sbuf->smem_addr, sbuf->smem_size);
 		kfree(sbuf);
 		return -EFAULT;
@@ -482,7 +486,7 @@ void sbuf_set_no_need_wake_lock(u8 dst, u8 channel, u32 bufnum)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return;
 	}
 
@@ -503,7 +507,7 @@ void sbuf_destroy(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return;
 	}
 
@@ -555,7 +559,7 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 	u_buf.buf = buf;
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -737,7 +741,7 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 	u_buf.buf = buf;
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 	sbuf = sbufs[dst][ch_index];
@@ -915,7 +919,7 @@ int sbuf_poll_wait(u8 dst, u8 channel, u32 bufid,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 	sbuf = sbufs[dst][ch_index];
@@ -948,7 +952,7 @@ int sbuf_status(u8 dst, u8 channel)
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 	sbuf = sbufs[dst][ch_index];
@@ -971,7 +975,7 @@ int sbuf_register_notifier(u8 dst, u8 channel, u32 bufid,
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 	sbuf = sbufs[dst][ch_index];

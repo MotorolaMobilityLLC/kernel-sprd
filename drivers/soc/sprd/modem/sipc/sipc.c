@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-sipc: " fmt
+
 #include <linux/debugfs.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -138,13 +143,13 @@ static int sipc_create(struct sipc_device *sipc)
 							(u32)info[i].ring_base,
 							info[i].ring_size);
 				if (!base) {
-					pr_info("sipc chd%d ioremap return 0\n",
+					pr_info("chd%d ioremap return 0\n",
 						i);
 					return -ENOMEM;
 				}
 				info[i].smem_vbase = (void *)base;
 
-				pr_info("sipc:[tag%d] after ioremap vbase=0x%p, pbase=0x%x, size=0x%x\n",
+				pr_info("[tag%d] after ioremap vbase=0x%p, pbase=0x%x, size=0x%x\n",
 					j, base,
 					info[i].ring_base,
 					info[i].ring_size);
@@ -173,7 +178,7 @@ static int sipc_create(struct sipc_device *sipc)
 
 			ret = smsg_ipc_create(inst[j].dst, &inst[j]);
 
-			pr_info("sipc:[tag%d] created, dst = %d\n",
+			pr_info("[tag%d] created, dst = %d\n",
 				j, inst[j].dst);
 			j++;
 			if (ret)
@@ -207,7 +212,7 @@ static int sipc_get_smem_info(struct sipc_init_data *pdata,
 		smem_ptr[i].base = be32_to_cpu(*list++);
 		smem_ptr[i].mapped_base = be32_to_cpu(*list++);
 		smem_ptr[i].size = be32_to_cpu(*list++);
-		pr_debug("sipc:smem=%d, base=0x%x, dstbase=0x%x, size=0x%x\n",
+		pr_debug("smem=%d, base=0x%x, dstbase=0x%x, size=0x%x\n",
 			 i, smem_ptr[i].base,
 			 smem_ptr[i].mapped_base, smem_ptr[i].size);
 	}
@@ -235,10 +240,8 @@ static int sipc_parse_dt(struct sipc_init_data **init, struct device_node *node)
 	pdata = kzalloc(sizeof(struct sipc_init_data) +
 			     sizeof(struct sipc_child_node_info),
 			     GFP_KERNEL);
-	if (!pdata) {
-		pr_err("sipc: failed to alloc mem for pdata\n");
+	if (!pdata)
 		return -ENOMEM;
-	}
 
 	pdata->is_alloc = 1;
 	pdata->chd_nr = 1;
@@ -250,7 +253,7 @@ static int sipc_parse_dt(struct sipc_init_data **init, struct device_node *node)
 				      (const char **)&info->name);
 	if (ret)
 		goto error;
-	pr_info("sipc: name=%s\n", info->name);
+	pr_info("name=%s\n", info->name);
 
 	ret = of_property_read_u32_array(np, "sprd,dst", val, 3);
 	if (!ret)
@@ -258,13 +261,13 @@ static int sipc_parse_dt(struct sipc_init_data **init, struct device_node *node)
 	else
 		info->core_sensor_id = (u8)RECV_MBOX_SENSOR_ID;
 
-	pr_info("sipc: core_sensor_id = %u\n", info->core_sensor_id);
+	pr_info("core_sensor_id = %u\n", info->core_sensor_id);
 
 	if (ret) {
 		ret = of_property_read_u32_array(np,
 						 "sprd,dst", val, 2);
 		if (ret) {
-			pr_err("sipc: parse dst info failed.\n");
+			pr_err("parse dst info failed.\n");
 			goto error;
 		}
 	}
@@ -272,9 +275,9 @@ static int sipc_parse_dt(struct sipc_init_data **init, struct device_node *node)
 	info->dst = (u8)val[0];
 	info->core_id = (u8)val[1];
 
-	pr_info("sipc: dst = %u, core_id = %u\n", info->dst, info->core_id);
+	pr_info("dst = %u, core_id = %u\n", info->dst, info->core_id);
 	if (info->dst >= SIPC_ID_NR) {
-		pr_err("sipc: dst info is invalid.\n");
+		pr_err("dst info is invalid.\n");
 		goto error;
 	}
 
@@ -339,22 +342,23 @@ static int sipc_probe(struct platform_device *pdev)
 	struct device_node *np, *chd;
 	int segnr;
 	struct smem_item *smem_ptr;
+	struct device *dev = &pdev->dev;
 
 	if (!pdata && pdev->dev.of_node) {
 		of_id = of_match_node(sipc_match_table, pdev->dev.of_node);
 		if (!of_id) {
-			pr_err("sipc: failed to get of_id\n");
+			dev_err(dev, "failed to get of_id\n");
 			return -ENODEV;
 		}
 
 		np = pdev->dev.of_node;
 		segnr = of_get_child_count(np);
-		pr_info("%s: segnr = %d\n", __func__, segnr);
+		dev_info(dev, "segnr = %d\n", segnr);
 		parse = (int(*)(struct sipc_init_data **,
 					struct device_node *))of_id->data;
 		for_each_child_of_node(np, chd) {
 			if (parse && parse(&pdata, chd)) {
-				pr_err("sipc: failed to parse dt, parse(0x%p)\n",
+				dev_err(dev, "failed to parse dt, parse(0x%p)\n",
 						parse);
 				return -ENODEV;
 			}
@@ -374,7 +378,7 @@ static int sipc_probe(struct platform_device *pdev)
 				devm_kfree(&pdev->dev, sipc);
 				return -ENOMEM;
 			}
-			pr_info("sipc: tag count = %d\n", num);
+			dev_info(dev, "tag count = %d\n", num);
 			info = pdata->info_table;
 			j = 0;
 			for (i = 0; i < num; i++) {
@@ -392,10 +396,10 @@ static int sipc_probe(struct platform_device *pdev)
 					smsg[j].txirq_trigger = sipc_txirq_trigger;
 
 #ifdef CONFIG_SPRD_MAILBOX
-					pr_info("sipc:[tag%d] smsg name=%s, dst=%u, core_id=%d\n",
+					dev_info(dev, "[tag%d] smsg name=%s, dst=%u, core_id=%d\n",
 						j, smsg[j].name, smsg[j].dst, smsg[j].core_id);
 #else
-					pr_info("sipc:[tag%d] smsg name=%s, dst=%u, irq=%d\n",
+					dev_info(dev, "[tag%d] smsg name=%s, dst=%u, irq=%d\n",
 						j, smsg[j].name, smsg[j].dst, smsg[j].irq);
 #endif
 					j++;
@@ -407,7 +411,7 @@ static int sipc_probe(struct platform_device *pdev)
 			dst = pdata->info_table->dst;
 			sipc_ap.sipc_dev[dst] = sipc;
 
-			pr_info("sipc: smem_init smem_base=0x%x, smem_size=0x%x\n",
+			dev_info(dev, "smem_init smem_base=0x%x, smem_size=0x%x\n",
 				pdata->smem_base, pdata->smem_size);
 			if (dst == SIPC_ID_LTE ||
 			    dst == SIPC_ID_CPW)
@@ -442,7 +446,7 @@ static int sipc_remove(struct platform_device *pdev)
 static struct platform_driver sipc_driver = {
 	.driver = {
 		.owner = THIS_MODULE,
-		.name = "sipc",
+		.name = "sprd-sipc",
 		.of_match_table = sipc_match_table,
 	},
 	.probe = sipc_probe,

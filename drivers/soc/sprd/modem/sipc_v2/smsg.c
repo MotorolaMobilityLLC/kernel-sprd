@@ -11,6 +11,11 @@
  * GNU General Public License for more details.
  */
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "sprd-smsg: " fmt
+
 #include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
@@ -242,14 +247,13 @@ static irqreturn_t smsg_irq_handler(int irq, void *private)
 	struct smsg *msg;
 	uintptr_t rxpos;
 
-	pr_debug("%s: %s, irq = %d\n", __func__, ipc->name, irq);
+	pr_debug("%s, irq = %d\n", ipc->name, irq);
 
 	if (ipc->rxirq_status(ipc->dst))
 		ipc->rxirq_clear(ipc->dst);
 
 	if (!ipc->smem_inited) {
-		pr_info("%s: %s smem have not been inited!",
-			__func__, ipc->name);
+		pr_info("%s smem have not been inited!", ipc->name);
 		return IRQ_HANDLED;
 	}
 
@@ -307,7 +311,7 @@ static void smsg_resume_work(struct smsg_ipc *ipc)
 {
 	unsigned long flags;
 
-	pr_debug("%s: %s\n", __func__, ipc->name);
+	pr_debug("%s\n", ipc->name);
 
 	spin_lock_irqsave(&ipc->suspend_pinlock, flags);
 	ipc->suspend = 0;
@@ -320,7 +324,7 @@ static void smsg_suspend_work(struct smsg_ipc *ipc)
 {
 	unsigned long flags;
 
-	pr_debug("%s: %s, task %s!\n", __func__, ipc->name, current->comm);
+	pr_debug("%s, task %s!\n", ipc->name, current->comm);
 
 	spin_lock_irqsave(&ipc->suspend_pinlock, flags);
 	ipc->suspend = 1;
@@ -333,7 +337,7 @@ static void smsg_pcie_ep_dev_notify(int event, void *data)
 {
 	struct smsg_ipc *ipc = (struct smsg_ipc *)data;
 
-	pr_debug("%s: %s, event = %d\n", __func__, ipc->name, event);
+	pr_debug("%s, event = %d\n", ipc->name, event);
 
 	if (event == PCIE_EP_PROBE)
 		smsg_resume_work(ipc);
@@ -347,7 +351,7 @@ static void smsg_pcie_epf_notify(int event, void *data)
 {
 	struct smsg_ipc *ipc = (struct smsg_ipc *)data;
 
-	pr_debug("%s: %s, event = %d\n", __func__, ipc->name, event);
+	pr_debug("%s, event = %d\n", ipc->name, event);
 
 	if (event == SPRD_EPF_BIND) {
 		smsg_ipc_smem_init(ipc);
@@ -404,7 +408,7 @@ static void smsg_ipc_init_irq_callback(struct smsg_ipc *ipc)
 				   ipc->name,
 				   ipc);
 	}
-	pr_debug("%s:%s ret1=%d, ret2=%d\n", __func__, ipc->name, ret1, ret2);
+	pr_debug("%s ret1=%d, ret2=%d\n", ipc->name, ret1, ret2);
 }
 
 static int smsg_ipc_smem_init(struct smsg_ipc *ipc)
@@ -415,14 +419,13 @@ static int smsg_ipc_smem_init(struct smsg_ipc *ipc)
 		return 0;
 
 	ipc->smem_inited = 1;
-	pr_debug("%s: %s!\n", __func__, ipc->name);
+	pr_debug("%s!\n", ipc->name);
 	smem_init(ipc->smem_base, ipc->smem_size, ipc->dst, ipc->smem_type);
 
 	if (ipc->type == SIPC_BASE_PCIE) {
 		ipc->ring_base = smem_alloc(ipc->dst, SZ_4K);
 		ipc->ring_size = SZ_4K;
-		pr_info("%s: ring_base = 0x%x, ring_size = 0x%x\n",
-				__func__,
+		pr_info("ring_base = 0x%x, ring_size = 0x%x\n",
 				ipc->ring_base,
 				ipc->ring_size);
 	}
@@ -431,10 +434,8 @@ static int smsg_ipc_smem_init(struct smsg_ipc *ipc)
 		base = (void __iomem *)shmem_ram_vmap_nocache(ipc->dst,
 					ipc->ring_base + ipc->high_offset,
 					ipc->ring_size);
-		if (!base) {
-			pr_err("%s: ioremap failed!\n", __func__);
+		if (!base)
 			return -ENOMEM;
-		}
 
 		/* assume client is boot later than host */
 		if (!ipc->client) {
@@ -501,7 +502,7 @@ static int smsg_ipc_smem_init(struct smsg_ipc *ipc)
 
 void smsg_ipc_create(struct smsg_ipc *ipc)
 {
-	pr_info("%s: %s\n", __func__, ipc->name);
+	pr_info("%s\n", ipc->name);
 
 	smsg_ipc_init_irq_callback(ipc);
 	smsg_ipcs[ipc->dst] = ipc;
@@ -574,7 +575,7 @@ int smsg_ch_wake_unlock(u8 dst, u8 channel)
 
 	ch_index = channel2index[channel];
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -601,7 +602,7 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 
 	ch_index = channel2index[channel];
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -621,14 +622,14 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 	mutex_init(&ch->rxlock);
 	ipc->channels[ch_index] = ch;
 
-	pr_info("%s: channel %d-%d send open msg!\n",
-		__func__, dst, channel);
+	pr_info("channel %d-%d send open msg!\n",
+		dst, channel);
 
 	smsg_set(&mopen, channel, SMSG_TYPE_OPEN, SMSG_OPEN_MAGIC, 0);
 	rval = smsg_send(dst, &mopen, timeout);
 	if (rval != 0) {
-		pr_err("%s: channel %d-%d send open msg error = %d!\n",
-		       __func__, dst, channel, rval);
+		pr_err("channel %d-%d send open msg error = %d!\n",
+		       dst, channel, rval);
 		ipc->states[ch_index] = CHAN_STATE_UNUSED;
 		ipc->channels[ch_index] = NULL;
 		atomic_dec(&ipc->busy[ch_index]);
@@ -652,8 +653,8 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 		smsg_set(&mrecv, channel, 0, 0, 0);
 		rval = smsg_recv(dst, &mrecv, timeout);
 		if (rval != 0) {
-			pr_err("%s: channel %d-%d smsg receive error = %d!\n",
-			       __func__, dst, channel, rval);
+			pr_err("channel %d-%d smsg receive error = %d!\n",
+			       dst, channel, rval);
 			ipc->states[ch_index] = CHAN_STATE_UNUSED;
 			ipc->channels[ch_index] = NULL;
 			atomic_dec(&ipc->busy[ch_index]);
@@ -669,11 +670,11 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 		}
 	} while (mrecv.type != SMSG_TYPE_OPEN || mrecv.flag != SMSG_OPEN_MAGIC);
 
-	pr_info("%s: channel %d-%d receive open msg!\n",
-		__func__, dst, channel);
+	pr_info("channel %d-%d receive open msg!\n",
+		dst, channel);
 
 open_done:
-	pr_info("%s: channel %d-%d success\n", __func__, dst, channel);
+	pr_info("channel %d-%d success\n", dst, channel);
 	ipc->states[ch_index] = CHAN_STATE_OPENED;
 	atomic_dec(&ipc->busy[ch_index]);
 
@@ -690,7 +691,7 @@ int smsg_ch_close(u8 dst, u8 channel,  int timeout)
 
 	ch_index = channel2index[channel];
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, channel);
+		pr_err("channel %d invalid!\n", channel);
 		return -EINVAL;
 	}
 
@@ -786,7 +787,7 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 
 	ch_index = channel2index[msg->channel];
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, msg->channel);
+		pr_err("channel %d invalid!\n", msg->channel);
 		return -EINVAL;
 	}
 
@@ -794,26 +795,26 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 		return -ENODEV;
 
 	if (!ipc->channels[ch_index]) {
-		pr_err("%s: channel %d not inited!\n", __func__, msg->channel);
+		pr_err("channel %d not inited!\n", msg->channel);
 		return -ENODEV;
 	}
 
 	if (ipc->states[ch_index] != CHAN_STATE_OPENED &&
 	    msg->type != SMSG_TYPE_OPEN &&
 	    msg->type != SMSG_TYPE_CLOSE) {
-		pr_err("%s: channel %d not opened!\n", __func__, msg->channel);
+		pr_err("channel %d not opened!\n", msg->channel);
 		return -EINVAL;
 	}
 
-	pr_debug("%s: dst=%d, channel=%d, timeout=%d, suspend=%d\n",
-		 __func__, dst, msg->channel, timeout, ipc->suspend);
+	pr_debug("dst=%d, channel=%d, timeout=%d, suspend=%d\n",
+		 dst, msg->channel, timeout, ipc->suspend);
 
 	if (ipc->suspend) {
 		rval = wait_event_interruptible(
 				ipc->suspend_wait,
 				!ipc->suspend);
 		if (rval) {
-			pr_info("%s:rval = %d!\n", __func__, rval);
+			pr_info("rval = %d!\n", rval);
 			return -EINVAL;
 		}
 	}
@@ -826,7 +827,7 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout)
 		if (((int)(SIPC_READL(ipc->txbuf_wrptr) -
 				SIPC_READL(ipc->txbuf_rdptr)) >=
 				ipc->txbuf_size)) {
-			pr_info("%s: smsg txbuf is full!\n", __func__);
+			pr_info("smsg txbuf is full!\n");
 			rval = -EBUSY;
 			goto send_failed;
 		}
@@ -864,7 +865,7 @@ int smsg_recv(u8 dst, struct smsg *msg, int timeout)
 
 	ch_index = channel2index[msg->channel];
 	if (ch_index == INVALID_CHANEL_INDEX) {
-		pr_err("%s:channel %d invalid!\n", __func__, msg->channel);
+		pr_err("channel %d invalid!\n", msg->channel);
 		return -EINVAL;
 	}
 
@@ -876,13 +877,13 @@ int smsg_recv(u8 dst, struct smsg *msg, int timeout)
 	ch = ipc->channels[ch_index];
 
 	if (!ch) {
-		pr_err("%s: channel %d not opened!\n", __func__, msg->channel);
+		pr_err("channel %d not opened!\n", msg->channel);
 		atomic_dec(&ipc->busy[ch_index]);
 		return -ENODEV;
 	}
 
-	pr_debug("%s: dst=%d, channel=%d, timeout=%d, ch_index = %d\n",
-		 __func__, dst, msg->channel, timeout, ch_index);
+	pr_debug("dst=%d, channel=%d, timeout=%d, ch_index = %d\n",
+		 dst, msg->channel, timeout, ch_index);
 
 	if (timeout == 0) {
 		if (!mutex_trylock(&ch->rxlock)) {
@@ -911,15 +912,15 @@ int smsg_recv(u8 dst, struct smsg *msg, int timeout)
 				 SIPC_READL(ch->rdptr)) ||
 				(ipc->states[ch_index] == CHAN_STATE_FREE));
 		if (rval < 0) {
-			pr_debug("%s: dst=%d, channel=%d wait interrupted!\n",
-				 __func__, dst, msg->channel);
+			pr_debug("dst=%d, channel=%d wait interrupted!\n",
+				 dst, msg->channel);
 
 			goto recv_failed;
 		}
 
 		if (ipc->states[ch_index] == CHAN_STATE_FREE) {
-			pr_info("%s: dst=%d, channel=%d channel is free!\n",
-				__func__, dst, msg->channel);
+			pr_info("dst=%d, channel=%d channel is free!\n",
+				dst, msg->channel);
 
 			rval = -EIO;
 
@@ -934,13 +935,13 @@ int smsg_recv(u8 dst, struct smsg *msg, int timeout)
 			(ipc->states[ch_index] == CHAN_STATE_FREE),
 			timeout);
 		if (rval < 0) {
-			pr_debug("%s: dst=%d, channel=%d wait interrupted!\n",
-				 __func__, dst, msg->channel);
+			pr_debug("dst=%d, channel=%d wait interrupted!\n",
+				 dst, msg->channel);
 
 			goto recv_failed;
 		} else if (rval == 0) {
-			pr_debug("%s: dst=%d, channel=%d wait timeout!\n",
-				 __func__, dst, msg->channel);
+			pr_debug("dst=%d, channel=%d wait timeout!\n",
+				 dst, msg->channel);
 
 			rval = -ETIME;
 
@@ -948,8 +949,8 @@ int smsg_recv(u8 dst, struct smsg *msg, int timeout)
 		}
 
 		if (ipc->states[ch_index] == CHAN_STATE_FREE) {
-			pr_info("%s: dst=%d, channel=%d channel is free!\n",
-				__func__, dst, msg->channel);
+			pr_info("dst=%d, channel=%d channel is free!\n",
+				dst, msg->channel);
 
 			rval = -EIO;
 
