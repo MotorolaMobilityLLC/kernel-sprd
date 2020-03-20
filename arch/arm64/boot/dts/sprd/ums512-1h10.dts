@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Unisoc UMS512-1h10 boards DTS file
+ *
+ * Copyright (C) 2021, Unisoc Inc.
+ */
+
+/dts-v1/;
+
+#include "ums512.dtsi"
+
+/ {
+	model = "Spreadtrum UMS512-1H10 Board";
+
+	compatible = "sprd,ums512-1h10", "sprd,ums512";
+
+	sprd,sc-id = <512 1 0x20000>;
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x80000000>;
+	};
+
+	chosen {
+		stdout-path = "serial1:115200n8";
+		bootargs = "earlycon";
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&sdio0 {
+	bus-width = <4>;
+	no-sdio;
+	no-mmc;
+	status = "okay";
+};
+
+&sdio3 {
+	bus-width = <8>;
+	non-removable;
+	no-sdio;
+	no-sd;
+	cap-mmc-hw-reset;
+	status = "okay";
+};
