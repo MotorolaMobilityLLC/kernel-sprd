@@ -967,7 +967,7 @@ static int cm_get_battery_temperature(struct charger_manager *cm,
 #endif
 	{
 		/* if-else continued from CONFIG_THERMAL */
-		ret = cm_get_battery_temperature_by_psy(cm, temp);
+		*temp = cm->desc->temperature;
 	}
 
 	return ret;
@@ -1290,7 +1290,7 @@ static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
 	static int last_jeita_status = -1, temp_up_trigger, temp_down_trigger;
-	int cur_jeita_status, cur_temp, ret;
+	int cur_jeita_status;
 	static bool is_normal = true;
 
 	if (!desc->jeita_tab_size)
@@ -1314,16 +1314,10 @@ static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
 		return 0;
 	}
 
-	ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
-	if (ret) {
-		dev_err(cm->dev, "failed to get battery temperature\n");
-		return ret;
-	}
-
-	cur_jeita_status = cm_manager_get_jeita_status(cm, cur_temp);
+	cur_jeita_status = cm_manager_get_jeita_status(cm, desc->temperature);
 
 	dev_info(cm->dev, "current-last jeita status: %d-%d, current temperature: %d\n",
-		 cur_jeita_status, last_jeita_status, cur_temp);
+		 cur_jeita_status, last_jeita_status, desc->temperature);
 
 	/*
 	 * We should give a initial jeita status with adjusting the charging
@@ -1700,7 +1694,8 @@ static int charger_get_property(struct power_supply *psy,
 		ret = get_batt_cur_now(cm, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
-		return cm_get_battery_temperature_by_psy(cm, &val->intval);
+		val->intval = cm->desc->temperature;
+		break;
 	case POWER_SUPPLY_PROP_TEMP_AMBIENT:
 		return cm_get_battery_temperature(cm, &val->intval);
 	case POWER_SUPPLY_PROP_CAPACITY:
@@ -1854,7 +1849,7 @@ charger_set_property(struct power_supply *psy,
 {
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
 	union power_supply_propval thermal_val;
-	int cur_temp, cur_jeita_status;
+	int cur_jeita_status;
 	int ret = 0;
 	int i;
 
@@ -1904,16 +1899,10 @@ charger_set_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		cm->desc->thm_adjust_cur = val->intval;
-		ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
-		if (ret) {
-			dev_err(cm->dev, "failed to get battery temperature\n");
-			return ret;
-		}
-
 		thermal_val.intval = val->intval;
 
 		if (cm->desc->jeita_tab_size) {
-			cur_jeita_status = cm_manager_get_jeita_status(cm, cur_temp);
+			cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
 			if (val->intval > cm->desc->jeita_tab[cur_jeita_status].current_ua)
 				thermal_val.intval = cm->desc->jeita_tab[cur_jeita_status].current_ua;
 		}
@@ -2728,6 +2717,8 @@ static void cm_batt_works(struct work_struct *work)
 		return;
 	}
 
+	cm->desc->temperature = cur_temp;
+
 	if (cur_temp <= CM_LOW_TEMP_REGION &&
 	    batt_uV <= CM_LOW_TEMP_SHUTDOWN_VALTAGE) {
 		if (cm->desc->low_temp_trigger_cnt++ > 1)
@@ -3045,6 +3036,12 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	cm->desc->thm_adjust_cur = -EINVAL;
+
+	ret = cm_get_battery_temperature_by_psy(cm, &cm->desc->temperature);
+	if (ret) {
+		dev_err(cm->dev, "failed to get battery temperature\n");
+		return ret;
+	}
 
 	cur_time = ktime_to_timespec64(ktime_get_boottime());
 	cm->desc->update_capacity_time = cur_time.tv_sec;
