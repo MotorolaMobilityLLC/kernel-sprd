@@ -4630,6 +4630,15 @@ CONFIG_FS_ENCRYPTION
 	[must] none
 	[missing plat description] none
 	[function] Enable encryption of fs files and directories.
+CONFIG_FS_ENCRYPTION_ALGS
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] menu
+	[subsys] fs
+	[must] home
+	[missing plat description] none
+	[function] Menu item used to select a bundle of crypto configs for fs
 CONFIG_FS_MBCACHE
 	[arch] all
 	[plat] all
