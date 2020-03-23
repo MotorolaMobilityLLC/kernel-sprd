@@ -124,6 +124,7 @@ static int sc2721_set_termination_voltage(struct sc2721_charger_info *info,
 	if (calib_data < 0)
 		return calib_data;
 
+	vol = vol / 1000;
 	if (vol > SC2721_TERM_VOLTAGE_MAX)
 		vol = SC2721_TERM_VOLTAGE_MAX;
 
