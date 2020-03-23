@@ -445,7 +445,7 @@ static int sfp_ipa_update_hash_slow(void)
 
 int sfp_ipa_hash_add(struct sfp_conn *sfp_ct)
 {
-	if (atomic_read(&fwd_tbl.entry_cnt) > 4096) {
+	if (atomic_read(&fwd_tbl.entry_cnt) >= IPA_DEFAULT_NUM - 1) {
 		FP_PRT_DBG(FP_PRT_ERR,
 			   "out of entry mem!\n");
 
