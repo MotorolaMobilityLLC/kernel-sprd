@@ -207,6 +207,7 @@ struct charger_jeita_table {
  *	adjust the charging current according to the battery temperature.
  * @jeita_tab_size: Specify the size of jeita temperature table.
  * @jeita_disabled: disable jeita function when needs
+ * @temperature: the battery temperature
  */
 struct charger_desc {
 	const char *psy_name;
@@ -268,6 +269,8 @@ struct charger_desc {
 	struct charger_jeita_table *jeita_tab;
 	u32 jeita_tab_size;
 	bool jeita_disabled;
+
+	int temperature;
 };
 
 #define PSY_NAME_MAX	30
