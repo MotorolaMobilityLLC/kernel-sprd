@@ -481,6 +481,7 @@ void time_hardirqs_off(unsigned long a0, unsigned long a1)
  */
 static inline void tracer_hardirqs_on(void)
 {
+	stop_irqsoff_panic_timing();
 	stop_eirqsoff_timing(CALLER_ADDR0, CALLER_ADDR1);
 	if (!preempt_trace() && irq_trace())
 		stop_critical_timing(CALLER_ADDR0, CALLER_ADDR1);
@@ -491,6 +492,7 @@ static inline void tracer_hardirqs_off(void)
 	if (!preempt_trace() && irq_trace())
 		start_critical_timing(CALLER_ADDR0, CALLER_ADDR1);
 	start_eirqsoff_timing(CALLER_ADDR0, CALLER_ADDR1);
+	start_irqsoff_panic_timing();
 }
 
 static inline void tracer_hardirqs_on_caller(unsigned long caller_addr)

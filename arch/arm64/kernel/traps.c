@@ -221,6 +221,38 @@ void show_stack(struct task_struct *tsk, unsigned long *sp)
 	barrier();
 }
 
+int irqsoff_unwind_backtrace(unsigned long *ip)
+{
+	struct stackframe frame;
+	int call_lvl = 0;
+	unsigned long frame_fp_saved;
+
+	if (!try_get_task_stack(current))
+		return 0;
+
+	frame.fp = (unsigned long)__builtin_frame_address(0);
+	frame.pc = (unsigned long)irqsoff_unwind_backtrace;
+
+	for (call_lvl = 0; call_lvl < 6; call_lvl++) {
+		int urc;
+
+		frame_fp_saved = frame.fp;
+		urc = unwind_frame(current, &frame);
+		if (urc < 0)
+			break;
+
+		if (frame_fp_saved == frame.fp)
+			break;
+
+		ip[call_lvl] = frame.pc;
+	}
+
+	put_task_stack(current);
+
+	return call_lvl;
+}
+EXPORT_SYMBOL(irqsoff_unwind_backtrace);
+
 #ifdef CONFIG_PREEMPT
 #define S_PREEMPT " PREEMPT"
 #else

@@ -6,6 +6,10 @@ extern void notrace
 start_eirqsoff_timing(unsigned long ip, unsigned long parent_ip);
 extern void notrace
 stop_eirqsoff_timing(unsigned long ip, unsigned long parent_ip);
+extern void notrace
+start_irqsoff_panic_timing(void);
+extern void notrace
+stop_irqsoff_panic_timing(void);
 #ifdef CONFIG_PREEMPT_TRACER
 extern void notrace
 start_epreempt_timing(unsigned long ip, unsigned long parent_ip);
@@ -21,6 +25,10 @@ do { } while (0)
 #define start_eirqsoff_timing(ip, parent_ip)  \
 do { } while (0)
 #define stop_eirqsoff_timing(ip, parent_ip)   \
+do { } while (0)
+#define start_irqsoff_panic_timing()  \
+do { } while (0)
+#define stop_irqsoff_panic_timing()   \
 do { } while (0)
 #define start_epreempt_timing(ip, parent_ip)  \
 do { } while (0)
