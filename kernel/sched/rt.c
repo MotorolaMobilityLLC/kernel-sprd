@@ -14,6 +14,15 @@ int sysctl_sched_rr_timeslice = (MSEC_PER_SEC / HZ) * RR_TIMESLICE;
 /* More than 4 hours if BW_SHIFT equals 20. */
 static const u64 max_rt_runtime = MAX_BW;
 
+#ifdef CONFIG_SMP
+static unsigned int capacity_margin = 1280;
+
+static unsigned long capacity_of(int cpu)
+{
+	return cpu_rq(cpu)->cpu_capacity;
+}
+#endif
+
 static int do_sched_rt_period_timer(struct rt_bandwidth *rt_b, int overrun);
 
 struct rt_bandwidth def_rt_bandwidth;
@@ -1481,7 +1490,7 @@ select_task_rq_rt(struct task_struct *p, int cpu, int sd_flag, int flags)
 	       unlikely(rt_task(curr)) &&
 	       (curr->nr_cpus_allowed < 2 || curr->prio <= p->prio);
 
-	if (test || !rt_task_fits_capacity(p, cpu)) {
+	if (sched_energy_enabled() || test || !rt_task_fits_capacity(p, cpu)) {
 		int target = find_lowest_rq(p);
 
 		/*
@@ -1734,6 +1743,42 @@ static int find_lowest_rq(struct task_struct *task)
 
 	if (!ret)
 		return -1; /* No targets found */
+
+	if (sched_energy_enabled()) {
+		int i;
+		struct cpumask tmp_mask;
+
+		cpumask_and(&tmp_mask, lowest_mask, &min_cap_cpu_mask);
+
+		if (cpumask_weight(&tmp_mask)) {
+			unsigned long total_util = 0, total_cap = 0;
+
+			for_each_cpu(i, &tmp_mask) {
+				total_util += cpu_util_cfs(cpu_rq(i));
+				total_cap += capacity_of(i);
+			}
+
+			total_util += READ_ONCE(task->se.avg.util_avg);
+
+			/*
+			 * The margin used when comparing utilization
+			 * with CPU capacity.
+			 *
+			 * (default: ~20%)
+			 */
+			if (total_util * capacity_margin < total_cap * 1024)
+				cpumask_copy(lowest_mask, &tmp_mask);
+		}
+
+		/* fast path for prev_cpu */
+		if (cpumask_test_cpu(cpu, lowest_mask) && idle_cpu(cpu))
+			return cpu;
+
+		for_each_cpu(i, lowest_mask) {
+			if (idle_cpu(i))
+				return i;
+		}
+	}
 
 	/*
 	 * At this point we have built a mask of CPUs representing the
@@ -2177,6 +2222,25 @@ static void pull_rt_task(struct rq *this_rq)
 		if (src_rq->rt.highest_prio.next >=
 		    this_rq->rt.highest_prio.curr)
 			continue;
+
+		if (sched_energy_enabled()) {
+			unsigned long this_util = cpu_util_cfs(cpu_rq(this_cpu));
+			unsigned long util = cpu_util_cfs(cpu_rq(cpu));
+			unsigned long this_orig = capacity_orig_of(this_cpu);
+			unsigned long cap_orig = capacity_orig_of(cpu);
+
+			/* If local cpu is overutilized, abort pull */
+			if (this_util * capacity_margin >
+			    capacity_of(this_cpu) * 1024)
+				break;
+
+			/* Local cpu is the bigger one and the src cpu is
+			 * not overutilized, drop pull from src cpu
+			 */
+			if (this_orig > cap_orig &&
+			    util * capacity_margin < capacity_of(cpu) * 1024)
+				continue;
+		}
 
 		/*
 		 * We can potentially drop this_rq's lock in
