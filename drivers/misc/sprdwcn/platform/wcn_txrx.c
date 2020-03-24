@@ -152,7 +152,7 @@ static long int mdbg_comm_write(char *buf,
 	return len;
 }
 
-static void mdbg_ring_rx_task(unsigned long data)
+static void mdbg_ring_rx_task(struct work_struct *work)
 {
 	struct ring_rx_data *rx = NULL;
 	struct mdbg_ring_t *ring = NULL;
@@ -178,7 +178,7 @@ static void mdbg_ring_rx_task(unsigned long data)
 		return;
 	}
 	if (!list_empty(&ring_dev->rx_head))
-		tasklet_schedule(&ring_dev->rx_task);
+		schedule_work(&ring_dev->rx_task);
 	ring = ring_dev->ring;
 	spin_unlock_bh(&ring_dev->rw_lock);
 
@@ -226,7 +226,7 @@ int mdbg_log_read(int channel, struct mbuf_t *head,
 		rx->num = num;
 		list_add_tail(&rx->entry, &ring_dev->rx_head);
 		spin_unlock_bh(&ring_dev->rw_lock);
-		tasklet_schedule(&ring_dev->rx_task);
+		schedule_work(&ring_dev->rx_task);
 	}
 
 	return 0;
@@ -394,8 +394,7 @@ int mdbg_ring_init(void)
 	spin_lock_init(&ring_dev->rw_lock);
 	mutex_init(&ring_dev->mdbg_read_mutex);
 	INIT_LIST_HEAD(&ring_dev->rx_head);
-	tasklet_init(&ring_dev->rx_task, mdbg_ring_rx_task,
-		(unsigned long int)ring_dev);
+	INIT_WORK(&ring_dev->rx_task, mdbg_ring_rx_task);
 	ring_dev->flag_smp = 0;
 #ifndef CONFIG_WCN_PCIE
 	mdbg_pt_ring_reg();
@@ -416,8 +415,8 @@ void mdbg_ring_remove(void)
 	mdbg_pt_ring_unreg();
 #endif
 	wakeup_source_trash(&ring_dev->rw_wake_lock);
+	cancel_work_sync(&ring_dev->rx_task);
 	mdbg_ring_destroy(ring_dev->ring);
-	tasklet_kill(&ring_dev->rx_task);
 	list_for_each_entry_safe(pos, next, &ring_dev->rx_head, entry) {
 		list_del(&pos->entry);
 		kfree(pos);

@@ -51,7 +51,7 @@ struct ring_device {
 	spinlock_t		rw_lock;
 	struct mutex mdbg_read_mutex;
 	struct list_head	rx_head;
-	struct tasklet_struct	rx_task;
+	struct work_struct	rx_task;
 	long int flag_smp;
 };
 
