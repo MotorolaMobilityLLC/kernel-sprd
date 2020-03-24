@@ -263,6 +263,7 @@ static int is_no_pcm_dai(int fe_dai_id)
 	case FE_DAI_ID_FM:
 	case FE_DAI_ID_FM_DSP:
 	case FE_DAI_ID_CODEC_TEST:
+	case FE_DAI_ID_HFP:
 		ret = 1;
 		break;
 	default:

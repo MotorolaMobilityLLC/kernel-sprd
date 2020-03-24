@@ -91,6 +91,7 @@ static char *fe_dai_id_str[FE_DAI_ID_MAX] = {
 	[FE_DAI_ID_FM_DSP] = TO_STRING(FE_DAI_ID_FM_DSP),
 	[FE_DAI_ID_DUMP] = TO_STRING(FE_DAI_ID_DUMP),
 	[FE_DAI_ID_BTSCO_CAP_AP] = TO_STRING(FE_DAI_ID_BTSCO_CAP_AP),
+	[FE_DAI_ID_HFP] = TO_STRING(FE_DAI_ID_HFP),
 };
 
 static const char *fe_dai_id_to_str(int fe_dai_id)
@@ -117,6 +118,7 @@ static void mcdt_dma_deinit(struct snd_soc_dai *fe_dai, int stream)
 	case FE_DAI_ID_A2DP_OFFLOAD:
 	case FE_DAI_ID_VOICE:
 	case FE_DAI_ID_FM_DSP:
+	case FE_DAI_ID_HFP:
 	default:
 	break;
 	case FE_DAI_ID_CAPTURE_DSP:
@@ -163,6 +165,7 @@ static int mcdt_dma_config_init(struct snd_soc_dai *fe_dai, int stream)
 	case FE_DAI_ID_A2DP_OFFLOAD:
 	case FE_DAI_ID_VOICE:
 	case FE_DAI_ID_FM_DSP:
+	case FE_DAI_ID_HFP:
 	default:
 		uid = 0;
 		break;
@@ -260,6 +263,7 @@ static void sprd_dma_config(struct snd_pcm_substream *substream,
 	case FE_DAI_ID_A2DP_OFFLOAD:
 	case FE_DAI_ID_VOICE:
 	case FE_DAI_ID_FM_DSP:
+	case FE_DAI_ID_HFP:
 	default:
 		pr_info("%s %s do not use dma\n", __func__,
 			fe_dai_id_to_str(fe_dai->id));
@@ -576,6 +580,7 @@ struct sprd_pcm_dma_params *get_dma_data_params(struct snd_soc_dai *fe_dai,
 	case FE_DAI_ID_VOICE:
 	case FE_DAI_ID_FM:
 	case FE_DAI_ID_FM_DSP:
+	case FE_DAI_ID_HFP:
 	default:
 		dma_data = NULL;
 		break;
@@ -1150,6 +1155,35 @@ static struct snd_soc_dai_driver sprd_fe_dais[FE_DAI_ID_MAX] = {
 			.rate_min = 8000,
 			.rate_max = 192000,
 		},
+	},
+	/* 19: FE_DAI_ID_HFP */
+	{
+		.id = FE_DAI_ID_HFP,
+		.name = TO_STRING(FE_DAI_ID_HFP),
+		.probe = fe_dai_probe,
+		.playback = {
+			.stream_name = "FE_DAI_HFP_P",
+			.aif_name = "FE_IF_HFP_P",
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+						SNDRV_PCM_FMTBIT_S24_LE),
+			.channels_min = 1,
+			.channels_max = 2,
+			.rate_min = 8000,
+			.rate_max = 192000,
+		},
+		.capture = {
+			.stream_name = "FE_DAI_HFP_C",
+			.aif_name = "FE_IF_HFP_C",
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+						SNDRV_PCM_FMTBIT_S24_LE),
+			.channels_min = 1,
+			.channels_max = 2,
+			.rate_min = 8000,
+			.rate_max = 192000,
+		},
+		.ops = &sprd_fe_dai_ops,
 	},
 };
 static int sprd_fe_dai_dev_probe(struct platform_device *pdev)
