@@ -89,6 +89,7 @@ input:touchscreen:
 iio:sprd:
 misc:sprd_vsp:
 misc:sprd_jpg:
+staging:sprd:sfp:
 staging:sprd:sipa:
 staging:android:ion:
 soc:sprd:iommu:
