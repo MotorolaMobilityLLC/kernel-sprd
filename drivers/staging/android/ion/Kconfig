@@ -11,4 +11,11 @@ menuconfig ION
 	  If you're not using Android its probably safe to
 	  say N here.
 
+config ION_SPRD
+	tristate "SPRD ion support"
+	#default m
+	depends on ION
+	help
+	  Choose this option to enable sprd ion support.
+
 source "drivers/staging/android/ion/heaps/Kconfig"
