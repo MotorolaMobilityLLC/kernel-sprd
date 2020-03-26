@@ -33,7 +33,12 @@ Required properties:
   "sprd,sc9860-eic-latch",
   "sprd,sc9860-eic-async",
   "sprd,sc9860-eic-sync",
-  "sprd,sc2731-eic".
+  "sprd,sc2731-eic",
+  "sprd,sc2721-eic",
+  "sprd,sharkl3-eic-debounce",
+  "sprd,sharkl3-eic-latch",
+  "sprd,sharkl3-eic-async",
+  "sprd,sharkl3-eic-sync".
 - reg: Define the base and range of the I/O address space containing
   the GPIO controller registers.
 - gpio-controller: Marks the device node as a GPIO controller.
