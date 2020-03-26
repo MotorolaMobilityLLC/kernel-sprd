@@ -137,6 +137,67 @@
 				status = "disabled";
 			};
 		};
+
+		aon {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			eic_debounce: gpio-controller@40210000 {
+				compatible = "sprd,sharkl3-eic-debounce";
+				reg = <0 0x40210000 0 0x80>,
+				      <0 0x40370000 0 0x80>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			eic_latch: gpio-controller@40210080 {
+				compatible = "sprd,sharkl3-eic-latch";
+				reg = <0 0x40210080 0 0x20>,
+				      <0 0x40370080 0 0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			eic_async: gpio-controller@402100a0 {
+				compatible = "sprd,sharkl3-eic-async";
+				reg = <0 0x402100a0 0 0x20>,
+				      <0 0x403700a0 0 0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			eic_sync: gpio-controller@402100c0 {
+				compatible = "sprd,sharkl3-eic-sync";
+				reg = <0 0x402100c0 0 0x20>,
+				      <0 0x403700c0 0 0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			ap_gpio: gpio-controller@402c0000 {
+				compatible = "sprd,sharkl3-gpio-plus";
+				reg = <0 0x402c0000 0 0x1000>;
+				gpio-controller;
+				#gpio-cells = <2>;
+				interrupt-controller;
+				#interrupt-cells = <2>;
+				interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>;
+			};
+		};
 	};
 
 	ext_26m: ext-26m {
