@@ -50,10 +50,10 @@
 #define SPRD_EIC_SYNC_DATA		0x1c
 
 /*
- * The digital-chip EIC controller can support maximum 3 banks, and each bank
+ * The digital-chip EIC controller can support maximum 8 banks, and each bank
  * contains 8 EICs.
  */
-#define SPRD_EIC_MAX_BANK		3
+#define SPRD_EIC_MAX_BANK		8
 #define SPRD_EIC_PER_BANK_NR		8
 #define SPRD_EIC_DATA_MASK		GENMASK(7, 0)
 #define SPRD_EIC_BIT(x)			((x) & (SPRD_EIC_PER_BANK_NR - 1))
@@ -103,30 +103,35 @@ struct sprd_eic_variant_data {
 	u32 num_eics;
 };
 
+#define SPRD_EIC_VAR_DATA(soc_name, num)				\
+static const struct sprd_eic_variant_data soc_name##_eic_dbnc_data = {	\
+	.type = SPRD_EIC_DEBOUNCE,					\
+	.num_eics = (num),						\
+};									\
+									\
+static const struct sprd_eic_variant_data soc_name##_eic_latch_data = {	\
+	.type = SPRD_EIC_LATCH,						\
+	.num_eics = (num),						\
+};									\
+									\
+static const struct sprd_eic_variant_data soc_name##_eic_async_data = {	\
+	.type = SPRD_EIC_ASYNC,						\
+	.num_eics = (num),						\
+};									\
+									\
+static const struct sprd_eic_variant_data soc_name##_eic_sync_data = {	\
+	.type = SPRD_EIC_SYNC,						\
+	.num_eics = (num),						\
+}
+
+SPRD_EIC_VAR_DATA(sc9860, SPRD_EIC_PER_BANK_NR * 2);
+SPRD_EIC_VAR_DATA(sharkl3, SPRD_EIC_PER_BANK_NR * 2);
+
 static const char *sprd_eic_label_name[SPRD_EIC_MAX] = {
 	"eic-debounce", "eic-latch", "eic-async",
 	"eic-sync",
 };
 
-static const struct sprd_eic_variant_data sc9860_eic_dbnc_data = {
-	.type = SPRD_EIC_DEBOUNCE,
-	.num_eics = 8,
-};
-
-static const struct sprd_eic_variant_data sc9860_eic_latch_data = {
-	.type = SPRD_EIC_LATCH,
-	.num_eics = 8,
-};
-
-static const struct sprd_eic_variant_data sc9860_eic_async_data = {
-	.type = SPRD_EIC_ASYNC,
-	.num_eics = 8,
-};
-
-static const struct sprd_eic_variant_data sc9860_eic_sync_data = {
-	.type = SPRD_EIC_SYNC,
-	.num_eics = 8,
-};
 
 static inline void __iomem *sprd_eic_offset_base(struct sprd_eic *sprd_eic,
 						 unsigned int bank)
@@ -671,6 +676,22 @@ static const struct of_device_id sprd_eic_of_match[] = {
 	{
 		.compatible = "sprd,sc9860-eic-sync",
 		.data = &sc9860_eic_sync_data,
+	},
+	{
+		.compatible = "sprd,sharkl3-eic-debounce",
+		.data = &sharkl3_eic_dbnc_data,
+	},
+	{
+		.compatible = "sprd,sharkl3-eic-latch",
+		.data = &sharkl3_eic_latch_data,
+	},
+	{
+		.compatible = "sprd,sharkl3-eic-async",
+		.data = &sharkl3_eic_async_data,
+	},
+	{
+		.compatible = "sprd,sharkl3-eic-sync",
+		.data = &sharkl3_eic_sync_data,
 	},
 	{
 		/* end of list */
