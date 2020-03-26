@@ -67,7 +67,8 @@
 
 #define ADI_FIFO_DRAIN_TIMEOUT		1000
 #define ADI_READ_TIMEOUT		2000
-#define REG_ADDR_LOW_MASK		GENMASK(11, 0)
+#define REG_ADDR_LOW_MASK		GENMASK(16, 0)
+#define RDBACK_ADDR_DFFSET		2
 
 /* Registers definitions for PMIC watchdog controller */
 #define REG_WDG_LOAD_LOW		0x80
@@ -212,7 +213,7 @@ static int sprd_adi_read(struct sprd_adi *sadi, u32 reg_paddr, u32 *read_val)
 	 */
 	rd_addr = (val & RD_ADDR_MASK ) >> RD_ADDR_SHIFT;
 
-	if (rd_addr != (reg_paddr & REG_ADDR_LOW_MASK)) {
+	if (rd_addr != (reg_paddr & REG_ADDR_LOW_MASK) >> RDBACK_ADDR_DFFSET) {
 		dev_err(sadi->dev, "read error, reg addr = 0x%x, val = 0x%x\n",
 			reg_paddr, val);
 		ret = -EIO;
