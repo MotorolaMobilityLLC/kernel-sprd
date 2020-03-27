@@ -1,6 +1,6 @@
 config SPRD_DEBUG
 	bool "Spreadtrum debug module"
-	depends on ARCH_SPRD || ARCH_SPRD=m || COMPILE_TEST
+	depends on ARCH_SPRD || COMPILE_TEST
 	help
 	  Say y here to enable Debug support.
 
