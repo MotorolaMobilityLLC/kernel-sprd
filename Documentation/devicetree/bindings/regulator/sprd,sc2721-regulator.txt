@@ -1,0 +1,33 @@
+Spreadtrum SC2721 Voltage regulators
+
+The SC2721 integrates low-voltage and low quiescent current DCDC/LDO.
+18 LDO and 4 DCDCs are designed for external use.
+
+Required properties:
+ - compatible: should be "sprd,sc2721-regulator" or "sprd,sc2731-regulator".
+
+List of regulators provided by this controller. It is named according to
+its regulator type, DCDC_<name> and LDO_<name>. The definition for each
+of these nodes is defined using the standard binding for regulators at
+Documentation/devicetree/bindings/regulator/regulator.txt.
+
+Example:
+	regulators {
+		compatible = "sprd,sc2721-regulator";
+
+		vddarm0: DCDC_CPU0 {
+			regulator-name = "vddarm0";
+			regulator-min-microvolt = <400000>;
+			regulator-max-microvolt = <1996875>;
+			regulator-ramp-delay = <25000>;
+			regulator-always-on;
+		};
+
+		vddcama0: LDO_CAMA0 {
+			regulator-name = "vddcama0";
+			regulator-min-microvolt = <1200000>;
+			regulator-max-microvolt = <3750000>;
+			regulator-enable-ramp-delay = <100>;
+		};
+		...
+	};
