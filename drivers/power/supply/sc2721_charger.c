@@ -721,10 +721,10 @@ static int sc2721_charger_probe(struct platform_device *pdev)
 	}
 
 	ret = sc2721_charger_hw_init(info);
-	if (ret)
+	if (ret) {
 		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return ret;
-
+	}
 	sc2721_charger_detect_status(info);
 	return 0;
 }
