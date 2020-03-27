@@ -197,6 +197,13 @@
 				#interrupt-cells = <2>;
 				interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>;
 			};
+
+			adi_bus: spi@41800000 {
+				compatible = "sprd,sharkl3-adi";
+				reg = <0 0x41800000 0 0x200000>;
+				#address-cell = <1>;
+				#size-cell = <0>;
+			};
 		};
 	};
 
