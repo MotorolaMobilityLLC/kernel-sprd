@@ -215,6 +215,8 @@
 		/* how much time to allow capacity change */
 		cm-one-cap-time = <30>;
 
+		cm-thermal-zone = "board-thmzone";
+
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
 			cable@0 {
