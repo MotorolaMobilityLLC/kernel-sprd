@@ -13359,6 +13359,15 @@ CONFIG_SPRD_EFUSE
 	[must] home
 	[missing plat description] none
 	[function] get sprdtrum soc series efuse value
+CONFIG_SPRD_EIRQSOFF
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] roc1,sharkl5
+	[field] make,code
+	[subsys] soc
+	[must] debug
+	[missing plat description] possible impact on system performance
+	[function] irq disable monitor can detect any irqsoff delay too much
 CONFIG_SPRD_EMERGENCY_RESTART
 	[arch] all
 	[plat] all
