@@ -109,6 +109,12 @@ enum musb_g_ep0_state {
 
 struct musb_io;
 
+enum {
+	MUSB_PORT_MODE_HOST     = 1,
+	MUSB_PORT_MODE_GADGET,
+	MUSB_PORT_MODE_DUAL_ROLE,
+};
+
 /**
  * struct musb_platform_ops - Operations passed to musb_core by HW glue layer
  * @quirks:	flags for platform specific quirks
@@ -143,6 +149,7 @@ struct musb_io;
  */
 struct musb_platform_ops {
 
+#define MUSB_DMA_SPRD		BIT(10)
 #define MUSB_G_NO_SKB_RESERVE	BIT(9)
 #define MUSB_DA8XX		BIT(8)
 #define MUSB_PRESERVE_SESSION	BIT(7)
@@ -190,6 +197,8 @@ struct musb_platform_ops {
 	void	(*post_root_reset_end)(struct musb *musb);
 	int	(*phy_callback)(enum musb_vbus_id_status status);
 	void	(*clear_ep_rxintr)(struct musb *musb, int epnum);
+	void	(*phy_set_emphasis)(struct musb *musb, bool enabled);
+	int	(*ep_fifo_configure)(struct musb *musb);
 };
 
 /*
@@ -408,6 +417,10 @@ struct musb {
 	struct usb_gadget	g;			/* the gadget */
 	struct usb_gadget_driver *gadget_driver;	/* its driver */
 	struct usb_hcd		*hcd;			/* the usb hcd */
+	unsigned		fixup_ep0fifo:1;
+	bool			is_offload;     /* i2s mode for usb audio */
+	bool			offload_used;
+	int			shutdowning;
 
 	const struct musb_hdrc_config *config;
 
@@ -588,6 +601,14 @@ static inline void musb_platform_clear_ep_rxintr(struct musb *musb, int epnum)
 {
 	if (musb->ops->clear_ep_rxintr)
 		musb->ops->clear_ep_rxintr(musb, epnum);
+}
+
+static inline int musb_reset_fifo_size(struct musb *musb)
+{
+	if (!musb->ops->ep_fifo_configure)
+		return -EINVAL;
+
+	return musb->ops->ep_fifo_configure(musb);
 }
 
 /*
