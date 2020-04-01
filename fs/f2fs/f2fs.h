@@ -693,6 +693,9 @@ struct f2fs_inode_info {
 
 	/* Use below internally in f2fs*/
 	unsigned long flags;		/* use to pass per-file flags */
+#if BITS_PER_LONG == 32
+	unsigned long i_overflow;	/* fix for 32bit arch */
+#endif
 	struct rw_semaphore i_sem;	/* protect fi info */
 	atomic_t dirty_pages;		/* # of dirty pages */
 	f2fs_hash_t chash;		/* hash value of given file name */
