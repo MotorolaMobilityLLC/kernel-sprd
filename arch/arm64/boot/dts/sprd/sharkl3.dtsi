@@ -260,6 +260,24 @@
 				interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			pwms: pwm@40260000 {
+				compatible = "sprd,sharkl3-pwm";
+				reg = <0 0x40260000 0 0x10000>;
+				clock-names = "pwm0", "enable0",
+					"pwm1", "enable1",
+					"pwm2", "enable2";
+				clocks = <&aon_clk CLK_PWM0>, <&aonapb_gate CLK_PWM0_EB>,
+					<&aon_clk CLK_PWM1>, <&aonapb_gate CLK_PWM1_EB>,
+					<&aon_clk CLK_PWM2>, <&aonapb_gate CLK_PWM2_EB>;
+				assigned-clocks = <&aon_clk CLK_PWM0>,
+					<&aon_clk CLK_PWM1>,
+					<&aon_clk CLK_PWM2>;
+				assigned-clock-parents = <&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>;
+				#pwm-cells = <2>;
+			};
+
 			ap_gpio: gpio-controller@402c0000 {
 				compatible = "sprd,sharkl3-gpio-plus";
 				reg = <0 0x402c0000 0 0x1000>;
