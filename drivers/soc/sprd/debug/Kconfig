@@ -1,3 +1,5 @@
+source "drivers/soc/sprd/debug/djtag/Kconfig"
+
 config SPRD_LOOK_AT
 	bool "Sprdtrum lookat tool support"
 	depends on SPRD_DEBUG || COMPILE_TEST
