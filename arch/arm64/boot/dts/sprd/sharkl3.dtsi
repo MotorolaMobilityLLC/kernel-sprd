@@ -208,6 +208,14 @@
 				clocks = <&ext_32k>;
 			};
 
+			hwlock: hwspinlock@40060000 {
+				compatible = "sprd,hwspinlock-r3p0";
+				reg = <0 0x40060000 0 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
+
 			eic_debounce: gpio-controller@40210000 {
 				compatible = "sprd,sharkl3-eic-debounce";
 				reg = <0 0x40210000 0 0x80>,
