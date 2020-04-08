@@ -1163,6 +1163,8 @@ static SPRD_SC_GATE_CLK_HW(vbc_eb,	"vbc-eb",	&aon_apb.common.hw, 0x0,
 			   0x1000, BIT(19), 0, 0);
 static SPRD_SC_GATE_CLK_HW(pin_eb,	"pin-eb",	&aon_apb.common.hw, 0x0,
 			   0x1000, BIT(20), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK_HW(splk_eb,	"splk-eb",	&aon_apb.common.hw, 0x0,
+			   0x1000, BIT(22), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(ap_wdg_eb,	"ap-wdg-eb",	&aon_apb.common.hw, 0x0,
 			   0x1000, BIT(24), 0, 0);
 static SPRD_SC_GATE_CLK_HW(mm_eb,	"mm-eb",	&aon_apb.common.hw, 0x0,
@@ -1344,6 +1346,7 @@ static struct sprd_clk_common *sc9863a_aonapb_gate_clks[] = {
 	&aud_eb.common,
 	&vbc_eb.common,
 	&pin_eb.common,
+	&splk_eb.common,
 	&ap_wdg_eb.common,
 	&mm_eb.common,
 	&aon_apb_ckg_eb.common,
@@ -1446,6 +1449,7 @@ static struct clk_hw_onecell_data sc9863a_aonapb_gate_hws = {
 		[CLK_AUD_EB]		= &aud_eb.common.hw,
 		[CLK_VBC_EB]		= &vbc_eb.common.hw,
 		[CLK_PIN_EB]		= &pin_eb.common.hw,
+		[CLK_SPLK_EB]           = &splk_eb.common.hw,
 		[CLK_AP_WDG_EB]		= &ap_wdg_eb.common.hw,
 		[CLK_MM_EB]		= &mm_eb.common.hw,
 		[CLK_AON_APB_CKG_EB]	= &aon_apb_ckg_eb.common.hw,
