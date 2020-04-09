@@ -195,6 +195,19 @@
 			#size-cells = <2>;
 			ranges;
 
+			timer@40050000 {
+				compatible = "sprd,sharkl3-timer";
+				reg = <0 0x40050000 0 0x14>;
+				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&ext_32k>;
+			};
+
+			timer@40050020 {
+				compatible = "sprd,sharkl3-suspend-timer";
+				reg = <0 0x40050020 0 0x14>;
+				clocks = <&ext_32k>;
+			};
+
 			eic_debounce: gpio-controller@40210000 {
 				compatible = "sprd,sharkl3-eic-debounce";
 				reg = <0 0x40210000 0 0x80>,
