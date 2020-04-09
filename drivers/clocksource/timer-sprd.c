@@ -237,6 +237,9 @@ module_platform_driver(sprd_timer_driver);
 TIMER_OF_DECLARE(sc9860_timer, "sprd,sc9860-timer", sprd_timer_init);
 TIMER_OF_DECLARE(sc9860_persistent_timer, "sprd,sc9860-suspend-timer",
 		 sprd_suspend_timer_init);
+TIMER_OF_DECLARE(sharkl3_timer, "sprd,sharkl3-timer", sprd_timer_init);
+TIMER_OF_DECLARE(sharkl3_persistent_timer, "sprd,sharkl3-suspend-timer",
+		 sprd_suspend_timer_init);
 #endif
 
 MODULE_LICENSE("GPL v2");
