@@ -15,4 +15,5 @@ config SPRD_LOOK_AT
 	  When in doubt, say n
 
 source "drivers/soc/sprd/debug/djtag/Kconfig"
+source "drivers/soc/sprd/debug/busmonitor/Kconfig"
 source "drivers/soc/sprd/debug/sysdump/Kconfig"
