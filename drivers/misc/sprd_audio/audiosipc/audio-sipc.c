@@ -690,6 +690,37 @@ err:
 	return ret;
 }
 
+int aud_send_cmd_no_wait_param(u16 channel, int id, int stream,
+			       u32 cmd, void *para, size_t n)
+{
+	int ret;
+	struct audio_ipc *aud_ipc = aud_ipc_get();
+
+	aud_ipc_lock();
+
+	/* set audio cmd para */
+	ret = audio_cmd_copy(para, n);
+	if (ret < 0) {
+		pr_err("%s: failed to write command(%d) para, ret=%d\n",
+		       __func__, cmd, ret);
+		goto err;
+	}
+
+	/* send audio cmd */
+	ret = aud_send_msg(channel, cmd,
+			   id, stream, aud_ipc->param_addr_p, 0);
+	if (ret < 0) {
+		pr_err("%s: failed to send command(%d), ret=%d\n",
+		       __func__, cmd, ret);
+		goto err;
+	}
+	pr_info("%s %d wait dsp\n", __func__, __LINE__);
+err:
+	aud_ipc_unlock();
+
+	return ret;
+}
+
 /*
  * id : parameter0(exchange with dsp)
  * cmd: command

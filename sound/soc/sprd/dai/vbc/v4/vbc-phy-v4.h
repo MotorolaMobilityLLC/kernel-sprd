@@ -577,6 +577,7 @@ enum KCTL_TYPE {
 	SND_KCTL_TYPE_IVSENCE_FUNC,
 	SND_KCTL_TYPE_EXT_INNER_IIS_MST_SEL,
 	SND_KCTL_TYPE_VBC_IIS_MASTER_WIDTH_SET,
+	SND_KCTL_TYPE_VOICE_MIX_UL,
 	SND_KCTL_TYPE_END,
 };
 
@@ -1166,6 +1167,12 @@ struct vbc_iis_mst_sel_para {
 	enum VBC_MASTER_TYPE_VAL mst_type;
 };
 
+/* SND_KCTL_TYPE_VOICE_MIX_UL */
+struct vbc_voice_pcm_play_t {
+	u16 mix_pcm_enable;
+	u16 mix_pcm_mode;
+};
+
 /**********************************************************************
  * define for SND_VBC_DSP_IO_SHAREMEM_GET / SND_VBC_DSP_IO_SHAREMEM_SET
  **********************************************************************/
@@ -1203,7 +1210,7 @@ enum {
 	VBC_DAI_ID_FM_CAPTURE_DSP,
 	VBC_DAI_ID_BT_SCO_CAPTURE_DSP,
 	VBC_DAI_ID_FM_DSP,
-	VBC_DAI_ID_VOICE_PCM,
+	VBC_DAI_ID_VOICE_PCM_P,
 	VBC_DAI_ID_HFP,
 	VBC_DAI_ID_RECOGNISE_CAPTURE,
 	VBC_DAI_ID_MAX
@@ -1283,6 +1290,7 @@ struct snd_pcm_startup_paras {
 	struct sbcenc_param_t sbcenc_para;
 	struct ivsense_smartpa_t ivs_smtpa;
 	struct vbc_iis_mst_sel_para mst_sel_para[IIS_MST_SEL_ID_MAX];
+	u16 voice_record_type;
 };
 
 struct sprd_vbc_stream_startup_shutdown {
@@ -1439,6 +1447,8 @@ struct vbc_codec_priv {
 	int32_t ivs_smtpa_ctl_enable;
 	int32_t is_use_ivs_smtpa;
 	u32 iis_mst_width;
+	u16 voice_capture_type;
+	u16 voice_pcm_play_mode;
 };
 
 /********************************************************************
@@ -1510,6 +1520,7 @@ int dsp_vbc_iis_master_start(u32 enable);
 void dsp_vbc_iis_master_width_set(u32 iis_width);
 int dsp_vbc_mainmic_path_set(int type, int val);
 int dsp_ivsence_func(int enable, int iv_adc_id);
+int dsp_vbc_voice_pcm_play_set(bool enable, int mode);
 
 int vbc_dsp_func_startup(int scene_id, int stream,
 	struct sprd_vbc_stream_startup_shutdown *startup_info);

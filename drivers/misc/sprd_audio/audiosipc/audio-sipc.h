@@ -41,6 +41,8 @@ int aud_ipc_ch_open(uint16_t channel);
 int aud_ipc_ch_close(uint16_t channel);
 int aud_send_cmd(uint16_t channel, int id, int stream, u32 cmd,
 		 void *para, size_t n, int32_t timeout);
+int aud_send_cmd_no_wait_param(u16 channel, int id, int stream,
+			       u32 cmd, void *para, size_t n);
 int aud_send_cmd_result(u16 channel, int id, int stream, u32 cmd,
 			void *para, size_t n, void *result, int32_t timeout);
 int aud_send_block_param(uint16_t channel, int id, int stream, u32 cmd,

@@ -64,6 +64,17 @@ static const char * const enable_disable_txt[] = {
 	"disable", "enable",
 };
 
+static const char * const dsp_voice_capture_type_txt[] = {
+	/* type 0, type 1, type 2 */
+	"VOICE_CAPTURE_DOWNLINK", "VOICE_CAPTURE_UPLINK",
+	"VOICE_CAPTURE_UPLINK_DOWNLINK",
+};
+
+static const char * const dsp_voice_pcm_play_mode_txt[] = {
+	/* type 0, type 1 */
+	"VOICE_PCM_PLAY_UPLINK_MIX", "VOICE_PCM_PLAY_UPLINK_ONLY",
+};
+
 static const struct soc_enum dsp_loopback_enum  =
 SPRD_VBC_ENUM(SND_SOC_NOPM, 3, dsp_loopback_type_txt);
 
@@ -76,6 +87,12 @@ static const struct soc_enum vbc_ag_iis_ext_sel_enum[AG_IIS_MAX] = {
 
 static const struct soc_enum vbc_dump_enum =
 SPRD_VBC_ENUM(SND_SOC_NOPM, 2, enable_disable_txt);
+
+static const struct soc_enum dsp_voice_capture_enum  =
+SPRD_VBC_ENUM(SND_SOC_NOPM, 3, dsp_voice_capture_type_txt);
+
+static const struct soc_enum dsp_voice_pcm_play_enum  =
+SPRD_VBC_ENUM(SND_SOC_NOPM, 2, dsp_voice_pcm_play_mode_txt);
 
 static const char * const sprd_profile_name[] = {
 	"audio_structure", "dsp_vbc", "cvs", "dsp_smartamp",
@@ -3182,7 +3199,69 @@ static int vbc_iis_inf_sys_sel_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int vbc_voice_capture_type_get(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
 
+	ucontrol->value.integer.value[0] = vbc_codec->voice_capture_type;
+
+	return 0;
+}
+
+static int vbc_voice_capture_type_put(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	int value;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, texts->texts[%d] =%s\n",
+		       __func__, value, texts->texts[value]);
+	vbc_codec->voice_capture_type = value;
+
+	return value;
+}
+
+static int vbc_voice_pcm_play_mode_get(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = vbc_codec->voice_pcm_play_mode;
+
+	return 0;
+}
+
+static int vbc_voice_pcm_play_mode_put(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_value *ucontrol)
+{
+	int value;
+	struct soc_enum *texts = (struct soc_enum *)kcontrol->private_value;
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct vbc_codec_priv *vbc_codec = snd_soc_codec_get_drvdata(codec);
+
+	if (ucontrol->value.integer.value[0] >= texts->items) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	value = ucontrol->value.enumerated.item[0];
+	sp_asoc_pr_dbg("%s, texts->texts[%d] =%s\n",
+		       __func__, value, texts->texts[value]);
+	vbc_codec->voice_pcm_play_mode = value;
+
+	return value;
+}
 
 /* -9450dB to 0dB in 150dB steps ( mute instead of -9450dB) */
 static const DECLARE_TLV_DB_SCALE(mdg_tlv, -9450, 150, 1);
@@ -3642,6 +3721,15 @@ static const struct snd_kcontrol_new vbc_codec_snd_controls[] = {
 		vbc_iis_inf_sys_sel_get, vbc_iis_inf_sys_sel_put),
 	SOC_ENUM_EXT("DMIC_CHN_SEL", dmic_chn_sel_enum,
 		     vbc_dmic_chn_sel_get, vbc_dmic_chn_sel_put),
+
+	/* VOICE CAPTURE */
+	SOC_ENUM_EXT("VBC_DSP_VOICE_CAPTURE_TYPE",
+		     dsp_voice_capture_enum,
+		     vbc_voice_capture_type_get, vbc_voice_capture_type_put),
+	/* VOICE PCM PLAYBACK */
+	SOC_ENUM_EXT("VBC_DSP_VOICE_PCM_PLAY_MODE",
+		     dsp_voice_pcm_play_enum,
+		     vbc_voice_pcm_play_mode_get, vbc_voice_pcm_play_mode_put),
 };
 
 static u32 vbc_codec_read(struct snd_soc_codec *codec,
