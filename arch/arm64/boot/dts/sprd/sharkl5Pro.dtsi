@@ -56,6 +56,11 @@
 			reg = <0 0x32360000 0 0x1000>;
 		};
 
+		anlg_phy_g0_regs: syscon@32390000 {
+			compatible = "sprd,ums512-glbregs", "syscon";
+			reg = <0 0x32390000 0 0x3000>;
+		};
+
 		anlg_phy_g2_regs: syscon@323b0000 {
 			compatible = "sprd,ums512-glbregs", "syscon";
 			reg = <0 0x323b0000 0 0x3000>;
@@ -134,6 +139,11 @@
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
+		};
+
+		ap_apb_regs: syscon@71000000 {
+			compatible = "sprd,ums512-glbregs", "syscon";
+			reg = <0 0x71000000 0 0x3000>;
 		};
 	};
 
