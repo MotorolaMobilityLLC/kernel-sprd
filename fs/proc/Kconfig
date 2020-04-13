@@ -97,3 +97,11 @@ config PROC_UID
 	depends on PROC_FS && RT_MUTEXES
 	help
 	Provides aggregated per-uid information under /proc/uid.
+
+config PROTECT_LRU
+	bool "protect lru of a process"
+	depends on !TRANSPARENT_HUGEPAGE && !HUGETLB_PAGE && (ARM64 || X86_64)
+	default n
+	help
+	  Provider a mechanism to protect pages.Unlike mlock, pages resided in
+	  PROTECT_LRU can be reclaimed when system is under memory pressure.
