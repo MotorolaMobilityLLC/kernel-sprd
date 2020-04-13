@@ -75,6 +75,12 @@ static const struct sprd_efuse_variant_data ums312_data = {
 	.blk_double = false,
 };
 
+static const struct sprd_efuse_variant_data sharkl3_data = {
+	.blk_nums = 11,
+	.blk_offset = 36,
+	.blk_double = true,
+};
+
 /*
  * On Spreadtrum platform, we have multi-subsystems will access the unique
  * efuse controller, so we need one hardware spinlock to synchronize between
@@ -308,6 +314,11 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 	if (ret)
 		goto unlock;
 
+	if (of_device_is_compatible(efuse->dev->of_node, "sprd,sharkl3-efuse")) {
+		if (index == 95 || index == 94)
+			blk_double = 0;
+	}
+
 	ret = sprd_efuse_raw_read(efuse, index, &data, blk_double);
 	if (!ret) {
 		data >>= blk_offset;
@@ -423,6 +434,7 @@ static int sprd_efuse_probe(struct platform_device *pdev)
 
 static const struct of_device_id sprd_efuse_of_match[] = {
 	{ .compatible = "sprd,ums312-efuse", .data = &ums312_data },
+	{ .compatible = "sprd,sharkl3-efuse", .data = &sharkl3_data },
 	{ }
 };
 
