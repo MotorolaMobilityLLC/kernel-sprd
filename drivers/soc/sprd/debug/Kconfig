@@ -17,3 +17,9 @@ config SPRD_LOOK_AT
 source "drivers/soc/sprd/debug/djtag/Kconfig"
 source "drivers/soc/sprd/debug/busmonitor/Kconfig"
 source "drivers/soc/sprd/debug/sysdump/Kconfig"
+config SPRD_LAST_REGS
+	bool "SPRD last regs access"
+	depends on SPRD_DEBUG
+	default n
+	help
+	  SPRD last regs access for Debug.
