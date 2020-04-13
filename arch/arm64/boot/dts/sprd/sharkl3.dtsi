@@ -327,6 +327,36 @@
 				interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			ap_efuse: efuse@40240000 {
+				compatible = "sprd,sharkl3-efuse";
+				reg = <0 0x40240000 0 0x10000>;
+				#address-cells = <1>;
+				#size-cells = <1>;
+				clock-names = "enable";
+				hwlocks = <&hwlock 8>;
+				clocks = <&aonapb_gate CLK_EFUSE_EB>;
+
+				gthm_delta: gthm-delta@21{
+					reg = <0x21 0x4>;
+					bits = <1 7>;
+				};
+
+				cthm_sign: cthm-sign@22{
+					reg = <0x22 0x4>;
+					bits = <0 1>;
+				};
+
+				cthm_ratio: cthm-ratio@22{
+					reg = <0x22 0x4>;
+					bits = <1 7>;
+				};
+
+				cthm_delta: cthm-delta@23{
+					reg = <0x23 0x4>;
+					bits = <0 7>;
+				};
+			};
+
 			pwms: pwm@40260000 {
 				compatible = "sprd,sharkl3-pwm";
 				reg = <0 0x40260000 0 0x10000>;
@@ -371,6 +401,7 @@
 				#address-cell = <1>;
 				#size-cell = <0>;
 			};
+
 		};
 
 		mm {
