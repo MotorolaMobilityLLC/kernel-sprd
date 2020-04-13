@@ -1045,7 +1045,7 @@
 				sound-dai = <&sprd_pcm>;
 			};
 			cpu {
-				sound-dai = <&sprd_fe_dai 18>;
+				sound-dai = <&sprd_fe_dai 19>;
 			};
 			codec {
 				sound-dai = <0 0>;
