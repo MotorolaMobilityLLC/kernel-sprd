@@ -325,6 +325,16 @@
 				interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			watchdog@40310000 {
+				compatible = "sprd,sp9860-wdt";
+				reg = <0x40310000 0x1000>;
+				interrupts = <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <30>;
+				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_CA53_WDG_EB>,
+					<&aonapb_gate CLK_CA53_WDG_RTC_EB>;
+			};
+
 			adi_bus: spi@41800000 {
 				compatible = "sprd,sharkl3-adi";
 				reg = <0 0x41800000 0 0x200000>;
