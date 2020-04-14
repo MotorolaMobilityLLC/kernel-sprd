@@ -24,4 +24,31 @@
 		};
 	};
 
+	ipi: interrupt-controller {
+		compatible = "sprd,customipi";
+		#interrupt-cells = <1>;
+		interrupt-controller;
+	};
+
+	trusty {
+		compatible = "sprd,trusty-smc-v1";
+
+		irq {
+			compatible = "sprd,trusty-irq-v1";
+			interrupt-templates = <&ipi 0>,
+					      <&gic 1 GIC_PPI 0>,
+					      <&gic 1 GIC_SPI 0>;
+			interrupt-ranges = < 0  15 0>,
+					   <16  31 1>,
+					   <32 223 2>;
+		};
+
+		virtio {
+			compatible = "sprd,trusty-virtio-v1";
+		};
+
+		log {
+			compatible = "sprd,trusty-log-v1";
+		};
+	};
 };
