@@ -1,0 +1,50 @@
+FAIRCHILD FAN54015 PMIC battery charger binding
+
+Required properties:
+ - compatible: Should be one of the following:
+ "fairchild, fan54015_chg",
+ "prisemi,psc5415z_chg".
+ - reg: Address offset of charger register.
+ - phys: Contains a phandle to the USB phy.
+ - extcon: used to detect if vbus is high level.
+
+Optional Properties:
+ - monitored-battery: phandle of battery characteristics devicetree node.
+  The charger uses the following battery properties:
+ - charge-term-current-microamp: current for charge termination phase.
+ - constant-charge-voltage-max-microvolt: maximum constant input voltage.
+ - charge-sdp-current-microamp: An array providing the current and
+   limit current for SDP charger type.
+ - charge-dcp-current-microamp: An array providing the current and
+   limit current for DCP charger type.
+ - charge-cdp-current-microamp: An array providing the current and
+   limit current for CDP charger type.
+ - charge-unknown-current-microamp: An array providing the current and
+   limit current for unknown charger type.
+ See Documentation/devicetree/bindings/power/supply/battery.txt
+
+Example:
+
+	bat: battery {
+		compatible = "simple-battery";
+		charge-term-current-microamp = <120000>;
+		constant-charge-voltage-max-microvolt = <4350000>;
+		charge-sdp-current-microamp = <500000 500000>;
+		charge-dcp-current-microamp = <1500000 3000000>;
+		charge-cdp-current-microamp = <1500000 1500000>;
+		charge-unknown-current-microamp = <500000 500000>;
+		......
+	};
+
+	&i2c4 {
+		status = "okay";
+		clock-frequency = <400000>;
+
+		fan54015_chg: charger@6a {
+			compatible = "fairchild,fan54015_chg";
+			reg = <0x6a>;
+			phys = <&hsphy>;
+			monitored-battery = <&bat>;
+			extcon = <&extcon_gpio>;
+		};
+	};
