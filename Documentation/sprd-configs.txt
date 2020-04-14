@@ -11186,6 +11186,17 @@ CONFIG_PROFILING
 	[must] console
 	[missing plat description] none
 	[function] vts require, Profiling support.
+CONFIG_PROTECT_LRU
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] sharkl5
+	[field] make,code
+	[subsys] mm
+	[must] none
+	[missing plat description] arm64 and above 3G ram
+	[function] Provider a mechanism to protect pages.Unlike mlock, pages
+		resided in PROTECT_LRU can b e recalimed when system is
+		under memory pressure.
 CONFIG_PSI
 	[arch] all
 	[plat] all
