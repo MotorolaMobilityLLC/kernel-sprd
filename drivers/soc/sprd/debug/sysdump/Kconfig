@@ -1,5 +1,6 @@
 config SPRD_SYSDUMP
 	bool "Enable SPRD sysdump handler"
+	depends on ARCH_SPRD
 	help
 		This option enables Spreatrum sysdump which prepare debug info
 		for u-boot to write into mmc storage after kernel panics.

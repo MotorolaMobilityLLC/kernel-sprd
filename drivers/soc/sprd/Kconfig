@@ -1,8 +1,7 @@
-config SPRD_DEBUG
-	bool "Spreadtrum debug module"
-	depends on ARCH_SPRD || COMPILE_TEST
-	help
-	  Say y here to enable Debug support.
+#
+# SPRD SOC drivers
+#
+menu "Unisoc SOC drivers"
 
 config SPRD_7SRESET
         tristate "Spreadtrum PMIC 7s reset driver"
@@ -12,3 +11,5 @@ config SPRD_7SRESET
 
 source "drivers/soc/sprd/debug/Kconfig"
 source "drivers/soc/sprd/autotest/Kconfig"
+
+endmenu

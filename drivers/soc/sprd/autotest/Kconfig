@@ -2,25 +2,26 @@
 # SPRD Soc autotest support
 #
 config SPRD_AUTOTEST
-	tristate
+	tristate "Spreadtrum autotest support"
+	depends on ARCH_SPRD
 
 config SPRD_AUTOTEST_GPIO
 	tristate "Spreadtrum gpio autotest support"
-	depends on GPIOLIB || COMPILE_TEST
-	select SPRD_AUTOTEST
+	depends on SPRD_AUTOTEST
+	select GPIOLIB
 	help
 	  Enable this to support gpio autotest.
 
 config SPRD_AUTOTEST_PINCTRL
 	tristate "Spreadtrum pinctrl autotest support"
-	depends on PINCTRL || COMPILE_TEST
-	select SPRD_AUTOTEST
+	depends on SPRD_AUTOTEST
+	select PINCTRL
 	help
 	  Enable this to support pinctrl autotest.
 
 config SPRD_AUTOTEST_OTG
 	tristate "Spreadtrum otg autotest support"
-	depends on USB_OTG || COMPILE_TEST
-	select SPRD_AUTOTEST
+	depends on SPRD_AUTOTEST
+	select USB_OTG
 	help
 	  Enable this to support otg autotest.
