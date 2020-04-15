@@ -20,15 +20,16 @@
 	aliases {
 		serial0 = &uart0;
 		serial1 = &uart1;
+		serial2 = &uart2;
 	};
 
 	memory@80000000 {
 		device_type = "memory";
-		reg = <0x0 0x80000000 0x0 0xffffffff>;
+		reg = <0x0 0x80000000 0x1 0x7fffffff>;
 	};
 
 	chosen {
-		stdout-path = "&uart1";
+		stdout-path = "serial1:115200n8";
 		bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums9230_haps androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=memdisk0 androidboot.selinux=permissive androidboot.force_normal_boot=1";
 	};
 };
@@ -41,3 +42,6 @@
 	status = "okay";
 };
 
+&uart2 {
+	status = "okay";
+};

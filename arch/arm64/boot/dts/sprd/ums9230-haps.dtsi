@@ -48,7 +48,7 @@
 			#redistributor-regions = <1>;
 			interrupt-controller;
 			reg = <0x0 0x10000000 0 0x20000>,	/* GICD */
-			      <0x0 0x10040000 0 0x20000>;	/* GICR */
+			      <0x0 0x10040000 0 0x100000>;	/* GICR */
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
 	};
 };
