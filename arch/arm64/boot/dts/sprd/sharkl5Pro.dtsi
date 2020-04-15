@@ -1136,7 +1136,7 @@
 			agcp_dma: dma-controller@33580000 {
 				compatible = "sprd,sharkl5-dma", "sprd,sharkl5pro-dma";
 				reg = <0 0x33580000 0 0x4000>;
-				interrupts = <GIC_SPI 181 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 180 IRQ_TYPE_LEVEL_HIGH>;
 				#dma-cells = <1>;
 				#dma-channels = <32>;
 				clock-names = "enable", "ashb_eb";
