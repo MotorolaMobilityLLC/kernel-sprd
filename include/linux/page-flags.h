@@ -107,6 +107,9 @@ enum pageflags {
 	PG_young,
 	PG_idle,
 #endif
+#ifdef CONFIG_PROTECT_LRU
+	PG_protect,
+#endif
 	__NR_PAGEFLAGS,
 
 	/* Filesystems */
@@ -375,6 +378,12 @@ TESTPAGEFLAG(Young, young, PF_ANY)
 SETPAGEFLAG(Young, young, PF_ANY)
 TESTCLEARFLAG(Young, young, PF_ANY)
 PAGEFLAG(Idle, idle, PF_ANY)
+#endif
+
+#ifdef CONFIG_PROTECT_LRU
+PAGEFLAG(Protect, protect, PF_ANY)
+#else
+PAGEFLAG_FALSE(Protect)
 #endif
 
 /*

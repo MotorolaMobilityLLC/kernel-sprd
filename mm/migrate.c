@@ -687,6 +687,11 @@ void migrate_page_states(struct page *newpage, struct page *page)
 	if (page_is_idle(page))
 		set_page_idle(newpage);
 
+	if (PageProtect(page)) {
+		SetPageProtect(newpage);
+		set_page_protect_num(newpage, get_page_protect_num(page));
+	}
+
 	/*
 	 * Copy NUMA information to the new page, to prevent over-eager
 	 * future migrations of this same page.
