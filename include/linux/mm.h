@@ -781,6 +781,8 @@ int finish_mkwrite_fault(struct vm_fault *vmf);
 #define ZONES_PGOFF		(NODES_PGOFF - ZONES_WIDTH)
 #define LAST_CPUPID_PGOFF	(ZONES_PGOFF - LAST_CPUPID_WIDTH)
 #define KASAN_TAG_PGOFF		(LAST_CPUPID_PGOFF - KASAN_TAG_WIDTH)
+/* CONFIG_PROTECT_LRU */
+#define PROTECT_LRU_PGOFF	(KASAN_TAG_PGOFF - PROTECT_LRU_WIDTH)
 
 /*
  * Define the bit shifts to access each section.  For non-existent
@@ -792,6 +794,8 @@ int finish_mkwrite_fault(struct vm_fault *vmf);
 #define ZONES_PGSHIFT		(ZONES_PGOFF * (ZONES_WIDTH != 0))
 #define LAST_CPUPID_PGSHIFT	(LAST_CPUPID_PGOFF * (LAST_CPUPID_WIDTH != 0))
 #define KASAN_TAG_PGSHIFT	(KASAN_TAG_PGOFF * (KASAN_TAG_WIDTH != 0))
+/* CONFIG_PROTECT_LRU */
+#define PROTECT_LRU_PGSHIFT	(PROTECT_LRU_PGOFF*(PROTECT_LRU_WIDTH != 0))
 
 /* NODE:ZONE or SECTION:ZONE is used to ID a zone for the buddy allocator */
 #ifdef NODE_NOT_IN_PAGE_FLAGS
@@ -816,6 +820,8 @@ int finish_mkwrite_fault(struct vm_fault *vmf);
 #define LAST_CPUPID_MASK	((1UL << LAST_CPUPID_SHIFT) - 1)
 #define KASAN_TAG_MASK		((1UL << KASAN_TAG_WIDTH) - 1)
 #define ZONEID_MASK		((1UL << ZONEID_SHIFT) - 1)
+/* CONFIG_PROTECT_LRU */
+#define PROTECT_LRU_MASK	((1UL << PROTECT_LRU_WIDTH)-1)
 
 static inline enum zone_type page_zonenum(const struct page *page)
 {
@@ -1135,6 +1141,36 @@ static inline struct mem_cgroup *page_memcg_rcu(struct page *page)
 {
 	WARN_ON_ONCE(!rcu_read_lock_held());
 	return NULL;
+}
+#endif
+#ifdef CONFIG_PROTECT_LRU
+static inline int get_page_protect_num(const struct page *page)
+{
+	return (page->flags >> PROTECT_LRU_PGSHIFT) & PROTECT_LRU_MASK;
+}
+
+static inline void set_page_protect_num(struct page *page, int num)
+{
+	unsigned long old_flags, flags;
+
+	do {
+		/*
+		 * old_flags maybe use the same register of page->flags
+		 * by gcc, so cmpxchg maybe not help.
+		 */
+		old_flags = flags = READ_ONCE(page->flags);
+		flags &= ~(PROTECT_LRU_MASK << PROTECT_LRU_PGSHIFT);
+		flags |= (num & PROTECT_LRU_MASK) << PROTECT_LRU_PGSHIFT;
+	} while (cmpxchg(&page->flags, old_flags, flags) != old_flags);
+}
+#else
+static inline int get_page_protect_num(const struct page *page)
+{
+	return 0;
+}
+
+static inline void set_page_protect_num(struct page *page, int num)
+{
 }
 #endif
 

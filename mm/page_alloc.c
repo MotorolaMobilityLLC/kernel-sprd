@@ -1268,6 +1268,7 @@ static void __meminit __init_single_page(struct page *page, unsigned long pfn,
 	if (!is_highmem_idx(zone))
 		set_page_address(page, __va(pfn << PAGE_SHIFT));
 #endif
+	set_page_protect_num(page, 0);
 }
 
 static void __meminit __init_single_pfn(unsigned long pfn, unsigned long zone,
