@@ -23,6 +23,7 @@
 	sprd,sc-id = <9832 1 0x20000>;
 
 	aliases {
+		serial0 = &uart0;
 		serial1 = &uart1;
 	};
 
@@ -240,6 +241,10 @@
 
 &uart1 {
 	status = "okay";
+};
+
+&uart0 {
+	status = "disabled";
 };
 
 &hsphy {

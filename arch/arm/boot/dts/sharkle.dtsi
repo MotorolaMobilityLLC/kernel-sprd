@@ -17,6 +17,7 @@
 	#size-cells = <1>;
 
 	aliases {
+		serial0 = &uart0;
 		serial1 = &uart1;
 		i2c0 = &i2c0;
 		i2c1 = &i2c1;
@@ -555,6 +556,14 @@
 					     <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>;
 				sprd,core-cnt = <7>;
 				sprd,version = <0x102>;
+			};
+
+			uart0: serial@508d0000 {
+				compatible = "sprd,sc9836-uart-ex";
+				reg = <0x508d0000 0x100>;
+				interrupts = <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,aon-apb = <&aon_apb_regs>;
+				status = "disabled";
 			};
 
 			aon_dma: dma-controller@40100000 {

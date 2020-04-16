@@ -91,8 +91,8 @@
 			sprd,dst = <6>;
 			sprd,channel = <5>;
 			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x5b0>;
-			sprd,size-txbuf = <0x100>;
+			sprd,size-rxbuf = <0x200>;
+			sprd,size-txbuf = <0x000>;
 		};
 
 		spipe@1 {

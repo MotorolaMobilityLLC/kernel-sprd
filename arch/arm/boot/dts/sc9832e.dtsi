@@ -415,6 +415,13 @@
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
 		};
+
+		spahb_gate: clock-controller@50820000 {
+			compatible = "sprd,sc9832e-spahb-gate";
+			reg = <0x50820000 0x3000>; /* 0x50820000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
 	};
 	power: power-debug {
 		compatible = "sprd,power-debug";
@@ -568,6 +575,12 @@
 	clock-names = "enable", "uart", "source";
 	clocks = <&apapb_gate CLK_UART1_EB>,
 		 <&ap_clk CLK_UART1>, <&ext_26m>;
+};
+
+&uart0 {
+	clock-names = "enable", "uart", "source";
+	clocks = <&spahb_gate CLK_CM4_UART_EB>,
+		 <&aon_prediv CLK_CM4_UART>, <&pll CLK_TWPLL_96M>;
 };
 
 &i2c0 {
