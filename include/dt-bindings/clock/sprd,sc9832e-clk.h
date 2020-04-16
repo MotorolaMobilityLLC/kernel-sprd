@@ -96,27 +96,31 @@
 #define	CLK_PWM1		3
 #define	CLK_PWM2		4
 #define	CLK_PWM3		5
-#define CLK_THM0		6
-#define CLK_THM1		7
-#define	CLK_AUDIF		8
-#define CLK_AUD_IIS_DA0		9
-#define CLK_AUD_IIS_AD0		10
-#define	CLK_CA53_DAP		11
-#define CLK_CA53_DMTCK		12
-#define	CLK_CA53_TS		13
-#define	CLK_DJTAG_TCK		14
-#define	CLK_EMC_REF		15
-#define CLK_CSSYS		16
-#define	CLK_TMR			17
-#define	CLK_DSI_TEST		18
-#define	CLK_SDPHY_APB		19
-#define	CLK_AIO_APB		20
-#define	CLK_DTCK_HW		21
-#define	CLK_AP_MM		22
-#define	CLK_AP_AXI		23
-#define	CLK_NIC_GPU		24
-#define	CLK_MM_ISP		25
+#define CLK_CM4_UART            6
+#define CLK_THM0		7
+#define CLK_THM1		8
+#define	CLK_AUDIF		9
+#define CLK_AUD_IIS_DA0		10
+#define CLK_AUD_IIS_AD0		11
+#define	CLK_CA53_DAP		12
+#define CLK_CA53_DMTCK		13
+#define	CLK_CA53_TS		14
+#define	CLK_DJTAG_TCK		15
+#define	CLK_EMC_REF		16
+#define CLK_CSSYS		17
+#define	CLK_TMR			18
+#define	CLK_DSI_TEST		19
+#define	CLK_SDPHY_APB		20
+#define	CLK_AIO_APB		21
+#define	CLK_DTCK_HW		22
+#define	CLK_AP_MM		23
+#define	CLK_AP_AXI		24
+#define	CLK_NIC_GPU		25
+#define	CLK_MM_ISP		26
 #define CLK_AON_PREDIV_NUM	(CLK_MM_ISP + 1)
+
+#define CLK_CM4_UART_EB		0
+#define CLK_SPAHB_GATE_NUM	(CLK_CM4_UART_EB + 1)
 
 #define CLK_ADC_EB		0
 #define CLK_FM_EB		1

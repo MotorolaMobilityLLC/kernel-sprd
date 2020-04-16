@@ -500,6 +500,11 @@ static SPRD_MUX_CLK(pwm2_clk, "pwm2", pwm_parents, 0x240,
 static SPRD_MUX_CLK(pwm3_clk, "pwm3", pwm_parents, 0x244,
 		    0, 2, SC9832E_MUX_FLAG);
 
+static const char * const cm4_uart_parents[] = { "ext-26m", "twpll-48m",
+						"twpll-51m2", "twpll-96m" };
+static SPRD_MUX_CLK(cm4_uart_clk, "cm4-uart", cm4_uart_parents, 0x24c,
+		    0, 2, SC9832E_MUX_FLAG);
+
 static const char * const thm_parents[] = { "ext-32k", "fac-250k" };
 static SPRD_MUX_CLK(thm0_clk, "thm0", thm_parents, 0x258,
 		    0, 1, SC9832E_MUX_FLAG);
@@ -591,6 +596,7 @@ static struct sprd_clk_common *sc9832e_aon_prediv[] = {
 	&pwm1_clk.common,
 	&pwm2_clk.common,
 	&pwm3_clk.common,
+	&cm4_uart_clk.common,
 	&thm0_clk.common,
 	&thm1_clk.common,
 	&audif_clk.common,
@@ -621,6 +627,7 @@ static struct clk_hw_onecell_data sc9832e_aon_prediv_hws = {
 		[CLK_PWM1]		= &pwm1_clk.common.hw,
 		[CLK_PWM2]		= &pwm2_clk.common.hw,
 		[CLK_PWM3]		= &pwm3_clk.common.hw,
+		[CLK_CM4_UART]          = &cm4_uart_clk.common.hw,
 		[CLK_THM0]		= &thm0_clk.common.hw,
 		[CLK_THM1]		= &thm1_clk.common.hw,
 		[CLK_AUDIF]		= &audif_clk.common.hw,
@@ -1367,24 +1374,46 @@ static const struct sprd_clk_desc sc9832e_apahb_gate_desc = {
 	.hw_clks	= &sc9832e_apahb_gate_hws,
 };
 
+/* 0x50820000 sp ahb gate clocks */
+static SPRD_SC_GATE_CLK(cm4_uart_eb, "cm4-uart-eb", "ext-26m", 0x0, 0x1000,
+			BIT(5), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *sc9832e_spahb_gate[] = {
+	/* address base is 0x50820000 */
+	&cm4_uart_eb.common,
+};
+
+static struct clk_hw_onecell_data sc9832e_spahb_gate_hws = {
+	.hws    = {
+		[CLK_CM4_UART_EB]       = &cm4_uart_eb.common.hw,
+	},
+	.num    = CLK_SPAHB_GATE_NUM,
+};
+
+static const struct sprd_clk_desc sc9832e_spahb_gate_desc = {
+	.clk_clks	= sc9832e_spahb_gate,
+	.num_clk_clks	= ARRAY_SIZE(sc9832e_spahb_gate),
+	.hw_clks	= &sc9832e_spahb_gate_hws,
+};
+
 static const struct of_device_id sprd_sc9832e_clk_ids[] = {
 	{ .compatible = "sprd,sc9832e-pmu-gate",	/* 0x402b0000 */
 	  .data = &sc9832e_pmu_gate_desc },
-	{ .compatible = "sprd,sc9832e-pll",	/* 0x403c0000 */
+	{ .compatible = "sprd,sc9832e-pll",		/* 0x403c0000 */
 	  .data = &sc9832e_pll_desc },
-	{ .compatible = "sprd,sc9832e-dpll",	/* 0x403d0000 */
+	{ .compatible = "sprd,sc9832e-dpll",		/* 0x403d0000 */
 	  .data = &sc9832e_dpll_desc },
-	{ .compatible = "sprd,sc9832e-mpll",	/* 0x403f0000 */
+	{ .compatible = "sprd,sc9832e-mpll",		/* 0x403f0000 */
 	  .data = &sc9832e_mpll_desc },
-	{ .compatible = "sprd,sc9832e-rpll",	/* 0x40410000 */
+	{ .compatible = "sprd,sc9832e-rpll",		/* 0x40410000 */
 	  .data = &sc9832e_rpll_desc },
 	{ .compatible = "sprd,sc9832e-ap-clks",		/* 0x21500000 */
 	  .data = &sc9832e_ap_clk_desc },
 	{ .compatible = "sprd,sc9832e-aon-prediv",	/* 0x402d0000 */
 	  .data = &sc9832e_aon_prediv_desc },
-	{ .compatible = "sprd,sc9832e-apahb-gate",		/* 0x20e00000 */
+	{ .compatible = "sprd,sc9832e-apahb-gate",	/* 0x20e00000 */
 	  .data = &sc9832e_apahb_gate_desc },
-	{ .compatible = "sprd,sc9832e-aonapb-gate",		/* 0x402e0000 */
+	{ .compatible = "sprd,sc9832e-aonapb-gate",	/* 0x402e0000 */
 	  .data = &sc9832e_aonapb_gate_desc },
 	{ .compatible = "sprd,sc9832e-gpu-clk",		/* 0x60100000 */
 	  .data = &sc9832e_gpu_clk_desc },
@@ -1392,8 +1421,10 @@ static const struct of_device_id sprd_sc9832e_clk_ids[] = {
 	  .data = &sc9832e_mm_gate_desc },
 	{ .compatible = "sprd,sc9832e-mm-clk",		/* 0x60e00000 */
 	  .data = &sc9832e_mm_clk_desc },
-	{ .compatible = "sprd,sc9832e-apapb-gate",		/* 0x71300000 */
+	{ .compatible = "sprd,sc9832e-apapb-gate",	/* 0x71300000 */
 	  .data = &sc9832e_apapb_gate_desc },
+	{ .compatible = "sprd,sc9832e-spahb-gate",	/* 0x50820000 */
+	  .data = &sc9832e_spahb_gate_desc },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, sprd_sc9832e_clk_ids);
