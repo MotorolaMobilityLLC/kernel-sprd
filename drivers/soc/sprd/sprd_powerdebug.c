@@ -24,6 +24,8 @@
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/wakeup_reason.h>
+#include <dt-bindings/soc/sprd,sharkle-regs.h>
+#include <dt-bindings/soc/sprd,sharkle-mask.h>
 
 #define BIT_NUM_IN_PER_REG 0x20
 #define MAX_STATES_NUM_PER_REG 8
@@ -75,7 +77,7 @@ struct power_debug {
 	struct regmap *aon_sec;
 	struct regmap *ap_intc[0];
 };
-
+static bool ap_use_cm4_serial;
 struct power_debug *p_power_debug_entry;
 
 /*
@@ -274,11 +276,19 @@ static int sprd_pm_notifier(struct notifier_block *self,
 		sprd_pm_print_reg_check(p_power_debug_entry);
 		sprd_pm_print_intc_state(p_power_debug_entry);
 		sprd_pm_print_pdm_info(p_power_debug_entry);
+		if (ap_use_cm4_serial)
+			regmap_update_bits(p_power_debug_entry->aon_apb,
+					REG_AON_APB_CM4_CFG_BUS, 1,
+					MASK_AON_APB_CM4_CFG_BUS_SLEEP);
 		break;
 	case CPU_CLUSTER_PM_ENTER_FAILED:
 		break;
 	case CPU_CLUSTER_PM_EXIT:
 		sprd_pm_print_wakeup_source(p_power_debug_entry);
+		if (ap_use_cm4_serial)
+			regmap_update_bits(p_power_debug_entry->aon_apb,
+					REG_AON_APB_CM4_CFG_BUS, 1,
+			(unsigned int)(~MASK_AON_APB_CM4_CFG_BUS_SLEEP));
 		break;
 	}
 
@@ -785,6 +795,10 @@ static int sprd_powerdebug_probe(struct platform_device *pdev)
 
 	/* Register the callback function when system suspend or resume */
 	cpu_pm_register_notifier(&sprd_pm_notifier_block);
+
+	/* check is ap use cm4 serial */
+	ap_use_cm4_serial = of_property_read_bool(pdev->dev.of_node,
+						"sprd,cm4-uart");
 
 	dev_info(&pdev->dev, "##### Power debug log init successfully #####\n");
 
