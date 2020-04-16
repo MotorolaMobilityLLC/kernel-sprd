@@ -93,6 +93,11 @@
 	status = "okay";
 };
 
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
 &vdd18 {
 	regulator-always-on;
 };

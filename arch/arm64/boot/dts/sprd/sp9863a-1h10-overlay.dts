@@ -11,6 +11,11 @@
 				compatible = "sprd,dtbo-test";
 				reg = <0x11>;
 			};
+
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&ap_gpio 130 0>;
+			};
 		};
 	};
 };
