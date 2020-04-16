@@ -7,6 +7,8 @@
  */
 
 &adi_bus {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	sc2721_pmic: pmic@0 {
 		compatible = "sprd,sc2721";
 		reg = <0>;
