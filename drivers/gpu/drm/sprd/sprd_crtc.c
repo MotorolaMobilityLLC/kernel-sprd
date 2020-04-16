@@ -4,6 +4,7 @@
  */
 
 #include <linux/dma-buf.h>
+#include <linux/sprd_iommu.h>
 
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
@@ -18,18 +19,35 @@
 int sprd_crtc_iommu_map(struct device *dev,
 				struct sprd_gem_obj *sprd_gem)
 {
-	/*
-	 * FIXME: iommu will be support later
-	 */
+	struct dma_buf *dma_buf;
+	struct sprd_iommu_map_data iommu_data = {};
+
+	dma_buf = sprd_gem->base.import_attach->dmabuf;
+	iommu_data.buf = dma_buf->priv;
+	iommu_data.iova_size = dma_buf->size;
+	iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
+
+	if (sprd_iommu_map(dev, &iommu_data)) {
+		DRM_ERROR("failed to map iommu address\n");
+		return -EINVAL;
+	}
+
+	sprd_gem->dma_addr = iommu_data.iova_addr;
+
 	return 0;
 }
 
 void sprd_crtc_iommu_unmap(struct device *dev,
 				struct sprd_gem_obj *sprd_gem)
 {
-	/*
-	 * FIXME: iommu will be support later
-	 */
+	struct sprd_iommu_unmap_data iommu_data = {};
+
+	iommu_data.iova_size = sprd_gem->base.size;
+	iommu_data.iova_addr = sprd_gem->dma_addr;
+	iommu_data.ch_type = SPRD_IOMMU_FM_CH_RW;
+
+	if (sprd_iommu_unmap(dev, &iommu_data))
+		DRM_ERROR("failed to unmap iommu address\n");
 }
 
 void sprd_crtc_wait_last_commit_complete(struct drm_crtc *crtc)

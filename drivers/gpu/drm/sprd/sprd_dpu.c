@@ -11,6 +11,7 @@
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
 #include <linux/mm.h>
+#include <linux/sprd_iommu.h>
 
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
@@ -45,8 +46,7 @@ static void sprd_plane_prepare_fb(struct sprd_crtc *crtc,
 	for (i = 0; i < new_state->fb->format->num_planes; i++) {
 		obj = drm_gem_fb_get_obj(new_state->fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		if (sprd_gem->need_iommu)
-			sprd_crtc_iommu_map(&dpu->dev, sprd_gem);
+		sprd_crtc_iommu_map(&dpu->dev, sprd_gem);
 	}
 }
 
@@ -66,8 +66,7 @@ static void sprd_plane_cleanup_fb(struct sprd_crtc *crtc,
 	for (i = 0; i < old_state->fb->format->num_planes; i++) {
 		obj = drm_gem_fb_get_obj(old_state->fb, i);
 		sprd_gem = to_sprd_gem_obj(obj);
-		if (sprd_gem->need_iommu)
-			sprd_crtc_iommu_unmap(&dpu->dev, sprd_gem);
+		sprd_crtc_iommu_unmap(&dpu->dev, sprd_gem);
 	}
 }
 
@@ -112,10 +111,7 @@ static void sprd_dpu_atomic_enable(struct sprd_crtc *crtc)
 
 	enable_irq(dpu->ctx.irq);
 
-	/*
-	 * FIXME: iommu will be support later
-	 */
-	//sprd_iommu_restore(&dpu->dev);
+	sprd_iommu_restore(&dpu->dev);
 }
 
 static void sprd_dpu_atomic_disable(struct sprd_crtc *crtc)
