@@ -480,6 +480,7 @@
 				reg = <0x0 0x63000000 0x0 0x1000>;
 				interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
+				iommus = <&iommu_dispc>;
 
 				reset-syscon = <&aon_apb_regs REG_AON_APB_APB_RST1
 						MASK_AON_APB_DISP_SOFT_RST>;
@@ -489,6 +490,17 @@
 						remote-endpoint = <&dsi_in>;
 					};
 				};
+			};
+
+			iommu_dispc: iommu@63000000 {
+				compatible = "sprd,iommuexl3-dispc";
+				reg = <0x0 0x63000000 0x0 0x800>,
+				      <0x0 0x63000800 0x0 0x80>;
+				iova-base = <0x30000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
 			};
 
 			dsi: dsi@63100000 {
