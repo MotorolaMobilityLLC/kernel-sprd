@@ -22,17 +22,5 @@
 			reg = <0x0 0xb0020000 0x0 0x03fe0000>;
 		};
 
-		super_memdisk_reserved: super_memdisk_reserved@100001000 {
-			reg = <0x1 0x00001000 0x0 0x7fff0000>;
-		};
-	};
-
-	sprd-memdisk {
-		compatible = "sprd,memdisk";
-
-		super {
-			memory-region = <&super_memdisk_reserved>;
-			label = "super";
-		};
 	};
 };
