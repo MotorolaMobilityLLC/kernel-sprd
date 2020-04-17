@@ -13,4 +13,15 @@
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
 	};
+
+	firmware {
+		android {
+			compatible = "android,firmware";
+			vbmeta {
+				compatible = "android,vbmeta";
+				parts = "vbmeta,boot,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp";
+			};
+		};
+	};
+
 };
