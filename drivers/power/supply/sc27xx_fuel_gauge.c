@@ -392,8 +392,11 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	 */
 	if (!is_first_poweron) {
 		ret = sc27xx_fgu_read_last_cap(data, cap);
-		if (ret)
+		if (ret) {
+			dev_err(data->dev, "Failed to read last cap, ret = %d\n",
+				ret);
 			return ret;
+		}
 
 		return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 	}
@@ -404,8 +407,11 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	 */
 	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_QMAXL,
 			  &cur);
-	if (ret)
+	if (ret) {
+		dev_err(data->dev, "Failed to read CLBCNT_QMAXL, ret = %d\n",
+			ret);
 		return ret;
+	}
 
 	cur <<= 1;
 	oci = sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
@@ -416,8 +422,10 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	 * convert the corresponding voltage.
 	 */
 	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_POCV, &volt);
-	if (ret)
+	if (ret) {
+		dev_err(data->dev, "Failed to read FGU_POCV, ret = %d\n", ret);
 		return ret;
+	}
 
 	volt = sc27xx_fgu_adc_to_voltage(data, volt);
 	ocv = volt * 1000 - oci * data->internal_resist;
@@ -431,9 +439,14 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 					   ocv);
 
 	ret = sc27xx_fgu_save_last_cap(data, *cap);
-	if (ret)
+	if (ret) {
+		dev_err(data->dev, "Failed to save last cap, ret = %d\n", ret);
 		return ret;
+	}
 
+	dev_info(data->dev, "First_poweron:cur = %d, volt = %d, "
+		 "ocv = %d, cap = %d\n",
+		 cur, volt, ocv, *cap);
 	return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 }
 
