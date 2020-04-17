@@ -79,7 +79,6 @@ const struct dsi_glb_ops sharkl5pro_dsi_glb_ops = {
 	.disable = dsi_glb_disable,
 };
 
+MODULE_AUTHOR("Albert Zhang <albert.zhang@unisoc.com>");
+MODULE_DESCRIPTION("Unisoc SharkL5 Pro DSI global APB regs low-level config");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Albert.zhang@unisoc.com");
-MODULE_AUTHOR("Pony.Wu@unisoc.com");
-MODULE_DESCRIPTION("unisoc sharkl5Pro dsi global APB regs low-level config");

@@ -80,5 +80,5 @@ const struct dsi_glb_ops sharkl3_dsi_glb_ops = {
 };
 
 MODULE_AUTHOR("Leon He <leon.he@unisoc.com>");
-MODULE_DESCRIPTION("Unisoc sharkl3 dsi global APB regs low-level config");
+MODULE_DESCRIPTION("Unisoc SharkL3 DSI global APB regs low-level config");
 MODULE_LICENSE("GPL v2");

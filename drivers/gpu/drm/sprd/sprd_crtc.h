@@ -18,14 +18,14 @@
 
 #define to_sprd_crtc(x)			container_of(x, struct sprd_crtc, base)
 
-#define DISPC_INT_DONE_MASK		BIT(0)
-#define DISPC_INT_TE_MASK		BIT(1)
-#define DISPC_INT_ERR_MASK		BIT(2)
-#define DISPC_INT_EDPI_TE_MASK		BIT(3)
-#define DISPC_INT_UPDATE_DONE_MASK	BIT(4)
-#define DISPC_INT_DPI_VSYNC_MASK	BIT(5)
-#define DISPC_INT_WB_DONE_MASK		BIT(6)
-#define DISPC_INT_WB_FAIL_MASK		BIT(7)
+#define BIT_DPU_INT_DONE_		BIT(0)
+#define BIT_DPU_INT_TE			BIT(1)
+#define BIT_DPU_INT_ERR			BIT(2)
+#define BIT_DPU_INT_EDPI_TE		BIT(3)
+#define BIT_DPU_INT_UPDATE_DONE		BIT(4)
+#define BIT_DPU_INT_VSYNC		BIT(5)
+#define BIT_DPU_INT_WB_DONE		BIT(6)
+#define BIT_DPU_INT_WB_ERR		BIT(7)
 
 enum sprd_crtc_output_type {
 	SPRD_DISPLAY_TYPE_NONE,
@@ -38,25 +38,10 @@ enum sprd_crtc_output_type {
 };
 
 enum {
-	SPRD_DISPC_IF_DBI = 0,
-	SPRD_DISPC_IF_DPI,
-	SPRD_DISPC_IF_EDPI,
-	SPRD_DISPC_IF_LIMIT
-};
-
-enum {
-	SPRD_IMG_DATA_ENDIAN_B0B1B2B3 = 0,
-	SPRD_IMG_DATA_ENDIAN_B3B2B1B0,
-	SPRD_IMG_DATA_ENDIAN_B2B3B0B1,
-	SPRD_IMG_DATA_ENDIAN_B1B0B3B2,
-	SPRD_IMG_DATA_ENDIAN_LIMIT
-};
-
-enum {
-	DISPC_CLK_ID_CORE = 0,
-	DISPC_CLK_ID_DBI,
-	DISPC_CLK_ID_DPI,
-	DISPC_CLK_ID_MAX
+	SPRD_DPU_IF_DBI = 0,
+	SPRD_DPU_IF_DPI,
+	SPRD_DPU_IF_EDPI,
+	SPRD_DPU_IF_LIMIT
 };
 
 enum {
@@ -150,7 +135,7 @@ struct sprd_crtc_glb_ops {
 };
 
 struct sprd_crtc_context {
-	unsigned long base;
+	void __iomem *base;
 	u32 base_offset[2];
 	const char *version;
 	int irq;

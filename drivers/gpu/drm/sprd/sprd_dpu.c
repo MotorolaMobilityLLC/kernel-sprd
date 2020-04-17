@@ -78,9 +78,9 @@ static void sprd_dpu_mode_set_nofb(struct sprd_crtc *crtc)
 
 	if ((dpu->mode->hdisplay == dpu->mode->htotal) ||
 	    (dpu->mode->vdisplay == dpu->mode->vtotal))
-		dpu->ctx.if_type = SPRD_DISPC_IF_EDPI;
+		dpu->ctx.if_type = SPRD_DPU_IF_EDPI;
 	else
-		dpu->ctx.if_type = SPRD_DISPC_IF_DPI;
+		dpu->ctx.if_type = SPRD_DPU_IF_DPI;
 }
 
 static enum drm_mode_status sprd_dpu_mode_valid(struct sprd_crtc *crtc,
@@ -306,10 +306,10 @@ static irqreturn_t sprd_dpu_isr(int irq, void *data)
 
 	int_mask = dpu->core->isr(ctx);
 
-	if (int_mask & DISPC_INT_ERR_MASK)
+	if (int_mask & BIT_DPU_INT_ERR)
 		DRM_WARN("Warning: dpu underflow!\n");
 
-	if (int_mask & DISPC_INT_DPI_VSYNC_MASK)
+	if (int_mask & BIT_DPU_INT_VSYNC)
 		drm_crtc_handle_vblank(&dpu->crtc->base);
 
 	return IRQ_HANDLED;
@@ -423,9 +423,8 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 		DRM_ERROR("parse dt base address failed\n");
 		return -ENODEV;
 	}
-	ctx->base = (unsigned long)ioremap_nocache(r.start,
-					resource_size(&r));
-	if (ctx->base == 0) {
+	ctx->base = ioremap_nocache(r.start, resource_size(&r));
+	if (!ctx->base) {
 		DRM_ERROR("ioremap base address failed\n");
 		return -EFAULT;
 	}
@@ -437,13 +436,13 @@ static int sprd_dpu_context_init(struct sprd_dpu *dpu,
 }
 
 static const struct sprd_dpu_ops sharkl3_dpu = {
-	.core = &sharkl3_dpu_core_ops,
+	.core = &dpu_r2p0_core_ops,
 	.clk = &sharkl3_dpu_clk_ops,
 	.glb = &sharkl3_dpu_glb_ops,
 };
 
 static const struct sprd_dpu_ops sharkl5pro_dpu = {
-	.core = &sharkl5pro_dpu_core_ops,
+	.core = &dpu_r4p0_core_ops,
 	.clk = &sharkl5pro_dpu_clk_ops,
 	.glb = &sharkl5pro_dpu_glb_ops,
 };

@@ -279,5 +279,5 @@ const struct sprd_crtc_glb_ops sharkl3_dpu_glb_ops = {
 };
 
 MODULE_AUTHOR("Leon He <leon.he@unisoc.com>");
-MODULE_DESCRIPTION("Unisoc sharkl3 dpu global and clk regs config");
+MODULE_DESCRIPTION("Unisoc SharkL3 DPU global and clk regs config");
 MODULE_LICENSE("GPL v2");

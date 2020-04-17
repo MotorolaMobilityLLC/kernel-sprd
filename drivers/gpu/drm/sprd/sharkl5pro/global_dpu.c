@@ -300,7 +300,6 @@ const struct sprd_crtc_glb_ops sharkl5pro_dpu_glb_ops = {
 	.power = dpu_power_domain,
 };
 
+MODULE_AUTHOR("Albert Zhang <albert.zhang@unisoc.com>");
+MODULE_DESCRIPTION("Unisoc SharkL5 Pro DPU global and clk regs config");
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Albert.zhang@unisoc.com");
-MODULE_AUTHOR("Pony.Wu@unisoc.com");
-MODULE_DESCRIPTION("unisoc sharkl5Pro dpu global and clk regs config");
