@@ -130,6 +130,7 @@ struct sc27xx_fgu_data {
 	int calib_resist_spec;
 	int comp_resistance;
 	int index;
+	int boot_vol;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
 	int bat_temp;
 	struct power_supply_battery_ocv_table *cap_table;
@@ -420,6 +421,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 
 	volt = sc27xx_fgu_adc_to_voltage(data, volt);
 	ocv = volt * 1000 - oci * data->internal_resist;
+	data->boot_vol = ocv;
 
 	/*
 	 * Parse the capacity table to look up the correct capacity percent
@@ -925,6 +927,10 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		val->intval = value * 1000;
 		break;
 
+	case POWER_SUPPLY_PROP_VOLTAGE_BOOT:
+		val->intval = data->boot_vol;
+		break;
+
 	default:
 		ret = -EINVAL;
 		break;
@@ -1005,7 +1011,8 @@ static enum power_supply_property sc27xx_fgu_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
 	POWER_SUPPLY_PROP_ENERGY_NOW,
-	POWER_SUPPLY_PROP_CALIBRATE
+	POWER_SUPPLY_PROP_CALIBRATE,
+	POWER_SUPPLY_PROP_VOLTAGE_BOOT,
 };
 
 static const struct power_supply_desc sc27xx_fgu_desc = {
