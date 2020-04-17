@@ -385,6 +385,20 @@
 				interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			sprd_hwdvfs: hwdvfs@40300000 {
+				compatible = "sprd,sharkl3-hwdvfs";
+				sprd,syscon-enable = <&aon_apb_regs>;
+				sprd,anlg-phy-g4-ctrl = <&anlg_phy_g4_regs>;
+				reg = <0 0x40300000 0 0x1000>;
+				interrupts = <GIC_SPI 121 IRQ_TYPE_LEVEL_HIGH>;
+				#address-cells = <2>;
+				#size-cells = <0>;
+			};
+
+			sprd_hardware_cpufreq: hardware-dvfs-platform {
+				compatible = "sprd,hardware-cpufreq";
+			};
+
 			watchdog@40310000 {
 				compatible = "sprd,sp9860-wdt";
 				reg = <0 0x40310000 0 0x1000>;
