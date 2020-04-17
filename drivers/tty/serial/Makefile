@@ -2,6 +2,7 @@
 #
 # Makefile for the kernel serial device drivers.
 #
+GCOV_PROFILE := $(CONFIG_SERIAL_GCOV)
 
 obj-$(CONFIG_SERIAL_CORE) += serial_core.o
 

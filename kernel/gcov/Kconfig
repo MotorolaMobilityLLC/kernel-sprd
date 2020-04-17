@@ -50,6 +50,18 @@ config GCOV_PROFILE_ALL
 	larger and run slower. Also be sure to exclude files from profiling
 	which are not linked to the kernel image to prevent linker errors.
 
+config GCOV_PROFILE_MODULES
+	bool "Profile Kernel subsytem"
+	depends on !COMPILE_TEST
+	depends on GCOV_KERNEL
+	depends on ARCH_HAS_GCOV_PROFILE_ALL
+	default n
+	---help---
+	This options activates profiling for the specified kernel modules.
+
+	if unsure, say N.if enabled, all kernel modules which depends this
+	config will be compiled with profiling flags.
+
 choice
 	prompt "Specify GCOV format"
 	depends on GCOV_KERNEL
