@@ -720,14 +720,23 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 
 static int sprd_panel_parse_dt(struct device_node *np, struct sprd_panel *panel)
 {
-	struct device_node *lcd_node;
-	const char *str;
+	struct device_node *lcd_node, *cmdline_node;
+	const char *cmd_line, *lcd_name_p;
 	char lcd_path[60];
 	int rc;
 
-	rc = of_property_read_string(np, "sprd,force-attached", &str);
-	if (!rc)
-		panel->lcd_name = str;
+	cmdline_node = of_find_node_by_path("/chosen");
+	rc = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+	if (!rc) {
+		lcd_name_p = strstr(cmd_line, "lcd_name=");
+		if (lcd_name_p) {
+			sscanf(lcd_name_p, "lcd_name=%s", panel->lcd_name);
+			DRM_INFO("lcd name: %s\n", panel->lcd_name);
+		}
+	} else {
+		DRM_ERROR("can't not parse bootargs property\n");
+		return rc;
+	}
 
 	sprintf(lcd_path, "/lcds/%s", panel->lcd_name);
 	lcd_node = of_find_node_by_path(lcd_path);
