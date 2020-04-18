@@ -648,7 +648,8 @@ static void sprd_musb_work(struct work_struct *work)
 
 	if (IS_ENABLED(CONFIG_USB_MUSB_DUAL_ROLE) &&
 		(current_mode == USB_DR_MODE_HOST) &&
-		!musb->gadget_driver)
+		!musb->gadget_driver &&
+		glue->dr_mode == USB_DR_MODE_UNKNOWN)
 		musb_host_start(musb);
 
 	glue->dr_mode = current_mode;
