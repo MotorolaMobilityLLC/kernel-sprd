@@ -675,6 +675,11 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 		ret = 0;
 		break;
 
+	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
+		data->total_cap = val->intval / 1000;
+		ret = 0;
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -695,7 +700,8 @@ static int sc27xx_fgu_property_is_writeable(struct power_supply *psy,
 					    enum power_supply_property psp)
 {
 	return psp == POWER_SUPPLY_PROP_CAPACITY ||
-		psp == POWER_SUPPLY_PROP_CALIBRATE;
+		psp == POWER_SUPPLY_PROP_CALIBRATE ||
+		psp == POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN;
 }
 
 static enum power_supply_property sc27xx_fgu_props[] = {
