@@ -22,10 +22,10 @@
 
 #define NAME_MAX_SIZE	9
 static struct pinctrl *p;
+static struct platform_device *pdev;
 
 static int pinctrl_pre_test(struct autotest_handler *handler, void *data)
 {
-	struct platform_device *pdev;
 	struct device_node *autotest_node, *pinctrl_node;
 
 	autotest_node = of_find_compatible_node(NULL, NULL, "sprd,autotest");
@@ -50,12 +50,6 @@ static int pinctrl_pre_test(struct autotest_handler *handler, void *data)
 	}
 	of_node_put(pinctrl_node);
 
-	p = devm_pinctrl_get(&pdev->dev);
-	if (IS_ERR(p)) {
-		pr_err("get pinctrl handle failed.\n");
-		return PTR_ERR(p);
-	}
-
 	return 0;
 }
 
@@ -67,6 +61,14 @@ static int pinctrl_test(struct autotest_handler *handler, void *arg)
 
 	if (get_user(gpio, (int __user *)arg))
 		return -EFAULT;
+
+	if (!p) {
+		p = devm_pinctrl_get(&pdev->dev);
+		if (IS_ERR(p)) {
+			pr_err("get pinctrl handle failed.\n");
+			return PTR_ERR(p);
+		}
+	}
 
 	pr_info("gpio = %d\n", gpio);
 	snprintf(state_name, NAME_MAX_SIZE, "gpio_%d", gpio);
@@ -94,6 +96,9 @@ static int __init pinctrl_init(void)
 
 static void __exit pinctrl_exit(void)
 {
+	if (p)
+		devm_pinctrl_put(p);
+
 	sprd_autotest_unregister_handler(&pinctrl_handler);
 }
 
