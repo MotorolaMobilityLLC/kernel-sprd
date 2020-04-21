@@ -50,6 +50,10 @@
 #define SPRD_PCM_CHANNEL_MAX 2
 #define VBC_AUDRCD_FULL_WATERMARK 160
 
+#define DEEPBUFFER_PLAYBACK_BUFFER_BYTES_MAX		(228 * 1024)
+#define NORMAL_PLAYBACK_BUFFER_BYTES_MAX		(64 * 1024)
+#define NORMAL_CAPTURE_BUFFER_BYTES_MAX		(64 * 1024)
+
 #undef sp_asoc_pr_info
 #define sp_asoc_pr_info pr_info
 
@@ -131,7 +135,8 @@ struct dma_chan_index_name {
 	SNDRV_PCM_INFO_INTERLEAVED | \
 	SNDRV_PCM_INFO_PAUSE | SNDRV_PCM_INFO_RESUME)
 #define SPRD_SNDRV_PCM_FMTBIT (SNDRV_PCM_FMTBIT_S16_LE | \
-			       SNDRV_PCM_FMTBIT_S24_LE)
+			       SNDRV_PCM_FMTBIT_S24_LE | \
+			       SNDRV_PCM_FMTBIT_S32_LE)
 
 static const struct snd_pcm_hardware sprd_pcm_hardware_v1 = {
 	.info = SPRD_SNDRV_PCM_INFO_COMMON |
@@ -139,16 +144,16 @@ static const struct snd_pcm_hardware sprd_pcm_hardware_v1 = {
 		SNDRV_PCM_INFO_NO_PERIOD_WAKEUP,
 	.formats = SPRD_SNDRV_PCM_FMTBIT,
 	/* 16bits, stereo-2-channels */
-	.period_bytes_min = 1,
+	.period_bytes_min = VBC_FIFO_FRAME_NUM * 4,
 	/* non limit */
 	/* test haps */
-	.period_bytes_max = 1024*1024*8,
+	.period_bytes_max = DEEPBUFFER_PLAYBACK_BUFFER_BYTES_MAX,
 	.periods_min = 1,
 	/* non limit */
 	/* test haps */
-	.periods_max = 100,
+	.periods_max = PAGE_SIZE / DMA_LINKLIST_CFG_NODE_SIZE,
 	/* test haps */
-	.buffer_bytes_max = 1024 * 1024 * 8,
+	.buffer_bytes_max = DEEPBUFFER_PLAYBACK_BUFFER_BYTES_MAX,
 };
 
 static const struct snd_pcm_hardware sprd_i2s_pcm_hardware = {
@@ -157,7 +162,7 @@ static const struct snd_pcm_hardware sprd_i2s_pcm_hardware = {
 	/* 16bits, stereo-2-channels */
 	.period_bytes_min = 8 * 2,
 	/* non limit */
-	.period_bytes_max = 32 * 2 * 100,
+	.period_bytes_max = I2S_BUFFER_BYTES_MAX / 2,
 	.periods_min = 1,
 	/* non limit */
 	.periods_max = PAGE_SIZE / DMA_LINKLIST_CFG_NODE_SIZE,

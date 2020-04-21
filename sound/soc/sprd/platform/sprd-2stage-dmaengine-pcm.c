@@ -183,7 +183,8 @@ static struct dma_chan *dma_chan[DMA_CHAN_MAX] = { NULL };
 	SNDRV_PCM_INFO_INTERLEAVED | \
 	SNDRV_PCM_INFO_PAUSE | SNDRV_PCM_INFO_RESUME)
 #define SPRD_SNDRV_PCM_FMTBIT (SNDRV_PCM_FMTBIT_S16_LE | \
-			       SNDRV_PCM_FMTBIT_S24_LE)
+			       SNDRV_PCM_FMTBIT_S24_LE | \
+			       SNDRV_PCM_FMTBIT_S32_LE)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -1072,7 +1073,7 @@ static void hw_params_config(struct snd_pcm_substream *substream,
 		hw->info = SPRD_SNDRV_PCM_INFO_COMMON;
 		hw->formats = SPRD_SNDRV_PCM_FMTBIT;
 		hw->period_bytes_min = 8 * 2;
-		hw->period_bytes_max = I2S_BUFFER_BYTES_MAX;
+		hw->period_bytes_max = I2S_BUFFER_BYTES_MAX / 2;
 		hw->buffer_bytes_max = I2S_BUFFER_BYTES_MAX;
 		hw->periods_max = PAGE_SIZE / DMA_LINKLIST_CFG_NODE_SIZE;
 	} else {
@@ -1116,7 +1117,7 @@ static void hw_params_config(struct snd_pcm_substream *substream,
 			hw->buffer_bytes_max =
 				NORMAL_PLAYBACK_BUFFER_BYTES_MAX;
 		} else if (sprd_is_i2s(srtd->cpu_dai)) {
-			hw->period_bytes_max = 32 * 2 * 100;
+			hw->period_bytes_max = I2S_BUFFER_BYTES_MAX / 2;
 			hw->buffer_bytes_max = I2S_BUFFER_BYTES_MAX;
 		}
 	}
