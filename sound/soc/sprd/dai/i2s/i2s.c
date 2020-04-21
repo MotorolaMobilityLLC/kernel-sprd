@@ -248,6 +248,8 @@ static int i2s_calc_clk(struct i2s_priv *i2s)
 	case 12000:
 	case 24000:
 	case 48000:
+	case 96000:
+	case 192000:
 		clk_parent = devm_clk_get(i2s->dev, "clk_twpll_153m6");
 		break;
 	default:
@@ -299,6 +301,8 @@ static int i2s_calc_clk_m_n(struct i2s_priv *i2s, uint div_mode,
 	case 12000:
 	case 24000:
 	case 48000:
+	case 96000:
+	case 192000:
 		clk_parent = devm_clk_get(i2s->dev, "clk_twpll_153m6");
 		break;
 	default:
@@ -651,7 +655,6 @@ static int i2s_config_rate(struct i2s_priv *i2s)
 
 static int i2s_config_apply(struct i2s_priv *i2s)
 {
-	int ret = 0;
 	struct i2s_config *config = &i2s->config;
 
 	sp_asoc_pr_dbg("%s\n", __func__);
@@ -681,9 +684,7 @@ static int i2s_config_apply(struct i2s_priv *i2s)
 		i2s_set_pcm_cycle(i2s);
 	}
 
-	ret = i2s_config_rate(i2s);
-
-	return ret;
+	return 0;
 }
 
 static void i2s_dma_ctrl(struct i2s_priv *i2s, int enable)
@@ -787,30 +788,50 @@ static int i2s_hw_params(struct snd_pcm_substream *substream,
 		dma_data->used_dma_channel_name[0] = use_dma_name[2 * port + 1];
 		dma_data->desc.fragmens_len = i2s->config.rx_watermark;
 	}
-	dma_data->desc.datawidth = i2s_get_dma_data_width(i2s);
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		dma_data->desc.src_step = i2s_get_dma_step(i2s);
-	else
-		dma_data->desc.des_step = i2s_get_dma_step(i2s);
+
+	switch (params_format(params)) {
+	case SNDRV_PCM_FORMAT_S16_LE:
+		dma_data->desc.datawidth = i2s_get_dma_data_width(i2s);
+		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+			dma_data->desc.src_step = i2s_get_dma_step(i2s);
+			dma_data->desc.des_step = 0;
+		} else {
+			dma_data->desc.src_step = 0;
+			dma_data->desc.des_step = i2s_get_dma_step(i2s);
+		}
+		break;
+	case SNDRV_PCM_FORMAT_S24_LE:
+	case SNDRV_PCM_FORMAT_S32_LE:
+		dma_data->desc.datawidth = DMA_SLAVE_BUSWIDTH_4_BYTES;
+		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+			dma_data->desc.src_step = 4;
+			dma_data->desc.des_step = 0;
+		} else {
+			dma_data->desc.src_step = 0;
+			dma_data->desc.des_step = 4;
+		}
+		break;
+	default:
+		pr_err("ERR: %s I2S not supports format %d now!\n",
+			__func__, params_format(params));
+		return -ENOTSUPP;
+	}
+
+	pr_debug("format %d, desc.datawidth %d, desc.src_step %d, desc.des_step %d\n",
+		 params_format(params), dma_data->desc.datawidth,
+		 dma_data->desc.src_step, dma_data->desc.des_step);
 
 	dma_data->dev_paddr[0] =
 	    I2S_PHY_REG(i2s, IIS_TXD) + i2s_get_data_position(i2s);
 
 	snd_soc_dai_set_dma_data(dai, substream, dma_data);
 
-	i2s->config.fs = params_rate(params);
+	if (i2s->config.force_fs == 0)
+		i2s->config.fs = params_rate(params);
 	ret = i2s_config_rate(i2s);
 	if (ret)
 		return ret;
 
-	switch (params_format(params)) {
-	case SNDRV_PCM_FORMAT_S16_LE:
-		break;
-	default:
-		ret = -ENOTSUPP;
-		pr_err("ERR:I2S Only Supports format S16_LE now!\n");
-		break;
-	}
 
 	if (params_channels(params) > 2) {
 		ret = -ENOTSUPP;
@@ -864,6 +885,8 @@ static void i2s_config_setting(int index, int value, struct i2s_config *config)
 		if (value >= SAMPLATE_MIN && value <= SAMPLATE_MAX)
 			config->fs = value;
 		break;
+	case FORCE_FS:
+		config->force_fs = value;
 	case HW_PROT:
 		if (value >= 0 && value <= 3)
 			config->hw_port = value;
@@ -945,6 +968,8 @@ static int i2s_config_getting(int index, struct i2s_config *config)
 	switch (index) {
 	case FS:
 		return config->fs;
+	case FORCE_FS:
+		return config->force_fs;
 	case HW_PROT:
 		return config->hw_port;
 	case SLAVE_TIMEOUT:
@@ -1388,14 +1413,16 @@ static int i2s_drv_probe(struct platform_device *pdev)
 	i2s->i2s_dai_driver[0].playback.channels_min = 1;
 	i2s->i2s_dai_driver[0].playback.channels_max = 2;
 	i2s->i2s_dai_driver[0].playback.rates = SNDRV_PCM_RATE_CONTINUOUS;
-	i2s->i2s_dai_driver[0].playback.rate_max = 96000;
-	i2s->i2s_dai_driver[0].playback.formats = SNDRV_PCM_FMTBIT_S16_LE;
+	i2s->i2s_dai_driver[0].playback.rate_max = 192000;
+	i2s->i2s_dai_driver[0].playback.formats = SNDRV_PCM_FMTBIT_S16_LE |
+		SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE;
 
 	i2s->i2s_dai_driver[0].capture.channels_min = 1;
 	i2s->i2s_dai_driver[0].capture.channels_max = 2;
 	i2s->i2s_dai_driver[0].capture.rates = SNDRV_PCM_RATE_CONTINUOUS;
 	i2s->i2s_dai_driver[0].capture.rate_max = 96000;
-	i2s->i2s_dai_driver[0].capture.formats = SNDRV_PCM_FMTBIT_S16_LE;
+	i2s->i2s_dai_driver[0].capture.formats = SNDRV_PCM_FMTBIT_S16_LE |
+		SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE;
 	i2s->i2s_dai_driver[0].ops = &sprd_i2s_dai_ops;
 
 	sp_asoc_pr_dbg("membase = %p memphys = %p\n", i2s->membase,

@@ -38,12 +38,14 @@ enum {
 	PCM_CYCLE,
 	TX_WATERMARK,
 	RX_WATERMARK,
+	FORCE_FS,
 	I2S_CONFIG_MAX
 };
 
 struct i2s_config {
 	u32 hw_port;
 	u32 fs;
+	u32 force_fs;
 	u32 slave_timeout;
 	u32 bus_type:1;
 	u32 byte_per_chan:2;

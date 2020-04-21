@@ -79,6 +79,7 @@ static int board_late_probe(struct snd_soc_card *card)
 
 static const struct snd_kcontrol_new i2s_config_snd_controls[] = {
 	I2S_CONFIG("fs", FS),
+	I2S_CONFIG("force_fs", FORCE_FS),
 	I2S_CONFIG("hw_port", HW_PROT),
 	I2S_CONFIG("slave_timeout", SLAVE_TIMEOUT),
 	I2S_CONFIG("bus_type", BUS_TYPE),
