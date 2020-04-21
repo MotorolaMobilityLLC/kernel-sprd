@@ -1218,6 +1218,13 @@ static inline void clear_page_pfmemalloc(struct page *page)
  * just gets major/minor fault counters bumped up.
  */
 
+/**
+ * typedef vm_fault_t - Return type for page fault handlers.
+ *
+ * Page fault handlers return a bitmask of %VM_FAULT values.
+ */
+typedef __bitwise unsigned int vm_fault_t;
+
 #define VM_FAULT_OOM	0x0001
 #define VM_FAULT_SIGBUS	0x0002
 #define VM_FAULT_MAJOR	0x0004
@@ -1233,6 +1240,10 @@ static inline void clear_page_pfmemalloc(struct page *page)
 #define VM_FAULT_DONE_COW   0x1000	/* ->fault has fully handled COW */
 
 #define VM_FAULT_HWPOISON_LARGE_MASK 0xf000 /* encodes hpage index for large hwpoison */
+
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+#define VM_FAULT_PTNOTSAME 0x4000   /* Page table entries have changed */
+#endif
 
 #define VM_FAULT_ERROR	(VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV | \
 			 VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LARGE | \
