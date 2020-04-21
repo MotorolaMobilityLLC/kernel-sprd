@@ -510,6 +510,15 @@ CONFIG_ARCH_SUPPORTS_SHADOW_CALL_STACK
 	[missing plat description] none
 	[function] An architecture should select this if it supports Clang's Shadow
 		Call Stack.
+CONFIG_ARCH_SUPPORTS_SPECULATIVE_PAGE_FAULT
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] menu
+	[subsys] mm
+	[must] console
+	[missing plat description] none
+	[function] support speculative page fault
 CONFIG_ARCH_SUPPORTS_THINLTO
 	[arch] arm64
 	[plat] sharkl3,sharkl5,sharkl5Pro
@@ -12665,6 +12674,15 @@ CONFIG_SPARSE_IRQ
 	[function] Sparse irq numbering is useful for distro kernels that want
 	to define a high CONFIG_NR_CPUS value but still want to have
 	low kernel memory footprint on smaller machines.
+CONFIG_SPECULATIVE_PAGE_FAULT
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] menu
+	[subsys] mm
+	[must] console
+	[missing plat description] none
+	[function] support speculative page fault
 CONFIG_SPI
 	[arch] all
 	[plat] all
