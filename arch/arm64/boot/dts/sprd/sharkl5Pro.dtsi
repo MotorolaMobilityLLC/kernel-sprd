@@ -1123,7 +1123,7 @@
 				/* iis interface 0 */
 				"vbc_iis3_0", "vbc_iism0_0",
 				"vbc_iis_to_pad", "vbc_iis_to_aon_usb", "vbc_iism0_1", "vbc_iism0_3",
-				"vbc_iis0_3", "vbc_iis1_3", "vbc_iis2_3", "vbc_iis3_3";
+				"vbc_iis0_3", "vbc_iis1_3", "vbc_iis2_3", "vbc_iis3_3", "ap_iis0_3";
 				pinctrl-0 = <&vbc_iis3_0>;
 				pinctrl-1 = <&vbc_iism0_0>;
 				pinctrl-2 = <&vbc_iis_to_pad>;
@@ -1134,6 +1134,7 @@
 				pinctrl-7 = <&vbc_iis1_3>;
 				pinctrl-8 = <&vbc_iis2_3>;
 				pinctrl-9 = <&vbc_iis3_3>;
+				pinctrl-10 = <&ap_iis0_3>;
 			};
 
 			mcdt@33490000{
@@ -1838,6 +1839,11 @@
 				vbc_iis3_3: vbc-iis3-3 {
 					pins = "SHARKL5PRO_IIS_INF3_SYS_SEL";
 					sprd,control = <0xe>;
+				};
+
+				ap_iis0_3: ap-iis0-3 {
+					pins = "SHARKL5PRO_IIS_INF3_SYS_SEL";
+					sprd,control = <0x0>;
 				};
 			};
 
