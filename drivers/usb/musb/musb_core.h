@@ -201,6 +201,18 @@ struct musb_platform_ops {
 	int	(*ep_fifo_configure)(struct musb *musb);
 };
 
+struct musb_host_ops {
+	void    (*host_start)(struct musb *musb);
+	void    (*advance_schedule)(struct musb *musb, struct urb *urb,
+			struct musb_hw_ep *hw_ep, int is_in);
+	bool    (*tx_dma_program)(struct dma_controller *dma,
+			struct musb_hw_ep *hw_ep, struct musb_qh *qh,
+			struct urb *urb, u32 offset, u32 length);
+	void    (*rx_dma_program)(struct dma_channel *dma_channel,
+			struct musb *musb, u8 epnum, struct musb_qh *qh,
+			struct urb *urb, u32 offset, size_t len);
+};
+
 /*
  * struct musb_hw_ep - endpoint hardware (bidirectional)
  *
@@ -429,6 +441,7 @@ struct musb {
 	struct dentry		*debugfs_root;
 #endif
 	bool	restore_complete;
+	struct musb_host_ops hops;
 };
 
 /* This must be included after struct musb is defined */

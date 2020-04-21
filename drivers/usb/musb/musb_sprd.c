@@ -640,8 +640,9 @@ static void sprd_musb_work(struct work_struct *work)
 		msleep(20);
 
 #ifndef CONFIG_USB_MUSB_GADGET
-	if (current_mode == USB_DR_MODE_HOST && !musb->gadget_driver)
-		musb_host_start(musb);
+	if (current_mode == USB_DR_MODE_HOST && !musb->gadget_driver &&
+	    glue->dr_mode == USB_DR_MODE_UNKNOWN && musb->hops.host_start)
+		musb->hops.host_start(musb);
 #endif
 	glue->dr_mode = current_mode;
 	dev_dbg(glue->dev, "%s enter: vbus = %d mode = %d\n",
