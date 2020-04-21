@@ -122,3 +122,12 @@ obj-$(CONFIG_UNICORE32)			+= unicore2-cpufreq.o
 obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ) += sprd-union-hwcpufreq.o
 sprd-union-hwcpufreq-objs := sprd-cpufreqhw.o sprd-cpufreq-common.o
 obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3) += sprd-hwdvfs-sharkl3.o
+
+obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS512) += sprd-hwdvfs-ums512-arch.o
+sprd-hwdvfs-ums512-arch-objs := sprd-hwdvfs-normal.o sprd-hwdvfs-ums512.o
+
+obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL) += sprd-hwdvfs-policy.o
+sprd-hwdvfs-policy-objs := sprd-hwdvfs-cpufreq.o
+ifneq ($(CONFIG_DEBUG_FS),)
+sprd-hwdvfs-policy-objs += sprd-hwdvfs-debugfs.o
+endif
