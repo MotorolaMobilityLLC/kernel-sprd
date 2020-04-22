@@ -19,6 +19,10 @@
 		i2c1 = &i2c1;
 		i2c2 = &i2c2;
 		i2c3 = &i2c3;
+		i2c4 = &i2c4;
+		i2c5 = &i2c5;
+		i2c6 = &i2c6;
+		i2c7 = &i2c7;
 		spi0 = &spi0;
 		spi1 = &spi1;
 		spi2 = &spi2;
@@ -196,6 +200,17 @@
 				status = "disabled";
 			};
 
+			i2c4: i2c@900000 {
+				compatible = "sprd,sharkl3-i2c";
+				reg = <0x900000 0x1000>;
+				interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable","i2c", "source";
+				clock-frequency = <100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
 			spi0: spi@a00000 {
 				compatible = "sprd,sc9863-spi";
 				reg = <0xa00000 0x1000>;
@@ -224,6 +239,28 @@
 				compatible = "sprd,sc9863-spi";
 				reg = <0x1400000 0x1000>;
 				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			i2c5: i2c@1500000 {
+				compatible = "sprd,sharkl3-i2c";
+				reg = <0x1500000 0x1000>;
+				interrupts = <GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable","i2c", "source";
+				clock-frequency = <100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			i2c6: i2c@1600000 {
+				compatible = "sprd,sharkl3-i2c";
+				reg = <0x1600000 0x1000>;
+				interrupts = <GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable","i2c", "source";
+				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -272,6 +309,18 @@
 				#hwlock-cells = <1>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
+
+			i2c7: i2c@40080000 {
+				compatible = "sprd,sharkl3-hw-i2c";
+				reg = <0 0x40080000 0 0x1000>;
+				interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable","i2c", "source",
+					"clk_hw_i2c";
+				clock-frequency = <100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
 			};
 
 			aon_dma: dma-controller@40100000 {

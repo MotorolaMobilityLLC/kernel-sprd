@@ -85,6 +85,10 @@
 	};
 };
 
+&i2c7 {
+	status = "okay";
+};
+
 &uart0 {
 	status = "okay";
 };
