@@ -1428,6 +1428,12 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 		goto disable_clk;
 	}
 
+	ret = sc27xx_fgu_get_temp(data, &data->bat_temp);
+	if (ret) {
+		dev_err(data->dev, "failed to get battery temperature\n");
+		goto disable_clk;
+	}
+
 	return 0;
 
 disable_clk:
