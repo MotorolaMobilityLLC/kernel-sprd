@@ -132,8 +132,24 @@ static inline bool arch_faults_on_old_pte(void)
 }
 #endif
 
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+static int __init static_check_struct(void)
+{
+	/* static check struct size */
+	char vm_area_assert[sizeof_same(struct vm_area_struct) * 2 - 1];        /* size of struct vm_area_struct != struct vm_area_struct_shadow */
+
+	vm_area_assert[0] = 0;
+
+	return 0;
+}
+#endif
+
 static int __init disable_randmaps(char *s)
 {
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+	static_check_struct();
+#endif
+
 	randomize_va_space = 0;
 	return 1;
 }
@@ -1259,6 +1275,7 @@ void unmap_page_range(struct mmu_gather *tlb,
 	unsigned long next;
 
 	BUG_ON(addr >= end);
+	vm_write_begin(vma);
 	tlb_start_vma(tlb, vma);
 	pgd = pgd_offset(vma->vm_mm, addr);
 	do {
@@ -1268,6 +1285,7 @@ void unmap_page_range(struct mmu_gather *tlb,
 		next = zap_p4d_range(tlb, vma, pgd, addr, next, details);
 	} while (pgd++, addr = next, addr != end);
 	tlb_end_vma(tlb, vma);
+	vm_write_end(vma);
 }
 
 
