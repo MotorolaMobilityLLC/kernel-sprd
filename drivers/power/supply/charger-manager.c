@@ -2725,7 +2725,7 @@ out:
 
 static void cm_track_capacity_monitor(struct charger_manager *cm)
 {
-	int cur_temp, cur_now, ret;
+	int cur_now, ret;
 	int capacity, clbcnt, ocv, boot_volt, batt_uV;
 	u32 total_cap;
 
@@ -2737,14 +2737,8 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 		return;
 	}
 
-	ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
-	if (ret) {
-		dev_err(cm->dev, "failed to get battery temperature\n");
-		return;
-	}
-
-	if (cur_temp > CM_TRACK_HIGH_TEMP_THRESHOLD ||
-	    cur_temp < CM_TRACK_LOW_TEMP_THRESHOLD) {
+	if (cm->desc->temperature > CM_TRACK_HIGH_TEMP_THRESHOLD ||
+	    cm->desc->temperature < CM_TRACK_LOW_TEMP_THRESHOLD) {
 		dev_err(cm->dev, "exceed temperature range, cancel monitor.\n");
 		return;
 	}
