@@ -126,7 +126,9 @@ struct seth {
 static u32 gro_enable;
 
 static struct dentry *root;
+#ifdef CONFIG_DEBUG_FS
 static int seth_debugfs_mknod(void *root, void *data);
+#endif
 static void seth_rx_timer_handler(unsigned long data);
 
 static inline void seth_dt_stats_init(struct seth_dtrans_stats *stats)
@@ -904,7 +906,9 @@ static int seth_probe(struct platform_device *pdev)
 	netif_carrier_off(netdev);
 
 	platform_set_drvdata(pdev, seth);
+#ifdef CONFIG_DEBUG_FS
 	seth_debugfs_mknod(root, (void *)seth);
+#endif
 	return 0;
 }
 
