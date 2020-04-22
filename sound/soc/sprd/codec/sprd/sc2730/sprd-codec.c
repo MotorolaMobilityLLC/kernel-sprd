@@ -2440,6 +2440,11 @@ static const struct snd_soc_dapm_widget sprd_codec_dapm_widgets[] = {
 		0, 0,
 		chan_event,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_ADC_E("Capture RECOGNISE", "Capture-DSP-RECOGNISE",
+		FUN_REG(SPRD_CODEC_CAPTRUE),
+		0, 0,
+		chan_event,
+		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 /* DA route */
 	SND_SOC_DAPM_DAC_E("DAC", "Normal-Playback-AP01",
 		FUN_REG(SPRD_CODEC_PLAYBACK), 0,
@@ -2786,6 +2791,8 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADC DSP_C_fm_test", NULL, "AUD ADC0R"},
 	{"ADC Voice", NULL, "AUD ADC0L"},
 	{"ADC Voice", NULL, "AUD ADC0R"},
+	{"Capture RECOGNISE", NULL, "AUD ADC0L"},
+	{"Capture RECOGNISE", NULL, "AUD ADC0R"},
 	{"ADC Voip", NULL, "AUD ADC0L"},
 	{"ADC Voip", NULL, "AUD ADC0R"},
 	{"ADC CODEC_TEST", NULL, "AUD ADC0L"},
@@ -2808,6 +2815,8 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADC DSP_C_fm_test", NULL, "AUD ADC1R"},
 	{"ADC Voice", NULL, "AUD ADC1L"},
 	{"ADC Voice", NULL, "AUD ADC1R"},
+	{"Capture RECOGNISE", NULL, "AUD ADC1L"},
+	{"Capture RECOGNISE", NULL, "AUD ADC1R"},
 	{"ADC Voip", NULL, "AUD ADC1L"},
 	{"ADC Voip", NULL, "AUD ADC1R"},
 	{"ADC CODEC_TEST", NULL, "AUD ADC1L"},
@@ -2828,6 +2837,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"ADC DSP_C_btsco_test", NULL, "CLK_ADC"},
 	{"ADC DSP_C_fm_test", NULL, "CLK_ADC"},
 	{"ADC Voice", NULL, "CLK_ADC"},
+	{"Capture RECOGNISE", NULL, "CLK_ADC"},
 	{"ADC Voip", NULL, "CLK_ADC"},
 	{"ADC CODEC_TEST", NULL, "CLK_ADC"},
 	{"ADC LOOP", NULL, "CLK_ADC"},
@@ -3770,6 +3780,19 @@ static struct snd_soc_dai_driver sprd_codec_dai[] = {
 		},
 		.ops = &sprd_codec_dai_ops,
 	},
+
+	/* 15: CAPTURE_DSP_RECOGNISE */
+	{
+		.name = "sprd-codec-capture-dsp-recognise",
+		.capture = {
+			.stream_name = "Capture-DSP-RECOGNISE",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SPRD_CODEC_PCM_AD_RATES,
+			.formats = SPRD_CODEC_PCM_FATMATS,
+		},
+		.ops = &sprd_codec_dai_ops,
+	},
 };
 
 static void codec_reconfig_dai_rate(struct snd_soc_codec *codec)
@@ -3838,6 +3861,7 @@ static int sprd_codec_soc_probe(struct snd_soc_codec *codec)
 	snd_soc_dapm_ignore_suspend(dapm, "Fm-Playback");
 	snd_soc_dapm_ignore_suspend(dapm, "Voice-Playback");
 	snd_soc_dapm_ignore_suspend(dapm, "Voice-Capture");
+	snd_soc_dapm_ignore_suspend(dapm, "Capture-DSP-RECOGNISE");
 
 	/*
 	 * Even without headset driver, codec could work well.
