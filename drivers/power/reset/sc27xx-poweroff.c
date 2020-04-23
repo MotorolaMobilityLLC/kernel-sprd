@@ -7,17 +7,50 @@
 #include <linux/cpu.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
 #include <linux/regmap.h>
 #include <linux/syscore_ops.h>
 
-#define SC27XX_PWR_PD_HW	0xc2c
+#define SC2721_PWR_PD_HW	0xc20
+#define SC2721_SLP_CTRL		0xd98
+#define SC2721_LDO_XTL_EN	BIT(2)
+#define SC2730_PWR_PD_HW	0x1820
+#define SC2730_SLP_CTRL		0x1a48
+#define SC2730_LDO_XTL_EN	BIT(2)
+#define SC2731_PWR_PD_HW	0xc2c
+#define SC2731_SLP_CTRL		0xdf0
+#define SC2731_LDO_XTL_EN	BIT(3)
 #define SC27XX_PWR_OFF_EN	BIT(0)
-#define SC27XX_SLP_CTRL		0xdf0
-#define SC27XX_LDO_XTL_EN	BIT(3)
+
+struct sc27xx_poweroff_data {
+	u32 poweroff_reg;
+	u32 slp_ctrl_reg;
+	u32 ldo_xtl_en;
+};
+
+static const struct sc27xx_poweroff_data sc2721_data = {
+	.poweroff_reg = SC2721_PWR_PD_HW,
+	.slp_ctrl_reg = SC2721_SLP_CTRL,
+	.ldo_xtl_en = SC2721_LDO_XTL_EN,
+};
+
+static const struct sc27xx_poweroff_data sc2730_data = {
+	.poweroff_reg = SC2730_PWR_PD_HW,
+	.slp_ctrl_reg = SC2730_SLP_CTRL,
+	.ldo_xtl_en = SC2730_LDO_XTL_EN,
+};
+
+static const struct sc27xx_poweroff_data sc2731_data = {
+	.poweroff_reg = SC2731_PWR_PD_HW,
+	.slp_ctrl_reg = SC2731_SLP_CTRL,
+	.ldo_xtl_en = SC2731_LDO_XTL_EN,
+};
 
 static struct regmap *regmap;
+const struct sc27xx_poweroff_data *pdata;
 
 /*
  * On Spreadtrum platform, we need power off system through external SC27xx
@@ -47,13 +80,19 @@ static struct syscore_ops poweroff_syscore_ops = {
 static void sc27xx_poweroff_do_poweroff(void)
 {
 	/* Disable the external subsys connection's power firstly */
-	regmap_write(regmap, SC27XX_SLP_CTRL, SC27XX_LDO_XTL_EN);
+	regmap_write(regmap, pdata->slp_ctrl_reg, pdata->ldo_xtl_en);
 
-	regmap_write(regmap, SC27XX_PWR_PD_HW, SC27XX_PWR_OFF_EN);
+	regmap_write(regmap, pdata->poweroff_reg, SC27XX_PWR_OFF_EN);
 }
 
 static int sc27xx_poweroff_probe(struct platform_device *pdev)
 {
+	pdata = of_device_get_match_data(&pdev->dev);
+	if (!pdata) {
+		dev_err(&pdev->dev, "No matching driver data found\n");
+		return -EINVAL;
+	}
+
 	if (regmap)
 		return -EINVAL;
 
@@ -66,10 +105,18 @@ static int sc27xx_poweroff_probe(struct platform_device *pdev)
 	return 0;
 }
 
+static const struct of_device_id sc27xx_poweroff_of_match[] = {
+	{ .compatible = "sprd,sc2721-poweroff", .data = &sc2721_data },
+	{ .compatible = "sprd,sc2730-poweroff", .data = &sc2730_data },
+	{ .compatible = "sprd,sc2731-poweroff", .data = &sc2731_data },
+	{ }
+};
+
 static struct platform_driver sc27xx_poweroff_driver = {
 	.probe = sc27xx_poweroff_probe,
 	.driver = {
 		.name = "sc27xx-poweroff",
+		.of_match_table = sc27xx_poweroff_of_match,
 	},
 };
 module_platform_driver(sc27xx_poweroff_driver);
