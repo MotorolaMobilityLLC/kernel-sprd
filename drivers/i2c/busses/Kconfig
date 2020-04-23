@@ -1058,6 +1058,17 @@ config I2C_TEGRA
 	  If you say yes to this option, support will be included for the
 	  I2C controller embedded in NVIDIA Tegra SOCs
 
+config I2C_SPRD_HW
+	tristate "Spreadtrum hardware I2C controller"
+	depends on ARCH_SPRD || COMPILE_TEST
+	help
+	  If you say yes to this option, support will be included for the
+	  Spreadtrum I2C controller. This driver only support I2C IP version
+	  after R9P0.
+
+	  This driver can also be built as a module. If so, the module will be
+	  called i2c-sprd-hw.
+
 config I2C_TEGRA_BPMP
 	tristate "NVIDIA Tegra BPMP I2C controller"
 	depends on TEGRA_BPMP
