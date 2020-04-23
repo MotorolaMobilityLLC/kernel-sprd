@@ -145,7 +145,7 @@ static inline unsigned int serial_in(struct uart_port *port,
 }
 
 static inline void serial_out(struct uart_port *port, unsigned int offset,
-			      int value)
+			      unsigned int value)
 {
 	writel_relaxed(value, port->membase + offset);
 }
@@ -740,14 +740,14 @@ static int sprd_startup(struct uart_port *port)
 
 	/* allocate irq */
 	sp = container_of(port, struct sprd_uart_port, port);
-	snprintf(sp->name, sizeof(sp->name), "sprd_serial%d", port->line);
+	snprintf(sp->name, sizeof(sp->name), "sprd_serial%u", port->line);
 
 	sprd_uart_dma_startup(port, sp);
 
 	ret = devm_request_irq(port->dev, port->irq, sprd_handle_irq,
 			       IRQF_SHARED, sp->name, port);
 	if (ret) {
-		dev_err(port->dev, "fail to request serial irq %d, ret=%d\n",
+		dev_err(port->dev, "fail to request serial irq %u, ret=%d\n",
 			port->irq, ret);
 		return ret;
 	}
@@ -1163,14 +1163,14 @@ static int sprd_clk_init(struct uart_port *uport)
 
 	clk_uart = devm_clk_get(uport->dev, "uart");
 	if (IS_ERR(clk_uart)) {
-		dev_warn(uport->dev, "uart%d can't get uart clock\n",
+		dev_warn(uport->dev, "uart%u can't get uart clock\n",
 			 uport->line);
 		clk_uart = NULL;
 	}
 
 	clk_parent = devm_clk_get(uport->dev, "source");
 	if (IS_ERR(clk_parent)) {
-		dev_warn(uport->dev, "uart%d can't get source clock\n",
+		dev_warn(uport->dev, "uart%u can't get source clock\n",
 			 uport->line);
 		clk_parent = NULL;
 	}
@@ -1185,7 +1185,7 @@ static int sprd_clk_init(struct uart_port *uport)
 		if (PTR_ERR(u->clk) == -EPROBE_DEFER)
 			return -EPROBE_DEFER;
 
-		dev_warn(uport->dev, "uart%d can't get enable clock\n",
+		dev_warn(uport->dev, "uart%u can't get enable clock\n",
 			uport->line);
 
 		/* To keep console alive even if the error occurred */
