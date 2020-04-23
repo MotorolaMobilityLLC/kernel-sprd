@@ -40,6 +40,32 @@ void page_writeback_init(void);
 
 int do_swap_page(struct vm_fault *vmf);
 
+extern void __free_vma(struct vm_area_struct *vma);
+
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+static inline void get_vma(struct vm_area_struct *vma)
+{
+	atomic_inc(&vma->vm_ref_count);
+}
+
+static inline void put_vma(struct vm_area_struct *vma)
+{
+	if (atomic_dec_and_test(&vma->vm_ref_count))
+		__free_vma(vma);
+}
+
+#else
+
+static inline void get_vma(struct vm_area_struct *vma)
+{
+}
+
+static inline void put_vma(struct vm_area_struct *vma)
+{
+	__free_vma(vma);
+}
+#endif /* CONFIG_SPECULATIVE_PAGE_FAULT */
+
 void free_pgtables(struct mmu_gather *tlb, struct vm_area_struct *start_vma,
 		unsigned long floor, unsigned long ceiling);
 
