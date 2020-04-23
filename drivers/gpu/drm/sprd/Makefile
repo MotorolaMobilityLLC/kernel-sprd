@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 
+ccflags-y := -I $(srctree)/$(src)
+
 sprd-drm-y := \
 	sprd_drm.o \
 	sprd_gem.o \
