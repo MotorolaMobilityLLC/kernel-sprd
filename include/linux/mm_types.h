@@ -364,12 +364,13 @@ struct vm_area_struct {
 	struct vm_userfaultfd_ctx vm_userfaultfd_ctx;
 
 	ANDROID_KABI_RESERVE(1);
-	ANDROID_KABI_RESERVE(2);
-	ANDROID_KABI_RESERVE(3);
 #ifndef CONFIG_SPECULATIVE_PAGE_FAULT_DEBUG
+	ANDROID_KABI_RESERVE(2); /* vm_rcu */
+	ANDROID_KABI_RESERVE(3);
 	ANDROID_KABI_RESERVE(4); /* vm_ref_count */
 	ANDROID_VENDOR_DATA(1);	/* vm_sequence */
 #else /* CONFIG_SPECULATIVE_PAGE_FAULT_DEBUG  */
+	struct rcu_head vm_rcu;
 	atomic_t vm_ref_count;
 	seqcount_t vm_sequence;
 #endif
@@ -466,8 +467,8 @@ struct vm_area_struct_shadow {
 	struct vm_userfaultfd_ctx vm_userfaultfd_ctx;
 
 	ANDROID_KABI_RESERVE(1);
-	ANDROID_KABI_RESERVE(2);
-	ANDROID_KABI_RESERVE(3);
+	u64 vm_rcu;			/* ANDROID_KABI_RESERVE(2); */
+	u64 vm_rcu_padding;	/* ANDROID_KABI_RESERVE(3); */
 	u64 vm_ref_count;	/* ANDROID_KABI_RESERVE(4) */
 	u64 vm_sequence;	/* ANDROID_VENDOR_DATA(1) */
 } __randomize_layout;
