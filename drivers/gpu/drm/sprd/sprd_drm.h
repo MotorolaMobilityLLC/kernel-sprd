@@ -13,6 +13,11 @@ struct sprd_drm {
 	struct drm_device *drm;
 };
 
+#ifdef CONFIG_DRM_SPRD_DUMMY
+extern struct platform_driver sprd_dummy_crtc_driver;
+extern struct platform_driver sprd_dummy_connector_driver;
+#endif
+
 #ifdef CONFIG_DRM_SPRD_DPU0
 extern struct platform_driver sprd_dpu_driver;
 #endif

@@ -303,6 +303,10 @@ static struct platform_driver sprd_drm_driver = {
 };
 
 static struct platform_driver *sprd_drm_drivers[]  = {
+#ifdef CONFIG_DRM_SPRD_DUMMY
+	&sprd_dummy_crtc_driver,
+	&sprd_dummy_connector_driver,
+#endif
 #ifdef CONFIG_DRM_SPRD_DPU0
 	&sprd_dpu_driver,
 #endif

@@ -7,6 +7,10 @@ sprd-drm-y := \
 	sprd_plane.o \
 	disp_lib.o
 
+sprd-drm-$(CONFIG_DRM_SPRD_DUMMY) += \
+	dummy/dummy_crtc.o \
+	dummy/dummy_connector.o
+
 sprd-drm-$(CONFIG_DRM_SPRD_DPU0) += \
 	sprd_dpu.o \
 	dpu/dpu_r2p0.o

@@ -13,11 +13,17 @@ config DRM_SPRD
 
 if DRM_SPRD
 
+comment "Unisoc Dummy CRTC&Encoder"
+
+config DRM_SPRD_DUMMY
+	bool "Dummy CRTC&Encoder"
+	help
+	  Choose this option if you want to use dummy crtc&encoder.
+
 comment "Unisoc CRTCs"
 
 config DRM_SPRD_DPU0
 	bool "Primary Display Controller"
-	depends on DRM_SPRD
 	help
 	  Choose this option if you want to use primary display controller.
 
@@ -25,7 +31,7 @@ comment "Unisoc Encoders and Bridges"
 
 config DRM_SPRD_DSI
 	bool "DSI Host Controller"
-	depends on DRM_SPRD
+	depends on DRM_SPRD_DPU0
 	select DRM_MIPI_DSI
 	select DRM_PANEL
 	select BACKLIGHT_CLASS_DEVICE
