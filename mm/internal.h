@@ -54,7 +54,10 @@ static inline void put_vma(struct vm_area_struct *vma)
 		__free_vma(vma);
 }
 
-#else
+extern struct vm_area_struct *find_vma_rcu(struct mm_struct *mm,
+					   unsigned long addr);
+
+#else  /* CONFIG_SPECULATIVE_PAGE_FAULT */
 
 static inline void get_vma(struct vm_area_struct *vma)
 {

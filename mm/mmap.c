@@ -164,6 +164,17 @@ static inline void mm_write_sequnlock(struct mm_struct *mm)
 {
 	write_sequnlock(&mm->mm_seq);
 }
+static void __vm_rcu_put(struct rcu_head *head)
+{
+	struct vm_area_struct *vma = container_of(head, struct vm_area_struct,
+						  vm_rcu);
+	put_vma(vma);
+}
+static void vm_rcu_put(struct vm_area_struct *vma)
+{
+	VM_BUG_ON_VMA(!RB_EMPTY_NODE(&vma->vm_rb), vma);
+	call_rcu(&vma->vm_rcu, __vm_rcu_put);
+}
 #else
 static inline void mm_write_seqlock(struct mm_struct *mm)
 {
@@ -175,6 +186,8 @@ static inline void mm_write_sequnlock(struct mm_struct *mm)
 
 void __free_vma(struct vm_area_struct *vma)
 {
+	if (IS_ENABLED(CONFIG_SPECULATIVE_PAGE_FAULT))
+		VM_BUG_ON_VMA(!RB_EMPTY_NODE(&vma->vm_rb), vma);
 	mpol_put(vma_policy(vma));
 	kmem_cache_free(vm_area_cachep, vma);
 }
@@ -182,11 +195,24 @@ void __free_vma(struct vm_area_struct *vma)
 /*
  * Close a vm structure and free it, returning the next.
  */
-static struct vm_area_struct *remove_vma(struct vm_area_struct *vma)
+static struct vm_area_struct *__remove_vma(struct vm_area_struct *vma)
 {
 	struct vm_area_struct *next = vma->vm_next;
 
 	might_sleep();
+	if (IS_ENABLED(CONFIG_SPECULATIVE_PAGE_FAULT) &&
+	    !RB_EMPTY_NODE(&vma->vm_rb)) {
+		/*
+		 * If the VMA is still linked in the RB tree, we must release
+		 * that reference by calling put_vma().
+		 * This should only happen when called from exit_mmap().
+		 * We forcely clear the node to satisfy the chec in
+		 * __free_vma(). This is safe since the RB tree is not walked
+		 * anymore.
+		 */
+		RB_CLEAR_NODE(&vma->vm_rb);
+		put_vma(vma);
+	}
 	if (vma->vm_ops && vma->vm_ops->close)
 		vma->vm_ops->close(vma);
 	if (vma->vm_file)
@@ -194,6 +220,13 @@ static struct vm_area_struct *remove_vma(struct vm_area_struct *vma)
 	vma->vm_file = NULL;
 	put_vma(vma);
 	return next;
+}
+
+static struct vm_area_struct *remove_vma(struct vm_area_struct *vma)
+{
+	if (IS_ENABLED(CONFIG_SPECULATIVE_PAGE_FAULT))
+		VM_BUG_ON_VMA(!RB_EMPTY_NODE(&vma->vm_rb), vma);
+	return __remove_vma(vma);
 }
 
 static int do_brk_flags(unsigned long addr, unsigned long request, unsigned long flags,
@@ -437,6 +470,7 @@ static inline void vma_rb_insert(struct vm_area_struct *vma,
 	/* All rb_subtree_gap values must be consistent prior to insertion */
 	validate_mm_rb(root, NULL);
 
+	get_vma(vma);
 	rb_insert_augmented(&vma->vm_rb, root, &vma_gap_callbacks);
 }
 
@@ -452,6 +486,14 @@ static void __vma_rb_erase(struct vm_area_struct *vma, struct mm_struct *mm)
 	mm_write_seqlock(mm);
 	rb_erase_augmented(&vma->vm_rb, root, &vma_gap_callbacks);
 	mm_write_sequnlock(mm);	/* wmb */
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+	/*
+	 * Ensure the removal is complete before clearing the node.
+	 * Matched by vma_has_changed()/handle_speculative_fault().
+	 */
+	RB_CLEAR_NODE(&vma->vm_rb);
+	vm_rcu_put(vma);
+#endif
 }
 
 static __always_inline void vma_rb_erase_ignore(struct vm_area_struct *vma,
@@ -2259,6 +2301,34 @@ struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)
 
 EXPORT_SYMBOL(find_vma);
 
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+/*
+ * Like find_vma() but under the protection of RCU and the mm sequence counter.
+ * The vma returned has to be relaesed by the caller through the call to
+ * put_vma()
+ */
+struct vm_area_struct *find_vma_rcu(struct mm_struct *mm, unsigned long addr)
+{
+	struct vm_area_struct *vma = NULL;
+	unsigned int seq;
+
+	do {
+		if (vma)
+			put_vma(vma);
+
+		seq = read_seqbegin(&mm->mm_seq);
+
+		rcu_read_lock();
+		vma = find_vma(mm, addr);
+		if (vma)
+			get_vma(vma);
+		rcu_read_unlock();
+	} while (read_seqretry(&mm->mm_seq, seq));
+
+	return vma;
+}
+#endif
+
 /*
  * Same as find_vma, but also return a pointer to the previous VMA in *pprev.
  */
@@ -3156,7 +3226,7 @@ void exit_mmap(struct mm_struct *mm)
 	while (vma) {
 		if (vma->vm_flags & VM_ACCOUNT)
 			nr_accounted += vma_pages(vma);
-		vma = remove_vma(vma);
+		vma = __remove_vma(vma);
 	}
 	vm_unacct_memory(nr_accounted);
 }
