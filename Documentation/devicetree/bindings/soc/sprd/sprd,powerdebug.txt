@@ -33,6 +33,7 @@ Required properties:
 		following section-"subnode definattion" description.
 - sprd_ap_intcx: define the ap_intc node information, details refer to the
 		following section-"subnode definattion" description.
+- sprd,cm4-uart: define ap use cm4 uart as console.
 
 optional properties:
 - sprd,sys-aon-sec: Specify the aon-sec address space node in the soc system
