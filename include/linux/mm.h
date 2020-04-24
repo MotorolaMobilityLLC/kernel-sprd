@@ -436,6 +436,7 @@ extern pgprot_t protection_map[16];
 #define FAULT_FLAG_REMOTE			0x80
 #define FAULT_FLAG_INSTRUCTION  		0x100
 #define FAULT_FLAG_INTERRUPTIBLE		0x200
+#define FAULT_FLAG_SPECULATIVE			0x400	/* Speculative fault, not holding mmap_sem */
 
 /*
  * The default fault flags that should be used by most of the
@@ -527,8 +528,59 @@ struct vm_fault {
 	 */
 	unsigned long vma_flags;	/* Speculative Page Fault field */
 	pgprot_t vma_page_prot;		/* Speculative Page Fault field */
-	ANDROID_VENDOR_DATA(1);
-	ANDROID_VENDOR_DATA(2);
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT_DEBUG
+	unsigned int sequence;
+	pmd_t orig_pmd;			/* value of PMD at the time of fault */
+#else
+	ANDROID_VENDOR_DATA(1);	/* sequence */
+	ANDROID_VENDOR_DATA(2);	/* orig_pmd */
+#endif
+};
+
+struct vm_fault_shadow {
+	struct vm_area_struct *vma;	/* Target VMA */
+	unsigned int flags;		/* FAULT_FLAG_xxx flags */
+	gfp_t gfp_mask;			/* gfp mask to be used for allocations */
+	pgoff_t pgoff;			/* Logical page offset based on vma */
+	unsigned long address;		/* Faulting virtual address */
+	pmd_t *pmd;			/* Pointer to pmd entry matching
+					 * the 'address' */
+	pud_t *pud;			/* Pointer to pud entry matching
+					 * the 'address'
+					 */
+	pte_t orig_pte;			/* Value of PTE at the time of fault */
+
+	struct page *cow_page;		/* Page handler may use for COW fault */
+	struct mem_cgroup *memcg;	/* Cgroup cow_page belongs to */
+	struct page *page;		/* ->fault handlers should return a
+					 * page here, unless VM_FAULT_NOPAGE
+					 * is set (which is also implied by
+					 * VM_FAULT_ERROR).
+					 */
+	/* These three entries are valid only while holding ptl lock */
+	pte_t *pte;			/* Pointer to pte entry matching
+					 * the 'address'. NULL if the page
+					 * table hasn't been allocated.
+					 */
+	spinlock_t *ptl;		/* Page table lock.
+					 * Protects pte page table if 'pte'
+					 * is not NULL, otherwise pmd.
+					 */
+	pgtable_t prealloc_pte;		/* Pre-allocated pte page table.
+					 * vm_ops->map_pages() calls
+					 * alloc_set_pte() from atomic context.
+					 * do_fault_around() pre-allocates
+					 * page table to avoid allocation from
+					 * atomic context.
+					 */
+	/*
+	 * These entries are required when handling speculative page fault.
+	 * This way the page handling is done using consistent field values.
+	 */
+	unsigned long vma_flags;	/* Speculative Page Fault field */
+	pgprot_t vma_page_prot;		/* Speculative Page Fault field */
+	u64 sequence;
+	u64 orig_pmd;			/* value of PMD at the time of fault */
 };
 
 /* page entry size for vm->huge_fault() */
@@ -1641,6 +1693,31 @@ int invalidate_inode_page(struct page *page);
 #ifdef CONFIG_MMU
 extern vm_fault_t handle_mm_fault(struct vm_area_struct *vma,
 			unsigned long address, unsigned int flags);
+
+#ifdef CONFIG_SPECULATIVE_PAGE_FAULT
+extern vm_fault_t __handle_speculative_fault(struct mm_struct *mm,
+					     unsigned long address,
+					     unsigned int flags);
+static inline vm_fault_t handle_speculative_fault(struct mm_struct *mm,
+						  unsigned long address,
+						  unsigned int flags)
+{
+	/*
+	 * Try speculative page fault for multithreaded user space task only.
+	 */
+	if (!(flags & FAULT_FLAG_USER) || atomic_read(&mm->mm_users) == 1)
+		return VM_FAULT_RETRY;
+	return __handle_speculative_fault(mm, address, flags);
+}
+#else
+static inline vm_fault_t handle_speculative_fault(struct mm_struct *mm,
+						  unsigned long address,
+						  unsigned int flags)
+{
+	return VM_FAULT_RETRY;
+}
+#endif /* CONFIG_SPECULATIVE_PAGE_FAULT */
+
 extern int fixup_user_fault(struct task_struct *tsk, struct mm_struct *mm,
 			    unsigned long address, unsigned int fault_flags,
 			    bool *unlocked);
