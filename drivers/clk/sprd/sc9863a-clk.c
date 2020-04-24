@@ -1620,6 +1620,36 @@ static const struct sprd_clk_desc sc9863a_mm_gate_desc = {
 	.hw_clks	= &sc9863a_mm_gate_hws,
 };
 
+/* camera sensor clocks */
+static SPRD_GATE_CLK_HW(mipi_csi_clk, "mipi-csi-clk", &mahb_ckg_eb.common.hw,
+			0x20, BIT(16), 0, SPRD_GATE_NON_AON);
+static SPRD_GATE_CLK_HW(mipi_csi_s_clk, "mipi-csi-s-clk", &mahb_ckg_eb.common.hw,
+			0x24, BIT(16), 0, SPRD_GATE_NON_AON);
+static SPRD_GATE_CLK_HW(mipi_csi_m_clk, "mipi-csi-m-clk", &mahb_ckg_eb.common.hw,
+			0x28, BIT(16), 0, SPRD_GATE_NON_AON);
+
+static struct sprd_clk_common *sc9863a_mm_clk_clks[] = {
+	/* address base is 0x60900000 */
+	&mipi_csi_clk.common,
+	&mipi_csi_s_clk.common,
+	&mipi_csi_m_clk.common,
+};
+
+static struct clk_hw_onecell_data sc9863a_mm_clk_hws = {
+	.hws	= {
+		[CLK_MIPI_CSI]		= &mipi_csi_clk.common.hw,
+		[CLK_MIPI_CSI_S]	= &mipi_csi_s_clk.common.hw,
+		[CLK_MIPI_CSI_M]	= &mipi_csi_m_clk.common.hw,
+	},
+	.num	= CLK_MM_CLK_NUM,
+};
+
+static const struct sprd_clk_desc sc9863a_mm_clk_desc = {
+	.clk_clks	= sc9863a_mm_clk_clks,
+	.num_clk_clks	= ARRAY_SIZE(sc9863a_mm_clk_clks),
+	.hw_clks	= &sc9863a_mm_clk_hws,
+};
+
 static SPRD_SC_GATE_CLK_HW(vckg_eb, "vckg-eb", &mm_ahb.common.hw, 0x0, 0x1000,
 			   BIT(0), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(vvsp_eb, "vvsp-eb", &mm_ahb.common.hw, 0x0, 0x1000,
