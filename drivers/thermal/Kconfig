@@ -424,4 +424,11 @@ config SPRD_THERMAL
 	help
 	  Support for the Spreadtrum thermal sensor driver in the Linux thermal
 	  framework.
+
+config SPRD_SOC_THERMAL
+	tristate "sprd soc thermal"
+	depends on ARCH_SPRD || THERMAL_OF
+	help
+	  Say Y here to support virtual thermal for soc chip
+	  We can use it to monitor soc junction temperature
 endif
