@@ -5,6 +5,8 @@
  * Copyright (C) 2020, Unisoc Inc.
  */
 
+#include <dt-bindings/clock/sprd,ums512-clk.h>
+
 / {
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
