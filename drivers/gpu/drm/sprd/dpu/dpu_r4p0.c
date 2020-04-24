@@ -961,13 +961,13 @@ static u32 to_dpu_rotation(u32 angle)
 	case DRM_MODE_ROTATE_270:
 		rot = DPU_LAYER_ROTATION_270;
 		break;
-	case DRM_MODE_REFLECT_Y:
+	case (DRM_MODE_REFLECT_Y | DRM_MODE_ROTATE_0):
 		rot = DPU_LAYER_ROTATION_180_M;
 		break;
 	case (DRM_MODE_REFLECT_Y | DRM_MODE_ROTATE_90):
 		rot = DPU_LAYER_ROTATION_90_M;
 		break;
-	case DRM_MODE_REFLECT_X:
+	case (DRM_MODE_REFLECT_X | DRM_MODE_ROTATE_0):
 		rot = DPU_LAYER_ROTATION_0_M;
 		break;
 	case (DRM_MODE_REFLECT_X | DRM_MODE_ROTATE_90):
