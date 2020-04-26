@@ -283,18 +283,8 @@ out_put_node:
 static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 {
 	struct power_supply_battery_info bat_info = { };
-	int voltage_max_microvolt, current_max_ua;
+	int voltage_max_microvolt;
 	int ret;
-
-	ret = power_supply_get_battery_info(info->psy_usb, &bat_info);
-	if (ret)
-		dev_warn(info->dev, "no battery information is supplied\n");
-	else {
-		voltage_max_microvolt =
-			bat_info.constant_charge_voltage_max_uv / 1000;
-		current_max_ua = bat_info.constant_charge_current_max_ua / 1000;
-		power_supply_put_battery_info(info->psy_usb, &bat_info);
-	 }
 
 	ret = fan54015_get_battery_cur(info->psy_usb, &info->cur);
 	if (ret) {
@@ -313,100 +303,109 @@ static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 		info->cur.cdp_cur = 1500000;
 		info->cur.unknown_limit = 5000000;
 		info->cur.unknown_cur = 500000;
-	} else {
-		if (of_device_is_compatible(info->dev->of_node,
-					    "fairchild,fan54015_chg")) {
-			ret = fan54015_charger_set_safety_vol(info,
-						voltage_max_microvolt);
-			if (ret) {
-				dev_err(info->dev,
-					"set fan54015 safety vol failed\n");
-				return ret;
-			}
-
-			ret = fan54015_charger_set_safety_cur(info,
-						info->cur.dcp_cur);
-			if (ret) {
-				dev_err(info->dev,
-					"set fan54015 safety cur failed\n");
-				return ret;
-			}
-		}
-
-		ret = fan54015_update_bits(info, FAN54015_REG_4,
-					   FAN54015_REG_RESET_MASK,
-					   FAN54015_REG_RESET);
-		if (ret) {
-			dev_err(info->dev, "reset fan54015 failed\n");
-			return ret;
-		}
-
-		if (of_device_is_compatible(info->dev->of_node,
-					    "prisemi,psc5415z_chg")) {
-			ret = fan54015_charger_set_safety_vol(info,
-						voltage_max_microvolt);
-			if (ret) {
-				dev_err(info->dev,
-					"set psc5415z safety vol failed\n");
-				return ret;
-			}
-
-			ret = fan54015_charger_set_safety_cur(info,
-						info->cur.dcp_cur);
-			if (ret) {
-				dev_err(info->dev,
-					"set psc5415z safety cur failed\n");
-				return ret;
-			}
-		}
-
-		ret = fan54015_update_bits(info, FAN54015_REG_1,
-					   FAN54015_REG_WEAK_VOL_THRESHOLD_MASK, 0);
-		if (ret) {
-			dev_err(info->dev, "set fan54015 weak voltage threshold failed\n");
-			return ret;
-		}
-		ret = fan54015_update_bits(info, FAN54015_REG_5,
-					   FAN54015_REG_IO_LEVEL_MASK, 0);
-		if (ret) {
-			dev_err(info->dev, "set fan54015 io level failed\n");
-			return ret;
-		}
-
-		ret = fan54015_update_bits(info, FAN54015_REG_5,
-					   FAN54015_REG_VSP_MASK,
-					   FAN54015_REG_VSP);
-		if (ret) {
-			dev_err(info->dev, "set fan54015 vsp failed\n");
-			return ret;
-		}
-
-		ret = fan54015_update_bits(info, FAN54015_REG_1,
-					   FAN54015_REG_TERMINAL_CURRENT_MASK, 0);
-		if (ret) {
-			dev_err(info->dev, "set fan54015 terminal cur failed\n");
-			return ret;
-		}
-
-		ret = fan54015_update_bits(info,
-					   FAN54015_REG_0,
-					   FAN54015_REG_RESET_MASK,
-					   FAN54015_REG_RESET);
-		if (ret) {
-			dev_err(info->dev, "feed fan54015 watchdog failed\n");
-			return ret;
-		}
-		ret = fan54015_charger_set_termina_vol(info, voltage_max_microvolt);
-		if (ret) {
-			dev_err(info->dev, "set fan54015 terminal vol failed\n");
-			return ret;
-		}
-
-		ret = fan54015_charger_set_limit_current(info,
-							 info->cur.unknown_cur);
-		if (ret)
-			dev_err(info->dev, "set fan54015 limit current failed\n");
 	}
+
+	ret = power_supply_get_battery_info(info->psy_usb, &bat_info);
+	if (ret) {
+		dev_warn(info->dev, "no battery information is supplied\n");
+		voltage_max_microvolt = 4440;
+	} else {
+		voltage_max_microvolt = bat_info.constant_charge_voltage_max_uv / 1000;
+		power_supply_put_battery_info(info->psy_usb, &bat_info);
+	}
+
+	if (of_device_is_compatible(info->dev->of_node,
+				    "fairchild,fan54015_chg")) {
+		ret = fan54015_charger_set_safety_vol(info,
+					voltage_max_microvolt);
+		if (ret) {
+			dev_err(info->dev,
+				"set fan54015 safety vol failed\n");
+			return ret;
+		}
+
+		ret = fan54015_charger_set_safety_cur(info,
+					info->cur.dcp_cur);
+		if (ret) {
+			dev_err(info->dev,
+				"set fan54015 safety cur failed\n");
+			return ret;
+		}
+	}
+
+	ret = fan54015_update_bits(info, FAN54015_REG_4,
+				   FAN54015_REG_RESET_MASK,
+				   FAN54015_REG_RESET);
+	if (ret) {
+		dev_err(info->dev, "reset fan54015 failed\n");
+		return ret;
+	}
+
+	if (of_device_is_compatible(info->dev->of_node,
+				    "prisemi,psc5415z_chg")) {
+		ret = fan54015_charger_set_safety_vol(info,
+					voltage_max_microvolt);
+		if (ret) {
+			dev_err(info->dev,
+				"set psc5415z safety vol failed\n");
+			return ret;
+		}
+
+		ret = fan54015_charger_set_safety_cur(info,
+					info->cur.dcp_cur);
+		if (ret) {
+			dev_err(info->dev,
+				"set psc5415z safety cur failed\n");
+			return ret;
+		}
+	}
+
+	ret = fan54015_update_bits(info, FAN54015_REG_1,
+				   FAN54015_REG_WEAK_VOL_THRESHOLD_MASK, 0);
+	if (ret) {
+		dev_err(info->dev, "set fan54015 weak voltage threshold failed\n");
+		return ret;
+	}
+	ret = fan54015_update_bits(info, FAN54015_REG_5,
+				   FAN54015_REG_IO_LEVEL_MASK, 0);
+	if (ret) {
+		dev_err(info->dev, "set fan54015 io level failed\n");
+		return ret;
+	}
+
+	ret = fan54015_update_bits(info, FAN54015_REG_5,
+				   FAN54015_REG_VSP_MASK,
+				   FAN54015_REG_VSP);
+	if (ret) {
+		dev_err(info->dev, "set fan54015 vsp failed\n");
+		return ret;
+	}
+
+	ret = fan54015_update_bits(info, FAN54015_REG_1,
+				   FAN54015_REG_TERMINAL_CURRENT_MASK, 0);
+	if (ret) {
+		dev_err(info->dev, "set fan54015 terminal cur failed\n");
+		return ret;
+	}
+
+	ret = fan54015_update_bits(info,
+				   FAN54015_REG_0,
+				   FAN54015_REG_RESET_MASK,
+				   FAN54015_REG_RESET);
+	if (ret) {
+		dev_err(info->dev, "feed fan54015 watchdog failed\n");
+		return ret;
+	}
+	ret = fan54015_charger_set_termina_vol(info, voltage_max_microvolt);
+	if (ret) {
+		dev_err(info->dev, "set fan54015 terminal vol failed\n");
+		return ret;
+	}
+
+	ret = fan54015_charger_set_limit_current(info,
+						 info->cur.unknown_cur);
+	if (ret)
+		dev_err(info->dev, "set fan54015 limit current failed\n");
 
 	return ret;
 }
