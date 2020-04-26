@@ -146,6 +146,11 @@ static void dpu_clean_all(struct sprd_crtc_context *ctx);
 static void dpu_layer(struct sprd_crtc_context *ctx,
 		    struct sprd_crtc_layer *hwlayer);
 
+static void dpu_version(struct sprd_crtc_context *ctx)
+{
+	ctx->version = "dpu-r2p0";
+}
+
 static u32 check_mmu_isr(struct sprd_crtc_context *ctx, u32 reg_val)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -817,6 +822,7 @@ static void dpu_capability(struct sprd_crtc_context *ctx,
 }
 
 const struct sprd_crtc_core_ops sharkl3_dpu_core_ops = {
+	.version = dpu_version,
 	.init = dpu_init,
 	.fini = dpu_fini,
 	.run = dpu_run,

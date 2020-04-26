@@ -114,6 +114,7 @@ struct sprd_crtc_context;
 struct sprd_crtc_core_ops {
 	int (*parse_dt)(struct sprd_crtc_context *ctx,
 			struct device_node *np);
+	void (*version)(struct sprd_crtc_context *ctx);
 	int (*init)(struct sprd_crtc_context *ctx);
 	void (*fini)(struct sprd_crtc_context *ctx);
 	void (*run)(struct sprd_crtc_context *ctx);

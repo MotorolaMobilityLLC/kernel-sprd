@@ -353,6 +353,7 @@ static int sprd_dpu_bind(struct device *dev, struct device *master, void *data)
 
 	DRM_INFO("%s()\n", __func__);
 
+	dpu->core->version(&dpu->ctx);
 	dpu->core->capability(&dpu->ctx, &cap);
 
 	plane = sprd_plane_init(drm, &cap, DRM_PLANE_TYPE_PRIMARY);
@@ -467,7 +468,6 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 		dpu->core = pdata->core;
 		dpu->clk = pdata->clk;
 		dpu->glb = pdata->glb;
-		dpu->ctx.version = "dpu-r2p0";
 	} else {
 		DRM_ERROR("No matching driver data found\n");
 		return -EINVAL;
