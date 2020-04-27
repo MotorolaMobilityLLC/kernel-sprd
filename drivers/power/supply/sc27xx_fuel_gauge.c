@@ -536,7 +536,6 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 				   int chg_sts)
 {
 	int ret, cur_clbcnt, delta_clbcnt, delta_cap, temp, temp_cap;
-	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
 
 	/* Get current coulomb counters firstly */
 	ret = sc27xx_fgu_get_clbcnt(data, &cur_clbcnt);
@@ -564,11 +563,6 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 						  data->cap_table_len,
 						  data->bat_temp);
 		/*
-		 * Due to the change in temperature during power-on,
-		 * the power will be reduced by 1%. Therefore, add
-		 * temp_cap to 99 to round up.
-		 * temp_cap = DIV_ROUND_UP((100 + temp_cap), 2);
-		 *
 		 * Battery capacity at different temperatures, we think
 		 * the change is linear, the follow the formula: y = ax + k
 		 *
@@ -582,9 +576,6 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 		 * Capacity_temp = (Capacity_Percentage(current) -
 		 * Capacity_Delta) * 100 /(100 - Capacity_Delta)
 		 */
-		if (!is_first_poweron)
-			temp_cap = DIV_ROUND_UP((100 + temp_cap), 2);
-
 		delta_cap = 100 - temp_cap;
 		*cap = (*cap - delta_cap) * 100 / (100 - delta_cap);
 
