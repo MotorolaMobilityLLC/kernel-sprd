@@ -9,6 +9,7 @@
 #include <linux/mutex.h>
 #include <linux/of_graph.h>
 #include <linux/of_platform.h>
+#include <uapi/drm/sprd_drm_gsp.h>
 
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
@@ -21,6 +22,7 @@
 #include <drm/drm_vblank.h>
 
 #include "sprd_drm.h"
+#include "sprd_drm_gsp.h"
 #include "sprd_gem.h"
 #include "sysfs/sysfs_display.h"
 
@@ -54,6 +56,13 @@ static void sprd_drm_mode_config_init(struct drm_device *drm)
 	drm->mode_config.helper_private = &sprd_drm_mode_config_helper;
 }
 
+static const struct drm_ioctl_desc sprd_ioctls[] = {
+	DRM_IOCTL_DEF_DRV(SPRD_GSP_GET_CAPABILITY,
+			sprd_gsp_get_capability_ioctl, 0),
+	DRM_IOCTL_DEF_DRV(SPRD_GSP_TRIGGER,
+			sprd_gsp_trigger_ioctl, 0),
+};
+
 static const struct file_operations sprd_drm_fops = {
 	.owner		= THIS_MODULE,
 	.open		= drm_open,
@@ -81,6 +90,9 @@ static struct drm_driver sprd_drm_drv = {
 	.gem_prime_vmap		= drm_gem_cma_prime_vmap,
 	.gem_prime_vunmap	= drm_gem_cma_prime_vunmap,
 	.gem_prime_mmap		= drm_gem_cma_prime_mmap,
+
+	.ioctls			= sprd_ioctls,
+	.num_ioctls		= ARRAY_SIZE(sprd_ioctls),
 
 	.name			= DRIVER_NAME,
 	.desc			= DRIVER_DESC,
@@ -178,7 +190,7 @@ static int compare_of(struct device *dev, void *data)
 }
 
 static int sprd_drm_component_probe(struct device *dev,
-			   const struct component_master_ops *m_ops)
+			const struct component_master_ops *m_ops)
 {
 	struct device_node *ep, *port, *remote;
 	struct component_match *match = NULL;
@@ -244,6 +256,22 @@ static int sprd_drm_component_probe(struct device *dev,
 			of_node_put(remote);
 		}
 		of_node_put(port);
+	}
+
+	if (IS_ENABLED(CONFIG_DRM_SPRD_GSP)) {
+		for (i = 0; ; i++) {
+			port = of_parse_phandle(dev->of_node, "gsp", i);
+			if (!port)
+				break;
+
+			if (!of_device_is_available(port->parent)) {
+				of_node_put(port);
+				continue;
+			}
+
+			component_match_add(dev, &match, compare_of, port);
+			of_node_put(port);
+		}
 	}
 
 	return component_master_add_with_match(dev, m_ops, match);

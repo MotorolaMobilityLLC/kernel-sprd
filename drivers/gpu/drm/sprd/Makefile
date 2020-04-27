@@ -39,4 +39,4 @@ sprd-drm-y += sysfs/sysfs_class.o
 
 obj-$(CONFIG_DRM_SPRD) += sprd-drm.o
 
-#obj-$(CONFIG_DRM_SPRD_GSP) += gsp/
+obj-$(CONFIG_DRM_SPRD_GSP) += gsp/

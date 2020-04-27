@@ -11,6 +11,7 @@
 
 struct sprd_drm {
 	struct drm_device *drm;
+	struct device *gsp_dev;
 };
 
 #ifdef CONFIG_DRM_SPRD_DUMMY
