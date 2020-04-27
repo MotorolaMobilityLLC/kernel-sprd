@@ -8,6 +8,7 @@
 #include <linux/module.h>
 #include <linux/nvmem-consumer.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
@@ -16,6 +17,8 @@
 /* PMIC global control registers definition */
 #define SC27XX_MODULE_EN0		0xc08
 #define SC27XX_CLK_EN0			0xc18
+#define SC2730_MODULE_EN0		0x1808
+#define SC2730_CLK_EN0			0x1810
 #define SC27XX_FGU_EN			BIT(7)
 #define SC27XX_FGU_RTC_EN		BIT(6)
 
@@ -114,6 +117,21 @@ struct sc27xx_fgu_data {
 	int calib_resist;
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_resistance_temp_table *resist_table;
+};
+
+struct sc27xx_fgu_variant_data {
+	u32 module_en;
+	u32 clk_en;
+};
+
+static const struct sc27xx_fgu_variant_data sc2731_info = {
+	.module_en = SC27XX_MODULE_EN0,
+	.clk_en = SC27XX_CLK_EN0,
+};
+
+static const struct sc27xx_fgu_variant_data sc2730_info = {
+	.module_en = SC2730_MODULE_EN0,
+	.clk_en = SC2730_CLK_EN0,
 };
 
 static int sc27xx_fgu_cap_to_clbcnt(struct sc27xx_fgu_data *data, int capacity);
@@ -559,9 +577,10 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_TEMP:
 		ret = sc27xx_fgu_get_temp(data, &value);
-		if (ret)
+		if (ret < 0)
 			goto error;
 
+		ret = 0;
 		val->intval = value;
 		break;
 
@@ -924,7 +943,8 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 	return 0;
 }
 
-static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data)
+static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
+			      const struct sc27xx_fgu_variant_data *pdata)
 {
 	struct power_supply_battery_info info = { };
 	struct power_supply_battery_ocv_table *table;
@@ -982,7 +1002,7 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data)
 		return ret;
 
 	/* Enable the FGU module */
-	ret = regmap_update_bits(data->regmap, SC27XX_MODULE_EN0,
+	ret = regmap_update_bits(data->regmap, pdata->module_en,
 				 SC27XX_FGU_EN, SC27XX_FGU_EN);
 	if (ret) {
 		dev_err(data->dev, "failed to enable fgu\n");
@@ -990,7 +1010,7 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data)
 	}
 
 	/* Enable the FGU RTC clock to make it work */
-	ret = regmap_update_bits(data->regmap, SC27XX_CLK_EN0,
+	ret = regmap_update_bits(data->regmap, pdata->clk_en,
 				 SC27XX_FGU_RTC_EN, SC27XX_FGU_RTC_EN);
 	if (ret) {
 		dev_err(data->dev, "failed to enable fgu RTC clock\n");
@@ -1066,9 +1086,9 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data)
 	return 0;
 
 disable_clk:
-	regmap_update_bits(data->regmap, SC27XX_CLK_EN0, SC27XX_FGU_RTC_EN, 0);
+	regmap_update_bits(data->regmap, pdata->clk_en, SC27XX_FGU_RTC_EN, 0);
 disable_fgu:
-	regmap_update_bits(data->regmap, SC27XX_MODULE_EN0, SC27XX_FGU_EN, 0);
+	regmap_update_bits(data->regmap, pdata->module_en, SC27XX_FGU_EN, 0);
 
 	return ret;
 }
@@ -1079,11 +1099,18 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	struct device_node *np = dev->of_node;
 	struct power_supply_config fgu_cfg = { };
 	struct sc27xx_fgu_data *data;
+	const struct sc27xx_fgu_variant_data *pdata;
 	int ret, irq;
 
 	data = devm_kzalloc(dev, sizeof(*data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
+
+	pdata = of_device_get_match_data(&pdev->dev);
+	if (!pdata) {
+		dev_err(&pdev->dev, "no matching driver data found\n");
+		return -EINVAL;
+	}
 
 	data->regmap = dev_get_regmap(dev->parent, NULL);
 	if (!data->regmap) {
@@ -1144,7 +1171,7 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		return PTR_ERR(data->battery);
 	}
 
-	ret = sc27xx_fgu_hw_init(data);
+	ret = sc27xx_fgu_hw_init(data, pdata);
 	if (ret) {
 		dev_err(dev, "failed to initialize fgu hardware\n");
 		return ret;
@@ -1267,7 +1294,8 @@ static const struct dev_pm_ops sc27xx_fgu_pm_ops = {
 };
 
 static const struct of_device_id sc27xx_fgu_of_match[] = {
-	{ .compatible = "sprd,sc2731-fgu", },
+	{ .compatible = "sprd,sc2731-fgu", .data = &sc2731_info},
+	{ .compatible = "sprd,sc2730-fgu", .data = &sc2730_info},
 	{ }
 };
 
