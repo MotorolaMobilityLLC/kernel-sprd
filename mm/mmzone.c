@@ -9,6 +9,9 @@
 #include <linux/stddef.h>
 #include <linux/mm.h>
 #include <linux/mmzone.h>
+#ifdef CONFIG_PROTECT_LRU
+#include <linux/protect_lru.h>
+#endif
 
 struct pglist_data *first_online_pgdat(void)
 {
@@ -86,7 +89,11 @@ bool memmap_valid_within(unsigned long pfn,
 }
 #endif /* CONFIG_ARCH_HAS_HOLES_MEMORYMODEL */
 
+#ifdef CONFIG_PROTECT_LRU
+void lruvec_init(struct mem_cgroup *memcg, struct lruvec *lruvec)
+#else
 void lruvec_init(struct lruvec *lruvec)
+#endif
 {
 	enum lru_list lru;
 
@@ -94,6 +101,10 @@ void lruvec_init(struct lruvec *lruvec)
 
 	for_each_lru(lru)
 		INIT_LIST_HEAD(&lruvec->lists[lru]);
+
+#ifdef CONFIG_PROTECT_LRU
+	protect_lruvec_init(memcg, lruvec);
+#endif
 }
 
 #if defined(CONFIG_NUMA_BALANCING) && !defined(LAST_CPUPID_NOT_IN_PAGE_FLAGS)

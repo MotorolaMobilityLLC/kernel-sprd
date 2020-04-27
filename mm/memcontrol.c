@@ -4216,7 +4216,11 @@ static int alloc_mem_cgroup_per_node_info(struct mem_cgroup *memcg, int node)
 		return 1;
 	}
 
+#ifdef CONFIG_PROTECT_LRU
+	lruvec_init(memcg, &pn->lruvec);
+#else
 	lruvec_init(&pn->lruvec);
+#endif
 	pn->usage_in_excess = 0;
 	pn->on_tree = false;
 	pn->memcg = memcg;
