@@ -528,6 +528,10 @@ struct mm_struct {
 	/* HMM needs to track a few things per mm */
 	struct hmm *hmm;
 #endif
+
+#ifdef CONFIG_PROTECT_LRU
+	int protect;
+#endif
 } __randomize_layout;
 
 extern struct mm_struct init_mm;

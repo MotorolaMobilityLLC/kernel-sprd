@@ -27,6 +27,81 @@
 #include <linux/module.h>
 #include "internal.h"
 
+static ssize_t protect_level_write(struct file *file, const char __user *buf,
+				   size_t count, loff_t *ppos)
+{
+	char buffer[200];
+	struct task_struct *task;
+	struct mm_struct *mm;
+	int protect_level;
+	int err;
+
+	memset(buffer, 0, sizeof(buffer));
+
+	if (count > sizeof(buffer) - 1)
+		count = sizeof(buffer) - 1;
+
+	if (copy_from_user(buffer, buf, count))
+		return -EFAULT;
+
+	err = kstrtoint(strstrip(buffer), 0, &protect_level);
+	if (err)
+		return -EINVAL;
+
+	if (protect_level > PROTECT_HEAD_END || protect_level < 0)
+		return -EINVAL;
+
+	task = get_proc_task(file->f_path.dentry->d_inode);
+	if (!task)
+		return -ESRCH;
+
+	mm = get_task_mm(task);
+	if (!mm)
+		goto out;
+
+	down_write(&mm->mmap_sem);
+	mm->protect = protect_level;
+	up_write(&mm->mmap_sem);
+	mmput(mm);
+
+out:
+	put_task_struct(task);
+	return count;
+}
+
+static ssize_t protect_level_read(struct file *file, char __user *buf,
+				  size_t count,	loff_t *ppos)
+{
+	struct task_struct *task;
+	struct mm_struct *mm;
+	char buffer[PROC_NUMBUF];
+	int protect_level;
+	size_t len;
+
+	task = get_proc_task(file->f_path.dentry->d_inode);
+	if (!task)
+		return -ESRCH;
+
+	mm = get_task_mm(task);
+	if (!mm) {
+		put_task_struct(task);
+		return -ENOENT;
+	}
+
+	protect_level = mm->protect;
+	mmput(mm);
+	put_task_struct(task);
+
+	len = snprintf(buffer, sizeof(buffer), "%d\n", protect_level);
+	return simple_read_from_buffer(buf, count, ppos, buffer, len);
+}
+
+const struct file_operations proc_protect_level_operations = {
+	.write	= protect_level_write,
+	.read	= protect_level_read,
+	.llseek = noop_llseek,
+};
+
 void protect_lruvec_init(struct mem_cgroup *memcg, struct lruvec *lruvec)
 {
 	enum lru_list lru;
