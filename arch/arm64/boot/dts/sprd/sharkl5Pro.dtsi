@@ -147,6 +147,21 @@
 			compatible = "sprd,ums512-glbregs", "syscon";
 			reg = <0 0x71000000 0 0x3000>;
 		};
+
+		aon {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			hwlock: hwspinlock@327f0000 {
+				compatible = "sprd,hwspinlock-r3p0";
+				reg = <0 0x327f0000 0 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
+		};
 	};
 
 	ext_26m: ext-26m {
