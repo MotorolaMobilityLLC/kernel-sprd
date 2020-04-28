@@ -67,8 +67,18 @@
 
 #define SC27XX_FGU_CUR_BASIC_ADC	8192
 #define SC27XX_FGU_SAMPLE_HZ		2
+#define SC27XX_FGU_TEMP_BUFF_CNT	10
+#define SC27XX_FGU_LOW_TEMP_REGION	100
 /* micro Ohms */
 #define SC27XX_FGU_IDEAL_RESISTANCE	20000
+
+#define interpolate(x, x1, y1, x2, y2) \
+	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
+
+struct power_supply_vol_temp_table {
+	int vol;	/* microVolts */
+	int temp;	/* celsius */
+};
 
 /*
  * struct sc27xx_fgu_data: describe the FGU device
@@ -89,11 +99,16 @@
  * @min_volt: the minimum drained battery voltage in microvolt
  * @boot_volt: the voltage measured during boot in microvolt
  * @table_len: the capacity table length
+ * @temp_table_len: temp_table length
  * @resist_table_len: the resistance table length
  * @cur_1000ma_adc: ADC value corresponding to 1000 mA
  * @vol_1000mv_adc: ADC value corresponding to 1000 mV
  * @calib_resist: the real resistance of coulomb counter chip in uOhm
+ * @comp_resistance: the coulomb counter internal and the board ground resistance
+ * @index: record temp_buff array index
+ * @temp_buff: record the battery temperature for each measurement
  * @cap_table: capacity table with corresponding ocv
+ * @temp_table: the NTC voltage table with corresponding battery temperature
  * @resist_table: resistance percent table with corresponding temperature
  */
 struct sc27xx_fgu_data {
@@ -115,11 +130,16 @@ struct sc27xx_fgu_data {
 	int min_volt;
 	int boot_volt;
 	int table_len;
+	int temp_table_len;
 	int resist_table_len;
 	int cur_1000ma_adc;
 	int vol_1000mv_adc;
 	int calib_resist;
+	unsigned int comp_resistance;
+	int index;
+	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
 	struct power_supply_battery_ocv_table *cap_table;
+	struct power_supply_vol_temp_table *temp_table;
 	struct power_supply_resistance_temp_table *resist_table;
 };
 
@@ -531,6 +551,30 @@ static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
 	return 0;
 }
 
+static int sc27xx_fgu_vol_to_temp(struct power_supply_vol_temp_table *table,
+				  int table_len, int vol)
+{
+	int i, temp;
+
+	for (i = 0; i < table_len; i++)
+		if (vol > table[i].vol)
+			break;
+
+	if (i > 0 && i < table_len) {
+		temp = interpolate(vol,
+				   table[i].vol,
+				   table[i].temp,
+				   table[i - 1].vol,
+				   table[i - 1].temp);
+	} else if (i == 0) {
+		temp = table[0].temp;
+	} else {
+		temp = table[table_len - 1].temp;
+	}
+
+	return temp - 1000;
+}
+
 static int sc27xx_fgu_get_charge_vol(struct sc27xx_fgu_data *data, int *val)
 {
 	int ret, vol;
@@ -543,9 +587,83 @@ static int sc27xx_fgu_get_charge_vol(struct sc27xx_fgu_data *data, int *val)
 	return 0;
 }
 
+static int sc27xx_fgu_get_average_temp(struct sc27xx_fgu_data *data, int temp)
+{
+	int i, min, max;
+	int sum = 0;
+
+	if (data->temp_buff[0] == -500) {
+		for (i = 0; i < SC27XX_FGU_TEMP_BUFF_CNT; i++)
+			data->temp_buff[i] = temp;
+	}
+
+	if (data->index >= SC27XX_FGU_TEMP_BUFF_CNT)
+		data->index = 0;
+
+	data->temp_buff[data->index++] = temp;
+	min = max = data->temp_buff[0];
+
+	for (i = 0; i < SC27XX_FGU_TEMP_BUFF_CNT; i++) {
+		if (data->temp_buff[i] > max)
+			max = data->temp_buff[i];
+
+		if (data->temp_buff[i] < min)
+			min = data->temp_buff[i];
+
+		sum += data->temp_buff[i];
+	}
+
+	sum = sum - max - min;
+
+	return sum / (SC27XX_FGU_TEMP_BUFF_CNT - 2);
+}
+
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 {
-	return iio_read_channel_processed(data->channel, temp);
+	int vol, ret;
+
+	ret = iio_read_channel_processed(data->channel, &vol);
+	if (ret < 0)
+		return ret;
+
+	if (data->comp_resistance) {
+		int bat_current, resistance_vol;
+
+		ret = sc27xx_fgu_get_current(data, &bat_current);
+		if (ret) {
+			dev_err(data->dev, "failed to get battery current\n");
+			return ret;
+		}
+
+		/*
+		 * Due to the ntc resistor is connected to the coulomb counter
+		 * internal resistance and the board ground impedance at 1850mv.
+		 * so need to compensate for coulomb resistance and voltage loss
+		 * to ground impedance.
+		 * Follow the formula below:
+		 * formula:
+		 * Vadc = Vresistance + (1850 - Vresistance) * R / 47k + R
+		 * ->
+		 *  UR = Vadc -Vresistance +
+		 *  Vresistance * (Vadc - Vresistance) / (1850 - Vresistance)
+		 */
+		resistance_vol = bat_current * data->comp_resistance / 1000;
+		vol = vol - resistance_vol + (resistance_vol *
+			(vol - resistance_vol)) / (1850 - resistance_vol);
+		if (vol < 0)
+			vol = 0;
+	}
+
+	if (data->temp_table_len > 0) {
+		*temp = sc27xx_fgu_vol_to_temp(data->temp_table,
+					       data->temp_table_len,
+					       vol * 1000);
+		*temp = sc27xx_fgu_get_average_temp(data, *temp);
+	} else {
+		*temp = 200;
+	}
+
+	return 0;
 }
 
 static int sc27xx_fgu_get_health(struct sc27xx_fgu_data *data, int *health)
@@ -810,7 +928,7 @@ static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap)
 static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data,
 					    int cap, bool int_mode)
 {
-	int ret, ocv, chg_sts, adc;
+	int ret, ocv, chg_sts, adc, temp;
 
 	ret = sc27xx_fgu_get_vbat_ocv(data, &ocv);
 	if (ret) {
@@ -824,11 +942,19 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data,
 		return;
 	}
 
+	ret = sc27xx_fgu_get_temp(data, &temp);
+	if (ret) {
+		dev_err(data->dev, "get battery temperature error.\n");
+		return;
+	}
+
 	/*
-	 * If we are in charging mode, then we do not need to calibrate the
+	 * If we are in charging mode or the battery temperature is
+	 * 10 degrees or less, then we do not need to calibrate the
 	 * lower capacity.
 	 */
-	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING)
+	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING ||
+	    temp <= SC27XX_FGU_LOW_TEMP_REGION)
 		return;
 
 	if ((ocv > data->cap_table[0].ocv && cap < 100) || cap > 100) {
@@ -1014,6 +1140,59 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 	return 0;
 }
 
+static int sc27xx_fgu_get_battery_voltage_temp_table(struct power_supply *psy,
+				  struct sc27xx_fgu_data *data)
+{
+	struct device_node *battery_np;
+	const char *value;
+	const __be32 *list;
+	int err, index, size;
+
+	data->temp_table = NULL;
+	data->temp_table_len = -EINVAL;
+
+	if (!psy->of_node) {
+		dev_warn(&psy->dev, "%s currently only supports devicetree\n",
+			 __func__);
+		return -ENXIO;
+	}
+
+	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", 0);
+	if (!battery_np)
+		return -ENODEV;
+
+	err = of_property_read_string(battery_np, "compatible", &value);
+	if (err)
+		return err;
+
+	if (strcmp("simple-battery", value))
+		return -ENODEV;
+
+	list = of_get_property(battery_np, "voltage-temp-table", &size);
+	if (!list || !size)
+		return 0;
+
+	data->temp_table_len = size / (2 * sizeof(__be32));
+	data->temp_table = devm_kcalloc(&psy->dev,
+					data->temp_table_len,
+					sizeof(*data->temp_table),
+					GFP_KERNEL);
+	if (!data->temp_table)
+		return -ENOMEM;
+
+	/*
+	 * We should give a initial temperature value of temp_buff.
+	 */
+	data->temp_buff[0] = -500;
+
+	for (index = 0; index < data->temp_table_len; index++) {
+		data->temp_table[index].vol = be32_to_cpu(*list++);
+		data->temp_table[index].temp = be32_to_cpu(*list++);
+	}
+
+	return 0;
+}
+
 static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 			      const struct sc27xx_fgu_variant_data *pdata)
 {
@@ -1046,6 +1225,12 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	if (!data->cap_table) {
 		power_supply_put_battery_info(data->battery, &info);
 		return -ENOMEM;
+	}
+
+	ret = sc27xx_fgu_get_battery_voltage_temp_table(data->battery, data);
+	if (ret) {
+		dev_err(data->dev, "failed to get battery voltage_temp_table information\n");
+		return ret;
 	}
 
 	data->alarm_cap = power_supply_ocv2cap_simple(data->cap_table,
@@ -1203,6 +1388,12 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 			"failed to get fgu calibration resistance\n");
 		return ret;
 	}
+
+	ret = device_property_read_u32(&pdev->dev,
+				       "sprd,comp-resistance-mohm",
+				       &data->comp_resistance);
+	if (ret)
+		dev_warn(&pdev->dev, "no fgu compensated resistance support\n");
 
 	data->channel = devm_iio_channel_get(dev, "bat-temp");
 	if (IS_ERR(data->channel)) {
