@@ -27,6 +27,10 @@
 #include <linux/module.h>
 #include "internal.h"
 
+static unsigned long zero;
+static unsigned long one = 1;
+unsigned long protect_lru_enable __read_mostly = 1;
+
 static ssize_t protect_level_write(struct file *file, const char __user *buf,
 				   size_t count, loff_t *ppos)
 {
@@ -100,6 +104,19 @@ const struct file_operations proc_protect_level_operations = {
 	.write	= protect_level_write,
 	.read	= protect_level_read,
 	.llseek = noop_llseek,
+};
+
+struct ctl_table protect_lru_table[] = {
+	{
+		.procname	= "protect_lru_enable",
+		.data		= &protect_lru_enable,
+		.maxlen		= sizeof(unsigned long),
+		.mode		= 0640,
+		.proc_handler	= proc_doulongvec_minmax,
+		.extra1		= &zero,
+		.extra2		= &one,
+	},
+	{},
 };
 
 void protect_lruvec_init(struct mem_cgroup *memcg, struct lruvec *lruvec)

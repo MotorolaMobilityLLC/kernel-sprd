@@ -24,5 +24,6 @@
 extern void protect_lruvec_init(struct mem_cgroup *memcg, struct lruvec *lruvec);
 
 extern const struct file_operations proc_protect_level_operations;
+extern struct ctl_table protect_lru_table[];
 #endif
 #endif

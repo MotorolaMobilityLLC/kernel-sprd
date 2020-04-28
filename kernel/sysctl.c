@@ -99,6 +99,10 @@
 #include <linux/emem.h>
 #endif
 
+#ifdef CONFIG_PROTECT_LRU
+#include <linux/protect_lru.h>
+#endif
+
 #if defined(CONFIG_SYSCTL)
 
 /* External variables not in a header file. */
@@ -1505,6 +1509,13 @@ static struct ctl_table vm_table[] = {
 		.extra1		= &one,
 		.extra2		= &four,
 	},
+#ifdef CONFIG_PROTECT_LRU
+	{
+		.procname	= "protect_lru",
+		.mode		= 0220,
+		.child		= protect_lru_table,
+	},
+#endif
 #ifdef CONFIG_COMPACTION
 	{
 		.procname	= "compact_memory",
