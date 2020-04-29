@@ -1,7 +1,15 @@
 /dts-v1/;
 /plugin/;
 
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/clock/sprd,sc9863a-clk.h>
+
 / {
+	model = "Spreadtrum SC9863A-1H10 Board";
+	compatible = "sprd,sp9863a-1h10", "sprd,sc9863a";
+	sprd,sc-id = "sp9863a 1h10 1000";
+
 	fragment {
 		target-path = "/";
 		__overlay__ {
@@ -9,7 +17,6 @@
 				compatible = "microarray,afs121";
 				fpint-gpios = <&ap_gpio 130 0>;
 			};
-
 			pwm_backlight: sprd_backlight {
 				compatible = "pwm-backlight";
 				pwms = <&pwms 1 30000>;
@@ -45,7 +52,161 @@
 				>;
 				default-brightness-level = <33>;
 			};
+
+			charger-manager {
+				status = "okay";
+				compatible = "charger-manager";
+				cm-name = "battery";
+				cm-poll-mode = <2>;
+				cm-poll-interval = <15000>;
+				cm-battery-stat = <2>;
+
+				cm-fullbatt-vchkdrop-ms = <30000>;
+				cm-fullbatt-vchkdrop-volt = <60000>;
+				cm-fullbatt-voltage = <4300000>;
+				cm-fullbatt-current = <120000>;
+				cm-fullbatt-capacity = <100>;
+
+				cm-num-chargers = <1>;
+				cm-chargers = "fan54015_charger";
+				cm-fuel-gauge = "sc27xx-fgu";
+
+				/* in deci centigrade */
+				cm-battery-cold = <200>;
+				cm-battery-cold-in-minus;
+				cm-battery-hot = <800>;
+				cm-battery-temp-diff = <100>;
+
+				/* Allow charging for 6hr */
+				cm-charging-max = <21600000>;
+				/* recovery charging after stop charging 45min */
+				cm-discharging-max = <2700000>;
+
+				/* the interval to feed charger watchdog */
+				cm-wdt-interval = <60>;
+
+				/* drop voltage in microVolts to allow shutdown */
+				cm-shutdown-voltage = <3100000>;
+
+				/* when 99% of the time is exceeded, it will be forced to 100% */
+				cm-tickle-time-out = <1500>;
+
+				/* how much time to allow capacity change */
+				cm-one-cap-time = <30>;
+
+				/* when the safe charging voltage is exceeded, stop charging */
+				cm-charge-voltage-max = <6500000>;
+				/* drop voltage in microVolts to restart charging */
+				cm-charge-voltage-drop = <700000>;
+
+				regulator@0 {
+					cm-regulator-name = "vddgen0";
+					cable@0 {
+						cm-cable-name = "USB";
+						extcon = <&pmic_typec>;
+					};
+				};
+			};
 		};
+	};
+};
+
+&chosen {
+	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=s9863a1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
+};
+
+&usb {
+	sprd,cable-detection-method = "typec";
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	vbus-supply = <&vddvbus>;
+};
+
+&i2c1 {
+	sensor_sub2: sensor-sub2@2a {
+		compatible = "sprd,sensor-sub2";
+		reg = <0x2a>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&aon_clk CLK_SENSOR1>, <&mm_gate CLK_SENSOR1_EB>,
+			<&pll CLK_TWPLL_96M>,<&pll CLK_TWPLL_76M8>,
+			<&pll CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama>;
+		vddcamd-supply = <&vddcamd>;
+		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <4>;
+		csi = <&csi2>;
+		/*avdd-gpios=<&ap_gpio 140 0>;*/
+		reset-gpios = <&ap_gpio 45 0>;
+		power-down-gpios = <&ap_gpio 40 0>;
+	};
+};
+
+&i2c3 {
+	status = "okay";
+
+	adaptive-touchscreen@38 {
+		compatible = "adaptive-touchscreen";
+		reg = <0x38>;
+		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
+			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		controller = "focaltech,FT5436";
+		virtualkeys = <580 60 1320 60 45
+			172 360 1320 60 45
+			158 600 1320 60 45>;
+		private-data {
+			a8 = /bits/ 8 <0x5a>;
+		};
+	};
+};
+
+&i2c4 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	fan54015_chg: charger@6a {
+		compatible = "fairchild,fan54015_chg";
+		reg = <0x6a>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+	vddvbus:otg-vbus {
+		regulator-name = "vddvbus";
+		};
+	};
+
+	flash_ic: flash-ic@63 {
+		compatible = "sprd,flash-ocp8137";
+		reg = <0x63>;
+		sprd,flash-ic = <8137>;
+		sprd,torch = <1>;
+		sprd,preflash = <1>;
+		sprd,highlight = <1>;
+		sprd,torch-level = <128>;
+		sprd,preflash-level = <128>;
+		sprd,highlight-level = <128>;
+		sprd,lvfm-enable = <1>;
+		flash-torch-en-gpios = <&ap_gpio 88 0>;
+		flash-chip-en-gpios = <&ap_gpio 89 0>;
+		flash-en-gpios = <&ap_gpio 76 0>;
+		flash-sync-gpios = <&ap_gpio 141 0>;
+	};
+};
+
+&i2c7 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	fan53555_dcdc: regulator@60 {
+		compatible = "fcs,fan53555";
+		reg = <0x60>;
+		regulator-name = "fan53555";
+		regulator-min-microvolt = <603000>;
+		regulator-max-microvolt = <1411000>;
+		regulator-ramp-delay = <64000>;
+		regulator-always-on;
+		fcs,suspend-voltage-selector = <1>;
 	};
 };
 

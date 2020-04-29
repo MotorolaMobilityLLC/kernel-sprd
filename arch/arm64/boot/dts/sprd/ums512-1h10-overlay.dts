@@ -5,6 +5,11 @@
 #include <dt-bindings/gpio/gpio.h>
 
 / {
+
+	model = "Unisoc UMS512 1H10 board";
+	compatible = "sprd,ums512-1h10";
+	sprd,sc-id = "ums512 1h10 1000";
+
 	fragment {
 		target-path = "/";
 		__overlay__ {
@@ -56,6 +61,10 @@
 		};
 	};
 
+};
+
+&chosen {
+	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=ums512_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio swiotlb=1";
 };
 
 &reserved_memory {

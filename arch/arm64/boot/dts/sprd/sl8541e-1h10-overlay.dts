@@ -14,6 +14,10 @@
 #include <dt-bindings/gpio/gpio.h>
 
 / {
+
+	model = "Spreadtrum SL8541E-1H10 Board";
+	compatible = "sprd,sl8541e-1h10", "sprd,sc9832e";
+	sprd,sc-id = "9832e 1h10 1000";
 	/*
 	* When create a new node, we should use the key word __overlay__,
 	* otherwise u-boot can not analyze it.
@@ -92,6 +96,10 @@
 			};
 		};
 	};
+};
+
+&chosen {
+	bootargs_ext = "androidboot.hardware=sl8541e_1h10";
 };
 
 &i2c2 {

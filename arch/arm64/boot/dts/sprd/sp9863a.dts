@@ -17,11 +17,11 @@
 #include <dt-bindings/input/input.h>
 
 / {
-	model = "Spreadtrum SC9863A-1H10 Board";
+	model = "Spreadtrum SC9863A SoC";
 
-	compatible = "sprd,sp9863a-1h10", "sprd,sc9863a";
+	compatible = "sprd,sc9863a";
 
-	sprd,sc-id = <9863 1 0x20000>;
+	sprd,sc-id = "sp9863a 1000 1000";
 
 	aliases {
 		serial0 = &uart0;
@@ -34,9 +34,8 @@
 		reg = <0x0 0x80000000 0x0 0x80000000>;
 	};
 
-	chosen {
+	chosen: chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=s9863a1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
 	};
 
 	ipi: interrupt-controller {
@@ -225,7 +224,7 @@
 		cm-fullbatt-capacity = <100>;
 
 		cm-num-chargers = <1>;
-		cm-chargers = "fan54015_charger";
+		cm-chargers = "sc2703_charger";
 		cm-fuel-gauge = "sc27xx-fgu";
 
 		/* in deci centigrade */
@@ -235,9 +234,7 @@
 		cm-battery-temp-diff = <100>;
 
 		/* Allow charging for 6hr */
-		cm-charging-max = <21600000>;
-		/* recovery charging after stop charging 45min */
-		cm-discharging-max = <2700000>;
+		cm-charging-max = <18000000>;
 
 		/* the interval to feed charger watchdog */
 		cm-wdt-interval = <60>;
@@ -255,6 +252,7 @@
 		cm-charge-voltage-max = <6500000>;
 		/* drop voltage in microVolts to restart charging */
 		cm-charge-voltage-drop = <700000>;
+		cm-thermal-zone = "board-thmzone";
 
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
@@ -314,10 +312,6 @@
 	};
 };
 
-&usb {
-	sprd,cable-detection-method = "typec";
-};
-
 &vdd18 {
 	regulator-always-on;
 };
@@ -346,7 +340,6 @@
 &usb {
 	sprd,cable-detection-method = "typec";
 	extcon = <&extcon_gpio>, <&pmic_typec>;
-	vbus-supply = <&vddvbus>;
 };
 
 &pmic_typec {
@@ -456,26 +449,6 @@
 		reset-gpios = <&ap_gpio 45 0>;
 		power-down-gpios = <&ap_gpio 47 0>;
 	};
-
-	sensor_sub2: sensor-sub2@2a {
-		compatible = "sprd,sensor-sub2";
-		reg = <0x2a>;
-		clock-names = "clk_src","sensor_eb",
-			"clk_96m","clk_76m8",
-			"clk_48m","clk_26m";
-		clocks = <&aon_clk CLK_SENSOR1>, <&mm_gate CLK_SENSOR1_EB>,
-			<&pll CLK_TWPLL_96M>,<&pll CLK_TWPLL_76M8>,
-			<&pll CLK_TWPLL_48M>,<&ext_26m>;
-		vddio-supply = <&vddcamio>;
-		vddcama-supply = <&vddcama>;
-		vddcamd-supply = <&vddcamd>;
-		vddcammot-supply = <&vddcammot>;
-		sprd,phyid = <4>;
-		csi = <&csi2>;
-		/*avdd-gpios=<&ap_gpio 140 0>;*/
-		reset-gpios = <&ap_gpio 45 0>;
-		power-down-gpios = <&ap_gpio 40 0>;
-	};
 };
 
 &i2c3 {
@@ -487,46 +460,104 @@
 		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
 			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 		controller = "focaltech,FT5436";
-		virtualkeys = <580 60 1320 60 45
-			172 360 1320 60 45
-			158 600 1320 60 45>;
+		virtualkeys = <580 120 1350 60 45
+			172 360 1350 60 45
+			158 600 1350 60 45>;
 		private-data {
-			a8 = /bits/ 8 <0x5a>;
+			a8 = /bits/ 8 <0x5A>;
 		};
 	};
 };
 
-&i2c4 {
+&i2c7 {
 	status = "okay";
 	clock-frequency = <400000>;
 
-	fan54015_chg: charger@6a {
-		compatible = "fairchild,fan54015_chg";
-		reg = <0x6a>;
-		phys = <&hsphy>;
-		monitored-battery = <&bat>;
-		extcon = <&extcon_gpio>;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
+	charger: sc2703@4c {
+		compatible = "sprd,sc2703";
+		reg = <0x4c>;
+
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <8 8>;
+
+		adc: sc2703-adc {
+			compatible = "sprd,sc2703-adc";
+			#io-channel-cells = <1>;
+		};
+
+		sc2703-charger {
+			compatible = "sprd,sc2703-charger";
+			phys = <&hsphy>;
+			monitored-battery = <&bat>;
+			extcon = <&pmic_typec>;
+			vddvbus:otg-vbus {
+				regulator-name = "vddvbus";
+			};
 		};
 	};
 
-	flash_ic: flash-ic@63 {
-		compatible = "sprd,flash-ocp8137";
-		reg = <0x63>;
-		sprd,flash-ic = <8137>;
-		sprd,torch = <1>;
-		sprd,preflash = <1>;
-		sprd,highlight = <1>;
-		sprd,torch-level = <128>;
-		sprd,preflash-level = <128>;
-		sprd,highlight-level = <128>;
-		sprd,lvfm-enable = <1>;
-		flash-torch-en-gpios = <&ap_gpio 88 0>;
-		flash-chip-en-gpios = <&ap_gpio 89 0>;
-		flash-en-gpios = <&ap_gpio 76 0>;
-		flash-sync-gpios = <&ap_gpio 141 0>;
+	ext_pmic: sc2703-buck@49 {
+		compatible = "sprd,sc2703-buck";
+		reg = <0x49>;
+		buck-gpios = <&ap_gpio 88 0>;
+
+		sprd,buck-ch1-b-out = <1000000>;
+
+		regulator-name = "sc2703-buck";
+		regulator-min-microvolt = < 300000>;
+		regulator-max-microvolt = <1570000>;
+		regulator-min-microamp = <5600000>;
+		regulator-max-microamp = <10800000>;
+		regulator-boot-on;
+		regulator-always-on;
 	};
+
+	/*virtual i2c device for cpu hw dvfs,sc2703*/
+	cpufreqhw@61 {
+		compatible = "sprd,hwdvfs-regulator-sharkl3";
+		reg = <0x61>;
+	};
+
+	flash: sc2703-flash@4a {
+		compatible = "sprd,sc2703-flash";
+		reg = <0x4a>;
+		flash-chip-en-gpios = <&ap_gpio 89 0>;
+	/*	sc2703,charger = <&charger>;*/
+	};
+
+	sc2703-disp@4b {
+		compatible = "sprd,sc2703-disp";
+		reg = <0x4b>;
+
+		lcd_vdd: lcd-regulator {
+			compatible = "sprd,sc2703-lcd-regulator";
+			regulator-name = "sc2703-lcd";
+			regulator-boot-on;
+		};
+
+		sc2703-backlight {
+			compatible = "sprd,sc2703-backlight";
+
+			pwms = <&pwms 0 40000>;
+			pwm-names = "wled-pwm";
+			//int-gpios = <&ap_gpio 96 0>;
+
+			sprd,wled-mode = "duty-det-analog-mode";
+			sprd,max-brightness = <255>;
+		};
+	};
+};
+
+&lcd_nt35596_boe_mipi_fhd {
+	power-supply = <&lcd_vdd>;
+};
+
+&lcd_nt35695_truly_mipi_fhd {
+	power-supply = <&lcd_vdd>;
+};
+
+&lcd_nt35532_truly_mipi_fhd {
+	power-supply = <&lcd_vdd>;
 };
 
 &spi0 {
@@ -536,22 +567,6 @@
 
 &sdio0 {
 	cd-gpios = <&eic_async 9 1>;
-};
-
-&i2c7 {
-	status = "okay";
-	clock-frequency = <400000>;
-
-	fan53555_dcdc: regulator@60 {
-		compatible = "fcs,fan53555";
-		reg = <0x60>;
-		regulator-name = "fan53555";
-		regulator-min-microvolt = <603000>;
-		regulator-max-microvolt = <1411000>;
-		regulator-ramp-delay = <64000>;
-		regulator-always-on;
-		fcs,suspend-voltage-selector = <1>;
-	};
 };
 
 &vsp {
@@ -613,6 +628,8 @@
 };
 
 &sprd_hwdvfs {
+	compatible = "sprd,sharkl3-hwdvfs-3h10";
+
 	hwdvfs_cluster0: cluster@0 {
 		reg = <0x0>;
 		dcdc-ctrl = <&dcdc_ctrl1>;
@@ -639,12 +656,12 @@
 	};
 
 	dcdc_ctrl1: dcdc-controller@1 {
-		reg = <0x1 0x2>;
+		reg = <0x1 0x3>;
 		volt-via-i2c;
 		volt-hold-us = <25>;
 		volt-pause-us = <20>;
 		volt-timeout-us = <800>;
-		volt-stable-us  = <25>;
+		volt-stable-us  = <60>;
 		volt-max-step-microvolt = <1200004>;
 	};
 };
@@ -717,4 +734,20 @@
 		pins = "SHARKL3_SDA3";
 		function = "func4";
 	};
+};
+
+&CPU0 {
+	cpu-supply = <&ext_pmic>;
+};
+
+&CPU1 {
+	cpu-supply = <&ext_pmic>;
+};
+
+&CPU2 {
+	cpu-supply = <&ext_pmic>;
+};
+
+&CPU3 {
+	cpu-supply = <&ext_pmic>;
 };

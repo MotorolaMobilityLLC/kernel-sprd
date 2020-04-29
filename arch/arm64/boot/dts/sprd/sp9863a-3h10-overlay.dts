@@ -1,7 +1,14 @@
 /dts-v1/;
 /plugin/;
 
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+
 / {
+	model = "Spreadtrum SC9863A-3H10 Board";
+	compatible = "sprd,sp9863a-3h10", "sprd,sc9863a";
+	sprd,sc-id = "sp9863a 3h10 1000";
+
 	fragment {
 		target-path = "/";
 		__overlay__ {
@@ -13,8 +20,14 @@
 	};
 };
 
+&chosen {
+	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=s9863a3h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
+	bootargs_ext = "androidboot.hardware=s9863a1h10";
+};
+
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 			"camhigh", "camveryhigh";
 	sprd-freq = <933 400 233 400 622 933>;
 };
+
