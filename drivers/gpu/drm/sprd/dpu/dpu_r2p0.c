@@ -1657,7 +1657,12 @@ static int dpu_capability(struct dpu_context *ctx,
 	if (!cap)
 		return -EINVAL;
 
-	cap->max_layers = 6;
+	/* layer5 and layer6 are used for round corner */
+	if (sprd_corner_support)
+		cap->max_layers = 5;
+	else
+		cap->max_layers = 6;
+
 	cap->fmts_ptr = primary_fmts;
 	cap->fmts_cnt = ARRAY_SIZE(primary_fmts);
 
