@@ -5,7 +5,9 @@ Required properties :
  - compatible : "charger-manager"
  - <>-supply : for regulator consumer
  - cm-num-chargers : number of chargers
+ - cm-num-fast-chargers : number of fast chargers
  - cm-chargers : name of chargers
+ - cm-fast-chargers : name of fast chargers
  - cm-fuel-gauge : name of battery fuel gauge
  - subnode <regulator> :
 	- cm-regulator-name : name of charger regulator
@@ -61,7 +63,9 @@ Example :
 		cm-battery-stat = <3>;
 
 		cm-num-chargers = <3>;
+		cm-num-fast-chargers = <2>;
 		cm-chargers = "charger0", "charger1", "charger2";
+		cm-fast-chargers = "fast_charger0", "fast_charger1";
 
 		cm-fuel-gauge = "fuelgauge0";
 
