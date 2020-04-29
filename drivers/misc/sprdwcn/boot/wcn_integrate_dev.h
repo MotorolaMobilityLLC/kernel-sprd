@@ -36,6 +36,7 @@ enum wcn_gnss_sub_sys {
 #define WCN_BTWF_FILENAME "wcnmodem"
 #define WCN_GNSS_FILENAME "gpsgl"
 #define WCN_GNSS_BD_FILENAME "gpsbd"
+#define SUFFIX "androidboot.slot_suffix="
 
 /* NOTES:If DTS config more than REG_CTRL_CNT_MAX REGs */
 #define REG_CTRL_CNT_MAX 8
