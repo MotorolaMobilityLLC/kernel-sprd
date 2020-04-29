@@ -513,6 +513,12 @@
 		regulator-always-on;
 	};
 
+	/*virtual i2c device for cpu hw dvfs,sc2703*/
+	cpufreqhw@61 {
+		compatible = "sprd,hwdvfs-regulator-sharkl3";
+		reg = <0x61>;
+	};
+
 	flash: sc2703-flash@4a {
 		compatible = "sprd,sc2703-flash";
 		reg = <0x4a>;
@@ -623,6 +629,8 @@
 };
 
 &sprd_hwdvfs {
+	compatible = "sprd,sharkl3-hwdvfs-3h10";
+
 	hwdvfs_cluster0: cluster@0 {
 		reg = <0x0>;
 		dcdc-ctrl = <&dcdc_ctrl1>;
@@ -649,12 +657,12 @@
 	};
 
 	dcdc_ctrl1: dcdc-controller@1 {
-		reg = <0x1 0x2>;
+		reg = <0x1 0x3>;
 		volt-via-i2c;
 		volt-hold-us = <25>;
 		volt-pause-us = <20>;
 		volt-timeout-us = <800>;
-		volt-stable-us  = <25>;
+		volt-stable-us  = <60>;
 		volt-max-step-microvolt = <1200004>;
 	};
 };
