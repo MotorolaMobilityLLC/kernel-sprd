@@ -277,7 +277,8 @@ void mmu_ex_frc_copy(ulong ctrl_base_addr, u32 iommu_id, u32 iommu_type)
 			reg_addr = ctrl_base_addr + 0x2010;
 		else if (iommu_type == SPRD_IOMMUEX_PIKE2)
 			reg_addr = ctrl_base_addr + 0x4;
-		else if (iommu_type == SPRD_IOMMUEX_SHARKL3)
+		else if (iommu_type == SPRD_IOMMUEX_SHARKL3
+			 || iommu_type == SPRD_IOMMUEX_SHARKL5)
 			reg_addr = ctrl_base_addr + 0x3010;
 		else
 			return;
