@@ -21,9 +21,22 @@
 #ifdef CONFIG_PROTECT_LRU
 #include <linux/sysctl.h>
 
+extern unsigned long protect_lru_enable __read_mostly;
+extern struct ctl_table protect_lru_table[];
+
 extern void protect_lruvec_init(struct mem_cgroup *memcg, struct lruvec *lruvec);
+extern void protect_lru_set_from_process(struct page *page);
+extern void add_page_to_protect_lru_list(struct page *page, struct lruvec *lruvec,
+					 bool lru_head);
+extern void del_page_from_protect_lru_list(struct page *page,
+					   struct lruvec *lruvec);
 
 extern const struct file_operations proc_protect_level_operations;
-extern struct ctl_table protect_lru_table[];
+#else
+static inline void add_page_to_protect_lru_list(struct page *page,
+					 struct lruvec *lruvec,
+					 bool lru_head){}
+static inline void del_page_from_protect_lru_list(struct page *page,
+					   struct lruvec *lruvec){}
 #endif
 #endif

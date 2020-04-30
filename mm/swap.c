@@ -40,6 +40,8 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/pagemap.h>
 
+#include <linux/protect_lru.h>
+
 /* How many pages do we try to swap or page in/out together? */
 int page_cluster;
 
@@ -65,6 +67,7 @@ static void __page_cache_release(struct page *page)
 		spin_lock_irqsave(zone_lru_lock(zone), flags);
 		lruvec = mem_cgroup_page_lruvec(page, zone->zone_pgdat);
 		VM_BUG_ON_PAGE(!PageLRU(page), page);
+		del_page_from_protect_lru_list(page, lruvec);
 		__ClearPageLRU(page);
 		del_page_from_lru_list(page, lruvec, page_off_lru(page));
 		spin_unlock_irqrestore(zone_lru_lock(zone), flags);
@@ -193,6 +196,10 @@ static void pagevec_lru_move_fn(struct pagevec *pvec,
 	struct pglist_data *pgdat = NULL;
 	struct lruvec *lruvec;
 	unsigned long flags = 0;
+	bool lru_head = false;
+#ifdef CONFIG_PROTECT_LRU
+	lru_head = pvec->lru_head;
+#endif
 
 	for (i = 0; i < pagevec_count(pvec); i++) {
 		struct page *page = pvec->pages[i];
@@ -206,7 +213,9 @@ static void pagevec_lru_move_fn(struct pagevec *pvec,
 		}
 
 		lruvec = mem_cgroup_page_lruvec(page, pgdat);
+		del_page_from_protect_lru_list(page, lruvec);
 		(*move_fn)(page, lruvec, arg);
+		add_page_to_protect_lru_list(page, lruvec, lru_head);
 	}
 	if (pgdat)
 		spin_unlock_irqrestore(&pgdat->lru_lock, flags);
@@ -235,6 +244,9 @@ static void pagevec_move_tail(struct pagevec *pvec)
 {
 	int pgmoved = 0;
 
+#ifdef CONFIG_PROTECT_LRU
+	pvec->lru_head = false;
+#endif
 	pagevec_lru_move_fn(pvec, pagevec_move_tail_fn, &pgmoved);
 	__count_vm_events(PGROTATED, pgmoved);
 }
@@ -293,6 +305,9 @@ static void activate_page_drain(int cpu)
 {
 	struct pagevec *pvec = &per_cpu(activate_page_pvecs, cpu);
 
+#ifdef CONFIG_PROTECT_LRU
+	pvec->lru_head = true;
+#endif
 	if (pagevec_count(pvec))
 		pagevec_lru_move_fn(pvec, __activate_page, NULL);
 }
@@ -309,8 +324,12 @@ void activate_page(struct page *page)
 		struct pagevec *pvec = &get_cpu_var(activate_page_pvecs);
 
 		get_page(page);
+#ifdef CONFIG_PROTECT_LRU
+		pvec->lru_head = true;
+#endif
 		if (!pagevec_add(pvec, page) || PageCompound(page))
 			pagevec_lru_move_fn(pvec, __activate_page, NULL);
+
 		put_cpu_var(activate_page_pvecs);
 	}
 }
@@ -405,6 +424,10 @@ static void __lru_cache_add(struct page *page)
 	struct pagevec *pvec = &get_cpu_var(lru_add_pvec);
 
 	get_page(page);
+
+#ifdef CONFIG_PROTECT_LRU
+	protect_lru_set_from_process(page);
+#endif
 	if (!pagevec_add(pvec, page) || PageCompound(page))
 		__pagevec_lru_add(pvec);
 	put_cpu_var(lru_add_pvec);
@@ -536,6 +559,9 @@ static void lru_deactivate_file_fn(struct page *page, struct lruvec *lruvec,
 	if (PageUnevictable(page))
 		return;
 
+	if (PageProtect(page))
+		return;
+
 	/* Some processes are using the page */
 	if (page_mapped(page))
 		return;
@@ -619,10 +645,16 @@ void lru_add_drain_cpu(int cpu)
 	}
 
 	pvec = &per_cpu(lru_deactivate_file_pvecs, cpu);
+#ifdef CONFIG_PROTECT_LRU
+	pvec->lru_head = true;
+#endif
 	if (pagevec_count(pvec))
 		pagevec_lru_move_fn(pvec, lru_deactivate_file_fn, NULL);
 
 	pvec = &per_cpu(lru_lazyfree_pvecs, cpu);
+#ifdef CONFIG_PROTECT_LRU
+	pvec->lru_head = true;
+#endif
 	if (pagevec_count(pvec))
 		pagevec_lru_move_fn(pvec, lru_lazyfree_fn, NULL);
 
@@ -648,7 +680,9 @@ void deactivate_file_page(struct page *page)
 
 	if (likely(get_page_unless_zero(page))) {
 		struct pagevec *pvec = &get_cpu_var(lru_deactivate_file_pvecs);
-
+#ifdef CONFIG_PROTECT_LRU
+		pvec->lru_head = true;
+#endif
 		if (!pagevec_add(pvec, page) || PageCompound(page))
 			pagevec_lru_move_fn(pvec, lru_deactivate_file_fn, NULL);
 		put_cpu_var(lru_deactivate_file_pvecs);
@@ -669,6 +703,9 @@ void mark_page_lazyfree(struct page *page)
 		struct pagevec *pvec = &get_cpu_var(lru_lazyfree_pvecs);
 
 		get_page(page);
+#ifdef CONFIG_PROTECT_LRU
+		pvec->lru_head = true;
+#endif
 		if (!pagevec_add(pvec, page) || PageCompound(page))
 			pagevec_lru_move_fn(pvec, lru_lazyfree_fn, NULL);
 		put_cpu_var(lru_lazyfree_pvecs);
@@ -803,6 +840,7 @@ void release_pages(struct page **pages, int nr, bool cold)
 
 			lruvec = mem_cgroup_page_lruvec(page, locked_pgdat);
 			VM_BUG_ON_PAGE(!PageLRU(page), page);
+			del_page_from_protect_lru_list(page, lruvec);
 			__ClearPageLRU(page);
 			del_page_from_lru_list(page, lruvec, page_off_lru(page));
 		}
@@ -901,6 +939,9 @@ static void __pagevec_lru_add_fn(struct page *page, struct lruvec *lruvec,
  */
 void __pagevec_lru_add(struct pagevec *pvec)
 {
+#ifdef CONFIG_PROTECT_LRU
+	pvec->lru_head = true;
+#endif
 	pagevec_lru_move_fn(pvec, __pagevec_lru_add_fn, NULL);
 }
 EXPORT_SYMBOL(__pagevec_lru_add);

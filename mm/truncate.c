@@ -224,6 +224,10 @@ int invalidate_inode_page(struct page *page)
 		return 0;
 	if (page_mapped(page))
 		return 0;
+
+	if (PageProtect(page))
+		return 0;
+
 	return invalidate_complete_page(mapping, page);
 }
 

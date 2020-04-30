@@ -45,6 +45,11 @@ struct vm_area_struct;
 #else
 #define ___GFP_NOLOCKDEP	0
 #endif
+#ifdef CONFIG_PROTECT_LRU
+#define ___GFP_PROTECT_LRU	0x4000000u
+#else
+#define	___GFP_PROTECT_LRU	0
+#endif
 /* If the above are modified, __GFP_BITS_SHIFT may need updating */
 
 /*
@@ -208,6 +213,8 @@ struct vm_area_struct;
 
 /* Disable lockdep for GFP context tracking */
 #define __GFP_NOLOCKDEP ((__force gfp_t)___GFP_NOLOCKDEP)
+
+#define __GFP_PROTECT_LRU ((__force gfp_t)___GFP_PROTECT_LRU)
 
 /* Room for N __GFP_FOO bits */
 #define __GFP_BITS_SHIFT (25 + IS_ENABLED(CONFIG_LOCKDEP))

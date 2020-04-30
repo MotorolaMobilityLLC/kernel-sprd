@@ -1854,6 +1854,9 @@ cont:
 		if (!page)
 			continue;
 
+		if (PageProtect(page))
+			continue;
+
 		if (isolate_lru_page(page))
 			continue;
 

@@ -62,6 +62,8 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/vmscan.h>
 
+#include <linux/protect_lru.h>
+
 struct scan_control {
 	/* How many pages shrink_list() should reclaim */
 	unsigned long nr_to_reclaim;
@@ -1534,6 +1536,10 @@ int __isolate_lru_page(struct page *page, isolate_mode_t mode)
 		return ret;
 
 	if (likely(get_page_unless_zero(page))) {
+		struct lruvec *lruvec;
+
+		lruvec = mem_cgroup_page_lruvec(page, page_pgdat(page));
+		del_page_from_protect_lru_list(page, lruvec);
 		/*
 		 * Be careful not to clear PageLRU until after we're
 		 * sure the page is not being freed elsewhere -- the
@@ -1600,6 +1606,18 @@ static unsigned long isolate_lru_pages(unsigned long nr_to_scan,
 	unsigned long skipped = 0;
 	unsigned long scan, total_scan, nr_pages;
 	LIST_HEAD(pages_skipped);
+#ifdef CONFIG_PROTECT_LRU
+	bool is_file, has_head = false;
+	LIST_HEAD(ret_pages);
+	struct list_head *head;
+	int num, cur_num = 0;
+	struct page *check;
+
+	if (lru == LRU_INACTIVE_FILE || lru == LRU_ACTIVE_FILE)
+		is_file = true;
+	else
+		is_file = false;
+#endif
 
 	scan = 0;
 	for (total_scan = 0;
@@ -1613,7 +1631,19 @@ static unsigned long isolate_lru_pages(unsigned long nr_to_scan,
 		VM_BUG_ON_PAGE(!PageLRU(page), page);
 
 		if (page_zonenum(page) > sc->reclaim_idx) {
+#ifdef CONFIG_PROTECT_LRU
+			if (!lruvec->protect || !is_file ||
+			    !PageProtect(page)) {
+				list_move(&page->lru, &pages_skipped);
+			} else {
+				num = get_page_protect_num(page) - 1;
+				head =
+				&lruvec->heads[num].protect_page[lru].lru;
+				list_move(&page->lru, head);
+			}
+#else
 			list_move(&page->lru, &pages_skipped);
+#endif
 			nr_skipped[page_zonenum(page)]++;
 			continue;
 		}
@@ -1625,6 +1655,40 @@ static unsigned long isolate_lru_pages(unsigned long nr_to_scan,
 		 * pages, triggering a premature OOM.
 		 */
 		scan++;
+
+#ifdef CONFIG_PROTECT_LRU
+		if (PageReserved(page)) {
+			has_head = true;
+			cur_num = get_page_protect_num(page);
+			if (!cur_num)
+				cur_num = PROTECT_HEAD_MAX;
+
+			list_move(&page->lru, &ret_pages);
+			continue;
+		}
+
+		if (is_file) {
+			check = list_entry(src->next, struct page, lru);
+			num = get_page_protect_num(page);
+
+			WARN_ONCE(!has_head && PageProtect(page),
+				"Plru: %s() protect page is in normal lru, lru=%d, num=%d\n",
+				__func__, lru, num),
+
+			WARN_ONCE(has_head && !PageProtect(page),
+				"Plru: %s() normal page is in protect lru, lru=%d, num=%d\n",
+				__func__, lru, num);
+
+			WARN_ONCE(has_head && PageProtect(page) && (cur_num - 1) != num,
+				"Plru: %s() protect page is at wrong lru, lru=%d, num=%d, cur_num=%d\n",
+				__func__, lru, num, cur_num);
+
+			WARN_ONCE(!PageReserved(check),
+				"Plru: %s() normal page is at the head tmp lru, lru=%d, num=%d\n",
+				__func__, lru, num);
+		}
+#endif
+
 		switch (__isolate_lru_page(page, mode)) {
 		case 0:
 			nr_pages = hpage_nr_pages(page);
@@ -1634,14 +1698,29 @@ static unsigned long isolate_lru_pages(unsigned long nr_to_scan,
 			break;
 
 		case -EBUSY:
+#ifdef CONFIG_PROTECT_LRU
+			if (!lruvec->protect || !is_file)
+				list_move(&page->lru, src);
+			else if (!PageProtect(page)) {
+				head = &lruvec->heads[PROTECT_HEAD_END].protect_page[lru].lru;
+				list_move(&page->lru, head);
+			} else {
+				head = &lruvec->heads[get_page_protect_num(page) - 1].protect_page[lru].lru;
+				list_move(&page->lru, head);
+			}
+#else
 			/* else it is being freed elsewhere */
 			list_move(&page->lru, src);
+#endif
 			continue;
 
 		default:
 			BUG();
 		}
 	}
+#ifdef CONFIG_PROTECT_LRU
+	list_splice_tail(&ret_pages, src);
+#endif
 
 	/*
 	 * Splice any skipped pages to the start of the LRU list. Note that
@@ -1653,7 +1732,16 @@ static unsigned long isolate_lru_pages(unsigned long nr_to_scan,
 	if (!list_empty(&pages_skipped)) {
 		int zid;
 
+#ifdef CONFIG_PROTECT_LRU
+		if (!lruvec->protect || !is_file)
+			list_splice(&pages_skipped, src);
+		else {
+			head = &lruvec->heads[PROTECT_HEAD_END].protect_page[lru].lru;
+			list_splice(&pages_skipped, head);
+		}
+#else
 		list_splice(&pages_skipped, src);
+#endif
 		for (zid = 0; zid < MAX_NR_ZONES; zid++) {
 			if (!nr_skipped[zid])
 				continue;
@@ -1710,6 +1798,7 @@ int isolate_lru_page(struct page *page)
 		if (PageLRU(page)) {
 			int lru = page_lru(page);
 			get_page(page);
+			del_page_from_protect_lru_list(page, lruvec);
 			ClearPageLRU(page);
 			del_page_from_lru_list(page, lruvec, lru);
 			ret = 0;
@@ -1784,6 +1873,7 @@ putback_inactive_pages(struct lruvec *lruvec, struct list_head *page_list)
 		SetPageLRU(page);
 		lru = page_lru(page);
 		add_page_to_lru_list(page, lruvec, lru);
+		add_page_to_protect_lru_list(page, lruvec, true);
 
 		if (is_active_lru(lru)) {
 			int file = is_file_lru(lru);
@@ -1791,6 +1881,7 @@ putback_inactive_pages(struct lruvec *lruvec, struct list_head *page_list)
 			reclaim_stat->recent_rotated[file] += numpages;
 		}
 		if (put_page_testzero(page)) {
+			del_page_from_protect_lru_list(page, lruvec);
 			__ClearPageLRU(page);
 			__ClearPageActive(page);
 			del_page_from_lru_list(page, lruvec, lru);
@@ -2027,8 +2118,10 @@ static unsigned move_active_pages_to_lru(struct lruvec *lruvec,
 		nr_pages = hpage_nr_pages(page);
 		update_lru_size(lruvec, lru, page_zonenum(page), nr_pages);
 		list_move(&page->lru, &lruvec->lists[lru]);
+		add_page_to_protect_lru_list(page, lruvec, true);
 
 		if (put_page_testzero(page)) {
+			del_page_from_protect_lru_list(page, lruvec);
 			__ClearPageLRU(page);
 			__ClearPageActive(page);
 			del_page_from_lru_list(page, lruvec, lru);

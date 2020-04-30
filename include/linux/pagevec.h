@@ -19,6 +19,9 @@ struct pagevec {
 	unsigned long nr;
 	unsigned long cold;
 	struct page *pages[PAGEVEC_SIZE];
+#ifdef CONFIG_PROTECT_LRU
+	bool lru_head;
+#endif
 };
 
 void __pagevec_release(struct pagevec *pvec);

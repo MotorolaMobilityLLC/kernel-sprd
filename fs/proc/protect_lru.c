@@ -100,6 +100,105 @@ static ssize_t protect_level_read(struct file *file, char __user *buf,
 	return simple_read_from_buffer(buf, count, ppos, buffer, len);
 }
 
+static inline bool check_file_page(struct page *page)
+{
+	if (PageSwapBacked(page))
+		return false;
+
+	if (PageUnevictable(page))
+		return false;
+
+	return true;
+}
+
+static inline bool check_protect_page(struct page *page)
+{
+	if (!PageLRU(page))
+		return false;
+
+	return check_file_page(page);
+}
+
+void protect_lru_set_from_process(struct page *page)
+{
+	struct mm_struct *mm = current->mm;
+	int level;
+
+	if (!mm || !protect_lru_enable)
+		return;
+
+	level = mm->protect;
+
+	if (level > 0) {
+		struct lruvec *lruvec;
+
+		lruvec = mem_cgroup_page_lruvec(page, page_pgdat(page));
+
+		if (!lruvec->protect)
+			return;
+
+		if (check_file_page(page) && !PageProtect(page)) {
+			SetPageActive(page);
+			SetPageProtect(page);
+			set_page_protect_num(page, level);
+		}
+	}
+}
+
+void del_page_from_protect_lru_list(struct page *page, struct lruvec *lruvec)
+{
+	int num, nr_pages;
+	enum lru_list lru;
+
+	if (!lruvec->protect)
+		return;
+
+	if (!check_protect_page(page))
+		return;
+
+	num = get_page_protect_num(page) - 1;
+	lru = page_lru(page);
+
+	if (unlikely(PageProtect(page))) {
+		nr_pages = hpage_nr_pages(page);
+		lruvec->heads[num].cur_pages -= nr_pages;
+	}
+}
+
+void add_page_to_protect_lru_list(struct page *page, struct lruvec *lruvec,
+				  bool lru_head)
+{
+	int num, nr_pages;
+	enum lru_list lru;
+	struct list_head *head;
+
+	if (!lruvec->protect)
+		return;
+
+	if (!check_protect_page(page))
+		return;
+
+	lru = page_lru(page);
+	num = get_page_protect_num(page) - 1;
+
+	if (PageProtect(page)) {
+		nr_pages = hpage_nr_pages(page);
+		head = &lruvec->heads[num].protect_page[lru].lru;
+		lruvec->heads[num].cur_pages += nr_pages;
+	} else
+		head = &lruvec->heads[PROTECT_HEAD_END].protect_page[lru].lru;
+
+	if (lru_head)
+		list_move(&page->lru, head);
+	else if (PageProtect(page)) {
+		head = &lruvec->heads[num+1].protect_page[lru].lru;
+		list_move_tail(&page->lru, head);
+	} else {
+		head = &lruvec->lists[lru];
+		list_move_tail(&page->lru, head);
+	}
+}
+
 const struct file_operations proc_protect_level_operations = {
 	.write	= protect_level_write,
 	.read	= protect_level_read,

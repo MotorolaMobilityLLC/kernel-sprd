@@ -50,6 +50,10 @@
 
 #include <asm/mman.h>
 
+#ifdef CONFIG_PROTECT_LRU
+#include <linux/protect_lru.h>
+#endif
+
 /*
  * Shared mappings implemented 30.11.1994. It's not fully working yet,
  * though.
@@ -759,6 +763,14 @@ static int __add_to_page_cache_locked(struct page *page,
 
 	VM_BUG_ON_PAGE(!PageLocked(page), page);
 	VM_BUG_ON_PAGE(PageSwapBacked(page), page);
+
+#ifdef CONFIG_PROTECT_LRU
+	/* To tell memcgroup this page is protected,
+	 * so it should be resided in root_mem_cgroup.
+	 */
+	if (current->mm && current->mm->protect > 0)
+		gfp_mask |= __GFP_PROTECT_LRU;
+#endif
 
 	if (!huge) {
 		error = mem_cgroup_try_charge(page, current->mm,
