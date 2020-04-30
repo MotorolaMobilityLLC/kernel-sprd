@@ -30,6 +30,8 @@ extern void add_page_to_protect_lru_list(struct page *page, struct lruvec *lruve
 					 bool lru_head);
 extern void del_page_from_protect_lru_list(struct page *page,
 					   struct lruvec *lruvec);
+extern struct page *protect_lru_move_and_shrink(struct page *page);
+extern void shrink_protect_lru(struct lruvec *lruvec, bool force);
 
 extern const struct file_operations proc_protect_level_operations;
 #else

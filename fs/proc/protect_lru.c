@@ -20,6 +20,7 @@
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/mm_inline.h>
+#include <linux/memcontrol.h>
 #include <linux/sched/mm.h>
 #include <linux/sched/signal.h>
 #include <linux/protect_lru.h>
@@ -29,6 +30,16 @@
 
 static unsigned long zero;
 static unsigned long one = 1;
+static unsigned long one_hundred = 100;
+
+static unsigned long protect_max_mbytes[PROTECT_HEAD_END] = {
+	100,
+	100,
+	100,
+};
+
+static unsigned long protect_cur_mbytes[PROTECT_HEAD_END];
+
 unsigned long protect_lru_enable __read_mostly = 1;
 
 static ssize_t protect_level_write(struct file *file, const char __user *buf,
@@ -137,7 +148,8 @@ void protect_lru_set_from_process(struct page *page)
 		if (!lruvec->protect)
 			return;
 
-		if (check_file_page(page) && !PageProtect(page)) {
+		if (check_file_page(page) && !PageProtect(page) &&
+		    lruvec->heads[level-1].max_pages) {
 			SetPageActive(page);
 			SetPageProtect(page);
 			set_page_protect_num(page, level);
@@ -199,6 +211,158 @@ void add_page_to_protect_lru_list(struct page *page, struct lruvec *lruvec,
 	}
 }
 
+bool protect_lru_is_full(struct lruvec *lruvec)
+{
+	int i;
+	unsigned long cur, max;
+
+	for (i = 0; i < PROTECT_HEAD_END; i++) {
+		cur = lruvec->heads[i].cur_pages;
+		max = lruvec->heads[i].max_pages;
+
+		if (cur && cur > max)
+			return true;
+	}
+	return false;
+}
+
+void shrink_protect_lru(struct lruvec *lruvec, bool force)
+{
+	int i, count, lru, index = 0;
+	unsigned long cur, max;
+	struct list_head *head;
+	struct page *tail;
+
+	if (!lruvec || !lruvec->protect)
+		return;
+
+	for (i = 0; i < PROTECT_HEAD_END; i++) {
+		cur = lruvec->heads[i].cur_pages;
+		max = lruvec->heads[i].max_pages;
+
+		if (!cur)
+			continue;
+
+		if (!force && cur <= max)
+			continue;
+
+		index = i + 1;
+		lru = LRU_INACTIVE_FILE;
+
+		head = &lruvec->heads[index].protect_page[lru].lru;
+
+		tail = list_entry(head->prev, struct page, lru);
+
+		if (PageReserved(tail)) {
+			lru = LRU_ACTIVE_FILE;
+			head = &lruvec->heads[index].protect_page[lru].lru;
+		}
+
+		count = SWAP_CLUSTER_MAX;
+		while (count--) {
+			tail = list_entry(head->prev, struct page, lru);
+
+			if (PageReserved(tail))
+				break;
+
+			del_page_from_protect_lru_list(tail, lruvec);
+			ClearPageProtect(tail);
+			set_page_protect_num(tail, 0);
+			add_page_to_protect_lru_list(tail, lruvec, true);
+		}
+	}
+}
+
+struct page *protect_lru_move_and_shrink(struct page *page)
+{
+	struct lruvec *lruvec;
+	struct pglist_data *pgdat;
+	unsigned long flags;
+
+	if (!page || !protect_lru_enable)
+		return page;
+
+	pgdat = page_pgdat(page);
+	lruvec = mem_cgroup_page_lruvec(page, pgdat);
+
+	if (protect_lru_is_full(lruvec)) {
+		spin_lock_irqsave(&(pgdat->lru_lock), flags);
+		shrink_protect_lru(lruvec, false);
+		spin_unlock_irqrestore(&(pgdat->lru_lock), flags);
+	}
+
+	if (PageProtect(page))
+		mark_page_accessed(page);
+
+	return page;
+}
+
+static int sysctl_protect_max_mbytes_handler(struct ctl_table *table, int write,
+	void __user *buffer, size_t *length, loff_t *ppos)
+{
+	unsigned long total_prot_pages, flags;
+	struct pglist_data *pgdat;
+	struct lruvec *lruvec;
+	int i, ret;
+
+	ret = proc_doulongvec_minmax(table, write, buffer, length, ppos);
+	if (ret)
+		return ret;
+
+	if (write) {
+		for (i = 0; i < PROTECT_HEAD_END; i++) {
+			total_prot_pages = protect_max_mbytes[i] << (20 - PAGE_SHIFT);
+
+			for_each_online_pgdat(pgdat) {
+				lruvec = get_protect_lruvec(pgdat);
+
+				if (lruvec->protect)
+					lruvec->heads[i].max_pages = total_prot_pages;
+			}
+		}
+
+		for_each_online_pgdat(pgdat) {
+			lruvec = get_protect_lruvec(pgdat);
+
+			while (protect_lru_is_full(lruvec)) {
+				spin_lock_irqsave(&(pgdat->lru_lock), flags);
+				shrink_protect_lru(lruvec, false);
+				spin_unlock_irqrestore(&(pgdat->lru_lock), flags);
+
+				if (signal_pending(current))
+					return ret;
+
+				cond_resched();
+			}
+		}
+	}
+
+	return ret;
+}
+
+static int sysctl_protect_cur_mbytes_handler(struct ctl_table *table, int write,
+	void __user *buffer, size_t *length, loff_t *ppos)
+{
+	int i;
+	struct pglist_data *pgdat;
+	struct lruvec *lruvec;
+
+	for (i = 0; i < PROTECT_HEAD_END; i++) {
+		protect_cur_mbytes[i] = 0;
+
+		for_each_online_pgdat(pgdat) {
+			lruvec = get_protect_lruvec(pgdat);
+
+			if (lruvec->protect)
+				protect_cur_mbytes[i] += lruvec->heads[i].cur_pages;
+		}
+		protect_cur_mbytes[i] >>= (20 - PAGE_SHIFT);
+	}
+
+	return proc_doulongvec_minmax(table, write, buffer, length, ppos);
+}
+
+
 const struct file_operations proc_protect_level_operations = {
 	.write	= protect_level_write,
 	.read	= protect_level_read,
@@ -214,6 +378,22 @@ struct ctl_table protect_lru_table[] = {
 		.proc_handler	= proc_doulongvec_minmax,
 		.extra1		= &zero,
 		.extra2		= &one,
+	},
+	{
+		.procname	= "protect_max_mbytes",
+		.data		= &protect_max_mbytes,
+		.maxlen		= sizeof(protect_max_mbytes),
+		.mode		= 0640,
+		.proc_handler	= sysctl_protect_max_mbytes_handler,
+		.extra1		= &zero,
+		.extra2		= &one_hundred,
+	},
+	{
+		.procname	= "protect_cur_mbytes",
+		.data		= &protect_cur_mbytes,
+		.maxlen		= sizeof(protect_cur_mbytes),
+		.mode		= 0440,
+		.proc_handler	= sysctl_protect_cur_mbytes_handler,
 	},
 	{},
 };
@@ -260,3 +440,31 @@ populate:
 }
 
 EXPORT_SYMBOL(protect_lruvec_init);
+
+static int __init protect_lru_init(void)
+{
+	int i;
+	struct pglist_data *pgdat;
+	struct lruvec *lruvec;
+	unsigned long prot_pages;
+
+	for (i = 0; i < PROTECT_HEAD_END; i++) {
+		prot_pages = protect_max_mbytes[i] << (20 - PAGE_SHIFT);
+
+		for_each_online_pgdat(pgdat) {
+			lruvec = get_protect_lruvec(pgdat);
+
+			pr_info("%s:%s pgdat[%d]'s lruvec.\n",
+				__func__,
+				mem_cgroup_disabled() ? "" : "root_mem_cgroup's",
+				pgdat->node_id);
+
+			if (lruvec->protect)
+				lruvec->heads[i].max_pages = prot_pages;
+		}
+	}
+
+	return 0;
+}
+
+module_init(protect_lru_init);

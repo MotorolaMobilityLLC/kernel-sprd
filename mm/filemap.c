@@ -1553,7 +1553,11 @@ no_page:
 			unlock_page(page);
 	}
 
+#ifdef CONFIG_PROTECT_LRU
+	return protect_lru_move_and_shrink(page);
+#else
 	return page;
+#endif
 }
 EXPORT_SYMBOL(pagecache_get_page);
 

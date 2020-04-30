@@ -664,6 +664,16 @@ static inline void count_memcg_event_mm(struct mm_struct *mm,
 void mem_cgroup_split_huge_fixup(struct page *head);
 #endif
 
+#ifdef CONFIG_PROTECT_LRU
+static inline struct lruvec *get_protect_lruvec(struct pglist_data *pgdat)
+{
+	if (mem_cgroup_disabled())
+		return &pgdat->lruvec;
+	else
+		return &(root_mem_cgroup->nodeinfo[pgdat->node_id]->lruvec);
+}
+#endif
+
 #else /* CONFIG_MEMCG */
 
 #define MEM_CGROUP_ID_SHIFT	0
@@ -936,6 +946,13 @@ static inline
 void count_memcg_event_mm(struct mm_struct *mm, enum vm_event_item idx)
 {
 }
+
+#ifdef CONFIG_PROTECT_LRU
+static inline struct lruvec *get_protect_lruvec(struct pglist_data *pgdat)
+{
+	return &(pgdat->lruvec);
+}
+#endif
 #endif /* CONFIG_MEMCG */
 
 /* idx can be of type enum memcg_stat_item or node_stat_item */
@@ -1156,5 +1173,4 @@ static inline void memcg_put_cache_ids(void)
 }
 
 #endif /* CONFIG_MEMCG && !CONFIG_SLOB */
-
 #endif /* _LINUX_MEMCONTROL_H */
