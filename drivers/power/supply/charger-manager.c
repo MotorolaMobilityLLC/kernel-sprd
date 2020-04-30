@@ -1416,7 +1416,7 @@ static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
 	struct charger_desc *desc = cm->desc;
 	static int last_jeita_status = -1, temp_up_trigger, temp_down_trigger;
 	int cur_jeita_status;
-	static bool is_normal = true;
+	bool is_normal = true;
 
 	if (!desc->jeita_tab_size)
 		return 0;
@@ -1741,6 +1741,9 @@ static void misc_event_handler(struct charger_manager *cm,
 	if (cm_suspended)
 		device_set_wakeup_capable(cm->dev, true);
 
+	if (cm->emergency_stop)
+		cm->emergency_stop = 0;
+
 	if (is_ext_pwr_online(cm))
 		try_charger_enable(cm, true);
 	else
@@ -1751,9 +1754,6 @@ static void misc_event_handler(struct charger_manager *cm,
 
 	if (cm->charging_status)
 		cm->charging_status = 0;
-
-	if (cm->emergency_stop)
-		cm->emergency_stop = 0;
 
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		schedule_work(&setup_polling);
