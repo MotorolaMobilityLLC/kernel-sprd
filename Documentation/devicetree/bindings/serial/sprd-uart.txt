@@ -4,7 +4,7 @@ Required properties:
 - compatible: must be one of:
   * "sprd,sc9836-uart"
   * "sprd,sc9860-uart", "sprd,sc9836-uart"
-
+  * "sprd,sc9836-uart-ex"
 - reg: offset and length of the register set for the device
 - interrupts: exactly one interrupt specifier
 - clock-names: Should contain following entries:
