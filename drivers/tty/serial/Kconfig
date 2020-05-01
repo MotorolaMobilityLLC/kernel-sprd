@@ -1636,6 +1636,13 @@ config SERIAL_SPRD
 	help
 	  This enables the driver for the Spreadtrum's serial.
 
+config SERIAL_SPRD_EX
+	tristate "Support for Spreadtrum serial by sipc"
+	depends on SPRD_SIPC
+	select SERIAL_CORE
+	help
+	  This enables the driver for the Spreadtrum's serial.
+
 config SERIAL_SPRD_CONSOLE
 	bool "Spreadtrum UART console support"
 	depends on SERIAL_SPRD=y
