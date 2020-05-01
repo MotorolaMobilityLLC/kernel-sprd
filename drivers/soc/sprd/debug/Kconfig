@@ -23,3 +23,4 @@ config SPRD_LAST_REGS
 	default n
 	help
 	  SPRD last regs access for Debug.
+source "drivers/soc/sprd/debug/irq/Kconfig"

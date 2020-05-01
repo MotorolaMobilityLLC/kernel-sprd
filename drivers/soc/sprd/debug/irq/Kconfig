@@ -1,0 +1,5 @@
+config SPRD_EIRQSOFF
+	bool "spreadtrum IRQ disable time debug"
+	depends on IRQSOFF_TRACER && SPRD_DEBUG
+	default n
+

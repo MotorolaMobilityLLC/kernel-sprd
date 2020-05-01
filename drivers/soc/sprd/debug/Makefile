@@ -3,3 +3,4 @@ obj-y	+= djtag/
 obj-y	+= busmonitor/
 obj-$(CONFIG_SPRD_DEBUG)	+= sprd_debugfs_frame.o
 obj-$(CONFIG_SPRD_LAST_REGS)	+= last_regs/
+obj-y	+= irq/
