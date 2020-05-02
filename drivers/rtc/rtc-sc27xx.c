@@ -144,23 +144,41 @@ static int sprd_rtc_lock_alarm(struct sprd_rtc *rtc, bool lock)
 	else
 		val |= SPRD_RTC_ALM_UNLOCK | SPRD_RTC_POWEROFF_ALM_FLAG;
 
+	ret = regmap_write(rtc->regmap, rtc->base + SPRD_RTC_INT_CLR,
+			   SPRD_RTC_SPG_UPD_EN);
+	if (ret)
+		return ret;
+
 	ret = regmap_write(rtc->regmap, rtc->base + SPRD_RTC_SPG_UPD, val);
 	if (ret)
 		return ret;
 
-	/* wait until the SPG value is updated successfully */
+	/*
+	 * It takes too long to resume alarmtimer device，about 200ms, which
+	 * affects the system resume time. The reason is that the system would
+	 * lock alarm if there are not alarms in the timerqueue, and the sprd
+	 * chip spec claims that requires about 125ms to take effect when set
+	 * rtc register to lock alarm on the chip. In order to optimize system
+	 * resuming time, we delay 5~6ms to ensure the lock info is set to the
+	 * chip instead of waiting the register is updated successfully.
+	 * System would unlock alarm when shutdown the device and there is a
+	 * poweroff alarm, so we should wait until the register is updated
+	 * successfully before system shutdown.
+	 */
+	if (lock) {
+		usleep_range(5000, 6000);
+		return 0;
+	}
+
 	ret = regmap_read_poll_timeout(rtc->regmap,
 				       rtc->base + SPRD_RTC_INT_RAW_STS, val,
 				       (val & SPRD_RTC_SPG_UPD_EN),
 				       SPRD_RTC_POLL_DELAY_US,
 				       SPRD_RTC_POLL_TIMEOUT);
-	if (ret) {
+	if (ret)
 		dev_err(rtc->dev, "failed to update SPG value:%d\n", ret);
-		return ret;
-	}
 
-	return regmap_write(rtc->regmap, rtc->base + SPRD_RTC_INT_CLR,
-			    SPRD_RTC_SPG_UPD_EN);
+	return ret;
 }
 
 static int sprd_rtc_get_secs(struct sprd_rtc *rtc, enum sprd_rtc_reg_types type,
