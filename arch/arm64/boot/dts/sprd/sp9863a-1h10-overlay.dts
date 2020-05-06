@@ -2,14 +2,14 @@
 /plugin/;
 
 / {
-	fragment {
+	fragment@0 {
 		target-path = "/";
 		__overlay__ {
-			#address-cells = <1>;
-			#size-cells = <0>;
+			#address-cells = <2>;
+			#size-cells = <2>;
 			dtbo: dtbo {
 				compatible = "sprd,dtbo-test";
-				reg = <0x11>;
+				reg = <0x0 0x0 0x0 0x11>;
 			};
 
 			fingerprint@0 {
