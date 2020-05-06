@@ -56,6 +56,7 @@ __read_mostly unsigned int walt_ravg_window =
 #define MAX_SCHED_RAVG_WINDOW ((1000000000 / TICK_NSEC) * TICK_NSEC)
 
 unsigned int walt_busy_threshold = 75;
+unsigned int sysctl_sched_walt_cross_window_util = 1;
 
 static unsigned int sync_cpu;
 static ktime_t ktime_last;
@@ -603,6 +604,9 @@ static void update_history(struct rq *rq, struct task_struct *p,
 			max = hist[widx];
 	}
 
+	if (!sysctl_sched_walt_cross_window_util)
+		p->ravg.sum = 0;
+
 	if (walt_window_stats_policy == WINDOW_STATS_RECENT) {
 		demand = runtime;
 	} else if (walt_window_stats_policy == WINDOW_STATS_MAX) {
@@ -648,9 +652,12 @@ static void add_to_task_demand(struct rq *rq, struct task_struct *p,
 	p->ravg.sum += delta;
 	if (unlikely(p->ravg.sum > walt_ravg_window))
 		p->ravg.sum = walt_ravg_window;
-	p->ravg.sum_latest += delta;
-	if (unlikely(p->ravg.sum_latest > walt_ravg_window))
-		p->ravg.sum_latest = walt_ravg_window;
+
+	if (sysctl_sched_walt_cross_window_util) {
+		p->ravg.sum_latest += delta;
+		if (unlikely(p->ravg.sum_latest > walt_ravg_window))
+			p->ravg.sum_latest = walt_ravg_window;
+	}
 }
 
 /*
@@ -722,9 +729,11 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 			 * elapsed, but since empty windows are dropped,
 			 * it is not necessary to account those. */
 			update_history(rq, p, p->ravg.sum, 1, event);
-			p->ravg.sum = 0;
+			if (sysctl_sched_walt_cross_window_util)
+				p->ravg.sum = 0;
 		}
-		p->ravg.sum_latest = 0;
+		if (sysctl_sched_walt_cross_window_util)
+			p->ravg.sum_latest = 0;
 		return;
 	}
 
@@ -764,11 +773,13 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 
 	/* Push new sample(s) into task's demand history */
 	update_history(rq, p, p->ravg.sum, 1, event);
-	p->ravg.sum = p->ravg.sum_latest;
+	if (sysctl_sched_walt_cross_window_util)
+		p->ravg.sum = p->ravg.sum_latest;
 	if (nr_full_windows) {
 		update_history(rq, p, window_scale,
 			       nr_full_windows, event);
-		p->ravg.sum = window_scale;
+		if (sysctl_sched_walt_cross_window_util)
+			p->ravg.sum = window_scale;
 	}
 	/* Roll window_start back to current to process any remainder
 	 * in current window. */
