@@ -2,6 +2,12 @@
 /plugin/;
 
 / {
+	model = "Spreadtrum UMS512-1H10 Board";
+
+	compatible = "sprd,ums512-1h10", "sprd,ums512";
+
+	sprd,sc-id = "ums512 1h10 1000";
+
 	fragment {
 		target-path = "/";
 		__overlay__ {
@@ -15,7 +21,7 @@
 
 			pwm_backlight: backlight {
 				compatible = "pwm-backlight";
-				pwms = <&pwms 2 40000>;
+				/*pwms = <&pwms 2 40000>;*/
 				pwm-names = "backlight";
 				brightness-levels = <
 							      1   1   1   1   1
@@ -54,4 +60,8 @@
 
 &panel {
 	sprd,backlight = <&pwm_backlight>;
+};
+
+&chosen {
+	bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums512_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio androidboot.selinux=permissive maxcpus=1 androidboot.force_normal_boot=1";
 };

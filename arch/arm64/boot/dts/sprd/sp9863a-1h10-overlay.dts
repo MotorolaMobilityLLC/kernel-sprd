@@ -2,6 +2,12 @@
 /plugin/;
 
 / {
+	model = "Spreadtrum SP9863A-1H10 Board";
+
+	compatible = "sprd,sp9863a-1h10", "sprd,sc9863a";
+
+	sprd,sc-id = "sp9863a 1h10 1000";
+
 	fragment {
 		target-path = "/";
 		__overlay__ {
@@ -54,6 +60,10 @@
 			};
 		};
 	};
+};
+
+&chosen {
+	bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=s9863a1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio androidboot.selinux=permissive androidboot.force_normal_boot=1";
 };
 
 &panel {

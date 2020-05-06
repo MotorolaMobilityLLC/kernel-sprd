@@ -2,5 +2,13 @@
 /plugin/;
 
 / {
+	model = "Spreadtrum UMS9230 Haps Board";
 
+	compatible = "sprd,ums9230-haps";
+
+	sprd,sc-id = "ums9230 haps 1000";
+};
+
+&chosen {
+	bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums9230_haps androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=memdisk0 androidboot.selinux=permissive androidboot.force_normal_boot=1";
 };
