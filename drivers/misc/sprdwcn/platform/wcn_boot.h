@@ -5,8 +5,6 @@
 
 #include "rf/rf.h"
 
-#define SUFFIX "androidboot.slot_suffix="
-
 struct wcn_sync_info_t {
 	unsigned int init_status;
 	unsigned int mem_pd_bt_start_addr;

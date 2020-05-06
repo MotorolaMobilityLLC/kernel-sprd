@@ -81,7 +81,6 @@ static unsigned int reg_val;
 static unsigned int clk_wait_val;
 static unsigned int cp_clk_wait_val;
 static unsigned int marlin2_clk_wait_reg;
-static char *fstab_ab;
 
 /* temp for rf pwm mode */
 /* static struct regmap *pwm_regmap; */
@@ -954,6 +953,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	if (!ret) {
 		WCN_INFO("btwf firmware name:%s\n", marlin_dev->btwf_path);
 		strcpy(BTWF_FIRMWARE_PATH, marlin_dev->btwf_path);
+		WCN_INFO("BTWG path is %s\n", BTWF_FIRMWARE_PATH);
 	}
 
 	WCN_INFO("BTWF_FIRMWARE_PATH2 len=%ld\n",
@@ -964,18 +964,6 @@ static int marlin_parse_dt(struct platform_device *pdev)
 	if (!ret) {
 		WCN_INFO("gnss firmware name:%s\n", marlin_dev->gnss_path);
 		strcpy(GNSS_FIRMWARE_PATH, marlin_dev->gnss_path);
-	}
-
-	if (fstab_ab) {
-		if (strncmp(fstab_ab + strlen(SUFFIX), "_a", 2) == 0) {
-			strcat(BTWF_FIRMWARE_PATH, "_a");
-			strcat(GNSS_FIRMWARE_PATH, "_a");
-		} else if (strncmp(fstab_ab + strlen(SUFFIX), "_b", 2) == 0) {
-			strcat(BTWF_FIRMWARE_PATH, "_b");
-			strcat(GNSS_FIRMWARE_PATH, "_b");
-		}
-		WCN_INFO("BTWG path:%s\n GNSS path:%s\n",
-			 BTWF_FIRMWARE_PATH, GNSS_FIRMWARE_PATH);
 	}
 
 	if (of_property_read_bool(np, "keep-power-on")) {
@@ -2628,10 +2616,6 @@ static struct platform_driver marlin_driver = {
 static int __init marlin_init(void)
 {
 	WCN_INFO("%s entry!\n", __func__);
-
-	fstab_ab = strstr(saved_command_line, SUFFIX);
-	if (fstab_ab)
-		WCN_INFO("fstab: %s\n", fstab_ab);
 
 	return platform_driver_register(&marlin_driver);
 }
