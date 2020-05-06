@@ -2574,6 +2574,9 @@ static void shrink_node_memcg(struct pglist_data *pgdat, struct mem_cgroup *memc
 	unsigned long nr_to_reclaim = sc->nr_to_reclaim;
 	struct blk_plug plug;
 	bool scan_adjusted;
+#ifdef CONFIG_PROTECT_LRU
+	unsigned long normal_file, protect_file, ratio, flags;
+#endif
 
 	get_scan_count(lruvec, memcg, sc, nr, lru_pages);
 
@@ -2676,6 +2679,25 @@ static void shrink_node_memcg(struct pglist_data *pgdat, struct mem_cgroup *memc
 	if (inactive_list_is_low(lruvec, false, sc, true))
 		shrink_active_list(SWAP_CLUSTER_MAX, lruvec,
 				   sc, LRU_ACTIVE_ANON);
+
+#ifdef CONFIG_PROTECT_LRU
+	if (lruvec->protect) {
+		protect_file = global_node_page_state(NR_PROTECT_ACTIVE_FILE) +
+			       global_node_page_state(NR_PROTECT_INACTIVE_FILE);
+		normal_file = global_node_page_state(NR_ACTIVE_FILE) +
+			      global_node_page_state(NR_INACTIVE_FILE) -
+			      protect_file;
+
+		if (protect_file)
+			ratio = normal_file * 100 / protect_file;
+
+		if (ratio && ratio < protect_reclaim_ratio) {
+			spin_lock_irqsave(&(pgdat->lru_lock), flags);
+			shrink_protect_lru(lruvec, true);
+			spin_unlock_irqrestore(&(pgdat->lru_lock), flags);
+		}
+	}
+#endif
 }
 
 /* Use reclaim/compaction for costly allocs or under memory pressure */

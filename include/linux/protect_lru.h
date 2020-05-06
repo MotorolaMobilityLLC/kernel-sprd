@@ -23,6 +23,7 @@
 
 extern unsigned long protect_lru_enable __read_mostly;
 extern struct ctl_table protect_lru_table[];
+extern unsigned long protect_reclaim_ratio;
 
 extern void protect_lruvec_init(struct mem_cgroup *memcg, struct lruvec *lruvec);
 extern void protect_lru_set_from_process(struct page *page);

@@ -31,6 +31,7 @@
 static unsigned long zero;
 static unsigned long one = 1;
 static unsigned long one_hundred = 100;
+static unsigned long fifty = 50;
 
 static unsigned long protect_max_mbytes[PROTECT_HEAD_END] = {
 	100,
@@ -40,6 +41,7 @@ static unsigned long protect_max_mbytes[PROTECT_HEAD_END] = {
 
 static unsigned long protect_cur_mbytes[PROTECT_HEAD_END];
 
+unsigned long protect_reclaim_ratio = 50;
 unsigned long protect_lru_enable __read_mostly = 1;
 
 static ssize_t protect_level_write(struct file *file, const char __user *buf,
@@ -398,6 +400,15 @@ struct ctl_table protect_lru_table[] = {
 		.maxlen		= sizeof(protect_cur_mbytes),
 		.mode		= 0440,
 		.proc_handler	= sysctl_protect_cur_mbytes_handler,
+	},
+	{
+		.procname	= "protect_reclaim_ratio",
+		.data		= &protect_reclaim_ratio,
+		.maxlen		= sizeof(protect_reclaim_ratio),
+		.mode		= 0640,
+		.proc_handler	= proc_doulongvec_minmax,
+		.extra1		= &fifty,
+		//.extra2		= &one_hundred,
 	},
 	{},
 };
