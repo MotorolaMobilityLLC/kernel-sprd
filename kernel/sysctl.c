@@ -376,6 +376,13 @@ static struct ctl_table kern_table[] = {
 		.extra1         = &zero,
 		.extra2         = &one_hundred,
 	},
+	{
+		.procname       = "sched_walt_cross_window_util",
+		.data           = &sysctl_sched_walt_cross_window_util,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec,
+	},
 #endif
 #ifdef CONFIG_SCHED_TUNE
 	{
