@@ -4650,6 +4650,11 @@ long si_mem_available(void)
 			global_node_page_state(NR_KERNEL_MISC_RECLAIMABLE);
 	available += reclaimable - min(reclaimable / 2, wmark_low);
 
+#ifdef CONFIG_PROTECT_LRU
+	available -= (long)global_node_page_state(NR_PROTECT_ACTIVE_FILE) +
+		     (long)global_node_page_state(NR_PROTECT_INACTIVE_FILE);
+#endif
+
 	if (available < 0)
 		available = 0;
 	return available;
@@ -4777,6 +4782,10 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 
 	printk("active_anon:%lu inactive_anon:%lu isolated_anon:%lu\n"
 		" active_file:%lu inactive_file:%lu isolated_file:%lu\n"
+#ifdef CONFIG_PROTECT_LRU
+		" active_prot_anon:%lu inactive_prot_anon:%lu\n"
+		" active_prot_file:%lu inactive_prot_file:%lu\n"
+#endif
 		" unevictable:%lu dirty:%lu writeback:%lu unstable:%lu\n"
 		" slab_reclaimable:%lu slab_unreclaimable:%lu\n"
 		" mapped:%lu shmem:%lu pagetables:%lu bounce:%lu\n"
@@ -4787,6 +4796,12 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 		global_node_page_state(NR_ACTIVE_FILE),
 		global_node_page_state(NR_INACTIVE_FILE),
 		global_node_page_state(NR_ISOLATED_FILE),
+#ifdef CONFIG_PROTECT_LRU
+		global_node_page_state(NR_PROTECT_ACTIVE_ANON),
+		global_node_page_state(NR_PROTECT_INACTIVE_ANON),
+		global_node_page_state(NR_PROTECT_ACTIVE_FILE),
+		global_node_page_state(NR_PROTECT_INACTIVE_FILE),
+#endif
 		global_node_page_state(NR_UNEVICTABLE),
 		global_node_page_state(NR_FILE_DIRTY),
 		global_node_page_state(NR_WRITEBACK),
@@ -4811,6 +4826,12 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 			" inactive_anon:%lukB"
 			" active_file:%lukB"
 			" inactive_file:%lukB"
+#ifdef CONFIG_PROTECT_LRU
+			" active_prot_anon:%luKB"
+			" inactive_prot_anon:%luKB"
+			" active_prot_file:%luKB"
+			" inactive_prot_file:%luKB"
+#endif
 			" unevictable:%lukB"
 			" isolated(anon):%lukB"
 			" isolated(file):%lukB"
@@ -4832,6 +4853,12 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 			K(node_page_state(pgdat, NR_INACTIVE_ANON)),
 			K(node_page_state(pgdat, NR_ACTIVE_FILE)),
 			K(node_page_state(pgdat, NR_INACTIVE_FILE)),
+#ifdef CONFIG_PROTECT_LRU
+			K(node_page_state(pgdat, NR_PROTECT_ACTIVE_ANON)),
+			K(node_page_state(pgdat, NR_PROTECT_INACTIVE_ANON)),
+			K(node_page_state(pgdat, NR_PROTECT_ACTIVE_FILE)),
+			K(node_page_state(pgdat, NR_PROTECT_INACTIVE_FILE)),
+#endif
 			K(node_page_state(pgdat, NR_UNEVICTABLE)),
 			K(node_page_state(pgdat, NR_ISOLATED_ANON)),
 			K(node_page_state(pgdat, NR_ISOLATED_FILE)),

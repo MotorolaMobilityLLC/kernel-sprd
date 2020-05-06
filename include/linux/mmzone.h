@@ -164,6 +164,13 @@ enum node_stat_item {
 	NR_INACTIVE_FILE,	/*  "     "     "   "       "         */
 	NR_ACTIVE_FILE,		/*  "     "     "   "       "         */
 	NR_UNEVICTABLE,		/*  "     "     "   "       "         */
+#ifdef CONFIG_PROTECT_LRU
+	NR_PROTECT_LRU_BASE,
+	NR_PROTECT_INACTIVE_ANON = NR_PROTECT_LRU_BASE,
+	NR_PROTECT_ACTIVE_ANON,
+	NR_PROTECT_INACTIVE_FILE,
+	NR_PROTECT_ACTIVE_FILE,
+#endif
 	NR_SLAB_RECLAIMABLE,
 	NR_SLAB_UNRECLAIMABLE,
 	NR_ISOLATED_ANON,	/* Temporary isolated pages from anon lru */

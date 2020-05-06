@@ -174,6 +174,8 @@ void del_page_from_protect_lru_list(struct page *page, struct lruvec *lruvec)
 	if (unlikely(PageProtect(page))) {
 		nr_pages = hpage_nr_pages(page);
 		lruvec->heads[num].cur_pages -= nr_pages;
+		__mod_node_page_state(lruvec_pgdat(lruvec),
+				      NR_PROTECT_LRU_BASE + lru, -nr_pages);
 	}
 }
 
@@ -197,6 +199,8 @@ void add_page_to_protect_lru_list(struct page *page, struct lruvec *lruvec,
 		nr_pages = hpage_nr_pages(page);
 		head = &lruvec->heads[num].protect_page[lru].lru;
 		lruvec->heads[num].cur_pages += nr_pages;
+		__mod_node_page_state(lruvec_pgdat(lruvec),
+				      NR_PROTECT_LRU_BASE + lru, nr_pages);
 	} else
 		head = &lruvec->heads[PROTECT_HEAD_END].protect_page[lru].lru;
 
