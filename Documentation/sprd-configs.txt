@@ -6962,22 +6962,22 @@ CONFIG_INIT_ENV_ARG_LIMIT
 	[function] Maximum of each of the number of arguments and environment
 	variables passed to init from the kernel command line.
 CONFIG_INIT_STACK_ALL
-	[arch] arm
-	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
-	[missing plat] none
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] roc1
 	[field] make,code
 	[subsys] mm
 	[must] user
-	[missing plat description] none
+	[missing plat description] now enable it on all androidR plats, ignore others.
 	[function] Initializes everything on the stack with a 0xAA pattern. avoid uninitalize variables.
 CONFIG_INIT_STACK_NONE
 	[arch] arm64
-	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
-	[missing plat] none
+	[plat] roc1
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
 	[field] menu
 	[subsys] core
 	[must] user
-	[missing plat description] none
+	[missing plat description] be mutually exclusive with init_stack_all.
 	[function] Disable automatic stack variable initialization at function entry
 CONFIG_INOTIFY_USER
 	[arch] all
