@@ -51,6 +51,7 @@ struct wcn_device_manage s_wcn_device;
 
 static u32 wcn_efuse_val[WCN_EFUSE_BLOCK_COUNT];
 static u32 gnss_efuse_val[GNSS_EFUSE_BLOCK_COUNT];
+static char *fstab_ab;
 
 /* efuse blk */
 static const u32
@@ -687,6 +688,14 @@ static int wcn_parse_dt(struct platform_device *pdev,
 				      (const char **)&wcn_dev->file_path_ext);
 	if (!ret)
 		WCN_INFO("firmware name ext:%s\n", wcn_dev->file_path_ext);
+
+	if (fstab_ab) {
+		if (strncmp(fstab_ab + strlen(SUFFIX), "_a", 2) == 0)
+			wcn_dev->fstab = 'a';
+		else if (strncmp(fstab_ab + strlen(SUFFIX), "_b", 2) == 0)
+			wcn_dev->fstab = 'b';
+	}
+
 	/* get cp source file length */
 	ret = of_property_read_u32_index(np,
 					 "sprd,file-length",
@@ -1035,6 +1044,10 @@ static struct platform_driver wcn_driver = {
 static int __init wcn_init(void)
 {
 	WCN_INFO("entry!\n");
+
+	fstab_ab = strstr(saved_command_line, SUFFIX);
+	if (fstab_ab)
+		WCN_INFO("fstab: %s\n", fstab_ab);
 
 	return platform_driver_register(&wcn_driver);
 }
