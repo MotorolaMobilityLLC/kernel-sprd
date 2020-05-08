@@ -16,7 +16,7 @@
 		#size-cells = <2>;
 		ranges;
 
-		ap@200a0000 {
+		apb@200a0000 {
 			compatible = "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -56,7 +56,7 @@
 			#size-cells = <2>;
 			ranges;
 
-			timer@40050000 {
+			timer@64470000 {
 				compatible = "sprd,qogirl6-timer",
 						"sprd,sc9860-timer";
 				reg = <0 0x64470000 0 0x20>;
@@ -64,7 +64,7 @@
 				clocks = <&ext_32k>;
 			};
 
-			timer@40050020 {
+			timer@64470020 {
 				compatible = "sprd,qogirl6-suspend-timer",
 						"sprd,sc9860-suspend-timer";
 				reg = <0 0x64470020 0 0x20>;
