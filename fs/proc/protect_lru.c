@@ -15,6 +15,7 @@
  * published by the Free Software Foundation.
  */
 
+#include <linux/debugfs.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 #include <linux/kernel.h>
@@ -23,6 +24,7 @@
 #include <linux/memcontrol.h>
 #include <linux/sched/mm.h>
 #include <linux/sched/signal.h>
+#include <linux/slab.h>
 #include <linux/protect_lru.h>
 #include <linux/swap.h>
 #include <linux/module.h>
@@ -456,12 +458,103 @@ populate:
 
 EXPORT_SYMBOL(protect_lruvec_init);
 
+static int
+protect_num_show_debug(struct seq_file *s, struct pglist_data *pgdat,
+		       struct list_head *file_lru, enum lru_list lru)
+{
+	struct page *page, *page2;
+	int tmp_num, num = 0;
+	int all_count[PROTECT_HEAD_MAX+1] = {0};
+	int err_count[PROTECT_HEAD_MAX+1] = {0};
+	int i;
+
+	spin_lock_irq(&pgdat->lru_lock);
+	list_for_each_entry_safe(page, page2, file_lru, lru) {
+		tmp_num = get_page_protect_num(page);
+		if (PageReserved(page))	{
+			num = (tmp_num == 0) ? PROTECT_HEAD_MAX : tmp_num;
+			continue;
+		}
+
+		all_count[num]++;
+
+		if (!num)
+			continue;
+
+		if (tmp_num == num || (num == PROTECT_HEAD_MAX && !tmp_num))
+			continue;
+		else {
+			err_count[num]++;
+			seq_printf(s, "page in error location: page->level=%d, lru_num=%d,"
+				   "all_count=%d, PageProtect=%d\n",
+				   tmp_num, num, all_count[num], PageProtect(page) ? 1 : 0);
+		}
+	}
+	spin_unlock_irq(&pgdat->lru_lock);
+
+	seq_printf(s, "%s LRU:",
+		   lru == LRU_INACTIVE_FILE ? "INACTIVE " : "ACTIVE ");
+
+	for (i = 0; i < PROTECT_HEAD_MAX; i++) {
+		seq_printf(s, "L%d: %d/%d ", i, all_count[i], err_count[i]);
+	}
+
+	seq_printf(s, "normal: %d/%d\n",
+		   all_count[PROTECT_HEAD_MAX], err_count[PROTECT_HEAD_MAX]);
+
+	return 0;
+}
+
+static int protect_lru_show_debug(struct seq_file *s, void *unused)
+{
+	struct lruvec *lruvec;
+	struct list_head *file_lru;
+	struct pglist_data *pgdat;
+	enum lru_list lru;
+	ssize_t ret = 0;
+
+	drain_all_pages(NULL);
+
+	for_each_online_pgdat(pgdat) {
+		lruvec = get_protect_lruvec(pgdat);
+
+		seq_printf(s, "protect area is in %s\n",
+			   mem_cgroup_disabled() ? "pgdat->lruvec" : "root_mem_cgroup");
+
+		if (!lruvec->protect)
+			continue;
+
+		lru = LRU_INACTIVE_FILE;
+		file_lru = &lruvec->lists[lru];
+		ret = protect_num_show_debug(s, pgdat, file_lru, lru);
+
+		lru = LRU_ACTIVE_FILE;
+		file_lru = &lruvec->lists[lru];
+		ret = protect_num_show_debug(s, pgdat, file_lru, lru);
+	}
+
+	return ret;
+}
+
+static int protect_page_count_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, protect_lru_show_debug, NULL);
+}
+
+static const struct file_operations proc_protect_lru_operations = {
+	.open	= protect_page_count_open,
+	.read	= seq_read,
+	.llseek	= seq_lseek,
+	.release = single_release,
+};
+
 static int __init protect_lru_init(void)
 {
 	int i;
 	struct pglist_data *pgdat;
 	struct lruvec *lruvec;
 	unsigned long prot_pages;
+	struct dentry *dentry;
 
 	for (i = 0; i < PROTECT_HEAD_END; i++) {
 		prot_pages = protect_max_mbytes[i] << (20 - PAGE_SHIFT);
@@ -478,6 +571,12 @@ static int __init protect_lru_init(void)
 				lruvec->heads[i].max_pages = prot_pages;
 		}
 	}
+
+	dentry = debugfs_create_file("protect_page_count", 0400, NULL,
+				     NULL, &proc_protect_lru_operations);
+
+	if (IS_ERR(dentry))
+		return PTR_ERR(dentry);
 
 	return 0;
 }
