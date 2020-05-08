@@ -4026,9 +4026,12 @@ static int dsp_vbc_reg_shm_proc_read(struct snd_info_buffer *buffer)
 	return 0;
 }
 
-static u32 ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
+static int ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 {
 	int reg, ret;
+	bool active = false;
+	struct aud_pm_vbc *pm_vbc;
+	int scene_idx, stream;
 
 	ret = agdsp_access_enable();
 	if (ret) {
@@ -4036,6 +4039,33 @@ static u32 ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 		return ret;
 	}
 	snd_iprintf(buffer, "ap-vbc register dump\n");
+
+	pm_vbc = aud_pm_vbc_get();
+	if (pm_vbc == NULL) {
+		agdsp_access_disable();
+		return -EPERM;
+	}
+	mutex_lock(&pm_vbc->lock_scene_flag);
+
+	for (scene_idx = 0; scene_idx < VBC_DAI_ID_MAX; scene_idx++) {
+		for (stream = 0; stream < STREAM_CNT; stream++) {
+			if (pm_vbc->scene_flag[scene_idx][stream] > 0) {
+				active = true;
+				break;
+			}
+		}
+		if (active == true)
+			break;
+	}
+
+	if (active == false) {
+		mutex_unlock(&pm_vbc->lock_scene_flag);
+		agdsp_access_disable();
+		snd_iprintf(buffer,
+			"vbc is inactive, can't dump ap-vbc register\n");
+		return -EPERM;
+	}
+
 	for (reg = REG_VBC_AUDPLY_FIFO_CTRL;
 	     reg <= VBC_AP_ADDR_END; reg += 0x10) {
 		snd_iprintf(buffer, "0x%04x | 0x%04x 0x%04x 0x%04x 0x%04x\n",
@@ -4044,6 +4074,7 @@ static u32 ap_vbc_reg_proc_read(struct snd_info_buffer *buffer)
 			    , ap_vbc_reg_read(reg + 0x08)
 			    , ap_vbc_reg_read(reg + 0x0C));
 	}
+	mutex_unlock(&pm_vbc->lock_scene_flag);
 	agdsp_access_disable();
 
 	return 0;
