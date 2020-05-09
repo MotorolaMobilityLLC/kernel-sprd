@@ -200,5 +200,6 @@ struct sprd_dsi {
 
 extern const struct dsi_core_ops dsi_ctrl_r1p0_ops;
 extern const struct dsi_glb_ops sharkl3_dsi_glb_ops;
+extern const struct dsi_glb_ops sharkl5pro_dsi_glb_ops;
 
 #endif /* _SPRD_DSI_H_ */

@@ -13,7 +13,8 @@ sprd-drm-$(CONFIG_DRM_SPRD_DUMMY) += \
 
 sprd-drm-$(CONFIG_DRM_SPRD_DPU0) += \
 	sprd_dpu.o \
-	dpu/dpu_r2p0.o
+	dpu/dpu_r2p0.o \
+	dpu/dpu_r4p0.o
 
 sprd-drm-$(CONFIG_DRM_SPRD_DSI) += \
 	sprd_dsi.o \
@@ -23,12 +24,16 @@ sprd-drm-$(CONFIG_DRM_SPRD_DSI) += \
 	dsi/core/dsi_ctrl_r1p0.o \
 	dsi/core/dsi_ctrl_r1p0_ppi.o \
 	dphy/sprd_dphy_api.o \
-	dphy/pll/megacores_sharkle.o
+	dphy/pll/megacores_sharkle.o \
+	dphy/pll/megacores_sharkl5.o
 
 sprd-drm-y += \
 	sharkl3/global_dispc.o \
 	sharkl3/global_dsi.o \
-	sharkl3/global_dphy.o
+	sharkl3/global_dphy.o \
+	sharkl5pro/global_dpu.o \
+	sharkl5pro/global_dsi.o \
+	sharkl5pro/global_dphy.o
 
 sprd-drm-y += sysfs/sysfs_class.o
 

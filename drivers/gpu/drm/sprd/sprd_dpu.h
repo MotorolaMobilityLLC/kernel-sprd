@@ -41,4 +41,8 @@ extern const struct sprd_crtc_core_ops sharkl3_dpu_core_ops;
 extern const struct sprd_crtc_clk_ops sharkl3_dpu_clk_ops;
 extern const struct sprd_crtc_glb_ops sharkl3_dpu_glb_ops;
 
+extern const struct sprd_crtc_core_ops sharkl5pro_dpu_core_ops;
+extern const struct sprd_crtc_clk_ops sharkl5pro_dpu_clk_ops;
+extern const struct sprd_crtc_glb_ops sharkl5pro_dpu_glb_ops;
+
 #endif /* _SPRD_DPU_H_ */
