@@ -3,6 +3,12 @@
 #include <dt-bindings/gpio/gpio.h>
 
 / {
+	model = "Spreadtrum SP9863A-1H10-GO-32b Board";
+
+	compatible = "sprd,sp9863a-1h10", "sprd,sc9863a";
+
+	sprd,sc-id = "sp9863a 1h10 1000";
+
 	fragment {
 		target-path = "/";
 		__overlay__ {
@@ -47,6 +53,10 @@
 			};
 		};
 	};
+};
+
+&chosen {
+	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=s9863a1h10_go_32b androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
 };
 
 &panel {

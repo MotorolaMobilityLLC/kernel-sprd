@@ -1070,21 +1070,40 @@ dtb-$(CONFIG_ARCH_ASPEED) += aspeed-bmc-opp-palmetto.dtb \
 	aspeed-bmc-opp-romulus.dtb \
 	aspeed-ast2500-evb.dtb
 
-dtb-$(CONFIG_ARCH_SPRD) += \
-	sp9832e-1h10-gofu.dtb \
-	sp9863a-1h10_go_32b_Natv.dtb \
-	sp7731e-1h10-native.dtb \
-	sp7731e-1h20-native.dtb \
-	ums312-1h10-go.dtb \
-	ums312-2h10-go.dtb
+ifeq ($(BSP_BUILD_DT_OVERLAY),y)
 
+ifeq ($(BSP_BUILD_ANDROID_OS),y)
+
+ifeq ($(BSP_BUILD_FAMILY),sharkl3)
 dtbo-$(CONFIG_ARCH_SPRD) += \
-	sp9832e-1h10-gofu-overlay.dtbo \
-	sp9863a-1h10_go_32b_Natv-overlay.dtbo \
-	sp7731e-1h10-overlay.dtbo \
-	sp7731e-1h20-overlay.dtbo \
-	ums312-1h10-go-overlay.dtbo \
-	ums312-2h10-go-overlay.dtbo
+	sp9863a-1h10_go_32b-overlay.dtbo
+
+sp9863a-1h10_go_32b-overlay.dtbo-base := sp9863a.dtb
+endif
+
+ifeq ($(BSP_BUILD_FAMILY),pike2)
+dtbo-$(CONFIG_ARCH_SPRD) += sp7731e-1h10-overlay.dtbo
+
+sp7731e-1h10-overlay.dtbo-base := sp7731e.dtb
+endif
+
+ifeq ($(BSP_BUILD_FAMILY),sharkle)
+dtbo-$(CONFIG_ARCH_SPRD) += sp9832e-1h10_go-overlay.dtbo
+
+sp9832e-1h10_go-overlay.dtbo-base := sp9832e.dtb
+endif
+
+endif #//BSP_BUILD_ANDROID_OS
+
+else
+
+dtb-$(CONFIG_ARCH_SPRD) += \
+	sp9832e-1h10_go.dtb \
+	sp9863a-1h10_go_32b.dtb \
+	sp7731e-1h10.dtb \
+
+endif #//BSP_BUILD_DT_OVERLAY
+
 endif
 
 dtstree		:= $(srctree)/$(src)

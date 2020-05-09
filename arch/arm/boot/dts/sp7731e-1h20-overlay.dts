@@ -11,6 +11,12 @@
 #include <dt-bindings/gpio/gpio.h>
 
 / {
+	model = "Spreadtrum Pike2 SP7731E-1H20 Board";
+
+	compatible = "sprd,sp7731e-1h20", "sprd,sc7731e";
+
+	sprd,sc-id = "sp7731e 1h20 1000";
+
 	/*
 	* When create a new node, we should use the key word __overlay__,
 	* otherwise u-boot can not analyze it.
@@ -91,6 +97,10 @@
 
 		};
 	};
+};
+
+&chosen {
+	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 loglevel=1 console=ttyS1,115200n8 init=/init root=/dev/ram0 rw androidboot.hardware=sp7731e_1h20 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
 };
 
 &i2c1 {
