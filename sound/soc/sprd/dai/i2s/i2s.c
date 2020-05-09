@@ -398,6 +398,21 @@ static int master_fraction_clock(struct i2s_priv *i2s, uint div_mode)
 	return 0;
 }
 
+static void i2s_clr_clk_m_n(struct i2s_priv *i2s)
+{
+	unsigned long reg_ctrl5 = I2S_REG(i2s, IIS_CTRL5);
+	unsigned long reg_clknh = I2S_REG(i2s, IIS_CLKNH);
+	unsigned long reg_clknl = I2S_REG(i2s, IIS_CLKNL);
+	unsigned long reg_clkmh = I2S_REG(i2s, IIS_CLKMH);
+	unsigned long reg_clkml = I2S_REG(i2s, IIS_CLKML);
+
+	i2s_reg_update(reg_ctrl5, 0x00, 0xffff);
+	i2s_reg_update(reg_clknh, 0x00, 0xffff);
+	i2s_reg_update(reg_clknl, 0x00, 0xffff);
+	i2s_reg_update(reg_clkmh, 0x00, 0xffff);
+	i2s_reg_update(reg_clkml, 0x00, 0xffff);
+}
+
 static int i2s_set_clkd(struct i2s_priv *i2s)
 {
 	int shift = 0;
@@ -406,6 +421,7 @@ static int i2s_set_clkd(struct i2s_priv *i2s)
 	unsigned long reg = I2S_REG(i2s, IIS_CLKD);
 
 	sp_asoc_pr_dbg("%s\n", __func__);
+	i2s_clr_clk_m_n(i2s);
 	val = i2s_calc_clk(i2s);
 	if (val < 0)
 		return val;
