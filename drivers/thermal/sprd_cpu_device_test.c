@@ -139,6 +139,7 @@ static void  get_cluster_min_cpunum_test(struct test *test)
 	min_cpunum = get_cluster_min_cpunum(1);
 	EXPECT_EQ(test, 0, min_cpunum);
 }
+
 static void get_cluster_resistance_ja_test(struct test *test)
 {
 	int test_ja = 0;
@@ -158,6 +159,7 @@ static void  get_core_temp_test(struct test *test)
 	EXPECT_EQ(test, 0, core_temp);
 
 }
+
 static void  get_all_core_temp_test(struct test *test)
 {
 	u32 ret_test = 0;
@@ -165,6 +167,7 @@ static void  get_all_core_temp_test(struct test *test)
 	ret_test = get_all_core_temp(0, 4);
 	EXPECT_EQ(test, 0, ret_test);
 }
+
 static void  get_core_cpuidle_tp_test(struct test *test)
 {
 	u32 temp = 0;
@@ -205,6 +208,213 @@ static void  get_cpuidle_temp_point_test(struct test *test)
 
 	temp_point = get_cpuidle_temp_point(3);
 	EXPECT_EQ(test, 0, temp_point);
+}
+
+static void  get_cluster_temperature_scale_test(struct test *test)
+{
+	u32 t_scale = 0;
+
+	//cluster_id = 0
+	t_scale = get_cluster_temperature_scale(0, 85);
+	EXPECT_EQ(test, 1055, t_scale);
+
+	t_scale = get_cluster_temperature_scale(0, 86);
+	EXPECT_EQ(test, 1093, t_scale);
+
+	//cluster_id=1
+	t_scale = get_cluster_temperature_scale(1, 80);
+	EXPECT_EQ(test, 882,  t_scale);
+
+	t_scale = get_cluster_temperature_scale(1, 71);
+	EXPECT_EQ(test, 631, t_scale);
+}
+
+static void get_core_temperature_scale_test(struct test *test)
+{
+	u32 t_scale = 0;
+
+	//cluster_id=0
+	t_scale = get_core_temperature_scale(0, 70);
+	EXPECT_EQ(test, 607, t_scale);
+
+	t_scale = get_core_temperature_scale(0, 85);
+	EXPECT_EQ(test, 1055, t_scale);
+
+	t_scale = get_core_temperature_scale(0, 86);
+	EXPECT_EQ(test, 1093, t_scale);
+
+	//cluster_id=1
+	t_scale = get_core_temperature_scale(1, 80);
+	EXPECT_EQ(test, 882, t_scale);
+
+	t_scale = get_core_temperature_scale(1, 90);
+	EXPECT_EQ(test, 1255, t_scale);
+}
+
+static void  get_cpu_static_power_coeff_test(struct test *test)
+{
+	u32 leak_core_base = 0;
+
+	leak_core_base = get_cpu_static_power_coeff(1);
+	if (leak_core_base == 3970)
+		EXPECT_EQ(test, 3970, leak_core_base);
+	else if (leak_core_base == 400)
+		EXPECT_EQ(test, 2400, leak_core_base);
+	else if (leak_core_base == 4190)
+		EXPECT_EQ(test, 4190, leak_core_base);
+}
+
+static void  get_cache_static_power_coeff_test(struct test *test)
+{
+	u32 leak_core_base = 0;
+
+	leak_core_base = get_cache_static_power_coeff(0);
+	if (leak_core_base == 3970)
+		EXPECT_EQ(test, 3970, leak_core_base);
+	else if (leak_core_base == 2400)
+		EXPECT_EQ(test, 2400, leak_core_base);
+	else if (leak_core_base == 4190)
+		EXPECT_EQ(test, 4190, leak_core_base);
+}
+
+static void get_cluster_voltage_scale_test(struct test *test)
+{
+	u32 v_scale = 0;
+
+	v_scale = get_cluster_voltage_scale(1, 1121875);
+	EXPECT_EQ(test, 1477, v_scale);
+}
+
+static void get_core_voltage_scale_test(struct test *test)
+{
+	u32 v_scale = 0;
+
+	//cluster_id = 0
+	v_scale = get_core_voltage_scale(0, 975000);
+	EXPECT_EQ(test, 905, v_scale);
+
+	v_scale = get_core_voltage_scale(0, 1028125);
+	EXPECT_EQ(test, 1091, v_scale);
+
+	v_scale = get_core_voltage_scale(0, 1075000);
+	EXPECT_EQ(test, 1276, v_scale);
+
+	v_scale = get_core_voltage_scale(0, 1121875);
+	EXPECT_EQ(test, 1477, v_scale);
+
+	//cluster_id=1
+	v_scale = get_core_voltage_scale(1, 921875);
+	EXPECT_EQ(test, 741, v_scale);
+
+	v_scale = get_core_voltage_scale(1, 900000);
+	EXPECT_EQ(test, 683, v_scale);
+
+	v_scale = get_core_voltage_scale(1, 984375);
+	EXPECT_EQ(test, 934, v_scale);
+
+	v_scale = get_core_voltage_scale(0, 1121875);
+	EXPECT_EQ(test, 1477, v_scale);
+
+	v_scale = get_core_voltage_scale(1, 1121875);
+	EXPECT_EQ(test, 1477, v_scale);
+}
+
+static void sprd_cpu_show_store_min_freq_test(struct test *test)
+{
+	char buff[20] = "0";
+	char buff_store[7] = "768000";
+	u32 mock_min_freq = 0;
+	u32 mock_min_freq_store = 0;
+	size_t count = 7;
+	struct device_node *np, *child;
+	struct cpufreq_cooling_device *cpufreq_dev;
+
+	np = of_find_node_by_name(NULL, "cooling-devices");
+
+	for_each_child_of_node(np, child) {
+		cpufreq_dev = cpufreq_cooling_get_dev_by_name(child->name);
+		/* cooling-devices0  show.min_cpufreq=768000000 */
+		mock_min_freq = sprd_cpu_show_min_freq(
+			&cpufreq_dev->cool_dev->device, NULL, buff);
+		EXPECT_EQ(test, 7, mock_min_freq);
+
+		/* cooling-devices1  show.min_cpufreq=768000000 */
+		mock_min_freq_store = sprd_cpu_store_min_freq(
+			&cpufreq_dev->cool_dev->device, NULL,
+			buff_store, count);
+		EXPECT_EQ(test, 7, mock_min_freq);
+	}
+}
+
+static void sprd_cpu_show_store_min_core_num_test(struct test *test)
+{
+	char buff[5] = "0";
+	char buff_store[2] = "2";
+	u32 min_core_num = 0;
+	u32 min_core_num_store = 0;
+	size_t count = 0;
+	struct device_node *np, *child;
+	char *cluster0 = "cluster0-cooling";
+	char *cluster1 = "cluster1-cooling";
+	char str[20];
+	struct cpufreq_cooling_device *cpufreq_dev;
+
+	np = of_find_node_by_name(NULL, "cooling-devices");
+	for_each_child_of_node(np, child) {
+		cpufreq_dev = cpufreq_cooling_get_dev_by_name(child->name);
+
+		min_core_num = sprd_cpu_show_min_core_num(
+			&cpufreq_dev->cool_dev->device, NULL, buff);
+		strcpy(str, child->name);
+
+		if (strcmp(str, cluster0) == 0) {
+			EXPECT_EQ(test, '4', buff[0]);
+
+			/* cluster0-cooling write 2 */
+			min_core_num_store = sprd_cpu_store_min_core_num(
+				&cpufreq_dev->cool_dev->device,
+				NULL, buff_store, count);
+			min_core_num = sprd_cpu_show_min_core_num(
+				&cpufreq_dev->cool_dev->device,
+				NULL, buff);
+			EXPECT_EQ(test, '2', buff[0]);
+		}
+		if (strcmp(str, cluster1) == 0) {
+			EXPECT_EQ(test, '0', buff[0]);
+
+			/* cluster1-cooling write 2 */
+			min_core_num_store = sprd_cpu_store_min_core_num(
+				&cpufreq_dev->cool_dev->device,
+				NULL, buff_store, count);
+			min_core_num = sprd_cpu_show_min_core_num(
+				&cpufreq_dev->cool_dev->device,
+				NULL, buff);
+			EXPECT_EQ(test, '2', buff[0]);
+		}
+	}
+}
+
+static void cpu_cooling_pm_notify_test(struct test *test)
+{
+	int result = 0;
+
+	result = cpu_cooling_pm_notify(NULL, 0x0003, NULL);
+	EXPECT_EQ(test, 0, result);
+
+	result = cpu_cooling_pm_notify(NULL, 0x0004, NULL);
+	EXPECT_EQ(test, 0, result);
+}
+
+static void get_leak_base_test(struct test *test)
+{
+	u32 leak_base = 0;
+	int coeff = 0xdf23e00;
+
+	leak_base = (u32)get_leak_base(0, 1, &coeff);
+	EXPECT_EQ(test, 1606052866, leak_base);
+
+	leak_base = (u32)get_leak_base(1, 1, &coeff);
+	EXPECT_EQ(test, 1606052866, leak_base);
 }
 
 static int sprd_cpu_device_test_init(struct test *test)
@@ -254,6 +464,26 @@ static struct test_case sprd_cpu_device_test_cases[] = {
 	TEST_CASE(get_core_cpuidle_tp_test),
 
 	TEST_CASE(get_cpuidle_temp_point_test),
+
+	TEST_CASE(get_cluster_temperature_scale_test),
+
+	TEST_CASE(get_core_temperature_scale_test),
+
+	TEST_CASE(get_cluster_voltage_scale_test),
+
+	TEST_CASE(get_core_voltage_scale_test),
+
+	TEST_CASE(get_cache_static_power_coeff_test),
+
+	TEST_CASE(get_cpu_static_power_coeff_test),
+
+	TEST_CASE(sprd_cpu_show_store_min_freq_test),
+
+	TEST_CASE(sprd_cpu_show_store_min_core_num_test),
+
+	TEST_CASE(cpu_cooling_pm_notify_test),
+
+	TEST_CASE(get_leak_base_test),
 
 	{},
 };

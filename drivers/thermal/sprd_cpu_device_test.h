@@ -16,10 +16,10 @@
 } }
 
 u64 get_core_dyn_power(int cluster_id,
-		unsigned int freq_mhz, unsigned int voltage_mv);
+	unsigned int freq_mhz, unsigned int voltage_mv);
 
 u64 get_cluster_dyn_power(int cluster_id,
-		unsigned int freq_mhz, unsigned int voltage_mv);
+	unsigned int freq_mhz, unsigned int voltage_mv);
 
 u32 get_cluster_min_cpufreq(int cluster_id);
 
@@ -27,21 +27,48 @@ u32 get_cluster_min_cpunum(int cluster_id);
 
 u32 get_cluster_resistance_ja(int cluster_id);
 
-__visible_for_testing int get_static_power(cpumask_t *cpumask,
+int get_static_power(cpumask_t *cpumask,
 	int interval, unsigned long u_volt, u32 *power, int temperature);
 
-__visible_for_testing int get_core_static_power(cpumask_t *cpumask,
+int get_core_static_power(cpumask_t *cpumask,
 	int interval, unsigned long u_volt, u32 *power, int temperature);
 
-__visible_for_testing int get_all_core_temp(int cluster_id, int cpu);
+int get_all_core_temp(int cluster_id, int cpu);
 
-__visible_for_testing u32 get_core_cpuidle_tp(int cluster_id,
-	int first_cpu, int cpu, int *temp);
+u32 get_core_cpuidle_tp(int cluster_id, int first_cpu, int cpu, int *temp);
 
-__visible_for_testing u32 get_cpuidle_temp_point(int cluster_id);
+u32 get_cpuidle_temp_point(int cluster_id);
 
-__visible_for_testing void get_core_temp(int cluster_id,
-	int cpu, int *temp);
+void get_core_temp(int cluster_id, int cpu, int *temp);
+
+u64 get_cluster_temperature_scale(int cluster_id, unsigned long temp);
+
+u64 get_core_temperature_scale(int cluster_id, unsigned long temp);
+
+u64 get_cluster_voltage_scale(int cluster_id, unsigned long u_volt);
+
+u64 get_core_voltage_scale(int cluster_id, unsigned long u_volt);
+
+int get_cache_static_power_coeff(int cluster_id);
+
+int get_cpu_static_power_coeff(int cluster_id);
+
+ssize_t sprd_cpu_show_min_freq(struct device *dev,
+	struct device_attribute *attr, char *buf);
+
+ssize_t sprd_cpu_store_min_freq(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count);
+
+ssize_t sprd_cpu_show_min_core_num(struct device *dev,
+	struct device_attribute *attr, char *buf);
+
+ssize_t sprd_cpu_store_min_core_num(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count);
+
+int cpu_cooling_pm_notify(struct notifier_block *nb,
+	unsigned long mode, void *_unused);
+
+u64 get_leak_base(int cluster_id, int val, int *coeff);
 
 int create_cpu_cooling_device(void);
 
