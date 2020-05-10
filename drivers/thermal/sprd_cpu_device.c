@@ -95,11 +95,13 @@ struct cluster_power_coefficients *cluster_data;
 #define frac_to_int(x) ((x) >> FRAC_BITS)
 
 #define SPRD_CPU_STORE(_name) \
-	static ssize_t sprd_cpu_store_##_name(struct device *dev, \
+	__visible_for_testing ssize_t sprd_cpu_store_##_name( \
+			struct device *dev, \
 			struct device_attribute *attr, \
 			const char *buf, size_t count)
 #define SPRD_CPU_SHOW(_name) \
-	static ssize_t sprd_cpu_show_##_name(struct device *dev, \
+	__visible_for_testing ssize_t sprd_cpu_show_##_name( \
+			struct device *dev, \
 			struct device_attribute *attr, \
 			char *buf)
 
@@ -175,18 +177,18 @@ static inline s64 mul_frac(s64 x, s64 y)
 }
 
 /* return (leak * 100)  */
-static int get_cpu_static_power_coeff(int cluster_id)
+__visible_for_testing int get_cpu_static_power_coeff(int cluster_id)
 {
 	return cluster_data[cluster_id].leak_core_base;
 }
 
 /* return (leak * 100)  */
-static int get_cache_static_power_coeff(int cluster_id)
+__visible_for_testing int get_cache_static_power_coeff(int cluster_id)
 {
 	return cluster_data[cluster_id].leak_cluster_base;
 }
 
-static ssize_t sprd_cpu_show_min_freq(struct device *dev,
+__visible_for_testing ssize_t sprd_cpu_show_min_freq(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	struct thermal_cooling_device *cdev = to_cooling_device(dev);
@@ -196,7 +198,7 @@ static ssize_t sprd_cpu_show_min_freq(struct device *dev,
 		cluster_data[cpufreq_dev->power_model->cluster_id].min_cpufreq);
 }
 
-static ssize_t sprd_cpu_store_min_freq(struct device *dev,
+__visible_for_testing ssize_t sprd_cpu_store_min_freq(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
@@ -219,7 +221,7 @@ static ssize_t sprd_cpu_store_min_freq(struct device *dev,
 	return -EINVAL;
 }
 
-static ssize_t sprd_cpu_show_min_core_num(struct device *dev,
+__visible_for_testing ssize_t sprd_cpu_show_min_core_num(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	struct thermal_cooling_device *cdev = to_cooling_device(dev);
@@ -229,7 +231,7 @@ static ssize_t sprd_cpu_show_min_core_num(struct device *dev,
 		cluster_data[cpufreq_dev->power_model->cluster_id].min_cpunum);
 }
 
-static ssize_t sprd_cpu_store_min_core_num(struct device *dev,
+__visible_for_testing ssize_t sprd_cpu_store_min_core_num(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
@@ -459,7 +461,8 @@ u64 get_cluster_dyn_power(int cluster_id,
  *Tscale = 0.0000825T^3 - 0.0117T^2 + 0.608T - 8.185
  * return Tscale * 1000
  */
-static u64 get_cluster_temperature_scale(int cluster_id, unsigned long temp)
+__visible_for_testing u64 get_cluster_temperature_scale(int cluster_id,
+		unsigned long temp)
 {
 	u64 t_scale = 0;
 	struct scale_coeff *coeff =
@@ -479,7 +482,8 @@ static u64 get_cluster_temperature_scale(int cluster_id, unsigned long temp)
  *Tscale = 0.0000825T^3 - 0.0117T^2 + 0.608T - 8.185
  * return Tscale * 1000
  */
-static u64 get_core_temperature_scale(int cluster_id, unsigned long temp)
+__visible_for_testing u64 get_core_temperature_scale(int cluster_id,
+		unsigned long temp)
 {
 	u64 t_scale = 0;
 	struct scale_coeff *coeff = &cluster_data[cluster_id].core_temp_scale;
@@ -499,7 +503,8 @@ static u64 get_core_temperature_scale(int cluster_id, unsigned long temp)
  * Vscale = 33.31V^3 - 73.25V^2 + 54.44V - 12.81
  * return Vscale * 1000
  */
-static u64 get_cluster_voltage_scale(int cluster_id, unsigned long u_volt)
+__visible_for_testing u64 get_cluster_voltage_scale(int cluster_id,
+		unsigned long u_volt)
 {
 	unsigned long m_volt = u_volt / 1000;
 	u64 v_scale = 0;
@@ -535,7 +540,8 @@ static u64 get_cluster_voltage_scale(int cluster_id, unsigned long u_volt)
  * Vscale = 33.31V^3 - 73.25V^2 + 54.44V - 12.81
  * return Vscale * 1000
  */
-static u64 get_core_voltage_scale(int cluster_id, unsigned long u_volt)
+__visible_for_testing u64 get_core_voltage_scale(int cluster_id,
+		unsigned long u_volt)
 {
 	unsigned long m_volt = u_volt / 1000;
 	u64 v_scale = 0;
@@ -672,7 +678,7 @@ __visible_for_testing int get_core_static_power(cpumask_t *cpumask,
 	return 0;
 }
 /* return (leakage * 10) */
-static u64 get_leak_base(int cluster_id, int val, int *coeff)
+__visible_for_testing u64 get_leak_base(int cluster_id, int val, int *coeff)
 {
 	int i;
 	u64 leak_base;
@@ -866,7 +872,7 @@ static int sprd_get_power_model_coeff(struct device_node *np,
 	return 0;
 }
 
-static int cpu_cooling_pm_notify(struct notifier_block *nb,
+__visible_for_testing int cpu_cooling_pm_notify(struct notifier_block *nb,
 				unsigned long mode, void *_unused)
 {
 	switch (mode) {
