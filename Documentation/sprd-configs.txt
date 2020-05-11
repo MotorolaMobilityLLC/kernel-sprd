@@ -1476,21 +1476,21 @@ CONFIG_BLK_DEV_SD
 	[function] This macro is to support host udisk function.
 CONFIG_BLK_INLINE_ENCRYPTION
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] block
 	[must] none
-	[missing plat description] No need to support metadata encryption
+	[missing plat description] none
 	[function] Enable this macro to support metadata encryption
 CONFIG_BLK_INLINE_ENCRYPTION_FALLBACK
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] block
 	[must] none
-	[missing plat description] No need to support metadata encryption
+	[missing plat description] none
 	[function] Enable this macro to support metadata encryption
 CONFIG_BLK_MQ_PCI
 	[arch] arm64
@@ -3705,12 +3705,12 @@ CONFIG_DM_ANDROID_VERITY_AT_MOST_ONCE_DEFAULT_ENABLED
 	   content will be detected, not online tampering.
 CONFIG_DM_BOW
 	[arch] all
-	[plat] sharkl3,sharkl3_32
-	[missing plat] pike2,roc1,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] md
 	[must] none
-	[missing plat description] disable considering the efficiency
+	[missing plat description] none
 	[function] dm_bow is a device mapper driver that uses the free space on a device
 	   to back up data that is overwritten.
 CONFIG_DM_BUFIO
@@ -3736,13 +3736,22 @@ CONFIG_DM_CRYPT
 	   transparently encrypts the data on it.
 CONFIG_DM_DEFAULT_KEY
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] md
 	[must] none
-	[missing plat description] No need to support metadata encryption
+	[missing plat description] none
 	[function] Enable this macro to support metadata encryption
+CONFIG_DM_SNAPSHOT
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] md
+	[must] none
+	[missing plat description] none
+	[function] Depends on BLK_DEV_DM and select DM_BUFIO, enable for V-A/B
 CONFIG_DM_UEVENT
 	[arch] all
 	[plat] all
@@ -3764,12 +3773,12 @@ CONFIG_DM_VERITY
 	   Verity target one function in The device mapper.
 CONFIG_DM_VERITY_AVB
 	[arch] all
-	[plat] roc1,sharkl5,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] md
 	[must] none
-	[missing plat description] disable this feature for DDR stability issue
+	[missing plat description] none
 	[function] Depends on DM_VERITY, Enables Android Verified Boot platform-specific error behavior.
 CONFIG_DM_VERITY_FEC
 	[arch] all
@@ -4678,12 +4687,12 @@ CONFIG_FS_ENCRYPTION_ALGS
 	[function] Menu item used to select a bundle of crypto configs for fs
 CONFIG_FS_ENCRYPTION_INLINE_CRYPT
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5,sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] fs
 	[must] none
-	[missing plat description] No need to support metadata encryption
+	[missing plat description] none
 	[function] Enable this macro to support metadata encryption
 CONFIG_FS_MBCACHE
 	[arch] all
