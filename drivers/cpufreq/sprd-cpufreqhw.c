@@ -414,6 +414,8 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 
 	policy->dvfs_possible_from_any_cpu = true;
 
+	dev_pm_opp_of_register_em(policy->cpus);
+
 	goto free_np;
 
 free_table:
