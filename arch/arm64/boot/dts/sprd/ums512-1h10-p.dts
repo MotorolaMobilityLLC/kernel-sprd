@@ -772,12 +772,13 @@
 		"HPMIC Pin", "HP Mic Jack",
 		"MIC Pin", "Mic Jack",
 		"MIC2 Pin", "Aux Mic Jack",
-		"inter HP PA", "HP Pin",
+		"HeadPhone Jack", "HP Pin",
+		"Ext Spk", "SPK Pin",
 		"UCP1301 SPK ON", "SPK Pin",
-		"inter Spk PA", "UCP1301 SPK",
+		"Ext Spk", "UCP1301 SPK",
 		"DMIC Pin", "DMic Jack",
 		"DMIC1 Pin", "DMic1 Jack",
-		"inter Ear PA", "EAR Pin";
+		"Ext Ear", "EAR Pin";
 
 	/* 35: ucp1301 normal ap01 */
 	sprd-audio-card,dai-link@53 {
