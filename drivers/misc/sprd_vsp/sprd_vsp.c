@@ -336,7 +336,7 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EINVAL;
 		}
 
-		codec_counter = codec_instance_count[vsp_fp->codec_id];
+		codec_counter = atomic_read(&vsp_instance_cnt);
 		put_user(codec_counter, (int __user *)arg);
 		pr_debug("total  counter %d current codec-id %d\n",
 			codec_counter, vsp_fp->codec_id);
