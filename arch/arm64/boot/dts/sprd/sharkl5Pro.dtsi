@@ -2061,7 +2061,8 @@
 			&agcp_dma 11 &agcp_dma 12
 			&agcp_dma 13 &agcp_dma 14
 			&agcp_dma 15 &agcp_dma 16
-			&agcp_dma 9 &agcp_dma 9>;
+			&agcp_dma 9 &agcp_dma 9
+			&agcp_dma 11>;
 		dma-names =
 			"normal_p_l", "normal_p_r",
 			"normal_c_l", "normal_c_r",
@@ -2072,7 +2073,9 @@
 			"loop_c", "loop_p",
 			"voip_c", "voip_p",
 			/* dspfmcap_c and dspbtscocap_c same as dspcap_c */
-			"dspfmcap_c", "dspbtscocap_c";
+			"dspfmcap_c", "dspbtscocap_c",
+			/* recognise_c same as voice_c */
+			"recognise_c";
 	};
 
 	sprd_compr: sprd-compr-audio {
