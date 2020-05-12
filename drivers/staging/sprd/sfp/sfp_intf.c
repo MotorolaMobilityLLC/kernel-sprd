@@ -501,6 +501,26 @@ int sfp_check_mod_pkts(u32 ifindex,
 	return out_ifindex;
 }
 
+static void sfp_maybe_trim_skb(struct sk_buff *skb)
+{
+	struct iphdr *iph;
+	struct ipv6hdr *ipv6h;
+	u32 len;
+
+	iph = ip_hdr(skb);
+
+	if (skb->protocol == htons(ETH_P_IP)) {
+		len = ntohs(iph->tot_len);
+		if (len != skb->len)
+			pskb_trim_rcsum(skb, len);
+	} else if (skb->protocol == htons(ETH_P_IPV6)) {
+		ipv6h = (struct ipv6hdr *)iph;
+		len = ntohs(ipv6h->payload_len) + sizeof(struct ipv6hdr);
+		if (len != skb->len)
+			pskb_trim_rcsum(skb, len);
+	}
+}
+
 /*
  * 1.check the data if it will be forward. If it will be,
  * modify the header according to spread fast path forwarding
@@ -540,6 +560,10 @@ int soft_fastpath_process(int in_if,
 	/* Check whether is ip or ip6 header */
 	skb = (struct sk_buff *)data_header;
 	piphdr = ip_hdr(skb);
+
+	/* aqc driver may pass some pkts with 6 bytes paddings */
+	sfp_maybe_trim_skb(skb);
+
 	if (piphdr->version == 0x04) {
 		*out_if = sfp_check_mod_pkts(
 			in_if,
