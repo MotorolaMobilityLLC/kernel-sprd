@@ -38,7 +38,11 @@ Required properties:
   "sprd,sharkl3-eic-debounce",
   "sprd,sharkl3-eic-latch",
   "sprd,sharkl3-eic-async",
-  "sprd,sharkl3-eic-sync".
+  "sprd,sharkl3-eic-sync",
+  "sprd,qogirl6-eic-debounce",
+  "sprd,qogirl6-eic-latch",
+  "sprd,qogirl6-eic-async",
+  "sprd,qogirl6-eic-sync".
 - reg: Define the base and range of the I/O address space containing
   the GPIO controller registers.
 - gpio-controller: Marks the device node as a GPIO controller.
