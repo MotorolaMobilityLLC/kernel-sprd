@@ -54,9 +54,9 @@ static const struct drm_plane_funcs sprd_dummy_plane_funcs = {
 	.update_plane = drm_atomic_helper_update_plane,
 	.disable_plane	= drm_atomic_helper_disable_plane,
 	.destroy = drm_plane_cleanup,
-//	.reset = drm_atomic_helper_plane_reset,
-//	.atomic_duplicate_state = drm_atomic_helper_plane_duplicate_state,
-//	.atomic_destroy_state = drm_atomic_helper_plane_destroy_state,
+	.reset = drm_atomic_helper_plane_reset,
+	.atomic_duplicate_state = drm_atomic_helper_plane_duplicate_state,
+	.atomic_destroy_state = drm_atomic_helper_plane_destroy_state,
 };
 
 static struct drm_plane *sprd_dummy_plane_init(struct drm_device *drm,
