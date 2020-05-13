@@ -1744,6 +1744,8 @@ static void misc_event_handler(struct charger_manager *cm,
 	if (cm->emergency_stop)
 		cm->emergency_stop = 0;
 
+	cm->desc->thm_adjust_cur = -EINVAL;
+
 	if (is_ext_pwr_online(cm))
 		try_charger_enable(cm, true);
 	else
