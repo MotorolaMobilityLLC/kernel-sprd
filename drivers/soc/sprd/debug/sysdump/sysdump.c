@@ -126,6 +126,9 @@ struct minidump_info  minidump_info_g =	{
 			{"log_buf", 0, 0, 0, 0, 0},
 			{"ylog_buf", 0, 0, 0, 0, 0},
 			{"kernel_pt", 0, 0, 0, 0, 0},
+#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
+			{"nhang", 0, 0, 0, 0, 0},
+#endif
 			{"", 0, 0, 0, 0, 0},
 
 		},
@@ -137,6 +140,9 @@ struct minidump_info  minidump_info_g =	{
 static int prepare_exception_info(struct pt_regs *regs,
 			struct task_struct *tsk, const char *reason);
 static char *ylog_buffer;
+#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
+extern void get_native_hang_monitor_buffer(unsigned long *addr, unsigned long *size, unsigned long *start);
+#endif
 #endif /*	minidump code end	*/
 typedef char note_buf_t[SYSDUMP_NOTE_BYTES];
 
@@ -1047,6 +1053,23 @@ void section_info_ylog_buf(int section_index)
 	minidump_info_g.section_info_total.section_info[i].section_size = YLOG_BUF_SIZE;
 }
 
+#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
+void section_native_hang(int section_index)
+{
+	int i = section_index;
+	long vaddr, len, start;
+
+	get_native_hang_monitor_buffer(&vaddr, &len, &start);
+	pr_emerg("%s in. \n",  __func__);
+	minidump_info_g.section_info_total.section_info[i].section_start_vaddr = vaddr;
+	minidump_info_g.section_info_total.section_info[i].section_end_vaddr = vaddr + len;
+	minidump_info_g.section_info_total.section_info[i].section_start_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_end_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
+	minidump_info_g.section_info_total.section_info[i].section_size = len;
+	pr_emerg("%s out.\n", __func__);
+}
+
+#endif
 void section_info_pt(int section_index)
 {
 	int i = section_index;
@@ -1157,6 +1180,10 @@ void minidump_info_init(void)
 			section_info_pt(i);
 		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, "per_cpu", strlen("per_cpu"))) {
 			section_info_per_cpu(i);
+#ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
+		} else if (!memcmp(minidump_info_g.section_info_total.section_info[i].section_name, "nhang", strlen("nhang"))) {
+			section_native_hang(i);
+#endif
 		} else {
 			minidump_info_g.section_info_total.section_info[i].section_start_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_start_vaddr);
 			minidump_info_g.section_info_total.section_info[i].section_end_paddr = __pa(minidump_info_g.section_info_total.section_info[i].section_end_vaddr);
