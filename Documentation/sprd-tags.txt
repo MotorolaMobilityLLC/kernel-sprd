@@ -166,6 +166,7 @@ time:
 printk:
 arm:topology:
 arm64:topology:
+arm64:kernel:
 x86:topology:
 include:*
 dt-bindings:*
