@@ -11,6 +11,7 @@
 / {
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
+		memory-region = <&drm_reserved>;
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
 	};
@@ -22,6 +23,18 @@
 				compatible = "android,vbmeta";
 				parts = "vbmeta,boot,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp";
 			};
+		};
+	};
+
+	reserved_memory: reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		drm_reserved: framebuffer {
+			compatible = "shared-dma-pool";
+			size = <0x0 0x01400000>;
+			reusable;
 		};
 	};
 
