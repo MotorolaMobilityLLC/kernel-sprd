@@ -9,6 +9,7 @@
 #include <linux/mutex.h>
 #include <linux/of_graph.h>
 #include <linux/of_platform.h>
+#include <linux/of_reserved_mem.h>
 #include <uapi/drm/sprd_drm_gsp.h>
 
 #include <drm/drm_atomic_helper.h>
@@ -116,10 +117,20 @@ static int sprd_drm_bind(struct device *dev)
 	dev_set_drvdata(dev, drm);
 
 	sprd = devm_kzalloc(drm->dev, sizeof(*sprd), GFP_KERNEL);
-	if (!sprd)
+	if (!sprd) {
 		err = -ENOMEM;
+		goto err_free_drm;
+	}
 
 	drm->dev_private = sprd;
+
+	/* get the optional framebuffer memory resource */
+	err = of_reserved_mem_device_init_by_idx(drm->dev,
+				drm->dev->of_node, 0);
+	if (err && err != -ENODEV) {
+		DRM_ERROR("failed to obtain reserved memory\n");
+		goto err_free_drm;
+	}
 
 	sprd_drm_mode_config_init(drm);
 
@@ -157,6 +168,9 @@ err_unbind_all:
 	component_unbind_all(drm->dev, drm);
 err_dc_cleanup:
 	drm_mode_config_cleanup(drm);
+	of_reserved_mem_device_release(drm->dev);
+err_free_drm:
+	drm_dev_put(drm);
 	return err;
 }
 
@@ -173,8 +187,8 @@ static void sprd_drm_unbind(struct device *dev)
 	drm_mode_config_cleanup(drm);
 
 	component_unbind_all(drm->dev, drm);
-	drm->dev_private = NULL;
-	dev_set_drvdata(dev, NULL);
+
+	of_reserved_mem_device_release(drm->dev);
 
 	drm_dev_put(drm);
 }

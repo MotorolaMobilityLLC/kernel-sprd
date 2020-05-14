@@ -22,6 +22,9 @@ int sprd_crtc_iommu_map(struct device *dev,
 	struct dma_buf *dma_buf;
 	struct sprd_iommu_map_data iommu_data = {};
 
+	if (!sprd_gem->base.import_attach)
+		return 0;
+
 	dma_buf = sprd_gem->base.import_attach->dmabuf;
 	iommu_data.buf = dma_buf->priv;
 	iommu_data.iova_size = dma_buf->size;
@@ -41,6 +44,9 @@ void sprd_crtc_iommu_unmap(struct device *dev,
 				struct sprd_gem_obj *sprd_gem)
 {
 	struct sprd_iommu_unmap_data iommu_data = {};
+
+	if (!sprd_gem->base.import_attach)
+		return;
 
 	iommu_data.iova_size = sprd_gem->base.size;
 	iommu_data.iova_addr = sprd_gem->dma_addr;
