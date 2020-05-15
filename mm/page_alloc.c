@@ -1094,6 +1094,8 @@ static __always_inline bool free_pages_prepare(struct page *page,
 	VM_BUG_ON_PAGE(PageTail(page), page);
 
 	trace_mm_page_free(page, order);
+	if (PageProtect(page))
+		set_page_protect_num(page, 0);
 
 	/*
 	 * Check tail pages before head page information is cleared to
