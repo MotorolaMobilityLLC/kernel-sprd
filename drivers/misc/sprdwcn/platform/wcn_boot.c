@@ -1096,10 +1096,11 @@ static int marlin_digital_power_enable(bool enable)
 		if (ret)
 			WCN_ERR("failed to enable dvdd12: %d\n", ret);
 	} else {
-		if (regulator_is_enabled(marlin_dev->dvdd12))
+		if (regulator_is_enabled(marlin_dev->dvdd12)) {
 			ret = regulator_disable(marlin_dev->dvdd12);
 			if (ret)
 				WCN_ERR("failed to disable dvdd12: %d\n", ret);
+		}
 	}
 
 	return ret;
