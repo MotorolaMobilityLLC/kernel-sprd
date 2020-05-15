@@ -161,6 +161,17 @@ config CPU_THERMAL
 
 	  If you want this support, you should say Y here.
 
+config SPRD_CPU_COOLING
+	tristate "SPRD cpu cooling support"
+	depends on ARCH_SPRD
+	depends on THERMAL_OF
+	help
+	  This implements sprd cpu cooling mechanism through isolate cpu that
+	  cpu is forced into idle state from running state to mitigate temperature
+	  rising.
+
+	  If you want this support, you should say Y here.
+
 config CLOCK_THERMAL
 	bool "Generic clock cooling support"
 	depends on COMMON_CLK

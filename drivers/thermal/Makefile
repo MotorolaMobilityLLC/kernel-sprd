@@ -55,5 +55,5 @@ obj-$(CONFIG_GENERIC_ADC_THERMAL)	+= thermal-generic-adc.o
 obj-$(CONFIG_ZX2967_THERMAL)	+= zx2967_thermal.o
 obj-$(CONFIG_UNIPHIER_THERMAL)	+= uniphier_thermal.o
 obj-$(CONFIG_SPRD_THERMAL)	+= sprd_thermal.o
-
-obj-$(CONFIG_SPRD_SOC_THERMAL)      += sprd_soc_thm.o
+obj-$(CONFIG_SPRD_SOC_THERMAL)	+= sprd_soc_thm.o
+obj-$(CONFIG_SPRD_CPU_COOLING)	+= sprd_cpu_cooling.o
