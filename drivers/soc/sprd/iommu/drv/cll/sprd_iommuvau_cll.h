@@ -38,7 +38,7 @@ struct sprd_iommuvau_priv {
 
 	u8 ram_clk_div;/*Clock divisor*/
 
-	u8 map_cnt;
+	u32 map_cnt;
 	enum sprd_iommu_type iommu_type;
 	enum IOMMU_ID iommu_id;
 	int chip;

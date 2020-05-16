@@ -356,10 +356,6 @@ u32 sprd_iommuvau_cll_unmap(sprd_iommu_hdl p_iommu_hdl,
 	}
 
 	p_iommu_priv->map_cnt--;
-	if (p_iommu_priv->map_cnt == 0) {
-		if (iommu_id != IOMMU_EX_DISP)
-			sprd_iommuvau_cll_disable(p_iommu_hdl);
-	}
 
 	return SPRD_NO_ERR;
 }
