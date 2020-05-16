@@ -365,10 +365,6 @@ static u32 sprd_iommuvau_cll_unmap(sprd_iommu_hdl iommu_hdl,
 	mmu_vau_update(iommu_priv->mmu_reg_addr, iommu_id);
 
 	iommu_priv->map_cnt--;
-	if (iommu_priv->map_cnt == 0) {
-		if (iommu_id != IOMMU_EX_DISP)
-			sprd_iommuvau_cll_disable(iommu_hdl);
-	}
 
 	return SPRD_NO_ERR;
 }

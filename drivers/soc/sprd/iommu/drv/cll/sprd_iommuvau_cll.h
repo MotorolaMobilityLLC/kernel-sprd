@@ -48,7 +48,7 @@ struct sprd_iommuvau_priv {
 	unsigned int pagt_ddr_size;
 	unsigned long pagt_base_phy_ddr;
 
-	u8 map_cnt;
+	u32 map_cnt;
 	enum IOMMU_ID iommu_id;
 };
 #endif  /* _SPRD_IOMMU_CLL_H_ */
