@@ -1342,6 +1342,10 @@ static void __free_pages_ok(struct page *page, unsigned int order)
 	migratetype = get_pfnblock_migratetype(page, pfn);
 	local_irq_save(flags);
 	__count_vm_events(PGFREE, 1 << order);
+#ifdef CONFIG_PROTECT_LRU
+	if (PageProtect(page))
+		__count_vm_events(PPGFREE, 1 << order);
+#endif
 	free_one_page(page_zone(page), page, pfn, order, migratetype);
 	local_irq_restore(flags);
 }
@@ -2708,6 +2712,10 @@ void free_hot_cold_page(struct page *page, bool cold)
 	set_pcppage_migratetype(page, migratetype);
 	local_irq_save(flags);
 	__count_vm_event(PGFREE);
+#ifdef CONFIG_PROTECT_LRU
+	if (PageProtect(page))
+		__count_vm_event(PPGFREE);
+#endif
 
 	/*
 	 * We only track unmovable, reclaimable and movable on pcp lists.

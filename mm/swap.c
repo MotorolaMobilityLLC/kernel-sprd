@@ -296,6 +296,10 @@ static void __activate_page(struct page *page, struct lruvec *lruvec,
 		trace_mm_lru_activate(page);
 
 		__count_vm_event(PGACTIVATE);
+#ifdef CONFIG_PROTECT_LRU
+		if (PageProtect(page))
+			__count_vm_event(PPGACTIVATE);
+#endif
 		update_page_reclaim_stat(lruvec, file, 1);
 	}
 }

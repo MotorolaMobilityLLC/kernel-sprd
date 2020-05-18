@@ -1003,6 +1003,9 @@ static unsigned long shrink_page_list(struct list_head *page_list,
 	unsigned nr_immediate = 0;
 	unsigned nr_ref_keep = 0;
 	unsigned nr_unmap_fail = 0;
+#ifdef CONFIG_PROTECT_LRU
+	int ppgactivate = 0;
+#endif
 
 	cond_resched();
 
@@ -1379,6 +1382,10 @@ activate_locked:
 		if (!PageMlocked(page)) {
 			SetPageActive(page);
 			pgactivate++;
+#ifdef CONFIG_PROTECT_LRU
+			if (PageProtect(page))
+				ppgactivate++;
+#endif
 			count_memcg_page_event(page, PGACTIVATE);
 		}
 keep_locked:
@@ -1394,6 +1401,9 @@ keep:
 
 	list_splice(&ret_pages, page_list);
 	count_vm_events(PGACTIVATE, pgactivate);
+#ifdef CONFIG_PROTECT_LRU
+	count_vm_events(PPGACTIVATE, ppgactivate);
+#endif
 
 	if (stat) {
 		stat->nr_dirty = nr_dirty;
@@ -2107,6 +2117,9 @@ static unsigned move_active_pages_to_lru(struct lruvec *lruvec,
 	struct page *page;
 	int nr_pages;
 	int nr_moved = 0;
+#ifdef CONFIG_PROTECT_LRU
+	int nr_protect_moved = 0;
+#endif
 
 	while (!list_empty(list)) {
 		page = lru_to_page(list);
@@ -2135,6 +2148,10 @@ static unsigned move_active_pages_to_lru(struct lruvec *lruvec,
 				list_add(&page->lru, pages_to_free);
 		} else {
 			nr_moved += nr_pages;
+#ifdef CONFIG_PROTECT_LRU
+			if (PageProtect(page))
+				nr_protect_moved += nr_pages;
+#endif
 		}
 	}
 
@@ -2142,6 +2159,10 @@ static unsigned move_active_pages_to_lru(struct lruvec *lruvec,
 		__count_vm_events(PGDEACTIVATE, nr_moved);
 		count_memcg_events(lruvec_memcg(lruvec), PGDEACTIVATE,
 				   nr_moved);
+#ifdef CONFIG_PROTECT_LRU
+		if (nr_protect_moved)
+			count_vm_events(PPGDEACTIVATE, nr_protect_moved);
+#endif
 	}
 
 	return nr_moved;
