@@ -109,12 +109,6 @@ enum musb_g_ep0_state {
 
 struct musb_io;
 
-enum {
-	MUSB_PORT_MODE_HOST     = 1,
-	MUSB_PORT_MODE_GADGET,
-	MUSB_PORT_MODE_DUAL_ROLE,
-};
-
 /**
  * struct musb_platform_ops - Operations passed to musb_core by HW glue layer
  * @quirks:	flags for platform specific quirks
@@ -192,13 +186,10 @@ struct musb_platform_ops {
 
 	int	(*vbus_status)(struct musb *musb);
 	void	(*set_vbus)(struct musb *musb, int on);
-
 	void	(*pre_root_reset_end)(struct musb *musb);
 	void	(*post_root_reset_end)(struct musb *musb);
 	int	(*phy_callback)(enum musb_vbus_id_status status);
 	void	(*clear_ep_rxintr)(struct musb *musb, int epnum);
-	void	(*phy_set_emphasis)(struct musb *musb, bool enabled);
-	int	(*ep_fifo_configure)(struct musb *musb);
 };
 
 struct musb_host_ops {
@@ -443,8 +434,8 @@ struct musb {
 #ifdef CONFIG_DEBUG_FS
 	struct dentry		*debugfs_root;
 #endif
-	bool	restore_complete;
-	struct musb_host_ops hops;
+	bool			restore_complete;
+	struct	musb_host_ops	hops;
 };
 
 /* This must be included after struct musb is defined */
@@ -532,6 +523,8 @@ extern irqreturn_t musb_interrupt(struct musb *);
 
 extern void musb_hnp_stop(struct musb *musb);
 
+extern int musb_reset_all_fifo_2_default(struct musb *musb);
+
 int musb_queue_resume_work(struct musb *musb,
 			   int (*callback)(struct musb *musb, void *data),
 			   void *data);
@@ -617,14 +610,6 @@ static inline void musb_platform_clear_ep_rxintr(struct musb *musb, int epnum)
 {
 	if (musb->ops->clear_ep_rxintr)
 		musb->ops->clear_ep_rxintr(musb, epnum);
-}
-
-static inline int musb_reset_fifo_size(struct musb *musb)
-{
-	if (!musb->ops->ep_fifo_configure)
-		return -EINVAL;
-
-	return musb->ops->ep_fifo_configure(musb);
 }
 
 /*

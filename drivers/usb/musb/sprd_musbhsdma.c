@@ -1090,8 +1090,6 @@ struct dma_controller *sprd_musb_dma_controller_create(struct musb *musb,
 	struct sprd_musb_dma_channel *chp = NULL;
 	int	ch;
 
-	if (get_dma_ops(musb->controller) == get_dma_ops(NULL))
-		musb->controller->dma_ops = get_dma_ops(musb->controller->parent);
 	controller = kzalloc(sizeof(*controller), GFP_KERNEL);
 	if (!controller)
 		return NULL;

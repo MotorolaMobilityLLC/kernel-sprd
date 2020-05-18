@@ -107,8 +107,7 @@ static void sprd_musb_enable(struct musb *musb)
 		}
 		musb_writeb(musb->mregs, MUSB_POWER, pwr);
 	}
-
-	musb_reset_fifo_size(musb);
+	musb_reset_all_fifo_2_default(musb);
 }
 
 static void sprd_musb_disable(struct musb *musb)
@@ -153,9 +152,9 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 	dev_dbg(musb->controller, "%s usb%04x tx%04x rx%04x dma%x\n", __func__,
 			musb->int_usb, musb->int_tx, musb->int_rx, reg_dma);
 
-
 	if (musb->int_usb || musb->int_tx || musb->int_rx)
 		retval = musb_interrupt(musb);
+
 #if IS_ENABLED(CONFIG_USB_SPRD_DMA)
 	if (reg_dma)
 		retval = sprd_dma_interrupt(musb, reg_dma);
@@ -644,6 +643,7 @@ static void sprd_musb_work(struct work_struct *work)
 	    glue->dr_mode == USB_DR_MODE_UNKNOWN && musb->hops.host_start)
 		musb->hops.host_start(musb);
 #endif
+
 	glue->dr_mode = current_mode;
 	dev_dbg(glue->dev, "%s enter: vbus = %d mode = %d\n",
 			__func__, current_state, current_mode);
@@ -731,7 +731,7 @@ static void sprd_musb_work(struct work_struct *work)
 			goto end;
 		}
 
-		ret = musb_reset_fifo_size(musb);
+		ret = musb_reset_all_fifo_2_default(musb);
 		if (ret) {
 			device_for_each_child(glue->dev, NULL,
 				      musb_sprd_suspend_child);
@@ -742,6 +742,7 @@ static void sprd_musb_work(struct work_struct *work)
 			dev_err(glue->dev, "Failed to config ep fifo!\n");
 			goto end;
 		}
+
 		/*
 		 * We have resumed the dwc3 device to do enumeration,
 		 *  thus clear the charging mode flag.
@@ -941,11 +942,11 @@ static int musb_sprd_probe(struct platform_device *pdev)
 
 	memset(&pdata, 0, sizeof(pdata));
 	if (IS_ENABLED(CONFIG_USB_MUSB_GADGET))
-		pdata.mode = MUSB_PORT_MODE_GADGET;
+		pdata.mode = MUSB_PERIPHERAL;
 	else if (IS_ENABLED(CONFIG_USB_MUSB_HOST))
-		pdata.mode = MUSB_PORT_MODE_HOST;
+		pdata.mode = MUSB_HOST;
 	else if (IS_ENABLED(CONFIG_USB_MUSB_DUAL_ROLE))
-		pdata.mode = MUSB_PORT_MODE_DUAL_ROLE;
+		pdata.mode = MUSB_OTG;
 	else
 		dev_err(&pdev->dev, "Invalid or missing 'dr_mode' property\n");
 
@@ -967,8 +968,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		goto err_core_clk;
 	}
 
-	if (pdata.mode == MUSB_PORT_MODE_HOST ||
-		pdata.mode == MUSB_PORT_MODE_DUAL_ROLE) {
+	if (pdata.mode == MUSB_HOST || pdata.mode == MUSB_OTG) {
 		glue->vbus = devm_regulator_get(dev, "vbus");
 		if (IS_ERR(glue->vbus)) {
 			ret = PTR_ERR(glue->vbus);
