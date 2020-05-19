@@ -586,6 +586,8 @@ static void sc2703_charger_stop_charge(struct sc2703_charger_info *info,
 	else
 		mask = SC2703_CHG_EN_MASK;
 
+	need_disable_dcdc = false;
+
 	if (present) {
 		ret = regmap_update_bits(info->regmap, SC2703_DCDC_CTRL_A,
 					 mask, 0);
