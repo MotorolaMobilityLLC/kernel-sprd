@@ -619,6 +619,15 @@ config ARCH_HAS_UACCESS_MCSAFE
 config ARCH_STACKWALK
        bool
 
+#
+# Enhanced show meminfo support is selected if needed
+#
+config E_SHOW_MEM
+	bool "Enhanced show memory"
+	default n
+	help
+	  Enable mem info show for ION, GPU, ZRAM, Vmalloc etc.
+
 config STACKDEPOT
 	bool
 	select STACKTRACE
