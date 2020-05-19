@@ -100,6 +100,9 @@
 #ifdef CONFIG_LOCKUP_DETECTOR
 #include <linux/nmi.h>
 #endif
+#ifdef CONFIG_E_SHOW_MEM
+#include <linux/emem.h>
+#endif
 
 #if defined(CONFIG_SYSCTL)
 
@@ -1755,6 +1758,17 @@ static struct ctl_table vm_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_ONE,
+	},
+#endif
+#ifdef CONFIG_E_SHOW_MEM
+	{
+		.procname	= "emem_trigger",
+		.data		= &sysctl_emem_trigger,
+		.maxlen		= sizeof(int),
+		.mode		= 0200,
+		.proc_handler	= sysctl_emem_trigger_handler,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= &one_thousand,
 	},
 #endif
 	{ }
