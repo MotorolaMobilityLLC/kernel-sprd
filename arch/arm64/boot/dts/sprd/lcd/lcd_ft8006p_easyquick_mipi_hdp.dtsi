@@ -1,5 +1,5 @@
 / { lcds {
-	lcd_ft8006p_hlt_ww_mipi_hdp: lcd_ft8006p_hlt_ww_mipi_hdp {
+	lcd_ft8006p_easyquick_mipi_hdp: lcd_ft8006p_easyquick_mipi_hdp {
 
 		sprd,dsi-work-mode = <1>; /* video burst mode*/
 		sprd,dsi-lane-number = <4>;

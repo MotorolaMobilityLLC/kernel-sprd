@@ -12,7 +12,8 @@
 #include "sp9863a-mach.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-#include "lcd/lcd_ft8006p_hlt_ww_mipi_hdp.dtsi"
+#include "lcd/lcd_ft8006p_easyquick_mipi_hdp.dtsi"
+#include "lcd/lcd_icnl9911_hlt_mipi_hdp.dtsi"
 
 / {
 	model = "Spreadtrum SC9863A-1C10 Board";
