@@ -345,6 +345,9 @@ static void sprd_i2c_set_clk(struct sprd_i2c *i2c_dev, u32 freq)
 		writel((6 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
 	else if (freq == 100000)
 		writel((4 * apb_clk) / 1000000, i2c_dev->base + ADDR_STA0_DVD);
+	else if (freq == 1000000)
+		writel((8 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
+
 }
 
 static void sprd_i2c_enable(struct sprd_i2c *i2c_dev)
@@ -522,8 +525,9 @@ static int sprd_i2c_probe(struct platform_device *pdev)
 	if (!of_property_read_u32(dev->of_node, "clock-frequency", &prop))
 		i2c_dev->bus_freq = prop;
 
-	/* We only support 100k and 400k now, otherwise will return error. */
-	if (i2c_dev->bus_freq != 100000 && i2c_dev->bus_freq != 400000)
+	/* We only support 100k、400k and 1M now, otherwise will return error. */
+	if (i2c_dev->bus_freq != 100000 && i2c_dev->bus_freq != 400000 &&
+		i2c_dev->bus_freq != 1000000)
 		return -EINVAL;
 
 	ret = sprd_i2c_clk_init(i2c_dev);
