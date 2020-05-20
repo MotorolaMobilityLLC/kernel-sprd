@@ -239,6 +239,14 @@
 				reg = <0 0x64470020 0 0x20>;
 				clocks = <&ext_32k>;
 			};
+
+			hwlock: hwspinlock@64910000 {
+				compatible = "sprd,hwspinlock-r3p0";
+				reg = <0 0x64910000 0 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
 		};
 	};
 
