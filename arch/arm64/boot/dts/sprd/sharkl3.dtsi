@@ -426,6 +426,11 @@
 				#pwm-cells = <2>;
 			};
 
+			pin_controller: pinctrl@402a0000 {
+				compatible = "sprd,sharkl3-pinctrl";
+				reg = <0 0x402a0000 0 0x3000>;
+			};
+
 			ap_gpio: gpio@402c0000 {
 				compatible = "sprd,sharkl3-gpio-plus";
 				reg = <0 0x402c0000 0 0x1000>;

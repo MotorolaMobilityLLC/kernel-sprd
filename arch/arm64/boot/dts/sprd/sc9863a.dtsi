@@ -379,6 +379,11 @@
 			     <GIC_SPI 151 IRQ_TYPE_LEVEL_HIGH>;
 	};
 
+	autotest: autotest {
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
+
 	soc {
 		gic: interrupt-controller@14000000 {
 			compatible = "arm,gic-v3";
