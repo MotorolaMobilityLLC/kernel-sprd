@@ -408,13 +408,16 @@ static void cpu_cooling_pm_notify_test(struct test *test)
 static void get_leak_base_test(struct test *test)
 {
 	u32 leak_base = 0;
-	int coeff = 0xdf23e00;
+	int coeff[3] = {0, 0, 0};
+	int coeff_1[3] = {1000, 1000, 1000};
 
-	leak_base = (u32)get_leak_base(0, 1, &coeff);
-	EXPECT_EQ(test, 1606052866, leak_base);
+	/* set coeff = 0 */
+	leak_base = (u32)get_leak_base(0, 1, coeff);
+	EXPECT_EQ(test, 0, leak_base);
 
-	leak_base = (u32)get_leak_base(1, 1, &coeff);
-	EXPECT_EQ(test, 1606052866, leak_base);
+	/* set coeff = 1000 */
+	leak_base = (u32)get_leak_base(0, 1, coeff_1);
+	EXPECT_EQ(test, 10000, leak_base);
 }
 
 static int sprd_cpu_device_test_init(struct test *test)
