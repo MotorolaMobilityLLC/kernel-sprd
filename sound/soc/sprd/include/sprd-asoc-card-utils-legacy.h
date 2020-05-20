@@ -45,19 +45,10 @@ enum {
 	BOARD_FUNC_MAX
 };
 
-enum {
-	EXT_CTRL_SPK,
-	EXT_CTRL_HP,
-	EXT_CTRL_EAR,
-	EXT_CTRL_MIC,
-	EXT_CTRL_DFM,
-	EXT_CTRL_MAX
-};
-
 typedef int (*sprd_asoc_hook_func)(int id, int on);
 
 struct sprd_asoc_ext_hook {
-	sprd_asoc_hook_func ext_ctrl[EXT_CTRL_MAX];
+	sprd_asoc_hook_func ext_ctrl[BOARD_FUNC_MAX];
 };
 
 struct sprd_array_size {

@@ -46,10 +46,6 @@ static struct board_priv {
 #define BOARD_DMIC_JACK "DMic Jack"
 #define BOARD_DMIC1_JACK "DMic1 Jack"
 #define BOARD_DIG_FM_JACK "Dig FM Jack"
-#define BOARD_INTER_HP_PA "inter HP PA"
-#define BOARD_INTER_SPK_PA "inter Spk PA"
-#define BOARD_INTER_SPK1_PA "inter Spk1 PA"
-#define BOARD_INTER_EAR_PA "inter Ear PA"
 
 static const char *func_name[BOARD_FUNC_MAX] = {
 	BOARD_EXT_SPK,
@@ -87,7 +83,7 @@ int sprd_asoc_ext_hook_unregister(struct sprd_asoc_ext_hook *hook)
 
 #define SAFE_CALL(func, id, on) (func ? func(id, on) : HOOK_NONE)
 
-static int board_ext_hook(int ext_ctrl_id, int func_id, int on)
+static int board_ext_hook(int func_id, int on)
 {
 	int ret = HOOK_NONE;
 
@@ -95,15 +91,11 @@ static int board_ext_hook(int ext_ctrl_id, int func_id, int on)
 		pr_err("%s func id(%d) is invalid.\n", __func__, func_id);
 		return -EINVAL;
 	}
-	if (ext_ctrl_id < 0 || ext_ctrl_id >= EXT_CTRL_MAX) {
-		pr_err("%s func id(%d) is invalid.\n", __func__, func_id);
-		return -EINVAL;
-	}
 
-	sp_asoc_pr_dbg("external ctrl hook(%d) with function id(%d), on=%d\n",
-		       ext_ctrl_id, func_id, on);
+	sp_asoc_pr_dbg("function id(%d), on=%d\n",
+		       func_id, on);
 	if (ext_hook)
-		ret = SAFE_CALL(ext_hook->ext_ctrl[ext_ctrl_id], func_id, on);
+		ret = SAFE_CALL(ext_hook->ext_ctrl[func_id], func_id, on);
 
 	return ret;
 }
@@ -135,90 +127,22 @@ static void board_ext_pin_control(struct snd_soc_dapm_context *dapm,
 	snd_soc_dapm_sync(dapm);
 }
 
-static inline void inter_pa_pin_control(struct snd_soc_card *card,
-					const char *id, bool enable, bool sync)
-{
-	if (enable)
-		snd_soc_dapm_enable_pin(&card->dapm, id);
-	else
-		snd_soc_dapm_disable_pin(&card->dapm, id);
-
-	if (sync) {
-		/* signal a DAPM event */
-		snd_soc_dapm_sync(&card->dapm);
-	}
-}
-
-static void board_inter_pa_pin_control(struct snd_soc_card *card, int id,
-				       bool sync)
-{
-	char *pa_name;
-
-	if (id < 0 || id >= BOARD_FUNC_MUTE_MAX) {
-		pr_err("%s func id(%d) is invalid!\n", __func__, id);
-		return;
-	}
-
-	switch (id) {
-	case BOARD_FUNC_SPK:
-		pa_name = BOARD_INTER_SPK_PA;
-		break;
-	case BOARD_FUNC_SPK1:
-		pa_name = BOARD_INTER_SPK1_PA;
-		break;
-	case BOARD_FUNC_EAR:
-		pa_name = BOARD_INTER_EAR_PA;
-		break;
-	case BOARD_FUNC_HP:
-		pa_name = BOARD_INTER_HP_PA;
-		break;
-	default:
-		return;
-	}
-
-	if (board.pa_type[id] & HOOK_BPY) {
-		int enable = 1;
-
-		if (board.func_switch[id] != SWITCH_FUN_ON ||
-		    board.m[id].need_mute)
-			enable = 0;
-		inter_pa_pin_control(card, pa_name, enable, sync);
-	}
-}
-
 /* For devices with mute function. */
 static void board_ext_enable(struct snd_soc_card *card, int enable, int func_id)
 {
 	int ret;
-	int ext_ctrl_id;
 
 	if (func_id >= BOARD_FUNC_MUTE_MAX || func_id < 0) {
 		pr_err("%s func id(%d) is invalid!\n", __func__, func_id);
 		return;
 	}
 
-	switch (func_id) {
-	case BOARD_FUNC_SPK:
-	case BOARD_FUNC_SPK1:
-		ext_ctrl_id = EXT_CTRL_SPK;
-		break;
-	case BOARD_FUNC_HP:
-		ext_ctrl_id = EXT_CTRL_HP;
-		break;
-	case BOARD_FUNC_EAR:
-		ext_ctrl_id = EXT_CTRL_EAR;
-		break;
-	default:
-		pr_warn("%s no hook for func type %d\n", __func__, func_id);
-		return;
-	}
-
 	if (enable && board.m[func_id].need_mute)
 		enable = 0;
 
-	pr_debug("%s ext_ctrl_id %d func_id %d enable %d\n",
-		__func__, ext_ctrl_id, func_id, enable);
-	ret = board_ext_hook(ext_ctrl_id, func_id, enable);
+	pr_debug("%s func_id %d enable %d\n",
+		 __func__, func_id, enable);
+	ret = board_ext_hook(func_id, enable);
 	if (ret < 0) {
 		pr_err("ERR:Call external earpiece control failed %d!\n", ret);
 		return;
@@ -278,7 +202,7 @@ static int board_main_mic_event(struct snd_soc_dapm_widget *w,
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 
 	sp_asoc_pr_dbg("Main MIC Switch %s\n", STR_ON_OFF(on));
-	board_ext_hook(EXT_CTRL_MIC, BOARD_FUNC_MIC, on);
+	board_ext_hook(BOARD_FUNC_MIC, on);
 
 	return 0;
 }
@@ -289,7 +213,7 @@ static int board_sub_mic_event(struct snd_soc_dapm_widget *w,
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 
 	sp_asoc_pr_dbg("Sub MIC Switch %s\n", STR_ON_OFF(on));
-	board_ext_hook(EXT_CTRL_MIC, BOARD_FUNC_AUXMIC, on);
+	board_ext_hook(BOARD_FUNC_AUXMIC, on);
 
 	return 0;
 }
@@ -300,7 +224,7 @@ static int board_head_mic_event(struct snd_soc_dapm_widget *w,
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 
 	sp_asoc_pr_dbg("Head MIC Switch %s\n", STR_ON_OFF(on));
-	board_ext_hook(EXT_CTRL_MIC, BOARD_FUNC_HP_MIC, on);
+	board_ext_hook(BOARD_FUNC_HP_MIC, on);
 
 	return 0;
 }
@@ -311,7 +235,7 @@ static int board_dig0_mic_event(struct snd_soc_dapm_widget *w,
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 
 	sp_asoc_pr_dbg("Digtial0 MIC Switch %s\n", STR_ON_OFF(on));
-	board_ext_hook(EXT_CTRL_MIC, BOARD_FUNC_DMIC, on);
+	board_ext_hook(BOARD_FUNC_DMIC, on);
 
 	return 0;
 }
@@ -322,7 +246,7 @@ static int board_dig1_mic_event(struct snd_soc_dapm_widget *w,
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 
 	sp_asoc_pr_dbg("Digtial1 MIC Switch %s\n", STR_ON_OFF(on));
-	board_ext_hook(EXT_CTRL_MIC, BOARD_FUNC_DMIC1, on);
+	board_ext_hook(BOARD_FUNC_DMIC1, on);
 
 	return 0;
 }
@@ -333,7 +257,7 @@ static int board_line_in_event(struct snd_soc_dapm_widget *w,
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 
 	sp_asoc_pr_dbg("LINE IN Switch %s\n", STR_ON_OFF(on));
-	board_ext_hook(EXT_CTRL_MIC, BOARD_FUNC_LINE, on);
+	board_ext_hook(BOARD_FUNC_LINE, on);
 
 	return 0;
 }
@@ -344,7 +268,7 @@ static int board_dig_fm_event(struct snd_soc_dapm_widget *w,
 	int on = !!SND_SOC_DAPM_EVENT_ON(event);
 
 	sp_asoc_pr_dbg("Digtial FM Switch %s\n", STR_ON_OFF(on));
-	board_ext_hook(EXT_CTRL_DFM, BOARD_FUNC_DFM, on);
+	board_ext_hook(BOARD_FUNC_DFM, on);
 
 	return 0;
 }
@@ -398,7 +322,6 @@ static int board_func_set(struct snd_kcontrol *kcontrol,
 		return 0;
 
 	board.func_switch[id] = ucontrol->value.integer.value[0];
-	board_inter_pa_pin_control(card, id, 1);
 	board_ext_pin_control(&card->dapm, id, id + 1);
 
 	return 1;
@@ -432,7 +355,6 @@ static int board_mute_set(struct snd_kcontrol *kcontrol,
 
 	board.m[id].need_mute = ucontrol->value.integer.value[0];
 	board_ext_pin_control(&card->dapm, id, id + 1);
-	board_inter_pa_pin_control(card, id, 1);
 
 	return 1;
 }
@@ -579,46 +501,17 @@ struct sprd_array_size sprd_asoc_card_controls = {
 };
 EXPORT_SYMBOL(sprd_asoc_card_controls);
 
-static void board_pa_type_check(int func_id)
-{
-	switch (func_id) {
-	case BOARD_FUNC_SPK:
-	case BOARD_FUNC_SPK1:
-		board.pa_type[func_id] =
-		    board_ext_hook(EXT_CTRL_SPK, func_id, 0);
-		break;
-	case BOARD_FUNC_HP:
-		board.pa_type[func_id] =
-		    board_ext_hook(EXT_CTRL_HP, func_id, 0);
-		break;
-	case BOARD_FUNC_EAR:
-		board.pa_type[func_id] =
-		    board_ext_hook(EXT_CTRL_EAR, func_id, 0);
-		break;
-	default:
-		return;
-	}
-}
-
-static void board_inter_pa_init(void)
+static void board_hook_init(void)
 {
 	int id;
 
 	for (id = BOARD_FUNC_SPK; id < BOARD_FUNC_MUTE_MAX; id++)
-		board_pa_type_check(id);
-}
-
-static void board_inter_pa_pin_control_all(struct snd_soc_card *card)
-{
-	int id;
-
-	for (id = BOARD_FUNC_SPK; id < BOARD_FUNC_MUTE_MAX; id++)
-		board_inter_pa_pin_control(card, id, 0);
+		board_ext_hook(id, 0);
 }
 
 int sprd_asoc_board_comm_probe(void)
 {
-	board_inter_pa_init();
+	board_hook_init();
 
 	return 0;
 }
@@ -630,7 +523,6 @@ int sprd_asoc_board_comm_late_probe(struct snd_soc_card *card)
 
 	sprd_audio_debug_init(card->snd_card);
 
-	board_inter_pa_pin_control_all(card);
 	board_ext_pin_control(&card->dapm, 0, BOARD_FUNC_MAX);
 
 	for (i = 0; i < BOARD_FUNC_MAX; i++)
@@ -645,7 +537,6 @@ void sprd_asoc_shutdown(struct platform_device *pdev)
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 
 	memset(&board.func_switch, 0, sizeof(board.func_switch));
-	board_inter_pa_pin_control_all(card);
 	board_ext_pin_control(&card->dapm, 0, BOARD_FUNC_MAX);
 }
 EXPORT_SYMBOL(sprd_asoc_shutdown);
