@@ -706,6 +706,20 @@
 
 &lcd_td4310_truly_mipi_fhd {
 	sprd,phy-bit-clock = <1104000>;  /* kbps */
+
+	display-timings {
+		timing1 {
+			clock-frequency = <153600000>;
+			hactive = <720>;
+			vactive = <1440>;
+			hback-porch = <20>;
+			hfront-porch = <50>;
+			vback-porch = <28>;
+			vfront-porch = <4>;
+			hsync-len = <2>;
+			vsync-len = <2>;
+		};
+	};
 };
 
 &aon_i2c0 {
