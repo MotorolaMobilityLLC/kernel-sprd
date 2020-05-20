@@ -249,6 +249,14 @@
 	wb_reserved: writeback-mem@bfbfc000 {
 		reg = <0xbfbfc000 0x00384000>;
 	};
+
+	pstore_reserved: ramoops@bff80000 {
+		compatible = "ramoops";
+		reg = <0xbff80000 0x00040000>;
+		record-size = <0x8000>;
+		console-size = <0x8000>;
+		pmsg-size = <0x8000>;
+	};
 };
 
 &uart1 {
@@ -354,6 +362,7 @@
 
 &dpu {
 	status = "okay";
+	sprd,wb-memory = <&wb_reserved>;
 };
 
 &iommu_dispc {
