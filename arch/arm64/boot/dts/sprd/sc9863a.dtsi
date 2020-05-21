@@ -54,6 +54,7 @@
 			cpu-idle-states = <&CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <100>;
+			sugov_slack_timer;
 		};
 
 		CPU1: cpu@100 {
