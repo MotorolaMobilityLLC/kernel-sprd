@@ -21,6 +21,18 @@
 
 #include "sprd_bl.h"
 
+#define U_MAX_LEVEL	255
+#define U_MIN_LEVEL	0
+
+void sprd_backlight_normalize_map(struct backlight_device *bd, u16 *level)
+{
+	struct sprd_backlight *bl = bl_get_data(bd);
+
+	*level = DIV_ROUND_CLOSEST_ULL((bl->max_level - bl->min_level) *
+		(bd->props.brightness - U_MIN_LEVEL),
+		U_MAX_LEVEL - U_MIN_LEVEL) + bl->min_level;
+}
+
 int sprd_cabc_backlight_update(struct backlight_device *bd)
 {
 	struct sprd_backlight *bl = bl_get_data(bd);
@@ -54,10 +66,9 @@ static int sprd_pwm_backlight_update(struct backlight_device *bd)
 	struct sprd_backlight *bl = bl_get_data(bd);
 	struct pwm_state state;
 	u64 duty_cycle;
-	u32 level;
+	u16 level;
 
-	level = DIV_ROUND_CLOSEST_ULL(bd->props.brightness *
-			(bl->max_level - bl->min_level), 255);
+	sprd_backlight_normalize_map(bd, &level);
 
 	if (bd->props.power != FB_BLANK_UNBLANK ||
 	    bd->props.fb_blank != FB_BLANK_UNBLANK ||

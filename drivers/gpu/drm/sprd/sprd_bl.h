@@ -30,4 +30,6 @@ struct sprd_backlight {
 
 int sprd_cabc_backlight_update(struct backlight_device *bd);
 
+void sprd_backlight_normalize_map(struct backlight_device *bd, u16 *level);
+
 #endif

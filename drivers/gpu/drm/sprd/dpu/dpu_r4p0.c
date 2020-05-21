@@ -602,8 +602,7 @@ static void dpu_cabc_bl_update_func(struct work_struct *data)
 	msleep(cabc_bl_set_delay);
 	if (bl_dev) {
 		if (cabc_disable == CABC_WORKING) {
-			cabc_para.cur_bl = bl_dev->props.brightness *
-				(bl->max_level - bl->min_level) / 255;
+			sprd_backlight_normalize_map(bl_dev, &cabc_para.cur_bl);
 
 			bl->cabc_en = true;
 			bl->cabc_level = cabc_para.bl_fix *
