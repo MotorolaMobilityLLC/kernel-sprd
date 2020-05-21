@@ -314,6 +314,19 @@ static u32 dpu_get_version(struct dpu_context *ctx)
 	return reg->dpu_version;
 }
 
+static bool dpu_check_raw_int(struct dpu_context *ctx, u32 mask)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	u32 val;
+
+	val = reg->dpu_int_raw;
+	if (val & mask)
+		return true;
+
+	pr_err("dpu_int_raw:0x%x\n", val);
+	return false;
+}
+
 static int dpu_parse_dt(struct dpu_context *ctx,
 				struct device_node *np)
 {
@@ -1217,6 +1230,9 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* disable Halt function for SPRD DSI */
 		reg->dpi_ctrl &= ~BIT(16);
 
+		/* select te from external pad */
+		reg->dpi_ctrl |= BIT(10);
+
 		/* set dpi timing */
 		reg->dpi_h_timing = (ctx->vm.hsync_len << 0) |
 				    (ctx->vm.hback_porch << 8) |
@@ -1760,6 +1776,7 @@ static struct dpu_core_ops dpu_lite_r2p0_ops = {
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,
 	.write_back = dpu_write_back,
+	.check_raw_int = dpu_check_raw_int,
 };
 
 static struct ops_entry entry = {
