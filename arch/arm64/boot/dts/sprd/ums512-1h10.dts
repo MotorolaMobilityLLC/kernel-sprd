@@ -7,7 +7,11 @@
 
 /dts-v1/;
 
+#include <dt-bindings/gpio/gpio.h>
 #include "ums512.dtsi"
+#include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
+#include "ums512-mach.dtsi"
 
 / {
 	model = "Spreadtrum UMS512-1H10 Board";
@@ -54,4 +58,36 @@
 	no-sd;
 	cap-mmc-hw-reset;
 	status = "okay";
+};
+
+&dpu {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	panel: panel {
+		compatible = "sprd,generic-mipi-panel";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
+
+		port@1 {
+			reg = <1>;
+			panel_in: endpoint {
+				remote-endpoint = <&dphy_out>;
+			};
+		};
+	};
+};
+
+&dphy {
+	status = "okay";
+};
+
+&lcd_td4310_truly_mipi_fhd {
+	sprd,phy-bit-clock = <1104000>;  /* kbps */
 };

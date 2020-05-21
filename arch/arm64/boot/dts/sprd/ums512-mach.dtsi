@@ -7,6 +7,11 @@
  */
 
 / {
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		ports = <&dpu_port>;
+	};
+
 	firmware {
 		android {
 			compatible = "android,firmware";
