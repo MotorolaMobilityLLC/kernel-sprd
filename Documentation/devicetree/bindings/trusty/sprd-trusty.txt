@@ -1,0 +1,34 @@
+* Spreadtrum trusty information
+
+Required properties:
+- compatible: must be one of:
+  * "sprd,customipi"
+  * "sprd,trusty-smc-v1"
+  * "sprd,trusty-irq-v1"
+  * "sprd,trusty-virtio-v1"
+  * "sprd,trusty-log-v1"
+
+
+- reg: offset and length of the register set for the device
+- interrupts: exactly one interrupt specifier
+
+Example:
+	trusty {
+		compatible = "sprd,trusty-smc-v1";
+
+		irq {
+			compatible = "sprd,trusty-irq-v1";
+			interrupt-templates = <&ipi 0>,
+					      <&gic 1 GIC_PPI 0>,
+					      <&gic 1 GIC_SPI 0>;
+		};
+
+		virtio {
+			compatible = "sprd,trusty-virtio-v1";
+		};
+
+		log {
+
+			compatible = "sprd,trusty-log-v1";
+		};
+	};
