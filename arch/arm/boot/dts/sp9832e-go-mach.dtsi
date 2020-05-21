@@ -151,7 +151,7 @@
 		/* debug region: not reserved in normal mode, it */
 		/* will be proccessed in u-boot */
 		cp_reserved: cp-modem@89600000 {
-			reg = <0x89600000 0x03fc0000>;
+			reg = <0x89600000 0x040c0000>;
 		};
 
 		/* must be 64M aligned */
