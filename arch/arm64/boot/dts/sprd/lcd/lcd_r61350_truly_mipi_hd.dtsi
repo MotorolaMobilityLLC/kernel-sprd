@@ -20,11 +20,11 @@
 		sprd,width-mm = <68>;
 		sprd,height-mm = <121>;
 
-		sprd,esd-check-enable = <0>;
-		sprd,esd-check-mode = <0>;
+		sprd,esd-check-enable = <1>;
+		sprd,esd-check-mode = <1>;
 		sprd,esd-check-period = <1000>;
-		sprd,esd-check-register = <0x0A>;
-		sprd,esd-check-value = <0x9C>;
+		/* sprd,esd-check-register = <0x0A>; */
+		/* sprd,esd-check-value = <0x9C>; */
 
 		sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
 		sprd,reset-off-sequence = <1 5>;
