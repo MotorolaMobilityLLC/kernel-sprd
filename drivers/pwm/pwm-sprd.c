@@ -16,7 +16,7 @@
 #define SPRD_PWM_DUTY		0x8
 #define SPRD_PWM_ENABLE		0x18
 
-#define SPRD_PWM_MOD_MAX	GENMASK(7, 0)
+#define SPRD_PWM_MOD_MAX	GENMASK(9, 0)
 #define SPRD_PWM_DUTY_MSK	GENMASK(15, 0)
 #define SPRD_PWM_PRESCALE_MSK	GENMASK(7, 0)
 #define SPRD_PWM_ENABLE_BIT	BIT(0)
@@ -102,12 +102,12 @@ static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 	 */
 	val = sprd_pwm_read(spc, pwm->hwpwm, SPRD_PWM_PRESCALE);
 	prescale = val & SPRD_PWM_PRESCALE_MSK;
-	tmp = (prescale + 1) * NSEC_PER_SEC * SPRD_PWM_MOD_MAX;
+	tmp = ((u64)prescale + 1) * NSEC_PER_SEC * SPRD_PWM_MOD_MAX;
 	state->period = DIV_ROUND_CLOSEST_ULL(tmp, chn->clk_rate);
 
 	val = sprd_pwm_read(spc, pwm->hwpwm, SPRD_PWM_DUTY);
 	duty = val & SPRD_PWM_DUTY_MSK;
-	tmp = (prescale + 1) * NSEC_PER_SEC * duty;
+	tmp = ((u64)prescale + 1) * NSEC_PER_SEC * duty;
 	state->duty_cycle = DIV_ROUND_CLOSEST_ULL(tmp, chn->clk_rate);
 
 	/* Disable PWM clocks if the PWM channel is not in enable state. */
@@ -132,11 +132,16 @@ static int sprd_pwm_config(struct sprd_pwm_chip *spc, struct pwm_device *pwm,
 	 * gets the maximal length not bigger than the requested one with the
 	 * given settings (MOD = SPRD_PWM_MOD_MAX and input clock).
 	 */
-	duty = duty_ns * SPRD_PWM_MOD_MAX / period_ns;
+	tmp = duty_ns * SPRD_PWM_MOD_MAX;
+	duty = DIV_ROUND_CLOSEST_ULL(tmp, period_ns);
 
 	tmp = (u64)chn->clk_rate * period_ns;
 	do_div(tmp, NSEC_PER_SEC);
-	prescale = DIV_ROUND_CLOSEST_ULL(tmp, SPRD_PWM_MOD_MAX) - 1;
+	prescale = DIV_ROUND_CLOSEST_ULL(tmp, SPRD_PWM_MOD_MAX);
+	if (prescale < 1)
+		prescale = 1;
+	prescale--;
+
 	if (prescale > SPRD_PWM_PRESCALE_MSK)
 		prescale = SPRD_PWM_PRESCALE_MSK;
 
