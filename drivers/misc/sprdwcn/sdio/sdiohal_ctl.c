@@ -103,6 +103,7 @@ static int tp_tx_cnt;
 static int tp_tx_flag;
 static int tp_tx_buf_cnt = TP_TX_BUF_CNT;
 static int tp_tx_buf_len = TP_TX_BUF_LEN;
+long int sdiohal_log_level;
 
 #if TCP_TEST_RX
 struct completion tp_rx_completed;
@@ -210,7 +211,7 @@ static int sdiohal_throughput_tx_alloc(void)
 
 	for (i = 0; i < TP_TX_BUF_CNT; i++) {
 		tp_tx_buf[i] = kzalloc(TP_TX_BUF_LEN + PUB_HEAD_RSV,
-			       GFP_KERNEL);
+				       GFP_KERNEL);
 		if (!tp_tx_buf[i]) {
 			WCN_ERR("%s kzalloc tp_tx_buf fail\n",
 				__func__);
@@ -231,6 +232,12 @@ static int sdiohal_throughput_tx(void)
 	int i = 0;
 	int buf_len = tp_tx_buf_len;
 	int ret = 0;
+
+	/* if tp_tx_buf is used for first time */
+	if (!tp_tx_buf[0]) {
+		if (sdiohal_throughput_tx_alloc())
+			return -ENOMEM;
+	}
 
 	if (!sprdwcn_bus_list_alloc(AT_TX_CHANNEL,
 				    &head, &tail, &tx_debug_num)) {
@@ -967,14 +974,8 @@ static ssize_t at_cmd_write(struct file *filp,
 #if TCP_TEST_RX
 			sdiohal_launch_tp_tx_thread();
 #endif
-			if (!sdiohal_throughput_tx_alloc()) {
-				sdiohal_log_level = 0;
-				sdiohal_throughput_tx();
-			} else {
-				WCN_ERR("%s kzalloc send buf fail\n",
-					__func__);
-				return -ENOMEM;
-			}
+			sdiohal_log_level = 0;
+			sdiohal_throughput_tx();
 		} else
 			WCN_INFO("%s buf_cnt or buf_len false!!\n",
 				 __func__);

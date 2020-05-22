@@ -126,13 +126,11 @@ static void wcn_gmtime(struct timespec *tv, struct wcn_tm *tm)
 	++tm->tm_mday;
 }
 
-/* AP notify BTWF time by at+aptime=... cmd */
-long int wcn_ap_notify_btwf_time(void)
+char *wcn_get_kernel_time(void)
 {
 	struct timespec now;
 	struct wcn_tm tm;
-	char aptime[64];
-	long int send_cnt = 0;
+	static char aptime[64];
 
 	/* get ap kernel time and transfer to China-BeiJing Time */
 	now = current_kernel_time();
@@ -141,9 +139,20 @@ long int wcn_ap_notify_btwf_time(void)
 
 	/* save time with string: month,day,hour,min,sec,mili-sec */
 	memset(aptime, 0, 64);
-	sprintf(aptime, "at+aptime=%d,%d,%d,%d,%d,%d\r",
+	sprintf(aptime, "at+aptime=%d,%d,%d,%d,%d,%d\r\n",
 		tm.tm_mon + 1, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec, tm.tm_msec);
+
+	return aptime;
+}
+
+/* AP notify BTWF time by at+aptime=... cmd */
+long int wcn_ap_notify_btwf_time(void)
+{
+	char *aptime;
+	long int send_cnt = 0;
+
+	aptime = wcn_get_kernel_time();
 
 	/* send to BTWF CP2 */
 	send_cnt = mdbg_send_atcmd((void *)aptime, strlen(aptime),

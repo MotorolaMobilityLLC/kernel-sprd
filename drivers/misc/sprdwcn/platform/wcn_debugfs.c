@@ -43,7 +43,7 @@ static ssize_t read_wcn_reg(struct file *file, char __user *user_buf,
 	struct wcn_reg_ctl *reg_rd;
 	int i;
 
-	WCN_INFO("wsh __read_wcn_reg\n");
+	WCN_INFO("__read_wcn_reg\n");
 
 	reg_rd = kmalloc(sizeof(*reg_rd), GFP_KERNEL);
 	if (!reg_rd) {

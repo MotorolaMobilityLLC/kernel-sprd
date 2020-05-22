@@ -123,8 +123,6 @@
 #define BT_BB_RX_BUF_ADDR		(0x40242000)
 #define BT_BB_RX_BUF_SIZE		(0x400)
 
-#define DUMP_BT_ADDR			(0)
-#define DUMP_BT_ADDR_SIZE		(0)
 /* for fm */
 #define DUMP_FM1_ADDR			(0x40098000)
 #define DUMP_FM1_ADDR_SIZE		(0x238)
@@ -132,15 +130,6 @@
 #define DUMP_FM_RDS_ADDR_SIZE		(0x4c)
 #define DUMP_FM_ADDR			(0x40098000)
 #define DUMP_FM_ADDR_SIZE		(0xabc)
-
-#define DUMP_INTC_ADDR			(0)
-#define DUMP_SYSTIMER_ADDR		(0)
-/* need check, not need to dump it */
-#define DUMP_WDG_ADDR			0
-#define DUMP_WIFI_ADDR			0
-#define DUMP_WIFI_ADDR_SIZE		0
-#define DUMP_BT_CMD_ADDR		0
-#define DUMP_BT_CMD_ADDR_SIZE	0
 
 /* For TOP */
 #define AON_AHB_ADDR			(0x40880000)
@@ -156,9 +145,6 @@
 #define PRE_DIV_CLK_ADDR		(0x40844000)
 #define PRE_DIV_CLK_SIZE		(0x48)
 
-#define DUMP_APB_ADDR			(0)
-#define DUMP_DMA_ADDR			(0)
-#define DUMP_AHB_ADDR			(0)
 #define DUMP_REG_SIZE			(0X10000)
 
 #define SMP_HEADERFLAG 0X7E7E7E7E

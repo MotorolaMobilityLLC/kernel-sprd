@@ -53,6 +53,7 @@ static int buf_list_check(struct buffer_pool_t *pool,
 
 	if (num == 0)
 		return 0;
+
 	for (i = 0, mbuf = head; i < num; i++) {
 		if ((i == (num - 1)) && (mbuf != tail)) {
 			WCN_ERR("%s(0x%lx, 0x%lx, %d), err 1\n", __func__,
@@ -112,15 +113,15 @@ static int buf_pool_init(struct buffer_pool_t *pool, int size, int payload)
 	if (!pool->mem)
 		return -ENOMEM;
 
-	WCN_INFO("mbuf_pool->mem:0x%lx\n",
+	WCN_DBG("mbuf_pool->mem:0x%lx\n",
 		 (unsigned long)virt_to_phys(pool->mem));
 	pool->head = (struct mbuf_t *) (pool->mem);
 	for (i = 0, mbuf = (struct mbuf_t *)(pool->head);
 	     i < (size - 1); i++) {
 		mbuf->seq = i;
-		WCN_INFO("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
-			 (unsigned long)mbuf,
-			 (unsigned long)virt_to_phys(mbuf));
+		WCN_DBG("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
+			(unsigned long)mbuf,
+			(unsigned long)virt_to_phys(mbuf));
 		next = (struct mbuf_t *)((char *)mbuf +
 			sizeof(struct mbuf_t) + payload);
 		mbuf->buf = (char *)mbuf + sizeof(struct mbuf_t);
@@ -128,7 +129,7 @@ static int buf_pool_init(struct buffer_pool_t *pool, int size, int payload)
 		mbuf->next = next;
 		mbuf = next;
 	}
-	WCN_INFO("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
+	WCN_DBG("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
 		 (unsigned long)mbuf,
 		 (unsigned long)virt_to_phys(mbuf));
 	mbuf->seq = i;

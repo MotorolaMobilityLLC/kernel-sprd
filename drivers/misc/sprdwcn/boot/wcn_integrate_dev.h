@@ -242,6 +242,7 @@ struct wcn_device {
 	struct mutex vddwifipa_lock;
 	char	*write_buffer;
 	struct	delayed_work power_wq;
+	struct  delayed_work probe_power_wq;
 	struct	work_struct load_wq;
 	struct	delayed_work cali_wq;
 	struct	completion download_done;

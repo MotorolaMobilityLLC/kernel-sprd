@@ -67,38 +67,74 @@ struct mdbg_proc_t {
 	struct mutex		mutex;
 	char write_buf[MDBG_WRITE_SIZE];
 	int fail_count;
+	int assert_notify_flag;
 	bool loopcheck_flag;
 };
 
 static struct mdbg_proc_t *mdbg_proc;
 
-void mdbg_assert_interface(char *str)
+void wcn_assert_interface(enum wcn_source_type type, char *str)
 {
-	int len = MDBG_ASSERT_SIZE;
+	static int dump_cnt;
 
-	if (strlen(str) <= MDBG_ASSERT_SIZE)
-		len = strlen(str);
-	strncpy(mdbg_proc->assert.buf, str, len);
-	WCN_INFO("%s:%s\n", __func__,
-		(char *)(mdbg_proc->assert.buf));
+	WCN_ERR("fw assert:%s\n", str);
+	if (!mutex_trylock(&mdbg_proc->mutex)) {
+		WCN_ERR("fw assert hanppend already\n");
+		return;
+	}
+	if (!marlin_get_power()) {
+		WCN_INFO("no modules open\n");
+		goto out;
+	}
+	if (!mdbg_proc->assert_notify_flag) {
+		wcn_notify_fw_error(type, str);
+		mdbg_proc->assert_notify_flag = 1;
+	}
+	if (wcn_sysfs_get_reset_prop()) {
+		WCN_INFO("%s reset begin\n", __func__);
+		stop_loopcheck();
+		wcnlog_clear_log();
+		wcn_reset_cp2();
+		mdbg_proc->assert_notify_flag = 0;
+		WCN_INFO("%s reset end\n", __func__);
+		goto out;
+	}
 
+	if (type == WCN_SOURCE_GNSS)
+		goto out;
+
+	if (dump_cnt) {
+		WCN_ERR("dump_cnt: %d, not dump again!\n", dump_cnt);
+		goto out;
+	}
+
+	WCN_INFO("%s dumpmem begin\n", __func__);
+	stop_loopcheck();
 	sprdwcn_bus_set_carddump_status(true);
 #ifdef CONFIG_WCN_PCIE
 	edma_hw_pause();
 	dump_arm_reg();
 #endif
 	wcnlog_clear_log();
-	mdbg_proc->assert.rcv_len = len;
-	mdbg_proc->fail_count++;
-	complete(&mdbg_proc->assert.completed);
-	wake_up_interruptible(&mdbg_proc->assert.rxwait);
+	dump_cnt++;
+	mdbg_dump_mem();
+	WCN_INFO("%s dumpmem end\n", __func__);
+
+out:
+	mutex_unlock(&mdbg_proc->mutex);
+}
+EXPORT_SYMBOL_GPL(wcn_assert_interface);
+
+void mdbg_assert_interface(char *str)
+{
+	wcn_assert_interface(WCN_SOURCE_BTWF, str);
 }
 EXPORT_SYMBOL_GPL(mdbg_assert_interface);
 
 static int mdbg_assert_read(int channel, struct mbuf_t *head,
 		     struct mbuf_t *tail, int num)
 {
-#ifndef CONFIG_WCN_PCIE
+#if (!defined CONFIG_WCN_PCIE) && (!defined CONFIG_WCN_SIPC)
 	struct bus_puh_t *puh = NULL;
 
 	puh = (struct bus_puh_t *)head->buf;
@@ -109,19 +145,10 @@ static int mdbg_assert_read(int channel, struct mbuf_t *head,
 		return -1;
 	}
 
-	memcpy(mdbg_proc->assert.buf, head->buf + PUB_HEAD_RSV, puh->len);
-	mdbg_proc->assert.rcv_len = puh->len;
-	WCN_INFO("%s:%s,puh->len %d\n", __func__,
-		(char *)(mdbg_proc->assert.buf), puh->len);
+	wcn_assert_interface(WCN_SOURCE_BTWF, head->buf + PUB_HEAD_RSV);
 #else
-	memcpy(mdbg_proc->assert.buf, head->buf, head->len);
-	mdbg_proc->assert.rcv_len = head->len;
-	WCN_INFO("%s:%s,len=%d\n", __func__,
-		(char *)(mdbg_proc->assert.buf), head->len);
+	wcn_assert_interface(WCN_SOURCE_BTWF, head->buf);
 #endif
-	mdbg_proc->fail_count++;
-	complete(&mdbg_proc->assert.completed);
-	wake_up_interruptible(&mdbg_proc->assert.rxwait);
 	sprdwcn_bus_push_list(channel, head, tail, num);
 
 	return 0;
@@ -131,7 +158,7 @@ EXPORT_SYMBOL_GPL(mdbg_assert_read);
 static int mdbg_loopcheck_read(int channel, struct mbuf_t *head,
 			struct mbuf_t *tail, int num)
 {
-#ifndef CONFIG_WCN_PCIE
+#if (!defined CONFIG_WCN_PCIE) && (!defined CONFIG_WCN_SIPC)
 	struct bus_puh_t *puh = NULL;
 
 	puh = (struct bus_puh_t *)head->buf;
@@ -154,6 +181,7 @@ static int mdbg_loopcheck_read(int channel, struct mbuf_t *head,
 		(char *)(mdbg_proc->loopcheck.buf));
 	mdbg_proc->fail_count = 0;
 	complete(&mdbg_proc->loopcheck.completed);
+	complete_kernel_loopcheck();
 	sprdwcn_bus_push_list(channel, head, tail, num);
 
 	return 0;
@@ -163,7 +191,7 @@ EXPORT_SYMBOL_GPL(mdbg_loopcheck_read);
 static int mdbg_at_cmd_read(int channel, struct mbuf_t *head,
 		     struct mbuf_t *tail, int num)
 {
-#ifndef CONFIG_WCN_PCIE
+#if (!defined CONFIG_WCN_PCIE) && (!defined CONFIG_WCN_SIPC)
 	struct bus_puh_t *puh = NULL;
 
 	puh = (struct bus_puh_t *)head->buf;
@@ -180,17 +208,17 @@ static int mdbg_at_cmd_read(int channel, struct mbuf_t *head,
 	WCN_INFO("at cmd read:%s\n",
 		(char *)(mdbg_proc->at_cmd.buf));
 	complete(&mdbg_proc->at_cmd.completed);
+	notify_at_cmd_finish(mdbg_proc->at_cmd.buf, mdbg_proc->at_cmd.rcv_len);
 	sprdwcn_bus_push_list(channel, head, tail, num);
-
 #else
-		memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
-		memcpy(mdbg_proc->at_cmd.buf, head->buf, head->len);
-		mdbg_proc->at_cmd.rcv_len = head->len;
-		WCN_INFO("WCND at cmd read:%s\n",
-			(char *)(mdbg_proc->at_cmd.buf));
-		complete(&mdbg_proc->at_cmd.completed);
-		sprdwcn_bus_push_list(channel, head, tail, num);
-
+	memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
+	memcpy(mdbg_proc->at_cmd.buf, head->buf, head->len);
+	mdbg_proc->at_cmd.rcv_len = head->len;
+	WCN_INFO("WCND at cmd read:%s\n",
+		 (char *)(mdbg_proc->at_cmd.buf));
+	complete(&mdbg_proc->at_cmd.completed);
+	notify_at_cmd_finish(mdbg_proc->at_cmd.buf, mdbg_proc->at_cmd.rcv_len);
+	sprdwcn_bus_push_list(channel, head, tail, num);
 #endif
 	return 0;
 }
@@ -727,11 +755,15 @@ static ssize_t mdbg_proc_write(struct file *filp,
 
 #ifdef CONFIG_SC2342_INTEG
 	if (strncmp(mdbg_proc->write_buf, "dumpmem", 7) == 0) {
-		if (g_dumpmem_switch == 0)
+		mutex_lock(&mdbg_proc->mutex);
+		if (g_dumpmem_switch == 0) {
+			mutex_unlock(&mdbg_proc->mutex);
 			return count;
+		}
 		WCN_INFO("start mdbg dumpmem");
 		sprdwcn_bus_set_carddump_status(true);
 		mdbg_dump_mem();
+		mutex_unlock(&mdbg_proc->mutex);
 		return count;
 	}
 	if (strncmp(mdbg_proc->write_buf, "holdcp2cpu",
@@ -998,30 +1030,58 @@ struct mchn_ops_t mdbg_proc_ops[MDBG_ASSERT_RX_OPS + 1] = {
 		.inout = WCNBUS_TX,
 		.pool_size = 5,
 		.pop_link = mdbg_tx_cb,
+#ifdef CONFIG_WCN_SIPC
+		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
+				WCN_SIPC_DST, SIPC_CHN_ATCMD, 0,
+				"sbuf_atcmd_tx", 5, 128, 0,
+				0x2400, 0x2400)
+#endif
 	},
 	{
 		.channel = WCN_LOOPCHECK_RX,
 		.inout = WCNBUS_RX,
 		.pool_size = 1,
 		.pop_link = mdbg_loopcheck_read,
+#ifdef CONFIG_WCN_SIPC
+		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
+				WCN_SIPC_DST, SIPC_CHN_LOOPCHECK,
+				WCN_CHN_CREATE | WCN_CHN_CALLBACK,
+				"sbuf_loopcheck", 0, 128, 1,
+				0x400, 0x400),
+#endif
 	},
 	{
 		.channel = WCN_AT_RX,
 		.inout = WCNBUS_RX,
 		.pool_size = 1,
 		.pop_link = mdbg_at_cmd_read,
+#ifdef CONFIG_WCN_SIPC
+		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
+				WCN_SIPC_DST, SIPC_CHN_ATCMD, WCN_CHN_CALLBACK,
+				"sbuf_atcmd_rx", 5, 128, 0,
+				0x2400, 0x2400),
+#endif
 	},
 	{
 		.channel = WCN_ASSERT_RX,
 		.inout = WCNBUS_RX,
 		.pool_size = 1,
 		.pop_link = mdbg_assert_read,
+#ifdef CONFIG_WCN_SIPC
+		.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
+				WCN_SIPC_DST, SIPC_CHN_ASSERT,
+				WCN_CHN_CREATE | WCN_CHN_CALLBACK,
+				"sbuf_assert", 0, 1024, 1,
+				0x400, 0x400),
+#endif
 	},
 };
 #endif
+
 #ifdef CONFIG_WCN_PCIE
 static struct dma_buf at_buf[3];
 #endif
+
 void mdbg_fs_channel_destroy(void)
 {
 	int i;

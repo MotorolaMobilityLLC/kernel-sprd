@@ -1148,6 +1148,7 @@ int mdbg_dump_mem(void)
 	for (i = 0; i < 16; i++)
 		edma_dump_chn_reg(i);
 #endif
+	mdbg_dev->ring_dev->ring->is_mem = 1;
 	/* DUMP ARM REG */
 #ifndef CONFIG_UMW2653
 	dump_arm_reg();
@@ -1180,38 +1181,40 @@ int mdbg_dump_mem(void)
 	}
 	WCN_INFO("mdbg dump ram %ld ok!\n", count);
 
-	if (AON_AHB_ADDR) {
-		count = mdbg_dump_data(AON_AHB_ADDR, "start_dump_aon_ahb_reg",
-		AON_AHB_SIZE, strlen("start_dump_aon_ahb_reg"));
-		WCN_INFO("mdbg dump aon ahb %ld ok!\n", count);
-	}
-	if (AON_APB_ADDR) {
-		count = mdbg_dump_data(AON_APB_ADDR, "start_dump_aon_apb_reg",
-		AON_APB_SIZE, strlen("start_dump_aon_aph_reg"));
-		WCN_INFO("mdbg dump aon_apb %ld ok!\n", count);
-	}
-	if (BTWF_AHB_ADDR) {
-		count = mdbg_dump_data(BTWF_AHB_ADDR, "start_dump_btwf_ahb_reg",
-		BTWF_AHB_SIZE, strlen("start_dump_btwf_ahb_reg"));
-		WCN_INFO("mdbg dump btwfahb %ld ok!\n", count);
-	}
-	if (BTWF_APB_ADDR) {
-		count = mdbg_dump_data(BTWF_APB_ADDR, "start_dump_btwf_apb_reg",
-		BTWF_APB_SIZE, strlen("start_dump_btwf_apb_reg"));
-		WCN_INFO("mdbg dump btwfapb %ld ok!\n", count);
-	}
-	if (AON_CLK_ADDR) {
-		count = mdbg_dump_data(AON_CLK_ADDR, "start_dump_aon_clk_reg",
-		AON_CLK_SIZE, strlen("start_dump_aon_clk_reg"));
-		WCN_INFO("mdbg dump aonclk %ld ok!\n", count);
-	}
-	if (PRE_DIV_CLK_ADDR) {
-		count = mdbg_dump_data(PRE_DIV_CLK_ADDR,
-				       "start_dump_pre_div_clk_reg",
-				       PRE_DIV_CLK_SIZE,
-				       strlen("start_dump_pre_div_clk_reg"));
-		WCN_INFO("mdbg dump predivclk %ld ok!\n", count);
-	}
+#ifdef AON_AHB_ADDR
+	count = mdbg_dump_data(AON_AHB_ADDR, "start_dump_aon_ahb_reg",
+			       AON_AHB_SIZE, strlen("start_dump_aon_ahb_reg"));
+	WCN_INFO("mdbg dump aon ahb %ld ok!\n", count);
+#endif
+#ifdef AON_APB_ADDR
+	count = mdbg_dump_data(AON_APB_ADDR, "start_dump_aon_apb_reg",
+			       AON_APB_SIZE, strlen("start_dump_aon_aph_reg"));
+	WCN_INFO("mdbg dump aon_apb %ld ok!\n", count);
+#endif
+#ifdef BTWF_AHB_ADDR
+	count = mdbg_dump_data(BTWF_AHB_ADDR, "start_dump_btwf_ahb_reg",
+			       BTWF_AHB_SIZE,
+			       strlen("start_dump_btwf_ahb_reg"));
+	WCN_INFO("mdbg dump btwfahb %ld ok!\n", count);
+#endif
+#ifdef BTWF_APB_ADDR
+	count = mdbg_dump_data(BTWF_APB_ADDR, "start_dump_btwf_apb_reg",
+			       BTWF_APB_SIZE,
+			       strlen("start_dump_btwf_apb_reg"));
+	WCN_INFO("mdbg dump btwfapb %ld ok!\n", count);
+#endif
+#ifdef AON_CLK_ADDR
+	count = mdbg_dump_data(AON_CLK_ADDR, "start_dump_aon_clk_reg",
+			       AON_CLK_SIZE, strlen("start_dump_aon_clk_reg"));
+	WCN_INFO("mdbg dump aonclk %ld ok!\n", count);
+#endif
+#ifdef PRE_DIV_CLK_ADDR
+	count = mdbg_dump_data(PRE_DIV_CLK_ADDR,
+			       "start_dump_pre_div_clk_reg",
+			       PRE_DIV_CLK_SIZE,
+			       strlen("start_dump_pre_div_clk_reg"));
+	WCN_INFO("mdbg dump predivclk %ld ok!\n", count);
+#endif
 
 #ifdef CONFIG_WCN_PCIE
 	wcn_dump_cp_data(s_wcn_dump_regs, 7, 11);
@@ -1229,26 +1232,28 @@ int mdbg_dump_mem(void)
 		goto next;
 	}
 
-	if (DUMP_WIFI_AON_MAC_ADDR)
-		count = mdbg_dump_data(DUMP_WIFI_AON_MAC_ADDR,
-				       "start_dump_wifi_aon_reg",
-					WIFI_AON_MAC_SIZE,
-					strlen("start_dump_wifi_aon_reg"));
+#ifdef DUMP_WIFI_AON_MAC_ADDR
+	count = mdbg_dump_data(DUMP_WIFI_AON_MAC_ADDR,
+			       "start_dump_wifi_aon_reg",
+				WIFI_AON_MAC_SIZE,
+				strlen("start_dump_wifi_aon_reg"));
+#endif
 
+#ifdef DUMP_WIFI_RTN_PD_MAC_ADDR
+	count = mdbg_dump_data(DUMP_WIFI_RTN_PD_MAC_ADDR,
+			       "start_dump_wifi_RTN+PD_reg",
+			       DUMP_WIFI_RTN_PD_MAC_ADDR_SIZE,
+			       strlen("start_dump_wifi_RTN+PD_reg"));
+#endif
 
-	if (DUMP_WIFI_RTN_PD_MAC_ADDR)
-		count = mdbg_dump_data(DUMP_WIFI_RTN_PD_MAC_ADDR,
-				       "start_dump_wifi_RTN+PD_reg",
-				       DUMP_WIFI_RTN_PD_MAC_ADDR_SIZE,
-				       strlen("start_dump_wifi_RTN+PD_reg"));
+#ifdef DUMP_WIFI_352K_RAM_ADDR
 
-	if (DUMP_WIFI_352K_RAM_ADDR) {
-		count = mdbg_dump_data(DUMP_WIFI_352K_RAM_ADDR,
-				       "start_dump_wifi_352K_RAM_reg",
-				       WIFI_RAM_SIZE,
-				       strlen("start_dump_wifi_352K_RAM_reg"));
-		WCN_INFO("mdbg dump wifi %ld ok!\n", count);
-	}
+	count = mdbg_dump_data(DUMP_WIFI_352K_RAM_ADDR,
+			       "start_dump_wifi_352K_RAM_reg",
+			       WIFI_RAM_SIZE,
+			       strlen("start_dump_wifi_352K_RAM_reg"));
+	WCN_INFO("mdbg dump wifi %ld ok!\n", count);
+#endif
 #ifdef CONFIG_WCN_PCIE
 	wcn_dump_cp_data(s_wcn_dump_regs, 15, 21);
 #else
@@ -1256,54 +1261,56 @@ int mdbg_dump_mem(void)
 #endif
 
 next:
-	if (DUMP_INTC_ADDR) {
-		count = mdbg_dump_data(DUMP_INTC_ADDR, "start_dump_intc_reg",
+#ifdef DUMP_INTC_ADDR
+	count = mdbg_dump_data(DUMP_INTC_ADDR, "start_dump_intc_reg",
 			       DUMP_REG_SIZE,
 			       strlen("start_dump_intc_reg"));
-		WCN_INFO("mdbg dump intc %ld ok!\n", count);
-	}
+	WCN_INFO("mdbg dump intc %ld ok!\n", count);
+#endif
 
-	if (DUMP_SYSTIMER_ADDR) {
-		count = mdbg_dump_data(DUMP_SYSTIMER_ADDR,
-					"start_dump_systimer_reg",
+#ifdef DUMP_SYSTIMER_ADDR
+	count = mdbg_dump_data(DUMP_SYSTIMER_ADDR,
+			       "start_dump_systimer_reg",
 			       DUMP_REG_SIZE,
 			       strlen("start_dump_systimer_reg"));
-		WCN_INFO("mdbg dump systimer %ld ok!\n", count);
-	}
+	WCN_INFO("mdbg dump systimer %ld ok!\n", count);
+#endif
 
-	if (DUMP_WDG_ADDR) {
-		count = mdbg_dump_data(DUMP_WDG_ADDR, "start_dump_wdg_reg",
-			DUMP_REG_SIZE, strlen("start_dump_wdg_reg"));
-		WCN_INFO("mdbg dump wdg %ld ok!\n", count);
-	}
+#ifdef DUMP_WDG_ADDR
+	count = mdbg_dump_data(DUMP_WDG_ADDR, "start_dump_wdg_reg",
+			       DUMP_REG_SIZE, strlen("start_dump_wdg_reg"));
+	WCN_INFO("mdbg dump wdg %ld ok!\n", count);
+#endif
 
-	if (DUMP_APB_ADDR) {
-		count = mdbg_dump_data(DUMP_APB_ADDR, "start_dump_apb_reg",
-		DUMP_REG_SIZE, strlen("start_dump_apb_reg"));
-		WCN_INFO("mdbg dump apb %ld ok!\n", count);
-	}
+#ifdef DUMP_APB_ADDR
+	count = mdbg_dump_data(DUMP_APB_ADDR, "start_dump_apb_reg",
+			       DUMP_REG_SIZE, strlen("start_dump_apb_reg"));
+	WCN_INFO("mdbg dump apb %ld ok!\n", count);
+#endif
 
-	if (DUMP_DMA_ADDR) {
-		count = mdbg_dump_data(DUMP_DMA_ADDR, "start_dump_dma_reg",
-		DUMP_REG_SIZE, strlen("start_dump_dma_reg"));
-		WCN_INFO("mdbg dump dma %ld ok!\n", count);
-	}
+#ifdef DUMP_DMA_ADDR
+	count = mdbg_dump_data(DUMP_DMA_ADDR, "start_dump_dma_reg",
+			       DUMP_REG_SIZE, strlen("start_dump_dma_reg"));
+	WCN_INFO("mdbg dump dma %ld ok!\n", count);
+#endif
 
-	if (DUMP_AHB_ADDR) {
-		count = mdbg_dump_data(DUMP_AHB_ADDR, "start_dump_ahb_reg",
-			DUMP_REG_SIZE, strlen("start_dump_ahb_reg"));
-		WCN_INFO("mdbg dump ahb %ld ok!\n", count);
-	}
+#ifdef DUMP_DMA_ADDR
+	count = mdbg_dump_data(DUMP_AHB_ADDR, "start_dump_ahb_reg",
+			       DUMP_REG_SIZE, strlen("start_dump_ahb_reg"));
+	WCN_INFO("mdbg dump ahb %ld ok!\n", count);
+#endif
 
 	count = mdbg_dump_data(DUMP_FM_ADDR, "start_dump_fm_reg",
-		DUMP_FM_ADDR_SIZE, strlen("start_dump_fm_reg"));
+			       DUMP_FM_ADDR_SIZE,
+			       strlen("start_dump_fm_reg"));
 	WCN_INFO("mdbg dump fm %ld ok!\n", count);
 
-	if (DUMP_WIFI_ADDR) {
-		count = mdbg_dump_data(DUMP_WIFI_ADDR, "start_dump_wifi_reg",
-			DUMP_WIFI_ADDR_SIZE, strlen("start_dump_wifi_reg"));
-		WCN_INFO("mdbg dump wifi %ld ok!\n", count);
-	}
+#ifdef DUMP_WIFI_ADDR
+	count = mdbg_dump_data(DUMP_WIFI_ADDR, "start_dump_wifi_reg",
+			       DUMP_WIFI_ADDR_SIZE,
+			       strlen("start_dump_wifi_reg"));
+	WCN_INFO("mdbg dump wifi %ld ok!\n", count);
+#endif
 
 	ret = check_bt_power_clk_ison();
 	if (ret < 0) {
@@ -1311,116 +1318,119 @@ next:
 		goto end;
 	}
 
-	if (DUMP_BT_CMD_ADDR != 0) {
-		count = mdbg_dump_data(DUMP_BT_CMD_ADDR,
-			"start_dump_bt_cmd_buf",
-		DUMP_BT_CMD_ADDR_SIZE, strlen("start_dump_bt_cmd_buf"));
-		WCN_INFO("mdbg dump bt cmd %ld ok!\n", count);
-	}
+#ifdef DUMP_BT_CMD_ADDR
+	count = mdbg_dump_data(DUMP_BT_CMD_ADDR,
+			       "start_dump_bt_cmd_buf",
+			       DUMP_BT_CMD_ADDR_SIZE,
+			       strlen("start_dump_bt_cmd_buf"));
+	WCN_INFO("mdbg dump bt cmd %ld ok!\n", count);
+#endif
 
-	if (DUMP_BT_ADDR) {
-		count = mdbg_dump_data(DUMP_BT_ADDR, "start_dump_bt_reg",
-		DUMP_BT_ADDR_SIZE, strlen("start_dump_bt_reg"));
-		WCN_INFO("mdbg dump bt %ld ok!\n", count);
-	}
-	if (BT_ACC_ADDR) {
-		count = mdbg_dump_data(BT_ACC_ADDR, "start_dump_bt_acc_reg",
-		BT_ACC_SIZE, strlen("start_dump_bt_acc_reg"));
-		WCN_INFO("mdbg dump btacc %ld ok!\n", count);
-	}
-	if (BT_JAL_ADDR) {
-		count = mdbg_dump_data(BT_JAL_ADDR, "start_dump_bt_jal_reg",
-		BT_JAL_SIZE, strlen("start_dump_bt_jal_reg"));
-		WCN_INFO("mdbg dump btjal %ld ok!\n", count);
-	}
-	if (BT_HAB_ADDR) {
-		count = mdbg_dump_data(BT_HAB_ADDR, "start_dump_bt_hab_reg",
-		BT_HAB_SIZE, strlen("start_dump_bt_hab_reg"));
-		WCN_INFO("mdbg dump bthab %ld ok!\n", count);
-	}
-	if (BT_LEJAL_ADDR) {
-		count = mdbg_dump_data(BT_LEJAL_ADDR, "start_dump_bt_lejal_reg",
-		BT_LEJAL_SIZE, strlen("start_dump_bt_lejal_reg"));
-		WCN_INFO("mdbg dump btlejal %ld ok!\n", count);
-	}
-	if (BT_MODEM_ADDR) {
-		count = mdbg_dump_data(BT_MODEM_ADDR, "start_dump_bt_modem_reg",
-		BT_MODEM_SIZE, strlen("start_dump_bt_modem_reg"));
-		WCN_INFO("mdbg dump bt modem %ld ok!\n", count);
-	}
+#ifdef DUMP_BT_ADDR
+	count = mdbg_dump_data(DUMP_BT_ADDR, "start_dump_bt_reg",
+			       DUMP_BT_ADDR_SIZE, strlen("start_dump_bt_reg"));
+	WCN_INFO("mdbg dump bt %ld ok!\n", count);
+#endif
+#ifdef BT_ACC_ADDR
+	count = mdbg_dump_data(BT_ACC_ADDR, "start_dump_bt_acc_reg",
+			       BT_ACC_SIZE, strlen("start_dump_bt_acc_reg"));
+	WCN_INFO("mdbg dump btacc %ld ok!\n", count);
+#endif
+#ifdef BT_JAL_ADDR
+	count = mdbg_dump_data(BT_JAL_ADDR, "start_dump_bt_jal_reg",
+			       BT_JAL_SIZE, strlen("start_dump_bt_jal_reg"));
+	WCN_INFO("mdbg dump btjal %ld ok!\n", count);
+#endif
+#ifdef BT_HAB_ADDR
+	count = mdbg_dump_data(BT_HAB_ADDR, "start_dump_bt_hab_reg",
+			       BT_HAB_SIZE, strlen("start_dump_bt_hab_reg"));
+	WCN_INFO("mdbg dump bthab %ld ok!\n", count);
+#endif
+#ifdef BT_LEJAL_ADDR
+	count = mdbg_dump_data(BT_LEJAL_ADDR, "start_dump_bt_lejal_reg",
+			       BT_LEJAL_SIZE,
+			       strlen("start_dump_bt_lejal_reg"));
+	WCN_INFO("mdbg dump btlejal %ld ok!\n", count);
+#endif
+#ifdef BT_MODEM_ADDR
+	count = mdbg_dump_data(BT_MODEM_ADDR, "start_dump_bt_modem_reg",
+			       BT_MODEM_SIZE,
+			       strlen("start_dump_bt_modem_reg"));
+	WCN_INFO("mdbg dump bt modem %ld ok!\n", count);
+#endif
 
 	check_bt_buffer_rw();
 
-	if (BT_CMD_BUF_ADDR) {
-		count = mdbg_dump_data(BT_CMD_BUF_ADDR,
-				       "start_dump_bt_cmd_buf_reg",
-				       BT_CMD_BUF_SIZE,
-				       strlen("start_dump_bt_cmd_buf_reg"));
-		WCN_INFO("mdbg dump bt_cmd buf %ld ok!\n", count);
-	}
-	if (BT_EVENT_BUF_ADDR) {
-		count = mdbg_dump_data(BT_EVENT_BUF_ADDR,
-				       "start_dump_bt_event_buf_reg",
-				       BT_EVENT_BUF_SIZE,
-				       strlen("start_dump_bt_event_buf_reg"));
-		WCN_INFO("mdbg dump btevent buf %ld ok!\n", count);
-	}
-	if (BT_LMP_TX_BUF_ADDR) {
-		count = mdbg_dump_data(BT_LMP_TX_BUF_ADDR,
-				       "start_dump_bt_lmp_tx_buf_reg",
-				       BT_LMP_TX_BUF_SIZE,
-				       strlen("start_dump_bt_lmp_tx_buf_reg"));
-		WCN_INFO("mdbg dump bt_lmp_tx_buf %ld ok!\n", count);
-	}
-	if (BT_LMP_RX_BUF_ADDR) {
-		count = mdbg_dump_data(BT_LMP_RX_BUF_ADDR,
-				       "start_dump_bt_lmp_rx_buf_reg",
-				       BT_LMP_RX_BUF_SIZE,
-				       strlen("start_dump_bt_lmp_rx_buf_reg"));
-		WCN_INFO("mdbg dump bt_lmp_rx_buf %ld ok!\n", count);
-	}
-	if (BT_ACL_TX_BUF_ADDR) {
-		count = mdbg_dump_data(BT_ACL_TX_BUF_ADDR,
-				       "start_dump_bt_acl_tx_buf_reg",
-				       BT_ACL_TX_BUF_SIZE,
-				       strlen("start_dump_bt_acl_tx_buf_reg"));
-		WCN_INFO("mdbg dump bt_acl_tx_buf%ld ok!\n", count);
-	}
-	if (BT_ACL_RX_BUF_ADDR) {
-		count = mdbg_dump_data(BT_ACL_RX_BUF_ADDR,
-				       "start_dump_bt_acl_rx_buf_reg",
-				       BT_ACL_RX_BUF_SIZE,
-				       strlen("start_dump_bt_acl_rx_buf_reg"));
-		WCN_INFO("mdbg dump bt_acl_rx_buf %ld ok!\n", count);
-	}
-	if (BT_SCO_TX_BUF_ADDR) {
-		count = mdbg_dump_data(BT_SCO_TX_BUF_ADDR,
-				       "start_dump_bt_sco_tx_buf_reg",
-				       BT_SCO_TX_BUF_SIZE,
-				       strlen("start_dump_bt_sco_tx_buf_reg"));
-		WCN_INFO("mdbg dump bt_sco_tx_buf %ld ok!\n", count);
-	}
-	if (BT_SCO_RX_BUF_ADDR) {
-		count = mdbg_dump_data(BT_SCO_RX_BUF_ADDR,
-				       "start_dump_bt_sco_rx_buf_reg",
-				       BT_SCO_RX_BUF_SIZE,
-				       strlen("start_dump_bt_sco_rx_buf_reg"));
-		WCN_INFO("mdbg dump bt_sco_rx_buf %ld ok!\n", count);
-	}
-	if (BT_BB_TX_BUF_ADDR) {
-		count = mdbg_dump_data(BT_BB_TX_BUF_ADDR,
-				       "start_dump_bt_bb_tx_buf_reg",
-				       BT_BB_TX_BUF_SIZE,
-				       strlen("start_dump_bt_bb_tx_buf_reg"));
-		WCN_INFO("mdbg dump bt_bb_tx_buf %ld ok!\n", count);
-	}
-	if (BT_BB_RX_BUF_ADDR) {
-		count = mdbg_dump_data(BT_BB_RX_BUF_ADDR,
-				       "start_dump_bt_bb_rx_buf_reg",
-				       BT_BB_RX_BUF_SIZE,
-				       strlen("start_dump_bt_bb_rx_buf_reg"));
-		WCN_INFO("mdbg dump bt_bb_rx_buf %ld ok!\n", count);
-	}
+#ifdef BT_CMD_BUF_ADDR
+	count = mdbg_dump_data(BT_CMD_BUF_ADDR,
+			       "start_dump_bt_cmd_buf_reg",
+			       BT_CMD_BUF_SIZE,
+			       strlen("start_dump_bt_cmd_buf_reg"));
+	WCN_INFO("mdbg dump bt_cmd buf %ld ok!\n", count);
+#endif
+#ifdef BT_EVENT_BUF_ADDR
+	count = mdbg_dump_data(BT_EVENT_BUF_ADDR,
+			       "start_dump_bt_event_buf_reg",
+			       BT_EVENT_BUF_SIZE,
+			       strlen("start_dump_bt_event_buf_reg"));
+	WCN_INFO("mdbg dump btevent buf %ld ok!\n", count);
+#endif
+#ifdef BT_LMP_TX_BUF_ADDR
+	count = mdbg_dump_data(BT_LMP_TX_BUF_ADDR,
+			       "start_dump_bt_lmp_tx_buf_reg",
+			       BT_LMP_TX_BUF_SIZE,
+			       strlen("start_dump_bt_lmp_tx_buf_reg"));
+	WCN_INFO("mdbg dump bt_lmp_tx_buf %ld ok!\n", count);
+#endif
+#ifdef BT_LMP_RX_BUF_ADDR
+	count = mdbg_dump_data(BT_LMP_RX_BUF_ADDR,
+			       "start_dump_bt_lmp_rx_buf_reg",
+			       BT_LMP_RX_BUF_SIZE,
+			       strlen("start_dump_bt_lmp_rx_buf_reg"));
+	WCN_INFO("mdbg dump bt_lmp_rx_buf %ld ok!\n", count);
+#endif
+#ifdef BT_ACL_TX_BUF_ADDR
+	count = mdbg_dump_data(BT_ACL_TX_BUF_ADDR,
+			       "start_dump_bt_acl_tx_buf_reg",
+			       BT_ACL_TX_BUF_SIZE,
+			       strlen("start_dump_bt_acl_tx_buf_reg"));
+	WCN_INFO("mdbg dump bt_acl_tx_buf%ld ok!\n", count);
+#endif
+#ifdef BT_ACL_RX_BUF_ADDR
+	count = mdbg_dump_data(BT_ACL_RX_BUF_ADDR,
+			       "start_dump_bt_acl_rx_buf_reg",
+			       BT_ACL_RX_BUF_SIZE,
+			       strlen("start_dump_bt_acl_rx_buf_reg"));
+	WCN_INFO("mdbg dump bt_acl_rx_buf %ld ok!\n", count);
+#endif
+#ifdef BT_SCO_TX_BUF_ADDR
+	count = mdbg_dump_data(BT_SCO_TX_BUF_ADDR,
+			       "start_dump_bt_sco_tx_buf_reg",
+			       BT_SCO_TX_BUF_SIZE,
+			       strlen("start_dump_bt_sco_tx_buf_reg"));
+	WCN_INFO("mdbg dump bt_sco_tx_buf %ld ok!\n", count);
+#endif
+#ifdef BT_SCO_RX_BUF_ADDR
+	count = mdbg_dump_data(BT_SCO_RX_BUF_ADDR,
+			       "start_dump_bt_sco_rx_buf_reg",
+			       BT_SCO_RX_BUF_SIZE,
+			       strlen("start_dump_bt_sco_rx_buf_reg"));
+	WCN_INFO("mdbg dump bt_sco_rx_buf %ld ok!\n", count);
+#endif
+#ifdef BT_BB_TX_BUF_ADDR
+	count = mdbg_dump_data(BT_BB_TX_BUF_ADDR,
+			       "start_dump_bt_bb_tx_buf_reg",
+			       BT_BB_TX_BUF_SIZE,
+			       strlen("start_dump_bt_bb_tx_buf_reg"));
+	WCN_INFO("mdbg dump bt_bb_tx_buf %ld ok!\n", count);
+#endif
+#ifdef BT_BB_RX_BUF_ADDR
+	count = mdbg_dump_data(BT_BB_RX_BUF_ADDR,
+			       "start_dump_bt_bb_rx_buf_reg",
+			       BT_BB_RX_BUF_SIZE,
+			       strlen("start_dump_bt_bb_rx_buf_reg"));
+	WCN_INFO("mdbg dump bt_bb_rx_buf %ld ok!\n", count);
+#endif
 
 end:
 	/* Make sure only string "marlin_memdump_finish" to slog one time */
@@ -1428,9 +1438,10 @@ end:
 
 	mdbg_dump_str(WCN_DUMP_END_STRING, strlen(WCN_DUMP_END_STRING));
 	WCN_INFO("mdbg dump memory finish\n");
+#ifdef CONFIG_WCN_RDCDBG
 	if ((functionmask[7] & CP2_FLAG_YLOG) == 1)
 		complete(&dumpmem_complete);
-
+#endif
 	return 0;
 }
 

@@ -43,6 +43,7 @@
 #include "rdc_debug.h"
 #include "wcn_boot.h"
 #include "wcn_dump.h"
+#include "wcn_glb.h"
 #include "wcn_log.h"
 #include "wcn_misc.h"
 #include "wcn_procfs.h"
@@ -51,14 +52,6 @@
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
 #include "../include/wcn_glb_reg.h"
-
-#ifdef MODULE_PARAM_PREFIX
-#undef MODULE_PARAM_PREFIX
-#endif
-#define MODULE_PARAM_PREFIX	"marlin."
-
-static int clktype = -1;
-module_param(clktype, int, 0444);
 
 #ifndef REG_PMU_APB_XTL_WAIT_CNT0
 #define REG_PMU_APB_XTL_WAIT_CNT0 0xe42b00ac
@@ -172,26 +165,27 @@ EXPORT_SYMBOL_GPL(wcn_get_chip_type);
 #define WCN_STR(a) _WCN_STR(a)
 #define WCN_CON_STR(a, b, c) (a b WCN_STR(c))
 
+static char * const wcn_chip_name[WCN_CHIP_ID_MAX] = {
+	"UNKNOWN",
+	WCN_CON_STR(WCN_CHIP_NAME_PRE, "AA_", MARLIN_AA_CHIPID),
+	WCN_CON_STR(WCN_CHIP_NAME_PRE, "AB_", MARLIN_AB_CHIPID),
+	WCN_CON_STR(WCN_CHIP_NAME_PRE, "AC_", MARLIN_AC_CHIPID),
+	WCN_CON_STR(WCN_CHIP_NAME_PRE, "AD_", MARLIN_AD_CHIPID),
+};
+
 const char *wcn_get_chip_name(void)
 {
 	enum wcn_chip_id_type chip_type;
-	static char *wcn_chip_name;
-	static char * const chip_name[] = {
-		"UNKNOWN",
-		WCN_CON_STR(WCN_CHIP_NAME_PRE, "AA_", MARLIN_AA_CHIPID),
-		WCN_CON_STR(WCN_CHIP_NAME_PRE, "AB_", MARLIN_AB_CHIPID),
-		WCN_CON_STR(WCN_CHIP_NAME_PRE, "AC_", MARLIN_AC_CHIPID),
-		WCN_CON_STR(WCN_CHIP_NAME_PRE, "AD_", MARLIN_AD_CHIPID),
-	};
+	static char *chip_name;
 
-	if (likely(wcn_chip_name))
-		return wcn_chip_name;
+	if (likely(chip_name))
+		return chip_name;
 
 	chip_type = wcn_get_chip_type();
 	if (chip_type != WCN_CHIP_ID_INVALID)
-		wcn_chip_name = chip_name[chip_type];
+		chip_name = wcn_chip_name[chip_type];
 
-	return chip_name[chip_type];
+	return wcn_chip_name[chip_type];
 }
 EXPORT_SYMBOL_GPL(wcn_get_chip_name);
 
@@ -556,11 +550,8 @@ static char *gnss_load_firmware_data(unsigned long int imag_size)
 	} while ((read_len > 0) && (size > 0));
 	fput(file);
 	WCN_INFO("%s finish read_Len:%d\n", __func__, read_len);
-
-	if (read_len <= 0) {
-		vfree(data);
+	if (read_len <= 0)
 		return NULL;
-	}
 
 	return data;
 }
@@ -851,16 +842,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		else
 			WCN_ERR("force config xtal 26m clk %s err!\n", buf);
 	} else {
-		if (clktype == 0) {
-			WCN_INFO("cmd config clk TCXO\n");
-			clk->type = WCN_CLOCK_TYPE_TCXO;
-		} else if (clktype == 1) {
-			WCN_INFO("cmd config clk TSX\n");
-			clk->type = WCN_CLOCK_TYPE_TSX;
-		} else {
-			WCN_INFO("may be not config clktype:%d\n", clktype);
-			clk->type = WCN_CLOCK_TYPE_UNKNOWN;
-		}
+		WCN_INFO("unforce config xtal 26m clk:%d", clk->type);
 	}
 
 	marlin_dev->dvdd12 = devm_regulator_get(&pdev->dev, "dvdd12");
@@ -1056,10 +1038,7 @@ static int marlin_avdd18_dcxo_enable(bool enable)
 		}
 #endif
 		WCN_INFO("avdd18_dcxo set 1v8\n");
-		ret = regulator_set_voltage(marlin_dev->dcxo18,
-					    1800000, 1800000);
-		if (ret)
-			WCN_ERR("failed to set dcxo18: %d\n", ret);
+		regulator_set_voltage(marlin_dev->dcxo18, 1800000, 1800000);
 		if (!marlin_dev->bound_dcxo18) {
 			WCN_INFO("avdd18_dcxo power enable\n");
 			ret = regulator_enable(marlin_dev->dcxo18);
@@ -1088,19 +1067,12 @@ static int marlin_digital_power_enable(bool enable)
 		return 0;
 
 	if (enable) {
-		ret = regulator_set_voltage(marlin_dev->dvdd12,
-					    1200000, 1200000);
-		if (ret)
-			WCN_ERR("failed to set dvdd12: %d\n", ret);
+		regulator_set_voltage(marlin_dev->dvdd12,
+					      1200000, 1200000);
 		ret = regulator_enable(marlin_dev->dvdd12);
-		if (ret)
-			WCN_ERR("failed to enable dvdd12: %d\n", ret);
 	} else {
-		if (regulator_is_enabled(marlin_dev->dvdd12)) {
+		if (regulator_is_enabled(marlin_dev->dvdd12))
 			ret = regulator_disable(marlin_dev->dvdd12);
-			if (ret)
-				WCN_ERR("failed to disable dvdd12: %d\n", ret);
-		}
 	}
 
 	return ret;
@@ -1115,15 +1087,13 @@ static int marlin_analog_power_enable(bool enable)
 		if (enable) {
 #ifdef CONFIG_WCN_PCIE
 			WCN_INFO("%s avdd12 set 1.35v\n", __func__);
-			ret = regulator_set_voltage(marlin_dev->avdd12,
-						    1350000, 1350000);
+			regulator_set_voltage(marlin_dev->avdd12,
+					      1350000, 1350000);
 #else
 			WCN_INFO("%s avdd12 set 1.2v\n", __func__);
-			ret = regulator_set_voltage(marlin_dev->avdd12,
-						    1200000, 1200000);
+			regulator_set_voltage(marlin_dev->avdd12,
+					      1200000, 1200000);
 #endif
-			if (ret)
-				WCN_ERR("failed to set avdd12: %d\n", ret);
 			if (!marlin_dev->bound_avdd12) {
 				WCN_INFO("%s avdd12 power enable\n", __func__);
 				ret = regulator_enable(marlin_dev->avdd12);
@@ -1328,7 +1298,7 @@ static void wcn_check_xtal_26m_clk(void)
 			WCN_INFO("xtal gpio clk type:%d %d\n",
 				 clk->type, ret);
 		} else {
-			WCN_ERR("xtal_26m clk type erro!\n");
+			WCN_ERR("xtal_26m clk type erro by gpio!\n");
 		}
 	}
 
@@ -1618,6 +1588,7 @@ static void power_state_notify_or_not(int subsys, int poweron)
 		test_bit(MARLIN_WIFI, &marlin_dev->power_state) +
 		test_bit(MARLIN_MDBG, &marlin_dev->power_state)) == 1) {
 		WCN_INFO("only one module open, need to notify loopcheck\n");
+		start_loopcheck();
 		marlin_dev->loopcheck_status_change = 1;
 		wakeup_loopcheck_int();
 	}
@@ -1625,6 +1596,7 @@ static void power_state_notify_or_not(int subsys, int poweron)
 	if (((marlin_dev->power_state) & MARLIN_MASK) == 0) {
 
 		WCN_INFO("marlin close, need to notify loopcheck\n");
+		stop_loopcheck();
 		marlin_dev->loopcheck_status_change = 1;
 		wakeup_loopcheck_int();
 	}
@@ -1713,10 +1685,15 @@ static void pre_btwifi_download_sdio(struct work_struct *work)
 		marlin_write_cali_data();
 		mem_pd_save_bin();
 #endif
+#ifdef CONFIG_WCN_RDCDBG
+		wcn_rdc_debug_init();
+#endif
 		check_cp_ready();
 		complete(&marlin_dev->download_done);
 	}
+	/* Runtime PM is useless, mainly to enable sdio_func1 and rx irq */
 	sprdwcn_bus_runtime_get();
+	wcn_firmware_init();
 }
 
 static int bus_scan_card(void)
@@ -1744,10 +1721,8 @@ void wifipa_enable(int enable)
 			if (regulator_is_enabled(marlin_dev->avdd33))
 				return;
 
-			ret = regulator_set_voltage(marlin_dev->avdd33,
-						    3300000, 3300000);
-			if (ret)
-				WCN_ERR("failed to set avdd33: %d\n", ret);
+			regulator_set_voltage(marlin_dev->avdd33,
+					      3300000, 3300000);
 			ret = regulator_enable(marlin_dev->avdd33);
 			if (ret)
 				WCN_ERR("fail to enable wifipa\n");
@@ -1849,6 +1824,20 @@ static int chip_power_off(int subsys)
 
 	return 0;
 }
+
+void wcn_chip_power_on(void)
+{
+	chip_power_on(0);
+}
+EXPORT_SYMBOL_GPL(wcn_chip_power_on);
+
+void wcn_chip_power_off(void)
+{
+	mutex_lock(&marlin_dev->power_lock);
+	chip_power_off(0);
+	mutex_unlock(&marlin_dev->power_lock);
+}
+EXPORT_SYMBOL_GPL(wcn_chip_power_off);
 
 static int gnss_powerdomain_open(void)
 {
@@ -2023,6 +2012,7 @@ static int marlin_set_power(int subsys, int val)
 
 			set_wifipa_status(subsys, val);
 			mutex_unlock(&marlin_dev->power_lock);
+
 			power_state_notify_or_not(subsys, val);
 			if (subsys == WCN_AUTO) {
 				marlin_set_power(WCN_AUTO, false);
@@ -2384,6 +2374,14 @@ EXPORT_SYMBOL_GPL(start_marlin);
 int stop_marlin(u32 subsys)
 {
 	WCN_INFO("%s [%s]\n", __func__, strno(subsys));
+	mutex_lock(&marlin_dev->power_lock);
+	if (!marlin_get_power()) {
+		mutex_unlock(&marlin_dev->power_lock);
+		WCN_INFO("%s no module opend\n", __func__);
+		return 0;
+	}
+	mutex_unlock(&marlin_dev->power_lock);
+
 	if (sprdwcn_bus_get_carddump_status() != 0) {
 		WCN_ERR("%s SDIO card dump\n", __func__);
 		return -1;
@@ -2393,6 +2391,7 @@ int stop_marlin(u32 subsys)
 		WCN_ERR("%s loopcheck status is fail\n", __func__);
 		return -1;
 	}
+
 #ifndef CONFIG_WCN_PCIE
 	mem_pd_mgr(subsys, false);
 #endif
@@ -2419,6 +2418,7 @@ static int marlin_probe(struct platform_device *pdev)
 			sizeof(struct marlin_device), GFP_KERNEL);
 	if (!marlin_dev)
 		return -ENOMEM;
+
 	marlin_dev->write_buffer = devm_kzalloc(&pdev->dev,
 			PACKET_SIZE, GFP_KERNEL);
 	if (marlin_dev->write_buffer == NULL) {
@@ -2495,6 +2495,8 @@ static int marlin_probe(struct platform_device *pdev)
 	}
 
 	flag_reset = 0;
+	loopcheck_init();
+	reset_test_init();
 	INIT_WORK(&marlin_dev->download_wq, pre_btwifi_download_sdio);
 	INIT_WORK(&marlin_dev->gnss_dl_wq, pre_gnss_download_firmware);
 
@@ -2531,6 +2533,7 @@ static int  marlin_remove(struct platform_device *pdev)
 	cancel_work_sync(&marlin_dev->download_wq);
 	cancel_work_sync(&marlin_dev->gnss_dl_wq);
 	cancel_delayed_work_sync(&marlin_dev->power_wq);
+	loopcheck_deinit();
 	wcn_op_exit();
 	log_dev_exit();
 	proc_fs_exit();

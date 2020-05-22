@@ -40,12 +40,15 @@ enum marlin_sub_sys {
 	MARLIN_ALL,
 };
 
+/* sync with wcn_get_chip_type() and wcn_chip_name */
 enum wcn_chip_id_type {
 	WCN_CHIP_ID_INVALID,
 	WCN_CHIP_ID_AA,
 	WCN_CHIP_ID_AB,
 	WCN_CHIP_ID_AC,
 	WCN_CHIP_ID_AD,
+	/* WCN_CHIP_ID_MAX is the last one */
+	WCN_CHIP_ID_MAX,
 };
 
 enum wcn_clock_type {

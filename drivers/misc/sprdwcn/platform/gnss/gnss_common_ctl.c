@@ -297,7 +297,7 @@ static int gnss_tsen_enable(int type)
 
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
 	GNSSCOMM_ERR("%s, TSEN_CTRL3 value read 0x%x\n", __func__, value);
-	temp = (value | BIT_TSEN_EN) & (~BIT_TSEN_SEL_EN);
+	temp = value | BIT_TSEN_EN;
 	temp = (temp & (~BIT_TSEN_TIME_SEL_MASK)) | BIT_TSEN_TIME_sel(2);
 	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), temp);
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
@@ -360,7 +360,7 @@ static int gnss_tsen_disable(int type)
 
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
 	GNSSCOMM_ERR("%s, TSEN_CTRL3 value read 0x%x\n", __func__, value);
-	temp = (value & (~BIT_TSEN_EN)) | BIT_TSEN_SEL_EN;
+	temp = value & ~BIT_TSEN_EN;
 	regmap_write(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), temp);
 	regmap_read(regmap, (REGS_ANA_APB_BASE + TSEN_CTRL3), &value);
 	GNSSCOMM_ERR("%s, 2nd read 0x%x\n", __func__, value);
@@ -536,13 +536,19 @@ static ssize_t gnss_dump_store(struct device *dev,
 {
 	unsigned long set_value;
 	int ret = -1;
-	int temp = 0;
+	int temp = 0, strlen = 0;
+	char triggerStr[64];
 
-	if (kstrtoul(buf, GNSS_MAX_STRING_LEN, &set_value)) {
-		GNSSCOMM_ERR("%s, store string is too long\n", __func__);
-		return -EINVAL;
-	}
-	GNSSCOMM_INFO("%s,%lu\n", __func__, set_value);
+	set_value = buf[0] - '0';
+	GNSSCOMM_INFO("%s, set_value: %lu\n", __func__, set_value);
+
+	memset(triggerStr, 0, 64);
+	strlen = ((count - 2) > 63) ? 63 : (count - 2);
+	memcpy(triggerStr, &buf[2], strlen);
+	GNSSCOMM_INFO("%s, triggerStr: %s\n", __func__, triggerStr);
+
+	wcn_assert_interface(WCN_SOURCE_GNSS, triggerStr);
+
 	if (set_value == 1) {
 #ifdef CONFIG_SC2342_INTEG
 		temp = wait_for_completion_timeout(&gnss_dump_complete,

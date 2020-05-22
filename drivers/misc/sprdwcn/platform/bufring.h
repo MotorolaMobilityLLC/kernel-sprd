@@ -31,6 +31,8 @@ struct mdbg_ring_t {
 	char *end;
 	/* 0: WP > RP; 1: RP >WP */
 	bool p_order_flag;
+	/* is_mem=1:mem, 0:log */
+	bool is_mem;
 	struct mutex *plock;
 };
 

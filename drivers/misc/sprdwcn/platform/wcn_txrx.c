@@ -23,19 +23,95 @@
 #define	LOG_BUF_NUM	16
 #define	LOG_BUF_SIZE	1500
 
-#ifdef CONFIG_WCN_PCIE
-int mdbg_log_cb(int channel, struct mbuf_t *head, struct mbuf_t *tail, int num);
-int mdbg_log_push(int chn, struct mbuf_t **head,
-		  struct mbuf_t **tail, int *num);
-#else
-int mdbg_log_read(int channel, struct mbuf_t *head,
-		  struct mbuf_t *tail, int num);
-#endif
-
 static struct ring_device *ring_dev;
 static unsigned long long rx_count;
 static unsigned long long rx_count_last;
 static atomic_t ring_reg_flag;
+
+/*
+ * PCIE's log callback in Interrupt context, can not use interface(kmalloc,
+ * mutex) that may cause sleep. So handle it apart.
+ * SDIO's log callback not in interrupt context, it in Kthread
+ */
+#ifdef CONFIG_WCN_PCIE
+static int mdbg_log_cb(int channel, struct mbuf_t *head,
+		       struct mbuf_t *tail, int num)
+{
+	struct mbuf_t *mbuf_node;
+	int i;
+	/* type=0x98:trace log, type=0x9D:DSP log */
+	WCN_INFO("%s:type=0x%x,seq=0x%x, num=%d\n", __func__,
+		 *(head->buf + 7), *((u32 *)(head->buf + 12)), num);
+
+	if ((atomic_read(&ring_reg_flag)) == 0) {
+		WCN_INFO("mdbg ring has do unreg, so discard it\n");
+		return 0;
+	}
+
+	for (i = 0, mbuf_node = head; i < num; i++, mbuf_node = mbuf_node->next)
+		mdbg_ring_write(ring_dev->ring, mbuf_node->buf, mbuf_node->len);
+
+	sprdwcn_bus_push_list(channel, head, tail, num);
+	wake_up_log_wait();
+
+	return 0;
+}
+
+static int mdbg_log_push(int chn, struct mbuf_t **head,
+			 struct mbuf_t **tail, int *num)
+{
+	WCN_INFO("%s enter num=%d, chn=%d,mbuf used done", __func__, *num, chn);
+	edma_dump_glb_reg();
+	edma_dump_chn_reg(chn);
+
+	return 0;
+}
+#else
+#ifdef CONFIG_WCN_SIPC
+static int mdbg_sipc_log_cb(int channel, struct mbuf_t *head,
+			    struct mbuf_t *tail, int num)
+{
+	struct mbuf_t *mbuf_node;
+	int i;
+
+	for (i = 0, mbuf_node = head; i < num; i++, mbuf_node = mbuf_node->next)
+		mdbg_ring_write(ring_dev->ring, mbuf_node->buf, mbuf_node->len);
+
+	sprdwcn_bus_push_list(channel, head, tail, num);
+	wake_up_log_wait();
+
+	return 0;
+}
+#else
+static int mdbg_log_read(int channel, struct mbuf_t *head,
+			 struct mbuf_t *tail, int num)
+{
+	struct ring_rx_data *rx;
+
+	if (ring_dev) {
+		mutex_lock(&ring_dev->mdbg_read_mutex);
+		rx = kmalloc(sizeof(*rx), GFP_KERNEL);
+		if (!rx) {
+			WCN_ERR("mdbg ring low memory\n");
+			mutex_unlock(&ring_dev->mdbg_read_mutex);
+			sprdwcn_bus_push_list(channel, head, tail, num);
+			return 0;
+		}
+		mutex_unlock(&ring_dev->mdbg_read_mutex);
+		spin_lock_bh(&ring_dev->rw_lock);
+		rx->channel = channel;
+		rx->head = head;
+		rx->tail = tail;
+		rx->num = num;
+		list_add_tail(&rx->entry, &ring_dev->rx_head);
+		spin_unlock_bh(&ring_dev->rw_lock);
+		schedule_work(&ring_dev->rx_task);
+	}
+
+	return 0;
+}
+#endif
+#endif
 
 #ifdef CONFIG_WCN_PCIE
 static struct mchn_ops_t mdbg_ringc_ops = {
@@ -55,21 +131,17 @@ static struct mchn_ops_t mdbg_ringc_ops = {
 	.channel = WCN_RING_RX,
 	.inout = WCNBUS_RX,
 	.pool_size = 1,
+#ifdef CONFIG_WCN_SIPC
+	.pop_link = mdbg_sipc_log_cb,
+	.chn_config.sipc_ch = WCN_INIT_SIPC_SBUF(
+			WCN_SIPC_DST, SIPC_CHN_LOG,
+			WCN_CHN_CREATE | WCN_CHN_CALLBACK,
+			"sbuf_log", 0, 8 * 1024, 1,
+			0x8000, 0x30000),
+#else
 	.pop_link = mdbg_log_read,
+#endif
 };
-#endif
-
-#ifdef CONFIG_WCN_PCIE
-int mdbg_log_push(int chn, struct mbuf_t **head, struct mbuf_t **tail, int *num)
-{
-	WCN_INFO("%s enter num=%d, chn=%d,mbuf used done", __func__, *num, chn);
-#ifdef CONFIG_WCN_PCIE
-	edma_dump_glb_reg();
-	edma_dump_chn_reg(chn);
-#endif
-
-	return 0;
-}
 #endif
 
 bool mdbg_rx_count_change(void)
@@ -107,22 +179,27 @@ static long int mdbg_comm_write(char *buf,
 {
 	unsigned char *send_buf = NULL;
 	char *str = NULL;
-	struct mbuf_t *head = NULL;
-	struct mbuf_t *tail = NULL;
+	struct mbuf_t *head, *tail;
 	int num = 1;
+	int rsvlen;
 
 	if (unlikely(marlin_get_module_status() != true)) {
 		WCN_WARN("WCN module have not open\n");
 		return -EIO;
 	}
-	send_buf = kzalloc(len + PUB_HEAD_RSV + 1, GFP_KERNEL);
+#ifdef CONFIG_WCN_SIPC
+	rsvlen = 0;
+#else
+	rsvlen = PUB_HEAD_RSV;
+#endif
+	send_buf = kzalloc(len + rsvlen + 1, GFP_KERNEL);
 	if (!send_buf)
 		return -ENOMEM;
-	memcpy(send_buf + PUB_HEAD_RSV, buf, len);
+	memcpy(send_buf + rsvlen, buf, len);
 
-	str = strstr(send_buf + PUB_HEAD_RSV, SMP_HEAD_STR);
+	str = strstr(send_buf + rsvlen, SMP_HEAD_STR);
 	if (!str)
-		str = strstr(send_buf + PUB_HEAD_RSV + ARMLOG_HEAD,
+		str = strstr(send_buf + rsvlen + ARMLOG_HEAD,
 			     SMP_HEAD_STR);
 
 	if (str) {
@@ -157,7 +234,7 @@ static void mdbg_ring_rx_task(struct work_struct *work)
 	struct ring_rx_data *rx = NULL;
 	struct mdbg_ring_t *ring = NULL;
 	struct mbuf_t *mbuf_node;
-	int i, ret = 0;
+	int i;
 #ifndef CONFIG_WCN_PCIE
 	struct bus_puh_t *puh = NULL;
 #endif
@@ -187,79 +264,16 @@ static void mdbg_ring_rx_task(struct work_struct *work)
 #ifndef CONFIG_WCN_PCIE
 		rx->addr = mbuf_node->buf + PUB_HEAD_RSV;
 		puh = (struct bus_puh_t *)mbuf_node->buf;
-		ret = mdbg_ring_write(ring, rx->addr, puh->len);
+		mdbg_ring_write(ring, rx->addr, puh->len);
 #else
-		ret = mdbg_ring_write(ring, mbuf_node->buf, mbuf_node->len);
+		mdbg_ring_write(ring, mbuf_node->buf, mbuf_node->len);
 #endif
 	}
-	if (ret < 0)
-		goto out;
-
-	ret = sprdwcn_bus_push_list(mdbg_ringc_ops.channel,
-				    rx->head, rx->tail, rx->num);
-	if (ret)
-		goto out;
+	sprdwcn_bus_push_list(mdbg_ringc_ops.channel,
+			      rx->head, rx->tail, rx->num);
 	wake_up_log_wait();
-out:
 	kfree(rx);
 }
-
-int mdbg_log_read(int channel, struct mbuf_t *head,
-		  struct mbuf_t *tail, int num)
-{
-	struct ring_rx_data *rx;
-
-	if (ring_dev) {
-		mutex_lock(&ring_dev->mdbg_read_mutex);
-		rx = kmalloc(sizeof(*rx), GFP_KERNEL);
-		if (!rx) {
-			WCN_ERR("mdbg ring low memory\n");
-			mutex_unlock(&ring_dev->mdbg_read_mutex);
-			sprdwcn_bus_push_list(channel, head, tail, num);
-			return 0;
-		}
-		mutex_unlock(&ring_dev->mdbg_read_mutex);
-		spin_lock_bh(&ring_dev->rw_lock);
-		rx->channel = channel;
-		rx->head = head;
-		rx->tail = tail;
-		rx->num = num;
-		list_add_tail(&rx->entry, &ring_dev->rx_head);
-		spin_unlock_bh(&ring_dev->rw_lock);
-		schedule_work(&ring_dev->rx_task);
-	}
-
-	return 0;
-}
-
-/*
- * PCIE's log callback in Interrupt context, can not use interface(kmalloc,
- * mutex) that may cause sleep. So handle it apart.
- * SDIO's log callback not in interrupt context, it in Kthread
- */
-#ifdef CONFIG_WCN_PCIE
-int mdbg_log_cb(int channel, struct mbuf_t *head, struct mbuf_t *tail, int num)
-{
-	struct mbuf_t *mbuf_node;
-	int i;
-
-	WCN_INFO("%s:type=0x%x,seq=0x%x, num=%d\n", __func__,
-		 *(head->buf + 7), *((u32 *)(head->buf + 12)), num);
-
-	if ((atomic_read(&ring_reg_flag)) == 0) {
-		WCN_INFO("mdbg ring has do unreg, so discard it\n");
-		return 0;
-	}
-
-	for (i = 0, mbuf_node = head; i < num; i++, mbuf_node = mbuf_node->next)
-		mdbg_ring_write(ring_dev->ring, mbuf_node->buf, mbuf_node->len);
-
-	sprdwcn_bus_push_list(channel, head, tail, num);
-	wake_up_log_wait();
-
-	return 0;
-}
-#endif
 
 long int mdbg_send(char *buf, long int len, unsigned int subtype)
 {

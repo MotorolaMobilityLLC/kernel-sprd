@@ -17,9 +17,8 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/interrupt.h>
+#include <misc/wcn_bus.h>
 
-#define HW_TYPE_SDIO 0
-#define HW_TYPE_PCIE 1
 #define MCHN_MAX_NUM 32
 
 struct buffer_pool {

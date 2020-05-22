@@ -258,7 +258,7 @@ static int wcn_efuse_cal_read(struct device_node *np, const char *cell_id,
 {
 	struct nvmem_cell *cell;
 	void *buf;
-	size_t len = 0;
+	size_t len;
 
 	cell = of_nvmem_cell_get(np, cell_id);
 	if (IS_ERR(cell))
@@ -395,8 +395,6 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	ret = of_property_read_string(np,
 				      "sprd,name",
 				      (const char **)&wcn_dev->name);
-	if (!ret)
-		WCN_INFO("sprd name: %s\n", wcn_dev->name);
 
 	/* get apb reg handle */
 	wcn_dev->rmap[REGMAP_AON_APB] =
@@ -912,6 +910,18 @@ static inline void wcn_platform_fs_exit(struct wcn_device *wcn_dev)
 	remove_proc_entry(wcn_dev->name, NULL);
 }
 
+/* wcn triggers power on and off by itself in probe */
+static void wcn_probe_power_wq(struct work_struct *work)
+{
+	WCN_INFO("%s start itself\n", __func__);
+
+	if (start_marlin(MARLIN_MDBG))
+		WCN_ERR("%s power on failed\n", __func__);
+
+	if (stop_marlin(MARLIN_MDBG))
+		WCN_ERR("%s power down failed\n", __func__);
+}
+
 static int wcn_probe(struct platform_device *pdev)
 {
 	struct wcn_device *wcn_dev;
@@ -963,11 +973,13 @@ static int wcn_probe(struct platform_device *pdev)
 		log_dev_init();
 		mdbg_atcmd_owner_init();
 		wcn_marlin_write_efuse();
+		loopcheck_init();
 	} else if (strcmp(wcn_dev->name, WCN_GNSS_DEV_NAME) == 0) {
 		gnss_write_efuse_data();
 	}
 
 	INIT_DELAYED_WORK(&wcn_dev->power_wq, wcn_power_wq);
+	INIT_DELAYED_WORK(&wcn_dev->probe_power_wq, wcn_probe_power_wq);
 
 	if (first) {
 		/* Transceiver can't get into LP, so force deep sleep */
@@ -977,6 +989,9 @@ static int wcn_probe(struct platform_device *pdev)
 			wcn_sys_deep_sleep_en();
 		}
 		first = 0;
+	} else {
+		schedule_delayed_work(&wcn_dev->probe_power_wq,
+				      msecs_to_jiffies(3500));
 	}
 
 #if WCN_INTEGRATE_PLATFORM_DEBUG
@@ -988,7 +1003,7 @@ static int wcn_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int  wcn_remove(struct platform_device *pdev)
+static int wcn_remove(struct platform_device *pdev)
 {
 	struct wcn_device *wcn_dev = platform_get_drvdata(pdev);
 
@@ -997,7 +1012,17 @@ static int  wcn_remove(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	WCN_INFO("dev name %s\n", wcn_dev->name);
+	WCN_INFO("%s dev name %s\n", __func__, wcn_dev->name);
+
+	cancel_delayed_work_sync(&wcn_dev->power_wq);
+	cancel_delayed_work_sync(&wcn_dev->probe_power_wq);
+	if (wcn_dev_is_marlin(wcn_dev)) {
+		loopcheck_deinit();
+		mdbg_atcmd_owner_deinit();
+		log_dev_exit();
+		proc_fs_exit();
+		wcn_bus_deinit();
+	}
 
 	wcn_platform_fs_exit(wcn_dev);
 	kfree(wcn_dev);

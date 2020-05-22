@@ -272,7 +272,7 @@ static int sprd_ep_addr_map(struct wcn_pcie_info *priv)
 	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
 		val = readl_relaxed((void *)(&ibreg0->en));
 		if (val & PCIE_ATU_ENABLE)
-			return 0;
+			break;
 		WCN_INFO("%s:ibreg0 retries=%d\n", __func__, retries);
 		mdelay(LINK_WAIT_IATU);
 	}
@@ -291,7 +291,7 @@ static int sprd_ep_addr_map(struct wcn_pcie_info *priv)
 	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
 		val = readl_relaxed((void *)(&obreg0->en));
 		if (val & PCIE_ATU_ENABLE)
-			return 0;
+			break;
 		WCN_INFO("%s:obreg0 retries=%d\n", __func__, retries);
 		mdelay(LINK_WAIT_IATU);
 	}
@@ -310,7 +310,7 @@ static int sprd_ep_addr_map(struct wcn_pcie_info *priv)
 	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
 		val = readl_relaxed((void *)(&obreg1->en));
 		if (val & PCIE_ATU_ENABLE)
-			return 0;
+			break;
 		WCN_INFO("%s:obreg1 retries=%d\n", __func__, retries);
 		mdelay(LINK_WAIT_IATU);
 	}

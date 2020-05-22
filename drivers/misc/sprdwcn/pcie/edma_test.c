@@ -11,6 +11,8 @@
  */
 
 #include <misc/mchn.h>
+#include <misc/wcn_bus.h>
+
 #include "edma_engine.h"
 #include "mchn.h"
 #include "pcie.h"

@@ -236,8 +236,6 @@ int mchn_push_link(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 		wcn_set_tx_complete_status(0);
 
 	switch (mchn->ops[chn]->hif_type) {
-	case HW_TYPE_SDIO:
-		break;
 	case HW_TYPE_PCIE:
 		if (mchn_hw_max_pending(chn) > 0)
 			ret = edma_push_link_async(chn, (void *)head,
@@ -265,8 +263,6 @@ int mchn_push_link_wait_complete(int chn, struct mbuf_t *head,
 		return -1;
 	}
 	switch (mchn->ops[chn]->hif_type) {
-	case HW_TYPE_SDIO:
-		break;
 	case HW_TYPE_PCIE:
 		ret = edma_push_link_wait_complete(chn, (void *)head,
 						   (void *)tail, num, timeout);
@@ -303,8 +299,7 @@ int mchn_init(struct mchn_ops_t *ops)
 	struct mchn_info_t *mchn = mchn_info();
 
 	WCN_DBG("[+]%s(chn=%d)\n", __func__, ops->channel);
-	if (((ops->hif_type != HW_TYPE_SDIO) &&
-	     (ops->hif_type != HW_TYPE_PCIE))) {
+	if (ops->hif_type != HW_TYPE_PCIE) {
 		WCN_INFO("%s err, hif_type %d\n", __func__, ops->hif_type);
 		WARN_ON(1);
 
@@ -313,9 +308,6 @@ int mchn_init(struct mchn_ops_t *ops)
 	mchn->ops[ops->channel] = ops;
 
 	switch (ops->hif_type) {
-	case HW_TYPE_SDIO:
-		ret = 0;
-		break;
 	case HW_TYPE_PCIE:
 		ret = edma_chn_init(ops->channel, 0, ops->inout,
 				    ops->pool_size);
@@ -341,14 +333,11 @@ int mchn_deinit(struct mchn_ops_t *ops)
 	WCN_INFO("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
 
 	if ((mchn->ops[ops->channel] == NULL) ||
-	    ((ops->hif_type != HW_TYPE_SDIO) &&
-	    (ops->hif_type != HW_TYPE_PCIE))) {
+	    (ops->hif_type != HW_TYPE_PCIE)) {
 		WCN_ERR("%s err\n", __func__);
 		return -1;
 	}
 	switch (ops->hif_type) {
-	case HW_TYPE_SDIO:
-		break;
 	case HW_TYPE_PCIE:
 		ret = edma_chn_deinit(ops->channel);
 		break;

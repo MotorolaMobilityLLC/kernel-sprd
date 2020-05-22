@@ -48,6 +48,13 @@ void wcn_device_poweroff(void)
 	WCN_INFO("all subsys power off finish!\n");
 }
 
+void wcn_chip_power_off(void)
+{
+	sprdwcn_bus_set_carddump_status(false);
+	wcn_device_poweroff();
+}
+EXPORT_SYMBOL_GPL(wcn_chip_power_off);
+
 static int wcn_get_firmware_path(char *firmwarename, char *firmware_path)
 {
 	if (!firmwarename || !firmware_path)
@@ -840,9 +847,9 @@ int start_integrate_wcn_truely(u32 subsys)
 	wcn_dev->wcn_open_status |= subsys_bit;
 
 	if (is_marlin) {
-		wcn_set_module_state(true);
 		mdbg_atcmd_clean();
-		wcn_ap_notify_btwf_time();
+		wcn_set_module_state(true);
+		wcn_firmware_init();
 	}
 	mutex_unlock(&wcn_dev->power_lock);
 

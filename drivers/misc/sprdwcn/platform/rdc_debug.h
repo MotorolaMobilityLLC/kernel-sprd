@@ -34,7 +34,9 @@ enum {
 
 extern char functionmask[8];
 extern struct completion dumpmem_complete;
-int wcn_debug_init(void);
-int log_rx_callback(void *addr, unsigned int len, unsigned int fifo_id);
+int wcn_rdc_debug_init(void);
+int log_rx_callback(void *addr, unsigned int len);
+int dumpmem_rx_callback(void *addr, unsigned int len);
+int dumpfile_init(void);
 
 #endif

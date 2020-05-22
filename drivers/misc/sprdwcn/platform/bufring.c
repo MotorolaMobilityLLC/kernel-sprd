@@ -16,6 +16,7 @@
 #include "mdbg_type.h"
 #include "wcn_log.h"
 #include "../include/wcn_dbg.h"
+#include "rdc_debug.h"
 
 #define MDBG_RING_LOCK_INIT(ring)		mutex_init(ring->plock)
 #define MDBG_RING_LOCK_UNINIT(ring)		mutex_destroy(ring->plock)
@@ -69,7 +70,7 @@ struct mdbg_ring_t *mdbg_ring_alloc(long int size)
 			WCN_ERR("size error:%ld\n", size);
 			break;
 		}
-		ring = kzalloc(sizeof(struct mdbg_ring_t), GFP_KERNEL);
+		ring = kmalloc(sizeof(struct mdbg_ring_t), GFP_KERNEL);
 		if (ring == NULL) {
 			WCN_ERR("Ring malloc Failed.\n");
 			break;
@@ -211,6 +212,14 @@ int mdbg_ring_read(struct mdbg_ring_t *ring, void *buf, int len)
  */
 int mdbg_ring_write(struct mdbg_ring_t *ring, void *buf, unsigned int len)
 {
+#ifdef CONFIG_WCN_RDCDBG
+	if (ring->is_mem == 1)
+		dumpmem_rx_callback(buf, len);
+	else
+		log_rx_callback(buf, len);
+
+	return len;
+#else
 	int len1, len2 = 0;
 	char *pstart = NULL;
 	char *pend = NULL;
@@ -284,6 +293,7 @@ int mdbg_ring_write(struct mdbg_ring_t *ring, void *buf, unsigned int len)
 	WCN_LOG("<------end len = %d\n", len);
 
 	return len;
+#endif
 }
 
 /* @timeout unit is ms */

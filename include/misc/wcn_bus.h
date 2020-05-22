@@ -1,13 +1,32 @@
 #ifndef __WCN_BUS_H__
 #define __WCN_BUS_H__
 
-#define HW_TYPE_SDIO 0
-#define HW_TYPE_PCIE 1
-#define HW_TYPE_SIPC 2
+#include <linux/types.h>
+
+#ifdef CONFIG_WCN_SIPC
+#define CHN_MAX_NUM (2 * BITS_PER_LONG)
+#define SIPC_CHN_ATCMD 4
+#define SIPC_CHN_LOOPCHECK 11
+#define SIPC_CHN_ASSERT 12
+#define SIPC_CHN_LOG 5
+#define PUB_HEAD_RSV 0
+#else
 #define CHN_MAX_NUM 32
 #define PUB_HEAD_RSV 4
+#endif
 
-extern struct atomic_notifier_head wcn_reset_notifier_list;
+enum wcn_hard_intf_type {
+	HW_TYPE_SDIO,
+	HW_TYPE_PCIE,
+	HW_TYPE_SIPC,
+	HW_TYPE_INVALIED
+};
+
+enum wcn_source_type {
+	WCN_SOURCE_BTWF,
+	WCN_SOURCE_GNSS,
+	WCN_SOURCE_WCN
+};
 
 enum wcn_bus_state {
 	WCN_BUS_DOWN,	/* Not ready for frame transfers */
@@ -36,10 +55,107 @@ struct mbuf_t {
 	unsigned int   seq;
 };
 
-struct mchn_ops_t {
+#ifdef CONFIG_WCN_SIPC
+enum wcn_sipc_trans_type {
+	WCN_SIPC_TRANS_SBUF,
+	WCN_SIPC_TRANS_SBLOCK,
+};
+
+struct wcn_sipc_chn_sbuf {
+	u8	bufid;
+	u32	len;
+	u32	bufnum;
+	u32	txbufsize;
+	u32	rxbufsize;
+};
+
+struct wcn_sipc_chn_sblk {
+	u32     txblocknum;
+	u32     txblocksize;
+	u32     rxblocknum;
+	u32     rxblocksize;
+	u32     basemem;
+	u32     alignsize;
+	u32     mapped_smem_base;
+};
+
+/* 1 for sblock_create or sbuf_create */
+#define WCN_CHN_CREATE 0x1
+/* for chn rx */
+#define WCN_CHN_CALLBACK 0x2
+/* for alloc channel index dynamicly */
+#define WCN_CHN_DYNAMIC 0x4
+#define WCN_CHN_REGISTER_HANDLE 0x4
+
+struct wcn_sipc_chn_info {
+	u8 dst;
+	u8 channel;
+	int index;
+	enum wcn_sipc_trans_type type;
+	/* 1 for sbuf or swcnblk created already */
+	unsigned int flag;
+	unsigned char name[24];
+	union {
+		struct wcn_sipc_chn_sbuf sbuf;
+		struct wcn_sipc_chn_sblk sblk;
+	};
+};
+
+union wcn_chn_config {
 	int channel;
+	struct wcn_sipc_chn_info sipc_ch;
+};
+
+#define WCN_SIPC_DST	3
+#define SIPC_TYPE_SBUF	0
+#define SIPC_TYPE_SBLOCK	1
+
+/* if flag is 1, txblocknum, txblocknum, rxblocknum, rxblocksize is not used */
+#define WCN_INIT_SIPC_SBUF(_dst, _channel, _flag, _name, \
+			   _bufid, _len, _num, _txblocksize, _rxblocksize) \
+{ \
+	.dst = _dst, .channel = _channel, .type = SIPC_TYPE_SBUF, \
+	.flag = _flag, .name = _name, .sbuf.bufid = _bufid, \
+	.sbuf.len = _len, .sbuf.bufnum = _num, \
+	.sbuf.txbufsize = _txblocksize, .sbuf.rxbufsize = _rxblocksize \
+}
+
+#define WCN_INIT_MINI_SIPC_SBUF(_dst, _channel, _flag, _name, _bufid, _len) \
+{ \
+	.dst = _dst, .channel = _channel, .type = SIPC_TYPE_SBUF, \
+	.flag = _flag, .name = _name, .sbuf.bufid = _bufid, \
+	.sbuf.len = _len, \
+}
+
+#define WCN_INIT_SIPC_SBLOCK(_dst, _channel, _flag, _name, _txblocknum, \
+			     _txblocksize, _rxblocknum, _rxblocksize, \
+			     _basemem, _alignsize, _mapped_smem_base) \
+{ \
+	.dst = _dst, .channel = _channel, .type = SIPC_TYPE_SBLOCK, \
+	.flag = _flag, .name = _name, .sblk.txblocknum = _txblocknum, \
+	.sblk.txblocksize = _txblocksize, .sblk.rxblocknum = _rxblocknum, \
+	.sblk.rxblocksize = _rxblocksize, .sblk.basemem = _basemem, \
+	.sblk.alignsize = _alignsize, \
+	.sblk.mapped_smem_base = _mapped_smem_base \
+}
+
+#define WCN_INIT_MINI_SIPC_SBLOCK(_dst, _channel, _flag, _name) \
+{ \
+	.dst = _dst, .channel = _channel, \
+	.type = SIPC_TYPE_SBLOCK, \
+	.flag = _flag, .name = _name, \
+}
+#endif
+
+struct mchn_ops_t {
 	/* hardware interface type */
-	int hif_type;
+	enum wcn_hard_intf_type hif_type;
+	/* channel index for wf/bt/fm */
+	int channel;
+	/* channel config paras */
+#ifdef CONFIG_WCN_SIPC
+	union wcn_chn_config chn_config;
+#endif
 	/* inout=1 tx side, inout=0 rx side */
 	int inout;
 	/* set callback pop_link/push_link frequency */
@@ -103,6 +219,7 @@ struct sprdwcn_bus_ops {
 	int (*chn_init)(struct mchn_ops_t *ops);
 	int (*chn_deinit)(struct mchn_ops_t *ops);
 
+	enum wcn_hard_intf_type (*get_hwintf_type)(void);
 	int (*get_bus_status)(void);
 
 	/*
@@ -170,9 +287,12 @@ struct sprdwcn_bus_ops {
 
 };
 
+extern struct atomic_notifier_head wcn_reset_notifier_list;
+
 extern void module_bus_init(void);
 extern void module_bus_deinit(void);
 extern struct sprdwcn_bus_ops *get_wcn_bus_ops(void);
+extern void wcn_assert_interface(enum wcn_source_type, char *str);
 
 static inline
 int sprdwcn_bus_preinit(void)
@@ -529,4 +649,14 @@ void wcn_bus_deinit(void)
 	module_bus_deinit();
 }
 
+static inline
+enum wcn_hard_intf_type sprdwcn_bus_get_hwintf_type(void)
+{
+	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
+
+	if (!bus_ops || !bus_ops->get_hwintf_type)
+		return HW_TYPE_INVALIED;
+
+	return bus_ops->get_hwintf_type();
+}
 #endif

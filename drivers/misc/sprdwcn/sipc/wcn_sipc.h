@@ -21,6 +21,7 @@
 #include <linux/swcnblk.h>
 #include <linux/types.h>
 #include <linux/wait.h>
+#include <linux/swcnblk.h>
 
 #include "bus_common.h"
 #include "mdbg_type.h"
@@ -57,31 +58,5 @@ struct wcn_sipc_data_ops {
 struct wcn_sipc_info_t {
 	u32 sipc_chn_status;
 	struct mutex status_lock;
-};
-
-struct sbuf_info {
-	u8	bufid;
-	u32	len;
-	u32	bufnum;
-	u32	txbufsize;
-	u32	rxbufsize;
-};
-
-struct sblock_info {
-	u32	txblocknum;
-	u32	txblocksize;
-	u32	rxblocknum;
-	u32	rxblocksize;
-};
-
-struct sipc_chn_info {
-	u8 index;
-	u8 chntype;	/* sbuf/sblock */
-	u8 chn;
-	u8 dst;
-	union {
-		struct sbuf_info sbuf;
-		struct sblock_info sblk;
-	};
 };
 #endif

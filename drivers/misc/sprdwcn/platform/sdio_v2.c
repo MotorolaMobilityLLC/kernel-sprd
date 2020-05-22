@@ -346,6 +346,11 @@ static void sdio_driver_unregister(void)
 	sdiom_driver_unregister();
 }
 
+static enum wcn_hard_intf_type sdio_get_hwintf_type(void)
+{
+	return HW_TYPE_SDIO;
+}
+
 static struct sprdwcn_bus_ops sdiom_bus_ops = {
 	.preinit = sdio_preinit,
 	.deinit = sdio_preexit,
@@ -361,6 +366,7 @@ static struct sprdwcn_bus_ops sdiom_bus_ops = {
 	.readbyte = sdio_readbyte,
 	.writebyte = sdio_writebyte,
 
+	.get_hwintf_type = sdio_get_hwintf_type,
 	.get_carddump_status = sdio_get_carddump_status,
 	.set_carddump_status = sdio_set_carddump_status,
 	.get_rx_total_cnt = sdio_get_rx_total_cnt,
