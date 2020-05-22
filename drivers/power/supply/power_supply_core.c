@@ -566,7 +566,7 @@ EXPORT_SYMBOL_GPL(devm_power_supply_get_by_phandle);
 #endif /* CONFIG_OF */
 
 int power_supply_get_battery_info(struct power_supply *psy,
-				  struct power_supply_battery_info *info)
+				  struct power_supply_battery_info *info, int num)
 {
 	struct power_supply_vol_temp_table *temp_table;
 	struct power_supply_capacity_temp_table *cap_table;
@@ -611,7 +611,7 @@ int power_supply_get_battery_info(struct power_supply *psy,
 		return -ENXIO;
 	}
 
-	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", 0);
+	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", num);
 	if (!battery_np)
 		return -ENODEV;
 

@@ -365,7 +365,7 @@ static int sc2731_charger_hw_init(struct sc2731_charger_info *info)
 	if (ret)
 		return ret;
 
-	ret = power_supply_get_battery_info(info->psy_usb, &bat_info);
+	ret = power_supply_get_battery_info(info->psy_usb, &bat_info, 0);
 	if (ret) {
 		dev_warn(info->dev, "no battery information is supplied\n");
 

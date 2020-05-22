@@ -3117,7 +3117,7 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	struct power_supply_battery_ocv_table *table;
 	int ret;
 
-	ret = power_supply_get_battery_info(cm->charger_psy, &info);
+	ret = power_supply_get_battery_info(cm->charger_psy, &info, 0);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery information\n");
 		return ret;

@@ -75,6 +75,7 @@
 #define SC27XX_FGU_BOOT_CAPACITY_THRESHOLD	10
 #define SC27XX_FGU_DENSE_CAPACITY_HIGH	3850000
 #define SC27XX_FGU_DENSE_CAPACITY_LOW	3750000
+#define SC27XX_FGU_BAT_NTC_THRESHOLD	50
 
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))));
@@ -110,6 +111,7 @@ struct sc27xx_fgu_data {
 	u32 base;
 	struct mutex lock;
 	struct gpio_desc *gpiod;
+	struct gpio_desc *bat_gpiod;
 	struct iio_channel *channel;
 	struct iio_channel *charge_cha;
 	bool bat_present;
@@ -131,6 +133,8 @@ struct sc27xx_fgu_data {
 	int comp_resistance;
 	int index;
 	int boot_vol;
+	bool bat_para_adapt_support;
+	unsigned int bat_para_adapt_mode;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
 	int bat_temp;
 	struct power_supply_battery_ocv_table *cap_table;
@@ -1241,14 +1245,52 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 	return 0;
 }
 
+static int sc27xx_fgu_get_battery_parameter_by_adc(struct sc27xx_fgu_data *data)
+{
+	int ret, value;
+
+	ret = iio_read_channel_processed(data->channel, &value);
+	if (ret < 0)
+		return 0;
+
+	if (value < SC27XX_FGU_BAT_NTC_THRESHOLD)
+		ret = 1;
+	else
+		ret = 0;
+
+	return ret;
+}
+
+static int sc27xx_fgu_get_battery_parameter_by_gpio(struct sc27xx_fgu_data *data)
+{
+	int ret;
+
+	ret = gpiod_get_value_cansleep(data->bat_gpiod);
+
+	return ret;
+}
+
+static int (*sc27xx_fgu_bat_fun[4])(struct sc27xx_fgu_data *data) = {
+	sc27xx_fgu_get_battery_parameter_by_adc,
+	sc27xx_fgu_get_battery_parameter_by_gpio
+};
+
 static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 			      const struct sc27xx_fgu_variant_data *pdata)
 {
 	struct power_supply_battery_info info = { };
 	struct power_supply_battery_ocv_table *table;
-	int ret, delta_clbcnt, alarm_adc;
+	int ret, delta_clbcnt, alarm_adc, num;
+	struct device_node *np = data->dev->of_node;
 
-	ret = power_supply_get_battery_info(data->battery, &info);
+	if (data->bat_para_adapt_support) {
+		of_property_read_u32(np, "sprd-battery-parameter-adapt-mode", &data->bat_para_adapt_mode);
+		num = sc27xx_fgu_bat_fun[data->bat_para_adapt_mode](data);
+	} else {
+		num = 0;
+	}
+
+	ret = power_supply_get_battery_info(data->battery, &info, num);
 	if (ret) {
 		dev_err(data->dev, "failed to get battery information\n");
 		return ret;
@@ -1488,6 +1530,9 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 				       &data->comp_resistance);
 	if (ret)
 		dev_warn(&pdev->dev, "no fgu compensated resistance support\n");
+
+	data->bat_para_adapt_support =
+		device_property_read_bool(&pdev->dev, "sprd-battery-parameter-adapt-support");
 
 	data->channel = devm_iio_channel_get(&pdev->dev, "bat-temp");
 	if (IS_ERR(data->channel)) {
