@@ -1308,6 +1308,7 @@ CONFIG_WCN_SLP=y
 # CONFIG_WCN_PCIE is not set
 CONFIG_WCN_BOOT=y
 CONFIG_WCN_UTILS=y
+# CONFIG_WCN_RDCDBG is not set
 
 #
 # Spreadtrum Audio Assistant Modules

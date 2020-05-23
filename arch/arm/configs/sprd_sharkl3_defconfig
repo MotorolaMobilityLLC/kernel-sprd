@@ -1398,6 +1398,7 @@ CONFIG_WCN_SIPC=y
 # CONFIG_WCN_PCIE is not set
 # CONFIG_WCN_BOOT is not set
 # CONFIG_WCN_UTILS is not set
+# CONFIG_WCN_RDCDBG is not set
 CONFIG_WCN_PLATFORM=y
 
 #
