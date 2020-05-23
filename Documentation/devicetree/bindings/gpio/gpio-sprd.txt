@@ -7,7 +7,8 @@ interrupt is shared for all of the banks handled by the controller.
 Required properties:
 - compatible: Should be one of the following:
   "sprd,sc9860-gpio",
-  "sprd,qogirl6-gpio".
+  "sprd,qogirl6-gpio",
+  "sprd,sharkl5pro-gpio".
 - reg: Define the base and range of the I/O address space containing
 the GPIO controller registers.
 - gpio-controller: Marks the device node as a GPIO controller.
