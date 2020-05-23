@@ -109,6 +109,12 @@
 		gpios = <&ap_gpio 53 GPIO_ACTIVE_HIGH>;
 	};
 
+	akm-09918@0c{
+		compatible = "ak,akm099xx";
+		reg = <0x0c>;
+		gpios = <&ap_gpio 53 GPIO_ACTIVE_HIGH>;
+	};
+
 	ltr-558als@23{
 		compatible = "LITEON,ltr_558als";
 		reg = <0x23>;
