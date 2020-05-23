@@ -127,6 +127,7 @@ static const struct sprd_eic_variant_data soc_name##_eic_sync_data = {	\
 SPRD_EIC_VAR_DATA(sc9860, SPRD_EIC_PER_BANK_NR * 2);
 SPRD_EIC_VAR_DATA(sharkl3, SPRD_EIC_PER_BANK_NR * 2);
 SPRD_EIC_VAR_DATA(qogirl6, SPRD_EIC_PER_BANK_NR * 4);
+SPRD_EIC_VAR_DATA(sharkl5pro, SPRD_EIC_PER_BANK_NR * 4);
 
 static const char *sprd_eic_label_name[SPRD_EIC_MAX] = {
 	"eic-debounce", "eic-latch", "eic-async",
@@ -709,6 +710,22 @@ static const struct of_device_id sprd_eic_of_match[] = {
 	{
 		.compatible = "sprd,qogirl6-eic-sync",
 		.data = &qogirl6_eic_sync_data,
+	},
+	{
+		.compatible = "sprd,sharkl5pro-eic-debounce",
+		.data = &sharkl5pro_eic_dbnc_data,
+	},
+	{
+		.compatible = "sprd,sharkl5pro-eic-latch",
+		.data = &sharkl5pro_eic_latch_data,
+	},
+	{
+		.compatible = "sprd,sharkl5pro-eic-async",
+		.data = &sharkl5pro_eic_async_data,
+	},
+	{
+		.compatible = "sprd,sharkl5pro-eic-sync",
+		.data = &sharkl5pro_eic_sync_data,
 	},
 	{
 		/* end of list */
