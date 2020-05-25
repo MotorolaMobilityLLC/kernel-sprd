@@ -2238,6 +2238,18 @@
 			"bootprotect", "bootvector", "bootaddress_sel";
 	};
 
+	apipe-pcm {
+		compatible = "sprd,apipe";
+	};
+
+	apipe-cmd-in {
+		compatible = "sprd,apipe";
+	};
+
+	apipe-cmd-out {
+		compatible = "sprd,apipe";
+	};
+
 	ext_26m: ext-26m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
