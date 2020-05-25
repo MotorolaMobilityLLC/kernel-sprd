@@ -1214,4 +1214,16 @@
 		sprd,iram_deepbuf = <0x00003400 0xa000>;
 		sprd,iram_4arm7 = <0x0000d400 0x1000>;
 	};
+
+	apipe-pcm {
+		compatible = "sprd,apipe";
+	};
+
+	apipe-cmd-in {
+		compatible = "sprd,apipe";
+	};
+
+	apipe-cmd-out {
+		compatible = "sprd,apipe";
+	};
 };
