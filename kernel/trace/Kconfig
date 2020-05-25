@@ -209,6 +209,15 @@ config IRQSOFF_TRACER
 	  enabled. This option and the preempt-off timing option can be
 	  used together or separately.)
 
+config IRQSOFF_TRACER_BYTEDANCY
+	bool "Interrupts-off Latency Tracer By Bytedancy"
+	default n
+	help
+	  This option measures the time spent in irqs-off critical
+	  sections with less overhead than IRQSOFF_TRACER configuration
+	  by ByteDancy, all info. can get from github:
+	  https://github.com/bytedance/trace-irqoff
+
 config PREEMPT_TRACER
 	bool "Preemption-off Latency Tracer"
 	default n
