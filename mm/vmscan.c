@@ -63,6 +63,8 @@
 #include <trace/events/vmscan.h>
 
 #include <linux/protect_lru.h>
+#define CREATE_TRACE_POINTS
+#include <trace/events/plru.h>
 
 struct scan_control {
 	/* How many pages shrink_list() should reclaim */
@@ -1364,6 +1366,12 @@ free_it:
 			(*get_compound_page_dtor(page))(page);
 		} else
 			list_add(&page->lru, &free_pages);
+
+#ifdef CONFIG_PROTECT_LRU
+		if (PageProtect(page))
+			trace_plru_page_free(_RET_IP_, page, 1,
+					     get_page_protect_num(page));
+#endif
 		/*
 		 * If pagelist are from multiple zones, we should decrease
 		 * NR_ISOLATED_ANON + x on freed pages in here.
@@ -1383,8 +1391,11 @@ activate_locked:
 			SetPageActive(page);
 			pgactivate++;
 #ifdef CONFIG_PROTECT_LRU
-			if (PageProtect(page))
+			if (PageProtect(page)) {
 				ppgactivate++;
+				trace_plru_page_activate(_RET_IP_, page,
+						get_page_protect_num(page));
+			}
 #endif
 			count_memcg_page_event(page, PGACTIVATE);
 		}
@@ -1892,6 +1903,11 @@ putback_inactive_pages(struct lruvec *lruvec, struct list_head *page_list)
 		}
 		if (put_page_testzero(page)) {
 			del_page_from_protect_lru_list(page, lruvec);
+			if (PageProtect(page))
+				trace_plru_page_free(_RET_IP_, page,
+					hpage_nr_pages(page),
+					get_page_protect_num(page));
+
 			__ClearPageLRU(page);
 			__ClearPageActive(page);
 			del_page_from_lru_list(page, lruvec, lru);
@@ -2135,6 +2151,9 @@ static unsigned move_active_pages_to_lru(struct lruvec *lruvec,
 
 		if (put_page_testzero(page)) {
 			del_page_from_protect_lru_list(page, lruvec);
+			if (PageProtect(page))
+				trace_plru_page_free(_RET_IP_, page, nr_pages,
+						get_page_protect_num(page));
 			__ClearPageLRU(page);
 			__ClearPageActive(page);
 			del_page_from_lru_list(page, lruvec, lru);
@@ -2149,8 +2168,11 @@ static unsigned move_active_pages_to_lru(struct lruvec *lruvec,
 		} else {
 			nr_moved += nr_pages;
 #ifdef CONFIG_PROTECT_LRU
-			if (PageProtect(page))
+			if (PageProtect(page)) {
+				trace_plru_page_deactivate(_RET_IP_, page,
+						get_page_protect_num(page));
 				nr_protect_moved += nr_pages;
+			}
 #endif
 		}
 	}

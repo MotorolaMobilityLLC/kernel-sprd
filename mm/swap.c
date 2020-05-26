@@ -37,10 +37,11 @@
 
 #include "internal.h"
 
+#include <linux/protect_lru.h>
+#include <trace/events/plru.h>
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/pagemap.h>
-
-#include <linux/protect_lru.h>
 
 /* How many pages do we try to swap or page in/out together? */
 int page_cluster;
@@ -297,8 +298,11 @@ static void __activate_page(struct page *page, struct lruvec *lruvec,
 
 		__count_vm_event(PGACTIVATE);
 #ifdef CONFIG_PROTECT_LRU
-		if (PageProtect(page))
+		if (PageProtect(page)) {
 			__count_vm_event(PPGACTIVATE);
+			trace_plru_page_activate(_RET_IP_, page,
+						 get_page_protect_num(page));
+		}
 #endif
 		update_page_reclaim_stat(lruvec, file, 1);
 	}

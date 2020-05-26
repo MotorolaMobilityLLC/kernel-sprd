@@ -30,6 +30,9 @@
 #include <linux/module.h>
 #include "internal.h"
 
+#include <trace/events/plru.h>
+
+
 static unsigned long zero;
 static unsigned long one = 1;
 static unsigned long one_hundred = 100;
@@ -180,6 +183,7 @@ void del_page_from_protect_lru_list(struct page *page, struct lruvec *lruvec)
 		lruvec->heads[num].cur_pages -= nr_pages;
 		__mod_node_page_state(lruvec_pgdat(lruvec),
 				      NR_PROTECT_LRU_BASE + lru, -nr_pages);
+		trace_plru_page_del(page, nr_pages, num + 1, lru);
 	}
 }
 
@@ -205,6 +209,7 @@ void add_page_to_protect_lru_list(struct page *page, struct lruvec *lruvec,
 		lruvec->heads[num].cur_pages += nr_pages;
 		__mod_node_page_state(lruvec_pgdat(lruvec),
 				      NR_PROTECT_LRU_BASE + lru, nr_pages);
+		trace_plru_page_add(page, nr_pages, num + 1, lru);
 	} else
 		head = &lruvec->heads[PROTECT_HEAD_END].protect_page[lru].lru;
 
@@ -274,6 +279,9 @@ void shrink_protect_lru(struct lruvec *lruvec, bool force)
 				break;
 
 			del_page_from_protect_lru_list(tail, lruvec);
+			trace_plru_page_unprotect(tail,
+						  get_page_protect_num(tail),
+						  lru);
 			ClearPageProtect(tail);
 			set_page_protect_num(tail, 0);
 			add_page_to_protect_lru_list(tail, lruvec, true);

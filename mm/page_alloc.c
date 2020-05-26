@@ -75,6 +75,8 @@
 #include <asm/div64.h>
 #include "internal.h"
 
+#include <trace/events/plru.h>
+
 /* prevent >1 _updater_ of zone percpu pageset ->high and ->batch fields */
 static DEFINE_MUTEX(pcp_batch_high_lock);
 #define MIN_PERCPU_PAGELIST_FRACTION	(8)
@@ -1335,6 +1337,12 @@ static void __free_pages_ok(struct page *page, unsigned int order)
 	unsigned long flags;
 	int migratetype;
 	unsigned long pfn = page_to_pfn(page);
+
+#ifdef CONFIG_PROTECT_LRU
+	if (PageProtect(page))
+		trace_plru_page_free(_RET_IP_, page, 1 << order,
+				     get_page_protect_num(page));
+#endif
 
 	if (!free_pages_prepare(page, order, true))
 		return;
