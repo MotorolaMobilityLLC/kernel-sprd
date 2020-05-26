@@ -6473,6 +6473,7 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 	struct cpuidle_state *idle;
 	struct sched_domain *sd;
 	struct perf_domain *pd;
+	unsigned long uclamp_util = uclamp_task_util(p);
 
 	rcu_read_lock();
 	pd = rcu_dereference(rd->pd);
@@ -6504,6 +6505,9 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 	boosted = uclamp_boosted(p);
 	target_cap = boosted ? 0 : ULONG_MAX;
 
+	trace_sched_task_comm_info(p, latency_sensitive,
+					boosted, uclamp_util);
+
 	for (; pd; pd = pd->next) {
 		unsigned long cur_delta, spare_cap, max_spare_cap = 0;
 		unsigned long base_energy_pd;
@@ -6530,6 +6534,7 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 			 * aligned with schedutil_cpu_util().
 			 */
 			util = uclamp_rq_util_with(cpu_rq(cpu), util, p);
+			trace_sched_cfs_rq_task_util(cpu, p, util, spare_cap, cpu_cap);
 			if (!fits_capacity(util, cpu_cap))
 				continue;
 
@@ -6582,7 +6587,11 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 				best_delta = cur_delta;
 				best_energy_cpu = max_spare_cap_cpu;
 			}
+			trace_sched_energy_diff(base_energy_pd, base_energy, prev_delta,
+						cur_delta, best_delta, prev_cpu,
+						best_energy_cpu);
 		}
+
 	}
 unlock:
 	rcu_read_unlock();
@@ -8496,6 +8505,14 @@ next_group:
 		sds->total_load += sgs->group_load;
 		sds->total_capacity += sgs->group_capacity;
 
+		trace_sched_load_balance_sg_stats(sg->cpumask[0], sgs->group_type,
+					sgs->idle_cpus, sgs->sum_nr_running,
+					sgs->group_load, sgs->group_capacity,
+					sgs->group_util, sgs->group_no_capacity,
+					sgs->load_per_task,
+					sgs->group_misfit_task_load,
+					sds->busiest ? sds->busiest->cpumask[0] : 0);
+
 		sg = sg->next;
 	} while (sg != env->sd->groups);
 
@@ -8862,6 +8879,14 @@ force_balance:
 	/* Looks like there is an imbalance. Compute it */
 	env->src_grp_type = busiest->group_type;
 	calculate_imbalance(env, &sds);
+
+	trace_sched_load_balance_stats(sds.busiest->cpumask[0], busiest->group_type,
+					busiest->avg_load, busiest->load_per_task,
+					sds.local->cpumask[0], local->group_type,
+					local->avg_load, local->load_per_task,
+					sds.avg_load, env->imbalance);
+
+
 	return env->imbalance ? sds.busiest : NULL;
 
 out_balanced:

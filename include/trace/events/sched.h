@@ -619,6 +619,190 @@ TRACE_EVENT(sched_wake_idle_without_ipi,
 	TP_printk("cpu=%d", __entry->cpu)
 );
 
+/*trace task schedule attriture info*/
+TRACE_EVENT(sched_task_comm_info,
+
+	TP_PROTO(struct task_struct *p, int latency_sensitive,
+		 int boosted, unsigned long uclamp_util),
+
+	TP_ARGS(p, latency_sensitive, boosted, uclamp_util),
+
+	TP_STRUCT__entry(
+		__array(char,   comm,   TASK_COMM_LEN)
+		__field(pid_t,  pid)
+		__field(int, latency_sensitive)
+		__field(int, boosted)
+		__field(unsigned long, uclamp_util)
+	),
+
+	TP_fast_assign(
+		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
+		__entry->pid			= p->pid;
+		__entry->latency_sensitive	= latency_sensitive;
+		__entry->boosted		= boosted;
+		__entry->uclamp_util		= uclamp_util;
+	),
+
+	TP_printk("comm=%s pid=%d latency_sensitive=%d boosted=%d uclamp_util=%lu",
+		__entry->comm, __entry->pid, __entry->latency_sensitive,
+		__entry->boosted, __entry->uclamp_util)
+);
+
+/*
+ * trace cfs rq info
+ */
+TRACE_EVENT(sched_cfs_rq_task_util,
+
+	TP_PROTO(int cpu, struct task_struct *p, unsigned long util,
+		 unsigned long spare_cap, unsigned long cpu_cap),
+
+	TP_ARGS(cpu, p, util, spare_cap, cpu_cap),
+
+	TP_STRUCT__entry(
+		__field(int,		cpu)
+		__field(unsigned int,	nr_running)
+		__field(unsigned long,	cfs_rq_util)
+		__array(char,   comm,   TASK_COMM_LEN)
+		__field(pid_t,	pid)
+		__field(unsigned long,	spare_cap)
+		__field(unsigned long,	cpu_cap)
+		__field(unsigned long,	capacity_orig)
+	),
+
+	TP_fast_assign(
+		__entry->cpu			= cpu;
+		__entry->nr_running		= cpu_rq(cpu)->nr_running;
+		__entry->cfs_rq_util		= util;
+		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
+		__entry->pid			= p->pid;
+		__entry->spare_cap		= spare_cap;
+		__entry->cpu_cap		= cpu_cap;
+		__entry->capacity_orig		= capacity_orig_of(cpu);
+	),
+
+	TP_printk("cpu=%d nr_running=%u cfs_rq_util=%lu comm=%s pid=%d spare_cap=%lu capacity_of=%lu capacity_orig=%lu",
+		__entry->cpu, __entry->nr_running, __entry->cfs_rq_util, __entry->comm, __entry->pid, __entry->spare_cap,
+		__entry->cpu_cap,  __entry->capacity_orig)
+);
+
+/*
+ * trace energy diff info
+ */
+TRACE_EVENT(sched_energy_diff,
+
+	TP_PROTO(unsigned long pd_energy, unsigned long base_energy, unsigned long prev_delta,
+		unsigned long curr_delta, unsigned long best_delta, int prev_cpu, int best_energy_cpu),
+
+	TP_ARGS(pd_energy, base_energy, prev_delta, curr_delta, best_delta, prev_cpu, best_energy_cpu),
+
+	TP_STRUCT__entry(
+		__field(unsigned long,	pd_energy)
+		__field(unsigned long,	base_energy)
+		__field(unsigned long,	prev_delta)
+		__field(unsigned long,	curr_delta)
+		__field(unsigned long,	best_delta)
+		__field(int,		prev_cpu)
+		__field(int,		best_energy_cpu)
+	),
+
+	TP_fast_assign(
+		__entry->pd_energy		= pd_energy;
+		__entry->base_energy		= base_energy;
+		__entry->prev_delta		= prev_delta;
+		__entry->curr_delta		= curr_delta;
+		__entry->best_delta		= best_delta;
+		__entry->prev_cpu		= prev_cpu;
+		__entry->best_energy_cpu	= best_energy_cpu;
+	),
+
+	TP_printk("pd_eng=%lu base_eng=%lu p_delta=%lu c_delta=%lu, b_delta=%lu prev_cpu=%d best_eng_cpu=%d",
+		  __entry->pd_energy, __entry->base_energy, __entry->prev_delta, __entry->curr_delta, __entry->best_delta,
+		__entry->prev_cpu, __entry->best_energy_cpu)
+);
+
+/*
+ * trace load balance info: trace sched group load balance stats info
+ */
+TRACE_EVENT(sched_load_balance_sg_stats,
+
+	TP_PROTO(unsigned long sg_cpus, int group_type, unsigned int idle_cpus, unsigned int sum_nr_running,
+		 unsigned long group_load, unsigned long group_capacity, unsigned long group_util, int group_no_capacity,
+		 unsigned long load_per_task, unsigned long misfit_load, unsigned long busiest),
+
+	TP_ARGS(sg_cpus, group_type, idle_cpus, sum_nr_running, group_load, group_capacity,
+	    group_util, group_no_capacity, load_per_task, misfit_load, busiest),
+
+	TP_STRUCT__entry(
+		__field(unsigned long,	group_mask)
+		__field(int,		group_type)
+		__field(unsigned int,	group_idle_cpus)
+		__field(unsigned int,	sum_nr_running)
+		__field(unsigned long,	group_load)
+		__field(unsigned long,	group_capacity)
+		__field(unsigned long,	group_util)
+		__field(int,		group_no_capacity)
+		__field(unsigned long,	load_per_task)
+		__field(unsigned long,	misfit_task_load)
+		__field(unsigned long,	busiest)
+	),
+
+	TP_fast_assign(
+		__entry->group_mask		= sg_cpus;
+		__entry->group_type		= group_type;
+		__entry->group_idle_cpus	= idle_cpus;
+		__entry->sum_nr_running		= sum_nr_running;
+		__entry->group_load		= group_load;
+		__entry->group_capacity		= group_capacity;
+		__entry->group_util		= group_util;
+		__entry->group_no_capacity	= group_no_capacity;
+		__entry->load_per_task		= load_per_task;
+		__entry->misfit_task_load	= misfit_load;
+		__entry->busiest		= busiest;
+	),
+
+	TP_printk("sched_group=%#lx type=%d idle_cpus=%u sum_nr_run=%u group_load=%lu capacity=%lu util=%lu no_capacity=%d lpt=%lu misfit_tload=%lu busiest_group=%#lx",
+		  __entry->group_mask, __entry->group_type, __entry->group_idle_cpus, __entry->sum_nr_running, __entry->group_load, __entry->group_capacity, __entry->group_util,
+		  __entry->group_no_capacity, __entry->load_per_task, __entry->misfit_task_load, __entry->busiest)
+);
+
+TRACE_EVENT(sched_load_balance_stats,
+
+	TP_PROTO(unsigned long busiest, int bgroup_type, unsigned long bavg_load, unsigned long bload_per_task, unsigned long local,
+		 int lgroup_type, unsigned long lavg_load, unsigned long lload_per_task, unsigned long sds_avg_load, unsigned long imbalance),
+
+	TP_ARGS(busiest, bgroup_type, bavg_load, bload_per_task, local, lgroup_type, lavg_load, lload_per_task, sds_avg_load, imbalance),
+
+	TP_STRUCT__entry(
+		__field(unsigned long,	busiest)
+		__field(int,		bgp_type)
+		__field(unsigned long,	bavg_load)
+		__field(unsigned long,	blpt)
+		__field(unsigned long,	local)
+		__field(int,		lgp_type)
+		__field(unsigned long,	lavg_load)
+		__field(unsigned long,	llpt)
+		__field(unsigned long,	sds_avg)
+		__field(unsigned long,	imbalance)
+	),
+
+	TP_fast_assign(
+		__entry->busiest		= busiest;
+		__entry->bgp_type		= bgroup_type;
+		__entry->bavg_load		= bavg_load;
+		__entry->blpt			= bload_per_task;
+		__entry->bgp_type		= bgroup_type;
+		__entry->local			= local;
+		__entry->lgp_type		= lgroup_type;
+		__entry->lavg_load		= lavg_load;
+		__entry->llpt			= lload_per_task;
+		__entry->sds_avg		= sds_avg_load;
+		__entry->imbalance		= imbalance;
+	),
+
+	TP_printk("busiest_group=%#lx busiest_type=%d busiest_avg_load=%ld busiest_lpt=%ld local_group=%#lx local_type=%d local_avg_load=%ld local_lpt=%ld domain_avg_load=%ld imbalance=%ld",
+		  __entry->busiest, __entry->bgp_type, __entry->bavg_load, __entry->blpt, __entry->local, __entry->lgp_type, __entry->lavg_load, __entry->llpt, __entry->sds_avg, __entry->imbalance)
+);
+
 /*
  * Following tracepoints are not exported in tracefs and provide hooking
  * mechanisms only for testing and debugging purposes.
