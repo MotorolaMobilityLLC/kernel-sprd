@@ -22,6 +22,7 @@
 
 #define I2C_CTL			0x000
 #define I2C_STATUS		0x014
+#define I2C_HSMODE_CFG		0X018
 #define ADDR_DVD0		0x020
 #define ADDR_DVD1		0x024
 #define ADDR_STA0_DVD		0x028
@@ -55,6 +56,11 @@
 #define I2C_RX_ACK		BIT(1)
 #define I2C_BUSY		BIT(0)
 
+/*I2C_HSMODE_CFG*/
+#define HS_MODE			GENMASK(7, 0)
+#define HS_DIVIDOR0		GENMASK(15, 8)
+#define TIMIMG_MAST_H_HS	GENMASK(23, 16)
+
 /* ADDR_RST */
 #define I2C_RST			BIT(0)
 
@@ -68,6 +74,7 @@
 /* ARM_CMD_WR */
 #define REG_ADDR_OFFSET		2
 #define SLAVE_ADDR_OFFSET	10
+#define REG_ADDR		GENMASK(9, 2)
 #define ARM_RD_CMD_BUSY		BIT(31)
 
 /* ARM_DEBUG1 */
@@ -112,6 +119,9 @@
 /* For 3.4MHz clock adjustment */
 #define I2C_CLK_3M4_HIGH_ADJUST	1
 #define I2C_CLK_3M4_LOW_ADJUST	1
+
+/*I2C_HSMODE_CFG default value*/
+#define I2C_HSMODE_CFG_DFT	0x000F0209
 
 /* i2c data structure */
 struct sprd_i2c_hw {
@@ -164,6 +174,13 @@ static void sprd_i2c_hw_dump_reg(struct sprd_i2c_hw *i2c_dev)
 static void sprd_i2c_hw_reset_fifo(struct sprd_i2c_hw *i2c_dev)
 {
 	writel(I2C_RST, i2c_dev->base + ADDR_RST);
+}
+
+static void sprd_i2c_hw_enable_hs_mode(struct sprd_i2c_hw *i2c_dev)
+{
+	u32 tmp = readl(i2c_dev->base + I2C_CTL);
+
+	writel(tmp | I2C_HS_MODE, i2c_dev->base + I2C_CTL);
 }
 
 static int sprd_i2c_hw_writebyte(struct sprd_i2c_hw *i2c_dev, u8 *buf, u32 len)
@@ -409,6 +426,10 @@ static void sprd_i2c_hw_enable(struct sprd_i2c_hw *i2c_dev)
 	tmp = readl(i2c_dev->base + I2C_CTL);
 	writel(tmp | I2C_EN | I2C_INT_EN, i2c_dev->base + I2C_CTL);
 	writel(HW_CTL_VALUE, i2c_dev->base + HW_CTL);
+	if (i2c_dev->bus_freq == I2C_CLK_3M4) {
+		writel(I2C_HSMODE_CFG_DFT, i2c_dev->base + I2C_HSMODE_CFG);
+		sprd_i2c_hw_enable_hs_mode(i2c_dev);
+	}
 }
 
 static int sprd_i2c_hw_clk_init(struct sprd_i2c_hw *i2c_dev)
