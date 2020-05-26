@@ -2028,12 +2028,6 @@ charger_set_property(struct power_supply *psy,
 		cm->desc->thm_adjust_cur = val->intval;
 		thermal_val.intval = val->intval;
 
-		if (cm->desc->jeita_tab_size) {
-			cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
-			if (val->intval > cm->desc->jeita_tab[cur_jeita_status].current_ua)
-				thermal_val.intval = cm->desc->jeita_tab[cur_jeita_status].current_ua;
-		}
-
 		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 			psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
 			if (!psy) {
@@ -2048,6 +2042,12 @@ charger_set_property(struct power_supply *psy,
 			if (!ret) {
 				power_supply_put(psy);
 				break;
+			}
+
+			if (cm->desc->jeita_tab_size) {
+				cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
+				if (val->intval > cm->desc->jeita_tab[cur_jeita_status].current_ua)
+					thermal_val.intval = cm->desc->jeita_tab[cur_jeita_status].current_ua;
 			}
 
 			ret = power_supply_set_property(psy,
