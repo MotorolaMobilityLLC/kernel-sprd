@@ -2515,51 +2515,6 @@
 		clock-output-names = "ext-26m";
 	};
 
-	clk_13m: clk-13m {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <2>;
-		clocks = <&ext_26m>;
-		clock-output-names = "clk-13m";
-	};
-
-	clk_6m5: clk-6m5 {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <4>;
-		clocks = <&ext_26m>;
-		clock-output-names = "clk-6m5";
-	};
-
-	clk_4m3: clk-4m3 {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <6>;
-		clocks = <&ext_26m>;
-		clock-output-names = "clk-4m3";
-	};
-
-	clk_1m: clk-1m {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <26>;
-		clocks = <&ext_26m>;
-		clock-output-names = "clk-1m";
-	};
-
-	clk_250k: clk-250k {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <104>;
-		clocks = <&ext_26m>;
-		clock-output-names = "clk-250k";
-	};
-
 	ext_32k: ext_32k {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;
@@ -2579,33 +2534,6 @@
 		#clock-cells = <0>;
 		clock-frequency = <100000000>;
 		clock-output-names = "rco-100m";
-	};
-
-	rco_25m: rco-25m {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <4>;
-		clocks = <&rco_100m>;
-		clock-output-names = "rco-25m";
-	};
-
-	rco_4m: rco-4m {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <25>;
-		clocks = <&rco_100m>;
-		clock-output-names = "rco-4m";
-	};
-
-	rco_2m: rco-2m {
-		compatible = "fixed-factor-clock";
-		#clock-cells = <0>;
-		clock-mult = <1>;
-		clock-div = <50>;
-		clocks = <&rco_100m>;
-		clock-output-names = "rco-2m";
 	};
 
 	cache_efuse: efuse@15c00 {
