@@ -422,151 +422,21 @@
 			#clock-cells = <1>;
 		};
 	};
+
 	power: power-debug {
-		compatible = "sprd,power-debug";
+		compatible = "sprd,power-debug-sharkle";
 		#address-cells = <1>;
 		#size-cells = <0>;
 
+		sprd,enable = <1>;
+		sprd,scan-interval = <30>;
+
 		sprd,sys-ap-ahb = <&ap_ahb_regs>;
-
-		/* <reg-addr mask expect-value> */
-		sprd,ap-ahb-reg-tbl =
-			<REG_AP_AHB_AHB_EB
-			( MASK_AP_AHB_EMMC_EB
-			| MASK_AP_AHB_NANDC_EB
-			| MASK_AP_AHB_SDIO1_EB
-			| MASK_AP_AHB_SDIO0_EB
-			| MASK_AP_AHB_CE_PUB_EB
-			| MASK_AP_AHB_DMA_PUB_EB
-			| MASK_AP_AHB_OTG_EB
-			| MASK_AP_AHB_GSP_EB
-			| MASK_AP_AHB_VSP_EB
-			| MASK_AP_AHB_DISPC_EB
-			| MASK_AP_AHB_DSI_EB )
-			0x00000000>,
-			<REG_AP_AHB_CE_SEC_EB MASK_AP_AHB_CE_SEC_EB 0x00000000>;
-
 		sprd,sys-ap-apb = <&ap_apb_regs>;
-
-		sprd,ap-apb-reg-tbl =
-			<REG_AP_APB_APB_EB
-			( MASK_AP_APB_INTC3_EB
-			| MASK_AP_APB_INTC2_EB
-			| MASK_AP_APB_INTC1_EB
-			| MASK_AP_APB_INTC0_EB
-			| MASK_AP_APB_UART1_EB
-			| MASK_AP_APB_I2C4_EB
-			| MASK_AP_APB_I2C3_EB
-			| MASK_AP_APB_I2C2_EB
-			| MASK_AP_APB_I2C1_EB
-			| MASK_AP_APB_I2C0_EB
-			| MASK_AP_APB_SPI2_EB
-			| MASK_AP_APB_SPI0_EB
-			| MASK_AP_APB_IIS0_EB
-			| MASK_AP_APB_SIM0_EB )
-			0x00000000>;
-
 		sprd,sys-pmu-apb = <&pmu_apb_regs>;
-
-		sprd,pmu-apb-reg-tbl =
-			<REG_PMU_APB_SLEEP_CTRL
-			( MASK_PMU_APB_SP_SYS_DEEP_SLEEP
-			| MASK_PMU_APB_WCN_SYS_DEEP_SLEEP
-			| MASK_PMU_APB_PUBCP_DEEP_SLEEP
-			| MASK_PMU_APB_WTLCP_DEEP_SLEEP )
-			0x00000000>;
-
 		sprd,sys-aon-apb = <&aon_apb_regs>;
-
-		sprd,aon-apb-reg-tbl =
-			<REG_AON_APB_APB_EB0
-			( MASK_AON_APB_GPU_EB
-			| MASK_AON_APB_MM_EB )
-			0x00000000>;
-
 		sprd,sys-ap-intc = <&intc0_regs &intc1_regs
 				&intc2_regs &intc3_regs>;
-
-		sprd,ap-intc = <&sprd_ap_intc0 &sprd_ap_intc1
-				&sprd_ap_intc2 &sprd_ap_intc3>;
-
-		sprd,pdm-name = <&sprd_pwr_status0 &sprd_pwr_status1
-				&sprd_pwr_status2>;
-
-		sprd_pwr_status0: pwr-status@BC {
-			reg = <REG_PMU_APB_PWR_STATUS0_DBG>;
-			sprd,bit-width = <5>;
-			sprd,bit-index = <0 5 10 15 20 25>;
-			sprd,pdm-names = "PD_CA53_TOP", "PD_CA53_C0",
-				"PD_CA53_C1", "PD_CA53_C2", "PD_CA53_C3",
-				"PD_AP_SYS";
-		};
-
-		sprd_pwr_status1: pwr-status@C0 {
-			reg = <REG_PMU_APB_PWR_STATUS1_DBG>;
-			sprd,bit-width = <5>;
-			sprd,bit-index = <0 5 10 15 20 25>;
-			sprd,pdm-names = "PD_WTLCP_HU3GE_A", "PD_WTLCP_TGDSP",
-				"PD_WTLCP_LDSP", "PD_WFI_WRAP", "PD_WTLCP_LTE_P2",
-				"PD_WTLCP_LTE_P1";
-		};
-
-		sprd_pwr_status2: pwr-status@C4 {
-			reg = <REG_PMU_APB_PWR_STATUS2_DBG>;
-			sprd,bit-width = <5>;
-			sprd,bit-index = <0 5 10 15 20 25>;
-			sprd,pdm-names = "PD_WTLCP_SYS", "PD_PUBCP_SYS",
-				"PD_WTLCP_LTE_P3", "PD_WTLCP_LTE_P4", "PD_PUB_SYS",
-				"PD_GNSS_WRAP";
-		};
-
-		sprd_ap_intc0: ap-intc@0 {
-			reg = <0x0000>;
-			sprd,int-names = "null", "null", "DFS_EXIT", "AP_UART1",
-				"SLV_AON", "DFS_ERR", "DFS_COMPLETE", "AP_SPI0",
-				"AP_SPI1", "AP_SPI2", "AP_SIM0", "AP_I2C0",
-				"AP_I2C1", "AP_I2C2", "AP_I2C3", "AP_I2C4",
-				"AP_IIS0", "SLV_AP", "MEM_FW_PUB", "MEM_FW_AON",
-				"AUD", "VBC_ERR", "VBC_DA01", "VBC_AD01",
-				"AP_MDAR", "ADI", "THM0", "ARM_INT",
-				"AON_TMR", "AP_TMR0", "AON_SYST", "AP_SYST";
-		};
-
-		sprd_ap_intc1: ap-intc@1 {
-			reg = <0x0000>;
-			sprd,int-names = "null", "null", "BUSMON_AON", "GPIO",
-				"KPD", "AON_EIC", "ANA", "GPU",
-				"CSI0", "CSI1", "JPG", "VSP",
-				"ISP_CH0", "DCAM0", "DISPC", "DSI_PLL",
-				"DSI_0", "DSI_1", "AP_REQ_DMA", "GSP",
-				"SEC_REQ_DMA", "CE_SEC", "CE_PUB", "OTG",
-				"AON_SEC_RTC", "SDIO0", "SDIO1", "NANDC",
-				"EMMC", "DMC_MPU_VIO", "SEC_EIC", "SEC_GPIO";
-		};
-
-		sprd_ap_intc2: ap-intc@2 {
-			reg = <0x0000>;
-			sprd,int-names = "null", "null", "DCAM1", "DJATG",
-				"MBOX_SRC_AP", "MBOX_TAR_AP", "AON_DMA_AP", "CSI2_R2_S",
-				"CSI2_R1_S", "AON_SEC_TMR2", "AON_SEC_TMR1", "AON_SEC_TMR0",
-				"CP2_WDG", "THM1", "START_CHN0", "START_CHN1",
-				"START_CHN2", "START_CHN3", "SEC_AON_REQ_DMA", "CP0_WDG",
-				"CP1_WDG", "AON_SEC_WDG", "PUB_BUSMON", "null",
-				"PWRUP_AP", "PWRUP_PUB", "PWRUP_ALL", "PWRDW_ALL",
-				"NPMUIRQ0", "NPMUIRQ1", "NPMUIRQ2", "NPMUIRQ3";
-		};
-
-		sprd_ap_intc3: ap-intc@3 {
-			reg = <0x0000>;
-			sprd,int-names = "null", "null", "NCTIIRQ0", "NCTIIRQ1",
-				"NCTIIRQ2", "NCTIIRQ3", "NCNTVIRQ0", "NCNTVIRQ1",
-				"NCNTVIRQ2", "NCNTVIRQ3", "NCNTHPIRQ0", "NCNTHPIRQ1",
-				"NCNTHPIRQ2", "NCNTHPIRQ3", "NCNTPNSIRQ0", "NCNTPNSIRQ1",
-				"NCNTPNSIRQ2", "NCNTPNSIRQ3", "NCNTPSIRQ0", "NCNTPSIRQ1",
-				"NCNTPSIRQ2", "NCNTPSIRQ3", "AP_TMR1", "AP_TMR2",
-				"AP_TMR3", "AP_TMR4", "AVS", "AP_WDG",
-				"CA53_WDG", "ISP_CH1", "nEXTRRIRQ", "DFI_BUSMON_PUB";
-		};
 	};
 };
 
