@@ -1090,6 +1090,24 @@ CONFIG_ARM_SPRD_HW_CPUFREQ
 	[must] user
 	[missing plat description] The plat don't have hardware dvfs ip.
 	[function] Enable apcpu hardware dvfs function.
+CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS312
+	[arch] arm64
+	[plat] sharkl5
+	[missing plat] roc1,sharkl3,sharkl5Pro
+	[field] make
+	[subsys] cpufreq
+	[must] user
+	[missing plat description] The plat don't have hardware dvfs ip.
+	[function] Enable HW DVFS in sharkl5 64-bit boards
+CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS512
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] roc1,sharkl3,sharkl5
+	[field] make
+	[subsys] cpufreq
+	[must] user
+	[missing plat description] The plat don't have hardware dvfs ip.
+	[function] Enable HW DVFS in sharkl5pro 64-bit boards
 CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL
 	[arch] all
 	[plat] roc1,sharkl5,sharkl5Pro,sharkl5_32

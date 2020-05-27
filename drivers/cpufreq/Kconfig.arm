@@ -354,3 +354,21 @@ config ARM_SPRD_HW_CPUFREQ_NORMAL
 	 whose apcpu hardware DVFS IP is similar to sharkl5.
 
 	 If in doubt, say N.
+
+config ARM_SPRD_HW_CPUFREQ_ARCH_UMS512
+	bool "SPRD UMS512 HW DVFS Driver"
+	depends on ARM_SPRD_HW_CPUFREQ_NORMAL
+	default n
+	help
+	 This includes SPRD UMS512 HW DVFS Architecture-dependent Driver
+
+	 If in doubt, say N.
+
+config ARM_SPRD_HW_CPUFREQ_ARCH_UMS312
+	bool "SPRD UMS312 HW DVFS Driver"
+	depends on ARM_SPRD_HW_CPUFREQ_NORMAL
+	default n
+	help
+	 This includes SPRD UMS312 HW DVFS Architecture-dependent Driver
+
+	 If in doubt, say N.
