@@ -104,6 +104,23 @@
 			reg = <0 0x20400000 0 0x4000>;
 		};
 
+		ap-ahb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			ap_dma: dma-controller@20410000 {
+				compatible = "sprd,qogirl6-dma";
+				reg = <0 0x20410000 0 0x4000>;
+				interrupts = <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>;
+				#dma-cells = <1>;
+				#dma-channels = <28>;
+				clock-names = "enable";
+				clocks = <&apahb_gate CLK_DMA_PUB_EB>;
+			};
+		};
+
 		gpu_apb_regs: syscon@23000000 {
 			compatible = "sprd,ums9230-glbregs", "syscon";
 			reg = <0 0x23000000 0 0x3000>;
