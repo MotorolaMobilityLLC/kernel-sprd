@@ -1,0 +1,53 @@
+#
+# SPRD Soc power debug drivers
+#
+menuconfig SPRD_POWER_DEBUG
+	tristate "Spreadtrum power debug driver"
+	depends on PM_SLEEP && ARCH_SPRD
+	default y
+	help
+	Select this to enable power debug log driver for sprd soc. This driver
+	is only used to output the power state, wakeup interrupt and some specific
+	register values before the system enter deep sleep mode. and output the
+	power state and wakeup source information in sprd_pm_thread every 30s.
+	These logs will help to analysis system power issue.
+
+if SPRD_POWER_DEBUG
+
+config SPRD_SHARKLE_POWER_DEBUG
+	tristate "Spreadtrum sharkle power debug"
+	depends on SPRD_POWER_DEBUG
+
+config SPRD_PIKE2_POWER_DEBUG
+	tristate "Spreadtrum pike2 power debug"
+	depends on SPRD_POWER_DEBUG
+
+config SPRD_SHARKL3_POWER_DEBUG
+	tristate "Spreadtrum sharkl3 power debug"
+	depends on SPRD_POWER_DEBUG
+
+config SPRD_SHARKL5_POWER_DEBUG
+	tristate "Spreadtrum sharkl5 power debug"
+	depends on SPRD_POWER_DEBUG
+
+config SPRD_SHARKL5PRO_POWER_DEBUG
+	tristate "Spreadtrum sharkl5pro power debug"
+	depends on SPRD_POWER_DEBUG
+
+config SPRD_ROC1_POWER_DEBUG
+	tristate "Spreadtrum roc1 power debug"
+	depends on SPRD_POWER_DEBUG
+
+config SPRD_ORCA_POWER_DEBUG
+	tristate "Spreadtrum orca power debug"
+	depends on SPRD_POWER_DEBUG
+
+config SPRD_SharkL6_POWER_DEBUG
+	tristate "Spreadtrum sharkl6 power debug"
+	depends on SPRD_POWER_DEBUG
+
+config SPRD_SharkL6Pro_POWER_DEBUG
+	tristate "Spreadtrum sharkl6pro power debug"
+	depends on SPRD_POWER_DEBUG
+
+endif #SPRD_POWER_DEBUG

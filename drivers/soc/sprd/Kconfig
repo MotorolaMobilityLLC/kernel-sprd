@@ -50,18 +50,7 @@ config SPRD_DEBUG
 	help
 	  Say y here to enable Debug support.
 
-config SPRD_POWER_DEBUG
-	bool "Spreadtrum power debug log"
-	depends on PM_SLEEP
-	default n
-	---help---
-	Select this to enable power debug log driver for sprd soc. This driver
-	is only used to output the power state, wakeup interrupt and some
-	specific register values log before the system enter deep sleep mode.
-	and output the power state and wakeup source information in
-	sprd_pm_thread every 30s. These logs will help to analysis system power
-	issue.
-
+source "drivers/soc/sprd/power_debug/Kconfig"
 source "drivers/soc/sprd/debug/Kconfig"
 source "drivers/soc/sprd/performance/Kconfig"
 source "drivers/soc/sprd/pub/Kconfig"
