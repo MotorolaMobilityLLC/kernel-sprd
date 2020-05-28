@@ -69,6 +69,7 @@ power:supply:bq2560x:
 power:supply:sc2731:
 power:supply:sc2721:
 power:supply:sc2720:
+power:supply:sc2730:
 power:suspends:
 soc:sprd:busmonitor:
 iio:adc:
