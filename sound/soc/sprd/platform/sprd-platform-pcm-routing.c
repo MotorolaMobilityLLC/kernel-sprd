@@ -103,6 +103,15 @@ enum SPRD_BE_SWITCH {
 	S_HFP_C,
 	S_CAPTURE_RECOGNISE_CODEC,
 	S_VOICE_PCM_P,
+	S_NORMAL_AP01_P_SMTPA,
+	S_NORMAL_AP23_P_SMTPA,
+	S_FAST_P_SMTPA,
+	S_OFFLOAD_SMTPA,
+	S_VOICE_P_SMTPA,
+	S_VOIP_P_SMTPA,
+	S_FM_SMTPA,
+	S_LOOP_P_SMTPA,
+	S_FM_DSP_SMTPA,
 	S_SWITCH_CASE_MAX,
 };
 
@@ -222,6 +231,17 @@ static const struct snd_kcontrol_new sprd_audio_be_switch[S_SWITCH_CASE_MAX] = {
 		1, 0),
 	[S_VOICE_PCM_P] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0,
 		1, 0),
+	[S_NORMAL_AP01_P_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM,
+						  0, 1, 0),
+	[S_NORMAL_AP23_P_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM,
+						  0, 1, 0),
+	[S_FAST_P_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
+	[S_OFFLOAD_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
+	[S_VOICE_P_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
+	[S_VOIP_P_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
+	[S_FM_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
+	[S_LOOP_P_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
+	[S_FM_DSP_SMTPA] = SOC_DAPM_SINGLE("SWITCH", SND_SOC_NOPM, 0, 1, 0),
 };
 
 static const char *get_event_name(int event)
@@ -258,6 +278,8 @@ static int be_switch_evt(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
+	case SND_SOC_DAPM_POST_PMU:
+	case SND_SOC_DAPM_PRE_PMD:
 	case SND_SOC_DAPM_POST_PMD:
 		break;
 	default:
@@ -431,6 +453,27 @@ static const struct snd_soc_dapm_widget sprd_pcm_routing_widgets[] = {
 	SND_SOC_DAPM_AIF_IN("BE_IF_VOICE_PCM_P", "BE_DAI_VOICE_PCM_P",
 		0, 0, 0, 0),
 
+	SND_SOC_DAPM_AIF_IN("BE_IF_NORMAL_AP01_SMTPA_P",
+			    "BE_DAI_ID_NORMAL_AP01_P_SMTPA",
+			    0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("BE_IF_ID_NORMAL_AP23_SMTPA",
+			    "BE_DAI_ID_NORMAL_AP23_SMTPA",
+			    0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("BE_IF_ID_FAST_P_SMTPA", "BE_DAI_ID_FAST_P_SMTPA",
+			    0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("BE_IF_ID_OFFLOAD_SMTPA", "BE_DAI_ID_OFFLOAD_SMTPA",
+			    0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("BE_IF_ID_VOICE_SMTPA", "BE_DAI_ID_VOICE_SMTPA",
+			    0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("BE_IF_ID_VOIP_SMTPA", "BE_DAI_ID_VOIP_SMTPA",
+			    0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("BE_IF_ID_FM_SMTPA", "BE_DAI_ID_FM_SMTPA",
+			    0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("BE_IF_ID_LOOP_SMTPA", "BE_DAI_ID_LOOP_SMTPA",
+			    0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("BE_IF_ID_FM_DSP_SMTPA", "BE_DAI_ID_FM_DSP_SMTPA",
+			    0, 0, 0, 0),
+
 	/* Switches */
 	SND_SOC_DAPM_SWITCH("S_NORMAL_AP01_P_CODEC", SND_SOC_NOPM,
 		0, 0, &sprd_audio_be_switch[S_NORMAL_AP01_P_CODEC]),
@@ -572,6 +615,43 @@ static const struct snd_soc_dapm_widget sprd_pcm_routing_widgets[] = {
 		0, 0, &sprd_audio_be_switch[S_CAPTURE_RECOGNISE_CODEC]),
 	SND_SOC_DAPM_SWITCH("S_VOICE_PCM_P", SND_SOC_NOPM,
 		0, 0, &sprd_audio_be_switch[S_VOICE_PCM_P]),
+
+	SND_SOC_DAPM_SWITCH_E("S_NORMAL_AP01_P_SMTPA", SND_SOC_NOPM, 0, 0,
+			      &sprd_audio_be_switch[S_NORMAL_AP01_P_SMTPA],
+			      be_switch_evt,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH_E("S_NORMAL_AP23_P_SMTPA", SND_SOC_NOPM, 0, 0,
+			      &sprd_audio_be_switch[S_NORMAL_AP23_P_SMTPA],
+			      be_switch_evt,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH_E("S_FAST_P_SMTPA", SND_SOC_NOPM, 0, 0,
+			      &sprd_audio_be_switch[S_FAST_P_SMTPA],
+			      be_switch_evt,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH_E("S_OFFLOAD_SMTPA", SND_SOC_NOPM, 0, 0,
+			      &sprd_audio_be_switch[S_OFFLOAD_SMTPA],
+			      be_switch_evt,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH_E("S_VOICE_P_SMTPA", SND_SOC_NOPM, 0, 0,
+			      &sprd_audio_be_switch[S_VOICE_P_SMTPA],
+			      be_switch_evt,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH_E("S_VOIP_P_SMTPA", SND_SOC_NOPM, 0, 0,
+			      &sprd_audio_be_switch[S_VOIP_P_SMTPA],
+			      be_switch_evt,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH_E("S_FM_SMTPA", SND_SOC_NOPM, 0, 0,
+			      &sprd_audio_be_switch[S_FM_SMTPA],
+			      be_switch_evt,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH_E("S_LOOP_P_SMTPA", SND_SOC_NOPM, 0, 0,
+			      &sprd_audio_be_switch[S_LOOP_P_SMTPA],
+			      be_switch_evt,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+	SND_SOC_DAPM_SWITCH_E("S_FM_DSP_SMTPA", SND_SOC_NOPM, 0, 0,
+			      &sprd_audio_be_switch[S_FM_DSP_SMTPA],
+			      be_switch_evt,
+			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 };
 
 /*
@@ -769,6 +849,34 @@ static const struct snd_soc_dapm_route sprd_pcm_routing_intercon[] = {
 	/* S_VOICE_PCM_P */
 	{"S_VOICE_PCM_P", "SWITCH", "FE_IF_VOICE_PCM_P"},
 	{"BE_IF_VOICE_PCM_P", NULL, "S_VOICE_PCM_P"},
+
+	/* S_NORMAL_AP01_P_SMTPA */
+	{"S_NORMAL_AP01_P_SMTPA", "SWITCH", "FE_IF_NORMAL_AP01_P"},
+	{"BE_IF_NORMAL_AP01_SMTPA_P", NULL, "S_NORMAL_AP01_P_SMTPA"},
+	/* S_NORMAL_AP23_P_SMTPA */
+	{"S_NORMAL_AP23_P_SMTPA", "SWITCH", "FE_IF_NORMAL_AP23_P"},
+	{"BE_IF_ID_NORMAL_AP23_SMTPA", NULL, "S_NORMAL_AP23_P_SMTPA"},
+	/* S_FAST_P_SMTPA */
+	{"S_FAST_P_SMTPA", "SWITCH", "FE_IF_FAST_P"},
+	{"BE_IF_ID_FAST_P_SMTPA", NULL, "S_FAST_P_SMTPA"},
+	/* S_OFFLOAD_SMTPA */
+	{"S_OFFLOAD_SMTPA", "SWITCH", "FE_IF_OFFLOAD_P"},
+	{"BE_IF_ID_OFFLOAD_SMTPA", NULL, "S_OFFLOAD_SMTPA"},
+	/* S_VOICE_P_SMTPA */
+	{"S_VOICE_P_SMTPA", "SWITCH", "FE_IF_VOICE_P"},
+	{"BE_IF_ID_VOICE_SMTPA", NULL, "S_VOICE_P_SMTPA"},
+	/* S_VOIP_P_SMTPA */
+	{"S_VOIP_P_SMTPA", "SWITCH", "FE_IF_VOIP_P"},
+	{"BE_IF_ID_VOIP_SMTPA", NULL, "S_VOIP_P_SMTPA"},
+	/* S_FM_SMTPA */
+	{"S_FM_SMTPA", "SWITCH", "FE_IF_FM_P"},
+	{"BE_IF_ID_FM_SMTPA", NULL, "S_FM_SMTPA"},
+	/* S_LOOP_P_SMTPA */
+	{"S_LOOP_P_SMTPA", "SWITCH", "FE_IF_LOOP_P"},
+	{"BE_IF_ID_LOOP_SMTPA", NULL, "S_LOOP_P_SMTPA"},
+	/* S_FM_DSP_SMTPA */
+	{"S_FM_DSP_SMTPA", "SWITCH", "FE_IF_FM_DSP_P"},
+	{"BE_IF_ID_FM_DSP_SMTPA", NULL, "S_FM_DSP_SMTPA"},
 };
 
 static struct snd_soc_platform_driver sprd_soc_routing_platform = {
