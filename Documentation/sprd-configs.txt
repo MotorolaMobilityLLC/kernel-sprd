@@ -1072,7 +1072,7 @@ CONFIG_ARM_SPRD_HW_CPUFREQ
 CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS312
 	[arch] arm64
 	[plat] sharkl5
-	[missing plat] roc1,sharkl3,sharkl5Pro
+	[missing plat] sharkl3,sharkl5Pro
 	[field] make
 	[subsys] cpufreq
 	[must] user
@@ -1081,7 +1081,7 @@ CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS312
 CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS512
 	[arch] arm64
 	[plat] sharkl5Pro
-	[missing plat] roc1,sharkl3,sharkl5
+	[missing plat] sharkl3,sharkl5
 	[field] make
 	[subsys] cpufreq
 	[must] user
@@ -1302,6 +1302,15 @@ CONFIG_BACKLIGHT_PWM
 	[must] home
 	[missing plat description] none
 	[function] Enable pwm backlight driver.
+CONFIG_BACKLIGHT_SC2703
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] sharkl5,sharkl5Pro
+	[field] make
+	[subsys] video
+	[must] home
+	[missing plat description] BACKLIGHT_SC2703 is only used for roc1 plat.
+	[function] Enable sc2703 backlight & display power
 CONFIG_BASE_FULL
 	[arch] all
 	[plat] all
@@ -1954,8 +1963,8 @@ CONFIG_CHARGER_MANAGER
 	[function] Manage battery capacity and monitor charge status
 CONFIG_CHARGER_SC2703
 	[arch] all
-	[plat] sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[plat] sharkl3,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3_32,sharkle32
 	[field] make
 	[subsys] power
 	[must] user
@@ -11436,8 +11445,8 @@ CONFIG_REGULATOR_FAN53555
 	[function] Support for fan53555 pmic regulator.
 CONFIG_REGULATOR_SC2703
 	[arch] all
-	[plat] sharkl5,sharkl5_32
-	[missing plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
+	[plat] sharkl3,sharkl5,sharkl5_32
+	[missing plat] pike2,sharkl3_32,sharkl5Pro,sharkle32
 	[field] make
 	[subsys] regulator
 	[must] user
