@@ -74,6 +74,16 @@ CONFIG_ANDROID
 	[must] console
 	[missing plat description] none
 	[function] vts require, Enable for Android driver.
+CONFIG_ANDROID_BINDERFS
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] core
+	[subsys] core
+	[must] console
+	[missing plat description] none
+	[function] It can be used to dynamically allocate new binder IPC devices via ioctls.
+
 CONFIG_ANDROID_BINDER_DEVICES
 	[arch] all
 	[plat] all
