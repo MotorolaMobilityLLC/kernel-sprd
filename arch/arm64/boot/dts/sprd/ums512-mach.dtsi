@@ -147,7 +147,7 @@
 		};
 
 		tos_reserved: tos-mem@94020000 {
-			reg = <0x0 0x94020000 0x0 0x03fe0000>;
+			reg = <0x0 0x94020000 0x0 0x05fe0000>;
 		};
 
 		pstore_reserved: ramoops@fff80000 {
