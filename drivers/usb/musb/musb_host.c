@@ -972,6 +972,8 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 
 		/* protocol/endpoint/interval/NAKlimit */
 		if (epnum) {
+			int	interval;
+
 			musb_writeb(epio, MUSB_TXTYPE, qh->type_reg);
 			if (musb->double_buffer_not_ok) {
 				musb_writew(epio, MUSB_TXMAXP,
@@ -986,7 +988,10 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 						qh->maxpacket |
 						((qh->hb_mult - 1) << 11));
 			}
-			musb_writeb(epio, MUSB_TXINTERVAL, qh->intv_reg);
+			interval = musb_readb(epio, MUSB_TXINTERVAL);
+			if (interval != qh->intv_reg)
+				musb_writeb(epio, MUSB_TXINTERVAL,
+						qh->intv_reg);
 		} else {
 			musb_writeb(epio, MUSB_NAKLIMIT0, qh->intv_reg);
 			if (musb->is_multipoint)
@@ -2343,6 +2348,9 @@ success:
 		list_add_tail(&qh->ring, head);
 		qh->mux = 1;
 	}
+	if (qh->type == USB_ENDPOINT_XFER_CONTROL)
+		mdelay(2);
+
 	qh->hw_ep = hw_ep;
 	qh->hep->hcpriv = qh;
 	if (idle)
