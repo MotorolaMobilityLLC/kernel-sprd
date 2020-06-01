@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 4.14.174 Kernel Configuration
+# Linux/arm 4.14.181 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_ARM_HAS_SG_CHAIN=y
@@ -2344,7 +2344,6 @@ CONFIG_DRM_KMS_CMA_HELPER=y
 # CONFIG_DRM_RCAR_DW_HDMI is not set
 # CONFIG_DRM_OMAP is not set
 # CONFIG_DRM_TILCDC is not set
-# CONFIG_DRM_VIRTIO_GPU is not set
 # CONFIG_DRM_FSL_DCU is not set
 # CONFIG_DRM_STM is not set
 CONFIG_DRM_PANEL=y
@@ -3074,6 +3073,7 @@ CONFIG_MMC_BLOCK_MINORS=8
 # CONFIG_MMC_TEST is not set
 # CONFIG_MMC_EMBEDDED_SDIO is not set
 # CONFIG_MMC_PARANOID_SD_INIT is not set
+# CONFIG_MMC_CRYPTO is not set
 
 #
 # MMC/SD/SDIO Host Controller Drivers
