@@ -12,6 +12,15 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
+	aliases {
+		i2c0 = &i2c0;
+		i2c1 = &i2c1;
+		i2c2 = &i2c2;
+		i2c3 = &i2c3;
+		i2c4 = &i2c4;
+		i2c5 = &aon_i2c0;
+	};
+
 	soc: soc {
 		compatible = "simple-bus";
 		#address-cells = <2>;
@@ -139,6 +148,56 @@
 				reg = <0x100000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_26m>;
+				status = "disabled";
+			};
+
+			i2c0: i2c@300000 {
+				compatible = "sprd,sharkl5pro-i2c";
+				reg = <0x300000 0x100>;
+				interrupts = <GIC_SPI 11 IRQ_TYPE_LEVEL_HIGH>;
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			i2c1: i2c@400000 {
+				compatible = "sprd,sharkl5pro-i2c";
+				reg = <0x400000 0x100>;
+				interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			i2c2: i2c@500000 {
+				compatible = "sprd,sharkl5pro-i2c";
+				reg = <0x500000 0x100>;
+				interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			i2c3: i2c@600000 {
+				compatible = "sprd,sharkl5pro-i2c";
+				reg = <0x600000 0x100>;
+				interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			i2c4: i2c@700000 {
+				compatible = "sprd,sharkl5pro-i2c";
+				reg = <0x700000 0x100>;
+				interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
 				status = "disabled";
 			};
 		};
@@ -296,6 +355,18 @@
 				interrupt-controller;
 				#interrupt-cells = <2>;
 				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			aon_i2c0: i2c@32060000 {
+				compatible = "sprd,sharkl5pro-hw-i2c";
+				reg = <0 0x32060000 0 0x1000>;
+				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "source", "enable", "i2c",
+						"clk_hw_i2c";
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
 			};
 
 			timer@32050000 {
