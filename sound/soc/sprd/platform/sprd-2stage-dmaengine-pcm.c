@@ -2784,6 +2784,8 @@ static int sprd_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 				if (!rtd->dma_tx_des[i]) {
 					pr_err("%s, dma_cfg_hw :%d failed!\n",
 						__func__, i);
+					normal_dma_protect_spin_unlock(substream
+								       );
 					return -ENOMEM;
 				}
 			}
