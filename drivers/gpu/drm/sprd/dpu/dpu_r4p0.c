@@ -1315,8 +1315,8 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* use dpi as interface */
 		reg->dpu_cfg0 &= ~BIT(0);
 
-		/* disable Halt function for SPRD DSI */
-		reg->dpi_ctrl &= ~BIT(16);
+		/* enable Halt function for SPRD DSI */
+		reg->dpi_ctrl |= BIT(16);
 
 		/* set dpi timing */
 		reg->dpi_h_timing = (ctx->vm.hsync_len << 0) |
