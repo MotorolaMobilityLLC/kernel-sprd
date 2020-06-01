@@ -146,7 +146,7 @@ static int sprd_hsphy_init(struct usb_phy *x)
 {
 	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
 	u32 reg, msk;
-	int ret;
+	int ret = 0;
 
 	if (atomic_read(&phy->inited)) {
 		dev_dbg(x->dev, "%s is already inited!\n", __func__);

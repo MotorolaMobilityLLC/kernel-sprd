@@ -2519,6 +2519,8 @@ static void musb_offload_enqueue(struct usb_hcd *hcd, struct urb *urb)
 	unsigned	int type_reg, interval;
 	int dir;
 
+	memset(&qh, 0, sizeof(struct musb_qh));
+
 	qh.maxpacket = usb_endpoint_maxp(epd);
 	qh.type = usb_endpoint_type(epd);
 	qh.epnum = ep_num;

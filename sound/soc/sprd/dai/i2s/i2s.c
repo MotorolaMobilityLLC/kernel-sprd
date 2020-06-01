@@ -357,7 +357,7 @@ static int master_fraction_clock(struct i2s_priv *i2s, uint div_mode)
 	unsigned long reg_clkml = I2S_REG(i2s, IIS_CLKML);
 	unsigned long reg_clkd = I2S_REG(i2s, IIS_CLKD);
 
-	int clk_m, clk_n, clkd;
+	int clk_m = 0, clk_n = 0, clkd;
 	int val_clkmh;
 	int val_clkml;
 	int val_clknh;

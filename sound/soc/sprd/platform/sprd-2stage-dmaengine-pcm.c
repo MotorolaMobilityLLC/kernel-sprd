@@ -1914,7 +1914,7 @@ static int sprd_pcm_hw_params_2stage(struct snd_pcm_substream *substream,
 	u32 offset_node_idx_2 = 0;
 	u32 count_max_r = 0;
 	unsigned long start_addr_p = 0;
-	int direction;
+	int direction = 0;
 
 	priv_data = snd_soc_platform_get_drvdata(srtd->platform);
 	if (!priv_data) {

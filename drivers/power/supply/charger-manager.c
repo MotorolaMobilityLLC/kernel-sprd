@@ -1077,7 +1077,7 @@ static int cm_get_battery_temperature_by_psy(struct charger_manager *cm,
 static int cm_get_battery_temperature(struct charger_manager *cm,
 					int *temp)
 {
-	int ret;
+	int ret = 0;
 
 	if (!cm->desc->measure_battery_temp)
 		return -ENODEV;

@@ -1776,14 +1776,23 @@ CONFIG_CC_HAS_SANCOV_TRACE_PC
 	[must] user
 	[missing plat description] none
 	[function] enable for GCOV flags -fsanitize-coverage=trace-pc.
-CONFIG_CC_OPTIMIZE_FOR_SIZE
-	[arch] all
-	[plat] all
-	[missing plat] none
+CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] roc1
 	[field] make
 	[subsys] soc
 	[must] user
-	[missing plat description] none
+	[missing plat description] Memory smaller than 2G or soc whithout main product
+	[function] Optimize for performance
+CONFIG_CC_OPTIMIZE_FOR_SIZE
+	[arch] all
+	[plat] pike2,roc1,sharkl3_32,sharkl5_32,sharkle32
+	[missing plat] sharkl3,sharkl5,sharkl5Pro
+	[field] make
+	[subsys] soc
+	[must] user
+	[missing plat description] Memory equal or bigger than 2G
 	[function] Optimize for size.
 CONFIG_CC_STACKPROTECTOR
 	[arch] all
