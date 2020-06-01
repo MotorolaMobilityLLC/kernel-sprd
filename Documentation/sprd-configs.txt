@@ -3638,24 +3638,6 @@ CONFIG_DEVFREQ_THERMAL
 	[must] user
 	[missing plat description] gpu don't support dvfs
 	[function] gpu thermal policy
-CONFIG_DEVTMPFS
-	[arch] arm
-	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
-	[missing plat] none
-	[field] make,code
-	[subsys] core
-	[must] console
-	[missing plat description] none
-	[function] Maintain a devtmpfs filesystem to mount at /dev.
-CONFIG_DEVTMPFS_MOUNT
-	[arch] arm
-	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
-	[missing plat] none
-	[field] code
-	[subsys] core
-	[must] console
-	[missing plat description] none
-	[function] Automount devtmpfs at /dev, after the kernel mounted the rootfs.
 CONFIG_DIRECT_SWAPPINESS
 	[arch] all
 	[plat] all
