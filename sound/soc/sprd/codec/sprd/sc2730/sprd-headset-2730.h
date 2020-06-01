@@ -222,6 +222,7 @@ struct sprd_headset {
 	enum headset_eic_type eic_type;
 	bool audio_on;
 	bool btn_detecting;
+	bool type_detecting;
 	/*
 	 * Add mutex to protect member audio_on and btn_detecting,
 	 * because both codec and headset driver will write or access
@@ -289,6 +290,7 @@ struct sprd_headset {
 	struct notifier_block typec_plug_nb;
 	struct extcon_dev *edev;
 	unsigned int codec_intc;
+	unsigned long time_after_4pole_report;
 };
 
 struct sprd_headset_global_vars {
