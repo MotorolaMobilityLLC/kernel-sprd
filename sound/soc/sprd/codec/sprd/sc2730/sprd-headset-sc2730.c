@@ -1618,7 +1618,7 @@ static void sprd_headset_button_press(struct sprd_headset *hdst)
 
 	if (hdst->btn_state_last == 0) {
 		if (hdst->time_after_4pole_report > 0 &&
-		    time_after(jiffies, hdst->time_after_4pole_report)) {
+		    time_before(jiffies, hdst->time_after_4pole_report)) {
 			pr_warn("discard one button report for lacking of time\n");
 			return;
 		}
