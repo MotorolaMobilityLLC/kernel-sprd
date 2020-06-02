@@ -27,11 +27,7 @@ endif
 endif #//BSP_BUILD_ANDROID_OS
 
 else
-dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
-				sp9860g-1h10.dtb        \
-				sp9863a-1h10.dtb        \
-				ums512-1h10.dtb         \
-				ums9230-haps.dtb
+dtb-$(CONFIG_ARCH_SPRD) += sc9863a-w12v1.dtb
 
 endif #//BSP_BUILD_DT_OVERLAY
 
