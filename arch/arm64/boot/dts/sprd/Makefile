@@ -28,13 +28,9 @@ endif
 endif #//BSP_BUILD_ANDROID_OS
 
 else
-
 dtb-$(CONFIG_ARCH_SPRD) += \
-	sp9863a-1h10.dtb   \
-	sp9863a-3h10.dtb   \
-	ums512-1h10.dtb    \
-	ums312-1h10.dtb
-
+	sc9863a-w12v1.dtb   \
+	ums512-w27v1.dtb
 endif #//BSP_BUILD_DT_OVERLAY
 
 always		:= $(dtb-y) $(dtbo-y)
