@@ -1095,12 +1095,9 @@ endif
 
 endif #//BSP_BUILD_ANDROID_OS
 
-else
-
-dtb-$(CONFIG_ARCH_SPRD) += \
-	sp9832e-1h10_go.dtb \
-	sp9863a-1h10_go_32b.dtb \
-	sp7731e-1h10.dtb \
+#else //NO DTBO
+#dtb-$(CONFIG_ARCH_SPRD) += \
+#	sp9863a-1h10_go_32b.dtb
 
 endif #//BSP_BUILD_DT_OVERLAY
 
