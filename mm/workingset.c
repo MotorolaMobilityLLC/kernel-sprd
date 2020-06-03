@@ -250,7 +250,11 @@ void workingset_refault(struct page *page, void *shadow)
 {
 	unsigned long refault_distance;
 	struct pglist_data *pgdat;
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	unsigned long workingset_size;
+#else
 	unsigned long active_file;
+#endif
 	struct mem_cgroup *memcg;
 	unsigned long eviction;
 	struct lruvec *lruvec;
@@ -282,7 +286,9 @@ void workingset_refault(struct page *page, void *shadow)
 		goto out;
 	lruvec = mem_cgroup_lruvec(pgdat, memcg);
 	refault = atomic_long_read(&lruvec->inactive_age);
+#ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 	active_file = lruvec_lru_size(lruvec, LRU_ACTIVE_FILE, MAX_NR_ZONES);
+#endif
 
 	/*
 	 * Calculate the refault distance
@@ -306,10 +312,22 @@ void workingset_refault(struct page *page, void *shadow)
 
 	/*
 	 * Compare the distance to the existing workingset size. We
-	 * don't act on pages that couldn't stay resident even if all
-	 * the memory was available to the page cache.
+	 * don't activate pages that couldn't stay resident even if
+	 * all the memory was available to the page cache. Whether
+	 * cache can compete with anon or not depends on having swap.
 	 */
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	workingset_size = lruvec_page_state(lruvec, NR_ACTIVE_FILE);
+	if (mem_cgroup_get_nr_swap_pages(memcg) > 0) {
+		workingset_size += lruvec_page_state(lruvec,
+						     NR_INACTIVE_ANON);
+		workingset_size += lruvec_page_state(lruvec,
+						     NR_ACTIVE_ANON);
+	}
+	if (refault_distance > workingset_size)
+#else
 	if (refault_distance > active_file)
+#endif
 		goto out;
 
 	SetPageActive(page);
