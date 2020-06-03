@@ -289,7 +289,9 @@ static void __activate_page(struct page *page, struct lruvec *lruvec,
 			    void *arg)
 {
 	if (PageLRU(page) && !PageActive(page) && !PageUnevictable(page)) {
+#ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 		int file = page_is_file_cache(page);
+#endif
 		int lru = page_lru_base_type(page);
 
 		del_page_from_lru_list(page, lruvec, lru);
@@ -301,8 +303,6 @@ static void __activate_page(struct page *page, struct lruvec *lruvec,
 		__count_vm_event(PGACTIVATE);
 #ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 		update_page_reclaim_stat(lruvec, file, 1);
-#else
-		update_page_reclaim_stat(lruvec, file, 1, hpage_nr_pages(page));
 #endif
 	}
 }
@@ -1004,9 +1004,6 @@ static void __pagevec_lru_add_fn(struct page *page, struct lruvec *lruvec,
 #ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 		update_page_reclaim_stat(lruvec, page_is_file_cache(page),
 					 PageActive(page));
-#else
-		update_page_reclaim_stat(lruvec, page_is_file_cache(page),
-					 PageActive(page), hpage_nr_pages(page));
 #endif
 		if (was_unevictable)
 			count_vm_event(UNEVICTABLE_PGRESCUED);
