@@ -524,40 +524,6 @@
 		flash-chip-en-gpios = <&ap_gpio 89 0>;
 	/*	sc2703,charger = <&charger>;*/
 	};
-
-	sc2703-disp@4b {
-		compatible = "sprd,sc2703-disp";
-		reg = <0x4b>;
-
-		lcd_vdd: lcd-regulator {
-			compatible = "sprd,sc2703-lcd-regulator";
-			regulator-name = "sc2703-lcd";
-			regulator-boot-on;
-		};
-
-		sc2703-backlight {
-			compatible = "sprd,sc2703-backlight";
-
-			pwms = <&pwms 0 40000>;
-			pwm-names = "wled-pwm";
-			//int-gpios = <&ap_gpio 96 0>;
-
-			sprd,wled-mode = "duty-det-analog-mode";
-			sprd,max-brightness = <255>;
-		};
-	};
-};
-
-&lcd_nt35596_boe_mipi_fhd {
-	power-supply = <&lcd_vdd>;
-};
-
-&lcd_nt35695_truly_mipi_fhd {
-	power-supply = <&lcd_vdd>;
-};
-
-&lcd_nt35532_truly_mipi_fhd {
-	power-supply = <&lcd_vdd>;
 };
 
 &spi0 {
