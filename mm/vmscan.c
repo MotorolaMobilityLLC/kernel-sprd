@@ -1425,6 +1425,10 @@ static unsigned long shrink_page_list(struct list_head *page_list,
 			case PAGE_ACTIVATE:
 				goto activate_locked;
 			case PAGE_SUCCESS:
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+				stat->nr_pageout += hpage_nr_pages(page);
+#endif
+
 				if (PageWriteback(page))
 					goto keep;
 				if (PageDirty(page))
@@ -2085,6 +2089,7 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
 
 	__mod_node_page_state(pgdat, NR_ISOLATED_ANON + file, -nr_taken);
 #ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	lru_note_cost(lruvec, file, stat.nr_pageout);
 	__count_vm_events(PGSTEAL_ANON + file, nr_reclaimed);
 #endif
 

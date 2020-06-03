@@ -334,7 +334,9 @@ extern unsigned long nr_free_pagecache_pages(void);
 /* linux/mm/swap.c */
 extern void lru_cache_add(struct page *);
 #ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
-extern void lru_note_cost(struct page *);
+extern void lru_note_cost(struct lruvec *lruvec, bool file,
+			  unsigned int nr_pages);
+extern void lru_note_cost_page(struct page *page);
 #else
 extern void lru_cache_add_anon(struct page *page);
 extern void lru_cache_add_file(struct page *page);

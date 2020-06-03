@@ -426,7 +426,7 @@ struct page *__read_swap_cache_async(swp_entry_t entry, gfp_t gfp_mask,
 #ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
 			/* XXX: Move to lru_cache_add() when it supports new vs putback */
 			spin_lock_irq(&page_pgdat(new_page)->lru_lock);
-			lru_note_cost(new_page);
+			lru_note_cost_page(new_page);
 			spin_unlock_irq(&page_pgdat(new_page)->lru_lock);
 			/* Initiate read into locked page */
 			SetPageWorkingset(new_page);

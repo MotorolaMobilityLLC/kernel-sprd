@@ -26,6 +26,9 @@ struct reclaim_stat {
 	unsigned nr_congested;
 	unsigned nr_writeback;
 	unsigned nr_immediate;
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	unsigned nr_pageout;
+#endif
 	unsigned nr_activate[2];
 	unsigned nr_ref_keep;
 	unsigned nr_unmap_fail;

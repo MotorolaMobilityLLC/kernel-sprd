@@ -263,18 +263,16 @@ void rotate_reclaimable_page(struct page *page)
 }
 
 #ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
-void lru_note_cost(struct page *page)
+void lru_note_cost(struct lruvec *lruvec, bool file, unsigned int nr_pages)
 {
-	struct lruvec *lruvec = mem_cgroup_page_lruvec(page, page_pgdat(page));
-
 	do {
 		unsigned long lrusize;
 
 		/* Record cost event */
-		if (page_is_file_cache(page))
-			lruvec->file_cost++;
+		if (file)
+			lruvec->file_cost += nr_pages;
 		else
-			lruvec->anon_cost++;
+			lruvec->anon_cost += nr_pages;
 
 		/*
 		 * Decay previous events
@@ -294,6 +292,12 @@ void lru_note_cost(struct page *page)
 			lruvec->anon_cost /= 2;
 		}
 	} while ((lruvec = parent_lruvec(lruvec)));
+}
+
+void lru_note_cost_page(struct page *page)
+{
+	lru_note_cost(mem_cgroup_page_lruvec(page, page_pgdat(page)),
+		      page_is_file_cache(page), hpage_nr_pages(page));
 }
 #else
 static void update_page_reclaim_stat(struct lruvec *lruvec,
