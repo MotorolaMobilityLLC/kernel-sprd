@@ -2397,15 +2397,15 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 {
 	int swappiness = mem_cgroup_swappiness(memcg);
 #ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
-	unsigned long totalcost;
+	unsigned long anon_cost, file_cost, total_cost;
 #else
 	struct zone_reclaim_stat *reclaim_stat = &lruvec->reclaim_stat;
 	unsigned long anon, file;
+	unsigned long anon_prio, file_prio;
 #endif
 	u64 fraction[2];
 	u64 denominator = 0;	/* gcc */
 	struct pglist_data *pgdat = lruvec_pgdat(lruvec);
-	unsigned long anon_prio, file_prio;
 	enum scan_balance scan_balance;
 	unsigned long ap, fp;
 	enum lru_list lru;
@@ -2511,19 +2511,32 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	 * the relative IO cost of bringing back a swapped out
 	 * anonymous page vs reloading a filesystem page (swappiness).
 	 *
+	 * Although we limit that influence to ensure no list gets
+	 * left behind completely: at least a third of the pressure is
+	 * applied, before swappiness.
+	 *
 	 * With swappiness at 100, anon and file have equal IO cost.
 	 */
+
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	total_cost = lruvec->anon_cost + lruvec->file_cost;
+	anon_cost = total_cost + lruvec->anon_cost;
+	file_cost = total_cost + lruvec->file_cost;
+	total_cost = anon_cost + file_cost;
+
+	ap = swappiness * (total_cost + 1);
+	ap /= anon_cost + 1;
+
+	fp = (200 - swappiness) * (total_cost + 1);
+	fp /= file_cost + 1;
+
+	fraction[0] = ap;
+	fraction[1] = fp;
+	denominator = ap + fp;
+#else
 	anon_prio = swappiness;
 	file_prio = 200 - anon_prio;
 
-#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
-	totalcost = lruvec->anon_cost + lruvec->file_cost;
-	ap = anon_prio * (totalcost + 1);
-	ap /= lruvec->anon_cost + 1;
-
-	fp = file_prio * (totalcost + 1);
-	fp /= lruvec->file_cost + 1;
-#else
 	/*
 	 * Because workloads change over time (and to avoid overflow)
 	 * we keep these statistics as a floating average, which ends
@@ -2558,10 +2571,12 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	fp = file_prio * (reclaim_stat->recent_scanned[1] + 1);
 	fp /= reclaim_stat->recent_rotated[1] + 1;
 	spin_unlock_irq(&pgdat->lru_lock);
-#endif
+
 	fraction[0] = ap;
 	fraction[1] = fp;
 	denominator = ap + fp + 1;
+#endif
+
 out:
 	*lru_pages = 0;
 	for_each_evictable_lru(lru) {
