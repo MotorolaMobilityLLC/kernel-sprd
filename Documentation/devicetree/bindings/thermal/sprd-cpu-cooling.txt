@@ -1,0 +1,68 @@
+sprd cpu cooling driver
+
+This describes the device tree binding for the sprd cpu cooling driver
+which include cpu power model data based on sprd platform.
+
+Required properties:
+- compatible:
+  - "sprd,cluster-cooling" : cooling domain name
+- sprd,core-temp-scale: core temperature scaling
+- sprd,core-voltage-scale: core voltage scaling
+- sprd,cluster-temp-scale: cluster temperature scaling
+- sprd,cluster-voltage-scale: cluster voltage scaling
+- sprd,hotplug-period: hotplug cpu period
+- sprd,min-cpufreq: the minimum frequency
+- sprd,min-cpunum: the minimum cpu online number
+- sprd,core-base: core leakage
+- sprd,cluster-base: cluster leakage
+- sprd,dynamic-core: core dynamic
+- sprd,dynamic-cluster: cluster dynamic
+
+Optional properties:
+- sprd,efuse-block7: block id
+- sprd,efuse-block15: block id
+- sprd,leak-core: core leakage in block
+- sprd,leak-cluster: cluste leakage in block
+- sprd,efuse-switch: using efuse switch
+
+Example:
+	cooling-devices {
+		cluster0_cooling: cluster0-cooling {
+			compatible = "sprd,cluster-cooling";
+			sprd,efuse-block7 = <7>;
+			sprd,efuse-block15 = <15>;
+			/* core_leak =                             */
+			/*(LIT_LEAK[4:0]+1) x 2mA x 0.85V x 18.69% */
+			sprd,leak-core = <2 85 1869>;
+			/* cluster_leak =                           */
+			/* (LIT_LEAK[4:0]+1) x 2mA x 0.85V x 25.24% */
+			sprd,leak-cluster = <2 85 2524>;
+			/*core Tscale = aT^3 + bT^2 + cT +di   */
+			sprd,core-temp-scale =
+			/* a*10^7   b*10^7      c*10^7     d*10^7 */
+			<  31      (-3041)      170000    (-1590000)>;
+			/*core Vscale = eV^3 + fV^2 + gV + h */
+			sprd,core-voltage-scale =
+			/* e*10^2   f*10^2     g*10^2  h*10^2*/
+			<  3320     (-7489)      5692      (-1423)>;
+			/*cluster Tscale = aT^3 + bT^2 + cT +di   */
+			sprd,cluster-temp-scale =
+			/* a*10^7   b*10^7      c*10^7     d*10^7 */
+			<  31      (-3041)      170000    (-1590000)>;
+			/*cluster Vscale = eV^3 + fV^2 + gV + h */
+			sprd,cluster-voltage-scale =
+			/* e*10^2   f*10^2     g*10^2  h*10^2*/
+			<  3320     (-7489)      5692      (-1423)>;
+			sprd,efuse-switch = <0>;
+			sprd,hotplug-period = <10>;
+			sprd,min-cpufreq = <768000>;
+			sprd,min-cpunum = <3>;
+			sprd,core-base = <3930>;
+			sprd,cluster-base = <1673>;
+			sprd,dynamic-core =
+			/*Pdynperghz*10    Freq     Vbase  */
+			< 1084           1000     1000>;
+			sprd,dynamic-cluster =
+			/*Pdynperghz*10    Freq     Vbase  */
+			< 757           1000     1000>;
+		};
