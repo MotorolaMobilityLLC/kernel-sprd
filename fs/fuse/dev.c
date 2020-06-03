@@ -842,7 +842,11 @@ static int fuse_try_move_page(struct fuse_copy_state *cs, struct page **pagep)
 	get_page(newpage);
 
 	if (!(buf->flags & PIPE_BUF_FLAG_LRU))
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+		lru_cache_add(newpage);
+#else
 		lru_cache_add_file(newpage);
+#endif
 
 	err = 0;
 	spin_lock(&cs->req->waitq.lock);

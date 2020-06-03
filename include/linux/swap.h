@@ -333,8 +333,10 @@ extern unsigned long nr_free_pagecache_pages(void);
 
 /* linux/mm/swap.c */
 extern void lru_cache_add(struct page *);
+#ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 extern void lru_cache_add_anon(struct page *page);
 extern void lru_cache_add_file(struct page *page);
+#endif
 extern void lru_add_page_tail(struct page *page, struct page *page_tail,
 			 struct lruvec *lruvec, struct list_head *head);
 extern void activate_page(struct page *);

@@ -424,7 +424,11 @@ struct page *__read_swap_cache_async(swp_entry_t entry, gfp_t gfp_mask,
 		if (likely(!err)) {
 			/* Initiate read into locked page */
 			SetPageWorkingset(new_page);
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+			lru_cache_add(new_page);
+#else
 			lru_cache_add_anon(new_page);
+#endif
 			*new_page_allocated = true;
 			return new_page;
 		}

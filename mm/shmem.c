@@ -1604,7 +1604,11 @@ static int shmem_replace_page(struct page **pagep, gfp_t gfp,
 		oldpage = newpage;
 	} else {
 		mem_cgroup_migrate(oldpage, newpage);
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+		lru_cache_add(newpage);
+#else
 		lru_cache_add_anon(newpage);
+#endif
 		*pagep = newpage;
 	}
 
@@ -1891,7 +1895,11 @@ alloc_nohuge:
 	}
 	mem_cgroup_commit_charge(page, memcg, false,
 				 PageTransHuge(page));
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	lru_cache_add(page);
+#else
 	lru_cache_add_anon(page);
+#endif
 
 	spin_lock_irq(&info->lock);
 	info->alloced += compound_nr(page);

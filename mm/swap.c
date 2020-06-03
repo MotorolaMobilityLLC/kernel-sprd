@@ -414,6 +414,7 @@ void mark_page_accessed(struct page *page)
 }
 EXPORT_SYMBOL(mark_page_accessed);
 
+#ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 static void __lru_cache_add(struct page *page)
 {
 	struct pagevec *pvec = &get_cpu_var(lru_add_pvec);
@@ -458,6 +459,32 @@ void lru_cache_add(struct page *page)
 	VM_BUG_ON_PAGE(PageLRU(page), page);
 	__lru_cache_add(page);
 }
+#else
+
+/**
+ * lru_cache_add - add a page to a page list
+ * @page: the page to be added to the LRU.
+ *
+ * Queue the page for addition to the LRU via pagevec. The decision on whether
+ * to add the page to the [in]active [file|anon] list is deferred until the
+ * pagevec is drained. This gives a chance for the caller of lru_cache_add()
+ * have the page added to the active list using mark_page_accessed().
+ */
+void lru_cache_add(struct page *page)
+{
+	struct pagevec *pvec;
+
+	VM_BUG_ON_PAGE(PageActive(page) && PageUnevictable(page), page);
+	VM_BUG_ON_PAGE(PageLRU(page), page);
+
+	pvec = &get_cpu_var(lru_add_pvec);
+	get_page(page);
+	if (!pagevec_add(pvec, page) || PageCompound(page))
+		__pagevec_lru_add(pvec);
+	put_cpu_var(lru_add_pvec);
+}
+EXPORT_SYMBOL(lru_cache_add);
+#endif
 
 /**
  * lru_cache_add_active_or_unevictable

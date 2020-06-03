@@ -3094,7 +3094,11 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
 				__SetPageLocked(page);
 				__SetPageSwapBacked(page);
 				set_page_private(page, entry.val);
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+				lru_cache_add(page);
+#else
 				lru_cache_add_anon(page);
+#endif
 				swap_readpage(page, true);
 			}
 		} else if (vmf->flags & FAULT_FLAG_SPECULATIVE) {
