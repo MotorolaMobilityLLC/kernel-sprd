@@ -422,11 +422,18 @@ struct page *__read_swap_cache_async(swp_entry_t entry, gfp_t gfp_mask,
 		err = add_to_swap_cache(new_page, entry,
 					gfp_mask & GFP_RECLAIM_MASK);
 		if (likely(!err)) {
+
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+			/* XXX: Move to lru_cache_add() when it supports new vs putback */
+			spin_lock_irq(&page_pgdat(new_page)->lru_lock);
+			lru_note_cost(new_page);
+			spin_unlock_irq(&page_pgdat(new_page)->lru_lock);
 			/* Initiate read into locked page */
 			SetPageWorkingset(new_page);
-#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
 			lru_cache_add(new_page);
 #else
+			/* Initiate read into locked page */
+			SetPageWorkingset(new_page);
 			lru_cache_add_anon(new_page);
 #endif
 			*new_page_allocated = true;
