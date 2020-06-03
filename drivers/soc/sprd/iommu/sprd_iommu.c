@@ -1187,6 +1187,8 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	case IOMMU_EX_JPG:
 	case IOMMU_EX_DISP:
 	case IOMMU_EX_ISP:
+	case IOMMU_EX_NEWISP:
+	case IOMMU_EX_FD:
 	{
 		iommu_dev->ops = &sprd_iommuex_hw_ops;
 		break;
