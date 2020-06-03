@@ -6694,12 +6694,12 @@ CONFIG_IKCONFIG_PROC
 	[function] vts require, Enable access to .config through /proc/config.gz
 CONFIG_IKHEADERS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] roc1
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] core
 	[must] user
-	[missing plat description] vts require.
+	[missing plat description] none
 	[function] This option enables access to the in-kernel headers that are generated during
 		the build process.
 CONFIG_ILLEGAL_POINTER_VALUE
