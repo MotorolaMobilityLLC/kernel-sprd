@@ -2395,13 +2395,13 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	unsigned long totalcost;
 #else
 	struct zone_reclaim_stat *reclaim_stat = &lruvec->reclaim_stat;
+	unsigned long anon, file;
 #endif
 	u64 fraction[2];
 	u64 denominator = 0;	/* gcc */
 	struct pglist_data *pgdat = lruvec_pgdat(lruvec);
 	unsigned long anon_prio, file_prio;
 	enum scan_balance scan_balance;
-	unsigned long anon, file;
 	unsigned long ap, fp;
 	enum lru_list lru;
 
@@ -2511,6 +2511,14 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	anon_prio = swappiness;
 	file_prio = 200 - anon_prio;
 
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	totalcost = lruvec->anon_cost + lruvec->file_cost;
+	ap = anon_prio * (totalcost + 1);
+	ap /= lruvec->anon_cost + 1;
+
+	fp = file_prio * (totalcost + 1);
+	fp /= lruvec->file_cost + 1;
+#else
 	/*
 	 * Because workloads change over time (and to avoid overflow)
 	 * we keep these statistics as a floating average, which ends
@@ -2523,19 +2531,7 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 		lruvec_lru_size(lruvec, LRU_INACTIVE_FILE, MAX_NR_ZONES);
 
 	spin_lock_irq(&pgdat->lru_lock);
-#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
-	totalcost = lruvec->anon_cost + lruvec->file_cost;
-	if (unlikely(totalcost > (anon + file) / 4)) {
-		lruvec->anon_cost /= 2;
-		lruvec->file_cost /= 2;
-		totalcost /= 2;
-	}
-	ap = anon_prio * (totalcost + 1);
-	ap /= lruvec->anon_cost + 1;
 
-	fp = file_prio * (totalcost + 1);
-	fp /= lruvec->file_cost + 1;
-#else
 	if (unlikely(reclaim_stat->recent_scanned[0] > anon / 4)) {
 		reclaim_stat->recent_scanned[0] /= 2;
 		reclaim_stat->recent_rotated[0] /= 2;
@@ -2556,9 +2552,8 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 
 	fp = file_prio * (reclaim_stat->recent_scanned[1] + 1);
 	fp /= reclaim_stat->recent_rotated[1] + 1;
-#endif
 	spin_unlock_irq(&pgdat->lru_lock);
-
+#endif
 	fraction[0] = ap;
 	fraction[1] = fp;
 	denominator = ap + fp + 1;
