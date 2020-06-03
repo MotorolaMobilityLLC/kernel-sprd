@@ -566,6 +566,21 @@ int soft_fastpath_process(int in_if,
 	/* aqc driver may pass some pkts with 6 bytes paddings */
 	sfp_maybe_trim_skb(skb);
 
+	/*
+	 * Some ethernet drivers(For example, atlantic-fwd)
+	 * support a feature NETIF_F_SG, so the skb from them
+	 * could be nonlinear. The payload may be scattered
+	 * into different pages.
+	 * If we do not linearize it, the csum will be incorrect.
+	 * If return -ENOMEM, we do not free it, we pass it to
+	 * IP stack.
+	 */
+	if (skb_linearize(skb)) {
+		FP_PRT_DBG(FP_PRT_WARN,
+			   "nomem to linear, pass to IP stack\n");
+		return -ENOMEM;
+	}
+
 	if (piphdr->version == 0x04) {
 		*out_if = sfp_check_mod_pkts(
 			in_if,
