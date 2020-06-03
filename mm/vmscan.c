@@ -2055,6 +2055,9 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
 	if (global_reclaim(sc))
 		__count_vm_events(item, nr_scanned);
 	__count_memcg_events(lruvec_memcg(lruvec), item, nr_scanned);
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	__count_vm_events(PGSCAN_ANON + file, nr_scanned);
+#endif
 	spin_unlock_irq(&pgdat->lru_lock);
 
 	if (nr_taken == 0)
@@ -2075,6 +2078,9 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
 	move_pages_to_lru(lruvec, &page_list);
 
 	__mod_node_page_state(pgdat, NR_ISOLATED_ANON + file, -nr_taken);
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	__count_vm_events(PGSTEAL_ANON + file, nr_reclaimed);
+#endif
 
 	spin_unlock_irq(&pgdat->lru_lock);
 

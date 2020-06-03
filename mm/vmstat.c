@@ -1199,7 +1199,12 @@ const char * const vmstat_text[] = {
 	"pgscan_kswapd",
 	"pgscan_direct",
 	"pgscan_direct_throttle",
-
+#ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+	"pgscan_anon",
+	"pgscan_file",
+	"pgsteal_anon",
+	"pgsteal_file",
+#endif
 #ifdef CONFIG_NUMA
 	"zone_reclaim_failed",
 #endif
