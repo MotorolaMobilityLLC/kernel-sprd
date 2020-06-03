@@ -263,15 +263,12 @@ void rotate_reclaimable_page(struct page *page)
 }
 
 #ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
-static void update_page_reclaim_stat(struct lruvec *lruvec,
-				     int file, int rotated,
-				     unsigned int nr_pages)
+void lru_note_cost(struct lruvec *lruvec, bool file, unsigned int nr_pages)
 {
-	struct zone_reclaim_stat *reclaim_stat = &lruvec->reclaim_stat;
-
-	reclaim_stat->recent_scanned[file] += nr_pages;
-	if (rotated)
-		reclaim_stat->recent_rotated[file] += nr_pages;
+	if (file)
+		lruvec->file_cost += nr_pages;
+	else
+		lruvec->anon_cost += nr_pages;
 }
 #else
 static void update_page_reclaim_stat(struct lruvec *lruvec,
@@ -583,7 +580,7 @@ static void lru_deactivate_file_fn(struct page *page, struct lruvec *lruvec,
 #ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 	update_page_reclaim_stat(lruvec, file, 0);
 #else
-	update_page_reclaim_stat(lruvec, file, 0, hpage_nr_pages(page));
+	lru_note_cost(lruvec, !file, hpage_nr_pages(page));
 #endif
 }
 
@@ -603,7 +600,7 @@ static void lru_deactivate_fn(struct page *page, struct lruvec *lruvec,
 #ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 		update_page_reclaim_stat(lruvec, file, 0);
 #else
-		update_page_reclaim_stat(lruvec, file, 0, hpage_nr_pages(page));
+		lru_note_cost(lruvec, !file, hpage_nr_pages(page));
 #endif
 	}
 }
@@ -632,7 +629,7 @@ static void lru_lazyfree_fn(struct page *page, struct lruvec *lruvec,
 #ifndef CONFIG_LRU_BALANCE_BASE_THRASHING
 		update_page_reclaim_stat(lruvec, 1, 0);
 #else
-		update_page_reclaim_stat(lruvec, 1, 0, hpage_nr_pages(page));
+		lru_note_cost(lruvec, 0, hpage_nr_pages(page));
 #endif
 	}
 }
