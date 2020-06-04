@@ -8693,6 +8693,15 @@ CONFIG_MUTEX_SPIN_ON_OWNER
 	[must] console
 	[missing plat description] none
 	[function] Enable kernel support mutex spin on owner.
+CONFIG_NAMESPACES
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] menu
+	[subsys] core
+	[must] user
+	[missing plat description] none
+	[function] add mount/net/uts namespace support
 CONFIG_NEED_DMA_MAP_STATE
 	[arch] all
 	[plat] all
@@ -9547,6 +9556,15 @@ CONFIG_NET_KEY
 	[missing plat description] none
 	[function] vts require, PF_KEYv2 socket family, compatible to KAME ones.
 	They are required if you are going to use IPsec tools ported from KAME.
+CONFIG_NET_NS
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] menu,code
+	[subsys] core
+	[must] user
+	[missing plat description] none
+	[function] add mount/net/uts namespace support
 CONFIG_NET_RX_BUSY_POLL
 	[arch] all
 	[plat] all
@@ -15952,6 +15970,15 @@ CONFIG_USE_OF
 	[must] console
 	[missing plat description] none
 	[function] Flattened Device Tree support.
+CONFIG_UTS_NS
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] menu,code
+	[subsys] core
+	[must] user
+	[missing plat description] none
+	[function] add mount/net/uts namespace support
 CONFIG_VDSO
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
