@@ -81,6 +81,10 @@ struct power_supply_vol_temp_table {
 	int temp;	/* celsius */
 };
 
+struct power_supply_capacity_temp_table {
+	int temp;	/* celsius */
+	int cap;	/* capacity percentage */
+};
 /*
  * struct sc27xx_fgu_data: describe the FGU device
  * @regmap: regmap for register access
@@ -101,6 +105,7 @@ struct power_supply_vol_temp_table {
  * @boot_volt: the voltage measured during boot in microvolt
  * @table_len: the capacity table length
  * @temp_table_len: temp_table length
+ * @cap_table_len：the capacity temperature table length
  * @resist_table_len: the resistance table length
  * @cur_1000ma_adc: ADC value corresponding to 1000 mA
  * @vol_1000mv_adc: ADC value corresponding to 1000 mV
@@ -108,8 +113,10 @@ struct power_supply_vol_temp_table {
  * @comp_resistance: the coulomb counter internal and the board ground resistance
  * @index: record temp_buff array index
  * @temp_buff: record the battery temperature for each measurement
+ * @bat_temp: the battery temperature
  * @cap_table: capacity table with corresponding ocv
  * @temp_table: the NTC voltage table with corresponding battery temperature
+ * @cap_temp_table: the capacity table with corresponding temperature
  * @resist_table: resistance percent table with corresponding temperature
  */
 struct sc27xx_fgu_data {
@@ -132,6 +139,7 @@ struct sc27xx_fgu_data {
 	int boot_volt;
 	int table_len;
 	int temp_table_len;
+	int cap_table_len;
 	int resist_table_len;
 	int cur_1000ma_adc;
 	int vol_1000mv_adc;
@@ -139,8 +147,10 @@ struct sc27xx_fgu_data {
 	unsigned int comp_resistance;
 	int index;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
+	int bat_temp;
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_vol_temp_table *temp_table;
+	struct power_supply_capacity_temp_table *cap_temp_table;
 	struct power_supply_resistance_temp_table *resist_table;
 };
 
@@ -188,6 +198,31 @@ static int sc27xx_fgu_adc_to_voltage(struct sc27xx_fgu_data *data, int adc)
 static int sc27xx_fgu_voltage_to_adc(struct sc27xx_fgu_data *data, int vol)
 {
 	return DIV_ROUND_CLOSEST(vol * data->vol_1000mv_adc, 1000);
+}
+
+static int sc27xx_fgu_temp_to_cap(struct power_supply_capacity_temp_table *table,
+				  int table_len, int temp)
+{
+	int i, capacity;
+
+	temp = temp / 10;
+	for (i = 0; i < table_len; i++)
+		if (temp > table[i].temp)
+			break;
+
+	if (i > 0 && i < table_len) {
+		capacity = interpolate(temp,
+				   table[i].temp,
+				   table[i].cap,
+				   table[i - 1].temp,
+				   table[i - 1].cap);
+	} else if (i == 0) {
+		capacity = table[0].cap;
+	} else {
+		capacity = table[table_len - 1].cap;
+	}
+
+	return capacity;
 }
 
 static bool sc27xx_fgu_is_first_poweron(struct sc27xx_fgu_data *data)
@@ -463,7 +498,7 @@ static int sc27xx_fgu_get_cur_now(struct sc27xx_fgu_data *data, int *val)
 
 static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 {
-	int ret, cur_clbcnt, delta_clbcnt, delta_cap, temp;
+	int ret, cur_clbcnt, delta_clbcnt, delta_cap, temp, temp_cap;
 
 	/* Get current coulomb counters firstly */
 	ret = sc27xx_fgu_get_clbcnt(data, &cur_clbcnt);
@@ -486,6 +521,35 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 	delta_cap = DIV_ROUND_CLOSEST(temp * 100, data->total_cap);
 	*cap = delta_cap + data->init_cap;
 
+	if (data->cap_table_len > 0) {
+		temp_cap = sc27xx_fgu_temp_to_cap(data->cap_temp_table,
+						  data->cap_table_len,
+						  data->bat_temp);
+		/*
+		 * Battery capacity at different temperatures, we think
+		 * the change is linear, the follow the formula: y = ax + k
+		 *
+		 * for example: display 100% at 25 degrees need to display
+		 * 100% at -10 degrees, display 10% at 25 degrees need to
+		 * display 0% at -10 degrees, substituting the above special
+		 * points will deduced follow formula.
+		 * formula 1:
+		 * Capacity_Delta = 100 - Capacity_Percentage(T1)
+		 * formula 2:
+		 * Capacity_temp = (Capacity_Percentage(current) -
+		 * Capacity_Delta) * 100 /(100 - Capacity_Delta)
+		 */
+		delta_cap = 100 - temp_cap;
+		*cap = (*cap - delta_cap) * 100 / (100 - delta_cap);
+	}
+
+	if (*cap < 0) {
+		*cap = 0;
+		sc27xx_fgu_adjust_cap(data, 0);
+	} else if (*cap > 100) {
+		*cap = 100;
+		sc27xx_fgu_adjust_cap(data, 100);
+	}
 	/* Calibrate the battery capacity in a normal range. */
 	sc27xx_fgu_capacity_calibration(data, *cap, false);
 
@@ -528,7 +592,7 @@ static int sc27xx_fgu_get_current(struct sc27xx_fgu_data *data, int *val)
 
 static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
 {
-	int vol, cur, ret, temp, resistance;
+	int vol, cur, ret, resistance;
 
 	ret = sc27xx_fgu_get_vbat_vol(data, &vol);
 	if (ret)
@@ -540,12 +604,9 @@ static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val)
 
 	resistance = data->internal_resist;
 	if (data->resist_table_len > 0) {
-		ret = sc27xx_fgu_get_temp(data, &temp);
-		if (ret)
-			return ret;
-
 		resistance = power_supply_temp2resist_simple(data->resist_table,
-						data->resist_table_len, temp);
+							     data->resist_table_len,
+							     data->bat_temp);
 		resistance = data->internal_resist * resistance / 100;
 	}
 
@@ -666,6 +727,8 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 	} else {
 		*temp = 200;
 	}
+
+	data->bat_temp = *temp;
 
 	return 0;
 }
@@ -932,7 +995,7 @@ static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap)
 static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data,
 					    int cap, bool int_mode)
 {
-	int ret, ocv, chg_sts, adc, temp;
+	int ret, ocv, chg_sts, adc;
 
 	ret = sc27xx_fgu_get_vbat_ocv(data, &ocv);
 	if (ret) {
@@ -946,19 +1009,13 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data,
 		return;
 	}
 
-	ret = sc27xx_fgu_get_temp(data, &temp);
-	if (ret) {
-		dev_err(data->dev, "get battery temperature error.\n");
-		return;
-	}
-
 	/*
 	 * If we are in charging mode or the battery temperature is
 	 * 10 degrees or less, then we do not need to calibrate the
 	 * lower capacity.
 	 */
 	if (chg_sts == POWER_SUPPLY_STATUS_CHARGING ||
-	    temp <= SC27XX_FGU_LOW_TEMP_REGION)
+	    data->bat_temp <= SC27XX_FGU_LOW_TEMP_REGION)
 		return;
 
 	if ((ocv > data->cap_table[0].ocv && cap < 100) || cap > 100) {
@@ -1149,7 +1206,7 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 	return 0;
 }
 
-static int sc27xx_fgu_get_battery_voltage_temp_table(struct power_supply *psy,
+static int sc27xx_fgu_get_battery_table_info(struct power_supply *psy,
 				  struct sc27xx_fgu_data *data)
 {
 	struct device_node *battery_np;
@@ -1199,6 +1256,23 @@ static int sc27xx_fgu_get_battery_voltage_temp_table(struct power_supply *psy,
 		data->temp_table[index].temp = be32_to_cpu(*list++);
 	}
 
+	list = of_get_property(battery_np, "capacity-temp-table", &size);
+	if (!list || !size)
+		return 0;
+
+	data->cap_table_len = size / (2 * sizeof(__be32));
+	data->cap_temp_table = devm_kcalloc(&psy->dev,
+					    data->cap_table_len,
+					    sizeof(*data->cap_temp_table),
+					    GFP_KERNEL);
+	if (!data->cap_temp_table)
+		return -ENOMEM;
+
+	for (index = 0; index < data->cap_table_len; index++) {
+		data->cap_temp_table[index].temp = be32_to_cpu(*list++);
+		data->cap_temp_table[index].cap = be32_to_cpu(*list++);
+	}
+
 	return 0;
 }
 
@@ -1236,9 +1310,9 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 		return -ENOMEM;
 	}
 
-	ret = sc27xx_fgu_get_battery_voltage_temp_table(data->battery, data);
+	ret = sc27xx_fgu_get_battery_table_info(data->battery, data);
 	if (ret) {
-		dev_err(data->dev, "failed to get battery voltage_temp_table information\n");
+		dev_err(data->dev, "failed to get battery table information\n");
 		return ret;
 	}
 
@@ -1345,6 +1419,12 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	ret = sc27xx_fgu_set_clbcnt(data, data->init_clbcnt);
 	if (ret) {
 		dev_err(data->dev, "failed to initialize coulomb counter\n");
+		goto disable_clk;
+	}
+
+	ret = sc27xx_fgu_get_temp(data, &data->bat_temp);
+	if (ret) {
+		dev_err(data->dev, "failed to get battery temperature\n");
 		goto disable_clk;
 	}
 
