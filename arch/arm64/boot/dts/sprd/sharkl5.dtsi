@@ -695,6 +695,7 @@
 			iommu_dcam: iommu@6290c000 {
 				compatible = "sprd,iommuex-dcam";
 				reg = <0 0x6290c000 0 0x60>;
+				sprd,frc-reg = <0x62903010>;
 				sprd,iova-base = <0x40000000>;
 				sprd,iova-size = <0x20000000>;
 				reg_name = "mmu_reg";
