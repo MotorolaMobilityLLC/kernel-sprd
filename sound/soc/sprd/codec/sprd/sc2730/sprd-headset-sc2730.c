@@ -1233,10 +1233,12 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 		(adc_left_average >= 4095 || adc_value_err) ? "outrange!" : "",
 		adc_left_ideal * 1250 / 4095);
 
+	/* after audio_on, adc_left_ideal is fluctuant and unfaithful */
 	if (hdst->audio_on && hdst->hdst_type_status & SND_JACK_HEADPHONE) {
-		adc_left_ideal = 66;
-		pr_info("%s when audio_on and 3pole was reported, set a fake value for adc_left_ideal %d, V_ideal %d mV\n",
-			__func__, adc_left_ideal, adc_left_ideal * 1250 / 4095);
+		pr_info("%s when audio_on and 3pole was reported, report 3pole instead\n",
+			__func__);
+		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
+		return HEADSET_NO_MIC;
 	}
 
 	pr_info("%s sprd_half_adc_gnd %d, sprd_adc_gnd %d,sprd_one_half_adc_gnd %d, threshold_3pole %d\n",
@@ -1251,13 +1253,7 @@ static enum sprd_headset_type sprd_headset_type_plugged(void)
 		return HEADSET_4POLE_NOT_NORMAL;
 	} else if (adc_left_ideal > pdata->sprd_adc_gnd &&
 		ABS(adc_mic_ideal - adc_left_ideal) >= pdata->sprd_adc_gnd) {
-		pr_info("%s audio_on %d, hdst_type_status 0x%x\n",
-			__func__, hdst->audio_on, hdst->hdst_type_status);
-		if (hdst->audio_on &&
-		    hdst->hdst_type_status & SND_JACK_HEADPHONE)
-			return HEADSET_NO_MIC;
-		else
-			return HEADSET_TYPE_ERR;
+		return HEADSET_TYPE_ERR;
 	} else if (adc_left_ideal < pdata->sprd_adc_gnd &&
 		adc_mic_ideal < pdata->threshold_3pole) {
 		sprd_headset_ldetl_ref_sel(LDETL_REF_SEL_100mV);
