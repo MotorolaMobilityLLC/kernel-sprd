@@ -210,6 +210,10 @@
 		#size-cells = <1>;
 		ranges;
 
+		warm_boot_reserved: warm-boot@0x833f0000 {
+			reg = <0x833f0000 0x10000>; /* 64K */
+		};
+
 		/* Only used for iq, will be removed in normal mode by uboot */
 		iq_reserved: iq-mem@84e00000 {
 			compatible = "sprd,iq-mem";
@@ -243,6 +247,15 @@
 			record-size = <0x8000>;
 			console-size = <0x8000>;
 			pmsg-size = <0x8000>;
+		};
+	};
+
+	resume_on_reboot {
+		compatible = "sprd,memdisk";
+
+		warm_boot {
+			memory-region = <&warm_boot_reserved>;
+			label = "warmboot";
 		};
 	};
 
