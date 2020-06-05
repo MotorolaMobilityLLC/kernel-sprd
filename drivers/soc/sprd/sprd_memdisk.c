@@ -38,6 +38,7 @@ struct memdisk_partition_info {
 struct memdisk_dev {
 	unsigned long size;	/* Device size in sectors */
 	spinlock_t lock;	/* For mutual exclusion */
+	short users; /* How many users */
 	struct request_queue *queue;	/* The device request queue */
 	struct gendisk *gd;	/* The gendisk structure */
 	struct memdisk_partition_info *memdiskp[];
@@ -100,6 +101,26 @@ static void memdisk_request(struct request_queue *q)
 	}
 }
 
+static int memdisk_open(struct block_device *bd, fmode_t mode)
+{
+	struct memdisk_dev *dev = bd->bd_disk->private_data;
+
+	spin_lock(&dev->lock);
+	dev->users++;
+	spin_unlock(&dev->lock);
+
+	return 0;
+}
+
+static void memdisk_release(struct gendisk *disk, fmode_t mode)
+{
+	struct memdisk_dev *dev = disk->private_data;
+
+	spin_lock(&dev->lock);
+	dev->users--;
+	spin_unlock(&dev->lock);
+}
+
 /*
  * The HDIO_GETGEO ioctl is handled in blkdev_ioctl(), i
  * calls this. We need to implement getgeo, since we can't
@@ -125,7 +146,9 @@ int memdisk_getgeo(struct block_device *bd, struct hd_geometry *geo)
  */
 static struct block_device_operations memdisk_ops = {
 	.owner = THIS_MODULE,
-	.getgeo = memdisk_getgeo
+	.getgeo = memdisk_getgeo,
+	.open = memdisk_open,
+	.release = memdisk_release
 };
 
 /*
