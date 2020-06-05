@@ -6961,9 +6961,18 @@ CONFIG_INIT_ENV_ARG_LIMIT
 	[missing plat description] none
 	[function] Maximum of each of the number of arguments and environment
 	variables passed to init from the kernel command line.
+CONFIG_INIT_STACK_ALL
+	[arch] arm
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[missing plat] none
+	[field] make,code
+	[subsys] mm
+	[must] user
+	[missing plat description] none
+	[function] Initializes everything on the stack with a 0xAA pattern. avoid uninitalize variables.
 CONFIG_INIT_STACK_NONE
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] roc1,sharkl3,sharkl5,sharkl5Pro
 	[missing plat] none
 	[field] menu
 	[subsys] core
