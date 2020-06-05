@@ -13687,6 +13687,15 @@ CONFIG_SPRD_MCD
 	[must] user
 	[missing plat description] missing plat without external modem, Roc1 unique feature
 	[function] This driver is a modem control device driver for support external modem
+CONFIG_SPRD_MEMDISK
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] roc1,sharkl5_32
+	[field] make
+	[subsys] ota
+	[must] user
+	[missing plat description] androidr projects need this feature
+	[function] Using reserved memory generate block device node.
 CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[arch] all
 	[plat] all
