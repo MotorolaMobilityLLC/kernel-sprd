@@ -390,6 +390,7 @@ static ssize_t wcn_sysfs_store_armlog_status(struct device *dev,
 		return -EINVAL;
 	}
 
+	WCN_INFO("%s:set armlog = %ld\n", __func__, res);
 	if (!marlin_get_module_status()) {
 		sysfs_info.armlog_status = res;
 		return count;

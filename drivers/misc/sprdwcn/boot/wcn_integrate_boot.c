@@ -371,8 +371,8 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 				strcpy(firmware_file_path,
 				       wcn_dev->file_path_ext);
 				fstab_ab(wcn_dev);
-				gnss_file_path_set(firmware_file_path);
 			}
+			gnss_file_path_set(firmware_file_path);
 		}
 
 		WCN_INFO("load config file:%s\n", firmware_file_path);
