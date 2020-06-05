@@ -34,6 +34,20 @@
 	chosen: chosen {
 		stdout-path = "serial1:115200n8";
 	};
+
+	dvfs_dcdc_cpu0_cfg: dvfs-dcdc-cpu0-cfg {
+		pmic-type-num = <0>;
+		slew-rate = <9375>; /* 9375uV/us */
+		tuning-latency-us = <0>;
+	};
+
+	dvfs_dcdc_cpu1_cfg: dvfs-dcdc-cpu1-cfg {
+		chnl-i2c-used;
+		third-pmic-used;
+		pmic-type-num = <2>;
+		slew-rate = <4000>; /* 4000uV/us */
+		tuning-latency-us = <0>;
+	};
 };
 
 &uart0 {

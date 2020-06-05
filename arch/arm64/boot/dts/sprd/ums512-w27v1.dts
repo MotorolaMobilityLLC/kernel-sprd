@@ -34,6 +34,20 @@
 		stdout-path = "serial1:115200n8";
 		bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums512_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio androidboot.selinux=permissive maxcpus=1 androidboot.force_normal_boot=1";
 	};
+
+	dvfs_dcdc_cpu0_cfg: dvfs-dcdc-cpu0-cfg {
+		pmic-type-num = <0>;
+		slew-rate = <9375>; /* 9375uV/us */
+		tuning-latency-us = <0>;
+	};
+
+	dvfs_dcdc_cpu1_cfg: dvfs-dcdc-cpu1-cfg {
+		chnl-i2c-used;
+		third-pmic-used;
+		pmic-type-num = <2>;
+		slew-rate = <4000>; /* 4000uV/us */
+		tuning-latency-us = <0>;
+	};
 };
 
 &uart0 {
@@ -58,6 +72,30 @@
 	no-sd;
 	cap-mmc-hw-reset;
 	status = "okay";
+};
+
+&aon_i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	fan53555_dcdc: regulator@60 {
+		compatible = "fcs,fan53555";
+		reg = <0x60>;
+		regulator-name = "fan53555";
+		regulator-min-microvolt = <600000>;
+		regulator-max-microvolt = <1230000>;
+		regulator-ramp-delay = <64000>;
+		regulator-always-on;
+		fcs,suspend-voltage-selector = <1>;
+	};
+
+	/* A virtual i2c device */
+	cpudvfs-dcdc-cpu1@62{
+		compatible = "sprd,cpudvfs-regulator-sharkl5pro";
+		reg = <0x62>;
+		dvfs-dcdc-i2c = <1>;
+		sprd,attributed-device = <&cpudvfs_dev>;
+	};
 };
 
 &dpu {
