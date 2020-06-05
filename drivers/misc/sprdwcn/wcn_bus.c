@@ -1,26 +1,24 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2017 Spreadtrum Communications Inc.
+ * Copyright (C) 2020 Unisoc Communications Inc.
  *
- * Authors	: jinglong.chen
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Filename : wcn_bus.c
+ * Abstract : This file is a implementation for wcn sdio hal function
  */
 
 #include <linux/kernel.h>
 #include <linux/mutex.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
-
 #include <misc/wcn_bus.h>
 
-#include "include/wcn_dbg.h"
+#include "bus_common.h"
+
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+
+#define pr_fmt(fmt) "WCN BUS: " fmt
 
 struct buffer_pool_t {
 	int size;
@@ -45,8 +43,8 @@ static struct chn_info_t *chn_info(void)
 	return &g_chn_info;
 }
 
-static int buf_list_check(struct buffer_pool_t *pool,
-			  struct mbuf_t *head, struct mbuf_t *tail, int num)
+static int buf_list_check(struct buffer_pool_t *pool, struct mbuf_t *head,
+			  struct mbuf_t *tail, int num)
 {
 	int i;
 	struct mbuf_t *mbuf;
@@ -56,23 +54,23 @@ static int buf_list_check(struct buffer_pool_t *pool,
 
 	for (i = 0, mbuf = head; i < num; i++) {
 		if ((i == (num - 1)) && (mbuf != tail)) {
-			WCN_ERR("%s(0x%lx, 0x%lx, %d), err 1\n", __func__,
-				(unsigned long)virt_to_phys(head),
-				(unsigned long)virt_to_phys(tail), num);
-			WARN_ON(1);
+			pr_err("%s(0x%lx, 0x%lx, %d), err 1\n", __func__,
+			       (unsigned long)virt_to_phys(head),
+			       (unsigned long)virt_to_phys(tail), num);
+			WARN_ON_ONCE(1);
 		}
-		WARN_ON(!mbuf);
-		WARN_ON((char *)mbuf < pool->mem ||
+		WARN_ON_ONCE(!mbuf);
+		WARN_ON_ONCE((char *)mbuf < pool->mem ||
 			(char *)mbuf > pool->mem + ((sizeof(struct mbuf_t)
 			+ pool->payload) * pool->size));
 		mbuf = mbuf->next;
 	}
 
 	if (tail->next != NULL) {
-		WCN_ERR("%s(0x%lx, 0x%lx, %d), err 2\n", __func__,
-			(unsigned long)virt_to_phys(head),
-			(unsigned long)virt_to_phys(tail), num);
-		WARN_ON(1);
+		pr_err("%s(0x%lx, 0x%lx, %d), err 2\n", __func__,
+		       (unsigned long)virt_to_phys(head),
+		       (unsigned long)virt_to_phys(tail), num);
+		WARN_ON_ONCE(1);
 	}
 
 	return 0;
@@ -85,15 +83,15 @@ static int buf_pool_check(struct buffer_pool_t *pool)
 
 	for (i = 0, mbuf = pool->head;
 	     i < pool->free; i++, mbuf = mbuf->next) {
-		WARN_ON(!mbuf);
-		WARN_ON((char *)mbuf < pool->mem ||
+		WARN_ON_ONCE(!mbuf);
+		WARN_ON_ONCE((char *)mbuf < pool->mem ||
 			(char *)mbuf > pool->mem + ((sizeof(struct mbuf_t)
 			+ pool->payload) * pool->size));
 	}
 
 	if (mbuf != NULL) {
-		WCN_ERR("%s(0x%p) err\n", __func__, pool);
-		WARN_ON(1);
+		pr_err("%s(0x%p) err\n", __func__, pool);
+		WARN_ON_ONCE(1);
 	}
 
 	return 0;
@@ -113,13 +111,13 @@ static int buf_pool_init(struct buffer_pool_t *pool, int size, int payload)
 	if (!pool->mem)
 		return -ENOMEM;
 
-	WCN_DBG("mbuf_pool->mem:0x%lx\n",
-		 (unsigned long)virt_to_phys(pool->mem));
+	pr_info("mbuf_pool->mem:0x%lx\n",
+		(unsigned long)virt_to_phys(pool->mem));
 	pool->head = (struct mbuf_t *) (pool->mem);
 	for (i = 0, mbuf = (struct mbuf_t *)(pool->head);
 	     i < (size - 1); i++) {
 		mbuf->seq = i;
-		WCN_DBG("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
+		pr_info("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
 			(unsigned long)mbuf,
 			(unsigned long)virt_to_phys(mbuf));
 		next = (struct mbuf_t *)((char *)mbuf +
@@ -129,9 +127,9 @@ static int buf_pool_init(struct buffer_pool_t *pool, int size, int payload)
 		mbuf->next = next;
 		mbuf = next;
 	}
-	WCN_DBG("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
-		 (unsigned long)mbuf,
-		 (unsigned long)virt_to_phys(mbuf));
+	pr_info("%s mbuf[%d]:{0x%lx, 0x%lx}\n", __func__, i,
+		(unsigned long)mbuf,
+		(unsigned long)virt_to_phys(mbuf));
 	mbuf->seq = i;
 	mbuf->buf = (char *)mbuf + sizeof(struct mbuf_t);
 	mbuf->len = payload;
@@ -163,8 +161,8 @@ int buf_list_alloc(int chn, struct mbuf_t **head,
 	pool = &(chn_inf->pool[chn]);
 
 	if ((*num <= 0) || (pool->free <= 0)) {
-		WCN_ERR("[+]%s err, num %d, free %d)\n",
-			__func__, *num, pool->free);
+		pr_err("[+]%s err, num %d, free %d)\n",
+		       __func__, *num, pool->free);
 		*num = 0;
 		*head = *tail = NULL;
 		return -1;
@@ -188,7 +186,24 @@ int buf_list_alloc(int chn, struct mbuf_t **head,
 
 	return 0;
 }
-EXPORT_SYMBOL(buf_list_alloc);
+
+int buf_list_is_empty(int chn)
+{
+	struct buffer_pool_t *pool;
+	struct chn_info_t *chn_inf = chn_info();
+
+	pool = &(chn_inf->pool[chn]);
+	return pool->free <= 0;
+}
+
+int buf_list_is_full(int chn)
+{
+	struct buffer_pool_t *pool;
+	struct chn_info_t *chn_inf = chn_info();
+
+	pool = &(chn_inf->pool[chn]);
+	return pool->free == pool->size;
+}
 
 int buf_list_free(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 {
@@ -196,9 +211,9 @@ int buf_list_free(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 	struct chn_info_t *chn_inf = chn_info();
 
 	if ((head == NULL) || (tail == NULL) || (num == 0)) {
-		WCN_ERR("%s(%d, 0x%lx, 0x%lx, %d)\n", __func__, chn,
-			(unsigned long)virt_to_phys(head),
-			(unsigned long)virt_to_phys(tail), num);
+		pr_err("%s(%d, 0x%lx, 0x%lx, %d)\n", __func__, chn,
+		       (unsigned long)virt_to_phys(head),
+		       (unsigned long)virt_to_phys(tail), num);
 		return -1;
 	}
 
@@ -213,17 +228,16 @@ int buf_list_free(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 
 	return 0;
 }
-EXPORT_SYMBOL(buf_list_free);
 
 int bus_chn_init(struct mchn_ops_t *ops, int hif_type)
 {
 	int ret = 0;
 	struct chn_info_t *chn_inf = chn_info();
 
-	WCN_INFO("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
+	pr_info("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
 	if (chn_inf->ops[ops->channel] != NULL) {
-		WCN_ERR("%s err, hif_type %d\n", __func__, ops->hif_type);
-		WARN_ON(1);
+		pr_err("%s err, hif_type %d\n", __func__, ops->hif_type);
+		WARN_ON_ONCE(1);
 		return -1;
 	}
 
@@ -236,20 +250,19 @@ int bus_chn_init(struct mchn_ops_t *ops, int hif_type)
 				    ops->pool_size, 0);
 	mutex_unlock(&chn_inf->callback_lock[ops->channel]);
 
-	WCN_INFO("[-]%s(%d)\n", __func__, ops->channel);
+	pr_info("[-]%s(%d)\n", __func__, ops->channel);
 
 	return ret;
 }
-EXPORT_SYMBOL(bus_chn_init);
 
 int bus_chn_deinit(struct mchn_ops_t *ops)
 {
 	int ret = 0;
 	struct chn_info_t *chn_inf = chn_info();
 
-	WCN_INFO("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
+	pr_info("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
 	if (chn_inf->ops[ops->channel] == NULL) {
-		WCN_ERR("%s err\n", __func__);
+		pr_err("%s err\n", __func__);
 		return -1;
 	}
 
@@ -260,11 +273,10 @@ int bus_chn_deinit(struct mchn_ops_t *ops)
 	mutex_unlock(&chn_inf->callback_lock[ops->channel]);
 	mutex_destroy(&chn_inf->callback_lock[ops->channel]);
 
-	WCN_INFO("[-]%s(%d)\n", __func__, ops->channel);
+	pr_info("[-]%s(%d)\n", __func__, ops->channel);
 
 	return ret;
 }
-EXPORT_SYMBOL(bus_chn_deinit);
 
 struct mchn_ops_t *chn_ops(int channel)
 {
@@ -273,12 +285,11 @@ struct mchn_ops_t *chn_ops(int channel)
 
 	return g_chn_info.ops[channel];
 }
-EXPORT_SYMBOL(chn_ops);
 
 int module_ops_register(struct sprdwcn_bus_ops *ops)
 {
 	if (wcn_bus_ops) {
-		WARN_ON(1);
+		WARN_ON_ONCE(1);
 		return -EBUSY;
 	}
 
@@ -286,17 +297,13 @@ int module_ops_register(struct sprdwcn_bus_ops *ops)
 
 	return 0;
 }
-EXPORT_SYMBOL(module_ops_register);
 
 void module_ops_unregister(void)
 {
 	wcn_bus_ops = NULL;
 }
-EXPORT_SYMBOL(module_ops_unregister);
 
 struct sprdwcn_bus_ops *get_wcn_bus_ops(void)
 {
 	return wcn_bus_ops;
 }
-EXPORT_SYMBOL(get_wcn_bus_ops);
-

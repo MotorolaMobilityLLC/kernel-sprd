@@ -10,7 +10,6 @@
 #include <misc/wcn_bus.h>
 
 #include "sdiohal.h"
-#include "sdiohal_dbg.h"
 
 /*
  * TCP_TEST_RX clear 0: TX send packets ceaselessly; set to 1:
@@ -167,16 +166,14 @@ static int sdiohal_simple_test_tx(size_t count)
 	int i;
 
 	test_buf = kzalloc(1024, GFP_KERNEL);
-	if (!test_buf) {
-		WCN_ERR("test_buf kzalloc memory fail");
+	if (!test_buf)
 		return -ENOMEM;
-	}
 
 	if (!sprdwcn_bus_list_alloc(at_tx_ops.channel,
 		&head, &tail, &tx_debug_num)) {
 		if (tx_debug_num >= 4) {
-			WCN_INFO("%s tx_debug_num=%d head:%p\n",
-				 __func__, tx_debug_num, head);
+			pr_info("%s tx_debug_num=%d head:%p\n",
+				__func__, tx_debug_num, head);
 			head->buf = test_buf;
 			head->len = count;
 			temp = head->next;
@@ -192,8 +189,8 @@ static int sdiohal_simple_test_tx(size_t count)
 			sprdwcn_bus_push_list(at_tx_ops.channel,
 				head, tail, tx_debug_num);
 		} else
-			WCN_INFO("%s tx_debug_num=%d < 5\n",
-				 __func__, tx_debug_num);
+			pr_info("%s tx_debug_num=%d < 5\n",
+				__func__, tx_debug_num);
 	}
 	kfree(test_buf);
 
@@ -213,8 +210,7 @@ static int sdiohal_throughput_tx_alloc(void)
 		tp_tx_buf[i] = kzalloc(TP_TX_BUF_LEN + PUB_HEAD_RSV,
 				       GFP_KERNEL);
 		if (!tp_tx_buf[i]) {
-			WCN_ERR("%s kzalloc tp_tx_buf fail\n",
-				__func__);
+			pr_err("%s kzalloc tp_tx_buf fail\n", __func__);
 			for (j = 0; j < i; j++) {
 				kfree(tp_tx_buf[j]);
 				tp_tx_buf[j] = NULL;
@@ -255,14 +251,14 @@ static int sdiohal_throughput_tx(void)
 			ret = sprdwcn_bus_push_list(AT_TX_CHANNEL,
 				head, tail, tx_debug_num);
 			if (ret)
-				WCN_INFO("send_data_func failed!!!\n");
+				pr_info("send_data_func failed!!!\n");
 			return 0;
 		}
 
 		sprdwcn_bus_list_free(AT_TX_CHANNEL, head, tail,
 				      tx_debug_num);
-		WCN_INFO("%s tx_debug_num=%d < %d\n",
-			 __func__, tx_debug_num, tp_tx_buf_cnt);
+		pr_info("%s tx_debug_num=%d < %d\n",
+			__func__, tx_debug_num, tp_tx_buf_cnt);
 
 		return -ENOMEM;
 	}
@@ -284,7 +280,7 @@ static void sdiohal_throughput_tx_compute_time(void)
 		tp_tx_cnt = 0;
 		times_count = timeval_to_ns(&tp_tx_stop_time)
 			- timeval_to_ns(&tp_tx_start_time);
-		WCN_INFO("tx -> times(500c) is %lld\n",
+		pr_info("tx -> times(500c) is %lld\n",
 			 times_count);
 		do_gettimeofday(&tp_tx_start_time);
 	}
@@ -325,7 +321,7 @@ static void sdiohal_launch_tp_tx_thread(void)
 	if (tx_thread)
 		wake_up_process(tx_thread);
 	else
-		WCN_ERR("create sdiohal_tp_tx_thread fail\n");
+		pr_err("create sdiohal_tp_tx_thread fail\n");
 }
 #endif
 
@@ -435,7 +431,7 @@ static void sdiohal_tx_send(int chn)
 							 PUB_HEAD_RSV,
 							 GFP_KERNEL);
 				if (!mbuf_node->buf) {
-					sdiohal_err(" mbuf_node->buf kzalloc memory fail");
+					pr_err(" mbuf->buf alloc fail");
 					return;
 					}
 				mbuf_node->len = TX_MULTI_BUF_SIZE;
@@ -445,15 +441,13 @@ static void sdiohal_tx_send(int chn)
 					mbuf_node->next = NULL;
 			}
 
-			WCN_INFO("%s channel:%d num:%d\n",
-				 __func__, chn, num);
+			pr_info("%s channel:%d num:%d\n", __func__, chn, num);
 
 			ret = sprdwcn_bus_push_list(chn, head, tail, num);
 			if (ret)
-				WCN_ERR("send_data_func failed, num:%d\n",
-					num);
+				pr_err("send_data_func failed, num:%d\n", num);
 		} else
-			WCN_INFO("%s alloced mbuf num=%d < 8\n",
+			pr_info("%s alloced mbuf num=%d < 8\n",
 				 __func__,	num);
 	}
 
@@ -477,7 +471,7 @@ static int sdiohal_tx_muti_channel_pop(int channel, struct mbuf_t *head,
 		sprdwcn_bus_list_free(channel, head, tail, num);
 		complete(&sdiohal_thread_info[channel - 6].tx_completed);
 	} else
-		WCN_ERR("channel err:%d\n", channel);
+		pr_err("channel err:%d\n", channel);
 
 	return 0;
 }
@@ -491,10 +485,8 @@ static void sdiohal_tx_test_init(void)
 
 	for (chn = 0; chn < chn_num; chn++) {
 		tx_test_ops = kzalloc(sizeof(struct mchn_ops_t), GFP_KERNEL);
-		if (!tx_test_ops) {
-			WCN_ERR("sdio tx test,alloc mem fail\n");
+		if (!tx_test_ops)
 			return;
-		}
 
 		tx_test_ops->channel = chn + chn_num;
 		tx_test_ops->hif_type = HW_TYPE_SDIO;
@@ -515,7 +507,7 @@ static void sdiohal_tx_test_init(void)
 		if (tx_thread)
 			wake_up_process(tx_thread);
 		else {
-			WCN_ERR("create sdiohal_tx_thread fail\n");
+			pr_err("create sdiohal_tx_thread fail\n");
 			return;
 		}
 		complete(&sdiohal_thread_info[chn].tx_completed);
@@ -527,11 +519,11 @@ static int sdiohal_rx_muti_channel_pop(int channel, struct mbuf_t *head,
 {
 	int i;
 
-	WCN_INFO("%s channel:%d head:%p tail:%p num:%d\n",
-		 __func__, channel, head, tail, num);
+	pr_info("%s channel:%d head:%p tail:%p num:%d\n",
+		__func__, channel, head, tail, num);
 
 	for (i = 0; i < (head->len < 80 ? head->len:80); i++)
-		WCN_INFO("%s i%d 0x%x\n", __func__, i, head->buf[i]);
+		pr_info("%s i%d 0x%x\n", __func__, i, head->buf[i]);
 
 	sprdwcn_bus_push_list(channel, head, tail, num);
 
@@ -590,14 +582,14 @@ static int at_list_rx_pop(int channel, struct mbuf_t *head,
 {
 	int i;
 
-	WCN_INFO("%s channel:%d head:%p tail:%p num:%d\n",
-		 __func__, channel, head, tail, num);
+	pr_info("%s channel:%d head:%p tail:%p num:%d\n",
+		__func__, channel, head, tail, num);
 
 	for (i = 0; i < (head->len < 80 ? head->len:80); i++)
-		WCN_INFO("%s i%d 0x%x\n", __func__, i, head->buf[i]);
+		pr_info("%s i%d 0x%x\n", __func__, i, head->buf[i]);
 
-	WCN_INFO("%s len:%d buf:%s\n",
-		 __func__, head->len, head->buf + 4);
+	pr_info("%s len:%d buf:%s\n",
+		__func__, head->len, head->buf + 4);
 
 	sprdwcn_bus_push_list(at_rx_ops.channel, head, tail, num);
 #if TCP_TEST_RX
@@ -648,19 +640,18 @@ static char *sdiohal_firmware_data(unsigned long int imag_size)
 	struct file *file;
 	loff_t pos = 0;
 
-	WCN_INFO("%s entry\n", __func__);
+	pr_info("%s entry\n", __func__);
 	file = filp_open(FIRMWARE_PATH, O_RDONLY, 0);
 	if (IS_ERR(file)) {
-		WCN_ERR("%s open file %s error\n",
-			FIRMWARE_PATH, __func__);
+		pr_err("%s open file %s error\n", FIRMWARE_PATH, __func__);
 		return NULL;
 	}
-	WCN_INFO("marlin %s open image file  successfully\n", __func__);
+	pr_info("marlin %s open image file  successfully\n", __func__);
 	size = imag_size;
 	buffer = vmalloc(size);
 	if (!buffer) {
 		fput(file);
-		WCN_ERR("%s no memory\n", __func__);
+		pr_err("%s no memory\n", __func__);
 		return NULL;
 	}
 
@@ -673,7 +664,7 @@ static char *sdiohal_firmware_data(unsigned long int imag_size)
 		}
 	} while ((read_len > 0) && (size > 0));
 	fput(file);
-	WCN_INFO("%s finish read_Len:%d\n", __func__, read_len);
+	pr_info("%s finish read_Len:%d\n", __func__, read_len);
 
 	return data;
 }
@@ -687,10 +678,10 @@ static int sdiohal_download_firmware(void)
 
 	img_size = FIRMWARE_MAX_SIZE;
 
-	WCN_INFO("%s entry\n", __func__);
+	pr_info("%s entry\n", __func__);
 	buffer = sdiohal_firmware_data(img_size);
 	if (!buffer) {
-		WCN_ERR("%s buff is NULL\n", __func__);
+		pr_err("%s buff is NULL\n", __func__);
 		return -1;
 	}
 
@@ -703,7 +694,7 @@ static int sdiohal_download_firmware(void)
 		err = sprdwcn_bus_direct_write(CP_START_ADDR + len,
 			temp_buf, trans_size);
 		if (err < 0) {
-			WCN_ERR("marlin %s error:%d\n", __func__, err);
+			pr_err("marlin %s error:%d\n", __func__, err);
 			vfree(buffer);
 			kfree(temp_buf);
 			return -1;
@@ -712,7 +703,7 @@ static int sdiohal_download_firmware(void)
 	}
 	vfree(buffer);
 	kfree(temp_buf);
-	WCN_INFO("%s finish\n", __func__);
+	pr_info("%s finish\n", __func__);
 
 	return 0;
 }
@@ -725,7 +716,7 @@ static void sdiohal_int_power_wq(struct work_struct *work)
 	unsigned char reg_pub_int_sts0 = 0;
 	unsigned char reg_pub_int_sts1 = 0;
 
-	WCN_INFO("%s entry\n", __func__);
+	pr_info("%s entry\n", __func__);
 	/* read public interrupt status register */
 	sprdwcn_bus_aon_readb(REG_TO_AP_PUB_STS0, &reg_pub_int_sts0);
 	sprdwcn_bus_aon_readb(REG_TO_AP_PUB_STS1, &reg_pub_int_sts1);
@@ -733,8 +724,8 @@ static void sdiohal_int_power_wq(struct work_struct *work)
 	sprdwcn_bus_aon_writeb(REG_TO_AP_INT_CLR0, 0xff);
 	sprdwcn_bus_aon_writeb(REG_TO_AP_INT_CLR1, 0xff);
 
-	WCN_INFO("PUB INT_STS0-0x%x\n", reg_pub_int_sts0);
-	WCN_INFO("PUB INT_STS1-0x%x\n", reg_pub_int_sts1);
+	pr_info("PUB INT_STS0-0x%x\n", reg_pub_int_sts0);
+	pr_info("PUB INT_STS1-0x%x\n", reg_pub_int_sts1);
 
 	enable_irq(sdiohal_public_irq);
 }
@@ -749,12 +740,12 @@ static void sdiohal_gnss_dump_wq(struct work_struct *work)
 	ret = sprdwcn_bus_direct_read(GNSS_DUMP_WIFI_RAM_ADDR,
 		reg_val, GNSS_DUMP_DATA_SIZE);
 	if (ret < 0) {
-		WCN_ERR("%s read reg error:%d\n", __func__, ret);
+		pr_err("%s read reg error:%d\n", __func__, ret);
 		kfree(reg_val);
 		return;
 	}
 	for (i = 0; i < 2000; i++)
-		WCN_INFO("%d 0x%x\n", i, reg_val[i]);
+		pr_info("%d 0x%x\n", i, reg_val[i]);
 	kfree(reg_val);
 }
 
@@ -780,21 +771,20 @@ static int sdiohal_test_int_init(unsigned char func_tag)
 
 	np = of_find_node_by_name(NULL, "sprd-marlin3");
 	if (!np) {
-		WCN_ERR("dts node not found\n");
+		pr_err("dts node not found\n");
 		return -1;
 	}
 	pub_gpio_num = of_get_named_gpio(np, "m2-to-ap-irq-gpios", 0);
-	WCN_INFO("pub_gpio_num:%d\n", pub_gpio_num);
+	pr_info("pub_gpio_num:%d\n", pub_gpio_num);
 	ret = gpio_request(pub_gpio_num, "sdiohal_int_gpio");
 	if (ret < 0) {
-		WCN_ERR("req gpio irq = %d fail!!!\n", pub_gpio_num);
+		pr_err("req gpio irq = %d fail!!!\n", pub_gpio_num);
 		return ret;
 	}
 
 	ret = gpio_direction_input(pub_gpio_num);
 	if (ret < 0) {
-		WCN_ERR("public_int, gpio-%d input set fail!!!\n",
-			pub_gpio_num);
+		pr_err("public_int, gpio-%d input set fail!!!\n", pub_gpio_num);
 		return ret;
 	}
 
@@ -809,11 +799,11 @@ static int sdiohal_test_int_init(unsigned char func_tag)
 	/* enable sdio cp to ap int */
 	sprdwcn_bus_aon_writeb(REG_TO_AP_ENABLE_0, 0xff);
 	sprdwcn_bus_aon_readb(REG_TO_AP_ENABLE_0, &reg_int_en);
-	WCN_INFO("REG_TO_AP_ENABLE_0-0x%x\n", reg_int_en);
+	pr_info("REG_TO_AP_ENABLE_0-0x%x\n", reg_int_en);
 
 	sprdwcn_bus_aon_writeb(REG_TO_AP_ENABLE_1, 0xff);
 	sprdwcn_bus_aon_readb(REG_TO_AP_ENABLE_1, &reg_int_en);
-	WCN_INFO("REG_TO_AP_ENABLE_1-0x%x\n", reg_int_en);
+	pr_info("REG_TO_AP_ENABLE_1-0x%x\n", reg_int_en);
 
 	return 0;
 }
@@ -839,7 +829,7 @@ static ssize_t at_cmd_write(struct file *filp,
 	int ret;
 
 	if (count > SDIOHAL_WRITE_SIZE) {
-		WCN_ERR("%s write size > %d\n",
+		pr_err("%s write size > %d\n",
 			__func__, SDIOHAL_WRITE_SIZE);
 		return -ENOMEM;
 	}
@@ -848,7 +838,7 @@ static ssize_t at_cmd_write(struct file *filp,
 	if (copy_from_user(buf + PUB_HEAD_RSV, user_buf, count))
 		return -EFAULT;
 
-	WCN_INFO("%s write :%s\n", __func__, buf + PUB_HEAD_RSV);
+	pr_info("%s write :%s\n", __func__, buf + PUB_HEAD_RSV);
 
 	if (strncmp(buf + PUB_HEAD_RSV, "download", 8) == 0) {
 		sdiohal_download_firmware();
@@ -858,10 +848,10 @@ static ssize_t at_cmd_write(struct file *filp,
 	/* dedicated int1 is reusable with wifi analog iq monitor */
 	if (strncmp(buf + PUB_HEAD_RSV, "switch_irq", 10) == 0) {
 		p_data->debug_iq = true;
-		WCN_INFO("%s switch irq to [%d][%s]\n",
-			 __func__, p_data->debug_iq,
-			 (p_data->debug_iq ? "wifi analog IQ" :
-			 "sdio dedicated int"));
+		pr_info("%s switch irq to [%d][%s]\n",
+			__func__, p_data->debug_iq,
+			(p_data->debug_iq ? "wifi analog IQ" :
+			"sdio dedicated int"));
 		sdiohal_rx_up();
 
 		return count;
@@ -880,9 +870,9 @@ static ssize_t at_cmd_write(struct file *filp,
 	if (strncmp(buf + PUB_HEAD_RSV, "log_level=", 10) == 0) {
 		buf[SDIOHAL_WRITE_SIZE + PUB_HEAD_RSV - 1] = 0;
 		ret = kstrtol(&buf[PUB_HEAD_RSV + sizeof("log_level=") - 1],
-			10, &sdiohal_log_level);
-		WCN_INFO("%s sdiohal_log_level:%ld\n",
-			 __func__, sdiohal_log_level);
+			      10, &sdiohal_log_level);
+		pr_info("%s sdiohal_log_level:%ld\n",
+			__func__, sdiohal_log_level);
 		return count;
 	}
 
@@ -898,8 +888,7 @@ static ssize_t at_cmd_write(struct file *filp,
 			ret = kstrtol(&buf[PUB_HEAD_RSV +
 				sizeof("sdio_int_tx=") - 1], 10, &int_bitmap);
 
-			WCN_INFO("%s int_bitmap:%ld\n",
-				 __func__, int_bitmap);
+			pr_info("%s int_bitmap:%ld\n", __func__, int_bitmap);
 
 			if (int_bitmap & 0xff) {
 				addr = REG_TO_CP0_REQ0;
@@ -920,7 +909,7 @@ static ssize_t at_cmd_write(struct file *filp,
 		buf[SDIOHAL_WRITE_SIZE + PUB_HEAD_RSV - 1] = 0;
 		ret = kstrtol(&buf[PUB_HEAD_RSV
 			+ sizeof("at_init tx chn=") - 1], 10, &channel);
-		WCN_INFO("%s tx channel:%ld\n", __func__, channel);
+		pr_info("%s tx channel:%ld\n", __func__, channel);
 		at_tx_ops.channel = channel;
 		sprdwcn_bus_chn_init(&at_tx_ops);
 		return count;
@@ -930,7 +919,7 @@ static ssize_t at_cmd_write(struct file *filp,
 		buf[SDIOHAL_WRITE_SIZE + PUB_HEAD_RSV - 1] = 0;
 		ret = kstrtol(&buf[PUB_HEAD_RSV
 			+ sizeof("at_init rx chn=") - 1], 10, &channel);
-		WCN_INFO("%s rx channel:%ld\n", __func__, channel);
+		pr_info("%s rx channel:%ld\n", __func__, channel);
 		at_rx_ops.channel = channel;
 		sprdwcn_bus_chn_init(&at_rx_ops);
 		return count;
@@ -961,7 +950,7 @@ static ssize_t at_cmd_write(struct file *filp,
 	if (strstr((buf + PUB_HEAD_RSV), "tp")) {
 		sdiohal_find_num(buf + PUB_HEAD_RSV,
 			&tp_tx_buf_cnt, &tp_tx_buf_len);
-		WCN_INFO("%s buf_cnt=%d buf_len=%d\n",
+		pr_info("%s buf_cnt=%d buf_len=%d\n",
 			 __func__, tp_tx_buf_cnt, tp_tx_buf_len);
 		tp_tx_flag = 1;
 		tp_tx_cnt = 0;
@@ -977,7 +966,7 @@ static ssize_t at_cmd_write(struct file *filp,
 			sdiohal_log_level = 0;
 			sdiohal_throughput_tx();
 		} else
-			WCN_INFO("%s buf_cnt or buf_len false!!\n",
+			pr_info("%s buf_cnt or buf_len false!!\n",
 				 __func__);
 		return count;
 	} else if (strstr((buf + PUB_HEAD_RSV), "tp_test_rx")) {
@@ -1064,7 +1053,7 @@ void sdiohal_debug_init(void)
 		if (!debugfs_create_file(entry_table[i].name, 0444,
 					 debug_root, NULL,
 					 entry_table[i].file_ops)) {
-			WCN_ERR("%s debugfs_create_file[%d] fail!!\n",
+			pr_err("%s debugfs_create_file[%d] fail!!\n",
 				__func__, i);
 			debugfs_remove_recursive(debug_root);
 			return;

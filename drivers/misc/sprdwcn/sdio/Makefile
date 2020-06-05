@@ -1,13 +1,14 @@
-obj-$(CONFIG_SDIOHAL) := sdiohal.o
+# SPDX-License-Identifier: GPL-2.0
+#
+# Makefile for Unisoc WCN sdio configuration
+#
 
-sdiohal-c-objs += sdiohal_main.o
-sdiohal-c-objs += sdiohal_common.o
-sdiohal-c-objs += sdiohal_tx.o
-sdiohal-c-objs += sdiohal_rx.o
-sdiohal-c-objs += sdio_v3.o
+obj-$(CONFIG_SDIOHAL) += sdiohal_main.o
+obj-$(CONFIG_SDIOHAL) += sdiohal_common.o
+obj-$(CONFIG_SDIOHAL) += sdiohal_tx.o
+obj-$(CONFIG_SDIOHAL) += sdiohal_rx.o
+obj-$(CONFIG_SDIOHAL) += sdiohal_if.o
 
 ifdef CONFIG_DEBUG_FS
-sdiohal-c-objs += sdiohal_ctl.o
+obj-$(CONFIG_SDIOHAL) += sdiohal_ctl.o
 endif
-
-sdiohal-objs += $(sdiohal-c-objs)

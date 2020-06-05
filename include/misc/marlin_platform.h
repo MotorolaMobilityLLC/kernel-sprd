@@ -20,6 +20,7 @@
 #define __MARLIN_H__
 
 #include <linux/types.h>
+#include <misc/wcn_bus.h>
 
 #define FALSE								(0)
 #define TRUE								(1)
@@ -27,18 +28,6 @@
 typedef int (*marlin_reset_callback) (void *para);
 extern marlin_reset_callback marlin_reset_func;
 extern void *marlin_callback_para;
-enum marlin_sub_sys {
-	MARLIN_BLUETOOTH = 0,
-	MARLIN_FM,
-	MARLIN_WIFI,
-	MARLIN_WIFI_FLUSH,
-	MARLIN_SDIO_TX,
-	MARLIN_SDIO_RX,
-	MARLIN_MDBG,
-	MARLIN_GNSS,
-	WCN_AUTO,	/* fist GPS, then btwififm */
-	MARLIN_ALL,
-};
 
 /* sync with wcn_get_chip_type() and wcn_chip_name */
 enum wcn_chip_id_type {
@@ -67,13 +56,13 @@ enum wcn_clock_type wcn_get_xtal_26m_clk_type(void);
 enum wcn_clock_mode wcn_get_xtal_26m_clk_mode(void);
 const char *wcn_get_chip_name(void);
 enum wcn_chip_id_type wcn_get_chip_type(void);
-void marlin_power_off(enum marlin_sub_sys subsys);
+void marlin_power_off(enum wcn_sub_sys subsys);
 int marlin_get_power(void);
-int marlin_set_wakeup(enum marlin_sub_sys subsys);
-int marlin_set_sleep(enum marlin_sub_sys subsys, bool enable);
+int marlin_set_wakeup(enum wcn_sub_sys subsys);
+int marlin_set_sleep(enum wcn_sub_sys subsys, bool enable);
 int marlin_reset_reg(void);
-int start_marlin(u32 subsys);
-int stop_marlin(u32 subsys);
+int start_marlin(enum wcn_sub_sys subsys);
+int stop_marlin(enum wcn_sub_sys subsys);
 int open_power_ctl(void);
 bool marlin_get_download_status(void);
 void marlin_set_download_status(int f);
@@ -84,9 +73,9 @@ int wcn_get_module_status_changed(void);
 void wcn_set_module_status_changed(bool status);
 int marlin_reset_register_notify(void *callback_func, void *para);
 int marlin_reset_unregister_notify(void);
-int is_first_power_on(enum marlin_sub_sys subsys);
-int cali_ini_need_download(enum marlin_sub_sys subsys);
-const char *strno(int subsys);
+int is_first_power_on(enum wcn_sub_sys subsys);
+int cali_ini_need_download(enum wcn_sub_sys subsys);
+const char *strno(enum wcn_sub_sys subsys);
 void wcn_chip_power_on(void);
 void wcn_chip_power_off(void);
 void mdbg_assert_interface(char *str);
