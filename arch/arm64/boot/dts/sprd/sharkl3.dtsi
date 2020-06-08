@@ -818,6 +818,17 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
+
+				fan53555_dcdc: regulator@60 {
+					compatible = "fcs,fan53555";
+					reg = <0x60>;
+					regulator-name = "fan53555";
+					regulator-min-microvolt = <603000>;
+					regulator-max-microvolt = <1411000>;
+					regulator-ramp-delay = <64000>;
+					regulator-always-on;
+					fcs,suspend-voltage-selector = <1>;
+				};
 			};
 
 			sprd_hwdvfs: hwdvfs@40300000 {

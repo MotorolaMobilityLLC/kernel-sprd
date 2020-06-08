@@ -16,13 +16,65 @@
 				compatible = "microarray,afs121";
 				fpint-gpios = <&ap_gpio 130 0>;
 			};
+
+			charger-manager {
+				compatible = "charger-manager";
+				cm-name = "battery";
+				cm-poll-mode = <2>;
+				cm-poll-interval = <15000>;
+				cm-battery-stat = <2>;
+
+				cm-fullbatt-vchkdrop-ms = <30000>;
+				cm-fullbatt-vchkdrop-volt = <60000>;
+				cm-fullbatt-voltage = <4300000>;
+				cm-fullbatt-current = <120000>;
+				cm-fullbatt-capacity = <100>;
+
+				cm-num-chargers = <1>;
+				cm-chargers = "sc2703_charger";
+				cm-fuel-gauge = "sc27xx-fgu";
+
+				/* in deci centigrade */
+				cm-battery-cold = <200>;
+				cm-battery-cold-in-minus;
+				cm-battery-hot = <800>;
+				cm-battery-temp-diff = <100>;
+
+				/* Allow charging for 6hr */
+				cm-charging-max = <18000000>;
+
+				/* the interval to feed charger watchdog */
+				cm-wdt-interval = <60>;
+
+				/* drop voltage in microVolts to allow shutdown */
+				cm-shutdown-voltage = <3100000>;
+
+				/* when 99% of the time is exceeded, it will be forced to 100% */
+				cm-tickle-time-out = <1500>;
+
+				/* how much time to allow capacity change */
+				cm-one-cap-time = <30>;
+
+				/* when the safe charging voltage is exceeded, stop charging */
+				cm-charge-voltage-max = <6500000>;
+				/* drop voltage in microVolts to restart charging */
+				cm-charge-voltage-drop = <700000>;
+				cm-thermal-zone = "board-thmzone";
+
+				regulator@0 {
+					cm-regulator-name = "vddgen0";
+					cable@0 {
+						cm-cable-name = "USB";
+						extcon = <&pmic_typec>;
+					};
+				};
+			};
 		};
 	};
 };
 
 &chosen {
 	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=s9863a3h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
-	bootargs_ext = "androidboot.hardware=s9863a1h10";
 };
 
 &ddr_dfs {
@@ -31,7 +83,79 @@
 	sprd-freq = <933 400 233 400 622 933>;
 };
 
+&i2c3 {
+	status = "okay";
+
+	adaptive-touchscreen@38 {
+		compatible = "adaptive-touchscreen";
+		reg = <0x38>;
+		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
+			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		controller = "focaltech,FT5436";
+		virtualkeys = <580 120 1350 60 45
+			172 360 1350 60 45
+			158 600 1350 60 45>;
+		private-data {
+			a8 = /bits/ 8 <0x5A>;
+		};
+	};
+};
+
 &i2c7 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	charger: sc2703@4c {
+		compatible = "sprd,sc2703";
+		reg = <0x4c>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <8 8>;
+
+		adc: sc2703-adc {
+			compatible = "sprd,sc2703-adc";
+			#io-channel-cells = <1>;
+		};
+
+		sc2703-charger {
+			compatible = "sprd,sc2703-charger";
+			phys = <&hsphy>;
+			monitored-battery = <&bat>;
+			extcon = <&pmic_typec>;
+			vddvbus:otg-vbus {
+				regulator-name = "vddvbus";
+			};
+		};
+	};
+
+	ext_pmic: sc2703-buck@49 {
+		compatible = "sprd,sc2703-buck";
+		reg = <0x49>;
+		buck-gpios = <&ap_gpio 88 0>;
+
+		sprd,buck-ch1-b-out = <1000000>;
+
+		regulator-name = "sc2703-buck";
+		regulator-min-microvolt = < 300000>;
+		regulator-max-microvolt = <1570000>;
+		regulator-min-microamp = <5600000>;
+		regulator-max-microamp = <10800000>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+
+	/*virtual i2c device for cpu hw dvfs,sc2703*/
+	cpufreqhw@61 {
+		compatible = "sprd,hwdvfs-regulator-sharkl3";
+		reg = <0x61>;
+	};
+
+	flash: sc2703-flash@4a {
+		compatible = "sprd,sc2703-flash";
+		reg = <0x4a>;
+		flash-chip-en-gpios = <&ap_gpio 89 0>;
+	/*      sc2703,charger = <&charger>;*/
+	};
+
 	sc2703-disp@4b {
 		compatible = "sprd,sc2703-disp";
 		reg = <0x4b>;
@@ -55,6 +179,44 @@
 	};
 };
 
+&sprd_hwdvfs {
+	compatible = "sprd,sharkl3-hwdvfs-3h10";
+	hwdvfs_cluster0: cluster@0 {
+		reg = <0x0>;
+		dcdc-ctrl = <&dcdc_ctrl1>;
+	};
+
+	hwdvfs_cluster1: cluster@1 {
+		reg = <0x1>;
+		dcdc-ctrl = <&dcdc_ctrl0>;
+	};
+
+	hwdvfs_dsu: dsu@0 {
+		reg = <0x0>;
+		dcdc-ctrl = <&dcdc_ctrl0>;
+	};
+
+	dcdc_ctrl0: dcdc-controller@0 {
+		reg = <0x0 0x0>;
+		volt-via-adi;
+		volt-hold-us = <50>;
+		volt-pause-us = <5>;
+		volt-timeout-us = <800>;
+		volt-stable-us  = <5>;
+		volt-max-step-microvolt = <25000>;
+	};
+
+	dcdc_ctrl1: dcdc-controller@1 {
+		reg = <0x1 0x3>;
+		volt-via-i2c;
+		volt-hold-us = <25>;
+		volt-pause-us = <20>;
+		volt-timeout-us = <800>;
+		volt-stable-us  = <60>;
+		volt-max-step-microvolt = <1200004>;
+	};
+};
+
 &lcd_nt35596_boe_mipi_fhd {
 	power-supply = <&lcd_vdd>;
 };
@@ -67,3 +229,18 @@
 	power-supply = <&lcd_vdd>;
 };
 
+&CPU0 {
+	cpu-supply = <&ext_pmic>;
+};
+
+&CPU1 {
+	cpu-supply = <&ext_pmic>;
+};
+
+&CPU2 {
+	cpu-supply = <&ext_pmic>;
+};
+
+&CPU3 {
+	cpu-supply = <&ext_pmic>;
+};
