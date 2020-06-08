@@ -53,6 +53,7 @@
 			cpufreq-data-v1 = <&cpufreq_clus0>;
 			cpu-idle-states = <&CORE_PD>;
 			capacity-dmips-mhz = <1024>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <100>;
 			sugov_slack_timer;
 		};
@@ -95,6 +96,7 @@
 			cpufreq-data-v1 = <&cpufreq_clus1>;
 			cpu-idle-states = <&CORE_PD>;
 			capacity-dmips-mhz = <1024>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <153>;
 		};
 
