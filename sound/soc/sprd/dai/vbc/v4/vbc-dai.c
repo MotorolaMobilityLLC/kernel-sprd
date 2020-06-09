@@ -5283,6 +5283,12 @@ void scene_dump_set(enum vbc_dump_position_e pos)
 	case DUMP_POS_DAC0_TO_ADC1:
 		dsp_vbc_mux_adc_set(VBC_MUX_IN_ADC1, ADC_IN_DAC0);
 		break;
+	case DUMP_POS_DAC0_TO_ADC2:
+		dsp_vbc_mux_adc_set(VBC_MUX_IN_ADC2, ADC_IN_DAC0);
+		break;
+	case DUMP_POS_DAC0_TO_ADC3:
+		dsp_vbc_mux_adc_set(VBC_MUX_IN_ADC3, ADC_IN_DAC0);
+		break;
 	}
 }
 

@@ -3052,6 +3052,8 @@ static const char * const vbc_dump_pos_txt[DUMP_POS_MAX] = {
 	[DUMP_POS_V2] = TO_STRING(DUMP_POS_V2),
 	[DUMP_POS_V1] = TO_STRING(DUMP_POS_V1),
 	[DUMP_POS_DAC0_TO_ADC1] = TO_STRING(DUMP_POS_DAC0_TO_ADC1),
+	[DUMP_POS_DAC0_TO_ADC2] = TO_STRING(DUMP_POS_DAC0_TO_ADC2),
+	[DUMP_POS_DAC0_TO_ADC3] = TO_STRING(DUMP_POS_DAC0_TO_ADC3),
 };
 
 static const struct soc_enum vbc_dump_pos_enum =
@@ -3070,6 +3072,8 @@ static const char *vbc_dumppos2name(int pos)
 		[DUMP_POS_V2] = TO_STRING(DUMP_POS_V2),
 		[DUMP_POS_V1] = TO_STRING(DUMP_POS_V1),
 		[DUMP_POS_DAC0_TO_ADC1] = TO_STRING(DUMP_POS_DAC0_TO_ADC1),
+		[DUMP_POS_DAC0_TO_ADC2] = TO_STRING(DUMP_POS_DAC0_TO_ADC2),
+		[DUMP_POS_DAC0_TO_ADC3] = TO_STRING(DUMP_POS_DAC0_TO_ADC3),
 	};
 
 	if (pos >= DUMP_POS_MAX) {
@@ -3109,8 +3113,9 @@ static int vbc_put_dump_pos(struct snd_kcontrol *kcontrol,
 		return -EINVAL;
 	}
 
-	sp_asoc_pr_dbg("%s %s -> %s\n", __func__,
-		       vbc_dumppos2name(val), texts->texts[val]);
+	sp_asoc_pr_dbg("%s %s -> %s, vbc_dump_position %s\n", __func__,
+		       vbc_dumppos2name(val), texts->texts[val],
+		       vbc_dumppos2name(vbc_codec->vbc_dump_position_cmd));
 	vbc_codec->vbc_dump_position = val;
 
 	return 0;
@@ -3141,7 +3146,9 @@ static int vbc_put_dump_pos_cmd(struct snd_kcontrol *kcontrol,
 	}
 
 	vbc_codec->vbc_dump_position_cmd = val;
-	sp_asoc_pr_dbg("%s -> %s\n", vbc_dumppos2name(val), texts->texts[val]);
+	sp_asoc_pr_dbg("%s -> %s, vbc_dump_position %s\n",
+		       vbc_dumppos2name(val), texts->texts[val],
+		       vbc_dumppos2name(vbc_codec->vbc_dump_position));
 	scene_dump_set(vbc_codec->vbc_dump_position_cmd);
 
 	return 0;
