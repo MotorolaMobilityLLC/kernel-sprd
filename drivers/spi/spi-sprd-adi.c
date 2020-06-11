@@ -54,7 +54,8 @@
  * ADI slave devices include RTC, ADC, regulator, charger, thermal and so on.
  * The slave devices address offset is always 0x8000 and size is 4K.
  */
-#define ADI_SLAVE_ADDR_SIZE		SZ_4K
+#define ADI_SLAVE_ADDR_SIZE		SZ_8K
+#define ADI_15BIT_SLAVE_OFFSET		0x20000
 #define ADI_SLAVE_OFFSET		0x8000
 
 /* Timeout (ms) for the trylock of hardware spinlocks */
@@ -86,6 +87,10 @@
 #define PMIC_MODULE_EN			0xc08
 #define PMIC_CLK_EN			0xc18
 #define PMIC_WDG_BASE			0x80
+#define SC2730_RST_STATUS		0x1bac
+#define SC2730_MODULE_EN		0x1808
+#define SC2730_CLK_EN			0x1810
+#define SC2730_WDT_BASE			0x40
 #define SC2721_RST_STATUS		0xed8
 #define SC2721_MODULE_EN		0xc08
 #define SC2721_CLK_EN			0xc10
@@ -114,6 +119,7 @@
 #define WDG_UNLOCK_KEY			0xe551
 
 struct sprd_adi_variant_data {
+	u32 slave_offset;
 	u32 wdg_base;
 	u32 rst_sts;
 	u32 wdg_en;
@@ -131,18 +137,28 @@ struct sprd_adi {
 	const struct sprd_adi_variant_data *data;
 };
 
-struct sprd_adi_variant_data sc9860_data = {
+static struct sprd_adi_variant_data sc9860_data = {
+	.slave_offset = ADI_SLAVE_OFFSET,
 	.wdg_base = PMIC_WDG_BASE,
 	.rst_sts = PMIC_RST_STATUS,
 	.wdg_en = PMIC_MODULE_EN,
 	.wdg_clk = PMIC_CLK_EN,
 };
 
-struct sprd_adi_variant_data sharkl3_data = {
+static struct sprd_adi_variant_data sharkl3_data = {
+	.slave_offset = ADI_SLAVE_OFFSET,
 	.wdg_base = SC2721_WDG_BASE,
 	.rst_sts = SC2721_RST_STATUS,
 	.wdg_en = SC2721_MODULE_EN,
 	.wdg_clk = SC2721_CLK_EN,
+};
+
+static struct sprd_adi_variant_data sharkl5pro_data = {
+	.slave_offset = ADI_15BIT_SLAVE_OFFSET,
+	.wdg_base = SC2730_WDT_BASE,
+	.rst_sts = SC2730_RST_STATUS,
+	.wdg_en = SC2730_MODULE_EN,
+	.wdg_clk = SC2730_CLK_EN,
 };
 
 static int sprd_adi_check_paddr(struct sprd_adi *sadi, u32 paddr)
@@ -350,10 +366,10 @@ static void sprd_adi_set_wdt_rst_mode(struct sprd_adi *sadi)
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG)
 	u32 val;
 
-	/* Set default watchdog reboot mode */
-	sprd_adi_read(sadi, sadi->slave_pbase + PMIC_RST_STATUS, &val);
+	/* Init watchdog reset mode */
+	sprd_adi_read(sadi, sadi->slave_pbase + sadi->data->rst_sts, &val);
 	val |= HWRST_STATUS_WATCHDOG;
-	sprd_adi_write(sadi, sadi->slave_pbase + PMIC_RST_STATUS, val);
+	sprd_adi_write(sadi, sadi->slave_pbase + sadi->data->rst_sts, val);
 #endif
 }
 
@@ -492,7 +508,7 @@ static int sprd_adi_probe(struct platform_device *pdev)
 	struct spi_controller *ctlr;
 	struct sprd_adi *sadi;
 	struct resource *res;
-	u32 num_chipselect;
+	u16 num_chipselect;
 	int ret;
 
 	if (!np) {
@@ -507,7 +523,7 @@ static int sprd_adi_probe(struct platform_device *pdev)
 	}
 
 	pdev->id = of_alias_get_id(np, "spi");
-	num_chipselect = of_get_child_count(np);
+	num_chipselect = (__force u16)of_get_child_count(np);
 
 	ctlr = spi_alloc_master(&pdev->dev, sizeof(struct sprd_adi));
 	if (!ctlr)
@@ -523,8 +539,9 @@ static int sprd_adi_probe(struct platform_device *pdev)
 		goto put_ctlr;
 	}
 
-	sadi->slave_vbase = (unsigned long)sadi->base + ADI_SLAVE_OFFSET;
-	sadi->slave_pbase = res->start + ADI_SLAVE_OFFSET;
+	sadi->slave_vbase = (__force unsigned long)sadi->base +
+			    data->slave_offset;
+	sadi->slave_pbase = res->start + data->slave_offset;
 	sadi->ctlr = ctlr;
 	sadi->dev = &pdev->dev;
 	sadi->data = data;
@@ -598,6 +615,10 @@ static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,sharkl3-adi",
 		.data = &sharkl3_data,
+	},
+	{
+		.compatible = "sprd,sharkl5Pro-adi",
+		.data = &sharkl5pro_data,
 	},
 	{ },
 };
