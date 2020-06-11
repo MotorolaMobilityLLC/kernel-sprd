@@ -755,9 +755,7 @@ DEFINE_SIMPLE_ATTRIBUTE(debug_shrink_fops, debug_shrink_get,
 
 void ion_device_add_heap(struct ion_heap *heap)
 {
-#ifdef CONFIG_DEBUG_FS
 	struct dentry *debug_file;
-#endif
 	struct ion_device *dev = internal_dev;
 
 	if (!heap->ops->allocate || !heap->ops->free)
