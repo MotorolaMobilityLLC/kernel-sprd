@@ -312,8 +312,8 @@
 			};
 
 			ap_efuse: efuse@32240000 {
-				compatible = "sprd,sharkl5-efuse",
-					     "sprd,sharkl5pro-efuse";
+				compatible = "sprd,ums312-efuse",
+					     "sprd,ums512-efuse";
 				reg = <0 0x32240000 0 0x10000>;
 				#address-cells = <1>;
 				#size-cells = <1>;
