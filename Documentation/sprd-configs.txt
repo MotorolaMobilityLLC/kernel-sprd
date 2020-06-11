@@ -15580,9 +15580,9 @@ CONFIG_ZRAM
 	[function] SWAP partition based on RAM is used to access the compressed anon page
 		   to avoid the influence of IO speed restriction on the system,
 CONFIG_ZRAM_WRITEBACK
-	[arch] arm
-	[plat] sharkl3_32
-	[missing plat] pike2,sharkl5_32,sharkle32
+	[arch] all
+	[plat] sharkl3_32,sharkl5Pro
+	[missing plat] pike2,sharkl3,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] block
 	[must] user
