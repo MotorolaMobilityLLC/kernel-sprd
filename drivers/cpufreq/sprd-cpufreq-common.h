@@ -27,10 +27,6 @@
 #include <linux/types.h>
 #include <linux/of_platform.h>
 
-#undef pr_debug
-#define pr_debug pr_err
-
-
 /* Default voltage_tolerance */
 #define DEF_VOLT_TOL			0
 /* Regulator Supply */
