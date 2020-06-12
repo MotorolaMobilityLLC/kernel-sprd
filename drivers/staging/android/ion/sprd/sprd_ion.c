@@ -225,7 +225,8 @@ int sprd_ion_get_phys_addr(int fd, struct dma_buf *dmabuf,
 	if (IS_ERR(buffer))
 		return PTR_ERR(buffer);
 
-	if (buffer->heap->type == ION_HEAP_TYPE_CARVEOUT) {
+	if (buffer->heap->type == ION_HEAP_TYPE_CARVEOUT ||
+	    buffer->size == 0x1000) {
 		table = buffer->sg_table;
 		if (table && table->sgl) {
 			sgl = table->sgl;
@@ -264,7 +265,8 @@ int sprd_ion_get_phys_addr_by_db(struct dma_buf *dmabuf,
 	if (IS_ERR_OR_NULL(buffer))
 		return PTR_ERR(buffer);
 
-	if (buffer->heap->type == ION_HEAP_TYPE_CARVEOUT) {
+	if (buffer->heap->type == ION_HEAP_TYPE_CARVEOUT ||
+	    buffer->size == 0x1000) {
 		table = buffer->sg_table;
 		if (table && table->sgl) {
 			sgl = table->sgl;
