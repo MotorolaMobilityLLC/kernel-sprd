@@ -307,4 +307,6 @@ void dt_to_yaml(FILE *f, struct dt_info *dti);
 
 struct dt_info *dt_from_fs(const char *dirname);
 
+int dtbo_merge_chk_main(int argc, char *argv[]);
+
 #endif /* DTC_H */

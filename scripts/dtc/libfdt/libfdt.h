@@ -1957,4 +1957,6 @@ int fdt_overlay_apply(void *fdt, void *fdto);
 
 const char *fdt_strerror(int errval);
 
+int dtbo_merge_chk_main(int argc, char *argv[]);
+
 #endif /* LIBFDT_H */
