@@ -83,7 +83,6 @@ CONFIG_ANDROID_BINDERFS
 	[must] console
 	[missing plat description] none
 	[function] It can be used to dynamically allocate new binder IPC devices via ioctls.
-
 CONFIG_ANDROID_BINDER_DEVICES
 	[arch] all
 	[plat] all
@@ -6238,7 +6237,16 @@ CONFIG_HID_MULTITOUCH
 	[subsys] hid
 	[must] user
 	[missing plat description] none
-	[function] HID Multitouch panels
+	[function] none Multitouch panels
+CONFIG_HID_NINTENDO
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] roc1,sharkl5,sharkl5Pro
+	[field] menu,make
+	[subsys] hid
+	[must] user
+	[missing plat description] precedence surport sharkl3-3
+	[function] add new NintendoSwitchPro device
 CONFIG_HID_NTRIG
 	[arch] all
 	[plat] all
