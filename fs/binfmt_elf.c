@@ -2196,8 +2196,9 @@ static void fill_extnum_info(struct elfhdr *elf, struct elf_shdr *shdr4extnum,
 static int check_corefile_limit(struct file *core_file, size_t corefile_size)
 {
 	struct kstatfs sfs;
-	u64 avail_size = 0;
-	u64 total_size = 0;
+	const struct path *path;
+	s64 avail_size = 0;
+	s64 total_size = 0;
 	int ret = 0;
 
 	if (!core_file) {
@@ -2205,7 +2206,8 @@ static int check_corefile_limit(struct file *core_file, size_t corefile_size)
 		return -ENOENT;
 	}
 
-	ret = vfs_statfs(&core_file->f_path, &sfs);
+	path = &core_file->f_path;
+	ret = vfs_statfs(path, &sfs);
 	if (ret < 0 || sfs.f_blocks == 0) {
 		printk(KERN_ERR "Get data statfs error\n");
 		return -EACCES;
@@ -2223,7 +2225,7 @@ static int check_corefile_limit(struct file *core_file, size_t corefile_size)
 
 	if (ret != 0)
 		printk(KERN_WARNING "No more space:corefile need %zu, "\
-		"avail %llu(user), total %llu\n",
+		"avail %lld(user), total %lld\n",
 		corefile_size, avail_size, total_size);
 
 	return ret;
