@@ -1768,6 +1768,8 @@ static int charger_get_property(struct power_supply *psy,
 {
 	struct charger_manager *cm = power_supply_get_drvdata(psy);
 	struct power_supply *fuel_gauge = NULL;
+	unsigned int total_cap = 0;
+	int chg_cur = 0;
 	int ret = 0;
 	int i;
 
@@ -1961,6 +1963,39 @@ static int charger_get_property(struct power_supply *psy,
 		}
 		break;
 
+	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+		fuel_gauge = power_supply_get_by_name(
+					cm->desc->psy_fuel_gauge);
+		if (!fuel_gauge) {
+			ret = -ENODEV;
+			break;
+		}
+
+		ret = power_supply_get_property(fuel_gauge,
+						POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
+						val);
+		break;
+
+	case POWER_SUPPLY_PROP_TIME_TO_FULL_NOW:
+		ret = get_charger_current(cm, &chg_cur);
+		if (ret) {
+			dev_err(cm->dev, "get chg_cur error.\n");
+			break;
+		}
+		chg_cur = chg_cur / 1000;
+
+		ret = get_batt_total_cap(cm, &total_cap);
+		if (ret) {
+			dev_err(cm->dev, "failed to get total cap.\n");
+			break;
+		}
+		total_cap = total_cap / 1000;
+
+		val->intval =
+			((100 - cm->desc->cap) * total_cap / 100) * 3600 / chg_cur;
+
+		break;
+
 	default:
 		return -EINVAL;
 	}
@@ -2102,6 +2137,8 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
+	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
+	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 	/*
 	 * Optional properties are:
 	 * POWER_SUPPLY_PROP_CHARGE_NOW,
