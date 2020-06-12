@@ -31,14 +31,13 @@
 #include <linux/rbtree.h>
 #include <linux/slab.h>
 #include <linux/seq_file.h>
-#include <linux/sprd_ion.h>
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
 #include <linux/debugfs.h>
 #include <linux/dma-buf.h>
 #include <linux/idr.h>
 #include <linux/sched/task.h>
-
+#include <linux/sprd_iommu.h>
 #include "ion.h"
 
 static struct ion_device *internal_dev;
@@ -152,6 +151,7 @@ void ion_buffer_destroy(struct ion_buffer *buffer)
 		buffer->heap->ops->unmap_kernel(buffer->heap, buffer);
 	}
 	buffer->heap->ops->free(buffer);
+	sprd_iommu_notifier_call_chain((void *)buffer);
 	kfree(buffer);
 }
 
@@ -164,8 +164,6 @@ static void _ion_buffer_destroy(struct ion_buffer *buffer)
 	rb_erase(&buffer->node, &dev->buffers);
 	mutex_unlock(&dev->buffer_lock);
 	atomic_long_sub(buffer->size, &total_heap_bytes);
-
-	sprd_ion_unmap_dma((void *)buffer);
 
 	if (heap->flags & ION_HEAP_FLAG_DEFER_FREE)
 		ion_heap_freelist_add(heap, buffer);

@@ -163,56 +163,6 @@ int sprd_ion_get_sg(void *buf, struct sg_table **table)
 	return 0;
 }
 
-void sprd_ion_set_dma(void *buf, int id)
-{
-	struct ion_buffer *buffer = (struct ion_buffer *)buf;
-
-	if (id < 0 || id >= SPRD_IOMMU_MAX) {
-		pr_err("%s: iommu id %d out of range!", __func__, id);
-		return;
-	}
-
-	if (buffer->iomap_cnt[id] == 0x6b6b6b6b) {
-		pr_err("%s: iommu id %d memory corruption!", __func__, id);
-		dump_stack();
-	}
-	buffer->iomap_cnt[id]++;
-}
-
-void sprd_ion_put_dma(void *buf, int id)
-{
-	struct ion_buffer *buffer = (struct ion_buffer *)buf;
-
-	if (id < 0 || id >= SPRD_IOMMU_MAX) {
-		pr_err("%s: iommu id %d out of range!", __func__, id);
-		return;
-	}
-
-	if (buffer->iomap_cnt[id] == 0x6b6b6b6b) {
-		pr_err("%s: iommu id %d memory corruption!", __func__, id);
-		dump_stack();
-	}
-	buffer->iomap_cnt[id]--;
-}
-
-void sprd_ion_unmap_dma(void *buffer)
-{
-	int i;
-	struct ion_buffer *buf = (struct ion_buffer *)buffer;
-	struct sprd_iommu_unmap_data data;
-
-	for (i = 0; i < SPRD_IOMMU_MAX; i++) {
-		if (buf->iomap_cnt[i]) {
-			buf->iomap_cnt[i] = 0;
-			data.buf = buffer;
-			data.table = buf->sg_table;
-			data.iova_size = buf->size;
-			data.dev_id = i;
-			sprd_iommu_unmap_orphaned(&data);
-		}
-	}
-}
-
 int sprd_ion_get_phys_addr(int fd, struct dma_buf *dmabuf,
 			   unsigned long *phys_addr, size_t *size)
 {

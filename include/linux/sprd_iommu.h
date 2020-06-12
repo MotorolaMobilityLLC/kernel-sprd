@@ -82,6 +82,7 @@ struct sprd_iommu_dev {
 
 	struct sprd_iommu_sg_pool sg_pool;
 	int id;
+	struct notifier_block sprd_iommu_nb;
 };
 
 /*map arguments for kernel space*/
@@ -101,7 +102,6 @@ struct sprd_iommu_unmap_data {
 	struct sg_table *table;
 	void *buf;
 	u32 channel_id;
-	int dev_id;
 };
 
 struct sprd_iommu_list_data {
@@ -111,6 +111,7 @@ struct sprd_iommu_list_data {
 
 /*kernel API for Iommu map/unmap*/
 #if IS_ENABLED(CONFIG_SPRD_IOMMU)
+int sprd_iommu_notifier_call_chain(void *data);
 void sprd_iommu_pool_show(struct device *dev);
 void sprd_iommu_reg_dump(struct device *dev);
 void sprd_iommu_reg_show(struct device *dev);
@@ -123,10 +124,14 @@ int sprd_iommu_unmap(struct device *dev,
 		struct sprd_iommu_unmap_data *data);
 int sprd_iommu_unmap_with_idx(struct device *dev,
 		struct sprd_iommu_unmap_data *data, int idx);
-int sprd_iommu_unmap_orphaned(struct sprd_iommu_unmap_data *data);
 int sprd_iommu_restore(struct device *dev);
 int sprd_iommu_set_cam_bypass(bool vaor_bp_en);
 #else
+int sprd_iommu_notifier_call_chain(void *data)
+{
+	return -ENODEV;
+}
+
 void sprd_iommu_pool_show(struct device *dev)
 {
 	return -ENODEV;
