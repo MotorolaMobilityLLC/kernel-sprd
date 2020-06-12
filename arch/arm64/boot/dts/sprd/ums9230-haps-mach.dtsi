@@ -23,4 +23,9 @@
 		};
 
 	};
+
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		ports = <&dummy_crtc_port>;
+	};
 };
