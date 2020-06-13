@@ -230,9 +230,9 @@
 		};
 	};
 
-	gnss-common-ctl {
-		compatible = "sprd,gnss-common-ctl";
-		sprd,name = "gnss-common-ctl";
+	gnss_common_ctl:gnss-common-ctl {
+		compatible = "sprd,gnss_common_ctl";
+		sprd,name = "gnss_common_ctl";
 	};
 
 	audio-mem-mgr {
