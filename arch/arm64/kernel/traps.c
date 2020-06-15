@@ -174,7 +174,7 @@ int irqsoff_unwind_backtrace(unsigned long *ip)
 		int urc;
 
 		frame_fp_saved = frame.fp;
-		urc = unwind_frame(current, &frame);
+		urc = irqsoff_unwind_frame(current, &frame);
 		if (urc < 0)
 			break;
 

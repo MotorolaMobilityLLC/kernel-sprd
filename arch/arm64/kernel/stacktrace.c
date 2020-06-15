@@ -88,6 +88,28 @@ int notrace unwind_frame(struct task_struct *tsk, struct stackframe *frame)
 }
 NOKPROBE_SYMBOL(unwind_frame);
 
+int notrace irqsoff_unwind_frame(struct task_struct *tsk, struct stackframe *frame)
+{
+	unsigned long fp = frame->fp;
+
+	if (fp & 0xf)
+		return -EINVAL;
+
+	if (!tsk)
+		tsk = current;
+
+	if (!on_accessible_stack(tsk, fp))
+		return -EINVAL;
+
+	frame->fp = READ_ONCE_NOCHECK(*(unsigned long *)(fp));
+	frame->pc = READ_ONCE_NOCHECK(*(unsigned long *)(fp + 8));
+
+	if (!frame->fp && !frame->pc)
+		return -EINVAL;
+
+	return 0;
+}
+
 void notrace walk_stackframe(struct task_struct *tsk, struct stackframe *frame,
 		     int (*fn)(struct stackframe *, void *), void *data)
 {
