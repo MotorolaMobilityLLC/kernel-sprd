@@ -1717,6 +1717,28 @@ static ssize_t version_show(struct device *dev, struct device_attribute *attr,
 }
 static DEVICE_ATTR_RO(version);
 
+static ssize_t als_mode_store(struct device *dev,
+				 struct device_attribute *attr,
+				 const char *buf, size_t count)
+{
+	u8 als_mode;
+	int err;
+	struct shub_data *sensor = dev_get_drvdata(dev);
+
+	if (sscanf(buf, "%4hhx", &als_mode) != 1)
+		return -EINVAL;
+
+	err = shub_send_command(sensor, SENSOR_LIGHT, SHUB_SET_MODE,
+				&als_mode, sizeof(als_mode));
+	if (err < 0) {
+		dev_err(&sensor->sensor_pdev->dev, "Set als_mode Fail\n");
+		return err;
+	}
+
+	return count;
+}
+static DEVICE_ATTR_WO(als_mode);
+
 static ssize_t raw_data_acc_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -2063,6 +2085,7 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_calibrator_data.attr,
 	&dev_attr_light_sensor_calibrator.attr,
 	&dev_attr_version.attr,
+	&dev_attr_als_mode.attr,
 	&dev_attr_raw_data_acc.attr,
 	&dev_attr_raw_data_mag.attr,
 	&dev_attr_raw_data_gyro.attr,
