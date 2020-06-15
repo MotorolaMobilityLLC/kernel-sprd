@@ -1457,6 +1457,15 @@ CONFIG_BLK_DEV_LOOP_MIN_COUNT
 	[function] Static number of loop devices to be unconditionally pre-created
                    at init time. we set this value to 0 for known problem.
                    The historic default is 8 and vts test requires it no more than 16.
+CONFIG_BLK_DEV_PMEM
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] roc1
+	[field] make
+	[subsys] pmem
+	[must] user
+	[missing plat description] roc1 is invalid in androidr
+	[function] PMEM: Persistent memory block device support.
 CONFIG_BLK_DEV_RAM
 	[arch] all
 	[plat] all
@@ -1691,6 +1700,15 @@ CONFIG_BSD_PROCESS_ACCT_V3
 	[function] If you say Y here, the process accounting information is written in a new file format
 	that also logs the process IDs of each process and it's parent. Note that this file format is incompatible
 	with previous v0/v1/v2 file formats, so you will need updated tools for processing it.
+CONFIG_BTT
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] roc1
+	[field] code,make
+	[subsys] pmem
+	[must] user
+	[missing plat description] roc1 is invaild in androidr
+	[function] Block Translation Table (atomic sector updates).
 CONFIG_BUG
 	[arch] all
 	[plat] all
@@ -8166,6 +8184,15 @@ CONFIG_LIBFDT
 	[must] console
 	[missing plat description] none
 	[function] Support the kernel for fdt.
+CONFIG_LIBNVDIMM
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] roc1
+	[field] make
+	[subsys] pmem
+	[must] user
+	[missing plat description] roc1 is invalid in androidr
+	[function] NVDIMM (Non-Volatile Memory Device) Support.
 CONFIG_LOCALVERSION
 	[arch] all
 	[plat] all
@@ -8738,6 +8765,33 @@ CONFIG_NAMESPACES
 	[must] user
 	[missing plat description] none
 	[function] add mount/net/uts namespace support
+CONFIG_ND_BLK
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] roc1
+	[field] make
+	[subsys] pmem
+	[must] user
+	[missing plat description] roc1 is invalid in androidr
+	[function] Block data window (aperture) device support.
+CONFIG_ND_BTT
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] roc1
+	[field] make
+	[subsys] pmem
+	[must] user
+	[missing plat description] roc1 is invalid in androidr
+	[function] Select by BTT.
+CONFIG_ND_CLAIM
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] roc1
+	[field] make,code
+	[subsys] pmem
+	[must] user
+	[missing plat description] roc1 is invalid in androidr
+	[function] Select by OF_PMEM.
 CONFIG_NEED_DMA_MAP_STATE
 	[arch] all
 	[plat] all
@@ -10460,6 +10514,15 @@ CONFIG_OF_PCI_IRQ
 				   missing sharkl5Pro because sharkl3 hardware
 				   platform does not use pci device.
 	[function] OpenFirmware PCI IRQ routing helpers.
+CONFIG_OF_PMEM
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] roc1
+	[field] make
+	[subsys] pmem
+	[must] user
+	[missing plat description] roc1 is invalid in androidr
+	[function] Support kernel driver for Resume on Reboot.
 CONFIG_OF_RESERVED_MEM
 	[arch] all
 	[plat] all
@@ -13724,13 +13787,13 @@ CONFIG_SPRD_MCD
 	[missing plat description] missing plat without external modem, Roc1 unique feature
 	[function] This driver is a modem control device driver for support external modem
 CONFIG_SPRD_MEMDISK
-	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] roc1,sharkl5_32
+	[arch] arm
+	[plat] pike2,sharkl3_32,sharkle32
+	[missing plat] sharkl5_32
 	[field] make
 	[subsys] ota
 	[must] user
-	[missing plat description] androidr projects need this feature
+	[missing plat description] sharkl5_32 is invalid in androidr
 	[function] Using reserved memory generate block device node.
 CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[arch] all
