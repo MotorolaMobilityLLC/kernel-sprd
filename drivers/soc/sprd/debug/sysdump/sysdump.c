@@ -116,7 +116,7 @@ struct minidump_info  minidump_info_g =	{
 	},
 	.section_info_total		=	{
 		.section_info		=	{
-			{"text", (unsigned long)_stext, (unsigned long)_etext, 0, 0, 0},
+//			{"text", (unsigned long)_stext, (unsigned long)_etext, 0, 0, 0},
 			{"data", (unsigned long)_sdata, (unsigned long)_edata, 0, 0, 0},
 			{"bss", (unsigned long)__bss_start, (unsigned long)__bss_stop, 0, 0, 0},
 			{"init", (unsigned long)__init_begin, (unsigned long)__init_end, 0, 0, 0},
