@@ -52,6 +52,8 @@
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
+			capacity-dmips-mhz = <544>;
+			dynamic-power-coefficient = <102>;
 		};
 
 		CPU1: cpu@100 {
@@ -61,6 +63,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
+			capacity-dmips-mhz = <544>;
 		};
 
 		CPU2: cpu@200 {
@@ -70,6 +73,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
+			capacity-dmips-mhz = <544>;
 		};
 
 		CPU3: cpu@300 {
@@ -79,6 +83,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
+			capacity-dmips-mhz = <544>;
 		};
 
 		CPU4: cpu@400 {
@@ -88,6 +93,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
+			capacity-dmips-mhz = <544>;
 		};
 
 		CPU5: cpu@500 {
@@ -97,6 +103,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster0_opp>;
+			capacity-dmips-mhz = <544>;
 		};
 
 		CPU6: cpu@600 {
@@ -106,6 +113,8 @@
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster1_opp>;
+			capacity-dmips-mhz = <1024>;
+			dynamic-power-coefficient = <501>;
 		};
 
 		CPU7: cpu@700 {
@@ -115,6 +124,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&CORE_PD>;
 			cpufreq-data-v1 = <&cpufreq_cluster1_opp>;
+			capacity-dmips-mhz = <1024>;
 		};
 	};
 
