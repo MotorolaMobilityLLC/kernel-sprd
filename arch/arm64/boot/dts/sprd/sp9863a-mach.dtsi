@@ -210,9 +210,9 @@
 		#size-cells = <2>;
 		ranges;
 
-		rebootescrow@0x833f0000 {
+		rebootescrow@0x81ff0000 {
 			no-map;
-			reg = <0x0 0x833f0000 0x0 0x00010000>; /* 64K */
+			reg = <0x0 0x81ff0000 0x0 0x00010000>; /* 64K */
 		};
 
 		/* Only used for iq, will be removed in normal mode by uboot */
@@ -249,7 +249,7 @@
 
 	rebootescrow@0 {
 		compatible = "pmem-region";
-		reg = <0x0 0x833f0000 0x0 0x00010000>;
+		reg = <0x0 0x81ff0000 0x0 0x00010000>;
 	};
 
 	sprd-sensorhub {
