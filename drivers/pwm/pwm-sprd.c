@@ -74,7 +74,7 @@ static int sprd_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 		spc->eb_enabled[pwm->hwpwm] = true;
 	}
 
-	tmp = duty_ns * PWM_MOD_MAX;
+	tmp = (u64)duty_ns * PWM_MOD_MAX;
 	level = DIV_ROUND_CLOSEST_ULL(tmp, period_ns);
 	dev_dbg(chip->dev, "duty_ns = %d, period_ns = %d, level = %d\n",
 		duty_ns, period_ns, level);
