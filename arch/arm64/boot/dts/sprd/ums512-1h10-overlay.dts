@@ -21,7 +21,7 @@
 
 			pwm_backlight: backlight {
 				compatible = "pwm-backlight";
-				/*pwms = <&pwms 2 40000>;*/
+				pwms = <&pwms 2 40000>;
 				pwm-names = "backlight";
 				brightness-levels = <
 							      1   1   1   1   1
