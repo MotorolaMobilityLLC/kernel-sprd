@@ -61,7 +61,18 @@
 };
 
 &i2c3 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
 	status = "okay";
+
+	touchscreen@20 {
+		compatible = "synaptics,dsx";
+		reg = <0x20>;
+		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH>,
+			<&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+	};
+
 };
 
 &panel {
