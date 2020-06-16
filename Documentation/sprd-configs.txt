@@ -14421,6 +14421,24 @@ CONFIG_STANDALONE
 	[must] console
 	[missing plat description] none
 	[function] Select only drivers that don't need compile-time external firmware.
+CONFIG_STATIC_USERMODEHELPER
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] roc1
+	[field] menu
+	[subsys] security
+	[must] user
+	[missing plat description] Keep current status
+	[function] Force all usermode helper calls through a single binary
+CONFIG_STATIC_USERMODEHELPER_PATH
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] roc1
+	[field] menu
+	[subsys] security
+	[must] user
+	[missing plat description] Keep current status
+	[function] Force all usermode helper calls through a single binary
 CONFIG_STRICT_KERNEL_RWX
 	[arch] all
 	[plat] all
