@@ -27,3 +27,19 @@ config PINCTRL_SPRD_SHARKL3
 	select PINCTRL_SPRD
 	help
 	  Say Y here to enable Spreadtrum sharkl3 pinctrl driver
+
+config PINCTRL_SPRD_SHARKL5PRO
+	tristate "Spreadtrum sharkl5pro pinctrl driver"
+	depends on OF
+	depends on ARCH_SPRD || COMPILE_TEST
+	select PINCTRL_SPRD
+	help
+	  Say Y here to enable Spreadtrum sharkl5pro pinctrl driver
+
+config PINCTRL_SPRD_SHARKL6
+	tristate "Spreadtrum sharkl6 pinctrl driver"
+	depends on OF
+	depends on ARCH_SPRD || COMPILE_TEST
+	select PINCTRL_SPRD
+	help
+	  Say Y here to enable Spreadtrum sharkl6 pinctrl driver
