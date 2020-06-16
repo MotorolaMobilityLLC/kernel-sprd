@@ -217,15 +217,7 @@
 	};
 };
 
-&lcd_nt35596_boe_mipi_fhd {
-	power-supply = <&lcd_vdd>;
-};
-
-&lcd_nt35695_truly_mipi_fhd {
-	power-supply = <&lcd_vdd>;
-};
-
-&lcd_nt35532_truly_mipi_fhd {
+&panel {
 	power-supply = <&lcd_vdd>;
 };
 
