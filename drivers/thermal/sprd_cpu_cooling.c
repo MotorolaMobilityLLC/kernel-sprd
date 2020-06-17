@@ -55,7 +55,6 @@ struct cluster_power_coefficients {
 	u32 hotplug_period;
 	u32 min_cpufreq;
 	u32 min_cpunum;
-	u32 resistance_ja;
 	u32 temp_point;
 	u32 cpuidle_tp[MAX_SENSOR_NUMBER];
 	int leak_core_base;
@@ -95,7 +94,7 @@ struct cpu_power_ops {
 
 	u32 (*get_cluster_min_cpunum_p)(int cooling_id);
 
-	u32 (*get_cluster_resistance_ja_p)(int cooling_id);
+	u32 (*get_cluster_cycle_p)(int cooling_id);
 
 	u32 (*get_core_cpuidle_tp_p)(int cooling_id, int first_cpu,
 			int cpu, int *temp);
@@ -120,6 +119,8 @@ struct run_cpus_table {
 struct cpu_cooling_device {
 	int id;
 	int round;
+	int cycle;
+	int min_cpus;
 	unsigned int total;
 	unsigned int level;
 	unsigned int run_cpus;
@@ -131,6 +132,11 @@ struct cpu_cooling_device {
 };
 
 static DEFINE_IDA(cpu_ida);
+
+static int get_cluster_id(int cpu)
+{
+	return topology_physical_package_id((cpu));
+}
 
 static unsigned int get_level(struct cpu_cooling_device *cpu_cdev,
 			       unsigned int cpus)
@@ -230,7 +236,6 @@ static int cpu_isolate_cpu(struct thermal_cooling_device *cdev,
 		if ((target_cpus < cur_cpus) && !cpu_isolated(cpu)) {
 			cpumask_set_cpu(cpu, &mask);
 			cur_cpus--;
-			pr_info("set cpu%u isolate\n", cpu);
 		}
 	}
 	if (!cpumask_empty(&mask))
@@ -283,13 +288,13 @@ static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
 		return 0;
 
 	cpu = cpumask_any(&cpu_cdev->allowed_cpus);
-	if (cpu == 0)
-		return 0;
-
 	freq = cpufreq_quick_get(cpu);
 	max_cpus = cpumask_weight(&cpu_cdev->allowed_cpus);
 	cur_run_cpus = cpu_cdev->run_cpus;
 	next_run_cpus = cpu_cdev->table[state].cpus;
+	pr_info("cpu%d curr_cpus:%u target_cpus:%u\n",
+		cpu, cur_run_cpus, next_run_cpus);
+
 	if (cur_run_cpus > next_run_cpus) {
 		cpu_cdev->level = state;
 		cpu_cdev->run_cpus = cpu_cdev->table[state].cpus;
@@ -308,7 +313,6 @@ static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
 		cpu_cdev->level = state;
 		cpu_cdev->run_cpus = cpu_cdev->table[state].cpus;
 	}
-
 
 	return 0;
 }
@@ -365,17 +369,20 @@ static int cpu_power2state(struct thermal_cooling_device *cdev,
 			       unsigned long *state)
 {
 	unsigned int cpu, cur_freq;
-	int ret, cpus, max_cpus;
+	int ret, cpus, max_cpus, id;
 	u32 static_power;
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
+
+	if (!cpu_cdev->cycle) {
+		*state = get_level(cpu_cdev, cpu_cdev->run_cpus);
+		return 0;
+	}
 
 	cpu = cpumask_any(&cpu_cdev->allowed_cpus);
 	cur_freq = cpufreq_quick_get(cpu);
 	ret = cpu_get_static_power(cpu_cdev, tz, cur_freq, &static_power, 1);
-	if (ret)
-		return ret;
-	if (!static_power)
-		return 0;
+	if (ret || !static_power)
+		return -EINVAL;
 
 	cpus = power / static_power;
 	max_cpus = cpumask_weight(&cpu_cdev->allowed_cpus);
@@ -383,7 +390,7 @@ static int cpu_power2state(struct thermal_cooling_device *cdev,
 	cpu_cdev->total += cpus;
 	cpu_cdev->round++;
 
-	if (cpu_cdev->round < 10) {
+	if (cpu_cdev->round < cpu_cdev->cycle) {
 		*state = get_level(cpu_cdev, cpu_cdev->run_cpus);
 		return 0;
 	}
@@ -392,6 +399,11 @@ static int cpu_power2state(struct thermal_cooling_device *cdev,
 	cpu_cdev->total = 0;
 	cpu_cdev->round = 0;
 
+	id = get_cluster_id(cpu);
+	if (cpu_cdev->power_ops->get_cluster_min_cpunum_p != NULL)
+		cpu_cdev->min_cpus =
+			cpu_cdev->power_ops->get_cluster_min_cpunum_p(id);
+	cpus = max(cpus, cpu_cdev->min_cpus);
 	*state = get_level(cpu_cdev, cpus);
 
 	return 0;
@@ -415,7 +427,7 @@ cpu_cooling_register(struct device_node *np,
 	struct cpu_cooling_device *cpu_cdev;
 	char dev_name[THERMAL_NAME_LENGTH];
 	unsigned int i, num_cpus;
-	int ret;
+	int ret, id;
 	struct thermal_cooling_device_ops *cooling_ops;
 
 	if (!np)
@@ -457,6 +469,11 @@ cpu_cooling_register(struct device_node *np,
 	if (plat_power_ops)
 		cpu_cdev->power_ops = plat_power_ops;
 
+	cpu_cdev->cycle = 0;
+	id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
+	if (cpu_cdev->power_ops->get_cluster_cycle_p != NULL)
+		cpu_cdev->cycle = cpu_cdev->power_ops->get_cluster_cycle_p(id);
+
 	cooling_ops = &cpu_power_cooling_ops;
 	cdev = thermal_of_cooling_device_register(np, dev_name, cpu_cdev,
 						  cooling_ops);
@@ -465,6 +482,7 @@ cpu_cooling_register(struct device_node *np,
 
 	cpu_cdev->round = 0;
 	cpu_cdev->total = 0;
+	cpu_cdev->min_cpus = 0;
 	cpu_cdev->run_cpus = cpu_cdev->table[0].cpus;
 	cpu_cdev->cdev = cdev;
 
@@ -564,15 +582,6 @@ static int sprd_cpu_remove_attr(struct device *dev)
 	for (i = 0; i < ARRAY_SIZE(sprd_cpu_atrr); i++)
 		device_remove_file(dev, &sprd_cpu_atrr[i]);
 	return 0;
-}
-
-static int get_cluster_id(int cpu)
-{
-#if defined(CONFIG_X86_SPRD_ISOC)
-	return ((cpu) < 4 ? 0 : 1);
-#else
-	return topology_physical_package_id((cpu));
-#endif
 }
 
 /**
@@ -844,9 +853,9 @@ static u32 get_cluster_min_cpunum(int cluster_id)
 	return cluster_data[cluster_id].min_cpunum;
 }
 
-static u32 get_cluster_resistance_ja(int cluster_id)
+static u32 get_cluster_cycle(int cluster_id)
 {
-	return cluster_data[cluster_id].resistance_ja;
+	return cluster_data[cluster_id].hotplug_period;
 }
 
 static u64 get_cluster_dyn_power(int cluster_id,
@@ -1226,11 +1235,6 @@ static int sprd_get_power_model_coeff(struct device_node *np,
 	if (ret)
 		pr_err("fail to get cooling devices min_cpunum\n");
 
-	ret = of_property_read_u32(np,
-		"sprd,resistance-ja", &power_coeff->resistance_ja);
-	if (ret)
-		pr_err("fail to get cooling devices resistance-ja\n");
-
 	count = of_property_count_strings(np, "sprd,sensor-names");
 	if (count < 0) {
 		pr_err("sensor names not found\n");
@@ -1299,7 +1303,7 @@ static struct cpu_power_ops power_ops = {
 		.get_core_static_power_p = get_core_static_power,
 		.get_cluster_min_cpufreq_p = get_cluster_min_cpufreq,
 		.get_cluster_min_cpunum_p = get_cluster_min_cpunum,
-		.get_cluster_resistance_ja_p = get_cluster_resistance_ja,
+		.get_cluster_cycle_p = get_cluster_cycle,
 
 #if defined(CONFIG_SPRD_CPU_COOLING_CPUIDLE) && defined(CONFIG_SPRD_CORE_CTL)
 		.get_min_temp_unisolated_core_p = get_min_temp_unisolated_core,
