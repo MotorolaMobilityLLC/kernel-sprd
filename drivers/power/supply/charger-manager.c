@@ -471,6 +471,35 @@ static int get_batt_energy_now(struct charger_manager *cm, int *value)
 	return 0;
 }
 
+/*
+ * get_boot_cap - Get the battery boot capacity
+ * of the battery.
+ * @cm: the Charger Manager representing the battery.
+ * @cap: the battery capacity returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_boot_cap(struct charger_manager *cm, int *cap)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	ret = power_supply_get_property(fuel_gauge,
+				POWER_SUPPLY_PROP_CAPACITY_LEVEL, &val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	*cap = val.intval;
+	return 0;
+}
+
 /**
  * set_batt_total_cap - Set the total_cap level of the battery
  * @cm: the Charger Manager representing the battery.
@@ -3677,7 +3706,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 		cm->charger_psy_desc.num_properties++;
 	}
 
-	ret = get_batt_cap(cm, &cm->desc->cap);
+	ret = get_boot_cap(cm, &cm->desc->cap);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to get initial battery capacity\n");
 		return ret;

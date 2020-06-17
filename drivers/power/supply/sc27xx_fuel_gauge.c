@@ -48,6 +48,9 @@
 #define SC27XX_FGU_USER_AREA_SET	0xa0
 #define SC27XX_FGU_USER_AREA_CLEAR	0xa4
 #define SC27XX_FGU_USER_AREA_STATUS	0xa8
+#define SC27XX_FGU_USER_AREA_SET1	0xc0
+#define SC27XX_FGU_USER_AREA_CLEAR1	0xc4
+#define SC27XX_FGU_USER_AREA_STATUS1	0xc8
 #define SC27XX_FGU_VOLTAGE_BUF		0xd0
 #define SC27XX_FGU_CURRENT_BUF		0xf0
 
@@ -94,6 +97,7 @@
  * @total_cap: the total capacity of the battery in mAh
  * @init_cap: the initial capacity of the battery in mAh
  * @alarm_cap: the alarm capacity
+ * @normal_temperature_cap: the normal temperature capacity
  * @init_clbcnt: the initial coulomb counter
  * @max_volt: the maximum constant input voltage in millivolt
  * @min_volt: the minimum drained battery voltage in microvolt
@@ -119,6 +123,8 @@ struct sc27xx_fgu_data {
 	int total_cap;
 	int init_cap;
 	int alarm_cap;
+	int boot_cap;
+	int normal_temperature_cap;
 	int init_clbcnt;
 	int max_volt;
 	int min_volt;
@@ -222,16 +228,16 @@ static int sc27xx_fgu_temp_to_cap(struct power_supply_capacity_temp_table *table
 	if (i > 0 && i < table_len) {
 		temp = interpolate(value,
 				   table[i].temp,
-				   table[i].cap,
+				   table[i].cap * 10,
 				   table[i - 1].temp,
-				   table[i - 1].cap);
+				   table[i - 1].cap * 10);
 	} else if (i == 0) {
-		temp = table[0].cap;
+		temp = table[0].cap * 10;
 	} else {
-		temp = table[table_len - 1].cap;
+		temp = table[table_len - 1].cap * 10;
 	}
 
-	return temp;
+	return DIV_ROUND_UP(temp, 10);
 }
 
 static int sc27xx_fgu_temp_to_resistance(struct power_supply_resistance_temp_table *table,
@@ -365,6 +371,62 @@ static int sc27xx_fgu_save_last_cap(struct sc27xx_fgu_data *data, int cap)
 				  SC27XX_FGU_CAP_AREA_MASK, 0);
 }
 
+/*
+ * We get the percentage at the current temperature by multiplying
+ * the percentage at normal temperature by the temperature conversion
+ * factor, and save the percentage before conversion in the rtc register
+ */
+static int sc27xx_fgu_save_normal_temperature_cap(struct sc27xx_fgu_data *data, int cap)
+{
+	int ret;
+
+	ret = regmap_update_bits(data->regmap,
+				 data->base + SC27XX_FGU_USER_AREA_CLEAR1,
+				 SC27XX_FGU_CAP_AREA_MASK,
+				 SC27XX_FGU_CAP_AREA_MASK);
+	if (ret)
+		return ret;
+
+	/*
+	 * Since the user area registers are put on power always-on region,
+	 * then these registers changing time will be a little long. Thus
+	 * here we should delay 200us to wait until values are updated
+	 * successfully.
+	 */
+	udelay(200);
+
+	ret = regmap_update_bits(data->regmap,
+				 data->base + SC27XX_FGU_USER_AREA_SET1,
+				 SC27XX_FGU_CAP_AREA_MASK, cap);
+	if (ret)
+		return ret;
+
+	/*
+	 * Since the user area registers are put on power always-on region,
+	 * then these registers changing time will be a little long. Thus
+	 * here we should delay 200us to wait until values are updated
+	 * successfully.
+	 */
+	udelay(200);
+
+	return regmap_update_bits(data->regmap,
+				  data->base + SC27XX_FGU_USER_AREA_CLEAR1,
+				  SC27XX_FGU_CAP_AREA_MASK, 0);
+}
+
+static int sc27xx_fgu_read_normal_temperature_cap(struct sc27xx_fgu_data *data, int *cap)
+{
+	int ret, value;
+
+	ret = regmap_read(data->regmap,
+			  data->base + SC27XX_FGU_USER_AREA_STATUS1, &value);
+	if (ret)
+		return ret;
+
+	*cap = value & SC27XX_FGU_CAP_AREA_MASK;
+	return 0;
+}
+
 static int sc27xx_fgu_read_last_cap(struct sc27xx_fgu_data *data, int *cap)
 {
 	int ret, value;
@@ -402,6 +464,20 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 			return ret;
 		}
 
+		data->boot_cap = *cap;
+		ret = sc27xx_fgu_read_normal_temperature_cap(data, cap);
+		if (ret) {
+			dev_err(data->dev, "Failed to read normal temperature cap, ret = %d\n",
+				ret);
+			return ret;
+		}
+
+		if (*cap == SC27XX_FGU_DEFAULT_CAP) {
+			*cap = data->boot_cap;
+			ret = sc27xx_fgu_save_normal_temperature_cap(data, data->boot_cap);
+			if (ret < 0)
+				dev_err(data->dev, "Failed to initialize fgu user area status1 register\n");
+		}
 		return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 	}
 
@@ -441,7 +517,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	 */
 	*cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
 					   ocv);
-
+	data->boot_cap = *cap;
 	ret = sc27xx_fgu_save_last_cap(data, *cap);
 	if (ret) {
 		dev_err(data->dev, "Failed to save last cap, ret = %d\n", ret);
@@ -561,6 +637,7 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 	 */
 	delta_cap = DIV_ROUND_CLOSEST(temp * 100, data->total_cap);
 	*cap = delta_cap + data->init_cap;
+	data->normal_temperature_cap = *cap;
 
 	if (data->cap_table_len > 0) {
 		temp_cap = sc27xx_fgu_temp_to_cap(data->cap_temp_table,
@@ -581,7 +658,7 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 		 * Capacity_Delta) * 100 /(100 - Capacity_Delta)
 		 */
 		delta_cap = 100 - temp_cap;
-		*cap = (*cap - delta_cap) * 100 / (100 - delta_cap);
+		*cap = DIV_ROUND_CLOSEST((*cap - delta_cap) * 100, 100 - delta_cap);
 	}
 
 	if (*cap < 0) {
@@ -942,6 +1019,10 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		val->intval = data->boot_vol;
 		break;
 
+	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
+		val->intval = data->boot_cap;
+		break;
+
 	default:
 		ret = -EINVAL;
 		break;
@@ -964,8 +1045,14 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CAPACITY:
 		ret = sc27xx_fgu_save_last_cap(data, val->intval);
-		if (ret < 0)
+		if (ret < 0) {
 			dev_err(data->dev, "failed to save battery capacity\n");
+			goto error;
+		}
+
+		ret = sc27xx_fgu_save_normal_temperature_cap(data, data->normal_temperature_cap);
+		if (ret < 0)
+			dev_err(data->dev, "failed to save normal temperature capacity\n");
 		break;
 
 	case POWER_SUPPLY_PROP_CALIBRATE:
@@ -982,6 +1069,7 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 		ret = -EINVAL;
 	}
 
+error:
 	mutex_unlock(&data->lock);
 	return ret;
 }
@@ -1024,6 +1112,7 @@ static enum power_supply_property sc27xx_fgu_props[] = {
 	POWER_SUPPLY_PROP_ENERGY_NOW,
 	POWER_SUPPLY_PROP_CALIBRATE,
 	POWER_SUPPLY_PROP_VOLTAGE_BOOT,
+	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
 };
 
 static const struct power_supply_desc sc27xx_fgu_desc = {
