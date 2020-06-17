@@ -206,6 +206,8 @@
 					<3795000 40>, <3782000 35>, <3774000 30>,
 					<3765000 25>, <3750000 20>, <3726000 15>,
 					<3687000 10>, <3658000 5>, <3400000 0>;
+		capacity-temp-table = <25 100>, <10 97>, <(-10) 60>;
+		resistance-temp-table = <20 100>, <10 243>, <(-10) 468>;
 		charge-sdp-current-microamp = <500000 500000>;
 		charge-dcp-current-microamp = <1150000 3000000>;
 		charge-cdp-current-microamp = <1150000 1150000>;
