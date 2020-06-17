@@ -132,7 +132,7 @@ static int sprd_pwm_config(struct sprd_pwm_chip *spc, struct pwm_device *pwm,
 	 * gets the maximal length not bigger than the requested one with the
 	 * given settings (MOD = SPRD_PWM_MOD_MAX and input clock).
 	 */
-	tmp = duty_ns * SPRD_PWM_MOD_MAX;
+	tmp = (u64)duty_ns * SPRD_PWM_MOD_MAX;
 	duty = DIV_ROUND_CLOSEST_ULL(tmp, period_ns);
 
 	tmp = (u64)chn->clk_rate * period_ns;
