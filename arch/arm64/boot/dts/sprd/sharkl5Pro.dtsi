@@ -512,6 +512,11 @@
 				#pwm-cells = <2>;
 			      };
 
+			pin_controller: pinctrl@32450000 {
+				compatible = "sprd,sharkl5Pro-pinctrl";
+				reg = <0 0x32450000 0 0x3000>;
+			};
+
 			hwlock: hwspinlock@327f0000 {
 				compatible = "sprd,hwspinlock-r3p0";
 				reg = <0 0x327f0000 0 0x10000>;
