@@ -1458,7 +1458,7 @@ static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
 	struct charger_desc *desc = cm->desc;
 	static int last_jeita_status = -1, temp_up_trigger, temp_down_trigger;
 	int cur_jeita_status;
-	bool is_normal = true;
+	static bool is_normal = true;
 
 	if (!desc->jeita_tab_size)
 		return 0;
