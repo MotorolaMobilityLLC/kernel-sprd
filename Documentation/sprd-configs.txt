@@ -1639,8 +1639,8 @@ CONFIG_BPF_JIT
 	[function] This option allows kernel to generate a native code when filter is loaded in memory.
 		This should speedup packet sniffing (libpcap/tcpdump).
 CONFIG_BPF_JIT_ALWAYS_ON
-	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
 	[missing plat] roc1
 	[field] code
 	[subsys] core
