@@ -223,6 +223,10 @@
 			<1450 1420 1150000 4350000>, <1600 1570 700000 4100000>;
 		cm-unknown-jeita-temp-table = <1000 1030 0 4350000>, <1150 1180 500000 4350000>,
 			<1450 1420 500000 4350000>, <1600 1570 500000 4100000>;
+
+		monitored-battery = <&bat>;
+		cm-capacity-track;
+
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
 			cable@0 {
