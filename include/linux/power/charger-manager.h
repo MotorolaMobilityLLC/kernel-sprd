@@ -43,6 +43,7 @@ enum cm_event_types {
 	CM_EVENT_EXT_PWR_IN_OUT,
 	CM_EVENT_CHG_START_STOP,
 	CM_EVENT_OTHERS,
+	CM_EVENT_FAST_CHARGE,
 };
 
 enum cm_jeita_types {
@@ -267,6 +268,7 @@ struct charger_desc {
 	enum data_source battery_present;
 
 	const char **psy_charger_stat;
+	const char **psy_fast_charger_stat;
 
 	int num_charger_regulators;
 	struct charger_regulator *charger_regulators;

@@ -10,6 +10,7 @@
 #include <linux/nvmem-consumer.h>
 #include <linux/of.h>
 #include <linux/slab.h>
+#include <linux/power/charger-manager.h>
 
 #define FCHG1_TIME1				0x0
 #define FCHG1_TIME2				0x4
@@ -50,6 +51,7 @@
 #define FCHG_TIME2_MASK				GENMASK(11, 0)
 #define FCHG_DET_VOL_MASK			GENMASK(1, 0)
 #define FCHG_DET_VOL_SHIFT			3
+#define FCHG_DET_VOL_EXIT_SFCP			3
 #define FCHG_CALI_MASK				GENMASK(15, 9)
 #define FCHG_CALI_SHIFT				9
 
@@ -69,7 +71,8 @@
 #define FCHG_VOLTAGE_12V			12000000
 #define FCHG_VOLTAGE_20V			20000000
 
-#define SC2730_FCHG_TIMEOUT			msecs_to_jiffies(20)
+#define SC2730_FCHG_TIMEOUT			msecs_to_jiffies(5000)
+#define SC2730_FAST_CHARGER_DETECT_MS		msecs_to_jiffies(1000)
 
 struct sc2730_fchg_info {
 	struct device *dev;
@@ -77,13 +80,14 @@ struct sc2730_fchg_info {
 	struct usb_phy *usb_phy;
 	struct notifier_block usb_notify;
 	struct power_supply *psy_usb;
-	struct work_struct work;
+	struct delayed_work work;
 	struct mutex lock;
 	struct completion completion;
 	u32 state;
 	u32 base;
 	int input_vol;
 	u32 limit;
+	bool detected;
 };
 
 static int sc2730_fchg_internal_cur_calibration(struct sc2730_fchg_info *info)
@@ -195,7 +199,12 @@ static void sc2730_fchg_detect_status(struct sc2730_fchg_info *info)
 	usb_phy_get_charger_current(info->usb_phy, &min, &max);
 
 	info->limit = min;
-	schedule_work(&info->work);
+	/*
+	 * There is a confilt between charger detection and fast charger
+	 * detection, and BC1.2 detection time consumption is <300ms,
+	 * so we delay fast charger detection to avoid this issue.
+	 */
+	schedule_delayed_work(&info->work, SC2730_FAST_CHARGER_DETECT_MS);
 }
 
 static int sc2730_fchg_usb_change(struct notifier_block *nb,
@@ -205,8 +214,12 @@ static int sc2730_fchg_usb_change(struct notifier_block *nb,
 		container_of(nb, struct sc2730_fchg_info, usb_notify);
 
 	info->limit = limit;
-
-	schedule_work(&info->work);
+	/*
+	 * There is a confilt between charger detection and fast charger
+	 * detection, and BC1.2 detection time consumption is <300ms,
+	 * so we delay fast charger detection to avoid this issue.
+	 */
+	schedule_delayed_work(&info->work, SC2730_FAST_CHARGER_DETECT_MS);
 	return NOTIFY_OK;
 }
 
@@ -214,6 +227,15 @@ static u32 sc2730_fchg_get_detect_status(struct sc2730_fchg_info *info)
 {
 	unsigned long timeout;
 	int value, ret;
+
+	/*
+	 * In cold boot phase, system will detect fast charger status,
+	 * if charger is not plugged in, it will cost another 2s
+	 * to detect fast charger status, so we detect fast charger
+	 * status only when DCP charger is plugged in
+	 */
+	if (info->usb_phy->chg_type != DCP_TYPE)
+		return POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
 
 	reinit_completion(&info->completion);
 
@@ -352,9 +374,7 @@ static int sc2730_fchg_usb_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CHARGE_TYPE:
-		val->intval = sc2730_fchg_get_detect_status(info);
-		if (val->intval != POWER_SUPPLY_CHARGE_TYPE_FAST)
-			sc2730_fchg_disable(info);
+		val->intval = info->state;
 		break;
 
 	default:
@@ -380,14 +400,30 @@ static const struct power_supply_desc sc2730_fchg_desc = {
 
 static void sc2730_fchg_work(struct work_struct *data)
 {
+	struct delayed_work *dwork = to_delayed_work(data);
 	struct sc2730_fchg_info *info =
-		container_of(data, struct sc2730_fchg_info, work);
+		container_of(dwork, struct sc2730_fchg_info, work);
 
 	mutex_lock(&info->lock);
 
 	if (!info->limit) {
 		info->state = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+		info->detected = false;
 		sc2730_fchg_disable(info);
+	} else if (!info->detected) {
+		info->detected = true;
+		if (sc2730_fchg_get_detect_status(info) ==
+		    POWER_SUPPLY_CHARGE_TYPE_FAST) {
+			/*
+			 * Must release info->lock before send fast charge event
+			 * to charger manager, otherwise it will cause deadlock.
+			 */
+			mutex_unlock(&info->lock);
+			cm_notify_event(info->psy_usb, CM_EVENT_FAST_CHARGE, NULL);
+			return;
+		} else {
+			sc2730_fchg_disable(info);
+		}
 	}
 
 	mutex_unlock(&info->lock);
@@ -407,7 +443,7 @@ static int sc2730_fchg_probe(struct platform_device *pdev)
 	mutex_init(&info->lock);
 	info->dev = &pdev->dev;
 	info->state = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
-	INIT_WORK(&info->work, sc2730_fchg_work);
+	INIT_DELAYED_WORK(&info->work, sc2730_fchg_work);
 	init_completion(&info->completion);
 
 	info->regmap = dev_get_regmap(pdev->dev.parent, NULL);
@@ -487,6 +523,26 @@ static int sc2730_fchg_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void sc2730_fchg_shutdown(struct platform_device *pdev)
+{
+	struct sc2730_fchg_info *info = platform_get_drvdata(pdev);
+	int ret;
+	u32 value = FCHG_DET_VOL_EXIT_SFCP;
+
+	/*
+	 * SFCP will handsharke failed from charging in shut down
+	 * to charging in power up, because SFCP is not exit before
+	 * shut down. Set bit3:4 to 2b'11 to exit SFCP.
+	 */
+
+	ret = regmap_update_bits(info->regmap, info->base + FCHG_CTRL,
+			FCHG_DET_VOL_MASK << FCHG_DET_VOL_SHIFT,
+			(value & FCHG_DET_VOL_MASK) << FCHG_DET_VOL_SHIFT);
+	if (ret)
+		dev_err(info->dev,
+			"failed to set fast charger detect voltage.\n");
+}
+
 static const struct of_device_id sc2730_fchg_of_match[] = {
 	{ .compatible = "sprd,sc2730-fast-charger", },
 	{ }
@@ -499,6 +555,7 @@ static struct platform_driver sc2730_fchg_driver = {
 	},
 	.probe = sc2730_fchg_probe,
 	.remove = sc2730_fchg_remove,
+	.shutdown = sc2730_fchg_shutdown,
 };
 
 module_platform_driver(sc2730_fchg_driver);

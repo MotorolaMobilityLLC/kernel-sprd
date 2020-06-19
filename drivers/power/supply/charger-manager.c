@@ -1351,7 +1351,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	struct charger_desc *desc = cm->desc;
 	union power_supply_propval val;
 	struct power_supply *psy;
-	int term_volt, target_cur, chg_limit_cur, i, ret = -ENODEV;
+	int term_volt, target_cur, i, ret = -ENODEV;
 
 	if (cm->charging_status != 0 &&
 	    !(cm->charging_status & (CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD)))
@@ -1382,15 +1382,6 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		target_cur = cm->desc->thm_adjust_cur;
 		dev_info(cm->dev, "thermel current is less than jeita current\n");
 	}
-
-	ret = get_charger_limit_current(cm, &chg_limit_cur);
-	if (ret) {
-		dev_err(cm->dev, "failed to get current limitation\n");
-		return false;
-	}
-
-	if (target_cur > chg_limit_cur)
-		target_cur = chg_limit_cur;
 
 	dev_info(cm->dev, "target terminate voltage = %d, target current = %d\n",
 		 term_volt, target_cur);
@@ -1808,11 +1799,15 @@ static bool cm_charger_is_support_fchg(struct charger_manager *cm)
 	union power_supply_propval val;
 	int ret, i;
 
-	for (i = 0; desc->psy_charger_stat[i]; i++) {
-		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
+	if (!desc->psy_fast_charger_stat)
+		return false;
+
+	for (i = 0; desc->psy_fast_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(desc->psy_fast_charger_stat[i]);
+
 		if (!psy) {
 			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				desc->psy_charger_stat[i]);
+				desc->psy_fast_charger_stat[i]);
 			continue;
 		}
 
@@ -1824,6 +1819,28 @@ static bool cm_charger_is_support_fchg(struct charger_manager *cm)
 	}
 
 	return false;
+}
+
+/**
+ * fast_charge_handler - Event handler for CM_EVENT_FAST_CHARGE
+ * @cm: the Charger Manager representing the battery.
+ */
+static void fast_charge_handler(struct charger_manager *cm)
+{
+	if (cm_suspended)
+		device_set_wakeup_capable(cm->dev, true);
+
+	if (!is_ext_pwr_online(cm))
+		return;
+
+	if (cm_charger_is_support_fchg(cm)) {
+		cm->desc->charge_voltage_max =
+			cm->desc->fast_charge_voltage_max;
+		cm->desc->charge_voltage_drop =
+			cm->desc->fast_charge_voltage_drop;
+		cm->desc->jeita_tab =
+			cm->desc->jeita_tab_array[CM_JEITA_FCHG];
+	}
 }
 
 /**
@@ -1871,30 +1888,16 @@ static void misc_event_handler(struct charger_manager *cm,
 				cm->desc->jeita_tab_array[CM_JEITA_UNKNOWN];
 		}
 
-		if (cm_charger_is_support_fchg(cm)) {
-			cm->desc->charge_voltage_max =
-				cm->desc->fast_charge_voltage_max;
-			cm->desc->charge_voltage_drop =
-				cm->desc->fast_charge_voltage_drop;
-			cm->desc->jeita_tab =
-				cm->desc->jeita_tab_array[CM_JEITA_FCHG];
-		} else {
-			cm->desc->charge_voltage_max =
-				cm->desc->normal_charge_voltage_max;
-			cm->desc->charge_voltage_drop =
-				cm->desc->normal_charge_voltage_drop;
-		}
+		cm->desc->charge_voltage_max =
+			cm->desc->normal_charge_voltage_max;
+		cm->desc->charge_voltage_drop =
+			cm->desc->normal_charge_voltage_drop;
 
 		if (cm->desc->jeita_tab_size) {
-			int cur_temp, cur_jeita_status;
+			int cur_jeita_status;
 
-			ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
-			if (ret) {
-				dev_err(cm->dev, "failed to get battery temperature\n");
-				return;
-			}
-
-			cur_jeita_status = cm_manager_get_jeita_status(cm, cur_temp);
+			cur_jeita_status =
+				cm_manager_get_jeita_status(cm, cm->desc->temperature);
 			cm_manager_adjust_current(cm, cur_jeita_status);
 		}
 	} else {
@@ -3141,7 +3144,8 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	struct device_node *np = dev->of_node;
 	u32 poll_mode = CM_POLL_DISABLE;
 	u32 battery_stat = CM_NO_BATTERY;
-	int num_chgs = 0, ret;
+	u32 num_chgs = 0;
+	int ret;
 
 	desc = devm_kzalloc(dev, sizeof(*desc), GFP_KERNEL);
 	if (!desc)
@@ -3183,6 +3187,23 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 			for (i = 0; i < num_chgs; i++)
 				of_property_read_string_index(np, "cm-chargers",
 						i, &desc->psy_charger_stat[i]);
+		} else {
+			return ERR_PTR(-ENOMEM);
+		}
+	}
+
+	/* fast chargers */
+	of_property_read_u32(np, "cm-num-fast-chargers", &num_chgs);
+	if (num_chgs) {
+		/* Allocate empty bin at the tail of array */
+		desc->psy_fast_charger_stat = devm_kzalloc(dev, sizeof(char *)
+						* (num_chgs + 1), GFP_KERNEL);
+		if (desc->psy_fast_charger_stat) {
+			int i;
+
+			for (i = 0; i < num_chgs; i++)
+				of_property_read_string_index(np, "cm-fast-chargers",
+						i, &desc->psy_fast_charger_stat[i]);
 		} else {
 			return ERR_PTR(-ENOMEM);
 		}
@@ -4013,6 +4034,9 @@ static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_type
 	case CM_EVENT_OTHERS:
 		uevent_notify(cm, msg ? msg : default_event_names[type]);
 		break;
+	case CM_EVENT_FAST_CHARGE:
+		fast_charge_handler(cm);
+		break;
 	default:
 		dev_err(cm->dev, "%s: type not specified\n", __func__);
 		break;
@@ -4040,8 +4064,10 @@ void cm_notify_event(struct power_supply *psy, enum cm_event_types type,
 	list_for_each_entry(cm, &cm_list, entry) {
 		if (match_string(cm->desc->psy_charger_stat, -1,
 				 psy->desc->name) >= 0 ||
-				 match_string(&cm->desc->psy_fuel_gauge,
-					      -1, psy->desc->name) >= 0) {
+		    match_string(cm->desc->psy_fast_charger_stat,
+				 -1, psy->desc->name) >= 0 ||
+		    match_string(&cm->desc->psy_fuel_gauge,
+				 -1, psy->desc->name) >= 0) {
 			found_power_supply = true;
 			break;
 		}
