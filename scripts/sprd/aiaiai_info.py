@@ -24,26 +24,14 @@ def main():
 				#apath value example: arch/arm64/configs/sprd_sharkl3_defconfig
 				arch = (apath.split("/").pop(1))
 				if arch == "arm":
-					cross_compile= "arm-linux-androideabi-"
+					cross_compile= "arm-linux-androidkernel-"
 				elif arch == "arm64":
 					cross_compile= "aarch64-linux-android-"
 
 				kernel_defconfig = filename
+				toolchain="clang"
 
-				f=open(apath,'r')
-				lines = f.readlines()
-				for j in range(len(lines)):
-					if '#' in lines[j]:
-						continue
-					if 'CONFIG_COMPILE_TOOL' in lines[j]:
-						tmp_toolchain = lines[j].split("=").pop().strip('"\n ')
-						if tmp_toolchain == "all":
-							tmp_toolchain = "clang,gcc"
-						break
-
-				if kernel_defconfig != "" and arch != "" and cross_compile != "" and tmp_toolchain != "":
-					for toolchain in tmp_toolchain.split(","):
-						boardconfig_list.append(kernel_defconfig+","+arch+","+cross_compile+","+toolchain)
+				boardconfig_list.append(kernel_defconfig+","+arch+","+cross_compile+","+toolchain)
 
 	formatList = list(set(boardconfig_list))
 	formatList.sort()

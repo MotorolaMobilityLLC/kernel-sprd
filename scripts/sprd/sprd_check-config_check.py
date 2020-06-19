@@ -39,7 +39,6 @@ d_defconfig_path = {
         },
         'kernel4.14':{
             'pike2':{'defconfig':'arch/arm/configs/sprd_pike2_defconfig', 'diffconfig':'sprd-diffconfig/androidq/pike2', 'arch':'arm','platform':'q'},
-            'roc1':{'defconfig':'arch/arm64/configs/sprd_roc1_defconfig', 'diffconfig':'sprd-diffconfig/androidq/roc1','arch':'arm64','platform':'p'},
             'sharkl3':{'defconfig':'arch/arm64/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/androidq/sharkl3','arch':'arm64','platform':'q'},
             'sharkl3_32':{'defconfig':'arch/arm/configs/sprd_sharkl3_defconfig', 'diffconfig':'sprd-diffconfig/androidq/sharkl3', 'arch':'arm','platform':'q'},
             'sharkl5':{'defconfig':'arch/arm64/configs/sprd_sharkl5_defconfig', 'diffconfig':'sprd-diffconfig/androidq/sharkl5','arch':'arm64','platform':'p'},
