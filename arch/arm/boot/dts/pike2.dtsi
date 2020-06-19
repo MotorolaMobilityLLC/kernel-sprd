@@ -295,6 +295,7 @@
 
 				sprd,ip = "dpu-lite-r1p0";
 				sprd,soc = "pike2";
+				sprd,logo-memory = <&logo_reserved>;
 
 				sprd,syscon-aon-apb = <&aon_apb_regs>;
 
