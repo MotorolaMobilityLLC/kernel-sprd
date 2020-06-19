@@ -11,6 +11,8 @@
 #define WCN_UEVENT_FW_ERRO	"EVENT=FW_ERROR"
 #define WCN_UEVENT_REASON	"REASON="
 
+#define WCN_SYSFS_LOGLEVEL_SET_BIT   BIT(0)
+
 int notify_at_cmd_finish(void *buf, unsigned char len);
 void wcn_notify_fw_error(enum wcn_source_type type, char *buf);
 int wcn_sysfs_get_reset_prop(void);

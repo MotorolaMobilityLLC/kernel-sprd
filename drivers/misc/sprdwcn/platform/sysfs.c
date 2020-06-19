@@ -24,6 +24,7 @@ struct wcn_sysfs_info {
 	unsigned char len;
 	struct mutex	mutex;
 	struct completion cmd_completion;
+	atomic_t set_mask;
 	/* 0:dumpmem; 1:reset */
 	atomic_t is_reset;
 	char sw_ver_buf[128];
@@ -170,6 +171,22 @@ static int wcn_set_armlog_status(void)
 	return 0;
 }
 
+static int wcn_set_loglevel(void)
+{
+	char a[64];
+
+	if (atomic_read(&sysfs_info.set_mask)
+		& WCN_SYSFS_LOGLEVEL_SET_BIT) {
+		scnprintf(a, (size_t)sizeof(a), "%s%d%s", "at+loglevel=",
+			  sysfs_info.loglevel, "\r\n");
+		WCN_INFO("%s:%s\n", __func__, a);
+		wcn_send_atcmd(a, strlen(a), NULL, NULL);
+		atomic_and((unsigned int)(~(WCN_SYSFS_LOGLEVEL_SET_BIT)),
+			   &sysfs_info.set_mask);
+	}
+
+	return 0;
+}
 static int wcn_get_loglevel(void)
 {
 	unsigned long tmp;
@@ -179,12 +196,11 @@ static int wcn_get_loglevel(void)
 	wcn_send_atcmd(a, strlen(a), &sysfs_info.loglevel_buf,
 		       &sysfs_info.loglevel_len);
 
-	ret = kstrtoul(sysfs_info.loglevel_buf + 11, 1, &tmp);
+	ret = kstrtoul(sysfs_info.loglevel_buf + 11, 10, &tmp);
 	if (ret < 0) {
 		WCN_ERR("incorrect get loglevel\n");
 		return -EINVAL;
 	}
-	sysfs_info.loglevel = (unsigned char) tmp;
 
 	WCN_DBG("show:len=%zd, buf=%s, level=%d\n", sysfs_info.loglevel_len,
 		sysfs_info.loglevel_buf, sysfs_info.loglevel);
@@ -197,6 +213,7 @@ int wcn_firmware_init(void)
 	wcn_ap_notify_cp_time();
 	wcn_get_sw_ver();
 	wcn_set_armlog_status();
+	wcn_set_loglevel();
 	wcn_get_loglevel();
 	/* TODO: set can pass functionmask */
 	/* wcn_set_loglevel, etc */
@@ -425,8 +442,13 @@ static ssize_t wcn_sysfs_show_loglevel(struct device *dev,
 
 	WCN_INFO("%s:buf=%s\n", __func__, buf);
 	if (!marlin_get_module_status()) {
-		memcpy(buf, sysfs_info.loglevel_buf, sysfs_info.loglevel_len);
-		return sysfs_info.loglevel_len;
+		if (sysfs_info.loglevel >= 6)
+			sysfs_info.loglevel = 0;
+		scnprintf(buf, PAGE_SIZE, "%s: %d", "+LOGLEVEL",
+			  sysfs_info.loglevel);
+		len = strlen(buf);
+
+		return len;
 	}
 
 	wcn_send_atcmd(a, strlen(a), buf, &len);
@@ -453,20 +475,25 @@ static ssize_t wcn_sysfs_store_loglevel(struct device *dev,
 		return -EINVAL;
 	}
 
-	if (!marlin_get_module_status()) {
-		sysfs_info.loglevel = res;
-		return count;
+	if (res >= 6) {
+		WCN_ERR("incorrect value(%ld)written to loglevel\n", res);
+		return -EINVAL;
 	}
 
-	if (res < 6) {
+	sysfs_info.loglevel = res;
+
+	if (marlin_get_module_status()) {
 		scnprintf(a, (size_t)sizeof(a), "%s%ld%s", "at+loglevel=",
 			  res, "\r\n");
 		WCN_INFO("%s:buf=%s\n", __func__, a);
 		wcn_send_atcmd(a, strlen(a), NULL, NULL);
+		atomic_and((unsigned int)(~(WCN_SYSFS_LOGLEVEL_SET_BIT)),
+			   &sysfs_info.set_mask);
 	} else {
-		WCN_ERR("incorrect value(%ld)written to loglevel\n", res);
-		return -EINVAL;
+		atomic_or(WCN_SYSFS_LOGLEVEL_SET_BIT, &sysfs_info.set_mask);
 	}
+	WCN_INFO("%s:set_mask:%d\n", __func__,
+		 atomic_read(&sysfs_info.set_mask));
 
 	return count;
 }
@@ -796,6 +823,7 @@ static int __init init_wcn_sysfs(void)
 
 	init_completion(&sysfs_info.cmd_completion);
 	mutex_init(&sysfs_info.mutex);
+	atomic_set(&sysfs_info.set_mask, 0x0);
 
 #ifdef CONFIG_WCN_USER
 		atomic_set(&sysfs_info.is_reset, 0x1);
