@@ -150,7 +150,7 @@
 		charge-full-design-microamp-hours = <3690000>;
 		charge-term-current-microamp = <120000>;
 		constant_charge_voltage_max_microvolt = <4400000>;
-		factory-internal-resistance-micro-ohms = <147000>;
+		factory-internal-resistance-micro-ohms = <130000>;
 		voltage-min-design-microvolt = <3450000>;
 		ocv-capacity-celsius = <20>;
 		ocv-capacity-table-0 = <4380000 100>, <4317000 95>, <4258000 90>,
@@ -181,7 +181,7 @@
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
 		cm-fullbatt-vchkdrop-volt = <60000>;
-		cm-fullbatt-voltage = <4370000>;
+		cm-fullbatt-voltage = <4350000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
