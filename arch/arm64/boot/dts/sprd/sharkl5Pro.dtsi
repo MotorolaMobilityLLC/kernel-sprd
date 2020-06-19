@@ -19,6 +19,7 @@
 		i2c3 = &i2c3;
 		i2c4 = &i2c4;
 		i2c5 = &aon_i2c0;
+		spi4 = &adi_bus;
 	};
 
 	soc: soc {
@@ -392,6 +393,13 @@
 				interrupt-controller;
 				#interrupt-cells = <2>;
 				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			adi_bus: spi@32100000 {
+				compatible = "sprd,sharkl5Pro-adi";
+				reg = <0 0x32100000 0 0x100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
 			};
 
 			ap_efuse: efuse@32240000 {
