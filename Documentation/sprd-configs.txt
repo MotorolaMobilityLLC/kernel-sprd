@@ -16105,6 +16105,15 @@ CONFIG_UTS_NS
 	[must] user
 	[missing plat description] none
 	[function] add mount/net/uts namespace support
+CONFIG_VETH
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] menu
+	[subsys] net
+	[must] user
+	[missing plat description] none
+	[function] Useful for testing, debugging, when combined with network namespaces in particular
 CONFIG_VDSO
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
