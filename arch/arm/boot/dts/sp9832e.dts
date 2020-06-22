@@ -14,7 +14,7 @@
 #include "sc2721.dtsi"
 #include "sprd-sound-sharkl.dtsi"
 #include "lcd/lcd_ili9881c_truly_mipi_hd.dtsi"
-
+#include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
 / {
 	model = "Spreadtrum SC9832E SoC";
 
