@@ -13202,12 +13202,12 @@ CONFIG_SPRD_MEM_OVERLAY_CHECK
 		   reserved-memory.
 CONFIG_SPRD_MINI_SYSDUMP
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] sharkl5,sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] soc
 	[must] user
-	[missing plat description] no sysdumpdb partition on sharkl5,sharkl5_32
+	[missing plat description] none
 	[function] This function is used to enable sprd brife sysdump feature
 CONFIG_SPRD_MIPI_LOG_R2P0
 	[arch] arm
