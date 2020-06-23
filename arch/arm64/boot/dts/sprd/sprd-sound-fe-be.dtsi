@@ -1091,6 +1091,7 @@
 				sound-dai = <0 0>;
 			};
 		};
+
 		/* 34: be normal ap01 btsco */
 		sprd-audio-card,dai-link@52 {
 			ignore-suspend = <1>;
@@ -1104,6 +1105,49 @@
 			};
 			cpu {
 				sound-dai = <&vbc_v4 33>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* dai-link@53 ~ dai-link@67 (index from 35 to 49)
+		 * are reserved for ucp1301 and HIFI.
+		 */
+
+		/* 50: fe voice pcm */
+		sprd-audio-card,dai-link@68 {
+			link-name = "FE_VOICE_PCM_P";
+			stream-name = "FE_ST_VOICE_PCM_P";
+			ignore-suspend = <1>;
+			dynamic = <1>;
+			trigger = <1 1>;
+			dpcm-playback = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_pcm>;
+			};
+			cpu {
+				sound-dai = <&sprd_fe_dai 18>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* 51: be voice pcm */
+		sprd-audio-card,dai-link@69 {
+			ignore-suspend = <1>;
+			link-name = "BE_VOICE_PCM_P";
+			stream-name = "BE_ST_VOICE_PCM_P";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 45>;
 			};
 			codec {
 				sound-dai = <0 0>;
