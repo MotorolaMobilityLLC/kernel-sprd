@@ -439,7 +439,7 @@ int ap_vbc_fifo_enable(int fifo_id, int chan, int enable)
 		val = bit;
 	else
 		val = ~bit;
-	ap_vbc_reg_update(reg, bit, mask);
+	ap_vbc_reg_update(reg, val, mask);
 	pr_info("%s fifo_id=%s, vbc_chan =%s, enable=%d\n",
 		__func__, ap_vbc_fifo_id2name(fifo_id),
 		ap_vbc_chan_id2name(chan), enable);
@@ -584,7 +584,7 @@ void ap_vbc_aud_dma_chn_en(int fifo_id, int vbc_chan, int enable)
 		val = bit;
 	else
 		val = ~bit;
-	ap_vbc_reg_update(reg, bit, mask);
+	ap_vbc_reg_update(reg, val, mask);
 	pr_info("%s fifo_id=%s, vbc_chan =%s, enable=%d\n",
 		__func__, ap_vbc_fifo_id2name(fifo_id),
 		ap_vbc_chan_id2name(vbc_chan), enable);
