@@ -466,12 +466,18 @@ static void wcn_sipc_module_deinit(void)
 	WCN_INFO("sipc module deinit success\n");
 }
 
+static enum wcn_hard_intf_type wcn_sipc_get_hwintf_type(void)
+{
+	return HW_TYPE_SIPC;
+}
+
 static struct sprdwcn_bus_ops sipc_bus_ops = {
 	.chn_init = wcn_sipc_chn_init,
 	.chn_deinit = wcn_sipc_chn_deinit,
 	.list_alloc = wcn_sipc_buf_list_alloc,
 	.list_free = wcn_sipc_buf_list_free,
 	.push_list = wcn_sipc_buf_push,
+	.get_hwintf_type = wcn_sipc_get_hwintf_type,
 	.get_carddump_status = wcn_sipc_get_status,
 	.set_carddump_status = wcn_sipc_set_status,
 	.get_rx_total_cnt = wcn_sipc_get_rxcnt,

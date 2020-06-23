@@ -109,6 +109,11 @@ static void sdio_remove_card(void *wcn_dev)
 	return sdiohal_remove_card(wcn_dev);
 }
 
+static enum wcn_hard_intf_type sdio_get_hwintf_type(void)
+{
+	return HW_TYPE_SDIO;
+}
+
 static struct sprdwcn_bus_ops sdiohal_bus_ops = {
 	.preinit = sdio_preinit,
 	.deinit = sdio_preexit,
@@ -125,6 +130,7 @@ static struct sprdwcn_bus_ops sdiohal_bus_ops = {
 	.read_l = sdiohal_readl,
 	.write_l = sdiohal_writel,
 
+	.get_hwintf_type = sdio_get_hwintf_type,
 	.get_carddump_status = sdio_get_carddump_status,
 	.set_carddump_status = sdio_set_carddump_status,
 	.get_rx_total_cnt = sdio_get_rx_total_cnt,
