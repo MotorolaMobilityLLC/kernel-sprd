@@ -1,12 +1,5 @@
-// SPDX-License-Identifier: GPL-2.0
-/*
- * Copyright (C) 2020 Unisoc Communications Inc.
- *
- * Filename : sdiohal_rx.c
- * Abstract : This file is a implementation for wcn sdio hal function
- */
-
 #include "sdiohal.h"
+#include "sdiohal_dbg.h"
 
 static unsigned int sdiohal_rx_adapt_get(void)
 {
@@ -47,13 +40,12 @@ static void sdiohal_rx_adapt_set_pac_num(unsigned int num)
 		return;
 	}
 
-	p_data->remain_pac_num = (num >= MAX_CHAIN_NODE_NUM) ?
-				 MAX_CHAIN_NODE_NUM : num;
+	p_data->remain_pac_num =
+		(num >= MAX_CHAIN_NODE_NUM) ? MAX_CHAIN_NODE_NUM : num;
 }
 
 static int sdiohal_data_list_assignment(struct mbuf_t *mbuf_node,
-					struct bus_puh_t *puh,
-					int channel)
+	struct sdio_puh_t *puh, int channel)
 {
 	struct sdiohal_list_t *rx_channel_list;
 
@@ -74,13 +66,13 @@ static int sdiohal_data_list_assignment(struct mbuf_t *mbuf_node,
 
 /* for adma */
 static int sdiohal_rx_list_parser(struct sdiohal_list_t *data_list,
-				  int valid_len)
+				int valid_len)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
-	struct bus_puh_t *puh;
+	struct sdio_puh_t *puh = NULL;
 	struct mbuf_t *mbuf_node, *mbuf_next;
 	unsigned int node_num, i;
-	int inout = 0, channel;
+	int inout = 0, channel = 0;
 	unsigned int parse_len;
 
 	sdiohal_list_check(data_list, __func__, SDIOHAL_READ);
@@ -91,7 +83,7 @@ static int sdiohal_rx_list_parser(struct sdiohal_list_t *data_list,
 	for (i = 0; i < node_num; i++) {
 		mbuf_node = mbuf_next;
 		mbuf_next = mbuf_next->next;
-		puh = (struct bus_puh_t *)mbuf_node->buf;
+		puh = (struct sdio_puh_t *)mbuf_node->buf;
 		if ((puh->eof == 0) && (puh->type != 0xF)) {
 			channel = sdiohal_hwtype_to_channel(inout,
 				puh->type, puh->subtype);
@@ -99,12 +91,12 @@ static int sdiohal_rx_list_parser(struct sdiohal_list_t *data_list,
 			if (puh->check_sum)
 				puh->len += 2;
 			if ((channel >= SDIO_CHANNEL_NUM) || (puh->len >
-			    (MAX_PAC_SIZE - SDIO_PUB_HEADER_SIZE)) ||
-			    (puh->len == 0)) {
+				(MAX_PAC_SIZE - SDIO_PUB_HEADER_SIZE)) ||
+				(puh->len == 0)) {
 				sdiohal_rx_list_free(mbuf_node, mbuf_node, 1);
-				pr_err("%s skip type[%d]sub[%d]len[%d]\n",
-				       __func__, puh->type,
-				       puh->subtype, puh->len);
+				WCN_ERR("%s skip type[%d]sub[%d]len[%d]\n",
+					__func__, puh->type,
+					puh->subtype, puh->len);
 				continue;
 			}
 			p_data->rx_packer_cnt++;
@@ -112,12 +104,10 @@ static int sdiohal_rx_list_parser(struct sdiohal_list_t *data_list,
 			sdiohal_data_list_assignment(mbuf_node, puh, channel);
 		} else {
 			sdiohal_debug("%s eof pac:%d,parse[%d]%s valid[%d]\n",
-				      __func__, puh->eof, parse_len,
-				      (parse_len < valid_len ? "<":">="),
-				      valid_len);
+				__func__, puh->eof, parse_len,
+				(parse_len < valid_len ? "<":">="), valid_len);
 			sdiohal_debug("%s type[%d]sub[%d]len[%d]\n",
-				      __func__, puh->type, puh->subtype,
-				      puh->len);
+				__func__, puh->type, puh->subtype, puh->len);
 
 			sdiohal_rx_list_free(mbuf_node, mbuf_node, 1);
 		}
@@ -130,13 +120,13 @@ static int sdiohal_rx_list_parser(struct sdiohal_list_t *data_list,
 static int sdiohal_rx_buf_parser(char *data_buf, int valid_len)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
-	struct bus_puh_t *puh;
-	struct sdiohal_list_t *data_list;
+	struct sdio_puh_t *puh = NULL;
+	struct sdiohal_list_t *data_list = NULL;
 	int inout = 0, channel;
-	unsigned char *p;
+	unsigned char *p = NULL;
 	unsigned int parse_len;
 
-	puh = (struct bus_puh_t *)data_buf;
+	puh = (struct sdio_puh_t *)data_buf;
 	for (parse_len = 0; parse_len < valid_len;) {
 		if (puh->eof != 0)
 			break;
@@ -151,9 +141,9 @@ static int sdiohal_rx_buf_parser(char *data_buf, int valid_len)
 			if ((channel >= SDIO_CHANNEL_NUM) || (puh->len >
 			    (MAX_PAC_SIZE - SDIO_PUB_HEADER_SIZE)) ||
 			    (puh->len == 0)) {
-				pr_err("%s skip type[%d]sub[%d]len[%d]\n",
-				       __func__, puh->type, puh->subtype,
-				       puh->len);
+				WCN_ERR("%s skip type[%d]sub[%d]len[%d]\n",
+					__func__, puh->type, puh->subtype,
+					puh->len);
 				continue;
 			}
 			p_data->rx_packer_cnt++;
@@ -176,9 +166,9 @@ static int sdiohal_rx_buf_parser(char *data_buf, int valid_len)
 			kfree(data_list);
 		}
 		/* pointer to next packet */
-		p += sizeof(struct bus_puh_t)
+		p += sizeof(struct sdio_puh_t)
 			+ SDIOHAL_ALIGN_4BYTE(puh->len);
-		puh = (struct bus_puh_t *)p;
+		puh = (struct sdio_puh_t *)p;
 	}
 
 	return 0;
@@ -200,11 +190,11 @@ int sdiohal_rx_thread(void *data)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	struct sched_param param;
 	int read_len, mbuf_num;
-	int ret;
-	unsigned int rx_dtbs;
-	unsigned int valid_len;
+	int ret = 0;
+	unsigned int rx_dtbs = 0;
+	unsigned int valid_len = 0;
 	static char *rx_buf;
-	struct sdiohal_list_t *data_list;
+	struct sdiohal_list_t *data_list = NULL;
 	struct timespec tm_begin, tm_end;
 	static long time_total_ns;
 	static int times_count;
@@ -225,8 +215,8 @@ int sdiohal_rx_thread(void *data)
 
 		getnstimeofday(&p_data->tm_end_irq);
 		sdiohal_pr_perf("rx sch time:%ld\n",
-				(long)(timespec_to_ns(&p_data->tm_end_irq) -
-				timespec_to_ns(&p_data->tm_begin_irq)));
+			(long)(timespec_to_ns(&p_data->tm_end_irq) -
+			timespec_to_ns(&p_data->tm_begin_irq)));
 
 		sdiohal_resume_wait();
 		sdiohal_cp_rx_wakeup(PACKER_RX);
@@ -238,12 +228,12 @@ read_again:
 			/* read len is packet num */
 			mbuf_num = sdiohal_rx_adapt_get_pac_num();
 			sdiohal_debug("%s mbuf_num:%d adma_rx_enable:%d\n",
-				      __func__, mbuf_num,
-				      p_data->adma_rx_enable);
+				__func__, mbuf_num,
+				p_data->adma_rx_enable);
 
 			data_list = sdiohal_get_rx_mbuf_list(mbuf_num);
 			if (!data_list) {
-				pr_err("sdiohal_get_rx_mbuf_list fail\n");
+				WCN_ERR("sdiohal_get_rx_mbuf_list fail\n");
 				msleep(100);
 				goto submit_list;
 			}
@@ -252,7 +242,7 @@ read_again:
 				       SDIOHAL_DTBS_BUF_SIZE);
 			ret = sdiohal_adma_pt_read(data_list);
 			if (ret != 0) {
-				pr_err("adma read fail ret:%d\n", ret);
+				WCN_ERR("adma read fail ret:%d\n", ret);
 				rx_dtbs = 0;
 				if (!p_data->debug_iq) {
 					sdiohal_rx_list_free(
@@ -264,12 +254,12 @@ read_again:
 					goto submit_list;
 				}
 			}
-			rx_dtbs = *((unsigned int *)(p_data->dtbs_buf +
-				  (SDIOHAL_DTBS_BUF_SIZE - 4)));
-			valid_len = *((unsigned int *)(p_data->dtbs_buf +
-				    (SDIOHAL_DTBS_BUF_SIZE - 8)));
+			rx_dtbs =  *((unsigned int *)(p_data->dtbs_buf
+				   + (SDIOHAL_DTBS_BUF_SIZE - 4)));
+			valid_len = *((unsigned int *)(p_data->dtbs_buf
+				    + (SDIOHAL_DTBS_BUF_SIZE - 8)));
 			sdiohal_debug("%s rx_pac_num:%d, valid len:%d\n",
-				      __func__, rx_dtbs, valid_len);
+				__func__, rx_dtbs, valid_len);
 			sdiohal_rx_list_parser(data_list, valid_len);
 			kfree(data_list);
 			data_list = NULL;
@@ -277,36 +267,37 @@ read_again:
 			/* read len is packet data len */
 			read_len = sdiohal_rx_adapt_get();
 			sdiohal_debug("%s read_len:%d adma_rx_enable:%d\n",
-				      __func__, read_len,
-				      p_data->adma_rx_enable);
+				__func__, read_len,
+				p_data->adma_rx_enable);
 
 			rx_buf = sdiohal_get_rx_free_buf();
 			if (!rx_buf) {
-				pr_err("sdiohal_get_rx_free_buf fail\n");
+				WCN_ERR("sdiohal_get_rx_free_buf fail\n");
 				goto submit_list;
 			}
 
 			ret = sdiohal_sdio_pt_read(rx_buf, read_len);
 			if (ret != 0) {
-				pr_err("sdio pt read fail ret:%d\n", ret);
+				WCN_ERR("sdio pt read fail ret:%d\n", ret);
 				rx_dtbs = 0;
 				goto submit_list;
 			}
-			rx_dtbs = *((unsigned int *)(rx_buf + read_len - 4));
-			valid_len = *((unsigned int *)(rx_buf + read_len - 8));
+			rx_dtbs = *((unsigned int *)(rx_buf + (read_len - 4)));
+			valid_len =
+				*((unsigned int *)(rx_buf + (read_len - 8)));
 			sdiohal_debug("%s rx_dtbs:%d,valid len:%d\n",
-				      __func__, rx_dtbs, valid_len);
+				__func__, rx_dtbs, valid_len);
 			sdiohal_rx_buf_parser(rx_buf, valid_len);
 		}
 
 submit_list:
 		getnstimeofday(&tm_end);
-		time_total_ns += timespec_to_ns(&tm_end) -
-				 timespec_to_ns(&tm_begin);
+		time_total_ns += timespec_to_ns(&tm_end)
+			- timespec_to_ns(&tm_begin);
 		times_count++;
 		if (!(times_count % PERFORMANCE_COUNT)) {
 			sdiohal_pr_perf("rx list avg time:%ld\n",
-					(time_total_ns / PERFORMANCE_COUNT));
+				(time_total_ns / PERFORMANCE_COUNT));
 			time_total_ns = 0;
 			times_count = 0;
 		}

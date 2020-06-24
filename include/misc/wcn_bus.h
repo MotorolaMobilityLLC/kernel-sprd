@@ -1,16 +1,7 @@
-/* SPDX-License-Identifier: GPL-2.0 */
-
 #ifndef __WCN_BUS_H__
 #define __WCN_BUS_H__
 
-#include <linux/errno.h>
 #include <linux/types.h>
-
-#if IS_ENABLED(CONFIG_SDIOHAL)
-#define PUB_HEAD_RSV	4
-#else
-#define PUB_HEAD_RSV	0
-#endif
 
 #ifdef CONFIG_WCN_SIPC
 #define CHN_MAX_NUM (2 * BITS_PER_LONG)
@@ -18,8 +9,10 @@
 #define SIPC_CHN_LOOPCHECK 11
 #define SIPC_CHN_ASSERT 12
 #define SIPC_CHN_LOG 5
+#define PUB_HEAD_RSV 0
 #else
 #define CHN_MAX_NUM 32
+#define PUB_HEAD_RSV 4
 #endif
 
 enum wcn_hard_intf_type {
@@ -27,33 +20,6 @@ enum wcn_hard_intf_type {
 	HW_TYPE_PCIE,
 	HW_TYPE_SIPC,
 	HW_TYPE_INVALIED
-};
-
-enum wcn_sub_sys {
-	MARLIN_BLUETOOTH = 0,
-	MARLIN_FM,
-	MARLIN_WIFI,
-	MARLIN_WIFI_FLUSH,
-	MARLIN_SDIO_TX,
-	MARLIN_SDIO_RX,
-	MARLIN_MDBG,
-	MARLIN_GNSS,
-	WCN_AUTO,	/* fist GPS, then btwififm */
-	MARLIN_ALL,
-};
-
-enum slp_subsys {
-	PACKER_TX = 0,
-	PACKER_RX,
-	PACKER_DT_TX,
-	PACKER_DT_RX,
-	DT_WRITEL,
-	DT_READL,
-	DT_WRITE,
-	DT_READ,
-	DOWNLOAD,
-	DBG_TOOL,
-	SUBSYS_MAX,
 };
 
 enum wcn_source_type {
@@ -212,19 +178,34 @@ struct mchn_ops_t {
 	 * pop link list, (1)chn id, (2)mbuf link head
 	 * (3) mbuf link tail (4)number of node
 	 */
-	int (*pop_link)(int chn, struct mbuf_t *head,
-			struct mbuf_t *tail, int num);
+	int (*pop_link)(int, struct mbuf_t *, struct mbuf_t *, int);
 	/* ap don't need to implementation */
-	int (*push_link)(int chn, struct mbuf_t **head,
-			 struct mbuf_t **tail, int *num);
+	int (*push_link)(int, struct mbuf_t **, struct mbuf_t **, int *);
 	/* (1)channel id (2)trans time, -1 express timeout */
-	int (*tx_complete)(int chn, int timeout);
-	int (*power_notify)(int chn, int notify);
+	int (*tx_complete)(int, int);
+	int (*power_notify)(int, int);
 };
 
-struct bus_puh_t {
+struct sdio_puh_t {
+#ifdef CONFIG_SDIOM
+	unsigned int pad:7;
+#else
 	unsigned int pad:6;
 	unsigned int check_sum:1;
+#endif
+	unsigned int len:16;
+	unsigned int eof:1;
+	unsigned int subtype:4;
+	unsigned int type:4;
+}; /* 32bits public header */
+
+struct bus_puh_t {
+#ifdef CONFIG_SDIOM
+	unsigned int pad:7;
+#else
+	unsigned int pad:6;
+	unsigned int check_sum:1;
+#endif
 	unsigned int len:16;
 	unsigned int eof:1;
 	unsigned int subtype:4;
@@ -304,9 +285,6 @@ struct sprdwcn_bus_ops {
 	int (*driver_register)(void);
 	void (*driver_unregister)(void);
 
-	/* for wcn chip boot and download firmware */
-	int (*start_wcn)(enum wcn_sub_sys subsys);
-	int (*stop_wcn)(enum wcn_sub_sys subsys);
 };
 
 extern struct atomic_notifier_head wcn_reset_notifier_list;
@@ -659,39 +637,6 @@ void sprdwcn_bus_remove_card(void *wcn_dev)
 }
 
 static inline
-enum wcn_hard_intf_type sprdwcn_bus_get_hwintf_type(void)
-{
-	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
-
-	if (!bus_ops || !bus_ops->get_hwintf_type)
-		return HW_TYPE_INVALIED;
-
-	return bus_ops->get_hwintf_type();
-}
-
-static inline
-int sprdwcn_start(enum wcn_sub_sys subsys)
-{
-	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
-
-	if (!bus_ops || !bus_ops->start_wcn)
-		return -ENODEV;
-
-	return bus_ops->start_wcn(subsys);
-}
-
-static inline
-int sprdwcn_stop(enum wcn_sub_sys subsys)
-{
-	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
-
-	if (!bus_ops || !bus_ops->stop_wcn)
-		return -ENODEV;
-
-	return bus_ops->stop_wcn(subsys);
-}
-
-static inline
 int wcn_bus_init(void)
 {
 	module_bus_init();
@@ -704,4 +649,14 @@ void wcn_bus_deinit(void)
 	module_bus_deinit();
 }
 
+static inline
+enum wcn_hard_intf_type sprdwcn_bus_get_hwintf_type(void)
+{
+	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
+
+	if (!bus_ops || !bus_ops->get_hwintf_type)
+		return HW_TYPE_INVALIED;
+
+	return bus_ops->get_hwintf_type();
+}
 #endif

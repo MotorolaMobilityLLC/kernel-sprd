@@ -1,12 +1,6 @@
-// SPDX-License-Identifier: GPL-2.0
-/*
- * Copyright (C) 2020 Unisoc Communications Inc.
- *
- * Filename : sdiohal_common.c
- * Abstract : This file is an implementation for wcn sdio hal function
- */
-
+#include "bus_common.h"
 #include "sdiohal.h"
+#include "sdiohal_dbg.h"
 
 void sdiohal_print_list_data(struct sdiohal_list_t *data_list,
 			     const char *func, int loglevel)
@@ -17,7 +11,7 @@ void sdiohal_print_list_data(struct sdiohal_list_t *data_list,
 	char print_str[64];
 
 	if (!data_list || !data_list->mbuf_head) {
-		WARN_ON_ONCE(1);
+		WARN_ON(1);
 		return;
 	}
 
@@ -36,8 +30,7 @@ void sdiohal_print_list_data(struct sdiohal_list_t *data_list,
 }
 
 void sdiohal_print_mbuf_data(int channel, struct mbuf_t *head,
-			     struct mbuf_t *tail, int num,
-			     const char *func,
+			     struct mbuf_t *tail, int num, const char *func,
 			     int loglevel)
 {
 	struct mbuf_t *node;
@@ -46,7 +39,7 @@ void sdiohal_print_mbuf_data(int channel, struct mbuf_t *head,
 	char print_str[64];
 
 	if (!head) {
-		WARN_ON_ONCE(1);
+		WARN_ON(1);
 		return;
 	}
 
@@ -72,7 +65,7 @@ void sdiohal_list_check(struct sdiohal_list_t *data_list,
 	int i;
 
 	if (!data_list) {
-		WARN_ON_ONCE(1);
+		WARN_ON(1);
 		return;
 	}
 
@@ -82,14 +75,14 @@ void sdiohal_list_check(struct sdiohal_list_t *data_list,
 			data_list->node_num);
 	node = data_list->mbuf_head;
 	for (i = 0; i < data_list->node_num; i++, node = node->next) {
-		WARN_ON_ONCE(!node);
+		WARN_ON(!node);
 		sdiohal_pr_list(SDIOHAL_LIST_LEVEL, "%s node:%p buf:%p\n",
 				func, node, node->buf);
 	}
 
 	if (node) {
-		pr_err("%s node:%p buf:%p\n", func, node, node->buf);
-		WARN_ON_ONCE(1);
+		WCN_ERR("%s node:%p buf:%p\n", func, node, node->buf);
+		WARN_ON(1);
 	}
 }
 
@@ -101,7 +94,7 @@ void sdiohal_mbuf_list_check(int channel, struct mbuf_t *head,
 	int i;
 
 	if (!head) {
-		WARN_ON_ONCE(1);
+		WARN_ON(1);
 		return;
 	}
 
@@ -109,14 +102,14 @@ void sdiohal_mbuf_list_check(int channel, struct mbuf_t *head,
 			func, dir ? "tx" : "rx", channel, head, tail, num);
 	node = head;
 	for (i = 0; i < num; i++, node = node->next) {
-		WARN_ON_ONCE(!node);
+		WARN_ON(!node);
 		sdiohal_pr_list(SDIOHAL_LIST_LEVEL, "%s node:%p buf:%p\n",
 				func, node, node->buf);
 	}
 
 	if (node) {
-		pr_err("%s node:%p buf:%p\n", func, node, node->buf);
-		WARN_ON_ONCE(1);
+		WCN_ERR("%s node:%p buf:%p\n", func, node, node->buf);
+		WARN_ON(1);
 	}
 }
 
@@ -243,7 +236,7 @@ static void sdiohal_wakelock_init(void)
 	wakeup_source_init(&p_data->scan_ws, "sdiohal_scan_wakelock");
 }
 
-static void sdiohal_wakelock_deinit(void)
+void sdiohal_wakelock_deinit(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
@@ -357,7 +350,7 @@ void sdiohal_resume_check(void)
 
 	while (!atomic_read(&p_data->flag_resume)) {
 		if (cnt == 0) {
-			pr_err("wait sdio resume %s\n", __func__);
+			WCN_ERR("wait sdio resume %s\n", __func__);
 			dump_stack();
 		}
 		usleep_range(4000, 6000);
@@ -370,8 +363,9 @@ void sdiohal_resume_wait(void)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
 	while (!atomic_read(&p_data->flag_resume)) {
-		printk_ratelimited(KERN_ERR
-				   "WCN SDIO 5ms wait for sdio resume\n");
+		printk_ratelimited(
+			KERN_ERR
+			"WCN SDIOHAL error: 5ms wait for sdio resume\n");
 		usleep_range(4000, 6000);
 	}
 }
@@ -404,7 +398,7 @@ void sdiohal_sdma_leave(void)
 	mutex_unlock(&p_data->xmit_sdma);
 }
 
-static void sdiohal_mutex_init(void)
+void sdiohal_mutex_init(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
@@ -412,7 +406,7 @@ static void sdiohal_mutex_init(void)
 	mutex_init(&p_data->xmit_sdma);
 }
 
-static void sdiohal_mutex_deinit(void)
+void sdiohal_mutex_deinit(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
@@ -420,7 +414,7 @@ static void sdiohal_mutex_deinit(void)
 	mutex_destroy(&p_data->xmit_sdma);
 }
 
-static void sdiohal_sleep_flag_init(void)
+void sdiohal_sleep_flag_init(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
@@ -428,7 +422,7 @@ static void sdiohal_sleep_flag_init(void)
 }
 
 void sdiohal_channel_to_hwtype(int inout, int channel,
-			       unsigned int *type, unsigned int *subtype)
+	unsigned int *type, unsigned int *subtype)
 {
 	if (!inout)
 		channel -= SDIO_CHN_TX_NUM;
@@ -439,9 +433,9 @@ void sdiohal_channel_to_hwtype(int inout, int channel,
 }
 
 int sdiohal_hwtype_to_channel(int inout, unsigned int type,
-			      unsigned int subtype)
+	unsigned int subtype)
 {
-	int channel;
+	int channel = -1;
 
 	if (inout)
 		channel = subtype;
@@ -470,24 +464,24 @@ int sdiohal_tx_packer(struct sdiohal_sendbuf_t *send_buf,
 	if ((!send_buf) || (!data_list) || (!mbuf_node))
 		return -EINVAL;
 
-	memcpy(send_buf->buf + send_buf->used_len, mbuf_node->buf,
-	       mbuf_node->len + sizeof(struct bus_puh_t));
+	memcpy(send_buf->buf + send_buf->used_len,
+	       mbuf_node->buf, mbuf_node->len + sizeof(struct sdio_puh_t));
 
-	send_buf->used_len += sizeof(struct bus_puh_t) +
-			      SDIOHAL_ALIGN_4BYTE(mbuf_node->len);
+	send_buf->used_len += sizeof(struct sdio_puh_t) +
+		SDIOHAL_ALIGN_4BYTE(mbuf_node->len);
 
 	return 0;
 }
 
 int sdiohal_tx_set_eof(struct sdiohal_sendbuf_t *send_buf,
-		       unsigned char *eof_buf)
+	unsigned char *eof_buf)
 {
 	if ((!send_buf) || (!eof_buf))
 		return -EINVAL;
 
 	memcpy((void *)(send_buf->buf + send_buf->used_len),
-	       (void *)eof_buf, sizeof(struct bus_puh_t));
-	send_buf->used_len += sizeof(struct bus_puh_t);
+		(void *)eof_buf, sizeof(struct sdio_puh_t));
+	send_buf->used_len += sizeof(struct sdio_puh_t);
 
 	return 0;
 }
@@ -495,9 +489,9 @@ int sdiohal_tx_set_eof(struct sdiohal_sendbuf_t *send_buf,
 static int sdiohal_tx_fill_puh(int channel, struct mbuf_t *head,
 			       struct mbuf_t *tail, int num)
 {
-	struct bus_puh_t *puh = NULL;
+	struct sdio_puh_t *puh = NULL;
 	struct mbuf_t *mbuf_node;
-	unsigned int type, subtype;
+	unsigned int type = 0, subtype = 0;
 	int inout = 1;
 	int i;
 
@@ -506,12 +500,12 @@ static int sdiohal_tx_fill_puh(int channel, struct mbuf_t *head,
 	mbuf_node = head;
 	for (i = 0; i < num; i++, mbuf_node = mbuf_node->next) {
 		if (!mbuf_node) {
-			pr_err("%s tx fill puh, mbuf ptr error:%p\n",
+			WCN_ERR("%s tx fill puh, mbuf ptr error:%p\n",
 				__func__, mbuf_node);
 
 			return -EFAULT;
 		}
-		puh = (struct bus_puh_t *)mbuf_node->buf;
+		puh = (struct sdio_puh_t *)mbuf_node->buf;
 		puh->type = type;
 		puh->subtype = subtype;
 		puh->len = mbuf_node->len;
@@ -575,10 +569,10 @@ void sdiohal_tx_find_data_list(struct sdiohal_list_t *data_list)
 static int sdiohal_tx_pop_assignment(struct sdiohal_list_t *data_list)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
-	struct sdiohal_list_t *tx_list;
-	struct bus_puh_t *puh;
+	struct sdiohal_list_t *tx_list = NULL;
+	struct sdio_puh_t *puh = NULL;
 	struct mbuf_t *mbuf_node, *mbuf_next;
-	int inout = 1, channel;
+	int inout = 1, channel = 0;
 	unsigned int node_num, i;
 
 	sdiohal_list_check(data_list, __func__, SDIOHAL_WRITE);
@@ -587,18 +581,18 @@ static int sdiohal_tx_pop_assignment(struct sdiohal_list_t *data_list)
 	for (i = 0; i < node_num; i++) {
 		mbuf_node = mbuf_next;
 		if (!mbuf_node) {
-			pr_err("%s tx pop mbuf ptr error:%p\n",
-			       __func__, mbuf_node);
+			WCN_ERR("%s tx pop mbuf ptr error:%p\n",
+				__func__, mbuf_node);
 
 			return -EFAULT;
 		}
 		mbuf_next = mbuf_next->next;
-		puh = (struct bus_puh_t *)mbuf_node->buf;
+		puh = (struct sdio_puh_t *)mbuf_node->buf;
 		channel = sdiohal_hwtype_to_channel(inout,
-			  puh->type, puh->subtype);
+			puh->type, puh->subtype);
 		if (channel >= SDIO_CHN_TX_NUM) {
-			pr_err("%s tx pop channel error:%d\n",
-			       __func__, channel);
+			WCN_ERR("%s tx pop channel error:%d\n",
+				__func__, channel);
 			continue;
 		}
 
@@ -647,8 +641,8 @@ int sdiohal_tx_list_denq(struct sdiohal_list_t *data_list)
 		channel = sdiohal_hwtype_to_channel(inout, tx_list->type,
 						    tx_list->subtype);
 		if (channel >= SDIO_CHN_TX_NUM) {
-			pr_err("%s tx pop channel error:%d\n",
-			       __func__, channel);
+			WCN_ERR("%s tx pop channel error:%d\n",
+				__func__, channel);
 			continue;
 		}
 
@@ -666,14 +660,15 @@ int sdiohal_tx_list_denq(struct sdiohal_list_t *data_list)
 					      tx_list->mbuf_tail,
 					      tx_list->node_num);
 		} else
-			pr_err("%s no tx ops channel:%d\n", __func__, channel);
+			WCN_ERR("%s no tx ops channel:%d\n",
+				__func__, channel);
 
 		tx_list->node_num = 0;
 		sdiohal_callback_unlock(&chn_callback[channel]);
 
 		getnstimeofday(&tm_end);
-		time_total_ns += timespec_to_ns(&tm_end) -
-				timespec_to_ns(&tm_begin);
+		time_total_ns += timespec_to_ns(&tm_end)
+			- timespec_to_ns(&tm_begin);
 		times_count++;
 		if (!(times_count % PERFORMANCE_COUNT)) {
 			sdiohal_pr_perf("tx pop callback,avg time:%ld\n",
@@ -716,8 +711,8 @@ int sdiohal_rx_list_dispatch(void)
 		channel = sdiohal_hwtype_to_channel(inout, rx_list->type,
 						    rx_list->subtype);
 		if (channel >= SDIO_CHANNEL_NUM) {
-			pr_err("%s rx pop channel error:%d\n",
-			       __func__, channel);
+			WCN_ERR("%s rx pop channel error:%d\n",
+				__func__, channel);
 			continue;
 		}
 
@@ -735,8 +730,8 @@ int sdiohal_rx_list_dispatch(void)
 					      rx_list->mbuf_tail,
 					      rx_list->node_num);
 		} else {
-			pr_err("%s no rx ops channel:%d\n",
-			       __func__, channel);
+			WCN_ERR("%s no rx ops channel:%d\n",
+				__func__, channel);
 			sdiohal_rx_list_free(rx_list->mbuf_head,
 					     rx_list->mbuf_tail,
 					     rx_list->node_num);
@@ -750,7 +745,7 @@ int sdiohal_rx_list_dispatch(void)
 		times_count++;
 		if (!(times_count % PERFORMANCE_COUNT)) {
 			sdiohal_pr_perf("rx pop callback,avg time:%ld\n",
-					(time_total_ns / PERFORMANCE_COUNT));
+				(time_total_ns / PERFORMANCE_COUNT));
 			time_total_ns = 0;
 			times_count = 0;
 		}
@@ -764,13 +759,13 @@ struct sdiohal_list_t *sdiohal_get_rx_channel_list(int channel)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
 	if (unlikely(p_data->flag_init != true))  {
-		pr_err("%s sdiohal not init\n", __func__);
+		WCN_ERR("%s sdiohal not init\n", __func__);
 		return NULL;
 	}
 
 	channel -= SDIO_CHN_TX_NUM;
 	if (channel >= SDIO_CHN_RX_NUM) {
-		pr_err("%s rx error channel:%d\n", __func__, channel);
+		WCN_ERR("%s rx error channel:%d\n", __func__, channel);
 		return NULL;
 	}
 
@@ -790,11 +785,11 @@ int sdiohal_rx_list_free(struct mbuf_t *mbuf_head,
 		if (mbuf_node->buf) {
 			data = mbuf_node->buf;
 			sdiohal_debug("%s, before put page addr:%p,count:%d\n",
-				      __func__, virt_to_head_page(data),
+				__func__, virt_to_head_page(data),
 			     atomic_read(&virt_to_head_page(data)->_refcount));
 			put_page(virt_to_head_page(data));
 			sdiohal_debug("%s, after put page addr:%p,count:%d\n",
-				      __func__, virt_to_head_page(data),
+				__func__, virt_to_head_page(data),
 			atomic_read(&virt_to_head_page(data)->_refcount));
 			mbuf_node->buf = NULL;
 		}
@@ -817,7 +812,7 @@ static void *sdiohal_alloc_frag(unsigned int fragsz, gfp_t gfp_mask)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 	struct sdiohal_frag_mg *frag_ctl;
-	void *data;
+	void *data = NULL;
 	int order;
 	unsigned long flags;
 
@@ -843,8 +838,8 @@ refill:
 		}
 		frag_ctl->frag.size = PAGE_SIZE << order;
 		if (frag_ctl->frag.size < fragsz) {
-			pr_err("alloc 0x%x mem, need:0x%x\n",
-			       frag_ctl->frag.size, fragsz);
+			WCN_ERR("alloc 0x%x mem, need:0x%x\n",
+				frag_ctl->frag.size, fragsz);
 			put_page(frag_ctl->frag.page);
 			goto fail;
 		}
@@ -886,7 +881,7 @@ refill:
 	return data;
 fail:
 	local_irq_restore(flags);
-	pr_err("alloc mem fail\n");
+	WCN_ERR("alloc mem fail\n");
 	return NULL;
 }
 
@@ -899,13 +894,13 @@ struct sdiohal_list_t *sdiohal_get_rx_mbuf_node(int num)
 	int i;
 
 	if (num == 0) {
-		pr_err("num err:%d\n", num);
+		WCN_ERR("num err:%d\n", num);
 		goto err;
 	}
 
 	if (num > p_data->list_rx_buf.node_num) {
-		pr_err("no rx mbuf node, need num:%d, list node num:%d\n",
-		       num, p_data->list_rx_buf.node_num);
+		WCN_ERR("no rx mbuf node, need num:%d, list node num:%d\n",
+			num, p_data->list_rx_buf.node_num);
 		goto err;
 	}
 
@@ -958,8 +953,7 @@ struct sdiohal_list_t *sdiohal_get_rx_mbuf_list(int num)
 			kfree(idle_list);
 			goto err;
 		}
-		WARN_ON_ONCE((unsigned long int)
-			     ((void *)(mbuf_temp->buf)) % 64);
+		WARN_ON(((unsigned long int)mbuf_temp->buf) % 64);
 		mbuf_temp = mbuf_temp->next;
 	}
 
@@ -978,7 +972,7 @@ void *sdiohal_get_rx_free_buf(void)
 	p = sdiohal_alloc_frag(SDIOHAL_RX_RECVBUF_LEN,
 			GFP_ATOMIC | __GFP_COLD);
 
-	WARN_ON_ONCE(((unsigned long int)p) % 64);
+	WARN_ON(((unsigned long int)p) % 64);
 
 	return p;
 }
@@ -987,13 +981,13 @@ static int sdiohal_rx_mbuf_create(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
-	p_data->rx_mbuf_cache = kmem_cache_create("wcn_rx_mbuf",
-						  sizeof(struct mbuf_t),
-						  0, 0, NULL);
+	p_data->rx_mbuf_cache = kmem_cache_create(
+			"wcn_rx_mbuf", sizeof(struct mbuf_t), 0,
+			0, NULL);
 	if (p_data->rx_mbuf_cache)
 		return 0;
 
-	pr_info("%s no mem for mbuf cache\n", __func__);
+	WCN_INFO("%s no mem for mbuf cache\n", __func__);
 
 	return -ENOMEM;
 }
@@ -1043,7 +1037,7 @@ static void sdiohal_rx_buf_init(void)
 static int sdiohal_free_rx_mbuf_nodes(struct sdiohal_list_t *plist, int num)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
-	struct mbuf_t *mbuf_node = NULL, *mbuf_temp;
+	struct mbuf_t *mbuf_node = NULL, *mbuf_temp = NULL;
 	int i;
 
 	if (unlikely(!p_data->rx_mbuf_cache))
@@ -1058,7 +1052,7 @@ static int sdiohal_free_rx_mbuf_nodes(struct sdiohal_list_t *plist, int num)
 			kmem_cache_free(p_data->rx_mbuf_cache, mbuf_temp);
 		} else {
 			if (i < num - 1)
-				pr_err("%s mbuf_node error\n", __func__);
+				WCN_ERR("%s mbuf_node error\n", __func__);
 			kmem_cache_free(p_data->rx_mbuf_cache, mbuf_temp);
 			break;
 		}
@@ -1103,7 +1097,8 @@ int sdiohal_list_push(int channel, struct mbuf_t *head,
 				SDIOHAL_NORMAL_LEVEL :
 				SDIOHAL_LIST_LEVEL));
 	if ((channel < 0) || (channel >= SDIO_CHANNEL_NUM) ||
-	    (!head) || (!tail) || (num <= 0)) {
+		(!head) || (!tail) || (num <= 0)) {
+		WCN_ERR("%s Invalid argument\n", __func__);
 		dump_stack();
 		return -EINVAL;
 	}
@@ -1111,6 +1106,7 @@ int sdiohal_list_push(int channel, struct mbuf_t *head,
 	mbuf_node = head;
 	for (i = 0; i < num; i++, mbuf_node = mbuf_node->next) {
 		if (!mbuf_node) {
+			WCN_ERR("%s mbuf list error\n", __func__);
 			dump_stack();
 			return -EFAULT;
 		}
@@ -1122,12 +1118,12 @@ int sdiohal_list_push(int channel, struct mbuf_t *head,
 		sdiohal_tx_list_enq(channel, head, tail, num);
 
 		getnstimeofday(&tm_end);
-		time_total_ns += timespec_to_ns(&tm_end) -
-				 timespec_to_ns(&tm_begin);
+		time_total_ns += timespec_to_ns(&tm_end)
+			- timespec_to_ns(&tm_begin);
 		times_count++;
 		if (!(times_count % PERFORMANCE_COUNT)) {
 			sdiohal_pr_perf("tx avg time:%ld\n",
-					(time_total_ns / PERFORMANCE_COUNT));
+				(time_total_ns / PERFORMANCE_COUNT));
 			time_total_ns = 0;
 			times_count = 0;
 		}
@@ -1170,12 +1166,11 @@ int sdiohal_list_direct_write(int channel, struct mbuf_t *head,
 static int sdiohal_list_init(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
-	unsigned int channel;
+	unsigned int channel = 0;
 
 	for (channel = 0; channel < SDIO_TX_LIST_NUM; channel++) {
 		p_data->list_tx[channel] =
-					kzalloc(sizeof(struct sdiohal_list_t),
-					GFP_KERNEL);
+			kzalloc(sizeof(struct sdiohal_list_t), GFP_KERNEL);
 		if (!p_data->list_tx[channel])
 			return -ENOMEM;
 
@@ -1183,7 +1178,7 @@ static int sdiohal_list_init(void)
 			INIT_LIST_HEAD(&p_data->list_tx[channel]->head);
 		else
 			list_add_tail(&p_data->list_tx[channel]->head,
-				      &p_data->list_tx[0]->head);
+				&p_data->list_tx[0]->head);
 		p_data->list_tx[channel]->node_num = 0;
 		p_data->list_tx[channel]->mbuf_head = NULL;
 	}
@@ -1198,7 +1193,7 @@ static int sdiohal_list_init(void)
 			INIT_LIST_HEAD(&p_data->list_rx[channel]->head);
 		else
 			list_add_tail(&p_data->list_rx[channel]->head,
-				      &p_data->list_rx[0]->head);
+				&p_data->list_rx[0]->head);
 		p_data->list_rx[channel]->node_num = 0;
 		p_data->list_rx[channel]->mbuf_head = NULL;
 	}
@@ -1209,7 +1204,7 @@ static int sdiohal_list_init(void)
 static void sdiohal_list_deinit(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
-	unsigned int channel;
+	unsigned int channel = 0;
 	struct list_head *pos, *next;
 
 	for (channel = 0; channel < SDIO_TX_LIST_NUM; channel++) {
@@ -1231,8 +1226,8 @@ static int sdiohal_tx_sendbuf_init(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
-	p_data->send_buf.buf = kzalloc(SDIOHAL_TX_SENDBUF_LEN,
-				       GFP_KERNEL);
+	p_data->send_buf.buf =
+		kzalloc(SDIOHAL_TX_SENDBUF_LEN, GFP_KERNEL);
 	if (!p_data->send_buf.buf)
 		return -ENOMEM;
 
@@ -1260,13 +1255,13 @@ static int sdiohal_eof_buf_init(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
-	struct bus_puh_t *puh;
+	struct sdio_puh_t *puh = NULL;
 
 	p_data->eof_buf = kzalloc(MAX_MBUF_SIZE, GFP_KERNEL);
 	if (!p_data->eof_buf)
 		return -ENOMEM;
 
-	puh = (struct bus_puh_t *)(p_data->eof_buf);
+	puh = (struct sdio_puh_t *)(p_data->eof_buf);
 	puh->type = 0;
 	puh->subtype = 0;
 	puh->len = 0;
@@ -1288,8 +1283,10 @@ static int sdiohal_dtbs_buf_init(void)
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
 	p_data->dtbs_buf = kzalloc(MAX_MBUF_SIZE, GFP_KERNEL);
-	if (!p_data->dtbs_buf)
+	if (!p_data->dtbs_buf) {
+		WCN_INFO("dtbs buf alloc fail\n");
 		return -ENOMEM;
+	}
 
 	return 0;
 }
@@ -1306,7 +1303,7 @@ static int sdiohal_dtbs_buf_deinit(void)
 
 int sdiohal_misc_init(void)
 {
-	int ret;
+	int ret = 0;
 
 	sdiohal_completion_init();
 	sdiohal_wakelock_init();
@@ -1319,7 +1316,7 @@ int sdiohal_misc_init(void)
 	sdiohal_dtbs_buf_init();
 	ret = sdiohal_list_init();
 	if (ret < 0)
-		pr_err("alloc list err\n");
+		WCN_ERR("alloc list err\n");
 
 	sdiohal_tx_sendbuf_init();
 	ret = sdiohal_eof_buf_init();

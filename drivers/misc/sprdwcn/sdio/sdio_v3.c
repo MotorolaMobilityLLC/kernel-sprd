@@ -1,11 +1,6 @@
-// SPDX-License-Identifier: GPL-2.0
-/*
- * Copyright (C) 2020 Unisoc Communications Inc.
- *
- * Filename : sdiohal_if.c
- * Abstract : This file is a implementation for wcn sdio hal function
- */
+#include <misc/wcn_bus.h>
 
+#include "bus_common.h"
 #include "sdiohal.h"
 
 static int sdio_preinit(void)
@@ -53,13 +48,13 @@ static int sdio_chn_deinit(struct mchn_ops_t *ops)
 }
 
 static int sdio_direct_read(unsigned int addr,
-			    void *buf, unsigned int len)
+				void *buf, unsigned int len)
 {
 	return sdiohal_dt_read(addr, buf, len);
 }
 
 static int sdio_direct_write(unsigned int addr,
-			     void *buf, unsigned int len)
+				void *buf, unsigned int len)
 {
 	return sdiohal_dt_write(addr, buf, len);
 }
@@ -135,14 +130,15 @@ static struct sprdwcn_bus_ops sdiohal_bus_ops = {
 	.read_l = sdiohal_readl,
 	.write_l = sdiohal_writel,
 
+	.get_hwintf_type = sdio_get_hwintf_type,
 	.get_carddump_status = sdio_get_carddump_status,
 	.set_carddump_status = sdio_set_carddump_status,
 	.get_rx_total_cnt = sdio_get_rx_total_cnt,
 
 	.runtime_get = sdio_runtime_get,
 	.runtime_put = sdio_runtime_put,
-	.get_hwintf_type = sdio_get_hwintf_type,
 
+	/* v3 temp */
 	.register_rescan_cb = sdio_register_rescan_cb,
 	.rescan = sdio_rescan,
 	.remove_card = sdio_remove_card,
@@ -152,10 +148,10 @@ void module_bus_init(void)
 {
 	module_ops_register(&sdiohal_bus_ops);
 }
-EXPORT_SYMBOL_GPL(module_bus_init);
+EXPORT_SYMBOL(module_bus_init);
 
 void module_bus_deinit(void)
 {
 	module_ops_unregister();
 }
-EXPORT_SYMBOL_GPL(module_bus_deinit);
+EXPORT_SYMBOL(module_bus_deinit);

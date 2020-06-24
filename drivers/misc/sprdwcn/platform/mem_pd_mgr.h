@@ -20,7 +20,6 @@
 #define __MEM_PD_MGR__
 
 #include <misc/marlin_platform.h>
-#include <misc/wcn_bus.h>
 
 #define MEM_PD_MGR_HEADER "[mem_pd]"
 
@@ -78,7 +77,7 @@ struct mem_pd_meminfo_t {
 unsigned int mem_pd_wifi_state(void);
 int mem_pd_poweroff_deinit(void);
 int inform_cp_wifi_download(void);
-int mem_pd_mgr(enum wcn_sub_sys subsys, int val);
+int mem_pd_mgr(enum marlin_sub_sys subsys, int val);
 int mem_pd_save_bin(void);
 int mem_pd_init(void);
 int mem_pd_exit(void);
