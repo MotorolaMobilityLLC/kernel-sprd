@@ -924,6 +924,11 @@
 		#size-cells = <2>;
 		ranges;
 
+		rebootescrow@0x81ff0000 {
+			no-map;
+			reg = <0x0 0x81ff0000 0x0 0x00010000>; /* 64K */
+		};
+
 		/* must be 1M aligned */
 		sml_reserved: sml-mem@94000000 {
 			reg = <0x0 0x94000000 0x0 0x00020000>;
@@ -940,6 +945,11 @@
 			console-size = <0x8000>;
 			pmsg-size = <0x8000>;
 		};
+	};
+
+	rebootescrow@0 {
+		compatible = "pmem-region";
+		reg = <0x0 0x81ff0000 0x0 0x00010000>;
 	};
 };
 
