@@ -66,10 +66,14 @@
 #define SC27XX_FGU_MODE_AREA_MASK	GENMASK(15, 12)
 #define SC27XX_FGU_CAP_AREA_MASK	GENMASK(11, 0)
 #define SC27XX_FGU_MODE_AREA_SHIFT	12
+#define SC27XX_FGU_CAP_INTEGER_MASK	GENMASK(7, 0)
+#define SC27XX_FGU_CAP_DECIMAL_MASK	GENMASK(3, 0)
+#define SC27XX_FGU_CAP_DECIMAL_SHIFT	8
 
 #define SC27XX_FGU_FIRST_POWERTON	GENMASK(3, 0)
 #define SC27XX_FGU_DEFAULT_CAP		GENMASK(11, 0)
 #define SC27XX_FGU_NORMAIL_POWERTON	0x5
+#define SC27XX_FGU_RTC2_RESET_VALUE	0xA05
 
 #define SC27XX_FGU_CUR_BASIC_ADC	8192
 #define SC27XX_FGU_SAMPLE_HZ		2
@@ -336,6 +340,7 @@ static int sc27xx_fgu_save_boot_mode(struct sc27xx_fgu_data *data,
 static int sc27xx_fgu_save_last_cap(struct sc27xx_fgu_data *data, int cap)
 {
 	int ret;
+	u32 value;
 
 	ret = regmap_update_bits(data->regmap,
 				 data->base + SC27XX_FGU_USER_AREA_CLEAR,
@@ -352,9 +357,12 @@ static int sc27xx_fgu_save_last_cap(struct sc27xx_fgu_data *data, int cap)
 	 */
 	udelay(200);
 
+	value = (cap / 10) & SC27XX_FGU_CAP_INTEGER_MASK;
+	value |= ((cap % 10) & SC27XX_FGU_CAP_DECIMAL_MASK) << SC27XX_FGU_CAP_DECIMAL_SHIFT;
+
 	ret = regmap_update_bits(data->regmap,
 				 data->base + SC27XX_FGU_USER_AREA_SET,
-				 SC27XX_FGU_CAP_AREA_MASK, cap);
+				 SC27XX_FGU_CAP_AREA_MASK, value);
 	if (ret)
 		return ret;
 
@@ -379,6 +387,7 @@ static int sc27xx_fgu_save_last_cap(struct sc27xx_fgu_data *data, int cap)
 static int sc27xx_fgu_save_normal_temperature_cap(struct sc27xx_fgu_data *data, int cap)
 {
 	int ret;
+	u32 value;
 
 	ret = regmap_update_bits(data->regmap,
 				 data->base + SC27XX_FGU_USER_AREA_CLEAR1,
@@ -395,9 +404,12 @@ static int sc27xx_fgu_save_normal_temperature_cap(struct sc27xx_fgu_data *data, 
 	 */
 	udelay(200);
 
+	value = (cap / 10) & SC27XX_FGU_CAP_INTEGER_MASK;
+	value |= ((cap % 10) & SC27XX_FGU_CAP_DECIMAL_MASK) << SC27XX_FGU_CAP_DECIMAL_SHIFT;
+
 	ret = regmap_update_bits(data->regmap,
 				 data->base + SC27XX_FGU_USER_AREA_SET1,
-				 SC27XX_FGU_CAP_AREA_MASK, cap);
+				 SC27XX_FGU_CAP_AREA_MASK, value);
 	if (ret)
 		return ret;
 
@@ -423,7 +435,9 @@ static int sc27xx_fgu_read_normal_temperature_cap(struct sc27xx_fgu_data *data, 
 	if (ret)
 		return ret;
 
-	*cap = value & SC27XX_FGU_CAP_AREA_MASK;
+	*cap = (value & SC27XX_FGU_CAP_INTEGER_MASK) * 10;
+	*cap += (value >> SC27XX_FGU_CAP_DECIMAL_SHIFT) & SC27XX_FGU_CAP_DECIMAL_MASK;
+
 	return 0;
 }
 
@@ -436,7 +450,9 @@ static int sc27xx_fgu_read_last_cap(struct sc27xx_fgu_data *data, int *cap)
 	if (ret)
 		return ret;
 
-	*cap = value & SC27XX_FGU_CAP_AREA_MASK;
+	*cap = (value & SC27XX_FGU_CAP_INTEGER_MASK) * 10;
+	*cap += (value >> SC27XX_FGU_CAP_DECIMAL_SHIFT) & SC27XX_FGU_CAP_DECIMAL_MASK;
+
 	return 0;
 }
 
@@ -472,7 +488,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 			return ret;
 		}
 
-		if (*cap == SC27XX_FGU_DEFAULT_CAP) {
+		if (*cap == SC27XX_FGU_DEFAULT_CAP || *cap == SC27XX_FGU_RTC2_RESET_VALUE) {
 			*cap = data->boot_cap;
 			ret = sc27xx_fgu_save_normal_temperature_cap(data, data->boot_cap);
 			if (ret < 0)
@@ -517,6 +533,8 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	 */
 	*cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
 					   ocv);
+
+	*cap *= 10;
 	data->boot_cap = *cap;
 	ret = sc27xx_fgu_save_last_cap(data, *cap);
 	if (ret) {
@@ -629,13 +647,18 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 	 * as 10 to improve the precision.
 	 */
 	temp = DIV_ROUND_CLOSEST(delta_clbcnt * 10, 36 * SC27XX_FGU_SAMPLE_HZ);
-	temp = sc27xx_fgu_adc_to_current(data, temp / 1000);
+	if (temp > 0)
+		temp = temp + data->cur_1000ma_adc / 2;
+	else
+		temp = temp - data->cur_1000ma_adc / 2;
+
+	temp = div_s64(temp, data->cur_1000ma_adc);
 
 	/*
 	 * Convert to capacity percent of the battery total capacity,
 	 * and multiplier is 100 too.
 	 */
-	delta_cap = DIV_ROUND_CLOSEST(temp * 100, data->total_cap);
+	delta_cap = DIV_ROUND_CLOSEST(temp * 1000, data->total_cap);
 	*cap = delta_cap + data->init_cap;
 	data->normal_temperature_cap = *cap;
 
@@ -657,16 +680,19 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap,
 		 * Capacity_temp = (Capacity_Percentage(current) -
 		 * Capacity_Delta) * 100 /(100 - Capacity_Delta)
 		 */
-		delta_cap = 100 - temp_cap;
-		*cap = DIV_ROUND_CLOSEST((*cap - delta_cap) * 100, 100 - delta_cap);
+		temp_cap *= 10;
+
+		*cap = DIV_ROUND_CLOSEST((*cap + temp_cap - 1000) * 1000, temp_cap);
 	}
 
 	if (*cap < 0) {
 		*cap = 0;
 		sc27xx_fgu_adjust_cap(data, 0);
-	} else if (*cap > 100) {
-		*cap = 100;
-		sc27xx_fgu_adjust_cap(data, 100);
+		return 0;
+	} else if (*cap > 1000) {
+		*cap = 1000;
+		data->init_cap = 1000 - delta_cap;
+		return 0;
 	}
 
 	sc27xx_fgu_low_capacity_calibration(data, *cap, false, chg_sts);
@@ -1201,6 +1227,8 @@ static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 							      data->table_len,
 							      data->min_volt);
 
+		data->alarm_cap *= 10;
+
 		adc = sc27xx_fgu_voltage_to_adc(data, data->min_volt / 1000);
 		regmap_update_bits(data->regmap,
 				   data->base + SC27XX_FGU_LOW_OVERLOAD,
@@ -1297,7 +1325,7 @@ static int sc27xx_fgu_cap_to_clbcnt(struct sc27xx_fgu_data *data, int capacity)
 	 * Convert current capacity (mAh) to coulomb counter according to the
 	 * formula: 1 mAh =3.6 coulomb.
 	 */
-	return DIV_ROUND_CLOSEST(cur_cap * 36 * data->cur_1000ma_adc * SC27XX_FGU_SAMPLE_HZ, 10);
+	return DIV_ROUND_CLOSEST(cur_cap * 36 * data->cur_1000ma_adc * SC27XX_FGU_SAMPLE_HZ, 100);
 }
 
 static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
@@ -1450,6 +1478,7 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	data->alarm_cap = power_supply_ocv2cap_simple(data->cap_table,
 						      data->table_len,
 						      data->min_volt);
+	data->alarm_cap *= 10;
 	/*
 	 * We must keep the alarm capacity is larger than 0%. When in monkey
 	 * test, the precision power supply setting 4000mv, but the fake battery
@@ -1460,7 +1489,7 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	 * small alarm capacity. We will recalculate the battery capacity based on ocv voltage.
 	 */
 	if (!data->alarm_cap)
-		data->alarm_cap += 1;
+		data->alarm_cap += 10;
 
 	power_supply_put_battery_info(data->battery, &info);
 
@@ -1511,7 +1540,7 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	 * capacity. Now we set the delta threshold as a counter value of 1%
 	 * capacity.
 	 */
-	delta_clbcnt = sc27xx_fgu_cap_to_clbcnt(data, 1);
+	delta_clbcnt = sc27xx_fgu_cap_to_clbcnt(data, 10);
 
 	ret = regmap_update_bits(data->regmap, data->base + SC27XX_FGU_CLBCNT_DELTL,
 				 SC27XX_FGU_CLBCNT_MASK, delta_clbcnt);
