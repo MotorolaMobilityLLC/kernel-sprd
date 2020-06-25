@@ -268,4 +268,17 @@ config PCIE_AL
 	  required only for DT-based platforms. ACPI platforms with the
 	  Annapurna Labs PCIe controller don't need to enable this.
 
+config PCIE_SPRD
+	tristate "Spreadtrum PCIe controller - RC mode"
+	depends on ARCH_SPRD
+	depends on PCI_MSI_IRQ_DOMAIN
+	select PCIE_DW_HOST
+	help
+	  Some spreadtrum SoCs contain two PCIe controllers as RC: One is gen2,
+	  and the other is gen3. While other spreadtrum SoCs may have only one
+	  PCIe controller which can be configured as an Endpoint(EP) or a Root
+	  complex(RC).
+ 	  Say Y here if you want PCIe controller support as RC on Spreadtrum
+ 	  SoCs.
+
 endmenu
