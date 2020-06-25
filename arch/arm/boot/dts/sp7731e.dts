@@ -422,6 +422,8 @@
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-real = <20000>;
 	sprd,calib-resistance-spec = <20000>;
+	first-calib-voltage = <3600000>;
+	first-calib-capacity = <40>;
 };
 
 &sdio0 {
