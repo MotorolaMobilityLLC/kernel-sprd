@@ -79,8 +79,10 @@
 #define SC27XX_FGU_SAMPLE_HZ		2
 #define SC27XX_FGU_TEMP_BUFF_CNT	10
 #define SC27XX_FGU_LOW_TEMP_REGION	100
+
 /* micro Ohms */
 #define SC27XX_FGU_IDEAL_RESISTANCE	20000
+#define SC27XX_FGU_LOW_VBAT_REGION	3300
 
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
@@ -156,6 +158,8 @@ struct sc27xx_fgu_data {
 	int cur_1000ma_adc;
 	int vol_1000mv_adc;
 	int calib_resist;
+	int first_calib_volt;
+	int first_calib_cap;
 	unsigned int comp_resistance;
 	int index;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
@@ -191,6 +195,8 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data,
 					    int cap, bool int_mode);
 static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap);
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp);
+static int sc27xx_fgu_get_vbat_ocv(struct sc27xx_fgu_data *data, int *val);
+static int sc27xx_fgu_get_vbat_vol(struct sc27xx_fgu_data *data, int *val);
 
 static const char * const sc27xx_charger_supply_name[] = {
 	"sc2731_charger",
@@ -642,6 +648,10 @@ static int sc27xx_fgu_get_capacity(struct sc27xx_fgu_data *data, int *cap)
 	delta_cap = DIV_ROUND_CLOSEST(temp * 1000, data->total_cap);
 	*cap = delta_cap + data->init_cap;
 	data->normal_temperature_cap = *cap;
+	if (data->normal_temperature_cap < 0)
+		data->normal_temperature_cap = 0;
+	else if (data->normal_temperature_cap > 1000)
+		data->normal_temperature_cap = 1000;
 
 	if (data->cap_table_len > 0) {
 		temp_cap = sc27xx_fgu_temp_to_cap(data->cap_temp_table,
@@ -1130,6 +1140,40 @@ static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap)
 		dev_err(data->dev, "failed to get init coulomb counter\n");
 }
 
+static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data,
+					      int cap)
+{
+	int ret, ocv, batt_uV;
+
+	ret = sc27xx_fgu_get_vbat_ocv(data, &ocv);
+	if (ret) {
+		dev_err(data->dev, "get battery ocv error.\n");
+		return;
+	}
+
+	ret = sc27xx_fgu_get_vbat_vol(data, &batt_uV);
+	if (ret) {
+		dev_err(data->dev, "get battery vol error.\n");
+		return;
+	}
+
+	if ((batt_uV < SC27XX_FGU_LOW_VBAT_REGION || ocv < data->min_volt) &&
+	    cap > data->alarm_cap) {
+		data->init_cap -= 5;
+		if (data->init_cap < 0)
+			data->init_cap = 0;
+	} else if (ocv > data->min_volt && cap <= data->alarm_cap) {
+		sc27xx_fgu_adjust_cap(data, data->alarm_cap);
+	} else if (ocv <= data->cap_table[data->table_len - 1].ocv) {
+		sc27xx_fgu_adjust_cap(data, 0);
+	} else if (data->first_calib_volt > 0 && data->first_calib_cap > 0 &&
+		   ocv <= data->first_calib_volt && cap > data->first_calib_cap) {
+		data->init_cap -= 5;
+		if (data->init_cap < 0)
+			data->init_cap = 0;
+	}
+}
+
 static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data,
 					    int cap, bool int_mode)
 {
@@ -1156,53 +1200,9 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data,
 	    data->bat_temp <= SC27XX_FGU_LOW_TEMP_REGION)
 		return;
 
-	if ((ocv > data->cap_table[0].ocv && cap < 100) || cap > 100) {
-		/*
-		 * If current OCV value is larger than the max OCV value in
-		 * OCV table, or the current capacity is larger than 100,
-		 * we should force the inititial capacity to 100.
-		 */
-		sc27xx_fgu_adjust_cap(data, 100);
-	} else if (ocv <= data->cap_table[data->table_len - 1].ocv) {
-		/*
-		 * If current OCV value is leass than the minimum OCV value in
-		 * OCV table, we should force the inititial capacity to 0.
-		 */
-		sc27xx_fgu_adjust_cap(data, 0);
-	} else if ((ocv > data->cap_table[data->table_len - 1].ocv && cap <= 0) ||
-		   (ocv > data->min_volt && cap <= data->alarm_cap)) {
-		/*
-		 * If current OCV value is not matchable with current capacity,
-		 * we should re-calculate current capacity by looking up the
-		 * OCV table.
-		 */
-		int cur_cap = power_supply_ocv2cap_simple(data->cap_table,
-							  data->table_len, ocv);
+	sc27xx_fgu_low_capacity_match_ocv(data, cap);
 
-		sc27xx_fgu_adjust_cap(data, cur_cap);
-	} else if (ocv <= data->min_volt) {
-		/*
-		 * If current OCV value is less than the low alarm voltage, but
-		 * current capacity is larger than the alarm capacity, we should
-		 * adjust the inititial capacity to alarm capacity.
-		 */
-		if (cap > data->alarm_cap) {
-			sc27xx_fgu_adjust_cap(data, data->alarm_cap);
-		} else {
-			int cur_cap;
-
-			/*
-			 * If current capacity is equal with 0 or less than 0
-			 * (some error occurs), we should adjust inititial
-			 * capacity to the capacity corresponding to current OCV
-			 * value.
-			 */
-			cur_cap = power_supply_ocv2cap_simple(data->cap_table,
-							      data->table_len,
-							      ocv);
-			sc27xx_fgu_adjust_cap(data, cur_cap);
-		}
-
+	if (ocv <= data->min_volt) {
 		if (!int_mode)
 			return;
 
@@ -1619,6 +1619,18 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 			"failed to get fgu calibration resistance\n");
 		return ret;
 	}
+
+	ret = device_property_read_u32(&pdev->dev,
+				       "first-calib-voltage",
+				       &data->first_calib_volt);
+	if (ret)
+		dev_warn(&pdev->dev, "failed to get fgu first calibration voltage\n");
+
+	ret = device_property_read_u32(&pdev->dev,
+				       "first-calib-capacity",
+				       &data->first_calib_cap);
+	if (ret)
+		dev_warn(&pdev->dev, "failed to get fgu first calibration capacity\n");
 
 	ret = device_property_read_u32(&pdev->dev,
 				       "sprd,comp-resistance-mohm",

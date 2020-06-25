@@ -51,6 +51,11 @@
 #define CM_TRACK_LOW_TEMP_THRESHOLD	150
 #define CM_TRACK_TIMEOUT_THRESHOLD	108000
 #define CM_TRACK_START_CAP_THRESHOLD	200
+#define CM_CAP_ONE_PERCENT		10
+#define CM_HCAP_DECREASE_STEP		8
+#define CM_HCAP_THRESHOLD		955
+#define CM_CAP_FULL_PERCENT		1000
+#define CM_CAP_MAGIC_NUM		0x5A5AA5A5
 
 #define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
 
@@ -788,9 +793,11 @@ static bool is_full_charged(struct charger_manager *cm)
 		if (ret)
 			goto out;
 
-		if (uV >= desc->fullbatt_uV && uA <= desc->fullbatt_uA) {
+		if (uV >= desc->fullbatt_uV && uA <= desc->fullbatt_uA && uA > 0) {
 			if (++desc->trigger_cnt > 1) {
-				if (cm->desc->cap >= 1000) {
+				if (cm->desc->cap >= CM_CAP_FULL_PERCENT) {
+					if (desc->trigger_cnt == 2)
+						adjust_fuel_cap(cm, CM_FORCE_SET_FUEL_CAP_FULL);
 					is_full = true;
 				} else {
 					is_full = false;
@@ -1935,6 +1942,10 @@ static int charger_get_property(struct power_supply *psy,
 			break;
 		}
 		val->intval = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
+		if (val->intval > 100)
+			val->intval = 100;
+		else if (val->intval < 0)
+			val->intval = 0;
 		break;
 	case POWER_SUPPLY_PROP_ONLINE:
 		if (is_ext_pwr_online(cm))
@@ -3331,6 +3342,7 @@ static void cm_batt_works(struct work_struct *work)
 	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
 	int period_time, flush_time, cur_temp;
 	int chg_cur = 0, chg_limit_cur = 0;
+	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
 
 	ret = get_batt_uV(cm, &batt_uV);
 	if (ret) {
@@ -3384,10 +3396,13 @@ static void cm_batt_works(struct work_struct *work)
 		cm->desc->low_temp_trigger_cnt = 0;
 	}
 
-	if (fuel_cap > 1000)
-		fuel_cap = 1000;
+	if (fuel_cap > CM_CAP_FULL_PERCENT)
+		fuel_cap = CM_CAP_FULL_PERCENT;
 	else if (fuel_cap < 0)
 		fuel_cap = 0;
+
+	if (last_fuel_cap == CM_CAP_MAGIC_NUM)
+		last_fuel_cap = fuel_cap;
 
 	cur_time = ktime_to_timespec64(ktime_get_boottime());
 
@@ -3437,6 +3452,7 @@ static void cm_batt_works(struct work_struct *work)
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
+		last_fuel_cap = fuel_cap;
 		if (fuel_cap < cm->desc->cap) {
 			if (bat_uA >= 0) {
 				fuel_cap = cm->desc->cap;
@@ -3469,7 +3485,7 @@ static void cm_batt_works(struct work_struct *work)
 		}
 
 		if (cm->desc->cap >= 985 && cm->desc->cap <= 994 &&
-		    fuel_cap >= 1000)
+		    fuel_cap >= CM_CAP_FULL_PERCENT)
 			fuel_cap = 994;
 		/*
 		 * Record 99% of the charging time.
@@ -3492,7 +3508,19 @@ static void cm_batt_works(struct work_struct *work)
 		 * the cap is not allowed to increase.
 		 */
 		if (fuel_cap >= cm->desc->cap) {
+			last_fuel_cap = fuel_cap;
 			fuel_cap = cm->desc->cap;
+		} else if (cm->desc->cap >= CM_HCAP_THRESHOLD) {
+			if (last_fuel_cap - fuel_cap >= CM_HCAP_DECREASE_STEP) {
+				if (cm->desc->cap - fuel_cap >= CM_CAP_ONE_PERCENT)
+					fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
+				else
+					fuel_cap = cm->desc->cap - CM_HCAP_DECREASE_STEP;
+
+				last_fuel_cap -= CM_HCAP_DECREASE_STEP;
+			} else {
+				fuel_cap = cm->desc->cap;
+			}
 		} else {
 			if (period_time < cm->desc->cap_one_time &&
 			    (cm->desc->cap - fuel_cap) >= 5)
@@ -3505,17 +3533,20 @@ static void cm_batt_works(struct work_struct *work)
 			    (flush_time / cm->desc->cap_one_time) * 10)
 				fuel_cap = cm->desc->cap -
 					(flush_time / cm->desc->cap_one_time) * 10;
+			else if (cm->desc->cap - fuel_cap > CM_CAP_ONE_PERCENT)
+				fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
 		}
 		break;
 
 	case POWER_SUPPLY_STATUS_FULL:
+		last_fuel_cap = fuel_cap;
 		cm->desc->update_capacity_time = cur_time.tv_sec;
 		if ((batt_ocV < (cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 50000))
 		    && (bat_uA < 0))
 			cm->desc->force_set_full = false;
 		if (is_ext_pwr_online(cm)) {
-			if (fuel_cap != 1000)
-				fuel_cap = 1000;
+			if (fuel_cap != CM_CAP_FULL_PERCENT)
+				fuel_cap = CM_CAP_FULL_PERCENT;
 
 			if (fuel_cap > cm->desc->cap)
 				fuel_cap = cm->desc->cap + 1;
