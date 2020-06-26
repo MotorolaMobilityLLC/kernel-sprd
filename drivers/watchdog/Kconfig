@@ -808,6 +808,14 @@ config SPRD_WATCHDOG
 	  Say Y here to include watchdog timer supported
 	  by Spreadtrum system.
 
+config SPRD_WATCHDOG_PMIC
+	tristate "SPRD PMIC WDT Watchdog timer"
+	depends on ARCH_SPRD && SPI_SPRD_ADI
+	help
+	  If you have a PMIC  watchdog board, say Y here, When PMIC watchdog
+	  is triggered, PMIC system, AP system and modem systemare both reset
+	  by power.
+
 # AVR32 Architecture
 
 config AT32AP700X_WDT

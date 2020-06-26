@@ -210,11 +210,6 @@ static int sprd_sysdump_init;
 
 int sysdump_status;
 struct regmap *regmap;
-#ifdef CONFIG_SPRD_WATCHDOG_SYS
-extern void sysdump_enable_watchdog(int on);
-#else
-#define sysdump_enable_watchdog(on) do { } while (0)
-#endif
 static int set_sysdump_enable(int on);
 
 
@@ -679,12 +674,10 @@ static ssize_t sprd_sysdump_write(struct file *file, const char __user *buf,
 			pr_info("%s: enable user version sysdump!!!\n",
 				__func__);
 			set_sysdump_enable(1);
-			sysdump_enable_watchdog(0);
 		} else if (!strncmp(sysdump_buf, "off", 3)) {
 			pr_info("%s: disable user version sysdump!!!\n",
 				__func__);
 			set_sysdump_enable(0);
-			sysdump_enable_watchdog(1);
 		} else if (!strncmp(sysdump_buf, "bug", 3)) {
 			pr_info("%s  bug-on !!\n", __func__);
 			BUG_ON(1);
