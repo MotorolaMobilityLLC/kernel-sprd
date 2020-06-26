@@ -1,7 +1,7 @@
 /*
  * Spreadtrum SC2730 PMIC dts file
  *
- * Copyright (C) 2020, Spreadtrum Communications Inc.
+ * Copyright (C) 2018, Spreadtrum Communications Inc.
  *
  * SPDX-License-Identifier: (GPL-2.0+ OR MIT)
  */
@@ -11,8 +11,9 @@
 		compatible = "sprd,sc2730";
 		reg = <0>;
 		spi-max-frequency = <26000000>;
+		interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-controller;
-		#interrupt-cells = <1>;
+		#interrupt-cells = <2>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -22,7 +23,7 @@
 		};
 
 		led-controller@180 {
-			compatible = "sprd,sc2730-bltc";
+			compatible = "sprd,sc27xx-bltc", "sprd,sc2730-bltc";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x180>;
@@ -44,17 +45,17 @@
 		};
 
 		rtc@200 {
-			compatible = "sprd,sc2731-rtc", "sprd,sc2730-rtc";
+			compatible = "sprd,sc27xx-rtc", "sprd,sc2730-rtc";
 			reg = <0x200>;
 			interrupt-parent = <&sc2730_pmic>;
-			interrupts = <1>;
+			interrupts = <1 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
 		pmic_eic: gpio@280 {
-			compatible = "sprd,sc2731-eic", "sprd,sc2730-eic";
+			compatible = "sprd,sc27xx-eic", "sprd,sc2730-eic";
 			reg = <0x280>;
 			interrupt-parent = <&sc2730_pmic>;
-			interrupts = <4>;
+			interrupts = <4 IRQ_TYPE_LEVEL_HIGH>;
 			gpio-controller;
 			#gpio-cells = <2>;
 			interrupt-controller;
@@ -62,7 +63,7 @@
 		};
 
 		efuse@300 {
-			compatible = "sprd,sc2730-efuse";
+			compatible = "sprd,sc27xx-efuse", "sprd,sc2730-efuse";
 			reg = <0x300>;
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -102,28 +103,28 @@
 		};
 
 		pmic_typec: typec@380 {
-			compatible = "sprd,sc2730-typec", "sprd,sc27xx-typec";
+			compatible = "sprd,sc27xx-typec", "sprd,sc2730-typec";
 			interrupt-parent = <&sc2730_pmic>;
-			interrupts = <8>;
+			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 			reg = <0x380>;
-			sprd,mode = <2>;
+			mode = <2>;
 			nvmem-cells = <&cc_cal>;
 			nvmem-cell-names = "cc_calib";
 		};
 
 		pmic_fchg: fchg@400 {
-			compatible = "sprd,sc2730-fast-charger";
+			compatible = "sprd,sc27xx-fast-chg", "sprd,sc2730-fast-charger";
 			reg = <0x400>;
 			interrupt-parent = <&sc2730_pmic>;
-			interrupts = <5>;
+			interrupts = <5 IRQ_TYPE_LEVEL_HIGH>;
 			status = "disabled";
 		};
 
 		pmic_adc: adc@504 {
-			compatible = "sprd,sc2730-adc";
+			compatible = "sprd,sc27xx-adc", "sprd,sc2730-adc";
 			reg = <0x504>;
 			interrupt-parent = <&sc2730_pmic>;
-			interrupts = <0>;
+			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
 			#io-channel-cells = <1>;
 			hwlocks = <&hwlock 4>;
 			nvmem-cells = <&adc_bcal>, <&adc_scal>;
@@ -131,7 +132,7 @@
 		};
 
 		pmic_fgu: fgu@c00 {
-			compatible = "sprd,sc2730-fgu";
+			compatible = "sprd,sc27xx-fgu", "sprd,sc2730-fgu";
 			reg = <0xc00>;
 			bat-detect-gpio = <&pmic_eic 3 GPIO_ACTIVE_HIGH>;
 			nvmem-cell-names = "fgu_calib";
@@ -139,12 +140,12 @@
 			io-channels = <&pmic_adc 0>, <&pmic_adc 14>;
 			io-channel-names = "bat-temp", "charge-vol";
 			interrupt-parent = <&sc2730_pmic>;
-			interrupts = <3>;
+			interrupts = <3 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
 		sprd_audio_codec_ana: audio-codec@1000 {
 			compatible = "sprd,sc2730-audio-codec",
-				"sprd,sc2731-audio-codec";
+				"sprd,sc27xx-audio-codec";
 			#sound-dai-cells = <1>;
 			reg = <0x1000>;
 			sprd,syscon-pmu-apb = <&pmu_apb_regs>;
@@ -158,12 +159,12 @@
 		};
 
 		syscon@1800 {
-			compatible = "sprd,sc2731-syscon", "sprd,sc27xx-syscon";
-			reg = <0x1800>, <0x1ba0>, <0x1b98>;
+			compatible = "sprd,sc27xx-syscon";
+			reg = <0x1800>, <0x1ba0>;
 		};
 
 		power-controller@1800 {
-			compatible = "sprd,sc2731-regulator", "sprd,sc2730-regulator";
+			compatible = "sprd,sc27xx-regulator", "sprd,sc2730-regulator";
 
 			vddcpu: DCDC_CPU {
 				regulator-name = "vddcpu";
@@ -215,16 +216,16 @@
 
 			vddgen0: DCDC_GEN0 {
 				regulator-name = "vddgen0";
-				regulator-min-microvolt = <1220000>;
-				regulator-max-microvolt = <2410625>;
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <2390625>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
 			};
 
 			vddgen1: DCDC_GEN1 {
 				regulator-name = "vddgen1";
-				regulator-min-microvolt = <850000>;
-				regulator-max-microvolt = <1643750>;
+				regulator-min-microvolt = <800000>;
+				regulator-max-microvolt = <1593750>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
 			};
@@ -239,16 +240,16 @@
 
 			avdd18: LDO_AVDD18 {
 				regulator-name = "avdd18";
-				regulator-min-microvolt = <1175000>;
-				regulator-max-microvolt = <1805000>;
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <1830000>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
 			};
 
 			vddrf18: LDO_VDDRF18 {
 				regulator-name = "vddrf18";
-				regulator-min-microvolt = <1175000>;
-				regulator-max-microvolt = <1805000>;
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <1830000>;
 				regulator-ramp-delay = <25000>;
 				regulator-always-on;
 			};
@@ -413,25 +414,23 @@
 		pmic_tsensor: tsensor@1b34 {
 			compatible = "sprd,sc27xx-tsensor", "sprd,sc2730-tsensor";
 			#thermal-sensor-cells = <1>;
-			#address-cells = <1>;
-			#size-cells = <0>;
 			reg = <0x1b34>;
 
-			osc_tsensor: osc-tsensor@0 {
+			osc_tsensor: osc-tsensor@0{
 				reg = <0>;
 			};
 
-			tout_tsensor: tout-tsensor@1 {
+			tout_tsensor: tout-tsensor@1{
 				reg = <1>;
 			};
 		};
 
 		vibrator@1b90 {
-			compatible = "sprd,sc2730-vibrator";
+			compatible = "sprd,sc27xx-vibrator", "sprd,sc2730-vibrator";
 			reg = <0x1b90>;
 		};
 
-		hw-reset@1bc0 {
+		hw_reset@1bc0 {
 			compatible = "sprd,sc27xx-7sreset", "sprd,sc2730-7sreset";
 			reg = <0x1bf8>, <0x1bc0>;
 		};
