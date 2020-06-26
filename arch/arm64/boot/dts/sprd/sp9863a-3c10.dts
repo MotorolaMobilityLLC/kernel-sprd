@@ -173,6 +173,8 @@
 					<3803000 40>, <3787000 35>, <3775000 30>,
 					<3763000 25>, <3744000 20>, <3718000 15>,
 					<3688000 10>, <3671000 5>, <3400000 0>;
+		capacity-temp-table = <25 100>, <10 97>, <(-10) 60>;
+		resistance-temp-table = <20 100>, <10 243>, <(-10) 468>;
 		charge-sdp-current-microamp = <500000 500000>;
 		charge-dcp-current-microamp = <1150000 3000000>;
 		charge-cdp-current-microamp = <1150000 1150000>;
@@ -232,6 +234,9 @@
 			<1450 1420 1150000 4400000>, <1600 1570 700000 4100000>;
 		cm-unknown-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
 			<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
+
+		monitored-battery = <&bat>;
+		cm-capacity-track;
 
 		regulator@0 {
 			cm-regulator-name = "vddgen0";
