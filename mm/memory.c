@@ -3095,6 +3095,13 @@ vm_fault_t do_swap_page(struct vm_fault *vmf)
 				__SetPageSwapBacked(page);
 				set_page_private(page, entry.val);
 #ifdef CONFIG_LRU_BALANCE_BASE_THRASHING
+				/*
+				 * XXX: Move to lru_cache_add() when it
+				 * supports new vs putback
+				*/
+				spin_lock_irq(&page_pgdat(page)->lru_lock);
+				lru_note_cost_page(page);
+				spin_unlock_irq(&page_pgdat(page)->lru_lock);
 				lru_cache_add(page);
 #else
 				lru_cache_add_anon(page);
