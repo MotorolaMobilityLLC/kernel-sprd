@@ -66,12 +66,27 @@ struct sprd_sip_svc_perf_ops {
 };
 
 /**
+ * struct sprd_sip_svc_dbg_ops - represents the various operations provided
+ *	by SPRD SIP DBG
+ *
+ * @set_hang_handle: set hang handle
+ */
+struct sprd_sip_svc_dbg_ops {
+	struct sprd_sip_svc_rev_info rev;
+
+	int (*set_hang_hdl)(uintptr_t hdl, uintptr_t pgd);
+	int (*get_hang_ctx)(uintptr_t id, uintptr_t *val);
+};
+
+/**
  * struct sprd_sip_svc_handle - Handle returned to SPRD SIP clients for usage
  *
  * @perf_ops: pointer to set of performance operations
+ * @dbg_ops: pointer to set of dbg operations
  */
 struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_perf_ops perf_ops;
+	struct sprd_sip_svc_dbg_ops dbg_ops;
 };
 
 /**

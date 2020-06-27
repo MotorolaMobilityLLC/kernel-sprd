@@ -16,6 +16,7 @@
 #define pr_fmt(fmt) "sprd_sip: " fmt
 
 #include <linux/arm-smccc.h>
+#include <linux/errno.h>
 #include <linux/init.h>
 #include <linux/printk.h>
 #include <linux/sprd_sip_svc.h>
@@ -86,7 +87,54 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0106)
 
+/* SIP debug operations */
+#define SPRD_SIP_SVC_DBG_REV						\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0200)
+
+#define SPRD_SIP_SVC_DBG_SET_HANG_HDL_AARCH32				\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0201)
+
+#define SPRD_SIP_SVC_DBG_SET_HANG_HDL_AARCH64				\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_64,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0201)
+
+#define SPRD_SIP_SVC_DBG_GET_HANG_CTX_AARCH32				\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0202)
+
+#define SPRD_SIP_SVC_DBG_GET_HANG_CTX_AARCH64				\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_64,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0202)
+
+#define SPRD_SIP_RET_UNK	0xFFFFFFFFUL
+
 static struct sprd_sip_svc_handle sprd_sip_svc_handle = {};
+
+static int sprd_sip_remap_err(unsigned long err)
+{
+	switch (err) {
+	case 0:
+		return 0;
+
+	case SPRD_SIP_RET_UNK:
+		return -EINVAL;
+
+	default:
+		return -EINVAL;
+	}
+}
 
 struct sprd_sip_svc_handle *sprd_sip_svc_get_handle(void)
 {
@@ -101,7 +149,7 @@ static int sprd_sip_svc_perf_set_freq(u32 id, u32 parent_id, u32 freq)
 	arm_smccc_smc(SPRD_SIP_SVC_PERF_SET_FREQ,
 			id, parent_id, freq, 0, 0, 0, 0, &res);
 
-	return res.a0;
+	return sprd_sip_remap_err(res.a0);
 }
 
 static int sprd_sip_svc_perf_get_freq(u32 id, u32 parent_id, u32 *p_freq)
@@ -114,7 +162,7 @@ static int sprd_sip_svc_perf_get_freq(u32 id, u32 parent_id, u32 *p_freq)
 	if (p_freq != NULL)
 		*p_freq = res.a1;
 
-	return res.a0;
+	return sprd_sip_remap_err(res.a0);
 }
 
 static int sprd_sip_svc_perf_set_div(u32 id, u32 div)
@@ -124,7 +172,7 @@ static int sprd_sip_svc_perf_set_div(u32 id, u32 div)
 	arm_smccc_smc(SPRD_SIP_SVC_PERF_SET_DIV,
 			id, div, 0, 0, 0, 0, 0, &res);
 
-	return res.a0;
+	return sprd_sip_remap_err(res.a0);
 }
 
 static int sprd_sip_svc_perf_get_div(u32 id, u32 *p_div)
@@ -137,7 +185,7 @@ static int sprd_sip_svc_perf_get_div(u32 id, u32 *p_div)
 	if (p_div != NULL)
 		*p_div = res.a1;
 
-	return res.a0;
+	return sprd_sip_remap_err(res.a0);
 }
 
 static int sprd_sip_svc_perf_set_parent(u32 id, u32 parent_id)
@@ -147,7 +195,7 @@ static int sprd_sip_svc_perf_set_parent(u32 id, u32 parent_id)
 	arm_smccc_smc(SPRD_SIP_SVC_PERF_SET_PARENT,
 			id, parent_id, 0, 0, 0, 0, 0, &res);
 
-	return res.a0;
+	return sprd_sip_remap_err(res.a0);
 }
 
 static int sprd_sip_svc_perf_get_parent(u32 id, u32 *p_parent_id)
@@ -160,7 +208,40 @@ static int sprd_sip_svc_perf_get_parent(u32 id, u32 *p_parent_id)
 	if (p_parent_id != NULL)
 		*p_parent_id = res.a1;
 
-	return res.a0;
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_dbg_set_hang_hdl(uintptr_t hdl, uintptr_t pgd)
+{
+	struct arm_smccc_res res;
+
+#ifdef CONFIG_ARM64
+	arm_smccc_smc(SPRD_SIP_SVC_DBG_SET_HANG_HDL_AARCH64,
+		      hdl, pgd, 0, 0, 0, 0, 0, &res);
+#else
+	arm_smccc_smc(SPRD_SIP_SVC_DBG_SET_HANG_HDL_AARCH32,
+		      hdl, pgd, 0, 0, 0, 0, 0, &res);
+#endif
+
+	return sprd_sip_remap_err(res.a0);
+}
+
+static int sprd_sip_svc_dbg_get_hang_ctx(uintptr_t id, uintptr_t *val)
+{
+	struct arm_smccc_res res;
+
+#ifdef CONFIG_ARM64
+	arm_smccc_smc(SPRD_SIP_SVC_DBG_GET_HANG_CTX_AARCH64,
+		      id, 0, 0, 0, 0, 0, 0, &res);
+#else
+	arm_smccc_smc(SPRD_SIP_SVC_DBG_GET_HANG_CTX_AARCH32,
+		      id, 0, 0, 0, 0, 0, 0, &res);
+#endif
+
+	if (val != NULL)
+		*val = res.a1;
+
+	return sprd_sip_remap_err(res.a0);
 }
 
 static int __init sprd_sip_svc_init(void)
@@ -185,6 +266,20 @@ static int __init sprd_sip_svc_init(void)
 	pr_notice("SPRD SIP SVC PERF:v%d.%d detected in firmware.\n",
 		sprd_sip_svc_handle.perf_ops.rev.major_ver,
 		sprd_sip_svc_handle.perf_ops.rev.minor_ver);
+
+	/* init debug_ops */
+	arm_smccc_smc(SPRD_SIP_SVC_DBG_REV, 0, 0, 0, 0, 0, 0, 0, &res);
+	sprd_sip_svc_handle.dbg_ops.rev.major_ver = res.a0;
+	sprd_sip_svc_handle.dbg_ops.rev.minor_ver = res.a1;
+
+	sprd_sip_svc_handle.dbg_ops.set_hang_hdl =
+				sprd_sip_svc_dbg_set_hang_hdl;
+	sprd_sip_svc_handle.dbg_ops.get_hang_ctx =
+				sprd_sip_svc_dbg_get_hang_ctx;
+
+	pr_notice("SPRD SIP SVC DBG:v%d.%d detected in firmware.\n",
+		sprd_sip_svc_handle.dbg_ops.rev.major_ver,
+		sprd_sip_svc_handle.dbg_ops.rev.minor_ver);
 
 	return ret;
 }
