@@ -206,7 +206,7 @@ int btwf_boot_up(struct wcn_pcie_info *pcie_info, const char *path,
 
 int handle_gnss_boot(struct wcn_pcie_info *pcie_info,
 		     struct marlin_device *marlin_dev,
-		     enum marlin_sub_sys subsys)
+		     enum wcn_sub_sys subsys)
 {
 	int temp;
 
@@ -225,7 +225,7 @@ int handle_gnss_boot(struct wcn_pcie_info *pcie_info,
 
 int handle_btwf_boot(struct wcn_pcie_info *pcie_info,
 		     struct marlin_device *marlin_dev,
-		     enum marlin_sub_sys subsys)
+		     enum wcn_sub_sys subsys)
 {
 	int temp;
 
@@ -244,7 +244,7 @@ int handle_btwf_boot(struct wcn_pcie_info *pcie_info,
 }
 
 int wcn_boot_init(struct wcn_pcie_info *pcie_info,
-		  struct marlin_device *marlin_dev, enum marlin_sub_sys subsys)
+		  struct marlin_device *marlin_dev, enum wcn_sub_sys subsys)
 {
 	int temp = 0;
 
@@ -262,7 +262,7 @@ int wcn_boot_init(struct wcn_pcie_info *pcie_info,
 }
 EXPORT_SYMBOL(wcn_boot_init);
 
-int pcie_boot(enum marlin_sub_sys subsys, struct marlin_device *marlin_dev)
+int pcie_boot(enum wcn_sub_sys subsys, struct marlin_device *marlin_dev)
 {
 	struct wcn_pcie_info *pdev;
 

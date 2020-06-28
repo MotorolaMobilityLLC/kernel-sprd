@@ -18,6 +18,7 @@
 
 #include <linux/completion.h>
 #include <misc/marlin_platform.h>
+#include <misc/wcn_bus.h>
 
 #define SLP_MGR_HEADER "[slp_mgr]"
 #define SLP_MGR_ERR(fmt, args...)	\
@@ -37,19 +38,6 @@ struct slp_mgr_t {
 	struct completion wakeup_ack_completion;
 	unsigned int active_module;
 	atomic_t  cp2_state;
-};
-
-enum slp_subsys {
-	PACKER_TX = 0,
-	PACKER_RX,
-	PACKER_DT_TX,
-	PACKER_DT_RX,
-	DT_WRITEL,
-	DT_READL,
-	DT_WRITE,
-	DT_READ,
-	DBG_TOOL,
-	SUBSYS_MAX,
 };
 
 #ifdef SLP_MGR_TEST

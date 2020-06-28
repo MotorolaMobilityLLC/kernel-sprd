@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Makefile for Unisoc wcn platform configuration
+#
+
 #common obj
 #GNSS
 WCN_MARLIN_COMMON_FILES += gnss/gnss_common_ctl.o \

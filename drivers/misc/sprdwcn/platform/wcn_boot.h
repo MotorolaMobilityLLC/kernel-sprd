@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
 #ifndef _WCN_BOOT
 #define _WCN_BOOT
 
@@ -6,6 +8,12 @@
 #include "rf/rf.h"
 
 #define SUFFIX "androidboot.slot_suffix="
+
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+
+#define pr_fmt(fmt) "WCN BOOT: " fmt
 
 struct wcn_sync_info_t {
 	unsigned int init_status;
