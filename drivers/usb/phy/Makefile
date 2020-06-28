@@ -25,3 +25,4 @@ obj-$(CONFIG_USB_ULPI)			+= phy-ulpi.o
 obj-$(CONFIG_USB_ULPI_VIEWPORT)		+= phy-ulpi-viewport.o
 obj-$(CONFIG_KEYSTONE_USB_PHY)		+= phy-keystone.o
 obj-$(CONFIG_SPRD_SHARKL3_USB2_PHY)	+= phy-sprd-sharkl3.o
+obj-$(CONFIG_SPRD_SHARKL5PRO_USB2_PHY)	+= phy-sprd-sharkl5Pro.o
