@@ -60,9 +60,10 @@
 					<&pmu_apb_regs 0xcc 0x40000>,
 					<&aon_apb_regs 0x284 0x400>,
 					<&pmu_apb_regs 0xb0 0x2>,
-					<&aon_apb_regs 0xff 0x0>;
+					<&aon_apb_regs 0xff 0x0>,
+					<&aon_apb_regs 0x130 0x30000>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
-						"sysreset", "getstatus";
+						"sysreset", "getstatus", "dspreset";
 			reg = <0x10000 0x1000>;
 		};
 	};
