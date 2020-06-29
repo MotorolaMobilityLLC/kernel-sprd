@@ -161,7 +161,6 @@ config FUNCTION_GRAPH_TRACER
 	  the return value. This is done by setting the current return
 	  address on the current task structure into a stack of calls.
 
-
 config PREEMPTIRQ_EVENTS
 	bool "Enable trace events for preempt and irq disable/enable"
 	select TRACE_IRQFLAGS
@@ -221,6 +220,17 @@ config PREEMPT_TRACER
 	  (Note that kernel size and overhead increase with this option
 	  enabled. This option and the irqs-off timing option can be
 	  used together or separately.)
+
+config IRQSOFF_TRACER_BYTEDANCY
+	tristate "Interrupts-off Latency Tracer By Bytedancy"
+	default m
+	help
+	  This option measures the time spent in irqs-off critical
+	  sections with less overhead than IRQSOFF_TRACER configuration
+	  by ByteDancy.
+
+	  More info. can get from github:
+	  https://github.com/bytedance/trace-irqoff
 
 config SCHED_TRACER
 	bool "Scheduling Latency Tracer"

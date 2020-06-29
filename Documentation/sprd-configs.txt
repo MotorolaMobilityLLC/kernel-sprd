@@ -7779,6 +7779,15 @@ CONFIG_IRQSOFF_TRACER
 	[must] debug
 	[missing plat description] none
 	[function] Enable/disable trace irq off.
+CONFIG_IRQSOFF_TRACER_BYTEDANCY
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] make,code
+	[subsys] core
+	[must] user
+	[missing plat description] none
+	[function] Enable/disable trace irq off of BD
 CONFIG_IRQ_DOMAIN
 	[arch] all
 	[plat] all
