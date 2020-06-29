@@ -82,7 +82,7 @@
 		sprd,name = "sipc-wcn";
 		sprd,dst = <3 4>; /* <dst core-id> */
 		/* <ap-addr dst-maped-addr size> */
-		sprd,smem-info = <0x84180000 0x00180000 0x180000>;
+		sprd,smem-info = <0x84180000 0x00180000 0x100000>;
 		};
 
 		sipc3: sipc@8441b000 {
@@ -91,6 +91,17 @@
 		/* <ap-addr dst-maped-addr size> */
 		sprd,smem-info = <0x8441b000 0x11b000 0x32000>;
 		};
+	};
+
+	reserved-memory {
+		/* must be 32M aligned */
+		wcn_reserved: wcn-mem@84000000 {
+			reg = <0x84000000 0x00280000>;
+		};
+	};
+
+	wcn_wifi_data0 {
+		sprd,rx-blknum = <128>;
 	};
 
 	ion {
