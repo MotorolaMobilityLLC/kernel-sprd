@@ -42,8 +42,8 @@ struct sprd_dmpu_info {
 	struct sprd_dmpu_core *core;
 	u32 pub_id;
 	u32 pub_irq;
-	dma_addr_t dump_paddr;
-	void *dump_vaddr;
+	u32 dump_paddr;
+	void __iomem *dump_vaddr;
 	struct sprd_dmpu_violate vio;
 };
 

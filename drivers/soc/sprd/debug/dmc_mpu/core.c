@@ -15,11 +15,15 @@
 #include <linux/err.h>
 #include <linux/fs.h>
 #include <linux/interrupt.h>
+#include <linux/io.h>
+#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
+#include <linux/slab.h>
 #include <linux/soc/sprd/dmc_mpu.h>
 #include <linux/sysfs.h>
+#include <linux/vmalloc.h>
 
 #define SPRD_MPU_CHN_PROP_SIZE		3
 #define SPRD_MPU_ID_PROP_SIZE		3
@@ -235,6 +239,53 @@ struct miscdevice dmc_mpu_misc = {
 	.fops = NULL,
 };
 
+static void *sprd_dmc_mpu_mem_ram_vmap(struct platform_device *pdev,
+				phys_addr_t start, size_t size,
+				int nocached, u32 *count)
+{
+	struct page **pages;
+	pgprot_t prot;
+	phys_addr_t page_start;
+	phys_addr_t addr;
+	void *vaddr;
+	u32 i, page_count;
+
+	page_start = start - offset_in_page(start);
+	page_count = DIV_ROUND_UP(size + offset_in_page(start), PAGE_SIZE);
+	*count = page_count;
+	if (nocached)
+		prot = pgprot_noncached(PAGE_KERNEL);
+	else
+		prot = PAGE_KERNEL;
+
+	pages = kmalloc_array(page_count, sizeof(struct page *), GFP_KERNEL);
+	if (!pages) {
+		dev_err(&pdev->dev, "sprd dmc mpu malloc error\n");
+		return NULL;
+	}
+
+	for (i = 0; i < page_count; i++) {
+		addr = page_start + i * PAGE_SIZE;
+		pages[i] = pfn_to_page(addr >> PAGE_SHIFT);
+	}
+
+	vaddr = vm_map_ram(pages, page_count, -1, prot);
+	if (!vaddr)
+		dev_err(&pdev->dev, "sprd dmc mpu vmap error\n");
+	else
+		vaddr += offset_in_page(start);
+
+	kfree(pages);
+	return vaddr;
+}
+
+static void *sprd_dmc_mpu_mem_ram_vmap_nocache(struct platform_device *pdev,
+				phys_addr_t start, size_t size,
+				u32 *count)
+{
+	return sprd_dmc_mpu_mem_ram_vmap(pdev, start, size, 1, count);
+}
+
 static irqreturn_t sprd_dmc_mpu_core_irq(int irq_num, void *dev)
 {
 	struct sprd_dmpu_info *mpu_info = (struct sprd_dmpu_info *) dev;
@@ -270,18 +321,6 @@ static irqreturn_t sprd_dmc_mpu_core_irq(int irq_num, void *dev)
 	return IRQ_HANDLED;
 }
 
-static void sprd_dmc_mpu_core_dma_free(struct sprd_dmpu_core *core)
-{
-	struct sprd_dmpu_info *mpu_info = core->mpu_info;
-	int i;
-
-	for (i = 0; i <= core->interleaved; i++)
-		if (mpu_info[i].dump_vaddr)
-			dma_free_coherent(core->dev, SPRD_MPU_DUMP_SIZE,
-					  mpu_info[i].dump_vaddr,
-					  mpu_info[i].dump_paddr);
-}
-
 static int
 sprd_dmc_mpu_core_base_init(struct platform_device *pdev,
 		       struct sprd_dmpu_core *core, u32 pub)
@@ -289,6 +328,7 @@ sprd_dmc_mpu_core_base_init(struct platform_device *pdev,
 	const char *pub_name[2] = {"pub0_dmc_mpu", "pub1_dmc_mpu"};
 	struct sprd_dmpu_info *mpu_info = core->mpu_info;
 	int ret;
+	u32 cnt;
 
 	mpu_info[pub].pub_id = pub;
 	mpu_info[pub].pub_irq = platform_get_irq(pdev, pub);
@@ -298,11 +338,12 @@ sprd_dmc_mpu_core_base_init(struct platform_device *pdev,
 		return -ENXIO;
 	}
 
-	mpu_info[pub].dump_vaddr =
-		dma_alloc_coherent(&pdev->dev,
-				   SPRD_MPU_DUMP_SIZE,
-				   &mpu_info[pub].dump_paddr,
-				   GFP_KERNEL);
+	mpu_info[pub].dump_paddr = core->ddr_addr_offset;
+
+
+	mpu_info[pub].dump_vaddr = sprd_dmc_mpu_mem_ram_vmap_nocache(pdev,
+				mpu_info[pub].dump_paddr, SPRD_MPU_DUMP_SIZE, &cnt);
+
 	if (!mpu_info[pub].dump_vaddr) {
 		dev_err(&pdev->dev,
 			"pub%d can't dma_alloc_coherent\n", pub);
@@ -476,7 +517,8 @@ static int sprd_dmc_mpu_core_init(struct platform_device *pdev,
 	for (i = 0; i <= interleaved; i++) {
 		ret = sprd_dmc_mpu_core_base_init(pdev, core, i);
 		if (ret < 0) {
-			sprd_dmc_mpu_core_dma_free(core);
+			dev_err(&pdev->dev,
+				"dmc mpu init core failed ret = %d\n", ret);
 			return ret;
 		}
 	}
@@ -526,7 +568,6 @@ void sprd_dmc_mpu_unregister(struct sprd_dmpu_core *core)
 		ops->enable(core, i, false);
 	}
 
-	sprd_dmc_mpu_core_dma_free(core);
 	sysfs_remove_group(&dmc_mpu_misc.this_device->kobj,
 		&dmc_mpu_group);
 	misc_deregister(&dmc_mpu_misc);
