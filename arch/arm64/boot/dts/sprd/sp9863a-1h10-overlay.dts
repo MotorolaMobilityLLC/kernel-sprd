@@ -118,6 +118,8 @@
 				monitored-battery = <&bat>;
 				cm-capacity-track;
 
+				cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
+
 				regulator@0 {
 					cm-regulator-name = "vddgen0";
 					cable@0 {
