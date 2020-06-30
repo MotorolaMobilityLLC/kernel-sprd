@@ -4276,6 +4276,15 @@ CONFIG_EXT4_FS_ENCRYPTION
 	[must] busybox_console
 	[missing plat description] Not encryption of ext4 but encryption of f2fs is enabled in pike2.
 	[function] Enable encryption of ext4 files and directories.
+CONFIG_EXT4_FS_POSIX_ACL
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] fs
+	[must] user
+	[missing plat description] none
+	[function] ext4 fs posix acl
 CONFIG_EXT4_FS_SECURITY
 	[arch] all
 	[plat] all
@@ -4361,6 +4370,15 @@ CONFIG_F2FS_FS_ENCRYPTION
 	[must] none
 	[missing plat description] none
 	[function] Enable encryption of f2fs files and directories.
+CONFIG_F2FS_FS_POSIX_ACL
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] fs
+	[must] user
+	[missing plat description] none
+	[function] f2fs fs posix acl
 CONFIG_F2FS_FS_SECURITY
 	[arch] all
 	[plat] all
@@ -11894,15 +11912,6 @@ CONFIG_SCSI_MOD
 	[must] user
 	[missing plat description] none
 	[function] SCSI module support
-CONFIG_SDCARD_FS
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make
-	[subsys] fs
-	[must] user
-	[missing plat description] none
-	[function] This function is used to open sdcardfs feature
 CONFIG_SDIOHAL
 	[arch] all
 	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
@@ -14519,6 +14528,15 @@ CONFIG_UNCOMPRESS_INCLUDE
 	[must] console
 	[missing plat description] none
 	[function] Support for compress include path. Set to "debug/uncompress.h".
+CONFIG_UNICODE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] fs
+	[must] user
+	[missing plat description] none
+	[function] unicode
 CONFIG_UNINLINE_SPIN_UNLOCK
 	[arch] all
 	[plat] all
