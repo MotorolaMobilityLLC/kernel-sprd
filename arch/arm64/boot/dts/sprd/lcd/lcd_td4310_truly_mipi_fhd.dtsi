@@ -9,7 +9,7 @@
 		sprd,phy-escape-clock = <20000>;/* kHz */
 
 		sprd,width-mm = <68>;
-		sprd,height-mm = <121>;
+		sprd,height-mm = <136>;
 
 		sprd,esd-check-mode = <0>;
 		sprd,esd-check-enable = <1>;
