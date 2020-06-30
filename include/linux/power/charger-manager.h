@@ -174,6 +174,22 @@ struct cm_track_capacity {
 	struct delayed_work track_capacity_work;
 };
 
+/*
+ * struct cap_remap_table
+ * @cnt: record the counts of battery capacity of this scope
+ * @lcap: the lower boundary of the capacity scope before transfer
+ * @hcap: the upper boundary of the capacity scope before transfer
+ * @lb: the lower boundary of the capacity scope after transfer
+ * @hb: the upper boundary of the capacity scope after transfer
+*/
+struct cap_remap_table {
+	int cnt;
+	int lcap;
+	int hcap;
+	int lb;
+	int hb;
+};
+
 /**
  * struct charger_desc
  * @psy_name: the name of power-supply-class for charger manager
@@ -251,6 +267,11 @@ struct cm_track_capacity {
  * @internal_resist: the battery internal resistance in mOhm
  * @cap_table_len: the length of ocv-capacity table
  * @cap_table: capacity table with corresponding ocv
+ * @cap_remap_table: the table record the different scope of capacity
+ *	information.
+ * @cap_remap_table_len: the length of cap_remap_table
+ * @cap_remap_total_cnt: the total count the whole battery capacity is divided
+	into.
  */
 struct charger_desc {
 	const char *psy_name;
@@ -326,6 +347,9 @@ struct charger_desc {
 	int internal_resist;
 	int cap_table_len;
 	struct power_supply_battery_ocv_table *cap_table;
+	struct cap_remap_table *cap_remap_table;
+	int cap_remap_table_len;
+	int cap_remap_total_cnt;
 };
 
 #define PSY_NAME_MAX	30

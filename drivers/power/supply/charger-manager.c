@@ -139,6 +139,164 @@ static int __init boot_calibration_mode(char *str)
 }
 __setup("androidboot.mode=", boot_calibration_mode);
 
+static void cm_cap_remap_init_boundary(struct charger_desc *desc, int index,
+				       struct device *dev)
+{
+
+	if (index == 0) {
+		desc->cap_remap_table[index].lb = (desc->cap_remap_table[index].lcap) * 1000;
+		desc->cap_remap_total_cnt = desc->cap_remap_table[index].lcap;
+	} else {
+		desc->cap_remap_table[index].lb = desc->cap_remap_table[index - 1].hb +
+			(desc->cap_remap_table[index].lcap -
+			 desc->cap_remap_table[index - 1].hcap) * 1000;
+		desc->cap_remap_total_cnt += (desc->cap_remap_table[index].lcap -
+					      desc->cap_remap_table[index - 1].hcap);
+	}
+
+	desc->cap_remap_table[index].hb = desc->cap_remap_table[index].lb +
+		(desc->cap_remap_table[index].hcap - desc->cap_remap_table[index].lcap) *
+		desc->cap_remap_table[index].cnt * 1000;
+
+	desc->cap_remap_total_cnt +=
+		(desc->cap_remap_table[index].hcap - desc->cap_remap_table[index].lcap) *
+		desc->cap_remap_table[index].cnt;
+
+	dev_info(dev, "%s, cap_remap_table[%d].lb =%d,cap_remap_table[%d].hb = %d\n",
+		 __func__, index, desc->cap_remap_table[index].lb, index,
+		 desc->cap_remap_table[index].hb);
+}
+
+/*
+ * cm_capacity_remap - remap fuel_cap
+ * @ fuel_cap: cap from fuel gauge
+ * Return the remapped cap
+ */
+static int cm_capacity_remap(struct charger_manager *cm, int fuel_cap)
+{
+	int i, temp, cap = 0;
+
+	if (!cm->desc->cap_remap_table)
+		return fuel_cap;
+
+	if (fuel_cap < 0) {
+		fuel_cap = 0;
+		return 0;
+	} else if (fuel_cap >  CM_CAP_FULL_PERCENT) {
+		fuel_cap  = CM_CAP_FULL_PERCENT;
+		return fuel_cap * cm->desc->cap_remap_total_cnt;
+	}
+
+	temp = fuel_cap * cm->desc->cap_remap_total_cnt;
+
+	for (i = 0; i < cm->desc->cap_remap_table_len; i++) {
+		if (temp <= cm->desc->cap_remap_table[i].lb) {
+			if (i == 0)
+				cap = DIV_ROUND_CLOSEST(temp, 100);
+			else
+				cap = DIV_ROUND_CLOSEST((temp -
+					cm->desc->cap_remap_table[i - 1].hb), 100) +
+					cm->desc->cap_remap_table[i - 1].hcap * 10;
+			break;
+		} else if (temp <= cm->desc->cap_remap_table[i].hb) {
+			cap = DIV_ROUND_CLOSEST((temp - cm->desc->cap_remap_table[i].lb),
+						cm->desc->cap_remap_table[i].cnt * 100)
+				+ cm->desc->cap_remap_table[i].lcap * 10;
+			break;
+		}
+
+		if (i == cm->desc->cap_remap_table_len - 1 && temp > cm->desc->cap_remap_table[i].hb)
+			cap = DIV_ROUND_CLOSEST((temp - cm->desc->cap_remap_table[i].hb), 100)
+				+ cm->desc->cap_remap_table[i].hcap;
+
+	}
+
+	dev_info(cm->dev, "%s, i = %d, fuel_cap = %d, temp = %d, ui_cap = %d\n",
+	      __func__, i, fuel_cap, temp, cap);
+
+	return cap;
+}
+
+/*
+ * cm_capacity_unmap - unmap remapped cap to real fuel gauge cap
+ * @remmaped_cap: remapped_cap from cm_capacity_remap function
+ * Return real fuel gauge cap
+ */
+static int cm_capacity_unmap(struct charger_manager *cm, int cap)
+{
+	int fuel_cap, i;
+
+	if (!cm->desc->cap_remap_table)
+		return cap;
+
+	for (i = cm->desc->cap_remap_table_len - 1; i >= 0; i--) {
+		if (cap >= (cm->desc->cap_remap_table[i].hcap * 10)) {
+			fuel_cap = (cap - cm->desc->cap_remap_table[i].hcap * 10) * 100 +
+				cm->desc->cap_remap_table[i].hb;
+			break;
+		} else if (cap >= (cm->desc->cap_remap_table[i].lcap * 10)) {
+			fuel_cap = (cap - cm->desc->cap_remap_table[i].lcap * 10) *
+				cm->desc->cap_remap_table[i].cnt * 100 +
+				cm->desc->cap_remap_table[i].lb;
+			break;
+		}
+
+		if (i == 0 && cap <= cm->desc->cap_remap_table[i].lcap * 10) {
+			fuel_cap = cap * 100;
+			break;
+		}
+	}
+
+	fuel_cap  = DIV_ROUND_CLOSEST(fuel_cap, cm->desc->cap_remap_total_cnt);
+	dev_info(cm->dev, "%s, fuel_cap = %d, ui_cap = %d\n", __func__, fuel_cap, cap);
+
+	return fuel_cap;
+}
+
+static int cm_init_cap_remap_table(struct charger_desc *desc,
+				   struct device *dev)
+{
+
+	struct device_node *np = dev->of_node;
+	const __be32 *list;
+	int i, size;
+
+	list = of_get_property(np, "cm-cap-remap-table", &size);
+	if (!list || !size) {
+		dev_err(dev, "%s  get cm-cap-remap-table fail\n", __func__);
+		return 0;
+	}
+
+	desc->cap_remap_table_len = size / (3 * sizeof(__be32));
+	desc->cap_remap_table = devm_kzalloc(dev, sizeof(struct cap_remap_table) *
+				(desc->cap_remap_table_len + 1), GFP_KERNEL);
+	if (!desc->cap_remap_table) {
+		dev_err(dev, "%s, get cap_remap_table fail\n", __func__);
+		return -ENOMEM;
+	}
+	for (i = 0; i < desc->cap_remap_table_len; i++) {
+		desc->cap_remap_table[i].lcap = be32_to_cpu(*list++);
+		desc->cap_remap_table[i].hcap = be32_to_cpu(*list++);
+		desc->cap_remap_table[i].cnt = be32_to_cpu(*list++);
+
+		cm_cap_remap_init_boundary(desc, i, dev);
+
+		dev_info(dev, " %s,cap_remap_table[%d].lcap= %d,cap_remap_table[%d].hcap = %d,"
+			 "cap_remap_table[%d].cnt= %d\n",
+		       __func__, i, desc->cap_remap_table[i].lcap,
+			i, desc->cap_remap_table[i].hcap, i, desc->cap_remap_table[i].cnt);
+	}
+
+	if (desc->cap_remap_table[desc->cap_remap_table_len - 1].hcap != 100)
+		desc->cap_remap_total_cnt +=
+			(100 - desc->cap_remap_table[desc->cap_remap_table_len - 1].hcap);
+
+	dev_info(dev, "%s, cap_remap_total_cnt =%d, cap_remap_table_len = %d\n",
+	       __func__, desc->cap_remap_total_cnt, desc->cap_remap_table_len);
+
+	return 0;
+}
+
 /**
  * is_batt_present - See if the battery presents in place.
  * @cm: the Charger Manager representing the battery.
@@ -3249,6 +3407,10 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	if (ret)
 		return ERR_PTR(ret);
 
+	ret = cm_init_cap_remap_table(desc, dev);
+	if (ret)
+		dev_info(dev, "%s init cap remap table fail\n", __func__);
+
 	/* battery charger regualtors */
 	desc->num_charger_regulators = of_get_child_count(np);
 	if (desc->num_charger_regulators) {
@@ -3404,6 +3566,7 @@ static void cm_batt_works(struct work_struct *work)
 		dev_err(cm->dev, "get fuel_cap error.\n");
 		return;
 	}
+	fuel_cap = cm_capacity_remap(cm, fuel_cap);
 
 	ret = get_charger_current(cm, &chg_cur);
 	if (ret) {
@@ -3611,7 +3774,7 @@ static void cm_batt_works(struct work_struct *work)
 		}
 
 		cm->desc->cap = fuel_cap;
-		set_batt_cap(cm, cm->desc->cap);
+		set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
 	}
 
 	queue_delayed_work(system_power_efficient_wq,
@@ -3769,6 +3932,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	ret = get_boot_cap(cm, &cm->desc->cap);
+	cm->desc->cap = cm_capacity_remap(cm, cm->desc->cap);
+
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to get initial battery capacity\n");
 		return ret;
@@ -3913,7 +4078,7 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 {
 	struct charger_manager *cm = platform_get_drvdata(pdev);
 
-	set_batt_cap(cm, cm->desc->cap);
+	set_batt_cap(cm, cm_capacity_unmap(cm, cm->desc->cap));
 }
 
 static const struct platform_device_id charger_manager_id[] = {
