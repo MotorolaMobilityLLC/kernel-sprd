@@ -114,3 +114,11 @@
 &lcd_td4310_truly_mipi_fhd {
 	sprd,phy-bit-clock = <1104000>;  /* kbps */
 };
+
+&vddldo0 {
+	regulator-always-on;
+};
+
+&vddemmccore {
+	regulator-always-on;
+};
