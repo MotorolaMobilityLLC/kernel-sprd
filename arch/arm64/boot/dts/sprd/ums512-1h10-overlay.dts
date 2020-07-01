@@ -88,3 +88,18 @@
 			   <17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
 			   <35 0x19b8>, <39 0x19ac>;
 };
+
+&vddldo0 {
+	regulator-always-on;
+};
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+	status = "okay";
+};
+
+&usb {
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	status = "okay";
+};
