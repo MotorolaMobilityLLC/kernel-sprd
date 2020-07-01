@@ -6213,13 +6213,13 @@ CONFIG_HID_MULTITOUCH
 	[missing plat description] none
 	[function] none Multitouch panels
 CONFIG_HID_NINTENDO
-	[arch] arm64
-	[plat] sharkl3
-	[missing plat] sharkl5,sharkl5Pro
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field] menu,make
 	[subsys] hid
 	[must] user
-	[missing plat description] precedence surport sharkl3-3
+	[missing plat description] none
 	[function] add new NintendoSwitchPro device
 CONFIG_HID_NTRIG
 	[arch] all
