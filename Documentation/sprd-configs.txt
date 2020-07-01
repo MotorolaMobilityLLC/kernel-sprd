@@ -3479,6 +3479,15 @@ CONFIG_DECOMPRESS_GZIP
 	[must] console
 	[missing plat description] none
 	[function] Support kernel decompress gzip.
+CONFIG_DECOMPRESS_LZ4
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] make
+	[subsys] core
+	[must] console
+	[missing plat description] none
+	[function] Support incfs
 CONFIG_DEFAULT_CFQ
 	[arch] all
 	[plat] all
@@ -6703,6 +6712,15 @@ CONFIG_ILLEGAL_POINTER_VALUE
 	[must] console
 	[missing plat description] none
 	[function] Defined the invailed point value.
+CONFIG_INCREMENTAL_FS
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] make
+	[subsys] fs
+	[must] console
+	[missing plat description] none
+	[function] incfs
 CONFIG_INET
 	[arch] all
 	[plat] all
