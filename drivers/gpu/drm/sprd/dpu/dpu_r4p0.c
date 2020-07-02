@@ -662,6 +662,9 @@ static void dpu_layer(struct sprd_crtc_context *ctx,
 	ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
 		hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
 
+	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_CTRL,
+			hwlayer->index), ctrl);
+
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
 				hwlayer->dst_w, hwlayer->dst_h);
