@@ -456,7 +456,7 @@ int sprd_volt_share_slaves_notify(struct sprd_cpufreq_driver_data *host,
 				  unsigned long volt)
 {
 	unsigned int cluster;
-	int ret;
+	int ret = 0;
 
 	pr_debug("%s volt_share_slaves_bits%u, volt %lu\n",
 		 __func__, host->volt_share_slaves_bits, volt);
