@@ -12,6 +12,11 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
+	aliases {
+		spi4 = &adi_bus;
+		spi5 = &adi_bus1;
+	};
+
 	soc: soc {
 		compatible = "simple-bus";
 		#address-cells = <2>;
@@ -284,6 +289,14 @@
 				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			adi_bus: spi@64200000 {
+				compatible = "sprd,qogirl6-adi",
+						"sprd,sharkl5Pro-adi";
+				reg = <0 0x64200000 0 0x100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
 			timer@64470000 {
 				compatible = "sprd,qogirl6-timer",
 						"sprd,sc9860-timer";
@@ -297,6 +310,13 @@
 						"sprd,sc9860-suspend-timer";
 				reg = <0 0x64470020 0 0x20>;
 				clocks = <&ext_32k>;
+			};
+
+			adi_bus1: spi@64600000 {
+				compatible = "sprd,qogirl6-adi-r5p1";
+				reg = <0 0x64600000 0 0x100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
 			};
 
 			hwlock: hwspinlock@64910000 {
