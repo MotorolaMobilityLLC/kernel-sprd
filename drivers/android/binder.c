@@ -1947,6 +1947,9 @@ static int binder_inc_ref_for_node(struct binder_proc *proc,
 	struct binder_ref *new_ref = NULL;
 	int ret = 0;
 
+	if (proc->context == NULL)
+		return -EINVAL;
+
 	binder_proc_lock(proc);
 	ref = binder_get_ref_for_node_olocked(proc, node, NULL);
 	if (!ref) {
