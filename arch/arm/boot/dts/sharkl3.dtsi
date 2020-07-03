@@ -1569,10 +1569,10 @@
 		compatible = "sprd,saudio";
 		sprd,saudio-dst-id = <5>;               /* SIPC_ID_LTE */
 		sprd,ctrl_channel = <10>;               /* SMSG_CH_VBC */
-		sprd,playback_channel = <11 131>; /* SMSG_CH_PLAYBACK */
+		sprd,playback_channel = <11 131 132>; /* SMSG_CH_PLAYBACK */
 		sprd,capture_channel = <12>;    /* SMSG_CH_CAPTURE */
 		sprd,monitor_channel = <13>;    /*SMSG_CH_MONITOR_AUDIO */
-		sprd,device = <2>;
+		sprd,device = <3>;
 		sprd,saudio-names = "saudiolte";
 	};
 
