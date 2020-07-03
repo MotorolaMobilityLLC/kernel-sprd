@@ -9,6 +9,7 @@
 
 #include "ums9230-haps.dtsi"
 #include "ums9230-haps-mach.dtsi"
+#include "ums9230-haps-modem.dtsi"
 
 / {
 	model = "Spreadtrum UMS9230 SoC";
@@ -64,6 +65,12 @@
 		fb_reserved: framebuffer@fd708000 {
 			reg = <0x0 0xfd708000 0x0 0x2878000>;
 		};
+	};
+
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
 	};
 
 	sprd-memdisk {
