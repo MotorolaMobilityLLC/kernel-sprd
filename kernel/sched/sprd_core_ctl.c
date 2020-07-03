@@ -6,9 +6,9 @@
 #include <linux/cpufreq.h>
 #include <linux/kthread.h>
 #include <linux/percpu.h>
-#include <linux/math64.h>
 #include <linux/version.h>
 #include <linux/sched.h>
+#include <linux/suspend.h>
 #include <uapi/linux/sched/types.h>
 #include "sched.h"
 #include "walt.h"
@@ -672,6 +672,65 @@ static int __ref try_core_ctl(void *data)
 	return 0;
 }
 
+/*
+ * save isolated cpumask before suspend, when system
+ * will resume, should restore isolated cpumask status.
+ */
+static cpumask_t resume_mask;
+
+static void keep_isolated_status(int cpu)
+{
+	struct cpu_data *state = &per_cpu(cpu_state, cpu);
+	struct cluster_data *cluster = state->cluster;
+	unsigned long flags;
+
+	if (!sched_isolate_cpu(cpu)) {
+		spin_lock_irqsave(&state_lock, flags);
+		/* update cluster and cpu status info. */
+		state->isolated_by_us = true;
+		cluster->nr_isolated_cpus++;
+		move_cpu_lru(state, false);
+		cluster->active_cpus = get_active_cpu_count(cluster);
+		cluster->need_cpus = cluster->active_cpus;
+
+		spin_unlock_irqrestore(&state_lock, flags);
+	}
+}
+
+static int __ref cpuhp_core_ctl_offline(unsigned int cpu);
+static int isolate_pm_notifier_block(struct notifier_block *nb,
+			unsigned long pm_event, void *unused)
+{
+	int cpu;
+
+	switch (pm_event) {
+	case PM_HIBERNATION_PREPARE:
+	case PM_RESTORE_PREPARE:
+	case PM_SUSPEND_PREPARE:
+		/*save isolated status before suspend*/
+		cpumask_copy(&resume_mask, cpu_isolated_mask);
+
+		for_each_isolated_cpu(cpu)
+			cpuhp_core_ctl_offline(cpu);
+		break;
+	case PM_POST_HIBERNATION:
+	case PM_POST_RESTORE:
+	case PM_POST_SUSPEND:
+		for_each_cpu(cpu, &resume_mask)
+			keep_isolated_status(cpu);
+		break;
+	default:
+		CORE_CTL_ERR("%s: Unknown PM request type!\n", __func__);
+		break;
+	}
+
+	return 0;
+}
+
+static struct notifier_block isolate_pm_notifer = {
+	.notifier_call = isolate_pm_notifier_block,
+};
+
 static int __ref cpuhp_core_ctl_online(unsigned int cpu)
 {
 	struct cpu_data *state = &per_cpu(cpu_state, cpu);
@@ -845,6 +904,7 @@ static int cluster_init(const struct cpumask *mask)
 static int __init core_ctl_init(void)
 {
 	int cpu;
+	int ret;
 
 	cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN, "core_ctl:online",
 				  cpuhp_core_ctl_online, NULL);
@@ -855,8 +915,6 @@ static int __init core_ctl_init(void)
 	CORE_CTL_INFO("sprd_core_ctl feature start init\n");
 	cpu_maps_update_begin();
 	for_each_online_cpu(cpu) {
-		int ret;
-
 		ret = cluster_init(topology_core_cpumask(cpu));
 		if (ret)
 			CORE_CTL_ERR("create core ctl group%d failed: %d\n",
@@ -864,6 +922,15 @@ static int __init core_ctl_init(void)
 	}
 	cpu_maps_update_done();
 	initialized = true;
+
+	/*
+	 * when system will enter suspend mode,
+	 * all isolation cpu should be unisolated.
+	 */
+	ret = register_pm_notifier(&isolate_pm_notifer);
+	if (ret)
+		CORE_CTL_ERR("register pm notifier failed %d\n", ret);
+
 	return 0;
 }
 
