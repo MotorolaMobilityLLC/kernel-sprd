@@ -47,6 +47,7 @@
 #define RD_ADDR_MASK			GENMASK(30, 16)
 
 /* Bits definitions for register REG_ADI_ARM_FIFO_STS */
+#define BIT_ARM_WR_FREQ			BIT(31)
 #define BIT_FIFO_FULL			BIT(11)
 #define BIT_FIFO_EMPTY			BIT(10)
 
@@ -54,9 +55,9 @@
  * ADI slave devices include RTC, ADC, regulator, charger, thermal and so on.
  * The slave devices address offset is always 0x8000 and size is 4K.
  */
-#define ADI_SLAVE_ADDR_SIZE		SZ_8K
-#define ADI_15BIT_SLAVE_OFFSET		0x20000
-#define ADI_SLAVE_OFFSET		0x8000
+#define ADI_SLAVE_ADDR_SIZE		SZ_128K
+#define ADI_15BIT_CHANNEL_OFFSET	0x20000
+#define ADI_CHANNEL_OFFSET		0x8000
 
 /* Timeout (ms) for the trylock of hardware spinlocks */
 #define ADI_HWSPINLOCK_TIMEOUT		5000
@@ -68,8 +69,9 @@
 
 #define ADI_FIFO_DRAIN_TIMEOUT		1000
 #define ADI_READ_TIMEOUT		2000
+#define ADI_WRITE_TIMEOUT		2000
 #define REG_ADDR_LOW_MASK		GENMASK(16, 0)
-#define RDBACK_ADDR_DFFSET		2
+#define RDBACK_ADDR_OFFSET		2
 
 /* Registers definitions for PMIC watchdog controller */
 #define REG_WDG_LOAD_LOW		0x0
@@ -81,6 +83,9 @@
 #define BIT_WDG_RUN			BIT(1)
 #define BIT_WDG_NEW			BIT(2)
 #define BIT_WDG_RST			BIT(3)
+
+/* Bits definitions for register REG_MODULE_EN */
+#define BIT_WDG_EN			BIT(2)
 
 /* Registers definitions for PMIC */
 #define PMIC_RST_STATUS			0xee8
@@ -95,7 +100,11 @@
 #define SC2721_MODULE_EN		0xc08
 #define SC2721_CLK_EN			0xc10
 #define SC2721_WDG_BASE			0x40
-#define BIT_WDG_EN			BIT(2)
+
+#define UMPS520_RST_STATUS		0x1bac
+#define UMPS520_MODULE_EN		0x1808
+#define UMPS520_CLK_EN			0x1810
+#define UMPS520_WDT_BASE		0x40
 
 /* Definition of PMIC reset status register */
 #define HWRST_STATUS_SECURITY		0x02
@@ -119,7 +128,9 @@
 #define WDG_UNLOCK_KEY			0xe551
 
 struct sprd_adi_variant_data {
-	u32 slave_offset;
+	int (*read_check)(u32 val, u32 reg_paddr);
+	int (*write_wait)(void __iomem *adi_base);
+	u32 channel_offset;
 	u32 wdg_base;
 	u32 rst_sts;
 	u32 wdg_en;
@@ -135,30 +146,6 @@ struct sprd_adi {
 	unsigned long		slave_pbase;
 	struct notifier_block	restart_handler;
 	const struct sprd_adi_variant_data *data;
-};
-
-static struct sprd_adi_variant_data sc9860_data = {
-	.slave_offset = ADI_SLAVE_OFFSET,
-	.wdg_base = PMIC_WDG_BASE,
-	.rst_sts = PMIC_RST_STATUS,
-	.wdg_en = PMIC_MODULE_EN,
-	.wdg_clk = PMIC_CLK_EN,
-};
-
-static struct sprd_adi_variant_data sharkl3_data = {
-	.slave_offset = ADI_SLAVE_OFFSET,
-	.wdg_base = SC2721_WDG_BASE,
-	.rst_sts = SC2721_RST_STATUS,
-	.wdg_en = SC2721_MODULE_EN,
-	.wdg_clk = SC2721_CLK_EN,
-};
-
-static struct sprd_adi_variant_data sharkl5pro_data = {
-	.slave_offset = ADI_15BIT_SLAVE_OFFSET,
-	.wdg_base = SC2730_WDT_BASE,
-	.rst_sts = SC2730_RST_STATUS,
-	.wdg_en = SC2730_MODULE_EN,
-	.wdg_clk = SC2730_CLK_EN,
 };
 
 static int sprd_adi_check_paddr(struct sprd_adi *sadi, u32 paddr)
@@ -205,11 +192,47 @@ static int sprd_adi_fifo_is_full(struct sprd_adi *sadi)
 	return readl_relaxed(sadi->base + REG_ADI_ARM_FIFO_STS) & BIT_FIFO_FULL;
 }
 
+static int sprd_adi_read_check(u32 val, u32 reg_paddr)
+{
+	u32 rd_addr;
+
+	rd_addr = (val & RD_ADDR_MASK) >> RD_ADDR_SHIFT;
+
+	if (rd_addr != (reg_paddr & REG_ADDR_LOW_MASK) >> RDBACK_ADDR_OFFSET) {
+		pr_err("ADI read error, reg addr = 0x%x, val = 0x%x\n",
+			reg_paddr, val);
+		return -EIO;
+	}
+
+	return 0;
+}
+
+static int sprd_adi_write_wait(void __iomem *adi_base)
+{
+	int write_timeout = ADI_WRITE_TIMEOUT;
+	u32 val;
+
+	do {
+		val = readl_relaxed(adi_base + REG_ADI_ARM_FIFO_STS);
+		if (!(val & BIT_ARM_WR_FREQ))
+			break;
+
+		cpu_relax();
+	} while (--write_timeout);
+
+	if (write_timeout == 0) {
+		pr_err("ADI write fail\n");
+		return -EBUSY;
+	}
+
+	return 0;
+}
+
 static int sprd_adi_read(struct sprd_adi *sadi, u32 reg_paddr, u32 *read_val)
 {
 	int read_timeout = ADI_READ_TIMEOUT;
 	unsigned long flags;
-	u32 val, rd_addr;
+	u32 val;
 	int ret = 0;
 
 	if (sadi->hwlock) {
@@ -249,18 +272,15 @@ static int sprd_adi_read(struct sprd_adi *sadi, u32 reg_paddr, u32 *read_val)
 	}
 
 	/*
-	 * The return value includes data and read register address, from bit 0
-	 * to bit 15 are data, and from bit 16 to bit 30 are read register
-	 * address. Then we can check the returned register address to validate
-	 * data.
+	 * The return value before adi r5p0 includes data and read register
+	 * address, from bit 0to bit 15 are data, and from bit 16 to bit 30
+	 * are read register address. Then we can check the returned register
+	 * address to validate data.
 	 */
-	rd_addr = (val & RD_ADDR_MASK ) >> RD_ADDR_SHIFT;
-
-	if (rd_addr != (reg_paddr & REG_ADDR_LOW_MASK) >> RDBACK_ADDR_DFFSET) {
-		dev_err(sadi->dev, "read error, reg addr = 0x%x, val = 0x%x\n",
-			reg_paddr, val);
-		ret = -EIO;
-		goto out;
+	if (sadi->data->read_check) {
+		ret = sadi->data->read_check(val, reg_paddr);
+		if (ret < 0)
+			goto out;
 	}
 
 	*read_val = val & RD_VALUE_MASK;
@@ -308,7 +328,12 @@ static int sprd_adi_write(struct sprd_adi *sadi, u32 reg_paddr, u32 val)
 	if (timeout == 0) {
 		dev_err(sadi->dev, "write fifo is full\n");
 		ret = -EBUSY;
+		goto out;
 	}
+
+	/* we should wait success flag when write for adi r5px */
+	if (sadi->data->write_wait)
+		ret = sadi->data->write_wait(sadi->base);
 
 out:
 	if (sadi->hwlock)
@@ -428,7 +453,8 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 	wdg_base = sadi->slave_pbase + sadi->data->wdg_base;
 
 	/* Unlock the watchdog */
-	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_LOCK, WDG_UNLOCK_KEY);
+	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_LOCK,
+			WDG_UNLOCK_KEY);
 
 	sprd_adi_read(sadi, sadi->slave_pbase + wdg_base + REG_WDG_CTRL, &val);
 	val |= BIT_WDG_NEW;
@@ -445,7 +471,8 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_CTRL, val);
 
 	/* Lock the watchdog */
-	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_LOCK, ~WDG_UNLOCK_KEY);
+	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_LOCK,
+			~WDG_UNLOCK_KEY);
 
 	mdelay(1000);
 
@@ -540,8 +567,8 @@ static int sprd_adi_probe(struct platform_device *pdev)
 	}
 
 	sadi->slave_vbase = (__force unsigned long)sadi->base +
-			    data->slave_offset;
-	sadi->slave_pbase = res->start + data->slave_offset;
+			    data->channel_offset;
+	sadi->slave_pbase = res->start + data->channel_offset;
 	sadi->ctlr = ctlr;
 	sadi->dev = &pdev->dev;
 	sadi->data = data;
@@ -607,6 +634,42 @@ static int sprd_adi_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static struct sprd_adi_variant_data sc9860_data = {
+	.read_check = sprd_adi_read_check,
+	.channel_offset = ADI_CHANNEL_OFFSET,
+	.wdg_base = PMIC_WDG_BASE,
+	.rst_sts = PMIC_RST_STATUS,
+	.wdg_en = PMIC_MODULE_EN,
+	.wdg_clk = PMIC_CLK_EN,
+};
+
+static struct sprd_adi_variant_data sharkl3_data = {
+	.read_check = sprd_adi_read_check,
+	.channel_offset = ADI_CHANNEL_OFFSET,
+	.wdg_base = SC2721_WDG_BASE,
+	.rst_sts = SC2721_RST_STATUS,
+	.wdg_en = SC2721_MODULE_EN,
+	.wdg_clk = SC2721_CLK_EN,
+};
+
+static struct sprd_adi_variant_data sharkl5pro_data = {
+	.read_check = sprd_adi_read_check,
+	.channel_offset = ADI_15BIT_CHANNEL_OFFSET,
+	.wdg_base = SC2730_WDT_BASE,
+	.rst_sts = SC2730_RST_STATUS,
+	.wdg_en = SC2730_MODULE_EN,
+	.wdg_clk = SC2730_CLK_EN,
+};
+
+static struct sprd_adi_variant_data qogirl6_data = {
+	.write_wait = sprd_adi_write_wait,
+	.channel_offset = ADI_15BIT_CHANNEL_OFFSET,
+	.wdg_base = UMPS520_RST_STATUS,
+	.rst_sts = UMPS520_RST_STATUS,
+	.wdg_en = UMPS520_MODULE_EN,
+	.wdg_clk = UMPS520_CLK_EN,
+};
+
 static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,sc9860-adi",
@@ -619,6 +682,10 @@ static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,sharkl5Pro-adi",
 		.data = &sharkl5pro_data,
+	},
+	{
+		.compatible = "sprd,qogirl6-adi-r5p1",
+		.data = &qogirl6_data,
 	},
 	{ },
 };
