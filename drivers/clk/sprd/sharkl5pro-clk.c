@@ -987,8 +987,8 @@ static SPRD_MUX_CLK(dispc0_clk, "dispc0-clk", dispc0_parents, 0x9c,
 
 static const char * const dispc0_dpi_parents[] = { "twpll-96m",
 						   "twpll-128m", "twpll-153m6",
-						   "twpll-192m", "dphy-273m",
-						   "dphy-204m8"};
+						   "twpll-192m", "dphy-204m8",
+						   "dphy-273m"};
 static SPRD_COMP_CLK(dispc0_dpi_clk, "dispc0-dpi-clk", dispc0_dpi_parents,
 		     0xa0, 0, 3, 8, 4, 0);
 
