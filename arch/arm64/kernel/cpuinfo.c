@@ -150,6 +150,9 @@ static int c_show(struct seq_file *m, void *v)
 	int i, j;
 	bool compat = personality(current->personality) == PER_LINUX32;
 
+	seq_printf(m, "Processor\t: AArch64 Processor rev %d (%s)\n",
+		read_cpuid_id() & 0xf, ELF_PLATFORM);
+
 	for_each_online_cpu(i) {
 		struct cpuinfo_arm64 *cpuinfo = &per_cpu(cpu_data, i);
 		u32 midr = cpuinfo->reg_midr;
