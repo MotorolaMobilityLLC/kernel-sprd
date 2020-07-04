@@ -388,3 +388,15 @@
 	};
 };
 
+&sprd_headset {
+	status = "okay";
+	sprd,spk-route-hp;
+};
+
+&sound_vbc_r1p0v3_sprd_codec {
+	status = "okay";
+
+	/*ext_control_type, hook selection, mode, gpio share*/
+	sprd,spk-ext-pa-info = <0 0 4 0>;
+	sprd,spk-ext-pa-gpio = <&ap_gpio 156 0>;
+};
