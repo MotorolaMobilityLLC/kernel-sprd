@@ -457,6 +457,13 @@ void sipa_prepare_modem_power_on(void);
 
 void sipa_prepare_modem_power_off(void);
 
+/*
+ * SIPA Dummy notifier chain reg/unreg func for wifi driver
+ */
+int sipa_dummy_register_wifi_recv_handler(struct notifier_block *nb);
+
+int sipa_dummy_unregister_wifi_recv_handler(struct notifier_block *nb);
+
 #else
 
 /**
