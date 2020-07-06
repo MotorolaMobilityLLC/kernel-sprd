@@ -76,6 +76,7 @@
 #define SC27XX_FGU_RTC2_RESET_VALUE	0xA05
 
 #define SC27XX_FGU_CUR_BASIC_ADC	8192
+#define SC27XX_FGU_POCV_VOLT_THRESHOLD	3400
 #define SC27XX_FGU_SAMPLE_HZ		2
 #define SC27XX_FGU_TEMP_BUFF_CNT	10
 #define SC27XX_FGU_LOW_TEMP_REGION	100
@@ -478,7 +479,7 @@ static int sc27xx_fgu_read_last_cap(struct sc27xx_fgu_data *data, int *cap)
 
 static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv)
 {
-	int volt, cur, oci, ret;
+	int volt, cur, oci, ret, ocv;
 
 	/*
 	 * After system booting on, the SC27XX_FGU_CLBCNT_QMAXL register saved
@@ -507,6 +508,14 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv)
 	}
 
 	volt = sc27xx_fgu_adc_to_voltage(data, volt);
+	if (volt < SC27XX_FGU_POCV_VOLT_THRESHOLD) {
+		ret = sc27xx_fgu_get_vbat_ocv(data, &ocv);
+		if (ret) {
+			dev_err(data->dev, "Failed to read volt, ret = %d\n", ret);
+			return ret;
+		}
+		volt = ocv / 1000;
+	}
 	*pocv = volt * 1000 - oci * data->internal_resist;
 	dev_info(data->dev, "oci = %d, volt = %d, pocv = %d\n", oci, volt, *pocv);
 
