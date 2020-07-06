@@ -19,11 +19,11 @@
 #include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
 
 / {
-	model = "Unisoc UMS312 1H10 board";
+	model = "Unisoc UMS312 SoC";
 
 	compatible = "sprd,ums312";
 
-	sprd,sc-id = <312 1 0x20000>;
+	sprd,sc-id = "ums312 1000 1000";
 
 	aliases {
 		serial0 = &uart0;
@@ -35,9 +35,8 @@
 		reg = <0x80000000 0x80000000>;
 	};
 
-	chosen {
+	chosen: chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 ro rootwait androidboot.hardware=ums312_1h10_go_32b androidboot.dtbo_idx=0 printk.devkmsg=on vmalloc=300M androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio";
 	};
 
 	ipi: interrupt-controller {
