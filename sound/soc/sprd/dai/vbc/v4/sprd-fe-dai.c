@@ -1323,6 +1323,7 @@ static struct snd_soc_dai_driver sprd_fe_dais[FE_DAI_ID_MAX] = {
 		.ops = &sprd_fe_dai_ops,
 	},
 };
+
 static int sprd_fe_dai_dev_probe(struct platform_device *pdev)
 {
 	int ret;
@@ -1343,6 +1344,7 @@ static int sprd_fe_dai_dev_remove(struct platform_device *pdev)
 
 static const struct of_device_id sprd_dai_fe_dt_match[] = {
 	{.compatible = "sprd,fe-dai"},
+	{},
 };
 
 static struct platform_driver sprd_fe_dai_driver = {
