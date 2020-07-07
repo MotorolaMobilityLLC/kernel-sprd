@@ -193,6 +193,7 @@ static const char * const sc27xx_charger_supply_name[] = {
 	"sc2703_charger",
 	"fan54015_charger",
 	"bq2560x_charger",
+	"eta6937_charger",
 };
 
 static int sc27xx_fgu_adc_to_current(struct sc27xx_fgu_data *data, int adc)

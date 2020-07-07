@@ -631,6 +631,12 @@ config CHARGER_FAN54015
 	help
 	  Say Y to include support for Fairchild FAN54015 Battery Charger.
 
+config CHARGER_ETA6937
+	tristate "ETA solutions ETA6937CSU  Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  Say Y to include support for ETA Solutions ETA6935CSU Battery Charger.
+
 config CHARGER_BQ2560X
 	tristate "TI BQ2560X Charger"
 	depends on I2C || COMPILE_TEST

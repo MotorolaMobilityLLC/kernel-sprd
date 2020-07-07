@@ -87,6 +87,7 @@ obj-$(CONFIG_CHARGER_SC2731)	+= sc2731_charger.o
 obj-$(CONFIG_FUEL_GAUGE_SC27XX)	+= sc27xx_fuel_gauge.o
 obj-$(CONFIG_CHARGER_SC2703)	+= sc2703-charger.o
 obj-$(CONFIG_CHARGER_FAN54015)	+= fan54015-charger.o
+obj-$(CONFIG_CHARGER_ETA6937)	+= eta6937-charger.o
 obj-$(CONFIG_CHARGER_BQ2560X)	+= bq2560x-charger.o
 obj-$(CONFIG_CHARGER_SC2720)	+= sc2720_charger.o
 obj-$(CONFIG_CHARGER_SC2721)	+= sc2721_charger.o

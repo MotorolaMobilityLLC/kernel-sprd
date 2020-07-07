@@ -1943,6 +1943,15 @@ CONFIG_CHARGER_BQ2560X
 	[must] user
 	[missing plat description] Not used in the project, so no configuration
 	[function] This function is used to enable charge
+CONFIG_CHARGER_ETA6937
+	[arch] arm64
+	[plat] sharkl3
+	[missing plat] sharkl5,sharkl5Pro
+	[field] make
+	[subsys] power
+	[must] user
+	[missing plat description] Not used in the project, so no configuration
+	[function] This function is used to enable charge
 CONFIG_CHARGER_FAN54015
 	[arch] all
 	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
