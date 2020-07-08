@@ -159,6 +159,7 @@ pci:dwc:sprd:
 scripts:dtc:
 scripts:sprd:
 sched:*
+test:kunit:
 trace:
 trusty:
 firmware:sprd:
