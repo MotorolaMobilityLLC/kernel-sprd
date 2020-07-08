@@ -352,6 +352,10 @@
 };
 
 &sprd_hwdvfs {
+	hwdvfs_dev = <&hwdvfs_cluster0>,
+		<&hwdvfs_cluster1>,
+		<&hwdvfs_dsu>;
+
 	hwdvfs_cluster0: cluster@0 {
 		reg = <0x0>;
 		dcdc-ctrl = <&dcdc_ctrl1>;
