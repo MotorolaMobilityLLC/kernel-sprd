@@ -814,11 +814,22 @@ static int sprd_hwdvfs_l3_parse_dt(struct device_node *np)
 	unsigned int cfg[4];
 	struct device_node *np0, *np1;
 	unsigned int chnl = 0, ctrl;
+	unsigned int dev_num;
 
 	if (hwdvfs_l3 == NULL  || np == NULL)
 		return -ENODEV;
 
-	for_each_child_of_node(np, np0) {
+	if (!of_find_property(np, "hwdvfs_dev", &dev_num)) {
+		pr_err("no hwdvfs_dev found!\n");
+		return -ENODEV;
+	}
+	dev_num = dev_num / sizeof(u32);
+
+	while (chnl < dev_num) {
+		np0 = of_parse_phandle(np, "hwdvfs_dev", chnl);
+		if (!np0)
+			return -ENODEV;
+
 		np1 = of_parse_phandle(np0, "dcdc-ctrl", 0);
 		if (np1 == NULL) {
 			ret = -ENODEV;
