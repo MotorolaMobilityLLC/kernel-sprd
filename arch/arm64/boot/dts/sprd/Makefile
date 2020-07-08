@@ -24,6 +24,12 @@ ums9230-haps-overlay.dtbo-base := ums9230.dtb
 ums9230-haps-flash-overlay.dtbo-base := ums9230.dtb
 endif
 
+ifeq ($(BSP_BUILD_FAMILY),qogirn6pro)
+dtbo-$(CONFIG_ARCH_SPRD) += ums9520-haps-overlay.dtbo
+
+ums9520-haps-overlay.dtbo-base := ums9520-haps.dtb
+endif
+
 endif #//BSP_BUILD_ANDROID_OS
 
 else #//AiAiAi or NO DTBO
