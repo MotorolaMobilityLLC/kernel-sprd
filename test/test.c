@@ -328,6 +328,7 @@ int test_run_tests(struct test_module *module)
 
 	return 0;
 }
+EXPORT_SYMBOL(test_run_tests);
 
 struct test_resource *test_alloc_resource(struct test *test,
 					  int (*init)(struct test_resource *,
@@ -398,6 +399,7 @@ void *test_kmalloc(struct test *test, size_t size, gfp_t gfp)
 	else
 		return NULL;
 }
+EXPORT_SYMBOL(test_kmalloc);
 
 void test_cleanup(struct test *test)
 {
@@ -410,6 +412,7 @@ void test_cleanup(struct test *test)
 		test_free_resource(test, resource);
 	}
 }
+EXPORT_SYMBOL(test_cleanup);
 
 void test_printk(const char *level,
 		 const struct test *test,
