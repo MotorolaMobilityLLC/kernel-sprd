@@ -851,7 +851,9 @@ free_opp:
 static int sprd_hardware_cpufreq_exit(struct cpufreq_policy *policy)
 {
 	struct sprd_cpufreq_info *info = policy->driver_data;
+#ifdef CONFIG_DEBUG_FS
 	int ret;
+#endif
 
 	if (IS_ERR(info))
 		return PTR_ERR(info);
