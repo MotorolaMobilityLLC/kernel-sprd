@@ -14,6 +14,9 @@
 #ifdef CONFIG_WCN_PCIE
 #include "pcie.h"
 #endif
+#ifdef CONFIG_SDIOHAL
+#include "../sdio/sdiohal.h"
+#endif
 #include "wcn_dbg.h"
 #include "wcn_glb.h"
 #include "wcn_misc.h"
@@ -70,6 +73,15 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 		return -1;
 	}
 #endif
+
+#ifdef CONFIG_SDIOHAL
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	if (!WCN_CARD_EXIST(&p_data->xmit_cnt)) {
+		WCN_INFO("%s:already power off\n", __func__);
+		return 0;
+	}
+#endif
 	mutex_lock(&sysfs_info.mutex);
 	ret = sprdwcn_bus_list_alloc(0, &head, &tail, &num);
 	if (ret || head == NULL || tail == NULL) {
@@ -110,6 +122,13 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	reinit_completion(&sysfs_info.cmd_completion);
 	timeleft = wait_for_completion_timeout(&sysfs_info.cmd_completion,
 					       3 * HZ);
+#ifdef CONFIG_SDIOHAL
+	if (!WCN_CARD_EXIST(&p_data->xmit_cnt)) {
+		WCN_INFO("%s:already power off\n", __func__);
+		mutex_unlock(&sysfs_info.mutex);
+		return 0;
+	}
+#endif
 	if (!timeleft) {
 		WCN_ERR("%s,Timeout(%d sec),didn't get at cmd(%s) response\n",
 			__func__, jiffies_to_msecs(3*HZ) / 1000, (char *)cmd);
@@ -210,11 +229,11 @@ static int wcn_get_loglevel(void)
 
 int wcn_firmware_init(void)
 {
-	wcn_ap_notify_cp_time();
 	wcn_get_sw_ver();
 	wcn_set_armlog_status();
 	wcn_set_loglevel();
 	wcn_get_loglevel();
+	wcn_ap_notify_cp_time();
 	/* TODO: set can pass functionmask */
 	/* wcn_set_loglevel, etc */
 
