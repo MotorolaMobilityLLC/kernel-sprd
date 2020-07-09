@@ -15590,8 +15590,8 @@ CONFIG_ZRAM
 		   to avoid the influence of IO speed restriction on the system,
 CONFIG_ZRAM_WRITEBACK
 	[arch] all
-	[plat] pike2,sharkl3_32,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] sharkl3,sharkl5
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkl5_32,sharkle32
+	[missing plat] sharkl5
 	[field] make
 	[subsys] block
 	[must] user
