@@ -12192,6 +12192,15 @@ CONFIG_SLUB_DEBUG
 	[must] debug
 	[missing plat description] none
 	[function] Increase debug efficiency for memory covered issue
+CONFIG_SLUB_DEBUG_ON
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] code
+	[subsys] mm
+	[must] debug
+	[missing plat description] none
+	[function] slub debug
 CONFIG_SMARTJOYPLUS_FF
 	[arch] all
 	[plat] all
