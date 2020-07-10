@@ -1531,7 +1531,7 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 			(unsigned long)dma_alloc_coherent(&(pdev->dev),
 			pdata->iova_size / MMU_MAPING_PAGESIZE * 4,
 			(dma_addr_t *)(&(pdata->pagt_base_ddr)),
-			GFP_DMA);
+			GFP_DMA | GFP_KERNEL);
 	if (!(pdata->pagt_base_virt)) {
 		IOMMU_ERR("iommu %s : pgt virt 0x%lx phy 0x%lx\n", pdata->name, pdata->pagt_base_virt, pdata->pagt_base_ddr);
 		goto errout;
