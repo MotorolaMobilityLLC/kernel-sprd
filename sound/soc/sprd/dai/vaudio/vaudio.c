@@ -41,6 +41,23 @@
 
 static struct clk *clk_tuned_26m;
 
+void enable_tuned_clock(void)
+{
+	if (!clk_tuned_26m)
+		return;
+
+	if (clk_prepare_enable(clk_tuned_26m))
+		pr_err("%s prepare tuned 26m clock failed!\n", __func__);
+}
+
+void disable_tuned_clock(void)
+{
+	if (!clk_tuned_26m)
+		return;
+
+	clk_disable_unprepare(clk_tuned_26m);
+}
+
 static int sprd_vaudio_startup(struct snd_pcm_substream *substream,
 			       struct snd_soc_dai *dai)
 {
@@ -48,10 +65,6 @@ static int sprd_vaudio_startup(struct snd_pcm_substream *substream,
 	int i;
 
 	sp_asoc_pr_dbg("%s\n", __func__);
-
-	/* For call, use tuned 26M clock for vbc and pmic(audio codec). */
-	if (clk_prepare_enable(clk_tuned_26m))
-		dev_warn(dai->dev, "prepare_enable tuned 26m clock failed!\n");
 
 	kfree(snd_soc_dai_get_dma_data(dai, substream));
 	snd_soc_dai_set_dma_data(dai, substream, NULL);
@@ -72,9 +85,6 @@ static void sprd_vaudio_shutdown(struct snd_pcm_substream *substream,
 
 	for (i = 0; i < card->num_links; i++)
 		card->dai_link[i].ignore_suspend = 0;
-
-	/* For non-call, use untuned 26M clock for vbc and pmic(audio codec). */
-	clk_disable_unprepare(clk_tuned_26m);
 }
 
 static struct snd_soc_dai_ops sprd_vaudio_dai_ops = {

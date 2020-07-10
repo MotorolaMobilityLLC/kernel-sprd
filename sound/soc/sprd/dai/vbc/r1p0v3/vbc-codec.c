@@ -3006,12 +3006,16 @@ static int vbc_switch_put(struct snd_kcontrol *kcontrol,
 	value = ucontrol->value.integer.value[0];
 
 	if (vbc_switch_reg_val[vbc_codec->vbc_control] != VBC_TO_WTLCP_CTRL) {
-		if (vbc_switch_reg_val[value] == VBC_TO_WTLCP_CTRL)
+		if (vbc_switch_reg_val[value] == VBC_TO_WTLCP_CTRL) {
+			enable_tuned_clock();
 			vbc_eb_set();
+		}
 	} else if (vbc_switch_reg_val[vbc_codec->vbc_control]
 		   == VBC_TO_WTLCP_CTRL) {
-		if (vbc_switch_reg_val[value] == VBC_TO_AP_CTRL)
+		if (vbc_switch_reg_val[value] == VBC_TO_AP_CTRL) {
 			vbc_eb_clear();
+			disable_tuned_clock();
+		}
 	}
 	vbc_codec->vbc_control = value;
 	arch_audio_vbc_switch(vbc_switch_reg_val[value],
