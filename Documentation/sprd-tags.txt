@@ -174,3 +174,4 @@ include:*
 dt-bindings:*
 Documentation:*
 sprd-diffconfig:*
+binder:
