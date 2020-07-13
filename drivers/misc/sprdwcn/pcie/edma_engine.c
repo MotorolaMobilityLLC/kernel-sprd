@@ -581,13 +581,12 @@ int edma_hw_pause(void)
 	union dma_glb_pause_reg tmp;
 	u32 retries;
 
-	tmp.reg = readl_relaxed((void *)(&edma->dma_glb_reg->dma_pause.reg));
+	tmp.reg = readl((void *)(&edma->dma_glb_reg->dma_pause.reg));
 	tmp.bit.rf_dma_pause = 1;
-	writel_relaxed(tmp.reg, (void *)(&edma->dma_glb_reg->dma_pause.reg));
+	writel(tmp.reg, (void *)(&edma->dma_glb_reg->dma_pause.reg));
 
 	for (retries = 0; retries < 5; retries++) {
-		tmp.reg = readl_relaxed((void *)
-					(&edma->dma_glb_reg->dma_pause.reg));
+		tmp.reg = readl((void *)(&edma->dma_glb_reg->dma_pause.reg));
 		if (tmp.bit.rf_dma_pause_status == 1)
 			return 0;
 		WCN_INFO("%s:retries=%d, value=0x%x\n", __func__, retries,
@@ -605,9 +604,9 @@ int edma_hw_restore(void)
 	struct edma_info *edma = edma_info();
 	union dma_glb_pause_reg tmp;
 
-	tmp.reg = readl_relaxed((void *)(&edma->dma_glb_reg->dma_pause.reg));
+	tmp.reg = readl((void *)(&edma->dma_glb_reg->dma_pause.reg));
 	tmp.bit.rf_dma_pause = 0;
-	writel_relaxed(tmp.reg, (void *)(&edma->dma_glb_reg->dma_pause.reg));
+	writel(tmp.reg, (void *)(&edma->dma_glb_reg->dma_pause.reg));
 
 	return 0;
 }

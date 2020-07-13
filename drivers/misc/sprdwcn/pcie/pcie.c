@@ -112,11 +112,11 @@ int pcie_bar_write(struct wcn_pcie_info *priv, int bar, int offset,
 
 	WCN_DBG("%s(%d, 0x%x, 0x%x)\n", __func__, bar, offset, *((int *)buf));
 	if (len == 1)
-		writeb_relaxed(*((unsigned char *)buf), mem);
+		writeb(*((unsigned char *)buf), mem);
 	else if (len == 2)
-		writew_relaxed(*((unsigned short *)buf), mem);
+		writew(*((unsigned short *)buf), mem);
 	else if (len == 4)
-		writel_relaxed(*((unsigned int *)buf), mem);
+		writel(*((unsigned int *)buf), mem);
 	else
 		memcpy_toio(mem, buf, len);
 
@@ -132,11 +132,11 @@ int pcie_bar_read(struct wcn_pcie_info *priv, int bar, int offset,
 	mem += offset;
 
 	if (len == 1)
-		*((unsigned char *)buf) = readb_relaxed(mem);
+		*((unsigned char *)buf) = readb(mem);
 	else if (len == 2)
-		*((unsigned short *)buf) = readw_relaxed(mem);
+		*((unsigned short *)buf) = readw(mem);
 	else if (len == 4)
-		*((unsigned int *)buf) = readl_relaxed(mem);
+		*((unsigned int *)buf) = readl(mem);
 	else
 		memcpy_fromio(buf, mem, len);
 
@@ -260,55 +260,58 @@ static int sprd_ep_addr_map(struct wcn_pcie_info *priv)
 	obreg1 = (struct outbound_reg *) (pcie_bar_vmem(priv, 4) +
 							OBREG1_OFFSET_ADDR);
 
-	ibreg0->lower_target_addr = EP_IBAR0_BASE;
-	ibreg0->upper_target_addr = 0x00000000;
-	ibreg0->type    = 0x00000000;
-	ibreg0->limit   = 0x00FFFFFF;
-	ibreg0->en      = REGION_EN | BAR_MATCH_MODE;
+	writel(EP_IBAR0_BASE, &ibreg0->lower_target_addr);
+	writel(0x00000000, &ibreg0->upper_target_addr);
+	writel(0x00000000, &ibreg0->type);
+	writel(0x00FFFFFF, &ibreg0->limit);
+	writel(REGION_EN | BAR_MATCH_MODE, &ibreg0->en);
+
 	/*
 	 * Make sure ATU enable takes effect before any subsequent config
 	 * and I/O accesses.
 	 */
 	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
-		val = readl_relaxed((void *)(&ibreg0->en));
+		val = readl((void *)(&ibreg0->en));
 		if (val & PCIE_ATU_ENABLE)
 			break;
 		WCN_INFO("%s:ibreg0 retries=%d\n", __func__, retries);
 		mdelay(LINK_WAIT_IATU);
 	}
 
-	obreg0->type    = 0x00000000;
-	obreg0->lower_base_addr  = 0x00000000;
-	obreg0->upper_base_addr  = 0x00000080;
-	obreg0->limit   = 0xffffffff;
-	obreg0->lower_target_addr = 0x00000000;
-	obreg0->upper_target_addr = 0x00000000;
-	obreg0->en      = REGION_EN & ADDR_MATCH_MODE;
+	writel(0x00000000, &obreg0->type);
+	writel(0x00000000, &obreg0->lower_base_addr);
+	writel(0x00000080, &obreg0->upper_base_addr);
+	writel(0xffffffff, &obreg0->limit);
+	writel(0x00000000, &obreg0->lower_target_addr);
+	writel(0x00000000, &obreg0->upper_target_addr);
+	writel(REGION_EN & ADDR_MATCH_MODE, &obreg0->en);
+
 	/*
 	 * Make sure ATU enable takes effect before any subsequent config
 	 * and I/O accesses.
 	 */
 	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
-		val = readl_relaxed((void *)(&obreg0->en));
+		val = readl((void *)(&obreg0->en));
 		if (val & PCIE_ATU_ENABLE)
 			break;
 		WCN_INFO("%s:obreg0 retries=%d\n", __func__, retries);
 		mdelay(LINK_WAIT_IATU);
 	}
 
-	obreg1->type    = 0x00000000;
-	obreg1->lower_base_addr  = 0x00000000;
-	obreg1->upper_base_addr  = 0x00000081;
-	obreg1->limit   = 0xffffffff;
-	obreg1->lower_target_addr = 0x00000000;
-	obreg1->upper_target_addr = 0x00000001;
-	obreg1->en      = REGION_EN & ADDR_MATCH_MODE;
+	writel(0x00000000, &obreg1->type);
+	writel(0x00000000, &obreg1->lower_base_addr);
+	writel(0x00000081, &obreg1->upper_base_addr);
+	writel(0xffffffff, &obreg1->limit);
+	writel(0x00000000, &obreg1->lower_target_addr);
+	writel(0x00000001, &obreg1->upper_target_addr);
+	writel(REGION_EN & ADDR_MATCH_MODE, &obreg1->en);
+
 	/*
 	 * Make sure ATU enable takes effect before any subsequent config
 	 * and I/O accesses.
 	 */
 	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
-		val = readl_relaxed((void *)(&obreg1->en));
+		val = readl((void *)(&obreg1->en));
 		if (val & PCIE_ATU_ENABLE)
 			break;
 		WCN_INFO("%s:obreg1 retries=%d\n", __func__, retries);
@@ -359,11 +362,13 @@ int sprd_pcie_bar_map(struct wcn_pcie_info *priv, int bar,
 		WCN_ERR("ibreg(%d) NULL\n", region);
 		return -1;
 	}
-	ibreg->lower_target_addr = addr;
-	ibreg->upper_target_addr = 0x00000000;
-	ibreg->type = 0x00000000;
-	ibreg->limit = 0x00FFFFFF;
-	ibreg->en = REGION_EN | BAR_MATCH_MODE | (bar << 8);
+
+	writel(addr, &ibreg->lower_target_addr);
+	writel(0x00000000, &ibreg->upper_target_addr);
+	writel(0x00000000, &ibreg->type);
+	writel(0x00FFFFFF, &ibreg->limit);
+	writel(REGION_EN | BAR_MATCH_MODE | (bar << 8), &ibreg->en);
+
 	WCN_DBG("%s(bar=%d, addr=0x%x, region=%d)\n",
 		__func__, bar, addr, region);
 
@@ -503,7 +508,7 @@ u32 sprd_pcie_read_reg32(struct wcn_pcie_info *priv, int offset)
 	char *addr = priv->bar[0].vmem;
 
 	addr += offset;
-	return readl_relaxed(addr);
+	return readl(addr);
 }
 
 void sprd_pcie_write_reg32(struct wcn_pcie_info *priv, u32 reg_offset,
@@ -512,7 +517,7 @@ void sprd_pcie_write_reg32(struct wcn_pcie_info *priv, u32 reg_offset,
 	char *address = priv->bar[0].vmem;
 
 	address += reg_offset;
-	writel_relaxed(value, address);
+	writel(value, address);
 }
 
 int wcn_pcie_get_bus_status(void)
