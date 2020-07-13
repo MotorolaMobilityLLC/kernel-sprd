@@ -91,10 +91,9 @@ obj-$(CONFIG_ACPI_CPPC_CPUFREQ) += cppc_cpufreq.o
 obj-$(CONFIG_MACH_MVEBU_V7)		+= mvebu-cpufreq.o
 
 
-obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL) += sprd-hwdvfs-normal.o sprd-hwdvfs-cpufreq.o sprd-hwdvfs-debugfs.o
-obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS312) += sprd-hwdvfs-ums312.o
-obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS512) += sprd-hwdvfs-ums512.o
-obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3) += sprd-cpufreqhw.o sprd-cpufreq-common.o sprd-hwdvfs-sharkl3.o
+obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ) += sprd-cpufreqhw.o sprd-cpufreq-common.o
+obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_NORMAL) += sprd-hwdvfs-normal.o sprd-sysfs-normal.o sprd-hwdvfs-archdata.o
+obj-$(CONFIG_ARM_SPRD_HW_CPUFREQ_SHARKL3) += sprd-hwdvfs-sharkl3.o
 obj-$(CONFIG_ARM_SPRD_SW_CPUFREQ) += sprd-cpufreqsw.o sprd-cpufreq-common.o
 obj-$(CONFIG_ARM_SPRD_DUMMY_CPUFREQ) += sprd-dummy-cpufreq.o
 ##################################################################################
