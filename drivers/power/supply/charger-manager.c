@@ -2314,7 +2314,7 @@ static int charger_get_property(struct power_supply *psy,
 		total_cap = total_cap / 1000;
 
 		val->intval =
-			((100 - cm->desc->cap) * total_cap / 100) * 3600 / chg_cur;
+			((1000 - cm->desc->cap) * total_cap / 1000) * 3600 / chg_cur;
 
 		break;
 
