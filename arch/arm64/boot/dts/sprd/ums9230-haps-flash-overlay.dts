@@ -7,7 +7,7 @@
 
 	compatible = "sprd,ums9230-haps-flash";
 
-	sprd,sc-id = "ums9230 haps flash";
+	sprd,sc-id = "ums9230-haps flash 1000";
 
 };
 
