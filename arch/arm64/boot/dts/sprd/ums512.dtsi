@@ -254,6 +254,14 @@
 		sprd,pinctrl = <&pin_controller>;
 	};
 
+	gsp: sprd-gsp {
+		compatible = "sprd,gsp-r8p0-sharkl5pro";
+		name = "sprd-gsp";
+		core-cnt = <1>;
+		io-cnt = <7>;
+		cores = <&gsp_core0>;
+	};
+
 	soc {
 		gic: interrupt-controller@12000000 {
 			compatible = "arm,gic-v3";
@@ -495,4 +503,14 @@
 &dsi {
 	clock-names = "clk_ap_ahb_dsi_eb";
 	clocks = <&apahb_gate CLK_DSI_EB>;
+};
+
+&gsp_core0 {
+	clock-names =   "clk_dpu_core_src",
+			"clk_dpu_core",
+			"clk_ap_ahb_disp_eb";
+
+	clocks =        <&pll2 CLK_TWPLL_384M>,
+			<&ap_clk CLK_DISPC0>,
+			<&apahb_gate CLK_DISPC_EB>;
 };
