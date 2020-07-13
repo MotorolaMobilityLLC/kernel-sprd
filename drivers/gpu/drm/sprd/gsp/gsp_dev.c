@@ -26,6 +26,7 @@
 #include "gsp_sysfs.h"
 #include "gsp_workqueue.h"
 #include "gsp_r6p0/gsp_r6p0_core.h"
+#include "gsp_r8p0/gsp_r8p0_core.h"
 
 #include "../sprd_drm.h"
 #include "../sprd_drm_gsp.h"
@@ -44,25 +45,30 @@ static struct gsp_core_ops gsp_r6p0_core_ops = {
 	.dump = gsp_r6p0_core_dump,
 };
 
+static struct gsp_core_ops gsp_r8p0_core_ops = {
+	.parse_dt = gsp_r8p0_core_parse_dt,
+	.alloc = gsp_r8p0_core_alloc,
+	.init = gsp_r8p0_core_init,
+	.copy = gsp_r8p0_core_copy_cfg,
+	.trigger = gsp_r8p0_core_trigger,
+	.release = gsp_r8p0_core_release,
+	.enable = gsp_r8p0_core_enable,
+	.disable = gsp_r8p0_core_disable,
+	.intercept = gsp_r8p0_core_intercept,
+	.reset = gsp_r8p0_core_reset,
+	.dump = gsp_r8p0_core_dump,
+};
+
 static struct of_device_id gsp_dt_ids[] = {
 	{.compatible = "sprd,gsp-r6p0-sharkl3",
 	 .data = (void *)&gsp_r6p0_core_ops},
+	{.compatible = "sprd,gsp-r8p0-sharkl5pro",
+	 .data = (void *)&gsp_r8p0_core_ops},
 	{},
 };
 MODULE_DEVICE_TABLE(of, gsp_dt_ids);
 
-static bool cali_mode;
-
-/*static int boot_mode_check(char *str)
-{
-	if (str != NULL && !strncmp(str, "cali", strlen("cali")))
-		cali_mode = true;
-	else
-		cali_mode = false;
-	return 0;
-}
-__setup("androidboot.mode=", boot_mode_check);
-*/
+//static bool cali_mode;
 
 int gsp_dev_name_cmp(struct gsp_dev *gsp)
 {
@@ -1065,10 +1071,11 @@ static int __init gsp_drv_init(void)
 {
 	int ret = -1;
 
-	if (cali_mode) {
-		GSP_WARN("Calibration Mode! Don't register sprd gsp driver");
-		return 0;
-	}
+	/*if (cali_mode) {
+	 *	GSP_WARN("Calibration Mode! Don't register sprd gsp driver");
+	 *	return 0;
+	 *}
+	 */
 
 	GSP_INFO("gsp device init begin\n");
 
@@ -1092,4 +1099,4 @@ module_exit(gsp_drv_deinit);
 MODULE_AUTHOR("yintian.tao <yintian.tao@spreadtrum.com>");
 MODULE_AUTHOR("Chen He <chen.he@unisoc.com>");
 MODULE_DESCRIPTION("SPRD DRM GSP Driver");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");
