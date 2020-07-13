@@ -442,4 +442,13 @@ config SPRD_SOC_THERMAL
 	help
 	  Say Y here to support virtual thermal for soc chip
 	  We can use it to monitor soc junction temperature
+
+config SPRD_THERMAL_DEBUG
+	bool "sprd thermal debug"
+	depends on ARCH_SPRD || THERMAL_OF
+	depends on THERMAL_GOV_POWER_ALLOCATOR
+	help
+	  Say Y here to support enable/disable thermal switch control
+	  and output critical temperature for all thermal zone before
+	  shutting down
 endif

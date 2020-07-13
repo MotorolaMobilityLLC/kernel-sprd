@@ -586,6 +586,10 @@ static int power_allocator_bind(struct thermal_zone_device *tz)
 
 	tz->governor_data = params;
 
+#ifdef CONFIG_SPRD_THERMAL_DEBUG
+	tz->tzp->thm_enable = 1;
+	tz->tzp->reset_done = 0;
+#endif
 	return 0;
 
 free_params:
@@ -622,6 +626,18 @@ static int power_allocator_throttle(struct thermal_zone_device *tz, int trip)
 	if (trip != params->trip_max_desired_temperature)
 		return 0;
 
+#ifdef CONFIG_SPRD_THERMAL_DEBUG
+	if (!tz->tzp->thm_enable) {
+		if (!tz->tzp->reset_done) {
+			tz->passive = 0;
+			reset_pid_controller(params);
+			allow_maximum_power(tz);
+			tz->tzp->reset_done = 1;
+		}
+		return 0;
+	} else
+		tz->tzp->reset_done = 0;
+#endif
 	ret = tz->ops->get_trip_temp(tz, params->trip_switch_on,
 				     &switch_on_temp);
 	if (!ret && (tz->temperature < switch_on_temp)) {
