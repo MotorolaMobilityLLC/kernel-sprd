@@ -1582,6 +1582,8 @@
 	vaudio: vaudio {
 		compatible = "sprd,vaudio";
 		#sound-dai-cells = <1>;
+		clock-names = "tuned_26m";
+		clocks = <&rpll CLK_AUDIO_GATE>;
 	};
 
 	sprd_pcm_iis: sprd-pcm-iis {
