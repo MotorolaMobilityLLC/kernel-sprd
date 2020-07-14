@@ -1229,13 +1229,6 @@ static inline void clear_page_pfmemalloc(struct page *page)
  * just gets major/minor fault counters bumped up.
  */
 
-/**
- * typedef vm_fault_t - Return type for page fault handlers.
- *
- * Page fault handlers return a bitmask of %VM_FAULT values.
- */
-typedef __bitwise unsigned int vm_fault_t;
-
 #define VM_FAULT_OOM	0x0001
 #define VM_FAULT_SIGBUS	0x0002
 #define VM_FAULT_MAJOR	0x0004
@@ -1465,10 +1458,10 @@ extern int handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
 		unsigned int flags);
 #ifdef CONFIG_SPECULATIVE_PAGE_FAULT
 extern int sysctl_speculative_page_fault;
-extern vm_fault_t __handle_speculative_fault(struct mm_struct *mm,
+extern unsigned int __handle_speculative_fault(struct mm_struct *mm,
 					     unsigned long address,
 					     unsigned int flags);
-static inline vm_fault_t handle_speculative_fault(struct mm_struct *mm,
+static inline unsigned int handle_speculative_fault(struct mm_struct *mm,
 						  unsigned long address,
 						  unsigned int flags)
 {
@@ -1482,7 +1475,7 @@ static inline vm_fault_t handle_speculative_fault(struct mm_struct *mm,
 	return __handle_speculative_fault(mm, address, flags);
 }
 #else
-static inline vm_fault_t handle_speculative_fault(struct mm_struct *mm,
+static inline unsigned int handle_speculative_fault(struct mm_struct *mm,
 						  unsigned long address,
 						  unsigned int flags)
 {

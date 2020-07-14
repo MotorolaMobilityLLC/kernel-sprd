@@ -4379,7 +4379,7 @@ static int __handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
  * Tries to handle the page fault in a speculative way, without grabbing the
  * mmap_sem.
  */
-vm_fault_t __handle_speculative_fault(struct mm_struct *mm,
+unsigned int __handle_speculative_fault(struct mm_struct *mm,
 				      unsigned long address,
 				      unsigned int flags)
 {
@@ -4390,7 +4390,7 @@ vm_fault_t __handle_speculative_fault(struct mm_struct *mm,
 	p4d_t *p4d, p4dval;
 	pud_t pudval;
 	int seq;
-	vm_fault_t ret = VM_FAULT_RETRY;
+	unsigned int ret = VM_FAULT_RETRY;
 	struct vm_area_struct *vma;
 #ifdef CONFIG_NUMA
 	struct mempolicy *pol;
