@@ -184,7 +184,7 @@ static int cm_capacity_remap(struct charger_manager *cm, int fuel_cap)
 		return 0;
 	} else if (fuel_cap >  CM_CAP_FULL_PERCENT) {
 		fuel_cap  = CM_CAP_FULL_PERCENT;
-		return fuel_cap * cm->desc->cap_remap_total_cnt;
+		return fuel_cap;
 	}
 
 	temp = fuel_cap * cm->desc->cap_remap_total_cnt;
@@ -3539,7 +3539,7 @@ static void cm_batt_works(struct work_struct *work)
 				struct charger_manager, cap_update_work);
 	struct timespec64 cur_time;
 	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
-	int period_time, flush_time, cur_temp;
+	int period_time, flush_time, cur_temp, board_temp;
 	int chg_cur = 0, chg_limit_cur = 0;
 	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
 
@@ -3587,6 +3587,10 @@ static void cm_batt_works(struct work_struct *work)
 	}
 
 	cm->desc->temperature = cur_temp;
+
+	ret = cm_get_battery_temperature(cm, &board_temp);
+	if (ret)
+		dev_warn(cm->dev, "failed to get board temperature\n");
 
 	if (cur_temp <= CM_LOW_TEMP_REGION &&
 	    batt_uV <= CM_LOW_TEMP_SHUTDOWN_VALTAGE) {
@@ -3645,10 +3649,11 @@ static void cm_batt_works(struct work_struct *work)
 	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
 		 "capacity = %d, charger status = %d, force set full = %d, "
 		 "charging current = %d, charging limit current = %d, "
-		 "battery temperature = %d track state = %d\n",
+		 "battery temperature = %d,board temperature = %d,"
+		 "track state = %d, charger type = %d, thm_adjust_cur = %d\n",
 		 batt_uV, batt_ocV, bat_uA, fuel_cap, cm->desc->charger_status,
-		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp,
-		 cm->track.state);
+		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp, board_temp,
+		 cm->track.state, cm->desc->charger_type, cm->desc->thm_adjust_cur);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
