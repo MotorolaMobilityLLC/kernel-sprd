@@ -93,7 +93,7 @@ leds:trigger:
 leds:sc27xx:
 input:sprd:
 input:touchscreen:
-iio:sprd:
+iio:sprd_hub:
 misc:sprd_vsp:
 misc:sprd_jpg:
 staging:sprd:sfp:
