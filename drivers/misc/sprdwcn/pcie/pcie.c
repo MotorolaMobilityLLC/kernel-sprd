@@ -947,8 +947,6 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 	return 0;
 
 err_out:
-	kfree(priv);
-
 	return ret;
 }
 
