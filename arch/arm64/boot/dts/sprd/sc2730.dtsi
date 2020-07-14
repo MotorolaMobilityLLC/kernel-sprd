@@ -57,7 +57,7 @@
 		};
 
 		efuse@300 {
-			compatible = "sprd,sc2731-efuse", "sprd,sc2730-efuse";
+			compatible = "sprd,sc2730-efuse";
 			reg = <0x300>;
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -115,7 +115,7 @@
 		};
 
 		pmic_adc: adc@504 {
-			compatible = "sprd,sc2731-adc", "sprd,sc2730-adc";
+			compatible = "sprd,sc2730-adc";
 			reg = <0x504>;
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <0>;
