@@ -1,0 +1,124 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Unisoc Qogirl6 platform DTS file
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/clock/sprd,ums9230-clk.h>
+#include "qogirl6-haps.dtsi"
+
+/ {
+	cpus {
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		cpu-map {
+			cluster0 {
+				core0 {
+					cpu = <&CPU0>;
+				};
+			};
+		};
+
+		CPU0: cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a55";
+			reg = <0x0 0x0>;
+			enable-method = "psci";
+		};
+	};
+
+	timer {
+		compatible = "arm,armv8-timer";
+		interrupts = <GIC_PPI 13 IRQ_TYPE_LEVEL_HIGH>, /* Physical Secure PPI */
+			     <GIC_PPI 14 IRQ_TYPE_LEVEL_HIGH>, /* Physical Non-Secure PPI */
+			     <GIC_PPI 11 IRQ_TYPE_LEVEL_HIGH>, /* Virtual PPI */
+			     <GIC_PPI 10 IRQ_TYPE_LEVEL_HIGH>; /* Hipervisor PPI */
+	};
+
+	soc {
+		gic: interrupt-controller@10000000 {
+			compatible = "arm,gic-v3";
+			#interrupt-cells = <3>;
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+			redistributor-stride = <0x0 0x20000>;	/* 128KB stride */
+			#redistributor-regions = <1>;
+			interrupt-controller;
+			reg = <0x0 0x10000000 0 0x20000>,	/* GICD */
+				  <0x0 0x10040000 0 0x100000>;	/* GICR */
+			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		apapb_gate: apapb-gate {
+			compatible = "sprd,ums9230-apapb-gate";
+			sprd,syscon = <&ap_apb_regs>; /* 0x20000000 */
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
+			#clock-cells = <1>;
+		};
+
+		ap_clk: clock-controller@20010000 {
+			compatible = "sprd,ums9230-ap-clk";
+			reg = <0 0x20010000 0 0x1000>;
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
+			#clock-cells = <1>;
+		};
+
+		apahb_gate: apahb-gate {
+			compatible = "sprd,ums9230-apahb-gate";
+			sprd,syscon = <&ap_ahb_regs>; /* 0x20400000 */
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
+			#clock-cells = <1>;
+		};
+
+		aonapb_gate: aonapb-gate {
+			compatible = "sprd,ums9230-aon-gate";
+			sprd,syscon = <&aon_apb_regs>; /* 0x64000000 */
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
+			#clock-cells = <1>;
+		};
+
+		aon_clk: clock-controller@64012000 {
+			compatible = "sprd,ums9230-aonapb-clk";
+			reg = <0 0x64012000 0 0x1000>;
+			clocks = <&ext_26m>, <&rco_100m>, <&ext_32k>,
+				 <&ext_4m>;
+			clock-names = "ext-26m", "rco-100m", "ext-32k",
+					  "ext-4m";
+			#clock-cells = <1>;
+		};
+
+		pmu_gate: pmu-gate {
+			compatible = "sprd,ums9230-pmu-gate";
+			sprd,syscon = <&pmu_apb_regs>; /* 0x64020000 */
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
+			#clock-cells = <1>;
+		};
+
+		ap-apb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			sdio3: sdio@201d0000 {
+				compatible = "sprd,sdhci-r11";
+				reg = <0 0x201d0000 0 0x1000>;
+				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio", "enable";
+				clocks = <&ap_clk CLK_EMMC_2X>,
+					 <&apapb_gate CLK_EMMC_EB>;
+				assigned-clocks = <&ap_clk CLK_EMMC_2X>;
+				assigned-clock-parents = <&ext_26m>;
+			};
+		};
+	};
+};

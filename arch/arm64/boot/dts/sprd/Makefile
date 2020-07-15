@@ -29,6 +29,14 @@ dtbo-$(CONFIG_ARCH_SPRD) += \
 ums312-1h10-overlay.dtbo-base := ums312.dtb
 endif
 
+ifeq ($(BSP_BUILD_FAMILY),qogirl6)
+dtbo-$(CONFIG_ARCH_SPRD) += ums9230-haps-overlay.dtbo \
+	ums9230-haps-flash-overlay.dtbo
+
+ums9230-haps-overlay.dtbo-base := ums9230.dtb
+ums9230-haps-flash-overlay.dtbo-base := ums9230.dtb
+endif
+
 endif #//BSP_BUILD_ANDROID_OS
 
 else #//AiAiAi or No DTBO

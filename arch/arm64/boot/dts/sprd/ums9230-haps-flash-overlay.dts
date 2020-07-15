@@ -1,0 +1,16 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+
+	model = "Spreadtrum UMS9230 Haps Flash Board";
+
+	compatible = "sprd,ums9230-haps-flash";
+
+	sprd,sc-id = "ums9230 haps flash";
+
+};
+
+&chosen {
+	bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums9230_haps_flash androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/201d0000.sdio androidboot.selinux=permissive";
+};
