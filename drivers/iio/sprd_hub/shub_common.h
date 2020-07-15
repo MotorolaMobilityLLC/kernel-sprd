@@ -33,7 +33,7 @@
 
 /* MUST equal to the iio total channel bytes size */
 #define MAX_CM4_MSG_SIZE			40
-#define SYNC_TIME_DELAY_MS		10000
+#define SYNC_TIME_DELAY_MS		600000
 
 /* dont open the macro,
  * system crash if sensor run long time

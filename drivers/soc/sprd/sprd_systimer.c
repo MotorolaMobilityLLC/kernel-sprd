@@ -22,15 +22,7 @@
 
 #define DEFAULT_TIMEVALE_MS (1000 * 60 * 10) //10min
 
-static struct cnter_to_boottime {
-	u64 last_boottime;
-	u64 last_systimer_counter;
-	u64 last_sysfrt_counter;
-	u32 systimer_mult;
-	u32 systimer_shift;
-	u32 sysfrt_mult;
-	u32 sysfrt_shift;
-} cnter_to_boottime;
+static struct cnter_to_boottime cnter_to_boottime;
 
 static void __iomem *sprd_systimer_addr_base;
 static void __iomem *sprd_sysfrt_addr_base;
@@ -38,6 +30,17 @@ static void __iomem *sprd_sysfrt_addr_base;
 static struct hrtimer cnt_to_boot_timer;
 
 static seqcount_t systimer_seq;
+
+void get_convert_para(struct cnter_to_boottime *convert_para)
+{
+	unsigned long seq;
+
+	do {
+		seq = raw_read_seqcount(&systimer_seq);
+		memcpy(convert_para, &cnter_to_boottime, sizeof(struct cnter_to_boottime));
+	} while (read_seqcount_retry(&systimer_seq, seq));
+}
+EXPORT_SYMBOL(get_convert_para);
 
 u64 sprd_systimer_to_boottime(u64 counter, int src)
 {

@@ -10,6 +10,7 @@ config SPRD_SENSOR_HUB
 	select IIO_KFIFO_BUF
 	select IIO_TRIGGER
 	depends on SPRD_SIPC
+	depends on SPRD_SYSTIMER
 	help
 	  Support Sensor hub Feature
 

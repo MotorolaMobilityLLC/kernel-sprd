@@ -3962,7 +3962,6 @@ CONFIG_SC27XX_ADC=y
 #
 # Spreadtrum Sensor Hub
 #
-# CONFIG_SPRD_SENSOR_HUB is not set
 CONFIG_PWM=y
 CONFIG_PWM_SYSFS=y
 # CONFIG_PWM_FSL_FTM is not set

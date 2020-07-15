@@ -27,6 +27,7 @@
 #include <linux/ktime.h>
 #include <linux/timekeeping.h>
 #include <uapi/linux/sched/types.h>
+#include <linux/soc/sprd/sprd_systimer.h>
 
 #include <linux/sipc.h>
 #include <linux/slab.h>
@@ -794,17 +795,17 @@ static void shub_send_ap_status(struct shub_data *sensor, u8 status)
 
 static void shub_synctimestamp(struct shub_data *sensor)
 {
-	s64 k_timestamp;
+	struct cnter_to_boottime convert_para;
 
 	if (sensor->mcu_mode != SHUB_NORMAL)
 		return;
 
-	k_timestamp = ktime_to_ms(ktime_get_boottime());
+	get_convert_para(&convert_para);
 	shub_send_command(sensor,
 			  HANDLE_MAX,
 			  SHUB_SET_TIMESYNC_SUBTYPE,
-			  (char *)&k_timestamp,
-			  sizeof(k_timestamp));
+			  (char *)&convert_para,
+			  sizeof(struct cnter_to_boottime));
 }
 
 static void shub_synctime_work(struct work_struct *work)
