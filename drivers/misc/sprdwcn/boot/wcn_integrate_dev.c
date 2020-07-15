@@ -71,13 +71,13 @@ s_gnss_efuse_id[WCN_PLATFORM_TYPE][GNSS_EFUSE_BLOCK_COUNT] = {
 static void wcn_global_source_init(void)
 {
 	wcn_boot_init();
-	WCN_INFO("init finish!\n");
+	WCN_INFO("%s finish!\n", __func__);
 }
 
 #ifdef CONFIG_PM_SLEEP
 static int wcn_resume(struct device *dev)
 {
-	WCN_INFO("enter\n");
+	WCN_INFO("%s enter\n", __func__);
 #if SUSPEND_RESUME_ENABLE
 	slp_mgr_resume();
 #endif
@@ -88,7 +88,7 @@ static int wcn_resume(struct device *dev)
 
 static int wcn_suspend(struct device *dev)
 {
-	WCN_INFO("enter\n");
+	WCN_INFO("%s enter\n", __func__);
 #if SUSPEND_RESUME_ENABLE
 	slp_mgr_suspend();
 #endif
@@ -208,8 +208,8 @@ static void wcn_config_ctrlreg(struct wcn_device *wcn_dev, u32 start, u32 end)
 		reg_read = wcn_dev->ctrl_reg[i] -
 			   wcn_dev->ctrl_rw_offset[i];
 		wcn_regmap_read(wcn_dev->rmap[type], reg_read, &val);
-		WCN_INFO("ctrl_reg[%d]=0x%x,read=0x%x, set=%x\n",
-			 i, reg_read, val,
+		WCN_INFO("rmap[%d]:ctrl_reg[%d]=0x%x,read=0x%x, set=%x\n",
+			 type, i, reg_read, val,
 			 wcn_dev->ctrl_value[i]);
 		utemp_val = wcn_dev->ctrl_value[i];
 
@@ -218,8 +218,6 @@ static void wcn_config_ctrlreg(struct wcn_device *wcn_dev, u32 start, u32 end)
 				utemp_val = val | wcn_dev->ctrl_value[i];
 		}
 
-		WCN_INFO("rmap[%d]=%p,ctrl_reg[i]=\n",
-			 type, wcn_dev->rmap[type]);
 		wcn_regmap_raw_write_bit(wcn_dev->rmap[type],
 					 wcn_dev->ctrl_reg[i],
 					 utemp_val);
@@ -229,8 +227,8 @@ static void wcn_config_ctrlreg(struct wcn_device *wcn_dev, u32 start, u32 end)
 		else
 			udelay(wcn_dev->ctrl_us_delay[i]);
 		wcn_regmap_read(wcn_dev->rmap[type], reg_read, &val);
-		WCN_INFO("ctrl_reg[%d] = 0x%x, val=0x%x\n",
-			 i, reg_read, val);
+		WCN_INFO("rmap[%d]:ctrl_reg[%d] = 0x%x, val=0x%x\n",
+			 type, i, reg_read, val);
 	}
 }
 
@@ -300,7 +298,7 @@ static void marlin_write_efuse_data(void)
 				   sizeof(tmp_value[0]) *
 				   WIFI_EFUSE_BLOCK_COUNT);
 
-	WCN_INFO("marlin_write_efuse finish.\n");
+	WCN_INFO("%s finish.\n", __func__);
 }
 
 #define WCN_EFUSE_TEMPERATURE_MAGIC 0x432ff678
@@ -362,7 +360,7 @@ void gnss_write_efuse_data(void)
 		    GNSS_EFUSE_ENABLE_ADDR;
 	wcn_write_data_to_phy_addr(phy_addr1, &efuse_enable_value, 4);
 
-	WCN_INFO("gnss_write_efuse finish.\n");
+	WCN_INFO("%s finish.\n", __func__);
 }
 
 static int wcn_parse_dt(struct platform_device *pdev,
@@ -377,7 +375,7 @@ static int wcn_parse_dt(struct platform_device *pdev,
 		of_match_node(wcn_match_table, np);
 	struct wcn_proc_data *pcproc_data;
 
-	WCN_INFO("start!\n");
+	WCN_INFO("%s start!\n", __func__);
 
 	if (of_id) {
 		pcproc_data = (struct wcn_proc_data *)of_id->data;
@@ -927,7 +925,7 @@ static int wcn_probe(struct platform_device *pdev)
 	struct wcn_device *wcn_dev;
 	static int first = 1;
 
-	WCN_INFO("start!\n");
+	WCN_INFO("%s start!\n", __func__);
 
 	wcn_dev = kzalloc(sizeof(*wcn_dev), GFP_KERNEL);
 	if (!wcn_dev)
@@ -998,7 +996,7 @@ static int wcn_probe(struct platform_device *pdev)
 	wcn_codes_debug();
 #endif
 
-	WCN_INFO("finish!\n");
+	WCN_INFO("%s finish!\n", __func__);
 
 	return 0;
 }

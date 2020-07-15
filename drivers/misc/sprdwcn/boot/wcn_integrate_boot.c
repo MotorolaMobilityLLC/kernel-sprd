@@ -626,7 +626,7 @@ int wcn_proc_native_stop(void *arg)
 	u32 reg_read;
 	u32 type;
 
-	WCN_INFO("enter\n");
+	WCN_INFO("%s enter\n", __func__);
 
 	if (!wcn_dev)
 		return -EINVAL;
@@ -641,8 +641,8 @@ int wcn_proc_native_stop(void *arg)
 		wcn_regmap_read(wcn_dev->rmap[type],
 				reg_read,
 				&val);
-		WCN_INFO("ctrl_shutdown_reg[%d] = 0x%x, val=0x%x\n",
-			 iloop_index, reg_read, val);
+		WCN_INFO("rmap[%d]:ctrl_shutdown_reg[%d] = 0x%x, val=0x%x\n",
+			 type, iloop_index, reg_read, val);
 
 		wcn_regmap_raw_write_bit(wcn_dev->rmap[type],
 					 wcn_dev->ctrl_shutdown_reg
