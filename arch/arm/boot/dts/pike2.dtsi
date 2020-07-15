@@ -1023,8 +1023,8 @@
 	vaudio: vaudio {
 		compatible = "sprd,vaudio";
 		#sound-dai-cells = <1>;
+		clocks = <&aonapb_gate 9>;
 		clock-names = "tuned_26m";
-		clocks = <&rpll CLK_AUDIO_GATE>;
 	};
 
 	saudio_lte{
