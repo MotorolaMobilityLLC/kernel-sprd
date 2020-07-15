@@ -1099,12 +1099,20 @@ dtbo-$(CONFIG_ARCH_SPRD) += ums312-1h10-go-overlay.dtbo
 ums312-1h10-go-overlay.dtbo-base := ums312.dtb
 endif
 
-
 endif #//BSP_BUILD_ANDROID_OS
 
-#else //NO DTBO
-#dtb-$(CONFIG_ARCH_SPRD) += \
-#	sp9863a-1h10_go_32b.dtb
+else #//AiAiAi or No DTBO
+dtb-$(CONFIG_ARCH_SPRD) += \
+	sp9863a.dtb \
+	sp7731e.dtb \
+	sp9832e.dtb \
+	ums312.dtb
+
+dtbo-$(CONFIG_ARCH_SPRD) += \
+	sp9863a-1h10_go_32b-overlay.dtbo \
+	sp7731e-1h10-overlay.dtbo \
+	sp9832e-1h10_go-overlay.dtbo \
+	ums312-1h10-go-overlay.dtbo
 
 endif #//BSP_BUILD_DT_OVERLAY
 
