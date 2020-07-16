@@ -128,8 +128,8 @@
 			reg = <0x80000000 0x1000>;
 		};
 
-		warm_boot_reserved: warm-boot@0x833f0000 {
-			reg = <0x833f0000 0x10000>; /* 64K */
+		warm_boot_reserved: warm-boot@0x81ff0000 {
+			reg = <0x81ff0000 0x10000>; /* 64K */
 		};
 
 		/* must be 32M aligned */
