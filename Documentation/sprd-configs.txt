@@ -13298,14 +13298,13 @@ CONFIG_SPRD_MODEM_DEBUG
 	[function] Spreadtrum modem debug log is a module that just for modem engineers
 			to catch modem debug logs through MIPI D-PHY interface.
 CONFIG_SPRD_NATIVE_HANG_MONITOR
-	[arch] arm64
-	[plat] sharkl3
-	[missing plat] sharkl5,sharkl5Pro
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field] make,debug
 	[subsys] debug
 	[must] debug
-	[missing plat description] missing plat include roc1,sharkl5,sharkl5Pro
-					are notsupported for this.
+	[missing plat description] none
 	[function] This function is used to save debug information when native hang
 CONFIG_SPRD_PIKE2_POWER_DEBUG
 	[arch] arm
