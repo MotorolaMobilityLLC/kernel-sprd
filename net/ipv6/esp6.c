@@ -339,13 +339,14 @@ cow:
 skip_cow:
 	esp_output_fill_trailer(tail, esp->tfclen, esp->plen, esp->proto);
 	pskb_put(skb, trailer, tailen);
+
+out:
 #ifdef CONFIG_XFRM_FRAGMENT
 	esp->esph = ip_esp_hdr(skb);
 	/* this is non-NULL only with UDP Encapsulation */
 	if (x->encap)
 		esp6_output_udp_encap(x, skb, esp);
 #endif
-out:
 	return nfrags;
 }
 EXPORT_SYMBOL_GPL(esp6_output_head);
