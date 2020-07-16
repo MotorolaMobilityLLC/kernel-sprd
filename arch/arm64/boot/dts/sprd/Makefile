@@ -26,8 +26,19 @@ endif
 
 endif #//BSP_BUILD_ANDROID_OS
 
-else
+else #//AiAiAi or NO DTBO
 dtb-$(CONFIG_ARCH_SPRD) += sc9863a-w12v1.dtb
+
+dtb-$(CONFIG_ARCH_SPRD) += \
+	sp9863a.dtb \
+	ums512.dtb \
+	ums9230.dtb
+
+dtbo-$(CONFIG_ARCH_SPRD) += \
+	sp9863a-1h10-overlay.dtbo \
+	ums512-1h10-overlay.dtbo \
+	ums9230-haps-overlay.dtbo \
+	ums9230-haps-flash-overlay.dtbo
 
 endif #//BSP_BUILD_DT_OVERLAY
 
