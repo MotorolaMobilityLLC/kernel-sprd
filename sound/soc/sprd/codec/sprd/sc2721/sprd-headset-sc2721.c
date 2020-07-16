@@ -1177,7 +1177,7 @@ retry_again:
 	pr_info("now get adc value of headmic in big scale\n");
 	/* set large scale */
 	headset_scale_set(1);
-	ret = iio_write_channel_attribute(adc_chan, 1, 0, IIO_CHAN_INFO_SCALE);
+	ret = iio_write_channel_attribute(adc_chan, 0, 0, IIO_CHAN_INFO_SCALE);
 	if (!ret)
 		pr_err("%s set channel attribute big failed!\n", __func__);
 
@@ -2405,6 +2405,8 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 
 	/* Parse configs for whether speaker use headset path. */
 	pdata->hpr_spk = of_property_read_bool(np, "sprd,spk-route-hp");
+	if (!pdata->hpr_spk)
+		pr_warn("%s speaker not use headset path\n", __func__);
 
 	/* Parse gpios. */
 	/* Parse for the gpio of EU/US jack type switch. */
