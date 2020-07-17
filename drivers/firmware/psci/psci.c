@@ -27,6 +27,8 @@
 #include <asm/smp_plat.h>
 #include <asm/suspend.h>
 
+#include <linux/trusty/smcall.h>
+
 /*
  * While a 64-bit OS can make calls with SMC32 calling conventions, for some
  * calls it is necessary to use SMC64 to pass or return 64-bit values.
@@ -46,11 +48,6 @@
  * require cooperation with a Trusted OS driver.
  */
 static int resident_cpu = -1;
-
-bool psci_tos_resident_on(int cpu)
-{
-	return cpu == resident_cpu;
-}
 
 struct psci_operations psci_ops = {
 	.conduit = PSCI_CONDUIT_NONE,
@@ -154,10 +151,25 @@ static u32 psci_get_version(void)
 	return invoke_psci_fn(PSCI_0_2_FN_PSCI_VERSION, 0, 0, 0);
 }
 
+bool psci_tos_resident_on(int cpu)
+{
+	/*
+	 * To diff the three case of no trusty, trusty can down,
+	 * trusty can't down. invert the return values of
+	 * psci_tos_resident_on() and trusty
+	 */
+	return !invoke_psci_fn(SMC_FC_CPU_CAN_DOWN, cpu, 0, 0);
+}
+
 static int psci_cpu_suspend(u32 state, unsigned long entry_point)
 {
 	int err;
 	u32 fn;
+	u32 cpu_id;
+
+	cpu_id = smp_processor_id();
+	if (psci_tos_resident_on(cpu_id))
+		return -EPERM;
 
 	fn = psci_function_id[PSCI_FN_CPU_SUSPEND];
 	err = invoke_psci_fn(fn, state, entry_point, 0);
