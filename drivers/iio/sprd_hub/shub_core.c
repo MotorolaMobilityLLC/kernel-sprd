@@ -48,6 +48,7 @@ static DECLARE_WAIT_QUEUE_HEAD(waiter);
 static int reader_flag;
 struct shub_data *g_sensor;
 static struct wakeup_source sensorhub_wake_lock;
+static u32 sensorhub_version;
 
 #if SHUB_DATA_DUMP
 #define MAX_RX_LEN 102400
@@ -795,12 +796,22 @@ static void shub_send_ap_status(struct shub_data *sensor, u8 status)
 
 static void shub_synctimestamp(struct shub_data *sensor)
 {
+	unsigned long irq_flags;
 	struct cnter_to_boottime convert_para;
 
 	if (sensor->mcu_mode != SHUB_NORMAL)
 		return;
 
 	get_convert_para(&convert_para);
+	if (sensorhub_version == 20181201) {
+		local_irq_save(irq_flags);
+		preempt_disable();
+		convert_para.last_boottime = ktime_to_ms(ktime_get_boottime());
+		convert_para.last_systimer_counter = sprd_systimer_read();
+		convert_para.last_sysfrt_counter = sprd_sysfrt_read();
+		local_irq_restore(irq_flags);
+		preempt_enable();
+	}
 	shub_send_command(sensor,
 			  HANDLE_MAX,
 			  SHUB_SET_TIMESYNC_SUBTYPE,
@@ -895,6 +906,7 @@ static ssize_t op_download_show(struct device *dev,
 				data, 4) >= 0) {
 				sensor->mcu_mode = SHUB_OPDOWNLOAD;
 				memcpy(&version, data, sizeof(version));
+				sensorhub_version = version;
 				dev_info(&sensor->sensor_pdev->dev, "CM4 Version:%u\n",
 					version);
 				break;
