@@ -453,26 +453,24 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 	wdg_base = sadi->slave_pbase + sadi->data->wdg_base;
 
 	/* Unlock the watchdog */
-	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_LOCK,
-			WDG_UNLOCK_KEY);
+	sprd_adi_write(sadi, wdg_base + REG_WDG_LOCK, WDG_UNLOCK_KEY);
 
-	sprd_adi_read(sadi, sadi->slave_pbase + wdg_base + REG_WDG_CTRL, &val);
+	sprd_adi_read(sadi, wdg_base + REG_WDG_CTRL, &val);
 	val |= BIT_WDG_NEW;
-	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_CTRL, val);
+	sprd_adi_write(sadi, wdg_base + REG_WDG_CTRL, val);
 
 	/* Load the watchdog timeout value, 50ms is always enough. */
-	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_LOAD_HIGH, 0);
-	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_LOAD_LOW,
+	sprd_adi_write(sadi, wdg_base + REG_WDG_LOAD_HIGH, 0);
+	sprd_adi_write(sadi, wdg_base + REG_WDG_LOAD_LOW,
 		       WDG_LOAD_VAL & WDG_LOAD_MASK);
 
 	/* Start the watchdog to reset system */
-	sprd_adi_read(sadi, sadi->slave_pbase + wdg_base + REG_WDG_CTRL, &val);
+	sprd_adi_read(sadi, wdg_base + REG_WDG_CTRL, &val);
 	val |= BIT_WDG_RUN | BIT_WDG_RST;
-	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_CTRL, val);
+	sprd_adi_write(sadi, wdg_base + REG_WDG_CTRL, val);
 
 	/* Lock the watchdog */
-	sprd_adi_write(sadi, sadi->slave_pbase + wdg_base + REG_WDG_LOCK,
-			~WDG_UNLOCK_KEY);
+	sprd_adi_write(sadi, wdg_base + REG_WDG_LOCK, ~WDG_UNLOCK_KEY);
 
 	mdelay(1000);
 
