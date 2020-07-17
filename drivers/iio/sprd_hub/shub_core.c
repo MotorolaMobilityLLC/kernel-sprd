@@ -886,7 +886,7 @@ static ssize_t op_download_show(struct device *dev,
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	u8 data[4];
-	s16 version = -1, i;
+	u32 version = 0, i;
 
 	for (i = 0; i < 15; i++) {
 		if (sensor->mcu_mode == SHUB_BOOT) {
@@ -894,9 +894,9 @@ static ssize_t op_download_show(struct device *dev,
 				SHUB_GET_FWVERSION_SUBTYPE,
 				data, 4) >= 0) {
 				sensor->mcu_mode = SHUB_OPDOWNLOAD;
-				version = ((u16)data[1]) << 8 | (u16)data[0];
-				dev_info(&sensor->sensor_pdev->dev, "CM4 Version:%d(M:%u,D:%u,V:%u,SV:%u)\n",
-					data[3], data[2], data[1], data[0], version);
+				memcpy(&version, data, sizeof(version));
+				dev_info(&sensor->sensor_pdev->dev, "CM4 Version:%u\n",
+					version);
 				break;
 			} else {
 				dev_warn(&sensor->sensor_pdev->dev,
@@ -908,7 +908,7 @@ static ssize_t op_download_show(struct device *dev,
 	}
 	if (i == 15) {
 		dev_err(&sensor->sensor_pdev->dev, "Get Version Fail, cm4 or hub is not up.\n");
-		return sprintf(buf, "%d %d\n", version, -1);
+		return sprintf(buf, "%u\n", version);
 	}
 
 	if (sensor->mcu_mode == SHUB_OPDOWNLOAD) {
@@ -921,7 +921,7 @@ static ssize_t op_download_show(struct device *dev,
 				   &sensor->time_sync_work, 0);
 	}
 
-	return sprintf(buf, "%d %u\n", version, data[0]);
+	return sprintf(buf, "%u\n", version);
 }
 static DEVICE_ATTR_RO(op_download);
 
@@ -1685,7 +1685,7 @@ static ssize_t version_show(struct device *dev, struct device_attribute *attr,
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
 	u8 data[4];
-	s16 version = -1;
+	u32 version = 0;
 	int err;
 
 	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
@@ -1695,13 +1695,13 @@ static ssize_t version_show(struct device *dev, struct device_attribute *attr,
 
 	err = shub_sipc_read(sensor, SHUB_GET_FWVERSION_SUBTYPE, data, 4);
 	if (err >= 0) {
-		version = (s16)(((u16)data[1]) << 8 | (u16)data[0]);
+		memcpy(&version, data, sizeof(version));
 	} else {
 		dev_err(&sensor->sensor_pdev->dev, "Read  FW Version Fail\n");
 		return err;
 	}
 
-	return sprintf(buf, "%d\n", version);
+	return sprintf(buf, "%u\n", version);
 }
 static DEVICE_ATTR_RO(version);
 
