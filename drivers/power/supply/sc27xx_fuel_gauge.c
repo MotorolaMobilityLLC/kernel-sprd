@@ -176,6 +176,20 @@ static const struct sc27xx_fgu_variant_data sc2720_info = {
 	.clk_en = SC2720_CLK_EN0,
 };
 
+static bool is_charger_mode;
+
+static int __init get_boot_mode(char *str)
+{
+	if (!str)
+		return 0;
+
+	if (!strncmp(str, "charger", strlen("charger")))
+		is_charger_mode =  true;
+
+	return 0;
+}
+__setup("androidboot.mode=", get_boot_mode);
+
 static int sc27xx_fgu_cap_to_clbcnt(struct sc27xx_fgu_data *data, int capacity);
 static void sc27xx_fgu_low_capacity_calibration(struct sc27xx_fgu_data *data,
 						int cap, int int_mode,
@@ -462,6 +476,43 @@ static int sc27xx_fgu_read_last_cap(struct sc27xx_fgu_data *data, int *cap)
 	return 0;
 }
 
+static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv)
+{
+	int volt, cur, oci, ret;
+
+	/*
+	 * After system booting on, the SC27XX_FGU_CLBCNT_QMAXL register saved
+	 * the first sampled open circuit current.
+	 */
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_QMAXL,
+			  &cur);
+	if (ret) {
+		dev_err(data->dev, "Failed to read CLBCNT_QMAXL, ret = %d\n",
+			ret);
+		return ret;
+	}
+
+	cur <<= 1;
+	oci = sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
+
+	/*
+	 * Should get the OCV from SC27XX_FGU_POCV register at the system
+	 * beginning. It is ADC values reading from registers which need to
+	 * convert the corresponding voltage.
+	 */
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_POCV, &volt);
+	if (ret) {
+		dev_err(data->dev, "Failed to read FGU_POCV, ret = %d\n", ret);
+		return ret;
+	}
+
+	volt = sc27xx_fgu_adc_to_voltage(data, volt);
+	*pocv = volt * 1000 - oci * data->internal_resist;
+	dev_info(data->dev, "oci = %d, volt = %d, pocv = %d\n", oci, volt, *pocv);
+
+	return 0;
+}
+
 /*
  * When system boots on, we can not read battery capacity from coulomb
  * registers, since now the coulomb registers are invalid. So we should
@@ -470,9 +521,11 @@ static int sc27xx_fgu_read_last_cap(struct sc27xx_fgu_data *data, int *cap)
  */
 static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 {
-	int volt, cur, oci, ocv, ret;
+	int ocv, ret;
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
 
+	if (is_charger_mode)
+		sc27xx_fgu_get_boot_voltage(data, &data->boot_vol);
 	/*
 	 * If system is not the first power on, we should use the last saved
 	 * battery capacity as the initial battery capacity. Otherwise we should
@@ -503,35 +556,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 	}
 
-	/*
-	 * After system booting on, the SC27XX_FGU_CLBCNT_QMAXL register saved
-	 * the first sampled open circuit current.
-	 */
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_CLBCNT_QMAXL,
-			  &cur);
-	if (ret) {
-		dev_err(data->dev, "Failed to read CLBCNT_QMAXL, ret = %d\n",
-			ret);
-		return ret;
-	}
-
-	cur <<= 1;
-	oci = sc27xx_fgu_adc_to_current(data, cur - SC27XX_FGU_CUR_BASIC_ADC);
-
-	/*
-	 * Should get the OCV from SC27XX_FGU_POCV register at the system
-	 * beginning. It is ADC values reading from registers which need to
-	 * convert the corresponding voltage.
-	 */
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_POCV, &volt);
-	if (ret) {
-		dev_err(data->dev, "Failed to read FGU_POCV, ret = %d\n", ret);
-		return ret;
-	}
-
-	volt = sc27xx_fgu_adc_to_voltage(data, volt);
-	ocv = volt * 1000 - oci * data->internal_resist;
-	data->boot_vol = ocv;
+	sc27xx_fgu_get_boot_voltage(data, &ocv);
 
 	/*
 	 * Parse the capacity table to look up the correct capacity percent
@@ -548,9 +573,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		return ret;
 	}
 
-	dev_info(data->dev, "First_poweron:cur = %d, volt = %d, "
-		 "ocv = %d, cap = %d\n",
-		 cur, volt, ocv, *cap);
+	dev_info(data->dev, "First_poweron: ocv = %d, cap = %d\n", ocv, *cap);
 	return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 }
 
