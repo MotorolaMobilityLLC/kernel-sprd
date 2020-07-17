@@ -726,18 +726,6 @@
 				interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
-			aon_i2c0: i2c@32060000 {
-				compatible = "sprd,sharkl5pro-hw-i2c";
-				reg = <0 0x32060000 0 0x1000>;
-				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "source", "enable", "i2c",
-						"clk_hw_i2c";
-				clock-frequency = <400000>;
-				#address-cells = <1>;
-				#size-cells = <0>;
-				status = "disabled";
-			};
-
 			timer@32050000 {
 				compatible = "sprd,sharkl5Pro-timer",
 						"sprd,sc9860-timer";
@@ -753,6 +741,18 @@
 				clocks = <&ext_32k>;
 			};
 
+			aon_i2c0: i2c@32060000 {
+				compatible = "sprd,sharkl5pro-hw-i2c";
+				reg = <0 0x32060000 0 0x1000>;
+				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "source", "enable", "i2c",
+						"clk_hw_i2c";
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
 			ap_gpio: gpio@32070000 {
 				compatible = "sprd,sharkl5Pro-gpio";
 				reg = <0 0x32070000 0 0x10000>;
@@ -761,6 +761,19 @@
 				interrupt-controller;
 				#interrupt-cells = <2>;
 				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+			};
+
+			mailbox: mailbox@320a0000 {
+				compatible = "sprd,mailbox-r1p2";
+				reg = <0 0x320a0000 0 0x8000>,
+				      <0 0x320a8000 0 0x8000>;
+				reg-names = "inbox", "outbox";
+				clocks = <&aonapb_gate CLK_MBOX_EB>;
+				clock-names = "enable";
+				interrupts = <GIC_SPI 82 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "inbox0", "outbox0";
+				#mbox-cells = <1>;
 			};
 
 			adi_bus: spi@32100000 {
