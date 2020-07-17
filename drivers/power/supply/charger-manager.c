@@ -754,6 +754,39 @@ static int set_batt_cap(struct charger_manager *cm, int cap)
 
 	return ret;
 }
+/**
+ * get_charger_voltage - Get the charging voltage from fgu
+ * @cm: the Charger Manager representing the battery.
+ * @cur: the charging input voltage returned.
+ *
+ * Returns 0 if there is no error.
+ * Returns a negative value on error.
+ */
+static int get_charger_voltage(struct charger_manager *cm, int *vol)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret = -ENODEV;
+
+	if (!is_ext_pwr_online(cm))
+		return 0;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge) {
+		dev_err(cm->dev, "Cannot find power supply  %s\n",
+			cm->desc->psy_fuel_gauge);
+		return	ret;
+	}
+
+	ret = power_supply_get_property(fuel_gauge,
+					POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+					&val);
+	power_supply_put(fuel_gauge);
+	if (ret == 0)
+		*vol = val.intval;
+
+	return ret;
+}
 
 /**
  * adjust_fuel_cap - Adjust the fuel cap level
@@ -3540,7 +3573,7 @@ static void cm_batt_works(struct work_struct *work)
 	struct timespec64 cur_time;
 	int batt_uV, batt_ocV, bat_uA, fuel_cap, chg_sts, ret;
 	int period_time, flush_time, cur_temp, board_temp;
-	int chg_cur = 0, chg_limit_cur = 0;
+	int chg_cur = 0, chg_limit_cur = 0, charger_input_vol = 0;
 	static int last_fuel_cap = CM_CAP_MAGIC_NUM;
 
 	ret = get_batt_uV(cm, &batt_uV);
@@ -3560,6 +3593,10 @@ static void cm_batt_works(struct work_struct *work)
 		dev_err(cm->dev, "get bat_uA error.\n");
 		return;
 	}
+
+	ret = get_charger_voltage(cm, &charger_input_vol);
+	if (ret)
+		dev_warn(cm->dev, "failed to get charger input voltage\n");
 
 	ret = get_batt_cap(cm, &fuel_cap);
 	if (ret) {
@@ -3649,11 +3686,13 @@ static void cm_batt_works(struct work_struct *work)
 	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
 		 "capacity = %d, charger status = %d, force set full = %d, "
 		 "charging current = %d, charging limit current = %d, "
-		 "battery temperature = %d,board temperature = %d,"
-		 "track state = %d, charger type = %d, thm_adjust_cur = %d\n",
+		 "battery temperature = %d,board temperature = %d, "
+		 "track state = %d, charger type = %d, thm_adjust_cur = %d, "
+		 "charger input voltage = %d\n",
 		 batt_uV, batt_ocV, bat_uA, fuel_cap, cm->desc->charger_status,
 		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp, board_temp,
-		 cm->track.state, cm->desc->charger_type, cm->desc->thm_adjust_cur);
+		 cm->track.state, cm->desc->charger_type, cm->desc->thm_adjust_cur,
+		 charger_input_vol);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
