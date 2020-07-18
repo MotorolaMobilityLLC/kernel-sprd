@@ -124,12 +124,12 @@
 		#size-cells = <1>;
 		ranges;
 
-		warm_boot_reserved: warm-boot@0x833f0000 {
-			reg = <0x833f0000 0x10000>; /* 64K */
+		pub0_mpu_reserved: mpu0-dump@80000000 {
+			reg = <0x80000000 0x1000>;
 		};
 
-		pub0_mpu_reserved: mpu0-dump@877ff000 {
-			reg = <0x877ff000 0x1000>;
+		warm_boot_reserved: warm-boot@0x833f0000 {
+			reg = <0x833f0000 0x10000>; /* 64K */
 		};
 
 		/* must be 32M aligned */
