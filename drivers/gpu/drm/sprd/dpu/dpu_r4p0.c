@@ -1685,6 +1685,10 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		pr_info("enhance lut3d set\n");
 		enhance_en = reg->dpu_enhance_cfg;
 		return;
+	case ENHANCE_CFG_ID_CABC_MODE:
+		p = param;
+		pr_info("enhance CABC mode: 0x%x\n", *p);
+		return;
 	default:
 		break;
 	}
