@@ -2095,8 +2095,8 @@ static int charger_get_property(struct power_supply *psy,
 			ret = 0;
 		} else {
 			/* If CHARGE_COUNTER is supplied, use it */
-			val->intval = val->intval > 0 ? val->intval : 1;
-			val->intval = (cm->desc->cap * val->intval) / 1000;
+			val->intval = val->intval > 0 ? (val->intval / 1000) : 1;
+			val->intval = (cm->desc->cap * val->intval);
 		}
 		break;
 
@@ -2156,7 +2156,7 @@ static int charger_get_property(struct power_supply *psy,
 		total_cap = total_cap / 1000;
 
 		val->intval =
-			((100 - cm->desc->cap) * total_cap / 100) * 3600 / chg_cur;
+			((1000 - cm->desc->cap) * total_cap / 1000) * 3600 / chg_cur;
 
 		break;
 
