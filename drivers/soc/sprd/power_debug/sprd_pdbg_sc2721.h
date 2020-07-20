@@ -33,36 +33,36 @@ static char *eic_int_name[] = {
 	"AUDIO_HEAD_INSERT3", "AUDIO_HEAD_INSERT_ALL",
 	"B14_NoUSE", "B15_NoUSE"};
 
-static void sc2721_output_irq_source(struct regmap *pmic_regmap)
+static void sc2721_output_irq_source(void)
 {
 	u32 i, j;
 	u32 intc_state = 0, eic_state = 0;
 
-	if (!pmic_regmap)
+	intc_state = sprd_pdb_read_pmic_register(0x0,
+		PMIC_INTC_OFFSET + INTC_INTSTA_REG);
+	if (intc_state == 0xFFFFFFFF)
 		return;
-
-	regmap_read(pmic_regmap,
-		PMIC_INTC_OFFSET + INTC_INTSTA_REG, &intc_state);
 	for (i = 0; i < sizeof(intc_int_name)/sizeof(char *); i++) {
 		if (intc_state & (1 << i)) {
-			pr_info("	#--Wake up by %d(%s:%s)!\n",
-				i, "PMIC_INTC", intc_int_name[i]);
-			if (i == INTC_EIC_INDEX) {
-				regmap_read(pmic_regmap,
-					PMIC_EIC_OFFSET + EIC_INTSTA_REG,
-					&eic_state);
-				for (j = 0;
-	j < sizeof(eic_int_name)/sizeof(char *); j++) {
-					if (eic_state & (1 << j))
-						pr_info("		#--Wake up by %d(%s:%s)!\n",
-							j, "PMIC_EIC",
-							eic_int_name[j]);
-				}
+			pr_info("	#--Wake up by %d(%s:%s) intc_state=0x%x!\n",
+				i, "PMIC_INTC", intc_int_name[i], intc_state);
+			if (i != INTC_EIC_INDEX)
+				continue;
+			eic_state = sprd_pdb_read_pmic_register(0x0,
+					PMIC_EIC_OFFSET + EIC_INTSTA_REG);
+			if (eic_state == 0xFFFFFFFF)
+				continue;
+			for (j = 0;
+				j < sizeof(eic_int_name)/sizeof(char *);
+				j++) {
+				if (eic_state & (1 << j))
+					pr_info("		#--Wake up by %d(%s:%s) eic_state=0x%x!\n",
+						j, "PMIC_EIC",
+						eic_int_name[j],
+						eic_state);
 			}
 		}
 	}
-
-	local_irq_disable();
 }
 
 #endif

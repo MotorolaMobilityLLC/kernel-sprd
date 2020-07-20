@@ -17,7 +17,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 #include "sprd_pdbg.h"
-#include "sprd_pdbg_sc2721.h"
+#include "sprd_pdbg_sc2721G.h"
 
 #define AP_INTC_PMIC_INDEX 38
 
@@ -25,7 +25,6 @@ struct power_debug_sharkle {
 	struct power_debug *pdbg;
 	struct platform_device *pdev;
 	struct power_debug_cfg *pcfg;
-	struct regmap *pmic_regmap;
 };
 
 static struct power_debug_sharkle pdbg_sharkle;
@@ -154,7 +153,7 @@ static void sharkle_output_2nd_irq_source(void *pentry, u32 hw_irq_nr)
 		return;
 
 	if (hw_irq_nr == AP_INTC_PMIC_INDEX)
-		sc2721_output_irq_source(pdbg_sharkle.pmic_regmap);
+		sc2721G_output_irq_source();
 }
 
 static struct power_debug_desc sharkle_pdbg_desc = {
@@ -254,7 +253,8 @@ static struct power_debug_cfg *sprd_pdbg_parse_cfg(struct device *dev,
 			of_node_put(psub_node);
 			if (IS_ERR(pcfg->ap_intc[i])) {
 				dev_err(dev,
-					"Failed at ap-intc[%d] regmap\n", i);
+					"Failed to get ap-intc[%d] regmap\n",
+					i);
 				devm_kfree(dev, pcfg);
 				return ERR_PTR(-EINVAL);
 			}
@@ -274,8 +274,6 @@ static struct power_debug_cfg *sprd_pdbg_parse_cfg(struct device *dev,
  */
 static int sprd_pdbg_sharkle_probe(struct platform_device *pdev)
 {
-	struct platform_device *pdev_pmic;
-	struct device_node *regmap_np;
 	struct power_debug_cfg *pcfg;
 
 	dev_dbg(&pdev->dev, "##### Power debug driver init start #####\n");
@@ -284,24 +282,11 @@ static int sprd_pdbg_sharkle_probe(struct platform_device *pdev)
 	if (IS_ERR(pcfg))
 		return PTR_ERR(pcfg);
 
-	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
-	if (regmap_np)
-		pdev_pmic = of_find_device_by_node(regmap_np);
-	else
-		pdev_pmic = NULL;
-	if (pdev_pmic)
-		pdbg_sharkle.pmic_regmap = dev_get_regmap(
-						pdev_pmic->dev.parent, NULL);
-	else
-		pdbg_sharkle.pmic_regmap = NULL;
-
-	if (!pdbg_sharkle.pmic_regmap)
-		dev_warn(&pdev->dev, "Not to get pmic regmap\n");
-
 	pdbg_sharkle.pdbg = sprd_power_debug_register(&pdev->dev,
 				&sharkle_pdbg_desc,	pcfg);
 	if (!pdbg_sharkle.pdbg) {
 		devm_kfree(&pdev->dev, pcfg);
+		dev_dbg(&pdev->dev, "##### Power debug driver init failure #####\n");
 		return -EFAULT;
 	}
 	pdbg_sharkle.pcfg = pcfg;
@@ -317,6 +302,7 @@ static int sprd_pdbg_sharkle_probe(struct platform_device *pdev)
  */
 static int sprd_pdbg_sharkle_remove(struct platform_device *pdev)
 {
+	dev_dbg(&pdev->dev, "##### Power debug driver remove #####\n");
 	sprd_power_debug_unregister(pdbg_sharkle.pdbg);
 	pdbg_sharkle.pdbg = NULL;
 
@@ -344,18 +330,7 @@ static struct platform_driver sprd_pdbg_sharkle_driver = {
 	},
 };
 
-static int __init sprd_pdbg_sharkle_driver_init(void)
-{
-	return platform_driver_register(&sprd_pdbg_sharkle_driver);
-}
-
-static void __exit sprd_pdbg_sharkle_driver_exit(void)
-{
-	platform_driver_unregister(&sprd_pdbg_sharkle_driver);
-}
-
-late_initcall(sprd_pdbg_sharkle_driver_init);
-module_exit(sprd_pdbg_sharkle_driver_exit);
+module_platform_driver(sprd_pdbg_sharkle_driver);
 
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Jamesj Chen<Jamesj.Chen@unisoc.com>");

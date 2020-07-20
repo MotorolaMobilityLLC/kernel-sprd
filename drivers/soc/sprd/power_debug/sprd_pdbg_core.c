@@ -20,6 +20,7 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
+#include <linux/sprd_sip_svc.h>
 #include "sprd_pdbg.h"
 
 #define SPRD_PDBG_PROC_DIR "sprd-power-debug"
@@ -359,16 +360,20 @@ static ssize_t sprd_pgdb_enable_read(struct file *file,
 	if (!pgdb_entry || !len)
 		return -EINVAL;
 
+	if (file->f_pos || *off)
+		return 0;
+
 	if (pgdb_entry->pdbg_enable)
 		data[0] = '1';
 	else
 		data[0] = '0';
 
 	ret = copy_to_user(buf, data, 1);
-	if (!ret)
-		return 1;
-	else
+	if (ret < 0)
 		return (ssize_t)ret;
+
+	*off += 1;
+	return 1;
 }
 
 static ssize_t sprd_pgdb_interval_write(struct file *file,
@@ -441,6 +446,9 @@ struct power_debug *sprd_power_debug_register(struct device *dev,
 	int result;
 	struct power_debug *pdbg;
 	struct proc_dir_entry *file;
+#if 0 // wait the sip service interface added
+	struct sprd_sip_svc_handle *svc_handle;
+#endif
 
 	if (pgdb_entry)
 		return NULL;
@@ -466,20 +474,26 @@ struct power_debug *sprd_power_debug_register(struct device *dev,
 			SPRD_PDBG_PROC_DIR);
 		goto proc_mkdir_error;
 	}
-	file = proc_create((const char *)SPRD_PDBG_ENABLE, 0777,
+	file = proc_create(SPRD_PDBG_ENABLE, 0777,
 			sprd_pdbg_proc_dir, &pgdb_enable_proc_fops);
 	if (!file) {
 		dev_err(dev, "Proc FS create %s failed\n",
 			SPRD_PDBG_ENABLE);
 		goto proc_create_1_error;
 	}
-	file = proc_create((const char *)SPRD_PDBG_INTERVAL, 0777,
+	file = proc_create(SPRD_PDBG_INTERVAL, 0777,
 			sprd_pdbg_proc_dir, &pgdb_interval_proc_fops);
 	if (!file) {
 		dev_err(dev, "Proc FS create %s failed\n",
 			SPRD_PDBG_INTERVAL);
 		goto proc_create_2_error;
 	}
+
+#if 0 // wait the sip service interface added
+	svc_handle = sprd_sip_svc_get_handle();
+	if (svc_handle)
+		pdbg->svc_handle = svc_handle;
+#endif
 
 	mutex_init(&pdbg->conf_mutex);
 	pgdb_entry = pdbg;
@@ -507,4 +521,25 @@ void sprd_power_debug_unregister(struct power_debug *pdbg)
 		devm_kfree(pdbg->dev, pdbg);
 		pgdb_entry = NULL;
 	}
+}
+
+u32 sprd_pdb_read_pmic_register(u32 chip_id, u32 offset_addr)
+{
+#if 0 // wait the sip service interface added
+	int result;
+	u32 reg_val;
+
+	if (!pgdb_entry || !pgdb_entry->svc_handle) {
+		dev_err(pgdb_entry->dev, "return because svc_handle is NULL\n");
+		return 0xFFFFFFFF;
+	}
+
+	result = pgdb_entry->svc_handle->pmic_ops.get_reg(chip_id,
+				offset_addr, &reg_val);
+	if (!result)
+		return reg_val;
+
+	dev_err(pgdb_entry->dev, "result=%d, reg_val=0x%x\n", result, reg_val);
+#endif
+	return 0xFFFFFFFF;
 }

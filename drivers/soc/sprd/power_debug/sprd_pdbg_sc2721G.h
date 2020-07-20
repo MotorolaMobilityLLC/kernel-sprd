@@ -1,5 +1,5 @@
 /*
- * sprd_pdbg_sc2730.h -- unisoc Power Debug driver support.
+ * sprd_pdbg_sc2721G.h -- unisoc Power Debug driver support.
  *
  * Copyright (C) 2020, 2021 unisoc.
  *
@@ -11,10 +11,10 @@
  *
  * Power Debug Driver Interface.
  */
-#ifndef __LINUX_UNISOC_POWER_DEBUG_SC2730_H_
-#define __LINUX_UNISOC_POWER_DEBUG_SC2730_H_
+#ifndef __LINUX_UNISOC_POWER_DEBUG_SC2721G_H_
+#define __LINUX_UNISOC_POWER_DEBUG_SC2721G_H_
 
-#define PMIC_INTC_OFFSET 0x0080
+#define PMIC_INTC_OFFSET 0x00C0
 #define INTC_INTSTA_REG  0x0000
 #define INTC_EIC_INDEX	 4
 #define PMIC_EIC_OFFSET  0x0280
@@ -22,14 +22,18 @@
 
 static char *intc_int_name[] = {
 	"ADC_INT", "RTC_INT", "WDG_INT", "FGU_INT",
-	"EIC_INT", "FAST_CHG_INT", "TMR_INT", "CAL_INT",
-	"TYPEC_INT", "USB_PD_INT"};
+	"EIC_INT", "FS_INT", "AUD_PROTECT_INT",
+	"TMR_INT", "CHG_WDG_INT", "CAL_INT",
+	"TYPEC_INT"};
 
 static char *eic_int_name[] = {
-	"CHGR_INT", "PBINT", "PBINT2", "BATDET_OK",
-	"KEY2_TS_EXT_RSTN", "EXT_XTL0_EN", "AUD_INT_ALL", "ENDURA_OPTION"};
+	"CHGR_INT", "PBINT", "PBINT2", "AUDIO_HEAD_BUTTON",
+	"CHGR_CV_STATUS", "AUDIO_HEAD_INSERT", "VCHG_OVI", "VBAT_OVI",
+	"AUDIO_HEAD_INSERT2", "BATDET_OK", "EXT_RSTN", "EXT_XTL_EN0",
+	"AUDIO_HEAD_INSERT3", "AUDIO_HEAD_INSERT_ALL",
+	"B14_NoUSE", "B15_NoUSE"};
 
-static void sc2730_output_irq_source(void)
+static void sc2721G_output_irq_source(void)
 {
 	u32 i, j;
 	u32 intc_state = 0, eic_state = 0;

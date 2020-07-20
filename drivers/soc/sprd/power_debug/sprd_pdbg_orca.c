@@ -25,7 +25,6 @@ struct power_debug_orca {
 	struct power_debug *pdbg;
 	struct platform_device *pdev;
 	struct power_debug_cfg *pcfg;
-	struct regmap *pmic_regmap;
 };
 
 static struct power_debug_orca pdbg_orca;
@@ -382,7 +381,7 @@ static void orca_output_2nd_irq_source(void *pentry, u32 hw_irq_nr)
 		return;
 
 	if (hw_irq_nr == AP_INTC_PMIC_INDEX)
-		sc2730_output_irq_source(pdbg_orca.pmic_regmap);
+		sc2730_output_irq_source();
 }
 
 static struct power_debug_desc orca_pdbg_desc = {
@@ -481,7 +480,8 @@ static struct power_debug_cfg *sprd_pdbg_parse_cfg(struct device *dev,
 			of_node_put(psub_node);
 			if (IS_ERR(pcfg->ap_intc[i])) {
 				dev_err(dev,
-					"Failed at ap-intc[%d] regmap\n", i);
+					"Failed to get ap-intc[%d] regmap\n",
+					i);
 				devm_kfree(dev, pcfg);
 				return ERR_PTR(-EINVAL);
 			}
@@ -501,8 +501,6 @@ static struct power_debug_cfg *sprd_pdbg_parse_cfg(struct device *dev,
  */
 static int sprd_pdbg_orca_probe(struct platform_device *pdev)
 {
-	struct platform_device *pdev_pmic;
-	struct device_node *regmap_np;
 	struct power_debug_cfg *pcfg;
 
 	dev_dbg(&pdev->dev, "##### Power debug driver init start #####\n");
@@ -511,24 +509,11 @@ static int sprd_pdbg_orca_probe(struct platform_device *pdev)
 	if (IS_ERR(pcfg))
 		return PTR_ERR(pcfg);
 
-	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
-	if (regmap_np)
-		pdev_pmic = of_find_device_by_node(regmap_np);
-	else
-		pdev_pmic = NULL;
-	if (pdev_pmic)
-		pdbg_orca.pmic_regmap = dev_get_regmap(
-			pdev_pmic->dev.parent, NULL);
-	else
-		pdbg_orca.pmic_regmap = NULL;
-
-	if (!pdbg_orca.pmic_regmap)
-		dev_warn(&pdev->dev, "Not to get pmic regmap\n");
-
 	pdbg_orca.pdbg = sprd_power_debug_register(&pdev->dev,
 				&orca_pdbg_desc,	pcfg);
 	if (!pdbg_orca.pdbg) {
 		devm_kfree(&pdev->dev, pcfg);
+		dev_dbg(&pdev->dev, "##### Power debug driver init failure #####\n");
 		return -EFAULT;
 	}
 	pdbg_orca.pcfg = pcfg;
@@ -544,6 +529,7 @@ static int sprd_pdbg_orca_probe(struct platform_device *pdev)
  */
 static int sprd_pdbg_orca_remove(struct platform_device *pdev)
 {
+	dev_dbg(&pdev->dev, "##### Power debug driver remove #####\n");
 	sprd_power_debug_unregister(pdbg_orca.pdbg);
 	pdbg_orca.pdbg = NULL;
 
@@ -571,18 +557,7 @@ static struct platform_driver sprd_pdbg_orca_driver = {
 	},
 };
 
-static int __init sprd_pdbg_orca_driver_init(void)
-{
-	return platform_driver_register(&sprd_pdbg_orca_driver);
-}
-
-static void __exit sprd_pdbg_orca_driver_exit(void)
-{
-	platform_driver_unregister(&sprd_pdbg_orca_driver);
-}
-
-late_initcall(sprd_pdbg_orca_driver_init);
-module_exit(sprd_pdbg_orca_driver_exit);
+module_platform_driver(sprd_pdbg_orca_driver);
 
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Jamesj Chen<Jamesj.Chen@unisoc.com>");

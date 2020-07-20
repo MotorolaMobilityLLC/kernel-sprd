@@ -16,6 +16,7 @@
 #define __LINUX_UNISOC_POWER_DEBUG_H_
 
 #include <linux/device.h>
+#include <linux/sprd_sip_svc.h>
 
 #define MAX_INTC_NUM 8
 #define BIT_NUM_IN_PER_REG 0x20
@@ -55,9 +56,9 @@ struct intc_info {
  * @ap_ahb_reg_num: the number of entries in the following "@ap_ahb_reg" array.
  * @ap_apb_reg_num: the number of entries in the following "@ap_apb_reg" array.
  * @pmu_apb_reg_num: the number of entries in the following "@pmu_apb_reg"
- *     array.
+ *	array.
  * @aon_apb_reg_num: the number of entries in the following "@aon_sec_reg"
- *     array.
+ *	array.
  * @aon_sec_reg_num: the number of entries in the following "@ppdm_info" array.
  * @ap_intc_num: the number of entries in the following "@pintc_info" array.
  * @irq_mask: The mask identify the interrupt which wanted to be recognized.
@@ -70,7 +71,7 @@ struct intc_info {
  * @aon_sec_reg: the pointer of aon-sec register array which will be checked.
  * @pintc_info: the pointer of intc info array.
  * @log_2nd_irq_source: the function pointer which used to log the 2nd interrupt
- *     source.
+ *	source.
  */
 struct power_debug_desc {
 	const char *name;
@@ -116,6 +117,7 @@ struct power_debug {
 	struct power_debug_desc *pdesc;
 	struct power_debug_cfg *pcfg;
 	struct mutex conf_mutex;
+	struct sprd_sip_svc_handle *svc_handle;
 };
 
 extern struct power_debug *sprd_power_debug_register(
@@ -124,4 +126,6 @@ extern struct power_debug *sprd_power_debug_register(
 				struct power_debug_cfg *pcfg);
 
 extern void sprd_power_debug_unregister(struct power_debug *pdbg);
+
+extern u32 sprd_pdb_read_pmic_register(u32 chip_id, u32 offset_addr);
 #endif
