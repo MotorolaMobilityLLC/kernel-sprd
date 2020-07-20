@@ -426,8 +426,6 @@
 
 	power: power-debug {
 		compatible = "sprd,power-debug-sharkle";
-		#address-cells = <1>;
-		#size-cells = <0>;
 
 		sprd,enable = <1>;
 		sprd,scan-interval = <30>;
