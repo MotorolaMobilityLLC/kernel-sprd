@@ -300,6 +300,7 @@ static struct epf_cfg epf_copy;
 static struct epf_cfg sr_epf;
 static bool sr_epf_ready;
 static u32 enhance_en;
+extern int gsp_enabled_layer_count;
 
 static DECLARE_WAIT_QUEUE_HEAD(wait_queue);
 static bool panel_ready = true;
@@ -848,7 +849,7 @@ static void dpu_dvfs_task_func(unsigned long data)
 	 * Every IP here may be different, so need to modify it
 	 * according to the actual dpu core clock.
 	 */
-	if (max <= 3)
+	if ((max <= 3) && (gsp_enabled_layer_count < 3))
 		dvfs_freq = 307200000;
 	else
 		dvfs_freq = 384000000;
