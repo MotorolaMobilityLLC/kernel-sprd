@@ -174,8 +174,6 @@
 
 	power: power-debug {
 		compatible = "sprd,power-debug-sharkl5";
-		#address-cells = <1>;
-		#size-cells = <0>;
 
 		sprd,enable = <1>;
 		sprd,scan-interval = <30>;
