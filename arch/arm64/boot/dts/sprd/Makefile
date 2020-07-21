@@ -27,7 +27,9 @@ endif
 endif #//BSP_BUILD_ANDROID_OS
 
 else #//AiAiAi or NO DTBO
-dtb-$(CONFIG_ARCH_SPRD) += sc9863a-w12v1.dtb
+dtb-$(CONFIG_ARCH_SPRD) += \
+		sc9863a-w12v1.dtb \
+		ums512-w27v1.dtb
 
 dtb-$(CONFIG_ARCH_SPRD) += \
 	sp9863a.dtb \

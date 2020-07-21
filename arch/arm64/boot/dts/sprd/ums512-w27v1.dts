@@ -9,8 +9,11 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include "ums512.dtsi"
+#include "sc2730.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
 #include "ums512-mach.dtsi"
 
 / {
@@ -30,7 +33,7 @@
 		reg = <0x0 0x80000000 0x0 0x80000000>;
 	};
 
-	chosen {
+	chosen: chosen {
 		stdout-path = "serial1:115200n8";
 		bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums512_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio androidboot.selinux=permissive maxcpus=1 androidboot.force_normal_boot=1";
 	};
@@ -48,6 +51,77 @@
 		slew-rate = <4000>; /* 4000uV/us */
 		tuning-latency-us = <0>;
 	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
+
+	ion: ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		heap@1 {
+			reg = <1>;
+			label = "carveout_mm";
+			type = <2>;
+		};
+
+		heap@2 {
+			reg = <2>;
+			label = "carveout_overlay";
+			type = <2>;
+		};
+
+		heap@3 {
+			reg = <3>;
+			label = "carveout_fb";
+			type = <2>;
+			memory-region = <&fb_reserved>;
+		};
+	};
+	pwm_backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwms 2 40000>;
+		pwm-names = "backlight";
+		brightness-levels = <
+					      1   1   1   1   1
+			  1   1   2   3   4   5   6   7   8   9
+			 10  11  12  13  14  15  16  17  18  19
+			 20  21  22  23  24  25  26  27  28  29
+			 30  31  32  33  34  35  36  37  38  39
+			 40  41  42  43  44  45  46  47  48  49
+			 50  51  52  53  54  55  56  57  58  59
+			 60  61  62  63  64  65  66  67  68  69
+			 70  71  72  73  74  75  76  77  78  79
+			 80  81  82  83  84  85  86  87  88  89
+			 90  91  92  93  94  95  96  97  98  99
+			100 101 102 103 104 105 106 107 108 109
+			110 111 112 113 114 115 116 117 118 119
+			120 121 122 123 124 125 126 127 128 129
+			130 131 132 133 134 135 136 137 138 139
+			140 141 142 143 144 145 146 147 148 149
+			150 151 152 153 154 155 156 157 158 159
+			160 161 162 163 164 165 166 167 168 169
+			170 171 172 173 174 175 176 177 178 179
+			180 181 182 183 184 185 186 187 188 189
+			190 191 192 193 194 195 196 197 198 199
+			200 201 202 203 204 205 206 207 208 209
+			209 209 209 210 210 210 211 211 211 211
+			212 212 212 212 213 213 213 213 214 214
+			214 214 214 215 215 215 215 216 216 216
+			217 217 217 217 218 218 218 219 219 220
+			220
+			>;
+		default-brightness-level = <33>;
+	};
+};
+
+&reserved_memory {
+	fb_reserved: framebuffer-mem {
+		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
+	};
 };
 
 &uart0 {
@@ -56,6 +130,155 @@
 
 &uart1 {
 	status = "okay";
+};
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	sensor_main: sensor-main@20 {
+		compatible = "sprd,sensor-main";
+		reg = <0x20>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR0>,<&mm_gate CLK_MM_SENSOR0_EB>,
+				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama0>;
+		vddcamd-supply = <&vddcamd0>;
+		vddcammot-supply = <&vddcammot>;
+		reset-gpios = <&ap_gpio 44 0>;
+		power-down-gpios = <&ap_gpio 46 0>;
+		sprd,phyid = <0>;
+		csi = <&csi0>;
+	};
+
+	sensor_sub: sensor-sub@5a {
+		compatible = "sprd,sensor-sub";
+		reg = <0x5a>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR0>,<&mm_gate CLK_MM_SENSOR0_EB>,
+				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama0>;
+		vddcamd-supply = <&vddcamd0>;
+		vddcammot-supply = <&vddcammot>;
+		reset-gpios = <&ap_gpio 41 0>;
+		power-down-gpios = <&ap_gpio 40 0>;
+		mipi-switch-en-gpios = <&ap_gpio 55 0>;
+		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
+		sprd,phyid = <1>;
+		csi = <&csi0>;
+	};
+};
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	sensor_main2: sensor-main2@20 {
+		compatible = "sprd,sensor-main2";
+		reg = <0x20>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama1>;
+		vddcamd-supply = <&vddcamd1>;
+		vddcammot-supply = <&vddcammot>;
+		avdd-gpios = <&ap_gpio 33 0>;
+		mot-gpios = <&ap_gpio 88 0>;
+		reset-gpios = <&ap_gpio 45 0>;
+		power-down-gpios = <&ap_gpio 47 0>;
+		mipi-switch-en-gpios = <&ap_gpio 55 0>;
+		mipi-switch-mode-gpios = <&ap_gpio 8 0>;
+		sprd,phyid = <1>;
+		csi = <&csi1>;
+	};
+
+	sensor_sub2: sensor-sub2@6e {
+		compatible = "sprd,sensor-sub2";
+		reg = <0x6e>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+			<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+			<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama1>;
+		vddcamd-supply = <&vddcamd1>;
+		vddcammot-supply = <&vddcammot>;
+		mot-gpios = <&ap_gpio 88 0>;
+		reset-gpios = <&ap_gpio 41 0>;
+		power-down-gpios = <&ap_gpio 40 0>;
+		sprd,phyid = <2>;
+		csi = <&csi2>;
+	};
+
+	sensor_main3: sensor-main3@6c {
+		compatible = "sprd,sensor-main3";
+		reg = <0x6c>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+				<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+				<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama1>;
+		vddcamd-supply = <&vddcamd1>;
+		vddcammot-supply = <&vddcammot>;
+		mot-gpios = <&ap_gpio 88 0>;
+		reset-gpios = <&ap_gpio 41 0>;
+		power-down-gpios = <&ap_gpio 40 0>;
+		sprd,phyid = <2>;
+		csi = <&csi2>;
+	};
+};
+
+&i2c3 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	status = "okay";
+
+	touchscreen@20 {
+		compatible = "synaptics,dsx";
+		reg = <0x20>;
+		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH>,
+			<&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&i2c4 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	flash_ic: flash-ic@63 {
+		compatible = "sprd,flash-ocp8137";
+		reg = <0x63>;
+		sprd,flash-ic = <8137>;
+		sprd,torch = <1>;
+		sprd,preflash = <1>;
+		sprd,highlight = <1>;
+		sprd,torch-level = <128>;
+		sprd,preflash-level = <128>;
+		sprd,highlight-level = <128>;
+		sprd,lvfm-enable = <1>;
+		flash-chip-en-gpios = <&ap_gpio 136 0>;
+		flash-torch-en-gpios = <&ap_gpio 139 0>;
+		flash-en-gpios = <&ap_gpio 137 0>;
+		flash-sync-gpios = <&ap_gpio 138 0>;
+	};
 };
 
 &sdio0 {
@@ -74,31 +297,55 @@
 	status = "okay";
 };
 
-&aon_i2c0 {
+&dpu {
 	status = "okay";
-	clock-frequency = <400000>;
-
-	fan53555_dcdc: regulator@60 {
-		compatible = "fcs,fan53555";
-		reg = <0x60>;
-		regulator-name = "fan53555";
-		regulator-min-microvolt = <600000>;
-		regulator-max-microvolt = <1230000>;
-		regulator-ramp-delay = <64000>;
-		regulator-always-on;
-		fcs,suspend-voltage-selector = <1>;
-	};
-
-	/* A virtual i2c device */
-	cpudvfs-dcdc-cpu1@62{
-		compatible = "sprd,cpudvfs-regulator-sharkl5pro";
-		reg = <0x62>;
-		dvfs-dcdc-i2c = <1>;
-		sprd,attributed-device = <&cpudvfs_dev>;
-	};
 };
 
-&dpu {
+&iommu_dispc {
+	status = "okay";
+};
+
+&dcam {
+	status = "okay";
+};
+
+&iommu_dcam {
+	status = "okay";
+};
+
+&isp {
+	status = "okay";
+};
+
+&iommu_isp {
+	status = "okay";
+};
+
+&cpp {
+	status = "okay";
+};
+
+&iommu_cpp {
+	status = "okay";
+};
+
+&csi0 {
+	status = "okay";
+};
+
+&csi1 {
+	status = "okay";
+};
+
+&csi2 {
+	status = "okay";
+};
+
+&iommu_fd {
+	status = "okay";
+};
+
+&fd {
 	status = "okay";
 };
 
@@ -109,6 +356,7 @@
 
 	panel: panel {
 		compatible = "sprd,generic-mipi-panel";
+		sprd,backlight = <&pwm_backlight>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 		reg = <0>;
@@ -128,4 +376,12 @@
 
 &lcd_td4310_truly_mipi_fhd {
 	sprd,phy-bit-clock = <1104000>;  /* kbps */
+};
+
+&vddldo0 {
+	regulator-always-on;
+};
+
+&vddemmccore {
+	regulator-always-on;
 };
