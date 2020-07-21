@@ -16607,6 +16607,15 @@ CONFIG_SPRD_HANG_DEBUG_UART
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_SPRD_HANG_TRIGGER
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field] make
+	[subsys] debug
+	[must] debug
+	[missing plat description] none
+	[function] supply a driver for trigger AP cpu hang.
 CONFIG_SPRD_HANG_WDF
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro

@@ -626,6 +626,10 @@ static void ipi_complete(unsigned int cpu)
 	complete(per_cpu(cpu_completion, cpu));
 }
 
+#ifdef CONFIG_SPRD_HANG_TRIGGER
+extern bool ipi_is_triggered(unsigned int cpu);
+#endif
+
 /*
  * Main handler for inter-processor interrupts
  */
@@ -652,6 +656,13 @@ static void do_handle_IPI(int ipinr)
 #endif
 
 	case IPI_RESCHEDULE:
+		#ifdef CONFIG_SPRD_HANG_TRIGGER
+		/* used for trigger cpu hang */
+		if (ipi_is_triggered(cpu)) {
+			while (1)
+				;
+		}
+		#endif
 		scheduler_ipi();
 		break;
 

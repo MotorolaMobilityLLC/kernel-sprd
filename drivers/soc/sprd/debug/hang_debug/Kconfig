@@ -23,3 +23,8 @@ config SPRD_HANG_DEBUG_UART
 	bool "sprd hang debug using uart for log output"
 	depends on SPRD_HANG_DEBUG && SERIAL_SPRD_CONSOLE
 	default y
+
+config SPRD_HANG_TRIGGER
+	bool "supply a driver for trigger AP cpu hang"
+	depends on SPRD_HANG_DEBUG
+	default y

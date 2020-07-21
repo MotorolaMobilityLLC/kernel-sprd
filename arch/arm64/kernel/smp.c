@@ -871,9 +871,15 @@ static void ipi_cpu_crash_stop(unsigned int cpu, struct pt_regs *regs)
 	cpu_park_loop();
 #endif
 }
+
 #ifdef CONFIG_SPRD_SYSDUMP
 	extern void sysdump_ipi(struct pt_regs *regs);
 #endif
+
+#ifdef CONFIG_SPRD_HANG_TRIGGER
+extern bool ipi_is_triggered(unsigned int cpu);
+#endif
+
 /*
  * Main handler for inter-processor interrupts
  */
@@ -887,6 +893,13 @@ static void do_handle_IPI(int ipinr)
 
 	switch (ipinr) {
 	case IPI_RESCHEDULE:
+		#ifdef CONFIG_SPRD_HANG_TRIGGER
+		/* used for trigger cpu hang */
+		if (ipi_is_triggered(cpu)) {
+			while (1)
+				;
+		}
+		#endif
 		scheduler_ipi();
 		break;
 
