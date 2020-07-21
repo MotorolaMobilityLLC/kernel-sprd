@@ -479,23 +479,25 @@ static struct mpll_freq_manager ums512_mpll_manager = {
 	.mpll_num = MPLL_NUM,
 };
 
+static struct dvfs_cluster host_cluster[HOST_CLUSTER_NUM] = {
+	DECLARE_APCPU_DVFS_CLUSTER("lit_core_cluster"),
+	DECLARE_APCPU_DVFS_CLUSTER("big_core_cluster"),
+};
+
+static struct dvfs_cluster slave_cluster[SLAVE_CLUSTER_NUM] = {
+	DECLARE_APCPU_DVFS_CLUSTER("scu_cluster"),
+	DECLARE_APCPU_DVFS_CLUSTER("periph_cluster"),
+	DECLARE_APCPU_DVFS_CLUSTER("gic_cluster"),
+};
+
 const struct dvfs_private_data ums512_dvfs_private_data = {
 	.module_clk_khz = 128000,
 	.pmic = pmic_array,
 	.volt_manager = &ums512_volt_manager,
 	.freq_manager = &ums512_freq_manager,
 	.mpll_manager = &ums512_mpll_manager,
-};
-
-struct dvfs_cluster global_host_cluster[HOST_CLUSTER_NUM] = {
-	DECLARE_APCPU_DVFS_CLUSTER("lit_core_cluster"),
-	DECLARE_APCPU_DVFS_CLUSTER("big_core_cluster"),
-};
-
-struct dvfs_cluster global_slave_cluster[SLAVE_CLUSTER_NUM] = {
-	DECLARE_APCPU_DVFS_CLUSTER("scu_cluster"),
-	DECLARE_APCPU_DVFS_CLUSTER("periph_cluster"),
-	DECLARE_APCPU_DVFS_CLUSTER("gic_cluster"),
+	.host_cluster = host_cluster,
+	.slave_cluster = slave_cluster,
 };
 
 MODULE_LICENSE("GPL v2");

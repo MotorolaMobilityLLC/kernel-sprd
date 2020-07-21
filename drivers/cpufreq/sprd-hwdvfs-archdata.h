@@ -142,6 +142,8 @@ struct dvfs_private_data {
 	struct topdvfs_volt_manager *volt_manager;
 	struct cpudvfs_freq_manager *freq_manager;
 	struct mpll_freq_manager *mpll_manager;
+	struct dvfs_cluster *host_cluster;
+	struct dvfs_cluster *slave_cluster;
 };
 
 #define DECLARE_APCPU_DVFS_CLUSTER(clu_name)	\
@@ -164,6 +166,4 @@ extern int default_dcdc_volt_update(struct regmap *map, struct reg_info *regs,
 extern u32 default_cycle_calculate(u32 max_val_uV, u32 slew_rate,
 				   u32 module_clk_hz, u32 margin_us);
 
-extern struct dvfs_cluster global_host_cluster[] __weak;
-extern struct dvfs_cluster global_slave_cluster[] __weak;
 #endif

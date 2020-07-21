@@ -1758,8 +1758,8 @@ static int sprd_cpudvfs_probe(struct platform_device *pdev)
 	parchdev->membase = base;
 	parchdev->dev = &pdev->dev;
 	parchdev->phy_ops = &sprd_cpudvfs_phy_ops;
-	parchdev->phost_cluster = global_host_cluster;
-	parchdev->pslave_cluster = global_slave_cluster;
+	parchdev->phost_cluster = pdata->host_cluster;
+	parchdev->pslave_cluster = pdata->slave_cluster;
 
 	parchdev->priv = pdata;
 	parchdev->host_cluster_num =
