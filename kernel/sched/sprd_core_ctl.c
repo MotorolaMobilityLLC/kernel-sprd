@@ -1,3 +1,9 @@
+/*
+ * SPDX-License-Identifier: GPL-2.0
+ */
+
+#define pr_fmt(fmt)	"core_ctl: " fmt
+
 #include <linux/init.h>
 #include <linux/notifier.h>
 #include <linux/cpu.h>
@@ -14,16 +20,6 @@
 #include "walt.h"
 #include <linux/sched/rt.h>
 #include <linux/capability.h>
-
-#ifndef pr_fmt
-#define pr_fmt(fmt)	"core_ctl: " fmt
-#endif
-
-#define CORE_CTL_INFO(fmt, args...)\
-	pr_info("core_ctl: " fmt, ## args)
-
-#define CORE_CTL_ERR(fmt, args...)\
-	pr_err("core_ctl_error: " fmt, ## args)
 
 /* ========================= define data struct =========================== */
 enum plug_type {
@@ -91,7 +87,7 @@ int ctrl_core_api(struct cpumask *target, int type)
 	unsigned int target_num = cpumask_weight(target);
 	unsigned long flags;
 
-	CORE_CTL_INFO("START %s, cpu_id=%u, cpu_num=%u\n",
+	pr_info("START %s, cpu_id=%u, cpu_num=%u\n",
 		      type == 0 ? "isolate" : "unisolate",
 		      cpumask_first(target), target_num);
 
@@ -125,7 +121,7 @@ int ctrl_core_api(struct cpumask *target, int type)
 			}
 
 			spin_unlock_irqrestore(&state_lock, flags);
-			CORE_CTL_INFO("start avtive_cpus=%u, need_cpus=%u\n",
+			pr_info("start avtive_cpus=%u, need_cpus=%u\n",
 					temp->active_cpus, temp->need_cpus);
 			wake_up_core_ctl_thread(temp);
 			return 0;
@@ -134,7 +130,7 @@ int ctrl_core_api(struct cpumask *target, int type)
 
 err:
 	spin_unlock_irqrestore(&state_lock, flags);
-	CORE_CTL_ERR("START %s fail\n", type == 0 ? "isolate" : "unisolate");
+	pr_err("START %s fail\n", type == 0 ? "isolate" : "unisolate");
 	return -1;
 }
 EXPORT_SYMBOL_GPL(ctrl_core_api);
@@ -152,7 +148,7 @@ int ctrl_max_min_core_api(unsigned int cpu_num, int type,
 
 	spin_lock_irqsave(&state_lock, flags);
 	list_for_each_entry(temp, &cluster_list, cluster_node) {
-		CORE_CTL_INFO("%s:id=%u, type=%d,cpu_num=%u\n",
+		pr_info("%s:id=%u, type=%d,cpu_num=%u\n",
 			      __func__, temp->id, type, cpu_num);
 		if (temp->active_cpus != temp->need_cpus ||
 		    temp->id != cluster_id)
@@ -182,7 +178,7 @@ int ctrl_max_min_core_api(unsigned int cpu_num, int type,
 	}
 
 	spin_unlock_irqrestore(&state_lock, flags);
-	CORE_CTL_ERR("%s, set fail\n", __func__);
+	pr_err("%s, set fail\n", __func__);
 
 	return 0;
 }
@@ -343,7 +339,7 @@ static ssize_t store_isolate_cpu_id(struct cluster_data *state,
 
 	state->isolate_cpu_id = val;
 	cpumask_set_cpu(val, target_cpumask);
-	CORE_CTL_INFO("isolate weight=%d\n", cpumask_weight(target_cpumask));
+	pr_info("isolate weight=%d\n", cpumask_weight(target_cpumask));
 	ctrl_core_api(target_cpumask, PLUGOUT);
 	free_cpumask_var(target_cpumask);
 	return count;
@@ -382,7 +378,7 @@ static ssize_t store_unisolate_cpu_id(struct cluster_data *state,
 
 	state->unisolate_cpu_id = val;
 	cpumask_set_cpu(val, target_cpumask);
-	CORE_CTL_INFO("unisolate weight=%d\n", cpumask_weight(target_cpumask));
+	pr_info("unisolate weight=%d\n", cpumask_weight(target_cpumask));
 	ctrl_core_api(target_cpumask, PLUGIN);
 	free_cpumask_var(target_cpumask);
 
@@ -545,15 +541,15 @@ static void try_to_isolate(struct cluster_data *cluster, unsigned int need)
 		}
 		spin_unlock_irqrestore(&state_lock, flags);
 
-		CORE_CTL_INFO("Trying to isolate CPU%u\n", c->cpu);
+		pr_info("Trying to isolate CPU%u\n", c->cpu);
 		if (!sched_isolate_cpu(c->cpu)) {
 			c->isolated_by_us = true;
 			c->isolate_cnt++;
 			move_cpu_lru(c, true);
 			nr_isolated++;
-			CORE_CTL_INFO("isolate_success: CPU%u\n", c->cpu);
+			pr_info("isolate_success: CPU%u\n", c->cpu);
 		} else {
-			CORE_CTL_ERR("isolate_fail: CPU%u\n", c->cpu);
+			pr_err("isolate_fail: CPU%u\n", c->cpu);
 		}
 
 		spin_lock_irqsave(&state_lock, flags);
@@ -570,7 +566,7 @@ static void try_to_isolate(struct cluster_data *cluster, unsigned int need)
 
 	spin_unlock_irqrestore(&state_lock, flags);
 
-	CORE_CTL_INFO("END %s:active_cpus=%u,need_cpus=%u\n",
+	pr_info("END %s:active_cpus=%u,need_cpus=%u\n",
 		      __func__, cluster->active_cpus, cluster->need_cpus);
 }
 
@@ -606,15 +602,15 @@ static void try_to_unisolate(struct cluster_data *cluster, unsigned int need)
 
 		spin_unlock_irqrestore(&state_lock, flags);
 
-		CORE_CTL_INFO("Trying to unisolate CPU%u\n", c->cpu);
+		pr_info("Trying to unisolate CPU%u\n", c->cpu);
 		if (!sched_unisolate_cpu(c->cpu)) {
 			c->isolated_by_us = false;
 			c->isolate_cnt--;
 			move_cpu_lru(c, false);
 			nr_unisolated++;
-			CORE_CTL_INFO("Unisolate CPU%u success\n", c->cpu);
+			pr_info("Unisolate CPU%u success\n", c->cpu);
 		} else {
-			CORE_CTL_INFO("Unable to unisolate CPU%u\n", c->cpu);
+			pr_err("Unable to unisolate CPU%u\n", c->cpu);
 		}
 
 		spin_lock_irqsave(&state_lock, flags);
@@ -631,7 +627,7 @@ static void try_to_unisolate(struct cluster_data *cluster, unsigned int need)
 
 	spin_unlock_irqrestore(&state_lock, flags);
 
-	CORE_CTL_INFO("END %s:active_cpus=%u,need_cpus=%u\n",
+	pr_info("END %s:active_cpus=%u,need_cpus=%u\n",
 		      __func__, cluster->active_cpus, cluster->need_cpus);
 }
 
@@ -640,10 +636,10 @@ static void __ref do_core_ctl(struct cluster_data *cluster)
 	unsigned int need = cluster->need_cpus;
 
 	if (cluster->active_cpus > need) {
-		CORE_CTL_INFO("start exec try_to_isolate func\n");
+		pr_info("start exec try_to_isolate func\n");
 		try_to_isolate(cluster, need);
 	} else if (cluster->active_cpus < need) {
-		CORE_CTL_INFO("start exec try_to_unisolate func\n");
+		pr_info("start exec try_to_unisolate func\n");
 		try_to_unisolate(cluster, need);
 	}
 }
@@ -720,7 +716,7 @@ static int isolate_pm_notifier_block(struct notifier_block *nb,
 			keep_isolated_status(cpu);
 		break;
 	default:
-		CORE_CTL_ERR("%s: Unknown PM request type!\n", __func__);
+		pr_err("%s: Unknown PM request type!\n", __func__);
 		break;
 	}
 
@@ -838,17 +834,15 @@ static int cluster_init(const struct cpumask *mask)
 
 	dev = get_cpu_device(first_cpu);
 	if (!dev) {
-		CORE_CTL_ERR("core_ctl: fail to get cpu device\n");
+		pr_err("fail to get cpu device\n");
 		return -ENODEV;
 	}
 
-	CORE_CTL_INFO("Creating CPU group %d\n", first_cpu);
+	pr_info("Creating CPU group %d\n", first_cpu);
 
 	cluster = devm_kzalloc(dev, sizeof(*cluster), GFP_KERNEL);
-	if (!cluster) {
-		CORE_CTL_ERR("core_ctl: alloc cluster err\n");
+	if (!cluster)
 		return -ENOMEM;
-	}
 
 	cpumask_copy(&cluster->cpu_mask, mask);
 	cluster->num_cpus = cpumask_weight(mask);
@@ -877,14 +871,14 @@ static int cluster_init(const struct cpumask *mask)
 	thread = kthread_run(try_core_ctl, (void *) cluster,
 			     "core_ctl/%d", first_cpu);
 	if (IS_ERR(thread)) {
-		CORE_CTL_ERR("core_ctl: thread create err\n");
+		pr_err("thread create err\n");
 		return PTR_ERR(thread);
 	}
 
 	ret = sched_setscheduler_nocheck(thread, SCHED_FIFO, &param);
 	if (ret) {
 		kthread_stop(thread);
-		CORE_CTL_ERR("failed set SCHED_FIFO in cluster%u\n",
+		pr_err("failed set SCHED_FIFO in cluster%u\n",
 			     cluster->id);
 		return ret;
 	}
@@ -912,12 +906,12 @@ static int __init core_ctl_init(void)
 	cpuhp_setup_state_nocalls(CPUHP_CORE_CTL_ISOLATION_DEAD,
 				  "core_ctl:dead", NULL,
 				  cpuhp_core_ctl_offline);
-	CORE_CTL_INFO("sprd_core_ctl feature start init\n");
+	pr_info("sprd_core_ctl feature start init\n");
 	cpu_maps_update_begin();
 	for_each_online_cpu(cpu) {
 		ret = cluster_init(topology_core_cpumask(cpu));
 		if (ret)
-			CORE_CTL_ERR("create core ctl group%d failed: %d\n",
+			pr_err("create core ctl group%d failed: %d\n",
 			       cpu, ret);
 	}
 	cpu_maps_update_done();
@@ -929,7 +923,7 @@ static int __init core_ctl_init(void)
 	 */
 	ret = register_pm_notifier(&isolate_pm_notifer);
 	if (ret)
-		CORE_CTL_ERR("register pm notifier failed %d\n", ret);
+		pr_err("register pm notifier failed %d\n", ret);
 
 	return 0;
 }
