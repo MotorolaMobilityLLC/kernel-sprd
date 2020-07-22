@@ -1211,7 +1211,7 @@ retry_again:
 	msleep(20);
 	adc_left_average = headset_get_adc_value(adc_chan);
 	pr_info("adc_left_average = %d\n", adc_left_average);
-	if (-1 == adc_left_average)
+	if (adc_left_average < 0)
 		return HEADSET_TYPE_ERR;
 
 	if (retry_times >= 10) {
