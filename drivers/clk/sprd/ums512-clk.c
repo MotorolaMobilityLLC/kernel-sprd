@@ -1849,13 +1849,13 @@ static SPRD_MUX_CLK_DATA(isp_clk, "isp-clk", isp_parents,
 			 0x48, 0, 3, UMS512_MUX_FLAG);
 
 static SPRD_GATE_CLK_HW(mipi_csi0, "mipi-csi0", &mm_eb.common.hw,
-			0x4c, BIT(16), 0, 0);
+			0x4c, BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static SPRD_GATE_CLK_HW(mipi_csi1, "mipi-csi1", &mm_eb.common.hw,
-			0x50, BIT(16), 0, 0);
+			0x50, BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static SPRD_GATE_CLK_HW(mipi_csi2, "mipi-csi2", &mm_eb.common.hw,
-			0x54, BIT(16), 0, 0);
+			0x54, BIT(16), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *ums512_mm_clk[] = {
 	/* address base is 0x62100000 */
