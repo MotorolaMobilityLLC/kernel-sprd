@@ -840,7 +840,9 @@ int start_integrate_wcn_truely(u32 subsys)
 		if (is_marlin) {
 			goto err_boot_marlin;
 		} else if (wcn_dev->boot_cp_status == WCN_BOOT_CP2_ERR_BOOT) {
-			mutex_unlock(&wcn_dev->power_lock);  /* gnss */
+			/* warnning! gnss fake status for poweroff */
+			wcn_dev->wcn_open_status |= subsys_bit;
+			mutex_unlock(&wcn_dev->power_lock);
 			return -1;
 		}
 	}
@@ -892,6 +894,7 @@ int start_integrate_wcn(u32 subsys)
 			wcn_clear_ddr_gnss_cali_bit();
 			ret = start_integrate_wcn_truely(WCN_GNSS);
 			if (ret) {
+				stop_integrate_wcn_truely(WCN_GNSS);
 				mutex_unlock(&marlin_lock);
 				return ret;
 			}
