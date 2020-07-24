@@ -238,12 +238,15 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			|| vsp_hw_dev.version == SHARKL3
 			|| vsp_hw_dev.version == SHARKL5
 			|| vsp_hw_dev.version == ROC1
-			|| vsp_hw_dev.version == SHARKL5Pro)
+			|| vsp_hw_dev.version == SHARKL5Pro
+			|| vsp_hw_dev.version == QOGIRL6)
 			&& vsp_hw_dev.iommu_exist_flag)
 			sprd_iommu_restore(vsp_hw_dev.vsp_dev);
 
 		if (vsp_hw_dev.vsp_qos_exist_flag) {
-			if (vsp_hw_dev.version == SHARKL5Pro || vsp_hw_dev.version == ROC1) {
+			if (vsp_hw_dev.version == SHARKL5Pro
+				|| vsp_hw_dev.version == ROC1
+				|| vsp_hw_dev.version == QOGIRL6) {
 				writel_relaxed(((qos_cfg.awqos & 0x7) << 29) |
 				((qos_cfg.arqos_low & 0x7) << 23),
 				vsp_glb_reg_base + qos_cfg.reg_offset);
@@ -446,6 +449,12 @@ static const struct sprd_vsp_cfg_data sharkl5pro_vsp_data = {
 	.qos_reg_offset = 0x0194,
 };
 
+static const struct sprd_vsp_cfg_data qogirl6_vsp_data = {
+	.version = QOGIRL6,
+	.max_freq_level = 3,
+	.qos_reg_offset = 0x0194,
+};
+
 static const struct of_device_id of_match_table_vsp[] = {
 	{.compatible = "sprd,sharkle-vsp", .data = &sharkle_vsp_data},
 	{.compatible = "sprd,pike2-vsp", .data = &pike2_vsp_data},
@@ -453,6 +462,7 @@ static const struct of_device_id of_match_table_vsp[] = {
 	{.compatible = "sprd,sharkl5-vsp", .data = &sharkl5_vsp_data},
 	{.compatible = "sprd,roc1-vsp", .data = &roc1_vsp_data},
 	{.compatible = "sprd,sharkl5pro-vsp", .data = &sharkl5pro_vsp_data},
+	{.compatible = "sprd,qogirl6-vsp", .data = &qogirl6_vsp_data},
 	{},
 };
 
