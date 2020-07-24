@@ -13,6 +13,7 @@
 #include "sprd-sound.dtsi"
 #include "sp7731e-mach.dtsi"
 #include "lcd/lcd_ili9881c_3lane_mipi_fhd.dtsi"
+#include "lcd/lcd_r61350_truly_mipi_hd_v2.dtsi"
 
 / {
 	model = "Spreadtrum Pike2 SC7731e SoC";
