@@ -1825,6 +1825,9 @@ CONFIG_HW_RANDOM_SPRD=y
 # CONFIG_RAW_DRIVER is not set
 # CONFIG_TCG_TPM is not set
 # CONFIG_XILLYBUS is not set
+CONFIG_RPMB=y
+CONFIG_RPMB_INTF_DEV=y
+# CONFIG_RPMB_SIM is not set
 
 #
 # I2C support

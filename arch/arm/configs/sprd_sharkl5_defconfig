@@ -1884,6 +1884,8 @@ CONFIG_SERIAL_SPRD_CONSOLE=y
 # CONFIG_RAW_DRIVER is not set
 # CONFIG_TCG_TPM is not set
 # CONFIG_XILLYBUS is not set
+# CONFIG_RPMB is not set
+# CONFIG_RPMB_SIM is not set
 
 #
 # I2C support
