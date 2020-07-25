@@ -87,6 +87,12 @@ enum {
 	UFS_QUERY_TASK_SET	= 0x81,
 };
 
+enum geometry_desc_param_offset {
+	GEOMETRY_DESC_LEN               = 0x0,
+	GEOMETRY_DESC_TYPE              = 0x1,
+	GEOMETRY_DESC_RPMB_RW_SIZE      = 0x17,
+};
+
 /* UTP UPIU Transaction Codes Initiator to Target */
 enum {
 	UPIU_TRANSACTION_NOP_OUT	= 0x00,
