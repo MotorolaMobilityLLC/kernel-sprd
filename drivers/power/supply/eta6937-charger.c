@@ -1229,13 +1229,6 @@ static int eta6937_charger_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 
-	info->usb_notify.notifier_call = eta6937_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(dev, "failed to register notifier:%d\n", ret);
-		return ret;
-	}
-
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = dev->of_node;
 	info->psy_usb = devm_power_supply_register(dev,
@@ -1243,15 +1236,20 @@ static int eta6937_charger_probe(struct i2c_client *client,
 						   &charger_cfg);
 	if (IS_ERR(info->psy_usb)) {
 		dev_err(dev, "failed to register power supply\n");
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return PTR_ERR(info->psy_usb);
 	}
 
 	ret = eta6937_charger_hw_init(info);
+	if (ret)
+		return ret;
+
+	info->usb_notify.notifier_call = eta6937_charger_usb_change;
+	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
+		dev_err(dev, "failed to register notifier:%d\n", ret);
 		return ret;
 	}
+
 	eta6937_charger_detect_status(info);
 	INIT_DELAYED_WORK(&info->otg_work, eta6937_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work,
