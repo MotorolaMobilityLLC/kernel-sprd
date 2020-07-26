@@ -1358,6 +1358,15 @@ CONFIG_BITREVERSE
 	[must] console
 	[missing plat description] none
 	[function] Enable kernel support bit reverse.
+CONFIG_BLK_CGROUP
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] block
+	[must] none
+	[missing plat description] none
+	[function] enable blkio, you can limit the weight of per group
 CONFIG_BLK_DEBUG_FS
 	[arch] all
 	[plat] all
@@ -1859,6 +1868,15 @@ CONFIG_CFG80211_REG_CELLULAR_HINTS
 	[must] user
 	[missing plat description] none
 	[function] Give top priority to country code from SIM card.
+CONFIG_CFQ_GROUP_IOSCHED
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] block
+	[must] none
+	[missing plat description] none
+	[function] group IO schedule in CFQ
 CONFIG_CGROUPS
 	[arch] all
 	[plat] all
@@ -1916,6 +1934,15 @@ CONFIG_CGROUP_SCHED
 	[must] user
 	[missing plat description] none
 	[function] Group CPU scheduler(vts require)
+CONFIG_CGROUP_WRITEBACK
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] block,mm
+	[must] none
+	[missing plat description] none
+	[function] writeback control of per group
 CONFIG_CHARGER_BQ2560X
 	[arch] arm64
 	[plat] sharkl5Pro
