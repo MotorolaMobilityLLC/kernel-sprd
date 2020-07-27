@@ -799,7 +799,7 @@ config PROCESS_RECLAIM
 	 Any other vaule is ignored.
 
 config ARCH_SUPPORTS_SPECULATIVE_PAGE_FAULT
-    def_bool n
+	def_bool n
 
 config SPECULATIVE_PAGE_FAULT
 	bool "Speculative page faults"
