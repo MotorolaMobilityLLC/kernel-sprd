@@ -242,6 +242,16 @@ config SCHED_TRACER
 	  This tracer tracks the latency of the highest priority task
 	  to be scheduled in, starting from the point it has woken up.
 
+config NOSCHEDULE_TRACER_BYTEDANCY
+	tristate "Noschedule Latency Tracer By Bytedancy"
+	default m
+	help
+	  This option measures the time of task running too long in kernel
+	  sapce to schedule latency by ByteDancy.
+
+	  Get more info. from:
+	  github: https://github.com/bytedance/trace-noschedule
+
 config HWLAT_TRACER
 	bool "Tracer to detect hardware latencies (like SMIs)"
 	select GENERIC_TRACER
