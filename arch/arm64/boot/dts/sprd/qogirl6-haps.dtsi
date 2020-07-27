@@ -105,6 +105,20 @@
 			};
 		};
 
+		ap-apb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			sdio3: sdio@201d0000 {
+				compatible = "sprd,sdhc-r11p1";
+				reg = <0 0x201d0000 0 0x1000>;
+				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+			};
+		};
+
 		ap_ahb_regs: syscon@20400000 {
 			compatible = "sprd,ums9230-glbregs", "syscon";
 			#syscon-cells = <2>;

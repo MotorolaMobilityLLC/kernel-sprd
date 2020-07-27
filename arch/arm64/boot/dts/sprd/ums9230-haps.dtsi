@@ -102,23 +102,12 @@
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
-
-		ap-apb {
-			compatible = "simple-bus";
-			#address-cells = <2>;
-			#size-cells = <2>;
-			ranges;
-
-			sdio3: sdio@201d0000 {
-				compatible = "sprd,sdhci-r11";
-				reg = <0 0x201d0000 0 0x1000>;
-				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "sdio", "enable";
-				clocks = <&ap_clk CLK_EMMC_2X>,
-					 <&apapb_gate CLK_EMMC_EB>;
-				assigned-clocks = <&ap_clk CLK_EMMC_2X>;
-				assigned-clock-parents = <&ext_26m>;
-			};
-		};
 	};
+};
+
+&sdio3 {
+	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
+	clocks = <&ap_clk CLK_EMMC_2X>,
+		 <&ext_26m>,
+		 <&apapb_gate CLK_EMMC_EB>;
 };
