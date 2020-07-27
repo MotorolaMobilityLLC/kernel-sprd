@@ -4170,12 +4170,12 @@ CONFIG_EMBEDDED
 	[function] vts require, Embedded system.
 CONFIG_ENABLE_DEFAULT_TRACERS
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] make
 	[subsys] trace
 	[must] user
-	[missing plat description] none
+	[missing plat description] use it for user,sharkl5_32 bring up is not yet.
 	[function] cts require, enable tracer config
 CONFIG_ENABLE_MUST_CHECK
 	[arch] all
@@ -6572,6 +6572,15 @@ CONFIG_HZ_250
 	[must] console
 	[missing plat description] enable HZ_100 on old plat.
 	[function] HZ_250 showes good interactive responsiveness on sprd plat
+CONFIG_HZ_300
+	[arch] arm
+	[plat] pike2,sharkl3_32,sharkle32
+	[missing plat] sharkl5_32
+	[field] menu
+	[subsys] time
+	[must] console
+	[missing plat description] go version require, but sharkl5_32 bring up is not yet.
+	[function] HZ_300 showes good interactive responsiveness on sprd plat
 CONFIG_HZ_FIXED
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
@@ -9101,17 +9110,6 @@ CONFIG_NETFILTER_XT_MATCH_POLICY
 	[must] user
 	[missing plat description] none
 	[function] vts require, IPsec "policy" match support
-CONFIG_NETFILTER_XT_MATCH_QTAGUID
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3,sharkl5
-	[field] menu,make
-	[subsys] net
-	[must] user
-	[missing plat description] Qtaguid is useless in AndroidQ,so
-				  the chip project is in androidQ,then
-				  the option is deleted.
-	[function] vts require,"quota, tag, owner" match and stats support
 CONFIG_NETFILTER_XT_MATCH_QUOTA
 	[arch] all
 	[plat] all
@@ -11793,24 +11791,14 @@ CONFIG_SBITMAP
 	[function] Support sbitmap feature.
 CONFIG_SC2342_INTEG
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
-	[missing plat] sharkl5Pro
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[missing plat] sharkl5,sharkl5Pro,sharkl5_32
 	[field] make,code
 	[subsys] core
 	[must] console
 	[missing plat description] This macro is a proprietary driver related to pike2,sharkl3,sharkl3_32,sharkle32.
 		The missing plat is not relevant.
 	[function] This is support wcn chip for spreadtrum.
-CONFIG_SC2355
-	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5_32
-	[missing plat] pike2,sharkl5Pro,sharkle32
-	[field] menu
-	[subsys] wcn
-	[must] user
-	[missing plat description] This macro is a proprietary driver related to roc1,sharkl3,sharkl5,sharkl5_32.
-		The missing plat is not relevant.
-	[function] This function is used to support wcn sc2355 chip
 CONFIG_SC23XX
 	[arch] all
 	[plat] all
@@ -11959,8 +11947,8 @@ CONFIG_SCSI_MOD
 	[function] SCSI module support
 CONFIG_SDIOHAL
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] menu, make
 	[subsys] wcn
 	[must] user
@@ -13731,12 +13719,12 @@ CONFIG_SPRD_VSP_PW_DOMAIN
 	[function] power on vsp domain.
 CONFIG_SPRD_WATCHDOG
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
-	[missing plat description] none
+	[missing plat description] use it for user, sharkl5_32 bring up is not yet.
 	[function] Spreadtrum watchdog driver.
 CONFIG_SRCU
 	[arch] all
@@ -14452,43 +14440,43 @@ CONFIG_TREE_SRCU
 	[function] This option selects the full-fledged version of SRCU.
 CONFIG_TRUSTY
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] make,code
 	[subsys] tee
 	[must] home
-	[missing plat description] none
+	[missing plat description] trusty about, sharkl5_32 bring up is not yet.
 	[function] This is the top config option of trusty driver which supports
 			  communication between linux and trusty OS.
 		  Trusty driver is used on all ARM architecture-based platforms
 		  with trusty OS integrated
 CONFIG_TRUSTY_LOG
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] make
 	[subsys] tee
 	[must] debug
-	[missing plat description] none
+	[missing plat description] trusty about, sharkl5_32 bring up is not yet.
 	[function] This is used to dump trusty OS log and output to kernel log
 CONFIG_TRUSTY_VIRTIO
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] make
 	[subsys] tee
 	[must] home
-	[missing plat description] none
+	[missing plat description] trusty about, sharkl5_32 bring up is not yet.
 	[function] This implements trusty virtio driver which works with the
 		   back-end virtio driver in trusty OS
 CONFIG_TRUSTY_VIRTIO_IPC
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] make
 	[subsys] tee
 	[must] home
-	[missing plat description] none
+	[missing plat description] trusty about, sharkl5_32 bring up is not yet.
 	[function] This implements trusty IPC driver based on trusty virtio
 CONFIG_TTY
 	[arch] all
@@ -15363,35 +15351,35 @@ CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED
 	[function] Update boot-enabled watchdog until userspace takes over
 CONFIG_WATCHDOG_PRETIMEOUT_DEFAULT_GOV_PANIC
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
-	[missing plat description] none
+	[missing plat description] use it for user,sharkl5_32 bring up is not yet.
 	[function] watchdog pretimeout default gov panic
 CONFIG_WATCHDOG_PRETIMEOUT_GOV
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
-	[missing plat description] none
+	[missing plat description] use it for user,sharkl5_32 bring up is not yet.
 	[function] watchdog pretimeout gov
 CONFIG_WATCHDOG_PRETIMEOUT_GOV_PANIC
 	[arch] all
-	[plat] all
-	[missing plat] none
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] menu,code
 	[subsys] core
 	[must] user
-	[missing plat description] none
+	[missing plat description] use it for user,sharkl5_32 bring up is not yet.
 	[function] watchdog pretimeout gov panic
 CONFIG_WCN_BOOT
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
@@ -15400,8 +15388,8 @@ CONFIG_WCN_BOOT
 	[function] wcn boot up for 2355 chip.
 CONFIG_WCN_PLATFORM
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
-	[missing plat] sharkl5Pro
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[missing plat] sharkl5,sharkl5Pro,sharkl5_32
 	[field] make,code
 	[subsys] wcn
 	[must] user
@@ -15410,8 +15398,8 @@ CONFIG_WCN_PLATFORM
 	[function] wcn intergation 2342 chip support
 CONFIG_WCN_SIPC
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5_32,sharkle32
-	[missing plat] sharkl5Pro
+	[plat] pike2,sharkl3,sharkl3_32,sharkle32
+	[missing plat] sharkl5,sharkl5Pro,sharkl5_32
 	[field] make
 	[subsys] wcn
 	[must] user
@@ -15420,8 +15408,8 @@ CONFIG_WCN_SIPC
 	[function] WCN integration chip 2342 sipc Support
 CONFIG_WCN_SLP
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
@@ -15430,8 +15418,8 @@ CONFIG_WCN_SLP
 	[function] wcn sleep and wakeup for 2355 chip
 CONFIG_WCN_UTILS
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] pike2,sharkle32
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] wcn
 	[must] user
