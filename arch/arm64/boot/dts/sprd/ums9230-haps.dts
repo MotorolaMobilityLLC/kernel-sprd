@@ -11,11 +11,11 @@
 #include "ums9230-haps-mach.dtsi"
 
 / {
-	model = "Spreadtrum UMS9230 SoC";
+	model = "Spreadtrum UMS9230 Haps SoC";
 
-	compatible = "sprd,ums9230";
+	compatible = "sprd,ums9230-haps";
 
-	sprd,sc-id = "ums9230 1000 1000";
+	sprd,sc-id = "ums9230-haps 1000 1000";
 
 	aliases {
 		serial0 = &uart0;
