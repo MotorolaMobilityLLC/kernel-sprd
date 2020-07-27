@@ -200,10 +200,14 @@ struct sprd_dsi {
 	struct dsi_core_ops *core;
 	struct dsi_glb_ops *glb;
 	struct dsi_context ctx;
+	int dpms;
+	int last_dpms;
 };
 
 extern struct list_head dsi_core_head;
 extern struct list_head dsi_glb_head;
+
+int dsi_panel_set_dpms_mode(struct sprd_dsi *dsi);
 
 #define dsi_core_ops_register(entry) \
 	disp_ops_register(entry, &dsi_core_head)

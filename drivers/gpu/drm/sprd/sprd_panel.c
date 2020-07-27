@@ -44,6 +44,7 @@ static inline struct sprd_panel *to_sprd_panel(struct drm_panel *panel)
 	return container_of(panel, struct sprd_panel, base);
 }
 
+
 static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 				const void *data, int size)
 {
@@ -139,6 +140,41 @@ static int sprd_panel_prepare(struct drm_panel *p)
 	}
 
 	return 0;
+}
+
+void  sprd_panel_enter_doze(struct drm_panel *p)
+{
+	struct sprd_panel *panel = to_sprd_panel(p);
+
+	DRM_INFO("%s() enter\n", __func__);
+
+	mutex_lock(&panel_lock);
+
+	if (panel->esd_work_pending) {
+		cancel_delayed_work_sync(&panel->esd_work);
+		panel->esd_work_pending = false;
+	}
+
+	sprd_panel_send_cmds(panel->slave,
+	       panel->info.cmds[CMD_CODE_DOZE_IN],
+	       panel->info.cmds_len[CMD_CODE_DOZE_IN]);
+
+	mutex_unlock(&panel_lock);
+}
+
+void  sprd_panel_exit_doze(struct drm_panel *p)
+{
+	struct sprd_panel *panel = to_sprd_panel(p);
+
+	DRM_INFO("%s() enter\n", __func__);
+
+	mutex_lock(&panel_lock);
+
+	sprd_panel_send_cmds(panel->slave,
+		panel->info.cmds[CMD_CODE_DOZE_OUT],
+		panel->info.cmds_len[CMD_CODE_DOZE_OUT]);
+
+	mutex_unlock(&panel_lock);
 }
 
 static int sprd_panel_disable(struct drm_panel *p)
@@ -791,6 +827,19 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	} else
 		DRM_ERROR("can't find sprd,sleep-out-command property\n");
 
+	p = of_get_property(lcd_node, "sprd,doze-in-command", &bytes);
+	if (p) {
+		info->cmds[CMD_CODE_DOZE_IN] = p;
+		info->cmds_len[CMD_CODE_DOZE_IN] = bytes;
+	} else
+		DRM_ERROR("can't find sprd,doze-in-command property\n");
+
+	p = of_get_property(lcd_node, "sprd,doze-out-command", &bytes);
+	if (p) {
+		info->cmds[CMD_CODE_DOZE_OUT] = p;
+		info->cmds_len[CMD_CODE_DOZE_OUT] = bytes;
+	} else
+		DRM_ERROR("can't find sprd,doze-out-command property\n");
 	rc = of_get_drm_display_mode(lcd_node, &info->mode, 0,
 				     OF_USE_NATIVE_MODE);
 	if (rc) {
