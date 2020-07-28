@@ -14,6 +14,24 @@
 		ranges;
 
 		/* must be 64M aligned */
+		smem_reserved: sipc-mem@87800000{
+			reg = <0x0 0x87800000 0x0 0x00800000>;
+		};
+
+		sensorhub_reserved: sensorhub-mem@88000000 {
+			reg = <0x0 0x88000000 0x0 0x01000000>;
+		};
+
+		cp_reserved: cp-modem@89600000 {
+			reg = <0x0 0x89600000 0x0 0x04700000>;
+		};
+
+		/* Only used for iq, will be removed in normal mode by uboot */
+		iq_reserved: iq-mem@98100000{
+			compatible = "sprd,iq-mem";
+			reg = <0x0 0x90000000 0x0 0x4000000>;
+		};
+
 		sml_reserved: sml-mem@b0000000 {
 			reg = <0x0 0xb0000000 0x0 0x00020000>;
 		};

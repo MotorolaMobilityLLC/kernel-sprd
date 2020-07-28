@@ -310,6 +310,19 @@
 				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
+			aon_mailbox: mailbox@641c0000 {
+				compatible = "sprd,mailbox";
+				reg = <0 0x641c0000 0 0x40000>;
+				syscons = <&aon_apb_regs 0x4 0x4>;
+				syscon-names = "clk";
+				interrupts = <GIC_SPI 82 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 84 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,sensor = <6>;
+				sprd,core-cnt = <9>;
+				sprd,version = <0x200>;
+			};
+
 			adi_bus: spi@64200000 {
 				compatible = "sprd,qogirl6-adi",
 						"sprd,sharkl5Pro-adi";

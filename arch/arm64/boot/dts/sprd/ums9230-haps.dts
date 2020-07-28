@@ -9,6 +9,7 @@
 
 #include "ums9230-haps.dtsi"
 #include "ums9230-haps-mach.dtsi"
+#include "ums9230-haps-modem.dtsi"
 
 / {
 	model = "Spreadtrum UMS9230 Haps SoC";
@@ -30,6 +31,12 @@
 
 	chosen: chosen {
 		stdout-path = "serial1:115200n8";
+	};
+
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
 	};
 };
 

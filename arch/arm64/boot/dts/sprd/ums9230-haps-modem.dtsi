@@ -34,12 +34,12 @@
 		scproc_pubpm: scproc@62010000 {
 			sprd,name = "pmic";
 			/* 0xff is invalid register offset */
-			syscon0 = <&aon_apb_regs 0xff 0x0>;
-			syscon1 = <&pmu_apb_regs 0xff 0x100000>;
-			syscon2 = <&aon_apb_regs 0x8c 0x1>;
-			syscon3 = <&aon_apb_regs 0xff 0x0>;
-			syscon4 = <&aon_apb_regs 0xff 0x0>;
-			syscon5 = <&pmu_apb_regs 0xb88 0x18>;
+			syscons = <&aon_apb_regs 0xff 0x0>,
+					<&pmu_apb_regs 0xff 0x100000>,
+					<&aon_apb_regs 0x8c 0x1>,
+					<&aon_apb_regs 0xff 0x0>,
+					<&aon_apb_regs 0xff 0x0>,
+					<&pmu_apb_regs 0xb88 0x18>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
 					"sysreset", "getstatus", "dspreset";
 			reg = <0x0 0x62010000 0x0 0x4E000>,
@@ -63,15 +63,15 @@
 			};
 		};
 
-		scproc_pubcp: scproc@0x65003400 {
+		scproc_pubcp: scproc@65003400 {
 			sprd,decoup = "cproc-use-decoup";
 			sprd,name = "cptl";
 			/* 0xff is invalid register offset */
-			syscon0 = <&pmu_apb_regs 0x330 0x2000000>;
-			syscon1 = <&pmu_apb_regs 0x818 0x2>;
-			syscon2 = <&aon_apb_regs 0x174 0x400>;
-			syscon3 = <&pmu_apb_regs 0xb98 0x800>;
-			syscon4 = <&aon_apb_regs 0xff 0x0>;
+			syscons = <&pmu_apb_regs 0x330 0x2000000>,
+					<&pmu_apb_regs 0x818 0x2>,
+					<&aon_apb_regs 0x174 0x400>,
+					<&pmu_apb_regs 0xb98 0x800>,
+					<&aon_apb_regs 0xff 0x0>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
 						"sysreset", "getstatus";
 			reg = <0x0 0x65003400 0x0 0x1000>;
@@ -87,11 +87,11 @@
 			sprd,smem-info = <0x87800000 0x87800000 0x800000>;
 		};
 
-		sipc1: sipc@d000 {
+		sipc1: sipc@6500a400 {
 			sprd,name = "sipc-pmsys";
 			sprd,dst = <6 1 6>; /* <dst core-id> */
 			/* <ap-addr dst-maped-addr size> */
-			sprd,smem-info = <0xdc00 0x2000bc00 0x2000>,
+			sprd,smem-info = <0x6500a400 0x2000a400 0x2000>,
 					<0x88000000 0x18000000 0x40000>;
 		};
 	};
