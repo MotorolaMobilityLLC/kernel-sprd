@@ -16,7 +16,8 @@
 
 #include"cabc_definition.h"
 
-void backlight_decision(int *hist_cabc, struct bl_out_tag *bl);
+void backlight_decision(int *hist_cabc, struct bl_out_tag *bl,
+			int cabc_percent_thr);
 void backlight_fix_ui(struct bl_out_tag *bl,
 	u8 *s_step2, u8 step0, u8 step1, u8 step2, u8 scene_flag,
 	int hist_num, int change_num_diff, u8 *change_cnt);

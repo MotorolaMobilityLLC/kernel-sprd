@@ -81,14 +81,15 @@ u8 gen_step2(int cur_pre, int pre_pre2, int pre2_pre3, int scene_flag,
 	return temp_step2;
 }
 
-void backlight_decision(int *hist_cabc, struct bl_out_tag *bl)
+void backlight_decision(int *hist_cabc, struct bl_out_tag *bl,
+			int cabc_percent_thr)
 {
 	int i;
 
 	bl->cur = g_min_backlight;
 	for (i = 0; i < 32; i++) {
-		if ((hist_cabc[i] * 100) >= (hist_cabc[28] *
-			g_cabc_percent_th)) {
+		if ((hist_cabc[i] * 100) > (hist_cabc[28] *
+			cabc_percent_thr)) {
 			bl->cur = g_brightness_step[i];
 			break;
 		}

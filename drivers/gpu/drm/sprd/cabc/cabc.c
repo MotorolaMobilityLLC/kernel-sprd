@@ -22,7 +22,6 @@ int s_hist_cabc_diff[2][HIST_BIN_CABC];
 int s_scene_detect_thr = 30;
 struct cabc_context_tag s_cabc_ctx;
 u8 s_pre_video_mode;
-int g_cabc_percent_th = 10;
 int g_cabc_percent_th_u;
 int g_cabc_percent_th_v = 3;
 u8 s_scene_change;
@@ -110,6 +109,7 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 	}
 
 	if ((para->video_mode == 0) || (para->video_mode == 2)) {
+		backlight_decision(hist_pre, bl_ptr, g_cabc_percent_th_u);
 		if (s_pre_video_mode == 1)
 			bl_ptr->pre_fix_ui = bl_ptr->pre_fix_video + 20;
 		if (frame_no == 1) {
@@ -126,6 +126,7 @@ int cabc_trigger(struct cabc_para *para, int frame_no)
 		compensation_gain(bl_ptr->cur_fix_ui / 4, &s_gain);
 		bl_ptr->pre_fix_ui = bl_ptr->cur_fix_ui;
 	} else {
+		backlight_decision(hist_pre, bl_ptr, g_cabc_percent_th_v);
 		if ((s_pre_video_mode == 0) || (s_pre_video_mode == 2))
 			bl_ptr->pre_fix_video = bl_ptr->pre_fix_ui;
 		if (frame_no == 1) {
