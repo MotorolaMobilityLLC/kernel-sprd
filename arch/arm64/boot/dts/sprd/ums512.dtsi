@@ -587,6 +587,26 @@
 			<&ap_clk CLK_VSP>;
 };
 
+&jpg {
+	clock-names = "jpg_domain_eb",
+			"jpg_dev_eb",
+			"jpg_ckg_eb",
+			"jpg_clk",
+			"clk_src_76m8",
+			"clk_src_128m",
+			"clk_src_256m",
+			"clk_src_384m";
+
+	clocks = <&aonapb_gate CLK_MM_EB>,
+		<&mm_gate CLK_MM_JPG_EB>,
+		<&mm_gate CLK_MM_CKG_EB>,
+		<&mm_clk CLK_JPG>,
+		<&pll2 CLK_TWPLL_76M8>,
+		<&pll2 CLK_TWPLL_128M>,
+		<&pll2 CLK_TWPLL_256M>,
+		<&pll2 CLK_TWPLL_384M>;
+};
+
 &dsi {
 	clock-names = "clk_ap_ahb_dsi_eb";
 	clocks = <&apahb_gate CLK_DSI_EB>;

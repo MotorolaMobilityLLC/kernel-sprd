@@ -452,6 +452,14 @@
 	vbus-supply = <&vddvbus>;
 };
 
+&jpg {
+	status = "okay";
+};
+
+&iommu_jpg {
+	status = "okay";
+};
+
 &lcd_td4310_truly_mipi_fhd {
 	sprd,phy-bit-clock = <1104000>;  /* kbps */
 };

@@ -583,6 +583,34 @@
 				status = "disabled";
 			};
 
+
+			jpg: jpg-codec@62700000 {
+				compatible = "sprd,sharkl5pro-jpg";
+				reg = <0 0x62700000 0 0xc000>;
+				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
+				reset-syscon = <&mm_ahb_regs
+					REG_MM_AHB_RF_AHB_RST
+					MASK_MM_AHB_RF_JPG_SOFT_RST>;
+				aon-apb-eb-syscon = <&aon_apb_regs
+					REG_AON_APB_RF_APB_EB0
+					MASK_AON_APB_RF_MM_EB>;
+				iommus = <&iommu_jpg>;
+				power-domains = <&mm_domain>;
+				/*sprd,qos = <&jpg_qos>;*/
+				status = "disabled";
+			};
+
+			iommu_jpg: iommu@62700300 {
+				compatible = "sprd,iommuvaul5p-jpg";
+				reg = <0x0 0x62700300 0x0 0x80>,
+					<0x0 0x62700300 0x0 0x80>;
+				iova-base = <0x60000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
 			cpp: cpp@62800000 {
 				compatible = "sprd,cpp";
 				reg = <0 0x62800000 0 0x1000>;
