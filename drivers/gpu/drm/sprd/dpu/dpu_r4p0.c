@@ -34,6 +34,13 @@
 
 #define SLP_BRIGHTNESS_THRESHOLD 0x20
 
+#define CABC_MODE_UI			(1 << 2)
+#define CABC_MODE_GAME			(1 << 3)
+#define CABC_MODE_VIDEO			(1 << 4)
+#define CABC_MODE_IMAGE			(1 << 5)
+#define CABC_MODE_CAMERA		(1 << 6)
+#define CABC_MODE_FULL_FRAME		(1 << 7)
+
 struct layer_reg {
 	u32 addr[4];
 	u32 ctrl;
@@ -315,7 +322,8 @@ static int cabc_step0 = 8;
 static int cabc_step1 = 72;
 static int cabc_step2 = 28;
 static int cabc_scene_change_thr = 80;
-static int cabc_percent_thr = 10;
+static int cabc_percent_thr_u;
+static int cabc_percent_thr_v = 2;
 static int cabc_min_backlight = 408;
 static int cabc_bl_set_delay;
 static struct cabc_para cabc_para;
@@ -334,7 +342,8 @@ module_param(cabc_step0, int, 0644);
 module_param(cabc_step1, int, 0644);
 module_param(cabc_step2, int, 0644);
 module_param(cabc_scene_change_thr, int, 0644);
-module_param(cabc_percent_thr, int, 0644);
+module_param(cabc_percent_thr_u, int, 0644);
+module_param(cabc_percent_thr_v, int, 0644);
 module_param(cabc_bl_set_delay, int, 0644);
 module_param(cabc_min_backlight, int, 0644);
 
@@ -1687,6 +1696,13 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		return;
 	case ENHANCE_CFG_ID_CABC_MODE:
 		p = param;
+
+		if (*p & CABC_MODE_UI)
+			cabc_para.video_mode = 0;
+		else if (*p & CABC_MODE_FULL_FRAME)
+			cabc_para.video_mode = 1;
+		else if (*p & CABC_MODE_VIDEO)
+			cabc_para.video_mode = 2;
 		pr_info("enhance CABC mode: 0x%x\n", *p);
 		return;
 	default:
@@ -2067,7 +2083,6 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 	struct cm_cfg cm;
 	int i;
 	struct device_node *backlight_node;
-	static unsigned long vsp_pmu_addr;
 
 	if (cabc_disable) {
 		if (cabc_disable == CABC_STOPPING) {
@@ -2100,8 +2115,6 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 			}
 		}
 
-		vsp_pmu_addr = (unsigned long)ioremap_nocache(0x327E00BC, 4);
-
 		reg->dpu_enhance_cfg |= BIT(3);
 		reg->dpu_enhance_cfg |= BIT(8);
 		enhance_en |= BIT(3);
@@ -2119,14 +2132,9 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 			udelay(1);
 		}
 
-		if ((*(unsigned int *)vsp_pmu_addr) & 0x0000ff00)
-			cabc_para.is_VSP_working = false;
-		else
-			cabc_para.is_VSP_working = true;
-
 		step_set(cabc_step0, cabc_step1, cabc_step2,
-			cabc_scene_change_thr, cabc_percent_thr,
-			cabc_min_backlight);
+			cabc_scene_change_thr, cabc_percent_thr_u,
+			cabc_percent_thr_v, cabc_min_backlight);
 		cabc_trigger(&cabc_para, frame_no);
 
 		memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
