@@ -63,7 +63,7 @@
 			};
 		};
 
-		scproc_pubcp: scproc@0x65003400 {
+		scproc_pubcp: scproc@65003400 {
 			sprd,decoup = "cproc-use-decoup";
 			sprd,name = "cptl";
 			/* 0xff is invalid register offset */
