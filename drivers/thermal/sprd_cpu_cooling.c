@@ -596,10 +596,10 @@ static int  cpu_cooling_unregister(struct thermal_cooling_device *cdev)
 	if (!cdev)
 		return -ENODEV;
 
+	cpu_cdev = cdev->devdata;
 #ifdef CONFIG_SPRD_CORE_CTL
 	cancel_delayed_work_sync(&cpu_cdev->isolate_work);
 #endif
-	cpu_cdev = cdev->devdata;
 	thermal_cooling_device_unregister(cpu_cdev->cdev);
 	ida_simple_remove(&cpu_ida, cpu_cdev->id);
 	kfree(cpu_cdev->table);
@@ -797,7 +797,7 @@ static void get_core_temp(int cluster_id, int cpu, int *temp)
 #ifdef CONFIG_SPRD_CORE_CTL
 static int get_min_temp_isolated_core(int cluster_id, int cpu, int *temp)
 {
-	int i, ret, min_temp = 0, id = -1, first, find;
+	int i, ret, min_temp = 0, id = -1, first, find = 0;
 	struct thermal_zone_device *tz = NULL;
 	struct cluster_power_coefficients *cpc;
 	int sensor_temp[MAX_SENSOR_NUMBER];
@@ -848,7 +848,7 @@ static int get_min_temp_isolated_core(int cluster_id, int cpu, int *temp)
 
 static int get_min_temp_unisolated_core(int cluster_id, int cpu, int *temp)
 {
-	int i, ret, min_temp = 0, id = -1, first, find;
+	int i, ret, min_temp = 0, id = -1, first, find = 0;
 	struct thermal_zone_device *tz = NULL;
 	struct cluster_power_coefficients *cpc;
 	int sensor_temp[MAX_SENSOR_NUMBER];
