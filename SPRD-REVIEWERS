@@ -183,8 +183,28 @@ T: usb:musb:
 T: usb:misc:
 T: usb:phy:
 
-[ninafu.bai]
+[nianfu.bai]
 R: +2
+T: arm:dts:
+T: arm:configs:
+T: arm:topology:
+T: arm64:dts:
+T: arm64:configs:
+T: arm64:topology:
+T: arm64:kernel:
+T: x86:topology:
+T: clocksource:sprd:
+T: irqchip:
+T: soc:sprd:irq:
+T: cpuidle:
+T: time:
+T: printk:
+T: include:
+T: scripts:dtc:
+T: scripts:sprd:
+T: trace:
+T: Documentation:
+T: sprd-diffconfig:
 
 [orson.zhai]
 R: +2
