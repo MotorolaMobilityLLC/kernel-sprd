@@ -9,7 +9,8 @@ Required properties:
   "sprd,sc9860-gpio",
   "sprd,sharkle-gpio",
   "sprd,pike2-gpio",
-  "sprd,sharkl5pro-gpio".
+  "sprd,sharkl5pro-gpio",
+  "sprd,qogirl6-gpio".
 - reg: Define the base and range of the I/O address space containing
 the GPIO controller registers.
 - gpio-controller: Marks the device node as a GPIO controller.

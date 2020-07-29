@@ -45,6 +45,10 @@ Required properties:
   "sprd,sharkl5pro-eic-latch",
   "sprd,sharkl5pro-eic-async",
   "sprd,sharkl5pro-eic-sync",
+  "sprd,qogirl6-eic-debounce",
+  "sprd,qogirl6-eic-latch",
+  "sprd,qogirl6-eic-async",
+  "sprd,qogirl6-eic-sync",
   "sprd,sc27xx-eic".
 - reg: Define the base and range of the I/O address space containing
   the GPIO controller registers.
