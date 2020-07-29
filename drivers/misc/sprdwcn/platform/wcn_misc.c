@@ -26,6 +26,7 @@
 #include "../include/wcn_dbg.h"
 
 static struct atcmd_fifo s_atcmd_owner;
+static struct wcn_tm tm;
 static unsigned long int s_marlin_bootup_time;
 
 void mdbg_atcmd_owner_init(void)
@@ -82,7 +83,7 @@ void mdbg_atcmd_clean(void)
  * We'd better send all of the ATCMD with this function
  * or caused WCND error
  */
-long int mdbg_send_atcmd(char *buf, long int len, enum atcmd_owner owner)
+long int mdbg_send_atcmd(char *buf, size_t len, enum atcmd_owner owner)
 {
 	long int sent_size = 0;
 
@@ -129,7 +130,6 @@ static void wcn_gmtime(struct timespec *tv, struct wcn_tm *tm)
 char *wcn_get_kernel_time(void)
 {
 	struct timespec now;
-	struct wcn_tm tm;
 	static char aptime[64];
 
 	/* get ap kernel time and transfer to China-BeiJing Time */

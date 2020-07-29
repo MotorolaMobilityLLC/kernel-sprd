@@ -46,7 +46,7 @@ enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 {
 	u32 aon_chip_id;
 	u32 version_id;
-	int i;
+	u32 i;
 	struct regmap *regmap;
 
 	if (unlikely(!s_wcn_device.btwf_device))

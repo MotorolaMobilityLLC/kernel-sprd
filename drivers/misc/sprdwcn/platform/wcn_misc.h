@@ -44,18 +44,18 @@ struct atcmd_fifo {
 };
 
 struct wcn_tm {
-	int tm_msec;    /* mili seconds */
-	int tm_sec;     /* seconds */
-	int tm_min;     /* minutes */
-	int tm_hour;    /* hours */
-	int tm_mday;    /* day of the month */
-	int tm_mon;     /* month */
-	int tm_year;    /* year */
+	long tm_msec;    /* mili seconds */
+	long tm_sec;     /* seconds */
+	long tm_min;     /* minutes */
+	long tm_hour;    /* hours */
+	long tm_mday;    /* day of the month */
+	long tm_mon;     /* month */
+	long tm_year;    /* year */
 };
 
 void mdbg_atcmd_owner_init(void);
 void mdbg_atcmd_owner_deinit(void);
-long int mdbg_send_atcmd(char *buf, long int len, enum atcmd_owner owner);
+long int mdbg_send_atcmd(char *buf, size_t len, enum atcmd_owner owner);
 enum atcmd_owner mdbg_atcmd_owner_peek(void);
 void mdbg_atcmd_clean(void);
 /* AP notify BTWF time by at+aptime=... cmd */

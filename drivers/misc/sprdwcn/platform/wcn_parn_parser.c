@@ -160,7 +160,7 @@ static struct dir_context ctx =  {
 
 int parse_firmware_path(char *firmware_path)
 {
-	u32 ret = -1;
+	u32 ret;
 	u32 loop;
 	struct file *file1;
 

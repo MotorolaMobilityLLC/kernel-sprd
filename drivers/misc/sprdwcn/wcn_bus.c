@@ -21,9 +21,9 @@
 #define pr_fmt(fmt) "WCN BUS: " fmt
 
 struct buffer_pool_t {
-	int size;
-	int free;
-	int payload;
+	unsigned int size;
+	unsigned int free;
+	unsigned int payload;
 	void *head;
 	char *mem;
 	spinlock_t lock;

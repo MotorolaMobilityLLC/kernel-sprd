@@ -311,9 +311,9 @@ struct wcn_dump_head_info {
 	struct wcn_dump_section_info section[0];
 } __packed;
 
-static int wcn_fill_dump_head_info(struct wcn_dump_mem_reg *mem_cfg, int cnt)
+static int wcn_fill_dump_head_info(struct wcn_dump_mem_reg *mem_cfg, size_t cnt)
 {
-	int i, len, head_len;
+	unsigned int i, len, head_len;
 	struct wcn_dump_mem_reg *mem;
 	struct wcn_dump_head_info *head;
 	struct wcn_dump_section_info *sec;

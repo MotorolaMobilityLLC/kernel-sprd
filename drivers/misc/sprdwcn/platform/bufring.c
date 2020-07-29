@@ -61,7 +61,7 @@ bool mdbg_ring_over_loop(struct mdbg_ring_t *ring, u_long len, int rw)
 	return false;
 }
 
-struct mdbg_ring_t *mdbg_ring_alloc(long int size)
+struct mdbg_ring_t *mdbg_ring_alloc(unsigned long int size)
 {
 	struct mdbg_ring_t *ring = NULL;
 
@@ -127,9 +127,9 @@ void mdbg_ring_destroy(struct mdbg_ring_t *ring)
 
 int mdbg_ring_read(struct mdbg_ring_t *ring, void *buf, int len)
 {
-	int len1, len2 = 0;
-	int cont_len = 0;
-	int read_len = 0;
+	unsigned int len1, len2 = 0;
+	long cont_len = 0;
+	unsigned int read_len = 0;
 	char *pstart = NULL;
 	char *pend = NULL;
 	static unsigned int total_len;
@@ -340,7 +340,7 @@ char *mdbg_ring_write_ext(struct mdbg_ring_t *ring, long int len)
 	return wp;
 }
 
-inline bool mdbg_ring_will_full(struct mdbg_ring_t *ring, int len)
+inline bool mdbg_ring_will_full(struct mdbg_ring_t *ring, long int len)
 {
 	return (len > mdbg_ring_free_space(ring));
 }

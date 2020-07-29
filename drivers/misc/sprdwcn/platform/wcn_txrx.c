@@ -173,13 +173,13 @@ long mdbg_content_len(void)
 }
 
 static long int mdbg_comm_write(char *buf,
-				long int len, unsigned int subtype)
+				size_t len, unsigned int subtype)
 {
 	unsigned char *send_buf = NULL;
 	char *str = NULL;
 	struct mbuf_t *head, *tail;
 	int num = 1;
-	int rsvlen;
+	size_t rsvlen;
 
 	if (unlikely(marlin_get_module_status() != true)) {
 		WCN_WARN("WCN module have not open\n");
@@ -273,7 +273,7 @@ static void mdbg_ring_rx_task(struct work_struct *work)
 	kfree(rx);
 }
 
-long int mdbg_send(char *buf, long int len, unsigned int subtype)
+long int mdbg_send(char *buf, size_t len, unsigned int subtype)
 {
 	long int sent_size = 0;
 
@@ -286,7 +286,7 @@ long int mdbg_send(char *buf, long int len, unsigned int subtype)
 }
 EXPORT_SYMBOL_GPL(mdbg_send);
 
-long int mdbg_receive(void *buf, long int len)
+long int mdbg_receive(void *buf, int len)
 {
 	return mdbg_ring_read(ring_dev->ring, buf, len);
 }

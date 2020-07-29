@@ -138,9 +138,9 @@ struct wcn_dump_head_info {
 	struct wcn_dump_section_info section[0];
 } __packed;
 
-static int wcn_fill_dump_head_info(struct wcn_dump_mem_reg *mem_cfg, int cnt)
+static int wcn_fill_dump_head_info(struct wcn_dump_mem_reg *mem_cfg, size_t cnt)
 {
-	int i, len, head_len;
+	unsigned int i, len, head_len;
 	struct wcn_dump_mem_reg *mem;
 	struct wcn_dump_head_info *head;
 	struct wcn_dump_section_info *sec;
@@ -247,7 +247,7 @@ static int mdbg_dump_cp_register_data(u32 addr, u32 len)
 
 static void mdbg_dump_ap_register(struct wcn_dump_mem_reg *mem)
 {
-	int i;
+	u32 i;
 
 	for (i = WCN_DUMP_AP_REGS_START; i <= WCN_DUMP_AP_REGS_END; i++) {
 		mdbg_dump_ap_register_data(mem[i].addr, mem[i].len);
@@ -257,7 +257,8 @@ static void mdbg_dump_ap_register(struct wcn_dump_mem_reg *mem)
 
 static void mdbg_dump_cp_register(struct wcn_dump_mem_reg *mem)
 {
-	int i, count;
+	u32 i;
+	int count;
 
 	for (i = WCN_DUMP_CP2_REGS_START; i <= WCN_DUMP_CP2_REGS_END; i++) {
 		count = mdbg_dump_cp_register_data(mem[i].addr, mem[i].len);
@@ -267,7 +268,8 @@ static void mdbg_dump_cp_register(struct wcn_dump_mem_reg *mem)
 
 static void mdbg_dump_iram(struct wcn_dump_mem_reg *mem)
 {
-	int i, count;
+	u32 i;
+	int count;
 
 	for (i = WCN_DUMP_CP2_IRAM_START; i <= WCN_DUMP_CP2_IRAM_END; i++) {
 		count = mdbg_dump_cp_register_data(mem[i].addr, mem[i].len);

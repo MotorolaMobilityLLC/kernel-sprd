@@ -124,8 +124,8 @@ void mdbg_pt_ring_reg(void);
 void mdbg_pt_ring_unreg(void);
 int mdbg_ring_init(void);
 void mdbg_ring_remove(void);
-long int mdbg_send(char *buf, long int len, unsigned int subtype);
-long int mdbg_receive(void *buf, long int len);
+long int mdbg_send(char *buf, size_t len, unsigned int subtype);
+long int mdbg_receive(void *buf, int len);
 int mdbg_tx_cb(int channel, struct mbuf_t *head,
 	       struct mbuf_t *tail, int num);
 long mdbg_content_len(void);
