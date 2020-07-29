@@ -195,7 +195,14 @@
 			//int-gpios = <&ap_gpio 96 0>;
 
 			sprd,wled-mode = "duty-det-analog-mode";
+			/* maximum brightness from userspace */
 			sprd,max-brightness = <255>;
+			/* minimum brightness from userspace */
+			sprd,min-brightness = <6>;
+			/* actual maximum brightness */
+			sprd,max-brightness-level = <255>;
+			/* actual minimum brightness */
+			sprd,min-brightness-level = <2>;
 		};
 	};
 };
