@@ -1,0 +1,3 @@
+config SPRD_JPG
+	tristate "SPRD jpg driver"
+	depends on ARCH_SPRD
