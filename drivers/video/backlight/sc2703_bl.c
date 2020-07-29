@@ -76,6 +76,8 @@
 #define SC2703_WLED_IN_PWM_FREQ_STD	30	/* kHz */
 #define SC2703_WLED_MAX_PWM_FREQ	35	/* kHz */
 
+#define LEVEL_MAX 255
+
 enum sc2703_wled_mode {
 	SC2703_WLED_BYPASS = 0,
 	SC2703_WLED_DIRECT = 1,
@@ -107,9 +109,12 @@ struct sc2703_bl {
 	u32 wled_idac;
 	u8 pwm_in_duty_thresh;
 	uint max_brightness;
+	uint min_brightness;
 	u8 idac_ramp_disable;
 	u8 vdac_fs_ext_r;
 	u8 vdac_sel;
+	u32 max_level;
+	u32 min_level;
 };
 
 struct i2c_sysfs {
@@ -255,6 +260,28 @@ static void sc2703_i2c_sysfs_exit(struct device *dev)
 	sysfs_remove_groups(&dev->kobj, i2c_groups);
 }
 
+static u32 sprd_backlight_normalize_map(struct sc2703_bl *bl, int brightness)
+{
+	u32 level;
+
+	level = DIV_ROUND_CLOSEST_ULL((bl->max_level - bl->min_level) *
+		(brightness - bl->min_brightness),
+		(bl->max_brightness - bl->min_brightness)) + bl->min_level;
+
+	return level;
+}
+
+static int sprd_backlight_normalize_unmap(struct sc2703_bl *bl, u32 level)
+{
+	int brightness;
+
+	brightness = DIV_ROUND_CLOSEST_ULL((level - bl->min_level) *
+			(bl->max_brightness - bl->min_brightness),
+			(bl->max_level - bl->min_level)) + bl->min_brightness;
+
+	return brightness;
+}
+
 static int sc2703_bl_set_pwm(struct sc2703_bl *bl, int brightness)
 {
 	u32 pwm_duty;
@@ -265,11 +292,14 @@ static int sc2703_bl_set_pwm(struct sc2703_bl *bl, int brightness)
 	else if (brightness < 0)
 		brightness = 0;
 
+	if (brightness > 0)
+		brightness = sprd_backlight_normalize_map(bl, brightness);
+
 	/*
 	 * The formula to convert level(from host) to pwm duty cycle as below:
 	 * pwm_duty range (0 ~ 100%) = (level * pwm_period) / MAXIMUM
 	 */
-	pwm_duty = bl->pwm->args.period * brightness / bl->max_brightness;
+	pwm_duty = bl->pwm->args.period * brightness / LEVEL_MAX;
 
 	ret = pwm_config(bl->pwm, pwm_duty, bl->pwm->args.period);
 	if (ret) {
@@ -711,6 +741,21 @@ static int sc2703_bl_parse_dt(struct device_node *np, struct sc2703_bl *bl)
 	bl->idac_ramp_disable =
 		of_property_read_bool(np, "sprd,idac-ramp-disable");
 
+	if (!of_property_read_u32(np, "sprd,min-brightness", &val))
+		bl->min_brightness = val;
+	else
+		bl->min_brightness = 0;
+
+	if (!of_property_read_u32(np, "sprd,max-brightness-level", &val))
+		bl->max_level = val;
+	else
+		bl->max_level = 255;
+
+	if (!of_property_read_u32(np, "sprd,min-brightness-level", &val))
+		bl->min_level = val;
+	else
+		bl->min_level = 0;
+
 	return 0;
 }
 
@@ -719,6 +764,7 @@ static int sc2703_backlight_probe(struct platform_device *pdev)
 	struct backlight_properties props = {};
 	struct sc2703_bl *bl;
 	int ret;
+	int val;
 
 	bl = devm_kzalloc(&pdev->dev, sizeof(*bl), GFP_KERNEL);
 	if (!bl)
@@ -758,7 +804,9 @@ static int sc2703_backlight_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	return sc2703_update_brightness(bl, props.max_brightness / 10);
+	val = sprd_backlight_normalize_unmap(bl, props.max_brightness / 10);
+
+	return sc2703_update_brightness(bl, val);
 }
 
 static int sc2703_backlight_remove(struct platform_device *pdev)
