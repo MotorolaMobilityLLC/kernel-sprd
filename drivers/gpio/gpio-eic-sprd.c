@@ -130,6 +130,7 @@ SPRD_EIC_VAR_DATA(roc1, SPRD_EIC_PER_BANK_NR * 6);
 SPRD_EIC_VAR_DATA(sharkl3, SPRD_EIC_PER_BANK_NR * 2);
 SPRD_EIC_VAR_DATA(sharkle, SPRD_EIC_PER_BANK_NR * 3);
 SPRD_EIC_VAR_DATA(pike2, SPRD_EIC_PER_BANK_NR * 2);
+SPRD_EIC_VAR_DATA(qogirl6, SPRD_EIC_PER_BANK_NR * 4);
 
 static const char *sprd_eic_label_name[SPRD_EIC_MAX] = {
 	"eic-debounce", "eic-latch", "eic-async",
@@ -762,6 +763,22 @@ static const struct of_device_id sprd_eic_of_match[] = {
 	{
 		.compatible = "sprd,pike2-eic-sync",
 		.data = &pike2_eic_sync_data,
+	},
+	{
+		.compatible = "sprd,qogirl6-eic-debounce",
+		.data = &qogirl6_eic_dbnc_data,
+	},
+	{
+		.compatible = "sprd,qogirl6-eic-latch",
+		.data = &qogirl6_eic_latch_data,
+	},
+	{
+		.compatible = "sprd,qogirl6-eic-async",
+		.data = &qogirl6_eic_async_data,
+	},
+	{
+		.compatible = "sprd,qogirl6-eic-sync",
+		.data = &qogirl6_eic_sync_data,
 	},
 	{
 		/* end of list */
