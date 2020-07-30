@@ -11791,6 +11791,15 @@ CONFIG_RT_MUTEXES
 	[must] console
 	[missing plat description] none
 	[function] Enable kernel support RCU_BOOST.
+CONFIG_RUNQLAT_TRACER_BYTEDANCY
+	[arch] arm64
+	[plat] sharkl3,sharkl5,sharkl5Pro
+	[missing plat] none
+	[field] make,code
+	[subsys] core
+	[must] user
+	[missing plat description] none
+	[function] Enable/disable trace run queue latency
 CONFIG_RWSEM_SPIN_ON_OWNER
 	[arch] all
 	[plat] all

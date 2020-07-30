@@ -41,6 +41,7 @@ obj-$(CONFIG_PREEMPT_TRACER) += trace_irqsoff.o
 obj-$(CONFIG_IRQSOFF_TRACER_BYTEDANCY) += trace_irqsoff_bytedancy.o
 obj-$(CONFIG_SCHED_TRACER) += trace_sched_wakeup.o
 obj-$(CONFIG_NOSCHEDULE_TRACER_BYTEDANCY) += trace_noschedule_bytedancy.o
+obj-$(CONFIG_RUNQLAT_TRACER_BYTEDANCY) += trace_runqlat_bytedancy.o
 obj-$(CONFIG_HWLAT_TRACER) += trace_hwlat.o
 obj-$(CONFIG_NOP_TRACER) += trace_nop.o
 obj-$(CONFIG_STACK_TRACER) += trace_stack.o

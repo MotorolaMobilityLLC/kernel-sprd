@@ -252,6 +252,16 @@ config NOSCHEDULE_TRACER_BYTEDANCY
 	  Get more info. from:
 	  github: https://github.com/bytedance/trace-noschedule
 
+config RUNQLAT_TRACER_BYTEDANCY
+	tristate "Run Queue Latency Tracer By Bytedance"
+	default m
+	help
+	  This tracer tracks the latency of target task in runqueue, from
+	  enqueue to running due to exe time of prior running tasks.
+
+	  Get more info. from:
+	  https://github.com/bytedance/trace-runqlat.
+
 config HWLAT_TRACER
 	bool "Tracer to detect hardware latencies (like SMIs)"
 	select GENERIC_TRACER
