@@ -28,9 +28,15 @@ void sprd_backlight_normalize_map(struct backlight_device *bd, u16 *level)
 {
 	struct sprd_backlight *bl = bl_get_data(bd);
 
-	*level = DIV_ROUND_CLOSEST_ULL((bl->max_level - bl->min_level) *
-		(bd->props.brightness - U_MIN_LEVEL),
-		U_MAX_LEVEL - U_MIN_LEVEL) + bl->min_level;
+	if (bd->props.brightness > bl->knee_level)
+		*level = DIV_ROUND_CLOSEST_ULL((bl->max_level
+			 - bl->knee_level) * (bd->props.brightness
+			 - bl->knee_level), U_MAX_LEVEL
+			 - bl->knee_level) + bl->knee_level;
+	else
+		*level = bd->props.brightness + DIV_ROUND_CLOSEST_ULL(
+			 (bl->max_level - bl->min_level), U_MAX_LEVEL
+			 - U_MIN_LEVEL) + bl->min_level - 1;
 }
 
 int sprd_cabc_backlight_update(struct backlight_device *bd)
@@ -119,6 +125,12 @@ static int sprd_backlight_parse_dt(struct device *dev,
 		bl->max_level = value;
 	else
 		bl->max_level = 255;
+
+	ret = of_property_read_u32(node, "sprd,knee-brightness-level", &value);
+	if (!ret)
+		bl->knee_level = value;
+	else
+		bl->knee_level = 0;
 
 	ret = of_property_read_u32(node, "sprd,min-brightness-level", &value);
 	if (!ret)
