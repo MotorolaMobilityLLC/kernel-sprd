@@ -910,6 +910,10 @@
 				#pwm-cells = <2>;
 			      };
 
+			sprd_hardware_cpufreq: hardware-dvfs-platform {
+				compatible = "sprd,hardware-cpufreq";
+			};
+
 			topdvfs_controller: topdvfsctrl@322a0000 {
 				compatible = "sprd,sharkl5pro-topdvfs";
 				reg = <0 0x322a0000 0 0x8000>;
