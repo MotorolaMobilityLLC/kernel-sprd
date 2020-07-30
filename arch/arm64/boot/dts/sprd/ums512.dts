@@ -13,6 +13,8 @@
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
 #include "ums512-mach.dtsi"
+#include "ums512-t610dvfs.dtsi"
+#include "ums512-t618dvfs.dtsi"
 
 / {
 	model = "Spreadtrum UMS512-1H10 SoC";
