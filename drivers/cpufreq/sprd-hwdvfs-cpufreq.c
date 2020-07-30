@@ -30,7 +30,7 @@ static unsigned long boot_done_timestamp;
 static struct sprd_cpufreq_info *global_cpufreq_info;
 
 static const struct of_device_id sprd_hardware_cpufreq_of_match[] = {
-	{.compatible = "sprd-hw-cpufreq",},
+	{.compatible = "sprd,hardware-cpufreq",},
 	{},
 };
 
@@ -752,6 +752,7 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 	mutex_unlock(&info->pcluster->opp_mutex);
 
 	policy->dvfs_possible_from_any_cpu = true;
+	dev_pm_opp_of_register_em(policy->cpus);
 	policy->driver_data = info;
 
 #if defined(CONFIG_DEBUG_FS)

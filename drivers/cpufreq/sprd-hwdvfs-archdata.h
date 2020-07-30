@@ -164,12 +164,6 @@ extern int default_dcdc_volt_update(struct regmap *map, struct reg_info *regs,
 extern u32 default_cycle_calculate(u32 max_val_uV, u32 slew_rate,
 				   u32 module_clk_hz, u32 margin_us);
 
-#ifdef CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS312
-extern const struct dvfs_private_data ums312_dvfs_private_data;
-#elif defined CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS512
-extern const struct dvfs_private_data ums512_dvfs_private_data;
-#endif
-
 extern struct dvfs_cluster global_host_cluster[] __weak;
 extern struct dvfs_cluster global_slave_cluster[] __weak;
 #endif

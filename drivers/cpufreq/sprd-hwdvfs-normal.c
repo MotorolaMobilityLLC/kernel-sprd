@@ -32,19 +32,18 @@
 #include <linux/printk.h>
 #include "sprd-hwdvfs-normal.h"
 
+const struct dvfs_private_data ums312_dvfs_private_data __weak;
+const struct dvfs_private_data ums512_dvfs_private_data __weak;
+
 static const struct of_device_id sprd_cpudvfs_of_match[] = {
-#ifdef CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS312
 	{
 		.compatible = "sprd,sharkl5-cpudvfs",
 		.data = &ums312_dvfs_private_data,
 	},
-#endif
-#ifdef CONFIG_ARM_SPRD_HW_CPUFREQ_ARCH_UMS512
 	{
 		.compatible = "sprd,sharkl5pro-cpudvfs",
 		.data = &ums512_dvfs_private_data,
 	},
-#endif
 	{
 		/* Sentinel */
 	},
