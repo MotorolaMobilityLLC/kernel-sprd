@@ -110,9 +110,9 @@
 			reg = <0x0 0x80000000 0x0 0x00001000>;
 		};
 
-		rebootescrow@0x833f0000 {
+		rebootescrow@0x81ff0000 {
 			no-map;
-			reg = <0x0 0x833f0000 0x0 0x00010000>; /* 64K */
+			reg = <0x0 0x81ff0000 0x0 0x00010000>; /* 64K */
 		};
 
 		audio_reserved: audio-mem@87400000 {
