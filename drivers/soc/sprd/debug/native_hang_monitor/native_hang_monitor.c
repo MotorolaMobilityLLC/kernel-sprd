@@ -21,6 +21,7 @@
 #include <linux/sched.h>
 #include <linux/sched/types.h>
 #include <linux/sched/task_stack.h>
+#include <linux/sched/mm.h>
 #include <linux/kthread.h>
 #include <linux/ptrace.h>
 #include <asm/stacktrace.h>
@@ -238,7 +239,8 @@ static void save_native_maps(struct vm_area_struct *vma, struct task_struct *cur
 {
 	int mapcount = 0;
 
-	while (vma && current_task && (mapcount < current_task->mm->map_count)) {
+	while (vma && current_task && (current_task->mm) && (mapcount < current_task->mm->map_count)) {
+		mmgrab(current_task->mm);
 		if (vma->vm_file) {
 			save_maps(vma, (unsigned char *)(vma->vm_file->f_path.dentry->d_name.name));
 		} else {
@@ -246,6 +248,7 @@ static void save_native_maps(struct vm_area_struct *vma, struct task_struct *cur
 		}
 		vma = vma->vm_next;
 		mapcount++;
+		mmdrop(current_task->mm);
 	}
 
 }
@@ -263,11 +266,6 @@ static int save_native_thread_maps(pid_t pid)
 	user_ret = task_pt_regs(current_task);
 	if (!user_mode(user_ret)) {
 		pr_err(" %s,%d:%s: in user_mode", __func__, pid, current_task->comm);
-		return -1;
-	}
-
-	if (current_task->mm == NULL) {
-		pr_err(" %s,%d:%s: current_task->mm == NULL", __func__, pid, current_task->comm);
 		return -1;
 	}
 
@@ -659,12 +657,15 @@ static long monitor_hang_ioctl(struct file *file, unsigned int cmd,  unsigned lo
 			break;
 	case SF_WDT_CTRL_SET_PARA:
 			surfaceflinger_status = (int)arg;
-			pr_debug("set surfaceflinger[status]: 0x%x", surfaceflinger_status);
+			pr_debug("set surfaceflinger[status]: 0x%x\n", surfaceflinger_status);
 			break;
 	case SF_WDT_CTRL_GET_PARA:
 			if (copy_to_user((void __user *)arg, &surfaceflinger_status, sizeof(int)))
 				ret = -1;
-			pr_debug("get surfaceflinger[status]: 0x%x", surfaceflinger_status);
+			pr_debug("get surfaceflinger[status]: 0x%x\n", surfaceflinger_status);
+			break;
+	default:
+			pr_debug("do not support cmd\n");
 	}
 	return ret;
 }
@@ -708,7 +709,6 @@ static int monitor_hang_proc_open(struct inode *inode, struct file *file)
 static ssize_t monitor_hang_proc_write(struct file *filp, const char *buf, size_t count, loff_t *data)
 {
 	char write_buf[5] = {0};
-	unsigned char *name = "native_hang_detect";
 
 	pr_debug("%s in!!\n", __func__);
 	if (count) {
@@ -719,18 +719,18 @@ static ssize_t monitor_hang_proc_write(struct file *filp, const char *buf, size_
 		write_buf[count] = '\0';
 
 		if (!strncmp(write_buf, "on", 2)) {
-			pr_err("%s copy_from_user fail !!\n", __func__);
+			pr_err("%s copy_from_user on !!\n", __func__);
 
 			/*	create hang detect thread */
 			if (!hang_detect_enabled) {
 				pr_debug("%s:create hang_detect_thread !\n", __func__);
-				hd_thread = kthread_run(hang_detect_thread, NULL, name);
+				hd_thread = kthread_run(hang_detect_thread, NULL, "native_hang_detect");
 				hang_detect_enabled = 1;
 			} else {
 				pr_debug("%s:hang_detect_thread already run !\n", __func__);
 			}
 		} else if (!strncmp(write_buf, "off", 3)) {
-			pr_err("%s copy_from_user fail !!\n", __func__);
+			pr_err("%s copy_from_user off !!\n", __func__);
 			/*	stop &  hang detect thread */
 			if (!hang_detect_enabled) {
 				pr_debug("%s:hang_detect_thread already stop !\n", __func__);
