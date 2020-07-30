@@ -17,9 +17,6 @@
 #include <linux/pm_opp.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
-#ifdef HW_HWFEATURE
-#include <linux/soc/sprd/hwfeature.h>
-#endif
 #include <linux/types.h>
 #include <linux/of_platform.h>
 #include "sprd-hwdvfs-cpufreq.h"
@@ -414,10 +411,11 @@ out:
 }
 EXPORT_SYMBOL_GPL(sprd_cpufreq_update_opp);
 
-#ifdef HW_HWFEATURE
 static int sprd_cpu_soc_version_parse(struct sprd_cpufreq_info *info)
 {
 	struct sprd_cpu_cluster_info *clu;
+	struct device_node *hwf;
+	const char *value;
 	char str[30];
 
 	if (!info || !info->pcluster) {
@@ -442,14 +440,21 @@ static int sprd_cpu_soc_version_parse(struct sprd_cpufreq_info *info)
 	 * Note: We distinguish cpu as 3 kinds in UMS512, t610/t618/t610s
 	 * you can distinguish other types here
 	 */
-	sprd_kproperty_get("auto/efuse", clu->cpu_diff_ver, "-1");
-	if (strcmp(clu->cpu_diff_ver, "T610") &&
-	    strcmp(clu->cpu_diff_ver, "T618") &&
-	    strcmp(clu->cpu_diff_ver, "T610S")) {
+	hwf = of_find_node_by_path("/hwfeature/auto");
+	if (IS_ERR_OR_NULL(hwf)) {
+		pr_err("NO hwfeature/auto node found\n");
+		return PTR_ERR(hwf);
+	}
+
+	value = of_get_property(hwf, "efuse", NULL);
+	if (strcmp(value, "T610") && strcmp(value, "T618") &&
+	    strcmp(value, "T610S")) {
 		dev_err(info->pdev, "the cpu version defined is error(%s)\n",
 			clu->cpu_diff_ver);
 		return -EINVAL;
 	}
+
+	strcpy(clu->cpu_diff_ver, value);
 
 	dev_info(info->pdev, "the cpu version: %s\n", clu->cpu_diff_ver);
 
@@ -459,7 +464,6 @@ static int sprd_cpu_soc_version_parse(struct sprd_cpufreq_info *info)
 
 	return 0;
 }
-#endif
 
 static int sprd_cpu_binning_parse(struct sprd_cpufreq_info *info)
 {
@@ -712,11 +716,10 @@ static int sprd_hardware_cpufreq_init(struct cpufreq_policy *policy)
 		ret = sprd_cpu_cluster_static_init(info->pdev, clu);
 		if (ret)
 			return ret;
-#ifdef HW_HWFEATURE
+
 		ret = sprd_cpu_soc_version_parse(info);
 		if (ret)
 			return ret;
-#endif
 
 		ret = sprd_cpu_binning_parse(info);
 		if (ret)
