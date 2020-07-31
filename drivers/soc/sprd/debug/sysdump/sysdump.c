@@ -460,7 +460,7 @@ static inline void sprd_debug_save_context(void)
 	sprd_debug_save_core_reg(&per_cpu
 				 (sprd_debug_core_reg, smp_processor_id()));
 
-	pr_emerg("(%s) context saved(CPU:%d)\n", __func__, smp_processor_id());
+	pr_debug("(%s) context saved(CPU:%d)\n", __func__, smp_processor_id());
 	local_irq_restore(flags);
 
 	flush_cache_all();
@@ -580,8 +580,12 @@ void sysdump_ipi(struct pt_regs *regs)
 	if (oops_in_progress) {
 		memcpy((void *)&(sprd_sysdump_extra.cpu_context[cpu]),
 		       (void *)regs, sizeof(struct pt_regs));
-		crash_note_save_cpu(regs, cpu);
-		sprd_debug_save_context();
+		if (!user_mode(regs)) {
+			crash_note_save_cpu(regs, cpu);
+			sprd_debug_save_context();
+		} else {
+			flush_cache_all();
+		}
 	}
 	return;
 }
@@ -901,40 +905,40 @@ void prepare_minidump_reg_memory(struct pt_regs *regs)
 	for (i = 0; i < minidump_info_g.regs_info.num; i++) {
 #ifdef CONFIG_ARM
 		addr = regs->uregs[i] - minidump_info_g.regs_memory_info.per_reg_memory_size / 2;
-		pr_emerg("R%d: %08lx\n", i, regs->uregs[i]);
-		pr_emerg("addr: %08lx\n", addr);
+		pr_debug("R%d: %08lx\n", i, regs->uregs[i]);
+		pr_debug("addr: %08lx\n", addr);
 		if (addr < PAGE_OFFSET || addr > -256UL) {
 #endif
 #ifdef CONFIG_ARM64
 		if (REG_SP_INDEX == i) {
 			addr = regs->sp - minidump_info_g.regs_memory_info.per_reg_memory_size / 2;
-			pr_emerg("sp: %llx\n", regs->sp);
-			pr_emerg("addr: %lx\n", addr);
+			pr_debug("sp: %llx\n", regs->sp);
+			pr_debug("addr: %lx\n", addr);
 
 		} else if (REG_PC_INDEX == i) {
 			addr = regs->pc - minidump_info_g.regs_memory_info.per_reg_memory_size / 2;
-			pr_emerg("pc: %llx\n", regs->pc);
-			pr_emerg("addr: %lx\n", addr);
+			pr_debug("pc: %llx\n", regs->pc);
+			pr_debug("addr: %lx\n", addr);
 
 		} else {
 			addr = regs->regs[i] - minidump_info_g.regs_memory_info.per_reg_memory_size / 2;
-			pr_emerg("R%d: %llx\n", i, regs->regs[i]);
-			pr_emerg("addr: %lx\n", addr);
+			pr_debug("R%d: %llx\n", i, regs->regs[i]);
+			pr_debug("addr: %lx\n", addr);
 		}
 		if (addr < KIMAGE_VADDR || addr > -256UL) {
 
 #endif
 			minidump_info_g.regs_memory_info.reg_paddr[i] = 0;
-			pr_emerg("reg value invalid !!!\n");
+			pr_debug("reg value invalid !!!\n");
 		} else {
 			minidump_info_g.regs_memory_info.reg_paddr[i] = __pa(addr);
 			minidump_info_g.regs_memory_info.valid_reg_num++;
 		}
-		pr_emerg("reg[%d] paddr: %lx\n",
+		pr_debug("reg[%d] paddr: %lx\n",
 			 i, minidump_info_g.regs_memory_info.reg_paddr[i]);
 	}
 	minidump_info_g.regs_memory_info.size = minidump_info_g.regs_memory_info.valid_reg_num * minidump_info_g.regs_memory_info.per_reg_memory_size;
-	pr_emerg("size : %d\n", minidump_info_g.regs_memory_info.size);
+	pr_debug("size : %d\n", minidump_info_g.regs_memory_info.size);
 	set_fs(fs);
 	return;
 }
@@ -942,46 +946,46 @@ void show_minidump_info(struct minidump_info *minidump_infop)
 {
 	int i;
 
-	pr_emerg("kernel_magic: %s\n ", minidump_infop->kernel_magic);
-	pr_emerg("---     regs_info       ---\n ");
-	pr_emerg("arch:              %d\n ", minidump_infop->regs_info.arch);
-	pr_emerg("num:               %d\n ", minidump_infop->regs_info.num);
-	pr_emerg("paddr:         %lx\n ", minidump_infop->regs_info.paddr);
-	pr_emerg("size:          %d\n ", minidump_infop->regs_info.size);
-	pr_emerg("---     regs_memory_info        ---\n ");
+	pr_debug("kernel_magic: %s\n ", minidump_infop->kernel_magic);
+	pr_debug("---     regs_info       ---\n ");
+	pr_debug("arch:              %d\n ", minidump_infop->regs_info.arch);
+	pr_debug("num:               %d\n ", minidump_infop->regs_info.num);
+	pr_debug("paddr:         %lx\n ", minidump_infop->regs_info.paddr);
+	pr_debug("size:          %d\n ", minidump_infop->regs_info.size);
+	pr_debug("---     regs_memory_info        ---\n ");
 	for (i = 0; i < minidump_infop->regs_info.num; i++) {
-		pr_emerg("reg[%d] paddr:          %lx\n ",
+		pr_debug("reg[%d] paddr:          %lx\n ",
 			i, minidump_infop->regs_memory_info.reg_paddr[i]);
 	}
-	pr_emerg("per_reg_memory_size:    %d\n ",
+	pr_debug("per_reg_memory_size:    %d\n ",
 		minidump_infop->regs_memory_info.per_reg_memory_size);
-	pr_emerg("valid_reg_num:          %d\n ",
+	pr_debug("valid_reg_num:          %d\n ",
 		minidump_infop->regs_memory_info.valid_reg_num);
-	pr_emerg("reg_memory_all_size:    %d\n ",
+	pr_debug("reg_memory_all_size:    %d\n ",
 		minidump_infop->regs_memory_info.size);
-	pr_emerg("---     section_info_total        ---\n ");
-	pr_emerg("Here are %d sections, Total size : %d\n",
+	pr_debug("---     section_info_total        ---\n ");
+	pr_debug("Here are %d sections, Total size : %d\n",
 		minidump_infop->section_info_total.total_num,
 		minidump_infop->section_info_total.total_size);
-	pr_emerg("total_num:        %x\n ",
+	pr_debug("total_num:        %x\n ",
 		minidump_infop->section_info_total.total_num);
-	pr_emerg("total_size        %x\n ",
+	pr_debug("total_size        %x\n ",
 		minidump_infop->section_info_total.total_size);
 	for (i = 0; i < minidump_infop->section_info_total.total_num; i++) {
-		pr_emerg("section_name:           %s\n ",
+		pr_debug("section_name:           %s\n ",
 		minidump_infop->section_info_total.section_info[i].section_name);
-		pr_emerg("section_start_vaddr:    %lx\n ",
+		pr_debug("section_start_vaddr:    %lx\n ",
 		minidump_infop->section_info_total.section_info[i].section_start_vaddr);
-		pr_emerg("section_end_vaddr:      %lx\n ",
+		pr_debug("section_end_vaddr:      %lx\n ",
 		minidump_infop->section_info_total.section_info[i].section_end_vaddr);
-		pr_emerg("section_start_paddr:    %lx\n ",
+		pr_debug("section_start_paddr:    %lx\n ",
 		minidump_infop->section_info_total.section_info[i].section_start_paddr);
-		pr_emerg("section_end_paddr:      %lx\n ",
+		pr_debug("section_end_paddr:      %lx\n ",
 		minidump_infop->section_info_total.section_info[i].section_end_paddr);
-		pr_emerg("section_size:           %x n ",
+		pr_debug("section_size:           %x n ",
 		minidump_infop->section_info_total.section_info[i].section_size);
 	}
-	pr_emerg("minidump_data_size:     %x\n ",
+	pr_debug("minidump_data_size:     %x\n ",
 		minidump_infop->minidump_data_size);
 	return;
 }
@@ -1282,27 +1286,27 @@ int minidump_init(void)
 }
 void show_exception_info(void)
 {
-	pr_emerg("kernel_magic:             %s\n ",
+	pr_debug("kernel_magic:             %s\n ",
 		minidump_info_g.exception_info.kernel_magic);
-	pr_emerg("exception_serialno:  %s\n ",
+	pr_debug("exception_serialno:  %s\n ",
 		minidump_info_g.exception_info.exception_serialno);
-	pr_emerg("exception_kernel_version: %s\n ",
+	pr_debug("exception_kernel_version: %s\n ",
 		minidump_info_g.exception_info.exception_kernel_version);
-	pr_emerg("exception_reboot_reason:  %s\n ",
+	pr_debug("exception_reboot_reason:  %s\n ",
 		minidump_info_g.exception_info.exception_reboot_reason);
-	pr_emerg("exception_panic_reason:   %s\n ",
+	pr_debug("exception_panic_reason:   %s\n ",
 		minidump_info_g.exception_info.exception_panic_reason);
-	pr_emerg("exception_time:           %s\n ",
+	pr_debug("exception_time:           %s\n ",
 		minidump_info_g.exception_info.exception_time);
-	pr_emerg("exception_file_info:      %s\n ",
+	pr_debug("exception_file_info:      %s\n ",
 		minidump_info_g.exception_info.exception_file_info);
-	pr_emerg("exception_task_id:        %d\n ",
+	pr_debug("exception_task_id:        %d\n ",
 		minidump_info_g.exception_info.exception_task_id);
-	pr_emerg("exception_task_family:      %s\n ",
+	pr_debug("exception_task_family:      %s\n ",
 		minidump_info_g.exception_info.exception_task_family);
-	pr_emerg("exception_pc_symbol:      %s\n ",
+	pr_debug("exception_pc_symbol:      %s\n ",
 		minidump_info_g.exception_info.exception_pc_symbol);
-	pr_emerg("exception_stack_info:     %s\n ",
+	pr_debug("exception_stack_info:     %s\n ",
 		minidump_info_g.exception_info.exception_stack_info);
 }
 void get_file_line_info(struct pt_regs *regs)
@@ -1314,13 +1318,13 @@ void get_file_line_info(struct pt_regs *regs)
 	if (!regs || !is_valid_bugaddr(regs->reg_pc)) {
 		snprintf(minidump_info_g.exception_info.exception_file_info,
 			EXCEPTION_INFO_SIZE_SHORT, "not-bugon");
-		pr_err("no regs  or not a bugon,do nothing\n");
+		pr_debug("no regs  or not a bugon,do nothing\n");
 		return;
 	}
 
 	bug = find_bug(regs->reg_pc);
 	if (!bug) {
-		pr_err("not a bugon, no  bug info ,do nothing\n");
+		pr_debug("not a bugon, no  bug info ,do nothing\n");
 		snprintf(minidump_info_g.exception_info.exception_file_info,
 			EXCEPTION_INFO_SIZE_SHORT, "not-bugon");
 		return;
@@ -1339,7 +1343,7 @@ void get_file_line_info(struct pt_regs *regs)
 	} else {
 		snprintf(minidump_info_g.exception_info.exception_file_info,
 			EXCEPTION_INFO_SIZE_SHORT, "not-bugon");
-		pr_err("no file info ,do nothing\n");
+		pr_debug("no file info ,do nothing\n");
 	}
 }
 void get_exception_stack_info(struct pt_regs *regs)
@@ -1453,6 +1457,16 @@ static int prepare_exception_info(struct pt_regs *regs,
 	show_exception_info();
 	return 0;
 }
+
+#ifdef CONFIG_SPRD_HANG_DEBUG
+void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason)
+{
+	/* 1    prepare minidump info */
+	prepare_minidump_info(regs);
+	prepare_exception_info(regs, NULL, reason);
+}
+EXPORT_SYMBOL(prepare_dump_info_for_wdh);
+#endif /*	CONFIG_SPRD_HANG_DEBUG end*/
 #endif  /*	minidump code end	*/
 
 static struct notifier_block sysdump_panic_event_nb = {
