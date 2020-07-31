@@ -109,6 +109,9 @@ enum smcc_regs_id {
 
 struct pt_regs cpu_context[NR_CPUS];
 static struct sprd_sip_svc_handle *svc_handle;
+#if IS_ENABLED(CONFIG_SPRD_HANG_DEBUG_UART)
+extern void sprd_hangd_console_write(const char *s, unsigned int count);
+#endif
 
 #if IS_ENABLED(CONFIG_ARM64)
 #define sprd_virt_addr_valid(kaddr) ((((void *)(kaddr) >= (void *)PAGE_OFFSET && \
@@ -132,7 +135,9 @@ static void sprd_write_print_buf(char *source, int size)
 		log_buf_pos = log_buf_pos + size - SPRD_PRINT_BUF_LEN;
 		memcpy(sprd_log_buf, source, log_buf_pos);
 	}
-
+#if IS_ENABLED(CONFIG_SPRD_HANG_DEBUG_UART)
+	sprd_hangd_console_write(source, size);
+#endif
 	log_length += size;
 }
 
