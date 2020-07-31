@@ -1327,6 +1327,25 @@ static struct platform_driver sprd_platform_driver = {
 	},
 };
 
+#ifdef CONFIG_SPRD_HANG_DEBUG_UART
+/*
+ * Add the following func for log output of sprd-hang-debug because of
+ * lockless requirement.
+ */
+void sprd_hangd_console_write(const char *s, unsigned int count)
+{
+	struct uart_port *port;
+
+	if (!sprd_uart_driver.cons || sprd_uart_driver.cons->index < 0)
+		return;
+
+	port = &sprd_port[sprd_uart_driver.cons->index]->port;
+	uart_console_write(port, s, count, sprd_console_putchar);
+	wait_for_xmitr(port);
+}
+EXPORT_SYMBOL(sprd_hangd_console_write);
+#endif
+
 module_platform_driver(sprd_platform_driver);
 
 MODULE_LICENSE("GPL v2");
