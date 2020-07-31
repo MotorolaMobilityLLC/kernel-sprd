@@ -34,6 +34,9 @@
 #define DPU_LAY_REG(reg, index) \
 	(reg + index * DPU_LAY_REG_OFFSET * DPU_REG_SIZE)
 
+#define DPU_LAY_PLANE_ADDR(reg, index, plane) \
+	(reg + index * DPU_LAY_REG_OFFSET * DPU_REG_SIZE + plane * DPU_REG_SIZE)
+
 /* Global control registers */
 #define REG_DPU_CTRL	0x04
 #define REG_DPU_CFG0	0x08
@@ -44,9 +47,7 @@
 #define REG_BG_COLOR	0x2C
 
 /* Layer0 control registers */
-#define REG_LAY_BASE_ADDR0	0x30
-#define REG_LAY_BASE_ADDR1	0x34
-#define REG_LAY_BASE_ADDR2	0x38
+#define REG_LAY_BASE_ADDR	0x30
 #define REG_LAY_CTRL		0x40
 #define REG_LAY_SIZE		0x44
 #define REG_LAY_PITCH		0x48
@@ -147,7 +148,7 @@ static u32 check_mmu_isr(struct sprd_crtc_context *ctx, u32 reg_val)
 			BIT_DPU_INT_MMU_INV_RD |
 			BIT_DPU_INT_MMU_INV_WR;
 	u32 val = reg_val & mmu_mask;
-	int i;
+	int i, j;
 
 	if (val) {
 		pr_err("iommu interrupt err: 0x%04x\n", val);
@@ -167,12 +168,19 @@ static u32 check_mmu_isr(struct sprd_crtc_context *ctx, u32 reg_val)
 
 		for (i = 0; i < 8; i++) {
 			reg_val = DPU_REG_RD(ctx->base + DPU_LAY_REG(REG_LAY_CTRL, i));
-			if (reg_val & 0x1)
-				pr_info("layer%d: 0x%08x 0x%08x 0x%08x ctrl: 0x%08x\n", i,
-					DPU_REG_RD(ctx->base + DPU_LAY_REG(REG_LAY_BASE_ADDR0, i)),
-					DPU_REG_RD(ctx->base + DPU_LAY_REG(REG_LAY_BASE_ADDR1, i)),
-					DPU_REG_RD(ctx->base + DPU_LAY_REG(REG_LAY_BASE_ADDR2, i)),
-					DPU_REG_RD(ctx->base + DPU_LAY_REG(REG_LAY_CTRL, i)));
+			if (reg_val & 0x1) {
+				for(j = 0; j < 3; j++) {
+					pr_info("layer%d: 0x%08x 0x%08x 0x%08x ctrl: 0x%08x\n", i,
+						DPU_REG_RD(ctx->base + DPU_LAY_PLANE_ADDR(
+                                                	REG_LAY_BASE_ADDR, i, j)),
+						DPU_REG_RD(ctx->base + DPU_LAY_PLANE_ADDR(
+                                                	REG_LAY_BASE_ADDR, i, j)),
+						DPU_REG_RD(ctx->base + DPU_LAY_PLANE_ADDR(
+                                                	REG_LAY_BASE_ADDR, i, j)),
+						DPU_REG_RD(ctx->base + DPU_LAY_REG(
+							REG_LAY_CTRL, i)));
+				}
+			}
 		}
 
 		/* panic("iommu panic\n"); */
@@ -607,8 +615,8 @@ static void dpu_layer(struct sprd_crtc_context *ctx,
 		if (addr % 16)
 			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
 				i, addr);
-		DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_BASE_ADDR0,
-				hwlayer->index), addr);
+		DPU_REG_WR(ctx->base + DPU_LAY_PLANE_ADDR(REG_LAY_BASE_ADDR,
+				hwlayer->index, i), addr);
 	}
 
 	DPU_REG_WR(ctx->base + DPU_LAY_REG(REG_LAY_POS,
