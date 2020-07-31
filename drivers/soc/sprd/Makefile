@@ -9,6 +9,7 @@ obj-$(CONFIG_SPRD_DEBUG)	+= debug/
 obj-$(CONFIG_SPRD_POWER_DEBUG)	+= power_debug/
 obj-$(CONFIG_SPRD_SYSDUMP)      += debug/sysdump/
 obj-$(CONFIG_SPRD_NATIVE_HANG_MONITOR)  += debug/native_hang_monitor/
+obj-$(CONFIG_SPRD_HANG_DEBUG)      += debug/hang_debug/
 obj-y				+= performance/
 obj-y				+= pub/
 obj-y				+= autotest/

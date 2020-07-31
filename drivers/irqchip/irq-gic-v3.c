@@ -1252,6 +1252,12 @@ out_unmap_dist:
 	return err;
 }
 
+unsigned long gic_get_gicd_base(void)
+{
+	return (unsigned long)gic_data.dist_base;
+}
+EXPORT_SYMBOL(gic_get_gicd_base);
+
 IRQCHIP_DECLARE(gic_v3, "arm,gic-v3", gicv3_of_init);
 
 #ifdef CONFIG_ACPI
