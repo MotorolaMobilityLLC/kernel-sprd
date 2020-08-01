@@ -91,6 +91,31 @@
 			reg = <0 0x40366000 0 0x3000>;
 		};
 
+		ap_intc0_regs: syscon@40500000 {
+			compatible = "sprd,sc9863a-glbregs", "syscon";
+			reg = <0 0x40500000 0 0x10000>;
+		};
+
+		ap_intc1_regs: syscon@40510000 {
+			compatible = "sprd,sc9863a-glbregs", "syscon";
+			reg = <0 0x40510000 0 0x10000>;
+		};
+
+		ap_intc2_regs: syscon@40520000 {
+			compatible = "sprd,sc9863a-glbregs", "syscon";
+			reg = <0 0x40520000 0 0x10000>;
+		};
+
+		ap_intc3_regs: syscon@40530000 {
+			compatible = "sprd,sc9863a-glbregs", "syscon";
+			reg = <0 0x40530000 0 0x10000>;
+		};
+
+		ap_intc4_regs: syscon@40540000 {
+			compatible = "sprd,sc9863a-glbregs", "syscon";
+			reg = <0 0x40540000 0 0x10000>;
+		};
+
 		mm_ahb_regs: syscon@60800000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
 			reg = <0 0x60800000 0 0x3000>;
@@ -104,6 +129,11 @@
 		ap_apb_regs: syscon@71300000 {
 			compatible = "sprd,sc9863a-glbregs", "syscon";
 			reg = <0 0x71300000 0 0x4000>;
+		};
+
+		ap_intc5_regs: syscon@40550000 {
+			compatible = "sprd,sc9863a-glbregs", "syscon";
+			reg = <0 0x40550000 0 0x10000>;
 		};
 
 		apb@70000000 {
