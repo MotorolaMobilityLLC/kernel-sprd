@@ -788,6 +788,18 @@ config UNIPHIER_WATCHDOG
 	  To compile this driver as a module, choose M here: the
 	  module will be called uniphier_wdt.
 
+config SPRD_WATCHDOG_FIQ
+	tristate "Spreadtrum watchdog support with FIQ ISR"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select WATCHDOG_CORE
+	help
+	  This is the fiq version driver for the hardware watchdog on
+	  sprd platform. This watchdog driver matched with the solution
+	  of AP CPU hang debug.
+
+	  Say Y here to include watchdog timer fiq version supported
+	  by Spreadtrum system.
+
 config SPRD_WATCHDOG
 	tristate "Spreadtrum watchdog support"
 	depends on ARCH_SPRD || COMPILE_TEST
