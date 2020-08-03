@@ -16,6 +16,14 @@
 				#size-cells = <2>;
 				ranges;
 
+				socko_memdisk_reserved: socko_memdisk_reserved@11FF00000{
+					reg = <0x1 0x1FF00000 0x0 0x4ffffff>; /*socko 80M*/
+				};
+
+				odmko_memdisk_reserved: odmko_memdisk_reserved@124F00000{
+					reg = <0x1 0x24F00000 0x0 0x1dfffff>; /*odmko 30M*/
+				};
+
 				super_memdisk_reserved: super-memdisk-reserved@1f1a00000{
 					reg = <0x1 0xf1a00000 0x0 0x80000000>;  /* system 2G */
 				};
@@ -39,6 +47,16 @@
 
 			sprd-memdisk {
 				compatible = "sprd,memdisk";
+
+				socko {
+					memory-region = <&socko_memdisk_reserved>;
+					label = "socko";
+				};
+
+				odmko {
+					memory-region = <&odmko_memdisk_reserved>;
+					label = "odmko";
+				};
 
 				super {
 					memory-region = <&super_memdisk_reserved>;
