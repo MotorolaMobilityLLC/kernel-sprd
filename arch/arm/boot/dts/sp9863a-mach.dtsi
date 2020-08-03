@@ -233,11 +233,11 @@
 
 		/* must be 64M aligned */
 		sml_reserved: sml-mem@94000000 {
-			reg = <0x94000000 0x00020000>;
+			reg = <0x94000000 0x00040000>;
 		};
 
-		tos_reserved: tos-mem@94020000 {
-			reg = <0x94020000 0x01fe0000>;
+		tos_reserved: tos-mem@94040000 {
+			reg = <0x94040000 0x01fc0000>;
 		};
 
 		logo_reserved: logobuffer@9e000000 {
