@@ -13,9 +13,19 @@
 	fragment {
 		target-path = "/";
 		__overlay__ {
-			fingerprint@0 {
-				compatible = "microarray,afs121";
-				fpint-gpios = <&ap_gpio 130 0>;
+			sunwave@0{
+				compatible = "sunwave,sunwave-fp";
+				sunwave,reset-gpio = <&ap_gpio 131 0 >;
+				sunwave,irq-gpio = <&ap_gpio 130 0 >;
+				//fpreset-gpios = <&ap_gpio 131 0 >;
+				//fpint-gpios = <&ap_gpio 130 0 >;
+			};
+
+			chipone@0{
+				compatible = "chipone,fingerprint";
+				fpreset-gpios = <&ap_gpio 131 0 >;
+				fpint-gpios = <&ap_gpio 130 0 >;
+				/*fpint-gpios = <&ap_eic_async 13 0 >;*/
 			};
 
 			flash-gpios {
