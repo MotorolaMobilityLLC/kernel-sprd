@@ -129,6 +129,14 @@ config ARM_RK3399_DMC_DEVFREQ
           It sets the frequency for the memory controller and reads the usage counts
           from hardware.
 
+config SPRD_TOP_DVFS_DEVFREQ
+        tristate "Sprd Top-DVFS DEVFREQ Driver"
+        default n
+        help
+          This adds the top dvfs driver for the Sprdtrum Sharkl5pro family SOCs.
+          It accomplishes some necessory initialization which is required by
+          subsys hardware dvfs.
+
 source "drivers/devfreq/event/Kconfig"
 
 endif # PM_DEVFREQ
