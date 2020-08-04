@@ -19,7 +19,8 @@ static DEFINE_MUTEX(i2c_mutex);
 static inline int ts_send_retry(
 	struct i2c_adapter *adapter, struct i2c_msg *msgs, int num, int retry)
 {
-	int tx_len, re = retry;
+	int tx_len = 0;
+	int re = retry;
 
 	if (!adapter || !msgs || num < 0 || retry < 0)
 		return 0;

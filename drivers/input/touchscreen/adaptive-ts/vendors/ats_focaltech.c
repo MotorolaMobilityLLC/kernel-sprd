@@ -57,9 +57,17 @@ static enum ts_result focaltech_upgrade_firmware(struct ts_controller *c,
 	int ret = 0, i, j, packet_count, j_index, left;
 
 	module_id_host = data[size - 1];
-	ts_reg_read(REG_MODULE_ID, &module_id, 1);
+	ret = ts_reg_read(REG_MODULE_ID, &module_id, 1);
+	if (!ret) {
+		pr_info("Error: ts_reg_read failed\n");
+		return -EIO;
+	}
 	fw_version_host = data[size - 2];
-	ts_reg_read(REG_FIRMWARE_VERSION, &fw_version, 1);
+	ret = ts_reg_read(REG_FIRMWARE_VERSION, &fw_version, 1);
+	if (!ret) {
+		pr_info("Error: ts_reg_read failed\n");
+		return -EIO;
+	}
 
 	/*
 	 * 1. force upgrade
