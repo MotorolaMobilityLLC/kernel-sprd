@@ -64,17 +64,31 @@
 #define RUN_STATE_INVALID 0xff
 
 enum {
-	SPRD_5G_MODEM_DP = 0,
-	SPRD_5G_MODEM_PS,
-	SPRD_5G_MODEM_NR_PHY,
-	SPRD_5G_MODEM_V3_PHY,
-	SPRD_5G_MODEM_CNT
+	VERSION_V2 = 0x2,
+	VERSION_V3,
+	VERSION_V4
 };
 
 enum {
-	SPRD_4G_MODEM_PM = 0,
-	SPRD_4G_MODEM_PUBCP,
-	SPRD_4G_MODEM_CNT,
+	SPRD_V4_MODEM_PM = 0,
+	SPRD_V4_MODEM_CH,
+	SPRD_V4_MODEM_PS,
+	SPRD_V4_MODEM_PHY,
+	SPRD_V4_MODEM_CNT
+};
+
+enum {
+	SPRD_V3_MODEM_DP = 0,
+	SPRD_V3_MODEM_PS,
+	SPRD_V3_MODEM_NR_PHY,
+	SPRD_V3_MODEM_V3_PHY,
+	SPRD_V3_MODEM_CNT
+};
+
+enum {
+	SPRD_V2_MODEM_PM = 0,
+	SPRD_V2_MODEM_PUBCP,
+	SPRD_V2_MODEM_CNT,
 };
 
 #ifdef CONFIG_SPRD_EXT_MODEM
@@ -89,14 +103,21 @@ const char *modem_ctrl_args[MODEM_CTRL_NR] = {
 	"getstatus"
 };
 
-const char *modem_5g_name[SPRD_5G_MODEM_CNT] = {
+const char *modem_v4_name[SPRD_V4_MODEM_CNT] = {
+	"pmsys",
+	"chsys",
+	"modem",
+	"phycp"
+};
+
+const char *modem_v3_name[SPRD_V3_MODEM_CNT] = {
 	"dpsys",
 	"modem",
 	"nrphy",
 	"v3phy"
 };
 
-const char *modem_4g_name[SPRD_4G_MODEM_CNT] = {
+const char *modem_v2_name[SPRD_V2_MODEM_CNT] = {
 	"pmsys",
 	"pubcp"
 };
@@ -511,7 +532,9 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	int ret = -EINVAL;
 	int access = 0;
 	int param = 0;
+#ifdef CONFIG_SPRD_EXT_MODEM
 	u8 b_clear;
+#endif
 
 	struct modem_device *modem = (struct modem_device *)filp->private_data;
 
@@ -636,21 +659,43 @@ static int modem_get_device_name(struct modem_device *modem,
 			       struct device_node *np)
 {
 	int modem_id;
+	int ret = 0;
+	u32 version;
 
-	if (of_property_read_bool(np, "5g-modem-support")) {
-		modem_id = of_alias_get_id(np, "nr-modem");
-		if (modem_id == -ENODEV || modem_id >= SPRD_5G_MODEM_CNT) {
+	/* get version */
+	ret = of_property_read_u32(np, "sprd,version", &version);
+	if (ret) {
+		dev_dbg(modem->p_dev, "not found version!\n");
+		version = VERSION_V2;
+	}
+
+	switch(version) {
+	case VERSION_V4:
+		modem_id = of_alias_get_id(np, "v4-modem");
+		if (modem_id == -ENODEV || modem_id >= SPRD_V4_MODEM_CNT) {
 			dev_err(modem->p_dev, "fail to get id\n");
 			return -ENODEV;
 		}
-		modem->modem_name = modem_5g_name[modem_id];
-	} else {
-		modem_id = of_alias_get_id(np, "lte-modem");
-		if (modem_id == -ENODEV || modem_id >= SPRD_4G_MODEM_CNT) {
+		modem->modem_name = modem_v4_name[modem_id];
+		break;
+	case VERSION_V3:
+		modem_id = of_alias_get_id(np, "v3-modem");
+		if (modem_id == -ENODEV || modem_id >= SPRD_V3_MODEM_CNT) {
 			dev_err(modem->p_dev, "fail to get id\n");
 			return -ENODEV;
 		}
-		modem->modem_name = modem_4g_name[modem_id];
+		modem->modem_name = modem_v3_name[modem_id];
+		break;
+	case VERSION_V2:
+		modem_id = of_alias_get_id(np, "v2-modem");
+		if (modem_id == -ENODEV || modem_id >= SPRD_V2_MODEM_CNT) {
+			dev_err(modem->p_dev, "fail to get id\n");
+			return -ENODEV;
+		}
+		modem->modem_name = modem_v2_name[modem_id];
+		break;
+	default:
+		return -ENODEV;
 	}
 
 	return 0;
@@ -739,7 +784,7 @@ static int soc_modem_parse_dt(struct modem_device *modem,
 		}
 
 		cr_num++;
-	} while (modem_ctrl_args[cr_num] != NULL);
+	} while (cr_num < MODEM_CTRL_NR && modem_ctrl_args[cr_num] != NULL);
 
 	modem->modem_ctrl = modem_ctl;
 	return 0;

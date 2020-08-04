@@ -30,6 +30,7 @@ enum {
 	SIPC_ID_PM_SYS,		/* Power management processor */
 	SIPC_ID_NR_PHY,		/* New Radio PHY processor */
 	SIPC_ID_V3_PHY,		/* MODEM v3 PHY processor */
+	SIPC_ID_CH,             /* Contex Hub processor */
 	SIPC_ID_NR,		/* Max processor number */
 };
 
@@ -159,13 +160,11 @@ enum {
 };
 #define INVALID_CHANEL_INDEX SMSG_CH_NR
 
-#ifdef CONFIG_SPRD_SIPC_V2
 /* modem type */
 enum {
 	SOC_MODEM = 0,
 	PCIE_MODEM,
 };
-#endif
 
 /* only be configed in sipc_config is valid channel */
 struct sipc_config {

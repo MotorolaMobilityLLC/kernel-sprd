@@ -118,7 +118,6 @@ void modem_get_ext_modem_ops(const struct ext_modem_operations **ops);
 #endif
 
 #ifndef CONFIG_SPRD_SIPC_V2
-#define SOC_MODEM	0
 #define modem_ram_vmap_nocache(type, start, size) \
 	shmem_ram_vmap_nocache((start), (size))
 #define modem_ram_unmap(type, mem)	shmem_ram_unmap((mem))
