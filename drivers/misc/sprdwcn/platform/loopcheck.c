@@ -11,6 +11,7 @@
 #define LOOPCHECK_TIMER_INTERVAL      5
 #define WCN_LOOPCHECK_INIT	1
 #define WCN_LOOPCHECK_OPEN	2
+#define WCN_LOOPCHECK_FAIL	3
 
 struct wcn_loopcheck {
 	unsigned long status;
@@ -66,8 +67,11 @@ static void loopcheck_work_queue(struct work_struct *work)
 	if (!test_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
 		return;
 	if (!timeleft) {
+		set_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
 		WCN_ERR("didn't get loopcheck ack\n");
 		mdbg_assert_interface("WCN loopcheck erro!");
+		clear_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
+
 		return;
 	}
 
@@ -88,7 +92,8 @@ void start_loopcheck(void)
 void stop_loopcheck(void)
 {
 	if (!test_bit(WCN_LOOPCHECK_INIT, &loopcheck.status) ||
-	    !test_and_clear_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
+	    !test_and_clear_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status) ||
+	    test_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status))
 		return;
 	WCN_INFO("%s\n", __func__);
 	complete_all(&loopcheck.completion);
