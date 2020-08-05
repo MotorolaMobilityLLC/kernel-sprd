@@ -10,6 +10,7 @@ config SPRD_7SRESET
 	  This driver support for 7Sreset of PMIC(2731,2730,2721)
 
 source "drivers/soc/sprd/debug/Kconfig"
+source "drivers/soc/sprd/power_debug/Kconfig"
 source "drivers/soc/sprd/autotest/Kconfig"
 source "drivers/soc/sprd/domain/Kconfig"
 source "drivers/soc/sprd/modem/Kconfig"
