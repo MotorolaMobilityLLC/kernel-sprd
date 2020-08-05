@@ -1,5 +1,6 @@
 obj-$(CONFIG_SPRD_7SRESET)	+= sprd_7sreset.o
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/
+obj-$(CONFIG_SPRD_POWER_DEBUG)	+= power_debug/
 obj-$(CONFIG_SPRD_SYSDUMP)      += debug/sysdump/
 obj-y				+= autotest/
 obj-y				+= domain/
