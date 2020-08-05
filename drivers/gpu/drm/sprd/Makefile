@@ -35,7 +35,12 @@ sprd-drm-y += \
 	sharkl5pro/global_dsi.o \
 	sharkl5pro/global_dphy.o
 
-sprd-drm-y += sysfs/sysfs_class.o
+sprd-drm-y += \
+	sysfs/sysfs_class.o \
+	sysfs/sysfs_dpu.o \
+	sysfs/sysfs_dphy.o \
+	sysfs/sysfs_dsi.o \
+	sysfs/sysfs_panel.o
 
 obj-$(CONFIG_DRM_SPRD) += sprd-drm.o
 

@@ -147,6 +147,7 @@ struct sprd_crtc_context {
 	wait_queue_head_t wait_queue;
 	bool evt_update;
 	bool evt_stop;
+	irqreturn_t (*dpu_isr)(int irq, void *data);
 };
 
 struct sprd_crtc {

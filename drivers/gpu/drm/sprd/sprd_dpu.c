@@ -193,7 +193,6 @@ void sprd_dpu_run(struct sprd_dpu *dpu)
 	struct sprd_crtc_context *ctx = &dpu->ctx;
 
 	down(&ctx->lock);
-
 	if (!ctx->enabled) {
 		DRM_ERROR("dpu is not initialized\n");
 		up(&ctx->lock);
@@ -336,6 +335,7 @@ static int sprd_dpu_irq_request(struct sprd_dpu *dpu)
 		return -EINVAL;
 	}
 	ctx->irq = irq_num;
+	ctx->dpu_isr = sprd_dpu_isr;
 
 	return 0;
 }
@@ -484,7 +484,10 @@ static int sprd_dpu_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	//sprd_dpu_sysfs_init(&dpu->dev);
+	ret = sprd_dpu_sysfs_init(&dpu->dev);
+	if (ret)
+		return ret;
+
 	platform_set_drvdata(pdev, dpu);
 
 	return component_add(&pdev->dev, &dpu_component_ops);

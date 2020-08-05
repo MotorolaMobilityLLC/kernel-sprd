@@ -20,6 +20,7 @@ struct dphy_context {
 	struct regmap *regmap;
 	unsigned long ctrlbase;
 	unsigned long apbbase;
+	struct mutex lock;
 	bool enabled;
 	u32 freq;
 	u8 lanes;

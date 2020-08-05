@@ -93,6 +93,7 @@ int sprd_dphy_enable(struct sprd_dphy *dphy)
 {
 	int ret;
 
+	mutex_lock(&dphy->ctx.lock);
 	if (dphy->glb->power)
 		dphy->glb->power(&dphy->ctx, true);
 	if (dphy->glb->enable)
@@ -100,23 +101,27 @@ int sprd_dphy_enable(struct sprd_dphy *dphy)
 
 	ret = sprd_dphy_init(dphy);
 	if (ret) {
+		mutex_unlock(&dphy->ctx.lock);
 		DRM_ERROR("sprd dphy init failed\n");
 		return -EINVAL;
 	}
 
 	dphy->ctx.enabled = true;
+	mutex_unlock(&dphy->ctx.lock);
 
 	return 0;
 }
 
 int sprd_dphy_disable(struct sprd_dphy *dphy)
 {
+	mutex_lock(&dphy->ctx.lock);
 	if (dphy->glb->disable)
 		dphy->glb->disable(&dphy->ctx);
 	if (dphy->glb->power)
 		dphy->glb->power(&dphy->ctx, false);
 
 	dphy->ctx.enabled = false;
+	mutex_unlock(&dphy->ctx.lock);
 
 	return 0;
 }
@@ -169,6 +174,7 @@ static int sprd_dphy_context_init(struct sprd_dphy *dphy,
 		}
 	}
 
+	mutex_init(&dphy->ctx.lock);
 	dphy->ctx.enabled = true;
 
 	return 0;
@@ -227,7 +233,9 @@ static int sprd_dphy_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	//sprd_dphy_sysfs_init(&dphy->dev);
+	ret = sprd_dphy_sysfs_init(&dphy->dev);
+	if (ret)
+		return ret;
 
 	ret = sprd_dphy_regmap_init(dphy);
 	if (ret)

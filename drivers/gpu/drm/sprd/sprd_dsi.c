@@ -675,7 +675,10 @@ static int sprd_dsi_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	//sprd_dsi_sysfs_init(&dsi->dev);
+	ret = sprd_dsi_sysfs_init(&dsi->dev);
+	if (ret)
+		return ret;
+
 	platform_set_drvdata(pdev, dsi);
 
 	ret = sprd_dsi_host_init(&pdev->dev, dsi);
