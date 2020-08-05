@@ -8,6 +8,11 @@
 
 
 /{
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		ports = <&dpu_port>;
+	};
+
 	reserved_memory: reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -43,11 +48,6 @@
 		fb_reserved: framebuffer@fd708000 {
 			reg = <0x0 0xfd708000 0x0 0x2878000>;
 		};
-	};
-
-	display-subsystem {
-		compatible = "sprd,display-subsystem";
-		ports = <&dummy_crtc_port>;
 	};
 };
 

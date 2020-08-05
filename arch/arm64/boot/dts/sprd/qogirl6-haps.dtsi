@@ -63,48 +63,6 @@
 			};
 		};
 
-		mm {
-			compatible = "simple-bus";
-			#address-cells = <2>;
-			#size-cells = <2>;
-			ranges;
-
-			dummy-crtc {
-				compatible = "sprd,dummy-crtc";
-				reg = <0x0 0x31000000 0x0 0x1000>;
-
-				dummy_crtc_port: port {
-					dummy_crtc_out: endpoint {
-						remote-endpoint = <&dummy_connector_in>;
-					};
-				};
-			};
-
-			dummy-connector {
-				compatible = "sprd,dummy-connector";
-
-				display-timings {
-					timing0 {
-						clock-frequency = <24975000>;
-						hactive = <1080>;
-						vactive = <1920>;
-						hback-porch = <10>;
-						hfront-porch = <10>;
-						vback-porch = <10>;
-						vfront-porch = <10>;
-						hsync-len = <10>;
-						vsync-len = <10>;
-					};
-				};
-
-				port {
-					dummy_connector_in: endpoint {
-						remote-endpoint = <&dummy_crtc_out>;
-					};
-				};
-			};
-		};
-
 		ap-apb {
 			compatible = "simple-bus";
 			#address-cells = <2>;
@@ -139,6 +97,100 @@
 				#dma-channels = <28>;
 				clock-names = "enable";
 				clocks = <&apahb_gate CLK_DMA_PUB_EB>;
+			};
+
+			dpu: dpu@31000000 {
+				compatible = "sprd,display-processor";
+				reg = <0x0 0x31000000 0x0 0x1000>;
+				syscons = <&ap_ahb_regs 0x0004 0x2>;
+				syscon-names = "reset";
+				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+				iommus = <&iommu_dispc>;
+
+				dma-coherent;
+
+				sprd,ip = "dpu-r5p0";
+				sprd,soc = "qogirl6";
+
+				dpu_port: port {
+					dpu_out: endpoint {
+						remote-endpoint = <&dsi_in>;
+					};
+				};
+			};
+
+			iommu_dispc: iommu@31000000 {
+				compatible = "sprd,iommuvau-dispc";
+				reg = <0x0 0x31000800 0x0 0x80>;
+				sprd,iova-base = <0x30000000>;
+				sprd,iova-size = <0x10000000>;
+				reg_name = "mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			dsi: dsi@31100000 {
+				compatible = "sprd,dsi-host";
+				reg = <0x0 0x31100000 0x0 0x1000>;
+				syscons = <&ap_ahb_regs 0x0004 0x1>;
+				syscon-names = "reset";
+				interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+
+				sprd,ip = "sprd,dsi-ctrl", "r3p1";
+				sprd,soc = "qogirl6";
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					port@0 {
+						reg = <0>;
+						dsi_out: endpoint {
+							remote-endpoint = <&dphy_in>;
+						};
+					};
+
+					port@1 {
+						reg = <1>;
+						dsi_in: endpoint {
+							remote-endpoint = <&dpu_out>;
+						};
+					};
+				};
+			};
+
+			dphy: dphy {
+				compatible = "sprd,dsi-phy";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				reg = <0x0 0x31100000 0x0 0x1000>;
+				syscons = <&ap_ahb_regs 0x0040 (0x2 | 0x1)>,
+					<&pmu_apb_regs 0x035c 0x8>;
+				syscon-names = "enable", "power";
+				status = "disabled";
+
+				sprd,ip = "sprd,megacores-sharkl5";
+				sprd,soc = "qogirl6";
+				sprd,mipi-drive-capability = <7>;
+
+				/* output port */
+				port@0 {
+					reg = <0>;
+					dphy_out: endpoint {
+						remote-endpoint = <&panel_in>;
+					};
+				};
+
+				/* input port*/
+				port@1 {
+					reg = <1>;
+					dphy_in: endpoint {
+						remote-endpoint = <&dsi_out>;
+					};
+				};
 			};
 		};
 
@@ -403,5 +455,19 @@
 		#clock-cells = <0>;
 		clock-frequency = <100000000>;
 		clock-output-names = "rco-100m";
+	};
+
+	dphy_273m: dphy-273m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <273000000>;
+		clock-output-names = "dphy-273m";
+	};
+
+	dphy_204m8: dphy-204m8 {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <204800000>;
+		clock-output-names = "dphy-204m8";
 	};
 };

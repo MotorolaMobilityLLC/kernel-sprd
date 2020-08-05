@@ -111,3 +111,32 @@
 		 <&ext_26m>,
 		 <&apapb_gate CLK_EMMC_EB>;
 };
+
+&dpu {
+	clock-names = "clk_src_96m",
+			"clk_src_128m",
+			"clk_src_153m6",
+			"clk_src_192m",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_384m",
+			"clk_dpu_core",
+			"clk_dpu_dpi",
+			"clk_ap_ahb_disp_eb";
+
+	clocks = <&ext_26m>,
+		<&ext_26m>,
+		<&ext_26m>,
+		<&ext_26m>,
+		<&ext_26m>,
+		<&ext_26m>,
+		<&ext_26m>,
+		<&ap_clk CLK_DISPC0>,
+		<&ap_clk CLK_DISPC0_DPI>,
+		<&apahb_gate CLK_DISPC_EB>;
+};
+
+&dsi {
+	clock-names = "clk_ap_ahb_dsi_eb";
+	clocks = <&apahb_gate CLK_DSI_EB>;
+};
