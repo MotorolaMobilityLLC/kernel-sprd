@@ -716,7 +716,7 @@ static int sc2703_charger_get_health(struct sc2703_charger_info *info,
 				     u32 *health)
 {
 	struct regmap *regmap = info->regmap;
-	u8 status[4];
+	u8 status[4] = {0};
 	int ret;
 
 	ret = regmap_bulk_read(regmap, SC2703_STATUS_A, status,
