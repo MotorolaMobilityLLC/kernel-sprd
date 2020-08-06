@@ -10,7 +10,7 @@
 static int test_cnt;
 static int sleep_test_thread(void *data)
 {
-	unsigned int ram_val;
+	unsigned int ram_val = 0;
 
 	while (1) {
 		if (test_cnt)

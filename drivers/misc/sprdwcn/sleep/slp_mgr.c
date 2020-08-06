@@ -59,7 +59,7 @@ void slp_mgr_drv_sleep(enum slp_subsys subsys, bool enable)
 
 int slp_mgr_wakeup(enum slp_subsys subsys)
 {
-	unsigned char slp_sts;
+	unsigned char slp_sts = 0;
 	int ret;
 	int do_dump = 0;
 	ktime_t time_end;
