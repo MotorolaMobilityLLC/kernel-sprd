@@ -774,7 +774,7 @@ static int gsp_lite_r2p0_core_parse_clk(struct gsp_lite_r2p0_core *core)
 
 	if (IS_ERR_OR_NULL(core->gsp_eb_clk)) {
 		GSP_ERR("core[%d] parse enable clk failed\n", core->common.id);
-		status |= -1;
+		status = -1;
 	}
 
 	return status;
