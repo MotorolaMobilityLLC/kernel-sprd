@@ -201,7 +201,7 @@ int sdiohal_rx_thread(void *data)
 	struct sched_param param;
 	int read_len, mbuf_num;
 	int ret;
-	unsigned int rx_dtbs;
+	unsigned int rx_dtbs = 0;
 	unsigned int valid_len;
 	static char *rx_buf;
 	struct sdiohal_list_t *data_list;
