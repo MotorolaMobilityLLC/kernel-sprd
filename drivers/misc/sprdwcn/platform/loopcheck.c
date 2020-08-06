@@ -25,7 +25,8 @@ static struct wcn_loopcheck loopcheck;
 static int loopcheck_send(char *buf, unsigned int len)
 {
 	unsigned char *send_buf = NULL;
-	struct mbuf_t *head, *tail;
+	struct mbuf_t *head = NULL;
+	struct mbuf_t *tail = NULL;
 	int num = 1;
 
 	WCN_INFO("%s len=%d\n", __func__, len);

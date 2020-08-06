@@ -177,7 +177,8 @@ static long int mdbg_comm_write(char *buf,
 {
 	unsigned char *send_buf = NULL;
 	char *str = NULL;
-	struct mbuf_t *head, *tail;
+	struct mbuf_t *head = NULL;
+	struct mbuf_t *tail = NULL;
 	int num = 1;
 	size_t rsvlen;
 

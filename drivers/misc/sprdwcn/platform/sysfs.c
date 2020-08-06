@@ -52,7 +52,8 @@ int notify_at_cmd_finish(void *buf, unsigned char len)
 static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 			  void *response, size_t *response_len)
 {
-	struct mbuf_t *head, *tail;
+	struct mbuf_t *head = NULL;
+	struct mbuf_t *tail = NULL;
 	int num = 1;
 	int ret;
 	unsigned long timeleft;
