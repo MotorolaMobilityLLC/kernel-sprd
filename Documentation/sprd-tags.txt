@@ -111,6 +111,7 @@ asoc:sprd:
 misc:sprd_camera:
 scsi:ufs:sprd:
 fs:f2fs:
+fs:proc:
 fs:sdcardfs:
 fs:
 lib:e_show_mem:
