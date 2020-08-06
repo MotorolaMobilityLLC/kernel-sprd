@@ -2393,7 +2393,7 @@ int dvfs_cluster_info_dt_parse(struct device_node *parent, void *data)
 	struct property *prop;
 	const char *dcdc_name;
 	u32  num, idx, size;
-	const char *clu_name;
+	const char *clu_name = NULL;
 	u32 dev_nr;
 	int ret;
 
@@ -2407,7 +2407,10 @@ int dvfs_cluster_info_dt_parse(struct device_node *parent, void *data)
 
 	node = of_parse_phandle(parent, "cpudvfs-clusters", cluster->id);
 
-	of_property_read_string(node, "cluster-name", &clu_name);
+	ret = of_property_read_string(node, "cluster-name", &clu_name);
+	if (ret)
+		return ret;
+
 	if (strcmp(clu_name, cluster->name)) { /* node is not matched */
 		cluster->existed = false;
 		cluster->of_node = NULL;
