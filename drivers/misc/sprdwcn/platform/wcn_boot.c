@@ -1127,7 +1127,7 @@ static int marlin_analog_power_enable(bool enable)
 void marlin_hold_cpu(void)
 {
 	int ret = 0;
-	unsigned int temp_reg_val;
+	unsigned int temp_reg_val = 0;
 
 	ret = sprdwcn_bus_reg_read(CP_RESET_REG, &temp_reg_val, 4);
 	if (ret < 0) {
@@ -1348,7 +1348,7 @@ static int check_cp_clock_mode(void)
 static int marlin_start_run(void)
 {
 	int ret;
-	unsigned int ss_val;
+	unsigned int ss_val = 0;
 
 	pr_info("%s\n", __func__);
 
@@ -1414,7 +1414,7 @@ static int check_cp_ready(void)
 static int gnss_start_run(void)
 {
 	int ret = 0;
-	unsigned int temp;
+	unsigned int temp = 0;
 
 	pr_info("gnss start run enter ");
 #ifdef CONFIG_WCN_SLP
@@ -1845,7 +1845,7 @@ static int gnss_powerdomain_open(void)
 {
 	/* add by this. */
 	int ret = 0, retry_cnt = 0;
-	unsigned int temp;
+	unsigned int temp = 0;
 
 	pr_info("%s\n", __func__);
 	ret = sprdwcn_bus_reg_read(PD_GNSS_SS_AON_CFG4, &temp, 4);
@@ -1891,7 +1891,7 @@ static int gnss_powerdomain_close(void)
 	/* add by this. */
 	int ret;
 	int i = 0;
-	unsigned int temp;
+	unsigned int temp = 0;
 
 	pr_info("%s\n", __func__);
 

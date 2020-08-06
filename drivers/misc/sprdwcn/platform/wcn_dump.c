@@ -410,7 +410,7 @@ static struct cache_block_config s_cache_block_config[] = {
 static int cp_dcache_clean_invalid_all(void)
 {
 	int ret;
-	unsigned int cp_cache_status;
+	unsigned int cp_cache_status = 0;
 	unsigned int reg_val = 0;
 	int i;
 
@@ -520,7 +520,7 @@ static int cp_dcache_clean_invalid_all(void)
 void dap_sel_btwf_lite(void)
 {
 	int ret;
-	unsigned int reg_val;
+	unsigned int reg_val = 0;
 
 	ret = sprdwcn_bus_reg_read(DAP_CTRL, &reg_val, 4);
 	if (ret < 0) {
@@ -573,7 +573,7 @@ void dap_sel_default_lite(void)
 void apb_eb_lite(void)
 {
 	int ret;
-	unsigned int reg_val;
+	unsigned int reg_val = 0;
 
 	ret = sprdwcn_bus_reg_read(APB_ENB1, &reg_val, 4);
 	if (ret < 0) {
@@ -602,7 +602,7 @@ void apb_eb_lite(void)
 static void dap_sel_btwf(void)
 {
 	int ret;
-	unsigned int reg_val;
+	unsigned int reg_val = 0;
 
 	ret = sprdwcn_bus_reg_read(DJTAG_DAP_SEL, &reg_val, 4);
 	if (ret < 0) {
@@ -653,7 +653,7 @@ static void dap_sel_default(void)
 static void apb_rst(void)
 {
 	int ret;
-	unsigned int reg_val;
+	unsigned int reg_val = 0;
 
 	ret = sprdwcn_bus_reg_read(APB_RST, &reg_val, 4);
 	if (ret < 0) {
@@ -682,7 +682,7 @@ static void apb_rst(void)
 static void apb_eb(void)
 {
 	int ret;
-	unsigned int reg_val;
+	unsigned int reg_val = 0;
 
 	ret = sprdwcn_bus_reg_read(APB_EB, &reg_val, 4);
 	if (ret < 0) {
@@ -711,7 +711,7 @@ static void apb_eb(void)
 static void check_dap_is_ok(void)
 {
 	int ret;
-	unsigned int reg_val;
+	unsigned int reg_val = 0;
 
 	ret = sprdwcn_bus_reg_read(BTWF_STATUS_REG, &reg_val, 4);
 	if (ret < 0) {
@@ -957,7 +957,7 @@ int dump_arm_reg(void)
 static int check_bt_buffer_rw(void)
 {
 	int ret = -1;
-	unsigned int temp;
+	unsigned int temp = 0;
 
 	ret = sprdwcn_bus_reg_read(HCI_ARM_WR_RD_MODE, &temp, 4);
 	if (ret < 0) {
@@ -975,7 +975,7 @@ static int check_bt_buffer_rw(void)
 static int enable_cp_pll(void)
 {
 	int ret;
-	unsigned int temp;
+	unsigned int temp = 0;
 
 	ret = sprdwcn_bus_reg_read(CLK_CTRL0, &temp, 4);
 	if (ret < 0) {
@@ -1006,7 +1006,7 @@ static int enable_cp_pll(void)
 static int check_bt_power_clk_ison(void)
 {
 	int ret;
-	unsigned int temp;
+	unsigned int temp = 0;
 
 	ret = sprdwcn_bus_reg_read(AHB_EB0, &temp, 4);
 	if (ret < 0) {
@@ -1040,7 +1040,7 @@ static int check_bt_power_clk_ison(void)
 static int check_wifi_power_domain_ison(void)
 {
 	int ret = 0;
-	unsigned int temp;
+	unsigned int temp = 0;
 
 	ret = enable_cp_pll();
 	if (ret < 0) {
