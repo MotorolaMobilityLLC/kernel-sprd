@@ -248,7 +248,7 @@ __visible_for_testing ssize_t sprd_cpu_store_min_core_num(struct device *dev,
 
 __visible_for_testing int get_all_core_temp(int cluster_id, int cpu)
 {
-	int i, ret;
+	int i, ret = -1;
 	struct thermal_zone_device *tz = NULL;
 	struct cluster_power_coefficients *cpc;
 

@@ -474,7 +474,7 @@ static int  thermal_temp_debug(struct thermal_zone_device *tz)
 	int ret = -EPERM;
 	int count;
 	enum thermal_trip_type type;
-	int tz_temp;
+	int tz_temp = 0;
 	struct thermal_zone_device *pos;
 
 	for (count = 0; count < tz->trips; count++) {

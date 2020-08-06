@@ -245,8 +245,7 @@ static int build_dyn_power_table(struct cpufreq_cooling_device *cpufreq_device,
 	for_each_cpu(cpu, &cpufreq_device->allowed_cpus) {
 		dev = get_cpu_device(cpu);
 		if (!dev) {
-			dev_warn(&cpufreq_device->cool_dev->device,
-				 "No cpu device for cpu %d\n", cpu);
+			pr_warn("No cpu device for cpu %d\n", cpu);
 			continue;
 		}
 
@@ -1521,7 +1520,7 @@ __cpufreq_cooling_register(struct device_node *np,
 		struct cpu_power_model_t *power_model)
 {
 	struct thermal_cooling_device *cool_dev;
-	struct cpufreq_cooling_device *cpufreq_dev;
+	struct cpufreq_cooling_device *cpufreq_dev = NULL;
 	char dev_name[THERMAL_NAME_LENGTH];
 	struct cpufreq_frequency_table *pos, *table;
 	unsigned int freq, i, num_cpus;
