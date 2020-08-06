@@ -34,6 +34,8 @@ static unsigned long long __read_mostly epreempt_interval;
 
 void notrace start_eirqsoff_timing(unsigned long ip, unsigned long parent_ip)
 {
+	unsigned long long current_clock;
+	pid_t current_pid;
 
 	if (!irqs_disabled())
 		return;
@@ -50,10 +52,12 @@ void notrace start_eirqsoff_timing(unsigned long ip, unsigned long parent_ip)
 	if (oops_in_progress)
 		return;
 
-	__this_cpu_write(eirqsoff_pid, current->pid);
+	current_pid = current->pid;
+	__this_cpu_write(eirqsoff_pid, current_pid);
 	__this_cpu_write(eirqsoff_ip, ip);
 	__this_cpu_write(eirqsoff_parent_ip, parent_ip);
-	__this_cpu_write(eirqsoff_start_timestamp, sched_clock());
+	current_clock = sched_clock();
+	__this_cpu_write(eirqsoff_start_timestamp, current_clock);
 
 	__this_cpu_write(eirqsoff_is_tracing, 1);
 
@@ -111,6 +115,8 @@ void notrace stop_eirqsoff_timing(unsigned long ip, unsigned long parent_ip)
 #ifdef CONFIG_PREEMPT_TRACER
 void notrace start_epreempt_timing(unsigned long ip, unsigned long parent_ip)
 {
+	unsigned long long current_clock;
+	pid_t current_pid;
 
 	if (current->pid == 0)
 		return;
@@ -130,10 +136,12 @@ void notrace start_epreempt_timing(unsigned long ip, unsigned long parent_ip)
 	if (oops_in_progress)
 		return;
 
-	__this_cpu_write(epreempt_pid, current->pid);
+	current_pid = current->pid;
+	__this_cpu_write(epreempt_pid, current_pid);
 	__this_cpu_write(epreempt_ip, ip);
 	__this_cpu_write(epreempt_parent_ip, parent_ip);
-	__this_cpu_write(epreempt_start_timestamp, sched_clock());
+	current_clock = sched_clock();
+	__this_cpu_write(epreempt_start_timestamp, current_clock);
 
 	__this_cpu_write(epreempt_is_tracing, 1);
 
