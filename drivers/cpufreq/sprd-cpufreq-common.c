@@ -21,7 +21,6 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/pm_opp.h>
-#include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/of_platform.h>
@@ -66,7 +65,7 @@ static int sprd_cpufreq_bin_read(struct device_node *np,
 {
 	struct nvmem_cell *cell;
 	void *buf;
-	size_t len;
+	size_t len = 0;
 
 	cell = of_nvmem_cell_get(np, cell_id);
 	if (IS_ERR(cell))
