@@ -187,7 +187,9 @@ static u32 g_inbox_irq_mask;
 static unsigned long max_total_irq_proc_time;
 static unsigned long max_total_irq_cnt;
 
+#if defined(CONFIG_DEBUG_FS)
 static int g_restore_cnt;
+#endif
 static int g_inbox_block_cnt;
 static int g_outbox_full_cnt;
 static int g_skip_msg;
@@ -276,7 +278,7 @@ static irqreturn_t mbox_recv_irqhandle(int irq_num, void *dev)
 	pr_debug("mbox:%s,fifo_sts_1=0x%08x,  irq_status =0x%08x\n",
 		 __func__, fifo_sts_1, irq_status);
 
-	fifo_len = mbox_sensor_read_all_fifo_msg();
+	fifo_len = mbox_read_all_fifo_msg();
 
 	/* clear irq mask & irq after read all msg, if clear before read,
 	 * it will produce a irq again
@@ -358,7 +360,7 @@ static irqreturn_t mbox_sensor_recv_irqhandle(int irq_num, void *dev)
 	pr_debug("mbox:%s,fifo_sts_1=0x%08x,  irq_status =0x%08x\n",
 		 __func__, fifo_sts_1, irq_status);
 
-	fifo_len = mbox_read_all_fifo_msg();
+	fifo_len = mbox_sensor_read_all_fifo_msg();
 
 	/* clear irq mask & irq after read all msg, if clear before read,
 	 * it will produce a irq again
@@ -1077,8 +1079,9 @@ static int mbox_cfg_init(struct mbox_dts_cfg_tag *mbox_dts_cfg, u8 *mbox_inited)
 	mbox_cfg.mask_bit = mbox_dts_cfg->mask_bit;
 	mbox_cfg.version = mbox_dts_cfg->version;
 
-	/* init inbox base */
+	/* init inbox, outbox base */
 	mbox_cfg.inbox_base = mbox_dts_cfg->inboxres.start;
+	mbox_cfg.outbox_base = mbox_cfg.inbox_base + MBOX_OUTBOX_REG_BASE;
 	base = (unsigned long)ioremap_nocache(mbox_dts_cfg->inboxres.start,
 							 resource_size(&mbox_dts_cfg->inboxres));
 	if (!base) {
