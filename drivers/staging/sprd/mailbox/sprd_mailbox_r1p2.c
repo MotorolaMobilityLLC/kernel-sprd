@@ -165,7 +165,7 @@ static unsigned long sprd_inbox_base;
 static unsigned long sprd_outbox_base;
 
 #define REGS_RECV_MBOX_SENSOR_BASE (sprd_outbox_base\
-	+ (mbox_cfg.outbox_range * mbox_cfg.sensor_core))
+	+ ((unsigned long)(mbox_cfg.outbox_range) * mbox_cfg.sensor_core))
 
 #define MBOX_GET_FIFO_RD_PTR(val) ((val >> mbox_cfg.rd_bit) & (mbox_cfg.rd_mask))
 #define MBOX_GET_FIFO_WR_PTR(val) ((val >> mbox_cfg.wr_bit) & (mbox_cfg.wr_mask))
@@ -204,7 +204,7 @@ extern void sipc_clear_wakeup_flag(void);
 
 static void mbox_restore_all_inbox(void)
 {
-	int i;
+	unsigned long i;
 	unsigned long inbox;
 	u32 status;
 
@@ -219,7 +219,7 @@ static void mbox_restore_all_inbox(void)
 				(status & MBOX_FIFO_BLOCK_OVERFLOW_MASK),
 				(void __iomem *)(inbox + MBOX_FIFO_RST));
 			g_restore_cnt++;
-			pr_debug("mbox:%s, inbox %d, status = 0x%x, resCnt = %d\n",
+			pr_debug("mbox:%s, inbox %lu, status = 0x%x, resCnt = %d\n",
 				__func__, i, status, g_restore_cnt);
 		}
 	}
@@ -881,7 +881,7 @@ static struct notifier_block mailbox_pm_notifier_block = {
 #if defined(CONFIG_DEBUG_FS)
 static void mbox_check_all_inbox(struct seq_file *m)
 {
-	int i;
+	unsigned long i;
 	unsigned long inbox;
 	u32 status;
 
@@ -891,13 +891,13 @@ static void mbox_check_all_inbox(struct seq_file *m)
 
 		/* find the block inbox*/
 		if (status & MBOX_FIFO_BLOCK_OVERFLOW_MASK)
-			seq_printf(m, "    inbox %d is block!\n", i);
+			seq_printf(m, "    inbox %lu is block!\n", i);
 	}
 }
 
 static void mbox_check_all_outbox(struct seq_file *m)
 {
-	int i;
+	unsigned long i;
 	unsigned long outbox;
 	u32 status;
 
@@ -907,7 +907,7 @@ static void mbox_check_all_outbox(struct seq_file *m)
 
 		/* find the full outbox */
 		if (status & MBOX_FIFO_FULL_STS_MASK)
-			seq_printf(m, "    outbox %d is full!\n", i);
+			seq_printf(m, "    outbox %lu is full!\n", i);
 	}
 }
 
@@ -915,7 +915,7 @@ extern void sipc_debug_putline(struct seq_file *m, char c, int n);
 
 static int mbox_debug_show(struct seq_file *m, void *private)
 {
-	int i;
+	unsigned long i;
 	unsigned long inbox;
 
 	/* mbox */
@@ -947,7 +947,7 @@ static int mbox_debug_show(struct seq_file *m, void *private)
 	for (i = 0; i < mbox_cfg.core_cnt; i++) {
 		inbox = sprd_outbox_base + i * mbox_cfg.outbox_range;
 		sipc_debug_putline(m, '-', 105);
-		seq_printf(m, "outbox %d reg start:\n", i);
+		seq_printf(m, "outbox %lu reg start:\n", i);
 		seq_printf(m, "\n  core_id:     0x%08x",
 			   readl_relaxed((void __iomem *)(inbox + 0x0)));
 
@@ -976,7 +976,7 @@ static int mbox_debug_show(struct seq_file *m, void *private)
 
 	for (i = 0; i < mbox_cfg.core_cnt; i++) {
 		sipc_debug_putline(m, '-', 105);
-		seq_printf(m, "inbox %d reg start:\n", i);
+		seq_printf(m, "inbox %lu reg start:\n", i);
 
 		inbox = sprd_inbox_base + i * mbox_cfg.inbox_range;
 
@@ -1011,10 +1011,10 @@ static int mbox_debug_show(struct seq_file *m, void *private)
 
 	for (i = 0; i < mbox_cfg.core_cnt; i++) {
 		if (mbox_chns[i].mbox_smsg_handler)
-			seq_printf(m, "    mbox core %d,        max_irq_time: %lu\n",
+			seq_printf(m, "    mbox core %lu,        max_irq_time: %lu\n",
 				   i, mbox_chns[i].max_irq_proc_time);
 
-		seq_printf(m, "    mbox core %d,        max_recv_flag_cnt: %lu\n",
+		seq_printf(m, "    mbox core %lu,        max_recv_flag_cnt: %lu\n",
 			   i, mbox_chns[i].max_recv_flag_cnt);
 	}
 
@@ -1023,9 +1023,9 @@ static int mbox_debug_show(struct seq_file *m, void *private)
 	seq_puts(m, "\n5. mailbox total:\n");
 
 	for (i = 0; i < mbox_cfg.core_cnt; i++) {
-		seq_printf(m, "    mbox core %d,        recv_mail_cnt: %u\n",
+		seq_printf(m, "    mbox core %lu,        recv_mail_cnt: %u\n",
 			   i, g_recv_cnt[i]);
-		seq_printf(m, "    mbox core %d,        send_mail_cnt: %u\n",
+		seq_printf(m, "    mbox core %lu,        send_mail_cnt: %u\n",
 			   i, g_send_cnt[i]);
 	}
 

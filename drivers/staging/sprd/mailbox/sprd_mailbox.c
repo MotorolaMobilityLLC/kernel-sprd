@@ -73,7 +73,7 @@ static void mbox_put1msg(u8 dst, u64 msg)
 static int mbox_send_thread(void *pdata)
 {
 	unsigned long flag;
-	u8 dst;
+	u32 dst;
 	u16 rd, pos;
 	u64 msg;
 
@@ -114,7 +114,8 @@ static int mbox_send_thread(void *pdata)
 
 u8 mbox_get_send_fifo_mask(u8 send_bit)
 {
-	u8 dst_bit, dst, mask;
+	u8 dst_bit, mask;
+	u32 dst;
 
 	spin_lock(&mbox_lock);
 
@@ -370,8 +371,9 @@ subsys_initcall(mbox_init);
 #if defined(CONFIG_DEBUG_FS)
 void mbox_check_all_send_fifo(struct seq_file *m)
 {
-	u8 dst;
+	u32 dst;
 	u16 rd, wt, len;
+
 	unsigned long flag;
 
 	spin_lock_irqsave(&mbox_lock, flag);
