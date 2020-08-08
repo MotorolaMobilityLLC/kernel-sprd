@@ -198,7 +198,7 @@ int dev_pm_opp_of_add_table_binning(int cluster,
 				    struct device_node *np_cpufreq_in,
 				    struct sprd_cpufreq_driver_data *cdata)
 {
-	struct device_node *np_cpufreq, *np_cpu;
+	struct device_node *np_cpufreq, *np_cpu = NULL;
 	const struct property *prop = NULL;
 	struct sprd_cpudvfs_device *pdevice;
 	struct sprd_cpudvfs_ops *driver;
@@ -477,7 +477,7 @@ unsigned int sprd_cpufreq_update_opp(int cpu, int temp_now)
 	if (cluster > SPRD_CPUFREQ_MAX_CLUSTER) {
 		pr_err("cpu%d is overflowd %d\n", cpu,
 		       SPRD_CPUFREQ_MAX_CLUSTER);
-		return -EINVAL;
+		return 0;
 	}
 
 	data = cpufreq_datas[cluster];
