@@ -74,9 +74,9 @@
 				hactive = <720>;
 				vactive = <1600>;
 				hback-porch = <80>;
-				hfront-porch = <162>;
+				hfront-porch = <110>;
 				vback-porch = <32>;
-				vfront-porch = <124>;
+				vfront-porch = <100>;
 				hsync-len = <8>;
 				vsync-len = <10>;
 			};
