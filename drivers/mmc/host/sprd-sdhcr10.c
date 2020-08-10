@@ -364,7 +364,7 @@ static int sprd_sdhc_adma_table_pre(struct sprd_sdhc_host *host,
 {
 	int direction;
 
-	u8 *desc;
+	void *desc;
 	u8 *align;
 
 	dma_addr_t addr;
@@ -374,7 +374,7 @@ static int sprd_sdhc_adma_table_pre(struct sprd_sdhc_host *host,
 	struct scatterlist *sg;
 	int i;
 	char *buffer;
-	unsigned long flags;
+	unsigned long flags, tmp1, tmp2;
 
 	/*
 	 * The spec does not specify endianness of descriptor table.
@@ -405,8 +405,9 @@ static int sprd_sdhc_adma_table_pre(struct sprd_sdhc_host *host,
 		if (align_len) {
 			if (data->flags & MMC_DATA_WRITE) {
 				buffer = sprd_sdhc_kmap_atomic(sg, &flags);
-				WARN_ON(((long)buffer & (PAGE_SIZE - 1)) >
-					(PAGE_SIZE - align_len));
+				tmp1 = (unsigned long)buffer & (PAGE_SIZE - 1);
+				tmp2 = PAGE_SIZE - (unsigned long)align_len;
+				WARN_ON(tmp1 > tmp2);
 				memcpy(align, buffer, align_len);
 				sprd_sdhc_kunmap_atomic(buffer, &flags);
 			}
@@ -421,7 +422,7 @@ static int sprd_sdhc_adma_table_pre(struct sprd_sdhc_host *host,
 
 			desc += host->adma_desc_sz;
 
-			addr += align_len;
+			addr += (dma_addr_t)align_len;
 			len -= align_len;
 		}
 
@@ -631,7 +632,8 @@ static void sprd_send_cmd(struct sprd_sdhc_host *host, struct mmc_command *cmd)
 		else if (host->version >= SPRD_SDHC_BIT_SPEC_400)
 			sprd_sdhc_set_32_blk_cnt(host, data->blocks);
 		if (if_mult) {
-			if (!host->mrq->sbc && SPRD_SDHC_FLAG_ENABLE_ACMD12)
+			if (!host->mrq->sbc &&
+			    (host->flags & SPRD_SDHC_FLAG_ENABLE_ACMD12))
 				auto_cmd = host->auto_cmd_mode;
 			else if (host->mrq->sbc &&
 				(host->flags & SPRD_AUTO_CMD23)) {
@@ -995,7 +997,8 @@ static void sprd_sdhc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	dev_dbg(dev, "CMD%d request %d %d %d\n",
 		mrq->cmd->opcode, !!mrq->sbc, !!mrq->cmd, !!mrq->stop);
 	host->auto_cmd_mode = SPRD_SDHC_BIT_ACMD_DIS;
-	if (!mrq->sbc && mrq->stop && SPRD_SDHC_FLAG_ENABLE_ACMD12) {
+	if (!mrq->sbc && mrq->stop &&
+	    (host->flags & SPRD_SDHC_FLAG_ENABLE_ACMD12)) {
 		host->auto_cmd_mode = SPRD_SDHC_BIT_ACMD12;
 		mrq->data->stop = NULL;
 		mrq->stop = NULL;
@@ -1221,7 +1224,9 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		host->ios.clock = ios->clock;
 		host->data_timeout_val = sprd_sdhc_calc_timeout(ios->clock,
 						SPRD_SDHC_MAX_TIMEOUT);
-		mmc->max_busy_timeout = (1 << 31) / (ios->clock / 1000);
+		host->timeout_clk = ios->clock / 1000;
+		mmc->max_busy_timeout = 1 << 30;
+		mmc->max_busy_timeout /= host->timeout_clk;
 		if (ios->clock <= 400000) {
 			sdhc_set_dll_invert(host, SPRD_SDHC_BIT_CMD_DLY_INV |
 					SPRD_SDHC_BIT_POSRD_DLY_INV, 1);
@@ -1257,6 +1262,8 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 			spin_lock_irqsave(&host->lock, flags);
 			host->ios.power_mode = ios->power_mode;
 			host->ios.vdd = ios->vdd;
+			break;
+		default:
 			break;
 		}
 	}
@@ -1446,13 +1453,13 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	struct ranges_t *ranges;
 
 	int length = 0;
-	unsigned int range_count = 0;
+	int range_count = 0;
 	int longest_range_len = 0;
 	int longest_range = 0;
 	int mid_step;
 	int final_phase = 0;
 	u32 dll_cfg = 0;
-	u32 dll_cnt = 0;
+	int  dll_cnt = 0;
 	u32 dll_dly = 0;
 	int ret = 0;
 
@@ -1466,6 +1473,8 @@ static int sprd_sdhc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	dll_cfg &= ~(0xf << 24);
 	sprd_sdhc_writel(host, dll_cfg, SPRD_SDHC_REG_32_DLL_CFG);
 	dll_cnt = sprd_sdhc_readl(host, SPRD_SDHC_REG_32_DLL_STS0) & 0xff;
+	if (!dll_cnt)
+		return -EIO;
 	length = (dll_cnt * 105) / 100;
 	dev_info(dev, "dll config 0x%08x, dll count %d, tuning length: %d\n",
 		 dll_cfg, dll_cnt, length);
@@ -1633,9 +1642,8 @@ static int sprd_get_dt_resource(struct platform_device *pdev,
 
 	host->ioaddr = devm_ioremap_resource(dev, host->res);
 	if (IS_ERR(host->ioaddr)) {
-		ret = PTR_ERR(host->ioaddr);
-		dev_err(dev, "can not map iomem: %d\n", ret);
-		goto err;
+		dev_err(dev, "can not map iomem!\n");
+		return PTR_ERR(host->ioaddr);
 	}
 
 	host->irq = platform_get_irq(pdev, 0);
@@ -1871,7 +1879,7 @@ static void sprd_set_mmc_struct(struct sprd_sdhc_host *host,
 
 	mmc->pm_flags |= MMC_PM_IGNORE_PM_NOTIFY;
 
-	dev_info(dev, "ocr avail = 0x%x, base clock = %u\n"
+	dev_info(dev, "ocr avail = 0x%x, base clock = %lu\n"
 		 "pm_caps = 0x%x, caps: 0x%x, caps2: 0x%x,\n"
 		 "host->flags:0x%x, host_caps:0x%x\n",
 		 mmc->ocr_avail, host->base_clk, mmc->pm_caps,

@@ -63,7 +63,8 @@ struct sprd_sdhc_host {
 	int detect_gpio;
 	u32 ocr_avail;
 	u32 ocr_mask;
-	u32 base_clk;
+	unsigned long base_clk;
+	unsigned int timeout_clk;
 	u32 version;
 	u32 dll_dly;
 	struct timing_delay_value *timing_dly;
@@ -80,7 +81,7 @@ struct sprd_sdhc_host {
 	struct timer_list timer;
 
 	int sg_count;		/* Mapped sg entries */
-	u8 *adma_desc;		/* ADMA descriptor table */
+	void *adma_desc;	/* ADMA descriptor table */
 	u8 *align_buffer;	/* Bounce buffer */
 	dma_addr_t adma_addr;	/* Mapped ADMA descr. table */
 	dma_addr_t align_addr;	/* Mapped bounce buffer */
@@ -110,12 +111,11 @@ struct sprd_sdhc_host {
 #define SPRD_PINCTRL_AVOID_LEAK_VOLTAGE (1<<4)
 #define SPRD_USE_64_BIT_DMA	(1<<5)	/* Use 64-bit DMA */
 #define SPRD_AUTO_CMD23	(1<<6)	/* Auto CMD23 support */
-
+#define SPRD_SDHC_FLAG_ENABLE_ACMD12 (1<<7)
+#define SPRD_SDHC_FLAG_ENABLE_ACMD23 (1<<8)
 };
 
 /* Controller flag */
-#define SPRD_SDHC_FLAG_ENABLE_ACMD12	0
-#define SPRD_SDHC_FLAG_ENABLE_ACMD23	0
 #define SPRD_SDHC_MAX_TIMEOUT		0x3
 
  /* ADMA2 32-bit DMA descriptor size */
