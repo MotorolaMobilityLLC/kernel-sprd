@@ -1989,7 +1989,14 @@ static void battout_handler(struct charger_manager *cm)
 		uevent_notify(cm, default_event_names[CM_EVENT_BATT_OUT]);
 	} else {
 		dev_emerg(cm->dev, "Battery Pulled in!\n");
-		try_charger_enable(cm, true);
+
+		if (cm->charging_status) {
+			dev_emerg(cm->dev, "Charger status abnormal, stop charge!\n");
+			try_charger_enable(cm, false);
+		} else {
+			try_charger_enable(cm, true);
+		}
+
 		uevent_notify(cm, default_event_names[CM_EVENT_BATT_IN]);
 	}
 }
@@ -2061,6 +2068,9 @@ static void misc_event_handler(struct charger_manager *cm,
 	if (cm->emergency_stop)
 		cm->emergency_stop = 0;
 
+	if (cm->charging_status)
+		cm->charging_status = 0;
+
 	cm->desc->thm_adjust_cur = -EINVAL;
 
 	if (is_ext_pwr_online(cm)) {
@@ -2108,9 +2118,6 @@ static void misc_event_handler(struct charger_manager *cm,
 
 	if (cm->desc->force_set_full)
 		cm->desc->force_set_full = false;
-
-	if (cm->charging_status)
-		cm->charging_status = 0;
 
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		schedule_work(&setup_polling);
