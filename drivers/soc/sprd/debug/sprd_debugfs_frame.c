@@ -13,7 +13,7 @@ struct sprd_debug_dir {
 	struct dentry *debugfs_entry;
 };
 
-struct sprd_debug_dir sprd_debug_dir_table[TYPE_COUNT] = {
+static struct sprd_debug_dir sprd_debug_dir_table[TYPE_COUNT] = {
 	{.name = "sche", .debugfs_entry = NULL},
 	{.name = "mem", .debugfs_entry = NULL},
 	{.name = "comm", .debugfs_entry = NULL},
@@ -26,7 +26,7 @@ struct sprd_debug_dir sprd_debug_dir_table[TYPE_COUNT] = {
 
 struct dentry *sprd_debugfs_entry(enum sprd_debug_type type)
 {
-	if (type < SCHED || type >= TYPE_COUNT)
+	if (type >= TYPE_COUNT)
 		return NULL;
 	return sprd_debug_dir_table[type].debugfs_entry;
 }
@@ -34,7 +34,7 @@ struct dentry *sprd_debugfs_entry(enum sprd_debug_type type)
 
 static struct dentry *debugfs_sprd_debug_root;
 
-static void _sprd_dir_init(void)
+static void sprd_dir_init(void)
 {
 	int i;
 
@@ -48,11 +48,11 @@ static void _sprd_dir_init(void)
 	}
 }
 
-static int _sprd_debug_module_init(void)
+static int sprd_debugfs_frame_init(void)
 {
-	_sprd_dir_init();
+	sprd_dir_init();
 	return 0;
 }
 
-arch_initcall(_sprd_debug_module_init);
+arch_initcall(sprd_debugfs_frame_init);
 
