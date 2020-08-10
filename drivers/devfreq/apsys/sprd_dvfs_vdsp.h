@@ -94,13 +94,13 @@ struct vdsp_dvfs_ops {
 	void (*hw_dfs_en)(bool dfs_en);
 
 	/* work-idle dvfs index ops */
-	void  (*set_work_index)(int index);
+	int  (*set_work_index)(int index);
 	int  (*get_work_index)(void);
 	void  (*set_idle_index)(int index);
 	int  (*get_idle_index)(void);
 
 	/* work-idle dvfs freq ops */
-	void (*set_work_freq)(u32 freq);
+	int (*set_work_freq)(u32 freq);
 	u32 (*get_work_freq)(void);
 	void (*set_idle_freq)(u32 freq);
 	u32 (*get_idle_freq)(void);

@@ -78,7 +78,7 @@ static void vdsp_dvfs_map_cfg(void)
 #endif
 }
 
-static void set_vdsp_work_freq(u32 freq)
+static int set_vdsp_work_freq(u32 freq)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
@@ -90,6 +90,7 @@ static void set_vdsp_work_freq(u32 freq)
 			break;
 		}
 	}
+	return 0;
 }
 
 static u32 get_vdsp_work_freq(void)
@@ -142,12 +143,13 @@ static u32 get_vdsp_idle_freq(void)
 	return freq;
 }
 
-static void set_vdsp_work_index(int index)
+static int set_vdsp_work_index(int index)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
 
 	reg->vdsp_dvfs_index_cfg = index;
+	return 0;
 }
 
 static int get_vdsp_work_index(void)

@@ -220,8 +220,14 @@ static ssize_t set_work_index_store(struct device *dev,
 	if (ret == 0)
 		return -EINVAL;
 
-	if (vdsp->dvfs_ops && vdsp->dvfs_ops->set_work_index)
-		vdsp->dvfs_ops->set_work_index(work_index);
+	if (vdsp->dvfs_ops && vdsp->dvfs_ops->set_work_index) {
+		ret = vdsp->dvfs_ops->set_work_index(work_index);
+		if (ret) {
+			pr_err("%s , set_work_index err ret:%d , index:%d\n",
+				__func__, ret, work_index);
+			return -EFAULT;
+		}
+	}
 	else
 		pr_info("%s: ip ops null\n", __func__);
 
@@ -388,6 +394,7 @@ static int vdsp_dvfs_target(struct device *dev, unsigned long *freq,
 	struct vdsp_dvfs *vdsp = dev_get_drvdata(dev);
 	struct dev_pm_opp *opp;
 	u32 target_freq;
+	int ret = 0;
 
 	pr_info("devfreq_dev_profile-->target\n");
 
@@ -402,8 +409,8 @@ static int vdsp_dvfs_target(struct device *dev, unsigned long *freq,
 	if (vdsp->freq_type == DVFS_WORK) {
 		if (vdsp->dvfs_ops && vdsp->dvfs_ops->set_work_freq) {
 			vdsp->work_freq = target_freq;
-			vdsp->dvfs_ops->set_work_freq(target_freq);
-			pr_info("set work freq = %u\n", target_freq);
+			ret = vdsp->dvfs_ops->set_work_freq(target_freq);
+			pr_info("set work freq = %u, ret:%d\n", target_freq, ret);
 		}
 	} else {
 		if (vdsp->dvfs_ops && vdsp->dvfs_ops->set_idle_freq) {
@@ -412,10 +419,10 @@ static int vdsp_dvfs_target(struct device *dev, unsigned long *freq,
 			pr_info("set idle freq = %u\n", target_freq);
 		}
 	}
+	if (ret == 0)
+		*freq = target_freq;
 
-	*freq = target_freq;
-
-	return 0;
+	return ret;
 }
 
 static int vdsp_dvfs_get_dev_status(struct device *dev,

@@ -135,21 +135,28 @@ static void vdsp_dvfs_map_cfg(void)
 		map_table[5].volt_level << 5;
 }
 
-static void set_vdsp_work_freq(u32 freq)
+static int set_vdsp_work_freq(u32 freq)
 {
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
 	int i;
 	int pll_index;
+	int ret;
 
 	pll_index = transfer_freq_to_pllindex(freq);
-	clk_prepare_enable(clk_pll[pll_index]);
+	ret = clk_prepare_enable(clk_pll[pll_index]);
+	if (ret) {
+		pr_err("func:%s clk_prepare_enable failed ret:%d , pllindex:%d\n",
+			__func__, ret, pll_index);
+		return ret;
+	}
 	for (i = 0; i < ARRAY_SIZE(map_table); i++) {
 		if (map_table[i].clk_rate == freq) {
 			reg->vdsp_dvfs_index_cfg = i;
 			break;
 		}
 	}
+	return ret;
 }
 
 static u32 get_vdsp_work_freq(void)
@@ -202,16 +209,22 @@ static u32 get_vdsp_idle_freq(void)
 	return freq;
 }
 
-static void set_vdsp_work_index(int index)
+static int set_vdsp_work_index(int index)
 {
 	int pll_index;
+	int ret;
 	struct apsys_dvfs_reg *reg =
 		(struct apsys_dvfs_reg *)regmap_ctx.apsys_base;
 
 	pll_index = transfer_mapindex_to_pllindex(index);
-	clk_prepare_enable(clk_pll[pll_index]);
-
+	ret = clk_prepare_enable(clk_pll[pll_index]);
+	if (ret) {
+		pr_err("func:%s clk_prepare_enable failed ret:%d , pllindex:%d\n",
+			__func__, ret, pll_index);
+		return ret;
+	}
 	reg->vdsp_dvfs_index_cfg = index;
+	return ret;
 }
 
 static int get_vdsp_work_index(void)
