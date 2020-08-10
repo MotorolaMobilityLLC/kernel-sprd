@@ -14451,43 +14451,43 @@ CONFIG_TREE_SRCU
 	[function] This option selects the full-fledged version of SRCU.
 CONFIG_TRUSTY
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make,code
 	[subsys] tee
 	[must] home
-	[missing plat description] trusty about, sharkl5_32 bring up is not yet.
+	[missing plat description] none
 	[function] This is the top config option of trusty driver which supports
 			  communication between linux and trusty OS.
 		  Trusty driver is used on all ARM architecture-based platforms
 		  with trusty OS integrated
 CONFIG_TRUSTY_LOG
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] tee
 	[must] debug
-	[missing plat description] trusty about, sharkl5_32 bring up is not yet.
+	[missing plat description] none
 	[function] This is used to dump trusty OS log and output to kernel log
 CONFIG_TRUSTY_VIRTIO
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] tee
 	[must] home
-	[missing plat description] trusty about, sharkl5_32 bring up is not yet.
+	[missing plat description] none
 	[function] This implements trusty virtio driver which works with the
 		   back-end virtio driver in trusty OS
 CONFIG_TRUSTY_VIRTIO_IPC
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] tee
 	[must] home
-	[missing plat description] trusty about, sharkl5_32 bring up is not yet.
+	[missing plat description] none
 	[function] This implements trusty IPC driver based on trusty virtio
 CONFIG_TTY
 	[arch] all
