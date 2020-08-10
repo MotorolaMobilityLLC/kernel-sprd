@@ -264,7 +264,10 @@ static u32 sprd_backlight_normalize_map(struct sc2703_bl *bl, int brightness)
 {
 	u32 level;
 
-	level = DIV_ROUND_CLOSEST_ULL((bl->max_level - bl->min_level) *
+	if (brightness < bl->min_brightness)
+		brightness = bl->min_brightness;
+
+	level = DIV_ROUND_CLOSEST((bl->max_level - bl->min_level) *
 		(brightness - bl->min_brightness),
 		(bl->max_brightness - bl->min_brightness)) + bl->min_level;
 
@@ -275,7 +278,10 @@ static int sprd_backlight_normalize_unmap(struct sc2703_bl *bl, u32 level)
 {
 	int brightness;
 
-	brightness = DIV_ROUND_CLOSEST_ULL((level - bl->min_level) *
+	if (level < bl->min_level)
+		level = bl->min_level;
+
+	brightness = DIV_ROUND_CLOSEST((level - bl->min_level) *
 			(bl->max_brightness - bl->min_brightness),
 			(bl->max_level - bl->min_level)) + bl->min_brightness;
 
@@ -292,8 +298,11 @@ static int sc2703_bl_set_pwm(struct sc2703_bl *bl, int brightness)
 	else if (brightness < 0)
 		brightness = 0;
 
-	if (brightness > 0)
+	if (brightness > 0) {
 		brightness = sprd_backlight_normalize_map(bl, brightness);
+		if (brightness > LEVEL_MAX)
+			brightness = LEVEL_MAX;
+	}
 
 	/*
 	 * The formula to convert level(from host) to pwm duty cycle as below:
