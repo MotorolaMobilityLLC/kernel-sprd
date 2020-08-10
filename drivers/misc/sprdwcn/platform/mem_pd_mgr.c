@@ -405,7 +405,8 @@ static int sdio_ap_int_cp_save_cp_mem(void)
 static int mem_pd_read_add_from_cp(void)
 {
 	int ret;
-	unsigned int bt_begin, bt_end, wifi_begin, wifi_end;
+	unsigned int bt_begin = 0, bt_end = 0;
+	unsigned int wifi_begin = 0, wifi_end = 0;
 
 	ret = sprdwcn_bus_reg_read(SYNC_ADDR + BT_BEGIN_OFFSET_SYNC,
 				   &bt_begin, 4);
