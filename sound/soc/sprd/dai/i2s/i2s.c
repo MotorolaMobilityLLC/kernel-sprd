@@ -733,7 +733,7 @@ static int i2s_close(struct i2s_priv *i2s)
 
 static int i2s_open(struct i2s_priv *i2s)
 {
-	int ret = 0;
+	int ret;
 
 	sp_asoc_pr_dbg("%s %d\n", __func__, atomic_read(&i2s->open_cnt));
 
@@ -750,10 +750,14 @@ static int i2s_open(struct i2s_priv *i2s)
 		i2s_soft_reset(i2s);
 		i2s_dma_ctrl(i2s, 0);
 		ret = i2s_config_apply(i2s);
+		if (ret < 0) {
+			pr_err("ERR:I2S-config-apply Error!\n");
+			return ret;
+		}
 		clk_prepare_enable(i2s->i2s_clk);
 	}
 
-	return ret;
+	return 0;
 }
 
 static int i2s_startup(struct snd_pcm_substream *substream,
