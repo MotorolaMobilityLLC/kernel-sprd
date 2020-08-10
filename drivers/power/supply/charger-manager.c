@@ -1794,7 +1794,14 @@ static void battout_handler(struct charger_manager *cm)
 		uevent_notify(cm, default_event_names[CM_EVENT_BATT_OUT]);
 	} else {
 		dev_emerg(cm->dev, "Battery Pulled in!\n");
-		try_charger_enable(cm, true);
+
+		if (cm->charging_status) {
+			dev_emerg(cm->dev, "Charger status abnormal, stop charge!\n");
+			try_charger_enable(cm, false);
+		} else {
+			try_charger_enable(cm, true);
+		}
+
 		uevent_notify(cm, default_event_names[CM_EVENT_BATT_IN]);
 	}
 }
