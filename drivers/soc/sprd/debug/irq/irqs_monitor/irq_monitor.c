@@ -17,7 +17,7 @@
 
 #define DEFAULT_SAMPLE_TIMEVALE 1000
 #define DEFAULT_THRESHOLD_IRQ   3000
-#define MAX_TIMEVALE 4294967296
+#define MAX_TIMEVALE 10000000
 #define BRUST_ARRAY_SIZE 10
 
 struct irq_monitor_s {
@@ -124,7 +124,7 @@ static void scan_burst_irq(unsigned long data)
 	if ((save_nr_irqs != nr_irqs || stat == 1) && Processing == false)
 		wake_up_process(irqs_change_task);
 
-	mod_timer(irq_monitor_timer, jiffies + HZ * time_interval / 1000);
+	mod_timer(irq_monitor_timer, jiffies + msecs_to_jiffies(time_interval));
 }
 
 static int irq_init(int irq, u64 max_irq_num)
@@ -303,7 +303,7 @@ static ssize_t monitor_enable_write(struct file *filep,
 	if (enable == 1) {
 		del_timer(irq_monitor_timer);
 
-		irq_monitor_timer->expires = jiffies + (HZ * time_interval / 1000);
+		irq_monitor_timer->expires = jiffies + msecs_to_jiffies(time_interval);
 		add_timer(irq_monitor_timer);
 	} else if (enable == 0) {
 		del_timer(irq_monitor_timer);
@@ -342,7 +342,7 @@ static ssize_t time_interval_write(struct file *filep,
 				size_t len,
 				loff_t *ppos)
 {
-	unsigned long long interval;
+	u64 interval;
 	u64 mid_value;
 	u32 res;
 	int err, i;
@@ -373,7 +373,7 @@ static ssize_t time_interval_write(struct file *filep,
 		threshold_irq = (unsigned int)mid_value;
 		spin_unlock(&irq_monitor_lock);
 
-		irq_monitor_timer->expires = jiffies + (HZ * (int)interval / 1000);
+		irq_monitor_timer->expires = jiffies + msecs_to_jiffies(interval);
 		add_timer(irq_monitor_timer);
 	}
 
@@ -494,14 +494,10 @@ static int monitor_irqs_change(void *data)
 	return 0;
 }
 
-static struct dentry *irq_burst_monitor_debugfs;
-static struct dentry *irq_debugfs;
-static struct dentry *time_interval_debugfs;
-static struct dentry *monitor_enable_debugfs;
-static struct dentry *threshold_debugfs;
-
 static int __init irq_monitor_init(void)
 {
+	struct dentry *irq_burst_monitor_debugfs;
+
 	save_nr_irqs = nr_irqs;
 	Processing = false;
 	irq_monitor = kzalloc(sizeof(struct irq_monitor_s)*
@@ -533,25 +529,15 @@ static int __init irq_monitor_init(void)
 					       sprd_debugfs_entry(IRQ));
 
 	if (irq_burst_monitor_debugfs) {
-		irq_debugfs = debugfs_create_file("irq", (S_IRUGO | S_IWUSR | S_IWGRP),
+		debugfs_create_file("irq", (S_IRUGO | S_IWUSR | S_IWGRP),
 				    irq_burst_monitor_debugfs, NULL, &irq_fops);
-		if (!irq_debugfs)
-			pr_err("%s create irq_debugfs failed!\n", __func__);
-
-		time_interval_debugfs = debugfs_create_file("time_interval", (S_IRUGO | S_IWUSR | S_IWGRP),
+		debugfs_create_file("time_interval", (S_IRUGO | S_IWUSR | S_IWGRP),
 				    irq_burst_monitor_debugfs, NULL, &time_interval_fops);
-		if (!time_interval_debugfs)
-			pr_err("%s create time_interval_debugfs failed!\n", __func__);
-
-		monitor_enable_debugfs = debugfs_create_file("monitor_enable", (S_IRUGO | S_IWUSR | S_IWGRP),
+		debugfs_create_file("monitor_enable", (S_IRUGO | S_IWUSR | S_IWGRP),
 				    irq_burst_monitor_debugfs, NULL, &monitor_enable_fops);
-		if (!monitor_enable_debugfs)
-			pr_err("%s create monitor_enable_debugfs failed!\n", __func__);
-
-		threshold_debugfs = debugfs_create_file("threshold_irq", (S_IRUGO | S_IWUSR | S_IWGRP),
+		debugfs_create_file("threshold_irq", (S_IRUGO | S_IWUSR | S_IWGRP),
 				    irq_burst_monitor_debugfs, NULL, &threshold_irq_fops);
-		if (!threshold_debugfs)
-			pr_err("%s create threshold_debugfs failed!\n", __func__);
+
 	}
 
 	init_timer_deferrable(irq_monitor_timer);
@@ -563,45 +549,4 @@ static int __init irq_monitor_init(void)
 	return 0;
 }
 
-static void debugfs_remove_irq_monitor(struct dentry *irq_monitor_dentry)
-{
-	if (irq_monitor_dentry)
-		debugfs_remove(irq_monitor_dentry);
-
-	irq_monitor_dentry = NULL;
-}
-
-static void __exit irq_monitor_exit(void)
-{
-	pr_notice("%s start\n", __func__);
-
-	del_timer(irq_monitor_timer);
-
-	if (irqs_change_task) {
-		kthread_stop(irqs_change_task);
-		irqs_change_task = NULL;
-	}
-	if (irq_monitor) {
-		kfree(irq_monitor);
-		irq_monitor = NULL;
-	}
-	if (irq_debugfs)
-		debugfs_remove_irq_monitor(irq_debugfs);
-
-	if (time_interval_debugfs)
-		debugfs_remove_irq_monitor(time_interval_debugfs);
-
-	if (monitor_enable_debugfs)
-		debugfs_remove_irq_monitor(monitor_enable_debugfs);
-
-	if (threshold_debugfs)
-		debugfs_remove_irq_monitor(threshold_debugfs);
-
-	if (irq_burst_monitor_debugfs)
-		debugfs_remove_irq_monitor(irq_burst_monitor_debugfs);
-
-	pr_notice("%s end\n", __func__);
-}
-
 late_initcall(irq_monitor_init);
-__exitcall(irq_monitor_exit);
