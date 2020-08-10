@@ -1440,8 +1440,14 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 	struct device_node *np = data->dev->of_node;
 
 	if (data->bat_para_adapt_support) {
-		of_property_read_u32(np, "sprd-battery-parameter-adapt-mode", &data->bat_para_adapt_mode);
-		num = sc27xx_fgu_bat_fun[data->bat_para_adapt_mode](data);
+		ret = of_property_read_u32(np, "sprd-battery-parameter-adapt-mode", &data->bat_para_adapt_mode);
+		if (!ret) {
+			num = sc27xx_fgu_bat_fun[data->bat_para_adapt_mode](data);
+		} else {
+			num = 0;
+			dev_err(data->dev,
+				"failed to get sprd-battery-parameter-adapt-mode");
+		}
 	} else {
 		num = 0;
 	}
