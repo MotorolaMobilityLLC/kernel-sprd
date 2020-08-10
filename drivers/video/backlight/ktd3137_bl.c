@@ -135,7 +135,7 @@ static int ktd3137_parse_dt(struct device *dev, struct ktd3137_bl *bl)
 {
 	struct device_node *np = dev->of_node;
 	struct ktd3137_bl_data *pdata = bl->pdata;
-	u32 val;
+	u32 val = 0;
 
 	pdata = devm_kzalloc(dev, sizeof(*pdata), GFP_KERNEL);
 	if (!pdata)
