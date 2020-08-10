@@ -135,6 +135,7 @@ gpu:sprd:
 pwm:sprd:
 soc:sprd:modem:
 staging:sprd:modem:
+staging:sprd:mailbox:
 soc:sprd:dmc_mpu:
 soc:sprd:cpu_usage:
 soc:sprd:irq:
