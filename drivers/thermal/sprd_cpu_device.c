@@ -267,7 +267,7 @@ __visible_for_testing int get_all_core_temp(int cluster_id, int cpu)
 		}
 
 		pr_debug("%s:%d\n", tz->type, cpc->core_temp[cpu+i]);
-    }
+	}
 
 	return ret;
 }
@@ -284,10 +284,10 @@ __visible_for_testing void get_core_temp(int cluster_id, int cpu, int *temp)
 #if defined(CONFIG_SPRD_CPU_COOLING_CPUIDLE) && defined(CONFIG_SPRD_CORE_CTL)
 static int get_min_temp_isolated_core(int cluster_id, int cpu, int *temp)
 {
-	int i, ret, min_temp = 0, id = -1, first, find;
+	int i, ret, min_temp = 0, id = -1, first, find = 0;
 	struct thermal_zone_device *tz = NULL;
 	struct cluster_power_coefficients *cpc;
-	int sensor_temp[MAX_SENSOR_NUMBER];
+	int sensor_temp[MAX_SENSOR_NUMBER] = {};
 
 	cpc = &cluster_data[cluster_id];
 	for (i = 0; i < (cpc->nsensor); i++) {
@@ -335,10 +335,10 @@ static int get_min_temp_isolated_core(int cluster_id, int cpu, int *temp)
 
 static int get_min_temp_unisolated_core(int cluster_id, int cpu, int *temp)
 {
-	int i, ret, min_temp = 0, id = -1, first, find;
+	int i, ret, min_temp = 0, id = -1, first, find = 0;
 	struct thermal_zone_device *tz = NULL;
 	struct cluster_power_coefficients *cpc;
-	int sensor_temp[MAX_SENSOR_NUMBER];
+	int sensor_temp[MAX_SENSOR_NUMBER] = {};
 
 	cpc = &cluster_data[cluster_id];
 	for (i = 0; i < (cpc->nsensor); i++) {
