@@ -613,11 +613,19 @@ void irq_init_desc(unsigned int irq)
  */
 int generic_handle_irq(unsigned int irq)
 {
+#ifdef CONFIG_SPRD_IRQS_MONITOR
+	u64 before = sched_clock();
+#endif
 	struct irq_desc *desc = irq_to_desc(irq);
 
 	if (!desc)
 		return -EINVAL;
 	generic_handle_irq_desc(desc);
+#ifdef CONFIG_SPRD_IRQS_MONITOR
+	raw_spin_lock(&desc->lock);
+	desc->tot_times += (sched_clock() - before);
+	raw_spin_unlock(&desc->lock);
+#endif
 	return 0;
 }
 EXPORT_SYMBOL_GPL(generic_handle_irq);

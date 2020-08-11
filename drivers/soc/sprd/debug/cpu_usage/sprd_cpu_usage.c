@@ -367,6 +367,7 @@ static void record_cpu_usage(bool update)
 	}
 }
 
+ulong sprd_g_irq_ratio;
 static void _print_cpu_rate(struct seq_file *p, struct cpu_recorder *record)
 {
 	ulong idle_ratio[2], user_ratio[2], system_ratio[2], nice_ratio[2];
@@ -447,6 +448,7 @@ static void _print_cpu_rate(struct seq_file *p, struct cpu_recorder *record)
 			   pt->nr_cs);
 #endif
 	}
+	sprd_g_irq_ratio = irq_ratio[0];
 }
 
 static void _print_a_thread_rate(struct seq_file *p, int pid, char *name,

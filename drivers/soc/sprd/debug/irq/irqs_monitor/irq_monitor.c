@@ -19,6 +19,7 @@
 #define DEFAULT_THRESHOLD_IRQ   3000
 #define MAX_TIMEVALE 10000000
 #define BRUST_ARRAY_SIZE 10
+#define IRQ_RUNTIME_STAT_TIMES 10
 
 struct irq_monitor_s {
 	struct irq_domain *domain;
@@ -29,6 +30,9 @@ struct irq_monitor_s {
 	unsigned int prev_kstat_irq;
 	bool mark;
 	int history_brust_value[BRUST_ARRAY_SIZE];
+#ifdef CONFIG_SPRD_CPU_USAGE
+	u64 irq_g_runtime[IRQ_RUNTIME_STAT_TIMES];
+#endif
 };
 
 static struct timer_list *irq_monitor_timer;
@@ -42,11 +46,15 @@ static int save_nr_irqs;
 static struct task_struct *irqs_change_task;
 static bool Processing;
 static struct timespec64 ts_end;
-
+#ifdef CONFIG_SPRD_CPU_USAGE
+extern ulong sprd_g_irq_ratio;
+static int irqrunt_period;
+static struct timespec64 ts_ration[IRQ_RUNTIME_STAT_TIMES];
+#endif
 
 static void scan_burst_irq(unsigned long data)
 {
-	int i, j, irq_occur_value, index;
+	int i, j, k, irq_occur_value, index;
 	unsigned int tmp_kstat_irq;
 	struct irq_desc *desc;
 	struct irqaction *action;
@@ -56,6 +64,10 @@ static void scan_burst_irq(unsigned long data)
 	struct timespec64 ts_start, ts_sub;
 	unsigned int delta;
 	unsigned long flags;
+#ifdef CONFIG_SPRD_CPU_USAGE
+	unsigned int ratio_delta;
+	unsigned long long irq_runtime;
+#endif
 
 	getnstimeofday64(&ts_start);
 	ts_sub = timespec64_sub(ts_start, ts_end);
@@ -73,11 +85,34 @@ static void scan_burst_irq(unsigned long data)
 			raw_spin_unlock_irqrestore(&desc->lock, flags);
 			continue;
 		}
-
+#ifdef CONFIG_SPRD_CPU_USAGE
+		irq_runtime = desc->tot_times;
+		desc->tot_times = 0;
+#endif
 		domain = desc->irq_data.domain;
 		hwirq = desc->irq_data.hwirq;
 		raw_spin_unlock_irqrestore(&desc->lock, flags);
+#ifdef CONFIG_SPRD_CPU_USAGE
+		if (irqrunt_period >= IRQ_RUNTIME_STAT_TIMES)
+			irqrunt_period = 0;
+		else
+			irq_monitor[i].irq_g_runtime[irqrunt_period] = irq_runtime;
 
+		if (sprd_g_irq_ratio >= 20) {
+			irq_runtime = 0;
+			for (k = 0; k < IRQ_RUNTIME_STAT_TIMES; k++)
+				irq_runtime += irq_monitor[i].irq_g_runtime[k];
+
+			irq_runtime = (irq_runtime >> 10);
+			if (irq_runtime) {
+				ts_sub = timespec64_sub(ts_start, ts_ration[irqrunt_period]);
+				ratio_delta = jiffies_to_msecs(timespec64_to_jiffies(&ts_sub));
+				pr_emerg("hwirq[%d]: [%s], it ran for %lld us in %d ms\n",
+					(int)desc->irq_data.hwirq, action ? action->name : "No action",
+					irq_runtime, (int)ratio_delta);
+			}
+		}
+#endif
 		tmp_kstat_irq = 0;
 		spin_lock(&irq_monitor_lock);
 		if (likely(irq_monitor[i].prev_kstat_irq != 0)) {
@@ -125,6 +160,11 @@ static void scan_burst_irq(unsigned long data)
 		wake_up_process(irqs_change_task);
 
 	mod_timer(irq_monitor_timer, jiffies + msecs_to_jiffies(time_interval));
+#ifdef CONFIG_SPRD_CPU_USAGE
+	sprd_g_irq_ratio = 0;
+	ts_ration[irqrunt_period] = ts_start;
+	irqrunt_period++;
+#endif
 }
 
 static int irq_init(int irq, u64 max_irq_num)

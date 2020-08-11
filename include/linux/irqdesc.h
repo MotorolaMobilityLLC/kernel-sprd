@@ -70,6 +70,9 @@ struct irq_desc {
 	unsigned long		last_unhandled;	/* Aging timer for unhandled count */
 	unsigned int		irqs_unhandled;
 	atomic_t		threads_handled;
+#ifdef CONFIG_SPRD_IRQS_MONITOR
+	unsigned long		tot_times;  /* total ns in per sec */
+#endif
 	int			threads_handled_last;
 	raw_spinlock_t		lock;
 	struct cpumask		*percpu_enabled;
