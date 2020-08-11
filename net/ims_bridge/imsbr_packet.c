@@ -553,11 +553,7 @@ end:
 	if (socket_type == IMSBR_SOCKET_CP) {
 		if (__ratelimit(&rlimit_fromcp_pkt))
 			imsbr_packet_info("process packet from cp out", skb);
-		/* Ipv6 route rule 11000 can not prevent apps to hit this rule,
-		* so add mark 0x80000000 for the rule to avoid apps hitting.
-		* For vowifi pkts,they need add mark for all.
-		*/
-		skb->mark = 0x80000000;
+
 		imsbr_packet_output(skb);
 	} else {
 		skb->mark = vowifi_in_mark;
