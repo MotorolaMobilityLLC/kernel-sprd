@@ -128,7 +128,7 @@ static void dump_sdio_reg(struct sprd_sdhc_host *host)
 static int sprd_get_delay_value(struct platform_device *pdev)
 {
 	int ret = 0;
-	u32 dly_vl[4];
+	u32 dly_vl[4] = {0};
 	struct device_node *np = pdev->dev.of_node;
 	struct sprd_sdhc_host *host = platform_get_drvdata(pdev);
 	struct timing_delay_value *timing_dly;
