@@ -1022,7 +1022,7 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 		return NETDEV_TX_OK;
 	}
 
-	if (in->uether) {
+	if (in && in->uether) {
 		if (skb)
 			dev_kfree_skb_any(skb);
 		return NETDEV_TX_OK;
