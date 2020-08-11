@@ -10,5 +10,5 @@
 };
 
 &chosen {
-	bootargs = "earlycon console=ttyS0,26000000n8 loglevel=8 init=/init root=/dev/ram0 rw androidboot.hardware=ums9230_zebu androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.super_partition=super androidboot.boot_devices=memdisk0 androidboot.selinux=permissive";
+	bootargs = "earlycon console=ttyS0,26000000n8 loglevel=8 init=/init root=/dev/ram0 rw androidboot.hardware=ums9230_zebu androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=memdisk0 androidboot.selinux=permissive";
 };

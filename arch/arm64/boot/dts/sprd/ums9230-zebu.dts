@@ -37,7 +37,7 @@
 		ranges;
 
 		super_memdisk_reserved: super_memdisk_reserved@100000000{
-			reg = <0x1 0x00000000 0x0 0x72000000>;  /* system 1800M */
+			reg = <0x1 0x00000000 0x0 0x82000000>;  /* system 2G */
 		};
 
 		userdata_memdisk_reserved: userdata_memdisk_reserved@e0000000{
