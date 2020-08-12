@@ -129,3 +129,9 @@
 		"camhigh", "camveryhigh", "dpu";
 	sprd-freq = <933 512 256 384 512 933 384>;
 };
+
+&adi_bus {
+	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
+			   <17 0x1844>, <19 0x1844>, <30 0x1820>, <35 0x19b8>,
+			   <39 0x19ac>;
+};
