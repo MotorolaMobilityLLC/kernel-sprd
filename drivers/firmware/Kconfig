@@ -308,6 +308,16 @@ config TURRIS_MOX_RWTM
 config HAVE_ARM_SMCCC
 	bool
 
+config SPRD_SIP_FW
+	tristate "sprd SoC implementation-specific services"
+	default m
+	depends on HAVE_ARM_SMCCC
+	help
+	  Provides interfaces to SoC implementation-specific services on sprd
+	  platform, for example secure platform initialization, configuration,
+	  debug services and clock or power control services. This function is
+	  based on ARM SMC call.
+
 source "drivers/firmware/psci/Kconfig"
 source "drivers/firmware/broadcom/Kconfig"
 source "drivers/firmware/google/Kconfig"
