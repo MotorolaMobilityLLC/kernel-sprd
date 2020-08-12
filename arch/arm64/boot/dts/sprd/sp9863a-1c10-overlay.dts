@@ -202,13 +202,32 @@
 	vbus-supply = <&vddvbus>;
 };
 
-&sensor_main {
-	avdd-gpios=<&ap_gpio 62 0>;
-	mipi-switch-mode-gpios= <&ap_gpio 30 1>;
-	mipi-switch-en-gpios= <&ap_gpio 29 0>;
-};
-
 &i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	sensor_main: sensor-main@20 {
+		compatible = "sprd,sensor-main";
+		reg = <0x20>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&aon_clk CLK_SENSOR0>, <&mm_gate CLK_SENSOR0_EB>,
+			<&pll CLK_TWPLL_96M>,<&pll CLK_TWPLL_76M8>,
+			<&pll CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama>;
+		vddcamd-supply = <&vddcamd>;
+		vddcammot-supply = <&vddcammot>;
+		avdd-gpios=<&ap_gpio 62 0>;
+		mipi-switch-mode-gpios= <&ap_gpio 30 1>;
+		mipi-switch-en-gpios= <&ap_gpio 29 0>;
+		sprd,phyid = <1>;
+		csi = <&csi0>;
+		reset-gpios = <&ap_gpio 44 0>;
+		power-down-gpios = <&ap_gpio 46 0>;
+	};
+
 	sensor_sub2: sensor-sub2@30 {
 		compatible = "sprd,sensor-sub2";
 		reg = <0x30>;

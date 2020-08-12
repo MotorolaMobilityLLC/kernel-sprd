@@ -11,6 +11,7 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
+#include <dt-bindings/clock/sprd,sharkl5-clk.h>
 
 #include "ums312.dtsi"
 #include "ums312-go-common.dtsi"

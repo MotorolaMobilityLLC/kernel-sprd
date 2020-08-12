@@ -9,6 +9,7 @@
 /plugin/;
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/clock/sprd,sc7731e-clk.h>
 
 / {
 	model = "Spreadtrum Pike2 SP7731E-1H10 Board";
@@ -271,6 +272,56 @@
 	gpio_66: sda2 {
 		pins = "PIKE2_SDA2";
 		function = "func4";
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+	sensor_main: sensor-main@3c {
+		compatible = "sprd,sensor-main";
+		reg = <0x3c>;
+		clock-names = "clk_src", "sensor_eb",
+			"clk_96m", "clk_76m8",
+			"clk_48m", "clk_26m";
+		clocks  = <&mm_clk CLK_SENSOR0>,
+			<&mm_gate CLK_MSENSOR0_EB>,
+			<&pll CLK_TWPLL_96M>,
+			<&pll CLK_TWPLL_76M8>,
+			<&pll CLK_TWPLL_48M>,
+			<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama>;
+		vddcamd-supply = <&vddcamd>;
+		vddcammot-supply = <&vddcammot>;
+		reset-gpios = <&ap_gpio 37 0>;
+		power-down-gpios = <&ap_gpio 38 0>;
+		host = "dcam0";
+		sprd,phyid = <0>;
+		csi = <&csi0>;
+	};
+
+	sensor_sub: sensor-sub@21 {
+		compatible = "sprd,sensor-sub";
+		reg = <0x21>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m", "clk_76m8",
+			"clk_48m", "clk_26m";
+		clocks = <&mm_clk CLK_SENSOR0>,
+			<&mm_gate CLK_MSENSOR0_EB>,
+			<&pll CLK_TWPLL_96M>,
+			<&pll CLK_TWPLL_76M8>,
+			<&pll CLK_TWPLL_48M>,
+			<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama>;
+		vddcamd-supply = <&vddcamd>;
+		vddcammot-supply = <&vddcammot>;
+		reset-gpios = <&ap_gpio 46 0>;
+		power-down-gpios = <&ap_gpio 39 0>;
+		host = "dcam0";
+		sprd,phyid = <0>;
+		csi = <&csi0>;
 	};
 };
 
