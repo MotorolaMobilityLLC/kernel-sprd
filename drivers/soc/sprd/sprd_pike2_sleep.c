@@ -156,7 +156,7 @@ static bool apsys_master_slave_check(void)
 static void doze_sleep_bak_restore_uarteb(int bak)
 {
 	if (bak) {
-		u32 ap_apb_eb_temp;
+		u32 ap_apb_eb_temp = 0;
 
 		regmap_read(cpuidle_syscon_apapb,
 			    REG_AP_APB_APB_EB,
@@ -174,7 +174,7 @@ static void doze_sleep_bak_restore_uarteb(int bak)
 
 void sprd_pike2_light_en(void)
 {
-	u32 val;
+	u32 val = 0;
 
 	if (!light_sleep || smp_processor_id() != 0)
 		return;
