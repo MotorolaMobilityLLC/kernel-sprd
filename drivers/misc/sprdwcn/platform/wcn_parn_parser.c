@@ -178,7 +178,11 @@ int parse_firmware_path(char *firmware_path)
 		strncpy(fstab_name, fstab_dir[loop], sizeof(fstab_dir[loop]));
 		if (strlen(fstab_name) > 1)
 			fstab_name[strlen(fstab_name)] = '/';
-		iterate_dir(file1, &ctx);
+		ret = iterate_dir(file1, &ctx);
+		if (!ret) {
+			WCN_ERR("iterate_dir ret %d\n", ret);
+			return 0;
+		}
 		fput(file1);
 		ret = load_fstab_conf(fstab_name, firmware_path);
 		WCN_INFO("%s:load conf ret %d\n", fstab_dir[loop], ret);
