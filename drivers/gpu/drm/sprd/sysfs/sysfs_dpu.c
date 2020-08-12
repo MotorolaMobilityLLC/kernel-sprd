@@ -732,6 +732,203 @@ static ssize_t cabc_mode_write(struct file *fp, struct kobject *kobj,
 }
 static BIN_ATTR_WO(cabc_mode, 4);
 
+static ssize_t cabc_hist_read(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->refresh_lock);
+		return -EINVAL;
+	}
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_CABC_HIST, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+static BIN_ATTR_RO(cabc_hist, 128);
+
+static ssize_t cabc_cur_bl_read(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->refresh_lock);
+		return -EINVAL;
+	}
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_CABC_CUR_BL, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+
+}
+
+static BIN_ATTR_RO(cabc_cur_bl, 4);
+
+static ssize_t vsync_count_read(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->refresh_lock);
+		return -EINVAL;
+	}
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_VSYNC_COUNT, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+
+static BIN_ATTR_RO(vsync_count, 4);
+
+static ssize_t cabc_gain_write(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_set)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->refresh_lock);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_GAIN, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+
+static BIN_ATTR_WO(cabc_gain, 4);
+
+static ssize_t cabc_bl_fix_write(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_set)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->refresh_lock);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_BL_FIX, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+
+static BIN_ATTR_WO(cabc_bl_fix, 4);
+
+static ssize_t cabc_run_write(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_set)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->refresh_lock);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_CABC_RUN, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+
+static BIN_ATTR_WO(cabc_run, 4);
+
+static ssize_t flip_run_write(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_set)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->refresh_lock);
+	dpu->core->enhance_set(ctx, ENHANCE_CFG_ID_FLIP_RUN, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+
+static BIN_ATTR_WO(flip_run, 4);
+
 static ssize_t hsv_read(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
@@ -760,6 +957,7 @@ static ssize_t hsv_read(struct file *fp, struct kobject *kobj,
 
 	return count;
 }
+
 
 static ssize_t hsv_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
@@ -976,6 +1174,13 @@ static struct bin_attribute *pq_bin_attrs[] = {
 	&bin_attr_epf,
 	&bin_attr_sr_epf,
 	&bin_attr_cabc_mode,
+	&bin_attr_cabc_hist,
+	&bin_attr_cabc_gain,
+	&bin_attr_cabc_bl_fix,
+	&bin_attr_vsync_count,
+	&bin_attr_cabc_run,
+	&bin_attr_flip_run,
+	&bin_attr_cabc_cur_bl,
 	&bin_attr_lut3d,
 	&bin_attr_enable,
 	&bin_attr_disable,

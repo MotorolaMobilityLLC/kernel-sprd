@@ -11,7 +11,6 @@
  * GNU General Public License for more details.
  */
 
-#include <cabc/cabc_definition.h>
 #include <linux/backlight.h>
 #include <linux/delay.h>
 #include <linux/of_address.h>
@@ -241,6 +240,14 @@ struct ltm_cfg {
 	u16 limit_clip_step;
 };
 
+struct cabc_para {
+	u32 cabc_hist[32];
+	u16 gain;
+	u16 bl_fix;
+	u16 cur_bl;
+	u8 video_mode;
+};
+
 struct slp_cfg {
 	u8 brightness;
 	u16 brightness_step;
@@ -318,13 +325,6 @@ static bool evt_stop;
 static int frame_no;
 static bool cabc_bl_set;
 static int cabc_disable = CABC_DISABLED;
-static int cabc_step0 = 8;
-static int cabc_step1 = 72;
-static int cabc_step2 = 28;
-static int cabc_scene_change_thr = 80;
-static int cabc_percent_thr_u = 1;
-static int cabc_percent_thr_v = 2;
-static int cabc_min_backlight = 408;
 static int cabc_bl_set_delay;
 static struct cabc_para cabc_para;
 static struct backlight_device *bl_dev;
@@ -337,15 +337,9 @@ static int corner_radius;
 static struct device_node *g_np;
 module_param(wb_xfbc_en, int, 0644);
 module_param(max_vsync_count, int, 0644);
-module_param(cabc_disable, int, 0644);
-module_param(cabc_step0, int, 0644);
-module_param(cabc_step1, int, 0644);
-module_param(cabc_step2, int, 0644);
-module_param(cabc_scene_change_thr, int, 0644);
-module_param(cabc_percent_thr_u, int, 0644);
-module_param(cabc_percent_thr_v, int, 0644);
 module_param(cabc_bl_set_delay, int, 0644);
-module_param(cabc_min_backlight, int, 0644);
+module_param(cabc_disable, int, 0644);
+module_param(frame_no, int, 0644);
 
 static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_enhance_reload(struct dpu_context *ctx);
@@ -447,12 +441,6 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		/* write back feature */
 		if ((vsync_count == max_vsync_count) && wb_en)
 			schedule_work(&ctx->wb_work);
-
-		/* cabc work */
-		if ((cabc_disable != CABC_DISABLED) && (vsync_count >= 9) &&
-		    (vsync_count % 2 == 0) && (vsync_count < 151)) {
-			schedule_work(&ctx->cabc_work);
-		}
 
 		/* cabc update backlight */
 		if (cabc_bl_set)
@@ -890,7 +878,6 @@ static int dpu_init(struct dpu_context *ctx)
 	size = (ctx->vm.vactive << 16) | ctx->vm.hactive;
 	reg->panel_size = size;
 	reg->blend_size = size;
-	init_cabc(ctx->vm.vactive, ctx->vm.hactive);
 
 	reg->dpu_cfg0 = 0;
 	reg->dpu_cfg1 = (qos_cfg.awqos_high << 12) |
@@ -1267,8 +1254,6 @@ static void dpu_flip(struct dpu_context *ctx,
 	 */
 	if (ctx->if_type == SPRD_DISPC_IF_EDPI)
 		dpu_wait_stop_done(ctx);
-	if (cabc_disable != CABC_DISABLED)
-		dpu_cabc_trigger(ctx);
 
 	/* reset the bgcolor to black */
 	reg->bg_color = 0;
@@ -1705,6 +1690,24 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 			cabc_para.video_mode = 2;
 		pr_info("enhance CABC mode: 0x%x\n", *p);
 		return;
+	case ENHANCE_CFG_ID_CABC_GAIN:
+		p = param;
+		cabc_para.gain = *p;
+		return;
+	case ENHANCE_CFG_ID_CABC_BL_FIX:
+		p = param;
+		cabc_para.bl_fix = *p;
+		return;
+	case ENHANCE_CFG_ID_CABC_RUN:
+		if (cabc_disable != CABC_DISABLED)
+			schedule_work(&ctx->cabc_work);
+		return;
+
+	case ENHANCE_CFG_ID_FLIP_RUN:
+		if (cabc_disable != CABC_DISABLED)
+			schedule_work(&ctx->cabc_work);
+		return;
+
 	default:
 		break;
 	}
@@ -1735,7 +1738,9 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 	struct gamma_lut *gamma;
 	struct threed_lut *lut3d;
 	u32 *p32;
+	u16 *p16;
 	int i, val;
+	int *vsynccount;
 
 	switch (id) {
 	case ENHANCE_CFG_ID_ENABLE:
@@ -1900,6 +1905,21 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		}
 		dpu_run(ctx);
 		pr_info("enhance lut3d get\n");
+		break;
+	case ENHANCE_CFG_ID_CABC_HIST:
+		p32 = param;
+		for (i = 0; i < 32; i++) {
+			*p32++ = reg->cabc_hist[i];
+			udelay(1);
+		}
+		break;
+	case ENHANCE_CFG_ID_CABC_CUR_BL:
+		p16 = param;
+		*p16 = cabc_para.cur_bl;
+		break;
+	case ENHANCE_CFG_ID_VSYNC_COUNT:
+		vsynccount = param;
+		*vsynccount = vsync_count;
 		break;
 	default:
 		break;
@@ -2081,14 +2101,10 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct cm_cfg cm;
-	int i;
 	struct device_node *backlight_node;
-	static int cabc_no;
-	static int last_bl;
 
 	if (cabc_disable) {
 		if (cabc_disable == CABC_STOPPING) {
-			last_bl = cabc_para.cur_bl;
 			memset(&cabc_para, 0, sizeof(cabc_para));
 			memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
 			reg->cm_coef01_00 = (cm.coef01 << 16) | cm.coef00;
@@ -2102,14 +2118,8 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 
 			cabc_disable = CABC_DISABLED;
 
-			cabc_no = 0;
 		}
 		return 0;
-	}
-
-	if (!cabc_no) {
-		init_cabc(ctx->vm.vactive, ctx->vm.hactive);
-		cabc_para.cur_bl = last_bl;
 	}
 
 	if (frame_no == 0) {
@@ -2137,18 +2147,6 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 
 		frame_no++;
 	} else {
-		if (cabc_no != 20)
-			cabc_no++;
-
-		for (i = 0; i < 32; i++) {
-			cabc_para.cabc_hist[i] = reg->cabc_hist[i];
-			udelay(1);
-		}
-
-		step_set(cabc_step0, cabc_step1, cabc_step2,
-			cabc_scene_change_thr, cabc_percent_thr_u,
-			cabc_percent_thr_v, cabc_min_backlight);
-		cabc_trigger(&cabc_para, cabc_no);
 
 		memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
 		if (cm.coef00 == 0 && cm.coef11 == 0 &&
