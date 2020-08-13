@@ -30,9 +30,25 @@ void
 file_ra_state_init(struct file_ra_state *ra, struct address_space *mapping)
 {
 	ra->ra_pages = inode_to_bdi(mapping->host)->ra_pages;
+	ra->seq_read_fact = 1;
 	ra->prev_pos = -1;
 }
 EXPORT_SYMBOL_GPL(file_ra_state_init);
+
+/*sync ra->ra_pages with bdi->ra_pages*/
+void ra_pages_sync(struct file_ra_state *ra,
+		struct address_space *mapping)
+{
+	unsigned int ra_pages;
+
+	if (ra->seq_read_fact == -1)
+		return;
+
+	ra_pages = inode_to_bdi(mapping->host)->ra_pages * ra->seq_read_fact;
+	if (RA_PAGES(ra) != ra_pages)
+		ra->ra_pages = inode_to_bdi(mapping->host)->ra_pages;
+}
+EXPORT_SYMBOL_GPL(ra_pages_sync);
 
 /*
  * see if a page needs releasing upon read_cache_pages() failure
@@ -216,11 +232,14 @@ int force_page_cache_readahead(struct address_space *mapping, struct file *filp,
 	if (unlikely(!mapping->a_ops->readpage && !mapping->a_ops->readpages))
 		return -EINVAL;
 
+	/* sync ra->ra_pages with bdi->ra_pages*/
+	ra_pages_sync(ra, mapping);
+
 	/*
 	 * If the request exceeds the readahead window, allow the read to
 	 * be up to the optimal hardware IO size
 	 */
-	max_pages = max_t(unsigned long, bdi->io_pages, ra->ra_pages);
+	max_pages = max_t(unsigned long, bdi->io_pages, RA_PAGES(ra));
 	nr_to_read = min(nr_to_read, max_pages);
 	while (nr_to_read) {
 		int err;
@@ -505,8 +524,12 @@ void page_cache_sync_readahead(struct address_space *mapping,
 			       pgoff_t offset, unsigned long req_size)
 {
 	/* no read-ahead */
-	if (!ra->ra_pages)
+	if (!RA_PAGES(ra))
 		return;
+
+	/* sync ra->ra_pages with bdi->ra_pages*/
+	ra_pages_sync(ra, mapping);
+
 
 	/* be dumb */
 	if (filp && (filp->f_mode & FMODE_RANDOM)) {
@@ -541,7 +564,7 @@ page_cache_async_readahead(struct address_space *mapping,
 			   unsigned long req_size)
 {
 	/* no read-ahead */
-	if (!ra->ra_pages)
+	if (!RA_PAGES(ra))
 		return;
 
 	/*

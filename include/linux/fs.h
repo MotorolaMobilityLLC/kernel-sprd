@@ -61,6 +61,7 @@ struct fscrypt_info;
 struct fscrypt_operations;
 struct fsverity_info;
 struct fsverity_operations;
+struct file_ra_state;
 
 extern void __init inode_init(void);
 extern void __init inode_init_early(void);
@@ -76,6 +77,7 @@ extern int sysctl_protected_symlinks;
 extern int sysctl_protected_hardlinks;
 extern int sysctl_protected_fifos;
 extern int sysctl_protected_regular;
+extern void ra_pages_sync(struct file_ra_state *ra, struct address_space *mapping);
 
 typedef __kernel_rwf_t rwf_t;
 
@@ -848,6 +850,7 @@ struct file_ra_state {
 					   there are only # of pages ahead */
 
 	unsigned int ra_pages;		/* Maximum readahead window */
+	int seq_read_fact;              /* turbo factor of sequential read */
 	unsigned int mmap_miss;		/* Cache miss stat for mmap accesses */
 	loff_t prev_pos;		/* Cache last read() position */
 };
@@ -860,6 +863,19 @@ static inline int ra_has_index(struct file_ra_state *ra, pgoff_t index)
 	return (index >= ra->start &&
 		index <  ra->start + ra->size);
 }
+
+/*
+ * ra->seq_read_fact == -1 indicates eio happens
+ */
+#define RA_PAGES(ra)                           \
+	({                                             \
+		unsigned int ra_pages;                  \
+		if (ra->seq_read_fact != -1)            \
+			ra_pages = ra->ra_pages * ra->seq_read_fact;    \
+		else                                    \
+			ra_pages = ra->ra_pages;        \
+			ra_pages;                               \
+	})
 
 struct file {
 	union {
