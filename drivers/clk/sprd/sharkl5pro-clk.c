@@ -132,6 +132,27 @@ static struct sprd_clk_desc sharkl5pro_g0_pll_desc = {
 	.hw_clks	= &sharkl5pro_g0_pll_hws,
 };
 
+/*pll clock at g1*/
+static SPRD_SC_GATE_CLK(dsi_div6clk_gate, "dsi-div6clk-gate", "ext-26m",
+			0x34, 0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+
+static struct sprd_clk_common *sharkl5pro_g1_pll_clks[] = {
+	/* address base is 0x323a0000 */
+	&dsi_div6clk_gate.common,
+};
+
+static struct clk_hw_onecell_data sharkl5pro_g1_pll_hws = {
+	.hws	= {
+		[CLK_DSI_DIV6CLK_GATE]	= &dsi_div6clk_gate.common.hw,
+	},
+	.num	= CLK_ANLG_PHY_G1_NUM,
+};
+
+static struct sprd_clk_desc sharkl5pro_g1_pll_desc = {
+	.clk_clks	= sharkl5pro_g1_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(sharkl5pro_g1_pll_clks),
+	.hw_clks	= &sharkl5pro_g1_pll_hws,
+};
 /* pll clock at g2 */
 static struct freq_table mpll_ftable[7] = {
 	{ .ibias = 1, .max_freq = 1400000000ULL },
@@ -1956,6 +1977,8 @@ static const struct of_device_id sprd_sharkl5pro_clk_ids[] = {
 	  .data = &sharkl5pro_pmu_gate_desc },
 	{ .compatible = "sprd,sharkl5pro-g0-pll",	/* 0x32390000 */
 	  .data = &sharkl5pro_g0_pll_desc },
+	{ .compatible = "sprd,sharkl5pro-g1-pll",	/* 0x323a0000 */
+	  .data = &sharkl5pro_g1_pll_desc },
 	{ .compatible = "sprd,sharkl5pro-g2-pll",	/* 0x323b0000 */
 	  .data = &sharkl5pro_g2_pll_desc },
 	{ .compatible = "sprd,sharkl5pro-g3-pll",	/* 0x323c0000 */
