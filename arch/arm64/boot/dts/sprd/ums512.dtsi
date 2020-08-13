@@ -528,6 +528,13 @@
 			#clock-cells = <1>;
 		};
 
+		pll0: pll0 {
+			compatible = "sprd,sharkl5pro-g1-pll";
+			sprd,syscon = <&anlg_phy_g1_regs>; /* 0x323a0000 */
+			clocks = <&ext_26m>;
+			#clock-cells = <1>;
+		};
+
 		mpll1: mpll1 {
 			compatible = "sprd,sharkl5pro-g2-pll";
 			sprd,syscon = <&anlg_phy_g2_regs>; /* 0x323b0000 */
