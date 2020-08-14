@@ -401,7 +401,7 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 {
 	struct sprd_adi *sadi = container_of(this, struct sprd_adi,
 					     restart_handler);
-	u32 wdt_base, val, reboot_mode = 0;
+	u32 wdt_base, val = 0, reboot_mode = 0;
 
 	if (!cmd)
 		reboot_mode = HWRST_STATUS_NORMAL;
