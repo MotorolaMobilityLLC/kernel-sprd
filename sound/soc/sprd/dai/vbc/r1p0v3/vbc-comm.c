@@ -255,7 +255,7 @@ static void vbc_module_clear(u32 id, enum VBC_MODULE module, u32 chan)
 	u32 bit = 0;
 	u32 reg = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -422,7 +422,7 @@ static void vbc_module_en(u32 id, enum VBC_MODULE module, u32 en, u32 chan)
 	u32 need_clear = false;
 	u32 old_val = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -563,7 +563,7 @@ static void vbc_da_clk_enable(u32 id, u32 en, u32 chan)
 {
 	unsigned int bit = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -595,7 +595,7 @@ static void vbc_ad_clk_enable(u32 id, u32 en, u32 chan)
 {
 	unsigned int bit = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -648,8 +648,8 @@ static inline int32_t vbc_idx_to_eq_idx(int vbc_idx)
 	case VBC_CAPTURE23:
 		return VBC_AD23_EQ;
 	default:
-		return -1;
 		pr_err("invalid vbc_idx[%d] for %s\n", vbc_idx, __func__);
+		return -1;
 	}
 }
 
@@ -1015,7 +1015,7 @@ static int vbc_da01_fifo_enable_raw(int enable, int chan)
 	u32 cnt_1 = 0;
 	u32 cnt_2 = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1053,7 +1053,7 @@ static int vbc_da23_fifo_enable_raw(int enable, int chan)
 	u32 cnt_1 = 0;
 	u32 cnt_2 = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1091,7 +1091,7 @@ static int vbc_da23_fifo_enable_raw(int enable, int chan)
 
 static int vbc_ad01_fifo_enable_raw(int enable, int chan)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1103,7 +1103,7 @@ static int vbc_ad01_fifo_enable_raw(int enable, int chan)
 
 static int vbc_ad23_fifo_enable_raw(int enable, int chan)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1165,7 +1165,7 @@ static int vbc_fifo_enable(int enable, int vbc_idx, int chan)
 
 static int vbc_da01_fifo_enable(int chan)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1177,7 +1177,7 @@ static int vbc_da01_fifo_enable(int chan)
 
 static int vbc_da01_fifo_disable(int chan)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1189,7 +1189,7 @@ static int vbc_da01_fifo_disable(int chan)
 
 static int vbc_da23_fifo_enable(int chan)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1201,7 +1201,7 @@ static int vbc_da23_fifo_enable(int chan)
 
 static int vbc_da23_fifo_disable(int chan)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1213,7 +1213,7 @@ static int vbc_da23_fifo_disable(int chan)
 
 static int vbc_ad01_fifo_enable(int chan)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1225,7 +1225,7 @@ static int vbc_ad01_fifo_enable(int chan)
 
 static int vbc_ad01_fifo_disable(int chan)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1238,7 +1238,7 @@ static int vbc_ad01_fifo_disable(int chan)
 
 static int vbc_ad23_fifo_enable(int chan)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}
@@ -1250,7 +1250,7 @@ static int vbc_ad23_fifo_enable(int chan)
 
 static int vbc_ad23_fifo_disable(int chan)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return -1;
 	}

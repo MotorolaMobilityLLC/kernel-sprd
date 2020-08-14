@@ -411,7 +411,7 @@ void vbc_fm_adder(u32 mode, u32 chan)
 {
 	unsigned int bit = BIT_RF_ST_FM_SEL;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -432,7 +432,7 @@ void vbc_st_adder(u32 mode, u32 chan)
 {
 	unsigned int bit = BIT_RF_ST_FM_SEL;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -452,7 +452,7 @@ void vbc_st_adder(u32 mode, u32 chan)
 /* must dgmixer enable (DA_DGMIXER in vbc_da_module_enable) */
 static void vbc_da01_set_dgmixer_dg(u32 chan, u32 dg)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -471,7 +471,7 @@ static void vbc_da01_set_dgmixer_dg(u32 chan, u32 dg)
 
 static void vbc_da23_set_dgmixer_dg(u32 chan, u32 dg)
 {
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -544,7 +544,7 @@ static void vbc_mixer_mux_sel(enum VBC_MIXER_ID_E mixer_id, u32 chan,
 	u32 mask = 0;
 	u32 val = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan(%u)\n", __func__, chan);
 		return;
 	}
@@ -590,7 +590,7 @@ static void vbc_mixer_out_sel(enum VBC_MIXER_ID_E mixer_id, u32 chan,
 	u32 reg = REG_VBC_VBC_MIXER_CTRL;
 	u32 mask = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan(%u)\n", __func__, chan);
 		return;
 	}
@@ -651,7 +651,7 @@ static void vbc_st_chan_sel(u32 id, u32 chan)
 	u32 val = 0;
 	u32 mask = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -680,7 +680,7 @@ static void vbc_st_data_inmux_sel(u32 mode, u32 chan)
 	u32 val = 0;
 	u32 mask = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -706,7 +706,7 @@ static void vbc_adc_Inmux_sel(u32 id, u32 path, u32 chan)
 	u32 val = 0;
 	u32 mask = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -732,6 +732,9 @@ static void vbc_adc_Inmux_sel(u32 id, u32 path, u32 chan)
 			mask |= BITS_RF_ADC3_INMUX_SEL(0x3);
 		}
 		break;
+	default:
+		    pr_err("%s, invalid chan %u\n", __func__, chan);
+		break;
 	}
 	vbc_reg_update(reg, val, mask);
 }
@@ -740,7 +743,7 @@ static void vbc_ad01_data_dgmux_sel(u32 mode, u32 chan)
 {
 	u32 bit;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -774,7 +777,7 @@ static void vbc_ad23_data_dgmux_sel(u32 mode, u32 chan)
 {
 	u32 bit;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 		return;
 	}
@@ -1993,6 +1996,9 @@ int vbc_component_startup(int vbc_idx, struct snd_soc_dai *dai)
 		vbc_try_ad_dgmux_set(vbc_codec, ADC2_DGMUX);
 		vbc_try_ad_dgmux_set(vbc_codec, ADC3_DGMUX);
 		vbc_mixer_sel_set(vbc_codec, VBC_MIXER_ST);
+		break;
+	default:
+		pr_err("%s, invalid vbc_idx %d\n", __func__, vbc_idx);
 		break;
 	}
 

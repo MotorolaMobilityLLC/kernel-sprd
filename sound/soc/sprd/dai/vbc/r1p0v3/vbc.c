@@ -152,7 +152,7 @@ static void vbc_dma_chn_en(u32 id, u32 en, u32 chan)
 	unsigned int reg = 0;
 	unsigned int val = 0;
 
-	if (AUDIO_CHAN_CHECK(chan) == 0) {
+	if (!AUDIO_CHAN_CHECK(chan)) {
 		pr_err("%s invalid chan %u\n", __func__, chan);
 
 		return;
