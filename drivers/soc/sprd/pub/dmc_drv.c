@@ -234,7 +234,7 @@ static const struct file_operations sprd_ddr_size_fops = {
 
 static int sprd_ddr_info_show(struct seq_file *m, void *v)
 {
-	int cs_num, i, type;
+	u32 cs_num, i, type;
 
 	type = (drv_data.type & 0x0f);
 	if (type < ARRAY_SIZE(ddr_type_to_str))
@@ -295,17 +295,16 @@ static int sprd_ddr_proc_creat(void)
 }
 #endif
 
-static int sprd_pub_monitor_reg_get(void)
+static void sprd_pub_monitor_reg_get(void)
 {
 	u32 *ptr = (u32 *) &drv_data.reg_val;
-	int i;
+	u32 i;
 
 	for (i = 0; i < sizeof(drv_data.reg_val) / sizeof(u32); i++) {
 		*ptr = readl_relaxed(drv_data.mon_base
 			+ PUB_STATUS_MON_CTRL_OFFSET + i * 4);
 		ptr++;
 	}
-	return 0;
 }
 
 static int sprd_pub_monitor_enable(int enable)
@@ -324,7 +323,7 @@ static int sprd_pub_monitor_enable(int enable)
 
 static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 {
-	int i;
+	u32 i;
 	u64 idle_time, write_time, read_time, sref_time, light_time;
 	u64 fx_time[8], total_tm, sts_tm;
 	u32 light_cnt, sref_cnt;
@@ -335,9 +334,11 @@ static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 	if (!drv_data.pub_mon_enabled)
 		return -ENODATA;
 
-	sprd_pub_monitor_enable(0);
-	if (sprd_pub_monitor_reg_get())
-		return -ENODATA;
+	if (sprd_pub_monitor_enable(0))
+		return -ENOMEM;
+
+	sprd_pub_monitor_reg_get();
+
 	idle_time = div64_u64((u64)drv_data.reg_val.idle_time * 1000ULL,
 			      PUB_MONITOR_CLK);
 	write_time = div64_u64((u64)drv_data.reg_val.write_time * 1000ULL,
@@ -480,7 +481,7 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 	const struct dmc_data *pdata = NULL;
 	struct resource *res = NULL;
 	void __iomem *io_addr;
-	int i;
+	u32 i;
 
 	pdata = of_device_get_match_data(&pdev->dev);
 	if (!pdata) {
