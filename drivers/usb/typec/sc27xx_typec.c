@@ -347,7 +347,7 @@ static int sc27xx_typec_get_efuse(struct sc27xx_typec *sc)
 	struct nvmem_cell *cell;
 	int calib_data = 0;
 	void *buf;
-	size_t len;
+	size_t len = 0;
 
 	cell = nvmem_cell_get(sc->dev, "cc_calib");
 	if (IS_ERR(cell))

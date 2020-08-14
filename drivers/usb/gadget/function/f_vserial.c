@@ -1003,7 +1003,7 @@ ssize_t vser_iq_write(char *buf, size_t count)
 {
 	struct vser_dev *dev = _vser_dev;
 	struct usb_composite_dev *cdev = dev->cdev;
-	struct usb_request *req;
+	struct usb_request *req = NULL;
 	int r = count, xfer, ret;
 
 	DBG(cdev, "%s: buf:0x%p, count:0x%llx, epname:%s\n",
