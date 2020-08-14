@@ -57,6 +57,10 @@
 #define CM_HCAP_THRESHOLD		955
 #define CM_CAP_FULL_PERCENT		1000
 #define CM_CAP_MAGIC_NUM		0x5A5AA5A5
+#define CM_CAPACITY_LEVEL_CRITICAL	0
+#define CM_CAPACITY_LEVEL_LOW		15
+#define CM_CAPACITY_LEVEL_NORMAL	85
+#define CM_CAPACITY_LEVEL_FULL		100
 
 #define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
 
@@ -2190,6 +2194,29 @@ static int charger_get_property(struct power_supply *psy,
 		else if (val->intval < 0)
 			val->intval = 0;
 		break;
+	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
+		if (!is_batt_present(cm)) {
+			/* There is no battery. Assume 100% */
+			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_FULL;
+			break;
+		}
+		val->intval = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
+		if (val->intval > 100)
+			val->intval = 100;
+		else if (val->intval < 0)
+			val->intval = 0;
+
+		if (val->intval == CM_CAPACITY_LEVEL_FULL)
+			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_FULL;
+		else if (val->intval > CM_CAPACITY_LEVEL_NORMAL)
+			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_HIGH;
+		else if (val->intval > CM_CAPACITY_LEVEL_LOW)
+			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_NORMAL;
+		else if (val->intval > CM_CAPACITY_LEVEL_CRITICAL)
+			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_LOW;
+		else
+			val->intval = POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL;
+		break;
 	case POWER_SUPPLY_PROP_ONLINE:
 		if (is_ext_pwr_online(cm))
 			val->intval = 1;
@@ -2484,6 +2511,7 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_VOLTAGE_AVG,
 	POWER_SUPPLY_PROP_CAPACITY,
+	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
