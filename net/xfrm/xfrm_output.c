@@ -311,21 +311,15 @@ static int xfrm_output_resume_frag_sub(struct sk_buff *skb,
 					__xfrm_output_resume_ss_after_frag);
 		} else {
 			struct ipv6hdr *ip6h = ipv6_hdr(skb);
-			unsigned int hlen = 0;
-			u8 *prevhdr = NULL;
 			/* If skb payload is esp,do fragment.
 			 * even tht esp payload is tcp.
 			 */
 			if (ip6h->nexthdr == NEXTHDR_FRAGMENT)
 				goto  dont_frag;
-			hlen = ip6_find_1stfragopt(skb, &prevhdr);
-			seg_pmtu += sizeof(struct frag_hdr) + hlen;
 			if (seg_pmtu > pmtu)
 				seg_pmtu = pmtu;
-			else if (seg_pmtu < IPV6_MINIMUM_MTU + hlen
-					+ sizeof(struct frag_hdr))
-				seg_pmtu = IPV6_MINIMUM_MTU + hlen
-					+ sizeof(struct frag_hdr);
+			else if (seg_pmtu < IPV6_MINIMUM_MTU)
+				seg_pmtu = IPV6_MINIMUM_MTU;
 			printk_ratelimited(KERN_ERR
 		"IPv6:The pkt is divided into %d parts with mtu %d.\n",
 			segs, seg_pmtu);
