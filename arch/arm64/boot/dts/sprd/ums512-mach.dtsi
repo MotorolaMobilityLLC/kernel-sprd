@@ -6,6 +6,9 @@
  * This file is licensed under a dual GPLv2 or X11 license.
  */
 
+#include <dt-bindings/gpio/gpio.h>
+#include "ums512.dtsi"
+#include "ums512-modem.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include <dt-bindings/thermal/thermal.h>
 / {
@@ -13,12 +16,20 @@
 		cooling-device0 = &cluster0_cooling;
 		cooling-device1 = &cluster1_cooling;
 		gpu-cooling0 = &gpu_cooling0;
+
+		serial0 = &uart0;
+		serial1 = &uart1;
+
 	};
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
+	};
+
+	chosen: chosen {
+		stdout-path = &uart1;
 	};
 
 	dpu_dvfs: dpu-dvfs {
@@ -37,6 +48,11 @@
 			307200    700000
 			384000    750000
 			>;
+	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 	};
 
 	vsp_dvfs: vsp-dvfs {
@@ -636,9 +652,29 @@
 	interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
 };
 
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+};
+
 &modem_dbg_log{
 	status = "okay";
 	clock-names = "serdes_eb", "mm_eb", "ana_eb", "dphy_cfg_eb", "dphy_ref_eb", "dsi_csi_test_eb", "cphy_cfg_eb";
 	clocks = <&aonapb_gate CLK_SERDES_EB>, <&aonapb_gate CLK_MM_EB>, <&aonapb_gate CLK_ANA_EB>, <&aonapb_gate CLK_SDPHY_CFG_EB>,
 		<&aonapb_gate CLK_SDPHY_REF_EB>, <&aonapb_gate CLK_DSI_CSI_TEST_EB>, <&aonapb_gate CLK_CPHY_CFG_EN>;
+	vddio-supply = <&vddcamio>;
+	mipi-switch-en-gpios = <&ap_gpio 55 GPIO_ACTIVE_HIGH>;
+	mipi-switch-mode-gpios = <&ap_gpio 8 GPIO_ACTIVE_HIGH>;
+};
+
+&pmic_typec {
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
 };

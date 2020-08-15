@@ -189,9 +189,30 @@
 				avdd12-bound-wbreq = <REG_ANA_LDO_XTL_EN10 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWCN_EXT_XTL3_EN>;
 				avdd33-bound-wbreq = <REG_ANA_LDO_XTL_EN11 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN 0x0 MASK_ANA_LDO_VDDWIFIPA_EXT_XTL3_EN>;
 			};
+
+			tboard_thermistor:thermal-sensor {
+				compatible = "generic-adc-thermal";
+				#thermal-sensor-cells = <0>;
+				io-channels = <&pmic_adc 1>;
+				io-channel-names = "sensor-channel";
+				temperature-lookup-table = <    (-39742) 1131
+								(-29777) 1110
+								(-19480) 1074
+								(-4679) 983
+								10110 838
+								24805 654
+								44922 413
+								54903 316
+								64895 238
+								74884 178
+								84883 133
+								94883 100
+								104880 75
+								114889 57
+								124872 43 >;
+			};
 		};
 	};
-
 };
 
 &chosen {
@@ -212,6 +233,95 @@
 		reg = <0x0 0xfb8ae000 0x0 0x01e5a000>;
 	};
 */
+};
+
+&sdio0 {
+	cd-gpios = <&eic_sync 19 GPIO_ACTIVE_HIGH>;
+};
+
+&pin_controller {
+	pinctrl-names =
+	/* keyout0 ~ keyout2 */
+	"gpio_121", "gpio_122", "gpio_123",
+	/* keyin0 ~ keyin2 */
+	"gpio_124", "gpio_125", "gpio_126",
+	/* extint0, extint1, scl3, sda3, sda */
+	"gpio_144", "gpio_145", "gpio_146", "gpio_147", "gpio_16";
+
+	pinctrl-0 = <&gpio_121>;
+	pinctrl-1 = <&gpio_122>;
+	pinctrl-2 = <&gpio_123>;
+	pinctrl-3 = <&gpio_124>;
+	pinctrl-4 = <&gpio_125>;
+	pinctrl-5 = <&gpio_126>;
+	pinctrl-6 = <&gpio_144>;
+	pinctrl-7 = <&gpio_145>;
+	pinctrl-8 = <&gpio_146>;
+	pinctrl-9 = <&gpio_147>;
+	pinctrl-10 = <&gpio_16>;
+
+	gpio_121: keyout0 {
+		pins = "SHARKL5PRO_KEYOUT0";
+		function = "func4";
+	};
+
+	gpio_122: keyout1 {
+		pins = "SHARKL5PRO_KEYOUT1";
+		function = "func4";
+	};
+
+	gpio_123: keyout2 {
+		pins = "SHARKL5PRO_KEYOUT2";
+		function = "func4";
+	};
+
+	gpio_124: keyin0 {
+		pins = "SHARKL5PRO_KEYIN0";
+		function = "func4";
+	};
+
+	gpio_125: keyin1 {
+		pins = "SHARKL5PRO_KEYIN1";
+		function = "func4";
+	};
+
+	gpio_126: keyin2 {
+		pins = "SHARKL5PRO_KEYIN2";
+		function = "func4";
+	};
+
+	gpio_144: extint0 {
+		pins = "SHARKL5PRO_EXTINT0";
+		function = "func4";
+	};
+
+	gpio_145: extint1 {
+		pins = "SHARKL5PRO_EXTINT1";
+		function = "func4";
+	};
+
+	gpio_147: scl3 {
+		pins = "SHARKL5PRO_SCL3";
+		function = "func4";
+	};
+
+	gpio_146: sda3 {
+		pins = "SHARKL5PRO_SDA3";
+		function = "func4";
+	};
+
+	gpio_16: rffe1_sda {
+		pins = "SHARKL5PRO_RFFE1_SDA";
+		function = "func4";
+	};
+};
+
+&thm_zone {
+	bd_thmzone: board-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&tboard_thermistor>;
+	};
 };
 
 &ion {
@@ -402,4 +512,70 @@
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
+};
+
+&vddldo0 {
+	regulator-always-on;
+};
+
+&dvfs_dcdc_cpu0_supply {
+	pmic-type-num = <0>;
+	slew-rate = <9375>; /* 9375uV/us */
+	top-dvfs-adi-state = <0x70 0 0xf>;
+	voltage-grade-num = <7>;
+	voltage-grade = <0 0xf0 0xf4 0 0x1ff>,
+		<1 0xf0 0xf4 9 0x1ff>,
+		<2 0x100 0xf4 18 0x1ff>,
+		<3 0x110 0xf8 0 0x1ff>,
+		<4 0x120 0xf8 9 0x1ff>,
+		<5 0x130 0xf8 18 0x1ff>,
+		<6 0x140 0xfc 0 0x1ff>;
+	voltage-up-delay = <50 0x58 0 0xffff 0x600>,
+		<100 0x58 16 0xffff 0xa00>,
+		<150 0x54 0 0xffff 0xf00>,
+		<200 0x54 16 0xffff 0x1400>,
+		<250 0x50 0 0xffff 0x1900>,
+		<300 0x50 16 0xffff 0x1e00>,
+		<350 0x110 0 0xffff 0x2300>;
+	voltage-down-delay = <50 0x64 0 0xffff 0x600>,
+		<100 0x64 16 0xffff 0xa00>,
+		<150 0x60 0 0xffff 0xf00>,
+		<200 0x60 16 0xffff 0x1400>,
+		<250 0x5c 0 0xffff 0x1900>,
+		<300 0x5c 16 0xffff 0x1e00>,
+		<350 0x114 0 0xffff 0x2300>;
+	tuning-latency-us = <0>;
+	chnl-in-i2c = <0>;
+};
+
+&dvfs_dcdc_cpu1_supply {
+	chnl-i2c-used;
+	third-pmic-used;
+	pmic-type-num = <2>;
+	slew-rate = <4000>; /* 4000uV/us */
+	supply-type-sel = <0x120 0 1>;
+	top-dvfs-i2c-state = <0x9c 4 0xf>;
+	voltage-grade-num = <6>;
+	voltage-grade = <0 0x0f 0x12c 0 0x7f>,
+		<1 0x14 0x12c 7 0x7f>,
+		<2 0x19 0x12c 14 0x7f>,
+		<3 0x1e 0x12c 21 0x7f>,
+		<4 0x23 0x130 0 0x7f>,
+		<5 0x28 0x130 7 0x7f>;
+	voltage-up-delay = <50 0x84 0 0xffff 0x1600>,
+		<100 0x84 16 0xffff 0x1a00>,
+		<150 0x80 0 0xffff 0x1f00>,
+		<200 0x80 16 0xffff 0x2400>,
+		<250 0x7c 0 0xffff 0x2900>,
+		<300 0x7c 16 0xffff 0x2e00>,
+		<350 0x118 0 0xffff 0x3300>;
+	voltage-down-delay = <50 0x90 0 0xffff 0x600>,
+		<100 0x90 16 0xffff 0xa00>,
+		<150 0x8c 0 0xffff 0xf00>,
+		<200 0x8c 16 0xffff 0x1400>,
+		<250 0x88 0 0xffff 0x1900>,
+		<300 0x88 16 0xffff 0x1e00>,
+		<350 0x11c 0 0xffff 0x2300>;
+	tuning-latency-us = <0>;
+	chnl-in-i2c = <1>;
 };
