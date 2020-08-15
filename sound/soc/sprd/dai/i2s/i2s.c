@@ -903,6 +903,7 @@ static void i2s_config_setting(int index, int value, struct i2s_config *config)
 		break;
 	case FORCE_FS:
 		config->force_fs = value;
+		break;
 	case HW_PROT:
 		if (value >= 0 && value <= 3)
 			config->hw_port = value;
