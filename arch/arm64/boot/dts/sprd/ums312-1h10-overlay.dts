@@ -6,6 +6,9 @@
 #include <dt-bindings/clock/sprd,sharkl5-clk.h>
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
+#include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
+#include "lcd/lcd_ili9881c_truly_mipi_hd.dtsi"
+#include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
 	model = "Unisoc UMS312 1H10 board";
@@ -411,6 +414,7 @@
 
 &panel {
 	sprd,backlight = <&pwm_backlight>;
+	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
 
 &ddr_dfs {

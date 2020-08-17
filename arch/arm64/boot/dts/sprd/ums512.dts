@@ -17,8 +17,6 @@
 #include "sc2730.dtsi"
 #include "ums512-mach.dtsi"
 #include "ums512-modem.dtsi"
-#include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
-#include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 #include "extra_sound_card_component.dtsi"
 
@@ -215,14 +213,6 @@
 	status = "okay";
 };
 
-&dpu {
-	status = "okay";
-};
-
-&iommu_dispc {
-	status = "okay";
-};
-
 &vsp {
 	status = "okay";
 };
@@ -281,51 +271,6 @@
 
 &fd {
 	status = "okay";
-};
-
-&dsi {
-	status = "okay";
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	panel: panel {
-		compatible = "sprd,generic-mipi-panel";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reg = <0>;
-
-		avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
-		avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
-		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
-		port {
-			reg = <1>;
-			panel_in: endpoint {
-				remote-endpoint = <&dphy_out>;
-			};
-		};
-	};
-};
-
-&dphy {
-	status = "okay";
-};
-
-&lcd_td4310_truly_mipi_fhd {
-	sprd,phy-bit-clock = <1104000>;  /* kbps */
-
-	display-timings {
-		timing1 {
-			clock-frequency = <153600000>;
-			hactive = <720>;
-			vactive = <1440>;
-			hback-porch = <20>;
-			hfront-porch = <50>;
-			vback-porch = <28>;
-			vfront-porch = <4>;
-			hsync-len = <2>;
-			vsync-len = <2>;
-		};
-	};
 };
 
 &aon_i2c0 {

@@ -16,8 +16,6 @@
 #include "sc2730.dtsi"
 #include "ums312-mach.dtsi"
 #include "sprd-sound-fe-be.dtsi"
-#include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
-#include "lcd/lcd_ili9881c_truly_mipi_hd.dtsi"
 
 / {
 	model = "Unisoc UMS312 SoC";
@@ -172,14 +170,6 @@
 	status = "okay";
 };
 
-&dpu {
-	status = "okay";
-};
-
-&iommu_dispc {
-	status = "okay";
-};
-
 &iommu_dcam{
 	status = "okay";
 };
@@ -201,31 +191,6 @@
 };
 
 &iommu_fd{
-	status = "okay";
-};
-
-&dsi {
-	status = "okay";
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	panel: panel {
-		compatible = "sprd,generic-mipi-panel";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reg = <0>;
-
-		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
-		port {
-			reg = <1>;
-			panel_in: endpoint {
-				remote-endpoint = <&dphy_out>;
-			};
-		};
-	};
-};
-
-&dphy {
 	status = "okay";
 };
 

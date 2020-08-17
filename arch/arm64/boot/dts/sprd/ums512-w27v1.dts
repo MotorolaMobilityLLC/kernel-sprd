@@ -709,18 +709,10 @@
 	status = "okay";
 };
 
-&dpu {
-	status = "okay";
-};
-
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 		"camhigh", "camveryhigh", "faceid";
 	sprd-freq = <1333 768 256 384 512 0xbacd 1333>;
-};
-
-&iommu_dispc {
-	status = "okay";
 };
 
 &vsp {
@@ -783,38 +775,17 @@
 	status = "okay";
 };
 
-&dsi {
-	status = "okay";
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	panel: panel {
-		compatible = "sprd,generic-mipi-panel";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reg = <0>;
-
-		avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
-		avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
-		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
-		port {
-			reg = <1>;
-			panel_in: endpoint {
-				remote-endpoint = <&dphy_out>;
-			};
-		};
-	};
-};
-
-&dphy {
-	status = "okay";
+&panel {
+	avdd-gpio = <&ap_gpio 132 GPIO_ACTIVE_HIGH>;
+	avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
+	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
 
 &lcd_td4310_truly_mipi_fhd {
 	sprd,phy-bit-clock = <1104000>;  /* kbps */
 
 	display-timings {
-		timing1 {
+		td4310_truly_timing1: timing1 {
 			clock-frequency = <153600000>;
 			hactive = <720>;
 			vactive = <1440>;
@@ -824,6 +795,24 @@
 			vfront-porch = <4>;
 			hsync-len = <2>;
 			vsync-len = <2>;
+		};
+	};
+};
+
+&lcd_ssd2092_truly_mipi_fhd {
+	sprd,phy-bit-clock = <1104000>;  /* kbps */
+
+	display-timings {
+		ssd2092_truly_timing1: timing1 {
+			clock-frequency = <153600000>;
+			hactive = <720>;
+			vactive = <1440>;
+			hback-porch = <20>;
+			hfront-porch = <20>;
+			vback-porch = <43>;
+			vfront-porch = <76>;
+			hsync-len = <4>;
+			vsync-len = <1>;
 		};
 	};
 };

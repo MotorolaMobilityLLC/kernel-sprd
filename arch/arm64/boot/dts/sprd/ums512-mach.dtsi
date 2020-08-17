@@ -9,7 +9,6 @@
 #include <dt-bindings/gpio/gpio.h>
 #include "ums512.dtsi"
 #include "ums512-modem.dtsi"
-#include "lcd/lcd_dummy_mipi.dtsi"
 #include <dt-bindings/thermal/thermal.h>
 / {
 	aliases {
@@ -676,5 +675,37 @@
 };
 
 &uart1 {
+	status = "okay";
+};
+
+&dpu {
+	status = "okay";
+};
+
+&iommu_dispc {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	panel: panel {
+		compatible = "sprd,generic-mipi-panel";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
+
+		port@1 {
+			reg = <1>;
+			panel_in: endpoint {
+				remote-endpoint = <&dphy_out>;
+			};
+		};
+	};
+};
+
+&dphy {
 	status = "okay";
 };

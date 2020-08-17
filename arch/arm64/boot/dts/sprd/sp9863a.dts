@@ -12,11 +12,6 @@
 #include "sp9863a-mach.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
-#include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
-#include "lcd/lcd_nt35532_truly_mipi_fhd.dtsi"
-#include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
-#include "lcd/lcd_ft8006p_easyquick_mipi_hdp.dtsi"
-#include "lcd/lcd_icnl9911_hlt_mipi_hdp.dtsi"
 
 / {
 	model = "Spreadtrum SC9863A SoC";
@@ -104,41 +99,6 @@
 	fb_reserved: framebuffer@fe769000 {
 		reg = <0x0 0xfe769000 0x0 0x1817000>;
 	};
-};
-
-&dpu {
-	status = "okay";
-};
-
-&iommu_dispc {
-	status = "okay";
-};
-
-&dsi {
-	status = "okay";
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	panel: panel {
-		compatible = "sprd,generic-mipi-panel";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reg = <0>;
-		avdd-gpio = <&ap_gpio 4 GPIO_ACTIVE_HIGH>;
-		avee-gpio = <&ap_gpio 5 GPIO_ACTIVE_HIGH>;
-		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
-		port {
-			reg = <1>;
-			panel_in: endpoint {
-				remote-endpoint = <&dphy_out>;
-			};
-		};
-	};
-};
-
-&dphy {
-	status = "okay";
-	sprd,ulps-disabled;
 };
 
 &i2c7 {
