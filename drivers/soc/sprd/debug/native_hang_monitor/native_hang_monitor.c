@@ -63,10 +63,11 @@ static void log_to_hang_info(const char *fmt, ...)
 	static int times;
 	va_list ap;
 
-	pr_debug("len 0x%lx+++, times:%d, MaxSize:%lx\n", (long)(hang_info_index), times++, (unsigned long)HANG_INFO_MAX);
 	if ((hang_info_index + MAX_STRING_SIZE) >= (unsigned long)HANG_INFO_MAX) {
-		pr_err("HangInfo Buffer overflow len(0x%x), HANG_INFO_MAX:0x%lx !!!!!!!\n",
-		     hang_info_index, (long)HANG_INFO_MAX);
+		if (!times)
+			pr_err("HangInfo Buffer overflow len(0x%x), times:%d, HANG_INFO_MAX:0x%lx !!!!!!! \n",
+				hang_info_index, times, (long)HANG_INFO_MAX);
+		times++;
 		return;
 	}
 	va_start(ap, fmt);
@@ -235,22 +236,26 @@ static const char *get_maps_name(struct vm_area_struct *vma)
 	}
 	return name;
 }
-static void save_native_maps(struct vm_area_struct *vma, struct task_struct *current_task)
+static void save_native_maps(struct task_struct *current_task)
 {
 	int mapcount = 0;
+	struct vm_area_struct *vma;
 
-	while (vma && current_task && (current_task->mm) && (mapcount < current_task->mm->map_count)) {
+	if (current_task->mm != NULL) {
 		mmgrab(current_task->mm);
-		if (vma->vm_file) {
-			save_maps(vma, (unsigned char *)(vma->vm_file->f_path.dentry->d_name.name));
-		} else {
-			save_maps(vma, get_maps_name(vma));
+		vma = current_task->mm->mmap;
+
+		while (vma && current_task && (mapcount < current_task->mm->map_count)) {
+			if (vma->vm_file) {
+				save_maps(vma, (unsigned char *)(vma->vm_file->f_path.dentry->d_name.name));
+			} else {
+				save_maps(vma, get_maps_name(vma));
+			}
+			vma = vma->vm_next;
+			mapcount++;
 		}
-		vma = vma->vm_next;
-		mapcount++;
 		mmdrop(current_task->mm);
 	}
-
 }
 static int save_native_thread_maps(pid_t pid)
 {
@@ -270,7 +275,7 @@ static int save_native_thread_maps(pid_t pid)
 	}
 
 	log_to_hang_info("Dump native maps files:\n");
-	save_native_maps(current_task->mm->mmap, current_task);
+	save_native_maps(current_task);
 
 	return 0;
 }
@@ -556,7 +561,7 @@ void reset_hang_info(void)
 	hang_info_index = 0;
 }
 
-static void save_native_hang_monitor_data(void)
+void save_native_hang_monitor_data(void)
 {
 	int i;
 
@@ -606,9 +611,9 @@ static int hang_detect_thread(void *arg)
 				trigger_flag = 1;
 #endif
 				log_to_hang_info("[Native Hang detect]Dump process bt.\n");
+#ifndef CONFIG_SPRD_DEBUG
 				save_native_hang_monitor_data();
 				pr_err("[Native Native Hang Detect] hang_detect_counter:%d, hang detect save data finish ......\n", hang_detect_counter);
-#ifndef CONFIG_SPRD_DEBUG
 				pr_err("[Native Native Hang Detect] hang_detect_counter:%d, we should trigger panic...\n", hang_detect_counter);
 				panic("Native hang monitor trigger");
 #endif
