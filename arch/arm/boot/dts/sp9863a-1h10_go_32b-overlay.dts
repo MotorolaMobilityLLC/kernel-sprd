@@ -3,6 +3,10 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/clock/sprd,sc9863a-clk.h>
+#include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_nt35532_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
+#include "lcd/lcd_dummy_mipi.dtsi"
 
 / {
 	model = "Spreadtrum SP9863A-1H10-GO-32b Board";
@@ -222,6 +226,11 @@
 
 &panel {
 	sprd,backlight = <&pwm_backlight>;
+	sprd,surface-width = <720>;
+	sprd,surface-height = <1280>;
+	avdd-gpio = <&ap_gpio 4 GPIO_ACTIVE_HIGH>;
+	avee-gpio = <&ap_gpio 5 GPIO_ACTIVE_HIGH>;
+	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
 
 &i2c0 {

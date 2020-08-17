@@ -13,8 +13,6 @@
 #include "sc9832e-wcn.dtsi"
 #include "sc2721.dtsi"
 #include "sprd-sound-sharkl.dtsi"
-#include "lcd/lcd_ili9881c_truly_mipi_hd.dtsi"
-#include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
 / {
 	model = "Spreadtrum SC9832E SoC";
 
@@ -59,10 +57,6 @@
 	};
 };
 
-&dpu {
-	status = "okay";
-};
-
 &jpg {
 	status = "okay";
 };
@@ -76,35 +70,6 @@
 };
 
 &iommu_vsp {
-	status = "okay";
-};
-
-&iommu_dispc {
-	status = "okay";
-};
-
-&dsi {
-	status = "okay";
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	panel: panel {
-		compatible = "sprd,generic-mipi-panel";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reg = <0>;
-
-		reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
-		port {
-			reg = <1>;
-			panel_in: endpoint {
-				remote-endpoint = <&dphy_out>;
-			};
-		};
-	};
-};
-
-&dphy {
 	status = "okay";
 };
 
