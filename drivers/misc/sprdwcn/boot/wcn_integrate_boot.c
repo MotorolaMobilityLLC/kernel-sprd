@@ -186,7 +186,7 @@ static int wcn_load_firmware_img(struct wcn_device *wcn_dev,
 				WCN_ERR("open file %s error\n", path);
 				return -EINVAL;
 			}
-			msleep(200);
+			ssleep(1);
 		} else {
 			break;
 		}

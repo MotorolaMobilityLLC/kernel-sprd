@@ -989,7 +989,7 @@ static int wcn_probe(struct platform_device *pdev)
 		first = 0;
 	} else {
 		schedule_delayed_work(&wcn_dev->probe_power_wq,
-				      msecs_to_jiffies(6500));
+				      msecs_to_jiffies(3500));
 	}
 
 #if WCN_INTEGRATE_PLATFORM_DEBUG
