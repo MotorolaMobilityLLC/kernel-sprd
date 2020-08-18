@@ -63,6 +63,25 @@ enum cm_charge_status {
 	CM_CHARGE_DURATION_ABNORMAL = BIT(4),
 };
 
+
+struct wireless_data {
+	struct power_supply_desc psd;
+	struct power_supply *psy;
+	int WIRELESS_ONLINE;
+};
+
+struct ac_data {
+	struct power_supply_desc psd;
+	struct power_supply *psy;
+	int AC_ONLINE;
+};
+
+struct usb_data {
+	struct power_supply_desc psd;
+	struct power_supply *psy;
+	int USB_ONLINE;
+};
+
 /**
  * struct charger_cable
  * @extcon_name: the name of extcon device.

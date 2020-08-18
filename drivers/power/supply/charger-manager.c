@@ -127,6 +127,7 @@ static struct delayed_work cm_monitor_work; /* init at driver add */
 static bool allow_charger_enable;
 static bool is_charger_mode;
 static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg);
+static void cm_update_charger_type_status(struct charger_manager *cm);
 
 static int __init boot_calibration_mode(char *str)
 {
@@ -2116,12 +2117,68 @@ static void misc_event_handler(struct charger_manager *cm,
 		try_charger_enable(cm, false);
 	}
 
+	cm_update_charger_type_status(cm);
+
 	if (cm->desc->force_set_full)
 		cm->desc->force_set_full = false;
 
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		schedule_work(&setup_polling);
 	uevent_notify(cm, default_event_names[type]);
+}
+
+static int wireless_get_property(struct power_supply *psy, enum power_supply_property
+				 psp, union power_supply_propval *val)
+{
+	int ret = 0;
+	struct wireless_data *data = container_of(psy->desc, struct  wireless_data, psd);
+
+	switch (psp) {
+	case POWER_SUPPLY_PROP_ONLINE:
+		val->intval = data->WIRELESS_ONLINE;
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+static int ac_get_property(struct power_supply *psy, enum power_supply_property psp,
+			   union power_supply_propval *val)
+{
+	int ret = 0;
+	struct ac_data *data = container_of(psy->desc, struct ac_data, psd);
+
+	switch (psp) {
+	case POWER_SUPPLY_PROP_ONLINE:
+		val->intval = data->AC_ONLINE;
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+static int usb_get_property(struct power_supply *psy, enum power_supply_property psp,
+			    union power_supply_propval *val)
+{
+	int ret = 0;
+	struct usb_data *data = container_of(psy->desc, struct usb_data, psd);
+
+	switch (psp) {
+	case POWER_SUPPLY_PROP_ONLINE:
+		val->intval = data->USB_ONLINE;
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
 }
 
 static int charger_get_property(struct power_supply *psy,
@@ -2510,6 +2567,19 @@ static int charger_property_is_writeable(struct power_supply *psy,
 	return ret;
 }
 #define NUM_CHARGER_PSY_OPTIONAL	(4)
+
+static enum power_supply_property wireless_props[] = {
+	POWER_SUPPLY_PROP_ONLINE,
+};
+
+static enum power_supply_property ac_props[] = {
+	POWER_SUPPLY_PROP_ONLINE,
+};
+
+static enum power_supply_property usb_props[] = {
+	POWER_SUPPLY_PROP_ONLINE,
+};
+
 static enum power_supply_property default_charger_props[] = {
 	/* Guaranteed to provide */
 	POWER_SUPPLY_PROP_STATUS,
@@ -2538,6 +2608,42 @@ static enum power_supply_property default_charger_props[] = {
 	 */
 };
 
+/* wireless_data initialization */
+static struct wireless_data wireless_main = {
+	.psd = {
+		.name = "wireless",
+		.type =	POWER_SUPPLY_TYPE_WIRELESS,
+		.properties = wireless_props,
+		.num_properties = ARRAY_SIZE(wireless_props),
+		.get_property = wireless_get_property,
+	},
+	.WIRELESS_ONLINE = 0,
+};
+
+/* ac_data initialization */
+static struct ac_data ac_main = {
+	.psd = {
+		.name = "ac",
+		.type = POWER_SUPPLY_TYPE_MAINS,
+		.properties = ac_props,
+		.num_properties = ARRAY_SIZE(ac_props),
+		.get_property = ac_get_property,
+	},
+	.AC_ONLINE = 0,
+};
+
+/* usb_data initialization */
+static struct usb_data usb_main = {
+	.psd = {
+		.name = "usb",
+		.type = POWER_SUPPLY_TYPE_USB,
+		.properties = usb_props,
+		.num_properties = ARRAY_SIZE(usb_props),
+		.get_property = usb_get_property,
+	},
+	.USB_ONLINE = 0,
+};
+
 static const struct power_supply_desc psy_default = {
 	.name = "battery",
 	.type = POWER_SUPPLY_TYPE_BATTERY,
@@ -2548,6 +2654,27 @@ static const struct power_supply_desc psy_default = {
 	.property_is_writeable	= charger_property_is_writeable,
 	.no_thermal = true,
 };
+
+static void cm_update_charger_type_status(struct charger_manager *cm)
+{
+
+	if (is_ext_pwr_online(cm)) {
+		if (cm->desc->charger_type == POWER_SUPPLY_USB_TYPE_DCP) {
+			wireless_main.WIRELESS_ONLINE = 0;
+			usb_main.USB_ONLINE = 0;
+			ac_main.AC_ONLINE = 1;
+		} else {
+			wireless_main.WIRELESS_ONLINE = 0;
+			ac_main.AC_ONLINE = 0;
+			usb_main.USB_ONLINE = 1;
+		}
+	} else {
+		wireless_main.WIRELESS_ONLINE = 0;
+		ac_main.AC_ONLINE = 0;
+		usb_main.USB_ONLINE = 0;
+
+	}
+}
 
 /**
  * cm_setup_timer - For in-suspend monitoring setup wakeup alarm
@@ -4052,6 +4179,30 @@ static int charger_manager_probe(struct platform_device *pdev)
 	cm->charger_psy->supplied_to = charger_manager_supplied_to;
 	cm->charger_psy->num_supplicants =
 		ARRAY_SIZE(charger_manager_supplied_to);
+
+	wireless_main.psy = power_supply_register(&pdev->dev, &wireless_main.psd, NULL);
+	if (IS_ERR(wireless_main.psy)) {
+		dev_err(&pdev->dev, "Cannot register wireless_main.psy with name \"%s\"\n",
+			wireless_main.psd.name);
+		return PTR_ERR(wireless_main.psy);
+
+	}
+
+	ac_main.psy = power_supply_register(&pdev->dev, &ac_main.psd, NULL);
+	if (IS_ERR(ac_main.psy)) {
+		dev_err(&pdev->dev, "Cannot register usb_main.psy with name \"%s\"\n",
+			ac_main.psd.name);
+		return PTR_ERR(ac_main.psy);
+
+	}
+
+	usb_main.psy = power_supply_register(&pdev->dev, &usb_main.psd, NULL);
+	if (IS_ERR(usb_main.psy)) {
+		dev_err(&pdev->dev, "Cannot register usb_main.psy with name \"%s\"\n",
+			usb_main.psd.name);
+		return PTR_ERR(usb_main.psy);
+
+	}
 
 	/* Register extcon device for charger cable */
 	ret = charger_manager_register_extcon(cm);
