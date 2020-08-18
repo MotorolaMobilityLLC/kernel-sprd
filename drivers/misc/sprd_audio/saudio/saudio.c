@@ -1372,8 +1372,14 @@ static int saudio_snd_init_ipc(struct snd_saudio *saudio)
 				    result);
 				goto nodev;
 			}
-			sblock_register_notifier(stream->dst, stream->channel,
+			result = sblock_register_notifier(stream->dst, stream->channel,
 						 sblock_notifier, stream);
+			if (result) {
+				ETRACE
+				    ("saudio_thread sblock register notifier failed result is %d\n",
+				    result);
+				goto nodev;
+			}
 			pr_debug("saudio_thread sblock create  result is %d\n",
 				 result);
 		}
