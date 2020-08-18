@@ -90,6 +90,43 @@ static void sipc_txirq_trigger(u8 dst, u64 msg)
 	}
 }
 
+static int sipc_get_smem_info(struct smsg_ipc *ipc, struct device_node *np)
+{
+	struct smem_item *smem_ptr;
+	int i, count;
+	const __be32 *list;
+
+	list = of_get_property(np, "sprd,smem-info", &count);
+	if (!list || !count) {
+		pr_err("no smem-info\n");
+		return -ENODEV;
+	}
+
+	count = count / sizeof(*smem_ptr);
+	smem_ptr = kcalloc(count, sizeof(*smem_ptr), GFP_KERNEL);
+	if (!smem_ptr)
+		return -ENOMEM;
+
+	for (i = 0; i < count; i++) {
+		smem_ptr[i].smem_base = be32_to_cpu(*list++);
+		smem_ptr[i].dst_smem_base = be32_to_cpu(*list++);
+		smem_ptr[i].smem_size = be32_to_cpu(*list++);
+		pr_debug("sipc:smem=%d, base=0x%x, dstbase=0x%x, size=0x%x\n",
+			 i, smem_ptr[i].smem_base,
+			 smem_ptr[i].dst_smem_base, smem_ptr[i].smem_size);
+	}
+
+	ipc->smem_cnt = count;
+	ipc->smem_ptr = smem_ptr;
+
+	/* default mem */
+	ipc->smem_base = smem_ptr[0].smem_base;
+	ipc->dst_smem_base = smem_ptr[0].dst_smem_base;
+	ipc->smem_size = smem_ptr[0].smem_size;
+
+	return 0;
+}
+
 static int sipc_parse_dt(struct smsg_ipc *ipc,
 	struct device_node *np, struct device *dev)
 {
@@ -203,19 +240,11 @@ static int sipc_parse_dt(struct smsg_ipc *ipc,
 	dev_dbg(dev, "smem_type = %d, ret =%d\n", ipc->smem_type, ret);
 
 	/* get smem info */
-	ret = of_property_read_u32_array(np,
-					 "sprd,smem-info",
-					 val,
-					 3);
+	ret = sipc_get_smem_info(ipc, np);
 	if (ret) {
-		dev_err(dev, "parse smem info failed.\n");
+		dev_err(dev, "sipc: parse smem info failed.\n");
 		return ret;
 	}
-	ipc->smem_base = val[0];
-	ipc->dst_smem_base = val[1];
-	ipc->smem_size = val[2];
-	dev_dbg(dev, "smem_base=0x%x, dst_smem_base=0x%x, smem_size=0x%x\n",
-		ipc->smem_base, ipc->dst_smem_base, ipc->smem_size);
 
 	/* try to get high_offset */
 	ret = of_property_read_u32_array(np,
@@ -279,7 +308,7 @@ static int sipc_remove(struct platform_device *pdev)
 	struct smsg_ipc *ipc = platform_get_drvdata(pdev);
 
 	smsg_ipc_destroy(ipc);
-
+	kfree(ipc->smem_ptr);
 	devm_kfree(&pdev->dev, ipc);
 	return 0;
 }

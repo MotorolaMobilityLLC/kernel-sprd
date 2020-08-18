@@ -41,6 +41,12 @@ enum {
 	SMEM_PCIE
 };
 
+struct smem_item {
+	u32	smem_base;
+	u32	smem_size;
+	u32	dst_smem_base;
+};
+
 extern struct smsg_ipc *smsg_ipcs[];
 
 #define SMSG_CACHE_NR		256
@@ -107,6 +113,9 @@ struct smsg_ipc {
 	u32	high_offset;
 	u32	dst_high_offset;
 
+	u32	smem_cnt;
+	struct smem_item	*smem_ptr;
+
 	struct task_struct	*thread;
 	/* lock for send-buffer */
 	spinlock_t		txpinlock;
@@ -140,7 +149,7 @@ void smsg_ipc_destroy(struct smsg_ipc *ipc);
 #endif
 
 /* initialize smem pool for AP/CP */
-int smem_init(u32 addr, u32 size, u32 dst, u32 mem_type);
+int smem_init(u32 addr, u32 size, u32 dst, u32 smem, u32 mem_type);
 void sbuf_get_status(u8 dst, char *status_info, int size);
 
 #if defined(CONFIG_DEBUG_FS)

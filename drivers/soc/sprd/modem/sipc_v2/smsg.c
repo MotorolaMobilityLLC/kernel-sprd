@@ -414,13 +414,20 @@ static void smsg_ipc_init_irq_callback(struct smsg_ipc *ipc)
 static int smsg_ipc_smem_init(struct smsg_ipc *ipc)
 {
 	void __iomem *base, *p;
+	int i;
+	struct smem_item *smem_ptr;
 
 	if (ipc->smem_inited)
 		return 0;
 
 	ipc->smem_inited = 1;
 	pr_debug("%s!\n", ipc->name);
-	smem_init(ipc->smem_base, ipc->smem_size, ipc->dst, ipc->smem_type);
+
+	for (i = 0; i < ipc->smem_cnt; i++) {
+		smem_ptr = ipc->smem_ptr;
+		smem_init(smem_ptr[i].smem_base, smem_ptr[i].smem_size,
+			  ipc->dst, i, ipc->smem_type);
+	}
 
 	if (ipc->type == SIPC_BASE_PCIE) {
 		ipc->ring_base = smem_alloc(ipc->dst, SZ_4K);

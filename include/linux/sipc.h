@@ -377,49 +377,64 @@ static inline void smsg_close_ack(u8 dst, u16 channel)
 /* SMEM interfaces */
 #ifdef CONFIG_SPRD_SIPC_V2
 /**
- * smem_alloc -- allocate shared memory block
+ * smem_alloc_ex -- allocate shared memory block
  *
  * @dst: dest processor ID
+ * @smem: which smem will use, default is 0
  * @size: size to be allocated, page-aligned
  * @return: phys addr or 0 if failed
  */
-u32 smem_alloc(u8 dst, u32 size);
+u32 smem_alloc_ex(u8 dst, u16 smem, u32 size);
+#define smem_alloc(dst, size) smem_alloc_ex((dst), (0), (size))
 
 /**
- * smem_free -- free shared memory block
+ * smem_free_ex -- free shared memory block
  *
  * @dst: dest processor ID
+ * @smem: which smem will use, default is 0
  * @addr: smem phys addr to be freed
  * @order: size to be freed
  */
-void smem_free(u8 dst, u32 addr, u32 size);
+void smem_free_ex(u8 dst, u16 smem, u32 addr, u32 size);
+#define smem_free(dst, addr, size) \
+	smem_free_ex((dst), (0), (addr), (size))
 
 /**
- * shmem_ram_unmap -- for sipc unmap ram address
+ * shmem_ram_unmap_ex -- for sipc unmap ram address
  *
+ * @dst: dest processor ID
+ * @smem: which smem will use, default is 0
  * @mem: vir mem
  */
-void shmem_ram_unmap(u8 dst, const void *mem);
+void shmem_ram_unmap_ex(u8 dst, u16 smem, const void *mem);
+#define shmem_ram_unmap(dst, mem) shmem_ram_unmap_ex((dst), (0), (mem))
 
 /**
- * shmem_ram_vmap_nocache -- for sipc map ram address
+ * shmem_ram_vmap_nocache_ex -- for sipc map ram address
  *
+ * @dst: dest processor ID
+ * @smem: which smem will use, default is 0
  * @start: start address
  * @size: size to be allocated, page-aligned
  * @return: phys addr or 0 if failed
  */
-void *shmem_ram_vmap_nocache(u8 dst, phys_addr_t start, size_t size);
+void *shmem_ram_vmap_nocache_ex(u8 dst, u16 smem,
+				phys_addr_t start, size_t size);
+#define shmem_ram_vmap_nocache(dst, start, size) \
+	shmem_ram_vmap_nocache_ex((dst), (0), (start), (size))
 
 /**
- * shmem_ram_vmap_cache -- for sipc map ram address
+ * shmem_ram_vmap_cache_ex -- for sipc map ram address
  *
+ * @dst: dest processor ID
+ * @smem: which smem will use, default is 0
  * @start: start address
  * @size: size to be allocated, page-aligned
  * @return: phys addr or 0 if failed
  */
-void *shmem_ram_vmap_cache(u8 dst, phys_addr_t start, size_t size);
-
-void smem_free(u8 dst, u32 addr, u32 size);
+void *shmem_ram_vmap_cache_ex(u8 dst, u16 smem, phys_addr_t start, size_t size);
+#define shmem_ram_vmap_cache(dst, start, size) \
+	shmem_ram_vmap_cache_ex((dst), (0), (start), (size))
 
 /**
  * modem_ram_unmap -- for modem unmap ram address
@@ -521,18 +536,22 @@ void sbuf_set_no_need_wake_lock(u8 dst, u8 channel, u32 bufnum);
 
 #ifdef CONFIG_SPRD_SIPC_V2
 /**
- * sbuf_create -- create pipe ring buffers on a channel
+ * sbuf_create_ex -- create pipe ring buffers on a channel
  *
  * @dst: dest processor ID
  * @channel: channel ID
+ * @smem: smem ID, default is 0
  * @txbufsize: tx buffer size
  * @rxbufsize: rx buffer size
  * @bufnum: how many buffers to be created
  * @return: 0 on success, <0 on failure
  */
 
-int sbuf_create(u8 dst, u8 channel, u32 bufnum,
-		u32 txbufsize, u32 rxbufsize);
+int sbuf_create_ex(u8 dst, u8 channel, u16 smem, u32 bufnum,
+		   u32 txbufsize, u32 rxbufsize);
+#define sbuf_create(dst, channel, bufnum, txbufsize, rxbufsize) \
+	sbuf_create_ex((dst), (channel), 0, (bufnum), (txbufsize), (rxbufsize))
+
 #else
 /**
  * sbuf_create_ex -- create pipe ring buffers on a channel
@@ -545,8 +564,8 @@ int sbuf_create(u8 dst, u8 channel, u32 bufnum,
  * @bufnum: how many buffers to be created
  * @return: 0 on success, <0 on failure
  */
-int sbuf_create_ex(u8 dst, u8 channel, u32 smem, u32 bufnum,
-			u32 txbufsize, u32 rxbufsize);
+int sbuf_create_ex(u8 dst, u8 channel, u32 smem_idx, u32 bufnum,
+		   u32 txbufsize, u32 rxbufsize);
 #define sbuf_create(dst, channel, bufnum, txbufsize, rxbufsize) \
 	sbuf_create_ex(dst, channel, 0, bufnum, txbufsize, rxbufsize)
 #endif
