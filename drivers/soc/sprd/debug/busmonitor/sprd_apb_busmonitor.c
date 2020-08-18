@@ -205,7 +205,7 @@ static void sprd_apb_busmon_get_hw_cfg(struct sprd_apb_busmonitor *apb_bm)
 		cfg->busmon_cfg |= SPRD_APB_BM_MATCH_DATA |
 			SPRD_APB_BM_MATCH_DET;
 
-	if (of_property_read_u32(np, "sprd,hang-timeout", &timeout))
+	if (!of_property_read_u32(np, "sprd,hang-timeout", &timeout))
 		cfg->busmon_cfg |= SPRD_APB_BM_TIMEOUT(timeout) |
 			SPRD_APB_BM_HANG_DET;
 
