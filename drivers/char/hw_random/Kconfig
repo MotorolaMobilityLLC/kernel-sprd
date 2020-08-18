@@ -449,6 +449,20 @@ config HW_RANDOM_S390
 
 	  If unsure, say Y.
 
+config HW_RANDOM_SPRD
+	tristate "SPRD true random number generator support"
+	depends on HW_RANDOM && ARCH_SPRD
+	default HW_RANDOM
+	---help---
+	  This driver provides kernel-side support for the True Random
+	  Number Generator hardware found on SPRD SoC.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called sprd_trng.
+
+	  If unsure, say Y.
+
+
 endif # HW_RANDOM
 
 config UML_RANDOM
