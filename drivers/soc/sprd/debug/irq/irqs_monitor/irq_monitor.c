@@ -413,7 +413,7 @@ static ssize_t time_interval_write(struct file *filep,
 		threshold_irq = (unsigned int)mid_value;
 		spin_unlock(&irq_monitor_lock);
 
-		irq_monitor_timer->expires = jiffies + msecs_to_jiffies(interval);
+		irq_monitor_timer->expires = jiffies + msecs_to_jiffies((unsigned int)interval);
 		add_timer(irq_monitor_timer);
 	}
 
