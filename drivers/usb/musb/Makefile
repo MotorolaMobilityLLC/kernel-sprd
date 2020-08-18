@@ -6,6 +6,8 @@
 # define_trace.h needs to know how to find our header
 CFLAGS_musb_trace.o	:= -I$(src)
 
+GCOV_PROFILE := $(CONFIG_USB_GCOV)
+
 obj-$(CONFIG_USB_MUSB_HDRC) += musb_hdrc.o
 
 musb_hdrc-y := musb_core.o musb_trace.o

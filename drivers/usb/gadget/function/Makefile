@@ -2,6 +2,7 @@
 #
 # USB peripheral controller drivers
 #
+GCOV_PROFILE := $(CONFIG_USB_GCOV)
 
 ccflags-y			:= -I$(srctree)/drivers/usb/gadget/
 ccflags-y			+= -I$(srctree)/drivers/usb/gadget/udc/

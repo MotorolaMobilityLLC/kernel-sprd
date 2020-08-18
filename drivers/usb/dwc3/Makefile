@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 # define_trace.h needs to know how to find our header
+GCOV_PROFILE := $(CONFIG_USB_GCOV)
+
 CFLAGS_trace.o				:= -I$(src)
 
 obj-$(CONFIG_USB_DWC3)			+= dwc3.o
