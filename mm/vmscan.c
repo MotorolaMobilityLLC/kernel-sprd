@@ -2733,6 +2733,8 @@ static void shrink_node_memcg(struct pglist_data *pgdat, struct mem_cgroup *memc
 
 		if (protect_file)
 			ratio = normal_file * 100 / protect_file;
+		else
+			ratio = 0;
 
 		if (ratio && ratio < protect_reclaim_ratio) {
 			spin_lock_irqsave(&(pgdat->lru_lock), flags);
