@@ -364,8 +364,12 @@ void alarmtimer_shutdown(struct platform_device *pdev)
 		return;
 	}
 
-	/* Setup an rtc timer to fire that far in the future */
-	rtc_read_time(rtc, &tm);
+	ret = rtc_read_time(rtc, &tm);
+	if (ret < 0) {
+		pr_err("read rtc time error %d\n", ret);
+		return;
+	}
+
 	now = rtc_tm_to_ktime(tm);
 	now = ktime_add(now, min);
 
@@ -379,6 +383,7 @@ void alarmtimer_shutdown(struct platform_device *pdev)
 	alarm.time = tm;
 	alarm.enabled = 1;
 
+	/* Setup an rtc timer to fire that far in the future */
 	ret = rtc_set_alarm(rtc, &alarm);
 	if (ret < 0)
 		pr_err("Power off alarm setting error %d\n", ret);
