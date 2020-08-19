@@ -84,12 +84,6 @@ enum core_request {
 	REQ_ALL,
 };
 
-enum mode_type {
-	NORMAL_MODE = 0,
-	THREAD_MODE,
-	MODE_ALL,
-};
-
 enum cluster_type {
 	CLUSTER0 = 0,	/* for 2/4/8 core */
 	CLUSTER1,	/* for 8 core */
@@ -116,7 +110,6 @@ struct sd_dbs_tuners {
 
 	unsigned int cpu_hotplug_disable;
 	unsigned int qos_core_ctl;
-	unsigned int hotplug_mode;
 	unsigned int is_suspend;
 	unsigned int cpu_num_max_limit[CLUSTER_ALL];	/* for thermal */
 	unsigned int cpu_num_min_limit[CLUSTER_ALL];	/* for touch boost */
@@ -197,7 +190,6 @@ static int down_proper_cpu(enum cluster_type cluster)
 {
 	struct sd_dbs_tuners *sd_tuners = g_sd_tuners;
 	struct cpumask tmp_mask;
-	int cpu = 0;
 
 	cpumask_clear(&tmp_mask);
 	if (!sd_tuners) {
@@ -207,12 +199,6 @@ static int down_proper_cpu(enum cluster_type cluster)
 	cpumask_and(&tmp_mask, &sd_tuners->cluster_mask[cluster],
 		cpu_online_mask);
 
-	if (sd_tuners->hotplug_mode && clu_online_cpus(cluster) == 3) {
-		cpu = cluster ? sd_tuners->cluster_cpu_ids[0] + 1 : 1;
-		if (cpu_online(cpu))
-			return cpu;
-	}
-
 	return find_last_bit(cpumask_bits(&tmp_mask), nr_cpu_ids);
 }
 
@@ -220,7 +206,6 @@ static int up_proper_cpu(enum cluster_type cluster)
 {
 	struct sd_dbs_tuners *sd_tuners = g_sd_tuners;
 	struct cpumask tmp_mask;
-	int cpu = 0;
 
 	cpumask_clear(&tmp_mask);
 	if (!sd_tuners) {
@@ -229,13 +214,6 @@ static int up_proper_cpu(enum cluster_type cluster)
 	}
 	cpumask_and(&tmp_mask, &sd_tuners->cluster_mask[cluster],
 		cpu_online_mask);
-
-	if (sd_tuners->hotplug_mode && clu_online_cpus(cluster) == 1
-		&& sd_tuners->cluster_cpu_ids[cluster] > 2) {
-		cpu = cluster ? sd_tuners->cluster_cpu_ids[0] + 2 : 2;
-		if (!cpu_online(cpu))
-			return cpu;
-	}
 
 	return find_next_zero_bit(cpumask_bits(&tmp_mask), nr_cpu_ids,
 			cluster ? sd_tuners->cluster_cpu_ids[cluster - 1] : 0);
@@ -1035,32 +1013,6 @@ static ssize_t show_qos_core_ctl(struct kobject *kobj,
 	return strlen(buf) + 1;
 }
 
-static ssize_t store_hotplug_mode(struct kobject *kobj,
-		struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	struct sd_dbs_tuners *sd_tuners = g_sd_tuners;
-	unsigned int input = 0;
-	int ret = 0;
-
-	ret = kstrtouint(buf, 0, &input);
-	if (ret < 0)
-		return ret;
-
-	if (input >= MODE_ALL)
-		return -EINVAL;
-
-	if (sd_tuners->hotplug_mode != input)
-		sd_tuners->hotplug_mode = input;
-	return count;
-}
-
-static ssize_t show_hotplug_mode(struct kobject *kobj,
-		struct kobj_attribute *attr, char *buf)
-{
-	snprintf(buf, 10, "%d\n", g_sd_tuners->hotplug_mode);
-	return strlen(buf) + 1;
-}
-
 static void sprd_dynamic_load_disable(unsigned int disable)
 {
 	struct sd_dbs_tuners *sd_tuners = g_sd_tuners;
@@ -1360,7 +1312,6 @@ define_sprd_global(cluster0_core_min_limit, 0660);
 define_sprd_global(cluster1_core_max_limit, 0660);
 define_sprd_global(cluster1_core_min_limit, 0660);
 define_sprd_global(qos_core_ctl, 0660);
-define_sprd_global(hotplug_mode, 0660);
 
 /*
  * NOTICE: ATTR_NUM should be modify if add a new attr.
@@ -1371,7 +1322,6 @@ static const struct attribute *qos_hotplug[CLUSTER_ALL][ATTR_NUM] = {
 		&cluster0_core_max_limit.attr,
 		&cluster0_core_min_limit.attr,
 		&qos_core_ctl.attr,
-		&hotplug_mode.attr,
 		NULL,
 	},
 	{
@@ -1584,7 +1534,6 @@ static int sd_tuners_init(struct sd_dbs_tuners *tuners)
 
 	tuners->cpu_hotplug_disable = true;
 	tuners->qos_core_ctl = true;
-	tuners->hotplug_mode = false;
 	tuners->is_suspend = false;
 	tuners->cpu_up_mid_threshold = DEF_CPU_UP_MID_THRESHOLD;
 	tuners->cpu_up_high_threshold = DEF_CPU_UP_HIGH_THRESHOLD;
