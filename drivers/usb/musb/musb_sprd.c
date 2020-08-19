@@ -137,6 +137,10 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 	u32 reg_dma;
 	u16 mask16;
 	u8 mask8;
+	u8 int_usb;
+	u16 int_rx;
+	u16 int_tx;
+
 
 	spin_lock(&glue->lock);
 
@@ -149,19 +153,15 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 
 	spin_lock(&musb->lock);
 	mask8 = musb_readb(musb->mregs, MUSB_INTRUSBE);
-	musb->int_usb = musb_readb(musb->mregs, MUSB_INTRUSB) & mask8;
+	int_usb = musb->int_usb = musb_readb(musb->mregs, MUSB_INTRUSB) & mask8;
 
 	mask16 = musb_readw(musb->mregs, MUSB_INTRTXE);
-	musb->int_tx = musb_readw(musb->mregs, MUSB_INTRTX) & mask16;
+	int_tx = musb->int_tx = musb_readw(musb->mregs, MUSB_INTRTX) & mask16;
 
 	mask16 = musb_readw(musb->mregs, MUSB_INTRRXE);
-	musb->int_rx = musb_readw(musb->mregs, MUSB_INTRRX) & mask16;
+	int_rx = musb->int_rx = musb_readw(musb->mregs, MUSB_INTRRX) & mask16;
 
 	reg_dma = musb_readl(musb->mregs, MUSB_DMA_INTR_MASK_STATUS);
-
-	dev_dbg(musb->controller, "%s usb%04x tx%04x rx%04x dma%x\n", __func__,
-			musb->int_usb, musb->int_tx, musb->int_rx, reg_dma);
-
 
 	if (musb->int_usb || musb->int_tx || musb->int_rx)
 		retval = musb_interrupt(musb);
@@ -171,6 +171,9 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 
 	spin_unlock(&musb->lock);
 	spin_unlock(&glue->lock);
+
+	dev_dbg(musb->controller, "%s usb%04x tx%04x rx%04x dma%x\n", __func__,
+			int_usb, int_tx, int_rx, reg_dma);
 
 	return retval;
 }
@@ -1299,12 +1302,18 @@ static int musb_sprd_runtime_resume(struct device *dev)
 {
 	struct sprd_glue *glue = dev_get_drvdata(dev);
 	struct musb *musb = platform_get_drvdata(glue->musb);
+	int ret;
 
-	clk_prepare_enable(glue->clk);
+	ret = clk_prepare_enable(glue->clk);
+	if (ret != 0)
+		dev_warn(dev, "clk prepare enable abnormal %d\n", ret);
 	glue->suspending = false;
 
-	if (!musb->shutdowning)
-		usb_phy_init(glue->xceiv);
+	if (!musb->shutdowning) {
+		ret = usb_phy_init(glue->xceiv);
+		if (ret != 0)
+			dev_warn(dev, "usb phy init abnormal %d\n", ret);
+	}
 	if (glue->dr_mode == USB_DR_MODE_HOST) {
 		usb_phy_vbus_on(glue->xceiv);
 	       /* Musb controller process go as device default.
