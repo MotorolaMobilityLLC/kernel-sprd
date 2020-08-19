@@ -28,7 +28,9 @@ void sprd_backlight_normalize_map(struct backlight_device *bd, u16 *level)
 {
 	struct sprd_backlight *bl = bl_get_data(bd);
 
-	if (bd->props.brightness > bl->knee_level)
+	if (!bd->props.brightness)
+		*level = 0;
+	else if (bd->props.brightness > bl->knee_level)
 		*level = DIV_ROUND_CLOSEST_ULL((bl->max_level
 			 - bl->knee_level) * (bd->props.brightness
 			 - bl->knee_level), U_MAX_LEVEL
