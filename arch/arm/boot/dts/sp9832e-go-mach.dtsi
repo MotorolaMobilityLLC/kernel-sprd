@@ -13,6 +13,12 @@
 	aliases {
 		thm-sensor11 = &cpu_thmzone;
 		cooling-device0 = &cluster0_cooling;
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+	chosen: chosen {
+		stdout-path = &uart1;
 	};
 
 	firmware {
@@ -235,6 +241,19 @@
 			compatible = "android,trusty-log-v1";
 		};
 	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&uart0 {
+	status = "disabled";
 };
 
 &sdio0 {
@@ -271,6 +290,11 @@
 	no-sdio;
 	no-sd;
 	status = "okay";
+};
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
 };
 
 &adi_bus {
