@@ -158,11 +158,11 @@ static int hotplug_ops(int cpu, enum core_request up)
 	cpu_dev = get_cpu_device(cpu);
 	if (!cpu_dev) {
 		pr_err("hotplug: cpu[%d] device, type: %s\n",
-			cpu, (up ? "up" : "down"));
+			cpu, (up ==  REQ_UP ? "up" : "down"));
 		return -EINVAL;
 	}
 
-	if (up)
+	if (up == REQ_UP)
 		return device_online(cpu_dev);
 	else
 		return device_offline(cpu_dev);
@@ -216,7 +216,7 @@ static int up_proper_cpu(enum cluster_type cluster)
 		cpu_online_mask);
 
 	return find_next_zero_bit(cpumask_bits(&tmp_mask), nr_cpu_ids,
-			cluster ? sd_tuners->cluster_cpu_ids[cluster - 1] : 0);
+			cluster == CLUSTER1 ? sd_tuners->cluster_cpu_ids[cluster - 1] : 0);
 }
 
 static int get_cluster_cpu_ids(struct sd_dbs_tuners *tuners)
@@ -333,7 +333,7 @@ reops:
 			  cpumask_bits(&sd_tuners->cluster_mask[cluster])))
 				break;
 			pr_info("!! %s:all gonna plugin cpu%d !!\n",
-				cluster ? "big" : "lit", cpu);
+				cluster ==  CLUSTER1 ? "big" : "lit", cpu);
 			ret = hotplug_ops(cpu, REQ_UP);
 
 			/* In order to avoid repeatedly plugin core */
@@ -356,7 +356,7 @@ reops:
 			  cpumask_bits(&sd_tuners->cluster_mask[cluster])))
 				break;
 			pr_info("!! %s:all gonna unplug cpu%d !!\n",
-				cluster ? "big" : "lit", cpu);
+				cluster == CLUSTER1 ? "big" : "lit", cpu);
 			ret = hotplug_ops(cpu, REQ_DOWN);
 
 			/* In order to avoid repeatedly unplug core */
@@ -379,7 +379,7 @@ reops:
 		cpu = cpumask_next_zero(0, cpu_online_mask);
 		if (cpu < sd_tuners->cpu_num_max_limit[cluster]) {
 			pr_info("!! %s:we gonna plugin cpu%d !!\n",
-				cluster ? "big" : "lit", cpu);
+				cluster == CLUSTER1 ? "big" : "lit", cpu);
 			ret = hotplug_ops(cpu, REQ_UP);
 			clear_bit(cluster, &corechange_flag);
 		}
@@ -392,7 +392,7 @@ reops:
 		if (cpu < sd_tuners->cluster_cpu_ids[cluster]
 			&& cpu > CLU0_CPU_NUM_MIN - 1) {
 			pr_info("!! %s:we gonna unplug cpu%d !!\n",
-				cluster ? "big" : "lit", cpu);
+				cluster == CLUSTER1 ? "big" : "lit", cpu);
 			ret = hotplug_ops(cpu, REQ_DOWN);
 			clear_bit(cluster, &corechange_flag);
 		}
