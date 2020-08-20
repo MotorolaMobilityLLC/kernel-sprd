@@ -11,6 +11,9 @@
  * GNU General Public License for more details.
  */
 
+#ifndef __SPRD_MUSBHSDMA_H__
+#define __SPRD_MUSBHSDMA_H__
+
 #define MUSB_DMA_PAUSE		0x1000
 #define MUSB_DMA_FRAG_WAIT	0x1004
 #define MUSB_DMA_INTR_RAW_STATUS	0x1008
@@ -217,3 +220,5 @@ irqreturn_t sprd_dma_interrupt(struct musb *musb, u32 int_hsdma);
 struct dma_controller *sprd_musb_dma_controller_create(struct musb *musb,
 							void __iomem *base);
 void sprd_musb_dma_controller_destroy(struct dma_controller *c);
+#endif /* __SPRD_MUSBHSDMA_H__ */
+
