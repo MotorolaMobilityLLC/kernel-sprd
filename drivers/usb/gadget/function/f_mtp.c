@@ -742,10 +742,9 @@ static ssize_t mtp_write(struct file *fp, const char __user *buf,
 		}
 
 		/* get an idle tx request to use */
-		req = 0;
+		req = mtp_req_get(dev, &dev->tx_idle);
 		ret = wait_event_interruptible(dev->write_wq,
-			((req = mtp_req_get(dev, &dev->tx_idle))
-				|| dev->state != STATE_BUSY));
+			(req || dev->state != STATE_BUSY));
 		if (!req) {
 			r = ret;
 			break;
@@ -1020,6 +1019,7 @@ static int mtp_send_event(struct mtp_dev *dev, struct mtp_event *event)
 	struct usb_request *req = NULL;
 	int ret;
 	int length = event->length;
+	unsigned long timeout;
 
 	DBG(dev->cdev, "%s(%zu)\n", __func__, event->length);
 
@@ -1028,9 +1028,11 @@ static int mtp_send_event(struct mtp_dev *dev, struct mtp_event *event)
 	if (dev->state == STATE_OFFLINE)
 		return -ENODEV;
 
-	ret = wait_event_interruptible_timeout(dev->intr_wq,
-			(req = mtp_req_get(dev, &dev->intr_idle)),
-			msecs_to_jiffies(1000));
+	timeout = msecs_to_jiffies(1000);
+	req =  mtp_req_get(dev, &dev->intr_idle);
+
+	ret = wait_event_interruptible_timeout(dev->intr_wq, req, timeout);
+
 	if (!req)
 		return -ETIME;
 
@@ -1152,7 +1154,7 @@ out:
 static int mtp_open(struct inode *ip, struct file *fp)
 {
 	int ret;
-
+	unsigned long m_to_j = msecs_to_jiffies(1000);
 	if (mtp_lock(&_mtp_dev->open_excl))
 		return -EBUSY;
 
@@ -1162,7 +1164,7 @@ static int mtp_open(struct inode *ip, struct file *fp)
 	 */
 	ret = wait_event_timeout(_mtp_dev->read_wq,
 				 _mtp_dev->state == STATE_READY,
-				 msecs_to_jiffies(1000));
+				 m_to_j);
 	if (ret == 0) {
 		pr_err("timed out waiting for open mtp\n");
 		mtp_unlock(&_mtp_dev->open_excl);
@@ -1511,7 +1513,8 @@ static void mtp_cleanup(void)
 
 static struct mtp_instance *to_mtp_instance(struct config_item *item)
 {
-	return container_of(to_config_group(item), struct mtp_instance,
+	struct config_group *con_group = to_config_group(item);
+	return container_of(con_group, struct mtp_instance,
 		func_inst.group);
 }
 
