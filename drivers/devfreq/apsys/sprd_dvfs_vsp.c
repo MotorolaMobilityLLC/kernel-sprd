@@ -531,12 +531,16 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	of_property_read_u32(np, "sprd,dvfs-work-freq",
+	ret = of_property_read_u32(np, "sprd,dvfs-work-freq",
 			&vsp->work_freq);
-	of_property_read_u32(np, "sprd,dvfs-idle-freq",
+	ret |= of_property_read_u32(np, "sprd,dvfs-idle-freq",
 			&vsp->idle_freq);
-	of_property_read_u32(np, "sprd,dvfs-enable-flag",
+	ret |= of_property_read_u32(np, "sprd,dvfs-enable-flag",
 			&vsp->ip_coeff.hw_dfs_en);
+	if (ret) {
+		pr_err("parse sprd_vsp_dvfs dts failed\n");
+		return -EINVAL;
+	}
 	pr_info("work freq %d, idle freq %d, enable flag %d\n",
 			vsp->work_freq,
 			vsp->idle_freq,
