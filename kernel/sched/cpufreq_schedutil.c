@@ -59,6 +59,7 @@ struct sugov_policy {
 	bool work_in_progress;
 
 	bool need_freq_update;
+	spinlock_t commit_lock;
 };
 
 struct sugov_cpu {
@@ -174,6 +175,8 @@ static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
 				unsigned int next_freq)
 {
 	struct cpufreq_policy *policy = sg_policy->policy;
+	unsigned long flags;
+	struct update_util_data *data;
 
 	if (sugov_up_down_rate_limit(sg_policy, time, next_freq)) {
 		/* Reset cached freq as next_freq isn't changed */
@@ -186,13 +189,18 @@ static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
 	if (sg_policy->next_freq == next_freq)
 		return;
 
+	spin_lock_irqsave(&sg_policy->commit_lock, flags);
+	data = rcu_dereference_sched(*per_cpu_ptr(&cpufreq_update_util_data, smp_processor_id()));
+	if (!data)
+		goto unlock;
+
 	sg_policy->next_freq = next_freq;
 	sg_policy->last_freq_update_time = time;
 
 	if (policy->fast_switch_enabled) {
 		next_freq = cpufreq_driver_fast_switch(policy, next_freq);
 		if (!next_freq)
-			return;
+			goto unlock;
 
 		policy->cur = next_freq;
 		trace_cpu_frequency(next_freq, smp_processor_id());
@@ -200,6 +208,8 @@ static void sugov_update_commit(struct sugov_policy *sg_policy, u64 time,
 		sg_policy->work_in_progress = true;
 		irq_work_queue(&sg_policy->irq_work);
 	}
+unlock:
+	spin_unlock_irqrestore(&sg_policy->commit_lock, flags);
 }
 
 /**
@@ -701,6 +711,7 @@ static struct sugov_policy *sugov_policy_alloc(struct cpufreq_policy *policy)
 
 	sg_policy->policy = policy;
 	raw_spin_lock_init(&sg_policy->update_lock);
+	spin_lock_init(&sg_policy->commit_lock);
 	return sg_policy;
 }
 
@@ -1029,12 +1040,14 @@ static void sugov_stop(struct cpufreq_policy *policy)
 {
 	struct sugov_policy *sg_policy = policy->governor_data;
 	unsigned int cpu;
+	unsigned long flags;
 
 	del_timer_sync(&sg_policy->freq_margin_timer);
 
+	spin_lock_irqsave(&sg_policy->commit_lock, flags);
 	for_each_cpu(cpu, policy->cpus)
 		cpufreq_remove_update_util_hook(cpu);
-
+	spin_unlock_irqrestore(&sg_policy->commit_lock, flags);
 	synchronize_sched();
 
 	if (slack_timer_setup)
