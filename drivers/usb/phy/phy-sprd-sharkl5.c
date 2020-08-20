@@ -124,12 +124,13 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 
 static void sprd_hsphy_emphasis_set(struct usb_phy *x, bool enabled)
 {
-	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
+	struct sprd_hsphy *phy;
 	u32 reg, msk;
 
-	if (!phy)
+	if (!x)
 		return;
 
+	phy = container_of(x, struct sprd_hsphy, phy);
 	reg = TUNEHSAMP_2_6MA;
 	msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEHSAMP;
 	if (enabled)
