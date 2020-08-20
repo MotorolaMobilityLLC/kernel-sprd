@@ -300,10 +300,10 @@ static int sc27xx_typec_enable(struct sc27xx_typec *sc)
 
 	val &= ~SC27XX_MODE_MASK;
 	switch (sc->typec_cap.type) {
-	case TYPEC_PORT_DFP:
+	case TYPEC_PORT_SRC:
 		val |= SC27XX_MODE_SRC;
 		break;
-	case TYPEC_PORT_UFP:
+	case TYPEC_PORT_SNK:
 		val |= SC27XX_MODE_SNK;
 		break;
 	case TYPEC_PORT_DRP:
