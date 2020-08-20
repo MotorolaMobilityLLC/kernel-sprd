@@ -12245,15 +12245,6 @@ CONFIG_SLUB_DEBUG
 	[must] debug
 	[missing plat description] none
 	[function] Increase debug efficiency for memory covered issue
-CONFIG_SLUB_DEBUG_ON
-	[arch] arm64
-	[plat] sharkl3,sharkl5,sharkl5Pro
-	[missing plat] none
-	[field] code
-	[subsys] mm
-	[must] debug
-	[missing plat description] none
-	[function] Increase debug efficiency for memory covered issue
 CONFIG_SMARTJOYPLUS_FF
 	[arch] all
 	[plat] all
