@@ -1271,6 +1271,7 @@ static int musb_sprd_runtime_suspend(struct device *dev)
 			struct sprd_musb_dma_controller, controller);
 	unsigned long flags;
 	int ret;
+	unsigned long m_t_j = msecs_to_jiffies(2000);
 
 	if (glue->dr_mode == USB_DR_MODE_HOST)
 		usb_phy_vbus_off(glue->xceiv);
@@ -1280,7 +1281,7 @@ static int musb_sprd_runtime_suspend(struct device *dev)
 	if (glue->dr_mode == USB_DR_MODE_HOST) {
 		ret = wait_event_timeout(controller->wait,
 			(controller->used_channels == 0),
-			msecs_to_jiffies(2000));
+			m_t_j);
 		if (ret == 0)
 			dev_err(glue->dev, "wait for port suspend timeout!\n");
 	}
