@@ -51,6 +51,8 @@ static int buf_list_check(struct buffer_pool_t *pool, struct mbuf_t *head,
 
 	if (num == 0)
 		return 0;
+	if (head == NULL)
+		return 0;
 
 	for (i = 0, mbuf = head; i < num; i++) {
 		if ((i == (num - 1)) && (mbuf != tail)) {
@@ -63,7 +65,10 @@ static int buf_list_check(struct buffer_pool_t *pool, struct mbuf_t *head,
 		WARN_ON_ONCE((char *)mbuf < pool->mem ||
 			(char *)mbuf > pool->mem + ((sizeof(struct mbuf_t)
 			+ pool->payload) * pool->size));
-		mbuf = mbuf->next;
+		if (mbuf != NULL)
+			mbuf = mbuf->next;
+		else
+			return 0;
 	}
 
 	if (tail->next != NULL) {
@@ -81,12 +86,18 @@ static int buf_pool_check(struct buffer_pool_t *pool)
 	int i;
 	struct mbuf_t *mbuf;
 
-	for (i = 0, mbuf = pool->head;
-	     i < pool->free; i++, mbuf = mbuf->next) {
+	if (pool->head == NULL)
+		return 0;
+
+	for (i = 0, mbuf = pool->head; i < pool->free; i++) {
 		WARN_ON_ONCE(!mbuf);
 		WARN_ON_ONCE((char *)mbuf < pool->mem ||
 			(char *)mbuf > pool->mem + ((sizeof(struct mbuf_t)
 			+ pool->payload) * pool->size));
+		if (mbuf != NULL)
+			mbuf = mbuf->next;
+		else
+			return 0;
 	}
 
 	if (mbuf != NULL) {
