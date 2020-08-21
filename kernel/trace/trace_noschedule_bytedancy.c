@@ -559,6 +559,7 @@ static int distribution_show(struct seq_file *m, void *ptr)
 	int cpu;
 	unsigned long hist[DURATION_HISTOGRAM_ENTRY] = { 0 };
 	struct per_cpu_stack_trace __percpu *stack_trace = m->private;
+	u64 factor;
 
 	for_each_online_cpu(cpu) {
 		int i;
@@ -569,9 +570,10 @@ static int distribution_show(struct seq_file *m, void *ptr)
 			hist[i] += hist_cpu[i];
 	}
 
+	factor = sampling_period << 1;
+	do_div(factor, 1000000UL);
 	histogram_show(m, "Trace noschedule thread:", hist,
-		       DURATION_HISTOGRAM_ENTRY,
-		       (sampling_period * 2) / (1000 * 1000UL));
+		       DURATION_HISTOGRAM_ENTRY, factor);
 
 	return 0;
 }
@@ -598,6 +600,7 @@ static int stack_trace_show(struct seq_file *m, void *ptr)
 		int i;
 		unsigned int nr;
 		struct per_cpu_stack_trace *cpu_stack_trace;
+		u64 duration_ms;
 
 		cpu_stack_trace = per_cpu_ptr(stack_trace, cpu);
 
@@ -615,10 +618,11 @@ static int stack_trace_show(struct seq_file *m, void *ptr)
 			struct stack_entry *entry;
 
 			entry = cpu_stack_trace->stack_entries + i;
+			duration_ms = cpu_stack_trace->duration[i];
+			do_div(duration_ms, 1000000UL);
 			seq_printf(m, "%*cCOMM: %s PID: %d DURATION: %llums\n",
 				   5, ' ', cpu_stack_trace->comms[i],
-				   cpu_stack_trace->pids[i],
-				   cpu_stack_trace->duration[i] / (1000 * 1000UL));
+				   cpu_stack_trace->pids[i], duration_ms);
 			seq_print_stack_trace(m, entry);
 			seq_putc(m, '\n');
 

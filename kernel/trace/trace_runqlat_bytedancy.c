@@ -185,7 +185,7 @@ static inline void latency_histogram_store(struct runqlat_info *info, u64 delta)
 {
 	int index = -1;
 
-	delta /= 1000000UL;
+	do_div(delta, 1000000UL);
 	do {
 		index++;
 		delta >>= 1;
@@ -442,6 +442,7 @@ DEFINE_PROC_ATTRIBUTE_RW(threshold);
 static int runqlat_show(struct seq_file *m, void *ptr)
 {
 	int i, j;
+	u64 latency_us, runtime_us;
 	struct runqlat_info *info = m->private;
 
 	if (info->pid != INVALID_CPU)
@@ -452,15 +453,19 @@ static int runqlat_show(struct seq_file *m, void *ptr)
 	for (i = 0; i < info->nr_trace; i++) {
 		struct trace_entry *entry = info->trace_entries + i;
 
+		latency_us = entry->latency;
+		do_div(latency_us, 1000);
 		seq_printf(m, "%*clatency(us): %llu runqlen: %d\n", 2, ' ',
-			   entry->latency / 1000, entry->nr_tasks);
+			   latency_us, entry->nr_tasks);
 
 		for (j = 0; j < entry->nr_tasks; j++) {
 			struct task_entry *task = entry->entries + j;
 
+			runtime_us = task->runtime;
+			do_div(runtime_us, 1000);
+
 			seq_printf(m, "%*cCOMM: %-16s PID: %-8d RUNTIME(us): %6llu\n",
-				   6, ' ', task->comm, task->pid,
-				   task->runtime / 1000);
+				   6, ' ', task->comm, task->pid, runtime_us);
 		}
 
 		seq_putc(m, '\n');

@@ -280,7 +280,7 @@ static void trace_irqoff_timer_handler(unsigned long data)
 static void trace_irqoff_timer_handler(struct timer_list *timer)
 #endif
 {
-	u64 now = local_clock(), delta;
+	u64 now = local_clock(), delta, sampling_period_ms;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
 	struct timer_list *timer = (struct timer_list *)data;
 #endif
@@ -292,12 +292,14 @@ static void trace_irqoff_timer_handler(struct timer_list *timer)
 
 	trace_irqoff_record(delta, false, false);
 
+	sampling_period_ms = sampling_period;
+	do_div(sampling_period_ms, 1000000UL);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0)
 	mod_timer_pinned(timer,
-			 jiffies + msecs_to_jiffies(sampling_period / 1000000UL));
+			 jiffies + msecs_to_jiffies(sampling_period_ms));
 #else
 	mod_timer(timer,
-		  jiffies + msecs_to_jiffies(sampling_period / 1000000UL));
+		  jiffies + msecs_to_jiffies(sampling_period_ms));
 #endif
 }
 
@@ -319,7 +321,7 @@ static void smp_clear_stack_trace(void *info)
 
 static void smp_timers_start(void *info)
 {
-	u64 now = local_clock();
+	u64 now = local_clock(), sampling_period_ms;
 	struct per_cpu_stack_trace *stack_trace = info;
 	struct hrtimer *hrtimer = &stack_trace->hrtimer;
 	struct timer_list *timer = &stack_trace->timer;
@@ -330,7 +332,9 @@ static void smp_timers_start(void *info)
 	hrtimer_start_range_ns(hrtimer, ns_to_ktime(sampling_period),
 			       0, HRTIMER_MODE_REL_PINNED);
 
-	timer->expires = jiffies + msecs_to_jiffies(sampling_period / 1000000UL);
+	sampling_period_ms = sampling_period;
+	do_div(sampling_period_ms, 1000000UL);
+	timer->expires = jiffies + msecs_to_jiffies(sampling_period_ms);
 	add_timer_on(timer, smp_processor_id());
 }
 
@@ -385,6 +389,7 @@ static bool histogram_show(struct seq_file *m, const char *header,
 static void distribute_show_one(struct seq_file *m, void *v, bool hardirq)
 {
 	int cpu;
+	u64 sampling_period_ms;
 	unsigned long latency_count[MAX_LATENCY_RECORD] = { 0 };
 
 	for_each_online_cpu(cpu) {
@@ -399,9 +404,10 @@ static void distribute_show_one(struct seq_file *m, void *v, bool hardirq)
 			latency_count[i] += count[i];
 	}
 
+	sampling_period_ms = sampling_period << 1;
+	do_div(sampling_period_ms, 1000000UL);
 	histogram_show(m, hardirq ? "hardirq-off:" : "softirq-off:",
-		       latency_count, MAX_LATENCY_RECORD,
-		       (sampling_period << 1) / (1000 * 1000UL));
+		       latency_count, MAX_LATENCY_RECORD, sampling_period_ms);
 }
 
 static int distribute_show(struct seq_file *m, void *v)
@@ -430,6 +436,11 @@ static ssize_t trace_latency_write(struct file *file, const char __user *buf,
 {
 	unsigned long latency;
 
+	u64 sampling_period_ms;
+
+	sampling_period_ms = sampling_period << 1;
+	do_div(sampling_period_ms, 1000000UL);
+
 	if (kstrtoul_from_user(buf, count, 0, &latency))
 		return -EINVAL;
 
@@ -441,7 +452,7 @@ static ssize_t trace_latency_write(struct file *file, const char __user *buf,
 						 per_cpu_ptr(cpu_stack_trace, cpu),
 						 true);
 		return count;
-	} else if (latency < (sampling_period << 1) / (1000 * 1000UL))
+	} else if (latency < sampling_period_ms)
 		return -EINVAL;
 
 	trace_irqoff_latency = latency * 1000 * 1000UL;
@@ -452,6 +463,7 @@ static ssize_t trace_latency_write(struct file *file, const char __user *buf,
 static void trace_latency_show_one(struct seq_file *m, void *v, bool hardirq)
 {
 	int cpu;
+	u64 latency_ms;
 
 	for_each_online_cpu(cpu) {
 		int i;
@@ -474,11 +486,12 @@ static void trace_latency_show_one(struct seq_file *m, void *v, bool hardirq)
 
 		for (i = 0; i < nr_irqoff_trace; i++) {
 			struct irqoff_trace *trace = stack_trace->trace + i;
+			latency_ms = stack_trace->latency[i].nsecs;
+			do_div(latency_ms, 1000000UL);
 
-			seq_printf(m, "%*cCOMMAND: %s PID: %d LATENCY: %lu%s\n",
+			seq_printf(m, "%*cCOMMAND: %s PID: %d LATENCY: %llu%s\n",
 				   5, ' ', stack_trace->comms[i],
-				   stack_trace->pids[i],
-				   stack_trace->latency[i].nsecs / (1000 * 1000UL),
+				   stack_trace->pids[i], latency_ms,
 				   stack_trace->latency[i].more ? "+ms" : "ms");
 			seq_print_stack_trace(m, trace);
 			seq_putc(m, '\n');
@@ -490,8 +503,11 @@ static void trace_latency_show_one(struct seq_file *m, void *v, bool hardirq)
 
 static int trace_latency_show(struct seq_file *m, void *v)
 {
+	u64 trace_irqoff_latency_ms = trace_irqoff_latency;
+
+	do_div(trace_irqoff_latency_ms, 1000000UL);
 	seq_printf(m, "trace_irqoff_latency: %llums\n\n",
-		   trace_irqoff_latency / (1000 * 1000UL));
+		   trace_irqoff_latency_ms);
 
 	seq_puts(m, " hardirq:\n");
 	trace_latency_show_one(m, v, true);
@@ -624,7 +640,10 @@ static const struct file_operations enable_fops = {
 
 static int sampling_period_show(struct seq_file *m, void *ptr)
 {
-	seq_printf(m, "%llums\n", sampling_period / (1000 * 1000UL));
+	u64 sampling_period_ms = sampling_period;
+
+	do_div(sampling_period_ms, 1000000UL);
+	seq_printf(m, "%llums\n", sampling_period_ms);
 
 	return 0;
 }
