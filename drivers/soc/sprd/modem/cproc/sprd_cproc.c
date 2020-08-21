@@ -182,7 +182,7 @@ static ssize_t sprd_cproc_seg_dump(u32 base,
 				   loff_t offset)
 {
 	void *vmem;
-	u32 loop = 0;
+	phys_addr_t loop = 0;
 	u32 start_addr;
 	u32 total;
 
@@ -313,7 +313,7 @@ static ssize_t cproc_proc_read(struct file *filp,
 	unsigned int flag;
 	void *vmem;
 	int rval;
-	int i;
+	ssize_t i;
 	unsigned long r;
 	u32 base, size;
 
@@ -616,7 +616,7 @@ static ssize_t cproc_proc_write(struct file *filp,
 	char *type = entry->name;
 	u32 base, size, offset;
 	void *vmem;
-	int i;
+	ssize_t i;
 	unsigned long r = count;
 	unsigned int flag;
 
