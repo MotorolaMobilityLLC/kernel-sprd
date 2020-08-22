@@ -1190,7 +1190,6 @@ static int shub_download_calibration_data(struct shub_data *sensor)
 	char file_path[CALIB_PATH_MAX_LENG];
 	char *raw_cali_data =  NULL;
 	int cal_file_size = 0;
-	struct kstat stat;
 	int sensor_type = 0, j = 0;
 
 	for (sensor_type = 0; sensor_type < 9; sensor_type++) {
@@ -1214,15 +1213,14 @@ static int shub_download_calibration_data(struct shub_data *sensor)
 			continue;
 		}
 
-		err = vfs_stat(file_path, &stat);
-		if (err) {
-			dev_err(&sensor->sensor_pdev->dev,
-				"Failed to find file stat, err = %d\n", err);
-			if (pfile)
-				filp_close(pfile, NULL);
+		cal_file_size = get_file_size(pfile);
+		if (cal_file_size <= 0) {
+			dev_warn(&sensor->sensor_pdev->dev,
+				 "Unable to get file size:%s\n", file_path);
+			filp_close(pfile, NULL);
 			continue;
 		}
-		cal_file_size = (int)stat.size;
+
 		dev_info(&sensor->sensor_pdev->dev,
 			 "cal_file_size=%d\n", cal_file_size);
 		/* check data size */
