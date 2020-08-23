@@ -999,11 +999,7 @@ static int sprd_headset_get_mic_voltage(struct sprd_headset *hdst)
 		adc_mic_average += adc_value / 2;
 		i++;
 	}
-	if (i == 0) {
-		adc_mic_average = -EINVAL;
-		goto read_adc_err;
-	}
-
+	/*  i will never be 0 */
 	adc_mic_average /= i;
 
 read_adc_err:
@@ -2788,7 +2784,12 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 
 	if (pdata->gpio_switch != 0)
 		gpio_direction_output(pdata->gpio_switch, 0);
-	gpio_direction_input(pdata->gpios[HDST_GPIO_AUD_DET_INT_ALL]);
+	ret = gpio_direction_input(pdata->gpios[HDST_GPIO_AUD_DET_INT_ALL]);
+	if (ret) {
+		pr_err("gpio_direction_input failed for %d\n",
+			pdata->gpios[HDST_GPIO_AUD_DET_INT_ALL]);
+		return ret;
+	}
 
 	hdst->irq_detect_int_all =
 		gpio_to_irq(pdata->gpios[HDST_GPIO_AUD_DET_INT_ALL]);
