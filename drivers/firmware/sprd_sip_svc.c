@@ -251,8 +251,8 @@ static int __init sprd_sip_svc_init(void)
 
 	/* init perf_ops */
 	arm_smccc_smc(SPRD_SIP_SVC_PERF_REV, 0, 0, 0, 0, 0, 0, 0, &res);
-	sprd_sip_svc_handle.perf_ops.rev.major_ver = res.a0;
-	sprd_sip_svc_handle.perf_ops.rev.minor_ver = res.a1;
+	sprd_sip_svc_handle.perf_ops.rev.major_ver = (u32)(res.a0);
+	sprd_sip_svc_handle.perf_ops.rev.minor_ver = (u32)(res.a1);
 
 	sprd_sip_svc_handle.perf_ops.set_freq = sprd_sip_svc_perf_set_freq;
 	sprd_sip_svc_handle.perf_ops.get_freq = sprd_sip_svc_perf_get_freq;
@@ -269,8 +269,8 @@ static int __init sprd_sip_svc_init(void)
 
 	/* init debug_ops */
 	arm_smccc_smc(SPRD_SIP_SVC_DBG_REV, 0, 0, 0, 0, 0, 0, 0, &res);
-	sprd_sip_svc_handle.dbg_ops.rev.major_ver = res.a0;
-	sprd_sip_svc_handle.dbg_ops.rev.minor_ver = res.a1;
+	sprd_sip_svc_handle.dbg_ops.rev.major_ver = (u32)(res.a0);
+	sprd_sip_svc_handle.dbg_ops.rev.minor_ver = (u32)(res.a1);
 
 	sprd_sip_svc_handle.dbg_ops.set_hang_hdl =
 				sprd_sip_svc_dbg_set_hang_hdl;
