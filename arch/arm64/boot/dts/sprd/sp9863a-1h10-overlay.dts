@@ -53,6 +53,28 @@
 				default-brightness-level = <33>;
 			};
 
+			tboard_thermistor:thermal-sensor {
+				compatible = "generic-adc-thermal";
+				#thermal-sensor-cells = <0>;
+				io-channels = <&pmic_adc 1>;
+				io-channel-names = "sensor-channel";
+				temperature-lookup-table = <	(-39742) 1131
+								(-29777) 1110
+								(-19480) 1074
+								(-4679) 983
+								10110 838
+								24805 654
+								44922 413
+								54903 316
+								64895 238
+								74884 178
+								84883 133
+								94883 100
+								104880 75
+								114889 57
+								124872 43 >;
+			};
+
 			bat: battery {
 				compatible = "simple-battery";
 				charge-full-design-microamp-hours = <2780000>;
@@ -188,7 +210,6 @@
 };
 
 &usb {
-	sprd,cable-detection-method = "typec";
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
 };
@@ -198,6 +219,7 @@
 	avee-gpio = <&ap_gpio 5 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
+
 &i2c0 {
 	status = "okay";
 	clock-frequency = <400000>;
@@ -484,3 +506,34 @@
 
 };
 
+&sdio0 {
+	cd-gpios = <&eic_async 9 1>;
+};
+
+&thm_zone {
+	bd_thmzone: board-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&tboard_thermistor>;
+	};
+};
+
+&vdd18 {
+	regulator-always-on;
+};
+
+&vddrf18 {
+	regulator-always-on;
+};
+
+&vddrf125 {
+	regulator-always-on;
+};
+
+&vddldomem {
+	regulator-always-on;
+};
+
+&vddsim2 {
+	status = "disabled";
+};

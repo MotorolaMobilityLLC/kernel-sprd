@@ -11,13 +11,15 @@
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "sprd-sound-sharkl.dtsi"
 #include <dt-bindings/thermal/thermal.h>
-
+#include <dt-bindings/gpio/gpio.h>
 / {
 	aliases {
 		cooling-device0 = &cluster0_cooling;
 		cooling-device1 = &cluster1_cooling;
 		gpu-cooling0 = &gpu_cooling0;
 		thm-sensor11 = &cpu_thmzone;
+		serial0 = &uart0;
+		serial1 = &uart1;
 	};
 
 	firmware {
@@ -205,6 +207,10 @@
 		freq-num = <8>;
 	};
 
+	chosen: chosen {
+		stdout-path = &uart1;
+	};
+
 	reserved_memory: reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -261,6 +267,11 @@
 		sprd,pinctrl = <&pin_controller>;
 	};
 
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
+
 	ipi: interrupt-controller {
 		compatible = "android,CustomIPI";
 		#interrupt-cells = <1>;
@@ -291,6 +302,11 @@
 
 &adi_bus {
 	sprd,hw-channels = <33 0x8c20>, <35 0x8cc4>, <36 0x8cd0>, <19 0x8c44>, <20 0x8c44>, <21 0x8c44>, <22 0x8c44>;
+};
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
 };
 
 &sdio0 {
@@ -349,6 +365,18 @@
 };
 
 &sound_sprd_ap_alliis {
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&pmic_typec {
 	status = "okay";
 };
 
