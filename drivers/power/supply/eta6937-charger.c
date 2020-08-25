@@ -204,6 +204,7 @@ struct eta6937_charger_info {
 	struct extcon_dev *edev;
 	bool otg_enable;
 	struct alarm otg_timer;
+	bool need_reinit;
 };
 
 static int eta6937_charger_set_limit_current(struct eta6937_charger_info *info, u32 limit_cur);
@@ -707,6 +708,12 @@ static void eta6937_charger_work(struct work_struct *data)
 	mutex_lock(&info->lock);
 
 	if (info->limit > 0 && !info->charging && present) {
+		if (info->need_reinit) {
+			ret = eta6937_charger_hw_init(info);
+			if (ret)
+				goto out;
+			info->need_reinit = false;
+		}
 		/* set current limitation and start to charge */
 		switch (info->usb_phy->chg_type) {
 		case SDP_TYPE:
@@ -1055,6 +1062,7 @@ static int eta6937_charger_disable_otg(struct regulator_dev *dev)
 	int ret;
 
 	info->otg_enable = false;
+	info->need_reinit = true;
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
 	ret = eta6937_update_bits(info, ETA6937_REG_1,
