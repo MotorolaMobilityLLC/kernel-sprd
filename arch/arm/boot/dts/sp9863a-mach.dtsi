@@ -11,6 +11,7 @@
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "sprd-sound-sharkl.dtsi"
 #include <dt-bindings/thermal/thermal.h>
+#include <dt-bindings/gpio/gpio.h>
 
 / {
 	aliases {
@@ -18,6 +19,8 @@
 		cooling-device1 = &cluster1_cooling;
 		gpu-cooling0 = &gpu_cooling0;
 		thm-sensor11 = &cpu_thmzone;
+		serial0 = &uart0;
+		serial1 = &uart1;
 	};
 
 	firmware {
@@ -268,6 +271,15 @@
 		sprd,pinctrl = <&pin_controller>;
 	};
 
+	chosen: chosen {
+		stdout-path = &uart1;
+	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
+
 	ipi: interrupt-controller {
 		compatible = "android,CustomIPI";
 		#interrupt-cells = <1>;
@@ -363,4 +375,21 @@
 	status = "okay";
 	clock-names = "serdes_eb", "src0", "src1", "src2";
 	clocks = <&aonapb_gate CLK_SERDES_EB>, <&pll CLK_TWPLL>, <&pll CLK_ISPPLL>, <&pll CLK_LPLL>;
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+};
+
+&pmic_typec {
+	status = "okay";
 };

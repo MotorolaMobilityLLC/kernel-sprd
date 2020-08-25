@@ -54,6 +54,28 @@
 				default-brightness-level = <33>;
 			};
 
+			tboard_thermistor:thermal-sensor {
+				compatible = "generic-adc-thermal";
+				#thermal-sensor-cells = <0>;
+				io-channels = <&pmic_adc 1>;
+				io-channel-names = "sensor-channel";
+				temperature-lookup-table = <	(-39742) 1131
+								(-29777) 1110
+								(-19480) 1074
+								(-4679) 983
+								10110 838
+								24805 654
+								44922 413
+								54903 316
+								64895 238
+								74884 178
+								84883 133
+								94883 100
+								104880 75
+								114889 57
+								124872 43 >;
+			};
+
 			gpio-keys {
 				compatible = "gpio-keys";
 
@@ -404,3 +426,75 @@
 	};
 };
 
+&sdio0 {
+	cd-gpios = <&eic_sync 9 1>;
+};
+
+&sprd_hwdvfs {
+	hwdvfs_dev = <&hwdvfs_cluster0>,
+		     <&hwdvfs_cluster1>,
+		     <&hwdvfs_dsu>;
+
+	hwdvfs_cluster0: cluster@0 {
+		reg = <0x0>;
+		dcdc-ctrl = <&dcdc_ctrl1>;
+	};
+
+	hwdvfs_cluster1: cluster@1 {
+		reg = <0x1>;
+		dcdc-ctrl = <&dcdc_ctrl0>;
+	};
+
+	hwdvfs_dsu: dsu@0 {
+		reg = <0x0>;
+		dcdc-ctrl = <&dcdc_ctrl0>;
+	};
+
+	dcdc_ctrl0: dcdc-controller@0 {
+		reg = <0x0 0x0>;
+		volt-via-adi;
+		volt-hold-us = <50>;
+		volt-pause-us = <5>;
+		volt-timeout-us = <800>;
+		volt-stable-us  = <5>;
+		volt-max-step-microvolt = <25000>;
+	};
+
+	dcdc_ctrl1: dcdc-controller@1 {
+		reg = <0x1 0x2>;
+		volt-via-i2c;
+		volt-hold-us = <25>;
+		volt-pause-us = <20>;
+		volt-timeout-us = <800>;
+		volt-stable-us  = <25>;
+		volt-max-step-microvolt = <1200004>;
+	};
+};
+
+&thm_zone {
+	bd_thmzone: board-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&tboard_thermistor>;
+	};
+};
+
+&vdd18 {
+	regulator-always-on;
+};
+
+&vddrf18 {
+	regulator-always-on;
+};
+
+&vddrf125 {
+	regulator-always-on;
+};
+
+&vddldomem {
+	regulator-always-on;
+};
+
+&vddsim2 {
+	status = "disabled";
+};
