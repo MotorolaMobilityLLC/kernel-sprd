@@ -1891,8 +1891,8 @@ int gether_register_netdev(struct net_device *net)
 
 	dev->rx_thread = kthread_create(process_rx_w, dev, "uether_rx");
 	if (IS_ERR(dev->rx_thread)) {
-		ERROR(dev, "failed to create uether_rx\n");
-		return PTR_ERR(dev->rx_thread);
+		ERROR(dev, "failed to create uether_rx (0x%lx)\n", PTR_ERR(dev->rx_thread));
+		return -EINVAL;
 	}
 	wake_up_process(dev->rx_thread);
 
