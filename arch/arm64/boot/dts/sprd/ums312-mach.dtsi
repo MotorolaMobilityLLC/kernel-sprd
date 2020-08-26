@@ -13,6 +13,13 @@
 		cooling-device0 = &cluster0_cooling;
 		cooling-device1 = &cluster1_cooling;
 		gpu-cooling0 = &gpu_cooling0;
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+	};
+
+	chosen: chosen {
+		stdout-path = &uart1;
 	};
 
 	firmware {
@@ -491,6 +498,12 @@
 			compatible = "android,trusty-log-v1";
 		};
 	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
+
 };
 
 &sdio0 {
@@ -543,6 +556,15 @@
 	sprd,sdio-adma;
 	no-sdio;
 	no-sd;
+	status = "okay";
+};
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+};
+
+&pmic_typec {
 	status = "okay";
 };
 

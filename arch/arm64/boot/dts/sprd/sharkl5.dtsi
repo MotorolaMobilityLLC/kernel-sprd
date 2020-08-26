@@ -895,6 +895,14 @@
 				reg = <0 0x71100000 0 0x1000>;
 				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
+				syscons = <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PRESENT_32K>,
+					  <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARD_PROTECT_32K>,
+					  <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_EN_32K>,
+					  <&aon_apb_regs REG_AON_APB_AP_SDIO0_PHY_CTRL MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_THD_32K>;
+				syscon-names = "sd_detect_pol",
+					       "sd_hotplug_protect_en",
+					       "sd_hotplug_debounce_en",
+					       "sd_hotplug_debounce_cn";
 			};
 
 			sdio1: sdio@71200000 {
@@ -1376,6 +1384,15 @@
 					syscon-names = "dvfs-blk-dcdc-sd";
 					dcdc-idle-voltage = <0x16c 0 0x7 5>;
 				};
+
+				dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
+					compatible = "sharkl5-dcdc-cpu0";
+				};
+
+				dvfs_dcdc_cpu1_supply: dvfs-dcdc-cpu1-supply {
+					compatible = "sharkl5-dcdc-cpu1";
+				};
+
 				dcdc_mm: dcdc-mm {
 					dcdc-dvfs-enable = <0x18 20 1>;
 					dcdc-judge-vol-sw = <0x18 1 0x7 7>;
