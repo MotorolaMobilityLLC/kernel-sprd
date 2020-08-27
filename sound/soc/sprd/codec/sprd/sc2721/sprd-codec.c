@@ -4716,6 +4716,7 @@ static int sprd_codec_soc_probe(struct snd_soc_codec *codec)
 	snd_soc_dapm_ignore_suspend(dapm, "Fm-Playback");
 	snd_soc_dapm_ignore_suspend(dapm, "Voice-Playback");
 	snd_soc_dapm_ignore_suspend(dapm, "Voice-Capture");
+	snd_soc_dapm_ignore_suspend(dapm, "Virt Output Pin");
 
 	/*
 	 * Even without headset driver, codec could work well.
