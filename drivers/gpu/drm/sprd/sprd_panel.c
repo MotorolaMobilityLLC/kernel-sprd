@@ -224,7 +224,7 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 	drm_mode_probed_add(p->connector, mode);
 	mode_count++;
 
-	for (i = 1; i < panel->info.num_buildin_modes; i++)	{
+	for (i = 0; i < panel->info.num_buildin_modes - 1; i++)	{
 		mode = drm_mode_duplicate(p->drm,
 			&(panel->info.buildin_modes[i]));
 		if (!mode) {
