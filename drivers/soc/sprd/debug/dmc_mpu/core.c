@@ -292,12 +292,13 @@ static irqreturn_t sprd_dmc_mpu_core_irq(int irq_num, void *dev)
 	struct sprd_dmpu_violate *vio = &mpu_info->vio;
 	u32 *dump_vaddr = (u32 *)mpu_info->dump_vaddr;
 	struct sprd_dmpu_core *core = mpu_info->core;
-	struct sprd_dmpu_ops *ops = core->ops;
+	struct sprd_dmpu_ops *ops;
 	int i;
 
 	if (!core)
 		return IRQ_RETVAL(-EINVAL);
 
+	ops = core->ops;
 	ops->enable(core, mpu_info->pub_id, false);
 	ops->vio_cmd(core, mpu_info->pub_id);
 	dev_emerg(core->dev,
