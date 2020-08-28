@@ -43,8 +43,8 @@ struct memdisk_dev {
 	struct gendisk *gd;	/* The gendisk structure */
 	struct memdisk_partition_info *memdiskp[];
 };
-static int memdisks_count = 0;
-static struct memdisk_dev *memdisks = NULL;
+static int memdisks_count;
+static struct memdisk_dev *memdisks;
 
 /*
  * Handle an I/O request.
@@ -90,7 +90,7 @@ static void memdisk_request(struct request_queue *q)
 	while (req != NULL) {
 		if (blk_rq_is_passthrough(req)) {
 			pr_notice("Skip non-CMD request/n");
-			__blk_end_request_all(req, -EIO);
+			__blk_end_request_all(req, BLK_STS_IOERR);
 			continue;
 		}
 		memdisk_transfer(dev, blk_rq_pos(req), blk_rq_cur_sectors(req),
@@ -224,6 +224,11 @@ static void *memdisk_ram_vmap(phys_addr_t start, size_t size,
 
 	page_start = start - offset_in_page(start);
 	page_count = DIV_ROUND_UP(size + offset_in_page(start), PAGE_SIZE);
+
+	if (!page_count) {
+		pr_err("%s:The page_count value cannot be 0\n", __func__);
+		return NULL;
+	}
 
 	if (memtype)
 		prot = pgprot_noncached(PAGE_KERNEL);
