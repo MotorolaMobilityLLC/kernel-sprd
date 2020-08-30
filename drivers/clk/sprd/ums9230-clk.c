@@ -1726,41 +1726,41 @@ static struct sprd_clk_desc ums9230_mm_gate_clk_desc = {
  * kernel gates these clock.
  */
 static SPRD_SC_GATE_CLK(audcp_iis0_eb, "audcp-iis0-eb", "access-aud-en",
-			0x0, 0x100, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_iis1_eb, "audcp-iis1-eb", "access-aud-en",
-			0x0, 0x100, BIT(1), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_iis2_eb, "audcp-iis2-eb", "access-aud-en",
-			0x0, 0x100, BIT(2), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_uart_eb, "audcp-uart-eb", "access-aud-en",
-			0x0, 0x100, BIT(4), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_dma_cp_eb, "audcp-dma-cp-eb", "access-aud-en",
-			0x0, 0x100, BIT(5), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_dma_ap_eb, "audcp-dma-ap-eb", "access-aud-en",
-			0x0, 0x100, BIT(6), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_src48k_eb, "audcp-src48k-eb", "access-aud-en",
-			0x0, 0x100, BIT(10), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_mcdt_eb, "audcp-mcdt-eb", "access-aud-en",
-			0x0, 0x100, BIT(12), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_vbcifd_eb, "audcp-vbcifd-eb", "access-aud-en",
-			0x0, 0x100, BIT(13), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(13), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_vbc_eb, "audcp-vbc-eb", "access-aud-en",
-			0x0, 0x100, BIT(14), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_splk_eb, "audcp-splk-eb", "access-aud-en",
-			0x0, 0x100, BIT(15), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(15), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_icu_eb, "audcp-icu-eb", "access-aud-en",
-			0x0, 0x100, BIT(16), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(16), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dma_ap_ashb_eb, "dma-ap-ashb-eb", "access-aud-en",
-			0x0, 0x100, BIT(17), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(17), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dma_cp_ashb_eb, "dma-cp-ashb-eb", "access-aud-en",
-			0x0, 0x100, BIT(18), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(18), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_aud_eb, "audcp-aud-eb", "access-aud-en",
-			0x0, 0x100, BIT(19), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(19), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_vbc_24m_eb, "audcp-vbc-24m-eb", "access-aud-en",
-			0x0, 0x100, BIT(21), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(21), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_tmr_26m_eb, "audcp-tmr-26m-eb", "access-aud-en",
-			0x0, 0x100, BIT(22), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(22), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_dvfs_ashb_eb, "audcp-dvfs-ashb-eb",
-			"access-aud-en", 0x0, 0x100, BIT(23),
+			"access-aud-en", 0x0, 0x1000, BIT(23),
 			CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *ums9230_audcpahb_gate[] = {
