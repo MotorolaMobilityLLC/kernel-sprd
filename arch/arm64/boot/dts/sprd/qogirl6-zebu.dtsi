@@ -47,7 +47,7 @@
 		audcp_ahb_regs: syscon@56000000 {
 			compatible = "syscon";
 			#syscon-cells = <2>;
-			reg = <0 0x56000000 0 0x1000>;
+			reg = <0 0x56000000 0 0x3000>;
 		};
 
 		audcp_apb_regs: syscon@5600d000 {
