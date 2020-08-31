@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-2.0
  */
 
-#define pr_fmt(fmt)	"core_ctl: " fmt
+#define pr_fmt(fmt)	"sprd-core-ctl: " fmt
 
 #include <linux/init.h>
 #include <linux/notifier.h>
@@ -65,11 +65,10 @@ struct cpu_data {
 	struct list_head sib;
 };
 
-
+struct kobject *isolation_global_kobject;
 static DEFINE_PER_CPU(struct cpu_data, cpu_state);
 static DEFINE_SPINLOCK(state_lock);
 static LIST_HEAD(cluster_list);
-static bool initialized;
 
 static void wake_up_core_ctl_thread(struct cluster_data *state);
 static unsigned int get_active_cpu_count(const struct cluster_data *cluster);
@@ -472,6 +471,23 @@ static const struct sysfs_ops sysfs_ops = {
 static struct kobj_type ktype_core_ctl = {
 	.sysfs_ops	= &sysfs_ops,
 	.default_attrs	= default_attrs,
+};
+
+#define define_isolation_ro(_name)		\
+static struct kobj_attribute _name =		\
+__ATTR(_name, 0444, show_##_name, NULL)
+
+static ssize_t show_isolation_status(struct kobject *kobj,
+			struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%*pbl\n", cpumask_pr_args(cpu_isolated_mask));
+}
+define_isolation_ro(isolation_status);
+
+/* can add more than info. */
+static const struct attribute *isolation_info[] = {
+	&isolation_status.attr,
+	NULL,
 };
 
 static bool is_active(const struct cpu_data *state)
@@ -891,14 +907,18 @@ static int cluster_init(const struct cpumask *mask)
 
 	insert_cluster_by_cap(cluster);
 
-	kobject_init(&cluster->kobj, &ktype_core_ctl);
-	return kobject_add(&cluster->kobj, &dev->kobj, "core_ctl");
+	ret = kobject_init_and_add(&cluster->kobj, &ktype_core_ctl,
+			isolation_global_kobject, "core_crl_cluster%d", cluster->id);
+	if (ret)
+		kobject_put(&cluster->kobj);
+
+	return ret;
 }
 
 static int __init core_ctl_init(void)
 {
 	int cpu;
-	int ret;
+	int ret = 0;
 
 	cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN, "core_ctl:online",
 				  cpuhp_core_ctl_online, NULL);
@@ -907,15 +927,32 @@ static int __init core_ctl_init(void)
 				  "core_ctl:dead", NULL,
 				  cpuhp_core_ctl_offline);
 	pr_info("sprd_core_ctl feature start init\n");
+
+	isolation_global_kobject = kobject_create_and_add("sprd_isolation",
+						&cpu_subsys.dev_root->kobj);
+	if (!isolation_global_kobject) {
+		pr_err("create isolation_global_kobject fail\n");
+		ret = -ENOMEM;
+		goto out;
+	}
+
+	ret = sysfs_create_files(isolation_global_kobject, isolation_info);
+	if (ret) {
+		pr_err("create isolation status info fail\n");
+		ret = -ENOMEM;
+		goto sysfs_error;
+	}
+
 	cpu_maps_update_begin();
 	for_each_online_cpu(cpu) {
 		ret = cluster_init(topology_core_cpumask(cpu));
-		if (ret)
+		if (ret) {
 			pr_err("create core ctl group%d failed: %d\n",
 			       cpu, ret);
+			goto cluster_init_error;
+		}
 	}
 	cpu_maps_update_done();
-	initialized = true;
 
 	/*
 	 * when system will enter suspend mode,
@@ -925,7 +962,15 @@ static int __init core_ctl_init(void)
 	if (ret)
 		pr_err("register pm notifier failed %d\n", ret);
 
-	return 0;
+	return ret;
+
+cluster_init_error:
+	sysfs_remove_file(isolation_global_kobject, isolation_info[0]);
+	cpu_maps_update_done();
+sysfs_error:
+	kobject_put(isolation_global_kobject);
+out:
+	return ret;
 }
 
 late_initcall(core_ctl_init);
