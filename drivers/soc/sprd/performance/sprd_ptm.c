@@ -1171,7 +1171,7 @@ static int sprd_ptm_resume(struct device *dev)
 		sprd_ptm_set_lty_mode(sdev);
 		sprd_ptm_set_lty_enable(sdev);
 	} else if (sdev->mode == TRACE_MODE && trace_en) {
-		sprd_ptm_trace_enable(sdev);
+		return sprd_ptm_trace_enable(sdev);
 	}
 
 	return 0;
