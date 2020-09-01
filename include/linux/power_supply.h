@@ -178,6 +178,13 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_SERIAL_NUMBER,
 };
 
+/* Adding new enum item directly at here will cause KMI of power_*() crc32
+ * value changes. Use macro instead.
+ * Be aware of possible overlapping in future coding.
+ */
+
+#define POWER_SUPPLY_PROP_FEED_WATCHDOG (POWER_SUPPLY_PROP_SERIAL_NUMBER+1)
+
 enum power_supply_type {
 	POWER_SUPPLY_TYPE_UNKNOWN = 0,
 	POWER_SUPPLY_TYPE_BATTERY,
