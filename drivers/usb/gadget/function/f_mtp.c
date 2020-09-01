@@ -836,9 +836,10 @@ static void send_file_work(struct work_struct *data)
 			sendZLP = 0;
 
 		/* get an idle tx request to use */
-		req = mtp_req_get(dev, &dev->tx_idle);
+		req = 0;
 		ret = wait_event_interruptible(dev->write_wq,
-			req || dev->state != STATE_BUSY);
+			(req = mtp_req_get(dev, &dev->tx_idle))
+			|| dev->state != STATE_BUSY);
 		if (dev->state == STATE_CANCELED) {
 			r = -ECANCELED;
 			break;
