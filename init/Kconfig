@@ -1101,6 +1101,13 @@ config SPRD_CORE_CTL
 	kthread and IRQS are still allowed to run, this achieve similar
 	effect as hotplug but at lower latency cost.
 
+config SPRD_CORE_CTL_GCOV
+	bool "open gcov for core ctl feature"
+	depends on SPRD_CORE_CTL && GCOV_PROFILE_MODULES
+	default n
+	help
+	 say Y here to open gcov for core ctl feature.
+
 config SYSFS_DEPRECATED
 	bool "Enable deprecated sysfs features to support old userspace tools"
 	depends on SYSFS
