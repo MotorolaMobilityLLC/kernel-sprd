@@ -12,7 +12,7 @@
 #include "pike2.dtsi"
 #include "sc7731e-modem.dtsi"
 / {
-	cpuinfo_hardware = "Unisoc SC7731e";
+	cpuinfo_hardware = "Unisoc SC7731E";
 
 	cpus {
 		#address-cells = <1>;
