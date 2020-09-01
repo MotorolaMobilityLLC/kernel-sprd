@@ -1134,8 +1134,6 @@ static long mtp_ioctl(struct file *fp, unsigned int code, unsigned long value)
 			ret = mtp_send_event(dev, &event);
 		goto out;
 	}
-	default:
-		break;
 	}
 
 fail:
