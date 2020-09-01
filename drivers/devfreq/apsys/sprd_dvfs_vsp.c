@@ -431,7 +431,12 @@ static int vsp_dvfs_notify_callback(struct notifier_block *nb,
 
 	vsp->work_freq = dvfs_freq;
 	vsp->freq_type = DVFS_WORK;
-	update_devfreq(vsp->devfreq);
+
+	if (update_devfreq(vsp->devfreq)) {
+		pr_err("update devfreq fail\n");
+		mutex_unlock(&vsp->devfreq->lock);
+		return NOTIFY_DONE;
+	}
 	mutex_unlock(&vsp->devfreq->lock);
 
 	return NOTIFY_OK;
