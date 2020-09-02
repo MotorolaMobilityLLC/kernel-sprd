@@ -11,7 +11,7 @@
 #include "ums312-modem.dtsi"
 #include "ums312-qos.dtsi"
 / {
-	cpuinfo_hardware = "Unisoc ums312";
+	cpuinfo_hardware = "Unisoc T310";
 
 	cpus {
 		#address-cells = <2>;
