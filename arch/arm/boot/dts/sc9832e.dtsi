@@ -9,7 +9,7 @@
 #include "sharkle.dtsi"
 
 / {
-	cpuinfo_hardware = "Unisoc SC9832e";
+	cpuinfo_hardware = "Unisoc SC9832E";
 
 	cpus {
 		#address-cells = <1>;
