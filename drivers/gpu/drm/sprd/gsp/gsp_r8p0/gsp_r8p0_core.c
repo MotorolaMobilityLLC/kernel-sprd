@@ -696,12 +696,24 @@ static irqreturn_t gsp_r8p0_core_irq_handler(int irq, void *data)
 	}
 
 	if (gsp_int_value.INT_GERR_RAW ||
-		gsp_int_value.INT_CERR1_RAW ||
-		gsp_int_value.INT_FBCDPL_RAW ||
-		gsp_int_value.INT_FBCDHD_RAW) {
+		gsp_int_value.INT_CERR1_RAW) {
 		GSP_ERR("gsp error irq, GSP_INT[0x%x]\n",
 			gsp_int_value.value);
 		core_state = CORE_STATE_IRQ_ERR;
+	}
+
+	if (gsp_int_value.INT_FBCDPL_RAW || gsp_int_value.INT_FBCDHD_RAW) {
+		GSP_ERR("gsp afbc error, payload L0-L3[%d %d %d %d]\n",
+		gsp_int_value.INT_FBCDPL0_STS, gsp_int_value.INT_FBCDPL1_STS,
+		gsp_int_value.INT_FBCDPL2_STS, gsp_int_value.INT_FBCDPL3_STS);
+
+		GSP_ERR("gsp afbc error, head L0-L3[%d %d %d %d]\n",
+		gsp_int_value.INT_FBCDHD0_STS, gsp_int_value.INT_FBCDHD1_STS,
+		gsp_int_value.INT_FBCDHD2_STS, gsp_int_value.INT_FBCDHD3_STS);
+
+		gsp_r8p0_int_clear(core);
+
+		return IRQ_HANDLED;
 	}
 
 	gsp_r8p0_int_clear_and_disable(core);
