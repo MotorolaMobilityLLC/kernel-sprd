@@ -167,7 +167,7 @@
 
 	rebootescrow@0 {
 		compatible = "pmem-region";
-		reg = <0x0 0x833f0000 0x0 0x00010000>;
+		reg = <0x0 0x81ff0000 0x0 0x00010000>;
 	};
 
 	audio-mem-mgr {
