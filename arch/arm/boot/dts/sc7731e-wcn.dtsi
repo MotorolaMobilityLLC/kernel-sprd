@@ -22,7 +22,7 @@
 		sprd,ctrl-reg = <0x00d8 0x00cc 0x2050 0x20b0 0x1338>;
 		sprd,ctrl-mask = <0x00000003 0xffff 0x03000000
 				  0x80 0x01>;
-		sprd,ctrl-value = <0x00000000 0x8800 0x03000000
+		sprd,ctrl-value = <0x00000000 0x8400 0x03000000
 				  0x80 0x01>;
 		sprd,ctrl-rw-offset = <0x0000 0x0 0x2000 0x2000 0x1000>;
 		sprd,ctrl-us-delay = <10 10 10 1000 10>;
@@ -34,7 +34,7 @@
 		sprd,ctrl-shutdown-rw-offset = <0x2000>;
 		sprd,ctrl-shutdown-us-delay = <10>;
 		sprd,ctrl-shutdown-type = <0x1>;
-		reg = <0x88000000 0x180000>;
+		reg = <0x84000000 0x180000>;
 		sprd,file-name = "/dev/block/platform/soc/soc:ap-ahb/20600000.sdio/by-name/wcnmodem";
 		sprd,file-length=<0x178000>;
 		memory_region = < &wcn_reserved >;
@@ -58,7 +58,7 @@
 				0x1338>;
 		sprd,ctrl-mask = <0x30000003 0xffff 0x03000000
 				   0x80 0x02>;
-		sprd,ctrl-value = <0x30000000 0x8800 0x03000000
+		sprd,ctrl-value = <0x30000000 0x8400 0x03000000
 				   0x80 0x02>;
 		sprd,ctrl-rw-offset = <0x0000 0x0 0x2000 0x2000
 				0x1000>;
@@ -71,7 +71,7 @@
 		sprd,ctrl-shutdown-rw-offset = <0x2000>;
 		sprd,ctrl-shutdown-us-delay = <10>;
 		sprd,ctrl-shutdown-type = <0x1>;
-		reg = <0x88300000 0x100000>;
+		reg = <0x84300000 0x100000>;
 		sprd,file-name = "/dev/block/platform/soc/soc:ap-ahb/20600000.sdio/by-name/gpsgl";
 		sprd,file-name-ext = "/dev/block/platform/soc/soc:ap-ahb/20600000.sdio/by-name/gpsbd";
 		sprd,file-length=<0x100000>;    /* The CP BIN file length */
@@ -86,18 +86,19 @@
 
 	wcn_sipc {
 		compatible = "sprd,sipc";
-		sipc2: sipc@88180000 {
+
+		sipc2: sipc@84180000 {
 			sprd,name = "sipc-wcn";
 			sprd,dst = <3 4>; /* <dst core-id> */
 			/* <ap-addr dst-maped-addr size> */
-			sprd,smem-info = <0x88180000 0x00180000 0x180000>;
+			sprd,smem-info = <0x84180000 0x00180000 0x180000>;
 		};
 
-		sipc3: sipc@8841b000 {
+		sipc3: sipc@8441b000 {
 			sprd,name = "sipc-gnss";
 			sprd,dst = <4 5>; /* <dst core-id> */
 			/* <ap-addr dst-maped-addr size> */
-			sprd,smem-info = <0x8841b000 0x11b000 0x32000>;
+			sprd,smem-info = <0x8441b000 0x11b000 0x32000>;
 		};
 	};
 
