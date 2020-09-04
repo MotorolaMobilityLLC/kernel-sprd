@@ -8507,8 +8507,8 @@ CONFIG_MIGRATION
 	while the virtual addresses are not changed.
 CONFIG_MII
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] sharkl5,sharkl5_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15044,10 +15044,28 @@ CONFIG_USB_MUSB_SPRD
 	[must] user
 	[missing plat description] none
 	[function] This macro is to suppor SPRD platforms musb driver.
+CONFIG_USB_NET_AX88179_178A
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] Support for ethernet tethering function
+	[function] This macro is to support AX88179 usb-network device
+CONFIG_USB_NET_AX8817X
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
+	[field] make
+	[subsys] usb
+	[must] user
+	[missing plat description] Support for ethernet tethering function
+	[function] This macro is to support AX8817X usb-network device
 CONFIG_USB_NET_DRIVERS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5Pro,sharkle32
-	[missing plat] sharkl5,sharkl5_32
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
 	[field] code
 	[subsys] usb
 	[must] user
@@ -15174,6 +15192,15 @@ CONFIG_USB_SUPPORT
 	[must] user
 	[missing plat description] none
 	[function] This option adds core support for Universal Serial Bus (USB).
+CONFIG_USB_USBNET
+	[arch] all
+	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
+	[missing plat] sharkl5_32
+	[field] code
+	[subsys] usb
+	[must] user
+	[missing plat description] Support for usb network
+	[function] This option adds usbnet function.
 CONFIG_USB_U_ETHER
 	[arch] all
 	[plat] all
