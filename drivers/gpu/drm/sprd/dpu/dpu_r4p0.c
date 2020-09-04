@@ -322,7 +322,7 @@ static int cabc_step0 = 8;
 static int cabc_step1 = 72;
 static int cabc_step2 = 28;
 static int cabc_scene_change_thr = 80;
-static int cabc_percent_thr_u;
+static int cabc_percent_thr_u = 1;
 static int cabc_percent_thr_v = 2;
 static int cabc_min_backlight = 408;
 static int cabc_bl_set_delay;
