@@ -6717,7 +6717,7 @@ static void pm_vbc_init(void)
 int vbc_of_setup(struct platform_device *pdev)
 {
 	struct resource *res;
-	struct device_node *np = pdev->dev.of_node;
+	struct device_node *np;
 	struct regmap *agcp_ahb_gpr;
 	struct pinctrl *pctrl;
 	struct vbc_codec_priv *vbc_codec;
@@ -6730,6 +6730,8 @@ int vbc_of_setup(struct platform_device *pdev)
 		pr_err("ERR: %s, pdev is NULL!\n", __func__);
 		return -ENODEV;
 	}
+	np = pdev->dev.of_node;
+
 	vbc_codec = platform_get_drvdata(pdev);
 	if (!vbc_codec) {
 		pr_err("%s vbc_codec is null failed\n", __func__);
