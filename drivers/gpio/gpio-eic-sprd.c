@@ -130,7 +130,7 @@ SPRD_EIC_VAR_DATA(roc1, SPRD_EIC_PER_BANK_NR * 6);
 SPRD_EIC_VAR_DATA(sharkl3, SPRD_EIC_PER_BANK_NR * 2);
 SPRD_EIC_VAR_DATA(sharkle, SPRD_EIC_PER_BANK_NR * 3);
 SPRD_EIC_VAR_DATA(pike2, SPRD_EIC_PER_BANK_NR * 2);
-SPRD_EIC_VAR_DATA(qogirl6, SPRD_EIC_PER_BANK_NR * 4);
+SPRD_EIC_VAR_DATA(qogirl6, SPRD_EIC_PER_BANK_NR * 6);
 
 static const char *sprd_eic_label_name[SPRD_EIC_MAX] = {
 	"eic-debounce", "eic-latch", "eic-async",
