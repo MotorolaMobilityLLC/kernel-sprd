@@ -81,6 +81,10 @@ R: +1
 T: fs:
 T: block:
 
+[jinfeng.lin1]
+R: +1
+T: power:supply:
+
 [jingchao.ye]
 R: +2
 T: power:supply:
