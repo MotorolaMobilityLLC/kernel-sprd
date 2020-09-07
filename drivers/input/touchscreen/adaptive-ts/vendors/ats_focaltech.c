@@ -271,7 +271,7 @@ static enum ts_result focaltech_upgrade_firmware(struct ts_controller *c,
 	msleep(300);
 
 	fw_version = 0;
-	ts_reg_read(REG_FIRMWARE_VERSION, &fw_version, 1);
+	ret = ts_reg_read(REG_FIRMWARE_VERSION, &fw_version, 1);
 	if (!ret)
 		pr_debug("upgrade finished, new version is %d", fw_version);
 
