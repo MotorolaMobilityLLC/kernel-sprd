@@ -367,7 +367,7 @@ struct charger_desc {
 	int cap_table_len;
 	struct power_supply_battery_ocv_table *cap_table;
 	struct cap_remap_table *cap_remap_table;
-	int cap_remap_table_len;
+	u32 cap_remap_table_len;
 	int cap_remap_total_cnt;
 };
 
