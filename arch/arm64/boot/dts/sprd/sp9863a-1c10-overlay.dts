@@ -95,25 +95,32 @@
 
 			bat: battery {
 				compatible = "simple-battery";
-				charge-full-design-microamp-hours = <2780000>;
+				charge-full-design-microamp-hours = <4077000>;
 				charge-term-current-microamp = <120000>;
-				constant_charge_voltage_max_microvolt = <4350000>;
-				factory-internal-resistance-micro-ohms = <320000>;
+				constant_charge_voltage_max_microvolt = <4400000>;
+				factory-internal-resistance-micro-ohms = <192000>;
 				voltage-min-design-microvolt = <3450000>;
 				ocv-capacity-celsius = <20>;
-				ocv-capacity-table-0 = <4330000 100>, <4249000 95>, <4189000 90>,
-							<4133000 85>, <4081000 80>, <4034000 75>,
-							<3991000 70>, <3953000 65>, <3910000 60>,
-							<3866000 55>, <3836000 50>, <3813000 45>,
-							<3795000 40>, <3782000 35>, <3774000 30>,
-							<3765000 25>, <3750000 20>, <3726000 15>,
-							<3687000 10>, <3658000 5>, <3400000 0>;
-				capacity-temp-table = <25 100>, <10 97>, <(-10) 60>;
-				resistance-temp-table = <20 100>, <10 243>, <(-10) 468>;
-				charge-sdp-current-microamp = <500000 500000>;
-				charge-dcp-current-microamp = <1150000 3000000>;
+				ocv-capacity-table-0 = <4382000 100>, <4320000 95>, <4261000 90>,
+							<4203000 85>, <4148000 80>, <4094000 75>,
+							<4049000 70>, <3991000 65>, <3952000 60>,
+							<3898000 55>, <3859000 50>, <3832000 45>,
+							<3810000 40>, <3793000 35>, <3779000 30>,
+							<3765000 25>, <3747000 20>, <3724000 15>,
+							<3693000 10>, <3681000 5>, <3400000 0>;
+				voltage-temp-table = <1300000 700>, <1194000 750>, <1084000 800>,
+							<976000 850>, <868000 900>, <765000 950>,
+							<660000 1000>, <580000 1050>, <501000 1100>,
+							<431000 1150>, <369000 1200>, <316000 1250>,
+							<270000 1300>, <231000 1350>, <198000 1400>,
+							<169000 1450>, <145000 1500>, <125000 1550>,
+							<108000 1600>, <94000 1650>, <81000 1700>;
+				capacity-temp-table = <45 100>, <25 100>, <10 98>, <0 91>, <(-10) 82>, <(-20) 53>;
+				resistance-temp-table = <45 70>, <25 100>, <10 275>, <0 571>, <(-10) 631>, <(-20) 732>;
+				charge-sdp-current-microamp = <450000 500000>;
+				charge-dcp-current-microamp = <2500000 3000000>;
 				charge-cdp-current-microamp = <1150000 1150000>;
-				charge-unknown-current-microamp = <500000 500000>;
+				charge-unknown-current-microamp = <450000 500000>;
 			};
 
 			charger-manager {
@@ -125,7 +132,7 @@
 
 				cm-fullbatt-vchkdrop-ms = <30000>;
 				cm-fullbatt-vchkdrop-volt = <60000>;
-				cm-fullbatt-voltage = <4300000>;
+				cm-fullbatt-voltage = <4350000>;
 				cm-fullbatt-current = <120000>;
 				cm-fullbatt-capacity = <100>;
 
@@ -160,21 +167,22 @@
 				cm-charge-voltage-max = <6500000>;
 				/* drop voltage in microVolts to restart charging */
 				cm-charge-voltage-drop = <700000>;
-				cm-dcp-jeita-temp-table = <1000 1030 0 4350000>,
-					<1150 1180 700000 4350000>,
-					<1450 1420 2000000 4350000>,
-					<1600 1570 700000 4100000>;
-				cm-sdp-jeita-temp-table = <1000 1030 0 4350000>,
-					<1150 1180 500000 4350000>,
-					<1450 1420 500000 4350000>,
+				cm-thermal-zone = "board-thmzone";
+				cm-dcp-jeita-temp-table = <1000 1020 0 4400000>,
+					 <1150 1170 800000 4400000>,
+					 <1450 1430 2000000 4400000>,
+					 <1550 1530 500000 4100000>;
+				cm-sdp-jeita-temp-table = <1000 1030 0 4400000>,
+					<1150 1180 500000 4400000>,
+					<1450 1420 500000 4400000>,
 					<1600 1570 500000 4100000>;
-				cm-cdp-jeita-temp-table = <1000 1030 0 4350000>,
-					<1150 1180 700000 4350000>,
-					<1450 1420 1150000 4350000>,
+				cm-cdp-jeita-temp-table = <1000 1030 0 4400000>,
+					<1150 1180 700000 4400000>,
+					<1450 1420 1150000 4400000>,
 					<1600 1570 700000 4100000>;
-				cm-unknown-jeita-temp-table = <1000 1030 0 4350000>,
-					<1150 1180 500000 4350000>,
-					<1450 1420 500000 4350000>,
+				cm-unknown-jeita-temp-table = <1000 1030 0 4400000>,
+					<1150 1180 500000 4400000>,
+					<1450 1420 500000 4400000>,
 					<1600 1570 500000 4100000>;
 
 				monitored-battery = <&bat>;
@@ -252,7 +260,7 @@
 	sprd,calib-resistance-real = <20000>;
 	sprd,calib-resistance-spec = <20000>;
 	first-calib-voltage = <3600000>;
-	first-calib-capacity = <40>;
+	first-calib-capacity = <50>;
 };
 
 &sdio0 {
