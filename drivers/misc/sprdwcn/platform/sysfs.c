@@ -228,7 +228,7 @@ static int wcn_get_loglevel(void)
 	return 0;
 }
 
-int wcn_firmware_init(void)
+void wcn_firmware_init(void)
 {
 	wcn_get_sw_ver();
 	wcn_set_armlog_status();
@@ -237,8 +237,11 @@ int wcn_firmware_init(void)
 	wcn_ap_notify_cp_time();
 	/* TODO: set can pass functionmask */
 	/* wcn_set_loglevel, etc */
+}
 
-	return 0;
+void wcn_firmware_init_wq(struct work_struct *work)
+{
+	wcn_firmware_init();
 }
 
 static ssize_t wcn_sysfs_show_sleep_state(struct device *dev,

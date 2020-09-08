@@ -16,7 +16,8 @@
 int notify_at_cmd_finish(void *buf, unsigned char len);
 void wcn_notify_fw_error(enum wcn_source_type type, char *buf);
 int wcn_sysfs_get_reset_prop(void);
-int wcn_firmware_init(void);
+void wcn_firmware_init_wq(struct work_struct *work);
+void wcn_firmware_init(void);
 
 #endif
 

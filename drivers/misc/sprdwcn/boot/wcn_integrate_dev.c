@@ -978,6 +978,7 @@ static int wcn_probe(struct platform_device *pdev)
 
 	INIT_DELAYED_WORK(&wcn_dev->power_wq, wcn_power_wq);
 	INIT_DELAYED_WORK(&wcn_dev->probe_power_wq, wcn_probe_power_wq);
+	INIT_WORK(&wcn_dev->firmware_init_wq, wcn_firmware_init_wq);
 
 	if (first) {
 		/* Transceiver can't get into LP, so force deep sleep */
@@ -1014,6 +1015,7 @@ static int wcn_remove(struct platform_device *pdev)
 
 	cancel_delayed_work_sync(&wcn_dev->power_wq);
 	cancel_delayed_work_sync(&wcn_dev->probe_power_wq);
+	cancel_work_sync(&wcn_dev->firmware_init_wq);
 	if (wcn_dev_is_marlin(wcn_dev)) {
 		loopcheck_deinit();
 		mdbg_atcmd_owner_deinit();

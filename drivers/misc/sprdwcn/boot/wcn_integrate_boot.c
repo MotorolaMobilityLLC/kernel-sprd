@@ -779,6 +779,7 @@ static void wcn_show_dev_status(const char *pre_str)
 
 int start_integrate_wcn_truely(u32 subsys)
 {
+	static u32 first_start;
 	bool is_marlin;
 	struct wcn_device *wcn_dev;
 	u32 subsys_bit = 1 << subsys;
@@ -851,7 +852,12 @@ int start_integrate_wcn_truely(u32 subsys)
 	if (is_marlin) {
 		mdbg_atcmd_clean();
 		wcn_set_module_state(true);
-		wcn_firmware_init();
+		if (!first_start) {
+			wcn_firmware_init();
+			first_start = 1;
+		} else {
+			schedule_work(&wcn_dev->firmware_init_wq);
+		}
 	}
 	mutex_unlock(&wcn_dev->power_lock);
 
