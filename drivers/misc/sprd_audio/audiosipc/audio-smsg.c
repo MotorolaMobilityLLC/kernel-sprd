@@ -229,7 +229,6 @@ int aud_smsg_ch_close(u8 dst, uint16_t channel)
 	ipc->states[channel] = CHAN_STATE_FREE;
 	/* maybe channel has been free for aud_smsg_ch_open failed */
 	if (ipc->channels[channel]) {
-		ipc->channels[channel] = NULL;
 		/* guarantee that channel resource isn't used in irq handler */
 		while (atomic_read(&ipc->busy[channel])
 			&& (count < WAIT_CHAN_WAKE_UP_COUNT)) {
@@ -238,8 +237,8 @@ int aud_smsg_ch_close(u8 dst, uint16_t channel)
 			count++;
 			msleep(1000);
 		}
-
 		kfree(ch);
+		ipc->channels[channel] = NULL;
 	}
 
 	/* finally, update the channel state*/
