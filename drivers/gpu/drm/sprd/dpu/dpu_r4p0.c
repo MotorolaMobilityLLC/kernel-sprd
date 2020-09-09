@@ -2083,9 +2083,12 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 	struct cm_cfg cm;
 	int i;
 	struct device_node *backlight_node;
+	static int cabc_no;
+	static int last_bl;
 
 	if (cabc_disable) {
 		if (cabc_disable == CABC_STOPPING) {
+			last_bl = cabc_para.cur_bl;
 			memset(&cabc_para, 0, sizeof(cabc_para));
 			memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
 			reg->cm_coef01_00 = (cm.coef01 << 16) | cm.coef00;
@@ -2098,8 +2101,15 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 			cabc_bl_set = true;
 
 			cabc_disable = CABC_DISABLED;
+
+			cabc_no = 0;
 		}
 		return 0;
+	}
+
+	if (!cabc_no) {
+		init_cabc(ctx->vm.vactive, ctx->vm.hactive);
+		cabc_para.cur_bl = last_bl;
 	}
 
 	if (frame_no == 0) {
@@ -2127,6 +2137,9 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 
 		frame_no++;
 	} else {
+		if (cabc_no != 20)
+			cabc_no++;
+
 		for (i = 0; i < 32; i++) {
 			cabc_para.cabc_hist[i] = reg->cabc_hist[i];
 			udelay(1);
@@ -2135,7 +2148,7 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 		step_set(cabc_step0, cabc_step1, cabc_step2,
 			cabc_scene_change_thr, cabc_percent_thr_u,
 			cabc_percent_thr_v, cabc_min_backlight);
-		cabc_trigger(&cabc_para, frame_no);
+		cabc_trigger(&cabc_para, cabc_no);
 
 		memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
 		if (cm.coef00 == 0 && cm.coef11 == 0 &&
@@ -2146,6 +2159,10 @@ static int dpu_cabc_trigger(struct dpu_context *ctx)
 			cm.coef11 = (cm.coef11 * cabc_para.gain) / 0x400;
 			cm.coef22 = (cm.coef22 * cabc_para.gain) / 0x400;
 		}
+
+		if ((cm.coef00 < 0) || (cm.coef11 < 0) || (cm.coef22 < 0))
+			return 0;
+
 		reg->cm_coef01_00 = (cm.coef01 << 16) | cm.coef00;
 		reg->cm_coef03_02 = (cm.coef03 << 16) | cm.coef02;
 		reg->cm_coef11_10 = (cm.coef11 << 16) | cm.coef10;
