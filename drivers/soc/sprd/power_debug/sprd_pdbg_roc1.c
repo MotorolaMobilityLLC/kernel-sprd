@@ -574,7 +574,7 @@ static int sprd_pdbg_roc1_probe(struct platform_device *pdev)
 
 	pcfg = sprd_pdbg_parse_cfg(&pdev->dev, roc1_pdbg_desc.ap_intc_num);
 	if (IS_ERR(pcfg))
-		return PTR_ERR(pcfg);
+		return (int)pcfg;
 
 	pdbg_roc1.pdbg = sprd_power_debug_register(&pdev->dev,
 				&roc1_pdbg_desc,	pcfg);

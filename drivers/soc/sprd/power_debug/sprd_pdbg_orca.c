@@ -507,7 +507,7 @@ static int sprd_pdbg_orca_probe(struct platform_device *pdev)
 
 	pcfg = sprd_pdbg_parse_cfg(&pdev->dev, orca_pdbg_desc.ap_intc_num);
 	if (IS_ERR(pcfg))
-		return PTR_ERR(pcfg);
+		return (int)pcfg;
 
 	pdbg_orca.pdbg = sprd_power_debug_register(&pdev->dev,
 				&orca_pdbg_desc,	pcfg);
