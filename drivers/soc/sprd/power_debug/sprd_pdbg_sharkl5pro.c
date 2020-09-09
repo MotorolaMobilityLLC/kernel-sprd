@@ -556,7 +556,7 @@ static int sprd_pdbg_sharkl5pro_probe(struct platform_device *pdev)
 	pcfg = sprd_pdbg_parse_cfg(&pdev->dev,
 		sharkl5pro_pdbg_desc.ap_intc_num);
 	if (IS_ERR(pcfg))
-		return PTR_ERR(pcfg);
+		return (int)pcfg;
 
 	pdbg_sharkl5pro.pdbg = sprd_power_debug_register(&pdev->dev,
 				&sharkl5pro_pdbg_desc,	pcfg);

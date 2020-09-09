@@ -280,7 +280,7 @@ static int sprd_pdbg_sharkle_probe(struct platform_device *pdev)
 
 	pcfg = sprd_pdbg_parse_cfg(&pdev->dev, sharkle_pdbg_desc.ap_intc_num);
 	if (IS_ERR(pcfg))
-		return PTR_ERR(pcfg);
+		return (int)pcfg;
 
 	pdbg_sharkle.pdbg = sprd_power_debug_register(&pdev->dev,
 				&sharkle_pdbg_desc,	pcfg);

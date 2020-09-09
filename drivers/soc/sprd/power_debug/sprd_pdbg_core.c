@@ -37,7 +37,7 @@ static struct proc_dir_entry *sprd_pdbg_proc_dir;
 static void sprd_pgdb_print_pdm_info(struct power_debug *pdebug_entry)
 {
 	u32 pwr_status, bit_index, bit_index_j, subsys_state;
-	int i, j;
+	u32 i, j;
 	struct pdm_info *ppdm_info;
 	struct power_debug_desc *pdesc = pdebug_entry->pdesc;
 	struct power_debug_cfg *pcfg = pdebug_entry->pcfg;
@@ -173,8 +173,8 @@ static void sprd_pgdb_print_intc_state(struct power_debug *pdebug_entry)
  */
 static void sprd_pgdb_print_wakeup_source(struct power_debug *pdebug_entry)
 {
-	u32 reg_value;
-	int i, j, ret;
+	u32 i, j, reg_value;
+	int ret;
 	struct intc_info *pintc_info;
 	struct power_debug_desc *pdesc = pdebug_entry->pdesc;
 	struct power_debug_cfg *pcfg = pdebug_entry->pcfg;
@@ -233,6 +233,8 @@ static int sprd_pgdb_notifier(struct notifier_block *self,
 		break;
 	case CPU_CLUSTER_PM_EXIT:
 		sprd_pgdb_print_wakeup_source(pgdb_entry);
+		break;
+	default:
 		break;
 	}
 
@@ -354,7 +356,6 @@ static ssize_t sprd_pgdb_enable_write(struct file *file,
 static ssize_t sprd_pgdb_enable_read(struct file *file,
 		char __user *buf, size_t len, loff_t *off)
 {
-	int ret;
 	char data[1];
 
 	if (!pgdb_entry || !len)
@@ -368,9 +369,8 @@ static ssize_t sprd_pgdb_enable_read(struct file *file,
 	else
 		data[0] = '0';
 
-	ret = copy_to_user(buf, data, 1);
-	if (ret < 0)
-		return (ssize_t)ret;
+	if (copy_to_user(buf, data, 1))
+		return -EFAULT;
 
 	*off += 1;
 	return 1;
@@ -397,28 +397,27 @@ static ssize_t sprd_pgdb_interval_write(struct file *file,
 static ssize_t sprd_pgdb_interval_read(struct file *file,
 		char __user *buf, size_t len, loff_t *off)
 {
-	int len_copy, ret;
+	size_t len_copy, ret;
 	char data[9];
 
 	if (!pgdb_entry || !len)
 		return -EINVAL;
 
-	ret = snprintf(data, 9, "%d", pgdb_entry->scan_interval);
-	if (ret < 0)
-		return (ssize_t)ret;
+	ret = (size_t)snprintf(data, 9, "%d", pgdb_entry->scan_interval);
+	if (!ret)
+		return ret;
 
 	if ((file->f_pos + len) > ret)
 		len_copy = ret - file->f_pos;
 	else
 		len_copy = len;
 
-	ret = copy_to_user(buf, data + file->f_pos, len_copy);
-	if (ret < 0)
-		return (ssize_t)ret;
+	ret = (size_t)copy_to_user(buf, data + file->f_pos, len_copy);
+	len_copy = len_copy - ret;
 
-	*off += len_copy - ret;
+	*off += len_copy;
 
-    return (ssize_t)(len_copy - ret);
+	return len_copy;
 }
 
 static const struct file_operations pgdb_enable_proc_fops = {
