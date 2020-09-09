@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: (GPL-1.0+ OR MIT)
+/*
+ * Spreadtrum Qogirn6pro platform DTS file
+ *
+ * Copyright (C) 2019, Spreadtrum Communications Inc.
+ */
+
+/ {
+	interrupt-parent = <&gic>;
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	soc: soc {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		ap-apb {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			uart0: serial@20200000 {
+				compatible = "sprd,ums9520-uart",
+					     "sprd,sc9836-uart";
+				reg = <0x20200000 0x100>;
+				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&ext_26m>;
+				status = "disabled";
+			};
+
+			uart1: serial@20210000 {
+				compatible = "sprd,ums9520-uart",
+					     "sprd,sc9836-uart";
+				reg = <0x20210000 0x100>;
+				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&ext_26m>;
+				status = "disabled";
+			};
+		};
+	};
+
+	ext_26m: ext-26m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+		clock-output-names = "ext-26m";
+	};
+
+	ext_32k: ext_32k {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <32768>;
+		clock-output-names = "ext-32k";
+	};
+};
+
