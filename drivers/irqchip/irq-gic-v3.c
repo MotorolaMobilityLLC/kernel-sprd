@@ -1575,3 +1575,126 @@ IRQCHIP_ACPI_DECLARE(gic_v3_or_v4, ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR,
 		     acpi_validate_gic_table, ACPI_MADT_GIC_VERSION_NONE,
 		     gic_acpi_init);
 #endif
+
+#ifdef CONFIG_DEBUG_FS
+#include <linux/debugfs.h>
+#include <linux/uaccess.h>
+static unsigned int g_debug_hwirq;
+
+static unsigned int read_hwirq_regs_state(unsigned int hwirq, u32 offset)
+{
+	u32 mask = 1 << (hwirq % 32);
+	return !!(readl_relaxed(gic_data.dist_base + offset
+		+ (hwirq / 32) * 4) & mask);
+}
+static int hwirq_gic_show(struct seq_file *m, void *v)
+{
+	unsigned int pending, enable, active;
+
+	if ((g_debug_hwirq < 32) || (g_debug_hwirq > 1019)) {
+		seq_printf(m, "hwirq[%d] should be more than 32 and less than 1019\n",
+			g_debug_hwirq);
+
+		return -EINVAL;
+	}
+
+	pending = read_hwirq_regs_state((unsigned int)g_debug_hwirq, GICD_ISPENDR);
+	enable = read_hwirq_regs_state((unsigned int)g_debug_hwirq, GICD_ISACTIVER);
+	active = read_hwirq_regs_state((unsigned int)g_debug_hwirq, GICD_ISENABLER);
+	seq_printf(m, "hwirq[%d]: pending[%d],enable[%d],active[%d]\n",
+		g_debug_hwirq, pending, enable, active);
+
+	return 0;
+}
+
+static int hwirq_open(struct inode *inodep, struct file *filep)
+{
+	single_open(filep, hwirq_gic_show, NULL);
+
+	return 0;
+}
+
+enum gicv3_debug_enable{
+	SPRD_NONE,
+	SPRD_ENABLE,
+	SPRD_DISABLE
+};
+
+static ssize_t notrace hwirq_gic_write(struct file *filep,
+	const char __user *buf, size_t len, loff_t *ppos)
+{
+	unsigned int hwirq;
+	int ret;
+	unsigned int enable, val;
+	u32 mask;
+
+	char *kbuf = kzalloc(len, GFP_KERNEL);
+	if (!kbuf)
+		return -ENOMEM;
+
+	if (copy_from_user(kbuf, buf, len)) {
+		ret = -EFAULT;
+		goto hwirq_out;
+	}
+
+	if (strstr(kbuf, "-d"))
+		enable = SPRD_DISABLE;
+	else if (strstr(kbuf, "-e"))
+		enable = SPRD_ENABLE;
+	else
+		enable = SPRD_NONE;
+
+	hwirq = strtoul(kbuf, NULL, 10);
+
+	if ((hwirq < 32) || (hwirq > 1019)) {
+		ret = -EINVAL;
+		goto hwirq_out;
+	}
+
+	mask = 1 << (hwirq % 32);
+	if (enable == SPRD_DISABLE)
+		writel_relaxed(mask, gic_data.dist_base + GICD_ICENABLER + (hwirq / 32) * 4);
+	else if (enable == SPRD_ENABLE)
+		writel_relaxed(mask, gic_data.dist_base + GICD_ISENABLER + (hwirq / 32) * 4);
+	if (enable)
+		gic_dist_wait_for_rwp();
+
+	g_debug_hwirq = hwirq;
+	ret = len;
+
+	val = read_hwirq_regs_state(hwirq, GICD_ISPENDR);
+	pr_emerg("hwirq[%d], pending=%d\n", hwirq, val);
+
+	val = read_hwirq_regs_state(hwirq, GICD_ISACTIVER);
+	pr_emerg("hwirq[%d], active=%d\n", hwirq, val);
+
+	val = read_hwirq_regs_state(hwirq, GICD_ISENABLER);
+	pr_emerg("hwirq[%d], enable=%d\n", hwirq, val);
+
+hwirq_out:
+	kfree(kbuf);
+
+	return ret;
+}
+const struct file_operations hwirq_gic_fops = {
+	.open    = hwirq_open,
+	.read    = seq_read,
+	.write	 = hwirq_gic_write,
+	.llseek  = seq_lseek,
+	.release = single_release,
+};
+
+static int __init create_gic_debugfs(void)
+{
+	struct dentry *gic_monitor;
+
+	gic_monitor = debugfs_create_dir("gicv3", NULL);
+	if (gic_monitor) {
+		debugfs_create_file("hwirq", (S_IRUGO | S_IWUSR | S_IWGRP),
+				    gic_monitor, NULL, &hwirq_gic_fops);
+	}
+
+	return 0;
+}
+fs_initcall(create_gic_debugfs);
+#endif
