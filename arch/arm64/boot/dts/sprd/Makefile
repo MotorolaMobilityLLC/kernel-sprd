@@ -40,9 +40,11 @@ ums9230-zebu-backdoor-overlay.dtbo-base := ums9230-zebu.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),qogirn6pro)
-dtbo-$(CONFIG_ARCH_SPRD) += ums9520-haps-backdoor-overlay.dtbo
+dtbo-$(CONFIG_ARCH_SPRD) += ums9520-haps-backdoor-overlay.dtbo \
+	ums9520-haps-flash-overlay.dtbo
 
 ums9520-haps-backdoor-overlay.dtbo-base := ums9520-haps.dtb
+ums9520-haps-flash-overlay.dtbo-base := ums9520-haps.dtb
 endif
 
 endif #//BSP_BUILD_ANDROID_OS
