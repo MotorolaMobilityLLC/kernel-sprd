@@ -127,7 +127,7 @@ static int check_drv_init(void)
 	int ret = 0;
 
 	if (!pw_info)
-		ret = -1;
+		return -1; /* need return, or pw_info->inited should error */
 	if (atomic_read(&pw_info->inited) == 0)
 		ret = -2;
 
