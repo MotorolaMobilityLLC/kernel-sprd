@@ -2172,8 +2172,12 @@
 				clock-names = "core_clk";
 				syscons = <&pmu_apb_regs
 					REG_PMU_APB_PUB_SYS_DEEP_SLEEP_POLL1
-					MASK_PMU_APB_AON_PUB_SYS_DEEP_SLEEP_POLL>;
-				syscon-names = "usb_pub_slp_poll";
+					MASK_PMU_APB_AON_PUB_SYS_DEEP_SLEEP_POLL>,
+					<&aon_apb_regs
+					REG_AON_APB_AON_CHIP_ID0
+					MASK_AON_APB_AON_CHIP_ID0>;
+				syscon-names = "usb_pub_slp_poll", "chip_id";
+				usb-checksingle = <0x6B4C3500>;
 				usb-phy = <&hsphy>;
 				phy-names = "usb";
 				dr-mode = "peripheral";
