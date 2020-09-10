@@ -142,6 +142,7 @@
 	mmsys_dvfs: mmsys-dvfs {
 		compatible = "sprd,hwdvfs-mmsys";
 		status = "disabled";
+		sprd,topdvfs_controller = <&topdvfs_controller>;
 	};
 
 	vsp_dvfs: vsp_dvfs {
