@@ -455,7 +455,7 @@ static ssize_t trace_latency_write(struct file *file, const char __user *buf,
 	} else if (latency < sampling_period_ms)
 		return -EINVAL;
 
-	trace_irqoff_latency = latency * 1000 * 1000UL;
+	trace_irqoff_latency = (u64)latency * 1000 * 1000UL;
 
 	return count;
 }
