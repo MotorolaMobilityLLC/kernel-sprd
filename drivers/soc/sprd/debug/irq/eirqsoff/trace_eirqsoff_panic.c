@@ -6,6 +6,7 @@
 #include <linux/kernel.h>
 #include <linux/sched/clock.h>
 
+#ifdef CONFIG_HARDLOCKUP_DETECTOR_OTHER_CPU
 static int __read_mostly trace_ready;
 static DEFINE_PER_CPU(unsigned int, irqsoff_panic_is_tracing);
 static DEFINE_PER_CPU(unsigned long long, irqsoff_panic_timestamp);
@@ -26,11 +27,11 @@ void irqsoff_path_panic_msg(void)
 			interval = now - per_cpu(irqsoff_panic_timestamp, cpu);
 			pr_emerg("cpu%d: %s interval = %lld\n", cpu, irqs_disabled() ? "irq off" : "irq on", interval);
 			for (i = 0; i < per_cpu(irqsoff_panic_calllvl, cpu); i++)
-				pr_emerg("irqsoff cpu%d: [<%08lx>] (%ps)\n", cpu, per_cpu(irqsoff_panic_callip, cpu)[i], (void *)per_cpu(irqsoff_panic_callip, cpu)[i]);
+				pr_emerg("irqsoff cpu%d: [<%08lx>] (%ps)\n", cpu,
+					per_cpu(irqsoff_panic_callip, cpu)[i], (void *)per_cpu(irqsoff_panic_callip, cpu)[i]);
 		}
 	}
 }
-EXPORT_SYMBOL(irqsoff_path_panic_msg);
 
 void notrace start_irqsoff_panic_timing(void)
 {
@@ -53,10 +54,10 @@ void notrace start_irqsoff_panic_timing(void)
 		return;
 
 	__this_cpu_write(irqsoff_panic_timestamp, sched_clock());
-	__this_cpu_write(irqsoff_panic_calllvl, irqsoff_unwind_backtrace(this_cpu_ptr(irqsoff_panic_callip)));
+	__this_cpu_write(irqsoff_panic_calllvl,
+		irqsoff_unwind_backtrace(this_cpu_ptr(irqsoff_panic_callip)));
 	__this_cpu_write(irqsoff_panic_is_tracing, 1);
 }
-
 
 void notrace stop_irqsoff_panic_timing(void)
 {
@@ -75,7 +76,6 @@ void notrace stop_irqsoff_panic_timing(void)
 
 }
 
-
 static int __init trace_irqsoff_panic_init(void)
 {
 	int cpu;
@@ -92,3 +92,8 @@ static int __init trace_irqsoff_panic_init(void)
 }
 
 fs_initcall(trace_irqsoff_panic_init);
+
+#else
+void irqsoff_path_panic_msg(void) {}
+#endif
+EXPORT_SYMBOL(irqsoff_path_panic_msg);
