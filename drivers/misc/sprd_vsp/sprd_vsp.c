@@ -262,8 +262,13 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 		pr_debug("vsp ioctl VSP_HW_INFO\n");
 
-		regmap_read(regs[VSP_DOMAIN_EB].gpr, regs[VSP_DOMAIN_EB].reg,
+		ret = regmap_read(regs[VSP_DOMAIN_EB].gpr, regs[VSP_DOMAIN_EB].reg,
 					&mm_eb_reg);
+		if (ret) {
+			pr_err("read domaineb failed, ret %d\n", ret);
+			return -EFAULT;
+		}
+
 		mm_eb_reg &= regs[VSP_DOMAIN_EB].mask;
 
 		put_user(mm_eb_reg, (int __user *)arg);
@@ -617,6 +622,7 @@ static int vsp_release(struct inode *inode, struct file *filp)
 {
 	struct vsp_fh *vsp_fp = filp->private_data;
 	int instance_cnt = atomic_read(&vsp_instance_cnt);
+	int ret;
 
 	if (vsp_fp == NULL) {
 		pr_err("%s error occurred, vsp_fp == NULL\n", __func__);
@@ -625,7 +631,7 @@ static int vsp_release(struct inode *inode, struct file *filp)
 
 	pr_info("%s: instance_cnt %d\n", __func__, instance_cnt);
 
-	atomic_dec_return(&vsp_instance_cnt);
+	ret = atomic_dec_return(&vsp_instance_cnt);
 	codec_instance_count[vsp_fp->codec_id]--;
 	pr_debug("release codec_id %d counter %d\n", vsp_fp->codec_id,
 		codec_instance_count[vsp_fp->codec_id]);
