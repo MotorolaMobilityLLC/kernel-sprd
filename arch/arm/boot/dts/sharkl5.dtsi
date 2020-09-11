@@ -231,9 +231,10 @@
 					syscon-names = "iso_sw_en", "ps_pd_s",
 							"ps_pd_l";
 					reg = <0>;
+					sprd,project-id = <0>;
 					sprd,phyname = "4lane";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy1: phy@1 {
@@ -252,9 +253,10 @@
 					syscon-names = "iso_sw_en", "csi_mode_sel",
 							"ps_pd_l", "ps_pd_s";
 					reg = <1>;
+					sprd,project-id = <0>;
 					sprd,phyname = "2p2";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy2: phy@2 {
@@ -270,9 +272,10 @@
 					syscon-names = "iso_sw_en", "ps_pd_s",
 							"ps_pd_l";
 					reg = <2>;
+					sprd,project-id = <0>;
 					sprd,phyname = "2lane";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy3: phy@3 {
@@ -291,9 +294,10 @@
 					syscon-names = "iso_sw_en", "csi_mode_sel",
 							"ps_pd_l", "ps_pd_s";
 					reg = <3>;
+					sprd,project-id = <0>;
 					sprd,phyname = "2p2_m";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 
 				csi_phy4: phy@4 {
@@ -312,9 +316,10 @@
 					syscon-names = "iso_sw_en", "csi_mode_sel",
 							"ps_pd_l", "ps_pd_s";
 					reg = <4>;
+					sprd,project-id = <0>;
 					sprd,phyname = "2p2_s";
-					status = "disabled";
 					sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+					status = "disabled";
 				};
 			};
 			gpu: gpu@60000000 {
@@ -418,6 +423,12 @@
 					<&pll2 CLK_TWPLL_384M>,
 					<&pll2 CLK_ISPPLL_468M>,
 					<&pll2 CLK_ISPPLL_468M>;
+				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_ISP_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_ISP_AHB_SOFT_RST>;
+				syscon-names = "reset",
+						"isp_ahb_reset";
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp-count = <1>;
 				iommus = <&iommu_isp>;
@@ -428,7 +439,7 @@
 			iommu_isp: iommu@620ffc00 {
 				compatible = "sprd,iommuex-newisp";
 				/* sharkl3 isp need pagetalbe size */
-				reg = <0x620ffc00 0x400>;
+				reg = <0 0x620ffc00 0 0x400>;
 				sprd,iova-base = <0x40000000>;
 				sprd,iova-size = <0x20000000>;
 				reg_name = "mmu_reg";
@@ -608,7 +619,7 @@
 
 			iommu_cpp: iommu@62800200 {
 				compatible = "sprd,iommuex-cpp";
-				reg = <0x62800200 0x60>;
+				reg = <0 0x62800200 0 0x60>;
 				sprd,iova-base = <0x20000000>;
 				sprd,iova-size = <0x8000000>;
 				reg_name = "mmu_reg";
@@ -617,7 +628,7 @@
 			};
 
 			dcam: dcam@62900000 {
-				compatible = "sprd,dcam";
+				compatible = "sprd,sharkl5-cam";
 				reg = <0 0x62900000 0 0x1000>,
 					<0 0x62901000 0 0x1000>,
 					<0 0x62902000 0 0x1000>,
@@ -660,11 +671,23 @@
 					<&pll2 CLK_TWPLL_307M2>,
 					<&pll2 CLK_TWPLL_384M>,
 					<&pll2 CLK_TWPLL_384M>;
+				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM_ALL_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM0_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM1_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM2_SOFT_RST>;
+				syscon-names = "dcam_all_reset",
+						"dcam0_reset",
+						"dcam1_reset",
+						"dcam2_reset";
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
 				iommus = <&iommu_dcam>;
-				sprd,project-id = <0>;
+				sprd,project-id = <1>;
 				dcam_qos = <&dcam_qos>;
 				status = "disabled";
 			};
@@ -672,7 +695,7 @@
 
 			iommu_dcam: iommu@6290c000 {
 				compatible = "sprd,iommuex-dcam";
-				reg = <0x6290c000 0x60>;
+				reg = <0 0x6290c000 0 0x60>;
 				sprd,frc-reg = <0x62903010>;
 				sprd,iova-base = <0x40000000>;
 				sprd,iova-size = <0x20000000>;
@@ -716,7 +739,7 @@
 
 			iommu_fd: iommu@62a00200 {
 				compatible = "sprd,iommuex-fd";
-				reg = <0x62A00200 0x400>;
+				reg = <0 0x62A00200 0 0x400>;
 				sprd,iova-base = <0x60000000>;
 				sprd,iova-size = <0x10000000>;
 				reg_name = "mmu_reg";
