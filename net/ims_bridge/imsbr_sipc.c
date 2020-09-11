@@ -198,6 +198,11 @@ static void imsbr_handler(int event, void *data)
 
 	WARN_ON(!sipc);
 
+	if (!sipc) {
+		pr_err("sipc is null\n");
+		return;
+	}
+
 	/* Receieve event means peer in CP side is ok! */
 	if (!atomic_cmpxchg(&sipc->peer_ready, 0, 1)) {
 		pr_info("recv %d event, %s's peer is alive!\n",
