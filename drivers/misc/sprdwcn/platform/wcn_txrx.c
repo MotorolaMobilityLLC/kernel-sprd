@@ -205,7 +205,7 @@ static long int mdbg_comm_write(char *buf,
 		int ret;
 
 		/* for arm log to pc */
-		WCN_INFO("smp len:%ld,str:%s\n", len, str);
+		WCN_INFO("smp len:%u,str:%s\n", len, str);
 		str[sizeof(SMP_HEAD_STR)] = 0;
 		ret = kstrtol(&str[sizeof(SMP_HEAD_STR) - 1], 10,
 							&ring_dev->flag_smp);

@@ -75,7 +75,7 @@ struct mdbg_ring_t *mdbg_ring_alloc(unsigned long int size)
 			WCN_ERR("Ring malloc Failed.\n");
 			break;
 		}
-		ring->pbuff = kmalloc(size, GFP_KERNEL);
+		ring->pbuff = kmalloc((unsigned int)size, GFP_KERNEL);
 		if (ring->pbuff == NULL) {
 			WCN_ERR("Ring buff malloc Failed.\n");
 			break;
@@ -86,7 +86,7 @@ struct mdbg_ring_t *mdbg_ring_alloc(unsigned long int size)
 			break;
 		}
 		MDBG_RING_LOCK_INIT(ring);
-		memset(ring->pbuff, 0, size);
+		memset(ring->pbuff, 0, (unsigned int)size);
 		ring->size = size;
 		ring->rp = ring->pbuff;
 		ring->wp = ring->pbuff;
@@ -141,7 +141,7 @@ int mdbg_ring_read(struct mdbg_ring_t *ring, void *buf, int len)
 	}
 	MDBG_RING_LOCK(ring);
 	cont_len = mdbg_ring_readable_len(ring);
-	read_len = cont_len >= len ? len : cont_len;
+	read_len = (unsigned int)(cont_len >= len ? len : cont_len);
 	pstart = mdbg_ring_start(ring);
 	pend = mdbg_ring_end(ring);
 	WCN_LOG("read_len=%d", read_len);
@@ -257,7 +257,7 @@ int mdbg_ring_write(struct mdbg_ring_t *ring, void *buf, unsigned int len)
 	if (mdbg_ring_over_loop(ring, len, MDBG_RING_W)) {
 		WCN_LOG("Ring overloop.");
 		len1 = pend - ring->wp + 1;
-		len2 = (len - len1) % ring->size;
+		len2 = (((int)len - len1) % (int)ring->size);
 
 		/* if ((uintptr_t)buf > TASK_SIZE) */
 		if (!access_ok(VERIFY_READ, buf, len)) {
@@ -272,7 +272,7 @@ int mdbg_ring_write(struct mdbg_ring_t *ring, void *buf, unsigned int len)
 			return -EFAULT;
 		}
 
-		ring->wp = (char *)((u_long)pstart + len2);
+		ring->wp = (char *)(pstart + len2);
 
 	} else{
 		/* RP > WP */
@@ -348,7 +348,7 @@ inline bool mdbg_ring_will_full(struct mdbg_ring_t *ring, long int len)
 /* remain data for read */
 inline long int mdbg_ring_readable_len(struct mdbg_ring_t *ring)
 {
-	return ring->size - mdbg_ring_free_space(ring);
+	return (ring->size - ((u_long)mdbg_ring_free_space(ring)));
 }
 
 inline void mdbg_ring_clear(struct mdbg_ring_t *ring)

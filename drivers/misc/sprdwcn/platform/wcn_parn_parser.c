@@ -130,13 +130,13 @@ static int load_fstab_conf(const char *p_path, char *wcn_path)
 		return -1;
 }
 
-static int prefixcmp(const char *str, const char *prefix)
+static int prefixcmp(const char *str, const char *prefixc)
 {
-	for (; ; str++, prefix++)
-		if (!*prefix)
+	for (; ; str++, prefixc++)
+		if (!*prefixc)
 			return 0;
-		else if (*str != *prefix)
-			return (unsigned char)*prefix - (unsigned char)*str;
+		else if (*str != *prefixc)
+			return (unsigned char)*prefixc - (unsigned char)*str;
 }
 
 static int find_callback(struct dir_context *ctx, const char *name, int namlen,

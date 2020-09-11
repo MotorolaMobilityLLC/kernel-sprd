@@ -135,7 +135,7 @@ static ssize_t wcnlog_read(struct file *filp,
 	}
 
 	mutex_lock(&mdbg_dev->mdbg_lock);
-	read_size = mdbg_receive((void *)buf, (long int)count);
+	read_size = mdbg_receive((void *)buf, count);
 	if (sprdwcn_bus_get_carddump_status() == 1) {
 		dum_send_size += read_size;
 		WCN_INFO("read_size = %ld dum_total_size= %d,remainder =%ld\n",

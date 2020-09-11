@@ -111,7 +111,7 @@ static int wcn_dbg_thread(void *unused)
 		WCN_INFO("mem read size is %ld\n", read_size);
 		if (read_size < 0) {
 			vfree(buffer);
-			return read_size;
+			return (int)read_size;
 		}
 
 		dump_file = filp_open("/data/wcn/cp2mem.mem",
@@ -122,7 +122,8 @@ static int wcn_dbg_thread(void *unused)
 			return PTR_ERR(dump_file);
 		}
 
-		ret = kernel_write(dump_file, buffer, read_size, &pos);
+		ret = kernel_write(dump_file, buffer, (unsigned int)read_size,
+			&pos);
 		if (ret != read_size) {
 			WCN_ERR("wcn mem write to file failed: %zd\n", ret);
 			vfree(buffer);
