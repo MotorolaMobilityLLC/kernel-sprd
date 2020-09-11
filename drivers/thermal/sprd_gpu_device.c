@@ -142,7 +142,7 @@ static unsigned long get_static_power(struct devfreq *df, unsigned long m_volt)
 	struct thermal_cooling_device *tcd;
 	unsigned long t_scale, v_scale;
 	u32 gpu_coeff;
-	u32 tmp_power = 0;
+	unsigned long tmp_power = 0;
 	unsigned long power;
 	int gpu_cluster = GPU_CLUSTER_ID;
 	int gpu_cores = GPU_CORE_NUM;
