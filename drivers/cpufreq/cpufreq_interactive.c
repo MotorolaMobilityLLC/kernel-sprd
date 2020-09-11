@@ -177,7 +177,7 @@ static bool timer_slack_required(struct interactive_cpu *icpu)
 	struct interactive_policy *ipolicy = icpu->ipolicy;
 	struct interactive_tunables *tunables = ipolicy->tunables;
 
-	if (tunables->timer_slack < 0)
+	if (tunables->timer_slack == 0)
 		return false;
 
 	if (icpu->target_freq > ipolicy->policy->min)
