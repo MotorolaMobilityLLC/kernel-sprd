@@ -95,11 +95,11 @@ static inline struct regmap *arch_audio_get_aon_apb_gpr(void)
 /*
  * agcp ahb global registers operating interfaces
  */
-static struct regmap *agcp_ahb_gpr;
+static struct regmap *g_agcp_ahb_gpr;
 static inline int agcp_ahb_gpr_null_check(void)
 {
-	if (agcp_ahb_gpr == NULL) {
-		pr_err("ERR: %s agcp_ahb_gpr isn't initialized!\n",
+	if (g_agcp_ahb_gpr == NULL) {
+		pr_err("ERR: %s g_agcp_ahb_gpr isn't initialized!\n",
 			__func__);
 		return -1;
 	}
@@ -108,25 +108,25 @@ static inline int agcp_ahb_gpr_null_check(void)
 }
 
 #define agcp_ahb_reg_update(reg, msk, val) \
-	regmap_update_bits(agcp_ahb_gpr, (reg), (msk), (val))
+	regmap_update_bits(g_agcp_ahb_gpr, (reg), (msk), (val))
 
 #define agcp_ahb_reg_set(reg, bit) \
-	regmap_write(agcp_ahb_gpr, (reg + 0x100), (bit))
+	regmap_write(g_agcp_ahb_gpr, (reg + 0x100), (bit))
 
 #define agcp_ahb_reg_clr(reg, bit) \
-	regmap_write(agcp_ahb_gpr, (reg + 0x200), (bit))
+	regmap_write(g_agcp_ahb_gpr, (reg + 0x200), (bit))
 
 #define agcp_ahb_reg_read(reg, val) \
-	regmap_read(agcp_ahb_gpr, (reg), (val))
+	regmap_read(g_agcp_ahb_gpr, (reg), (val))
 
 static inline void arch_audio_set_agcp_ahb_gpr(struct regmap *gpr)
 {
-	agcp_ahb_gpr = gpr;
+	g_agcp_ahb_gpr = gpr;
 }
 
 static inline struct regmap *arch_audio_get_agcp_ahb_gpr(void)
 {
-	return agcp_ahb_gpr;
+	return g_agcp_ahb_gpr;
 }
 
 /*
@@ -189,11 +189,11 @@ static inline void arch_audio_set_pmu_com_apb_gpr(struct regmap *gpr)
  * ap apb global registers operating interfaces
  * ap_apb_gpr will be set by i2s.c in its probe func.
  */
-static struct regmap *ap_apb_gpr;
+static struct regmap *g_ap_apb_gpr;
 static inline int ap_apb_gpr_null_check(void)
 {
-	if (ap_apb_gpr == NULL) {
-		pr_err("ERR: %s ap_apb_gpr is not initialized!\n",
+	if (g_ap_apb_gpr == NULL) {
+		pr_err("ERR: %s g_ap_apb_gpr is not initialized!\n",
 			__func__);
 		return -1;
 	}
@@ -201,20 +201,20 @@ static inline int ap_apb_gpr_null_check(void)
 	return 0;
 }
 #define ap_apb_reg_update(reg, msk, val) \
-	regmap_update_bits(ap_apb_gpr, (reg), (msk), (val))
+	regmap_update_bits(g_ap_apb_gpr, (reg), (msk), (val))
 #define ap_apb_reg_set(reg, bit) \
-	regmap_update_bits(ap_apb_gpr, (reg), (bit), (bit))
+	regmap_update_bits(g_ap_apb_gpr, (reg), (bit), (bit))
 #define ap_apb_reg_clr(reg, bit) \
-	regmap_update_bits(ap_apb_gpr, (reg), (bit), (0))
-#define ap_apb_reg_read(reg, val) regmap_read(ap_apb_gpr, (reg), (val))
+	regmap_update_bits(g_ap_apb_gpr, (reg), (bit), (0))
+#define ap_apb_reg_read(reg, val) regmap_read(g_ap_apb_gpr, (reg), (val))
 
 static inline void arch_audio_set_ap_apb_gpr(struct regmap *gpr)
 {
-	ap_apb_gpr = gpr;
+	g_ap_apb_gpr = gpr;
 }
 static inline struct regmap *arch_audio_get_ap_apb_gpr(void)
 {
-	return ap_apb_gpr;
+	return g_ap_apb_gpr;
 }
 
 /* anlg_phy_g_controller */
