@@ -366,7 +366,7 @@ static int vdsp_dvfs_notify_callback(struct notifier_block *nb,
 {
 	struct vdsp_dvfs *vdsp = container_of(nb, struct vdsp_dvfs, vdsp_dvfs_nb);
 	u32 dvfs_freq = *(int *)data;
-
+	int ret;
 	mutex_lock(&vdsp->devfreq->lock);
 
 	pr_info("%s enter", __func__);
@@ -380,8 +380,9 @@ static int vdsp_dvfs_notify_callback(struct notifier_block *nb,
 
 	vdsp->work_freq = dvfs_freq;
 	vdsp->freq_type = DVFS_WORK;
-	update_devfreq(vdsp->devfreq);
-
+	ret = update_devfreq(vdsp->devfreq);
+	if (ret < 0)
+		pr_err("update_devfreq is failed");
 	pr_info("%s exit\n", __func__);
 	mutex_unlock(&vdsp->devfreq->lock);
 
@@ -505,8 +506,6 @@ static void userspace_exit(struct devfreq *devfreq)
 	 */
 	if (devfreq->dev.kobj.sd)
 		sysfs_remove_group(&devfreq->dev.kobj, &dev_attr_group);
-
-	sysfs_remove_group(&devfreq->dev.kobj, &dev_attr_group);
 }
 
 static int vdsp_gov_get_target(struct devfreq *devfreq,

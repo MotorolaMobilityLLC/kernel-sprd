@@ -497,8 +497,6 @@ static void userspace_exit(struct devfreq *devfreq)
 	 */
 	if (devfreq->dev.kobj.sd)
 		sysfs_remove_group(&devfreq->dev.kobj, &dev_attr_group);
-
-	sysfs_remove_group(&devfreq->dev.kobj, &dev_attr_group);
 }
 
 static int dpu_gov_get_target(struct devfreq *devfreq,
