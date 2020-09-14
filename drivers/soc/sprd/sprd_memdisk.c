@@ -57,6 +57,11 @@ static void memdisk_transfer(struct memdisk_dev *dev, sector_t sector,
 	unsigned long offset = sector * hardsect_size;
 	unsigned long nbytes = nsect * hardsect_size;
 
+	if (!buffer) {
+		pr_info("memdisk:Failed to allocate memory for buffer\n");
+		return;
+	}
+
 	if ((offset + nbytes) > (dev->size * hardsect_size)) {
 		pr_notice("memdisk: Beyond-end write (%ld %ld)\n",
 			  offset, nbytes);
@@ -74,6 +79,11 @@ static void memdisk_transfer(struct memdisk_dev *dev, sector_t sector,
 
 	if (i == memdisks_count)
 		return;
+
+	if (!memdiskp) {
+		pr_info("the memdisk partition does not exist\n");
+		return;
+	}
 
 	if (write)
 		memcpy(memdiskp->data + offset, buffer, nbytes);
@@ -192,14 +202,14 @@ static void memdisk_setup_device(void)
 		memdisks->size += memdisks->memdiskp[i]->size;
 
 	set_capacity(memdisks->gd,
-		     (sector_t)(memdisks->size * (hardsect_size / KERNEL_SECTOR_SIZE)));
+		     (sector_t)(memdisks->size) * (hardsect_size / KERNEL_SECTOR_SIZE));
 	add_disk(memdisks->gd);
 
 	for (i = 0; i < memdisks_count; i++) {
-		sprintf(info.volname, "%s", memdisks->memdiskp[i]->partition_name);
-		sprintf(info.uuid, "memdisk0.p%d", i);
-		len = (sector_t)(memdisks->memdiskp[i]->size * (hardsect_size / KERNEL_SECTOR_SIZE));
-		start = memdisks->memdiskp[i]->start * (hardsect_size / KERNEL_SECTOR_SIZE);
+		snprintf(info.volname, sizeof(info.volname), "%s", memdisks->memdiskp[i]->partition_name);
+		snprintf(info.uuid, sizeof(info.uuid), "memdisk0.p%d", i);
+		len = (sector_t)(memdisks->memdiskp[i]->size) * (hardsect_size / KERNEL_SECTOR_SIZE);
+		start = (sector_t)(memdisks->memdiskp[i]->start) * (hardsect_size / KERNEL_SECTOR_SIZE);
 		part = add_partition(memdisks->gd, i+1, start, len, ADDPART_FLAG_NONE, &info);
 		if (IS_ERR(part)) {
 			printk(KERN_ERR " %s: p%d could not be added: %ld\n",
