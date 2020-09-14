@@ -24,7 +24,6 @@
 #include <linux/spinlock.h>
 #include <linux/rtc.h>
 #include <linux/uaccess.h>
-#include <linux/version.h>
 #include <asm/div64.h>
 #include <../../../kernel/sched/sched.h>
 #ifdef CONFIG_VM_EVENT_COUNTERS
@@ -149,7 +148,7 @@ struct cpu_recorder {
  * 4. g_rec       : NR_REC records, each hrtimer_se cpu usage
  */
 static long hrtimer_se = 10;
-static struct hrtimer timer;
+static struct hrtimer stat_hrtimer;
 static ulong global_id;
 static DEFINE_SPINLOCK(usage_lock);
 static struct cpu_recorder g_rec[NR_REC];
@@ -371,7 +370,7 @@ ulong sprd_g_irq_ratio;
 static void _print_cpu_rate(struct seq_file *p, struct cpu_recorder *record)
 {
 	ulong idle_ratio[2], user_ratio[2], system_ratio[2], nice_ratio[2];
-	ulong iowait_ratio[2], irq_ratio[2], softirq_ratio[2];
+	ulong iowait_ratio[2], irq_ratio[2] = {0}, softirq_ratio[2];
 	ulong steal_ratio[2], sum_ratio[2];
 	int i;
 	struct cpu_usage_info *pt;
@@ -670,9 +669,9 @@ static int __init sprd_cpu_usage_init(void)
 	memset(&ts_saved, 0, sizeof(struct timespec));
 
 	/* init timer */
-	hrtimer_init(&timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	timer.function = hrtimer_handler;
-	hrtimer_start(&timer, ms_to_ktime(hrtimer_se * 1000), HRTIMER_MODE_REL);
+	hrtimer_init(&stat_hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	stat_hrtimer.function = hrtimer_handler;
+	hrtimer_start(&stat_hrtimer, ms_to_ktime(hrtimer_se * 1000), HRTIMER_MODE_REL);
 
 	/* create debugfs */
 	debugfs_create_file("cpu_usage", 0444, sprd_debugfs_entry(CPU),
@@ -683,7 +682,7 @@ static int __init sprd_cpu_usage_init(void)
 
 static void __exit sprd_cpu_usage_exit(void)
 {
-	hrtimer_cancel(&timer);
+	hrtimer_cancel(&stat_hrtimer);
 }
 
 subsys_initcall(sprd_cpu_usage_init);
