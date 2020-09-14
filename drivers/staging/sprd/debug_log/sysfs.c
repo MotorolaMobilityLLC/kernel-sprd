@@ -89,7 +89,8 @@ static ssize_t channel_show(struct device *dev,
 			    struct device_attribute *attr, char *buf)
 {
 	struct dbg_log_device *dbg = dev_get_drvdata(dev);
-	int ret, i;
+	unsigned int ret = 0;
+	int i = 0;
 	char temp_sbuf[200] = { 0 }, temp_buf[10];
 
 	for (i = 0; i < dbg->serdes.ch_num; i++) {
