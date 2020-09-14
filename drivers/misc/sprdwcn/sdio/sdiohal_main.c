@@ -1016,16 +1016,14 @@ static int sdiohal_resume(struct device *dev)
 
 static int sdiohal_set_cp_pin_status(void)
 {
-	int reg_value;
-
 #ifdef CONFIG_UMW2652
-	return 0;
-#endif
 	/*
 	 * Because of cp pin pull up on default, It's lead to
 	 * the sdio mistaken interruption before cp run,
 	 * So set the pin to no pull up on init.
 	 */
+	int reg_value;
+
 	sdiohal_readl(CP_GPIO1_REG, &reg_value);
 	pr_info("reg_value: 0x%x\n", reg_value);
 	reg_value &= ~(CP_PIN_FUNC_WPU);
@@ -1033,7 +1031,7 @@ static int sdiohal_set_cp_pin_status(void)
 
 	sdiohal_readl(CP_GPIO1_REG, &reg_value);
 	pr_info("reg_value: 0x%x\n", reg_value);
-
+#endif
 	return 0;
 }
 

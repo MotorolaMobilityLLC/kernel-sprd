@@ -71,7 +71,7 @@ void sdiohal_list_check(struct sdiohal_list_t *data_list,
 	struct mbuf_t *node;
 	int i;
 
-	if (!data_list) {
+	if (!data_list || !data_list->mbuf_head) {
 		WARN_ON_ONCE(1);
 		return;
 	}
@@ -82,9 +82,12 @@ void sdiohal_list_check(struct sdiohal_list_t *data_list,
 			data_list->node_num);
 	node = data_list->mbuf_head;
 	for (i = 0; i < data_list->node_num; i++, node = node->next) {
-		WARN_ON_ONCE(!node);
+		if (!node || !node->buf) {
+			WARN_ON_ONCE(1);
+			return;
+		}
 		sdiohal_pr_list(SDIOHAL_LIST_LEVEL, "%s node:%p buf:%p\n",
-				func, node, node->buf);
+			func, node, node->buf);
 	}
 
 	if (node) {
@@ -109,9 +112,12 @@ void sdiohal_mbuf_list_check(int channel, struct mbuf_t *head,
 			func, dir ? "tx" : "rx", channel, head, tail, num);
 	node = head;
 	for (i = 0; i < num; i++, node = node->next) {
-		WARN_ON_ONCE(!node);
+		if (!node || !node->buf) {
+			WARN_ON_ONCE(1);
+			return;
+		}
 		sdiohal_pr_list(SDIOHAL_LIST_LEVEL, "%s node:%p buf:%p\n",
-				func, node, node->buf);
+			func, node, node->buf);
 	}
 
 	if (node) {
