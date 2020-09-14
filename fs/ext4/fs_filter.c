@@ -360,7 +360,7 @@ static void __exit reserve_space_proc_exit(void)
 bool is_in_black_list(uid_t euid, gid_t egid)
 {
 	bool ret = false;
-	int i = 0, j = 0;
+	unsigned int i = 0, j = 0;
 	uid_t id[2] = {euid, egid};
 
 	if ('\0' != black_list_comm[0][0]) {
@@ -377,8 +377,8 @@ bool is_in_black_list(uid_t euid, gid_t egid)
 	if (0 == black_list[0])
 		return false;
 
-	for (i = 0; i < (int)ARRAY_SIZE(id); i++) {
-		for (j = 0; j < (int)ARRAY_SIZE(black_list); j++) {
+	for (i = 0; i < ARRAY_SIZE(id); i++) {
+		for (j = 0; j < ARRAY_SIZE(black_list); j++) {
 			if (0 == black_list[j])
 				break;
 
@@ -392,7 +392,7 @@ bool is_in_black_list(uid_t euid, gid_t egid)
 
 int is_in_white_list(void)
 {
-	int i = 0;
+	unsigned int i = 0;
 	kgid_t cur_mgid;
 	bool ret = false;
 
@@ -408,7 +408,7 @@ int is_in_white_list(void)
 	if (0 == white_list[0])
 		return false;
 
-	for (i = 0; i < sizeof(white_list)/sizeof(int); i++) {
+	for (i = 0; i < ARRAY_SIZE(white_list); i++) {
 		if (0 == white_list[i])
 			break;
 
