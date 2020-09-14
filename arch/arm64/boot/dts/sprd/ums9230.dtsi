@@ -1,0 +1,80 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Unisoc Qogirl6 platform DTS file
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/clock/sprd,ums9230-clk.h>
+#include "qogirl6.dtsi"
+
+/ {
+	cpus {
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		cpu-map {
+			cluster0 {
+				core0 {
+					cpu = <&CPU0>;
+				};
+			};
+		};
+
+		CPU0: cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a55";
+			reg = <0x0 0x0>;
+			enable-method = "psci";
+		};
+	};
+
+	timer {
+		compatible = "arm,armv8-timer";
+		interrupts = <GIC_PPI 13 IRQ_TYPE_LEVEL_HIGH>, /* Physical Secure PPI */
+			     <GIC_PPI 14 IRQ_TYPE_LEVEL_HIGH>, /* Physical Non-Secure PPI */
+			     <GIC_PPI 11 IRQ_TYPE_LEVEL_HIGH>, /* Virtual PPI */
+			     <GIC_PPI 10 IRQ_TYPE_LEVEL_HIGH>; /* Hipervisor PPI */
+	};
+
+	soc {
+		gic: interrupt-controller@10000000 {
+			compatible = "arm,gic-v3";
+			#interrupt-cells = <3>;
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+			redistributor-stride = <0x0 0x20000>;	/* 128KB stride */
+			#redistributor-regions = <1>;
+			interrupt-controller;
+			reg = <0x0 0x10000000 0 0x20000>,	/* GICD */
+				  <0x0 0x10040000 0 0x100000>;	/* GICR */
+			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		apapb_gate: apapb-gate {
+			compatible = "sprd,ums9230-apapb-gate";
+			sprd,syscon = <&ap_apb_regs>; /* 0x20000000 */
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
+			#clock-cells = <1>;
+		};
+
+		ap_clk: clock-controller@20010000 {
+			compatible = "sprd,ums9230-ap-clk";
+			reg = <0 0x20010000 0 0x1000>;
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
+			#clock-cells = <1>;
+		};
+	};
+};
+
+&sdio3 {
+	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
+	clocks = <&ap_clk CLK_EMMC_2X>,
+		 <&ext_26m>,
+		 <&apapb_gate CLK_EMMC_EB>;
+};
+

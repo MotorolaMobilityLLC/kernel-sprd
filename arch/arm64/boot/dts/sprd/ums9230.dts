@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Unisoc Qogirl6 platform DTS file
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include "ums9230.dtsi"
+#include "ums9230-mach.dtsi"
+#include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
+#include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
+
+/ {
+	model = "Spreadtrum UMS9230 1H10 SoC";
+
+	compatible = "sprd,ums9230";
+
+	sprd,sc-id = "ums9230 1000 1000";
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x2 0x00000000>;
+	};
+
+	chosen: chosen {
+		stdout-path = "serial1:115200n8";
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};
+
+&sdio3 {
+	bus-width = <8>;
+	non-removable;
+	no-sdio;
+	no-sd;
+	cap-mmc-hw-reset;
+	status = "okay";
+};
