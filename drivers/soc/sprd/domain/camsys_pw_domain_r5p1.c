@@ -299,7 +299,7 @@ int sprd_cam_pw_on(void)
 	return 0;
 
 err_pw_on:
-	atomic_dec_return(&pw_info->users_pw);
+	atomic_dec(&pw_info->users_pw);
 	pr_err("fail to power on cam sys\n");
 	mutex_unlock(&pw_info->mlock);
 
