@@ -6572,15 +6572,6 @@ CONFIG_HZ_250
 	[must] console
 	[missing plat description] enable HZ_100 on old plat.
 	[function] HZ_250 showes good interactive responsiveness on sprd plat
-CONFIG_HZ_300
-	[arch] arm
-	[plat] pike2,sharkl3_32,sharkle32
-	[missing plat] sharkl5_32
-	[field] menu
-	[subsys] time
-	[must] console
-	[missing plat description] go version require, but sharkl5_32 bring up is not yet.
-	[function] HZ_300 showes good interactive responsiveness on sprd plat
 CONFIG_HZ_FIXED
 	[arch] arm
 	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
