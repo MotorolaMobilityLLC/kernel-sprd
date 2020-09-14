@@ -8,6 +8,23 @@
  */
 
 / {
+	aliases {
+		seth0 = &seth_ch7;
+		seth1 = &seth_ch8;
+		seth2 = &seth_ch9;
+		seth3 = &seth_ch18;
+		seth4 = &seth_ch19;
+		seth5 = &seth_ch20;
+		seth6 = &seth_ch24;
+		seth7 = &seth_ch25;
+		seth8 = &seth_ch26;
+		seth9 = &seth_ch27;
+		seth10 = &seth_ch28;
+		seth11 = &seth_ch29;
+		seth12 = &seth_ch30;
+		seth13 = &seth_ch31;
+	};
+
 	scproc-pubcp {
 		compatible = "sprd,scproc_pubcp";
 		#address-cells = <1>;
@@ -204,7 +221,7 @@
 			sprd,poolsize = <16>;
 		};
 
-		seth_ch29: seth@5 {
+		seth_ch20: seth@5 {
 			compatible = "sprd,seth";
 			sprd,name = "seth_lte5";
 			sprd,dst = <5>;
@@ -227,6 +244,60 @@
 			sprd,name = "seth_lte7";
 			sprd,dst = <5>;
 			sprd,channel = <25>;
+			sprd,blknum = <256>;
+			sprd,poolsize = <16>;
+		};
+
+		seth_ch26: seth@8 {
+			compatible = "sprd,seth";
+			sprd,name = "seth_lte8";
+			sprd,dst = <5>;
+			sprd,channel = <26>;
+			sprd,blknum = <256>;
+			sprd,poolsize = <16>;
+		};
+
+		seth_ch27: seth@9 {
+			compatible = "sprd,seth";
+			sprd,name = "seth_lte9";
+			sprd,dst = <5>;
+			sprd,channel = <27>;
+			sprd,blknum = <256>;
+			sprd,poolsize = <16>;
+		};
+
+		seth_ch28: seth@10 {
+			compatible = "sprd,seth";
+			sprd,name = "seth_lte10";
+			sprd,dst = <5>;
+			sprd,channel = <28>;
+			sprd,blknum = <256>;
+			sprd,poolsize = <16>;
+		};
+
+		seth_ch29: seth@11 {
+			compatible = "sprd,seth";
+			sprd,name = "seth_lte11";
+			sprd,dst = <5>;
+			sprd,channel = <29>;
+			sprd,blknum = <256>;
+			sprd,poolsize = <16>;
+		};
+
+		seth_ch30: seth@12 {
+			compatible = "sprd,seth";
+			sprd,name = "seth_lte12";
+			sprd,dst = <5>;
+			sprd,channel = <30>;
+			sprd,blknum = <256>;
+			sprd,poolsize = <16>;
+		};
+
+		seth_ch31: seth@13 {
+			compatible = "sprd,seth";
+			sprd,name = "seth_lte13";
+			sprd,dst = <5>;
+			sprd,channel = <31>;
 			sprd,blknum = <256>;
 			sprd,poolsize = <16>;
 		};
