@@ -2204,7 +2204,10 @@ out:
 #ifndef CONFIG_WCN_PCIE
 	mem_pd_poweroff_deinit();
 #endif
+	wifipa_enable(0);
+	marlin_avdd18_dcxo_enable(false);
 	marlin_clk_enable(false);
+	marlin_chip_en(false, false);
 	marlin_digital_power_enable(false);
 	marlin_analog_power_enable(false);
 	chip_reset_release(0);
