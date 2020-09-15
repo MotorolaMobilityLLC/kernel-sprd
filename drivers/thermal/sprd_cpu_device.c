@@ -462,7 +462,7 @@ u64 get_cluster_dyn_power(int cluster_id,
  * return Tscale * 1000
  */
 __visible_for_testing u64 get_cluster_temperature_scale(int cluster_id,
-		unsigned long temp)
+		u64 temp)
 {
 	u64 t_scale = 0;
 	struct scale_coeff *coeff =
@@ -483,7 +483,7 @@ __visible_for_testing u64 get_cluster_temperature_scale(int cluster_id,
  * return Tscale * 1000
  */
 __visible_for_testing u64 get_core_temperature_scale(int cluster_id,
-		unsigned long temp)
+		u64 temp)
 {
 	u64 t_scale = 0;
 	struct scale_coeff *coeff = &cluster_data[cluster_id].core_temp_scale;

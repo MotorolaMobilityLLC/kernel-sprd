@@ -41,9 +41,9 @@ u32 get_cpuidle_temp_point(int cluster_id);
 
 void get_core_temp(int cluster_id, int cpu, int *temp);
 
-u64 get_cluster_temperature_scale(int cluster_id, unsigned long temp);
+u64 get_cluster_temperature_scale(int cluster_id, u64 temp);
 
-u64 get_core_temperature_scale(int cluster_id, unsigned long temp);
+u64 get_core_temperature_scale(int cluster_id, u64 temp);
 
 u64 get_cluster_voltage_scale(int cluster_id, unsigned long u_volt);
 
