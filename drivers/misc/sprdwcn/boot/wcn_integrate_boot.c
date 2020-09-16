@@ -11,10 +11,9 @@
  * GNU General Public License for more details.
  */
 #include "../platform/gnss/gnss.h"
-#include "wcn_misc.h"
 #include "wcn_glb.h"
-#include "wcn_glb_reg.h"
 #include "wcn_gnss.h"
+#include "wcn_misc.h"
 #include "wcn_procfs.h"
 #include "../include/wcn_dbg.h"
 
@@ -76,7 +75,8 @@ static int wcn_get_firmware_path(char *firmwarename, char *firmware_path)
 		folder_path_length = strlen(firmware_path)
 				     - strlen(WCN_BTWF_FILENAME);
 		*(firmware_path + folder_path_length) = 0;
-		strcpy(gnss_firmware_parent_path, firmware_path);
+		strncpy(gnss_firmware_parent_path, firmware_path,
+			sizeof(gnss_firmware_parent_path));
 
 	} else {
 		return -EINVAL;
@@ -281,7 +281,8 @@ static int wcn_load_firmware_data(struct wcn_device *wcn_dev)
 	}
 	is_gnss = wcn_dev_is_gnss(wcn_dev);
 	if (is_gnss) {
-		strcpy(wcn_dev->firmware_path, gnss_firmware_parent_path);
+		strncpy(wcn_dev->firmware_path, gnss_firmware_parent_path,
+			sizeof(wcn_dev->firmware_path));
 		strcat(wcn_dev->firmware_path, wcn_dev->firmware_path_ext);
 		WCN_INFO("gnss path=%s\n", wcn_dev->firmware_path);
 		gnss_file_path_set(wcn_dev->firmware_path);
@@ -309,15 +310,18 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 
 	if (!is_marlin) {
 		if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_GL)
-			strcpy(firmware_file_name, WCN_GNSS_FILENAME);
+			strncpy(firmware_file_name, WCN_GNSS_FILENAME,
+				sizeof(firmware_file_name));
 		else if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD)
-			strcpy(firmware_file_name, WCN_GNSS_BD_FILENAME);
+			strncpy(firmware_file_name, WCN_GNSS_BD_FILENAME,
+				sizeof(firmware_file_name));
 		else
 			return -EINVAL;
 	}
 
 	if (is_marlin)
-		strcpy(firmware_file_name, WCN_BTWF_FILENAME);
+		strncpy(firmware_file_name, WCN_BTWF_FILENAME,
+			sizeof(firmware_file_name));
 
 	strcat(firmware_file_name, ".bin");
 	WCN_INFO("loading image [%s] from firmware subsystem ...\n",
@@ -364,12 +368,14 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 	memset(firmware_file_path, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
 	/* file_path used in dts */
 	if (wcn_dev->file_path) {
-		strcpy(firmware_file_path, wcn_dev->file_path);
+		strncpy(firmware_file_path, wcn_dev->file_path,
+			sizeof(firmware_file_path));
 		fstab_ab(wcn_dev);
 		if (wcn_dev_is_gnss(wcn_dev)) {
 			if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD) {
-				strcpy(firmware_file_path,
-				       wcn_dev->file_path_ext);
+				strncpy(firmware_file_path,
+					wcn_dev->file_path_ext,
+					sizeof(firmware_file_path));
 				fstab_ab(wcn_dev);
 			}
 			gnss_file_path_set(firmware_file_path);
@@ -382,10 +388,12 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 		/* For gnss fix file path isn't fit with actual file type */
 		if (wcn_dev_is_gnss(wcn_dev) && ret == 1) {
 			if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD)
-				strcpy(firmware_file_path, wcn_dev->file_path);
+				strncpy(firmware_file_path, wcn_dev->file_path,
+					sizeof(firmware_file_path));
 			else
-				strcpy(firmware_file_path,
-				       wcn_dev->file_path_ext);
+				strncpy(firmware_file_path,
+					wcn_dev->file_path_ext,
+					sizeof(firmware_file_path));
 			fstab_ab(wcn_dev);
 			gnss_file_path_set(firmware_file_path);
 			WCN_INFO("load config file:%s\n", firmware_file_path);
@@ -852,7 +860,8 @@ int start_integrate_wcn_truely(u32 subsys)
 	if (is_marlin) {
 		mdbg_atcmd_clean();
 		wcn_set_module_state(true);
-		if (!first_start) {
+		marlin_bootup_time_update();
+		if (unlikely(!first_start)) {
 			wcn_firmware_init();
 			first_start = 1;
 		} else {

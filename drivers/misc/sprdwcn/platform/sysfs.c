@@ -19,8 +19,6 @@
 #endif
 #include "wcn_dbg.h"
 #include "wcn_glb.h"
-#include "wcn_misc.h"
-#include "wcn_procfs.h"
 
 struct wcn_sysfs_info {
 	void *p;
@@ -150,18 +148,6 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	return 0;
 }
 
-static int wcn_ap_notify_cp_time(void)
-{
-	char *a = NULL;
-
-	a = wcn_get_kernel_time();
-
-	WCN_INFO("%s:%s", __func__, a);
-	wcn_send_atcmd(a, strlen(a), NULL, NULL);
-
-	return 0;
-}
-
 static int wcn_get_sw_ver(void)
 {
 	char a[] = "at+spatgetcp2info\r\n";
@@ -234,7 +220,6 @@ void wcn_firmware_init(void)
 	wcn_set_armlog_status();
 	wcn_set_loglevel();
 	wcn_get_loglevel();
-	wcn_ap_notify_cp_time();
 	/* TODO: set can pass functionmask */
 	/* wcn_set_loglevel, etc */
 }

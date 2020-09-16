@@ -1,11 +1,13 @@
 #include <linux/completion.h>
 #include <linux/delay.h>
 #include <linux/kernel.h>
+#include <linux/sched/clock.h>
 #include <linux/slab.h>
 #include <linux/timer.h>
 #include <linux/workqueue.h>
 
 #include "wcn_glb.h"
+#include "wcn_misc.h"
 #include "wcn_procfs.h"
 
 #define LOOPCHECK_TIMER_INTERVAL      5
@@ -29,7 +31,7 @@ static int loopcheck_send(char *buf, unsigned int len)
 	struct mbuf_t *tail = NULL;
 	int num = 1;
 
-	WCN_INFO("%s len=%d\n", __func__, len);
+	WCN_INFO("%s: %s len=%d\n", __func__, buf, len);
 	if (unlikely(!marlin_get_module_status())) {
 		WCN_ERR("WCN module have not open\n");
 		return -EIO;
@@ -57,8 +59,16 @@ static int loopcheck_send(char *buf, unsigned int len)
 static void loopcheck_work_queue(struct work_struct *work)
 {
 	int ret;
-	unsigned long timeleft;
-	char a[] = "at+loopcheck\r\n";
+	unsigned long timeleft, ns, time;
+	unsigned int ap_t, marlin_boot_t;
+	char a[64];
+
+	ns = local_clock();
+	time = marlin_bootup_time_get();
+	ap_t = MARLIN_64B_NS_TO_32B_MS(ns);
+	marlin_boot_t = MARLIN_64B_NS_TO_32B_MS(time);
+	snprintf(a, (size_t)sizeof(a), "at+loopcheck=%u,%u\r\n",
+		 ap_t, marlin_boot_t);
 
 	if (!test_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
 		return;
