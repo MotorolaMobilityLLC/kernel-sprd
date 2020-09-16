@@ -167,6 +167,7 @@ soc:sprd:sysdump:
 spi:sprd:
 sprd-diffconfig:*
 staging:android:ion:
+staging:sprd:debug_log:
 staging:sprd:mailbox:
 staging:sprd:modem:
 staging:sprd:sfp:
