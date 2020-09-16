@@ -13142,8 +13142,8 @@ CONFIG_SPRD_GPU_COOLING_DEVICE
 	[function] create gpu cooling device and build gpu power model
 CONFIG_SPRD_HANG_DEBUG
 	[arch] all
-	[plat] sharkl3,sharkl3_32
-	[missing plat] pike2,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] sharkl3,sharkl3_32,sharkl5Pro
+	[missing plat] pike2,sharkl5,sharkl5_32,sharkle32
 	[field] make
 	[subsys] soc
 	[must] user
@@ -13151,8 +13151,8 @@ CONFIG_SPRD_HANG_DEBUG
 	[function] add hang_debug code for apcpu hang
 CONFIG_SPRD_HANG_DEBUG_UART
 	[arch] all
-	[plat] sharkl3,sharkl3_32
-	[missing plat] pike2,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
+	[plat] sharkl3,sharkl3_32,sharkl5Pro
+	[missing plat] pike2,sharkl5,sharkl5_32,sharkle32
 	[field] code
 	[subsys] soc
 	[must] user
