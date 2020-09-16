@@ -2255,12 +2255,12 @@ CONFIG_CPUFREQ_DT_PLATDEV
 	[function] declare cpufreq-dt device for cpufreq-dt driver.
 CONFIG_CPUSETS
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkle32
 	[field] make,code
 	[subsys] core
 	[must] console
-	[missing plat description] pike2 Bug961852
+	[missing plat description] pike2 Bug961852,sharkle32 bug1407403
 	[function] Let you create and manage CPUSETs which allow dynamically
 		partitioning a system into sets of CPUs and Memory Nodes and
 		assigning tasks to run only within those sets.
@@ -11161,12 +11161,12 @@ CONFIG_PROC_PAGE_MONITOR
 	   /proc/pid/pagemap,/proc/kpagecount, and /proc/kpageflags
 CONFIG_PROC_PID_CPUSET
 	[arch] all
-	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32,sharkle32
-	[missing plat] pike2
+	[plat] sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkl5_32
+	[missing plat] pike2,sharkle32
 	[field] code
 	[subsys] core
 	[must] console
-	[missing plat description] pike2 Bug961852
+	[missing plat description] pike2 Bug961852,sharkle32 bug1407403
 	[function] vts require, Include legacy /proc/<pid>/cpuset file.
 CONFIG_PROC_SYSCTL
 	[arch] all
