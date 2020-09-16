@@ -21,6 +21,7 @@
 #include "sprd_dvfs_dpu.h"
 #include "dpu_r4p0_corner_param.h"
 #include "dpu_enhance_param.h"
+#include "disp_trusty.h"
 
 #define DISPC_INT_FBC_PLD_ERR_MASK	BIT(8)
 #define DISPC_INT_FBC_HDR_ERR_MASK	BIT(9)
@@ -303,6 +304,18 @@ enum {
 	CABC_DISABLED
 };
 
+enum disp_command {
+	TA_REG_SET = 1,
+	TA_REG_CLR,
+	TA_FIREWALL_SET,
+	TA_FIREWALL_CLR
+};
+
+struct disp_message {
+	u8 cmd;
+	struct layer_reg layer;
+};
+
 static struct scale_cfg scale_copy;
 static struct cm_cfg cm_copy;
 static struct slp_cfg slp_copy;
@@ -335,6 +348,11 @@ static struct sprd_dpu_layer wb_layer;
 static int wb_xfbc_en = 1;
 static int corner_radius;
 static struct device_node *g_np;
+static int secure_debug;
+static int time = 5000;
+static struct disp_message tos_msg;
+module_param(time, int, 0644);
+module_param(secure_debug, int, 0644);
 module_param(wb_xfbc_en, int, 0644);
 module_param(max_vsync_count, int, 0644);
 module_param(cabc_bl_set_delay, int, 0644);
@@ -737,7 +755,7 @@ static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
 static int dpu_write_back_config(struct dpu_context *ctx)
 {
 	int ret;
-	static int need_config = 1;
+	static int need_config;
 	size_t wb_buf_size;
 	struct sprd_dpu *dpu =
 		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
@@ -1148,44 +1166,42 @@ static void dpu_layer(struct dpu_context *ctx,
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 	struct layer_reg *layer;
-	u32 size, offset, wd;
+	struct layer_reg tmp = {};
+	u32 wd;
 	int i;
 
-	layer = &reg->layers[hwlayer->index];
-	offset = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
+	tmp.pos = (hwlayer->dst_x & 0xffff) | ((hwlayer->dst_y) << 16);
 
 	if (hwlayer->pallete_en) {
-		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
-		layer->pos = offset;
-		layer->size = size;
-		layer->alpha = hwlayer->alpha;
-		layer->pallete = hwlayer->pallete_color;
+		//layer->pos = tmp.pos;
+		tmp.size = (hwlayer->dst_w & 0xffff) |
+			     ((hwlayer->dst_h) << 16);
+		tmp.alpha = hwlayer->alpha;
+		tmp.pallete = hwlayer->pallete_color;
 
 		/* pallete layer enable */
-		layer->ctrl = 0x2005;
+		tmp.ctrl = 0x2005;
 
 		pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d, pallete:%d\n",
 			hwlayer->dst_x, hwlayer->dst_y,
-			hwlayer->dst_w, hwlayer->dst_h, layer->pallete);
+			hwlayer->dst_w, hwlayer->dst_h, tmp.pallete);
 		return;
 	}
 
 	if (hwlayer->src_w && hwlayer->src_h)
-		size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
+		tmp.size = (hwlayer->src_w & 0xffff) | ((hwlayer->src_h) << 16);
 	else
-		size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
+		tmp.size = (hwlayer->dst_w & 0xffff) | ((hwlayer->dst_h) << 16);
 
 	for (i = 0; i < hwlayer->planes; i++) {
 		if (hwlayer->addr[i] % 16)
 			pr_err("layer addr[%d] is not 16 bytes align, it's 0x%08x\n",
 				i, hwlayer->addr[i]);
-		layer->addr[i] = hwlayer->addr[i];
+		tmp.addr[i] = hwlayer->addr[i];
 	}
 
-	layer->pos = offset;
-	layer->size = size;
-	layer->crop_start = (hwlayer->src_y << 16) | hwlayer->src_x;
-	layer->alpha = hwlayer->alpha;
+	tmp.crop_start = (hwlayer->src_y << 16) | hwlayer->src_x;
+	tmp.alpha = hwlayer->alpha;
 
 	wd = drm_format_plane_cpp(hwlayer->format, 0);
 	if (wd == 0) {
@@ -1195,13 +1211,43 @@ static void dpu_layer(struct dpu_context *ctx,
 
 	if (hwlayer->planes == 3)
 		/* UV pitch is 1/2 of Y pitch*/
-		layer->pitch = (hwlayer->pitch[0] / wd) |
+		tmp.pitch = (hwlayer->pitch[0] / wd) |
 				(hwlayer->pitch[0] / wd << 15);
 	else
-		layer->pitch = hwlayer->pitch[0] / wd;
+		tmp.pitch = hwlayer->pitch[0] / wd;
 
-	layer->ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
+	tmp.ctrl = dpu_img_ctrl(hwlayer->format, hwlayer->blending,
 		hwlayer->xfbc, hwlayer->y2r_coef, hwlayer->rotation);
+	//pr_err("xvv 666666 = %x, index = %d\n", tmp.ctrl, hwlayer->index);
+
+	if (hwlayer->secure_en || secure_debug) {
+		if (!reg->dpu_secure) {
+			disp_ca_connect();
+			udelay(time);
+		}
+		tos_msg.cmd = TA_REG_SET;
+		tos_msg.layer = tmp;
+		disp_ca_write(&tos_msg, sizeof(tos_msg));
+		disp_ca_wait_response();
+		return;
+	} else if (reg->dpu_secure) {
+		tos_msg.cmd = TA_REG_CLR;
+		disp_ca_write(&tos_msg, sizeof(tos_msg));
+		disp_ca_wait_response();
+	}
+
+	pr_err("xvv layer index = %d\n", hwlayer->index);
+	layer = &reg->layers[hwlayer->index];
+	for (i = 0; i < 4; i++)
+		layer->addr[i] = tmp.addr[i];
+	layer->pos = tmp.pos;
+	layer->size = tmp.size;
+	layer->crop_start = tmp.crop_start;
+	layer->alpha = tmp.alpha;
+	layer->pitch = tmp.pitch;
+	layer->ctrl = tmp.ctrl;
+
+	//pr_err("xvv layer ctrl = %x, tmp = %x\n", layer->ctrl, tmp.ctrl);
 
 	pr_debug("dst_x = %d, dst_y = %d, dst_w = %d, dst_h = %d\n",
 				hwlayer->dst_x, hwlayer->dst_y,
