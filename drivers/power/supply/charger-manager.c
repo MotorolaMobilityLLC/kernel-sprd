@@ -199,9 +199,6 @@ static int cm_capacity_remap(struct charger_manager *cm, int fuel_cap)
 
 	}
 
-	dev_info(cm->dev, "%s, i = %d, fuel_cap = %d, temp = %d, ui_cap = %d\n",
-	      __func__, i, fuel_cap, temp, cap);
-
 	return cap;
 }
 
@@ -236,7 +233,6 @@ static int cm_capacity_unmap(struct charger_manager *cm, int cap)
 	}
 
 	fuel_cap  = DIV_ROUND_CLOSEST(fuel_cap, cm->desc->cap_remap_total_cnt);
-	dev_info(cm->dev, "%s, fuel_cap = %d, ui_cap = %d\n", __func__, fuel_cap, cap);
 
 	return fuel_cap;
 }
