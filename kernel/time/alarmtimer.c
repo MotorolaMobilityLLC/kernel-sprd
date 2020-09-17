@@ -347,10 +347,16 @@ void alarmtimer_shutdown(struct platform_device *pdev)
 			continue;
 
 		delta = ktime_sub(next->expires, base->gettime());
-		if (i == ALARM_POWEROFF_ALARM &&
-		    ktime_compare(delta, early) <= 0) {
-			pr_info("Poweroff alarm is less than two minutes.\n");
-		} else if (!min || ktime_compare(delta, min) <= 0) {
+
+		if (i == ALARM_POWEROFF_ALARM) {
+			if (ktime_compare(delta, early) <= 0) {
+				pr_info("Poweroff alarm is less than two minutes.\n");
+				continue;
+			} else
+				delta = ktime_sub(delta, early);
+		}
+
+		if (!min || ktime_compare(delta, min) <= 0) {
 			min = delta;
 			alarm_type = i;
 		}
@@ -372,9 +378,6 @@ void alarmtimer_shutdown(struct platform_device *pdev)
 
 	now = rtc_tm_to_ktime(tm);
 	now = ktime_add(now, min);
-
-	if (alarm_type == ALARM_POWEROFF_ALARM)
-		now = ktime_sub(now, early);
 
 	tm = rtc_ktime_to_tm(now);
 	pr_info("Poweroff alarm: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900,
