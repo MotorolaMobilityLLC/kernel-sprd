@@ -1779,7 +1779,7 @@
 			};
 
 			watchdog@322f0000 {
-				compatible = "sprd,sharkl5-wdt", "sprd,sharkl5pro-wdt";
+				compatible = "sprd,wdt-r2p0-fiq";
 				reg = <0 0x322f0000 0 0x10000>;
 				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
 				timeout-sec = <12>;
