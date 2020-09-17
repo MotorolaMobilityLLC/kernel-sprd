@@ -206,7 +206,7 @@ const char *apcpu_dvfs_state[] = {
 static ssize_t apcpu_dvfs_state_show(struct kobject *kobj,
 				     struct kobj_attribute *attr, char *buf)
 {
-	u32 state;
+	int state;
 	int i;
 
 	i = target_pwr_hit(kobj);
@@ -265,7 +265,7 @@ const char *top_dvfs_state_i2c[] = {
 static ssize_t top_dvfs_state_show(struct kobject *kobj,
 				   struct kobj_attribute *attr, char *buf)
 {
-	u32 value;
+	int value;
 	bool use_i2c;
 	int i;
 	const char *state_name;

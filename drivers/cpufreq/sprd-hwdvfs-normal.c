@@ -1352,7 +1352,8 @@ static int voltage_grade_value_update(struct dvfs_cluster *clu,
 	struct reg_info *regdata;
 	struct pmic_data *pm;
 	int ret, count, grade_index = clu->dcdc;
-	u32 pmic_num, grade_id;
+	u32 grade_id;
+	int pmic_num;
 
 	if (!pdev->priv)
 		return 0;
@@ -1432,7 +1433,7 @@ static int voltage_grade_value_update(struct dvfs_cluster *clu,
  * Return value will be as same as what is shown in scaling_cur_freq in sysfs.
  */
 static int sprd_cpudvfs_opp_add(void *data,
-				unsigned int cluster, unsigned long hz_freq,
+				int cluster, unsigned long hz_freq,
 				unsigned long u_volt, int opp_idx)
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
@@ -1670,7 +1671,7 @@ static int sprd_cpudvfs_idle_pd_volt_update(void *data, int cluster)
 	return 0;
 }
 
-int sprd_cpudvfs_set_target(void *data, u32 cluster, u32 opp_idx)
+int sprd_cpudvfs_set_target(void *data, int cluster, u32 opp_idx)
 {
 	struct cpudvfs_archdata *pdev = (struct cpudvfs_archdata *)data;
 	struct dvfs_cluster *clu;
@@ -2701,7 +2702,7 @@ static int cpudvfs_cluster_dt_parse(void *clu)
 {
 	struct dvfs_cluster *cluster = (struct dvfs_cluster *)clu;
 	struct cpudvfs_archdata *pdev;
-	u32 num = 0;
+	int num = 0;
 
 	pdev = (struct cpudvfs_archdata *)cluster->parent_dev;
 

@@ -1513,9 +1513,8 @@ static irqreturn_t sprd_hwdvfs_l3_isr(int irq, void *dev_id)
  * This is the last known freq, without actually getting it from the driver.
  * Return value will be same as what is shown in scaling_cur_freq in sysfs.
  */
-static int sprd_hwdvfs_l3_opp_add(void *drvdata, unsigned int cluster,
-				  unsigned long hz_freq, unsigned long u_volt,
-				  int idx_volt)
+static int sprd_hwdvfs_l3_opp_add(void *drvdata, int cluster, unsigned long hz_freq,
+				  unsigned long u_volt, int idx_volt)
 {
 	int ret = 0;
 	unsigned int idx_freq, index;
@@ -1601,7 +1600,7 @@ static int sprd_hwdvfs_l3_opp_add(void *drvdata, unsigned int cluster,
 /*
  * @idx:        0 points to min freq, ascending order
  */
-static int sprd_hwdvfs_l3_set_target(void *drvdata, u32 cluster, u32 idx_volt)
+static int sprd_hwdvfs_l3_set_target(void *drvdata, int cluster, u32 idx_volt)
 {
 	int ret;
 

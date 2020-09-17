@@ -117,10 +117,9 @@ struct sprd_cpufreq_driver_data {
 struct sprd_cpudvfs_ops {
 	bool (*probed)(void *drvdata, int cluster);
 	bool (*enable)(void *drvdata, int cluster, bool en);
-	int (*opp_add)(void *drvdata, unsigned int cluster,
-		       unsigned long hz_freq, unsigned long u_volt,
-		       int opp_idx);
-	int (*set)(void *drvdata, u32 cluster, u32 opp_idx);
+	int (*opp_add)(void *drvdata, int cluster, unsigned long hz_freq,
+			unsigned long u_volt, int opp_idx);
+	int (*set)(void *drvdata, int cluster, u32 opp_idx);
 	unsigned int (*get)(void *drvdata, int cluster);
 	int (*udelay_update)(void *drvdata, int cluster);
 	int (*index_tbl_update)(void *drvdata, char *opp_name, int cluster);
