@@ -1367,13 +1367,13 @@ static int sc27xx_fgu_cap_to_clbcnt(struct sc27xx_fgu_data *data, int capacity)
 	 * Get current capacity (mAh) = battery total capacity (mAh) *
 	 * current capacity percent (capacity / 100).
 	 */
-	int cur_cap = DIV_ROUND_CLOSEST(data->total_cap * capacity, 100);
+	int cur_cap = DIV_ROUND_CLOSEST(data->total_cap * capacity, 1000);
 
 	/*
 	 * Convert current capacity (mAh) to coulomb counter according to the
 	 * formula: 1 mAh =3.6 coulomb.
 	 */
-	return DIV_ROUND_CLOSEST(cur_cap * 36 * data->cur_1000ma_adc * SC27XX_FGU_SAMPLE_HZ, 100);
+	return DIV_ROUND_CLOSEST(cur_cap * 36 * data->cur_1000ma_adc * SC27XX_FGU_SAMPLE_HZ, 10);
 }
 
 static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
