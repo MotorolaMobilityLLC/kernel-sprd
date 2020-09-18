@@ -416,10 +416,10 @@ static ssize_t wcn_sysfs_store_armlog_status(struct device *dev,
 	}
 
 	WCN_INFO("%s:set armlog = %ld\n", __func__, res);
-	if (!marlin_get_module_status()) {
-		sysfs_info.armlog_status = res;
+	sysfs_info.armlog_status = res;
+
+	if (!marlin_get_module_status())
 		return count;
-	}
 
 	if (res == 1) {
 		/* open CP2 armlog */
