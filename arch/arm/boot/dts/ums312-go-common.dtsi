@@ -6,6 +6,8 @@
  * This file is licensed under a dual GPLv2 or X11 license.
  */
 
+#include "sc2730.dtsi"
+#include "lcd/lcd_dummy_mipi.dtsi"
 #include <dt-bindings/thermal/thermal.h>
 
 / {
@@ -348,6 +350,11 @@
 			compatible = "android,trusty-log-v1";
 		};
 	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &sdio0 {
@@ -432,6 +439,15 @@
 };
 
 &dphy {
+	status = "okay";
+};
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&pmic_typec>;
+};
+
+&pmic_typec {
 	status = "okay";
 };
 
