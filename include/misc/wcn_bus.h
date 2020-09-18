@@ -6,6 +6,8 @@
 #include <linux/errno.h>
 #include <linux/types.h>
 
+#define WCNBUS_TX 1
+#define WCNBUS_RX 0
 #if IS_ENABLED(CONFIG_SDIOHAL)
 #define PUB_HEAD_RSV	4
 #else

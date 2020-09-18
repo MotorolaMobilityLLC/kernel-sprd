@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Spreadtrum Communications Inc.
+ * Copyright (C) 2019 Unisoc Communications Inc.
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
@@ -9,114 +9,478 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  */
+#include <linux/debugfs.h>
+#include <linux/of_device.h>
+#include <linux/sched.h>
+#include <linux/seq_file.h>
 #include <misc/wcn_bus.h>
-
+#include <uapi/linux/sched/types.h>
 #include "bus_common.h"
 #include "wcn_integrate.h"
 #include "wcn_sipc.h"
-#include "wcn_txrx.h"
 
-#define WCN_SIPC_CHANNEL_MAX CHN_MAX_NUM
-#define WCN_SIPC_CHANNEL_STATIC BITS_PER_LONG
-#define WCN_SIPC_CHANNEL_DYNAMIC \
-	(WCN_SIPC_CHANNEL_MAX - WCN_SIPC_CHANNEL_STATIC)
+#define SIPC_WCN_DST 3
+
+#define SIPC_TYPE_SBUF 0
+#define SIPC_TYPE_SBLOCK 1
+
+#define SIPC_CHANNEL_UNCREATED 0
+#define SIPC_CHANNEL_CREATED 1
+
+#define SIPC_NOTIFIER_UNREGISTER  0
+#define SIPC_NOTIFIER_REGISTER 1
+
+/* default value of sipc channel */
+#define SIPC_CHN_ATCMD 4
+#define SIPC_CHN_LOOPCHECK 11
+#define SIPC_CHN_ASSERT 12
+#define SIPC_CHN_LOG 5
+#define SIPC_CHN_BT 4
+#define SIPC_CHN_FM 4
+#define SIPC_CHN_WIFI_CMD 7
+#define SIPC_CHN_WIFI_DATA0 8
+#define SIPC_CHN_WIFI_DATA1 9
+
+#define INIT_SIPC_CHN_SBUF(idx, in_out, channel, bid,\
+		 blen, bnum, tbsize, rbsize)\
+{.index = idx, .inout = in_out, .chntype = SIPC_TYPE_SBUF,\
+.chn = channel, .dst = SIPC_WCN_DST, .sbuf.bufid = bid,\
+.sbuf.len = blen, .sbuf.bufnum = bnum,\
+.sbuf.txbufsize = tbsize, .sbuf.rxbufsize = rbsize}
+
+#define INIT_SIPC_CHN_SBLOCK(idx, in_out, channel,\
+		 tbnum, tbsize, rbnum, rbsize,\
+		 _basemem, _alignsize, _mapped_smem_base)\
+{.index = idx, .inout = in_out, .chntype = SIPC_TYPE_SBLOCK,\
+.chn = channel, .dst = SIPC_WCN_DST,\
+.sblk.txblocknum = tbnum, .sblk.txblocksize = tbsize,\
+.sblk.rxblocknum = rbnum, .sblk.rxblocksize = rbsize,\
+.sblk.basemem = _basemem, .sblk.alignsize = _alignsize,\
+.sblk.mapped_smem_base = _mapped_smem_base}
 
 static struct wcn_sipc_info_t g_sipc_info = {0};
-static DECLARE_BITMAP(wcn_chn_map, WCN_SIPC_CHANNEL_MAX);
 
-#define SIPC_VALID_CHN(index) \
-	((index < SIPC_CHN_NUM) ? test_bit(index, wcn_chn_map) : 0)
-#define SIPC_INVALID_CHN(index) (!SIPC_VALID_CHN(index))
-#define SIPC_TYPE(ops) (ops->chn_config.sipc_ch.type)
-#define SIPC_CHN(ops) (&ops->chn_config.sipc_ch)
+/* default sipc channel info */
+/* at/bt/fm use sbuf channel 4:  */
+/* at bufid 5  bt bufid(tx 11 rx 10) fm bufid(tx 14 rx 13) */
 
-static int wcn_sipc_alloc_bit(unsigned long *bitmap, int size)
+/* default value */
+static struct sipc_chn_info g_sipc_chn[SIPC_CHN_NUM] = {
+	INIT_SIPC_CHN_SBUF(SIPC_ATCMD_TX, WCNBUS_TX, SIPC_CHN_ATCMD,
+			   5, 128, 16, 0x2400, 0x2400),
+	INIT_SIPC_CHN_SBUF(SIPC_ATCMD_RX, WCNBUS_RX, SIPC_CHN_ATCMD,
+			   5, 128, 16, 0x2400, 0x2400),
+	INIT_SIPC_CHN_SBUF(SIPC_LOOPCHECK_RX, WCNBUS_RX, SIPC_CHN_LOOPCHECK,
+			   0, 128, 1, 0x400, 0x400),
+	INIT_SIPC_CHN_SBUF(SIPC_ASSERT_RX, WCNBUS_RX, SIPC_CHN_ASSERT,
+			   0, 1024, 1, 0x400, 0x400),
+	INIT_SIPC_CHN_SBUF(SIPC_LOG_RX, WCNBUS_RX, SIPC_CHN_LOG,
+			   0, 8 * 1024, 1, 0x8000, 0x30000),
+	{0},
+	{0},
+	{0},
+	INIT_SIPC_CHN_SBUF(SIPC_BT_TX, WCNBUS_TX, SIPC_CHN_BT,
+			   11, 4096, 16, 0x2400, 0x2400),
+	INIT_SIPC_CHN_SBUF(SIPC_BT_RX, WCNBUS_RX, SIPC_CHN_BT,
+			   10, 4096, 16, 0x2400, 0x2400),
+	{0},
+	{0},
+	INIT_SIPC_CHN_SBUF(SIPC_FM_TX, WCNBUS_TX, SIPC_CHN_FM,
+			   14, 128, 16, 0x2400, 0x2400),
+	INIT_SIPC_CHN_SBUF(SIPC_FM_RX, WCNBUS_RX, SIPC_CHN_FM,
+			   13, 128, 16, 0x2400, 0x2400),
+	{0},
+	{0},
+	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_CMD_TX, WCNBUS_TX, SIPC_CHN_WIFI_CMD,
+			     4, 2048, 16, 2048, 0, 0, 0),
+	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_CMD_RX, WCNBUS_RX, SIPC_CHN_WIFI_CMD,
+			     4, 2048, 16, 2048, 0, 0, 0),
+	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_DATA0_TX, WCNBUS_TX, SIPC_CHN_WIFI_DATA0,
+			     64, 1664, 256, 1664, 0, 0, 0),
+	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_DATA0_RX, WCNBUS_RX, SIPC_CHN_WIFI_DATA0,
+			     64, 1664, 256, 1664, 0, 0, 0),
+	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_DATA1_TX, WCNBUS_TX, SIPC_CHN_WIFI_DATA1,
+			     64, 1664, 16, 1664, 0, 0, 0),
+	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_DATA1_RX, WCNBUS_RX, SIPC_CHN_WIFI_DATA1,
+			     64, 1664, 16, 1664, 0, 0, 0),
+};
+
+#define SIPC_INVALID_CHN(index) ((index >= SIPC_CHN_NUM) ? 1 : 0)
+#define SIPC_TYPE(index) (g_sipc_chn[index].chntype)
+#define SIPC_CHN_TYPE_SBUF(index)\
+	(g_sipc_chn[index].chntype == SIPC_TYPE_SBUF)
+#define SIPC_CHN_TYPE_SBLK(index)\
+	(g_sipc_chn[index].chntype == SIPC_TYPE_SBLOCK)
+#define SIPC_CHN(index) (&g_sipc_chn[index])
+#define SIPC_CHN_DIR_TX(index)\
+	(g_sipc_chn[index].inout == WCNBUS_TX ? 1 : 0)
+#define SIPC_CHN_DIR_RX(index)\
+	(g_sipc_chn[index].inout == WCNBUS_RX ? 1 : 0)
+
+#define SIPC_CHN_STATUS(chn) (g_sipc_info.sipc_channel_state[chn])
+#define SIPC_CHN_STATICTICS(index) (&g_sipc_chn[index].chn_static)
+
+static int wcn_sipc_sbuf_push(u8 index,
+		struct mbuf_t *head, struct mbuf_t *tail, int num);
+static void wcn_sipc_sbuf_notifer(int event, void *data);
+static void wcn_sipc_sbuf_push_list_dequeue(struct sipc_chn_info *sipc_chn);
+static int wcn_sipc_sblk_push(u8 index,
+		struct mbuf_t *head, struct mbuf_t *tail, int num);
+static void wcn_sipc_sblk_notifer(int event, void *data);
+static void wcn_sipc_sblk_push_list_dequeue(struct sipc_chn_info *sipc);
+
+struct wcn_sipc_data_ops {
+	int (*sipc_send)(u8 channel,
+			struct mbuf_t *head, struct mbuf_t *tail, int num);
+	void (*sipc_notifer)(int event, void *data);
+	void (*sipc_push_list_dequeue)(struct sipc_chn_info *sipc_chn);
+};
+
+struct wcn_sipc_data_ops  sipc_data_ops[] = {
+	{
+		.sipc_send = wcn_sipc_sbuf_push,
+		.sipc_notifer = wcn_sipc_sbuf_notifer,
+		.sipc_push_list_dequeue = wcn_sipc_sbuf_push_list_dequeue,
+	},
+	{
+		.sipc_send = wcn_sipc_sblk_push,
+		.sipc_notifer = wcn_sipc_sblk_notifer,
+		.sipc_push_list_dequeue = wcn_sipc_sblk_push_list_dequeue,
+	},
+};
+
+static inline char *sipc_chn_tostr(int chn, int bufid)
 {
-	int bit;
-
-	do {
-		bit = find_first_zero_bit(bitmap, size);
-		if (bit >= size)
-			return -EAGAIN;
-	} while (test_and_set_bit(bit, bitmap));
-
-	return bit;
+	switch (chn) {
+	case SIPC_CHN_ATCMD:
+		if (bufid == 5)
+			return "ATCMD";
+		else if (bufid == 10 || bufid == 11)
+			return "BT";
+		else if (bufid == 13 || bufid == 14)
+			return "FM";
+	case SIPC_CHN_LOG:
+		return "LOG";
+	case SIPC_CHN_LOOPCHECK:
+		return "LOOPCHECK";
+	case SIPC_CHN_ASSERT:
+		return "ASSERT";
+	case SIPC_CHN_WIFI_CMD:
+		return "WIFICMD";
+	case SIPC_CHN_WIFI_DATA0:
+		return "WIFIDATA0";
+	case SIPC_CHN_WIFI_DATA1:
+		return "WIFIDATA1";
+	default:
+		return "Unknown Channel";
+	}
 }
 
-static int wcn_sipc_recv(struct wcn_sipc_chn_info *sipc_chn, void *buf, int len)
+static inline void wcn_sipc_record_buf_alloc_num(int index, int num)
 {
-	struct mbuf_t *head, *tail;
-	struct mchn_ops_t *wcn_sipc_ops = NULL;
+	unsigned long flag;
+	struct sipc_channel_statictics  *chn_static;
 
-	wcn_sipc_ops = chn_ops(sipc_chn->index);
-	if (unlikely(!wcn_sipc_ops))
-		return -E_NULLPOINT;
+	chn_static = SIPC_CHN_STATICTICS(index);
+	spin_lock_irqsave(&chn_static->lock, flag);
+	chn_static->buf_alloc_num += num;
+	spin_unlock_irqrestore(&chn_static->lock, flag);
+}
 
-	head = kzalloc(sizeof(*head), GFP_KERNEL);
-	if (unlikely(!head))
-		return -E_NOMEM;
+static inline void wcn_sipc_record_buf_free_num(int index, int num)
+{
+	unsigned long flag;
+	struct sipc_channel_statictics  *chn_static;
 
+	chn_static = SIPC_CHN_STATICTICS(index);
+	spin_lock_irqsave(&chn_static->lock, flag);
+	chn_static->buf_free_num += num;
+	spin_unlock_irqrestore(&chn_static->lock, flag);
+}
+
+static inline void wcn_sipc_record_mbuf_send_to_bus(int index, int num)
+{
+	unsigned long flag;
+	struct sipc_channel_statictics  *chn_static;
+
+	chn_static = SIPC_CHN_STATICTICS(index);
+	spin_lock_irqsave(&chn_static->lock, flag);
+	chn_static->mbuf_send_to_bus += num;
+	spin_unlock_irqrestore(&chn_static->lock, flag);
+}
+
+static inline void wcn_sipc_record_mbuf_recv_from_bus(int index, int num)
+{
+	unsigned long flag;
+	struct sipc_channel_statictics  *chn_static;
+
+	chn_static = SIPC_CHN_STATICTICS(index);
+	spin_lock_irqsave(&chn_static->lock, flag);
+	chn_static->mbuf_recv_from_bus += num;
+	spin_unlock_irqrestore(&chn_static->lock, flag);
+}
+
+static inline void wcn_sipc_record_mbuf_alloc_num(int index, int num)
+{
+	unsigned long flag;
+	struct sipc_channel_statictics  *chn_static;
+
+	chn_static = SIPC_CHN_STATICTICS(index);
+	spin_lock_irqsave(&chn_static->lock, flag);
+	chn_static->mbuf_alloc_num += num;
+	spin_unlock_irqrestore(&chn_static->lock, flag);
+}
+
+static inline void wcn_sipc_record_mbuf_free_num(int index, int num)
+{
+	unsigned long flag;
+	struct sipc_channel_statictics  *chn_static;
+
+	chn_static = SIPC_CHN_STATICTICS(index);
+	spin_lock_irqsave(&chn_static->lock, flag);
+	chn_static->mbuf_free_num += num;
+	spin_unlock_irqrestore(&chn_static->lock, flag);
+}
+
+static void wcn_sipc_record_mbuf_giveback_to_user(int index, int num)
+{
+	unsigned long flag;
+	struct sipc_channel_statictics  *chn_static;
+
+	chn_static = SIPC_CHN_STATICTICS(index);
+	spin_lock_irqsave(&chn_static->lock, flag);
+	chn_static->mbuf_giveback_to_user += num;
+	spin_unlock_irqrestore(&chn_static->lock, flag);
+}
+
+static void wcn_sipc_record_mbuf_recv_from_user(int index, int num)
+{
+	unsigned long flag;
+	struct sipc_channel_statictics  *chn_static;
+
+	chn_static = SIPC_CHN_STATICTICS(index);
+	spin_lock_irqsave(&chn_static->lock, flag);
+	chn_static->mbuf_recv_from_user += num;
+	spin_unlock_irqrestore(&chn_static->lock, flag);
+}
+
+int wcn_sipc_channel_dir(int index)
+{
+	return g_sipc_chn[index].inout;
+}
+
+struct sipc_chn_info *wcn_sipc_channel_get(int index)
+{
+	return &g_sipc_chn[index];
+}
+
+static inline int wcn_sipc_buf_list_alloc(int chn,
+					  struct mbuf_t **head,
+					  struct mbuf_t **tail,
+					  int *num)
+{
+	int ret = 0;
+
+	WCN_HERE_CHN(chn);
+	ret = buf_list_alloc(chn, head, tail, num);
+	wcn_sipc_record_mbuf_alloc_num(chn, *num);
+
+	return ret;
+}
+
+static inline int wcn_sipc_buf_list_free(int chn,
+					 struct mbuf_t *head,
+					 struct mbuf_t *tail,
+					 int num)
+{
+	int ret = 0;
+
+	WCN_HERE_CHN(chn);
+	if (tail)
+		tail->next = NULL;
+	ret =  buf_list_free(chn, head, tail, num);
+	wcn_sipc_record_mbuf_free_num(chn, num);
+
+	return ret;
+}
+
+static void wcn_sipc_wakeup_tx(struct sipc_chn_info *sipc_chn)
+{
+	struct sipc_chn_info *tx_sipc_chn;
+
+	WCN_HERE_CHN(sipc_chn->index);
+	tx_sipc_chn = SIPC_CHN(sipc_chn->relate_index);
+	WCN_HERE_CHN(tx_sipc_chn->index);
+	complete(&tx_sipc_chn->callback_complete);
+}
+
+void wcn_sipc_pop_list_enqueue(struct sipc_chn_info *sipc_chn,
+	struct mbuf_t *head, struct mbuf_t *tail, int num)
+{
+	struct mbuf_t_list	*pop_queue = &sipc_chn->pop_queue;
+
+	mutex_lock(&sipc_chn->popq_lock);
+	if (!pop_queue->mbuf_head) {
+		pop_queue->mbuf_head  = head;
+		pop_queue->mbuf_tail = tail;
+		pop_queue->mbuf_num = num;
+	} else {
+		pop_queue->mbuf_tail->next = head;
+		pop_queue->mbuf_tail = tail;
+		pop_queue->mbuf_num += num;
+	}
+	mutex_unlock(&sipc_chn->popq_lock);
+	WCN_HERE_CHN(sipc_chn->index);
+}
+
+void wcn_sipc_pop_list_flush(struct sipc_chn_info *sipc_chn)
+{
+	struct mbuf_t_list	*pop_queue = &sipc_chn->pop_queue;
+
+	mutex_lock(&sipc_chn->popq_lock);
+	WCN_HERE_CHN(sipc_chn->index);
+	if (pop_queue->mbuf_num) {
+		WCN_DEBUG("index:%d  pop_queue->mbuf_num:%d",
+			  sipc_chn->index, pop_queue->mbuf_num);
+		pop_queue->mbuf_tail->next = NULL;
+
+		sipc_chn->ops->pop_link(sipc_chn->index,
+			pop_queue->mbuf_head, pop_queue->mbuf_tail,
+			pop_queue->mbuf_num);
+		wcn_sipc_record_mbuf_giveback_to_user(sipc_chn->index,
+			pop_queue->mbuf_num);
+		pop_queue->mbuf_head = pop_queue->mbuf_tail = NULL;
+		pop_queue->mbuf_num = 0;
+	}
+	mutex_unlock(&sipc_chn->popq_lock);
+
+	/* re-send mbufs in push_list */
+	if (sipc_chn->push_queue.mbuf_num &&
+	    SIPC_CHN_TYPE_SBLK(sipc_chn->index)) {
+		WCN_HERE_CHN(sipc_chn->index);
+		wcn_sipc_wakeup_tx(sipc_chn);
+	}
+}
+
+void wcn_sipc_push_list_enqueue(struct sipc_chn_info *sipc_chn,
+		struct mbuf_t *head, struct mbuf_t *tail, int num)
+{
+	struct mbuf_t_list	*push_queue = &sipc_chn->push_queue;
+
+	mutex_lock(&sipc_chn->pushq_lock);
+	if (!push_queue->mbuf_head) {
+		push_queue->mbuf_head = head;
+		push_queue->mbuf_tail = tail;
+		push_queue->mbuf_num = num;
+	} else {
+		push_queue->mbuf_tail->next = head;
+		push_queue->mbuf_tail = tail;
+		push_queue->mbuf_num += num;
+	}
+	mutex_unlock(&sipc_chn->pushq_lock);
+	WCN_HERE_CHN(sipc_chn->index);
+}
+
+static int wcn_sipc_recv(struct sipc_chn_info *sipc_chn,
+			void *buf, int len)
+{
+	int ret;
+	int num = 1;
+	struct mbuf_t *head = NULL, *tail = NULL;
+
+	WCN_DEBUG("sipc_recv: sipc_chn->index %d sipc_chn->chn %d\n",
+		 sipc_chn->index, sipc_chn->chn);
+	ret = wcn_sipc_buf_list_alloc(sipc_chn->index, &head, &tail, &num);
+	if (ret || head == NULL || tail == NULL) {
+		WCN_ERR("[%s] sprdwcn_bus_list_alloc fail, chn: %d\n",
+			__func__, sipc_chn->index);
+		return -1;
+	}
 	head->buf = buf;
 	head->len = len;
 	head->next = NULL;
 	tail = head;
-	wcn_sipc_ops->pop_link(sipc_chn->index, head, tail, 1);
+
+	wcn_sipc_pop_list_enqueue(sipc_chn, head, tail, num);
+	wcn_sipc_pop_list_flush(sipc_chn);/* or in task */
+	WCN_HERE_CHN(sipc_chn->index);
 
 	return 0;
 }
 
-static int wcn_sipc_sbuf_write(u8 index, void *buf, int len)
+static int wcn_sipc_sbuf_send(struct sipc_chn_info *sipc_chn,
+			void *buf, int len)
 {
-	int cnt = -1;
-	struct wcn_sipc_chn_info *sipc_chn;
-	struct mchn_ops_t *wcn_sipc_ops = NULL;
+	int ret;
+	void *xmit_buf = buf;
+
+	/* wcn mdbg */
+	if (sipc_chn->need_reserve)
+		xmit_buf += PUB_HEAD_RSV;
+	ret = sbuf_write(sipc_chn->dst, sipc_chn->chn,
+			sipc_chn->sbuf.bufid, xmit_buf, len, -1);
+	WCN_DEBUG("sbuf index %d  chn[%d] write cnt=%d\n",
+		 sipc_chn->index, sipc_chn->chn, ret);
+
+	return ret;
+}
+
+static void wcn_sipc_sbuf_push_list_dequeue(struct sipc_chn_info *sipc_chn)
+{
+	int ret;
+	struct mbuf_t *mbuf = NULL;
+
+	WCN_HERE_CHN(sipc_chn->index);
+	/* nothing to do */
+	mutex_lock(&sipc_chn->pushq_lock);
+	if (!sipc_chn->push_queue.mbuf_num) {
+		mutex_unlock(&sipc_chn->pushq_lock);
+		WCN_HERE_CHN(sipc_chn->index);
+		return;
+	}
+	mbuf = sipc_chn->push_queue.mbuf_head;
+	while (mbuf) {
+		ret  = wcn_sipc_sbuf_send(sipc_chn, mbuf->buf, mbuf->len);
+		if (ret < 0)
+			break;
+		wcn_sipc_record_mbuf_send_to_bus(sipc_chn->index, 1);
+		wcn_sipc_pop_list_enqueue(sipc_chn, mbuf, mbuf, 1);
+		mbuf = mbuf->next;
+		sipc_chn->push_queue.mbuf_head = mbuf;
+		sipc_chn->push_queue.mbuf_num--;
+		if (!mbuf) {
+			sipc_chn->push_queue.mbuf_tail = NULL;
+			sipc_chn->push_queue.mbuf_num = 0;
+		}
+	}
+	mutex_unlock(&sipc_chn->pushq_lock);
+	wcn_sipc_pop_list_flush(sipc_chn);
+}
+
+static int wcn_sipc_sbuf_push(u8 index,
+			struct mbuf_t *head, struct mbuf_t *tail, int num)
+{
+	struct sipc_chn_info *sipc_chn;
 
 	if (SIPC_INVALID_CHN(index))
 		return -E_INVALIDPARA;
+	sipc_chn = SIPC_CHN(index);
 
-	wcn_sipc_ops = chn_ops(index);
-	if (unlikely(!wcn_sipc_ops))
-		return -E_NULLPOINT;
+	wcn_sipc_record_mbuf_recv_from_user(index, num);
+	wcn_sipc_push_list_enqueue(sipc_chn, head, tail, num);
+	wcn_sipc_sbuf_push_list_dequeue(sipc_chn);
 
-	sipc_chn = SIPC_CHN(wcn_sipc_ops);
-	cnt = sbuf_write(sipc_chn->dst, sipc_chn->channel,
-			 sipc_chn->sbuf.bufid, buf, len, -1);
-	WCN_INFO("sbuf chn[%s] write cnt=%d\n", sipc_chn->name, cnt);
-
-	return cnt;
-}
-
-static void wcn_sipc_sbuf_rx_process(struct wcn_sipc_chn_info *pchn)
-{
-	int cnt, ret;
-	u8 *buf;
-
-	do {
-		buf = kzalloc(pchn->sbuf.len, GFP_KERNEL);
-		if (unlikely(!buf)) {
-			WCN_ERR("[%s]:mem alloc fail!\n", __func__);
-			return;
-		}
-		cnt = sbuf_read(pchn->dst, pchn->channel,
-				pchn->sbuf.bufid,
-				(void *)buf,
-				pchn->sbuf.len, 0);
-		if (cnt <= 0) {
-			kfree(buf);
-			return;
-		}
-		ret = wcn_sipc_recv(pchn, buf, cnt);
-		if (ret < 0) {
-			WCN_ERR("%s recv fail[%d]\n", pchn->name, ret);
-			kfree(buf);
-			return;
-		}
-	} while (cnt > 0);
+	return 0;
 }
 
 static void wcn_sipc_sbuf_notifer(int event, void *data)
 {
-	struct wcn_sipc_chn_info *sipc_chn = (struct wcn_sipc_chn_info *)data;
+	int cnt;
+	int ret;
+	void *recv_buf = NULL;
+	u32 buf_len = 0;
+	struct bus_puh_t *puh = NULL;
+	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;
 
 	if (unlikely(!sipc_chn))
 		return;
@@ -125,86 +489,185 @@ static void wcn_sipc_sbuf_notifer(int event, void *data)
 	case SBUF_NOTIFY_WRITE:
 		break;
 	case SBUF_NOTIFY_READ:
-		wcn_sipc_sbuf_rx_process(sipc_chn);
+		buf_len = sipc_chn->sbuf.len;
+		if (sipc_chn->need_reserve)
+			buf_len += PUB_HEAD_RSV;
+		recv_buf = kzalloc(buf_len, GFP_KERNEL);
+		if (unlikely(!recv_buf)) {
+			WCN_ERR("[%s]:mem alloc fail!\n", __func__);
+			return;
+		}
+		wcn_sipc_record_buf_alloc_num(sipc_chn->chn, 1);
+
+		if (sipc_chn->need_reserve)
+			recv_buf += PUB_HEAD_RSV;
+		WCN_DEBUG("sbuf index %d chn[%d]\n",
+			  sipc_chn->index, sipc_chn->chn);
+		cnt = sbuf_read(sipc_chn->dst,
+				sipc_chn->chn,
+				sipc_chn->sbuf.bufid,
+				recv_buf,
+				sipc_chn->sbuf.len, 0);
+		if (sipc_chn->need_reserve) {
+			puh = (struct bus_puh_t *)recv_buf;
+			puh->len = cnt;
+		}
+		WCN_DEBUG("sbuf index %d chn[%d] read cnt=%d\n",
+			  sipc_chn->index, sipc_chn->chn, cnt);
+		if (cnt < 0) {
+			WCN_ERR("sbuf read cnt[%d] invalid\n", cnt);
+			kfree(recv_buf);
+			return;
+		}
+		wcn_sipc_record_mbuf_recv_from_bus(sipc_chn->index, 1);
+		ret = wcn_sipc_recv(sipc_chn, recv_buf, cnt);
+		if (ret < 0) {
+			WCN_ERR("sbuf recv fail[%d]\n", ret);
+			kfree(recv_buf);
+			return;
+		}
 		break;
 	default:
 		WCN_ERR("sbuf read event[%d] invalid\n", event);
 	}
 }
 
-static int wcn_sipc_sblk_write(u8 index, void *buf, int len)
+static int wcn_sipc_sblk_send(struct sipc_chn_info *sipc_chn,
+						void *buf, int len)
 {
-	int ret = -1;
+	int ret;
 	u8 *addr = NULL;
 	struct swcnblk_blk blk;
-	struct wcn_sipc_chn_info *sipc_chn;
-	struct mchn_ops_t *wcn_sipc_ops = NULL;
 
-	if (SIPC_INVALID_CHN(index))
-		return -E_INVALIDPARA;
-
-	wcn_sipc_ops = chn_ops(index);
-	if (unlikely(!wcn_sipc_ops))
-		return -E_NULLPOINT;
-
-	sipc_chn = SIPC_CHN(wcn_sipc_ops);
-	/* Get a free swcnblk. */
-	ret = swcnblk_get(sipc_chn->dst, sipc_chn->channel, &blk, 0);
+	WCN_HERE_CHN(sipc_chn->index);
+	/* get a free swcnblk. */
+	ret = swcnblk_get(sipc_chn->dst, sipc_chn->chn, &blk, 0);
 	if (ret) {
 		WCN_ERR("[%s]:Failed to get free swcnblk(%d)!\n",
-			sipc_chn->name, ret);
+			sipc_chn_tostr(sipc_chn->chn, 0), ret);
 		return -ENOMEM;
 	}
+	WCN_HERE_CHN(sipc_chn->index);
 	if (blk.length < len) {
 		WCN_ERR("[%s]:The size of swcnblk is so tiny!\n",
-			sipc_chn->name);
-		swcnblk_put(sipc_chn->dst, sipc_chn->channel, &blk);
+			sipc_chn_tostr(sipc_chn->chn, 0));
+		swcnblk_put(sipc_chn->dst, sipc_chn->chn, &blk);
+		WARN_ON(1);
 		return E_INVALIDPARA;
 	}
 	addr = (u8 *)blk.addr + SIPC_SBLOCK_HEAD_RESERV;
 	blk.length = len + SIPC_SBLOCK_HEAD_RESERV;
 	memcpy(((u8 *)addr), buf, len);
-	ret = swcnblk_send_prepare(sipc_chn->dst, sipc_chn->channel, &blk);
+	ret = swcnblk_send_prepare(sipc_chn->dst, sipc_chn->chn, &blk);
+	WCN_HERE_CHN(sipc_chn->index);
 	if (ret) {
-		WCN_ERR("[%s]:err:%d\n", sipc_chn->name, ret);
-		swcnblk_put(sipc_chn->dst, sipc_chn->channel, &blk);
+		WCN_ERR("[%s]:err:%d\n", sipc_chn_tostr(sipc_chn->chn, 0), ret);
+		swcnblk_put(sipc_chn->dst, sipc_chn->chn, &blk);
 	}
 
 	return ret;
 }
 
-static void wcn_sipc_sblk_recv(struct wcn_sipc_chn_info *sipc_chn)
+static void wcn_sipc_sblk_push_list_dequeue(struct sipc_chn_info *sipc_chn)
+{
+	int ret;
+	int free_blk_num = 0;
+	struct mbuf_t *mbuf = NULL;
+
+	WCN_HERE_CHN(sipc_chn->index);
+	mutex_lock(&sipc_chn->pushq_lock);
+	/* nothing to do */
+	if (!sipc_chn->push_queue.mbuf_num) {
+		mutex_unlock(&sipc_chn->pushq_lock);
+		WCN_HERE_CHN(sipc_chn->index);
+		return;
+	}
+	free_blk_num  = swcnblk_get_free_count(sipc_chn->dst, sipc_chn->chn);
+	/* sblock busy */
+	if (free_blk_num <= 0) {
+		WCN_HERE_CHN(sipc_chn->index);
+		mutex_unlock(&sipc_chn->pushq_lock);
+		return;
+	}
+
+	mbuf = sipc_chn->push_queue.mbuf_head;
+	while (free_blk_num-- && mbuf) {
+		ret  = wcn_sipc_sblk_send(sipc_chn, mbuf->buf, mbuf->len);
+		WCN_DEBUG("%s %d free_blk_num %d ret %d ",
+			  __func__, __LINE__, free_blk_num, ret);
+		if (ret)
+			break;
+		WCN_HERE_CHN(sipc_chn->index);
+		wcn_sipc_record_mbuf_send_to_bus(sipc_chn->index, 1);
+		wcn_sipc_pop_list_enqueue(sipc_chn, mbuf, mbuf, 1);
+		WCN_HERE_CHN(sipc_chn->index);
+		WCN_DEBUG("mbuf %p\n", mbuf);
+		mbuf = mbuf->next;
+		sipc_chn->push_queue.mbuf_head = mbuf;
+		sipc_chn->push_queue.mbuf_num--;
+		if (!mbuf) {
+			sipc_chn->push_queue.mbuf_tail = NULL;
+			sipc_chn->push_queue.mbuf_num = 0;
+		}
+	}
+	mutex_unlock(&sipc_chn->pushq_lock);
+	wcn_sipc_pop_list_flush(sipc_chn);
+	WCN_HERE_CHN(sipc_chn->index);
+}
+
+static int wcn_sipc_sblk_push(u8 index,
+			struct mbuf_t *head, struct mbuf_t *tail, int num)
+{
+	struct sipc_chn_info *sipc_chn;
+
+	if (unlikely(SIPC_INVALID_CHN(index)))
+		return -E_INVALIDPARA;
+	sipc_chn = SIPC_CHN(index);
+	wcn_sipc_record_mbuf_recv_from_user(index, num);
+	wcn_sipc_push_list_enqueue(sipc_chn, head, tail, num);
+	wcn_sipc_wakeup_tx(sipc_chn);
+
+	WCN_HERE_CHN(index);
+	return 0;
+}
+
+static void wcn_sipc_sblk_recv(struct sipc_chn_info *sipc_chn)
 {
 	u32 length = 0;
-	int ret = -1;
+	int ret;
 	struct swcnblk_blk blk;
 
-	WCN_DEBUG("[%s]:recv sblock msg", sipc_chn->name);
+	WCN_DEBUG("[%s] idx %d recv sblock msg",
+		  sipc_chn_tostr(sipc_chn->chn, 0), sipc_chn->index);
 
-	while (!swcnblk_receive(sipc_chn->dst, sipc_chn->channel, &blk, 0)) {
+	while (!swcnblk_receive(sipc_chn->dst, sipc_chn->chn, &blk, 0)) {
 		length = blk.length - SIPC_SBLOCK_HEAD_RESERV;
 		WCN_DEBUG("sblk length %d", length);
+		wcn_sipc_record_mbuf_recv_from_bus(sipc_chn->index, 1);
 		wcn_sipc_recv(sipc_chn,
 			      (u8 *)blk.addr + SIPC_SBLOCK_HEAD_RESERV, length);
-		ret = swcnblk_release(sipc_chn->dst, sipc_chn->channel, &blk);
+		ret = swcnblk_release(sipc_chn->dst, sipc_chn->chn, &blk);
 		if (ret)
 			WCN_ERR("release swcnblk[%d] err:%d\n",
-				sipc_chn->channel, ret);
+				sipc_chn->chn, ret);
 	}
 }
 
 static void wcn_sipc_sblk_notifer(int event, void *data)
 {
-	struct wcn_sipc_chn_info *sipc_chn = (struct wcn_sipc_chn_info *)data;
+	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;
 
 	if (unlikely(!sipc_chn))
 		return;
+	WCN_DEBUG("%s  %d index:%d  event:%x",
+		  __func__, __LINE__, sipc_chn->index, event);
 	switch (event) {
 	case SBLOCK_NOTIFY_RECV:
 		wcn_sipc_sblk_recv(sipc_chn);
 		break;
-	/* SBLOCK_NOTIFY_GET cmd not need process it */
+	/* SBLOCK_NOTIFY_GET sblock release */
 	case SBLOCK_NOTIFY_GET:
+		wcn_sipc_wakeup_tx(sipc_chn);
 		break;
 	default:
 		WCN_ERR("Invalid event swcnblk notify:%d\n", event);
@@ -212,229 +675,41 @@ static void wcn_sipc_sblk_notifer(int event, void *data)
 	}
 }
 
-struct wcn_sipc_data_ops  sipc_data_ops[] = {
-	{
-		.sipc_write = wcn_sipc_sbuf_write,
-		.sipc_notifer = wcn_sipc_sbuf_notifer,
-	},
-	{
-		.sipc_write = wcn_sipc_sblk_write,
-		.sipc_notifer = wcn_sipc_sblk_notifer,
-	},
-};
-
-static int wcn_sipc_trans_notify(struct wcn_sipc_chn_info *pchn,
-				 int init)
-{
-	int ret = 0;
-	void (*handler)(int event, void *data) = NULL;
-	void *data = NULL;
-
-	if (pchn->type == WCN_SIPC_TRANS_SBUF) {
-		if (init) {
-			handler = sipc_data_ops[pchn->type].sipc_notifer;
-			data = pchn;
-		}
-		ret = sbuf_register_notifier(
-				pchn->dst, pchn->channel,
-				pchn->sbuf.bufid,
-				handler, data);
-		if (ret < 0)
-			WCN_ERR(
-				"sbuf dst:%d chn:%d bufid:%d register:%d fail!\n",
-				pchn->dst, pchn->channel,
-				pchn->sbuf.bufid, init);
-		else
-			WCN_INFO(
-				 "sbuf dst:%d chn:%d bufid:%d register:%d ok!\n",
-				 pchn->dst, pchn->channel,
-				 pchn->sbuf.bufid, init);
-	} else if (pchn->type == WCN_SIPC_TRANS_SBLOCK) {
-		if (init) {
-			handler = sipc_data_ops[pchn->type].sipc_notifer;
-			data = pchn;
-		}
-		ret = swcnblk_register_notifier(
-				pchn->dst, pchn->channel,
-				handler, data);
-		if (ret < 0)
-			WCN_ERR("sblock dst[%d] chn[%d] register:%d fail!\n",
-				pchn->dst, pchn->channel, init);
-		else
-			WCN_INFO("sblock dst[%d] chn[%d] register:%d ok!\n",
-				 pchn->dst, pchn->channel, init);
-	}
-
-	return ret;
-}
-
-static inline int wcn_sipc_trans_create(struct wcn_sipc_chn_info *pchn)
-{
-	int ret = 0;
-	struct swcnblk_create_info blk_info;
-
-	if (!(pchn->flag & WCN_CHN_CREATE))
-		goto register_handle;
-
-	if (pchn->type == WCN_SIPC_TRANS_SBUF) {
-		ret = sbuf_create(pchn->dst, pchn->channel,
-				  pchn->sbuf.bufnum,
-				  pchn->sbuf.txbufsize,
-				  pchn->sbuf.rxbufsize);
-		if (ret < 0)
-			WCN_ERR("sbuf dst:%d chn:%d bufid[%d] create fail!\n",
-				pchn->dst, pchn->channel, pchn->sbuf.bufnum);
-		else
-			WCN_INFO("sbuf dst:%d chn:%d bufid[%d] create ok!\n",
-				 pchn->dst, pchn->channel, pchn->sbuf.bufnum);
-	} else if (pchn->type == WCN_SIPC_TRANS_SBLOCK) {
-		memset(&blk_info, 0, sizeof(struct swcnblk_create_info));
-		blk_info.dst = pchn->dst;
-		blk_info.channel = pchn->channel;
-		blk_info.txblocknum = pchn->sblk.txblocknum,
-		blk_info.txblocksize = pchn->sblk.txblocksize,
-		blk_info.rxblocknum = pchn->sblk.rxblocknum,
-		blk_info.rxblocksize = pchn->sblk.rxblocksize,
-		blk_info.basemem = pchn->sblk.basemem,
-		blk_info.alignsize = pchn->sblk.alignsize,
-		blk_info.mapped_smem_base = pchn->sblk.mapped_smem_base,
-		ret = swcnblk_create(&blk_info, NULL, NULL);
-		if (ret < 0)
-			WCN_ERR("sblock dst:%d chn[%d] create fail!\n",
-				pchn->dst, pchn->channel);
-		else
-			WCN_INFO("sblock dst:%d chn[%d] create fail!\n",
-				 pchn->dst, pchn->channel);
-	}
-
-register_handle:
-	if (pchn->flag & WCN_CHN_CALLBACK) {
-		ret = wcn_sipc_trans_notify(pchn, 1);
-		if (ret && (pchn->flag & WCN_CHN_CREATE)) {
-			if (pchn->type == WCN_SIPC_TRANS_SBUF)
-				sbuf_destroy(pchn->dst, pchn->channel);
-			else if (pchn->type == WCN_SIPC_TRANS_SBLOCK)
-				swcnblk_destroy(pchn->dst, pchn->channel);
-		}
-	}
-
-	return ret;
-}
-
-static inline int wcn_sipc_trans_destroy(struct wcn_sipc_chn_info *pchn)
-{
-	if (pchn->flag & WCN_CHN_CALLBACK)
-		wcn_sipc_trans_notify(pchn, 0);
-
-	if (pchn->flag & WCN_CHN_CREATE) {
-		if (pchn->type == WCN_SIPC_TRANS_SBUF)
-			sbuf_destroy(pchn->dst, pchn->channel);
-		else if (pchn->type == WCN_SIPC_TRANS_SBLOCK)
-			swcnblk_destroy(pchn->dst, pchn->channel);
-	}
-
-	return 0;
-}
-
-static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
-{
-	int index;
-	int ret;
-	struct wcn_sipc_chn_info *pchn;
-
-	if (unlikely(!ops))
-		return -EINVAL;
-
-	pchn = &ops->chn_config.sipc_ch;
-
-	if (pchn->flag & WCN_CHN_DYNAMIC) {
-		index = wcn_sipc_alloc_bit(wcn_chn_map + 1,
-					   WCN_SIPC_CHANNEL_DYNAMIC);
-		if (unlikely(index < 0)) {
-			WCN_ERR("%s chn is full\n", __func__);
-			return index;
-		}
-		index += WCN_SIPC_CHANNEL_STATIC;
-		ops->channel = index;
-		pchn->index = index;
-	} else if (ops->channel < WCN_SIPC_CHANNEL_STATIC &&
-		   !test_and_set_bit(ops->channel, wcn_chn_map)) {
-		index = ops->channel;
-		pchn->index = ops->channel;
-	} else {
-		WCN_ERR("%s static chn:%d already allocked\n",
-			__func__, ops->channel);
-		return -EAGAIN;
-	}
-
-	ret = wcn_sipc_trans_create(pchn);
-	if (ret) {
-		clear_bit(index, wcn_chn_map);
-		return -ENODEV;
-	}
-
-	bus_chn_init(ops, HW_TYPE_SIPC);
-
-	return index;
-}
-
-static int wcn_sipc_chn_deinit(struct mchn_ops_t *ops)
-{
-	int index;
-	struct wcn_sipc_chn_info *sipc_chn;
-
-	if (SIPC_INVALID_CHN(ops->channel))
-		return -E_INVALIDPARA;
-	sipc_chn = SIPC_CHN(ops);
-	wcn_sipc_trans_destroy(sipc_chn);
-	index = ops->channel;
-
-	bus_chn_deinit(ops);
-	clear_bit(index, wcn_chn_map);
-
-	return 0;
-}
-
-static inline int wcn_sipc_buf_list_alloc(int chn,
-					  struct mbuf_t **head,
-					  struct mbuf_t **tail,
-					  int *num)
-{
-	return buf_list_alloc(chn, head, tail, num);
-}
-
-static inline int wcn_sipc_buf_list_free(int chn,
-					 struct mbuf_t *head,
-					 struct mbuf_t *tail,
-					 int num)
-{
-	return buf_list_free(chn, head, tail, num);
-}
-
-static int wcn_sipc_buf_push(int index, struct mbuf_t *head,
+static int wcn_sipc_push_list(int index, struct mbuf_t *head,
 			     struct mbuf_t *tail, int num)
 {
+	int ret = -1;
 	struct mchn_ops_t *wcn_sipc_ops = NULL;
+	struct mbuf_t *mbuf;
+	int i = 0;
 
 	wcn_sipc_ops = chn_ops(index);
 	if (unlikely(!wcn_sipc_ops))
 		return -E_NULLPOINT;
 
 	if (wcn_sipc_ops->inout == WCNBUS_TX) {
-		sipc_data_ops[SIPC_TYPE(wcn_sipc_ops)].sipc_write(
-					index, (void *)(head->buf), head->len);
-		wcn_sipc_ops->pop_link(index, head, tail, num);
+		ret = sipc_data_ops[SIPC_TYPE(index)].sipc_send(
+					index, head, tail, num);
+		if (ret < 0)
+			return ret;
 	} else if (wcn_sipc_ops->inout == WCNBUS_RX) {
-		/* free buf mem */
-		if (SIPC_TYPE(wcn_sipc_ops) == WCN_SIPC_TRANS_SBUF)
-			kfree(head->buf);
-		/* free buf head */
-		kfree(head);
+		if (SIPC_CHN_TYPE_SBUF(index)) {
+			WCN_HERE_CHN(index);
+			/* free mbuf smem */
+			mbuf_list_iter(head, num, mbuf, i) {
+				kfree(mbuf->buf);
+			}
+			wcn_sipc_record_buf_free_num(index, num);
+		}
+		WCN_HERE_CHN(index);
+		/* free mbuf */
+		wcn_sipc_buf_list_free(index, head, tail, num);
+		ret = 0;
 	} else {
 		return -E_INVALIDPARA;
 	}
 
-	return 0;
+	return ret;
 }
 
 static inline unsigned int wcn_sipc_get_status(void)
@@ -454,9 +729,190 @@ static unsigned long long wcn_sipc_get_rxcnt(void)
 	return wcn_get_cp2_comm_rx_count();
 }
 
+static enum wcn_hard_intf_type wcn_sipc_get_hwintf_type(void)
+{
+	return HW_TYPE_SIPC;
+}
+
+int wcn_sipc_work_func(void *work)
+{
+	u8 chntype = 0;
+	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)work;
+	struct sched_param param = {.sched_priority = 91};
+
+	/* set the thread as a real time thread, and its priority is 90 */
+	sched_setscheduler(current, SCHED_RR, &param);
+
+RETRY:
+	if (SIPC_CHN_STATUS(sipc_chn->chn) == SIPC_CHANNEL_UNCREATED)
+		return -1;
+	reinit_completion(&sipc_chn->callback_complete);
+	WCN_HERE_CHN(sipc_chn->index);
+	chntype = SIPC_TYPE(sipc_chn->index);
+	sipc_data_ops[chntype].sipc_push_list_dequeue(sipc_chn);
+	wait_for_completion(&sipc_chn->callback_complete);
+	WCN_HERE_CHN(sipc_chn->index);
+	goto RETRY;
+
+	return 0;
+}
+int wcn_sipc_chn_work_init(struct sipc_chn_info *sipc_chn)
+{
+	sipc_chn->wcn_sipc_thread = kthread_create(wcn_sipc_work_func, sipc_chn,
+			"WCN_SIPC_TX_THREAD%u", sipc_chn->index);
+	if (sipc_chn->wcn_sipc_thread)
+		wake_up_process(sipc_chn->wcn_sipc_thread);
+	else
+		WCN_ERR("%s create a new thread failed\n", __func__);
+	init_completion(&sipc_chn->callback_complete);
+
+	return 0;
+}
+
+static int wcn_sipc_chn_init(struct mchn_ops_t *ops)
+{
+	int ret;
+	u8 chntype = 0;
+	int idx = 0;
+	struct sipc_chn_info *sipc_chn;
+	struct swcnblk_create_info info = {0};
+
+	idx = ops->channel;
+	if (unlikely(SIPC_INVALID_CHN(idx)))
+		return -E_INVALIDPARA;
+	sipc_chn = SIPC_CHN(idx);
+	WCN_INFO("[%s]:index[%d] chn[%d]\n", __func__, idx, sipc_chn->chn);
+	ops->inout = sipc_chn->inout;
+	chntype = sipc_chn->chntype;
+	if (SIPC_CHN_TYPE_SBUF(idx)) {
+		/* sbuf */
+		WCN_DEBUG("bufid[%d] len[%d] bufnum[%d]\n",
+			  sipc_chn->sbuf.bufid,
+			  sipc_chn->sbuf.len,
+			  sipc_chn->sbuf.bufnum);
+		/* if marlin2-integrate, create spipe(4) in dts*/
+		if (g_sipc_info.sipc_wcn_version == 0 &&
+				sipc_chn->chn == SIPC_CHN_ATCMD) {
+			WCN_DEBUG("sipc channel 4 already created in dts!\n");
+			SIPC_CHN_STATUS(sipc_chn->chn) = SIPC_CHANNEL_CREATED;
+		}
+
+		if (SIPC_CHN_STATUS(sipc_chn->chn) == SIPC_CHANNEL_UNCREATED) {
+			ret = sbuf_create(sipc_chn->dst, sipc_chn->chn,
+					  sipc_chn->sbuf.bufnum,
+					  sipc_chn->sbuf.txbufsize,
+					  sipc_chn->sbuf.rxbufsize);
+			if (ret < 0) {
+				WCN_ERR("sbuf chn[%d] create fail!\n", idx);
+				return ret;
+			}
+			SIPC_CHN_STATUS(sipc_chn->chn) = SIPC_CHANNEL_CREATED;
+		}
+		if (ops->inout == WCNBUS_RX) {
+			ret = sbuf_register_notifier(
+					sipc_chn->dst,
+					sipc_chn->chn,
+					sipc_chn->sbuf.bufid,
+					sipc_data_ops[chntype].sipc_notifer,
+					sipc_chn);
+			if (ret < 0) {
+				WCN_ERR("sbuf chn[%d] register fail!\n", idx);
+				return ret;
+			}
+		}
+		WCN_INFO("sbuf chn[%d] create success!\n", idx);
+	} else if (SIPC_CHN_TYPE_SBLK(idx)) {
+		WCN_DEBUG("tbnum[%d] tbsz[%d] rbnum[%d] rbsz[%d]\n",
+			  sipc_chn->sblk.txblocknum,
+			  sipc_chn->sblk.txblocksize,
+			  sipc_chn->sblk.rxblocknum,
+			  sipc_chn->sblk.rxblocksize);
+
+		info.dst = sipc_chn->dst;
+		info.channel = sipc_chn->chn;
+		info.txblocknum = sipc_chn->sblk.txblocknum;
+		info.txblocksize = sipc_chn->sblk.txblocksize;
+		info.rxblocknum = sipc_chn->sblk.rxblocknum;
+		info.rxblocksize = sipc_chn->sblk.rxblocksize;
+		info.basemem = sipc_chn->sblk.basemem;
+		info.alignsize = sipc_chn->sblk.alignsize;
+		info.mapped_smem_base = sipc_chn->sblk.mapped_smem_base;
+		/* rx chn record tx chn */
+		sipc_chn->relate_index = sipc_chn->index;
+		/* sblock */
+		if (SIPC_CHN_STATUS(sipc_chn->chn) == SIPC_CHANNEL_UNCREATED) {
+			ret = swcnblk_create(&info, NULL, NULL);
+			if (ret < 0) {
+				WCN_ERR("sblock chn[%d] create fail!\n", idx);
+				return ret;
+			}
+			SIPC_CHN_STATUS(sipc_chn->chn) = SIPC_CHANNEL_CREATED;
+		}
+		if (SIPC_CHN_DIR_RX(idx)) {
+			ret = swcnblk_register_notifier(
+					sipc_chn->dst,
+					sipc_chn->chn,
+					sipc_data_ops[chntype].sipc_notifer,
+					sipc_chn);
+			if (ret < 0) {
+				WCN_ERR("sblock chn[%d] register fail!\n",
+					idx);
+				swcnblk_destroy(sipc_chn->dst, sipc_chn->chn);
+				return ret;
+			}
+			sipc_chn->relate_index = sipc_chn->index - 1;
+		} else if (SIPC_CHN_DIR_TX(idx)) {
+			/* tx init work task */
+			if (!sipc_chn->wcn_sipc_thread) {
+				ret = wcn_sipc_chn_work_init(sipc_chn);
+				if (ret < 0) {
+					WCN_ERR("work queue create fail!");
+					return ret;
+				}
+			}
+		}
+		WCN_INFO("swcn_blk chn[%d] create success!\n", idx);
+	} else {
+		WCN_ERR("invalid sipc type!");
+		return -E_INVALIDPARA;
+	}
+
+	bus_chn_init(ops, HW_TYPE_SIPC);
+	sipc_chn->ops = ops;
+	WCN_INFO("sipc chn[%d] init success!\n", idx);
+
+	return 0;
+}
+
+static int wcn_sipc_chn_deinit(struct mchn_ops_t *ops)
+{
+	int idx = ops->channel;
+
+	bus_chn_deinit(ops);
+
+	/* don't release sipc resource for now */
+	WCN_INFO("sipc chn[%d] deinit success!\n", idx);
+
+	return 0;
+}
+
+static void wcn_sipc_resource_init(void)
+{
+	int index;
+
+	mutex_init(&g_sipc_info.status_lock);
+	for (index = 0; index < SIPC_CHN_NUM; index++) {
+		if (g_sipc_chn[index].dst != SIPC_WCN_DST)
+			continue;
+		mutex_init(&g_sipc_chn[index].pushq_lock);
+		mutex_init(&g_sipc_chn[index].popq_lock);
+		spin_lock_init(&g_sipc_chn[index].chn_static.lock);
+	}
+}
+
 static void wcn_sipc_module_init(void)
 {
-	mutex_init(&g_sipc_info.status_lock);
+	wcn_sipc_resource_init();
 	WCN_INFO("sipc module init success\n");
 }
 
@@ -466,17 +922,122 @@ static void wcn_sipc_module_deinit(void)
 	WCN_INFO("sipc module deinit success\n");
 }
 
-static enum wcn_hard_intf_type wcn_sipc_get_hwintf_type(void)
+static int wcn_sipc_parse_dt(void)
 {
-	return HW_TYPE_SIPC;
+	int ret;
+	struct device_node *np;
+
+	np = of_find_node_by_name(NULL, "cpwcn-btwf");
+	if (!np) {
+		pr_err("cpwcn-btwf dts node not found");
+		return -1;
+	}
+
+	g_sipc_info.np = np;
+
+	ret = of_property_read_u32(np, "sprd,wcn-sipc-ver",
+				   &g_sipc_info.sipc_wcn_version);
+	if (ret)
+		WCN_ERR("wcn-sipc-ver parse fail!\n");
+	WCN_INFO("wcn-sipc-ver:%d\n", g_sipc_info.sipc_wcn_version);
+
+	return ret;
+}
+
+#if defined(CONFIG_DEBUG_FS)
+static int wcn_sipc_debug_show(struct seq_file *m, void *private)
+{
+	struct sipc_chn_info *sipc_chn;
+	int i;
+
+	seq_puts(m, "sipc chn info\n");
+	seq_puts(m, "************************************\n");
+	for (i = 0; i < SIPC_CHN_NUM; i++) {
+		sipc_chn = SIPC_CHN(i);
+		if (!sipc_chn || !sipc_chn->chn)
+			continue;
+		seq_printf(m,
+			"index:%d inout:%d chntype:%d channel: %d",
+			sipc_chn->index,
+			sipc_chn->inout,
+			sipc_chn->chntype,
+			sipc_chn->chn);
+		seq_printf(m,
+			"chn_status %d pushq_num %d popq_num %d\n",
+			sipc_chn->sipc_chn_status,
+			sipc_chn->push_queue.mbuf_num,
+			sipc_chn->pop_queue.mbuf_num);
+	}
+	seq_puts(m, "sipc chn statics info\n");
+	seq_puts(m, "************************************\n");
+	for (i = 0; i < SIPC_CHN_NUM; i++) {
+		sipc_chn = SIPC_CHN(i);
+		if (!sipc_chn || !sipc_chn->chn)
+			continue;
+		seq_printf(m, "\tindex:%.8u", sipc_chn->index);
+		seq_printf(m, "\tuser_send %.8lld\tgivebackto_user %.8lld",
+			sipc_chn->chn_static.mbuf_recv_from_user,
+			sipc_chn->chn_static.mbuf_giveback_to_user);
+		seq_printf(m, "\tbus_send %.8lld \tbus_recv %.8lld",
+			sipc_chn->chn_static.mbuf_send_to_bus,
+			sipc_chn->chn_static.mbuf_recv_from_bus);
+		seq_printf(m, "\tmbuf_alloc %.8lld \tmbuf_free %.8lld",
+			sipc_chn->chn_static.mbuf_alloc_num,
+			sipc_chn->chn_static.mbuf_free_num);
+		seq_printf(m, "\tbuf_alloc %.8lld \tbuf_free %.8lld\n",
+			sipc_chn->chn_static.buf_alloc_num,
+			sipc_chn->chn_static.buf_free_num);
+	}
+
+	return 0;
+}
+
+static int wcn_sipc_debug_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, wcn_sipc_debug_show, inode->i_private);
+}
+
+static const struct file_operations wcn_sipc_debug_fops = {
+	.open = wcn_sipc_debug_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
+int wcn_sipc_init_debugfs(void)
+{
+	struct dentry *root = debugfs_create_dir("wcn_sipc", NULL);
+
+	if (!root)
+		return -ENXIO;
+	debugfs_create_file("sipc_chn", 0x0444,
+			    (struct dentry *)root,
+			    NULL, &wcn_sipc_debug_fops);
+	return 0;
+}
+#endif
+
+int wcn_sipc_preinit(void)
+{
+	WCN_INFO("sipc module preinit\n");
+
+#if defined(CONFIG_DEBUG_FS)
+	wcn_sipc_init_debugfs();
+#endif
+
+	/* parse sipc config from dts */
+	wcn_sipc_parse_dt();
+
+	return 0;
 }
 
 static struct sprdwcn_bus_ops sipc_bus_ops = {
+	.preinit = wcn_sipc_preinit,
 	.chn_init = wcn_sipc_chn_init,
 	.chn_deinit = wcn_sipc_chn_deinit,
 	.list_alloc = wcn_sipc_buf_list_alloc,
 	.list_free = wcn_sipc_buf_list_free,
-	.push_list = wcn_sipc_buf_push,
+	.push_list = wcn_sipc_push_list,
 	.get_hwintf_type = wcn_sipc_get_hwintf_type,
 	.get_carddump_status = wcn_sipc_get_status,
 	.set_carddump_status = wcn_sipc_set_status,
