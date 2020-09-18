@@ -89,8 +89,8 @@
 
 /* REG_DVFS_CTRL_VERSION */
 
-#define BIT_DVFS_CTRL_PROJ_NAME(x)               (((x) & 0xFFFF) << 16)
-#define BIT_DVFS_CTRL_VERSION(x)                 (((x) & 0xFFFF))
+#define BIT_DVFS_CTRL_PROJ_NAME(x)       ((unsigned int)(((x) & 0xFFFF) << 16))
+#define BIT_DVFS_CTRL_VERSION(x)         (((x) & 0xFFFF))
 
 /* REG_DVFS_CTRL_USER_LOCK00 */
 

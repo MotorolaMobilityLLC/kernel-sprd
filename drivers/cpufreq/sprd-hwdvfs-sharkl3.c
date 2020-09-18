@@ -203,19 +203,19 @@
 
 /* channel0:little core */
 #define HW_DVFS_TAB_CLUSTER0(hz, uv, idx_freq, idx_dcdc) \
-	(sprd_val2reg_dcdcx_vtune(uv, idx_dcdc) | \
+	(sprd_val2reg_dcdcx_vtune((unsigned int)(uv), idx_dcdc) | \
 	VAL2REG_FCFG((((hz) <= 768000000UL ? 1 : 0) << 3) | idx_freq) | \
 	VAL2REG_FSEL((hz) <= 768000000UL ? 0x02 : 0x06))
 
 /* channel1:big core */
 #define HW_DVFS_TAB_CLUSTER1(hz, uv, idx_freq, idx_dcdc) \
-	(sprd_val2reg_dcdcx_vtune(uv, idx_dcdc) | \
+	(sprd_val2reg_dcdcx_vtune((unsigned int)(uv), idx_dcdc) | \
 	VAL2REG_FCFG((((hz) <= 768000000UL ? 1 : 0) << 3) | idx_freq) | \
 	VAL2REG_FSEL((hz) <= 768000000UL ? 0x02 : 0x07))
 
 /* channel2:fcm */
 #define HW_DVFS_TAB_CLUSTER2(hz, uv, idx_freq, idx_dcdc) \
-	(sprd_val2reg_dcdcx_vtune(uv, idx_dcdc) | \
+	(sprd_val2reg_dcdcx_vtune((unsigned int)(uv), idx_dcdc) | \
 	VAL2REG_FCFG((((hz) <= 768000000UL ? 1 : 0) << 3) | idx_freq) | \
 	VAL2REG_FSEL((hz) <= 768000000UL ? 0x02 : 0x05))
 
@@ -411,9 +411,9 @@ static inline unsigned int sprd_val2reg_dcdcx_vtune(unsigned int to_uv,
 	return valreg;
 }
 
-static inline unsigned int sprd_wr_ctrl_hold_pause(unsigned int ctrl,
-						   unsigned int hold,
-						   unsigned int pause)
+static inline int sprd_wr_ctrl_hold_pause(unsigned int ctrl,
+					  unsigned int hold,
+					  unsigned int pause)
 {
 	switch (ctrl) {
 	case 0:
@@ -433,9 +433,9 @@ static inline unsigned int sprd_wr_ctrl_hold_pause(unsigned int ctrl,
 	return 0;
 }
 
-static inline unsigned int sprd_wr_ctrl_timeout_stable(unsigned int ctrl,
-						       unsigned int timeout,
-						       unsigned int stable)
+static inline int sprd_wr_ctrl_timeout_stable(unsigned int ctrl,
+					      unsigned int timeout,
+					      unsigned int stable)
 {
 	switch (ctrl) {
 	case 0:
@@ -455,9 +455,9 @@ static inline unsigned int sprd_wr_ctrl_timeout_stable(unsigned int ctrl,
 	return 0;
 }
 
-static inline unsigned int sprd_wr_ctrl_step(unsigned int ctrl,
-					     unsigned int chnl,
-					     unsigned int step_uv)
+static inline int sprd_wr_ctrl_step(unsigned int ctrl,
+				    unsigned int chnl,
+				    unsigned int step_uv)
 {
 	unsigned int dcdc_index;
 
@@ -491,8 +491,8 @@ static inline unsigned int sprd_wr_ctrl_step(unsigned int ctrl,
 	return 0;
 }
 
-static inline unsigned int sprd_wr_ctrl_vtune_valid_bits(unsigned int ctrl,
-							 unsigned int dcdc_idx)
+static inline int sprd_wr_ctrl_vtune_valid_bits(unsigned int ctrl,
+						unsigned int dcdc_idx)
 {
 	unsigned int regval;
 	unsigned int valid_bits;
@@ -1642,10 +1642,10 @@ static unsigned int sprd_hwdvfs_l3_get(void *drvdata, int cluster)
 	unsigned int regval = 0, reg = 0, freq_khz;
 
 	if (hwdvfs_l3 == NULL || !hwdvfs_l3->probed)
-		return -ENODEV;
+		return 0;
 
 	if (cluster > HWDVFS_CHNL_MAX)
-		return -EINVAL;
+		return 0;
 
 	if (cluster == HWDVFS_CHNL_MAX)
 		cluster = HWDVFS_CHNL02;
@@ -1706,7 +1706,7 @@ static unsigned int sprd_hwdvfs_l3_get(void *drvdata, int cluster)
 		}
 	}
 
-	freq_khz = hwdvfs_l3->freqvolt[cluster][regval].freq / 1000;
+	freq_khz = (unsigned int)(hwdvfs_l3->freqvolt[cluster][regval].freq / 1000UL);
 
 	pr_debug("[%d,%ukhz,en-%d:%d, reg-0x%x, val-0x%x]\n",
 		 cluster, freq_khz,
