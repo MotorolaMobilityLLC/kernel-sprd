@@ -1680,6 +1680,7 @@ static struct dma_async_tx_descriptor *dma_cfg_hw(struct dma_chan *chn,
 		     __func__, chn->chan_id);
 		desp->callback = callback;
 		desp->callback_param = data;
+		desp->callback_result = NULL;
 	}
 
 	return desp;

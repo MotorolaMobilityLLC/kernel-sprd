@@ -1137,6 +1137,7 @@ static int sprd_pcm_hw_params(struct snd_pcm_substream *substream,
 			rtd->dma_tx_des[i]->callback = sprd_pcm_dma_buf_done;
 			rtd->dma_tx_des[i]->callback_param =
 				(void *)(dma_pdata_ptr[i]);
+			rtd->dma_tx_des[i]->callback_result = NULL;
 		}
 	}
 	normal_dma_protect_mutex_unlock(substream);
