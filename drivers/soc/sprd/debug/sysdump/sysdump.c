@@ -129,6 +129,7 @@ struct minidump_info  minidump_info_g =	{
 #ifdef CONFIG_SPRD_NATIVE_HANG_MONITOR
 			{"nhang", 0, 0, 0, 0, 0},
 #endif
+			{"etbdata_uboot.bin", 0, 0, 0, 0, 0},
 			{"", 0, 0, 0, 0, 0},
 
 		},
