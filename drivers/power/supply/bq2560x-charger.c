@@ -85,6 +85,7 @@ struct bq2560x_charger_info {
 	u32 charger_pd_mask;
 	struct gpio_desc *gpiod;
 	struct extcon_dev *edev;
+	u32 last_limit_current;
 };
 
 static int
@@ -279,8 +280,15 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 
 	ret = regmap_update_bits(info->pmic, info->charger_pd,
 				 info->charger_pd_mask, 0);
-	if (ret)
+	if (ret) {
 		dev_err(info->dev, "enable bq2560x charge failed\n");
+		return ret;
+	}
+
+	ret = bq2560x_charger_set_limit_current(info,
+					info->last_limit_current);
+	if (ret)
+		dev_err(info->dev, "failed to set limit current\n");
 
 	return ret;
 }
@@ -340,6 +348,7 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 	if (limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
 
+	info->last_limit_current = limit_cur;
 	limit_cur = limit_cur / 1000;
 	reg_val = limit_cur / BQ2560X_REG_IINLIM_BASE;
 
