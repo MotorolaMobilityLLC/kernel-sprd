@@ -685,5 +685,6 @@
 #define REG_WTL_AON_APB_RAM_PD_RET_CTL                      0x00B0
 #define REG_WTL_AON_APB_MEM_AUTO_SLP_EN                     0x00B4
 #define REG_WTL_AON_APB_BUS_EB                              0x00B8
-
+#define REG_MM_AHB_AHB_EB                                   0x0000
+#define REG_MM_AHB_AHB_RST                                  0x0004
 #endif /* __DT_BINDINGS_SPRD_QOGIRL6_REGS_H */
