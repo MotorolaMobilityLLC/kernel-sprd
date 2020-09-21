@@ -215,6 +215,13 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 	int i, mode_count = 0;
 
 	DRM_INFO("%s()\n", __func__);
+
+	/*
+	 * Only include timing0 for preferred mode. if it defines "native-mode"
+	 * property in dts, whether lcd timing in dts is in order or reverse
+	 * order. it can parse timing0 about func "of_get_drm_display_mode".
+	 * so it all matches correctly timimg0 for perferred mode.
+	 */
 	mode = drm_mode_duplicate(p->drm, &panel->info.mode);
 	if (!mode) {
 		DRM_ERROR("failed to alloc mode %s\n", panel->info.mode.name);
@@ -224,6 +231,11 @@ static int sprd_panel_get_modes(struct drm_panel *p)
 	drm_mode_probed_add(p->connector, mode);
 	mode_count++;
 
+	/*
+	 * Don't include timing0 for default mode. if lcd timing in dts is in
+	 * order, timing0 is the fist one. if lcd timing in dts is reserve
+	 * order, timing0 is the last one.
+	 */
 	for (i = 0; i < panel->info.num_buildin_modes - 1; i++)	{
 		mode = drm_mode_duplicate(p->drm,
 			&(panel->info.buildin_modes[i]));
