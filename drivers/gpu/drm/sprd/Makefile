@@ -9,7 +9,8 @@ obj-y := sprd_drm.o \
 	sprd_dpu1.o \
 	sprd_dsi.o \
 	sprd_dphy.o \
-	sprd_panel.o
+	sprd_panel.o \
+	sprd_dp.o
 
 obj-y += dummy/dummy_crtc.o
 obj-y += dummy/dummy_connector.o
@@ -21,6 +22,7 @@ obj-y += sprd_bl.o
 obj-y += dpu/
 obj-y += dsi/
 obj-y += dphy/
+obj-y += dp/
 obj-y += sysfs/
 
 obj-y += sharkle/

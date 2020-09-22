@@ -1,0 +1,462 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (C) 2020 Unisoc Inc.
+ */
+
+#include <linux/component.h>
+#include <linux/module.h>
+#include <linux/of_address.h>
+#include <linux/of_device.h>
+#include <linux/of_irq.h>
+#include <linux/of_graph.h>
+
+#include <drm/drm_atomic_helper.h>
+#include <drm/drm_crtc_helper.h>
+#include <drm/drm_of.h>
+
+#include "disp_lib.h"
+#include "sprd_drm.h"
+#include "sprd_dpu1.h"
+#include "sprd_dp.h"
+#include "sysfs/sysfs_display.h"
+#include "dp/dw_dptx.h"
+
+#define encoder_to_dp(encoder) \
+	container_of(encoder, struct sprd_dp, encoder)
+#define connector_to_dp(connector) \
+	container_of(connector, struct sprd_dp, connector)
+
+#define drm_connector_update_edid_property(connector, edid) \
+	drm_mode_connector_update_edid_property(connector, edid)
+
+#if 0
+
+static int sprd_dp_resume(struct sprd_dp *dp)
+{
+	if (dp->glb && dp->glb->power)
+		dp->glb->power(&dp->ctx, true);
+	if (dp->glb && dp->glb->enable)
+		dp->glb->enable(&dp->ctx);
+	if (dp->glb && dp->glb->reset)
+		dp->glb->reset(&dp->ctx);
+
+	sprd_dp_init(dp);
+
+	if (dp->ctx.work_mode == DSI_MODE_VIDEO)
+		sprd_dp_dpi_video(dp);
+	else
+		sprd_dp_edpi_video(dp);
+
+	DRM_INFO("dp resume OK\n");
+	return 0;
+
+}
+
+static int sprd_dp_suspend(struct sprd_dp *dp)
+{
+	sprd_dp_fini(dp);
+
+	if (dp->glb && dp->glb->disable)
+		dp->glb->disable(&dp->ctx);
+	if (dp->glb && dp->glb->power)
+		dp->glb->power(&dp->ctx, false);
+
+	DRM_INFO("dp suspend OK\n");
+	return 0;
+}
+#endif
+static void sprd_dp_encoder_enable(struct drm_encoder *encoder)
+{
+
+	struct sprd_dp *dp = encoder_to_dp(encoder);
+	struct sprd_dpu *dpu = crtc_to_dpu(encoder->crtc);
+
+	DRM_INFO("%s()\n", __func__);
+
+	if (dp->ctx.enabled) {
+		DRM_WARN("dp has already been enabled\n");
+		return;
+	}
+	//sprd_dp_resume(dp);
+
+	sprd_dpu1_run(dpu);
+
+	dp->ctx.enabled = true;
+}
+
+static void sprd_dp_encoder_disable(struct drm_encoder *encoder)
+{
+	struct sprd_dp *dp = encoder_to_dp(encoder);
+	struct sprd_dpu *dpu = crtc_to_dpu(encoder->crtc);
+
+	DRM_INFO("%s()\n", __func__);
+
+	if (!dp->ctx.enabled) {
+		DRM_WARN("dp has already been disabled\n");
+		return;
+	}
+
+	sprd_dpu1_stop(dpu);
+
+	//sprd_dp_suspend(dp);
+
+	dp->ctx.enabled = false;
+}
+
+static void sprd_dp_encoder_mode_set(struct drm_encoder *encoder,
+				 struct drm_display_mode *mode,
+				 struct drm_display_mode *adj_mode)
+{
+	struct sprd_dp *dp = encoder_to_dp(encoder);
+	struct sprd_dpu *dpu = crtc_to_dpu(encoder->crtc);
+	struct drm_display_info *info = &dp->connector.display_info;
+	struct video_params *vparams = &dp->snps_dptx->vparams;
+
+	dptx_timing_cfg(dp->snps_dptx, mode, info);
+
+	if (dpu->ctx.bypass_mode) {
+		switch (dpu->crtc.primary->fb->format->format) {
+		case DRM_FORMAT_NV12:
+			vparams->bpc = COLOR_DEPTH_8;
+			vparams->pix_enc = YCBCR420;
+			break;
+		case DRM_FORMAT_P010:
+			vparams->bpc = COLOR_DEPTH_10;
+			vparams->pix_enc = YCBCR420;
+			break;
+		default:
+			vparams->bpc = COLOR_DEPTH_8;
+			vparams->pix_enc = RGB;
+			break;
+		}
+	} else {
+		/* TODO not support cts test */
+		vparams->bpc = COLOR_DEPTH_8;
+		vparams->pix_enc = RGB;
+	}
+
+	dptx_video_ts_calculate(dp->snps_dptx, dp->snps_dptx->link.lanes,
+				dp->snps_dptx->link.rate,
+				vparams->bpc, vparams->pix_enc,
+				vparams->mdtd.pixel_clock);
+
+	dptx_video_reset(dp->snps_dptx, 1, 0);
+	dptx_video_reset(dp->snps_dptx, 0, 0);
+	dptx_video_timing_change(dp->snps_dptx, 0);
+
+	/* enable VSC if YCBCR420 is enabled */
+	if (vparams->pix_enc == YCBCR420)
+		dptx_vsc_ycbcr420_send(dp->snps_dptx, 1);
+
+	DRM_INFO("%s() set mode: %s\n", __func__, dp->mode->name);
+}
+
+static int sprd_dp_encoder_atomic_check(struct drm_encoder *encoder,
+					struct drm_crtc_state *crtc_state,
+					struct drm_connector_state *conn_state)
+{
+	DRM_INFO("%s()\n", __func__);
+
+	return 0;
+}
+
+static const struct drm_encoder_helper_funcs sprd_encoder_helper_funcs = {
+	.atomic_check = sprd_dp_encoder_atomic_check,
+	.mode_set = sprd_dp_encoder_mode_set,
+	.enable = sprd_dp_encoder_enable,
+	.disable = sprd_dp_encoder_disable
+};
+
+static const struct drm_encoder_funcs sprd_encoder_funcs = {
+	.destroy = drm_encoder_cleanup,
+};
+
+static int sprd_dp_encoder_init(struct drm_device *drm,
+			       struct sprd_dp *dp)
+{
+	struct drm_encoder *encoder = &dp->encoder;
+	int ret;
+
+	ret = drm_encoder_init(drm, encoder, &sprd_encoder_funcs,
+			       DRM_MODE_ENCODER_TMDS, NULL);
+
+	if (ret) {
+		DRM_ERROR("failed to init dp encoder\n");
+		return ret;
+	}
+
+	/*TODO SPRD_DISPLAY_TYPE_DP */
+	encoder->possible_crtcs = 2;
+
+	drm_encoder_helper_add(encoder, &sprd_encoder_helper_funcs);
+
+	return 0;
+}
+
+static int sprd_dp_connector_get_modes(struct drm_connector *connector)
+{
+	struct sprd_dp *dp = connector_to_dp(connector);
+	struct edid *edid;
+	int num_modes = 0;
+
+	DRM_INFO("%s()\n", __func__);
+
+	edid = drm_get_edid(connector, &dp->snps_dptx->aux_dev.ddc);
+	if (edid) {
+		dp->sink_has_audio = drm_detect_monitor_audio(edid);
+		drm_connector_update_edid_property(&dp->connector, edid);
+		num_modes += drm_add_edid_modes(&dp->connector, edid);
+		drm_edid_to_eld(connector, edid);
+		kfree(edid);
+	} else
+		DRM_ERROR("%s() no edid\n", __func__);
+
+	return num_modes;
+}
+
+static enum drm_mode_status
+sprd_dp_connector_mode_valid(struct drm_connector *connector,
+			 struct drm_display_mode *mode)
+{
+	struct sprd_dp *dp = connector_to_dp(connector);
+
+	/* TODO temp for haps 640x480@60Hz */
+	if (mode->clock == 25175) {
+		DRM_INFO("%s() mode: "DRM_MODE_FMT"\n", __func__,
+			 DRM_MODE_ARG(mode));
+		dp->mode = mode;
+		mode->type |= DRM_MODE_TYPE_PREFERRED;
+		drm_display_mode_to_videomode(dp->mode, &dp->ctx.vm);
+	}
+
+	return MODE_OK;
+}
+
+static struct drm_encoder *
+sprd_dp_connector_best_encoder(struct drm_connector *connector)
+{
+	struct sprd_dp *dp = connector_to_dp(connector);
+
+	DRM_INFO("%s()\n", __func__);
+	return &dp->encoder;
+}
+
+static struct drm_connector_helper_funcs sprd_dp_connector_helper_funcs = {
+	.get_modes = sprd_dp_connector_get_modes,
+	.mode_valid = sprd_dp_connector_mode_valid,
+	.best_encoder = sprd_dp_connector_best_encoder,
+};
+
+static enum drm_connector_status
+sprd_dp_connector_detect(struct drm_connector *connector, bool force)
+{
+	struct sprd_dp *dp = connector_to_dp(connector);
+
+	DRM_INFO("%s()\n", __func__);
+
+	if (dptx_get_hotplug_status(dp->snps_dptx))
+		return connector_status_connected;
+
+	return connector_status_disconnected;
+}
+
+static void sprd_dp_connector_destroy(struct drm_connector *connector)
+{
+	DRM_INFO("%s()\n", __func__);
+
+	drm_connector_unregister(connector);
+	drm_connector_cleanup(connector);
+}
+
+static const struct drm_connector_funcs sprd_dp_atomic_connector_funcs = {
+	.fill_modes = drm_helper_probe_single_connector_modes,
+	.detect = sprd_dp_connector_detect,
+	.destroy = sprd_dp_connector_destroy,
+	.reset = drm_atomic_helper_connector_reset,
+	.atomic_duplicate_state = drm_atomic_helper_connector_duplicate_state,
+	.atomic_destroy_state = drm_atomic_helper_connector_destroy_state,
+};
+
+static int sprd_dp_connector_init(struct drm_device *drm, struct sprd_dp *dp)
+{
+	struct drm_encoder *encoder = &dp->encoder;
+	struct drm_connector *connector = &dp->connector;
+	int ret;
+
+	connector->polled = DRM_CONNECTOR_POLL_HPD;
+
+	ret = drm_connector_init(drm, connector,
+				 &sprd_dp_atomic_connector_funcs,
+				 DRM_MODE_CONNECTOR_DisplayPort);
+	if (ret) {
+		DRM_ERROR("drm_connector_init() failed\n");
+		return ret;
+	}
+
+	drm_connector_helper_add(connector,
+				 &sprd_dp_connector_helper_funcs);
+
+	drm_mode_connector_attach_encoder(connector, encoder);
+
+	return 0;
+}
+
+static int sprd_dp_glb_init(struct sprd_dp *dp)
+{
+	if (dp->glb && dp->glb->power)
+		dp->glb->power(&dp->ctx, true);
+	if (dp->glb && dp->glb->enable)
+		dp->glb->enable(&dp->ctx);
+
+	return 0;
+}
+
+static int sprd_dp_bind(struct device *dev, struct device *master, void *data)
+{
+	struct drm_device *drm = data;
+	struct sprd_dp *dp = dev_get_drvdata(dev);
+	struct video_params *vparams = NULL;
+	int ret;
+
+	ret = sprd_dp_encoder_init(drm, dp);
+	if (ret)
+		return ret;
+
+	ret = sprd_dp_connector_init(drm, dp);
+	if (ret)
+		goto cleanup_encoder;
+
+	ret = sprd_dp_glb_init(dp);
+	if (ret)
+		goto cleanup_connector;
+
+	dp->snps_dptx = dptx_init(dev, drm);
+	if (IS_ERR_OR_NULL(dp->snps_dptx)) {
+		ret = PTR_ERR(dp->snps_dptx);
+		goto cleanup_connector;
+	}
+
+	vparams = &dp->snps_dptx->vparams;
+
+	return 0;
+
+cleanup_connector:
+	drm_connector_cleanup(&dp->connector);
+cleanup_encoder:
+	drm_encoder_cleanup(&dp->encoder);
+	return ret;
+}
+
+static void sprd_dp_unbind(struct device *dev,
+			struct device *master, void *data)
+{
+	struct sprd_dp *dp = dev_get_drvdata(dev);
+	struct dptx *dptx = dp->snps_dptx;
+
+	dptx_core_deinit(dptx);
+	dptx_debugfs_exit(dptx);
+}
+
+static const struct component_ops dp_component_ops = {
+	.bind = sprd_dp_bind,
+	.unbind = sprd_dp_unbind,
+};
+
+static int sprd_dp_device_create(struct sprd_dp *dp,
+				struct device *parent)
+{
+	int ret;
+
+	dp->dev.class = display_class;
+	dp->dev.parent = parent;
+	dp->dev.of_node = parent->of_node;
+	dev_set_name(&dp->dev, "dp");
+	dev_set_drvdata(&dp->dev, dp);
+
+	ret = device_register(&dp->dev);
+	if (ret) {
+		DRM_ERROR("dp device register failed\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int sprd_dp_context_init(struct sprd_dp *dp, struct device_node *np)
+{
+	struct dp_context *ctx = &dp->ctx;
+	struct resource r;
+
+	if (dp->glb && dp->glb->parse_dt)
+		dp->glb->parse_dt(&dp->ctx, np);
+
+	if (of_address_to_resource(np, 0, &r)) {
+		DRM_ERROR("parse dp ctrl reg base failed\n");
+		return -ENODEV;
+	}
+	ctx->base = ioremap_nocache(r.start, resource_size(&r));
+	if (ctx->base == NULL) {
+		DRM_ERROR("dp ctrl reg base ioremap failed\n");
+		return -ENODEV;
+	}
+
+	return 0;
+}
+
+#if 0
+static const struct sprd_dp_ops sharkl6pro_dp = {
+	.glb = &sharkl6pro_dp_glb_ops,
+};
+#endif
+
+static const struct of_device_id dp_match_table[] = {
+	{.compatible = "sprd,dptx",
+	 /* .data = &sharkl6pro_dp */ },
+	{ /* sentinel */ },
+};
+
+static int sprd_dp_probe(struct platform_device *pdev)
+{
+	struct device_node *np = pdev->dev.of_node;
+	struct sprd_dp *dp;
+	int ret;
+
+	dp = devm_kzalloc(&pdev->dev, sizeof(*dp), GFP_KERNEL);
+	if (!dp) {
+		DRM_ERROR("failed to allocate dp data.\n");
+		return -ENOMEM;
+	}
+
+	ret = sprd_dp_context_init(dp, np);
+	if (ret)
+		return ret;
+
+	sprd_dp_device_create(dp, &pdev->dev);
+	platform_set_drvdata(pdev, dp);
+
+	sprd_dp_audio_codec_init(&pdev->dev);
+
+	return component_add(&pdev->dev, &dp_component_ops);
+}
+
+static int sprd_dp_remove(struct platform_device *pdev)
+{
+	component_del(&pdev->dev, &dp_component_ops);
+
+	return 0;
+}
+
+static struct platform_driver sprd_dp_driver = {
+	.probe = sprd_dp_probe,
+	.remove = sprd_dp_remove,
+	.driver = {
+		   .name = "sprd-dp-drv",
+		   .of_match_table = dp_match_table,
+	},
+};
+
+module_platform_driver(sprd_dp_driver);
+
+MODULE_AUTHOR("Chen He <chen.he@unisoc.com>");
+MODULE_DESCRIPTION("Unisoc DPTX Controller Driver");
+MODULE_LICENSE("GPL v2");
