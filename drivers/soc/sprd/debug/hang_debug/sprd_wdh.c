@@ -334,22 +334,22 @@ static void cpu_stack_data_dump(int cpu)
 		}
 #ifdef CONFIG_VMAP_STACK
 		if (!((sp >= VMALLOC_START) && (sp < VMALLOC_END))) {
-			sprd_hang_debug_printf("%s sp out of kernel addr space %08lx\n", sp);
+			sprd_hang_debug_printf("%s sp out of kernel addr space %08lx\n", __func__, sp);
 			return;
 		}
 		if (!(((sp + SPRD_STACK_SIZE) >= VMALLOC_START) && ((sp + SPRD_STACK_SIZE) < VMALLOC_END))) {
 			sprd_hang_debug_printf("%s sp top out of kernel addr space %08lx\n",
-				(sp + SPRD_STACK_SIZE));
+				__func__, (sp + SPRD_STACK_SIZE));
 			return;
 		}
 #else
 		if (!((sp >= (PAGE_OFFSET + THREAD_SIZE)) && sprd_virt_addr_valid(sp))) {
-			sprd_hang_debug_printf("%s sp out of kernel addr space %08lx\n", sp);
+			sprd_hang_debug_printf("%s sp out of kernel addr space %08lx\n", __func__, sp);
 			return;
 		}
 		if (!(((sp + SPRD_STACK_SIZE) >= (PAGE_OFFSET + THREAD_SIZE)) && sprd_virt_addr_valid(sp))) {
 			sprd_hang_debug_printf("%s sp top out of kernel addr space %08lx\n",
-				      (sp + SPRD_STACK_SIZE));
+				      __func__, (sp + SPRD_STACK_SIZE));
 			return;
 		}
 #endif
@@ -516,7 +516,7 @@ static void sprd_unwind_backtrace_dump(int cpu)
 
 #ifdef CONFIG_VMAP_STACK
 	if (!((sp >= VMALLOC_START) && (sp < VMALLOC_END))) {
-		sprd_hang_debug_printf("%s sp out of kernel addr space %08lx\n", sp);
+		sprd_hang_debug_printf("%s sp out of kernel addr space %08lx\n", __func__, sp);
 		return;
 	}
 #else
