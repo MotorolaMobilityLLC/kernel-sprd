@@ -372,6 +372,7 @@ static void cpu_stack_data_dump(int cpu)
 			}
 			sprd_hang_debug_printf("%04lx:%s\n", (unsigned long)(p - 8) & 0xffff, str);
 		}
+		flush_cache_all();
 		wdh_step[cpu] = SPRD_HANG_DUMP_STACK_DATA;
 	} else {
 		wdh_step[cpu] = -SPRD_HANG_DUMP_STACK_DATA;
