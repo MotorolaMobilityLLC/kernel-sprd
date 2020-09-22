@@ -87,7 +87,7 @@
 #define SC27XX_FGU_LOW_VBAT_REGION	3300
 
 #define interpolate(x, x1, y1, x2, y2) \
-	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))));
+	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
 
 /*
  * struct sc27xx_fgu_data: describe the FGU device
