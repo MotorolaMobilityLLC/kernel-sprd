@@ -9,6 +9,7 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include "ums9230.dtsi"
+#include "sc2730.dtsi"
 #include "ums9230-mach.dtsi"
 #include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
 #include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
@@ -48,11 +49,8 @@
 	status = "okay";
 };
 
-&sdio3 {
-	bus-width = <8>;
-	non-removable;
-	no-sdio;
-	no-sd;
-	cap-mmc-hw-reset;
-	status = "okay";
+&adi_bus {
+	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
+			 <17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
+			 <35 0x19b8>, <39 0x19ac>;
 };
