@@ -147,7 +147,7 @@
 		};
 
 		cp_reserved: cp-mem@89600000 {
-			reg = <0x0 0x89600000 0x0 0x04700000>;
+			reg = <0x0 0x89600000 0x0 0x04900000>;
 		};
 
 		/* Only used for iq mode, will be removed in normal mode by uboot */
