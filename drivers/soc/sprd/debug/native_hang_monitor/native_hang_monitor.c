@@ -615,6 +615,7 @@ static int hang_detect_thread(void *arg)
 				save_native_hang_monitor_data();
 				pr_err("[Native Native Hang Detect] hang_detect_counter:%d, hang detect save data finish ......\n", hang_detect_counter);
 				pr_err("[Native Native Hang Detect] hang_detect_counter:%d, we should trigger panic...\n", hang_detect_counter);
+				msleep(40 * 1000); /*	wait for wdh  */
 				panic("Native hang monitor trigger");
 #endif
 			}
