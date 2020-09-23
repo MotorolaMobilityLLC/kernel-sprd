@@ -8,6 +8,7 @@ Required properties:
    "sprd,roc1-musb"
    "sprd,pike2-musb"
    "sprd,sharkle-musb"
+   "sprd,qogirl6-musb"
  - reg: physical base address of the musb and length of memory mapped region
  - interrupts: interrupt number for the musb controller
  - interrupt-names: corresponding interrupt names for the interrupts

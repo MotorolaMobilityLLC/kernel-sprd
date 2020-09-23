@@ -3,7 +3,9 @@
 This binding follows the generic DMA bindings defined in dma.txt.
 
 Required properties:
-- compatible: Should be "sprd,sc9860-dma".
+- compatible: Should be one of following:
+	"sprd,qogirl6-dma",
+	"sprd,sc9860-dma".
 - reg: Should contain DMA registers location and length.
 - interrupts: Should contain one interrupt shared by all channel.
 - #dma-cells: must be <1>. Used to represent the number of integer

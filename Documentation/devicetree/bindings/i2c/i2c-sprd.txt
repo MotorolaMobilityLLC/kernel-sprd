@@ -9,6 +9,7 @@ Required properties:
 	"sprd,sharkl5pro-i2c".
 	"sprd,sharkle-i2c",
 	"sprd,pike2-i2c",
+	"sprd,qogirl6-i2c",
 - reg: Specify the physical base address of the controller and length
   	of memory mapped region.
 - interrupts: Should contain I2C interrupt.

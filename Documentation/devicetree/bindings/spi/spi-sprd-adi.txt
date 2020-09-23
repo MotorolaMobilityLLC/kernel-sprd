@@ -26,7 +26,9 @@ ADI registers will make ADI controller registers chaos to lead incorrect results
 Then we need one hardware spinlock to synchronize between the multiple subsystems.
 
 Required properties:
-- compatible: Should be "sprd,sc9860-adi".
+- compatible: should be one of following:
+	  "sprd,qogirl6-adi",
+	  "sprd,qogirl6-adi-r5p1".
 - reg: Offset and length of ADI-SPI controller register space.
 - hwlocks: Reference to a phandle of a hwlock provider node.
 - hwlock-names: Reference to hwlock name strings defined in the same order

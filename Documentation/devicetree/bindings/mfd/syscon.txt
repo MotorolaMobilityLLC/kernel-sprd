@@ -10,7 +10,9 @@ OS driver) to determine the location of the registers, and access the
 registers directly.
 
 Required properties:
-- compatible: Should contain "syscon".
+- compatible: should be one of following:
+	  "syscon",
+	  "sprd,ums9230-glbregs".
 - reg: the register region can be accessed from syscon
 
 Optional property:
