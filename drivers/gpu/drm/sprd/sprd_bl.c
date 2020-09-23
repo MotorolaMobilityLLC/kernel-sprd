@@ -28,17 +28,12 @@ void sprd_backlight_normalize_map(struct backlight_device *bd, u16 *level)
 {
 	struct sprd_backlight *bl = bl_get_data(bd);
 
-	if (!bd->props.brightness)
-		*level = 0;
-	else if (bd->props.brightness > bl->knee_level)
-		*level = DIV_ROUND_CLOSEST_ULL((bl->max_level
-			 - bl->knee_level) * (bd->props.brightness
-			 - bl->knee_level), U_MAX_LEVEL
-			 - bl->knee_level) + bl->knee_level;
-	else
-		*level = bd->props.brightness + DIV_ROUND_CLOSEST_ULL(
-			 (bl->max_level - bl->min_level), U_MAX_LEVEL
-			 - U_MIN_LEVEL) + bl->min_level - 1;
+	if (!bl->num) {
+		*level = DIV_ROUND_CLOSEST_ULL((bl->max_level - bl->min_level) *
+			(bd->props.brightness - U_MIN_LEVEL),
+			U_MAX_LEVEL - U_MIN_LEVEL) + bl->min_level;
+	} else
+		*level = bl->levels[bd->props.brightness];
 }
 
 int sprd_cabc_backlight_update(struct backlight_device *bd)
@@ -116,23 +111,40 @@ static int sprd_backlight_parse_dt(struct device *dev,
 			struct sprd_backlight *bl)
 {
 	struct device_node *node = dev->of_node;
+	struct property *prop;
 	u32 value;
+	int length;
 	int ret;
 
 	if (!node)
 		return -ENODEV;
+
+	/* determine the number of brightness levels */
+	prop = of_find_property(node, "brightness-levels", &length);
+	if (prop) {
+		bl->num = length / sizeof(u32);
+
+		/* read brightness levels from DT property */
+		if (bl->num > 0) {
+			size_t size = sizeof(*bl->levels) * bl->num;
+
+			bl->levels = devm_kzalloc(dev, size, GFP_KERNEL);
+			if (!bl->levels)
+				return -ENOMEM;
+
+			ret = of_property_read_u32_array(node,
+							"brightness-levels",
+							bl->levels, bl->num);
+			if (ret < 0)
+				return ret;
+		}
+	}
 
 	ret = of_property_read_u32(node, "sprd,max-brightness-level", &value);
 	if (!ret)
 		bl->max_level = value;
 	else
 		bl->max_level = 255;
-
-	ret = of_property_read_u32(node, "sprd,knee-brightness-level", &value);
-	if (!ret)
-		bl->knee_level = value;
-	else
-		bl->knee_level = 0;
 
 	ret = of_property_read_u32(node, "sprd,min-brightness-level", &value);
 	if (!ret)

@@ -18,10 +18,11 @@ struct sprd_backlight {
 	/* pwm backlight parameters */
 	struct pwm_device *pwm;
 	u32 max_level;
-	u32 knee_level;
 	u32 min_level;
 	u32 dft_level;
 	u32 scale;
+	u32 *levels;
+	u32 num;
 
 	/* cabc backlight parameters */
 	bool cabc_en;
