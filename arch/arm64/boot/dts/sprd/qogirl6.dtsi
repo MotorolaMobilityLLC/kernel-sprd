@@ -8,6 +8,7 @@
 #include <dt-bindings/clock/sprd,ums9230-clk.h>
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 #include <dt-bindings/soc/sprd,qogirl6-mask.h>
+#include <dt-bindings/debug/busmonitor/busmonitor.h>
 
 / {
 	interrupt-parent = <&gic>;
@@ -603,6 +604,59 @@
 			pin_controller: pinctrl@64710000 {
 				compatible = "sprd,qogirl6-pinctrl";
 				reg = <0 0x64710000 0 0x10000>;
+			};
+
+			djtag: djtag@64740000 {
+				compatible = "sprd,djtag";
+				status = "disabled";
+				reg = <0 0x64740000 0 0x1000>;
+				syscon-names = "soft_rst";
+				syscons = <&aon_apb_regs REG_AON_APB_APB_RST3
+					MASK_AON_APB_DJTAG_SOFT_RST>;
+				clock-names = "enable", "tck";
+				clocks = <&aonapb_gate CLK_DJTAG_EB>,
+					<&aonapb_gate CLK_DJTAG_TCK_EB>;
+				hwlocks = <&hwlock 10>;
+				hwlock-names = "djtag";
+
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				aon-busmonitor@8{
+					compatible = "sprd,qogirl6-busmonitor", "sprd,sharkl5pro-busmonitor";
+					interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
+					reg = <0x8>;
+					sprd,bm-num = <6>;
+					sprd,bm-name =
+						"AP", "WTLCP", "AUDCP", "PUBCP",
+						"USBOTG", "CM4";
+					sprd,bm-type =
+						<AXI>, <AXI>, <AXI>,
+						<AXI>, <AXI>, <AXI>;
+					sprd,bm-dap = <0>, <1>, <2>, <3>,
+						<4>, <5>;
+					sprd,bm-config =
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>,
+						<DISABLE MON_WRITE MON_INSIDE>;
+					sprd,bm-id =
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>,
+						<DISABLE 0 AXIID>;
+					sprd,bm-ranges =
+						<0 0>,
+						<0 0>,
+						<0 0>,
+						<0 0>,
+						<0 0>,
+						<0 0>;
+				};
 			};
 
 			usb: usb@64900000 {
