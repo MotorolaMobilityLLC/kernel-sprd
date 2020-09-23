@@ -875,12 +875,11 @@ int start_integrate_wcn_truely(u32 subsys)
 	return 0;
 
 err_boot_marlin:
-	mdbg_assert_interface("MARLIN boot cp timeout");
 	/* warnning! fake status for poweroff in usr mode */
 	wcn_dev->wcn_open_status |= subsys_bit;
 	mutex_unlock(&wcn_dev->power_lock);
 
-	return -1;
+	return -ETIMEDOUT;
 }
 
 int start_integrate_wcn(u32 subsys)
@@ -931,6 +930,9 @@ int start_integrate_wcn(u32 subsys)
 			ret = start_integrate_wcn_truely(btwf_subsys);
 			if (ret) {
 				mutex_unlock(&marlin_lock);
+				if (ret == -ETIMEDOUT)
+					mdbg_assert_interface(
+						"MARLIN boot cp timeout\n");
 				return ret;
 			}
 		}
@@ -946,7 +948,8 @@ int start_integrate_wcn(u32 subsys)
 	}
 	ret = start_integrate_wcn_truely(subsys);
 	mutex_unlock(&marlin_lock);
-
+	if (ret == -ETIMEDOUT)
+		mdbg_assert_interface("MARLIN boot cp timeout");
 	return ret;
 }
 
