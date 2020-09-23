@@ -196,10 +196,9 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case VSP_RESET:
 		pr_debug("vsp ioctl VSP_RESET\n");
 
-		if ((vsp_hw_dev.version == SHARKL3) ||
-			(vsp_hw_dev.version == PIKE2))
+		if (vsp_hw_dev.version == SHARKL3)
 			need_rst_axi = (readl_relaxed(vsp_glb_reg_base +
-						VSP_AXI_STS_OFF) & 0x7) > 0;
+						VSP_AXI_STS_OFF) & 0x2) > 0;
 		else
 			need_rst_axi = 0;
 
@@ -219,7 +218,6 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		} else
 			tmp_rst_msk = regs[RESET].mask;
 
-		tmp_rst_msk = regs[RESET].mask;
 		ret = regmap_update_bits(regs[RESET].gpr, regs[RESET].reg,
 				   tmp_rst_msk, tmp_rst_msk);
 		if (ret) {
