@@ -1880,6 +1880,7 @@ CONFIG_I2C_ALGOBIT=y
 CONFIG_I2C_SPRD=y
 # CONFIG_I2C_XILINX is not set
 CONFIG_I2C_SPRD_HW=y
+# CONFIG_I2C_SPRD_HW_V2 is not set
 
 #
 # External I2C/SMBus adapter drivers
