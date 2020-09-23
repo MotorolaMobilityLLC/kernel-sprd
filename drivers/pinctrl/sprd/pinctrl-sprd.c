@@ -995,7 +995,7 @@ static int sprd_pinctrl_add_pins(struct sprd_pinctrl *sprd_pctl,
 	struct sprd_pinctrl_soc_info *info = sprd_pctl->info;
 	unsigned int ctrl_pin = 0, com_pin = 0;
 	struct sprd_pin *pin;
-	int i;
+	unsigned int i;
 
 	info->npins = pins_cnt;
 	info->pins = devm_kzalloc(sprd_pctl->dev,
@@ -1013,7 +1013,7 @@ static int sprd_pinctrl_add_pins(struct sprd_pinctrl *sprd_pctl,
 		reg = sprd_soc_pin_info[i].reg;
 		if (pin->type == GLOBAL_CTRL_PIN) {
 			pin->reg = (unsigned long)(sprd_pctl->base +
-				PINCTRL_REG_LEN * reg);
+				(unsigned long)(PINCTRL_REG_LEN * reg));
 			pin->bit_offset = sprd_soc_pin_info[i].bit_offset;
 			pin->bit_width = sprd_soc_pin_info[i].bit_width;
 			ctrl_pin++;
