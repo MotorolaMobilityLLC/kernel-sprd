@@ -2,6 +2,7 @@
 #
 # Makefile for CoreSight drivers.
 #
+GCOV_PROFILE := $(CONFIG_CORESIGHT_GCOV)
 obj-$(CONFIG_CORESIGHT) += coresight.o coresight-etm-perf.o
 obj-$(CONFIG_OF) += of_coresight.o
 obj-$(CONFIG_CORESIGHT_LINK_AND_SINK_TMC) += coresight-tmc.o \
