@@ -61,7 +61,7 @@
 				pwms = <&pwms 2 40000>;
 				pwm-names = "backlight";
 				sprd,max-brightness-level = <880>;
-				default-brightness-level = <115>;
+				default-brightness-level = <250>;
 				sprd,brightness-scale = <1023>;
 				brightness-levels = <
 							  0   3   4   5   6   7
