@@ -71,7 +71,7 @@ s_gnss_efuse_id[WCN_PLATFORM_TYPE][GNSS_EFUSE_BLOCK_COUNT] = {
 static void wcn_global_source_init(void)
 {
 	wcn_boot_init();
-	WCN_INFO("%s finish!\n", __func__);
+	WCN_DBG("%s finish!\n", __func__);
 }
 
 #ifdef CONFIG_PM_SLEEP
@@ -496,8 +496,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 
 	wcn_dev->reg_nr = cr_num;
 	for (i = 0; i < cr_num; i++)
-		WCN_INFO("ctrl_reg[%d] = 0x%x\n",
-			 i, wcn_dev->ctrl_reg[i]);
+		WCN_DBG("ctrl_reg[%d] = 0x%x\n",
+			i, wcn_dev->ctrl_reg[i]);
 
 	/* get ctrl_mask */
 	ret = of_property_read_u32_array(np, "sprd,ctrl-mask",
@@ -505,8 +505,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	if (ret)
 		return -EINVAL;
 	for (i = 0; i < cr_num; i++)
-		WCN_INFO("ctrl_mask[%d] = 0x%08x\n",
-			 i, wcn_dev->ctrl_mask[i]);
+		WCN_DBG("ctrl_mask[%d] = 0x%08x\n",
+			i, wcn_dev->ctrl_mask[i]);
 
 	/* get ctrl_value */
 	ret = of_property_read_u32_array(np,
@@ -527,8 +527,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	if (ret)
 		return -EINVAL;
 	for (i = 0; i < cr_num; i++)
-		WCN_INFO("ctrl_rw_offset[%d] = 0x%08x\n",
-			 i, wcn_dev->ctrl_rw_offset[i]);
+		WCN_DBG("ctrl_rw_offset[%d] = 0x%08x\n",
+			i, wcn_dev->ctrl_rw_offset[i]);
 
 	/* get ctrl_us_delay */
 	ret = of_property_read_u32_array(np,
@@ -538,8 +538,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	if (ret)
 		return -EINVAL;
 	for (i = 0; i < cr_num; i++)
-		WCN_INFO("ctrl_us_delay[%d] = 0x%08x\n",
-			 i, wcn_dev->ctrl_us_delay[i]);
+		WCN_DBG("ctrl_us_delay[%d] = 0x%08x\n",
+			i, wcn_dev->ctrl_us_delay[i]);
 
 	/* get ctrl_type */
 	ret = of_property_read_u32_array(np, "sprd,ctrl-type",
@@ -548,8 +548,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 		return -EINVAL;
 
 	for (i = 0; i < cr_num; i++)
-		WCN_INFO("ctrl_type[%d] = 0x%08x\n",
-			 i, wcn_dev->ctrl_type[i]);
+		WCN_DBG("ctrl_type[%d] = 0x%08x\n",
+			i, wcn_dev->ctrl_type[i]);
 
 	/*
 	 * Add a new group to control shut down WCN
@@ -577,8 +577,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 
 	wcn_dev->reg_shutdown_nr = cr_num;
 	for (i = 0; i < cr_num; i++) {
-		WCN_INFO("ctrl_shutdown_reg[%d] = 0x%x\n",
-			 i, wcn_dev->ctrl_shutdown_reg[i]);
+		WCN_DBG("ctrl_shutdown_reg[%d] = 0x%x\n",
+			i, wcn_dev->ctrl_shutdown_reg[i]);
 	}
 
 	/* get ctrl_shutdown_mask */
@@ -590,8 +590,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	if (ret)
 		return -EINVAL;
 	for (i = 0; i < cr_num; i++) {
-		WCN_INFO("ctrl_shutdown_mask[%d] = 0x%08x\n",
-			 i, wcn_dev->ctrl_shutdown_mask[i]);
+		WCN_DBG("ctrl_shutdown_mask[%d] = 0x%08x\n",
+			i, wcn_dev->ctrl_shutdown_mask[i]);
 	}
 
 	/* get ctrl_shutdown_value */
@@ -602,8 +602,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	if (ret)
 		return -EINVAL;
 	for (i = 0; i < cr_num; i++) {
-		WCN_INFO("ctrl_shutdown_value[%d] = 0x%08x\n",
-			 i, wcn_dev->ctrl_shutdown_value[i]);
+		WCN_DBG("ctrl_shutdown_value[%d] = 0x%08x\n",
+			i, wcn_dev->ctrl_shutdown_value[i]);
 	}
 
 	/* get ctrl_shutdown_rw_offset */
@@ -615,8 +615,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	if (ret)
 		return -EINVAL;
 	for (i = 0; i < cr_num; i++) {
-		WCN_INFO("ctrl_shutdown_rw_offset[%d] = 0x%08x\n",
-			 i, wcn_dev->ctrl_shutdown_rw_offset[i]);
+		WCN_DBG("ctrl_shutdown_rw_offset[%d] = 0x%08x\n",
+			i, wcn_dev->ctrl_shutdown_rw_offset[i]);
 	}
 
 	/* get ctrl_shutdown_us_delay */
@@ -628,8 +628,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	if (ret)
 		return -EINVAL;
 	for (i = 0; i < cr_num; i++) {
-		WCN_INFO("ctrl_shutdown_us_delay[%d] = 0x%08x\n",
-			 i, wcn_dev->ctrl_shutdown_us_delay[i]);
+		WCN_DBG("ctrl_shutdown_us_delay[%d] = 0x%08x\n",
+			i, wcn_dev->ctrl_shutdown_us_delay[i]);
 	}
 
 	/* get ctrl_shutdown_type */
@@ -642,8 +642,8 @@ static int wcn_parse_dt(struct platform_device *pdev,
 		return -EINVAL;
 
 	for (i = 0; i < cr_num; i++)
-		WCN_INFO("ctrl_shutdown_type[%d] = 0x%08x\n",
-			 i, wcn_dev->ctrl_shutdown_type[i]);
+		WCN_DBG("ctrl_shutdown_type[%d] = 0x%08x\n",
+			i, wcn_dev->ctrl_shutdown_type[i]);
 
 	/* get vddwcn */
 	if (!s_wcn_device.vddwcn) {
@@ -678,12 +678,12 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	ret = of_property_read_string(np, "sprd,file-name",
 				      (const char **)&wcn_dev->file_path);
 	if (!ret)
-		WCN_INFO("firmware name:%s\n", wcn_dev->file_path);
+		WCN_DBG("firmware name:%s\n", wcn_dev->file_path);
 
 	ret = of_property_read_string(np, "sprd,file-name-ext",
 				      (const char **)&wcn_dev->file_path_ext);
 	if (!ret)
-		WCN_INFO("firmware name ext:%s\n", wcn_dev->file_path_ext);
+		WCN_DBG("firmware name ext:%s\n", wcn_dev->file_path_ext);
 
 	if (fstab_ab) {
 		if (strncmp(fstab_ab + strlen(SUFFIX), "_a", 2) == 0)

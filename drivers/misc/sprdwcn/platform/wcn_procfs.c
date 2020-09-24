@@ -90,6 +90,7 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 		wcn_notify_fw_error(type, str);
 		mdbg_proc->assert_notify_flag = 1;
 	}
+
 	if (wcn_sysfs_get_reset_prop()) {
 		WCN_INFO("%s reset begin\n", __func__);
 		stop_loopcheck();
@@ -177,8 +178,7 @@ static int mdbg_loopcheck_read(int channel, struct mbuf_t *head,
 	memcpy(mdbg_proc->loopcheck.buf, head->buf, head->len);
 	mdbg_proc->loopcheck.rcv_len = head->len;
 #endif
-	WCN_INFO("%s:%s\n", __func__,
-		(char *)(mdbg_proc->loopcheck.buf));
+	WCN_INFO("rx:%s\n", (char *)(mdbg_proc->loopcheck.buf));
 	mdbg_proc->fail_count = 0;
 	complete(&mdbg_proc->loopcheck.completed);
 	complete_kernel_loopcheck();
@@ -214,7 +214,7 @@ static int mdbg_at_cmd_read(int channel, struct mbuf_t *head,
 	memset(mdbg_proc->at_cmd.buf, 0, MDBG_AT_CMD_SIZE);
 	memcpy(mdbg_proc->at_cmd.buf, head->buf, head->len);
 	mdbg_proc->at_cmd.rcv_len = head->len;
-	WCN_INFO("WCND at cmd read:%s\n",
+	WCN_INFO("AT cmd read:%s\n",
 		 (char *)(mdbg_proc->at_cmd.buf));
 	complete(&mdbg_proc->at_cmd.completed);
 	notify_at_cmd_finish(mdbg_proc->at_cmd.buf, mdbg_proc->at_cmd.rcv_len);

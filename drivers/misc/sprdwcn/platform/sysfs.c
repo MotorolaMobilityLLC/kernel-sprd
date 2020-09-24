@@ -142,7 +142,7 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	*response_len = sysfs_info.len;
 	scnprintf(response, (size_t)sysfs_info.len, "%s",
 		  (char *)sysfs_info.p);
-	WCN_INFO("len=%zu, buf=%s\n", *response_len, (char *)(response));
+	WCN_DBG("len=%zu, buf=%s\n", *response_len, (char *)(response));
 	mutex_unlock(&sysfs_info.mutex);
 
 	return 0;

@@ -612,7 +612,7 @@ void wcn_sys_soft_reset(void)
 		offset  = 0X10b0;
 		wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
 					 offset, bitmap);
-		WCN_INFO("finish\n");
+		WCN_INFO("%s finish\n", __func__);
 		usleep_range(WCN_CP_SOFT_RST_MIN_TIME,
 			     WCN_CP_SOFT_RST_MAX_TIME);
 	}
@@ -703,7 +703,7 @@ void wcn_sys_soft_release(void)
 		offset  = 0X20b0;
 		wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
 					 offset, bitmap);
-		WCN_INFO("finish!\n");
+		WCN_DBG("%s finish!\n", __func__);
 		usleep_range(WCN_CP_SOFT_RST_MIN_TIME,
 			     WCN_CP_SOFT_RST_MAX_TIME);
 	}
@@ -727,7 +727,7 @@ void wcn_sys_deep_sleep_en(void)
 			return;
 		}
 		wcn_regmap_raw_write_bit(rmap, 0x1244, 1 << 0);
-		WCN_INFO("finish!\n");
+		WCN_INFO("%s finish!\n", __func__);
 	}
 }
 
@@ -859,7 +859,7 @@ u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev)
 			g_platform_chip_id.aon_chip_id0,
 			g_platform_chip_id.aon_chip_id1);
 
-	WCN_INFO("platform chip type: [%d]\n",
+	WCN_DBG("platform chip type: [%d]\n",
 		 g_platform_chip_type);
 
 	return 0;

@@ -162,8 +162,6 @@ static void gnss_write_version_data(void)
 				   GNSS_REC_AON_CHIPID_OFFSET;
 	wcn_write_data_to_phy_addr(phy_addr, &tmp_aon_id,
 				   GNSS_REC_AON_CHIPID_SIZE);
-
-	WCN_INFO("finish\n");
 }
 
 static int wcn_load_firmware_img(struct wcn_device *wcn_dev,
@@ -192,7 +190,7 @@ static int wcn_load_firmware_img(struct wcn_device *wcn_dev,
 		}
 	}
 
-	WCN_INFO("open image file %s  successfully\n", path);
+	WCN_INFO("open image file successfully\n");
 	/* read file to buffer */
 	size = len;
 	wcn_image_buffer = vmalloc(size);
@@ -257,7 +255,7 @@ read_retry:
 
 	vfree(wcn_image_buffer);
 
-	WCN_INFO("finish\n");
+	WCN_INFO("%s finish\n", __func__);
 
 	return 0;
 }
@@ -497,8 +495,6 @@ static void gnss_clear_boot_flag(void)
 	WCN_INFO("magic value is 0x%x\n", magic_value);
 	magic_value = 0;
 	wcn_write_data_to_phy_addr(phy_addr, &magic_value, sizeof(u32));
-
-	WCN_INFO("finish!\n");
 }
 
 /* used for distinguish Pike2 or sharkle */
@@ -542,10 +538,13 @@ static int wcn_wait_gnss_boot(struct wcn_device *wcn_dev)
 		 wait_count++) {
 		wcn_read_data_from_phy_addr(phy_addr,
 					    &magic_value, sizeof(u32));
-		WCN_INFO("gnss cali: magic_value=0x%x, wait_count=%d\n",
-			 magic_value, wait_count);
-		if (magic_value == GNSS_CALI_DONE_FLAG)
+		WCN_DBG("gnss cali: magic_value=0x%x, wait_count=%d\n",
+			magic_value, wait_count);
+		if (magic_value == GNSS_CALI_DONE_FLAG) {
+			WCN_INFO("gnss cali: magic_value=0x%x, wait_count=%d\n",
+				 magic_value, wait_count);
 			break;
+		}
 		msleep(GNSS_WAIT_CP_INIT_POLL_TIME_MS);
 	}
 
@@ -607,8 +606,8 @@ int wcn_proc_native_start(void *arg)
 	wcn_cpu_bootup(wcn_dev);
 
 	wcn_dev->power_state = WCN_POWER_STATUS_ON;
-	WCN_INFO("device power_state:%d\n",
-		 wcn_dev->power_state);
+	WCN_DBG("device power_state:%d\n",
+		wcn_dev->power_state);
 
 	/* wifi need polling CP ready */
 	if (is_marlin) {
@@ -634,7 +633,7 @@ int wcn_proc_native_stop(void *arg)
 	u32 reg_read;
 	u32 type;
 
-	WCN_INFO("%s enter\n", __func__);
+	WCN_DBG("%s enter\n", __func__);
 
 	if (!wcn_dev)
 		return -EINVAL;
@@ -716,7 +715,7 @@ static void wcn_clear_ddr_gnss_cali_bit(void)
 	value = GNSS_CALIBRATION_FLAG_CLEAR_VALUE;
 	phy_addr = wcn_dev->base_addr + GNSS_CALIBRATION_FLAG_CLEAR_ADDR;
 	wcn_write_data_to_phy_addr(phy_addr, &value, sizeof(u32));
-	WCN_INFO("clear gnss ddr bit\n");
+	WCN_DBG("clear gnss ddr bit\n");
 }
 
 static void wcn_set_nognss(u32 val)
@@ -729,7 +728,7 @@ static void wcn_set_nognss(u32 val)
 		phy_addr = wcn_dev->base_addr +
 			   (phys_addr_t)&s_wssm_phy_offset_p->include_gnss;
 		wcn_write_data_to_phy_addr(phy_addr, &val, sizeof(u32));
-		WCN_INFO("gnss:%u\n", val);
+		WCN_DBG("gnss:%u\n", val);
 	}
 }
 

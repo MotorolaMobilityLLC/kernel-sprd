@@ -31,7 +31,7 @@ static int loopcheck_send(char *buf, unsigned int len)
 	struct mbuf_t *tail = NULL;
 	int num = 1;
 
-	WCN_INFO("%s: %s len=%d\n", __func__, buf, len);
+	WCN_INFO("tx:%s\n", buf);
 	if (unlikely(!marlin_get_module_status())) {
 		WCN_ERR("WCN module have not open\n");
 		return -EIO;
