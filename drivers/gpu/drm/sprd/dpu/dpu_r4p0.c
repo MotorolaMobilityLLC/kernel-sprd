@@ -335,6 +335,7 @@ static struct sprd_dpu_layer wb_layer;
 static int wb_xfbc_en = 1;
 static int corner_radius;
 static struct device_node *g_np;
+static u8 skip_layer_index;
 module_param(wb_xfbc_en, int, 0644);
 module_param(max_vsync_count, int, 0644);
 module_param(cabc_bl_set_delay, int, 0644);
@@ -1215,24 +1216,28 @@ static void dpu_scaling(struct dpu_context *ctx,
 			struct sprd_dpu_layer layers[], u8 count)
 {
 	int i;
-	struct sprd_dpu_layer *top_layer;
+	struct sprd_dpu_layer *btm_layer;
 
 	if (mode_changed) {
-		top_layer = &layers[count - 1];
+		btm_layer = &layers[0];
 		pr_debug("------------------------------------\n");
 		for (i = 0; i < count; i++) {
 			pr_debug("layer[%d] : %dx%d --- (%d)\n", i,
 				layers[i].dst_w, layers[i].dst_h,
 				scale_copy.in_w);
+			if (layers[i].dst_w != scale_copy.in_w) {
+				skip_layer_index = i;
+				break;
+			}
 		}
 
-		if  (top_layer->dst_w <= scale_copy.in_w) {
+		if  (btm_layer->dst_w <= scale_copy.in_w) {
 			dpu_sr_config(ctx);
 			mode_changed = false;
 
-			pr_info("do scaling enhace: 0x%x, top layer(%dx%d)\n",
-				enhance_en, top_layer->dst_w,
-				top_layer->dst_h);
+			pr_info("do scaling enhace: 0x%x, bottom layer(%dx%d)\n",
+				enhance_en, btm_layer->dst_w,
+				btm_layer->dst_h);
 		}
 	}
 }
@@ -1265,8 +1270,13 @@ static void dpu_flip(struct dpu_context *ctx,
 	dpu_scaling(ctx, layers, count);
 
 	/* start configure dpu layers */
-	for (i = 0; i < count; i++)
+	for (i = 0; i < count; i++) {
+		if (skip_layer_index == i && skip_layer_index) {
+			skip_layer_index = 0;
+			break;
+		}
 		dpu_layer(ctx, &layers[i]);
+	}
 
 	/* update trigger and wait */
 	if (ctx->if_type == SPRD_DISPC_IF_DPI) {
