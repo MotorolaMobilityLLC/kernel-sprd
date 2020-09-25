@@ -1344,6 +1344,7 @@ static const struct of_device_id sprd_dma_match[] = {
 	{ .compatible = "sprd,pike2-dma", },
 	{ .compatible = "sprd,orca-dma", },
 	{ .compatible = "sprd,sharkle-dma", },
+	{ .compatible = "sprd,qogirl6-dma", },
 	{},
 };
 
