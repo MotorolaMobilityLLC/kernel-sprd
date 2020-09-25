@@ -2753,7 +2753,7 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 	/* 0 normal open(Tie High), 1 normal close(Tie low) */
 	if (pdata->jack_type == JACK_TYPE_NO)
 		headset_reg_clr_bits(ANA_HDT0, HEDET_JACK_TYPE);
-	else if (pdata->jack_type == JACK_TYPE_NO)
+	else if (pdata->jack_type == JACK_TYPE_NC)
 		headset_reg_set_bits(ANA_HDT0, HEDET_JACK_TYPE);
 
 	ret = snd_soc_card_jack_new(card, "Headset Jack",
