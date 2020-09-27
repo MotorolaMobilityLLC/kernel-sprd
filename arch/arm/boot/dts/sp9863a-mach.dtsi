@@ -32,6 +32,26 @@
 		};
 	};
 
+	ion {
+		compatible = "sprd,ion";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		heap@3 {
+			reg = <3>;
+			label = "carveout_fb";
+			type = <2>;
+			memory-region = <&fb_reserved>;
+		};
+
+		heap@4 {
+			reg = <4>;
+			label = "carveout_fd";
+			type = <2>;
+			memory-region = <&fd_reserved>;
+		};
+	};
+
 	thm_zone: thermal-zones {
 
 		cpu_thmzone: cpu-thmzone {
