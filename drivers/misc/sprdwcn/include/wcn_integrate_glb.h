@@ -1,5 +1,5 @@
-#ifndef __SC2342_INTEGRATE_GLB_H__
-#define __SC2342_INTEGRATE_GLB_H__
+#ifndef __WCN_INTEGRATE_GLB_H__
+#define __WCN_INTEGRATE_GLB_H__
 
 #include "wcn_dump_integrate.h"
 #include "wcn_integrate.h"

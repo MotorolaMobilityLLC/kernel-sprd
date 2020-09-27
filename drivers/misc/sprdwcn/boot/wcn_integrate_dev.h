@@ -75,6 +75,9 @@ enum {
 	REGMAP_ANLG_PHY_G5, /* SharkL3 only */
 	REGMAP_ANLG_PHY_G6, /* SharkLE only */
 	REGMAP_WCN_REG,	/* SharkL3 only:0x403A 0000 */
+	REGMAP_WCN_BTWF_AHB,	/* QogirL6 only:0x4013 0410 */
+	REGMAP_WCN_GNSS_SYS_AHB,	/* QogirL6 only:0x40b1 8404 */
+	REGMAP_WCN_AON_AHB,	/* QogirL6 only:0x4088 0000 */
 	REGMAP_TYPE_NR,
 };
 
@@ -209,6 +212,7 @@ struct wcn_device {
 	u32	ctrl_us_delay[REG_CTRL_CNT_MAX];
 	u32	ctrl_type[REG_CTRL_CNT_MAX]; /* the value is pmu or apb */
 	struct	regmap *rmap[REGMAP_TYPE_NR];
+	bool need_regmap[REGMAP_TYPE_NR];
 	u32	reg_nr;
 	/* Shut down group */
 	u32	ctrl_shutdown_reg[REG_SHUTDOWN_CNT_MAX];

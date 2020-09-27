@@ -11,13 +11,13 @@ config SC23XX
 	  if you want to use 23xx series wcn chip of spreadtrum.
 	  please say "y".
 
-config SC2342_INTEG
-	tristate "SC2342 Integrated chip Support"
+config WCN_INTEG
+	tristate "WCN Integrated chip Support"
 	depends on SC23XX
 	default n
 	help
 	  This is support wcn chip for spreadtrum.
-	  If you want to use sc2342 integrated chip of spreadtrum.
+	  If you want to use WCN integrated chip of spreadtrum.
 	  Please say "y".
 
 config SC2355
@@ -47,10 +47,29 @@ config UMW2653
 	  If you want to use umw2653 chip of spreadtrum.
 	  Please say "y".
 
+config SC2342_I
+	tristate "SC2342 integrated chip Support"
+	depends on WCN_INTEG
+	default n
+	help
+	  This is support wcn sc2342 integrated chip unique config for spreadtrum.
+	  use it distinguish with other integrated chip.
+	  If you want to use sc2342 integrated chip of spreadtrum.
+	  Please say "y".
+
+config UMW2631_I
+	tristate "UMW2631 integrated chip Support"
+	depends on WCN_INTEG
+	default n
+	help
+	  This is support wcn umw2631 integrated chip unique config for unisoc.
+	  If you want to use umw2631 integrated chip of unisoc.
+	  Please say "y".
+
 # sprd's SDIO device driver based on SC2355...,etc
 source "drivers/misc/sprdwcn/sdio/Kconfig"
 
-# sprd's SIPC device driver based on SC2342 integ...,etc
+# sprd's SIPC device driver based on WCN_INTEG...,etc
 source "drivers/misc/sprdwcn/sipc/Kconfig"
 
 # sprd's sleep device driver based on SC2355...,etc

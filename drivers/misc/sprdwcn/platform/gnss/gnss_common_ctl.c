@@ -14,7 +14,7 @@
  */
 #include <linux/bug.h>
 #include <linux/delay.h>
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 #include "gnss.h"
 #endif
 #include <linux/init.h>
@@ -64,7 +64,7 @@ enum gnss_status_e {
 	GNSS_STATUS_POWERON_GOING,
 	GNSS_STATUS_MAX,
 };
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 enum gnss_cp_status_subtype {
 	GNSS_CP_STATUS_CALI = 1,
 	GNSS_CP_STATUS_INIT = 2,
@@ -83,7 +83,7 @@ static const struct of_device_id gnss_common_ctl_of_match[] = {
 	{},
 };
 
-#ifndef CONFIG_SC2342_INTEG
+#ifndef CONFIG_WCN_INTEG
 struct gnss_cali {
 	bool cali_done;
 	u32 *cali_data;
@@ -441,7 +441,7 @@ static ssize_t gnss_subsys_store(struct device *dev,
 		return -EINVAL;
 
 	GNSSCOMM_INFO("%s,%lu\n", __func__, set_value);
-#ifndef CONFIG_SC2342_INTEG
+#ifndef CONFIG_WCN_INTEG
 	gnss_common_ctl_dev.gnss_subsys = MARLIN_GNSS;
 #else
 	if (set_value == WCN_GNSS)
@@ -479,7 +479,7 @@ static ssize_t gnss_subsys_show(struct device *dev,
 
 static DEVICE_ATTR_RW(gnss_subsys);
 
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 static int gnss_status_get(void)
 {
 	phys_addr_t phy_addr;
@@ -550,7 +550,7 @@ static ssize_t gnss_dump_store(struct device *dev,
 	wcn_assert_interface(WCN_SOURCE_GNSS, triggerStr);
 
 	if (set_value == 1) {
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 		temp = wait_for_completion_timeout(&gnss_dump_complete,
 						   msecs_to_jiffies(6000));
 		GNSSCOMM_INFO("%s exit %d\n", __func__,
@@ -602,7 +602,7 @@ static ssize_t gnss_clktype_show(struct device *dev,
 static DEVICE_ATTR_RO(gnss_clktype);
 #endif
 
-#ifndef CONFIG_SC2342_INTEG
+#ifndef CONFIG_WCN_INTEG
 static uint gnss_op_reg;
 static uint gnss_indirect_reg_offset;
 static ssize_t gnss_regr_show(struct device *dev, struct device_attribute *attr,
@@ -696,7 +696,7 @@ static struct attribute *gnss_common_ctl_attrs[] = {
 #ifdef CONFIG_UMW2652
 	&dev_attr_gnss_clktype.attr,
 #endif
-#ifndef CONFIG_SC2342_INTEG
+#ifndef CONFIG_WCN_INTEG
 	&dev_attr_gnss_regr.attr,
 	&dev_attr_gnss_regaddr.attr,
 	&dev_attr_gnss_regspaddr.attr,
@@ -716,7 +716,7 @@ static struct miscdevice gnss_common_ctl_miscdev = {
 	.fops = NULL,
 };
 
-#ifndef CONFIG_SC2342_INTEG
+#ifndef CONFIG_WCN_INTEG
 static struct sprdwcn_gnss_ops gnss_common_ctl_ops = {
 	.backup_data = gnss_backup_data,
 	.write_data = gnss_write_data,
@@ -734,7 +734,7 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 	gnss_common_ctl_dev.dev = &pdev->dev;
 
 	gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF;
-#ifndef CONFIG_SC2342_INTEG
+#ifndef CONFIG_WCN_INTEG
 	gnss_common_ctl_dev.gnss_subsys = MARLIN_GNSS;
 	gnss_data_init();
 #else
@@ -767,7 +767,7 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 		goto err_attr_failed;
 	}
 
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 	/* register dump callback func for mdbg */
 	mdbg_dump_gnss_register(gnss_dump_mem_ctrl_co, NULL);
 	init_completion(&gnss_dump_complete);
@@ -784,7 +784,7 @@ err_attr_failed:
 
 static int gnss_common_ctl_remove(struct platform_device *pdev)
 {
-#ifndef CONFIG_SC2342_INTEG
+#ifndef CONFIG_WCN_INTEG
 	wcn_gnss_ops_unregister();
 #endif
 	sysfs_remove_group(&gnss_common_ctl_miscdev.this_device->kobj,

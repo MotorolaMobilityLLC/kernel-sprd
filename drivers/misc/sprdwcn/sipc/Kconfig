@@ -1,6 +1,6 @@
 config WCN_SIPC
 	tristate "WCN SIPC Support"
-	depends on SC2342_INTEG
+	depends on WCN_INTEG
 	default y
 	help
 	  Enable this module for Spreadtrum WCN integration

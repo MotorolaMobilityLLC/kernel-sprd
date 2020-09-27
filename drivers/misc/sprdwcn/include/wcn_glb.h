@@ -14,8 +14,8 @@
 #include "wcn_txrx.h"
 #include "wcn_log.h"
 
-#ifdef CONFIG_SC2342_INTEG
-#include "sc2342_integrate_glb.h"
+#ifdef CONFIG_WCN_INTEG
+#include "wcn_integrate_glb.h"
 #endif
 
 #ifdef CONFIG_SC2355

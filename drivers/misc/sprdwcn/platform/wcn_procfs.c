@@ -327,7 +327,7 @@ static void *mdbg_snap_shoot_seq_start(struct seq_file *m, loff_t *pos)
 	if (!*(u32 *)pos) {
 		buf = mdbg_proc->snap_shoot.buf;
 		memset(buf, 0, MDBG_SNAP_SHOOT_SIZE);
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 		ret = mdbg_snap_shoot_iram(buf);
 		if (ret < 0) {
 			seq_puts(m, "==== IRAM DATA SNAP SHOOT FAIL ====\n");
@@ -753,7 +753,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 		return count;
 	}
 
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 	if (strncmp(mdbg_proc->write_buf, "dumpmem", 7) == 0) {
 		mutex_lock(&mdbg_proc->mutex);
 		if (g_dumpmem_switch == 0) {
@@ -850,7 +850,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 	 * to disable SharkLE-Marlin2/SharkL3-Marlin2
 	 * Pike2-Marlin2.
 	 */
-#ifndef CONFIG_SC2342_INTEG
+#ifndef CONFIG_WCN_INTEG
 	/* loopcheck add kernel time ms/1000 */
 	if (strncmp(mdbg_proc->write_buf, "at+loopcheck", 12) == 0) {
 		/* struct timespec now; */
@@ -908,7 +908,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 	if (ret)
 		WCN_INFO("sprdwcn_bus_push_list error=%d\n", ret);
 #else
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 	mdbg_send_atcmd(mdbg_proc->write_buf, count, WCN_ATCMD_WCND);
 #else
 	mdbg_send(mdbg_proc->write_buf, count, MDBG_SUBTYPE_AT);

@@ -49,7 +49,7 @@ obj-$(CONFIG_WCN_PLATFORM) := wcn_platform.o
 
 wcn_platform-c-objs += $(WCN_MARLIN_COMMON_FILES)
 
-ifeq ($(CONFIG_SC2342_INTEG),y)
+ifeq ($(CONFIG_WCN_INTEG),y)
 wcn_platform-c-objs += rf/rf.o
 wcn_platform-c-objs +=  wcn_dump_integrate.o
 endif

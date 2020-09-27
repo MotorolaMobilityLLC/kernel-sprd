@@ -12,7 +12,7 @@
 #ifndef __GNSS_DUMP_H__
 #define __GNSS_DUMP_H__
 
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 #define DUMP_PACKET_SIZE		(1024)
 #define GNSS_SHARE_MEMORY_SIZE		(0x15a800)
 #define GNSS_CP_IRAM_DATA_NUM		8192

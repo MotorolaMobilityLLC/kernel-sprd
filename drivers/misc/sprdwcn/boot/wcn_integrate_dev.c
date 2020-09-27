@@ -208,7 +208,7 @@ static void wcn_config_ctrlreg(struct wcn_device *wcn_dev, u32 start, u32 end)
 		reg_read = wcn_dev->ctrl_reg[i] -
 			   wcn_dev->ctrl_rw_offset[i];
 		wcn_regmap_read(wcn_dev->rmap[type], reg_read, &val);
-		WCN_INFO("rmap[%d]:ctrl_reg[%d]=0x%x,read=0x%x, set=%x\n",
+		WCN_INFO("rmap[%d]:ctrl_reg[%d]=0x%x,read=0x%x, set=0x%x\n",
 			 type, i, reg_read, val,
 			 wcn_dev->ctrl_value[i]);
 		utemp_val = wcn_dev->ctrl_value[i];
@@ -218,9 +218,18 @@ static void wcn_config_ctrlreg(struct wcn_device *wcn_dev, u32 start, u32 end)
 				utemp_val = val | wcn_dev->ctrl_value[i];
 		}
 
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			if (wcn_dev->ctrl_rw_offset[i] == 0x00) {
+				/* need to clear bit */
+				utemp_val = val & (~wcn_dev->ctrl_mask[i]);
+				utemp_val |= wcn_dev->ctrl_value[i];
+			}
+		}
+		/* raw: write bits */
+		WCN_INFO("utemp_val 0x%x  val 0x%x\n", utemp_val, val);
 		wcn_regmap_raw_write_bit(wcn_dev->rmap[type],
-					 wcn_dev->ctrl_reg[i],
-					 utemp_val);
+					wcn_dev->ctrl_reg[i], utemp_val);
+
 		if (wcn_dev->ctrl_us_delay[i] >= 10)
 			usleep_range(wcn_dev->ctrl_us_delay[i],
 				     wcn_dev->ctrl_us_delay[i] + 40);
@@ -363,6 +372,35 @@ void gnss_write_efuse_data(void)
 	WCN_INFO("%s finish.\n", __func__);
 }
 
+static void wcn_parse_dt_regmap_judge(struct wcn_device *wcn_dev)
+{
+	int i = 0;
+
+	wcn_dev->need_regmap[REGMAP_PMU_APB] = TRUE;
+	wcn_dev->need_regmap[REGMAP_ANLG_WRAP_WCN] = TRUE;
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKLE) {
+		wcn_dev->need_regmap[REGMAP_PUB_APB] = TRUE;
+		wcn_dev->need_regmap[REGMAP_ANLG_PHY_G6] = TRUE;
+	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2) {
+
+	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3) {
+		wcn_dev->need_regmap[REGMAP_WCN_REG] = TRUE;
+		wcn_dev->need_regmap[REGMAP_ANLG_PHY_G5] = TRUE;
+	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		wcn_dev->need_regmap[REGMAP_PUB_APB] = TRUE;
+		if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0)
+			wcn_dev->need_regmap[REGMAP_WCN_BTWF_AHB] = TRUE;
+		else if (strcmp(wcn_dev->name, WCN_GNSS_DEV_NAME) == 0)
+			wcn_dev->need_regmap[REGMAP_WCN_GNSS_SYS_AHB] = TRUE;
+
+		wcn_dev->need_regmap[REGMAP_WCN_AON_AHB] = TRUE;
+		wcn_dev->need_regmap[REGMAP_ANLG_WRAP_WCN] = FALSE;
+	}
+	for (i = 0; i < REGMAP_TYPE_NR; i++)
+		WCN_INFO("need_regmap[%d] : %d\n", i, wcn_dev->need_regmap[i]);
+}
+
 static int wcn_parse_dt(struct platform_device *pdev,
 			struct wcn_device *wcn_dev)
 {
@@ -405,17 +443,21 @@ static int wcn_parse_dt(struct platform_device *pdev,
 
 	wcn_parse_platform_chip_id(wcn_dev);
 
+	wcn_parse_dt_regmap_judge(wcn_dev);
+
 	/* get pmu reg handle */
-	wcn_dev->rmap[REGMAP_PMU_APB] =
-				syscon_regmap_lookup_by_phandle(
-				np, "sprd,syscon-ap-pmu");
-	if (IS_ERR(wcn_dev->rmap[REGMAP_PMU_APB])) {
-		WCN_ERR("failed to find sprd,syscon-ap-pmu\n");
-		return -EINVAL;
+	if (wcn_dev->need_regmap[REGMAP_PMU_APB] == TRUE) {
+		wcn_dev->rmap[REGMAP_PMU_APB] =
+					syscon_regmap_lookup_by_phandle(
+					np, "sprd,syscon-ap-pmu");
+		if (IS_ERR(wcn_dev->rmap[REGMAP_PMU_APB])) {
+			WCN_ERR("failed to find sprd,syscon-ap-pmu\n");
+			return -EINVAL;
+		}
 	}
 
 	/* get pub apb reg handle:SHARKLE has it, but PIKE2 hasn't  */
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKLE) {
+	if (wcn_dev->need_regmap[REGMAP_PUB_APB] == TRUE) {
 		wcn_dev->rmap[REGMAP_PUB_APB] =
 					syscon_regmap_lookup_by_phandle(
 					np, "sprd,syscon-ap-pub-apb");
@@ -423,18 +465,21 @@ static int wcn_parse_dt(struct platform_device *pdev,
 			WCN_ERR("failed to find sprd,syscon-ap-pub-apb\n");
 			return -EINVAL;
 		}
+		WCN_INFO("PUB APB REG MAP!\n");
 	}
 
 	/* get  anlg wrap wcn reg handle */
-	wcn_dev->rmap[REGMAP_ANLG_WRAP_WCN] =
+	if (wcn_dev->need_regmap[REGMAP_ANLG_WRAP_WCN] == TRUE) {
+		wcn_dev->rmap[REGMAP_ANLG_WRAP_WCN] =
 					syscon_regmap_lookup_by_phandle(
 					np, "sprd,syscon-anlg-wrap-wcn");
-	if (IS_ERR(wcn_dev->rmap[REGMAP_ANLG_WRAP_WCN])) {
-		WCN_ERR("failed to find sprd,anlg-wrap-wcn\n");
-		return -EINVAL;
+		if (IS_ERR(wcn_dev->rmap[REGMAP_ANLG_WRAP_WCN])) {
+			WCN_ERR("failed to find sprd,anlg-wrap-wcn\n");
+			return -EINVAL;
+		}
 	}
 
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKLE) {
+	if (wcn_dev->need_regmap[REGMAP_ANLG_PHY_G6] == TRUE) {
 		/* get  anlg wrap wcn reg handle */
 		wcn_dev->rmap[REGMAP_ANLG_PHY_G6] =
 					syscon_regmap_lookup_by_phandle(
@@ -446,7 +491,7 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	}
 
 	/* SharkL3:The base Reg changed which used by AP read CP2 Regs */
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3) {
+	if (wcn_dev->need_regmap[REGMAP_WCN_REG] == TRUE) {
 		/* get  anlg wrap wcn reg handle */
 		wcn_dev->rmap[REGMAP_WCN_REG] =
 		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-wcn-reg");
@@ -459,12 +504,36 @@ static int wcn_parse_dt(struct platform_device *pdev,
 			 wcn_dev->rmap[REGMAP_WCN_REG]);
 	}
 
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3) {
+	if (wcn_dev->need_regmap[REGMAP_ANLG_PHY_G5] == TRUE) {
 		/* get  anlg wrap wcn reg handle */
 		wcn_dev->rmap[REGMAP_ANLG_PHY_G5] =
 		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-anlg-phy-g5");
 		if (IS_ERR(wcn_dev->rmap[REGMAP_ANLG_PHY_G5]))
 			WCN_ERR("failed to find sprd,anlg-phy-g5\n");
+	}
+
+	if (wcn_dev->need_regmap[REGMAP_WCN_BTWF_AHB] == TRUE) {
+		/* get  wcn btwf ahb reg handle */
+		wcn_dev->rmap[REGMAP_WCN_BTWF_AHB] =
+		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-wcn-btwf-ahb");
+		if (IS_ERR(wcn_dev->rmap[REGMAP_WCN_BTWF_AHB]))
+			WCN_ERR("failed to find sprd,wcn-btwf-ahb\n");
+	}
+
+	if (wcn_dev->need_regmap[REGMAP_WCN_GNSS_SYS_AHB] == TRUE) {
+		/* get  wcn gnss sys anh reg handle */
+		wcn_dev->rmap[REGMAP_WCN_GNSS_SYS_AHB] =
+		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-wcn-gnss-ahb");
+		if (IS_ERR(wcn_dev->rmap[REGMAP_WCN_GNSS_SYS_AHB]))
+			WCN_ERR("failed to find sprd,wcn-gnss-ahb\n");
+	}
+
+	if (wcn_dev->need_regmap[REGMAP_WCN_AON_AHB] == TRUE) {
+		/* get  wcn aon ahb reg handle */
+		wcn_dev->rmap[REGMAP_WCN_AON_AHB] =
+		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-aon-ahb");
+		if (IS_ERR(wcn_dev->rmap[REGMAP_WCN_AON_AHB]))
+			WCN_ERR("failed to find sprd,aon-ahb\n");
 	}
 
 	ret = of_property_read_u32(np, "sprd,ctrl-probe-num",
@@ -871,7 +940,7 @@ static inline void wcn_platform_fs_init(struct wcn_device *wcn_dev)
 
 		wcn_dev->platform_fs.entrys[i].flag = flag;
 
-		mode |= (S_IRUSR | S_IWUSR);
+		mode |= (0x0600);
 
 		WCN_INFO("entry name is %s type 0x%x addr: 0x%p\n",
 			 wcn_dev->platform_fs.entrys[i].name,
@@ -966,6 +1035,8 @@ static int wcn_probe(struct platform_device *pdev)
 
 		/* register ops */
 		wcn_bus_init();
+		/* sipc preinit */
+		sprdwcn_bus_preinit();
 
 		proc_fs_init();
 		log_dev_init();

@@ -20,7 +20,7 @@
 #ifndef __GNSS_COMMON_H__
 #define __GNSS_COMMON_H__
 
-#ifndef CONFIG_SC2342_INTEG
+#ifndef CONFIG_WCN_INTEG
 /* begin: address map on gnss side, operate by SDIO BUS */
 /* set(s)/clear(c) */
 #define GNSS_SET_OFFSET                 0x1000

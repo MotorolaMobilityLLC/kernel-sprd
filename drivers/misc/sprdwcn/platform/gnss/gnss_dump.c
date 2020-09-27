@@ -13,7 +13,7 @@
 #include <linux/delay.h>
 #include <linux/file.h>
 #include <linux/fs.h>
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 #include "gnss.h"
 #endif
 #include <linux/kthread.h>
@@ -39,7 +39,7 @@ static struct file *gnss_dump_file;
 static	loff_t pos;
 #define GNSS_MEMDUMP_PATH			"/data/vendor/gnss/gnssdump.mem"
 
-#ifndef CONFIG_SC2342_INTEG
+#ifndef CONFIG_WCN_INTEG
 struct gnss_mem_dump {
 	uint address;
 	uint length;
@@ -115,7 +115,7 @@ static int gnss_creat_gnss_dump_file(void)
 	return 0;
 }
 
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 static void gnss_write_data_to_phy_addr(phys_addr_t phy_addr,
 					      void *src_data, u32 size)
 {
@@ -544,7 +544,7 @@ static int gnss_ext_dump_mem(void)
 
 int gnss_dump_mem(char flag)
 {
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 	gnss_dump_level = flag;
 	return gnss_integrated_dump_mem();
 #else

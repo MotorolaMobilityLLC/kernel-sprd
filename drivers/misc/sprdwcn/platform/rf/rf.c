@@ -628,7 +628,7 @@ int get_connectivity_config_param(struct wifi_config_t *p)
 {
 	int ret;
 	char *path = VENDOR_WIFI_CONFIG_FILE;
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 	if (wcn_get_aon_chip_id() == WCN_SHARKLE_CHIP_AD) {
 		path = SYSTEM_WIFI_CONFIG_AD_FILE;
 		ret = wifi_nvm_parse(path, CONF_TYPE, (void *)p);
@@ -638,7 +638,7 @@ int get_connectivity_config_param(struct wifi_config_t *p)
 #endif
 	ret = wifi_nvm_parse(SYSTEM_WIFI_CONFIG_FILE, CONF_TYPE, (void *)p);
 	if (ret < 0) {
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 		struct file *file;
 
 		path = VENDOR_WIFI_CONFIG_AD_FILE;
@@ -664,7 +664,7 @@ int get_connectivity_cali_param(struct wifi_cali_t *p)
 	int ret;
 	char *path = VENDOR_WIFI_CALI_FILE;
 
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 	if (wcn_get_aon_chip_id() == WCN_SHARKLE_CHIP_AD) {
 		path = SYSTEM_WIFI_CALI_AD_FILE;
 		ret = wifi_nvm_parse(path, CALI_TYPE, (void *)p);
@@ -674,7 +674,7 @@ int get_connectivity_cali_param(struct wifi_cali_t *p)
 #endif
 	ret = wifi_nvm_parse(SYSTEM_WIFI_CALI_FILE, CALI_TYPE, (void *)p);
 	if (ret < 0) {
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 		struct file *file;
 
 		path = VENDOR_WIFI_CALI_AD_FILE;

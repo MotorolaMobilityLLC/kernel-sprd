@@ -854,6 +854,9 @@ u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev)
 	else if (g_platform_chip_id.aon_chip_id0 == SHARKL3_CHIP_ID0 &&
 		 g_platform_chip_id.aon_chip_id1 == SHARKL3_CHIP_ID1)
 		g_platform_chip_type = WCN_PLATFORM_TYPE_SHARKL3;
+	else if (g_platform_chip_id.aon_chip_id0 == QOGIRL6_CHIP_ID0 &&
+		 g_platform_chip_id.aon_chip_id1 == QOGIRL6_CHIP_ID1)
+		g_platform_chip_type = WCN_PLATFORM_TYPE_QOGIRL6;
 	else
 		WCN_ERR("aon_chip_id0:[%d],id1[%d]\n",
 			g_platform_chip_id.aon_chip_id0,

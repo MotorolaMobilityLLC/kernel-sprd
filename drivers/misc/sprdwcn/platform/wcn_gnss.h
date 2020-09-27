@@ -13,7 +13,7 @@
 #ifndef _WCN_GNSS_H
 #define _WCN_GNSS_H
 
-#ifdef CONFIG_SC2342_INTEG
+#ifdef CONFIG_WCN_INTEG
 struct sprdwcn_gnss_ops {
 	int (*file_judge)(char *buff, int type);
 };
