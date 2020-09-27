@@ -279,6 +279,7 @@ static int wcn_load_firmware_data(struct wcn_device *wcn_dev)
 	}
 	is_gnss = wcn_dev_is_gnss(wcn_dev);
 	if (is_gnss) {
+		memset(wcn_dev->firmware_path, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
 		strncpy(wcn_dev->firmware_path, gnss_firmware_parent_path,
 			sizeof(wcn_dev->firmware_path));
 		strcat(wcn_dev->firmware_path, wcn_dev->firmware_path_ext);
