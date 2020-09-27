@@ -2554,10 +2554,10 @@ int expand_downwards(struct vm_area_struct *vma,
 					mm->locked_vm += grow;
 				vm_stat_account(mm, vma->vm_flags, grow);
 				anon_vma_interval_tree_pre_update_vma(vma);
-				vm_write_begin(vma);
+				vm_raw_write_begin(vma);
 				WRITE_ONCE(vma->vm_start, address);
 				WRITE_ONCE(vma->vm_pgoff, vma->vm_pgoff - grow);
-				vm_write_end(vma);
+				vm_raw_write_end(vma);
 				anon_vma_interval_tree_post_update_vma(vma);
 				vma_gap_update(vma);
 				spin_unlock(&mm->page_table_lock);
