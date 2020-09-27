@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.14.193 Kernel Configuration
+# Linux/arm64 4.14.199 Kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -1899,6 +1899,7 @@ CONFIG_SPI_SPRD_ADI=y
 # CONFIG_SPI_LOOPBACK_TEST is not set
 # CONFIG_SPI_TLE62X0 is not set
 # CONFIG_SPI_SLAVE is not set
+# CONFIG_SPI_DYNAMIC is not set
 # CONFIG_SPMI is not set
 # CONFIG_HSI is not set
 # CONFIG_PPS is not set
@@ -4544,7 +4545,8 @@ CONFIG_DEFAULT_SECURITY="selinux"
 # Memory initialization
 #
 # CONFIG_INIT_STACK_NONE is not set
-CONFIG_INIT_STACK_ALL=y
+# CONFIG_INIT_STACK_ALL_PATTERN is not set
+CONFIG_INIT_STACK_ALL_ZERO=y
 # CONFIG_INIT_ON_ALLOC_DEFAULT_ON is not set
 # CONFIG_INIT_ON_FREE_DEFAULT_ON is not set
 CONFIG_CRYPTO=y
