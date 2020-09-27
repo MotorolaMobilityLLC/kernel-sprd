@@ -699,6 +699,7 @@ static int snd_compr_start(struct snd_compr_stream *stream)
 			return -EPERM;
 		break;
 	case SNDRV_PCM_STATE_PREPARED:
+	case SNDRV_PCM_STATE_RUNNING:
 		break;
 	default:
 		return -EPERM;
