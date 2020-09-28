@@ -405,10 +405,13 @@ static void sprd_uart_dma_rx(struct uart_port *port)
 	struct sprd_uart_port *sp =
 		container_of(port, struct sprd_uart_port, port);
 	struct tty_port *tty = &port->state->port;
+	int count;
 
 	port->icount.rx += sp->rx_dma.trans_len;
-	tty_insert_flip_string(tty, sp->rx_buf_tail, sp->rx_dma.trans_len);
-	tty_flip_buffer_push(tty);
+	count = tty_insert_flip_string(tty, sp->rx_buf_tail,
+				       sp->rx_dma.trans_len);
+	if (count)
+		tty_flip_buffer_push(tty);
 }
 
 static void sprd_uart_dma_irq(struct uart_port *port)
