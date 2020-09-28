@@ -259,6 +259,15 @@ config SPRD_SHARKL5_USB2_PHY
 	  This driver takes care of all the PHY functionality, normally paired with
 	  DesignWare USB20 (DRD) Controller.
 
+config SPRD_QOGIRL6_USB2_PHY
+	tristate "Spreadtrum Qogirl6 USB2 PHY Driver"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select USB_PHY
+	help
+	  Enable this to support the SPRD QOGIRL6 USB2 PHY that is part of SOC.
+	  This driver takes care of all the PHY functionality, normally paired with
+	  DesignWare USB20 (DRD) Controller.
+
 config SPRD_USB3_PHY
 	tristate "Spreadtrum USB3 PHY Driver"
 	select USB_PHY
