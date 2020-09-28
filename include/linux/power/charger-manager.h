@@ -55,6 +55,11 @@ enum cm_jeita_types {
 	CM_JEITA_MAX,
 };
 
+enum cm_capacity_cmd {
+	CM_CAPACITY = 0,
+	CM_BOOT_CAPACITY,
+};
+
 enum cm_charge_status {
 	CM_CHARGE_TEMP_OVERHEAT = BIT(0),
 	CM_CHARGE_TEMP_COLD = BIT(1),
