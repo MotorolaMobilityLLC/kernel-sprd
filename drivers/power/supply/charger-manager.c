@@ -582,6 +582,7 @@ static int get_batt_cap(struct charger_manager *cm, int *cap)
 	if (!fuel_gauge)
 		return -ENODEV;
 
+	val.intval = 0;
 	ret = power_supply_get_property(fuel_gauge,
 				POWER_SUPPLY_PROP_CAPACITY, &val);
 	power_supply_put(fuel_gauge);
@@ -671,8 +672,9 @@ static int get_boot_cap(struct charger_manager *cm, int *cap)
 	if (!fuel_gauge)
 		return -ENODEV;
 
+	val.intval = CM_BOOT_CAPACITY;
 	ret = power_supply_get_property(fuel_gauge,
-				POWER_SUPPLY_PROP_CAPACITY_LEVEL, &val);
+				POWER_SUPPLY_PROP_CAPACITY, &val);
 	power_supply_put(fuel_gauge);
 	if (ret)
 		return ret;
