@@ -990,6 +990,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CAPACITY:
+		if (val->intval == CM_BOOT_CAPACITY) {
+			val->intval = data->boot_cap;
+			break;
+		}
+
 		ret = sc27xx_fgu_get_capacity(data, &value);
 		if (ret)
 			goto error;
@@ -1062,10 +1067,6 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_VOLTAGE_BOOT:
 		val->intval = data->boot_volt;
-		break;
-
-	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
-		val->intval = data->boot_cap;
 		break;
 
 	default:
