@@ -1567,18 +1567,18 @@ CONFIG_BOOTPARAM_HUNG_TASK_PANIC_VALUE
 	[missing plat description] none
 	[function] Trigger kernel panic when detect hung task.
 CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC
-	[arch] all
-	[plat] pike2,sharkl5,sharkl5_32,sharkle32
-	[missing plat] sharkl3,sharkl3_32,sharkl5Pro
+	[arch] arm
+	[plat] pike2,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] menu
 	[subsys] watchdog
 	[must] debug
 	[missing plat description] replaced with watchdog fiq solution
 	[function] Panic (Reboot) On Soft Lockups.
 CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC_VALUE
-	[arch] all
-	[plat] pike2,sharkl5,sharkl5_32,sharkle32
-	[missing plat] sharkl3,sharkl3_32,sharkl5Pro
+	[arch] arm
+	[plat] pike2,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] code
 	[subsys] watchdog
 	[must] debug
@@ -5312,9 +5312,9 @@ CONFIG_HARDIRQS_SW_RESEND
 	[missing plat description] none
 	[function] Support hardware irqs resend by software.
 CONFIG_HARDLOCKUP_DETECTOR_OTHER_CPU
-	[arch] all
-	[plat] pike2,sharkl5,sharkl5_32,sharkle32
-	[missing plat] sharkl3,sharkl3_32,sharkl5Pro
+	[arch] arm
+	[plat] pike2,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] code
 	[subsys] watchdog
 	[must] debug
@@ -8171,9 +8171,9 @@ CONFIG_LOCKDEP_SUPPORT
 	[missing plat description] none
 	[function] Enable kernel support lockup.
 CONFIG_LOCKUP_DETECTOR
-	[arch] all
-	[plat] pike2,sharkl5,sharkl5_32,sharkle32
-	[missing plat] sharkl3,sharkl3_32,sharkl5Pro
+	[arch] arm
+	[plat] pike2,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] code
 	[subsys] core
 	[must] debug
@@ -12609,9 +12609,9 @@ CONFIG_SOCK_CGROUP_DATA
 	[missing plat description] none
 	[function] Support cgroup. Select by NET_PRIO and NET_CLASSID.
 CONFIG_SOFTLOCKUP_DETECTOR
-	[arch] all
-	[plat] pike2,sharkl5,sharkl5_32,sharkle32
-	[missing plat] sharkl3,sharkl3_32,sharkl5Pro
+	[arch] arm
+	[plat] pike2,sharkle32
+	[missing plat] sharkl3_32,sharkl5_32
 	[field] code
 	[subsys] watchdog
 	[must] debug
