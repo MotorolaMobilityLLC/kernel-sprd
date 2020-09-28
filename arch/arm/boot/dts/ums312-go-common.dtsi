@@ -322,6 +322,10 @@
 		wb_reserved: writeback@bfc30000{
 			reg = <0xbfc30000 0x00390000>;
 		};
+
+		logo_reserved: logobuffer@9e000000{
+			reg = <0x9e000000 0x00384000>;
+		};
 	};
 
 	ipi: interrupt-controller {
