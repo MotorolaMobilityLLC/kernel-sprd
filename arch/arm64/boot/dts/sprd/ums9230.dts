@@ -11,6 +11,7 @@
 #include "ums9230.dtsi"
 #include "sc2730.dtsi"
 #include "ums9230-mach.dtsi"
+#include "ums9230-modem.dtsi"
 #include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
 #include "lcd/lcd_nt35695_truly_mipi_fhd.dtsi"
 
@@ -34,6 +35,12 @@
 
 	chosen: chosen {
 		stdout-path = "serial1:115200n8";
+	};
+
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
 	};
 };
 
