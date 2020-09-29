@@ -779,8 +779,10 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 	if (nr_full_windows) {
 		update_history(rq, p, window_scale,
 			       nr_full_windows, event);
-		if (sysctl_sched_walt_cross_window_util)
+		if (sysctl_sched_walt_cross_window_util) {
 			p->ravg.sum = window_scale;
+			p->ravg.sum_latest = window_scale;
+		}
 	}
 	/* Roll window_start back to current to process any remainder
 	 * in current window. */
