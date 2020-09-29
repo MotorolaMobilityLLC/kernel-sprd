@@ -743,24 +743,7 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 		 * window. */
 		add_to_task_demand(rq, p, wallclock - mark_start);
 
-		/* Update task demand in current window when policy is
-		 * WINDOW_STATS_MAX. The purpose is to create opportunity
-		 * for rising cpu freq when cr_avg is used for cpufreq
-		 */
-		if (p->ravg.sum > p->ravg.demand &&
-		    walt_window_stats_policy == WINDOW_STATS_MAX) {
-			if (!task_has_dl_policy(p) || !p->dl.dl_throttled) {
-				if (task_on_rq_queued(p))
-					p->sched_class->fixup_cumulative_runnable_avg(
-							rq, p, p->ravg.sum);
-				else if (rq->curr == p)
-					fixup_cum_window_demand(
-							rq, p->ravg.sum);
-			}
-			p->ravg.demand = p->ravg.sum;
-		}
-
-		return;
+		goto done;
 	}
 
 	/* Busy time spans at least two windows. Temporarily rewind
@@ -791,6 +774,24 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 	/* Process (wallclock - window_start) next */
 	mark_start = window_start;
 	add_to_task_demand(rq, p, wallclock - mark_start);
+
+done:
+	/* Update task demand in current window when policy is
+	 * WINDOW_STATS_MAX. The purpose is to create opportunity
+	 * for rising cpu freq when cr_avg is used for cpufreq
+	 */
+	if (p->ravg.sum > p->ravg.demand &&
+		walt_window_stats_policy == WINDOW_STATS_MAX) {
+			if (!task_has_dl_policy(p) || !p->dl.dl_throttled) {
+				if (task_on_rq_queued(p))
+					p->sched_class->fixup_cumulative_runnable_avg(
+						rq, p, p->ravg.sum);
+				else if (rq->curr == p)
+					fixup_cum_window_demand(
+						rq, p->ravg.sum);
+			}
+			p->ravg.demand = p->ravg.sum;
+	}
 }
 
 /* Reflect task activity on its demand and cpu's busy time statistics */
