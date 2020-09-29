@@ -85,6 +85,18 @@
 			adc_scal: calib@26 {
 				reg = <0x26 0x2>;
 			};
+
+			hp_efuse_protectbit: calib@0 {
+				reg = <0x0 0x2>;
+			};
+
+			hp_efuse_auxadc: calib@28 {
+				reg = <0x28 0x2>;
+			};
+
+			hp_efuse_headmic: calib@2c {
+				reg = <0x2c 0x2>;
+			};
 		};
 
 		pmic_adc: adc@404 {
