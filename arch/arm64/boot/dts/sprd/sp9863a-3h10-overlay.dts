@@ -532,3 +532,7 @@
 &vddsim2 {
 	status = "disabled";
 };
+
+&logo_reserved {
+	reg = <0x0 0x9e817000 0x0 0x007e9000>;
+};
