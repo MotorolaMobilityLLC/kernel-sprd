@@ -130,7 +130,9 @@ def check_tags_commit_id(patch_info_list):
                 return (-1, "The patch donot contains tag")
             if not x[x.index('#') + 1:x.index(':')].replace(' ','').isalnum():
                 characters_temp_list = x[x.index('#') + 1:x.index(':')].split(' ')
-                if not (characters_temp_list[1] in SUBSYSTEM1_TAGS_NOCHECK and characters_temp_list[0].isalnum()):
+                if not ((characters_temp_list[1] in SUBSYSTEM1_TAGS_NOCHECK or \
+                        characters_temp_list[1] in SUBSYSTEM1_TAGS) \
+                        and characters_temp_list[0].isalnum()):
                     return (-1, "Title contains special characters between bug id and tags")
 
             if len(x.split(":")) != len(x.split(": ")):
