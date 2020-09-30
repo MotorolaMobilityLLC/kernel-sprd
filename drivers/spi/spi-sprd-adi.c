@@ -609,7 +609,7 @@ static int sprd_adi_probe(struct platform_device *pdev)
 	}
 
 	sadi->restart_handler.notifier_call = sprd_adi_restart_handler;
-	sadi->restart_handler.priority = 128;
+	sadi->restart_handler.priority = 130;
 	ret = register_restart_handler(&sadi->restart_handler);
 	if (ret) {
 		dev_err(&pdev->dev, "can not register restart handler\n");
