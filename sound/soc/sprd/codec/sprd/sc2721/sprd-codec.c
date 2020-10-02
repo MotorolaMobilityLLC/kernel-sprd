@@ -3324,7 +3324,7 @@ static const struct snd_soc_dapm_route sprd_codec_intercon[] = {
 	{"HP BUF Switch", NULL, "DALR DC Offset"},
 	{"HPL EAR Sel2", NULL, "HP BUF Switch"},
 	{"HPL Switch", "HPL", "HPL EAR Sel2"},
-	{"HPR Switch", NULL, "HP BUF Switch"},
+	{"HPR Switch", "HPL", "HPL EAR Sel2"},
 	{"HPL Gain", NULL, "HPL Switch"},
 	{"HPR Gain", NULL, "HPR Switch"},
 	{"Virt HP Jack", "Switch", "HPL Gain"},
