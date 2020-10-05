@@ -79,14 +79,32 @@ struct sprd_sip_svc_dbg_ops {
 };
 
 /**
+ * struct sprd_sip_svc_storage_ops - represents the various operations
+ * 	provided by SPRD SIP STORAGE
+ *
+ * @ufs_crypto_enable: make crypto cfg field configurable to normal world
+ * @ufs_crypto_disable: make crypto cfg field non-configurable to normal world
+ */
+struct sprd_sip_svc_storage_ops {
+	struct sprd_sip_svc_rev_info rev;
+
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+	int (*ufs_crypto_enable)(void);
+	int (*ufs_crypto_disable)(void);
+#endif
+};
+
+/**
  * struct sprd_sip_svc_handle - Handle returned to SPRD SIP clients for usage
  *
  * @perf_ops: pointer to set of performance operations
  * @dbg_ops: pointer to set of dbg operations
+ * @storage_ops: pointer to set of storage operations
  */
 struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_perf_ops perf_ops;
 	struct sprd_sip_svc_dbg_ops dbg_ops;
+	struct sprd_sip_svc_storage_ops storage_ops;
 };
 
 /**
