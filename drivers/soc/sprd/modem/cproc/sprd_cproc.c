@@ -49,6 +49,8 @@ static struct dentry *cproc_root;
 static void sprd_cproc_init_debugfs(void);
 #endif
 
+static void cproc_poll_msg(phys_addr_t addr, void *data);
+
 #ifndef CONFIG_SPRD_SIPC_V2
 #define SOC_MODEM	0
 #define modem_ram_vmap_nocache(type, start, size) \
@@ -60,7 +62,7 @@ static void sprd_cproc_init_debugfs(void);
 #define CPROC_WDT_FLASE  false
 /*used for ioremap to limit vmalloc size, shi yunlong*/
 #define CPROC_VMALLOC_SIZE_LIMIT 4096
-#define MAX_CPROC_ENTRY_NUM		0x10
+#define MAX_CPROC_ENTRY_NUM		0x20
 
 enum {
 	CP_NORMAL_STATUS = 0,
@@ -82,6 +84,7 @@ enum {
 	BE_CTRL_ON  = BIT(13),
 	BE_CTRL_OFF	= BIT(14),
 	BE_IOCTL    = BIT(15),
+	BE_ASSERT    = BIT(16),
 };
 
 enum {
@@ -119,7 +122,7 @@ struct cproc_proc_entry {
 
 struct cproc_proc_fs {
 	struct proc_dir_entry		*procdir;
-	struct cproc_proc_entry		entrys[MAX_CPROC_ENTRY_NUM];
+	struct cproc_proc_entry		entries[MAX_CPROC_ENTRY_NUM];
 };
 
 struct cproc_device {
@@ -128,11 +131,15 @@ struct cproc_device {
 	void *vbase;
 	int wdtirq;
 	int	wdtcnt;
+	int has_assert;
 	wait_queue_head_t wdtwait;
+	wait_queue_head_t assert_wait;
 	char *name;
 	int status;
 	int	type;
 	struct cproc_proc_fs procfs;
+	void *virt_addr;
+	phys_addr_t phy_addr;
 };
 
 struct cproc_dump_info {
@@ -316,6 +323,7 @@ static ssize_t cproc_proc_read(struct file *filp,
 	ssize_t i;
 	unsigned long r;
 	u32 base, size;
+	size_t buf_len;
 
 	flag = entry->flag;
 	dev_dbg(dev, "type = %s, flag = 0x%x\n", type, flag);
@@ -520,6 +528,28 @@ static ssize_t cproc_proc_read(struct file *filp,
 		}
 
 		return total;
+	} else if (flag & BE_ASSERT) {
+		rval = wait_event_interruptible(cproc->assert_wait, cproc->has_assert);
+		cproc->has_assert = false;
+		if (rval < 0) {
+			pr_info("cproc: read, wait interrupted error!\n");
+			return rval;
+		}
+		pr_info("cproc: cproc->phy_addr= 0x%x \n", cproc->phy_addr);
+		cproc->virt_addr = memremap((resource_size_t)(cproc->phy_addr),
+					    0x400, MEMREMAP_WB);
+		if (!(cproc->virt_addr))
+			return -EFAULT;
+
+		buf_len = strlen((u8 *)cproc->virt_addr);
+		count = min(count, buf_len);
+
+		if (unalign_copy_to_user(buf,
+					 (u8 *)cproc->virt_addr, count)) {
+			pr_info("copy assert data to user error !\n");
+			memunmap(cproc->virt_addr);
+			return -EFAULT;
+		}
 	} else {
 		return -EINVAL;
 	}
@@ -635,6 +665,9 @@ static ssize_t cproc_proc_write(struct file *filp,
 		dev_dbg(dev, "stop!\n");
 		cproc->initdata->stop(cproc);
 		cproc->status = CP_STOP_STATUS;
+		return count;
+	} else if ((flag & BE_ASSERT)) {
+		smsg_senddie(cproc->initdata->dst);
 		return count;
 	} else if ((flag & BE_LD) != 0) {
 		i = ~((~0) << 4) & flag;
@@ -827,32 +860,32 @@ static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
 
 	cproc->procfs.procdir = proc_mkdir(cproc->name, NULL);
 
-	memset(cproc->procfs.entrys, 0, sizeof(cproc->procfs.entrys));
+	memset(cproc->procfs.entries, 0, sizeof(cproc->procfs.entries));
 
 	for (flag = 0, ucnt = 0, mode = 0, i = 0;
 		i < MAX_CPROC_ENTRY_NUM;
 		i++, flag = 0, mode = 0) {
 		switch (i) {
 		case 0:
-			cproc->procfs.entrys[i].name = "start";
+			cproc->procfs.entries[i].name = "start";
 			flag |= (BE_WRONLY | BE_CTRL_ON);
 			ucnt++;
 			break;
 
 		case 1:
-			cproc->procfs.entrys[i].name = "stop";
+			cproc->procfs.entries[i].name = "stop";
 			flag |= (BE_WRONLY | BE_CTRL_OFF);
 			ucnt++;
 			break;
 
 		case 2:
-			cproc->procfs.entrys[i].name = "wdtirq";
+			cproc->procfs.entries[i].name = "wdtirq";
 			flag |= (BE_RDONLY | BE_RDWDT);
 			ucnt++;
 			break;
 
 		case 3:
-			cproc->procfs.entrys[i].name = "status";
+			cproc->procfs.entries[i].name = "status";
 			flag |= (BE_RDONLY | BE_RDWDTS);
 			ctrl = cproc->initdata->ctrl;
 			if (ctrl->ctrl_reg[CPROC_CTRL_LOAD_STATUS] !=
@@ -866,20 +899,26 @@ static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
 				ucnt++;
 				continue;
 			}
-			cproc->procfs.entrys[i].name = "mini_dump";
+			cproc->procfs.entries[i].name = "mini_dump";
 			flag |= (BE_RDONLY | BE_MNDUMP);
 			ucnt++;
 			break;
 
 		case 5:
-			cproc->procfs.entrys[i].name = "ldinfo";
+			cproc->procfs.entries[i].name = "ldinfo";
 			flag |= (BE_RDONLY | BE_RDLDIF);
 			ucnt++;
 			break;
 
 		case 6:
-			cproc->procfs.entrys[i].name = "mem";
+			cproc->procfs.entries[i].name = "mem";
 			flag |= (BE_RDONLY | BE_CPDUMP);
+			ucnt++;
+			break;
+
+		case 7:
+			cproc->procfs.entries[i].name = "modemassert";
+			flag |= (BE_RDONLY | BE_WRONLY | BE_ASSERT);
 			ucnt++;
 			break;
 
@@ -893,29 +932,29 @@ static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
 			if (i - ucnt >= cproc->initdata->segnr)
 				return;
 
-			cproc->procfs.entrys[i].name =
+			cproc->procfs.entries[i].name =
 				cproc->initdata->segs[i - ucnt].name;
 			flag |= (BE_WRONLY | BE_RDONLY | BE_LD | BE_SEGMFG | (i - ucnt));
 			break;
 		}
 
-		cproc->procfs.entrys[i].flag = flag;
+		cproc->procfs.entries[i].flag = flag;
 
 		mode |= (S_IRUSR | S_IWUSR);
 		if (flag & (BE_CPDUMP | BE_MNDUMP))
 			mode |= S_IROTH;
 
 		dev_dbg(dev, "entry name is %s type 0x%x addr: 0x%p\n",
-			cproc->procfs.entrys[i].name,
-			cproc->procfs.entrys[i].flag,
-			&cproc->procfs.entrys[i]);
-		cproc->procfs.entrys[i].entry = proc_create_data(
-				cproc->procfs.entrys[i].name,
+			cproc->procfs.entries[i].name,
+			cproc->procfs.entries[i].flag,
+			&cproc->procfs.entries[i]);
+		cproc->procfs.entries[i].entry = proc_create_data(
+				cproc->procfs.entries[i].name,
 				mode,
 				cproc->procfs.procdir,
 				&cpproc_fs_fops,
-				&cproc->procfs.entrys[i]);
-		cproc->procfs.entrys[i].cproc = cproc;
+				&cproc->procfs.entries[i]);
+		cproc->procfs.entries[i].cproc = cproc;
 	}
 }
 
@@ -924,11 +963,11 @@ static inline void sprd_cproc_fs_exit(struct cproc_device *cproc)
 	u8 i = 0;
 
 	for (i = 0; i < MAX_CPROC_ENTRY_NUM; i++) {
-		if (!cproc->procfs.entrys[i].name)
+		if (!cproc->procfs.entries[i].name)
 			break;
 
-		if (cproc->procfs.entrys[i].flag != 0) {
-			remove_proc_entry(cproc->procfs.entrys[i].name,
+		if (cproc->procfs.entries[i].flag != 0) {
+			remove_proc_entry(cproc->procfs.entries[i].name,
 					  cproc->procfs.procdir);
 		}
 	}
@@ -1484,12 +1523,15 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 	/* get ic type */
 	ret = of_property_read_u32(np, "sprd,type", (u32 *)&pdata->type);
 	if (ret) {
-		if (strstr(pdata->devname, "pm"))
+		if (strstr(pdata->devname, "pm")) {
 			pdata->type = ARM_CTRL;
-		else if (strstr(pdata->devname, "agdsp"))
+			pdata->dst = SIPC_ID_PM_SYS;
+		} else if (strstr(pdata->devname, "agdsp"))
 			pdata->type = AGDSP_CTRL;
-		else
+		else {
 			pdata->type = ARM_CTRL;
+			pdata->dst = SIPC_ID_PSCP;
+		}
 	}
 
 	cr_num = 0;
@@ -1754,6 +1796,9 @@ static int sprd_cproc_probe(struct platform_device *pdev)
 				}
 			}
 
+			init_waitqueue_head(&cproc->assert_wait);
+			smsg_register_notifier(cproc->initdata->dst, cproc_poll_msg, cproc);
+
 			sprd_cproc_fs_init(cproc);
 
 			platform_set_drvdata(pdev, cproc);
@@ -1764,6 +1809,15 @@ static int sprd_cproc_probe(struct platform_device *pdev)
 	}
 
 	return 0;
+}
+
+void cproc_poll_msg(phys_addr_t phy_addr, void *data)
+{
+	struct cproc_device *cproc = (struct cproc_device *)data;
+
+	cproc->phy_addr = phy_addr;
+	cproc->has_assert = true;
+	wake_up_interruptible_all(&cproc->assert_wait);
 }
 
 static int sprd_cproc_remove(struct platform_device *pdev)

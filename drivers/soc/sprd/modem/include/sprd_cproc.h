@@ -87,6 +87,7 @@ struct cproc_init_data {
 	int			wdtirq;
 	int			type;
 	u32		segnr;
+	int 		dst;
 	struct cproc_segments	segs[];
 };
 

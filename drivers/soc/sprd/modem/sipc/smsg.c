@@ -47,13 +47,37 @@
 static u8 channel2index[SMSG_CH_NR + 1];
 static u8 g_wakeup_flag;
 
+/* smsg_assert_notify */
+struct smsg_assert_notify {
+	void(*handler)(phys_addr_t addr, void *data);
+	void *data;
+};
+
+
 struct smsg_ipc *smsg_ipcs[SIPC_ID_NR];
 EXPORT_SYMBOL_GPL(smsg_ipcs);
 
 static ushort debug_enable;
 static ushort is_wklock_setup;
 
+static struct smsg_assert_notify g_smsg_assert_notify[SIPC_ID_NR];
+
 module_param_named(debug_enable, debug_enable, ushort, 0644);
+
+int smsg_register_notifier(int dst,
+			   void(*handler)(phys_addr_t addr, void *data), void *data)
+{
+	struct smsg_assert_notify *assert_notify;
+
+	if (dst > SIPC_ID_NR)
+		return -1;
+
+	assert_notify = &g_smsg_assert_notify[dst];
+	assert_notify->handler = handler;
+	assert_notify->data = data;
+	return 0;
+}
+EXPORT_SYMBOL_GPL(smsg_register_notifier);
 
 static void smsg_init_channel2index(void)
 {
@@ -107,10 +131,13 @@ static void get_channel_status(u8 dst, char *status, int size)
 static irqreturn_t smsg_irq_handler(void *ptr, void *private)
 {
 	struct smsg_ipc *ipc = (struct smsg_ipc *)private;
+	struct smsg_assert_notify *assert_notify;
 	struct smsg *msg;
 	struct smsg_channel *ch = NULL;
 	u32 wr;
 	u8 ch_index;
+
+	assert_notify = &g_smsg_assert_notify[ipc->dst];
 
 	msg = ptr;
 	/* if the first msg come after the irq wake up by sipc,
@@ -131,6 +158,12 @@ static irqreturn_t smsg_irq_handler(void *ptr, void *private)
 			 msg->type,
 			 msg->flag,
 			 msg->value);
+	}
+
+	if (msg->type == SMSG_TYPE_ASSERT) {
+		if (assert_notify->handler)
+			assert_notify->handler((phys_addr_t)msg->value, assert_notify->data);
+		return IRQ_HANDLED;
 	}
 
 	if (msg->type == SMSG_TYPE_DIE) {

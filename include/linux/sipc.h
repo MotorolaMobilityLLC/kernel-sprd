@@ -238,6 +238,7 @@ enum {
 	SMSG_TYPE_DFS_RSP,
 	SMSG_TYPE_ASS_TRG,
 	SMSG_TYPE_HIGH_OFFSET, /* client sipc get high offset from host */
+	SMSG_TYPE_ASSERT,
 	SMSG_TYPE_NR,		/* total type number */
 };
 
@@ -316,6 +317,9 @@ int smsg_send(u8 dst, struct smsg *msg, int timeout);
  * @return: 0 on success, <0 on failure
  */
 int smsg_recv(u8 dst, struct smsg *msg, int timeout);
+
+/* smsg_register_notifier  */
+int smsg_register_notifier(int dst, void(*handler)(phys_addr_t addr, void *data), void *data);
 
 /**
  * sipc_channel2index
