@@ -1232,8 +1232,6 @@ enum VBC_AD_ID_E {
 	VBC_AD_MAX,
 };
 
-#define VBC_DMIC_ADC_ID_SHIFT 8
-
 /* bit8 DMIC0_L, bit9 DMIC0_R, bit10 DMIC1_L, bit11 DMIC1_R */
 enum VBC_DMIC_SEL_E {
 	VBC_DMIC_NONE,
