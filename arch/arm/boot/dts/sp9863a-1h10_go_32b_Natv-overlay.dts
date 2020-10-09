@@ -11,6 +11,13 @@
 				fpint-gpios = <&ap_gpio 130 0>;
 			};
 
+			flash-gpios {
+				compatible = "sprd,flash-sgm37891";
+				flash-ic = <37891>;
+				flash-1w-gpios = <&ap_gpio 62 0>;
+				flash-torch-en-gpios = <&ap_gpio 63 0>;
+				flash-en-gpios = <&ap_gpio 72 0>;
+			};
 			pwm_backlight: sprd_backlight {
 				compatible = "pwm-backlight";
 				pwms = <&pwms 1 30000>;
@@ -59,9 +66,11 @@
 	touchscreen@38 {
 		compatible = "adaptive-touchscreen";
 		reg = <0x38>;
+		status = "disabled";		
 		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
 			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 		controller = "focaltech,FT5436";
+
 		virtualkeys = <580 60 1320 60 45
 			172 360 1320 60 45
 			158 600 1320 60 45>;
@@ -73,6 +82,34 @@
 			a8 = /bits/ 8 <0x5a>;
 		};
 	};
+	gt9xx_ts@5d{
+		compatible = "goodix,gt9xx_ts";
+		reg = <0x5d>;
+		status = "okay";
+		reset-gpios = <&ap_gpio 145 0x0>;
+		irq-gpios = <&ap_gpio 144 0x0>;
+		irq-flags = <2>;
+
+		touchscreen-max-id = <11>;
+		touchscreen-size-x = <720>;
+		touchscreen-size-y = <1440>;
+		touchscreen-max-w = <512>;
+		touchscreen-max-p = <512>;
+		touchscreen-key-map = <172>, <158>; /*KEY_HOMEPAGE=172, KEY_BACK=158，KEY_MENU=139*/
+		goodix,slide-wakeup = <0>;
+		goodix,type-a-report = <0>;
+		goodix,driver-send-cfg = <1>;
+		goodix,resume-in-workqueue = <0>;
+		goodix,int-sync = <1>;
+		goodix,swap-x2y = <0>;
+		goodix,esd-protect = <1>;
+		goodix,auto-update-cfg = <0>;
+		goodix,power-off-sleep = <1>;
+		goodix,pen-suppress-finger = <0>;
+		goodix,cfg-group2 = [
+		44 D0 02 A0 05 05 3D 08 01 0A 1E 0F 50 37 03 05 00 00 00 00 00 00 06 18 1A 1E 14 86 26 BC 4A 4C B5 06 BB 0A 00 1A 32 11 00 00 00 00 00 00 00 23 C8 A0 42 32 7D 85 80 C5 01 1E 00 04 A6 37 00 8D 42 00 78 4F 00 67 5F 00 59 72 00 59 00 00 00 00 00 00 00 00 00 00 00 01 02 00 00 00 00 00 7F 67 00 00 0A 23 00 00 00 00 46 00 46 00 00 00 00 32 00 01 02 03 04 05 06 07 08 09 0A 0B 16 15 14 13 12 11 10 0F 0E 0D 0C 17 18 19 1A 1B FF FF 05 06 08 0A 0C 0E 1E 1F 20 22 24 2A 29 2A FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 A2 01
+		];
+	};	
 };
 
 &ddr_dfs {
