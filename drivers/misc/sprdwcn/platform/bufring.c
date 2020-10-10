@@ -141,7 +141,8 @@ int mdbg_ring_read(struct mdbg_ring_t *ring, void *buf, int len)
 	}
 	MDBG_RING_LOCK(ring);
 	cont_len = mdbg_ring_readable_len(ring);
-	read_len = (unsigned int)(cont_len >= len ? len : cont_len);
+	read_len = (unsigned int)(cont_len >= len ? len :
+				  (unsigned int)cont_len);
 	pstart = mdbg_ring_start(ring);
 	pend = mdbg_ring_end(ring);
 	WCN_LOG("read_len=%d", read_len);

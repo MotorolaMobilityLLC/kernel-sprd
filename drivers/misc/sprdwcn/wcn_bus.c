@@ -89,7 +89,7 @@ static int buf_pool_check(struct buffer_pool_t *pool)
 	if (pool->head == NULL)
 		return 0;
 
-	for (i = 0, mbuf = pool->head; i < pool->free; i++) {
+	for (i = 0, mbuf = pool->head; i < (int)pool->free; i++) {
 		WARN_ON_ONCE(!mbuf);
 		WARN_ON_ONCE((char *)mbuf < pool->mem ||
 			(char *)mbuf > pool->mem + ((sizeof(struct mbuf_t)
@@ -181,7 +181,7 @@ int buf_list_alloc(int chn, struct mbuf_t **head,
 
 	spin_lock_bh(&(pool->lock));
 	buf_pool_check(pool);
-	if (*num > pool->free)
+	if (*num > (int)pool->free)
 		*num = pool->free;
 
 	for (i = 1, temp_tail = pool->head; i < *num; i++)
