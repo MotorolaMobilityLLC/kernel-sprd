@@ -103,3 +103,18 @@
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	status = "okay";
 };
+
+&sdio0 {
+	cd-gpios = <&eic_sync 19 GPIO_ACTIVE_HIGH>;
+	sprd,phy-delay-sd-uhs-sdr104 = <0x7f 0x73 0x72 0x72>;
+	sprd,phy-delay-sd-uhs-sdr50 = <0x6e 0x7f 0x01 0x01>;
+	sprd,phy-delay-sd-highspeed = <0x7f 0x1a 0x9a 0x9a>;
+	sprd,phy-delay-legacy = <0x7f 0x1a 0x9a 0x9a>;
+	vmmc-supply = <&vddsdcore>;
+	vqmmc-supply = <&vddsdio>;
+	sd-uhs-sdr104;
+	sd-uhs-sdr50;
+	cap-mmc-hw-reset;
+	sprd,name = "sdio_sd";
+	status = "okay";
+};
