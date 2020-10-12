@@ -118,6 +118,24 @@ static const char *sprd_codec_chan_name[SPRD_CODEC_CHAN_MAX] = {
 	"ADC1",
 };
 
+enum IVSENCE_DMIC_TYPE {
+	NONE,
+	DMIC0,
+	DMIC1,
+	DMIC0_1,
+	DMIC_TYPE_MAX
+};
+
+static const char * const ivsence_dmic_type_txt[DMIC_TYPE_MAX] = {
+	[NONE] = TO_STRING(NONE),
+	[DMIC0] = TO_STRING(DMIC0),
+	[DMIC1] = TO_STRING(DMIC1),
+	[DMIC0_1] = TO_STRING(DMIC0_1),
+};
+
+static const struct soc_enum ivsence_dmic_sel_enum =
+	SOC_ENUM_SINGLE_EXT(4, ivsence_dmic_type_txt);
+
 static inline const char *sprd_codec_chan_get_name(int chan_id)
 {
 	return sprd_codec_chan_name[chan_id];
@@ -239,6 +257,7 @@ struct sprd_codec_priv {
 	struct mutex dig_access_mutex;
 	bool dig_access_en;
 	bool user_dig_access_dis;
+	enum IVSENCE_DMIC_TYPE ivsence_dmic_type;
 };
 
 
@@ -3196,6 +3215,37 @@ static int sprd_codec_spk_dg_fall_set(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int sprd_codec_ivsence_dmic_get(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+
+	ucontrol->value.integer.value[0] = sprd_codec->ivsence_dmic_type;
+
+	return 0;
+}
+
+static int sprd_codec_ivsence_dmic_put(struct snd_kcontrol *kcontrol,
+			     struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct sprd_codec_priv *sprd_codec = snd_soc_codec_get_drvdata(codec);
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+	int val;
+
+	val = ucontrol->value.integer.value[0];
+	if (val >= e->items || val < 0) {
+		pr_err("ERR: %s,index outof bounds error\n", __func__);
+		return -EINVAL;
+	}
+
+	sp_asoc_pr_info("%s using %s, val %d\n", __func__, e->texts[val], val);
+	sprd_codec->ivsence_dmic_type = val;
+
+	return 0;
+}
+
 static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 
 	SOC_ENUM_EXT("Aud Codec Info", codec_info_enum,
@@ -3221,6 +3271,9 @@ static const struct snd_kcontrol_new sprd_codec_snd_controls[] = {
 		sprd_codec_fixed_rate_get, sprd_codec_fixed_rate_put),
 	SOC_SINGLE_EXT("Codec Digital Access Disable", SND_SOC_NOPM, 0, 1, 0,
 		dig_access_disable_get, dig_access_disable_put),
+	SOC_ENUM_EXT("IVSENCE_DMIC_SEL", ivsence_dmic_sel_enum,
+		sprd_codec_ivsence_dmic_get,
+		sprd_codec_ivsence_dmic_put),
 };
 
 static unsigned int sprd_codec_read(struct snd_soc_codec *codec,
@@ -3320,8 +3373,31 @@ static int sprd_codec_pcm_hw_params(struct snd_pcm_substream *substream,
 			fixed_rate[CODEC_PATH_DA] : rate;
 		sprd_codec_set_sample_rate(codec,
 			sprd_codec->da_sample_val, mask, shift);
-		sp_asoc_pr_info("Playback rate is [%u]\n",
-			sprd_codec->da_sample_val);
+		sp_asoc_pr_info("Playback rate is [%u], ivsence_dmic_type %d\n",
+			sprd_codec->da_sample_val,
+			sprd_codec->ivsence_dmic_type);
+
+		switch (sprd_codec->ivsence_dmic_type) {
+		case DMIC0:
+			sprd_codec->ad_sample_val =
+				fixed_rate[CODEC_PATH_AD] ?
+				fixed_rate[CODEC_PATH_AD] : rate;
+			sprd_codec_set_ad_sample_rate(codec,
+				sprd_codec->ad_sample_val, mask, shift);
+			break;
+		case DMIC1:
+			sprd_codec->ad1_sample_val =
+				fixed_rate[CODEC_PATH_AD1] ?
+				fixed_rate[CODEC_PATH_AD1] : rate;
+			sprd_codec_set_ad_sample_rate(codec,
+				sprd_codec->ad1_sample_val,
+				ADC1_SRC_N_MASK, ADC1_SRC_N);
+			break;
+		case DMIC0_1:
+		case NONE:
+		default:
+			sp_asoc_pr_dbg("%s to do nothing\n", __func__);
+			}
 	} else {
 		sprd_codec->ad_sample_val = fixed_rate[CODEC_PATH_AD] ?
 			fixed_rate[CODEC_PATH_AD] : rate;
