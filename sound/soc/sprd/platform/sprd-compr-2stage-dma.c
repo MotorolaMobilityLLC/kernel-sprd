@@ -1951,15 +1951,17 @@ static int sprd_platform_compr_get_codec_caps(struct snd_compr_stream *cstream,
 static int sprd_platform_compr_set_metadata(struct snd_compr_stream *cstream,
 					struct snd_compr_metadata *metadata)
 {
-	struct snd_compr_runtime *runtime;
-	struct sprd_compr_rtd *srtd = runtime->private_data;
+	struct sprd_compr_rtd *srtd;
 
 	ADEBUG();
 
-	if (!metadata || !cstream)
+	if (!metadata || !cstream || !cstream->runtime)
 		return -EINVAL;
 
-	runtime = cstream->runtime;
+	srtd = cstream->runtime->private_data;
+
+	if (!srtd)
+		return -EINVAL;
 
 	ADEBUG();
 
