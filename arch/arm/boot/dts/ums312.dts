@@ -24,18 +24,9 @@
 
 	sprd,sc-id = "ums312 1000 1000";
 
-	aliases {
-		serial0 = &uart0;
-		serial1 = &uart1;
-	};
-
 	memory: memory {
 		device_type = "memory";
 		reg = <0x80000000 0x80000000>;
-	};
-
-	chosen: chosen {
-		stdout-path = &uart1;
 	};
 
 	sprd-sysdump {
@@ -77,19 +68,6 @@
 &dmc_mpu {
 	status = "okay";
 };
-
-&uart0 {
-	status = "okay";
-};
-
-&uart1 {
-	status = "okay";
-};
-
-&uart2 {
-	status = "okay";
-};
-
 
 &i2c5 {
 	status = "okay";

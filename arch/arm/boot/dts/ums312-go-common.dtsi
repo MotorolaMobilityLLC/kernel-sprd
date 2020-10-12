@@ -15,6 +15,12 @@
 		cooling-device0 = &cluster0_cooling;
 		cooling-device1 = &cluster1_cooling;
 		gpu-cooling0 = &gpu_cooling0;
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+	chosen: chosen {
+		stdout-path = &uart1;
 	};
 
 	firmware {
@@ -372,6 +378,18 @@
 		compatible = "linux,extcon-usb-gpio";
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
 };
 
 &sdio0 {
