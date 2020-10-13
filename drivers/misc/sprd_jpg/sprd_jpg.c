@@ -131,13 +131,13 @@ static const struct sprd_jpg_cfg_data sharkl3_jpg_data = {
 };
 static const struct sprd_jpg_cfg_data sharkl5_jpg_data = {
 	.version = SHARKL5,
-	.max_freq_level = 3,
+	.max_freq_level = 4,
 	.qos_reg_offset = 0x30
 };
 
 static const struct sprd_jpg_cfg_data roc1_jpg_data = {
 	.version = ROC1,
-	.max_freq_level = 3,
+	.max_freq_level = 4,
 	.qos_reg_offset = 0x30
 };
 
