@@ -819,3 +819,9 @@ config SPECULATIVE_PAGE_FAULT
 	  is detected or because underlying PMD or PTE tables are not yet
 	  allocated, the speculative page fault fails and a classic page fault
 	  is then tried.
+
+config MEM_GCOV
+	bool "open gcov for memory"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable gcov in memory codes
