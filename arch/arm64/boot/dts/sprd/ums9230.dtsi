@@ -247,3 +247,35 @@
 		<&ap_clk CLK_AP_SPI3>, <&pll1 CLK_TWPLL_192M>;
 };
 
+&vsp {
+	clock-names = "clk_ahb_gate_vsp_eb",
+			"clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_384m",
+			"clk_vsp";
+	clocks = <&apahb_gate CLK_VSP_EB>,
+			<&pll1 CLK_TWPLL_256M>,
+			<&pll1 CLK_TWPLL_307M2>,
+			<&pll1 CLK_TWPLL_384M>,
+			<&ap_clk CLK_VSP>;
+};
+
+&jpg {
+	clock-names = "jpg_domain_eb",
+			"jpg_dev_eb",
+			"jpg_ckg_eb",
+			"jpg_clk",
+			"clk_src_76m8",
+			"clk_src_128m",
+			"clk_src_256m",
+			"clk_src_384m";
+
+	clocks = <&aonapb_gate CLK_MM_EB>,
+			<&mm_gate CLK_MM_JPG_EB>,
+			<&mm_gate CLK_MM_CKG_EB>,
+			<&mm_clk CLK_JPG>,
+			<&pll1 CLK_TWPLL_76M8>,
+			<&pll1 CLK_TWPLL_128M>,
+			<&pll1 CLK_TWPLL_256M>,
+			<&pll1 CLK_TWPLL_384M>;
+};
