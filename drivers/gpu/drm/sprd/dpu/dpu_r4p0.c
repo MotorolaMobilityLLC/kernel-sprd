@@ -1702,12 +1702,6 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		if (cabc_disable != CABC_DISABLED)
 			schedule_work(&ctx->cabc_work);
 		return;
-
-	case ENHANCE_CFG_ID_FLIP_RUN:
-		if (cabc_disable != CABC_DISABLED)
-			schedule_work(&ctx->cabc_work);
-		return;
-
 	default:
 		break;
 	}
