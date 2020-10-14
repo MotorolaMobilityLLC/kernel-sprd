@@ -142,6 +142,14 @@
 				<GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
 	};
 
+	gsp: sprd-gsp {
+		compatible = "sprd,gsp-r8p0-qogirl6";
+		name = "sprd-gsp";
+		core-cnt = <1>;
+		io-cnt = <7>;
+		cores = <&gsp_core0>;
+	};
+
 	soc {
 		gic: interrupt-controller@10000000 {
 			compatible = "arm,gic-v3";
@@ -410,3 +418,14 @@
 	clock-names = "clk_ap_ahb_dsi_eb";
 	clocks = <&apahb_gate CLK_DSI_EB>;
 };
+
+&gsp_core0 {
+	clock-names =	"clk_dpu_core_src",
+			"clk_dpu_core",
+			"clk_ap_ahb_disp_eb";
+
+	clocks =	<&pll1 CLK_TWPLL_384M>,
+			<&ap_clk CLK_DISPC0>,
+			<&apahb_gate CLK_DISPC_EB>;
+};
+
