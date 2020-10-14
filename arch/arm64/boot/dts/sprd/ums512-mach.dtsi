@@ -189,8 +189,27 @@
 		debug_reserved: debug-mem@100000000 {
 			reg = <0x1 0x00000000 0x0 0x00001000>;
 		};
+	};
 
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
+	};
 
+	sprd-mtty {
+		compatible = "sprd,mtty";
+		sprd,name = "ttyBT";
+	};
+
+	sprd-fm {
+		compatible = "sprd,marlin3-fm";
+		sprd,name = "sprd-fm";
+	};
+
+	gnss_common_ctl {
+		compatible = "sprd,gnss_common_ctl";
+		sprd,name = "gnss_common_ctl";
 	};
 
 	rebootescrow@0 {
@@ -722,4 +741,209 @@
 
 &dphy {
 	status = "okay";
+};
+
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
+&pwms {
+	status = "okay";
+};
+
+&vsp {
+	status = "okay";
+};
+
+&iommu_vsp {
+	status = "okay";
+};
+
+&jpg {
+	status = "okay";
+};
+
+&iommu_jpg {
+	status = "okay";
+};
+
+&dcam {
+	status = "okay";
+};
+
+&iommu_dcam {
+	status = "okay";
+};
+
+&isp {
+	status = "okay";
+};
+
+&iommu_isp {
+	status = "okay";
+};
+
+&cpp {
+	status = "okay";
+};
+
+&iommu_cpp {
+	status = "okay";
+};
+
+&csi0 {
+	status = "okay";
+};
+
+&csi1 {
+	status = "okay";
+};
+
+&csi2 {
+	status = "okay";
+};
+
+&iommu_fd {
+	status = "okay";
+};
+
+&fd {
+	status = "okay";
+};
+
+&isp_dvfs {
+	status = "okay";
+};
+
+&cpp_dvfs {
+	status = "okay";
+};
+
+&jpg_dvfs {
+	status = "okay";
+};
+
+&fd_dvfs {
+	status = "okay";
+};
+
+&mtx_dvfs {
+	status = "okay";
+};
+
+&dcam_if_dvfs {
+	status = "okay";
+};
+
+&dcam_axi_dvfs {
+	status = "okay";
+};
+
+&mmsys_dvfs {
+	status = "okay";
+};
+
+&sound_sprd_ap_alliis {
+	status = "okay";
+};
+
+&i2s0 {
+	status = "okay";
+};
+
+&adi_bus {
+	sprd,hw-channels = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
+			 <17 0x1844>,<19 0x1844>, <21 0x1864>, <30 0x1820>,
+			 <35 0x19b8>, <39 0x19ac>;
+};
+
+&dmc_mpu {
+	status = "okay";
+	sprd,channel-names =
+		"CPU", "GPU", "DPU/DCAM","ISP",
+		"AP/VSP/AON", "WTLCP", "PUBCP/AUDCP",
+		"SHARED0", "SHARED1", "SHARED2",
+		"SHARED3", "SHARED4", "SHARED5",
+		"SHARED6", "SHARED7", "SHARED8";
+	sprd,ranges = <0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+		<0 0 0 0>, <0 0 0 0>, <0 0x87400000 0 0x94000000>,
+		<0 0x87400000 0 0x94000000>, <0 0 0 0>, <0 0 0 0>,
+		<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+		<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+		<0 0 0 0>;
+	sprd,chn-config =
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<ENABLE MON_OUTSIDE MON_WRITE>,
+		<ENABLE MON_OUTSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>,
+		<DISABLE MON_INSIDE MON_WRITE>;
+	sprd,panic;
+};
+
+&sprd_headset {
+	status = "okay";
+	extcon = <&pmic_typec>;
+	mic-gpios = <&ap_gpio 16 GPIO_ACTIVE_HIGH>;
+	lr-gpios = <&ap_gpio 15 GPIO_ACTIVE_HIGH>;
+	sprd,3pole-adc-threshold = <112>;
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	hp-use-inter-pa = <1>;
+	fixed-sample-rate = <48000 48000 48000>;
+	digital-codec = <&sprd_audio_codec_dig>;
+};
+
+&sound_vbc_v4_sprd_codec {
+	status = "okay";
+	sprd-audio-card,routing =
+		"HPMIC Pin", "HP Mic Jack",
+		"MIC Pin", "Mic Jack",
+		"MIC2 Pin", "Aux Mic Jack",
+		"HeadPhone Jack", "HP Pin",
+		"Ext Spk", "SPK Pin",
+		"UCP1301 SPK ON", "SPK Pin",
+		"Ext Spk", "UCP1301 SPK",
+		"DMIC Pin", "DMic Jack",
+		"DMIC1 Pin", "DMic1 Jack",
+		"Ext Ear", "EAR Pin";
+
+	/* 35: ucp1301 normal ap01 */
+	sprd-audio-card,dai-link@53 {
+		ignore-suspend = <1>;
+		link-name = "BE_NORMAL_AP01_UCPSPK";
+		stream-name = "BE_ST_NORMAL_AP01_UCPSPK";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+		cpu {
+			sound-dai = <&vbc_v4 3>;
+		};
+		codec {
+			sound-dai = <&ucp1301_spk 0>;
+		};
+	};
+
+	/*
+	 * node 54 and node 55 (index 36 and 37) are reserved for
+	 * "ucp1301-spk2" and "ucp1301-rcv"
+	 * nodes from 56 to 67 (index from 38 to 49) are used by HIFI
+	 */
 };

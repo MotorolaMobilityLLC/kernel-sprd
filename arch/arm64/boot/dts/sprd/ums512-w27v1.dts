@@ -16,12 +16,12 @@
 #include "ums512-t610dvfs.dtsi"
 #include "ums512-t618dvfs.dtsi"
 #include "sc2730.dtsi"
-#include "ums512-mach.dtsi"
 #include "ums512-modem.dtsi"
 #include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 #include "extra_sound_card_component.dtsi"
+#include "ums512-mach.dtsi"
 
 / {
 	model = "Unisoc UMS512 1H10 board";
