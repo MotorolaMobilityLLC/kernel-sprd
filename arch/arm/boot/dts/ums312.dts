@@ -13,9 +13,9 @@
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 
 #include "ums312.dtsi"
-#include "ums312-go-common.dtsi"
 #include "sprd-sound-fe-be.dtsi"
 #include "sc2730.dtsi"
+#include "ums312-go-common.dtsi"
 
 / {
 	model = "Unisoc UMS312 SoC";
@@ -34,39 +34,6 @@
 		memory-region-re = <&ddrbist_reserved>, <&cp_reserved>, <&smem_reserved>, <&scproc_pubpm>;
 		memory-region-se = <&tos_reserved>, <&sml_reserved>;
 	};
-
-	sprd-iq {
-		compatible = "sprd,iq";
-		sprd,region = <&iq_reserved>;
-		sprd,mapping-offs = <0x0>;
-	};
-
-	sprd-mtty {
-		compatible = "sprd,mtty";
-		sprd,name = "ttyBT";
-	};
-
-	sprd-fm {
-		compatible = "sprd,marlin3-fm";
-		sprd,name = "sprd-fm";
-	};
-
-	sprd-wlan {
-		compatible = "sprd,sc2355-wifi";
-	};
-
-	gnss_common_ctl:gnss-common-ctl {
-		compatible = "sprd,gnss_common_ctl";
-		sprd,name = "gnss_common_ctl";
-	};
-
-	audio-mem-mgr {
-		memory-region = <&audio_reserved &audiodsp_reserved>;
-	};
-};
-
-&dmc_mpu {
-	status = "okay";
 };
 
 &i2c5 {
@@ -96,111 +63,4 @@
 	};
 };
 
-&spi0 {
-	/*used for fingerprint sensor*/
-	status = "okay";
-};
 
-&iommu_dcam{
-	status = "okay";
-};
-
-&iommu_isp{
-	status = "okay";
-};
-
-&iommu_jpg{
-	status = "okay";
-};
-
-&iommu_cpp{
-	status = "okay";
-};
-
-&iommu_vsp{
-	status = "okay";
-};
-
-&iommu_fd{
-	status = "okay";
-};
-
-&pwms {
-	status = "okay";
-};
-
-&vsp {
-	status = "okay";
-};
-
-&jpg {
-
-	status = "okay";
-};
-
-&dcam {
-	status = "okay";
-};
-
-&isp {
-	status = "okay";
-};
-
-&fd {
-	status = "okay";
-};
-
-&cpp {
-	status = "okay";
-};
-
-&csi0 {
-	status = "okay";
-};
-
-&csi1 {
-	status = "okay";
-};
-
-&csi2 {
-	status = "okay";
-};
-
-&mipi_csi_phy {
-	status = "okay";
-};
-
-&csi_phy0{
-	status = "okay";
-};
-
-&csi_phy1{
-	status = "okay";
-};
-
-&csi_phy2{
-	status = "okay";
-};
-
-&csi_phy3{
-	status = "okay";
-};
-
-&csi_phy4{
-	status = "okay";
-};
-
-&sprd_headset {
-	status = "okay";
-};
-
-&sprd_audio_codec_ana {
-	status = "okay";
-	hp-use-inter-pa = <1>;
-	fixed-sample-rate = <48000 48000 48000>;
-	digital-codec = <&sprd_audio_codec_dig>;
-};
-
-&sound_vbc_v4_sprd_codec {
-	status = "okay";
-};

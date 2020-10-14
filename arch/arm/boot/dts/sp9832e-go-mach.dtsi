@@ -199,6 +199,14 @@
 		};
 	};
 
+	sprd-map-user {
+		compatible = "sprd,map-user";
+	};
+
+	sprd-wlan {
+		 compatible = "sprd,sp9832e";
+	};
+
 	resume_on_reboot {
 		compatible = "sprd,memdisk";
 
@@ -345,3 +353,101 @@
 &dphy {
 	status = "okay";
 };
+
+&jpg {
+	status = "okay";
+};
+
+&iommu_jpg {
+	status = "okay";
+};
+
+&vsp {
+	status = "okay";
+};
+
+&iommu_vsp {
+	status = "okay";
+};
+
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
+&i2s0 {
+	status = "okay";
+};
+
+&sprd_headset {
+	status = "okay";
+};
+
+&sound_sprd_ap_alliis {
+	status = "okay";
+};
+
+&pwms {
+	status = "okay";
+};
+
+&iommu_dcam {
+	status = "okay";
+};
+
+&iommu_isp {
+	status = "okay";
+};
+
+&iommu_cpp {
+	status = "okay";
+};
+
+&dcam {
+	status = "okay";
+};
+
+&isp {
+	status = "okay";
+};
+
+&cpp {
+	status = "okay";
+};
+
+&csi0 {
+	status = "okay";
+};
+
+&csi1 {
+	status = "okay";
+};
+
+&cpu0 {
+	cpu-supply = <&vddcpu>;
+};
+
+&cpu1 {
+	cpu-supply = <&vddcpu>;
+};
+
+&cpu2 {
+	cpu-supply = <&vddcpu>;
+};
+
+&cpu3 {
+	cpu-supply = <&vddcpu>;
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	digital-codec = <&sprd_audio_codec_dig>;
+};
+
+&sound_vbc_r1p0v3_sprd_codec {
+	status = "okay";
+	sprd,smartamp-boost-names = "boost_enable", "boost_mode";
+	sprd,smartamp-boost-gpios = <&ap_gpio 121 0>,
+				<&ap_gpio 85 0>;
+};
+

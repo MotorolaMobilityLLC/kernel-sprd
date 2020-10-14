@@ -9,10 +9,10 @@
 
 #include <dt-bindings/gpio/gpio.h>
 #include "sc9832e.dtsi"
-#include "sp9832e-go-mach.dtsi"
 #include "sc9832e-wcn.dtsi"
 #include "sc2721.dtsi"
 #include "sprd-sound-sharkl.dtsi"
+#include "sp9832e-go-mach.dtsi"
 / {
 	model = "Spreadtrum SC9832E SoC";
 
@@ -24,14 +24,6 @@
 		device_type = "memory";
 		reg = <0x80000000 0x40000000>;
 	};
-
-	sprd-map-user {
-		compatible = "sprd,map-user";
-	};
-
-	sprd-wlan {
-		 compatible = "sprd,sp9832e";
-	};
 };
 
 &reserved_memory {
@@ -42,27 +34,6 @@
 	fd_reserved: fd-mem@bfa80000 {
 		reg = <0xbfa80000 0x00500000>;
 	};
-};
-
-&jpg {
-	status = "okay";
-};
-
-&iommu_jpg {
-	status = "okay";
-};
-
-&vsp {
-	status = "okay";
-};
-
-&iommu_vsp {
-	status = "okay";
-};
-
-&spi0 {
-	/*used for fingerprint sensor*/
-	status = "okay";
 };
 
 &i2c4 {
@@ -87,78 +58,3 @@
 	};
 };
 
-&i2s0 {
-	status = "okay";
-};
-
-&sprd_audio_codec_ana {
-	status = "okay";
-	digital-codec = <&sprd_audio_codec_dig>;
-};
-
-&sprd_headset {
-	status = "okay";
-};
-
-&sound_vbc_r1p0v3_sprd_codec {
-	status = "okay";
-	sprd,smartamp-boost-names = "boost_enable", "boost_mode";
-	sprd,smartamp-boost-gpios = <&ap_gpio 121 0>,
-				<&ap_gpio 85 0>;
-};
-
-&sound_sprd_ap_alliis {
-	status = "okay";
-};
-
-&pwms {
-	status = "okay";
-};
-
-&iommu_dcam {
-	status = "okay";
-};
-
-&iommu_isp {
-	status = "okay";
-};
-
-&iommu_cpp {
-	status = "okay";
-};
-
-&dcam {
-	status = "okay";
-};
-
-&isp {
-	status = "okay";
-};
-
-&cpp {
-	status = "okay";
-};
-
-&csi0 {
-	status = "okay";
-};
-
-&csi1 {
-	status = "okay";
-};
-
-&cpu0 {
-	cpu-supply = <&vddcpu>;
-};
-
-&cpu1 {
-	cpu-supply = <&vddcpu>;
-};
-
-&cpu2 {
-	cpu-supply = <&vddcpu>;
-};
-
-&cpu3 {
-	cpu-supply = <&vddcpu>;
-};

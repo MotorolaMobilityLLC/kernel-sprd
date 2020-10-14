@@ -272,6 +272,20 @@
 		};
 	};
 
+	sprd-iq {
+		compatible = "sprd,iq";
+		sprd,region = <&iq_reserved>;
+		sprd,mapping-offs = <0x0>;
+	};
+
+	sprd-map-user {
+		compatible = "sprd,map-user";
+	};
+
+	sprd-wlan {
+		compatible = "sprd,sp9863a";
+	};
+
 	resume_on_reboot {
 		compatible = "sprd,memdisk";
 
@@ -445,3 +459,61 @@
 	status = "okay";
 	sprd,ulps-disabled;
 };
+
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
+&vsp {
+	status = "okay";
+};
+
+&jpg {
+	status = "okay";
+};
+
+&iommu_vsp {
+	status = "okay";
+};
+
+&iommu_jpg {
+	status = "okay";
+};
+
+&dcam {
+	status = "okay";
+};
+
+&iommu_dcam {
+	status = "okay";
+};
+
+&isp {
+	status = "okay";
+};
+
+&iommu_isp {
+	status = "okay";
+};
+
+&cpp {
+	status = "okay";
+};
+
+&iommu_cpp {
+	status = "okay";
+};
+
+&csi0 {
+	status = "okay";
+};
+
+&csi1 {
+	status = "okay";
+};
+
+&csi2 {
+	status = "okay";
+};
+

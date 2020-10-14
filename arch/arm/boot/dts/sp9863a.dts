@@ -31,21 +31,6 @@
 				<&gnss_reserved>, <&wcn_reserved>;
 		memory-region-se = <&tos_reserved>, <&sml_reserved>;
 	};
-
-	sprd-iq {
-		compatible = "sprd,iq";
-		sprd,region = <&iq_reserved>;
-		sprd,mapping-offs = <0x0>;
-	};
-
-	sprd-map-user {
-		compatible = "sprd,map-user";
-	};
-
-	sprd-wlan {
-		compatible = "sprd,sp9863a";
-	};
-
 };
 
 &reserved_memory {
@@ -90,11 +75,6 @@
 	};
 };
 
-&spi0 {
-	/*used for fingerprint sensor*/
-	status = "okay";
-};
-
 &i2c7 {
 	status = "okay";
 	clock-frequency = <400000>;
@@ -109,57 +89,5 @@
 		regulator-always-on;
 		fcs,suspend-voltage-selector = <1>;
 	};
-};
-
-&vsp {
-	status = "okay";
-};
-
-&jpg {
-	status = "okay";
-};
-
-&iommu_vsp {
-	status = "okay";
-};
-
-&iommu_jpg {
-	status = "okay";
-};
-
-&dcam {
-	status = "okay";
-};
-
-&iommu_dcam {
-	status = "okay";
-};
-
-&isp {
-	status = "okay";
-};
-
-&iommu_isp {
-	status = "okay";
-};
-
-&cpp {
-	status = "okay";
-};
-
-&iommu_cpp {
-	status = "okay";
-};
-
-&csi0 {
-	status = "okay";
-};
-
-&csi1 {
-	status = "okay";
-};
-
-&csi2 {
-	status = "okay";
 };
 
