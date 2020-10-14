@@ -241,6 +241,16 @@
 				status = "disabled";
 			};
 
+			crypto_engine_rng: rng@201e0000 {
+				compatible = "sprd,sprd-trng";
+				reg = <0x0 0x201e0000 0x0 0x10000>;
+				clock-names = "ce-pub-eb", "ap-ce-clk",
+							  "source";
+				clocks = <&apapb_gate CLK_CE_PUB_EB>,
+						 <&ap_clk CLK_AP_CE>,
+						 <&pll1 CLK_TWPLL_256M>;
+			};
+
 			ufs: ufs@20200000 {
 				compatible  = "sprd,ufshc";
 				vcc-supply = <&vddemmccore>;

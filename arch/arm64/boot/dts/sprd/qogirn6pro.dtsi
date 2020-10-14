@@ -156,6 +156,14 @@
 				clocks = <&ext_26m>, <&ext_26m>, <&ext_26m>;
 				status = "disabled";
 			};
+
+			crypto_engine_rng: rng@e0000 {
+				compatible = "sprd,sprd-trng";
+				reg = <0xe0000 0x10000>;
+				clock-names = "ce-pub-eb", "ap-ce-clk",
+							  "source";
+				clocks = <&ext_26m>, <&ext_26m>, <&ext_26m>;
+			};
 		};
 
 		aon {
