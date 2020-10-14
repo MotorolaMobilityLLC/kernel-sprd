@@ -34,7 +34,13 @@
 
 #define IPA_HASH_ITEM_LEN 8
 #define IPA_HASH_TABLE_SIZE (IPA_HASH_ITEM_LEN * SFP_ENTRIES_HASH_SIZE)
+
+#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
+#define IPA_HASH_FWD_ENTRY_SIZE 120
+#else
 #define IPA_HASH_FWD_ENTRY_SIZE 96
+#endif
+
 #define IPA_DEFAULT_NUM 4096
 #define IPA_DEFAULT_INCR (128 * IPA_HASH_FWD_ENTRY_SIZE)
 #define DEFAULT_IPA_TBL_SIZE (IPA_HASH_TABLE_SIZE +\
@@ -251,7 +257,22 @@ static void sfp_tuple_to_entry(struct fwd_entry *entry,
 	entry->out_ifindex = cur_entry->ssfp_trans_tuple.out_ipaifindex;
 	entry->fwd_flags = 0;
 	entry->time_stamp = 0;
+
+#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
+	/* replace mac header in default */
+	entry->mac_info_opts = 1;
+
+	/* no flowctl in default */
+	entry->pkt_drop_th = 0;
+	entry->pkt_current_idx = 0;
+	entry->pkt_current_cnt = 0;
+	entry->pkt_drop_cnt = 0;
+
+	entry->reserve1 = 0;
+	entry->reserve2 = 0;
+#else
 	entry->reserve = 0;
+#endif
 }
 
 void print_hash_tbl(char *p, int len)
@@ -330,16 +351,19 @@ static void sfp_dma_hash_tbl_init(u8 *ipa_tbl_ptr, int n)
 
 void sfp_ipa_swap_tbl(void)
 {
-	//struct sipa_hash_table ot;
+#if defined(CONFIG_SPRD_SIPA_V3)
+	sipa_swap_hash_table(&fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl);
+#elif defined(CONFIG_SPRD_SIPA)
+	struct sipa_hash_table ot;
 
+	sipa_swap_hash_table(&fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl,
+			     &ot);
+#endif
 	FP_PRT_DBG(FP_PRT_DEBUG,
 		   "##swap tbl %llx to ipa, depth %d, index %d\n",
 		   fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl.tbl_phy_addr,
 		   fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl.depth,
 		   NEW_TBL_ID);
-
-	//sipa_swap_hash_table(&fwd_tbl.ipa_tbl_mgr.tbl[NEW_TBL_ID].sipa_tbl,
-	//		     &ot);
 
 	sfp_swap_tbl_id();
 }
