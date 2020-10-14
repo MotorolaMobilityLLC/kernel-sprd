@@ -456,7 +456,13 @@ static int sdhci_sprd_voltage_switch(struct mmc_host *mmc, struct mmc_ios *ios)
 	}
 
 	if (IS_ERR(sprd_host->pinctrl))
-		return 0;
+		/*
+		 * If pinctrl not defined in dts, still need reset here because
+		 * voltage have changed. Otherwise the controller will not work
+		 * normally. We had ever encoutered CMD2 timeout before.
+		 */
+		goto reset;
+
 
 	switch (ios->signal_voltage) {
 	case MMC_SIGNAL_VOLTAGE_180:
@@ -482,6 +488,7 @@ static int sdhci_sprd_voltage_switch(struct mmc_host *mmc, struct mmc_ios *ios)
 		break;
 	}
 
+reset:
 	/* Wait for 300 ~ 500 us for pin state stable */
 	usleep_range(300, 500);
 	sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
