@@ -27,6 +27,8 @@
 #include <linux/atomic.h>
 #include <net/sfp.h>
 #include <linux/sipa.h>
+#include <net/genetlink.h>
+
 #include "sfp_hash.h"
 
 #define SFP_OK		0x00  /* Operation succeeded */
@@ -238,6 +240,141 @@ struct sfp_conn {
 	u32 ts;
 	int expire;
 };
+
+/* === sfp filter start == */
+extern struct list_head sfp_filter_pre4_entries;
+extern struct list_head sfp_filter_post4_entries;
+extern struct list_head sfp_filter_pre6_entries;
+extern struct list_head sfp_filter_post6_entries;
+
+extern spinlock_t filter_lock; /* Spinlock for sfp filter entry */
+
+enum sfp_attrs {
+	SFP_A_UNSPEC,
+	SFP_A_FILTER,
+	__SFP_A_MAX
+};
+
+#define SFP_A_MAX (__SFP_A_MAX - 1)
+
+enum sfp_rely_attrs {
+	SFP_NLA_RULE_UNSPEC,
+	SFP_NLA_RULE_PRE4,
+	SFP_NLA_RULE_POST4,
+	SFP_NLA_RULE_PRE6,
+	SFP_NLA_RULE_POST6,
+	SFP_NLA_RULE_NO_ENTRY,
+	__SFP_NLA_RULE_MAX,
+	SFP_NLA_RULE_MAX = __SFP_NLA_RULE_MAX - 1
+};
+
+enum sfp_rule_type {
+	SFP_RULE_TYPE_UNSPEC,
+	SFP_RULE_TYPE_V4_PRE,
+	SFP_RULE_TYPE_V4_POST,
+	SFP_RULE_TYPE_V6_PRE,
+	SFP_RULE_TYPE_V6_POST,
+};
+
+enum sfp_commands {
+	__SFP_CMD_UNSPEC,
+	SFP_NL_CMD_APPEND,
+	SFP_NL_CMD_INSERT,
+	SFP_NL_CMD_DELETE,
+	SFP_NL_CMD_FLUSH,
+	SFP_NL_CMD_LIST,
+	SFP_CMD_MAX,
+};
+
+enum sfp_chain {
+	__SFP_CHAIN_UNSPEC,
+	SFP_CHAIN_PRE,
+	SFP_CHAIN_POST,
+	SFP_CHAIN_MAX,
+};
+
+struct sfp_filter_v4_rule {
+	u32 src, dst;
+	u8 src_mask;
+	u8 dst_mask;
+	u8 iif;
+	u8 oif;
+
+	u16 max_spts;
+	u16 min_spts;
+	u16 max_dpts;
+	u16 min_dpts;
+
+	u8 type;
+	u8 max_code;
+	u8 min_code;
+
+	u8 proto;
+	u16 invflags;
+	u16 reserve;
+	u32 verdict;
+} __packed;
+
+struct sfp_filter_v4_node {
+	struct list_head list;
+	struct sfp_filter_v4_rule rule4;
+};
+
+struct sfp_filter_v6_rule {
+	u32 src[4], dst[4];
+	u8 src_mask;
+	u8 dst_mask;
+	u8 iif;
+	u8 oif;
+
+	u16 max_spts;
+	u16 min_spts;
+	u16 max_dpts;
+	u16 min_dpts;
+
+	u8 type;
+	u8 max_code;
+	u8 min_code;
+
+	u8 proto;
+	u16 invflags;
+	u16 reserve;
+	u32 verdict;
+} __packed;
+
+struct sfp_filter_v6_node {
+	struct list_head list;
+	struct sfp_filter_v6_rule rule6;
+};
+
+struct sfp_nl_filter {
+	int af_family;
+	enum sfp_chain chain;
+	union {
+		struct sfp_filter_v4_rule v4_rule;
+		struct sfp_filter_v6_rule v6_rule;
+	};
+};
+
+#ifdef CONFIG_SPRD_IPA_V3_SUPPORT
+struct sfp_ipa_filter_tbl {
+	spinlock_t sp_lock;	/* Spin lock for ipa filter */
+	atomic_t entry_cnt;
+	u8 *v_addr;
+	dma_addr_t handle;
+	struct sipa_filter_tbl sipa_filter;
+};
+
+struct sfp_ipa_filter_tbls {
+	struct sfp_ipa_filter_tbl pre4;
+	struct sfp_ipa_filter_tbl pre6;
+	struct sfp_ipa_filter_tbl post4;
+	struct sfp_ipa_filter_tbl post6;
+};
+
+extern struct sfp_ipa_filter_tbls ipa_filter_tbls;
+#endif
+/* === sfp filter end == */
 
 struct sfp_routing_info {
 	u32 src_ip;
@@ -537,6 +674,9 @@ int add_in_sfp_fwd_table(
 	struct sfp_conn *sfp_ct);
 void sfp_fwd_hash_add(struct sfp_conn *sfp_ct);
 void sfp_ipa_init(void);
+
+int sfp_netlink_init(void);
+void sfp_netlink_exit(void);
 int get_sfp_fwd_entry_count(struct sfp_mgr_fwd_tuple_hash *fwd_hash_entry);
 int delete_in_sfp_fwd_table(
 	const struct sfp_mgr_fwd_tuple_hash *fwd_hash_entry);
@@ -561,4 +701,12 @@ void sfp_clear_all_ipa_tbl(void);
 int sfp_tbl_id(void);
 void sfp_clear_fwd_table(int ifindex);
 u32 hash_conntrack(const struct nf_conntrack_tuple *tuple);
+
+int sfp_ipa_filter_sync(enum sfp_rule_type type);
+int sfp_init_ipa_filter_tbl(void);
+int sfp_nl_add_rule(struct sfp_nl_filter *filter, bool insert);
+int sfp_nl_del_rule(struct sfp_nl_filter *filter, struct genl_info *info);
+int sfp_nl_list_rule(struct genl_info *info);
+int sfp_nl_flush_rule(struct sfp_nl_filter *filter);
+
 #endif

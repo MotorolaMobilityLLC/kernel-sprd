@@ -1094,24 +1094,32 @@ int sfp_mgr_init(void)
 		sfp_ipa_init();
 	}
 	sfp_proc_create();
-	sfp_mgr_disable();
+	if (sysctl_net_sfp_enable == 1)
+		sfp_mgr_proc_enable();
+	sfp_init_ipa_filter_tbl();
 	return 0;
 }
 
 static int __init init_sfp_module(void)
 {
 	int status;
+	int ret = 0;
 
 	status = sfp_mgr_init();
 	nf_sfp_conntrack_init();
+
 	if (status != SFP_OK)
 		return -EPERM;
+
+	ret = sfp_netlink_init();
+	pr_info("init_sfp_module ret %d\n", ret);
 	return 0;
 }
 
 static void __exit exit_sfp_module(void)
 {
 	sfp_mgr_disable();
+	sfp_netlink_exit();
 }
 
 late_initcall(init_sfp_module);

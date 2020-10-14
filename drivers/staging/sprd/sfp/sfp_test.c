@@ -944,8 +944,10 @@ static void sfp_ipa_tbl_add_2048(int n)
 		make_ct_tuple(&g_tuples[0], &ct);
 		g_tuples[0].s_port++;
 		new_sfp_ct = kmalloc(sizeof(*new_sfp_ct), GFP_ATOMIC);
-		if (!new_sfp_ct)
+		if (!new_sfp_ct) {
+			FP_PRT_DBG(FP_PRT_ERR, "fail to create new_sfp_ct\n");
 			return;
+		}
 
 		FP_PRT_DBG(FP_PRT_ERR, "test new sfp %p, %d\n", new_sfp_ct, i);
 		memset(new_sfp_ct, 0, sizeof(struct sfp_conn));
@@ -1028,11 +1030,61 @@ static int snfp_test_thread_15(void *arg)
 	return 0;
 }
 
-static int snfp_test_thread_n(void *arg)
+int snfp_test_thread_9(void *arg)
 {
 	int n = *((int *)arg);
 
 	sfp_ipa_tbl_add_2048(n);
+	return 0;
+}
+
+static struct sfp_filter_v4_rule t_rule4[] = {
+	{IP_1, IP_2, 32, 32, 0x1, 0x19, 0x3039, 0x3039,
+	 0xd431, 0xd431, 0, 0, 0, 17, 0, 0, 0},
+	{IP_3, IP_3, 24, 24, 0x1, 0x19, 0x3039, 0x3039,
+	 0xd431, 0xd431, 0, 0, 0, 17, 0, 0, 0},
+	{IP_1, IP_3, 24, 32, 0x1, 0x19, 0x3039, 0x3039,
+	 0xd431, 0xd431, 0, 0, 0, 17, 0, 0, 0},
+	{IP_3, IP_2, 32, 24, 0x1, 0x19, 0x3039, 0x3039,
+	 0xd431, 0xd431, 0, 0, 0, 17, 0, 0, 0},
+};
+
+int snfp_test_thread_10(void *arg)
+{
+	struct sfp_nl_filter filter;
+
+	filter.af_family = AF_INET;
+	filter.chain = SFP_CHAIN_PRE;
+
+	filter.v4_rule = t_rule4[0];
+	sfp_nl_add_rule(&filter, false);
+	filter.v4_rule = t_rule4[1];
+	sfp_nl_add_rule(&filter, false);
+	filter.v4_rule = t_rule4[2];
+	sfp_nl_add_rule(&filter, false);
+	filter.v4_rule = t_rule4[3];
+	sfp_nl_add_rule(&filter, false);
+
+	filter.v4_rule = t_rule4[0];
+	//sfp_nl_del_rule(&filter);
+	filter.v4_rule = t_rule4[1];
+	//sfp_nl_del_rule(&filter);
+	filter.v4_rule = t_rule4[2];
+	//sfp_nl_del_rule(&filter);
+	filter.v4_rule = t_rule4[3];
+	//sfp_nl_del_rule(&filter);
+
+	filter.v4_rule = t_rule4[0];
+	//sfp_nl_del_rule(&filter);
+
+	filter.v4_rule = t_rule4[0];
+	sfp_nl_add_rule(&filter, false);
+	filter.v4_rule = t_rule4[1];
+	sfp_nl_add_rule(&filter, false);
+
+	//sfp_nl_list_rule();
+	sfp_nl_flush_rule(&filter);
+	//sfp_nl_list_rule();
 	return 0;
 }
 
@@ -1130,11 +1182,19 @@ int sfp_test_init(int count)
 				return 1;
 		}
 
-		if (count > 15) {
-			snfp_test_taskn = kthread_run(snfp_test_thread_n,
-						      &count,
-						      "ipa_hash_tbl_2048");
-			if (IS_ERR(snfp_test_taskn))
+		if (count == 16) {
+			snfp_test_task3 = kthread_run(
+				snfp_test_thread_9,
+				&count, "ipa_hash_tbl_2048");
+			if (IS_ERR(snfp_test_task3))
+				return 1;
+		}
+
+		if (count == 17) {
+			snfp_test_task3 = kthread_run(
+				snfp_test_thread_10,
+				NULL, "ipa_filter_test1");
+			if (IS_ERR(snfp_test_task3))
 				return 1;
 		}
 	}
