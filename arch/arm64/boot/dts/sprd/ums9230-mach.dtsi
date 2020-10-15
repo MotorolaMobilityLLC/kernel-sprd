@@ -8,6 +8,11 @@
 
 
 /{
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		ports = <&dummy_crtc_port>;
+	};
+
 	reserved_memory: reserved-memory {
 		#address-cells = <2>;
 		#size-cells = <2>;

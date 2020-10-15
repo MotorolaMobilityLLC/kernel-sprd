@@ -232,6 +232,47 @@
 			reg = <0 0x20400000 0 0x4000>;
 		};
 
+		mm {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			dummy-crtc {
+				compatible = "sprd,dummy-crtc";
+
+				dummy_crtc_port: port {
+					dummy_crtc_out: endpoint {
+						remote-endpoint = <&dummy_connector_in>;
+					};
+				};
+			};
+
+			dummy-connector {
+				compatible = "sprd,dummy-connector";
+
+				display-timings {
+					timing0 {
+						clock-frequency = <24975000>;
+						hactive = <1080>;
+						vactive = <1920>;
+						hback-porch = <10>;
+						hfront-porch = <10>;
+						vback-porch = <10>;
+						vfront-porch = <10>;
+						hsync-len = <10>;
+						vsync-len = <10>;
+					};
+				};
+
+				port {
+					dummy_connector_in: endpoint {
+						remote-endpoint = <&dummy_crtc_out>;
+					};
+				};
+			};
+		};
+
 		ap-ahb {
 			compatible = "simple-bus";
 			#address-cells = <2>;
