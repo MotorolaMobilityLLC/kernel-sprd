@@ -24,13 +24,6 @@
 		device_type = "memory";
 		reg = <0x80000000 0x40000000>;
 	};
-
-	sprd-sysdump {
-		memory-region = <&memory>;
-		memory-region-re = <&cp_reserved>, <&scproc_pubpm>, <&smem_reserved>,
-				<&gnss_reserved>, <&wcn_reserved>;
-		memory-region-se = <&tos_reserved>, <&sml_reserved>;
-	};
 };
 
 &reserved_memory {
