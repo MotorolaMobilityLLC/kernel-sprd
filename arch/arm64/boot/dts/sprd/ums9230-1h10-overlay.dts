@@ -68,6 +68,20 @@
 	};
 };
 
+&spi3 {
+	status = "okay";
+
+	focaltech@0 {
+		compatible = "focaltech,fts";
+		reg = <0x0>;
+		focaltech,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
+		focaltech,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		focaltech,max-touch-number = <5>;
+		focaltech,display-coords =  <0 0 1080 2520>;
+		spi-max-frequency = <6000000>;
+	};
+};
+
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 };
