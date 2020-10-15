@@ -97,13 +97,6 @@
 		};
 	};
 
-	sprd-sysdump {
-		memory-region = <&memory>;
-		memory-region-re = <&cp_reserved>, <&scproc_pubpm>, <&smem_reserved>,
-				<&gnss_reserved>, <&wcn_reserved>;
-		memory-region-se = <&tos_reserved>, <&sml_reserved>;
-	};
-
 	sprd-iq {
 		compatible = "sprd,iq";
 		sprd,region = <&iq_reserved>;
