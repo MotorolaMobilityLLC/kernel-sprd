@@ -372,7 +372,9 @@
 	/* keyin0 ~ keyin2 */
 	"gpio_124", "gpio_125", "gpio_126",
 	/* extint0, extint1, scl3, sda3 */
-	"gpio_144", "gpio_145", "gpio_146", "gpio_147";
+	"gpio_144", "gpio_145", "gpio_146", "gpio_147",
+	/* Note:If create a new board,need to add the shutdown node */
+	"shutdown";
 	pinctrl-0 = <&gpio_121>;
 	pinctrl-1 = <&gpio_122>;
 	pinctrl-2 = <&gpio_123>;
@@ -383,6 +385,12 @@
 	pinctrl-7 = <&gpio_145>;
 	pinctrl-8 = <&gpio_146>;
 	pinctrl-9 = <&gpio_147>;
+	pinctrl-10 = <&shutdown0
+			&shutdown1
+			&shutdown2
+			&shutdown3
+			&shutdown4
+			&shutdown5>;
 
 	gpio_121: keyout0 {
 		pins = "SHARKL3_KEYOUT0";
@@ -431,6 +439,36 @@
 
 	gpio_147: sda3 {
 		pins = "SHARKL3_SDA3";
+		function = "func4";
+	};
+
+	shutdown0: rfsen0 {
+		pins = "SHARKL3_RFSEN0";
+		function = "func4";
+	};
+
+	shutdown1: rfsck0 {
+		pins = "SHARKL3_RFSCK0";
+		function = "func4";
+	};
+
+	shutdown2: rfsda0 {
+		pins = "SHARKL3_RFSDA0";
+		function = "func4";
+	};
+
+	shutdown3: rfsen1 {
+		pins = "SHARKL3_RFSEN1";
+		function = "func4";
+	};
+
+	shutdown4: rfsck1 {
+		pins = "SHARKL3_RFSCK1";
+		function = "func4";
+	};
+
+	shutdown5: rfsda1 {
+		pins = "SHARKL3_RFSDA1";
 		function = "func4";
 	};
 };
