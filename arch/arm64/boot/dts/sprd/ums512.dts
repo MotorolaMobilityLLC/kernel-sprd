@@ -133,12 +133,5 @@
 		regulator-always-on;
 		fcs,suspend-voltage-selector = <1>;
 	};
-
-	/* A virtual i2c device */
-	cpudvfs-dcdc-cpu1@62{
-		compatible = "sprd,cpudvfs-regulator-sharkl5pro";
-		reg = <0x62>;
-		dvfs-dcdc-i2c = <1>;
-	};
 };
 
