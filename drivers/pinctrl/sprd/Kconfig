@@ -61,8 +61,8 @@ config PINCTRL_SPRD_SHARKLE
 	help
 	  Say Y here to enable Spreadtrum Sharkle pinctrl driver
 
-config PINCTRL_SPRD_SHARKL6
-	bool "Spreadtrum Sharkl6 pinctrl driver"
+config PINCTRL_SPRD_QOGIRL6
+	bool "Spreadtrum Qogirl6 pinctrl driver"
 	depends on PINCTRL_SPRD
 	help
-	  Say Y here to enable Spreadtrum Sharkl6 pinctrl driver
+	  Say Y here to enable Spreadtrum Qogirl6 pinctrl driver
