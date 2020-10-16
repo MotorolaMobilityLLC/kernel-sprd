@@ -69,7 +69,7 @@ int smsg_register_notifier(int dst,
 {
 	struct smsg_assert_notify *assert_notify;
 
-	if (dst > SIPC_ID_NR)
+	if (dst >= SIPC_ID_NR)
 		return -1;
 
 	assert_notify = &g_smsg_assert_notify[dst];
