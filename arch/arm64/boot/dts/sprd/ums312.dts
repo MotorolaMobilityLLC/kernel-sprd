@@ -35,22 +35,6 @@
 	status = "okay";
 	clock-frequency = <1000000>;
 
-	ext_pmic: sc2703-buck@49 {
-		compatible = "sprd,sc2703-buck";
-		reg = <0x49>;
-		buck-gpios = <&ap_gpio 136 0>;
-
-		sprd,buck-ch1-b-out = <1000000>;
-
-		regulator-name = "sc2703-buck";
-		regulator-min-microvolt = < 300000>;
-		regulator-max-microvolt = <1570000>;
-		regulator-min-microamp = <5600000>;
-		regulator-max-microamp = <10800000>;
-		regulator-boot-on;
-		regulator-always-on;
-	};
-
 	flash: sc2703-flash@4a {
 		compatible = "sprd,sc2703-flash";
 		reg = <0x4a>;
