@@ -68,7 +68,7 @@
 
 #define USE_PERIODS_MAX			1024
 
-#define CMD_TIMEOUT			msecs_to_jiffies(5000)
+#define CMD_TIMEOUT			msecs_to_jiffies(3000)
 #define CMD_MODEM_RESET_TIMEOUT		msecs_to_jiffies(10000)
 
 #define SAUDIO_CMD_NONE			0x00000000
