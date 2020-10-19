@@ -139,20 +139,7 @@
 	sprd,sdio-adma;
 	no-sdio;
 	no-mmc;
-	status = "disabled";
-};
-
-&sdio1 {
-	sprd,sdr104-dly = <0x7f 0x76 0x69 0x69>;
-	sprd,sdr50-dly = <0x7f 0xf7 0xf5 0xf5>;
-	sd-uhs-sdr104;
-	sd-uhs-sdr50;
-	bus-width = <4>;
-	sprd,name = "sdio_wifi";
-	sprd,sdio-adma;
-	no-sd;
-	no-mmc;
-	status = "disabled";
+	status = "okay";
 };
 
 &sdio3 {
