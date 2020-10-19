@@ -825,6 +825,37 @@ static ssize_t vsync_count_read(struct file *fp, struct kobject *kobj,
 
 static BIN_ATTR_RO(vsync_count, 4);
 
+static ssize_t frame_no_read(struct file *fp, struct kobject *kobj,
+			struct bin_attribute *attr, char *buf,
+			loff_t off, size_t count)
+{
+	struct device *dev = container_of(kobj, struct device, kobj);
+	struct sprd_dpu	 *dpu = dev_get_drvdata(dev);
+	struct dpu_context *ctx = &dpu->ctx;
+
+	if (!dpu->core->enhance_get)
+		return -EIO;
+
+	if (off >= attr->size)
+		return 0;
+
+	if (off + count > attr->size)
+		count = attr->size - off;
+
+	down(&ctx->refresh_lock);
+	if (!ctx->is_inited) {
+		pr_err("dpu is not initialized\n");
+		up(&ctx->refresh_lock);
+		return -EINVAL;
+	}
+	dpu->core->enhance_get(ctx, ENHANCE_CFG_ID_FRAME_NO, buf);
+	up(&ctx->refresh_lock);
+
+	return count;
+}
+
+static BIN_ATTR_RO(frame_no, 4);
+
 static ssize_t cabc_gain_write(struct file *fp, struct kobject *kobj,
 			struct bin_attribute *attr, char *buf,
 			loff_t off, size_t count)
@@ -1151,6 +1182,7 @@ static struct bin_attribute *pq_bin_attrs[] = {
 	&bin_attr_cabc_gain,
 	&bin_attr_cabc_bl_fix,
 	&bin_attr_vsync_count,
+	&bin_attr_frame_no,
 	&bin_attr_cabc_run,
 	&bin_attr_cabc_cur_bl,
 	&bin_attr_lut3d,

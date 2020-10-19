@@ -1735,6 +1735,7 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 	u16 *p16;
 	int i, val;
 	int *vsynccount;
+	int *frameno;
 
 	switch (id) {
 	case ENHANCE_CFG_ID_ENABLE:
@@ -1914,6 +1915,10 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 	case ENHANCE_CFG_ID_VSYNC_COUNT:
 		vsynccount = param;
 		*vsynccount = vsync_count;
+		break;
+	case ENHANCE_CFG_ID_FRAME_NO:
+		frameno = param;
+		*frameno = frame_no;
 		break;
 	default:
 		break;
