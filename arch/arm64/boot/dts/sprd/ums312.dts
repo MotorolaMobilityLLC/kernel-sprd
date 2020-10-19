@@ -35,10 +35,6 @@
 	status = "okay";
 	clock-frequency = <1000000>;
 
-	flash: sc2703-flash@4a {
-		compatible = "sprd,sc2703-flash";
-		reg = <0x4a>;
-		flash-chip-en-gpios = <&ap_gpio 137 0>;
-	};
+
 };
 

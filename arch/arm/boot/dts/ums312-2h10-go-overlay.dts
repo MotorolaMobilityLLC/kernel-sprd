@@ -361,6 +361,11 @@
 		regulator-always-on;
 	};
 
+	flash: sc2703-flash@4a {
+		compatible = "sprd,sc2703-flash";
+		reg = <0x4a>;
+		flash-chip-en-gpios = <&ap_gpio 137 0>;
+	};
 	/* A virtual i2c device */
 	cpudvfs@61{
 		compatible = "sprd,cpudvfs-regulator-sharkl5";
