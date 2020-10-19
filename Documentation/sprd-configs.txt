@@ -4170,12 +4170,12 @@ CONFIG_EMBEDDED
 	[function] vts require, Embedded system.
 CONFIG_ENABLE_DEFAULT_TRACERS
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] trace
 	[must] user
-	[missing plat description] use it for user,sharkl5_32 bring up is not yet.
+	[missing plat description] none
 	[function] cts require, enable tracer config
 CONFIG_ENABLE_MUST_CHECK
 	[arch] all
