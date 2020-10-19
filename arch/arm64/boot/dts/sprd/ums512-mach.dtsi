@@ -886,6 +886,15 @@
 	sprd,panic;
 };
 
+&i2c4 {
+	ucp1301_spk: ucp1301@58 {
+		compatible = "sprd,ucp1301-spk";
+		reg = <0x58>;
+		reset-gpios = <&ap_gpio 134 GPIO_ACTIVE_HIGH>;
+		#sound-dai-cells = <1>;
+	};
+};
+
 &sprd_headset {
 	status = "okay";
 	extcon = <&pmic_typec>;
