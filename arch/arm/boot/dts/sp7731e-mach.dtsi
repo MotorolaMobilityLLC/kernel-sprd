@@ -32,17 +32,10 @@
 		};
 	};
 
-	ion {
+	ion: ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
 		#size-cells = <0>;
-
-		heap@4 {
-			reg = <4>;
-			label = "carveout_fd";
-			type = <2>;
-			memory-region = <&fd_reserved>;
-		};
 	};
 
 	reserved_memory: reserved-memory {
@@ -308,11 +301,6 @@
 &adi_bus {
 	sprd,hw-channels = <3 0x8c68>, <33 0x8c20>,
 		<35 0x8cc0>, <36 0x8ccc>;
-};
-
-&dpu {
-	status = "okay";
-	sprd,wb-memory = <&wb_reserved>;
 };
 
 &iommu_dispc {

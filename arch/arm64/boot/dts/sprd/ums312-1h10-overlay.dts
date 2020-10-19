@@ -264,9 +264,23 @@
 
 &reserved_memory {
 
+	logo_reserved: logobuffer {
+		reg = <0x0 0x9e000000 0x0 0x00384000>;
+	};
+
 	fd_reserved: face-mem@fd1c0000{
 		reg = <0x0 0xfd1c0000 0x0 0x01e00000>;
 	};
+
+
+	fb_reserved: framebuffer-mem@befc0000 {
+		reg = <0x0 0xbefc0000 0x0 0x00c70000>;
+	};
+
+	wb_reserved: writeback@bfc30000 {
+		reg = <0x0 0xbfc30000 0x0 0x00390000>;
+	};
+
 };
 
 &ion {
@@ -605,3 +619,16 @@
 	slew-rate = <5000>; /* 5000uV/us */
 };
 
+&ion {
+	heap@3 {
+		reg = <3>;
+		label = "carveout_fb";
+		type = <2>;
+		memory-region = <&fb_reserved>;
+	};
+};
+
+&dpu {
+	sprd,wb-memory = <&wb_reserved>;
+	sprd,logo-memory = <&logo_reserved>;
+};

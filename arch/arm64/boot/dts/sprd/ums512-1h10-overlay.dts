@@ -252,6 +252,10 @@
 
 &reserved_memory {
 
+	logo_reserved: logobuffer@9e000000{
+		reg = <0x0 0x9e000000 0x0 0x009e4000>;
+	};
+
 	fd_reserved: faceid-mem@efaae000 {
 		reg = <0x0 0xefaae000 0x0 0x00f00000>;
 	};
@@ -264,6 +268,15 @@
 		reg = <0x0 0xfb8ae000 0x0 0x01e5a000>;
 	};
 */
+
+	fb_reserved: framebuffer-mem@fd708000 {
+		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
+	};
+
+	wb_reserved: writeback-mem@ff562000 {
+		reg = <0x0 0xff562000 0x0 0x00a1e000>;
+	};
+
 };
 
 &sdio0 {
@@ -736,4 +749,18 @@
 		<350 0x11c 0 0xffff 0x2300>;
 	tuning-latency-us = <0>;
 	chnl-in-i2c = <1>;
+};
+
+&ion {
+	heap@3 {
+		reg = <3>;
+		label = "carveout_fb";
+		type = <2>;
+		memory-region = <&fb_reserved>;
+	};
+};
+
+&dpu {
+	sprd,wb-memory = <&wb_reserved>;
+	sprd,logo-memory = <&logo_reserved>;
 };

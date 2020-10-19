@@ -176,6 +176,21 @@
 	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=s9863a3h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
 };
 
+&reserved_memory {
+
+	logo_reserved: logobuffer@fd580000{
+		reg = <0x0 0xfd580000 0x0 0x007e9000>;
+	};
+
+	camera_reserved: camera@fdd69000{
+		reg = <0x0 0xfdd69000 0x0 0x00a00000>;
+	};
+
+	fb_reserved: framebuffer@fe769000 {
+		reg = <0x0 0xfe769000 0x0 0x1817000>;
+	};
+};
+
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 			"camhigh", "camveryhigh";
@@ -573,4 +588,24 @@
 
 &logo_reserved {
 	reg = <0x0 0x9e817000 0x0 0x007e9000>;
+};
+
+&ion {
+	heap@3 {
+			reg = <3>;
+			label = "carveout_fb";
+			type = <2>;
+			memory-region = <&fb_reserved>;
+	};
+
+	heap@4 {
+			reg = <4>;
+			label = "carveout_camera";
+			type = <2>;
+			memory-region = <&camera_reserved>;
+	};
+};
+
+&dpu {
+	sprd,logo-memory = <&logo_reserved>;
 };

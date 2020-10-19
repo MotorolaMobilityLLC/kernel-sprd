@@ -26,25 +26,3 @@
 	};
 };
 
-&reserved_memory {
-
-	wcn_reserved: wcn-mem@84000000 {
-		reg = <0x0 0x84000000 0x0 0x00300000>;
-	};
-
-	gnss_reserved: gnss-mem@84300000 {
-		reg = <0x0 0x84300000 0x0 0x0015b000>;
-	};
-
-	logo_reserved: logobuffer@fd580000{
-		reg = <0x0 0xfd580000 0x0 0x007e9000>;
-	};
-
-	camera_reserved: camera@fdd69000{
-		reg = <0x0 0xfdd69000 0x0 0x00a00000>;
-	};
-
-	fb_reserved: framebuffer@fe769000 {
-		reg = <0x0 0xfe769000 0x0 0x1817000>;
-	};
-};

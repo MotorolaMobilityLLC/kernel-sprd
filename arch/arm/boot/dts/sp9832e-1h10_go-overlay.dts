@@ -227,6 +227,16 @@
 	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=sp9832e_1h10_go vmalloc=360M androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
 };
 
+&reserved_memory {
+	tos_reserved: tos-mem@94020000 {
+		reg = <0x94020000 0x01fe0000>;
+	};
+
+	fd_reserved: fd-mem@bfa80000 {
+		reg = <0xbfa80000 0x00500000>;
+	};
+};
+
 &thm_zone {
 	bd_thmzone: board-thmzone {
 	polling-delay-passive = <0>;
@@ -516,5 +526,14 @@
 	shutdown2: rfsda0 {
 		pins = "SHARKLE_RFSDA0";
 		function = "func4";
+	};
+};
+
+&ion {
+	heap@4 {
+		reg = <4>;
+		label = "carveout_fd";
+		type = <2>;
+		memory-region = <&fd_reserved>;
 	};
 };

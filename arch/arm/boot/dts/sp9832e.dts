@@ -25,15 +25,3 @@
 		reg = <0x80000000 0x40000000>;
 	};
 };
-
-&reserved_memory {
-	tos_reserved: tos-mem@94020000 {
-		reg = <0x94020000 0x01fe0000>;
-	};
-
-	fd_reserved: fd-mem@bfa80000 {
-		reg = <0xbfa80000 0x00500000>;
-	};
-};
-
-

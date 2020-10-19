@@ -211,6 +211,18 @@
 	bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=s9863a1h10_go_32b androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
 };
 
+&reserved_memory {
+
+	fd_reserved: faceid-mem@befee000 {
+		reg = <0xbefee000 0x00500000>;
+	};
+
+	/* fb_size(HD): 3 * (head + payload) = 0xa91580, 4k align: 0xa92000 */
+	fb_reserved: framebuffer@bf4ee000 {
+		reg = <0xbf4ee000 0x00a92000>;
+	};
+};
+
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
@@ -566,4 +578,20 @@
 
 &vddsim2 {
 	status = "disabled";
+};
+
+&ion {
+	heap@3 {
+		reg = <3>;
+		label = "carveout_fb";
+		type = <2>;
+		memory-region = <&fb_reserved>;
+	};
+
+	heap@4 {
+		reg = <4>;
+		label = "carveout_fd";
+		type = <2>;
+		memory-region = <&fd_reserved>;
+	};
 };

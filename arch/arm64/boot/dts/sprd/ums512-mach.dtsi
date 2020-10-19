@@ -110,13 +110,6 @@
 		compatible = "sprd,ion";
 		#address-cells = <1>;
 		#size-cells = <0>;
-
-		heap@3 {
-			reg = <3>;
-			label = "carveout_fb";
-			type = <2>;
-			memory-region = <&fb_reserved>;
-		};
 	};
 
 	ddr_dfs: scene-frequency {

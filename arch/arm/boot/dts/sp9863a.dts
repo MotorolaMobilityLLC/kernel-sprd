@@ -25,25 +25,3 @@
 		reg = <0x80000000 0x40000000>;
 	};
 };
-
-&reserved_memory {
-
-	wcn_reserved: wcn-mem@84000000 {
-		reg = <0x84000000 0x00300000>;
-	};
-
-	gnss_reserved: gnss-mem@84300000 {
-		reg = <0x84300000 0x0015b000>;
-	};
-
-	fd_reserved: faceid-mem@befee000 {
-		reg = <0xbefee000 0x00500000>;
-	};
-
-	/* fb_size(HD): 3 * (head + payload) = 0xa91580, 4k align: 0xa92000 */
-	fb_reserved: framebuffer@bf4ee000 {
-		reg = <0xbf4ee000 0x00a92000>;
-	};
-};
-
-

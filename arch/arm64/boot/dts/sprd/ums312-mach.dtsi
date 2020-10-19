@@ -36,13 +36,6 @@
 		compatible = "sprd,ion";
 		#address-cells = <1>;
 		#size-cells = <0>;
-
-		heap@3 {
-			reg = <3>;
-			label = "carveout_fb";
-			type = <2>;
-			memory-region = <&fb_reserved>;
-		};
 	};
 
 	display-subsystem {
@@ -466,17 +459,6 @@
 			reg = <0x0 0x9F000000 0x0 0x4000>;
 		};
 
-		fb_reserved: framebuffer-mem {
-			reg = <0x0 0xbefc0000 0x0 0x00c70000>;
-		};
-
-		wb_reserved: writeback {
-			reg = <0x0 0xbfc30000 0x0 0x00390000>;
-		};
-
-		logo_reserved: logobuffer {
-			reg = <0x0 0x9e000000 0x0 0x00384000>;
-		};
 	};
 
 	sprd-iq {

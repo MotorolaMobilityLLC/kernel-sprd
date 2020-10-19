@@ -31,24 +31,10 @@
 		};
 	};
 
-	ion {
+	ion: ion {
 		compatible = "sprd,ion";
 		#address-cells = <1>;
 		#size-cells = <0>;
-
-		heap@3 {
-			reg = <3>;
-			label = "carveout_fb";
-			type = <2>;
-			memory-region = <&fb_reserved>;
-		};
-
-		heap@4 {
-			reg = <4>;
-			label = "carveout_camera";
-			type = <2>;
-			memory-region = <&camera_reserved>;
-		};
 	};
 
 	thm_zone: thermal-zones {
@@ -238,6 +224,14 @@
 		rebootescrow@0x81ff0000 {
 			no-map;
 			reg = <0x0 0x81ff0000 0x0 0x00010000>; /* 64K */
+		};
+
+		wcn_reserved: wcn-mem@84000000 {
+			reg = <0x0 0x84000000 0x0 0x00300000>;
+		};
+
+		gnss_reserved: gnss-mem@84300000 {
+			reg = <0x0 0x84300000 0x0 0x0015b000>;
 		};
 
 		/* Only used for iq, will be removed in normal mode by uboot */
