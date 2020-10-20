@@ -1609,11 +1609,6 @@ static void sprd_headset_button_press(struct sprd_headset *hdst)
 	}
 
 	if (hdst->btn_state_last == 0) {
-		if (hdst->time_after_4pole_report > 0 &&
-		    time_before(jiffies, hdst->time_after_4pole_report)) {
-			pr_warn("discard one button report for lacking of time\n");
-			return;
-		}
 		sprd_headset_jack_report(hdst, &hdst->btn_jack,
 			hdst->btns_pressed, hdst->btns_pressed);
 		hdst->btn_state_last = 1;
@@ -1657,6 +1652,13 @@ static void headset_button_work_func(struct work_struct *work)
 	if (hdst->plug_state_last == 0) {
 		pr_err("button work, no headset insert!\n");
 		sprd_headset_button_release_verify();
+		return;
+	}
+
+	if (hdst->time_after_4pole_report > 0 &&
+		time_before(jiffies, hdst->time_after_4pole_report)) {
+		pr_info("discard one button event for lacking of time\n");
+		sprd_headset_button_eic_reenable();
 		return;
 	}
 
