@@ -13,15 +13,19 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 
+/*
+Tips:
+*	1. <SoC>.dts store NOTHING unless properties "model","compatible" and "sprd,sc-id",
+*		which are used for matching board id;
+*	2. Puts nodes belong to chip family in <chip_family>.dtsi, like sharkl3.dtsi;
+*	3. Puts nodes belong to SoC in <SoC>.dtsi, like sc9863a.dtsi;
+*	4. Puts nodes belong to vendor solid configurations in <SoC-mach>.dtsi, like sp9863a-mach.dtsi.
+*/
+
 / {
 	model = "Spreadtrum SC9863A SoC";
 
 	compatible = "sprd,sc9863a";
 
 	sprd,sc-id = "sp9863a 1000 1000";
-
-	memory: memory {
-		device_type = "memory";
-		reg = <0x80000000 0x40000000>;
-	};
 };

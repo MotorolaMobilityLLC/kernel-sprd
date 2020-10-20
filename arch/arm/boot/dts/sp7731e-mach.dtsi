@@ -17,6 +17,11 @@
 		stdout-path = &uart1;
 	};
 
+	memory: memory@80000000 {
+		device_type = "memory";
+		reg = <0x80000000 0x40000000>;
+	};
+
 	extcon_gpio: extcon-gpio {
 		compatible = "linux,extcon-usb-gpio";
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;

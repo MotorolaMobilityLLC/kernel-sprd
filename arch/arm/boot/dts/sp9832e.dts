@@ -13,15 +13,20 @@
 #include "sc2721.dtsi"
 #include "sprd-sound-sharkl.dtsi"
 #include "sp9832e-go-mach.dtsi"
+
+/*
+Tips:
+*	1. <SoC>.dts store NOTHING unless properties "model","compatible" and "sprd,sc-id",
+*		which are used for matching board id;
+*	2. Puts nodes belong to chip family in <chip_family>.dtsi, like sharkl3.dtsi;
+*	3. Puts nodes belong to SoC in <SoC>.dtsi, like sc9863a.dtsi;
+*	4. Puts nodes belong to vendor solid configurations in <SoC-mach>.dtsi, like sp9863a-mach.dtsi.
+*/
+
 / {
 	model = "Spreadtrum SC9832E SoC";
 
 	compatible = "sprd,sc9832e";
 
 	sprd,sc-id = "sp9832e 1000 1000";
-
-	memory: memory@80000000 {
-		device_type = "memory";
-		reg = <0x80000000 0x40000000>;
-	};
 };

@@ -22,6 +22,11 @@
 		serial1 = &uart1;
 	};
 
+	memory: memory {
+		device_type = "memory";
+		reg = <0x80000000 0x40000000>;
+	};
+
 	firmware {
 		android {
 			compatible = "android,firmware";

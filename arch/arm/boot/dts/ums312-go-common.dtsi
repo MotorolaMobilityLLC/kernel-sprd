@@ -23,6 +23,11 @@
 		stdout-path = &uart1;
 	};
 
+	memory: memory {
+		device_type = "memory";
+		reg = <0x80000000 0x80000000>;
+	};
+
 	firmware {
 		android {
 			compatible = "android,firmware";
@@ -419,6 +424,11 @@
 
 &uart2 {
 	status = "okay";
+};
+
+&i2c5 {
+	status = "okay";
+	clock-frequency = <400000>;
 };
 
 &sdio0 {
