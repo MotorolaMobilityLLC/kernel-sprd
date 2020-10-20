@@ -9,6 +9,7 @@
 #include "sc9863a-modem.dtsi"
 #include "sc2721.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
+#include "lcd/lcd_ili9881h_skyworth_mipi_hd.dtsi"
 #include "sprd-sound-sharkl.dtsi"
 #include <dt-bindings/thermal/thermal.h>
 

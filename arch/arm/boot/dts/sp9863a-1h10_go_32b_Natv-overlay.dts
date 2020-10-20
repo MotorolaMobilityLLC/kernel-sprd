@@ -18,7 +18,7 @@
 				flash-torch-en-gpios = <&ap_gpio 63 0>;
 				flash-en-gpios = <&ap_gpio 72 0>;
 			};
-			pwm_backlight: sprd_backlight {
+/*			pwm_backlight: sprd_backlight {
 				compatible = "pwm-backlight";
 				pwms = <&pwms 1 30000>;
 				pwm-names = "backlight";
@@ -51,14 +51,11 @@
 					240 241 242 243 244 245 246 247
 				>;
 				default-brightness-level = <33>;
-			};
+			};*/
 		};
 	};
 };
 
-&panel {
-	sprd,backlight = <&pwm_backlight>;
-};
 
 &i2c3 {
 	status = "okay";
