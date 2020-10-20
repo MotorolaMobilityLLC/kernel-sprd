@@ -17,24 +17,19 @@
 #include "sprd-sound-fe-be.dtsi"
 #include "ums312-mach.dtsi"
 
+/*
+Tips:
+*	1. <SoC>.dts store NOTHING unless properties "model","compatible" and "sprd,sc-id",
+*		which are used for matching board id;
+*	2. Puts nodes belong to chip family in <chip_family>.dtsi, like sharkl3.dtsi;
+*	3. Puts nodes belong to SoC in <SoC>.dtsi, like sc9863a.dtsi;
+*	4. Puts nodes belong to vendor solid configurations in <SoC-mach>.dtsi, like sp9863a-mach.dtsi.
+*/
+
 / {
 	model = "Unisoc UMS312 SoC";
 
 	compatible = "sprd,ums312";
 
 	sprd,sc-id = "ums312 1000 1000";
-
-	memory: memory {
-		device_type = "memory";
-		reg = <0x0 0x80000000 0x0 0x80000000>;
-	};
 };
-
-&i2c5 {
-
-	status = "okay";
-	clock-frequency = <1000000>;
-
-
-};
-

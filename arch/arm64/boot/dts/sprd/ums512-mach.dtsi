@@ -21,6 +21,11 @@
 
 	};
 
+	memory: memory {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x80000000>;
+	};
+
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
@@ -880,6 +885,9 @@
 };
 
 &i2c4 {
+	status = "okay";
+	clock-frequency = <400000>;
+
 	ucp1301_spk: ucp1301@58 {
 		compatible = "sprd,ucp1301-spk";
 		reg = <0x58>;
