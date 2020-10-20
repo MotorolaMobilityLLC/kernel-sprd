@@ -603,7 +603,7 @@
 			};
 
 			pwms: pwm@643f0000 {
-				compatible = "sprd,ums9230-pwm", "sprd,sharkl5-pwm";
+				compatible = "sprd,qogirl6-pwm", "sprd,sharkl5-pwm";
 				reg = <0 0x643f0000 0 0x10000>;
 				status = "disabled";
 				clock-names = "clk_parent",
