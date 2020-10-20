@@ -172,3 +172,7 @@
 	vdd-supply = <&vddusb33>;
 	extcon = <&extcon_gpio>;
 };
+
+&sc2730_pmic {
+	interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
+};
