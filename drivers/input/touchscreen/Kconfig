@@ -1283,4 +1283,17 @@ config TOUCHSCREEN_GT9XX_TOOL
 	  to your system.
 
 	  If unsure, say N.
+
+config TOUCHSCREEN_CHIPONE
+        tristate "Chipone TDDI touchscreen for QualComm package"
+        depends on I2C
+        default y
+        help
+          Say y here if you have chipone TDDI touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called chipone-tddi.
+
 endif
