@@ -2700,6 +2700,16 @@ static int charger_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		ret = get_batt_cur_now(cm, &val->intval);
 		break;
+	case POWER_SUPPLY_PROP_TECHNOLOGY:
+		val->intval = POWER_SUPPLY_TECHNOLOGY_UNKNOWN;
+		fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+		if (!fuel_gauge) {
+			ret = -ENODEV;
+			break;
+		}
+		ret = power_supply_get_property(fuel_gauge,
+				POWER_SUPPLY_PROP_TECHNOLOGY, val);
+		break;
 	case POWER_SUPPLY_PROP_TEMP:
 		val->intval = cm->desc->temperature;
 		break;
@@ -3079,6 +3089,7 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
+	POWER_SUPPLY_PROP_TECHNOLOGY,
 	/*
 	 * Optional properties are:
 	 * POWER_SUPPLY_PROP_CHARGE_NOW,
