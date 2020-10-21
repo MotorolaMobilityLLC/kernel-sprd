@@ -40,6 +40,9 @@
 #include "shub_protocol.h"
 #include "shub_opcode.h"
 #include <linux/pm_wakeup.h>
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
+
 
 static struct task_struct *thread;
 static struct task_struct *thread_nwu;
@@ -2387,6 +2390,25 @@ static void shub_config_init(struct shub_data *sensor)
 	sensor->is_sensorhub = 1;
 }
 
+static void shub_ps_led_enable(struct device *dev)
+{
+	struct device_node *np = dev->of_node;
+	int ps_en_gpio;
+	int ret;
+
+	ps_en_gpio = of_get_named_gpio(np, "psled-en-gpios", 0);
+
+	if (gpio_is_valid(ps_en_gpio)) {
+		ret = gpio_request(ps_en_gpio, "ps_led_en");
+		if (ret < 0)
+			dev_err(dev, "request ps led gpio fail");
+	}
+
+	if (ps_en_gpio) {
+		gpio_direction_output(ps_en_gpio, 1);
+	}
+}
+
 static int shub_probe(struct platform_device *pdev)
 {
 	struct shub_data *mcu;
@@ -2482,6 +2504,8 @@ static int shub_probe(struct platform_device *pdev)
 				   SMSG_CH_PIPE, SIPC_PM_BUFID1);
 	mcu->early_suspend.notifier_call = shub_notifier_fn;
 	register_pm_notifier(&mcu->early_suspend);
+
+	shub_ps_led_enable(&pdev->dev);
 
 	return 0;
 

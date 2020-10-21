@@ -250,6 +250,7 @@
 
 	sprd-sensorhub {
 		compatible = "sprd,sharkl3-sensorhub";
+		psled-en-gpios = <&ap_gpio 17 0>;
 	};
 
 	autotest:autotest{
