@@ -295,6 +295,13 @@
 		compatible = "linux,extcon-usb-gpio";
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 	};
+
+	gpio_boardid:gpio_boardid {
+			compatible = "gpio,boardid";
+			gpio,boardid0 = <&ap_gpio 85 0>;
+			gpio,boardid1 = <&ap_gpio 88 0>;
+                        gpio,boardid2 = <&ap_gpio 89 0>;
+	};
 };
 
 &reserved_memory {
@@ -542,8 +549,8 @@
 		sprd,preflash-level = <128>;
 		sprd,highlight-level = <128>;
 		sprd,lvfm-enable = <1>;
-		flash-torch-en-gpios = <&ap_gpio 88 0>;
-		flash-chip-en-gpios = <&ap_gpio 89 0>;
+		flash-torch-en-gpios = <&ap_gpio 63 0>;
+		flash-chip-en-gpios = <&ap_gpio 62 0>;
 		flash-en-gpios = <&ap_gpio 76 0>;
 		flash-sync-gpios = <&ap_gpio 141 0>;
 		status = "disabled";
