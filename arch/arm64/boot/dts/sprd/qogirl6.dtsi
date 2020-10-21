@@ -9,6 +9,7 @@
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 #include <dt-bindings/soc/sprd,qogirl6-mask.h>
 #include <dt-bindings/debug/busmonitor/busmonitor.h>
+#include <dt-bindings/debug/dmc_mpu/qogirl6_dmc_mpu.h>
 
 / {
 	interrupt-parent = <&gic>;
@@ -324,6 +325,68 @@
 			compatible = "sprd,ums9230-glbregs", "syscon";
 			#syscon-cells = <2>;
 			reg = <0 0x60000000 0 0x9000>;
+		};
+
+		pub {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			dmc_mpu: dmc-mpu@60200000 {
+				compatible = "sprd,qogirl6-dmc-mpu";
+				reg = <0 0x60200000 0 0x10000>;
+				interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
+				syscon-names = "irq_clr", "irq_en";
+				syscons = <&pub_apb_regs 0x32f0 0x200>,
+					<&pub_apb_regs 0x32f0 0x100>;
+				sprd,channel-num = <8>;
+				sprd,mpu-num = <16>;
+				sprd,channel-names =
+					"CPU", "GPU", "DPU/DCAM","ISP",
+					"AP/VSP/AON", "WTLCP", "PUBCP/AUDCP",
+					"WCN", "SHARED0", "SHARED1",
+					"SHARED2", "SHARED3", "SHARED4",
+					"SHARED5", "SHARED6", "SHARED7";
+				sprd,ranges = <0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+					<0 0 0 0>;
+				sprd,chn-config =
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>,
+					<DISABLE MON_INSIDE MON_WRITE>;
+				sprd,id-config =
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+					<MPUID 0 0xffff>, <MPUID 0 0xffff>;
+				sprd,port-map = <0>, <1>, <2>, <3>, <4>,
+						<5>, <6>, <7>, <0>, <0>,
+						<0>, <0>, <0>, <0>, <0>,
+						<0>;
+				sprd,ddr-offset = <0x80000000>;
+				status = "disabled";
+			};
 		};
 
 		aon_apb_regs: syscon@64000000 {
