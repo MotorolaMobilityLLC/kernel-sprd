@@ -159,6 +159,7 @@ static int __vbc_close_fm_dggain(bool mute)
 /* When remove headphone, disconnect the headphone
  * dapm DA path in codec driver.
  */
+#if 0
 static int dapm_jack_switch_control(struct snd_soc_codec *codec, bool on)
 {
 	struct snd_kcontrol *kctrl;
@@ -185,15 +186,17 @@ static int dapm_jack_switch_control(struct snd_soc_codec *codec, bool on)
 
 	return snd_soc_dapm_put_volsw(kctrl, &ucontrol);
 }
+#endif
 
 static void headset_jack_report(struct sprd_headset *hdst,
 	struct snd_soc_jack *jack, int status, int mask)
 {
+#if 0
 	struct sprd_headset_platform_data *pdata = &hdst->pdata;
 
 	if (mask & SND_JACK_HEADPHONE && (!pdata->hpr_spk))
 		dapm_jack_switch_control(hdst->codec, !!status);
-
+#endif
 	snd_soc_jack_report(jack, status, mask);
 }
 
@@ -1449,11 +1452,12 @@ int headset_fast_charge_finished(void)
 
 static void headset_fast_charge(struct sprd_headset *hdst)
 {
+#if 0
 	struct sprd_headset_platform_data *pdata = &hdst->pdata;
 	unsigned int mask = ~0u & ~(BIT(DAS_EN) | BIT(PA_EN));
-
 	if (!pdata->hpr_spk)
 		headset_reg_clr_bits(ANA_CDC2, mask);
+#endif
 	headset_reg_set_bits(ANA_STS2, BIT(CALDC_ENO));
 	headset_reg_set_bits(ANA_STS0, BIT(DC_CALI_RDACI_ADJ));
 	usleep_range(1000, 1100); /* Wait for 1mS */

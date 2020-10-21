@@ -154,6 +154,16 @@ static int hook_spk_aw87xx(int id, int on)
 	pr_info("%s id: %d, gpio: %d, mode: %d, on: %d\n",
 		 __func__, id, gpio, mode, on);
 
+	if (1 == id) {
+		pr_info("%s id: %d, gpio: %d, real on: %d\n",
+			__func__, id, gpio, !on);
+		if (on)
+			gpio_set_value(gpio, !EN_LEVEL);
+		else
+			gpio_set_value(gpio, EN_LEVEL);
+		return HOOK_OK;
+	}
+
 	/* Off */
 	if (!on) {
 		gpio_set_value(gpio, !EN_LEVEL);
