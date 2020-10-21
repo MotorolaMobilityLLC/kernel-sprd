@@ -571,9 +571,9 @@
 				status = "disabled";
 			};
 
-			ap_thm0: thermal@0x644B0000 {
+			ap_thm0: thermal@644B0000 {
 				compatible = "sprd,sharkl5-thermal", "sprd,qogirl6-thermal";
-				reg = <0 0x32200000 0 0x10000>;
+				reg = <0 0x644B0000 0 0x10000>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_THM0_EB>;
 				#thermal-sensor-cells = <1>;
@@ -617,9 +617,9 @@
 				};
 			};
 
-			ap_thm2: thermal@0x644D0000 {
+			ap_thm2: thermal@644D0000 {
 				compatible = "sprd,sharkl5-thermal", "sprd,qogirl6-thermal";
-				reg = <0 0x32210000 0 0x10000>;
+				reg = <0 0x644D0000 0 0x10000>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_THM2_EB>;
 				#thermal-sensor-cells = <1>;
