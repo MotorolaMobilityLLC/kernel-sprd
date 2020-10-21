@@ -1,0 +1,69 @@
+/ { lcds {
+	lcd_ili9882n_skyworth_mipi_hd: lcd_ili9882n_skyworth_mipi_hd {
+
+		sprd,dsi-work-mode = <1>;
+		sprd,dsi-lane-number = <3>;
+		sprd,dsi-color-format = "rgb888";
+
+		sprd,phy-bit-clock = <921000>;
+		sprd,phy-escape-clock = <20000>;
+
+		sprd,width-mm = <68>;
+		sprd,height-mm = <121>;
+
+		sprd,esd-check-enable = <0>;
+		sprd,esd-check-mode = <1>;
+		sprd,esd-check-period = <1000>;
+
+		sprd,reset-on-sequence = <1 5>, <0 5>, <1 120>;
+		sprd,reset-off-sequence = <0 20>;
+
+		sprd,initial-command = [
+			39 00 00 04 FF 98 82 00
+		        39 00 00 03 51 00 00
+		        23 00 00 02 53 2c
+		        23 00 00 02 55 01
+		        13 78 00 01 11
+		        39 00 00 04 FF 98 82 03
+		        23 00 00 02 83 60
+        		23 00 00 02 84 03
+		        39 00 00 04 FF 98 82 06
+        		23 00 00 02 D9 10
+        		39 00 00 04 FF 98 82 00
+		        13 14 00 01 29
+			];
+		sprd,sleep-in-command = [
+			13 0A 00 01 28
+			13 78 00 01 10
+			];
+		sprd,sleep-out-command = [
+			13 78 00 01 11
+			13 64 00 01 29
+			];
+
+		display-timings {
+			timing0 {
+				clock-frequency = <96000000>;
+				hactive = <720>;
+				vactive = <1560>;
+				hback-porch = <70>;
+				hfront-porch = <70>;
+				vback-porch = <32>;
+				vfront-porch = <226>;
+				hsync-len = <16>;
+				vsync-len = <4>;
+			};
+		};
+
+oled-backlight{
+	default-brightness-level = <25>;
+	sprd,max-level = <255>;
+	brightness-levels = [
+		29 00 00 03 51 0F FF
+	];
+};
+};
+
+};};
+
+

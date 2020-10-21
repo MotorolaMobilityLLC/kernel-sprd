@@ -59,25 +59,14 @@
 &i2c3 {
 	status = "okay";
 
-	touchscreen@38 {
-		compatible = "adaptive-touchscreen";
-		reg = <0x38>;
-		status = "disabled";		
-		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
-			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
-		controller = "focaltech,FT5436";
-
-		virtualkeys = <580 60 1320 60 45
-			172 360 1320 60 45
-			158 600 1320 60 45>;
-		surface-width = <720>;
-		surface-height = <1280>;
-
-		firmware-auto-upgrade;
-		private-data {
-			a8 = /bits/ 8 <0x5a>;
-		};
+	ilitek_touch_mtk:ilitek_touch@41{
+		compatible = "tchip,ilitek";
+		reg = <0x41>;
+		touch,irq-gpio = <&ap_gpio 144 0>;
+		touch,reset-gpio = <&ap_gpio 145 0>;
+		status = "okay";
 	};
+
 	gt9xx_ts@5d{
 		compatible = "goodix,gt9xx_ts";
 		reg = <0x5d>;

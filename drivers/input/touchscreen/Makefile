@@ -107,3 +107,4 @@ obj-$(CONFIG_TOUCHSCREEN_ROHM_BU21023)	+= rohm_bu21023.o
 obj-$(CONFIG_TOUCHSCREEN_ADAPTIVE)      += adaptive-ts/
 obj-$(CONFIG_TOUCHSCREEN_GT9XX_TS)    += gt9xx_ts/
 obj-$(CONFIG_TOUCHSCREEN_CHIPONE) += chipone-tddi/
+obj-$(CONFIG_TOUCHSCREEN_ILI9882N_SKY)   += ili9882n_sky/
