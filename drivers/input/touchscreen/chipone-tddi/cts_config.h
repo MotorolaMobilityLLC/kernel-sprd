@@ -102,7 +102,7 @@
 
 
 /* ESD protection */
-//#define CONFIG_CTS_ESD_PROTECTION
+#define CONFIG_CTS_ESD_PROTECTION
 #ifdef CONFIG_CTS_ESD_PROTECTION
     #define CFG_CTS_ESD_PROTECTION_CHECK_PERIOD         (2 * HZ)
     #define CFG_CTS_ESD_FAILED_CONFIRM_CNT              3
