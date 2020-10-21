@@ -1,0 +1,7 @@
+/ {
+	    fingerprint {
+			        compatible = "chipone,fingerprint";
+							fpint-gpios = <&ap_gpio 130  0 >;
+							fpreset-gpios = <&ap_gpio 131 0 >;
+					    };
+};

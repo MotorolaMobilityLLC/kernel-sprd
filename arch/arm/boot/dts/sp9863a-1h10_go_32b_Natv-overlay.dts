@@ -8,7 +8,7 @@
 		__overlay__ {
 			fingerprint@0 {
 				compatible = "microarray,afs121";
-				fpint-gpios = <&ap_gpio 130 0>;
+				//fpint-gpios = <&ap_gpio 130 0>;
 			};
 
 			flash-gpios {
