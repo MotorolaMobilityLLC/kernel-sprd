@@ -494,6 +494,77 @@ static int set_front_camera_otp_status(const char * buf, int n)
 	front_cam_otp_status[n] = '\0';
 	return 0;
 }
+static int set_front_camera_id(const char * buf, int n)
+{
+	strncpy(front_cam_name, buf, n);
+	printk(KERN_INFO "buf = %s n = %d\n", buf, n);
+	front_cam_name[n] = '\0';
+	return 0;
+}
+static int set_frontaux_camera_id(const char * buf, int n)
+{
+	strncpy(frontaux_cam_name, buf, n);
+	printk(KERN_INFO "buf = %s n = %d\n", buf, n);
+	frontaux_cam_name[n] = '\0';
+	return 0;
+}
+static int set_back_camera_id(const char * buf, int n)
+{
+	strncpy(back_cam_name, buf, n);
+	printk(KERN_INFO "buf = %s n = %d\n", buf, n);
+	back_cam_name[n] = '\0';
+	return 0;
+}
+static int set_backaux_camera_id(const char * buf, int n)
+{
+	strncpy(back_cam_name, buf, n);
+	printk(KERN_INFO "buf = %s n = %d\n", buf, n);
+	back_cam_name[n] = '\0';
+	return 0;
+}
+static int set_backaux2_camera_id(const char * buf, int n)
+{
+	strncpy(backaux2_cam_name, buf, n);
+	printk(KERN_INFO "buf = %s n = %d\n", buf, n);
+	backaux2_cam_name[n] = '\0';
+	return 0;
+}
+static int set_front_camera_efuse_id(const char * buf, int n)
+{
+	strncpy(front_cam_efuse_id, buf, n);
+	printk(KERN_INFO "buf = %s n = %d\n", buf, n);
+	front_cam_efuse_id[n] = '\0';
+	return 0;
+}
+static int set_frontaux_camera_efuse_id(const char * buf, int n)
+{
+	strncpy(frontaux_cam_efuse_id, buf, n);
+	printk(KERN_INFO "buf = %s n = %d\n", buf, n);
+	frontaux_cam_efuse_id[n] = '\0';
+	return 0;
+}
+static int set_back_camera_efuse_id(const char * buf, int n)
+{
+	strncpy(back_cam_efuse_id, buf, n);
+	printk(KERN_INFO "buf = %s n = %d\n", buf, n);
+	back_cam_efuse_id[n] = '\0';
+	return 0;
+}
+static int set_backaux_camera_efuse_id(const char * buf, int n)
+{
+	strncpy(backaux_cam_efuse_id, buf, n);
+	printk(KERN_INFO "buf = %s n = %d\n", buf, n);
+	backaux_cam_efuse_id[n] = '\0';
+	return 0;
+}
+
+static int set_backaux2_camera_efuse_id(const char * buf, int n)
+{
+	strncpy(backaux2_cam_efuse_id, buf, n);
+	printk(KERN_INFO "buf = %s n = %d\n", buf, n);
+	backaux2_cam_efuse_id[n] = '\0';
+	return 0;
+}
 
 static int put_battery_input_suspend(const char * buf, int n)
 {
@@ -1449,6 +1520,36 @@ static ssize_t hwinfo_store(struct kobject *kobj, struct kobj_attribute *attr, c
 		break;
 	case FRONT_CAM_OTP_STATUS:
 		set_front_camera_otp_status(buf, n);
+		break;
+	case FRONT_CAM_MFR:
+		set_front_camera_id(buf, n);
+		break;
+	case FRONTAUX_CAM_MFR:
+		set_frontaux_camera_id(buf, n);
+		break;
+	case BACK_CAM_MFR:
+		set_back_camera_id(buf, n);
+		break;
+	case BACKAUX_CAM_MFR:
+		set_backaux_camera_id(buf, n);
+		break;
+	case BACKAUX2_CAM_MFR:
+		set_backaux2_camera_id(buf, n);
+		break;
+	case FRONT_CAM_EFUSE:
+		set_front_camera_efuse_id(buf, n);
+		break;
+	case FRONTAUX_CAM_EFUSE:
+		set_frontaux_camera_efuse_id(buf, n);
+		break;
+	case BACK_CAM_EFUSE:
+		set_back_camera_efuse_id(buf, n);
+		break;
+	case BACKAUX_CAM_EFUSE:
+		set_backaux_camera_efuse_id(buf, n);
+		break;
+	case BACKAUX2_CAM_EFUSE:
+		set_backaux2_camera_efuse_id(buf, n);
 		break;
 
 	default:
