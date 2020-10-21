@@ -199,7 +199,7 @@
 		compatible = "simple-battery";
 		charge-full-design-microamp-hours = <2780000>;
 		charge-term-current-microamp = <120000>;
-		constant_charge_voltage_max_microvolt = <4330000>;
+		constant_charge_voltage_max_microvolt = <4400000>;
 		factory-internal-resistance-micro-ohms = <210000>;
 		voltage-min-design-microvolt = <3450000>;
 		ocv-capacity-celsius = <20>;
@@ -237,8 +237,8 @@
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
-		cm-num-chargers = <1>;
-		cm-chargers = "hl7028_charger";
+		cm-num-chargers = <2>;
+		cm-chargers = "hl7028_charger","bq24157_charger";
 		cm-fuel-gauge = "sc27xx-fgu";
 
 		/* in deci centigrade */
@@ -537,6 +537,21 @@
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
+	};
+
+	bq24157-chg@0x6a {
+		status = "okay";
+		compatible = "ti,bq24157_chg";
+		reg = <0x6a>;
+		chg-en-gpios = <&ap_gpio 137 0>;
+		otg-en-gpios = <&ap_gpio 134 0>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+//		vddvbus:bq24157-otg-vbus {
+//			regulator-name = "vddvbus";
+//		};
+		
 	};
 
 	flash_ic: flash-ic@63 {
