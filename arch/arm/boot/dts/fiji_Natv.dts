@@ -478,7 +478,7 @@
 		vddcama-supply = <&vddcama>;
 		vddcamd-supply = <&vddcamd>;
 		vddcammot-supply = <&vddcammot>;
-		sprd,phyid = <2>;
+		sprd,phyid = <3>;
 		csi = <&csi1>;
 		/*avdd-gpios=<&ap_gpio 140 0>;*/
 		dvdd-gpios=<&ap_gpio 62 0>;
