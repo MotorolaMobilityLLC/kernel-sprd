@@ -36,6 +36,7 @@ typedef enum {
 #define __FF_EARLY_LOG_LEVEL FF_LOG_LEVEL_ALL
 #endif
 
+#define fpsensor_debug(fmt, args...)     pr_debug(fmt, ##args)
 /*
  * Log level can be runtime configurable.
  */

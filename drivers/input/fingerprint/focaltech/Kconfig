@@ -1,6 +1,13 @@
-config MICROTRUST_FP_FOCALTECH
-	tristate "Focaltech Finger Print Driver"
-   	help
-		Focaltech Finger Print Supported
+if INPUT_FINGERPRINT
+config FP_FOCALTECH
+	tristate "focaltech fingureprint driver"
+	depends on SPI
+	default n
+	---help---
+	  focaltech fingureprint driver.
+	  This is a driver based on the SPI kernel layers.
 
-
+	  To compile this driver as a module, choose m here. The module will
+	  be called fpsensor.
+	  Say N if unsure.
+endif

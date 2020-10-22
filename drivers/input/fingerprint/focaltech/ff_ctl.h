@@ -27,6 +27,21 @@
 #define FF_DRV_VERSION_LEN 32
 #define FF_DRV_IC_INFORMATION_LEN 64
 
+/* set chip type */
+/*
+#define CHIP_TYPE_FT9304
+*/
+#define CHIP_TYPE_MSM8916
+
+/* set spi */
+//#define FF_SPI_SET
+
+/* set vdd gpio */
+//#define FF_VDD_GPIO
+
+/* set iovcc gpio */
+//#define FF_IOVCC_GPIO
+
 typedef struct {
     unsigned int code;
     int value;
@@ -67,15 +82,10 @@ typedef struct {
 } ff_driver_config_t;
 
 typedef struct {
-    char ic_name[FF_DRV_IC_INFORMATION_LEN];
-    char ca_version[FF_DRV_IC_INFORMATION_LEN];
-    char ta_version[FF_DRV_IC_INFORMATION_LEN];
+	char ic_name[FF_DRV_IC_INFORMATION_LEN];
+	char ca_version[FF_DRV_IC_INFORMATION_LEN];
+	char ta_version[FF_DRV_IC_INFORMATION_LEN];
 } ic_information_t;
-
-typedef struct {
-    short bus;
-    unsigned char cs;
-} ff_spidev_info_t;
 
 /* Magic code for IOCTL-subsystem, 'f'(0x66) means '[F]ocalTech'. */
 #define FF_IOC_MAGIC 'f'
@@ -108,9 +118,11 @@ typedef struct {
 /* Query the driver version string. */
 #define FF_IOC_GET_VERSION      _IOR(FF_IOC_MAGIC, 0x0b, const char)
 
+/* get screen state. */
+#define FF_IOC_GET_SCREEN_STATE      _IOR(FF_IOC_MAGIC, 0x0c, const char)
+/* set hw info */
+
 #define FF_IOC_SET_IC_INFORMATION _IOW(FF_IOC_MAGIC, 0x0c, ic_information_t)
 #define FF_IOC_GET_IC_INFORMATION _IOR(FF_IOC_MAGIC, 0x0d, ic_information_t)
-
-#define FF_IOC_GET_SPIDEV_INFO  _IOR(FF_IOC_MAGIC, 0x0e, ff_spidev_info_t)
 
 #endif /* __FF_CTRL_API_H__ */
