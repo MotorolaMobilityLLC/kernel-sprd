@@ -237,8 +237,8 @@
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
-		cm-num-chargers = <2>;
-		cm-chargers = "hl7028_charger","bq24157_charger";
+		cm-num-chargers = <1>;
+		cm-chargers = "bq24157_charger";
 		cm-fuel-gauge = "sc27xx-fgu";
 
 		/* in deci centigrade */
@@ -524,7 +524,7 @@
 //			regulator-name = "vddvbus";
 //		};
 	};
-*/
+	
 	hl7028_chg@0x6b {
 		status = "okay";
 		compatible = "dfsl,hl7028_chg";
@@ -538,6 +538,7 @@
 			regulator-name = "vddvbus";
 		};
 	};
+*/
 
 	bq24157-chg@0x6a {
 		status = "okay";
@@ -548,9 +549,9 @@
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>;
-//		vddvbus:bq24157-otg-vbus {
-//			regulator-name = "vddvbus";
-//		};
+		vddvbus:bq24157-otg-vbus {
+			regulator-name = "vddvbus";
+		};
 		
 	};
 
