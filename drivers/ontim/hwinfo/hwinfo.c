@@ -21,6 +21,7 @@
 //#include <linux/qpnp/qpnp-adc.h>
 //#include "board_id_adc.h"
 
+
 #define BUF_SIZE 64
 
 char front_cam_name[64] = "Unknown";
@@ -494,6 +495,7 @@ static int set_front_camera_otp_status(const char * buf, int n)
 	front_cam_otp_status[n] = '\0';
 	return 0;
 }
+/*
 static int set_front_camera_id(const char * buf, int n)
 {
 	strncpy(front_cam_name, buf, n);
@@ -565,7 +567,7 @@ static int set_backaux2_camera_efuse_id(const char * buf, int n)
 	backaux2_cam_efuse_id[n] = '\0';
 	return 0;
 }
-
+*/
 static int put_battery_input_suspend(const char * buf, int n)
 {
 	int ret = 0;
@@ -793,41 +795,107 @@ static ssize_t get_alsps_id(void)
 
 	return 0;
 }
+#define FRONT_CAMERA_VENDOR_FILE "/sys/ontim_bootinfo/front_cam_info"
+#define FRONTAUX_CAMERA_VENDOR_FILE "/sys/ontim_bootinfo/frontaux_cam_info"
+#define BACK_CAMERA_VENDOR_FILE "/sys/ontim_bootinfo/back_cam_info"
+#define BACKAUX_CAMERA_VENDOR_FILE "/sys/ontim_bootinfo/backaux_cam_info"
+#define BACKAUX2_CAMERA_VENDOR_FILE "/sys/ontim_bootinfo/backaux2_cam_info"
 
 static void get_front_camera_id(void)
 {
-	if (front_cam_name != NULL)
-		strncpy(hwinfo[FRONT_CAM_MFR].hwinfo_buf, front_cam_name,
-		        ((strlen(front_cam_name) >= sizeof(hwinfo[FRONT_CAM_MFR].hwinfo_buf) ?
-		          sizeof(hwinfo[FRONT_CAM_MFR].hwinfo_buf) : strlen(front_cam_name))));
+	char buf[MAX_HWINFO_SIZE] = {};
+	int ret = 0;
+
+	ret = hwinfo_read_file(FRONT_CAMERA_VENDOR_FILE, buf, sizeof(buf));
+	if (ret != 0) {
+		printk(KERN_CRIT "front camera failed.");
+		return;
+	}
+	printk(KERN_INFO "front camera vendor: %s\n", buf);
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	strcpy(hwinfo[FRONT_CAM_MFR].hwinfo_buf, buf);
+
+	return;
 }
 static void get_frontaux_camera_id(void)
 {
-	if (frontaux_cam_name != NULL)
-		strncpy(hwinfo[FRONTAUX_CAM_MFR].hwinfo_buf, frontaux_cam_name,
-		        ((strlen(frontaux_cam_name) >= sizeof(hwinfo[FRONTAUX_CAM_MFR].hwinfo_buf) ?
-		          sizeof(hwinfo[FRONTAUX_CAM_MFR].hwinfo_buf) : strlen(frontaux_cam_name))));
+	char buf[MAX_HWINFO_SIZE*6] = {};
+	int ret = 0;
+
+	ret = hwinfo_read_file(FRONTAUX_CAMERA_VENDOR_FILE, buf, sizeof(buf));
+	if (ret != 0) {
+		printk(KERN_CRIT "frontaux camera failed.");
+		return;
+	}
+	printk(KERN_INFO "frontaux camera vendor: %s\n", buf);
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	strcpy(hwinfo[FRONTAUX_CAM_MFR].hwinfo_buf, buf);
+
+	return;
+
 }
 static void get_back_camera_id(void)
 {
-	if (back_cam_name != NULL)
-		strncpy(hwinfo[BACK_CAM_MFR].hwinfo_buf, back_cam_name,
-		        ((strlen(back_cam_name) >= sizeof(hwinfo[BACK_CAM_MFR].hwinfo_buf) ?
-		          sizeof(hwinfo[BACK_CAM_MFR].hwinfo_buf) : strlen(back_cam_name))));
+	char buf[MAX_HWINFO_SIZE] = {};
+	int ret = 0;
+
+	ret = hwinfo_read_file(BACK_CAMERA_VENDOR_FILE, buf, sizeof(buf));
+	if (ret != 0) {
+		printk(KERN_CRIT "back camera failed.");
+		return;
+	}
+	printk(KERN_INFO "back camera vendor: %s\n", buf);
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	strcpy(hwinfo[BACK_CAM_MFR].hwinfo_buf, buf);
+
+	return;
 }
 static void get_backaux_camera_id(void)
 {
-	if (backaux_cam_name != NULL)
-		strncpy(hwinfo[BACKAUX_CAM_MFR].hwinfo_buf, backaux_cam_name,
-		        ((strlen(backaux_cam_name) >= sizeof(hwinfo[BACKAUX_CAM_MFR].hwinfo_buf) ?
-		          sizeof(hwinfo[BACKAUX_CAM_MFR].hwinfo_buf) : strlen(backaux_cam_name))));
+	char buf[MAX_HWINFO_SIZE] = {};
+	int ret = 0;
+
+	ret = hwinfo_read_file(BACKAUX_CAMERA_VENDOR_FILE, buf, sizeof(buf));
+	if (ret != 0) {
+		printk(KERN_CRIT "backaux camera failed.");
+		return;
+	}
+	printk(KERN_INFO "backaux camera vendor: %s\n", buf);
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	strcpy(hwinfo[BACKAUX_CAM_MFR].hwinfo_buf, buf);
+
+	return;
 }
 static void get_backaux2_camera_id(void)
 {
-	if (backaux2_cam_name != NULL)
-		strncpy(hwinfo[BACKAUX2_CAM_MFR].hwinfo_buf, backaux2_cam_name,
-		        ((strlen(backaux2_cam_name) >= sizeof(hwinfo[BACKAUX2_CAM_MFR].hwinfo_buf) ?
-		          sizeof(hwinfo[BACKAUX2_CAM_MFR].hwinfo_buf) : strlen(backaux2_cam_name))));
+	char buf[MAX_HWINFO_SIZE] = {};
+	int ret = 0;
+
+	ret = hwinfo_read_file(BACKAUX2_CAMERA_VENDOR_FILE, buf, sizeof(buf));
+	if (ret != 0) {
+		printk(KERN_CRIT "backaux2 camera failed.");
+		return;
+	}
+	printk(KERN_INFO "backaux2 camera vendor: %s\n", buf);
+
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+
+	strcpy(hwinfo[BACKAUX2_CAM_MFR].hwinfo_buf, buf);
+
+	return;
 }
 static void get_backaux2_camera_otp_status(void)
 {
@@ -1521,6 +1589,7 @@ static ssize_t hwinfo_store(struct kobject *kobj, struct kobj_attribute *attr, c
 	case FRONT_CAM_OTP_STATUS:
 		set_front_camera_otp_status(buf, n);
 		break;
+/*
 	case FRONT_CAM_MFR:
 		set_front_camera_id(buf, n);
 		break;
@@ -1551,7 +1620,7 @@ static ssize_t hwinfo_store(struct kobject *kobj, struct kobj_attribute *attr, c
 	case BACKAUX2_CAM_EFUSE:
 		set_backaux2_camera_efuse_id(buf, n);
 		break;
-
+*/
 	default:
 		break;
 	};

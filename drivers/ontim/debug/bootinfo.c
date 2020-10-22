@@ -11,6 +11,12 @@
 static struct kobject *bootinfo_kobj = NULL;
 int gesture_dubbleclick_en =0;
 
+static char front_cam_name[64] = "Unknown";
+static char frontaux_cam_name[64] = "Unknown";
+static char back_cam_name[64] = "Unknown";
+static char backaux_cam_name[64] = "Unknown";
+static char backaux2_cam_name[64] = "Unknown";
+
 static ssize_t gesture_enable_show(struct kobject *kobj, struct kobj_attribute *attr, char * buf)
 {
 	char *s = buf;
@@ -51,9 +57,155 @@ static struct kobj_attribute i2c_devices_info_attr = {
 	.show =&i2c_devices_info_show,
 };
 
+static ssize_t sprd_get_back_sensor_name_hwinfo(struct kobject *kobj, struct kobj_attribute *attr, char * buf)
+{
+
+	pr_info("sprd_sensor: _sensor_type_info %s\n", back_cam_name);
+	return scnprintf(buf, PAGE_SIZE, "%s\n",  back_cam_name);
+}
+static ssize_t sprd_get_backaux_sensor_name_hwinfo(struct kobject *kobj, struct kobj_attribute *attr, char * buf)
+{
+
+	pr_info("sprd_sensor: _sensor_type_info %s\n", backaux_cam_name);
+	return scnprintf(buf, PAGE_SIZE, "%s\n",  backaux_cam_name);
+}
+static ssize_t sprd_get_backaux2_sensor_name_hwinfo(struct kobject *kobj, struct kobj_attribute *attr, char * buf)
+{
+
+	pr_info("sprd_sensor: _sensor_type_info %s\n", backaux2_cam_name);
+	return scnprintf(buf, PAGE_SIZE, "%s\n",  backaux2_cam_name);
+}
+static ssize_t sprd_get_front_sensor_name_hwinfo(struct kobject *kobj, struct kobj_attribute *attr, char * buf)
+{
+
+	pr_info("sprd_sensor: _sensor_type_info %s\n", front_cam_name);
+	return scnprintf(buf, PAGE_SIZE, "%s\n",  front_cam_name);
+}
+static ssize_t sprd_get_frontaux_sensor_name_hwinfo(struct kobject *kobj, struct kobj_attribute *attr, char * buf)
+{
+
+	pr_info("sprd_sensor: _sensor_type_info %s\n", frontaux_cam_name);
+	return scnprintf(buf, PAGE_SIZE, "%s\n",  frontaux_cam_name);
+}
+
+static ssize_t sprd_set_back_sensor_name_hwinfo(struct kobject *kobj, struct kobj_attribute *attr, const char * buf, size_t size)
+{
+	if (strlen(buf) >= 255) {
+		pr_err("out of the maxnum 255.\n");
+		return -EINVAL;
+	}
+
+	pr_err("sensor name %s.\n", buf);
+	memset(back_cam_name, 0, sizeof(back_cam_name));
+	memcpy(back_cam_name, buf, strlen(buf));
+
+	return size;
+
+}
+static ssize_t sprd_set_backaux_sensor_name_hwinfo(struct kobject *kobj, struct kobj_attribute *attr, const char * buf, size_t size)
+{
+	if (strlen(buf) >= 255) {
+		pr_err("out of the maxnum 255.\n");
+		return -EINVAL;
+	}
+
+	pr_err("sensor name %s.\n", buf);
+	memset(backaux_cam_name, 0, sizeof(backaux_cam_name));
+	memcpy(backaux_cam_name, buf, strlen(buf));
+
+	return size;
+}
+static ssize_t sprd_set_backaux2_sensor_name_hwinfo(struct kobject *kobj, struct kobj_attribute *attr, const char * buf, size_t size)
+{
+	if (strlen(buf) >= 255) {
+		pr_err("out of the maxnum 255.\n");
+		return -EINVAL;
+	}
+
+	pr_err("sensor name %s.\n", buf);
+	memset(backaux2_cam_name, 0, sizeof(backaux2_cam_name));
+	memcpy(backaux2_cam_name, buf, strlen(buf));
+
+	return size;
+}
+
+static ssize_t sprd_set_front_sensor_name_hwinfo(struct kobject *kobj, struct kobj_attribute *attr, const char * buf, size_t size)
+{
+	if (strlen(buf) >= 255) {
+		pr_err("out of the maxnum 255.\n");
+		return -EINVAL;
+	}
+
+	pr_err("sensor name %s.\n", buf);
+	memset(front_cam_name, 0, sizeof(front_cam_name));
+	memcpy(front_cam_name, buf, strlen(buf));
+
+	return size;
+}
+
+static ssize_t sprd_set_frontaux_sensor_name_hwinfo(struct kobject *kobj, struct kobj_attribute *attr, const char * buf, size_t size)
+{
+	if (strlen(buf) >= 255) {
+		pr_err("out of the maxnum 255.\n");
+		return -EINVAL;
+	}
+
+	pr_err("sensor name %s.\n", buf);
+	memset(frontaux_cam_name, 0, sizeof(frontaux_cam_name));
+	memcpy(frontaux_cam_name, buf, strlen(buf));
+
+	return size;
+}
+
+static struct kobj_attribute back_cam_info_attr = {
+	.attr = {
+		.name = "back_cam_info",
+		.mode = 0444,
+	},
+	.show =&sprd_get_back_sensor_name_hwinfo,
+	.store = &sprd_set_back_sensor_name_hwinfo,
+};
+static struct kobj_attribute backaux_cam_info_attr = {
+	.attr = {
+		.name = "backaux_cam_info",
+		.mode = 0444,
+	},
+	.show =&sprd_get_backaux_sensor_name_hwinfo,
+	.store = &sprd_set_backaux_sensor_name_hwinfo,
+};
+static struct kobj_attribute backaux2_cam_info_attr = {
+	.attr = {
+		.name = "backaux2_cam_info",
+		.mode = 0444,
+	},
+	.show =&sprd_get_backaux2_sensor_name_hwinfo,
+	.store = &sprd_set_backaux2_sensor_name_hwinfo,
+};
+static struct kobj_attribute front_cam_info_attr = {
+	.attr = {
+		.name = "front_cam_info",
+		.mode = 0444,
+	},
+	.show =&sprd_get_front_sensor_name_hwinfo,
+	.store = &sprd_set_front_sensor_name_hwinfo,
+};
+static struct kobj_attribute frontaux_cam_info_attr = {
+	.attr = {
+		.name = "frontaux_cam_info",
+		.mode = 0444,
+	},
+	.show =&sprd_get_frontaux_sensor_name_hwinfo,
+	.store = &sprd_set_frontaux_sensor_name_hwinfo,
+};
+
 static struct attribute * g[] = {
 	&i2c_devices_info_attr.attr,//+add by liuwei
 	&gesture_enable_attr.attr,
+	&back_cam_info_attr.attr,
+	&backaux_cam_info_attr.attr,
+	&backaux2_cam_info_attr.attr,
+	&front_cam_info_attr.attr,
+	&frontaux_cam_info_attr.attr,
 	NULL,
 };
 
