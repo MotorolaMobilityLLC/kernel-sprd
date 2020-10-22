@@ -1,19 +1,19 @@
-#ifndef CTS_PLAT_QCOM_CONFIG_H
-#define CTS_PLAT_QCOM_CONFIG_H
+#ifndef CTS_PLAT_SPRD_CONFIG_H
+#define CTS_PLAT_SPRD_CONFIG_H
 
-#define CONFIG_CTS_PM_FB_NOTIFIER
+//#define CONFIG_CTS_PM_FB_NOTIFIER
 
 #ifdef CONFIG_CTS_PM_FB_NOTIFIER
 #ifdef CONFIG_DRM_MSM
-#define CFG_CTS_DRM_NOTIFIER
+//    #define CFG_CTS_DRM_NOTIFIER
 #endif/*CONFIG_DRM_MSM*/
 #else/*CONFIG_CTS_PM_FB_NOTIFIER*/
 #if defined(CONFIG_PM_SLEEP) && defined(CONFIG_PM_SUSPEND)
-    //#define CONFIG_CTS_PM_GENERIC
+//    #define CONFIG_CTS_PM_GENERIC
 #endif /* CONFIG_PM_SLEEP */
 
 #if !defined(CONFIG_CTS_PM_GENERIC)
-    #define CONFIG_CTS_PM_LEGACY
+//    #define CONFIG_CTS_PM_LEGACY
 #endif/*CONFIG_CTS_PM_GENERIC*/
 #endif/*CONFIG_CTS_PM_FB_NOTIFIER*/
 
@@ -46,5 +46,5 @@
     #define CFG_CTS_OF_Y_RESOLUTION_NAME    "chipone,y-res"
 #endif /* CONFIG_CTS_OF */
 
-#endif /* CTS_PLAT_QCOM_CONFIG_H */
+#endif /* CTS_PLAT_SPRD_CONFIG_H */
 

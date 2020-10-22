@@ -96,9 +96,9 @@
 
 //#define CONFIG_CTS_GLOVE
 
-#define CONFIG_CTS_CHARGER_DETECT
+//#define CONFIG_CTS_CHARGER_DETECT
 
-#define CONFIG_CTS_EARJACK_DETECT
+//#define CONFIG_CTS_EARJACK_DETECT
 
 
 /* ESD protection */
@@ -120,7 +120,6 @@
  * Platform configurations
  ****************************************************************************/
 
-#include "cts_plat_qcom_config.h"
+#include "cts_plat_sprd_config.h"
 
 #endif /* CTS_CONFIG_H */
-
