@@ -121,6 +121,7 @@
 		pmic_adc: adc@400 {
 			compatible = "sprd,sc27xx-adc", "sprd,sc2721-adc";
 			reg = <0x400>;
+			vref-supply = <&vdd28>;
 			interrupt-parent = <&sc2721_pmic>;
 			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
 			#io-channel-cells = <1>;
