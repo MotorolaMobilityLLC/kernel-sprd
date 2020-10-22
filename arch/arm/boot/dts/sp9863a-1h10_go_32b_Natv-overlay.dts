@@ -129,3 +129,9 @@
 			"camhigh", "camveryhigh";
 	sprd-freq = <933 400 233 400 622 933>;
 };
+
+&sdio0 {
+	cd-gpios = <&eic_sync 9 0>;
+	vmmc-supply = <>;
+	vddsdcore_en-gpios = <&ap_gpio 64 1>;
+};
