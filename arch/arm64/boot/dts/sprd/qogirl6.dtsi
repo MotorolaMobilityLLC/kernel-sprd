@@ -843,6 +843,20 @@
 		clock-output-names = "rco-100m";
 	};
 
+	dphy_273m: dphy-273m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <273000000>;
+		clock-output-names = "dphy-273m";
+	};
+
+	dphy_204m8: dphy-204m8 {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <204800000>;
+		clock-output-names = "dphy-204m8";
+	};
+
 	cache_efuse: efuse@65014c00 {
 		compatible = "sprd,sharkl5-cache-efuse", "sprd,qogirl6-cache-efuse";
 		reg = <0 0x65014c00 0 0x3ff>;
