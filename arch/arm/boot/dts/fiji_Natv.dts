@@ -482,7 +482,7 @@
 		sprd,phyid = <3>;
 		csi = <&csi1>;
 		/*avdd-gpios=<&ap_gpio 140 0>;*/
-		dvdd-gpios=<&ap_gpio 62 0>;
+		dvdd-gpios=<&ap_gpio 97 0>;
 		reset-gpios = <&ap_gpio 45 0>;
 		power-down-gpios = <&ap_gpio 47 0>;
 	};
@@ -539,9 +539,9 @@
 	};
 
 	flash_ic: flash-ic@63 {
-		compatible = "sprd,flash-ocp8137";
+		compatible = "sprd,flash-aw3643";
 		reg = <0x63>;
-		sprd,flash-ic = <8137>;
+		sprd,flash-ic = <3643>;
 		sprd,torch = <1>;
 		sprd,preflash = <1>;
 		sprd,highlight = <1>;
@@ -551,9 +551,9 @@
 		sprd,lvfm-enable = <1>;
 		flash-torch-en-gpios = <&ap_gpio 63 0>;
 		flash-chip-en-gpios = <&ap_gpio 62 0>;
-		flash-en-gpios = <&ap_gpio 76 0>;
-		flash-sync-gpios = <&ap_gpio 141 0>;
-		status = "disabled";
+		//flash-en-gpios = <&ap_gpio 76 0>;
+		//flash-sync-gpios = <&ap_gpio 141 0>;
+		status = "okay";
 	};
 };
 
