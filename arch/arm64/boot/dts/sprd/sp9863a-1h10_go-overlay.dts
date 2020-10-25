@@ -546,3 +546,13 @@
 &vddsim2 {
 	status = "disabled";
 };
+
+&reserved_memory {
+	logo_reserved: logobuffer@fd580000{
+		reg = <0x0 0xfd580000 0x0 0x007e9000>;
+	};
+};
+
+&dpu {
+	sprd,logo-memory = <&logo_reserved>;
+};
