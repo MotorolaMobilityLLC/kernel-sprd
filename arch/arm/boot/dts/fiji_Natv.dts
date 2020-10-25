@@ -435,11 +435,12 @@
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama>;
 		vddcamd-supply = <&vddcamd>;
-		vddcammot-supply = <&vddcammot>;
+		//vddcammot-supply = <&vddcammot>;
 		sprd,phyid = <1>;
 		csi = <&csi0>;
 		reset-gpios = <&ap_gpio 44 0>;
-		power-down-gpios = <&ap_gpio 46 0>;
+		mot-gpios = <&ap_gpio 96 0>;
+		//power-down-gpios = <&ap_gpio 46 0>;
 	};
 };
 
