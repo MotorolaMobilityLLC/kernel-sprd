@@ -344,6 +344,7 @@ static int bq24157_enable_charging(struct bq24157_charger_info *info, bool en)
 	dev_err(info->dev, "%s;%d;%x;\n",__func__,en,ret);
 
 	if (en) {
+		bq24157_charger_set_termina_vol(info,voltage_max_microvolt);
 		bq24157_set_ce(info,0);
 		bq24157_set_hz_mode(info,0);
 		bq24157_set_opa_mode(info,0);
@@ -351,7 +352,6 @@ static int bq24157_enable_charging(struct bq24157_charger_info *info, bool en)
 
 		bq24157_set_iterm(info,2);
 		bq24157_set_vsp(info,3);
-		bq24157_charger_set_termina_vol(info,voltage_max_microvolt);
 		
 	} else {
 //		bq24157_set_ce(info,1);
