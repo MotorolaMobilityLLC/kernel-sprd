@@ -438,7 +438,10 @@ static int seth_tx_pkt(void *data, struct sk_buff *skb, int is_ack)
 	struct sblock blk = {};
 	struct seth *seth = netdev_priv(data);
 	struct seth_init_data *pdata = seth->pdata;
+	struct ethhdr *ethh;
 	int ret;
+
+	ethh = eth_hdr(skb);
 
 	/* Get a free sblock. */
 	ret = SBLOCK_GET(pdata->dst, pdata->channel, &blk, is_ack, 0);
@@ -458,8 +461,10 @@ static int seth_tx_pkt(void *data, struct sk_buff *skb, int is_ack)
 			skb->len);
 		goto send_fail;
 	}
-	if (seth->is_rawip)
+	if (seth->is_rawip && ((ntohs(ethh->h_proto) == ETH_P_IPV6) ||
+	    (ntohs(ethh->h_proto) == ETH_P_IP))) {
 		skb_pull_inline(skb, ETH_HLEN);
+	}
 	blk.length = skb->len;
 	unalign_memcpy(blk.addr, skb->data, skb->len);
 	/* Copy the content into smem and trigger a smsg to the peer side */
