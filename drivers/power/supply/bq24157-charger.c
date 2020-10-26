@@ -152,6 +152,13 @@ struct bq24157_charger_info {
 	struct extcon_dev *edev;
 };
 
+#include <ontim/ontim_dev_dgb.h>
+static  char charge_ic_vendor_name[50]="BQ24157";
+DEV_ATTR_DECLARE(charge_ic)
+DEV_ATTR_DEFINE("vendor",charge_ic_vendor_name)
+DEV_ATTR_DECLARE_END;
+ONTIM_DEBUG_DECLARE_AND_INIT(charge_ic,charge_ic,8);
+
 static int
 bq24157_charger_set_limit_current(struct bq24157_charger_info *info,
 				   u32 limit_cur);
@@ -1009,6 +1016,13 @@ static int bq24157_charger_probe(struct i2c_client *client,
 	struct platform_device *regmap_pdev;
 	int ret;
 
+//+add by hzb for ontim debug
+        if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0)
+        {
+           return -EIO;
+        }
+//-add by hzb for ontim debug
+
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(dev, "No support for SMBUS_BYTE_DATA\n");
 		return -ENODEV;
@@ -1113,6 +1127,11 @@ static int bq24157_charger_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&info->wdt_work,
 			  bq24157_charger_feed_watchdog_work);
 	dev_err(dev, "bq24157 ok to register\n");
+
+//+add by hzb for ontim debug
+        REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
+//-add by hzb for ontim debug
+
 	return 0;
 }
 
