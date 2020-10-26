@@ -14,6 +14,7 @@
 #include "lcd/lcd_nt35532_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
 #include "lcd/l608_lcd_ili9881d_mipi.dtsi"
+#include "lcd/lcd_ili9881h_skyworth_mipi_hd.dtsi"
 #include "lcd/l608_lcd_icnl9911c_mipi.dtsi"
 #include "lcd/lcd_ili9882n_skyworth_mipi_hd.dtsi"
 #include <dt-bindings/gpio/gpio.h>
@@ -40,7 +41,7 @@
 
 	chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=1 init=/init root=/dev/ram0 rw androidboot.hardware=fiji androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=s9863a1h10_go_32b androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio";
 	};
 
 	ipi: interrupt-controller {
@@ -198,7 +199,7 @@
 		compatible = "simple-battery";
 		charge-full-design-microamp-hours = <2780000>;
 		charge-term-current-microamp = <120000>;
-		constant_charge_voltage_max_microvolt = <4330000>;
+		constant_charge_voltage_max_microvolt = <4400000>;
 		factory-internal-resistance-micro-ohms = <210000>;
 		voltage-min-design-microvolt = <3450000>;
 		ocv-capacity-celsius = <20>;
@@ -237,7 +238,7 @@
 		cm-fullbatt-capacity = <100>;
 
 		cm-num-chargers = <1>;
-		cm-chargers = "hl7028_charger";
+		cm-chargers = "bq24157_charger";
 		cm-fuel-gauge = "sc27xx-fgu";
 
 		/* in deci centigrade */
@@ -296,6 +297,7 @@
 	extcon_gpio: extcon-gpio {
 		compatible = "linux,extcon-usb-gpio";
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+		id-gpio = <&eic_debounce 4 GPIO_ACTIVE_HIGH>;
 	};
 
 	gpio_boardid:gpio_boardid {
@@ -371,7 +373,7 @@
 };
 
 &usb {
-	extcon = <&extcon_gpio>, <&pmic_typec>;
+	extcon = <&extcon_gpio>;
 	vbus-supply = <&vddvbus>;
 };
 
@@ -524,7 +526,7 @@
 //			regulator-name = "vddvbus";
 //		};
 	};
-*/
+	
 	hl7028_chg@0x6b {
 		status = "okay";
 		compatible = "dfsl,hl7028_chg";
@@ -537,6 +539,22 @@
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
+	};
+*/
+
+	bq24157-chg@0x6a {
+		status = "okay";
+		compatible = "ti,bq24157_chg";
+		reg = <0x6a>;
+		chg-en-gpios = <&ap_gpio 137 0>;
+		otg-en-gpios = <&ap_gpio 134 0>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+		vddvbus:bq24157-otg-vbus {
+			regulator-name = "vddvbus";
+		};
+		
 	};
 
 	flash_ic: flash-ic@63 {
