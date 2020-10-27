@@ -1,7 +1,7 @@
 TI BQ2560X PMIC battery charger binding
 
 Required properties:
- - compatible: Should be "ti,bq2560x_chg".
+ - compatible: Should be "ti,bq2560x_chg" or "ti,bq2560x_slave_chg".
  - reg: Address offset of charger register.
  - phys: Contains a phandle to the USB phy.
 
@@ -12,6 +12,8 @@ Optional Properties:
 - constant-charge-voltage-max-microvolt: maximum constant input voltage.
   See Documentation/devicetree/bindings/power/supply/battery.txt
 - extcon: used to detect if vbus is high level.
+- role-slave: To support slave charger, if this property not defined,
+  it's default property is master.
 Example:
 
 	bat: battery {
@@ -26,10 +28,11 @@ Example:
 		clock-frequency = <400000>;
 
 		bq2560x_chg: charger@6a {
-			compatible = "ti,bq2560x_chg";
+			compatible = "ti,bq2560x_chg", "ti,bq2560x_slave_chg";
 			reg = <0x6a>;
 			phys = <&hsphy>;
 			monitored-battery = <&bat>;
 			extcon = <&extcon_gpio>;
+			role-slave;
 		};
 	};
