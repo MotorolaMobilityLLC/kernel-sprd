@@ -180,6 +180,7 @@ thermal:core:
 thermal:sprd:
 trace:
 trusty:
+tcpm:sc27xx_pd:
 
 usb:dwc3:
 usb:gadget:
