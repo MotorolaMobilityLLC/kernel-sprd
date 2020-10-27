@@ -99,9 +99,9 @@
 			#clock-cells = <1>;
 		};
 
-		aon_clk: clock-controller@32080000 {
+		aon_clk: clock-controller@64012000 {
 			compatible = "sprd,ums9230-aonapb-clk";
-			reg = <0 0x32080000 0 0x1000>;
+			reg = <0 0x64012000 0 0x1000>;
 			clocks = <&ext_26m>, <&rco_100m>, <&ext_32k>,
 				 <&ext_4m>;
 			clock-names = "ext-26m", "rco-100m", "ext-32k",
