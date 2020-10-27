@@ -31,6 +31,7 @@ static CLK_FIXED_FACTOR(clk_26m_aud, "clk-26m-aud", "ext-26m", 1, 1, 0);
 static CLK_FIXED_FACTOR(clk_13m, "clk-13m", "ext-26m", 2, 1, 0);
 static CLK_FIXED_FACTOR(clk_6m5, "clk-6m5", "ext-26m", 4, 1, 0);
 static CLK_FIXED_FACTOR(clk_4m3, "clk-4m3", "ext-26m", 6, 1, 0);
+static CLK_FIXED_FACTOR(clk_4m, "clk-4m", "ext-26m", 13, 2, 0);
 static CLK_FIXED_FACTOR(clk_2m, "clk-2m", "ext-26m", 13, 1, 0);
 static CLK_FIXED_FACTOR(clk_1m, "clk-1m", "ext-26m", 26, 1, 0);
 static CLK_FIXED_FACTOR(clk_250k, "clk-250k", "ext-26m", 104, 1, 0);
@@ -75,6 +76,7 @@ static struct clk_hw_onecell_data ums9230_pmu_gate_hws = {
 		[CLK_13M]		= &clk_13m.hw,
 		[CLK_6M5]		= &clk_6m5.hw,
 		[CLK_4M3]		= &clk_4m3.hw,
+		[CLK_4M]		= &clk_4m.hw,
 		[CLK_2M]		= &clk_2m.hw,
 		[CLK_1M]		= &clk_1m.hw,
 		[CLK_250K]		= &clk_250k.hw,
@@ -1206,7 +1208,7 @@ static SPRD_COMP_CLK(aux2_clk, "aux2-clk", aux_parents, 0x30,
 static SPRD_COMP_CLK(probe_clk, "probe-clk", aux_parents, 0x34,
 		     0, 5, 8, 4, 0);
 
-static const char * const pwm_parents[] = { "clk-32k", "ext-26m",
+static const char * const pwm_parents[] = { "ext-32k", "ext-26m",
 					    "rco-4m", "rco-25m",
 					    "twpll-48m" };
 static SPRD_MUX_CLK(pwm0_clk, "pwm0-clk", pwm_parents, 0x238,
@@ -1231,7 +1233,7 @@ static SPRD_MUX_CLK(uart0_clk, "uart0-clk", uart_parents, 0x4c,
 static SPRD_MUX_CLK(uart1_clk, "uart1-clk", uart_parents, 0x50,
 		    0, 3, UMS9230_MUX_FLAG);
 
-static const char * const thm_parents[] = { "ext-32k", "ext-250k" };
+static const char * const thm_parents[] = { "ext-32k", "clk-250k" };
 static SPRD_MUX_CLK(thm0_clk, "thm0-clk", thm_parents, 0x60,
 		    0, 1, UMS9230_MUX_FLAG);
 static SPRD_MUX_CLK(thm1_clk, "thm1-clk", thm_parents, 0x64,
@@ -1291,7 +1293,7 @@ static const char * const aon_tmr_parents[] = { "rco-4m", "rco-25m",
 static SPRD_MUX_CLK(aon_tmr_clk, "aon-tmr-clk", aon_tmr_parents, 0xbc,
 		    0, 2, UMS9230_MUX_FLAG);
 
-static const char * const aon_pmu_parents[] = { "ext-32k", "rco-4m", "ext-4m" };
+static const char * const aon_pmu_parents[] = { "ext-32k", "rco-4m", "clk-4m" };
 static SPRD_MUX_CLK(aon_pmu_clk, "aon-pmu-clk", aon_pmu_parents, 0xc4,
 		    0, 2, UMS9230_MUX_FLAG);
 
@@ -1335,7 +1337,7 @@ static const char * const ap_mm_parents[] = { "ext-26m", "twpll-96m",
 static SPRD_MUX_CLK(ap_mm_clk, "ap-mm-clk", ap_mm_parents, 0xec,
 		    0, 2, UMS9230_MUX_FLAG);
 
-static const char * const sdio2_2x_parents[] = { "ext-1m", "ext-26m",
+static const char * const sdio2_2x_parents[] = { "clk-1m", "ext-26m",
 						 "twpll-307m2", "twpll-384m",
 						 "rpll", "lpll-409m6" };
 static SPRD_MUX_CLK(sdio2_2x_clk, "sdio2-2x-clk", sdio2_2x_parents, 0xf0,
@@ -1345,7 +1347,7 @@ static const char * const analog_io_apb_parents[] = { "ext-26m", "twpll-48m" };
 static SPRD_COMP_CLK(analog_io_apb, "analog-io-apb", analog_io_apb_parents,
 		     0xf8, 0, 1, 8, 2, 0);
 
-static const char * const dmc_ref_parents[] = { "ext-6m5", "ext-13m",
+static const char * const dmc_ref_parents[] = { "clk-6m5", "clk-13m",
 						"ext-26m" };
 static SPRD_MUX_CLK(dmc_ref_clk, "dmc-ref-clk", dmc_ref_parents, 0xfc,
 		    0, 2, UMS9230_MUX_FLAG);

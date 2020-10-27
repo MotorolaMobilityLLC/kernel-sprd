@@ -12,21 +12,22 @@
 #define CLK_13M				1
 #define CLK_6M5				2
 #define CLK_4M3				3
-#define CLK_2M				4
-#define CLK_1M				5
-#define CLK_250K			6
-#define CLK_RCO_25M			7
-#define CLK_RCO_4M			8
-#define CLK_RCO_2M			9
-#define CLK_ISPPLL_GATE			10
-#define CLK_DPLL0_GATE			11
-#define CLK_LPLL_GATE			12
-#define CLK_TWPLL_GATE			13
-#define CLK_GPLL_GATE			14
-#define CLK_RPLL_GATE			15
-#define CLK_MPLL0_GATE			16
-#define CLK_MPLL1_GATE			17
-#define CLK_MPLL2_GATE			18
+#define CLK_4M				4
+#define CLK_2M				5
+#define CLK_1M				6
+#define CLK_250K			7
+#define CLK_RCO_25M			8
+#define CLK_RCO_4M			9
+#define CLK_RCO_2M			10
+#define CLK_ISPPLL_GATE			11
+#define CLK_DPLL0_GATE			12
+#define CLK_LPLL_GATE			13
+#define CLK_TWPLL_GATE			14
+#define CLK_GPLL_GATE			15
+#define CLK_RPLL_GATE			16
+#define CLK_MPLL0_GATE			17
+#define CLK_MPLL1_GATE			18
+#define CLK_MPLL2_GATE			19
 #define CLK_PMU_GATE_NUM		(CLK_MPLL2_GATE + 1)
 
 #define CLK_DPLL0			0
