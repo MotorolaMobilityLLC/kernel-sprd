@@ -12978,12 +12978,12 @@ CONFIG_SPRD_CPROC
 	[function] This function is used to enable sprd cproc module for modem boot.
 CONFIG_SPRD_CPU_COOLING
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description] no project requirement
+	[missing plat description] none
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	[arch] arm64
@@ -12996,12 +12996,12 @@ CONFIG_SPRD_CPU_COOLING_CPUIDLE
 	[function] sprd thermal policy
 CONFIG_SPRD_CPU_COOLING_DEVICE
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make
 	[subsys] thermal
 	[must] user
-	[missing plat description] no project requirement
+	[missing plat description] none
 	[function] sprd cpu power model
 CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[arch] all
@@ -14228,15 +14228,6 @@ CONFIG_THERMAL_GOV_POWER_ALLOCATOR
 	[must] user
 	[missing plat description] none
 	[function] Power allocator thermal governor.
-CONFIG_THERMAL_GOV_STEP_WISE
-	[arch] arm
-	[plat] sharkl5_32
-	[missing plat] pike2,sharkl3_32,sharkle32
-	[field] make
-	[subsys] thermal
-	[must] user
-	[missing plat description] only support power allocator governor
-	[function] thermal governor
 CONFIG_THERMAL_OF
 	[arch] all
 	[plat] all
