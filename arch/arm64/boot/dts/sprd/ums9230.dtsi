@@ -10,6 +10,8 @@
 #include "qogirl6.dtsi"
 
 / {
+	cpuinfo_hardware = "Unisoc ums9230";
+
 	cpus {
 		#address-cells = <2>;
 		#size-cells = <0>;
