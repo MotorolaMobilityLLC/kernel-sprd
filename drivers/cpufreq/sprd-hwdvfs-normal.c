@@ -56,6 +56,10 @@ static const struct of_device_id sprd_cpudvfs_of_match[] = {
 	},
 	{
 		.compatible = "sprd,orca-cpudvfs",
+	},
+	{
+		.compatible = "sprd,qogirl6-cpudvfs",
+		.data = &ums9230_dvfs_private_data,
 	}
 };
 MODULE_DEVICE_TABLE(of, sprd_cpudvfs_of_match);

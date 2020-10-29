@@ -475,3 +475,129 @@ const struct dvfs_private_data ums512_dvfs_private_data = {
 	.freq_manager = &ums512_freq_manager,
 	.mpll_manager = &ums512_mpll_manager,
 };
+
+static struct reg_info ums9230_volt_misc_cfg_array[] = {
+	GENREGVALSET(0, 0, 0, 0),
+};
+
+static struct udelay_tbl ums9230_down_udelay_tbl[] = {
+	[DCDC_CPU0] = {
+		.tbl = {
+			GENREGSET(0x64, 0, 0xffff),
+			GENREGSET(0x64, 16, 0xffff),
+			GENREGSET(0x60, 0, 0xffff),
+			GENREGSET(0x60, 16, 0xffff),
+			GENREGSET(0x5c, 0, 0xffff),
+			GENREGSET(0x5c, 16, 0xffff),
+			GENREGSET(0x114, 0, 0xffff),
+		},
+	},
+	[DCDC_CPU1] = {
+		.tbl = {
+			GENREGSET(0x1c0, 0, 0xff),
+			GENREGSET(0x1c0, 8, 0xff),
+			GENREGSET(0x1c0, 16, 0xff),
+			GENREGSET(0x1c0, 24, 0xff),
+			GENREGSET(0x1c4, 0, 0xff),
+			GENREGSET(0x1c4, 8, 0xff),
+			GENREGSET(0x1c4, 16, 0xff),
+		},
+	},
+};
+
+
+static struct udelay_tbl ums9230_up_udelay_tbl[] = {
+	[DCDC_CPU0] = {
+		.tbl = {
+			GENREGSET(0x58, 0, 0xffff),
+			GENREGSET(0x58, 16, 0xffff),
+			GENREGSET(0x54, 0, 0xffff),
+			GENREGSET(0x54, 16, 0xffff),
+			GENREGSET(0x50, 0, 0xffff),
+			GENREGSET(0x50, 16, 0xffff),
+			GENREGSET(0x110, 0, 0xffff),
+		},
+	},
+	[DCDC_CPU1] = {
+		.tbl = {
+			GENREGSET(0x1b8, 0, 0xff),
+			GENREGSET(0x1b8, 8, 0xff),
+			GENREGSET(0x1b8, 16, 0xff),
+			GENREGSET(0x1b8, 24, 0xff),
+			GENREGSET(0x1bc, 0, 0xff),
+			GENREGSET(0x1bc, 8, 0xff),
+			GENREGSET(0x1bc, 16, 0xff),
+		},
+	},
+};
+
+static struct volt_grades_table ums9230_volt_grades_tbl[] = {
+	[DCDC_CPU0] = {
+		.regs_array = {
+			GENREGSET(0xf4, 0, 0x1ff),
+			GENREGSET(0xf4, 9, 0x1ff),
+			GENREGSET(0xf4, 18, 0x1ff),
+			GENREGSET(0xf8, 0, 0x1ff),
+			GENREGSET(0xf8, 9, 0x1ff),
+			GENREGSET(0xf8, 18, 0x1ff),
+			GENREGSET(0xfc, 0, 0x1ff),
+		},
+		.grade_count = 7,
+	},
+	[DCDC_CPU1_I2C] = {
+		.regs_array = {
+			GENREGSET(0x12c, 0, 0x7f),
+			GENREGSET(0x12c, 8, 0x7f),
+			GENREGSET(0x12c, 16, 0x7f),
+			GENREGSET(0x12c, 24, 0x7f),
+			GENREGSET(0x130, 0, 0x7f),
+			GENREGSET(0x130, 8, 0x7f),
+		},
+		.grade_count = 6,
+	},
+};
+
+static struct reg_info ums9230_freq_misc_cfg_array[] = {
+	/* Set default work index 7 for lit core */
+	GENREGVALSET(0x214, 0, 0xf, 7),
+	/* Set default work index 3 for big core */
+	GENREGVALSET(0x224, 0, 0xf, 3),
+	/* Set default work index 3 to twpll for scu */
+	GENREGVALSET(0x22c, 0, 0xf, 3),
+	/* The end of misc configurations */
+	GENREGVALSET(0, 0, 0, 0),
+};
+
+static struct mpll_index_tbl ums9230_mpll_index_tbl[MAX_MPLL] = {
+	[MPLL0] = {
+		.entry = {
+			{
+				.output = {
+					},
+			},
+		},
+	},
+};
+
+static struct topdvfs_volt_manager ums9230_volt_manager = {
+	.grade_tbl = ums9230_volt_grades_tbl,
+	.up_udelay_tbl =  ums9230_up_udelay_tbl,
+	.down_udelay_tbl = ums9230_down_udelay_tbl,
+	.misc_cfg_array = ums9230_volt_misc_cfg_array,
+};
+
+static struct cpudvfs_freq_manager ums9230_freq_manager = {
+	.misc_cfg_array = ums9230_freq_misc_cfg_array,
+};
+
+static struct mpll_freq_manager ums9230_mpll_manager = {
+	.mpll_tbl = ums9230_mpll_index_tbl,
+};
+
+const struct dvfs_private_data ums9230_dvfs_private_data = {
+	.module_clk_khz = 128000,
+	.pmic = pmic_array,
+	.volt_manager = &ums9230_volt_manager,
+	.freq_manager = &ums9230_freq_manager,
+	.mpll_manager = &ums9230_mpll_manager,
+};

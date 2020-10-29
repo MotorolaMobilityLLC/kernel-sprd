@@ -114,3 +114,4 @@ struct dvfs_private_data {
 };
 
 extern const struct dvfs_private_data ums512_dvfs_private_data;
+extern const struct dvfs_private_data ums9230_dvfs_private_data;
