@@ -208,7 +208,7 @@ static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll1_clk, "mpll1", "mpll1-gate", 0x54,
 static CLK_FIXED_FACTOR(mpll1_62m5, "mpll1-62m5", "mpll1", 32, 1, 0);
 
 static struct sprd_clk_common *ums9230_g3_pll_clks[] = {
-	/* address base is 0x323c0000 */
+	/* address base is 0x64580000 */
 	&rpll_clk.common,
 	&audio_gate.common,
 	&mpll1_clk.common,
@@ -289,7 +289,7 @@ static SPRD_PLL_WITH_ITABLE_K_FVCO(mpll2_clk, "mpll2", "mpll2-gate", 0xcc,
 static CLK_FIXED_FACTOR(mpll2_46m88, "mpll2-46m88", "mpll2", 32, 1, 0);
 
 static struct sprd_clk_common *ums9230_gc_pll_clks[] = {
-	/* address base is 0x323e0000 */
+	/* address base is 0x645a0000 */
 	&twpll_clk.common,
 	&lpll_clk.common,
 	&isppll_clk.common,
@@ -500,16 +500,21 @@ static struct sprd_clk_desc ums9230_apapb_gate_desc = {
 };
 
 /* ap ahb gates */
+/* ap related gate clocks configure CLK_IGNORE_UNUSED because they are
+ * configured as enabled state to support display working during uboot phase.
+ * if their clocks are gated during kernel phase, it will affect the normal
+ * working of display..
+ */
 static SPRD_SC_GATE_CLK(dsi_eb, "dsi-eb", "ext-26m", 0x0,
-			0x1000, BIT(0), 0, 0);
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dispc_eb, "dispc-eb", "ext-26m", 0x0,
-			0x1000, BIT(1), 0, 0);
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(vsp_eb, "vsp-eb", "ext-26m", 0x0,
-			0x1000, BIT(2), 0, 0);
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dma_pub_eb, "dma-pub-eb", "ext-26m", 0x0,
-			0x1000, BIT(4), 0, 0);
+			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(dma_sec_eb, "dma-sec-eb", "ext-26m", 0x0,
-			0x1000, BIT(5), 0, 0);
+			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *ums9230_apahb_gate[] = {
 	/* address base is 0x20400000 */
