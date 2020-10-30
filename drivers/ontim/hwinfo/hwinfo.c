@@ -332,6 +332,31 @@ static int get_tp_info(void)
 	return 0;
 }
 
+/* add for zhanxun platform */
+#if 1
+#define POWER_USB_ONLINE_FILE "/sys/ontim_dev_debug/usb_type/vendor"
+static int get_power_usb_type(void)
+{
+	char buf[64] = {0};
+	int ret = 0;
+
+	memset(buf, 0x00, 64);
+
+	ret = hwinfo_read_file(POWER_USB_ONLINE_FILE, buf, sizeof(buf));
+	if (ret != 0)
+	{
+		printk(KERN_CRIT "get_power usb type failed.");
+		return -1;
+	}
+	if (buf[strlen(buf) - 1] == '\n')
+		buf[strlen(buf) - 1] = '\0';
+	printk(KERN_INFO "power usb buf %s\n", buf);
+
+	strcpy(hwinfo[POWER_USB_TYPE].hwinfo_buf, buf);
+
+	return 0;
+}
+#else
 #define POWER_USB_ONLINE_FILE "/sys/class/power_supply/usb/online"
 #define POWER_AC_ONLINE_FILE "/sys/class/power_supply/ac/online"
 static int get_power_usb_type(void)
@@ -371,6 +396,7 @@ static int get_power_usb_type(void)
 
 	return 0;
 }
+#endif
 
 #define BATTARY_RESISTANCE_FILE "/sys/ontim_dev_debug/battery/vendor"
 static int get_battary_mfr(void)

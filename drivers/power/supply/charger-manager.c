@@ -59,6 +59,14 @@
 #define CM_CAP_MAGIC_NUM		0x5A5AA5A5
 
 #define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
+#define USB_NAME_LEN 10
+
+#include <ontim/ontim_dev_dgb.h>
+static  char usb_type_vendor_name[50]="Unknown";
+DEV_ATTR_DECLARE(usb_type)
+DEV_ATTR_DEFINE("vendor",usb_type_vendor_name)
+DEV_ATTR_DECLARE_END;
+ONTIM_DEBUG_DECLARE_AND_INIT(usb_type,usb_type,8);
 
 static const char * const default_event_names[] = {
 	[CM_EVENT_UNKNOWN] = "Unknown",
@@ -770,6 +778,11 @@ static bool is_charging(struct charger_manager *cm)
  * is_full_charged - Returns true if the battery is fully charged.
  * @cm: the Charger Manager representing the battery.
  */
+#ifdef CONFIG_CHARGER_SMT
+static int ontim_runin_onoff_control = 1;
+#else
+static int ontim_runin_onoff_control = -200;
+#endif
 static bool is_full_charged(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
@@ -1390,6 +1403,13 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		dev_info(cm->dev, "thermel current is less than jeita current\n");
 	}
 
+	/* add for limit soc 70% */
+	if (ontim_runin_onoff_control == 1)
+	{
+		term_volt = 4050000;
+		dev_info(cm->dev,"smt set term_volt:%d\n",term_volt);
+	}
+
 	dev_info(cm->dev, "target terminate voltage = %d, target current = %d\n",
 		 term_volt, target_cur);
 
@@ -1885,16 +1905,19 @@ static void misc_event_handler(struct charger_manager *cm,
 		case POWER_SUPPLY_USB_TYPE_DCP:
 			cm->desc->jeita_tab =
 				cm->desc->jeita_tab_array[CM_JEITA_DCP];
+			strncpy(usb_type_vendor_name,"DCP",USB_NAME_LEN);
 			break;
 
 		case POWER_SUPPLY_USB_TYPE_SDP:
 			cm->desc->jeita_tab =
 				cm->desc->jeita_tab_array[CM_JEITA_SDP];
+			strncpy(usb_type_vendor_name,"USB",USB_NAME_LEN);
 			break;
 
 		case POWER_SUPPLY_USB_TYPE_CDP:
 			cm->desc->jeita_tab =
 				cm->desc->jeita_tab_array[CM_JEITA_CDP];
+			strncpy(usb_type_vendor_name,"CDP",USB_NAME_LEN);
 			break;
 
 		default:
@@ -2562,6 +2585,19 @@ static ssize_t jeita_control_store(struct device *dev,
 	return count;
 }
 
+/* add for limit soc 70% */
+static ssize_t ontim_limit_soc_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", ontim_runin_onoff_control);
+}
+static ssize_t ontim_limit_soc_store(struct device *dev,
+			struct device_attribute *attr, const char *buf, size_t size)
+{
+	sscanf(buf, "%d", &ontim_runin_onoff_control);
+	return size;
+}
+
 static ssize_t charger_stop_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -2716,7 +2752,8 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 		charger->attrs[2] = &charger->attr_externally_control.attr;
 		charger->attrs[3] = &charger->attr_stop_charge.attr;
 		charger->attrs[4] = &charger->attr_jeita_control.attr;
-		charger->attrs[5] = NULL;
+		charger->attrs[5] = &charger->attr_soc_control.attr;
+		charger->attrs[6] = NULL;
 		charger->attr_g.name = str;
 		charger->attr_g.attrs = charger->attrs;
 
@@ -2741,6 +2778,13 @@ static int charger_manager_register_sysfs(struct charger_manager *cm)
 		charger->attr_jeita_control.attr.mode = 0644;
 		charger->attr_jeita_control.show = jeita_control_show;
 		charger->attr_jeita_control.store = jeita_control_store;
+
+		/* add limit soc 70% */
+		sysfs_attr_init(&charger->attr_soc_control.attr);
+		charger->attr_soc_control.attr.name = "soc_control";
+		charger->attr_soc_control.attr.mode = 0644;
+		charger->attr_soc_control.show = ontim_limit_soc_show;
+		charger->attr_soc_control.store = ontim_limit_soc_store;
 
 		sysfs_attr_init(&charger->attr_externally_control.attr);
 		charger->attr_externally_control.attr.name
@@ -3489,10 +3533,10 @@ static void cm_batt_works(struct work_struct *work)
 	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
 		 "capacity = %d, charger status = %d, force set full = %d, "
 		 "charging current = %d, charging limit current = %d, "
-		 "battery temperature = %d track state = %d\n",
+		 "battery temperature = %d track state = %d fullbatt_uV = %d\n",
 		 batt_uV, batt_ocV, bat_uA, fuel_cap, cm->desc->charger_status,
 		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp,
-		 cm->track.state);
+		 cm->track.state,cm->desc->fullbatt_uV);
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
@@ -3638,6 +3682,13 @@ static int charger_manager_probe(struct platform_device *pdev)
 	struct power_supply *fuel_gauge;
 	struct power_supply_config psy_cfg = {};
 	struct timespec64 cur_time;
+
+	//+add by dongdong for ontim debug
+	if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0)
+	{
+		return -EIO;
+	}
+	//-add by dongdong for ontim debug
 
 	if (IS_ERR(desc)) {
 		dev_err(&pdev->dev, "No platform data (desc) found\n");
@@ -3869,6 +3920,10 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME * HZ);
+
+	//+add by dongdong for ontim debug
+	REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
+	//-add by dongdong for ontim debug
 
 	return 0;
 

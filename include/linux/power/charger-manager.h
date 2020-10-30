@@ -143,7 +143,8 @@ struct charger_regulator {
 	struct device_attribute attr_stop_charge;
 	struct device_attribute attr_externally_control;
 	struct device_attribute attr_jeita_control;
-	struct attribute *attrs[6];
+	struct device_attribute attr_soc_control;
+	struct attribute *attrs[7];
 
 	struct charger_manager *cm;
 };
