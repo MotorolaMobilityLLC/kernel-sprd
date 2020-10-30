@@ -1719,6 +1719,34 @@ static ssize_t als_mode_store(struct device *dev,
 }
 static DEVICE_ATTR_WO(als_mode);
 
+static ssize_t custom_para_store(struct device *dev,
+				 struct device_attribute *attr,
+				 const char *buf, size_t count)
+{
+	u32 sensor_type, sensor_para[3];
+	struct shub_data *sensor = dev_get_drvdata(dev);
+
+	if (sensor->mcu_mode <= SHUB_OPDOWNLOAD) {
+		dev_info(&sensor->sensor_pdev->dev,
+			"custom_para_store: mcu_mode == %d!\n",  sensor->mcu_mode);
+		return -EAGAIN;
+	}
+
+	if (sscanf(buf, "%u %u %u %u\n",
+		   &sensor_type, &sensor_para[0], &sensor_para[1], &sensor_para[2]) != 4)
+		return -EINVAL;
+
+	dev_info(&sensor->sensor_pdev->dev,
+		"%s: sensor_type=%u, sensor_para[0]=%u, sensor_para[1]=%u, sensor_para[2]=%u!\n",
+		__func__, sensor_type, sensor_para[0], sensor_para[1], sensor_para[2]);
+
+	shub_send_command(sensor, sensor_type, SHUB_SET_CUSTOM_PARA,
+				(char *)sensor_para, sizeof(sensor_para));
+
+	return count;
+}
+static DEVICE_ATTR_WO(custom_para);
+
 static ssize_t raw_data_acc_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -2064,6 +2092,7 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_light_sensor_calibrator.attr,
 	&dev_attr_version.attr,
 	&dev_attr_als_mode.attr,
+	&dev_attr_custom_para.attr,
 	&dev_attr_raw_data_acc.attr,
 	&dev_attr_raw_data_mag.attr,
 	&dev_attr_raw_data_gyro.attr,
