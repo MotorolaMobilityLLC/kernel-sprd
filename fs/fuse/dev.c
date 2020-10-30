@@ -2158,7 +2158,7 @@ void fuse_abort_conn(struct fuse_conn *fc)
 
 		spin_lock(&fiq->waitq.lock);
 		fiq->connected = 0;
-		list_splice_init(&fiq->pending, &to_end2);
+		list_splice_tail_init(&fiq->pending, &to_end2);
 		list_for_each_entry(req, &to_end2, list)
 			clear_bit(FR_PENDING, &req->flags);
 		while (forget_pending(fiq))
