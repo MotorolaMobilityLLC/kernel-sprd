@@ -1961,14 +1961,12 @@ static ssize_t custom_para_store(struct device *dev,
 	}
 
 	if (sscanf(buf, "%u %u %u %u\n",
-		   &sensor_type, &sensor_para[0],
-		   &sensor_para[1],
-		   &sensor_para[2]) != 4)
+		   &sensor_type, &sensor_para[0], &sensor_para[1], &sensor_para[2]) != 4)
 		return -EINVAL;
 
 	dev_info(&sensor->sensor_pdev->dev,
-		"custom_para_store: sensor_type=%u, sensor_para[0]=%u, sensor_para[1]=%u, sensor_para[2]=%u!\n",
-		sensor_type, sensor_para[0], sensor_para[1], sensor_para[2]);
+		"%s: sensor_type=%u, sensor_para[0]=%u, sensor_para[1]=%u, sensor_para[2]=%u!\n",
+		__func__, sensor_type, sensor_para[0], sensor_para[1], sensor_para[2]);
 
 	shub_send_command(sensor, sensor_type, SHUB_SET_CUSTOM_PARA,
 				(char *)sensor_para, sizeof(sensor_para));
