@@ -334,10 +334,30 @@ static int get_tp_info(void)
 
 /* add for zhanxun platform */
 #if 1
-#define POWER_USB_ONLINE_FILE "/sys/ontim_dev_debug/usb_type/vendor"
+static int pars_usb_type_char(char *pcBuf, char *pcRes)
+{
+	char *pcBegin = NULL;
+	char *pcEnd = NULL;
+
+	pcBegin = strstr(pcBuf, "[");
+	pcEnd = strstr(pcBuf, "]");
+
+	if(pcBegin == NULL || pcEnd == NULL || pcBegin > pcEnd)
+	{
+		printk("USB name not found!\n");
+	} else {
+		pcBegin += strlen("[");
+		memcpy(pcRes, pcBegin, pcEnd-pcBegin);
+	}
+
+	return 0;
+
+}
+#define POWER_USB_ONLINE_FILE "/sys/class/power_supply/bq24157_charger/usb_type"
 static int get_power_usb_type(void)
 {
 	char buf[64] = {0};
+	char usb_buf[64] = {0};
 	int ret = 0;
 
 	memset(buf, 0x00, 64);
@@ -352,7 +372,9 @@ static int get_power_usb_type(void)
 		buf[strlen(buf) - 1] = '\0';
 	printk(KERN_INFO "power usb buf %s\n", buf);
 
-	strcpy(hwinfo[POWER_USB_TYPE].hwinfo_buf, buf);
+	pars_usb_type_char(buf,usb_buf);
+
+	strcpy(hwinfo[POWER_USB_TYPE].hwinfo_buf, usb_buf);
 
 	return 0;
 }
