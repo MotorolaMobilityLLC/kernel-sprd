@@ -77,6 +77,7 @@ obj-$(CONFIG_SPRD_CLUSTER0_THERMAL)      += sprd_cluster0_thm.o sprd_thm_comm.o
 obj-$(CONFIG_SPRD_CLUSTER1_THERMAL)      += sprd_cluster1_thm.o
 obj-$(CONFIG_SPRD_SOC_THERMAL)      += sprd_soc_thm.o
 obj-$(CONFIG_SC27XX_TSENSOR_THERMAL)	+= sc27xx_tsensor_thermal.o
+obj-$(CONFIG_SPRD_TEST_THERMAL)	+= sprd_test_thm.o sprd_thm_comm.o
 
 # UT kunit test
 obj-$(CONFIG_SPRD_CPU_COOLING_DEVICE_TEST)		+= sprd_cpu_device_test.o

@@ -568,4 +568,14 @@ config SC27XX_TSENSOR_THERMAL
 	help
 	  This is a simple driver to get sc27xx chip osc temperature
 	  and external cystal temperature.
+
+config SPRD_TEST_THERMAL
+	bool "sprd test thermal"
+	depends on THERMAL && !SPRD_SOC_THERMAL
+	default n
+	help
+	  Enable a thermal sensor driver for testing soc thermal.
+	  It can generate a dummy temperature for a thermal zone.
+	  At the same time, create a 'dummy_temp' sysfs node, in order to modify
+	  the dummy_temp for thermal zone test.
 endif
