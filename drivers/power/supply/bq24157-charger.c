@@ -348,17 +348,18 @@ static int bq24157_enable_charging(struct bq24157_charger_info *info, bool en)
 			bat_info.constant_charge_voltage_max_uv / 1000;
 		
 	}
-	dev_err(info->dev, "%s;%d;%x;\n",__func__,en,ret);
+	dev_err(info->dev, "%s;%d;\n",__func__,en);
 
 	if (en) {
+		bq24157_set_ce(info,1);
 		bq24157_charger_set_termina_vol(info,voltage_max_microvolt);
-		bq24157_set_ce(info,0);
 		bq24157_set_hz_mode(info,0);
 		bq24157_set_opa_mode(info,0);
 		bq24157_set_te(info,1);
 
 		bq24157_set_iterm(info,2);
 		bq24157_set_vsp(info,3);
+		bq24157_set_ce(info,0);
 		
 	} else {
 //		bq24157_set_ce(info,1);
@@ -441,7 +442,7 @@ static void bq24157_charger_stop_charge(struct bq24157_charger_info *info)
 				 info->charger_pd_mask,
 				 info->charger_pd_mask);
 
-	bq24157_enable_charging(info ,1 );
+	bq24157_enable_charging(info ,0 );
 
 	if (ret)
 		dev_err(info->dev, "disable bq24157 charge failed\n");
@@ -773,6 +774,7 @@ static int bq24157_charger_usb_set_property(struct power_supply *psy,
 {
 	struct bq24157_charger_info *info = power_supply_get_drvdata(psy);
 	int ret;
+	dev_err(info->dev, "%s;%d;\n",__func__,psp);
 
 	mutex_lock(&info->lock);
 
