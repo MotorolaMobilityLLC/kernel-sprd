@@ -26,6 +26,8 @@ mmu-$(CONFIG_MMU)	:= gup.o highmem.o memory.o mincore.o \
 			   mlock.o mmap.o mprotect.o mremap.o msync.o \
 			   page_vma_mapped.o pagewalk.o pgtable-generic.o \
 			   rmap.o vmalloc.o
+GCOV_PROFILE_vmalloc.o := $(CONFIG_SPRD_MEM_GCOV)
+GCOV_PROFILE_rmap.o := $(CONFIG_SPRD_MEM_GCOV)
 
 
 ifdef CONFIG_CROSS_MEMORY_ATTACH
@@ -42,6 +44,11 @@ obj-y			:= filemap.o mempool.o oom_kill.o \
 			   debug.o $(mmu-y) vmpressure.o
 
 GCOV_PROFILE_compaction.o := $(CONFIG_SPRD_MEM_GCOV)
+GCOV_PROFILE_vmpressure.o := $(CONFIG_SPRD_MEM_GCOV)
+GCOV_PROFILE_vmscan.o := $(CONFIG_SPRD_MEM_GCOV)
+GCOV_PROFILE_list_lru.o := $(CONFIG_SPRD_MEM_GCOV)
+GCOV_PROFILE_swap.o := $(CONFIG_SPRD_MEM_GCOV)
+
 obj-y += init-mm.o
 
 ifdef CONFIG_NO_BOOTMEM
@@ -55,8 +62,12 @@ ifdef CONFIG_MMU
 	obj-$(CONFIG_ADVISE_SYSCALLS)	+= madvise.o
 endif
 obj-$(CONFIG_HAVE_MEMBLOCK) += memblock.o
+GCOV_PROFILE_memblock.o := $(CONFIG_SPRD_MEM_GCOV)
 
 obj-$(CONFIG_SWAP)	+= page_io.o swap_state.o swapfile.o
+GCOV_PROFILE_page_io.o := $(CONFIG_SPRD_MEM_GCOV)
+GCOV_PROFILE_swap_state.o := $(CONFIG_SPRD_MEM_GCOV)
+GCOV_PROFILE_swapfile.o := $(CONFIG_SPRD_MEM_GCOV)
 obj-$(CONFIG_FRONTSWAP)	+= frontswap.o
 obj-$(CONFIG_ZSWAP)	+= zswap.o
 obj-$(CONFIG_HAS_DMA)	+= dmapool.o
@@ -69,7 +80,9 @@ obj-$(CONFIG_MMU_NOTIFIER) += mmu_notifier.o
 obj-$(CONFIG_KSM) += ksm.o
 obj-$(CONFIG_PAGE_POISONING) += page_poison.o
 obj-$(CONFIG_SLAB) += slab.o
+GCOV_PROFILE_slab.o := $(CONFIG_SPRD_MEM_GCOV)
 obj-$(CONFIG_SLUB) += slub.o
+GCOV_PROFILE_slub.o := $(CONFIG_SPRD_MEM_GCOV)
 obj-$(CONFIG_KASAN)	+= kasan/
 obj-$(CONFIG_FAILSLAB) += failslab.o
 obj-$(CONFIG_MEMORY_HOTPLUG) += memory_hotplug.o
@@ -79,7 +92,9 @@ obj-$(CONFIG_QUICKLIST) += quicklist.o
 obj-$(CONFIG_TRANSPARENT_HUGEPAGE) += huge_memory.o khugepaged.o
 obj-$(CONFIG_PAGE_COUNTER) += page_counter.o
 obj-$(CONFIG_MEMCG) += memcontrol.o
+GCOV_PROFILE_memcontrol.o := $(CONFIG_SPRD_MEM_GCOV)
 obj-$(CONFIG_MEMCG_SWAP) += swap_cgroup.o
+GCOV_PROFILE_swap_cgroup.o := $(CONFIG_SPRD_MEM_GCOV)
 obj-$(CONFIG_CGROUP_HUGETLB) += hugetlb_cgroup.o
 obj-$(CONFIG_MEMORY_FAILURE) += memory-failure.o
 obj-$(CONFIG_HWPOISON_INJECT) += hwpoison-inject.o
@@ -106,4 +121,6 @@ obj-$(CONFIG_HARDENED_USERCOPY) += usercopy.o
 obj-$(CONFIG_PERCPU_STATS) += percpu-stats.o
 obj-$(CONFIG_HMM) += hmm.o
 obj-$(CONFIG_E_SHOW_MEM) += emem.o
+GCOV_PROFILE_emem.o := $(CONFIG_SPRD_MEM_GCOV)
 obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
+GCOV_PROFILE_process_reclaim.o := $(CONFIG_SPRD_MEM_GCOV)
