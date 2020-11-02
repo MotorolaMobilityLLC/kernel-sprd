@@ -498,7 +498,9 @@
 				reg-names = "phy_glb_regs";
 				sprd,syscon-enable = <&aon_apb_regs>;
 				sprd,tune-value = <0x0005af33>;
-				sprd,vdd-voltage = <3300000>;
+				sprd,vdd-voltage = <3050000>;
+				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
+				io-channel-names = "dp", "dm";
 				#phy-cells = <0>;
 			};
 		};
