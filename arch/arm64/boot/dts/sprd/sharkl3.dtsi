@@ -30,6 +30,7 @@
 		spi2 = &spi2;
 		spi3 = &spi3;
 		spi4 = &adi_bus;
+		thm-sensor12 = &test_sensor;
 	};
 
 	soc: soc {
@@ -798,6 +799,12 @@
 				sprd,algor_ver = <1>;
 				nvmem-cells = <&cthm_sign>, <&cthm_ratio>, <&cthm_delta>;
 				nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal", "thm_delta_cal";
+			};
+
+			test_sensor: test-sensor@12 {
+				compatible = "sprd,virtual-thermal";
+				#thermal-sensor-cells = <1>;
+				sensor-names = "test-thmzone";
 			};
 
 			hwlock: hwspinlock@40060000 {

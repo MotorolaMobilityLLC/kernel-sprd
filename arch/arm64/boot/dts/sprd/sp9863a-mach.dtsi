@@ -89,6 +89,46 @@
 			polling-delay = <0>;
 			thermal-sensors = <&gpu_thm  0>;
 		};
+
+		test_thmzone: test-thmzone {
+			polling-delay-passive = <100>;
+			polling-delay = <1000>;
+			sustainable-power = <3000>;
+			thermal-sensors = <&test_sensor  12>;
+			trips {
+				cpu_virtual_threshold: trip-point@0 {
+					temperature = <70000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+				cpu_virtual_target: trip-point@1 {
+					temperature = <85000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+				cpu_virtual_crit: bia_crit {
+					temperature = <110000>;
+					hysteresis = <2000>;
+					type = "critical";
+				};
+			};
+			cooling-maps {
+				map0 {
+					trip = <&cpu_virtual_target>;
+					contribution = <1024>;
+					cooling-device =
+					<&cluster0_cooling THERMAL_NO_LIMIT \
+					THERMAL_NO_LIMIT>;
+				};
+				map1 {
+					trip = <&cpu_virtual_target>;
+					contribution = <674>;
+					cooling-device =
+					<&cluster1_cooling THERMAL_NO_LIMIT \
+					THERMAL_NO_LIMIT>;
+				};
+			};
+		};
 	};
 
 	cooling-devices {
