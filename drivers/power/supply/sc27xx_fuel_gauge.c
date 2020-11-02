@@ -866,6 +866,13 @@ static int sc27xx_fgu_get_average_temp(struct sc27xx_fgu_data *data, int temp)
 	return sum / (SC27XX_FGU_TEMP_BUFF_CNT - 2);
 }
 
+#ifdef    DUAL_85_VERSION
+int d85_temp=0;
+int sc27xx_fgu_get_d85_temp( void)
+{
+	return d85_temp;
+}
+#endif
 static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 {
 	int vol, ret;
@@ -999,8 +1006,14 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 			if (ret < 0)
 				goto error;
 
+#ifdef    DUAL_85_VERSION
+			ret = 0;
+			val->intval = 440;
+			d85_temp =value;
+#else
 			ret = 0;
 			val->intval = value;
+#endif			
 		}
 		break;
 

@@ -1380,6 +1380,8 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 	if (jeita_status > desc->jeita_tab_size)
 		jeita_status = desc->jeita_tab_size;
 
+#ifdef DUAL_85_VERSION	
+#else
 	if (jeita_status == 0 || jeita_status == desc->jeita_tab_size) {
 		dev_warn(cm->dev,
 			 "stop charging due to battery overheat or cold\n");
@@ -1393,14 +1395,14 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 
 		return false;
 	}
-
+#endif
 	term_volt = desc->jeita_tab[jeita_status].term_volt;
 	target_cur = desc->jeita_tab[jeita_status].current_ua;
 
 	if (cm->desc->thm_adjust_cur >= 0 &&
 	    cm->desc->thm_adjust_cur < target_cur) {
+		dev_info(cm->dev, "thermel current %d is less than jeita current %d;\n",cm->desc->thm_adjust_cur,target_cur);
 		target_cur = cm->desc->thm_adjust_cur;
-		dev_info(cm->dev, "thermel current is less than jeita current\n");
 	}
 
 	/* add for limit soc 70% */
@@ -1433,6 +1435,11 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 			continue;
 		}
 
+#ifdef DUAL_85_VERSION	
+                if(target_current == 0)
+			continue;
+
+#else
 		val.intval = target_cur;
 		ret = power_supply_set_property(psy,
 					POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
@@ -1444,6 +1451,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 				ret);
 			continue;
 		}
+#endif		
 	}
 
 	if (ret)
@@ -2254,8 +2262,13 @@ charger_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
+#ifdef DUAL_85_VERSION	
+		dev_err(cm->dev, "%s;D85 c=%d;T=%d;\n",__func__,val->intval,cm->desc->temperature);
+		break;
+#endif
 		cm->desc->thm_adjust_cur = val->intval;
 		thermal_val.intval = val->intval;
+		dev_err(cm->dev, "%s;c=%d;T=%d;\n",__func__,thermal_val.intval,cm->desc->temperature);
 
 		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 			psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
@@ -2275,9 +2288,11 @@ charger_set_property(struct power_supply *psy,
 
 			if (cm->desc->jeita_tab_size) {
 				cur_jeita_status = cm_manager_get_jeita_status(cm, cm->desc->temperature);
+		dev_err(cm->dev, "%s;cur_jeita_status=%d;T=%d;\n",__func__,cur_jeita_status,cm->desc->jeita_tab_size);
 				if (val->intval > cm->desc->jeita_tab[cur_jeita_status].current_ua)
 					thermal_val.intval = cm->desc->jeita_tab[cur_jeita_status].current_ua;
 			}
+		dev_err(cm->dev, "%s;c=%d;T=%d;\n",__func__,thermal_val.intval,cm->desc->temperature);
 
 			ret = power_supply_set_property(psy,
 							POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
@@ -3420,7 +3435,9 @@ static void cm_track_capacity_init(struct charger_manager *cm)
 			   &cm->track.track_capacity_work,
 			   5 * HZ);
 }
-
+#ifdef    DUAL_85_VERSION
+extern int sc27xx_fgu_get_d85_temp( void);
+#endif
 static void cm_batt_works(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -3473,6 +3490,10 @@ static void cm_batt_works(struct work_struct *work)
 		dev_err(cm->dev, "failed to get battery temperature\n");
 		return;
 	}
+
+#ifdef    DUAL_85_VERSION
+	dev_err(cm->dev, "%s;D85 temp=%d; cur_temp=%d;\n",__func__,sc27xx_fgu_get_d85_temp(),cur_temp);
+#endif
 
 	cm->desc->temperature = cur_temp;
 
