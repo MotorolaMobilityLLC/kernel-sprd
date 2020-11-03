@@ -606,7 +606,10 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
 
 	if (oled->cmds_total == 1) {
-		oled->cmds[0]->payload[1] = level;
+//	DRM_INFO("-----%s payload 0=0x%x 1=0x%x 2=0x%x: %d\n", __func__,oled->cmds[0]->payload[0], oled->cmds[0]->payload[1], oled->cmds[0]->payload[2], level);
+		oled->cmds[0]->payload[1] = (level & 0xf0) >> 4;
+		oled->cmds[0]->payload[2] = (level & 0x0f) << 4;
+//	DRM_INFO("+++++%s payload 0=0x%x 1=0x%x 2=0x%x: %d\n", __func__,oled->cmds[0]->payload[0], oled->cmds[0]->payload[1], oled->cmds[0]->payload[2], level);
 		sprd_panel_send_cmds(panel->slave,
 			     oled->cmds[0],
 			     oled->cmd_len);
