@@ -56,3 +56,7 @@
 &sdio0 {
 	cd-gpios = <&eic_sync 35 GPIO_ACTIVE_HIGH>;
 };
+
+&vddldo0 {
+	regulator-always-on;
+};
