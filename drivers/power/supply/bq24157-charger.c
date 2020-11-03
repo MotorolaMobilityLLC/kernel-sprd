@@ -150,6 +150,7 @@ struct bq24157_charger_info {
 	u32 charger_pd_mask;
 	struct gpio_desc *gpiod;
 	struct extcon_dev *edev;
+	u32 voltage_max_microvolt;
 };
 
 #include <ontim/ontim_dev_dgb.h>
@@ -339,20 +340,12 @@ void bq24157_set_io_level(struct bq24157_charger_info *info, u8 val)
 static int bq24157_enable_charging(struct bq24157_charger_info *info, bool en)
 {
 	unsigned int ret = 0;
-	int voltage_max_microvolt = 4400;
-	struct power_supply_battery_info bat_info = { };
 
-	ret = power_supply_get_battery_info(info->psy_usb, &bat_info);
-	if(!ret){
-		voltage_max_microvolt =
-			bat_info.constant_charge_voltage_max_uv / 1000;
-		
-	}
 	dev_err(info->dev, "%s;%d;\n",__func__,en);
 
 	if (en) {
 		bq24157_set_ce(info,1);
-		bq24157_charger_set_termina_vol(info,voltage_max_microvolt);
+		bq24157_charger_set_termina_vol(info, info->voltage_max_microvolt);
 		bq24157_set_hz_mode(info,0);
 		bq24157_set_opa_mode(info,0);
 		bq24157_set_te(info,1);
@@ -401,6 +394,9 @@ static int bq24157_charger_hw_init(struct bq24157_charger_info *info)
 		info->cur.cdp_cur = bat_info.cur.cdp_cur;
 		info->cur.unknown_limit = bat_info.cur.unknown_limit;
 		info->cur.unknown_cur = bat_info.cur.unknown_cur;
+		info->voltage_max_microvolt = bat_info.constant_charge_voltage_max_uv / 1000;
+		power_supply_put_battery_info(info->psy_usb, &bat_info);
+
 		}
 
 	bq24157_write(info,0x06, 0xac);	/* ISAFE = 1550mA, VSAFE = 4.4V */
@@ -421,31 +417,16 @@ static int bq24157_charger_hw_init(struct bq24157_charger_info *info)
 
 static int bq24157_charger_start_charge(struct bq24157_charger_info *info)
 {
-	int ret;
-
-	ret = regmap_update_bits(info->pmic, info->charger_pd,
-				 info->charger_pd_mask, 0);
 
 	bq24157_enable_charging(info ,1 );
-	
-	if (ret)
-		dev_err(info->dev, "enable bq24157 charge failed\n");
-
-	return ret;
+	return 0;
 }
 
 static void bq24157_charger_stop_charge(struct bq24157_charger_info *info)
 {
-	int ret;
-
-	ret = regmap_update_bits(info->pmic, info->charger_pd,
-				 info->charger_pd_mask,
-				 info->charger_pd_mask);
 
 	bq24157_enable_charging(info ,0 );
 
-	if (ret)
-		dev_err(info->dev, "disable bq24157 charge failed\n");
 }
 
 static int bq24157_charger_set_current(struct bq24157_charger_info *info,
@@ -611,6 +592,8 @@ static void bq24157_charger_work(struct work_struct *data)
 		container_of(data, struct bq24157_charger_info, work);
 	int limit_cur, cur, ret;
 	bool present = bq24157_charger_is_bat_present(info);
+	dev_info(info->dev, "%s;p%d, l%d,chg%d;\n",
+		__func__, present, info->limit,info->charging );
 
 	mutex_lock(&info->lock);
 
@@ -914,24 +897,10 @@ static void bq24157_charger_otg_work(struct work_struct *work)
 static int bq24157_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct bq24157_charger_info *info = rdev_get_drvdata(dev);
-	int ret;
 
-	/*
-	 * Disable charger detection function in case
-	 * affecting the OTG timing sequence.
-	 */
-	ret = regmap_update_bits(info->pmic, info->charger_detect,
-				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
-	if (ret) {
-		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-		return ret;
-	}
 
 	bq24157_set_opa_mode(info, 1);
 	bq24157_set_otg_en(info,1);
-
-	regmap_update_bits(info->pmic, info->charger_detect,
-				   BIT_DP_DM_BC_ENB, 0);
 
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(BQ24157_FEED_WATCHDOG_VALID_MS));
@@ -950,9 +919,7 @@ static int bq24157_charger_disable_otg(struct regulator_dev *dev)
 	bq24157_set_opa_mode(info, 0);
 	bq24157_set_otg_en(info, 0);
 
-	/* Enable charger detection function to identify the charger type */
-	return regmap_update_bits(info->pmic, info->charger_detect,
-				  BIT_DP_DM_BC_ENB, 0);
+	return 0;
 }
 
 static int bq24157_charger_vbus_is_enabled(struct regulator_dev *dev)
