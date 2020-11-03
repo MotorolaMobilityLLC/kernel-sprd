@@ -991,6 +991,7 @@ static ssize_t logctl_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(logctl);
 
+#if 0
 static int check_proximity_cali_data(void *cali_data)
 {
 	struct prox_cali_data prox_cali;
@@ -1023,6 +1024,7 @@ static int check_proximity_cali_data(void *cali_data)
 
 	return 0;
 }
+#endif
 
 static int check_acc_cali_data(void *cali_data)
 {
@@ -1094,7 +1096,7 @@ static void shub_save_calibration_data(struct work_struct *work)
 		err = check_gyro_cali_data(sensor->calibrated_data);
 		break;
 	case SENSOR_PROXIMITY:
-		err = check_proximity_cali_data(sensor->calibrated_data);
+		//err = check_proximity_cali_data(sensor->calibrated_data);
 		break;
 	default:
 		break;
@@ -2083,6 +2085,47 @@ static ssize_t cm4_operate_store(struct device *dev,
 
 static DEVICE_ATTR_RW(cm4_operate);
 
+static ssize_t acc_info_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[0].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[0].pname);
+}
+static DEVICE_ATTR_RO(acc_info);
+
+static ssize_t mag_info_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[1].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[1].pname);
+}
+static DEVICE_ATTR_RO(mag_info);
+
+static ssize_t prox_info_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[3].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[3].pname);
+}
+static DEVICE_ATTR_RO(prox_info);
+
+static ssize_t light_info_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	if (hw_sensor_id[4].id_status != _IDSTA_OK)
+		return -EINVAL;
+
+	return sprintf(buf, "%s", hw_sensor_id[4].pname);
+}
+static DEVICE_ATTR_RO(light_info);
+
+
 static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_debug_data.attr,
 	&dev_attr_reader_enable.attr,
@@ -2109,6 +2152,10 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_mag_cali_flag.attr,
 	&dev_attr_shub_debug.attr,
 	&dev_attr_cm4_operate.attr,
+	&dev_attr_acc_info.attr,
+	&dev_attr_mag_info.attr,
+	&dev_attr_prox_info.attr,
+	&dev_attr_light_info.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(sensorhub);
