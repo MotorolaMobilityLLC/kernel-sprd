@@ -165,7 +165,7 @@ static u32 sprd_spi_transfer_max_timeout(struct sprd_spi *ss,
 	u32 interval_time_us = DIV_ROUND_UP(interval_cycle * USEC_PER_SEC,
 					    ss->src_clk);
 
-	return total_time_us + interval_time_us;
+	return total_time_us + interval_time_us + SPRD_SPI_FIFO_SIZE;
 }
 
 static int sprd_spi_wait_for_tx_end(struct sprd_spi *ss, struct spi_transfer *t)
@@ -457,12 +457,12 @@ static void sprd_spi_init_hw(struct sprd_spi *ss, struct spi_transfer *t)
 	/*
 	 * Set the intervals of two SPI frames, and the inteval calculation
 	 * formula as below per datasheet:
-	 * interval time (source clock cycles) = interval * 4 + 10.
+	 * interval time (source clock cycles) = interval * 4 + 3.
 	 */
 	word_delay = clamp_t(u16, t->word_delay, SPRD_SPI_MIN_DELAY_CYCLE,
 			     SPRD_SPI_MAX_DELAY_CYCLE);
 	interval = DIV_ROUND_UP(word_delay - 10, 4);
-	ss->word_delay = interval * 4 + 10;
+	ss->word_delay = interval * 4 + 3;
 	writel_relaxed(interval, ss->base + SPRD_SPI_CTL5);
 
 	/* Reset SPI fifo */
