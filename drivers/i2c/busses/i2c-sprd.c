@@ -32,6 +32,7 @@
 #define ADDR_RST		0x2c
 
 /* I2C_CTL */
+#define I2C_TRANS_EN		BIT(21)
 #define STP_EN			BIT(20)
 #define FIFO_AF_LVL_MASK	GENMASK(19, 16)
 #define FIFO_AF_LVL		16
@@ -364,7 +365,7 @@ static void sprd_i2c_enable(struct sprd_i2c *i2c_dev)
 	sprd_i2c_clear_irq(i2c_dev);
 
 	tmp = readl(i2c_dev->base + I2C_CTL);
-	writel(tmp | I2C_EN | I2C_INT_EN, i2c_dev->base + I2C_CTL);
+	writel(tmp | I2C_EN | I2C_INT_EN | I2C_TRANS_EN, i2c_dev->base + I2C_CTL);
 }
 
 static irqreturn_t sprd_i2c_isr_thread(int irq, void *dev_id)
