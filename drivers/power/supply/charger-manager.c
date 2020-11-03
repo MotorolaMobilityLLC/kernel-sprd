@@ -1436,7 +1436,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm,
 		}
 
 #ifdef DUAL_85_VERSION	
-                if(target_current == 0)
+                if(target_cur == 0)
 			continue;
 
 #else
