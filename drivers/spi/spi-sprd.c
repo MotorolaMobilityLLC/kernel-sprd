@@ -379,27 +379,37 @@ static int sprd_spi_read_bufs_u32(struct sprd_spi *ss, u32 len)
 static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 {
 	struct sprd_spi *ss = spi_controller_get_devdata(sdev->controller);
-	u32 trans_len = ss->trans_len, len;
-	int ret, write_size = 0;
+	u32 trans_len = ss->trans_len, len, *tmp_txbuf;
+	int ret, write_size = 0, read_size = 0;
+
+	if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
+		tmp_txbuf = kzalloc(trans_len, GFP_ATOMIC);
+		ss->tx_buf = tmp_txbuf;
+	}
 
 	while (trans_len) {
 		len = trans_len > SPRD_SPI_FIFO_SIZE ? SPRD_SPI_FIFO_SIZE :
 			trans_len;
-		if (ss->trans_mode & SPRD_SPI_TX_MODE) {
+		if (!(ss->trans_mode & SPRD_SPI_RX_MODE)) {
+			/* The SPI device is used for TX mode only.*/
 			sprd_spi_set_tx_length(ss, len);
 			write_size += ss->write_bufs(ss, len);
 
 			/*
-			 * For our 3 wires mode or dual TX line mode, we need
-			 * to request the controller to transfer.
-			 */
+			* For our 3 wires mode or dual TX line mode, we need
+			* to request the controller to transfer.
+			*/
 			if (ss->hw_mode & SPI_3WIRE || ss->hw_mode & SPI_TX_DUAL)
 				sprd_spi_tx_req(ss);
 
 			ret = sprd_spi_wait_for_tx_end(ss, t);
-		} else {
-			sprd_spi_set_rx_length(ss, len);
 
+			if (ret)
+				goto complete;
+		} else if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
+			/* The SPI device is used for RX mode only.*/
+			sprd_spi_set_tx_length(ss, len);
+			sprd_spi_set_rx_length(ss, len);
 			/*
 			 * For our 3 wires mode or dual TX line mode, we need
 			 * to request the controller to read.
@@ -410,18 +420,32 @@ static int sprd_spi_txrx_bufs(struct spi_device *sdev, struct spi_transfer *t)
 				write_size += ss->write_bufs(ss, len);
 
 			ret = sprd_spi_wait_for_rx_end(ss, t);
+			if (ret)
+				goto complete;
+
+			read_size += ss->read_bufs(ss, len);
+		} else {
+			/* The SPI device is used for both TX and RX mode.*/
+			sprd_spi_set_tx_length(ss, len);
+			sprd_spi_set_rx_length(ss, len);
+			write_size += ss->write_bufs(ss, len);
+			ret = sprd_spi_wait_for_rx_end(ss, t);
+
+			if (ret)
+				goto complete;
+
+			read_size += ss->read_bufs(ss, len);
 		}
-
-		if (ret)
-			goto complete;
-
-		if (ss->trans_mode & SPRD_SPI_RX_MODE)
-			ss->read_bufs(ss, len);
 
 		trans_len -= len;
 	}
 
-	ret = write_size;
+	if (!(ss->trans_mode & SPRD_SPI_TX_MODE)) {
+		kfree(tmp_txbuf);
+		ret = read_size;
+	} else {
+		ret = write_size;
+	}
 
 complete:
 	sprd_spi_enter_idle(ss);
