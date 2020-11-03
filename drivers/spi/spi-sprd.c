@@ -235,7 +235,7 @@ static void sprd_spi_set_transfer_bits(struct sprd_spi *ss, u32 bits)
 
 	/* Set the valid bits for every transaction */
 	val &= ~(SPRD_SPI_CHNL_LEN_MASK << SPRD_SPI_CHNL_LEN);
-	val |= bits << SPRD_SPI_CHNL_LEN;
+	val |= (bits & SPRD_SPI_CHNL_LEN_MASK) << SPRD_SPI_CHNL_LEN;
 	writel_relaxed(val, ss->base + SPRD_SPI_CTL0);
 }
 
