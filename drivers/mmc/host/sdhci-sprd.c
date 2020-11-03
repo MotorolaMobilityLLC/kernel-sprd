@@ -68,6 +68,34 @@
 
 #define SDHCI_SPRD_CLK_DEF_RATE		26000000
 #define SDHCI_SPRD_PHY_DLL_CLK		52000000
+/*
+ * The following register is defined by spreadtrum self.
+ * It is not standard register of SDIO
+ */
+#define SDHCI_SPRD_REG_32_DLL_STS0	0x210
+#define SDHCI_SPRD_REG_32_DLL_STS1	0x214
+#define SDHCI_SPRD_DLL_WAIT_CNT		0xC0000000
+
+
+#define SDHCI_SPRD_REG_8_DATWR_DLY	0x204
+#define SDHCI_SPRD_REG_8_CMDRD_DLY	0x205
+#define SDHCI_SPRD_REG_8_POSRD_DLY	0x206
+#define SDHCI_SPRD_REG_8_NEGRD_DLY	0x207
+
+
+#define SDHCI_SPRD_WR_DLY_MASK		0xff
+#define SDHCI_SPRD_CMD_DLY_MASK		(0xff << 8)
+#define SDHCI_SPRD_POSRD_DLY_MASK		(0xff << 16)
+#define SDHCI_SPRD_NEGRD_DLY_MASK		(0xff << 24)
+#define SDHCI_SPRD_DLY_TIMING(wr_dly, cmd_dly, posrd_dly, negrd_dly) \
+		((wr_dly) | ((cmd_dly) << 8) | \
+		((posrd_dly) << 16) | ((negrd_dly) << 24))
+
+
+struct ranges_t {
+	int start;
+	int end;
+};
 
 struct sdhci_sprd_host {
 	u32 version;
@@ -80,6 +108,9 @@ struct sdhci_sprd_host {
 	u32 base_rate;
 	int flags; /* backup of host attribute */
 	u32 phy_delay[MMC_TIMING_MMC_HS400 + 2];
+	u32 dll_cnt;
+	u32 mid_dll_cnt;
+	struct ranges_t *ranges;
 };
 
 struct sdhci_sprd_phy_cfg {
@@ -390,6 +421,204 @@ static void sdhci_sprd_request_done(struct sdhci_host *host,
 	 mmc_request_done(host->mmc, mrq);
 }
 
+static int sprd_calc_tuning_range(struct sdhci_sprd_host *host, int *value_t)
+{
+	int i;
+	bool prev_vl = 0;
+	int range_count = 0;
+	u32 dll_cnt = host->dll_cnt;
+	u32 mid_dll_cnt = host->mid_dll_cnt;
+	struct ranges_t *ranges = host->ranges;
+
+	/*
+	 * first: 0 <= i < mid_dll_cnt
+	 * tuning range: (0 ~ mid_dll_cnt) && (dll_cnt ~ dll_cnt + mid_dll_cnt)
+	 */
+	for (i = 0; i < mid_dll_cnt; i++) {
+		if ((!prev_vl) && value_t[i] && value_t[i + dll_cnt]) {
+			range_count++;
+			ranges[range_count - 1].start = i;
+		}
+
+		if (value_t[i] && value_t[i + dll_cnt]) {
+			ranges[range_count - 1].end = i;
+			pr_debug("recalculate tuning ok: %d\n", i);
+		} else
+			pr_debug("recalculate tuning fail: %d\n", i);
+
+		prev_vl = value_t[i] && value_t[i + dll_cnt];
+	}
+
+	/*
+	 * second: mid_dll_cnt <= i < dll_cnt
+	 * tuning range: mid_dll_cnt ~ dll_cnt
+	 */
+	for (i = mid_dll_cnt; i < dll_cnt; i++) {
+		if ((!prev_vl) && value_t[i]) {
+			range_count++;
+			ranges[range_count - 1].start = i;
+		}
+
+		if (value_t[i]) {
+			ranges[range_count - 1].end = i;
+			pr_debug("recalculate tuning ok: %d\n", i);
+		} else
+			pr_debug("recalculate tuning fail: %d\n", i);
+
+		prev_vl = value_t[i];
+	}
+
+	host->ranges = ranges;
+
+	return range_count;
+}
+
+
+static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
+{
+	struct sdhci_host *host = mmc_priv(mmc);
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	u32 *p = sprd_host->phy_delay;
+	int err = 0;
+	int i = 0;
+	bool value, first_vl, prev_vl = 0;
+	int *value_t;
+	struct ranges_t *ranges;
+	int length;
+	unsigned int range_count = 0;
+	int longest_range_len = 0;
+	int longest_range = 0;
+	int mid_step;
+	int final_phase;
+	u32 dll_cfg, mid_dll_cnt, dll_cnt, dll_dly;
+
+	sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
+
+	dll_cfg = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
+	dll_cfg &= ~(0xf << 24);
+	sdhci_writel(host, dll_cfg, SDHCI_SPRD_REG_32_DLL_CFG);
+	dll_cnt = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS0) & 0xff;
+	dll_cnt = dll_cnt << 1;
+	length = (dll_cnt * 150) / 100;
+	pr_info("%s: dll config 0x%08x, dll count %d, tuning length: %d\n",
+		mmc_hostname(mmc), dll_cfg, dll_cnt, length);
+
+	ranges = kmalloc_array(length + 1, sizeof(*ranges), GFP_KERNEL);
+	if (!ranges)
+		return -ENOMEM;
+	value_t = kmalloc_array(length + 1, sizeof(*value_t), GFP_KERNEL);
+	if (!value_t)
+		return -ENOMEM;
+
+	dll_dly = p[mmc->ios.timing];
+	do {
+		if (host->flags & SDHCI_HS400_TUNING) {
+			dll_dly &= ~SDHCI_SPRD_CMD_DLY_MASK;
+			dll_dly |= (i << 8);
+		} else {
+			dll_dly &= ~(SDHCI_SPRD_CMD_DLY_MASK |
+				     SDHCI_SPRD_POSRD_DLY_MASK);
+			dll_dly |= (((i << 8) & SDHCI_SPRD_CMD_DLY_MASK) |
+				    ((i << 16) & SDHCI_SPRD_POSRD_DLY_MASK));
+		}
+		sdhci_writel(host, dll_dly, SDHCI_SPRD_REG_32_DLL_DLY);
+		pr_debug("%s: dll_dly 0x%08x\n", mmc_hostname(mmc), dll_dly);
+
+		value = !mmc_send_tuning(mmc, opcode, NULL);
+
+		if ((!prev_vl) && value) {
+			range_count++;
+			ranges[range_count - 1].start = i;
+		}
+		if (value) {
+			pr_debug("%s tuning ok: %d\n", mmc_hostname(mmc), i);
+			ranges[range_count - 1].end = i;
+			value_t[i] = value;
+		} else {
+			pr_debug("%s tuning fail: %d\n", mmc_hostname(mmc), i);
+			value_t[i] = value;
+		}
+
+		prev_vl = value;
+	} while (++i <= length);
+
+	mid_dll_cnt = length - dll_cnt;
+	sprd_host->dll_cnt = dll_cnt;
+	sprd_host->mid_dll_cnt = mid_dll_cnt;
+	sprd_host->ranges = ranges;
+
+	first_vl = (value_t[0] && value_t[dll_cnt]);
+	range_count = sprd_calc_tuning_range(sprd_host, value_t);
+
+	if (range_count == 0) {
+		pr_warn("%s: all tuning phases fail!\n", mmc_hostname(mmc));
+		err = -EIO;
+		goto out;
+	}
+
+	if ((range_count > 1) && first_vl && value) {
+		ranges[0].start = ranges[range_count - 1].start;
+		range_count--;
+
+		if (ranges[0].end >= mid_dll_cnt)
+			ranges[0].end = mid_dll_cnt;
+	}
+
+	for (i = 0; i < range_count; i++) {
+		int len = (ranges[i].end - ranges[i].start + 1);
+
+		if (len < 0)
+			len += dll_cnt;
+
+		pr_debug("%s: good tuning phase range %d ~ %d\n",
+			 mmc_hostname(mmc), ranges[i].start, ranges[i].end);
+
+		if (longest_range_len < len) {
+			longest_range_len = len;
+			longest_range = i;
+		}
+
+	}
+	pr_info("%s: the best tuning step range %d-%d(the length is %d)\n",
+		mmc_hostname(mmc), ranges[longest_range].start,
+		ranges[longest_range].end, longest_range_len);
+
+	mid_step = ranges[longest_range].start + longest_range_len / 2;
+	mid_step %= dll_cnt;
+
+	dll_cfg |= 0xf << 24;
+	sdhci_writel(host, dll_cfg, SDHCI_SPRD_REG_32_DLL_CFG);
+
+	if (mid_step <= dll_cnt)
+		final_phase = (mid_step * 256) / dll_cnt;
+	else
+		final_phase = 0xff;
+
+	if (host->flags & SDHCI_HS400_TUNING) {
+		p[mmc->ios.timing] &= ~SDHCI_SPRD_CMD_DLY_MASK;
+		p[mmc->ios.timing] |= (final_phase << 8);
+	} else {
+		p[mmc->ios.timing] &= ~(SDHCI_SPRD_CMD_DLY_MASK |
+					SDHCI_SPRD_POSRD_DLY_MASK);
+		p[mmc->ios.timing] |=
+			(((final_phase << 8) & SDHCI_SPRD_CMD_DLY_MASK) |
+			 ((final_phase << 16) & SDHCI_SPRD_POSRD_DLY_MASK));
+	}
+
+	pr_info("%s: the best step %d, phase 0x%02x, delay value 0x%08x\n",
+		mmc_hostname(mmc), mid_step, final_phase, p[mmc->ios.timing]);
+	sdhci_writel(host, p[mmc->ios.timing], SDHCI_SPRD_REG_32_DLL_DLY);
+	err = 0;
+
+out:
+	host->flags &= ~SDHCI_HS400_TUNING;
+	kfree(ranges);
+	kfree(value_t);
+
+	return err;
+}
+
+
 static struct sdhci_ops sdhci_sprd_ops = {
 	.read_l = sdhci_sprd_readl,
 	.write_l = sdhci_sprd_writel,
@@ -575,6 +804,7 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	 */
 	host->mmc_host_ops.start_signal_voltage_switch =
 		sdhci_sprd_voltage_switch;
+	host->mmc_host_ops.execute_tuning = sdhci_sprd_execute_tuning;
 
 	host->mmc->caps = MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED |
 		MMC_CAP_WAIT_WHILE_BUSY;
