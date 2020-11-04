@@ -8605,6 +8605,15 @@ CONFIG_MMC_BLOCK_MINORS
 	[must] user
 	[missing plat description] none
 	[function] Number of minors per block device
+CONFIG_MMC_CRYPTO
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make,code
+	[subsys] mmc
+	[must] user
+	[missing plat description] none
+	[function] Enable MMC controller encryption
 CONFIG_MMC_SPRD_SDHCR10
 	[arch] arm
 	[plat] pike2,sharkle32
