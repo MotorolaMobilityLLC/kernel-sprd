@@ -1,0 +1,40 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	model = "Unisoc UMS9620 1h10 Backdoor Board";
+
+	compatible = "sprd,ums9620-1h10-backdoor";
+
+	sprd,sc-id = "ums9620-1h10 backdoor 1000";
+
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			reserved-memory {
+				#address-cells = <2>;
+				#size-cells = <2>;
+				ranges;
+
+				super_memdisk_reserved: super-memdisk-reserved@100000000{
+					reg = <0x1 0x00000000 0x0 0x72000000>;  /* super 1800M */
+				};
+
+			};
+
+			sprd-memdisk {
+				compatible = "sprd,memdisk";
+
+				super {
+					memory-region = <&super_memdisk_reserved>;
+					label = "super";
+				};
+
+			};
+		};
+	};
+};
+
+&chosen {
+	bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums9620_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=memdisk0 androidboot.selinux=permissive androidboot.force_normal_boot=1";
+};

@@ -1,0 +1,16 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+
+	model = "Spreadtrum UMS9620 1h10 Board";
+
+	compatible = "sprd,ums9620-1h10";
+
+	sprd,sc-id = "ums9620-1h10 1000";
+
+};
+
+&chosen {
+	bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=8 init=/init root=/dev/ram0 rw androidboot.hardware=ums9620_1h10 androidboot.selinux=permissive androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio";
+};
