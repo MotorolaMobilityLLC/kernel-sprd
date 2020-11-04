@@ -160,10 +160,6 @@ DEV_ATTR_DEFINE("vendor",charge_ic_vendor_name)
 DEV_ATTR_DECLARE_END;
 ONTIM_DEBUG_DECLARE_AND_INIT(charge_ic,charge_ic,8);
 
-static int
-bq24157_charger_set_limit_current(struct bq24157_charger_info *info,
-				   u32 limit_cur);
-
 static bool bq24157_charger_is_bat_present(struct bq24157_charger_info *info)
 {
 	struct power_supply *psy;
@@ -523,10 +519,10 @@ bq24157_charger_get_limit_current(struct bq24157_charger_info *info,
 		*limit_cur = 800000;
 		break;
 	case 3:
-		*limit_cur = 1000000;
+		*limit_cur = 1500000;
 		break;
 	default:
-		*limit_cur = 1000000;
+		*limit_cur = 1500000;
 	}
 
 	return 0;
