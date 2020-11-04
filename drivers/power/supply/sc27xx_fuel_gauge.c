@@ -1745,7 +1745,9 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		dev_err(data->dev, "failed to request fgu IRQ\n");
 		return ret;
 	}
-
+#ifdef DUAL_85_VERSION	
+	data->bat_present = 1;
+#else
 	irq = gpiod_to_irq(data->gpiod);
 	if (irq < 0) {
 		dev_err(&pdev->dev, "failed to translate GPIO to IRQ\n");
@@ -1761,7 +1763,7 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to request IRQ\n");
 		return ret;
 	}
-
+#endif
 	return 0;
 }
 
