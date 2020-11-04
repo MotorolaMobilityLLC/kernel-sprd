@@ -49,6 +49,25 @@
 	bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums9230_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/201d0000.sdio androidboot.selinux=permissive";
 };
 
+&reserved_memory {
+
+	logo_reserved: logobuffer@9e000000{
+		reg = <0x0 0x9e000000 0x0 0x00ab0000>;
+	};
+
+	fd_reserved: faceid-mem@fac50000 {
+		reg = <0x0 0xfac50000 0x0 0x01e00000>;
+	};
+
+	wb_reserved: writeback-mem@fca50000 {
+		reg = <0x0 0xfca50000 0x0 0x00ab0000>;
+	};
+
+	fb_reserved: framebuffer-mem@fd500000 {
+		reg = <0x0 0xfd500000 0x0 0x02a80000>;
+	};
+};
+
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 };
