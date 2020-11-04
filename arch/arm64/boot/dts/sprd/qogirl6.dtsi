@@ -907,13 +907,6 @@
 		clock-output-names = "ext-32k";
 	};
 
-	ext_4m: ext-4m {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <4000000>;
-		clock-output-names = "ext-4m";
-	};
-
 	rco_100m: rco-100m {
 		compatible = "fixed-clock";
 		#clock-cells = <0>;

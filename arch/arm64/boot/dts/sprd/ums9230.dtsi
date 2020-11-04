@@ -72,8 +72,8 @@
 		ap_clk: clock-controller@20010000 {
 			compatible = "sprd,ums9230-ap-clk";
 			reg = <0 0x20010000 0 0x1000>;
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
+			clocks = <&ext_26m>, <&dphy_273m>, <&dphy_204m8>;
+			clock-names = "ext-26m", "dphy-273m", "dphy-204m8";
 			#clock-cells = <1>;
 		};
 
@@ -102,10 +102,8 @@
 		aon_clk: clock-controller@64012000 {
 			compatible = "sprd,ums9230-aonapb-clk";
 			reg = <0 0x64012000 0 0x1000>;
-			clocks = <&ext_26m>, <&rco_100m>, <&ext_32k>,
-				 <&ext_4m>;
-			clock-names = "ext-26m", "rco-100m", "ext-32k",
-					  "ext-4m";
+			clocks = <&ext_26m>, <&rco_100m>, <&ext_32k>;
+			clock-names = "ext-26m", "rco-100m", "ext-32k";
 			#clock-cells = <1>;
 		};
 
