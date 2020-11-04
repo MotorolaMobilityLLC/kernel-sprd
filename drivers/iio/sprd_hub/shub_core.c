@@ -2509,6 +2509,7 @@ static const struct of_device_id shub_match_table[] = {
 	{.compatible = "sprd,sharkl5-sensorhub",},
 	{.compatible = "sprd,roc1-sensorhub",},
 	{.compatible = "sprd,sharkl5Pro-sensorhub",},
+	{.compatible = "sprd,qogirl6-sensorhub",},
 	{},
 };
 
