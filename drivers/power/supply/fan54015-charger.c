@@ -36,7 +36,7 @@
 #define BIT_DP_DM_BC_ENB				BIT(0)
 #define FAN54015_OTG_VALID_MS				500
 #define FAN54015_FEED_WATCHDOG_VALID_MS			50
-#define FAN54015_OTG_ALARM_TIMER_MS			15000
+#define FAN54015_WDG_TIMER_MS			15000
 
 #define FAN54015_REG_FAULT_MASK				0x7
 #define FAN54015_OTG_TIMER_FAULT			0x6
@@ -105,7 +105,7 @@ struct fan54015_charger_info {
 	struct gpio_desc *gpiod;
 	struct extcon_dev *edev;
 	bool otg_enable;
-	struct alarm otg_timer;
+	struct alarm wdg_timer;
 };
 
 static int
@@ -588,8 +588,7 @@ static int fan54015_charger_get_online(struct fan54015_charger_info *info,
 	return 0;
 }
 
-static int fan54015_charger_feed_watchdog(struct fan54015_charger_info *info,
-					  u32 val)
+static int fan54015_charger_feed_watchdog(struct fan54015_charger_info *info)
 {
 	int ret;
 
@@ -634,6 +633,11 @@ static void fan54015_charger_work(struct work_struct *data)
 		container_of(data, struct fan54015_charger_info, work);
 	int limit_cur, cur, ret;
 	bool present = fan54015_charger_is_bat_present(info);
+
+	if (info->limit)
+		schedule_delayed_work(&info->wdt_work, 0);
+	else
+		cancel_delayed_work_sync(&info->wdt_work);
 
 	mutex_lock(&info->lock);
 
@@ -817,12 +821,6 @@ static int fan54015_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "set charge status failed\n");
 		break;
 
-	case POWER_SUPPLY_PROP_HEALTH:
-		ret = fan54015_charger_feed_watchdog(info, val->intval);
-		if (ret < 0)
-			dev_err(info->dev, "feed charger watchdog failed\n");
-		break;
-
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 		ret = fan54015_charger_set_termina_vol(info, val->intval / 1000);
 		if (ret < 0)
@@ -846,7 +844,6 @@ static int fan54015_charger_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 	case POWER_SUPPLY_PROP_STATUS:
-	case POWER_SUPPLY_PROP_HEALTH:
 		ret = 1;
 		break;
 
@@ -1083,7 +1080,7 @@ static int fan54015_charger_probe(struct i2c_client *client,
 	info->client = client;
 	info->dev = dev;
 
-	alarm_init(&info->otg_timer, ALARM_BOOTTIME, NULL);
+	alarm_init(&info->wdg_timer, ALARM_BOOTTIME, NULL);
 
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, fan54015_charger_work);
@@ -1108,7 +1105,7 @@ static int fan54015_charger_probe(struct i2c_client *client,
 		return ret;
 	}
 
-	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc2731-syscon");
+	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
 	if (!regmap_np) {
 		dev_err(dev, "unable to get syscon node\n");
 		return -ENODEV;
@@ -1188,6 +1185,8 @@ static int fan54015_charger_remove(struct i2c_client *client)
 {
 	struct fan54015_charger_info *info = i2c_get_clientdata(client);
 
+	cancel_delayed_work_sync(&info->wdt_work);
+	cancel_delayed_work_sync(&info->otg_work);
 	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 
 	return 0;
@@ -1198,25 +1197,21 @@ static int fan54015_charger_suspend(struct device *dev)
 {
 	struct fan54015_charger_info *info = dev_get_drvdata(dev);
 	ktime_t now, add;
-	unsigned int wakeup_ms = FAN54015_OTG_ALARM_TIMER_MS;
-	int ret;
+	unsigned int wakeup_ms = FAN54015_WDG_TIMER_MS;
+
+	if (info->otg_enable || info->limit)
+		/* feed watchdog first before suspend */
+		fan54015_charger_feed_watchdog(info);
 
 	if (!info->otg_enable)
 		return 0;
 
 	cancel_delayed_work_sync(&info->wdt_work);
 
-	/* feed watchdog first before suspend */
-	ret = fan54015_update_bits(info, FAN54015_REG_0,
-				   FAN54015_REG_RESET_MASK,
-				   FAN54015_REG_RESET);
-	if (ret)
-		dev_warn(info->dev, "reset fan54015 failed before suspend\n");
-
 	now = ktime_get_boottime();
 	add = ktime_set(wakeup_ms / MSEC_PER_SEC,
 			(wakeup_ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
-	alarm_start(&info->otg_timer, ktime_add(now, add));
+	alarm_start(&info->wdg_timer, ktime_add(now, add));
 
 	return 0;
 }
@@ -1224,20 +1219,15 @@ static int fan54015_charger_suspend(struct device *dev)
 static int fan54015_charger_resume(struct device *dev)
 {
 	struct fan54015_charger_info *info = dev_get_drvdata(dev);
-	int ret;
+
+	if (info->otg_enable || info->limit)
+		/* feed watchdog first after resume */
+		fan54015_charger_feed_watchdog(info);
 
 	if (!info->otg_enable)
 		return 0;
 
-	alarm_cancel(&info->otg_timer);
-
-	/* feed watchdog first after resume */
-	ret = fan54015_update_bits(info, FAN54015_REG_0,
-				   FAN54015_REG_RESET_MASK,
-				   FAN54015_REG_RESET);
-	if (ret)
-		dev_warn(info->dev, "reset fan54015 failed after resume\n");
-
+	alarm_cancel(&info->wdg_timer);
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 
 	return 0;

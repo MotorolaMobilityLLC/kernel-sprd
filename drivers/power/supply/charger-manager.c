@@ -1292,35 +1292,6 @@ static int cm_check_charge_health(struct charger_manager *cm)
 	return -EINVAL;
 }
 
-static int cm_feed_watchdog(struct charger_manager *cm)
-{
-	union power_supply_propval val;
-	struct power_supply *psy;
-	int err, i;
-
-	if (!cm->desc->wdt_interval)
-		return 0;
-
-	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
-		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
-		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				cm->desc->psy_charger_stat[i]);
-			continue;
-		}
-
-		val.intval = cm->desc->wdt_interval;
-		err = power_supply_set_property(psy,
-						POWER_SUPPLY_PROP_FEED_WATCHDOG,
-						&val);
-		power_supply_put(psy);
-		if (err)
-			return err;
-	}
-
-	return 0;
-}
-
 enum cm_manager_jeita_status {
 	STATUS_BELOW_T0 = 0,
 	STATUS_T0_TO_T1,
@@ -1539,13 +1510,6 @@ static bool _cm_monitor(struct charger_manager *cm)
 {
 	int temp_alrt, ret;
 	int i;
-
-	/* Feed the charger watchdog if necessary */
-	ret = cm_feed_watchdog(cm);
-	if (ret) {
-		dev_warn(cm->dev, "Failed to feed charger watchdog\n");
-		return false;
-	}
 
 	for (i = 0; i < cm->desc->num_charger_regulators; i++) {
 		if (cm->desc->charger_regulators[i].externally_control) {
@@ -3114,7 +3078,7 @@ static int charger_extcon_data_init(struct charger_cable *cables,
 		cables->extcon_dev = extcon_find_edev_by_node(extcon_np);
 		of_node_put(extcon_np);
 		if (IS_ERR(cables->extcon_dev))
-			return -ENODEV;
+			return PTR_ERR(cables->extcon_dev);
 
 	}
 
@@ -3892,20 +3856,6 @@ static int cm_suspend_prepare(struct device *dev)
 	if (!cm_suspended)
 		cm_suspended = true;
 
-	/*
-	 * In some situation, the system is not sleep between
-	 * the charger polling interval - 15s, it maybe occur
-	 * that charger manager will feed watchdog, but the
-	 * system has no work to do to suspend, and charger
-	 * manager also suspend. In this function, it will
-	 * cancel cm_monito_work, it cause that this time can't
-	 * feed watchdog until the next polling time, this means
-	 * that charger manager feed watchdog per 15s usually,
-	 * but this time need 30s, and the charger IC(fan54015)
-	 * watchdog timeout to reset.
-	 */
-	if (is_ext_pwr_online(cm))
-		cm_feed_watchdog(cm);
 	cm_timer_set = cm_setup_timer();
 
 	if (cm_timer_set) {
