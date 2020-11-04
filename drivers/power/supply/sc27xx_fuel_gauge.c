@@ -811,9 +811,11 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 		 *  UR = Vadc -Vresistance +
 		 *  Vresistance * (Vadc - Vresistance) / (1850 - Vresistance)
 		 */
-		resistance_vol = bat_current * data->comp_resistance / 1000;
-		vol = vol - resistance_vol + (resistance_vol *
-			(vol - resistance_vol)) / (1850 - resistance_vol);
+		resistance_vol = bat_current * data->comp_resistance;
+		resistance_vol = DIV_ROUND_CLOSEST(resistance_vol, 1000);
+
+		vol = vol - (resistance_vol * (1850 - vol)) / (1850 - resistance_vol);
+
 		if (vol < 0)
 			vol = 0;
 	}
