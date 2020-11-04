@@ -1,0 +1,26 @@
+/*
+ * Spreadtrum Qogirl6 board common DTS file
+ *
+ * Copyright (C) 2020, Spreadtrum Communications Inc.
+ *
+ * This file is licensed under a dual GPLv2 or X11 license.
+ */
+
+
+/{
+	reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* must be 64M aligned */
+		sml_reserved: sml-mem@b0000000 {
+			reg = <0x0 0xb0000000 0x0 0x00020000>;
+		};
+
+		tos_reserved: tos-mem@b0020000 {
+			reg = <0x0 0xb0020000 0x0 0x03fe0000>;
+		};
+
+	};
+};

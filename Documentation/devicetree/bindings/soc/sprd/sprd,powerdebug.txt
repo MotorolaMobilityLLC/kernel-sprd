@@ -1,0 +1,37 @@
+Unisoc power-debug bindings
+
+This node is used to define control information and address space node used the
+power debug driver, which output the power and interrupt state will help us to
+analyze the SoC system power exception.
+
+Required properties:
+- compatible: Should be "sprd,power-debug-sharkle","sprd,power-debug-sharkl3",
+		"sprd,power-debug-sharkl5","sprd,power-debug-sharkl5pro",
+		"sprd,power-debug-pike2","sprd,power-debug-roc1",
+		"sprd,power-debug-orca"
+- sprd,sys-pmu-apb: Specify the pmu-apb address space node in the soc system
+
+optional properties:
+- sprd,enable: 1-enable the state log output; 2-disable the log output
+- sprd,scan-interval: Specify the log output period of the default log thread
+- sprd,sys-ap-ahb: Specify the ap-ahb address space node in the soc system
+- sprd,sys-ap-apb: Specify the ap-apb address space node in the soc system
+- sprd,sys-aon-sec: Specify the aon-sec address space node in the soc system
+- sprd,sys-aon-apb: Specify the aon-apb address space node in the soc system
+- sprd,sys-ap-intc: Specify a list in which every element expresses a INTC0
+		controller's address space.
+
+Example:
+	power: power-debug {
+		compatible = "sprd,power-debug-sharkle";
+
+		sprd,enable = <1>;
+		sprd,scan-interval = <30>;
+
+		sprd,sys-ap-ahb = <&ap_ahb_regs>;
+		sprd,sys-ap-apb = <&ap_apb_regs>;
+		sprd,sys-pmu-apb = <&pmu_apb_regs>;
+		sprd,sys-aon-apb = <&aon_apb_regs>;
+		sprd,sys-ap-intc = <&intc0_regs &intc1_regs
+				&intc2_regs &intc3_regs>;
+	};
