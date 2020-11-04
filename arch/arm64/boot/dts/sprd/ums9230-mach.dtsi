@@ -103,6 +103,10 @@
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 	};
 
+	sprd-sensorhub {
+		 compatible = "sprd,qogirl6-sensorhub";
+	};
+
 	thm_zone: thermal-zones {
 		cputop0_tzone0: cputop0-tzone0 {
 			polling-delay-passive = <0>;
