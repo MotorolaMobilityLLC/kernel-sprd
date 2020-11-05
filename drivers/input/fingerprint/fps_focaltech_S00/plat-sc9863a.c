@@ -15,7 +15,7 @@
 
 //add by focaltech
 //#define FF_COMPATIBLE_NODE "qcom,fingerprint-fpsensor"
-#define FF_COMPATIBLE_NODE "chipone,fingerprint"
+#define FF_COMPATIBLE_NODE "sprd,fingerprint-fpsensor"
 
 /*
  * Driver configuration. See ff_ctl.c
@@ -44,7 +44,7 @@ int ff_ctl_init_pins(int *irq_num)
 #if 1
     /* Initialize RST pin. */
     // add by focaltech
-    gpio = of_get_named_gpio_flags(dev_node, "fpreset-gpios", 0, &flags);
+    gpio = of_get_named_gpio_flags(dev_node, "fpsensor,reset-gpio", 0, &flags);
     if (gpio > 0) {
         g_config->gpio_rst_pin = gpio;
         b_config_dirtied = true;
@@ -115,7 +115,7 @@ int ff_ctl_init_pins(int *irq_num)
 
     /* Initialize INT pin. */
     // add by focaltech
-    gpio = of_get_named_gpio_flags(dev_node, "fpint-gpios", 0, &flags);
+    gpio = of_get_named_gpio_flags(dev_node, "fpsensor,eint-gpio", 0, &flags);
     if (gpio > 0) {
         g_config->gpio_int_pin = gpio;
         b_config_dirtied = true;

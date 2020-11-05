@@ -17,7 +17,7 @@ ccflags-y += -D__FF_EARLY_LOG_LEVEL=2
 ccflags-y += -Wno-unused-variable
 
 # Source files.
-obj-$(CONFIG_FP_FOCALTECH) := focaltech_fp.o
+obj-$(CONFIG_FPS_FOCALTECH_S00) := focaltech_fp.o
 focaltech_fp-objs := ff_ctl.o plat-sc9863a.o
 
 
