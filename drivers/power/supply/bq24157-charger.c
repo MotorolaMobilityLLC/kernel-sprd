@@ -413,16 +413,31 @@ static int bq24157_charger_hw_init(struct bq24157_charger_info *info)
 
 static int bq24157_charger_start_charge(struct bq24157_charger_info *info)
 {
+	int ret;
+
+	ret = regmap_update_bits(info->pmic, info->charger_pd,
+				 info->charger_pd_mask, 0);
 
 	bq24157_enable_charging(info ,1 );
-	return 0;
+	
+	if (ret)
+		dev_err(info->dev, "enable bq24157 charge failed\n");
+
+	return ret;
 }
 
 static void bq24157_charger_stop_charge(struct bq24157_charger_info *info)
 {
+	int ret;
+
+	ret = regmap_update_bits(info->pmic, info->charger_pd,
+				 info->charger_pd_mask,
+				 info->charger_pd_mask);
 
 	bq24157_enable_charging(info ,0 );
 
+	if (ret)
+		dev_err(info->dev, "disable bq24157 charge failed\n");
 }
 
 static int bq24157_charger_set_current(struct bq24157_charger_info *info,
@@ -893,10 +908,24 @@ static void bq24157_charger_otg_work(struct work_struct *work)
 static int bq24157_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct bq24157_charger_info *info = rdev_get_drvdata(dev);
+	int ret;
 
+	/*
+	 * Disable charger detection function in case
+	 * affecting the OTG timing sequence.
+	 */
+	ret = regmap_update_bits(info->pmic, info->charger_detect,
+				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+	if (ret) {
+		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+		return ret;
+	}
 
 	bq24157_set_opa_mode(info, 1);
 	bq24157_set_otg_en(info,1);
+
+	regmap_update_bits(info->pmic, info->charger_detect,
+				   BIT_DP_DM_BC_ENB, 0);
 
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(BQ24157_FEED_WATCHDOG_VALID_MS));
@@ -915,7 +944,9 @@ static int bq24157_charger_disable_otg(struct regulator_dev *dev)
 	bq24157_set_opa_mode(info, 0);
 	bq24157_set_otg_en(info, 0);
 
-	return 0;
+	/* Enable charger detection function to identify the charger type */
+	return regmap_update_bits(info->pmic, info->charger_detect,
+				  BIT_DP_DM_BC_ENB, 0);
 }
 
 static int bq24157_charger_vbus_is_enabled(struct regulator_dev *dev)
