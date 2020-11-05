@@ -397,5 +397,10 @@ config QORIQ_CPUFREQ
 	  This adds the CPUFreq driver support for Freescale QorIQ SoCs
 	  which are capable of changing the CPU's frequency dynamically.
 
+config CPUDVFS_GCOV
+	bool "open gcov for cpudvfs"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable gcov in cpudvfs.
 endif
 endmenu
