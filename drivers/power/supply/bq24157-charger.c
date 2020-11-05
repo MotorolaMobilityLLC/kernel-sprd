@@ -924,9 +924,6 @@ static int bq24157_charger_enable_otg(struct regulator_dev *dev)
 	bq24157_set_opa_mode(info, 1);
 	bq24157_set_otg_en(info,1);
 
-	regmap_update_bits(info->pmic, info->charger_detect,
-				   BIT_DP_DM_BC_ENB, 0);
-
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(BQ24157_FEED_WATCHDOG_VALID_MS));
 	schedule_delayed_work(&info->otg_work,
