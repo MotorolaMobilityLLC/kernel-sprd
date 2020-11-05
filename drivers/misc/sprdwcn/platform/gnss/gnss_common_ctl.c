@@ -236,8 +236,9 @@ static int gnss_boot_wait(void)
 
 	return ret;
 }
+#endif
 
-#ifdef CONFIG_UMW2652
+#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
 static int gnss_tsen_enable(int type)
 {
 	struct platform_device *pdev_regmap;
@@ -368,19 +369,78 @@ static int gnss_tsen_disable(int type)
 	return 0;
 }
 #endif
+
+#ifdef CONFIG_UMW2631_I
+static void gnss_tcxo_enable(void)
+{
+	u32 val_buf;
+	u32 val_ctl;
+
+	wcn_read_data_from_phy_addr(XTLBUF3_REL_CFG_ADDR, (void *)&val_buf, 4);
+	wcn_read_data_from_phy_addr(WCN_XTL_CTRL_ADDR, (void *)&val_ctl, 4);
+	GNSSCOMM_INFO("tcxo_en 1read buf=%x ctl=%x\n", val_buf, val_ctl);
+
+	/* XTLBUF3_REL_CF bit[1:0]=01 */
+	val_buf &= ~(0x1 << 1);
+	val_buf |=  (0x1 << 0);
+	/* WCN_XTL_CTRL bit[2:1]=01 */
+	val_ctl &= ~(0x1 << 2);
+	val_ctl |=  (0x1 << 1);
+	GNSSCOMM_INFO("tcxo_en write buf=%x ctl=%x\n", val_buf, val_ctl);
+
+	wcn_write_data_to_phy_addr(XTLBUF3_REL_CFG_ADDR, (void *)&val_buf, 4);
+	wcn_write_data_to_phy_addr(WCN_XTL_CTRL_ADDR, (void *)&val_ctl, 4);
+
+	wcn_read_data_from_phy_addr(XTLBUF3_REL_CFG_ADDR, (void *)&val_buf, 4);
+	wcn_read_data_from_phy_addr(WCN_XTL_CTRL_ADDR, (void *)&val_ctl, 4);
+	GNSSCOMM_INFO("tcxo_en 2read buf=%x ctl=%x\n", val_buf, val_ctl);
+}
+static void gnss_tcxo_disable(void)
+{
+	u32 val_buf;
+	u32 val_ctl;
+
+	wcn_read_data_from_phy_addr(XTLBUF3_REL_CFG_ADDR, (void *)&val_buf, 4);
+	wcn_read_data_from_phy_addr(WCN_XTL_CTRL_ADDR, (void *)&val_ctl, 4);
+	GNSSCOMM_INFO("tcxo_dis 1read buf=%x ctl=%x\n", val_buf, val_ctl);
+
+	/* bit[1:0] */
+	val_buf &= ~(0x1 << 1);
+	val_buf &= ~(0x1 << 0);
+	/* bit[2:1] */
+	val_ctl &= ~(0x1 << 2);
+	val_ctl &= ~(0x1 << 1);
+	GNSSCOMM_INFO("tcxo_dis write buf=%x ctl=%x\n", val_buf, val_ctl);
+
+	wcn_write_data_to_phy_addr(XTLBUF3_REL_CFG_ADDR, (void *)&val_buf, 4);
+	wcn_write_data_to_phy_addr(WCN_XTL_CTRL_ADDR, (void *)&val_ctl, 4);
+
+	wcn_read_data_from_phy_addr(XTLBUF3_REL_CFG_ADDR, (void *)&val_buf, 4);
+	wcn_read_data_from_phy_addr(WCN_XTL_CTRL_ADDR, (void *)&val_ctl, 4);
+	GNSSCOMM_INFO("tcxo_dis 2read buf=%x ctl=%x\n", val_buf, val_ctl);
+}
 #endif
 
 static void gnss_power_on(bool enable)
 {
 	int ret;
+	enum wcn_clock_type clk_type = wcn_get_xtal_26m_clk_type();
 
-	GNSSCOMM_INFO("%s:enable=%d,current gnss_status=%d\n", __func__,
-			enable, gnss_common_ctl_dev.gnss_status);
+	GNSSCOMM_INFO("%s:enable=%d status=%d,clktp=%d\n", __func__,
+		      enable, gnss_common_ctl_dev.gnss_status, clk_type);
 	if (enable && gnss_common_ctl_dev.gnss_status == GNSS_STATUS_POWEROFF) {
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWERON_GOING;
 #ifdef CONFIG_UMW2652
-		if (wcn_get_xtal_26m_clk_type() == WCN_CLOCK_TYPE_TSX)
+		if (clk_type == WCN_CLOCK_TYPE_TSX)
 			gnss_tsen_enable(TSEN_EXT);
+#endif
+#ifdef CONFIG_UMW2631_I
+		if (clk_type == WCN_CLOCK_TYPE_TSX)
+			gnss_tsen_enable(TSEN_EXT);
+		else if (clk_type == WCN_CLOCK_TYPE_TCXO)
+			gnss_tcxo_enable();
+		else
+			GNSSCOMM_ERR("%s: unknown clk_type\n", __func__);
 #endif
 		ret = start_marlin(gnss_common_ctl_dev.gnss_subsys);
 		if (ret != 0)
@@ -392,9 +452,18 @@ static void gnss_power_on(bool enable)
 			== GNSS_STATUS_POWERON) {
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF_GOING;
 #ifdef CONFIG_UMW2652
-		if (wcn_get_xtal_26m_clk_type() == WCN_CLOCK_TYPE_TSX)
+		if (clk_type == WCN_CLOCK_TYPE_TSX)
 			gnss_tsen_disable(TSEN_EXT);
 #endif
+#ifdef CONFIG_UMW2631_I
+		if (clk_type == WCN_CLOCK_TYPE_TSX)
+			gnss_tsen_disable(TSEN_EXT);
+		else if (clk_type == WCN_CLOCK_TYPE_TCXO)
+			gnss_tcxo_disable();
+		else
+			GNSSCOMM_ERR("%s: unknown clk_type\n", __func__);
+#endif
+
 		ret = stop_marlin(gnss_common_ctl_dev.gnss_subsys);
 		if (ret != 0)
 			GNSSCOMM_INFO("%s: stop marlin failed ret=%d\n",
@@ -486,6 +555,9 @@ static int gnss_status_get(void)
 	u32 magic_value = 0;
 
 	phy_addr = wcn_get_gnss_base_addr() + GNSS_STATUS_OFFSET;
+#ifdef CONFIG_UMW2631_I
+	phy_addr = wcn_get_gnss_base_addr() + GNSS_QOGIRL6_STATUS_OFFSET;
+#endif
 	wcn_read_data_from_phy_addr(phy_addr, &magic_value, sizeof(u32));
 	GNSSCOMM_INFO("[%s] magic_value=%d\n", __func__, magic_value);
 
@@ -510,6 +582,7 @@ void gnss_dump_mem_ctrl_co(void)
 		gnss_dump_mem(flag);
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_ASSERT;
 	}
+
 	complete(&gnss_dump_complete);
 }
 #else
@@ -586,7 +659,7 @@ static ssize_t gnss_status_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(gnss_status);
 
-#ifdef CONFIG_UMW2652
+#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
 static ssize_t gnss_clktype_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
@@ -693,7 +766,7 @@ static struct attribute *gnss_common_ctl_attrs[] = {
 	&dev_attr_gnss_dump.attr,
 	&dev_attr_gnss_status.attr,
 	&dev_attr_gnss_subsys.attr,
-#ifdef CONFIG_UMW2652
+#if defined(CONFIG_UMW2652) || defined(CONFIG_UMW2631_I)
 	&dev_attr_gnss_clktype.attr,
 #endif
 #ifndef CONFIG_WCN_INTEG
