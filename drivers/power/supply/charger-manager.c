@@ -2563,6 +2563,8 @@ static void misc_event_handler(struct charger_manager *cm,
 
 			cur_jeita_status =
 				cm_manager_get_jeita_status(cm, cm->desc->temperature);
+			if (cm->desc->jeita_disabled)
+				cur_jeita_status = STATUS_T1_TO_T2;
 			cm_manager_adjust_current(cm, cur_jeita_status);
 		}
 	} else {
