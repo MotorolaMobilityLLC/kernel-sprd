@@ -7,7 +7,6 @@
  */
 
 #include "sc2730.dtsi"
-#include "lcd/lcd_dummy_mipi.dtsi"
 #include <dt-bindings/thermal/thermal.h>
 
 / {
