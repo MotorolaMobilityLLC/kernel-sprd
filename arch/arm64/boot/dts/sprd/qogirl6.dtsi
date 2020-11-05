@@ -852,7 +852,7 @@
 						<0>, <0>, <0>, <0>, <0>,
 						<0>;
 				sprd,ddr-offset = <0x80000000>;
-				status = "disabled";
+				status = "okay";
 			};
 		};
 
@@ -1200,7 +1200,7 @@
 
 			djtag: djtag@64740000 {
 				compatible = "sprd,djtag";
-				status = "disabled";
+				status = "okay";
 				reg = <0 0x64740000 0 0x1000>;
 				syscon-names = "soft_rst";
 				syscons = <&aon_apb_regs REG_AON_APB_APB_RST3
