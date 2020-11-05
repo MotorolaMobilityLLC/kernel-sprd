@@ -1334,7 +1334,7 @@ out:
 	power_supply_changed(data->battery);
 	return IRQ_HANDLED;
 }
-#ifndef DUAL_85_VERSION
+
 static irqreturn_t sc27xx_fgu_bat_detection(int irq, void *dev_id)
 {
 	struct sc27xx_fgu_data *data = dev_id;
@@ -1361,7 +1361,7 @@ static irqreturn_t sc27xx_fgu_bat_detection(int irq, void *dev_id)
 
 	return IRQ_HANDLED;
 }
-#endif
+
 static void sc27xx_fgu_disable(void *_data)
 {
 	struct sc27xx_fgu_data *data = _data;
