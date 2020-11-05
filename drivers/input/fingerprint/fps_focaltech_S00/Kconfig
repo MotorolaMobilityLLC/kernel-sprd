@@ -1,5 +1,5 @@
 if INPUT_FINGERPRINT
-config FP_FOCALTECH
+config FPS_FOCALTECH_S00
 	tristate "focaltech fingureprint driver"
 	depends on SPI
 	default n

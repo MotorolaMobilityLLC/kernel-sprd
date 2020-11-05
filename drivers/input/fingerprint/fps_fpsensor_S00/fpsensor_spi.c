@@ -215,14 +215,14 @@ static int fpsensor_get_gpio_dts_info(fpsensor_data_t *fpsensor)
 
     fpsensor_debug("entry\n");
     // get interrupt gpio resource
-    ret = fpsensor_request_named_gpio(fpsensor, "fpint-gpios", &fpsensor->irq_gpio);
+    ret = fpsensor_request_named_gpio(fpsensor, "fpsensor,eint-gpio", &fpsensor->irq_gpio);
     if (ret) {
         fpsensor_error("Failed to request irq GPIO. ret = %d\n", ret);
         return -1;
     }
 
     // get reest gpio resourece
-    ret = fpsensor_request_named_gpio(fpsensor, "fpreset-gpios", &fpsensor->reset_gpio);
+    ret = fpsensor_request_named_gpio(fpsensor, "fpsensor,reset-gpio", &fpsensor->reset_gpio);
     if (ret) {
         fpsensor_error("Failed to request reset GPIO. ret = %d\n", ret);
         return -1;
@@ -888,7 +888,7 @@ static int fpsensor_resume(struct platform_device *pdev)
 
 /*-------------------------------------------------------------------------*/
 static struct of_device_id fpsensor_of_match[] = {
-    { .compatible = "chipone,fingerprint", },
+    { .compatible = "sprd,fingerprint-fpsensor" },
     {}
 };
 MODULE_DEVICE_TABLE(of, fpsensor_of_match);

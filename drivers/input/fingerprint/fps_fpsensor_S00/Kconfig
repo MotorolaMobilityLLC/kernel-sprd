@@ -1,5 +1,5 @@
 if INPUT_FINGERPRINT
-config FP_CHIPONE
+config FPS_FPSENSOR_S00
 	tristate "ICNT7152 fingureprint driver"
 	depends on SPI
 	default n
