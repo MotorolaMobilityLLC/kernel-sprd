@@ -346,9 +346,7 @@
 #define CLK_MM_MIPI_CSI2_EB		14
 #define CLK_MM_MIPI_CSI1_EB		15
 #define CLK_MM_MIPI_CSI0_EB		16
-#define CLK_DCAM_AXI_EB			17
-#define CLK_ISP_AXI_EB			18
-#define CLK_MM_CPHY_EB			19
+#define CLK_MM_CPHY_EB			17
 #define CLK_MM_GATE_CLK_NUM		(CLK_MM_CPHY_EB + 1)
 
 #define CLK_AUDCP_IIS0_EB		0
