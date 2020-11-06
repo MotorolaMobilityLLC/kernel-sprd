@@ -216,10 +216,10 @@
 				      <204000 1400>, <175000 1450>, <150000 1500>,
 				      <129000 1550>, <111000 1600>, <96000 1650>;
 		capacity-temp-table = <25 100>, <0 99>, <(-10) 98>;
-		resistance-temp-table = <20 100>, <0 299>, <(-10) 714>;
+		resistance-temp-table = <25 100>, <0 299>, <(-10) 714>;
 		charge-sdp-current-microamp = <500000 500000>;
-		charge-dcp-current-microamp = <1150000 3000000>;
-		charge-cdp-current-microamp = <1150000 1150000>;
+		charge-dcp-current-microamp = <1050000 3000000>;
+		charge-cdp-current-microamp = <500000 500000>;
 		charge-unknown-current-microamp = <500000 500000>;
 	};
 
@@ -232,7 +232,7 @@
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
 		cm-fullbatt-vchkdrop-volt = <60000>;
-		cm-fullbatt-voltage = <4330000>;
+		cm-fullbatt-voltage = <4380000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
@@ -255,7 +255,7 @@
 		cm-wdt-interval = <60>;
 
 		/* drop voltage in microVolts to allow shutdown */
-		cm-shutdown-voltage = <3100000>;
+		cm-shutdown-voltage = <3400000>;
 
 		/* when 99% of the time is exceeded, it will be forced to 100% */
 		cm-tickle-time-out = <1500>;
@@ -272,8 +272,8 @@
 			<1450 1420 1050000 4400000>, <1550 1520 1050000 4200000>;
 		cm-sdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 500000 4400000>,
 			<1450 1420 500000 4400000>, <1550 1520 500000 4200000>;
-		cm-cdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 1000000 4400000>,
-			<1450 1420 1050000 4400000>, <1550 1520 1050000 4200000>;
+		cm-cdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 500000 4400000>,
+			<1450 1420 500000 4400000>, <1550 1520 500000 4200000>;
 		cm-unknown-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 500000 4400000>,
 			<1450 1420 500000 4400000>, <1550 1520 500000 4200000>;
 
