@@ -237,7 +237,7 @@
 						g40396_truly_timing0: timing0 {
 							clock-frequency = <153600000>;
 							hactive = <1080>;
-							vactive = <2520>;
+							vactive = <2400>;
 							hback-porch = <48>;
 							hfront-porch = <48>;
 							vback-porch = <32>;

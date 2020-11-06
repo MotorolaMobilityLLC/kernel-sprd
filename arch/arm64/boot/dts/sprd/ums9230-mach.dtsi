@@ -10,7 +10,7 @@
 /{
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
-		ports = <&dummy_crtc_port>;
+		ports = <&dpu_port>;
 	};
 
 	reserved_memory: reserved-memory {
@@ -60,6 +60,22 @@
 
 		tos_reserved: tos-mem@b0020000 {
 			reg = <0x0 0xb0020000 0x0 0x05fe0000>;
+		};
+
+		logo_reserved: logobuffer@9e000000{
+			reg = <0x0 0x9e000000 0x0 0x00ab0000>;
+		};
+
+		fd_reserved: faceid-mem@fac50000 {
+			reg = <0x0 0xfac50000 0x0 0x01e00000>;
+		};
+
+		wb_reserved: writeback-mem@fca50000 {
+			reg = <0x0 0xfca50000 0x0 0x00ab0000>;
+		};
+
+		fb_reserved: framebuffer-mem@fd500000 {
+			reg = <0x0 0xfd500000 0x0 0x02a80000>;
 		};
 
 		pstore_reserved: ramoops@fff80000 {
@@ -231,4 +247,8 @@
 
 &sc2730_pmic {
 	interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
+};
+
+&pwms {
+	status = "okay";
 };
