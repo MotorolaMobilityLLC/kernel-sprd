@@ -5,6 +5,7 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+#include <linux/gpio/consumer.h>
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
 #include <linux/kernel.h>
@@ -28,6 +29,10 @@
 #define BQ2560X_REG_4				0x4
 #define BQ2560X_REG_5				0x5
 #define BQ2560X_REG_6				0x6
+#define BQ2560X_REG_7				0x7
+#define BQ2560X_REG_8				0x8
+#define BQ2560X_REG_9				0x7
+#define BQ2560X_REG_A				0xa
 #define BQ2560X_REG_B				0xb
 
 #define BQ2560X_BATTERY_NAME			"sc27xx-fgu"
@@ -54,6 +59,11 @@
 #define BQ2560X_REG_TERMINAL_CUR_MASK		GENMASK(3, 0)
 
 #define BQ2560X_REG_VINDPM_VOLTAGE_MASK		GENMASK(3, 0)
+#define BQ2560X_REG_OVP_MASK			GENMASK(7, 6)
+#define BQ2560X_REG_OVP_SHIFT			6
+
+#define BQ2560X_REG_EN_HIZ_MASK			GENMASK(7, 7)
+#define BQ2560X_REG_EN_HIZ_SHIFT		7
 
 #define BQ2560X_REG_LIMIT_CURRENT_MASK		GENMASK(4, 0)
 
@@ -65,6 +75,14 @@
 #define BQ2560X_FEED_WATCHDOG_VALID_MS		50
 #define BQ2560X_OTG_RETRY_TIMES			10
 #define BQ2560X_LIMIT_CURRENT_MAX		3200000
+
+#define BQ2560X_ROLE_MASTER_DEFAULT		1
+#define BQ2560X_ROLE_SLAVE			2
+
+#define BQ2560X_FCHG_OVP_6V			6000
+#define BQ2560X_FCHG_OVP_9V			9000
+#define BQ2560X_FAST_CHARGER_VOLTAGE_MAX	10500000
+#define BQ2560X_NORMAL_CHARGER_VOLTAGE_MAX	6500000
 
 struct bq2560x_charger_info {
 	struct i2c_client *client;
@@ -85,6 +103,9 @@ struct bq2560x_charger_info {
 	u32 charger_pd_mask;
 	struct gpio_desc *gpiod;
 	struct extcon_dev *edev;
+	u32 last_limit_current;
+	u32 role;
+	bool need_disable_Q1;
 };
 
 static int
@@ -166,6 +187,25 @@ bq2560x_charger_set_vindpm(struct bq2560x_charger_info *info, u32 vol)
 }
 
 static int
+bq2560x_charger_set_ovp(struct bq2560x_charger_info *info, u32 vol)
+{
+	u8 reg_val;
+
+	if (vol < 5500)
+		reg_val = 0x0;
+	else if (vol > 5500 && vol < 6500)
+		reg_val = 0x01;
+	else if (vol > 6500 && vol < 10500)
+		reg_val = 0x02;
+	else
+		reg_val = 0x03;
+
+	return bq2560x_update_bits(info, BQ2560X_REG_6,
+				   BQ2560X_REG_OVP_MASK,
+				   reg_val << BQ2560X_REG_OVP_SHIFT);
+}
+
+static int
 bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 {
 	u8 reg_val;
@@ -231,6 +271,8 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		info->cur.cdp_cur = bat_info.cur.cdp_cur;
 		info->cur.unknown_limit = bat_info.cur.unknown_limit;
 		info->cur.unknown_cur = bat_info.cur.unknown_cur;
+		info->cur.fchg_limit = bat_info.cur.fchg_limit;
+		info->cur.fchg_cur = bat_info.cur.fchg_cur;
 
 		voltage_max_microvolt =
 			bat_info.constant_charge_voltage_max_uv / 1000;
@@ -243,6 +285,20 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		if (ret) {
 			dev_err(info->dev, "reset bq2560x failed\n");
 			return ret;
+		}
+
+		if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
+			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
+			if (ret) {
+				dev_err(info->dev, "set bq2560x ovp failed\n");
+				return ret;
+			}
+		} else if (info->role == BQ2560X_ROLE_SLAVE) {
+			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_9V);
+			if (ret) {
+				dev_err(info->dev, "set bq2560x slave ovp failed\n");
+				return ret;
+			}
 		}
 
 		ret = bq2560x_charger_set_vindpm(info, voltage_max_microvolt);
@@ -273,14 +329,58 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 	return ret;
 }
 
+static int
+bq2560x_charger_get_charge_voltage(struct bq2560x_charger_info *info,
+				   u32 *charge_vol)
+{
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	psy = power_supply_get_by_name(BQ2560X_BATTERY_NAME);
+	if (!psy) {
+		dev_err(info->dev, "failed to get BQ2560X_BATTERY_NAME\n");
+		return -ENODEV;
+	}
+
+	ret = power_supply_get_property(psy,
+					POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+					&val);
+	power_supply_put(psy);
+	if (ret) {
+		dev_err(info->dev, "failed to get CONSTANT_CHARGE_VOLTAGE\n");
+		return ret;
+	}
+
+	*charge_vol = val.intval;
+
+	return 0;
+}
+
 static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 {
 	int ret;
 
-	ret = regmap_update_bits(info->pmic, info->charger_pd,
-				 info->charger_pd_mask, 0);
+	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+				  BQ2560X_REG_EN_HIZ_MASK, 0);
 	if (ret)
-		dev_err(info->dev, "enable bq2560x charge failed\n");
+		dev_err(info->dev, "disable HIZ mode failed\n");
+
+	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
+		ret = regmap_update_bits(info->pmic, info->charger_pd,
+					 info->charger_pd_mask, 0);
+		if (ret) {
+			dev_err(info->dev, "enable bq2560x charge failed\n");
+			return ret;
+		}
+	} else if (info->role == BQ2560X_ROLE_SLAVE) {
+		gpiod_set_value_cansleep(info->gpiod, 0);
+	}
+
+	ret = bq2560x_charger_set_limit_current(info,
+						info->last_limit_current);
+	if (ret)
+		dev_err(info->dev, "failed to set limit current\n");
 
 	return ret;
 }
@@ -288,12 +388,33 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info)
 {
 	int ret;
+	bool present = bq2560x_charger_is_bat_present(info);
 
-	ret = regmap_update_bits(info->pmic, info->charger_pd,
-				 info->charger_pd_mask,
-				 info->charger_pd_mask);
-	if (ret)
-		dev_err(info->dev, "disable bq2560x charge failed\n");
+	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
+		if (!present || info->need_disable_Q1) {
+			ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+						  BQ2560X_REG_EN_HIZ_MASK,
+						  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
+			if (ret)
+				dev_err(info->dev, "enable HIZ mode failed\n");
+
+			info->need_disable_Q1 = false;
+		}
+
+		ret = regmap_update_bits(info->pmic, info->charger_pd,
+					 info->charger_pd_mask,
+					 info->charger_pd_mask);
+		if (ret)
+			dev_err(info->dev, "disable bq2560x charge failed\n");
+	} else if (info->role == BQ2560X_ROLE_SLAVE) {
+		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+					  BQ2560X_REG_EN_HIZ_MASK,
+					  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
+		if (ret)
+			dev_err(info->dev, "enable HIZ mode failed\n");
+
+		gpiod_set_value_cansleep(info->gpiod, 1);
+	}
 }
 
 static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
@@ -340,6 +461,7 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 	if (limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
 
+	info->last_limit_current = limit_cur;
 	limit_cur = limit_cur / 1000;
 	reg_val = limit_cur / BQ2560X_REG_IINLIM_BASE;
 
@@ -404,6 +526,36 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info,
 	return ret;
 }
 
+static int bq2560x_charger_set_fchg_current(struct bq2560x_charger_info *info,
+					    u32 val)
+{
+	int ret, limit_cur, cur;
+
+	if (val == CM_FAST_CHARGE_ENABLE_CMD) {
+		limit_cur = info->cur.fchg_limit;
+		cur = info->cur.fchg_cur;
+	} else if (val == CM_FAST_CHARGE_DISABLE_CMD) {
+		limit_cur = info->cur.dcp_limit;
+		cur = info->cur.dcp_cur;
+	} else {
+		return 0;
+	}
+
+	ret = bq2560x_charger_set_limit_current(info, limit_cur);
+	if (ret) {
+		dev_err(info->dev, "failed to set fchg limit current\n");
+		return ret;
+	}
+
+	ret = bq2560x_charger_set_current(info, cur);
+	if (ret) {
+		dev_err(info->dev, "failed to set fchg current\n");
+		return ret;
+	}
+
+	return 0;
+}
+
 static int bq2560x_charger_get_status(struct bq2560x_charger_info *info)
 {
 	if (info->charging)
@@ -416,6 +568,52 @@ static int bq2560x_charger_set_status(struct bq2560x_charger_info *info,
 				      int val)
 {
 	int ret = 0;
+	u32 input_vol;
+
+	if (val == CM_FAST_CHARGE_ENABLE_CMD) {
+		ret = bq2560x_charger_set_fchg_current(info, val);
+		if (ret) {
+			dev_err(info->dev, "failed to set 9V fast charge current\n");
+			return ret;
+		}
+		ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_9V);
+		if (ret) {
+			dev_err(info->dev, "failed to set fast charge 9V ovp\n");
+			return ret;
+		}
+	} else if (val == CM_FAST_CHARGE_DISABLE_CMD) {
+		ret = bq2560x_charger_set_fchg_current(info, val);
+		if (ret) {
+			dev_err(info->dev, "failed to set 5V normal charge current\n");
+			return ret;
+		}
+		ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
+		if (ret) {
+			dev_err(info->dev, "failed to set fast charge 5V ovp\n");
+			return ret;
+		}
+		if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
+			ret = bq2560x_charger_get_charge_voltage(info, &input_vol);
+			if (ret) {
+				dev_err(info->dev, "failed to get 9V charge voltage\n");
+				return ret;
+			}
+			if (input_vol > BQ2560X_FAST_CHARGER_VOLTAGE_MAX)
+				info->need_disable_Q1 = true;
+		}
+	} else if ((val == false) &&
+		   (info->role == BQ2560X_ROLE_MASTER_DEFAULT)) {
+		ret = bq2560x_charger_get_charge_voltage(info, &input_vol);
+		if (ret) {
+			dev_err(info->dev, "failed to get 5V charge voltage\n");
+			return ret;
+		}
+		if (input_vol > BQ2560X_NORMAL_CHARGER_VOLTAGE_MAX)
+			info->need_disable_Q1 = true;
+	}
+
+	if (val > CM_FAST_CHARGE_NORMAL_CMD)
+		return 0;
 
 	if (!val && info->charging) {
 		bq2560x_charger_stop_charge(info);
@@ -494,6 +692,13 @@ static int bq2560x_charger_usb_change(struct notifier_block *nb,
 		container_of(nb, struct bq2560x_charger_info, usb_notify);
 
 	info->limit = limit;
+
+	/*
+	 * only master should do work when vbus change.
+	 * let info->limit = limit, slave will online, too.
+	 */
+	if (info->role == BQ2560X_ROLE_SLAVE)
+		return NOTIFY_OK;
 
 	schedule_work(&info->work);
 	return NOTIFY_OK;
@@ -692,6 +897,18 @@ static const struct power_supply_desc bq2560x_charger_desc = {
 	.num_usb_types		= ARRAY_SIZE(bq2560x_charger_usb_types),
 };
 
+static const struct power_supply_desc bq2560x_slave_charger_desc = {
+	.name			= "bq2560x_slave_charger",
+	.type			= POWER_SUPPLY_TYPE_USB,
+	.properties		= bq2560x_usb_props,
+	.num_properties		= ARRAY_SIZE(bq2560x_usb_props),
+	.get_property		= bq2560x_charger_usb_get_property,
+	.set_property		= bq2560x_charger_usb_set_property,
+	.property_is_writeable	= bq2560x_charger_property_is_writeable,
+	.usb_types		= bq2560x_charger_usb_types,
+	.num_usb_types		= ARRAY_SIZE(bq2560x_charger_usb_types),
+};
+
 static void bq2560x_charger_detect_status(struct bq2560x_charger_info *info)
 {
 	unsigned int min, max;
@@ -706,6 +923,14 @@ static void bq2560x_charger_detect_status(struct bq2560x_charger_info *info)
 
 	usb_phy_get_charger_current(info->usb_phy, &min, &max);
 	info->limit = min;
+
+	/*
+	 * slave no need to start charge when vbus change.
+	 * due to charging in shut down will check each psy
+	 * whether online or not, so let info->limit = min.
+	 */
+	if (info->role == BQ2560X_ROLE_SLAVE)
+		return;
 	schedule_work(&info->work);
 }
 
@@ -897,6 +1122,20 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, bq2560x_charger_work);
 
+	ret = device_property_read_bool(dev, "role-slave");
+	if (ret)
+		info->role = BQ2560X_ROLE_SLAVE;
+	else
+		info->role = BQ2560X_ROLE_MASTER_DEFAULT;
+
+	if (info->role == BQ2560X_ROLE_SLAVE) {
+		info->gpiod = devm_gpiod_get(dev, "enable", GPIOD_OUT_HIGH);
+		if (IS_ERR(info->gpiod)) {
+			dev_err(dev, "failed to get enable gpio\n");
+			return PTR_ERR(info->gpiod);
+		}
+	}
+
 	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(dev, "failed to find USB phy\n");
@@ -909,10 +1148,15 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		return PTR_ERR(info->edev);
 	}
 
-	ret = bq2560x_charger_register_vbus_regulator(info);
-	if (ret) {
-		dev_err(dev, "failed to register vbus regulator.\n");
-		return ret;
+	/*
+	 * only master to support otg
+	 */
+	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
+		ret = bq2560x_charger_register_vbus_regulator(info);
+		if (ret) {
+			dev_err(dev, "failed to register vbus regulator.\n");
+			return ret;
+		}
 	}
 
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
@@ -960,27 +1204,31 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 
-	info->usb_notify.notifier_call = bq2560x_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(dev, "failed to register notifier:%d\n", ret);
-		return ret;
-	}
-
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = dev->of_node;
-	info->psy_usb = devm_power_supply_register(dev,
-						   &bq2560x_charger_desc,
-						   &charger_cfg);
+	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
+		info->psy_usb = devm_power_supply_register(dev,
+							   &bq2560x_charger_desc,
+							   &charger_cfg);
+	} else if (info->role == BQ2560X_ROLE_SLAVE) {
+		info->psy_usb = devm_power_supply_register(dev,
+							   &bq2560x_slave_charger_desc,
+							   &charger_cfg);
+	}
+
 	if (IS_ERR(info->psy_usb)) {
 		dev_err(dev, "failed to register power supply\n");
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 		return PTR_ERR(info->psy_usb);
 	}
 
 	ret = bq2560x_charger_hw_init(info);
+	if (ret)
+		return ret;
+
+	info->usb_notify.notifier_call = bq2560x_charger_usb_change;
+	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {
-		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
+		dev_err(dev, "failed to register notifier:%d\n", ret);
 		return ret;
 	}
 
@@ -1011,9 +1259,20 @@ static const struct of_device_id bq2560x_charger_of_match[] = {
 	{ }
 };
 
-MODULE_DEVICE_TABLE(of, bq2560x_charger_of_match);
+static const struct i2c_device_id bq2560x_slave_i2c_id[] = {
+	{"bq2560x_slave_chg", 0},
+	{}
+};
 
-static struct i2c_driver bq2560x_charger_driver = {
+static const struct of_device_id bq2560x_slave_charger_of_match[] = {
+	{ .compatible = "ti,bq2560x_slave_chg", },
+	{ }
+};
+
+MODULE_DEVICE_TABLE(of, bq2560x_charger_of_match);
+MODULE_DEVICE_TABLE(of, bq2560x_slave_charger_of_match);
+
+static struct i2c_driver bq2560x_master_charger_driver = {
 	.driver = {
 		.name = "bq2560x_chg",
 		.of_match_table = bq2560x_charger_of_match,
@@ -1023,6 +1282,17 @@ static struct i2c_driver bq2560x_charger_driver = {
 	.id_table = bq2560x_i2c_id,
 };
 
-module_i2c_driver(bq2560x_charger_driver);
+static struct i2c_driver bq2560x_slave_charger_driver = {
+	.driver = {
+		.name = "bq2560_slave_chg",
+		.of_match_table = bq2560x_slave_charger_of_match,
+	},
+	.probe = bq2560x_charger_probe,
+	.remove = bq2560x_charger_remove,
+	.id_table = bq2560x_slave_i2c_id,
+};
+
+module_i2c_driver(bq2560x_master_charger_driver);
+module_i2c_driver(bq2560x_slave_charger_driver);
 MODULE_DESCRIPTION("BQ2560X Charger Driver");
 MODULE_LICENSE("GPL v2");

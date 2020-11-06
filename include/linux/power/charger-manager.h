@@ -63,6 +63,11 @@ enum cm_charge_status {
 	CM_CHARGE_DURATION_ABNORMAL = BIT(4),
 };
 
+enum cm_fast_charge_command {
+	CM_FAST_CHARGE_NORMAL_CMD = 1,
+	CM_FAST_CHARGE_ENABLE_CMD,
+	CM_FAST_CHARGE_DISABLE_CMD,
+};
 
 struct wireless_data {
 	struct power_supply_desc psd;
@@ -291,6 +296,15 @@ struct cap_remap_table {
  * @cap_remap_table_len: the length of cap_remap_table
  * @cap_remap_total_cnt: the total count the whole battery capacity is divided
 	into.
+ * @is_fast_charge: if it is support fast charge or not
+ * @enable_fast_charge: if is it start fast charge or not
+ * @fast_charge_enable_count: to count the number that satisfy start
+ *	fast charge condition.
+ * @fast_charge_disable_count: to count the number that satisfy stop
+ *	fast charge condition.
+ * @double_IC_total_limit_current: if it use two charge IC to support
+ *	fast charge, we use total limit current to campare with thermal_val,
+ *	to limit the thermal_val under total limit current.
  */
 struct charger_desc {
 	const char *psy_name;
@@ -369,6 +383,11 @@ struct charger_desc {
 	struct cap_remap_table *cap_remap_table;
 	u32 cap_remap_table_len;
 	int cap_remap_total_cnt;
+	bool is_fast_charge;
+	bool enable_fast_charge;
+	u32 fast_charge_enable_count;
+	u32 fast_charge_disable_count;
+	u32 double_ic_total_limit_current;
 };
 
 #define PSY_NAME_MAX	30
