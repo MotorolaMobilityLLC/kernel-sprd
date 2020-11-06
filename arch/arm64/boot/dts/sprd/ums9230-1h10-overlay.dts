@@ -87,6 +87,125 @@
 	bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums9230_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/201d0000.sdio androidboot.selinux=permissive";
 };
 
+&reserved_memory {
+
+	logo_reserved: logobuffer@9e000000{
+		reg = <0x0 0x9e000000 0x0 0x00ab0000>;
+	};
+
+	fd_reserved: faceid-mem@fac50000 {
+		reg = <0x0 0xfac50000 0x0 0x01e00000>;
+	};
+
+	wb_reserved: writeback-mem@fca50000 {
+		reg = <0x0 0xfca50000 0x0 0x00ab0000>;
+	};
+
+	fb_reserved: framebuffer-mem@fd500000 {
+		reg = <0x0 0xfd500000 0x0 0x02a80000>;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	sensor_main: sensor-main@20 {
+		compatible = "sprd,sensor-main";
+		reg = <0x20>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR0>,<&mm_gate CLK_MM_SENSOR0_EB>,
+				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
+				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama0>;
+		dvdd-gpios = <&ap_gpio 11 0>;
+		vddcammot-supply = <&vddcammot>;
+		reset-gpios = <&ap_gpio 45 0>;
+		power-down-gpios = <&ap_gpio 47 0>;
+		sprd,phyid = <0>;
+		csi = <&csi0>;
+	};
+
+	sensor_sub2: sensor-sub2@5a {
+		compatible = "sprd,sensor-sub2";
+		reg = <0x5a>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR0>,<&mm_gate CLK_MM_SENSOR0_EB>,
+				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
+				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama0>;
+		dvdd-gpios = <&ap_gpio 11 0>;
+		vddcammot-supply = <&vddcammot>;
+		reset-gpios = <&ap_gpio 44 0>;
+		power-down-gpios = <&ap_gpio 46 0>;
+	/*	mipi-switch-en-gpios = <&ap_gpio 55 0>;*/
+	/*	mipi-switch-mode-gpios = <&ap_gpio 8 0>;*/
+		sprd,phyid = <2>;
+		csi = <&csi0>;
+	};
+};
+
+&i2c1 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	sensor_main2: sensor-main2@20 {
+		compatible = "sprd,sensor-main2";
+		reg = <0x20>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
+				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama1>;
+		vddcamd-supply = <&vddcamd0>;
+		vddcammot-supply = <&vddcammot>;
+		avdd-gpios = <&ap_gpio 33 0>;
+		mot-gpios = <&ap_gpio 88 0>;
+		reset-gpios = <&ap_gpio 41 0>;
+		power-down-gpios = <&ap_gpio 40 0>;
+	/*	mipi-switch-en-gpios = <&ap_gpio 55 0>;*/
+	/*	mipi-switch-mode-gpios = <&ap_gpio 8 0>;*/
+		sprd,phyid = <4>;
+		csi = <&csi1>;
+	};
+
+
+};
+
+&i2c6 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	sensor_sub: sensor-sub@6e {
+		compatible = "sprd,sensor-sub";
+		reg = <0x6e>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR2>,<&mm_gate CLK_MM_SENSOR2_EB>,
+			<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
+			<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		avdd-gpios = <&ap_gpio 130 0>;
+		vddcamd-supply = <&vddcamd1>;
+		vddcammot-supply = <&vddcammot>;
+		mot-gpios = <&ap_gpio 112 0>;
+		reset-gpios = <&ap_gpio 114 0>;
+	/*	power-down-gpios = <&ap_gpio 40 0>;*/
+		sprd,phyid = <3>;
+		csi = <&csi2>;
+	};
+};
+
 &spi3 {
 	status = "okay";
 
@@ -109,9 +228,20 @@
 	cd-gpios = <&eic_sync 35 GPIO_ACTIVE_HIGH>;
 };
 
+
+&i2c3 {
+	status = "okay";
+};
+
+&i2c4 {
+	status = "okay";
+};
+
+
 &vddldo0 {
 	regulator-always-on;
 };
+
 
 &panel {
 	sprd,backlight = <&pwm_backlight>;

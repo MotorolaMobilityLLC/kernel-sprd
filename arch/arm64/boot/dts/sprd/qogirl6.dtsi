@@ -306,6 +306,290 @@
 				status = "disabled";
 				#iommu-cells = <0>;
 			};
+
+			mm_domain: mm_domain {
+				compatible = "sprd,mm-domain";
+				clock-names = "clk_mm_eb",
+					"clk_mm_ahb_eb",
+					"clk_mm_ahb",
+					"clk_mm_ahb_parent",
+					"clk_mm_mtx",
+					"clk_mm_mtx_parent",
+					"clk_isppll";
+				clocks = <&aonapb_gate CLK_MM_EB>,
+					<&mm_gate CLK_MM_CKG_EB>,
+					<&mm_clk CLK_MM_AHB>,
+					<&ext_26m>,
+					<&mm_clk CLK_MM_MTX>,
+					<&ext_26m>,
+					<&ext_26m>;
+			/*	mm_qos_threshold = <&mm_qos_threshold>;*/
+			};
+			mipi_csi_phy0: mipi-csi-phy0 {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <0>;
+				sprd,phyname = "4lane";
+				status = "disabled";
+			};
+
+			mipi_csi_phy1: mipi-csi-phy1 {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <1>;
+				sprd,phyname = "2p2";
+				status = "disabled";
+			};
+
+			mipi_csi_phy1_m: mipi-csi-phy1-m {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <3>;
+				sprd,phyname = "2p2_m";
+				status = "disabled";
+			};
+
+			mipi_csi_phy1_s: mipi-csi-phy1-s {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <4>;
+				sprd,phyname = "2p2_s";
+				status = "disabled";
+			};
+
+			mipi_csi_phy2: mipi-csi-phy2 {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <2>;
+				sprd,phyname = "2p2ro";
+				status = "disabled";
+			};
+			mipi_csi_phy2_m: mipi-csi-phy2-m {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <5>;
+				sprd,phyname = "2p2ro_m";
+				status = "disabled";
+			};
+
+			mipi_csi_phy2_s: mipi-csi-phy2-s {
+				compatible = "sprd,mipi-csi-phy";
+				sprd,phyid = <6>;
+				sprd,phyname = "2p2ro_s";
+				status = "disabled";
+			};
+			csi0: csi00@3e200000 {
+				compatible = "sprd,csi-controller";
+				reg = <0 0x3e200000 0 0x1000>;
+				interrupts = <GIC_SPI 45 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 48 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "clk_mipi_csi_gate_eb",
+					"clk_csi_eb",
+					"mipi_csi_src_eb";
+				clocks = <&mm_gate CLK_MM_MIPI_CSI0_EB>,
+					<&mm_gate CLK_MM_CSI0_EB>,
+					<&mm_clk CLK_MIPI_CSI0>;
+				sprd,aon-apb-syscon = <&aon_apb_regs>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				sprd,anlg_phy_g10_controller = <&anlg_phy_g10_regs>;
+				sprd,csi-id = <0>;
+				sprd,dcam-id = <0>;
+				sprd,ip-version = <0x200>;
+				status = "okay";
+			};
+
+			csi1: csi01@3e300000 {
+				compatible = "sprd,csi-controller";
+				reg = <0 0x3e300000 0 0x1000>;
+				interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "clk_mipi_csi_gate_eb",
+					"clk_csi_eb",
+					"mipi_csi_src_eb";
+				clocks = <&mm_gate CLK_MM_MIPI_CSI1_EB>,
+					<&mm_gate CLK_MM_CSI1_EB>,
+					<&mm_clk CLK_MIPI_CSI1>;
+				sprd,aon-apb-syscon = <&aon_apb_regs>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				sprd,anlg_phy_g10_controller = <&anlg_phy_g10_regs>;
+				sprd,csi-id = <1>;
+				sprd,dcam-id = <1>;
+				sprd,ip-version = <0x200>;
+				status = "okay";
+			};
+
+			csi2: csi02@3e400000 {
+				compatible = "sprd,csi-controller";
+				reg = <0 0x3e400000 0 0x1000>;
+				interrupts = <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "clk_mipi_csi_gate_eb",
+					"clk_csi_eb",
+					"mipi_csi_src_eb";
+				clocks = <&mm_gate CLK_MM_MIPI_CSI2_EB>,
+					<&mm_gate CLK_MM_CSI2_EB>,
+					<&mm_clk CLK_MIPI_CSI2>;
+				sprd,aon-apb-syscon = <&aon_apb_regs>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				sprd,anlg_phy_g10_controller = <&anlg_phy_g10_regs>;
+				sprd,csi-id = <2>;
+				sprd,dcam-id = <2>;
+				sprd,ip-version = <0x200>;
+				status = "okay";
+			};
+			isp: isp@3a000000 {
+				compatible = "sprd,isp";
+				reg = <0 0x3a000000 0 0x100000>;
+				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts_name = "ispch0", "ispch1";
+				clock-names = "isp_eb",
+					"isp_axi_eb", /* no need read, TBC */
+					"isp_clk",
+					"isp_clk_256m",
+					"isp_clk_307m2",
+					"isp_clk_384m",
+					"isp_clk_468m",
+					"isp_clk_512m",
+					"isp_clk_parent";
+				clocks = <&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>;
+				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_AHB_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_VAU_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_ISP_EB>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				syscon-names = "reset",
+					"isp_ahb_reset",
+					"isp_vau_reset",
+					"isp_enable";
+				sprd,isp-count = <1>;
+				iommus = <&iommu_isp>;
+				status = "okay";
+			};
+			iommu_isp: iommu@3a000000 {
+				compatible = "sprd,iommuvau-isp";
+				reg = <0x0 0x3a0ff000 0x0 0x80>;
+				sprd,iova-base = <0x40000000>;
+				sprd,iova-size = <0x20000000>;
+				reg_name = "mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+			dcam: dcam@3e000000 {
+				compatible = "sprd,qogirl6-cam";
+				reg = <0 0x3e000000 0 0x1000>,
+					<0 0x3e001000 0 0x1000>,
+					<0 0x3e002000 0 0x1000>,
+					<0 0x3e003000 0 0x1000>;
+				reg-names = "dcam0_reg",
+						"dcam1_reg",
+						"dcam2_reg",
+						"axi_ctrl_reg";
+				interrupts = <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 58 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 59 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "dcam0",
+							"dcam1",
+							"dcam2";
+				clock-names = "dcam_eb",
+					"dcam_clk",
+					"dcam_clk_192m",
+					"dcam_clk_256m",
+					"dcam_clk_307m2",
+					"dcam_clk_384m",
+					"dcam_clk_468m",
+					"dcam_clk_parent",
+					"dcam_axi_eb",
+					"dcam_axi_clk",
+					"dcam_axi_clk_256m",
+					"dcam_axi_clk_307m2",
+					"dcam_axi_clk_384m",
+					"dcam_axi_clk_468m",
+					"dcam_axi_clk_parent";
+				clocks = <&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>,
+					<&ext_26m>;
+				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM_ALL_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM0_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM1_SOFT_RST>,
+					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM2_SOFT_RST>;
+				syscon-names = "dcam_all_reset",
+						"dcam0_reset",
+						"dcam1_reset",
+						"dcam2_reset";
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				sprd,isp = <&isp>;
+				sprd,dcam-count = <3>;
+				sprd,dcam-superzoom = <2>;
+				sprd,project-id = <3>;
+				iommus = <&iommu_dcam>;
+				status = "okay";
+			};
+			iommu_dcam: iommu@3e000000 {
+				compatible = "sprd,iommuvau-dcam";
+				reg = <0x0 0x3e00f000 0x0 0x80>;
+				sprd,iova-base = <0x40000000>;
+				sprd,iova-size = <0x40000000>;
+				reg_name = "mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
+			gpu: gpu@23000000 {
+				compatible = "sprd,mali-natt";
+				reg = <0 0x23100000 0 0x4000>;
+				interrupts = <0 60 0x4>,
+				      <0 60 0x4>,
+				      <0 60 0x4>;
+
+				interrupt-names = "JOB",
+				      "MMU",
+				      "GPU";
+
+				operating-points = <
+					// kHz    uV
+					850000    0
+					768000    0
+					512000    0
+					>;
+				sprd,dfs-lists = <
+					// kHz idx div
+					512000 2   1
+					768000 3   1
+					850000 4   1
+					>;
+
+				sprd,dfs-default = <2>;
+				prd,dfs-scene-extreme = <2>;
+				sprd,dfs-scene-high = <1>;
+				sprd,dfs-scene-medium = <1>;
+				sprd,dfs-scene-low = <0>;
+				sprd,dfs-range-max = <2>;
+				sprd,dfs-range-min = <0>;
+			};
 		};
 
 		ap-ahb {
