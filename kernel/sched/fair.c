@@ -6063,6 +6063,11 @@ static int select_idle_cpu(struct task_struct *p, struct sched_domain *sd, int t
 	for_each_cpu_wrap(cpu, cpus, target) {
 		if (!--nr)
 			return si_cpu;
+
+#ifdef CONFIG_SPRD_CORE_CTL
+		if (cpu_isolated(cpu))
+			continue;
+#endif
 		if (available_idle_cpu(cpu))
 			break;
 		if (si_cpu == -1 && sched_idle_cpu(cpu))
@@ -6474,6 +6479,9 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 	struct sched_domain *sd;
 	struct perf_domain *pd;
 	unsigned long uclamp_util = uclamp_task_util(p);
+#ifdef CONFIG_SPRD_CORE_CTL
+	int isolated_candidate = -1;
+#endif
 
 	rcu_read_lock();
 	pd = rcu_dereference(rd->pd);
@@ -6520,7 +6528,13 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 		for_each_cpu_and(cpu, perf_domain_span(pd), sched_domain_span(sd)) {
 			if (!cpumask_test_cpu(cpu, p->cpus_ptr))
 				continue;
+#ifdef CONFIG_SPRD_CORE_CTL
+			if (cpu_isolated(cpu))
+				continue;
 
+			if (isolated_candidate == -1)
+				isolated_candidate = cpu;
+#endif
 			util = cpu_util_next(cpu, p, cpu);
 			cpu_cap = capacity_of(cpu);
 			spare_cap = cpu_cap;
@@ -6609,6 +6623,10 @@ unlock:
 	if ((prev_delta - best_delta) > ((prev_delta + base_energy) >> 4))
 		return best_energy_cpu;
 
+#ifdef CONFIG_SPRD_CORE_CTL
+	if (cpu_isolated(prev_cpu))
+		return isolated_candidate;
+#endif
 	return prev_cpu;
 
 fail:
@@ -8053,7 +8071,10 @@ void update_group_capacity(struct sched_domain *sd, int cpu)
 		for_each_cpu(cpu, sched_group_span(sdg)) {
 			struct sched_group_capacity *sgc;
 			struct rq *rq = cpu_rq(cpu);
-
+#ifdef CONFIG_SPRD_CORE_CTL
+			if (cpu_isolated(cpu))
+				continue;
+#endif
 			/*
 			 * build_sched_domains() -> init_sched_groups_capacity()
 			 * gets here before we've attached the domains to the
@@ -8084,10 +8105,22 @@ void update_group_capacity(struct sched_domain *sd, int cpu)
 		group = child->groups;
 		do {
 			struct sched_group_capacity *sgc = group->sgc;
+#ifdef CONFIG_SPRD_CORE_CTL
+			int cpu = cpumask_first(sched_group_span(group));
 
+			if (!cpu_isolated(cpu)) {
+				capacity += sgc->capacity;
+				max_capacity = max(sgc->max_capacity,
+						   max_capacity);
+				min_capacity = min(sgc->min_capacity,
+						   min_capacity);
+			}
+#else
 			capacity += sgc->capacity;
 			min_capacity = min(sgc->min_capacity, min_capacity);
 			max_capacity = max(sgc->max_capacity, max_capacity);
+#endif
+
 			group = group->next;
 		} while (group != child->groups);
 	}
@@ -8277,7 +8310,10 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 
 	for_each_cpu_and(i, sched_group_span(group), env->cpus) {
 		struct rq *rq = cpu_rq(i);
-
+#ifdef CONFIG_SPRD_CORE_CTL
+		if (cpu_isolated(i))
+			continue;
+#endif
 		if ((env->flags & LBF_NOHZ_STATS) && update_nohz_stats(rq, false))
 			env->flags |= LBF_NOHZ_AGAIN;
 
@@ -9051,6 +9087,17 @@ static int need_active_balance(struct lb_env *env)
 
 static int active_load_balance_cpu_stop(void *data);
 
+#ifdef CONFIG_SPRD_CORE_CTL
+static int group_balance_cpu_not_isolated(struct sched_group *sg)
+{
+	cpumask_t cpus;
+
+	cpumask_and(&cpus, sched_group_span(sg), group_balance_mask(sg));
+	cpumask_andnot(&cpus, &cpus, cpu_isolated_mask);
+	return cpumask_first(&cpus);
+}
+#endif
+
 static int should_we_balance(struct lb_env *env)
 {
 	struct sched_group *sg = env->sd->groups;
@@ -9074,14 +9121,20 @@ static int should_we_balance(struct lb_env *env)
 	for_each_cpu_and(cpu, group_balance_mask(sg), env->cpus) {
 		if (!idle_cpu(cpu))
 			continue;
-
+#ifdef CONFIG_SPRD_CORE_CTL
+		if (cpu_isolated(cpu))
+			continue;
+#endif
 		balance_cpu = cpu;
 		break;
 	}
 
 	if (balance_cpu == -1)
+#ifdef CONFIG_SPRD_CORE_CTL
+		balance_cpu = group_balance_cpu_not_isolated(sg);
+#else
 		balance_cpu = group_balance_cpu(sg);
-
+#endif
 	/*
 	 * First idle CPU or the first CPU(busiest) in this sched group
 	 * is eligible for doing load balancing at this and above domains.
@@ -9289,7 +9342,12 @@ more_balance:
 			 * ->active_balance_work.  Once set, it's cleared
 			 * only after active load balance is finished.
 			 */
+#ifdef CONFIG_SPRD_CORE_CTL
+			if (!busiest->active_balance &&
+			    !cpu_isolated(cpu_of(busiest))) {
+#else
 			if (!busiest->active_balance) {
+#endif
 				busiest->active_balance = 1;
 				busiest->push_cpu = this_cpu;
 				active_balance = 1;
@@ -9527,7 +9585,17 @@ static DEFINE_SPINLOCK(balancing);
  */
 void update_max_interval(void)
 {
+#ifdef CONFIG_SPRD_CORE_CTL
+	cpumask_t avail_mask;
+	unsigned int available_cpus;
+
+	cpumask_andnot(&avail_mask, cpu_online_mask, cpu_isolated_mask);
+	available_cpus = cpumask_weight(&avail_mask);
+
+	max_load_balance_interval = HZ*available_cpus/10;
+#else
 	max_load_balance_interval = HZ*num_online_cpus()/10;
+#endif
 }
 
 /*
@@ -9658,8 +9726,13 @@ static inline int find_new_ilb(void)
 
 	for_each_cpu_and(ilb, nohz.idle_cpus_mask,
 			      housekeeping_cpumask(HK_FLAG_MISC)) {
+#ifdef CONFIG_SPRD_CORE_CTL
+		if (cpu_isolated(ilb))
+			continue;
+#else
 		if (idle_cpu(ilb))
 			return ilb;
+#endif
 	}
 
 	return nr_cpu_ids;
@@ -9898,7 +9971,10 @@ void nohz_balance_enter_idle(int cpu)
 		return;
 
 	rq->nohz_tick_stopped = 1;
-
+#ifdef CONFIG_SPRD_CORE_CTL
+	if (cpu_isolated(cpu))
+		return;
+#endif
 	cpumask_set_cpu(cpu, nohz.idle_cpus_mask);
 	atomic_inc(&nohz.nr_cpus);
 
@@ -9938,6 +10014,9 @@ static bool _nohz_idle_balance(struct rq *this_rq, unsigned int flags,
 	int balance_cpu;
 	int ret = false;
 	struct rq *rq;
+#ifdef CONFIG_SPRD_CORE_CTL
+	cpumask_t cpus;
+#endif
 
 	SCHED_WARN_ON((flags & NOHZ_KICK_MASK) == NOHZ_BALANCE_KICK);
 
@@ -9957,7 +10036,12 @@ static bool _nohz_idle_balance(struct rq *this_rq, unsigned int flags,
 	 */
 	smp_mb();
 
+#ifdef CONFIG_SPRD_CORE_CTL
+	cpumask_andnot(&cpus, nohz.idle_cpus_mask, cpu_isolated_mask);
+	for_each_cpu(balance_cpu, &cpus) {
+#else
 	for_each_cpu(balance_cpu, nohz.idle_cpus_mask) {
+#endif
 		if (balance_cpu == this_cpu || !idle_cpu(balance_cpu))
 			continue;
 
@@ -10122,6 +10206,11 @@ int newidle_balance(struct rq *this_rq, struct rq_flags *rf)
 	if (!cpu_active(this_cpu))
 		return 0;
 
+#ifdef CONFIG_SPRD_CORE_CTL
+	if (cpu_isolated(this_cpu))
+		return 0;
+#endif
+
 	/*
 	 * This is OK, because current is on_cpu, which avoids it being picked
 	 * for load-balance and preemption/IRQs are still disabled avoiding
@@ -10224,7 +10313,15 @@ static __latent_entropy void run_rebalance_domains(struct softirq_action *h)
 	struct rq *this_rq = this_rq();
 	enum cpu_idle_type idle = this_rq->idle_balance ?
 						CPU_IDLE : CPU_NOT_IDLE;
-
+#ifdef CONFIG_SPRD_CORE_CTL
+	/*
+	 * Since core isolation doesn't update nohz.idle_cpus_mask, there
+	 * is a possibility this nohz kicked cpu could be isolated. Hence
+	 * return if the cpu is isolated.
+	 */
+	if (cpu_isolated(this_rq->cpu))
+		return;
+#endif
 	/*
 	 * If this CPU has a pending nohz_balance_kick, then do the
 	 * balancing on behalf of the other idle CPUs whose ticks are
@@ -10249,7 +10346,10 @@ void trigger_load_balance(struct rq *rq)
 	/* Don't need to rebalance while attached to NULL domain */
 	if (unlikely(on_null_domain(rq)))
 		return;
-
+#ifdef CONFIG_SPRD_CORE_CTL
+	if (cpu_isolated(cpu_of(rq)))
+		return;
+#endif
 	if (time_after_eq(jiffies, rq->next_balance))
 		raise_softirq(SCHED_SOFTIRQ);
 

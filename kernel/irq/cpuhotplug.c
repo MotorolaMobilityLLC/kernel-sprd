@@ -57,7 +57,9 @@ static bool migrate_one_irq(struct irq_desc *desc)
 	const struct cpumask *affinity;
 	bool brokeaff = false;
 	int err;
-
+#ifdef CONFIG_SPRD_CORE_CTL
+	struct cpumask available_cpus;
+#endif
 	/*
 	 * IRQ chip might be already torn down, but the irq descriptor is
 	 * still in the radix tree. Also if the chip has no affinity setter,
@@ -109,6 +111,12 @@ static bool migrate_one_irq(struct irq_desc *desc)
 	if (maskchip && chip->irq_mask)
 		chip->irq_mask(d);
 
+#ifdef CONFIG_SPRD_CORE_CTL
+	cpumask_copy(&available_cpus, affinity);
+	cpumask_andnot(&available_cpus, &available_cpus, cpu_isolated_mask);
+	affinity = &available_cpus;
+#endif
+
 	if (cpumask_any_and(affinity, cpu_online_mask) >= nr_cpu_ids) {
 		/*
 		 * If the interrupt is managed, then shut it down and leave
@@ -119,7 +127,28 @@ static bool migrate_one_irq(struct irq_desc *desc)
 			irq_shutdown_and_deactivate(desc);
 			return false;
 		}
+
+#ifdef CONFIG_SPRD_CORE_CTL
+		/*
+		 * The order of preference for selecting a fallback CPU is
+		 *
+		 * (1) online and un-isolated CPU from default affinity
+		 * (2) online and un-isolated CPU
+		 * (3) online CPU
+		 */
+		cpumask_andnot(&available_cpus, cpu_online_mask,
+				cpu_isolated_mask);
+
+		if (cpumask_intersects(&available_cpus, irq_default_affinity))
+			cpumask_and(&available_cpus, &available_cpus,
+				    irq_default_affinity);
+		else if (cpumask_empty(&available_cpus))
+			affinity = cpu_online_mask;
+
+		affinity = cpumask_of(cpumask_any(affinity));
+#else
 		affinity = cpu_online_mask;
+#endif
 		brokeaff = true;
 	}
 	/*

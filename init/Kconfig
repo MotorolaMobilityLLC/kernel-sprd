@@ -1146,6 +1146,27 @@ config SCHED_AUTOGROUP
 	  desktop applications.  Task group autogeneration is currently based
 	  upon task session.
 
+config SPRD_CORE_CTL
+        bool "Sprd cpu core"
+        depends on SMP
+        default n
+        help
+        This option enables cpu isolation, which implement an interface to
+        userspace to isolate cpu dynamically, the isolated cpu will be
+        unavailable to scheduler and load balancer, and all its non-pinned
+        timers, IRQs and tasks will be migrated to other cpus, only pinned
+        kthread and IRQS are still allowed to run, this achieve similar
+        effect as hotplug but at lower latency cost.
+
+config SPRD_CORE_ISOLATION
+        bool "Sprd core control for isolation"
+        depends on SPRD_CORE_CTL
+        help
+        This option enables the core control functionality in
+        the scheduler. Core control automatically isolate and
+        unisolate cores based on cpu load and utilization. In
+        IPA, isolation cpu can also reduce cpu temperature.
+
 config SYSFS_DEPRECATED
 	bool "Enable deprecated sysfs features to support old userspace tools"
 	depends on SYSFS
@@ -2207,19 +2228,6 @@ config TRIM_UNUSED_KSYMS
 	  binary size.  This might have some security advantages as well.
 
 	  If unsure, or if you need to build out-of-tree modules, say N.
-
-config UNUSED_KSYMS_WHITELIST
-	string "Whitelist of symbols to keep in ksymtab"
-	depends on TRIM_UNUSED_KSYMS
-	help
-	  By default, all unused exported symbols will be un-exported from the
-	  build when TRIM_UNUSED_KSYMS is selected.
-
-	  UNUSED_KSYMS_WHITELIST allows to whitelist symbols that must be kept
-	  exported at all times, even in absence of in-tree users. The value to
-	  set here is the path to a text file containing the list of symbols,
-	  one per line. The path can be absolute, or relative to the kernel
-	  source tree.
 
 endif # MODULES
 

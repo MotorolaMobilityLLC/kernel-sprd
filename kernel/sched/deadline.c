@@ -1636,6 +1636,10 @@ select_task_rq_dl(struct task_struct *p, int cpu, int sd_flag, int flags)
 	rcu_read_unlock();
 
 out:
+#ifdef CONFIG_SPRD_CORE_CTL
+	if (cpu_isolated(cpu))
+		cpu = cpumask_any(cpu_online_mask);
+#endif
 	return cpu;
 }
 
@@ -1893,6 +1897,10 @@ static int find_later_rq(struct task_struct *task)
 	 */
 	if (!cpudl_find(&task_rq(task)->rd->cpudl, task, later_mask))
 		return -1;
+
+#ifdef CONFIG_SPRD_CORE_CTL
+	cpumask_andnot(later_mask, later_mask, cpu_isolated_mask);
+#endif
 
 	/*
 	 * If we are here, some targets have been found, including

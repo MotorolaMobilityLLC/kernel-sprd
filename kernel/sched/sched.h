@@ -153,7 +153,9 @@ extern long calc_load_fold_active(struct rq *this_rq, long adjust);
  * Single value that denotes runtime == period, ie unlimited time.
  */
 #define RUNTIME_INF		((u64)~0ULL)
-
+#ifdef CONFIG_SPRD_CORE_CTL
+void init_sched_groups_capacity(int cpu, struct sched_domain *sd);
+#endif
 static inline int idle_policy(int policy)
 {
 	return policy == SCHED_IDLE;
@@ -1349,6 +1351,8 @@ extern void sched_ttwu_pending(void);
 #define for_each_domain(cpu, __sd) \
 	for (__sd = rcu_dereference_check_sched_domain(cpu_rq(cpu)->sd); \
 			__sd; __sd = __sd->parent)
+
+#define for_each_lower_domain(sd) for (; sd; sd = sd->child)
 
 /**
  * highest_flag_domain - Return highest sched_domain containing flag.

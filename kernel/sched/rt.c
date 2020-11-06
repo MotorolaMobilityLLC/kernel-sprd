@@ -276,7 +276,12 @@ static void pull_rt_task(struct rq *this_rq);
 static inline bool need_pull_rt_task(struct rq *rq, struct task_struct *prev)
 {
 	/* Try to pull RT tasks here if we lower this rq's prio */
+#ifdef CONFIG_SPRD_CORE_CTL
+	return rq->rt.highest_prio.curr > prev->prio &&
+	       !cpu_isolated(cpu_of(rq));
+#else
 	return rq->rt.highest_prio.curr > prev->prio;
+#endif
 }
 
 static inline int rt_overloaded(struct rq *rq)
@@ -1748,7 +1753,15 @@ static int find_lowest_rq(struct task_struct *task)
 		int i;
 		struct cpumask tmp_mask;
 
+#ifdef CONFIG_SPRD_CORE_CTL
+		cpumask_t allowed_mask;
+
+		cpumask_andnot(&allowed_mask, &min_cap_cpu_mask,
+				cpu_isolated_mask);
+		cpumask_and(&tmp_mask, lowest_mask, &allowed_mask);
+#else
 		cpumask_and(&tmp_mask, lowest_mask, &min_cap_cpu_mask);
+#endif
 
 		if (cpumask_weight(&tmp_mask)) {
 			unsigned long total_util = 0, total_cap = 0;
@@ -1770,6 +1783,17 @@ static int find_lowest_rq(struct task_struct *task)
 				cpumask_copy(lowest_mask, &tmp_mask);
 		}
 
+#ifdef CONFIG_SPRD_CORE_CTL
+		/* fast path for prev_cpu */
+		if (cpumask_test_cpu(cpu, lowest_mask) && idle_cpu(cpu) &&
+		    !cpu_isolated(cpu))
+			return cpu;
+
+		for_each_cpu(i, lowest_mask) {
+			if (idle_cpu(i) && !cpu_isolated(i))
+				return i;
+		}
+#else
 		/* fast path for prev_cpu */
 		if (cpumask_test_cpu(cpu, lowest_mask) && idle_cpu(cpu))
 			return cpu;
@@ -1778,6 +1802,7 @@ static int find_lowest_rq(struct task_struct *task)
 			if (idle_cpu(i))
 				return i;
 		}
+#endif
 	}
 
 	/*
@@ -2346,9 +2371,14 @@ static void switched_from_rt(struct rq *rq, struct task_struct *p)
 	 * we may need to handle the pulling of RT tasks
 	 * now.
 	 */
+#ifdef CONFIG_SPRD_CORE_CTL
+	if (!task_on_rq_queued(p) || rq->rt.rt_nr_running ||
+	    cpu_isolated(cpu_of(rq)))
+		return;
+#else
 	if (!task_on_rq_queued(p) || rq->rt.rt_nr_running)
 		return;
-
+#endif
 	rt_queue_pull_task(rq);
 }
 

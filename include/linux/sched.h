@@ -218,6 +218,9 @@ extern void scheduler_tick(void);
 
 #define	MAX_SCHEDULE_TIMEOUT		LONG_MAX
 
+#ifdef CONFIG_SPRD_CORE_CTL
+extern int ctrl_core_api(struct cpumask *target, int type);
+#endif
 extern long schedule_timeout(long timeout);
 extern long schedule_timeout_interruptible(long timeout);
 extern long schedule_timeout_killable(long timeout);

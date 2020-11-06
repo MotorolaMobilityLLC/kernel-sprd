@@ -590,6 +590,11 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 		struct sugov_cpu *j_sg_cpu = &per_cpu(sugov_cpu, j);
 		unsigned long j_util, j_max;
 
+#ifdef CONFIG_SPRD_CORE_CTL
+		if (cpu_isolated(j))
+			continue;
+#endif
+
 		j_util = sugov_get_util(j_sg_cpu, time);
 		j_max = j_sg_cpu->max;
 		j_util = sugov_iowait_apply(j_sg_cpu, time, j_util, j_max);
