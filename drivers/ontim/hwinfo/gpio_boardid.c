@@ -23,9 +23,15 @@ extern unsigned int platform_prj_ver_flag;
 static const char * const boardid_gpios[] = {
 	"gpio,boardid0",
 	"gpio,boardid1",
-	"gpio,boardid2",
+//	"gpio,boardid2",
 //	"gpio,boardid3",
 //	"gpio,boardid4",
+};
+/* BEGIN Ontim, jiawentao, 28/09/2020, 10015326, St-result:PASS, Add project version drive device note. */
+static const char * const boardprjid_gpios[] = {
+	"gpio,boardprjid",
+//	"gpio,boardprjid0",
+//	"gpio,boardprjid1",
 };
 
 struct gpio_data {
@@ -33,6 +39,7 @@ struct gpio_data {
 	int nfcvalue;
 	int prjvalue;
 	struct boardid *boardid_gpio;
+	struct boardid *boardprjid_gpio;
 	//struct pinctrl *boardid_pinctrl;
 	//struct pinctrl_state *pinctrl_state_active;
 	//struct pinctrl_state *pinctrl_state_suspend;
@@ -66,6 +73,26 @@ static int nlsx_parse_dt(struct device *dev, struct gpio_data *data)
 				sizeof(data->boardid_gpio[i].gpio_name));
 
 	printk(KERN_ERR "data->boardid_gpio[%d].gpio = %d, data->boardid_gpio[%d].gpio_name = %s", i, data->boardid_gpio[i].gpio, i, data->boardid_gpio[i].gpio_name);
+
+	}
+
+	//prj id
+	data->boardprjid_gpio = devm_kzalloc(dev,sizeof(struct boardid) *
+			ARRAY_SIZE(boardprjid_gpios),GFP_KERNEL);
+	if (!data->boardprjid_gpio)
+		return -ENOMEM;
+	for (i = 0; i < ARRAY_SIZE(boardprjid_gpios); i++) {
+		data->boardprjid_gpio[i].gpio = of_get_named_gpio(of_node,boardprjid_gpios[i],0);
+
+		if (data->boardprjid_gpio[i].gpio < 0) {
+			dev_err(dev, " dts get gpio error\n");
+			return -EINVAL;
+		}
+
+		strlcpy(data->boardprjid_gpio[i].gpio_name,boardprjid_gpios[i],
+				sizeof(data->boardprjid_gpio[i].gpio_name));
+
+		printk(KERN_ERR "data->boardprjid_gpio[%d].gpio = %d, data->boardprjid_gpio[%d].gpio_name = %s", i, data->boardprjid_gpio[i].gpio, i, data->boardprjid_gpio[i].gpio_name);
 
 	}
 
@@ -194,7 +221,29 @@ static int gpio_boardid_probe(struct platform_device *pdev)
 	}
 
 	platform_board_id = data->value;
-	printk(KERN_ERR "jiangfuxiong %s ok boardid= %04d,value = %04d\n",__func__,platform_board_id,data->value);
+	printk(KERN_ERR "deng %s ok boardid= %04d,value = %04d\n",__func__,platform_board_id,data->value);
+
+    //deng add project_id to distinguish project  fijisc:0 maltasc:1
+	for (i = 0; i < ARRAY_SIZE(boardprjid_gpios); i++) {
+		if (gpio_is_valid(data->boardprjid_gpio[i].gpio)) {
+			err = gpio_request(data->boardprjid_gpio[i].gpio,data->boardprjid_gpio[i].gpio_name);
+			if (err) {
+				dev_err(&pdev->dev, "[nfc]request %d gpio failed, err = %d\n",data->boardprjid_gpio[i].gpio, err);
+				goto gpio_request_error;
+			}
+
+			err = gpio_direction_input(data->boardprjid_gpio[i].gpio);
+			if (err) {
+				dev_err(&pdev->dev,"[nfc]gpio %d set input failed\n",data->boardprjid_gpio[i].gpio);
+				goto gpio_request_error;
+			}
+
+			data->prjvalue |= ((gpio_get_value(data->boardprjid_gpio[i].gpio)) ? 1 : 0) << i;
+		}
+	}
+
+	platform_prj_ver_flag = data->prjvalue;
+	printk(KERN_ERR "deng %s ok boardproject_id= %04d,value = %04d\n",__func__,platform_prj_ver_flag,data->prjvalue);
 
 #if 0
 	err = gpio_boardid_pinctrl_init(&pdev->dev, data);

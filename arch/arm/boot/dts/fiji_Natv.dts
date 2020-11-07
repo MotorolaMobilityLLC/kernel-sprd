@@ -303,7 +303,7 @@
 			compatible = "gpio,boardid";
 			gpio,boardid0 = <&ap_gpio 85 0>;
 			gpio,boardid1 = <&ap_gpio 88 0>;
-                        gpio,boardid2 = <&ap_gpio 89 0>;
+			gpio,boardprjid  = <&ap_gpio 89 0>;
 	};
 };
 
