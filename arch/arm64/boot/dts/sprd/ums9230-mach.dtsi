@@ -189,6 +189,18 @@
 			polling-delay = <0>;
 			thermal-sensors = <&ap_thm2 4>;
 		};
+
+		osctsen_thmzone: osctsen-thmzone {
+			 polling-delay-passive = <0>;
+			 polling-delay = <0>;
+			 thermal-sensors = <&pmic_tsensor 0>;
+		 };
+
+		outtsen_thmzone: outtsen-thmzone {
+			 polling-delay-passive = <0>;
+			 polling-delay = <0>;
+			 thermal-sensors = <&pmic_tsensor 1>;
+		 };
 	};
 };
 
