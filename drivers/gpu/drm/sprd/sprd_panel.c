@@ -83,12 +83,12 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 	DRM_INFO("%s()\n", __func__);
 
 	if (panel->info.avee_gpio) {
-		gpiod_direction_output(panel->info.avee_gpio, 0);
+		gpiod_direction_output(panel->info.avee_gpio, 1);
 		mdelay(5);
 	}
 
 	if (panel->info.avdd_gpio) {
-		gpiod_direction_output(panel->info.avdd_gpio, 0);
+		gpiod_direction_output(panel->info.avdd_gpio, 1);
 		mdelay(5);
 	}
 
