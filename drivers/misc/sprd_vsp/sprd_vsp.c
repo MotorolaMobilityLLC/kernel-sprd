@@ -449,12 +449,6 @@ static const struct sprd_vsp_cfg_data sharkl5pro_vsp_data = {
 	.qos_reg_offset = 0x0194,
 };
 
-static const struct sprd_vsp_cfg_data qogirl6_vsp_data = {
-	.version = QOGIRL6,
-	.max_freq_level = 3,
-	.qos_reg_offset = 0x0194,
-};
-
 static const struct of_device_id of_match_table_vsp[] = {
 	{.compatible = "sprd,sharkle-vsp", .data = &sharkle_vsp_data},
 	{.compatible = "sprd,pike2-vsp", .data = &pike2_vsp_data},
@@ -462,7 +456,7 @@ static const struct of_device_id of_match_table_vsp[] = {
 	{.compatible = "sprd,sharkl5-vsp", .data = &sharkl5_vsp_data},
 	{.compatible = "sprd,roc1-vsp", .data = &roc1_vsp_data},
 	{.compatible = "sprd,sharkl5pro-vsp", .data = &sharkl5pro_vsp_data},
-	{.compatible = "sprd,qogirl6-vsp", .data = &qogirl6_vsp_data},
+	{.compatible = "sprd,qogirl6-vsp", .data = &sharkl5pro_vsp_data},
 	{},
 };
 
