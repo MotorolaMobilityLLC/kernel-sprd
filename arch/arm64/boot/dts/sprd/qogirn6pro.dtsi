@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: (GPL-1.0+ OR MIT)
+// SPDX-License-Identifier: GPL-2.0-only
 /*
- * Spreadtrum Qogirn6pro platform DTS file
+ * Unisoc Qogirl6pro platform DTS file
  *
- * Copyright (C) 2019, Spreadtrum Communications Inc.
+ * Copyright (C) 2020, Unisoc Inc.
  */
 
 / {
