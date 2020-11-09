@@ -1,0 +1,26 @@
+menu "SPRD SIPC modules"
+
+config SPRD_SIPC
+	tristate "Sprd IPC support"
+	default n
+	help
+	  SIPC is a module for spreadtrum AP/CP communicaiton system,
+	  This driver is a SIPC V3 driver, it is base to SIPC v2 dirver.
+	  depends on MBOX.
+
+config SPRD_SIPC_SPIPE
+	tristate "SPRD pipe driver based on SBUF"
+	default n
+	depends on SPRD_SIPC
+	help
+	  This driver is a pipe driver base on SBUF, which create
+	  general pipes between AP & CP.
+
+config SPRD_SIPC_SPOOL
+	tristate "SPRD pool driver based on SBLOCK"
+	default n
+	depends on SPRD_SIPC
+	help
+	  This driver is a pool driver base on SBLOCK, which create
+	  general pools between AP & CP.
+endmenu

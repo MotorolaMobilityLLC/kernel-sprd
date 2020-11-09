@@ -1,3 +1,4 @@
 #
 # SPRD MODEM drivers
 #
+source "drivers/soc/sprd/modem/sipc/Kconfig"

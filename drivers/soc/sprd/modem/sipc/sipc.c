@@ -1,0 +1,242 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright (C) 2019 Spreadtrum Communications Inc.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+#include <linux/debugfs.h>
+#include <linux/interrupt.h>
+#include <linux/io.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/of_address.h>
+#include <linux/of_device.h>
+#include <linux/of_irq.h>
+#include <linux/platform_device.h>
+#include <linux/sched.h>
+#include <linux/slab.h>
+#include <linux/spinlock.h>
+#include <linux/wait.h>
+#include <linux/sipc.h>
+#include <linux/sizes.h>
+#include "sipc_priv.h"
+
+#if defined(CONFIG_DEBUG_FS)
+void sipc_debug_putline(struct seq_file *m, char c, int n)
+{
+	char buf[300];
+	int i, max, len;
+
+	/* buf will end with '\n' and 0 */
+	max = ARRAY_SIZE(buf) - 2;
+	len = (n > max) ? max : n;
+
+	for (i = 0; i < len; i++)
+		buf[i] = c;
+
+	buf[i] = '\n';
+	buf[i + 1] = 0;
+
+	seq_puts(m, buf);
+}
+EXPORT_SYMBOL_GPL(sipc_debug_putline);
+#endif
+
+static u64 sprd_u32_to_u64(u32 *mssg)
+{
+	u64 msg_64 = 0;
+
+	msg_64 = mssg[1];
+	msg_64 = msg_64 << 32;
+	msg_64 |= mssg[0];
+	return msg_64;
+}
+
+static void sprd_rx_callback(struct mbox_client *client, void *message)
+{
+
+	struct smsg_ipc *ipc  = dev_get_drvdata(client->dev);
+	struct smsg *msg = NULL;
+	struct device *dev = client->dev;
+	u64 data;
+
+	dev_dbg(dev, "ipc dst=%d, name=%s\n", ipc->dst, ipc->name);
+	data = sprd_u32_to_u64(message);
+	if (!data) {
+		dev_err(dev, "receive data is null !\n");
+	} else {
+		msg = (struct smsg *)&data;
+		smsg_msg_process(ipc, msg);
+	}
+}
+
+static int sprd_ipc_parse_dt(struct device *dev,
+			     struct device_node *np, struct smsg_ipc *ipc)
+{
+	struct device_node *mem_np;
+	u32 value;
+	u32 val[3];
+	int err;
+
+	/* Get sipc label */
+	err = of_property_read_string(np, "label", &ipc->name);
+	if (err)
+		return err;
+	dev_info(dev, "label  =%s\n", ipc->name);
+
+	/* Get sipc dst */
+	err = of_property_read_u32(np, "reg", &value);
+	if (err)
+		return err;
+	ipc->dst = (u8)value;
+	dev_info(dev, "dst    =%d\n", ipc->dst);
+
+	/* Get sipc reserved memory */
+	mem_np = of_parse_phandle(np, "memory-region", 0);
+	if (mem_np) {
+		struct resource r;
+		err = of_address_to_resource(mem_np, 0, &r);
+		of_node_put(mem_np);
+		if (err)
+			return err;
+		ipc->smem_base = r.start;;
+		ipc->smem_size = r.end + 1 - r.start;
+		dev_info(dev, "smem_base=0x%x", ipc->smem_base);
+		dev_info(dev, "smem_size=0x%x", ipc->smem_size);
+	}
+
+	/* Get sipc iram reserved memory */
+	mem_np = of_parse_phandle(np, "iram", 0);
+	if (mem_np) {
+		struct resource r;
+		err = of_address_to_resource(mem_np, 0, &r);
+		of_node_put(mem_np);
+		if (err)
+			return err;
+		ipc->smem_base = r.start;;
+		ipc->smem_size = r.end + 1 - r.start;
+		dev_info(dev, "smem_base=0x%x", ipc->smem_base);
+		dev_info(dev, "smem_size=0x%x", ipc->smem_size);
+	}
+
+	/* Get memory-base-addr, look at address from cp */
+	err = of_property_read_u32_array(np, "memory-base-addr", val, 1);
+	if (err >= 0) {
+		ipc->dst_smem_base = (u32)val[0];
+		dev_info(dev, "dst_base_addr=0x%x\n", ipc->dst_smem_base);
+	}
+
+	/* Get memory-iram-addr, look at address from sp */
+	err = of_property_read_u32_array(np, "memory-iram-addr", val, 1);
+	if (err >= 0) {
+		ipc->dst_smem_base = (u32)val[0];
+		dev_info(dev, "dst_iram_addr=0x%x\n", ipc->dst_smem_base);
+	}
+
+	return 0;
+}
+
+static int sprd_ipc_probe(struct platform_device *pdev)
+{
+	struct device *dev = &pdev->dev;
+	struct device_node *np = pdev->dev.of_node;
+	struct smsg_ipc *ipc;
+	int ret;
+
+	ipc = devm_kzalloc(&pdev->dev,
+			   sizeof(struct smsg_ipc), GFP_KERNEL);
+	if (!ipc)
+		return -ENOMEM;
+
+	if (sprd_ipc_parse_dt(&pdev->dev, np, ipc)) {
+		dev_err(dev, "failed to parse dt!\n");
+		return -ENODEV;
+	}
+
+	/* mailbox request */
+	ipc->cl.dev             = &pdev->dev;
+	ipc->cl.rx_callback     = sprd_rx_callback;
+	ipc->cl.tx_block        = false;
+	ipc->cl.knows_txdone    = false;
+	ipc->cl.tx_tout         = 500;
+	ipc->chan = mbox_request_channel(&ipc->cl, 0);
+	if (IS_ERR(ipc->chan)) {
+		dev_err(dev, "failed to sipc mailbox\n");
+		ret = PTR_ERR(ipc->chan);
+		goto out;
+	}
+
+	init_waitqueue_head(&ipc->suspend_wait);
+	spin_lock_init(&ipc->suspend_pinlock);
+	spin_lock_init(&ipc->txpinlock);
+
+	smsg_ipc_create(ipc);
+	platform_set_drvdata(pdev, ipc);
+
+	dev_info(dev, "sprd ipc probe success\n");
+
+	/* populating sub-devices */
+	ret = devm_of_platform_populate(dev);
+	if (ret) {
+		dev_err(dev, "Failed to populate sub-devices\n");
+		return ret;
+	}
+
+	return 0;
+out:
+	if (!IS_ERR(ipc->chan))
+		mbox_free_channel(ipc->chan);
+	return 0;
+}
+
+static int sprd_ipc_remove(struct platform_device *pdev)
+{
+	struct smsg_ipc *ipc = platform_get_drvdata(pdev);
+
+	smsg_ipc_destroy(ipc);
+
+	devm_kfree(&pdev->dev, ipc);
+	return 0;
+}
+
+static const struct of_device_id sprd_ipc_match_table[] = {
+	{ .compatible = "sprd,sipc", },
+	{ },
+};
+
+static struct platform_driver sprd_ipc_driver = {
+	.driver = {
+		.owner = THIS_MODULE,
+		.name = "sprd-sipc",
+		.of_match_table = sprd_ipc_match_table,
+	},
+	.probe = sprd_ipc_probe,
+	.remove = sprd_ipc_remove,
+};
+
+static int __init sprd_ipc_init(void)
+{
+	smsg_init_channel2index();
+	return platform_driver_register(&sprd_ipc_driver);
+}
+
+static void __exit sprd_ipc_exit(void)
+{
+	platform_driver_unregister(&sprd_ipc_driver);
+}
+
+late_initcall_sync(sprd_ipc_init);
+module_exit(sprd_ipc_exit);
+
+MODULE_AUTHOR("Wenping Zhou <wenping.zhou@unisoc.com>");
+MODULE_AUTHOR("Orson Zhai <orson.zhai@unisoc.com>");
+MODULE_AUTHOR("Haidong Yao <haidong.yao@unisoc.com>");
+MODULE_DESCRIPTION("Spreadtrum ipc driver");
+MODULE_LICENSE("GPL v2");
