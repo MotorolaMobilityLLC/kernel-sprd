@@ -1,0 +1,114 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Spreadtrum Sharkl5Pro modem board DTSI file
+ * These dt is used for modem drivers
+ *
+ * Copyright (C) 2020, Spreadtrum Communications Inc.
+ *
+ * This file is licensed under a dual GPLv2 or X11 license.
+ */
+
+/ {
+	sipc-devices {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		ranges;
+
+		sipc_lte: core@5 {
+			compatible = "sprd,sipc";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			/* endpoint id - should be same with mailbox channel id */
+			reg = <5>;
+			label = "sipc-lte";
+			mboxes = <&mailbox 2>;
+			memory-region = <&smem_reserved>;
+			memory-base-addr = <0x87800000>;
+
+			/* these nodes of channel should be probed by its parent node */
+			spipe_lte: channel@4 {
+				compatible = "sprd,spipe";
+				/* channel number */
+				reg = <4>;
+				label = "spipe_lte";
+				sprd,ringnr = <15>;
+				sprd,size-rxbuf = <0x1000>;	/* 4*1024 */
+				sprd,size-txbuf = <0x1000>;	/* 4*1024 */
+			};
+
+			stty_lte: channel@6 {
+				compatible = "sprd,spipe";
+				/* channel number */
+				reg = <6>;
+				label = "stty_lte";
+				sprd,ringnr = <32>;
+				sprd,size-rxbuf = <0x0800>; /* 2*1024*/
+				sprd,size-txbuf = <0x0800>; /* 2*1024 */
+			};
+
+			sdiag_lte: channel@21 {
+				compatible = "sprd,spipe";
+				/* channel number */
+				reg = <21>;
+				label = "sdiag_lte";
+				sprd,ringnr = <1>;
+				sprd,size-rxbuf = <0x20000>;	/* 128*1024*/
+				sprd,size-txbuf = <0x8000>;	/* 32*1024 */
+			};
+
+			slog_lte: channel@5 {
+				compatible = "sprd,spool";
+				/* channel number */
+				reg = <5>;
+				label = "slog_lte";
+				sprd,tx-blksize = <0>;
+				sprd,tx-blknum = <0>;
+				sprd,rx-blksize = <0x10000>; /* 64k */
+				sprd,rx-blknum = <4>;
+			};
+		};
+
+		sipc_sp: core@6 {
+			compatible = "sprd,sipc";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			/* endpoint id - should be same with mailbox channel id */
+			reg = <6>;
+			label = "sipc-pmsys";
+			mboxes = <&mailbox 1>;
+			iram = <&iram_reserved>;
+			memory-iram-addr = <0x2000bc00>;
+
+			spipe_pm: channel@4 {
+				compatible = "sprd,spipe";
+				label = "spipe_pm";
+				/* channel number */
+				reg = <4>;
+				sprd,ringnr = <2>;
+				sprd,size-rxbuf = <0xb00>;
+				sprd,size-txbuf = <0x180>;
+			};
+
+			slog_pm: channel@5 {
+				compatible = "sprd,spipe";
+				label = "slog_pm";
+				/* channel number */
+				reg = <5>;
+				sprd,ringnr = <1>;
+				sprd,size-rxbuf = <0x5c0>;
+				sprd,size-txbuf = <0x20>;
+			};
+
+			sctl_pm: channel@6 {
+				compatible = "sprd,spipe";
+				label = "sctl_pm";
+				/* channel number */
+				reg = <6>;
+				sprd,ringnr = <1>;
+				sprd,size-rxbuf = <0x40>;
+				sprd,size-txbuf = <0x20>;
+			};
+		};
+	};
+};
