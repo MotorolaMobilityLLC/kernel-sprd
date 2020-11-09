@@ -87,6 +87,9 @@ typedef struct {
 	char ta_version[FF_DRV_IC_INFORMATION_LEN];
 } ic_information_t;
 
+/* Get the string of the command. */
+#define FF_CTL_CMD_NAME(cmd) (#cmd)
+
 /* Magic code for IOCTL-subsystem, 'f'(0x66) means '[F]ocalTech'. */
 #define FF_IOC_MAGIC 'f'
 

@@ -501,6 +501,28 @@ static int ff_ctl_fasync(int fd, struct file *filp, int mode)
     return err;
 }
 
+static const char* ff_ctl_cmd_names(unsigned int cmd)
+{
+    switch (cmd) {
+        case FF_IOC_INIT_DRIVER        : return FF_CTL_CMD_NAME(FF_IOC_INIT_DRIVER);
+        case FF_IOC_FREE_DRIVER        : return FF_CTL_CMD_NAME(FF_IOC_FREE_DRIVER);
+        case FF_IOC_RESET_DEVICE       : return FF_CTL_CMD_NAME(FF_IOC_RESET_DEVICE);
+        case FF_IOC_ENABLE_IRQ         : return FF_CTL_CMD_NAME(FF_IOC_ENABLE_IRQ);
+        case FF_IOC_DISABLE_IRQ        : return FF_CTL_CMD_NAME(FF_IOC_DISABLE_IRQ);
+        case FF_IOC_ENABLE_SPI_CLK     : return FF_CTL_CMD_NAME(FF_IOC_ENABLE_SPI_CLK);
+        case FF_IOC_DISABLE_SPI_CLK    : return FF_CTL_CMD_NAME(FF_IOC_DISABLE_SPI_CLK);
+        case FF_IOC_ENABLE_POWER       : return FF_CTL_CMD_NAME(FF_IOC_ENABLE_POWER);
+        case FF_IOC_DISABLE_POWER      : return FF_CTL_CMD_NAME(FF_IOC_DISABLE_POWER);
+        case FF_IOC_REPORT_KEY_EVENT   : return FF_CTL_CMD_NAME(FF_IOC_REPORT_KEY_EVENT);
+        case FF_IOC_SYNC_CONFIG        : return FF_CTL_CMD_NAME(FF_IOC_SYNC_CONFIG);
+        case FF_IOC_GET_VERSION        : return FF_CTL_CMD_NAME(FF_IOC_GET_VERSION);
+        case FF_IOC_SET_IC_INFORMATION : return FF_CTL_CMD_NAME(FF_IOC_SET_IC_INFORMATION);
+        case FF_IOC_GET_IC_INFORMATION : return FF_CTL_CMD_NAME(FF_IOC_GET_IC_INFORMATION);
+        // case FF_IOC_GET_SPIDEV_INFO    : return FF_CTL_CMD_NAME(FF_IOC_GET_SPIDEV_INFO);
+        default                        : return "Unknown";
+    }
+}
+
 static long ff_ctl_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     int err = 0;
@@ -509,23 +531,9 @@ static long ff_ctl_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	//FF_LOGV("%s enter.", __func__);
 
     pr_debug("%s enter.", __func__);
+
 #if 1
-    if (g_log_level <= FF_LOG_LEVEL_DBG) {
-        static const char *cmd_names[] = {
-                "FF_IOC_INIT_DRIVER", "FF_IOC_FREE_DRIVER",
-                "FF_IOC_RESET_DEVICE",
-                "FF_IOC_ENABLE_IRQ", "FF_IOC_DISABLE_IRQ",
-                "FF_IOC_ENABLE_SPI_CLK", "FF_IOC_DISABLE_SPI_CLK",
-                "FF_IOC_ENABLE_POWER", "FF_IOC_DISABLE_POWER",
-                "FF_IOC_REPORT_KEY_EVENT", "FF_IOC_SYNC_CONFIG",
-                "FF_IOC_GET_VERSION", "unknown",
-        };
-        unsigned int _cmd = _IOC_NR(cmd);
-        if (_cmd > FF_IOC_GET_VERSION) {
-            _cmd = FF_IOC_GET_VERSION + 1;
-        }
-        FF_LOGD("%s(.., %s, ..) invoke.", __func__, cmd_names[_cmd]);
-    }
+    FF_LOGD("%s(.., %s, ..) invoke.", __func__, ff_ctl_cmd_names(cmd));
 #endif
 
     switch (cmd) {

@@ -20,7 +20,21 @@
 /*
  * Driver configuration. See ff_ctl.c
  */
-extern ff_driver_config_t *g_config;
+// extern ff_driver_config_t *g_config;
+
+typedef struct {
+    int32_t gpio_rst_pin;
+    int32_t gpio_int_pin;
+    int32_t gpio_power_pin;
+    int32_t gpio_iovcc_pin;
+} ff_plat_context_t;
+
+static ff_plat_context_t ff_plat_context = {
+    .gpio_rst_pin   = -1,
+    .gpio_int_pin   = -1,
+    .gpio_power_pin = -1,
+    .gpio_iovcc_pin = -1,
+}, *g_context = &ff_plat_context;
 
 int ff_ctl_init_pins(int *irq_num)
 {
@@ -30,7 +44,7 @@ int ff_ctl_init_pins(int *irq_num)
     bool b_config_dirtied = false;
     FF_LOGV("'%s' enter.", __func__);
 
-    if (unlikely(!g_config)) {
+    if (unlikely(!g_context)) {
         return (-ENOSYS);
     }
 
@@ -46,21 +60,21 @@ int ff_ctl_init_pins(int *irq_num)
     // add by focaltech
     gpio = of_get_named_gpio_flags(dev_node, "fpsensor,reset-gpio", 0, &flags);
     if (gpio > 0) {
-        g_config->gpio_rst_pin = gpio;
+        g_context->gpio_rst_pin = gpio;
         b_config_dirtied = true;
     }
-    if (!gpio_is_valid(g_config->gpio_rst_pin)) {
-        FF_LOGE("g_config->gpio_rst_pin(%d) is invalid.", g_config->gpio_rst_pin);
+    if (!gpio_is_valid(g_context->gpio_rst_pin)) {
+        FF_LOGE("g_context->gpio_rst_pin(%d) is invalid.", g_context->gpio_rst_pin);
         return (-ENODEV);
     }
-    err = gpio_request(g_config->gpio_rst_pin, "ff_gpio_rst_pin");
+    err = gpio_request(g_context->gpio_rst_pin, "ff_gpio_rst_pin");
     if (err) {
-        FF_LOGE("gpio_request(%d) = %d.", g_config->gpio_rst_pin, err);
+        FF_LOGE("gpio_request(%d) = %d.", g_context->gpio_rst_pin, err);
         return err;
     }
-    err = gpio_direction_output(g_config->gpio_rst_pin, 0);
+    err = gpio_direction_output(g_context->gpio_rst_pin, 0);
     if (err) {
-        FF_LOGE("gpio_direction_output(%d, 1) = %d.", g_config->gpio_rst_pin, err);
+        FF_LOGE("gpio_direction_output(%d, 1) = %d.", g_context->gpio_rst_pin, err);
         return err;
     }
     udelay(100);
@@ -71,21 +85,21 @@ int ff_ctl_init_pins(int *irq_num)
     // add by focaltech
     gpio = of_get_named_gpio_flags(dev_node, "fp-gpio-power", 0, &flags);
     if (gpio > 0) {
-        g_config->gpio_power_pin = gpio;
+        g_context->gpio_power_pin = gpio;
         b_config_dirtied = true;
     }
-    if (!gpio_is_valid(g_config->gpio_power_pin)) {
-        FF_LOGE("g_config->gpio_power_pin(%d) is invalid.", g_config->gpio_power_pin);
+    if (!gpio_is_valid(g_context->gpio_power_pin)) {
+        FF_LOGE("g_context->gpio_power_pin(%d) is invalid.", g_context->gpio_power_pin);
         return (-ENODEV);
     }
-    err = gpio_request(g_config->gpio_power_pin, "ff_gpio_power_pin");
+    err = gpio_request(g_context->gpio_power_pin, "ff_gpio_power_pin");
     if (err) {
-        FF_LOGE("gpio_request(%d) = %d.", g_config->gpio_power_pin, err);
+        FF_LOGE("gpio_request(%d) = %d.", g_context->gpio_power_pin, err);
         return err;
     }
-    err = gpio_direction_output(g_config->gpio_power_pin, 0); // power off.
+    err = gpio_direction_output(g_context->gpio_power_pin, 0); // power off.
     if (err) {
-        FF_LOGE("gpio_direction_output(%d, 0) = %d.", g_config->gpio_power_pin, err);
+        FF_LOGE("gpio_direction_output(%d, 0) = %d.", g_context->gpio_power_pin, err);
         return err;
     }
 #endif
@@ -94,21 +108,21 @@ int ff_ctl_init_pins(int *irq_num)
     /* Initialize IOVCC pin. */
     gpio = of_get_named_gpio_flags(dev_node, "fp,iovcc_gpio", 0, &flags);
     if (gpio > 0) {
-        g_config->gpio_iovcc_pin = gpio;
+        g_context->gpio_iovcc_pin = gpio;
         b_config_dirtied = true;
     }
-    if (!gpio_is_valid(g_config->gpio_iovcc_pin)) {
-        FF_LOGE("g_config->gpio_iovcc_pin(%d) is invalid.", g_config->gpio_iovcc_pin);
+    if (!gpio_is_valid(g_context->gpio_iovcc_pin)) {
+        FF_LOGE("g_context->gpio_iovcc_pin(%d) is invalid.", g_context->gpio_iovcc_pin);
         return (-ENODEV);
     }
-    err = gpio_request(g_config->gpio_iovcc_pin, "ff_gpio_iovcc_pin");
+    err = gpio_request(g_context->gpio_iovcc_pin, "ff_gpio_iovcc_pin");
     if (err) {
-        FF_LOGE("gpio_request(%d) = %d.", g_config->gpio_iovcc_pin, err);
+        FF_LOGE("gpio_request(%d) = %d.", g_context->gpio_iovcc_pin, err);
         return err;
     }
-    err = gpio_direction_output(g_config->gpio_iovcc_pin, 0); // power off.
+    err = gpio_direction_output(g_context->gpio_iovcc_pin, 0); // power off.
     if (err) {
-        FF_LOGE("gpio_direction_output(%d, 0) = %d.", g_config->gpio_iovcc_pin, err);
+        FF_LOGE("gpio_direction_output(%d, 0) = %d.", g_context->gpio_iovcc_pin, err);
         return err;
     }
 #endif
@@ -117,31 +131,31 @@ int ff_ctl_init_pins(int *irq_num)
     // add by focaltech
     gpio = of_get_named_gpio_flags(dev_node, "fpsensor,eint-gpio", 0, &flags);
     if (gpio > 0) {
-        g_config->gpio_int_pin = gpio;
+        g_context->gpio_int_pin = gpio;
         b_config_dirtied = true;
     }
-    if (!gpio_is_valid(g_config->gpio_int_pin)) {
-        FF_LOGE("g_config->gpio_int_pin(%d) is invalid.", g_config->gpio_int_pin);
+    if (!gpio_is_valid(g_context->gpio_int_pin)) {
+        FF_LOGE("g_context->gpio_int_pin(%d) is invalid.", g_context->gpio_int_pin);
         return (-ENODEV);
     }
-    err = gpio_request(g_config->gpio_int_pin, "ff_gpio_int_pin");
+    err = gpio_request(g_context->gpio_int_pin, "ff_gpio_int_pin");
     if (err) {
-        FF_LOGE("gpio_request(%d) = %d.", g_config->gpio_int_pin, err);
+        FF_LOGE("gpio_request(%d) = %d.", g_context->gpio_int_pin, err);
         return err;
     }
-    err = gpio_direction_input(g_config->gpio_int_pin);
+    err = gpio_direction_input(g_context->gpio_int_pin);
     if (err) {
-        FF_LOGE("gpio_direction_input(%d) = %d.", g_config->gpio_int_pin, err);
+        FF_LOGE("gpio_direction_input(%d) = %d.", g_context->gpio_int_pin, err);
         return err;
     }
 
     /* Retrieve the IRQ number. */
-    *irq_num = gpio_to_irq(g_config->gpio_int_pin);
+    *irq_num = gpio_to_irq(g_context->gpio_int_pin);
     if (*irq_num < 0) {
-        FF_LOGE("gpio_to_irq(%d) failed.", g_config->gpio_int_pin);
+        FF_LOGE("gpio_to_irq(%d) failed.", g_context->gpio_int_pin);
         return (-EIO);
     } else {
-        FF_LOGD("gpio_to_irq(%d) = %d.", g_config->gpio_int_pin, *irq_num);
+        FF_LOGD("gpio_to_irq(%d) = %d.", g_context->gpio_int_pin, *irq_num);
     }
 #if 0
     /* Configuration is dirty, must sync back to HAL. */
@@ -159,12 +173,17 @@ int ff_ctl_free_pins(void)
     FF_LOGV("'%s' enter.", __func__);
 
     /* Release GPIO resources. */
-    gpio_free(g_config->gpio_rst_pin  );
-    gpio_free(g_config->gpio_int_pin  );
+    gpio_free(g_context->gpio_rst_pin  );
+    gpio_free(g_context->gpio_int_pin  );
 #ifdef	FF_IOVCC_GPIO
-    gpio_free(g_config->gpio_iovcc_pin);
+    gpio_free(g_context->gpio_iovcc_pin);
 #endif
-//    gpio_free(g_config->gpio_power_pin);
+//    gpio_free(g_context->gpio_power_pin);
+    g_context->gpio_rst_pin   = -1;
+    g_context->gpio_int_pin   = -1;
+    g_context->gpio_power_pin = -1;
+    g_context->gpio_iovcc_pin = -1;
+
     FF_LOGV("'%s' leave.", __func__);
     return err;
 }
@@ -191,22 +210,22 @@ int ff_ctl_enable_power(bool on)
     FF_LOGV("'%s' enter.", __func__);
     FF_LOGD("power: '%s'.", on ? "on" : "off");
 
-    if (unlikely(!g_config)) {
+    if (unlikely(!g_context)) {
         return (-ENOSYS);
     }
 #if 0
     if (on) {
-        err = gpio_direction_output(g_config->gpio_power_pin, 1);
+        err = gpio_direction_output(g_context->gpio_power_pin, 1);
         msleep(5);
 #ifdef	FF_IOVCC_GPIO
-        err = gpio_direction_output(g_config->gpio_iovcc_pin, 1);
+        err = gpio_direction_output(g_context->gpio_iovcc_pin, 1);
 #endif
     } else {
 #ifdef	FF_IOVCC_GPIO
-        err = gpio_direction_output(g_config->gpio_iovcc_pin, 0);
+        err = gpio_direction_output(g_context->gpio_iovcc_pin, 0);
 #endif
         msleep(5);
-        err = gpio_direction_output(g_config->gpio_power_pin, 0);
+        err = gpio_direction_output(g_context->gpio_power_pin, 0);
     }
 #endif
     FF_LOGV("'%s' leave.", __func__);
@@ -218,18 +237,18 @@ int ff_ctl_reset_device(void)
     int err = 0;
     FF_LOGV("'%s' enter.", __func__);
 
-    if (unlikely(!g_config)) {
+    if (unlikely(!g_context)) {
         return (-ENOSYS);
     }
 
     /* 3-1: Pull down RST pin. */
-    err = gpio_direction_output(g_config->gpio_rst_pin, 0);
+    err = gpio_direction_output(g_context->gpio_rst_pin, 0);
 	//gpio_reset_set(0);
     /* 3-2: Delay for 10ms. */
     mdelay(10);
 
     /* Pull up RST pin. */
-    err = gpio_direction_output(g_config->gpio_rst_pin, 1);
+    err = gpio_direction_output(g_context->gpio_rst_pin, 1);
 	//gpio_reset_set(1);
     FF_LOGV("'%s' leave.", __func__);
     return err;
