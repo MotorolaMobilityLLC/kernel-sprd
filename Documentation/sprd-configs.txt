@@ -13012,6 +13012,15 @@ CONFIG_SPRD_CPU_HOTPLUG_GOV
 	[must] user
 	[missing plat description] none
 	[function] Enable cpu hotplug based on PM_QoS for IPA, powerhint and etc.
+CONFIG_SPRD_CPU_HOTPLUG_WORKAROUND
+	[arch] arm
+	[plat] pike2
+	[missing plat] sharkl3_32,sharkl5_32,sharkle32
+	[field] code
+	[subsys] cpuhotplug
+	[must] user
+	[missing plat description] this issue only happens in cortex-a7 platform.
+	[function] pike2 hotplug failed issue workaround
 CONFIG_SPRD_CPU_USAGE
 	[arch] all
 	[plat] all
