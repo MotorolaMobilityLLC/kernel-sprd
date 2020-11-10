@@ -204,10 +204,10 @@
 
 	bat: battery {
 		compatible = "simple-battery";
-		charge-full-design-microamp-hours = <2991000>;
+		charge-full-design-microamp-hours-0 = <2991000>;
 		charge-term-current-microamp = <120000>;
 		constant_charge_voltage_max_microvolt = <4400000>;
-		factory-internal-resistance-micro-ohms = <170000>;
+		factory-internal-resistance-micro-ohms-0 = <170000>;
 		voltage-min-design-microvolt = <3450000>;
 		ocv-capacity-celsius = <25>;
 		ocv-capacity-table-0 = <4370000 100>, <4311000 95>, <4250000 90>,
@@ -223,12 +223,31 @@
 				      <324000 1250>, <278000 1300>, <238000 1350>,
 				      <204000 1400>, <175000 1450>, <150000 1500>,
 				      <129000 1550>, <111000 1600>, <96000 1650>;
-		capacity-temp-table = <50 100>, <25 100>, <0 96>, <(-10) 88>;
-		resistance-temp-table = <50 67>, <25 100>, <0 218>, <(-10) 434>;
+		capacity-temp-table-0 = <50 100>, <25 100>, <0 96>, <(-10) 88>;
+		resistance-temp-table-0 = <50 67>, <25 100>, <0 218>, <(-10) 434>;
 		charge-sdp-current-microamp = <500000 500000>;
 		charge-dcp-current-microamp = <1050000 3000000>;
 		charge-cdp-current-microamp = <500000 500000>;
 		charge-unknown-current-microamp = <500000 500000>;
+
+
+
+		battery_name-0 ="KS40-ATL-2820mAh";
+		battery_name-1 ="KS40-Sunwoda-2820mAh";
+
+		charge-full-design-microamp-hours-1 = <2957000>;
+		factory-internal-resistance-micro-ohms-1 = <233000>;
+		ocv-capacity-table-1 = <4370000 100>, <4313000 95>, <4253000 90>,
+					<4195000 85>, <4139000 80>, <4086000 75>,
+					<4036000 70>, <3981000 65>, <3947000 60>,
+					<3894000 55>, <3855000 50>, <3830000 45>,
+					<3810000 40>, <3794000 35>, <3780000 30>,
+					<3765000 25>, <3746000 20>, <3723000 15>,
+					<3692000 10>, <3681000 5>, <3400000 0>;
+		capacity-temp-table-1 = <50 100>, <25 100>, <0 87>, <(-10) 71>;
+		resistance-temp-table-1 = <50 60>, <25 100>, <0 440>, <(-10) 555>;
+
+
 	};
 
 	charger-manager {

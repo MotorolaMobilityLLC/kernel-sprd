@@ -59,14 +59,13 @@
 #define CM_CAP_MAGIC_NUM		0x5A5AA5A5
 
 #define CM_TRACK_FILE_PATH "/mnt/vendor/battery/calibration_data/.battery_file"
-#define USB_NAME_LEN 10
 
 #include <ontim/ontim_dev_dgb.h>
-static  char usb_type_vendor_name[50]="Unknown";
-DEV_ATTR_DECLARE(usb_type)
-DEV_ATTR_DEFINE("vendor",usb_type_vendor_name)
+char battery_vendor_name[50]="MLP395976 2920mAh";
+DEV_ATTR_DECLARE(battery)
+DEV_ATTR_DEFINE("vendor",battery_vendor_name)
 DEV_ATTR_DECLARE_END;
-ONTIM_DEBUG_DECLARE_AND_INIT(usb_type,usb_type,8);
+ONTIM_DEBUG_DECLARE_AND_INIT(battery,battery,8);
 
 static const char * const default_event_names[] = {
 	[CM_EVENT_UNKNOWN] = "Unknown",
@@ -131,6 +130,13 @@ static struct delayed_work cm_monitor_work; /* init at driver add */
 static bool allow_charger_enable;
 static bool is_charger_mode;
 static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg);
+
+static int battery_id_type = 0;
+int ontim_get_battery_type(void)
+{
+	return battery_id_type;
+}
+
 
 static int __init boot_calibration_mode(char *str)
 {
@@ -1913,19 +1919,16 @@ static void misc_event_handler(struct charger_manager *cm,
 		case POWER_SUPPLY_USB_TYPE_DCP:
 			cm->desc->jeita_tab =
 				cm->desc->jeita_tab_array[CM_JEITA_DCP];
-			strncpy(usb_type_vendor_name,"DCP",USB_NAME_LEN);
 			break;
 
 		case POWER_SUPPLY_USB_TYPE_SDP:
 			cm->desc->jeita_tab =
 				cm->desc->jeita_tab_array[CM_JEITA_SDP];
-			strncpy(usb_type_vendor_name,"USB",USB_NAME_LEN);
 			break;
 
 		case POWER_SUPPLY_USB_TYPE_CDP:
 			cm->desc->jeita_tab =
 				cm->desc->jeita_tab_array[CM_JEITA_CDP];
-			strncpy(usb_type_vendor_name,"CDP",USB_NAME_LEN);
 			break;
 
 		default:
@@ -2032,6 +2035,7 @@ static int charger_get_property(struct power_supply *psy,
 			break;
 		}
 		val->intval = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
+		dev_err(cm->dev, "%s;%d;\n",__func__,val->intval);
 		if (val->intval > 100)
 			val->intval = 100;
 		else if (val->intval < 0)

@@ -565,6 +565,9 @@ struct power_supply *devm_power_supply_get_by_phandle(struct device *dev,
 EXPORT_SYMBOL_GPL(devm_power_supply_get_by_phandle);
 #endif /* CONFIG_OF */
 
+extern char battery_vendor_name[50];;
+extern int ontim_get_battery_type(void);
+
 int power_supply_get_battery_info(struct power_supply *psy,
 				  struct power_supply_battery_info *info)
 {
@@ -575,6 +578,10 @@ int power_supply_get_battery_info(struct power_supply *psy,
 	const char *value;
 	const __be32 *list;
 	int err, len, index, size;
+	char *propname;
+	unsigned char battery_id=0;
+
+	battery_id = ontim_get_battery_type();
 
 	info->energy_full_design_uwh         = -EINVAL;
 	info->charge_full_design_uah         = -EINVAL;
@@ -627,10 +634,19 @@ int power_supply_get_battery_info(struct power_supply *psy,
 	 * Documentation/power/power_supply_class.txt.
 	 */
 
+	propname = kasprintf(GFP_KERNEL, "battery_name-%d", battery_id);
+	of_property_read_string(battery_np, propname,	&info->battery_name);
+	strncpy(battery_vendor_name,info->battery_name,32);
+	dev_err(&psy->dev, "%s ;%s;\n", __func__,info->battery_name);
+
 	of_property_read_u32(battery_np, "energy-full-design-microwatt-hours",
 			     &info->energy_full_design_uwh);
-	of_property_read_u32(battery_np, "charge-full-design-microamp-hours",
-			     &info->charge_full_design_uah);
+
+//	of_property_read_u32(battery_np, "charge-full-design-microamp-hours",
+//			     &info->charge_full_design_uah);
+	propname = kasprintf(GFP_KERNEL, "charge-full-design-microamp-hours-%d", battery_id);
+	of_property_read_u32(battery_np, propname,&info->charge_full_design_uah);
+	
 	of_property_read_u32(battery_np, "voltage-min-design-microvolt",
 			     &info->voltage_min_design_uv);
 	of_property_read_u32(battery_np, "precharge-current-microamp",
@@ -641,8 +657,13 @@ int power_supply_get_battery_info(struct power_supply *psy,
 			     &info->constant_charge_current_max_ua);
 	of_property_read_u32(battery_np, "constant_charge_voltage_max_microvolt",
 			     &info->constant_charge_voltage_max_uv);
-	of_property_read_u32(battery_np, "factory-internal-resistance-micro-ohms",
-			     &info->factory_internal_resistance_uohm);
+
+//	of_property_read_u32(battery_np, "factory-internal-resistance-micro-ohms",
+//			     &info->factory_internal_resistance_uohm);
+	propname = kasprintf(GFP_KERNEL, "factory-internal-resistance-micro-ohms-%d", battery_id);
+	of_property_read_u32(battery_np, propname,&info->factory_internal_resistance_uohm);
+
+
 	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 0,
 				   &info->cur.sdp_cur);
 	of_property_read_u32_index(battery_np, "charge-sdp-current-microamp", 1,
@@ -679,13 +700,14 @@ int power_supply_get_battery_info(struct power_supply *psy,
 					   info->ocv_temp, len);
 	}
 
-	for (index = 0; index < len; index++) {
+//	for (index = 0; index < len; index++) 
+		{
 		struct power_supply_battery_ocv_table *table;
-		char *propname;
 		const __be32 *list;
 		int i, tab_len, size;
 
-		propname = kasprintf(GFP_KERNEL, "ocv-capacity-table-%d", index);
+//		propname = kasprintf(GFP_KERNEL, "ocv-capacity-table-%d", index);
+		propname = kasprintf(GFP_KERNEL, "ocv-capacity-table-%d", battery_id);
 		list = of_get_property(battery_np, propname, &size);
 		if (!list || !size) {
 			dev_err(&psy->dev, "failed to get %s\n", propname);
@@ -696,12 +718,15 @@ int power_supply_get_battery_info(struct power_supply *psy,
 
 		kfree(propname);
 		tab_len = size / (2 * sizeof(__be32));
-		info->ocv_table_size[index] = tab_len;
+//		info->ocv_table_size[index] = tab_len;
+		info->ocv_table_size[0] = tab_len;
 
-		table = info->ocv_table[index] =
+//		table = info->ocv_table[index] =
+		table = info->ocv_table[0] =
 			devm_kzalloc(&psy->dev, tab_len * sizeof(*table),
 				     GFP_KERNEL);
-		if (!info->ocv_table[index]) {
+//		if (!info->ocv_table[index]) {
+		if (!info->ocv_table[0]) {
 			power_supply_put_battery_info(psy, info);
 			return -ENOMEM;
 		}
@@ -731,7 +756,9 @@ int power_supply_get_battery_info(struct power_supply *psy,
 		temp_table[index].temp = be32_to_cpu(*list++);
 	}
 
-	list = of_get_property(battery_np, "capacity-temp-table", &size);
+//	list = of_get_property(battery_np, "capacity-temp-table", &size);
+	propname = kasprintf(GFP_KERNEL, "capacity-temp-table-%d", battery_id);
+	list = of_get_property(battery_np, propname, &size);
 	if (!list || !size)
 		return 0;
 
@@ -750,7 +777,9 @@ int power_supply_get_battery_info(struct power_supply *psy,
 		cap_table[index].cap = be32_to_cpu(*list++);
 	}
 
-	list = of_get_property(battery_np, "resistance-temp-table", &size);
+//	list = of_get_property(battery_np, "resistance-temp-table", &size);
+	propname = kasprintf(GFP_KERNEL, "resistance-temp-table-%d", battery_id);
+	list = of_get_property(battery_np, propname, &size);
 	if (!list || !size)
 		return 0;
 
