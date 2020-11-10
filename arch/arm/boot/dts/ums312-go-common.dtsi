@@ -339,12 +339,12 @@
 			reg = <0x9F000000 0x4000>;
 		};
 
-		fb_reserved: framebuffer-mem@befc0000{
-			reg = <0xbefc0000 0x00c70000>;
+		fb_reserved: framebuffer-mem@bf15e000{
+			reg = <0xbf15e000 0x00a92000>;
 		};
 
-		wb_reserved: writeback@bfc30000{
-			reg = <0xbfc30000 0x00390000>;
+		wb_reserved: writeback@bfbf0000{
+			reg = <0xbfbf0000 0x00390000>;
 		};
 
 		logo_reserved: logobuffer@9e000000{
