@@ -204,31 +204,50 @@
 
 	bat: battery {
 		compatible = "simple-battery";
-		charge-full-design-microamp-hours = <2780000>;
+		charge-full-design-microamp-hours-0 = <2991000>;
 		charge-term-current-microamp = <120000>;
 		constant_charge_voltage_max_microvolt = <4400000>;
-		factory-internal-resistance-micro-ohms = <210000>;
+		factory-internal-resistance-micro-ohms-0 = <170000>;
 		voltage-min-design-microvolt = <3450000>;
-		ocv-capacity-celsius = <20>;
-		ocv-capacity-table-0 = <4339000 100>, <4246000 95>, <4235000 90>,
-					<4196000 85>, <4119000 80>, <4006000 75>,
-					<4013000 70>, <3970000 65>, <3939000 60>,
-					<3883000 55>, <3847000 50>, <3821000 45>,
-					<3800000 40>, <3783000 35>, <3769000 30>,
-					<3758000 25>, <3746000 20>, <3729000 15>,
-					<3703000 10>, <3678000 5>, <3400000 0>;
+		ocv-capacity-celsius = <25>;
+		ocv-capacity-table-0 = <4370000 100>, <4311000 95>, <4250000 90>,
+					<4191000 85>, <4134000 80>, <4081000 75>,
+					<4029000 70>, <3981000 65>, <3942000 60>,
+					<3890000 55>, <3853000 50>, <3828000 45>,
+					<3809000 40>, <3794000 35>, <3781000 30>,
+					<3766000 25>, <3748000 20>, <3723000 15>,
+					<3695000 10>, <3674000 5>, <3400000 0>;
 		voltage-temp-table = <1095000 800>, <986000 850>, <878000 900>,
 				      <775000 950>, <678000 1000>, <590000 1050>,
 				      <510000 1100>, <440000 1150>, <378000 1200>,
 				      <324000 1250>, <278000 1300>, <238000 1350>,
 				      <204000 1400>, <175000 1450>, <150000 1500>,
 				      <129000 1550>, <111000 1600>, <96000 1650>;
-		capacity-temp-table = <25 100>, <10 97>, <(-10) 60>;
-		resistance-temp-table = <20 100>, <10 243>, <(-10) 468>;
+		capacity-temp-table-0 = <50 100>, <25 100>, <0 96>, <(-10) 88>;
+		resistance-temp-table-0 = <50 67>, <25 100>, <0 218>, <(-10) 434>;
 		charge-sdp-current-microamp = <500000 500000>;
-		charge-dcp-current-microamp = <1150000 3000000>;
-		charge-cdp-current-microamp = <1150000 1150000>;
+		charge-dcp-current-microamp = <1050000 3000000>;
+		charge-cdp-current-microamp = <500000 500000>;
 		charge-unknown-current-microamp = <500000 500000>;
+
+
+
+		battery_name-0 ="KS40-ATL-2820mAh";
+		battery_name-1 ="KS40-Sunwoda-2820mAh";
+
+		charge-full-design-microamp-hours-1 = <2957000>;
+		factory-internal-resistance-micro-ohms-1 = <233000>;
+		ocv-capacity-table-1 = <4370000 100>, <4313000 95>, <4253000 90>,
+					<4195000 85>, <4139000 80>, <4086000 75>,
+					<4036000 70>, <3981000 65>, <3947000 60>,
+					<3894000 55>, <3855000 50>, <3830000 45>,
+					<3810000 40>, <3794000 35>, <3780000 30>,
+					<3765000 25>, <3746000 20>, <3723000 15>,
+					<3692000 10>, <3681000 5>, <3400000 0>;
+		capacity-temp-table-1 = <50 100>, <25 100>, <0 87>, <(-10) 71>;
+		resistance-temp-table-1 = <50 60>, <25 100>, <0 440>, <(-10) 555>;
+
+
 	};
 
 	charger-manager {
@@ -240,7 +259,7 @@
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
 		cm-fullbatt-vchkdrop-volt = <60000>;
-		cm-fullbatt-voltage = <4330000>;
+		cm-fullbatt-voltage = <4380000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
@@ -263,7 +282,7 @@
 		cm-wdt-interval = <60>;
 
 		/* drop voltage in microVolts to allow shutdown */
-		cm-shutdown-voltage = <3100000>;
+		cm-shutdown-voltage = <3400000>;
 
 		/* when 99% of the time is exceeded, it will be forced to 100% */
 		cm-tickle-time-out = <1500>;
@@ -276,14 +295,14 @@
 		/* drop voltage in microVolts to restart charging */
 		cm-charge-voltage-drop = <700000>;
 
-		cm-dcp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
-			<1450 1420 1150000 4400000>, <1600 1570 700000 4200000>;
-		cm-sdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
-			<1450 1420 500000 4400000>, <1600 1570 500000 4200000>;
-		cm-cdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
-			<1450 1420 1150000 4400000>, <1600 1570 700000 4200000>;
-		cm-unknown-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
-			<1450 1420 500000 4400000>, <1600 1570 500000 4200000>;
+		cm-dcp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 1000000 4400000>,
+			<1450 1420 1050000 4400000>, <1550 1520 1050000 4200000>;
+		cm-sdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 500000 4400000>,
+			<1450 1420 500000 4400000>, <1550 1520 500000 4200000>;
+		cm-cdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 500000 4400000>,
+			<1450 1420 500000 4400000>, <1550 1520 500000 4200000>;
+		cm-unknown-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 500000 4400000>,
+			<1450 1420 500000 4400000>, <1550 1520 500000 4200000>;
 
 		monitored-battery = <&bat>;
 		cm-capacity-track;
@@ -561,7 +580,20 @@
 		vddvbus:bq24157-otg-vbus {
 			regulator-name = "vddvbus";
 		};
-		
+	};
+
+	bq2560x-chg@0x6b {
+		status = "okay";
+		compatible = "ti,bq2560x_chg";
+		reg = <0x6b>;
+		chg-en-gpios = <&ap_gpio 137 0>;
+		otg-en-gpios = <&ap_gpio 134 0>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+//		vddvbus:otg-vbus {
+//			regulator-name = "vddvbus";
+//		};
 	};
 
 	flash_ic: flash-ic@63 {
