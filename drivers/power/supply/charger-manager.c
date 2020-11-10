@@ -131,9 +131,45 @@ static bool allow_charger_enable;
 static bool is_charger_mode;
 static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg);
 
+
+static unsigned long bat_node;
+
+static int fb_early_init_dt_get_chosen(
+	unsigned long node, const char *uname, int depth, void *data)
+{
+	if (depth != 1 || (strcmp(uname, "chosen") != 0
+		&& strcmp(uname, "chosen@0") != 0))
+		return 0;
+	bat_node = node;
+	return 1;
+}
+
+
+#include <linux/of_fdt.h>	/*of_dt API*/
 static int battery_id_type = 0;
 int ontim_get_battery_type(void)
 {
+	int battery_type_name_len = 0;
+	const char *battery_type = NULL;
+	char battery_type_name_tmp[10];
+
+	if (of_scan_flat_dt(fb_early_init_dt_get_chosen, NULL) > 0)
+		battery_type =
+		of_get_flat_dt_prop(
+					bat_node,"battery_type_name",
+					&battery_type_name_len);
+	if (battery_type == NULL){
+		printk("%s;battery_type == NULL len = %d\n",__func__,battery_type_name_len);
+	} else {
+		snprintf(
+		battery_type_name_tmp,(battery_type_name_len + 1),
+		"%s",battery_type);
+		battery_id_type = (int)battery_type_name_tmp[0];
+		printk("ontim battery_id_type = %d  battery_type_name_len = %d\n",battery_id_type,battery_type_name_len);
+	}
+
+
+
 	return battery_id_type;
 }
 
