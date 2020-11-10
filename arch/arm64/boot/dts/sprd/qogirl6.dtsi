@@ -566,37 +566,52 @@
 				status = "okay";
 				#iommu-cells = <0>;
 			};
-			gpu: gpu@23000000 {
+			gpu: gpu@23100000 {
 				compatible = "sprd,mali-natt";
-				reg = <0 0x23100000 0 0x4000>;
-				interrupts = <0 60 0x4>,
-				      <0 60 0x4>,
-				      <0 60 0x4>;
+				reg = <0x0 0x23100000 0x0 0x100000>;
+				gpu-supply = <&vddgpu>;
+				system-coherency = <31>;
+				sprd,gpu-apb-syscon = <&gpu_apb_regs>;
+				sprd,gpu-dvfs-apb-syscon = <&gpu_dvfs_apb_regs>;
+				syscons = <&pmu_apb_regs
+					REG_PMU_APB_PD_GPU_TOP_CFG_0
+					MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>;
 
+				syscon-names = "top-force-shutdown";
+
+				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "JOB",
-				      "MMU",
-				      "GPU";
+					"MMU",
+					"GPU";
 
 				operating-points = <
-					// kHz    uV
-					850000    0
-					768000    0
-					512000    0
-					>;
-				sprd,dfs-lists = <
-					// kHz idx div
-					512000 2   1
-					768000 3   1
-					850000 4   1
+					/* kHz    uV */
+					384000    700000
+					512000    750000
+					614400    750000
+					768000    800000
+					850000    800000
 					>;
 
-				sprd,dfs-default = <2>;
-				prd,dfs-scene-extreme = <2>;
-				sprd,dfs-scene-high = <1>;
-				sprd,dfs-scene-medium = <1>;
-				sprd,dfs-scene-low = <0>;
-				sprd,dfs-range-max = <2>;
-				sprd,dfs-range-min = <0>;
+				sprd,dvfs-lists = <
+					/* kHz   uV      idx div */
+					384000  700000    4    1
+					512000  750000    5    1
+					614400  750000    6    1
+					768000  800000    7    1
+					850000  800000    8    1
+					>;
+
+				/*sprd,qos = <&gpu_qos>;*/
+				sprd,dvfs-default = <0>;
+				sprd,dvfs-scene-extreme = <3>;
+				sprd,dvfs-scene-high = <2>;
+				sprd,dvfs-scene-medium = <1>;
+				sprd,dvfs-scene-low = <0>;
+				sprd,dvfs-range-max = <4>;
+				sprd,dvfs-range-min = <0>;
 			};
 		};
 
