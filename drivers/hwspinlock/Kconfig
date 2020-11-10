@@ -58,3 +58,9 @@ config HSEM_U8500
 	  SoC.
 
 	  If unsure, say N.
+
+config HWSPINLOCK_GCOV
+	bool "open gcov for hwspinlock"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable gcov in hwspinlock.
