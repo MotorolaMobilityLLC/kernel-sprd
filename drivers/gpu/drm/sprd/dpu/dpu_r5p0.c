@@ -33,6 +33,13 @@
 
 #define SLP_BRIGHTNESS_THRESHOLD 0x20
 
+#define CABC_MODE_UI			(1 << 2)
+#define CABC_MODE_GAME			(1 << 3)
+#define CABC_MODE_VIDEO			(1 << 4)
+#define CABC_MODE_IMAGE			(1 << 5)
+#define CABC_MODE_CAMERA		(1 << 6)
+#define CABC_MODE_FULL_FRAME		(1 << 7)
+
 struct layer_reg {
 	u32 addr[4];
 	u32 ctrl;
@@ -164,6 +171,7 @@ struct enhance_module {
 	u32 blp_en: 1;
 	u32 ltm_en: 1;
 	u32 slp_mask_en: 1;
+	u32 cabc_en: 1;
 };
 
 struct scale_cfg {
@@ -232,6 +240,14 @@ struct ltm_cfg {
 	u16 limit_clip_step;
 };
 
+struct cabc_para {
+	u32 cabc_hist[32];
+	u16 gain;
+	u16 bl_fix;
+	u16 cur_bl;
+	u8 video_mode;
+};
+
 struct slp_cfg {
 	u8 brightness;
 	u16 brightness_step;
@@ -248,6 +264,8 @@ struct slp_cfg {
 	u8 scene_change_percent_th;
 	u8 local_weight;
 	u8 fst_pth;
+	u8 cabc_endv;
+	u8 cabc_startv;
 };
 
 struct dpu_cfg1 {
@@ -279,6 +297,12 @@ static struct dpu_cfg1 qos_cfg = {
 	.awqos_high = 0x7,
 };
 
+enum {
+	CABC_WORKING,
+	CABC_STOPPING,
+	CABC_DISABLED
+};
+
 static struct scale_cfg scale_copy;
 static struct cm_cfg cm_copy;
 static struct slp_cfg slp_copy;
@@ -298,17 +322,24 @@ static bool mode_changed;
 static bool evt_update;
 static bool evt_stop;
 static int frame_no;
+static bool cabc_bl_set;
+static int cabc_disable = CABC_DISABLED;
+static int cabc_bl_set_delay;
+static struct cabc_para cabc_para;
+static struct backlight_device *bl_dev;
 static int max_vsync_count;
 static int vsync_count;
 static int corner_radius;
 static struct device_node *g_np;
 module_param(max_vsync_count, int, 0644);
+module_param(cabc_bl_set_delay, int, 0644);
 
 static void dpu_sr_config(struct dpu_context *ctx);
 static void dpu_enhance_reload(struct dpu_context *ctx);
 static void dpu_clean_all(struct dpu_context *ctx);
 static void dpu_layer(struct dpu_context *ctx,
 		    struct sprd_dpu_layer *hwlayer);
+static int dpu_cabc_trigger(struct dpu_context *ctx);
 
 static u32 dpu_get_version(struct dpu_context *ctx)
 {
@@ -396,6 +427,15 @@ static u32 dpu_isr(struct dpu_context *ctx)
 
 		evt_update = true;
 		wake_up_interruptible_all(&wait_queue);
+	}
+
+	/* dpu vsync isr */
+	if (reg_val & DISPC_INT_DPI_VSYNC_MASK) {
+		/* cabc update backlight */
+		if (cabc_bl_set)
+			schedule_work(&ctx->cabc_bl_update);
+
+		vsync_count++;
 	}
 
 	/* dpu stop done isr */
@@ -500,6 +540,41 @@ static void dpu_run(struct dpu_context *ctx)
 			panel_ready = true;
 		}
 	}
+}
+
+static void dpu_cabc_work_func(struct work_struct *data)
+{
+	struct dpu_context *ctx =
+		container_of(data, struct dpu_context, cabc_work);
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+	down(&ctx->refresh_lock);
+	dpu_cabc_trigger(ctx);
+
+	reg->dpu_ctrl |= BIT(2);
+	dpu_wait_update_done(ctx);
+
+	up(&ctx->refresh_lock);
+}
+
+static void dpu_cabc_bl_update_func(struct work_struct *data)
+{
+	struct sprd_backlight *bl = bl_get_data(bl_dev);
+
+	msleep(cabc_bl_set_delay);
+	if (bl_dev) {
+		if (cabc_disable == CABC_WORKING) {
+			sprd_backlight_normalize_map(bl_dev, &cabc_para.cur_bl);
+
+			bl->cabc_en = true;
+			bl->cabc_level = cabc_para.bl_fix *
+					cabc_para.cur_bl / 1020;
+			bl->cabc_refer_level = cabc_para.cur_bl;
+			sprd_cabc_backlight_update(bl_dev);
+		} else
+			backlight_update_status(bl_dev);
+	}
+	cabc_bl_set = false;
 }
 
 static void dpu_dvfs_task_func(unsigned long data)
@@ -629,6 +704,8 @@ static int dpu_init(struct dpu_context *ctx)
 		dpu_corner_init(ctx);
 
 	dpu_dvfs_task_init(ctx);
+	INIT_WORK(&ctx->cabc_work, dpu_cabc_work_func);
+	INIT_WORK(&ctx->cabc_bl_update, dpu_cabc_bl_update_func);
 
 	frame_no = 0;
 
@@ -1144,6 +1221,10 @@ static void dpu_enhance_backup(u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
+		if (!cabc_disable) {
+			slp_copy.cabc_startv = 0;
+			slp_copy.cabc_endv = 255;
+		}
 		enhance_en |= BIT(4);
 		pr_info("enhance slp backup\n");
 		break;
@@ -1251,6 +1332,11 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	case ENHANCE_CFG_ID_CM:
 		memcpy(&cm_copy, param, sizeof(cm_copy));
 		memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
+		if (cabc_para.gain) {
+			cm.coef00 = (cm.coef00 * cabc_para.gain) / 0x400;
+			cm.coef11 = (cm.coef11 * cabc_para.gain) / 0x400;
+			cm.coef22 = (cm.coef22 * cabc_para.gain) / 0x400;
+		}
 
 		reg->cm_coef01_00 = (cm.coef01 << 16) | cm.coef00;
 		reg->cm_coef03_02 = (cm.coef03 << 16) | cm.coef02;
@@ -1272,6 +1358,10 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		break;
 	case ENHANCE_CFG_ID_SLP:
 		memcpy(&slp_copy, param, sizeof(slp_copy));
+		if (!cabc_disable) {
+			slp_copy.cabc_startv = 0;
+			slp_copy.cabc_endv = 255;
+		}
 		slp = &slp_copy;
 		reg->slp_cfg0 = (slp->brightness_step << 0)|
 			((slp->brightness & 0x7f) << 16);
@@ -1304,6 +1394,7 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 			(slp->scene_change_percent_th << 17) |
 			((slp->local_weight & 0xf) << 13) |
 			((slp->fst_pth & 0x7f) << 6);
+		reg->slp_cfg10 = (slp->cabc_endv << 8) | (slp->cabc_startv << 0);
 		reg->dpu_enhance_cfg |= BIT(4);
 		pr_info("enhance slp set\n");
 		break;
@@ -1387,6 +1478,33 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		pr_info("enhance lut3d set\n");
 		enhance_en = reg->dpu_enhance_cfg;
 		return;
+	case ENHANCE_CFG_ID_CABC_MODE:
+		p = param;
+
+		if (*p & CABC_MODE_UI)
+			cabc_para.video_mode = 0;
+		else if (*p & CABC_MODE_FULL_FRAME)
+			cabc_para.video_mode = 1;
+		else if (*p & CABC_MODE_VIDEO)
+			cabc_para.video_mode = 2;
+		pr_info("enhance CABC mode: 0x%x\n", *p);
+		return;
+	case ENHANCE_CFG_ID_CABC_GAIN:
+		p = param;
+		cabc_para.gain = *p;
+		return;
+	case ENHANCE_CFG_ID_CABC_BL_FIX:
+		p = param;
+		cabc_para.bl_fix = *p;
+		return;
+	case ENHANCE_CFG_ID_CABC_RUN:
+		if (cabc_disable != CABC_DISABLED)
+			schedule_work(&ctx->cabc_work);
+		return;
+	case ENHANCE_CFG_ID_CABC_DISABLE:
+		p = param;
+		cabc_disable = *p;
+		return;
 	default:
 		break;
 	}
@@ -1417,6 +1535,7 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 	struct gamma_lut *gamma;
 	struct threed_lut *lut3d;
 	u32 *p32;
+	u16 *p16;
 	int i, val;
 
 	switch (id) {
@@ -1539,6 +1658,9 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		slp->local_weight = (val >> 13) & 0xf;
 		slp->fst_pth = (val >> 6) & 0x7f;
 
+		val = reg->slp_cfg10;
+		slp->cabc_endv = (val >> 8) & 0xff;
+		slp->cabc_startv = (val >> 0) & 0xff;
 		pr_info("enhance slp get\n");
 		break;
 	case ENHANCE_CFG_ID_GAMMA:
@@ -1579,6 +1701,29 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		}
 		dpu_run(ctx);
 		pr_info("enhance lut3d get\n");
+		break;
+	case ENHANCE_CFG_ID_CABC_HIST:
+		p32 = param;
+		for (i = 0; i < 32; i++) {
+			*p32++ = reg->cabc_hist[i];
+			udelay(1);
+		}
+		break;
+	case ENHANCE_CFG_ID_CABC_CUR_BL:
+		p16 = param;
+		*p16 = cabc_para.cur_bl;
+		break;
+	case ENHANCE_CFG_ID_VSYNC_COUNT:
+		p32 = param;
+		*p32 = vsync_count;
+		break;
+	case ENHANCE_CFG_ID_FRAME_NO:
+		p32 = param;
+		*p32 = frame_no;
+		break;
+	case ENHANCE_CFG_ID_CABC_DISABLE:
+		p32 = param;
+		*p32 = cabc_disable;
 		break;
 	default:
 		break;
@@ -1683,6 +1828,8 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 			(slp->scene_change_percent_th << 17) |
 			((slp->local_weight & 0xf) << 13) |
 			((slp->fst_pth & 0x7f) << 6);
+		reg->slp_cfg10 = (slp->cabc_endv << 8) |
+			(slp->cabc_startv << 0);
 		pr_info("enhance slp reload\n");
 	}
 
@@ -1752,6 +1899,84 @@ static void dpu_sr_config(struct dpu_context *ctx)
 		enhance_en &= ~(BIT(0));
 		reg->dpu_enhance_cfg = enhance_en;
 	}
+}
+
+static int dpu_cabc_trigger(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	struct cm_cfg cm;
+	struct device_node *backlight_node;
+
+	if (cabc_disable) {
+		if (cabc_disable == CABC_STOPPING) {
+			memset(&cabc_para, 0, sizeof(cabc_para));
+			memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
+			reg->cm_coef01_00 = (cm.coef01 << 16) | cm.coef00;
+			reg->cm_coef03_02 = (cm.coef03 << 16) | cm.coef02;
+			reg->cm_coef11_10 = (cm.coef11 << 16) | cm.coef10;
+			reg->cm_coef13_12 = (cm.coef13 << 16) | cm.coef12;
+			reg->cm_coef21_20 = (cm.coef21 << 16) | cm.coef20;
+			reg->cm_coef23_22 = (cm.coef23 << 16) | cm.coef22;
+
+			cabc_bl_set = true;
+
+			cabc_disable = CABC_DISABLED;
+
+		}
+		return 0;
+	}
+
+	if (frame_no == 0) {
+		if (!bl_dev) {
+			backlight_node = of_parse_phandle(g_np,
+						"sprd,backlight", 0);
+			if (backlight_node) {
+				bl_dev =
+				of_find_backlight_by_node(backlight_node);
+				of_node_put(backlight_node);
+			} else {
+				pr_warn("dpu backlight node not found\n");
+			}
+		}
+
+		reg->dpu_enhance_cfg |= BIT(3);
+		reg->dpu_enhance_cfg |= BIT(8);
+		enhance_en |= BIT(3);
+		enhance_en |= BIT(8);
+
+		slp_copy.cabc_startv = 0;
+		slp_copy.cabc_endv = 255;
+		reg->slp_cfg10 = (slp_copy.cabc_endv << 8) |
+			(slp_copy.cabc_startv << 0);
+
+		frame_no++;
+	} else {
+		memcpy(&cm, &cm_copy, sizeof(struct cm_cfg));
+		if (cm.coef00 == 0 && cm.coef11 == 0 &&
+			cm.coef22 == 0) {
+			cm.coef00 = cm.coef11 = cm.coef22 = cabc_para.gain;
+		} else {
+			cm.coef00 = (cm.coef00 * cabc_para.gain) / 0x400;
+			cm.coef11 = (cm.coef11 * cabc_para.gain) / 0x400;
+			cm.coef22 = (cm.coef22 * cabc_para.gain) / 0x400;
+		}
+
+		if ((cm.coef00 < 0) || (cm.coef11 < 0) || (cm.coef22 < 0))
+			return 0;
+
+		reg->cm_coef01_00 = (cm.coef01 << 16) | cm.coef00;
+		reg->cm_coef03_02 = (cm.coef03 << 16) | cm.coef02;
+		reg->cm_coef11_10 = (cm.coef11 << 16) | cm.coef10;
+		reg->cm_coef13_12 = (cm.coef13 << 16) | cm.coef12;
+		reg->cm_coef21_20 = (cm.coef21 << 16) | cm.coef20;
+		reg->cm_coef23_22 = (cm.coef23 << 16) | cm.coef22;
+
+		cabc_bl_set = true;
+
+		if (frame_no == 1)
+			frame_no++;
+	}
+	return 0;
 }
 
 static int dpu_modeset(struct dpu_context *ctx,

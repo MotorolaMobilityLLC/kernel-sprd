@@ -1712,6 +1712,10 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 		if (cabc_disable != CABC_DISABLED)
 			schedule_work(&ctx->cabc_work);
 		return;
+	case ENHANCE_CFG_ID_CABC_DISABLE:
+		p = param;
+		cabc_disable = *p;
+		return;
 	default:
 		break;
 	}
@@ -1744,8 +1748,6 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 	u32 *p32;
 	u16 *p16;
 	int i, val;
-	int *vsynccount;
-	int *frameno;
 
 	switch (id) {
 	case ENHANCE_CFG_ID_ENABLE:
@@ -1923,12 +1925,16 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		*p16 = cabc_para.cur_bl;
 		break;
 	case ENHANCE_CFG_ID_VSYNC_COUNT:
-		vsynccount = param;
-		*vsynccount = vsync_count;
+		p32 = param;
+		*p32 = vsync_count;
 		break;
 	case ENHANCE_CFG_ID_FRAME_NO:
-		frameno = param;
-		*frameno = frame_no;
+		p32 = param;
+		*p32 = frame_no;
+		break;
+	case ENHANCE_CFG_ID_CABC_DISABLE:
+		p32 = param;
+		*p32 = cabc_disable;
 		break;
 	default:
 		break;
