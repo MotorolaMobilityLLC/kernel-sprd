@@ -155,6 +155,14 @@
 			wakeup-source;
 		};
 
+		key-google {
+			label = "Google Key";
+			linux,code = <KEY_GOOGLE>;
+			gpios = <&ap_gpio 125 GPIO_ACTIVE_LOW>;
+			debounce-interval = <2>;
+			wakeup-source;
+		};
+
 		key-volumeup {
 			label = "Volume Up Key";
 			linux,code = <KEY_VOLUMEUP>;
@@ -303,7 +311,7 @@
 			compatible = "gpio,boardid";
 			gpio,boardid0 = <&ap_gpio 85 0>;
 			gpio,boardid1 = <&ap_gpio 88 0>;
-                        gpio,boardid2 = <&ap_gpio 89 0>;
+			gpio,boardprjid  = <&ap_gpio 89 0>;
 	};
 };
 
