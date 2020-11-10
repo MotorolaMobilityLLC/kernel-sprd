@@ -7,6 +7,15 @@ T: security:
 T: tee:
 T: trusty:
 
+[ben.li]
+R +1
+T: usb:typec:
+T: usb:gadget:
+T: usb:dwc3:
+T: usb:musb:
+T: usb:misc:
+T: usb:phy:
+
 [billows.wu]
 R: +2
 T: misc:sprdwcn:
