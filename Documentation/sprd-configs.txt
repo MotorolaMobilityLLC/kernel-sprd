@@ -12963,6 +12963,15 @@ CONFIG_SPRD_APSYS_DVFS_DEVFREQ
 				   function, we will not user apsys dvfs devfreq function due to
 				   some reasons such as roc1.
 	[function] Enable apsys dvfs function.
+CONFIG_SPRD_ARCH
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] core
+	[must] unknown
+	[missing plat description] none
+	[function] Make the compiler better optimize by passing -march parameters
 CONFIG_SPRD_AUDIO_AGDSP_ACCESS
 	[arch] all
 	[plat] qogirl6,sharkl5,sharkl5Pro,sharkl5_32
@@ -13228,6 +13237,15 @@ CONFIG_SPRD_CPU_HOTPLUG_WORKAROUND
 	[must] user
 	[missing plat description] this issue only happens in cortex-a7 platform.
 	[function] pike2 hotplug failed issue workaround
+CONFIG_SPRD_CPU_TYPE
+	[arch] all
+	[plat] all
+	[missing plat] none
+	[field] make
+	[subsys] core
+	[must] unknown
+	[missing plat description] none
+	[function] Make the compiler better optimize by passing -mcpu parameters.
 CONFIG_SPRD_CPU_USAGE
 	[arch] all
 	[plat] all

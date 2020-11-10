@@ -672,6 +672,18 @@ ARCH_AFLAGS :=
 ARCH_CFLAGS :=
 include arch/$(SRCARCH)/Makefile
 
+SPRD_MARCH_FLAG = $(patsubst "%",%,$(CONFIG_SPRD_ARCH))
+ifneq ($(SPRD_MARCH_FLAG),)
+ARCH_AFLAGS   += -march=$(SPRD_MARCH_FLAG)
+ARCH_CFLAGS   += -march=$(SPRD_MARCH_FLAG)
+endif
+
+SPRD_MCPU_FLAG = $(patsubst "%",%,$(CONFIG_SPRD_CPU_TYPE))
+ifneq ($(SPRD_MCPU_FLAG),)
+ARCH_AFLAGS   += -mcpu=$(SPRD_MCPU_FLAG)
+ARCH_CFLAGS   += -mcpu=$(SPRD_MCPU_FLAG)
+endif
+
 KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning,frame-address,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)

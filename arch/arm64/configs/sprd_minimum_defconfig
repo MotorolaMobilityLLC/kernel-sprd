@@ -393,6 +393,12 @@ CONFIG_ARCH_SPRD=y
 # CONFIG_ARCH_ZYNQMP is not set
 
 #
+# CPU info trans to compiler
+#
+CONFIG_SPRD_ARCH=""
+CONFIG_SPRD_CPU_TYPE=""
+
+#
 # Bus support
 #
 # CONFIG_PCI is not set

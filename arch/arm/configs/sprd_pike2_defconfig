@@ -442,6 +442,12 @@ CONFIG_ARCH_MULTI_V6_V7=y
 # CONFIG_ARCH_SOCFPGA is not set
 # CONFIG_PLAT_SPEAR is not set
 CONFIG_ARCH_SPRD=y
+
+#
+# CPU info trans to compiler
+#
+CONFIG_SPRD_ARCH=""
+CONFIG_SPRD_CPU_TYPE=""
 # CONFIG_ARCH_STI is not set
 # CONFIG_ARCH_S5PV210 is not set
 # CONFIG_ARCH_EXYNOS is not set

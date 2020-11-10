@@ -409,6 +409,12 @@ CONFIG_ARCH_SPRD=y
 # CONFIG_ARCH_ZYNQMP is not set
 
 #
+# CPU info trans to compiler
+#
+CONFIG_SPRD_ARCH="armv8.2-a"
+CONFIG_SPRD_CPU_TYPE="cortex-a55"
+
+#
 # Bus support
 #
 # CONFIG_PCI is not set

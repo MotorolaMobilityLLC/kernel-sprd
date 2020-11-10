@@ -816,6 +816,24 @@ source "arch/arm/mach-spear/Kconfig"
 
 source "arch/arm/mach-sprd/Kconfig"
 
+if ARCH_SPRD
+
+menu "CPU info trans to compiler"
+
+config SPRD_ARCH
+       string "Architecture info for compiler"
+       help
+         Transfer the architecture info to compiler by "-march" flag.
+
+config SPRD_CPU_TYPE
+       string "CPU type info for compiler"
+       help
+         Transfer the cpu type info to compiler by "-mcpu" flag.
+
+endmenu
+
+endif
+
 source "arch/arm/mach-sti/Kconfig"
 
 source "arch/arm/mach-stm32/Kconfig"
