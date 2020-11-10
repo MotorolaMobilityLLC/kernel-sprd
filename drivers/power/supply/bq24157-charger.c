@@ -733,6 +733,7 @@ static int bq24157_charger_usb_get_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_USB_TYPE:
 		type = info->usb_phy->charger_detect(info->usb_phy);
+	dev_err(info->dev, "%s;%d;\n",__func__,type);
 
 		switch (type) {
 		case SDP_TYPE:
@@ -1007,7 +1008,9 @@ static int bq24157_charger_probe(struct i2c_client *client,
 	struct bq24157_charger_info *info;
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
+	unsigned char val = 0;
 	int ret;
+	dev_err(dev, "%s;enter;\n",__func__);
 
 //+add by hzb for ontim debug
         if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0)
@@ -1026,6 +1029,19 @@ static int bq24157_charger_probe(struct i2c_client *client,
 		return -ENOMEM;
 	info->client = client;
 	info->dev = dev;
+
+	bq24157_read(info,BQ24157_CON3, &val);
+	if( val == 0x51)
+	       strncpy(charge_ic_vendor_name,"BQ24157",20);
+	else if ( val == 0x41 )
+       	strncpy(charge_ic_vendor_name,"HL7005",20);
+	else if ( val == 0x54  )
+       	strncpy(charge_ic_vendor_name,"ETA6937",20);
+	else
+		return -ENODEV;
+
+	dev_err(dev, "%s;%s;\n",__func__,charge_ic_vendor_name);
+	
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, bq24157_charger_work);
 

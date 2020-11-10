@@ -88,6 +88,14 @@ struct bq2560x_charger_info {
 	u32 last_limit_current;
 };
 
+
+#include <ontim/ontim_dev_dgb.h>
+static  char charge_ic_vendor_name[50]="BQ2560x";
+DEV_ATTR_DECLARE(charge_ic)
+DEV_ATTR_DEFINE("vendor",charge_ic_vendor_name)
+DEV_ATTR_DECLARE_END;
+ONTIM_DEBUG_DECLARE_AND_INIT(charge_ic,charge_ic,8);
+
 static int
 bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 				  u32 limit_cur);
@@ -891,7 +899,16 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	struct bq2560x_charger_info *info;
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
+	unsigned char val = 0;
 	int ret;
+	dev_err(dev, "%s;enter;\n",__func__);
+
+//+add by hzb for ontim debug
+        if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0)
+        {
+           return -EIO;
+        }
+//-add by hzb for ontim debug
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(dev, "No support for SMBUS_BYTE_DATA\n");
@@ -903,6 +920,20 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		return -ENOMEM;
 	info->client = client;
 	info->dev = dev;
+
+	bq2560x_read(info,BQ2560X_REG_B, &val);
+	if( val == 0x48)
+	       strncpy(charge_ic_vendor_name,"SY6974",20);
+	else if ( val == 0x11 )
+       	strncpy(charge_ic_vendor_name,"BQ25601",20);
+	else if ( val == 0x14  )
+       	strncpy(charge_ic_vendor_name,"SGM41511",20);
+	else
+		return -ENODEV;
+
+	dev_err(dev, "%s;%s;\n",__func__,charge_ic_vendor_name);
+
+	
 	mutex_init(&info->lock);
 	INIT_WORK(&info->work, bq2560x_charger_work);
 
@@ -998,6 +1029,11 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&info->wdt_work,
 			  bq2560x_charger_feed_watchdog_work);
 
+	dev_err(dev, "bq2560x_charger_probe ok to register\n");
+
+//+add by hzb for ontim debug
+        REGISTER_AND_INIT_ONTIM_DEBUG_FOR_THIS_DEV();
+//-add by hzb for ontim debug
 	return 0;
 }
 

@@ -561,7 +561,20 @@
 		vddvbus:bq24157-otg-vbus {
 			regulator-name = "vddvbus";
 		};
-		
+	};
+
+	bq2560x-chg@0x6b {
+		status = "okay";
+		compatible = "ti,bq2560x_chg";
+		reg = <0x6b>;
+		chg-en-gpios = <&ap_gpio 137 0>;
+		otg-en-gpios = <&ap_gpio 134 0>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+//		vddvbus:otg-vbus {
+//			regulator-name = "vddvbus";
+//		};
 	};
 
 	flash_ic: flash-ic@63 {
