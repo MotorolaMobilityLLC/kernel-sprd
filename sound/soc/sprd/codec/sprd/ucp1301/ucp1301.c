@@ -256,21 +256,6 @@ static void ucp1301_write_agc_gain(struct ucp1301_t *ucp1301, u32 agc_gain0)
 			 ret);
 }
 
-static int ucp1301_read_agc_gain(struct ucp1301_t *ucp1301, u32 *agc_gain0)
-{
-	u32 val_temp;
-	int ret;
-
-	ret = regmap_read(ucp1301->regmap, REG_AGC_GAIN0, &val_temp);
-	if (ret < 0) {
-		dev_err(ucp1301->dev, "read REG_AGC_GAIN0 reg fail, %d\n", ret);
-		return ret;
-	}
-
-	*agc_gain0 = val_temp;
-	return ret;
-}
-
 static int ucp1301_write_clsd_trim(struct ucp1301_t *ucp1301, u32 clsd_trim)
 {
 	u32 val;
@@ -1319,7 +1304,8 @@ static int ucp1301_set_agc_en(struct snd_kcontrol *kcontrol,
 
 	mutex_lock(&ucp1301->ctrl_lock);
 	ucp1301->agc_en = ucontrol->value.integer.value[0];
-	ucp1301_write_agc_en(ucp1301, ucp1301->agc_en);
+	if (ucp1301->hw_enabled)
+		ucp1301_write_agc_en(ucp1301, ucp1301->agc_en);
 	mutex_unlock(&ucp1301->ctrl_lock);
 
 	dev_dbg(ucp1301->dev, "set_agc_en %d\n", ucp1301->agc_en);
@@ -1332,15 +1318,8 @@ static int ucp1301_get_agc_gain(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
-	u32 val_temp;
-	int ret;
 
-	ret = ucp1301_read_agc_gain(ucp1301, &val_temp);
-	if (ret < 0) {
-		ucontrol->value.integer.value[0] = ucp1301->agc_gain0;
-		return 0;
-	}
-	ucontrol->value.integer.value[0] = val_temp & BIT_AGC_GAIN0(0x7f);
+	ucontrol->value.integer.value[0] = ucp1301->agc_gain0;
 
 	return 0;
 }
@@ -1356,7 +1335,8 @@ static int ucp1301_set_agc_gain(struct snd_kcontrol *kcontrol,
 
 	mutex_lock(&ucp1301->ctrl_lock);
 	ucp1301->agc_gain0 = ucontrol->value.integer.value[0];
-	ucp1301_write_agc_gain(ucp1301, ucp1301->agc_gain0);
+	if (ucp1301->hw_enabled)
+		ucp1301_write_agc_gain(ucp1301, ucp1301->agc_gain0);
 	mutex_unlock(&ucp1301->ctrl_lock);
 
 	dev_dbg(ucp1301->dev, "set_agc_gain %d\n", ucp1301->agc_gain0);
@@ -1369,16 +1349,8 @@ static int ucp1301_get_clasd_trim(struct snd_kcontrol *kcontrol,
 {
 	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct ucp1301_t *ucp1301 = snd_soc_codec_get_drvdata(codec);
-	u32 clsd_trim;
-	int ret;
 
-	ret = ucp1301_read_clsd_trim(ucp1301, &clsd_trim);
-	if (ret) {
-		dev_warn(ucp1301->dev, "get_clasd_trim fail %d\n", ret);
-		ucontrol->value.integer.value[0] = ucp1301->clsd_trim;
-		return 0;
-	}
-	ucontrol->value.integer.value[0] = clsd_trim;
+	ucontrol->value.integer.value[0] = ucp1301->clsd_trim;
 
 	return 0;
 }
@@ -1391,7 +1363,8 @@ static int ucp1301_set_clasd_trim(struct snd_kcontrol *kcontrol,
 
 	mutex_lock(&ucp1301->ctrl_lock);
 	ucp1301->clsd_trim = ucontrol->value.integer.value[0];
-	ucp1301_write_clsd_trim(ucp1301, ucp1301->clsd_trim);
+	if (ucp1301->hw_enabled)
+		ucp1301_write_clsd_trim(ucp1301, ucp1301->clsd_trim);
 	mutex_unlock(&ucp1301->ctrl_lock);
 
 	return 0;
@@ -1416,8 +1389,9 @@ static int ucp1301_set_r_load(struct snd_kcontrol *kcontrol,
 
 	mutex_lock(&ucp1301->ctrl_lock);
 	ucp1301->r_load = ucontrol->value.integer.value[0];
-	ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
-			    ucp1301->power_p1, ucp1301->power_pb);
+	if (ucp1301->hw_enabled)
+		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
+				    ucp1301->power_p1, ucp1301->power_pb);
 	mutex_unlock(&ucp1301->ctrl_lock);
 
 	dev_dbg(ucp1301->dev, "set_r_load %d\n", ucp1301->r_load);
@@ -1448,8 +1422,9 @@ static int ucp1301_set_limit_p2(struct snd_kcontrol *kcontrol,
 		ucp1301->power_p2 * UCP_P1_RATIO / UCP_P1_PB_DIVISOR;
 	ucp1301->power_pb =
 		ucp1301->power_p2 * UCP_PB_RATIO / UCP_P1_PB_DIVISOR;
-	ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
-			    ucp1301->power_p1, ucp1301->power_pb);
+	if (ucp1301->hw_enabled)
+		ucp1301_calcu_power(ucp1301, ucp1301->r_load, ucp1301->power_p2,
+				    ucp1301->power_p1, ucp1301->power_pb);
 	mutex_unlock(&ucp1301->ctrl_lock);
 
 	dev_dbg(ucp1301->dev, "set_limit_p2 %d\n", ucp1301->power_p2);
@@ -1533,7 +1508,8 @@ static int ucp1301_set_regs(struct snd_kcontrol *kcontrol,
 	u32 reg_addr = ucontrol->value.integer.value[0];
 	u32 reg_value = ucontrol->value.integer.value[1];
 
-	regmap_update_bits(ucp1301->regmap, reg_addr, 0xff, reg_value);
+	if (ucp1301->hw_enabled)
+		regmap_update_bits(ucp1301->regmap, reg_addr, 0xff, reg_value);
 	dev_dbg(ucp1301->dev, "set_regs, reg_addr 0x%x, reg_value 0x%x\n",
 		reg_addr, reg_value);
 
