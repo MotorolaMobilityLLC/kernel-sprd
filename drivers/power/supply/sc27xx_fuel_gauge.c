@@ -1007,9 +1007,10 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 				goto error;
 
 #ifdef    DUAL_85_VERSION
-			ret = 0;
-			val->intval = 440;
+			if(value >=540)
+				val->intval = 540;
 			d85_temp =value;
+			ret = 0;
 #else
 			ret = 0;
 			val->intval = value;
