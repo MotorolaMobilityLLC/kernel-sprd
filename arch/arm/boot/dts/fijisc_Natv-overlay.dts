@@ -6,10 +6,10 @@
 	fragment {
 		target-path = "/";
 		__overlay__ {
-			fingerprint@0 {
-				compatible = "microarray,afs121";
+			//fingerprint@0 {
+			//	compatible = "microarray,afs121";
 				//fpint-gpios = <&ap_gpio 130 0>;
-			};
+			//};
 /*
 			flash-gpios {
 				compatible = "sprd,flash-sgm37891";
@@ -136,3 +136,4 @@
 	vmmc-supply = <>;
 	vddsdcore_en-gpios = <&ap_gpio 64 1>;
 };
+#include "fijisc_Natv-overlay-fpsensor.dtsi"
