@@ -916,3 +916,8 @@ config MMC_SDHCI_XENON
 	  This selects Marvell Xenon eMMC/SD/SDIO SDHCI.
 	  If you have a controller with this interface, say Y or M here.
 	  If unsure, say N.
+config SPRD_MMC_GCOV
+	bool "Open gcov for SPRD EMMC"
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable gcov in mmc sprd.

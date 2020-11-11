@@ -99,3 +99,4 @@ endif
 
 obj-$(CONFIG_MMC_SDHCI_XENON)	+= sdhci-xenon-driver.o
 sdhci-xenon-driver-y		+= sdhci-xenon.o sdhci-xenon-phy.o
+GCOV_PROFILE_sprd-sdhcr11.o := ${CONFIG_SPRD_MMC_GCOV}
