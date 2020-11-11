@@ -960,17 +960,14 @@ static int ts_suspend(struct platform_device *pdev, pm_message_t state)
 		ts_enable_polling(pdata, false);
 
 	/* disable irq if work in irq mode */
-	if (ts_get_mode(pdata, TSMODE_IRQ_MODE)
-		&& ts_get_mode(pdata, TSMODE_IRQ_STATUS))
-		ts_enable_irq(pdata, false);
+	ts_enable_irq(pdata, false);
 
 	/* notify controller if it has requested */
 	/* TODO: pending suspend request if we're busy upgrading firmware */
 	if (ts_get_mode(pdata, TSMODE_CONTROLLER_EXIST)
 		&& ts_get_mode(pdata, TSMODE_CONTROLLER_STATUS)
 		&& pdata->controller->handle_event)
-		pdata->controller->handle_event(pdata->controller,
-		TSEVENT_SUSPEND, NULL);
+		pdata->controller->handle_event(pdata->controller, TSEVENT_SUSPEND, NULL);
 
 	/* clear report data */
 	ts_clear_points(pdata);
@@ -1733,7 +1730,7 @@ static int ts_probe(struct platform_device *pdev)
 			if (ts_get_mode(pdata, TSMODE_AUTO_UPGRADE_FW))
 				ts_request_firmware_upgrade(pdata, NULL, true);
 			ts_set_mode(pdata, TSMODE_CONTROLLER_STATUS, true);
-		} else if (ts_get_mode(pdata, TSMODE_AUTO_UPGRADE_FW)) {
+		} else if (ts_get_mode(pdata, TSMODE_AUTO_UPGRADE_FW) && (!pdata->board->suspend_on_init)) {
 			ts_request_firmware_upgrade(pdata, NULL, false);
 		} else {
 			ts_set_mode(pdata, TSMODE_CONTROLLER_STATUS, true);
