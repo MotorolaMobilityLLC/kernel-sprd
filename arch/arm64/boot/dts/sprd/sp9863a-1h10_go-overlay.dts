@@ -11,8 +11,8 @@
 
 / {
 	model = "Spreadtrum SC9863A-1H10-GO Board";
-	compatible = "sprd,sp9863a-1h10", "sprd,sc9863a";
-	sprd,sc-id = "sp9863a 1h10 1000";
+	compatible = "sprd,sp9863a-1h10-go", "sprd,sc9863a";
+	sprd,sc-id = "sp9863a 1h10 go";
 
 	fragment {
 		target-path = "/";
