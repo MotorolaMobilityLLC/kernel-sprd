@@ -87,7 +87,7 @@
 	};
 
 	sprd-sensorhub {
-		compatible = "sprd,sharkl5-sensorhub";
+		compatible = "sprd,sharkl5-sensorhub", "sprd,sensor-hub";
 	};
 
 	thm_zone: thermal-zones {
