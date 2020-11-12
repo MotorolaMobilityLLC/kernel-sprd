@@ -6,6 +6,7 @@ subdir-ccflags-y += -I$(src)
 obj-y := sprd_drm.o \
 	sprd_gem.o \
 	sprd_dpu.o \
+	sprd_dpu1.o \
 	sprd_dsi.o \
 	sprd_dphy.o \
 	sprd_panel.o
