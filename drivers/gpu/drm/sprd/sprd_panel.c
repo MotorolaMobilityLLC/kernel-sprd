@@ -583,11 +583,35 @@ static int of_parse_oled_cmds(struct sprd_oled *oled,
 	return 0;
 }
 
+static int sprd_oled_set_brightness(struct backlight_device *bdev);
+unsigned int g_last_level = 25;
+struct backlight_device *g_bdev;
+#ifdef CONFIG_HBM_SUPPORT
+extern bool g_hbm_enable;
+int hbm_set_backlight_level(unsigned int level)
+{
+	if (g_bdev != NULL) {
+		g_bdev->props.brightness = level;
+		sprd_oled_set_brightness(g_bdev);
+		return 0;
+	} else {
+		DRM_INFO("firefly, g_bdev is null, please register sprd backlight\n");
+		return -1;
+	}
+
+}
+#endif
+
 static int sprd_oled_set_brightness(struct backlight_device *bdev)
 {
 	int level, brightness;
 	struct sprd_oled *oled = bl_get_data(bdev);
 	struct sprd_panel *panel = oled->panel;
+
+	if (g_hbm_enable){
+		DRM_INFO("firefly ,now hbm enable, not allow to set backlight\n");
+		return 0;
+	}
 
 	mutex_lock(&panel_lock);
 	if (!panel->is_enabled) {
@@ -599,17 +623,29 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	brightness = bdev->props.brightness;
 	level = brightness * oled->max_level / 255;
 
-	DRM_INFO("%s level: %d\n", __func__, level);
+	DRM_INFO("%s Source level: %d\n", __func__, level);
+
+	if (level < 256){
+		g_last_level = level;
+		level = ((level * 80) + 20 )/ 100;
+	}
+
+	if (level == 256)
+		level = 255;
+
+	DRM_INFO("%s Target level: %d\n", __func__, level);
 
 	sprd_panel_send_cmds(panel->slave,
 			     panel->info.cmds[CMD_OLED_REG_LOCK],
 			     panel->info.cmds_len[CMD_OLED_REG_LOCK]);
 
 	if (oled->cmds_total == 1) {
-//	DRM_INFO("-----%s payload 0=0x%x 1=0x%x 2=0x%x: %d\n", __func__,oled->cmds[0]->payload[0], oled->cmds[0]->payload[1], oled->cmds[0]->payload[2], level);
-		oled->cmds[0]->payload[1] = (level & 0xf0) >> 4;
-		oled->cmds[0]->payload[2] = (level & 0x0f) << 4;
-//	DRM_INFO("+++++%s payload 0=0x%x 1=0x%x 2=0x%x: %d\n", __func__,oled->cmds[0]->payload[0], oled->cmds[0]->payload[1], oled->cmds[0]->payload[2], level);
+		if (oled->cmd_len - 4 == 3) {
+			oled->cmds[0]->payload[1] = (level >> 4) & 0x0f;
+			oled->cmds[0]->payload[2] = (level << 4) & 0xf0;
+		} else
+			oled->cmds[0]->payload[1] = level;
+
 		sprd_panel_send_cmds(panel->slave,
 			     oled->cmds[0],
 			     oled->cmd_len);
@@ -696,6 +732,8 @@ static int sprd_oled_backlight_init(struct sprd_panel *panel)
 	of_parse_oled_cmds(oled,
 			panel->info.cmds[CMD_OLED_BRIGHTNESS],
 			panel->info.cmds_len[CMD_OLED_BRIGHTNESS]);
+
+	g_bdev = oled->bdev;
 
 	DRM_INFO("%s() ok\n", __func__);
 

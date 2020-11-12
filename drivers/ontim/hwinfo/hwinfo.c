@@ -1430,6 +1430,56 @@ static void get_current_cpuid(void)
 extern unsigned int get_boot_mode(void);
 #endif
 /* BEGIN Ontim, jiawentao, 28/09/2020, 10015326, St-result:PASS, Add project version drive device note. */
+#ifdef CONFIG_HBM_SUPPORT
+
+bool g_hbm_enable = false;
+extern unsigned int g_last_level;
+extern int hbm_set_backlight_level(unsigned int level);
+
+static int set_hbm_status(const char * buf, int n)
+{
+	printk("hbm user buf:%s\n", buf);
+
+#ifdef SMT_VERSION
+	printk("SMT version,No hbm");
+#else
+	switch (buf[0]){
+		case '0':
+			if (!g_hbm_enable) {
+				printk("Have been disabled hbm, exit!\n");
+				break;
+			}
+			g_hbm_enable = false;
+			hbm_set_backlight_level(g_last_level);
+			break;
+		case '3':
+			if (g_hbm_enable) {
+				printk("Have been enabled hbm, exit!\n");
+				break;
+			}
+			hbm_set_backlight_level(256);
+			g_hbm_enable = true;
+			break;
+		default:
+			g_hbm_enable = false;
+			break;
+	}
+#endif
+	return 0;
+}
+
+static void get_hbm_status(void)
+{
+	char hbm_str_st[8] = {0};
+	if (g_hbm_enable){
+	    strcpy(hbm_str_st, "hbm:on");
+	}else{
+	    strcpy(hbm_str_st, "hbm:off");
+	}
+	sprintf(hwinfo[hbm].hwinfo_buf,"%s",hbm_str_st);
+}
+#endif
+
 static ssize_t hwinfo_show(struct kobject *kobj, struct kobj_attribute *attr, char * buf)
 {
 	int i = 0;
@@ -1603,6 +1653,11 @@ static ssize_t hwinfo_show(struct kobject *kobj, struct kobj_attribute *attr, ch
 	//case current_cpuid:
 	//	get_current_cpuid();
 	//	break;
+#ifdef CONFIG_HBM_SUPPORT
+	case hbm:
+		get_hbm_status();
+		break;
+#endif
 	default:
 		break;
 	}
@@ -1669,6 +1724,11 @@ static ssize_t hwinfo_store(struct kobject *kobj, struct kobj_attribute *attr, c
 		set_backaux2_camera_efuse_id(buf, n);
 		break;
 */
+#ifdef CONFIG_HBM_SUPPORT
+	case hbm:
+		set_hbm_status(buf, n);
+		break;
+#endif
 	default:
 		break;
 	};
@@ -1722,6 +1782,11 @@ static int __init hwinfo_init(void)
 		printk(KERN_ERR "%s: sysfs_create_group failed\n", __func__);
 	}
     //get_current_cpuid();
+
+#ifdef CONFIG_HBM_SUPPORT
+	ontim_hwinfo_register(hbm, "hbm");
+#endif
+
 	//arch_read_hardware_id = msm_read_hardware_id;
 	//printk(KERN_ERR "%s:hwinfo sys node create success \n", __func__);
 	return 0;
