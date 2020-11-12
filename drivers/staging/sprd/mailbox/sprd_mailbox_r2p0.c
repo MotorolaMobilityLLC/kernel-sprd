@@ -163,7 +163,7 @@ static unsigned long sprd_outbox_base;
 static unsigned long sprd_global_base;
 
 #define REGS_RECV_MBOX_SENSOR_BASE (sprd_outbox_base\
-	+ (mbox_cfg.outbox_range * mbox_cfg.sensor_core))
+	+ ((unsigned long)mbox_cfg.outbox_range * mbox_cfg.sensor_core))
 
 #define MBOX_GET_FIFO_RD_PTR(val) ((val >> mbox_cfg.rd_bit) & (mbox_cfg.rd_mask))
 #define MBOX_GET_FIFO_WR_PTR(val) ((val >> mbox_cfg.wr_bit) & (mbox_cfg.wr_mask))
@@ -866,7 +866,7 @@ static struct notifier_block mailbox_pm_notifier_block = {
 #if defined(CONFIG_DEBUG_FS)
 static void mbox_check_all_inbox(struct seq_file *m)
 {
-	int i;
+	unsigned long i;
 	unsigned long inbox;
 	u32 status, block;
 
@@ -885,7 +885,7 @@ static void mbox_check_all_inbox(struct seq_file *m)
 
 static void mbox_check_all_outbox(struct seq_file *m)
 {
-	int i;
+	unsigned long i;
 	unsigned long outbox;
 	u32 status;
 
@@ -903,7 +903,7 @@ extern void sipc_debug_putline(struct seq_file *m, char c, int n);
 
 static int mbox_debug_show(struct seq_file *m, void *private)
 {
-	int i;
+	unsigned long i;
 	unsigned long box;
 
 	/* mbox */
@@ -1006,10 +1006,10 @@ static int mbox_debug_show(struct seq_file *m, void *private)
 
 	for (i = 0; i < mbox_cfg.core_cnt; i++) {
 		if (mbox_chns[i].mbox_smsg_handler)
-			seq_printf(m, "    mbox core %d,        max_irq_time: %lu\n",
+			seq_printf(m, "    mbox core %ld,        max_irq_time: %lu\n",
 				   i, mbox_chns[i].max_irq_proc_time);
 
-		seq_printf(m, "    mbox core %d,        max_recv_flag_cnt: %lu\n",
+		seq_printf(m, "    mbox core %ld,        max_recv_flag_cnt: %lu\n",
 			   i, mbox_chns[i].max_recv_flag_cnt);
 	}
 
@@ -1018,9 +1018,9 @@ static int mbox_debug_show(struct seq_file *m, void *private)
 	seq_puts(m, "\n5. mailbox total:\n");
 
 	for (i = 0; i < mbox_cfg.core_cnt; i++) {
-		seq_printf(m, "    mbox core %d,        recv_mail_cnt: %u\n",
+		seq_printf(m, "    mbox core %ld,        recv_mail_cnt: %u\n",
 			   i, g_recv_cnt[i]);
-		seq_printf(m, "    mbox core %d,        send_mail_cnt: %u\n",
+		seq_printf(m, "    mbox core %ld,        send_mail_cnt: %u\n",
 			   i, g_send_cnt[i]);
 	}
 
