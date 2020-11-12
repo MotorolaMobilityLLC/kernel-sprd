@@ -1,0 +1,90 @@
+/*
+ * NT36525B DJN HD Scaling-Up LCD config dtsi file for spreadtrum
+ *
+ * Copyright (C) 2018, Spreadtrum Communications Inc.
+ *
+ * SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+ */
+
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			lcds {
+				lcd_nt36525b_djn_mipi_hd: lcd_nt36525b_djn_mipi_hd {
+
+					sprd,dsi-work-mode = <3>; /* video burst mode*/
+					sprd,dsi-lane-number = <4>;
+					sprd,dsi-color-format = "rgb888";
+
+					sprd,phy-bit-clock = <691000>;	/* kbps */    
+					sprd,phy-escape-clock = <20000>;/* kHz */  
+
+					sprd,width-mm = <68>;
+					sprd,height-mm = <151>;
+
+					//sprd,esd-check-mode = <0>;
+					//sprd,esd-check-period = <2000>;
+					//sprd,esd-check-regs = <0xA>;
+					//sprd,esd-return-code = <0x9c>;
+
+					sprd,power-i2c-bus = <4>;
+        			sprd,power-i2c-addr = <0x3E>;
+        			/*sprd,power-i2c-speed = <400000>;*/
+        			sprd,power-i2c-reg = [00 01 03 FF];
+        			sprd,power-i2c-val = [12 12 03 80];
+
+					sprd,reset-on-sequence = <1 10>, <0 10>, <1 10>;
+					sprd,reset-off-sequence = <1 10>;
+
+					sprd,use-dcs-write;
+
+					sprd,initial-command = [
+						15 00 00 02 FF 23
+            			15 00 00 02 FB 01
+            			15 00 00 02 04 05
+            			15 00 00 02 05 2D
+            			15 00 00 02 06 01
+            			15 00 00 02 FF 10
+            			15 00 00 02 FB 01
+            			39 00 00 03 68 03 01
+            		    39 00 00 03 51 07 FF
+            			15 00 00 02 53 2C
+            			15 00 00 02 55 01
+            			05 00 00 01 29
+            			05 64 00 01 11
+						];
+
+					sprd,sleep-in-command = [
+						05 00 00 01 28
+            			05 3C 00 01 10
+						];
+
+					display-timings {
+						native-mode = <&nt36525b_djn_timing0>;
+
+						nt36525b_djn_timing0: timing0 {
+							clock-frequency = <96000000>;       
+							hactive = <720>;
+							vactive = <1600>;
+							hback-porch = <60>;
+							hfront-porch = <64>;
+							vback-porch = <244>;
+							vfront-porch = <8>;
+							hsync-len = <4>;
+							vsync-len = <2>;
+						};
+					};
+			
+					oled-backlight {			
+						default-brightness = <2047>;			
+						sprd,max-level = <2047>;
+						brightness-levels = [				
+            		    	39 00 00 03 51 07 FF
+						];
+					};
+				};
+			};
+		};
+	};
+};
