@@ -1379,18 +1379,18 @@
 							<&gpu_sys>,
 							<&mm_sys>;
 					audcp_sys: audcp-sys {
-						dcdc-subsys-tune-enable = <0x150 5 0>;
+						dcdc-subsys-tune-enable = <0x150 5 1>;
 					};
 					gpu_sys: gpu-sys {
 						dcdc-subsys-tune-enable = <0x150 1 1>;
 					};
 
 					mm_sys: mm-sys {
-						dcdc-subsys-tune-enable = <0x150 2 0>;
+						dcdc-subsys-tune-enable = <0x150 2 1>;
 					};
 				};
 				dcdc_modem: dcdc-modem {
-					dcdc-dvfs-enable = <0x3c 20 0>;
+					dcdc-dvfs-enable = <0x3c 20 1>;
 					dcdc-judge-vol-sw = <0x3c 1 0x7 7>;
 					dcdc-subsys-cells = <&pubcp_sys>,
 							<&wtlcp_sys>,
@@ -1402,7 +1402,7 @@
 						dcdc-subsys-tune-enable = <0x150 3 0>;
 					};
 					ap_sys: ap-sys {
-						dcdc-subsys-tune-enable = <0x150 0 0>;
+						dcdc-subsys-tune-enable = <0x150 0 1>;
 					};
 				};
 			};
