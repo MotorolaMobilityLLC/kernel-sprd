@@ -12763,8 +12763,8 @@ CONFIG_SPRD_APB_BUSMONITOR
 	[missing plat description] missing plat don't use this IP
 	[function] Enable APB busmonitor function
 CONFIG_SPRD_APSYS_DVFS_DEVFREQ
-	[arch] arm64
-	[plat] sharkl5,sharkl5Pro
+	[arch] all
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] sharkl3
 	[field] make
 	[subsys] devfreq
@@ -13722,8 +13722,8 @@ CONFIG_SPRD_TIMER
 	[missing plat description] none
 	[function] Support for Spreadtrum ARM based SoCs.
 CONFIG_SPRD_TOP_DVFS_DEVFREQ
-	[arch] arm64
-	[plat] sharkl5,sharkl5Pro
+	[arch] all
+	[plat] sharkl5,sharkl5Pro,sharkl5_32
 	[missing plat] sharkl3
 	[field] make
 	[subsys] devfreq
