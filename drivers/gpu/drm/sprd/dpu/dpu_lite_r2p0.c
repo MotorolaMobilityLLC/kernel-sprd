@@ -1419,13 +1419,14 @@ static void dpu_enhance_set(struct dpu_context *ctx, u32 id, void *param)
 	case ENHANCE_CFG_ID_CM:
 		memcpy(&cm_copy, param, sizeof(cm_copy));
 		cm = &cm_copy;
-		reg->cm_coef01_00 = (cm->coef01 << 16) | cm->coef00;
-		reg->cm_coef03_02 = (cm->coef03 << 16) | cm->coef02;
-		reg->cm_coef11_10 = (cm->coef11 << 16) | cm->coef10;
-		reg->cm_coef13_12 = (cm->coef13 << 16) | cm->coef12;
-		reg->cm_coef21_20 = (cm->coef21 << 16) | cm->coef20;
-		reg->cm_coef23_22 = (cm->coef23 << 16) | cm->coef22;
-		reg->dpu_enhance_cfg |= BIT(3);
+		writel((cm->coef01 << 16) | cm->coef00, &reg->cm_coef01_00);
+		writel((cm->coef03 << 16) | cm->coef02, &reg->cm_coef03_02);
+		writel((cm->coef11 << 16) | cm->coef10, &reg->cm_coef11_10);
+		writel((cm->coef13 << 16) | cm->coef12, &reg->cm_coef13_12);
+		writel((cm->coef21 << 16) | cm->coef20, &reg->cm_coef21_20);
+		writel((cm->coef23 << 16) | cm->coef22, &reg->cm_coef23_22);
+		enhance_en |= BIT(3);
+		writel(enhance_en, &reg->dpu_enhance_cfg);
 		pr_info("enhance cm set\n");
 		break;
 	case ENHANCE_CFG_ID_LTM:
@@ -1672,12 +1673,12 @@ static void dpu_enhance_reload(struct dpu_context *ctx)
 
 	if (enhance_en & BIT(3)) {
 		cm = &cm_copy;
-		reg->cm_coef01_00 = (cm->coef01 << 16) | cm->coef00;
-		reg->cm_coef03_02 = (cm->coef03 << 16) | cm->coef02;
-		reg->cm_coef11_10 = (cm->coef11 << 16) | cm->coef10;
-		reg->cm_coef13_12 = (cm->coef13 << 16) | cm->coef12;
-		reg->cm_coef21_20 = (cm->coef21 << 16) | cm->coef20;
-		reg->cm_coef23_22 = (cm->coef23 << 16) | cm->coef22;
+		writel((cm->coef01 << 16) | cm->coef00, &reg->cm_coef01_00);
+		writel((cm->coef03 << 16) | cm->coef02, &reg->cm_coef03_02);
+		writel((cm->coef11 << 16) | cm->coef10, &reg->cm_coef11_10);
+		writel((cm->coef13 << 16) | cm->coef12, &reg->cm_coef13_12);
+		writel((cm->coef21 << 16) | cm->coef20, &reg->cm_coef21_20);
+		writel((cm->coef23 << 16) | cm->coef22, &reg->cm_coef23_22);
 		pr_info("enhance cm reload\n");
 	}
 
