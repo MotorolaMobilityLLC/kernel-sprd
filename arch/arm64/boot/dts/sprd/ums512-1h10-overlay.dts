@@ -498,7 +498,7 @@
 };
 
 &i2c2 {
-	status = "okay";
+	status = "disabled";
 	clock-frequency = <400000>;
 
 	ak4377_hifi: ak4377@10 {
@@ -589,6 +589,11 @@
 	};
 
 };
+
+&spi2 {
+	status = "okay";
+};
+#include "novatek-nt36xxx-spi.dtsi"
 
 &aon_i2c0 {
 	status = "okay";
