@@ -121,7 +121,7 @@
 	};
 
 	sprd-sensorhub {
-		 compatible = "sprd,qogirl6-sensorhub";
+		 compatible = "sprd,qogirl6-sensorhub", "sprd,sensor-hub";
 	};
 
 	thm_zone: thermal-zones {

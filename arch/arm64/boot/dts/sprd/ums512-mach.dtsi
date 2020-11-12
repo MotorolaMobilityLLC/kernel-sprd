@@ -124,7 +124,7 @@
 	};
 
 	sprd-sensorhub {
-		 compatible = "sprd,sharkl5Pro-sensorhub";
+		 compatible = "sprd,sharkl5Pro-sensorhub", "sprd,sensor-hub";
 	};
 
 	reserved_memory: reserved-memory {
