@@ -16,6 +16,7 @@
 #include "lcd/l608_lcd_ili9881d_mipi.dtsi"
 #include "lcd/lcd_ili9881h_skyworth_mipi_hd.dtsi"
 #include "lcd/l608_lcd_icnl9911c_mipi.dtsi"
+#include "lcd/lcd_icnl9911c_hlt_mipi_hd.dtsi"
 #include "lcd/lcd_ili9882n_skyworth_mipi_hd.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
@@ -31,6 +32,7 @@
 		serial0 = &uart0;
 		serial1 = &uart1;
 		i2c3 = &i2c3;
+		spi1 = &spi1;
 	};
 
 	memory: memory {
