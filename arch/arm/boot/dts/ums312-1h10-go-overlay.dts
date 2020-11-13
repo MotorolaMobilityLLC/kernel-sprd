@@ -239,8 +239,8 @@
 };
 
 &reserved_memory {
-	fd_reserved: face-mem@fd1c0000{
-		reg = <0xfd1c0000 0x01e00000>;
+	fd_reserved: face-mem@bec5e000{
+		reg = <0xbec5e000 0x00500000>;
 	};
 };
 
@@ -570,5 +570,21 @@
 	gpio_31: sim0 {
 		pins = "SHARKL5_GPIO31";
 		function = "func4";
+	};
+};
+
+&ion {
+	heap@3 {
+		reg = <3>;
+		label = "carveout_fb";
+		type = <2>;
+		memory-region = <&fb_reserved>;
+	};
+
+	heap@4 {
+		reg = <4>;
+		label = "carveout_fd";
+		type = <2>;
+		memory-region = <&fd_reserved>;
 	};
 };
