@@ -226,7 +226,7 @@
 		capacity-temp-table-0 = <50 100>, <25 100>, <0 96>, <(-10) 88>;
 		resistance-temp-table-0 = <50 67>, <25 100>, <0 218>, <(-10) 434>;
 		charge-sdp-current-microamp = <500000 500000>;
-		charge-dcp-current-microamp = <1050000 3000000>;
+		charge-dcp-current-microamp = <2000000 2100000>;
 		charge-cdp-current-microamp = <500000 500000>;
 		charge-unknown-current-microamp = <500000 500000>;
 
@@ -259,12 +259,12 @@
 
 		cm-fullbatt-vchkdrop-ms = <30000>;
 		cm-fullbatt-vchkdrop-volt = <60000>;
-		cm-fullbatt-voltage = <4380000>;
+		cm-fullbatt-voltage = <4390000>;
 		cm-fullbatt-current = <120000>;
 		cm-fullbatt-capacity = <100>;
 
 		cm-num-chargers = <1>;
-		cm-chargers = "bq24157_charger";
+		cm-chargers = "charger";
 		cm-fuel-gauge = "sc27xx-fgu";
 
 		/* in deci centigrade */
@@ -295,8 +295,8 @@
 		/* drop voltage in microVolts to restart charging */
 		cm-charge-voltage-drop = <700000>;
 
-		cm-dcp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 1000000 4400000>,
-			<1450 1420 1050000 4400000>, <1550 1520 1050000 4200000>;
+		cm-dcp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 1050000 4400000>,
+			<1450 1420 2000000 4400000>, <1550 1520 2000000 4200000>;
 		cm-sdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 500000 4400000>,
 			<1450 1420 500000 4400000>, <1550 1520 500000 4200000>;
 		cm-cdp-jeita-temp-table = <1000 1020 0 4200000>, <1150 1180 500000 4400000>,
@@ -577,7 +577,7 @@
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>;
-		vddvbus:bq24157-otg-vbus {
+		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
 	};
