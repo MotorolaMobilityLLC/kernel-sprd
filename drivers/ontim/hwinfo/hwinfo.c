@@ -353,7 +353,7 @@ static int pars_usb_type_char(char *pcBuf, char *pcRes)
 	return 0;
 
 }
-#define POWER_USB_ONLINE_FILE "/sys/class/power_supply/bq24157_charger/usb_type"
+#define POWER_USB_ONLINE_FILE "/sys/class/power_supply/charger/usb_type"
 static int get_power_usb_type(void)
 {
 	char buf[64] = {0};
