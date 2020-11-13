@@ -1101,6 +1101,10 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		val->intval = data->boot_cap;
 		break;
 
+	case POWER_SUPPLY_PROP_TYPE:
+		val->intval = POWER_SUPPLY_TYPE_UNKNOWN;
+		break;
+
 	default:
 		ret = -EINVAL;
 		break;
@@ -1191,6 +1195,7 @@ static enum power_supply_property sc27xx_fgu_props[] = {
 	POWER_SUPPLY_PROP_CALIBRATE,
 	POWER_SUPPLY_PROP_VOLTAGE_BOOT,
 	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
+	POWER_SUPPLY_PROP_TYPE,
 };
 
 static const struct power_supply_desc sc27xx_fgu_desc = {
