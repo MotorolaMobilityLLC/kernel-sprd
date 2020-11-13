@@ -1108,6 +1108,7 @@ dtb-$(CONFIG_ARCH_SPRD) += \
 	sp9863a.dtb \
 	sp7731e.dtb \
 	sp9832e.dtb \
+	sp9832e-w10v1.dtb \
 	ums312.dtb
 
 dtbo-$(CONFIG_ARCH_SPRD) += \
