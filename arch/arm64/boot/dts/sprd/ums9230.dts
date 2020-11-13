@@ -14,6 +14,7 @@
 #include "sc2730.dtsi"
 #include "ums9230-mach.dtsi"
 #include "ums9230-modem.dtsi"
+#include "ums9230-wcn.dtsi"
 
 / {
 	model = "Spreadtrum UMS9230 1H10 SoC";
