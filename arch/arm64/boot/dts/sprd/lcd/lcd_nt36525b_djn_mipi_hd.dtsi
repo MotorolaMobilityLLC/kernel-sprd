@@ -77,8 +77,8 @@
 					};
 			
 					oled-backlight {			
-						default-brightness = <2047>;			
-						sprd,max-level = <2047>;
+						default-brightness = <33>;	
+						sprd,max-level = <255>;
 						brightness-levels = [				
             		    	39 00 00 03 51 07 FF
 						];
