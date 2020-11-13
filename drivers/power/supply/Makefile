@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 subdir-ccflags-$(CONFIG_POWER_SUPPLY_DEBUG) := -DDEBUG
 
-GCOV_PROFILE := $(CONFIG_SUPPLY_GCOV)
+#GCOV_PROFILE := $(CONFIG_SUPPLY_GCOV)
 
 power_supply-y				:= power_supply_core.o
 power_supply-$(CONFIG_SYSFS)		+= power_supply_sysfs.o
@@ -67,6 +67,7 @@ obj-$(CONFIG_CHARGER_LP8727)	+= lp8727_charger.o
 obj-$(CONFIG_CHARGER_LP8788)	+= lp8788-charger.o
 obj-$(CONFIG_CHARGER_GPIO)	+= gpio-charger.o
 obj-$(CONFIG_CHARGER_MANAGER)	+= charger-manager.o
+GCOV_PROFILE_charger-manager.o := $(CONFIG_SUPPLY_GCOV)
 obj-$(CONFIG_CHARGER_LTC3651)	+= ltc3651-charger.o
 obj-$(CONFIG_CHARGER_MAX14577)	+= max14577_charger.o
 obj-$(CONFIG_CHARGER_DETECTOR_MAX14656)	+= max14656_charger_detector.o
@@ -87,9 +88,13 @@ obj-$(CONFIG_AXP288_CHARGER)	+= axp288_charger.o
 obj-$(CONFIG_CHARGER_CROS_USBPD)	+= cros_usbpd-charger.o
 obj-$(CONFIG_CHARGER_SC2731)	+= sc2731_charger.o
 obj-$(CONFIG_FUEL_GAUGE_SC27XX)	+= sc27xx_fuel_gauge.o
+GCOV_PROFILE_sc27xx_fuel_gauge.o := $(CONFIG_SUPPLY_GCOV)
 obj-$(CONFIG_CHARGER_SC2703)	+= sc2703-charger.o
+GCOV_PROFILE_sc2703-charger.o := $(CONFIG_SUPPLY_GCOV)
 obj-$(CONFIG_CHARGER_FAN54015)	+= fan54015-charger.o
+GCOV_PROFILE_fan54015-charger.o := $(CONFIG_SUPPLY_GCOV)
 obj-$(CONFIG_CHARGER_ETA6937)	+= eta6937-charger.o
+GCOV_PROFILE_eta6937-charger.o := $(CONFIG_SUPPLY_GCOV)
 obj-$(CONFIG_CHARGER_BQ2560X)	+= bq2560x-charger.o
 obj-$(CONFIG_CHARGER_SC2720)	+= sc2720_charger.o
 obj-$(CONFIG_CHARGER_SC2721)	+= sc2721_charger.o
