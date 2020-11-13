@@ -719,7 +719,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
-	.name			= "bq2560x_charger",
+	.name			= "charger",
 	.type			= POWER_SUPPLY_TYPE_USB,
 	.properties		= bq2560x_usb_props,
 	.num_properties		= ARRAY_SIZE(bq2560x_usb_props),

@@ -439,13 +439,13 @@ static void bq24157_charger_stop_charge(struct bq24157_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "disable bq24157 charge failed\n");
 }
-
+static u32 max_cur =1150000;
 static int bq24157_charger_set_current(struct bq24157_charger_info *info,
 					u32 cur)
 {
 	u8 reg_val;
 
-	dev_err(info->dev, "%s;%d;\n",__func__,cur);
+	dev_err(info->dev, "%s;%d;%d;\n",__func__,cur,max_cur);
 
 	if (cur <= 500000) 
 	{
@@ -454,6 +454,8 @@ static int bq24157_charger_set_current(struct bq24157_charger_info *info,
 	}else {
 		bq24157_set_io_level(info,0);
 
+		if(cur > max_cur)
+			cur= max_cur ;
 		reg_val = (cur-550000)/100000;
 	}
 
@@ -870,7 +872,7 @@ static enum power_supply_property bq24157_usb_props[] = {
 };
 
 static const struct power_supply_desc bq24157_charger_desc = {
-	.name			= "bq24157_charger",
+	.name			= "charger",
 	.type			= POWER_SUPPLY_TYPE_USB,
 	.properties		= bq24157_usb_props,
 	.num_properties		= ARRAY_SIZE(bq24157_usb_props),
@@ -990,8 +992,8 @@ static const struct regulator_ops bq24157_charger_vbus_ops = {
 };
 
 static const struct regulator_desc bq24157_charger_vbus_desc = {
-	.name = "bq24157-otg-vbus",
-	.of_match = "bq24157-otg-vbus",
+	.name = "otg-vbus",
+	.of_match = "otg-vbus",
 	.type = REGULATOR_VOLTAGE,
 	.owner = THIS_MODULE,
 	.ops = &bq24157_charger_vbus_ops,
