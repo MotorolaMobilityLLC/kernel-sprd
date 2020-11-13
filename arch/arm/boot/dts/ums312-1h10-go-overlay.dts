@@ -489,3 +489,86 @@
 	slew-rate = <5000>; /* 5000uV/us */
 };
 
+&pin_controller {
+	pinctrl-names =
+	/* keyout0 ~ keyout2 */
+	"gpio_121", "gpio_122", "gpio_123",
+	/* keyin0 ~ keyin2 */
+	"gpio_124", "gpio_125", "gpio_126",
+	/* extint0, extint1, sda3, scl3 */
+	"gpio_144", "gpio_145", "gpio_146", "gpio_147",
+	/* sim0_det, sim1_det */
+	"gpio_9", "gpio_31";
+	pinctrl-0 = <&gpio_121>;
+	pinctrl-1 = <&gpio_122>;
+	pinctrl-2 = <&gpio_123>;
+	pinctrl-3 = <&gpio_124>;
+	pinctrl-4 = <&gpio_125>;
+	pinctrl-5 = <&gpio_126>;
+	pinctrl-6 = <&gpio_144>;
+	pinctrl-7 = <&gpio_145>;
+	pinctrl-8 = <&gpio_146>;
+	pinctrl-9 = <&gpio_147>;
+	pinctrl-10 = <&gpio_9>;
+	pinctrl-11 = <&gpio_31>;
+
+	gpio_121: keyout0 {
+		pins = "SHARKL5_KEYOUT0";
+		function = "func4";
+	};
+
+	gpio_122: keyout1 {
+		pins = "SHARKL5_KEYOUT1";
+		function = "func4";
+	};
+
+	gpio_123: keyout2 {
+		pins = "SHARKL5_KEYOUT2";
+		function = "func4";
+	};
+
+	gpio_124: keyin0 {
+		pins = "SHARKL5_KEYIN0";
+		function = "func4";
+	};
+
+	gpio_125: keyin1 {
+		pins = "SHARKL5_KEYIN1";
+		function = "func4";
+	};
+
+	gpio_126: keyin2 {
+		pins = "SHARKL5_KEYIN2";
+		function = "func4";
+	};
+
+	gpio_144: extint0 {
+		pins = "SHARKL5_EXTINT0";
+		function = "func4";
+	};
+
+	gpio_145: extint1 {
+		pins = "SHARKL5_EXTINT1";
+		function = "func4";
+	};
+
+	gpio_146: sda3 {
+		pins = "SHARKL5_SDA3";
+		function = "func4";
+	};
+
+	gpio_147: scl3 {
+		pins = "SHARKL5_SCL3";
+		function = "func4";
+	};
+
+	gpio_9: sim1 {
+		pins = "SHARKL5_GPIO9";
+		function = "func4";
+	};
+
+	gpio_31: sim0 {
+		pins = "SHARKL5_GPIO31";
+		function = "func4";
+	};
+};
