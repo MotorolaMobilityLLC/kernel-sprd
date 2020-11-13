@@ -106,5 +106,9 @@ obj-$(CONFIG_TOUCHSCREEN_COLIBRI_VF50)	+= colibri-vf50-ts.o
 obj-$(CONFIG_TOUCHSCREEN_ROHM_BU21023)	+= rohm_bu21023.o
 obj-$(CONFIG_TOUCHSCREEN_ADAPTIVE)      += adaptive-ts/
 obj-$(CONFIG_TOUCHSCREEN_GT9XX_TS)    += gt9xx_ts/
+ifeq ($(BUILD_PROJECT_NAME),S6301)
 obj-$(CONFIG_TOUCHSCREEN_CHIPONE) += chipone-tddi/
+else
+obj-$(CONFIG_TOUCHSCREEN_CHIPONE) += chipone-tddi-spi/
+endif
 obj-$(CONFIG_TOUCHSCREEN_ILI9882N_SKY)   += ili9882n_sky/
