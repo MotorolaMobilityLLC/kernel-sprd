@@ -1009,6 +1009,9 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 #ifdef    DUAL_85_VERSION
 			if(value >=540)
 				val->intval = 540;
+                      else if(value <= 100)
+	                     val->intval  = 100;
+			
 			d85_temp =value;
 			ret = 0;
 #else
