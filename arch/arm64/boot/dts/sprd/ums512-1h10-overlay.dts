@@ -144,7 +144,7 @@
 				cm-fullbatt-capacity = <100>;
 
 				cm-num-chargers = <1>;
-				cm-chargers = "fan54015_charger";
+				cm-chargers = "bq2560x_charger";          /* by pony date20201113 for charge config*/
 				cm-fuel-gauge = "sc27xx-fgu";
 
 				/* in deci centigrade */
@@ -543,7 +543,7 @@
 
 &i2c4 {
 	status = "okay";
-
+/*
 	fan54015_chg: charger@6a {
 		compatible = "fairchild,fan54015_chg";
 		reg = <0x6a>;
@@ -554,7 +554,7 @@
 			regulator-name = "vddvbus";
 		};
 	};
-
+*/
 	ams_tcs3430: tcs3430@39 {
 		compatible = "ams,tcs3430";
 		reg = <0x39>;
@@ -604,7 +604,7 @@
 
 &aon_i2c0 {
 	status = "okay";
-	clock-frequency = <1000000>;
+	clock-frequency = <400000>;     /* by pony for charge config date20201113*/
 
 	fan53555_dcdc: regulator@60 {
 		compatible = "fcs,fan53555";
@@ -623,6 +623,19 @@
 		reg = <0x62>;
 		dvfs-dcdc-i2c = <1>;
 	};
+
+    /* by pony for charge config date20201113 start*/
+	bq2560x_chg: charger@6b {
+		compatible = "ti,bq2560x_chg";
+		reg = <0x6b>;
+		phys = <&hsphy>;
+		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+	};
+	/* by pony for charge config date20201113 end*/
 };
 
 &panel {
