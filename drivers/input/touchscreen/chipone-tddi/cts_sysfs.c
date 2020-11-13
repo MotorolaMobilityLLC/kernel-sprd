@@ -9,7 +9,7 @@
 #include "cts_i2c_driver.h"
 #include "cts_firmware.h"
 #include "cts_strerror.h"
-/* BEGIN Ontim, jiawentao, 21/09/2020, 9987208, St-result:PASS, update icnl9911c-truly self test function. */
+/* BEGIN Ontim, 21/09/2020, 9987208, St-result:PASS, update icnl9911c-truly self test function. */
 #include <linux/syscalls.h>
 /* END 9987208 */
 
@@ -1347,7 +1347,7 @@ static ssize_t noise_test_store(struct device *dev,
 static DEVICE_ATTR(noise_test, S_IWUSR | S_IRUGO,
         noise_test_show, noise_test_store);
 
-/* BEGIN Ontim, jiawentao, 21/09/2020, 9987208, St-result:PASS, update icnl9911c-truly self test function. */
+/* BEGIN Ontim, 21/09/2020, 9987208, St-result:PASS, update icnl9911c-hlt self test function. */
 #define SELF_TEST_DATA_DIR	"/sdcard/rawdata"
 
 static int cts_self_test_mkdir_for_data(void)
@@ -1435,7 +1435,7 @@ static ssize_t self_test_show(struct device *dev,
         .num_invalid_node = 0,
         .invalid_nodes = NULL,
     };
-/* BEGIN Ontim, jiawentao, 19/09/2020, 9985054, St-result:PASS, update icnl9911c rawdata test function. */ 
+/* BEGIN Ontim, 19/09/2020, 9985054, St-result:PASS, update icnl9911c rawdata test function. */ 
     int rawdata_min = 700, rawdata_max = 1500;
     int noise_max = 50;
     int open_min = 200;
@@ -1448,6 +1448,7 @@ static ssize_t self_test_show(struct device *dev,
     int short_test_result = 0;
     int comp_cap_test_result = 0;
 	int ret;
+    ssize_t num_read_chars = 0;
 
     rawdata_test_param.min = &rawdata_min;
     rawdata_test_param.max = &rawdata_max;
@@ -1496,12 +1497,14 @@ static ssize_t self_test_show(struct device *dev,
 		open_test_result ||
 		short_test_result ||
 		comp_cap_test_result) {
-		buf[0] = '1'; /* Fail */
+	cts_info("test tp result fail\n");
+		num_read_chars =  snprintf(buf, PAGE_SIZE, "FAIL\n");
 	} else {
-		buf[0] = '0'; /* Pass */
+	cts_info("test tp result pass\n");
+		num_read_chars =  snprintf(buf, PAGE_SIZE, "PASS\n");
 	}
 
-	return 1;
+	return num_read_chars;
     /*return scnprintf(buf, PAGE_SIZE,
         "Rawdata  test: %s\n"
         "Noise    test: %s\n"
