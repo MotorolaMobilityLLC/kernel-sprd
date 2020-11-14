@@ -48,9 +48,18 @@ config NFC_PORT100
 
 	  If unsure, say N.
 
+config NFC_PN557
+    bool "Nxp NFC pn557 Controller"
+    ---help---
+      You'll have to say Y if your computer contains an pn557 I2C device that
+      you want to use under Linux.
+
+      You can say N here if you don't have any pn557 I2C connected to your computer.
+
 source "drivers/nfc/fdp/Kconfig"
 source "drivers/nfc/pn544/Kconfig"
 source "drivers/nfc/pn533/Kconfig"
+source "drivers/nfc/pn557/Kconfig"
 source "drivers/nfc/microread/Kconfig"
 source "drivers/nfc/nfcmrvl/Kconfig"
 source "drivers/nfc/st21nfca/Kconfig"

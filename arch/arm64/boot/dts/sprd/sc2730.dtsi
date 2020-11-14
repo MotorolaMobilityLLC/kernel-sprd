@@ -157,6 +157,12 @@
 			reg = <0x1800>, <0x1ba0>, <0x1b98>;
 		};
 
+		refout@1800 {
+			compatible = "sprd,sc27xx-refout";
+			regsw = <0x1AEC>;
+			refnum = <5>;
+		};
+
 		power-controller@1800 {
 			compatible = "sprd,sc27xx-regulator", "sprd,sc2730-regulator";
 
