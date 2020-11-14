@@ -3,6 +3,7 @@ obj-$(CONFIG_SPRD_7SRESET)	+= sprd_7sreset.o
 obj-$(CONFIG_SPRD_SYSTIMER)	+= sprd_systimer.o
 obj-$(CONFIG_SPRD_IOMMU)        += iommu/
 obj-$(CONFIG_SPRD_PMIC_SYSCON)	+= sprd_pmic_syscon.o
+obj-$(CONFIG_SPRD_PMIC_REFOUT)	+= sprd_pmic_refout.o
 obj-y				+= modem/
 obj-y				+= domain/
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/

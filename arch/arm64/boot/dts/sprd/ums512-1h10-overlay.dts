@@ -595,6 +595,15 @@
 		flash-sync-gpios = <&ap_gpio 138 0>;
 	};
 
+	pn557_nfc: nxp-nfc@0x28{
+		compatible = "nxp,pn557";
+		reg = <0x28>;
+		nxp,pn557-clkreq = <&ap_gpio 84 0>;
+		nxp,pn557-irq = <&ap_gpio 85 0>;
+		nxp,pn557-fw-dwnld = <&ap_gpio 96 0>;
+		nxp,pn557-ven = <&ap_gpio 97 0>;
+	};
+
 };
 
 &spi2 {
