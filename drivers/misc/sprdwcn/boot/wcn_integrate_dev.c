@@ -201,6 +201,9 @@ static void wcn_codes_debug(void)
 static void wcn_config_ctrlreg(struct wcn_device *wcn_dev, u32 start, u32 end)
 {
 	u32 reg_read, type, i, val, utemp_val;
+	u32 debug_value = 0;
+	u32 wcn_power_status = 0;
+	u32 timeout = 0;
 
 	for (i = start; i < end; i++) {
 		val = 0;
@@ -219,6 +222,42 @@ static void wcn_config_ctrlreg(struct wcn_device *wcn_dev, u32 start, u32 end)
 		}
 
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			if (type == REGMAP_WCN_BTWF_AHB ||
+				type == REGMAP_WCN_GNSS_SYS_AHB) {
+				timeout = 0;
+				WCN_INFO("wcn power btwf check!\n");
+				do {
+					if (wcn_power_status_check(wcn_dev)) {
+						wcn_power_status = 1;
+						break;
+					}
+					udelay(wcn_dev->ctrl_us_delay[i]);
+					WCN_INFO("wait poweron timeout %d!\n",
+							timeout);
+				} while (timeout++ < 300);
+				if (!wcn_power_status) {
+					WCN_ERR("wcn power on fail!\n");
+					return;
+				}
+				WCN_INFO("wcn poweron finish\n");
+			}
+			/* release cpu reset  manually */
+			if (s_wcn_device.boot_manually == true &&
+					wcn_dev->ctrl_reg[i] == 0x0c) {
+				WCN_INFO("manual boot!\n");
+				/* set cp run to while(1) */
+				/* 0x0 */
+				debug_value = 0xE7FE;
+				wcn_write_data_to_phy_addr(
+					wcn_dev->base_addr + 0x0,
+					&debug_value, sizeof(debug_value));
+				/* 0x4 */
+				debug_value = 0x1;
+				wcn_write_data_to_phy_addr(
+					wcn_dev->base_addr + 0x4,
+					&debug_value, sizeof(debug_value));
+				continue;
+			}
 			if (wcn_dev->ctrl_rw_offset[i] == 0x00) {
 				/* need to clear bit */
 				utemp_val = val & (~wcn_dev->ctrl_mask[i]);
@@ -378,6 +417,8 @@ static void wcn_parse_dt_regmap_judge(struct wcn_device *wcn_dev)
 
 	wcn_dev->need_regmap[REGMAP_PMU_APB] = TRUE;
 	wcn_dev->need_regmap[REGMAP_ANLG_WRAP_WCN] = TRUE;
+	wcn_dev->need_sync_efuse = TRUE;
+	wcn_dev->need_set_sync_addr = FALSE;
 
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKLE) {
 		wcn_dev->need_regmap[REGMAP_PUB_APB] = TRUE;
@@ -395,7 +436,12 @@ static void wcn_parse_dt_regmap_judge(struct wcn_device *wcn_dev)
 			wcn_dev->need_regmap[REGMAP_WCN_GNSS_SYS_AHB] = TRUE;
 
 		wcn_dev->need_regmap[REGMAP_WCN_AON_AHB] = TRUE;
+		wcn_dev->need_regmap[REGMAP_WCN_AON_APB] = TRUE;
 		wcn_dev->need_regmap[REGMAP_ANLG_WRAP_WCN] = FALSE;
+		wcn_dev->need_sync_efuse = FALSE;
+		wcn_dev->need_set_sync_addr = TRUE;
+		wcn_dev->need_gpio = TRUE;
+		wcn_dev->need_dcxo1v8 = TRUE;
 	}
 	for (i = 0; i < REGMAP_TYPE_NR; i++)
 		WCN_INFO("need_regmap[%d] : %d\n", i, wcn_dev->need_regmap[i]);
@@ -412,6 +458,7 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	const struct of_device_id *of_id =
 		of_match_node(wcn_match_table, np);
 	struct wcn_proc_data *pcproc_data;
+	struct wcn_device_manage *wcn_devm = &s_wcn_device;
 
 	WCN_INFO("%s start!\n", __func__);
 
@@ -531,9 +578,17 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	if (wcn_dev->need_regmap[REGMAP_WCN_AON_AHB] == TRUE) {
 		/* get  wcn aon ahb reg handle */
 		wcn_dev->rmap[REGMAP_WCN_AON_AHB] =
-		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-aon-ahb");
+		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-wcn-aon-ahb");
 		if (IS_ERR(wcn_dev->rmap[REGMAP_WCN_AON_AHB]))
-			WCN_ERR("failed to find sprd,aon-ahb\n");
+			WCN_ERR("failed to find sprd,wcn-aon-ahb\n");
+	}
+
+	if (wcn_dev->need_regmap[REGMAP_WCN_AON_APB] == TRUE) {
+		/* get	wcn aon ahb reg handle */
+		wcn_dev->rmap[REGMAP_WCN_AON_APB] =
+		syscon_regmap_lookup_by_phandle(np, "sprd,syscon-wcn-aon-apb");
+		if (IS_ERR(wcn_dev->rmap[REGMAP_WCN_AON_APB]))
+			WCN_ERR("failed to find sprd,wcn-aon-apb\n");
 	}
 
 	ret = of_property_read_u32(np, "sprd,ctrl-probe-num",
@@ -713,15 +768,26 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	for (i = 0; i < cr_num; i++)
 		WCN_DBG("ctrl_shutdown_type[%d] = 0x%08x\n",
 			i, wcn_dev->ctrl_shutdown_type[i]);
-
 	/* get vddwcn */
-	if (!s_wcn_device.vddwcn) {
-		s_wcn_device.vddwcn = devm_regulator_get(&pdev->dev,
+	if (!wcn_devm->vddwcn) {
+		wcn_devm->vddwcn = devm_regulator_get(&pdev->dev,
 							 "vddwcn");
-		if (IS_ERR(s_wcn_device.vddwcn)) {
+		if (IS_ERR(wcn_devm->vddwcn)) {
 			WCN_ERR("Get regulator of vddwcn error!\n");
 			return -EINVAL;
 		}
+		WCN_INFO("Get regulator of vddwcn\n");
+	}
+
+	/* get dcxo1v8 */
+	if (wcn_dev->need_dcxo1v8 && !wcn_devm->dcxo1v8) {
+		wcn_devm->dcxo1v8 =
+			devm_regulator_get(&pdev->dev, "dcxo1v8");
+		if (IS_ERR(wcn_devm->dcxo1v8)) {
+			WCN_ERR("Get regulator of dcxo1v8 error!\n");
+			return -EINVAL;
+		}
+		WCN_INFO("Get regulator of dcxo1v8\n");
 	}
 
 	/* get vddwifipa: only MARLIN has it */
@@ -731,6 +797,47 @@ static int wcn_parse_dt(struct platform_device *pdev,
 		if (IS_ERR(wcn_dev->vddwifipa)) {
 			WCN_ERR("Get regulator of vddwifipa error!\n");
 			return -EINVAL;
+		}
+		WCN_INFO("Get regulator of vddwifipa\n");
+	}
+	if (wcn_dev->need_gpio) {
+		if (!wcn_devm->merlion_chip_en) {
+			wcn_devm->merlion_chip_en =
+				gpiod_get(&pdev->dev,
+					"merlion-chip-en", GPIOD_OUT_LOW);
+			if (IS_ERR(wcn_devm->merlion_chip_en)) {
+				WCN_ERR("get gpio merlion chip en error!\n");
+				return -EINVAL;
+			}
+			WCN_INFO("get merlion chip gpio\n");
+		}
+		if (!wcn_devm->merlion_reset) {
+			wcn_devm->merlion_reset =
+				gpiod_get(&pdev->dev,
+				"merlion-rst", GPIOD_OUT_LOW);
+			if (IS_ERR(wcn_devm->merlion_reset)) {
+				WCN_ERR("get gpio merlion rst error!\n");
+				return -EINVAL;
+			}
+			WCN_INFO("get merlion rst gpio\n");
+		}
+		if (!wcn_devm->clk_26m_type_sel) {
+			wcn_devm->clk_26m_type_sel =
+				gpiod_get(&pdev->dev,
+				"xtal-26m-type-sel", GPIOD_IN);
+			if (IS_ERR(wcn_devm->clk_26m_type_sel)) {
+				WCN_ERR("get xtal-26m-type-sel error!\n");
+				wcn_devm->clk_xtal_26m.type =
+					WCN_CLOCK_TYPE_TSX;
+			} else {
+				if (gpiod_get_value(wcn_devm->clk_26m_type_sel))
+					wcn_devm->clk_xtal_26m.type =
+						WCN_CLOCK_TYPE_TSX;
+				else
+					wcn_devm->clk_xtal_26m.type =
+						WCN_CLOCK_TYPE_TCXO;
+			}
+			WCN_INFO("get xtal-26m-type-sel gpio\n");
 		}
 	}
 
@@ -768,8 +875,10 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	WCN_INFO("wcn_dev->file_length:%d\n", wcn_dev->file_length);
 	if (ret)
 		return -EINVAL;
-	/*get wcn efuse values from dts*/
-	if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0) {
+
+	/* get wcn efuse values from dts */
+	if (wcn_dev->need_sync_efuse &&
+		strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0) {
 		ret = wcn_efuse_cal_read(np, "wcn_efuse_blk0",
 					 &wcn_efuse_val[0]);
 		if (ret) {
@@ -790,7 +899,7 @@ static int wcn_parse_dt(struct platform_device *pdev,
 			wcn_efuse_val[2] = 0x33333333;
 			WCN_ERR("wcn_efuse_blk2 read error, ret %d\n", ret);
 		}
-		/*only just sharkle*/
+		/* sharkle only */
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKLE) {
 			ret = wcn_efuse_cal_read(np, "wcn_efuse_blk3",
 						 &wcn_efuse_val[3]);
@@ -799,8 +908,10 @@ static int wcn_parse_dt(struct platform_device *pdev,
 					ret);
 		}
 	}
-	/*get gnss efuse values from dts*/
-	if (strcmp(wcn_dev->name, WCN_GNSS_DEV_NAME) == 0) {
+	/* get gnss efuse values from dts */
+	if (wcn_dev->need_sync_efuse &&
+		strcmp(wcn_dev->name, WCN_GNSS_DEV_NAME) == 0) {
+
 		ret = wcn_efuse_cal_read(np, "gnss_efuse_blk0",
 					 &gnss_efuse_val[0]);
 		if (ret)
@@ -817,6 +928,15 @@ static int wcn_parse_dt(struct platform_device *pdev,
 			WCN_ERR("gnss_efuse_blk2 read error, ret %d\n", ret);
 	}
 
+	if (wcn_dev->need_set_sync_addr) {
+		ret = of_property_read_u32_index(np,
+					 "sprd,apcp-sync-addr",
+					 0, (u32 *)&wcn_dev->apcp_sync_addr);
+		WCN_INFO("wcn_dev->apcp-sync-addr:0x%08x\n",
+				    wcn_dev->apcp_sync_addr);
+		/* qogirl6 get apcp sync addr from  */
+		wcn_set_apcp_sync_addr(wcn_dev);
+	}
 	wcn_dev->start = pcproc_data->start;
 	wcn_dev->stop = pcproc_data->stop;
 
@@ -875,6 +995,16 @@ static ssize_t wcn_platform_write(struct file *filp,
 	} else {
 		WCN_ERR("copy_from_user too length %s!\n", buf);
 		return -EINVAL;
+	}
+	if (strncmp(str, "manual_boot_on",
+			strlen("manual_boot_on")) == 0) {
+		s_wcn_device.boot_manually = true;
+		return count;
+	}
+	if (strncmp(str, "manual_boot_off",
+			strlen("manual_boot_off")) == 0) {
+		s_wcn_device.boot_manually = false;
+		return count;
 	}
 
 	if ((flag & BE_CTRL_ON) != 0) {
@@ -1020,11 +1150,21 @@ static int wcn_probe(struct platform_device *pdev)
 	else if (strcmp(wcn_dev->name, WCN_GNSS_DEV_NAME) == 0)
 		s_wcn_device.gnss_device = wcn_dev;
 
-	/* default vddcon is 1.6V, we should set it to 1.2v */
 	if (!s_wcn_device.vddcon_voltage_setted) {
 		s_wcn_device.vddcon_voltage_setted = true;
+		/* default vddcon is 1.6V, we should set it to 1.2v */
+		/* marlin3-integ default vddcon is 1.2vset to 1.2v */
 		wcn_power_set_vddcon(WCN_VDDCON_WORK_VOLTAGE);
 		mutex_init(&s_wcn_device.vddwcn_lock);
+	}
+	if (wcn_dev->need_dcxo1v8 &&
+		!s_wcn_device.dcxo1v8_voltage_setted) {
+		s_wcn_device.dcxo1v8_voltage_setted = true;
+		/* marlin3-integ default dcxo1v8 is 3v set to 1.8v */
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			wcn_power_set_dcxo1v8(WCN_DCXO1V8_WORK_VOLTAGE);
+			mutex_init(&s_wcn_device.dcxo1v8_lock);
+		}
 	}
 
 	if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0) {
@@ -1032,7 +1172,6 @@ static int wcn_probe(struct platform_device *pdev)
 		if (wcn_platform_chip_id() == AON_CHIP_ID_AA)
 			wcn_power_set_vddwifipa(WCN_VDDWIFIPA_WORK_VOLTAGE);
 		wcn_global_source_init();
-
 		/* register ops */
 		wcn_bus_init();
 		/* sipc preinit */
@@ -1041,7 +1180,8 @@ static int wcn_probe(struct platform_device *pdev)
 		proc_fs_init();
 		log_dev_init();
 		mdbg_atcmd_owner_init();
-		wcn_marlin_write_efuse();
+		if (wcn_dev->need_sync_efuse)
+			wcn_marlin_write_efuse();
 		loopcheck_init();
 	} else if (strcmp(wcn_dev->name, WCN_GNSS_DEV_NAME) == 0) {
 		gnss_write_efuse_data();
@@ -1118,6 +1258,9 @@ static void wcn_shutdown(struct platform_device *pdev)
 		}
 		/* vddcon power off */
 		wcn_power_enable_vddcon(false);
+		/* dcxo1v8 power off*/
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+			wcn_power_enable_dcxo1v8(false);
 		wcn_sys_soft_reset();
 		wcn_sys_soft_release();
 		wcn_sys_deep_sleep_en();

@@ -1,6 +1,24 @@
 #ifndef _UMW2631_INTEG_GLB_H_
 #define _UMW2631_INTEG_GLB_H_
 
+/* ap cp sync flag */
+#define MARLIN_CP_INIT_READY_MAGIC	(0xf0f0f0ff)
+#define MARLIN_CP_INIT_START_MAGIC	(0x5a5a5a5a)
+#define MARLIN_CP_INIT_SUCCESS_MAGIC	(0x13579bdf)
+#define MARLIN_CP_INIT_FAILED_MAGIC	(0x88888888)
+
+/* SUB_NAME len not more than 15 bytes */
+#define WCN_DUMP_VERSION_SUB_NAME "SIPC_26xx"
+/* CP2 iram start and end */
+#define WCN_DUMP_CP2_IRAM_START 1
+#define WCN_DUMP_CP2_IRAM_END 2
+/* AP regs start and end */
+#define WCN_DUMP_AP_REGS_START (WCN_DUMP_CP2_IRAM_END + 1)
+#define WCN_DUMP_AP_REGS_END 7
+/* CP2 regs start and end */
+#define WCN_DUMP_CP2_REGS_START (WCN_DUMP_AP_REGS_END + 1)
+#define WCN_DUMP_CP2_REGS_END (ARRAY_SIZE(s_wcn_dump_regs) - 1)
+
 #define CP_START_ADDR		0
 #define CP_RESET_REG		0x40060288
 #define CP_SDIO_PRIORITY_ADDR 0x60300150

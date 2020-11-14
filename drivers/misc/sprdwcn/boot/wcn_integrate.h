@@ -70,6 +70,20 @@
 #define AON_CHIP_ID_AA 0x96360000
 #define AON_CHIP_ID_AC 0x96360002
 
+#define PD_WCN_AUTO_SHUTDOWN_EN BIT(24)
+#define PD_WCN_FORCE_SHUTDOWN BIT(25)
+
+#define WCN_REG_SET_OFFSET 0x1000
+#define WCN_REG_CLEAR_OFFSET 0x2000
+
+/* power domain reg */
+#define PD_WIFI_WRAP_CFG0_OFFSET 0x100
+#define PD_WIFI_WRAP_CFG0_OFFSET_PIKE2 0x50
+#define PD_WIFI_WRAP_CFG0_OFFSET_QOGIRL6 0x3a8
+
+#define WCN_BTWF_CPU_RESET 1
+#define WCN_BTWF_CPU_RESET_RELEASE 2
+
 struct platform_chip_id {
 	u32 aon_chip_id0;
 	u32 aon_chip_id1;
@@ -107,13 +121,6 @@ struct wcn_chip_type {
 	enum wcn_aon_chip_id chiptype;
 };
 
-#define WCN_SPECIAL_SHARME_MEM_ADDR	(0x0017c000)
-struct wifi_special_share_mem {
-	struct wifi_calibration calibration_data;
-	u32 efuse[WIFI_EFUSE_BLOCK_COUNT];
-	u32 calibration_flag;
-};
-
 struct marlin_special_share_mem {
 	u32 init_status;
 	u32 loopcheck_cnt;
@@ -124,6 +131,36 @@ struct gnss_special_share_mem {
 	u32 efuse[GNSS_EFUSE_BLOCK_COUNT];
 };
 
+struct wifi_special_share_mem {
+	struct wifi_calibration calibration_data;
+	u32 efuse[WIFI_EFUSE_BLOCK_COUNT];
+	u32 calibration_flag;
+};
+
+/* gnss cpu view(ddr 6m start) */
+#define WCN_GNSS_SPECIAL_SHARME_MEM_ADDR	(0x001ffc00)
+struct wcn_gnss_special_share_mem {
+	phys_addr_t sync_base_addr;
+	phys_addr_t init_status_phy_addr;
+	phys_addr_t gnss_ddr_offset;
+	phys_addr_t cali_status;
+	phys_addr_t gnss_test;
+};
+
+#ifdef CONFIG_UMW2631_I
+#define WCN_SPECIAL_SHARME_MEM_ADDR	(0x007fdc00)
+struct wcn_special_share_mem {
+	struct marlin_special_share_mem marlin;
+	u32 gnss_flag_addr;
+	u32 include_gnss;
+	u32 cp2_sleep_status;
+	u32 sleep_flag_addr;
+	u32 efuse_temper_magic;
+	u32 efuse_temper_val;
+	struct wifi_special_share_mem wifi;
+};
+#else
+#define WCN_SPECIAL_SHARME_MEM_ADDR	(0x0017c000)
 struct wcn_special_share_mem {
 	/* 0x17c000 */
 	struct wifi_special_share_mem wifi;
@@ -144,6 +181,8 @@ struct wcn_special_share_mem {
 	/* 0x17cf74 */
 	struct gnss_special_share_mem gnss;
 };
+#endif
+/* for qogirl6 */
 
 /* Already defined in include/misc/marlin_platform.h */
 //typedef int (*marlin_reset_callback) (void *para);
@@ -151,6 +190,7 @@ struct wcn_special_share_mem {
 extern struct platform_chip_id g_platform_chip_id;
 extern char functionmask[8];
 extern struct wcn_special_share_mem *s_wssm_phy_offset_p;
+extern struct wcn_gnss_special_share_mem s_wcngnss_sync_addr;
 
 int wcn_write_data_to_phy_addr(phys_addr_t phy_addr,
 			       void *src_data, u32 size);
@@ -174,6 +214,7 @@ void wcn_regmap_raw_write_bit(struct regmap *cur_regmap,
 			      unsigned int val);
 struct regmap *wcn_get_btwf_regmap(u32 regmap_type);
 struct regmap *wcn_get_gnss_regmap(u32 regmap_type);
+phys_addr_t wcn_get_apcp_sync_addr(struct wcn_device *wcn_dev);
 phys_addr_t wcn_get_gnss_base_addr(void);
 bool wcn_get_download_status(void);
 void wcn_set_download_status(bool status);
@@ -185,7 +226,7 @@ void wcn_set_module_status_changed(bool status);
 int marlin_reset_register_notify(void *callback_func, void *para);
 int marlin_reset_unregister_notify(void);
 void wcn_set_module_state(bool status);
-
+void wcn_set_apcp_sync_addr(struct wcn_device *wcn_dev);
 int wcn_send_force_sleep_cmd(struct wcn_device *wcn_dev);
 u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep);
 void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type);
@@ -197,10 +238,14 @@ void wcn_clock_ctrl(bool enable);
 void wcn_sys_soft_release(void);
 void wcn_sys_deep_sleep_en(void);
 void wcn_power_set_vddcon(u32 value);
+void wcn_power_set_dcxo1v8(u32 value);
 int wcn_power_enable_vddcon(bool enable);
+int wcn_power_enable_dcxo1v8(bool enable);
 void wcn_power_set_vddwifipa(u32 value);
 int wcn_marlin_power_enable_vddwifipa(bool enable);
+bool wcn_power_status_check(struct wcn_device *wcn_dev);
 u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev);
 void mdbg_hold_cpu(void);
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void);
+void wcn_merlion_power_control(bool enable);
 #endif

@@ -11,6 +11,7 @@
  */
 #include "bufring.h"
 #include "wcn_glb.h"
+#include "wcn_glb_reg.h"
 #include "wcn_log.h"
 #include "wcn_misc.h"
 #include "mdbg_type.h"
@@ -19,45 +20,15 @@
 /* units is ms, 2500ms */
 #define WCN_DUMP_TIMEOUT 2500
 
-static struct mdbg_ring_t	*mdev_ring;
-gnss_dump_callback gnss_dump_handle;
+/* use for umw2631_integrate only */
+#define WCN_AON_ADDR_OFFSET 0x11000000
 
-static int mdbg_snap_shoot_iram_data(void *buf, u32 addr, u32 len)
-{
-	struct regmap *regmap;
-	u32 i;
-	u8 *ptr = NULL;
-
-	WCN_INFO("start snap_shoot iram data!addr:%x,len:%d", addr, len);
-	if (marlin_get_module_status() == 0) {
-		WCN_ERR("module status off:can not get iram data!\n");
-		return -1;
-	}
-
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
-		regmap = wcn_get_btwf_regmap(REGMAP_WCN_REG);
-	else
-		regmap = wcn_get_btwf_regmap(REGMAP_ANLG_WRAP_WCN);
-	wcn_regmap_raw_write_bit(regmap, 0XFF4, addr);
-	for (i = 0; i < len / 4; i++) {
-		ptr = buf + i * 4;
-		wcn_regmap_read(regmap, 0XFFC, (u32 *)ptr);
-	}
-	WCN_INFO("snap_shoot iram data success\n");
-
-	return 0;
-}
-
-int mdbg_snap_shoot_iram(void *buf)
-{
-	u32 ret;
-
-	ret = mdbg_snap_shoot_iram_data(buf,
-			0x18000000, 1024 * 32);
-
-	return ret;
-}
-
+/* magic number, not change it */
+#define WCN_DUMP_VERSION_NAME "WCN_DUMP_HEAD__"
+#define WCN_DUMP_ALIGN(x) (((x) + 3) & ~3)
+/* used for HEAD, so all dump mem in this array.
+ * if new member added, please modify the macor XXX_START XXX_end above.
+ */
 struct wcn_dump_mem_reg {
 	/* some CP regs can't dump */
 	bool do_dump;
@@ -66,24 +37,30 @@ struct wcn_dump_mem_reg {
 	u32 len;
 };
 
-/* magic number, not change it */
-#define WCN_DUMP_VERSION_NAME "WCN_DUMP_HEAD__"
-/* SUB_NAME len not more than 15 bytes */
-#define WCN_DUMP_VERSION_SUB_NAME "SIPC_23xx"
-/* CP2 iram start and end */
-#define WCN_DUMP_CP2_IRAM_START 1
-#define WCN_DUMP_CP2_IRAM_END 2
-/* AP regs start and end */
-#define WCN_DUMP_AP_REGS_START (WCN_DUMP_CP2_IRAM_END + 1)
-#define WCN_DUMP_AP_REGS_END 9
-/* CP2 regs start and end */
-#define WCN_DUMP_CP2_REGS_START (WCN_DUMP_AP_REGS_END + 1)
-#define WCN_DUMP_CP2_REGS_END (ARRAY_SIZE(s_wcn_dump_regs) - 1)
+struct wcn_dump_section_info {
+	/* cp load start addr */
+	__le32 start;
+	/* cp load end addr */
+	__le32 end;
+	/* load from file offset */
+	__le32 off;
+	__le32 reserv;
+} __packed;
 
-#define WCN_DUMP_ALIGN(x) (((x) + 3) & ~3)
-/* used for HEAD, so all dump mem in this array.
- * if new member added, please modify the macor XXX_START XXX_end above.
- */
+struct wcn_dump_head_info {
+	/* WCN_DUMP_VERSION_NAME */
+	u8 version[16];
+	/* WCN_DUMP_VERSION_SUB_NAME */
+	u8 sub_version[16];
+	/* numbers of wcn_dump_section_info */
+	__le32 n_sec;
+	/* used to check if dump is full */
+	__le32 file_size;
+	u8 reserv[8];
+	struct wcn_dump_section_info section[0];
+} __packed;
+
+ #ifdef CONFIG_SC2342_I
 static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	/* share mem */
 	{1, 0, 0x300000},
@@ -114,29 +91,70 @@ static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
 	{0, 0x60700000, 0x400},    /* BT_CMD */
 	{0, 0x60740000, 0xa400}    /* BT */
 };
+#endif
 
-struct wcn_dump_section_info {
-	/* cp load start addr */
-	__le32 start;
-	/* cp load end addr */
-	__le32 end;
-	/* load from file offset */
-	__le32 off;
-	__le32 reserv;
-} __packed;
+#ifdef CONFIG_UMW2631_I
+static struct wcn_dump_mem_reg s_wcn_dump_regs[] = {
+	/* share mem */
+	{1, 0, 0x800000},
+	/* iram mem */
+	{1, 0x40500000, 0x4000}, /* wcn iram 16k */
+	{1, 0x40a54000, 0x8000}, /* gnss iram 32k */
+	/* ap regs */
+	// {1, 0x402B00CC, 4}, /* PMU_SLEEP_CTRL  */
+	{1, 0x640203a8, 4}, /* PMU_PD_WCN_SYS_CFG */
+	{1, 0x640203ac, 4}, /* PMU_PD_WIFI_WRAP_CFG */
+	{1, 0x6402078c, 4}, /* PMU_WCN_SYS_DSLP_ENA */
+	//{1, 0x402B0248, 4}, /* PMU_WIFI_WRAP_DSLP_ENA */
+	{1, 0x64020818, 4}, /* PMU_FORCE_DEEP_SLEEP_CFG0 */
+	{1, 0x64020860, 4}, /* PMU_SLEEP_STATUS */
+	//{1, 0x64000000, 4}, /* AON_APB_WCN_SYS_CFG2  */
+	/* cp regs */
+	/* top */
+	{1, 0x40880000, 0x13c}, /* AON_AHB */
+	{1, 0x4080c000, 0x448}, /* AON_APB */
+	{1, 0x40130000, 0x424}, /* BTWF_AHB */
+	{1, 0x40088000, 0x2bc}, /* BTWF_APB */
+	{1, 0x40800000, 0x400}, /* AON_CLK */
+	//{1, 0x40844000, 0x48}, /* PRE_DIV_CLK */
+	//{0, 0x40060000, 0x300}, /* BTWF_CTRL */
+	//{0, 0x60300000, 0x400}, /* BTWF_AHB_CTRL */
+	{0, 0x40000000, 0x8000},  /* BTWF_INTC */
+	//{0, 0x40010000, 0x8000},  /* BTWF_WATCHDOG */
+	{0, 0x40018000, 0x8000},  /* BTWF_SYSTEM_TIMER */
+	{0, 0x40020000, 0x8000},  /* BTWF_TIMER0 */
+	//{0, 0x40028000, 0x8000},  /* EIC0 */
+	{0, 0x40050000, 0x8000},  /* BTWF_TIMER1 */
+#ifdef DUMP_WIFI
+	/* wifi */
+	{0, 0x40804000, 0xd4},  /* WIFI_CLK_SWITCH_CONTROL */
+	{0, 0x400a0000, 0x58},   /* WIFI_GLB */
+	{0, 0x400b7000, 0x778},  /* WIFI_DFE */
+	{0, 0x400b2000, 0xa90},  /* WIFI_PHY_RX11A */
+	{0, 0x400b3000, 0xd8},  /* WIFI_PHY_11B */
+	{0, 0x400b0000, 0x80c},  /* WIFI_PHY_TOP */
+	{0, 0x400b1000, 0x158},  /* WIFI_PHY_TX_11A */
+	{0, 0x400b4000, 0xa74},  /* WIFI_PHY_RFIF */
+	{0, 0x400f0000, 0x608},  /* WIFI_MAC_AON */
+	{0, 0x400f6000, 0xa8},  /* WIFI_MAC_CE */
+	{0, 0x400fe000, 0x84},  /* WIFI_MAC_DC_PD */
+	{0, 0x400fc000, 0x914},  /* WIFI_MAC_MH_PD */
+	{0, 0x400f8000, 0x2d58},  /* WIFI_MAC_PA_PD */
+	{0, 0x400f1000, 0x3720},  /* WIFI_MAC_RTN */
+	{0, 0x400d3000, 0x4c},  /* WIFI_SPI_MASTER_RF */
 
-struct wcn_dump_head_info {
-	/* WCN_DUMP_VERSION_NAME */
-	u8 version[16];
-	/* WCN_DUMP_VERSION_SUB_NAME */
-	u8 sub_version[16];
-	/* numbers of wcn_dump_section_info */
-	__le32 n_sec;
-	/* used to check if dump is full */
-	__le32 file_size;
-	u8 reserv[8];
-	struct wcn_dump_section_info section[0];
-} __packed;
+	/* bt/fm */
+	{0, 0x40240000, 0x310},    /* BT_ACC_CONTROL */
+	{0, 0x40243000, 0x7d0},    /* BT_AON_CONTROL */
+	{0, 0x40244000, 0xf4},    /* BT_TIM_EXT */
+	{0, 0x4024f000, 0xcfc},    /* BT_MODEM_CONTROL */
+#endif
+	/* dump reg of merlion if merlion accessible:to be added */
+};
+#endif
+
+static struct mdbg_ring_t	*mdev_ring;
+static gnss_dump_callback gnss_dump_handle;
 
 static int wcn_fill_dump_head_info(struct wcn_dump_mem_reg *mem_cfg, size_t cnt)
 {
@@ -206,6 +224,8 @@ static int mdbg_dump_cp_register_data(u32 addr, u32 len)
 	struct regmap *regmap;
 	u32 i;
 	u32 count, trans_size;
+	u32 cp_access_type;
+	phys_addr_t phy_addr;
 	u8 *buf = NULL;
 	u8 *ptr = NULL;
 
@@ -219,15 +239,29 @@ static int mdbg_dump_cp_register_data(u32 addr, u32 len)
 	if (!buf)
 		return -ENOMEM;
 
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
-		regmap = wcn_get_btwf_regmap(REGMAP_WCN_REG);
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		cp_access_type = 1;
 	else
-		regmap = wcn_get_btwf_regmap(REGMAP_ANLG_WRAP_WCN);
+		cp_access_type = 0;
+	if (cp_access_type) {
+		/* direct map */
+		phy_addr =  addr + WCN_AON_ADDR_OFFSET;
+		for (i = 0; i < len / 4; i++) {
+			ptr = buf + i * 4;
+			wcn_read_data_from_phy_addr(phy_addr, ptr, 4);
+		}
+	} else {
+		/* aon funcdma tlb way */
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
+			regmap = wcn_get_btwf_regmap(REGMAP_WCN_REG);
+		else
+			regmap = wcn_get_btwf_regmap(REGMAP_ANLG_WRAP_WCN);
 
-	wcn_regmap_raw_write_bit(regmap, 0XFF4, addr);
-	for (i = 0; i < len / 4; i++) {
-		ptr = buf + i * 4;
-		wcn_regmap_read(regmap, 0XFFC, (u32 *)ptr);
+		wcn_regmap_raw_write_bit(regmap, 0XFF4, addr);
+		for (i = 0; i < len / 4; i++) {
+			ptr = buf + i * 4;
+			wcn_regmap_read(regmap, 0XFFC, (u32 *)ptr);
+		}
 	}
 	count = 0;
 	while (count < len) {
@@ -387,4 +421,53 @@ int dump_arm_reg(void)
 	mdbg_hold_cpu();
 
 	return 0;
+}
+
+static int mdbg_snap_shoot_iram_data(void *buf, u32 addr, u32 len)
+{
+	struct regmap *regmap;
+	u32 i;
+	u32 cp_access_type;
+	phys_addr_t phy_addr;
+	u8 *ptr = NULL;
+
+	WCN_INFO("start snap_shoot iram data!addr:%x,len:%d", addr, len);
+	if (marlin_get_module_status() == 0) {
+		WCN_ERR("module status off:can not get iram data!\n");
+		return -1;
+	}
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		cp_access_type = 1;
+	else
+		cp_access_type = 0;
+	if (cp_access_type) {
+		/* direct map */
+		phy_addr =  addr + WCN_AON_ADDR_OFFSET;
+		wcn_read_data_from_phy_addr(phy_addr, ptr, len);
+	} else {
+		/* aon funcdma tlb way */
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
+			regmap = wcn_get_btwf_regmap(REGMAP_WCN_REG);
+		else
+			regmap = wcn_get_btwf_regmap(REGMAP_ANLG_WRAP_WCN);
+		wcn_regmap_raw_write_bit(regmap, 0XFF4, addr);
+		for (i = 0; i < len / 4; i++) {
+			ptr = buf + i * 4;
+			wcn_regmap_read(regmap, 0XFFC, (u32 *)ptr);
+		}
+	}
+	WCN_INFO("snap_shoot iram data success\n");
+
+	return 0;
+}
+
+int mdbg_snap_shoot_iram(void *buf)
+{
+	u32 ret;
+
+	ret = mdbg_snap_shoot_iram_data(buf,
+			0x18000000, 1024 * 32);
+
+	return ret;
 }

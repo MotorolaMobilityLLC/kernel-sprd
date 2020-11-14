@@ -78,6 +78,10 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 	static int dump_cnt;
 
 	WCN_ERR("fw assert:%s\n", str);
+	if (g_dumpmem_switch == 0) {
+		WCN_ERR("dump disable!\n");
+		return;
+	}
 	if (!mutex_trylock(&mdbg_proc->mutex)) {
 		WCN_ERR("fw assert hanppend already\n");
 		return;
@@ -738,16 +742,18 @@ static ssize_t mdbg_proc_write(struct file *filp,
 				g_dumpmem_switch);
 		return count;
 	}
-	if (strncmp(mdbg_proc->write_buf, "debugloopcheckon",
-		strlen("debugloopcheckon")) == 0) {
+	if (strncmp(mdbg_proc->write_buf, "loopcheckoff",
+		strlen("loopcheckoff")) == 0) {
+		stop_loopcheck();
 		g_loopcheck_switch = 1;
 		WCN_INFO("loopcheck debug:switch(%d)\n",
 				g_loopcheck_switch);
 		return count;
 	}
-	if (strncmp(mdbg_proc->write_buf, "debugloopcheckoff",
-		strlen("debugloopcheckoff")) == 0) {
+	if (strncmp(mdbg_proc->write_buf, "loopcheckon",
+		strlen("loopcheckon")) == 0) {
 		g_loopcheck_switch = 0;
+		start_loopcheck();
 		WCN_INFO("loopcheck debug:switch(%d)\n",
 				g_loopcheck_switch);
 		return count;

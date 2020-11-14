@@ -2,6 +2,7 @@
 #define __WCN_INTEGRATE_DEV_H__
 
 #include "rf.h"
+#include "wcn_glb.h"
 
 /* The name should be set the same as DTS */
 #define WCN_MARLIN_DEV_NAME "wcn_btwf"
@@ -51,6 +52,9 @@ enum wcn_gnss_sub_sys {
 /* default VDDCON voltage is 1.6v, work voltage is 1.2v */
 #define WCN_VDDCON_WORK_VOLTAGE (1200000)
 /* default VDDCON voltage is 3.3v, work voltage is 3.0v */
+/* default DCXO1V8 voltage is 3v, work voltage is 1.8v */
+#define WCN_DCXO1V8_WORK_VOLTAGE (1800000)
+/* default VDDWIFIPA voltage is 3.3v, work voltage is 3.0v */
 #define WCN_VDDWIFIPA_WORK_VOLTAGE (3000000)
 
 #define WCN_PROC_FILE_LENGTH_MAX (63)
@@ -78,6 +82,7 @@ enum {
 	REGMAP_WCN_BTWF_AHB,	/* QogirL6 only:0x4013 0410 */
 	REGMAP_WCN_GNSS_SYS_AHB,	/* QogirL6 only:0x40b1 8404 */
 	REGMAP_WCN_AON_AHB,	/* QogirL6 only:0x4088 0000 */
+	REGMAP_WCN_AON_APB,	/* QogirL6 only:0x4080 c000 */
 	REGMAP_TYPE_NR,
 };
 
@@ -161,6 +166,7 @@ struct wcn_init_data {
 #define GNSS_WAIT_CP_INIT_COUNT	(256)
 #define GNSS_CALI_DONE_FLAG (0x1314520)
 #define GNSS_WAIT_CP_INIT_POLL_TIME_MS	(20)	/* 20ms */
+#define GNSS_BOOT_DONE_FLAG (0x12345678)
 
 struct wifi_calibration {
 	struct wifi_config_t config_data;
@@ -170,11 +176,6 @@ struct wifi_calibration {
 /* wifi efuse data, default value comes from PHY team */
 #define WIFI_EFUSE_BLOCK_COUNT (3)
 #define WCN_EFUSE_BLOCK_COUNT (4)
-
-#define MARLIN_CP_INIT_READY_MAGIC	(0xababbaba)
-#define MARLIN_CP_INIT_START_MAGIC	(0x5a5a5a5a)
-#define MARLIN_CP_INIT_SUCCESS_MAGIC	(0x13579bdf)
-#define MARLIN_CP_INIT_FAILED_MAGIC	(0x88888888)
 
 #define MARLIN_WAIT_CP_INIT_POLL_TIME_MS	(20)	/* 20ms */
 #define MARLIN_WAIT_CP_INIT_COUNT	(256)
@@ -191,6 +192,13 @@ struct wifi_calibration {
 #define WCN_BOOT_CP2_OK 0
 #define WCN_BOOT_CP2_ERR_DONW_IMG 1
 #define WCN_BOOT_CP2_ERR_BOOT 2
+
+struct wcn_clock_info {
+	enum wcn_clock_type type;
+	enum wcn_clock_mode mode;
+	int gpio;
+};
+
 struct wcn_device {
 	char	*name;
 	/* DTS info: */
@@ -213,6 +221,12 @@ struct wcn_device {
 	u32	ctrl_type[REG_CTRL_CNT_MAX]; /* the value is pmu or apb */
 	struct	regmap *rmap[REGMAP_TYPE_NR];
 	bool need_regmap[REGMAP_TYPE_NR];
+	bool need_set_sync_addr;
+	bool need_sync_efuse;
+	bool need_cali;
+	bool need_gpio;
+	bool need_dcxo1v8;
+	phys_addr_t	apcp_sync_addr;
 	u32	reg_nr;
 	/* Shut down group */
 	u32	ctrl_shutdown_reg[REG_SHUTDOWN_CNT_MAX];
@@ -257,11 +271,21 @@ struct wcn_device_manage {
 	struct wcn_device *btwf_device;
 	struct wcn_device *gnss_device;
 	struct regulator *vddwcn;
+	struct regulator *dcxo1v8;
 	struct mutex vddwcn_lock;
+	struct mutex dcxo1v8_lock;
 	int vddwcn_en_count;
+	int dcxo1v8_en_count;
 	int gnss_type;
 	bool vddcon_voltage_setted;
+	bool dcxo1v8_voltage_setted;
 	bool btwf_calibrated;
+	struct gpio_desc *merlion_chip_en;
+	struct gpio_desc *merlion_reset;
+	struct gpio_desc *clk_26m_type_sel;
+	struct wcn_clock_info clk_xtal_26m;
+	/* debug */
+	bool boot_manually;
 };
 
 extern struct wcn_device_manage s_wcn_device;

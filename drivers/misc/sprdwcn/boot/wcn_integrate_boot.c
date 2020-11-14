@@ -12,6 +12,7 @@
  */
 #include "../platform/gnss/gnss.h"
 #include "wcn_glb.h"
+#include "wcn_glb_reg.h"
 #include "wcn_gnss.h"
 #include "wcn_misc.h"
 #include "wcn_procfs.h"
@@ -279,7 +280,8 @@ static int wcn_load_firmware_data(struct wcn_device *wcn_dev)
 	}
 	is_gnss = wcn_dev_is_gnss(wcn_dev);
 	if (is_gnss) {
-		memset(wcn_dev->firmware_path, 0, FIRMWARE_FILEPATHNAME_LENGTH_MAX);
+		memset(wcn_dev->firmware_path, 0,
+				FIRMWARE_FILEPATHNAME_LENGTH_MAX);
 		strncpy(wcn_dev->firmware_path, gnss_firmware_parent_path,
 			sizeof(wcn_dev->firmware_path));
 		strcat(wcn_dev->firmware_path, wcn_dev->firmware_path_ext);
@@ -396,10 +398,10 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 			fstab_ab(wcn_dev);
 			gnss_file_path_set(firmware_file_path);
 			WCN_INFO("load config file:%s\n", firmware_file_path);
-			wcn_load_firmware_img(wcn_dev, firmware_file_path,
+			ret = wcn_load_firmware_img(wcn_dev, firmware_file_path,
 					      wcn_dev->file_length);
 		}
-		return 0;
+		return ret;
 	}
 
 	/* old function */
@@ -491,6 +493,8 @@ static void gnss_clear_boot_flag(void)
 	phys_addr_t phy_addr;
 	u32 magic_value = 0;
 
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		return;
 	phy_addr = wcn_get_gnss_base_addr() + GNSS_TEST_OFFSET;
 	wcn_read_data_from_phy_addr(phy_addr, &magic_value, sizeof(u32));
 	WCN_INFO("magic value is 0x%x\n", magic_value);
@@ -504,6 +508,9 @@ static void gnss_read_boot_flag(void)
 	phys_addr_t phy_addr;
 	u32 magic_value = 0;
 	u32 wait_count;
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		return;
 
 	phy_addr = wcn_get_gnss_base_addr() + GNSS_TEST_OFFSET;
 	for (wait_count = 0; wait_count < MARLIN_WAIT_CP_INIT_COUNT;
@@ -524,6 +531,7 @@ static void gnss_read_boot_flag(void)
 static int wcn_wait_gnss_boot(struct wcn_device *wcn_dev)
 {
 	static int cali_flag;
+	static int boot_flag;
 	u32 wait_count = 0;
 	u32 magic_value = 0;
 	phys_addr_t phy_addr;
@@ -532,16 +540,26 @@ static int wcn_wait_gnss_boot(struct wcn_device *wcn_dev)
 		gnss_read_boot_flag();
 		return 0;
 	}
+	boot_flag = GNSS_CALI_DONE_FLAG;
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		phy_addr = wcn_dev->base_addr +
+				wcn_get_apcp_sync_addr(wcn_dev) +
+				s_wcngnss_sync_addr.init_status_phy_addr;
+		WCN_DBG("gnss init sync flag addr %lu\n", phy_addr);
+		boot_flag = GNSS_BOOT_DONE_FLAG;
+	} else {
+		phy_addr = wcn_dev->base_addr +
+			GNSS_CALIBRATION_FLAG_CLEAR_ADDR;
+		WCN_DBG("gnss init sync flag addr %lu\n", phy_addr);
+	}
 
-	phy_addr = wcn_dev->base_addr +
-		   GNSS_CALIBRATION_FLAG_CLEAR_ADDR;
 	for (wait_count = 0; wait_count < GNSS_WAIT_CP_INIT_COUNT;
 		 wait_count++) {
 		wcn_read_data_from_phy_addr(phy_addr,
 					    &magic_value, sizeof(u32));
 		WCN_DBG("gnss cali: magic_value=0x%x, wait_count=%d\n",
 			magic_value, wait_count);
-		if (magic_value == GNSS_CALI_DONE_FLAG) {
+		if (magic_value == boot_flag) {
 			WCN_INFO("gnss cali: magic_value=0x%x, wait_count=%d\n",
 				 magic_value, wait_count);
 			break;
@@ -631,6 +649,7 @@ int wcn_proc_native_stop(void *arg)
 	u32 iloop_index;
 	u32 reg_nr = 0;
 	unsigned int val;
+	unsigned int set_value;
 	u32 reg_read;
 	u32 type;
 
@@ -652,11 +671,16 @@ int wcn_proc_native_stop(void *arg)
 		WCN_INFO("rmap[%d]:ctrl_shutdown_reg[%d] = 0x%x, val=0x%x\n",
 			 type, iloop_index, reg_read, val);
 
+		set_value =  wcn_dev->ctrl_shutdown_value
+					 [iloop_index];
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+			if (wcn_dev->ctrl_rw_offset[iloop_index] == 0x00)
+				set_value |= val;
+		}
 		wcn_regmap_raw_write_bit(wcn_dev->rmap[type],
 					 wcn_dev->ctrl_shutdown_reg
 					 [iloop_index],
-					 wcn_dev->ctrl_shutdown_value
-					 [iloop_index]);
+					 set_value);
 		udelay(wcn_dev->ctrl_shutdown_us_delay[iloop_index]);
 		wcn_regmap_read(wcn_dev->rmap[type],
 				reg_read,
@@ -682,7 +706,8 @@ void wcn_power_wq(struct work_struct *pwork)
 	is_marlin = wcn_dev_is_marlin(wcn_dev);
 	if (!is_marlin)
 		gnss_clear_boot_flag();
-
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		wcn_power_enable_dcxo1v8(true);
 	wcn_power_enable_vddcon(true);
 	if (is_marlin) {
 		/* ASIC: enable vddcon and wifipa interval time > 1ms */
@@ -888,6 +913,9 @@ int start_integrate_wcn(u32 subsys)
 	u32 btwf_subsys;
 	u32 ret;
 
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		first_time = 1;
+
 	WCN_INFO("subsys:%d\n", subsys);
 	mutex_lock(&marlin_lock);
 	if (unlikely(sprdwcn_bus_get_carddump_status() != 0)) {
@@ -1029,6 +1057,9 @@ int stop_integrate_wcn_truely(u32 subsys)
 		usleep_range(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
 			     VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME);
 	}
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		wcn_power_enable_dcxo1v8(false);
+
 	wcn_power_enable_vddcon(false);
 
 	wcn_sys_soft_reset();

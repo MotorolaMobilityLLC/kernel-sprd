@@ -42,6 +42,12 @@ static const struct wcn_chip_type wcn_chip_type[] = {
 struct wcn_special_share_mem *s_wssm_phy_offset_p =
 	(struct wcn_special_share_mem *)WCN_SPECIAL_SHARME_MEM_ADDR;
 
+struct wcn_gnss_special_share_mem s_wcngnss_sync_addr = {
+	WCN_GNSS_SPECIAL_SHARME_MEM_ADDR,
+	0x34,
+	0x600000,
+};
+
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 {
 	u32 aon_chip_id;
@@ -266,6 +272,24 @@ int marlin_get_power(void)
 }
 EXPORT_SYMBOL_GPL(marlin_get_power);
 
+/* for qogirl6 */
+phys_addr_t wcn_get_apcp_sync_addr(struct wcn_device *wcn_dev)
+{
+	WCN_INFO("apcp_sync_addr:%lu\n", wcn_dev->apcp_sync_addr);
+
+	return wcn_dev->apcp_sync_addr;
+}
+
+void wcn_set_apcp_sync_addr(struct wcn_device *wcn_dev)
+{
+	if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0)
+		s_wssm_phy_offset_p =
+		(struct wcn_special_share_mem *)wcn_dev->apcp_sync_addr;
+	else
+		s_wcngnss_sync_addr.sync_base_addr = wcn_dev->apcp_sync_addr;
+	WCN_INFO("wcn_dev->apcp_sync_addr:%lu\n", wcn_dev->apcp_sync_addr);
+}
+
 phys_addr_t wcn_get_btwf_init_status_addr(void)
 {
 	return s_wcn_device.btwf_device->base_addr +
@@ -302,6 +326,18 @@ void wcn_set_download_status(bool status)
 {
 	s_wcn_device.btwf_device->download_status = status;
 }
+
+enum wcn_clock_type wcn_get_xtal_26m_clk_type(void)
+{
+	return s_wcn_device.clk_xtal_26m.type;
+}
+EXPORT_SYMBOL_GPL(wcn_get_xtal_26m_clk_type);
+
+enum wcn_clock_mode wcn_get_xtal_26m_clk_mode(void)
+{
+	return s_wcn_device.clk_xtal_26m.mode;
+}
+EXPORT_SYMBOL_GPL(wcn_get_xtal_26m_clk_mode);
 
 u32 gnss_get_boot_status(void)
 {
@@ -479,31 +515,49 @@ void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type)
 	u32 offset0 = 0, offset1 = 0;
 	u32 bitmap0 = 0, bitmap1 = 0;
 
+	bitmap0 = PD_WCN_AUTO_SHUTDOWN_EN;
+	bitmap1 = PD_WCN_FORCE_SHUTDOWN;
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2) {
 		if (set_type == 1) {
-			offset0 = 0X2050;
-			offset1 = 0X1050;
-			bitmap0 = 1 << 24;
-			bitmap1 = 1 << 25;
+			offset0 = WCN_REG_CLEAR_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET_PIKE2;
+			offset1 = WCN_REG_SET_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET_PIKE2;
 		} else {
-			offset0 = 0X2050;
-			offset1 = 0X2050;
-			bitmap0 = 1 << 24;
-			bitmap1 = 1 << 25;
+			offset0 = WCN_REG_CLEAR_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET_PIKE2;
+			offset1 = WCN_REG_CLEAR_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET_PIKE2;
+		}
+	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		if (set_type == 1) {
+			offset0 = WCN_REG_CLEAR_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET_QOGIRL6;
+			offset1 = WCN_REG_SET_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET_QOGIRL6;
+		} else {
+			offset0 = WCN_REG_CLEAR_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET_QOGIRL6;
+			offset1 = WCN_REG_CLEAR_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET_QOGIRL6;
 		}
 	} else {
 		if (set_type == 1) {
-			offset0 = 0X2100;
-			offset1 = 0X1100;
-			bitmap0 = 1 << 24;
-			bitmap1 = 1 << 25;
+			offset0 = WCN_REG_CLEAR_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET;
+			offset1 = WCN_REG_SET_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET;
 		} else {
-			offset0 = 0X2100;
-			offset1 = 0X2100;
-			bitmap0 = 1 << 24;
-			bitmap1 = 1 << 25;
+			offset0 = WCN_REG_CLEAR_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET;
+			offset1 = WCN_REG_CLEAR_OFFSET +
+					PD_WIFI_WRAP_CFG0_OFFSET;
 		}
 	}
+	WCN_DBG("offset0:0x%x bitmap0:0x%x\n",
+		offset0, bitmap0);
+	WCN_DBG("offset1:0x%x bitmap1:0x%x\n",
+		offset1, bitmap1);
 	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
 				 offset0, bitmap0);
 	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
@@ -552,12 +606,16 @@ int wcn_power_enable_sys_domain(bool enable)
 		wcn_power_domain_set(s_wcn_device.btwf_device, 0);
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2)
 			wcn_xtl_auto_sel(true);
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+			wcn_merlion_power_control(true);
 		sys_domain = true;
 		WCN_INFO("clear WCN SYS TOP PD\n");
 	} else if ((!btwf_open) && (!gnss_open) && sys_domain) {
 		if (wcn_platform_chip_type() ==
 				WCN_PLATFORM_TYPE_PIKE2)
 			wcn_xtl_auto_sel(false);
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+			wcn_merlion_power_control(false);
 		wcn_power_domain_set(s_wcn_device.btwf_device, 1);
 		sys_domain = false;
 		WCN_INFO("set WCN SYS TOP PD\n");
@@ -731,11 +789,17 @@ void wcn_sys_deep_sleep_en(void)
 	}
 }
 
-/* The VDDCON default value is 1.6V, we should set it to 1.2v */
 void wcn_power_set_vddcon(u32 value)
 {
 	if (s_wcn_device.vddwcn)
 		regulator_set_voltage(s_wcn_device.vddwcn,
+				      value, value);
+}
+
+void wcn_power_set_dcxo1v8(u32 value)
+{
+	if (s_wcn_device.dcxo1v8)
+		regulator_set_voltage(s_wcn_device.dcxo1v8,
 				      value, value);
 }
 
@@ -796,6 +860,42 @@ int wcn_power_enable_vddcon(bool enable)
 	return ret;
 }
 
+int wcn_power_enable_dcxo1v8(bool enable)
+{
+	int ret = 0;
+	u32 btwf_open = false;
+	u32 gnss_open = false;
+
+	if (s_wcn_device.btwf_device &&
+	    s_wcn_device.btwf_device->wcn_open_status & WCN_MARLIN_MASK)
+		btwf_open = true;
+	if (s_wcn_device.gnss_device &&
+	    s_wcn_device.gnss_device->wcn_open_status & WCN_GNSS_ALL_MASK)
+		gnss_open = true;
+
+	mutex_lock(&s_wcn_device.dcxo1v8_lock);
+	if (s_wcn_device.dcxo1v8) {
+		if (enable) {
+			ret = regulator_enable(s_wcn_device.dcxo1v8);
+			s_wcn_device.dcxo1v8_en_count++;
+		} else if (regulator_is_enabled(s_wcn_device.dcxo1v8)) {
+			ret = regulator_disable(s_wcn_device.dcxo1v8);
+			s_wcn_device.dcxo1v8_en_count--;
+			}
+		}
+
+	WCN_INFO("enable=%d,en_count=%d,ret=%d,btwf=%d,gnss=%d\n",
+			 enable, s_wcn_device.dcxo1v8_en_count,
+			 ret, btwf_open, gnss_open);
+	if (s_wcn_device.dcxo1v8_en_count > 2 ||
+		s_wcn_device.dcxo1v8_en_count < 0)
+		WCN_ERR("vddwcn_en_count=%d", s_wcn_device.dcxo1v8_en_count);
+
+	mutex_unlock(&s_wcn_device.dcxo1v8_lock);
+
+	return ret;
+}
+
 /* The VDDCON default value is 1.6V, we should set it to 1.2v */
 void wcn_power_set_vddwifipa(u32 value)
 {
@@ -804,7 +904,7 @@ void wcn_power_set_vddwifipa(u32 value)
 	if (btwf_device->vddwifipa)
 		regulator_set_voltage(btwf_device->vddwifipa,
 				      value, value);
-	WCN_INFO("value %d\n", value);
+	WCN_INFO("vddwifipa value %d\n", value);
 }
 
 /* NOTES: wifipa: only used by WIFI module */
@@ -825,6 +925,41 @@ int wcn_marlin_power_enable_vddwifipa(bool enable)
 	mutex_unlock(&btwf_device->vddwifipa_lock);
 
 	return ret;
+}
+
+bool wcn_power_status_check(struct wcn_device *wcn_dev)
+{
+	bool wcn_pd_state = false;
+	u32 wcn_pd_top_state = 0;
+	u32 wcn_pd_subsys_state = 0;
+	u32 reg_value = 0;
+
+	/* PWR_STATUS_DBG_18 */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB],
+					0x538, &reg_value);
+
+	WCN_INFO("PWR_STATUS_DBG_18:0x%x\n", reg_value);
+	/* bit 24-28:default 7-power off, 0-power on */
+	wcn_pd_top_state = reg_value & 0x1f000000;
+	if (wcn_pd_top_state == 0x7)
+		return false;
+
+	reg_value = 0;
+	/* PD_SLP_STATUS */
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+					0x3b0, &reg_value);
+	WCN_INFO("PD_SLP_STATUS:0x%x\n", reg_value);
+	/* btwf sys poweron finish */
+	if (wcn_dev == s_wcn_device.btwf_device)
+		wcn_pd_subsys_state = reg_value & BIT(0);
+	/* gnss sys poweron finish */
+	else
+		wcn_pd_subsys_state = reg_value & BIT(6);
+
+	if (wcn_pd_subsys_state)
+		wcn_pd_state = true;
+
+	return wcn_pd_state;
 }
 
 u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev)
@@ -879,30 +1014,100 @@ const char *wcn_get_chip_name(void)
 }
 EXPORT_SYMBOL_GPL(wcn_get_chip_name);
 
-void mdbg_hold_cpu(void)
+/* soft reset btwf without cache */
+static void wcn_soft_reset_release_btwf_cpu(u32 type)
 {
 	struct regmap *regmap;
 	u32 value;
-	phys_addr_t init_addr;
+	u32 platform_type = wcn_platform_chip_type();
 
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
+	if (platform_type == WCN_PLATFORM_TYPE_QOGIRL6) {
+		regmap = wcn_get_btwf_regmap(REGMAP_WCN_AON_AHB);
+		if (type == WCN_BTWF_CPU_RESET) {
+			/* reset btwf cm4 */
+			wcn_regmap_read(regmap, 0X0c, &value);
+			/* BIT2:btwf_cmstart_sys_rst set */
+			value |= 1 << 2;
+			wcn_regmap_raw_write_bit(regmap, 0X0c, value);
+		} else if (type == WCN_BTWF_CPU_RESET_RELEASE) {
+			/* release btwf cm4 */
+			wcn_regmap_read(regmap, 0X0c, &value);
+			/* BIT2:btwf_cmstart_sys_rst clear */
+			value &= ~(1 << 2);
+			wcn_regmap_raw_write_bit(regmap, 0X0c, value);
+			msleep(200);
+		}
+		return;
+	}
+
+	if (platform_type == WCN_PLATFORM_TYPE_SHARKL3)
 		regmap = wcn_get_btwf_regmap(REGMAP_WCN_REG);
 	else
 		regmap = wcn_get_btwf_regmap(REGMAP_ANLG_WRAP_WCN);
-	wcn_regmap_read(regmap, 0X20, &value);
-	value |= 1 << 3;
-	wcn_regmap_raw_write_bit(regmap, 0X20, value);
+	if (type == WCN_BTWF_CPU_RESET) {
+		/* reset btwf cm4 */
+		wcn_regmap_read(regmap, 0X20, &value);
+		value |= 1 << 3;
+		wcn_regmap_raw_write_bit(regmap, 0X20, value);
 
-	wcn_regmap_read(regmap, 0X24, &value);
-	value |= 1 << 2;
-	wcn_regmap_raw_write_bit(regmap, 0X24, value);
+		wcn_regmap_read(regmap, 0X24, &value);
+		value |= 1 << 2;
+		wcn_regmap_raw_write_bit(regmap, 0X24, value);
+	} else if (type == WCN_BTWF_CPU_RESET_RELEASE) {
+		value = 0;
+		/* release btwf cm4 */
+		wcn_regmap_raw_write_bit(regmap, 0X20, value);
+		wcn_regmap_raw_write_bit(regmap, 0X24, value);
+		msleep(200);
+	}
+}
 
+void mdbg_hold_cpu(void)
+{
+	u32 value;
+	phys_addr_t init_addr;
+
+	wcn_soft_reset_release_btwf_cpu(WCN_BTWF_CPU_RESET);
+	/* set cache flag */
 	value = MDBG_CACHE_FLAG_VALUE;
 	init_addr = wcn_get_btwf_init_status_addr();
 	wcn_write_data_to_phy_addr(init_addr, (void *)&value, 4);
-	value = 0;
-	wcn_regmap_raw_write_bit(regmap, 0X20, value);
-	wcn_regmap_raw_write_bit(regmap, 0X24, value);
-	msleep(200);
+
+	wcn_soft_reset_release_btwf_cpu(WCN_BTWF_CPU_RESET_RELEASE);
+}
+static void wcn_merlion_power_on(void)
+{
+	struct gpio_desc *merlion_chip_en_gpio = s_wcn_device.merlion_chip_en;
+	struct gpio_desc *merlion_reset_gpio = s_wcn_device.merlion_reset;
+
+	if (merlion_chip_en_gpio && merlion_reset_gpio) {
+		WCN_INFO("merlion chip en pull up\n");
+		gpiod_set_value(merlion_chip_en_gpio, 1);
+		udelay(500);
+		gpiod_set_value(merlion_reset_gpio, 0);
+		udelay(500);
+		gpiod_set_value(merlion_reset_gpio, 1);
+
+		WCN_INFO("merlion  chip en reset\n");
+	}
 }
 
+static void wcn_merlion_power_off(void)
+{
+	struct gpio_desc *merlion_chip_en_gpio = s_wcn_device.merlion_chip_en;
+	struct gpio_desc *merlion_reset_gpio = s_wcn_device.merlion_reset;
+
+	if (merlion_chip_en_gpio && merlion_reset_gpio) {
+		WCN_INFO("merlion chip en pull down\n");
+		gpiod_set_value(merlion_reset_gpio, 0);
+		gpiod_set_value(merlion_chip_en_gpio, 0);
+	}
+}
+
+void wcn_merlion_power_control(bool enable)
+{
+	if (enable)
+		wcn_merlion_power_on();
+	else
+		wcn_merlion_power_off();
+}

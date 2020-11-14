@@ -11,7 +11,9 @@
 #define _WCN_GLB_REG_H_
 
 #ifdef CONFIG_WCN_INTEG
+#ifdef CONFIG_SC2342_I
 #include "sc2342_glb.h"
+#endif
 #ifdef CONFIG_UMW2631_I
 #include "umw2631_integrate_glb.h"
 #endif
