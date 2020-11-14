@@ -239,6 +239,38 @@
 			#size-cells = <2>;
 			ranges;
 
+			mm_domain: mm_domain {
+				compatible = "sprd,mm-domain";
+
+				syscon-names = "force_shutdown",
+						"shutdown_en",
+						"power_state";
+				syscons = <&pmu_apb_regs
+					REG_PMU_APB_PD_MM_CFG_0
+					MASK_PMU_APB_PD_MM_FORCE_SHUTDOWN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PD_MM_CFG_0
+					MASK_PMU_APB_PD_MM_AUTO_SHUTDOWN_EN>,
+					<&pmu_apb_regs
+					REG_PMU_APB_PWR_STATUS_DBG_6
+					MASK_PMU_APB_PD_MM_STATE>;
+
+				clock-names = "clk_mm_eb",
+					"clk_mm_ahb_eb",
+					"clk_mm_ahb",
+					"clk_mm_ahb_parent",
+					"clk_mm_mtx",
+					"clk_mm_mtx_parent",
+					"clk_isppll";
+				clocks = <&aonapb_gate CLK_MM_EB>,
+					<&mm_gate CLK_MM_CKG_EB>,
+					<&mm_clk CLK_MM_AHB>,
+					<&pll1 CLK_TWPLL_153M6>,
+					<&mm_clk CLK_MM_MTX>,
+					<&pll1 CLK_TWPLL_512M>,
+					<&pll1 CLK_ISPPLL_468M>;
+			};
+
 			vsp: video-codec@32000000 {
 				compatible = "sprd,qogirl6-vsp";
 				reg = <0 0x32000000 0 0xc000>;
@@ -307,24 +339,6 @@
 				#iommu-cells = <0>;
 			};
 
-			mm_domain: mm_domain {
-				compatible = "sprd,mm-domain";
-				clock-names = "clk_mm_eb",
-					"clk_mm_ahb_eb",
-					"clk_mm_ahb",
-					"clk_mm_ahb_parent",
-					"clk_mm_mtx",
-					"clk_mm_mtx_parent",
-					"clk_isppll";
-				clocks = <&aonapb_gate CLK_MM_EB>,
-					<&mm_gate CLK_MM_CKG_EB>,
-					<&mm_clk CLK_MM_AHB>,
-					<&ext_26m>,
-					<&mm_clk CLK_MM_MTX>,
-					<&ext_26m>,
-					<&ext_26m>;
-			/*	mm_qos_threshold = <&mm_qos_threshold>;*/
-			};
 			mipi_csi_phy0: mipi-csi-phy0 {
 				compatible = "sprd,mipi-csi-phy";
 				sprd,phyid = <0>;
@@ -452,19 +466,27 @@
 					"isp_clk_468m",
 					"isp_clk_512m",
 					"isp_clk_parent";
-				clocks = <&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>;
-				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_AHB_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_VAU_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_ISP_EB>;
+				clocks = <&mm_gate CLK_MM_ISP_EB>,
+					<&mm_gate CLK_ISP_AHB_EB>,
+					<&mm_clk CLK_ISP>,
+					<&pll1 CLK_TWPLL_256M>,
+					<&pll1 CLK_TWPLL_307M2>,
+					<&pll1 CLK_TWPLL_384M>,
+					<&pll1 CLK_ISPPLL_468M>,
+					<&pll1 CLK_TWPLL_512M>,
+					<&pll1 CLK_TWPLL_512M>;
+				syscons = <&mm_ahb_regs
+					REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_ISP_SOFT_RST>,
+					<&mm_ahb_regs
+					REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_ISP_AHB_SOFT_RST>,
+					<&mm_ahb_regs
+					REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_ISP_VAU_SOFT_RST>,
+					<&mm_ahb_regs
+					REG_MM_AHB_AHB_EB
+					MASK_MM_AHB_ISP_EB>;
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				syscon-names = "reset",
 					"isp_ahb_reset",
@@ -506,29 +528,15 @@
 					"dcam_clk_307m2",
 					"dcam_clk_384m",
 					"dcam_clk_468m",
-					"dcam_clk_parent",
-					"dcam_axi_eb",
-					"dcam_axi_clk",
-					"dcam_axi_clk_256m",
-					"dcam_axi_clk_307m2",
-					"dcam_axi_clk_384m",
-					"dcam_axi_clk_468m",
-					"dcam_axi_clk_parent";
-				clocks = <&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>,
-					<&ext_26m>;
+					"dcam_clk_parent";
+				clocks = <&mm_gate CLK_MM_DCAM_EB>,
+					<&mm_clk CLK_DCAM_IF>,
+					<&pll1 CLK_TWPLL_192M>,
+					<&pll1 CLK_TWPLL_256M>,
+					<&pll1 CLK_TWPLL_307M2>,
+					<&pll1 CLK_TWPLL_384M>,
+					<&pll1 CLK_ISPPLL_468M>,
+					<&pll1 CLK_ISPPLL_468M>;
 				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
 					MASK_MM_AHB_DCAM_ALL_SOFT_RST>,
 					<&mm_ahb_regs REG_MM_AHB_AHB_RST
@@ -545,7 +553,7 @@
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
 				sprd,dcam-superzoom = <2>;
-				sprd,project-id = <3>;
+				sprd,project-id = <5>;
 				iommus = <&iommu_dcam>;
 				status = "okay";
 			};
