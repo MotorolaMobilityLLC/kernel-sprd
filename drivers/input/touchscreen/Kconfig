@@ -1287,7 +1287,19 @@ config TOUCHSCREEN_GT9XX_TOOL
 config TOUCHSCREEN_CHIPONE
         tristate "Chipone TDDI touchscreen for QualComm package"
         depends on I2C
-        default y
+        default n
+        help
+          Say y here if you have chipone TDDI touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called chipone-tddi.
+
+config TOUCHSCREEN_CHIPONE_SPI
+        tristate "Chipone TDDI touchscreen for QualComm package"
+        depends on SPI
+        default n
         help
           Say y here if you have chipone TDDI touch panel.
 
@@ -1299,7 +1311,7 @@ config TOUCHSCREEN_CHIPONE
 config TOUCHSCREEN_ILI9882N_SKY
         tristate "ili9882N TDDI touchscreen for QualComm package"
         depends on I2C
-        default y
+        default n
         help
           Say y here if you have chipone TDDI touch panel.
 
@@ -1307,5 +1319,16 @@ config TOUCHSCREEN_ILI9882N_SKY
 
           To compile this driver as a module, choose M here: the
           module will be called ili9882n-tddi.
+config TOUCHSCREEN_ILI9882H_SKY_SPI
+        tristate "ili9882H TDDI touchscreen for QualComm package"
+        depends on SPI
+        default n
+        help
+          Say y here if you have chipone TDDI touch panel.
+
+          If unsure, say N.
+
+          To compile this driver as a module, choose M here: the
+          module will be called ili9882h-tddi.
 
 endif

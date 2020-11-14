@@ -219,7 +219,6 @@ static int cts_driver_probe(struct spi_device *client)
 {
     struct chipone_ts_data *cts_data = NULL;
     int ret = 0;
-pr_err("cst----cts_driver_probe----0-----\n");
     /* BEGIN, Ontim,  wzx, 19/010/23, St-result :PASS,LCD and TP Device information */
     if(CHECK_THIS_DEV_DEBUG_AREADY_EXIT()==0)
     {
@@ -243,13 +242,11 @@ pr_err("cst----cts_driver_probe----0-----\n");
         return -ENODEV;
     }
 #endif
-	pr_err("cst----cts_driver_probe-----1-----\n");
     cts_data = (struct chipone_ts_data *)kzalloc(sizeof(*cts_data), GFP_KERNEL);
     if (cts_data == NULL) {
         cts_err("Allocate chipone_ts_data failed");
         return -ENOMEM;
     }
-pr_err("cst----cts_driver_probe-----2-----\n");
     cts_data->pdata = (struct cts_platform_data *)kzalloc(
             sizeof(struct cts_platform_data), GFP_KERNEL);
     if (cts_data->pdata == NULL) {
@@ -263,20 +260,16 @@ pr_err("cst----cts_driver_probe-----2-----\n");
     cts_data->i2c_client = client;
     cts_data->device = &client->dev;
 #else
-pr_err("cst----cts_driver_probe-----3-----\n");
     spi_set_drvdata(client, cts_data);
     cts_data->spi_client = client;
     cts_data->device = &client->dev;
-pr_err("cst----cts_driver_probe-----4-----\n");
 #endif
 
     cts_init_platform_data(cts_data->pdata, client);
-pr_err("cst----cts_driver_probe-----5-----\n");
     cts_data->cts_dev.pdata = cts_data->pdata;
     cts_data->pdata->cts_dev = &cts_data->cts_dev;
 
     cts_data->workqueue = create_singlethread_workqueue(CFG_CTS_DEVICE_NAME "-workqueue");
-pr_err("cst----cts_driver_probe-----6-----\n");
     if (cts_data->workqueue == NULL) {
         cts_err("Create workqueue failed");
         ret = -ENOMEM;
@@ -291,70 +284,58 @@ pr_err("cst----cts_driver_probe-----6-----\n");
         goto err_destroy_workqueue;
     }
 #endif
-pr_err("cst----cts_driver_probe-----7-----\n");
     ret = cts_plat_request_resource(cts_data->pdata);
     if (ret < 0) {
         cts_err("Request resource failed %d", ret);
         goto err_destroy_esd_workqueue;
     }
-pr_err("cst----cts_driver_probe-----8-----\n");
     ret = cts_plat_reset_device(cts_data->pdata);
     if (ret < 0) {
         cts_err("Reset device failed %d", ret);
         goto err_free_resource;
     }
-pr_err("cst----cts_driver_probe-----9-----\n");
     ret = cts_probe_device(&cts_data->cts_dev);
     if (ret) {
         cts_err("Probe device failed %d", ret);
         goto err_free_resource;
     }
-pr_err("cst----cts_driver_probe-----10-----\n");
     ret = cts_plat_init_touch_device(cts_data->pdata);
     if (ret < 0) {
         cts_err("Init touch device failed %d", ret);
         goto err_free_resource;
     }
-pr_err("cst----cts_driver_probe-----11-----\n");
     ret = cts_plat_init_vkey_device(cts_data->pdata);
     if (ret < 0) {
         cts_err("Init vkey device failed %d", ret);
         goto err_deinit_touch_device;
     }
 
-pr_err("cst----cts_driver_probe-----12-----\n");
     ret = cts_plat_init_gesture(cts_data->pdata);
     if (ret < 0) {
         cts_err("Init gesture failed %d", ret);
         goto err_deinit_vkey_device;
     }
 
-pr_err("cst----cts_driver_probe-----13-----\n");
     cts_init_esd_protection(cts_data);
 
-pr_err("cst----cts_driver_probe-----14-----\n");
     ret = cts_tool_init(cts_data);
     if (ret < 0) {
         cts_warn("Init tool node failed %d", ret);
     }
 
-pr_err("cst----cts_driver_probe-----15-----\n");
     ret = cts_sysfs_add_device(&client->dev);
     if (ret < 0) {
         cts_warn("Add sysfs entry for device failed %d", ret);
     }
 
-pr_err("cst----cts_driver_probe-----16-----\n");
 #ifdef CONFIG_ARCH_SPRD
     ret = cts_sysfs_add_suspend_device(&client->dev);
-pr_err("cst----cts_driver_probe-----17-----\n");
     if (ret < 0) {
         cts_warn("Add sysfs entry for sprd suspend device failed %d", ret);
     }
 #endif
 
 #ifdef CONFIG_CTS_PM_FB_NOTIFIER
-pr_err("cst----cts_driver_probe-----18-----\n");
     ret = cts_init_pm_fb_notifier(cts_data);
     if (ret) {
         cts_err("Init FB notifier failed %d", ret);
@@ -362,35 +343,30 @@ pr_err("cst----cts_driver_probe-----18-----\n");
     }
 #endif /* CONFIG_CTS_PM_FB_NOTIFIER */
 
-pr_err("cst----cts_driver_probe-----19-----\n");
     ret = cts_plat_request_irq(cts_data->pdata);
     if (ret < 0) {
         cts_err("Request IRQ failed %d", ret);
         goto err_register_fb;
     }
 
-pr_err("cst----cts_driver_probe-----20-----\n");
     ret = cts_init_charger_detect(cts_data);
     if (ret) {
         cts_err("Init charger detect failed %d", ret);
         // Ignore this error
     }
 
-pr_err("cst----cts_driver_probe-----21-----\n");
     ret = cts_init_earjack_detect(cts_data);
     if (ret) {
         cts_err("Init earjack detect failed %d", ret);
         // Ignore this error
     }
 
-pr_err("cst----cts_driver_probe-----22-----\n");
     ret = cts_start_device(&cts_data->cts_dev);
     if (ret) {
         cts_err("Start device failed %d", ret);
         goto err_deinit_earjack_detect;
     }
 
-pr_err("cst----cts_driver_probe-----23-----\n");
     // snprintf(lcdname, sizeof(lcdname),"%s","easyquick-icnl9911c-608");
     // snprintf(vendor_name, sizeof(vendor_name),"%s","easyquick-icnl9911c-608");
     if (LCM_INFO_EASYQUICK_608 == g_lcm_info_flag) {
@@ -829,10 +805,8 @@ static int __init cts_driver_init(void)
 
 #ifdef CONFIG_CTS_I2C_HOST
     ret = i2c_add_driver(&cts_i2c_driver);
-    pr_err("cst-------i2c-----\n");
 #else
     ret = spi_register_driver(&cts_spi_driver);
-    pr_err("cst-------spi-----\n");
 #endif
 
     cts_info("Init return "CTS_ERR_FMT_STR, CTS_ERR_ARG(ret));
