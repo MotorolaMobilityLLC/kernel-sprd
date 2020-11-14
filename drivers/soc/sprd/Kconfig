@@ -33,6 +33,12 @@ config SPRD_PMIC_SYSCON
         help
           Enable this configuration option to enable pmic global driver.
 
+config SPRD_PMIC_REFOUT
+	tristate "Spreadtrum PMIC refout driver"
+	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	help
+	  Enable this configuration option to enable pmic refout driver.
+
 config SPRD_SYSTIMER
 	bool "Spreadtrum system timer driver (systimer/sysfrt)"
 	depends on ARCH_SPRD
