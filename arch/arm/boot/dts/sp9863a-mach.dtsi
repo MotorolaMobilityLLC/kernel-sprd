@@ -342,9 +342,9 @@
 		"Aud input1", "Digital ADC1R Switch";
 
 	/*ext_control_type, hook selection, mode, gpio share*/
-	sprd,spk-ext-pa-info = <0 0 1 0>,<0 0 1 0>;
-	sprd,spk-ext-pa-gpio = <&ap_gpio 121 0>,<&ap_gpio 122 0>;
-	sprd,spk-ext-pa-names = "ext_spk_r","ext_spk_l";
+	sprd,spk-ext-pa-info = <0 0 1 0>, <1 1 1 0>;
+	sprd,spk-ext-pa-gpio = <&ap_gpio 121 0>, <&ap_gpio 122 0>;
+	sprd,spk-ext-pa-names = "ext_spk_r","hp_ctrl";
 };
 
 &sound_sprd_ap_alliis {
