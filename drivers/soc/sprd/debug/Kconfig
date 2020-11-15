@@ -29,3 +29,7 @@ config SPRD_CPU_USAGE
 	help
 	  CPU usage statistics
 
+config SPRD_DEBUG_GCOV
+	bool "open gcov for speadtrum debug features"
+	depends on SPRD_DEBUG && GCOV_PROFILE_MODULES
+	default n
