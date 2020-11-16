@@ -299,6 +299,10 @@
 		#size-cells = <1>;
 		ranges;
 
+		warm_boot_reserved: warm-boot@0x81ff0000 {
+			reg = <0x81ff0000 0x10000>; /* 64K */
+		};
+
 		ddrbist_reserved: ddrbist-mem@80000000{
 			reg = <0x80000000 0x00001000>;
 		};
@@ -369,6 +373,15 @@
 
 	sprd-wlan {
 		compatible = "sprd,sc2355-wifi";
+	};
+
+	resume_on_reboot {
+		compatible = "sprd,memdisk";
+
+		warm_boot {
+			memory-region = <&warm_boot_reserved>;
+			label = "warmboot";
+		};
 	};
 
 	gnss_common_ctl:gnss-common-ctl {
