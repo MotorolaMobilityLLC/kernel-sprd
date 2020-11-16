@@ -178,8 +178,8 @@
 
 &reserved_memory {
 
-	logo_reserved: logobuffer@fd580000{
-		reg = <0x0 0xfd580000 0x0 0x007e9000>;
+	logo_reserved: logobuffer@9e000000{
+		reg = <0x0 0x9e000000 0x0 0x007e9000>;
 	};
 
 	camera_reserved: camera@fdd69000{
@@ -584,10 +584,6 @@
 
 &vddsim2 {
 	status = "disabled";
-};
-
-&logo_reserved {
-	reg = <0x0 0x9e817000 0x0 0x007e9000>;
 };
 
 &ion {
