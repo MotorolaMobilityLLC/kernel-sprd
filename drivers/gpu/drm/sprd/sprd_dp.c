@@ -164,7 +164,7 @@ static const struct drm_encoder_helper_funcs sprd_encoder_helper_funcs = {
 	.atomic_check = sprd_dp_encoder_atomic_check,
 	.mode_set = sprd_dp_encoder_mode_set,
 	.enable = sprd_dp_encoder_enable,
-	.disable = sprd_dp_encoder_disable
+	.disable = sprd_dp_encoder_disable,
 };
 
 static const struct drm_encoder_funcs sprd_encoder_funcs = {
@@ -241,10 +241,93 @@ sprd_dp_connector_best_encoder(struct drm_connector *connector)
 	return &dp->encoder;
 }
 
-static struct drm_connector_helper_funcs sprd_dp_connector_helper_funcs = {
+static int fill_hdr_info_packet(const struct drm_connector_state *state,
+				void *out)
+{
+	struct hdmi_drm_infoframe frame;
+	unsigned char buf[30]; /* 26 + 4 */
+	ssize_t len;
+	int ret;
+	u8 *ptr = out;
+
+	memset(out, 0, sizeof(*out));
+
+	ret = drm_hdmi_infoframe_set_hdr_metadata(&frame, state);
+	if (ret)
+		return ret;
+
+	len = hdmi_drm_infoframe_pack_only(&frame, buf, sizeof(buf));
+	if (len < 0)
+		return (int)len;
+
+	/* Static metadata is a fixed 26 bytes + 4 byte header. */
+	if (len != 30)
+		return -EINVAL;
+
+	switch (state->connector->connector_type) {
+	case DRM_MODE_CONNECTOR_DisplayPort:
+	case DRM_MODE_CONNECTOR_eDP:
+		ptr[0] = 0x00; /* sdp id, zero */
+		ptr[1] = 0x87; /* type */
+		ptr[2] = 0x1D; /* payload len - 1 */
+		ptr[3] = (0x13 << 2); /* sdp version */
+		ptr[4] = 0x01; /* version */
+		ptr[5] = 0x1A; /* length */
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	memcpy(&ptr[6], &buf[4], 26);
+
+	return 0;
+}
+
+static bool
+is_hdr_metadata_different(const struct drm_connector_state *old_state,
+			  const struct drm_connector_state *new_state)
+{
+	struct drm_property_blob *old_blob = old_state->hdr_output_metadata;
+	struct drm_property_blob *new_blob = new_state->hdr_output_metadata;
+
+	if (old_blob != new_blob) {
+		if (old_blob && new_blob &&
+		    old_blob->length == new_blob->length)
+			return memcmp(old_blob->data, new_blob->data,
+				      old_blob->length);
+		return true;
+	}
+
+	return false;
+}
+
+static int sprd_dp_connector_atomic_check(struct drm_connector *connector,
+				 struct drm_atomic_state *state)
+{
+	struct drm_connector_state *new_con_state =
+		drm_atomic_get_new_connector_state(state, connector);
+	struct drm_connector_state *old_con_state =
+		drm_atomic_get_old_connector_state(state, connector);
+	struct sprd_dp *dp = connector_to_dp(connector);
+	struct sprd_dpu *dpu = crtc_to_dpu(dp->encoder.crtc);
+	int ret;
+
+	if (is_hdr_metadata_different(old_con_state, new_con_state)) {
+		ret = fill_hdr_info_packet(new_con_state,
+				dpu->ctx.hdr_static_metadata);
+		if (ret)
+			return ret;
+		dpu->ctx.static_metadata_changed = true;
+	}
+
+	return 0;
+}
+
+static const struct drm_connector_helper_funcs sprd_dp_connector_helper_funcs = {
 	.get_modes = sprd_dp_connector_get_modes,
 	.mode_valid = sprd_dp_connector_mode_valid,
 	.best_encoder = sprd_dp_connector_best_encoder,
+	.atomic_check = sprd_dp_connector_atomic_check,
 };
 
 static enum drm_connector_status
@@ -292,6 +375,10 @@ static int sprd_dp_connector_init(struct drm_device *drm, struct sprd_dp *dp)
 		DRM_ERROR("drm_connector_init() failed\n");
 		return ret;
 	}
+
+	drm_object_attach_property(
+			&connector->base,
+			drm->mode_config.hdr_output_metadata_property, 0);
 
 	drm_connector_helper_add(connector,
 				 &sprd_dp_connector_helper_funcs);

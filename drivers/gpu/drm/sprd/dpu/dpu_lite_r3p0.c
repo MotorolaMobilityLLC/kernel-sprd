@@ -421,6 +421,29 @@ static int dpu_write_back_config(struct dpu_context *ctx)
 }
 #endif
 
+static void dpu_sdp_set(struct dpu_context *ctx,
+			int size, u32 *data)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	int i;
+	/* hardware SDP transfer num, 36 bytes unit */
+	int num_sdp = size * 4 / 36;
+
+	for (i = 0; i < size; i++) {
+		reg->sdp_lut_addr = i;
+		reg->sdp_lut_wdata = data[i];
+	}
+
+	reg->sdp_cfg = (num_sdp << 8) | BIT(0);
+}
+
+static void dpu_sdp_disable(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+	reg->sdp_cfg = 0;
+}
+
 static int dpu_init(struct dpu_context *ctx)
 {
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
@@ -444,6 +467,7 @@ static int dpu_init(struct dpu_context *ctx)
 
 	reg->dpu_int_clr = 0xffff;
 
+	dpu_sdp_disable(ctx);
 	//dpu_write_back_config(ctx);
 
 	return 0;
@@ -672,6 +696,8 @@ static void dpu_clean_all(struct dpu_context *ctx)
 	int i;
 	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
 
+	dpu_sdp_disable(ctx);
+
 	for (i = 0; i < 8; i++)
 		reg->layers[i].ctrl = 0;
 }
@@ -774,6 +800,10 @@ static void dpu_flip(struct dpu_context *ctx,
 		if (count != 1)
 			pr_err("bypass mode layer count error:%d", count);
 		layers[0].index = 7;
+		if (ctx->static_metadata_changed) {
+			dpu_sdp_set(ctx, 9, ctx->hdr_static_metadata);
+			ctx->static_metadata_changed = false;
+		}
 	}
 
 	/* start configure dpu layers */

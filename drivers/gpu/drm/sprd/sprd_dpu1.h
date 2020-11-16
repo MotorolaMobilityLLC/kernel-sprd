@@ -142,6 +142,8 @@ struct dpu_context {
 	u32 wb_addr_p;
 	irqreturn_t (*dpu_isr)(int irq, void *data);
 	bool bypass_mode;
+	u32 hdr_static_metadata[9];
+	bool static_metadata_changed;
 };
 
 struct sprd_dpu {
