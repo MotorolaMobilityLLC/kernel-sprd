@@ -6064,7 +6064,7 @@ unsigned long cpu_util_freq(int cpu)
 	walt_cpu_util <<= SCHED_CAPACITY_SHIFT;
 	do_div(walt_cpu_util, walt_ravg_window);
 
-	if (cpu_rq(cpu)->is_busy == CPU_BUSY_SET) {
+	if (cpu_rq(cpu)->is_busy == CPU_BUSY_SET || walt_io_is_busy != 0) {
 		u64 prev_runnable_sum = cpu_rq(cpu)->prev_runnable_sum;
 
 		prev_runnable_sum <<= SCHED_CAPACITY_SHIFT;
