@@ -640,7 +640,7 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 		}
 
 		if (funcs->atomic_check)
-			ret = funcs->atomic_check(connector, new_connector_state);
+			ret = funcs->atomic_check(connector, state);
 		if (ret)
 			return ret;
 
@@ -682,7 +682,7 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
 			continue;
 
 		if (funcs->atomic_check)
-			ret = funcs->atomic_check(connector, new_connector_state);
+			ret = funcs->atomic_check(connector, state);
 		if (ret)
 			return ret;
 	}
@@ -3423,6 +3423,8 @@ __drm_atomic_helper_connector_duplicate_state(struct drm_connector *connector,
 	memcpy(state, connector->state, sizeof(*state));
 	if (state->crtc)
 		drm_connector_get(connector);
+	if (state->hdr_output_metadata)
+		drm_property_blob_get(state->hdr_output_metadata);
 }
 EXPORT_SYMBOL(__drm_atomic_helper_connector_duplicate_state);
 
@@ -3549,6 +3551,7 @@ __drm_atomic_helper_connector_destroy_state(struct drm_connector_state *state)
 {
 	if (state->crtc)
 		drm_connector_put(state->connector);
+	drm_property_blob_put(state->hdr_output_metadata);
 }
 EXPORT_SYMBOL(__drm_atomic_helper_connector_destroy_state);
 

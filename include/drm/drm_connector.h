@@ -363,6 +363,12 @@ struct drm_connector_state {
 	 * upscaling, mostly used for built-in panels.
 	 */
 	unsigned int scaling_mode;
+
+	/**
+	 * @hdr_output_metadata:
+	 * DRM blob property for HDR output metadata
+	 */
+	struct drm_property_blob *hdr_output_metadata;
 };
 
 /**
@@ -905,6 +911,9 @@ struct drm_connector {
 	uint8_t num_h_tile, num_v_tile;
 	uint8_t tile_h_loc, tile_v_loc;
 	uint16_t tile_h_size, tile_v_size;
+
+	/** @hdr_sink_metadata: HDR Metadata Information read from sink */
+	struct hdr_sink_metadata hdr_sink_metadata;
 };
 
 #define obj_to_connector(x) container_of(x, struct drm_connector, base)
