@@ -219,6 +219,12 @@
 			#clock-cells = <1>;
 		};
 
+		apcpu_sec_clk: apcpu-sec-clk {
+			compatible = "sprd,ums9230-apcpu-clk-sec";
+			sprd,sec-clk;
+			#clock-cells = <1>;
+	       };
+
 		audcpapb_gate: audcpapb-gate {
 			compatible = "sprd,ums9230-audcpapb-gate";
 			sprd,syscon = <&audcp_apb_regs>; /* 0x5600d000 */
