@@ -284,8 +284,7 @@ static int cm_init_cap_remap_table(struct charger_desc *desc,
 		dev_err(dev, "%s  get cm-cap-remap-table fail\n", __func__);
 		return 0;
 	}
-
-	desc->cap_remap_table_len = size / (3 * sizeof(__be32));
+	desc->cap_remap_table_len = (u32)size / (3 * sizeof(__be32));
 	desc->cap_remap_table = devm_kzalloc(dev, sizeof(struct cap_remap_table) *
 				(desc->cap_remap_table_len + 1), GFP_KERNEL);
 	if (!desc->cap_remap_table) {
@@ -3972,7 +3971,7 @@ static void cm_track_capacity_monitor(struct charger_manager *cm)
 			 */
 			capacity = (clbcnt - cm->track.start_clbcnt) / 1000;
 			capacity =
-				(total_cap * cm->track.start_cap) / 1000 + capacity;
+				(total_cap * cm->track.start_cap) / 1000 + (u32)capacity;
 
 			if (abs(capacity - total_cap) < total_cap / 2) {
 				set_batt_total_cap(cm, capacity);
