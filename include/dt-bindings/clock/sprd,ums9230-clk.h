@@ -305,6 +305,22 @@
 #define CLK_26M_PMU			43
 #define CLK_AON_APB_NUM			(CLK_26M_PMU + 1)
 
+#define CLK_ACORE0			0
+#define CLK_ACORE1			1
+#define CLK_ACORE2			2
+#define CLK_ACORE3			3
+#define CLK_ACORE4			4
+#define CLK_ACORE5			5
+#define CLK_PCORE0			6
+#define CLK_PCORE1			7
+#define CLK_SCU				8
+#define CLK_ACE				9
+#define CLK_PERIPH			10
+#define CLK_GIC				11
+#define CLK_ATB				12
+#define CLK_DEBUG_APB			13
+#define CLK_APCPU_SEC_NUM		(CLK_DEBUG_APB + 1)
+
 #define CLK_GPU_CORE_EB			0
 #define CLK_GPU_CORE			1
 #define CLK_GPU_MEM_EB			2

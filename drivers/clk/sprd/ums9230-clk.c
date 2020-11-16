@@ -1471,6 +1471,94 @@ static struct sprd_clk_desc ums9230_aon_apb_desc = {
 	.hw_clks	= &ums9230_aon_apb_hws,
 };
 
+static const char * const acore_parents[] = { "ext-26m", "lpll",
+					      "twpll", "mpll0" };
+static SPRD_COMP_CLK_SEC(acore0_clk, "acore0-clk", acore_parents, 0,
+			 0, 3, 4, 3, 0);
+static SPRD_COMP_CLK_SEC(acore1_clk, "acore1-clk", acore_parents, 1,
+			 8, 3, 12, 3, 0);
+static SPRD_COMP_CLK_SEC(acore2_clk, "acore2-clk", acore_parents, 2,
+			 16, 3, 20, 3, 0);
+static SPRD_COMP_CLK_SEC(acore3_clk, "acore3-clk", acore_parents, 3,
+			 24, 3, 28, 3, 0);
+static SPRD_COMP_CLK_SEC(acore4_clk, "acore4-clk", acore_parents, 4,
+			 0, 3, 4, 3, 0);
+static SPRD_COMP_CLK_SEC(acore5_clk, "acore5-clk", acore_parents, 5,
+			 8, 3, 12, 3, 0);
+
+static const char * const pcore_parents[] = { "ext-26m", "lpll",
+					      "twpll", "mpll1" };
+static SPRD_COMP_CLK_SEC(pcore0_clk, "pcore0-clk", pcore_parents, 6,
+			 16, 3, 20, 3, 0);
+static SPRD_COMP_CLK_SEC(pcore1_clk, "pcore1-clk", pcore_parents, 7,
+			 24, 3, 28, 3, 0);
+
+static const char * const scu_parents[] = { "ext-26m", "twpll-768m",
+					    "lpll", "mpll2" };
+static SPRD_COMP_CLK_SEC(scu_clk, "scu-clk", scu_parents, 8,
+			 0, 3, 4, 3, 0);
+static SPRD_DIV_CLK_SEC(ace_clk, "ace-clk", "scu-clk", 9,
+			12, 3, 0);
+
+static const char * const periph_parents[] = { "ext-26m", "twpll-153m6",
+					       "twpll-512m", "twpll-768m" };
+static SPRD_COMP_CLK_SEC(periph_clk, "periph-clk", periph_parents, 10,
+			 24, 3, 28, 3, 0);
+
+static const char * const gic_parents[] = { "ext-26m", "twpll-153m6",
+					    "twpll-384m", "twpll-512m" };
+static SPRD_COMP_CLK_SEC(gic_clk, "gic-clk", gic_parents, 11,
+			 16, 3, 20, 3, 0);
+
+static SPRD_COMP_CLK_SEC(atb_clk, "atb-clk", periph_parents, 12,
+			 0, 3, 4, 3, 0);
+static SPRD_DIV_CLK_SEC(debug_apb_clk, "debug-apb-clk", "atb-clk", 13,
+			12, 3, 0);
+
+static struct sprd_clk_common *ums9230_apcpu_clks[] = {
+	/* address base is 0x64880000 */
+	&acore0_clk.common,
+	&acore1_clk.common,
+	&acore2_clk.common,
+	&acore3_clk.common,
+	&acore4_clk.common,
+	&acore5_clk.common,
+	&pcore0_clk.common,
+	&pcore1_clk.common,
+	&scu_clk.common,
+	&ace_clk.common,
+	&periph_clk.common,
+	&gic_clk.common,
+	&atb_clk.common,
+	&debug_apb_clk.common,
+};
+
+static struct clk_hw_onecell_data ums9230_apcpu_hws = {
+	.hws	= {
+		[CLK_ACORE0]	= &acore0_clk.common.hw,
+		[CLK_ACORE1]	= &acore1_clk.common.hw,
+		[CLK_ACORE2]	= &acore2_clk.common.hw,
+		[CLK_ACORE3]	= &acore3_clk.common.hw,
+		[CLK_ACORE4]	= &acore4_clk.common.hw,
+		[CLK_ACORE5]	= &acore5_clk.common.hw,
+		[CLK_PCORE0]	= &pcore0_clk.common.hw,
+		[CLK_PCORE1]	= &pcore1_clk.common.hw,
+		[CLK_SCU]	= &scu_clk.common.hw,
+		[CLK_ACE]	= &ace_clk.common.hw,
+		[CLK_PERIPH]	= &periph_clk.common.hw,
+		[CLK_GIC]	= &gic_clk.common.hw,
+		[CLK_ATB]	= &atb_clk.common.hw,
+		[CLK_DEBUG_APB]	= &debug_apb_clk.common.hw,
+	},
+	.num	= CLK_APCPU_SEC_NUM,
+};
+
+static struct sprd_clk_desc ums9230_apcpu_clk_sec_desc = {
+		.clk_clks	= ums9230_apcpu_clks,
+		.num_clk_clks	= ARRAY_SIZE(ums9230_apcpu_clks),
+		.hw_clks	= &ums9230_apcpu_hws,
+};
+
 /* gpu clocks */
 /* gpu related gate clocks configure CLK_IGNORE_UNUSED because their power
  * domain may be shut down, and they are controlled by related module.
@@ -1879,6 +1967,8 @@ static const struct of_device_id sprd_ums9230_clk_ids[] = {
 	  .data = &ums9230_aon_gate_desc },
 	{ .compatible = "sprd,ums9230-aonapb-clk",	/* 0x64012000 */
 	  .data = &ums9230_aon_apb_desc },
+	{ .compatible = "sprd,ums9230-apcpu-clk-sec",	/* 0x64880000 */
+	  .data = &ums9230_apcpu_clk_sec_desc },
 	{ .compatible = "sprd,ums9230-gpu-clk",		/* 0x23000000 */
 	  .data = &ums9230_gpu_clk_desc },
 	{ .compatible = "sprd,ums9230-mm-clk",		/* 0x30010000 */
