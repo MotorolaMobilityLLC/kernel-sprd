@@ -326,7 +326,7 @@
 	extcon_gpio: extcon-gpio {
 		compatible = "linux,extcon-usb-gpio";
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
-		id-gpio = <&eic_debounce 4 GPIO_ACTIVE_HIGH>;
+		//id-gpio = <&eic_debounce 4 GPIO_ACTIVE_HIGH>;
 	};
 
 	gpio_boardid:gpio_boardid {
@@ -402,12 +402,12 @@
 };
 
 &usb {
-	extcon = <&extcon_gpio>;
+	extcon = <&extcon_gpio>,<&pmic_typec>;
 	vbus-supply = <&vddvbus>;
 };
 
 &pmic_typec {
-	status = "disabled";
+	status = "okay";
 };
 
 &sdio0 {
@@ -599,9 +599,9 @@
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
-		};
+		//vddvbus:otg-vbus {
+			//regulator-name = "vddvbus";
+		//};
 	};
 
 	bq2560x-chg@0x6b {
@@ -613,9 +613,9 @@
 		phys = <&hsphy>;
 		monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>;
-//		vddvbus:otg-vbus {
-//			regulator-name = "vddvbus";
-//		};
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
+		};
 	};
 
 	flash_ic: flash-ic@63 {
