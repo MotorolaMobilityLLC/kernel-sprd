@@ -72,7 +72,7 @@
 		soc_thmzone: soc-thmzone {
 			polling-delay-passive = <100>;
 			polling-delay = <1000>;
-			sustainable-power = <2000>;
+			sustainable-power = <2386>;
 			thermal-sensors = <&soc_sensor  17>;
 			trips {
 				soc_threshold: trip-point@0 {
@@ -193,31 +193,31 @@
 			/*core Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,core-temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  29      (-2100)      100000    (-580000)>;
+			<  31      (-3041)      170000    (-1590000)>;
 			/*core Vscale = eV^3 + fV^2 + gV + h */
 			sprd,core-voltage-scale =
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
-			<  201     (-169)      83      (-16)>;
+			<  3320     (-7489)      5692      (-1423)>;
 			/*cluster Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,cluster-temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  29      (-2100)      100000    (-580000)>;
+			<  31      (-3041)      170000    (-1590000)>;
 			/*cluster Vscale = eV^3 + fV^2 + gV + h */
 			sprd,cluster-voltage-scale =
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
-			<  201     (-169)      83      (-16)>;
+			<  3320     (-7489)      5692      (-1423)>;
 			sprd,efuse-switch = <0>;
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <768000>;
 			sprd,min-cpunum = <3>;
-			sprd,core-base = <2400>;
-			sprd,cluster-base = <3970>;
+			sprd,core-base = <3930>;
+			sprd,cluster-base = <1673>;
 			sprd,dynamic-core =
 			/*Pdynperghz*10    Freq     Vbase  */
-			< 1007           1000     1000>;
+			< 1084           1000     1000>;
 			sprd,dynamic-cluster =
 			/*Pdynperghz*10    Freq     Vbase  */
-			< 747           1000     1000>;
+			< 757           1000     1000>;
 		};
 
 		cluster1_cooling: cluster1-cooling {
@@ -234,31 +234,31 @@
 			/*core Tscale = aT^3 + bT^2 + cT +d  */
 			sprd,core-temp-scale =
 			/* a*10^7   b*10^7	c*10^7	   d*10^7*/
-			<  29      (-2100)      100000    (-580000)>;
+			<  31      (-3041)      170000    (-1590000)>;
 			/* core  Vscale = eV^3 + fV^2 + gV + h */
 			sprd,core-voltage-scale =
 			/* e*10^2  f*10^2     g*10^2  h*10^2*/
-			<  201     (-169)      83      (-16)>;
+			<  3320     (-7489)      5692      (-1423)>;
 			/*cluster Tscale = aT^3 + bT^2 + cT +di   */
 			sprd,cluster-temp-scale =
 			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  29      (-2100)      100000    (-580000)>;
+			<  31      (-3041)      170000    (-1590000)>;
 			/*cluster Vscale = eV^3 + fV^2 + gV + h */
 			sprd,cluster-voltage-scale =
 			/* e*10^2   f*10^2     g*10^2  h*10^2*/
-			<  201     (-169)      83      (-16)>;
+			<  3320     (-7489)      5692      (-1423)>;
 			sprd,efuse-switch = <0>;
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <1228800>;
 			sprd,min-cpunum = <0>;
-			sprd,core-base = <4190>;
-			sprd,cluster-base = <3970>;
+			sprd,core-base = <11464>;
+			sprd,cluster-base = <1673>;
 			sprd,dynamic-core =
 			/* Pdynperghz*10    Freq     Vbase */
-			<  1536          1000     1000>;
+			<  4895          1000     1000>;
 			sprd,dynamic-cluster =
 			/* Pdynperghz*10    Freq     Vbase */
-			<  747            1000     1000>;
+			<  757            1000     1000>;
 		};
 	};
 
