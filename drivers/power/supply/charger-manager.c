@@ -3597,11 +3597,11 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = chg_sts;
 
-	dev_info(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
-		 "capacity = %d, charger status = %d, force set full = %d, "
+	dev_err(cm->dev, "battery voltage = %d, OCV = %d, current = %d, "
+		 "capacity = %d,%d, charger status = %d, force set full = %d, "
 		 "charging current = %d, charging limit current = %d, "
 		 "battery temperature = %d track state = %d fullbatt_uV = %d\n",
-		 batt_uV, batt_ocV, bat_uA, fuel_cap, cm->desc->charger_status,
+		 batt_uV, batt_ocV, bat_uA, fuel_cap,cm->desc->cap, cm->desc->charger_status,
 		 cm->desc->force_set_full, chg_cur, chg_limit_cur, cur_temp,
 		 cm->track.state,cm->desc->fullbatt_uV);
 
