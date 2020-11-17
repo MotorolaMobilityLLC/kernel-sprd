@@ -329,6 +329,7 @@
 		"inter HP PA", "HP PA",
 		"Ext Spk", "HP PA",
 		"Ext Spk1", "HP PA",
+		"HeadPhone Jack", "HP PA",
 		"inter Ear PA", "EAR",
 		"DMIC", "DMic Jack",
 		"DMIC1", "DMic1 Jack",
@@ -342,9 +343,14 @@
 		"Aud input1", "Digital ADC1R Switch";
 
 	/*ext_control_type, hook selection, mode, gpio share*/
-	sprd,spk-ext-pa-info = <0 0 1 0>, <1 1 1 0>;
-	sprd,spk-ext-pa-gpio = <&ap_gpio 121 0>, <&ap_gpio 122 0>;
-	sprd,spk-ext-pa-names = "ext_spk_r","hp_ctrl";
+	sprd,spk-ext-pa-info = <0 0 1 0>,
+				<0 0 0 1>,
+				<2 2 0 0>,
+				<1 3 0 0>;
+	sprd,spk-ext-pa-gpio = <&ap_gpio 121 0>,
+				<&ap_gpio 121 0>,
+				<&ap_gpio 122 0>;
+	sprd,spk-ext-pa-names = "ext_spk_r", "ext_spk_l", "hp_ctrl";
 };
 
 &sound_sprd_ap_alliis {
