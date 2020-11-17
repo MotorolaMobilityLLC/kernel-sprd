@@ -536,7 +536,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		sc27xx_fgu_get_boot_voltage(data, &current_ocv);
 		current_cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
 						   current_ocv);
-		 sc27xx_fgu_read_normal_temperature_cap(data, cap);
+		 sc27xx_fgu_read_last_cap(data, cap);
 
 		 if( current_cap*10 >= *cap)
 		 	delta = current_cap*10 -*cap;
