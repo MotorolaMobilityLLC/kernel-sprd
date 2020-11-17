@@ -29,6 +29,10 @@
 		interrupt-controller;
 	};
 
+	sprd-sensorhub {
+		 compatible = "sprd,sharkl5Pro-sensorhub", "sprd,sensor-hub";
+	};
+
 	trusty {
 		compatible = "sprd,trusty-smc-v1";
 
