@@ -529,6 +529,24 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 {
 	int ocv, ret;
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
+	int current_ocv,current_cap,delta;
+
+	if(!is_first_poweron)
+	{
+		sc27xx_fgu_get_boot_voltage(data, &current_ocv);
+		current_cap = power_supply_ocv2cap_simple(data->cap_table, data->table_len,
+						   current_ocv);
+		 sc27xx_fgu_read_normal_temperature_cap(data, cap);
+
+		 if( current_cap*10 >= *cap)
+		 	delta = current_cap*10 -*cap;
+		 else
+		 	delta = *cap - current_cap*10;
+
+		 if(delta >300)	 	
+		 	is_first_poweron= true;
+	dev_err(data->dev, "%s;%d;%d;%d;%d;%d;\n",__func__,is_first_poweron,delta,current_ocv,current_cap*10,*cap);
+	}
 
 	if (is_charger_mode)
 		sc27xx_fgu_get_boot_voltage(data, &data->boot_vol);
@@ -579,7 +597,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		return ret;
 	}
 
-	dev_info(data->dev, "First_poweron: ocv = %d, cap = %d\n", ocv, *cap);
+	dev_err(data->dev, "First_poweron: ocv = %d, cap = %d\n", ocv, *cap);
 	return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
 }
 
