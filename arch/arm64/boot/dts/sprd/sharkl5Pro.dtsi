@@ -21,6 +21,10 @@
 		i2c3 = &i2c3;
 		i2c4 = &i2c4;
 		i2c5 = &aon_i2c0;
+		spi0 = &spi0;
+		spi1 = &spi1;
+		spi2 = &spi2;
+		spi3 = &spi3;
 		spi4 = &adi_bus;
 	};
 
@@ -204,6 +208,46 @@
 				reg = <0x700000 0x100>;
 				interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
 				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			spi0: spi@800000{
+				compatible = "sprd,ums512-spi",
+					     "sprd,sc9860-spi";
+				reg = <0x800000 0x1000>;
+				interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			spi1: spi@900000{
+				compatible = "sprd,ums512-spi",
+					     "sprd,sc9860-spi";
+				reg = <0x900000 0x1000>;
+				interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			spi2: spi@a00000{
+				compatible = "sprd,ums512-spi",
+					     "sprd,sc9860-spi";
+				reg = <0xa00000 0x1000>;
+				interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+				status = "disabled";
+			};
+
+			spi3: spi@b00000{
+				compatible = "sprd,ums512-spi",
+					     "sprd,sc9860-spi";
+				reg = <0xb00000 0x1000>;
+				interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
