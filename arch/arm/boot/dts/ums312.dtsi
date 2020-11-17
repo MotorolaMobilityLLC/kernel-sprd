@@ -1160,6 +1160,7 @@
 			"jpg_dev_eb",
 			"jpg_ckg_eb",
 			"jpg_clk",
+			"clk_src_76m8",
 			"clk_src_128m",
 			"clk_src_192m",
 			"clk_src_256m";
@@ -1167,6 +1168,7 @@
 			<&mm_gate CLK_MM_JPG_EB>,
 			<&mm_gate CLK_MM_CKG_EB>,
 			<&mm_clk CLK_JPG>,
+			<&pll2 CLK_TWPLL_76M8>,
 			<&pll2 CLK_TWPLL_128M>,
 			<&pll2 CLK_TWPLL_192M>,
 			<&pll2 CLK_TWPLL_256M>;
