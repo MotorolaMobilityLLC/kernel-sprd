@@ -129,8 +129,8 @@
 		csi = <&csi0>;
 	};
 
-	sensor_sub2: sensor-sub2@5a {
-		compatible = "sprd,sensor-sub2";
+	sensor_sub: sensor-sub@5a {
+		compatible = "sprd,sensor-sub";
 		reg = <0x5a>;
 		clock-names = "clk_src","sensor_eb",
 			"clk_96m","clk_76m8",
@@ -185,8 +185,8 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
-	sensor_sub: sensor-sub@6e {
-		compatible = "sprd,sensor-sub";
+	sensor_sub2: sensor-sub2@6e {
+		compatible = "sprd,sensor-sub2";
 		reg = <0x6e>;
 		clock-names = "clk_src","sensor_eb",
 			"clk_96m","clk_76m8",
