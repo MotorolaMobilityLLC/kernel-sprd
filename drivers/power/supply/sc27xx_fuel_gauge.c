@@ -1012,6 +1012,8 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 				val->intval = 540;
                       else if(value <= 100)
 	                     val->intval  = 100;
+			else
+				val->intval = value;
 			
 			d85_temp =value;
 			ret = 0;
