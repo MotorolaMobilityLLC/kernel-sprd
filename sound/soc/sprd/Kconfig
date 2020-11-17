@@ -71,5 +71,6 @@ source "sound/soc/sprd/dai/i2s/Kconfig"
 source "sound/soc/sprd/dai/vaudio/Kconfig"
 source "sound/soc/sprd/platform/Kconfig"
 source "sound/soc/sprd/codec/sprd/Kconfig"
+source "sound/soc/sprd/codec/awinic/Kconfig"
 
 endif #SND_SOC_SPRD

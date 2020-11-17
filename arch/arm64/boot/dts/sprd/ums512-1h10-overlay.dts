@@ -13,6 +13,8 @@
 #include "lcd/lcd_nt36525b_djn_mipi_hd.dtsi"
 // add 1th LCD end
 #include "lcd/lcd_dummy_mipi.dtsi"
+/* Tinno add audio dts config */
+#include "ums512-1h10-audio-overlay.dtsi"
 
 / {
 
