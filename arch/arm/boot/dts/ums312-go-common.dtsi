@@ -50,6 +50,36 @@
 		gsp = <&gsp>;
 	};
 
+	dpu_dvfs: dpu-dvfs {
+		compatible = "sprd,hwdvfs-dpu-sharkl5";
+		sprd,hw-dvfs-en = <0>;
+		sprd,work-index-def = <4>;
+		sprd,idle-index-def = <0>;
+
+		operating-points = <
+			/* kHz    uV */
+			156000    700000
+			192000    700000
+			256000    700000
+			307200    700000
+			384000    750000
+			>;
+	};
+
+	vsp_dvfs: vsp_dvfs {
+		compatible = "sprd,hwdvfs-vsp-sharkl5";
+		sprd,dvfs-work-freq = <384000000>;
+		sprd,dvfs-idle-freq = <256000000>;
+		sprd,dvfs-enable-flag = <0>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    700000
+			307200    700000
+			384000    750000
+			>;
+	};
+
 	ddr_dfs: scene-frequency {
 		compatible = "sprd,dfs";
 		freq-num = <7>;
