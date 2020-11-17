@@ -18,7 +18,7 @@
 					sprd,dsi-lane-number = <4>;
 					sprd,dsi-color-format = "rgb888";
 
-					sprd,phy-bit-clock = <1100000>;	/* kbps */
+					sprd,phy-bit-clock = <1500000>;	/* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
 
 					sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
@@ -207,7 +207,7 @@
 						29 00 00 02 C0 10
 						29 00 00 02 00 00
 						29 00 00 04 FF FF FF FF
-						15 00 00 02 35 01
+						15 00 00 02 35 00
 						15 00 00 02 51 FF
 						15 00 00 02 53 24
 						15 00 00 02 55 00
@@ -235,15 +235,15 @@
 						native-mode = <&g40396_truly_timing0>;
 
 						g40396_truly_timing0: timing0 {
-							clock-frequency = <153600000>;
+							clock-frequency = <192000000>;
 							hactive = <1080>;
 							vactive = <2400>;
-							hback-porch = <48>;
-							hfront-porch = <48>;
+							hback-porch = <75>;
+							hfront-porch = <75>;
 							vback-porch = <32>;
 							vfront-porch = <8>;
-							hsync-len = <18>;
-							vsync-len = <4>;
+							hsync-len = <75>;
+							vsync-len = <8>;
 						};
 					};
 				};
