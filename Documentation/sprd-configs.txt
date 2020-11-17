@@ -12766,7 +12766,7 @@ CONFIG_SPRD_APB_BUSMONITOR
 CONFIG_SPRD_APSYS_DVFS_DEVFREQ
 	[arch] all
 	[plat] sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkl3
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] devfreq
 	[must] user
@@ -13299,12 +13299,12 @@ CONFIG_SPRD_MAILBOX_R1P2
 	[function] This function is used to enable sprd mailbox r1p2 version.
 CONFIG_SPRD_MEMDISK
 	[arch] arm
-	[plat] pike2,sharkl3_32,sharkle32
-	[missing plat] sharkl5_32
+	[plat] pike2,sharkl3_32,sharkl5_32,sharkle32
+	[missing plat] none
 	[field] make
 	[subsys] ota
 	[must] user
-	[missing plat description] sharkl5_32 is invalid in androidr
+	[missing plat description] none
 	[function] Using reserved memory generate block device node.
 CONFIG_SPRD_MEM_OVERLAY_CHECK
 	[arch] all
@@ -13725,7 +13725,7 @@ CONFIG_SPRD_TIMER
 CONFIG_SPRD_TOP_DVFS_DEVFREQ
 	[arch] all
 	[plat] sharkl5,sharkl5Pro,sharkl5_32
-	[missing plat] sharkl3
+	[missing plat] pike2,sharkl3,sharkl3_32,sharkle32
 	[field] make
 	[subsys] devfreq
 	[must] user
