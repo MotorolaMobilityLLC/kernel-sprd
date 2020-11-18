@@ -74,6 +74,8 @@ static int sprd_panel_send_cmds(struct mipi_dsi_device *dsi,
 	return 0;
 }
 
+extern volatile int gesture_dubbleclick_en;
+
 static int sprd_panel_unprepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
@@ -83,13 +85,29 @@ static int sprd_panel_unprepare(struct drm_panel *p)
 	DRM_INFO("%s()\n", __func__);
 
 	if (panel->info.avee_gpio) {
-		gpiod_direction_output(panel->info.avee_gpio, 1);
-		mdelay(5);
+		DRM_INFO("--------------yyx-------------");
+		if (!gesture_dubbleclick_en) {
+			gpiod_direction_output(panel->info.avee_gpio, 0);
+		DRM_INFO("--------------yyx1-------------");
+			mdelay(5);
+		}else{
+			gpiod_direction_output(panel->info.avee_gpio, 1);
+		DRM_INFO("--------------yyx2-------------");
+                        mdelay(5);
+		}
 	}
 
 	if (panel->info.avdd_gpio) {
-		gpiod_direction_output(panel->info.avdd_gpio, 1);
-		mdelay(5);
+		DRM_INFO("--------------yyx3-------------");
+		if (!gesture_dubbleclick_en) {
+			gpiod_direction_output(panel->info.avdd_gpio, 0);
+		DRM_INFO("--------------yyx4-------------");
+			mdelay(5);
+		}else{
+			gpiod_direction_output(panel->info.avdd_gpio, 1);
+		DRM_INFO("--------------yyx5-------------");
+                        mdelay(5);
+		}
 	}
 
 	if (panel->info.reset_gpio) {
