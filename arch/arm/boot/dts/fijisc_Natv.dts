@@ -232,8 +232,9 @@
 
 
 
-		battery_name-0 ="KS40-ATL-2820mAh";
-		battery_name-1 ="KS40-Sunwoda-2820mAh";
+		battery_name-0 ="KS40-ATL-SB18C51767-2820mAh";
+		battery_name-1 ="KS40-Sunwoda-SB18C51766-2820mAh";
+		battery_name-2 ="KS40-SCUD-SB18C85292-2820mAh";
 
 		charge-full-design-microamp-hours-1 = <2957000>;
 		factory-internal-resistance-micro-ohms-1 = <233000>;
@@ -247,7 +248,17 @@
 		capacity-temp-table-1 = <50 100>, <25 100>, <0 87>, <(-10) 71>;
 		resistance-temp-table-1 = <50 60>, <25 100>, <0 440>, <(-10) 555>;
 
-
+		charge-full-design-microamp-hours-2 = <2957000>;
+		factory-internal-resistance-micro-ohms-2 = <167000>;
+		ocv-capacity-table-2 = <4376000 100>, <4327000 95>, <4267000 90>,
+					<4209000 85>, <4152000 80>, <4098000 75>,
+					<4052000 70>, <3992000 65>, <3957000 60>,
+					<3900000 55>, <3861000 50>, <3835000 45>,
+					<3814000 40>, <3798000 35>, <3783000 30>,
+					<3765000 25>, <3746000 20>, <3722000 15>,
+					<3693000 10>, <3678000 5>, <3400000 0>;
+		capacity-temp-table-2 = <50 98>, <25 100>, <0 95>, <(-10) 88>;
+		resistance-temp-table-2 = <50 80>, <25 100>, <0 716>, <(-10) 772>;
 	};
 
 	charger-manager {
