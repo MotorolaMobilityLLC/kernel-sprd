@@ -399,7 +399,7 @@ static int bq24157_charger_hw_init(struct bq24157_charger_info *info)
 
 	bq24157_write(info,0x00, 0xC0);	/* kick chip watch dog */
 	bq24157_write(info,0x01, 0xb8);	/* TE=1, CE=0, HZ_MODE=0, OPA_MODE=0 */
-	bq24157_write(info,0x05, 0x83);
+	bq24157_write(info,0x05, 0x03);
 
 	bq24157_write(info,0x04, 0x02);	
 
