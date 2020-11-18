@@ -43,6 +43,8 @@
 						"sysreset", "getstatus", "dspreset";
 			reg = <0x0 0x800000 0x0 0x4E000>,
 				<0x0 0x800000 0x0 0x4E000>;
+			/* iram-addr size */
+			sprd,aon_iram = <0x4400 0xA800>;
 
 			#address-cells = <1>;
 			#size-cells = <1>;
