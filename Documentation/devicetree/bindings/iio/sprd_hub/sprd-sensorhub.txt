@@ -4,14 +4,15 @@ Unisoc's some SoCs integrates sensor hub. This sensor hub driver collect and
 analyze data uploaded from sensors.
 
 Required Properties:
-- compatible: should be the following.
-  - "sprd,sharkl3-sensorhub": for Sharkl3-compatible sensor hub,
-  - "sprd,sharkl5-sensorhub": for Sharkl5-compatible sensor hub,
-  - "sprd,sharkl5Pro-sensorhub": for Sharkl5pro-compatible sensor hub,
-  - "sprd,roc1-sensorhub": for Roc1-compatible sensor hub
+- compatible: consisted of platform name and common name.
+  - "sprd,sharkl3-sensorhub", "sprd,sensor-hub": for Sharkl3-compatible sensor hub,
+  - "sprd,sharkl5-sensorhub", "sprd,sensor-hub": for Sharkl5-compatible sensor hub,
+  - "sprd,sharkl5Pro-sensorhub", "sprd,sensor-hub": for Sharkl5pro-compatible sensor hub,
+  - "sprd,roc1-sensorhub", "sprd,sensor-hub": for Roc1-compatible sensor hub
+  - "sprd,qogirl6-sensorhub", "sprd,sensor-hub": for qogirl6-compatible sensor hub
 
 
 Example:
 	sprd-sensorhub {
-		compatible = "sprd,sharkl5-sensorhub";
+		compatible = "sprd,sharkl5-sensorhub", "sprd,sensor-hub";
 	};
