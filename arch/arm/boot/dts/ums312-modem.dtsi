@@ -37,10 +37,11 @@
 					<&pmu_apb_regs 0xff 0x100000>,
 					<&aon_apb_regs 0x8c 0x1>,
 					<&aon_apb_regs 0xff 0x0>,
-					<&aon_apb_regs 0xff 0x0>;
+					<&aon_apb_regs 0xff 0x0>,
+					<&pmu_apb_regs 0xb0 0xc000>;
 			syscon-names = "shutdown", "deepsleep", "corereset",
-						"sysreset", "getstatus";
-			reg = <0x800000 0x3b000>;
+						"sysreset", "getstatus","dspreset";
+			reg = <0x800000 0x40000>;
 			#address-cells = <1>;
 			#size-cells = <1>;
 			/* segnr=1 */
