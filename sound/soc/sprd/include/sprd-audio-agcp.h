@@ -58,12 +58,25 @@
 #define BIT_AG_IIS1_EXT_SEL                      BIT(1)
 #define BIT_AG_IIS0_EXT_SEL                      BIT(0)
 
+#define BIT_AG_IIS4_EXT_SEL_V1                      (BIT(6) | BIT(7))
+#define BIT_AG_IIS2_EXT_SEL_V1                      (BIT(4) | BIT(5))
+#define BIT_AG_IIS1_EXT_SEL_V1                      (BIT(2) | BIT(3))
+#define BIT_AG_IIS0_EXT_SEL_V1                      (BIT(0) | BIT(1))
+
 /* ----------------------------------------------- */
 enum ag_iis {
 	AG_IIS0,
 	AG_IIS1,
 	AG_IIS2,
 	AG_IIS_MAX
+};
+
+enum ag_iis_v1 {
+	AG_IIS0_V1,
+	AG_IIS1_V1,
+	AG_IIS2_V1,
+	AG_IIS4_V1,
+	AG_IIS_V1_MAX
 };
 
 /* AGCP IIS multiplexer setting.
@@ -93,7 +106,7 @@ static inline int arch_audio_iis_to_audio_top_enable(
 	default:
 		pr_err("%s, agcp iis mux setting error!\n", __func__);
 		return -1;
-	};
+	}
 
 	ret = agdsp_access_enable();
 	if (ret) {
@@ -105,6 +118,48 @@ static inline int arch_audio_iis_to_audio_top_enable(
 		agcp_ahb_reg_set(REG_AGCP_AHB_EXT_ACC_AG_SEL, val);
 	else
 		agcp_ahb_reg_clr(REG_AGCP_AHB_EXT_ACC_AG_SEL, val);
+
+	agdsp_access_disable();
+
+	return 0;
+}
+
+static inline int arch_audio_iis_to_audio_top_enable_v1(
+	enum ag_iis iis, int mode)
+{
+	u32 mask;
+	int ret;
+
+	ret = agcp_ahb_gpr_null_check();
+	if (ret) {
+		pr_err("%s agcp_ahb_gpr_null_check failed!", __func__);
+		return -1;
+	}
+	switch (iis) {
+	case AG_IIS0_V1:
+		mask = BIT_AG_IIS0_EXT_SEL_V1;
+		break;
+	case AG_IIS1_V1:
+		mask = BIT_AG_IIS1_EXT_SEL_V1;
+		break;
+	case AG_IIS2_V1:
+		mask = BIT_AG_IIS2_EXT_SEL_V1;
+		break;
+	case AG_IIS4_V1:
+		mask = BIT_AG_IIS2_EXT_SEL_V1;
+		break;
+	default:
+		pr_err("%s, sharkl6 agcp iis mux setting error!\n", __func__);
+		return -1;
+	}
+
+	ret = agdsp_access_enable();
+	if (ret) {
+		pr_err("%s, agdsp_access_enable failed!\n", __func__);
+		return ret;
+	}
+
+	agcp_ahb_reg_update(REG_AGCP_AHB_EXT_ACC_AG_SEL, mask, mode);
 	agdsp_access_disable();
 
 	return 0;
@@ -116,7 +171,11 @@ static inline int arch_audio_codec_digital_reg_enable(void)
 	int ret = 0;
 	int test_v;
 
-	agcp_ahb_gpr_null_check();
+	ret = agcp_ahb_gpr_null_check();
+	if (ret) {
+		pr_err("%s agcp_ahb_gpr_null_check failed!", __func__);
+		return -1;
+	}
 	ret = agdsp_access_enable();
 	if (ret) {
 		pr_err("%s, agdsp_access_enable failed!\n", __func__);
@@ -130,7 +189,6 @@ static inline int arch_audio_codec_digital_reg_enable(void)
 	if (ret >= 0)
 		ret = agcp_ahb_reg_set(REG_AGCP_AHB_MODULE_EB0_STS,
 			BIT_AUDIF_CKG_AUTO_EN);
-
 	agcp_ahb_reg_read(REG_AGCP_AHB_MODULE_EB0_STS, &test_v);
 	pr_debug("%s set aud en %#x\n", __func__, test_v);
 	agdsp_access_disable();
@@ -152,7 +210,6 @@ static inline int arch_audio_codec_digital_reg_disable(void)
 		BIT_AUDIF_CKG_AUTO_EN);
 	if (ret >= 0)
 		ret = agcp_ahb_reg_clr(REG_AGCP_AHB_MODULE_EB0_STS, BIT_AUD_EB);
-
 	agdsp_access_disable();
 
 	return ret;
@@ -186,7 +243,6 @@ static inline int arch_audio_codec_digital_reset(void)
 	agcp_ahb_reg_set(REG_AGCP_AHB_MODULE_RST0_STS, BIT_AUD_SOFT_RST);
 	udelay(10);
 	agcp_ahb_reg_clr(REG_AGCP_AHB_MODULE_RST0_STS, BIT_AUD_SOFT_RST);
-
 	agdsp_access_disable();
 
 	return ret;

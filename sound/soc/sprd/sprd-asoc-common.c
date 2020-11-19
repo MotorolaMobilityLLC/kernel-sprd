@@ -35,6 +35,33 @@
 /* spreadtrum audio debug */
 static int sp_audio_debug_flag = SP_AUDIO_DEBUG_DEFAULT;
 
+struct regmap *aon_apb_gpr;
+
+u32 agcp_ahb_set_offset;
+
+u32 agcp_ahb_clr_offset;
+
+struct regmap *g_agcp_ahb_gpr;
+/*
+ * pmu apb global registers operating interfaces
+ */
+struct regmap *pmu_apb_gpr;
+
+/*
+ * pmu completement apb global registers operating interfaces
+ */
+struct regmap *pmu_com_apb_gpr;
+
+/*
+ * ap apb global registers operating interfaces
+ * ap_apb_gpr will be set by i2s.c in its probe func.
+ */
+struct regmap *g_ap_apb_gpr;
+
+/* anlg_phy_g_controller */
+struct regmap *anlg_phy_g;
+
+
 inline int get_sp_audio_debug_flag(void)
 {
 	return sp_audio_debug_flag;
@@ -85,3 +112,135 @@ int sprd_audio_debug_init(struct snd_card *card)
 	return 0;
 }
 EXPORT_SYMBOL(sprd_audio_debug_init);
+
+int aon_apb_gpr_null_check(void)
+{
+	if (aon_apb_gpr == NULL) {
+		pr_err("ERR: %saon_apb_gpr is not initialized!\n",
+			__func__);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+void arch_audio_set_aon_apb_gpr(struct regmap *gpr)
+{
+	aon_apb_gpr = gpr;
+}
+
+struct regmap *arch_audio_get_aon_apb_gpr(void)
+{
+	return aon_apb_gpr;
+}
+
+/*
+ * agcp ahb global registers operating interfaces
+ */
+
+void set_agcp_ahb_offset(u32 set_ahb_offset, u32 clr_ahb_offset)
+{
+	agcp_ahb_set_offset = set_ahb_offset;
+	agcp_ahb_clr_offset = clr_ahb_offset;
+	pr_info("%s agcp_ahb_set_offset %x, agcp_ahb_clr_offset %x", __func__,
+		agcp_ahb_set_offset, agcp_ahb_clr_offset);
+}
+
+int agcp_ahb_gpr_null_check(void)
+{
+	if (g_agcp_ahb_gpr == NULL) {
+		pr_err("ERR: %s g_agcp_ahb_gpr isn't initialized!\n",
+			__func__);
+		return -1;
+	}
+
+	return 0;
+}
+
+
+
+void arch_audio_set_agcp_ahb_gpr(struct regmap *gpr)
+{
+	g_agcp_ahb_gpr = gpr;
+}
+
+struct regmap *arch_audio_get_agcp_ahb_gpr(void)
+{
+	return g_agcp_ahb_gpr;
+}
+
+
+int pmu_apb_gpr_null_check(void)
+{
+	if (pmu_apb_gpr == NULL) {
+		pr_err("ERR: %s pmu_apb_gpr is not initialized!\n",
+			__func__);
+		return -1;
+	}
+
+	return 0;
+}
+
+void arch_audio_set_pmu_apb_gpr(struct regmap *gpr)
+{
+	pmu_apb_gpr = gpr;
+}
+
+
+int pmu_com_apb_gpr_null_check(void)
+{
+	if (pmu_com_apb_gpr == NULL) {
+		pr_err("ERR: %s pmu_com_apb_gpr is not initialized!\n",
+			__func__);
+		return -1;
+	}
+
+	return 0;
+}
+
+void arch_audio_set_pmu_com_apb_gpr(struct regmap *gpr)
+{
+	pmu_com_apb_gpr = gpr;
+}
+
+int ap_apb_gpr_null_check(void)
+{
+	if (g_ap_apb_gpr == NULL) {
+		pr_err("ERR: %s g_ap_apb_gpr is not initialized!\n",
+			__func__);
+		return -1;
+	}
+
+	return 0;
+}
+
+void arch_audio_set_ap_apb_gpr(struct regmap *gpr)
+{
+	g_ap_apb_gpr = gpr;
+}
+
+struct regmap *arch_audio_get_ap_apb_gpr(void)
+{
+	return g_ap_apb_gpr;
+}
+int anlg_phy_g_null_check(void)
+{
+	if (anlg_phy_g == NULL) {
+		pr_err("ERR: %s anlg_phy_g2 is not initialized!\n",
+			__func__);
+		return -EFAULT;
+	}
+
+	return 0;
+}
+
+void arch_audio_set_anlg_phy_g(struct regmap *gpr)
+{
+	anlg_phy_g = gpr;
+}
+
+struct regmap *arch_audio_get_anlg_phy_g(void)
+{
+	return anlg_phy_g;
+}
+

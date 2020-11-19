@@ -6768,6 +6768,7 @@ int vbc_of_setup(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	set_vbc_dsp_ap_offset(val);
+
 	/* PIN MUX */
 	pctrl = devm_pinctrl_get(&pdev->dev);
 	if (IS_ERR(pctrl)) {
@@ -6842,6 +6843,7 @@ static int vbc_drv_remove(struct platform_device *pdev)
 static const struct of_device_id vbc_of_match[] = {
 	{.compatible = "sprd,sharkl5-vbc",},
 	{.compatible = "sprd,roc1-vbc",},
+	{.compatible = "sprd,qogirl6-vbc",},
 	{},
 };
 

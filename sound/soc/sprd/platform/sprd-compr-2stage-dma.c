@@ -2216,6 +2216,7 @@ static int sprd_platform_compr_resume(struct platform_device *pdev)
 static const struct of_device_id sprd_compress_of_match[] = {
 	{.compatible = "sprd,sharkl5-compress-platform",},
 	{.compatible = "sprd,roc1-compress-platform",},
+	{.compatible = "sprd,qogirl6-compress-platform",},
 	{},
 };
 

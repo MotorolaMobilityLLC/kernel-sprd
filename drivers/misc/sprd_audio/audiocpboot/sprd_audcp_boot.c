@@ -339,6 +339,7 @@ static const struct of_device_id sprd_audcp_boot_match_table[] = {
 	{.compatible = "sprd,sharkl5-audcp-boot",},
 	{.compatible = "sprd,roc1-audcp-boot",},
 	{.compatible = "sprd,orca-audcp-boot",},
+	{.compatible = "sprd,audcp-boot",},
 };
 
 #define AGDSP_BOOT_OFFSET 0x80

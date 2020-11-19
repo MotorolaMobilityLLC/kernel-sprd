@@ -1421,6 +1421,7 @@ struct vbc_codec_priv {
 	struct call_mute_para vbc_call_mute[VBC_MUTE_MAX];
 	u16 sys_iis_sel[SYS_IIS_MAX];
 	u16 ag_iis_ext_sel[AG_IIS_MAX];
+	u16 ag_iis_ext_sel_v1[AG_IIS_V1_MAX];
 	u16 vbc_iis_inf_sys_sel;
 	struct mutex agcp_access_mutex;
 	int agcp_access_aud_cnt;

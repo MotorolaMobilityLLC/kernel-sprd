@@ -1674,6 +1674,7 @@ static int sprd_soc_platform_remove(struct platform_device *pdev)
 static const struct of_device_id sprd_pcm_of_match[] = {
 	{.compatible = "sprd,sharkl5-pcm-platform",},
 	{.compatible = "sprd,roc1-pcm-platform",},
+	{.compatible = "sprd,qogirl6-pcm-platform",},
 	{},
 };
 

@@ -1462,6 +1462,7 @@ static int audcp_dvfs_remove(struct platform_device *pdev)
 
 static const struct of_device_id audcp_dvfs_match[] = {
 	{ .compatible = "sprd,sharkl5-audcp-dvfs" },
+	{ .compatible = "sprd,qogirl6-audcp-dvfs" },
 	{},
 };
 

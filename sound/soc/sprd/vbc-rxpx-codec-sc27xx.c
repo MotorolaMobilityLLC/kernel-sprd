@@ -189,7 +189,6 @@ static int vbc_rxpx_codec_sc27xx_probe(struct platform_device *pdev)
 	card->num_dapm_widgets = sprd_asoc_card_widgets.size;
 
 	card->late_probe = vbc_rxpx_codec_sc27xx_late_probe;
-
 	return asoc_sprd_register_card(&pdev->dev, card);
 }
 

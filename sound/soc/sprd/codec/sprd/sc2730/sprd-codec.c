@@ -4216,6 +4216,8 @@ static int sprd_codec_probe(struct platform_device *pdev)
 	struct device_node *dig_np = NULL;
 	struct platform_device *dig_pdev = NULL;
 	u32 ana_chip_id;
+	u32 set_offset;
+	u32 clr_offset;
 	struct regmap *pmu_apb_gpr;
 
 	pr_info("%s\n", __func__);
@@ -4255,6 +4257,18 @@ static int sprd_codec_probe(struct platform_device *pdev)
 	mutex_init(&sprd_codec->dig_access_mutex);
 
 	mutex_init(&sprd_codec->digital_enable_mutex);
+	ret = of_property_read_u32(np, "set-offset", &set_offset);
+	if (ret) {
+		pr_info("%s No set-offset attribute !\n", __func__);
+		set_offset = 0x100;
+	}
+	ret = of_property_read_u32(np, "clr-offset", &clr_offset);
+	if (ret) {
+		pr_info("%s No clr-offset attribute !\n", __func__);
+		clr_offset = 0x200;
+	}
+	set_agcp_ahb_offset(set_offset, clr_offset);
+
 	arch_audio_set_pmu_apb_gpr(pmu_apb_gpr);
 	of_node_put(np);
 	dig_pdev = of_find_device_by_node(dig_np);
