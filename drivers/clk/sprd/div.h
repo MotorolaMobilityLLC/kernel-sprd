@@ -12,22 +12,29 @@
 
 /**
  * struct sprd_div_internal - Internal divider description
+ * @offset: Divider register offset address based on mux register address
  * @shift: Bit offset of the divider in its register
  * @width: Width of the divider field in its register
  *
  * That structure represents a single divider, and is meant to be
  * embedded in other structures representing the various clock
  * classes.
+ *
+ * According to the chip design, the resister of clock source select and
+ * divider is separate in new platform. Add clock divider reg offset
+ * address to make it compatible with the other platforms.
  */
 struct sprd_div_internal {
+	u32	offset;
 	u8	shift;
 	u8	width;
 };
 
-#define _SPRD_DIV_CLK(_shift, _width)	\
-	{				\
-		.shift	= _shift,	\
-		.width	= _width,	\
+#define _SPRD_DIV_CLK(_offset, _shift, _width)	\
+	{					\
+		.offset = _offset,		\
+		.shift	= _shift,		\
+		.width	= _width,		\
 	}
 
 struct sprd_div {
@@ -38,7 +45,7 @@ struct sprd_div {
 #define SPRD_DIV_CLK(_struct, _name, _parent, _reg,			\
 		     _shift, _width, _flags)				\
 	struct sprd_div _struct = {					\
-		.div	= _SPRD_DIV_CLK(_shift, _width),		\
+		.div	= _SPRD_DIV_CLK(0x0, _shift, _width),		\
 		.common	= {						\
 			.regmap		= NULL,				\
 			.reg		= _reg,				\
@@ -52,7 +59,7 @@ struct sprd_div {
 #define SPRD_DIV_CLK_SEC(_struct, _name, _parent, _id,			\
 			 _shift, _width, _flags)			\
 	struct sprd_div _struct = {					\
-		.div	= _SPRD_DIV_CLK(_shift, _width),		\
+		.div	= _SPRD_DIV_CLK(0x0, _shift, _width),		\
 		.common	= {						\
 			.svc_handle	= NULL,				\
 			.id		= _id,				\
