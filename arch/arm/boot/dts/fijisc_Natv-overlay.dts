@@ -169,3 +169,4 @@
 	vddsdcore_en-gpios = <&ap_gpio 64 1>;
 };
 #include "fijisc_Natv-overlay-fpsensor.dtsi"
+#include "lcm_i2c_bias.dtsi"

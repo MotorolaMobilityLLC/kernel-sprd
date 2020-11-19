@@ -69,6 +69,18 @@ struct reset_sequence {
 	struct gpio_timing *timing;
 };
 
+#ifdef CONFIG_LCM_I2C_BIAS
+struct bias_cmds {
+	u32 cmd;
+	u32 value;
+};
+
+struct bias_cmd_sequence {
+	u32 items;
+	struct bias_cmds *bias_cmds;
+};
+#endif
+
 struct panel_info {
 	/* common parameters */
 	struct device_node *of_node;
@@ -82,7 +94,9 @@ struct panel_info {
 	struct reset_sequence rst_off_seq;
 	const void *cmds[CMD_CODE_MAX];
 	int cmds_len[CMD_CODE_MAX];
-
+#ifdef CONFIG_LCM_I2C_BIAS
+	struct bias_cmd_sequence bias_cmd_seq;
+#endif
 	/* esd check parameters*/
 	bool esd_check_en;
 	u8 esd_check_mode;

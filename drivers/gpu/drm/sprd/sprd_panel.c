@@ -25,7 +25,9 @@
 #include "sprd_panel.h"
 #include "dsi/sprd_dsi_api.h"
 #include "sysfs/sysfs_display.h"
-
+#ifdef CONFIG_LCM_I2C_BIAS
+#include "lcm_i2c.h"
+#endif
 #define SPRD_MIPI_DSI_FMT_DSC 0xff
 static DEFINE_MUTEX(panel_lock);
 
@@ -129,6 +131,9 @@ static int sprd_panel_prepare(struct drm_panel *p)
 {
 	struct sprd_panel *panel = to_sprd_panel(p);
 	struct gpio_timing *timing;
+#ifdef CONFIG_LCM_I2C_BIAS
+	struct bias_cmds *bias_cmds;
+#endif
 	int items, i, ret;
 
 	DRM_INFO("%s()\n", __func__);
@@ -146,7 +151,15 @@ static int sprd_panel_prepare(struct drm_panel *p)
 		gpiod_direction_output(panel->info.avee_gpio, 1);
 		mdelay(5);
 	}
-
+#ifdef CONFIG_LCM_I2C_BIAS
+	items = panel->info.bias_cmd_seq.items;
+	bias_cmds = panel->info.bias_cmd_seq.bias_cmds;
+	for (i = 0; i < items; i++) {
+		DRM_INFO("firefly bias cmd:0x%x, value:0x%x\n",
+				bias_cmds[i].cmd, bias_cmds[i].value);
+		lcm_set_bias_volatage(bias_cmds[i].cmd, bias_cmds[i].value);
+	}
+#endif
 	if (panel->info.reset_gpio) {
 		items = panel->info.rst_on_seq.items;
 		timing = panel->info.rst_on_seq.timing;
@@ -516,7 +529,37 @@ static int of_parse_reset_seq(struct device_node *np,
 
 	return 0;
 }
+#ifdef CONFIG_LCM_I2C_BIAS
+static int of_parse_bias_seq(struct device_node *np,
+                                struct panel_info *info)
+{
+        struct property *prop;
+        int bytes, rc;
+        u32 *p;
 
+        prop = of_find_property(np, "sprd,bias-cmd-sequence", &bytes);
+        if (!prop) {
+                DRM_ERROR("sprd,bias-cmd-sequence property not found\n");
+                return -EINVAL;
+        }
+
+        p = kzalloc(bytes, GFP_KERNEL);
+        if (!p)
+                return -ENOMEM;
+        rc = of_property_read_u32_array(np, "sprd,bias-cmd-sequence",
+                                        p, bytes / 4);
+        if (rc) {
+                DRM_ERROR("parse sprd,bias-cmd-sequence failed\n");
+                kfree(p);
+                return rc;
+        }
+
+        info->bias_cmd_seq.items = bytes / 8;
+        info->bias_cmd_seq.bias_cmds = (struct bias_cmds *)p;
+
+        return 0;
+}
+#endif
 static int of_parse_buildin_modes(struct panel_info *info,
 	struct device_node *lcd_node)
 {
@@ -864,7 +907,11 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
 	rc = of_parse_reset_seq(lcd_node, info);
 	if (rc)
 		DRM_ERROR("parse lcd reset sequence failed\n");
-
+#ifdef CONFIG_LCM_I2C_BIAS
+	rc = of_parse_bias_seq(lcd_node, info);
+	if (rc)
+		DRM_ERROR("parse lcd bias sequence failed\n");
+#endif
 	p = of_get_property(lcd_node, "sprd,initial-command", &bytes);
 	if (p) {
 		info->cmds[CMD_CODE_INIT] = p;
