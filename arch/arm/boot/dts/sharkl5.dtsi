@@ -1381,7 +1381,7 @@
 
 				dcdc_mm: dcdc-mm {
 					dcdc-dvfs-enable = <0x18 20 1>;
-					dcdc-judge-vol-sw = <0x18 1 0x7 7>;
+					dcdc-judge-vol-sw = <0x18 1 0x7 0>;
 					dcdc-subsys-cells = <&audcp_sys>,
 							<&gpu_sys>,
 							<&mm_sys>;
@@ -1398,7 +1398,7 @@
 				};
 				dcdc_modem: dcdc-modem {
 					dcdc-dvfs-enable = <0x3c 20 1>;
-					dcdc-judge-vol-sw = <0x3c 1 0x7 7>;
+					dcdc-judge-vol-sw = <0x3c 1 0x7 0>;
 					dcdc-subsys-cells = <&pubcp_sys>,
 							<&wtlcp_sys>,
 							<&ap_sys>;
