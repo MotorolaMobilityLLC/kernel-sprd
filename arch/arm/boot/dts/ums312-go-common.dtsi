@@ -361,20 +361,13 @@
 			reg = <0x98100000 0x4000000>;
 		};
 
-		pstore: pstore@9f000000{
-			reg = <0x9F000000 0x4000>;
-		};
+		pstore_reserved: ramoops@bff80000 {
+			compatible = "ramoops";
+			reg = <0xbff80000 0x00040000>;
+			record-size = <0x8000>;
+			console-size = <0x8000>;
+			pmsg-size = <0x8000>;
 
-		fb_reserved: framebuffer-mem@bf15e000{
-			reg = <0xbf15e000 0x00a92000>;
-		};
-
-		wb_reserved: writeback@bfbf0000{
-			reg = <0xbfbf0000 0x00390000>;
-		};
-
-		logo_reserved: logobuffer@9e000000{
-			reg = <0x9e000000 0x00384000>;
 		};
 	};
 
