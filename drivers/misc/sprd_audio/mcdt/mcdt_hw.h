@@ -25,9 +25,6 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
-
-#include "mcdt_phy_v0.h"
-
 #define FIFO_LENGTH 512
 /* #define INT_REQ_MCDT_AGCP    (48 + 32) */
 #define INT_REQ_MCDT_AGCP    (48)
@@ -45,6 +42,29 @@ struct channel_status {
 	int int_count;
 };
 
+enum MCDT_CHAN_NUM {
+	MCDT_CHAN0 = 0,
+	MCDT_CHAN1,
+	MCDT_CHAN2,
+	MCDT_CHAN3,
+	MCDT_CHAN4,
+	MCDT_CHAN5,
+	MCDT_CHAN6,
+	MCDT_CHAN7,
+	MCDT_CHAN8,
+	MCDT_CHAN9,
+	MCDT_CHAN10
+};
+
+
+enum MCDT_AP_DMA_CHAN {
+	MCDT_AP_DMA_CH0 = 0,
+	MCDT_AP_DMA_CH1,
+	MCDT_AP_DMA_CH2,
+	MCDT_AP_DMA_CH3,
+	MCDT_AP_DMA_CH4
+};
+
 enum {
 	dac_channel0 = 0,
 	dac_channel1,
@@ -56,6 +76,7 @@ enum {
 	dac_channel7,
 	dac_channel8,
 	dac_channel9,
+	dac_channel10,
 	dac_channel_max,
 };
 

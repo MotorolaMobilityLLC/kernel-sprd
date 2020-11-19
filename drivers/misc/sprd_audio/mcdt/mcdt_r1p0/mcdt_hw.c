@@ -11,14 +11,14 @@
  * GNU General Public License for more details.
  */
 
-#define pr_fmt(fmt) "[MCDT] "fmt
+#define pr_fmt(fmt) "[SPRD_MCDT] "fmt
 
 #include <linux/debugfs.h>
 #include <linux/of.h>
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 #include "mcdt_hw.h"
-#include "mcdt_phy_v0.h"
+#include "mcdt_phy_r1p0.h"
 
 #define MCDT_REG_SIZE			(0x160 + 0x10)
 #define MCDT_DMA_AP_CHANNEL		5
@@ -282,6 +282,9 @@ static int mcdt_is_chan_fifo_int_raw(enum MCDT_CHAN_NUM chan_num,
 	case MCDT_CHAN7:
 		shift = 24 + int_type;
 		break;
+	case MCDT_CHAN10:
+		pr_err("%s invalid chan10", __func__);
+		return 0;
 	}
 	reg = reg + membase;
 
@@ -570,6 +573,10 @@ static void mcdt_adc_dma_chan_ack_sel(unsigned int chan_num,
 	case MCDT_CHAN7:
 		shift = 28;
 		break;
+	case MCDT_CHAN10:
+		pr_err("%s, Invalid MCDT_CHAN!",
+			__func__);
+		return;
 	default:
 		return;
 	}

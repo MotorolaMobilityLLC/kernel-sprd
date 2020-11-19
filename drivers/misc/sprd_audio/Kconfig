@@ -51,6 +51,15 @@ config SPRD_AUDIO_MCDT
 	  normally we use it transfer audio data.
 	  Say Y if your platform supports hardware MCDT.
 
+config SPRD_AUDIO_MCDT_R2P0
+	bool "Spreadtrum MCDT_R2P0 support"
+	default n
+	help
+	  MCDT_r2p0(Multi-Channel Data Transfer) is a Hardware module
+	  that can be used to transfer data between AP and DSP,
+	  normally we use it transfer audio data.
+	  Say Y if your platform supports hardware MCDT_r2p0.
+
 config SPRD_HW_DEVICE_DVFS_AGCP
 	tristate "Spreadtrum AGCP dvfs driver"
 	depends on SPRD_MAILBOX && SPRD_AUDIO_MEMORY_MANAGER

@@ -22,9 +22,9 @@ obj-$(CONFIG_SND_SOC_SPRD_CODEC_SC2721)	+= codec/sprd/sc2721/
 obj-$(CONFIG_SND_SOC_SPRD_PA_UCP1301)	+= codec/sprd/ucp1301/
 
 # Machines
-obj-$(CONFIG_SND_SOC_SPRD_VBC_V4_SC2730)	+= vbc-rxpx-codec-sc27xx.o
-
-obj-$(CONFIG_SND_SOC_SPRD_R1P0V3_SC2721)	+= vbc-rxpx-codec-sc27xx.o
+obj-$(CONFIG_SND_SOC_SPRD_VBC_V4_SC2730)		+= vbc-rxpx-codec-sc27xx.o
+obj-$(CONFIG_SND_SOC_SPRD_VBC_V4_SC2730_MCDT_R2P0)	+= vbc-rxpx-codec-sc27xx.o
+obj-$(CONFIG_SND_SOC_SPRD_R1P0V3_SC2721)		+= vbc-rxpx-codec-sc27xx.o
 
 snd-soc-i2s-dummy-objs         		:= i2s-r0p0-dummy-codec.o
 obj-$(CONFIG_SND_SOC_SPRD_I2S_DUMMY)    += snd-soc-i2s-dummy.o

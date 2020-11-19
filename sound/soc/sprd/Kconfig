@@ -30,6 +30,23 @@ config SND_SOC_SPRD_VBC_V4_SC2730
 	  This vbc is in audio cp, so we should select communication config
 	  and data transmit config.
 
+config SND_SOC_SPRD_VBC_V4_SC2730_MCDT_R2P0
+	tristate "ASoC Spreadtrum sound card with vbc v4 and codec sc2730 mcdt r2p0"
+	select SPRD_AUDIO_AGDSP_ACCESS
+	select SPRD_AUDIO_MEMORY_MANAGER
+	select SPRD_AUDIO_SIPC
+	select SPRD_AUDIO_MCDT_R2P0
+	select SND_SOC_SPRD_VBC_V4
+	select SND_SOC_SPRD_CODEC_SC2730
+	select SPRD_AUDIO_DSP_DUMP
+	select SND_SOC_COMPRESS
+	help
+	  Say Y or M here if you want to add support for ASoC audio on
+	  Spreadtrum boards using the VBC v4 and the sc2730 codec.
+	  ASOC machine with cpu dai vbc v4 and codec dai sc2730.
+	  This vbc is in audio cp, so we should select communication config
+	  and data transmit config.
+
 config SND_SOC_SPRD_I2S_DUMMY
 	tristate "ASoC Spreadtrum sound card with AP I2S and a dummy codec"
 	select SND_SOC_SPRD_I2S
