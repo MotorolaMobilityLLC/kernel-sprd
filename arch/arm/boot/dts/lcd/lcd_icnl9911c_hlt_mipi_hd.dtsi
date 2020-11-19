@@ -17,7 +17,7 @@
 
 		sprd,reset-on-sequence = <1 5>, <0 5>, <1 120>;
 		sprd,reset-off-sequence = <1 20>;
-
+		sprd,bias-cmd-sequence =  <0x0 0x12>, <0x1 0x12>;
 		sprd,initial-command = [
 			39 00 00 03 F0 5A 59
 			39 00 00 03 F1 A5 A6
