@@ -1380,7 +1380,6 @@ static ssize_t self_test_show(struct device *dev,
                  CTS_TEST_FLAG_VALIDATE_MIN |
                  CTS_TEST_FLAG_VALIDATE_MAX |
                  CTS_TEST_FLAG_STOP_TEST_IF_VALIDATE_FAILED |
-                 CTS_TEST_FLAG_DUMP_TEST_DATA_TO_CONSOLE |
                  CTS_TEST_FLAG_DUMP_TEST_DATA_TO_FILE,
         .test_data_filepath = SELF_TEST_DATA_DIR"/chipone-tddi-rawdata-test-data.txt",
         .num_invalid_node = 0,
@@ -1396,7 +1395,6 @@ static ssize_t self_test_show(struct device *dev,
         .flags = CTS_TEST_FLAG_VALIDATE_DATA |
                  CTS_TEST_FLAG_VALIDATE_MAX |
                  CTS_TEST_FLAG_STOP_TEST_IF_VALIDATE_FAILED |
-                 CTS_TEST_FLAG_DUMP_TEST_DATA_TO_CONSOLE |
                  CTS_TEST_FLAG_DUMP_TEST_DATA_TO_FILE,
         .test_data_filepath = SELF_TEST_DATA_DIR"/chipone-tddi-noise-test-data.txt",
         .num_invalid_node = 0,
@@ -1408,7 +1406,6 @@ static ssize_t self_test_show(struct device *dev,
         .flags = CTS_TEST_FLAG_VALIDATE_DATA |
                  CTS_TEST_FLAG_VALIDATE_MIN |
                  CTS_TEST_FLAG_STOP_TEST_IF_VALIDATE_FAILED |
-                 CTS_TEST_FLAG_DUMP_TEST_DATA_TO_CONSOLE |
                  CTS_TEST_FLAG_DUMP_TEST_DATA_TO_FILE,
         .test_data_filepath = SELF_TEST_DATA_DIR"/chipone-tddi-open-test-data.txt",
         .num_invalid_node = 0,
@@ -1418,7 +1415,6 @@ static ssize_t self_test_show(struct device *dev,
         .flags = CTS_TEST_FLAG_VALIDATE_DATA |
                  CTS_TEST_FLAG_VALIDATE_MIN |
                  CTS_TEST_FLAG_STOP_TEST_IF_VALIDATE_FAILED |
-                 CTS_TEST_FLAG_DUMP_TEST_DATA_TO_CONSOLE |
                  CTS_TEST_FLAG_DUMP_TEST_DATA_TO_FILE,
         .test_data_filepath = SELF_TEST_DATA_DIR"/chipone-tddi-short-test-data.txt",
         .num_invalid_node = 0,
@@ -1429,7 +1425,6 @@ static ssize_t self_test_show(struct device *dev,
                  CTS_TEST_FLAG_VALIDATE_MIN |
                  CTS_TEST_FLAG_VALIDATE_MAX |
                  CTS_TEST_FLAG_STOP_TEST_IF_VALIDATE_FAILED |
-                 CTS_TEST_FLAG_DUMP_TEST_DATA_TO_CONSOLE |
                  CTS_TEST_FLAG_DUMP_TEST_DATA_TO_FILE,
         .test_data_filepath = SELF_TEST_DATA_DIR"/chipone-tddi-comp-cap-test-data.txt",
         .num_invalid_node = 0,
