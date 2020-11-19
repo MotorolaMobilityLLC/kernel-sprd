@@ -24,7 +24,7 @@
 				fpint-gpios = <&ap_gpio 130 0>;
 			};
 
-			pwm_backlight: backlight {
+			pwm_backlight: sprd_backlight {
 				compatible = "pwm-backlight";
 				pwms = <&pwms 1 30000>;
 				pwm-names = "backlight";

@@ -30,7 +30,7 @@
 				fpint-gpios = <&eic_async 13 0>;
 			};
 
-			pwm_backlight: backlight {
+			pwm_backlight: sprd_backlight {
 				compatible = "pwm-backlight";
 				pwms = <&pwms 2 40000>;
 				pwm-names = "backlight";
