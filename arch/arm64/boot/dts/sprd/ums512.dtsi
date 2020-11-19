@@ -433,6 +433,16 @@
 				assigned-clock-parents = <&pll1 CLK_RPLL>;
 			};
 
+			sdio1: sdio@71200000 {
+				compatible = "sprd,sdhci-r11";
+				reg = <0 0x71200000 0 0x1000>;
+				interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio", "enable";
+				clocks = <&ap_clk CLK_SDIO1_2X>,
+					 <&apapb_gate CLK_SDIO1_EB>;
+				assigned-clocks = <&ap_clk CLK_SDIO1_2X>;
+				assigned-clock-parents = <&pll2 CLK_LPLL_409M6>;
+			};
 		};
 	};
 

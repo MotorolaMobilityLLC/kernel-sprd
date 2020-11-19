@@ -147,3 +147,10 @@
 	sprd,name = "sdio_sd";
 	status = "okay";
 };
+
+&sdio1 {
+	sprd,phy-delay-sd-uhs-sdr104 = <0x7f 0x76 0x69 0x69>;
+	sprd,phy-delay-sd-uhs-sdr50 = <0x7f 0xf7 0xf5 0xf5>;
+	sd-uhs-sdr104;
+	sd-uhs-sdr50;
+};
