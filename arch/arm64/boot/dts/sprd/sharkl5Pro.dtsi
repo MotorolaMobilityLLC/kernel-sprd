@@ -2163,7 +2163,7 @@
 	};
 
 	audio-dsp-dump@0 {/* audio dsp log */
-		compatible = "sprd,audio_dsp_log";
+		compatible = "sprd,audio-dsp-log";
 		sprd-usemem-type =<0x5>;
 		sprd-dst = /bits/ 8 <1>; /* AGDSP */
 		sprd-channel =/bits/ 8 <4>;

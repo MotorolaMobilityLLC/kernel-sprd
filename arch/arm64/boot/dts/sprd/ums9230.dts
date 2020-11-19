@@ -12,6 +12,7 @@
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include "ums9230.dtsi"
 #include "sc2730.dtsi"
+#include "sprd-sound-fe-be.dtsi"
 #include "ums9230-mach.dtsi"
 #include "ums9230-modem.dtsi"
 #include "ums9230-wcn.dtsi"

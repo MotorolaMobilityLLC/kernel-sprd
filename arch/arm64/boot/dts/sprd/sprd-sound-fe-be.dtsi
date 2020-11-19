@@ -1110,7 +1110,6 @@
 				sound-dai = <0 0>;
 			};
 		};
-
 		/* dai-link@53 ~ dai-link@67 (index from 35 to 49)
 		 * are reserved for ucp1301 and HIFI.
 		 */
