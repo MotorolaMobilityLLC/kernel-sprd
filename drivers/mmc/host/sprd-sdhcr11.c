@@ -1280,7 +1280,8 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 				sprd_sdhc_fast_hotplug_disable(host);
 			spin_unlock_irqrestore(&host->lock, flags);
 			sprd_signal_voltage_on_off(host, 0);
-			gpio_set_value(host->vddsdcore_en_gpio, !host->vddsdcore_en_gpio_polar);
+			if(host->vddsdcore_en_gpio >= 0)
+				gpio_set_value(host->vddsdcore_en_gpio, !host->vddsdcore_en_gpio_polar);
 			if (!IS_ERR(mmc->supply.vmmc))
 				mmc_regulator_set_ocr(host->mmc,
 						mmc->supply.vmmc, 0);
@@ -1292,7 +1293,8 @@ static void sprd_sdhc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		case MMC_POWER_UP:
 			mmiowb();
 			spin_unlock_irqrestore(&host->lock, flags);
-			gpio_set_value(host->vddsdcore_en_gpio, host->vddsdcore_en_gpio_polar);
+			if(host->vddsdcore_en_gpio >= 0)
+				gpio_set_value(host->vddsdcore_en_gpio, host->vddsdcore_en_gpio_polar);
 			if (!IS_ERR(mmc->supply.vmmc))
 				mmc_regulator_set_ocr(host->mmc,
 					mmc->supply.vmmc, ios->vdd);
@@ -2262,7 +2264,8 @@ static int sprd_sdhc_remove(struct platform_device *pdev)
 	struct sprd_sdhc_host *host = platform_get_drvdata(pdev);
 	struct mmc_host *mmc = host->mmc;
 
-	gpio_free(host->vddsdcore_en_gpio);
+	if(host->vddsdcore_en_gpio >= 0)
+		gpio_free(host->vddsdcore_en_gpio);
 	mmc_remove_host(mmc);
 	clk_disable_unprepare(host->clk);
 	clk_disable_unprepare(host->sdio_ahb);
