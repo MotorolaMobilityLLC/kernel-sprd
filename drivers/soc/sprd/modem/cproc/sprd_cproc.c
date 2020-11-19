@@ -85,6 +85,8 @@ enum {
 	BE_CTRL_OFF	= BIT(14),
 	BE_IOCTL    = BIT(15),
 	BE_ASSERT    = BIT(16),
+	BE_DDR_SMEM    = BIT(17),
+	BE_AON_IRAM    = BIT(18),
 };
 
 enum {
@@ -550,6 +552,54 @@ static ssize_t cproc_proc_read(struct file *filp,
 			memunmap(cproc->virt_addr);
 			return -EFAULT;
 		}
+	} else if (flag & (BE_DDR_SMEM | BE_AON_IRAM)) {
+		if (flag & BE_DDR_SMEM) {
+			struct arear ar;
+
+			if (get_smem_arear(SIPC_ID_LTE, 0, &ar))
+				return -EFAULT;
+
+			base = ar.base;
+			size = ar.size;
+		} else {
+			base = cproc->initdata->aon_iram_start;
+			size = cproc->initdata->aon_iram_size;
+		}
+
+		if (*ppos >= size)
+			return 0;
+
+		if ((*ppos + count) > size)
+			count = size - *ppos;
+
+		r = count, i = 0;
+		do {
+			u32 copy_size = CPROC_VMALLOC_SIZE_LIMIT;
+
+			vmem = modem_ram_vmap_nocache(SOC_MODEM,
+					base +
+					*ppos + CPROC_VMALLOC_SIZE_LIMIT * i,
+					CPROC_VMALLOC_SIZE_LIMIT);
+			if (!vmem) {
+				if (i > 0) {
+					*ppos += CPROC_VMALLOC_SIZE_LIMIT * i;
+					return CPROC_VMALLOC_SIZE_LIMIT * i;
+				} else {
+					return -ENOMEM;
+				}
+			}
+			if (r < CPROC_VMALLOC_SIZE_LIMIT)
+				copy_size = r;
+			if (unalign_copy_to_user(buf, vmem, copy_size)) {
+				dev_err(dev, "cproc read ddr smem or iram data to user err!\n");
+				modem_ram_unmap(SOC_MODEM, vmem);
+				return -EFAULT;
+			}
+			modem_ram_unmap(SOC_MODEM, vmem);
+			r -= copy_size;
+			buf += copy_size;
+			i++;
+		} while (r > 0);
 	} else {
 		return -EINVAL;
 	}
@@ -922,6 +972,26 @@ static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
 			ucnt++;
 			break;
 
+		case 8:
+			if (cproc->initdata->aon_iram_size != 0) {
+				ucnt++;
+				continue;
+			}
+			cproc->procfs.entries[i].name = "ddr_smem";
+			flag |= (BE_RDONLY | BE_DDR_SMEM);
+			ucnt++;
+			break;
+
+		case 9:
+			if (cproc->initdata->aon_iram_size == 0) {
+				ucnt++;
+				continue;
+			}
+			cproc->procfs.entries[i].name = "aon_iram";
+			flag |= (BE_RDONLY | BE_AON_IRAM);
+			ucnt++;
+			break;
+
 		default:
 			if (cproc->initdata->segnr + ucnt
 				>= MAX_CPROC_ENTRY_NUM) {
@@ -941,7 +1011,7 @@ static inline void sprd_cproc_fs_init(struct cproc_device *cproc)
 		cproc->procfs.entries[i].flag = flag;
 
 		mode |= (S_IRUSR | S_IWUSR);
-		if (flag & (BE_CPDUMP | BE_MNDUMP))
+		if (flag & (BE_CPDUMP | BE_MNDUMP | BE_DDR_SMEM | BE_AON_IRAM))
 			mode |= S_IROTH;
 
 		dev_dbg(dev, "entry name is %s type 0x%x addr: 0x%p\n",
@@ -1490,6 +1560,8 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 	struct cproc_ctrl *ctrl;
 	struct resource res;
 	struct device_node *np = node, *chd;
+	int count;
+	const __be32 *list;
 	int ret, i, segnr;
 	u32 iram_dsize;
 	u32 cr_num;
@@ -1661,6 +1733,13 @@ static int sprd_cproc_parse_dt(struct cproc_init_data **init,
 	/* get irq */
 	pdata->wdtirq = irq_of_parse_and_map(np, 0);
 	pr_debug("wdt irq %u\n", pdata->wdtirq);
+
+	/* get aon iram start address and size */
+	list = of_get_property(np, "sprd,aon_iram", &count);
+	if (list && count) {
+		pdata->aon_iram_start = be32_to_cpu(*list++);
+		pdata->aon_iram_size = be32_to_cpu(*list);
+	}
 
 	i = 0;
 	for_each_child_of_node(np, chd) {

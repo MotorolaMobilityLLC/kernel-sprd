@@ -75,6 +75,8 @@ struct cproc_init_data {
 	char			*devname;
 	phys_addr_t		base;		/* CP base addr */
 	u32		maxsz;		/* CP max size */
+	u32		aon_iram_start;
+	u32		aon_iram_size;
 	int			(*start)(void *arg);
 	int			(*stop)(void *arg);
 	int			(*suspend)(void *arg);

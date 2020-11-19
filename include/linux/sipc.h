@@ -333,6 +333,13 @@ u8 sipc_channel2index(u8 ch);
 
 int smsg_ch_wake_unlock(u8 dst, u8 channel);
 
+struct arear {
+	u32	base;
+	u32	size;
+};
+
+int get_smem_arear(u8 dst, u8 smem, struct arear *arear_ptr);
+
 #if defined(CONFIG_DEBUG_FS)
 void sipc_debug_putline(struct seq_file *m, char c, int n);
 #endif

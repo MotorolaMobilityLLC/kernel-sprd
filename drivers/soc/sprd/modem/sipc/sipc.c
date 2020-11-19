@@ -432,6 +432,19 @@ static int sipc_probe(struct platform_device *pdev)
 	return 0;
 }
 
+int get_smem_arear(u8 dst, u8 smem, struct arear *arear_ptr)
+{
+	if (dst >= SIPC_ID_NR ||
+	    !arear_ptr ||
+	    smem >= sipc_ap.sipc_dev[dst]->pdata->smem_cnt)
+		return -EINVAL;
+
+	arear_ptr->base = sipc_ap.sipc_dev[dst]->pdata->smem_ptr[smem].base;
+	arear_ptr->size = sipc_ap.sipc_dev[dst]->pdata->smem_ptr[smem].size;
+	return 0;
+}
+EXPORT_SYMBOL_GPL(get_smem_arear);
+
 static int sipc_remove(struct platform_device *pdev)
 {
 	struct sipc_device *sipc = platform_get_drvdata(pdev);
