@@ -77,10 +77,10 @@
 			vactive = <1560>;
 			hback-porch = <94>;
 			hfront-porch = <94>;
-			vback-porch = <12>;
+			vback-porch = <20>;
 			vfront-porch = <124>;
-			hsync-len = <28>;
-			vsync-len = <4>;
+			hsync-len = <24>;
+			vsync-len = <16>;
 			};
 		};
 		oled-backlight{
