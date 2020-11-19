@@ -71,7 +71,8 @@ static int _lcm_i2c_write_bytes(unsigned char addr, unsigned char value)
 	char write_data[2] = { 0 };
 
 	if (client == NULL) {
-		pr_debug("ERROR!! _lcm_i2c_client is null\n");
+		pr_err("firefly ERROR!! _lcm_i2c_client is null\n");
+		pr_err("firefly ERROR!! please register i2c client\n");
 		return 0;
 	}
 
@@ -79,7 +80,7 @@ static int _lcm_i2c_write_bytes(unsigned char addr, unsigned char value)
 	write_data[1] = value;
 	ret = i2c_master_send(client, write_data, 2);
 	if (ret < 0)
-		pr_info("[LCM][ERROR] _lcm_i2c write data fail !!\n");
+		pr_err("firefly ERROR!! _lcm_i2c write data fail !!\n");
 
 	return ret;
 }
