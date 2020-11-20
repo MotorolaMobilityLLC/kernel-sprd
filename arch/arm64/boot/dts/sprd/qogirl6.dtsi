@@ -566,6 +566,33 @@
 				status = "okay";
 				#iommu-cells = <0>;
 			};
+			cpp: cpp@38000000 {
+				compatible = "sprd,cpp";
+				reg = <0 0x38000000 0 0x1000>;
+				interrupts = <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "cpp_eb",
+					"cpp_axi_eb", /* no need read, TBC */
+					"cpp_clk",
+					"cpp_clk_parent";
+				clocks = <&mm_gate CLK_MM_CPP_EB>,
+					<&mm_gate CLK_MM_ISP_EB>,
+					<&mm_clk CLK_CPP>,
+					<&pll1 CLK_TWPLL_384M>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+				iommus = <&iommu_cpp>;
+				/*cpp_qos = <&cpp_qos>;*/
+				status = "okay";
+			};
+
+			iommu_cpp: iommu@38000200 {
+				compatible = "sprd,iommuvau-cpp";
+				reg = <0x0 0x38000200 0x0 0x80>;
+				sprd,iova-base = <0x40000000>;
+				sprd,iova-size = <0x20000000>;
+				reg_name = "mmu_reg";
+				status = "okay";
+				#iommu-cells = <0>;
+			};
 			gpu: gpu@23100000 {
 				compatible = "sprd,mali-natt";
 				reg = <0x0 0x23100000 0x0 0x100000>;
