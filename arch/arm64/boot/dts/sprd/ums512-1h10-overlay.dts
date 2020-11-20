@@ -597,7 +597,7 @@
 		sprd,preflash-level = <128>;
 		sprd,highlight-level = <128>;
 		sprd,lvfm-enable = <1>;
-		flash-chip-en-gpios = <&ap_gpio 136 0>;
+		//flash-chip-en-gpios = <&ap_gpio 136 0>;
 		flash-torch-en-gpios = <&ap_gpio 139 0>;
 		flash-en-gpios = <&ap_gpio 137 0>;
 		flash-sync-gpios = <&ap_gpio 138 0>;
