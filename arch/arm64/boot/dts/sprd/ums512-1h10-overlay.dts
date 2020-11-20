@@ -524,7 +524,7 @@
 };
 
 &i2c3 {
-	status = "okay";
+	status = "disabled";
 
 	touchscreen@20 {
 		compatible = "synaptics,dsx";

@@ -19,9 +19,9 @@
 
 &spi2 {
 	/* Novatek device tree node */
-	novatek@1 {
+	novatek@0 {
 		compatible = "novatek,NVT-ts-spi";
-		reg = <1>; //Same as CS ID
+		reg = <0>; //Same as CS ID
 		status = "okay";
 
 		spi-max-frequency = <9600000>;	//4800000,9600000,15000000,19200000
@@ -41,7 +41,7 @@
 		panel = <&lcd_nt36525b_djn_mipi_hd>;
 //		panel = <&dsi_nt36525b_djn_video &dsi_nt36525c_djn_video>;
 		/* MP */
-		novatek,mp-support-dt;
+//		novatek,mp-support-dt;
 
 		novatek-mp-criteria-nvtpid@0 {
 			#address-cells = <1>;
