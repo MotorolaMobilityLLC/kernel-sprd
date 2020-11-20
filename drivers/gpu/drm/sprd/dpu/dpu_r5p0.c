@@ -1057,7 +1057,7 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* enable dpu dpi vsync */
 		int_mask |= DISPC_INT_DPI_VSYNC_MASK;
 		/* enable dpu TE INT */
-		int_mask |= DISPC_INT_TE_MASK;
+		//int_mask |= DISPC_INT_TE_MASK;
 		/* enable underflow err INT */
 		int_mask |= DISPC_INT_ERR_MASK;
 
@@ -1074,7 +1074,7 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		/* enable stop DONE INT */
 		int_mask |= DISPC_INT_DONE_MASK;
 		/* enable TE INT */
-		int_mask |= DISPC_INT_TE_MASK;
+		//int_mask |= DISPC_INT_TE_MASK;
 	}
 
 	/* enable ifbc payload error INT */
@@ -1539,7 +1539,6 @@ static void dpu_enhance_get(struct dpu_context *ctx, u32 id, void *param)
 		slp->local_weight = (val >> 13) & 0xf;
 		slp->fst_pth = (val >> 6) & 0x7f;
 
-		val = reg->slp_cfg10;
 		pr_info("enhance slp get\n");
 		break;
 	case ENHANCE_CFG_ID_GAMMA:
