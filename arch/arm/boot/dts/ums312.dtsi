@@ -1005,10 +1005,12 @@
 };
 
 &sdio0 {
-	clock-names = "sdio_clk","sdio_clk_source","sdio_ahb_enable";
+	clock-names = "sdio_clk", "sdio_clk_source",
+		"sdio_ahb_enable", "sdio_hp_det_clk";
 	clocks = <&ap_clk CLK_SDIO0_2X>,
-		 <&pll1 CLK_RPLL>,
-		 <&apapb_gate CLK_SDIO0_EB>;
+		<&pll1 CLK_RPLL>,
+		<&apapb_gate CLK_SDIO0_EB>,
+		<&apapb_gate CLK_SDIO0_32K_EB>;
 };
 
 &sdio1 {
