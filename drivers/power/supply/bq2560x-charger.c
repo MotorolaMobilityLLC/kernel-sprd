@@ -137,6 +137,20 @@ static bool bq2560x_charger_is_bat_present(struct bq2560x_charger_info *info)
 	return present;
 }
 
+static int bq2560x_charger_is_fgu_present(struct bq2560x_charger_info *info)
+{
+	struct power_supply *psy;
+
+	psy = power_supply_get_by_name(BQ2560X_BATTERY_NAME);
+	if (!psy) {
+		dev_err(info->dev, "Failed to find psy of sc27xx_fgu\n");
+		return -ENODEV;
+	}
+	power_supply_put(psy);
+
+	return 0;
+}
+
 static int bq2560x_read(struct bq2560x_charger_info *info, u8 reg, u8 *data)
 {
 	int ret;
@@ -1146,6 +1160,12 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	if (IS_ERR(info->edev)) {
 		dev_err(dev, "failed to find vbus extcon device.\n");
 		return PTR_ERR(info->edev);
+	}
+
+	ret = bq2560x_charger_is_fgu_present(info);
+	if (ret) {
+		dev_err(dev, "sc27xx_fgu not ready.\n");
+		return -EPROBE_DEFER;
 	}
 
 	/*
