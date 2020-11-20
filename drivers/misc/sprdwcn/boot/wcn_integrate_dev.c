@@ -208,6 +208,27 @@ static void wcn_config_ctrlreg(struct wcn_device *wcn_dev, u32 start, u32 end)
 	for (i = start; i < end; i++) {
 		val = 0;
 		type = wcn_dev->ctrl_type[i];
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6 &&
+			(type == REGMAP_WCN_BTWF_AHB ||
+			type == REGMAP_WCN_GNSS_SYS_AHB)) {
+			timeout = 0;
+			WCN_INFO("wcn power btwf check!\n");
+			do {
+				if (wcn_power_status_check(wcn_dev)) {
+					wcn_power_status = 1;
+					break;
+				}
+				udelay(wcn_dev->ctrl_us_delay[i]);
+				WCN_INFO("wait poweron timeout %d!\n",
+						timeout);
+			} while (timeout++ < 300);
+			if (!wcn_power_status) {
+				WCN_ERR("wcn power on fail!\n");
+				return;
+			}
+			WCN_INFO("wcn poweron finish\n");
+		}
+
 		reg_read = wcn_dev->ctrl_reg[i] -
 			   wcn_dev->ctrl_rw_offset[i];
 		wcn_regmap_read(wcn_dev->rmap[type], reg_read, &val);
@@ -222,25 +243,6 @@ static void wcn_config_ctrlreg(struct wcn_device *wcn_dev, u32 start, u32 end)
 		}
 
 		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-			if (type == REGMAP_WCN_BTWF_AHB ||
-				type == REGMAP_WCN_GNSS_SYS_AHB) {
-				timeout = 0;
-				WCN_INFO("wcn power btwf check!\n");
-				do {
-					if (wcn_power_status_check(wcn_dev)) {
-						wcn_power_status = 1;
-						break;
-					}
-					udelay(wcn_dev->ctrl_us_delay[i]);
-					WCN_INFO("wait poweron timeout %d!\n",
-							timeout);
-				} while (timeout++ < 300);
-				if (!wcn_power_status) {
-					WCN_ERR("wcn power on fail!\n");
-					return;
-				}
-				WCN_INFO("wcn poweron finish\n");
-			}
 			/* release cpu reset  manually */
 			if (s_wcn_device.boot_manually == true &&
 					wcn_dev->ctrl_reg[i] == 0x0c) {
