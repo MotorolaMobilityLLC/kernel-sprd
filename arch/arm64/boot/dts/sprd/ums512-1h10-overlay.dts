@@ -58,6 +58,14 @@
 					debounce-interval = <2>;
 					wakeup-source;
 				};
+				
+				key-googlekey {
+					label = "Google Key";
+					linux,code = <KEY_SEARCH>;
+					gpios = <&ap_gpio 125 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
 			};
 
 			// modify use DSI command set backlight begin:
