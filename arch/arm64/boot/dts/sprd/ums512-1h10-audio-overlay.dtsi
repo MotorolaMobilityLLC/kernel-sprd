@@ -1,0 +1,231 @@
+/* AWINIC AW881XX mono Smart PA */
+&i2c4 {
+	status = "okay";
+	thirdparty_smartpa:aw881xx_smartpa@34 {
+		compatible = "awinic,aw881xx_smartpa";
+		#sound-dai-cells = <1>;
+		reg = <0x34>;
+		reset-gpio = <&ap_gpio 134 0>;
+		irq-gpio = <&ap_gpio 87 0>;
+		monitor-flag = <1>;
+		monitor-timer-val = <30000>;
+		status = "okay";
+	};
+};
+/* AWINIC AW881XX mono Smart PA End */
+
+&ucp1301_spk {
+	status = "disabled";
+};
+
+&sound_vbc_v4_sprd_codec {
+	status = "okay";
+
+	/delete-node/ sprd-audio-card,dai-link@53;
+	/* 35: smart pa normal ap01 */
+	sprd-audio-card,dai-link@53 {
+		ignore-suspend = <1>;
+		link-name = "BE_NORMAL_AP01_SMTPA";
+		stream-name = "BE_ST_NORMAL_AP01_SMTPA";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+
+		cpu {
+			sound-dai = <&vbc_v4 46>;
+		};
+
+		codec {
+			sound-dai = <&thirdparty_smartpa 0>;
+		};
+	};
+
+	/* 36: smart pa normal ap23 */
+	sprd-audio-card,dai-link@54 {
+		ignore-suspend = <1>;
+		link-name = "BE_NORMAL_AP23_SMTPA";
+		stream-name = "BE_ST_NORMAL_AP23_SMTPA";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+
+		cpu {
+			sound-dai = <&vbc_v4 47>;
+		};
+
+		codec {
+			sound-dai = <&thirdparty_smartpa 0>;
+		};
+	};
+
+	/* 37: smart pa fast playback */
+	sprd-audio-card,dai-link@55 {
+		ignore-suspend = <1>;
+		link-name = "BE_FAST_P_SMTPA";
+		stream-name = "BE_ST_FAST_P_SMTPA";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+
+		cpu {
+			sound-dai = <&vbc_v4 48>;
+		};
+
+		codec {
+			sound-dai = <&thirdparty_smartpa 0>;
+		};
+	};
+
+	/* 38: smart pa offload */
+	sprd-audio-card,dai-link@56 {
+		ignore-suspend = <1>;
+		link-name = "BE_OFFLOAD_SMTPA";
+		stream-name = "BE_ST_OFFLOAD_SMTPA";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+
+		cpu {
+			sound-dai = <&vbc_v4 49>;
+		};
+
+		codec {
+			sound-dai = <&thirdparty_smartpa 0>;
+		};
+	};
+
+	/* 39: smart pa voice */
+	sprd-audio-card,dai-link@57 {
+		ignore-suspend = <1>;
+		link-name = "BE_VOICE_SMTPA";
+		stream-name = "BE_ST_VOICE_SMTPA";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+
+		cpu {
+			sound-dai = <&vbc_v4 50>;
+		};
+
+		codec {
+			sound-dai = <&thirdparty_smartpa 0>;
+		};
+	};
+
+	/* 40: smart pa voip */
+	sprd-audio-card,dai-link@58 {
+		ignore-suspend = <1>;
+		link-name = "BE_VOIP_SMTPA";
+		stream-name = "BE_DAI_ID_VOIP_SMTPA";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+
+		cpu {
+			sound-dai = <&vbc_v4 51>;
+		};
+
+		codec {
+			sound-dai = <&thirdparty_smartpa 0>;
+		};
+	};
+
+	/* 41: smart pa fm */
+	sprd-audio-card,dai-link@59 {
+		ignore-suspend = <1>;
+		link-name = "BE_FM_SMTPA";
+		stream-name = "BE_ST_FM_SMTPA";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+
+		cpu {
+			sound-dai = <&vbc_v4 52>;
+		};
+
+		codec {
+			sound-dai = <&thirdparty_smartpa 0>;
+		};
+	};
+
+	/* 42: smart pa loopback */
+	sprd-audio-card,dai-link@60 {
+		ignore-suspend = <1>;
+		link-name = "BE_LOOP_SMTPA";
+		stream-name = "BE_ST_LOOP_SMTPA";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+
+		cpu {
+			sound-dai = <&vbc_v4 53>;
+		};
+
+		codec {
+			sound-dai = <&thirdparty_smartpa 0>;
+		};
+	};
+
+	/* 43: smart pa fm dsp */
+	sprd-audio-card,dai-link@61 {
+		ignore-suspend = <1>;
+		link-name = "BE_FM_DSP_SMTPA";
+		stream-name = "BE_ST_FM_DSP_SMTPA";
+		no-pcm = <1>;
+		dpcm-playback = <1>;
+		be-id = <0>;
+		dai-format = "i2s";
+
+		plat {
+			sound-dai = <&sprd_route_pcm>;
+		};
+
+		cpu {
+			sound-dai = <&vbc_v4 54>;
+		};
+
+		codec {
+			sound-dai = <&thirdparty_smartpa 0>;
+		};
+	};
+};
