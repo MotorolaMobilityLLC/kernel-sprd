@@ -898,7 +898,8 @@
 
 &sprd_headset {
 	status = "okay";
-	extcon = <&pmic_typec>;
+	/* Disable typec headset to enable jack-3.5mm */
+	/* extcon = <&pmic_typec>; */
 	mic-gpios = <&ap_gpio 16 GPIO_ACTIVE_HIGH>;
 	lr-gpios = <&ap_gpio 15 GPIO_ACTIVE_HIGH>;
 	sprd,3pole-adc-threshold = <112>;
