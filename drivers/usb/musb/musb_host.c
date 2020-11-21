@@ -631,7 +631,7 @@ static int musb_tx_dma_set_mode_musb_tusb(struct dma_controller *dma,
 					  u32 *length,
 					  u8 *mode)
 {
-#ifdef CONFIG_USB_SPRD_DMA
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
 	struct dma_channel *channel = hw_ep->tx_channel;
 
 	if (!musb_dma_sprd(hw_ep->musb))
@@ -654,7 +654,7 @@ void musb_rx_dma_sprd(struct dma_channel *dma_channel,
 				  struct urb *urb,
 				  u32 offset, size_t len)
 {
-#ifdef CONFIG_USB_SPRD_DMA
+#if IS_ENABLED(CONFIG_USB_SPRD_DMA)
 	struct dma_controller	*dma_controller;
 	u8	dma_ok;
 	u16	csr;
