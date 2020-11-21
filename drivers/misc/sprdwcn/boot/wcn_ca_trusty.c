@@ -18,6 +18,7 @@
 #include <linux/slab.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
+#include <linux/device.h>
 #include <linux/trusty/trusty_ipc.h>
 #include "../include/wcn_dbg.h"
 #include "wcn_ca_trusty.h"
