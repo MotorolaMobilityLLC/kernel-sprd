@@ -1,0 +1,6 @@
+config FPS_FPC_S00
+        tristate "fpc Finger Print Driver"
+        help
+          fpc Finger Print Supported
+
+
