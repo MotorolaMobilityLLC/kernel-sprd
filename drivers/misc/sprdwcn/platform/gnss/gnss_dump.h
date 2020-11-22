@@ -14,9 +14,16 @@
 
 #ifdef CONFIG_WCN_INTEG
 #define DUMP_PACKET_SIZE		(1024)
+#ifdef CONFIG_SC2342_I
 #define GNSS_SHARE_MEMORY_SIZE		(0x15a800)
 #define GNSS_CP_IRAM_DATA_NUM		8192
 #define GNSS_DUMP_IRAM_START_ADDR		0x18000000
+#endif
+#ifdef CONFIG_UMW2631_I
+#define GNSS_SHARE_MEMORY_SIZE		0x180000
+#define GNSS_DUMP_IRAM_START_ADDR	0x40a54000
+#define GNSS_CP_IRAM_DATA_NUM		8192
+#endif
 
 /* ap aon registers start */
 #define DUMP_REG_PMU_SLEEP_CTRL		0x402B00CC
@@ -47,6 +54,15 @@
 #define DUMP_WCN_CP_CLK_LEN		0x100
 /* cp reg end */
 
+/* qogirl6 cpu hold start */
+#define GNSS_CPU_RESET			1
+#define GNSS_CPU_RESET_RELEASE		0
+#define GNSS_CACHE_FLAG_ADDR_L6		0x158000
+#define MCU_AP_RST_ADDR			0x40bc8280
+#define CMSTAR_BOOT_CTRL_ADDR		0x4088000c
+#define GNSS_AP_ACCESS_CP_OFFSET	0x11000000
+/* qogirl6 cpu hold end*/
+
 #define ANLG_WCN_WRITE_ADDR 0XFF4
 #define ANLG_WCN_READ_ADDR 0XFFC
 
@@ -60,8 +76,6 @@
 #define CTL_BASE_AON_CLOCK  0x40844200
 #define CTL_BASE_AON_CLOCK_SIZE  0x144
 
-
 #endif
 int gnss_dump_mem(char flag);
-
 #endif

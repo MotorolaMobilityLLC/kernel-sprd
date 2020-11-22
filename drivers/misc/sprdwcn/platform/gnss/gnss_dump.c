@@ -82,7 +82,6 @@ static struct regmap_dump gnss_pike2_ap_reg[] = {
 	{REGMAP_PMU_APB, 0x0058}, /* REG_PMU_APB_PD_WCN_GNSS_CFG */
 };
 
-
 /* for sharkl3 ap reg dump, this order format can't change, just do it */
 static struct regmap_dump gnss_sharkl3_ap_reg[] = {
 	{REGMAP_PMU_APB, 0x00cc}, /* REG_PMU_APB_SLEEP_CTRL */
@@ -94,7 +93,20 @@ static struct regmap_dump gnss_sharkl3_ap_reg[] = {
 	{REGMAP_PMU_APB, 0x0104}, /* REG_PMU_APB_PD_WIFI_WRAP_CFG */
 	{REGMAP_PMU_APB, 0x0108}, /* REG_PMU_APB_PD_GNSS_WRAP_CFG */
 };
+
+/* for sharkl6 ap reg dump */
+static struct regmap_dump gnss_sharkl6_ap_reg[] = {
+	{REGMAP_TYPE_NR, 0x640203a8}, /* PMU_PD_WCN_SYS_CFG */
+	{REGMAP_TYPE_NR, 0x6402078c}, /* PMU_WCN_SYS_DSLP_ENA */
+	{REGMAP_TYPE_NR, 0x64020818}, /* PMU_FORCE_DEEP_SLEEP_CFG0 */
+	{REGMAP_TYPE_NR, 0x64020860}, /* PMU_SLEEP_STATUS */
+};
+#ifdef CONFIG_SC2342_I
 #define GNSS_DUMP_REG_NUMBER 8
+#endif
+#ifdef CONFIG_UMW2631_I
+#define GNSS_DUMP_REG_NUMBER 4
+#endif
 static char gnss_dump_level; /* 0: default, all, 1: only data, pmu, aon */
 
 #endif
@@ -144,37 +156,79 @@ static void gnss_read_data_from_phy_addr(phys_addr_t phy_addr,
 		GNSSDUMP_ERR("%s shmem_ram_vmap_nocache fail\n", __func__);
 }
 
-static void gnss_hold_cpu(void)
+static void gnss_soft_reset_release_cpu(u32 type)
 {
 	struct regmap *regmap;
-	u32 value;
 	phys_addr_t base_addr;
-	int i = 0;
+	u32 value;
+	u32 value_tmp = 0;
+	u32 platform_type = wcn_platform_chip_type();
 
-	GNSSDUMP_ERR("gnss_hold_cpu entry\n");
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
+	if (platform_type == WCN_PLATFORM_TYPE_QOGIRL6) {
+		base_addr = MCU_AP_RST_ADDR + GNSS_AP_ACCESS_CP_OFFSET;
+		if (type == GNSS_CPU_RESET) {
+			/* reset gnss cpu */
+			gnss_read_data_from_phy_addr(base_addr,
+				(void *)&value_tmp, 4);
+			/* BIT0:rst set */
+			value_tmp |= 1;
+			gnss_write_data_to_phy_addr(base_addr,
+				(void *)&value_tmp, 4);
+		} else if (type == GNSS_CPU_RESET_RELEASE) {
+			/* release gnss cpu */
+			gnss_read_data_from_phy_addr(base_addr,
+				(void *)&value_tmp, 4);
+			/* BIT0:rst clear */
+			value_tmp &= ~(1);
+			gnss_write_data_to_phy_addr(base_addr,
+				(void *)&value_tmp, 4);
+		}
+		return;
+	}
+
+	if (platform_type == WCN_PLATFORM_TYPE_SHARKL3)
 		regmap = wcn_get_gnss_regmap(REGMAP_WCN_REG);
 	else
 		regmap = wcn_get_gnss_regmap(REGMAP_ANLG_WRAP_WCN);
-	wcn_regmap_read(regmap, 0X20, &value);
-	value |= 1 << 2;
-	wcn_regmap_raw_write_bit(regmap, 0X20, value);
+	if (type == GNSS_CPU_RESET) {
+		/* reset gnss cm4 */
+		wcn_regmap_read(regmap, 0X20, &value);
+		value |= 1 << 2;
+		wcn_regmap_raw_write_bit(regmap, 0X20, value);
 
-	wcn_regmap_read(regmap, 0X24, &value);
-	value |= 1 << 3;
-	wcn_regmap_raw_write_bit(regmap, 0X24, value);
+		wcn_regmap_read(regmap, 0X24, &value);
+		value |= 1 << 3;
+		wcn_regmap_raw_write_bit(regmap, 0X24, value);
+	} else if (type == GNSS_CPU_RESET_RELEASE) {
+		value = 0;
+		/* release gnss cm4 */
+		wcn_regmap_raw_write_bit(regmap, 0X20, value);
+		wcn_regmap_raw_write_bit(regmap, 0X24, value);
+	}
+}
+static void gnss_hold_cpu(void)
+{
+	u32 value;
+	phys_addr_t base_addr;
+	phys_addr_t ph_addr;
+	int i = 0;
 
+	/* reset cpu */
+	gnss_soft_reset_release_cpu(GNSS_CPU_RESET);
+	/* set cache flag */
 	value = GNSS_CACHE_FLAG_VALUE;
 	base_addr = wcn_get_gnss_base_addr();
-	gnss_write_data_to_phy_addr(base_addr + GNSS_CACHE_FLAG_ADDR,
-		(void *)&value, 4);
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		ph_addr = base_addr + GNSS_CACHE_FLAG_ADDR_L6;
+	else
+		ph_addr = base_addr + GNSS_CACHE_FLAG_ADDR;
+	GNSSDUMP_INFO("val=%x bs=%x ph=%x\n", value, base_addr, ph_addr);
+	gnss_write_data_to_phy_addr(ph_addr, (void *)&value, 4);
+	/* release cpu */
+	gnss_soft_reset_release_cpu(GNSS_CPU_RESET_RELEASE);
 
-	value = 0;
-	wcn_regmap_raw_write_bit(regmap, 0X20, value);
-	wcn_regmap_raw_write_bit(regmap, 0X24, value);
 	while (i < 3) {
-		gnss_read_data_from_phy_addr(base_addr + GNSS_CACHE_FLAG_ADDR,
-			(void *)&value, 4);
+		gnss_read_data_from_phy_addr(ph_addr, (void *)&value, 4);
 		if (value == GNSS_CACHE_END_VALUE)
 			break;
 		i++;
@@ -183,16 +237,18 @@ static void gnss_hold_cpu(void)
 	if (value != GNSS_CACHE_END_VALUE)
 		GNSSDUMP_ERR("%s gnss cache failed value %d\n", __func__,
 			value);
-
 	msleep(200);
 }
 
 static int gnss_dump_cp_register_data(u32 addr, u32 len)
 {
-	struct regmap *regmap;
+	struct regmap *map;
 	u32 i;
+	u32 cp_access_type;
+	u32 chip_tp = wcn_platform_chip_type();
+	phys_addr_t phy_addr;
 	u8 *buf = NULL;
-	u8 *ptr = NULL;
+	u8 *pt  = NULL;
 	long int ret;
 	void  *iram_buffer = NULL;
 	mm_segment_t fs;
@@ -222,16 +278,32 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 	}
 	memset(iram_buffer, 0, len);
 
-	/* can't op cp reg when level is 1, just record 0 to buffer */
+	if (chip_tp == WCN_PLATFORM_TYPE_QOGIRL6)
+		cp_access_type = 1;
+	else
+		cp_access_type = 0;
+
 	if (gnss_dump_level == 0) {
-		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
-			regmap = wcn_get_gnss_regmap(REGMAP_WCN_REG);
-		else
-			regmap = wcn_get_gnss_regmap(REGMAP_ANLG_WRAP_WCN);
-		wcn_regmap_raw_write_bit(regmap, ANLG_WCN_WRITE_ADDR, addr);
-		for (i = 0; i < len / 4; i++) {
-			ptr = buf + i * 4;
-			wcn_regmap_read(regmap, ANLG_WCN_READ_ADDR, (u32 *)ptr);
+		if (cp_access_type) {
+			/* direct map */
+			phy_addr =  addr + GNSS_AP_ACCESS_CP_OFFSET;
+			for (i = 0; i < len / 4; i++) {
+				pt = buf + i * 4;
+				wcn_read_data_from_phy_addr(phy_addr, pt, 4);
+			}
+		} else {
+			/* aon funcdma tlb way */
+			if (chip_tp == WCN_PLATFORM_TYPE_SHARKL3)
+				map = wcn_get_gnss_regmap(REGMAP_WCN_REG);
+			else
+				map = wcn_get_gnss_regmap(REGMAP_ANLG_WRAP_WCN);
+			wcn_regmap_raw_write_bit(map,
+						 ANLG_WCN_WRITE_ADDR, addr);
+			for (i = 0; i < len / 4; i++) {
+				pt = buf + i * 4;
+				wcn_regmap_read(map,
+						ANLG_WCN_READ_ADDR, (u32 *)pt);
+			}
 		}
 		memcpy(iram_buffer, buf, len);
 	}
@@ -284,8 +356,11 @@ static int gnss_dump_ap_register(void)
 	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2) {
 		gnss_ap_reg = gnss_pike2_ap_reg;
 		len = (GNSS_DUMP_REG_NUMBER + 1) * sizeof(u32);
-	} else {
+	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3) {
 		gnss_ap_reg = gnss_sharkl3_ap_reg;
+		len = (GNSS_DUMP_REG_NUMBER + 1) * sizeof(u32);
+	} else {
+		gnss_ap_reg = gnss_sharkl6_ap_reg;
 		len = (GNSS_DUMP_REG_NUMBER + 1) * sizeof(u32);
 	}
 
@@ -298,13 +373,17 @@ static int gnss_dump_ap_register(void)
 		value[0] = 0xF1;
 	else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2)
 		value[0] = 0xF2;
-	else
+	else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
 		value[0] = 0xF3;
+	else
+		value[0] = 0xF4;
 
 	for (i = 0; i < GNSS_DUMP_REG_NUMBER; i++) {
 		if ((gnss_ap_reg + i)->regmap_type == REGMAP_TYPE_NR) {
 			gnss_read_data_from_phy_addr((gnss_ap_reg + i)->reg,
 				&value[i+1], 4);
+			GNSSDUMP_INFO("%s ap reg[0x%x] data[0x%x]\n", __func__,
+				      (gnss_ap_reg + i)->reg, value[i]);
 		} else {
 			regmap =
 			wcn_get_gnss_regmap((gnss_ap_reg + i)->regmap_type);
@@ -333,7 +412,10 @@ static int gnss_dump_ap_register(void)
 static void gnss_dump_cp_register(void)
 {
 	u32 count;
-
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		GNSSDUMP_INFO("L6 dump CP Reg Complete\n");
+		return;
+	}
 	count = gnss_dump_cp_register_data(DUMP_REG_GNSS_APB_CTRL_ADDR,
 			DUMP_REG_GNSS_APB_CTRL_LEN);
 	GNSSDUMP_INFO("gnss dump gnss_apb_ctrl_reg %u ok!\n", count);
