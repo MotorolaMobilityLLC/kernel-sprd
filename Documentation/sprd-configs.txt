@@ -13783,12 +13783,12 @@ CONFIG_SPRD_WATCHDOG_FIQ
 	[function] support watchdog fig mode
 CONFIG_SPRD_WATCHDOG_PMIC
 	[arch] all
-	[plat] pike2,sharkl3,sharkl3_32,sharkl5,sharkl5Pro,sharkle32
-	[missing plat] sharkl5_32
+	[plat] all
+	[missing plat] none
 	[field] make,code,menu
 	[subsys] watchdog
 	[must] user
-	[missing plat description] missing sharkle32 because use it for user, sharkl5_32 bring up is not yet.
+	[missing plat description] none
 	[function] add ap sys watchdog.
 CONFIG_SRCU
 	[arch] all
