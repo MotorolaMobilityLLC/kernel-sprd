@@ -109,9 +109,9 @@
 		entry-method = "arm,psci";
 		CORE_PD: core-pd {
 			compatible = "arm,idle-state";
-			entry-latency-us = <0xFFFFFFFF>;
-			exit-latency-us = <0xFFFFFFFF>;
-			min-residency-us = <0xFFFFFFFF>;
+			entry-latency-us = <0x4000>;
+			exit-latency-us = <0x4000>;
+			min-residency-us = <0x10000>;
 			local-timer-stop;
 			arm,psci-suspend-param = <0x00010000>;
 		};
