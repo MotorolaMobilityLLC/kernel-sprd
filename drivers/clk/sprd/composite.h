@@ -68,8 +68,7 @@ struct sprd_comp {
 				   _dshift, _dwidth, _flags)		\
 	SPRD_COMP_CLK_TABLE(_struct, _name, _parent, _reg, _table,	\
 			    _mshift, _mwidth, 0x4, _dshift,		\
-			    _dwidth, _flags,				\
-			    CLK_HW_INIT_PARENTS_DATA)
+			    _dwidth, _flags)
 
 #define SPRD_COMP_CLK_OFFSET(_struct, _name, _parent, _reg,		\
 			     _mshift, _mwidth, _dshift,			\

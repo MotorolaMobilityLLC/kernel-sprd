@@ -17,3 +17,4 @@ obj-$(CONFIG_SPRD_SHARKL5PRO_CLK)	+= sharkl5pro-clk.o
 obj-$(CONFIG_SPRD_ROC1_CLK)		+= roc1-clk.o
 obj-$(CONFIG_SPRD_ORCA_CLK)		+= orca-clk.o
 obj-$(CONFIG_SPRD_UMS9230_CLK)		+= ums9230-clk.o
+obj-$(CONFIG_SPRD_UMS9620_CLK)		+= ums9620-clk.o
