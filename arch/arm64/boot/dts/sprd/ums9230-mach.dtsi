@@ -115,6 +115,11 @@
 		};
 	};
 
+	rebootescrow@0 {
+		compatible = "pmem-region";
+		reg = <0x0 0x81ff0000 0x0 0x00010000>;
+	};
+
 	extcon_gpio: extcon-gpio {
 		compatible = "linux,extcon-usb-gpio";
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
