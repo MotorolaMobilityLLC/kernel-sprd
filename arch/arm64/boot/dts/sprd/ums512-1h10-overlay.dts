@@ -28,11 +28,18 @@
 			sprd-wlan {
 				compatible = "sprd,sc2355-wifi";
 			};
-
-			fingerprint@0 {
+//---lijian modify the fingerprints start
+			/*fingerprint@0 {
 				compatible = "microarray,afs121";
 				fpint-gpios = <&eic_async 13 0>;
+			};*/
+			fingerprint@0 {
+				compatible = "chipone,fingerprint";
+				fpint-gpios = <&ap_gpio 130 0>;
+				fpreset-gpios = <&ap_gpio 131 0>;
+				fp-gpio-power = <&ap_gpio 138 0>;
 			};
+//---lijian modify the fingerprints end
 
 			gpio-keys {
 				compatible = "gpio-keys";
@@ -607,7 +614,7 @@
 		//flash-chip-en-gpios = <&ap_gpio 136 0>;
 		flash-torch-en-gpios = <&ap_gpio 139 0>;
 		flash-en-gpios = <&ap_gpio 137 0>;
-		flash-sync-gpios = <&ap_gpio 138 0>;
+		//flash-sync-gpios = <&ap_gpio 138 0>;//And fingerprint power GPIO conflict, first shielded. modify by lijian
 	};
 
 	pn557_nfc: nxp-nfc@0x28{
@@ -622,6 +629,9 @@
 };
 
 &spi2 {
+	status = "okay";
+};
+&spi0 {
 	status = "okay";
 };
 #include "novatek-nt36xxx-spi.dtsi"
