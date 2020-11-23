@@ -9,8 +9,21 @@
 / {
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
+		memory-region = <&drm_reserved>;
 		ports = <&dpu_port>;
 		gsp = <&gsp>;
+	};
+
+	reserved_memory: reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		drm_reserved: framebuffer {
+			compatible = "shared-dma-pool";
+			size = <0x0 0x01800000>;
+			reusable;
+		};
 	};
 
 	firmware {

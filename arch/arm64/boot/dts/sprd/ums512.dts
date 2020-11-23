@@ -72,13 +72,6 @@
 			label = "carveout_overlay";
 			type = <2>;
 		};
-
-		heap@3 {
-			reg = <3>;
-			label = "carveout_fb";
-			type = <2>;
-			memory-region = <&fb_reserved>;
-		};
 	};
 
 	bat: battery {
@@ -174,12 +167,6 @@
 				extcon = <&pmic_typec>;
 			};
 		};
-	};
-};
-
-&reserved_memory {
-	fb_reserved: framebuffer-mem {
-		reg = <0x0 0xfd708000 0x0 0x01e5a000>;
 	};
 };
 
