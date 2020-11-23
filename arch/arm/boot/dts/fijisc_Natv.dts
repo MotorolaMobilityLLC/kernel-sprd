@@ -234,9 +234,9 @@
 
 
 
-		battery_name-0 ="KS40-ATL-SB18C51767-2820mAh";
-		battery_name-1 ="KS40-Sunwoda-SB18C51766-2820mAh";
-		battery_name-2 ="KS40-SCUD-SB18C85292-2820mAh";
+		battery_name-0 ="KS40-ATL-SB18C51767-3000mAh";
+		battery_name-1 ="KS40-Sunwoda-SB18C51766-3000mAh";
+		battery_name-2 ="KS40-SCUD-SB18C85292-3000mAh";
 
 		charge-full-design-microamp-hours-1 = <2957000>;
 		factory-internal-resistance-micro-ohms-1 = <233000>;
