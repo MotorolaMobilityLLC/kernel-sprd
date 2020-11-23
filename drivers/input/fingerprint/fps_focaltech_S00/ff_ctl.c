@@ -47,9 +47,8 @@
 #include "ff_err.h"
 #include "ff_ctl.h"
 
-//add by fanxzh
 #include "ontim/ontim_dev_dgb.h"
-#define FPC_HW_INFO "FT9391"
+#define FPC_HW_INFO "FT9362L6"
 DEV_ATTR_DECLARE(fingersensor)
 DEV_ATTR_DEFINE("vendor", FPC_HW_INFO)
 DEV_ATTR_DECLARE_END;
