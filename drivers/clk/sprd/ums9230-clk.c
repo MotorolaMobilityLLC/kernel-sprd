@@ -1825,6 +1825,8 @@ static SPRD_SC_GATE_CLK(audcp_iis1_eb, "audcp-iis1-eb", "access-aud-en",
 			0x0, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_iis2_eb, "audcp-iis2-eb", "access-aud-en",
 			0x0, 0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK(audcp_pdm_eb, "audcp-pdm-eb", "access-aud-en",
+			0x0, 0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_uart_eb, "audcp-uart-eb", "access-aud-en",
 			0x0, 0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK(audcp_dma_cp_eb, "audcp-dma-cp-eb", "access-aud-en",
@@ -1862,6 +1864,7 @@ static struct sprd_clk_common *ums9230_audcpahb_gate[] = {
 	&audcp_iis0_eb.common,
 	&audcp_iis1_eb.common,
 	&audcp_iis2_eb.common,
+	&audcp_pdm_eb.common,
 	&audcp_uart_eb.common,
 	&audcp_dma_cp_eb.common,
 	&audcp_dma_ap_eb.common,
@@ -1884,6 +1887,7 @@ static struct clk_hw_onecell_data ums9230_audcpahb_gate_hws = {
 		[CLK_AUDCP_IIS0_EB]		= &audcp_iis0_eb.common.hw,
 		[CLK_AUDCP_IIS1_EB]		= &audcp_iis1_eb.common.hw,
 		[CLK_AUDCP_IIS2_EB]		= &audcp_iis2_eb.common.hw,
+		[CLK_AUDCP_PDM_EB]		= &audcp_pdm_eb.common.hw,
 		[CLK_AUDCP_UART_EB]		= &audcp_uart_eb.common.hw,
 		[CLK_AUDCP_DMA_CP_EB]		= &audcp_dma_cp_eb.common.hw,
 		[CLK_AUDCP_DMA_AP_EB]		= &audcp_dma_ap_eb.common.hw,
