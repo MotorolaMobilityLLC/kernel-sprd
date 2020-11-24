@@ -21,6 +21,7 @@
 
 	chosen: chosen {
 		stdout-path = "serial1:115200n8";
+		bootargs = "earlycon=sprd_serial,0x20210000,115200n8 console=ttyS1,115200n8 loglevel=8 init=/init root=/dev/ram0 rw printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio androidboot.selinux=permissive";
 	};
 
 	reserved-memory {
