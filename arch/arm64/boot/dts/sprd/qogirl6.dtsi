@@ -1228,6 +1228,75 @@
 				#pwm-cells = <2>;
 			};
 
+			topdvfs_controller: topdvfsctrl@64014000 {
+				compatible = "sprd,qogirl6-topdvfs", "syscon";
+				sprd,syscon-enable = <&aon_apb_regs>;
+				module-enable-cfg = <0x4 7>;
+				reg = <0 0x64014000 0 0x8000>;
+				cpu-dcdc-cells = <&dcdc_cpu0>, <&dcdc_cpu1>;
+				device-dcdc-cells = <&dcdc_mm>, <&dcdc_modem>;
+				dcdc_cpu0: dcdc-cpu0{
+					dcdc-dvfs-enable = <0x68 20 1>;
+					dcdc-judge-vol-sw = <0x68 1 0x7 7>;
+					dcdc-subsys-tune-enable = <0x150 6 1>;
+					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu0_supply>;
+					syscons = <&pmu_apb_regs REG_PMU_APB_DVFS_BLOCK_SHUTDOWN_CFG MASK_PMU_APB_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
+					syscon-names = "dvfs-blk-dcdc-sd";
+					dcdc-idle-voltage = <0x16c 3 0x7 6>;
+				};
+				dcdc_cpu1: dcdc-cpu1{
+					dcdc-dvfs-enable = <0x94 0 1>;
+					dcdc-judge-vol-sw = <0x138 15 0x7 7>;
+					dcdc-subsys-tune-enable = <0x150 7 1>;
+					dcdc-supply-mode-cfg = <&dvfs_dcdc_cpu1_supply>;
+					syscons = <&pmu_apb_regs REG_PMU_APB_DVFS_BLOCK_SHUTDOWN_CFG MASK_PMU_APB_DCDC_CPU1_DVFS_BLOCK_SHUTDOWN_EN>;
+					syscon-names = "dvfs-blk-dcdc-sd";
+					dcdc-idle-voltage = <0x16c 0 0x7 5>;
+				};
+
+				dvfs_dcdc_cpu0_supply: dvfs-dcdc-cpu0-supply {
+					compatible = "qogirl6-dcdc-cpu0";
+				};
+
+				dvfs_dcdc_cpu1_supply: dvfs-dcdc-cpu1-supply {
+					compatible = "qogirl6-dcdc-cpu1";
+				};
+
+				dcdc_mm: dcdc-mm {
+					dcdc-dvfs-enable = <0x18 20 1>;
+					dcdc-judge-vol-sw = <0x18 1 0x7 0>;
+					dcdc-subsys-cells =	<&audcp_sys>,
+								<&gpu_sys>,
+								<&mm_sys>;
+					audcp_sys: audcp-sys {
+						dcdc-subsys-tune-enable = <0x150 5 1>;
+					};
+					gpu_sys: gpu-sys {
+						dcdc-subsys-tune-enable = <0x150 1 1>;
+					};
+
+					mm_sys: mm-sys {
+						dcdc-subsys-tune-enable = <0x150 2 1>;
+					};
+				};
+				dcdc_modem: dcdc-modem {
+					dcdc-dvfs-enable = <0x3c 20 1>;
+					dcdc-judge-vol-sw = <0x3c 1 0x7 0>;
+					dcdc-subsys-cells =	<&pubcp_sys>,
+								<&wtlcp_sys>,
+								<&ap_sys>;
+					pubcp_sys: pubcp-sys {
+						dcdc-subsys-tune-enable = <0x150 4 0>;
+					};
+					wtlcp_sys: wtlcp-sys {
+						dcdc-subsys-tune-enable = <0x150 3 0>;
+					};
+					ap_sys: ap-sys {
+						dcdc-subsys-tune-enable = <0x150 0 1>;
+					};
+				};
+			};
+
 			aon_systimer: timer@64450000 {
 				compatible = "sprd,syst-timer";
 				reg = <0 0x64450000 0 0x10>;
