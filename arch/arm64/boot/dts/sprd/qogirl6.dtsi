@@ -722,6 +722,7 @@
 				sprd,ip = "dpu-r5p0";
 				sprd,soc = "qogirl6";
 				sprd,logo-memory = <&logo_reserved>;
+				sprd,wb-memory = <&wb_reserved>;
 
 				dpu_port: port {
 					dpu_out: endpoint {
