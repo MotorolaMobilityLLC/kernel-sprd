@@ -29,11 +29,14 @@
 #define BQ2560X_REG_5				0x5
 #define BQ2560X_REG_6				0x6
 #define BQ2560X_REG_B				0xb
+#define bq2560x_REG_NUM			12       //for dump register and optimize driver by pony date20201124
 
 #define BQ2560X_BATTERY_NAME			"sc27xx-fgu"
 #define BIT_DP_DM_BC_ENB			BIT(0)
 
 #define	BQ2560X_REG_IINLIM_BASE			100
+
+#define	BQ2560X_REG_IINLIM_OFFSET		100		//for dump register and optimize driver by pony date20201124
 
 #define BQ2560X_REG_ICHG_LSB			60
 
@@ -133,6 +136,22 @@ static int bq2560x_write(struct bq2560x_charger_info *info, u8 reg, u8 data)
 	return i2c_smbus_write_byte_data(info->client, reg, data);
 }
 
+//for dump register and optimize driver by pony date20201124 start
+void  bq2560x_dump_register(struct bq2560x_charger_info *info)
+{
+	int ret;
+	int i = 0;
+	unsigned char bq2560x_reg[bq2560x_REG_NUM] = { 0 };
+
+	for (i = 0; i < bq2560x_REG_NUM; i++) {
+		ret = bq2560x_read(info, i, &bq2560x_reg[i]);
+		if (ret < 0)
+			dev_info(info->dev, "dump bq2560x register fail\n");
+		dev_info(info->dev, "bq2560x:[0x%x]=0x%x\n", i, bq2560x_reg[i]);
+	}
+}
+//for dump register and optimize driver by pony date20201124 end
+
 static int bq2560x_update_bits(struct bq2560x_charger_info *info, u8 reg,
 			       u8 mask, u8 data)
 {
@@ -187,6 +206,8 @@ bq2560x_charger_set_termina_cur(struct bq2560x_charger_info *info, u32 cur)
 {
 	u8 reg_val;
 
+	dev_info(info->dev, "term_cur = 0x%x\n",cur);		//for dump register and optimize driver by pony date20201124
+
 	if (cur <= 60)
 		reg_val = 0x0;
 	else if (cur >= 480)
@@ -204,6 +225,11 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 	struct power_supply_battery_info bat_info = { };
 	int voltage_max_microvolt, current_max_ua;
 	int ret;
+
+	//for dump register and optimize driver by pony date20201124  start
+	int current_term_ua;
+	dev_err(info->dev, "bq2560x_charger_hw_init\n");
+	//for dump register and optimize driver by pony date20201124 end
 
 	ret = power_supply_get_battery_info(info->psy_usb, &bat_info, 0);
 	if (ret) {
@@ -235,6 +261,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		voltage_max_microvolt =
 			bat_info.constant_charge_voltage_max_uv / 1000;
 		current_max_ua = bat_info.constant_charge_current_max_ua / 1000;
+		current_term_ua = bat_info.charge_term_current_ua / 1000;		//for dump register and optimize driver by pony date20201124
 		power_supply_put_battery_info(info->psy_usb, &bat_info);
 
 		ret = bq2560x_update_bits(info, BQ2560X_REG_B,
@@ -258,7 +285,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 			return ret;
 		}
 
-		ret = bq2560x_charger_set_termina_cur(info, current_max_ua);
+		ret = bq2560x_charger_set_termina_cur(info, current_term_ua);		//for dump register and optimize driver by pony date20201124
 		if (ret) {
 			dev_err(info->dev, "set bq2560x terminal cur failed\n");
 			return ret;
@@ -269,6 +296,20 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		if (ret)
 			dev_err(info->dev, "set bq2560x limit current failed\n");
 	}
+
+	//for dump register and optimize driver by pony date20201124
+	dev_info(info->dev, "sdp = [%d,%d],dcp = [%d,%d],cdp = [%d,%d],unknown = [%d,%d],iterm = %d,cv = %d\n",
+		info->cur.sdp_limit,
+		info->cur.sdp_cur,
+		info->cur.dcp_limit,
+		info->cur.dcp_cur,
+		info->cur.cdp_limit,
+		info->cur.cdp_cur,
+		info->cur.unknown_limit,
+		info->cur.unknown_cur,
+		current_term_ua,
+		voltage_max_microvolt
+		);
 
 	return ret;
 }
@@ -300,6 +341,8 @@ static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
 				       u32 cur)
 {
 	u8 reg_val;
+
+	dev_info(info->dev, "bat_cur = %d\n",cur);		//for dump register and optimize driver by pony date20201124
 
 	cur = cur / 1000;
 	if (cur > 3000) {
@@ -337,10 +380,13 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 	u8 reg_val;
 	int ret;
 
+	dev_info(info->dev, "limit_cur = %d\n",limit_cur);		//for dump register and optimize driver by pony date20201124
+
 	if (limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
 
 	limit_cur = limit_cur / 1000;
+	limit_cur = limit_cur - BQ2560X_REG_IINLIM_OFFSET;		//for dump register and optimize driver by pony date20201124
 	reg_val = limit_cur / BQ2560X_REG_IINLIM_BASE;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
@@ -483,6 +529,9 @@ out:
 	mutex_unlock(&info->lock);
 	dev_info(info->dev, "battery present = %d, charger type = %d\n",
 		 present, info->usb_phy->chg_type);
+
+	bq2560x_dump_register(info);		//for dump register and optimize driver by pony date20201124
+	
 	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
 }
 
@@ -636,6 +685,8 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 	default:
 		ret = -EINVAL;
 	}
+
+	bq2560x_dump_register(info);		//for dump register and optimize driver by pony date20201124
 
 	mutex_unlock(&info->lock);
 	return ret;
@@ -883,6 +934,8 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
 	int ret;
+
+	dev_info(dev, "bq2560x_charger_probe\n");		//for dump register and optimize driver by pony date20201124
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
 		dev_err(dev, "No support for SMBUS_BYTE_DATA\n");
