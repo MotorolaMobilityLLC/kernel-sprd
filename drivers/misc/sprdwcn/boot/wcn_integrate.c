@@ -520,38 +520,38 @@ void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type)
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_PIKE2) {
 		if (set_type == 1) {
 			offset0 = WCN_REG_CLEAR_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET_PIKE2;
+					PD_WCN_CFG0_OFFSET_PIKE2;
 			offset1 = WCN_REG_SET_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET_PIKE2;
+					PD_WCN_CFG0_OFFSET_PIKE2;
 		} else {
 			offset0 = WCN_REG_CLEAR_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET_PIKE2;
+					PD_WCN_CFG0_OFFSET_PIKE2;
 			offset1 = WCN_REG_CLEAR_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET_PIKE2;
+					PD_WCN_CFG0_OFFSET_PIKE2;
 		}
 	} else if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		if (set_type == 1) {
 			offset0 = WCN_REG_CLEAR_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET_QOGIRL6;
+					PD_WCN_CFG0_OFFSET_QOGIRL6;
 			offset1 = WCN_REG_SET_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET_QOGIRL6;
+					PD_WCN_CFG0_OFFSET_QOGIRL6;
 		} else {
 			offset0 = WCN_REG_CLEAR_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET_QOGIRL6;
+					PD_WCN_CFG0_OFFSET_QOGIRL6;
 			offset1 = WCN_REG_CLEAR_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET_QOGIRL6;
+					PD_WCN_CFG0_OFFSET_QOGIRL6;
 		}
 	} else {
 		if (set_type == 1) {
 			offset0 = WCN_REG_CLEAR_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET;
+					PD_WCN_CFG0_OFFSET;
 			offset1 = WCN_REG_SET_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET;
+					PD_WCN_CFG0_OFFSET;
 		} else {
 			offset0 = WCN_REG_CLEAR_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET;
+					PD_WCN_CFG0_OFFSET;
 			offset1 = WCN_REG_CLEAR_OFFSET +
-					PD_WIFI_WRAP_CFG0_OFFSET;
+					PD_WCN_CFG0_OFFSET;
 		}
 	}
 	WCN_DBG("offset0:0x%x bitmap0:0x%x\n",
