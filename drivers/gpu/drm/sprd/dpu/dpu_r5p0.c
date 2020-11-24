@@ -322,6 +322,8 @@ static bool mode_changed;
 static bool evt_update;
 static bool evt_stop;
 static int frame_no;
+static int wb_en;
+static int wb_xfbc_en = 1;
 static bool cabc_bl_set;
 static int cabc_disable = CABC_DISABLED;
 static int cabc_bl_set_delay;
@@ -329,8 +331,10 @@ static struct cabc_para cabc_para;
 static struct backlight_device *bl_dev;
 static int max_vsync_count;
 static int vsync_count;
+static struct sprd_dpu_layer wb_layer;
 static int corner_radius;
 static struct device_node *g_np;
+module_param(wb_xfbc_en, int, 0644);
 module_param(max_vsync_count, int, 0644);
 module_param(cabc_bl_set_delay, int, 0644);
 
@@ -438,10 +442,32 @@ static u32 dpu_isr(struct dpu_context *ctx)
 		vsync_count++;
 	}
 
+	/* dpu vsync isr */
+	if (reg_val & DISPC_INT_DPI_VSYNC_MASK) {
+		/* write back feature */
+		if ((vsync_count == max_vsync_count) && wb_en)
+			schedule_work(&ctx->wb_work);
+		vsync_count++;
+	}
+
 	/* dpu stop done isr */
 	if (reg_val & DISPC_INT_DONE_MASK) {
 		evt_stop = true;
 		wake_up_interruptible_all(&wait_queue);
+	}
+
+	/* dpu write back done isr */
+	if (reg_val & DISPC_INT_WB_DONE_MASK) {
+		/*
+		 * The write back is a time-consuming operation. If there is a
+		 * flip occurs before write back done, the write back buffer is
+		 * no need to display. Otherwise the new frame will be covered
+		 * by the write back buffer, which is not what we wanted.
+		 */
+		if ((vsync_count > max_vsync_count) && wb_en) {
+			wb_en = false;
+			schedule_work(&ctx->wb_work);
+		}
 	}
 
 	/* dpu afbc payload error isr */
@@ -577,6 +603,151 @@ static void dpu_cabc_bl_update_func(struct work_struct *data)
 	cabc_bl_set = false;
 }
 
+static void dpu_wb_trigger(struct dpu_context *ctx,
+				u8 count, bool debug)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+	if (wb_xfbc_en && !debug)
+		reg->wb_cfg = (wb_layer.header_size_r << 16) | BIT(0);
+	else
+		reg->wb_cfg = 0;
+
+	reg->wb_base_addr = ctx->wb_addr_p;
+
+	if (debug)
+		/* writeback debug trigger */
+		reg->wb_ctrl = BIT(1);
+	else
+		reg->wb_ctrl |= BIT(0);
+
+	/* update trigger */
+	reg->dpu_ctrl |= BIT(2);
+
+	dpu_wait_update_done(ctx);
+
+	pr_debug("write back trigger\n");
+}
+
+static void dpu_wb_flip(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+
+	dpu_clean_all(ctx);
+	dpu_layer(ctx, &wb_layer);
+
+	reg->dpu_ctrl |= BIT(2);
+	dpu_wait_update_done(ctx);
+
+	pr_debug("write back flip\n");
+}
+
+static void dpu_wb_work_func(struct work_struct *data)
+{
+	struct dpu_context *ctx =
+		container_of(data, struct dpu_context, wb_work);
+
+	down(&ctx->refresh_lock);
+
+	if (!ctx->is_inited) {
+		up(&ctx->refresh_lock);
+		pr_err("dpu is not initialized\n");
+		return;
+	}
+
+	if (ctx->disable_flip) {
+		up(&ctx->refresh_lock);
+		pr_warn("dpu flip is disabled\n");
+		return;
+	}
+
+	if (wb_en && (vsync_count > max_vsync_count))
+		dpu_wb_trigger(ctx, 1, false);
+	else if (!wb_en)
+		dpu_wb_flip(ctx);
+
+	up(&ctx->refresh_lock);
+}
+
+static int dpu_wb_buf_alloc(struct sprd_dpu *dpu, size_t size,
+			 u32 *paddr)
+{
+	struct device_node *node;
+	u64 size64;
+	struct resource r;
+
+	node = of_parse_phandle(dpu->dev.of_node,
+					"sprd,wb-memory", 0);
+	if (!node) {
+		pr_err("no sprd,wb-memory specified\n");
+		return -EINVAL;
+	}
+
+	if (of_address_to_resource(node, 0, &r)) {
+		pr_err("invalid wb reserved memory node!\n");
+		return -EINVAL;
+	}
+
+	*paddr = r.start;
+	size64 = resource_size(&r);
+
+	if (size64 < size) {
+		pr_err("unable to obtain enough wb memory\n");
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+static int dpu_write_back_config(struct dpu_context *ctx)
+{
+	struct dpu_reg *reg = (struct dpu_reg *)ctx->base;
+	int ret;
+	static int need_config = 1;
+	size_t wb_buf_size;
+	int mode_width, mode_height;
+	struct sprd_dpu *dpu =
+		(struct sprd_dpu *)container_of(ctx, struct sprd_dpu, ctx);
+
+	if (!need_config) {
+		pr_debug("write back has configed\n");
+		return 0;
+	}
+
+	wb_buf_size = XFBC8888_BUFFER_SIZE(dpu->mode->hdisplay,
+						dpu->mode->vdisplay);
+	ret = dpu_wb_buf_alloc(dpu, wb_buf_size, &ctx->wb_addr_p);
+	if (ret) {
+		max_vsync_count = 0;
+		return -1;
+	}
+
+	mode_width  = reg->blend_size & 0xFFFF;
+	mode_height = reg->blend_size >> 16;
+
+	wb_layer.dst_w = mode_width;
+	wb_layer.dst_h = mode_height;
+	wb_layer.xfbc = wb_xfbc_en;
+	wb_layer.pitch[0] = ALIGN(mode_width, 16) * 4;
+	wb_layer.header_size_r = XFBC8888_HEADER_SIZE(mode_width,
+					mode_height) / 128;
+
+	reg->wb_pitch = ALIGN((mode_width), 16);
+
+	wb_layer.index = 7;
+	wb_layer.planes = 1;
+	wb_layer.alpha = 0xff;
+	wb_layer.format = DRM_FORMAT_ABGR8888;
+	wb_layer.addr[0] = ctx->wb_addr_p;
+
+	max_vsync_count = 4;
+	need_config = 0;
+
+	INIT_WORK(&ctx->wb_work, dpu_wb_work_func);
+
+	return 0;
+}
+
 static void dpu_dvfs_task_func(unsigned long data)
 {
 	struct dpu_context *ctx = (struct dpu_context *)data;
@@ -699,6 +870,8 @@ static int dpu_init(struct dpu_context *ctx)
 	reg->dpu_int_clr = 0xffff;
 
 	dpu_enhance_reload(ctx);
+
+	dpu_write_back_config(ctx);
 
 	if (corner_radius)
 		dpu_corner_init(ctx);
@@ -1049,6 +1222,8 @@ static void dpu_flip(struct dpu_context *ctx,
 	int i;
 
 	vsync_count = 0;
+	if (max_vsync_count > 0 && count > 1)
+		wb_en = true;
 
 	/*
 	 * Make sure the dpu is in stop status. DPU_R5P0 has no shadow
@@ -1137,6 +1312,10 @@ static void dpu_dpi_init(struct dpu_context *ctx)
 		//int_mask |= DISPC_INT_TE_MASK;
 		/* enable underflow err INT */
 		int_mask |= DISPC_INT_ERR_MASK;
+		/* enable write back done INT */
+		int_mask |= DISPC_INT_WB_DONE_MASK;
+		/* enable write back fail INT */
+		int_mask |= DISPC_INT_WB_FAIL_MASK;
 
 	} else if (ctx->if_type == SPRD_DISPC_IF_EDPI) {
 		/* use edpi as interface */
@@ -2038,6 +2217,7 @@ static struct dpu_core_ops dpu_r5p0_ops = {
 	.enhance_set = dpu_enhance_set,
 	.enhance_get = dpu_enhance_get,
 	.modeset = dpu_modeset,
+	.write_back = dpu_wb_trigger,
 };
 
 static struct ops_entry entry = {
