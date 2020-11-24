@@ -575,6 +575,7 @@ void gnss_dump_mem_ctrl_co(void)
 		return;
 	dump_flag = 1;
 	temp_status = gnss_common_ctl_dev.gnss_status;
+	GNSSCOMM_INFO("%s: status=%u\n", __func__, temp_status);
 	if ((temp_status == GNSS_STATUS_POWERON_GOING) ||
 		((temp_status == GNSS_STATUS_POWERON) &&
 		(gnss_status_get() != GNSS_CP_STATUS_SLEEP))) {

@@ -58,6 +58,10 @@ struct regmap_dump {
 	int regmap_type;
 	uint reg;
 };
+struct cp_reg_dump {
+	u32 addr;
+	u32 len;
+};
 /* for sharkle ap reg dump, this order format can't change, just do it */
 static struct regmap_dump gnss_sharkle_ap_reg[] = {
 	{REGMAP_PMU_APB, 0x00cc}, /* REG_PMU_APB_SLEEP_CTRL */
@@ -101,6 +105,14 @@ static struct regmap_dump gnss_sharkl6_ap_reg[] = {
 	{REGMAP_TYPE_NR, 0x64020818}, /* PMU_FORCE_DEEP_SLEEP_CFG0 */
 	{REGMAP_TYPE_NR, 0x64020860}, /* PMU_SLEEP_STATUS */
 };
+
+/* for sharkl6 cp reg dump */
+static struct cp_reg_dump cp_reg[] = {
+	{REG_AON_AHB, AON_AHB_LEN},
+	{REG_AON_APB, AON_APB_LEN},
+	{REG_AON_CLK, AON_CLK_LEN},
+};
+
 #ifdef CONFIG_SC2342_I
 #define GNSS_DUMP_REG_NUMBER 8
 #endif
@@ -170,18 +182,22 @@ static void gnss_soft_reset_release_cpu(u32 type)
 			/* reset gnss cpu */
 			gnss_read_data_from_phy_addr(base_addr,
 				(void *)&value_tmp, 4);
+			GNSSDUMP_INFO("before rst val=%x\n", value_tmp);
 			/* BIT0:rst set */
 			value_tmp |= 1;
 			gnss_write_data_to_phy_addr(base_addr,
 				(void *)&value_tmp, 4);
+			GNSSDUMP_INFO("rst val=%x\n", value_tmp);
 		} else if (type == GNSS_CPU_RESET_RELEASE) {
 			/* release gnss cpu */
 			gnss_read_data_from_phy_addr(base_addr,
 				(void *)&value_tmp, 4);
+			GNSSDUMP_INFO("before rls val=%x\n", value_tmp);
 			/* BIT0:rst clear */
 			value_tmp &= ~(1);
 			gnss_write_data_to_phy_addr(base_addr,
 				(void *)&value_tmp, 4);
+			GNSSDUMP_INFO("rls val=%x\n", value_tmp);
 		}
 		return;
 	}
@@ -383,7 +399,7 @@ static int gnss_dump_ap_register(void)
 			gnss_read_data_from_phy_addr((gnss_ap_reg + i)->reg,
 				&value[i+1], 4);
 			GNSSDUMP_INFO("%s ap reg[0x%x] data[0x%x]\n", __func__,
-				      (gnss_ap_reg + i)->reg, value[i]);
+				      (gnss_ap_reg + i)->reg, value[i+1]);
 		} else {
 			regmap =
 			wcn_get_gnss_regmap((gnss_ap_reg + i)->regmap_type);
@@ -412,8 +428,14 @@ static int gnss_dump_ap_register(void)
 static void gnss_dump_cp_register(void)
 {
 	u32 count;
+	int i;
+
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		GNSSDUMP_INFO("L6 dump CP Reg Complete\n");
+		for (i = 0; i < CP_REG_NUM; i++) {
+			count = gnss_dump_cp_register_data(cp_reg[i].addr,
+					 cp_reg[i].len);
+			GNSSDUMP_INFO("dump cp_reg%d %u\n", i, count);
+		}
 		return;
 	}
 	count = gnss_dump_cp_register_data(DUMP_REG_GNSS_APB_CTRL_ADDR,
@@ -459,7 +481,7 @@ static int gnss_dump_share_memory(u32 len)
 
 	if (len == 0)
 		return -1;
-	GNSSDUMP_INFO("gnss_dump_share_memory\n");
+
 	fs = get_fs();
 	set_fs(KERNEL_DS);
 	base_addr = wcn_get_gnss_base_addr();

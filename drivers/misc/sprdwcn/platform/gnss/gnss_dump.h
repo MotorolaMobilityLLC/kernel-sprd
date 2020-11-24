@@ -63,6 +63,16 @@
 #define GNSS_AP_ACCESS_CP_OFFSET	0x11000000
 /* qogirl6 cpu hold end*/
 
+/* qogirl6 cp reg start */
+#define CP_REG_NUM	3
+#define REG_AON_AHB	0x40880000
+#define AON_AHB_LEN	0x13c
+#define REG_AON_APB	0x4080c000
+#define AON_APB_LEN	0x448
+#define REG_AON_CLK	0x40800000
+#define AON_CLK_LEN	0x400
+/* qogirl6 cp reg end */
+
 #define ANLG_WCN_WRITE_ADDR 0XFF4
 #define ANLG_WCN_READ_ADDR 0XFFC
 
