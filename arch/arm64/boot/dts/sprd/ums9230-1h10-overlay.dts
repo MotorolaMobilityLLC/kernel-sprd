@@ -46,7 +46,7 @@
 };
 
 &chosen {
-	bootargs = "earlycon console=ttyS1,115200n8 loglevel=7 init=/init root=/dev/ram0 rw androidboot.hardware=ums9230_1h10 androidboot.dtbo_idx=0 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/201d0000.sdio androidboot.selinux=permissive maxcpus=1";
+	bootargs_ext = "androidboot.hardware=ums9230_1h10 androidboot.dtbo_idx=0";
 };
 
 &usb {

@@ -29,6 +29,7 @@
 
 	chosen: chosen {
 		stdout-path = &uart0;
+		bootargs = "earlycon console=ttyS0,26000000n8 loglevel=8 init=/init root=/dev/ram0 rw printk.devkmsg=on androidboot.selinux=permissive";
 	};
 
 	reserved-memory {
