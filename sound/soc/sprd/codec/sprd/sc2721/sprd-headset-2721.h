@@ -44,6 +44,9 @@ enum {
 	HDST_GPIO_DET_MIC,
 	HDST_GPIO_DET_ALL,
 	HDST_GPIO_BUTTON,
+	HDST_GPIO_EIC_MAX,
+	HDST_GPIO_SW = HDST_GPIO_EIC_MAX,/* Exchanging Type-C OMTP/CTIA */
+	HDST_GPIO_TYPEC_LR,/* Type-C left/right path switch */
 	HDST_GPIO_MAX
 };
 
@@ -53,13 +56,21 @@ enum {
 	JACK_TYPE_MAX
 };
 
+enum typec_status {
+	HEADSET_TYPEC_NOT,
+	HEADSET_TYPEC_OUT,
+	HEADSET_TYPEC_IN,
+	HEADSET_TYPEC_MAX,
+};
+
 struct sprd_headset_platform_data {
 	u32 gpio_switch;
 	u32 jack_type;
 	u32 gpios[HDST_GPIO_MAX];
-	u32 dbnc_times[HDST_GPIO_MAX]; /* debounce times */
-	u32 irq_trigger_levels[HDST_GPIO_MAX];
+	u32 dbnc_times[HDST_GPIO_EIC_MAX]; /* debounce times */
+	u32 irq_trigger_levels[HDST_GPIO_EIC_MAX];
 	u32 adc_threshold_3pole_detect;
+	u32 typec_adc_threshold_3pole_detect;
 	u32 irq_threshold_button;
 	u32 voltage_headmicbias;
 	u32 sprd_adc_gnd;
@@ -71,7 +82,11 @@ struct sprd_headset_platform_data {
 	u32 nbuttons;
 	int (*external_headmicbias_power_on)(int);
 	bool do_fm_mute;
+	bool support_typec_hdst;/* support typec analog headset */
 	bool hpr_spk;
+	u32 typec_lr_gpio_level;
+	struct regulator *switch_reg;
+	u32 switch_vol;
 };
 
 struct sprd_headset_power {
@@ -107,6 +122,7 @@ struct sprd_headset {
 	enum snd_jack_types hdst_status;
 	enum snd_jack_types btns_pressed;
 	struct iio_channel *adc_chan;
+	bool adc_big_scale;
 	struct mutex irq_btn_lock;
 	struct mutex irq_det_lock;
 	struct mutex irq_det_all_lock;
@@ -134,6 +150,12 @@ struct sprd_headset {
 	struct wakeup_source det_wakelock;
 	struct wakeup_source det_all_wakelock;
 	struct wakeup_source btn_wakelock;
+
+	bool sup_typec;
+	bool typec_attached;
+	struct extcon_dev *edev;
+	struct notifier_block typec_plug_nb;
+	enum typec_status type_status;
 };
 
 struct sprd_headset_global_vars {

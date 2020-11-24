@@ -34,7 +34,7 @@
 #include <linux/timer.h>
 #include <linux/types.h>
 #include <linux/nvmem-consumer.h>
-
+#include <linux/extcon.h>
 #include "sprd-asoc-common.h"
 #include "sprd-codec.h"
 #include "sprd-headset-2721.h"
@@ -58,6 +58,7 @@
 	SND_JACK_BTN_2 | SND_JACK_BTN_3 | SND_JACK_BTN_4)
 #define PLUG_CONFIRM_COUNT (1)
 #define NO_MIC_RETRY_COUNT (0)
+#define CABLE_STATUS_ATTACHED	1
 /*
  * to confirm irq to the first time to read adc value then
  * we can set ADC_READ_COUNT to 2
@@ -652,6 +653,27 @@ static void headset_set_adc_to_headmic(unsigned int is_set)
 		val = HEDET_MUX2ADC_SEL_HEADSET_L_INT << HEDET_MUX2ADC_SEL;
 	headset_reg_write(ANA_HDT0, val, msk);
 }
+
+static void headset_typec_button_irq_threshold(int value)
+{
+	struct sprd_headset *hdst = sprd_hdst;
+	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
+	int audio_head_sbut = 0;
+	unsigned long msk, val;
+
+	if (!hdst) {
+		pr_err("%s: sprd_hdset is NULL!\n", __func__);
+		return;
+	}
+	audio_head_sbut = value;
+	msk = HEDET_BDET_REF_SEL_MASK << HEDET_BDET_REF_SEL;
+	val = audio_head_sbut << HEDET_BDET_REF_SEL;
+	headset_reg_write(ANA_HDT2, val, msk);
+
+	pr_info("%s ANA_HDT2 set val = %#lx, irq_threshold_button =%#x\n",
+			__func__, val, pdata->irq_threshold_button);
+}
+
 static void headset_button_irq_threshold(int enable)
 {
 	struct sprd_headset *hdst = sprd_hdst;
@@ -833,25 +855,63 @@ static int headset_adc_compare(int x1, int x2)
 		return 0;
 }
 
-static int headset_accumulate_adc(int *adc, u32 jack_type,
-				  struct iio_channel *chan,
+/*
+ * irq signal path:
+ * gpio -> sts0[13](button alert signal) -> debounce moudule->eic module
+ */
+static int headset_adc_cond(struct sprd_headset *hdst, int gpio_num,
+				int gpio_value, int step)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	bool cond;
+	int gpio_status = 0;
+	int button_alert = 0;
+
+	if (hdst->type_status == HEADSET_TYPEC_IN) {
+		cond = !hdst->typec_attached;
+		if (gpio_num == pdata->gpios[HDST_GPIO_BUTTON]) {
+			headset_reg_read(ANA_STS0, &button_alert);
+			gpio_status = (gpio_get_value(gpio_num) != gpio_value);
+			cond = cond || gpio_status;
+		}
+	} else {
+		cond = (gpio_get_value(gpio_num) != gpio_value);
+	}
+
+	if (cond) {
+		pr_warn("gpio_%d value(%d, %d) changed! the adc read aborted (step %d)",
+			gpio_num, gpio_get_value(gpio_num), gpio_value, step);
+		return -1;
+	}
+	if (headset_sts0_confirm(pdata->jack_type) == 0) {
+		pr_warn("headset_sts0_confirm failed!!! the adc read aborted (step %d)\n",
+			step);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int headset_accumulate_adc(int *adc, struct iio_channel *chan,
 				  int gpio_num, int gpio_value)
 {
+	int ret = 0;
 	int k;
 	int j;
 	int success = 1;
+	struct sprd_headset *hdst = sprd_hdst;
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
 
 	for (j = 0; j < ADC_READ_COUNT/2; j++) {
-		if (jack_type != JACK_TYPE_NO &&
-		    gpio_get_value(gpio_num) != gpio_value) {
-			pr_warn("gpio value changed!!! the adc read operation aborted (step3)\n");
-			return -1;
+		if (hdst->type_status == HEADSET_TYPEC_IN) {
+			ret = headset_adc_cond(hdst, gpio_num, gpio_value, 3);
+		} else {
+			if (pdata->jack_type != JACK_TYPE_NO)
+				ret = headset_adc_cond(hdst, gpio_num, gpio_value, 3);
 		}
+		if (ret)
+			return ret;
 
-		if (headset_sts0_confirm(jack_type) == 0) {
-			pr_warn("headset_sts0_confirm failed!!! the adc read operation aborted (step4)\n");
-			return -1;
-		}
 		headset_reg_clr_bits(ANA_HDT0, BIT(HEDET_BUF_CHOP));
 		adc[2*j] = headset_wrap_sci_adc_get(chan);
 		headset_reg_set_bits(ANA_HDT0, BIT(HEDET_BUF_CHOP));
@@ -867,21 +927,16 @@ static int headset_accumulate_adc(int *adc, u32 jack_type,
 	return success;
 }
 
-static int headset_cal_adc_average(int *adc, u32 jack_type,
+static int headset_cal_adc_average(int *adc, struct sprd_headset *hdst,
 				   int gpio_num, int gpio_value)
 {
+	int ret;
 	int i;
 	int adc_average = 0;
 
-	if (gpio_get_value(gpio_num) != gpio_value) {
-		pr_warn("gpio value changed!!! the adc read operation aborted (step5)\n");
-		return -1;
-	}
-
-	if (headset_sts0_confirm(jack_type) == 0) {
-		pr_warn("headset_sts0_confirm failed!!! the adc read operation aborted (step6)\n");
-		return -1;
-	}
+	ret = headset_adc_cond(hdst, gpio_num, gpio_value, 4);
+	if (ret)
+		return ret;
 
 	for (i = 0; i < ADC_READ_COUNT; i++) {
 		adc_average += adc[i];
@@ -896,6 +951,7 @@ static int headset_cal_adc_average(int *adc, u32 jack_type,
 static int headset_get_adc_average(struct iio_channel *chan,
 				   int gpio_num, int gpio_value)
 {
+	int ret;
 	int i = 0;
 	int success = 1;
 	int adc[ADC_READ_COUNT] = {0};
@@ -942,23 +998,18 @@ static int headset_get_adc_average(struct iio_channel *chan,
 	 */
 	usleep_range(2000, 4000);
 	for (i = 0; i < ADC_READ_LOOP; i++) {
-		if (gpio_get_value(gpio_num) != gpio_value) {
-			pr_warn("gpio value changed!!! the adc read operation aborted (step1)\n");
-			return -1;
-		}
-		if (headset_sts0_confirm(jack_type) == 0) {
-			pr_warn("headset_sts0_confirm failed!!! the adc read operation aborted (step2)\n");
-			return -1;
-		}
+		ret = headset_adc_cond(hdst, gpio_num, gpio_value, 2);
+		if (ret)
+			return ret;
 
-		success = headset_accumulate_adc(adc, jack_type, chan, gpio_num,
+		success = headset_accumulate_adc(adc, chan, gpio_num,
 						 gpio_value);
 		if (success < 0)
 			return success;
 
 		if (success == 1) {
 			usleep_range(2800, 3600);
-			return headset_cal_adc_average(adc, jack_type, gpio_num,
+			return headset_cal_adc_average(adc, hdst, gpio_num,
 						       gpio_value);
 		} else if (i+1 < ADC_READ_LOOP) {
 			pr_info("%s failed, retrying count = %d\n",
@@ -1008,17 +1059,24 @@ static int headset_irq_set_irq_type(unsigned int irq, unsigned int type)
 	return 0;
 }
 
-static int headset_button_valid(int gpio_detect_value_current)
+static int headset_button_valid(void)
 {
 	struct sprd_headset *hdst = sprd_hdst;
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
 	int button_is_valid = 0;
+	int gpio_detect_value_current;
 
 	if (!hdst) {
 		pr_err("%s: sprd_hdset is NULL!\n", __func__);
 		return -1;
 	}
 
+	if (pdata->gpios[HDST_GPIO_TYPEC_LR] >= 0 &&
+			hdst->type_status == HEADSET_TYPEC_IN)
+		return hdst->typec_attached;
+
+	gpio_detect_value_current =
+			gpio_get_value(pdata->gpios[HDST_GPIO_DET_ALL]);
 	if (pdata->irq_trigger_levels[HDST_GPIO_DET_ALL] == 1) {
 		if (gpio_detect_value_current == 1)
 			button_is_valid = 1;
@@ -1063,7 +1121,6 @@ static int headset_gpio_2_button_state(int gpio_button_value_current)
 static int headset_adc_get_ideal(u32 adc_mic, u32 coefficient, bool big_scale);
 /* summer: softflow  limit the read adc time */
 
-#if 0
 static int headset_plug_confirm_by_adc(struct iio_channel *chan,
 	int last_gpio_detect_value)
 {
@@ -1125,7 +1182,6 @@ static int headset_read_adc_repeatable(struct iio_channel *chan,
 
 	return adc_value;
 }
-#endif
 
 static int headset_get_adc_value(struct iio_channel *chan)
 {
@@ -1139,6 +1195,124 @@ static int headset_get_adc_value(struct iio_channel *chan)
 
 	return adc_value/2;
 }
+
+/*
+ * the map of voltage to adc value as below:
+ * voltage  adc_value
+ * 3.66v -> 4095
+ * 2.685v -> 3004
+ * 0.1v -> 112
+ * 0.2v -> 224
+ * 2.5v -> 2797
+ */
+
+/* INVALID_VOL means typec is damaged */
+#define INVALID_VOL 3004
+#define INVALID_TRY_COUNT 10
+static enum sprd_headset_type headset_typec_type_detect(int gpio_det_val_last)
+{
+	struct sprd_headset *hdst = sprd_hdst;
+	struct iio_channel *chan = hdst->adc_chan;
+	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
+	int gpio_switch = pdata->gpios[HDST_GPIO_SW];
+	int adc_mic[2];
+	int invalid_count = 0;
+
+	ENTER;
+
+	if (gpio_switch < 0) {
+		pr_err("Switch gpio must be given for type-c analog headset!\n");
+		return -EINVAL;
+	}
+
+	headset_scale_set(0);
+	/*
+	 * headmic_in_det will generate a low voltage, and this will
+	 * generate a irq, this irq signel will be latched by eic, so when
+	 * we enable button irq, this irq will come. Setting irq threshold
+	 * to 0xc(0.4v) can ignore this irq.
+	 * ps: button irq trigger level config in dt is for ana_sts[13]
+	 * signel in chip, and gpio level is low ana_sts[13] is high.
+	 */
+	headset_typec_button_irq_threshold(0xc);
+	do {
+		/* Get adc value of headmic in. */
+		gpio_set_value_cansleep(gpio_switch, 0);
+		/*
+		 * for typec use adc big scale, because there's no efuse for
+		 * headmic_det big scale we do not do
+		 */
+		hdst->adc_big_scale = true;
+		headset_scale_set(1);
+		headset_set_adc_to_headmic(1);
+		msleep(50);
+		adc_mic[0] = headset_read_adc_repeatable(chan,
+						 gpio_det_val_last);
+		if (-1 == adc_mic[0]) {
+			hdst->adc_big_scale = false;
+			headset_scale_set(0);
+			pr_err("get adc_mic[0] = %d error\n", adc_mic[0]);
+			return HEADSET_TYPE_ERR;
+		}
+		invalid_count++;
+	} while (adc_mic[0] > INVALID_VOL && invalid_count < INVALID_TRY_COUNT);
+
+	if (invalid_count == 10) {
+		hdst->adc_big_scale = false;
+		headset_scale_set(0);
+		pr_err("headset type err adc_mic[0]=%d\n", adc_mic[0]);
+		return HEADSET_TYPE_ERR;
+	}
+
+	invalid_count = 0;
+	do {
+		/*
+		 * Reverse SUB1/SUB2(MIC/GND), and compare the two adc
+		 * values to decide the correct plug direction.
+		 */
+		gpio_set_value_cansleep(gpio_switch, 1);
+		adc_mic[1] = headset_read_adc_repeatable(
+						chan, gpio_det_val_last);
+
+		if (-1 == adc_mic[1]) {
+			hdst->adc_big_scale = false;
+			headset_scale_set(0);
+			pr_err("get adc_mic[1] = %d error\n", adc_mic[1]);
+			return -EINVAL;
+		}
+	} while (adc_mic[1] > INVALID_VOL && invalid_count < INVALID_TRY_COUNT);
+
+	if (invalid_count == 10) {
+		hdst->adc_big_scale = false;
+		headset_scale_set(0);
+		pr_err("headset type err adc_mic[1]=%d\n", adc_mic[1]);
+		return HEADSET_TYPE_ERR;
+	}
+
+	hdst->adc_big_scale = false;
+	headset_scale_set(0);
+
+	if (adc_mic[0] < pdata->typec_adc_threshold_3pole_detect &&
+		adc_mic[1] < pdata->typec_adc_threshold_3pole_detect) {
+		pr_info("sprd_hdst_type_c 3pole\n");
+		return HEADSET_NO_MIC;
+	}
+	if (ABS(adc_mic[0] - adc_mic[1]) < 112) {
+		hdst->adc_big_scale = false;
+		headset_scale_set(0);
+		pr_err("USB plug in, not headset typec\n");
+		return HEADSET_TYPE_ERR;
+	}
+
+	if (adc_mic[0] > adc_mic[1]) {
+		pr_info("gpio_switch is SUB1/SUB2(MIC/GND)\n");
+		gpio_set_value_cansleep(gpio_switch, 0);
+	}
+	pr_info("TYPEC_4POLE_NORMAL\n");
+
+	return HEADSET_4POLE_NORMAL;
+}
+
 static enum sprd_headset_type
 headset_type_detect_all(int last_gpio_detect_value)
 {
@@ -1169,7 +1343,7 @@ headset_type_detect_all(int last_gpio_detect_value)
 	if (pdata->gpio_switch != 0)
 		gpio_direction_output(pdata->gpio_switch, 0);
 	else
-		pr_info("automatic type switch is unsupported\n");
+		pr_info("3.5mm EU/US automatic type switch is unsupported\n");
 
 	headset_detect_clk_en();
 
@@ -1485,6 +1659,8 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	struct sprd_headset_platform_data *pdata = (hdst ? &hdst->pdata : NULL);
 	struct sprd_headset_power *power = (hdst ? &hdst->power : NULL);
 	enum sprd_headset_type headset_type;
+	int gpio_switch = pdata->gpios[HDST_GPIO_SW];
+	int gpio_lr = pdata->gpios[HDST_GPIO_TYPEC_LR];
 	int plug_state_current = 0;
 	int gpio_detect_value_current = 0;
 	int gpio_detect_value = 0;
@@ -1499,7 +1675,7 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	down(&hdst->sem);
 	ENTER;
 
-	pr_info("%s enter into\n", __func__);
+	pr_info("%s enter into, type_status %d\n", __func__, hdst->type_status);
 	if ((power->head_mic == NULL) || (power->bias == NULL)) {
 		pr_info("sprd_headset_power_init fail 0\n");
 		goto out;
@@ -1520,42 +1696,60 @@ static void headset_detect_all_work_func(struct work_struct *work)
 	}
 
 	if (hdst->plug_stat_last == 0) {
-		gpio_detect_value_current =
-			gpio_get_value(pdata->gpios[HDST_GPIO_DET_ALL]);
+		if (gpio_lr >= 0 && hdst->type_status == HEADSET_TYPEC_IN) {
+			if (hdst->typec_attached)
+				plug_state_current = 1;
+			else {
+				pr_info("software debance error (step 1)!!!(headset_detect_work_func)\n");
+				goto out;
+			}
+		} else {
+			gpio_detect_value_current =
+				gpio_get_value(pdata->gpios[HDST_GPIO_DET_ALL]);
 			pr_info("gpio_detect_value_current = %d, gpio_detect_value_last = %d, plug_state_last = %d\n",
 				gpio_detect_value_current,
 				hdst->gpio_det_val_last,
 				hdst->plug_stat_last);
 
-		if (gpio_detect_value_current != hdst->gpio_det_val_last) {
-			pr_info("software debance (step 1)!!!(headset_detect_work_func)\n");
-			headmicbias_power_on(hdst, 0);
-			pr_info("micbias power off for debance error\n");
-			goto out;
-		}
+			if (gpio_detect_value_current != hdst->gpio_det_val_last) {
+				pr_info("software debance (step 1)!!!(headset_detect_work_func)\n");
+				headmicbias_power_on(hdst, 0);
+				pr_info("micbias power off for debance error\n");
+				goto out;
+			}
 
-		if (pdata->irq_trigger_levels[HDST_GPIO_DET_ALL] == 1) {
-			if (gpio_detect_value_current == 1)
-				plug_state_current = 1;
-			else
-				plug_state_current = 0;
-		} else {
-			if (gpio_detect_value_current == 0)
-				plug_state_current = 1;
-			else
-				plug_state_current = 0;
+			if (pdata->irq_trigger_levels[HDST_GPIO_DET_ALL] == 1) {
+				if (gpio_detect_value_current == 1)
+					plug_state_current = 1;
+				else
+					plug_state_current = 0;
+			} else {
+				if (gpio_detect_value_current == 0)
+					plug_state_current = 1;
+				else
+					plug_state_current = 0;
+			}
 		}
 	} else
 		plug_state_current = 0;/* no debounce for plug out!!! */
 
 	if (hdst->re_detect == true) {
-		gpio_detect_value =
-			gpio_get_value(pdata->gpios[HDST_GPIO_DET_ALL]);
+		if (hdst->type_status != HEADSET_TYPEC_IN)
+			gpio_detect_value =
+				gpio_get_value(pdata->gpios[HDST_GPIO_DET_ALL]);
+		else
+			gpio_detect_value =
+				gpio_get_value(pdata->gpios[HDST_GPIO_TYPEC_LR]);
 	}
-
+	pr_info("hdst->re_detect: %d ,gpio_detect_value: %d", hdst->re_detect, gpio_detect_value);
 	if ((1 == plug_state_current && 0 == hdst->plug_stat_last) ||
-	  (hdst->re_detect == true && 1 == gpio_detect_value)) {
-		headset_type = headset_type_detect_all(hdst->gpio_det_val_last);
+		(hdst->re_detect == true && 1 == gpio_detect_value)) {
+		if (hdst->type_status != HEADSET_TYPEC_IN)
+			headset_type = headset_type_detect_all(hdst->gpio_det_val_last);
+		else
+			headset_type =
+				headset_typec_type_detect(hdst->gpio_det_val_last);
+
 		headset_adc_en(0);
 		switch (headset_type) {
 		case HEADSET_TYPE_ERR:
@@ -1576,7 +1770,9 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		case HEADSET_4POLE_NOT_NORMAL:
 			pr_info("headset_type = %d (HEADSET_4POLE_NOT_NORMAL)\n",
 				headset_type);
-			if (pdata->gpio_switch != 0)
+			if (hdst->type_status == HEADSET_TYPEC_IN)
+				pr_err("%s no HEADSET_4POLE_NOT_NORMAL type in typec, fail\n", __func__);
+			if (hdst->type_status == HEADSET_TYPEC_NOT && pdata->gpio_switch != 0)
 				gpio_direction_output(pdata->gpio_switch, 1);
 			/* Repeated detection 5 times when 3P is detected */
 		case HEADSET_NO_MIC:
@@ -1654,6 +1850,11 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		hdst->report = 0;
 		hdst->re_detect = false;
 
+		/* pull gpio switch to 0 force. */
+		if (hdst->type_status == HEADSET_TYPEC_OUT) {
+			gpio_set_value_cansleep(gpio_switch, 0);
+			hdst->type_status = HEADSET_TYPEC_NOT;
+		}
 		if (hdst->headphone)
 			pr_info("headphone plug out (%s)\n", __func__);
 		else
@@ -1687,10 +1888,13 @@ static void headset_detect_all_work_func(struct work_struct *work)
 		pr_info("times %d irq_detect must be enabled anyway!!\n",
 			times);
 		headmicbias_power_on(hdst, 0);
+		hdst->type_status = HEADSET_TYPEC_NOT;
 		pr_info("micbias power off for irq_error\n");
 		goto out;
 	}
 out:
+	pr_info("%s type_status %d, hdst_status %d, plug_stat_last %d\n", __func__,
+		hdst->type_status, hdst->hdst_status, hdst->plug_stat_last);
 	headset_reg_clr_bits(ANA_HDT0, BIT(HEDET_LDET_L_FILTER));
 	headset_reg_read(ANA_HDT0, &val);
 	pr_info("ANA_HDT0 0x%04x\n", val);
@@ -1800,8 +2004,7 @@ static irqreturn_t headset_button_irq_handler(int irq, void *dev)
 		return IRQ_HANDLED;
 	}
 
-	if (headset_button_valid(
-	    gpio_get_value(pdata->gpios[HDST_GPIO_DET_ALL])) == 0) {
+	if (headset_button_valid() == 0) {
 		headset_reg_read(ANA_STS0, &val);
 		pr_info("%s: button is invalid!!! IRQ_%d(GPIO_%d) = %d, ANA_STS0 = 0x%08X\n",
 			__func__, hdst->irq_button,
@@ -1908,6 +2111,7 @@ static irqreturn_t headset_detect_all_irq_handler(int irq, void *dev)
 	}
 #endif
 	headset_irq_detect_all_enable(1, hdst->irq_detect_all);
+	hdst->type_status = HEADSET_TYPEC_NOT;
 	ret = cancel_delayed_work(&hdst->det_all_work);
 	queue_delayed_work(hdst->det_all_work_q,
 		&hdst->det_all_work, msecs_to_jiffies(5));
@@ -1956,8 +2160,11 @@ static ssize_t headset_state_show(struct kobject *kobj,
 		break;
 	}
 
-	pr_debug("%s status: %#x, headset_state = %d\n",
-		__func__, hdst->hdst_status, type);
+	if (hdst->type_status == HEADSET_TYPEC_IN)
+		type = 3;
+
+	pr_debug("%s status: %#x, headset_state %d, type_status %d\n",
+		__func__, hdst->hdst_status, type, hdst->type_status);
 
 	return sprintf(buff, "%d\n", type);
 }
@@ -2058,6 +2265,94 @@ void sprd_headset_set_global_variables(
 static int headset_adc_cal_from_efuse(struct platform_device *pdev);
 static int sprd_headset_probe(struct platform_device *pdev);
 
+static int sprd_headset_switch_power(struct sprd_headset *hdst, bool on)
+{
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	struct regulator *reg = pdata->switch_reg;
+	int ret;
+
+	if (!reg) {
+		pr_info("Typec switch supply is NULL.\n");
+		return 0;
+	}
+
+	if (!on)
+		return regulator_disable(reg);
+
+	ret = regulator_set_voltage(reg, pdata->switch_vol, pdata->switch_vol);
+	if (ret < 0) {
+		pr_err("Failed(%d) to set typec switch supply voltage at %duV\n",
+		       ret, pdata->switch_vol);
+		return ret;
+	}
+
+	return regulator_enable(reg);
+}
+
+static int headset_typec_notifier(struct notifier_block *nb,
+				  unsigned long status, void *data)
+{
+	struct sprd_headset *hdst = container_of(nb, struct sprd_headset, typec_plug_nb);
+	struct sprd_headset_platform_data *pdata = &hdst->pdata;
+	int gpio_lr = pdata->gpios[HDST_GPIO_TYPEC_LR];
+	unsigned int val;
+	bool attached = false;
+	int level = 0;
+	int ret;
+
+	pr_info("%s IN, typec_lr_gpio_level: %u, gpio_lr: %d, level: %d, hdst_status %d, type_status %d\n",
+	       __func__, pdata->typec_lr_gpio_level, gpio_lr,
+	       gpio_get_value(gpio_lr), hdst->hdst_status, hdst->type_status);
+
+	if (gpio_lr < 0) {
+		pr_warn("Analog typec headset is not supported!\n");
+		return NOTIFY_DONE;
+	}
+
+	if (hdst->hdst_status & SND_JACK_HEADSET && hdst->type_status == HEADSET_TYPEC_NOT) {
+		pr_warn("%s 3.5mm headphone is pluged, hdst_status 0x%x\n", __func__, hdst->hdst_status);
+		return NOTIFY_DONE;
+	}
+
+	if (status & CABLE_STATUS_ATTACHED) {
+		level = 1;
+		attached = true;
+		hdst->type_status = HEADSET_TYPEC_IN;
+		headset_reg_clr_bits(ANA_HDT2, BIT(PLGPD_EN));
+		pr_info("%s Typec In, type_status 0x%x\n", __func__, hdst->type_status);
+	} else {
+		hdst->type_status = HEADSET_TYPEC_OUT;
+		headset_reg_set_bits(ANA_HDT2, BIT(PLGPD_EN));
+		pr_info("%s Typec Out, type_status 0x%x\n", __func__, hdst->type_status);
+	}
+
+	__pm_wakeup_event(&hdst->det_all_wakelock, msecs_to_jiffies(2000));
+
+	ret = sprd_headset_switch_power(hdst, attached);
+	if (ret)
+		pr_err("Power typec switch supply failed(%d)!\n", ret);
+
+	hdst->typec_attached = attached;
+	/*
+	 * 1. attached: type-c d+/d- -> left/right channel of headphone;
+	 * 2. detached: type-c d+/d- -> usb d+/d-.
+	 */
+	gpio_set_value_cansleep(gpio_lr, level);
+	pr_info("%s, gpio_lr %d, analog typec headset '%s'. Switch D+/D- to '%s'\n",
+		__func__, gpio_get_value(gpio_lr),
+		attached ? "ATTACHED" : "DETACHED",
+		level ? "HEADPHONE" : "USB");
+
+	ret = cancel_delayed_work(&hdst->det_all_work);
+	queue_delayed_work(hdst->det_all_work_q,
+		&hdst->det_all_work, msecs_to_jiffies(5));
+
+	headset_reg_read(ANA_STS0, &val);
+	pr_info("%s out, ANA_STS0 = 0x%08X OUT, ret %d, type_status %d\n", __func__, val, ret, hdst->type_status);
+
+	return NOTIFY_OK;
+}
+
 static struct device_node *sprd_audio_codec_get_card0_node(void)
 {
 	int i;
@@ -2150,6 +2445,8 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 	unsigned int adie_chip_id = 0;
 	unsigned long irqflags = 0;
 	struct snd_soc_card *card;
+	int gpio_switch;
+	int gpio_lr;
 
 	if (!codec) {
 		pr_err("%s codec NULL\n", __func__);
@@ -2286,7 +2583,7 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 	mutex_init(&hdst->irq_det_all_lock);
 	mutex_init(&hdst->irq_det_mic_lock);
 
-	for (i = 0; i < HDST_GPIO_MAX; i++) {
+	for (i = 0; i < HDST_GPIO_EIC_MAX; i++) {
 		#if 0
 		if (pdata->jack_type == JACK_TYPE_NC) {
 			if (i == HDST_GPIO_DET_MIC)
@@ -2335,6 +2632,37 @@ int sprd_headset_soc_probe(struct snd_soc_codec *codec)
 			goto failed_to_request_detect_mic_irq;
 		}
 	}
+
+	if (hdst->sup_typec == true) {
+		gpio_switch = pdata->gpios[HDST_GPIO_SW];
+		gpio_lr = pdata->gpios[HDST_GPIO_TYPEC_LR];
+
+		if (gpio_switch >= 0)
+			gpio_direction_output(gpio_switch, 0);
+
+		headset_irq_detect_all_enable(1, hdst->irq_detect_all);
+		gpio_direction_output(gpio_lr, !pdata->typec_lr_gpio_level);
+		hdst->edev = extcon_get_edev_by_phandle(&pdev->dev, 0);
+		if (IS_ERR(hdst->edev)) {
+			ret = PTR_ERR(hdst->edev);
+			dev_err(dev, "typec analog headset failed to find gpio extcon device, ret %d\n",
+				ret);
+			return PTR_ERR(hdst->edev);
+		}
+
+		/* Register notifier block for type-c headset detecting. */
+		hdst->typec_plug_nb.notifier_call = headset_typec_notifier;
+		hdst->typec_plug_nb.priority = 0;
+		ret = extcon_register_notifier(hdst->edev,
+			EXTCON_JACK_HEADPHONE, &hdst->typec_plug_nb);
+		if (ret) {
+			dev_err(dev,
+				"failed to register extcon HEADPHONE notifier, ret %d\n",
+				ret);
+			return ret;
+		}
+	}
+
 	headset_debug_sysfs_init();
 	headset_adc_cal_from_efuse(hdst->pdev);
 	sprd_headset_power_regulator_init(hdst);
@@ -2377,6 +2705,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 	struct sprd_headset_platform_data *pdata;
 	struct device_node *np, *buttons_np = NULL;
 	struct headset_buttons *buttons_data;
+	struct device *dev = &hdst->pdev->dev;
 	u32 val = 0;
 	int index;
 	int i = 0;
@@ -2421,6 +2750,83 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 		pdata->gpio_switch = (u32)ret;
 	}
 
+	/* Parse for Type_C. */
+	/* Parse for the gpio of typec MIC/GND jack type switch. */
+	index = of_property_match_string(np, "gpio-names", "typec_switch");
+	if (index < 0) {
+		pr_info("%s :no match found for Type_C switch gpio.\n", __func__);
+		hdst->sup_typec = false;
+		pdata->gpios[HDST_GPIO_SW] = -1;
+	} else {
+		ret = of_get_gpio_flags(np, index, NULL);
+		if (ret < 0) {
+			hdst->sup_typec = false;
+			pr_err("%s :get gpio for 'typec MIC/GND' failed!\n", __func__);
+		}
+		pdata->gpios[HDST_GPIO_SW] = (u32)ret;
+	}
+
+	index = of_property_match_string(np, "gpio-names", "typec_lr");
+	if (index < 0) {
+		pr_info("%s :no match found for typec_lr gpio.\n", __func__);
+		hdst->sup_typec = false;
+		pdata->gpios[HDST_GPIO_TYPEC_LR] = -1;
+	} else {
+		ret = of_get_gpio_flags(np, index, NULL);
+		if (ret < 0) {
+			hdst->sup_typec = false;
+			pr_err("%s :get gpio for 'typec_lr' failed!\n",
+			       __func__);
+		}
+		pdata->gpios[HDST_GPIO_TYPEC_LR] = ret;
+	}
+
+	ret = of_property_read_u32(np, "sprd,typec-lr-gpio-level", &val);
+	if (ret < 0) {
+		pr_warn("%s: parse 'sprd,typec-lr-gpio-level' failed.\n",
+			__func__);
+		hdst->sup_typec = false;
+		pdata->typec_lr_gpio_level = 1;
+	} else
+		pdata->typec_lr_gpio_level = !!val;
+
+	/*
+	 * process for the power supply of the swtiches used
+	 * for typec headst.
+	 */
+	ret = of_property_read_u32(np, "sprd,typec_switch-voltage",
+					&pdata->switch_vol);
+	if (ret < 0) {
+		pr_warn("read 'sprd,switch-voltage' failed(%d).\n", ret);
+		hdst->sup_typec = false;
+		pdata->switch_vol = 3300000;
+	}
+	pdata->switch_reg = devm_regulator_get(dev, "typec_switch");
+	if (IS_ERR_OR_NULL(pdata->switch_reg)) {
+		pr_warn("get switch supply failed(%ld)!\n",
+			PTR_ERR(pdata->switch_reg));
+		hdst->sup_typec = false;
+		pdata->switch_reg = NULL;
+	}
+	if (pdata->switch_reg) {
+		ret = regulator_set_voltage(pdata->switch_reg,
+					    pdata->switch_vol,
+					    pdata->switch_vol);
+		if (ret < 0) {
+			hdst->sup_typec = false;
+			pr_err("fail to set switch supply voltage at %dmV\n",
+			       pdata->switch_vol);
+		}
+	}
+
+	ret = of_property_read_u32(np, "typec-adc-threshold-3pole-detect",
+		&pdata->typec_adc_threshold_3pole_detect);
+	if (ret) {
+		hdst->sup_typec = false;
+		pr_err("%s: fail to get typec_adc-threshold-3pole-detect\n",
+			__func__);
+	}
+
 	/* Parse for detecting gpios. */
 	for (i = 0; gpio_map[i].name; i++) {
 		const char *name = gpio_map[i].name;
@@ -2459,7 +2865,7 @@ static int sprd_headset_parse_dt(struct sprd_headset *hdst)
 		}
 		pdata->dbnc_times[type] = val;
 
-		pr_info("use GPIO_%u for '%s', trigr level: %u, debounce: %u\n",
+		pr_info("use GPIO_%u for '%s', trigger level: %u, debounce: %u\n",
 			pdata->gpios[type],
 			name,
 			pdata->irq_trigger_levels[type],
@@ -2596,6 +3002,7 @@ static int sprd_headset_probe(struct platform_device *pdev)
 	struct sprd_headset_platform_data *pdata;
 	int ret = -1;
 	struct device *dev = (pdev ? &pdev->dev : NULL);
+	int gpio_switch, gpio_lr;
 	int i;
 
 #ifndef CONFIG_OF
@@ -2612,6 +3019,7 @@ static int sprd_headset_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	hdst->pdev = pdev;
+	hdst->sup_typec = true;
 	ret = sprd_headset_parse_dt(hdst);
 	if (ret < 0) {
 		pr_err("Failed to parse dt for headset.\n");
@@ -2629,6 +3037,33 @@ static int sprd_headset_probe(struct platform_device *pdev)
 		}
 	} else
 		pr_info("automatic EU/US type switch is unsupported\n");
+
+	gpio_switch = pdata->gpios[HDST_GPIO_SW];
+	if (gpio_switch >= 0) {
+		ret = devm_gpio_request(dev, gpio_switch, "headset_switch");
+		if (ret < 0) {
+			hdst->sup_typec = false;
+			pr_err("failed to request GPIO_%d(headset_switch)\n",
+				   gpio_switch);
+		}
+	} else {
+		hdst->sup_typec = false;
+		pr_info("automatic EU/US Type_C headphone switch is unsupported\n");
+	}
+
+	gpio_lr = pdata->gpios[HDST_GPIO_TYPEC_LR];
+	if (gpio_lr >= 0) {
+		ret = devm_gpio_request(dev,
+				pdata->gpios[HDST_GPIO_TYPEC_LR], "typec hdst lr switch");
+		if (ret < 0) {
+			hdst->sup_typec = false;
+			pr_err("failed to request GPIO_%d(typec hdst lr switch)\n",
+				pdata->gpios[HDST_GPIO_TYPEC_LR]);
+		}
+	} else {
+		hdst->sup_typec = false;
+		pr_info("Type_C headphone is unsupported\n");
+	}
 
 	for (i = 0; gpio_map[i].name; i++) {
 		const char *name = gpio_map[i].name;
