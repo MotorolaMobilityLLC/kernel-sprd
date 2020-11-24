@@ -2373,6 +2373,12 @@ static ssize_t als_target_lux_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(als_target_lux);
 
+static ssize_t als_cali_para_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", als_cali_data);
+}
+static DEVICE_ATTR_RO(als_cali_para);
 
 static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_debug_data.attr,
@@ -2405,6 +2411,7 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_prox_info.attr,
 	&dev_attr_light_info.attr,
 	&dev_attr_als_target_lux.attr,
+	&dev_attr_als_cali_para.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(sensorhub);
