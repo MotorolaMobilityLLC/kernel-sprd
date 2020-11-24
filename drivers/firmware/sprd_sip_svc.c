@@ -139,6 +139,19 @@
 			   0x0302)
 #endif
 
+/* SIP power operations */
+#define SPRD_SIP_SVC_PWR_REV						\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0500)
+
+#define SPRD_SIP_SVC_PWR_GET_WAKEUP_SOURCE_GET				\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0501)
+
 #define SPRD_SIP_RET_UNK	0xFFFFFFFFUL
 
 static struct sprd_sip_svc_handle sprd_sip_svc_handle = {};
@@ -287,6 +300,26 @@ static int sprd_sip_svc_storage_ufs_crypto_disable(void)
 }
 #endif
 
+static int sprd_sip_svc_pwr_get_wakeup_source(u32 *major,
+					      u32 *second, u32 *thrid)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_PWR_GET_WAKEUP_SOURCE_GET,
+		      0, 0, 0, 0, 0, 0, 0, &res);
+
+	if (major != NULL)
+		*major = res.a1;
+
+	if (second != NULL)
+		*second = res.a2;
+
+	if (thrid != NULL)
+		*thrid = res.a3;
+
+	return res.a0;
+}
+
 static int __init sprd_sip_svc_init(void)
 {
 	int ret = 0;
@@ -337,6 +370,18 @@ static int __init sprd_sip_svc_init(void)
 	pr_notice("SPRD SIP SVC STORAGE:v%d.%d detected in firmware.\n",
 		sprd_sip_svc_handle.storage_ops.rev.major_ver,
 		sprd_sip_svc_handle.storage_ops.rev.minor_ver);
+
+	/* init pwr_ops */
+	arm_smccc_smc(SPRD_SIP_SVC_PWR_REV, 0, 0, 0, 0, 0, 0, 0, &res);
+	sprd_sip_svc_handle.pwr_ops.rev.major_ver = res.a0;
+	sprd_sip_svc_handle.pwr_ops.rev.minor_ver = res.a1;
+
+	sprd_sip_svc_handle.pwr_ops.get_wakeup_source =
+					     sprd_sip_svc_pwr_get_wakeup_source;
+
+	pr_notice("SPRD SIP SVC PWR:v%d.%d detected in firmware.\n",
+		sprd_sip_svc_handle.pwr_ops.rev.major_ver,
+		sprd_sip_svc_handle.pwr_ops.rev.minor_ver);
 
 	return ret;
 }
