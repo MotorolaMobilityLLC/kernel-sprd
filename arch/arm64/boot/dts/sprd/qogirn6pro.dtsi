@@ -53,6 +53,14 @@
 				compatible = "sprd,qogirl6-adi-r5p1";
 				reg = <0x400000 0x100000>;
 			};
+
+			hwlock: hwspinlock@a10000 {
+				compatible = "sprd,hwspinlock-r3p0";
+				reg = <0xa10000 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&ext_26m>;
+			};
 		};
 	};
 

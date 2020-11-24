@@ -7,17 +7,17 @@
  */
 
  &adi_bus {
-	ump9622_pmic: pmic@3 {
+	ump9622_pmic: pmic@c000 {
 		compatible = "sprd,ump9622";
-		reg = <0x1>;
+		reg = <0xc000>;
 		spi-max-frequency = <26000000>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
 		/* ump9622 salve id is 0xC000 */
-		syscon@e000 {
-			compatible = "sprd,ump9622-syscon";
-			reg = <0xe000>;
+		syscon@2000 {
+			compatible = "sprd,ump96xx-syscon";
+			reg = <0x2000>;
 		};
 	};
 };

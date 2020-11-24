@@ -9,6 +9,9 @@
 
 #include "ums9620.dtsi"
 #include "ums9620-mach.dtsi"
+#include "ump9620.dtsi"
+#include "ump9621.dtsi"
+#include "ump9622.dtsi"
 
 / {
 	model = "Spreadtrum UMS9620 SoC";

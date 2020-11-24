@@ -18,7 +18,7 @@
 		/* ump9620 salve id is 0x0 */
 
 		led-controller@180 {
-			compatible = "sprd,ump96xx-bltc";
+			compatible = "sprd,ump96xx-bltc", "sprd,sc27xx-bltc";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x180>;
@@ -40,7 +40,7 @@
 		};
 
 		pmic_eic: gpio@280 {
-			compatible = "sprd,ump96xx-eic";
+			compatible = "sprd,ump96xx-eic", "sprd,sc27xx-eic";
 			reg = <0x280>;
 			interrupt-parent = <&ump9620_pmic>;
 			interrupts = <4 IRQ_TYPE_LEVEL_HIGH>;
@@ -51,7 +51,7 @@
 		};
 
 		pmic_fchg: fchg@400 {
-			compatible = "sprd,ump9620-fast-chg";
+			compatible = "sprd,ump96xx-fast-chg", "sprd,sc27xx-fast-chg";
 			reg = <0x400>;
 			interrupt-parent = <&ump9620_pmic>;
 			interrupts = <5 IRQ_TYPE_LEVEL_HIGH>;
@@ -59,7 +59,7 @@
 		};
 
 		pmic_adc: adc@500 {
-			compatible =  "sprd,ump96xx-adc";
+			compatible =  "sprd,ump96xx-adc", "sprd,sc27xx-adc";
 			reg = <0x500>;
 			interrupt-parent = <&ump9620_pmic>;
 			interrupts = <0 IRQ_TYPE_LEVEL_HIGH>;
@@ -70,9 +70,8 @@
 		};
 
 		pmic_fgu: fgu@800 {
-			compatible = "sprd,ump96xx-fgu";
+			compatible = "sprd,ump96xx-fgu", "sprd,sc27xx-fgu";
 			reg = <0x800>;
-			bat-detect-gpio = <&pmic_eic 3 GPIO_ACTIVE_HIGH>;
 			nvmem-cell-names = "fgu_calib";
 			nvmem-cells = <&fgu_calib>;
 			io-channels = <&pmic_adc 0>, <&pmic_adc 14>;
@@ -82,7 +81,7 @@
 		};
 
 		efuse@c00 {
-			compatible = "sprd,ump96xx-efuse";
+			compatible = "sprd,ump96xx-efuse", "sprd,sc27xx-efuse";
 			reg = <0xc00>;
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -110,7 +109,7 @@
 		};
 
 		pmic_typec: typec@380 {
-			compatible = "sprd,ump96xx-typec";
+			compatible = "sprd,ump96xx-typec", "sprd,sc27xx-typec";
 			interrupt-parent = <&ump9620_pmic>;
 			interrupts = <8 IRQ_TYPE_LEVEL_HIGH>;
 			reg = <0x380>;
@@ -118,12 +117,12 @@
 		};
 
 		syscon@2000 {
-			compatible = "sprd,ump96xx-syscon";
+			compatible = "sprd,ump96xx-syscon", "sprd,sc27xx-syscon";
 			reg = <0x2000>;
 		};
 
 		power-controller@2000 {
-			compatible = "sprd,ump96xx-regulator";
+			compatible = "sprd,ump96xx-regulator", "sprd,sc27xx-regulator";
 
 			vddcpu2: DCDC_CPU2 {
 				regulator-name = "vddcpu2";
@@ -452,17 +451,17 @@
 		};
 
 		vibrator@2390 {
-			compatible = "sprd,ump96xx-vibrator";
+			compatible = "sprd,ump96xx-vibrator", "sprd,sc27xx-vibrator";
 			reg = <0x2390>;
 		};
 
 		hw_reset@23c0 {
-			compatible = "sprd,ump96xx-7sreset";
+			compatible = "sprd,ump96xx-7sreset", "sprd,sc27xx-7sreset";
 			reg = <0x23b8>, <0x23c0>, <0x23d8>;
 		};
 
 		poweroff@2020 {
-			compatible = "sprd,ump96xx-poweroff";
+			compatible = "sprd,ump96xx-poweroff", "sprd,sc27xx-poweroff";
 			reg = <0x2020>;
 		};
 	};
