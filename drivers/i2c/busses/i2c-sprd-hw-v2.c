@@ -69,7 +69,7 @@
 
 /* ARM_CMD_WR */
 #define REG_ADDR_OFFSET		0
-#define SLAVE_ADDR_OFFSET	7
+#define SLAVE_ADDR_OFFSET	8
 #define REG_ADDR		GENMASK(6, 0)
 
 /* ARM_RD_CMD */
@@ -293,6 +293,7 @@ static int sprd_i2c_hw_readbyte(struct sprd_i2c_hw *i2c_dev, u8 *buf, u32 len)
 			dev_err(&i2c_dev->adap.dev,
 				"Timed out for reading data=0x%04x\n",
 				data);
+			sprd_i2c_hw_clear_rdcck(i2c_dev);
 			sprd_i2c_hw_dump_reg(i2c_dev);
 			return  -ETIMEDOUT;
 		}
@@ -333,7 +334,6 @@ static int sprd_i2c_hw_handle_msg(struct i2c_adapter *i2c_adap,
 
 	/* Transmission is done and clear ack */
 	sprd_i2c_hw_clear_ack(i2c_dev);
-	sprd_i2c_hw_clear_rdcck(i2c_dev);
 	sprd_i2c_hw_clear_wrack(i2c_dev);
 	return ret;
 }
