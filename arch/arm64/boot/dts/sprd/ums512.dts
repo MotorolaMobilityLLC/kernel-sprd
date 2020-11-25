@@ -423,6 +423,18 @@
 	status = "okay";
 };
 
+&vsp {
+	status = "okay";
+};
+
+&vsp_pd {
+	status = "okay";
+};
+
+&iommu_vsp {
+	status = "okay";
+};
+
 &pmic_fgu {
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-micro-ohms = <10000>;
