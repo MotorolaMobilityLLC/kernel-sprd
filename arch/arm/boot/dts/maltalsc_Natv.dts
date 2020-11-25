@@ -515,7 +515,7 @@
 		csi = <&csi1>;
 		/*avdd-gpios=<&ap_gpio 140 0>;*/
 		//dvdd-gpios=<&ap_gpio 97 0>;
-		//reset-gpios = <&ap_gpio 45 0>;
+		reset-gpios = <&ap_gpio 45 0>;
 		power-down-gpios = <&ap_gpio 47 0>;
 	};
 
@@ -535,7 +535,7 @@
 		sprd,phyid = <4>;
 		csi = <&csi2>;
 		/*avdd-gpios=<&ap_gpio 140 0>;*/
-		reset-gpios = <&ap_gpio 45 0>;
+		//reset-gpios = <&ap_gpio 45 0>;
 		power-down-gpios = <&ap_gpio 40 0>;
 	};
 	sensor_main3: sensor-main3@6e {
