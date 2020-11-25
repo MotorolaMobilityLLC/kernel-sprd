@@ -2012,7 +2012,7 @@ struct spi_controller *__spi_alloc_controller(struct device *dev,
 
 	device_initialize(&ctlr->dev);
 	ctlr->bus_num = -1;
-	ctlr->num_chipselect = 1;
+	ctlr->num_chipselect = 4;
 	ctlr->slave = slave;
 	if (IS_ENABLED(CONFIG_SPI_SLAVE) && slave)
 		ctlr->dev.class = &spi_slave_class;
