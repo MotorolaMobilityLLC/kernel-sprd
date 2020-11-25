@@ -5,3 +5,10 @@ config SPRD_POWER_DOMAIN
 	help
 	  When you select this feature, it will enable the pm generic
 	  power domain for sprd power domain module.
+
+config SPRD_VSP_PW_DOMAIN
+	tristate "SPRD vsp power domain"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select PM_GENERIC_DOMAINS if PM
+	help
+	  When you select this feature, it will enable the vsp power domain.
