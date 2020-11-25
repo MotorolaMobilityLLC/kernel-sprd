@@ -1067,3 +1067,12 @@
 		<&aon_clk CLK_DPU>,
 		<&aonapb_gate CLK_DISP_EB>;
 };
+
+&gpu {
+	clocks = <&aonapb_gate CLK_GNU_EB>,
+		   <&aon_clk CLK_GPU_CORE>,<&aon_clk CLK_GPU_SOC>,
+		   <&pll CLK_TWPLL_153M6>, <&pll CLK_TWPLL_192M>,
+		   <&pll CLK_TWPLL_256M>, <&pll CLK_TWPLL_307M2>,
+		   <&pll CLK_TWPLL_384M>, <&pll CLK_TWPLL_512M>,
+		   <&pll CLK_GPLL>;
+};
