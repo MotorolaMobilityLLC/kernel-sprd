@@ -20,26 +20,38 @@
 			compatible = "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges;
+			ranges = <0 0 0x20200000 0x100000>;
 
-			uart0: serial@20200000 {
+			uart0: serial@0 {
 				compatible = "sprd,ums9620-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x20200000 0x100>;
+				reg = <0 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "uart", "source";
 				clocks = <&ext_26m>;
 				status = "disabled";
 			};
 
-			uart1: serial@20210000 {
+			uart1: serial@10000 {
 				compatible = "sprd,ums9620-uart",
 					     "sprd,sc9836-uart";
-				reg = <0x20210000 0x100>;
+				reg = <0x10000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "enable", "uart", "source";
 				clocks = <&ext_26m>;
 				status = "disabled";
+			};
+		};
+
+		aon {
+			compatible = "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0 0x64000000 0x1016000>;
+
+			adi_bus: spi@400000 {
+				compatible = "sprd,qogirl6-adi-r5p1";
+				reg = <0x400000 0x100000>;
 			};
 		};
 	};
