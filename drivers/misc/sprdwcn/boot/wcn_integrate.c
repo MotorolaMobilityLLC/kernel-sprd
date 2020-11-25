@@ -657,17 +657,23 @@ void wcn_sys_soft_reset(void)
 		if (wcn_platform_chip_type() ==
 		    WCN_PLATFORM_TYPE_PIKE2) {
 			bitmap = 1 << 7;
+			offset  = 0X10b0;
 		} else if (wcn_platform_chip_type() ==
 			   WCN_PLATFORM_TYPE_SHARKLE) {
 			bitmap = 1 << 9;
+			offset  = 0X10b0;
 		} else if (wcn_platform_chip_type() ==
 			   WCN_PLATFORM_TYPE_SHARKL3) {
 			bitmap = 1 << 16;
+			offset  = 0X10b0;
+		} else if (wcn_platform_chip_type() ==
+			   WCN_PLATFORM_TYPE_QOGIRL6) {
+			bitmap = 1 << 20;
+			offset  = 0X1B98;
 		} else {
 			WCN_ERR("chip type err\n");
 			return;
 		}
-		offset  = 0X10b0;
 		wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
 					 offset, bitmap);
 		WCN_INFO("%s finish\n", __func__);
@@ -748,17 +754,23 @@ void wcn_sys_soft_release(void)
 		if (wcn_platform_chip_type() ==
 		    WCN_PLATFORM_TYPE_PIKE2) {
 			bitmap = 1 << 7;
+			offset  = 0X20b0;
 		} else if (wcn_platform_chip_type() ==
 			   WCN_PLATFORM_TYPE_SHARKLE) {
 			bitmap = 1 << 9;
+			offset  = 0X20b0;
 		} else if (wcn_platform_chip_type() ==
 			   WCN_PLATFORM_TYPE_SHARKL3) {
 			bitmap = 1 << 16;
+			offset  = 0X20b0;
+		} else if (wcn_platform_chip_type() ==
+			   WCN_PLATFORM_TYPE_QOGIRL6) {
+			bitmap = 1 << 20;
+			offset  = 0X2B98;
 		} else {
 			WCN_ERR("chip type err\n");
 			return;
 		}
-		offset  = 0X20b0;
 		wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
 					 offset, bitmap);
 		WCN_DBG("%s finish!\n", __func__);
@@ -775,7 +787,17 @@ void wcn_sys_deep_sleep_en(void)
 {
 	struct regmap *rmap = NULL;
 
-	if (wcn_platform_chip_type() != WCN_PLATFORM_TYPE_PIKE2) {
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		if (s_wcn_device.btwf_device) {
+			rmap = s_wcn_device.btwf_device->rmap[REGMAP_PMU_APB];
+		} else if (s_wcn_device.gnss_device) {
+			rmap = s_wcn_device.gnss_device->rmap[REGMAP_PMU_APB];
+		} else {
+			WCN_ERR("no devices\n");
+			return;
+		}
+		wcn_regmap_raw_write_bit(rmap, 0x178C, 1 << 0);
+	} else if (wcn_platform_chip_type() != WCN_PLATFORM_TYPE_PIKE2) {
 		if (s_wcn_device.btwf_device) {
 			rmap = s_wcn_device.btwf_device->rmap[REGMAP_PMU_APB];
 		} else if (s_wcn_device.gnss_device) {
@@ -785,8 +807,8 @@ void wcn_sys_deep_sleep_en(void)
 			return;
 		}
 		wcn_regmap_raw_write_bit(rmap, 0x1244, 1 << 0);
-		WCN_INFO("%s finish!\n", __func__);
 	}
+		WCN_INFO("%s finish!\n", __func__);
 }
 
 void wcn_power_set_vddcon(u32 value)
