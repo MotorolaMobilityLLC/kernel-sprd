@@ -130,6 +130,7 @@
 #define CON6_VSAFE_MASK		0x0F
 #define CON6_VSAFE_SHIFT	0
 
+static unsigned int watchdog_time=0;
 
 struct bq24157_charger_info {
 	struct i2c_client *client;
@@ -231,14 +232,44 @@ static int bq24157_dump_register(struct bq24157_charger_info *info)
 
 	return 0;
 }
+
+static void bq24157_set_ce(struct bq24157_charger_info *info, u8 val)
+{
+	bq24157_update_bits(info, BQ24157_CON1,
+				CON1_CE_MASK,
+				CON1_CE_SHIFT,
+				val
+				);
+}
+
 static void bq24157_set_tmr_rst(struct bq24157_charger_info *info, u8 val)
 {
+	
+	if(info->charging)
+	{
+		watchdog_time++;
+	       if(watchdog_time > 600)
+			bq24157_set_ce(info,1);		
+	}
+	else
+	{
+		watchdog_time = 0;
+	}
+		
 	bq24157_update_bits(info, BQ24157_CON0,
 				CON0_TMR_RST_MASK,
 				CON0_TMR_RST_SHIFT,
 				val
 				);
 	bq24157_dump_register(info);
+
+	if(info->charging && watchdog_time > 600)
+	{
+		dev_err(info->dev,"%s;%d;\n",__func__,watchdog_time);
+		watchdog_time = 0;
+		bq24157_set_ce(info,0);
+	}
+	
 }
 
 static void bq24157_set_te(struct bq24157_charger_info *info, u8 val)
@@ -250,14 +281,6 @@ static void bq24157_set_te(struct bq24157_charger_info *info, u8 val)
 				);
 }
 
-static void bq24157_set_ce(struct bq24157_charger_info *info, u8 val)
-{
-	bq24157_update_bits(info, BQ24157_CON1,
-				CON1_CE_MASK,
-				CON1_CE_SHIFT,
-				val
-				);
-}
 
 static void bq24157_set_hz_mode(struct bq24157_charger_info *info, u8 val)
 {
@@ -340,6 +363,9 @@ static int bq24157_enable_charging(struct bq24157_charger_info *info, bool en)
 	dev_err(info->dev, "%s;%d;\n",__func__,en);
 
 	if (en) {
+		watchdog_time = 0;
+		
+		bq24157_write(info,0x06, 0xac);	/* ISAFE = 1550mA, VSAFE = 4.4V */
 		bq24157_set_ce(info,1);
 		bq24157_charger_set_termina_vol(info, info->voltage_max_microvolt);
 		bq24157_set_hz_mode(info,0);
