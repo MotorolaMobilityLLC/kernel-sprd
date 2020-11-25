@@ -936,6 +936,8 @@ static int bq24157_charger_enable_otg(struct regulator_dev *dev)
 	 * Disable charger detection function in case
 	 * affecting the OTG timing sequence.
 	 */
+	dev_err(info->dev, "%s;1\n",__func__);
+	 
 	ret = regmap_update_bits(info->pmic, info->charger_detect,
 				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
 	if (ret) {
@@ -957,6 +959,8 @@ static int bq24157_charger_enable_otg(struct regulator_dev *dev)
 static int bq24157_charger_disable_otg(struct regulator_dev *dev)
 {
 	struct bq24157_charger_info *info = rdev_get_drvdata(dev);
+
+	dev_err(info->dev, "%s;1\n",__func__);
 
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
@@ -1053,7 +1057,8 @@ static int bq24157_charger_probe(struct i2c_client *client,
 
 	bq24157_read(info,BQ24157_CON3, &val);
 	if( val == 0x51)
-	       strncpy(charge_ic_vendor_name,"BQ24157",20);
+//	       strncpy(charge_ic_vendor_name,"BQ24157",20);
+	       strncpy(charge_ic_vendor_name,"SY6923",20);
 	else if ( val == 0x41 )
        	strncpy(charge_ic_vendor_name,"HL7005",20);
 	else if ( val == 0x54  )
