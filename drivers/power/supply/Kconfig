@@ -671,7 +671,7 @@ config FAST_CHARGER_SC2730
 	  Say Y here to enable support for fast charging with SC2730
 	  PMIC chips.
 
-config SUPPLY_GCOV
+config SPRD_SUPPLY_GCOV
 	bool "open gcov for supply"
 	depends on GCOV_PROFILE_MODULES
 	help

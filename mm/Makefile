@@ -41,7 +41,7 @@ obj-y			:= filemap.o mempool.o oom_kill.o \
 			   interval_tree.o list_lru.o workingset.o \
 			   debug.o $(mmu-y) vmpressure.o
 
-GCOV_PROFILE_compaction.o := $(CONFIG_MEM_GCOV)
+GCOV_PROFILE_compaction.o := $(CONFIG_SPRD_MEM_GCOV)
 obj-y += init-mm.o
 
 ifdef CONFIG_NO_BOOTMEM

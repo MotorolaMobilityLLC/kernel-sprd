@@ -820,7 +820,7 @@ config SPECULATIVE_PAGE_FAULT
 	  allocated, the speculative page fault fails and a classic page fault
 	  is then tried.
 
-config MEM_GCOV
+config SPRD_MEM_GCOV
 	bool "open gcov for memory"
 	depends on GCOV_PROFILE_MODULES
 	help

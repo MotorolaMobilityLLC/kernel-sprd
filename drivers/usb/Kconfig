@@ -207,7 +207,7 @@ config USB_ULPI_BUS
 config USB_ROLE_SWITCH
 	tristate
 
-config USB_GCOV
+config SPRD_USB_GCOV
 	bool "open gcov for usb"
 	depends on GCOV_PROFILE_MODULES
 	help

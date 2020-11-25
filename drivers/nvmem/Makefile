@@ -2,7 +2,7 @@
 #
 # Makefile for nvmem drivers.
 #
-GCOV_PROFILE := $(CONFIG_EFUSE_GCOV)
+GCOV_PROFILE := $(CONFIG_SPRD_EFUSE_GCOV)
 
 obj-$(CONFIG_NVMEM)		+= nvmem_core.o
 nvmem_core-y			:= core.o

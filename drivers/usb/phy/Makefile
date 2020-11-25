@@ -2,7 +2,7 @@
 #
 # Makefile for physical layer USB drivers
 #
-GCOV_PROFILE := $(CONFIG_USB_GCOV)
+GCOV_PROFILE := $(CONFIG_SPRD_USB_GCOV)
 
 obj-$(CONFIG_USB_PHY)			+= phy.o
 obj-$(CONFIG_OF)			+= of.o

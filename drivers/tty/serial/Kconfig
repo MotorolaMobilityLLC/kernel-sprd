@@ -1713,7 +1713,7 @@ config SERIAL_OWL_CONSOLE
 	help
 	  Say 'Y' here if you wish to use Actions Semiconductor S500/S900 UART
 	  as the system console.
-config SERIAL_GCOV
+config SPRD_SERIAL_GCOV
 	bool "open gcov for serial"
 	depends on GCOV_PROFILE_MODULES
 	help

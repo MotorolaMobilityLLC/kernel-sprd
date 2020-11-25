@@ -115,7 +115,7 @@ config CORESIGHT_CPU_DEBUG
 	  properly, please refer Documentation/trace/coresight-cpu-debug.txt
 	  for detailed description and the example for usage.
 
-config CORESIGHT_GCOV
+config SPRD_CORESIGHT_GCOV
 	bool "open gcov for coresight"
 	depends on GCOV_PROFILE_MODULES
 	help

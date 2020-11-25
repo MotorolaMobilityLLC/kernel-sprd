@@ -2,7 +2,7 @@
 #
 # USB peripheral controller drivers
 #
-GCOV_PROFILE := $(CONFIG_USB_GCOV)
+GCOV_PROFILE := $(CONFIG_SPRD_USB_GCOV)
 
 subdir-ccflags-$(CONFIG_USB_GADGET_DEBUG)	:= -DDEBUG
 subdir-ccflags-$(CONFIG_USB_GADGET_VERBOSE)	+= -DVERBOSE_DEBUG

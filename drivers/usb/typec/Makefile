@@ -1,4 +1,4 @@
-GCOV_PROFILE := $(CONFIG_USB_GCOV)
+GCOV_PROFILE := $(CONFIG_SPRD_USB_GCOV)
 
 obj-$(CONFIG_TYPEC)		+= typec.o
 typec-y				:= class.o mux.o bus.o

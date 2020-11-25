@@ -59,7 +59,7 @@ config HSEM_U8500
 
 	  If unsure, say N.
 
-config HWSPINLOCK_GCOV
+config SPRD_HWSPINLOCK_GCOV
 	bool "open gcov for hwspinlock"
 	depends on GCOV_PROFILE_MODULES
 	help

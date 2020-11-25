@@ -10,7 +10,7 @@ config SPRD_APB_BUSMONITOR
 	help
 	  Say Y here to support APB BUS monitor.
 
-config BUSMONITOR_GCOV
+config SPRD_BUSMONITOR_GCOV
 	bool "open gcov for BUS monitor"
 	depends on GCOV_PROFILE_MODULES
 	help

@@ -18,7 +18,7 @@ config SPRD_DMC_MPU_R3P0
 	help
 	  Say Y here to support R3P0 dmc mpu support.
 
-config DMC_MPU_GCOV
+config SPRD_DMC_MPU_GCOV
 	bool "open gcov for dmc mpu"
 	depends on GCOV_PROFILE_MODULES
 	help

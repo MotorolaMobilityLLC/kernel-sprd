@@ -8,5 +8,5 @@ obj-$(CONFIG_HWSPINLOCK_OMAP)		+= omap_hwspinlock.o
 obj-$(CONFIG_HWSPINLOCK_QCOM)		+= qcom_hwspinlock.o
 obj-$(CONFIG_HWSPINLOCK_SIRF)		+= sirf_hwspinlock.o
 obj-$(CONFIG_HWSPINLOCK_SPRD)		+= sprd_hwspinlock.o
-GCOV_PROFILE_sprd_hwspinlock.o := ${CONFIG_HWSPINLOCK_GCOV}
+GCOV_PROFILE_sprd_hwspinlock.o := ${CONFIG_SPRD_HWSPINLOCK_GCOV}
 obj-$(CONFIG_HSEM_U8500)		+= u8500_hsem.o
