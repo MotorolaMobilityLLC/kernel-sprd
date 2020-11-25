@@ -82,19 +82,19 @@
 
 			bat: battery {
 				compatible = "simple-battery";
-				charge-full-design-microamp-hours = <3690000>;
+				charge-full-design-microamp-hours = <2950000>;
 				charge-term-current-microamp = <120000>;
-				constant_charge_voltage_max_microvolt = <4400000>;
-				factory-internal-resistance-micro-ohms = <130000>;
+				constant_charge_voltage_max_microvolt = <4340000>;
+				factory-internal-resistance-micro-ohms = <180000>;
 				voltage-min-design-microvolt = <3450000>;
 				ocv-capacity-celsius = <20>;
-				ocv-capacity-table-0 = <4380000 100>, <4317000 95>, <4258000 90>,
-							<4200000 85>, <4145000 80>, <4092000 75>,
-							<4047000 70>, <3990000 65>, <3955000 60>,
-							<3900000 55>, <3861000 50>, <3834000 45>,
-							<3813000 40>, <3796000 35>, <3783000 30>,
-							<3770000 25>, <3752000 20>, <3730000 15>,
-							<3698000 10>, <3687000 5>, <3400000 0>;
+				ocv-capacity-table-0 = <4313000 100>, <4254000 95>, <4201000 90>,
+							<4151000 85>, <4102000 80>, <4060000 75>,
+							<4006000 70>, <3973000 65>, <3930000 60>,
+							<3882000 55>, <3851000 50>, <3829000 45>,
+							<3810000 40>, <3795000 35>, <3781000 30>,
+							<3765000 25>, <3746000 20>, <3722000 15>,
+							<3694000 10>, <3682000 5>, <3400000 0>;
 				voltage-temp-table = <1095000 800>, <986000 850>, <878000 900>,
 							  <775000 950>, <678000 1000>, <590000 1050>,
 							  <510000 1100>, <440000 1150>, <378000 1200>,
@@ -104,8 +104,8 @@
 				capacity-temp-table = <45 100>, <25 100>, <10 98>, <0 93>, <(-10) 85>, <(-20) 64>;
 				resistance-temp-table = <45 77>, <25 100>, <10 546>, <0 769>, <(-10) 892>, <(-20) 923>;
 				charge-sdp-current-microamp = <500000 500000>;
-				charge-dcp-current-microamp = <2000000 3000000>;
-				charge-cdp-current-microamp = <1150000 1150000>;
+				charge-dcp-current-microamp = <2000000 2000000>;
+				charge-cdp-current-microamp = <1500000 1500000>;
 				charge-unknown-current-microamp = <500000 500000>;
 			};
 
@@ -118,7 +118,7 @@
 
 				cm-fullbatt-vchkdrop-ms = <30000>;
 				cm-fullbatt-vchkdrop-volt = <60000>;
-				cm-fullbatt-voltage = <4350000>;
+				cm-fullbatt-voltage = <4300000>;
 				cm-fullbatt-current = <120000>;
 				cm-fullbatt-capacity = <100>;
 
@@ -158,7 +158,7 @@
 				cm-sdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
 					<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
 				cm-cdp-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 700000 4400000>,
-					<1450 1420 1150000 4400000>, <1600 1570 700000 4100000>;
+					<1450 1420 1500000 4400000>, <1600 1570 700000 4100000>;
 				cm-unknown-jeita-temp-table = <1000 1030 0 4400000>, <1150 1180 500000 4400000>,
 					<1450 1420 500000 4400000>, <1600 1570 500000 4100000>;
 
@@ -357,10 +357,10 @@
 
 &pmic_fgu {
 	monitored-battery = <&bat>;
-	sprd,calib-resistance-real = <5000>;
+	sprd,calib-resistance-real = <4850>;
 	sprd,calib-resistance-spec = <20000>;
-	first-calib-voltage = <3630000>;
-	first-calib-capacity = <40>;
+	first-calib-voltage = <3580000>;
+	first-calib-capacity = <50>;
 };
 
 &panel {
