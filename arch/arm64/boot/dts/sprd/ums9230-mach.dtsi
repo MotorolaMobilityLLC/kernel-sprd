@@ -660,3 +660,9 @@
 		};
 	};
 };
+
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
