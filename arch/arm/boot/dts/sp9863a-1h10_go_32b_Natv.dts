@@ -293,6 +293,12 @@
 		compatible = "linux,extcon-usb-gpio";
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 	};
+
+	sprd_uid {
+		compatible = "sprd-uid";
+		nvmem-cells = <&uid_start>, <&uid_end>;
+		nvmem-cell-names = "uid_start", "uid_end";
+	};
 };
 
 &reserved_memory {

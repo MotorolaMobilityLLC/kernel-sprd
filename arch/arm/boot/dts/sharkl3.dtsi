@@ -600,6 +600,14 @@
 				hwlocks = <&hwlock 8>;
 				clocks = <&aonapb_gate CLK_EFUSE_EB>;
 
+				uid_start: uid-start@ec{
+					reg = <0xec 0x4>;
+				};
+
+				uid_end: uid-end@e8{
+					reg = <0xe8 0x4>;
+				};
+
 				gthm_delta: gthm-delta@21{
 					reg = <0x21 0x4>;
 					bits = <1 7>;
