@@ -82,14 +82,6 @@
 		fb_reserved: framebuffer-mem@fd500000 {
 			reg = <0x0 0xfd500000 0x0 0x02a80000>;
 		};
-
-		pstore_reserved: ramoops@fff80000 {
-			compatible = "ramoops";
-			reg = <0x0 0xfff80000 0x0 0x00040000>;
-			record-size = <0x8000>;
-			console-size = <0x8000>;
-			pmsg-size = <0x8000>;
-		};
 	};
 
 	ipi: interrupt-controller {
