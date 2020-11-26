@@ -1201,7 +1201,7 @@ static int shub_download_calibration_data(struct shub_data *sensor, int sensor_t
 	struct file *pfile = NULL;
 	char file_path[CALIB_PATH_MAX_LENG];
 	char raw_cali_data[CALIBRATION_DATA_LENGTH] =  {0};
-	int cal_file_size = 0;
+	int cal_file_size = CALIBRATION_DATA_LENGTH;
 	int j = 0;
 
 	if ((strlen(CALIBRATION_NODE) +
