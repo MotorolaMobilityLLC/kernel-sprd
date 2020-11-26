@@ -9,4 +9,5 @@ menuconfig INPUT_FINGERPRINT
 
 source drivers/input/fingerprint/fps_fpsensor_S00/Kconfig
 source drivers/input/fingerprint/fps_focaltech_S00/Kconfig
+source drivers/input/fingerprint/fps_fpc_S00/Kconfig
 
