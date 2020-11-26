@@ -69,7 +69,7 @@ static const char * const ag_iis0_mode_txt[] = {
 };
 
 static const char * const ag_iis1_mode_txt[] = {
-	"top-adc_iis0", "pdm_top_iis1", "l5_top",
+	"top_adc_iis0", "pdm_top_iis1", "l5_top",
 };
 
 static const char * const ag_iis2_mode_txt[] = {
