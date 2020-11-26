@@ -794,7 +794,7 @@
 
 				sprd,ip = "sprd,megacores-sharkl5";
 				sprd,soc = "qogirl6";
-				sprd,mipi-drive-capability = <7>;
+				sprd,mipi-drive-capability = <5>;
 
 				/* output port */
 				port@0 {
