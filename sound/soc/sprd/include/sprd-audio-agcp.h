@@ -63,6 +63,10 @@
 #define BIT_AG_IIS1_EXT_SEL_V1                      (BIT(2) | BIT(3))
 #define BIT_AG_IIS0_EXT_SEL_V1                      (BIT(0) | BIT(1))
 
+#define SHIFT_AG_IIS4_EXT_SEL_V1				6
+#define SHIFT_AG_IIS2_EXT_SEL_V1				4
+#define SHIFT_AG_IIS1_EXT_SEL_V1				2
+#define SHIFT_AG_IIS0_EXT_SEL_V1				0
 /* ----------------------------------------------- */
 enum ag_iis {
 	AG_IIS0,
@@ -128,6 +132,7 @@ static inline int arch_audio_iis_to_audio_top_enable_v1(
 	enum ag_iis iis, int mode)
 {
 	u32 mask;
+	int shift;
 	int ret;
 
 	ret = agcp_ahb_gpr_null_check();
@@ -138,15 +143,19 @@ static inline int arch_audio_iis_to_audio_top_enable_v1(
 	switch (iis) {
 	case AG_IIS0_V1:
 		mask = BIT_AG_IIS0_EXT_SEL_V1;
+		shift = SHIFT_AG_IIS0_EXT_SEL_V1;
 		break;
 	case AG_IIS1_V1:
 		mask = BIT_AG_IIS1_EXT_SEL_V1;
+		shift = SHIFT_AG_IIS1_EXT_SEL_V1;
 		break;
 	case AG_IIS2_V1:
 		mask = BIT_AG_IIS2_EXT_SEL_V1;
+		shift = SHIFT_AG_IIS2_EXT_SEL_V1;
 		break;
 	case AG_IIS4_V1:
-		mask = BIT_AG_IIS2_EXT_SEL_V1;
+		mask = BIT_AG_IIS4_EXT_SEL_V1;
+		shift = SHIFT_AG_IIS4_EXT_SEL_V1;
 		break;
 	default:
 		pr_err("%s, sharkl6 agcp iis mux setting error!\n", __func__);
@@ -159,7 +168,7 @@ static inline int arch_audio_iis_to_audio_top_enable_v1(
 		return ret;
 	}
 
-	agcp_ahb_reg_update(REG_AGCP_AHB_EXT_ACC_AG_SEL, mask, mode);
+	agcp_ahb_reg_update(REG_AGCP_AHB_EXT_ACC_AG_SEL, mask, mode<<shift);
 	agdsp_access_disable();
 
 	return 0;
