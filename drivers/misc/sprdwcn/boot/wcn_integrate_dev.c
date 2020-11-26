@@ -862,6 +862,15 @@ static int wcn_parse_dt(struct platform_device *pdev,
 				      (const char **)&wcn_dev->file_path_ext);
 	if (!ret)
 		WCN_DBG("firmware name ext:%s\n", wcn_dev->file_path_ext);
+	ret = of_property_read_string(np, "sprd,file-name-ufs",
+                                      (const char **)&wcn_dev->file_path_ufs);
+	if (!ret)
+		WCN_DBG("firmware name:%s\n", wcn_dev->file_path_ufs);
+
+	ret = of_property_read_string(np, "sprd,file-name-ext-ufs",
+                                      (const char **)&wcn_dev->file_path_ext_ufs);
+	if (!ret)
+		WCN_DBG("firmware name ext:%s\n", wcn_dev->file_path_ext_ufs);
 
 	if (fstab_ab) {
 		if (strncmp(fstab_ab + strlen(SUFFIX), "_a", 2) == 0)

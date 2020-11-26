@@ -241,6 +241,8 @@ struct wcn_device {
 	bool	download_status;
 	char	*file_path;
 	char	*file_path_ext;
+	char	*file_path_ufs;
+	char	*file_path_ext_ufs;
 	char	firmware_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 	char	firmware_path_ext[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 	u32	file_length;

@@ -401,9 +401,44 @@ static int wcn_download_image_new(struct wcn_device *wcn_dev)
 			ret = wcn_load_firmware_img(wcn_dev, firmware_file_path,
 					      wcn_dev->file_length);
 		}
+		if (ret >= 0)
+			return ret;
+	}
+	if (wcn_dev->file_path_ufs) {
+		strncpy(firmware_file_path, wcn_dev->file_path_ufs,
+			sizeof(firmware_file_path));
+		fstab_ab(wcn_dev);
+		if (wcn_dev_is_gnss(wcn_dev)) {
+			if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD) {
+				strncpy(firmware_file_path,
+					wcn_dev->file_path_ext_ufs,
+					sizeof(firmware_file_path));
+				fstab_ab(wcn_dev);
+			}
+			gnss_file_path_set(firmware_file_path);
+		}
+
+		WCN_INFO("load config file:%s\n", firmware_file_path);
+		ret = wcn_load_firmware_img(wcn_dev, firmware_file_path,
+					    wcn_dev->file_length);
+
+		/* For gnss fix file path isn't fit with actual file type */
+		if (wcn_dev_is_gnss(wcn_dev) && ret == 1) {
+			if (s_wcn_device.gnss_type == WCN_GNSS_TYPE_BD)
+				strncpy(firmware_file_path, wcn_dev->file_path,
+					sizeof(firmware_file_path));
+			else
+				strncpy(firmware_file_path,
+					wcn_dev->file_path_ext_ufs,
+					sizeof(firmware_file_path));
+			fstab_ab(wcn_dev);
+			gnss_file_path_set(firmware_file_path);
+			WCN_INFO("load config file:%s\n", firmware_file_path);
+			ret = wcn_load_firmware_img(wcn_dev, firmware_file_path,
+					      wcn_dev->file_length);
+		}
 		return ret;
 	}
-
 	/* old function */
 	return wcn_download_image(wcn_dev);
 }
