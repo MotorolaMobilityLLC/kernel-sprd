@@ -4800,3 +4800,6 @@ CONFIG_SBITMAP=y
 # KUnit support
 #
 # CONFIG_TEST is not set
+# Tinno add for dev info
+CONFIG_T_PRODUCT_INFO=y
+CONFIG_T_PROJECT_P352=y
