@@ -41,6 +41,7 @@
 		sprd,ctrl-shutdown-type = <0x9>;
 		reg = <0x0 0x87000000 0x0 0x200000>;
 		sprd,file-name ="/dev/block/platform/soc/soc:ap-apb/201d0000.sdio/by-name/wcnmodem";
+		sprd,file-name-ufs ="/dev/block/platform/soc/soc:ap-apb/20200000.ufs/by-name/wcnmodem";
 		sprd,file-length = <0x178000>;
 		/* for btwf: cpu addr 0 map to ddr 0m */
 		sprd,apcp-sync-addr = <0x7fdc00>;
@@ -87,6 +88,8 @@
 		reg = <0x0 0x87600000 0x0 0x180000>;
 		sprd,file-name ="/dev/block/platform/soc/soc:ap-apb/201d0000.sdio/by-name/gnssmodem";
 		sprd,file-name-ext ="/dev/block/platform/soc/soc:ap-apb/201d0000.sdio/by-name/gnssmodem";
+		sprd,file-name-ufs ="/dev/block/platform/soc/soc:ap-apb/20200000.ufs/by-name/gnssmodem";
+		sprd,file-name-ext-ufs ="/dev/block/platform/soc/soc:ap-apb/20200000.ufs/by-name/gnssmodem";
 		sprd,file-length = <0x180000>;
 		/* for gnss: cpu addr 0 map to ddr 6m */
 		sprd,apcp-sync-addr = <0x1ffc00>;
