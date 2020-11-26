@@ -113,6 +113,16 @@ static bool sugov_should_update_freq(struct sugov_policy *sg_policy, u64 time)
 static bool sugov_update_next_freq(struct sugov_policy *sg_policy, u64 time,
 				   unsigned int next_freq)
 {
+	s64 delta_ns = time - sg_policy->last_freq_update_time;
+
+	if (next_freq > sg_policy->next_freq &&
+	    delta_ns < sg_policy->freq_update_delay_ns)
+		return false;
+
+	if (next_freq < sg_policy->next_freq &&
+	    delta_ns < 2 * sg_policy->freq_update_delay_ns)
+		return false;
+
 	if (sg_policy->next_freq == next_freq)
 		return false;
 
