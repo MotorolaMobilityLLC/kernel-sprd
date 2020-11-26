@@ -621,6 +621,9 @@ int wcn_proc_native_start(void *arg)
 		/* gnss need prepare some data before bootup */
 		wcn_gnss_pre_boot(wcn_dev);
 
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		wcn_dfs_poweron_status_clear(wcn_dev);
+
 	/* boot up system */
 	wcn_cpu_bootup(wcn_dev);
 
@@ -1040,6 +1043,8 @@ int stop_integrate_wcn_truely(u32 subsys)
 	}
 
 	WCN_INFO("%s do stop\n", wcn_dev->name);
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		wcn_dfs_poweroff_state_clear(wcn_dev);
 	/* btwf use the send shutdown cp2 cmd way */
 	if (is_marlin && !sprdwcn_bus_get_carddump_status())
 		force_sleep = wcn_send_force_sleep_cmd(wcn_dev);
@@ -1049,6 +1054,9 @@ int stop_integrate_wcn_truely(u32 subsys)
 	/* only one module works: stop CPU */
 	wcn_proc_native_stop(wcn_dev);
 	wcn_power_enable_sys_domain(false);
+
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		wcn_dfs_poweroff_shutdown_clear(wcn_dev);
 
 	if (is_marlin) {
 		/* stop common resources if can disable it */

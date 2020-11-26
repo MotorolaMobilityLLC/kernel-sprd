@@ -1185,6 +1185,8 @@ static int wcn_probe(struct platform_device *pdev)
 		if (wcn_dev->need_sync_efuse)
 			wcn_marlin_write_efuse();
 		loopcheck_init();
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+			wcn_dfs_status_clear();
 	} else if (strcmp(wcn_dev->name, WCN_GNSS_DEV_NAME) == 0) {
 		gnss_write_efuse_data();
 	}

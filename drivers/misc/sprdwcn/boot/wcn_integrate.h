@@ -147,6 +147,26 @@ struct wcn_gnss_special_share_mem {
 	phys_addr_t gnss_test;
 };
 
+struct wcn_dfs_sync_info {
+	/* btwf */
+	u32 btwf_record_gnss_current_clk:4;
+	u32 btwf_pwr_state:1;
+	u32 btwf_dfs_init:1;
+	u32 btwf_dfs_active:1;
+	u32 btwf_spinlock:1;
+	u32 reserved_btwf:8;
+	/* gnss */
+	u32 gnss_clk_req_ack:5;
+	u32 gnss_pwr_state:1;
+	u32 gnss_dfs_active:1;
+	u32 gnss_spinlock:1;
+	u32 reserved_gnss:8;
+};
+
+#define WCN_GNSS_DDR_OFFSET (0x600000)
+#define WCN_SYS_DFS_SYNC_ADDR_OFFSET (0x007ffb00)
+#define WCN_SYS_RFI_SYNC_ADDR_OFFSET (0x007ffb04)
+
 #ifdef CONFIG_UMW2631_I
 #define WCN_SPECIAL_SHARME_MEM_ADDR	(0x007fdc00)
 struct wcn_special_share_mem {
@@ -199,6 +219,10 @@ int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
 void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
 			       unsigned int *count);
 void wcn_mem_ram_unmap(const void *mem, unsigned int count);
+void wcn_dfs_poweroff_state_clear(struct wcn_device *wcn_dev);
+void wcn_dfs_poweroff_shutdown_clear(struct wcn_device *wcn_dev);
+void wcn_dfs_poweron_status_clear(struct wcn_device *wcn_dev);
+void wcn_dfs_status_clear(void);
 u32 wcn_platform_chip_id(void);
 u32 wcn_platform_chip_type(void);
 u32 wcn_get_cp2_comm_rx_count(void);
