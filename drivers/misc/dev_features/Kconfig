@@ -1,0 +1,21 @@
+menu "TCONFIG"
+
+# project name	  
+config T_PROJECT_P352
+    bool "Project K131"
+    default n
+    help
+	  control project k131
+
+config T_PROJECT_NAME
+    string
+	default "P352" if T_PROJECT_P352
+    default ""
+
+# product info.
+config T_PRODUCT_INFO
+    bool "T_PRODUCT_INFO"
+    default n
+
+endmenu
+
