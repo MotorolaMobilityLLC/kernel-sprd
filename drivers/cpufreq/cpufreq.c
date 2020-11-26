@@ -63,6 +63,8 @@ static DEFINE_RWLOCK(cpufreq_driver_lock);
 /* Flag to suspend/resume CPUFreq governors */
 static bool cpufreq_suspended;
 
+static unsigned int fixed_freq[NR_CPUS];
+
 static inline bool has_target(void)
 {
 	return cpufreq_driver->target_index || cpufreq_driver->target;
@@ -736,6 +738,43 @@ static ssize_t store_##file_name					\
 store_one(scaling_min_freq, min);
 store_one(scaling_max_freq, max);
 
+static ssize_t store_scaling_fix_freq(struct cpufreq_policy *policy,
+					const char *buf, size_t count)
+{
+	unsigned int fix_freq = 0;
+	unsigned int ret;
+
+	ret = sscanf(buf, "%u", &fix_freq);
+	if (ret != 1)
+		return -EINVAL;
+
+	if (fix_freq != 0) {
+		struct cpufreq_frequency_table *table = policy->freq_table;
+		struct cpufreq_frequency_table *pos;
+		unsigned int freq = 0;
+
+		if (fix_freq > policy->cpuinfo.max_freq || fix_freq < policy->cpuinfo.min_freq)
+			return -EINVAL;
+		cpufreq_for_each_valid_entry(pos, table) {
+			freq = pos->frequency;
+			if (freq == fix_freq)
+				break;
+		}
+		if (freq != fix_freq)
+			return -EINVAL;
+	}
+	fixed_freq[cpumask_first(policy->related_cpus)] = fix_freq;
+	smp_wmb();
+	 __cpufreq_driver_target(policy, fix_freq, CPUFREQ_RELATION_F);
+
+	return count;
+}
+
+static ssize_t show_scaling_fix_freq(struct cpufreq_policy *policy, char *buf)
+{
+	return sprintf(buf, "%u\n", fixed_freq[cpumask_first(policy->related_cpus)]);
+}
+
 /**
  * show_cpuinfo_cur_freq - current CPU frequency as detected by hardware
  */
@@ -922,6 +961,7 @@ cpufreq_freq_attr_ro(related_cpus);
 cpufreq_freq_attr_ro(affected_cpus);
 cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
+cpufreq_freq_attr_rw(scaling_fix_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
 
@@ -931,6 +971,7 @@ static struct attribute *default_attrs[] = {
 	&cpuinfo_transition_latency.attr,
 	&scaling_min_freq.attr,
 	&scaling_max_freq.attr,
+	&scaling_fix_freq.attr,
 	&affected_cpus.attr,
 	&related_cpus.attr,
 	&scaling_governor.attr,
@@ -2144,17 +2185,24 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 			    unsigned int relation)
 {
 	unsigned int old_target_freq = target_freq;
+	unsigned int fix = fixed_freq[cpumask_first(policy->related_cpus)];
 	int index;
 
 	if (cpufreq_disabled())
 		return -ENODEV;
 
-	/* Make sure that target_freq is within supported range */
-	target_freq = clamp_val(target_freq, policy->min, policy->max);
+	if (unlikely(fix)) {
+		target_freq = fix;
+		relation = CPUFREQ_RELATION_F;
+		pr_warn("target for CPU %u is fixed to %u kHz, only be used for test!\n",
+			policy->cpu, target_freq);
+	} else {
+		/* Make sure that target_freq is within supported range */
+		target_freq = clamp_val(target_freq, policy->min, policy->max);
 
-	pr_debug("target for CPU %u: %u kHz, relation %u, requested %u kHz\n",
-		 policy->cpu, target_freq, relation, old_target_freq);
-
+		pr_debug("target for CPU %u: %u kHz, relation %u, requested %u kHz\n",
+			 policy->cpu, target_freq, relation, old_target_freq);
+	}
 	/*
 	 * This might look like a redundant call as we are checking it again
 	 * after finding index. But it is left intentionally for cases where

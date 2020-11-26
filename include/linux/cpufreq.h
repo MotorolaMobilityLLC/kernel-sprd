@@ -254,6 +254,7 @@ static inline void cpufreq_stats_record_transition(struct cpufreq_policy *policy
 #define CPUFREQ_RELATION_L 0  /* lowest frequency at or above target */
 #define CPUFREQ_RELATION_H 1  /* highest frequency below or at target */
 #define CPUFREQ_RELATION_C 2  /* closest frequency to target */
+#define CPUFREQ_RELATION_F 3  /* fixed frequency to target */
 
 struct freq_attr {
 	struct attribute attr;
@@ -919,6 +920,15 @@ static inline int cpufreq_table_find_index_c(struct cpufreq_policy *policy,
 		return cpufreq_table_find_index_dc(policy, target_freq);
 }
 
+static inline int cpufreq_table_find_index_f(struct cpufreq_policy *policy,
+					     unsigned int target_freq)
+{
+	if (policy->freq_table_sorted == CPUFREQ_TABLE_SORTED_ASCENDING)
+		return cpufreq_table_find_index_ac(policy, target_freq);
+	else
+		return cpufreq_table_find_index_dc(policy, target_freq);
+}
+
 static inline int cpufreq_frequency_table_target(struct cpufreq_policy *policy,
 						 unsigned int target_freq,
 						 unsigned int relation)
@@ -934,6 +944,8 @@ static inline int cpufreq_frequency_table_target(struct cpufreq_policy *policy,
 		return cpufreq_table_find_index_h(policy, target_freq);
 	case CPUFREQ_RELATION_C:
 		return cpufreq_table_find_index_c(policy, target_freq);
+	case CPUFREQ_RELATION_F:
+		return cpufreq_table_find_index_f(policy, target_freq);
 	default:
 		pr_err("%s: Invalid relation: %d\n", __func__, relation);
 		return -EINVAL;
