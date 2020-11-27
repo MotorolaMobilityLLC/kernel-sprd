@@ -522,6 +522,13 @@ int ili_sleep_handler(int mode)
 			if (ili_ic_check_busy(50, 20, ON) < 0)
 				ILI_ERR("Check busy timeout during deep suspend\n");
 		}
+		if(ENABLE_GESTURE){
+			if(gesture_dubbleclick_en){
+				ilits->gesture =1;
+			}
+			else
+				ilits->gesture =0;
+		}
 
 		if (ilits->gesture) {
 			ili_switch_tp_mode(P5_X_FW_GESTURE_MODE);
