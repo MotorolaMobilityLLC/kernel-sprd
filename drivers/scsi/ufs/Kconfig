@@ -113,6 +113,17 @@ config SCSI_UFS_SPRD
 	  Select this if you have UFS controller on SPRD chipset.
 	  If unsure, say N.
 
+config SCSI_UFS_SPRD_QOGIRL6
+        tristate "SPRD QOGIRL6 specific hooks to UFS controller platform driver"
+        depends on SCSI_UFSHCD_PLATFORM
+        help
+          This selects the SPRD specific additions to UFSHCD platform driver.
+          UFS host on SPRD needs some vendor specific configuration before
+          accessing the hardware which includes PHY configuration and vendor
+          specific registers.
+          Select this if you have UFS controller on SPRD chipset.
+          If unsure, say N.
+
 config SCSI_UFS_CRYPTO
 	bool "UFS Crypto Engine Support"
 	depends on SCSI_UFSHCD && BLK_INLINE_ENCRYPTION
