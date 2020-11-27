@@ -80,6 +80,19 @@ struct sprd_sip_svc_dbg_ops {
 };
 
 /**
+ * struct sprd_sip_svc_pwr_ops - represents the various operations
+ *      provided by SPRD SIP POWER
+ *
+ * @get_wakeup_source: gets the wakeup source
+ *
+ */
+struct sprd_sip_svc_pwr_ops {
+	struct sprd_sip_svc_rev_info rev;
+
+	int (*get_wakeup_source)(u32 *major, u32 *second, u32 *thrid);
+};
+
+/**
  * struct sprd_sip_svc_handle - Handle returned to SPRD SIP clients for usage
  *
  * @perf_ops: pointer to set of performance operations
@@ -88,6 +101,7 @@ struct sprd_sip_svc_dbg_ops {
 struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_perf_ops perf_ops;
 	struct sprd_sip_svc_dbg_ops dbg_ops;
+	struct sprd_sip_svc_pwr_ops pwr_ops;
 };
 
 /**
