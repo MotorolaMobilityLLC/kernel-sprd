@@ -2,6 +2,7 @@ ccflags-y += -Iinclude/drm
 subdir-ccflags-y += -Idrivers/staging/android/ion/
 subdir-ccflags-y += -Idrivers/devfreq/apsys/
 subdir-ccflags-y += -I$(src)
+subdir-ccflags-$(CONFIG_T_PRODUCT_INFO) += -Idrivers/misc/dev_features/dev_info
 
 obj-y := sprd_drm.o \
 	sprd_gem.o \
