@@ -351,6 +351,10 @@
 	status = "okay";
 };
 
+&mm_domain {
+	status = "okay";
+};
+
 &iommu_dispc {
 	status = "okay";
 };

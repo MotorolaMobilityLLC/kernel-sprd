@@ -297,23 +297,23 @@
 			#size-cells = <2>;
 			ranges;
 
-			mm_domain: mm_domain {
-				compatible = "sprd,mm-domain";
-				force_shutdown = <&pmu_apb_regs
-				REG_PMU_APB_RF_PD_MM_TOP_CFG
-				MASK_PMU_APB_RF_PD_MM_TOP_FORCE_SHUTDOWN>;
-				shutdown_en = <&pmu_apb_regs
-				REG_PMU_APB_RF_PD_MM_TOP_CFG
-				MASK_PMU_APB_RF_PD_MM_TOP_AUTO_SHUTDOWN_EN>;
-				power_state = <&pmu_apb_regs
-				REG_PMU_APB_RF_PWR_STATUS3_DBG
-				MASK_PMU_APB_RF_PD_MM_TOP_STATE>;
-				qos_ar = <&mm_ahb_regs
-				REG_MM_AHB_RF_MM_QOS
-				MASK_MM_AHB_RF_AR_QOS_THRESHOLD_MM>;
-				qos_aw = <&mm_ahb_regs
-				REG_MM_AHB_RF_MM_QOS
-				MASK_MM_AHB_RF_AW_QOS_THRESHOLD_MM>;
+			mm_domain: power-domain@327e0024 {
+				compatible = "sprd,camsys-domain";
+				force-shutdown = <&pmu_apb_regs
+					REG_PMU_APB_RF_PD_MM_TOP_CFG
+					MASK_PMU_APB_RF_PD_MM_TOP_FORCE_SHUTDOWN>;
+				shutdown-en = <&pmu_apb_regs
+					REG_PMU_APB_RF_PD_MM_TOP_CFG
+					MASK_PMU_APB_RF_PD_MM_TOP_AUTO_SHUTDOWN_EN>;
+				power-state = <&pmu_apb_regs
+					REG_PMU_APB_RF_PWR_STATUS3_DBG
+					MASK_PMU_APB_RF_PD_MM_TOP_STATE>;
+				qos-ar = <&mm_ahb_regs
+					REG_MM_AHB_RF_MM_QOS
+					MASK_MM_AHB_RF_AR_QOS_THRESHOLD_MM>;
+				qos-aw = <&mm_ahb_regs
+					REG_MM_AHB_RF_MM_QOS
+					MASK_MM_AHB_RF_AW_QOS_THRESHOLD_MM>;
 				clock-names = "clk_mm_eb",
 					"clk_mm_ahb_eb",
 					"clk_mm_ahb",
@@ -329,6 +329,8 @@
 					<&pll2 CLK_TWPLL_512M>,
 					<&pll2 CLK_ISPPLL_468M>;
 				mm_qos_threshold = <&mm_qos_threshold>;
+				#power-domain-cells = <0>;
+				status = "disabled";
 			};
 
 			mipi_csi_phy0: mipi-csi-phy0 {
@@ -596,6 +598,7 @@
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				iommus = <&iommu_cpp>;
 				cpp_qos = <&cpp_qos>;
+				power-domains = <&mm_domain>;
 				status = "disabled";
 			};
 
@@ -675,6 +678,7 @@
 				sprd,project-id = <3>;
 				iommus = <&iommu_dcam>;
 				dcam_qos = <&dcam_qos>;
+				power-domains = <&mm_domain>;
 				status = "disabled";
 			};
 
@@ -719,6 +723,7 @@
 					MASK_MM_AHB_RF_DVFS_EB>;
 				iommus = <&iommu_fd>;
 				fd_qos = <&fd_qos>;
+				power-domains = <&mm_domain>;
 				status = "disabled";
 			};
 
