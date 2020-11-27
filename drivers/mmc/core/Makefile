@@ -3,6 +3,8 @@
 # Makefile for the kernel mmc core.
 #
 
+ccflags-$(CONFIG_T_PRODUCT_INFO) += -I$(srctree)/drivers/misc/dev_features/dev_info/
+
 obj-$(CONFIG_MMC)		+= mmc_core.o
 mmc_core-y			:= core.o bus.o host.o \
 				   mmc.o mmc_ops.o sd.o sd_ops.o \
