@@ -28,6 +28,9 @@
 #include "quirks.h"
 #include "sd_ops.h"
 #include "pwrseq.h"
+#ifdef CONFIG_T_PRODUCT_INFO
+#include <dev_info.h>
+#endif
 
 #define DEFAULT_CMD6_TIMEOUT_MS	500
 #define MIN_CACHE_EN_TIMEOUT_MS 1600
@@ -1802,7 +1805,9 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 
 	if (!oldcard)
 		host->card = card;
-
+#ifdef CONFIG_T_PRODUCT_INFO
+	FULL_PRODUCT_DEVICE_CB(ID_FLASH, get_mmc_chip_info, card);
+#endif
 	return 0;
 
 free_card:
