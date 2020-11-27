@@ -603,7 +603,7 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_TYPE:
-		type = info->usb_phy->charger_detect(info->usb_phy);
+		type = info->usb_phy->chg_type;;
 		switch (type) {
 		case SDP_TYPE:
 			val->intval = POWER_SUPPLY_TYPE_USB;
