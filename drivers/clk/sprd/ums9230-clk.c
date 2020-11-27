@@ -1320,8 +1320,7 @@ static SPRD_MUX_CLK(otg_ref_clk, "otg-ref-clk", otg_ref_parents, 0xdc,
 		    0, 1, UMS9230_MUX_FLAG);
 
 static const char * const cssys_parents[] = { "rco-25m", "ext-26m", "rco-100m",
-					      "twpll-153m6", "twpll-384m",
-					      "twpll-512m" };
+					      "twpll-153m6", "twpll-256m" };
 static SPRD_COMP_CLK(cssys_clk,	"cssys-clk", cssys_parents, 0xe0,
 		     0, 3, 8, 2, 0);
 static SPRD_DIV_CLK(cssys_apb_clk, "cssys-apb-clk", "cssys-clk", 0xe4,
