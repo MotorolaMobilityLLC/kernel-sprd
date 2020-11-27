@@ -1055,24 +1055,21 @@
 				sprd,syscon-enable = <&aon_apb_regs>;
 				module-enable-cfg = <0x4 7>;
 				reg = <0 0x322a0000 0 0x8000>;
+				sprd,topdvfs-sysctrl = <&top_dvfs_apb_regs>;
 				cpu-dcdc-cells = <&dcdc_cpu0>, <&dcdc_cpu1>;
 				device-dcdc-cells = <&dcdc_mm>, <&dcdc_modem>;
 				dcdc_cpu0: dcdc-cpu0{
-					dcdc-dvfs-enable = <0x68 20 1>;
-					dcdc-judge-vol-sw = <0x68 1 0x7 0>;
-					dcdc-subsys-tune-enable = <0x150 6 1>;
-					syscons = <&pmu_apb_regs REG_PMU_APB_RF_DVFS_BLOCK_SHUTDOWN_CFG MASK_PMU_APB_RF_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
-					syscon-names = "dvfs-blk-dcdc-sd";
-					dcdc-idle-voltage = <0x16c 3 0x7 6>;
+					dcdc-cpu-dvfs-cfg = <&dvfs_dcdc_cpu0_cfg>;
+					dvfs-blk-sd-syscon = <&pmu_apb_regs
+						REG_PMU_APB_RF_DVFS_BLOCK_SHUTDOWN_CFG
+						MASK_PMU_APB_RF_DCDC_CPU0_DVFS_BLOCK_SHUTDOWN_EN>;
 				};
 
 				dcdc_cpu1: dcdc-cpu1{
-					dcdc-dvfs-enable = <0x94 0 1>;
-					dcdc-judge-vol-sw = <0x138 15 0x7 0>;
-					dcdc-subsys-tune-enable = <0x150 7 1>;
-					syscons = <&pmu_apb_regs REG_PMU_APB_RF_DVFS_BLOCK_SHUTDOWN_CFG MASK_PMU_APB_RF_DCDC_CPU1_DVFS_BLOCK_SHUTDOWN_EN>;
-					syscon-names = "dvfs-blk-dcdc-sd";
-					dcdc-idle-voltage = <0x16c 0 0x7 5>;
+					dcdc-cpu-dvfs-cfg = <&dvfs_dcdc_cpu1_cfg>;
+					dvfs-blk-sd-syscon = <&pmu_apb_regs
+						REG_PMU_APB_RF_DVFS_BLOCK_SHUTDOWN_CFG
+						MASK_PMU_APB_RF_DCDC_CPU1_DVFS_BLOCK_SHUTDOWN_EN>;
 				};
 
 				dcdc_mm: dcdc-mm {
