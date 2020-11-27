@@ -9,6 +9,7 @@
 #include <dt-bindings/clock/sprd,ums512-clk.h>
 #include "sharkl5Pro.dtsi"
 #include "ums512-qos.dtsi"
+#include "ums512-modem.dtsi"
 
 / {
 	cpus {
@@ -445,6 +446,18 @@
 			reg = <0x0 0x81ff0000 0x0 0x00010000>; /* 64K */
 		};
 
+		smem_reserved: sipc-mem@87800000 {
+			reg = <0x0 0x87800000 0x0 0x00800000>;
+		};
+
+		sensorhub_reserved: sensorhub-mem@88000000 {
+			reg = <0x0 0x88000000 0x0 0x01000000>;
+		};
+
+		cp_reserved: cp-mem@89600000 {
+			reg = <0x0 0x89600000 0x0 0x04900000>;
+		};
+
 		sml_reserved: sml-mem@94000000 {
 			reg = <0x0 0x94000000 0x0 0x00040000>;
 		};
@@ -452,6 +465,10 @@
 		tos_reserved: tos-mem@94040000 {
 			reg = <0x0 0x94040000 0x0 0x05fc0000>;
 		};
+	};
+
+	iram_reserved: sp-iram@dc00 {
+		reg = <0x0 0xdc00 0x0 0x2000>;
 	};
 
 	rebootescrow@0 {
