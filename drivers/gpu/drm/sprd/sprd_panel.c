@@ -670,8 +670,9 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 	struct sprd_panel *panel = oled->panel;
 
 	if (g_hbm_enable){
-		DRM_INFO("firefly ,now hbm enable, not allow to set backlight\n");
-		return 0;
+		DRM_INFO("firefly ,Now hbm enable, want to set level = %d\n", bdev->props.brightness);
+		DRM_INFO("firefly ,Do not allow to set other level backlight\n");
+		bdev->props.brightness = 256;
 	}
 
 	mutex_lock(&panel_lock);
@@ -688,7 +689,7 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
 
 	if (level < 256){
 		g_last_level = level;
-		level = ((level * 80) + 20 )/ 100;
+		level = ((level * 78) + 22 )/ 100;
 	}
 
 	if (level == 256)
