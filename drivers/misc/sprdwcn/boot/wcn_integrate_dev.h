@@ -199,6 +199,11 @@ struct wcn_clock_info {
 	int gpio;
 };
 
+enum flag_emmc_or_ufs {
+	emmc = 0,
+	ufs = 1
+};
+
 struct wcn_device {
 	char	*name;
 	/* DTS info: */
@@ -267,6 +272,8 @@ struct wcn_device {
 	struct	work_struct load_wq;
 	struct	delayed_work cali_wq;
 	struct	completion download_done;
+	/* emmc or ufs flag */
+	enum flag_emmc_or_ufs wcn_mm_flag;
 };
 
 struct wcn_device_manage {
