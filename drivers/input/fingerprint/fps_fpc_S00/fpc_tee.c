@@ -55,9 +55,9 @@
 #endif
 
 #include "ontim/ontim_dev_dgb.h"
-#define FPC_HW_INFO "FPC1520"
+#define FPS_HW_INFO "FPC1520"
 DEV_ATTR_DECLARE(fingersensor)
-DEV_ATTR_DEFINE("vendor", FPC_HW_INFO)
+DEV_ATTR_DEFINE("vendor", FPS_HW_INFO)
 DEV_ATTR_DECLARE_END;
 ONTIM_DEBUG_DECLARE_AND_INIT(fingersensor, fingersensor, 8);
 
@@ -318,7 +318,7 @@ static ssize_t sensor_init(struct device *device,
     fpc->clocks_enabled = false;
     fpc->wakeup_enabled = false;
 
-    irqf = IRQF_TRIGGER_HIGH | IRQF_ONESHOT;
+    irqf = IRQF_TRIGGER_RISING | IRQF_ONESHOT | IRQF_NO_SUSPEND;
     if( fpc->prop_wakeup){
         irqf |= IRQF_NO_SUSPEND;
         device_init_wakeup(fpc->dev, 1);
@@ -412,7 +412,7 @@ static irqreturn_t fpc_irq_handler(int irq, void *handle)
     static int current_level = 0; // We assume low level from start
 
     current_level = !current_level;
-
+#if 0
     if (current_level) {
         fpsensor_log(DEBUG_LOG, "Reconfigure irq to trigger in low level\n");
         irq_set_irq_type(irq, IRQF_TRIGGER_LOW);
@@ -420,7 +420,7 @@ static irqreturn_t fpc_irq_handler(int irq, void *handle)
         fpsensor_log(DEBUG_LOG, "Reconfigure irq to trigger in high level\n");
         irq_set_irq_type(irq, IRQF_TRIGGER_HIGH);
     }
-
+#endif
     /* Make sure 'wakeup_enabled' is updated before using it
      ** since this is interrupt context (other thread...) */
     smp_rmb();
