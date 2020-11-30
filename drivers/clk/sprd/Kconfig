@@ -49,7 +49,7 @@ config SPRD_ORCA_CLK
 
 config SPRD_UMS9230_CLK
 	tristate "Support for the Spreadtrum Qogirl6 clocks"
-	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
+	depends on (ARM64 && ARCH_SPRD) || (ARM && ARCH_SPRD) || COMPILE_TEST
 	default ARM64 && ARCH_SPRD
 
 endif
