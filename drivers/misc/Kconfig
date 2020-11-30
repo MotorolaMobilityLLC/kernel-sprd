@@ -545,4 +545,5 @@ source "drivers/misc/sprdwcn/Kconfig"
 source "drivers/misc/sprd_audio/Kconfig"
 source "drivers/misc/sprd_apdu/Kconfig"
 source "drivers/misc/dev_features/Kconfig"
+source "drivers/misc/abov/Kconfig"
 endmenu
