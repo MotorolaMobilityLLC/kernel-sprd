@@ -843,6 +843,17 @@ static int gpio_keys_probe(struct platform_device *pdev)
 
 	device_init_wakeup(dev, wakeup);
 
+	for (i = 0; i < pdata->nbuttons; i++) {
+		const struct gpio_keys_button *Radio_button = &pdata->buttons[i];
+		int delay_time = 30000;
+		if (Radio_button->code == KEY_TV) {
+			mod_delayed_work(system_wq,
+					 &ddata->data[i].work,
+					 msecs_to_jiffies(delay_time));
+		}
+	}
+
+
 	return 0;
 }
 
