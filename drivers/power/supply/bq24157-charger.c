@@ -161,6 +161,15 @@ DEV_ATTR_DEFINE("vendor",charge_ic_vendor_name)
 DEV_ATTR_DECLARE_END;
 ONTIM_DEBUG_DECLARE_AND_INIT(charge_ic,charge_ic,8);
 
+static bool is_eta6937=false;
+
+static unsigned int bq24157_get_max_cur(void)
+{
+	if(is_eta6937)
+		return 	1050000;
+	else
+		return 	1150000;
+}
 static bool bq24157_charger_is_bat_present(struct bq24157_charger_info *info)
 {
 	struct power_supply *psy;
@@ -465,23 +474,26 @@ static void bq24157_charger_stop_charge(struct bq24157_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "disable bq24157 charge failed\n");
 }
-static u32 max_cur =1150000;
 static int bq24157_charger_set_current(struct bq24157_charger_info *info,
 					u32 cur)
 {
 	u8 reg_val;
 
-	dev_err(info->dev, "%s;%d;%d;\n",__func__,cur,max_cur);
+	dev_err(info->dev, "%s;%d;%d;\n",__func__,cur,bq24157_get_max_cur());
 
 	if (cur <= 500000) 
 	{
 		bq24157_set_io_level(info,0);
-		reg_val = 3;
+		
+		if(is_eta6937)
+			reg_val = 0;
+		else
+			reg_val = 3;
 	}else {
 		bq24157_set_io_level(info,0);
 
-		if(cur > max_cur)
-			cur= max_cur ;
+		if(cur > bq24157_get_max_cur())
+			cur= bq24157_get_max_cur() ;
 		reg_val = (cur-550000)/100000;
 	}
 
@@ -1088,7 +1100,10 @@ static int bq24157_charger_probe(struct i2c_client *client,
 	else if ( val == 0x41 )
        	strncpy(charge_ic_vendor_name,"HL7005",20);
 	else if ( val == 0x54  )
+	{
        	strncpy(charge_ic_vendor_name,"ETA6937",20);
+		is_eta6937 = true;
+	}
 	else
 		return -ENODEV;
 
