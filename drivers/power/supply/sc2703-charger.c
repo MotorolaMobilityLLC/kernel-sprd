@@ -82,6 +82,7 @@ static const char * const sc2703_fast_charger_supply_name[] = {
 };
 
 static bool need_disable_dcdc;
+static bool disable_power_path;
 static bool sc2703_charger_is_support_fchg(struct sc2703_charger_info *info);
 static int sc2703_charger_get_online(struct sc2703_charger_info *info,
 				     u32 *online);
@@ -92,11 +93,11 @@ static int __init boot_mode(char *str)
 		return 0;
 
 	if (!strncmp(str, "cali", strlen("cali")))
-		need_disable_dcdc = true;
+		disable_power_path = true;
 	else if (!strncmp(str, "autotest", strlen("autotest")))
-		need_disable_dcdc = true;
+		disable_power_path = true;
 	else if (!strncmp(str, "factorytest", strlen("factorytest")))
-		need_disable_dcdc = true;
+		disable_power_path = true;
 
 	return 0;
 }
@@ -581,7 +582,7 @@ static void sc2703_charger_stop_charge(struct sc2703_charger_info *info,
 		 charge_vol > SC2703_CHARGER_VOLTAGE_MAX)
 		need_disable_dcdc = true;
 
-	if (need_disable_dcdc)
+	if (need_disable_dcdc || disable_power_path)
 		mask = SC2703_CHG_EN_MASK | SC2703_DCDC_EN_MASK;
 	else
 		mask = SC2703_CHG_EN_MASK;
