@@ -322,6 +322,14 @@ config N_GSM
 	  This line discipline provides support for the GSM MUX protocol and
 	  presents the mux as a set of 61 individual tty devices.
 
+config SPRD_CMUX_GCOV
+       bool "open gcov for speadtrum CMUX"
+       depends on N_GSM && GCOV_PROFILE_MODULES
+       default n
+       help
+         This option enables gcov-based code profiling (e.g. for code coverage
+         measurements) for CMUX.
+
 config TRACE_ROUTER
 	tristate "Trace data router for MIPI P1149.7 cJTAG standard"
 	depends on TRACE_SINK
